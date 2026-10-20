@@ -30,7 +30,7 @@ export const 자료상한 = 20;
 export interface 자료 {
   id: number;
   position: number;
-  kind: 'FILE' | 'FIGMA';
+  kind: 'FILE' | 'FIGMA' | 'API_DOC';
   name: string;
   figmaUrl: string | null;
   size: number | null;
@@ -42,7 +42,7 @@ export interface 자료 {
 interface 자료행 {
   id: string;
   position: number;
-  kind: 'FILE' | 'FIGMA';
+  kind: 'FILE' | 'FIGMA' | 'API_DOC';
   name: string;
   figma_url: string | null;
   size: string | null;
@@ -77,6 +77,8 @@ export async function 준비세우기(입력: {
   값?: Record<string, unknown>;
   // 역방향 칸. 라우트가 판정한 값만 온다 — 대조가 아니면 셋 다 비운다 (DB CHECK 가 짝을 가둔다)
   대조?: { env: string; startUrl: string | null };
+  // API 애플리케이션 — 작성 중 3회 실행이 돌 대상 서버와 자료로 붙일 판 (도메인/작성 §7 「AUTHOR API 문서 판」)
+  api?: { env: string; 판id: number; version: number };
 }): Promise<number> {
   return 한묶음(async (client) => {
     const r = await client.query<{ id: string }>(
@@ -90,7 +92,7 @@ export async function 준비세우기(입력: {
         입력.누가,
         입력.이름,
         입력.대조 !== undefined,
-        입력.대조?.env ?? null,
+        입력.대조?.env ?? 입력.api?.env ?? null,
         입력.대조?.startUrl ?? null,
       ],
     );
@@ -100,6 +102,13 @@ export async function 준비세우기(입력: {
         `INSERT INTO authoring_asset (request_id, position, kind, name, figma_url)
          VALUES ($1, $2, 'FIGMA', $3, $3)`,
         [id, i + 1, 주소],
+      );
+    }
+    if (입력.api !== undefined) {
+      await client.query(
+        `INSERT INTO authoring_asset (request_id, position, kind, name, api_doc_version_id)
+         VALUES ($1, $2, 'API_DOC', $3, $4)`,
+        [id, 입력.피그마.length + 1, `API 문서 판 ${String(입력.api.version)}`, 입력.api.판id],
       );
     }
     return id;
@@ -180,6 +189,8 @@ export async function 이어작성준비(
     누가: string;
     이름: string;
     대조?: { env: string; startUrl: string | null };
+    /** API 애플리케이션 원본의 대상 서버 — 대조가 아니어도 env 를 물려받는다 */
+    apiEnv?: string;
   },
   // 뿌리 잠금을 쥔 연결 — 주면 그 트랜잭션 안에서 넣는다(잠금 안에서 풀 연결을 또 잡지 않게). 안 주면 제 묶음을 연다
   손?: PoolClient,
@@ -197,23 +208,23 @@ export async function 이어작성준비(
         입력.누가,
         입력.이름,
         입력.대조 !== undefined,
-        입력.대조?.env ?? null,
+        입력.대조?.env ?? 입력.apiEnv ?? null,
         입력.대조?.startUrl ?? null,
         입력.원본.id,
       ],
     );
     const id = Number(r.rows[0]!.id);
-    const 옛것 = await client.query<{ id: string; position: number; kind: 'FILE' | 'FIGMA'; name: string; figma_url: string | null; size: string | null }>(
-      `SELECT id, position, kind, name, figma_url, size FROM authoring_asset
+    const 옛것 = await client.query<{ id: string; position: number; kind: 'FILE' | 'FIGMA' | 'API_DOC'; name: string; figma_url: string | null; size: string | null; api_doc_version_id: string | null }>(
+      `SELECT id, position, kind, name, figma_url, size, api_doc_version_id FROM authoring_asset
         WHERE request_id = $1 AND role = 'INPUT' ORDER BY position`,
       [입력.원본.id],
     );
     const 파일: { 옛: number; 새: number; name: string }[] = [];
     for (const a of 옛것.rows) {
       const 새 = await client.query<{ id: string }>(
-        `INSERT INTO authoring_asset (request_id, position, kind, name, figma_url, size)
-         VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-        [id, a.position, a.kind, a.name, a.figma_url, a.size],
+        `INSERT INTO authoring_asset (request_id, position, kind, name, figma_url, size, api_doc_version_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+        [id, a.position, a.kind, a.name, a.figma_url, a.size, a.api_doc_version_id],
       );
       if (a.kind === 'FILE') 파일.push({ 옛: Number(a.id), 새: Number(새.rows[0]!.id), name: a.name });
     }

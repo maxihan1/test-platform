@@ -4,6 +4,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import { 작성계정인가 } from '../auth/agentToken.js';
+import { 집기API칸 } from './apiDoc.js';
 import { 병합뒤훑기 } from '../catalog/scanRun.js';
 import { 자료목록 } from './assetStore.js';
 import { 끝내기케이스맞나 } from './cases.js';
@@ -118,6 +119,8 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
         const 보류칸 = 집은것.kind === 'MERGE' ? await 머지집기칸(서비스, 집은것) : {};
         // 테스트 계정도 같은 길이다 — 대조 target · 역할별 계정 accounts 만 싣고, 에이전트는 자식 환경에만 넘긴다 (§3.6 「로그인」 · 「★ 역할별 계정」)
         const 대상칸 = await 집기대상칸(서비스, 집은것, 보류칸.target?.env);
+        // API 애플리케이션 작성 · 재실행은 판 원문과 API 인증을 싣는다 — 대조 행이 아니라 target 이 겹치지 않는다 (§7 「AUTHOR API 문서 판」)
+        const api칸 = await 집기API칸(서비스, 집은것);
         // 고치기 실행은 자식 없이 이 목록만으로 고친다 — 키가 있는 것이 곧 고치기 실행이라는 신호다 (§3.6 「★ 케이스 고치기」)
         // 고치기 행이나 그 다시 적용만 — params.edits 가 실린 작성 행은 서버 검사를 안 거친 고침이라 경로를 안 바꾼다
         const 고치기 = 집은것.kind === 'EDIT' || (집은것.kind === 'RERUN' && 집은것.sourceId !== null && (await 한건(집은것.sourceId))?.kind === 'EDIT');
@@ -127,6 +130,7 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
           assets,
           ...(토큰 === null ? {} : { figmaToken: 토큰 }),
           ...대상칸,
+          ...api칸,
           ...보류칸,
           ...(await 집기겹침칸(집은것)),
           ...(edits === null ? {} : { edits }),
