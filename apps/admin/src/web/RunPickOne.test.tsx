@@ -25,7 +25,7 @@ describe('한 건 창 — 실행 걸기 (SPEC §8.2)', () => {
     fireEvent.click(실행버튼());
 
     expect(onRun).not.toHaveBeenCalled();
-    expect(screen.getByText('대상 서버를 고르세요. 증적에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.')).toBeTruthy();
+    expect(screen.getByText('대상 서버를 고르세요. 리포트에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.')).toBeTruthy();
   });
 
   it('대상 서버를 고르면 그 서버로 걸린다', async () => {

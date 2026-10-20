@@ -202,7 +202,7 @@ describe.skipIf(연결 === undefined)('증적 문서 생성', () => {
     await generate(문서.id, 999_999_999, 'PDF');
 
     const 닫힌행 = await findDocument(문서.id);
-    expect(닫힌행).toMatchObject({ status: 'FAILED', filePath: null, error: '증적 문서를 만들지 못했습니다' });
+    expect(닫힌행).toMatchObject({ status: 'FAILED', filePath: null, error: '리포트를 만들지 못했습니다' });
     expect(닫힌행?.error).not.toContain('999999999');
   });
 });

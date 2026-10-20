@@ -124,7 +124,7 @@ export async function generate(id: number, runId: number, format: EvidenceFormat
   } catch (err) {
     // 원문은 서버 로그에만 남긴다. 화면에 가는 것은 사람이 읽을 한 문장이다 (SPEC §8.4)
     console.error(`[reporting] 증적 문서 ${String(id)} 생성이 깨졌다`, err);
-    await fail(id, '증적 문서를 만들지 못했습니다').catch((닫기오류: unknown) => {
+    await fail(id, '리포트를 만들지 못했습니다').catch((닫기오류: unknown) => {
       // 여기까지 깨지면 PENDING이 풀리지 않아 「다시 만들기」가 영원히 409를 받는다. 사람이 보게 남긴다
       console.error(`[reporting] 증적 문서 ${String(id)}를 FAILED로 닫지도 못했다`, 닫기오류);
     });

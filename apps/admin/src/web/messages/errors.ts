@@ -1,4 +1,4 @@
-// 서버 오류 문장과 증적 버튼 글자의 영어 (SPEC §8.4 · errorText.ts). 키는 한국어 원문이다
+// 서버 오류 문장과 리포트(증적) 단추 글자의 영어 (SPEC §8.4 · errorText.ts). 키는 한국어 원문이다
 // 오류 문장을 따로 둔 이유는 하나다 — 한 화면에 속하지 않고 **어느 화면에서든 뜬다**
 
 export const 오류영어: Record<string, string> = {
@@ -13,9 +13,9 @@ export const 오류영어: Record<string, string> = {
   '그 실행을 찾지 못했습니다. 주소가 틀렸거나 지워진 기록입니다':
     'Run not found. The link may be wrong or the record was removed.',
   '그 실행 항목을 찾지 못했습니다': 'Run item not found',
-  '그 증적 문서를 찾지 못했습니다': 'Evidence document not found',
-  '증적 문서 파일이 서버에 없습니다. 다시 만듭니다':
-    'The evidence file is missing on the server. Generate it again.',
+  '그 리포트를 찾지 못했습니다': 'Report not found',
+  '리포트 파일이 서버에 없습니다. 다시 만듭니다':
+    'The report file is missing on the server. Generate it again.',
   '그 케이스를 찾지 못했습니다. 스캔에서 빠졌을 수 있습니다':
     'Case not found. It may have dropped out of the last scan.',
   '그 입력값 묶음을 찾지 못했습니다': 'Parameter set not found',
@@ -26,8 +26,9 @@ export const 오류영어: Record<string, string> = {
     'Not found. Someone else may have removed it.',
 
   // 실행
-  '아직 진행 중인 실행입니다. 끝난 뒤에 증적 문서를 만듭니다':
-    'This run is still going. Generate evidence after it finishes.',
+  '이미 만드는 중인 리포트입니다': 'That report is already being generated',
+  '아직 진행 중인 실행입니다. 끝난 뒤에 리포트를 만듭니다':
+    'This run is still going. Generate the report after it finishes.',
   '한 실행에는 한 애플리케이션의 케이스만 담을 수 있습니다': 'A run holds cases from one application only',
   '이 실행으로는 실패 다시 실행을 걸 수 없습니다': 'This run cannot start a failure rerun',
   'UI 테스트와 기능 테스트는 따로 실행합니다. 한쪽만 골라 주세요': 'Run UI tests and functional tests separately. Pick one kind',
@@ -70,14 +71,15 @@ export const 오류영어: Record<string, string> = {
   '이 애플리케이션에서 작성 쓰기 권한이 없습니다': 'You do not have write access to authoring in this application',
   '요청이 실패했습니다 ({코드})': 'Request failed ({코드})',
 
-  // 증적 문서 버튼 — 문서 **내용**은 한국어 고정이고 이건 버튼 글자다
-  '증적 문서': 'Evidence document',
+  // 증적 문서(화면 글자 「리포트」) 메뉴 — 문서 **내용**은 한국어 고정이고 이건 단추 글자다
+  리포트: 'Reports',
+  '리포트 생성': 'Generate report',
+  '리포트 생성 중': 'Generating report…',
   엑셀: 'Excel',
-  '{라벨} 만들기': 'Generate {라벨}',
-  '{라벨} 다시 만들기': 'Regenerate {라벨}',
-  '{라벨} 만드는 중': 'Generating {라벨}…',
+  '{라벨} 다시 생성': 'Regenerate {라벨}',
+  '{라벨} 생성 중': 'Generating {라벨}…',
   '알 수 없는 사유로 만들지 못했습니다': 'Failed for an unknown reason',
-  '실행이 끝나면 증적 문서를 만들 수 있습니다': 'Evidence can be generated once the run finishes',
+  '실행이 끝나면 리포트를 만들 수 있습니다': 'Reports can be generated once the run finishes',
   '열기 ↗': 'Open ↗',
   받기: 'Download',
   '이 요청은 이미 다른 실행이 대기 중이거나 작성 중입니다. 새로 고쳐 보세요':

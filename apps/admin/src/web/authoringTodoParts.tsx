@@ -3,6 +3,7 @@
 
 import { api, type AuthoringCoverage, type AuthoringRow } from './api.js';
 import { use말, use언어, type 언어 } from './i18n.js';
+import { 기다림글자 } from './ui.js';
 
 /** 번호 붙은 한 가지 일. 번호는 순서가 뜻을 가질 때만(완료), 고르는 일은 A · B 로 적는다 */
 export function 일({ 표, 제목, 설명, children }: { 표: string; 제목: string; 설명: string; children?: React.ReactNode }) {
@@ -96,7 +97,7 @@ export function 이어서작성({
           disabled={보내는중}
           onClick={() => 새줄로(() => api.createAuthoringRequest(service, { kind: 'RERUN', sourceId: 요청.id, resume: true }))}
         >
-          {보내는중 ? t('시작하는 중…') : t('이어서 작성')}
+          <기다림글자 중={보내는중} 평소={t('이어서 작성')} 기다림={t('시작하는 중…')} />
         </button>
       ) : (
         <p className="hint">{t('다시 작성은 작성 쓰기 권한이 있는 사람만 할 수 있습니다.')}</p>
@@ -151,7 +152,7 @@ export function 남은요구이어작성({
     <일 표="A" 제목={제목} 설명={설명}>
       {권한 ? (
         <button className="btn" type="button" disabled={보내는중} onClick={() => 새번호로(뿌리)}>
-          {보내는중 ? t('시작하는 중…') : 제목}
+          <기다림글자 중={보내는중} 평소={제목} 기다림={t('시작하는 중…')} />
         </button>
       ) : (
         <p className="hint">{t('이어 작성은 작성 요청 권한이 있는 사람만 할 수 있습니다.')}</p>

@@ -54,13 +54,13 @@ describe('실행 결과의 권한은 그 실행의 애플리케이션으로', ()
     expect(screen.queryByText('실행 중단')).toBeNull();
   });
 
-  it('증적 만들기도 그 실행의 애플리케이션으로 가른다', async () => {
+  it('리포트 생성도 그 실행의 애플리케이션으로 가른다', async () => {
     연다('PAY-001', 'FINISHED');
-    expect(await screen.findByText('PDF 만들기')).toBeTruthy();
+    expect(await screen.findByRole('button', { name: '리포트 생성' })).toBeTruthy();
     cleanup();
     연다('MEM-001', 'FINISHED');
     await screen.findAllByText(/대상 서버/);
-    expect(screen.queryByText('PDF 만들기')).toBeNull();
+    expect(screen.queryByRole('button', { name: '리포트 생성' })).toBeNull();
   });
 });
 

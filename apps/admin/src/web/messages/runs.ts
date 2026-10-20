@@ -18,7 +18,7 @@ export const 실행말: Record<string, string> = {
 
   // 테스트 실행 (실행 창)
   '▶ 시험해 보기': '▶ Try it',
-  '기록·증적이 남지 않습니다': 'Leaves no record or evidence',
+  '기록·리포트가 남지 않습니다': 'Leaves no record or report',
   '기록이 남습니다': 'Leaves a record',
   '고급 · 시험해 보기 설정': 'Advanced · try-it settings',
   '열 주소': 'Address to open',
@@ -34,7 +34,6 @@ export const 실행말: Record<string, string> = {
   '실패 {수}': '{수} failed',
   '미실행 {수}': '{수} not run',
   '전체': 'All',
-  '통과§집계': 'All passed',
   '실패§실행': 'Has failures',
   '판정': 'Verdict',
   '디바이스': 'Device',
@@ -65,10 +64,6 @@ export const 실행말: Record<string, string> = {
   '이 애플리케이션에서 아직 실행한 기록이 없습니다': 'No runs yet in this application',
   '케이스를 골라 실행하면 여기에 쌓입니다': 'Pick cases and run them — they show up here',
   '케이스 목록으로': 'Go to case list',
-  '실행 횟수': 'Runs',
-  '평균 소요': 'Avg duration',
-  '끝난 {회수}회 기준': 'Across {회수} finished runs',
-  '전체의 {몫}%': '{몫}% of all',
   '대상 서버 {서버}': 'Target {서버}',
   '실행자 {이름}': 'By {이름}',
   '결과 보기': 'View results',
@@ -103,8 +98,8 @@ export const 실행말: Record<string, string> = {
   // 실행 창을 여는 다른 자리 — 실행 결과 · 항목 상세 (도메인/실행 §8.10)
   '실패 {건수}건 다시 실행': 'Rerun {건수} failed',
   '비활성이거나 없어 뺀 케이스 {목록}': 'Left out as inactive or missing: {목록}',
-  '대상 서버를 고르세요. 증적에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.':
-    'Pick a target server. Evidence records which server was hit.',
+  '대상 서버를 고르세요. 리포트에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.':
+    'Pick a target server. The report records which server was hit.',
   '묶음 이름': 'Set name',
   '{이름}으로 저장했습니다.': 'Saved as {이름}.',
   '입력값이 명세와 맞지 않습니다.': 'Inputs do not match the schema.',
@@ -213,7 +208,7 @@ export const 실행말: Record<string, string> = {
   '기대결과 없음': 'No expected result',
   '시험 절차': 'Test steps',
   '실행된 절차가 없습니다.': 'No steps were run.',
-  '이 화면의 구성이 증적 문서에 그대로 출력됩니다.': 'This layout is what the evidence document prints.',
+  '이 화면의 구성이 리포트에 그대로 출력됩니다.': 'This layout is what the report prints.',
   '실행 결과': 'Run results',
   '값 바꿔 재실행': 'Rerun with new values',
   '예': 'Yes',

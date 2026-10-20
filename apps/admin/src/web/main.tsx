@@ -41,6 +41,7 @@ import { ScenarioRunList } from './ScenarioRunList.js';
 import { Settings } from './Settings.js';
 import { Shell } from './Shell.js';
 import { Signup } from './Signup.js';
+import { 칩움직임을건다 } from './motion.js';
 import { Loading } from './ui.js';
 import './styles.css';
 import './authoringStatus.css';
@@ -373,6 +374,7 @@ function 뿌리() {
   );
 }
 
+칩움직임을건다();
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <뿌리 />

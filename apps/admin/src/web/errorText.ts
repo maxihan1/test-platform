@@ -19,8 +19,8 @@ export const 오류말: Record<string, string> = {
 
   RUN_NOT_FOUND: '그 실행을 찾지 못했습니다. 주소가 틀렸거나 지워진 기록입니다',
   RUN_ITEM_NOT_FOUND: '그 실행 항목을 찾지 못했습니다',
-  EVIDENCE_NOT_FOUND: '그 증적 문서를 찾지 못했습니다',
-  EVIDENCE_FILE_NOT_FOUND: '증적 문서 파일이 서버에 없습니다. 다시 만듭니다',
+  EVIDENCE_NOT_FOUND: '그 리포트를 찾지 못했습니다',
+  EVIDENCE_FILE_NOT_FOUND: '리포트 파일이 서버에 없습니다. 다시 만듭니다',
   CASE_NOT_FOUND: '그 케이스를 찾지 못했습니다. 스캔에서 빠졌을 수 있습니다',
   PARAM_SET_NOT_FOUND: '그 입력값 묶음을 찾지 못했습니다',
   SCREENSHOT_NOT_FOUND: '그 화면 사진을 찾지 못했습니다',
@@ -28,7 +28,9 @@ export const 오류말: Record<string, string> = {
 
   // 화면이 버튼을 잠그는 것과 서버가 막는 것 사이의 틈에서 만난다 — 새로고침 직후나 두 탭.
   // 이게 없으면 서버가 보낸 detail 인 'RUNNING' 이 영문 그대로 화면에 뜬다 (SPEC §7)
-  RUN_NOT_FINISHED: '아직 진행 중인 실행입니다. 끝난 뒤에 증적 문서를 만듭니다',
+  RUN_NOT_FINISHED: '아직 진행 중인 실행입니다. 끝난 뒤에 리포트를 만듭니다',
+  // 같은 형식을 두 탭에서 누르면 만난다. 없으면 서버가 짚은 글이 홀로 화면에 뜬다
+  EVIDENCE_BUSY: '이미 만드는 중인 리포트입니다',
 
   MIXED_SERVICE: '한 실행에는 한 애플리케이션의 케이스만 담을 수 있습니다',
   // 실행 하나에 한 종류다 — 사이드바가 UI · 기능 목록을 가르기 전(#132)에는 전체 선택으로 만난다 (공통/4-데이터모델 「실행 종류」)

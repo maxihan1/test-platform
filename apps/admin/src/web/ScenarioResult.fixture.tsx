@@ -74,9 +74,9 @@ export function 결과(덮: Partial<ScenarioRunResult> = {}): ScenarioRunResult 
   };
 }
 
-export function 연다(답: ScenarioRunResult, 상자안 = false) {
+export function 연다(답: ScenarioRunResult, 칸안 = false) {
   const 부름 = vi.spyOn(scenarioApi, 'result').mockResolvedValue(답);
-  render(<ScenarioResult runId={77} 판정하기={() => () => true} 상자안={상자안} />);
+  render(<ScenarioResult runId={77} 판정하기={() => () => true} 칸안={칸안} />);
   return 부름;
 }
 

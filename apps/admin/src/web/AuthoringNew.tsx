@@ -12,7 +12,7 @@ import { useRef, useState } from 'react';
 import { api, ApiError, type EnvRow } from './api.js';
 import { 크기글 } from './GuideSection.js';
 import { use말, use언어 } from './i18n.js';
-import { message } from './ui.js';
+import { message, 기다림글자 } from './ui.js';
 
 // 서버의 받는 종류와 같다. 값의 정본은 도메인/작성 §7 「자료」 표다
 export const 받는종류 = '.pdf,.docx,.doc,.md,.txt';
@@ -287,7 +287,7 @@ export function AuthoringNew({
         ) : null}
       </div>
       <button className="btn" type="submit" disabled={못보낸다 || 보내는중}>
-        {보내는중 ? t('시작하는 중…') : t('테스트 작성 시작')}
+        <기다림글자 중={보내는중} 평소={t('테스트 작성 시작')} 기다림={t('시작하는 중…')} />
       </button>
       {[...거절].map(([이유, 이름들]) => (
         <span key={이유} className="error-text">

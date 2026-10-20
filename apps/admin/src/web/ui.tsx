@@ -76,9 +76,36 @@ export function message(err: unknown, 언어: 언어): string {
   return err instanceof Error ? err.message : String(err);
 }
 
+// 글자 한 줄 대신 목록 줄 모양을 먼저 깔아 둔다 — 다 오면 그 자리에 줄이 들어와 화면이 덜 튄다 (⑬-7)
 export function Loading() {
   const t = use말();
-  return <div className="empty">{t('불러오는 중입니다.')}</div>;
+  return (
+    <div className="skel">
+      <span className="sr-only">{t('불러오는 중입니다.')}</span>
+      {[0, 1, 2, 3].map((i) => (
+        <div className="skel-row" key={i} aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * 서버를 기다리는 버튼의 글자. 안 보이는 쪽 글자를 CSS 가 같은 칸에 숨겨 겹쳐서 버튼 폭이 바뀌지 않는다 (⑬-7).
+ * 숨은 글자는 data-other 에만 있어 버튼의 글자와 접근 이름에 안 섞인다
+ */
+export function 기다림글자({ 중, 평소, 기다림 }: { 중: boolean; 평소: string; 기다림: string }) {
+  return (
+    <span className="busy-label" data-busy={중 || undefined} data-other={중 ? 평소 : 기다림}>
+      <span>
+        {중 ? <span className="pulse" aria-hidden="true" /> : null}
+        {중 ? 기다림 : 평소}
+      </span>
+    </span>
+  );
 }
 
 export function Failed({ error }: { error: string }) {
