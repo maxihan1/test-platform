@@ -70,14 +70,15 @@ export const 오류영어: Record<string, string> = {
   '이 애플리케이션에서 작성 쓰기 권한이 없습니다': 'You do not have write access to authoring in this application',
   '요청이 실패했습니다 ({코드})': 'Request failed ({코드})',
 
-  // 증적 문서 버튼 — 문서 **내용**은 한국어 고정이고 이건 버튼 글자다
-  '증적 문서': 'Evidence document',
+  // 증적 문서(화면 글자 「리포트」) 메뉴 — 문서 **내용**은 한국어 고정이고 이건 단추 글자다
+  리포트: 'Reports',
+  '리포트 생성': 'Generate report',
+  '리포트 생성 중': 'Generating report…',
   엑셀: 'Excel',
-  '{라벨} 만들기': 'Generate {라벨}',
-  '{라벨} 다시 만들기': 'Regenerate {라벨}',
-  '{라벨} 만드는 중': 'Generating {라벨}…',
+  '{라벨} 다시 생성': 'Regenerate {라벨}',
+  '{라벨} 생성 중': 'Generating {라벨}…',
   '알 수 없는 사유로 만들지 못했습니다': 'Failed for an unknown reason',
-  '실행이 끝나면 증적 문서를 만들 수 있습니다': 'Evidence can be generated once the run finishes',
+  '실행이 끝나면 리포트를 만들 수 있습니다': 'Reports can be generated once the run finishes',
   '열기 ↗': 'Open ↗',
   받기: 'Download',
   '이 요청은 이미 다른 실행이 대기 중이거나 작성 중입니다. 새로 고쳐 보세요':

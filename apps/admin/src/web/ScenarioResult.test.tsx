@@ -31,11 +31,12 @@ describe('머리', () => {
     expect(document.querySelector('.box-head .head-meta')?.textContent).toContain('SC-12');
   });
 
-  it('실패는 판정 배지 · 끝난 실행은 형식마다 증적 만들기 버튼', async () => {
+  it('실패는 판정 배지 · 끝난 실행은 「리포트 생성」 메뉴에 형식마다 한 줄', async () => {
     연다(결과());
     await screen.findByText('단계별 결과');
     expect(document.querySelector('.head .verdict')?.textContent).toBe('실패');
-    for (const 글 of ['PDF 만들기', '엑셀 만들기', 'HTML 만들기']) expect(screen.getByRole('button', { name: 글 })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '리포트 생성' }));
+    for (const 글 of ['PDF', '엑셀', 'HTML']) expect(screen.getByRole('button', { name: 글 })).toBeTruthy();
   });
 
   it('누르면 그 실행 번호로 증적을 만들고, 만든 문서는 목록에 열기 고리로 쌓인다', async () => {
@@ -43,22 +44,23 @@ describe('머리', () => {
       id: 5, format: 'PDF', status: 'PENDING', filePath: null, error: null, generatedAt: '2026-10-16T06:00:00.000Z',
     });
     연다(결과({ evidence: [{ id: 4, format: 'PDF', status: 'READY', filePath: '/x.pdf', error: null, generatedAt: '2026-10-16T05:00:00.000Z' }] }));
-    fireEvent.click(await screen.findByRole('button', { name: 'PDF 다시 만들기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '리포트 생성' }));
+    fireEvent.click(screen.getByRole('button', { name: 'PDF 다시 생성' }));
     expect(만들기).toHaveBeenCalledWith(77, 'PDF');
     expect(screen.getByRole('link', { name: '열기 ↗' }).getAttribute('href')).toBe('/api/evidence/4');
   });
 
   it('도는 중이면 버튼 대신 안내 한 줄', async () => {
     연다(결과({ status: 'RUNNING', finishedAt: null }));
-    expect(await screen.findByText('실행이 끝나면 증적 문서를 만들 수 있습니다')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'PDF 만들기' })).toBeNull();
+    expect(await screen.findByText('실행이 끝나면 리포트를 만들 수 있습니다')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '리포트 생성' })).toBeNull();
   });
 
-  it('권한이 없으면 만들기 버튼이 없다', async () => {
+  it('권한이 없으면 리포트 단추가 없다', async () => {
     vi.spyOn(scenarioApi, 'result').mockResolvedValue(결과());
     render(<ScenarioResult runId={77} 판정하기={() => () => false} />);
     await screen.findByText('단계별 결과');
-    expect(screen.queryByRole('button', { name: 'PDF 만들기' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '리포트 생성' })).toBeNull();
   });
 
   it('통과인데 미확정이 섞이면 통과 배지에 미확정 꼬리표만 곁들인다', async () => {
