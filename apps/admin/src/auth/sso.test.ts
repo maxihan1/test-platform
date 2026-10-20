@@ -139,6 +139,11 @@ describe.skipIf(연결 === undefined)('maxihan 계정(SSO) 로그인', () => {
     const { back } = await 왕복(사람('xso-sub-linked', 'xso-linked'));
     expect(back.headers.location).toBe('/');
     expect((await 행('xso-linked')).auth_sub).toBe('xso-sub-linked');
+    const me = await app.inject({ method: 'GET', url: '/api/auth/me', cookies: 쿠키(back) });
+    expect(me.json<{ user: { mustChangePassword: boolean } }>().user.mustChangePassword).toBe(false);
+    const { pool } = await import('../db/index.js');
+    const 저장값 = await pool.query("SELECT must_change_password FROM app_user WHERE username = 'xso-linked'");
+    expect(저장값.rows[0]).toEqual({ must_change_password: true });
   });
 
   it('다른 sub 가 가진 username 은 묶지 않고 아이디 안내로 간다', async () => {
