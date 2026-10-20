@@ -132,7 +132,8 @@ export function UserSection({
           </span>
           <span className="set-sub">{it.username}</span>
           <PermissionSummary row={it} projects={projects} />
-          <button className="btn ghost" onClick={() => set여는것(it.username)}>
+          {/* 누름은 줄이 받는다 — 키보드로 눌러도 브라우저가 click 을 내 위로 올라간다 */}
+          <button type="button" className="btn ghost">
             {t('편집')}
           </button>
         </div>
