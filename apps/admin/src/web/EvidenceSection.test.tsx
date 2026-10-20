@@ -36,13 +36,14 @@ function 화면({ 처음, 다음 }: { 처음: EvidenceRow[]; 다음?: EvidenceRo
 }
 
 describe('use증적', () => {
-  it('PDF 만들기를 누르면 문서가 READY 가 된 뒤 목록 줄을 누르지 않아도 받아진다', async () => {
+  it('리포트 생성 › PDF 를 누르면 문서가 READY 가 된 뒤 목록 줄을 누르지 않아도 받아진다', async () => {
     const 누름 = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     vi.spyOn(api, 'makeEvidence').mockResolvedValue(행(11, 'PDF', 'PENDING'));
     render(<화면 처음={[]} 다음={[행(11, 'PDF', 'READY')]} />);
 
+    fireEvent.click(screen.getByRole('button', { name: '리포트 생성' }));
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'PDF 만들기' }));
+      fireEvent.click(screen.getByRole('button', { name: 'PDF' }));
     });
 
     expect(누름).toHaveBeenCalledTimes(1);
@@ -53,8 +54,9 @@ describe('use증적', () => {
     vi.spyOn(api, 'makeEvidence').mockResolvedValue(행(11, 'PDF', 'PENDING'));
     render(<화면 처음={[]} 다음={[행(11, 'PDF', 'PENDING')]} />);
 
+    fireEvent.click(screen.getByRole('button', { name: '리포트 생성' }));
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'PDF 만들기' }));
+      fireEvent.click(screen.getByRole('button', { name: 'PDF' }));
     });
 
     expect(누름).not.toHaveBeenCalled();
@@ -65,8 +67,9 @@ describe('use증적', () => {
     vi.spyOn(api, 'makeEvidence').mockResolvedValue(행(11, 'PDF', 'PENDING'));
     render(<화면 처음={[]} 다음={[행(11, 'PDF', 'FAILED')]} />);
 
+    fireEvent.click(screen.getByRole('button', { name: '리포트 생성' }));
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'PDF 만들기' }));
+      fireEvent.click(screen.getByRole('button', { name: 'PDF' }));
     });
 
     expect(누름).not.toHaveBeenCalled();

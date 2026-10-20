@@ -1322,14 +1322,6 @@ input[type='file']::file-selector-button {
   border-color: var(--link);
 }
 
-/* 형식 버튼 셋은 한 덩어리다. 좁은 화면에서 낱개로 쪼개지면
-   첫 하나만 판정 숫자에 달라붙고 나머지가 아랫줄로 떨어진다 */
-.tally .makebtns {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
 /* 못 누르는 버튼이 눌리는 버튼과 똑같이 보이면 사람이 계속 두드린다.
    버튼이 하나일 때는 옆에 비교 대상이 없어 안 보였다 — 셋이 나란히 서면서 드러났다
    (docs/design-mockup.html 에는 원래 있던 규칙이다) */
@@ -1777,8 +1769,8 @@ input[type='file']::file-selector-button {
   overflow: hidden;
 }
 
-/* 표가 들어가 480px 에 안 들어가는 상자. 지금 `넓게` 를 주는 곳은 **셋**이다 —
-   케이스 상세(`CaseDetail.tsx`)·실행 결과(`RunResultModal.tsx`)·여러 건 실행(`RunPickModal.tsx`).
+/* 표가 들어가 480px 에 안 들어가는 상자. `넓게` 를 주는 곳의 정본은 DESIGN.md 「모달」 목록이다 —
+   케이스 상세 · 실행 결과 상자는 2026-10-19 ⑫ · 10-20 ⑬ 에 오른쪽 칸으로 옮겨 없어졌다.
    여러 건 실행 모달은 `DESIGN.md` 가 처음부터 넓은 것으로 셌는데 코드가 `넓게` 를 안 줘 480px 였다 —
    「너무 좁다」는 지적(2026-09-30)으로 코드를 문서에 맞췄다 (2026-09-22 자기검사 H2 가 찾았던 어긋남).
    좁은 화면 규칙은 `.modal` 과 같다.
@@ -1786,7 +1778,7 @@ input[type='file']::file-selector-button {
    **880px 로 잡았다가 같은 주에 1400px 로 올렸다.** 「표가 들어가 480px 에 안 들어간다」는
    그대로 맞는데, 880 으로도 **모자랐다** — 실행 결과 상자에서 정보 UI 가 95% 를 먹고
    케이스 목록에 32px 만 남아 줄 하나(101px)도 안 들어갔다 (2026-09-22 실측).
-   셋이 값 하나를 쓴다. 가르면 DESIGN.md 도 갈라야 하고 다음 사람이 한쪽만 고친다 */
+   넓은 상자는 값 하나를 쓴다. 가르면 DESIGN.md 도 갈라야 하고 다음 사람이 한쪽만 고친다 */
 .modal.wide {
   max-width: 1400px;
 }
@@ -1808,16 +1800,6 @@ input[type='file']::file-selector-button {
   gap: 10px;
   min-height: 0;
   overflow: auto;
-}
-
-/* 실행 결과 상자 안에서는 머리·필터·증적 버튼을 고정하고 케이스 줄만 스크롤한다
-   (SPEC §8.7, 2026-09-22) — 여러 건 실행 모달의 `.picked` 와 같은 규칙이다.
-   안의 `.rows-scroll` 은 위 전역 규칙을 그대로 쓴다 — 여기서 되풀이하지 않는다 */
-.modal-body .modal-results {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
 }
 
 /* 모달 안의 진행 막대. 본문이 세로 flex 라 6px 막대가 **flex-shrink 로 0 까지 줄어든다** —

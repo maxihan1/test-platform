@@ -34,7 +34,7 @@ describe('실행 진행 상자 (SPEC §8.9)', () => {
   it('이미 끝난 실행을 열면 상자가 뜨지 않는다', async () => {
     그리기('FINISHED');
 
-    await screen.findAllByText(/만들기$/);
+    await screen.findByRole('button', { name: '리포트 생성' });
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(screen.queryByRole('button', { name: /완료 · / })).toBeNull();
   });
@@ -125,7 +125,7 @@ describe('상자 안에서 정보 UI 가 목록 자리를 뺏지 않는다 (SPEC
       evidence: [증적('PDF', 'READY')],
     });
     render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 칸안 />);
-    await screen.findAllByText(/만들기$/);
+    await screen.findByRole('button', { name: '리포트 생성' });
 
     const 머리 = document.querySelector('.box-head');
     expect(머리?.textContent, '머리에 증적 문서 줄이 없다').toMatch(/만듦/);
@@ -138,7 +138,7 @@ describe('상자 안에서 정보 UI 가 목록 자리를 뺏지 않는다 (SPEC
   it('화면 전체에서도 증적 문서 줄이 머리에 선다 — 옆 칸은 없다', async () => {
     vi.spyOn(api, 'insights').mockResolvedValue(첫실행);
     그리기('FINISHED', [증적('PDF', 'READY')]);
-    await screen.findAllByText(/만들기$/);
+    await screen.findByRole('button', { name: '리포트 생성' });
 
     expect(document.querySelector('.box-head')).toBeNull();
     expect(document.querySelector('.head')?.textContent).toMatch(/만듦/);
@@ -165,7 +165,7 @@ describe('상자 안에서 정보 UI 가 목록 자리를 뺏지 않는다 (SPEC
     vi.spyOn(api, 'insights').mockResolvedValue(첫실행);
     vi.spyOn(api, 'run').mockResolvedValue({ ...실행, status: 'FINISHED', items: [], evidence: [] });
     render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 칸안 />);
-    await screen.findAllByText(/만들기$/);
+    await screen.findByRole('button', { name: '리포트 생성' });
 
     expect(screen.queryByText(/직전 실행과 비교/)).toBeNull();
     expect(document.querySelector('details')).toBeNull();
@@ -177,7 +177,7 @@ describe('결과 칸은 머리를 고정하고 요약 띠부터 스크롤한다 
     vi.spyOn(api, 'run').mockResolvedValue({ ...실행, status: 'FINISHED', items: [], evidence: [] });
     render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 칸안 />);
 
-    await screen.findAllByText(/만들기$/);
+    await screen.findByRole('button', { name: '리포트 생성' });
 
     const 면 = document.querySelector('.screen');
     expect(면?.classList.contains('pane-results')).toBe(true);
@@ -192,7 +192,7 @@ describe('결과 칸은 머리를 고정하고 요약 띠부터 스크롤한다 
 
   it('칸안 이 아니면(화면 전체) 스크롤칸을 따로 두지 않는다 — 페이지가 그대로 스크롤한다', async () => {
     그리기('FINISHED');
-    await screen.findAllByText(/만들기$/);
+    await screen.findByRole('button', { name: '리포트 생성' });
 
     const 면 = document.querySelector('.screen');
     expect(면?.classList.contains('pane-results')).toBe(false);

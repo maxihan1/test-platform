@@ -105,32 +105,54 @@ export function use증적(data: 실행상세 | null, 할수: 판정, reload: () 
 }
 
 /**
- * RUN 머리 띠 안에 들어가는 만들기 버튼들.
+ * RUN 머리 띠 안의 「리포트 생성 ▾」 단추 하나 — 누르면 형식마다 한 줄인 메뉴가 열린다 (2026-10-20 ⑬-5 사용자).
  *
- * 셋을 한 덩어리로 묶어 좁은 화면에서 통째로 아랫줄에 내린다. 안 묶으면 `PDF 만들기` 만
- * 판정 숫자에 달라붙고 나머지 둘이 아랫줄로 떨어진다 — 어떤 휴대폰에서도 셋이 한 줄에 못 선다.
- * `.btn` 의 꽉 찬 잉크색을 셋이나 늘어놓으면 머리 띠가 검은 덩어리가 된다 — 색은 판정만 갖는다.
+ * 앞 판은 형식마다 단추가 하나씩(`PDF 만들기` · `엑셀 만들기` · `HTML 만들기`) 머리에 늘어섰다.
+ * 상태(만드는 중 · 다시 생성)는 형식마다 따로라 메뉴 줄이 그 글자를 든다. 색은 판정만 갖는다 — 테두리 단추다.
  */
 export function 증적만들기버튼들({ 칸 }: { 칸: 증적칸 }) {
   const t = use말();
+  const [열림, set열림] = useState(false);
+  if (칸.버튼들.length === 0) return null;
+  const 하나라도 = 칸.버튼들.some((버튼) => 버튼.누를수있나 && !칸.만드는중.includes(버튼.format));
+  const 만드는중 = 칸.만드는중.length > 0 || 칸.버튼들.some((버튼) => !버튼.누를수있나);
+  const 단추글 = 만드는중 ? t('리포트 생성 중') : t('리포트 생성');
   return (
-    <div className="makebtns">
-      {칸.버튼들.map((버튼) => {
-        const 이것만드는중 = 칸.만드는중.includes(버튼.format);
-        return (
-          <button
-            className="btn ghost"
-            key={버튼.format}
-            disabled={!버튼.누를수있나 || 이것만드는중}
-            onClick={() => {
-              칸.누르기(버튼);
-            }}
-          >
-            {이것만드는중 ? t('{라벨} 만드는 중', { 라벨: 버튼.라벨 }) : 버튼.글}
-          </button>
-        );
-      })}
-    </div>
+    // 바깥을 누르거나(포커스가 메뉴 밖으로) Esc 를 누르면 닫는다 — 안 닫으면 떠 있는 목록이 아래 본문을 덮는다
+    <span
+      className="prd-menu"
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) set열림(false);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') set열림(false);
+      }}
+    >
+      <button className="btn ghost" aria-expanded={열림} aria-haspopup="true" disabled={!하나라도} onClick={() => set열림(!열림)}>
+        {단추글}
+        <span aria-hidden="true"> ▾</span>
+      </button>
+      {열림 ? (
+        <span className="prd-menu-list">
+          {칸.버튼들.map((버튼) => {
+            const 이것만드는중 = 칸.만드는중.includes(버튼.format);
+            return (
+              <button
+                className="btn ghost small"
+                key={버튼.format}
+                disabled={!버튼.누를수있나 || 이것만드는중}
+                onClick={() => {
+                  set열림(false);
+                  칸.누르기(버튼);
+                }}
+              >
+                {이것만드는중 ? t('{라벨} 생성 중', { 라벨: 버튼.라벨 }) : 버튼.글}
+              </button>
+            );
+          })}
+        </span>
+      ) : null}
+    </span>
   );
 }
 
@@ -156,7 +178,7 @@ export function 증적알림과목록({ 칸, 한줄로 = false }: { 칸: 증적�
         {칸.안내 === null ? null : <span className="scan-text">{칸.안내}</span>}
         {칸.사유줄들.map((줄) => (
           <span className="scan-error" key={줄.format}>
-            {줄.라벨} 증적을 만들지 못했습니다 — {줄.사유}
+            {줄.라벨} 리포트를 만들지 못했습니다 — {줄.사유}
           </span>
         ))}
         {칸.만든것.map((it) => {
@@ -191,14 +213,14 @@ export function 증적알림과목록({ 칸, 한줄로 = false }: { 칸: 증적�
         <div className="scan">
           {칸.사유줄들.map((줄) => (
             <span className="scan-error" key={줄.format}>
-              {줄.라벨} 증적을 만들지 못했습니다 — {줄.사유}
+              {줄.라벨} 리포트를 만들지 못했습니다 — {줄.사유}
             </span>
           ))}
         </div>
       )}
       {칸.만든것.length === 0 ? null : (
         <div className="sec">
-          <div className="sec-h">{t('증적 문서')}</div>
+          <div className="sec-h">{t('리포트')}</div>
           {/* 받기 전에 볼 수 있어야 한다. 화면의 항목 상세는 항목 한 건이고
               증적은 실행 전체 한 부다 (SPEC §8.4) */}
           {칸.만든것.map((it) => {

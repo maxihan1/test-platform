@@ -46,6 +46,17 @@ describe('실패 안내 줄', () => {
     expect(run).toHaveBeenCalledWith(12, 'qa');
   });
 
+  it('실행 기록 결과 칸에서 다시 실행하면 주소를 옮기지 않고 새 실행 번호를 넘긴다', async () => {
+    vi.spyOn(scenarioApi, 'result').mockResolvedValue(결과());
+    vi.spyOn(scenarioApi, 'run').mockResolvedValue({ runId: 90 });
+    const 받음 = vi.fn();
+    window.location.hash = '#/runs/e2e';
+    render(<ScenarioResult runId={77} 판정하기={() => () => true} 칸안 on새실행={받음} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'qa에서 다시 실행' }));
+    await waitFor(() => expect(받음).toHaveBeenCalledWith(90));
+    expect(window.location.hash).toBe('#/runs/e2e');
+  });
+
   it('통과한 결과는 안내 줄 없이 머리에 다시 실행만 있다', async () => {
     연다(결과({ parts: [로그인, 부품(2, {})] }));
     expect(await screen.findByRole('button', { name: 'qa에서 다시 실행' })).toBeTruthy();

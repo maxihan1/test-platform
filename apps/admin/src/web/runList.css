@@ -82,6 +82,13 @@
   font-size: 12px;
 }
 
+/* E2E 줄의 판정 칩 · 「미확정」 꼬리표는 세로 쌓기에 늘어나지 않고 왼쪽 끝에 칩 모양으로 선다 */
+.run-verdict > .verdict,
+.run-verdict > .case-tag {
+  align-self: flex-start;
+  margin-left: 0;
+}
+
 .run-verdict .unconf-line {
   font-size: 11.5px;
   color: var(--ink-muted);
@@ -136,6 +143,11 @@
 
 .screen.rr.pane-results {
   overflow: hidden;
+}
+
+/* E2E 결과는 단계 목록 하나라 칸 머리 아래 본문 전체가 스크롤한다 */
+.screen.scn-pane {
+  overflow: auto;
 }
 
 .pane-results .rr-scroll {
