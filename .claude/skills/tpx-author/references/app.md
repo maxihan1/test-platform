@@ -41,7 +41,7 @@
 
 ```bash
 npx appium-cli hold --minutes 30                 # 빈 폰 하나를 잡는다 — --udid 를 주지 않는다
-npx appium-cli -s=probe open                     # 앱을 띄우고 첫 화면을 파일로 — --app · --url 을 주지 않는다(환경값이 있다)
+npx appium-cli -s=probe open --udid "$(cat .appium-cli/held)"   # 잡은 그 폰에서 앱을 띄우고 첫 화면을 파일로 — --app · --url 은 주지 않는다(환경값이 있다)
 npx appium-cli -s=probe find --regex "로그인|가입"
 npx appium-cli -s=probe tap '~로그인'             # Ran: await driver.$('~로그인').click() + 새 화면 경로
 npx appium-cli -s=probe fill e5 "$TARGET_LOGIN_ID"
@@ -51,9 +51,10 @@ npx appium-cli release                           # 반드시 — 놓아야 팜�
 ```
 
 - **잡았으면 끝에 반드시 `close` → `release`.** 실패하든 멈추든 작성을 끝내기 전에 놓는다. 에이전트가 끝에 남은 잡기를 놓지만 그때까지 앱 정식 실행이 그 폰을 못 쓴다.
+- **작업 폴더(처음 띄워진 자리)에서만 부르고 `--minutes 30` 그대로 잡는다.** 잡은 폰 번호가 그 폴더의 `.appium-cli/` 에 남아야 에이전트가 끝에 확인한다 — 다른 폴더로 `cd` 해서 부르면 놓기를 잊었을 때 아무도 못 놓는다.
 - **메인 세션만, 한 번에 하나.** 서브에이전트에 맡기지 않는다 — 폰이 한 대면 session 이 서로 가로챈다. 필요한 화면을 먼저 추려 한 번 잡은 동안 다 읽고 놓는다. 30분 안에 끝낸다.
-- **팜의 다른 폰 · 다른 앱을 건드리지 않는다.** `--udid` · `--app` · `--url` 을 주지 않고 `crawl` 도 쓰지 않는다. 폰에 원래 깔린 앱은 지우거나 다시 깔지 않는다.
-- **계정 값은 환경값으로만 넣는다** — `"$TARGET_LOGIN_ID"` · `"$TARGET_LOGIN_PASSWORD"`, 역할 계정은 `"$(node -p 'JSON.parse(process.env.PLATFORM_ACCOUNTS).find((a) => a.role === "<역할>").loginPassword')"`. 값을 명령 · 파일 · 결과 요약에 글자로 적지 않는다. 계정 환경값이 없으면 로그인 뒤 화면은 읽지 않고 §2 대로 보류한다.
+- **팜의 다른 폰 · 다른 앱을 건드리지 않는다.** `hold` 에는 `--udid` 를 주지 않고(빈 폰 하나를 고른다) `open` 에는 잡은 폰 번호만 준다 — 안 주면 폰이 여럿일 때 다른 실행이 잡은 폰에 붙을 수 있다. `--app` · `--url` 을 주지 않고 `crawl` 도 쓰지 않는다. 폰에 원래 깔린 앱은 지우거나 다시 깔지 않는다.
+- **계정 값은 환경값으로만 넣는다** — `"$TARGET_LOGIN_ID"` · `"$TARGET_LOGIN_PASSWORD"`, 역할 계정은 `"$(node -p 'JSON.parse(process.env.PLATFORM_ACCOUNTS).find((a) => a.role === "<역할>").loginPassword')"`. 아이디는 같은 줄의 `loginId` 다. 값을 명령 · 파일 · 결과 요약에 글자로 적지 않는다. 계정 환경값이 없거나 **빈 글자면** 로그인 뒤 화면은 읽지 않고 §2 대로 보류한다(`[ -n "$TARGET_LOGIN_ID" ]` 로 먼저 본다).
 - **`fill` 의 `Ran:` 줄은 넣은 값을 글자로 찍는다**(`setValue('<값>')`). 케이스에는 선택자만 옮기고, 값은 기획서 · 입력값 칸에서 쓴다 — 계정 값을 케이스로 옮기지 않는다.
 - **주소는 `Ran:` 줄에서 옮긴다** — `~desc` · `id=` 만. `// 주소 없음` · `// 주소가 겹친다` 가 붙은 요소는 케이스에 쓰지 않는다(§2).
 - **읽은 화면은 기대값이 아니다**(§2). 화면 파일은 작업 폴더 `.appium-cli/` 에 쌓이고 올리는 변경에서 빠진다(`.gitignore`) — 케이스 폴더로 옮기지 않는다.
