@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 
 import { api, type AuthoringListRow, type EnvRow, type Paged } from './api.js';
 import { AuthoringNew } from './AuthoringNew.js';
+import { Drawer } from './Drawer.js';
 import { AuthoringStartModal } from './AuthoringStartModal.js';
 import { 목록글 } from './authoringStatus.js';
 import { 반영보임, 요청제목, 종류라벨, 줄보임, 칩글, 할일칩들, type 보임 } from './authoringView.js';
@@ -107,7 +108,15 @@ export function Authoring({ service, envs = [], 피그마토큰 = true, 할수 }
   const [할일만, set할일만] = useState(() => 주소조건().get('todo') === '1');
   use주소조건('#/authoring', { ...(할일만 ? { todo: '1' } : {}), ...(page === 1 ? {} : { page: String(page) }) });
   // 「PRD 관리」의 「이 화면들 테스트 작성」이 `?compare=1` 로 연다 — 아래 use주소조건이 조건을 정리하기 전에 한 번만 읽는다
-  const [대조처음] = useState(() => 주소조건().get('compare') === '1');
+  const [대조처음, set대조처음] = useState(() => 주소조건().get('compare') === '1');
+  // 새 요청 폼은 오른쪽 서랍에 둔다 — 요청은 가끔 넣고 목록은 자주 보니 목록이 폭을 다 쓴다 (2026-10-20 사용자 · WEB-F5-04 시안 C).
+  // 「PRD 에 없는 화면」에서 넘어오면 바로 넣으러 온 것이라 열린 채로 뜬다
+  const [서랍, set서랍] = useState(대조처음);
+  // 대조를 켜 주는 것은 넘어온 첫 서랍 한 번뿐이다 — 닫았다 다시 열 때 사람이 끈 대조가 도로 켜지면 안 된다
+  const 서랍닫기 = () => {
+    set서랍(false);
+    set대조처음(false);
+  };
   // 방금 줄에 세운 요청. 시작 모달이 이것을 보인다 — 닫으면 null
   const [방금, set방금] = useState<number | null>(null);
   // 서비스를 바꾸면 첫 쪽으로. 안 그러면 다른 서비스에서 「없다」를 보여주고 왜인지 말하지 않는다
@@ -141,16 +150,19 @@ export function Authoring({ service, envs = [], 피그마토큰 = true, 할수 }
 
   return (
     <>
-      <Head 제목={t('테스트 작성')} 부제={t('모두 {건수}건', { 건수: 줄들.data.total })} />
+      <Head
+        제목={t('테스트 작성')}
+        부제={t('모두 {건수}건', { 건수: 줄들.data.total })}
+        행동={
+          할수('작성요청') ? (
+            <button className="btn" type="button" aria-expanded={서랍} aria-controls="authoring-new-drawer" onClick={() => (서랍 ? 서랍닫기() : set서랍(true))}>
+              {t('새 작성')}
+            </button>
+          ) : undefined
+        }
+      />
 
       <div className="screen list-screen">
-        {!할수('작성요청') ? null : (
-          <AuthoringNew service={service} envs={envs} 운영자={할수('설정')} 피그마토큰={피그마토큰} 대조처음={대조처음} on넣었다={(id) => {
-              줄들.reload();
-              set방금(id);
-            }} />
-        )}
-
         <div className="toolbar">
           <span className="filter-group">
             <span className="filter-label">{t('필터')}</span>
@@ -192,6 +204,22 @@ export function Authoring({ service, envs = [], 피그마토큰 = true, 할수 }
           </div>
         )}
       </div>
+
+      {서랍 && 할수('작성요청') ? (
+        <Drawer className="authoring-drawer" id="authoring-new-drawer" aria-labelledby="authoring-new-title" onClose={서랍닫기}>
+          <div className="drawer-head">
+            <h2 id="authoring-new-title">{t('새 작성 요청')}</h2>
+            <button type="button" className="btn ghost icon" aria-label={t('닫기')} onClick={서랍닫기}>
+              ✕
+            </button>
+          </div>
+          <AuthoringNew service={service} envs={envs} 운영자={할수('설정')} 피그마토큰={피그마토큰} 대조처음={대조처음} on넣었다={(id) => {
+              줄들.reload();
+              서랍닫기();
+              set방금(id);
+            }} />
+        </Drawer>
+      ) : null}
 
       {방금 === null ? null : <AuthoringStartModal service={service} id={방금} onClose={() => set방금(null)} />}
     </>

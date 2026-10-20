@@ -3034,8 +3034,10 @@ input[type='file']::file-selector-button {
    `title`·`right`)도 같아서 여기서 새로 정의할 것이 없다 — 새 목록을 만들 때마다
    격자를 새로 짜면 줄 높이와 여백이 화면마다 달라진다 */
 
-/* 기획서를 붙여 넣는 자리. `.toolbar` 는 가로 한 줄이라 여러 줄 입력이 그 위에 그냥 얹힌다 */
-.authoring-new { align-items: flex-start; gap: 8px; }
+/* 새 요청 폼 — 오른쪽 서랍(.authoring-drawer) 안에 칸을 위에서 아래로 쌓는다. 한 줄 toolbar 에 줄줄이 붙어
+   무엇부터 채울지 안 보이던 것을 고쳤다 (2026-10-20 사용자 · WEB-F5-04 시안 C) */
+.authoring-new { display: flex; flex-direction: column; align-items: stretch; gap: 14px; padding: 18px 20px; }
+.authoring-new > .btn { align-self: flex-start; }
 .authoring-new textarea {
   flex: 1;
   min-height: 84px;
@@ -3052,8 +3054,8 @@ input[type='file']::file-selector-button {
 /* 실패는 눈에 띄어야 한다. 본문 글씨 그대로면 사람이 그냥 지나친다 */
 .error-text { color: var(--fail-text); font-weight: 600; }
 
-/* 작성 요청 폼의 칸 둘 — 이름표를 위에 얹는다. 파일 칸과 주소 칸이 한 줄에 나란히 선다 */
-.authoring-new .authoring-field { display: flex; flex-direction: column; gap: 4px; flex: 1 1 260px; min-width: 0; }
+/* 작성 요청 폼의 칸 — 이름표를 위에 얹는다 */
+.authoring-new .authoring-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .authoring-new .authoring-field > span { color: var(--ink-muted); font-size: 12px; }
 .authoring-new .authoring-field textarea { min-height: 64px; }
 
