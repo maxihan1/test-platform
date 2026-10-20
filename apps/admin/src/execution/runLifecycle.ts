@@ -11,8 +11,8 @@ async function db(): Promise<Pool> {
 }
 
 const INSERT_STEP = `
-  INSERT INTO run_item_step (history_id, seq, title, status, duration_ms, assertions, line, screenshot_path, http_trace, error)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+  INSERT INTO run_item_step (history_id, seq, title, status, duration_ms, assertions, line, screenshot_path, http_trace, error, shape_checks)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
   ON CONFLICT (history_id, seq) DO NOTHING`;
 
 function stepValues(historyId: number, step: StepResult): unknown[] {
@@ -27,6 +27,7 @@ function stepValues(historyId: number, step: StepResult): unknown[] {
     step.screenshotPath ?? null,
     step.httpTrace === undefined ? null : JSON.stringify(step.httpTrace),
     step.error === undefined ? null : JSON.stringify(step.error),
+    step.shapeChecks === undefined ? null : JSON.stringify(step.shapeChecks),
   ];
 }
 

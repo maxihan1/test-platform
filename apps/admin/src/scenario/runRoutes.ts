@@ -69,6 +69,7 @@ interface 절차행 {
   screenshot_path: string | null;
   http_trace: StepResult['httpTrace'] | null;
   error: StepResult['error'] | null;
+  shape_checks: StepResult['shapeChecks'] | null;
 }
 
 // execution/queries.ts 의 toStep 과 같은 모양이다. 건너뜀 칸이 하나 더 있다
@@ -83,6 +84,7 @@ function 절차로(row: 절차행): StepResult {
     ...(row.screenshot_path === null ? {} : { screenshotPath: row.screenshot_path }),
     ...(row.http_trace === null ? {} : { httpTrace: row.http_trace }),
     ...(row.error === null ? {} : { error: row.error }),
+    ...(row.shape_checks === null ? {} : { shapeChecks: row.shape_checks }),
     ...(row.skipped ? { skipped: true as const } : {}),
   };
 }
@@ -129,7 +131,7 @@ export async function 시나리오결과(runId: number) {
   );
   const 절차 = await pool.query<절차행>(
     `SELECT s.part_id, s.seq, s.title, s.status, s.skipped, s.duration_ms, s.assertions, s.line, s.screenshot_path,
-            s.http_trace, s.error
+            s.http_trace, s.error, s.shape_checks
        FROM scenario_run_step s JOIN scenario_run_part p ON p.id = s.part_id
       WHERE p.run_id = $1 ORDER BY s.seq`,
     [runId],

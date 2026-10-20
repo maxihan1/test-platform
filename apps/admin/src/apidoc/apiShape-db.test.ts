@@ -8,6 +8,7 @@ import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { save } from '../catalog/store.js';
+import { findItem, findRun } from '../execution/queries.js';
 import { createRun, finishItem } from '../execution/store.js';
 
 import { 케이스판 } from './caseDoc.js';
@@ -118,7 +119,7 @@ describe.skipIf(연결 === undefined)('응답 모양 확인 — 서버 쪽', { t
       [서비스],
     );
     const 끝낸다 = async (status: ExecuteResponse['status']) => {
-      const { items } = await 실행('stg');
+      const { runId, items } = await 실행('stg');
       const historyId = items[0]!.historyId;
       await finishItem(historyId, {
         historyId,
@@ -135,13 +136,18 @@ describe.skipIf(연결 === undefined)('응답 모양 확인 — 서버 쪽', { t
           },
         ],
       });
+      return { runId, historyId };
     };
 
-    await 끝낸다('PASS');
+    const 통과 = await 끝낸다('PASS');
     expect(await 받은줄()).toEqual([
       { method: 'POST', path: '/v1/pushes', status: 201, no_shape: false },
       { method: 'POST', path: '/v1/pushes', status: 400, no_shape: true },
     ]);
+    // 절차의 모양 확인 줄은 항목 상세가 그대로 돌려준다
+    const 상세 = await findItem(통과.runId, 통과.historyId);
+    expect(상세?.steps[0]?.shapeChecks).toHaveLength(3);
+    expect(상세?.steps[0]?.shapeChecks?.[1]).toEqual({ method: 'POST', path: '/v1/pushes', status: 400, result: 'NO_SHAPE' });
     await 끝낸다('NA');
     expect(await 받은줄()).toHaveLength(2);
     await 끝낸다('FAIL');
@@ -154,6 +160,7 @@ describe.skipIf(연결 === undefined)('응답 모양 확인 — 서버 쪽', { t
     await 실행문서견주기(runId);
 
     expect(await 실행머리(runId)).toEqual({ api_doc_version: 2, api_doc_note: null });
+    expect(await findRun(runId)).toMatchObject({ apiDocVersion: 2, apiDocNote: null });
     const 판 = await pool.query('SELECT source, env, created_by FROM api_doc_version WHERE service_id = $1 AND version = 2', [서비스]);
     expect(판.rows).toEqual([{ source: 'URL', env: 'stg', created_by: 'tester' }]);
   });

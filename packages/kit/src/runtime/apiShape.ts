@@ -101,14 +101,16 @@ function 문제글(issue: z.core.$ZodIssue): string {
     case 'invalid_type':
       return 받은 === undefined ? `필수 칸 ${칸} 가 없다` : `${칸} 은 ${issue.expected} 여야 하는데 ${형이름(받은)} 이다`;
     case 'invalid_value':
-      return `${칸} 값 ${JSON.stringify(받은)} 은 문서에 없는 값이다`;
+      // enum 밖 값은 짧은 이름이라 보여 준다. 길면 자른다 — 문제 줄은 절차 기록처럼 가린 뒤 저장 · 화면에 간다
+      return `${칸} 값 ${JSON.stringify(받은).slice(0, 50)} 은 문서에 없는 값이다`;
     case 'unrecognized_keys':
       return `${칸} 에 문서가 막은 칸 ${issue.keys.join(' · ')} 이 있다`;
     case 'invalid_format':
       return `${칸} 은 ${issue.format} 꼴이어야 한다`;
     case 'too_small':
     case 'too_big':
-      return `${칸} 이 문서의 범위를 벗어났다 — ${JSON.stringify(받은)}`;
+      // 값은 싣지 않는다 — 길이 규칙에 걸린 글자가 토큰일 수 있다
+      return `${칸} 이 문서의 범위를 벗어났다`;
     default:
       return `${칸} 이 문서와 맞지 않는다 — ${issue.message}`;
   }
