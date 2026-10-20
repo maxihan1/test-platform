@@ -159,8 +159,8 @@ describe('POST /app-screen', () => {
     expect(res.statusCode).toBe(200);
   });
 
-  it('app 에 주소(://)를 주면 400 이다 — 러너 PC 가 아무 apk 나 내려받게 하지 않는다', async () => {
-    const res = await 보냄({ app: 'https://evil/x.apk' });
+  it('app 에 http(s) 밖의 주소(file:// 등)를 주면 400 이다 — Appium 이 도는 PC 의 아무 파일이나 깔게 하지 않는다', async () => {
+    const res = await 보냄({ app: 'file:///etc/x.apk' });
 
     expect(res.statusCode).toBe(400);
     expect(fetchMock).not.toHaveBeenCalled();
