@@ -258,6 +258,20 @@ describe.skipIf(연결 === undefined)('API 문서 통로', { timeout: 30_000 }, 
     expect((await 다시작성('2', { fromVersion: 1, env: 'prod', operations: 하나 })).json()).toEqual({ error: 'BAD_ENV' });
     expect((await 다시작성('2', { fromVersion: '1', env: 'stg', operations: 하나 })).json()).toEqual({ error: 'INVALID_REQUEST' });
     expect((await 다시작성('2', { fromVersion: 1, env: 'stg', operations: [{ method: 'POST' }] })).json()).toEqual({ error: 'INVALID_REQUEST' });
+    expect((await 다시작성('2', { fromVersion: 2, env: 'stg', operations: 하나 })).json()).toEqual({ error: 'INVALID_REQUEST' });
     expect((await q('SELECT 1 FROM authoring_request WHERE service_id = $1', [서비스])).rowCount).toBe(0);
+  });
+
+  it('다시 작성 — 없어진 API 만 고르면 NOTHING_TO_APPLY · 새 판이 마지막 판이 아니면 NOT_LATEST_VERSION · 열린 다시 작성이 있으면 409 APPLY_OPEN', async () => {
+    await 올리기(JSON.stringify(문서('1', { '/v1/old': { delete: { responses: { '204': {} } } } })));
+    await 올리기(JSON.stringify(문서('2', { '/v1/devices': { post: { responses: { '201': {} } } } })));
+    const 몸 = { fromVersion: 1, env: 'stg', operations: [{ method: 'POST', path: '/v1/devices' }] };
+    expect((await 다시작성('2', { ...몸, operations: [{ method: 'DELETE', path: '/v1/old' }] })).json()).toEqual({ error: 'NOTHING_TO_APPLY' });
+    expect((await 다시작성('2', 몸)).statusCode).toBe(201);
+    const 두번째 = await 다시작성('2', 몸);
+    expect(두번째.statusCode).toBe(409);
+    expect(두번째.json()).toEqual({ error: 'APPLY_OPEN' });
+    await 올리기(JSON.stringify(문서('3')));
+    expect((await 다시작성('2', 몸)).json()).toEqual({ error: 'NOT_LATEST_VERSION' });
   });
 });

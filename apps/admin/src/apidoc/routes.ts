@@ -102,7 +102,7 @@ export default async function apiDocRoutes(app: FastifyInstance): Promise<void> 
       const to = 판번호(req.params.version);
       const from = typeof req.body?.fromVersion === 'number' ? 판번호(String(req.body.fromVersion)) : null;
       const 고른 = 고른것읽기(req.body?.operations);
-      if (to === null || from === null || 고른 === null) return reply.code(400).send({ error: 'INVALID_REQUEST' });
+      if (to === null || from === null || from >= to || 고른 === null) return reply.code(400).send({ error: 'INVALID_REQUEST' });
       if (고른.length === 0) return reply.code(400).send({ error: 'NOTHING_TO_APPLY' });
       const 답 = await 다시작성세우기({
         서비스: 앱.id,
@@ -113,7 +113,7 @@ export default async function apiDocRoutes(app: FastifyInstance): Promise<void> 
         누가: req.user?.username ?? '',
         이름: req.user?.displayName ?? '',
       });
-      if ('error' in 답) return reply.code(답.error === 'NOT_FOUND' ? 404 : 400).send({ error: 답.error });
+      if ('error' in 답) return reply.code(답.error === 'NOT_FOUND' ? 404 : 답.error === 'APPLY_OPEN' ? 409 : 400).send({ error: 답.error });
       return reply.code(201).send({ requestId: 답.id });
     },
   );

@@ -149,6 +149,7 @@ describe('바뀐 API 만 다시 작성', () => {
     expect(판파일쓰기(뗀.api!, 폴더)).toBe(true);
     const 사본 = JSON.parse(readFileSync(join(폴더, 'api-apply.json'), 'utf8')) as { 작업: { 원장번호: string[] }[] };
     expect(사본.작업.map((o) => o.원장번호)).toEqual([['API POST /v1/pushes 201', 'API POST /v1/pushes 400'], []]);
+    expect(API원장읽기(폴더).map((h) => h.번호)).toEqual(['API POST /v1/pushes 201', 'API POST /v1/pushes 400']);
     expect(API절(뗀.api!, 폴더).join('\n')).toContain('--- 바뀐 API 만 다시 작성 ---');
   });
 

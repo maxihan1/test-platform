@@ -108,6 +108,10 @@ describe.skipIf(연결 === undefined)('API 애플리케이션 작성 요청', { 
     expect(자료.rows).toEqual([{ kind: 'API_DOC', same: true }]);
     expect(새것.파일).toEqual([]);
     await q('DELETE FROM authoring_request WHERE id = $1', [새것.id]);
+
+    const 다시작성뿌리 = await 이어작성준비({ 서비스, 원본: { id: 원본, specText: null, params: { apiApply: { fromVersion: 1 }, 남길것: 1 } }, 누가: 맥, 이름: '맥', apiEnv: 'stg' });
+    expect((await q<{ params: unknown }>('SELECT params FROM authoring_request WHERE id = $1', [다시작성뿌리.id])).rows[0]!.params).toEqual({ 남길것: 1 });
+    await q('DELETE FROM authoring_request WHERE id = $1', [다시작성뿌리.id]);
   });
 
   it('재실행은 원본의 env 를 물려받고 원본 자료의 판을 싣는다 — 그 사이 실서비스 서버가 되면 400 BAD_ENV', async () => {

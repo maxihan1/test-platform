@@ -4,6 +4,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import type { API반영, API반영작업 } from '../apps/admin/src/apidoc/rewrite.js';
 import type { 원장항목 } from './authoring-ledger.js';
 import { 새로쓰기 } from './authoring-ledger-io.js';
 import type { 집은것 } from './authoring-rules.js';
@@ -33,21 +34,6 @@ export interface API작성 {
   반영?: API반영 | null;
 }
 
-/** 서버가 판 비교 통로에서 채운 한 줄 (apps/admin/src/apidoc/rewrite.ts `API반영작업`) */
-export interface API반영작업 {
-  method: string;
-  path: string;
-  change: 'NEW' | 'CHANGED' | 'REMOVED';
-  breaking: boolean;
-  notes: string[];
-  tcIds: string[];
-}
-
-export interface API반영 {
-  fromVersion: number;
-  toVersion: number;
-  operations: API반영작업[];
-}
 
 const 객체인가 = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const 글들인가 = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === 'string');
@@ -89,6 +75,7 @@ export function API떼기(것: 집은것): 집은것 {
   // 판 자료가 지워져 apiDoc 만 빠져도 target 의 apiAuths 로 API 행임을 안다 — 역방향으로 돌거나 비밀값을 안 가리면 안 된다
   if (!객체인가(판) && !Array.isArray(t.apiAuths)) return 것;
   const { target: _뗌, ...나머지 } = 것;
+  const 반영 = 반영읽기(것.params);
   return {
     ...나머지,
     api: {
@@ -98,7 +85,7 @@ export function API떼기(것: 집은것): 집은것 {
       판: 객체인가(판) && typeof 판.version === 'number' ? 판.version : 0,
       문서: 객체인가(판) ? 판.doc : undefined,
       ...(t.isProd === true ? { isProd: true as const } : {}),
-      ...(반영읽기(것.params) === undefined ? {} : { 반영: 반영읽기(것.params) }),
+      ...(반영 === undefined ? {} : { 반영 }),
     },
   };
 }
@@ -129,7 +116,7 @@ export function 판파일쓰기(api: API작성, 자료폴더: string): boolean {
  * 덮던 케이스(`tcIds`)는 누를 때 그 API 를 부르던 활성 케이스다(api_call_seen) — 서버가 박아 둔 것을 그대로 준다
  */
 export function API반영사본(반영: API반영, 문서: unknown) {
-  const 번호들 = API원장항목(문서).map((h) => h.번호);
+  const 번호들 = API원장항목(문서, 반영.operations).map((h) => h.번호);
   return {
     전판: 반영.fromVersion,
     새판: 반영.toVersion,
@@ -161,7 +148,7 @@ export function API절(api: API작성, 자료폴더: string): string[] {
     이름들 === ''
       ? '- 이 대상 서버에 API 인증이 없다. 토큰이 필요한 API 는 「인증 없이」 401 케이스만 쓰고, 나머지는 결과 요약에 「API 인증 없음」으로 적어라'
       : `- API 인증 이름: ${이름들} — 케이스는 \`api('<이름>')\` 로만 부른다. 값은 환경 변수에만 있다. 출력 · 인자 · 파일에 쓰지 마라`,
-    '- 요구 목록 사본에 `API <메서드> <경로> <코드>` 줄이 있다 — 표준 기획서 번호와 같이 케이스 줄의 출처나 「제외」로 덮는다',
+    `- 요구 목록 사본에 \`API <메서드> <경로> <코드>\` 줄이 있다${api.반영 == null ? '' : '(바뀐 API 만 다시 작성이라 고른 API 의 줄만)'} — 표준 기획서 번호와 같이 케이스 줄의 출처나 「제외」로 덮는다`,
     ...(api.반영 == null ? [] : API반영절(api.반영, 자료폴더)),
   ];
 }
@@ -184,6 +171,7 @@ export function API반영줄(api: API작성 | undefined): string[] {
   const 반영 = api?.반영;
   if (반영 == null) return [];
   const 머리 = `API 문서 반영: 판 ${String(반영.fromVersion)} → 판 ${String(반영.toVersion)} · 바뀜 ${String(셈(반영, 'CHANGED'))} · 새 API ${String(셈(반영, 'NEW'))} · 없어진 API ${String(셈(반영, 'REMOVED'))}`;
+  // 부르던 케이스가 없으면 지울 것도 없다
   const 제안 = 반영.operations.filter((o) => o.change === 'REMOVED' && o.tcIds.length > 0).map((o) => `지우기 제안 — ${o.method} ${o.path} 가 없어졌다: ${o.tcIds.join(' · ')}`);
   return [머리, ...제안];
 }
@@ -192,17 +180,19 @@ const 메서드들 = ['get', 'put', 'post', 'delete', 'patch', 'head', 'options'
 
 /**
  * 판의 API × 숫자 응답 코드마다 원장 한 줄 — 번호 꼴 `API POST /v1/pushes 201` (도메인/API §3.8 「작성」 「원장」).
- * `4XX` · `default` 는 안 든다 — 어느 코드를 받아야 덮었는지 정해지지 않는다(커버리지 분모와 같다). 경로는 문서 차례, 코드는 작은 것부터
+ * `4XX` · `default` 는 안 든다 — 어느 코드를 받아야 덮었는지 정해지지 않는다(커버리지 분모와 같다). 경로는 문서 차례, 코드는 작은 것부터.
+ * 「바뀐 API 만 다시 작성」이면 고른 API 의 줄만 — 안 고른 새 API 의 줄이 main 표에 없어 관문 0 이 「빠짐」으로 막지 않게. 그 밖 줄을 단 표 줄은 「원장에 없는 번호」 경고로만 남는다
  */
-export function API원장항목(문서: unknown): 원장항목[] {
+export function API원장항목(문서: unknown, 고른?: readonly { method: string; path: string }[]): 원장항목[] {
   const 경로들 = 객체인가(문서) && 객체인가(문서.paths) ? 문서.paths : {};
+  const 든다 = (m: string, 경로: string) => 고른 === undefined || 고른.some((o) => o.method === m && o.path === 경로);
   return Object.entries(경로들).flatMap(([경로, 줄]) =>
     // 빈칸 · 표 칸 · 백틱이 든 경로는 표 출처 칸에서 한 번호로 못 읽는다 — 덮을 수 없는 줄을 만들지 않는다
     !객체인가(줄) || /[\s|`]/.test(경로)
       ? []
       : 메서드들.flatMap((m) => {
           const 작업 = 줄[m];
-          if (!객체인가(작업) || !객체인가(작업.responses)) return [];
+          if (!객체인가(작업) || !객체인가(작업.responses) || !든다(m.toUpperCase(), 경로)) return [];
           return Object.keys(작업.responses)
             .filter((c) => /^[1-5]\d\d$/.test(c))
             .sort()
@@ -216,13 +206,15 @@ export function API원장항목(문서: unknown): 원장항목[] {
 
 /**
  * 자식의 `npm run prd:ledger` 가 원장을 다시 만들 때 — 자료 폴더에 판 파일이 있으면 그 API 줄, 없으면 빈 목록(화면 애플리케이션).
- * 에이전트는 파일을 다시 읽지 않고 메모리의 판으로 만든다 — 자식이 고친 파일로 판정이 흔들리지 않게
+ * 다시 작성 사본이 있으면 에이전트처럼 고른 API 줄만이다. 에이전트는 파일을 다시 읽지 않고 메모리의 판으로 만든다 — 자식이 고친 파일로 판정이 흔들리지 않게
  */
 export function API원장읽기(자료폴더: string): 원장항목[] {
   const 자리 = join(자료폴더, 판파일이름);
   if (!existsSync(자리)) return [];
+  const 사본자리 = join(자료폴더, API반영사본이름);
   try {
-    return API원장항목(JSON.parse(readFileSync(자리, 'utf8')));
+    const 고른 = existsSync(사본자리) ? (JSON.parse(readFileSync(사본자리, 'utf8')) as { 작업: { method: string; path: string }[] }).작업 : undefined;
+    return API원장항목(JSON.parse(readFileSync(자리, 'utf8')), 고른);
   } catch (e) {
     throw new Error(`API 문서 판 파일이 JSON 이 아니다 — ${자리}`, { cause: e });
   }
