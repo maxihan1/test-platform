@@ -178,6 +178,18 @@ describe.skipIf(연결 === undefined)('확인 함수', () => {
     expect(await 확인(await 가짜요청('xfu1-dead'))).toBeNull();
   });
 
+  it('비밀번호가 없는 계정은 비밀번호 출입증으로 통과하지 못한다', async () => {
+    const { pool } = await import('../db/index.js');
+    await pool.query(
+      `INSERT INTO app_user (username, display_name, password_hash, role, is_approved, must_change_password)
+            VALUES ($1, '한비번없음', NULL, 'member', true, false)
+       ON CONFLICT (username) DO UPDATE SET is_active = true, password_hash = NULL, is_approved = true`,
+      ['xfu1-nopw'],
+    );
+    expect(await 확인(await 가짜요청('xfu1-nopw', ''))).toBeNull();
+    expect(await 확인(await 가짜요청('xfu1-nopw', null))).toBeNull();
+  });
+
   it('배정받은 서비스가 없으면 빈 목록이다', async () => {
     const { pool } = await import('../db/index.js');
     await pool.query(
@@ -234,7 +246,7 @@ describe.skipIf(연결 === undefined)('확인 함수', () => {
     expect(JSON.stringify(user)).not.toContain('scrypt$');
 
     const 안쪽 = await 사용자와해시('xfu1-live');
-    expect(안쪽?.passwordHash.startsWith('scrypt$')).toBe(true);
+    expect(안쪽?.passwordHash?.startsWith('scrypt$')).toBe(true);
   });
 
   it('승인 대기 계정은 세션이 있어도 아무도 아니다', async () => {
@@ -256,7 +268,7 @@ describe.skipIf(연결 === undefined)('확인 함수', () => {
 
   it('출입증의 비밀번호 도장이 지금 해시와 맞으면 그 사람이다', async () => {
     const 안쪽 = await 사용자와해시('xfu1-live');
-    const user = await 확인(await 가짜요청('xfu1-live', 비밀번호도장(안쪽!.passwordHash)));
+    const user = await 확인(await 가짜요청('xfu1-live', 비밀번호도장(안쪽!.passwordHash!)));
     expect(user?.username).toBe('xfu1-live');
   });
 

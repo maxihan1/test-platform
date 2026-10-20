@@ -29,7 +29,8 @@ export default async function authRoutes(app: FastifyInstance): Promise<void> {
     const 찾은것 = username === '' || password.length > 비밀번호최대 ? null : await 로그인조회(username);
     // 아이디가 틀렸는지 비밀번호가 틀렸는지 알리지 않는다. 비활성 계정도 같은 답이다 —
     // 갈라 주면 밖에서 계정이 있는지 하나씩 확인할 수 있다 (SPEC §7)
-    if (찾은것 === null || !(await 검증(password, 찾은것.passwordHash))) {
+    // maxihan 계정으로 만들어진 계정은 비밀번호가 없다 — 비밀번호 로그인에서는 없는 계정과 같은 답이다
+    if (찾은것 === null || 찾은것.passwordHash === null || !(await 검증(password, 찾은것.passwordHash))) {
       return reply.code(401).send({ error: 'INVALID_CREDENTIALS' });
     }
     // 비밀번호를 아는 사람에게만 갈라 준다. 그래서 계정이 있는지가 밖으로 새지 않는다 (SPEC 도메인/인증 §7)
@@ -64,7 +65,7 @@ export default async function authRoutes(app: FastifyInstance): Promise<void> {
     if (newPassword.length < 비밀번호최소) return reply.code(400).send({ error: 'PASSWORD_SHORT' });
 
     const 찾은것 = currentPassword.length > 비밀번호최대 ? null : await 사용자와해시(user.username);
-    if (찾은것 === null || !(await 검증(currentPassword, 찾은것.passwordHash))) {
+    if (찾은것 === null || 찾은것.passwordHash === null || !(await 검증(currentPassword, 찾은것.passwordHash))) {
       return reply.code(400).send({ error: 'INVALID_CREDENTIALS' });
     }
     // 변경 강제를 같은 값으로 통과하지 못하게 한다 (SPEC 도메인/인증 §7)

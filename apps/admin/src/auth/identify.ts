@@ -27,6 +27,9 @@ export async function 확인(req: 인증요청): Promise<사용자 | null> {
   const 찾은것 = await 사용자와해시(username);
   if (찾은것 === null) return null;
   // 비밀번호가 바뀌었으면 그 전에 구운 출입증은 끊는다. 토큰은 비밀번호와 따로 노는 열쇠라 안 본다 (SPEC 도메인/인증 §7)
-  if (토큰 === null && req.session.get('stamp') !== 비밀번호도장(찾은것.passwordHash)) return null;
+  // 비밀번호가 없는 계정에는 비밀번호 출입증이 있을 수 없다
+  if (토큰 === null && (찾은것.passwordHash === null || req.session.get('stamp') !== 비밀번호도장(찾은것.passwordHash))) {
+    return null;
+  }
   return 찾은것.user;
 }
