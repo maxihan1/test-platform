@@ -9,7 +9,7 @@ import fastifyStatic from '@fastify/static';
 import Fastify from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { 팜증적경로, 팜증적목록 } from './farmEvidence.js';
+import { 팜기록글, 팜증적경로, 팜증적목록 } from './farmEvidence.js';
 
 let 임시: string;
 const 팜폴더 = () => join(runDir('3', '9'), FARM_EVIDENCE_DIR);
@@ -88,5 +88,15 @@ describe('GET /api/runs/:runId/items/:historyId/farm/:name', () => {
     const app = await 앱();
     const res = await app.inject({ method: 'GET', url: '/api/runs/x/items/9/farm/logcat.txt' });
     expect(res.statusCode).toBe(400);
+  });
+});
+
+describe('팜기록글', () => {
+  it('영상 수와 그 밖 파일 이름을 한 줄로 적는다', async () => {
+    expect(await 팜기록글(3, 9)).toBe('화면 영상 2개 · logcat.txt — 실행 화면의 이 항목에서 받는다');
+  });
+
+  it('받은 것이 없으면 null 이다', async () => {
+    expect(await 팜기록글(3, 10)).toBeNull();
   });
 });

@@ -36,6 +36,16 @@ export async function 팜증적목록(runId: number, historyId: number): Promise
   return 파일들;
 }
 
+/** 증적 문서용 한 줄. 문서에는 영상을 넣을 수 없어 어디서 보는지만 적는다. 받은 것이 없으면 null */
+export async function 팜기록글(runId: number, historyId: number): Promise<string | null> {
+  const 파일들 = await 팜증적목록(runId, historyId);
+  if (파일들.length === 0) return null;
+  const 영상 = 파일들.filter((f) => f.name.endsWith('.mp4')).length;
+  const 그밖 = 파일들.filter((f) => !f.name.endsWith('.mp4')).map((f) => f.name);
+  const 조각 = [...(영상 === 0 ? [] : [`화면 영상 ${String(영상)}개`]), ...그밖];
+  return `${조각.join(' · ')} — 실행 화면의 이 항목에서 받는다`;
+}
+
 /** GET /api/runs/:runId/items/:historyId/farm/:name — 영상을 앞뒤로 넘길 수 있게 Range 를 받는 sendFile 로 내준다 */
 export async function 팜증적경로(app: FastifyInstance): Promise<void> {
   // 화면 산출물용 등록과 따로 이 플러그인 안에서만 sendFile 을 단다. 경로를 스스로 내주지는 않는다

@@ -107,5 +107,6 @@ export function 본문(item: EvidenceItem): string[] {
     ...필드행('입력', item.params, '입력 없음'),
     ...필드행('기대 결과', item.expected, '기대 결과 없음'),
     ...절차,
+    ...(item.farm == null ? [] : [`    <div class="row">`, `      <div class="row-k">팜 기록</div>`, `      <div class="row-v">${안전(item.farm)}</div>`, `    </div>`]),
   ];
 }
