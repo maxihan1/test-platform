@@ -11,3 +11,5 @@ test-results/
 .orchestrator/
 # Playwright CLI output (may contain credentials)
 .playwright-cli/
+# appium-cli 상태 · 화면 파일 · 잡은 폰 번호 (작성 AI 의 앱 탐색 — SPEC 도메인/작성 §3.6 「앱 화면」)
+.appium-cli/

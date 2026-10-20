@@ -27,7 +27,7 @@ import { 거절로, 끝낼상태, 자식제한, 진척누적기, 진척재기 } 
 import { type 박동, 박동손 } from './authoring-heartbeat.js';
 import { type 서비스설정 } from './authoring-token.js';
 import { 먼저가리기 } from './authoring-masking.js';
-import { 앱화면받기 } from './authoring-app-screen.js';
+import { 앱화면받기, 잡은폰놓기, 탐색환경 } from './authoring-app-screen.js';
 import { type 바꾸기, 가이드받기, 가이드폴더 } from './authoring-guide.js';
 import { 원장과남은번호 } from './authoring-ledger-io.js';
 import { 화면지도준비 } from './authoring-covered.js';
@@ -233,7 +233,7 @@ async function 사본에서(
     // 기준 SHA — 돌려 보기 명령이 에이전트 끝 검사와 같은 기준(기준과의 차이)으로 닿은 케이스를 고른다 (§3.6 「돌려 보기 명령」)
     ...(자식 === null ? {} : { HOME: 자리.집, TMPDIR: 자리.임시 }), AUTHORING_GATE3_DIR: 자리.임시, AUTHORING_BASE_SHA: 기준,
     // 역방향 — 대상 서버·테스트 계정은 환경 변수로만. 프롬프트·인자에는 값을 안 싣는다 (§7 ★)
-    ...(것.target === undefined ? {} : 대상환경(것.target)), ...계정환경(것.accounts, (글) => console.log(`[작성] ${것.id}번 ${글}`)),
+    ...(것.target === undefined ? {} : 대상환경(것.target)), ...계정환경(것.accounts, (글) => console.log(`[작성] ${것.id}번 ${글}`)), ...탐색환경(앱화면),
   };
   const 역방향 = 것.target === undefined ? undefined : { 화면만: 화면만인가(것, 자료들), 산출물폴더: join(자리.자료, 'out'), 제외: 설정.제외 };
   const 인자 = 클로드인자(자리.자료, 판.모델, 자리.임시);
@@ -258,8 +258,8 @@ async function 사본에서(
       },
     }),
   ), (까닭) => console.log(`[작성] ${것.id}번 API 크레딧으로 못 띄웠다(${사유거르기(까닭, 비밀번호들(것))}) — 구독으로 다시 띄운다`));
-  const 단계 = 누적.단계표(); // 거절 · 시간초과 · 멈춤 · 끊김에도 남게 어떤 return · 사용량보고보다 먼저 (AUT-F3-21)
-  console.log(`[작성] ${것.id}번 단계 시각\n${단계 || '단계 표지 없음'}`);
+  const 단계 = 누적.단계표(); // 거절 · 시간초과 · 멈춤 · 끊김에도 남게 어떤 return · 사용량보고보다 먼저 (AUT-F3-21). AI 가 잡아 둔 폰도 여기서 놓는다 (§3.6 「앱 화면」)
+  console.log(`[작성] ${것.id}번 단계 시각\n${단계 || '단계 표지 없음'}`); await 잡은폰놓기(자리.트리, 앱화면, 것.id);
   // 에이전트가 거절로 멈추는 중이면 자식을 죽인 것이다 — 서버도 받아 주지 않으니 보고하지 않는다
   if (멈춤.까닭 !== null) return;
   // ★ 어떤 끝내기보다 먼저 — 끝난 행에는 서버가 409 라 시간초과 건의 토큰이 버려진다 (작성 §7 「토큰 사용량」).
