@@ -32,7 +32,11 @@ function 가림(글: string, 비밀: ReadonlySet<string>): string {
 async function 토큰받기(지금창: 창, 모음: 토큰모음, 인증: ApiAuth, 기준: string, 비밀: Set<string>): Promise<string> {
   const 열쇠 = `${기준} ${인증.name}`;
   const 있음 = 모음.get(열쇠);
-  if (있음 !== undefined && (있음.만료 === undefined || Date.now() < 있음.만료 - 다시받기여유ms)) return 있음.값;
+  if (있음 !== undefined && (있음.만료 === undefined || Date.now() < 있음.만료 - 다시받기여유ms)) {
+    // 가림 목록은 단계마다 새로 만든다 — 앞 단계가 받은 토큰을 다시 쓰는 단계도 그 토큰을 가려야 한다
+    비밀.add(있음.값);
+    return 있음.값;
+  }
 
   const 실패 = (까닭: string) => new Error(`API 인증 '${인증.name}' 토큰을 받지 못했습니다 — ${까닭}`);
   // RFC 6749 4.4 — 원문 그대로 싼다. 까닭은 kit apiAuth.ts 기본인증

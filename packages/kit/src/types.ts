@@ -177,7 +177,7 @@ export interface ScenarioPartResult {
   durationMs: number;
   steps: StepResult[];                             // case 부품만 찬다. 순번은 시나리오 전체에서 이어진다
   mocks: string[];                                 // 이 부품이 도는 동안 걸려 있던 mock 의 urlPattern
-  bound?: Record<string, unknown>;                 // 값 꽂기로 넣은 값 (결정 12)
+  bound?: Record<string, unknown>;                 // 값 꽂기로 넣은 값 (결정 12). API 호출 단계는 값 주입으로 넣은 값 (결정 14)
   error?: { message: string; stack?: string };
 }
 
