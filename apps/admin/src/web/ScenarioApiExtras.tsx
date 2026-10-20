@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import type { ScenarioJsonCheck, ScenarioPart } from '@platform/kit';
 
+import { 값주입이름 as 값이름 } from '@platform/kit/protocol';
+
 import { use말 } from './i18n.js';
 import { 응답칸 } from './ScenarioLinkParts.js';
 import { 글칸, 칸 } from './ScenarioOtherParts.js';
@@ -10,8 +12,6 @@ import type { 앱줄 } from './scenarioView.js';
 
 type ApiPart = Extract<ScenarioPart, { kind: 'api' }>;
 
-// 서버 조립 검사(scenario/validate.ts 값이름)와 같은 규칙이다
-const 값이름 = /^[A-Za-z0-9_가-힣]{1,20}$/;
 
 interface Props {
   아이디: string;
@@ -41,7 +41,8 @@ function 기대값(글: string): unknown {
   }
 }
 
-const 기대글 = (값: unknown): string => (typeof 값 === 'string' ? 값 : JSON.stringify(값));
+// 글자는 그대로 보이되, 다시 읽으면 형이 바뀌는 글자(「123」 · 「true」)는 따옴표째 보인다 — 저장 · 다시 열기 · 고치기를 돌아도 형이 같게
+const 기대글 = (값: unknown): string => (typeof 값 === 'string' && typeof 기대값(값) === 'string' ? 값 : JSON.stringify(값));
 
 export function ScenarioApiExtras({ 아이디, 번호, 단계, 단계들, 앱들, 시작, 잠금, on바꿈 }: Props) {
   const t = use말();
@@ -52,6 +53,9 @@ export function ScenarioApiExtras({ 아이디, 번호, 단계, 단계들, 앱들
   const 앞 = 단계들.slice(0, 번호 - 1).flatMap((p, i) =>
     p.kind === 'case' ? [{ 번호: i + 1, tcId: p.tcId }] : p.kind === 'api' ? [{ 번호: i + 1, tcId: `${p.method} ${p.path}` }] : [],
   );
+  const 마지막앞 = 앞.at(-1);
+  // API 호출 단계는 요청이 하나라 그 메서드 · 아무 주소로 고른다 — 러너가 메서드로 응답을 고른다
+  const 앞단계 = 마지막앞 === undefined ? undefined : 단계들[마지막앞.번호 - 1];
   const values = 단계.values ?? [];
   const checks = 단계.expectJson ?? [];
   // 기대값 글자는 적는 동안 그대로 둔다 — 3 을 적다 지운 「3.」 이 숫자로 바뀌어 사라지지 않게
@@ -105,7 +109,7 @@ export function ScenarioApiExtras({ 아이디, 번호, 단계, 단계들, 앱들
             type="button"
             className="btn ghost"
             onClick={() =>
-              on바꿈(고친단계(단계, 'values', [...values, { name: '', value: { fromSeq: 앞[앞.length - 1]!.번호, method: 'POST', urlPattern: '**', jsonPath: '' } }]))
+              on바꿈(고친단계(단계, 'values', [...values, { name: '', value: { fromSeq: 마지막앞!.번호, method: 앞단계?.kind === 'api' ? 앞단계.method : 'POST', urlPattern: '**', jsonPath: '' } }]))
             }
           >
             {t('+ 값 주입 추가')}

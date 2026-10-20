@@ -37,4 +37,16 @@ describe('API 단계 가림', () => {
 
     expect(결과.error).toBe('응답 값이 다릅니다 — token (기대 x · 받은 값 ********)');
   });
+
+  it('본문 값 주입은 한 번에 바꾼다 — 넣은 값 안의 {다른이름} 은 그대로 간다', async () => {
+    const 보냄: unknown[] = [];
+    const 창 = { fetch: async (_url: string, o: { data?: unknown }) => { 보냄.push(o.data); return 응답(201, {}); } } as unknown as 창;
+    const 이음 = 새이음([], 주소);
+    이음.응답.set('1 POST **', Promise.resolve({ status: 201, contentType: 'application/json', body: JSON.stringify({ a: 'hi {b}', b: 'B' }) }));
+    const ref = (jsonPath: string) => ({ fromSeq: 1, method: 'POST' as const, urlPattern: '**', jsonPath });
+
+    await API단계(창, 이음, 단계({ method: 'POST', expectStatus: 201, auth: undefined, body: { msg: 'x {a} {b}', n: '{b}' }, values: [{ name: 'a', value: ref('a') }, { name: 'b', value: ref('b') }] }), 2, 주소, new Map());
+
+    expect(보냄).toEqual([{ msg: 'x hi {b} B', n: 'B' }]);
+  });
 });

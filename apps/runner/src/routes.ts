@@ -5,6 +5,7 @@ import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
 import { 앱파일값인가, type ScenarioLink, type ScenarioPart, type ScenarioResponseRef } from '@platform/kit';
+import { 값주입이름 } from '@platform/kit/protocol';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
@@ -111,7 +112,7 @@ const scenarioPart = z.discriminatedUnion('kind', [
     baseUrl: z.string().url().optional(),
     // API 인증 이름 · 값 주입 · 응답 값 확인 (SPEC 도메인/시나리오 §3.7 결정 14). 이름이 인증 목록에 있는지는 부를 때 본다
     auth: z.string().min(1).max(20).optional(),
-    values: z.array(z.object({ name: z.string().regex(/^[A-Za-z0-9_가-힣]{1,20}$/), value: responseRef })).optional(),
+    values: z.array(z.object({ name: z.string().regex(값주입이름), value: responseRef })).optional(),
     expectJson: z.array(z.object({ jsonPath: z.string().min(1), equals: z.unknown() })).optional(),
     apiAuths,
   }),

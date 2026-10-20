@@ -80,7 +80,7 @@ describe('API 호출 단계의 API 인증 · 값 주입 · 응답 값 확인 (�
     const parts: ScenarioPart[] = [
       케이스('SHOP-001'),
       API({ method: 'POST', path: '/v1/devices', auth: '데모마켓', body: { userId: '{아이디}' }, values: [{ name: '아이디', value: 가입아이디 }] }),
-      API({ auth: '데모마켓', values: [{ name: '기기', value: { fromSeq: 2, method: 'POST', urlPattern: '**', jsonPath: 'id' } }], expectJson: [{ jsonPath: 'items.0.title', equals: '주문이 완료되었습니다' }] }),
+      API({ method: 'DELETE', path: '/v1/devices/{기기}', auth: '데모마켓', values: [{ name: '기기', value: { fromSeq: 2, method: 'POST', urlPattern: '**', jsonPath: 'id' } }], expectJson: [{ jsonPath: 'items.0.title', equals: '주문이 완료되었습니다' }] }),
     ];
 
     expect(검사(parts)).toEqual([]);
@@ -108,6 +108,18 @@ describe('API 호출 단계의 API 인증 · 값 주입 · 응답 값 확인 (�
       '2번 단계: 값 주입이 가리키는 1번 단계는 자기보다 앞의 케이스 · API 호출 단계가 아니다',
       '2번 단계: 값 주입 이름 「user id」 은 영문 · 숫자 · 한글 · _ 1~20자여야 한다',
       '2번 단계: 값 주입이 가리키는 1번 단계는 자기보다 앞의 케이스 · API 호출 단계가 아니다',
+    ]);
+  });
+
+  it('API 호출 단계를 가리키며 메서드가 다른 값 주입과, 경로 · 본문에 자리가 없는 이름을 거절한다', () => {
+    const parts: ScenarioPart[] = [
+      API({ method: 'POST', path: '/v1/devices' }),
+      API({ path: '/v1/devices/{기기id}', values: [{ name: '기기', value: { fromSeq: 1, method: 'GET', urlPattern: '**', jsonPath: 'id' } }] }),
+    ];
+
+    expect(검사(parts)).toEqual([
+      '2번 단계: 값 주입이 가리키는 1번 단계는 POST 요청이다',
+      '2번 단계: 값 주입 이름 「기기」 자리 {기기} 가 경로 · 본문에 없다',
     ]);
   });
 });

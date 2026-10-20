@@ -32,3 +32,6 @@ export const FARM_EVIDENCE_DIR = 'farm';
 export function 앱파일값인가(값: string): boolean {
   return !값.includes('://') || /^https?:\/\/[^/]/i.test(값);
 }
+
+// E2E API 호출 단계 값 주입 이름 — 러너 입구 · 서버 조립 검사 · 조립 화면이 같은 규칙을 봐야 저장만 되고 못 도는 시나리오가 안 생긴다 (SPEC 도메인/시나리오 §3.7 결정 14)
+export const 값주입이름 = /^[A-Za-z0-9_가-힣]{1,20}$/;

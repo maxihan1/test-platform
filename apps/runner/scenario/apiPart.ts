@@ -55,6 +55,12 @@ async function 토큰받기(지금창: 창, 모음: 토큰모음, 인증: ApiAut
   }
   if (res.status() < 200 || res.status() > 299) throw 실패(String(res.status()));
   const 글 = await res.text();
+  // kit 과 같은 문장이다 (apiAuth.ts 토큰받기)
+  try {
+    JSON.parse(글);
+  } catch {
+    throw 실패('응답이 JSON 이 아닙니다');
+  }
   const 본문 = 값꺼냄(글, 'access_token');
   if (!본문.ok || typeof 본문.value !== 'string' || 본문.value === '') throw 실패('응답에 access_token 이 없습니다');
   const 수명 = 값꺼냄(글, 'expires_in');
@@ -68,12 +74,14 @@ async function 토큰받기(지금창: 창, 모음: 토큰모음, 인증: ApiAut
 // 글자 안의 {이름} 을 값 글자로 바꾼다. 글자 전체가 {이름} 하나면 값을 형 그대로 넣는다 — 숫자 칸에 숫자가 가게
 function 본문에넣기(값: unknown, 넣을: Readonly<Record<string, unknown>>): unknown {
   if (typeof 값 === 'string') {
-    for (const [이름, v] of Object.entries(넣을)) {
-      if (값 === `{${이름}}`) return v;
-    }
-    let 글 = 값;
-    for (const [이름, v] of Object.entries(넣을)) 글 = 글.split(`{${이름}}`).join(typeof v === 'string' ? v : JSON.stringify(v));
-    return 글;
+    const 통째 = /^\{([^{}]+)\}$/.exec(값)?.[1];
+    if (통째 !== undefined && Object.hasOwn(넣을, 통째)) return 넣을[통째];
+    // 한 번에 바꾼다 — 넣은 값 안의 {다른이름} 이 또 바뀌지 않게
+    return 값.replace(/\{([^{}]+)\}/g, (원, 이름: string) => {
+      if (!Object.hasOwn(넣을, 이름)) return 원;
+      const v = 넣을[이름];
+      return typeof v === 'string' ? v : JSON.stringify(v);
+    });
   }
   if (Array.isArray(값)) return 값.map((x) => 본문에넣기(x, 넣을));
   if (typeof 값 === 'object' && 값 !== null) return Object.fromEntries(Object.entries(값).map(([k, x]) => [k, 본문에넣기(x, 넣을)]));
@@ -128,13 +136,12 @@ export async function API단계(
       ...(part.body === undefined ? {} : { data: 본문에넣기(part.body, 넣을) }),
       ...(Object.keys(headers).length === 0 ? {} : { headers }),
     });
-    // 뒤 단계의 값 주입이 이 응답을 가리키면 자리를 잡는다. 창이 닫히기 전에 다 읽는다
-    적기(이음값, seq, part.method, url, async () => ({ status: res.status(), contentType: res.headers()['content-type'] ?? '', body: await res.text() }));
-    await Promise.all(이음값.응답.values());
+    // 창이 닫히기 전에 한 번 읽어 둔다. 뒤 단계의 값 주입이 이 응답을 가리키면 그 글로 자리를 잡는다
+    const 본문 = await res.text();
+    적기(이음값, seq, part.method, url, async () => ({ status: res.status(), contentType: res.headers()['content-type'] ?? '', body: 본문 }));
 
     if (res.status() !== part.expectStatus) return 끝(`응답 코드 ${res.status()} — 기대 ${part.expectStatus}`);
     if (part.expectJson === undefined || part.expectJson.length === 0) return 끝();
-    const 본문 = await res.text();
     for (const c of part.expectJson) {
       const 받음 = 값꺼냄(본문, c.jsonPath);
       if (받음.ok && isDeepStrictEqual(받음.value, c.equals)) continue;

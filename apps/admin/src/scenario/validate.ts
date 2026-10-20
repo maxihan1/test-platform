@@ -2,6 +2,7 @@
 // DB 와 파일을 모른다. 카탈로그 재료는 parts.ts 가 만들어 넘긴다
 
 import type { Platform, ScenarioLink, ScenarioPart, ScenarioResponseRef } from '@platform/kit';
+import { 값주입이름 as 값이름 } from '@platform/kit/protocol';
 import { z } from 'zod';
 
 import { tcId종류 } from '../catalog/rules.js';
@@ -112,9 +113,6 @@ export function 제한시간크기사유(parts: ScenarioPart[]): string[] {
 // 짧은 무늬는 걸린 창의 주소로 풀려 어느 애플리케이션을 가리키는지 모호하다 (SPEC 도메인/시나리오 §3.7 결정 13)
 const 짧은무늬 = '시작 애플리케이션 밖의 단계가 섞인 시나리오는 / 로 시작하는 URL 패턴을 쓸 수 없다. **/ 로 시작하거나 주소 전체를 적는다';
 
-// 러너 입구(apps/runner/src/routes.ts scenarioPart api values)와 같은 규칙이다
-const 값이름 = /^[A-Za-z0-9_가-힣]{1,20}$/;
-
 const 경로규칙 = '/ 로 시작하고 // 로 시작하지 않으며 \\ 와 제어문자가 없어야 한다';
 
 /** API 부품 경로와 바꿔 보내기 고치기 주소가 같은 규칙을 쓴다 (§7) */
@@ -200,9 +198,16 @@ export function 조립검사(parts: ScenarioPart[], platform: Platform, service:
         else if (이름들.has(v.name)) 오류.push(`${자리}: 값 주입 이름 「${v.name}」 이 둘 이상이다`);
         이름들.add(v.name);
         // API 호출 단계는 앞의 API 호출 단계 응답도 꺼낸다 — 러너가 그 응답을 적어 둔다
-        const 앞 = parts[v.value.fromSeq - 1]?.kind;
-        if (!(v.value.fromSeq <= i && (앞 === 'case' || 앞 === 'api'))) {
+        const 앞 = parts[v.value.fromSeq - 1];
+        if (!(v.value.fromSeq <= i && (앞?.kind === 'case' || 앞?.kind === 'api'))) {
           오류.push(`${자리}: 값 주입이 가리키는 ${v.value.fromSeq}번 단계는 자기보다 앞의 케이스 · API 호출 단계가 아니다`);
+        } else if (앞.kind === 'api' && 앞.method !== v.value.method) {
+          // 러너는 메서드로 응답을 고른다 — 다르면 저장은 되고 실행 때 「맞는 응답이 없다」로 멈춘다
+          오류.push(`${자리}: 값 주입이 가리키는 ${v.value.fromSeq}번 단계는 ${앞.method} 요청이다`);
+        }
+        // 이름을 잘못 적으면 {…} 가 그대로 나가 엉뚱한 응답 코드로만 드러난다
+        if (값이름.test(v.name) && !p.path.includes(`{${v.name}}`) && !(JSON.stringify(p.body ?? null)).includes(`{${v.name}}`)) {
+          오류.push(`${자리}: 값 주입 이름 「${v.name}」 자리 {${v.name}} 가 경로 · 본문에 없다`);
         }
       }
     } else if (p.kind === 'mock') {
