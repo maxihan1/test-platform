@@ -99,7 +99,8 @@ const 한사람 = `
 interface 한사람행 {
   display_name: string;
   role: 등급;
-  password_hash: string;
+  /** maxihan 계정(SSO)으로 들어온 계정은 비밀번호가 없다 (SPEC 공통/4-데이터모델 「maxihan 계정」) */
+  password_hash: string | null;
   perm_dashboard: 대시보드칸;
   must_change_password: boolean;
   is_approved: boolean;
@@ -123,7 +124,7 @@ async function 읽기(username: string, 대기도: boolean): Promise<한사람�
 
 export async function 사용자와해시(
   username: string,
-): Promise<{ user: 사용자; passwordHash: string } | null> {
+): Promise<{ user: 사용자; passwordHash: string | null } | null> {
   const row = await 읽기(username, false);
   return row === null ? null : 모양(username, row);
 }
@@ -131,7 +132,7 @@ export async function 사용자와해시(
 /** 로그인 전용. 승인 대기 계정도 돌려주고 `isApproved` 로 가른다 — 비밀번호가 맞을 때만 403 을 내기 위해서다 */
 export async function 로그인조회(
   username: string,
-): Promise<{ user: 사용자; passwordHash: string; isApproved: boolean } | null> {
+): Promise<{ user: 사용자; passwordHash: string | null; isApproved: boolean } | null> {
   const row = await 읽기(username, true);
   return row === null ? null : { ...모양(username, row), isApproved: row.is_approved };
 }
@@ -145,7 +146,7 @@ export async function 비밀번호바꾸기(username: string, passwordHash: stri
   ]);
 }
 
-function 모양(username: string, row: 한사람행): { user: 사용자; passwordHash: string } {
+function 모양(username: string, row: 한사람행): { user: 사용자; passwordHash: string | null } {
   // admin 채우기는 SQL 이 아니라 여기서 한다 — 저장값을 덮는 규칙이 한 자리에 보여야 한다
   const 관리자 = row.role === 'admin';
 
