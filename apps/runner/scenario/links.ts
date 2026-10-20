@@ -187,9 +187,14 @@ export function 새이음(parts: ScenarioExecuteRequest['parts'], baseUrl: strin
   }
   const 가리킴 = new Map<string, 이음['가리킴'][number]>();
   for (const part of parts) {
-    if (part.kind !== 'case') continue;
-    for (const link of part.links ?? []) {
-      const ref = link.kind === 'reuse' ? link : link.kind === 'rewrite' ? link.to.value : link.kind === 'bind' ? link.value : undefined;
+    // API 호출 단계의 값 주입도 앞 응답을 가리킨다 (결정 14)
+    const refs =
+      part.kind === 'case'
+        ? (part.links ?? []).map((link) => (link.kind === 'reuse' ? link : link.kind === 'rewrite' ? link.to.value : link.kind === 'bind' ? link.value : undefined))
+        : part.kind === 'api'
+          ? (part.values ?? []).map((v) => v.value)
+          : [];
+    for (const ref of refs) {
       if (ref !== undefined) 가리킴.set(열쇠(ref), { fromSeq: ref.fromSeq, method: ref.method, urlPattern: ref.urlPattern });
     }
   }
@@ -215,7 +220,7 @@ async function 응답찾기(이음: 이음, ref: { fromSeq: number; method: stri
   return (await 이음.응답.get(열쇠(ref))) ?? `${ref.fromSeq}번 단계에 맞는 응답이 없다`;
 }
 
-async function 값찾기(이음: 이음, ref: ScenarioResponseRef): Promise<{ ok: true; value: unknown } | { 사유: string }> {
+export async function 값찾기(이음: 이음, ref: ScenarioResponseRef): Promise<{ ok: true; value: unknown } | { 사유: string }> {
   const 응답 = await 응답찾기(이음, ref);
   if (typeof 응답 === 'string') return { 사유: 응답 };
   const 값 = 값꺼냄(응답.body, ref.jsonPath);

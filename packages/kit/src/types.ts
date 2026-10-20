@@ -117,7 +117,10 @@ export type ScenarioPart =                         // 부품 목록의 정본은
       links?: ScenarioLink[] }                     // 이어 주기. 비면 없다 (결정 12)
   | { kind: 'api'; method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; path: string;   // '/' 로 시작. baseUrl 기준
       body?: unknown; expectStatus: number;
-      service?: string }                           // 부를 애플리케이션 접두사. 없으면 시나리오 서비스. 같은 프로젝트만 (결정 13)
+      service?: string;                            // 부를 애플리케이션 접두사. 없으면 시나리오 서비스. 같은 프로젝트만 (결정 13)
+      auth?: string;                               // 그 단계 애플리케이션 대상 서버의 API 인증 이름. 없으면 쿠키만 간다 (결정 14)
+      values?: ScenarioApiValue[];                 // 값 주입 — path · body 의 {name} 자리에 앞 단계 응답 값을 넣는다
+      expectJson?: ScenarioJsonCheck[] }           // 응답 값 확인 — 응답 JSON 한 자리가 그 값과 같아야 한다
   | { kind: 'mock'; urlPattern: string; status: number; contentType: string; body: string }  // urlPattern 은 Playwright glob
   | { kind: 'unmock'; urlPattern: string }         // 같은 글자로 건 mock 을 푼다
   | { kind: 'wait'; ms: number };                  // 60000 까지
@@ -132,8 +135,18 @@ export type ScenarioLink =
 
 export type ScenarioMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
+export interface ScenarioApiValue {                // API 호출 단계의 값 주입 하나 (결정 14)
+  name: string;                                    // path · body 의 {name} 자리. 영문 · 숫자 · 한글 · _ 1~20자
+  value: ScenarioResponseRef;
+}
+
+export interface ScenarioJsonCheck {               // API 호출 단계의 응답 값 확인 하나 (결정 14)
+  jsonPath: string;                                // 응답 JSON 본문의 점 표기 경로. 'items.0.title'
+  equals: unknown;                                 // JSON 값. 형까지 같아야 한다
+}
+
 export interface ScenarioResponseRef {             // 앞 부품이 받은 응답에서 값 하나
-  fromSeq: number;                                 // 자기보다 앞의 case 부품
+  fromSeq: number;                                 // 자기보다 앞의 case 부품. API 호출 단계의 값 주입은 앞의 api 부품도 된다 (결정 14)
   method: ScenarioMethod;
   urlPattern: string;                              // 그 부품에서 이 무늬에 처음 맞은 응답
   jsonPath: string;                                // 응답 JSON 본문의 점 표기 경로. 'data.id'
@@ -146,7 +159,7 @@ export interface ScenarioExecuteRequest {          // POST /execute-scenario (�
   baseUrl: string;
   parts: Array<ScenarioPart & { filePath?: string; baseUrl?: string; apiAuths?: ApiAuth[]; apiDoc?: ApiDocRef }>;   // case 부품에만 filePath 를 admin 이 채워 보낸다.
                                                    // baseUrl 은 case · api 부품이 돌 주소 — 시작 애플리케이션이 아닌 단계에만 붙는다. 없으면 위 baseUrl (결정 13)
-                                                   // apiAuths 는 API 애플리케이션 case 부품에만 — 그 애플리케이션 · 짝지은 대상 서버의 인증. 부품 기록에는 안 넣는다 (도메인/API §3.8)
+                                                   // apiAuths 는 API 애플리케이션 case 부품과 auth 를 단 api 부품에만 — 그 애플리케이션 · 짝지은 대상 서버의 인증. 부품 기록에는 안 넣는다 (도메인/API §3.8)
                                                    // apiDoc 은 그 case 부품 케이스가 만들어진 판. apiAuths 와 같이 부품 기록에는 안 넣는다
   timeoutMs: number;
   deleteStatuses?: ScenarioDeleteStatus[];         // 미룬 삭제에 줄 응답 코드. 없는 주소는 204 (도메인/시나리오 §3.7 결정 12)
@@ -164,7 +177,7 @@ export interface ScenarioPartResult {
   durationMs: number;
   steps: StepResult[];                             // case 부품만 찬다. 순번은 시나리오 전체에서 이어진다
   mocks: string[];                                 // 이 부품이 도는 동안 걸려 있던 mock 의 urlPattern
-  bound?: Record<string, unknown>;                 // 값 꽂기로 넣은 값 (결정 12)
+  bound?: Record<string, unknown>;                 // 값 꽂기로 넣은 값 (결정 12). API 호출 단계는 값 주입으로 넣은 값 (결정 14)
   error?: { message: string; stack?: string };
 }
 

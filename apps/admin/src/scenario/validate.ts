@@ -2,6 +2,7 @@
 // DB 와 파일을 모른다. 카탈로그 재료는 parts.ts 가 만들어 넘긴다
 
 import type { Platform, ScenarioLink, ScenarioPart, ScenarioResponseRef } from '@platform/kit';
+import { 값주입이름 as 값이름 } from '@platform/kit/protocol';
 import { z } from 'zod';
 
 import { tcId종류 } from '../catalog/rules.js';
@@ -43,6 +44,9 @@ const 부품모양 = z.discriminatedUnion('kind', [
     body: z.unknown().optional(),
     expectStatus: z.number().int(),
     service: z.string().optional(),
+    auth: z.string().optional(),
+    values: z.array(z.object({ name: z.string(), value: 응답값모양 })).optional(),
+    expectJson: z.array(z.object({ jsonPath: z.string().min(1), equals: z.unknown() })).optional(),
   }),
   z.object({
     kind: z.literal('mock'),
@@ -63,6 +67,7 @@ type 빠진칸<K, Z> = Exclude<keyof K, keyof Z>;
 type 이어주기<K> = Extract<z.infer<typeof 이어주기모양>, { kind: K }>;
 ({}) satisfies Record<
   | 빠진칸<Extract<ScenarioPart, { kind: 'case' }>, Extract<z.infer<typeof 부품모양>, { kind: 'case' }>>
+  | 빠진칸<Extract<ScenarioPart, { kind: 'api' }>, Extract<z.infer<typeof 부품모양>, { kind: 'api' }>>
   | 빠진칸<Extract<ScenarioLink, { kind: 'reuse' }>, 이어주기<'reuse'>>
   | 빠진칸<Extract<ScenarioLink, { kind: 'block' }>, 이어주기<'block'>>
   | 빠진칸<Extract<ScenarioLink, { kind: 'rewrite' }>, 이어주기<'rewrite'>>
@@ -184,6 +189,26 @@ export function 조립검사(parts: ScenarioPart[], platform: Platform, service:
       if (!바른경로(p.path)) 오류.push(`${자리}: API 경로는 ${경로규칙}`);
       if (p.service !== undefined && !허용.includes(p.service)) {
         오류.push(`${자리}: API 호출의 애플리케이션 ${p.service} 는 ${service} 서비스와 같은 프로젝트가 아니다`);
+      }
+      // API 인증 이름은 설정과 같은 1~20자다. 그 대상 서버에 있는지는 실행 때 러너가 본다 — 이름은 서버마다 따로 넣는다 (결정 14)
+      if (p.auth !== undefined && (p.auth.length < 1 || p.auth.length > 20)) 오류.push(`${자리}: API 인증 이름은 1~20자다`);
+      const 이름들 = new Set<string>();
+      for (const v of p.values ?? []) {
+        if (!값이름.test(v.name)) 오류.push(`${자리}: 값 주입 이름 「${v.name}」 은 영문 · 숫자 · 한글 · _ 1~20자여야 한다`);
+        else if (이름들.has(v.name)) 오류.push(`${자리}: 값 주입 이름 「${v.name}」 이 둘 이상이다`);
+        이름들.add(v.name);
+        // API 호출 단계는 앞의 API 호출 단계 응답도 꺼낸다 — 러너가 그 응답을 적어 둔다
+        const 앞 = parts[v.value.fromSeq - 1];
+        if (!(v.value.fromSeq <= i && (앞?.kind === 'case' || 앞?.kind === 'api'))) {
+          오류.push(`${자리}: 값 주입이 가리키는 ${v.value.fromSeq}번 단계는 자기보다 앞의 케이스 · API 호출 단계가 아니다`);
+        } else if (앞.kind === 'api' && 앞.method !== v.value.method) {
+          // 러너는 메서드로 응답을 고른다 — 다르면 저장은 되고 실행 때 「맞는 응답이 없다」로 멈춘다
+          오류.push(`${자리}: 값 주입이 가리키는 ${v.value.fromSeq}번 단계는 ${앞.method} 요청이다`);
+        }
+        // 이름을 잘못 적으면 {…} 가 그대로 나가 엉뚱한 응답 코드로만 드러난다
+        if (값이름.test(v.name) && !p.path.includes(`{${v.name}}`) && !(JSON.stringify(p.body ?? null)).includes(`{${v.name}}`)) {
+          오류.push(`${자리}: 값 주입 이름 「${v.name}」 자리 {${v.name}} 가 경로 · 본문에 없다`);
+        }
       }
     } else if (p.kind === 'mock') {
       켜진모킹.add(p.urlPattern);

@@ -37,8 +37,9 @@ describe.skipIf(연결 === undefined)('확인 함수', () => {
 
     // 실행 설정의 대상 서버 드롭다운이 읽을 값 (SPEC §8.2 → §7)
     await pool.query(
-      `INSERT INTO service_env (service_id, env, base_url)
-            VALUES ($1, 'qa', 'https://qa.xfs.test'), ($1, 'dev', 'https://dev.xfs.test')
+      `INSERT INTO service_env (service_id, env, base_url, api_auths)
+            VALUES ($1, 'qa', 'https://qa.xfs.test', '[{"name":"고객사 A","tokenUrl":"/t","clientId":"a","clientSecret":"xfs-secret-1"}]'),
+                   ($1, 'dev', 'https://dev.xfs.test', '[]')
        ON CONFLICT DO NOTHING`,
       [서비스id],
     );
@@ -137,13 +138,14 @@ describe.skipIf(연결 === undefined)('확인 함수', () => {
     }
   });
 
-  it('배정받은 서비스마다 대상 서버 목록이 온다. 실행 설정이 읽을 통로가 여기뿐이다 (SPEC §8.2 · §7)', async () => {
+  it('배정받은 서비스마다 대상 서버 목록과 그 서버의 API 인증 이름이 온다. 비밀값은 안 온다 (SPEC §8.2 · §7 · 도메인/시나리오 §3.7 결정 14)', async () => {
     const user = await 확인(await 가짜요청('xfu1-live'));
     const 하나 = user?.services.find((s) => s.prefix === 'XFS1');
     expect(하나?.envs).toEqual([
-      { env: 'dev', baseUrl: 'https://dev.xfs.test' },
-      { env: 'qa', baseUrl: 'https://qa.xfs.test' },
+      { env: 'dev', baseUrl: 'https://dev.xfs.test', apiAuthNames: [] },
+      { env: 'qa', baseUrl: 'https://qa.xfs.test', apiAuthNames: ['고객사 A'] },
     ]);
+    expect(JSON.stringify(user)).not.toContain('xfs-secret-1');
   });
 
   it('대상 서버가 없는 서비스는 빈 목록이다. 없는 것을 지어내지 않는다', async () => {

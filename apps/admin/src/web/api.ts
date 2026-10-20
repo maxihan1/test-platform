@@ -434,6 +434,8 @@ export interface Violation {
 export interface EnvRow {
   env: string;
   baseUrl: string;
+  /** 그 대상 서버의 API 인증 이름. `/auth/me` 만 준다 — E2E API 호출 단계의 「API 인증」 고르기 (도메인/시나리오 §3.7 결정 14) */
+  apiAuthNames?: string[];
   /**
    * 대상 서버의 테스트 계정 (도메인/인증 §7 「envs[] 한 줄」). 설정 화면만 받는다 — `/auth/me` 에는 안 온다.
    * 비밀번호 원문은 오지 않고 설정됐는지만 온다
