@@ -93,8 +93,8 @@ services:
       # 그 러너가 쓰는 폴더를 같이 본다. 안 그러면 앱 스크린샷이 오류 없이 404 다 (SPEC 공통/6-인프라 §9.2)
       - ${PLATFORM_ARTIFACTS_VOLUME:-artifacts}:/artifacts
     # 작성 에이전트(author)는 authoring 망에서만 admin 에 닿는다 — 기본 망의 postgres·runner 에는 못 닿게.
-    # grafana 는 dashboard 망에서 admin 이 대신 연다 (2026-09-28)
-    networks: [default, authoring, dashboard]
+    # grafana 는 dashboard 망에서 admin 이 대신 연다 (2026-09-28). 부하 발생 에이전트는 perf 망에서 admin 에만 닿는다 (2026-10-21)
+    networks: [default, authoring, dashboard, perf]
 
   runner:
     build:
@@ -168,6 +168,20 @@ services:
     mem_limit: 8g             # 한 건(claude + 관문 3회 Chromium) 4g × 동시 상한(기본 2건 — AUTHORING_MAX_PARALLEL)
     shm_size: 2g              # Chromium 이 /dev/shm 을 넉넉히 쓴다
 
+  perf-agent:
+    # 기본 부하 발생 에이전트 한 대 — 같은 서버의 작은 부하(시험 · 스모크 테스트)용. 큰 부하는 다른 기계에 같은 이미지를 띄운다 (SPEC 공통/6 §9 · 도메인/성능 §3.9 결정 3)
+    build: ./apps/perf-agent   # node · k6 · tsx 만 담는다. 저장소 부품은 안 든다
+    restart: unless-stopped    # 토큰이 비면 끝나지 않고 떠 있기만 해서 다시 켜기를 되풀이하지 않는다
+    init: true
+    depends_on: [admin]
+    environment:
+      QAHUB_URL: "http://admin:3000"
+      AGENT_TOKEN: "${PERF_AGENT_TOKEN:-}"   # 설정 › 성능 에이전트에서 발급한 pga_ 토큰. 비면 「토큰이 없습니다」 한 줄만 남기고 일하지 않는다
+      # admin · runner 와 같은 2 vCPU 를 나눠 쓴다. 맥 실측(2 CPU · 2GB) 약 800명까지 1초 숫자가 제때 왔고 그 절반 남짓이다 — 서버 재실측은 PERF-F1-12 (SPEC 도메인/성능 §5.4)
+      MAX_VUS: "500"
+    mem_limit: 2g              # 같은 서버의 admin · runner 를 끌고 내려가지 않게
+    networks: [perf]           # admin 과 바깥(대상 서버)에만. postgres · runner 에 못 닿는다
+
   grafana:
     image: grafana/grafana:13.2.2   # 실측한 판으로 고정 — 올릴 때는 auth proxy 확인 · 끈 데이터 연결 부품 목록을 다시 본다 (SPEC 공통/6 §9.1)
     restart: unless-stopped
@@ -208,3 +222,4 @@ networks:
   default: {}
   authoring: {}
   dashboard: {}   # admin · grafana · postgres 만 (2026-09-28)
+  perf: {}        # admin · perf-agent 만 (2026-10-21)
