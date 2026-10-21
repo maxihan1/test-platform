@@ -55,6 +55,8 @@ export interface RunConfig {
   targets: Target[];
   agentIds: number[];
   monitorIds: number[];
+  // 고른 대상 서버 주소의 호스트와 프로젝트 API 서버 호스트 (§3.9 「허용 호스트」) — WHATWG URL.host 꼴
+  allowedHosts: string[];
   pageCheck: boolean;
   accountsRows: number;
   durationSec: number;
