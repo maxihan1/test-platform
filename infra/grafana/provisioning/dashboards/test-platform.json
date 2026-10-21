@@ -119,7 +119,7 @@
           "datasource": { "type": "postgres", "uid": "platform-postgres" },
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT finished_at AS time,\n       peak_vus AS \"최대 동시 사용자\",\n       max_tps::float AS \"최대 TPS\",\n       p95_ms AS \"95% 응답시간\",\n       error_rate::float AS \"에러율\"\nFROM perf_run\nWHERE status IN ('DONE', 'STOPPED')\n  AND finished_at >= now() - interval '90 days'\nORDER BY finished_at"
+          "rawSql": "SELECT finished_at AS time,\n       peak_vus AS \"최대 동시 사용자\",\n       max_tps::float AS \"최대 TPS\",\n       p95_ms AS \"95% 응답시간\",\n       error_rate::float AS \"에러율\"\nFROM perf_run\nWHERE kind = 'LOAD'\n  AND status IN ('DONE', 'STOPPED')\n  AND finished_at >= now() - interval '90 days'\nORDER BY finished_at"
         }
       ]
     }

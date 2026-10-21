@@ -64,6 +64,11 @@ describe('Grafana 대시보드 프로비저닝', () => {
     expect(sql).toContain('peak_vus');
   });
 
+  it('성능 테스트 추세는 서버 부하 실행(kind = LOAD)만 건다 — 페이지 · 기기 실행의 빈 점이 섞이지 않게', () => {
+    const sql = 대시보드.panels.find((p) => p.title === '성능 테스트 추세')!.targets[0]!.rawSql;
+    expect(sql).toContain("kind = 'LOAD'");
+  });
+
   describe.skipIf(연결 === undefined)('패널 SQL', () => {
     let 읽기전용: Client;
 
