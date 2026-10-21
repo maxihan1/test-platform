@@ -4,6 +4,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
 import { 정수 } from '../routeParams.js';
+import { 스크립트호스트 } from './generator.js';
 import { 풀 } from './store.js';
 import type { ScenarioBody, Transaction } from './types.js';
 
@@ -41,21 +42,29 @@ const 본문 = z.object({
   .refine((b) => new Set((b.transactions ?? []).map((t) => t.name)).size === (b.transactions ?? []).length, '트랜잭션 이름이 겹칩니다');
 
 const 만들기 = z.object({ serviceId: z.number().int().positive(), name: z.string().trim().min(1).max(100), body: 본문 });
-const 고치기 = z.object({ body: 본문, accountsCsv: z.string().max(2_000_000).optional() });
+const 고치기 = z.object({ body: 본문, accountsCsv: z.string().max(900_000).optional() });
+
+/**
+ * 주소의 호스트. 스크립트의 글자 셈과 WHATWG URL.host 가 다르면(계정 · 국제 도메인 · 끝 점 · 퍼센트 글자) null —
+ * 저장 검사는 통과했는데 실행 때 매번 「허용 호스트 밖」으로 던지는 주소를 받지 않는다
+ */
+export function 호스트(url: string): string | null {
+  let host = '';
+  try {
+    host = new URL(url).host;
+  } catch {
+    return null;
+  }
+  return 스크립트호스트(url) === host ? host : null;
+}
 
 /** 절대 주소의 호스트가 허용 목록 밖인 첫 트랜잭션 이름. 상대 주소는 대상 서버 아래라 지나간다 (§3.9 「허용 호스트」) */
 export function 허용밖(txs: readonly Transaction[], 허용: ReadonlySet<string>): string | null {
   for (const t of txs) {
     if (!/^https?:\/\//i.test(t.url)) continue;
-    const 원문호스트 = /^https?:\/\/([^/?#]*)/i.exec(t.url)?.[1] ?? '';
-    let host = '';
-    try {
-      host = new URL(t.url).host;
-    } catch {
-      return t.name;
-    }
+    const host = 호스트(t.url);
     // 호스트 자리에 변수를 쓰면 실행 때 어디로 갈지 저장 때 모른다
-    if (원문호스트.includes('$') || !허용.has(host)) return t.name;
+    if (host === null || host.includes('$') || !허용.has(host)) return t.name;
   }
   return null;
 }

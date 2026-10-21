@@ -47,11 +47,10 @@ const valueOf = (m: Measured, t: Target) => (t.metric === 'P95' ? m.p95 : t.metr
 const keeps = (v: number | null, t: Target) => v !== null && (t.op === '<=' ? v <= t.value : v >= t.value);
 const scopeRows = (rows: SecRow[], scope: string | undefined) => rows.filter((r) => r.tx === (scope ?? ''));
 
-// 판정에 쓰는 구간 — 끝까지 돌았으면 전체, 목표나 에러율로 멈췄으면 멈추기 직전 10초
-export function judgeWindow(rows: SecRow[], stoppedEarly: boolean): SecRow[] {
-  if (!stoppedEarly) return rows;
-  const last = rows.reduce((m, r) => Math.max(m, r.sec), -1);
-  return rows.filter((r) => r.sec > last - STREAK_SEC);
+// 판정에 쓰는 구간 — 끝까지 돌았으면 전체, 목표나 에러율로 멈췄으면 멈추게 한 10초(그 뒤 덜 들어온 초는 뺀다)
+export function judgeWindow(rows: SecRow[], stoppedAt: number | null): SecRow[] {
+  if (stoppedAt === null) return rows;
+  return rows.filter((r) => r.sec > stoppedAt - STREAK_SEC && r.sec <= stoppedAt);
 }
 
 export function judge(rows: SecRow[], targets: Target[]): { targets: (Target & { measured: number | null; verdict: 'PASS' | 'FAIL' })[]; verdict: 'PASS' | 'FAIL' } {
@@ -68,7 +67,8 @@ export function summary(rows: SecRow[]): { maxVus: number; maxTps: number | null
   return { maxVus: total.reduce((x, r) => Math.max(x, r.vus), 0), maxTps: m.tps, p95: m.p95, errorRate: m.errorRate };
 }
 
-export type Stop = { reason: 'ERROR_LIMIT' } | { reason: 'TARGET_EXCEEDED'; peakVus: number };
+// atSec 는 멈추게 한 10초의 마지막 초다
+export type Stop = { reason: 'ERROR_LIMIT'; atSec: number } | { reason: 'TARGET_EXCEEDED'; peakVus: number; atSec: number };
 
 // 합쳐 끝난 초들을 보고 멈출지 정한다. rows 는 끝난 초까지만 넣는다
 export function autoStop(rows: SecRow[], testType: TestType, targets: Target[]): Stop | null {
@@ -81,7 +81,8 @@ export function autoStop(rows: SecRow[], testType: TestType, targets: Target[]):
     const m = measure(scopeRows(at(sec), undefined));
     return m.errorRate !== null && m.errorRate >= ERROR_LIMIT_PCT;
   };
-  if (tail.every(errorHigh)) return { reason: 'ERROR_LIMIT' };
+  const atSec = tail[STREAK_SEC - 1] as number;
+  if (tail.every(errorHigh)) return { reason: 'ERROR_LIMIT', atSec };
   if (testType !== 'STRESS') return null;
   const watched = targets.filter((t) => t.metric === 'P95' || t.metric === 'ERROR_RATE');
   if (watched.length === 0) return null;
@@ -90,8 +91,11 @@ export function autoStop(rows: SecRow[], testType: TestType, targets: Target[]):
     return v !== null && !keeps(v, t);
   });
   if (!tail.every(exceeded)) return null;
-  const before = scopeRows(at(tail[0] - 1), undefined)[0];
-  return { reason: 'TARGET_EXCEEDED', peakVus: before?.vus ?? 0 };
+  // 틱을 걸러 끝난 초가 한 번에 여럿 늘면 벗어나기 시작한 초가 10초 창보다 앞일 수 있다 — 이어진 데까지 거슬러 간다
+  let start = tail[0] as number;
+  while (secs.includes(start - 1) && exceeded(start - 1)) start--;
+  const before = scopeRows(at(start - 1), undefined)[0];
+  return { reason: 'TARGET_EXCEEDED', peakVus: before?.vus ?? 0, atSec };
 }
 
 // 두 실행이 모두 지난 가상 사용자 수를 100명 단위로 내린 칸 [n, n+100) 의 95% 응답시간끼리 견준다

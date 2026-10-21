@@ -24,7 +24,10 @@ export interface 결과문서 {
   peakVus: number | null;
   ai: { title: string; items: string[] } | null;
   targets: (Target & { measured: number | null; verdict: 'PASS' | 'FAIL' })[] | null;
+  // 전체 줄(tx = '')만 — 추이를 그린다
   rows: SecRow[];
+  // 트랜잭션마다 실행 전체를 합친 것 (store.트랜잭션합계)
+  txs: { tx: string; requests: number; errors: number; hist: number[] }[];
 }
 
 const 유형글: Record<string, string> = { LOAD: '부하 테스트', STRESS: '스트레스 테스트', SPIKE: '스파이크 테스트', SOAK: '내구성 테스트' };
@@ -68,17 +71,8 @@ function 추이(rows: SecRow[]): string {
   ].join('\n');
 }
 
-function 트랜잭션별(rows: SecRow[]): string {
-  const 묶음 = new Map<string, { requests: number; errors: number; hist: number[] }>();
-  for (const r of rows) {
-    if (r.tx === '') continue;
-    const c = 묶음.get(r.tx) ?? { requests: 0, errors: 0, hist: emptyHist() };
-    c.requests += r.requests;
-    c.errors += r.errors;
-    addHist(c.hist, r.hist);
-    묶음.set(r.tx, c);
-  }
-  const 줄 = [...묶음.entries()].map(([tx, c]) =>
+function 트랜잭션별(txs: 결과문서['txs']): string {
+  const 줄 = txs.map(({ tx, ...c }) =>
     `<tr><td>${안전(tx)}</td><td>${c.requests}</td><td>${값글('ERROR_RATE', c.requests === 0 ? null : (c.errors / c.requests) * 100)}</td><td>${값글('P95', percentile(c.hist, 0.95))}</td></tr>`);
   return `<table><thead><tr><th>트랜잭션</th><th>요청 수</th><th>에러율</th><th>95% 응답시간</th></tr></thead><tbody>${줄.join('')}</tbody></table>`;
 }
@@ -98,7 +92,7 @@ export function 결과HTML(d: 결과문서): string {
     `<h2>시간대별 추이</h2>`,
     추이(d.rows),
     `<h2>트랜잭션별 결과</h2>`,
-    트랜잭션별(d.rows),
+    트랜잭션별(d.txs),
   ]);
 }
 

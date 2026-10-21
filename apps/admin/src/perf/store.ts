@@ -87,11 +87,14 @@ export async function 에이전트풀기(runId: number): Promise<void> {
   await (await 풀()).query('UPDATE perf_agent SET busy_run_id = NULL WHERE busy_run_id = $1', [runId]);
 }
 
-export async function 상태바꾸기(runId: number, status: 'SMOKE' | 'RUNNING'): Promise<void> {
-  await (await 풀()).query(
-    `UPDATE perf_run SET status = $2, started_at = COALESCE(started_at, now()) WHERE id = $1 AND status IN ('QUEUED', 'SMOKE', 'RUNNING')`,
-    [runId, status],
-  );
+// 대기 → 스모크. 그사이 중단됐으면 바뀌지 않고 false 다
+export async function 대기에서시작(runId: number): Promise<boolean> {
+  const r = await (await 풀()).query(`UPDATE perf_run SET status = 'SMOKE', started_at = now() WHERE id = $1 AND status = 'QUEUED'`, [runId]);
+  return (r.rowCount ?? 0) > 0;
+}
+
+export async function 상태바꾸기(runId: number, status: 'RUNNING'): Promise<void> {
+  await (await 풀()).query(`UPDATE perf_run SET status = $2 WHERE id = $1 AND status = 'SMOKE'`, [runId, status]);
 }
 
 // 같은 초 · 같은 트랜잭션은 더한다 — 늦게 온 조각(vus 0)도 같은 행에 더하면 된다 (§5.4)
@@ -110,12 +113,27 @@ export async function 초더하기(runId: number, rows: SecRow[]): Promise<void>
   );
 }
 
-export async function 초읽기(runId: number, from = 0, to = 2 ** 31 - 1): Promise<SecRow[]> {
+// txs 를 주면 그 트랜잭션 줄만(전체 줄은 '') 읽는다 — 긴 실행의 모든 줄을 메모리에 올리지 않게
+export async function 초읽기(runId: number, from = 0, to = 2 ** 31 - 1, txs?: string[]): Promise<SecRow[]> {
   const r = await (await 풀()).query<SecRow>(
-    'SELECT sec, tx, vus, requests, errors, hist FROM perf_series WHERE run_id = $1 AND sec BETWEEN $2 AND $3 ORDER BY sec, tx',
-    [runId, from, to],
+    `SELECT sec, tx, vus, requests, errors, hist FROM perf_series
+      WHERE run_id = $1 AND sec BETWEEN $2 AND $3 AND ($4::text[] IS NULL OR tx = ANY($4)) ORDER BY sec, tx`,
+    [runId, from, to, txs ?? null],
   );
   return r.rows;
+}
+
+// 트랜잭션마다 실행 전체를 DB 가 합친다 — PDF 「트랜잭션별 결과」
+export async function 트랜잭션합계(runId: number): Promise<{ tx: string; requests: number; errors: number; hist: number[] }[]> {
+  const r = await (await 풀()).query<{ tx: string; requests: string; errors: string; hist: number[] }>(
+    `SELECT t.tx, t.requests, t.errors,
+            ARRAY(SELECT sum(u.v)::int FROM perf_series s, unnest(s.hist) WITH ORDINALITY AS u(v, i)
+                   WHERE s.run_id = $1 AND s.tx = t.tx GROUP BY u.i ORDER BY u.i) AS hist
+       FROM (SELECT tx, sum(requests) AS requests, sum(errors) AS errors FROM perf_series WHERE run_id = $1 AND tx <> '' GROUP BY tx) t
+      ORDER BY t.tx`,
+    [runId],
+  );
+  return r.rows.map((x) => ({ tx: x.tx, requests: Number(x.requests), errors: Number(x.errors), hist: x.hist }));
 }
 
 export async function 서버숫자쓰기(runId: number, agent: { id: number; name: string }, m: { sec: number; cpu: number; mem: number; diskIoKbps: number; netInKbps: number; netOutKbps: number }): Promise<void> {

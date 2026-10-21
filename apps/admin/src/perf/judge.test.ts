@@ -44,15 +44,15 @@ describe('judge', () => {
 
   it('멈춘 실행은 멈추기 직전 10초로 판정한다', () => {
     const rows = Array.from({ length: 30 }, (_, i) => 초(i, 10, 10, 0, 100));
-    expect(judgeWindow(rows, true).map((r) => r.sec)).toEqual([20, 21, 22, 23, 24, 25, 26, 27, 28, 29]);
-    expect(judgeWindow(rows, false)).toHaveLength(30);
+    expect(judgeWindow(rows, 25).map((r) => r.sec)).toEqual([16, 17, 18, 19, 20, 21, 22, 23, 24, 25]);
+    expect(judgeWindow(rows, null)).toHaveLength(30);
   });
 });
 
 describe('autoStop', () => {
   it('에러율 20% 이상이 10초 이어지면 모든 유형이 멈춘다', () => {
     const rows = Array.from({ length: 10 }, (_, i) => 초(i, 10, 10, 2, 100));
-    expect(autoStop(rows, 'LOAD', [])).toEqual({ reason: 'ERROR_LIMIT' });
+    expect(autoStop(rows, 'LOAD', [])).toEqual({ reason: 'ERROR_LIMIT', atSec: 9 });
     expect(autoStop(rows.slice(0, 9), 'LOAD', [])).toBeNull();
     const 한번쉼 = rows.map((r, i) => (i === 5 ? 초(5, 10, 10, 1, 100) : r));
     expect(autoStop(한번쉼, 'LOAD', [])).toBeNull();
@@ -60,8 +60,13 @@ describe('autoStop', () => {
 
   it('스트레스 테스트는 목표를 10초 이어 벗어나면 멈추고 직전 1초의 가상 사용자 수를 남긴다', () => {
     const rows = [초(0, 300, 100, 0, 200), ...Array.from({ length: 10 }, (_, i) => 초(i + 1, 310 + i * 10, 100, 0, 900))];
-    expect(autoStop(rows, 'STRESS', [p95목표])).toEqual({ reason: 'TARGET_EXCEEDED', peakVus: 300 });
+    expect(autoStop(rows, 'STRESS', [p95목표])).toEqual({ reason: 'TARGET_EXCEEDED', peakVus: 300, atSec: 10 });
     expect(autoStop(rows, 'LOAD', [p95목표])).toBeNull();
+  });
+
+  it('벗어남이 10초보다 길게 이어졌으면 처음 벗어난 초 앞의 가상 사용자 수를 남긴다', () => {
+    const rows = [초(0, 300, 100, 0, 200), ...Array.from({ length: 13 }, (_, i) => 초(i + 1, 310 + i * 10, 100, 0, 900))];
+    expect(autoStop(rows, 'STRESS', [p95목표])).toEqual({ reason: 'TARGET_EXCEEDED', peakVus: 300, atSec: 13 });
   });
 });
 

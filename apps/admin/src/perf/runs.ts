@@ -9,7 +9,7 @@ import { 중단하기, 한번돌기 } from './engine.js';
 import { totalDuration } from './generator.js';
 import { percentile } from './hist.js';
 import { 결과HTML, PDF찍기, 실행번호글 } from './pdf.js';
-import { API서버호스트, 계정줄들, 단계, 목표, 허용밖 } from './scenarios.js';
+import { API서버호스트, 계정줄들, 단계, 목표, 허용밖, 호스트 } from './scenarios.js';
 import * as 표 from './store.js';
 import type { RunConfig, ScenarioBody } from './types.js';
 
@@ -61,12 +61,8 @@ export default async function perfRunRoutes(app: FastifyInstance): Promise<void>
     if (줄 === null) return 바(reply, 400, 'INVALID_REQUEST', '대상 서버가 없습니다');
     if (줄.isProd) return 바(reply, 400, 'PROD_ENV_BLOCKED');
     const api = await API서버호스트(serviceId);
-    let 대상호스트 = '';
-    try {
-      대상호스트 = new URL(줄.baseUrl).host;
-    } catch {
-      return 바(reply, 400, 'INVALID_REQUEST', '대상 서버 주소가 틀렸습니다');
-    }
+    const 대상호스트 = 호스트(줄.baseUrl);
+    if (대상호스트 === null) return 바(reply, 400, 'INVALID_REQUEST', '대상 서버 주소가 틀렸습니다');
     const allowedHosts = [...new Set([대상호스트, ...(api?.hosts ?? [])])];
     const 밖 = 허용밖(sc.body.transactions ?? [], new Set(allowedHosts));
     if (밖 !== null) return 바(reply, 400, 'HOST_NOT_ALLOWED', 밖);
@@ -184,7 +180,7 @@ export default async function perfRunRoutes(app: FastifyInstance): Promise<void>
     if (['QUEUED', 'SMOKE', 'RUNNING'].includes(x.status)) return 바(reply, 409, 'NOT_FINISHED');
     const html = 결과HTML({
       id, title: x.title ?? '', env: x.env, testType: x.test_type, status: x.status, verdict: x.verdict, stopReason: x.stop_reason,
-      startedAt: x.started_at, peakVus: x.peak_vus, ai: x.ai, targets: x.targets, rows: await 표.초읽기(id),
+      startedAt: x.started_at, peakVus: x.peak_vus, ai: x.ai, targets: x.targets, rows: await 표.초읽기(id, 0, 2 ** 31 - 1, ['']), txs: await 표.트랜잭션합계(id),
     });
     const pdf = await PDF찍기(html);
     return reply.header('content-type', 'application/pdf').header('content-disposition', `attachment; filename="${실행번호글(id)}.pdf"`).send(pdf);

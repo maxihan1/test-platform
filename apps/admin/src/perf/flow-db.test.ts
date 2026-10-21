@@ -214,11 +214,62 @@ describe.skipIf(연결 === undefined)('성능 실행 흐름', { timeout: 60_000 
   it('부하를 맡은 에이전트가 시작 시각 뒤 30초 동안 조용하면 AGENT_LOST 로 멈춘다', async () => {
     const runId = (await 실행만들기()).json<{ runId: number }>().runId;
     await 일받기();
-    // 시작 시각 전의 기다림은 끊김으로 안 센다
-    await 한번돌기(Date.now() + 20_000);
+    // 시작 시각(+5초) 전의 기다림은 끊김으로 안 센다 — 마지막 연락부터는 30초가 넘어도 startAt 부터는 안 넘는다
+    await 한번돌기(Date.now() + 33_000);
     expect((await 상태(runId)).status).toBe('SMOKE');
     await 한번돌기(Date.now() + 60_000);
     expect(await 끝날때까지(runId)).toMatchObject({ status: 'STOPPED', stopReason: 'AGENT_LOST' });
+  });
+
+  it('스트레스 테스트가 목표를 10초 이어 벗어나면 끝 · 실패 · TARGET_EXCEEDED 이고 벗어나기 직전 가상 사용자 수를 남긴다', async () => {
+    const runId = (await 실행만들기({ testType: 'STRESS' })).json<{ runId: number }>().runId;
+    await 스모크통과(runId);
+    await 에이전트(`/api/perf/agent/runs/${runId}/metrics`, 초(0, 5, 10, 0, 200));
+    for (let s = 1; s <= 11; s++) await 에이전트(`/api/perf/agent/runs/${runId}/metrics`, 초(s, 10, 10, 0, 900));
+    await 한번돌기(Date.now() + 22_000);
+    expect(await 끝날때까지(runId)).toMatchObject({ status: 'DONE', verdict: 'FAIL', stopReason: 'TARGET_EXCEEDED' });
+    expect((await pool.query<{ peak_vus: number }>('SELECT peak_vus FROM perf_run WHERE id = $1', [runId])).rows[0]?.peak_vus).toBe(5);
+  });
+
+  it('다시 켜진 에이전트가 hello · claim 만 하고 1초 숫자를 안 보내면 AGENT_LOST 다', async () => {
+    const runId = (await 실행만들기()).json<{ runId: number }>().runId;
+    await 일받기();
+    await 에이전트('/api/perf/agent/claim');
+    await 에이전트('/api/perf/agent/hello', { version: '0.1.0', host: 'box-1' });
+    await 한번돌기(Date.now() + 40_000);
+    expect(await 끝날때까지(runId)).toMatchObject({ status: 'STOPPED', stopReason: 'AGENT_LOST' });
+  });
+
+  it('스모크 뒤 본 테스트 직전에 대상 서버가 실서비스 서버가 되면 부하를 걸지 않고 오류로 닫는다', async () => {
+    const runId = (await 실행만들기()).json<{ runId: number }>().runId;
+    expect((await 일받기()).kind).toBe('SMOKE');
+    await 에이전트(`/api/perf/agent/runs/${runId}/metrics`, 초(0, 1, 3, 0));
+    await pool.query(`UPDATE service_env SET is_prod = true WHERE service_id = $1 AND env = 'qa'`, [서비스]);
+    try {
+      await 에이전트(`/api/perf/agent/runs/${runId}/done`, { status: 'OK' });
+      expect(await 끝날때까지(runId)).toMatchObject({ status: 'ERROR', verdict: null });
+      expect((await 에이전트('/api/perf/agent/claim')).json()).toEqual({ job: null });
+    } finally {
+      await pool.query(`UPDATE service_env SET is_prod = false WHERE service_id = $1 AND env = 'qa'`, [서비스]);
+    }
+  });
+
+  it('메모리에 없는데 DB 에서 도는 실행은 오류로 닫는다 — admin 이 다시 켜진 경우', async () => {
+    const r = await pool.query<{ id: string }>(
+      `INSERT INTO perf_run (kind, service_id, scenario_id, scenario_version, env, base_url, test_type, config, status, origin)
+       SELECT 'LOAD', $1, $2, 1, 'qa', 'http://shop.xpe.test', 'LOAD', config, 'RUNNING', 'MANUAL' FROM perf_run WHERE service_id = $1 LIMIT 1 RETURNING id`,
+      [서비스, 시나리오],
+    );
+    const runId = Number(r.rows[0]?.id);
+    expect(await 끝날때까지(runId)).toMatchObject({ status: 'ERROR' });
+  });
+
+  it('아직 못 하는 일 · 끝나지 않은 PDF · 겹치는 에이전트 이름은 거절한다', async () => {
+    expect((await 실행만들기({ pageCheck: true })).statusCode).toBe(400);
+    const runId = (await 실행만들기()).json<{ runId: number }>().runId;
+    expect((await 사람(관리자, 'GET', `/api/perf/runs/${runId}/report.pdf`)).json()).toEqual({ error: 'NOT_FINISHED' });
+    await 사람(관리자, 'POST', `/api/perf/runs/${runId}/stop`);
+    expect((await 사람(관리자, 'POST', '/api/perf/agents', { name: 'xpe-load', mode: 'LOAD' })).json()).toEqual({ error: 'NAME_TAKEN' });
   });
 
   it('사람이 실행 중단을 누르면 USER 로 멈추고 에이전트에게 멈추라고 답한다', async () => {

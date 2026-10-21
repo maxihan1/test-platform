@@ -14,7 +14,9 @@ const 수 = z.number().int().min(0).max(2 ** 31 - 1);
 const 부하 = z.object({
   sec: 초,
   vus: 수,
-  txs: z.array(z.object({ name: z.string().max(200), requests: 수, errors: 수, hist: z.array(수).length(HIST_BUCKETS) })).max(500),
+  // 이름이 비면 전체 줄('')과, 겹치면 서로 같은 행을 두 번 고쳐 그 초가 통째로 거절된다
+  txs: z.array(z.object({ name: z.string().min(1).max(200), requests: 수, errors: 수, hist: z.array(수).length(HIST_BUCKETS) })).max(500)
+    .refine((txs) => new Set(txs.map((t) => t.name)).size === txs.length, '트랜잭션 이름이 겹칩니다'),
 });
 const 퍼센트 = z.number().min(0).max(1000);
 const 모니터링 = z.object({ sec: 초, cpu: 퍼센트, mem: 퍼센트, diskIoKbps: z.number().min(0), netInKbps: z.number().min(0), netOutKbps: z.number().min(0) });

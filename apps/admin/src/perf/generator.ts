@@ -12,6 +12,17 @@ export interface GenerateInput {
   maxVus: number;
 }
 
+// 스크립트 안 hostOf 와 같은 셈 — 저장 · 실행 검사가 이것과 WHATWG URL.host 가 같은 주소만 받아 둘이 어긋나지 않게 한다
+export function 스크립트호스트(url: string): string | null {
+  const m = /^(https?):\/\/([^/?#]+)/i.exec(url);
+  if (!m) return null;
+  const scheme = (m[1] ?? '').toLowerCase();
+  const host = (m[2] ?? '').toLowerCase();
+  if (scheme === 'http' && host.endsWith(':80')) return host.slice(0, -3);
+  if (scheme === 'https' && host.endsWith(':443')) return host.slice(0, -4);
+  return host;
+}
+
 export function totalDuration(load: Load): number {
   return load.stages.reduce((s, x) => s + x.durationSec, 0);
 }
@@ -32,7 +43,8 @@ function scenarioOptions(input: GenerateInput): unknown {
 }
 
 export function generateScript(input: GenerateInput): string {
-  const options = { scenarios: { main: scenarioOptions(input) }, summaryTrendStats: [] };
+  // 리디렉트를 따라가면 허용 호스트 밖으로 부하가 간다 — 3xx 응답 그대로 센다 (§3.9 「허용 호스트」)
+  const options = { scenarios: { main: scenarioOptions(input) }, summaryTrendStats: [], maxRedirects: 0 };
   return `import http from 'k6/http';
 import { check, sleep } from 'k6';
 import exec from 'k6/execution';
