@@ -5,14 +5,15 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { 자식환경 } from './authoring-chain.js';
-import { 도는자식, 돌린다, 멈춤, 부른다, 쉬기 } from './authoring-io.js';
+import { 돌린다, 멈춤, 부른다, 쉬기 } from './authoring-io.js';
 import { 모델설정, 모델인자 } from './authoring-model.js';
 import { 답에서JSON, 성능프롬프트 } from './authoring-perf-prompt.js';
 
 export { 답에서JSON, 성능프롬프트 };
 
-// 도구를 하나도 안 준다 — 재료만 보고 글로 답하는 일이다
-const 막을도구 = ['Bash', 'Edit', 'Write', 'NotebookEdit', 'WebFetch', 'WebSearch', 'Read', 'Glob', 'Grep', 'Task'];
+// 도구 · MCP · 스킬을 하나도 안 준다 — 재료(녹화 응답 · 올린 파일)는 남이 쓴 글이라 그 안의 지시를 따를 손을 남기지 않는다.
+// 막을 목록이 아니라 빈 허용 목록이다 — 막을 목록은 새 도구 이름이 생기면 뚫린다
+const 도구없음 = ['--tools', '', '--strict-mcp-config', '--disable-slash-commands'];
 const 제한 = 15 * 60_000;
 
 export interface 성능손 {
@@ -39,7 +40,7 @@ export async function 성능일하기(일: 성능일, 손: 성능손 = 기본손
   // 도구를 막아도 cwd 는 비워 둔다 — 저장소 파일이 프롬프트에 섞이지 않게
   const 폴더 = mkdtempSync(join(tmpdir(), 'authoring-perf-'));
   try {
-    const 답 = await 손.돌린다('claude', ['-p', ...모델인자(모델), '--output-format', 'text', '--disallowedTools', ...막을도구], {
+    const 답 = await 손.돌린다('claude', ['-p', ...모델인자(모델), '--output-format', 'text', ...도구없음], {
       cwd: 폴더,
       env: 자식환경(process.env, 폴더),
       input: 프롬프트,
@@ -74,9 +75,9 @@ export async function 성능일돌기(주소: string, 토큰: string, 신호?: A
       }
     } catch (err) {
       const 글 = err instanceof Error ? err.message : String(err);
+      // 거절은 이 고리만 끝낸다 — 성능 일 하나 때문에 몇 시간짜리 작성 자식들을 죽이지 않는다
       if (글.includes('서버가 거절했다')) {
-        멈춤.까닭 = 글;
-        for (const 자식 of 도는자식) 자식.kill('SIGKILL');
+        console.error(`[성능] 서버가 성능 AI 일을 거절해 이 고리를 끝낸다: ${글}`);
         return;
       }
       console.error(`[기다림] 성능 일: ${글}`);

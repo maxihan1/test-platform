@@ -31,7 +31,7 @@ const 스웨거 = z.object({
   serviceId: z.number().int().positive(),
   from: z.literal('SWAGGER'),
   apiDocVersion: z.number().int().positive(),
-  operations: z.array(z.object({ method: z.string().min(1).max(10), path: z.string().min(1).max(500) })).min(1).max(50),
+  operations: z.array(z.object({ method: z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'get', 'post', 'put', 'patch', 'delete']), path: z.string().min(1).max(500) })).min(1).max(50),
 });
 const 추천 = z.object({
   serviceId: z.number().int().positive(),
@@ -87,7 +87,8 @@ async function 녹화세우기(b: z.infer<typeof 녹화>, who: string): Promise<
     이름들 = [e2e.name];
   }
   const jobId = await 일만들기('DRAFT_RECORD', b.serviceId, { cases: 이름들 }, who, true);
-  void 녹화하기(jobId, 줄, 대상, { cases: 이름들, baseUrl: 줄.baseUrl, apiHosts: api?.hosts ?? [] });
+  // 녹화는 몇 분 걸려 기다리지 않는다. 녹화하기는 실패를 일에 적지만 그 적기마저 깨지면 admin 이 죽지 않게 로그로 받는다
+  녹화하기(jobId, 줄, 대상, { cases: 이름들, baseUrl: 줄.baseUrl, apiHosts: api?.hosts ?? [] }).catch((e: unknown) => console.error(`[perf] ${jobId}번 녹화를 닫지 못했다`, e));
   return { jobId };
 }
 
@@ -97,7 +98,9 @@ async function 스웨거재료(b: z.infer<typeof 스웨거>): Promise<{ input: u
   const paths = (판.doc.paths ?? {}) as Record<string, Record<string, unknown> | undefined>;
   const operations = [];
   for (const o of b.operations) {
-    const operation = paths[o.path]?.[o.method.toLowerCase()];
+    // 경로 줄의 parameters · 원형 속성을 API 로 집지 않는다
+    const 줄 = Object.hasOwn(paths, o.path) ? paths[o.path] : undefined;
+    const operation = 줄 !== undefined && Object.hasOwn(줄, o.method.toLowerCase()) ? 줄[o.method.toLowerCase()] : undefined;
     if (operation === undefined) return { error: 'INVALID_REQUEST', detail: `문서에 없는 API 입니다: ${o.method} ${o.path}` };
     operations.push({ method: o.method.toUpperCase(), path: o.path, operation });
   }
@@ -183,9 +186,13 @@ export default async function perfAiRoutes(app: FastifyInstance): Promise<void> 
   app.get<번호경로>('/perf/ai-jobs/:id', async (req, reply) => {
     const id = 정수(req.params.id);
     if (id === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.params.id });
-    await 오래된일닫기();
-    const job = await 일하나(id);
+    let job = await 일하나(id);
     if (job === null) return reply.code(404).send({ error: 'NOT_FOUND' });
+    // 닫기는 표를 훑는다 — 화면이 5초마다 묻는 매번이 아니라 그 일이 도는 중일 때만 한다
+    if (job.status === 'RUNNING') {
+      await 오래된일닫기();
+      job = (await 일하나(id)) ?? job;
+    }
     return { status: job.status, ...(job.output !== null && { output: job.output }), ...(job.error !== null && { error: job.error }) };
   });
 

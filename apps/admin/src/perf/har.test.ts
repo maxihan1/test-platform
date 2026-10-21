@@ -47,6 +47,11 @@ describe('녹화 가리기', () => {
     expect(비밀).not.toContain('/');
   });
 
+  it('칸 이름 일부만 닮은 보통 값은 비밀로 모으지 않는다', () => {
+    const 보통 = 줄('2026-10-21T00:00:00Z', 'GET', 'http://x/a', { resText: JSON.stringify({ author: 'kimchulsoo', sessionCount: 123456, passenger: 'leeyounghee', refresh_token: 'rt-998877665' }) });
+    expect(비밀값모으기([보통])).toEqual(['rt-998877665']);
+  });
+
   it('계정은 ${username} · ${password} 로, 나머지는 같은 값이면 같은 꼬리표로 바꾼다', () => {
     const 표 = 가림표(비밀값모으기([로그인, 주문]), [{ loginId: 'tester01', loginPassword: 'pw-secret!' }]);
     const [로, 주] = 가리기([로그인, 주문], 표);

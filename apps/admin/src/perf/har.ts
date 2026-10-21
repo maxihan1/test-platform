@@ -31,7 +31,8 @@ export interface AI녹화줄 {
 }
 
 const 비밀머리 = /^(authorization|cookie|set-cookie|proxy-authorization|x-[a-z0-9-]*(token|key|secret|auth)[a-z0-9-]*)$/i;
-const 비밀키 = /(pass(word|wd)?|pwd|token|secret|session|auth|api[-_]?key|credential|otp)/i;
+// 칸 이름 전체가 맞아야 한다 — 일부만 보면 author · sessionCount · passenger 같은 보통 값까지 꼬리표가 되어 주소 · id 가 망가진다
+const 비밀키 = /^(pass(word|wd)?|pwd|pw|pin|otp|secret|client[-_]?secret|session([-_]?id)?|sid|auth|authorization|api[-_]?key|credentials?|[a-z_-]*token)$/i;
 // k6 가 알아서 붙이거나(쿠키 통) 뜻이 없는 브라우저 머리글 — AI 재료에서 뺀다
 const 버릴머리 = /^(cookie|user-agent|accept|accept-[a-z]+|sec-[a-z-]+|referer|origin|connection|cache-control|pragma|host|content-length|upgrade-insecure-requests|priority|:.*)$/i;
 const 정적종류 = new Set(['image', 'font', 'stylesheet', 'media', 'manifest', 'texttrack']);

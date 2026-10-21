@@ -60,7 +60,8 @@ describe('성능일하기 · 성능일돌기', () => {
     expect(명령).toBe('claude');
     expect(인자.slice(0, 1)).toEqual(['-p']);
     expect(인자[인자.indexOf('--output-format') + 1]).toBe('text');
-    expect(인자.slice(인자.indexOf('--disallowedTools') + 1)).toContain('Bash');
+    expect(인자[인자.indexOf('--tools') + 1]).toBe('');
+    expect(인자).toEqual(expect.arrayContaining(['--strict-mcp-config', '--disable-slash-commands']));
     expect(선택.input).toContain('"prd":[]');
     expect(선택.제한).toBe(900_000);
     expect(선택.env.AUTHORING_AGENT_TOKEN).toBeUndefined();
@@ -103,11 +104,12 @@ describe('성능일하기 · 성능일돌기', () => {
     expect(쉬기).toHaveBeenCalledWith(5000);
   });
 
-  it('거절이 오면 멈춤 까닭을 적고 끝낸다', async () => {
+  it('거절이 오면 이 고리만 끝내고 작성 고리의 멈춤은 건드리지 않는다', async () => {
     const 부른다 = vi.fn(async () => {
       throw new Error('(403) 서버가 거절했다.');
     });
     await 성능일돌기('http://admin', 'tpa_x', undefined, { 부른다, 돌린다: vi.fn(), 쉬기: vi.fn() } as unknown as 성능손);
-    expect(멈춤.까닭).toContain('서버가 거절했다');
+    expect(부른다).toHaveBeenCalledTimes(1);
+    expect(멈춤.까닭).toBeNull();
   });
 });
