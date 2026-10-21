@@ -30,10 +30,30 @@ export interface TxSecond {
   hist: number[];
 }
 
+export interface Resource {
+  name: string;
+  type: 'document' | 'script' | 'css' | 'img' | 'api' | 'font' | 'other';
+  startMs: number;
+  durationMs: number;
+  bytes: number;
+}
+
+// 페이지 한 번 연 표본. url 은 설정의 경로 그대로다
+export interface PageSample {
+  url: string;
+  lcpMs: number | null;
+  fcpMs: number | null;
+  cls: number | null;
+  ttfbMs: number | null;
+  lcpElement: string | null;
+  resources: Resource[];
+}
+
 export interface LoadSecond {
   sec: number;
   vus: number;
   txs: TxSecond[];
+  pages?: PageSample[];
 }
 
 export interface MonitorSecond {

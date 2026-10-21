@@ -9,7 +9,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 
 import { diff, readSnapshot } from './proc.js';
 import { Seconds } from './seconds.js';
-import type { DoneBody, HelloResponse, Job, LoadSecond, MonitorSecond } from './types.js';
+import type { DoneBody, HelloResponse, Job, LoadSecond, MonitorSecond, PageSample } from './types.js';
 
 export interface AgentConfig {
   url: string;
@@ -28,6 +28,9 @@ const HELLO_MS = 30_000;
 const CLAIM_MS = 2_000;
 // k6 JSON 출력은 1초마다 몰아서 쓴다. 2초를 기다려야 그 초의 줄이 다 와 있다 — QA Hub 가 합치기를 기다리는 2초와 같다(§5.4)
 const LAG_SEC = 2;
+// 스크립트가 페이지 한 번 잴 때마다 console.log 로 내는 줄의 머리. 1초 숫자 하나에 실어 보내는 표본 수는 서버가 받는 한도다
+const PAGE_PREFIX = 'QAHUB_PAGE ';
+const PAGES_PER_SEC = 50;
 
 class HttpError extends Error {
   constructor(readonly status: number, path: string) {
@@ -85,8 +88,8 @@ export class Agent {
 
   private runJob(job: Job): Promise<DoneBody> {
     if (job.kind === 'MONITOR') return this.runMonitor(job);
-    // 페이지 단독 측정은 PERF-F1-07, 더미 클라이언트는 PERF-F1-10 에서 더한다
-    if (job.kind === 'PAGE' || job.dummyClient || !job.script) return Promise.resolve({ status: 'ERROR', reason: `이 에이전트는 아직 ${job.kind === 'PAGE' ? '페이지 측정' : '더미 클라이언트'}을 하지 못합니다` });
+    // 페이지 측정은 부하와 같은 길(k6)로 돈다. 더미 클라이언트는 PERF-F1-10 에서 더한다
+    if (job.dummyClient || !job.script) return Promise.resolve({ status: 'ERROR', reason: '이 에이전트는 아직 더미 클라이언트를 하지 못합니다' });
     return this.runLoad(job);
   }
 
@@ -104,7 +107,9 @@ export class Agent {
     const dir = await mkdtemp(join(this.cfg.workDir, `run-${job.runId}-`));
     try {
       // 환경값은 명령 줄(-e)이 아니라 프로세스 환경으로 넘긴다 — 명령 줄은 ps 로 보이고, 에이전트 환경을 물려주면 AGENT_TOKEN 이 __ENV 로 샌다
-      const env: Record<string, string> = { PATH: process.env.PATH ?? '/usr/local/bin:/usr/bin:/bin', HOME: process.env.HOME ?? '/tmp', ...job.env };
+      // k6 browser 가 Chromium 을 켜는 데 쓰는 K6_BROWSER_* 만 에이전트 환경에서 물려준다(Dockerfile 이 넣는다)
+      const browserEnv = Object.fromEntries(Object.entries(process.env).filter((kv): kv is [string, string] => kv[0].startsWith('K6_BROWSER_') && kv[1] !== undefined));
+      const env: Record<string, string> = { PATH: process.env.PATH ?? '/usr/local/bin:/usr/bin:/bin', HOME: process.env.HOME ?? '/tmp', ...browserEnv, ...job.env };
       await writeFile(join(dir, 'script.js'), job.script ?? '');
       if (job.accountsCsv) {
         env.ACCOUNTS_CSV = join(dir, 'accounts.csv');
@@ -112,7 +117,7 @@ export class Agent {
       }
       // 시스템 꼬리표를 비워 줄을 줄인다 — 세는 데 쓰는 꼬리표는 생성기가 다는 tx 하나다.
       // json=/dev/stdout 은 안 된다 — node 가 자식 stdout 을 소켓으로 이어 k6 가 그 경로를 열지 못한다(실측 ENXIO). json=- 는 k6 가 자기 stdout 에 쓴다
-      const args = ['run', '-q', '--no-color', '--summary-mode=disabled', '--no-usage-report', '--system-tags=', '--out', 'json=-'];
+      const args = ['run', '-q', '--no-color', '--summary-mode=disabled', '--no-usage-report', '--system-tags=', '--log-format=raw', '--out', 'json=-'];
       if (job.segment) args.push('--execution-segment', job.segment);
       if (job.segmentSequence) args.push('--execution-segment-sequence', job.segmentSequence);
       args.push(join(dir, 'script.js'));
@@ -134,7 +139,18 @@ export class Agent {
           // k6 가 끊길 때 마지막 줄이 반쯤 잘려 올 수 있다. 여기서 던지면 에이전트가 통째로 죽어 끝 알림도 못 보낸다
         }
       });
+      // 아직 못 보낸 페이지 표본. 못 보낸 1초 숫자의 표본은 앞으로 되돌려 다음에 다시 붙인다
+      const pageBuf: PageSample[] = [];
       createInterface({ input: child.stderr }).on('line', (line) => {
+        if (line.startsWith(PAGE_PREFIX)) {
+          try {
+            const sample = JSON.parse(line.slice(PAGE_PREFIX.length)) as PageSample;
+            if (typeof sample?.url === 'string') pageBuf.push(sample);
+          } catch {
+            // 반쯤 잘린 줄은 버린다. 던지면 에이전트가 통째로 죽는다
+          }
+          return;
+        }
         errTail.push(line);
         if (errTail.length > 10) errTail.shift();
       });
@@ -155,7 +171,9 @@ export class Agent {
       let stopping = false;
       // 보내지 못하면 false. 그 틱의 나머지는 다음 틱으로 미룬다 — QA Hub 가 느릴 때 초마다 10초씩 기다리며 밀리지 않게
       const send = async (s: LoadSecond): Promise<boolean> => {
-        const res = await this.sendMetrics(job.runId, s);
+        const pages = pageBuf.splice(0, PAGES_PER_SEC);
+        const res = await this.sendMetrics(job.runId, pages.length ? { ...s, pages } : s);
+        if (!res) pageBuf.unshift(...pages);
         if (res?.stop && !stopping) {
           stopping = true;
           // SIGINT 면 k6 가 하던 반복을 마치고 스스로 끝난다
@@ -174,6 +192,8 @@ export class Agent {
       this.cfg.signal?.removeEventListener('abort', onAbort);
       // 끝난 뒤에는 남은 초를 다 보낸다
       await flush(Math.max(next - 1, ...seconds.leftovers()));
+      // 마지막 틱 뒤에 온 표본은 빈 초에 실어 보낸다. 보내기가 실패하면 그만둔다
+      while (pageBuf.length && (await send(seconds.take(next)))) next += 1;
 
       const exitCode = await exited;
       if (this.cfg.signal?.aborted && !stopping) return { status: 'ERROR', reason: '에이전트가 꺼졌습니다' };
