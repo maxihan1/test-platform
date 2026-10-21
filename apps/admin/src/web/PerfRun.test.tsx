@@ -9,6 +9,9 @@ import { perfApi, type 실행상세 } from './perfApi.js';
 import { PerfRun } from './PerfRun.js';
 import { 갱신간격, 틈간격 } from './perfRunView.js';
 
+const 된다 = () => () => true;
+const 안된다 = () => () => false;
+
 const 끝난상세 = (덮: Partial<실행상세> = {}): 실행상세 => ({
   id: 12,
   code: 'PRF-0012',
@@ -19,6 +22,7 @@ const 끝난상세 = (덮: Partial<실행상세> = {}): 실행상세 => ({
   testType: 'STRESS',
   env: 'qa',
   scenarioId: 5,
+  servicePrefix: 'MKT',
   scenarioName: '주문하기',
   origin: 'MANUAL',
   createdAt: '2026-10-21T05:04:00Z',
@@ -101,7 +105,7 @@ describe('실행 중에서 결과로', () => {
     vi.spyOn(perfApi, 'runOf').mockImplementation(() => Promise.resolve(지금));
     숫자들만들기();
     const 시리즈 = vi.mocked(perfApi.series);
-    render(<PerfRun runId={12} 쓰나 />);
+    render(<PerfRun runId={12} 판정하기={된다} />);
 
     expect(await screen.findByText('1,240')).toBeTruthy();
     expect(screen.getByText('860')).toBeTruthy();
@@ -134,17 +138,26 @@ describe('실행 중에서 결과로', () => {
     vi.spyOn(perfApi, 'hosts')
       .mockResolvedValueOnce({ hosts: [{ agentId: 21, agentName: 'web-1', sec: 2, cpu: 10, mem: 48, diskIoKbps: 0, netInKbps: 0, netOutKbps: 0 }] })
       .mockResolvedValue({ hosts: [{ agentId: 21, agentName: 'web-1', sec: 2, cpu: 77, mem: 48, diskIoKbps: 0, netInKbps: 0, netOutKbps: 0 }] });
-    render(<PerfRun runId={12} 쓰나 />);
+    render(<PerfRun runId={12} 판정하기={된다} />);
     expect(await screen.findByText('250')).toBeTruthy();
     expect(screen.queryByText('100')).toBeNull();
     expect(await screen.findByText('77%')).toBeTruthy();
+  });
+
+  it('실행 권한은 띠가 아니라 그 실행의 애플리케이션 접두사로 가른다', async () => {
+    vi.spyOn(perfApi, 'runOf').mockResolvedValue(도는상세());
+    숫자들만들기();
+    const 판정 = vi.fn((접두사: string | null) => (무엇: string) => 접두사 === 'MKT' && 무엇 === '실행');
+    render(<PerfRun runId={12} 판정하기={판정 as never} />);
+    expect(await screen.findByRole('button', { name: '실행 중단' })).toBeTruthy();
+    expect(판정).toHaveBeenCalledWith('MKT');
   });
 
   it('서버 모니터링 에이전트를 고르지 않았으면 그 말을 한다', async () => {
     const 상세 = 도는상세();
     vi.spyOn(perfApi, 'runOf').mockResolvedValue({ ...상세, config: { ...상세.config, monitorIds: [] } });
     숫자들만들기();
-    render(<PerfRun runId={12} 쓰나 />);
+    render(<PerfRun runId={12} 판정하기={된다} />);
     expect(await screen.findByText('서버 모니터링 에이전트를 고르지 않았습니다')).toBeTruthy();
   });
 
@@ -152,7 +165,7 @@ describe('실행 중에서 결과로', () => {
     vi.spyOn(perfApi, 'runOf').mockResolvedValue(도는상세());
     숫자들만들기();
     const 중단 = vi.spyOn(perfApi, 'stop').mockResolvedValue(undefined);
-    render(<PerfRun runId={12} 쓰나 />);
+    render(<PerfRun runId={12} 판정하기={된다} />);
 
     fireEvent.click(await screen.findByRole('button', { name: '실행 중단' }));
     const 창 = screen.getByRole('dialog');
@@ -160,7 +173,7 @@ describe('실행 중에서 결과로', () => {
     await waitFor(() => expect(중단).toHaveBeenCalledWith(12));
 
     cleanup();
-    render(<PerfRun runId={12} 쓰나={false} />);
+    render(<PerfRun runId={12} 판정하기={안된다} />);
     await screen.findByText('1,240');
     expect(screen.queryByRole('button', { name: '실행 중단' })).toBeNull();
   });
@@ -169,7 +182,7 @@ describe('실행 중에서 결과로', () => {
     vi.spyOn(perfApi, 'runOf').mockResolvedValue(도는상세());
     숫자들만들기();
     vi.spyOn(perfApi, 'stop').mockRejectedValue(new ApiError(409, 'NOT_RUNNING', '', []));
-    render(<PerfRun runId={12} 쓰나 />);
+    render(<PerfRun runId={12} 판정하기={된다} />);
     fireEvent.click(await screen.findByRole('button', { name: '실행 중단' }));
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: '실행 중단' }));
     expect(await within(await screen.findByRole('dialog')).findByText('이미 끝난 실행입니다')).toBeTruthy();
@@ -181,7 +194,7 @@ describe('결과', () => {
 
   it('판정 배지 · 중단 사유 · 최대 동시 사용자 · 목표 표 · 성능 저하 글자를 보인다', async () => {
     vi.spyOn(perfApi, 'runOf').mockResolvedValue(끝난상세());
-    const { container } = render(<PerfRun runId={12} 쓰나 />);
+    const { container } = render(<PerfRun runId={12} 판정하기={된다} />);
     await screen.findByText('주문 트랜잭션에서 병목 발생');
 
     const 머리 = container.querySelector('.head')!;
@@ -216,7 +229,7 @@ describe('결과', () => {
     vi.spyOn(perfApi, 'runOf').mockResolvedValue(
       끝난상세({ status: 'STOPPED', verdict: null, stopReason: 'USER', testType: 'LOAD', config: { ...끝난상세().config, testType: 'LOAD' }, targets: null, transactions: [], comparePoint: null }),
     );
-    const { container } = render(<PerfRun runId={12} 쓰나 />);
+    const { container } = render(<PerfRun runId={12} 판정하기={된다} />);
     await screen.findByText('주문 트랜잭션에서 병목 발생');
     expect(container.querySelector('.perf-hero')).toBeNull();
     const 배지 = container.querySelector('.head .verdict')!;
@@ -228,7 +241,7 @@ describe('결과', () => {
 
   it('오류로 끝났으면 「오류」 로 보인다', async () => {
     vi.spyOn(perfApi, 'runOf').mockResolvedValue(끝난상세({ status: 'ERROR', verdict: null, stopReason: null, targets: null, ai: null }));
-    const { container } = render(<PerfRun runId={12} 쓰나 />);
+    const { container } = render(<PerfRun runId={12} 판정하기={된다} />);
     await waitFor(() => expect(container.querySelector('.head .verdict')?.textContent).toBe('오류'));
   });
 
@@ -237,7 +250,7 @@ describe('결과', () => {
     const 읽기 = vi.spyOn(perfApi, 'runOf').mockImplementation(() => Promise.resolve(지금));
     let 상태: 'RUNNING' | 'DONE' = 'RUNNING';
     const 묻기 = vi.spyOn(perfApi, 'job').mockImplementation(() => Promise.resolve({ status: 상태 }));
-    render(<PerfRun runId={12} 쓰나 />);
+    render(<PerfRun runId={12} 판정하기={된다} />);
     expect(await screen.findByText('AI 분석을 만드는 중입니다')).toBeTruthy();
     await waitFor(() => expect(묻기.mock.calls.length).toBeGreaterThan(2));
     expect(묻기).toHaveBeenCalledWith(3);
@@ -251,7 +264,7 @@ describe('결과', () => {
   it('끝난 직후 AI 일이 서기 전 틈에는 만드는 중으로 보고 다시 읽는다. 2분이 지나도 일이 없으면 만들지 못한 것이다', async () => {
     let 지금 = 끝난상세({ ai: null, aiJob: null, finishedAt: new Date(Date.now() - 10_000).toISOString() });
     const 읽기 = vi.spyOn(perfApi, 'runOf').mockImplementation(() => Promise.resolve(지금));
-    render(<PerfRun runId={12} 쓰나 />);
+    render(<PerfRun runId={12} 판정하기={된다} />);
     expect(await screen.findByText('AI 분석을 만드는 중입니다')).toBeTruthy();
     expect(screen.queryByRole('button', { name: '다시 만들기' })).toBeNull();
     await waitFor(() => expect(읽기.mock.calls.length).toBeGreaterThan(1));
@@ -260,31 +273,31 @@ describe('결과', () => {
 
     cleanup();
     지금 = 끝난상세({ ai: null, aiJob: null, finishedAt: new Date(Date.now() - 200_000).toISOString() });
-    render(<PerfRun runId={12} 쓰나 />);
+    render(<PerfRun runId={12} 판정하기={된다} />);
     expect(await screen.findByText('AI 분석을 만들지 못했습니다')).toBeTruthy();
   });
 
   it('오류로 끝났거나 숫자가 없는 실행은 틈을 기다리지 않는다', async () => {
     vi.spyOn(perfApi, 'runOf').mockResolvedValue(끝난상세({ status: 'ERROR', verdict: null, ai: null, aiJob: null, finishedAt: new Date().toISOString() }));
-    render(<PerfRun runId={12} 쓰나 />);
+    render(<PerfRun runId={12} 판정하기={된다} />);
     expect(await screen.findByText('AI 분석을 만들지 못했습니다')).toBeTruthy();
     cleanup();
     vi.spyOn(perfApi, 'runOf').mockResolvedValue(끝난상세({ ai: null, aiJob: null, summary: { peakVus: null, maxTps: null, p95Ms: null, errorRate: null }, finishedAt: new Date().toISOString() }));
-    render(<PerfRun runId={12} 쓰나 />);
+    render(<PerfRun runId={12} 판정하기={된다} />);
     expect(await screen.findByText('AI 분석을 만들지 못했습니다')).toBeTruthy();
   });
 
   it('AI 분석이 실패했거나 없으면 다시 만들기가 있다. 실행 write 가 없으면 단추가 없다', async () => {
     vi.spyOn(perfApi, 'runOf').mockResolvedValue(끝난상세({ ai: null, aiJob: { id: 3, status: 'FAILED' } }));
     const 분석 = vi.spyOn(perfApi, 'analysis').mockResolvedValue({ jobId: 4 });
-    render(<PerfRun runId={12} 쓰나 />);
+    render(<PerfRun runId={12} 판정하기={된다} />);
     expect(await screen.findByText('AI 분석을 만들지 못했습니다')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '다시 만들기' }));
     await waitFor(() => expect(분석).toHaveBeenCalledWith(12));
 
     cleanup();
     vi.spyOn(perfApi, 'runOf').mockResolvedValue(끝난상세({ ai: null, aiJob: null }));
-    render(<PerfRun runId={12} 쓰나={false} />);
+    render(<PerfRun runId={12} 판정하기={안된다} />);
     expect(await screen.findByText('AI 분석을 만들지 못했습니다')).toBeTruthy();
     expect(screen.queryByRole('button', { name: '다시 만들기' })).toBeNull();
     expect(screen.queryByRole('button', { name: '다시 실행' })).toBeNull();
@@ -293,7 +306,7 @@ describe('결과', () => {
   it('다시 실행은 같은 설정으로 새 실행을 만들고 그 번호 화면으로 간다', async () => {
     vi.spyOn(perfApi, 'runOf').mockResolvedValue(끝난상세());
     const 실행 = vi.spyOn(perfApi, 'run').mockResolvedValue({ runId: 13 });
-    render(<PerfRun runId={12} 쓰나 />);
+    render(<PerfRun runId={12} 판정하기={된다} />);
     fireEvent.click(await screen.findByRole('button', { name: '다시 실행' }));
     await waitFor(() => expect(window.location.hash).toBe('#/perf/runs/13'));
     expect(실행).toHaveBeenCalledWith({
@@ -313,7 +326,7 @@ describe('결과', () => {
     const 받기 = vi.spyOn(perfApi, 'pdf').mockResolvedValue({ 파일: new Blob(['x']), 머리: null });
     Object.assign(URL, { createObjectURL: vi.fn(() => 'blob:perf'), revokeObjectURL: vi.fn() });
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
-    render(<PerfRun runId={12} 쓰나 />);
+    render(<PerfRun runId={12} 판정하기={된다} />);
     fireEvent.click(await screen.findByRole('button', { name: 'PDF로 내려받기' }));
     await waitFor(() => expect(받기).toHaveBeenCalledWith(12));
   });

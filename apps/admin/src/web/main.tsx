@@ -157,7 +157,7 @@ function Screen({
       return service === null ? <div className="empty">{t('애플리케이션을 먼저 골라 주세요')}</div> : <PerfRunList key={prefix} serviceId={service.id} />;
     case 'perfRun':
       // 번호마다 새로 그린다 — 다시 실행으로 새 번호 주소로 오면 앞 실행의 숫자가 남지 않게
-      return <PerfRun key={current.runId} runId={current.runId} 쓰나={할수('실행')} />;
+      return <PerfRun key={current.runId} runId={current.runId} 판정하기={(접두사) => 판정을만든다(user, 접두사)} />;
     case 'run':
       // 주소로 바로 오는 화면이라 띠와 다른 서비스의 실행일 수 있다 — 그 실행의 칸으로 가른다
       return <RunResult runId={current.runId} 판정하기={(접두사) => 판정을만든다(user, 접두사)} />;

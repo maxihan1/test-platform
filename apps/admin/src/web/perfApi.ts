@@ -184,6 +184,7 @@ export interface 실행상세 {
   testType: TestType | null;
   env: string;
   scenarioId: number | null;
+  servicePrefix: string;
   scenarioName: string;
   origin: 'MANUAL' | 'SCHEDULED';
   createdAt: string;
