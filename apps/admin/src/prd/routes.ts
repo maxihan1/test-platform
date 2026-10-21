@@ -13,6 +13,7 @@ import { 지도를읽는다 } from './apiMap.js';
 import { 워드만들기 } from './docx.js';
 import { 찾은화면셈 } from './found.js';
 import { 보류읽기 } from './held.js';
+import { 성능목표읽기 } from './perf.js';
 import { 반영안됨, 본문상한, 확인필요, 항목검사 } from './rules.js';
 import { 반영세우기 } from './apply.js';
 import { 반영본문, 화면이맞음채우기, type 화면이맞음 } from './screenRight.js';
@@ -56,6 +57,8 @@ export default async function prdRoutes(app: FastifyInstance): Promise<void> {
     if (서비스 === null) return reply;
     const [판, cases, 기준, held] = await Promise.all([지금판(서비스), 케이스지도(서비스), 기준판(서비스), 보류읽기(서비스)]);
     const items = 판?.items ?? [];
+    // 성능 판정은 실행 결과라서 실행 read 가 없으면 빈 칸이다 — 케이스의 마지막 결과와 같은 기준이다
+    const 결과보나 = 칸되는서비스(req.user?.services ?? [], 'runs', 'read').includes(req.query.service ?? '');
     return {
       version: 판?.version ?? 0,
       items,
@@ -64,6 +67,7 @@ export default async function prdRoutes(app: FastifyInstance): Promise<void> {
       needsCheck: 확인필요(items),
       ...(await 찾은화면셈(서비스, items)),
       held,
+      perf: 결과보나 ? await 성능목표읽기(서비스) : {},
     };
   });
 
@@ -169,11 +173,11 @@ async function 추적표보내기(
   비밀번호들: string[],
   결과보나: boolean,
 ) {
-  const [cases, 결과들, held] = await Promise.all([케이스지도(서비스), 결과보나 ? lastByCase([접두사]) : Promise.resolve(null), 보류읽기(서비스)]);
+  const [cases, 결과들, held, perf] = await Promise.all([케이스지도(서비스), 결과보나 ? lastByCase([접두사]) : Promise.resolve(null), 보류읽기(서비스), 결과보나 ? 성능목표읽기(서비스) : Promise.resolve({})]);
   const 결과표 = 결과들 === null ? null : new Map(결과들.map((l) => [`${l.tcId}:${l.platform}`, l.status]));
   const generatedAt = new Date().toISOString();
   const 파일 = await 추적표만들기(
-    { generatedAt, items: 판.items, cases, held, 결과: 결과표 === null ? null : (tcId, platform) => 결과표.get(`${tcId}:${platform}`) },
+    { generatedAt, items: 판.items, cases, held, perf, 결과: 결과표 === null ? null : (tcId, platform) => 결과표.get(`${tcId}:${platform}`) },
     비밀번호들,
   );
   const 날짜 = 한국시각(generatedAt).slice(0, 10);
