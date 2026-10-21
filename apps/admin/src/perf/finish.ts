@@ -1,19 +1,12 @@
 // 성능 실행을 닫는다 — 끝난 모양마다 상태 · 판정 · 까닭 짝을 정하고 요약 · 성능 저하를 쓴다 (도메인/성능 §3.9 「끝난 모양마다 상태 · 판정 · 까닭」)
 
-import { AGENT_LOST_SEC, ERROR_LIMIT_PCT, STREAK_SEC, degraded, judge, judgeWindow, summary, type Stop } from './judge.js';
 import { 끝난뒤 } from './afterFinish.js';
+import { degraded, judge, judgeWindow, summary, type Stop } from './judge.js';
+import { 사유 } from './reasons.js';
 import { 도는것 } from './state.js';
 import * as 표 from './store.js';
 
 export type 끝 = { kind: 'DONE' } | { kind: 'STOP'; stop: Stop | { reason: 'USER' | 'AGENT_LOST' | 'SMOKE_FAILED' } } | { kind: 'ERROR'; why: string };
-
-const 사유: Record<string, string> = {
-  TARGET_EXCEEDED: `성능 목표를 ${STREAK_SEC}초 이어 벗어나 자동 중단했습니다`,
-  ERROR_LIMIT: `에러율 ${ERROR_LIMIT_PCT}% 이상이 ${STREAK_SEC}초 이어져 대상 서버를 지키려고 자동 중단했습니다`,
-  AGENT_LOST: `부하 발생 에이전트가 ${AGENT_LOST_SEC}초 동안 연락이 없어 중단했습니다`,
-  SMOKE_FAILED: '스모크 테스트에서 에러가 나 본 테스트를 하지 않았습니다',
-  USER: '실행을 중단했습니다',
-};
 
 function 끝줄(v: 표.끝값): string {
   if (v.stopReason !== null) return 사유[v.stopReason] ?? v.stopReason;
