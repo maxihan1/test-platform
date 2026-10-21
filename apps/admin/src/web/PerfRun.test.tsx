@@ -7,7 +7,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { ApiError } from './api.js';
 import { perfApi, type 실행상세 } from './perfApi.js';
 import { PerfRun } from './PerfRun.js';
-import { 갱신간격 } from './perfRunView.js';
+import { 갱신간격, 틈간격 } from './perfRunView.js';
 
 const 끝난상세 = (덮: Partial<실행상세> = {}): 실행상세 => ({
   id: 12,
@@ -84,6 +84,7 @@ function 숫자들만들기() {
 
 beforeEach(() => {
   갱신간격.ms = 30;
+  틈간격.ms = 30;
 });
 
 afterEach(() => {
@@ -91,6 +92,7 @@ afterEach(() => {
   vi.restoreAllMocks();
   window.location.hash = '';
   갱신간격.ms = 5000;
+  틈간격.ms = 10_000;
 });
 
 describe('실행 중에서 결과로', () => {
@@ -230,14 +232,46 @@ describe('결과', () => {
     await waitFor(() => expect(container.querySelector('.head .verdict')?.textContent).toBe('오류'));
   });
 
-  it('AI 분석을 만드는 중이면 다시 읽고, 끝나면 분석이 들어온다', async () => {
+  it('AI 일이 도는 동안은 가벼운 일 상태만 묻고, 끝난 것을 알아야 실행을 다시 읽는다', async () => {
     let 지금 = 끝난상세({ ai: null, aiJob: { id: 3, status: 'RUNNING' } });
+    const 읽기 = vi.spyOn(perfApi, 'runOf').mockImplementation(() => Promise.resolve(지금));
+    let 상태: 'RUNNING' | 'DONE' = 'RUNNING';
+    const 묻기 = vi.spyOn(perfApi, 'job').mockImplementation(() => Promise.resolve({ status: 상태 }));
+    render(<PerfRun runId={12} 쓰나 />);
+    expect(await screen.findByText('AI 분석을 만드는 중입니다')).toBeTruthy();
+    await waitFor(() => expect(묻기.mock.calls.length).toBeGreaterThan(2));
+    expect(묻기).toHaveBeenCalledWith(3);
+    expect(읽기).toHaveBeenCalledTimes(1);
+    지금 = 끝난상세();
+    상태 = 'DONE';
+    expect(await screen.findByText('주문 트랜잭션에서 병목 발생')).toBeTruthy();
+    expect(읽기).toHaveBeenCalledTimes(2);
+  });
+
+  it('끝난 직후 AI 일이 서기 전 틈에는 만드는 중으로 보고 다시 읽는다. 2분이 지나도 일이 없으면 만들지 못한 것이다', async () => {
+    let 지금 = 끝난상세({ ai: null, aiJob: null, finishedAt: new Date(Date.now() - 10_000).toISOString() });
     const 읽기 = vi.spyOn(perfApi, 'runOf').mockImplementation(() => Promise.resolve(지금));
     render(<PerfRun runId={12} 쓰나 />);
     expect(await screen.findByText('AI 분석을 만드는 중입니다')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '다시 만들기' })).toBeNull();
     await waitFor(() => expect(읽기.mock.calls.length).toBeGreaterThan(1));
     지금 = 끝난상세();
     expect(await screen.findByText('주문 트랜잭션에서 병목 발생')).toBeTruthy();
+
+    cleanup();
+    지금 = 끝난상세({ ai: null, aiJob: null, finishedAt: new Date(Date.now() - 200_000).toISOString() });
+    render(<PerfRun runId={12} 쓰나 />);
+    expect(await screen.findByText('AI 분석을 만들지 못했습니다')).toBeTruthy();
+  });
+
+  it('오류로 끝났거나 숫자가 없는 실행은 틈을 기다리지 않는다', async () => {
+    vi.spyOn(perfApi, 'runOf').mockResolvedValue(끝난상세({ status: 'ERROR', verdict: null, ai: null, aiJob: null, finishedAt: new Date().toISOString() }));
+    render(<PerfRun runId={12} 쓰나 />);
+    expect(await screen.findByText('AI 분석을 만들지 못했습니다')).toBeTruthy();
+    cleanup();
+    vi.spyOn(perfApi, 'runOf').mockResolvedValue(끝난상세({ ai: null, aiJob: null, summary: { peakVus: null, maxTps: null, p95Ms: null, errorRate: null }, finishedAt: new Date().toISOString() }));
+    render(<PerfRun runId={12} 쓰나 />);
+    expect(await screen.findByText('AI 분석을 만들지 못했습니다')).toBeTruthy();
   });
 
   it('AI 분석이 실패했거나 없으면 다시 만들기가 있다. 실행 write 가 없으면 단추가 없다', async () => {

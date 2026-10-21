@@ -7,7 +7,7 @@ import { use말, use언어 } from './i18n.js';
 import { perfApi, type 실행상세 } from './perfApi.js';
 import { RunHead } from './PerfRunHead.js';
 import { PerfRunTrend } from './PerfRunTrend.js';
-import { 갱신간격, 명글자, 목표글자, 목표대상, 분초, 사유이름, 측정글자, 판정꼴, 판정이름, 판정종류 } from './perfRunView.js';
+import { 갱신간격, 명글자, 목표글자, 목표대상, 분석틈, 분초, 사유이름, 측정글자, 틈간격, 판정꼴, 판정이름, 판정종류 } from './perfRunView.js';
 import { message, 받을이름, 파일로저장 } from './ui.js';
 
 const 지표글자: Record<'P95' | 'ERROR_RATE' | 'TPS', string> = { P95: '95% 응답시간', ERROR_RATE: '에러율', TPS: 'TPS' };
@@ -18,14 +18,34 @@ export function PerfRunResult({ run, 다시읽기, 쓰나 }: { run: 실행상세
   const [하는중, set하는중] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
   const 종류 = 판정종류(run);
-  const 만드는중 = run.ai === null && run.aiJob !== null && (run.aiJob.status === 'QUEUED' || run.aiJob.status === 'RUNNING');
+  const 일번호 = run.aiJob?.id ?? null;
+  // 끝쓰기로 끝난 직후 AI 일이 서기 전 틈 — 일이 아직 없어도 곧 선다. 오류로 끝났거나 숫자가 없으면 일이 서지 않는다
+  const 틈 =
+    run.ai === null && run.aiJob === null && run.status !== 'ERROR' && run.summary.peakVus !== null && run.finishedAt !== null && Date.now() - new Date(run.finishedAt).getTime() < 분석틈;
+  const 만드는중 = run.ai === null && (틈 || (run.aiJob !== null && (run.aiJob.status === 'QUEUED' || run.aiJob.status === 'RUNNING')));
 
-  // AI 분석이 끝날 때까지 다시 읽는다. 끝나면 이 효과가 스스로 멈춘다
+  // AI 분석이 끝날 때까지 기다린다. 일이 있으면 가벼운 일 상태만 묻다가 끝난 것을 알 때 실행을 한 번 다시 읽고,
+  // 일이 아직 없는 틈에는 실행을 드물게 다시 읽는다. 끝나면 이 효과가 스스로 멈춘다
   useEffect(() => {
     if (!만드는중) return;
-    const 타이머 = setInterval(() => void 다시읽기(), 갱신간격.ms);
+    const 타이머 = setInterval(
+      () => {
+        if (일번호 === null) {
+          void 다시읽기();
+          return;
+        }
+        perfApi.job<unknown>(일번호).then(
+          (일) => {
+            set오류(null);
+            if (일.status === 'DONE' || 일.status === 'FAILED') void 다시읽기();
+          },
+          (err: unknown) => set오류(message(err, 언어)),
+        );
+      },
+      일번호 === null ? 틈간격.ms : 갱신간격.ms,
+    );
     return () => clearInterval(타이머);
-  }, [만드는중]);
+  }, [만드는중, 일번호]);
 
   async function 하기(일: () => Promise<void>) {
     set하는중(true);

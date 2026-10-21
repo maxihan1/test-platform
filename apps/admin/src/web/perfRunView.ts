@@ -8,6 +8,11 @@ export type 말 = (키: string, 값?: Record<string, string | number>) => string
 /** 실행 중 · AI 분석을 기다리는 동안 다시 읽는 간격(ms). 검사가 기다리지 않게 바꿀 수 있게 내보낸다 (§8.14 「5초마다」) */
 export const 갱신간격 = { ms: 5000 };
 
+/** AI 일이 서기 전 틈에 실행을 다시 읽는 간격(ms). 일이 서면 가벼운 일 상태만 묻는다 */
+export const 틈간격 = { ms: 10_000 };
+/** 끝쓰기와 AI 일 세우기 사이에 이 시간 안이면 분석이 곧 선다고 본다(ms) */
+export const 분석틈 = 120_000;
+
 const 진행 = new Set<실행상태>(['QUEUED', 'SMOKE', 'RUNNING']);
 export const 도는중인가 = (상태: 실행상태): boolean => 진행.has(상태);
 
