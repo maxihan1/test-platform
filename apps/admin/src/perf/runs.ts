@@ -9,6 +9,7 @@ import { 중단하기, 한번돌기 } from './engine.js';
 import { totalDuration } from './generator.js';
 import { percentile } from './hist.js';
 import { 결과HTML, PDF찍기, 실행번호글 } from './pdf.js';
+import { 실행보기 } from './runView.js';
 import { API서버호스트, 계정줄들, 단계, 목표, 허용밖, 호스트 } from './scenarios.js';
 import * as 표 from './store.js';
 import type { RunConfig, ScenarioBody } from './types.js';
@@ -100,7 +101,7 @@ export default async function perfRunRoutes(app: FastifyInstance): Promise<void>
     const scenarioId = req.query.scenarioId === undefined ? null : 정수(req.query.scenarioId);
     if (serviceId === null || (req.query.scenarioId !== undefined && scenarioId === null)) return 바(reply, 400, 'INVALID_REQUEST', 'serviceId');
     const r = await (await 표.풀()).query(
-      `SELECT r.id, r.kind, r.status, r.verdict, COALESCE(s.name, '') AS title, r.env, r.started_at AS "startedAt",
+      `SELECT r.id, r.kind, r.status, r.verdict, COALESCE(s.name, '') AS title, r.env, r.test_type AS "testType", r.origin, r.degraded, r.stop_reason AS "stopReason", r.started_at AS "startedAt",
               CASE WHEN r.started_at IS NULL THEN NULL ELSE EXTRACT(EPOCH FROM COALESCE(r.finished_at, now()) - r.started_at)::int END AS "durationSec",
               json_build_object('peakVus', r.peak_vus, 'maxTps', r.max_tps, 'p95Ms', r.p95_ms, 'errorRate', r.error_rate) AS summary
          FROM perf_run r LEFT JOIN perf_scenario s ON s.id = r.scenario_id
@@ -117,9 +118,9 @@ export default async function perfRunRoutes(app: FastifyInstance): Promise<void>
     const pool = await 표.풀();
     const r = await pool.query(
       `SELECT r.id, r.kind, r.status, r.verdict, r.stop_reason AS "stopReason", r.config, r.targets, r.degraded, r.ai, r.env, r.test_type AS "testType",
-              r.scenario_id AS "scenarioId", r.created_at AS "createdAt", r.started_at AS "startedAt", r.finished_at AS "finishedAt",
+              r.scenario_id AS "scenarioId", r.created_at AS "createdAt", r.started_at AS "startedAt", r.finished_at AS "finishedAt", r.origin, COALESCE(s.name, '') AS "scenarioName",
               json_build_object('peakVus', r.peak_vus, 'maxTps', r.max_tps, 'p95Ms', r.p95_ms, 'errorRate', r.error_rate) AS summary
-         FROM perf_run r WHERE r.id = $1`,
+         FROM perf_run r LEFT JOIN perf_scenario s ON s.id = r.scenario_id WHERE r.id = $1`,
       [id],
     );
     const run = r.rows[0] as Record<string, unknown> | undefined;
@@ -130,7 +131,8 @@ export default async function perfRunRoutes(app: FastifyInstance): Promise<void>
       `SELECT id, verdict, peak_vus AS "peakVus", max_tps AS "maxTps", p95_ms AS "p95Ms", error_rate AS "errorRate", created_at AS "createdAt" FROM perf_run WHERE id = $1`,
       [prevId],
     )).rows[0];
-    return { ...run, id, code: 실행번호글(id), previous: prev == null ? null : { ...prev, id: Number((prev as { id: string }).id) } };
+    const 보기 = 행 === null ? null : await 실행보기(행, String(run.status), (run.stopReason as string | null) ?? null);
+    return { ...run, ...보기, id, code: 실행번호글(id), previous: prev == null ? null : { ...prev, id: Number((prev as { id: string }).id) } };
   });
 
   app.get<번호경로>('/perf/runs/:id/series', async (req, reply) => {

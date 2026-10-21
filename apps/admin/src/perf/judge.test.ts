@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { bucketOf, emptyHist } from './hist.js';
-import { autoStop, degraded, judge, judgeWindow, summary, type SecRow } from './judge.js';
+import { autoStop, bandSecs, comparePoint, degraded, judge, judgeWindow, summary, transactionViews, type SecRow } from './judge.js';
 import type { Target } from './types.js';
 
 function 초(sec: number, vus: number, requests: number, errors: number, ms: number, tx = ''): SecRow {
@@ -78,5 +78,37 @@ describe('degraded', () => {
     const 비슷 = [초(0, 150, 100, 0, 210), 초(1, 260, 100, 0, 220)];
     expect(degraded(비슷, 이전)).toBe(false);
     expect(degraded(지금, [])).toBeNull();
+  });
+});
+
+describe('견줌 지점과 트랜잭션별 셈', () => {
+  const 이전 = [초(0, 150, 100, 0, 200), 초(1, 250, 100, 0, 300)];
+  const 지금 = [초(0, 150, 100, 0, 400), 초(1, 260, 100, 0, 900)];
+
+  it('견줌 지점은 두 실행 최대 가상 사용자 중 작은 값을 100명 단위로 내린 값이고 그 칸의 초를 고른다', () => {
+    expect(comparePoint(지금, 이전)).toBe(200);
+    expect([...bandSecs(지금, 200)]).toEqual([1]);
+    expect([...bandSecs(이전, 200)]).toEqual([1]);
+  });
+
+  it('이전 실행이 없으면 95% 와 에러율만 채우고 저하는 아니다', () => {
+    const rows = [초(0, 10, 100, 5, 200, '로그인'), 초(0, 10, 50, 0, 100, '목록')];
+    const v = transactionViews(['목록', '로그인'], rows, null);
+    expect(v.map((x) => x.tx)).toEqual(['목록', '로그인']);
+    expect(v[1]).toMatchObject({ errorRate: 5, prevP95Ms: null, degraded: false });
+    expect(v[1]?.p95Ms).toBeGreaterThan(150);
+  });
+
+  it('이전 실행의 같은 트랜잭션보다 20% 넘게 느리면 그 줄만 성능 저하다', () => {
+    const 지금줄 = [초(1, 260, 100, 0, 900, '로그인'), 초(1, 260, 100, 0, 210, '목록')];
+    const 이전줄 = [초(1, 250, 100, 0, 300, '로그인'), 초(1, 250, 100, 0, 200, '목록')];
+    const v = transactionViews([], 지금줄, 이전줄);
+    expect(v.map((x) => [x.tx, x.degraded])).toEqual([['로그인', true], ['목록', false]]);
+    expect(v[0]?.prevP95Ms).not.toBeNull();
+  });
+
+  it('이전 실행에 없던 트랜잭션은 견주지 못하므로 저하가 아니다', () => {
+    const v = transactionViews([], [초(1, 260, 100, 0, 900, '새줄')], [초(1, 250, 100, 0, 300, '다른줄')]);
+    expect(v[0]).toMatchObject({ tx: '새줄', prevP95Ms: null, degraded: false });
   });
 });

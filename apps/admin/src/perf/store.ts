@@ -123,6 +123,16 @@ export async function 초읽기(runId: number, from = 0, to = 2 ** 31 - 1, txs?:
   return r.rows;
 }
 
+// 고른 초들의 트랜잭션 줄(전체 줄 '' 은 뺀다) — 결과 화면의 트랜잭션별 셈
+export async function 트랜잭션줄읽기(runId: number, secs: number[]): Promise<SecRow[]> {
+  if (secs.length === 0) return [];
+  const r = await (await 풀()).query<SecRow>(
+    `SELECT sec, tx, vus, requests, errors, hist FROM perf_series WHERE run_id = $1 AND tx <> '' AND sec = ANY($2::int[]) ORDER BY sec, tx`,
+    [runId, secs],
+  );
+  return r.rows;
+}
+
 // 트랜잭션마다 실행 전체를 DB 가 합친다 — PDF 「트랜잭션별 결과」
 export async function 트랜잭션합계(runId: number): Promise<{ tx: string; requests: number; errors: number; hist: number[] }[]> {
   const r = await (await 풀()).query<{ tx: string; requests: string; errors: string; hist: number[] }>(
