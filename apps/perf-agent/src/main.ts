@@ -12,6 +12,10 @@ if (!token) {
   console.log('토큰이 없습니다 — 설정 › 성능 에이전트에서 발급한 토큰을 AGENT_TOKEN 에 넣고 다시 띄우세요');
   setInterval(() => undefined, 2 ** 31 - 1);
 } else {
+  // 종료 신호를 받으면 k6 를 끊고 끝 알림을 보낸 뒤 스스로 끝난다 — 그냥 죽으면 k6 가 남아 대상 서버를 계속 두드린다
+  const stop = new AbortController();
+  process.once('SIGTERM', () => stop.abort());
+  process.once('SIGINT', () => stop.abort());
   await new Agent({
     url: (process.env.QAHUB_URL ?? 'http://admin:3000').replace(/\/$/, ''),
     token,
@@ -21,5 +25,6 @@ if (!token) {
     procRoot: '/proc',
     workDir: tmpdir(),
     log: (msg) => console.log(`${new Date().toISOString()} ${msg}`),
+    signal: stop.signal,
   }).run();
 }

@@ -18,6 +18,8 @@ interface Bin {
 
 export class Seconds {
   private bins = new Map<number, Bin>();
+  // 한 번 보낸 초. 늦게 온 조각의 vus 를 0 으로 둬야 QA Hub 가 더해도 두 번 세지 않는다(§5.4)
+  private taken = new Set<number>();
 
   // startMs 는 이 에이전트 시계로 옮긴 startAt 이다. sec 는 거기서 센 초다
   constructor(private readonly startMs: number) {}
@@ -52,7 +54,9 @@ export class Seconds {
   take(sec: number): LoadSecond {
     const bin = this.bins.get(sec);
     this.bins.delete(sec);
-    return { sec, vus: bin?.vus ?? 0, txs: bin ? [...bin.txs.values()] : [] };
+    const vus = this.taken.has(sec) ? 0 : (bin?.vus ?? 0);
+    this.taken.add(sec);
+    return { sec, vus, txs: bin ? [...bin.txs.values()] : [] };
   }
 
   // 이미 보낸 초에 늦게 온 줄이 남긴 칸. QA Hub 는 늦게 온 숫자를 그 행에 더한다(§5.4)

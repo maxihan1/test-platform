@@ -91,12 +91,20 @@ export class Agent {
   }
 
   private async runLoad(job: Job): Promise<DoneBody> {
-    const base = job.env.BASE_URL;
-    if (base && !job.allowedHosts.includes(new URL(base).host)) return { status: 'ERROR', reason: `허용 호스트 밖의 대상 서버입니다 — ${new URL(base).host}` };
+    // 주소가 없으면 검사를 건너뛰지 않고 막는다 — 빈 env 로 아무 호스트에나 부하를 걸지 않게
+    const host = (() => {
+      try {
+        return new URL(job.env.BASE_URL ?? '').host;
+      } catch {
+        return undefined;
+      }
+    })();
+    if (!host || !job.allowedHosts.includes(host)) return { status: 'ERROR', reason: `허용 호스트 밖의 대상 서버입니다 — ${host ?? '주소 없음'}` };
 
     const dir = await mkdtemp(join(this.cfg.workDir, `run-${job.runId}-`));
     try {
-      const env = { ...job.env };
+      // 환경값은 명령 줄(-e)이 아니라 프로세스 환경으로 넘긴다 — 명령 줄은 ps 로 보이고, 에이전트 환경을 물려주면 AGENT_TOKEN 이 __ENV 로 샌다
+      const env: Record<string, string> = { PATH: process.env.PATH ?? '/usr/local/bin:/usr/bin:/bin', HOME: process.env.HOME ?? '/tmp', ...job.env };
       await writeFile(join(dir, 'script.js'), job.script ?? '');
       if (job.accountsCsv) {
         env.ACCOUNTS_CSV = join(dir, 'accounts.csv');
@@ -107,14 +115,17 @@ export class Agent {
       const args = ['run', '-q', '--no-color', '--summary-mode=disabled', '--no-usage-report', '--system-tags=', '--out', 'json=-'];
       if (job.segment) args.push('--execution-segment', job.segment);
       if (job.segmentSequence) args.push('--execution-segment-sequence', job.segmentSequence);
-      for (const [k, v] of Object.entries(env)) args.push('-e', `${k}=${v}`);
       args.push(join(dir, 'script.js'));
 
       const startMs = this.localStart(job);
       await this.pause(startMs - Date.now());
+      if (this.cfg.signal?.aborted) return { status: 'ERROR', reason: '에이전트가 꺼졌습니다' };
       const seconds = new Seconds(startMs);
       const [cmd, ...pre] = this.cfg.k6;
-      const child = spawn(cmd, [...pre, ...args], { stdio: ['ignore', 'pipe', 'pipe'] });
+      const child = spawn(cmd, [...pre, ...args], { stdio: ['ignore', 'pipe', 'pipe'], env });
+      // 에이전트가 꺼질 때 k6 를 남겨 두면 아무도 숫자를 읽지 않는 부하가 대상 서버에 계속 간다
+      const onAbort = () => child.kill('SIGINT');
+      this.cfg.signal?.addEventListener('abort', onAbort, { once: true });
       const errTail: string[] = [];
       createInterface({ input: child.stdout }).on('line', (line) => {
         try {
@@ -142,29 +153,30 @@ export class Agent {
 
       let next = 0;
       let stopping = false;
-      const send = async (s: LoadSecond) => {
-        const res = (await this.post(`/api/perf/agent/runs/${job.runId}/metrics`, s).catch((e: unknown) => {
-          this.cfg.log(`1초 숫자를 보내지 못했습니다 — ${String(e)}`);
-          return { stop: false };
-        })) as { stop: boolean };
-        if (res.stop && !stopping) {
+      // 보내지 못하면 false. 그 틱의 나머지는 다음 틱으로 미룬다 — QA Hub 가 느릴 때 초마다 10초씩 기다리며 밀리지 않게
+      const send = async (s: LoadSecond): Promise<boolean> => {
+        const res = await this.sendMetrics(job.runId, s);
+        if (res?.stop && !stopping) {
           stopping = true;
           // SIGINT 면 k6 가 하던 반복을 마치고 스스로 끝난다
           child.kill('SIGINT');
         }
+        return res !== null;
       };
       const flush = async (upTo: number) => {
-        for (const late of seconds.leftovers().filter((s) => s < next)) await send(seconds.take(late));
-        for (; next <= upTo; next += 1) await send(seconds.take(next));
+        for (const late of seconds.leftovers().filter((s) => s < next)) if (!(await send(seconds.take(late)))) return;
+        for (; next <= upTo; next += 1) if (!(await send(seconds.take(next)))) return void (next += 1);
       };
       while (!finished) {
         await Promise.race([sleep(1000), exited]);
         await flush(Math.floor((Date.now() - startMs) / 1000) - LAG_SEC);
       }
+      this.cfg.signal?.removeEventListener('abort', onAbort);
       // 끝난 뒤에는 남은 초를 다 보낸다
       await flush(Math.max(next - 1, ...seconds.leftovers()));
 
       const exitCode = await exited;
+      if (this.cfg.signal?.aborted && !stopping) return { status: 'ERROR', reason: '에이전트가 꺼졌습니다' };
       if (exitCode === 0 || stopping) return { status: 'OK' };
       return { status: 'ERROR', reason: `k6 가 ${String(exitCode)} 로 끝났습니다${errTail.length ? ` — ${errTail.join(' / ').slice(-1000)}` : ''}` };
     } finally {
@@ -181,13 +193,20 @@ export class Agent {
       const cur = readSnapshot(this.cfg.procRoot);
       const body: MonitorSecond = { sec, ...diff(prev, cur) };
       prev = cur;
-      const res = (await this.post(`/api/perf/agent/runs/${job.runId}/metrics`, body).catch((e: unknown) => {
-        this.cfg.log(`1초 숫자를 보내지 못했습니다 — ${String(e)}`);
-        return { stop: false };
-      })) as { stop: boolean };
-      if (res.stop) break;
+      if ((await this.sendMetrics(job.runId, body))?.stop) break;
     }
     return { status: 'OK' };
+  }
+
+  // 못 보내면 null. 204 나 빈 본문이어도 던지지 않는다 — 던지면 runLoad 가 k6 를 남긴 채 풀려 버린다
+  private async sendMetrics(runId: number, body: LoadSecond | MonitorSecond): Promise<{ stop: boolean } | null> {
+    try {
+      const res = (await this.post(`/api/perf/agent/runs/${runId}/metrics`, body)) as { stop?: boolean } | null;
+      return { stop: res?.stop === true };
+    } catch (e) {
+      this.cfg.log(`1초 숫자를 보내지 못했습니다 — ${String(e)}`);
+      return null;
+    }
   }
 
   private localStart(job: Job): number {

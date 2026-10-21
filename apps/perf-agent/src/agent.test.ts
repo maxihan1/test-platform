@@ -11,18 +11,23 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { Agent } from './agent.js';
 import type { Job } from './types.js';
 
-// 가짜 k6 — 받은 인자를 파일에 남기고 지금 시각의 k6 JSON 줄을 낸다. HOLD=1 이면 끊길 때까지 떠 있는다
+// 가짜 k6 — 받은 인자 · 환경을 파일에 남기고 지금 시각의 k6 JSON 줄을 낸다. HOLD=1 이면 끊길 때까지 떠 있는다
 const FAKE_K6 = `
 import { writeFileSync } from 'node:fs';
-const argv = process.argv.slice(2);
-writeFileSync(process.env.FAKE_ARGV, JSON.stringify(argv));
+const e = process.env;
+writeFileSync(e.FAKE_ARGV, JSON.stringify({ argv: process.argv.slice(2), env: { BASE_URL: e.BASE_URL, ACCOUNTS_CSV: e.ACCOUNTS_CSV, AGENT_TOKEN: e.AGENT_TOKEN } }));
 const p = (metric, value, tags) => console.log(JSON.stringify({ metric, type: 'Point', data: { time: new Date().toISOString(), value, tags } }));
 p('vus', 5, {});
 for (const ms of [10, 20, 30]) { p('http_req_duration', ms, { tx: 'login' }); p('http_req_failed', 0, { tx: 'login' }); }
 p('checks', 0, { tx: 'login' });
-if (argv.includes('FAIL=1')) { console.error('스크립트 오류'); process.exit(107); }
-setTimeout(() => {}, argv.includes('HOLD=1') ? 60_000 : 300);
+if (e.FAIL === '1') { console.error('스크립트 오류'); process.exit(107); }
+setTimeout(() => {}, e.HOLD === '1' ? 60_000 : 300);
 `;
+
+interface Seen {
+  argv: string[];
+  env: Record<string, string | undefined>;
+}
 
 interface Call {
   path: string;
@@ -33,10 +38,11 @@ interface Call {
 let server: Server | undefined;
 afterEach(() => server?.close());
 
-async function runOnce(job: Partial<Job>, opts: { stop?: boolean; procRoot?: string } = {}) {
+async function runOnce(job: Partial<Job>, opts: { stop?: boolean; procRoot?: string; metrics204?: boolean } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'perf-agent-test-'));
   writeFileSync(join(dir, 'k6.mjs'), FAKE_K6);
-  process.env.FAKE_ARGV = join(dir, 'argv.json');
+  const fake = { FAKE_ARGV: join(dir, 'argv.json') };
+  process.env.AGENT_TOKEN = 'pga_새면안됨';
   const calls: Call[] = [];
   const ctrl = new AbortController();
   let claimed = false;
@@ -51,9 +57,10 @@ async function runOnce(job: Partial<Job>, opts: { stop?: boolean; procRoot?: str
       if (path.endsWith('/claim')) {
         const first = !claimed;
         claimed = true;
-        return json({ job: first ? { runId: 7, kind: 'LOAD', startAt: new Date().toISOString(), script: 'export default function () {}', env: {}, allowedHosts: [], durationSec: 2, ...job } : null });
+        const base: Job = { runId: 7, kind: 'LOAD', startAt: new Date().toISOString(), script: 'export default function () {}', env: { BASE_URL: 'http://shop.test' }, allowedHosts: ['shop.test'], durationSec: 2 };
+        return json({ job: first ? { ...base, ...job, env: { ...(job.env ?? base.env), ...fake } } : null });
       }
-      if (path.endsWith('/metrics')) return json({ stop: opts.stop ?? false });
+      if (path.endsWith('/metrics')) return opts.metrics204 ? void res.writeHead(204).end() : json({ stop: opts.stop ?? false });
       res.writeHead(204).end();
       if (path.endsWith('/done')) ctrl.abort();
     });
@@ -72,14 +79,14 @@ async function runOnce(job: Partial<Job>, opts: { stop?: boolean; procRoot?: str
   });
   await agent.run();
   const argvFile = join(dir, 'argv.json');
-  const argv = (() => {
+  const seen = (() => {
     try {
-      return JSON.parse(readFileSync(argvFile, 'utf8')) as string[];
+      return JSON.parse(readFileSync(argvFile, 'utf8')) as Seen;
     } catch {
       return null;
     }
   })();
-  return { calls, argv, done: calls.find((c) => c.path.endsWith('/done'))!.body, metrics: calls.filter((c) => c.path.endsWith('/metrics')).map((c) => c.body) };
+  return { calls, argv: seen?.argv ?? null, env: seen?.env ?? null, done: calls.find((c) => c.path.endsWith('/done'))!.body, metrics: calls.filter((c) => c.path.endsWith('/metrics')).map((c) => c.body) };
 }
 
 describe('Agent', () => {
@@ -87,20 +94,28 @@ describe('Agent', () => {
     const r = await runOnce({ segment: '0:1/2', segmentSequence: '0,1/2,1', env: { BASE_URL: 'http://shop.test:8080' }, allowedHosts: ['shop.test:8080'], accountsCsv: 'id,pw\na,b\n' });
     expect(r.calls[0]).toMatchObject({ path: '/api/perf/agent/hello', auth: 'Bearer pga_test', body: { version: '0.1.0', maxVus: 300 } });
     expect(r.calls[1].path).toBe('/api/perf/agent/claim');
-    expect(r.argv).toEqual(expect.arrayContaining(['--execution-segment', '0:1/2', '--execution-segment-sequence', '0,1/2,1', 'BASE_URL=http://shop.test:8080', '--system-tags=', 'json=-']));
-    expect(r.argv!.find((a) => a.startsWith('ACCOUNTS_CSV='))).toMatch(/accounts\.csv$/);
+    expect(r.argv).toEqual(expect.arrayContaining(['--execution-segment', '0:1/2', '--execution-segment-sequence', '0,1/2,1', '--system-tags=', 'json=-']));
+    expect(r.argv!.join(' ')).not.toContain('BASE_URL');
+    expect(r.env).toMatchObject({ BASE_URL: 'http://shop.test:8080', ACCOUNTS_CSV: expect.stringMatching(/accounts\.csv$/) });
+    expect(r.env!.AGENT_TOKEN).toBeUndefined();
     expect(r.metrics[0]).toMatchObject({ sec: 0, vus: 5, txs: [{ name: 'login', requests: 3, errors: 1 }] });
     expect(r.done).toEqual({ status: 'OK' });
   });
 
   it('QA Hub 가 멈추라고 답하면 k6 를 끊고 OK 로 끝낸다', async () => {
-    const r = await runOnce({ env: { HOLD: '1' } }, { stop: true });
+    const r = await runOnce({ env: { BASE_URL: 'http://shop.test', HOLD: '1' } }, { stop: true });
+    expect(r.metrics.length).toBeGreaterThan(0);
+    expect(r.done).toEqual({ status: 'OK' });
+  });
+
+  it('1초 숫자에 204 로 답해도 죽지 않고 끝까지 간다', async () => {
+    const r = await runOnce({}, { metrics204: true });
     expect(r.metrics.length).toBeGreaterThan(0);
     expect(r.done).toEqual({ status: 'OK' });
   });
 
   it('k6 가 오류로 끝나면 끝 코드와 오류 줄을 이유로 보낸다', async () => {
-    const r = await runOnce({ env: { FAIL: '1' } });
+    const r = await runOnce({ env: { BASE_URL: 'http://shop.test', FAIL: '1' } });
     expect(r.done.status).toBe('ERROR');
     expect(r.done.reason).toMatch(/107.*스크립트 오류/);
   });
@@ -109,6 +124,12 @@ describe('Agent', () => {
     const r = await runOnce({ env: { BASE_URL: 'https://real-shop.example' }, allowedHosts: ['shop.test'] });
     expect(r.argv).toBeNull();
     expect(r.done).toEqual({ status: 'ERROR', reason: '허용 호스트 밖의 대상 서버입니다 — real-shop.example' });
+  });
+
+  it('대상 서버 주소가 없으면 검사를 건너뛰지 않고 막는다', async () => {
+    const r = await runOnce({ env: {} });
+    expect(r.argv).toBeNull();
+    expect(r.done).toEqual({ status: 'ERROR', reason: '허용 호스트 밖의 대상 서버입니다 — 주소 없음' });
   });
 
   it('아직 못 하는 일(페이지 측정)은 오류로 끝낸다', async () => {

@@ -52,4 +52,13 @@ describe('Seconds', () => {
     expect(s.take(0).txs[0].requests).toBe(1);
     expect(s.leftovers()).toEqual([]);
   });
+
+  it('늦게 온 조각의 가상 사용자는 0 이라 QA Hub 가 더해도 두 번 세지 않는다', () => {
+    const s = new Seconds(START);
+    s.add(point('vus', 100, 5));
+    expect(s.take(0).vus).toBe(5);
+    s.add(point('vus', 900, 5));
+    s.add(point('http_req_duration', 900, 12, { tx: 'login' }));
+    expect(s.take(0)).toMatchObject({ vus: 0, txs: [{ requests: 1 }] });
+  });
 });
