@@ -221,3 +221,21 @@ describe('상자는 node 를 바로 띄운다', () => {
     expect(서비스블록('runner')).toMatch(/^ {4}init:\s*true/m);
   });
 });
+
+// 부하 발생 에이전트는 QA Hub 로 나가는 연결만 한다 — DB · 러너에 닿지 않고 바깥 포트도 없다 (SPEC 공통/6 §9 · 도메인/성능 §5.4)
+describe('부하 발생 에이전트', () => {
+  const 에이전트 = 서비스블록('perf-agent');
+
+  it('perf 망에만 붙고 바깥 포트를 열지 않는다', () => {
+    expect(망(에이전트)).toEqual(['perf']);
+    expect(에이전트).not.toMatch(/^ {4}ports:/m);
+    expect(망(서비스블록('admin'))).toContain('perf');
+    expect(compose).toMatch(/^ {2}perf:\s*\{\}/m);
+  });
+
+  it('토큰이 비어도 꺼지지 않으니 다시 켜기는 unless-stopped 이고 init 이 붙는다', () => {
+    expect(에이전트).toMatch(/^ {4}restart: unless-stopped/m);
+    expect(에이전트).toMatch(/^ {4}init:\s*true/m);
+    expect(에이전트).toMatch(/AGENT_TOKEN:\s*"\$\{PERF_AGENT_TOKEN:-\}"/);
+  });
+});
