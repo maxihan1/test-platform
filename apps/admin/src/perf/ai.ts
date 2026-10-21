@@ -3,11 +3,12 @@
 import type { PoolClient } from 'pg';
 import { z } from 'zod';
 
+import { 시리얼 } from './devices.js';
 import { 페이지 } from './pages.js';
 import { 목표, 트랜잭션 } from './scenarios.js';
 import { 풀 } from './store.js';
 
-export type AI일종류 = 'DRAFT_RECORD' | 'DRAFT_SWAGGER' | 'DRAFT_FILE' | 'SUGGEST_LOAD' | 'SUGGEST_TARGETS' | 'SUGGEST_PAGES' | 'ANALYZE_RUN';
+export type AI일종류 = 'DRAFT_RECORD' | 'DRAFT_SWAGGER' | 'DRAFT_FILE' | 'SUGGEST_LOAD' | 'SUGGEST_TARGETS' | 'SUGGEST_PAGES' | 'SUGGEST_DEVICES' | 'ANALYZE_RUN';
 
 // 피크 시간은 1시간으로 둔다 (PERF-F1-04 시작 질문). 스트레스 테스트의 최대는 피크의 5배가 기본이다 (§3.9 「부하 설정」)
 export const 피크분 = 60;
@@ -50,12 +51,20 @@ const 출력: Record<AI일종류, z.ZodType> = {
       .refine((ps) => new Set(ps.map((p) => p.url)).size === ps.length, '경로가 겹칩니다'),
     basis: 근거,
   }),
+  // 팜 기기 목록에서 고른 기기 (§7 「기기 추천」). 목록에 없는 기기는 결과를 다듬을 때 버린다
+  SUGGEST_DEVICES: z.object({
+    devices: z.array(z.object({ serial: z.string().regex(시리얼), why: z.string().max(500).default('') })).min(1).max(5)
+      .refine((ds) => new Set(ds.map((d) => d.serial)).size === ds.length, '기기가 겹칩니다'),
+    basis: 근거,
+  }),
   // 결과 화면 「AI 분석」 — 제목 한 줄과 개조식 항목. perf_run.ai 에 그대로 쓰고 PDF 가 같은 꼴로 읽는다.
   // 페이지 단독 측정은 페이지별 항목(pages)을 더 낸다 — 화면 워터폴 아래 「AI 분석」
   ANALYZE_RUN: z.object({
     title: z.string().trim().min(1).max(200),
     items: z.array(z.string().trim().min(1).max(500)).min(1).max(10),
     pages: z.array(z.object({ url: z.string().min(1).max(500), items: z.array(z.string().trim().min(1).max(500)).min(1).max(5) })).max(10).optional(),
+    // 기기 실행의 「AI가 표시한 장면」 — 많이 와도 앞 20개만 쓴다
+    markers: z.array(z.object({ serial: z.string().min(1).max(64), sec: z.number().int().min(0), label: z.string().trim().min(1).max(200) })).optional(),
   }),
 };
 
@@ -82,6 +91,20 @@ export function 결과다듬기(kind: string, input: unknown, output: unknown): 
     const 재료 = input as { total?: number; staticExcluded?: number };
     const v = 값 as { transactions: unknown[]; excluded: unknown[] };
     return { output: { ...값, recorded: { total: 재료.total ?? 0, staticExcluded: 재료.staticExcluded ?? 0, used: v.transactions.length, excluded: v.excluded.length } } };
+  }
+  if (kind === 'SUGGEST_DEVICES') {
+    const 목록 = new Set(((input as { devices?: { serial: string }[] }).devices ?? []).map((d) => d.serial));
+    const 남김 = (값 as { devices: { serial: string }[] }).devices.filter((d) => 목록.has(d.serial));
+    return 남김.length === 0 ? { error: '팜 기기 목록에 있는 기기가 하나도 없습니다' } : { output: { ...값, devices: 남김 } };
+  }
+  if (kind === 'ANALYZE_RUN' && (값 as { markers?: unknown }).markers !== undefined) {
+    // 그 실행의 기기이고 잰 초 안인 표시만 남긴다
+    const 재료 = input as { kind?: string; devices?: { serial: string; firstSec: number; lastSec: number }[] };
+    const 기기 = new Map((재료.kind === 'DEVICE' ? (재료.devices ?? []) : []).map((d) => [d.serial, d]));
+    const 남김 = (값 as { markers: { serial: string; sec: number }[] }).markers
+      .filter((m) => { const d = 기기.get(m.serial); return d !== undefined && m.sec >= d.firstSec && m.sec <= d.lastSec; })
+      .slice(0, 20);
+    return { output: { ...값, markers: 남김 } };
   }
   return { output: 값 };
 }

@@ -3,12 +3,14 @@
 import type { PoolClient } from 'pg';
 
 import { 끝내기, 일만들기 } from './ai.js';
+import { 구간표별, 기기요약하기, 누수의심, 회차메모리 } from './deviceStats.js';
+import { 줄읽기 as 기기줄읽기 } from './deviceStore.js';
 import type { SecRow } from './judge.js';
 import { 페이지목표 } from './pageScript.js';
 import { 부하중가장느린, 페이지줄읽기 } from './pages.js';
 import { 실행보기 } from './runView.js';
 import * as 표 from './store.js';
-import type { PageRunConfig } from './types.js';
+import type { DeviceRunConfig, PageRunConfig } from './types.js';
 
 type 실행raw = {
   service_id: string; status: string; verdict: string | null; stop_reason: string | null; test_type: string | null; targets: unknown;
@@ -44,6 +46,28 @@ async function 페이지재료(run: 표.실행행): Promise<unknown> {
   };
 }
 
+/** 기기 성능의 재료 — 기기마다 요약 · 판정 · 구간마다 · 회차별 메모리 최대 · 메모리 누수 의심. 표시할 수 있는 초 범위(firstSec · lastSec)도 싣는다 */
+async function 기기재료(run: 표.실행행, 판정줄: unknown): Promise<unknown> {
+  const cfg = run.config as unknown as DeviceRunConfig;
+  const rows = await 기기줄읽기(run.id);
+  const 판정 = (판정줄 ?? []) as { scope: string; verdict: string }[];
+  const 메모리목표 = cfg.targets.find((t) => t.metric === 'MAX_MEM')?.value ?? null;
+  return {
+    kind: 'DEVICE', drive: cfg.drive, package: cfg.package, repeat: cfg.repeat, targets: cfg.targets,
+    devices: cfg.devices.map((d) => {
+      const 내것 = rows.filter((r) => r.serial === d.serial);
+      const 회차 = 회차메모리(d.serial, 내것);
+      const 내판정 = 판정.filter((t) => t.scope === d.serial);
+      return {
+        serial: d.serial, model: d.model, where: d.where, launchMs: d.launchMs, summary: 기기요약하기(내것),
+        verdict: 내판정.length === 0 ? null : 내판정.every((t) => t.verdict === 'PASS') ? 'PASS' : 'FAIL',
+        firstSec: 내것[0]?.sec ?? 0, lastSec: 내것[내것.length - 1]?.sec ?? 0,
+        segments: 구간표별(내것), loops: 회차.map(({ loop, maxMemMb }) => ({ loop, maxMemMb })), leak: 누수의심(d.serial, 회차, 메모리목표),
+      };
+    }),
+  };
+}
+
 /** 부하 중 페이지 측정 요약 (분석 항목 「페이지 로딩」의 재료) */
 async function 부하중요약(run: 표.실행행): Promise<Awaited<ReturnType<typeof 부하중가장느린>>> {
   return run.config.pageCheck ? 부하중가장느린(run.id, run.config.pages?.pages ?? []) : [];
@@ -59,6 +83,7 @@ export async function 분석재료(run: 표.실행행, 전체줄?: SecRow[]): Pr
   const x = r.rows[0];
   if (x === undefined) return null;
   if (run.kind === 'PAGE') return { serviceId: Number(x.service_id), input: await 페이지재료(run) };
+  if (run.kind === 'DEVICE') return { serviceId: Number(x.service_id), input: await 기기재료(run, x.targets) };
   const 보기 = await 실행보기(run, x.status, x.stop_reason, 전체줄);
   const prevId = run.scenarioId === null ? null : await 표.이전실행(run);
   const prev = prevId === null ? null : (await pool.query<{ verdict: string | null; peak_vus: number | null; max_tps: string | null; p95_ms: number | null; error_rate: string | null }>(
@@ -87,7 +112,7 @@ export async function 분석재료(run: 표.실행행, 전체줄?: SecRow[]): Pr
 /** 1초 숫자나 단독 측정 줄이 하나라도 있나 — 없으면 분석할 재료가 없다 */
 export async function 숫자있나(runId: number): Promise<boolean> {
   const r = await (await 표.풀()).query(
-    `SELECT 1 FROM perf_series WHERE run_id = $1 AND tx = '' UNION ALL SELECT 1 FROM perf_page_metric WHERE run_id = $1 AND sec IS NULL LIMIT 1`,
+    `SELECT 1 FROM perf_series WHERE run_id = $1 AND tx = '' UNION ALL SELECT 1 FROM perf_page_metric WHERE run_id = $1 AND sec IS NULL UNION ALL SELECT 1 FROM perf_device_metric WHERE run_id = $1 LIMIT 1`,
     [runId],
   );
   return (r.rowCount ?? 0) > 0;

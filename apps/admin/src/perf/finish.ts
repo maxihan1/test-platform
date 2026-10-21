@@ -1,13 +1,16 @@
 // 성능 실행을 닫는다 — 끝난 모양마다 상태 · 판정 · 까닭 짝을 정하고 요약 · 성능 저하를 쓴다 (도메인/성능 §3.9 「끝난 모양마다 상태 · 판정 · 까닭」)
 
 import { 끝난뒤 } from './afterFinish.js';
+import { 기기닫기, 기기지우기 } from './deviceRun.js';
+import { 기기요약하기, 기기판정 } from './deviceStats.js';
+import { 줄읽기 as 기기줄읽기 } from './deviceStore.js';
 import { degraded, judge, judgeWindow, summary, type SecRow, type Stop } from './judge.js';
 import { 단독쓰기 } from './pages.js';
 import { 가운데값, 목표줄들, type 페이지표본 } from './pageStats.js';
 import { 사유 } from './reasons.js';
 import { 도는것 } from './state.js';
 import * as 표 from './store.js';
-import type { PageRunConfig } from './types.js';
+import type { DeviceRunConfig, PageRunConfig } from './types.js';
 
 // 배경에서 도는 뒷일 — 검사가 끝나기를 기다릴 수 있게만 붙들어 둔다
 const 뒷일 = new Set<Promise<void>>();
@@ -55,6 +58,44 @@ async function 페이지닫기(run: 표.실행행, samples: 페이지표본[], �
   return 값;
 }
 
+/**
+ * 기기 성능 닫기 — 기록기를 닫고 폰을 놓은 뒤 DB 줄로 기기마다 요약 · 판정한다(끝까지 재서 끝난 때만).
+ * 앱 실행 시간은 기록기가 중간에 채우니 닫은 뒤에 실행을 다시 읽는다. 다른 닫기가 이미 하고 있으면 null
+ */
+async function 기기끝내기(runId: number, 끝: 끝): Promise<표.끝값 | null> {
+  if (!(await 기기닫기(runId))) return null;
+  // 맵에서 지우는 것은 끝쓰기까지 마친 뒤다 — 그 전에 지우면 고아닫기가 도는 실행을 오류로 닫는다
+  try {
+    const run = await 표.실행하나(runId);
+    if (run === null) return null;
+    const cfg = run.config as unknown as DeviceRunConfig;
+    let 값 = 빈끝;
+    let 오류: string | null = null;
+    let 멈춤글: string | null = null;
+    if (끝.kind === 'ERROR') 오류 = 끝.why;
+    else if (끝.kind === 'STOP') {
+      값 = { ...빈끝, status: 'STOPPED', stopReason: 끝.stop.reason };
+      멈춤글 = 끝.stop.reason === 'AGENT_LOST' ? '기기에서 측정값이 오지 않아 중단했습니다' : (사유[끝.stop.reason] ?? 끝.stop.reason);
+    } else {
+      const rows = await 기기줄읽기(runId);
+      if (rows.length === 0) 오류 = '기기 숫자를 하나도 받지 못했습니다';
+      else {
+        const targets = cfg.devices.flatMap((d) => 기기판정(d.serial, cfg.targets, 기기요약하기(rows.filter((r) => r.serial === d.serial)), d.launchMs));
+        // 목표가 없어도 숫자를 한 줄도 안 보낸 기기가 통과로 세지면 안 된다
+        const 빈기기 = cfg.devices.filter((d) => !rows.some((r) => r.serial === d.serial));
+        if (빈기기.length > 0) await 표.로그(runId, `숫자를 받지 못한 기기 — ${빈기기.map((d) => `${d.model}(${d.serial})`).join(', ')}`, 'WARN');
+        값 = { ...빈끝, status: 'DONE', verdict: 빈기기.length === 0 && targets.every((t) => t.verdict === 'PASS') ? 'PASS' : 'FAIL', targets };
+      }
+    }
+    if (오류 !== null) await 표.로그(runId, `실행이 오류로 끝났습니다 — ${오류}`, 'WARN');
+    if (!(await 표.끝쓰기(runId, 값))) return null;
+    await 표.로그(runId, 멈춤글 ?? 끝줄(값));
+    return 값;
+  } finally {
+    기기지우기(runId);
+  }
+}
+
 async function 부하닫기(run: 표.실행행, 끝: 끝): Promise<{ 값: 표.끝값; 전체줄: SecRow[] } | null> {
   const runId = run.id;
   const targets = run.config.targets ?? [];
@@ -94,7 +135,10 @@ export async function 끝내기(runId: number, 끝: 끝): Promise<void> {
   try {
     const run = await 표.실행하나(runId);
     if (run === null) return;
-    if (run.kind === 'PAGE') {
+    if (run.kind === 'DEVICE') {
+      const 값 = await 기기끝내기(run.id, 끝);
+      if (값 !== null) 후속 = { 값, 전체줄: [], 페이지: true };
+    } else if (run.kind === 'PAGE') {
       const 값 = await 페이지닫기(run, live?.pageSamples ?? [], 끝);
       if (값 !== null) 후속 = { 값, 전체줄: [], 페이지: true };
     } else {

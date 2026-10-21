@@ -3,6 +3,7 @@
 import type { FastifyInstance } from 'fastify';
 
 import { 대상줄읽기 } from '../authoring/reverse.js';
+import { 기기실행시작, 기기실행중인가 } from './deviceRun.js';
 import { 끝내기, 끝내기배경 } from './finish.js';
 import { generateScript, segments, splitRows } from './generator.js';
 import { emptyHist } from './hist.js';
@@ -249,6 +250,11 @@ async function 살피기(live: 도는실행, 지금: number): Promise<void> {
 async function 대기열(지금: number): Promise<void> {
   const 바쁜 = new Set([...도는것.values()].flatMap((l) => l.agents));
   for (const run of await 표.실행들(['QUEUED'])) {
+    // 기기 성능은 부하 에이전트를 기다리지 않는다. 기록기 켜기가 오래 걸려 기다리지 않고 배경에서 시작한다
+    if (run.kind === 'DEVICE') {
+      if (!기기실행중인가(run.id)) void 기기실행시작(run, 끝내기배경);
+      continue;
+    }
     if (run.kind === 'PAGE') {
       const agentId = await 빈에이전트(바쁜, 지금);
       if (agentId === null) continue;
@@ -271,7 +277,7 @@ async function 대기열(지금: number): Promise<void> {
 /** 메모리에 없는데 DB 에서 도는 실행 — admin 이 다시 켜졌거나 닫기가 실패했다. 이어 가지 못하니 오류로 닫고 에이전트를 푼다 */
 export async function 고아닫기(): Promise<void> {
   for (const run of await 표.실행들(['SMOKE', 'RUNNING'])) {
-    if (도는것.has(run.id)) continue;
+    if (도는것.has(run.id) || 기기실행중인가(run.id)) continue;
     if (await 표.끝쓰기(run.id, { status: 'ERROR', verdict: null, stopReason: null, targets: null, peakVus: null, maxTps: null, p95: null, errorRate: null, degraded: null })) {
       await 표.로그(run.id, 'admin 이 이 실행을 이어 가지 못했습니다', 'WARN');
     }

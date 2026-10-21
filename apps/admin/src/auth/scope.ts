@@ -172,6 +172,8 @@ export const 라우트표: Record<string, 원천> = {
   '/api/perf/runs/:id/hosts': { 종류: '성능실행', 칸: 'id' },
   '/api/perf/runs/:id/events': { 종류: '성능실행', 칸: 'id' },
   '/api/perf/runs/:id/pages': { 종류: '성능실행', 칸: 'id' },
+  '/api/perf/runs/:id/devices': { 종류: '성능실행', 칸: 'id' },
+  '/api/perf/runs/:id/videos/:serial/:name': { 종류: '성능실행', 칸: 'id' },
   '/api/perf/runs/:id/stop': { 종류: '성능실행', 칸: 'id' },
   '/api/perf/runs/:id/report.pdf': { 종류: '성능실행', 칸: 'id' },
   '/api/perf/runs/:id/analysis': { 종류: '성능실행', 칸: 'id' },
@@ -179,6 +181,8 @@ export const 라우트표: Record<string, 원천> = {
   '/api/perf/scenarios/draft': { 종류: '질의번호', 칸: 'serviceId' },
   '/api/perf/suggest': { 종류: '질의번호', 칸: 'serviceId' },
   '/api/perf/pages/measure': { 종류: '질의번호', 칸: 'serviceId' },
+  '/api/perf/devices': { 종류: '질의번호', 칸: 'serviceId' },
+  '/api/perf/devices/measure': { 종류: '질의번호', 칸: 'serviceId' },
   '/api/perf/ai-jobs/:id': { 종류: '성능AI일', 칸: 'id' },
   '/api/perf/ai-jobs/:id/finish': { 종류: '성능AI일', 칸: 'id' },
   // 집기는 라우트가 그 계정이 배정된 애플리케이션의 일만 준다
