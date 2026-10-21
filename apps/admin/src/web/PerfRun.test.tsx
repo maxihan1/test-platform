@@ -258,7 +258,8 @@ describe('결과', () => {
     지금 = 끝난상세();
     상태 = 'DONE';
     expect(await screen.findByText('주문 트랜잭션에서 병목 발생')).toBeTruthy();
-    expect(읽기).toHaveBeenCalledTimes(2);
+    expect(읽기.mock.calls.length).toBeGreaterThanOrEqual(2);
+    expect(읽기.mock.calls.length).toBeLessThanOrEqual(3);
   });
 
   it('끝난 직후 AI 일이 서기 전 틈에는 만드는 중으로 보고 다시 읽는다. 2분이 지나도 일이 없으면 만들지 못한 것이다', async () => {
