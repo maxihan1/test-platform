@@ -50,6 +50,7 @@ describe.skipIf(연결 === undefined)('증적 API', () => {
           color: '#223344',
           projectId: 1,
           projectName: 'XDR 대시보드',
+          kind: 'SCREEN',
           envs: [],
           hasSlackWebhook: false,
           hasFigmaToken: false,

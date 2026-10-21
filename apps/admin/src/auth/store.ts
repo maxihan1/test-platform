@@ -21,6 +21,8 @@ export interface 배정서비스 {
   /** 속한 프로젝트 (공통/4-데이터모델 「프로젝트 표」). 로그인 뒤 프로젝트 고르기가 배정받은 서비스에서 뽑는다 */
   projectId: number;
   projectName: string;
+  /** 애플리케이션 종류. 화면이 종류마다 다르게 그린다 (도메인/러너 §5.2 「애플리케이션 종류 「Android 앱」」 종류 표) */
+  kind: 'SCREEN' | 'APP' | 'API';
   /**
    * 그 서비스의 대상 서버 목록 (SPEC §6 `service_env`).
    *
@@ -77,7 +79,7 @@ const 한사람 = `
          COALESCE(
            json_agg(json_build_object(
              'id', s.id, 'prefix', s.prefix, 'name', s.name, 'color', s.color,
-             'projectId', s.project_id, 'projectName', p.name,
+             'projectId', s.project_id, 'projectName', p.name, 'kind', s.kind,
              'envs', COALESCE(e.envs, '[]'::json),
              'testsDir', s.tests_dir,
              'crawlExclude', s.crawl_exclude,
