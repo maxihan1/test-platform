@@ -3,6 +3,7 @@
 import type { PoolClient } from 'pg';
 
 import { 끝내기, 일만들기 } from './ai.js';
+import type { SecRow } from './judge.js';
 import { 실행보기 } from './runView.js';
 import * as 표 from './store.js';
 
@@ -25,7 +26,7 @@ async function 서버요약(runId: number) {
 }
 
 /** 이 재료 밖의 숫자는 AI 가 쓰지 못한다 — 판정 · 요약 · 목표별 측정값 · 트랜잭션별 · 서버 · 이전 실행 대비를 모두 여기서 센다 */
-export async function 분석재료(run: 표.실행행): Promise<{ serviceId: number; input: unknown } | null> {
+export async function 분석재료(run: 표.실행행, 전체줄?: SecRow[]): Promise<{ serviceId: number; input: unknown } | null> {
   const pool = await 표.풀();
   const r = await pool.query<실행raw>(
     `SELECT service_id, status, verdict, stop_reason, test_type, targets, peak_vus, max_tps, p95_ms, error_rate FROM perf_run WHERE id = $1`,
@@ -33,7 +34,7 @@ export async function 분석재료(run: 표.실행행): Promise<{ serviceId: num
   );
   const x = r.rows[0];
   if (x === undefined) return null;
-  const 보기 = await 실행보기(run, x.status, x.stop_reason);
+  const 보기 = await 실행보기(run, x.status, x.stop_reason, 전체줄);
   const prevId = run.scenarioId === null ? null : await 표.이전실행(run);
   const prev = prevId === null ? null : (await pool.query<{ verdict: string | null; peak_vus: number | null; max_tps: string | null; p95_ms: number | null; error_rate: string | null }>(
     'SELECT verdict, peak_vus, max_tps, p95_ms, error_rate FROM perf_run WHERE id = $1',
@@ -67,7 +68,7 @@ export async function 숫자있나(runId: number): Promise<boolean> {
  * 그 실행의 ANALYZE_RUN 일을 세운다. 같은 실행의 일이 이미 대기·진행 중이면 새로 만들지 않고 그 번호를 준다.
  * 실행이 없으면 null
  */
-export async function 분석일세우기(runId: number, who: string): Promise<number | null> {
+export async function 분석일세우기(runId: number, who: string, 전체줄?: SecRow[]): Promise<number | null> {
   const run = await 표.실행하나(runId);
   if (run === null) return null;
   const pool = await 표.풀();
@@ -76,7 +77,7 @@ export async function 분석일세우기(runId: number, who: string): Promise<nu
     [runId],
   );
   if (진행.rows[0] !== undefined) return Number(진행.rows[0].id);
-  const 재료 = await 분석재료(run);
+  const 재료 = await 분석재료(run, 전체줄);
   if (재료 === null) return null;
   return 일만들기('ANALYZE_RUN', 재료.serviceId, 재료.input, who, false, runId);
 }

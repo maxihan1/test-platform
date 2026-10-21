@@ -3,7 +3,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { 차리기, type 차림 } from './dbFixture.js';
-import { 끝내기 } from './finish.js';
+import { 끝내기, 뒷일기다리기 } from './finish.js';
 import { 성능알림 } from './notify.js';
 
 const 연결 = process.env.DATABASE_URL;
@@ -85,10 +85,25 @@ describe.skipIf(연결 === undefined)('성능 Slack 알림', { timeout: 60_000 }
     vi.stubGlobal('fetch', 가짜);
     const id = await f.실행넣기({ scenarioId: 끈것, origin: 'SCHEDULED', status: 'RUNNING', verdict: null, series: 숫자 });
     await 끝내기(id, { kind: 'DONE' });
+    await 뒷일기다리기();
     expect(가짜).toHaveBeenCalledTimes(1);
     const [주소, 옵션] = 가짜.mock.calls[0] as unknown as [string, { method: string; body: string }];
     expect(주소).toBe('https://hooks.example.test/y');
     expect(옵션.method).toBe('POST');
     expect(JSON.parse(옵션.body)).toEqual({ text: expect.stringMatching(/^\[통과\] 알림 끈 것 PRF-/) });
+  });
+
+  it('끝내기는 Slack 이 느려도 기다리지 않고 닫힌다 — 알림은 뒤에서 나간다', async () => {
+    await 웹훅('https://hooks.example.test/z');
+    let 풀기: (r: Response) => void = () => undefined;
+    const 가짜 = vi.fn(() => new Promise<Response>((끝) => { 풀기 = 끝; }));
+    vi.stubGlobal('fetch', 가짜);
+    const id = await f.실행넣기({ scenarioId: 끈것, origin: 'SCHEDULED', status: 'RUNNING', verdict: null, series: 숫자 });
+    const 먼저 = await Promise.race([끝내기(id, { kind: 'DONE' }).then(() => '닫힘'), new Promise((r) => setTimeout(() => r('막힘'), 3000))]);
+    expect(먼저).toBe('닫힘');
+    await vi.waitFor(() => expect(가짜).toHaveBeenCalledTimes(1));
+    풀기(new Response('ok'));
+    await 뒷일기다리기();
+    expect(가짜).toHaveBeenCalledTimes(1);
   });
 });

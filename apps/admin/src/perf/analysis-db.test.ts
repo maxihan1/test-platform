@@ -3,7 +3,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { 분석끝내기 } from './analysis.js';
-import { 끝내기 } from './finish.js';
+import { 끝내기, 뒷일기다리기 } from './finish.js';
 import { 차리기, type 차림 } from './dbFixture.js';
 
 const 연결 = process.env.DATABASE_URL;
@@ -38,6 +38,7 @@ describe.skipIf(연결 === undefined)('성능 AI 분석', { timeout: 60_000 }, (
   it('실행이 끝나면 재료 표를 담은 ANALYZE_RUN 일이 선다 — 오류로 끝났거나 숫자가 없으면 서지 않는다', async () => {
     const 도는 = await f.실행넣기({ scenarioId: 시나리오, status: 'RUNNING', verdict: null, series: 숫자 });
     await 끝내기(도는, { kind: 'DONE' });
+    await 뒷일기다리기();
     const 일 = await 일들(도는);
     expect(일).toHaveLength(1);
     expect(일[0]).toMatchObject({ status: 'QUEUED', created_by: 'system' });
@@ -46,10 +47,12 @@ describe.skipIf(연결 === undefined)('성능 AI 분석', { timeout: 60_000 }, (
 
     const 오류 = await f.실행넣기({ scenarioId: 시나리오, status: 'RUNNING', verdict: null, series: 숫자 });
     await 끝내기(오류, { kind: 'ERROR', why: '시험' });
+    await 뒷일기다리기();
     expect(await 일들(오류)).toHaveLength(0);
 
     const 빈것 = await f.실행넣기({ scenarioId: 시나리오, status: 'RUNNING', verdict: null });
     await 끝내기(빈것, { kind: 'DONE' });
+    await 뒷일기다리기();
     expect(await 일들(빈것)).toHaveLength(0);
   });
 

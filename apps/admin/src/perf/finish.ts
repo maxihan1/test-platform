@@ -1,10 +1,16 @@
 // 성능 실행을 닫는다 — 끝난 모양마다 상태 · 판정 · 까닭 짝을 정하고 요약 · 성능 저하를 쓴다 (도메인/성능 §3.9 「끝난 모양마다 상태 · 판정 · 까닭」)
 
 import { 끝난뒤 } from './afterFinish.js';
-import { degraded, judge, judgeWindow, summary, type Stop } from './judge.js';
+import { degraded, judge, judgeWindow, summary, type SecRow, type Stop } from './judge.js';
 import { 사유 } from './reasons.js';
 import { 도는것 } from './state.js';
 import * as 표 from './store.js';
+
+// 배경에서 도는 뒷일 — 검사가 끝나기를 기다릴 수 있게만 붙들어 둔다
+const 뒷일 = new Set<Promise<void>>();
+export const 뒷일기다리기 = async (): Promise<void> => {
+  await Promise.all([...뒷일]);
+};
 
 export type 끝 = { kind: 'DONE' } | { kind: 'STOP'; stop: Stop | { reason: 'USER' | 'AGENT_LOST' | 'SMOKE_FAILED' } } | { kind: 'ERROR'; why: string };
 
@@ -23,6 +29,8 @@ export async function 끝내기(runId: number, 끝: 끝): Promise<void> {
   const live = 도는것.get(runId);
   if (live?.ending) return;
   if (live) live.ending = true;
+  // 닫힌 뒤에 할 일 — 분석 재료를 세고 Slack 을 부르는 동안 끝내기가 붙들려 있지 않게 finally 뒤에서 기다리지 않고 돌린다
+  let 후속: { 값: 표.끝값; 전체줄: SecRow[] } | null = null;
   try {
     const run = await 표.실행하나(runId);
     if (run === null) return;
@@ -51,10 +59,16 @@ export async function 끝내기(runId: number, 끝: 끝): Promise<void> {
     }
     if (await 표.끝쓰기(runId, 값)) {
       await 표.로그(runId, 끝줄(값));
-      await 끝난뒤(runId, 값);
+      후속 = { 값, 전체줄: rows.filter((r) => r.tx === '') };
     }
   } finally {
     도는것.delete(runId);
+  }
+  if (후속 !== null) {
+    const 일 = 끝난뒤(runId, 후속.값, 후속.전체줄)
+      .catch((e: unknown) => console.error(`성능 실행 ${runId} 의 끝난 뒤 할 일이 깨졌습니다`, e))
+      .finally(() => 뒷일.delete(일));
+    뒷일.add(일);
   }
 }
 

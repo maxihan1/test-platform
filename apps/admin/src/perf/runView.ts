@@ -49,9 +49,10 @@ async function 트랜잭션들(run: 표.실행행, stopReason: string | null, �
   return { transactions: transactionViews(순서, now, prev), point };
 }
 
-export async function 실행보기(run: 표.실행행, status: string, stopReason: string | null): Promise<실행보기칸> {
+/** 전체줄을 이미 읽었으면(끝내기 직후) 넘겨 다시 읽지 않는다 */
+export async function 실행보기(run: 표.실행행, status: string, stopReason: string | null, 전체줄?: SecRow[]): Promise<실행보기칸> {
   const aiJob = await AI일읽기(run.id);
   if (!끝난상태.includes(status)) return { transactions: [], comparePoint: null, aiJob };
-  const { transactions, point } = await 트랜잭션들(run, stopReason, await 표.초읽기(run.id, 0, 2 ** 31 - 1, ['']));
+  const { transactions, point } = await 트랜잭션들(run, stopReason, 전체줄 ?? (await 표.초읽기(run.id, 0, 2 ** 31 - 1, [''])));
   return { transactions, comparePoint: point, aiJob };
 }
