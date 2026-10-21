@@ -24,12 +24,14 @@ interface Props {
   주소?: string;
   /** 배정 · 권한이 없어 본문 대신 띄울 안내. PC 껍데기와 같은 판단이다 (layout.ts `빈띠사유`) */
   사유: 빈띠 | null;
+  /** 웹 애플리케이션에 앱 케이스가 있나 — 「기기 성능」 메뉴를 가른다. PC 껍데기가 읽어 넘긴다 */
+  앱케이스?: boolean;
   children: React.ReactNode;
 }
 
 const 지금이면 = (맞나: boolean) => (맞나 ? { 'aria-current': 'page' as const } : {});
 
-export function PhoneShell({ user, service, onService, 언어, on언어, onLogout, current, 주소, 사유, children }: Props) {
+export function PhoneShell({ user, service, onService, 언어, on언어, onLogout, current, 주소, 사유, 앱케이스 = false, children }: Props) {
   const t = use말();
   const sso = useSSO();
   // 「알림」 버튼은 아래 탭의 한 칸이다. 줄 · 서랍과 열림 상태를 같이 쓰도록 Notice 가 이 자리에 버튼을 그린다
@@ -50,7 +52,7 @@ export function PhoneShell({ user, service, onService, 언어, on언어, onLogou
     };
   }, []);
   const 대시보드인가 = current === '#/dashboard';
-  const 자리들 = 자리목록(user, service?.prefix ?? null, 언어);
+  const 자리들 = 자리목록(user, service?.prefix ?? null, 언어, 앱케이스);
   const 대시보드 = 자리들.find((it) => it.해시 === '#/dashboard');
   const 실행기록 = 자리들.find((it) => it.해시 === '#/runs');
   // 하위 고르개는 실행 기록 목록에서만 — 실행 결과 · 항목 상세(`#/runs`)는 종류를 모른다

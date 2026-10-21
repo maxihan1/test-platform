@@ -66,7 +66,7 @@ const 그래프주소 = '/grafana/';
  * 케이스·작성·실행은 **고른 서비스**의 칸을 보고, 그래프는 사람의 대시보드 칸을 본다.
  * 앱 대시보드는 배정 서비스 전체의 실행 칸이다 — 둘은 이름만 같고 칸이 다르다 (화면공통 §8).
  */
-export function 자리목록(user: User, prefix: string | null, 언어: 언어): 자리[] {
+export function 자리목록(user: User, prefix: string | null, 언어: 언어, 앱케이스 = false): 자리[] {
   const 목록: 자리[] = [];
   // 맨 위다. 고른 서비스가 아니라 배정 서비스 전체의 실행 칸을 본다 (route.ts 의 `대시보드보나`)
   if (대시보드보나(user)) 목록.push({ 이름: t('대시보드', 언어), 해시: '#/dashboard', 아이콘: 'dashboard' });
@@ -90,18 +90,20 @@ export function 자리목록(user: User, prefix: string | null, 언어: 언어):
     목록.push({ 이름: t('E2E 시나리오', 언어), 해시: '#/scenarios', 아이콘: 'scenarios' });
     const 이름 = t('실행 기록', 언어);
     목록.push({ 이름, 해시: '#/runs', 아이콘: 'runs', 하위: 종류하위(이름, '#/runs', 언어) });
-    // 실행 기록 다음 · 그래프 앞 (화면공통 §8 「자리 목록」). 하위는 화면이 생기는 줄마다 더한다 — 지금은 시나리오 · 페이지 성능 · 실행 기록이다
-    // 페이지 성능은 고른 애플리케이션 종류가 웹일 때만 선다 (kind.ts)
+    // 실행 기록 다음 · 그래프 앞 (화면공통 §8 「자리 목록」). 하위는 시나리오 · 페이지 성능 · 기기 성능 · 실행 기록이다
+    // 페이지 성능 · 기기 성능은 고른 애플리케이션 종류에 맞을 때만 선다 (kind.ts). 웹의 기기 성능은 앱 케이스가 있을 때만이다 — 그 여부는 껍데기가 읽어 넘긴다
     const 성능 = t('성능 테스트', 언어);
     const 성능하위 = (글: string, 해시: string): 하위자리 => ({ 이름: t(글, 언어), 해시, 라벨: `${성능} · ${t(글, 언어)}` });
-    const 페이지성능 = 종류(user.services.find((서비스) => 서비스.prefix === prefix)?.kind).페이지성능;
+    const 줄 = 종류(user.services.find((서비스) => 서비스.prefix === prefix)?.kind);
+    const 기기성능 = 줄.기기성능 === 'ALWAYS' || (줄.기기성능 === 'APP_CASES' && 앱케이스);
     목록.push({
       이름: 성능,
       해시: '#/perf/scenarios',
       아이콘: 'perf',
       하위: [
         성능하위('시나리오', '#/perf/scenarios'),
-        ...(페이지성능 ? [성능하위('페이지 성능', '#/perf/pages')] : []),
+        ...(줄.페이지성능 ? [성능하위('페이지 성능', '#/perf/pages')] : []),
+        ...(기기성능 ? [성능하위('기기 성능', '#/perf/devices')] : []),
         성능하위('실행 기록', '#/perf/runs'),
       ],
     });
@@ -135,6 +137,7 @@ export function 지금자리(name: string, 집: string, 종류?: 'UI' | 'FN' | '
   if (name === 'scenarios' || name === 'scenarioNew' || name === 'scenario') return '#/scenarios';
   if (name === 'perfScenarios' || name === 'perfScenarioNew' || name === 'perfScenario') return '#/perf/scenarios';
   if (name === 'perfPages') return '#/perf/pages';
+  if (name === 'perfDevices') return '#/perf/devices';
   if (name === 'perfRuns' || name === 'perfRun') return '#/perf/runs';
   if (name === 'settings') return '#/settings';
   // 비밀번호 변경은 자리 목록에 없다. 집을 돌려주면 케이스에 밑줄이 가서 딴 화면처럼 보인다

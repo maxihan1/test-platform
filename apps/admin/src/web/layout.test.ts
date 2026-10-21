@@ -155,10 +155,20 @@ describe('자리 목록', () => {
     const 앱 = { ...회원, kind: 'APP' as const };
     const API = { ...결제, kind: 'API' as const };
     const 하위해시 = (user: User, prefix: string) => 자리목록(user, prefix, 'ko').find((자리) => 자리.이름 === '성능 테스트')?.하위?.map((it) => it.해시);
-    expect(하위해시(사람('member', [앱]), 'MEM')).toEqual(['#/perf/scenarios', '#/perf/runs']);
+    expect(하위해시(사람('member', [앱]), 'MEM')).toEqual(['#/perf/scenarios', '#/perf/devices', '#/perf/runs']);
     expect(하위해시(사람('member', [API]), 'PAY')).toEqual(['#/perf/scenarios', '#/perf/runs']);
     // 웹을 고르면 같은 사람에게도 선다 — 고른 애플리케이션의 종류를 본다
     expect(하위해시(사람('member', [앱, 결제]), 'PAY')).toContain('#/perf/pages');
+  });
+
+  it('기기 성능은 Android 앱에는 늘, 웹에는 앱 케이스가 있을 때만, API 에는 없다. 자리는 페이지 성능 다음 · 실행 기록 앞이다', () => {
+    const API = { ...결제, kind: 'API' as const };
+    const 하위 = (user: User, prefix: string, 앱케이스: boolean) => 자리목록(user, prefix, 'ko', 앱케이스).find((자리) => 자리.이름 === '성능 테스트')?.하위;
+    expect(하위(김, 'MEM', false)?.map((it) => it.해시)).not.toContain('#/perf/devices');
+    expect(하위(김, 'MEM', true)?.map((it) => it.해시)).toEqual(['#/perf/scenarios', '#/perf/pages', '#/perf/devices', '#/perf/runs']);
+    expect(하위(김, 'MEM', true)?.find((it) => it.해시 === '#/perf/devices')).toEqual({ 이름: '기기 성능', 해시: '#/perf/devices', 라벨: '성능 테스트 · 기기 성능' });
+    expect(하위(사람('member', [API]), 'PAY', true)?.map((it) => it.해시)).toEqual(['#/perf/scenarios', '#/perf/runs']);
+    expect(지금자리('perfDevices', '#/cases')).toBe('#/perf/devices');
   });
 
   it('API 자리는 PRD 관리 바로 다음이고 하위는 API 문서 하나다', () => {

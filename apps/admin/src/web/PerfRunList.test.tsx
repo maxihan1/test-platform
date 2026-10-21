@@ -109,6 +109,13 @@ describe('성능 실행 기록 표', () => {
     expect(screen.getByRole('link', { name: 'PRF-0012' }).getAttribute('href')).toBe('#/perf/runs/12');
   });
 
+  it('기기 측정 줄은 제목이 「기기 성능」이고 누르면 기기 성능 화면의 그 실행으로 간다', async () => {
+    await 그리기([줄({ id: 40, kind: 'DEVICE', title: '', testType: null, degraded: null, summary: { peakVus: null, maxTps: null, p95Ms: null, errorRate: null } })]);
+    const 기기줄 = screen.getByRole('link', { name: 'PRF-0040' }).closest('tr')!;
+    expect(screen.getByRole('link', { name: 'PRF-0040' }).getAttribute('href')).toBe('#/perf/devices?run=40');
+    expect(within(기기줄).getByRole('link', { name: '기기 성능' }).getAttribute('href')).toBe('#/perf/devices?run=40');
+  });
+
   it('실행이 없으면 안내를 한다', async () => {
     vi.spyOn(perfApi, 'scenarios').mockResolvedValue({ scenarios: [] });
     vi.spyOn(perfApi, 'runs').mockResolvedValue({ runs: [] });

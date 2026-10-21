@@ -18,6 +18,7 @@ import { Notice } from './Notice.js';
 import { use휴대폰 } from './phone.js';
 import { PhoneShell } from './PhoneShell.js';
 import { ShellHeader } from './ShellHeader.js';
+import { use앱케이스 } from './useAppCases.js';
 import { use가입대기수 } from './useSignupWaiting.js';
 
 interface Props {
@@ -60,9 +61,10 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
   const 휴대폰 = use휴대폰();
   // 가입 신청은 운영 계정이 설정에서 수락한다. 사이드바가 없는 휴대폰에서는 읽지 않는다
   const 가입대기 = use가입대기수(user.role === 'admin' && !휴대폰, current);
+  const 앱케이스 = use앱케이스(user, service);
   if (휴대폰) {
     return (
-      <PhoneShell user={user} service={service} onService={onService} 언어={언어} on언어={on언어} onLogout={onLogout} current={current} 주소={주소} 사유={사유}>
+      <PhoneShell user={user} service={service} onService={onService} 언어={언어} on언어={on언어} onLogout={onLogout} current={current} 주소={주소} 사유={사유} 앱케이스={앱케이스}>
         {children}
       </PhoneShell>
     );
@@ -90,7 +92,7 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
           {접음 ? '»' : '«'}
         </button>
         <nav className="side-nav">
-          {자리목록(user, service?.prefix ?? null, 언어).map((자리) =>
+          {자리목록(user, service?.prefix ?? null, 언어, 앱케이스).map((자리) =>
             자리.바깥 === true ? (
               <a key={자리.해시} href={자리.해시} target="_blank" rel="noreferrer">
                 <아이콘 이름={자리.아이콘} />

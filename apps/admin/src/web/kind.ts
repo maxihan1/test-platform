@@ -1,6 +1,5 @@
 // 애플리케이션 종류마다 화면이 다르게 그리는 것 — 도메인/러너 §5.2 「애플리케이션 종류 「Android 앱」」 종류 표를 옮긴 상수 하나
 // 화면 곳곳에서 종류를 따로 묻지 않고 이 표를 본다. 게임(GAME)은 여기에 줄 하나를 더한다
-// ponytail: 성능 하위 중 페이지 성능 칸만 있다. 기기 성능 칸은 그 하위를 만드는 PERF-F1-09 가 여기에 더한다
 
 import type { 앱종류 } from './api.js';
 import { t, type 언어 } from './i18n.js';
@@ -21,13 +20,15 @@ interface 종류줄 {
   앱화면읽기: boolean;
   /** 사이드바 「성능 테스트」 아래 「페이지 성능」 — 브라우저로 화면 속도를 재는 웹만 선다 */
   페이지성능: boolean;
+  /** 사이드바 「성능 테스트」 아래 「기기 성능」 — 앱은 늘, 웹은 앱 케이스가 있을 때만 선다 (도메인/러너 §5.2 종류 표 결정 6) */
+  기기성능: 'ALWAYS' | 'APP_CASES' | null;
 }
 
 const 종류표: Record<앱종류, 종류줄> = {
-  SCREEN: { 이름: '웹', 아이콘: null, 디바이스칩: true, 실행위치늘: false, 대조: true, 앱화면읽기: false, 페이지성능: true },
-  APP: { 이름: 'Android 앱', 아이콘: 'phone', 디바이스칩: false, 실행위치늘: true, 대조: false, 앱화면읽기: true, 페이지성능: false },
+  SCREEN: { 이름: '웹', 아이콘: null, 디바이스칩: true, 실행위치늘: false, 대조: true, 앱화면읽기: false, 페이지성능: true, 기기성능: 'APP_CASES' },
+  APP: { 이름: 'Android 앱', 아이콘: 'phone', 디바이스칩: false, 실행위치늘: true, 대조: false, 앱화면읽기: true, 페이지성능: false, 기기성능: 'ALWAYS' },
   // API 는 작성 폼을 API 문서 통로가 따로 그린다(AuthoringNewApi) — 대조도 거기서 빠진다
-  API: { 이름: 'API', 아이콘: 'api', 디바이스칩: true, 실행위치늘: false, 대조: false, 앱화면읽기: false, 페이지성능: false },
+  API: { 이름: 'API', 아이콘: 'api', 디바이스칩: true, 실행위치늘: false, 대조: false, 앱화면읽기: false, 페이지성능: false, 기기성능: null },
 };
 
 /** 설정 칩 · 헤더 묶음의 차례 */

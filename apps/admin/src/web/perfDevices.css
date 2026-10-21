@@ -1,0 +1,221 @@
+/* 성능 테스트 › 기기 성능 — 조작 방식 카드 · 기기 타일 · 진행 막대 · 녹화 화면과 그래프 (도메인/성능 §8.14 · 시안 Dev-Start · Dev-Live · Dev-Result-B) */
+
+.pd-kinds {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.pd-kind {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  padding: 16px;
+  cursor: pointer;
+}
+
+.pd-kind.on {
+  border-color: var(--accent);
+  background: var(--well);
+}
+
+.pd-kind input,
+.pd-checks input,
+.pd-cases input {
+  accent-color: var(--accent);
+}
+
+.pd-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.pd-checks label,
+.pd-cases label {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.pd-cases {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 12px 16px;
+  margin: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pd-goal {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.pd-goal input {
+  width: 88px;
+}
+
+.perf-table tr.pd-off td {
+  color: var(--ink-faint);
+}
+
+.pd-go {
+  margin-left: auto;
+}
+
+/* 실행 중 */
+.pd-prog {
+  height: 8px;
+  border-radius: 2px;
+  background: var(--well);
+  overflow: hidden;
+}
+
+.pd-prog span {
+  display: block;
+  height: 100%;
+  background: var(--ink-muted);
+}
+
+.pd-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.pd-tile {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 목표 미달 — 테두리 색만으로 알리지 않고 타일 안에 글자를 같이 단다 */
+.pd-tile.bad {
+  border-color: var(--fail);
+}
+
+.pd-kv {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pd-spark {
+  width: 100%;
+  height: 40px;
+  background: var(--well);
+  border-radius: 4px;
+}
+
+.pd-spark polyline {
+  fill: none;
+  stroke: var(--ink-muted);
+  stroke-width: 2;
+}
+
+.pd-spark polyline.bad {
+  stroke: var(--fail-text);
+}
+
+/* 결과 */
+.pd-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.pd-tabs button {
+  font: inherit;
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: 1px solid var(--line-2);
+  background: var(--panel);
+  color: var(--ink-muted);
+  min-height: 40px;
+  cursor: pointer;
+}
+
+.pd-tabs button.on {
+  color: var(--ink);
+  border-color: var(--accent);
+  background: var(--well);
+}
+
+.pd-split {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.pd-video {
+  flex: 3 1 420px;
+  min-width: 0;
+  max-height: 480px;
+  background: var(--well);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.pd-novideo {
+  aspect-ratio: 16 / 9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-faint);
+}
+
+.pd-marks {
+  flex: 2 1 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pd-mark {
+  font: inherit;
+  text-align: left;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--well);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.pd-mark.on {
+  border-color: var(--accent);
+}
+
+.pd-lane {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.pd-band {
+  width: 100%;
+  height: 12px;
+}
+
+@media (max-width: 760px) {
+  .pd-kinds {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pd-lane {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+}
