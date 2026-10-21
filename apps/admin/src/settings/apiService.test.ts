@@ -10,6 +10,7 @@ import settingsRoutes from './routes.js';
 const 연결 = process.env.DATABASE_URL;
 const 접두사 = 'XAK';
 const 화면접두사 = 'XAKS';
+const 앱접두사 = 'XAKA';
 const 비밀값A = 'secret-A-원문-xak-0001';
 const 비밀값B = 'secret-B-원문-xak-0002';
 
@@ -31,8 +32,8 @@ describe.skipIf(연결 === undefined)('설정 API 의 API 애플리케이션 칸
 
   async function 치운다(): Promise<void> {
     const p = await pool();
-    await p.query('DELETE FROM service_env WHERE service_id IN (SELECT id FROM service WHERE prefix = ANY($1))', [[접두사, 화면접두사]]);
-    await p.query('DELETE FROM service WHERE prefix = ANY($1)', [[접두사, 화면접두사]]);
+    await p.query('DELETE FROM service_env WHERE service_id IN (SELECT id FROM service WHERE prefix = ANY($1))', [[접두사, 화면접두사, 앱접두사]]);
+    await p.query('DELETE FROM service WHERE prefix = ANY($1)', [[접두사, 화면접두사, 앱접두사]]);
     await 검사프로젝트치우기();
   }
 
@@ -104,7 +105,19 @@ describe.skipIf(연결 === undefined)('설정 API 의 API 애플리케이션 칸
     expect((await 고친다({ envs: [{ env: 'qa', baseUrl: 'http://x', apiAuths: [] }] }, 화면)).statusCode).toBe(200);
   });
 
-  it('kind 는 SCREEN · API 만 받고 고치기로는 바꿀 수 없다', async () => {
+  it('kind APP 은 Android 앱 애플리케이션이고, API 칸을 못 받고, 고치기로는 바꿀 수 없다', async () => {
+    expect((await 만든다({ prefix: 앱접두사, kind: 'APP', envs: [] })).statusCode).toBe(201);
+    expect((await 읽는다(앱접두사))?.kind).toBe('APP');
+    const 앱 = (await 읽는다(앱접두사))!.id;
+    expect((await 고친다({ apiDocPath: '/openapi.json' }, 앱)).json()).toEqual({ error: 'NOT_API_SERVICE' });
+    expect((await 고친다({ envs: [{ env: 'qa', baseUrl: 'http://x', apiAuths: [인증('A', 비밀값A)] }] }, 앱)).json()).toEqual({
+      error: 'NOT_API_SERVICE',
+    });
+    expect((await 고친다({ kind: 'SCREEN' }, 앱)).json()).toEqual({ error: 'KIND_IMMUTABLE' });
+    expect((await 읽는다(앱접두사))?.kind).toBe('APP');
+  });
+
+  it('kind 는 SCREEN · APP · API 만 받고 고치기로는 바꿀 수 없다', async () => {
     expect((await 만든다({ prefix: 화면접두사, kind: 'GRPC', envs: [] })).json()).toEqual({ error: 'BAD_KIND' });
     expect((await 고친다({ kind: 'SCREEN' })).json()).toEqual({ error: 'KIND_IMMUTABLE' });
     expect((await 읽는다())?.kind).toBe('API');
