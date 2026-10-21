@@ -1,7 +1,8 @@
 // 트랜잭션 목록 · 부하 설정으로 k6 스크립트를 만든다 — 사람도 AI 도 스크립트를 직접 쓰지 않는다 (도메인/성능 §3.9 「스크립트는 생성기가 만든다」)
 // 사람이 쓴 값은 전부 JSON 글자로만 넣는다 — 스크립트 코드 자리에 끼어들지 못하게
 
-import type { Load, Transaction } from './types.js';
+import { 부하중시나리오, 부하중조각 } from './pageScript.js';
+import type { Load, PageSetup, Transaction } from './types.js';
 
 export interface GenerateInput {
   transactions: Transaction[];
@@ -10,6 +11,8 @@ export interface GenerateInput {
   smoke: boolean;
   allowedHosts: string[];
   maxVus: number;
+  // 부하 중 페이지 측정 — 스모크에는 넣지 않는다 (§3.9 「부하 중 측정」)
+  pages?: PageSetup | null;
 }
 
 // 스크립트 안 hostOf 와 같은 셈 — 저장 · 실행 검사가 이것과 WHATWG URL.host 가 같은 주소만 받아 둘이 어긋나지 않게 한다
@@ -44,10 +47,15 @@ function scenarioOptions(input: GenerateInput): unknown {
 
 export function generateScript(input: GenerateInput): string {
   // 리디렉트를 따라가면 허용 호스트 밖으로 부하가 간다 — 3xx 응답 그대로 센다 (§3.9 「허용 호스트」)
-  const options = { scenarios: { main: scenarioOptions(input) }, summaryTrendStats: [], maxRedirects: 0 };
+  const pages = input.smoke ? null : (input.pages ?? null);
+  const scenarios: Record<string, unknown> = { main: scenarioOptions(input) };
+  if (pages !== null) scenarios.pages = 부하중시나리오(totalDuration(input.load));
+  const options = { scenarios, summaryTrendStats: [], maxRedirects: 0 };
+  const 조각 = pages === null ? null : 부하중조각(pages);
   return `import http from 'k6/http';
 import { check, sleep } from 'k6';
 import exec from 'k6/execution';
+${조각?.imports ?? ''}
 
 const TX = ${JSON.stringify(input.transactions)};
 const ALLOWED = ${JSON.stringify(input.allowedHosts)};
@@ -113,7 +121,7 @@ export default function () {
     if (t.thinkTimeSec) sleep(t.thinkTimeSec);
   }
 }
-`;
+${조각?.body ?? ''}`;
 }
 
 // 가상 사용자를 에이전트의 최대 가상 사용자 비율로 나눈 k6 실행 구간 (§5.4 「segment」)

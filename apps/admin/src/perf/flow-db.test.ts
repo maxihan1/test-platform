@@ -264,8 +264,7 @@ describe.skipIf(연결 === undefined)('성능 실행 흐름', { timeout: 60_000 
     expect(await 끝날때까지(runId)).toMatchObject({ status: 'ERROR' });
   });
 
-  it('아직 못 하는 일 · 끝나지 않은 PDF · 겹치는 에이전트 이름은 거절한다', async () => {
-    expect((await 실행만들기({ pageCheck: true })).statusCode).toBe(400);
+  it('끝나지 않은 PDF · 겹치는 에이전트 이름은 거절한다', async () => {
     const runId = (await 실행만들기()).json<{ runId: number }>().runId;
     expect((await 사람(관리자, 'GET', `/api/perf/runs/${runId}/report.pdf`)).json()).toEqual({ error: 'NOT_FINISHED' });
     await 사람(관리자, 'POST', `/api/perf/runs/${runId}/stop`);

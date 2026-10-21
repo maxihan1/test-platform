@@ -118,13 +118,15 @@ export default async function perfRunRoutes(app: FastifyInstance): Promise<void>
   app.get<번호경로>('/perf/runs/:id/report.pdf', async (req, reply) => {
     const id = 번호(req.params.id, reply);
     if (id === null) return reply;
-    const r = await (await 표.풀()).query<{ status: string; verdict: 'PASS' | 'FAIL' | null; stop_reason: string | null; env: string; test_type: string | null; started_at: Date | null; peak_vus: number | null; ai: { title: string; items: string[] } | null; targets: never; title: string | null }>(
-      `SELECT r.status, r.verdict, r.stop_reason, r.env, r.test_type, r.started_at, r.peak_vus, r.ai, r.targets, s.name AS title
+    const r = await (await 표.풀()).query<{ kind: string; status: string; verdict: 'PASS' | 'FAIL' | null; stop_reason: string | null; env: string; test_type: string | null; started_at: Date | null; peak_vus: number | null; ai: { title: string; items: string[] } | null; targets: never; title: string | null }>(
+      `SELECT r.kind, r.status, r.verdict, r.stop_reason, r.env, r.test_type, r.started_at, r.peak_vus, r.ai, r.targets, s.name AS title
          FROM perf_run r LEFT JOIN perf_scenario s ON s.id = r.scenario_id WHERE r.id = $1`,
       [id],
     );
     const x = r.rows[0];
     if (x === undefined) return 바(reply, 404, 'NOT_FOUND');
+    // 페이지 단독 측정에는 PDF 를 붙이지 않는다 (PERF-F1-07 시작 질문)
+    if (x.kind === 'PAGE') return 바(reply, 400, 'INVALID_REQUEST', '페이지 성능 측정에는 PDF 가 없습니다');
     if (['QUEUED', 'SMOKE', 'RUNNING'].includes(x.status)) return 바(reply, 409, 'NOT_FINISHED');
     const html = 결과HTML({
       id, title: x.title ?? '', env: x.env, testType: x.test_type, status: x.status, verdict: x.verdict, stopReason: x.stop_reason,

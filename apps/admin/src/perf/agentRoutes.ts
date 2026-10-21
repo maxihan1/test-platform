@@ -6,17 +6,20 @@ import { z } from 'zod';
 import { 정수 } from '../routeParams.js';
 import { 끝받기, 부하숫자받기, 서버숫자받기, 일받기 } from './engine.js';
 import { HIST_BUCKETS } from './hist.js';
+import { 표본 } from './pageStats.js';
 import { 풀 } from './store.js';
 
 const 연락 = z.object({ version: z.string().max(40), host: z.string().max(255), maxVus: z.number().int().positive().max(100_000).optional() });
 const 초 = z.number().int().min(0).max(90_000);
 const 수 = z.number().int().min(0).max(2 ** 31 - 1);
+// 페이지 단독 측정은 { sec, pages } 만 와도 된다 — 트랜잭션 · 가상 사용자는 비어 있다 (§5.4 「페이지」)
 const 부하 = z.object({
   sec: 초,
-  vus: 수,
+  vus: 수.default(0),
+  pages: z.array(표본).max(50).optional(),
   // 이름이 비면 전체 줄('')과, 겹치면 서로 같은 행을 두 번 고쳐 그 초가 통째로 거절된다
   txs: z.array(z.object({ name: z.string().min(1).max(200), requests: 수, errors: 수, hist: z.array(수).length(HIST_BUCKETS) })).max(500)
-    .refine((txs) => new Set(txs.map((t) => t.name)).size === txs.length, '트랜잭션 이름이 겹칩니다'),
+    .refine((txs) => new Set(txs.map((t) => t.name)).size === txs.length, '트랜잭션 이름이 겹칩니다').default([]),
 });
 const 퍼센트 = z.number().min(0).max(1000);
 const 모니터링 = z.object({ sec: 초, cpu: 퍼센트, mem: 퍼센트, diskIoKbps: z.number().min(0), netInKbps: z.number().min(0), netOutKbps: z.number().min(0) });

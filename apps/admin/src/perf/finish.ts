@@ -2,9 +2,12 @@
 
 import { 끝난뒤 } from './afterFinish.js';
 import { degraded, judge, judgeWindow, summary, type SecRow, type Stop } from './judge.js';
+import { 단독쓰기 } from './pages.js';
+import { 가운데값, 목표줄들, type 페이지표본 } from './pageStats.js';
 import { 사유 } from './reasons.js';
 import { 도는것 } from './state.js';
 import * as 표 from './store.js';
+import type { PageRunConfig } from './types.js';
 
 // 배경에서 도는 뒷일 — 검사가 끝나기를 기다릴 수 있게만 붙들어 둔다
 const 뒷일 = new Set<Promise<void>>();
@@ -25,47 +28,84 @@ async function 판정줄(runId: number, scopes: string[]) {
   return 표.초읽기(runId, 0, 2 ** 31 - 1, ['', ...scopes]);
 }
 
+const 빈끝: 표.끝값 = { status: 'ERROR', verdict: null, stopReason: null, targets: null, peakVus: null, maxTps: null, p95: null, errorRate: null, degraded: null };
+
+/**
+ * 페이지 단독 측정 닫기 — 표본을 가운데 값으로 줄여 쓰고 판정한다. 못 잰 페이지가 하나라도 있으면 실패다.
+ * 줄을 먼저 쓴다 — 화면이 「끝」을 보고 읽을 때 줄이 없으면 빈 표가 된다
+ */
+async function 페이지닫기(run: 표.실행행, samples: 페이지표본[], 끝: 끝): Promise<표.끝값 | null> {
+  const cfg = run.config as unknown as PageRunConfig;
+  const rows = 가운데값(samples);
+  let 값 = 빈끝;
+  let 오류: string | null = null;
+  if (끝.kind === 'ERROR') 오류 = 끝.why;
+  else if (끝.kind === 'STOP') 값 = { ...빈끝, status: 'STOPPED', stopReason: 끝.stop.reason };
+  else if (rows.length === 0) 오류 = '페이지를 하나도 재지 못했습니다';
+  else {
+    const 못잰 = cfg.pages.filter((p) => !rows.some((r) => r.url === p.url));
+    const targets = 목표줄들(rows);
+    값 = { ...빈끝, status: 'DONE', verdict: 못잰.length === 0 && targets.every((t) => t.verdict === 'PASS') ? 'PASS' : 'FAIL', targets };
+    if (못잰.length > 0) await 표.로그(run.id, `재지 못한 페이지 — ${못잰.map((p) => p.url).join(', ')}`, 'WARN');
+    await 단독쓰기(run.id, cfg, rows);
+  }
+  if (오류 !== null) await 표.로그(run.id, `실행이 오류로 끝났습니다 — ${오류}`, 'WARN');
+  if (!(await 표.끝쓰기(run.id, 값))) return null;
+  await 표.로그(run.id, 끝줄(값));
+  return 값;
+}
+
+async function 부하닫기(run: 표.실행행, 끝: 끝): Promise<{ 값: 표.끝값; 전체줄: SecRow[] } | null> {
+  const runId = run.id;
+  const targets = run.config.targets ?? [];
+  const rows = await 판정줄(runId, targets.flatMap((t) => (t.scope ? [t.scope] : [])));
+  const s = summary(rows);
+  const base: 표.끝값 = { status: 'ERROR', verdict: null, stopReason: null, targets: null, peakVus: s.maxVus || null, maxTps: s.maxTps, p95: s.p95, errorRate: s.errorRate, degraded: null };
+  let 값 = base;
+  if (끝.kind === 'ERROR') {
+    await 표.로그(runId, `실행이 오류로 끝났습니다 — ${끝.why}`, 'WARN');
+  } else if (끝.kind === 'STOP' && !(끝.stop.reason === 'ERROR_LIMIT' || 끝.stop.reason === 'TARGET_EXCEEDED')) {
+    값 = { ...base, status: 'STOPPED', stopReason: 끝.stop.reason };
+  } else {
+    const stop = 끝.kind === 'STOP' && (끝.stop.reason === 'ERROR_LIMIT' || 끝.stop.reason === 'TARGET_EXCEEDED') ? 끝.stop : null;
+    const j = judge(judgeWindow(rows, stop?.atSec ?? null), targets);
+    const prevId = await 표.이전실행(run);
+    값 = {
+      ...base,
+      status: stop?.reason === 'ERROR_LIMIT' ? 'STOPPED' : 'DONE',
+      verdict: stop === null ? j.verdict : 'FAIL',
+      stopReason: stop?.reason ?? null,
+      targets: j.targets,
+      peakVus: stop?.reason === 'TARGET_EXCEEDED' ? stop.peakVus : base.peakVus,
+      degraded: prevId === null ? null : degraded(rows, await 표.초읽기(prevId, 0, 2 ** 31 - 1, [''])),
+    };
+  }
+  if (!(await 표.끝쓰기(runId, 값))) return null;
+  await 표.로그(runId, 끝줄(값));
+  return { 값, 전체줄: rows.filter((r) => r.tx === '') };
+}
+
 export async function 끝내기(runId: number, 끝: 끝): Promise<void> {
   const live = 도는것.get(runId);
   if (live?.ending) return;
   if (live) live.ending = true;
   // 닫힌 뒤에 할 일 — 분석 재료를 세고 Slack 을 부르는 동안 끝내기가 붙들려 있지 않게 finally 뒤에서 기다리지 않고 돌린다
-  let 후속: { 값: 표.끝값; 전체줄: SecRow[] } | null = null;
+  let 후속: { 값: 표.끝값; 전체줄: SecRow[]; 페이지: boolean } | null = null;
   try {
     const run = await 표.실행하나(runId);
     if (run === null) return;
-    const targets = run.config.targets ?? [];
-    const rows = await 판정줄(runId, targets.flatMap((t) => (t.scope ? [t.scope] : [])));
-    const s = summary(rows);
-    const base: 표.끝값 = { status: 'ERROR', verdict: null, stopReason: null, targets: null, peakVus: s.maxVus || null, maxTps: s.maxTps, p95: s.p95, errorRate: s.errorRate, degraded: null };
-    let 값 = base;
-    if (끝.kind === 'ERROR') {
-      await 표.로그(runId, `실행이 오류로 끝났습니다 — ${끝.why}`, 'WARN');
-    } else if (끝.kind === 'STOP' && !(끝.stop.reason === 'ERROR_LIMIT' || 끝.stop.reason === 'TARGET_EXCEEDED')) {
-      값 = { ...base, status: 'STOPPED', stopReason: 끝.stop.reason };
+    if (run.kind === 'PAGE') {
+      const 값 = await 페이지닫기(run, live?.pageSamples ?? [], 끝);
+      if (값 !== null) 후속 = { 값, 전체줄: [], 페이지: true };
     } else {
-      const stop = 끝.kind === 'STOP' && (끝.stop.reason === 'ERROR_LIMIT' || 끝.stop.reason === 'TARGET_EXCEEDED') ? 끝.stop : null;
-      const j = judge(judgeWindow(rows, stop?.atSec ?? null), targets);
-      const prevId = await 표.이전실행(run);
-      값 = {
-        ...base,
-        status: stop?.reason === 'ERROR_LIMIT' ? 'STOPPED' : 'DONE',
-        verdict: stop === null ? j.verdict : 'FAIL',
-        stopReason: stop?.reason ?? null,
-        targets: j.targets,
-        peakVus: stop?.reason === 'TARGET_EXCEEDED' ? stop.peakVus : base.peakVus,
-        degraded: prevId === null ? null : degraded(rows, await 표.초읽기(prevId, 0, 2 ** 31 - 1, [''])),
-      };
-    }
-    if (await 표.끝쓰기(runId, 값)) {
-      await 표.로그(runId, 끝줄(값));
-      후속 = { 값, 전체줄: rows.filter((r) => r.tx === '') };
+      const 닫음 = await 부하닫기(run, 끝);
+      if (닫음 !== null) 후속 = { ...닫음, 페이지: false };
     }
   } finally {
     도는것.delete(runId);
   }
   if (후속 !== null) {
-    const 일 = 끝난뒤(runId, 후속.값, 후속.전체줄)
+    const 일 = 끝난뒤(runId, 후속.값, 후속.전체줄, 후속.페이지)
       .catch((e: unknown) => console.error(`성능 실행 ${runId} 의 끝난 뒤 할 일이 깨졌습니다`, e))
       .finally(() => 뒷일.delete(일));
     뒷일.add(일);

@@ -3,6 +3,7 @@
 import type { Pool, PoolClient } from 'pg';
 
 import type { SecRow } from './judge.js';
+import type { 페이지목표줄 } from './pageStats.js';
 import type { RunConfig, Target, TestType } from './types.js';
 
 export type 묻기 = Pick<PoolClient, 'query'>;
@@ -17,6 +18,7 @@ export const 연결초 = 30;
 
 export interface 실행행 {
   id: number;
+  kind: 'LOAD' | 'PAGE' | 'DEVICE';
   serviceId: number;
   scenarioId: number | null;
   scenarioVersion: number | null;
@@ -28,10 +30,10 @@ export interface 실행행 {
   createdAt: Date;
 }
 
-type 실행raw = { id: string; service_id: string; scenario_id: string | null; scenario_version: number | null; status: string; env: string; base_url: string; test_type: TestType | null; config: RunConfig; created_at: Date };
-const 실행칸 = 'id, service_id, scenario_id, scenario_version, status, env, base_url, test_type, config, created_at';
+type 실행raw = { id: string; kind: 실행행['kind']; service_id: string; scenario_id: string | null; scenario_version: number | null; status: string; env: string; base_url: string; test_type: TestType | null; config: RunConfig; created_at: Date };
+const 실행칸 = 'id, kind, service_id, scenario_id, scenario_version, status, env, base_url, test_type, config, created_at';
 const 실행으로 = (r: 실행raw): 실행행 => ({
-  id: Number(r.id), serviceId: Number(r.service_id), scenarioId: r.scenario_id === null ? null : Number(r.scenario_id),
+  id: Number(r.id), kind: r.kind, serviceId: Number(r.service_id), scenarioId: r.scenario_id === null ? null : Number(r.scenario_id),
   scenarioVersion: r.scenario_version, status: r.status, env: r.env, baseUrl: r.base_url, testType: r.test_type, config: r.config, createdAt: r.created_at,
 });
 
@@ -87,9 +89,9 @@ export async function 에이전트풀기(runId: number): Promise<void> {
   await (await 풀()).query('UPDATE perf_agent SET busy_run_id = NULL WHERE busy_run_id = $1', [runId]);
 }
 
-// 대기 → 스모크. 그사이 중단됐으면 바뀌지 않고 false 다
-export async function 대기에서시작(runId: number): Promise<boolean> {
-  const r = await (await 풀()).query(`UPDATE perf_run SET status = 'SMOKE', started_at = now() WHERE id = $1 AND status = 'QUEUED'`, [runId]);
+// 대기 → 스모크(페이지 측정은 스모크 없이 실행 중). 그사이 중단됐으면 바뀌지 않고 false 다
+export async function 대기에서시작(runId: number, status: 'SMOKE' | 'RUNNING' = 'SMOKE'): Promise<boolean> {
+  const r = await (await 풀()).query(`UPDATE perf_run SET status = $2, started_at = now() WHERE id = $1 AND status = 'QUEUED'`, [runId, status]);
   return (r.rowCount ?? 0) > 0;
 }
 
@@ -158,7 +160,7 @@ export interface 끝값 {
   status: 'DONE' | 'STOPPED' | 'ERROR';
   verdict: 'PASS' | 'FAIL' | null;
   stopReason: string | null;
-  targets: (Target & { measured: number | null; verdict: 'PASS' | 'FAIL' })[] | null;
+  targets: (Target & { measured: number | null; verdict: 'PASS' | 'FAIL' })[] | 페이지목표줄[] | null;
   peakVus: number | null;
   maxTps: number | null;
   p95: number | null;

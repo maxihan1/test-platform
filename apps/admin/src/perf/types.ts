@@ -49,6 +49,32 @@ export interface ScenarioBody {
   run?: Record<string, unknown>;
 }
 
+// 페이지 성능 — 잴 페이지 한 줄과 측정 조건 (§3.9 「페이지 성능」)
+export interface Page {
+  // 대상 서버 주소 아래 경로('/products/1')
+  url: string;
+  name: string;
+  // 로그인 상태로 기록된 화면 — 로그인 화면을 거쳐 연다
+  login: boolean;
+}
+
+export interface PageSetup {
+  pages: Page[];
+  device: 'desktop' | 'mobile';
+  network: 'NONE' | 'SLOW_4G';
+  // 화면 기록의 로그인 화면 경로. 로그인할 페이지가 없으면 null
+  loginUrl: string | null;
+}
+
+// 페이지 단독 측정(kind PAGE)의 perf_run.config
+export interface PageRunConfig extends PageSetup {
+  agentIds: number[];
+  monitorIds: number[];
+  allowedHosts: string[];
+  durationSec: number;
+  targets: Target[];
+}
+
 export interface RunConfig {
   testType: TestType;
   load: Load;
@@ -58,6 +84,8 @@ export interface RunConfig {
   // 고른 대상 서버 주소의 호스트와 프로젝트 API 서버 호스트 (§3.9 「허용 호스트」) — WHATWG URL.host 꼴
   allowedHosts: string[];
   pageCheck: boolean;
+  // 부하 중 페이지 측정이 켜졌을 때 잴 페이지 (§3.9 「부하 중 측정」)
+  pages?: PageSetup;
   accountsRows: number;
   durationSec: number;
   maxVus: number;
