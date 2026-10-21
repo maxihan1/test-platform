@@ -20,6 +20,8 @@ interface Props {
   on언어: (고른: 언어) => void;
   onLogout: () => void;
   current: string;
+  /** 실제 주소 — 성능 실행 한 건만 휴대폰에서 연다 (phone.ts) */
+  주소?: string;
   /** 배정 · 권한이 없어 본문 대신 띄울 안내. PC 껍데기와 같은 판단이다 (layout.ts `빈띠사유`) */
   사유: 빈띠 | null;
   children: React.ReactNode;
@@ -27,7 +29,7 @@ interface Props {
 
 const 지금이면 = (맞나: boolean) => (맞나 ? { 'aria-current': 'page' as const } : {});
 
-export function PhoneShell({ user, service, onService, 언어, on언어, onLogout, current, 사유, children }: Props) {
+export function PhoneShell({ user, service, onService, 언어, on언어, onLogout, current, 주소, 사유, children }: Props) {
   const t = use말();
   const sso = useSSO();
   // 「알림」 버튼은 아래 탭의 한 칸이다. 줄 · 서랍과 열림 상태를 같이 쓰도록 Notice 가 이 자리에 버튼을 그린다
@@ -64,7 +66,7 @@ export function PhoneShell({ user, service, onService, 언어, on언어, onLogou
         </div>
       </div>
     );
-  } else if (!휴대폰자리인가(current)) {
+  } else if (!휴대폰자리인가(current, 주소)) {
     // 자리마다 새로 그린다 — 앞 주소에서 누른 「복사했습니다」가 다음 주소에 남으면 복사 안 한 주소를 복사했다고 말한다
     본문 = <PC전용 key={current} 자리={자리들.find((it) => current === it.해시 || current.startsWith(`${it.해시}/`))} 갈곳={실행기록 ?? 대시보드} />;
   }
