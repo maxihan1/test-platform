@@ -18,6 +18,10 @@ export const 분석틈 = 120_000;
 export const 실행쓰나 = (판정: 판정하기, run: { servicePrefix: string }): boolean => 판정(run.servicePrefix)('실행');
 
 const 진행 = new Set<실행상태>(['QUEUED', 'SMOKE', 'RUNNING']);
+/** 페이지 · 기기 측정은 결과를 제 화면이 보인다 — 실행 한 건 주소 대신 그 화면으로 간다 (§8.14) */
+export const 측정자리 = (kind: string | undefined): '#/perf/pages' | '#/perf/devices' | null =>
+  kind === 'PAGE' ? '#/perf/pages' : kind === 'DEVICE' ? '#/perf/devices' : null;
+
 export const 도는중인가 = (상태: 실행상태): boolean => 진행.has(상태);
 
 export type 판정종류 = 'PASS' | 'FAIL' | 'STOP' | 'ERROR' | 'LIVE';

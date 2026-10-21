@@ -1,6 +1,7 @@
 // 성능 테스트 화면이 서버를 부르는 호출 모음. 응답 모양은 admin 의 perf/*.ts 를 그대로 옮겼다 (도메인/성능 §7)
 
 import { call, json, 파일받기 } from './api.js';
+import { 기기호출 } from './perfDeviceApi.js';
 import { 페이지호출, type 측정페이지, type 페이지기기, type 페이지망 } from './perfPageApi.js';
 
 export type TestType = 'LOAD' | 'STRESS' | 'SPIKE' | 'SOAK';
@@ -248,6 +249,7 @@ export interface 실행로그 {
 
 export const perfApi = {
   ...페이지호출,
+  ...기기호출,
   scenarios: (serviceId: number) => call<{ scenarios: PerfScenarioRow[] }>(`/perf/scenarios?serviceId=${String(serviceId)}`),
   scenario: (id: number) => call<PerfScenario>(`/perf/scenarios/${String(id)}`),
   create: (serviceId: number, name: string, body: ScenarioBody, draftJobId?: number) =>

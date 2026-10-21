@@ -12,6 +12,7 @@ import { 고치기말 } from './messages/edit.js';
 import { 오류영어 } from './messages/errors.js';
 import { 가이드말 } from './messages/guide.js';
 import { 성능말 } from './messages/perf.js';
+import { 성능기기말 } from './messages/perfDevices.js';
 import { 성능페이지말 } from './messages/perfPages.js';
 import { 성능실행말 } from './messages/perfRun.js';
 import { 기획서말 } from './messages/prd.js';
@@ -38,4 +39,5 @@ export const 말: Record<string, string> = {
   ...성능말,
   ...성능실행말,
   ...성능페이지말,
+  ...성능기기말,
 };

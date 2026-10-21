@@ -87,6 +87,9 @@ describe('route', () => {
     expect(route('#/perf/pages?run=12')).toEqual({ name: 'perfPages', run: 12 });
     expect(route('#/perf/pages?run=1x')).toEqual({ name: 'perfPages' });
     expect(route('#/perf/pages/3').name).toBe('unknown');
+    expect(route('#/perf/devices')).toEqual({ name: 'perfDevices' });
+    expect(route('#/perf/devices?run=40')).toEqual({ name: 'perfDevices', run: 40 });
+    expect(route('#/perf/devices?run=x')).toEqual({ name: 'perfDevices' });
     expect(route('#/perf/runs')).toEqual({ name: 'perfRuns' });
     expect(route('#/perf/runs/12')).toEqual({ name: 'perfRun', runId: 12 });
     expect(route('#/perf/runs/1x').name).toBe('unknown');

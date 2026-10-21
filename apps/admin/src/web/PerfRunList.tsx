@@ -6,7 +6,7 @@ import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { perfApi } from './perfApi.js';
 import { 실행상태글자 } from './PerfScenarioList.js';
-import { 명글자, 분초, 시각글, 사유이름, 초글자, 퍼센트글자, 판정꼴, 판정이름, 판정종류 } from './perfRunView.js';
+import { 명글자, 분초, 시각글, 사유이름, 초글자, 측정자리, 퍼센트글자, 판정꼴, 판정이름, 판정종류 } from './perfRunView.js';
 import { 유형글자 } from './PerfStepLoad.js';
 import { Failed, Loading, useAsync } from './ui.js';
 
@@ -87,9 +87,9 @@ export function PerfRunList({ serviceId }: { serviceId: number }) {
                 <tbody>
                   {줄들.map((줄) => {
                     const 꼴 = 판정종류(줄);
-                    // 페이지 측정은 결과를 페이지 성능 화면이 보인다 (§8.14 「페이지 성능」)
-                    const 페이지 = 줄.kind === 'PAGE';
-                    const 주소 = 페이지 ? `#/perf/pages?run=${String(줄.id)}` : `#/perf/runs/${String(줄.id)}`;
+                    // 페이지 · 기기 측정은 결과를 그 화면이 보인다 (§8.14). 이름 칸은 빈 글이라 화면 이름을 대신 적는다
+                    const 자리 = 측정자리(줄.kind);
+                    const 주소 = 자리 === null ? `#/perf/runs/${String(줄.id)}` : `${자리}?run=${String(줄.id)}`;
                     return (
                       <tr key={줄.id}>
                         <td>
@@ -98,7 +98,7 @@ export function PerfRunList({ serviceId }: { serviceId: number }) {
                           </a>
                         </td>
                         <td>
-                          {페이지 ? <a href={주소}>{t('페이지 성능')}</a> : 줄.title} {줄.origin === 'SCHEDULED' ? <span className="perf-tag">{t('정기')}</span> : null}
+                          {자리 === null ? 줄.title : <a href={주소}>{t(자리 === '#/perf/pages' ? '페이지 성능' : '기기 성능')}</a>} {줄.origin === 'SCHEDULED' ? <span className="perf-tag">{t('정기')}</span> : null}
                         </td>
                         <td>{줄.testType === null ? '-' : t(유형글자[줄.testType].이름)} · {줄.env}</td>
                         <td className="perf-faint">{시각글(줄.startedAt, 언어)}</td>

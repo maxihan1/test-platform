@@ -374,4 +374,10 @@ describe('페이지 측정 실행', () => {
     await waitFor(() => expect(window.location.hash).toBe('#/perf/pages?run=30'));
     expect(screen.queryByRole('button', { name: 'PDF로 내려받기' })).toBeNull();
   });
+
+  it('기기 측정 실행도 기기 성능 화면의 그 실행으로 보낸다', async () => {
+    vi.spyOn(perfApi, 'runOf').mockResolvedValue(끝난상세({ id: 40, kind: 'DEVICE' }));
+    render(<PerfRun runId={40} 판정하기={된다} />);
+    await waitFor(() => expect(window.location.hash).toBe('#/perf/devices?run=40'));
+  });
 });
