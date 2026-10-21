@@ -1,5 +1,7 @@
 // 성능 시나리오 본문 · 실행 설정의 꼴 — 저장은 perf_scenario_version.body, 실행은 perf_run.config (도메인/성능 §3.9 · §7)
 
+import type { 기기목표줄 } from './deviceStats.js';
+
 export type TestType = 'LOAD' | 'STRESS' | 'SPIKE' | 'SOAK';
 
 export interface Extract {
@@ -89,4 +91,21 @@ export interface RunConfig {
   accountsRows: number;
   durationSec: number;
   maxVus: number;
+}
+
+// 기기 성능(kind DEVICE)의 perf_run.config (§7 「PERF-F1-08 이 연 통로」)
+export interface DeviceRunConfig {
+  drive: 'APPIUM' | 'MANUAL';
+  caseIds: string[];
+  durationSec: number;
+  package: string;
+  // launchMs 는 기록기가 앱 실행 시간을 잰 뒤에 채운다
+  devices: { serial: string; where: 'FARM' | 'LOCAL'; model: string; launchMs: number | null }[];
+  repeat: number;
+  metrics: string[];
+  intervalSec: 1 | 2 | 5;
+  record: boolean;
+  targets: 기기목표줄[];
+  agentIds: number[];
+  monitorIds: number[];
 }

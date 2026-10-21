@@ -2,6 +2,7 @@
 
 import type { Pool, PoolClient } from 'pg';
 
+import type { 기기판정줄 } from './deviceStats.js';
 import type { SecRow } from './judge.js';
 import type { 페이지목표줄 } from './pageStats.js';
 import type { RunConfig, Target, TestType } from './types.js';
@@ -160,7 +161,7 @@ export interface 끝값 {
   status: 'DONE' | 'STOPPED' | 'ERROR';
   verdict: 'PASS' | 'FAIL' | null;
   stopReason: string | null;
-  targets: (Target & { measured: number | null; verdict: 'PASS' | 'FAIL' })[] | 페이지목표줄[] | null;
+  targets: (Target & { measured: number | null; verdict: 'PASS' | 'FAIL' })[] | 페이지목표줄[] | 기기판정줄[] | null;
   peakVus: number | null;
   maxTps: number | null;
   p95: number | null;

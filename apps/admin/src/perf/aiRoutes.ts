@@ -13,6 +13,7 @@ import { 정수 } from '../routeParams.js';
 import { 상세 as E2E상세 } from '../scenario/store.js';
 import { 분석끝내기 } from './analysis.js';
 import { 결과다듬기, 끝내기, 오래된일닫기, 일만들기, 일하나, 집기 } from './ai.js';
+import { 팜기기재료 } from './devices.js';
 import { 화면재료 } from './pages.js';
 import { 녹화하기 } from './record.js';
 import { API서버호스트 } from './scenarios.js';
@@ -163,14 +164,17 @@ export default async function perfAiRoutes(app: FastifyInstance): Promise<void> 
     const p = 추천.safeParse(req.body);
     if (!p.success) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: p.error.message });
     const { serviceId, kind, scenarioId } = p.data;
-    // 기기 추천은 그 기능이 생기는 줄에서 연다 (진행판 PERF-F1-08)
-    if (kind === 'DEVICES') return reply.code(400).send({ error: 'INVALID_REQUEST', detail: '아직 못 하는 추천입니다' });
     if ((await 서비스접두사(serviceId)) === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: '애플리케이션이 없습니다' });
     const who = req.user?.username ?? '';
     if (kind === 'PAGES') {
       const screens = await 화면재료(serviceId, p.data.env ?? null);
       if (screens.length === 0) return reply.code(409).send({ error: 'NO_DATA', detail: '화면 기록이 없습니다' });
       return reply.code(202).send({ jobId: await 일만들기('SUGGEST_PAGES', serviceId, { screens }, who) });
+    }
+    if (kind === 'DEVICES') {
+      const devices = await 팜기기재료();
+      if (devices.length === 0) return reply.code(409).send({ error: 'NO_DATA', detail: '팜 기기가 없습니다' });
+      return reply.code(202).send({ jobId: await 일만들기('SUGGEST_DEVICES', serviceId, { devices }, who) });
     }
     const prd = await 기획서재료(serviceId);
     if (kind === 'LOAD') {

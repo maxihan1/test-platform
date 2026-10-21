@@ -42,7 +42,25 @@ describe('결과 다듬기', () => {
   });
 
   it('모르는 종류는 까닭을 준다', () => {
-    expect(결과다듬기('SUGGEST_DEVICES', {}, {})).toEqual({ error: '모르는 일 종류다: SUGGEST_DEVICES' });
+    expect(결과다듬기('SUGGEST_NOTHING', {}, {})).toEqual({ error: '모르는 일 종류다: SUGGEST_NOTHING' });
+  });
+
+  it('기기 추천은 팜 목록에 있는 기기만 남기고 하나도 없으면 까닭을 준다', () => {
+    const 재료 = { devices: [{ serial: 'A1' }, { serial: 'B2' }] };
+    expect(결과다듬기('SUGGEST_DEVICES', 재료, { devices: [{ serial: 'A1', why: '저사양' }, { serial: 'ZZ', why: '없는 기기' }], basis: [] })).toEqual({
+      output: { devices: [{ serial: 'A1', why: '저사양' }], basis: [] },
+    });
+    expect(결과다듬기('SUGGEST_DEVICES', 재료, { devices: [{ serial: 'ZZ' }], basis: [] })).toHaveProperty('error');
+    expect(결과다듬기('SUGGEST_DEVICES', 재료, { devices: [{ serial: 'A1' }, { serial: 'A1' }], basis: [] })).toHaveProperty('error');
+  });
+
+  it('기기 분석의 표시는 그 실행의 기기이고 잰 초 안인 것만 남기고 20개까지 쓴다', () => {
+    const 재료 = { kind: 'DEVICE', devices: [{ serial: 'A1', firstSec: 0, lastSec: 100 }] };
+    const 표시 = (serial: string, sec: number) => ({ serial, sec, label: 'FPS 급락' });
+    const 결과 = 결과다듬기('ANALYZE_RUN', 재료, { title: '제목', items: ['항목'], markers: [표시('A1', 10), 표시('A1', 101), 표시('B2', 10), ...Array.from({ length: 30 }, (_, i) => 표시('A1', i))] });
+    expect((결과 as { output: { markers: unknown[] } }).output.markers).toHaveLength(20);
+    expect((결과 as { output: { markers: { sec: number }[] } }).output.markers.every((m) => m.sec <= 100)).toBe(true);
+    expect(결과다듬기('ANALYZE_RUN', { kind: 'PAGE' }, { title: '제목', items: ['항목'], markers: [표시('A1', 1)] })).toEqual({ output: { title: '제목', items: ['항목'], markers: [] } });
   });
 
   it('AI 분석은 제목 한 줄과 항목 1~10개(각 500자까지)만 받는다', () => {

@@ -125,8 +125,9 @@ export default async function perfRunRoutes(app: FastifyInstance): Promise<void>
     );
     const x = r.rows[0];
     if (x === undefined) return 바(reply, 404, 'NOT_FOUND');
-    // 페이지 단독 측정에는 PDF 를 붙이지 않는다 (PERF-F1-07 시작 질문)
+    // 페이지 단독 측정 · 기기 성능에는 PDF 를 붙이지 않는다 (PERF-F1-07 시작 질문 · PERF-F1-08)
     if (x.kind === 'PAGE') return 바(reply, 400, 'INVALID_REQUEST', '페이지 성능 측정에는 PDF 가 없습니다');
+    if (x.kind === 'DEVICE') return 바(reply, 400, 'INVALID_REQUEST', '기기 성능 측정에는 PDF 가 없습니다');
     if (['QUEUED', 'SMOKE', 'RUNNING'].includes(x.status)) return 바(reply, 409, 'NOT_FINISHED');
     const html = 결과HTML({
       id, title: x.title ?? '', env: x.env, testType: x.test_type, status: x.status, verdict: x.verdict, stopReason: x.stop_reason,

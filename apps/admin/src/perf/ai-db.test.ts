@@ -123,7 +123,13 @@ describe.skipIf(연결 === undefined)('성능 AI 일', { timeout: 60_000 }, () =
     const 부 = await 부르기('xpi-writer', 'POST', '/api/perf/suggest', { serviceId: 서비스, kind: 'LOAD' });
     expect(부.statusCode).toBe(202);
     부하일 = 부.json<{ jobId: number }>().jobId;
-    expect((await 부르기('xpi-writer', 'POST', '/api/perf/suggest', { serviceId: 서비스, kind: 'DEVICES' })).statusCode).toBe(400);
+    const 옛팜 = process.env.DEVICE_FARM_URL;
+    delete process.env.DEVICE_FARM_URL;
+    try {
+      expect((await 부르기('xpi-writer', 'POST', '/api/perf/suggest', { serviceId: 서비스, kind: 'DEVICES' })).json()).toMatchObject({ error: 'NO_DATA' });
+    } finally {
+      if (옛팜 !== undefined) process.env.DEVICE_FARM_URL = 옛팜;
+    }
     expect((await 부르기('xpi-reader', 'POST', '/api/perf/suggest', { serviceId: 서비스, kind: 'LOAD' })).statusCode).toBe(403);
     expect(await 일상태(파일일)).toEqual({ status: 'QUEUED' });
   });

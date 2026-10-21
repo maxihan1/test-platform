@@ -7,9 +7,9 @@ import { 성능알림 } from './notify.js';
 import type { 끝값 } from './store.js';
 
 // 전체줄은 끝내기가 이미 읽은 전체 줄이다 — 분석 재료가 다시 읽지 않게 넘긴다
-export async function 끝난뒤(runId: number, 값: 끝값, 전체줄?: SecRow[], 페이지 = false): Promise<void> {
-  // 오류로 끝났거나 1초 숫자가 하나도 없으면 분석할 것이 없다. 페이지 측정은 끝까지 재서 줄이 있을 때만이다
-  if (페이지 ? 값.status === 'DONE' : 값.status !== 'ERROR' && 값.peakVus !== null) {
+export async function 끝난뒤(runId: number, 값: 끝값, 전체줄?: SecRow[], 끝까지만 = false): Promise<void> {
+  // 오류로 끝났거나 1초 숫자가 하나도 없으면 분석할 것이 없다. 페이지 · 기기 측정은 끝까지 재서 끝난 때만이다
+  if (끝까지만 ? 값.status === 'DONE' : 값.status !== 'ERROR' && 값.peakVus !== null) {
     try {
       await 분석일세우기(runId, 'system', 전체줄);
     } catch (e) {

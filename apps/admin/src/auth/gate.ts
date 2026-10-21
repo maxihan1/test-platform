@@ -159,7 +159,7 @@ async function 닿는서비스(req: FastifyRequest): Promise<string[] | typeof �
 
   // 성능 시나리오 만들기는 본문 serviceId, 실행 만들기는 본문 scenarioId 의 애플리케이션이다 (도메인/성능 §7)
   // 초안 · 추천 · 페이지 단독 측정도 본문 serviceId 다. 파일 초안은 본문이 파일 그대로라 위 ?serviceId= 로 본다 (PERF-F1-04 · 07)
-  const 성능본문 = ['/api/perf/scenarios', '/api/perf/runs', '/api/perf/scenarios/draft', '/api/perf/suggest', '/api/perf/pages/measure'];
+  const 성능본문 = ['/api/perf/scenarios', '/api/perf/runs', '/api/perf/scenarios/draft', '/api/perf/suggest', '/api/perf/pages/measure', '/api/perf/devices/measure'];
   if (틀 !== undefined && 성능본문.includes(틀) && req.method === 'POST' && !Buffer.isBuffer(req.body)) {
     const body = req.body;
     const 칸 = 틀 === '/api/perf/runs' ? 'scenarioId' : 'serviceId';
