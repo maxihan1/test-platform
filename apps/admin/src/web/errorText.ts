@@ -117,6 +117,11 @@ export const 오류말: Record<string, string> = {
   ALREADY_APPROVED: '이미 수락된 계정입니다. 다른 운영자가 먼저 처리했습니다',
   APPROVED_USER: '이미 승인된 계정이라 거절할 수 없습니다',
   LAST_ADMIN: '마지막 운영 계정입니다. 먼저 다른 사람을 운영으로 올립니다',
+  // 성능 테스트 (도메인/성능 §7). HOST_NOT_ALLOWED 의 detail 은 그 트랜잭션 이름이다
+  PROD_ENV_BLOCKED: '실서비스 서버로는 부하를 걸 수 없습니다. 다른 대상 서버를 고릅니다',
+  HOST_NOT_ALLOWED: '대상 서버와 프로젝트 API 서버 밖의 주소로 가는 트랜잭션이 있습니다',
+  NO_AGENT: '고른 부하 발생 에이전트가 연결돼 있지 않습니다',
+  NAME_TAKEN: '같은 이름이 이미 있습니다',
   NOT_FOUND: '그 항목을 찾지 못했습니다. 다른 사람이 지웠을 수 있습니다',
   INVALID_REQUEST: '입력한 값 중에 형식이 맞지 않는 것이 있습니다',
 };

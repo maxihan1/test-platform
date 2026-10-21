@@ -10,6 +10,7 @@ import { 떠나기로했다 } from './leaveGuard.js';
 import { use말 } from './i18n.js';
 import { 할수있나 } from './role.js';
 import { PendingSection } from './SettingsPending.js';
+import { SettingsPerfAgents } from './SettingsPerfAgents.js';
 import { ProjectPanel } from './SettingsProject.js';
 import { ServicePanel } from './SettingsService.js';
 import { UserSection } from './SettingsUser.js';
@@ -110,7 +111,9 @@ export function Settings({ user, onMeChanged, 자리 }: { user: User; onMeChange
       <div className="screen set-layout">
         <설정메뉴 프로젝트들={프로젝트줄} 서비스들={서비스들} 고른={고른} 계정수={users.data.items.length - 대기수} 대기수={대기수} />
         <div className="set-main">
-          {고른 === 'users' ? (
+          {고른 === 'perf-agents' ? (
+            <SettingsPerfAgents projects={프로젝트들.map(({ id, name }) => ({ id, name }))} />
+          ) : 고른 === 'users' ? (
             <UserSection rows={users.data.items} projects={프로젝트줄} me={user.username} onDone={users.reload} onSelf={onMeChanged} />
           ) : 고른 === 'pending' ? (
             대기수 === 0 ? (
@@ -147,7 +150,7 @@ export function Settings({ user, onMeChanged, 자리 }: { user: User; onMeChange
   );
 }
 
-const 메뉴낱말 = new Set(['users', 'pending', 'new']);
+const 메뉴낱말 = new Set(['users', 'pending', 'new', 'perf-agents']);
 
 /** 설정 안의 메뉴. 주소를 바꾸는 링크다 — 새로고침 · 뒤로 가기가 고른 것을 지킨다 */
 function 설정메뉴({
@@ -209,6 +212,11 @@ function 설정메뉴({
           <span className="set-nav-sub set-nav-count">{대기수}</span>
         </a>
       )}
+      {/* 맨 아래 — 프로젝트 · 사람과 따로 서는 기계 묶음이다 (도메인/인증 §8.8 「성능 에이전트」) */}
+      <h2>{t('성능 테스트')}</h2>
+      <a href="#/settings/perf-agents" {...자리('perf-agents')}>
+        <span className="set-nav-name">{t('성능 에이전트')}</span>
+      </a>
     </nav>
   );
 }

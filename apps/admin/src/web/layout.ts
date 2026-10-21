@@ -89,6 +89,9 @@ export function 자리목록(user: User, prefix: string | null, 언어: 언어):
     목록.push({ 이름: t('E2E 시나리오', 언어), 해시: '#/scenarios', 아이콘: 'scenarios' });
     const 이름 = t('실행 기록', 언어);
     목록.push({ 이름, 해시: '#/runs', 아이콘: 'runs', 하위: 종류하위(이름, '#/runs', 언어) });
+    // 실행 기록 다음 · 그래프 앞 (화면공통 §8 「자리 목록」). 하위는 화면이 생기는 줄마다 더한다 — 지금은 시나리오만 있다
+    const 성능 = t('성능 테스트', 언어);
+    목록.push({ 이름: 성능, 해시: '#/perf/scenarios', 아이콘: 'perf', 하위: [{ 이름: t('시나리오', 언어), 해시: '#/perf/scenarios', 라벨: `${성능} · ${t('시나리오', 언어)}` }] });
   }
   if (user.dashboard === 'read') 목록.push({ 이름: t('그래프(Grafana)', 언어), 해시: 그래프주소, 아이콘: 'graph', 바깥: true });
   if (할수있나(user, prefix, '설정')) 목록.push({ 이름: t('설정', 언어), 해시: '#/settings', 아이콘: 'settings' });
@@ -117,6 +120,7 @@ export function 지금자리(name: string, 집: string, 종류?: 'UI' | 'FN' | '
   if (name === 'prdGuide') return '#/prd/guide';
   if (name === 'apiDocs') return '#/api/docs';
   if (name === 'scenarios' || name === 'scenarioNew' || name === 'scenario') return '#/scenarios';
+  if (name === 'perfScenarios' || name === 'perfScenarioNew' || name === 'perfScenario') return '#/perf/scenarios';
   if (name === 'settings') return '#/settings';
   // 비밀번호 변경은 자리 목록에 없다. 집을 돌려주면 케이스에 밑줄이 가서 딴 화면처럼 보인다
   if (name === 'password') return '#/password';

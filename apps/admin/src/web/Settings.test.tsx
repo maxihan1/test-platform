@@ -112,8 +112,9 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
       ['#/settings/project-new', null],
       ['#/settings/new', null],
       ['#/settings/users', null],
+      ['#/settings/perf-agents', null],
     ]);
-    expect([...메뉴.querySelectorAll('h2')].map((h) => h.textContent)).toEqual(['프로젝트', '사람']);
+    expect([...메뉴.querySelectorAll('h2')].map((h) => h.textContent)).toEqual(['프로젝트', '사람', '성능 테스트']);
   });
 
   it('프로젝트 줄에 그 안의 애플리케이션 수가 선다', async () => {
