@@ -38,6 +38,7 @@ describe('Grafana 대시보드 프로비저닝', () => {
       '작성에 걸린 시간',
       '작성 토큰',
       '작성 커버리지',
+      '성능 테스트 추세',
     ]);
   });
 
@@ -55,6 +56,12 @@ describe('Grafana 대시보드 프로비저닝', () => {
     }
     const 최근 = 대시보드.panels.find((p) => p.title === '최근 실행 목록');
     expect(최근?.targets[0]?.rawSql).toContain('AS "종류"');
+  });
+
+  it('성능 테스트 추세는 숫자만 싣는다 — 판정 칸을 읽지 않는다 (도메인/성능 「Grafana」)', () => {
+    const sql = 대시보드.panels.find((p) => p.title === '성능 테스트 추세')!.targets[0]!.rawSql;
+    expect(sql).not.toContain('verdict');
+    expect(sql).toContain('peak_vus');
   });
 
   describe.skipIf(연결 === undefined)('패널 SQL', () => {
