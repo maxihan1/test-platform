@@ -789,7 +789,7 @@ Android 앱 케이스의 「실행」(결과가 실행 기록 · 증적에 남�
 
 ```bash
 docker build -t qahub-perf-agent apps/perf-agent
-docker run -d --restart unless-stopped --name qahub-perf-agent \
+docker run -d --init --restart unless-stopped --name qahub-perf-agent \
   -e QAHUB_URL=https://<QA Hub 주소> -e AGENT_TOKEN=pga_… -e MAX_VUS=<이 기계가 맡을 가상 사용자 수> \
   qahub-perf-agent
 ```
@@ -797,6 +797,6 @@ docker run -d --restart unless-stopped --name qahub-perf-agent \
 **모니터링 에이전트(대상 서버 위)** — 같은 이미지를 대상 서버(Linux)에 띄우고 발급 때 「모니터링」을 고른다. `--network host` 를 꼭 붙인다 — 안 붙이면 네트워크 숫자가 서버가 아니라 컨테이너 것이 된다.
 
 ```bash
-docker run -d --restart unless-stopped --network host --name qahub-monitor \
+docker run -d --init --restart unless-stopped --network host --name qahub-monitor \
   -e QAHUB_URL=https://<QA Hub 주소> -e AGENT_TOKEN=pga_… qahub-perf-agent
 ```
