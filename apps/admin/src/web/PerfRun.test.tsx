@@ -115,14 +115,27 @@ describe('실행 중에서 결과로', () => {
     expect(주문줄.textContent).toContain('(초과)');
     expect(screen.queryByText('PDF로 내려받기')).toBeNull();
 
-    // 다음 5초에는 마지막 초(2) 뒤만 받는다
+    // 다음 5초에는 마지막 초(2)에서 겹침 구간(10초)만큼 앞부터 다시 받는다 — 늦게 온 에이전트 몫이 같은 초를 키우기 때문이다
     await waitFor(() => expect(시리즈.mock.calls.length).toBeGreaterThan(1));
     expect(시리즈.mock.calls[0]).toEqual([12, 0]);
-    expect(시리즈.mock.calls[1]).toEqual([12, 3]);
+    expect(시리즈.mock.calls[1]).toEqual([12, 0]);
 
     지금 = 끝난상세();
     expect(await screen.findByText('PDF로 내려받기')).toBeTruthy();
     expect(screen.queryByRole('button', { name: '실행 중단' })).toBeNull();
+  });
+
+  it('이미 받은 초가 다음 응답에서 커진 값으로 오면 화면 숫자가 커진 값으로 바뀐다 — 늦게 온 에이전트 몫', async () => {
+    vi.spyOn(perfApi, 'runOf').mockResolvedValue(도는상세());
+    숫자들만들기();
+    vi.spyOn(perfApi, 'series').mockResolvedValueOnce({ series: [초(1, { vus: 100 }), 초(2, { vus: 100 })] }).mockResolvedValue({ series: [초(1, { vus: 100 }), 초(2, { vus: 250 })] });
+    vi.spyOn(perfApi, 'hosts')
+      .mockResolvedValueOnce({ hosts: [{ agentId: 21, agentName: 'web-1', sec: 2, cpu: 10, mem: 48, diskIoKbps: 0, netInKbps: 0, netOutKbps: 0 }] })
+      .mockResolvedValue({ hosts: [{ agentId: 21, agentName: 'web-1', sec: 2, cpu: 77, mem: 48, diskIoKbps: 0, netInKbps: 0, netOutKbps: 0 }] });
+    render(<PerfRun runId={12} 쓰나 />);
+    expect(await screen.findByText('250')).toBeTruthy();
+    expect(screen.queryByText('100')).toBeNull();
+    expect(await screen.findByText('77%')).toBeTruthy();
   });
 
   it('서버 모니터링 에이전트를 고르지 않았으면 그 말을 한다', async () => {

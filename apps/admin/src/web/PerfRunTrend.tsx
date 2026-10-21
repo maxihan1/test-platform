@@ -3,7 +3,7 @@
 import { use말 } from './i18n.js';
 import { PerfChart } from './PerfChart.js';
 import { perfApi, type 실행상세 } from './perfApi.js';
-import { 목표대상, 증가율, 초글자, 퍼센트글자, 전체줄 } from './perfRunView.js';
+import { 가장큰값, 목표대상, 증가율, 초글자, 퍼센트글자, 전체줄 } from './perfRunView.js';
 import { useAsync } from './ui.js';
 
 const CPU색 = ['var(--fail-text)', 'var(--chart-2)', 'var(--na-text)'];
@@ -14,8 +14,8 @@ export function PerfRunTrend({ run, 자동중단 }: { run: 실행상세; 자동�
   const 전체 = 전체줄(숫자.data?.[0].series ?? []);
   const 끝 = 전체.at(-1)?.sec ?? 0;
   const p95목표 = run.config.targets.find((x) => x.metric === 'P95' && 목표대상(x) === null);
-  const 위 = Math.max(1000, Math.ceil((Math.max(...전체.map((줄) => 줄.p95Ms), p95목표?.value ?? 0) * 1.1) / 1000) * 1000);
-  const 최대사용자 = Math.max(1, run.config.maxVus, ...전체.map((줄) => 줄.vus));
+  const 위 = Math.max(1000, Math.ceil((가장큰값(전체.map((줄) => 줄.p95Ms), p95목표?.value ?? 0) * 1.1) / 1000) * 1000);
+  const 최대사용자 = 가장큰값(전체.map((줄) => 줄.vus), Math.max(1, run.config.maxVus));
   const 간격 = Math.max(1, Math.ceil(전체.length / 300));
   const 점 = (값: (줄: (typeof 전체)[number]) => number) => 전체.filter((_, i) => i % 간격 === 0).map((줄) => ({ x: 줄.sec, y: 값(줄) }));
   const 감시 = (숫자.data?.[1].hosts ?? []).filter((줄) => run.config.monitorIds.includes(줄.agentId));

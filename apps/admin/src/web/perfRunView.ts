@@ -98,9 +98,17 @@ export const 전체줄 = (줄들: readonly 초숫자[]): 초숫자[] => 줄들.f
 /** 트랜잭션 이름 → 그 이름의 줄들 (전체 줄은 뺀다) */
 export function 트랜잭션줄(줄들: readonly 초숫자[]): Map<string, 초숫자[]> {
   const 모음 = new Map<string, 초숫자[]>();
-  for (const 줄 of 줄들) if (줄.tx !== '') 모음.set(줄.tx, [...(모음.get(줄.tx) ?? []), 줄]);
+  for (const 줄 of 줄들) {
+    if (줄.tx === '') continue;
+    const 앞 = 모음.get(줄.tx);
+    if (앞 === undefined) 모음.set(줄.tx, [줄]);
+    else 앞.push(줄);
+  }
   return 모음;
 }
+
+/** 가장 큰 값 — 수십만 줄에 Math.max(...배열) 을 쓰면 인자가 너무 많아 RangeError 가 난다 */
+export const 가장큰값 = (값들: readonly number[], 바닥 = 0): number => 값들.reduce((큰, 값) => (값 > 큰 ? 값 : 큰), 바닥);
 
 /** 대상이 없으면 전체 */
 export const 목표대상 = (목표: Pick<Target, 'scope'>): string | null => (목표.scope === undefined || 목표.scope === '' ? null : 목표.scope);

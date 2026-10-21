@@ -8,13 +8,15 @@ import { Modal } from './Modal.js';
 import { PerfChart } from './PerfChart.js';
 import { perfApi, type Target, type 실행로그, type 실행상세, type 초숫자, type 호스트숫자 } from './perfApi.js';
 import { RunHead } from './PerfRunHead.js';
-import { 갱신간격, 목표글자, 목표대상, 분초, 수, 시분, 초글자, 최근집계, 퍼센트글자, 전체줄, 트랜잭션줄 } from './perfRunView.js';
+import { 가장큰값, 갱신간격, 목표글자, 목표대상, 분초, 수, 시분, 초글자, 최근집계, 퍼센트글자, 전체줄, 트랜잭션줄 } from './perfRunView.js';
 import { message } from './ui.js';
 
 /** 이 값을 넘으면 막대를 실패 색으로 칠한다 — 병목 후보를 눈에 띄게 */
 const 뜨거움 = 85;
 /** 트랜잭션별 현황이 보는 구간(초) */
 const 최근초 = 10;
+/** 마지막 초에서 이만큼 앞부터 다시 받는다 — 에이전트마다 보고가 늦게 와서 같은 초의 숫자가 뒤늦게 커진다 */
+const 겹침초 = 10;
 
 const 목표찾기 = (목표들: Target[], metric: Target['metric'], scope: string | null) => 목표들.find((x) => x.metric === metric && 목표대상(x) === scope);
 
@@ -37,18 +39,18 @@ export function PerfRunLive({ run, 다시읽기, 쓰나 }: { run: 실행상세; 
       if (바쁨.current) return;
       바쁨.current = true;
       try {
-        const [s, h, e] = await Promise.all([perfApi.series(run.id, 마지막.current.초 + 1), perfApi.hosts(run.id, 마지막.current.호스트 + 1), perfApi.events(run.id)]);
+        const 초부터 = Math.max(0, 마지막.current.초 - 겹침초);
+        const 호스트부터 = Math.max(0, 마지막.current.호스트 - 겹침초);
+        const [s, h, e] = await Promise.all([perfApi.series(run.id, 초부터), perfApi.hosts(run.id, 호스트부터), perfApi.events(run.id)]);
         if (!살음) return;
-        // 새 줄만 이어 붙인다 — 같은 초를 두 번 받아도 겹치지 않게 마지막 초 뒤만 받는다
-        const 새초 = s.series.filter((줄) => 줄.sec > 마지막.current.초);
-        const 새호스트 = h.hosts.filter((줄) => 줄.sec > 마지막.current.호스트);
-        if (새초.length > 0) {
-          마지막.current.초 = Math.max(...새초.map((줄) => 줄.sec));
-          set초((앞) => [...앞, ...새초]);
+        // 받은 구간은 통째로 갈아 끼운다 — 이미 받은 초도 숫자가 커져 올 수 있어 이어 붙이면 늦게 온 몫이 빠진다
+        if (s.series.length > 0) {
+          마지막.current.초 = Math.max(마지막.current.초, 가장큰값(s.series.map((줄) => 줄.sec), -1));
+          set초((앞) => [...앞.filter((줄) => 줄.sec < 초부터), ...s.series]);
         }
-        if (새호스트.length > 0) {
-          마지막.current.호스트 = Math.max(...새호스트.map((줄) => 줄.sec));
-          set호스트((앞) => [...앞, ...새호스트]);
+        if (h.hosts.length > 0) {
+          마지막.current.호스트 = Math.max(마지막.current.호스트, 가장큰값(h.hosts.map((줄) => 줄.sec), -1));
+          set호스트((앞) => [...앞.filter((줄) => 줄.sec < 호스트부터), ...h.hosts]);
         }
         set로그(e.events);
         set오류(null);
@@ -93,8 +95,8 @@ export function PerfRunLive({ run, 다시읽기, 쓰나 }: { run: 실행상세; 
   const 에러목표 = 목표찾기(목표들, 'ERROR_RATE', null);
   const 목표줄 = (목표: Target | undefined, 뒤 = '') => (목표 === undefined ? <span /> : <span className="perf-faint">{t('목표 {값}', { 값: 목표글자(목표, t) })}{뒤}</span>);
 
-  const 위 = Math.max(1000, Math.ceil((Math.max(...전체.map((줄) => 줄.p95Ms), p95목표?.value ?? 0) * 1.1) / 1000) * 1000);
-  const 최대사용자 = Math.max(1, run.config.maxVus, ...전체.map((줄) => 줄.vus));
+  const 위 = Math.max(1000, Math.ceil((가장큰값(전체.map((줄) => 줄.p95Ms), p95목표?.value ?? 0) * 1.1) / 1000) * 1000);
+  const 최대사용자 = 가장큰값(전체.map((줄) => 줄.vus), Math.max(1, run.config.maxVus));
   const 간격 = Math.max(1, Math.ceil(전체.length / 300));
   const 뽑기 = (값: (줄: 초숫자) => number) => 전체.filter((_, i) => i % 간격 === 0).map((줄) => ({ x: 줄.sec, y: 값(줄) }));
 

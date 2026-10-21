@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { 분초, 목표글자, 증가율, 최근집계, 판정종류 } from './perfRunView.js';
+import { 가장큰값, 분초, 목표글자, 증가율, 최근집계, 트랜잭션줄, 판정종류 } from './perfRunView.js';
 
 const 그대로 = (키: string, 값?: Record<string, string | number>) => Object.entries(값 ?? {}).reduce((글, [이름, v]) => 글.replace(`{${이름}}`, String(v)), 키);
 const 줄 = (sec: number, 덮 = {}) => ({ sec, tx: '', vus: 10, requests: 100, errors: 1, p95Ms: 1000, p99Ms: 1500, ...덮 });
@@ -26,6 +26,25 @@ describe('최근 숫자', () => {
   it('줄이 없으면 null, 요청이 없으면 0 이다', () => {
     expect(최근집계([])).toBeNull();
     expect(최근집계([줄(1, { requests: 0, errors: 0 })])).toMatchObject({ tps: 0, p95Ms: 0, errorRate: 0 });
+  });
+});
+
+describe('긴 실행의 줄', () => {
+  it('수십만 줄의 트랜잭션을 이름별로 묶어도 느려지지 않는다', () => {
+    const 많이 = Array.from({ length: 300_000 }, (_, i) => 줄(i, { tx: i % 2 === 0 ? 'a' : 'b' }));
+    const 시작 = Date.now();
+    const 모음 = 트랜잭션줄([...많이, 줄(0)]);
+    expect(Date.now() - 시작).toBeLessThan(2000);
+    expect([...모음.keys()]).toEqual(['a', 'b']);
+    expect(모음.get('a')).toHaveLength(150_000);
+  });
+
+  it('수십만 값의 최댓값을 던지지 않고 구한다', () => {
+    const 값들 = Array.from({ length: 300_000 }, (_, i) => i);
+    expect(() => Math.max(...값들)).toThrow(RangeError);
+    expect(가장큰값(값들)).toBe(299_999);
+    expect(가장큰값([], 5)).toBe(5);
+    expect(가장큰값([3], 5)).toBe(5);
   });
 });
 
