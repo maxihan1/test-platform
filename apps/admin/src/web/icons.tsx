@@ -1,6 +1,6 @@
 // 메뉴 아이콘 — 패키지 없이 SVG 를 직접 둔다 (DESIGN.md 원칙 5). 글자를 대신하지 않고 곁에 선다
 
-export type 아이콘이름 = 'dashboard' | 'cases' | 'prd' | 'api' | 'authoring' | 'scenarios' | 'runs' | 'perf' | 'graph' | 'settings' | 'run' | 'bell' | 'person' | 'desktop';
+export type 아이콘이름 = 'dashboard' | 'cases' | 'prd' | 'api' | 'authoring' | 'scenarios' | 'runs' | 'perf' | 'graph' | 'settings' | 'run' | 'bell' | 'person' | 'desktop' | 'phone';
 
 // 24 격자 · 선 1.8 · 둥근 끝. 색은 글자를 따른다(currentColor) — 지금 자리면 글자와 같이 밝아진다
 const 그림: Record<아이콘이름, React.ReactNode> = {
@@ -107,6 +107,13 @@ const 그림: Record<아이콘이름, React.ReactNode> = {
     <>
       <rect x="2" y="4" width="20" height="13" rx="2" />
       <path d="M8 21h8M12 17v4" />
+    </>
+  ),
+  // 폰 — 헤더 고른 칸의 종류 「Android 앱」 표시. 접두사 칩이 곁에 선다
+  phone: (
+    <>
+      <rect x="7" y="2" width="10" height="20" rx="2" />
+      <path d="M11 18h2" />
     </>
   ),
 };

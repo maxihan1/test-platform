@@ -2,9 +2,9 @@
 
 export const 설정API말: Record<string, string> = {
   // 기본 정보 「종류」
-  '웹 · 앱': 'Web · App',
-  '생성할 때만 정할 수 있습니다. 케이스를 화면 테스트로 돌릴지 API 테스트로 돌릴지 정하므로 나중에 바꿀 수 없습니다':
-    'Set once at creation. It decides whether cases run as UI tests or API tests, so it cannot change later',
+  웹: 'Web',
+  '생성할 때만 정할 수 있습니다. Android 앱은 디바이스 팜 폰에서 Appium 으로 케이스를 만들고 돌립니다. 웹 사이트와 어드민은 「웹」을 고릅니다':
+    'Set once at creation. Android apps get cases written and run on device farm phones with Appium. Pick “Web” for websites and admin tools',
   '생성 후에는 바꿀 수 없습니다': 'Cannot be changed after creation',
 
   // 「API 문서」 구획

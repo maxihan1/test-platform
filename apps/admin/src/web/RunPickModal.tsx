@@ -197,7 +197,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
           <span className="err">{t('이 애플리케이션에 등록된 대상 서버가 없습니다. 설정에서 추가해야 실행할 수 있습니다')}</span>
         ) : null}
       </div>
-      <RunLocation android={android} />
+      <RunLocation android={android} 앱종류={service?.kind} />
       {한건 === null ? null : (
         <한건머리
           케이스={한건}

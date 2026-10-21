@@ -6,7 +6,7 @@
 
 import { useRef, useState } from 'react';
 
-import { api, type CasePage } from './api.js';
+import { api, type CasePage, type 앱종류 } from './api.js';
 import { 고른것고치기 } from './CaseBulkEdit.js';
 import { CaseDetail } from './CaseDetail.js';
 import { 빈기억 } from './caseDetailView.js';
@@ -29,10 +29,10 @@ import { useRunPick } from './useRunPick.js';
 
 // 결과보나 — 실행 칸이 none 이면 마지막 결과를 부르지 않는다. 부르면 서버가 403 을 낸다
 // 요구보나 — 작성 칸이 none 이면 요구 번호가 「PRD 관리」 고리가 아니라 글자다. 요구 — 「PRD 관리」에서 넘어온 요구 번호 (§8.1 「맥락」)
-export function CaseList({ service, 할수, 결과보나, 요구보나 = false, kind, 요구 }: { service: string; 할수: 판정; 결과보나: boolean; 요구보나?: boolean; kind: 'UI' | 'FN'; 요구?: string }) {
+export function CaseList({ service, 할수, 결과보나, 요구보나 = false, kind, 요구, 앱종류 }: { service: string; 할수: 판정; 결과보나: boolean; 요구보나?: boolean; kind: 'UI' | 'FN'; 요구?: string; 앱종류?: 앱종류 }) {
   const t = use말();
   const 언어 = use언어();
-  const 검색 = use검색조건(service, kind, 요구);
+  const 검색 = use검색조건(service, kind, 요구, 앱종류);
   const { 조건, 결과, page } = 검색;
   const [본서비스, set본서비스] = useState(service);
   const [scanning, setScanning] = useState(false);
@@ -175,7 +175,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
 
         <조건칩들
           디바이스={검색.디바이스}
-          앱있음={cases.data?.hasApp ?? false}
+          앱있음={cases.data?.hasApp ?? false} 앱종류={앱종류}
           활성만={검색.활성만}
           결과={결과}
           건수={cases.data?.lastCounts}
@@ -209,6 +209,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
           }}
           onScan={할수('다시스캔') ? () => void rescan() : undefined}
           onClear={검색.조건지우기}
+          앱종류={앱종류} 작성보나={요구보나}
         />
       ) : (
         <>
