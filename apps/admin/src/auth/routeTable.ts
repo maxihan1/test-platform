@@ -192,6 +192,8 @@ export const 등급표: Record<string, 표값> = {
   'GET /api/perf/scenarios/:id': 실행읽기,
   'PUT /api/perf/scenarios/:id': 실행쓰기,
   'DELETE /api/perf/scenarios/:id': 실행쓰기,
+  // 정기 실행을 켜고 끄는 일은 admin 만이다 (도메인/성능 §7 「정기 실행」)
+  'PUT /api/perf/scenarios/:id/schedule': 'admin',
   'POST /api/perf/runs': 실행쓰기,
   'GET /api/perf/runs': 실행읽기,
   'GET /api/perf/runs/:id': 실행읽기,

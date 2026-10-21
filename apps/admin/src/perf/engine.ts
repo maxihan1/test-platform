@@ -7,6 +7,7 @@ import { 끝내기, 끝내기배경 } from './finish.js';
 import { generateScript, segments, splitRows } from './generator.js';
 import { emptyHist } from './hist.js';
 import { AGENT_LOST_SEC, autoStop, type SecRow } from './judge.js';
+import { 정기성능점검 } from './schedule.js';
 import { 끝난초여유, 도는것, 시작틈초, type Job, type 도는실행 } from './state.js';
 import * as 표 from './store.js';
 import type { Transaction } from './types.js';
@@ -245,5 +246,10 @@ export async function 한번돌기(지금 = Date.now()): Promise<void> {
 
 export function 성능엔진켜기(app: FastifyInstance): void {
   const 틱 = setInterval(() => void 한번돌기().catch((e: unknown) => app.log.error(e, '성능 실행 살피기 실패')), 1000);
-  app.addHook('onClose', async () => clearInterval(틱));
+  // 정기 실행 점검 — 시각과 마지막으로 돈 때가 DB 에 있어 재기동해도 1분 넘게 밀리지 않는다 (공통/6 §9.2)
+  const 점검 = setInterval(() => void 정기성능점검().catch((e: unknown) => app.log.error(e, '성능 정기 실행 점검 실패')), 60_000);
+  app.addHook('onClose', async () => {
+    clearInterval(틱);
+    clearInterval(점검);
+  });
 }

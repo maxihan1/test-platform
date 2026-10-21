@@ -165,6 +165,7 @@ export const 라우트표: Record<string, 원천> = {
   // 성능 테스트 (도메인/성능 §7). POST 의 본문 serviceId · scenarioId 는 gate.ts 의 본문 갈래가 같이 본다
   '/api/perf/scenarios': { 종류: '질의번호', 칸: 'serviceId' },
   '/api/perf/scenarios/:id': { 종류: '성능시나리오', 칸: 'id' },
+  '/api/perf/scenarios/:id/schedule': { 종류: '성능시나리오', 칸: 'id' },
   '/api/perf/runs': { 종류: '질의번호', 칸: 'serviceId' },
   '/api/perf/runs/:id': { 종류: '성능실행', 칸: 'id' },
   '/api/perf/runs/:id/series': { 종류: '성능실행', 칸: 'id' },
