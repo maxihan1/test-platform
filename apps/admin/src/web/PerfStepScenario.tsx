@@ -36,7 +36,12 @@ export function PerfStepScenario({
   const t = use말();
   const [편줄, set편줄] = useState<number | null>(null);
   const txs = 값.transactions;
-  const 줄고침 = (i: number, 덮: Partial<Transaction>) => 고침({ ...값, transactions: txs.map((tx, n) => (n === i ? { ...tx, ...덮 } : tx)) });
+  const 줄고침 = (i: number, 덮: Partial<Transaction>) => {
+    // AI 설명은 이름으로 매여 있다 — 이름을 고치면 설명도 새 이름으로 옮긴다
+    const 옛 = txs[i]?.name ?? '';
+    const 설명 = 덮.name === undefined || 값.notes[옛] === undefined ? 값.notes : { ...값.notes, [덮.name]: 값.notes[옛] };
+    고침({ ...값, notes: 설명, transactions: txs.map((tx, n) => (n === i ? { ...tx, ...덮 } : tx)) });
+  };
 
   function 추가() {
     let 번호 = txs.length + 1;

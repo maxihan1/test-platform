@@ -54,6 +54,8 @@ export function PerfImport({ service, 받음 }: { service: ServiceRow; 받음: (
               accept=".jmx,.groovy,.py,.xml,.txt"
               onChange={(e) => {
                 const 파일 = e.target.files?.[0];
+                // 비워 둬야 실패한 뒤 같은 파일을 다시 골라도 onChange 가 선다
+                e.target.value = '';
                 if (파일 !== undefined) void 일.맡기기(() => perfApi.draftFile(service.id, 파일));
               }}
             />

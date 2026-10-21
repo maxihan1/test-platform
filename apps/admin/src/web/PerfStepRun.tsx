@@ -104,6 +104,7 @@ export function PerfStepRun({
               aria-label={t('테스트 계정 CSV 올리기')}
               onChange={(e) => {
                 const 파일 = e.target.files?.[0];
+                e.target.value = '';
                 if (파일 !== undefined) void 파일.text().then((글) => 고침({ ...값, accountsCsv: 글 }));
               }}
             />
