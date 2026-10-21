@@ -83,6 +83,9 @@ describe('route', () => {
     expect(route('#/perf/scenarios/new')).toEqual({ name: 'perfScenarioNew' });
     expect(route('#/perf/scenarios/42')).toEqual({ name: 'perfScenario', id: 42 });
     expect(route('#/perf/scenarios/4x').name).toBe('unknown');
+    expect(route('#/perf/runs')).toEqual({ name: 'perfRuns' });
+    expect(route('#/perf/runs/12')).toEqual({ name: 'perfRun', runId: 12 });
+    expect(route('#/perf/runs/1x').name).toBe('unknown');
     expect(route('#/scenarios/12')).toEqual({ name: 'scenario', id: 12 });
   });
 

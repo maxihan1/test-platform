@@ -143,6 +143,13 @@ describe('자리 목록', () => {
     expect(지금자리('prdGuide', '#/cases')).toBe('#/prd/guide');
   });
 
+  it('성능 테스트 하위는 시나리오 다음에 실행 기록이다', () => {
+    expect(자리목록(김, 'MEM', 'ko').find((자리) => 자리.이름 === '성능 테스트')?.하위).toEqual([
+      { 이름: '시나리오', 해시: '#/perf/scenarios', 라벨: '성능 테스트 · 시나리오' },
+      { 이름: '실행 기록', 해시: '#/perf/runs', 라벨: '성능 테스트 · 실행 기록' },
+    ]);
+  });
+
   it('API 자리는 PRD 관리 바로 다음이고 하위는 API 문서 하나다', () => {
     const 해시들 = 자리목록(김, 'MEM', 'ko').map((자리) => 자리.해시);
     expect(해시들.indexOf('#/api/docs')).toBe(해시들.indexOf('#/prd') + 1);
@@ -200,6 +207,8 @@ describe('자리 목록', () => {
     expect(지금자리('scenarios', '#/cases')).toBe('#/scenarios');
     expect(지금자리('scenarioNew', '#/cases')).toBe('#/scenarios');
     expect(지금자리('perfScenario', '#/cases')).toBe('#/perf/scenarios');
+    expect(지금자리('perfRuns', '#/cases')).toBe('#/perf/runs');
+    expect(지금자리('perfRun', '#/cases')).toBe('#/perf/runs');
     expect(지금자리('scenario', '#/cases')).toBe('#/scenarios');
   });
 

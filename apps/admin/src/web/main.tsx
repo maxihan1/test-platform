@@ -36,6 +36,8 @@ import { route, 갈자리, 돌아갈자리, 집 } from './route.js';
 import { RunList } from './RunList.js';
 import { RunResult } from './RunResult.js';
 import { RunWindow } from './RunWindow.js';
+import { PerfRun } from './PerfRun.js';
+import { PerfRunList } from './PerfRunList.js';
 import { PerfScenarioList } from './PerfScenarioList.js';
 import { PerfWizard } from './PerfWizard.js';
 import { ScenarioBuild } from './ScenarioBuild.js';
@@ -62,6 +64,7 @@ import './itemTrace.css';
 import './runList.css';
 import './caseList.css';
 import './perf.css';
+import './perfRun.css';
 
 function Screen({
   hash,
@@ -150,6 +153,11 @@ function Screen({
       return <PerfWizard key="new" id={null} 띠서비스={service} user={user} />;
     case 'perfScenario':
       return <PerfWizard key={current.id} id={current.id} 띠서비스={service} user={user} />;
+    case 'perfRuns':
+      return service === null ? <div className="empty">{t('애플리케이션을 먼저 골라 주세요')}</div> : <PerfRunList key={prefix} serviceId={service.id} />;
+    case 'perfRun':
+      // 번호마다 새로 그린다 — 다시 실행으로 새 번호 주소로 오면 앞 실행의 숫자가 남지 않게
+      return <PerfRun key={current.runId} runId={current.runId} 쓰나={할수('실행')} />;
     case 'run':
       // 주소로 바로 오는 화면이라 띠와 다른 서비스의 실행일 수 있다 — 그 실행의 칸으로 가른다
       return <RunResult runId={current.runId} 판정하기={(접두사) => 판정을만든다(user, 접두사)} />;
