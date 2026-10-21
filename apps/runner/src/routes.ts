@@ -12,6 +12,7 @@ import { z } from 'zod';
 import { 앱화면을읽는다, 화면을읽는중인가 } from './appScreen.js';
 import { abort, execute, resolveSpecPath, running, testsDir } from './execute.js';
 import { 팜증적받기를줄세운다 } from './farmEvidence.js';
+import { registerPerfDeviceRoutes } from './perfDevice.js';
 import { executeScenario } from './scenario.js';
 
 const require = createRequire(import.meta.url);
@@ -177,6 +178,8 @@ const abortRequest = z.object({ historyId: z.number() });
 
 export function registerRoutes(app: FastifyInstance): void {
   app.get('/health', async () => ({ ok: true, playwrightVersion }));
+
+  registerPerfDeviceRoutes(app);
 
   app.post('/execute', 판상한, async (request, reply) => {
     const parsed = executeRequest.safeParse(request.body);
