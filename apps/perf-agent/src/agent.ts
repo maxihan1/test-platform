@@ -28,9 +28,10 @@ const HELLO_MS = 30_000;
 const CLAIM_MS = 2_000;
 // k6 JSON 출력은 1초마다 몰아서 쓴다. 2초를 기다려야 그 초의 줄이 다 와 있다 — QA Hub 가 합치기를 기다리는 2초와 같다(§5.4)
 const LAG_SEC = 2;
-// 스크립트가 페이지 한 번 잴 때마다 console.log 로 내는 줄의 머리. 1초 숫자 하나에 실어 보내는 표본 수는 서버가 받는 한도다
+// 스크립트가 페이지 한 번 잴 때마다 console.log 로 내는 줄의 머리.
+// 표본 하나가 리소스 100개면 30KB 쯤이라 1초 숫자 하나에 10개만 싣는다 — 서버 본문 상한(1MiB) 안에 든다
 const PAGE_PREFIX = 'QAHUB_PAGE ';
-const PAGES_PER_SEC = 50;
+const PAGES_PER_SEC = 10;
 
 class HttpError extends Error {
   constructor(readonly status: number, path: string) {
@@ -141,6 +142,7 @@ export class Agent {
       });
       // 아직 못 보낸 페이지 표본. 못 보낸 1초 숫자의 표본은 앞으로 되돌려 다음에 다시 붙인다
       const pageBuf: PageSample[] = [];
+      const retried = new WeakSet<PageSample>();
       createInterface({ input: child.stderr }).on('line', (line) => {
         if (line.startsWith(PAGE_PREFIX)) {
           try {
@@ -173,7 +175,8 @@ export class Agent {
       const send = async (s: LoadSecond): Promise<boolean> => {
         const pages = pageBuf.splice(0, PAGES_PER_SEC);
         const res = await this.sendMetrics(job.runId, pages.length ? { ...s, pages } : s);
-        if (!res) pageBuf.unshift(...pages);
+        // 한 번만 다시 싣는다 — 서버가 늘 거절하는 표본을 끝없이 되돌리면 그 뒤 초가 모두 막힌다
+        if (!res) pageBuf.unshift(...pages.filter((p) => !retried.has(p) && retried.add(p)));
         if (res?.stop && !stopping) {
           stopping = true;
           // SIGINT 면 k6 가 하던 반복을 마치고 스스로 끝난다

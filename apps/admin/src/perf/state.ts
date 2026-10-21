@@ -36,6 +36,8 @@ export interface 도는실행 {
   ending: boolean;
   // 단독 측정의 표본 — 끝날 때 가운데 값으로 줄인다. admin 이 다시 켜지면 그 실행은 어차피 ERROR 다
   pageSamples: 페이지표본[];
+  // 부하 중 페이지 측정의 에이전트마다 브라우저 수 — 1초 숫자의 가상 사용자에서 뺀다
+  browserVus: Map<number, number>;
 }
 
 // 일을 받고 시작까지 두는 틈 — 에이전트가 2초마다 claim 하니 모두가 받아 갈 시간이다

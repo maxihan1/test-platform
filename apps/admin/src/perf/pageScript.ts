@@ -86,7 +86,8 @@ async function measureOnce(p, cookies) {
   }
 }
 
-// 비밀번호 칸과 그 바로 앞 입력 칸에 대상 서버 테스트 계정을 넣고 Enter (PERF-F1-07 시작 질문). 쿠키만 다음 문맥에 옮긴다
+// 비밀번호 칸과 그 바로 앞 입력 칸에 대상 서버 테스트 계정을 넣고 Enter (PERF-F1-07 시작 질문). 쿠키만 다음 문맥에 옮긴다.
+// 못 하면 null — 로그인할 페이지를 로그아웃 상태로 재면 로그인 화면 값이 그 페이지 값으로 남는다. 안 재야 admin 이 「재지 못한 페이지」로 실패를 낸다
 async function loginCookies() {
   if (!PAGE_LOGIN_URL || !PAGE_LIST.some((p) => p.login)) return [];
   const ctx = await browser.newContext(PAGE_DEVICE);
@@ -99,10 +100,11 @@ async function loginCookies() {
     await pw.fill(__ENV.ACCOUNT_PW || '');
     await Promise.all([page.waitForNavigation({ timeout: 15000 }).catch(() => null), pw.press('Enter')]);
     await page.waitForTimeout(1000);
+    if (await page.locator('input[type="password"]').isVisible()) throw new Error('로그인 화면에 머물렀습니다');
     return await ctx.cookies();
   } catch (e) {
     console.log('QAHUB_FAIL ' + JSON.stringify({ url: PAGE_LOGIN_URL, why: '로그인하지 못했습니다 — ' + String((e && e.message) || e).slice(0, 300) }));
-    return [];
+    return null;
   } finally {
     await page.close();
     await ctx.close();
@@ -137,9 +139,26 @@ export default async function () {
   const need = PAGE_LIST.filter((x) => x.login);
   if (need.length === 0) return;
   const cookies = await loginCookies();
+  if (cookies === null) return;
   for (const p of need) for (let i = 0; i < ${단독횟수}; i++) await measureOnce(p, cookies);
 }
 `;
+}
+
+/**
+ * 에이전트마다 맡는 브라우저 수 — k6 의 vus 는 모든 시나리오를 센다. 가상 사용자 수에서 이만큼 빼야 부하만 남는다.
+ * 실행 구간과 같은 비율로 나눈다
+ */
+// ponytail: k6 는 줄무늬 순서로 VU 를 나눠 이 셈과 에이전트 몫이 하나 어긋날 수 있다(합은 같다). 에이전트가 브라우저 수를 직접 알리면 정확해진다
+export function 브라우저몫(weights: number[]): number[] {
+  const total = weights.reduce((a, b) => a + b, 0);
+  let 앞 = 0;
+  return weights.map((w) => {
+    const 뒤 = 앞 + w;
+    const n = Math.floor((부하중브라우저 * 뒤) / total) - Math.floor((부하중브라우저 * 앞) / total);
+    앞 = 뒤;
+    return n;
+  });
 }
 
 /** 부하 스크립트에 더하는 브라우저 시나리오 — 브라우저 2개가 고른 페이지를 30초마다 연다. 실행 구간으로 에이전트들에 나뉜다 */
@@ -155,8 +174,8 @@ ${몸통}
 let pageCookies = null;
 export async function pageCheck() {
   const t0 = Date.now();
-  if (pageCookies === null) pageCookies = await loginCookies();
-  for (const p of PAGE_LIST) await measureOnce(p, p.login ? pageCookies : []);
+  if (pageCookies === null) pageCookies = (await loginCookies()) || false;
+  for (const p of PAGE_LIST) if (!p.login || pageCookies) await measureOnce(p, p.login ? pageCookies : []);
   const rest = ${부하중간격초 * 1000} - (Date.now() - t0);
   if (rest > 0) await new Promise((r) => wait(r, rest));
 }

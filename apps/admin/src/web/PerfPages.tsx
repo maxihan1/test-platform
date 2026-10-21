@@ -86,7 +86,7 @@ export function PerfPages({ service, run, 쓰나 }: { service: ServiceRow; run?:
         // 실행 기록에서 PAGE 가 아닌 번호가 넘어오면 그 실행의 화면으로 돌려보낸다
         if (받음.run.kind !== 'PAGE') return void window.location.replace(`#/perf/runs/${String(id)}`);
         보이기(받음);
-        set목록(받음.run.config.pages ?? [{ url: '/', name: '메인', login: false }]);
+        set목록(Array.isArray(받음.run.config.pages) ? 받음.run.config.pages : [{ url: '/', name: '메인', login: false }]);
         set기기(받음.run.config.device ?? 'desktop');
         set망(받음.run.config.network ?? 'NONE');
         if (service.envs.some((it) => it.env === 받음.run.env) && (run !== undefined || env === '')) setEnv(받음.run.env);

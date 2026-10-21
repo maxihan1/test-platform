@@ -29,8 +29,9 @@
   height: 1px;
 }
 
+/* 포커스 링은 잉크다 — 대표색 · 실패 색은 뜻이 따로 있다 (DESIGN.md 「접근성 기준」) */
 .pp-seg label:has(input:focus-visible) {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--ink);
   outline-offset: -2px;
 }
 
@@ -93,8 +94,9 @@
   border-radius: 2px;
 }
 
+/* 가장 오래 걸린 막대는 판정이 아니라서 실패 색 대신 밝은 잉크로 띄운다 (DESIGN.md 원칙 1) */
 .pp-track span.hot {
-  background: var(--fail-text);
+  background: var(--ink);
 }
 
 .pp-pick-list {
@@ -117,4 +119,9 @@
   .pp-wf {
     grid-template-columns: 104px minmax(0, 1fr) 48px;
   }
+}
+
+.pp-hot-num {
+  color: var(--ink);
+  font-weight: 600;
 }

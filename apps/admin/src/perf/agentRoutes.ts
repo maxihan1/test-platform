@@ -16,7 +16,9 @@ const 수 = z.number().int().min(0).max(2 ** 31 - 1);
 const 부하 = z.object({
   sec: 초,
   vus: 수.default(0),
-  pages: z.array(표본).max(50).optional(),
+  // 모양이 틀린 표본은 그것만 버린다 — 하나 때문에 그 초의 트랜잭션 숫자까지 거절하면 에이전트가 끊긴 것처럼 된다
+  pages: z.array(z.unknown()).max(50).optional()
+    .transform((xs) => xs?.flatMap((x) => { const p = 표본.safeParse(x); return p.success ? [p.data] : []; })),
   // 이름이 비면 전체 줄('')과, 겹치면 서로 같은 행을 두 번 고쳐 그 초가 통째로 거절된다
   txs: z.array(z.object({ name: z.string().min(1).max(200), requests: 수, errors: 수, hist: z.array(수).length(HIST_BUCKETS) })).max(500)
     .refine((txs) => new Set(txs.map((t) => t.name)).size === txs.length, '트랜잭션 이름이 겹칩니다').default([]),

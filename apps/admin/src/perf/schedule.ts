@@ -14,11 +14,11 @@ export const 저장먼저 = '마법사 4단계를 저장한 뒤 켭니다';
  * 정기 실행은 사람이 마법사를 거치지 않으므로 이 셋이 저장돼 있어야 한다
  */
 export function 정기실행재료(scenarioId: number, env: string, body: ScenarioBody): { input: 실행입력 } | { error: string } {
-  const run = (body.run ?? {}) as { agentIds?: unknown; monitorIds?: unknown };
+  const run = (body.run ?? {}) as { agentIds?: unknown; monitorIds?: unknown; pageCheck?: unknown };
   if (body.load?.stages === undefined || body.load.testType === undefined || !Array.isArray(run.agentIds) || run.agentIds.length === 0) return { error: 저장먼저 };
   const p = 실행만들기본문.safeParse({
     scenarioId, env, testType: body.load.testType, basis: body.load.basis, stages: body.load.stages, targets: body.targets ?? [],
-    agentIds: run.agentIds, monitorIds: run.monitorIds ?? [], pageCheck: false,
+    agentIds: run.agentIds, monitorIds: run.monitorIds ?? [], pageCheck: run.pageCheck === true,
   });
   return p.success ? { input: p.data } : { error: `${저장먼저} — ${p.error.message.slice(0, 200)}` };
 }

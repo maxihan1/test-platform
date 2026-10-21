@@ -5,7 +5,8 @@ import { describe, expect, it } from 'vitest';
 
 import { 결과다듬기 } from './ai.js';
 import { generateScript } from './generator.js';
-import { 단독스크립트 } from './pageScript.js';
+import { 단독스크립트, 브라우저몫 } from './pageScript.js';
+import { 정기실행재료 } from './schedule.js';
 import { 가운데값, 목표줄들, 페이지판정, type 페이지표본 } from './pageStats.js';
 import type { PageSetup } from './types.js';
 
@@ -71,6 +72,20 @@ describe('브라우저 스크립트', () => {
     expect(켬).toContain('export async function pageCheck()');
     expect(generateScript({ ...바탕, smoke: true, pages: 설정 })).not.toContain('k6/browser');
     expect(generateScript({ ...바탕, smoke: false })).not.toContain('k6/browser');
+  });
+});
+
+describe('브라우저몫 · 정기 실행', () => {
+  it('브라우저 2개를 실행 구간 비율로 나눈다 — 합은 늘 2', () => {
+    expect(브라우저몫([500])).toEqual([2]);
+    expect(브라우저몫([500, 500])).toEqual([1, 1]);
+    expect(브라우저몫([100, 100, 100]).reduce((a, b) => a + b, 0)).toBe(2);
+  });
+
+  it('정기 실행은 마법사에 저장한 부하 중 페이지 측정 값을 따른다', () => {
+    const body = { load: { basis: 'VUS' as const, testType: 'LOAD' as const, stages: [{ durationSec: 60, target: 10 }] }, run: { agentIds: [1], pageCheck: true } };
+    expect(정기실행재료(3, 'qa', body)).toMatchObject({ input: { pageCheck: true } });
+    expect(정기실행재료(3, 'qa', { ...body, run: { agentIds: [1] } })).toMatchObject({ input: { pageCheck: false } });
   });
 });
 

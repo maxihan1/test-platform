@@ -12,7 +12,7 @@ import { Failed, Loading, useAsync } from './ui.js';
 // 주소로 바로 오는 화면이라 띠와 다른 애플리케이션의 실행일 수 있다 — 버튼은 그 실행의 접두사로 가른다 (화면공통 §8)
 export function PerfRun({ runId, 판정하기 }: { runId: number; 판정하기: 판정하기 }) {
   const 읽음 = useAsync(() => perfApi.runOf(runId), [runId]);
-  // 페이지 측정은 결과를 페이지 성능 화면이 보인다 (실행 기록에서 누르는 길과 같다 · 결정 6). 뒤로 가기가 이 주소에 걸리지 않게 바꿔 놓는다
+  // 페이지 측정은 결과를 페이지 성능 화면이 보인다 (실행 기록에서 누르는 길과 같다 · §8.14 「페이지 성능」). 뒤로 가기가 이 주소에 걸리지 않게 바꿔 놓는다
   const 페이지 = 읽음.data?.kind === 'PAGE';
   useEffect(() => {
     if (페이지) window.location.replace(`#/perf/pages?run=${String(runId)}`);

@@ -30,6 +30,7 @@ export interface Stage {
 }
 
 export interface Target {
+  // 서버 부하의 목표다. 페이지 단독 측정 실행의 targets 는 LCP · FCP · CLS 줄인데 화면은 그 줄 대신 페이지 측정값을 읽는다 (도메인/성능 §7)
   metric: 'P95' | 'ERROR_RATE' | 'TPS';
   scope?: string;
   op: '<=' | '>=';
@@ -202,8 +203,8 @@ export interface 실행상세 {
     maxVus: number;
     /** 부하 중 페이지 로딩 측정을 켠 실행 (웹 애플리케이션만) */
     pageCheck?: boolean;
-    /** 페이지 측정(kind PAGE)이면 잰 페이지 · 조건 */
-    pages?: 측정페이지[];
+    /** 페이지 측정(kind PAGE)이면 잰 페이지 목록, 부하 중 측정을 켠 부하 실행이면 { pages, … } 묶음이다 */
+    pages?: 측정페이지[] | { pages: 측정페이지[] };
     device?: 페이지기기;
     network?: 페이지망;
   };

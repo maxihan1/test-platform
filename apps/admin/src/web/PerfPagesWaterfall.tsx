@@ -30,7 +30,7 @@ export function PerfPagesWaterfall({ 줄 }: { 줄: PageRow }) {
               <div className="pp-track">
                 <span className={막대.뜨거움 ? 'hot' : undefined} style={{ left: `${막대.왼쪽.toFixed(1)}%`, width: `${막대.너비.toFixed(1)}%` }} />
               </div>
-              <span className={막대.뜨거움 ? 'mono perf-err' : 'mono'}>{초글자(막대.durationMs, t)}</span>
+              <span className={막대.뜨거움 ? 'mono pp-hot-num' : 'mono'}>{초글자(막대.durationMs, t)}</span>
             </div>
           ))}
           <span className="pp-lab">LCP</span>

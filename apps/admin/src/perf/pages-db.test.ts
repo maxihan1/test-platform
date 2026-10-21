@@ -90,7 +90,8 @@ describe.skipIf(연결 === undefined)('페이지 성능', { timeout: 60_000 }, (
     expect(String(job.script)).toContain('const PAGE_LOGIN_URL = "/login";');
     expect((await 실행(runId)).status).toBe('RUNNING');
 
-    expect((await 에이전트(`/api/perf/agent/runs/${runId}/metrics`, { sec: 0, pages: [표본('/', 1000), 표본('/', 1200), 표본('/', 3000)] })).json()).toEqual({ stop: false });
+    // 모양이 틀린 표본은 그것만 버리고 그 초는 받는다
+    expect((await 에이전트(`/api/perf/agent/runs/${runId}/metrics`, { sec: 0, pages: [표본('/', 1000), 표본('/', 1200), 표본('/', 3000), { url: '/', lcpMs: 'x' }] })).json()).toEqual({ stop: false });
     await 에이전트(`/api/perf/agent/runs/${runId}/metrics`, { sec: 1, vus: 1, txs: [], pages: [표본('/cart', 2900, 0.18), 표본('/cart', 2800, 0.2), 표본('/cart', 3100, 0.18)] });
     await 에이전트(`/api/perf/agent/runs/${runId}/done`, { status: 'OK' });
     const 끝 = await 끝날때까지(runId);
@@ -110,6 +111,10 @@ describe.skipIf(연결 === undefined)('페이지 성능', { timeout: 60_000 }, (
     await 분석결과쓰기(runId, { title: '장바구니가 느림', items: ['LCP 지연'], pages: [{ url: '/cart', items: ['이미지 1.9MB'] }] });
     const 다시 = (await 판.사람(판.관리자, 'GET', `/api/perf/runs/${runId}/pages`)).json<{ pages: { url: string; ai: string[] | null }[] }>();
     expect(다시.pages.map((p) => p.ai)).toEqual([null, ['이미지 1.9MB']]);
+    // 다시 만든 분석에 없는 페이지의 옛 항목은 지운다
+    await 분석결과쓰기(runId, { title: '메인이 느림', items: ['LCP 지연'], pages: [{ url: '/', items: ['스크립트 큼'] }] });
+    const 또 = (await 판.사람(판.관리자, 'GET', `/api/perf/runs/${runId}/pages`)).json<{ pages: { ai: string[] | null }[] }>();
+    expect(또.pages.map((p) => p.ai)).toEqual([['스크립트 큼'], null]);
     expect((await 판.사람(판.관리자, 'GET', `/api/perf/runs/${runId}/report.pdf`)).statusCode).toBe(400);
   });
 
@@ -128,7 +133,8 @@ describe.skipIf(연결 === undefined)('페이지 성능', { timeout: 60_000 }, (
     });
     expect(res.statusCode).toBe(201);
     const runId = res.json<{ runId: number }>().runId;
-    expect((await 실행(runId)).config.pages).toMatchObject({ pages: [{ url: '/' }], loginUrl: null });
+    // 잴 페이지는 끝까지 잰(DONE) 가장 최근 단독 측정 것이다 — 오류로 끝난 바로 앞 측정이 아니다
+    expect((await 실행(runId)).config.pages).toMatchObject({ pages: [{ url: '/' }, { url: '/cart' }], loginUrl: '/login' });
     const smoke = await 일받기();
     expect(String(smoke.script)).not.toContain('pageCheck');
     await 에이전트(`/api/perf/agent/runs/${runId}/metrics`, { sec: 0, vus: 1, txs: [{ name: '목록', requests: 3, errors: 0, hist: Array(116).fill(0).map((_, i) => (i === 50 ? 3 : 0)) }] });
@@ -138,13 +144,14 @@ describe.skipIf(연결 === undefined)('페이지 성능', { timeout: 60_000 }, (
 
     await 에이전트(`/api/perf/agent/runs/${runId}/metrics`, { sec: 5, vus: 8, txs: [{ name: '목록', requests: 10, errors: 0, hist: Array(116).fill(0).map((_, i) => (i === 50 ? 10 : 0)) }], pages: [표본('/', 2100)] });
     const 중 = (await 판.사람(판.관리자, 'GET', `/api/perf/runs/${runId}/pages`)).json<{ pages: { url: string; sec: number; vus: number; lcpMs: number; verdict: null }[]; compare: { kind: string; pages: { url: string; lcpMs: number }[] } }>();
-    expect(중.pages).toMatchObject([{ url: '/', sec: 5, vus: 8, lcpMs: 2100, verdict: null }]);
+    // k6 의 vus 8 에는 이 에이전트의 브라우저 2개가 들어 있어 뺀다
+    expect(중.pages).toMatchObject([{ url: '/', sec: 5, vus: 6, lcpMs: 2100, verdict: null }]);
     expect(중.compare).toMatchObject({ kind: 'PAGE', pages: [{ url: '/', lcpMs: 1200 }, { url: '/cart', lcpMs: 2900 }] });
 
     await 판.사람(판.관리자, 'POST', `/api/perf/runs/${runId}/stop`);
     const 단독 = (await 판.pool.query<{ id: string }>(`SELECT id FROM perf_run WHERE service_id = $1 AND kind = 'PAGE' AND status = 'DONE' ORDER BY id DESC LIMIT 1`, [판.서비스])).rows[0]?.id;
     const 견줌 = (await 판.사람(판.관리자, 'GET', `/api/perf/runs/${단독}/pages`)).json<{ compare: object }>().compare;
-    expect(견줌).toMatchObject({ runId, kind: 'LOAD', vus: 8, pages: [{ url: '/', lcpMs: 2100 }] });
+    expect(견줌).toMatchObject({ runId, kind: 'LOAD', vus: 6, pages: [{ url: '/', lcpMs: 2100 }] });
   });
 
   it('페이지 추천은 화면 기록의 틀 · 이름 · 진짜 주소만 넘기고 기록이 없으면 409', async () => {

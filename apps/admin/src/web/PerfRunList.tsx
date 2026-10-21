@@ -87,7 +87,7 @@ export function PerfRunList({ serviceId }: { serviceId: number }) {
                 <tbody>
                   {줄들.map((줄) => {
                     const 꼴 = 판정종류(줄);
-                    // 페이지 측정은 결과를 페이지 성능 화면이 보인다 (결정 6)
+                    // 페이지 측정은 결과를 페이지 성능 화면이 보인다 (§8.14 「페이지 성능」)
                     const 페이지 = 줄.kind === 'PAGE';
                     const 주소 = 페이지 ? `#/perf/pages?run=${String(줄.id)}` : `#/perf/runs/${String(줄.id)}`;
                     return (

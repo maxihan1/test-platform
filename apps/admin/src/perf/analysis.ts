@@ -5,7 +5,7 @@ import type { PoolClient } from 'pg';
 import { 끝내기, 일만들기 } from './ai.js';
 import type { SecRow } from './judge.js';
 import { 페이지목표 } from './pageScript.js';
-import { 페이지줄읽기 } from './pages.js';
+import { 부하중가장느린, 페이지줄읽기 } from './pages.js';
 import { 실행보기 } from './runView.js';
 import * as 표 from './store.js';
 import type { PageRunConfig } from './types.js';
@@ -44,13 +44,9 @@ async function 페이지재료(run: 표.실행행): Promise<unknown> {
   };
 }
 
-/** 부하 중 페이지 측정 요약 — 페이지마다 가장 느린 LCP 와 그때의 가상 사용자 (분석 항목 「페이지 로딩」의 재료) */
-async function 부하중요약(run: 표.실행행): Promise<{ url: string; name: string; maxLcpMs: number | null; atVus: number | null }[]> {
-  if (!run.config.pageCheck) return [];
-  const rows = (await 페이지줄읽기(run.id, run.config.pages?.pages ?? [])).filter((r) => r.lcpMs !== null);
-  const 가장 = new Map<string, (typeof rows)[number]>();
-  for (const r of rows) if ((가장.get(r.url)?.lcpMs ?? -1) < (r.lcpMs ?? 0)) 가장.set(r.url, r);
-  return [...가장.values()].map((r) => ({ url: r.url, name: r.name, maxLcpMs: r.lcpMs, atVus: r.vus }));
+/** 부하 중 페이지 측정 요약 (분석 항목 「페이지 로딩」의 재료) */
+async function 부하중요약(run: 표.실행행): Promise<Awaited<ReturnType<typeof 부하중가장느린>>> {
+  return run.config.pageCheck ? 부하중가장느린(run.id, run.config.pages?.pages ?? []) : [];
 }
 
 /** 이 재료 밖의 숫자는 AI 가 쓰지 못한다 — 판정 · 요약 · 목표별 측정값 · 트랜잭션별 · 서버 · 이전 실행 대비를 모두 여기서 센다 */
@@ -119,11 +115,15 @@ export async function 분석일세우기(runId: number, who: string, 전체줄?:
 export async function 분석결과쓰기(runId: number, output: unknown, 손?: Pick<PoolClient, 'query'>): Promise<void> {
   const q = 손 ?? (await 표.풀());
   await q.query('UPDATE perf_run SET ai = $2 WHERE id = $1', [runId, JSON.stringify(output)]);
-  // 단독 측정의 페이지별 분석은 그 페이지 줄에도 쓴다 — 화면이 줄을 고르면 그 항목만 보인다
+  // 단독 측정의 페이지별 분석은 그 페이지 줄에도 쓴다 — 화면이 줄을 고르면 그 항목만 보인다. 다시 만들면 새 결과에 없는 페이지의 옛 분석은 지운다
   const pages = (output as { pages?: { url: string; items: string[] }[] }).pages ?? [];
-  for (const p of pages) {
-    await q.query('UPDATE perf_page_metric SET ai = $3 WHERE run_id = $1 AND url = $2 AND sec IS NULL', [runId, p.url, JSON.stringify(p.items)]);
-  }
+  await q.query(
+    `UPDATE perf_page_metric p SET ai = x.items FROM (
+       SELECT m.id, n.items FROM perf_page_metric m LEFT JOIN jsonb_to_recordset($2::jsonb) AS n(url text, items jsonb) ON n.url = m.url
+        WHERE m.run_id = $1 AND m.sec IS NULL) x
+      WHERE p.id = x.id`,
+    [runId, JSON.stringify(pages)],
+  );
 }
 
 /**

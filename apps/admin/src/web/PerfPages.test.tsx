@@ -4,115 +4,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
-import { ApiError, type ServiceRow } from './api.js';
-import { perfApi, type 실행상세, type 실행줄 } from './perfApi.js';
-import type { Compare, PageRow } from './perfPageApi.js';
+import { ApiError } from './api.js';
+import { perfApi } from './perfApi.js';
 import { PerfPages } from './PerfPages.js';
+import { 결과, 상세, 앱, 줄, 페이지들 } from './perfPages.fixture.js';
 import { 묻는간격 } from './usePerfJob.js';
-
-const 앱: ServiceRow = {
-  id: 7,
-  prefix: 'ZPP',
-  name: '데모마켓 웹',
-  color: '#000',
-  projectId: 3,
-  projectName: '데모마켓',
-  envs: [{ env: 'qa', baseUrl: 'https://qa.example.com' }],
-  hasSlackWebhook: false,
-  permissions: { cases: 'read', runs: 'write', authoring: 'read' },
-};
-
-const 줄 = (덮: Partial<실행줄>): 실행줄 => ({
-  id: 21,
-  kind: 'PAGE',
-  status: 'DONE',
-  verdict: 'FAIL',
-  title: '',
-  env: 'qa',
-  startedAt: '2026-10-21T04:40:00Z',
-  durationSec: 120,
-  summary: { peakVus: null, maxTps: null, p95Ms: null, errorRate: null },
-  testType: null,
-  origin: 'MANUAL',
-  degraded: null,
-  stopReason: null,
-  ...덮,
-});
-
-const 페이지들 = [
-  { url: '/', name: '메인', login: false },
-  { url: '/products', name: '상품 목록', login: false },
-  { url: '/products/1', name: '상품 상세', login: false },
-];
-
-const 상세 = (덮: Partial<실행상세> = {}): 실행상세 => ({
-  id: 21,
-  code: 'PRF-0021',
-  kind: 'PAGE',
-  status: 'DONE',
-  verdict: 'FAIL',
-  stopReason: null,
-  testType: null,
-  env: 'qa',
-  scenarioId: null,
-  servicePrefix: 'ZPP',
-  scenarioName: '',
-  origin: 'MANUAL',
-  createdAt: '2026-10-21T04:39:00Z',
-  startedAt: '2026-10-21T04:40:00Z',
-  finishedAt: '2026-10-21T04:42:00Z',
-  config: { testType: 'LOAD', load: { basis: 'VUS', stages: [] }, targets: [], agentIds: [11], monitorIds: [], durationSec: 120, maxVus: 1, pages: 페이지들, device: 'mobile', network: 'SLOW_4G' },
-  targets: null,
-  summary: { peakVus: null, maxTps: null, p95Ms: null, errorRate: null },
-  degraded: null,
-  ai: null,
-  aiJob: null,
-  previous: null,
-  transactions: [],
-  comparePoint: null,
-  ...덮,
-});
-
-const 행 = (덮: Partial<PageRow>): PageRow => ({
-  url: '/',
-  name: '메인',
-  sec: null,
-  vus: null,
-  device: 'mobile',
-  network: 'SLOW_4G',
-  lcpMs: 1000,
-  fcpMs: 600,
-  cls: 0.02,
-  ttfbMs: 100,
-  lcpElement: null,
-  resources: [],
-  ai: null,
-  verdict: 'PASS',
-  ...덮,
-});
-
-const 결과 = {
-  pages: [
-    행({}),
-    행({ url: '/products', name: '상품 목록', lcpMs: 1200, fcpMs: 700, cls: 0.01 }),
-    행({
-      url: '/products/1',
-      name: '상품 상세',
-      lcpMs: 2900,
-      fcpMs: 800,
-      cls: 0.18,
-      verdict: 'FAIL',
-      lcpElement: 'img hero.jpg',
-      resources: [
-        { name: 'HTML 문서', type: 'document', startMs: 0, durationMs: 200, bytes: 9000 },
-        { name: 'JS 번들', type: 'script', startMs: 200, durationMs: 500, bytes: 90000 },
-        { name: '대표 상품 이미지', type: 'img', startMs: 1100, durationMs: 1600, bytes: 1900000 },
-      ],
-      ai: ['LCP 지연: 대표 상품 이미지가 1.9MB 라 1.6초 걸립니다', 'CLS 0.18: 이미지 영역 크기를 지정해야 합니다'],
-    }),
-  ],
-  compare: { runId: 12, code: 'PRF-0012', kind: 'LOAD', vus: 1350, pages: [{ url: '/', lcpMs: 2200 }, { url: '/products', lcpMs: 3800 }] } satisfies Compare,
-};
 
 beforeEach(() => {
   묻는간격.ms = 20;
@@ -124,6 +20,7 @@ afterEach(() => {
   localStorage.clear();
   묻는간격.ms = 3000;
 });
+
 
 describe('가장 최근 측정', () => {
   function 최근열기() {
@@ -189,9 +86,9 @@ describe('가장 최근 측정', () => {
     const 그림 = screen.getByRole('img');
     expect(그림.getAttribute('aria-label')).toBe('HTML 문서 0.2초, JS 번들 0.5초, 대표 상품 이미지 1.6초이 차례로 걸려 LCP가 2.9초인 그림');
     expect(within(그림).getByText('2.9초 (LCP 요소: img hero.jpg)')).toBeTruthy();
-    // 가장 오래 걸린 막대만 실패 색이다
-    expect(within(그림).getByText('1.6초').className).toContain('perf-err');
-    expect(within(그림).getByText('0.5초').className).not.toContain('perf-err');
+    // 가장 오래 걸린 막대만 띄운다 — 판정이 아니라서 실패 색은 쓰지 않는다
+    expect(within(그림).getByText('1.6초').className).toContain('pp-hot-num');
+    expect(within(그림).getByText('0.5초').className).not.toContain('pp-hot-num');
     expect(그림.querySelectorAll('.pp-track span.hot')).toHaveLength(1);
     const 이미지막대 = within(그림).getByText('대표 상품 이미지').nextElementSibling!.querySelector('span')!;
     // 시작 1100ms · 걸린 1600ms · 전체 2900ms(LCP 와 마지막 끝 2700 중 큰 값)
@@ -258,88 +155,5 @@ describe('측정할 페이지', () => {
       { url: '/products/1', name: '상품 상세', login: false },
       { url: '/cart', name: '/cart', login: false },
     ]);
-  });
-});
-
-describe('측정', () => {
-  it('고른 조건으로 측정을 요청하고, 끝날 때까지 「측정 중」을 보이다가 표를 다시 읽는다', async () => {
-    vi.spyOn(perfApi, 'pagesRuns').mockResolvedValue({ runs: [] });
-    vi.spyOn(perfApi, 'suggestPages').mockResolvedValue({ jobId: 9 });
-    vi.spyOn(perfApi, 'job').mockResolvedValue({ status: 'DONE', output: { pages: 페이지들.map((it) => ({ ...it, why: '' })), basis: [] } });
-    const 측정 = vi.spyOn(perfApi, 'measure').mockResolvedValue({ runId: 30 });
-    let 상태: 실행상세['status'] = 'RUNNING';
-    vi.spyOn(perfApi, 'runOf').mockImplementation(() => Promise.resolve(상세({ id: 30, status: 상태 })));
-    const 읽기 = vi.spyOn(perfApi, 'pages').mockResolvedValue(결과);
-    render(<PerfPages service={앱} 쓰나 />);
-    await screen.findByText('측정 대상: 화면 지도 기준 주요 페이지 3개');
-
-    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
-    fireEvent.click(screen.getByLabelText('모바일'));
-    fireEvent.click(screen.getByLabelText('Slow 4G'));
-    fireEvent.click(screen.getByRole('button', { name: '측정' }));
-
-    await waitFor(() => expect(측정).toHaveBeenCalledWith({ serviceId: 7, env: 'qa', pages: 페이지들, device: 'mobile', network: 'SLOW_4G' }));
-    expect(await screen.findByRole('button', { name: '측정 중' })).toBeTruthy();
-    expect(읽기).not.toHaveBeenCalled();
-    expect(localStorage.getItem('대상서버:ZPP')).toBe('qa');
-
-    상태 = 'DONE';
-    expect(await screen.findByRole('table', { name: '페이지별 측정 결과' })).toBeTruthy();
-    expect(읽기).toHaveBeenCalledWith(30);
-    expect(screen.getByRole('button', { name: '측정' })).toBeTruthy();
-  });
-
-  it('고른 에이전트가 없으면(409 NO_AGENT) 서버 말을 그 자리에 보인다', async () => {
-    vi.spyOn(perfApi, 'pagesRuns').mockResolvedValue({ runs: [줄({})] });
-    vi.spyOn(perfApi, 'runOf').mockResolvedValue(상세());
-    vi.spyOn(perfApi, 'pages').mockResolvedValue(결과);
-    vi.spyOn(perfApi, 'measure').mockRejectedValue(new ApiError(409, 'NO_AGENT', '', []));
-    render(<PerfPages service={앱} 쓰나 />);
-    await screen.findByRole('table', { name: '페이지별 측정 결과' });
-    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
-    fireEvent.click(screen.getByRole('button', { name: '측정' }));
-    expect((await screen.findByRole('alert')).textContent).toBe('고른 부하 발생 에이전트가 연결돼 있지 않습니다');
-    expect(screen.getByRole('button', { name: '측정' })).toBeTruthy();
-  });
-
-  it('로그인 화면이 없다는 400 은 서버가 준 까닭을 붙여 보인다', async () => {
-    vi.spyOn(perfApi, 'pagesRuns').mockResolvedValue({ runs: [줄({})] });
-    vi.spyOn(perfApi, 'runOf').mockResolvedValue(상세());
-    vi.spyOn(perfApi, 'pages').mockResolvedValue(결과);
-    vi.spyOn(perfApi, 'measure').mockRejectedValue(new ApiError(400, 'INVALID_REQUEST', '로그인 화면 기록이 없어 /my 를 열 수 없습니다', []));
-    render(<PerfPages service={앱} 쓰나 />);
-    await screen.findByRole('table', { name: '페이지별 측정 결과' });
-    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
-    fireEvent.click(screen.getByRole('button', { name: '측정' }));
-    expect((await screen.findByRole('alert')).textContent).toContain('로그인 화면 기록이 없어 /my 를 열 수 없습니다');
-  });
-
-  it('측정이 오류로 끝나면 로그의 마지막 경고 줄을 보인다', async () => {
-    vi.spyOn(perfApi, 'pagesRuns').mockResolvedValue({ runs: [줄({})] });
-    vi.spyOn(perfApi, 'pages').mockResolvedValue(결과);
-    vi.spyOn(perfApi, 'measure').mockResolvedValue({ runId: 30 });
-    vi.spyOn(perfApi, 'runOf').mockImplementation((id) => Promise.resolve(id === 30 ? 상세({ id: 30, status: 'ERROR' }) : 상세()));
-    vi.spyOn(perfApi, 'events').mockResolvedValue({
-      events: [
-        { at: '2026-10-21T05:00:00Z', level: 'info', message: '측정을 시작합니다' },
-        { at: '2026-10-21T05:01:00Z', level: 'warn', message: '브라우저를 열지 못했습니다' },
-      ],
-    });
-    render(<PerfPages service={앱} 쓰나 />);
-    await screen.findByRole('table', { name: '페이지별 측정 결과' });
-    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
-    fireEvent.click(screen.getByRole('button', { name: '측정' }));
-    expect((await screen.findByRole('alert')).textContent).toBe('측정이 오류로 끝났습니다 — 브라우저를 열지 못했습니다');
-  });
-
-  it('실행 쓰기 권한이 없으면 측정 · 조건 · 페이지 선택이 없다', async () => {
-    vi.spyOn(perfApi, 'pagesRuns').mockResolvedValue({ runs: [줄({})] });
-    vi.spyOn(perfApi, 'runOf').mockResolvedValue(상세());
-    vi.spyOn(perfApi, 'pages').mockResolvedValue(결과);
-    render(<PerfPages service={앱} 쓰나={false} />);
-    await screen.findByRole('table', { name: '페이지별 측정 결과' });
-    expect(screen.queryByRole('button', { name: '측정' })).toBeNull();
-    expect(screen.queryByRole('button', { name: '페이지 선택' })).toBeNull();
-    expect((screen.getByLabelText('모바일') as HTMLInputElement).disabled).toBe(true);
   });
 });
