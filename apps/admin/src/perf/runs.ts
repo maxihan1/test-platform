@@ -9,6 +9,7 @@ import { 중단하기, 한번돌기 } from './engine.js';
 import { totalDuration } from './generator.js';
 import { percentile } from './hist.js';
 import { 결과HTML, PDF찍기, 실행번호글 } from './pdf.js';
+import { 분석일세우기, 숫자있나 } from './analysis.js';
 import { 실행보기 } from './runView.js';
 import { API서버호스트, 계정줄들, 단계, 목표, 허용밖, 호스트 } from './scenarios.js';
 import * as 표 from './store.js';
@@ -167,6 +168,17 @@ export default async function perfRunRoutes(app: FastifyInstance): Promise<void>
     if ((await 표.실행하나(id)) === null) return 바(reply, 404, 'NOT_FOUND');
     if ((await 중단하기(id)) === 'NOT_RUNNING') return 바(reply, 409, 'NOT_RUNNING');
     return reply.code(202).send();
+  });
+
+  app.post<번호경로>('/perf/runs/:id/analysis', async (req, reply) => {
+    const id = 번호(req.params.id, reply);
+    if (id === null) return reply;
+    const 행 = await 표.실행하나(id);
+    if (행 === null) return 바(reply, 404, 'NOT_FOUND');
+    if (['QUEUED', 'SMOKE', 'RUNNING'].includes(행.status)) return 바(reply, 409, 'NOT_FINISHED');
+    if (!(await 숫자있나(id))) return 바(reply, 409, 'NO_DATA');
+    const jobId = await 분석일세우기(id, req.user?.username ?? '');
+    return jobId === null ? 바(reply, 404, 'NOT_FOUND') : reply.code(202).send({ jobId });
   });
 
   app.get<번호경로>('/perf/runs/:id/report.pdf', async (req, reply) => {

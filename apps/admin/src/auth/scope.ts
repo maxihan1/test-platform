@@ -172,6 +172,7 @@ export const 라우트표: Record<string, 원천> = {
   '/api/perf/runs/:id/events': { 종류: '성능실행', 칸: 'id' },
   '/api/perf/runs/:id/stop': { 종류: '성능실행', 칸: 'id' },
   '/api/perf/runs/:id/report.pdf': { 종류: '성능실행', 칸: 'id' },
+  '/api/perf/runs/:id/analysis': { 종류: '성능실행', 칸: 'id' },
   // 초안 · 추천은 본문 serviceId 를 gate.ts 의 본문 갈래가 보고, 파일 초안은 ?serviceId= 다 (PERF-F1-04)
   '/api/perf/scenarios/draft': { 종류: '질의번호', 칸: 'serviceId' },
   '/api/perf/suggest': { 종류: '질의번호', 칸: 'serviceId' },

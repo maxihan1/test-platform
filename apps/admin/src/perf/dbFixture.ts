@@ -45,6 +45,7 @@ export interface 차림 {
   읽기만: string;
   쓰기: string;
   사람: (cookie: string, method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE', url: string, payload?: object) => Promise<LightMyRequestResponse>;
+  계정추가: (username: string, runs: 'none' | 'read' | 'write', authoring: 'none' | 'read' | 'write') => Promise<string>;
   시나리오만들기: (name: string, body?: ScenarioBody) => Promise<number>;
   실행넣기: (o: 실행넣기옵션) => Promise<number>;
   정리: () => Promise<void>;
@@ -59,7 +60,7 @@ export const 설정: RunConfig = {
 export async function 차리기(접두사: string): Promise<차림> {
   const { pool } = await import('../db/index.js');
   const 소문자 = 접두사.toLowerCase();
-  const 계정들 = ['admin', 'reader', 'writer'].map((x) => `${소문자}-${x}`);
+  const 계정들: string[] = [];
   const app = Fastify();
   세션등록(app, `${소문자}-검사용-세션-열쇠-32글자를-넘긴다-넉넉히`);
   인증등록(app);
@@ -77,21 +78,23 @@ export async function 차리기(접두사: string): Promise<차림> {
   await pool.query(`INSERT INTO service_env (service_id, env, base_url) VALUES ($1, 'qa', 'http://shop.${소문자}.test'), ($1, 'live', 'http://live.${소문자}.test')`, [서비스]);
   await pool.query(`UPDATE service_env SET is_prod = true WHERE service_id = $1 AND env = 'live'`, [서비스]);
 
-  async function 계정(username: string, role: 'member' | 'admin', runs: 'read' | 'write'): Promise<string> {
+  async function 계정(username: string, role: 'member' | 'admin', runs: 'none' | 'read' | 'write', authoring: 'none' | 'read' | 'write' = 'none'): Promise<string> {
+    계정들.push(username);
     await pool.query(
       `INSERT INTO app_user (username, display_name, password_hash, role, is_approved, must_change_password) VALUES ($1, $1, $2, $3, true, false)`,
       [username, await 해시('열려라참깨'), role],
     );
-    await pool.query(`INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring) VALUES ($1, $2, 'read', $3, 'none')`, [username, 프로젝트, runs]);
+    await pool.query(`INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring) VALUES ($1, $2, 'read', $3, $4)`, [username, 프로젝트, runs, authoring]);
     const res = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username, password: '열려라참깨' } });
     return (res.headers['set-cookie'] as string).split(';')[0] ?? '';
   }
-  const 관리자 = await 계정(계정들[0] as string, 'admin', 'write');
-  const 읽기만 = await 계정(계정들[1] as string, 'member', 'read');
-  const 쓰기 = await 계정(계정들[2] as string, 'member', 'write');
+  const 관리자 = await 계정(`${소문자}-admin`, 'admin', 'write');
+  const 읽기만 = await 계정(`${소문자}-reader`, 'member', 'read');
+  const 쓰기 = await 계정(`${소문자}-writer`, 'member', 'write');
 
   return {
     app, pool, 서비스, 프로젝트, 관리자, 읽기만, 쓰기,
+    계정추가: (username, runs, authoring) => 계정(username, 'member', runs, authoring),
     사람: (cookie, method, url, payload) => app.inject({ method, url, headers: { cookie }, ...(payload === undefined ? {} : { payload }) }),
     async 시나리오만들기(name, body) {
       const res = await app.inject({

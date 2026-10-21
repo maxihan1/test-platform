@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { 목표, 트랜잭션 } from './scenarios.js';
 import { 풀 } from './store.js';
 
-export type AI일종류 = 'DRAFT_RECORD' | 'DRAFT_SWAGGER' | 'DRAFT_FILE' | 'SUGGEST_LOAD' | 'SUGGEST_TARGETS';
+export type AI일종류 = 'DRAFT_RECORD' | 'DRAFT_SWAGGER' | 'DRAFT_FILE' | 'SUGGEST_LOAD' | 'SUGGEST_TARGETS' | 'ANALYZE_RUN';
 
 // 피크 시간은 1시간으로 둔다 (PERF-F1-04 시작 질문). 스트레스 테스트의 최대는 피크의 5배가 기본이다 (§3.9 「부하 설정」)
 export const 피크분 = 60;
@@ -42,6 +42,8 @@ const 출력: Record<AI일종류, z.ZodType> = {
     targets: z.array(목표.refine((t) => t.source !== 'MANUAL' && (t.source !== 'PRD' || t.reqId !== undefined), '근거 꼬리표가 틀렸습니다')).min(1).max(50),
     basis: 근거,
   }),
+  // 결과 화면 「AI 분석」 — 제목 한 줄과 개조식 항목. perf_run.ai 에 그대로 쓰고 PDF 가 같은 꼴로 읽는다
+  ANALYZE_RUN: z.object({ title: z.string().trim().min(1).max(200), items: z.array(z.string().trim().min(1).max(500)).min(1).max(10) }),
 };
 
 /** 피크 동시 사용자 = 일 방문자 × 피크 집중률 × 평균 체류 시간(분) ÷ 피크 시간(분). 셋 중 하나라도 없으면 null — 화면이 묻는다 */
@@ -90,11 +92,11 @@ export async function 오래된일닫기(): Promise<void> {
   );
 }
 
-export async function 일만들기(kind: AI일종류, serviceId: number, input: unknown, who: string, 녹화 = false): Promise<number> {
+export async function 일만들기(kind: AI일종류, serviceId: number, input: unknown, who: string, 녹화 = false, runId: number | null = null): Promise<number> {
   // 녹화를 기다리는 일은 집히지 않게 RUNNING(집은 시각 없음)으로 둔다 — 녹화가 끝나면 QUEUED 로 바꾼다
   const r = await (await 풀()).query<{ id: string }>(
-    'INSERT INTO perf_ai_job (kind, service_id, input, status, created_by) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-    [kind, serviceId, JSON.stringify(input), 녹화 ? 'RUNNING' : 'QUEUED', who],
+    'INSERT INTO perf_ai_job (kind, service_id, input, status, created_by, run_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+    [kind, serviceId, JSON.stringify(input), 녹화 ? 'RUNNING' : 'QUEUED', who, runId],
   );
   return Number(r.rows[0]?.id);
 }
@@ -131,11 +133,11 @@ export async function 끝내기(id: number, 결과: { output: unknown } | { erro
   return (r.rowCount ?? 0) > 0;
 }
 
-export async function 일하나(id: number): Promise<{ kind: string; serviceId: number; status: string; input: unknown; output: unknown; error: string | null } | null> {
-  const r = await (await 풀()).query<{ kind: string; service_id: string; status: string; input: unknown; output: unknown; error: string | null }>(
-    'SELECT kind, service_id, status, input, output, error FROM perf_ai_job WHERE id = $1',
+export async function 일하나(id: number): Promise<{ kind: string; serviceId: number; runId: number | null; status: string; input: unknown; output: unknown; error: string | null } | null> {
+  const r = await (await 풀()).query<{ kind: string; service_id: string; run_id: string | null; status: string; input: unknown; output: unknown; error: string | null }>(
+    'SELECT kind, service_id, run_id, status, input, output, error FROM perf_ai_job WHERE id = $1',
     [id],
   );
   const row = r.rows[0];
-  return row === undefined ? null : { kind: row.kind, serviceId: Number(row.service_id), status: row.status, input: row.input, output: row.output, error: row.error };
+  return row === undefined ? null : { kind: row.kind, serviceId: Number(row.service_id), runId: row.run_id === null ? null : Number(row.run_id), status: row.status, input: row.input, output: row.output, error: row.error };
 }

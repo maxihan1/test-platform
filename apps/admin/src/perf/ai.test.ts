@@ -42,6 +42,16 @@ describe('결과 다듬기', () => {
   });
 
   it('모르는 종류는 까닭을 준다', () => {
-    expect(결과다듬기('ANALYZE_RUN', {}, {})).toEqual({ error: '모르는 일 종류다: ANALYZE_RUN' });
+    expect(결과다듬기('SUGGEST_PAGES', {}, {})).toEqual({ error: '모르는 일 종류다: SUGGEST_PAGES' });
+  });
+
+  it('AI 분석은 제목 한 줄과 항목 1~10개(각 500자까지)만 받는다', () => {
+    expect(결과다듬기('ANALYZE_RUN', {}, { title: '300명에서 응답이 느려졌습니다', items: ['임계점: 300명', '병목 구간: 로그인'] })).toEqual({
+      output: { title: '300명에서 응답이 느려졌습니다', items: ['임계점: 300명', '병목 구간: 로그인'] },
+    });
+    expect(결과다듬기('ANALYZE_RUN', {}, { title: '제목', items: [] })).toHaveProperty('error');
+    expect(결과다듬기('ANALYZE_RUN', {}, { title: '제목', items: Array.from({ length: 11 }, () => '항목') })).toHaveProperty('error');
+    expect(결과다듬기('ANALYZE_RUN', {}, { title: '제목', items: ['가'.repeat(501)] })).toHaveProperty('error');
+    expect(결과다듬기('ANALYZE_RUN', {}, { title: '', items: ['항목'] })).toHaveProperty('error');
   });
 });

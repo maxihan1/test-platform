@@ -11,6 +11,7 @@ import { 지금가이드 } from '../guide/store.js';
 import { 지금판 } from '../prd/store.js';
 import { 정수 } from '../routeParams.js';
 import { 상세 as E2E상세 } from '../scenario/store.js';
+import { 분석결과쓰기 } from './analysis.js';
 import { 결과다듬기, 끝내기, 오래된일닫기, 일만들기, 일하나, 집기 } from './ai.js';
 import { 녹화하기 } from './record.js';
 import { API서버호스트 } from './scenarios.js';
@@ -217,6 +218,7 @@ export default async function perfAiRoutes(app: FastifyInstance): Promise<void> 
     }
     const 다듬은 = 결과다듬기(job.kind, job.input, p.data.output);
     if (!(await 끝내기(id, 다듬은))) return reply.code(409).send({ error: 'NOT_RUNNING' });
+    if (!('error' in 다듬은) && job.kind === 'ANALYZE_RUN' && job.runId !== null) await 분석결과쓰기(job.runId, 다듬은.output);
     // 모양이 틀린 결과는 일을 FAILED 로 닫고 에이전트에게도 까닭을 돌려준다
     return 'error' in 다듬은 ? reply.code(400).send({ error: 'INVALID_OUTPUT', detail: 다듬은.error }) : reply.code(204).send();
   });

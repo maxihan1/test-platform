@@ -1,6 +1,7 @@
 // 성능 실행을 닫는다 — 끝난 모양마다 상태 · 판정 · 까닭 짝을 정하고 요약 · 성능 저하를 쓴다 (도메인/성능 §3.9 「끝난 모양마다 상태 · 판정 · 까닭」)
 
 import { AGENT_LOST_SEC, ERROR_LIMIT_PCT, STREAK_SEC, degraded, judge, judgeWindow, summary, type Stop } from './judge.js';
+import { 끝난뒤 } from './afterFinish.js';
 import { 도는것 } from './state.js';
 import * as 표 from './store.js';
 
@@ -55,7 +56,10 @@ export async function 끝내기(runId: number, 끝: 끝): Promise<void> {
         degraded: prevId === null ? null : degraded(rows, await 표.초읽기(prevId, 0, 2 ** 31 - 1, [''])),
       };
     }
-    if (await 표.끝쓰기(runId, 값)) await 표.로그(runId, 끝줄(값));
+    if (await 표.끝쓰기(runId, 값)) {
+      await 표.로그(runId, 끝줄(값));
+      await 끝난뒤(runId, 값);
+    }
   } finally {
     도는것.delete(runId);
   }
