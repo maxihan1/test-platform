@@ -53,9 +53,9 @@ export default async function perfRunRoutes(app: FastifyInstance): Promise<void>
     const pool = await 표.풀();
     const r = await pool.query(
       `SELECT r.id, r.kind, r.status, r.verdict, r.stop_reason AS "stopReason", r.config, r.targets, r.degraded, r.ai, r.env, r.test_type AS "testType",
-              r.scenario_id AS "scenarioId", r.created_at AS "createdAt", r.started_at AS "startedAt", r.finished_at AS "finishedAt", r.origin, COALESCE(s.name, '') AS "scenarioName",
+              r.scenario_id AS "scenarioId", svc.prefix AS "servicePrefix", r.created_at AS "createdAt", r.started_at AS "startedAt", r.finished_at AS "finishedAt", r.origin, COALESCE(s.name, '') AS "scenarioName",
               json_build_object('peakVus', r.peak_vus, 'maxTps', r.max_tps, 'p95Ms', r.p95_ms, 'errorRate', r.error_rate) AS summary
-         FROM perf_run r LEFT JOIN perf_scenario s ON s.id = r.scenario_id WHERE r.id = $1`,
+         FROM perf_run r JOIN service svc ON svc.id = r.service_id LEFT JOIN perf_scenario s ON s.id = r.scenario_id WHERE r.id = $1`,
       [id],
     );
     const run = r.rows[0] as Record<string, unknown> | undefined;

@@ -19,7 +19,7 @@ describe.skipIf(연결 === undefined)('성능 결과 보기 칸', { timeout: 60_
   });
 
   const 결과 = async (id: number) => (await f.사람(f.읽기만, 'GET', `/api/perf/runs/${id}`)).json<{
-    scenarioName: string; origin: string; comparePoint: number | null;
+    scenarioName: string; servicePrefix: string; origin: string; comparePoint: number | null;
     transactions: { tx: string; p95Ms: number | null; errorRate: number | null; prevP95Ms: number | null; degraded: boolean }[];
     aiJob: { id: number; status: string } | null;
   }>();
@@ -61,6 +61,11 @@ describe.skipIf(연결 === undefined)('성능 결과 보기 칸', { timeout: 60_
     expect(r.comparePoint).toBe(200);
     expect(r.transactions.map((t) => [t.tx, t.degraded])).toEqual([['로그인', true], ['목록', false]]);
     expect(r.transactions[0]?.prevP95Ms).toBeGreaterThan(250);
+  });
+
+  it('결과에 그 실행의 애플리케이션 접두사가 실린다 — 화면이 띠가 아니라 실행의 애플리케이션으로 권한을 가른다', async () => {
+    const id = await f.실행넣기({ scenarioId: 시나리오 });
+    expect((await 결과(id)).servicePrefix).toBe('XPK');
   });
 
   it('도는 실행은 트랜잭션별 셈을 비워 두고 가장 최근 ANALYZE_RUN 일을 싣는다', async () => {
