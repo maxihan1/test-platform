@@ -120,7 +120,7 @@ describe('API 애플리케이션 설정 (도메인/인증 §8.8 「종류」 · 
 
     expect(구획제목들()).not.toContain('API 문서');
     expect(screen.queryByText('API 인증')).toBeNull();
-    expect(screen.getByText('웹 · 앱')).toBeTruthy();
+    expect(screen.getByText('웹')).toBeTruthy();
 
     const 본문 = await 고친본문();
     for (const 키 of ['kind', 'apiDocPath', 'apiDocEnv']) expect(본문).not.toHaveProperty(키);

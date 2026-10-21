@@ -73,7 +73,7 @@ const 새서비스 = z.object({
   slackWebhook: z.string().optional(),
   figmaToken: z.string().optional(),
   crawlExclude: 훑지않을경로.optional(),
-  kind: z.enum(['SCREEN', 'API']).default('SCREEN'),
+  kind: z.enum(['SCREEN', 'APP', 'API']).default('SCREEN'),
   ...API칸,
 });
 

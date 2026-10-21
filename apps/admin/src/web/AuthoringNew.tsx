@@ -9,11 +9,12 @@
 
 import { useRef, useState } from 'react';
 
-import { api, ApiError, type EnvRow } from './api.js';
+import { api, ApiError, type EnvRow, type 앱종류 } from './api.js';
 import { ApiDocFields, useApiDocs } from './AuthoringNewApi.js';
 import { 거절사유, 받는종류, 운영자작성오류, 자료상한, 작성오류, 피그마거절말 } from './authoringNewText.js';
 import { 크기글 } from './GuideSection.js';
 import { use말, use언어 } from './i18n.js';
+import { 종류 } from './kind.js';
 import { message, 기다림글자 } from './ui.js';
 
 export { 거절사유, 받는종류 } from './authoringNewText.js';
@@ -27,6 +28,7 @@ export function AuthoringNew({
   피그마토큰 = true,
   대조처음 = false,
   serviceId,
+  앱종류,
   on넣었다,
 }: {
   service: string;
@@ -40,6 +42,8 @@ export function AuthoringNew({
   피그마토큰?: boolean;
   /** 「실제 화면과 대조」를 켠 채 열린다 — 「PRD 에 없는 화면」에서 넘어올 때 */
   대조처음?: boolean;
+  /** Android 앱은 대조가 없고 「앱 화면 읽기」 안내가 선다 (도메인/러너 §5.2 종류 표) */
+  앱종류?: 앱종류;
   /** 줄에 세운 요청 번호. 목록이 시작 모달을 연다 */
   on넣었다: (id: number) => void;
 }) {
@@ -64,7 +68,10 @@ export function AuthoringNew({
   const 후보 = envs;
   const 기본서버 = api모드 && 문서.기준서버 !== null && envs.some((it) => it.env === 문서.기준서버) ? 문서.기준서버 : (후보[0]?.env ?? null);
   const 판 = 문서.버전들?.some((v) => v.version === 고른판) === true ? 고른판 : (문서.버전들?.[0]?.version ?? null);
-  const 대조 = !api모드 && 대조켜짐;
+  const 줄 = 종류(앱종류);
+  // 크롤러는 웹만 읽는다 — 앱이 compare 를 보내면 서버가 400 BAD_ENV 로 막는다 (도메인/작성 §7 AUTHOR)
+  const 대조칸 = !api모드 && 줄.대조;
+  const 대조 = 대조칸 && 대조켜짐;
   const 서버 = 후보.some((it) => it.env === 고른서버) ? 고른서버 : 기본서버;
   const 주소 = 시작주소.trim();
 
@@ -224,47 +231,57 @@ export function AuthoringNew({
             />
           </label>
           {피그마토큰 ? null : <span className="error-text">{피그마거절말('NO_TOKEN', 운영자, t)}</span>}
-          <div className="authoring-field authoring-compare">
-            <label>
-              <input type="checkbox" checked={대조} onChange={(e) => set대조(e.target.checked)} />
-              {t('실제 화면과 대조')}
-            </label>
-            {대조 && envs.length === 0 ? (
-              <span className="error-text">
-                {운영자
-                  ? t('이 애플리케이션에는 대상 서버가 없습니다. 설정 > 애플리케이션에서 먼저 넣으세요')
-                  : t('이 애플리케이션에는 대상 서버가 없습니다. 운영자에게 대상 서버를 넣어 달라고 요청하세요')}
-              </span>
-            ) : null}
-            {대조 && envs.length > 0 ? (
-              <>
-                <div className="authoring-sub">
-                  <span aria-hidden="true">{t('대상 서버')}</span>
-                  {/* 감싸는 label 로 이름을 주면 선택지 글자까지 이름에 섞인다 */}
-                  <select aria-label={t('대상 서버')} value={서버 ?? ''} onChange={(e) => set고른서버(e.target.value)}>
-                    {envs.map((it) => (
-                      <option key={it.env} value={it.env}>
-                        {it.env}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <label className="authoring-sub">
-                  <span>{t('시작 주소')}</span>
-                  <input
-                    className="mono"
-                    // url 로 두면 브라우저가 제 말풍선으로 막는다 — 거절은 서버가 하고 사유는 이 폼이 적는다
-                    type="text"
-                    inputMode="url"
-                    value={시작주소}
-                    placeholder={envs.find((it) => it.env === 서버)?.baseUrl ?? ''}
-                    onChange={(e) => set시작주소(e.target.value)}
-                  />
-                </label>
-                <small>{t('기획서가 있으면 기획서 화면을 먼저 작성하고, 반영되면 기획서에 없는 화면을 이어서 작성합니다. 기획서 없이 보내면 PRD 에 아직 없는 화면만 작성합니다')}</small>
-              </>
-            ) : null}
-          </div>
+          {/* 디바이스 팜은 메뉴가 아니라 작성 · 실행이 지나가는 통로라 그 일을 하는 자리에서 보인다 (도메인/러너 §5.2 결정 4) */}
+          {!줄.앱화면읽기 ? null : (
+            <div className="authoring-field authoring-compare">
+              <strong>{t('앱 화면 읽기')}</strong>
+              <small>{t('대상 서버에 앱 파일 경로가 있으면 디바이스 팜에서 빈 폰 하나를 잡아 앱을 설치하고, 첫 화면부터 눌러 가며 요소 주소를 읽습니다. 끝나면 폰을 놓습니다')}</small>
+              <small>{t('앱 케이스는 끝 검사에서 폰으로 돌려 보지 않습니다. 병합 뒤 「테스트 스크립트」에서 실행해 확인합니다')}</small>
+            </div>
+          )}
+          {!대조칸 ? null : (
+            <div className="authoring-field authoring-compare">
+              <label>
+                <input type="checkbox" checked={대조} onChange={(e) => set대조(e.target.checked)} />
+                {t('실제 화면과 대조')}
+              </label>
+              {대조 && envs.length === 0 ? (
+                <span className="error-text">
+                  {운영자
+                    ? t('이 애플리케이션에는 대상 서버가 없습니다. 설정 > 애플리케이션에서 먼저 넣으세요')
+                    : t('이 애플리케이션에는 대상 서버가 없습니다. 운영자에게 대상 서버를 넣어 달라고 요청하세요')}
+                </span>
+              ) : null}
+              {대조 && envs.length > 0 ? (
+                <>
+                  <div className="authoring-sub">
+                    <span aria-hidden="true">{t('대상 서버')}</span>
+                    {/* 감싸는 label 로 이름을 주면 선택지 글자까지 이름에 섞인다 */}
+                    <select aria-label={t('대상 서버')} value={서버 ?? ''} onChange={(e) => set고른서버(e.target.value)}>
+                      {envs.map((it) => (
+                        <option key={it.env} value={it.env}>
+                          {it.env}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <label className="authoring-sub">
+                    <span>{t('시작 주소')}</span>
+                    <input
+                      className="mono"
+                      // url 로 두면 브라우저가 제 말풍선으로 막는다 — 거절은 서버가 하고 사유는 이 폼이 적는다
+                      type="text"
+                      inputMode="url"
+                      value={시작주소}
+                      placeholder={envs.find((it) => it.env === 서버)?.baseUrl ?? ''}
+                      onChange={(e) => set시작주소(e.target.value)}
+                    />
+                  </label>
+                  <small>{t('기획서가 있으면 기획서 화면을 먼저 작성하고, 반영되면 기획서에 없는 화면을 이어서 작성합니다. 기획서 없이 보내면 PRD 에 아직 없는 화면만 작성합니다')}</small>
+                </>
+              ) : null}
+            </div>
+          )}
         </>
       )}
       <button className="btn" type="submit" disabled={못보낸다 || 보내는중}>

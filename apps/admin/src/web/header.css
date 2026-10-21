@@ -94,6 +94,17 @@
   border-color: var(--ink-faint);
 }
 
+.hd-kind {
+  display: flex;
+  flex: none;
+  color: var(--ink-faint);
+}
+
+.hd-kind .side-ico {
+  width: 14px;
+  height: 14px;
+}
+
 .hd-svc-code {
   flex: none;
   font-family: 'IBM Plex Mono', monospace;

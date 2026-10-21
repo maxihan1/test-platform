@@ -499,7 +499,12 @@ export interface ServiceRow {
   testsDir?: string;
   /** 이 서비스에서의 기능별 칸. admin 은 서버가 전부 write 로 채운다 (도메인/인증 §3.5) */
   permissions: 권한칸;
+  /** 애플리케이션 종류 — 헤더 묶음 · 케이스 목록 · 실행 창 · 작성 폼이 읽는다(kind.ts). 선택으로 둔 건 기존 화면 검사의 가짜 응답 때문이다 — 없으면 웹으로 읽는다 */
+  kind?: 앱종류;
 }
+
+/** 애플리케이션 종류 (도메인/러너 §5.2 「애플리케이션 종류 「Android 앱」」 · 도메인/API §3.8) */
+export type 앱종류 = 'SCREEN' | 'APP' | 'API';
 
 export interface User {
   username: string;
@@ -535,7 +540,7 @@ export interface SettingsServiceRow extends Omit<ServiceRow, 'permissions'> {
   isActive: boolean;
   caseCount: number;
   /** 애플리케이션 종류 (도메인/API §3.8). 선택으로 둔 것은 hasFigmaToken 과 같은 이유 — 없으면 SCREEN 으로 읽는다 */
-  kind?: 'SCREEN' | 'API';
+  kind?: 앱종류;
   /** Swagger 문서를 받을 경로와 기준 서버. API 종류만 쓴다 */
   apiDocPath?: string | null;
   apiDocEnv?: string | null;
@@ -1277,8 +1282,8 @@ export const api = {
     figmaToken?: string;
     crawlExclude?: string[];
     /** 만들 때만 보낸다 — 고칠 때 보내면 400 KIND_IMMUTABLE. 안 보내면 SCREEN */
-    kind?: 'SCREEN' | 'API';
-    /** API 종류만 받는다. 화면 종류가 보내면 400 NOT_API_SERVICE */
+    kind?: 앱종류;
+    /** API 종류만 받는다. API 가 아닌 종류가 보내면 400 NOT_API_SERVICE */
     apiDocPath?: string | null;
     apiDocEnv?: string | null;
   }) => call<{ id: number }>('/settings/services', json(body)),
