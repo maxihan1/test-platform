@@ -13,6 +13,7 @@ import { 판쓰기, 판지우기 } from './apiDoc.js';
 import { 앱연결을닫는다 } from './appSession.js';
 import { killTree } from './kill.js';
 import { 산출물폴더, 출력폴더를지운다, 출력폴더이름 } from './outputDir.js';
+import { 녹화폴더, 다음HAR경로 } from './recordHar.js';
 import { createProgressCollector } from './progress.js';
 import { parseResult, type RunnerResult } from './result.js';
 
@@ -172,6 +173,8 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
         ...(req.platform === 'android' && req.app !== undefined && { PLATFORM_APP: req.app }),
         // admin 이 팜에서 잡은 폰이다. 안 주면 팜이 잡힌 폰 아무것에나 붙인다 (러너 §5.2 「디바이스 팜 접속 방식」)
         ...(req.platform === 'android' && req.udid !== undefined && { PLATFORM_DEVICE_UDID: req.udid }),
+        // 성능 녹화 — 설정 파일이 이 경로로 HAR 를 남긴다. 늘 적는다 — 러너를 켠 셸에 값이 있으면 자식이 물려받아 모든 실행을 녹화한다
+        PLATFORM_RECORD_HAR: req.recordHar === undefined ? '' : 다음HAR경로(녹화폴더(req.recordHar.jobId)),
       },
       stdio: ['ignore', 'pipe', 'pipe'],
       // 타임아웃 때 브라우저까지 한 번에 끊으려면 자식이 자기 프로세스 그룹의 장이어야 한다 (kill.ts)

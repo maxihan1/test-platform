@@ -12,6 +12,7 @@ import { 판쓰기, 판지우기 } from './apiDoc.js';
 import { appRoot, tail } from './execute.js';
 import { killTree } from './kill.js';
 import { 산출물폴더, 출력폴더를지운다, 출력폴더이름 } from './outputDir.js';
+import { 녹화폴더 } from './recordHar.js';
 
 const scenarioConfig = resolve(appRoot, 'apps/runner/scenario/playwright.config.ts');
 
@@ -31,6 +32,8 @@ export function scenarioEnv(req: ScenarioExecuteRequest, parts: readonly unknown
     PLATFORM_HISTORY_ID: 시험 ? (req.trialId ?? '') : 'scenario',
     // 실패한 부품의 네트워크 · 조작 · 콘솔을 admin 이 푼다. 시험 실행도 켠다 — 결과 화면이 같은 자리에 보인다 (도메인/시나리오 §7 「실패 기록」)
     PLATFORM_TRACE: '1',
+    // 늘 적는다 — 러너를 켠 셸의 값이 시험 실행으로 번져 녹화되지 않게. 창을 여는 쪽(window.ts)이 이 폴더에 차례로 쓴다
+    PLATFORM_RECORD_HAR_DIR: req.recordHar === undefined ? '' : 녹화폴더(req.recordHar.jobId),
   };
 }
 

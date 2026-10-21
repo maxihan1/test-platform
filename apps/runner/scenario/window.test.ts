@@ -1,5 +1,9 @@
 // 고정 spec 감싸기 검사 — 브라우저 없이 가짜 Browser · APIRequest 로 미룬 삭제 연결 옵션 · 응답 적기를 본다 (SPEC 도메인/러너 §5.2)
 
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import type { APIRequest, Browser, BrowserContext } from '@playwright/test';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -50,6 +54,28 @@ describe('sendDelete', () => {
     expect(vi.mocked(요청도구.newContext)).toHaveBeenCalledWith({ storageState: { cookies: [], origins: [] }, extraHTTPHeaders: { a: '1' }, httpCredentials: 인증 });
     expect(연결.fetch).toHaveBeenCalledWith('https://qa.example.com/api/posts/1', { method: 'DELETE', timeout: 1000 });
     expect(연결.dispose).toHaveBeenCalled();
+  });
+});
+
+describe('성능 녹화 — PLATFORM_RECORD_HAR_DIR 이 있으면 창을 열 때마다 HAR 를 차례로 건다', () => {
+  it('폴더가 없으면 아무것도 더하지 않고, 있으면 1.har · 2.har 순으로 건다', async () => {
+    const 폴더 = mkdtempSync(join(tmpdir(), 'win-har-'));
+    const 열기 = vi.fn(async (_options?: object) => ({}) as BrowserContext);
+    const 브라우저 = { newContext: 열기 } as unknown as Browser;
+    try {
+      감싸기걸기(브라우저, { newContext: vi.fn() } as unknown as APIRequest, 새이음([], 설정.baseUrl), 설정);
+      await 브라우저.newContext({});
+      expect(열기.mock.calls[0]![0]).not.toHaveProperty('recordHar');
+
+      process.env.PLATFORM_RECORD_HAR_DIR = 폴더;
+      await 브라우저.newContext({});
+      await 브라우저.newContext({});
+      expect(열기.mock.calls[1]![0]).toMatchObject({ recordHar: { path: join(폴더, '1.har'), content: 'embed' } });
+      expect(열기.mock.calls[2]![0]).toMatchObject({ recordHar: { path: join(폴더, '2.har'), content: 'embed' } });
+    } finally {
+      delete process.env.PLATFORM_RECORD_HAR_DIR;
+      rmSync(폴더, { recursive: true, force: true });
+    }
   });
 });
 

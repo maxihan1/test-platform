@@ -59,6 +59,7 @@ export interface ExecuteRequest {
   udid?: string;                // android 만. admin 이 디바이스 팜에서 잡은 폰. 없으면 러너 환경값 PLATFORM_DEVICE_UDID (§5.2 · APP-F1-10)
   apiAuths?: ApiAuth[];         // 그 대상 서버 줄의 API 인증 전부. API 종류 애플리케이션 케이스만 (도메인/API §3.8 · API-F1-04)
   apiDoc?: ApiDocRef;           // 그 케이스의 판. CaseSpec.apiDoc 이 있을 때만 (도메인/API §3.8 · API-F1-05)
+  recordHar?: { jobId: number }; // 성능 시나리오 녹화 — 오면 HAR 를 남긴다. jobId 는 기다리는 perf_ai_job 번호. 기록 · 증적에 안 남는다 (공통/3-공유계약 「성능 테스트 타입」)
 }
 
 export interface ApiAuth {      // 대상 서버 줄의 API 인증 하나 (service_env.api_auths). 러너 · kit 까지만 비밀값이 간다
@@ -163,6 +164,7 @@ export interface ScenarioExecuteRequest {          // POST /execute-scenario (�
                                                    // apiDoc 은 그 case 부품 케이스가 만들어진 판. apiAuths 와 같이 부품 기록에는 안 넣는다
   timeoutMs: number;
   deleteStatuses?: ScenarioDeleteStatus[];         // 미룬 삭제에 줄 응답 코드. 없는 주소는 204 (도메인/시나리오 §3.7 결정 12)
+  recordHar?: { jobId: number };                   // 성능 시나리오 녹화 — ExecuteRequest.recordHar 와 같다. 시나리오는 runId null
 }
 
 export interface ScenarioDeleteStatus {            // 정식 실행에서 본 그 서비스의 DELETE 성공 코드 — 서비스 지도 service_api.ok_status

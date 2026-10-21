@@ -150,6 +150,18 @@ describe('scenarioEnv', () => {
     expect(scenarioEnv({ ...기본, runId: null, trialId })).toMatchObject({ PLATFORM_RUN_ID: 'trial', PLATFORM_HISTORY_ID: trialId });
   });
 
+  it('녹화 요청이 오면 perf-record/<jobId> 폴더를 환경으로 넘기고, 없으면 빈 값이다', () => {
+    const 뿌리 = mkdtempSync(join(tmpdir(), 'rec-'));
+    process.env.PLATFORM_ARTIFACTS_DIR = 뿌리;
+    try {
+      expect(scenarioEnv({ ...기본, runId: null, trialId: 'x', recordHar: { jobId: 3 } }).PLATFORM_RECORD_HAR_DIR).toBe(join(뿌리, 'perf-record', '3'));
+      expect(scenarioEnv(기본).PLATFORM_RECORD_HAR_DIR).toBe('');
+    } finally {
+      delete process.env.PLATFORM_ARTIFACTS_DIR;
+      rmSync(뿌리, { recursive: true, force: true });
+    }
+  });
+
   it('조립 목록을 그대로 넘긴다', () => {
     expect(JSON.parse(scenarioEnv(기본).PLATFORM_SCENARIO!)).toEqual(기본.parts);
   });

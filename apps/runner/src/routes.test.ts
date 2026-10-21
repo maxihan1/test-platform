@@ -96,6 +96,27 @@ describe('POST /execute', () => {
     expect(execute).toHaveBeenLastCalledWith(expect.objectContaining({ app: '/apk/qa.apk' }), expect.any(String));
   });
 
+  describe('녹화 실행 recordHar (공통/3-공유계약 「성능 테스트 타입」)', () => {
+    const 보냄 = (recordHar: unknown) =>
+      서버().inject({
+        method: 'POST',
+        url: '/execute',
+        payload: {
+          runId: 0, historyId: 0, tcId: 'TODO-001', platform: 'desktop', filePath: 'todo/TODO-001.spec.ts',
+          baseUrl: 'https://qa.example.com', params: {}, expected: {}, recordHar,
+        },
+      });
+
+    it('버리지 않고 실행에 넘긴다', async () => {
+      await 보냄({ jobId: 5 });
+      expect(execute).toHaveBeenLastCalledWith(expect.objectContaining({ recordHar: { jobId: 5 } }), expect.any(String));
+    });
+
+    it.each([[{ jobId: -1 }], [{ jobId: 0 }], [{ jobId: 1.5 }], [{}]])('%j 는 400 이다', async (칸) => {
+      expect((await 보냄(칸)).statusCode).toBe(400);
+    });
+  });
+
   it('앱 파일은 http(s) 주소도 받는다 — 팜 PC 의 Appium 이 내려받는다', async () => {
     const res = await 서버().inject({
       method: 'POST',
@@ -391,6 +412,13 @@ describe('POST /execute-scenario — 입구 검사', () => {
 
     expect(res.statusCode).toBe(200);
     expect(executeScenario).toHaveBeenCalledWith(expect.objectContaining({ parts: [expect.objectContaining({ apiDoc: 판 })] }));
+  });
+
+  it('녹화 실행 recordHar 를 버리지 않고 실행에 넘기고, 음수 jobId 는 400 이다', async () => {
+    const res = await 보냄(요청({ runId: null, trialId, recordHar: { jobId: 9 } }));
+    expect(res.statusCode).toBe(200);
+    expect(executeScenario).toHaveBeenLastCalledWith(expect.objectContaining({ recordHar: { jobId: 9 } }));
+    expect((await 보냄(요청({ runId: null, trialId, recordHar: { jobId: -1 } }))).statusCode).toBe(400);
   });
 
   it('케이스 파일이 없으면 404 CASE_NOT_FOUND 다', async () => {
