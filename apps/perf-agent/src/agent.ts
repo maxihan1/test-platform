@@ -42,7 +42,7 @@ export class Agent {
   constructor(private readonly cfg: AgentConfig) {}
 
   async run(): Promise<void> {
-    while (!(await this.hello())) await this.pause(CLAIM_MS);
+    while (!this.cfg.signal?.aborted && !(await this.hello())) await this.pause(CLAIM_MS);
     const timer = setInterval(() => void this.hello(), HELLO_MS);
     try {
       while (!this.cfg.signal?.aborted) {
@@ -102,8 +102,9 @@ export class Agent {
         env.ACCOUNTS_CSV = join(dir, 'accounts.csv');
         await writeFile(env.ACCOUNTS_CSV, job.accountsCsv, { mode: 0o600 });
       }
-      // 시스템 꼬리표를 비워 줄을 줄인다 — 세는 데 쓰는 꼬리표는 생성기가 다는 tx 하나다
-      const args = ['run', '-q', '--no-color', '--summary-mode=disabled', '--no-usage-report', '--system-tags=', '--out', 'json=/dev/stdout'];
+      // 시스템 꼬리표를 비워 줄을 줄인다 — 세는 데 쓰는 꼬리표는 생성기가 다는 tx 하나다.
+      // json=/dev/stdout 은 안 된다 — node 가 자식 stdout 을 소켓으로 이어 k6 가 그 경로를 열지 못한다(실측 ENXIO). json=- 는 k6 가 자기 stdout 에 쓴다
+      const args = ['run', '-q', '--no-color', '--summary-mode=disabled', '--no-usage-report', '--system-tags=', '--out', 'json=-'];
       if (job.segment) args.push('--execution-segment', job.segment);
       if (job.segmentSequence) args.push('--execution-segment-sequence', job.segmentSequence);
       for (const [k, v] of Object.entries(env)) args.push('-e', `${k}=${v}`);
@@ -115,14 +116,25 @@ export class Agent {
       const [cmd, ...pre] = this.cfg.k6;
       const child = spawn(cmd, [...pre, ...args], { stdio: ['ignore', 'pipe', 'pipe'] });
       const errTail: string[] = [];
-      createInterface({ input: child.stdout }).on('line', (line) => seconds.add(line));
+      createInterface({ input: child.stdout }).on('line', (line) => {
+        try {
+          seconds.add(line);
+        } catch {
+          // k6 가 끊길 때 마지막 줄이 반쯤 잘려 올 수 있다. 여기서 던지면 에이전트가 통째로 죽어 끝 알림도 못 보낸다
+        }
+      });
       createInterface({ input: child.stderr }).on('line', (line) => {
         errTail.push(line);
         if (errTail.length > 10) errTail.shift();
       });
-      // k6 가 없으면 error 가 먼저 오고 close 가 뒤따른다. 잡지 않으면 에이전트가 통째로 죽는다
-      child.on('error', (e) => errTail.push(e.message));
-      const exited = new Promise<number | null>((resolve) => child.on('close', resolve));
+      // k6 를 못 켜면 error 가 오고 close 는 안 올 수도 있어 error 로도 끝을 낸다. 잡지 않으면 에이전트가 통째로 죽는다
+      const exited = new Promise<number | null>((resolve) => {
+        child.on('close', resolve);
+        child.on('error', (e) => {
+          errTail.push(e.message);
+          resolve(null);
+        });
+      });
       let finished = false;
       void exited.then(() => {
         finished = true;

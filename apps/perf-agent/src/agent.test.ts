@@ -87,7 +87,7 @@ describe('Agent', () => {
     const r = await runOnce({ segment: '0:1/2', segmentSequence: '0,1/2,1', env: { BASE_URL: 'http://shop.test:8080' }, allowedHosts: ['shop.test:8080'], accountsCsv: 'id,pw\na,b\n' });
     expect(r.calls[0]).toMatchObject({ path: '/api/perf/agent/hello', auth: 'Bearer pga_test', body: { version: '0.1.0', maxVus: 300 } });
     expect(r.calls[1].path).toBe('/api/perf/agent/claim');
-    expect(r.argv).toEqual(expect.arrayContaining(['--execution-segment', '0:1/2', '--execution-segment-sequence', '0,1/2,1', 'BASE_URL=http://shop.test:8080', '--system-tags=']));
+    expect(r.argv).toEqual(expect.arrayContaining(['--execution-segment', '0:1/2', '--execution-segment-sequence', '0,1/2,1', 'BASE_URL=http://shop.test:8080', '--system-tags=', 'json=-']));
     expect(r.argv!.find((a) => a.startsWith('ACCOUNTS_CSV='))).toMatch(/accounts\.csv$/);
     expect(r.metrics[0]).toMatchObject({ sec: 0, vus: 5, txs: [{ name: 'login', requests: 3, errors: 1 }] });
     expect(r.done).toEqual({ status: 'OK' });

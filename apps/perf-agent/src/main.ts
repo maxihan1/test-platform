@@ -18,7 +18,7 @@ if (!token) {
     version: '0.1.0',
     maxVus,
     k6: ['k6'],
-    procRoot: process.env.PROC_ROOT ?? '/proc',
+    procRoot: '/proc',
     workDir: tmpdir(),
     log: (msg) => console.log(`${new Date().toISOString()} ${msg}`),
   }).run();
