@@ -54,6 +54,8 @@ interface 도는기기 {
   조작: Promise<void> | null;
   보낸것: Set<number>;
   닫는중: Promise<void> | null;
+  // 폰을 놓기 시작한 뒤 — 늦게 끝난 케이스가 닫힌 실행에 구간 · 로그를 쓰지 않게 한다
+  놓는중: boolean;
   onEnd: (runId: number, 끝: 끝) => void;
 }
 
@@ -85,7 +87,7 @@ export function 기기실행시작(run: 표.실행행, onEnd: 도는기기['onEn
   const 로컬 = process.env.LOCAL_RUNNER_URL?.replace(/\/+$/, '') ?? '';
   const s: 도는기기 = {
     runId: run.id, cfg, startMs: Date.now(), ending: false, 알림함: false, 시작됨: false, 시작약속: Promise.resolve(), 타이머: undefined, 틱중: null,
-    조작: null, 보낸것: new Set(), 닫는중: null, onEnd,
+    조작: null, 보낸것: new Set(), 닫는중: null, 놓는중: false, onEnd,
     devices: cfg.devices.map((d, index) => ({
       index, serial: d.serial, model: d.model, rec: d.where === 'FARM' ? 팜기록기(d.serial) : 로컬기록기(d.serial, 로컬),
       오프셋: 0, 본마지막: -1, 마지막줄: Date.now(), 켰음: false, 실행시간씀: d.launchMs !== null, 경고함: false, 구간들: [],
@@ -136,9 +138,15 @@ async function 시작하기(run: 표.실행행, s: 도는기기): Promise<void> 
   await 표.로그(run.id, `기록기를 켰습니다 — ${s.devices.map((d) => d.model).join(', ')}`);
   s.타이머 = setInterval(() => void 틱(s), 설정.틱ms);
   s.타이머.unref();
-  if (재료 !== null) s.조작 = Promise.all(s.devices.map((d) => 기기조작(s, d, 재료))).then(() => {
+  // 조작이 깨지면(DB · 러너) 기다리는 쪽이 없어 실행이 RUNNING 에 남는다 — 여기서 오류로 닫는다
+  if (재료 !== null) s.조작 = Promise.all(s.devices.map((d) => 기기조작(s, d, 재료))).then(
+    () => {
       if (!s.ending) 알리기(s, { kind: 'DONE' });
-    });
+    },
+    (e: unknown) => {
+      if (!s.ending) 알리기(s, { kind: 'ERROR', why: `케이스를 돌리다 멈췄습니다 — ${글(e)}` });
+    },
+  );
 }
 
 /** 새 줄을 받아 넣는다. 실패는 그 기기만 한 번 경고하고 무소식 시간이 중단을 가른다 */
@@ -223,9 +231,11 @@ async function 케이스보내기(s: 도는기기, d: 기기상태, loop: number
     await rm(join(artifactsDir(), 'runs', '0', String(historyId)), { recursive: true, force: true }).catch(() => undefined);
   }
   const t1 = Date.now();
-  // 회차는 케이스를 보낸 때부터 끝날 때까지, 구간 이름은 절차마다 걸린 시간으로 이어 붙인다
+  if (s.놓는중) return;
+  // 회차는 케이스를 보낸 때부터 끝날 때까지, 구간 이름은 절차마다 걸린 시간으로 이어 붙인다.
+  // 절차는 끝에서 거꾸로 놓는다 — 앞쪽엔 연결 · 앱 설치가 끼어 있어 보낸 때부터 세면 구간이 앞으로 밀린다
   const 표시: 구간표시[] = [{ loop, segment: null, fromSec: 초(s, t0), toSec: 초(s, t1) }];
-  let 지남 = t0;
+  let 지남 = Math.max(t0, t1 - (응답?.steps ?? []).reduce((a, st) => a + st.durationMs, 0));
   for (const st of 응답?.steps ?? []) {
     표시.push({ loop, segment: `${c.tcId} · ${st.title}`, fromSec: 초(s, 지남), toSec: 초(s, 지남 + st.durationMs) });
     지남 += st.durationMs;
@@ -250,6 +260,7 @@ async function 정리(s: 도는기기): Promise<void> {
     await 읽기(s);
     for (const d of s.devices) for (const g of d.구간들) await 구간붙이기(s.runId, d.serial, g).catch((e: unknown) => 경고(s, `구간을 붙이지 못했습니다 — ${글(e)}`));
   }
+  s.놓는중 = true;
   for (const d of s.devices) {
     const 폴더 = join(artifactsDir(), 'perf', String(s.runId), d.serial);
     if (s.시작됨 && s.cfg.record) await d.rec.파일받기(폴더, d.오프셋).catch((e: unknown) => 경고(s, `${d.model} 녹화를 받지 못했습니다 — ${글(e)}`));

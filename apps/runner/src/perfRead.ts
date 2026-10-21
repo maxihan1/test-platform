@@ -31,7 +31,8 @@ export interface 기록기 {
   폴더: string;
   rows: PerfRow[];
   launchMs: number | null;
-  n: number;
+  // admin 이 마지막으로 새 줄을 받아 간 때 — admin 이 다시 켜져 잊은 기록기를 스스로 멈추는 데 쓴다
+  마지막조회: number;
   시작ms: number;
   멈춤: boolean;
   타이머?: NodeJS.Timeout;
@@ -111,9 +112,8 @@ async function cpu를읽는다(adb: Adb, r: 기록기): Promise<number | null> {
   return 전체 <= 0 || 앱 < 0 ? null : 반올림((앱 / 전체) * 100);
 }
 
-export async function 한줄을읽는다(adb: Adb, r: 기록기): Promise<PerfRow> {
-  const sec = r.n * r.intervalSec;
-  r.n += 1;
+/** sec 는 부르는 쪽이 시계로 정한다 — 읽기가 간격보다 오래 걸려 한 번 건너뛰어도 녹화 · 구간과 시각이 맞는다 */
+export async function 한줄을읽는다(adb: Adb, r: 기록기, sec: number): Promise<PerfRow> {
   let 프레임: { fps: number | null; jankPct: number | null } = { fps: null, jankPct: null };
   let 배터리: { tempC: number | null; batteryPct: number | null } = { tempC: null, batteryPct: null };
   const [cpu, memMb] = await Promise.all([

@@ -62,8 +62,8 @@ export default async function perfDeviceRoutes(app: FastifyInstance): Promise<vo
     return {
       devices: 기기별.map(({ d, 줄 }) => ({
         serial: d.serial, model: d.model, where: d.where, launchMs: d.launchMs, summary: 기기요약하기(줄),
-        // 판정은 끝까지 잰 실행에서만 싣는다
-        verdict: 실행?.status === 'DONE' ? ((실행.targets ?? []).filter((t) => t.scope === d.serial).every((t) => t.verdict === 'PASS') ? 'PASS' : 'FAIL') : null,
+        // 판정은 끝까지 잰 실행에서만 싣는다. 숫자를 한 줄도 안 보낸 기기는 목표가 없어도 실패다
+        verdict: 실행?.status === 'DONE' ? (줄.length > 0 && (실행.targets ?? []).filter((t) => t.scope === d.serial).every((t) => t.verdict === 'PASS') ? 'PASS' : 'FAIL') : null,
       })),
       metrics: 줄들.filter((r) => r.sec >= from).map((r) => ({
         serial: r.serial, sec: r.sec, loop: r.loop, segment: r.segment, fps: r.fps, jankPct: r.jankPct, cpu: r.cpu, memMb: r.memMb, tempC: r.tempC, batteryPct: r.batteryPct,

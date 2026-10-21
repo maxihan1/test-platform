@@ -19,6 +19,8 @@ export interface PerfDeviceDeps {
   now?: () => number;
   /** 측정 간격 1초가 실제로 몇 ms 인지. 테스트가 줄여서 빨리 돈다 */
   초ms?: number;
+  /** 이만큼 아무도 새 줄을 받아 가지 않으면 기록기를 스스로 멈춘다 */
+  잊힘ms?: number;
 }
 
 // serial · package 는 `adb shell` 을 거쳐 폰 셸에 들어간다. 꼴을 좁혀 셸 문법이 못 들어오게 한다 (첫 글자는 adb 옵션이 못 되게 문자만)
@@ -39,6 +41,8 @@ export function registerPerfDeviceRoutes(app: FastifyInstance, deps: PerfDeviceD
   const 닫기대기ms = deps.닫기대기ms ?? 1000;
   const now = deps.now ?? Date.now;
   const 초ms = deps.초ms ?? 1000;
+  // admin 은 5초마다 받아 간다. 2분 넘게 안 오면 admin 이 이 기록기를 잊은 것이다
+  const 잊힘ms = deps.잊힘ms ?? 120_000;
   const 기록기들 = new Map<string, 기록기>();
   // 기록기를 만드는 동안(await 사이)에도 같은 폰이 두 번 잡히지 않게 serial 로 먼저 잡는다
   const 재는중 = new Set<string>();
@@ -48,7 +52,19 @@ export function registerPerfDeviceRoutes(app: FastifyInstance, deps: PerfDeviceD
   function 읽기를시작한다(r: 기록기): void {
     const 한번 = () => {
       if (r.멈춤 || r.읽는중 !== undefined) return;
-      r.읽는중 = 한줄을읽는다(adb, r)
+      // admin 이 다시 켜지면 recId 를 잊어 stop 이 오지 않는다 — 그대로 두면 녹화가 끝없이 쌓이고 그 폰은 늘 DEVICE_BUSY 다
+      if (now() - r.마지막조회 > 잊힘ms) {
+        console.warn(`[runner] 기기 ${r.serial} 측정을 ${Math.round(잊힘ms / 1000)}초 넘게 아무도 받아 가지 않아 멈춘다`);
+        void 끊는다(r).finally(() => {
+          기록기들.delete(r.recId);
+          재는중.delete(r.serial);
+        });
+        return;
+      }
+      // 간격 칸에 맞춘다 — 타이머가 조금 늦어도 0 · 2 · 4 처럼 고르게 서고, 오래 걸려 한 번 건너뛰면 그만큼 초가 뛴다
+      const 칸 = Math.round((now() - r.시작ms) / (r.intervalSec * 초ms)) * r.intervalSec;
+      const sec = Math.max(칸, (r.rows.at(-1)?.sec ?? -r.intervalSec) + r.intervalSec);
+      r.읽는중 = 한줄을읽는다(adb, r, sec)
         .then(async (row) => {
           r.rows.push(row);
           try {
@@ -104,7 +120,8 @@ export function registerPerfDeviceRoutes(app: FastifyInstance, deps: PerfDeviceD
     await r.읽는중;
     if (r.녹화자식 !== undefined) {
       // 로컬 adb 만 끊으면 폰의 screenrecord 가 계속 돌 수 있어 SIGINT(mp4 마무리)를 폰에도 보낸다
-      await adb(['-s', r.serial, 'shell', 'pkill', '-2', '-f', `qahub-${r.recId}`]).catch(() => '');
+      // 이름 정확 일치로 끈다 — `-f` 무늬는 그 무늬가 든 폰 쪽 셸 자신도 걸린다(CLAUDE.md §5). 한 폰에 기록기는 하나라 다른 녹화를 끌 일이 없다
+      await adb(['-s', r.serial, 'shell', 'pkill', '-2', '-x', 'screenrecord']).catch(() => '');
       r.녹화자식.kill('SIGINT');
     }
     await r.녹화루프;
@@ -134,7 +151,7 @@ export function registerPerfDeviceRoutes(app: FastifyInstance, deps: PerfDeviceD
       await mkdir(폴더, { recursive: true });
       const r: 기록기 = {
         recId: randomUUID(), serial, pkg, intervalSec, 폴더, rows: [], launchMs: null,
-        n: 0, 시작ms: now(), 멈춤: false, 경고: new Set(),
+        마지막조회: now(), 시작ms: now(), 멈춤: false, 경고: new Set(),
       };
 
       // 콜드 스타트 시간 — 앱을 멈췄다 띄워 TotalTime 을 잰다. 못 재도 측정은 계속한다
@@ -167,6 +184,7 @@ export function registerPerfDeviceRoutes(app: FastifyInstance, deps: PerfDeviceD
     const q = sinceQuery.safeParse(request.query);
     if (!q.success) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: q.error.message });
     const since = q.data.since;
+    r.마지막조회 = now();
     return { rows: since === undefined ? r.rows : r.rows.filter((row) => row.sec > since), launchMs: r.launchMs };
   });
 

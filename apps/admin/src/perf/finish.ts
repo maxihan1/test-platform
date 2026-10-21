@@ -81,7 +81,10 @@ async function 기기끝내기(runId: number, 끝: 끝): Promise<표.끝값 | nu
       if (rows.length === 0) 오류 = '기기 숫자를 하나도 받지 못했습니다';
       else {
         const targets = cfg.devices.flatMap((d) => 기기판정(d.serial, cfg.targets, 기기요약하기(rows.filter((r) => r.serial === d.serial)), d.launchMs));
-        값 = { ...빈끝, status: 'DONE', verdict: targets.every((t) => t.verdict === 'PASS') ? 'PASS' : 'FAIL', targets };
+        // 목표가 없어도 숫자를 한 줄도 안 보낸 기기가 통과로 세지면 안 된다
+        const 빈기기 = cfg.devices.filter((d) => !rows.some((r) => r.serial === d.serial));
+        if (빈기기.length > 0) await 표.로그(runId, `숫자를 받지 못한 기기 — ${빈기기.map((d) => `${d.model}(${d.serial})`).join(', ')}`, 'WARN');
+        값 = { ...빈끝, status: 'DONE', verdict: 빈기기.length === 0 && targets.every((t) => t.verdict === 'PASS') ? 'PASS' : 'FAIL', targets };
       }
     }
     if (오류 !== null) await 표.로그(runId, `실행이 오류로 끝났습니다 — ${오류}`, 'WARN');

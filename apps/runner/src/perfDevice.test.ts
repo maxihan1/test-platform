@@ -202,6 +202,16 @@ describe('시작 거절', () => {
   });
 });
 
+describe('잊힌 기록기', () => {
+  it('아무도 새 줄을 받아 가지 않으면 스스로 멈추고 그 폰을 다시 잡을 수 있다', async () => {
+    let 지금 = 0;
+    const app = 서버({ adb: 가짜Adb().adb, now: () => 지금, 잊힘ms: 50 });
+    expect((await 시작(app)).statusCode).toBe(201);
+    지금 = 1_000;
+    await vi.waitFor(async () => expect((await 시작(app)).statusCode).toBe(201));
+  });
+});
+
 describe('화면 녹화', () => {
   it('3분 조각을 이어 받고 중지하면 마지막 조각까지 받아 이름 목록을 준다', async () => {
     const 가짜 = 가짜Adb();
@@ -211,6 +221,7 @@ describe('화면 녹화', () => {
     const app = 서버({
       adb: 가짜.adb,
       now: () => 지금,
+      잊힘ms: Infinity,
       녹화: (args) => {
         띄운인자.push(args);
         const c = new 가짜자식();
@@ -234,6 +245,6 @@ describe('화면 녹화', () => {
     expect(자식들[1]?.끊김).toEqual(['SIGINT']);
     expect(가짜.호출).toContain(`-s ${시리얼} shell rm /sdcard/qahub-${recId}-0.mp4`);
     expect(가짜.호출).toContain(`-s ${시리얼} shell rm /sdcard/qahub-${recId}-1.mp4`);
-    expect(가짜.호출.some((l) => l.includes(`pkill -2 -f qahub-${recId}`))).toBe(true);
+    expect(가짜.호출).toContain(`-s ${시리얼} shell pkill -2 -x screenrecord`);
   });
 });

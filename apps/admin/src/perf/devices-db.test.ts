@@ -132,6 +132,18 @@ describe.skipIf(연결 === undefined)('기기 성능', { timeout: 90_000 }, () =
     }
   });
 
+  it('숫자를 한 줄도 안 보낸 기기는 목표가 없어도 실패다', async () => {
+    f.줄끔.add('FA2');
+    try {
+      const runId = await 만들기({ devices: [{ serial: 'FA1', where: 'FARM' }, { serial: 'FA2', where: 'FARM' }], targets: [] }, 1);
+      expect(await 끝날때까지(runId)).toMatchObject({ status: 'DONE', verdict: 'FAIL' });
+      const 몸 = await 결과(runId);
+      expect(몸.devices.map((d) => [d.serial, d.verdict])).toEqual([['FA1', 'PASS'], ['FA2', 'FAIL']]);
+    } finally {
+      f.줄끔.delete('FA2');
+    }
+  });
+
   it('기기 추천은 팜 기기 목록을 재료로 하고 팜이 꺼졌으면 409', async () => {
     const res = await 판.사람(판.쓰기, 'POST', '/api/perf/suggest', { serviceId: 판.서비스, kind: 'DEVICES' });
     expect(res.statusCode).toBe(202);

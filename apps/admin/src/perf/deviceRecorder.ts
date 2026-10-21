@@ -1,7 +1,11 @@
 // 기기 성능 기록기 — 팜 폰과 내 컴퓨터 러너 폰을 한 꼴(켜기 · 새 줄 · 파일 받기 · 놓기)로 다룬다 (도메인/러너 「기기 측정 — 팜 폰 · 내 컴퓨터 러너」)
 
-import { mkdir, readdir, rename, writeFile } from 'node:fs/promises';
+import { createWriteStream } from 'node:fs';
+import { mkdir, readdir, rename } from 'node:fs/promises';
 import { join } from 'node:path';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
+import type { ReadableStream as WebReadableStream } from 'node:stream/web';
 
 import { 팜주소 } from '../execution/farm.js';
 
@@ -86,12 +90,20 @@ export function 팜기록기(serial: string, 부르기: typeof fetch = fetch): �
     잡음끝: () => 끝,
     async 켜기(o) {
       분 = o.holdMinutes;
-      시도함 = true;
-      const res = await 부르기(`${주소()}/hold`, {
-        method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ minutes: o.holdMinutes, perf: { package: o.package, intervalSec: o.intervalSec, record: o.record } }),
-        signal: AbortSignal.timeout(팜제한ms),
-      });
+      let res: Response;
+      try {
+        res = await 부르기(`${주소()}/hold`, {
+          method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ minutes: o.holdMinutes, perf: { package: o.package, intervalSec: o.intervalSec, record: o.record } }),
+          signal: AbortSignal.timeout(팜제한ms),
+        });
+      } catch (e) {
+        // 답이 늦어 끊겼으면 팜은 잡았을 수 있다 — 놓기를 한 번 보내게 둔다 (러너 §5.2 「디바이스 팜 접속 방식」)
+        시도함 = true;
+        throw e;
+      }
+      // 거절이면 남이 잡은 폰이다. 그 폰에 놓기를 보내면 쓰던 사람이 쫓겨난다
+      if (res.ok) 시도함 = true;
       if (!res.ok) throw new Error(`디바이스 팜이 폰을 내주지 않았습니다: ${await 거절문장(res)}`);
       잡음읽기(await res.json().catch(() => null));
     },
@@ -119,7 +131,9 @@ export function 팜기록기(serial: string, 부르기: typeof fetch = fetch): �
       for (const 이름 of 이름들.filter((n) => 녹화이름.test(n))) {
         const res = await 부르기(`${주소()}/perf/files/${encodeURIComponent(이름)}`, { signal: AbortSignal.timeout(파일제한ms) });
         if (!res.ok) throw new Error(`녹화 ${이름} 를 받지 못했습니다 (${await 거절문장(res)})`);
-        await writeFile(join(폴더, `rec-${Number(녹화이름.exec(이름)?.[1]) + 오프셋}.mp4`), Buffer.from(await res.arrayBuffer()));
+        // 조각 하나가 수십 MB 라 통째로 메모리에 올리지 않고 흘려 쓴다
+        if (res.body === null) throw new Error(`녹화 ${이름} 가 비어 있습니다`);
+        await pipeline(Readable.fromWeb(res.body as WebReadableStream<Uint8Array>), createWriteStream(join(폴더, `rec-${Number(녹화이름.exec(이름)?.[1]) + 오프셋}.mp4`)));
       }
     },
     async 놓기() {
