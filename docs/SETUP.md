@@ -768,3 +768,35 @@ Android 앱 케이스의 「실행」(결과가 실행 기록 · 증적에 남�
 - 「▶ 시험해 보기」는 팜이 아니라 내 컴퓨터 러너다(§10 · §15). 같은 맥이면 팜 화면에서 폰을 「쓰기」로 먼저 잡는다.
 
 **끄기** — `.env` 의 `DEVICE_FARM_URL` 을 비우고 3번을 다시 한다. 팜 자체를 끄는 법은 팜 안내서에 있다 — `kill -9` 로 끄면 잡은 폰의 정리를 건너뛴다.
+
+## 17. 부하 발생 에이전트 켜기 (2026-10-21 · PERF-F1-02)
+
+성능 테스트의 부하는 「부하 발생 에이전트」가 건다. k6 를 담은 컨테이너이고, QA Hub 에 2초마다 할 일을 묻고 1초마다 숫자를 보낸다. QA Hub 로 나가는 연결만 해서 들어오는 포트를 열 필요가 없다. 규칙은 SPEC 도메인/성능 §5.4 가 정본이다.
+
+**기본 에이전트(같은 서버)** — `docker compose up -d` 에 같이 뜬다. 처음에는 토큰이 없어 일하지 않고 떠 있기만 한다.
+
+1. 설정 › 성능 에이전트 › 「에이전트 추가」에서 토큰(`pga_…`)을 받는다 (화면은 PERF-F1-05 에서 생긴다)
+2. `.env` 에 `PERF_AGENT_TOKEN=pga_…` 를 적는다
+3. 다시 띄운다
+   ```bash
+   docker compose up -d perf-agent
+   ```
+4. `docker compose logs perf-agent` 에 「토큰이 없습니다」 줄이 더 안 나오면 붙은 것이다. 토큰이 틀리면 「토큰이 거절됐습니다」가 나온다
+
+같은 서버의 기능 테스트와 CPU 를 나눠 쓰므로 가상 사용자는 500명까지만 맡는다(compose `MAX_VUS`). 큰 부하는 아래처럼 다른 기계에 띄운다.
+
+**다른 기계에 띄우기** — 저장소의 `apps/perf-agent` 폴더 하나만 있으면 된다.
+
+```bash
+docker build -t qahub-perf-agent apps/perf-agent
+docker run -d --restart unless-stopped --name qahub-perf-agent \
+  -e QAHUB_URL=https://<QA Hub 주소> -e AGENT_TOKEN=pga_… -e MAX_VUS=<이 기계가 맡을 가상 사용자 수> \
+  qahub-perf-agent
+```
+
+**모니터링 에이전트(대상 서버 위)** — 같은 이미지를 대상 서버(Linux)에 띄우고 발급 때 「모니터링」을 고른다. `--network host` 를 꼭 붙인다 — 안 붙이면 네트워크 숫자가 서버가 아니라 컨테이너 것이 된다.
+
+```bash
+docker run -d --restart unless-stopped --network host --name qahub-monitor \
+  -e QAHUB_URL=https://<QA Hub 주소> -e AGENT_TOKEN=pga_… qahub-perf-agent
+```
