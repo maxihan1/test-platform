@@ -27,6 +27,14 @@ export interface PrdNow {
   /** 열린 화면만 요청 번호들 — 카드 아래 「#N 요청 보기」 고리 */
   screensOpen: number[];
   held: PrdHeld;
+  /** 요구 번호 → 그 요구를 근거로 든 성능 목표 수와 최근 판정. 실행 read 가 없으면 {} (도메인/성능 §3.9 「추적표」) */
+  perf: Record<string, 성능칸>;
+}
+
+export interface 성능칸 {
+  targets: number;
+  verdict: 'PASS' | 'FAIL' | null;
+  runId: number | null;
 }
 
 export interface PrdVersionRow {

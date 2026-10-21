@@ -455,6 +455,15 @@
 .prd-trace .case-tag {
   margin-left: 0;
 }
+/* 성능 목표 한 줄 — 케이스 칸 아래에 같은 오른쪽 끝으로 선다 */
+.prd-perf {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-muted);
+}
 /* 판정이 아니라 색을 쓰지 않는다 — 테두리만 한 단계 짙게 */
 .prd-uncovered {
   color: var(--ink);

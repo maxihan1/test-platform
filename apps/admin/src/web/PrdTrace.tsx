@@ -8,6 +8,7 @@ import type { 줄보류 } from '../prd/heldText.js';
 import { 요구판정, type 추적 } from '../prd/trace.js';
 import { use기법말 } from './CaseDetail.js';
 import { use말 } from './i18n.js';
+import type { 성능칸 } from './prdApi.js';
 
 /** 케이스 목록이 그 요구로 걸러 열린다 (도메인/카탈로그 §8.1 검색 조건 8) */
 const 케이스주소 = (kind: 'fn' | 'ui', reqId: string) => `#/cases/${kind}/req/${reqId}`;
@@ -15,7 +16,28 @@ const 케이스주소 = (kind: 'fn' | 'ui', reqId: string) => `#/cases/${kind}/r
 const 판정꼴 = { PASS: 'v-pass', FAIL: 'v-fail', NA: 'v-na' } as const;
 
 // 줄 버튼 밖에 둔다 — 버튼 안에는 고리를 넣을 수 없다
-export function 추적칸({ reqId, 추적, 보류, 케이스보나 }: { reqId: string; 추적: 추적; 보류: 줄보류 | null; 케이스보나: boolean }) {
+/** 이 요구를 근거로 든 성능 목표 수와 최근 판정 (도메인/성능 §3.9 「추적표」). 목표가 없으면 칸이 비어 있다 */
+function 성능줄({ 성능 }: { 성능: 성능칸 | undefined }) {
+  const t = use말();
+  if (성능 === undefined) return null;
+  const 판정 = 성능.verdict;
+  const 글 = 판정 === null ? t('미실행') : 판정 === 'PASS' ? t('통과') : t('실패');
+  const 꼴 = `verdict ${판정꼴[판정 ?? 'NA']}`;
+  return (
+    <span className="prd-perf">
+      {t('성능 목표 {수}개', { 수: 성능.targets })}
+      {판정 === null || 성능.runId === null ? (
+        <span className={꼴}>{글}</span>
+      ) : (
+        <a className={꼴} href={`#/perf/runs/${String(성능.runId)}`}>
+          {글}
+        </a>
+      )}
+    </span>
+  );
+}
+
+export function 추적칸({ reqId, 추적, 보류, 성능, 케이스보나 }: { reqId: string; 추적: 추적; 보류: 줄보류 | null; 성능?: 성능칸 | undefined; 케이스보나: boolean }) {
   const t = use말();
   const 전체 = 추적.기능.length + 추적.UI.length;
   if (전체 === 0) {
@@ -28,6 +50,7 @@ export function 추적칸({ reqId, 추적, 보류, 케이스보나 }: { reqId: s
               ? t('보류 — {역할} 계정 미등록', { 역할: 보류.미등록.join(' · ') })
               : t('보류 — {역할} 계정 등록됨 · 이어 작성 전', { 역할: 보류.등록됨.join(' · ') })}
         </span>
+        <성능줄 성능={성능} />
       </span>
     );
   }
@@ -70,6 +93,7 @@ export function 추적칸({ reqId, 추적, 보류, 케이스보나 }: { reqId: s
                 : t('미실행 {건수} / {전체}', { 건수: 셈.미실행, 전체 })}
         </span>
       )}
+      <성능줄 성능={성능} />
     </span>
   );
 }
