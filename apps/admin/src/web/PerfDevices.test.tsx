@@ -170,6 +170,19 @@ describe('결과', () => {
     expect((await screen.findByLabelText<HTMLInputElement>('Galaxy A23 선택')).checked).toBe(true);
   });
 
+  it('앞 측정의 기기가 지금 다른 실행에서 쓰는 중이면 고른 것에서 빠지고 보내지 않는다', async () => {
+    결과열기();
+    const 만들기 = vi.spyOn(perfApi, 'measureDevices').mockResolvedValue({ runId: 43 });
+    vi.spyOn(perfApi, 'devices').mockResolvedValue({ devices: 기기들.map((d) => (d.serial === 'A23' ? { ...d, status: 'BUSY' as const } : d)) });
+    vi.spyOn(api, 'cases').mockResolvedValue(케이스쪽);
+    render(<PerfDevices service={앱} run={40} 쓰나 />);
+    fireEvent.click(await screen.findByRole('button', { name: '새 측정' }));
+    await waitFor(() => expect(screen.getByLabelText<HTMLInputElement>('Galaxy A23 선택').checked).toBe(false));
+    fireEvent.click(screen.getByRole('button', { name: '측정 시작' }));
+    await waitFor(() => expect(만들기).toHaveBeenCalled());
+    expect(만들기.mock.calls[0]![0].devices).toEqual([{ serial: 'S24', where: 'FARM' }]);
+  });
+
   it('기기 실행이 아닌 번호면 실행 한 건 화면으로 보낸다', async () => {
     vi.spyOn(perfApi, 'runOf').mockResolvedValue(상세({ kind: 'LOAD' }));
     render(<PerfDevices service={앱} run={12} 쓰나 />);

@@ -125,7 +125,8 @@ export function PerfDeviceLive({ run, 다시읽기, 쓰나 }: { run: 실행상�
           {설정.devices.map((d) => {
             const 줄들 = 숫자.filter((줄) => 줄.serial === d.serial);
             const 최근 = 최근줄(줄들, d.serial);
-            const 벗어남 = 벗어난지표(설정.targets, 지금요약(줄들), d.launchMs);
+            // 1% Low FPS 는 숫자가 적으면 최저 FPS 와 같아 앱이 뜨는 첫 몇 초에 미달로 보인다 — 실행 중에는 빼고 끝에 판정한다
+            const 벗어남 = 벗어난지표(설정.targets.filter((x) => x.metric !== 'LOW1_FPS'), 지금요약(줄들), d.launchMs);
             const 나쁨 = 벗어남.size > 0;
             const 선 = 줄들.filter((줄) => 줄.sec > 지난초 - 선구간).flatMap((줄) => (줄.fps === null ? [] : [{ x: 줄.sec - Math.max(0, 지난초 - 선구간), y: 줄.fps }]));
             const 값 = (글: string, 칸: string, 빨강: boolean) => (
@@ -161,8 +162,8 @@ export function PerfDeviceLive({ run, 다시읽기, 쓰나 }: { run: 실행상�
           <h2 id="pd-l">{t('실행 로그')}</h2>
           {로그.length === 0 ? <span className="perf-faint">{t('아직 기록이 없습니다')}</span> : null}
           <ul className="perf-log">
-            {로그.slice(-20).map((줄) => (
-              <li key={`${줄.at}${줄.message}`}>
+            {로그.slice(-20).map((줄, i) => (
+              <li key={`${String(i)}${줄.at}`}>
                 <span className="mono perf-faint">{시분(줄.at)}</span>
                 <span className={/error|warn/i.test(줄.level) ? 'perf-err' : undefined}>{줄.message}</span>
               </li>

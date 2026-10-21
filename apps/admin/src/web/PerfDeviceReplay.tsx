@@ -97,8 +97,8 @@ export function PerfDeviceReplay({ runId, 결과, 항목, 목표들, 처음기�
         <div className="pd-marks">
           <span className="perf-faint">{t('AI가 표시한 장면')}</span>
           {장면들.length === 0 ? <span className="perf-faint">{t('표시한 장면이 없습니다')}</span> : null}
-          {장면들.map((m) => (
-            <button key={`${String(m.sec)}${m.label}`} type="button" className={재생초 !== null && Math.abs(재생초 - m.sec) < 2 ? 'pd-mark on' : 'pd-mark'} onClick={() => 가기(m.sec)}>
+          {장면들.map((m, i) => (
+            <button key={`${String(i)}${m.label}`} type="button" className={재생초 !== null && Math.abs(재생초 - m.sec) < 2 ? 'pd-mark on' : 'pd-mark'} onClick={() => 가기(m.sec)}>
               <span className="mono">{분초(m.sec)}</span> {m.label}
             </button>
           ))}
@@ -132,7 +132,7 @@ export function PerfDeviceReplay({ runId, 결과, 항목, 목표들, 처음기�
                 높이={g.항목 === 'FPS' ? 120 : 60}
                 라벨={t('{기기} {지표} 추이', { 기기: 모델(기기), 지표: t(g.이름) })}
                 {...(목표 === undefined ? {} : { 목표: { 이름: t('목표'), 값: 목표.value, 최대Y: 위 } })}
-                {...(재생초 === null ? {} : { 세로선: { x: 재생초, 색: 'var(--accent)' } })}
+                {...(재생초 === null ? {} : { 세로선: { x: 재생초, 색: 'var(--ink-muted)' } })}
               />
             </div>
           );

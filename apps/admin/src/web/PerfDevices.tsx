@@ -38,6 +38,8 @@ export function PerfDevices({ service, run, 쓰나 }: { service: ServiceRow; run
   // 처음 한 번 — 주소의 실행 → 없으면 가장 최근 측정 → 그것도 없으면 측정 시작 (키로 다시 그리므로 애플리케이션 · 실행이 바뀌면 처음부터다)
   useEffect(() => {
     let 살음 = true;
+    // 다른 화면으로 보낼 때는 읽기 끝을 알리지 않는다 — 알리면 측정 시작 화면이 잠깐 서고 기기 · 케이스를 읽는다
+    let 떠남 = false;
     void (async () => {
       try {
         const id = run ?? 가장최근번호((await perfApi.devicesRuns(service.id)).runs);
@@ -45,12 +47,15 @@ export function PerfDevices({ service, run, 쓰나 }: { service: ServiceRow; run
         const 받음 = await perfApi.runOf(id);
         if (!살음) return;
         // 실행 기록에서 DEVICE 가 아닌 번호가 넘어오면 그 실행의 화면으로 돌려보낸다
-        if (받음.kind !== 'DEVICE') return void window.location.replace(`#/perf/runs/${String(id)}`);
+        if (받음.kind !== 'DEVICE') {
+          떠남 = true;
+          return window.location.replace(`#/perf/runs/${String(id)}`);
+        }
         set읽은(받음);
       } catch (err) {
         if (살음) set오류(message(err, 언어));
       } finally {
-        if (살음) set읽었나(true);
+        if (살음 && !떠남) set읽었나(true);
       }
     })();
     return () => {

@@ -50,6 +50,7 @@ export function PerfDeviceStart({
   const [녹화, set녹화] = useState(앞?.record ?? true);
   const [하는중, set하는중] = useState(false);
   const [알림, set알림] = useState<string | null>(null);
+  const [케이스오류, set케이스오류] = useState<string | null>(null);
 
   useEffect(() => {
     let 살음 = true;
@@ -61,21 +62,34 @@ export function PerfDeviceStart({
         set알림(message(err, 언어));
       },
     );
-    // 앱 케이스만 고른다 — 서버도 Android 앱 케이스가 아니면 거절한다
-    api.cases({ service: service.prefix, platform: 'android' }).then(
-      (쪽) => 살음 && set케이스들(쪽.items),
-      () => 살음 && set케이스들([]),
-    );
+    // 앱 케이스만 고른다 — 서버도 Android 앱 케이스가 아니면 거절한다. 목록은 쪽마다 50건이라 끝까지 받는다
+    void (async () => {
+      try {
+        const 모음: CaseRow[] = [];
+        for (let page = 1; ; page += 1) {
+          const 쪽 = await api.cases({ service: service.prefix, platform: 'android', page });
+          모음.push(...쪽.items);
+          if (쪽.items.length === 0 || 모음.length >= 쪽.total) break;
+        }
+        if (살음) set케이스들(모음);
+      } catch (err) {
+        if (!살음) return;
+        set케이스들([]);
+        set케이스오류(message(err, 언어));
+      }
+    })();
     return () => {
       살음 = false;
     };
   }, []);
 
   const 팜만 = 조작 === 'APPIUM';
-  const 골라보냄 = 고른기기.flatMap((키) => {
+  // 앞 측정 · 추천에서 온 기기가 지금 쓰는 중이거나 이 조작으로 못 쓰면 고른 것에서 뺀다 — 상한 5대에도 안 센다
+  const 쓸기기 = 고른기기.flatMap((키) => {
     const d = 기기들?.find((x) => 기기키(x) === 키);
-    return d === undefined || (팜만 && d.where === 'LOCAL') ? [] : [{ serial: d.serial, where: d.where }];
+    return d === undefined || d.status !== 'IDLE' || (팜만 && d.where === 'LOCAL') ? [] : [d];
   });
+  const 골라보냄 = 쓸기기.map((d) => ({ serial: d.serial, where: d.where }));
 
   function 막는까닭(): string | null {
     if (env === '') return t('대상 서버를 골라 주세요');
@@ -169,6 +183,8 @@ export function PerfDeviceStart({
           {조작 === 'APPIUM' ? (
             케이스들 === null ? (
               <span className="perf-faint">{t('케이스 목록을 읽는 중입니다')}</span>
+            ) : 케이스오류 !== null ? (
+              <span className="perf-err">{케이스오류}</span>
             ) : 케이스들.length === 0 ? (
               <span className="perf-faint">{t('아직 Android 앱 케이스가 없습니다')}</span>
             ) : (
@@ -195,7 +211,7 @@ export function PerfDeviceStart({
           )}
         </section>
 
-        <PerfDevicePick serviceId={service.id} 기기들={기기들} 고른={고른기기} 고침={set고른기기} 팜만={팜만} 쓰나={쓰나} />
+        <PerfDevicePick serviceId={service.id} 기기들={기기들} 고른={쓸기기.map(기기키)} 고침={set고른기기} 팜만={팜만} 쓰나={쓰나} />
         <PerfDeviceTargets 목표들={목표들} 고침={set목표들} 쓰나={쓰나} />
 
         <section className="perf-panel" aria-labelledby="pd-k">
