@@ -4,13 +4,14 @@
 
 import { useId } from 'react';
 
-import type { CasePage, CaseRow, ItemStatus, Platform, 케이스축 } from './api.js';
+import type { CasePage, CaseRow, ItemStatus, Platform, 앱종류, 케이스축 } from './api.js';
 import { use기법말 } from './CaseDetail.js';
 import { 케이스맥락 } from './CaseListContext.js';
 import { 기법고름들, type 기법고름 } from './CaseListFilter.js';
 import { keyOf, type LastMap, 마지막판정 } from './catalogView.js';
 import { use말, use언어 } from './i18n.js';
 import { 아이콘 } from './icons.js';
+import { 종류 } from './kind.js';
 import { 판정흐름 } from './Summary.js';
 import { PLATFORM_LABEL, seconds, STATUS_COLOR, Verdict, when } from './ui.js';
 
@@ -75,6 +76,7 @@ export function 찾기폼({
 export function 조건칩들({
   디바이스,
   앱있음,
+  앱종류,
   활성만,
   결과,
   건수,
@@ -84,6 +86,8 @@ export function 조건칩들({
 }: {
   디바이스: Platform | 'ALL';
   앱있음: boolean;
+  /** Android 앱 애플리케이션에는 디바이스 칩 줄이 없다 — 고를 것이 하나다 (도메인/러너 §5.2 종류 표) */
+  앱종류?: 앱종류;
   활성만: boolean;
   결과: ItemStatus | 'ALL';
   /** 서버가 last 를 뺀 조건으로 센 수 — 칩을 걸어도 그대로다. 실행 read 가 없으면 null 이고 칩도 안 그린다 (도메인/카탈로그 §7) */
@@ -99,14 +103,16 @@ export function 조건칩들({
   // 라벨과 칩은 한 덩어리로 같이 다음 줄로 간다 — 라벨만 윗줄 끝에 홀로 남았다 (진행판 WEB-F2-11)
   return (
     <>
-      <span className="filter-group">
-        <span className="filter-label">{t('디바이스')}</span>
-        {디바이스칩(앱있음, 디바이스).map((값) => (
-          <button className="chip" key={값} aria-pressed={디바이스 === 값} onClick={() => on디바이스(값)}>
-            {값 === 'ALL' ? t('전체') : t(PLATFORM_LABEL[값])}
-          </button>
-        ))}
-      </span>
+      {!종류(앱종류).디바이스칩 ? null : (
+        <span className="filter-group">
+          <span className="filter-label">{t('디바이스')}</span>
+          {디바이스칩(앱있음, 디바이스).map((값) => (
+            <button className="chip" key={값} aria-pressed={디바이스 === 값} onClick={() => on디바이스(값)}>
+              {값 === 'ALL' ? t('전체') : t(PLATFORM_LABEL[값])}
+            </button>
+          ))}
+        </span>
+      )}
       <span className="filter-group">
         <span className="filter-label">{t('표시')}</span>
         {/* 비활성 케이스는 기본으로 감춘다. 코드에서 사라진 케이스는 지우지 않고 남겨 두므로

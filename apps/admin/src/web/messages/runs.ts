@@ -38,6 +38,8 @@ export const 실행말: Record<string, string> = {
   '판정': 'Verdict',
   '디바이스': 'Device',
   '실행 위치 · 디바이스 팜': 'Run location · Device farm',
+  '케이스마다 빈 폰을 하나씩 잡고 끝나면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 항목에 남습니다':
+    'Each case takes a free phone and releases it when done. Screen video and logcat are kept for items that did not pass',
   '상태': 'Status',
 
   // 실행 기록 목록 (§8.7)

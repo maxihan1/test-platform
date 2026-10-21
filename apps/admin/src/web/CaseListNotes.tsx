@@ -1,7 +1,7 @@
 // 케이스 목록의 안내 글 — 머리 부제 · 스캔 결과 줄 · 빈 목록 안내 (SPEC §8.1 · 도메인/카탈로그 §8.1)
 // 고치기 요청 버튼이 붙으면서 CaseList · CaseListParts 가 300줄을 넘어 떼었다. 판단은 CaseList · catalogView 에 둔다
 
-import type { CasePage, LastScan } from './api.js';
+import type { CasePage, LastScan, 앱종류 } from './api.js';
 import { 빈이유 } from './catalogView.js';
 import { use말, use언어 } from './i18n.js';
 import { when } from './ui.js';
@@ -59,12 +59,32 @@ export function Empty({
   형편,
   onScan,
   onClear,
+  앱종류,
+  작성보나 = false,
 }: {
   형편: Parameters<typeof 빈이유>[0];
   onScan?: () => void;
   onClear: () => void;
+  앱종류?: 앱종류;
+  /** 작성 칸이 none 이면 「테스트 작성으로」 고리가 갈 곳이 없다 */
+  작성보나?: boolean;
 }) {
+  const t = use말();
   const 것 = 빈이유(형편, use언어());
+  // Android 앱은 케이스를 작성 하나로만 만든다 — 거르지 않았는데 0건이면 스캔보다 작성으로 보낸다 (도메인/카탈로그 §8.1 「디바이스」)
+  if (앱종류 === 'APP' && 형편.전체건수 === 0 && !형편.건조건) {
+    return (
+      <div className="empty">
+        {t('아직 Android 앱 케이스가 없습니다')}
+        <small>{t('테스트 작성에서 앱 기획서를 넣으면 AI 가 디바이스 팜 폰으로 앱 화면을 읽고 케이스를 만듭니다')}</small>
+        {!작성보나 ? null : (
+          <a className="btn" style={{ marginTop: '14px' }} href="#/authoring">
+            {t('테스트 작성으로')}
+          </a>
+        )}
+      </div>
+    );
+  }
   // 검색에 안 걸린 것만 「지우기」다. 나머지 둘은 다시 훑는 길을 준다 — 스캔 칸이 없으면 onScan 이 안 와 버튼도 없다 (화면공통 §8)
   const 누르면 = 형편.건조건 ? onClear : onScan;
 

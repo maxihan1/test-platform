@@ -101,6 +101,7 @@ function Screen({
           결과보나={기능보나(user, service?.prefix ?? null, 'runs')}
           요구보나={기능보나(user, service?.prefix ?? null, 'authoring')}
           요구={current.req}
+          앱종류={service?.kind}
         />
       );
     case 'setup':
@@ -125,7 +126,7 @@ function Screen({
       // 애플리케이션마다 새로 그린다 — 앞 애플리케이션의 버전 기록 · 펼친 줄이 남지 않게
       return service === undefined || service === null ? <API안내 설정보나={할수('설정')} /> : <ApiDocs key={`${prefix}:${String(current.version ?? '')}`} service={service} 할수={할수} 버전={current.version} 설정보나={할수('설정')} />;
     case 'authoring':
-      return <Authoring service={prefix} serviceId={service?.id} envs={service?.envs ?? []} 피그마토큰={service?.hasFigmaToken !== false} 할수={할수} />;
+      return <Authoring service={prefix} serviceId={service?.id} envs={service?.envs ?? []} 피그마토큰={service?.hasFigmaToken !== false} 앱종류={service?.kind} 할수={할수} />;
     case 'authoringItem':
       // 번호마다 새로 그린다 — 요청 사이를 오갈 때(남은 요구 · 원본 고리) 앞 요청의 답과 버튼 상태가 남으면
       // 주소는 새 번호인데 앞 요청 화면이 보이고 다시 누를 수 있다 (2026-09-30 코드 검토)

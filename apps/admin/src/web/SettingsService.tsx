@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 
-import { api, ApiError, type ScheduleSetting, type SettingsProject, type SettingsServiceRow } from './api.js';
+import { api, ApiError, type ScheduleSetting, type SettingsProject, type SettingsServiceRow, type 앱종류 } from './api.js';
 import { use말, use언어, type 언어 } from './i18n.js';
 import { 떠나기상자 } from './leaveGuard.js';
 import {
@@ -15,7 +15,7 @@ import {
   피그마설정주소,
 } from './settingsView.js';
 import { API인증못보내는이유 } from './SettingsApiAuths.js';
-import { API문서구획, API문서못보내는이유, 종류칸, type 앱종류 } from './SettingsApiService.js';
+import { API문서구획, API문서못보내는이유, 종류칸 } from './SettingsApiService.js';
 import { CrawlExcludeField } from './SettingsCrawlExclude.js';
 import { EnvEditor, 보낼모양, 줄로, type 줄 } from './SettingsEnvs.js';
 import { ScheduleFields } from './SettingsSchedule.js';

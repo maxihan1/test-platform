@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ServiceRow, User } from './api.js';
 import { use말, type 언어 } from './i18n.js';
 import { 집 } from './route.js';
-import { 서비스고르개, 언어고르개, 프로젝트고르개 } from './ShellPickers.js';
+import { 서비스고르개, 언어고르개, 종류아이콘, 프로젝트고르개 } from './ShellPickers.js';
 import { useSSO } from './useSSO.js';
 
 interface Props {
@@ -45,6 +45,8 @@ export function ShellHeader({ user, service, onService, 언어, on언어, onLogo
           </>
         )}
         <div className="hd-svc">
+          {/* 웹이 아닌 종류는 접두사 칩 앞에 아이콘 — 이름은 고르개의 묶음 제목이 말한다 (화면공통 §8 「껍데기」) */}
+          {service === null ? null : <종류아이콘 service={service} />}
           {service === null ? null : <span className="hd-svc-code">{service.prefix}</span>}
           <서비스고르개 user={user} service={service} onService={onService} />
         </div>

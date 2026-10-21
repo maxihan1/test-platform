@@ -1,7 +1,9 @@
 // 프로젝트 고르개 · 애플리케이션 고르개 · 언어 고르개 — 헤더(ShellHeader)와 휴대폰 위 줄(PhoneShell)이 같이 쓴다 (SPEC 공통/5-화면공통 §8)
 
 import type { ServiceRow, User } from './api.js';
-import { use말, type 언어 } from './i18n.js';
+import { use말, use언어, type 언어 } from './i18n.js';
+import { 아이콘 } from './icons.js';
+import { 종류, 종류이름, 종류차례 } from './kind.js';
 import { 고른서비스를적는다, 배정프로젝트들, 프로젝트서비스들 } from './layout.js';
 
 /**
@@ -34,10 +36,23 @@ export function 프로젝트고르개({ user, service, onService }: { user: User
   );
 }
 
-/** 애플리케이션 고르개 — 고른 프로젝트 안의 것만 뜬다. 고른 애플리케이션을 브라우저에 적어 두고 화면이 읽는 애플리케이션을 바꾼다 */
+/**
+ * 애플리케이션 고르개 — 고른 프로젝트 안의 것만 뜬다. 고른 애플리케이션을 브라우저에 적어 두고 화면이 읽는 애플리케이션을 바꾼다.
+ * 펼치면 종류별 묶음이다. 종류가 하나뿐이면 묶음 제목 없이 목록만 (화면공통 §8 「껍데기」 · 시안 C)
+ */
 export function 서비스고르개({ user, service, onService }: { user: User; service: ServiceRow | null; onService: (prefix: string) => void }) {
   const t = use말();
+  const 언어 = use언어();
   if (service === null) return <span className="side-svc-name">{t('애플리케이션 없음')}</span>;
+  const 목록 = 프로젝트서비스들(service.projectId, user.services);
+  const 묶음들 = 종류차례
+    .map((k) => ({ k, 줄: 목록.filter((it) => (it.kind ?? 'SCREEN') === k) }))
+    .filter((묶음) => 묶음.줄.length > 0);
+  const 줄 = (it: ServiceRow) => (
+    <option key={it.prefix} value={it.prefix}>
+      {it.name}
+    </option>
+  );
   return (
     <select
       className="side-pick"
@@ -48,12 +63,26 @@ export function 서비스고르개({ user, service, onService }: { user: User; s
       }}
       aria-label={t('애플리케이션 선택')}
     >
-      {프로젝트서비스들(service.projectId, user.services).map((it) => (
-        <option key={it.prefix} value={it.prefix}>
-          {it.name}
-        </option>
-      ))}
+      {묶음들.length < 2
+        ? 목록.map(줄)
+        : 묶음들.map((묶음) => (
+            <optgroup key={묶음.k} label={종류이름(묶음.k, 언어)}>
+              {묶음.줄.map(줄)}
+            </optgroup>
+          ))}
     </select>
+  );
+}
+
+/** 고른 칸의 종류 표시 — 웹에는 없다. 곁에 이름 글자가 없어 화면 읽기에는 종류 이름을 준다 */
+export function 종류아이콘({ service }: { service: ServiceRow }) {
+  const 언어 = use언어();
+  const 줄 = 종류(service.kind);
+  if (줄.아이콘 === null) return null;
+  return (
+    <span className="hd-kind" role="img" aria-label={종류이름(service.kind, 언어)}>
+      <아이콘 이름={줄.아이콘} />
+    </span>
   );
 }
 
