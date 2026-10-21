@@ -25,6 +25,10 @@ export type Route =
   | { name: 'scenarios' }
   | { name: 'scenarioNew' }
   | { name: 'scenario'; id: number }
+  /** 성능 테스트 › 시나리오. 마법사는 새것과 고칠 것이 같은 화면이다 (도메인/성능 §8.14) */
+  | { name: 'perfScenarios' }
+  | { name: 'perfScenarioNew' }
+  | { name: 'perfScenario'; id: number }
   /** reqId — 케이스 목록의 요구 번호에서 왔다. 그 항목을 펴서 보인다 */
   | { name: 'prd'; reqId?: string }
   | { name: 'prdGuide' }
@@ -127,6 +131,13 @@ export function route(hash: string): Route {
     if (parts.length === 2 && /^\d{1,10}$/.test(parts[1]!)) return { name: 'scenario', id: Number(parts[1]) };
   }
 
+  // 번호 규칙은 E2E 시나리오와 같다 — 서버도 숫자 글자만 받는다 (도메인/성능 §7)
+  if (parts[0] === 'perf' && parts[1] === 'scenarios') {
+    if (parts.length === 2) return { name: 'perfScenarios' };
+    if (parts.length === 3 && parts[2] === 'new') return { name: 'perfScenarioNew' };
+    if (parts.length === 3 && /^\d{1,10}$/.test(parts[2]!)) return { name: 'perfScenario', id: Number(parts[2]) };
+  }
+
   if (parts[0] === 'runs') {
     if (parts.length === 1) return { name: 'runs', kind: 'FN' };
     if (parts.length === 2 && 실행종류글자[parts[1]!] !== undefined) return { name: 'runs', kind: 실행종류글자[parts[1]!]! };
@@ -162,6 +173,9 @@ const 기능자리: Partial<Record<Route['name'], 기능>> = {
   // 시나리오는 실행 칸을 쓴다 (도메인/시나리오 §7). 새 시나리오는 띠의 서비스에 만든다
   scenarios: 'runs',
   scenarioNew: 'runs',
+  // 성능 테스트도 실행 칸을 쓴다 (공통/5-화면공통 §8 「자리 목록」)
+  perfScenarios: 'runs',
+  perfScenarioNew: 'runs',
 };
 
 /**

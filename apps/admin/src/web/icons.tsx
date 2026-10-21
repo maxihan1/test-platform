@@ -1,6 +1,6 @@
 // 메뉴 아이콘 — 패키지 없이 SVG 를 직접 둔다 (DESIGN.md 원칙 5). 글자를 대신하지 않고 곁에 선다
 
-export type 아이콘이름 = 'dashboard' | 'cases' | 'prd' | 'api' | 'authoring' | 'scenarios' | 'runs' | 'graph' | 'settings' | 'run' | 'bell' | 'person' | 'desktop';
+export type 아이콘이름 = 'dashboard' | 'cases' | 'prd' | 'api' | 'authoring' | 'scenarios' | 'runs' | 'perf' | 'graph' | 'settings' | 'run' | 'bell' | 'person' | 'desktop';
 
 // 24 격자 · 선 1.8 · 둥근 끝. 색은 글자를 따른다(currentColor) — 지금 자리면 글자와 같이 밝아진다
 const 그림: Record<아이콘이름, React.ReactNode> = {
@@ -57,6 +57,13 @@ const 그림: Record<아이콘이름, React.ReactNode> = {
       <path d="M3 12a9 9 0 1 0 3-6.7" />
       <path d="M3 4v4h4" />
       <path d="M12 8v4l3 2" />
+    </>
+  ),
+  // 바늘 계기판 — 부하와 속도를 잰다
+  perf: (
+    <>
+      <path d="M4 18a8 8 0 1 1 16 0" />
+      <path d="M12 18l4-6" />
     </>
   ),
   // 막대 — Grafana 의 운영 지표

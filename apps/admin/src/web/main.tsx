@@ -36,6 +36,8 @@ import { route, 갈자리, 돌아갈자리, 집 } from './route.js';
 import { RunList } from './RunList.js';
 import { RunResult } from './RunResult.js';
 import { RunWindow } from './RunWindow.js';
+import { PerfScenarioList } from './PerfScenarioList.js';
+import { PerfWizard } from './PerfWizard.js';
 import { ScenarioBuild } from './ScenarioBuild.js';
 import { ScenarioList } from './ScenarioList.js';
 import { ScenarioRunList } from './ScenarioRunList.js';
@@ -59,6 +61,7 @@ import './guide.css';
 import './itemTrace.css';
 import './runList.css';
 import './caseList.css';
+import './perf.css';
 
 function Screen({
   hash,
@@ -141,6 +144,12 @@ function Screen({
       return <ScenarioBuild key="new" id={null} 띠서비스={service} user={user} />;
     case 'scenario':
       return <ScenarioBuild key={current.id} id={current.id} 띠서비스={service} user={user} />;
+    case 'perfScenarios':
+      return service === null ? <div className="empty">{t('애플리케이션을 먼저 골라 주세요')}</div> : <PerfScenarioList key={prefix} serviceId={service.id} 할수={할수} />;
+    case 'perfScenarioNew':
+      return <PerfWizard key="new" id={null} 띠서비스={service} user={user} />;
+    case 'perfScenario':
+      return <PerfWizard key={current.id} id={current.id} 띠서비스={service} user={user} />;
     case 'run':
       // 주소로 바로 오는 화면이라 띠와 다른 서비스의 실행일 수 있다 — 그 실행의 칸으로 가른다
       return <RunResult runId={current.runId} 판정하기={(접두사) => 판정을만든다(user, 접두사)} />;

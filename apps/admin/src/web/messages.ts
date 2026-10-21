@@ -11,6 +11,7 @@ import { 대시보드말 } from './messages/dashboard.js';
 import { 고치기말 } from './messages/edit.js';
 import { 오류영어 } from './messages/errors.js';
 import { 가이드말 } from './messages/guide.js';
+import { 성능말 } from './messages/perf.js';
 import { 기획서말 } from './messages/prd.js';
 import { 실행말 } from './messages/runs.js';
 import { 시나리오말 } from './messages/scenario.js';
@@ -32,4 +33,5 @@ export const 말: Record<string, string> = {
   ...기획서말,
   ...가이드말,
   ...API문서말,
+  ...성능말,
 };
