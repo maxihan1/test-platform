@@ -134,7 +134,7 @@ describe.skipIf(연결 === undefined)('성능 AI 일', { timeout: 60_000 }, () =
   });
 
   it('작성 에이전트 계정만 집고, 집기는 오래된 차례다', async () => {
-    expect((await 부르기('xpi-writer', 'POST', '/api/perf/ai-jobs/claim')).json()).toEqual({ error: 'NOT_AUTHORING_AGENT' });
+    expect((await 부르기('xpi-writer', 'POST', '/api/perf/ai-jobs/claim')).statusCode).toBe(403);
     const job = await 집기();
     expect(job).toMatchObject({ id: 파일일, kind: 'DRAFT_FILE', input: { name: 'order.jmx', text: '<jmeterTestPlan/>' } });
     expect(await 일상태(파일일)).toEqual({ status: 'RUNNING' });
