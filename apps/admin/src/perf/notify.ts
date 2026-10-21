@@ -21,7 +21,7 @@ export interface 알림재료 {
   degraded: boolean;
 }
 
-/** 늘 보내는 쪽은 정기 실행뿐이다. 사람이 건 실행은 시나리오가 성능 저하 알림을 켰고 실제로 저하일 때만 보낸다 */
+/** 늘 보내는 쪽은 정기 실행뿐이다. 사람이 건 실행은 성능 저하 알림을 끄지 않았고(칸이 없으면 마법사 기본처럼 켬) 실제로 저하일 때만 보낸다 */
 export function 알림보낼까(origin: 'MANUAL' | 'SCHEDULED', degradeAlert: boolean, degraded: boolean): boolean {
   return origin === 'SCHEDULED' || (degradeAlert && degraded);
 }
@@ -68,7 +68,7 @@ export async function 성능알림(runId: number, 보내기: (웹훅: string, �
   );
   const x = r.rows[0];
   if (x === undefined || x.webhook === null || x.webhook === '') return false;
-  if (!알림보낼까(x.origin, x.alert === true, x.degraded === true)) return false;
+  if (!알림보낼까(x.origin, x.alert !== false, x.degraded === true)) return false;
   const 글 = 알림문장({
     id: runId, scenarioName: x.name ?? '', status: x.status, verdict: x.verdict, stopReason: x.stop_reason, testType: x.test_type, env: x.env,
     peakVus: x.peak_vus, p95Ms: x.p95_ms, errorRate: x.error_rate === null ? null : Number(x.error_rate), degraded: x.degraded === true,

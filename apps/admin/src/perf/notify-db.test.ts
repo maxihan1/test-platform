@@ -12,6 +12,7 @@ describe.skipIf(연결 === undefined)('성능 Slack 알림', { timeout: 60_000 }
   let f: 차림;
   let 켠것 = 0;
   let 끈것 = 0;
+  let 기본것 = 0;
   const 보낸것: string[] = [];
   const 보내기 = async (_웹훅: string, 글: string) => {
     보낸것.push(글);
@@ -22,7 +23,8 @@ describe.skipIf(연결 === undefined)('성능 Slack 알림', { timeout: 60_000 }
   beforeAll(async () => {
     f = await 차리기('XPKN');
     켠것 = await f.시나리오만들기('알림 켠 것', { transactions: [{ name: '목록', method: 'GET', url: '/api/items' }], run: { degradeAlert: true } });
-    끈것 = await f.시나리오만들기('알림 끈 것');
+    끈것 = await f.시나리오만들기('알림 끈 것', { transactions: [{ name: '목록', method: 'GET', url: '/api/items' }], run: { degradeAlert: false } });
+    기본것 = await f.시나리오만들기('알림 칸 없는 것');
   });
   afterAll(async () => {
     await f?.정리();
@@ -58,6 +60,14 @@ describe.skipIf(연결 === undefined)('성능 Slack 알림', { timeout: 60_000 }
     const 사람저하켬 = await f.실행넣기({ scenarioId: 켠것, degraded: true });
     expect(await 성능알림(사람저하켬, 보내기)).toBe(true);
     expect(보낸것[0]).toContain('[통과] [성능 저하] 알림 켠 것');
+  });
+
+  it('성능 저하 알림 칸이 없는 시나리오는 마법사 기본처럼 켠 것으로 본다', async () => {
+    await 웹훅('https://hooks.example.test/x');
+    const 저하 = await f.실행넣기({ scenarioId: 기본것, degraded: true });
+    const 정상 = await f.실행넣기({ scenarioId: 기본것, degraded: false });
+    expect(await 성능알림(저하, 보내기)).toBe(true);
+    expect(await 성능알림(정상, 보내기)).toBe(false);
   });
 
   it('보내기가 실패해도 던지지 않고 로그만 남긴다', async () => {
