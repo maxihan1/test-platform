@@ -11,6 +11,7 @@ import authoringRoutes from './routes.js';
 const 연결 = process.env.DATABASE_URL;
 const 접두사 = 'XAW';
 const 화면접두사 = 'XAWS';
+const 앱접두사 = 'XAWA';
 const 맥 = 'xaw-맥';
 const 인증 = { name: '고객사 A', tokenUrl: '/v1/oauth/token', clientId: 'xaw-a', clientSecret: 'xaw-비밀-0001' };
 const 문서 = { openapi: '3.0.3', info: { title: '알림', version: '1' }, paths: { '/v1/pushes': { post: { responses: { '201': { description: '됨' } } } } } };
@@ -19,6 +20,7 @@ describe.skipIf(연결 === undefined)('API 애플리케이션 작성 요청', { 
   let app: FastifyInstance;
   let 서비스 = 0;
   let 화면서비스 = 0;
+  let 앱서비스 = 0;
 
   const q = async <T extends object>(sql: string, 값: unknown[] = []) => {
     const { pool } = await import('../db/index.js');
@@ -29,7 +31,7 @@ describe.skipIf(연결 === undefined)('API 애플리케이션 작성 요청', { 
   const 집기 = () => app.inject({ method: 'POST', url: `/api/authoring/requests/claim?service=${접두사}` });
   const 행 = async (id: number) =>
     (await q<{ env: string | null; compare: boolean; status: string }>('SELECT env, compare, status FROM authoring_request WHERE id = $1', [id])).rows[0]!;
-  const 치우기 = () => q('DELETE FROM authoring_request WHERE service_id = ANY($1)', [[서비스, 화면서비스]]);
+  const 치우기 = () => q('DELETE FROM authoring_request WHERE service_id = ANY($1)', [[서비스, 화면서비스, 앱서비스]]);
 
   beforeAll(async () => {
     const s = await q<{ id: string }>(
@@ -42,6 +44,11 @@ describe.skipIf(연결 === undefined)('API 애플리케이션 작성 요청', { 
       [화면접두사],
     );
     화면서비스 = Number(t.rows[0]!.id);
+    const a = await q<{ id: string }>(
+      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, kind) VALUES ($1, 'XAWA 앱 검사용', '#3A5FCD', '', 'xawa', 'APP') RETURNING id`,
+      [앱접두사],
+    );
+    앱서비스 = Number(a.rows[0]!.id);
     await q(
       `INSERT INTO service_env (service_id, env, base_url, api_auths, is_prod) VALUES
          ($1, 'stg', 'http://127.0.0.1:3003', $2, false), ($1, 'prod', 'https://push.example.com', $2, true)`,
@@ -63,7 +70,7 @@ describe.skipIf(연결 === undefined)('API 애플리케이션 작성 요청', { 
     await 치우기();
     await q('DELETE FROM api_doc_version WHERE service_id = $1', [서비스]);
     await q('DELETE FROM service_env WHERE service_id = $1', [서비스]);
-    await q('DELETE FROM service WHERE id = ANY($1)', [[서비스, 화면서비스]]);
+    await q('DELETE FROM service WHERE id = ANY($1)', [[서비스, 화면서비스, 앱서비스]]);
     await app.close();
   });
 
@@ -77,6 +84,15 @@ describe.skipIf(연결 === undefined)('API 애플리케이션 작성 요청', { 
     expect(await 거절({ apiDoc: 1, env: 'stg', compare: true })).toBe('BAD_ENV');
     expect(await 거절({ apiDoc: 1, env: 'stg' }, 화면접두사)).toBe('NOT_API_SERVICE');
     expect((await q('SELECT 1 FROM authoring_request WHERE service_id = ANY($1)', [[서비스, 화면서비스]])).rowCount).toBe(0);
+  });
+
+  it('Android 앱 애플리케이션은 대조 · 시작 주소를 BAD_ENV, 판을 NOT_API_SERVICE 로 거절하고 DRAFT 도 안 남는다', async () => {
+    const 거절 = async (몸: Record<string, unknown>) => (await 만들기(몸, 앱접두사)).json<{ error: string }>().error;
+    expect(await 거절({ compare: true, env: 'stg' })).toBe('BAD_ENV');
+    expect(await 거절({ compare: false })).toBe('BAD_ENV');
+    expect(await 거절({ startUrl: 'http://127.0.0.1:3000/' })).toBe('BAD_ENV');
+    expect(await 거절({ apiDoc: 1 })).toBe('NOT_API_SERVICE');
+    expect((await q('SELECT 1 FROM authoring_request WHERE service_id = $1', [앱서비스])).rowCount).toBe(0);
   });
 
   it('판 하나가 자료로 붙어 파일 없이도 줄에 서고, 집기가 그 판 원문과 대상 서버 인증을 싣는다', async () => {

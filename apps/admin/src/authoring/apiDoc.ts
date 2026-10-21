@@ -31,11 +31,17 @@ export type API칸 =
   | { error: 'API_DOC_REQUIRED' | 'NOT_API_SERVICE' | 'BAD_API_DOC' | 'BAD_ENV' };
 
 /**
- * 작성 요청 만들기 본문의 `apiDoc · env` 를 판정한다. 화면 애플리케이션이면 `{ api: false }` 이고 역방향 판정으로 넘어간다.
- * API 애플리케이션은 화면이 없어 compare · startUrl 을 안 받고, 작성 중 3회 실행이 돌 env 가 꼭 있다
+ * 작성 요청 만들기 본문의 `apiDoc · env` 를 판정한다. API 가 아닌 애플리케이션이면 `{ api: false }` 이고 역방향 판정으로 넘어간다.
+ * API 애플리케이션은 화면이 없어 compare · startUrl 을 안 받고, 작성 중 3회 실행이 돌 env 가 꼭 있다.
+ * Android 앱 애플리케이션도 compare · startUrl 을 안 받는다 — 크롤러는 웹만 읽는다 (도메인/작성 §3.6 「앱 화면」)
  */
 export async function API칸판정(본문: Record<string, unknown>, 서비스: number): Promise<API칸> {
-  if (!(await API서비스인가(서비스))) return 본문.apiDoc === undefined ? { api: false } : { error: 'NOT_API_SERVICE' };
+  const 종류 = (await 문서설정읽기(서비스))?.kind;
+  if (종류 !== 'API') {
+    if (본문.apiDoc !== undefined) return { error: 'NOT_API_SERVICE' };
+    if (종류 === 'APP' && (본문.compare !== undefined || 본문.startUrl !== undefined)) return { error: 'BAD_ENV' };
+    return { api: false };
+  }
   if (본문.compare !== undefined || 본문.startUrl !== undefined) return { error: 'BAD_ENV' };
   if (본문.apiDoc === undefined || 본문.apiDoc === null) return { error: 'API_DOC_REQUIRED' };
   const 판 = typeof 본문.apiDoc === 'number' && Number.isSafeInteger(본문.apiDoc) && 본문.apiDoc > 0 ? await 판번호(서비스, 본문.apiDoc) : null;
