@@ -17,7 +17,9 @@ describe('성능프롬프트', () => {
     ['DRAFT_FILE', 'unconverted', 'BeanShell'],
     ['SUGGEST_LOAD', 'dailyVisitors', '지어내지 않는다'],
     ['SUGGEST_TARGETS', 'ERROR_RATE', '서비스 가이드는 쓰지 않는다'],
+    ['SUGGEST_PAGES', 'login', '진짜 경로'],
     ['ANALYZE_RUN', 'items', '이 표에 없는 숫자는 쓰지 않는다'],
+    ['ANALYZE_RUN', 'pages', 'lcpElement'],
   ])('%s 는 공통 머리 · 규칙 · 내는 모양 · 재료 JSON 을 담는다', (kind, 모양낱말, 규칙낱말) => {
     const 글 = 성능프롬프트(kind, 재료)!;
     expect(글).toContain('QA Hub 성능 테스트 도우미다. 아래 재료만 보고 JSON 객체 하나만 답한다. 설명 글 · 코드 울타리 없이.');
@@ -32,7 +34,7 @@ describe('성능프롬프트', () => {
   });
 
   it('모르는 kind 는 null 이다', () => {
-    expect(성능프롬프트('SUGGEST_PAGES', 재료)).toBeNull();
+    expect(성능프롬프트('SUGGEST_DEVICES', 재료)).toBeNull();
   });
 });
 

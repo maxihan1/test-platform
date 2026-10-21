@@ -4,8 +4,11 @@ import type { PoolClient } from 'pg';
 
 import { 끝내기, 일만들기 } from './ai.js';
 import type { SecRow } from './judge.js';
+import { 페이지목표 } from './pageScript.js';
+import { 부하중가장느린, 페이지줄읽기 } from './pages.js';
 import { 실행보기 } from './runView.js';
 import * as 표 from './store.js';
+import type { PageRunConfig } from './types.js';
 
 type 실행raw = {
   service_id: string; status: string; verdict: string | null; stop_reason: string | null; test_type: string | null; targets: unknown;
@@ -25,6 +28,27 @@ async function 서버요약(runId: number) {
   return r.rows.map((x) => ({ agent: x.agent_name, cpuMax: 한자리(x.cpu_max), cpuAvg: 한자리(x.cpu_avg), memMax: 한자리(x.mem_max), memAvg: 한자리(x.mem_avg) }));
 }
 
+// 워터폴은 오래 걸린 리소스 15개만 — 고칠 곳을 짚는 데 그 밖은 쓸모가 적고 재료만 길어진다
+const 리소스몇 = 15;
+
+/** 페이지 단독 측정의 재료 — 페이지마다 가운데 값 · 판정 · LCP 요소 · 오래 걸린 리소스 */
+async function 페이지재료(run: 표.실행행): Promise<unknown> {
+  const cfg = run.config as unknown as PageRunConfig;
+  const rows = await 페이지줄읽기(run.id, cfg.pages);
+  return {
+    kind: 'PAGE', device: cfg.device, network: cfg.network, targets: 페이지목표,
+    pages: rows.map((r) => ({
+      url: r.url, name: r.name, verdict: r.verdict, lcpMs: r.lcpMs, fcpMs: r.fcpMs, cls: r.cls, ttfbMs: r.ttfbMs, lcpElement: r.lcpElement,
+      resources: [...r.resources].sort((a, b) => b.durationMs - a.durationMs).slice(0, 리소스몇),
+    })),
+  };
+}
+
+/** 부하 중 페이지 측정 요약 (분석 항목 「페이지 로딩」의 재료) */
+async function 부하중요약(run: 표.실행행): Promise<Awaited<ReturnType<typeof 부하중가장느린>>> {
+  return run.config.pageCheck ? 부하중가장느린(run.id, run.config.pages?.pages ?? []) : [];
+}
+
 /** 이 재료 밖의 숫자는 AI 가 쓰지 못한다 — 판정 · 요약 · 목표별 측정값 · 트랜잭션별 · 서버 · 이전 실행 대비를 모두 여기서 센다 */
 export async function 분석재료(run: 표.실행행, 전체줄?: SecRow[]): Promise<{ serviceId: number; input: unknown } | null> {
   const pool = await 표.풀();
@@ -34,6 +58,7 @@ export async function 분석재료(run: 표.실행행, 전체줄?: SecRow[]): Pr
   );
   const x = r.rows[0];
   if (x === undefined) return null;
+  if (run.kind === 'PAGE') return { serviceId: Number(x.service_id), input: await 페이지재료(run) };
   const 보기 = await 실행보기(run, x.status, x.stop_reason, 전체줄);
   const prevId = run.scenarioId === null ? null : await 표.이전실행(run);
   const prev = prevId === null ? null : (await pool.query<{ verdict: string | null; peak_vus: number | null; max_tps: string | null; p95_ms: number | null; error_rate: string | null }>(
@@ -51,6 +76,7 @@ export async function 분석재료(run: 표.실행행, 전체줄?: SecRow[]): Pr
       transactions: 보기.transactions,
       comparePoint: 보기.comparePoint,
       servers: await 서버요약(run.id),
+      pageLoads: await 부하중요약(run),
       previous: prev === null ? null : {
         verdict: prev.verdict, peakVus: prev.peak_vus, maxTps: 숫자(prev.max_tps), p95Ms: prev.p95_ms, errorRate: 숫자(prev.error_rate),
       },
@@ -58,9 +84,12 @@ export async function 분석재료(run: 표.실행행, 전체줄?: SecRow[]): Pr
   };
 }
 
-/** 1초 숫자가 하나라도 있나 — 없으면 분석할 재료가 없다 */
+/** 1초 숫자나 단독 측정 줄이 하나라도 있나 — 없으면 분석할 재료가 없다 */
 export async function 숫자있나(runId: number): Promise<boolean> {
-  const r = await (await 표.풀()).query(`SELECT 1 FROM perf_series WHERE run_id = $1 AND tx = '' LIMIT 1`, [runId]);
+  const r = await (await 표.풀()).query(
+    `SELECT 1 FROM perf_series WHERE run_id = $1 AND tx = '' UNION ALL SELECT 1 FROM perf_page_metric WHERE run_id = $1 AND sec IS NULL LIMIT 1`,
+    [runId],
+  );
   return (r.rowCount ?? 0) > 0;
 }
 
@@ -84,7 +113,17 @@ export async function 분석일세우기(runId: number, who: string, 전체줄?:
 
 /** 끝난 분석 일의 결과를 그 실행에 쓴다 — 결과 화면과 PDF 가 perf_run.ai 를 읽는다 */
 export async function 분석결과쓰기(runId: number, output: unknown, 손?: Pick<PoolClient, 'query'>): Promise<void> {
-  await (손 ?? (await 표.풀())).query('UPDATE perf_run SET ai = $2 WHERE id = $1', [runId, JSON.stringify(output)]);
+  const q = 손 ?? (await 표.풀());
+  await q.query('UPDATE perf_run SET ai = $2 WHERE id = $1', [runId, JSON.stringify(output)]);
+  // 단독 측정의 페이지별 분석은 그 페이지 줄에도 쓴다 — 화면이 줄을 고르면 그 항목만 보인다. 다시 만들면 새 결과에 없는 페이지의 옛 분석은 지운다
+  const pages = (output as { pages?: { url: string; items: string[] }[] }).pages ?? [];
+  await q.query(
+    `UPDATE perf_page_metric p SET ai = x.items FROM (
+       SELECT m.id, n.items FROM perf_page_metric m LEFT JOIN jsonb_to_recordset($2::jsonb) AS n(url text, items jsonb) ON n.url = m.url
+        WHERE m.run_id = $1 AND m.sec IS NULL) x
+      WHERE p.id = x.id`,
+    [runId, JSON.stringify(pages)],
+  );
 }
 
 /**

@@ -29,6 +29,8 @@ export type Route =
   | { name: 'perfScenarios' }
   | { name: 'perfScenarioNew' }
   | { name: 'perfScenario'; id: number }
+  /** 성능 테스트 › 페이지 성능. run — 실행 기록에서 넘어온 페이지 측정 번호(`?run=`). 없으면 가장 최근 측정 */
+  | { name: 'perfPages'; run?: number }
   /** 성능 테스트 › 실행 기록과 실행 한 건(도는 중이면 실행 중, 끝났으면 결과 — 같은 주소) */
   | { name: 'perfRuns' }
   | { name: 'perfRun'; runId: number }
@@ -141,6 +143,12 @@ export function route(hash: string): Route {
     if (parts.length === 3 && /^\d{1,10}$/.test(parts[2]!)) return { name: 'perfScenario', id: Number(parts[2]) };
   }
 
+  if (parts[0] === 'perf' && parts[1] === 'pages' && parts.length === 2) {
+    // `?run=` 은 목록 조건과 달리 화면을 바꾼다 — 실행 기록에서 같은 화면의 다른 실행을 열 때 다시 그려야 해서 주소에서 푼다
+    const 번호 = new URLSearchParams(hash.split('?')[1] ?? '').get('run');
+    return 번호 !== null && /^\d{1,10}$/.test(번호) ? { name: 'perfPages', run: Number(번호) } : { name: 'perfPages' };
+  }
+
   if (parts[0] === 'perf' && parts[1] === 'runs') {
     if (parts.length === 2) return { name: 'perfRuns' };
     if (parts.length === 3 && /^\d{1,10}$/.test(parts[2]!)) return { name: 'perfRun', runId: Number(parts[2]) };
@@ -184,6 +192,7 @@ const 기능자리: Partial<Record<Route['name'], 기능>> = {
   // 성능 테스트도 실행 칸을 쓴다 (공통/5-화면공통 §8 「자리 목록」)
   perfScenarios: 'runs',
   perfScenarioNew: 'runs',
+  perfPages: 'runs',
   perfRuns: 'runs',
 };
 

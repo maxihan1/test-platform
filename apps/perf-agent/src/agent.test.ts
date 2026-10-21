@@ -15,11 +15,16 @@ import type { Job } from './types.js';
 const FAKE_K6 = `
 import { writeFileSync } from 'node:fs';
 const e = process.env;
-writeFileSync(e.FAKE_ARGV, JSON.stringify({ argv: process.argv.slice(2), env: { BASE_URL: e.BASE_URL, ACCOUNTS_CSV: e.ACCOUNTS_CSV, AGENT_TOKEN: e.AGENT_TOKEN } }));
+writeFileSync(e.FAKE_ARGV, JSON.stringify({ argv: process.argv.slice(2), env: { BASE_URL: e.BASE_URL, ACCOUNTS_CSV: e.ACCOUNTS_CSV, AGENT_TOKEN: e.AGENT_TOKEN, K6_BROWSER_ARGS: e.K6_BROWSER_ARGS } }));
 const p = (metric, value, tags) => console.log(JSON.stringify({ metric, type: 'Point', data: { time: new Date().toISOString(), value, tags } }));
 p('vus', 5, {});
 for (const ms of [10, 20, 30]) { p('http_req_duration', ms, { tx: 'login' }); p('http_req_failed', 0, { tx: 'login' }); }
 p('checks', 0, { tx: 'login' });
+if (e.PAGES === '1') {
+  console.error('QAHUB_PAGE ' + JSON.stringify({ url: '/cart', lcpMs: 1200, fcpMs: 400, cls: 0.02, ttfbMs: 80, lcpElement: 'h1#title', resources: [] }));
+  console.error('QAHUB_PAGE {');
+  console.error('보통 오류 줄');
+}
 if (e.FAIL === '1') { console.error('스크립트 오류'); process.exit(107); }
 setTimeout(() => {}, e.HOLD === '1' ? 60_000 : 300);
 `;
@@ -43,6 +48,7 @@ async function runOnce(job: Partial<Job>, opts: { stop?: boolean; procRoot?: str
   writeFileSync(join(dir, 'k6.mjs'), FAKE_K6);
   const fake = { FAKE_ARGV: join(dir, 'argv.json') };
   process.env.AGENT_TOKEN = 'pga_새면안됨';
+  process.env.K6_BROWSER_ARGS = 'no-sandbox';
   const calls: Call[] = [];
   const ctrl = new AbortController();
   let claimed = false;
@@ -132,10 +138,31 @@ describe('Agent', () => {
     expect(r.done).toEqual({ status: 'ERROR', reason: '허용 호스트 밖의 대상 서버입니다 — 주소 없음' });
   });
 
-  it('아직 못 하는 일(페이지 측정)은 오류로 끝낸다', async () => {
+  it('스크립트가 없는 일은 k6 를 켜지 않고 오류로 끝낸다', async () => {
     const r = await runOnce({ kind: 'PAGE', script: null });
     expect(r.argv).toBeNull();
     expect(r.done.status).toBe('ERROR');
+  });
+
+  it('페이지 측정 일은 k6 를 켜고 콘솔 표본 줄을 1초 숫자의 pages 로 보낸다', async () => {
+    const r = await runOnce({ kind: 'PAGE', env: { BASE_URL: 'http://shop.test', PAGES: '1' } });
+    expect(r.argv).toContain('--log-format=raw');
+    expect(r.env).toMatchObject({ K6_BROWSER_ARGS: 'no-sandbox' });
+    expect(r.env!.AGENT_TOKEN).toBeUndefined();
+    const pages = r.metrics.flatMap((m) => (m.pages as unknown[] | undefined) ?? []);
+    expect(pages).toEqual([{ url: '/cart', lcpMs: 1200, fcpMs: 400, cls: 0.02, ttfbMs: 80, lcpElement: 'h1#title', resources: [] }]);
+    expect(r.done).toEqual({ status: 'OK' });
+  });
+
+  it('표본이 없으면 pages 칸을 달지 않는다', async () => {
+    const r = await runOnce({ kind: 'PAGE' });
+    expect(r.metrics.every((m) => !('pages' in m))).toBe(true);
+  });
+
+  it('표본 줄 · 깨진 줄은 오류 이유에 섞이지 않는다', async () => {
+    const r = await runOnce({ kind: 'PAGE', env: { BASE_URL: 'http://shop.test', PAGES: '1', FAIL: '1' } });
+    expect(r.done.reason).toContain('스크립트 오류');
+    expect(r.done.reason).not.toContain('QAHUB_PAGE');
   });
 
   it('모니터링 일은 /proc 를 1초마다 읽어 보낸다', async () => {

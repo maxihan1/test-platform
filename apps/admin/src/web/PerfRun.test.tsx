@@ -6,6 +6,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 
 import { ApiError } from './api.js';
 import { perfApi, type 실행상세 } from './perfApi.js';
+import type { PageRow } from './perfPageApi.js';
 import { PerfRun } from './PerfRun.js';
 import { 갱신간격, 틈간격 } from './perfRunView.js';
 
@@ -151,6 +152,39 @@ describe('실행 중에서 결과로', () => {
     render(<PerfRun runId={12} 판정하기={판정 as never} />);
     expect(await screen.findByRole('button', { name: '실행 중단' })).toBeTruthy();
     expect(판정).toHaveBeenCalledWith('MKT');
+  });
+
+  it('부하 중 페이지 로딩 측정을 켠 실행에는 「페이지 로딩 (부하 중)」 칸이 서고, 목표를 넘은 페이지는 실패 색이다', async () => {
+    const 상세 = 도는상세();
+    vi.spyOn(perfApi, 'runOf').mockResolvedValue({ ...상세, config: { ...상세.config, pageCheck: true } });
+    숫자들만들기();
+    const 줄 = (url: string, name: string, lcpMs: number, sec: number): PageRow => ({
+      url, name, sec, vus: 400, device: 'desktop', network: 'NONE', lcpMs, fcpMs: 500, cls: 0, ttfbMs: 50, lcpElement: null, resources: [], ai: null, verdict: null,
+    });
+    const 페이지 = vi.spyOn(perfApi, 'pages').mockResolvedValue({
+      pages: [줄('/products', '상품 목록', 1000, 30), 줄('/products', '상품 목록', 3100, 60), 줄('/checkout', '주문서', 1700, 60)],
+      compare: { runId: 9, code: 'PRF-0009', kind: 'PAGE', vus: null, pages: [{ url: '/products', lcpMs: 1200 }, { url: '/checkout', lcpMs: 1000 }] },
+    });
+    render(<PerfRun runId={12} 판정하기={된다} />);
+
+    const 칸 = (await screen.findByRole('heading', { name: '페이지 로딩 (부하 중)' })).closest('section')!;
+    expect(페이지).toHaveBeenCalledWith(12);
+    expect((await within(칸).findByText('3.1초')).className).toContain('perf-err');
+    expect(within(칸).getByText('목표 2.5초 초과, 단독 측정 1.2초')).toBeTruthy();
+    expect(within(칸).getByText('1.7초').className).not.toContain('perf-err');
+    expect(within(칸).getByText('단독 측정 1초')).toBeTruthy();
+    expect(within(칸).queryByText('1초')).toBeNull();
+    expect(screen.getByText('스모크 테스트 통과')).toBeTruthy();
+  });
+
+  it('측정을 켜지 않은 실행에는 그 칸이 없다', async () => {
+    vi.spyOn(perfApi, 'runOf').mockResolvedValue(도는상세());
+    숫자들만들기();
+    const 페이지 = vi.spyOn(perfApi, 'pages');
+    render(<PerfRun runId={12} 판정하기={된다} />);
+    await screen.findByText('1,240');
+    expect(screen.queryByRole('heading', { name: '페이지 로딩 (부하 중)' })).toBeNull();
+    expect(페이지).not.toHaveBeenCalled();
   });
 
   it('서버 모니터링 에이전트를 고르지 않았으면 그 말을 한다', async () => {
@@ -330,5 +364,14 @@ describe('결과', () => {
     render(<PerfRun runId={12} 판정하기={된다} />);
     fireEvent.click(await screen.findByRole('button', { name: 'PDF로 내려받기' }));
     await waitFor(() => expect(받기).toHaveBeenCalledWith(12));
+  });
+});
+
+describe('페이지 측정 실행', () => {
+  it('실행 한 건 주소로 와도 페이지 성능 화면의 그 실행으로 보낸다', async () => {
+    vi.spyOn(perfApi, 'runOf').mockResolvedValue(끝난상세({ id: 30, kind: 'PAGE' }));
+    render(<PerfRun runId={30} 판정하기={된다} />);
+    await waitFor(() => expect(window.location.hash).toBe('#/perf/pages?run=30'));
+    expect(screen.queryByRole('button', { name: 'PDF로 내려받기' })).toBeNull();
   });
 });

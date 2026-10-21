@@ -200,6 +200,8 @@ export const 등급표: Record<string, 표값> = {
   'GET /api/perf/runs/:id/series': 실행읽기,
   'GET /api/perf/runs/:id/hosts': 실행읽기,
   'GET /api/perf/runs/:id/events': 실행읽기,
+  'GET /api/perf/runs/:id/pages': 실행읽기,
+  'POST /api/perf/pages/measure': 실행쓰기,
   'GET /api/perf/runs/:id/report.pdf': 실행읽기,
   'POST /api/perf/runs/:id/stop': 실행쓰기,
   'POST /api/perf/runs/:id/analysis': 실행쓰기,

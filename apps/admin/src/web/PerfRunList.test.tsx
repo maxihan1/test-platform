@@ -101,6 +101,14 @@ describe('성능 실행 기록 표', () => {
     await waitFor(() => expect(부르기).toHaveBeenLastCalledWith(7, 6));
   });
 
+  it('페이지 측정 줄은 제목이 「페이지 성능」이고 누르면 페이지 성능 화면의 그 실행으로 간다', async () => {
+    await 그리기([줄({ id: 30, kind: 'PAGE', title: '', testType: null, degraded: null, summary: { peakVus: null, maxTps: null, p95Ms: null, errorRate: null } }), 줄({ id: 12 })]);
+    const 페이지줄 = screen.getByRole('link', { name: 'PRF-0030' }).closest('tr')!;
+    expect(screen.getByRole('link', { name: 'PRF-0030' }).getAttribute('href')).toBe('#/perf/pages?run=30');
+    expect(within(페이지줄).getByRole('link', { name: '페이지 성능' }).getAttribute('href')).toBe('#/perf/pages?run=30');
+    expect(screen.getByRole('link', { name: 'PRF-0012' }).getAttribute('href')).toBe('#/perf/runs/12');
+  });
+
   it('실행이 없으면 안내를 한다', async () => {
     vi.spyOn(perfApi, 'scenarios').mockResolvedValue({ scenarios: [] });
     vi.spyOn(perfApi, 'runs').mockResolvedValue({ runs: [] });

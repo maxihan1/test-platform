@@ -42,7 +42,7 @@ describe('결과 다듬기', () => {
   });
 
   it('모르는 종류는 까닭을 준다', () => {
-    expect(결과다듬기('SUGGEST_PAGES', {}, {})).toEqual({ error: '모르는 일 종류다: SUGGEST_PAGES' });
+    expect(결과다듬기('SUGGEST_DEVICES', {}, {})).toEqual({ error: '모르는 일 종류다: SUGGEST_DEVICES' });
   });
 
   it('AI 분석은 제목 한 줄과 항목 1~10개(각 500자까지)만 받는다', () => {

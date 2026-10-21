@@ -36,6 +36,7 @@ import { route, 갈자리, 돌아갈자리, 집 } from './route.js';
 import { RunList } from './RunList.js';
 import { RunResult } from './RunResult.js';
 import { RunWindow } from './RunWindow.js';
+import { PerfPages } from './PerfPages.js';
 import { PerfRun } from './PerfRun.js';
 import { PerfRunList } from './PerfRunList.js';
 import { PerfScenarioList } from './PerfScenarioList.js';
@@ -64,6 +65,7 @@ import './itemTrace.css';
 import './runList.css';
 import './caseList.css';
 import './perf.css';
+import './perfPages.css';
 import './perfRun.css';
 
 function Screen({
@@ -154,6 +156,9 @@ function Screen({
       return <PerfWizard key="new" id={null} 띠서비스={service} user={user} />;
     case 'perfScenario':
       return <PerfWizard key={current.id} id={current.id} 띠서비스={service} user={user} />;
+    case 'perfPages':
+      // 애플리케이션 · 실행마다 새로 그린다 — 앞 애플리케이션의 측정 조건 · 고른 페이지가 남아 다른 애플리케이션에 쏘지 않게
+      return service === null ? <div className="empty">{t('애플리케이션을 먼저 골라 주세요')}</div> : <PerfPages key={`${prefix}:${String(current.run ?? '')}`} service={service} run={current.run} 쓰나={할수('실행')} />;
     case 'perfRuns':
       return service === null ? <div className="empty">{t('애플리케이션을 먼저 골라 주세요')}</div> : <PerfRunList key={prefix} serviceId={service.id} />;
     case 'perfRun':

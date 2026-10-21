@@ -7,10 +7,13 @@ import { 끝내기, 끝내기배경 } from './finish.js';
 import { generateScript, segments, splitRows } from './generator.js';
 import { emptyHist } from './hist.js';
 import { AGENT_LOST_SEC, autoStop, type SecRow } from './judge.js';
+import { 단독스크립트, 브라우저몫 } from './pageScript.js';
+import { 부하중쓰기, 빈에이전트 } from './pages.js';
+import type { 페이지표본 } from './pageStats.js';
 import { 정기성능점검 } from './schedule.js';
 import { 끝난초여유, 도는것, 시작틈초, type Job, type 도는실행 } from './state.js';
 import * as 표 from './store.js';
-import type { Transaction } from './types.js';
+import type { PageRunConfig, Transaction } from './types.js';
 
 export { 도는실행들 } from './state.js';
 export type { Job } from './state.js';
@@ -50,9 +53,9 @@ async function 시작하기(run: 표.실행행): Promise<void> {
     ...(rows.length > 0 ? { accountsCsv: rows.join('\n') } : {}),
   };
   도는것.set(run.id, {
-    runId: run.id, phase: 'SMOKE', startAt, durationSec: 60, agents: cfg.agentIds, monitors: cfg.monitorIds,
+    runId: run.id, kind: 'LOAD', phase: 'SMOKE', startAt, durationSec: 60, agents: cfg.agentIds, monitors: cfg.monitorIds,
     pending: new Map([[smokeAgent, job]]), heard: new Map(), done: new Map(), smoke: { requests: 0, errors: 0 }, checkedSec: -1,
-    lostMonitors: new Set(), errorLogged: false, ending: false,
+    lostMonitors: new Set(), errorLogged: false, ending: false, pageSamples: [], browserVus: new Map(),
   });
   // 대기 → 스모크는 한 문장으로 바꾼다. 그사이 사람이 중단했으면 바뀌지 않으니 일을 거둔다
   if (!(await 표.대기에서시작(run.id))) {
@@ -63,6 +66,32 @@ async function 시작하기(run: 표.실행행): Promise<void> {
   await 표.로그(run.id, '스모크 테스트를 시작합니다 — 가상 사용자 1명 · 1분');
 }
 
+/** 페이지 단독 측정 — 스모크 없이 에이전트 하나가 바로 잰다. 로그인할 페이지가 있을 때만 계정을 싣는다 */
+async function 페이지시작하기(run: 표.실행행, agentId: number): Promise<void> {
+  const cfg = { ...(run.config as unknown as PageRunConfig), agentIds: [agentId] };
+  const env: Record<string, string> = { BASE_URL: run.baseUrl };
+  if (cfg.pages.some((p) => p.login)) {
+    const 줄 = await 대상줄읽기(run.serviceId, run.env);
+    if (줄?.loginId) env.ACCOUNT_ID = 줄.loginId;
+    if (줄?.loginPassword) env.ACCOUNT_PW = 줄.loginPassword;
+  }
+  const startAt = Date.now() + 시작틈초 * 1000;
+  const job: Job = { runId: run.id, kind: 'PAGE', startAt: 시각(startAt), script: 단독스크립트(cfg), env, allowedHosts: cfg.allowedHosts, durationSec: cfg.durationSec };
+  도는것.set(run.id, {
+    runId: run.id, kind: 'PAGE', phase: 'RUNNING', startAt, durationSec: cfg.durationSec, agents: cfg.agentIds, monitors: [],
+    pending: new Map([[agentId, job]]), heard: new Map(), done: new Map(), smoke: { requests: 0, errors: 0 }, checkedSec: -1,
+    lostMonitors: new Set(), errorLogged: false, ending: false, pageSamples: [], browserVus: new Map(),
+  });
+  if (!(await 표.대기에서시작(run.id, 'RUNNING'))) {
+    도는것.delete(run.id);
+    return;
+  }
+  // 맡은 에이전트를 설정에 남긴다 — 실행 화면이 에이전트 수를 읽는다
+  await (await 표.풀()).query(`UPDATE perf_run SET config = jsonb_set(config, '{agentIds}', $2::jsonb) WHERE id = $1`, [run.id, JSON.stringify(cfg.agentIds)]);
+  await 표.에이전트맡기(run.id, cfg.agentIds);
+  await 표.로그(run.id, `페이지 측정을 시작합니다 — 페이지 ${cfg.pages.length}개 · 페이지마다 3번`);
+}
+
 async function 본테스트(live: 도는실행): Promise<void> {
   const { run, txs, env, rows } = await 재료(live.runId);
   const cfg = run.config;
@@ -70,10 +99,11 @@ async function 본테스트(live: 도는실행): Promise<void> {
   const weights = cfg.agentIds.map((id) => 표.최대가상사용자(agents.find((a) => a.id === id) ?? ({ maxVus: null } as 표.에이전트행)));
   const segs = segments(weights);
   const parts = splitRows(rows, weights);
-  const script = generateScript({ transactions: txs, load: cfg.load, smoke: false, allowedHosts: cfg.allowedHosts, maxVus: cfg.maxVus });
+  const script = generateScript({ transactions: txs, load: cfg.load, smoke: false, allowedHosts: cfg.allowedHosts, maxVus: cfg.maxVus, pages: cfg.pageCheck ? (cfg.pages ?? null) : null });
   const startAt = Date.now() + 시작틈초 * 1000;
   live.phase = 'RUNNING';
   live.startAt = startAt;
+  if (cfg.pageCheck) 브라우저몫(weights).forEach((n, i) => live.browserVus.set(cfg.agentIds[i] as number, n));
   live.durationSec = cfg.durationSec;
   live.done.clear();
   live.heard.clear();
@@ -107,6 +137,8 @@ export interface 부하초 {
   sec: number;
   vus: number;
   txs: { name: string; requests: number; errors: number; hist: number[] }[];
+  // 페이지 단독 측정 · 부하 중 측정이 그 초에 연 것 (§5.4)
+  pages?: 페이지표본[];
 }
 
 // 트랜잭션 줄들과 전체 줄(tx = '') 하나로 편다
@@ -127,6 +159,10 @@ export async function 부하숫자받기(agentId: number, runId: number, m: 부�
   const live = 도는것.get(runId);
   if (live === undefined || live.ending || !live.agents.includes(agentId)) return true;
   live.heard.set(agentId, Date.now());
+  if (live.kind === 'PAGE') {
+    live.pageSamples.push(...(m.pages ?? []));
+    return false;
+  }
   if (live.phase === 'SMOKE') {
     for (const t of m.txs) {
       live.smoke.requests += t.requests;
@@ -134,7 +170,11 @@ export async function 부하숫자받기(agentId: number, runId: number, m: 부�
     }
     return false;
   }
-  await 표.초더하기(runId, 줄로펴기(m));
+  // 늦게 온 조각은 vus 가 0 이라 빼지 않는다 (§5.4)
+  const 브라우저 = m.vus > 0 ? (live.browserVus.get(agentId) ?? 0) : 0;
+  await 표.초더하기(runId, 줄로펴기({ ...m, vus: Math.max(0, m.vus - 브라우저) }));
+  const run = m.pages?.length ? await 표.실행하나(runId) : null;
+  if (run?.config.pages) await 부하중쓰기(runId, m.sec, run.config.pages, m.pages ?? []);
   return false;
 }
 
@@ -187,7 +227,7 @@ async function 살피기(live: 도는실행, 지금: number): Promise<void> {
       await 표.로그(live.runId, `${agents.find((a) => a.id === id)?.name ?? `에이전트 ${id}`} 모니터링 끊김`, 'WARN');
     }
   }
-  if (live.phase !== 'RUNNING') return;
+  if (live.phase !== 'RUNNING' || live.kind === 'PAGE') return;
   const 끝난초 = Math.floor((지금 - live.startAt) / 1000) - 끝난초여유;
   if (끝난초 <= live.checkedSec) return;
   const run = await 표.실행하나(live.runId);
@@ -209,6 +249,13 @@ async function 살피기(live: 도는실행, 지금: number): Promise<void> {
 async function 대기열(지금: number): Promise<void> {
   const 바쁜 = new Set([...도는것.values()].flatMap((l) => l.agents));
   for (const run of await 표.실행들(['QUEUED'])) {
+    if (run.kind === 'PAGE') {
+      const agentId = await 빈에이전트(바쁜, 지금);
+      if (agentId === null) continue;
+      바쁜.add(agentId);
+      await 페이지시작하기(run, agentId).catch((e: unknown) => 끝내기(run.id, { kind: 'ERROR', why: 글(e) }));
+      continue;
+    }
     const agents = await 표.에이전트들(run.config.agentIds);
     if (agents.length !== run.config.agentIds.length) {
       await 끝내기(run.id, { kind: 'ERROR', why: '고른 부하 발생 에이전트가 지워졌습니다' });

@@ -1,6 +1,7 @@
 // 성능 테스트 화면이 서버를 부르는 호출 모음. 응답 모양은 admin 의 perf/*.ts 를 그대로 옮겼다 (도메인/성능 §7)
 
 import { call, json, 파일받기 } from './api.js';
+import { 페이지호출, type 측정페이지, type 페이지기기, type 페이지망 } from './perfPageApi.js';
 
 export type TestType = 'LOAD' | 'STRESS' | 'SPIKE' | 'SOAK';
 export type Basis = 'VUS' | 'TPS';
@@ -29,6 +30,7 @@ export interface Stage {
 }
 
 export interface Target {
+  // 서버 부하의 목표다. 페이지 단독 측정 실행의 targets 는 LCP · FCP · CLS 줄인데 화면은 그 줄 대신 페이지 측정값을 읽는다 (도메인/성능 §7)
   metric: 'P95' | 'ERROR_RATE' | 'TPS';
   scope?: string;
   op: '<=' | '>=';
@@ -47,6 +49,7 @@ export interface 마법사값 {
   holdMin?: number;
   peakVus?: number;
   degradeAlert?: boolean;
+  pageCheck?: boolean;
 }
 
 export interface ScenarioBody {
@@ -190,11 +193,25 @@ export interface 실행상세 {
   createdAt: string;
   startedAt: string | null;
   finishedAt: string | null;
-  config: { testType: TestType; load: { basis: Basis; stages: Stage[] }; targets: Target[]; agentIds: number[]; monitorIds: number[]; durationSec: number; maxVus: number };
+  config: {
+    testType: TestType;
+    load: { basis: Basis; stages: Stage[] };
+    targets: Target[];
+    agentIds: number[];
+    monitorIds: number[];
+    durationSec: number;
+    maxVus: number;
+    /** 부하 중 페이지 로딩 측정을 켠 실행 (웹 애플리케이션만) */
+    pageCheck?: boolean;
+    /** 페이지 측정(kind PAGE)이면 잰 페이지 목록, 부하 중 측정을 켠 부하 실행이면 { pages, … } 묶음이다 */
+    pages?: 측정페이지[] | { pages: 측정페이지[] };
+    device?: 페이지기기;
+    network?: 페이지망;
+  };
   targets: 실행목표[] | null;
   summary: 실행요약;
   degraded: boolean | null;
-  ai: { title: string; items: string[] } | null;
+  ai: { title: string; items: string[]; pages?: { url: string; items: string[] }[] } | null;
   aiJob: { id: number; status: AI일상태 } | null;
   previous: { id: number; verdict: 실행판정; peakVus: number | null; maxTps: number | null; p95Ms: number | null; errorRate: number | null; createdAt: string } | null;
   transactions: 트랜잭션결과[];
@@ -230,6 +247,7 @@ export interface 실행로그 {
 }
 
 export const perfApi = {
+  ...페이지호출,
   scenarios: (serviceId: number) => call<{ scenarios: PerfScenarioRow[] }>(`/perf/scenarios?serviceId=${String(serviceId)}`),
   scenario: (id: number) => call<PerfScenario>(`/perf/scenarios/${String(id)}`),
   create: (serviceId: number, name: string, body: ScenarioBody, draftJobId?: number) =>
@@ -247,7 +265,7 @@ export const perfApi = {
   suggest: (serviceId: number, kind: 'LOAD' | 'TARGETS', scenarioId?: number) =>
     call<{ jobId: number }>('/perf/suggest', json({ serviceId, kind, scenarioId })),
   job: <T>(id: number) => call<AI일<T>>(`/perf/ai-jobs/${String(id)}`),
-  run: (요청: { scenarioId: number; env: string; testType: TestType; basis: Basis; stages: Stage[]; targets: Target[]; agentIds: number[]; monitorIds: number[] }) =>
+  run: (요청: { scenarioId: number; env: string; testType: TestType; basis: Basis; stages: Stage[]; targets: Target[]; agentIds: number[]; monitorIds: number[]; pageCheck?: boolean }) =>
     call<{ runId: number }>('/perf/runs', json(요청)),
   agents: (projectId?: number) => call<{ agents: PerfAgent[] }>(projectId === undefined ? '/perf/agents' : `/perf/agents?projectId=${String(projectId)}`),
   addAgent: (name: string, mode: 'LOAD' | 'MONITOR', projectId?: number) =>

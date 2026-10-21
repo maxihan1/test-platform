@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { 대상줄읽기 } from '../authoring/reverse.js';
 import { totalDuration } from './generator.js';
+import { 웹인가, 최근페이지 } from './pages.js';
 import { API서버호스트, 계정줄들, 단계, 목표, 허용밖, 호스트 } from './scenarios.js';
 import * as 표 from './store.js';
 import type { RunConfig, ScenarioBody } from './types.js';
@@ -49,9 +50,9 @@ export async function 실행세우기(b: 실행입력, 누가: 실행만든이):
   const sc = s.rows[0];
   if (sc === undefined) return 거절(404, 'NOT_FOUND');
   const serviceId = Number(sc.service_id);
-  // 더미 클라이언트 띄우기는 PERF-F1-10, 부하 중 페이지 측정(브라우저)은 PERF-F1-07 에서 생긴다
+  // 더미 클라이언트 띄우기는 PERF-F1-10 에서 생긴다
   if (sc.body.dummyClient !== undefined) return 거절(400, 'INVALID_REQUEST', '더미 클라이언트 시나리오는 아직 실행하지 못합니다');
-  if (b.pageCheck) return 거절(400, 'INVALID_REQUEST', '부하 중 페이지 로딩 측정은 아직 켜지 못합니다');
+  if (b.pageCheck && !(await 웹인가(serviceId))) return 거절(400, 'INVALID_REQUEST', '부하 중 페이지 로딩 측정은 웹 애플리케이션만 켭니다');
 
   const 줄 = await 대상줄읽기(serviceId, b.env);
   if (줄 === null) return 거절(400, 'INVALID_REQUEST', '대상 서버가 없습니다', true);
@@ -76,9 +77,14 @@ export async function 실행세우기(b: 실행입력, 누가: 실행만든이):
   if (durationSec > 최대실행초) return 거절(400, 'INVALID_REQUEST', '실행 시간은 24시간까지입니다');
   if (b.basis === 'VUS' && Math.max(...b.stages.map((x) => x.target)) > maxVus) return 거절(400, 'INVALID_REQUEST', `가상 사용자는 고른 에이전트의 최대 ${maxVus}명까지입니다`);
 
+  // 잴 페이지는 그 대상 서버의 가장 최근 단독 측정 것이다. 로그인할 페이지가 있는데 계정이 없으면 오류로 끝날 실행을 만들지 않는다
+  const pages = b.pageCheck ? await 최근페이지(serviceId, b.env) : undefined;
+  if (pages?.pages.some((p) => p.login) && ((줄.loginId ?? '') === '' || (줄.loginPassword ?? '') === '' || pages.loginUrl === null)) {
+    return 거절(400, 'INVALID_REQUEST', '부하 중에 잴 페이지에 로그인이 필요한데 대상 서버 테스트 계정이나 로그인 화면이 없습니다');
+  }
   const config: RunConfig = {
     testType: b.testType, load, targets: b.targets, agentIds: b.agentIds, monitorIds: b.monitorIds, allowedHosts,
-    pageCheck: false, accountsRows: sc.accounts_csv === null ? 0 : 계정줄들(sc.accounts_csv).length, durationSec, maxVus,
+    pageCheck: b.pageCheck, ...(pages === undefined ? {} : { pages }), accountsRows: sc.accounts_csv === null ? 0 : 계정줄들(sc.accounts_csv).length, durationSec, maxVus,
   };
   const r = await pool.query<{ id: string }>(
     `INSERT INTO perf_run (kind, service_id, scenario_id, scenario_version, env, base_url, test_type, config, status, origin, triggered_by, triggered_by_name)

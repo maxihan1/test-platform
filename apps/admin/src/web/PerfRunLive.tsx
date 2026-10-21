@@ -1,5 +1,5 @@
-// 성능 테스트 › 실행 중 — 숫자 넷 · 추이 · 서버 모니터링 · 트랜잭션별 현황 · 실행 로그. 5초마다 새 숫자만 받는다 (도메인/성능 §8.14)
-// 「페이지 로딩(부하 중)」 칸은 서버가 아직 받지 않아(PERF-F1-07) 두지 않는다
+// 성능 테스트 › 실행 중 — 숫자 넷 · 추이 · 서버 모니터링 · 트랜잭션별 현황 · (부하 중 페이지 로딩) · 실행 로그. 5초마다 새 숫자만 받는다 (도메인/성능 §8.14)
+// 「페이지 로딩(부하 중)」 칸은 그 측정을 켠 실행(config.pageCheck)에만 선다 — PerfRunPageCheck.tsx
 
 import { useEffect, useRef, useState } from 'react';
 
@@ -8,6 +8,7 @@ import { Modal } from './Modal.js';
 import { PerfChart } from './PerfChart.js';
 import { perfApi, type Target, type 실행로그, type 실행상세, type 초숫자, type 호스트숫자 } from './perfApi.js';
 import { RunHead } from './PerfRunHead.js';
+import { PerfRunPageCheck } from './PerfRunPageCheck.js';
 import { 가장큰값, 갱신간격, 목표글자, 목표대상, 분초, 수, 시분, 초글자, 최근집계, 퍼센트글자, 전체줄, 트랜잭션줄 } from './perfRunView.js';
 import { message } from './ui.js';
 
@@ -173,6 +174,8 @@ export function PerfRunLive({ run, 다시읽기, 쓰나 }: { run: 실행상세; 
             <h2 id="perf-t">{t('트랜잭션별 현황')}</h2>
             <트랜잭션현황 줄들={초} 끝={지난초} 목표들={목표들} />
           </section>
+
+          {run.config.pageCheck === true ? <PerfRunPageCheck runId={run.id} /> : null}
 
           <section className="perf-panel" aria-labelledby="perf-l">
             <h2 id="perf-l">{t('실행 로그')}</h2>

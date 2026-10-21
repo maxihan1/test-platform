@@ -3,10 +3,11 @@
 import type { PoolClient } from 'pg';
 import { z } from 'zod';
 
+import { 페이지 } from './pages.js';
 import { 목표, 트랜잭션 } from './scenarios.js';
 import { 풀 } from './store.js';
 
-export type AI일종류 = 'DRAFT_RECORD' | 'DRAFT_SWAGGER' | 'DRAFT_FILE' | 'SUGGEST_LOAD' | 'SUGGEST_TARGETS' | 'ANALYZE_RUN';
+export type AI일종류 = 'DRAFT_RECORD' | 'DRAFT_SWAGGER' | 'DRAFT_FILE' | 'SUGGEST_LOAD' | 'SUGGEST_TARGETS' | 'SUGGEST_PAGES' | 'ANALYZE_RUN';
 
 // 피크 시간은 1시간으로 둔다 (PERF-F1-04 시작 질문). 스트레스 테스트의 최대는 피크의 5배가 기본이다 (§3.9 「부하 설정」)
 export const 피크분 = 60;
@@ -43,8 +44,19 @@ const 출력: Record<AI일종류, z.ZodType> = {
     targets: z.array(목표.refine((t) => t.source !== 'MANUAL' && (t.source !== 'PRD' || t.reqId !== undefined), '근거 꼬리표가 틀렸습니다')).min(1).max(50),
     basis: 근거,
   }),
-  // 결과 화면 「AI 분석」 — 제목 한 줄과 개조식 항목. perf_run.ai 에 그대로 쓰고 PDF 가 같은 꼴로 읽는다
-  ANALYZE_RUN: z.object({ title: z.string().trim().min(1).max(200), items: z.array(z.string().trim().min(1).max(500)).min(1).max(10) }),
+  // 화면 기록에서 고른 주요 페이지 (§3.9 「잴 페이지」). 저장 · 측정과 같은 검사다
+  SUGGEST_PAGES: z.object({
+    pages: z.array(페이지.extend({ why: z.string().max(500).default('') })).min(1).max(10)
+      .refine((ps) => new Set(ps.map((p) => p.url)).size === ps.length, '경로가 겹칩니다'),
+    basis: 근거,
+  }),
+  // 결과 화면 「AI 분석」 — 제목 한 줄과 개조식 항목. perf_run.ai 에 그대로 쓰고 PDF 가 같은 꼴로 읽는다.
+  // 페이지 단독 측정은 페이지별 항목(pages)을 더 낸다 — 화면 워터폴 아래 「AI 분석」
+  ANALYZE_RUN: z.object({
+    title: z.string().trim().min(1).max(200),
+    items: z.array(z.string().trim().min(1).max(500)).min(1).max(10),
+    pages: z.array(z.object({ url: z.string().min(1).max(500), items: z.array(z.string().trim().min(1).max(500)).min(1).max(5) })).max(10).optional(),
+  }),
 };
 
 /** 피크 동시 사용자 = 일 방문자 × 피크 집중률 × 평균 체류 시간(분) ÷ 피크 시간(분). 셋 중 하나라도 없으면 null — 화면이 묻는다 */
