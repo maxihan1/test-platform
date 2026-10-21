@@ -41,7 +41,14 @@ export default async function perfScheduleRoutes(app: FastifyInstance): Promise<
     if (대상.isProd) return reply.code(400).send({ error: 'PROD_ENV_BLOCKED' });
     const 재료 = 정기실행재료(id, env, 줄.body);
     if ('error' in 재료) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: 재료.error });
-    await pool.query('UPDATE perf_scenario SET schedule_at = $2, schedule_tz = $3, schedule_env = $4 WHERE id = $1', [id, at, tz, env]);
+    // 시각 · 시간대 · 대상 서버가 바뀌면 돈 기록을 비운다 — 안 비우면 오늘 이미 돈 시나리오를 뒤 시각으로 옮겨도 그날은 안 돈다. 같은 값을 다시 저장하면 그대로 둬 이중 실행을 막는다
+    await pool.query(
+      `UPDATE perf_scenario
+          SET schedule_last = CASE WHEN (schedule_at, schedule_tz, schedule_env) IS NOT DISTINCT FROM ($2::time, $3::text, $4::text) THEN schedule_last ELSE NULL END,
+              schedule_at = $2, schedule_tz = $3, schedule_env = $4
+        WHERE id = $1`,
+      [id, at, tz, env],
+    );
     return { schedule: { at, tz, env } };
   });
 }

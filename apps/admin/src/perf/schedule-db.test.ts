@@ -19,6 +19,7 @@ describe.skipIf(연결 === undefined)('성능 정기 실행', { timeout: 60_000 
     return true;
   };
 
+  const 범위 = () => [f.서비스];
   const 켜기 = (id: number, env = 'qa', at = '03:17', tz = 'UTC') => f.사람(f.관리자, 'PUT', `/api/perf/scenarios/${id}/schedule`, { at, tz, env });
   const 스케줄 = async (id: number) => (await f.사람(f.읽기만, 'GET', `/api/perf/scenarios/${id}`)).json<{ schedule: unknown }>().schedule;
   const 실행들 = async () =>
@@ -67,12 +68,12 @@ describe.skipIf(연결 === undefined)('성능 정기 실행', { timeout: 60_000 
 
   it('정한 시각부터 1시간 안에 하루 한 번 SCHEDULED 실행을 만들고 저장된 부하 설정을 쓴다', async () => {
     await 켜기(시나리오);
-    expect(await 정기성능점검(new Date('2001-01-01T02:59:00Z'), 보내기)).toEqual([]);
-    const 첫 = await 정기성능점검(new Date('2001-01-01T03:30:00Z'), 보내기);
+    expect(await 정기성능점검(new Date('2001-01-01T02:59:00Z'), 보내기, 범위())).toEqual([]);
+    const 첫 = await 정기성능점검(new Date('2001-01-01T03:30:00Z'), 보내기, 범위());
     expect(첫).toEqual([{ scenarioId: 시나리오, runId: expect.any(Number) }]);
-    expect(await 정기성능점검(new Date('2001-01-01T03:40:00Z'), 보내기)).toEqual([]);
-    expect(await 정기성능점검(new Date('2001-01-02T04:30:00Z'), 보내기)).toEqual([]);
-    expect(await 정기성능점검(new Date('2001-01-02T03:20:00Z'), 보내기)).toHaveLength(1);
+    expect(await 정기성능점검(new Date('2001-01-01T03:40:00Z'), 보내기, 범위())).toEqual([]);
+    expect(await 정기성능점검(new Date('2001-01-02T04:30:00Z'), 보내기, 범위())).toEqual([]);
+    expect(await 정기성능점검(new Date('2001-01-02T03:20:00Z'), 보내기, 범위())).toHaveLength(1);
 
     const 만든 = await 실행들();
     expect(만든).toHaveLength(2);
@@ -89,7 +90,7 @@ describe.skipIf(연결 === undefined)('성능 정기 실행', { timeout: 60_000 
     await f.pool.query(`UPDATE perf_scenario SET schedule_last = NULL WHERE id = $1`, [시나리오]);
     await 켜기(시나리오, 'tmp');
     await f.pool.query(`UPDATE service_env SET is_prod = true WHERE service_id = $1 AND env = 'tmp'`, [f.서비스]);
-    const 운영 = await 정기성능점검(new Date('2001-02-01T03:30:00Z'), 보내기);
+    const 운영 = await 정기성능점검(new Date('2001-02-01T03:30:00Z'), 보내기, 범위());
     expect(운영).toEqual([{ scenarioId: 시나리오, 거절: '대상 서버 tmp 가 실서비스 서버가 되었습니다', 껐다: true }]);
     expect(await 실행들()).toEqual([]);
     expect(await 스케줄(시나리오)).toBeNull();
@@ -99,17 +100,34 @@ describe.skipIf(연결 === undefined)('성능 정기 실행', { timeout: 60_000 
     await f.pool.query(`UPDATE service_env SET is_prod = false WHERE service_id = $1 AND env = 'tmp'`, [f.서비스]);
     await 켜기(시나리오, 'tmp');
     await f.pool.query(`DELETE FROM service_env WHERE service_id = $1 AND env = 'tmp'`, [f.서비스]);
-    const 지움 = await 정기성능점검(new Date('2001-02-02T03:30:00Z'), 보내기);
+    const 지움 = await 정기성능점검(new Date('2001-02-02T03:30:00Z'), 보내기, 범위());
     expect(지움[0]).toMatchObject({ 거절: '대상 서버 tmp 가 지워졌습니다', 껐다: true });
     expect(보낸것[0]).toContain('정기 실행을 껐습니다');
   });
 
+  it('시각 · 대상 서버 · 시간대를 바꾸면 돈 기록을 비워 늦춘 시각에 같은 날 다시 돈다. 같은 값을 다시 저장하면 그대로 둔다', async () => {
+    await f.pool.query(`UPDATE perf_agent SET last_seen_at = now() WHERE id = $1`, [에이전트번호]);
+    await f.pool.query(`UPDATE perf_scenario SET schedule_last = NULL WHERE id = $1`, [시나리오]);
+    const 돈때 = async () => (await f.pool.query<{ schedule_last: Date | null }>('SELECT schedule_last FROM perf_scenario WHERE id = $1', [시나리오])).rows[0]?.schedule_last;
+    await 켜기(시나리오, 'qa', '03:17');
+    expect(await 정기성능점검(new Date('2001-04-01T03:30:00Z'), 보내기, 범위())).toHaveLength(1);
+    expect(await 돈때()).not.toBeNull();
+
+    await 켜기(시나리오, 'qa', '03:17');
+    expect(await 돈때()).not.toBeNull();
+
+    await 켜기(시나리오, 'qa', '05:00');
+    expect(await 돈때()).toBeNull();
+    expect(await 정기성능점검(new Date('2001-04-01T05:10:00Z'), 보내기, 범위())).toHaveLength(1);
+  });
+
   it('연결된 에이전트가 없는 거절은 실행을 안 만들고 알림만 보내며 정기 실행은 그대로 둔다', async () => {
     보낸것.length = 0;
+    await f.pool.query('DELETE FROM perf_run WHERE service_id = $1', [f.서비스]);
     await f.pool.query(`UPDATE perf_scenario SET schedule_last = NULL WHERE id = $1`, [시나리오]);
     await 켜기(시나리오);
     await f.pool.query(`UPDATE perf_agent SET last_seen_at = now() - interval '5 minutes' WHERE id = $1`, [에이전트번호]);
-    const 결과 = await 정기성능점검(new Date('2001-03-01T03:30:00Z'), 보내기);
+    const 결과 = await 정기성능점검(new Date('2001-03-01T03:30:00Z'), 보내기, 범위());
     expect(결과).toEqual([{ scenarioId: 시나리오, 거절: '연결된 부하 발생 에이전트가 없습니다' }]);
     expect(await 실행들()).toEqual([]);
     expect(await 스케줄(시나리오)).toEqual({ at: '03:17', tz: 'UTC', env: 'qa' });

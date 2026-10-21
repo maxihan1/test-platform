@@ -33,9 +33,9 @@ export interface 돌때된줄 {
 /**
  * 지금 돌 시나리오를 집는다 — 고르는 것과 「마지막으로 돈 때」를 적는 것이 한 문장이라 둘이 같은 시나리오를 집지 않는다.
  * 조건은 execution/scheduled.ts 의 돌때가된서비스와 같다(켜짐 · 그 시간대의 지금이 정한 시각부터 1시간 안 · 오늘 아직 안 돌았다).
- * 지운 시나리오와 쓰지 않는 애플리케이션은 건너뛴다. 검사는 지금을 넘기고 트랜잭션 연결을 넘겨 되돌린다
+ * 지운 시나리오와 쓰지 않는 애플리케이션은 건너뛴다. 검사는 지금과 자기 애플리케이션 번호를 넘겨 개발 DB 의 남의 시나리오를 건드리지 않게 한다
  */
-export async function 돌때가된시나리오(지금: Date | null = null, db?: Pick<PoolClient, 'query'>): Promise<돌때된줄[]> {
+export async function 돌때가된시나리오(지금: Date | null = null, db?: Pick<PoolClient, 'query'>, 범위: number[] | null = null): Promise<돌때된줄[]> {
   const 손 = db ?? (await 표.풀());
   const r = await 손.query<{ id: string; service_id: string; name: string; env: string }>(
     `WITH 기준 AS (SELECT COALESCE($1::timestamptz, now()) AS t)
@@ -44,13 +44,14 @@ export async function 돌때가된시나리오(지금: Date | null = null, db?: 
        FROM 기준
       WHERE p.deleted_at IS NULL
         AND p.schedule_at IS NOT NULL
+        AND ($2::bigint[] IS NULL OR p.service_id = ANY($2))
         AND EXISTS (SELECT 1 FROM service s WHERE s.id = p.service_id AND s.is_active)
         AND (기준.t AT TIME ZONE p.schedule_tz)::time - p.schedule_at >= interval '0'
         AND (기준.t AT TIME ZONE p.schedule_tz)::time - p.schedule_at <  interval '1 hour'
         AND (p.schedule_last IS NULL
              OR (p.schedule_last AT TIME ZONE p.schedule_tz)::date < (기준.t AT TIME ZONE p.schedule_tz)::date)
       RETURNING p.id, p.service_id, p.name, p.schedule_env AS env`,
-    [지금],
+    [지금, 범위],
   );
   return r.rows.map((x) => ({ id: Number(x.id), serviceId: Number(x.service_id), name: x.name, env: x.env }));
 }
@@ -86,9 +87,9 @@ async function 실패알림(serviceId: number, 글: string, 보내기: (웹훅: 
  * 1분마다 부른다. 만들지 못해도 그날은 다시 안 돈다 — 1분마다 같은 실패를 되풀이하지 않는다.
  * 대상 서버가 지워졌거나 실서비스 서버가 됐으면 정기 실행을 끄고, 그 밖의 거절은 알림만 보낸다
  */
-export async function 정기성능점검(지금: Date | null = null, 보내기: (웹훅: string, 글: string) => Promise<boolean> = 슬랙으로): Promise<점검결과[]> {
+export async function 정기성능점검(지금: Date | null = null, 보내기: (웹훅: string, 글: string) => Promise<boolean> = 슬랙으로, 범위: number[] | null = null): Promise<점검결과[]> {
   const 결과: 점검결과[] = [];
-  for (const 줄 of await 돌때가된시나리오(지금)) {
+  for (const 줄 of await 돌때가된시나리오(지금, undefined, 범위)) {
     결과.push(await 한시나리오(줄, 보내기));
   }
   return 결과;
