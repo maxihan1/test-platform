@@ -2,6 +2,7 @@
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { 분석끝내기 } from './analysis.js';
 import { 끝내기 } from './finish.js';
 import { 차리기, type 차림 } from './dbFixture.js';
 
@@ -88,5 +89,32 @@ describe.skipIf(연결 === undefined)('성능 AI 분석', { timeout: 60_000 }, (
     const 좋음 = await f.사람(에이전트, 'POST', `/api/perf/ai-jobs/${다시}/finish`, { output: { title: '300명에서 느려졌습니다', items: ['임계점: 300명'] } });
     expect(좋음.statusCode).toBe(204);
     expect(await ai읽기()).toEqual({ title: '300명에서 느려졌습니다', items: ['임계점: 300명'] });
+  });
+
+  it('분석 결과를 실행에 쓰지 못하면 일도 닫히지 않고, 일을 못 닫으면 쓴 것도 되돌린다', async () => {
+    const 끝난 = await f.실행넣기({ scenarioId: 시나리오, series: 숫자 });
+    const 일 = async (id: number) => (await f.pool.query<{ status: string }>('SELECT status FROM perf_ai_job WHERE id = $1', [id])).rows[0]?.status;
+    const ai읽기 = async () => (await f.pool.query<{ ai: unknown }>('SELECT ai FROM perf_run WHERE id = $1', [끝난])).rows[0]?.ai;
+    const 세우기 = async () => {
+      await f.pool.query(`UPDATE perf_ai_job SET status = 'FAILED' WHERE run_id = $1 AND status IN ('QUEUED', 'RUNNING')`, [끝난]);
+      const jobId = (await f.사람(f.쓰기, 'POST', `/api/perf/runs/${끝난}/analysis`)).json<{ jobId: number }>().jobId;
+      await f.pool.query(`UPDATE perf_ai_job SET status = 'RUNNING', claimed_at = now() WHERE id = $1`, [jobId]);
+      return jobId;
+    };
+
+    const 깨짐 = await 세우기();
+    await expect(분석끝내기(깨짐, 끝난, { title: '\u0000', items: ['x'] })).rejects.toThrow();
+    expect(await 일(깨짐)).toBe('RUNNING');
+    expect(await ai읽기()).toBeNull();
+
+    const 닫힘 = await 세우기();
+    await f.pool.query(`UPDATE perf_ai_job SET status = 'FAILED' WHERE id = $1`, [닫힘]);
+    expect(await 분석끝내기(닫힘, 끝난, { title: '제목', items: ['글'] })).toBe(false);
+    expect(await ai읽기()).toBeNull();
+
+    const 좋음 = await 세우기();
+    expect(await 분석끝내기(좋음, 끝난, { title: '제목', items: ['글'] })).toBe(true);
+    expect(await 일(좋음)).toBe('DONE');
+    expect(await ai읽기()).toEqual({ title: '제목', items: ['글'] });
   });
 });

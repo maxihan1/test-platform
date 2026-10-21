@@ -1,5 +1,6 @@
 // 성능 AI 일 — 결과 모양 검사 · 동시 사용자 계산 · 일 표 읽고 쓰기 (도메인/성능 §7 「AI 일」 · PERF-F1-04)
 
+import type { PoolClient } from 'pg';
 import { z } from 'zod';
 
 import { 목표, 트랜잭션 } from './scenarios.js';
@@ -123,9 +124,9 @@ export async function 집기(접두사들: string[]): Promise<{ id: number; kind
   return row === undefined ? null : { id: Number(row.id), kind: row.kind, input: row.input };
 }
 
-/** 집힌 일만 끝낸다. 끝났거나 집히지 않은 일이면 false */
-export async function 끝내기(id: number, 결과: { output: unknown } | { error: string }): Promise<boolean> {
-  const r = await (await 풀()).query(
+/** 집힌 일만 끝낸다. 끝났거나 집히지 않은 일이면 false. 손을 주면 그 연결(트랜잭션)에서 한다 */
+export async function 끝내기(id: number, 결과: { output: unknown } | { error: string }, 손?: Pick<PoolClient, 'query'>): Promise<boolean> {
+  const r = await (손 ?? (await 풀())).query(
     `UPDATE perf_ai_job SET status = $2, output = $3, error = $4, finished_at = now()
       WHERE id = $1 AND status = 'RUNNING' AND claimed_at IS NOT NULL`,
     'error' in 결과 ? [id, 'FAILED', null, 결과.error.slice(0, 2000)] : [id, 'DONE', JSON.stringify(결과.output), null],

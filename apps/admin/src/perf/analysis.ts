@@ -1,6 +1,8 @@
 // 성능 실행의 AI 분석 — 재료 표 만들기 · ANALYZE_RUN 일 세우기 · 결과 쓰기 (도메인/성능 §7 「실행 · 결과」 AI 분석)
 
-import { 일만들기 } from './ai.js';
+import type { PoolClient } from 'pg';
+
+import { 끝내기, 일만들기 } from './ai.js';
 import { 실행보기 } from './runView.js';
 import * as 표 from './store.js';
 
@@ -80,6 +82,26 @@ export async function 분석일세우기(runId: number, who: string): Promise<nu
 }
 
 /** 끝난 분석 일의 결과를 그 실행에 쓴다 — 결과 화면과 PDF 가 perf_run.ai 를 읽는다 */
-export async function 분석결과쓰기(runId: number, output: unknown): Promise<void> {
-  await (await 표.풀()).query('UPDATE perf_run SET ai = $2 WHERE id = $1', [runId, JSON.stringify(output)]);
+export async function 분석결과쓰기(runId: number, output: unknown, 손?: Pick<PoolClient, 'query'>): Promise<void> {
+  await (손 ?? (await 표.풀())).query('UPDATE perf_run SET ai = $2 WHERE id = $1', [runId, JSON.stringify(output)]);
+}
+
+/**
+ * ANALYZE_RUN 일을 닫으며 결과를 그 실행에 쓴다 — 한 트랜잭션이라 쓰기가 실패하면 일도 닫히지 않는다.
+ * 따로 하면 일은 DONE 인데 실행엔 분석이 없는 채로 남는다. 집힌 일이 아니어서 못 닫으면 false (쓴 것도 되돌린다)
+ */
+export async function 분석끝내기(jobId: number, runId: number, output: unknown): Promise<boolean> {
+  const c = await (await 표.풀()).connect();
+  try {
+    await c.query('BEGIN');
+    await 분석결과쓰기(runId, output, c);
+    const 닫음 = await 끝내기(jobId, { output }, c);
+    await c.query(닫음 ? 'COMMIT' : 'ROLLBACK');
+    return 닫음;
+  } catch (e) {
+    await c.query('ROLLBACK');
+    throw e;
+  } finally {
+    c.release();
+  }
 }
