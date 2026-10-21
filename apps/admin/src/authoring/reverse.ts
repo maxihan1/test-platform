@@ -4,6 +4,7 @@ import { 기본역할, type 역할계정 } from '@platform/kit/accounts';
 
 import type { PoolClient } from 'pg';
 
+import { 문서설정읽기 } from '../apidoc/store.js';
 import { API인증읽기, type API인증, 역할계정읽기 } from '../settings/envs.js';
 
 /**
@@ -179,6 +180,9 @@ export async function 역방향칸판정(본문: Record<string, unknown>, 서비
   const { compare, env, startUrl } = 본문;
   const 주소있음 = startUrl !== undefined && startUrl !== null;
   if (compare !== undefined && typeof compare !== 'boolean') return { error: 'BAD_ENV' };
+  // Android 앱은 크롤러가 못 읽어 대조가 없다 (§3.6 「앱 화면」). 만들기 · 재실행 · 이어 작성이 모두 여기를 지난다 —
+  // 종류가 바뀌기 전에 세운 대조 원본을 물려받아도 막힌다
+  if ((compare === true || 주소있음) && (await 문서설정읽기(서비스))?.kind === 'APP') return { error: 'BAD_ENV' };
   if (compare !== true) {
     if (주소있음) return { error: 'BAD_START_URL' };
     if (env !== undefined && env !== null) return { error: 'BAD_ENV' };

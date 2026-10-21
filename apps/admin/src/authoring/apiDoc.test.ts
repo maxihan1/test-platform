@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { 다시작성세우기 } from '../apidoc/rewrite.js';
 import authoringAgentRoutes from './agentRoutes.js';
 import { 이어작성준비, 제출 } from './assetStore.js';
+import { 역방향칸판정 } from './reverse.js';
 import authoringRoutes from './routes.js';
 
 const 연결 = process.env.DATABASE_URL;
@@ -49,6 +50,8 @@ describe.skipIf(연결 === undefined)('API 애플리케이션 작성 요청', { 
       [앱접두사],
     );
     앱서비스 = Number(a.rows[0]!.id);
+    // 계정을 넣은 줄이라 웹 애플리케이션이면 대조가 통과한다 — 거절은 종류 때문이어야 한다
+    await q(`INSERT INTO service_env (service_id, env, base_url, login_id, login_password) VALUES ($1, 'stg', 'http://127.0.0.1:3000', 'tester', 'xawa-비밀')`, [앱서비스]);
     await q(
       `INSERT INTO service_env (service_id, env, base_url, api_auths, is_prod) VALUES
          ($1, 'stg', 'http://127.0.0.1:3003', $2, false), ($1, 'prod', 'https://push.example.com', $2, true)`,
@@ -69,7 +72,7 @@ describe.skipIf(연결 === undefined)('API 애플리케이션 작성 요청', { 
   afterAll(async () => {
     await 치우기();
     await q('DELETE FROM api_doc_version WHERE service_id = $1', [서비스]);
-    await q('DELETE FROM service_env WHERE service_id = $1', [서비스]);
+    await q('DELETE FROM service_env WHERE service_id = ANY($1)', [[서비스, 앱서비스]]);
     await q('DELETE FROM service WHERE id = ANY($1)', [[서비스, 화면서비스, 앱서비스]]);
     await app.close();
   });
@@ -89,10 +92,15 @@ describe.skipIf(연결 === undefined)('API 애플리케이션 작성 요청', { 
   it('Android 앱 애플리케이션은 대조 · 시작 주소를 BAD_ENV, 판을 NOT_API_SERVICE 로 거절하고 DRAFT 도 안 남는다', async () => {
     const 거절 = async (몸: Record<string, unknown>) => (await 만들기(몸, 앱접두사)).json<{ error: string }>().error;
     expect(await 거절({ compare: true, env: 'stg' })).toBe('BAD_ENV');
-    expect(await 거절({ compare: false })).toBe('BAD_ENV');
     expect(await 거절({ startUrl: 'http://127.0.0.1:3000/' })).toBe('BAD_ENV');
     expect(await 거절({ apiDoc: 1 })).toBe('NOT_API_SERVICE');
     expect((await q('SELECT 1 FROM authoring_request WHERE service_id = $1', [앱서비스])).rowCount).toBe(0);
+  });
+
+  it('재실행 · 이어 작성이 대조 원본을 물려받아도 Android 앱이면 BAD_ENV 이고, 대조가 아니면 통과한다', async () => {
+    expect(await 역방향칸판정({ compare: true, env: 'stg', startUrl: null }, 앱서비스)).toEqual({ error: 'BAD_ENV' });
+    expect(await 역방향칸판정({ compare: false }, 앱서비스)).toEqual({ compare: false });
+    expect(await 역방향칸판정({}, 앱서비스)).toEqual({ compare: false });
   });
 
   it('판 하나가 자료로 붙어 파일 없이도 줄에 서고, 집기가 그 판 원문과 대상 서버 인증을 싣는다', async () => {
