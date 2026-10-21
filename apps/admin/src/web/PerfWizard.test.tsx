@@ -86,7 +86,7 @@ describe('새 시나리오를 네 단계로 만들어 실행한다', () => {
       targets: [{ metric: 'P95', op: '<=', value: 2000, source: 'MANUAL' }],
     });
     expect(실행.mock.calls[0]![0].stages.at(-1)).toEqual({ durationSec: 300, target: 500 });
-    expect((await screen.findByRole('status')).textContent).toContain('실행을 시작했습니다. 실행 번호 12');
+    await waitFor(() => expect(window.location.hash).toBe('#/perf/runs/12'));
   });
 
   it('서버가 거절하면 까닭을 그 자리에 보인다', async () => {
@@ -143,6 +143,7 @@ it('고칠 때는 네 단계를 다 끝낸 것으로 보고 바로 간다', asyn
     name: '주문하기',
     version: 3,
     accountsRows: 0,
+    schedule: null,
     versions: [],
     body: {
       transactions: [{ name: '상품 목록', method: 'GET', url: '/api/products' }],

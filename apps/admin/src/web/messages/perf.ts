@@ -23,7 +23,6 @@ export const 성능말: Record<string, string> = {
   명: ' VUs',
   '애플리케이션을 먼저 골라 주세요': 'Pick an application first',
   '대상 서버와 부하 발생 에이전트를 골라 주세요': 'Pick a target server and a load generator',
-  '실행을 시작했습니다. 실행 번호 {번호}': 'Run started. Run #{번호}',
   '시나리오 이름을 적어 주세요': 'Enter a scenario name',
   '트랜잭션이 하나도 없습니다. 가져오거나 추가해 주세요': 'There are no transactions. Import or add one',
   '가상 사용자가 0명입니다. 최대 가상 사용자를 적어 주세요': 'Virtual users are 0. Enter max virtual users',
