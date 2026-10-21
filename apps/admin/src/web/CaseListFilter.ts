@@ -6,7 +6,8 @@ import { useState } from 'react';
 
 import { TECHNIQUES } from '@platform/kit/types';
 
-import { type CaseQuery, type ItemStatus, type Platform, type 케이스축, 케이스축들 } from './api.js';
+import { type CaseQuery, type ItemStatus, type Platform, type 앱종류, type 케이스축, 케이스축들 } from './api.js';
+import { 종류 } from './kind.js';
 import { use주소조건, 주소조건 } from './leaveGuard.js';
 
 /** 설계 기법 고르개의 값 — 전체 · kit 기법 차례 · 기법 없음 (도메인/카탈로그 §8.1 「설계 기법」) */
@@ -40,13 +41,15 @@ function 주소묶음(주소: URLSearchParams): 묶음조건 | null {
 }
 
 // 처음요구 — 「PRD 관리」에서 넘어온 주소의 요구 번호(도메인/카탈로그 §8.1 「맥락」). 화면에 따로 고르는 칸은 없다
-export function use검색조건(service: string, kind: 'UI' | 'FN', 처음요구?: string) {
+// 앱종류 — Android 앱 애플리케이션은 디바이스 칩 줄이 없다. 웹에서 고른 디바이스 · 주소의 dev 가 보이지 않는 거르기로 남지 않게 없는 것으로 친다
+export function use검색조건(service: string, kind: 'UI' | 'FN', 처음요구?: string, 앱종류?: 앱종류) {
   const [처음] = useState(주소조건);
   const [typed, setTyped] = useState(처음.get('q') ?? '');
   const [q, setQ] = useState(처음.get('q') ?? '');
   const [page, setPage] = useState(() => Math.max(1, Math.floor(Number(처음.get('page')) || 1)));
   // 조건은 전부 서버가 거른다 (SPEC §8.1 표 — 마지막 결과도 2026-10-19 ⑫ 부터)
-  const [디바이스, set디바이스] = useState<Platform | 'ALL'>(() => 고른값(처음.get('dev'), ['desktop', 'mobile', 'android'] as const, 'ALL'));
+  const [고른디바이스, set디바이스] = useState<Platform | 'ALL'>(() => 고른값(처음.get('dev'), ['desktop', 'mobile', 'android'] as const, 'ALL'));
+  const 디바이스 = 종류(앱종류).디바이스칩 ? 고른디바이스 : 'ALL';
   const [활성만, set활성만] = useState(처음.get('all') !== '1');
   // 판정은 실행 쪽 함수가 주고 카탈로그가 그것으로 거른다 — 쪽 안에서만 거르면 2쪽의 실패가 안 보였다 (도메인/카탈로그 §7 `?last=`)
   const [결과, set결과] = useState<ItemStatus | 'ALL'>(() => 고른값(처음.get('last'), ['PASS', 'FAIL', 'NA'] as const, 'ALL'));

@@ -3,7 +3,7 @@
 import type { ServiceRow, User } from './api.js';
 import { use말, use언어, type 언어 } from './i18n.js';
 import { 아이콘 } from './icons.js';
-import { 종류, 종류이름, 종류차례 } from './kind.js';
+import { 종류, 종류이름, 종류차례, 종류키 } from './kind.js';
 import { 고른서비스를적는다, 배정프로젝트들, 프로젝트서비스들 } from './layout.js';
 
 /**
@@ -46,7 +46,7 @@ export function 서비스고르개({ user, service, onService }: { user: User; s
   if (service === null) return <span className="side-svc-name">{t('애플리케이션 없음')}</span>;
   const 목록 = 프로젝트서비스들(service.projectId, user.services);
   const 묶음들 = 종류차례
-    .map((k) => ({ k, 줄: 목록.filter((it) => (it.kind ?? 'SCREEN') === k) }))
+    .map((k) => ({ k, 줄: 목록.filter((it) => 종류키(it.kind) === k) }))
     .filter((묶음) => 묶음.줄.length > 0);
   const 줄 = (it: ServiceRow) => (
     <option key={it.prefix} value={it.prefix}>

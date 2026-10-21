@@ -31,8 +31,13 @@ const 종류표: Record<앱종류, 종류줄> = {
 /** 설정 칩 · 헤더 묶음의 차례 */
 export const 종류차례: readonly 앱종류[] = ['SCREEN', 'APP', 'API'];
 
-/** 옛 응답 · 검사 가짜 행은 종류를 안 담는다 — 서버 기본값과 같이 웹으로 읽는다 */
-export const 종류 = (kind: 앱종류 | undefined): 종류줄 => 종류표[kind ?? 'SCREEN'];
+/**
+ * 옛 응답 · 검사 가짜 행은 종류를 안 담는다 — 서버 기본값과 같이 웹으로 읽는다.
+ * 이 표에 없는 값(서버가 먼저 올라간 GAME 같은)도 웹으로 읽는다 — 헤더 · 목록이 깨지는 것보다 낫다
+ */
+export const 종류키 = (kind: 앱종류 | undefined): 앱종류 => (kind !== undefined && 종류차례.includes(kind) ? kind : 'SCREEN');
+
+export const 종류 = (kind: 앱종류 | undefined): 종류줄 => 종류표[종류키(kind)];
 
 /** 화면 이름 — 설정 칩 · 헤더 묶음 제목 · 고른 칸 아이콘의 읽어 주는 이름 */
 export const 종류이름 = (kind: 앱종류 | undefined, 언어: 언어): string => t(종류(kind).이름, 언어);

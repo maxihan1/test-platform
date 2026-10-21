@@ -32,7 +32,7 @@ import { useRunPick } from './useRunPick.js';
 export function CaseList({ service, 할수, 결과보나, 요구보나 = false, kind, 요구, 앱종류 }: { service: string; 할수: 판정; 결과보나: boolean; 요구보나?: boolean; kind: 'UI' | 'FN'; 요구?: string; 앱종류?: 앱종류 }) {
   const t = use말();
   const 언어 = use언어();
-  const 검색 = use검색조건(service, kind, 요구);
+  const 검색 = use검색조건(service, kind, 요구, 앱종류);
   const { 조건, 결과, page } = 검색;
   const [본서비스, set본서비스] = useState(service);
   const [scanning, setScanning] = useState(false);

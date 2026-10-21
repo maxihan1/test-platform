@@ -2,10 +2,11 @@
 // 애플리케이션 종류 「Android 앱」 화면 검사 (도메인/러너 §5.2 「애플리케이션 종류 「Android 앱」」 종류 표 · APP-F1-16)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 
 import { api, type ServiceRow, type User } from './api.js';
 import { AuthoringNew } from './AuthoringNew.js';
+import { use검색조건 } from './CaseListFilter.js';
 import { 조건칩들 } from './CaseListParts.js';
 import { Empty } from './CaseListNotes.js';
 import { 떠나기막기 } from './leaveGuard.js';
@@ -80,6 +81,16 @@ describe('헤더 애플리케이션 고르개', () => {
     expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(['데모마켓 웹', '데모마켓 운영툴']);
   });
 
+  it('표에 없는 종류는 웹으로 읽어 목록에서 빠지지 않고 아이콘도 없다', () => {
+    const 모름 = { ...앱('MKG', '게임'), kind: 'GAME' } as unknown as ServiceRow;
+    const 목록 = [앱('MKW', '데모마켓 웹'), 앱('MKA', '데모마켓 앱', 'APP'), 모름];
+    const { container } = render(<종류아이콘 service={모름} />);
+    expect(container.innerHTML).toBe('');
+    cleanup();
+    render(<서비스고르개 user={사람(목록)} service={모름} onService={() => {}} />);
+    expect([...document.querySelectorAll('optgroup')][0]?.querySelectorAll('option')).toHaveLength(2);
+  });
+
   it('고른 칸의 종류 아이콘은 Android 앱 · API 에만 서고 웹에는 없다', () => {
     const { rerender, container } = render(<종류아이콘 service={앱('MKA', '데모마켓 앱', 'APP')} />);
     expect(screen.getByRole('img', { name: 'Android 앱' })).toBeTruthy();
@@ -108,6 +119,28 @@ describe('케이스 목록', () => {
     expect(screen.getByText('아직 Android 앱 케이스가 없습니다')).toBeTruthy();
     expect(screen.getByText('테스트 작성에서 앱 기획서를 넣으면 AI 가 디바이스 팜 폰으로 앱 화면을 읽고 케이스를 만듭니다')).toBeTruthy();
     expect(screen.getByRole('link', { name: '테스트 작성으로' }).getAttribute('href')).toBe('#/authoring');
+  });
+
+  it('훑은 적이 없거나 스캔에 문제가 있으면 Android 앱이라도 늘 쓰던 안내다', () => {
+    render(<Empty 형편={{ ...빈형편, scannedAt: null }} onClear={() => {}} onScan={() => {}} 앱종류="APP" 작성보나 />);
+    expect(screen.getByText('아직 케이스를 불러오지 않았습니다')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '케이스 불러오기' })).toBeTruthy();
+    cleanup();
+    render(<Empty 형편={{ ...빈형편, 스캔문제: true }} onClear={() => {}} 앱종류="APP" 작성보나 />);
+    expect(screen.queryByText('아직 Android 앱 케이스가 없습니다')).toBeNull();
+  });
+
+  it('Android 앱은 웹에서 고른 디바이스 · 주소의 dev 를 거르기로 싣지 않는다', () => {
+    window.location.hash = '#/cases/fn?dev=desktop';
+    const 앱목록 = renderHook(() => use검색조건('MKA', 'FN', undefined, 'APP'));
+    expect(앱목록.result.current.조건).not.toHaveProperty('platform');
+    expect(앱목록.result.current.건조건).toBe(false);
+    앱목록.unmount();
+    window.location.hash = '#/cases/fn?dev=desktop';
+    const 웹목록 = renderHook(() => use검색조건('MKW', 'FN', undefined, 'SCREEN'));
+    expect(웹목록.result.current.조건).toMatchObject({ platform: 'desktop' });
+    웹목록.unmount();
+    window.location.hash = '';
   });
 
   it('작성을 못 보는 사람에게는 고리가 없고 거른 조건이 있으면 늘 쓰던 안내다', () => {

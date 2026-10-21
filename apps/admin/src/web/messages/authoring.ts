@@ -259,8 +259,8 @@ export const 작성말: Record<string, string> = {
 
   // 새 요청 — Android 앱 애플리케이션 (도메인/러너 §5.2 종류 표)
   '앱 화면 읽기': 'Reading app screens',
-  '디바이스 팜에서 빈 폰 하나를 잡아 앱을 설치하고, 첫 화면부터 눌러 가며 요소 주소를 읽습니다. 끝나면 폰을 놓습니다':
-    'Takes a free phone from the device farm, installs the app, and taps through from the first screen to read element locators. The phone is released when done',
+  '대상 서버에 앱 파일 경로가 있으면 디바이스 팜에서 빈 폰 하나를 잡아 앱을 설치하고, 첫 화면부터 눌러 가며 요소 주소를 읽습니다. 끝나면 폰을 놓습니다':
+    'If the target server has an app file path, takes a free phone from the device farm, installs the app, and taps through from the first screen to read element locators. The phone is released when done',
   '앱 케이스는 끝 검사에서 폰으로 돌려 보지 않습니다. 병합 뒤 「테스트 스크립트」에서 실행해 확인합니다':
     'App cases are not run on a phone during the final check. Run them from “Test scripts” after the merge',
 };

@@ -235,7 +235,7 @@ export function AuthoringNew({
           {!줄.앱화면읽기 ? null : (
             <div className="authoring-field authoring-compare">
               <strong>{t('앱 화면 읽기')}</strong>
-              <small>{t('디바이스 팜에서 빈 폰 하나를 잡아 앱을 설치하고, 첫 화면부터 눌러 가며 요소 주소를 읽습니다. 끝나면 폰을 놓습니다')}</small>
+              <small>{t('대상 서버에 앱 파일 경로가 있으면 디바이스 팜에서 빈 폰 하나를 잡아 앱을 설치하고, 첫 화면부터 눌러 가며 요소 주소를 읽습니다. 끝나면 폰을 놓습니다')}</small>
               <small>{t('앱 케이스는 끝 검사에서 폰으로 돌려 보지 않습니다. 병합 뒤 「테스트 스크립트」에서 실행해 확인합니다')}</small>
             </div>
           )}
