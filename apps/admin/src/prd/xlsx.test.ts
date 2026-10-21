@@ -18,6 +18,7 @@ const 덮음 = (tcId: string, axis: string, techniques: string[] = []): 덮는�
 
 const 자료 = (결과: 추적표자료['결과']): 추적표자료 => ({
   generatedAt: '2026-10-11T03:00:00.000Z',
+  perf: { 'MKT-REQ-001': { targets: 2, verdict: 'FAIL', runId: 7 } },
   items: [항목('MKT-REQ-001', '비밀번호는 8자 이상 20자 이하다 — 예 Mkt!pass99'), 항목('MKT-REQ-003', '약관에 동의해야 가입된다', 'NEEDS_CHECK')],
   cases: {
     'MKT-REQ-001': [
@@ -42,7 +43,7 @@ describe('추적표만들기', () => {
   it('요구 한 줄에 케이스 수 · 번호 · 종류 · 기법 · 마지막 결과를 싣고 비밀번호를 가린다', async () => {
     const 결과표: Record<string, 'PASS' | 'FAIL'> = { 'MKT-FN-001:desktop': 'PASS', 'MKT-FN-002:desktop': 'FAIL', 'MKT-UI-001:desktop': 'PASS' };
     const { 줄 } = await 읽기(await 추적표만들기(자료((tc: string, p: Platform) => 결과표[`${tc}:${p}`]), ['Mkt!pass99']));
-    expect(줄(1)).toEqual(['요구 번호', '기능 묶음', '요구 문장', '상태', '케이스 수', 'TC ID', '정상', '경계', '예외', 'UI', '설계 기법', '마지막 결과']);
+    expect(줄(1)).toEqual(['요구 번호', '기능 묶음', '요구 문장', '상태', '케이스 수', 'TC ID', '정상', '경계', '예외', 'UI', '설계 기법', '마지막 결과', '성능 목표']);
     expect(줄(2)).toEqual([
       'MKT-REQ-001',
       '회원가입',
@@ -56,6 +57,7 @@ describe('추적표만들기', () => {
       1,
       '경계값 분석 2 · 동등 분할 1',
       '통과 2 · 실패 1 · 미실행 1',
+      '2개 · 실패',
     ]);
   });
 
@@ -72,6 +74,13 @@ describe('추적표만들기', () => {
     const 칸 = async (held: typeof 보류) => (await 읽기(await 추적표만들기({ ...자료(null), held }, []))).줄(3)[5];
     expect(await 칸(보류)).toBe('보류 — 관리자 계정 미등록');
     expect(await 칸({ ...보류, roles: 보류.roles.map((r) => ({ ...r, registered: true })) })).toBe('보류 — 관리자 · 판매자 계정 등록됨 · 이어 작성 전');
+  });
+
+  it('성능 목표 칸은 목표 수와 최근 판정을 싣고 판정이 아직 없으면 미실행, 목표가 없으면 비운다', async () => {
+    const 칸 = async (perf: 추적표자료['perf']) => (await 읽기(await 추적표만들기({ ...자료(null), perf }, []))).줄;
+    expect((await 칸({ 'MKT-REQ-001': { targets: 1, verdict: 'PASS', runId: 3 } }))(2)[12]).toBe('1개 · 통과');
+    expect((await 칸({ 'MKT-REQ-001': { targets: 3, verdict: null, runId: null } }))(2)[12]).toBe('3개 · 미실행');
+    expect((await 칸({}))(2)[12]).toBeUndefined();
   });
 
   it('실행 보기 권한이 없으면 마지막 결과 칸이 빈다', async () => {

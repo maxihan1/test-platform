@@ -29,6 +29,8 @@ describe.skipIf(연결 === undefined)('표준 기획서 API', () => {
     await q('UPDATE authoring_request SET prd_version = NULL WHERE service_id = $1', [서비스]);
     await q('DELETE FROM prd_version WHERE service_id = $1', [서비스]);
     await q('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
+    await q('DELETE FROM perf_run WHERE service_id = $1', [서비스]);
+    await q('DELETE FROM perf_scenario WHERE service_id = $1', [서비스]);
     await q('DELETE FROM service_env WHERE service_id = $1', [서비스]);
     await q('DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = $1)', [서비스]);
     await q('DELETE FROM test_run WHERE service_id = $1', [서비스]);
@@ -81,6 +83,7 @@ describe.skipIf(연결 === undefined)('표준 기획서 API', () => {
       foundScreens: 0,
       screensOpen: [],
       held: { reqs: {}, roles: [], continueFrom: null },
+      perf: {},
     });
     expect((await app.inject({ method: 'GET', url: '/api/prd' })).json()).toEqual({ error: 'SERVICE_REQUIRED' });
   });
@@ -231,5 +234,34 @@ describe.skipIf(연결 === undefined)('표준 기획서 API', () => {
     expect(안덮임!.slice(4, 6)).toEqual([0, '미작성']);
     const [못봄] = await 읽기('none');
     expect(못봄![11]).toBeUndefined();
+  });
+
+  it('요구마다 성능 목표 수와 가장 최근 판정을 싣고, 실행 read 가 없으면 비운다', async () => {
+    const 목표 = (reqId: string, verdict?: 'PASS' | 'FAIL') => ({ metric: 'P95', op: '<=', value: 500, source: 'PRD', reqId, ...(verdict === undefined ? {} : { measured: 100, verdict }) });
+    const 시나리오 = async (name: string, targets: object[], 지움 = false) => {
+      const s = await q<{ id: string }>(`INSERT INTO perf_scenario (service_id, name, created_by, deleted_at) VALUES ($1, $2, 'xpr', ${지움 ? 'now()' : 'NULL'}) RETURNING id`, [서비스, name]);
+      await q(`INSERT INTO perf_scenario_version (scenario_id, version, body, source, created_by) VALUES ($1, 1, $2, 'MANUAL', 'xpr')`, [s.rows[0]!.id, JSON.stringify({ targets })]);
+      return Number(s.rows[0]!.id);
+    };
+    const 실행 = async (scenarioId: number, verdict: 'PASS' | 'FAIL', targets: object[]) => {
+      const r = await q<{ id: string }>(
+        `INSERT INTO perf_run (kind, service_id, scenario_id, scenario_version, env, base_url, test_type, config, status, verdict, targets, origin)
+         VALUES ('LOAD', $1, $2, 1, 'qa', 'http://x.test', 'LOAD', '{}', 'DONE', $3, $4, 'MANUAL') RETURNING id`,
+        [서비스, scenarioId, verdict, JSON.stringify(targets)],
+      );
+      return Number(r.rows[0]!.id);
+    };
+    const 하나 = await 시나리오('목록', [목표('XPR-REQ-001'), 목표('XPR-REQ-001'), 목표('XPR-REQ-002'), { metric: 'ERROR_RATE', op: '<=', value: 1, source: 'AI' }]);
+    const 지운 = await 시나리오('지운 것', [목표('XPR-REQ-009')], true);
+    await 실행(하나, 'PASS', [목표('XPR-REQ-001', 'PASS'), 목표('XPR-REQ-002', 'PASS')]);
+    const 최근 = await 실행(하나, 'FAIL', [목표('XPR-REQ-001', 'PASS'), 목표('XPR-REQ-001', 'FAIL')]);
+    await 실행(지운, 'FAIL', [목표('XPR-REQ-009', 'FAIL')]);
+
+    const 읽기 = async (runs: 'read' | 'none') => (await app.inject({ method: 'GET', url: `/api/prd?service=${접두사}`, headers: { 'x-runs': runs } })).json<{ perf: unknown }>().perf;
+    expect(await 읽기('read')).toEqual({
+      'XPR-REQ-001': { targets: 2, verdict: 'FAIL', runId: 최근 },
+      'XPR-REQ-002': { targets: 1, verdict: 'PASS', runId: expect.any(Number) },
+    });
+    expect(await 읽기('none')).toEqual({});
   });
 });

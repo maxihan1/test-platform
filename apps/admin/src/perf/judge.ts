@@ -99,14 +99,49 @@ export function autoStop(rows: SecRow[], testType: TestType, targets: Target[]):
 }
 
 // 두 실행이 모두 지난 가상 사용자 수를 100명 단위로 내린 칸 [n, n+100) 의 95% 응답시간끼리 견준다
+const maxVusOf = (rs: SecRow[]) => rs.reduce((x, r) => Math.max(x, r.vus), 0);
+
+/** 견줌 지점 n. 두 실행의 전체 줄(tx = '')로 센다 */
+export function comparePoint(now: SecRow[], prev: SecRow[]): number {
+  return Math.floor(Math.min(maxVusOf(scopeRows(now, undefined)), maxVusOf(scopeRows(prev, undefined))) / 100) * 100;
+}
+
+/** 전체 줄의 가상 사용자 수가 [point, point+100) 인 초들 */
+export function bandSecs(rows: SecRow[], point: number): Set<number> {
+  return new Set(scopeRows(rows, undefined).filter((r) => r.vus >= point && r.vus < point + 100).map((r) => r.sec));
+}
+
 export function degraded(now: SecRow[], prev: SecRow[]): boolean | null {
-  const a = scopeRows(now, undefined);
-  const b = scopeRows(prev, undefined);
-  const maxOf = (rs: SecRow[]) => rs.reduce((x, r) => Math.max(x, r.vus), 0);
-  const point = Math.floor(Math.min(maxOf(a), maxOf(b)) / 100) * 100;
-  const inBand = (rs: SecRow[]) => rs.filter((r) => r.vus >= point && r.vus < point + 100);
-  const pa = measure(inBand(a)).p95;
-  const pb = measure(inBand(b)).p95;
+  const point = comparePoint(now, prev);
+  const inBand = (rs: SecRow[]) => scopeRows(rs, undefined).filter((r) => r.vus >= point && r.vus < point + 100);
+  const pa = measure(inBand(now)).p95;
+  const pb = measure(inBand(prev)).p95;
   if (pa === null || pb === null) return null;
   return pa > pb * DEGRADE_RATIO;
+}
+
+export interface TxView {
+  tx: string;
+  p95Ms: number | null;
+  errorRate: number | null;
+  prevP95Ms: number | null;
+  degraded: boolean;
+}
+
+/**
+ * 트랜잭션마다 95% · 에러율과 이전 실행 같은 칸의 95%. nowRows · prevRows 는 트랜잭션 줄(tx <> '')이고 이미 견줄 초(또는 판정 구간)만 든다.
+ * 순서는 order(시나리오 트랜잭션 순서)에 있는 것이 먼저, 나머지는 이름순이다. 이전 실행이 없으면 prevRows 는 null
+ */
+export function transactionViews(order: string[], nowRows: SecRow[], prevRows: SecRow[] | null): TxView[] {
+  const names = [...new Set(nowRows.filter((r) => r.tx !== '').map((r) => r.tx))];
+  const rank = (n: string) => { const i = order.indexOf(n); return i < 0 ? order.length : i; };
+  names.sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+  return names.map((tx) => {
+    const m = measure(scopeRows(nowRows, tx));
+    const prevP95Ms = prevRows === null ? null : measure(scopeRows(prevRows, tx)).p95;
+    return {
+      tx, p95Ms: m.p95, errorRate: m.errorRate === null ? null : Math.round(m.errorRate * 1000) / 1000, prevP95Ms,
+      degraded: m.p95 !== null && prevP95Ms !== null && m.p95 > prevP95Ms * DEGRADE_RATIO,
+    };
+  });
 }

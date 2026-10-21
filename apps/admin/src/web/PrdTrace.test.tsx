@@ -158,6 +158,36 @@ describe('PRD 관리 — 요구사항 추적표 칸', () => {
     expect(줄of('MKT-REQ-031').querySelector('.verdict')).toBeNull();
   });
 
+  it('성능 목표가 있는 요구는 개수와 최근 판정을, 목표가 없는 요구는 아무것도 안 단다', async () => {
+    지금.mockResolvedValue(
+      판({
+        cases: 덮인판().cases,
+        perf: {
+          'MKT-REQ-031': { targets: 2, verdict: 'FAIL', runId: 12 },
+          'MKT-REQ-040': { targets: 1, verdict: null, runId: null },
+          'MKT-REQ-041': { targets: 1, verdict: 'PASS', runId: 9 },
+        },
+      }),
+    );
+    render(<Prd service="MKT" 할수={보는사람} />);
+    fireEvent.click(await screen.findByRole('button', { name: /회원가입/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^로그인/ }));
+
+    const 아이디 = 줄of('MKT-REQ-031');
+    const 실패 = within(아이디).getByText('실패', { selector: '.prd-perf *' });
+    expect(아이디.querySelector('.prd-perf')!.textContent).toContain('성능 목표 2개');
+    expect(실패.tagName).toBe('A');
+    expect(실패.getAttribute('href')).toBe('#/perf/runs/12');
+    expect(실패.className).toContain('v-fail');
+
+    const 미실행 = 줄of('MKT-REQ-040').querySelector('.prd-perf .verdict')!;
+    expect(미실행.textContent).toBe('미실행');
+    expect(미실행.tagName).toBe('SPAN');
+
+    expect(줄of('MKT-REQ-041').querySelector('.prd-perf a')!.className).toContain('v-pass');
+    expect(줄of('MKT-REQ-032').querySelector('.prd-perf')).toBeNull();
+  });
+
   it('추적표 엑셀은 보기 권한으로 받고 서버가 준 이름으로 저장한다', async () => {
     엑셀.mockResolvedValue({ 파일: new Blob(['x']), 머리: 'attachment; filename="MKT-RTM-v12-2026-10-11.xlsx"' });
     Object.assign(URL, { createObjectURL: vi.fn(() => 'blob:rtm'), revokeObjectURL: vi.fn() });

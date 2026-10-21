@@ -1,0 +1,224 @@
+/* 성능 테스트 › 실행 중 · 결과 (도메인/성능 §8.14 · 시안 「실행 중」 「결과」). 색은 제품 토큰만 쓴다 */
+
+.perf-run {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.perf-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.perf-stat {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.perf-big {
+  font-size: 32px;
+  line-height: 1.1;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.perf-big small {
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.perf-cols {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.perf-wide {
+  grid-column: span 2;
+}
+
+.perf-sub {
+  margin: 8px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.perf-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.perf-pulse {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.perf-stop {
+  border-color: var(--fail);
+  color: var(--fail-text);
+}
+
+/* 그래프 */
+.perf-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+.perf-legend i {
+  display: inline-block;
+  width: 16px;
+  height: 2px;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.perf-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.perf-chart-body {
+  display: flex;
+  gap: 8px;
+}
+
+.perf-ticks {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: right;
+  padding-bottom: 24px;
+}
+
+.perf-chart-plot {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.perf-axis {
+  display: flex;
+  justify-content: space-between;
+}
+
+.perf-goal {
+  stroke: var(--fail);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+}
+
+/* 서버 모니터링 막대 */
+.perf-mrow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.perf-mtop {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.perf-bar {
+  height: 8px;
+  border-radius: 2px;
+  background: var(--chart-track);
+  overflow: hidden;
+}
+
+.perf-bar span {
+  display: block;
+  height: 100%;
+  background: var(--chart-1);
+}
+
+.perf-bar span.hot {
+  background: var(--fail-text);
+}
+
+.perf-log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.perf-log li {
+  display: flex;
+  gap: 12px;
+}
+
+/* 결과 */
+.perf-hero {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 32px;
+  align-items: flex-end;
+}
+
+.perf-hero-num {
+  font-size: 56px;
+  line-height: 1;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.perf-hero-num small {
+  font-size: 20px;
+  font-weight: 400;
+}
+
+.perf-ai-list {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 변화 글자 — 판정 배지가 아니라 실패 글자색 글자다 (DESIGN.md 「실행 결과」 변화 글자) */
+.perf-chg {
+  color: var(--fail-text);
+}
+
+.perf-run .perf-table {
+  min-width: 560px;
+}
+
+.perf-table th.r,
+.perf-table td.r {
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  .perf-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .perf-cols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .perf-wide {
+    grid-column: auto;
+  }
+}

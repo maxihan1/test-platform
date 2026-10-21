@@ -29,6 +29,9 @@ export type Route =
   | { name: 'perfScenarios' }
   | { name: 'perfScenarioNew' }
   | { name: 'perfScenario'; id: number }
+  /** 성능 테스트 › 실행 기록과 실행 한 건(도는 중이면 실행 중, 끝났으면 결과 — 같은 주소) */
+  | { name: 'perfRuns' }
+  | { name: 'perfRun'; runId: number }
   /** reqId — 케이스 목록의 요구 번호에서 왔다. 그 항목을 펴서 보인다 */
   | { name: 'prd'; reqId?: string }
   | { name: 'prdGuide' }
@@ -138,6 +141,11 @@ export function route(hash: string): Route {
     if (parts.length === 3 && /^\d{1,10}$/.test(parts[2]!)) return { name: 'perfScenario', id: Number(parts[2]) };
   }
 
+  if (parts[0] === 'perf' && parts[1] === 'runs') {
+    if (parts.length === 2) return { name: 'perfRuns' };
+    if (parts.length === 3 && /^\d{1,10}$/.test(parts[2]!)) return { name: 'perfRun', runId: Number(parts[2]) };
+  }
+
   if (parts[0] === 'runs') {
     if (parts.length === 1) return { name: 'runs', kind: 'FN' };
     if (parts.length === 2 && 실행종류글자[parts[1]!] !== undefined) return { name: 'runs', kind: 실행종류글자[parts[1]!]! };
@@ -176,6 +184,7 @@ const 기능자리: Partial<Record<Route['name'], 기능>> = {
   // 성능 테스트도 실행 칸을 쓴다 (공통/5-화면공통 §8 「자리 목록」)
   perfScenarios: 'runs',
   perfScenarioNew: 'runs',
+  perfRuns: 'runs',
 };
 
 /**

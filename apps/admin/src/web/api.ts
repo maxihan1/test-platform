@@ -933,6 +933,11 @@ export async function call<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, init);
   await 거절이면던진다(res, path);
   if (res.status === 204) return undefined as T;
+  // 202 는 본문이 없을 수 있다 — 실행 중단이 그렇다 (도메인/성능 §7)
+  if (res.status === 202) {
+    const 글 = await res.text();
+    return (글 === '' ? undefined : JSON.parse(글)) as T;
+  }
   return (await res.json()) as T;
 }
 

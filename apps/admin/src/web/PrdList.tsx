@@ -134,6 +134,7 @@ export function PrdList({
                       추적={추적of(x.reqId)}
                       거치는={apis === null || !편줄.has(x.reqId) ? [] : 요구가거치는(now.cases[x.reqId] ?? [], apis)}
                       보류={줄보류of(now.held, x.reqId)}
+                      성능={now.perf[x.reqId]}
                       케이스보나={케이스보나}
                       폈나={편줄.has(x.reqId)}
                       on펴기={() => {

@@ -44,17 +44,17 @@ afterEach(() => {
   Reflect.deleteProperty(navigator, 'clipboard');
 });
 
-function 껍데기(current: string, user: User = 사람) {
+function 껍데기(current: string, user: User = 사람, 주소?: string) {
   return (
     <언어함 value="ko">
-      <Shell user={user} service={결제} onService={() => {}} 언어="ko" on언어={() => {}} onLogout={나가기} current={current}>
+      <Shell user={user} service={결제} onService={() => {}} 언어="ko" on언어={() => {}} onLogout={나가기} current={current} 주소={주소}>
         <div>본문</div>
       </Shell>
     </언어함>
   );
 }
 
-const 띄운다 = (current: string, user: User = 사람) => render(껍데기(current, user));
+const 띄운다 = (current: string, user: User = 사람, 주소?: string) => render(껍데기(current, user, 주소));
 
 const 탭 = () => screen.getByRole('navigation', { name: '휴대폰 메뉴' });
 
@@ -169,6 +169,17 @@ describe('PC 전용 화면 안내', () => {
     띄운다(자리);
     expect(screen.getByText('본문')).toBeTruthy();
     expect(휴대폰자리인가(자리)).toBe(true);
+  });
+
+  it('성능 실행 한 건(#/perf/runs/12)은 휴대폰에서 열고, 실행 기록 목록(#/perf/runs)은 PC 에서만 연다', () => {
+    띄운다('#/perf/runs', 사람, '#/perf/runs/12');
+    expect(screen.getByText('본문')).toBeTruthy();
+    expect(휴대폰자리인가('#/perf/runs', '#/perf/runs/12')).toBe(true);
+    cleanup();
+    띄운다('#/perf/runs', 사람, '#/perf/runs');
+    expect(screen.queryByText('본문')).toBeNull();
+    expect(휴대폰자리인가('#/perf/runs', '#/perf/runs')).toBe(false);
+    expect(휴대폰자리인가('#/perf/runs', '#/perf/runs/new')).toBe(false);
   });
 
   it.each(['#/cases/fn', '#/prd', '#/authoring', '#/scenarios', '#/settings'])('%s 는 PC 에서만 연다', (자리) => {

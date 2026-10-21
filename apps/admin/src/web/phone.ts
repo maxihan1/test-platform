@@ -26,8 +26,9 @@ export function use휴대폰(): boolean {
 
 /**
  * 휴대폰에서 여는 자리인가. `지금자리()` 가 돌려준 해시로 가른다 — 실행 결과 · 항목 상세는 `#/runs` 다.
+ * 성능 「실행 중 · 결과」 한 건(`#/perf/runs/<번호>`)도 연다. 그 자리는 실행 기록 목록과 `지금자리()` 값이 같아서 실제 주소로 가른다 — 목록은 PC 전용이다.
  * 나머지(케이스 · PRD · 작성 · 시나리오 · 설정)는 PC 전용 안내를 그린다
  */
-export function 휴대폰자리인가(지금: string): boolean {
-  return 지금 === '#/dashboard' || 지금 === '#/password' || 지금 === '#/runs' || 지금.startsWith('#/runs/');
+export function 휴대폰자리인가(지금: string, 주소 = ''): boolean {
+  return 지금 === '#/dashboard' || 지금 === '#/password' || 지금 === '#/runs' || 지금.startsWith('#/runs/') || /^#\/perf\/runs\/\d+$/.test(주소);
 }

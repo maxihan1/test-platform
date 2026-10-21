@@ -122,6 +122,7 @@ export const 오류말: Record<string, string> = {
   HOST_NOT_ALLOWED: '대상 서버와 프로젝트 API 서버 밖의 주소로 가는 트랜잭션이 있습니다',
   NO_AGENT: '고른 부하 발생 에이전트가 연결돼 있지 않습니다',
   NAME_TAKEN: '같은 이름이 이미 있습니다',
+  NOT_RUNNING: '이미 끝난 실행입니다',
   NOT_FOUND: '그 항목을 찾지 못했습니다. 다른 사람이 지웠을 수 있습니다',
   INVALID_REQUEST: '입력한 값 중에 형식이 맞지 않는 것이 있습니다',
 };

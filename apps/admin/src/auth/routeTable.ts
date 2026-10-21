@@ -192,6 +192,8 @@ export const 등급표: Record<string, 표값> = {
   'GET /api/perf/scenarios/:id': 실행읽기,
   'PUT /api/perf/scenarios/:id': 실행쓰기,
   'DELETE /api/perf/scenarios/:id': 실행쓰기,
+  // 정기 실행을 켜고 끄는 일은 admin 만이다 (도메인/성능 §7 「정기 실행」)
+  'PUT /api/perf/scenarios/:id/schedule': 'admin',
   'POST /api/perf/runs': 실행쓰기,
   'GET /api/perf/runs': 실행읽기,
   'GET /api/perf/runs/:id': 실행읽기,
@@ -200,6 +202,7 @@ export const 등급표: Record<string, 표값> = {
   'GET /api/perf/runs/:id/events': 실행읽기,
   'GET /api/perf/runs/:id/report.pdf': 실행읽기,
   'POST /api/perf/runs/:id/stop': 실행쓰기,
+  'POST /api/perf/runs/:id/analysis': 실행쓰기,
   // 시나리오 초안 · 추천은 만들기와 같은 무게다. AI 일 결과는 실행 read 로 본다 (PERF-F1-04)
   'POST /api/perf/scenarios/draft': 실행쓰기,
   'POST /api/perf/suggest': 실행쓰기,

@@ -1,5 +1,5 @@
 // 성능 시나리오 만들기 · 고치기 — 네 단계 마법사 (도메인/성능 §8.14 · 시안 캔버스 버전 14 「고른 시안」 B)
-// 고칠 때는 끝낸 단계를 눌러 바로 간다. 실행 중 · 결과 화면은 PERF-F1-06 이 붙인다 — 그 전에는 시작한 실행 번호만 알린다
+// 고칠 때는 끝낸 단계를 눌러 바로 간다. 「실행」을 누르면 그 실행의 화면(#/perf/runs/번호)으로 간다
 
 import { useState } from 'react';
 
@@ -8,6 +8,7 @@ import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { 고른서버를적는다, 마지막서버 } from './layout.js';
 import { perfApi, type PerfScenario, type ScenarioBody } from './perfApi.js';
+import { PerfSchedule } from './PerfSchedule.js';
 import { PerfStepLoad, 유형글자, type 이단계값 } from './PerfStepLoad.js';
 import { PerfStepRun, type 사단계값 } from './PerfStepRun.js';
 import { PerfStepScenario, type 일단계값 } from './PerfStepScenario.js';
@@ -50,6 +51,10 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
   const t = use말();
   const 언어 = use언어();
   const 쓰나 = 할수있나(user, service.prefix, '실행');
+  // 정기 실행은 admin 만 켜고 끈다 (도메인/성능 §3.9)
+  const 관리자 = 할수있나(user, service.prefix, '설정');
+  const [정기, set정기] = useState(시나리오?.schedule ?? null);
+  const [정기창, set정기창] = useState(false);
   const [처음] = useState(처음값(시나리오, service));
   const [일, set일] = useState(처음.일);
   const [이, set이] = useState(처음.이);
@@ -124,7 +129,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
     try {
       고른서버를적는다(service.prefix, 사.env);
       const { runId } = await perfApi.run({ scenarioId: id, env: 사.env, testType: 이.testType, basis: 이.basis, stages: 이.stages, targets: 삼.targets, agentIds: 사.agentIds, monitorIds: 사.monitorIds });
-      set알림({ 글: t('실행을 시작했습니다. 실행 번호 {번호}', { 번호: runId }), 오류: false });
+      window.location.hash = `#/perf/runs/${String(runId)}`;
     } catch (err) {
       set알림({ 글: message(err, 언어), 오류: true });
     } finally {
@@ -161,13 +166,24 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
         제목={일.name.trim() === '' ? t('새 시나리오') : 일.name}
         부제={버전 === null ? t('{앱} · 새 시나리오', { 앱: service.name }) : t('{앱} · 버전 {버전}', { 앱: service.name, 버전 })}
         행동={
-          쓰나 ? (
-            <button type="button" className="btn ghost" disabled={하는중} onClick={() => void 저장()}>
-              {t('임시 저장')}
-            </button>
-          ) : undefined
+          <>
+            {관리자 && 번호 !== null ? (
+              <>
+                {정기 === null ? null : <span className="perf-faint">{t('매일 {시각} · {서버}', { 시각: 정기.at, 서버: 정기.env })}</span>}
+                <button type="button" className="btn ghost" onClick={() => set정기창(true)}>
+                  {t('정기 실행')}
+                </button>
+              </>
+            ) : null}
+            {쓰나 ? (
+              <button type="button" className="btn ghost" disabled={하는중} onClick={() => void 저장()}>
+                {t('임시 저장')}
+              </button>
+            ) : null}
+          </>
         }
       />
+      {정기창 && 번호 !== null ? <PerfSchedule scenarioId={번호} envs={service.envs} 지금={정기} 바뀜={set정기} 닫기={() => set정기창(false)} /> : null}
       <div className="screen" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         <ol className="perf-steps" aria-label={t('시나리오 만들기 단계')}>
           {단계들.map((d) => {

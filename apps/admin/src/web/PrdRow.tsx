@@ -7,7 +7,7 @@ import { useState } from 'react';
 import type { 줄보류 } from '../prd/heldText.js';
 import type { 추적 } from '../prd/trace.js';
 import { use말 } from './i18n.js';
-import type { PrdItemDraft } from './prdApi.js';
+import type { PrdItemDraft, 성능칸 } from './prdApi.js';
 import { 거치는API, type 거치는줄 } from './PrdApis.js';
 import { 근거목록 } from './PrdBasis.js';
 import { PrdItemForm } from './PrdItemForm.js';
@@ -24,6 +24,7 @@ export function 요구줄({
   추적,
   거치는,
   보류,
+  성능,
   케이스보나,
   폈나,
   on펴기,
@@ -41,6 +42,7 @@ export function 요구줄({
   추적: 추적;
   거치는: 거치는줄[];
   보류: 줄보류 | null;
+  성능: 성능칸 | undefined;
   케이스보나: boolean;
   폈나: boolean;
   on펴기: () => void;
@@ -74,7 +76,7 @@ export function 요구줄({
             ▸
           </span>
         </button>
-        <추적칸 reqId={x.reqId} 추적={추적} 보류={보류} 케이스보나={케이스보나} />
+        <추적칸 reqId={x.reqId} 추적={추적} 보류={보류} 성능={성능} 케이스보나={케이스보나} />
       </div>
       {!폈나 ? null : 고치나 ? (
         <div className="prd-detail">

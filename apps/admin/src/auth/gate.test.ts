@@ -681,6 +681,8 @@ describe('등급 표', () => {
     ['POST /api/perf/agents', 'admin'],
     ['PATCH /api/perf/agents/:id', 'admin'],
     ['DELETE /api/perf/agents/:id', 'admin'],
+    // 성능 시나리오의 정기 실행을 켜고 끄는 일도 admin 이다 (도메인/성능 §7 「정기 실행」)
+    ['PUT /api/perf/scenarios/:id/schedule', 'admin'],
     // 에이전트 통로는 사람 판정 밖이라 표에 「안 따짐」이다 — 사람이 닿으면 문이 401 로 먼저 돌려보낸다
     ['POST /api/perf/agent/hello', 'admin'],
     ['POST /api/perf/agent/claim', 'admin'],

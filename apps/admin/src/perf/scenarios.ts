@@ -160,8 +160,8 @@ export default async function perfScenarioRoutes(app: FastifyInstance): Promise<
     const id = 정수(req.params.id);
     if (id === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.params.id });
     const pool = await 풀();
-    const s = await pool.query<{ service_id: string; name: string; version: number; accounts_csv: string | null; body: unknown }>(
-      `SELECT s.service_id, s.name, s.version, s.accounts_csv, v.body FROM perf_scenario s
+    const s = await pool.query<{ service_id: string; name: string; version: number; accounts_csv: string | null; body: unknown; schedule_at: string | null; schedule_tz: string | null; schedule_env: string | null }>(
+      `SELECT s.service_id, s.name, s.version, s.accounts_csv, v.body, to_char(s.schedule_at, 'HH24:MI') AS schedule_at, s.schedule_tz, s.schedule_env FROM perf_scenario s
          JOIN perf_scenario_version v ON v.scenario_id = s.id AND v.version = s.version
         WHERE s.id = $1 AND s.deleted_at IS NULL`,
       [id],
@@ -175,6 +175,7 @@ export default async function perfScenarioRoutes(app: FastifyInstance): Promise<
     return {
       id, serviceId: Number(row.service_id), name: row.name, version: row.version, body: row.body,
       accountsRows: row.accounts_csv === null ? 0 : 계정줄들(row.accounts_csv).length,
+      schedule: row.schedule_at === null ? null : { at: row.schedule_at, tz: row.schedule_tz ?? '', env: row.schedule_env ?? '' },
       versions: versions.rows.map((v) => ({ version: v.version, source: v.source, createdAt: v.created_at, createdBy: v.created_by })),
     };
   });

@@ -52,6 +52,7 @@ export function 판(덮을것: Partial<PrdNow> = {}): PrdNow {
     foundScreens: 0,
     screensOpen: [],
     held: { reqs: {}, roles: [], continueFrom: null },
+    perf: {},
     ...덮을것,
   };
 }
