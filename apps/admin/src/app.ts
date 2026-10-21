@@ -23,6 +23,8 @@ import { 정기실행켜기 } from './execution/scheduled.js';
 import trialRoutes from './execution/trialRoutes.js';
 import grafanaProxy from './grafana/proxy.js';
 import notificationRoutes from './notifications/routes.js';
+import { 성능엔진켜기 } from './perf/engine.js';
+import perfRoutes from './perf/routes.js';
 import guideAgentRoutes from './guide/agentRoutes.js';
 import appScreenAgentRoutes from './authoring/appScreen.js';
 import apiDocRoutes from './apidoc/routes.js';
@@ -68,6 +70,7 @@ export function buildApp(sessionSecret = process.env.SESSION_SECRET ?? '') {
   app.register(scenarioRunRoutes, { prefix: '/api' });
   app.register(scenarioTrialRoutes, { prefix: '/api' });
   app.register(settingsRoutes, { prefix: '/api' });
+  app.register(perfRoutes, { prefix: '/api' });
 
   // 대시보드는 /api 밖이다. 문(auth/grafanaGate.ts)을 지난 요청만 Grafana 로 넘어간다 (SPEC 도메인/인증 §7)
   app.register(grafanaProxy);
@@ -104,6 +107,8 @@ if (열쇠바이트 < 열쇠최소길이) {
     const app = buildApp();
     // 서비스 설정에서 켠 정기 실행을 1분마다 본다. 기동 경로에만 둔다 — buildApp 을 부르는 검사가 진짜 실행을 만들지 않게 (SPEC 공통/6-인프라 §9.2)
     정기실행켜기(app);
+    // 성능 실행을 1초마다 살핀다(대기열 · 끊김 · 자동 중단). 같은 까닭으로 기동 경로에만 둔다 (도메인/성능 §3.9)
+    성능엔진켜기(app);
     return app.listen({ port, host: '0.0.0.0' });
   })
   .catch((err: unknown) => {

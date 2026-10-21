@@ -64,6 +64,7 @@ describe('라우트표', () => {
       'execution',
       'guide',
       'notifications',
+      'perf',
       'prd',
       'reporting',
       'scenario',
@@ -132,7 +133,7 @@ describe('라우트표', () => {
 
   it('번호로 부르는 자리는 읽을 칸을 지정한다', () => {
     for (const [틀, 원천] of Object.entries(라우트표)) {
-      if (원천.종류 === '안매임' || 원천.종류 === '질의' || 원천.종류 === '본문tcId') continue;
+      if (원천.종류 === '안매임' || 원천.종류 === '질의' || 원천.종류 === '질의번호' || 원천.종류 === '본문tcId') continue;
       expect(틀.includes(`:${원천.칸}`), `${틀} 에 :${원천.칸} 이 없다`).toBe(true);
     }
   });

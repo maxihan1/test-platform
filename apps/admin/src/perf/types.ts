@@ -1,0 +1,64 @@
+// 성능 시나리오 본문 · 실행 설정의 꼴 — 저장은 perf_scenario_version.body, 실행은 perf_run.config (도메인/성능 §3.9 · §7)
+
+export type TestType = 'LOAD' | 'STRESS' | 'SPIKE' | 'SOAK';
+
+export interface Extract {
+  var: string;
+  where: 'JSON' | 'HEADER' | 'COOKIE';
+  path: string;
+  pick: 'FIRST' | 'RANDOM';
+}
+
+export interface Transaction {
+  name: string;
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  // 대상 서버 주소 아래 경로(`/api/login`) 또는 API 서버 호스트의 절대 주소. ${변수} 를 쓸 수 있다
+  url: string;
+  headers?: Record<string, string>;
+  body?: string;
+  extract?: Extract[];
+  check?: { status?: number[]; contains?: string };
+  thinkTimeSec?: number;
+}
+
+export interface Stage {
+  durationSec: number;
+  target: number;
+}
+
+export interface Load {
+  basis: 'VUS' | 'TPS';
+  stages: Stage[];
+}
+
+export interface Target {
+  metric: 'P95' | 'ERROR_RATE' | 'TPS';
+  // 트랜잭션 이름. 비면 전체
+  scope?: string;
+  op: '<=' | '>=';
+  value: number;
+  source: 'PRD' | 'AI' | 'MANUAL';
+  reqId?: string;
+}
+
+export interface ScenarioBody {
+  transactions?: Transaction[];
+  dummyClient?: number;
+  load?: Load & { testType?: TestType };
+  targets?: Target[];
+  run?: Record<string, unknown>;
+}
+
+export interface RunConfig {
+  testType: TestType;
+  load: Load;
+  targets: Target[];
+  agentIds: number[];
+  monitorIds: number[];
+  // 고른 대상 서버 주소의 호스트와 프로젝트 API 서버 호스트 (§3.9 「허용 호스트」) — WHATWG URL.host 꼴
+  allowedHosts: string[];
+  pageCheck: boolean;
+  accountsRows: number;
+  durationSec: number;
+  maxVus: number;
+}

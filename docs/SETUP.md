@@ -794,6 +794,8 @@ docker run -d --init --restart unless-stopped --name qahub-perf-agent \
   qahub-perf-agent
 ```
 
+`MAX_VUS` 는 그 에이전트가 처음 붙을 때만 들어간다. 그 뒤에 바꾸려면 설정 › 성능 에이전트에서 「편집」으로 고친다 — 사람이 고친 값이 이긴다(SPEC 도메인/성능 §5.4).
+
 **모니터링 에이전트(대상 서버 위)** — 같은 이미지를 대상 서버(Linux)에 띄우고 발급 때 「모니터링」을 고른다. `--network host` 를 꼭 붙인다 — 안 붙이면 네트워크 숫자가 서버가 아니라 컨테이너 것이 된다.
 
 ```bash

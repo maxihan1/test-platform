@@ -185,6 +185,31 @@ export const 등급표: Record<string, 표값> = {
   'POST /api/settings/users/:username/password': 'admin',
   'POST /api/settings/users/:username/agent-token': 'admin',
   'DELETE /api/settings/users/:username/agent-token': 'admin',
+
+  // 성능 테스트 (도메인/성능 §7) — 보기는 실행 read, 만들기 · 실행 · 중단은 실행 write. 부하를 거는 일은 실행을 거는 일과 같은 무게다
+  'GET /api/perf/scenarios': 실행읽기,
+  'POST /api/perf/scenarios': 실행쓰기,
+  'GET /api/perf/scenarios/:id': 실행읽기,
+  'PUT /api/perf/scenarios/:id': 실행쓰기,
+  'DELETE /api/perf/scenarios/:id': 실행쓰기,
+  'POST /api/perf/runs': 실행쓰기,
+  'GET /api/perf/runs': 실행읽기,
+  'GET /api/perf/runs/:id': 실행읽기,
+  'GET /api/perf/runs/:id/series': 실행읽기,
+  'GET /api/perf/runs/:id/hosts': 실행읽기,
+  'GET /api/perf/runs/:id/events': 실행읽기,
+  'GET /api/perf/runs/:id/report.pdf': 실행읽기,
+  'POST /api/perf/runs/:id/stop': 실행쓰기,
+  // 에이전트 목록은 마법사가 고르므로 실행 read 다. 붙이고 고치고 지우는 일은 admin (§3.9 결정 15)
+  'GET /api/perf/agents': 실행읽기,
+  'POST /api/perf/agents': 'admin',
+  'PATCH /api/perf/agents/:id': 'admin',
+  'DELETE /api/perf/agents/:id': 'admin',
+  // 에이전트가 부르는 통로 — 문이 pga_ 토큰으로만 판정하고 권한 판정 앞에서 돌려보낸다 (gate.ts 성능에이전트문)
+  'POST /api/perf/agent/hello': 안따짐,
+  'POST /api/perf/agent/claim': 안따짐,
+  'POST /api/perf/agent/runs/:runId/metrics': 안따짐,
+  'POST /api/perf/agent/runs/:runId/done': 안따짐,
 };
 
 /**

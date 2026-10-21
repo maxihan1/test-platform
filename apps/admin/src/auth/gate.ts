@@ -1,9 +1,10 @@
 // 모든 /api/** 앞에 서는 문. 로그인했는가 · 배정받은 서비스인가 · 그 서비스에서 권한이 되는가 셋을 본다 (SPEC §7)
 // 실행·카탈로그·리포팅은 이 문이 실어 준 req.user 만 읽고 비밀번호도 세션도 모른다 (§3.5)
 
-import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import { 시나리오시험 } from '../execution/trial.js';
+import { 성능토큰인가, 성능토큰주인, 성능헤더토큰 } from '../perf/agentToken.js';
 
 import { 그라파나문, 그라파나틀인가 } from './grafanaGate.js';
 import { 토큰으로왔나, 확인 } from './identify.js';
@@ -129,7 +130,9 @@ async function 닿는서비스(req: FastifyRequest): Promise<string[] | typeof �
     원천.종류 === '입력값묶음' ||
     원천.종류 === '작성요청' ||
     원천.종류 === '시나리오' ||
-    원천.종류 === '서비스'
+    원천.종류 === '서비스' ||
+    원천.종류 === '성능시나리오' ||
+    원천.종류 === '성능실행'
   ) {
     const 번호 = 번호로(params[원천.칸]);
     // 라우트는 이 값을 숫자로 읽는다. 문이 못 읽는 모양이면 둘이 다른 것을 보고 있다
@@ -138,6 +141,28 @@ async function 닿는서비스(req: FastifyRequest): Promise<string[] | typeof �
     const 서비스 = await 자원의서비스({ 종류: 원천.종류, 번호 });
     // 없는 번호는 지나보낸다. 라우트가 404 를 내야 「없는 것」과 「남의 것」이 안 뭉개진다 (§7)
     // 있긴 한데 서비스에 안 매였으면(통합 이전 행) 어느 배정에도 안 드므로 막는다
+    if (서비스 === 서비스없음) return 막는다;
+    if (서비스 !== null) 모인것.push(서비스);
+  }
+
+  // 성능 통로는 애플리케이션을 번호로 고른다 — 없으면 라우트가 400 을 낸다
+  if (원천.종류 === '질의번호') {
+    const 값 = (req.query as Record<string, unknown> | null)?.[원천.칸];
+    if (값 !== undefined) {
+      const 번호 = 번호로(값);
+      if (번호 === null) return 막는다;
+      const 서비스 = await 자원의서비스({ 종류: '서비스', 번호 });
+      if (typeof 서비스 === 'string') 모인것.push(서비스);
+    }
+  }
+
+  // 성능 시나리오 만들기는 본문 serviceId, 실행 만들기는 본문 scenarioId 의 애플리케이션이다 (도메인/성능 §7)
+  if ((틀 === '/api/perf/scenarios' || 틀 === '/api/perf/runs') && req.method === 'POST') {
+    const body = req.body;
+    const 칸 = 틀 === '/api/perf/scenarios' ? 'serviceId' : 'scenarioId';
+    const 값 = typeof body === 'object' && body !== null ? (body as Record<string, unknown>)[칸] : undefined;
+    if (typeof 값 !== 'number' || !Number.isSafeInteger(값) || 값 <= 0) return 막는다;
+    const 서비스 = await 자원의서비스({ 종류: 칸 === 'serviceId' ? '서비스' : '성능시나리오', 번호: 값 });
     if (서비스 === 서비스없음) return 막는다;
     if (서비스 !== null) 모인것.push(서비스);
   }
@@ -181,8 +206,22 @@ const 로그인없이통과 = new Set([
 // 비밀번호 변경 강제 중인 계정이 부를 수 있는 셋 (SPEC 도메인/인증 §7). `METHOD 틀` 모양이고 HEAD 는 GET 으로 본다
 const 변경강제중허용 = new Set(['GET /api/auth/me', 'POST /api/auth/logout', 'POST /api/auth/password']);
 
+// 부하 발생 · 모니터링 에이전트 통로는 사람 판정 밖이다 — pga_ 토큰만 받는다 (도메인/인증 §7 「등급으로 갈리는 자리」)
+const 성능에이전트통로 = '/api/perf/agent/';
+
+async function 성능에이전트문(req: FastifyRequest, reply: FastifyReply): Promise<void> {
+  const 토큰 = 성능헤더토큰(req.headers.authorization);
+  const agent = 토큰 === null ? null : await 성능토큰주인(토큰);
+  if (agent === null) {
+    await reply.code(401).send({ error: 'UNAUTHENTICATED' });
+    return;
+  }
+  req.perfAgent = agent;
+}
+
 export function 인증등록(app: FastifyInstance): void {
   app.decorateRequest('user', null);
+  app.decorateRequest('perfAgent', null);
 
   /**
    * **로그인 검사는 본문을 읽기 전에 한다.**
@@ -201,6 +240,9 @@ export function 인증등록(app: FastifyInstance): void {
     // /api 밖이지만 같은 확인·변경 강제를 건다. 권한은 대시보드 한 칸뿐이라 아래 표를 안 탄다 (SPEC 도메인/인증 §7)
     if (그라파나틀인가(path)) return 그라파나문(req, reply);
     if (!path.startsWith('/api/')) return;
+    if (path.startsWith(성능에이전트통로)) return 성능에이전트문(req, reply);
+    // pga_ 는 에이전트 행의 열쇠라 사람 통로에 쓰이면 안 된다. 세션으로 넘어가지 않게 여기서 막는다
+    if (성능토큰인가(req.headers.authorization)) return reply.code(403).send({ error: 'AGENT_TOKEN_SCOPE' });
 
     // 로그인·가입 자체는 로그인을 요구할 수 없다 (SPEC §7).
     // 2026-09-17 에 POST /api/runs 예외가 삭제됐다 — 정기 실행은 HTTP 를 쓰지 않는다 (§9.2)
@@ -226,7 +268,7 @@ export function 인증등록(app: FastifyInstance): void {
     // 라우트가 안 잡힌 요청은 지킬 자원이 없다. 라우터가 404 를 내게 둔다
     const path = 라우트틀(req);
     if (path === undefined || !path.startsWith('/api/')) return;
-    if (로그인없이통과.has(path)) return;
+    if (로그인없이통과.has(path) || path.startsWith(성능에이전트통로)) return;
 
     // 위 onRequest 가 이미 401 을 냈다. 여기 닿았으면 사람이 실려 있다
     const user = req.user;

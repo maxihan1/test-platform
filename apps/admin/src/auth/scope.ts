@@ -19,6 +19,9 @@ export type 원천 =
   | { 종류: '작성요청'; 칸: string } // params[칸] 이 대기줄 행 번호다. 그 행의 service_id 가 서비스다 (§6)
   | { 종류: '시나리오'; 칸: string } // params[칸] 이 시나리오 번호다. 그 행의 service_id 가 서비스다
   | { 종류: '서비스'; 칸: string } // params[칸] 이 서비스(애플리케이션) 번호 자체다
+  | { 종류: '질의번호'; 칸: string } // query[칸] 이 애플리케이션 번호다 (성능 통로의 ?serviceId=)
+  | { 종류: '성능시나리오'; 칸: string } // params[칸] 이 perf_scenario 번호다
+  | { 종류: '성능실행'; 칸: string } // params[칸] 이 perf_run 번호다
   | { 종류: '시험'; 칸: string }; // params[칸] 이 시험 실행 번호다. 메모리 보관소가 시작한 사람에게만 서비스를 알려 준다
 
 /**
@@ -157,6 +160,25 @@ export const 라우트표: Record<string, 원천> = {
   '/api/scenario-trials': { 종류: '질의' },
   '/api/scenario-trials/:trialId': { 종류: '시험', 칸: 'trialId' },
   '/api/scenario-trials/:trialId/screenshots/:seq': { 종류: '시험', 칸: 'trialId' },
+
+  // 성능 테스트 (도메인/성능 §7). POST 의 본문 serviceId · scenarioId 는 gate.ts 의 본문 갈래가 같이 본다
+  '/api/perf/scenarios': { 종류: '질의번호', 칸: 'serviceId' },
+  '/api/perf/scenarios/:id': { 종류: '성능시나리오', 칸: 'id' },
+  '/api/perf/runs': { 종류: '질의번호', 칸: 'serviceId' },
+  '/api/perf/runs/:id': { 종류: '성능실행', 칸: 'id' },
+  '/api/perf/runs/:id/series': { 종류: '성능실행', 칸: 'id' },
+  '/api/perf/runs/:id/hosts': { 종류: '성능실행', 칸: 'id' },
+  '/api/perf/runs/:id/events': { 종류: '성능실행', 칸: 'id' },
+  '/api/perf/runs/:id/stop': { 종류: '성능실행', 칸: 'id' },
+  '/api/perf/runs/:id/report.pdf': { 종류: '성능실행', 칸: 'id' },
+  // 부하 발생 에이전트는 공용이다. 모니터링 에이전트 목록은 라우트가 프로젝트 권한으로 거른다 (§3.9 「서버 모니터링」)
+  '/api/perf/agents': { 종류: '안매임' },
+  '/api/perf/agents/:id': { 종류: '안매임' },
+  // 에이전트 통로는 사람 판정 밖이다 — 문이 pga_ 로만 본다
+  '/api/perf/agent/hello': { 종류: '안매임' },
+  '/api/perf/agent/claim': { 종류: '안매임' },
+  '/api/perf/agent/runs/:runId/metrics': { 종류: '안매임' },
+  '/api/perf/agent/runs/:runId/done': { 종류: '안매임' },
 };
 
 // SPEC §2 — 접두사는 자유 형식이고 플랫폼은 모양과 중복만 본다.
@@ -171,7 +193,7 @@ export function 케이스의서비스(tcId: unknown): string | null {
   return 접두사모양.test(접두사) ? 접두사 : null;
 }
 
-export type 찾을것 = { 종류: '실행' | '증적' | '입력값묶음' | '작성요청' | '시나리오' | '서비스'; 번호: number };
+export type 찾을것 = { 종류: '실행' | '증적' | '입력값묶음' | '작성요청' | '시나리오' | '서비스' | '성능시나리오' | '성능실행'; 번호: number };
 
 /** 번호 칸은 **라우트와 같은 엄격함**으로 읽는다. 느슨하면 문과 라우트가 다른 값을 본다 */
 export function 번호로(값: unknown): number | null {
@@ -198,6 +220,8 @@ const 질의: Record<찾을것['종류'], string> = {
   // 시나리오도 service_id 가 NOT NULL 이다
   시나리오: 'SELECT s.prefix FROM scenario sc JOIN service s ON s.id = sc.service_id WHERE sc.id = $1',
   서비스: 'SELECT prefix FROM service WHERE id = $1',
+  성능시나리오: 'SELECT s.prefix FROM perf_scenario p JOIN service s ON s.id = p.service_id WHERE p.id = $1',
+  성능실행: 'SELECT s.prefix FROM perf_run r JOIN service s ON s.id = r.service_id WHERE r.id = $1',
 };
 
 /**
