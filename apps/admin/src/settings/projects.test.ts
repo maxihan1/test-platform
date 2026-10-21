@@ -139,7 +139,7 @@ describe.skipIf(연결 === undefined)('설정 API — 프로젝트', () => {
     expect((await 서비스목록()).find((s) => s.id === 서비스번호)?.projectId).toBe(전);
   });
 
-  it('/auth/me 의 애플리케이션 줄마다 속한 프로젝트가 실린다', async () => {
+  it('/auth/me 의 애플리케이션 줄마다 속한 프로젝트와 종류가 실린다', async () => {
     const p = await pool();
     await p.query(
       `INSERT INTO app_user (username, display_name, password_hash, role, perm_dashboard, is_approved, must_change_password)
@@ -153,7 +153,7 @@ describe.skipIf(연결 === undefined)('설정 API — 프로젝트', () => {
     const 줄 = (await 서비스목록()).find((s) => s.id === 서비스번호)!;
     const 찾은것 = await 사용자와해시(계정);
     expect(찾은것?.user.services).toHaveLength(1);
-    expect(찾은것?.user.services[0]).toMatchObject({ id: 서비스번호, projectId: 줄.projectId, projectName: 줄.projectName });
+    expect(찾은것?.user.services[0]).toMatchObject({ id: 서비스번호, projectId: 줄.projectId, projectName: 줄.projectName, kind: 'SCREEN' });
   });
 
   it('애플리케이션을 옮기면 옮겨 간 프로젝트의 권한을 따르고, 비게 된 프로젝트의 권한 줄은 같이 지워진다', async () => {

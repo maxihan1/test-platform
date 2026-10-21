@@ -86,6 +86,7 @@ function 사람(role: 사용자['role'], 칸들: Record<string, 'none' | 'read' 
       color: '#000000',
       projectId: 1,
       projectName: prefix,
+      kind: 'SCREEN' as const,
       envs: [],
       hasSlackWebhook: false,
       hasFigmaToken: false,

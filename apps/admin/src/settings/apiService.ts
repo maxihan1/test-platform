@@ -48,7 +48,7 @@ interface 보낸칸 {
 }
 
 export interface 지금칸 {
-  /** 만들기는 스키마가, 고치기는 DB CHECK 가 SCREEN · API 로 막는다 */
+  /** 만들기는 스키마가, 고치기는 DB CHECK 가 SCREEN · APP · API 로 막는다 */
   kind: string;
   apiDocEnv: string | null;
   envs: string[];
@@ -56,11 +56,11 @@ export interface 지금칸 {
 
 /**
  * 저장 전에 본다. 지금 값(고치기면 DB, 만들기면 본문의 kind)과 보낸 것을 합쳐 본다. 틀리면 오류 코드.
- * 차례가 곧 우선순위다 — 화면 애플리케이션이면 나머지 칸 규칙이 뜻이 없다
+ * 차례가 곧 우선순위다 — API 가 아닌 애플리케이션(웹 · Android 앱)이면 나머지 칸 규칙이 뜻이 없다
  */
 export function API칸오류(보낸것: 보낸칸, 지금: 지금칸): string | null {
   const 인증들 = (보낸것.envs ?? []).flatMap((e) => e.apiAuths ?? []);
-  if (지금.kind === 'SCREEN' && (보낸것.apiDocPath != null || 보낸것.apiDocEnv != null || 인증들.length > 0)) return 'NOT_API_SERVICE';
+  if (지금.kind !== 'API' && (보낸것.apiDocPath != null || 보낸것.apiDocEnv != null || 인증들.length > 0)) return 'NOT_API_SERVICE';
   if ((보낸것.envs ?? []).some((e) => e.apiAuths !== undefined && API인증틀림(e.apiAuths))) return 'BAD_API_AUTH';
   const 경로 = 보낸것.apiDocPath;
   if (경로 != null && (!경로.startsWith('/') || 경로.length > 500)) return 'BAD_API_DOC_URL';
