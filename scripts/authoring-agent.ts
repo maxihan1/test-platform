@@ -24,6 +24,7 @@ import { 계정들, 동시상한, 바탕거부사유, 호스트환경 } from './
 import { 도는자식, 멈춤, 보고손만들기, 부른다, 자리들, 친다, 판정기만들기 } from './authoring-io.js';
 import { 모델설정, 버전뽑기, 업데이트인자, 업데이트할까, 점검통과 } from './authoring-model.js';
 import { 멈춘것닫기 } from './authoring-closing.js';
+import { 성능일돌기 } from './authoring-perf.js';
 import { type 판, 한건처리 } from './authoring-run.js';
 import { 도는일들, 반영줄들, 자리놓을까 } from './authoring-lanes.js';
 import { type 서비스설정, 건설정, 나풀기, 토큰고르기, 토큰모양인가, 토큰묻기, 토큰읽기, 토큰자리, 토큰저장 } from './authoring-token.js';
@@ -271,7 +272,7 @@ async function 돈다(): Promise<number> {
   };
 
   console.log(`[작성] 줄을 본다: ${서비스들.join(' · ')} · 동시에 ${켜기.상한}건 — 멈추려면 Ctrl+C.`);
-  await Promise.all(서비스들.map(줄돌기));
+  await Promise.all([...서비스들.map(줄돌기), 성능일돌기(주소, 토큰)]);
   await 일들.다기다리기();
   console.error(`[멈춤] ${멈춤.까닭}`);
   return 1;

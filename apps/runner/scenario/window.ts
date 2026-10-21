@@ -2,11 +2,13 @@
 // 감싸는 자리는 여기 한 곳이다 — 부품 request · page.request · 케이스가 직접 만든 창과 연결 (2026-10-06 게이트 0 사용자)
 
 import { readFileSync } from 'node:fs';
+import { basename } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import type { APIRequest, APIRequestContext, APIResponse, Browser, BrowserContext, Route } from '@playwright/test';
 
 import { 가르기, 미룬응답, 요청주소, 적기, 주소의, type CasePart, type 미룬삭제, type 받은응답, type 부품상태, type 상태, type 이음 } from './links.js';
+import { 다음HAR경로 } from '../src/recordHar.js';
 import { 남김, 합친상태, type RouteHandler, type 창 } from './parts.js';
 import { 꺼냄 } from './wire.js';
 
@@ -147,7 +149,16 @@ export function 주소채움<T extends object | undefined>(options: T, 이음값
 
 // 시나리오 동안 브라우저의 창 만들기와 @playwright/test 의 연결 만들기를 감싼다. 케이스가 require 로 불러도 같은 객체다 (2026-10-06 이미지 탐침)
 export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이음값: 이음, 설정: 감싸기설정) {
-  const 원래창 = browser.newContext.bind(browser);
+  const 원래창열기 = browser.newContext.bind(browser);
+  // 성능 녹화 — 러너가 폴더를 주면 창마다 HAR 를 건다. 창이 열리는 길은 모두 이 함수를 지난다. 파일은 창을 닫을 때 써진다
+  let 준번호 = 0;
+  const 원래창: typeof 원래창열기 = (options) => {
+    const 폴더 = process.env.PLATFORM_RECORD_HAR_DIR;
+    if (!폴더 || options?.recordHar !== undefined) return 원래창열기(options);
+    const path = 다음HAR경로(폴더, 준번호);
+    준번호 = Number(basename(path, '.har'));
+    return 원래창열기({ ...options, recordHar: { path, content: 'embed' } });
+  };
   const 원래요청 = 요청도구.newContext.bind(요청도구);
   let 지금: 지금부품 | undefined;
   let 걸린: ReadonlyMap<string, RouteHandler> = new Map();

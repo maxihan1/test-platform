@@ -8,7 +8,7 @@ import { 스크립트호스트 } from './generator.js';
 import { 풀 } from './store.js';
 import type { ScenarioBody, Transaction } from './types.js';
 
-const 트랜잭션 = z.object({
+export const 트랜잭션 = z.object({
   name: z.string().trim().min(1).max(100),
   method: z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']),
   url: z.string().min(1).max(2000),
@@ -41,8 +41,10 @@ const 본문 = z.object({
 }).refine((b) => (b.transactions === undefined) !== (b.dummyClient === undefined), '트랜잭션 목록과 더미 클라이언트 중 하나만 듭니다')
   .refine((b) => new Set((b.transactions ?? []).map((t) => t.name)).size === (b.transactions ?? []).length, '트랜잭션 이름이 겹칩니다');
 
-const 만들기 = z.object({ serviceId: z.number().int().positive(), name: z.string().trim().min(1).max(100), body: 본문 });
-const 고치기 = z.object({ body: 본문, accountsCsv: z.string().max(900_000).optional() });
+// draftJobId — 이 본문이 나온 AI 초안 일. 버전 기록에 출처(녹화 · Swagger · 파일)와 녹화 파일을 붙인다 (PERF-F1-04 시작 질문)
+const 초안번호 = z.number().int().positive().optional();
+const 만들기 = z.object({ serviceId: z.number().int().positive(), name: z.string().trim().min(1).max(100), body: 본문, draftJobId: 초안번호 });
+const 고치기 = z.object({ body: 본문, accountsCsv: z.string().max(900_000).optional(), draftJobId: 초안번호 });
 
 /**
  * 주소의 호스트. 스크립트의 글자 셈과 WHATWG URL.host 가 다르면(계정 · 국제 도메인 · 끝 점 · 퍼센트 글자) null —
@@ -97,6 +99,18 @@ async function 본문검사(serviceId: number, body: ScenarioBody): Promise<{ er
   return null;
 }
 
+/** 버전의 출처 · 녹화 파일. 끝난 초안 일이 같은 애플리케이션 것일 때만 받는다 */
+async function 출처(serviceId: number, draftJobId: number | undefined): Promise<{ source: string; recording: string | null } | null> {
+  if (draftJobId === undefined) return { source: 'MANUAL', recording: null };
+  const r = await (await 풀()).query<{ kind: string; recording: string | null }>(
+    `SELECT kind, input->>'recording' AS recording FROM perf_ai_job
+      WHERE id = $1 AND service_id = $2 AND status = 'DONE' AND kind IN ('DRAFT_RECORD', 'DRAFT_SWAGGER', 'DRAFT_FILE')`,
+    [draftJobId, serviceId],
+  );
+  const row = r.rows[0];
+  return row === undefined ? null : { source: row.kind.slice('DRAFT_'.length), recording: row.recording };
+}
+
 type 번호경로 = { Params: { id: string } };
 
 export default async function perfScenarioRoutes(app: FastifyInstance): Promise<void> {
@@ -119,6 +133,8 @@ export default async function perfScenarioRoutes(app: FastifyInstance): Promise<
     if (!p.success) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: p.error.message });
     const 틀림 = await 본문검사(p.data.serviceId, p.data.body);
     if (틀림 !== null) return reply.code(400).send(틀림);
+    const 온곳 = await 출처(p.data.serviceId, p.data.draftJobId);
+    if (온곳 === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: 'draftJobId' });
     const who = req.user?.username ?? '';
     const pool = await 풀();
     const client = await pool.connect();
@@ -126,7 +142,10 @@ export default async function perfScenarioRoutes(app: FastifyInstance): Promise<
       await client.query('BEGIN');
       const s = await client.query<{ id: string }>('INSERT INTO perf_scenario (service_id, name, created_by) VALUES ($1, $2, $3) RETURNING id', [p.data.serviceId, p.data.name, who]);
       const id = Number(s.rows[0]?.id);
-      await client.query(`INSERT INTO perf_scenario_version (scenario_id, version, body, source, created_by) VALUES ($1, 1, $2, 'MANUAL', $3)`, [id, JSON.stringify(p.data.body), who]);
+      await client.query(
+        'INSERT INTO perf_scenario_version (scenario_id, version, body, source, recording, created_by) VALUES ($1, 1, $2, $3, $4, $5)',
+        [id, JSON.stringify(p.data.body), 온곳.source, 온곳.recording, who],
+      );
       await client.query('COMMIT');
       return reply.code(201).send({ id, version: 1 });
     } catch (e) {
@@ -169,15 +188,17 @@ export default async function perfScenarioRoutes(app: FastifyInstance): Promise<
     if (s.rows[0] === undefined) return reply.code(404).send({ error: 'NOT_FOUND' });
     const 틀림 = await 본문검사(Number(s.rows[0].service_id), p.data.body);
     if (틀림 !== null) return reply.code(400).send(틀림);
+    const 온곳 = await 출처(Number(s.rows[0].service_id), p.data.draftJobId);
+    if (온곳 === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: 'draftJobId' });
     const csv = p.data.accountsCsv === undefined ? undefined : 계정줄들(p.data.accountsCsv);
     const r = await pool.query<{ version: number }>(
       `WITH up AS (
          UPDATE perf_scenario SET version = version + 1,
                 accounts_csv = CASE WHEN $4::boolean THEN NULLIF($5, '') ELSE accounts_csv END
           WHERE id = $1 AND deleted_at IS NULL RETURNING id, version)
-       INSERT INTO perf_scenario_version (scenario_id, version, body, source, created_by)
-       SELECT id, version, $2, 'MANUAL', $3 FROM up RETURNING version`,
-      [id, JSON.stringify(p.data.body), req.user?.username ?? '', csv !== undefined, (csv ?? []).join('\n')],
+       INSERT INTO perf_scenario_version (scenario_id, version, body, source, recording, created_by)
+       SELECT id, version, $2, $6, $7, $3 FROM up RETURNING version`,
+      [id, JSON.stringify(p.data.body), req.user?.username ?? '', csv !== undefined, (csv ?? []).join('\n'), 온곳.source, 온곳.recording],
     );
     if (r.rows[0] === undefined) return reply.code(404).send({ error: 'NOT_FOUND' });
     return { version: r.rows[0].version };

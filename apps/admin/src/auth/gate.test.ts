@@ -744,6 +744,8 @@ describe('등급 표', () => {
     'GET /api/cases/:tcId/test-run/:trialId': { 기능: 'runs', 까닭: '테스트 실행 결과 읽기다 (execution/trialRoutes.ts)' },
     'GET /api/dashboard': { 기능: 'runs', 까닭: '주소에 기능 접두사가 없다. 돌려주는 것이 실행 결과 집계다 (reporting/routes.ts)' },
     'GET /api/notifications': { 기능: 'runs', 까닭: '주소에 기능 접두사가 없다. 도는 실행과 작성 요청을 함께 주며 작성 쪽은 라우트가 작성 read 로 거른다 (notifications/routes.ts)' },
+    'POST /api/perf/ai-jobs/claim': { 기능: 'authoring', 까닭: '주소는 성능 아래지만 작성 에이전트가 집는 AI 일이다 — 작성 집기와 같은 무게 (perf/aiRoutes.ts · 도메인/성능 §7)' },
+    'POST /api/perf/ai-jobs/:id/finish': { 기능: 'authoring', 까닭: '작성 에이전트가 AI 일 결과를 돌려준다 (perf/aiRoutes.ts)' },
   };
   it('표의 기능은 경로 접두사가 정한 기능과 같다 — 접두사예외만 빼고', () => {
     const 경로의기능 = (틀: string): 기능 | null => {

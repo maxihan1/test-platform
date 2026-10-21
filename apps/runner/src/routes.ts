@@ -41,6 +41,9 @@ const apiDoc = z.object({ version: z.number().int().min(1), doc: z.record(z.stri
 // 판 원문이 5MB 까지라 Fastify 기본 상한(1MiB)이면 413 이 난다 (SPEC 도메인/러너 §5.2 「API 케이스 실행」)
 const 판상한 = { bodyLimit: 16 * 1024 * 1024 };
 
+// 성능 시나리오 녹화 — 오면 HAR 를 artifacts/perf-record/<jobId>/ 에 남긴다 (공통/3-공유계약 「성능 테스트 타입」)
+const recordHar = z.object({ jobId: z.number().int().positive() }).optional();
+
 const executeRequest = z.object({
   runId: z.number(),
   historyId: z.number(),
@@ -55,6 +58,7 @@ const executeRequest = z.object({
   udid: z.string().min(1).optional(),
   apiAuths,
   apiDoc,
+  recordHar,
 });
 
 const appScreenRequest = z.object({ app: 앱파일경로.optional(), udid: z.string().min(1).optional() });
@@ -163,6 +167,7 @@ const scenarioRequest = z
       .array(z.object({ host: z.string().max(255), path: z.string().max(2000), status: z.number().int().min(200).max(299) }))
       .max(1000)
       .optional(),
+    recordHar,
   })
   .refine((r) => r.runId !== null || r.trialId !== undefined, '시험 실행에는 trialId 가 있어야 한다');
 
