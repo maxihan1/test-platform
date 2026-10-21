@@ -6,6 +6,7 @@ import { useState } from 'react';
 import type { ServiceRow, User } from './api.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
+import { 종류 } from './kind.js';
 import { 고른서버를적는다, 마지막서버 } from './layout.js';
 import { perfApi, type PerfScenario, type ScenarioBody } from './perfApi.js';
 import { PerfSchedule } from './PerfSchedule.js';
@@ -43,7 +44,7 @@ function 처음값(s: PerfScenario | null, service: ServiceRow): { 일: 일단�
     일: { name: s?.name ?? '', transactions: b.transactions ?? [], notes: {}, 가져온: null },
     이: { testType, basis: b.load?.basis ?? 'VUS', 칸, stages: b.load?.stages ?? 구간만들기(testType, 칸) },
     삼: { targets: b.targets ?? [], aiBasis: [], degradeAlert: r.degradeAlert ?? true },
-    사: { env, agentIds: r.agentIds ?? [], monitorIds: r.monitorIds ?? [] },
+    사: { env, agentIds: r.agentIds ?? [], monitorIds: r.monitorIds ?? [], pageCheck: r.pageCheck ?? false },
   };
 }
 
@@ -51,6 +52,8 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
   const t = use말();
   const 언어 = use언어();
   const 쓰나 = 할수있나(user, service.prefix, '실행');
+  // 웹이 아닌 애플리케이션은 칸이 없다 — 저장된 값이 남아 있어도 켜서 보내지 않는다
+  const 페이지칸 = 종류(service.kind).페이지성능;
   // 정기 실행은 admin 만 켜고 끈다 (도메인/성능 §3.9)
   const 관리자 = 할수있나(user, service.prefix, '설정');
   const [정기, set정기] = useState(시나리오?.schedule ?? null);
@@ -75,7 +78,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
     transactions: 일.transactions,
     load: { basis: 이.basis, stages: 이.stages, testType: 이.testType },
     targets: 삼.targets,
-    run: { env: 사.env, agentIds: 사.agentIds, monitorIds: 사.monitorIds, ...이.칸, degradeAlert: 삼.degradeAlert },
+    run: { env: 사.env, agentIds: 사.agentIds, monitorIds: 사.monitorIds, ...이.칸, degradeAlert: 삼.degradeAlert, pageCheck: 페이지칸 && 사.pageCheck },
   });
 
   /** 저장하고 시나리오 번호를 돌려준다. 실패하면 알림을 띄우고 null */
@@ -128,7 +131,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
     set하는중(true);
     try {
       고른서버를적는다(service.prefix, 사.env);
-      const { runId } = await perfApi.run({ scenarioId: id, env: 사.env, testType: 이.testType, basis: 이.basis, stages: 이.stages, targets: 삼.targets, agentIds: 사.agentIds, monitorIds: 사.monitorIds });
+      const { runId } = await perfApi.run({ scenarioId: id, env: 사.env, testType: 이.testType, basis: 이.basis, stages: 이.stages, targets: 삼.targets, agentIds: 사.agentIds, monitorIds: 사.monitorIds, ...(페이지칸 && 사.pageCheck ? { pageCheck: true } : {}) });
       window.location.hash = `#/perf/runs/${String(runId)}`;
     } catch (err) {
       set알림({ 글: message(err, 언어), 오류: true });
@@ -225,6 +228,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
             저장된계정={저장된계정}
             최대목표={최대}
             쓰나={쓰나}
+            페이지칸={페이지칸}
             요약={[
               { 이름: t('시나리오'), 값: t('{이름} (트랜잭션 {수}개)', { 이름: 일.name, 수: 일.transactions.length }) },
               { 이름: t('테스트 유형'), 값: t(유형글자[이.testType].이름) },

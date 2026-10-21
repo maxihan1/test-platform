@@ -172,3 +172,41 @@ it('실행 읽기만 있는 사람에게는 저장 · 실행 · 가져오기가 
   expect(screen.queryByRole('button', { name: 'E2E 녹화' })).toBeNull();
   expect(screen.queryByRole('button', { name: '트랜잭션 추가' })).toBeNull();
 });
+
+describe('부하 중 페이지 로딩 측정', () => {
+  async function 네번째까지(user: User) {
+    vi.spyOn(perfApi, 'create').mockResolvedValue({ id: 42, version: 1 });
+    await 그리기(null, user);
+    fireEvent.change(screen.getByLabelText('시나리오 이름'), { target: { value: '주문하기' } });
+    fireEvent.click(screen.getByRole('button', { name: '트랜잭션 추가' }));
+    다음();
+    다음();
+    다음();
+    fireEvent.click(await screen.findByLabelText(/기본 에이전트/));
+    fireEvent.change(screen.getByLabelText(/^대상 서버/), { target: { value: 'qa' } });
+  }
+
+  it('웹이면 체크 칸이 있고, 켜면 실행 요청에 pageCheck: true 가 간다', async () => {
+    const 실행 = vi.spyOn(perfApi, 'run').mockResolvedValue({ runId: 12 });
+    await 네번째까지(사람());
+    expect(screen.getByText('가장 최근 페이지 성능 측정의 페이지를 브라우저 2개가 30초마다 엽니다')).toBeTruthy();
+    fireEvent.click(screen.getByLabelText('부하 중 페이지 로딩 측정'));
+    fireEvent.click(screen.getByRole('button', { name: '실행' }));
+    await waitFor(() => expect(실행).toHaveBeenCalled());
+    expect(실행.mock.calls[0]![0]).toMatchObject({ pageCheck: true });
+  });
+
+  it('켜지 않으면 pageCheck 를 보내지 않는다', async () => {
+    const 실행 = vi.spyOn(perfApi, 'run').mockResolvedValue({ runId: 12 });
+    await 네번째까지(사람());
+    fireEvent.click(screen.getByRole('button', { name: '실행' }));
+    await waitFor(() => expect(실행).toHaveBeenCalled());
+    expect(실행.mock.calls[0]![0]).not.toHaveProperty('pageCheck');
+  });
+
+  it('Android 앱 애플리케이션에는 체크 칸이 없다', async () => {
+    const 앱사람: User = { ...사람(), services: [{ ...앱(), kind: 'APP' }] };
+    await 네번째까지(앱사람);
+    expect(screen.queryByLabelText('부하 중 페이지 로딩 측정')).toBeNull();
+  });
+});

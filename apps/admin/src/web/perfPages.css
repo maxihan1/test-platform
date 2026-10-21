@@ -1,0 +1,120 @@
+/* 성능 테스트 › 페이지 성능 — 측정 조건 고르개 · 결과 표 줄 · 로딩 워터폴 · 페이지 선택 창 (도메인/성능 §8.14 · 시안 WebSpeed) */
+
+.pp-seg {
+  display: inline-flex;
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.pp-seg label {
+  padding: 8px 16px;
+  cursor: pointer;
+  color: var(--ink-muted);
+  font-size: 13.5px;
+  font-weight: 400;
+}
+
+.pp-seg label.on {
+  background: var(--well);
+  color: var(--ink);
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+/* 라디오는 눈에 안 보여도 키보드로 닿는다 */
+.pp-seg input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.pp-seg label:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.pp-title {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: baseline;
+}
+
+.pp-table {
+  min-width: 760px;
+}
+
+.pp-row {
+  cursor: pointer;
+}
+
+.pp-pick {
+  color: inherit;
+}
+
+/* 워터폴 — 이름 | 막대 | 시간 세 칸. 막대 위치는 시작 시각 ÷ 전체, 너비는 걸린 시간 ÷ 전체다 */
+.pp-wf {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr) 56px;
+  gap: 8px 12px;
+  align-items: center;
+}
+
+.pp-wf-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pp-wf-end {
+  text-align: right;
+}
+
+.pp-lab {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.pp-track {
+  position: relative;
+  height: 12px;
+  background: var(--chart-track);
+  border-radius: 2px;
+}
+
+.pp-track span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  min-width: 2px;
+  background: var(--chart-1);
+  border-radius: 2px;
+}
+
+.pp-track span.hot {
+  background: var(--fail-text);
+}
+
+.pp-pick-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pp-pick-list li {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+@media (max-width: 760px) {
+  .pp-wf {
+    grid-template-columns: 104px minmax(0, 1fr) 48px;
+  }
+}

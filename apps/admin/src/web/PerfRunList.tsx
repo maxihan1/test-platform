@@ -87,15 +87,18 @@ export function PerfRunList({ serviceId }: { serviceId: number }) {
                 <tbody>
                   {줄들.map((줄) => {
                     const 꼴 = 판정종류(줄);
+                    // 페이지 측정은 결과를 페이지 성능 화면이 보인다 (결정 6)
+                    const 페이지 = 줄.kind === 'PAGE';
+                    const 주소 = 페이지 ? `#/perf/pages?run=${String(줄.id)}` : `#/perf/runs/${String(줄.id)}`;
                     return (
                       <tr key={줄.id}>
                         <td>
-                          <a className="mono" href={`#/perf/runs/${String(줄.id)}`}>
+                          <a className="mono" href={주소}>
                             {`PRF-${String(줄.id).padStart(4, '0')}`}
                           </a>
                         </td>
                         <td>
-                          {줄.title} {줄.origin === 'SCHEDULED' ? <span className="perf-tag">{t('정기')}</span> : null}
+                          {페이지 ? <a href={주소}>{t('페이지 성능')}</a> : 줄.title} {줄.origin === 'SCHEDULED' ? <span className="perf-tag">{t('정기')}</span> : null}
                         </td>
                         <td>{줄.testType === null ? '-' : t(유형글자[줄.testType].이름)} · {줄.env}</td>
                         <td className="perf-faint">{시각글(줄.startedAt, 언어)}</td>

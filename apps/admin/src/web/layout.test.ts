@@ -143,11 +143,22 @@ describe('자리 목록', () => {
     expect(지금자리('prdGuide', '#/cases')).toBe('#/prd/guide');
   });
 
-  it('성능 테스트 하위는 시나리오 다음에 실행 기록이다', () => {
+  it('성능 테스트 하위는 시나리오 · 페이지 성능 · 실행 기록 차례다 (웹)', () => {
     expect(자리목록(김, 'MEM', 'ko').find((자리) => 자리.이름 === '성능 테스트')?.하위).toEqual([
       { 이름: '시나리오', 해시: '#/perf/scenarios', 라벨: '성능 테스트 · 시나리오' },
+      { 이름: '페이지 성능', 해시: '#/perf/pages', 라벨: '성능 테스트 · 페이지 성능' },
       { 이름: '실행 기록', 해시: '#/perf/runs', 라벨: '성능 테스트 · 실행 기록' },
     ]);
+  });
+
+  it('Android 앱 · API 애플리케이션에는 페이지 성능이 없고 시나리오 · 실행 기록은 늘 있다', () => {
+    const 앱 = { ...회원, kind: 'APP' as const };
+    const API = { ...결제, kind: 'API' as const };
+    const 하위해시 = (user: User, prefix: string) => 자리목록(user, prefix, 'ko').find((자리) => 자리.이름 === '성능 테스트')?.하위?.map((it) => it.해시);
+    expect(하위해시(사람('member', [앱]), 'MEM')).toEqual(['#/perf/scenarios', '#/perf/runs']);
+    expect(하위해시(사람('member', [API]), 'PAY')).toEqual(['#/perf/scenarios', '#/perf/runs']);
+    // 웹을 고르면 같은 사람에게도 선다 — 고른 애플리케이션의 종류를 본다
+    expect(하위해시(사람('member', [앱, 결제]), 'PAY')).toContain('#/perf/pages');
   });
 
   it('API 자리는 PRD 관리 바로 다음이고 하위는 API 문서 하나다', () => {
@@ -207,6 +218,7 @@ describe('자리 목록', () => {
     expect(지금자리('scenarios', '#/cases')).toBe('#/scenarios');
     expect(지금자리('scenarioNew', '#/cases')).toBe('#/scenarios');
     expect(지금자리('perfScenario', '#/cases')).toBe('#/perf/scenarios');
+    expect(지금자리('perfPages', '#/cases')).toBe('#/perf/pages');
     expect(지금자리('perfRuns', '#/cases')).toBe('#/perf/runs');
     expect(지금자리('perfRun', '#/cases')).toBe('#/perf/runs');
     expect(지금자리('scenario', '#/cases')).toBe('#/scenarios');

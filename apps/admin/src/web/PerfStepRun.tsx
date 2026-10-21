@@ -1,5 +1,5 @@
-// 마법사 4단계 — 대상 서버 · 부하 발생 에이전트 · 테스트 계정 · 서버 모니터링 · 실행 요약 (도메인/성능 §8.14)
-// 「부하 중 페이지 로딩 측정」은 서버가 아직 받지 않아(PERF-F1-07) 칸을 두지 않는다
+// 마법사 4단계 — 대상 서버 · 부하 발생 에이전트 · 테스트 계정 · 서버 모니터링 · (부하 중 페이지 로딩 측정) · 실행 요약 (도메인/성능 §8.14)
+// 「부하 중 페이지 로딩 측정」 칸은 웹 애플리케이션에만 선다(kind.ts 의 페이지성능)
 
 import type { EnvRow } from './api.js';
 import { use말 } from './i18n.js';
@@ -11,6 +11,8 @@ export interface 사단계값 {
   env: string;
   agentIds: number[];
   monitorIds: number[];
+  /** 부하 중 페이지 로딩 측정을 켠다 (웹 애플리케이션만) */
+  pageCheck: boolean;
   /** 올릴 계정 CSV. 저장할 때 보내고 비운다 — 서버는 원문을 돌려주지 않는다(행 수만) */
   accountsCsv?: string;
 }
@@ -35,6 +37,7 @@ export function PerfStepRun({
   요약,
   최대목표,
   쓰나,
+  페이지칸,
 }: {
   값: 사단계값;
   고침: (값: 사단계값) => void;
@@ -44,6 +47,8 @@ export function PerfStepRun({
   요약: 요약줄[];
   최대목표: number;
   쓰나: boolean;
+  /** 부하 중 페이지 로딩 측정 칸을 그릴지 — 웹 애플리케이션만 */
+  페이지칸: boolean;
 }) {
   const t = use말();
   if (agents.error !== null) return <Failed error={agents.error} />;
@@ -115,6 +120,14 @@ export function PerfStepRun({
           {t('서버 모니터링')}
           {감시.length === 0 ? <span className="perf-faint">{t('이 프로젝트에 붙은 모니터링 에이전트가 없습니다')}</span> : 고르개(감시, 값.monitorIds, 'monitorIds')}
         </div>
+        {페이지칸 ? (
+          <div className="perf-field">
+            <label>
+              <input type="checkbox" checked={값.pageCheck} disabled={!쓰나} onChange={(e) => 고침({ ...값, pageCheck: e.target.checked })} /> {t('부하 중 페이지 로딩 측정')}
+            </label>
+            <span className="perf-faint">{t('가장 최근 페이지 성능 측정의 페이지를 브라우저 2개가 30초마다 엽니다')}</span>
+          </div>
+        ) : null}
       </section>
 
       <section className="perf-panel" style={{ flex: '1 1 260px' }} aria-labelledby="perf-sum">
