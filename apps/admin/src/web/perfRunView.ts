@@ -1,5 +1,6 @@
 // 성능 실행 화면의 계산 — 판정 글자 · 숫자 꼴 · 최근 숫자 집계 · 그래프 점 (도메인/성능 §3.9 「실행 · 결과」)
 
+import type { 판정하기 } from './runJudge.js';
 import type { Target, 실행상태, 실행판정, 중단사유, 초숫자 } from './perfApi.js';
 
 /** 글자를 영어 표로 옮기는 함수. 훅을 못 쓰는 이 파일은 화면에서 받는다 */
@@ -12,6 +13,9 @@ export const 갱신간격 = { ms: 5000 };
 export const 틈간격 = { ms: 10_000 };
 /** 끝쓰기와 AI 일 세우기 사이에 이 시간 안이면 분석이 곧 선다고 본다(ms) */
 export const 분석틈 = 120_000;
+
+/** 그 실행의 애플리케이션 접두사로 실행 칸 권한을 본다 — 띠에서 고른 애플리케이션이 아니다 */
+export const 실행쓰나 = (판정: 판정하기, run: { servicePrefix: string }): boolean => 판정(run.servicePrefix)('실행');
 
 const 진행 = new Set<실행상태>(['QUEUED', 'SMOKE', 'RUNNING']);
 export const 도는중인가 = (상태: 실행상태): boolean => 진행.has(상태);

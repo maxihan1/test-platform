@@ -3,7 +3,7 @@
 import { perfApi } from './perfApi.js';
 import { PerfRunLive } from './PerfRunLive.js';
 import { PerfRunResult } from './PerfRunResult.js';
-import { 도는중인가 } from './perfRunView.js';
+import { 도는중인가, 실행쓰나 } from './perfRunView.js';
 import type { 판정하기 } from './runJudge.js';
 import { Failed, Loading, useAsync } from './ui.js';
 
@@ -13,6 +13,6 @@ export function PerfRun({ runId, 판정하기 }: { runId: number; 판정하기: 
   // 다시 읽다 실패해도 이미 받은 화면은 그대로 둔다 — 처음 읽기가 실패했을 때만 오류를 보인다
   if (읽음.data === null) return 읽음.error !== null ? <Failed error={읽음.error} /> : <Loading />;
   const run = 읽음.data;
-  const 쓰나 = 판정하기(run.servicePrefix)('실행');
+  const 쓰나 = 실행쓰나(판정하기, run);
   return 도는중인가(run.status) ? <PerfRunLive run={run} 다시읽기={읽음.reload} 쓰나={쓰나} /> : <PerfRunResult run={run} 다시읽기={읽음.reload} 쓰나={쓰나} />;
 }
