@@ -132,7 +132,8 @@ async function 닿는서비스(req: FastifyRequest): Promise<string[] | typeof �
     원천.종류 === '시나리오' ||
     원천.종류 === '서비스' ||
     원천.종류 === '성능시나리오' ||
-    원천.종류 === '성능실행'
+    원천.종류 === '성능실행' ||
+    원천.종류 === '성능AI일'
   ) {
     const 번호 = 번호로(params[원천.칸]);
     // 라우트는 이 값을 숫자로 읽는다. 문이 못 읽는 모양이면 둘이 다른 것을 보고 있다
@@ -157,9 +158,11 @@ async function 닿는서비스(req: FastifyRequest): Promise<string[] | typeof �
   }
 
   // 성능 시나리오 만들기는 본문 serviceId, 실행 만들기는 본문 scenarioId 의 애플리케이션이다 (도메인/성능 §7)
-  if ((틀 === '/api/perf/scenarios' || 틀 === '/api/perf/runs') && req.method === 'POST') {
+  // 초안 · 추천도 본문 serviceId 다. 파일 초안은 본문이 파일 그대로라 위 ?serviceId= 로 본다 (PERF-F1-04)
+  const 성능본문 = ['/api/perf/scenarios', '/api/perf/runs', '/api/perf/scenarios/draft', '/api/perf/suggest'];
+  if (틀 !== undefined && 성능본문.includes(틀) && req.method === 'POST' && !Buffer.isBuffer(req.body)) {
     const body = req.body;
-    const 칸 = 틀 === '/api/perf/scenarios' ? 'serviceId' : 'scenarioId';
+    const 칸 = 틀 === '/api/perf/runs' ? 'scenarioId' : 'serviceId';
     const 값 = typeof body === 'object' && body !== null ? (body as Record<string, unknown>)[칸] : undefined;
     if (typeof 값 !== 'number' || !Number.isSafeInteger(값) || 값 <= 0) return 막는다;
     const 서비스 = await 자원의서비스({ 종류: 칸 === 'serviceId' ? '서비스' : '성능시나리오', 번호: 값 });

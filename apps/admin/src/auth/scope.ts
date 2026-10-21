@@ -22,6 +22,7 @@ export type 원천 =
   | { 종류: '질의번호'; 칸: string } // query[칸] 이 애플리케이션 번호다 (성능 통로의 ?serviceId=)
   | { 종류: '성능시나리오'; 칸: string } // params[칸] 이 perf_scenario 번호다
   | { 종류: '성능실행'; 칸: string } // params[칸] 이 perf_run 번호다
+  | { 종류: '성능AI일'; 칸: string } // params[칸] 이 perf_ai_job 번호다
   | { 종류: '시험'; 칸: string }; // params[칸] 이 시험 실행 번호다. 메모리 보관소가 시작한 사람에게만 서비스를 알려 준다
 
 /**
@@ -171,6 +172,13 @@ export const 라우트표: Record<string, 원천> = {
   '/api/perf/runs/:id/events': { 종류: '성능실행', 칸: 'id' },
   '/api/perf/runs/:id/stop': { 종류: '성능실행', 칸: 'id' },
   '/api/perf/runs/:id/report.pdf': { 종류: '성능실행', 칸: 'id' },
+  // 초안 · 추천은 본문 serviceId 를 gate.ts 의 본문 갈래가 보고, 파일 초안은 ?serviceId= 다 (PERF-F1-04)
+  '/api/perf/scenarios/draft': { 종류: '질의번호', 칸: 'serviceId' },
+  '/api/perf/suggest': { 종류: '질의번호', 칸: 'serviceId' },
+  '/api/perf/ai-jobs/:id': { 종류: '성능AI일', 칸: 'id' },
+  '/api/perf/ai-jobs/:id/finish': { 종류: '성능AI일', 칸: 'id' },
+  // 집기는 라우트가 그 계정이 배정된 애플리케이션의 일만 준다
+  '/api/perf/ai-jobs/claim': { 종류: '안매임' },
   // 부하 발생 에이전트는 공용이다. 모니터링 에이전트 목록은 라우트가 프로젝트 권한으로 거른다 (§3.9 「서버 모니터링」)
   '/api/perf/agents': { 종류: '안매임' },
   '/api/perf/agents/:id': { 종류: '안매임' },
@@ -193,7 +201,7 @@ export function 케이스의서비스(tcId: unknown): string | null {
   return 접두사모양.test(접두사) ? 접두사 : null;
 }
 
-export type 찾을것 = { 종류: '실행' | '증적' | '입력값묶음' | '작성요청' | '시나리오' | '서비스' | '성능시나리오' | '성능실행'; 번호: number };
+export type 찾을것 = { 종류: '실행' | '증적' | '입력값묶음' | '작성요청' | '시나리오' | '서비스' | '성능시나리오' | '성능실행' | '성능AI일'; 번호: number };
 
 /** 번호 칸은 **라우트와 같은 엄격함**으로 읽는다. 느슨하면 문과 라우트가 다른 값을 본다 */
 export function 번호로(값: unknown): number | null {
@@ -222,6 +230,7 @@ const 질의: Record<찾을것['종류'], string> = {
   서비스: 'SELECT prefix FROM service WHERE id = $1',
   성능시나리오: 'SELECT s.prefix FROM perf_scenario p JOIN service s ON s.id = p.service_id WHERE p.id = $1',
   성능실행: 'SELECT s.prefix FROM perf_run r JOIN service s ON s.id = r.service_id WHERE r.id = $1',
+  성능AI일: 'SELECT s.prefix FROM perf_ai_job j JOIN service s ON s.id = j.service_id WHERE j.id = $1',
 };
 
 /**

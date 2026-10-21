@@ -72,8 +72,8 @@ export async function 옛시험치우기(뿌리: string, 지금: number): Promis
   }
 }
 
-/** 조립을 검사하고 줄에 세운다. 기다리지 않고 trialId 를 돌려준다. 바쁘면 TrialBusyError 를 그대로 던진다 */
-export async function 시험시작(사람: { username: string }, 본문: 시험본문): Promise<string> {
+/** 조립을 검사하고 러너에 보낼 부품을 채운다. 성능 시나리오 녹화(perf/record.ts)도 같은 채우기를 쓴다 */
+export async function 시험재료(본문: 시험본문) {
   const 서비스 = await findService(본문.service);
   if (서비스 === null) throw new 시험시작오류('INVALID_REQUEST', `모르는 서비스다: ${본문.service}`);
 
@@ -117,7 +117,12 @@ export async function 시험시작(사람: { username: string }, 본문: 시험�
       ? []
       : 비밀글자들({ paramSchema: 재료.paramSchema, expectedSchema: 재료.expectedSchema, params: p.params, expected: p.expected });
   });
+  return { 앱들, baseUrl, parts, 부품재료, 비밀 };
+}
 
+/** 조립을 검사하고 줄에 세운다. 기다리지 않고 trialId 를 돌려준다. 바쁘면 TrialBusyError 를 그대로 던진다 */
+export async function 시험시작(사람: { username: string }, 본문: 시험본문): Promise<string> {
+  const { 앱들, baseUrl, parts, 부품재료, 비밀 } = await 시험재료(본문);
   const trialId = 시나리오시험.시작한다(
     사람.username,
     본문.service,

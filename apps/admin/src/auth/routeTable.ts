@@ -200,6 +200,13 @@ export const 등급표: Record<string, 표값> = {
   'GET /api/perf/runs/:id/events': 실행읽기,
   'GET /api/perf/runs/:id/report.pdf': 실행읽기,
   'POST /api/perf/runs/:id/stop': 실행쓰기,
+  // 시나리오 초안 · 추천은 만들기와 같은 무게다. AI 일 결과는 실행 read 로 본다 (PERF-F1-04)
+  'POST /api/perf/scenarios/draft': 실행쓰기,
+  'POST /api/perf/suggest': 실행쓰기,
+  'GET /api/perf/ai-jobs/:id': 실행읽기,
+  // 작성 에이전트가 부른다 — 라우트가 작성 에이전트 계정인지 따로 본다 (§7 「누가 집나」)
+  'POST /api/perf/ai-jobs/claim': 작성쓰기,
+  'POST /api/perf/ai-jobs/:id/finish': 작성쓰기,
   // 에이전트 목록은 마법사가 고르므로 실행 read 다. 붙이고 고치고 지우는 일은 admin (§3.9 결정 15)
   'GET /api/perf/agents': 실행읽기,
   'POST /api/perf/agents': 'admin',
@@ -236,6 +243,8 @@ export const 토큰통로 = new Set([
   'GET /api/authoring/requests/:id/guide',
   'GET /api/authoring/requests/:id/guide/files/:fileId',
   'GET /api/authoring/requests/:id/app-screen',
+  'POST /api/perf/ai-jobs/claim',
+  'POST /api/perf/ai-jobs/:id/finish',
   'GET /api/authoring/requests',
   'GET /api/authoring/requests/:id',
   'GET /api/authoring/requests/:id/assets/:assetId',
