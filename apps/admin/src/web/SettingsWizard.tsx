@@ -220,7 +220,7 @@ export function SettingsWizard(p: Props) {
                   {t(단계이름[it])}
                 </button>
                 {i === 지금 && 만든것 === null ? (
-                  <단계설명 단계={it} 값={값} 새프로젝트={새프로젝트}
+                  <단계설명 단계={it} 값={값} 새프로젝트={새프로젝트} 만든프로젝트={만든프로젝트 !== null}
                     프로젝트={고른프로젝트 === undefined ? null : { name: 고른프로젝트.name, 앱들: p.services.filter((s) => s.projectId === 고른프로젝트.id).map((s) => s.name) }} />
                 ) : null}
               </li>

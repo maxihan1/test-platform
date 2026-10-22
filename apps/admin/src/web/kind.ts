@@ -6,7 +6,7 @@ import { t, type 언어 } from './i18n.js';
 import type { 아이콘이름 } from './icons.js';
 
 interface 종류줄 {
-  /** 화면 이름 — 설정 칩 · 헤더 고르개 묶음 제목. 영어 표의 키다 */
+  /** 화면 이름 — 설정 마법사 종류 카드 · 헤더 고르개 묶음 제목. 영어 표의 키다 */
   이름: string;
   /** 헤더 고른 칸의 접두사 앞 아이콘. 웹이 대부분이라 웹에는 달지 않는다(화면공통 §8 「껍데기」) */
   아이콘: 아이콘이름 | null;
@@ -84,7 +84,7 @@ const 종류표: Record<앱종류, 종류줄> = {
   },
 };
 
-/** 설정 칩 · 헤더 묶음의 차례 */
+/** 설정 마법사 종류 카드 · 헤더 묶음의 차례 */
 export const 종류차례: readonly 앱종류[] = ['SCREEN', 'APP', 'GAME', 'API'];
 
 /**
@@ -95,5 +95,5 @@ export const 종류키 = (kind: 앱종류 | undefined): 앱종류 => (kind !== u
 
 export const 종류 = (kind: 앱종류 | undefined): 종류줄 => 종류표[종류키(kind)];
 
-/** 화면 이름 — 설정 칩 · 헤더 묶음 제목 · 고른 칸 아이콘의 읽어 주는 이름 */
+/** 화면 이름 — 설정 마법사 종류 카드 · 헤더 묶음 제목 · 고른 칸 아이콘의 읽어 주는 이름 */
 export const 종류이름 = (kind: 앱종류 | undefined, 언어: 언어): string => t(종류(kind).이름, 언어);

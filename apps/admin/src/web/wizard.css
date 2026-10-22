@@ -1,5 +1,6 @@
 /* 설정의 새로 만들기 마법사 (도메인/인증 §8.8 「새로 만들기 마법사」 · 2026-10-23 사용자 시안 C).
-   색은 토큰만, 시간은 --dur 만 쓴다 — DESIGN.md 원칙 1 · 4. 대표색은 「지금 단계」 와 「고른 카드」 테두리에만 앉는다 */
+   색은 토큰만, 시간은 --dur 만 쓴다 — DESIGN.md 원칙 1 · 4. 대표색은 「지금 단계」 점과 「고른 카드」 테두리에만 앉는다(공통/5-화면공통 §8 「대표색」).
+   설명 그림에서 고른 것을 가리킬 때는 잉크 테두리와 「지금 있는 자리」 바탕을 쓴다 */
 
 .wz {
   position: fixed;
@@ -180,7 +181,8 @@
 
 .wz-chip.hot {
   color: var(--ink);
-  border-color: var(--accent);
+  background: var(--rail-active);
+  border-color: var(--ink-faint);
 }
 
 .wz-arrow {
@@ -227,7 +229,9 @@
 }
 
 .wz-guide > span.hot {
-  border-color: var(--accent);
+  color: var(--ink);
+  background: var(--rail-active);
+  border-color: var(--ink-faint);
 }
 
 .wz-guide b {
@@ -352,7 +356,8 @@
   border: 1px solid var(--line-2);
   border-radius: 10px;
   cursor: pointer;
-  transition: border-color 0.15s, transform 0.15s;
+  /* 색 전환은 반응이라 숫자로 두고, 들림은 움직임이라 토큰을 쓴다 (DESIGN.md 원칙 4) */
+  transition: border-color 0.15s, transform var(--dur) var(--ease);
 }
 
 .wz-kind:hover {
@@ -394,7 +399,7 @@
   position: absolute;
   top: 14px;
   right: 14px;
-  color: var(--accent);
+  color: var(--ink);
   opacity: 0;
   transition: opacity var(--dur) var(--ease);
 }

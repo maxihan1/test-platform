@@ -52,6 +52,7 @@ export const 마법사말: Record<string, string> = {
 
   // 확인 표
   '새로 만듭니다': 'New',
+  '이미 만들었습니다': 'Already created',
   '없음 — 나중에 설정에서 넣습니다': 'None — add later in settings',
   '비워 둠': 'Left empty',
   '탐색 제외 경로 {수}줄': 'Excluded paths: {수}',
@@ -116,6 +117,7 @@ export const 마법사말: Record<string, string> = {
   '건너뛰어도 됩니다': 'You can skip this',
   '만들고 나면': 'After you create it',
   '프로젝트와 애플리케이션이 함께 만들어집니다': 'The project and the application are created together',
+  '프로젝트는 이미 만들었습니다. 애플리케이션만 만듭니다': 'The project already exists. Only the application will be created',
   '고른 프로젝트에 애플리케이션이 만들어집니다': 'The application is created in the chosen project',
   '다음은 테스트 작성입니다. 기획서나 화면을 넣으면 AI 가 테스트 케이스를 만들어 줍니다': 'Next comes test writing. Add a spec or screens and AI writes the test cases',
   '접두사와 종류 말고는 나중에 설정에서 언제든 고칠 수 있습니다': 'Everything except the prefix and type can be changed later in settings',

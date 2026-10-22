@@ -156,6 +156,8 @@ describe('프로젝트부터 만들기', () => {
     fireEvent.click(screen.getByRole('button', { name: '프로젝트' }));
     expect((screen.getByLabelText('프로젝트 이름') as HTMLInputElement).disabled).toBe(true);
     for (let i = 0; i < 5; i += 1) 다음();
+    expect(screen.getByText('이미 만들었습니다')).toBeTruthy();
+    expect(screen.getByText('프로젝트는 이미 만들었습니다. 애플리케이션만 만듭니다')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '만들기' }));
 
     expect(await screen.findByText('쇼핑 앱 애플리케이션을 만들었습니다')).toBeTruthy();
@@ -197,6 +199,18 @@ describe('나가기 (공통/5-화면공통 §8 「화면을 오가도 하던 일
     });
 
     expect(await screen.findByText('저장 안 된 변경 있음')).toBeTruthy();
+  });
+
+  it('Tab 은 마법사 안을 돈다 — 끝에서 처음으로, 처음에서 Shift+Tab 이면 끝으로', () => {
+    빈마법사();
+    const 처음 = screen.getByRole('link', { name: '나가기' });
+    const 끝 = screen.getByRole('button', { name: '다음' });
+
+    끝.focus();
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(document.activeElement).toBe(처음);
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(끝);
   });
 
   it('Esc 는 「나가기」다', async () => {

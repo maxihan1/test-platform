@@ -217,12 +217,12 @@ export function 단계칸(p: {
         </>
       );
     case 'confirm':
-      return <확인표 값={값} 새프로젝트={p.새프로젝트} projects={p.projects} 고치러={p.고치러} 잠김={p.잠김} />;
+      return <확인표 값={값} 새프로젝트={p.새프로젝트} 만든프로젝트={p.만든프로젝트} projects={p.projects} 고치러={p.고치러} 잠김={p.잠김} />;
   }
 }
 
 /** 확인 단계 — 고른 것을 줄마다 보이고 줄 끝 「고치기」로 그 단계에 돌아간다. 비밀값은 넣었는지만 보인다 */
-function 확인표(p: { 값: 마법사값; 새프로젝트: boolean; projects: SettingsProject[]; 고치러: (st: 단계) => void; 잠김: boolean }) {
+function 확인표(p: { 값: 마법사값; 새프로젝트: boolean; 만든프로젝트: boolean; projects: SettingsProject[]; 고치러: (st: 단계) => void; 잠김: boolean }) {
   const t = use말();
   const 언어 = use언어();
   const { 값 } = p;
@@ -245,7 +245,7 @@ function 확인표(p: { 값: 마법사값; 새프로젝트: boolean; projects: S
     <div className="wz-sum">
       {줄('project', p.새프로젝트 ? (
         <>
-          {값.프로젝트이름.trim()} <span className="wz-badge">{t('새로 만듭니다')}</span>
+          {값.프로젝트이름.trim()} <span className="wz-badge">{p.만든프로젝트 ? t('이미 만들었습니다') : t('새로 만듭니다')}</span>
         </>
       ) : (p.projects.find((it) => it.id === 값.projectId)?.name ?? ''))}
       {줄('kind', 값.kind === null ? '' : 종류이름(값.kind, 언어))}
