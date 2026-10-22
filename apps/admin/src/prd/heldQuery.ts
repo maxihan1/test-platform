@@ -65,7 +65,7 @@ export interface 보류재료 {
   표: Map<string, Set<string>>;
 }
 
-/** 그 대상 서버 줄에 계정을 넣은 역할의 보류 번호가 있나. 줄이 없으면(정방향 뿌리) 없다 — 자식이 계정을 못 받는다 */
+/** 그 대상 서버 줄에 계정을 넣은 역할의 보류 번호가 있나. 줄이 없으면(웹 정방향 뿌리) 없다 — 자식이 계정을 못 받는다. Android 앱은 부르는 쪽이 앱 줄을 준다(`계정줄env`) */
 export function 줄에등록된보류있나(재료: 보류재료, env: string | null): boolean {
   const 역할 = env === null ? undefined : 재료.표.get(env);
   return 역할 !== undefined && 재료.보류.some((x) => 역할.has(x.role));

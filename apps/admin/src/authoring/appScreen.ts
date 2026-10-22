@@ -8,7 +8,7 @@ import { 폰을놓는다, 폰을바로잡는다 } from '../execution/phone.js';
 import { runnerUrl } from '../execution/runner.js';
 import { 도는집은요청 } from '../prd/agentRoutes.js';
 
-import { 대상줄들읽기 } from './reverse.js';
+import { 대상줄들읽기, 앱줄고르기 } from './reverse.js';
 
 export type 앱화면답 = { screen: string | null; reason: string | null };
 /** 작성 AI 가 appium-cli 로 폰을 눌러 가며 읽을 때 붙을 팜 Appium 주소와 앱 파일 — 첫 화면을 못 읽었어도 준다 (§3.6 「앱 화면」 「눌러 가며 읽기」) */
@@ -70,8 +70,7 @@ export function 앱탐색주소(appPath: string | null, 팜: string | undefined)
 
 /** 요청에 대상 서버가 있으면 그 줄의 앱 파일 경로, 없으면 앱 파일 경로가 있는 첫 줄(env 순). 「운영 서버」 줄은 어느 쪽이든 건너뛴다 (§3.6 「★ 역할별 계정」 「운영 서버」) */
 export function 앱파일고르기(줄들: { env: string; appPath: string | null; isProd: boolean }[], env: string | null): string | null {
-  const 줄 = 줄들.filter((j) => !j.isProd).find((j) => (env === null ? j.appPath !== null : j.env === env));
-  return 줄?.appPath ?? null;
+  return 앱줄고르기(줄들, env)?.appPath ?? null;
 }
 
 export default async function appScreenAgentRoutes(app: FastifyInstance): Promise<void> {

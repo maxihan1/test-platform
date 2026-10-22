@@ -3,7 +3,7 @@
 
 import { 기본역할 } from '@platform/kit/accounts';
 
-import { 막는까닭, 보류재료읽기, 이어작성상태읽기 } from '../authoring/continue.js';
+import { 계정줄env, 막는까닭, 보류재료읽기, 이어작성상태읽기 } from '../authoring/continue.js';
 import { db } from '../authoring/store.js';
 import { type 보류재료, 어디든등록, 줄에등록된보류있나 } from './heldQuery.js';
 
@@ -22,14 +22,17 @@ const 후보상한 = 20;
  * 아니면 버튼이 열렸다가 400 BAD_ENV 이거나 에이전트가 남은 번호를 못 센다. 서비스 전체 재료는 한 번만 읽어 넘긴다(2026-10-12 코드 검토)
  */
 async function 이어갈뿌리(서비스: number, 재료: 보류재료): Promise<number | null> {
-  const r = await (await db()).query<{ id: string; env: string | null }>(
-    `SELECT id, env FROM authoring_request
-      WHERE service_id = $1 AND kind = 'AUTHOR' AND compare AND discarded_at IS NULL
-        AND NOT (params ? 'prdApply') AND NOT (params ? 'edits')
-      ORDER BY id DESC LIMIT ${String(후보상한)}`,
+  // Android 앱은 대조가 없어 정방향 뿌리도 앱 줄 계정으로 이어 간다 (§3.6 「★ 역할별 계정」 표 「이어 작성」 · 2026-10-22)
+  const r = await (await db()).query<{ id: string; env: string | null; compare: boolean; kind: string }>(
+    `SELECT a.id, a.env, a.compare, s.kind FROM authoring_request a JOIN service s ON s.id = a.service_id
+      WHERE a.service_id = $1 AND a.kind = 'AUTHOR' AND (a.compare OR s.kind = 'APP') AND a.discarded_at IS NULL
+        AND NOT (a.params ? 'prdApply') AND NOT (a.params ? 'edits')
+      ORDER BY a.id DESC LIMIT ${String(후보상한)}`,
     [서비스],
   );
-  for (const 줄 of r.rows) {
+  for (const 행 of r.rows) {
+    const env = await 계정줄env(서비스, { 대조env: 행.compare ? 행.env : null, 뿌리env: 행.env }, 행.kind);
+    const 줄 = { id: 행.id, env };
     if (!(재료.표.get(줄.env ?? '')?.has(기본역할) ?? false) || !줄에등록된보류있나(재료, 줄.env)) continue;
     const 번호 = Number(줄.id);
     if (막는까닭(await 이어작성상태읽기(번호, undefined, 재료)) === null) return 번호;
