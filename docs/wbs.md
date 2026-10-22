@@ -897,7 +897,8 @@
   - 근거 PR #380 · 2026-10-22 (결정은 GAME-F1-02 명세로 옮긴다)
 - [x] `GAME-F1-02` 명세 초안 — 새 장 `docs/spec/도메인/게임.md` §3.10 · §7 · 종류 「게임」(`GAME`) · 러너 §5.2 종류 표 게임 줄 · 성능 결정 12 · `drive` 값 `GAME` · 게임 작성 절(게임 화면 지도 · 게임 지도 넷 · 게임 관점 넷 · 확률 세 겹 · 데이터 표 · 상태 만들기) · 「게임 쪽이 준비할 것」 · 계약 블록은 전부 대기(실행 요청 엔진 칸 · 케이스 선언 요소 · 스모크 표시 · 게임 요소 표 · 빌드 올리기 · 애플리케이션 토큰) — 0단계 결과로 고친다
   - 근거 PR #381 · 2026-10-22
-- [ ] `GAME-F1-03` 0단계 실측 — `control_cli` 저장소 · Unity 6000.0.84f1 설치 · SDK 최소(폰 안 127.0.0.1 포트 · 트리 · UI 누르기) · CLI 최소 · Ashveil QA 빌드에서 `LoginButton` 누르기 · 가짜 `Input` 이 IL2CPP 에서 되나 · 디바이스 팜 Appium 연결 끄기 되나 · 결과 `docs/plans/` → GAME-F1-02 계약 블록 확정 (사용자가 시작하라고 할 때만 — 이 맥 부하 · 폰)
+- [x] `GAME-F1-03` 0단계 실측 — `control_cli` 저장소 · Unity 6000.0.84f1 설치 · SDK 최소(폰 안 127.0.0.1 포트 · 트리 · UI 누르기) · CLI 최소 · Ashveil QA 빌드에서 `LoginButton` 누르기 · 가짜 `Input` 이 IL2CPP 에서 되나 · 디바이스 팜 Appium 연결 끄기 되나 · 결과 `docs/plans/` → GAME-F1-02 계약 블록 확정 (사용자가 시작하라고 할 때만 — 이 맥 부하 · 폰)
+  - 근거 control_cli PR #1 · 2026-10-22 (결과 `control_cli/docs/step0.md` — 포트 13100 · 로그인 버튼 누르기 · 가짜 Input IL2CPP · 팜 와이파이 끄기 됨. 빌드는 Ashveil GitHub Actions. 명세 계약 블록 확정은 GAME-F1-07 에서)
 - [ ] `GAME-F1-04` SDK 터치 바꿔치기 — 같은 이름 가짜 `Input` · EventSystem `inputOverride` · QA 빌드가 asmdef 참조를 자동으로 · 게임 오류 받아 두기 · 배치 확인(안전 영역 · 겹침) · Ashveil QA 빌드의 AltTester 를 우리 SDK 로 (control_cli · Ashveil 저장소)
 - [ ] `GAME-F1-05` 디바이스 팜 게임 명령 주소 — 폰을 잡을 때 `adb forward` · 잡은 사람만 · 놓을 때 정리 · 지금 입구(`:4723` · 회사 서버는 SSH 터널)로만 (Devicefarm 저장소)
 - [ ] `GAME-F1-06` 게임 CLI 첫 태그 — snapshot(줄인 트리 + 스크린샷) · ref 로 누르기 · 끌기 · 글자 넣기 · 액션마다 `Ran:` 케이스 코드 한 줄 · 속성 읽기 · 기다리기 · 잡기 · 열기 · 놓기 · 창 훑기 `crawl` · 디바이스 팜 · USB 두 길 (control_cli)
