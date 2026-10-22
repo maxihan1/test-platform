@@ -29,7 +29,8 @@ export function 무늬로(path: string): string {
 }
 
 const 한칸끝 = /\/:(?:n|id)$/;
-const 아이디칸 = /(?:id|Id|ID|번호)$/;
+// 낱말 끝의 id(paid · valid)는 아니다 — 칸 이름 전체 · 낙타 꼴 · 밑줄 뒤만 본다
+const 아이디칸 = /(?:^id|Id|ID|_id|번호)$/;
 
 type 케이스단계 = Extract<ScenarioPart, { kind: 'case' }>;
 
@@ -42,8 +43,16 @@ export function 값연결제안들(
   지도: ReadonlyMap<string, readonly 지도요청[]>,
   입력칸: ReadonlyMap<string, readonly string[]>,
 ): 값연결제안[] {
-  const 부른 = (apis: readonly 지도요청[], tcId: string) =>
-    new Set(apis.filter((a) => a.cases.some((c) => c.tcId === tcId)).map((a) => `${a.method.toUpperCase()} ${a.path}`));
+  const 본 = new Map<string, Set<string>>();
+  const 부른 = (apis: readonly 지도요청[], tcId: string): Set<string> => {
+    const 있음 = 본.get(tcId);
+    if (있음 !== undefined) return 있음;
+    const 새것 = new Set(apis.filter((a) => a.cases.some((c) => c.tcId === tcId)).map((a) => `${a.method.toUpperCase()} ${a.path}`));
+    본.set(tcId, 새것);
+    return 새것;
+  };
+  // 앞 단계가 그 POST 를 수정 요청으로 바꿨으면 POST 응답이 없다 — 꺼낼 값이 없다
+  const 바꿈 = (A: 케이스단계, urlPattern: string) => (A.links ?? []).some((l) => l.kind === 'rewrite' && l.method === 'POST' && l.urlPattern === urlPattern);
   const 제안: 값연결제안[] = [];
 
   parts.forEach((B, i) => {
@@ -62,8 +71,8 @@ export function 값연결제안들(
       const 모음 = 키.slice('POST '.length);
       if (!키.startsWith('POST ') || 한칸끝.test(모음)) continue;
       const 고침 = (['PUT', 'PATCH'] as const).find((m) => 전체.has(`${m} ${모음}/:n`) || 전체.has(`${m} ${모음}/:id`));
-      const 앞 = 앞들.find((x) => 부른(apis, x.A.tcId).has(키));
       const urlPattern = 무늬로(모음);
+      const 앞 = 앞들.find((x) => 부른(apis, x.A.tcId).has(키) && !바꿈(x.A, urlPattern));
       if (고침 === undefined || 앞 === undefined) continue;
       if (있는.some((l) => l.kind === 'rewrite' && l.method === 'POST' && l.urlPattern === urlPattern)) continue;
       제안.push({
@@ -83,7 +92,7 @@ export function 값연결제안들(
       const 열린 = [...B부른].find((키) => {
         const [method, path] = 키.split(' ') as [string, string];
         const 모음 = path.replace(한칸끝, '');
-        return ['GET', 'PUT', 'PATCH', 'DELETE'].includes(method) && 모음 !== path && 부른(apis, 앞.A.tcId).has(`POST ${모음}`);
+        return ['GET', 'PUT', 'PATCH', 'DELETE'].includes(method) && 모음 !== path && 부른(apis, 앞.A.tcId).has(`POST ${모음}`) && !바꿈(앞.A, 무늬로(모음));
       });
       if (열린 === undefined) continue;
       const 경로 = 열린.split(' ')[1]!;

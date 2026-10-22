@@ -6,7 +6,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
 import { 칸되는서비스 } from '../auth/permissions.js';
-import { findService } from '../catalog/store.js';
+import { findCase, findService } from '../catalog/store.js';
 import { 지도를읽는다 } from '../prd/apiMap.js';
 import { 정수 } from '../routeParams.js';
 
@@ -115,13 +115,18 @@ export default async function scenarioRoutes(app: FastifyInstance): Promise<void
     if ((await findService(service)) === null) return 잘못(reply, `모르는 서비스다: ${service}`);
     const 읽는앱 = new Set(칸되는서비스(req.user?.services ?? [], 'authoring', 'read'));
     const 앱들 = (await 같은프로젝트접두사(service)).filter((p) => 읽는앱.has(p) && 케이스번호들(parts).some((t) => t.startsWith(`${p}-`)));
-    const 지도 = new Map<string, Awaited<ReturnType<typeof 지도를읽는다>>['apis']>();
-    for (const 앱 of 앱들) {
+    const 지도 = new Map(await Promise.all(앱들.map(async (앱) => {
       const 서비스 = await findService(앱);
-      if (서비스 !== null) 지도.set(앱, (await 지도를읽는다(서비스.id)).apis);
-    }
-    const { 카탈로그 } = await 케이스재료(케이스번호들(parts), 앱들);
-    return { items: 값연결제안들(parts, 지도, new Map([...카탈로그].map(([tcId, x]) => [tcId, x.params]))) };
+      return [앱, 서비스 === null ? [] : (await 지도를읽는다(서비스.id)).apis] as const;
+    })));
+    // 입력값 칸은 DB 의 입력 스키마에서 읽는다 — 케이스 파일을 열 까닭이 없다. 비활성 · 없는 케이스는 칸이 없는 것으로 친다
+    const 번호 = 케이스번호들(parts).filter((t) => 앱들.some((p) => t.startsWith(`${p}-`)));
+    const 입력칸 = new Map(await Promise.all([...new Set(번호)].map(async (tcId) => {
+      const 행 = await findCase(tcId);
+      const 칸들: unknown = 행?.isActive ? 행.paramSchema?.properties : undefined;
+      return [tcId, typeof 칸들 === 'object' && 칸들 !== null ? Object.keys(칸들) : []] as const;
+    })));
+    return { items: 값연결제안들(parts, 지도, 입력칸) };
   });
 
   app.get<{ Params: { id: string } }>('/scenarios/:id', async (req, reply) => {

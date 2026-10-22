@@ -80,7 +80,8 @@ describe('첫 단계 후보 (결정 15)', () => {
 
   it('대상 서버 주소의 경로가 출발 화면이다 — 경로가 없거나 그 화면 기록이 없으면 `/` 다', () => {
     const 기록 = new Set(['/', '/ops']);
-    expect(출발틀들(['http://h:3002/ops', 'http://h:3002/ops?x=1'], 기록)).toEqual(['/ops']);
+    expect(출발틀들(['http://h:3002/ops', 'http://h:3002/ops/'], 기록)).toEqual(['/ops']);
+    expect(출발틀들(['http://h/#/ops'], new Set(['/#/ops']))).toEqual(['/#/ops']);
     expect(출발틀들(['http://h:3001', 'http://h:3001/없는곳', '주소 아님'], 기록)).toEqual(['/']);
     expect(출발틀들(['http://a/ops', 'http://b'], 기록)).toEqual(['/ops', '/']);
   });

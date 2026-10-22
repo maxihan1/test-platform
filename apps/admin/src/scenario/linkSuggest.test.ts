@@ -1,9 +1,5 @@
 // E2E 값 연결 제안 — 서비스 지도로 수정 요청 · 값 주입을 미리 채운다 (도메인/시나리오 §3.7 결정 15 「값 연결 제안」 · §7 POST /api/scenarios/link-suggestions)
 
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-
 import type { ScenarioLink, ScenarioPart } from '@platform/kit';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -58,6 +54,7 @@ describe('값연결제안들', () => {
     const 흐름 = [케이스('MKT-FN-001'), 케이스('MKT-FN-003')];
     expect(값연결제안들(흐름, 지도, new Map([['MKT-FN-003', ['memo']]]))[0]).toMatchObject({ link: { param: '' }, needs: ['jsonPath', 'param'] });
     expect(값연결제안들(흐름, 지도, new Map([['MKT-FN-003', ['orderId', '주문번호']]]))[0]).toMatchObject({ link: { param: '' } });
+    expect(값연결제안들(흐름, 지도, new Map([['MKT-FN-003', ['isPaid', 'order_id']]]))[0]).toMatchObject({ link: { param: 'order_id' } });
     expect(값연결제안들(흐름, 지도, new Map())).toEqual([]);
   });
 
@@ -70,6 +67,8 @@ describe('값연결제안들', () => {
     const 주입: ScenarioLink = { kind: 'bind', param: 'orderId', value: { fromSeq: 1, method: 'POST', urlPattern: '**/x', jsonPath: 'id' } };
     expect(값연결제안들([케이스('MKT-FN-001'), 케이스('MKT-FN-003', { links: [주입] })], 지도, 칸)).toEqual([]);
     expect(값연결제안들([케이스('MKT-FN-001'), 케이스('MKT-FN-002', { carryOver: false })], 지도, 칸)).toEqual([]);
+    expect(값연결제안들([케이스('MKT-FN-001'), 케이스('MKT-FN-002', { links: [수정] }), 케이스('MKT-FN-003')], 지도, 칸).filter((x) => x.link.kind === 'bind'))
+      .toMatchObject([{ toSeq: 3, link: { value: { fromSeq: 1 } } }]);
   });
 
   it('애플리케이션이 다른 두 단계는 잇지 않고, 지도를 못 받은 애플리케이션은 안 낸다', () => {
@@ -84,8 +83,6 @@ const 접두사 = 'XLS';
 const 번호들 = ['XLS-FN-001', 'XLS-FN-002'];
 
 describe.skipIf(연결 === undefined)('POST /api/scenarios/link-suggestions', () => {
-  const 원래뿌리 = process.env.PLATFORM_TESTS_DIR;
-  let 뿌리 = '';
   let 서비스 = 0;
   let 작성권한: 'none' | 'read' = 'read';
   let app: FastifyInstance;
@@ -100,10 +97,6 @@ describe.skipIf(연결 === undefined)('POST /api/scenarios/link-suggestions', ()
   };
 
   beforeAll(async () => {
-    뿌리 = await mkdtemp(join(tmpdir(), 'xls-'));
-    process.env.PLATFORM_TESTS_DIR = 뿌리;
-    await mkdir(join(뿌리, 'xls'));
-    await writeFile(join(뿌리, 'xls', 'a.spec.ts'), "test('검사', async () => {});\n");
     const s = await q(
       `INSERT INTO service (prefix, name, color, tests_repo, tests_dir) VALUES ($1, $2, '#3A5FCD', '', 'xls')
        ON CONFLICT (prefix) DO UPDATE SET is_active = true RETURNING id`,
@@ -144,9 +137,6 @@ describe.skipIf(연결 === undefined)('POST /api/scenarios/link-suggestions', ()
     await q('DELETE FROM service_api WHERE service_id = $1', [서비스]);
     await q('DELETE FROM test_case WHERE tc_id = ANY($1)', [번호들]);
     await q('DELETE FROM service WHERE id = $1', [서비스]);
-    await rm(뿌리, { recursive: true, force: true });
-    if (원래뿌리 === undefined) delete process.env.PLATFORM_TESTS_DIR;
-    else process.env.PLATFORM_TESTS_DIR = 원래뿌리;
   });
 
   const 초안 = { service: 접두사, parts: [케이스('XLS-FN-001'), 케이스('XLS-FN-002')] };

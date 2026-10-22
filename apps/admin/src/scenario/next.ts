@@ -76,13 +76,9 @@ function 닿는케이스들(곳들: string[], 화면들: 화면줄[], 뺄?: stri
  */
 export function 출발틀들(대상주소들: string[], 기록틀: ReadonlySet<string>): string[] {
   return [...new Set(대상주소들.map((주소) => {
-    let 틀: string | null = null;
-    try {
-      틀 = 주소틀(new URL(주소).pathname);
-    } catch {
-      // 주소로 못 읽는 대상 서버는 경로가 없는 것으로 친다
-    }
-    return 틀 !== null && 기록틀.has(틀) ? 틀 : '/';
+    // 크롤러가 대상 서버 주소에서 출발해 그 주소를 같은 틀(해시 라우트 포함)로 남긴다. 끝 빗금만 다른 기록도 같은 화면이다
+    const 틀 = 주소틀(주소);
+    return [틀, 틀?.replace(/(.)\/$/, '$1')].find((x): x is string => x !== null && x !== undefined && 기록틀.has(x)) ?? '/';
   }))];
 }
 
@@ -111,12 +107,14 @@ export async function 다음케이스읽기(서비스: number, prefix: string, a
 /** 첫 단계 후보를 그 애플리케이션의 대상 서버 주소 · 화면 기록 · 지도 ② · 화면 연결로 낸다. 화면 기록은 상태 · 대상 서버를 안 가른다 */
 export async function 첫케이스읽기(서비스: number, prefix: string): Promise<다음케이스[]> {
   const pool = await db();
-  const [대상, 기록] = await Promise.all([
+  const [대상, 기록, 화면들, 연결들] = await Promise.all([
     pool.query<{ base_url: string }>('SELECT base_url FROM service_env WHERE service_id = $1', [서비스]),
     pool.query<{ url: string }>('SELECT DISTINCT url FROM screen_record WHERE service_id = $1', [서비스]),
+    케이스화면들(prefix),
+    화면연결들(서비스),
   ]);
   const 기록틀 = new Set(기록.rows.map((r) => r.url));
-  return 첫케이스들(출발틀들(대상.rows.map((r) => r.base_url), 기록틀), 기록틀, await 케이스화면들(prefix), await 화면연결들(서비스));
+  return 첫케이스들(출발틀들(대상.rows.map((r) => r.base_url), 기록틀), 기록틀, 화면들, 연결들);
 }
 
 async function 케이스화면들(prefix: string): Promise<화면줄[]> {
