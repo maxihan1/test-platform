@@ -2,7 +2,6 @@
 
 import type { ReactNode } from 'react';
 
-import type { SettingsProject } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { 웹훅칸 } from './settingsView.js';
 
@@ -21,7 +20,7 @@ export function 구획({ 제목, 쓰임, 경고 = false, children }: { 제목: s
 
 /** 비밀값 칸 — 웹훅과 피그마 토큰이 같이 쓴다. 값을 되돌려 안 보여서 고치는 길이 「변경」이다 (§8.8) */
 export function 비밀칸(p: {
-  id: string; 이름: string; 설정됨: boolean; 새것: boolean; placeholder: string; 비울때: string;
+  id: string; 이름: string; 설정됨: boolean; placeholder: string; 비울때: string;
   값: string | null; 바꾼다: (값: string | null) => void; children?: ReactNode;
 }) {
   const t = use말();
@@ -54,15 +53,13 @@ export function 비밀칸(p: {
             <input id={p.id} type="password" value={p.값} placeholder={p.placeholder}
               onChange={(e) => p.바꾼다(e.target.value)} />
             {/* 되돌아갈 길이 없으면, 마음을 바꿔 그냥 저장했을 때 빈 글자가 가서 값이 지워진다 */}
-            {p.새것 ? null : (
-              <button className="btn ghost" aria-label={t('{이름} 변경 취소', { 이름: p.이름 })} onClick={() => p.바꾼다(null)}>
-                {t('변경 취소')}
-              </button>
-            )}
+            <button className="btn ghost" aria-label={t('{이름} 변경 취소', { 이름: p.이름 })} onClick={() => p.바꾼다(null)}>
+              {t('변경 취소')}
+            </button>
           </div>
         )}
         <div className="hint">
-          {p.값 === '' && !p.새것 ? p.비울때 : t('보안을 위해 저장한 값은 다시 표시하지 않습니다')}
+          {p.값 === '' ? p.비울때 : t('보안을 위해 저장한 값은 다시 표시하지 않습니다')}
         </div>
         {p.children}
       </div>
@@ -70,66 +67,29 @@ export function 비밀칸(p: {
   );
 }
 
-/**
- * 애플리케이션이 속한 프로젝트 칸. 새로 만들 때만 고른다 — 옮기는 일은 프로젝트 화면이 맡는다
- * (옮기면 그 프로젝트의 권한을 따르게 되어 한 자리에서만 하게 한다)
- */
-export function 프로젝트칸({
-  새것,
-  projects,
-  값,
-  바꾼다,
-  지금,
-}: {
-  새것: boolean;
-  projects: SettingsProject[];
-  값: number | null;
-  바꾼다: (값: number) => void;
-  지금?: { id: number; name: string };
-}) {
+/** 애플리케이션이 속한 프로젝트 — 이름만 보인다. 옮기는 일은 프로젝트 화면이 맡는다(옮기면 그 프로젝트의 권한을 따르게 되어 한 자리에서만 하게 한다) */
+export function 프로젝트칸({ 지금 }: { 지금: { id: number; name: string } }) {
   const t = use말();
-  if (!새것 && 지금 !== undefined) {
-    return (
-      <div className="field">
-        <span className="field-label">{t('프로젝트§칸')}</span>
-        <div>
-          <a href={`#/settings/project-${지금.id}`}>{지금.name}</a>
-          <div className="hint">{t('다른 프로젝트로 옮기려면 프로젝트 화면에서 합니다')}</div>
-        </div>
-      </div>
-    );
-  }
   return (
     <div className="field">
-      <label htmlFor="sf-project">{t('프로젝트§칸')}</label>
+      <span className="field-label">{t('프로젝트§칸')}</span>
       <div>
-        <select id="sf-project" value={값 ?? ''} onChange={(e) => 바꾼다(Number(e.target.value))}>
-          {값 === null ? <option value="">{t('먼저 프로젝트를 만듭니다')}</option> : null}
-          {projects.map((it) => (
-            <option key={it.id} value={it.id}>
-              {it.name}
-            </option>
-          ))}
-        </select>
+        <a href={`#/settings/project-${지금.id}`}>{지금.name}</a>
+        <div className="hint">{t('다른 프로젝트로 옮기려면 프로젝트 화면에서 합니다')}</div>
       </div>
     </div>
   );
 }
 
-/** 접두사 칸 — 만들 때만 적는다. 케이스 번호에 박혀 나중에 바꾸면 기존 케이스가 어느 애플리케이션 것도 아니게 된다 (SPEC §8.8) */
-export function 접두사칸({ 새것, 값, 바꾼다, 틀림 }: { 새것: boolean; 값: string; 바꾼다: (v: string) => void; 틀림: string | null }) {
+/** 접두사 — 만들 때 마법사에서만 적는다. 케이스 번호에 박혀 나중에 바꾸면 기존 케이스가 어느 애플리케이션 것도 아니게 된다 (SPEC §8.8) */
+export function 접두사칸({ 값 }: { 값: string }) {
   const t = use말();
   return (
     <div className="field">
       <label htmlFor="sf-prefix">{t('접두사')}</label>
       <div>
-        <input id="sf-prefix" type="text" value={값} disabled={!새것} onChange={(e) => 바꾼다(e.target.value.toUpperCase())} placeholder="PAY" />
-        <div className="hint">
-          {새것
-            ? t('생성할 때만 정할 수 있습니다. 케이스 번호(PAY-001)에 사용되므로 나중에 바꿀 수 없습니다')
-            : t('생성 후에는 바꿀 수 없습니다. 케이스 번호에 이미 사용 중입니다')}
-        </div>
-        {틀림 === null ? null : <div className="err">{틀림}</div>}
+        <input id="sf-prefix" type="text" value={값} disabled />
+        <div className="hint">{t('생성 후에는 바꿀 수 없습니다. 케이스 번호에 이미 사용 중입니다')}</div>
       </div>
     </div>
   );

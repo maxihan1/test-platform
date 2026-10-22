@@ -127,9 +127,4 @@ describe('애플리케이션 설정 「정기 실행」 구획 (도메인/인증
     expect(정기구획().textContent).toContain('아직 실행한 적이 없습니다');
   });
 
-  it('새 애플리케이션에는 구획이 없다 — 돌릴 케이스가 없다', () => {
-    render(<ServicePanel onDone={() => {}} />);
-
-    expect(screen.queryByText('정기 실행')).toBeNull();
-  });
 });

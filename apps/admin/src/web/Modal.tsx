@@ -26,8 +26,8 @@ export function 상자열렸나(): boolean {
   return 열린상자들.length > 0;
 }
 
-/** 포커스를 가둘 때 훑을 것들 */
-const 포커스가능 = 'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])';
+/** 포커스를 가둘 때 훑을 것들. 화면 전체를 덮는 설정 마법사도 같은 것으로 가둔다 */
+export const 포커스가능 = 'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 export function Modal({ 제목, onClose, children, 버튼, 넓게 = false, 바깥눌러닫기 = true }: Props) {
   const 상자 = useRef<HTMLDivElement>(null);

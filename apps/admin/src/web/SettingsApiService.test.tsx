@@ -66,33 +66,6 @@ function 인증을채운다(순번: number, 값: { 이름: string; 주소: strin
 }
 
 describe('API 애플리케이션 설정 (도메인/인증 §8.8 「종류」 · 도메인/API §3.8 · API-F1-08)', () => {
-  it('API 로 만들면 kind · 문서 경로 · 기준 서버 · 비밀값이 든 API 인증을 보낸다', async () => {
-    const 만듦 = vi.spyOn(api, 'createService').mockResolvedValue({ id: 9 });
-    render(<ServicePanel projects={[{ id: 1, name: '데모마켓' }]} onDone={() => {}} />);
-
-    expect(구획제목들()).not.toContain('API 문서');
-    fireEvent.click(screen.getByRole('button', { name: 'API' }));
-    expect(screen.getByRole('button', { name: 'API' }).getAttribute('aria-pressed')).toBe('true');
-    fireEvent.change(screen.getByLabelText('접두사'), { target: { value: 'NOTI' } });
-    fireEvent.change(screen.getByLabelText('이름'), { target: { value: '알림' } });
-    fireEvent.change(screen.getByLabelText('테스트 폴더'), { target: { value: 'noti' } });
-    fireEvent.click(screen.getByRole('button', { name: '+ 대상 서버 추가' }));
-    fireEvent.change(screen.getByLabelText('대상 서버 1 키'), { target: { value: 'qa' } });
-    fireEvent.change(screen.getByLabelText('대상 서버 1 주소'), { target: { value: 'https://qa.example.com' } });
-    fireEvent.change(screen.getByLabelText('문서 경로'), { target: { value: '/openapi.json' } });
-    fireEvent.change(screen.getByLabelText('기준 서버'), { target: { value: 'qa' } });
-    fireEvent.click(screen.getByRole('button', { name: '대상 서버 1 API 인증 추가' }));
-    인증을채운다(1, { 이름: '고객사 A', 주소: '/oauth/token', 아이디: 'client-a', 비밀값: 'secret-123456789' });
-    fireEvent.click(screen.getByRole('button', { name: '애플리케이션 추가' }));
-
-    await waitFor(() => expect(만듦).toHaveBeenCalledTimes(1));
-    const 본문 = 만듦.mock.calls[0]?.[0];
-    expect(본문).toMatchObject({ kind: 'API', apiDocPath: '/openapi.json', apiDocEnv: 'qa' });
-    expect(본문?.envs[0]?.apiAuths).toEqual([
-      { name: '고객사 A', tokenUrl: '/oauth/token', clientId: 'client-a', clientSecret: 'secret-123456789' },
-    ]);
-  });
-
   it('고칠 때는 종류를 바꿀 수 없고 kind 를 안 보낸다 — 손대지 않은 비밀값은 빼서 서버가 이어받게 한다', async () => {
     render(<ServicePanel row={API앱} onDone={() => {}} />);
 

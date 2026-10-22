@@ -49,9 +49,8 @@ export const 안쓰는서비스색 = '#6B7280';
  */
 export function 서비스못보내는이유(
   입력: {
+    /** 만드는 중이다(마법사) — 접두사를 본다. 고칠 때 접두사 칸은 잠겨 있다 */
     새것: boolean;
-    /** 새 애플리케이션이 들어갈 프로젝트. 아직 안 골랐으면 null — 고칠 때는 안 넘긴다 */
-    프로젝트?: number | null;
     prefix: string;
     name: string;
     testsDir: string;
@@ -66,7 +65,6 @@ export function 서비스못보내는이유(
 ): string | null {
   // 고칠 때 접두사 칸은 잠겨 있다. 그것을 두고 「채우세요」라고 하면 할 수 없는 일을 시키는 것이다
   if (입력.새것) {
-    if (입력.프로젝트 === null) return t('프로젝트를 골라 주세요', 언어);
     if (입력.prefix === '') return t('접두사를 입력해 주세요', 언어);
     const 모양 = 접두사사유(입력.prefix, 언어);
     if (모양 !== null) return 모양;

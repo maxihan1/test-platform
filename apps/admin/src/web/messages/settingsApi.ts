@@ -4,8 +4,6 @@ export const 설정API말: Record<string, string> = {
   // 기본 정보 「종류」
   웹: 'Web',
   게임: 'Game',
-  '생성할 때만 정할 수 있습니다. Android 앱은 디바이스 팜 폰에서 Appium 으로, 게임은 직접 만든 SDK 로 케이스를 만들고 돌립니다. 웹 사이트와 어드민은 「웹」을 고릅니다':
-    'Set once at creation. Android apps get cases written and run on device farm phones with Appium, games with our own SDK. Pick “Web” for websites and admin tools',
   '생성 후에는 바꿀 수 없습니다': 'Cannot be changed after creation',
 
   // 「API 문서」 구획

@@ -87,8 +87,4 @@ describe('애플리케이션 설정 「화면 크기」 구획 (도메인/인증
     expect(within(구획()).getByText('다른 화면 250장 가운데 앞 1장만 보입니다')).toBeTruthy();
   });
 
-  it('새 애플리케이션에는 구획이 없다 — 아직 훑은 서버가 없다', () => {
-    render(<ServicePanel onDone={() => {}} />);
-    expect(구획()).toBeUndefined();
-  });
 });
