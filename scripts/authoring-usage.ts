@@ -137,6 +137,23 @@ export function 흐름풀기(낸것: string): 풀린흐름 {
   };
 }
 
+/** 크레딧이 도중에 떨어져 구독으로 이어 띄운 요청 — 서버는 한 번만 받아 두 자식이 쓴 것을 더한다. 글은 뒤 자식 것이다 */
+export function 흐름더하기(앞: 풀린흐름, 뒤: 풀린흐름): 풀린흐름 {
+  const [a, b] = [앞.사용량, 뒤.사용량];
+  return {
+    글: 뒤.글,
+    사용량: {
+      input: a.input + b.input,
+      output: a.output + b.output,
+      cacheRead: a.cacheRead + b.cacheRead,
+      cacheWrite: a.cacheWrite + b.cacheWrite,
+      partial: a.partial || b.partial,
+      costUsd: a.costUsd === null || b.costUsd === null ? null : a.costUsd + b.costUsd,
+      model: b.model ?? a.model,
+    },
+  };
+}
+
 /**
  * 글자 단위로 자른다 — `slice` 는 이모지(서로게이트 짝)를 반으로 갈라 깨진 글자를 남긴다.
  * 상한은 UTF-16 길이다. 서버가 `length` 로 가두므로 글자 수로 세면 이모지 글이 넘친다
@@ -170,8 +187,9 @@ export async function 사용량보고(
   서비스: string,
   id: number,
   낸것: string,
+  앞낸것?: string,
 ): Promise<풀린흐름> {
-  const 풀린 = 흐름풀기(낸것);
+  const 풀린 = 앞낸것 === undefined ? 흐름풀기(낸것) : 흐름더하기(흐름풀기(앞낸것), 흐름풀기(낸것));
   const { costUsd, model, ...나머지 } = 풀린.사용량;
   const 몸 = { ...나머지, ...(costUsd === null ? {} : { costUsd }), ...(model === null ? {} : { model }) };
   const 표 = `입력 ${나머지.input} · 출력 ${나머지.output} · 캐시 ${나머지.cacheRead + 나머지.cacheWrite}${나머지.partial ? ' (끊김 · 하한값)' : ''}`;
