@@ -1,5 +1,7 @@
 // 폰에 앱을 한 번 띄워 화면을 읽고, 작성 AI 가 요소 주소를 고를 만큼만 남겨 돌려준다 (SPEC 도메인/러너 §5.2 「앱 화면 읽기」)
 
+import { appCapabilities } from '@platform/kit/app';
+
 import { appium주소 } from './appSession.js';
 
 // 첫 연결은 앱 설치까지 해서 9.4초 걸렸다(2026-10-07 실측). 그 여섯 배까지 기다린다
@@ -97,14 +99,8 @@ export async function 앱화면을읽는다(req: 앱화면요청, env: NodeJS.Pr
   읽는중 = true;
   let 연결번호: string | undefined;
   try {
-    // 케이스가 연결을 여는 것과 같은 설정이다 (kit runtime/app.ts appCapabilities)
-    const alwaysMatch = {
-      platformName: 'Android',
-      'appium:automationName': 'UiAutomator2',
-      'appium:disableIdLocatorAutocompletion': true,
-      'appium:app': app,
-      ...(udid ? { 'appium:udid': udid } : {}),
-    };
+    // 케이스가 연결을 여는 것과 같은 설정이다 — 손으로 베끼면 한쪽만 바뀐다
+    const alwaysMatch = appCapabilities({ PLATFORM_APP: app, PLATFORM_DEVICE_UDID: udid });
     const 열림 = (await 부른다(
       `${base}/session`,
       { method: 'POST', headers: json, body: JSON.stringify({ capabilities: { alwaysMatch } }) },
