@@ -184,8 +184,8 @@ async function 닿는서비스(req: FastifyRequest): Promise<string[] | typeof �
     if (서비스 !== null) 모인것.push(서비스);
   }
 
-  // 시나리오 만들기 · 시험 실행은 서비스를 본문에 싣는다. 라우트는 그 값을 바꾸지 않고 그대로 쓴다 (도메인/시나리오 §7)
-  if ((틀 === '/api/scenarios' || 틀 === '/api/scenario-trials') && req.method === 'POST') {
+  // 시나리오 만들기 · 시험 실행 · 값 연결 제안은 서비스를 본문에 싣는다. 라우트는 그 값을 바꾸지 않고 그대로 쓴다 (도메인/시나리오 §7)
+  if (['/api/scenarios', '/api/scenario-trials', '/api/scenarios/link-suggestions'].includes(틀 ?? '') && req.method === 'POST') {
     const body = req.body;
     const service = typeof body === 'object' && body !== null ? (body as { service?: unknown }).service : undefined;
     if (typeof service !== 'string' || !접두사모양.test(service)) return 막는다;

@@ -3,21 +3,13 @@
 import type { ScenarioMethod } from '@platform/kit';
 
 import type { 지도API } from '../prd/apiMap.js';
+import { 무늬로 } from '../scenario/linkSuggest.js';
 import { use말 } from './i18n.js';
 import { 칸 } from './ScenarioOtherParts.js';
 
 // 메서드 칸(ScenarioLinkParts)과 같은 목록 — 지도에서 고를 수 있는 것과 칸이 받는 것이 갈리지 않게 한 곳에 둔다
 export const 메서드들: ScenarioMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
 const 고를메서드 = new Set<string>(메서드들);
-
-/**
- * 지도의 주소 틀(`:n` · `:id`)을 러너가 맞추는 glob 으로. 러너가 `*` 는 한 칸(`[^/]*`)으로 맞추고 `**` 로 시작하면 호스트를 가린다
- * (apps/runner/scenario/links.ts `globToRegexPattern`). 호스트가 달라도 맞게 `**` 를 앞에 붙인다
- */
-export function 무늬로(path: string): string {
-  // 지도의 주소는 물음표 뒤를 뗐다. 러너 무늬는 끝까지 맞춰야 해서 `?page=1` 이 붙은 요청도 맞게 물음표 꼬리를 열어 둔다
-  return `**${path.replace(/:(?:n|id)(?=\/|$)/g, '*')}{,?*}`;
-}
 
 export interface 고를요청 {
   method: ScenarioMethod;
