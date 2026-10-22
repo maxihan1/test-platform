@@ -61,7 +61,7 @@ function 버려졌나(파일: string, 지금: number): boolean {
 
 /**
  * 빈 자리 하나를 잡아 그 파일을, 다 찼으면 null. 번호를 다 쓴 임시 파일을 하드링크로 거는 것이라 잡기는 원자적이고 남이 반쯤 쓴 번호를 읽지 않는다.
- * ponytail: 버려진 자리를 둘이 동시에 치우면 둘 다 잡을 수 있다 — 그때 브라우저가 하나 더 뜰 뿐이다. 잦으면 flock 으로
+ * ponytail: 버려진 자리를 둘이 동시에 치우면 둘 다 잡을 수 있다 — 진 쪽이 끝날 때까지 브라우저가 하나 더 뜬다(놓을 때 주인 번호를 봐 남의 자리는 안 지운다). 잦으면 flock 으로
  */
 export function 자리잡기(폴더 = 자리폴더, 수 = 자리수(), pid = process.pid): string | null {
   자리폴더열기(폴더);
@@ -103,6 +103,11 @@ export async function 자리기다리기(마감: number, 폴더 = 자리폴더, 
   }
 }
 
-export function 자리놓기(파일: string): void {
-  rmSync(파일, { force: true });
+/** 내 번호가 적힌 자리만 지운다 — 버려진 줄 알고 남이 치우고 다시 잡은 자리를 지우면 자리 수를 넘겨 띄운다 */
+export function 자리놓기(파일: string, pid = process.pid): void {
+  try {
+    if (readFileSync(파일, 'utf8') === String(pid)) rmSync(파일, { force: true });
+  } catch {
+    // 이미 없다
+  }
 }

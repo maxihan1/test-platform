@@ -4,7 +4,7 @@
 // Playwright 를 띄우기 전에 컨테이너 전체가 같이 세는 브라우저 자리를 받는다(authoring-slot) — 기다린 시간도 한 번 부를 때의 예산 안이다
 
 import { spawn } from 'node:child_process';
-import { closeSync, openSync, readdirSync, readFileSync } from 'node:fs';
+import { closeSync, openSync, readdirSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -19,6 +19,8 @@ export const 차례예산 = 7.5 * 60_000;
 export const 기본회차 = 4_000;
 /** 남은 예산이 이보다 적으면 다음 덩어리를 띄우지 않는다 */
 const 띄울최소 = 30_000;
+/** 브라우저 자리를 받은 뒤 남길 예산 — 덜 남으면 기다리지 말고 「남은 것」으로 끝낸다 */
+const 기다림여유 = 2 * 60_000;
 
 type 모드 = '보조' | '마지막' | '한번';
 type 판찾기 = (파일: string) => readonly 돌린판[] | undefined;
@@ -110,47 +112,60 @@ function 돌리기(트리: string, 결과폴더: string, 이름: string, 파일�
   });
 }
 
+/** 같은 머리의 다음 기록 이름 — 휴대폰은 `-mobile` 을 붙인다 */
+const 기록이름 = (결과폴더: string, 머리: string, 기기: string) => `${머리}-${다음번호(readdirSync(결과폴더), 머리)}${기기 === 'mobile' ? '-mobile' : ''}`;
+
 /**
- * 맡은 파일을 응답 늦추기 없이 1번 — 보조가 쓰는 도중 · 입력값 두 번 · trace 로 까닭 가르기에 쓴다. 기록은 `once-<묶음>-<번호>` 라 3회 판정에 안 섞인다.
+ * 브라우저 자리를 받아 `일` 을 돌리고 놓는다. 기다린 시간(ms)을, 자리가 안 났으면 null.
+ * 받은 뒤 적어도 `기다림여유` 는 남게 마감을 당긴다 — 막 받고 30초만 남으면 아무 회차도 못 끝내 「케이스 문법 오류」(2)로 읽힌다(code-review)
+ */
+async function 자리받아(시작: number, 일: () => Promise<void>): Promise<number | null> {
+  const 자리 = await 자리기다리기(시작 + 차례예산 - 기다림여유);
+  if (자리 === null) return null;
+  const 기다림 = Date.now() - 시작;
+  try {
+    await 일();
+  } finally {
+    자리놓기(자리);
+  }
+  return 기다림;
+}
+
+/**
+ * 맡은 파일을 1번 — 보조가 쓰는 도중 · 입력값 두 번 · trace 로 까닭 가르기에 쓴다. 응답은 안 늦추고 부른 쪽이 붙인 환경 변수는 그대로 간다.
+ * 기록은 `once-<묶음>-<번호>` 라 3회 판정에 안 섞인다.
  * 14644 보조는 이 명령이 없어 Playwright 를 손으로 120번 돌렸고 97번은 산출물 폴더를 안 갈라 넷이 서로 지울 수 있었다(PRD-F14-02)
  */
 async function 한번(트리: string, 결과폴더: string, 이름: string, 파일들: string[], 기기들: readonly string[], 추적: boolean, 산출물: string): Promise<number> {
   const 시작 = Date.now();
   const 머리 = `once-${이름}`;
-  const 기록들 = await Promise.all(
-    기기들.map(async (기기) => {
-      const 자리 = await 자리기다리기(시작 + 차례예산 - 띄울최소);
-      if (자리 === null) return null;
-      try {
-        const 기록이름 = `${머리}-${다음번호(readdirSync(결과폴더), 머리)}${기기 === 'mobile' ? '-mobile' : ''}`;
-        await 돌리기(트리, 결과폴더, 기록이름, 파일들, 1, 기기, 차례예산 - (Date.now() - 시작), { 느림: false, 추적 });
-        return 기록이름;
-      } finally {
-        자리놓기(자리);
-      }
-    }),
+  const 돈: { 기기: string; 이름: string }[] = [];
+  const 기다림들 = await Promise.all(
+    기기들.map((기기) =>
+      자리받아(시작, async () => {
+        const 기록 = 기록이름(결과폴더, 머리, 기기);
+        돈.push({ 기기, 이름: 기록 });
+        await 돌리기(트리, 결과폴더, 기록, 파일들, 1, 기기, 차례예산 - (Date.now() - 시작), { 느림: false, 추적 });
+      }),
+    ),
   );
-  const 돈 = 기록들.filter((n) => n !== null);
-  const 글 = (n: string) => {
-    try {
-      return readFileSync(join(결과폴더, `${n}.json`), 'utf8');
-    } catch {
-      return '{깨짐'; // 끝난 회차가 없다 — 아래에서 로그 자리를 찍는다
-    }
-  };
-  const 판들 = 판들읽기(돈.map((n) => ({ 이름: `${n}.json`, 글: 글(n) })), true)?.판들 ?? new Map<string, 돌린판[]>();
-  const 빨강 = 빨강줄들(Object.fromEntries(파일들.map((f) => [f, 0])), (f, 기기) => 판들.get(`${f}\0${기기}`), 기기들);
-  const 기록 = 돈.map((n) => join(결과폴더, `${n}.log`)).join(' · ');
+  const 이름들 = new Set(돈.map((d) => `${d.이름}.json`));
+  const 판들 = 판들읽기(돌린기록들(결과폴더, /^once-/).filter((r) => 이름들.has(r.이름)), true)?.판들 ?? new Map<string, 돌린판[]>();
+  const 찾기 = (f: string, 기기: string) => 판들.get(`${f}\0${기기}`);
+  // 끝까지 못 돈 것(Playwright 가 죽었거나 시간 상한에 잘렸다)을 초록으로 세지 않는다
+  const 못돈 = 돈.flatMap((d) => 파일들.filter((f) => 찾기(f, d.기기) === undefined).map((f) => `- ${f} (${d.기기 === 'mobile' ? '휴대폰' : 'PC'}): 끝까지 못 돌았다`));
+  const 빨강 = [...빨강줄들(Object.fromEntries(파일들.map((f) => [f, 0])), 찾기, 기기들), ...못돈];
+  const 기록 = 돈.map((d) => join(결과폴더, `${d.이름}.log`)).join(' · ');
   if (돈.length > 0) {
     if (판들.size === 0) {
       console.log(`[1번 돌려 보기] 돌렸지만 끝난 케이스가 없다 — 로그를 본다: ${기록}`);
       return 2;
     }
-    const trace = 추적 ? ` · trace ${돈.map((n) => join(산출물, 'playwright', n)).join(' · ')}` : '';
+    const trace = 추적 ? ` · trace ${돈.map((d) => join(산출물, 'playwright', d.이름)).join(' · ')}` : '';
     console.log(`[1번 돌려 보기] 케이스 ${파일들.length}건 · ${Math.round((Date.now() - 시작) / 1000)}초 · 로그 ${기록}${trace}`);
     if (빨강.length > 0) console.log([`빨강 ${빨강.length}줄`, ...빨강].join('\n'));
   }
-  if (돈.length < 기기들.length) {
+  if (기다림들.includes(null)) {
     console.log('브라우저 자리가 안 나 못 돌린 기기가 있다 — 같은 명령을 다시 부른다');
     return 3;
   }
@@ -211,47 +226,44 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     console.log('[돌려 보기] 돌릴 케이스가 없다');
     return 0;
   }
-  // 대상 서버를 하나로 저절로 고르지 않는다 — 정방향 · 반영의 서버 목록에 운영 서버가 섞일 수 있다. 빠뜨리면 회차마다 `Invalid URL` 로 빨개진다(14644 — 314회차 · PR #390 검토)
-  if (!env.PLATFORM_BASE_URL) {
-    console.error('PLATFORM_BASE_URL 이 없다 — 프롬프트의 대상 서버 목록에서 운영 아닌 주소를 골라 `PLATFORM_BASE_URL=<주소> npm run -s authoring:run -- …` 로 다시 부른다');
-    return 2;
-  }
-  if (모드 === '한번') return 한번(트리, 결과폴더, 이름, Object.keys(대상).sort(), 기기들, 추적, env.PLATFORM_ARTIFACTS_DIR ?? 'artifacts');
+  // 대상 서버를 하나로 저절로 고르지 않는다 — 정방향 · 반영의 서버 목록에 운영 서버가 섞일 수 있다. 빠뜨리면 회차마다 `Invalid URL` 로 빨개진다(14644 — 314회차 · PR #390 검토).
+  // 돌릴 것이 없는 부름(묶음 숫자만 다시 찍기)은 막지 않는다
+  const 주소없음 = () => {
+    if (!env.PLATFORM_BASE_URL) console.error('PLATFORM_BASE_URL 이 없다 — 프롬프트의 대상 서버 목록에서 운영 아닌 주소를 골라 `PLATFORM_BASE_URL=<주소> npm run -s authoring:run -- …` 로 다시 부른다');
+    return !env.PLATFORM_BASE_URL;
+  };
+  if (모드 === '한번') return 주소없음() ? 2 : 한번(트리, 결과폴더, 이름, Object.keys(대상).sort(), 기기들, 추적, env.PLATFORM_ARTIFACTS_DIR ?? 'artifacts');
 
   const 읽기 = () => {
     const 판들 = 판들읽기(돌린기록들(결과폴더), true)?.판들 ?? new Map<string, 돌린판[]>();
     return { 찾기: (파일: string, 기기: string) => 판들.get(`${파일}\0${기기}`), 전체: [...판들.values()].flat() };
   };
   const 앞 = 읽기();
+  const 할일들 = new Map(기기들.map((기기) => [기기, 할일고르기(대상, (파일) => 앞.찾기(파일, 기기), 모드)]));
+  if ([...할일들.values()].some((h) => h.셋.length + h.하나.length > 0) && 주소없음()) return 2;
   const 머리 = 모드 === '마지막' ? 'gate3-final' : `gate3-part-${이름}`;
   const 시작 = Date.now();
   // 기기마다 따로 고르고 나란히 돈다 — PC 는 보조 3번이 다 초록이고 휴대폰만 빨강이면 PC 는 1번 · 휴대폰은 3번
   const 차례들 = await Promise.all(
     기기들.map(async (기기) => {
-      const 찾기 = (파일: string) => 앞.찾기(파일, 기기);
-      const 할일 = 할일고르기(대상, 찾기, 모드);
-      const 어림 = (파일: string) => 회차어림(찾기(파일), 앞.전체);
+      const 할일 = 할일들.get(기기)!;
+      const 어림 = (파일: string) => 회차어림(앞.찾기(파일, 기기), 앞.전체);
       const 고른 = { 기기, 셋: [] as string[], 하나: [] as string[], 로그: [] as string[], 기다림: 0, 자리없음: false };
       if (할일.셋.length + 할일.하나.length === 0) return 고른;
-      const 자리 = await 자리기다리기(시작 + 차례예산 - 띄울최소);
-      고른.기다림 = Date.now() - 시작;
-      if (자리 === null) return { ...고른, 자리없음: true };
-      try {
-        // 덩어리는 자리를 받은 뒤 남은 예산으로 자른다 — 기다린 만큼 덜 돈다
-        고른.셋 = 차례나누기(할일.셋, 3, 어림, 차례예산 - (Date.now() - 시작));
-        for (const [파일들, 회수] of [[고른.셋, 3], [할일.하나, 1]] as const) {
+      const 기다림 = await 자리받아(시작, async () => {
+        // 덩어리는 자리를 받은 뒤 남은 예산으로 자른다 — 기다린 만큼 덜 돈다. 실제로 띄운 것만 고른 것에 담는다(못 띄운 것을 「돌렸는데 끝난 것 없음」으로 세지 않게)
+        const 셋차례 = 차례나누기(할일.셋, 3, 어림, 차례예산 - (Date.now() - 시작));
+        for (const [파일들, 회수] of [[셋차례, 3], [할일.하나, 1]] as const) {
           const 남은예산 = 차례예산 - (Date.now() - 시작);
-          if (파일들.length === 0 || 남은예산 < 띄울최소 || (회수 === 1 && 고른.셋.length < 할일.셋.length)) continue;
+          if (파일들.length === 0 || 남은예산 < 띄울최소 || (회수 === 1 && 셋차례.length < 할일.셋.length)) continue;
           const 이번 = 회수 === 3 ? 파일들 : 차례나누기(파일들, 1, 어림, 남은예산);
-          if (회수 === 1) 고른.하나.push(...이번);
-          const 기록이름 = `${머리}-${다음번호(readdirSync(결과폴더), 머리)}${기기 === 'mobile' ? '-mobile' : ''}`;
-          고른.로그.push(join(결과폴더, `${기록이름}.log`));
-          await 돌리기(트리, 결과폴더, 기록이름, 이번, 회수, 기기, 남은예산);
+          (회수 === 3 ? 고른.셋 : 고른.하나).push(...이번);
+          const 기록 = 기록이름(결과폴더, 머리, 기기);
+          고른.로그.push(join(결과폴더, `${기록}.log`));
+          await 돌리기(트리, 결과폴더, 기록, 이번, 회수, 기기, 남은예산);
         }
-      } finally {
-        자리놓기(자리);
-      }
-      return 고른;
+      });
+      return 기다림 === null ? { ...고른, 자리없음: true } : { ...고른, 기다림 };
     }),
   );
 
