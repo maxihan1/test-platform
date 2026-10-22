@@ -237,7 +237,7 @@ function 더미고르개({ 값, 고침, 더미들, 쓰나 }: { 값: 일단계값
           </label>
         ) : null}
       </div>
-      {값.방식 === 'DUMMY' ? <span className="perf-faint">{t('올려 둔 실행 파일을 가상 사용자 수만큼 띄웁니다. 동시 사용자 기준으로만 걸 수 있고 트랜잭션 목록은 쓰지 않습니다')}</span> : null}
+      {값.방식 === 'DUMMY' ? <span className="perf-faint">{t('올려 둔 실행 파일을 에이전트마다 한 번 띄웁니다. 동시 사용자 기준으로만 걸 수 있고 트랜잭션 목록은 쓰지 않습니다')}</span> : null}
     </div>
   );
 }

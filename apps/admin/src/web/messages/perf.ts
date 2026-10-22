@@ -188,7 +188,7 @@ export const 성능말: Record<string, string> = {
   // 게임 서버 부하 — 더미 클라이언트 · WebSocket · gRPC (PERF-F1-10)
   '더미 클라이언트': 'Dummy client',
   '더미 클라이언트 이름': 'Dummy client name',
-  '게임 서버 부하에 쓰는 리눅스 실행 파일입니다. 부하 발생 에이전트가 받아 가상 사용자 수만큼 띄웁니다': 'Linux executables used for game server load. The load generator starts one per virtual user',
+  '게임 서버 부하에 쓰는 리눅스 실행 파일입니다. 부하 발생 에이전트마다 한 번 띄우고 맡을 가상 사용자 수를 QAHUB_USERS 로 알려 줍니다': 'Linux executables used for game server load. Each load generator starts one and passes its share of virtual users in QAHUB_USERS',
   '올린 더미 클라이언트가 없습니다': 'No dummy clients uploaded',
   '실행 명령': 'Command',
   크기: 'Size',
@@ -202,7 +202,7 @@ export const 성능말: Record<string, string> = {
   '실행 파일은 요청이 끝날 때마다 표준 출력에 결과 한 줄을 써야 합니다': 'The executable must write one result line to standard output after each request',
   '시나리오 방식': 'Scenario type',
   '트랜잭션 목록': 'Transaction list',
-  '올려 둔 실행 파일을 가상 사용자 수만큼 띄웁니다. 동시 사용자 기준으로만 걸 수 있고 트랜잭션 목록은 쓰지 않습니다': 'Starts the uploaded executable once per virtual user. Only virtual-user load works and no transaction list is used',
+  '올려 둔 실행 파일을 에이전트마다 한 번 띄웁니다. 동시 사용자 기준으로만 걸 수 있고 트랜잭션 목록은 쓰지 않습니다': 'Starts the uploaded executable once per load generator. Only virtual-user load works and no transaction list is used',
   '{이름} (더미 클라이언트)': '{이름} (dummy client)',
   '더미 클라이언트는 가상 사용자 수 기준으로만 걸 수 있습니다': 'Dummy clients can only be loaded by virtual users',
   'proto 파일': 'Proto file',

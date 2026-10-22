@@ -76,7 +76,7 @@ export function SettingsPerfDummy({ services, 기본접두사, 관리자 }: { se
     <div className="set-card">
       <div className="set-card-h">
         <h3>{t('더미 클라이언트')}</h3>
-        <p>{t('게임 서버 부하에 쓰는 리눅스 실행 파일입니다. 부하 발생 에이전트가 받아 가상 사용자 수만큼 띄웁니다')}</p>
+        <p>{t('게임 서버 부하에 쓰는 리눅스 실행 파일입니다. 부하 발생 에이전트마다 한 번 띄우고 맡을 가상 사용자 수를 QAHUB_USERS 로 알려 줍니다')}</p>
       </div>
       <label className="perf-field">
         {t('애플리케이션')}
