@@ -131,6 +131,22 @@ describe.skipIf(연결 === undefined)('PRD 보류 칸', () => {
     }
   });
 
+  it('Android 앱은 대조가 아닌 뿌리도 앱 줄 계정으로 이어 작성이 열린다 — 웹 정방향 뿌리는 그대로 안 열린다', async () => {
+    const { 뿌리 } = await 판.원본({ coverage: 다덮은셈 });
+    await 보류넣기([['XHC-REQ-001', '관리자']]);
+    expect((await 판.상세(뿌리)).canContinue).toBe(false);
+    expect((await 보류읽기(판.서비스)).continueFrom).toBe(null);
+    await q(`UPDATE service SET kind = 'APP' WHERE id = $1`, [판.서비스]);
+    await q(`UPDATE service_env SET app_path = '/apk/xhc.apk' WHERE service_id = $1`, [판.서비스]);
+    try {
+      expect((await 판.상세(뿌리)).canContinue).toBe(true);
+      expect((await 보류읽기(판.서비스)).continueFrom).toBe(뿌리);
+    } finally {
+      await q(`UPDATE service_env SET app_path = NULL WHERE service_id = $1`, [판.서비스]);
+      await q(`UPDATE service SET kind = 'SCREEN' WHERE id = $1`, [판.서비스]);
+    }
+  });
+
   it('응답에 비밀번호 원문이 없다', async () => {
     await 보류넣기([['XHC-REQ-001', '관리자'], ['XHC-REQ-003', '일반 회원']]);
     const r = await app.inject({ method: 'GET', url: '/api/prd?service=XHC' });
