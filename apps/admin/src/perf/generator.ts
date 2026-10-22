@@ -70,7 +70,7 @@ ${ws ? "import { WebSocket } from 'k6/websockets';\nimport { setTimeout, clearTi
 ${grpc ? "import grpc from 'k6/net/grpc';" : ''}
 ${조각?.imports ?? ''}
 
-const TX = ${JSON.stringify(input.transactions)};
+const TX = ${JSON.stringify(input.transactions.map((t) => (t.grpc ? { ...t, grpc: { method: t.grpc.method } } : t)))};
 // WebSocket · gRPC 한 번의 시간. 에이전트가 http_req_duration 과 같이 요청으로 센다 (§5.4)
 const TX_MS = new Trend('qahub_tx_duration', true);
 // proto 는 init 자리에서만 읽힌다 — 에이전트가 일의 files 를 QAHUB_FILES 폴더에 풀어 둔다
@@ -150,6 +150,8 @@ function grpcTx(t, i, url) {
     ok = res !== null && res.status === grpc.StatusOK;
     text = ok ? JSON.stringify(res.message) : '';
   } catch (_) {
+    // 끊긴 연결에 connect 를 다시 부르면 거절된다 — 닫고 다음 차례에 새로 연다
+    try { slot.client.close(); } catch (_) {}
     slot.connected = false;
   }
   TX_MS.add(Date.now() - started, { tx: t.name });

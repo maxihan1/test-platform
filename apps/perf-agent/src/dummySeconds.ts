@@ -8,6 +8,12 @@ export interface Stage {
   target: number;
 }
 
+// QA Hub 가 받는 1초 숫자의 상한(§5.4 — 이름 200자 · 한 초에 트랜잭션 500개)과 같다. 넘는 줄은 버린다 — 그 초 숫자가 통째로 거절되지 않게
+const TX_NAME_MAX = 200;
+const TX_PER_SEC_MAX = 500;
+// 실행 시간 뒤로 이만큼까지만 센다. 단위가 틀린 시각(µs) 하나가 빈 초 수만 개를 보내게 하지 않으려고
+const LATE_SEC = 60;
+
 export interface DummyLine {
   t: number;
   tx: string;
@@ -20,7 +26,7 @@ export function parseLine(line: string): DummyLine | null {
   if (!line.startsWith('{')) return null;
   try {
     const x = JSON.parse(line) as Partial<DummyLine> | null;
-    if (typeof x?.t !== 'number' || !Number.isFinite(x.t) || typeof x.tx !== 'string' || x.tx === '' || typeof x.ms !== 'number' || !Number.isFinite(x.ms) || x.ms < 0 || typeof x.ok !== 'boolean') return null;
+    if (typeof x?.t !== 'number' || !Number.isFinite(x.t) || typeof x.tx !== 'string' || x.tx === '' || x.tx.length > TX_NAME_MAX || typeof x.ms !== 'number' || !Number.isFinite(x.ms) || x.ms < 0 || typeof x.ok !== 'boolean') return null;
     return { t: x.t, tx: x.tx, ms: x.ms, ok: x.ok };
   } catch {
     return null;
@@ -56,17 +62,25 @@ export class DummySeconds {
   // 한 번 보낸 초. 늦게 온 조각의 vus 를 0 으로 둬야 QA Hub 가 더해도 두 번 세지 않는다(§5.4)
   private taken = new Set<number>();
 
+  private readonly lastSec: number;
+
   // startMs 는 이 에이전트 시계로 옮긴 startAt 이다
-  constructor(private readonly startMs: number, private readonly stages: Stage[]) {}
+  constructor(private readonly startMs: number, private readonly stages: Stage[]) {
+    this.lastSec = stages.reduce((n, s) => n + s.durationSec, 0) + LATE_SEC;
+  }
 
   add(line: string): void {
     const p = parseLine(line);
     if (p === null) return;
     const sec = Math.max(0, Math.floor((p.t - this.startMs) / 1000));
+    if (sec > this.lastSec) return;
     let bin = this.bins.get(sec);
     if (!bin) this.bins.set(sec, (bin = new Map()));
     let tx = bin.get(p.tx);
-    if (!tx) bin.set(p.tx, (tx = { name: p.tx, requests: 0, errors: 0, hist: emptyHist() }));
+    if (!tx) {
+      if (bin.size >= TX_PER_SEC_MAX) return;
+      bin.set(p.tx, (tx = { name: p.tx, requests: 0, errors: 0, hist: emptyHist() }));
+    }
     tx.requests += 1;
     tx.hist[bucketOf(p.ms)] += 1;
     if (!p.ok) tx.errors += 1;

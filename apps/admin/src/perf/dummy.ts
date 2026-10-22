@@ -120,10 +120,13 @@ export default async function perfDummyRoutes(app: FastifyInstance): Promise<voi
     const pool = await 풀();
     const 있나 = await pool.query('SELECT 1 FROM perf_dummy_client WHERE id = $1', [id]);
     if (!있나.rowCount) return reply.code(404).send({ error: 'NOT_FOUND' });
-    // 지운 시나리오와 옛 버전은 안 센다 — 실행이 읽는 것은 시나리오의 현재 버전이다
+    // 시나리오의 현재 버전, 그리고 끝나지 않은 실행이 읽는 버전(옛 버전 · 지운 시나리오여도)을 센다 — 도는 실행의 zip 을 지우면 도중에 실패한다
     const 쓰는중 = await pool.query(
       `SELECT 1 FROM perf_scenario s JOIN perf_scenario_version v ON v.scenario_id = s.id AND v.version = s.version
-        WHERE s.deleted_at IS NULL AND v.body->>'dummyClient' = $1::text LIMIT 1`,
+        WHERE s.deleted_at IS NULL AND v.body->>'dummyClient' = $1::text
+       UNION ALL
+       SELECT 1 FROM perf_run r JOIN perf_scenario_version v ON v.scenario_id = r.scenario_id AND v.version = r.scenario_version
+        WHERE r.status IN ('QUEUED', 'SMOKE', 'RUNNING') AND v.body->>'dummyClient' = $1::text LIMIT 1`,
       [id],
     );
     if (쓰는중.rowCount) return reply.code(409).send({ error: 'IN_USE' });

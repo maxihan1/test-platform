@@ -5,6 +5,8 @@ import { 풀 } from './store.js';
 import type { Stage } from './types.js';
 
 export const 스모크초 = 60;
+// 0 에서 선형으로 오르는 셈(에이전트 · 클라이언트)이 첫 초부터 1명이 되게 1초 만에 오른다 — k6 스모크(constant-vus 1명)와 같다
+export const 스모크단계: Stage[] = [{ durationSec: 1, target: 1 }, { durationSec: 스모크초 - 1, target: 1 }];
 
 export interface 더미 {
   id: number;
@@ -30,9 +32,11 @@ export function 몫나누기(total: number, weights: number[]): number[] {
   return base;
 }
 
-/** 단계의 목표를 이 에이전트 몫 비율(users / peak)로 줄인다. peak 는 가장 큰 목표라 마지막 정점은 users 와 정확히 같다 */
-export function 단계줄이기(stages: Stage[], users: number, peak: number): Stage[] {
-  return stages.map((s) => ({ durationSec: s.durationSec, target: peak === 0 ? 0 : Math.round((s.target * users) / peak) }));
+/** 단계마다 목표를 에이전트 몫(users) 비율로 나눈다 — 단계마다 몫나누기라 에이전트 합이 늘 그 단계 목표와 같다. 돌려주는 것은 에이전트마다의 단계 목록이다 */
+export function 단계나누기(stages: Stage[], users: number[]): Stage[][] {
+  const sum = users.reduce((a, b) => a + b, 0);
+  const 단계별 = stages.map((s) => (sum === 0 ? users.map(() => 0) : 몫나누기(s.target, users)));
+  return users.map((_, i) => stages.map((s, k) => ({ durationSec: s.durationSec, target: 단계별[k]?.[i] ?? 0 })));
 }
 
 /** 환경값으로 줄 대상 칸 — 포트가 없으면 https 443 · http 80 */

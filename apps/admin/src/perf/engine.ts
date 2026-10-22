@@ -5,52 +5,25 @@ import type { FastifyInstance } from 'fastify';
 import { 대상줄읽기 } from '../authoring/reverse.js';
 import { 기기실행시작, 기기실행중인가 } from './deviceRun.js';
 import { 끝내기, 끝내기배경 } from './finish.js';
-import { generateScript, protoFiles, segments, splitRows } from './generator.js';
-import { 단계줄이기, 더미읽기, 더미일칸, 몫나누기, 스모크초, type 더미 } from './dummyRun.js';
+import { generateScript, segments, splitRows } from './generator.js';
+import { 단계나누기, 더미일칸, 몫나누기, 스모크단계, 스모크초 } from './dummyRun.js';
 import { emptyHist } from './hist.js';
 import { AGENT_LOST_SEC, autoStop, type SecRow } from './judge.js';
 import { 단독스크립트, 브라우저몫 } from './pageScript.js';
 import { 부하중쓰기, 빈에이전트 } from './pages.js';
 import type { 페이지표본 } from './pageStats.js';
+import { 재료, 파일칸 } from './runMaterial.js';
 import { 정기성능점검 } from './schedule.js';
 import { 끝난초여유, 도는것, 시작틈초, type Job, type 도는실행 } from './state.js';
 import * as 표 from './store.js';
-import type { PageRunConfig, Transaction } from './types.js';
+import type { PageRunConfig } from './types.js';
 
 export { 도는실행들 } from './state.js';
 export type { Job } from './state.js';
 
 const 글 = (e: unknown) => String(e instanceof Error ? e.message : e);
 
-async function 재료(runId: number): Promise<{ run: 표.실행행; txs: Transaction[]; env: Record<string, string>; rows: string[]; dummy: 더미 | null }> {
-  const run = await 표.실행하나(runId);
-  if (run === null || run.scenarioId === null) throw new Error(`실행 ${runId} 이 없습니다`);
-  const pool = await 표.풀();
-  const v = await pool.query<{ body: { transactions?: Transaction[]; dummyClient?: number }; accounts_csv: string | null }>(
-    `SELECT v.body, s.accounts_csv FROM perf_scenario_version v JOIN perf_scenario s ON s.id = v.scenario_id
-      WHERE v.scenario_id = $1 AND v.version = $2`,
-    [run.scenarioId, run.scenarioVersion],
-  );
-  const 줄 = await 대상줄읽기(run.serviceId, run.env);
-  if (v.rows[0] === undefined || 줄 === null) throw new Error('시나리오 버전이나 대상 서버 줄이 없어졌습니다');
-  // 대기하는 사이 그 줄이 실서비스 서버가 될 수 있다 — 부하를 걸기 직전에 한 번 더 본다 (§3.9 결정 10)
-  if (줄.isProd) throw new Error('대상 서버가 실서비스 서버로 바뀌어 부하를 걸지 않았습니다');
-  const env: Record<string, string> = { BASE_URL: run.baseUrl };
-  if (줄.loginId) env.ACCOUNT_ID = 줄.loginId;
-  if (줄.loginPassword) env.ACCOUNT_PW = 줄.loginPassword;
-  const rows = (v.rows[0].accounts_csv ?? '').split(/\r?\n/).filter((l) => l.trim() !== '');
-  const dummyId = v.rows[0].body.dummyClient;
-  const dummy = dummyId === undefined ? null : await 더미읽기(dummyId);
-  if (dummyId !== undefined && dummy === null) throw new Error('더미 클라이언트가 지워졌습니다');
-  return { run, txs: v.rows[0].body.transactions ?? [], env, rows, dummy };
-}
-
 const 시각 = (ms: number) => new Date(ms).toISOString();
-
-function 파일칸(txs: readonly Transaction[]): { files?: Record<string, string> } {
-  const files = protoFiles(txs);
-  return Object.keys(files).length > 0 ? { files } : {};
-}
 
 async function 시작하기(run: 표.실행행): Promise<void> {
   const cfg = run.config;
@@ -64,7 +37,7 @@ async function 시작하기(run: 표.실행행): Promise<void> {
     ...(csv !== undefined ? { accountsCsv: csv } : {}),
     ...파일칸(txs),
     // 더미 클라이언트는 사용자 1명 · 60초로 먼저 돌려 본다
-    ...(dummy === null ? {} : 더미일칸(run.baseUrl, env, dummy, 1, 스모크초, [{ durationSec: 스모크초, target: 1 }], csv)),
+    ...(dummy === null ? {} : 더미일칸(run.baseUrl, env, dummy, 1, 스모크초, 스모크단계, csv)),
   };
   도는것.set(run.id, {
     runId: run.id, kind: 'LOAD', phase: 'SMOKE', startAt, durationSec: 스모크초, ...(dummy === null ? {} : { dummyClient: dummy.id }), agents: cfg.agentIds, monitors: cfg.monitorIds,
@@ -125,12 +98,13 @@ async function 본테스트(live: 도는실행): Promise<void> {
   // 더미 클라이언트는 가장 큰 목표(최대 동시 사용자)를 에이전트 최대 가상 사용자 비율로 나눠 띄운다
   const peak = Math.max(...cfg.load.stages.map((x) => x.target));
   const users = 몫나누기(peak, weights);
+  const 나눈단계 = 단계나누기(cfg.load.stages, users);
   cfg.agentIds.forEach((id, i) => {
     const 공통 = { runId: run.id, kind: 'LOAD' as const, startAt: 시각(startAt), allowedHosts: cfg.allowedHosts };
     if (dummy !== null) {
       const n = users[i] ?? 0;
       const csv = rows.length > 0 ? (parts[i] ?? rows).join('\n') : undefined;
-      live.pending.set(id, { ...공통, ...더미일칸(run.baseUrl, env, dummy, n, cfg.durationSec, 단계줄이기(cfg.load.stages, n, peak), csv) });
+      live.pending.set(id, { ...공통, ...더미일칸(run.baseUrl, env, dummy, n, cfg.durationSec, 나눈단계[i] ?? [], csv) });
       return;
     }
     live.pending.set(id, {

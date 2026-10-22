@@ -6,7 +6,7 @@ import { pipeline } from 'node:stream/promises';
 import { describe, expect, it } from 'vitest';
 
 import { 올리기막기 } from './dummy.js';
-import { 단계줄이기, 대상칸, 몫나누기 } from './dummyRun.js';
+import { 단계나누기, 대상칸, 몫나누기 } from './dummyRun.js';
 
 describe('몫나누기', () => {
   it('합이 항상 최대 동시 사용자와 같다', () => {
@@ -23,11 +23,15 @@ describe('몫나누기', () => {
   });
 });
 
-describe('단계줄이기', () => {
-  it('목표를 몫 비율로 줄이고 정점은 몫과 정확히 같다', () => {
-    expect(단계줄이기([{ durationSec: 10, target: 50 }, { durationSec: 20, target: 100 }], 25, 100)).toEqual([{ durationSec: 10, target: 13 }, { durationSec: 20, target: 25 }]);
-    expect(단계줄이기([{ durationSec: 5, target: 3 }], 0, 3)).toEqual([{ durationSec: 5, target: 0 }]);
-    expect(단계줄이기([{ durationSec: 5, target: 0 }], 0, 0)).toEqual([{ durationSec: 5, target: 0 }]);
+describe('단계나누기', () => {
+  it('단계마다 에이전트 합이 그 단계 목표와 같고 정점은 몫과 같다', () => {
+    const 단계 = [{ durationSec: 10, target: 1 }, { durationSec: 20, target: 4 }];
+    expect(단계나누기(단계, [2, 2])).toEqual([
+      [{ durationSec: 10, target: 1 }, { durationSec: 20, target: 2 }],
+      [{ durationSec: 10, target: 0 }, { durationSec: 20, target: 2 }],
+    ]);
+    expect(단계나누기([{ durationSec: 5, target: 3 }], [3, 0])).toEqual([[{ durationSec: 5, target: 3 }], [{ durationSec: 5, target: 0 }]]);
+    expect(단계나누기([{ durationSec: 5, target: 0 }], [0, 0])).toEqual([[{ durationSec: 5, target: 0 }], [{ durationSec: 5, target: 0 }]]);
   });
 });
 

@@ -24,10 +24,11 @@ export const 트랜잭션 = z.object({
   check: z.object({ status: z.array(z.number().int().min(100).max(599)).max(20).optional(), contains: z.string().max(1000).optional() }).optional(),
   thinkTimeSec: z.number().min(0).max(600).optional(),
   messages: z.array(z.string().max(100_000)).max(50).optional(),
-  grpc: z.object({ proto: z.string().min(1).max(200_000), method: z.string().regex(/^[A-Za-z0-9_.]+\/[A-Za-z0-9_]+$/) }).optional(),
+  grpc: z.object({ proto: z.string().min(1).max(200_000), method: z.string().regex(/^[A-Za-z0-9_]+(\.[A-Za-z0-9_]+)+\/[A-Za-z0-9_]+$/) }).optional(),
 }).refine((t) => (t.type === 'GRPC') === (t.grpc !== undefined), 'gRPC 트랜잭션만 proto · 메서드를 듭니다')
   .refine((t) => t.type !== 'GRPC' || /^(\/|https?:\/\/)/i.test(t.url), 'gRPC 주소는 경로나 http(s):// 주소입니다')
-  .refine((t) => t.type === 'WS' || !/^wss?:\/\//i.test(t.url), 'ws:// 주소는 WebSocket 트랜잭션만 씁니다');
+  .refine((t) => t.type === 'WS' || !/^wss?:\/\//i.test(t.url), 'ws:// 주소는 WebSocket 트랜잭션만 씁니다')
+  .refine((t) => t.type !== 'WS' || !/^https?:\/\//i.test(t.url), 'WebSocket 주소는 경로나 ws(s):// 주소입니다');
 export const 단계 = z.object({ durationSec: z.number().int().min(1).max(86_400), target: z.number().int().min(0).max(1_000_000) });
 export const 목표 = z.object({
   metric: z.enum(['P95', 'ERROR_RATE', 'TPS']),

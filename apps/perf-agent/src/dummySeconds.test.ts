@@ -56,6 +56,19 @@ describe('DummySeconds', () => {
     expect(s.take(2)).toEqual({ sec: 2, vus: 3, txs: [] });
   });
 
+  it('실행 시간 + 60초 뒤의 시각 · 200자 넘는 이름 · 한 초 500번째 뒤의 새 이름은 버린다', () => {
+    const s = new DummySeconds(10_000, [{ durationSec: 4, target: 4 }]);
+    s.add(line(10_000 + 65_000, 'a', 1));
+    s.add(line(1.7e15, 'a', 1));
+    expect(s.leftovers()).toEqual([]);
+    s.add(line(10_100, 'x'.repeat(201), 1));
+    for (let i = 0; i < 501; i += 1) s.add(line(10_100, `tx${i}`, 1));
+    s.add(line(10_100, 'tx0', 1));
+    const first = s.take(0);
+    expect(first.txs).toHaveLength(500);
+    expect(first.txs.find((t) => t.name === 'tx0')!.requests).toBe(2);
+  });
+
   it('시작 전 시각은 0초로 세고, 보낸 초에 늦게 온 조각은 vus 0 으로 leftovers 에 남는다', () => {
     const s = new DummySeconds(10_000, [{ durationSec: 4, target: 4 }]);
     s.add(line(9_000, 'a', 1));
