@@ -3,6 +3,10 @@
 
 import ExcelJS from 'exceljs';
 import Fastify, { type FastifyInstance } from 'fastify';
+
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { 인증등록 } from '../auth/gate.js';
@@ -85,6 +89,8 @@ describe.skipIf(연결 === undefined)('케이스 엑셀 통로', () => {
   let 뿌리1 = 0;
   let 뿌리2 = 0;
   let 뿌리4 = 0;
+  const 원래뿌리 = process.env.PLATFORM_TESTS_DIR;
+  let 빈뿌리 = '';
 
   beforeAll(async () => {
     const p = await pool();
@@ -133,6 +139,9 @@ describe.skipIf(연결 === undefined)('케이스 엑셀 통로', () => {
     app = Fastify();
     세션등록(app, 열쇠);
     인증등록(app);
+    // 라우트를 걸면 기동 스캔이 돈다. xcx 폴더는 없으니 뿌리가 차 있으면 위 케이스를 비활성으로 내린다(§3.1) — 빈 뿌리를 준다
+    빈뿌리 = await mkdtemp(join(tmpdir(), 'xcx-'));
+    process.env.PLATFORM_TESTS_DIR = 빈뿌리;
     await app.register(authRoutes, { prefix: '/api' });
     await app.register(catalogRoutes, { prefix: '/api' });
     await app.ready();
@@ -157,6 +166,9 @@ describe.skipIf(연결 === undefined)('케이스 엑셀 통로', () => {
     await 치우기();
     await (await pool()).query('DELETE FROM service WHERE id = $1', [서비스]);
     await app.close();
+    if (원래뿌리 === undefined) delete process.env.PLATFORM_TESTS_DIR;
+    else process.env.PLATFORM_TESTS_DIR = 원래뿌리;
+    await rm(빈뿌리, { recursive: true, force: true });
   });
 
   const 받기 = (누구: string, 쿼리 = '') =>
