@@ -3,7 +3,7 @@
 
 import Fastify, { type FastifyInstance } from 'fastify';
 
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -37,7 +37,7 @@ vi.mock('./store.js', () => ({
   save: async (specs: CaseSpec[], deactivate: boolean, prefix: string) => {
     화면지도.차례.push(`저장 ${prefix}`);
     화면지도.저장.push([specs, deactivate, prefix]);
-    return { added: specs.length, updated: 0, deactivated: 0 };
+    return { added: specs.length, updated: 0, deactivated: specs.length === 0 ? 7 : 0 };
   },
   findCase: async () => null,
   findService: async () => null,
@@ -197,7 +197,7 @@ describe('스캔 결과 거르기', () => {
     expect((await 다시스캔()).error).toContain('XCD 서비스의 테스트 폴더 xcd을 읽지 못했다');
   });
 
-  it('뿌리 폴더에 다른 폴더가 있는데 서비스 폴더가 없으면 케이스 0건으로 저장해 비활성으로 내린다 · 뿌리가 비었으면 안 건드린다', async () => {
+  it('뿌리 폴더에 다른 폴더가 있는데 서비스 폴더가 없으면 케이스 0건으로 저장해 비활성으로 내리고 건수를 알린다 · 뿌리에 숨김 항목뿐이면 안 건드린다', async () => {
     부르는이 = 사람('member', { XCD: 'read' });
     const 다시스캔 = async () => (await app.inject({ method: 'POST', url: '/api/catalog/scan?service=XCD' })).json();
     const 임시 = await mkdtemp(join(tmpdir(), 'xcd-'));
@@ -205,12 +205,15 @@ describe('스캔 결과 거르기', () => {
       뿌리.길 = 임시;
       화면지도.저장.length = 0;
       await 다시스캔();
+      await writeFile(join(임시, '.gitkeep'), '');
+      await mkdir(join(임시, 'lost+found'));
+      await 다시스캔();
       expect(화면지도.저장).toEqual([]);
 
       await mkdir(join(임시, 'xca'));
       화면지도.차례.length = 0;
       const body = await 다시스캔();
-      expect(body.error).toBeUndefined();
+      expect(body.error).toContain('XCD 서비스의 테스트 폴더 xcd에 케이스가 없어 7건을 비활성으로 내렸다');
       expect(화면지도.저장).toEqual([[[], true, 'XCD']]);
       expect(화면지도.차례).toEqual(['저장 XCD', '화면 XCD']);
     } finally {

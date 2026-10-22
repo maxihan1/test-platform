@@ -65,6 +65,8 @@ async function runScan(log: FastifyBaseLogger, 고르기?: (s: ServiceRow) => bo
     // 서비스가 하나도 없으면 훑을 폴더가 없다 — 첫 서비스는 설정에서 만든다 (§8.8)
     const services = (await activeServices()).filter((s) => 고르기 === undefined || 고르기(s));
     const root = testsRoot();
+    // 숨김 · 시스템 항목(.DS_Store · .gitkeep · lost+found) 말고 무엇이 있어야 마운트가 멀쩡하다고 본다. 못 읽으면 모른다로 보고 아무것도 안 내린다
+    const 뿌리찼나 = await readdir(root).then((이름들) => 이름들.some((x) => !x.startsWith('.') && x !== 'lost+found'), () => false);
 
     for (const service of services) {
       const 결과: 서비스결과 = { scannedAt, added: 0, updated: 0, deactivated: 0, duplicates: [], problems: [] };
@@ -92,8 +94,8 @@ async function runScan(log: FastifyBaseLogger, 고르기?: (s: ServiceRow) => bo
         // 뿌리까지 없으면 마운트가 빠진 것이고, 폴더는 있는데 안의 파일이 사라졌으면 읽기 실패라 알린다 — 둘 다 케이스는 지난 스캔 그대로 둔다
         if ((err as NodeJS.ErrnoException).code === 'ENOENT' && !(await 있나(폴더)) && (await 있나(root))) {
           // git 은 빈 폴더를 안 남겨 케이스를 비운 폴더는 사라진다. 뿌리에 다른 폴더가 있으면 마운트는 멀쩡하니 0건으로 저장해 내린다.
-          // 뿌리가 통째로 비었으면 마운트가 덜 된 쪽이 그럴듯해 건드리지 않는다
-          if ((await readdir(root)).length === 0) continue;
+          // 뿌리에 숨김 항목뿐이면 마운트가 덜 된 쪽이 그럴듯해 건드리지 않는다
+          if (!뿌리찼나) continue;
           found = { specs: [], failures: [], duplicates: [] };
         } else {
           결과.problems.push(
@@ -125,6 +127,10 @@ async function runScan(log: FastifyBaseLogger, 고르기?: (s: ServiceRow) => bo
       결과.added = saved.added;
       결과.updated = saved.updated;
       결과.deactivated = saved.deactivated;
+      // 통째로 내렸으면 알린다 — 일부러 비운 것과 폴더 이름을 잘못 적은 사고를 사람이 가르게
+      if (내것.length === 0 && saved.deactivated > 0) {
+        결과.problems.push(`${service.prefix} 서비스의 테스트 폴더 ${service.testsDir}에 케이스가 없어 ${saved.deactivated}건을 비활성으로 내렸다`);
+      }
 
       // 지도 ② 는 케이스 파일에서 오므로 저장한 뒤에 채운다 — 표가 케이스를 외래 키로 건다
       try {

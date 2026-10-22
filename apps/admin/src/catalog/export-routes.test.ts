@@ -163,12 +163,13 @@ describe.skipIf(연결 === undefined)('케이스 엑셀 통로', () => {
   }
 
   afterAll(async () => {
-    await 치우기();
-    await (await pool()).query('DELETE FROM service WHERE id = $1', [서비스]);
-    await app.close();
+    // DB 검사 파일은 한 프로세스에서 차례로 돈다 — 정리가 깨져도 다음 파일이 빈 뿌리를 물려받지 않게 먼저 되돌린다
     if (원래뿌리 === undefined) delete process.env.PLATFORM_TESTS_DIR;
     else process.env.PLATFORM_TESTS_DIR = 원래뿌리;
     await rm(빈뿌리, { recursive: true, force: true });
+    await 치우기();
+    await (await pool()).query('DELETE FROM service WHERE id = $1', [서비스]);
+    await app.close();
   });
 
   const 받기 = (누구: string, 쿼리 = '') =>
