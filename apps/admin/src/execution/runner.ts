@@ -150,6 +150,7 @@ export async function callRunner(runId: number, item: PendingItem, 멈췄나: ()
     timeoutMs: item.timeoutMs,
     ...(item.app !== undefined && { app: item.app }),
     ...(item.apiAuths !== undefined && { apiAuths: item.apiAuths }),
+    ...(item.engine !== undefined && { engine: item.engine }),
     ...판,
   };
 

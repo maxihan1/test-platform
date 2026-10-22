@@ -11,7 +11,7 @@ import { 화면크기목록 } from '../prd/screens.js';
 import { 정수 } from '../routeParams.js';
 
 import { API서버라우트 } from './apiServerRoutes.js';
-import { API인증줄, API칸, API칸오류, API칸지금 } from './apiService.js';
+import { API인증줄, API칸, API칸오류, API칸지금, 어드민키줄 } from './apiService.js';
 import { 역할까닭찾기 } from './roles.js';
 import { 프로젝트만들기, 프로젝트목록, 프로젝트이름고치기 } from './projects.js';
 import { 제외경로정리 } from './rules.js';
@@ -42,6 +42,7 @@ const 대상서버 = z.object({
   // http(s) 밖의 주소(file:// 등)는 막는다 — 그 PC 의 아무 파일이나 폰에 깔게 된다 (APP-F1-03 · APP-F1-10)
   appPath: z.string().max(1000).refine(앱파일값인가, 'appPath 는 파일 경로나 http(s) 주소여야 합니다').nullable().optional(),
   apiAuths: z.array(API인증줄).optional(),
+  adminKey: 어드민키줄.nullable().optional(),
 });
 
 // 한 줄이라도 어긋나면 저장 전체를 막는다. 어느 줄인지는 싣지 않는다 — 화면이 보내기 전에 같은 규칙으로 짚는다
@@ -73,7 +74,7 @@ const 새서비스 = z.object({
   slackWebhook: z.string().optional(),
   figmaToken: z.string().optional(),
   crawlExclude: 훑지않을경로.optional(),
-  kind: z.enum(['SCREEN', 'APP', 'API']).default('SCREEN'),
+  kind: z.enum(['SCREEN', 'APP', 'GAME', 'API']).default('SCREEN'),
   ...API칸,
 });
 

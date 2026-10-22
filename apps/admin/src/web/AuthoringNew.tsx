@@ -17,7 +17,7 @@ import { use말, use언어 } from './i18n.js';
 import { 종류 } from './kind.js';
 import { message, 기다림글자 } from './ui.js';
 
-export { 거절사유, 받는종류 } from './authoringNewText.js';
+export { 가이드받는종류, 거절사유, 받는종류 } from './authoringNewText.js';
 
 const 같은파일 = (a: File, b: File) => a.name === b.name && a.size === b.size && a.lastModified === b.lastModified;
 

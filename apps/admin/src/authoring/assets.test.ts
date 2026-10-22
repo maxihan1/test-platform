@@ -124,6 +124,11 @@ describe.skipIf(연결 === undefined)('작성 자료 통로', () => {
       expect(res.json().error).toBe('BAD_FILE_TYPE');
     });
 
+    it.each(['강화 확률표.xlsx', '아이템.CSV'])('게임 기획 표 %s 는 받는다', async (이름) => {
+      const id = await 준비();
+      expect((await 올리기(id, 이름)).statusCode).toBe(200);
+    });
+
     it('JSON 통로 상한(1MB)보다 큰 파일도 20MB 안이면 받는다', async () => {
       const id = await 준비();
       expect((await 올리기(id, '큰것.pdf', Buffer.alloc(5 * 1024 * 1024))).statusCode).toBe(200);

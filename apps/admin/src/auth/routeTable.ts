@@ -140,6 +140,9 @@ export const 등급표: Record<string, 표값> = {
   'GET /api/authoring/requests/:id/trace': 작성쓰기,
   // 서비스 지도 읽기 — 작성 에이전트가 부른다. 자식이 기다릴 API 를 고른다 (작성 §3.6 「서비스 지도」)
   'GET /api/authoring/requests/:id/apis': 작성쓰기,
+  // 게임 지도 올리기 · 읽기 — 작성 에이전트가 부른다. 지도는 화면에 보이지 않는다 (도메인/게임 §7)
+  'PUT /api/authoring/requests/:id/game-elements': 작성쓰기,
+  'GET /api/authoring/requests/:id/game-map': 작성쓰기,
   // 서비스 가이드 — 주소에 authoring 이 없지만 작성 기능이다. 보기는 작성 read, 고치기는 작성 write (작성 §7 「서비스 가이드 통로」)
   'GET /api/guide': 작성읽기,
   'GET /api/guide/versions': 작성읽기,
@@ -254,6 +257,8 @@ export const 토큰통로 = new Set([
   'POST /api/authoring/requests/:id/screens/done',
   'GET /api/authoring/requests/:id/trace',
   'GET /api/authoring/requests/:id/apis',
+  'PUT /api/authoring/requests/:id/game-elements',
+  'GET /api/authoring/requests/:id/game-map',
   'GET /api/authoring/requests/:id/guide',
   'GET /api/authoring/requests/:id/guide/files/:fileId',
   'GET /api/authoring/requests/:id/app-screen',

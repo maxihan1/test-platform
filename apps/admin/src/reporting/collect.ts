@@ -101,7 +101,7 @@ interface RawRun {
   started_at: Date;
   kind: string;
   /** 실행에 박제하지 않고 읽는다 — 종류는 만들 때 정하고 못 바꾼다(settings/routes.ts) · 실행이 있는 애플리케이션은 외래키가 못 지우게 한다 */
-  service_kind: 'SCREEN' | 'APP' | 'API' | null;
+  service_kind: 'SCREEN' | 'APP' | 'GAME' | 'API' | null;
 }
 
 interface RawItem {

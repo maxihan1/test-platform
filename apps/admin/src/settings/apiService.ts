@@ -1,5 +1,5 @@
-// 설정 API 의 API 애플리케이션 칸 검사 — 종류 · 문서 경로 · 기준 서버 · 대상 서버 줄의 API 인증 (도메인/인증 §7 · 도메인/API §3.8)
-// routes.ts 가 300줄을 넘어 따로 둔다. 비밀값 이어받기(API_AUTH_SECRET_REQUIRED)는 옛 값을 읽어야 해서 저장(envs.ts)이 본다
+// 설정 API 의 종류별 칸 검사 — API 애플리케이션의 문서 경로 · 기준 서버 · API 인증, 게임의 어드민 키 (도메인/인증 §7 · 도메인/API §3.8 · 도메인/게임 §3.10)
+// routes.ts 가 300줄을 넘어 따로 둔다. 비밀값 이어받기(API_AUTH_SECRET_REQUIRED · ADMIN_KEY_VALUE_REQUIRED)는 옛 값을 읽어야 해서 저장(envs.ts)이 본다
 
 import { z } from 'zod';
 
@@ -12,6 +12,9 @@ export const API인증줄 = z.object({
   clientId: z.string(),
   clientSecret: z.string().optional(),
 });
+
+// 규칙은 아래 API칸오류 가 본다 — 어기면 BAD_ADMIN_KEY 다. 값이 없으면 같은 머리의 옛 값을 잇는다(envs.ts)
+export const 어드민키줄 = z.object({ header: z.string(), value: z.string().optional() });
 
 /** 보낸 칸. 종류(kind)는 만들기 스키마에만 있다 — 고치기는 KIND_IMMUTABLE 이다 */
 export const API칸 = {
@@ -44,11 +47,11 @@ function API인증틀림(줄들: 인증줄[]): boolean {
 interface 보낸칸 {
   apiDocPath?: string | null;
   apiDocEnv?: string | null;
-  envs?: { env: string; apiAuths?: 인증줄[] }[];
+  envs?: { env: string; apiAuths?: 인증줄[]; adminKey?: z.infer<typeof 어드민키줄> | null }[];
 }
 
 export interface 지금칸 {
-  /** 만들기는 스키마가, 고치기는 DB CHECK 가 SCREEN · APP · API 로 막는다 */
+  /** 만들기는 스키마가, 고치기는 DB CHECK 가 SCREEN · APP · GAME · API 로 막는다 */
   kind: string;
   apiDocEnv: string | null;
   envs: string[];
@@ -59,6 +62,13 @@ export interface 지금칸 {
  * 차례가 곧 우선순위다 — API 가 아닌 애플리케이션(웹 · Android 앱)이면 나머지 칸 규칙이 뜻이 없다
  */
 export function API칸오류(보낸것: 보낸칸, 지금: 지금칸): string | null {
+  // 어드민 키는 게임 서버를 두드리는 비밀값이다 — 게임이 아닌 애플리케이션에 들어가면 쓰는 곳 없이 원문만 쌓인다
+  const 어드민키들 = (보낸것.envs ?? []).flatMap((e) => (e.adminKey == null ? [] : [e.adminKey]));
+  if (어드민키들.length > 0 && 지금.kind !== 'GAME') return 'NOT_GAME_SERVICE';
+  // 머리 이름은 HTTP 토큰 글자만. 값은 머리에 실을 수 있는 글자(공백 · 줄바꿈 · 한글 없음)이고 API 인증 비밀값과 같이 끝 4자리를 보여도 8자 넘게 남게 12자부터다
+  if (어드민키들.some((k) => !/^[A-Za-z0-9-]{1,100}$/.test(k.header.trim()) || (k.value !== undefined && !/^[\x21-\x7e]{12,500}$/.test(k.value)))) {
+    return 'BAD_ADMIN_KEY';
+  }
   const 인증들 = (보낸것.envs ?? []).flatMap((e) => e.apiAuths ?? []);
   if (지금.kind !== 'API' && (보낸것.apiDocPath != null || 보낸것.apiDocEnv != null || 인증들.length > 0)) return 'NOT_API_SERVICE';
   if ((보낸것.envs ?? []).some((e) => e.apiAuths !== undefined && API인증틀림(e.apiAuths))) return 'BAD_API_AUTH';
