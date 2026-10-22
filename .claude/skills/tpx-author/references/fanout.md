@@ -68,7 +68,7 @@
 > - 묶음 slug: `<영문 slug>` — 모자란 도우미는 `tests/<폴더>/helpers/draft-<slug>.helper.ts` 한 파일에만 적는다
 > - 테스트 폴더: `tests/<폴더>` · 본보기 `tests/demo/DEMO-011.spec.ts`
 > - 대상 서버: 환경 변수 `<이름들 — 값은 적지 않는다>` · 돌려 보기 명령 앞에 붙일 것 `PLATFORM_BASE_URL=<운영 아닌 대상 서버 주소>`(환경에 이미 있으면 「이미 있음 — 붙이지 않는다」). 명령이 「PLATFORM_BASE_URL 이 없다」로 멈추면 이것을 붙인다
-> - 서비스 지도: `<자료 폴더>/api-map.txt`(자식 프롬프트 「서비스 지도」 절의 자리 — 그 절이 없으면 「없음」). 기다릴 응답을 고를 때 대상 API 를 직접 불러 꼴을 알아보기 전에 `grep` 으로 그 화면 틀 · 비슷한 케이스 줄부터 본다(`4-selector.md` 「서비스 지도」). 역방향이면 화면 기록의 `## 부르는 API` 절이 그 화면이 이번 크롤에서 부른 API 다. 둘 다 기대값의 근거가 아니다
+> - 서비스 지도: `<자료 폴더>/api-map.txt`(자식 프롬프트 「서비스 지도」 절의 자리 — 그 절이 없으면 「없음」). 기다릴 응답을 고를 때 대상 API 를 직접 불러 꼴을 알아보기 전에 `grep` 으로 그 화면 틀 · 비슷한 케이스 줄부터 본다(`4-selector.md` 「서비스 지도」). 역방향이면 화면 기록의 `## 부르는 API` 절이 그 화면이 크롤에서 부른 API 다(절이 없으면 크롤러가 그 화면에서 API 를 못 들었다). 둘 다 기대값의 근거가 아니다
 > - 먼저 Read 로 연다: `.claude/skills/tpx-cases/references/4-selector.md` · `5-writing.md` · `two-kinds.md` · `test-design.md` · `wording.md` · `korean-ai-tells.md` · `6-gates.md` 의 「관문 4」 절(기본 계정 · 입력값 두 번)
 > - 돌려 보기 조건 — PC · 휴대폰 케이스 하나의 시간 한도는 Playwright 기본값(30초)이다(Android 앱 케이스는 `playwright.config.ts` 의 `android` 값). 3회는 화면이 부르는 `fetch` · `xhr` 응답만 늦춘다 — 케이스가 건 모킹 · `browser.newContext()` 로 따로 만든 창 묶음 · `request` 로 보내는 API 요청은 안 늦춘다. 형식 검사 규칙(K 번호)은 명세 `docs/spec/공통/2-명세선언.md` §4 「케이스 파일 규칙」 표가 정본이다. 돌려 보기 · 빠른 검사 명령과 형식 규칙 코드(`scripts/authoring-*` · `apps/admin/src/catalog/`)는 열지 않는다 — 이 줄과 명령이 찍는 줄로 충분하다
 > - 명령은 작업 트리에서 그대로 부른다 — 다른 폴더로 `cd` 한 채 `npx playwright …` 를 부르면 저장소 것이 아닌 새 Playwright 를 내려받는다
