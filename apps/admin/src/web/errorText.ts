@@ -102,6 +102,9 @@ export const 오류말: Record<string, string> = {
   BAD_API_DOC_URL: 'API 문서 경로는 / 로 시작해야 하고, 기준 서버는 대상 서버 중 하나여야 합니다',
   BAD_API_AUTH: 'API 인증 칸이 맞지 않습니다. 이름은 1~20자이고 한 서버 안에서 겹치지 않아야 합니다',
   API_AUTH_SECRET_REQUIRED: '새 API 인증에는 비밀값을 넣어야 합니다',
+  NOT_GAME_SERVICE: '어드민 키는 게임 애플리케이션에만 넣을 수 있습니다',
+  BAD_ADMIN_KEY: '어드민 키 칸이 맞지 않습니다. 머리 이름은 영문 · 숫자 · - 이고 값은 공백 없는 12자 이상이어야 합니다',
+  ADMIN_KEY_VALUE_REQUIRED: '새 어드민 키 머리에는 값을 넣어야 합니다',
 
   // 설정 화면이 쓰던 것. 표를 합쳐 둔다
   PROJECT_NOT_FOUND: '그 프로젝트를 찾지 못했습니다. 다른 사람이 애플리케이션을 모두 옮겨 비었을 수 있습니다',

@@ -1,10 +1,11 @@
-// 작성 에이전트가 부르는 표준 기획서 통로 — 그 요청 서비스의 지금 판 · 기준 판 읽기 · 옮기기 결과 올리기 · 화면 기록 읽기 · 올리기 · 화면이 맞음 건의 실패 trace · 서비스 지도 (도메인/작성 §7 「표준 기획서 통로」)
+// 작성 에이전트가 부르는 표준 기획서 통로 — 그 요청 서비스의 지금 판 · 기준 판 읽기 · 옮기기 결과 올리기 · 화면 기록 읽기 · 올리기 · 화면이 맞음 건의 실패 trace · 서비스 지도 · 게임 지도 (도메인/작성 §7 「표준 기획서 통로」 · 도메인/게임 §7)
 // 서비스 경계는 문이 요청 번호로 봤다. 여기서는 맥 계정 · 집은 쪽 · 도는 중인지를 본다(authoring/agentRoutes.ts 와 같은 문턱)
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import { 집은쪽인가 } from '../authoring/agentRoutes.js';
 import { 지도를읽는다 } from './apiMap.js';
+import { 게임서비스인가, 요소검사, 요소넣기, 지도글 } from './gameMap.js';
 import type { 요청 } from '../authoring/store.js';
 import { TCID } from '../catalog/rules.js';
 import { 누가, 판번호, 틀린판번호 } from './routes.js';
@@ -15,6 +16,7 @@ import { 기준판, 서비스접두사, 옮기기, 읽은판, 지금판, 판하�
 
 type 경로 = { Params: { id: string } };
 const 서버없음 = { error: 'BAD_SCREEN', detail: 'env' } as const;
+const 게임아님 = { error: 'NOT_GAME_SERVICE' } as const;
 
 /** 맥 계정 · 집은 쪽 · 도는 중. 본문보다 먼저 본다 — 끝난 요청에는 본문 모양과 상관없이 409 다 */
 export async function 도는집은요청(req: FastifyRequest, reply: FastifyReply): Promise<요청 | null> {
@@ -90,6 +92,24 @@ export default async function prdAgentRoutes(app: FastifyInstance): Promise<void
     const 행 = await 도는집은요청(req, reply);
     if (행 === null) return reply;
     return 지도를읽는다(행.serviceId);
+  });
+
+  // 게임 지도 — 게임 애플리케이션만. 지도는 화면에 보이지 않고 AI 가 다음 작성 때 읽는다 (도메인/게임 §3.10 「게임에만 있는 지도 넷」)
+  app.put<경로 & { Body: unknown }>('/authoring/requests/:id/game-elements', { bodyLimit: 본문상한 }, async (req, reply) => {
+    const 행 = await 도는집은요청(req, reply);
+    if (행 === null) return reply;
+    if (!(await 게임서비스인가(행.serviceId))) return reply.code(400).send(게임아님);
+    const 읽음 = 요소검사(req.body);
+    if ('error' in 읽음) return reply.code(400).send(읽음);
+    await 요소넣기(행.serviceId, 읽음.elements, 읽음.remove);
+    return reply.code(204).send();
+  });
+
+  app.get<경로>('/authoring/requests/:id/game-map', async (req, reply) => {
+    const 행 = await 도는집은요청(req, reply);
+    if (행 === null) return reply;
+    if (!(await 게임서비스인가(행.serviceId))) return reply.code(400).send(게임아님);
+    return { text: await 지도글(행.serviceId) };
   });
 
   // seen 5,000개에 화면 크기 차이(화면 하나 최대 13KB)까지 실려 기본 1MiB 를 넘을 수 있다 (PRD-F10-07)

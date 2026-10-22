@@ -2,8 +2,10 @@
 
 import type { use말 } from './i18n.js';
 
-// 서버의 받는 종류와 같다. 값의 정본은 도메인/작성 §7 「자료」 표다
-export const 받는종류 = '.pdf,.docx,.doc,.md,.txt';
+// 서버의 받는 종류와 같다. 값의 정본은 도메인/작성 §7 「자료」 표다. 서비스 가이드 첨부는 엑셀 · CSV 를 안 받는다(서버 받는확장자)
+export const 가이드받는종류 = '.pdf,.docx,.doc,.md,.txt';
+// 작성 자료는 게임 확률표 · 아이템 표 때문에 엑셀 · CSV 를 더 받는다 — 서버 작성자료확장자 (도메인/게임 §3.10 결정 3)
+export const 받는종류 = `${가이드받는종류},.xlsx,.csv`;
 // 정본: 도메인/작성 §7 「자료」 — 서버 assets.ts 의 파일상한과 같은 값
 const 파일상한 = 20 * 1024 * 1024;
 // 정본: 도메인/작성 §7 「자료」 — 파일과 피그마를 합친 수. 서버 assetStore.ts 의 자료상한과 같은 값
@@ -14,11 +16,11 @@ export const 자료상한 = 20;
  * 서버가 거절할 파일을 보내기 전에 거른다. 거절 이유(말 키)를 돌려준다.
  * 보낸 뒤에 걸리면 이미 만든 요청이 「준비 중」으로 남고 되살릴 길이 없다 (§7 「자료」)
  */
-export function 거절사유(파일: File): string | null {
+export function 거절사유(파일: File, 가이드 = false): string | null {
   const 점 = 파일.name.lastIndexOf('.');
   // 점이 맨 앞뿐인 이름(`.md`)은 서버의 extname 이 확장자 없음으로 읽는다. 여기서도 같게 본다
-  if (점 <= 0 || !받는종류.split(',').includes(파일.name.slice(점).toLowerCase())) {
-    return '지원하지 않는 파일입니다. PDF · 워드 · md · txt 만 올릴 수 있습니다';
+  if (점 <= 0 || !(가이드 ? 가이드받는종류 : 받는종류).split(',').includes(파일.name.slice(점).toLowerCase())) {
+    return 가이드 ? '지원하지 않는 파일입니다. PDF · 워드 · md · txt 만 올릴 수 있습니다' : '지원하지 않는 파일입니다. PDF · 워드 · 엑셀 · md · txt · csv 만 올릴 수 있습니다';
   }
   // 서버 assets.ts 의 이름인가와 같은 규칙. `"` 를 \u0022 로 적은 것은 messages.test 의 글자 훑기가
   // 정규식 안의 따옴표를 문자열 시작으로 읽기 때문이다
@@ -33,7 +35,7 @@ export function 거절사유(파일: File): string | null {
 // 이 폼에서만 만나는 서버 코드. 모르면 공통 번역(message)으로 넘긴다
 export const 작성오류: Record<string, string> = {
   BAD_FIGMA_URL: '피그마 주소 형식이 맞지 않습니다. 피그마 디자인 파일의 링크를 넣으세요 (FigJam은 받지 않습니다)',
-  BAD_FILE_TYPE: '지원하지 않는 파일입니다. PDF · 워드 · md · txt 만 올릴 수 있습니다',
+  BAD_FILE_TYPE: '지원하지 않는 파일입니다. PDF · 워드 · 엑셀 · md · txt · csv 만 올릴 수 있습니다',
   BAD_NAME: '파일 이름에 쓸 수 없는 글자(따옴표 · 빗금 · ..)가 있습니다',
   TOO_MANY_ASSETS: '한 요청에 넣을 수 있는 자료 개수를 넘었습니다',
   NO_ASSETS: '자료가 하나도 없습니다. 파일이나 피그마 주소를 넣으세요',

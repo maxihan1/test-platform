@@ -12,7 +12,7 @@ import { 자료파일복사, 자료폴더 } from './assets.js';
 import { 행커버리지 } from './coverage.js';
 import { 사슬식, 뿌리잠그고, 최신식 } from './history.js';
 import { 재실행API } from './apiDoc.js';
-import { 대상줄들읽기, 앱줄고르기, 역방향칸판정 } from './reverse.js';
+import { 대상줄들읽기, 앱줄고르기, 역방향칸판정, 폰앱인가 } from './reverse.js';
 import { db, type 요청 } from './store.js';
 
 /**
@@ -98,7 +98,7 @@ export async function 계정줄env(
   종류: string,
   손?: PoolClient,
 ): Promise<string | null> {
-  if (뿌리.대조env !== null || 종류 !== 'APP') return 뿌리.대조env;
+  if (뿌리.대조env !== null || !폰앱인가(종류)) return 뿌리.대조env;
   return 앱줄고르기(await 대상줄들읽기(서비스, 손), 뿌리.뿌리env)?.env ?? null;
 }
 

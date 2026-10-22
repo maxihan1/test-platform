@@ -16,6 +16,9 @@ export const 파일상한 = 20 * 1024 * 1024;
 
 // 받는 종류. 에이전트가 doc·docx 는 글자만 뽑고(맥 textutil · 서버 pandoc — 서버는 옛 .doc 을 못 읽어 실패로 알린다) 나머지는 그대로 읽는다
 export const 받는확장자 = new Set(['.pdf', '.docx', '.doc', '.md', '.txt']);
+// 작성 자료는 엑셀 · CSV 를 더 받는다 — 게임 확률표 · 아이템 표가 엑셀로 온다. 에이전트가 xlsx 를 시트마다 CSV 글로 바꾼다(scripts/authoring-xlsx.ts).
+// 서비스 가이드 첨부는 화면이 글로 그려야 해서 받는확장자 그대로다 (도메인/게임 §3.10 결정 3)
+export const 작성자료확장자 = new Set([...받는확장자, '.xlsx', '.csv']);
 
 /** 자료가 쌓이는 자리. 사진 폴더(authoring/<번호>)와 가른다 — 같이 두면 사진 장수 상한이 자료까지 센다 */
 export function 자료폴더(요청: number): string {
@@ -126,7 +129,7 @@ export default async function authoringAssetRoutes(app: FastifyInstance): Promis
       const 이름 = req.query.name ?? '';
       if (typeof 이름 !== 'string' || !이름인가(이름)) return reply.code(400).send({ error: 'BAD_NAME' });
       const 확장자 = extname(이름).toLowerCase();
-      if (!받는확장자.has(확장자)) {
+      if (!작성자료확장자.has(확장자)) {
         return reply.code(400).send({ error: 'BAD_FILE_TYPE', detail: 확장자 });
       }
       const 몸 = req.body;

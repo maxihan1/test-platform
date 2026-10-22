@@ -103,6 +103,17 @@ describe.skipIf(연결 === undefined)('API 애플리케이션 작성 요청', { 
     expect(await 역방향칸판정({}, 앱서비스)).toEqual({ compare: false });
   });
 
+  it('게임 애플리케이션도 Android 앱처럼 대조 원본을 BAD_ENV 로 거절한다', async () => {
+    await q(`UPDATE service SET kind = 'GAME' WHERE id = $1`, [앱서비스]);
+    try {
+      expect(await 역방향칸판정({ compare: true, env: 'stg', startUrl: null }, 앱서비스)).toEqual({ error: 'BAD_ENV' });
+      expect(await 역방향칸판정({ startUrl: 'http://127.0.0.1:3000/' }, 앱서비스)).toEqual({ error: 'BAD_ENV' });
+      expect(await 역방향칸판정({}, 앱서비스)).toEqual({ compare: false });
+    } finally {
+      await q(`UPDATE service SET kind = 'APP' WHERE id = $1`, [앱서비스]);
+    }
+  });
+
   it('판 하나가 자료로 붙어 파일 없이도 줄에 서고, 집기가 그 판 원문과 대상 서버 인증을 싣는다', async () => {
     await 치우기();
     const 답 = await 만들기({ apiDoc: 1, env: 'stg' });

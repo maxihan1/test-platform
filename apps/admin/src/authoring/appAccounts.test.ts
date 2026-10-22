@@ -84,6 +84,17 @@ describe.skipIf(연결 === undefined)('Android 앱 작성 집기 accounts', () =
     ]);
   });
 
+  it('게임 애플리케이션도 앱 파일 경로가 있는 줄의 계정을 받는다', async () => {
+    const { pool } = await import('../db/index.js');
+    await pool.query(`UPDATE service SET kind = 'GAME' WHERE id = $1`, [서비스]);
+    try {
+      await 하나만세운다();
+      expect(((await 집기()).accounts as { env: string }[]).map((a) => a.env)).toEqual(['qa', 'qa']);
+    } finally {
+      await pool.query(`UPDATE service SET kind = 'APP' WHERE id = $1`, [서비스]);
+    }
+  });
+
   it('앱 파일 경로가 있는 줄이 실서비스 서버뿐이면 accounts 가 없다', async () => {
     await 줄들(`($1, 'live', 'http://live.xac.test', 'user1', $2, true, '/apk/live.apk', $3)`);
     await 하나만세운다();

@@ -58,8 +58,8 @@ export function Guide({ service, 할수 }: { service: string; 할수: 판정 }) 
   }
 
   function 더하기(section: 구획, file: File) {
-    // 서버가 거절할 파일은 보내기 전에 거른다 — 자료 올리기와 같은 규칙 (도메인/작성 §7 「자료」)
-    const 사유 = 거절사유(file);
+    // 서버가 거절할 파일은 보내기 전에 거른다 — 자료 올리기와 같은 규칙이되 엑셀 · CSV 는 안 받는다 (도메인/작성 §7 「자료」)
+    const 사유 = 거절사유(file, true);
     if (사유 !== null) return set알림({ ok: false, 글: t(사유) });
     void 짓기((base) => guideApi.addFile(service, section, base, file));
   }
