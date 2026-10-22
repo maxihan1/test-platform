@@ -22,7 +22,7 @@
 실제 값으로 읽지 않는다 — 로그인 칸에 넣지 않고, 「기획서 비밀번호 ≠ 화면」 같은 차이로 적지 않는다. 계정은 아래 환경 변수로만 쓴다.
 
 - 환경 변수 `TARGET_ENV` · `TARGET_BASE_URL` · `TARGET_START_URL`(없을 수 있다) · `TARGET_LOGIN_ID` · `TARGET_LOGIN_PASSWORD`(일반 회원)
-- 환경 변수 `PLATFORM_BASE_URL` — `TARGET_BASE_URL` 과 같은 주소로 에이전트가 넣어 둔다(2026-10-22 PRD-F14-01). 돌려 보기 명령 · `npx playwright test` 는 앞에 붙이지 않고 그대로 부른다 — 보조 프롬프트의 대상 서버 줄에도 이 이름을 적는다
+- 환경 변수 `PLATFORM_BASE_URL` — `TARGET_BASE_URL` 과 같은 주소로 에이전트가 넣어 둔다(2026-10-22 PRD-F14-01). 돌려 보기 명령(1번 돌려 보기 `한번` 도)은 앞에 붙이지 않고 그대로 부른다. `npx playwright test` 는 손으로 부르지 않는다(`fanout.md` §4 「1번 돌려 보기」) — 보조 프롬프트의 대상 서버 줄에도 이 이름을 적는다
 - 환경 변수 `PLATFORM_ACCOUNTS` — 그 줄의 계정 전부 JSON `[{ baseUrl, role, loginId, loginPassword }]`(일반 회원 role 은 `일반 회원`, 그다음 관리자 같은 역할 계정. 2026-10-12).
   playwright 를 그대로 돌리면 kit 이 `PLATFORM_BASE_URL` 과 출처가 같은 줄의 계정으로 케이스의 비밀값 칸을 채운다 — `PLATFORM_PARAMS` 를 손으로 만들지 않는다.
   관리자 화면을 직접 열어 볼 때는 아래 §2 로그인 스크립트에서 `JSON.parse(process.env.PLATFORM_ACCOUNTS)` 로 그 역할 줄을 골라 쓴다. **필요한 역할이 없으면 그 요구는 원장 「제외」 `계정 미등록`**(`tpx-cases` `2-requirements.md` §2)
