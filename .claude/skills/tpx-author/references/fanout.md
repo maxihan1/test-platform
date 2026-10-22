@@ -94,7 +94,7 @@
 > 13. 오류 추정 줄(출처 `오류 추정 —`)은 화면에서 해 보고 `two-kinds.md` 「오류 추정 점검 목록」대로 쓴다. 화면이 기준을 어겨 빨간 것은 held 를 달지 않는다. 해 볼 수 없으면 쓰지 말고 「표에서 고칠 것」으로 돌려준다
 >
 > **관문** — 파이프로 넘기지 않는다.
-> `npm run -s authoring:check -- 보조 <맡은 파일들>; echo "EXIT=$?"` — 맡은 파일만 타입 검사(저장소 전체는 한 번에 1.2GB 라 넷이 겹치면 Docker 상자가 넘친다) · 케이스 형식 검사 · 맡은 tcId 의 케이스와 요구 목록 맞춰 보기 · 확인 하나에 값 하나를 돌리고 틀린 것만 찍는다. `EXIT` 0 이면 통과
+> `npm run -s authoring:check -- 보조 <맡은 파일들>; echo "EXIT=$?"` — 맡은 파일만 타입 검사(저장소 전체는 한 번에 1.2GB 라 넷이 겹치면 Docker 상자가 넘친다) · 맡은 파일만 케이스 형식 검사(tcId 겹침은 나머지 케이스와도 본다 · 화면 파일만 맡아도 돈다) · 맡은 tcId 의 케이스와 요구 목록 맞춰 보기 · 확인 하나에 값 하나를 돌리고 틀린 것만 찍는다. `EXIT` 0 이면 통과
 > (사람 세션은 이 명령 대신 `npm run typecheck` · `npm run check:tests` 를 돈다)
 > **1번 돌려 보기** — `npm run -s authoring:run -- 한번 <묶음 slug> <파일들>; echo "EXIT=$?"`. 응답을 안 늦추고 한 번 돌려 빨간 케이스의 첫 오류 줄만 찍는다(`--mobile` 이면 휴대폰도). 앞에 붙인 환경 변수(`PLATFORM_PARAMS` · `PLATFORM_SLOW_API=1`)는 그대로 간다 — 입력값 두 번은 `PLATFORM_PARAMS='…'` 를 붙여, trace 로 까닭을 가를 때는 `PLATFORM_SLOW_API=1` 과 끝에 `--trace` 를 붙여 찍힌 trace 폴더를 `npm run trace:summary -- <폴더>` 로 본다. `EXIT` 0 초록 · 1 빨강(끝까지 못 돈 케이스도 빨강 줄로 찍힌다) · 2 잘못 불렀거나 주소가 없거나 끝난 케이스가 없다(찍힌 로그를 본다) · 3 브라우저 자리가 안 났다(같은 명령을 다시 부른다)
 > `npm run -s authoring:run -- 보조 <묶음 slug> <맡은 파일들>; echo "EXIT=$?"` — 크롤러 판정이 반응형이면 끝에 `--mobile` 을 붙인다(PC · 휴대폰 나란히 — `two-kinds.md` 「화면 크기 판정」. 적응형의 PC 서브에이전트는 안 붙인다 — 아래 「적응형」)
