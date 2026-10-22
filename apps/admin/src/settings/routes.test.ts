@@ -120,7 +120,7 @@ describe.skipIf(연결 === undefined)('설정 API', () => {
   it('목록에 대상 서버와 케이스 수가 함께 실린다', async () => {
     const 하나 = (await 목록()).find((s) => s.prefix === 'XFS4A');
     expect(하나?.testsDir).toBe('xfs4a');
-    expect(하나?.envs).toEqual([{ env: 'qa', baseUrl: 'https://qa.example.com', loginId: null, hasLoginPassword: false, isProd: false, accounts: [], viewportKind: null, viewportJudgedAt: null, appPath: null, apiAuths: [] }]);
+    expect(하나?.envs).toEqual([{ env: 'qa', baseUrl: 'https://qa.example.com', loginId: null, hasLoginPassword: false, isProd: false, accounts: [], viewportKind: null, viewportJudgedAt: null, appPath: null, apiAuths: [], adminKey: null }]);
     expect(하나?.caseCount).toBe(0);
     expect(하나?.isActive).toBe(true);
   });
@@ -213,8 +213,8 @@ describe.skipIf(연결 === undefined)('설정 API', () => {
     const 하나 = (await 목록()).find((s) => s.prefix === 'XFS4A');
     expect(하나?.name).toBe('이름 바꿈');
     expect(하나?.envs).toEqual([
-      { env: 'dev', baseUrl: 'https://dev.example.com', loginId: null, hasLoginPassword: false, isProd: false, accounts: [], viewportKind: null, viewportJudgedAt: null, appPath: null, apiAuths: [] },
-      { env: 'qa', baseUrl: 'https://qa2.example.com', loginId: null, hasLoginPassword: false, isProd: false, accounts: [], viewportKind: null, viewportJudgedAt: null, appPath: null, apiAuths: [] },
+      { env: 'dev', baseUrl: 'https://dev.example.com', loginId: null, hasLoginPassword: false, isProd: false, accounts: [], viewportKind: null, viewportJudgedAt: null, appPath: null, apiAuths: [], adminKey: null },
+      { env: 'qa', baseUrl: 'https://qa2.example.com', loginId: null, hasLoginPassword: false, isProd: false, accounts: [], viewportKind: null, viewportJudgedAt: null, appPath: null, apiAuths: [], adminKey: null },
     ]);
   });
 
