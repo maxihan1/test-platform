@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+// 애플리케이션 종류 「게임」 화면 검사 — 종류 표 GAME 줄과 대상 서버 줄 어드민 키 칸 (GAME-F1-08)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -77,7 +78,10 @@ describe('게임 애플리케이션 설정 — 어드민 키 (도메인/인증 �
   it('두 칸을 비우고 저장하면 null 을 보내 지운다', async () => {
     render(<ServicePanel row={게임앱([키있는줄])} onDone={() => {}} />);
 
+    expect(screen.queryByText('이대로 저장하면 이 서버의 어드민 키가 지워집니다')).toBeNull();
     fireEvent.change(머리칸(), { target: { value: '' } });
+    expect(screen.getByText('이대로 저장하면 이 서버의 어드민 키가 지워집니다')).toBeTruthy();
+    expect(값칸().getAttribute('placeholder')).toBe('키 값');
     expect((await 고친본문())?.envs?.[0]?.adminKey).toBeNull();
   });
 

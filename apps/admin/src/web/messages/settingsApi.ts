@@ -50,6 +50,7 @@ export const 설정API말: Record<string, string> = {
   '대상 서버 {번호} 어드민 키 값': 'Target server {번호} admin key value',
   '어드민 키는 게임 서버 어드민 API 에 머리로 실어 보냅니다. 케이스가 재화 지급 같은 상태를 만들 때 씁니다. 값은 끝 4자리만 보이고, 두 칸을 비우고 저장하면 지워집니다':
     'The admin key is sent as a header to the game server admin API. Cases use it to set up state such as granting currency. Only the last 4 characters are shown; clear both fields and save to remove it',
+  '이대로 저장하면 이 서버의 어드민 키가 지워집니다': 'Saving now removes the admin key for this server',
   '어드민 키 머리 이름을 입력해 주세요': 'Enter the admin key header name',
   '어드민 키 머리 이름은 영문 · 숫자 · - 로 100자까지입니다': 'The admin key header name uses letters, digits and - only, up to 100 characters',
   '어드민 키 값은 공백 없이 12자 이상 500자 이하로 입력해 주세요': 'Enter an admin key value of 12 to 500 characters with no spaces',

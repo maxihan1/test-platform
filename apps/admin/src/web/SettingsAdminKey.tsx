@@ -58,6 +58,8 @@ export function 어드민키칸({ 줄: r, 번호, 고친다 }: { 줄: 어드민�
   const t = use말();
   const 지금 = r.어드민 ?? 어드민키편집으로(r.adminKey);
   const 끝넷 = r.adminKey?.valueLast4 ?? null;
+  // 저장된 키가 있는데 두 칸이 다 비었다 — 저장하면 지워진다. 머리 이름만 지워도 값 칸은 늘 비어 있어 여기에 든다
+  const 지워짐 = 끝넷 !== null && 지금칸(r).header === '' && 지금.새값 === '';
   return (
     <div className="set-env-login">
       <span className="field-label">{t('어드민 키')}</span>
@@ -75,10 +77,11 @@ export function 어드민키칸({ 줄: r, 번호, 고친다 }: { 줄: 어드민�
         type="password"
         autoComplete="new-password"
         value={지금.새값}
-        placeholder={끝넷 === null || 값필요({ ...r, 어드민: 지금 }) ? t('키 값') : `•••• ${끝넷}`}
+        placeholder={끝넷 === null || 지워짐 || 값필요(r) ? t('키 값') : `•••• ${끝넷}`}
         aria-label={t('대상 서버 {번호} 어드민 키 값', { 번호 })}
         onChange={(e) => 고친다({ ...지금, 새값: e.target.value })}
       />
+      {지워짐 ? <div className="hint">{t('이대로 저장하면 이 서버의 어드민 키가 지워집니다')}</div> : null}
     </div>
   );
 }
