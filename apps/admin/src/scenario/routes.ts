@@ -6,13 +6,13 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
 import { 칸되는서비스 } from '../auth/permissions.js';
-import { findCase, findService } from '../catalog/store.js';
-import { 지도를읽는다 } from '../prd/apiMap.js';
+import { findService } from '../catalog/store.js';
 import { 정수 } from '../routeParams.js';
 
 import { 같은프로젝트접두사 } from './apps.js';
 import { 점검 } from './checks.js';
-import { 값연결제안들 } from './linkSuggest.js';
+import { 흐름결과읽기, 흐름맡기기 } from './flowJob.js';
+import { 값연결제안들, 제안재료읽기 } from './linkSuggest.js';
 import { 다음케이스읽기, 첫케이스읽기 } from './next.js';
 import { 케이스재료 } from './parts.js';
 import { 고치기, 되돌리기, 만들기, 목록, 상세, 옛버전, 치우기, type 저장하는사람 } from './store.js';
@@ -25,6 +25,7 @@ const 만들기본문 = z.object({ service: z.string(), name: 이름, platform: 
 const 고치기본문 = z.object({ name: 이름, platform: 디바이스, parts: 부품들모양, baseVersion: z.number().int().min(1) });
 const 되돌리기본문 = z.object({ version: z.number().int().min(1) });
 const 제안본문 = z.object({ service: z.string(), parts: 부품들모양 });
+const 흐름본문 = z.object({ service: z.string(), platform: 디바이스, wish: z.string().trim().max(200).optional() });
 
 const 케이스번호들 = (parts: ScenarioPart[]) => parts.flatMap((p) => (p.kind === 'case' ? [p.tcId] : []));
 
@@ -115,18 +116,32 @@ export default async function scenarioRoutes(app: FastifyInstance): Promise<void
     if ((await findService(service)) === null) return 잘못(reply, `모르는 서비스다: ${service}`);
     const 읽는앱 = new Set(칸되는서비스(req.user?.services ?? [], 'authoring', 'read'));
     const 앱들 = (await 같은프로젝트접두사(service)).filter((p) => 읽는앱.has(p) && 케이스번호들(parts).some((t) => t.startsWith(`${p}-`)));
-    const 지도 = new Map(await Promise.all(앱들.map(async (앱) => {
-      const 서비스 = await findService(앱);
-      return [앱, 서비스 === null ? [] : (await 지도를읽는다(서비스.id)).apis] as const;
-    })));
-    // 입력값 칸은 DB 의 입력 스키마에서 읽는다 — 케이스 파일을 열 까닭이 없다. 비활성 · 없는 케이스는 칸이 없는 것으로 친다
-    const 번호 = 케이스번호들(parts).filter((t) => 앱들.some((p) => t.startsWith(`${p}-`)));
-    const 입력칸 = new Map(await Promise.all([...new Set(번호)].map(async (tcId) => {
-      const 행 = await findCase(tcId);
-      const 칸들: unknown = 행?.isActive ? 행.paramSchema?.properties : undefined;
-      return [tcId, typeof 칸들 === 'object' && 칸들 !== null ? Object.keys(칸들) : []] as const;
-    })));
+    const { 지도, 입력칸 } = await 제안재료읽기(앱들, 케이스번호들(parts));
     return { items: 값연결제안들(parts, 지도, 입력칸) };
+  });
+
+  // AI 흐름 후보 맡기기 · 결과 보기 (결정 15). 일은 성능 AI 일 표 · 집기를 같이 쓴다 — 권한은 시나리오 쪽 칸으로 본다
+  app.post('/scenarios/flow-suggestions', async (req, reply) => {
+    const parsed = 흐름본문.safeParse(req.body);
+    if (!parsed.success) return 잘못(reply, parsed.error.message);
+    const { service, platform } = parsed.data;
+    const 서비스 = await findService(service);
+    if (서비스 === null) return 잘못(reply, `모르는 서비스다: ${service}`);
+    const wish = parsed.data.wish === undefined || parsed.data.wish === '' ? null : parsed.data.wish;
+    const r = await 흐름맡기기({ id: 서비스.id, prefix: service }, platform, wish, req.user?.username ?? '');
+    if ('jobId' in r) return reply.code(202).send(r);
+    return r.error === 'AGENT_OFFLINE'
+      ? reply.code(503).send({ error: 'AGENT_OFFLINE', detail: '작성 에이전트가 꺼져 있습니다' })
+      : reply.code(409).send({ error: 'NO_DATA', detail: '그 디바이스에서 도는 활성 기능 테스트가 둘보다 적습니다' });
+  });
+
+  app.get<{ Params: { jobId: string } }>('/scenarios/flow-suggestions/:jobId', async (req, reply) => {
+    const id = 정수(req.params.jobId);
+    if (id === null) return 잘못(reply, req.params.jobId);
+    const 지도읽는앱 = new Set(칸되는서비스(req.user?.services ?? [], 'authoring', 'read'));
+    const 결과 = await 흐름결과읽기(id, (prefix) => 지도읽는앱.has(prefix));
+    if (결과 === null) return reply.code(404).send({ error: 'NOT_FOUND', detail: req.params.jobId });
+    return 결과;
   });
 
   app.get<{ Params: { id: string } }>('/scenarios/:id', async (req, reply) => {

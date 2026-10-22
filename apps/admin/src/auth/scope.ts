@@ -162,6 +162,9 @@ export const 라우트표: Record<string, 원천> = {
   '/api/scenarios/next-cases': { 종류: '질의' },
   // 값 연결 제안은 저장 안 한 초안이라 번호가 없다. 본문 service 를 gate.ts 의 본문 갈래가 본다
   '/api/scenarios/link-suggestions': { 종류: '질의' },
+  // AI 흐름 후보 맡기기는 본문 service 를 gate.ts 의 본문 갈래가 본다. 결과는 일의 애플리케이션이다 — 흐름 일이 아닌 번호는 라우트가 404 를 낸다
+  '/api/scenarios/flow-suggestions': { 종류: '질의' },
+  '/api/scenarios/flow-suggestions/:jobId': { 종류: '성능AI일', 칸: 'jobId' },
   // 시험 실행은 DB 에 없다. 시작은 본문 service 를 gate.ts 의 본문 갈래가 본다
   '/api/scenario-trials': { 종류: '질의' },
   '/api/scenario-trials/:trialId': { 종류: '시험', 칸: 'trialId' },

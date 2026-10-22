@@ -13,7 +13,7 @@ export interface 다음케이스 {
 
 type 화면줄 = { tcId: string; url: string };
 /** 화면 연결 한 줄 — 상태 · 출발 · 도착은 크롤러 같은 틀, via 는 누른 것(`링크 「쇼핑」` · `버튼 「담기」`) */
-type 연결줄 = { state: string; from: string; to: string; via: string };
+export type 연결줄 = { state: string; from: string; to: string; via: string };
 
 // 머리 · 바닥 메뉴로 볼 만큼 화면이 있어야 센다 — 화면 두셋인 상태는 무엇이든 「절반 넘게」가 된다
 const 메뉴셈최소화면 = 4;
@@ -45,6 +45,12 @@ function 메뉴링크들(연결들: 연결줄[]): Set<string> {
       return 전체 >= 메뉴셈최소화면 && 곳.size * 2 > 전체;
     }).map(([키]) => 키),
   );
+}
+
+/** 머리 · 바닥 메뉴 링크를 뺀 화면 연결 — AI 흐름 후보 재료도 다음 단계 추천과 같은 규칙으로 뺀다 (결정 15) */
+export function 메뉴뺀연결들(연결들: 연결줄[]): 연결줄[] {
+  const 메뉴 = 메뉴링크들(연결들);
+  return 연결들.filter((l) => !메뉴.has(메뉴키(l)));
 }
 
 /**
@@ -127,7 +133,7 @@ async function 케이스화면들(prefix: string): Promise<화면줄[]> {
   return 화면.rows.map((r) => ({ tcId: r.tc_id, url: r.screen_url }));
 }
 
-async function 화면연결들(서비스: number): Promise<연결줄[]> {
+export async function 화면연결들(서비스: number): Promise<연결줄[]> {
   const 연결 = await (await db()).query<{ state: string; from_url: string; to_url: string; via: string }>(
     'SELECT DISTINCT state, from_url, to_url, via FROM screen_link WHERE service_id = $1',
     [서비스],
