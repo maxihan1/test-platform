@@ -1,7 +1,7 @@
 // 부하 발생 에이전트 본체 — QA Hub 에 연락하고 일을 받아 k6 를 돌리거나 /proc 를 읽어 1초마다 숫자를 보낸다 (도메인/성능 §5.4)
 
 import { spawn } from 'node:child_process';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { hostname } from 'node:os';
 import { join } from 'node:path';
 import { createInterface } from 'node:readline';
@@ -32,6 +32,7 @@ const LAG_SEC = 2;
 // 표본 하나가 리소스 100개면 30KB 쯤이라 1초 숫자 하나에 10개만 싣는다 — 서버 본문 상한(1MiB) 안에 든다
 const PAGE_PREFIX = 'QAHUB_PAGE ';
 const PAGES_PER_SEC = 10;
+const FILE_NAME = /^[A-Za-z0-9_-][A-Za-z0-9_.-]{0,99}$/;
 
 class HttpError extends Error {
   constructor(readonly status: number, path: string) {
@@ -115,6 +116,13 @@ export class Agent {
       if (job.accountsCsv) {
         env.ACCOUNTS_CSV = join(dir, 'accounts.csv');
         await writeFile(env.ACCOUNTS_CSV, job.accountsCsv, { mode: 0o600 });
+      }
+      if (job.files) {
+        // 이름에 / · .. 가 들면 폴더 밖에 쓴다
+        if (Object.keys(job.files).some((n) => !FILE_NAME.test(n))) return { status: 'ERROR', reason: '일의 파일 이름이 틀렸습니다' };
+        env.QAHUB_FILES = join(dir, 'files');
+        await mkdir(env.QAHUB_FILES);
+        for (const [name, text] of Object.entries(job.files)) await writeFile(join(env.QAHUB_FILES, name), text);
       }
       // 시스템 꼬리표를 비워 줄을 줄인다 — 세는 데 쓰는 꼬리표는 생성기가 다는 tx 하나다.
       // json=/dev/stdout 은 안 된다 — node 가 자식 stdout 을 소켓으로 이어 k6 가 그 경로를 열지 못한다(실측 ENXIO). json=- 는 k6 가 자기 stdout 에 쓴다

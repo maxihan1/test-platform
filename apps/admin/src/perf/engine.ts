@@ -5,7 +5,7 @@ import type { FastifyInstance } from 'fastify';
 import { 대상줄읽기 } from '../authoring/reverse.js';
 import { 기기실행시작, 기기실행중인가 } from './deviceRun.js';
 import { 끝내기, 끝내기배경 } from './finish.js';
-import { generateScript, segments, splitRows } from './generator.js';
+import { generateScript, protoFiles, segments, splitRows } from './generator.js';
 import { emptyHist } from './hist.js';
 import { AGENT_LOST_SEC, autoStop, type SecRow } from './judge.js';
 import { 단독스크립트, 브라우저몫 } from './pageScript.js';
@@ -43,6 +43,11 @@ async function 재료(runId: number): Promise<{ run: 표.실행행; txs: Transac
 
 const 시각 = (ms: number) => new Date(ms).toISOString();
 
+function 파일칸(txs: readonly Transaction[]): { files?: Record<string, string> } {
+  const files = protoFiles(txs);
+  return Object.keys(files).length > 0 ? { files } : {};
+}
+
 async function 시작하기(run: 표.실행행): Promise<void> {
   const cfg = run.config;
   const { txs, env, rows } = await 재료(run.id);
@@ -52,6 +57,7 @@ async function 시작하기(run: 표.실행행): Promise<void> {
     runId: run.id, kind: 'SMOKE', startAt: 시각(startAt), env, allowedHosts: cfg.allowedHosts, durationSec: 60,
     script: generateScript({ transactions: txs, load: cfg.load, smoke: true, allowedHosts: cfg.allowedHosts, maxVus: 1 }),
     ...(rows.length > 0 ? { accountsCsv: rows.join('\n') } : {}),
+    ...파일칸(txs),
   };
   도는것.set(run.id, {
     runId: run.id, kind: 'LOAD', phase: 'SMOKE', startAt, durationSec: 60, agents: cfg.agentIds, monitors: cfg.monitorIds,
@@ -114,6 +120,7 @@ async function 본테스트(live: 도는실행): Promise<void> {
       runId: run.id, kind: 'LOAD', startAt: 시각(startAt), script, env, allowedHosts: cfg.allowedHosts, durationSec: cfg.durationSec,
       segment: segs[i]?.segment, segmentSequence: segs[i]?.sequence,
       ...(rows.length > 0 ? { accountsCsv: (parts[i] ?? rows).join('\n') } : {}),
+      ...파일칸(txs),
     });
   });
   for (const id of cfg.monitorIds) {

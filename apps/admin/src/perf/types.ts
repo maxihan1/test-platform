@@ -13,9 +13,16 @@ export interface Extract {
 
 export interface Transaction {
   name: string;
+  // 비면 HTTP. WebSocket · gRPC 는 게임 서버 부하의 k6 길이다 (§3.9 「게임 서버 부하」). method 는 HTTP 만 쓴다
+  type?: 'HTTP' | 'WS' | 'GRPC';
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-  // 대상 서버 주소 아래 경로(`/api/login`) 또는 API 서버 호스트의 절대 주소. ${변수} 를 쓸 수 있다
+  // 대상 서버 주소 아래 경로(`/api/login`) 또는 API 서버 호스트의 절대 주소. ${변수} 를 쓸 수 있다.
+  // WebSocket 은 ws:// · wss:// 도 받고 경로면 대상 서버 주소의 http 를 ws 로 바꾼다. gRPC 는 주소의 호스트(http 는 평문, https 는 TLS)만 쓴다
   url: string;
+  // WebSocket — 연결한 뒤 차례로 보낸다. check.contains 가 있으면 그 글자가 든 메시지가 10초 안에 와야 성공이다
+  messages?: string[];
+  // gRPC — 메시지는 body(JSON)다
+  grpc?: { proto: string; method: string };
   headers?: Record<string, string>;
   body?: string;
   extract?: Extract[];

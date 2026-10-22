@@ -12,6 +12,8 @@ export interface Job {
   segmentSequence?: string;
   env: Record<string, string>;
   accountsCsv?: string;
+  // gRPC 트랜잭션의 proto — 에이전트가 QAHUB_FILES 폴더에 풀어 둔다 (§5.4 · 2026-10-22 PERF-F1-10 시작 질문)
+  files?: Record<string, string>;
   allowedHosts: string[];
   durationSec: number;
 }
