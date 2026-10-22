@@ -3,7 +3,7 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { 다음케이스들 } from './next.js';
+import { 다음케이스들, 첫케이스들, 출발틀들 } from './next.js';
 import scenarioRoutes from './routes.js';
 
 describe('다음케이스들', () => {
@@ -68,6 +68,40 @@ describe('다음케이스들', () => {
   });
 });
 
+describe('첫 단계 후보 (결정 15)', () => {
+  const 화면들 = [
+    { tcId: 'MKO-FN-001', url: '/ops' },
+    { tcId: 'MKO-FN-002', url: '/ops/login' },
+    { tcId: 'MKO-FN-003', url: '/ops/orders/7' },
+    { tcId: 'MKO-UI-001', url: '/ops/login' },
+    { tcId: 'MKO-FN-004', url: '/ops/settings' },
+  ];
+  const 줄 = (from: string, to: string, via: string, state = '로그아웃') => ({ state, from, to, via });
+
+  it('대상 서버 주소의 경로가 출발 화면이다 — 경로가 없거나 그 화면 기록이 없으면 `/` 다', () => {
+    const 기록 = new Set(['/', '/ops']);
+    expect(출발틀들(['http://h:3002/ops', 'http://h:3002/ops?x=1'], 기록)).toEqual(['/ops']);
+    expect(출발틀들(['http://h:3001', 'http://h:3001/없는곳', '주소 아님'], 기록)).toEqual(['/']);
+    expect(출발틀들(['http://a/ops', 'http://b'], 기록)).toEqual(['/ops', '/']);
+  });
+
+  it('출발 화면과 화면 연결 한 번으로 닿는 화면의 케이스를 낸다 — 메뉴 링크도 쓰고 UI 테스트는 뺀다', () => {
+    const 메뉴 = ['/ops', '/ops/login', '/ops/orders/:n', '/ops/settings'].map((from) => 줄(from, '/ops/login', '링크 「로그인」'));
+    expect(첫케이스들(['/ops'], new Set(['/ops']), 화면들, [...메뉴, 줄('/ops/login', '/ops/settings', '링크 「설정」')])).toEqual([
+      { tcId: 'MKO-FN-001', screen: '/ops' },
+      { tcId: 'MKO-FN-002', screen: '/ops/login' },
+    ]);
+    expect(첫케이스들(['/ops'], new Set(['/ops']), 화면들, [줄('/ops', '/ops/orders/:n', '링크 「첫 주문」', '로그인:운영자')])).toEqual([
+      { tcId: 'MKO-FN-001', screen: '/ops' },
+      { tcId: 'MKO-FN-003', screen: '/ops/orders/:n' },
+    ]);
+  });
+
+  it('출발 화면 기록이 없으면 빈 목록이다', () => {
+    expect(첫케이스들(['/'], new Set(['/ops']), 화면들, [줄('/', '/ops/login', '링크 「로그인」')])).toEqual([]);
+  });
+});
+
 const 연결 = process.env.DATABASE_URL;
 const 접두사 = 'XNC';
 const 케이스들 = ['XNC-FN-001', 'XNC-FN-002', 'XNC-FN-003', 'XNC-FN-004'];
@@ -86,6 +120,8 @@ describe.skipIf(연결 === undefined)('GET /api/scenarios/next-cases', () => {
   };
   const 치우기 = async () => {
     await q('DELETE FROM screen_link WHERE service_id = $1', [서비스]);
+    await q('DELETE FROM screen_record WHERE service_id = $1', [서비스]);
+    await q('DELETE FROM service_env WHERE service_id = $1', [서비스]);
     await q('DELETE FROM case_screen WHERE tc_id = ANY($1)', [케이스들]);
     await q('DELETE FROM test_case WHERE tc_id = ANY($1)', [케이스들]);
   };
@@ -140,8 +176,22 @@ describe.skipIf(연결 === undefined)('GET /api/scenarios/next-cases', () => {
 
   it('남의 서비스 케이스 · 빈 after · 두 번 붙인 after 는 빈 목록이고, 서비스가 없으면 400 이다', async () => {
     expect((await 읽기(`service=${접두사}&after=MKT-FN-001`)).body.items).toEqual([]);
-    expect((await 읽기(`service=${접두사}`)).body.items).toEqual([]);
+    expect((await 읽기(`service=${접두사}&after=`)).body.items).toEqual([]);
     expect((await 읽기(`service=${접두사}&after=XNC-FN-001&after=XNC-FN-002`)).body.items).toEqual([]);
     expect((await 읽기('after=XNC-FN-001')).status).toBe(400);
+  });
+
+  it('after 칸이 아예 없으면 첫 단계 후보다 — 출발 화면 기록이 없으면 빈 목록이고, 생기면 대상 서버 경로에서 닿는 활성 케이스다', async () => {
+    expect((await 읽기(`service=${접두사}`)).body.items).toEqual([]);
+    await q("INSERT INTO service_env (service_id, env, base_url) VALUES ($1, 'qa', 'http://xnc.test/product/1')", [서비스]);
+    await q(
+      `INSERT INTO screen_record (service_id, env, state, url, name, text_fp, struct_fp, record, crawled_at)
+       VALUES ($1, 'qa', '로그아웃', '/product/:n', '상품', '', '', '', now())`,
+      [서비스],
+    );
+    expect((await 읽기(`service=${접두사}`)).body.items).toEqual([
+      { tcId: 'XNC-FN-001', screen: '/product/:n' },
+      { tcId: 'XNC-FN-002', screen: '/cart' },
+    ]);
   });
 });
