@@ -143,7 +143,7 @@ describe.skipIf(연결 === undefined)('더미 클라이언트', { timeout: 60_00
     const 스모크 = await 일받기('xqm-a');
     expect(스모크).toMatchObject({
       kind: 'SMOKE', script: null, durationSec: 60, dummyClient: { id, command: './bot --users $QAHUB_USERS', users: 1 },
-      env: { QAHUB_HOST: 'game.xqm.test', QAHUB_PORT: '7443', QAHUB_USERS: '1', QAHUB_DURATION_SEC: '60', QAHUB_STAGES: '[{"durationSec":60,"target":1}]', BASE_URL: 'https://game.xqm.test:7443' },
+      env: { QAHUB_HOST: 'game.xqm.test', QAHUB_PORT: '7443', QAHUB_USERS: '1', QAHUB_DURATION_SEC: '60', QAHUB_STAGES: '[{"durationSec":1,"target":1},{"durationSec":59,"target":1}]', BASE_URL: 'https://game.xqm.test:7443' },
     });
     const 초 = { sec: 0, vus: 1, txs: [{ name: '로그인', requests: 3, errors: 0, hist: emptyHist() }] };
     await 에이전트('xqm-a', `/api/perf/agent/runs/${runId}/metrics`, 초);
