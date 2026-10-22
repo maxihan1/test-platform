@@ -221,7 +221,7 @@ describe('새 작성 요청 — 자료 목록', () => {
   it('받는 종류만 고를 수 있게 파일 칸이 여럿 고르기와 종류 제한을 단다', () => {
     render(<AuthoringNew service="PAY" on넣었다={() => {}} />);
     const 칸 = screen.getByLabelText('PRD');
-    expect(칸.getAttribute('accept')).toBe('.pdf,.docx,.doc,.md,.txt');
+    expect(칸.getAttribute('accept')).toBe('.pdf,.docx,.doc,.md,.txt,.xlsx,.csv');
     expect(칸.hasAttribute('multiple')).toBe(true);
   });
 
