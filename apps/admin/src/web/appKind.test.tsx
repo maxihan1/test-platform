@@ -38,13 +38,13 @@ const 사람 = (services: ServiceRow[]): User => ({ username: 'zak1', displayNam
 const 빈형편 = { scannedAt: '2026-10-21T00:00:00.000Z', 스캔문제: false, 전체건수: 0, 건조건: false, 친글자: '' };
 
 describe('설정 종류 칸', () => {
-  it('칩은 웹 · Android 앱 · API 셋이고 Android 앱으로 만들면 kind APP 을 보내고 API 칸은 안 보낸다', async () => {
+  it('칩은 웹 · Android 앱 · 게임 · API 넷이고 Android 앱으로 만들면 kind APP 을 보내고 API 칸은 안 보낸다', async () => {
     const 만듦 = vi.spyOn(api, 'createService').mockResolvedValue({ id: 9 });
     render(<ServicePanel projects={[{ id: 1, name: '데모마켓' }]} onDone={() => {}} />);
 
     const 칩들 = within(screen.getByRole('group', { name: '종류' })).getAllByRole('button').map((b) => b.textContent);
-    expect(칩들).toEqual(['웹', 'Android 앱', 'API']);
-    expect(screen.getByText('생성할 때만 정할 수 있습니다. Android 앱은 디바이스 팜 폰에서 Appium 으로 케이스를 만들고 돌립니다. 웹 사이트와 어드민은 「웹」을 고릅니다')).toBeTruthy();
+    expect(칩들).toEqual(['웹', 'Android 앱', '게임', 'API']);
+    expect(screen.getByText('생성할 때만 정할 수 있습니다. Android 앱은 디바이스 팜 폰에서 Appium 으로, 게임은 직접 만든 SDK 로 케이스를 만들고 돌립니다. 웹 사이트와 어드민은 「웹」을 고릅니다')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Android 앱' }));
     expect(screen.queryByLabelText('문서 경로')).toBeNull();
@@ -82,7 +82,7 @@ describe('헤더 애플리케이션 고르개', () => {
   });
 
   it('표에 없는 종류는 웹으로 읽어 목록에서 빠지지 않고 아이콘도 없다', () => {
-    const 모름 = { ...앱('MKG', '게임'), kind: 'GAME' } as unknown as ServiceRow;
+    const 모름 = { ...앱('MKI', 'iOS 앱'), kind: 'IOS' } as unknown as ServiceRow;
     const 목록 = [앱('MKW', '데모마켓 웹'), 앱('MKA', '데모마켓 앱', 'APP'), 모름];
     const { container } = render(<종류아이콘 service={모름} />);
     expect(container.innerHTML).toBe('');

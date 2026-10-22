@@ -14,6 +14,7 @@ import {
   제외경로값,
   피그마설정주소,
 } from './settingsView.js';
+import { 어드민키못보내는이유 } from './SettingsAdminKey.js';
 import { API인증못보내는이유 } from './SettingsApiAuths.js';
 import { API문서구획, API문서못보내는이유, 종류칸 } from './SettingsApiService.js';
 import { CrawlExcludeField } from './SettingsCrawlExclude.js';
@@ -50,6 +51,7 @@ export function ServicePanel({ row, projects = [], 기본프로젝트, onDone, �
   const [apiDocPath, setApiDocPath] = useState(row?.apiDocPath ?? '');
   const [apiDocEnv, setApiDocEnv] = useState(row?.apiDocEnv ?? '');
   const API종류 = kind === 'API';
+  const 게임종류 = kind === 'GAME';
   const [제외, set제외] = useState((row?.crawlExclude ?? []).join('\n'));
   // 빈 글자와 「안 건드림」은 다르다. null 이면 서버에 아예 안 보낸다 (지금 것을 그대로 둔다)
   const [webhook, setWebhook] = useState<string | null>(새것 ? '' : null);
@@ -68,7 +70,8 @@ export function ServicePanel({ row, projects = [], 기본프로젝트, onDone, �
   const 서버들 = envs.map((it) => it.env).filter((env) => env !== '');
   const 못보내는이유 =
     서비스못보내는이유({ 새것, 프로젝트: 새것 ? projectId : undefined, prefix, name, testsDir, envs, 제외, 정기실행: 새것 ? undefined : schedule }, 언어) ??
-    (API종류 ? (API문서못보내는이유({ 경로: apiDocPath, 기준: apiDocEnv, 서버들 }, 언어) ?? API인증못보내는이유(envs, 언어)) : null);
+    (API종류 ? (API문서못보내는이유({ 경로: apiDocPath, 기준: apiDocEnv, 서버들 }, 언어) ?? API인증못보내는이유(envs, 언어)) : null) ??
+    (게임종류 ? 어드민키못보내는이유(envs, 언어) : null);
 
   async function 보낸다() {
     if (못보내는이유 !== null) return;
@@ -77,7 +80,7 @@ export function ServicePanel({ row, projects = [], 기본프로젝트, onDone, �
     try {
       // API 칸은 API 종류만 보낸다 — 화면 종류가 보내면 서버가 400 NOT_API_SERVICE 를 낸다
       const API칸 = API종류 ? { apiDocPath: apiDocPath === '' ? null : apiDocPath, apiDocEnv: apiDocEnv === '' ? null : apiDocEnv } : {};
-      const 같은칸 = { name, testsRepo, testsDir, envs: 보낼모양(envs, API종류), crawlExclude: 제외경로값(제외), ...API칸 };
+      const 같은칸 = { name, testsRepo, testsDir, envs: 보낼모양(envs, API종류, 게임종류), crawlExclude: 제외경로값(제외), ...API칸 };
       if (새것) {
         if (projectId === null) return;
         await api.createService({
@@ -192,7 +195,7 @@ export function ServicePanel({ row, projects = [], 기본프로젝트, onDone, �
       </구획>
 
       <구획 제목={t('대상 서버')} 쓰임={t('테스트를 실행할 서버 목록입니다. 하나 이상 등록해야 실행할 수 있습니다')}>
-        <EnvEditor envs={envs} onChange={setEnvs} 접두사={row?.prefix} api={API종류} />
+        <EnvEditor envs={envs} onChange={setEnvs} 접두사={row?.prefix} api={API종류} 게임={게임종류} />
       </구획>
 
       {API종류 ? <API문서구획 경로={apiDocPath} 바꾼경로={setApiDocPath} 기준={apiDocEnv} 바꾼기준={setApiDocEnv} 서버들={서버들} /> : null}
