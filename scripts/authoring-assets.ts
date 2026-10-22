@@ -1,6 +1,17 @@
 // 작성 에이전트가 집은 요청의 자료(파일·피그마)를 어떻게 다룰지 정하는 순수 함수들 (도메인/작성 §7 「자료」)
 
+import { createRequire } from 'node:module';
 import { extname, join } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+// 엑셀은 node 로 따로 띄운다 — 자식은 작업 폴더에서 뜨므로 tsx 를 이름이 아니라 이 저장소의 주소로 건다.
+// ponytail: exceljs 는 책을 통째로 메모리에 푼다 — 압축 폭탄이 공용 author 컨테이너를 못 잡아먹게 힙을 1GB 로 막는다. 넘는 표가 오면 줄 단위 읽기(WorkbookReader)로
+const 엑셀바꾸기 = [
+  '--max-old-space-size=1024',
+  '--import',
+  pathToFileURL(createRequire(import.meta.url).resolve('tsx')).href,
+  fileURLToPath(new URL('./authoring-xlsx.ts', import.meta.url)),
+];
 
 /** 집기·상세 응답의 자료 한 건 중 맥이 쓰는 칸만 */
 export interface 자료 {
@@ -45,6 +56,7 @@ export type 읽을자료 =
  *
  * doc·docx 는 claude 의 Read 가 못 연다. 맥은 기본 도구 `textutil`, 서버(리눅스)는 이미지에 넣은 `pandoc` 으로
  * 글자만 뽑는다 (2026-09-23 게이트 1). pandoc 은 옛 `.doc` 을 못 읽는다 — `못읽는자료` 가 미리 말한다.
+ * xlsx 는 맥 · 서버 모두 `authoring-xlsx.ts` 가 시트마다 CSV 글로 바꾼다. csv 는 그대로 읽는다 (도메인/게임 §3.10 결정 3).
  */
 export function 자료계획(자료들: 자료[], 폴더: string, 플랫폼: string = process.platform): 읽을자료[] {
   return [...자료들]
@@ -67,6 +79,10 @@ export function 자료계획(자료들: 자료[], 폴더: string, 플랫폼: str
               : { 명령: 'pandoc', 인자: ['-t', 'plain', '--wrap=none', '-o', 읽을자리, 받을자리] },
           읽을자리,
         };
+      }
+      if (확장자 === '.xlsx') {
+        const 읽을자리 = join(폴더, `${String(자.id)}.txt`);
+        return { kind: 'FILE', id: 자.id, name: 자.name, 받을자리, 변환: { 명령: process.execPath, 인자: [...엑셀바꾸기, 받을자리, 읽을자리] }, 읽을자리 };
       }
       return { kind: 'FILE', id: 자.id, name: 자.name, 받을자리, 변환: null, 읽을자리: 받을자리 };
     });

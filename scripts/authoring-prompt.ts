@@ -1,5 +1,7 @@
-// 자식 세션에게 주는 줄 프롬프트 — 자료 · 역방향 · 이어하기 · 원장 · 표준 기획서 · 이어 작성 · 반영 절을 잇는다
+// 자식 세션에게 주는 줄 프롬프트 — 자료 · 역방향 · 이어하기 · 원장 · 표준 기획서 · 이어 작성 · 반영 · 서비스 지도 절을 잇는다
 // authoring-rules.ts 가 300줄에 닿아 뗐다 (2026-09-30)
+
+import { existsSync } from 'node:fs';
 
 import type { 앱화면 } from './authoring-app-screen.js';
 import { type 읽을자료, 자료목록글, 자료출처 } from './authoring-assets.js';
@@ -9,6 +11,7 @@ import { type 반영입력, 반영요청인가, 반영절 } from './authoring-ap
 import type { 표준기획서입력 } from './authoring-prd-io.js';
 import { 역방향절 } from './authoring-reverse.js';
 import { API절 } from './authoring-api.js';
+import { 지도자리 } from './authoring-screens-keep-io.js';
 
 /**
  * 줄에서 집은 작성 요청으로 자식 세션에게 시킬 일.
@@ -71,7 +74,19 @@ export function 줄프롬프트(
     ...(가이드 === undefined ? [] : 가이드절(가이드, 서비스)),
     ...(앱화면 === undefined ? [] : 앱화면절(앱화면)),
     ...(것.api === undefined || 자료폴더 === undefined ? [] : API절(것.api, 자료폴더)),
+    // 에이전트가 자식 앞에 받아 둔다 — 받기 전에 앞 파일을 지우므로 비었거나 못 받았으면 파일이 없다 (§3.6 「서비스 지도」 · PRD-F14-05)
+    ...(자료폴더 !== undefined && existsSync(지도자리(자료폴더)) ? 지도절(지도자리(자료폴더)) : []),
   ].join('\n');
+}
+
+/** 서비스 지도 절 — 보조가 대상 API 를 직접 불러 꼴을 알아보던 것(14644 · 139번)을 지도로 먼저 갈음한다. 기대값의 근거가 아니다 */
+function 지도절(자리: string): string[] {
+  return [
+    '',
+    '--- 서비스 지도 ---',
+    `- 이 서비스가 부르는 같은 사이트 API 와 그 API 를 거친 케이스 · 화면이 \`${자리}\` 에 한 줄에 하나씩 있다. 조작 뒤 기다릴 응답을 고를 때는 대상 API 를 직접 불러 보기 전에 \`grep\` 으로 그 화면 틀 · 비슷한 케이스 줄부터 봐라(tpx-cases 4-selector.md 「서비스 지도」). 기대값의 근거로는 쓰지 마라.`,
+    '- 케이스를 나눠 맡기면 보조 프롬프트의 서비스 지도 줄에 이 자리를 적어라(tpx-author fanout.md §4).',
+  ];
 }
 
 /** 앱 첫 화면 절. 읽은 화면은 요소 주소를 고르는 데만 쓴다 — 기대값의 근거가 아니다 (§3.6 「앱 화면」) */
@@ -146,6 +161,8 @@ const 이유말: Record<string, string> = {
   AGENT_LOST: '에이전트 응답 없음',
   CRASH: '작성 중 끊김',
   REJECTED: '올리기 거절',
+  // 중단 이유가 아니다 — 같은 요청 안에서 구독으로 이어 띄울 때만 쓴다 (작성 §7 「이어하기」 · PRD-F14-03)
+  CREDIT: 'API 크레딧이 떨어짐',
 };
 
 /** 이어받은 실행에 붙는 절 (도메인/작성 §7 「이어하기」). 무엇을 어떻게 이어가는지는 스킬 참고 파일이 정본이다 */

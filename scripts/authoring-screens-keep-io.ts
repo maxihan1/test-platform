@@ -235,6 +235,8 @@ export const 지도자리 = (자료: string): string => join(자료, 'api-map.tx
  * 지도가 비었거나 못 받으면 파일을 안 만든다 — 작성은 그대로 간다(지도는 대기 조건의 힌트일 뿐이다). 받은 줄 수를 돌려준다 (PRD-F10-05)
  */
 export async function 지도받기(통로: 화면통로, 자료: string): Promise<number> {
+  // 이어받은 폴더에 앞 실행의 지도가 남아 있으면 프롬프트가 낡은 지도를 알린다 — 먼저 지운다 (PRD-F14-05)
+  rmSync(지도자리(자료), { force: true });
   try {
     const 답 = await 부른다(통로.주소기지, 통로.토큰, `/authoring/requests/${통로.번호}/apis`);
     const apis = (답.몸 as { apis?: unknown } | null)?.apis;

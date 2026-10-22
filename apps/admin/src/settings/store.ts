@@ -27,7 +27,7 @@ export interface 서비스행 {
   testsRepo: string;
   testsDir: string;
   /** 만들 때 정하고 바꾸지 않는다 (도메인/API §3.8) */
-  kind: 'SCREEN' | 'APP' | 'API';
+  kind: 'SCREEN' | 'APP' | 'GAME' | 'API';
   apiDocPath: string | null;
   apiDocEnv: string | null;
   isActive: boolean;
@@ -91,7 +91,7 @@ interface 서비스원행 {
   project_name: string;
   tests_repo: string;
   tests_dir: string;
-  kind: 'SCREEN' | 'APP' | 'API';
+  kind: 'SCREEN' | 'APP' | 'GAME' | 'API';
   api_doc_path: string | null;
   api_doc_env: string | null;
   is_active: boolean;
@@ -151,7 +151,7 @@ export interface 서비스입력 {
   slackWebhook?: string;
   figmaToken?: string;
   crawlExclude?: string[];
-  kind?: 'SCREEN' | 'APP' | 'API';
+  kind?: 'SCREEN' | 'APP' | 'GAME' | 'API';
   apiDocPath?: string | null;
   apiDocEnv?: string | null;
 }

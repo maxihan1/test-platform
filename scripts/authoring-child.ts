@@ -6,6 +6,7 @@ import { join } from 'node:path';
 
 import { type 계정, type 사본, type 파일모양, 부품링크, 사본제외, 사본준비, 사본자리 } from './authoring-copy.js';
 import { type 돌린결과, 도는자식, 돌린다, 멈춤, 쉬기, 친다 } from './authoring-io.js';
+import { 자리폴더, 자리폴더열기 } from './authoring-slot.js';
 
 /** 자리 uid 로 띄우는 것의 환경. 토큰을 하나도 안 싣는다 — 같은 uid 의 남은 것이 /proc 로 읽는다 */
 const 빈환경 = { PATH: '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' };
@@ -56,6 +57,11 @@ async function 만들기(자리: 사본, 원천: string, 원격주소: string, s
       // -h 는 링크 자체만, -R 의 기본(-P)은 링크를 따라 들어가지 않는다
       const r = 친다('chown', ['-hR', `${자식.uid}:${자식.gid}`, 폴더], 자리.뿌리);
       if (!r.ok) return `사본을 자식에게 못 넘겼다: ${r.까닭}`;
+    }
+    try {
+      자리폴더열기(자리폴더, true);
+    } catch (e) {
+      return `돌려 보기 브라우저 자리 폴더를 못 열었다: ${e instanceof Error ? e.message : String(e)}`;
     }
   }
   return null;

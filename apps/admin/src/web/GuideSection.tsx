@@ -6,7 +6,7 @@ import { useRef, useState } from 'react';
 import type { GuideFile, GuideSection as 구획 } from '@platform/kit';
 
 // 고르개와 보내기 전 거르기(Guide.tsx 의 거절사유)가 같은 목록을 본다 — 자료 올리기와 같은 규칙 (도메인/작성 §7 「자료」)
-import { 받는종류 } from './AuthoringNew.js';
+import { 가이드받는종류 } from './AuthoringNew.js';
 import { guideApi } from './guideApi.js';
 import { use말, use언어 } from './i18n.js';
 import { message, when } from './ui.js';
@@ -153,7 +153,7 @@ export function GuideSection({
             ref={고르개}
             type="file"
             hidden
-            accept={받는종류}
+            accept={가이드받는종류}
             aria-label={t('{구획}에 파일 첨부', { 구획: 제목 })}
             onChange={(e) => {
               const file = e.target.files?.[0];

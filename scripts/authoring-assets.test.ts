@@ -62,6 +62,16 @@ describe('자료계획 — 받은 파일을 어떻게 읽힐까', () => {
     ]);
   });
 
+  it('xlsx 는 맥 · 서버 모두 node 로 authoring-xlsx.ts 를 띄워 txt 로 바꾸고, csv 는 그대로 읽힌다', () => {
+    for (const 플랫폼 of ['darwin', 'linux']) {
+      const [가, 나] = 자료계획([파일(4, 1, '강화 확률표.XLSX'), 파일(5, 2, '아이템.csv')], '/t', 플랫폼);
+      expect(가).toMatchObject({ 받을자리: '/t/4.xlsx', 읽을자리: '/t/4.txt', 변환: { 명령: process.execPath } });
+      const 인자 = 가?.kind === 'FILE' ? (가.변환?.인자 ?? []) : [];
+      expect(인자.slice(-3)).toEqual([expect.stringMatching(/authoring-xlsx\.ts$/), '/t/4.xlsx', '/t/4.txt']);
+      expect(나).toMatchObject({ 변환: null, 읽을자리: '/t/5.csv' });
+    }
+  });
+
   it('디스크 이름은 사람이 준 이름이 아니라 자료 번호다 — 폴더 거슬러 오르기를 막는다', () => {
     const [가] = 자료계획([파일(9, 1, '..기획서.pdf')], '/t');
     expect(가).toMatchObject({ 받을자리: '/t/9.pdf', name: '..기획서.pdf' });

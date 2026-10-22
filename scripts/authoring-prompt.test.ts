@@ -1,5 +1,9 @@
 // 줄 프롬프트 원장 절 검사 — 에이전트가 자식에게 원장을 어떻게 넘기는지 (도메인/작성 §3.6 「★ 원장」)
 // authoring-agent.test.ts 가 300줄을 넘어 뗐다 (2026-09-30)
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 import { 줄프롬프트 } from './authoring-prompt.js';
@@ -153,5 +157,25 @@ describe('줄프롬프트 — 서비스 가이드 절 (§3.6 「★ 서비스 �
     expect(글).toContain('서비스 가이드가 없다(판 0).');
     expect(글).not.toContain('/w/자료/guide/guide.md');
     expect(글).toContain('`docs/cases/MKT.guide.md`');
+  });
+});
+
+describe('줄프롬프트 — 서비스 지도 절 (§3.6 「서비스 지도」 · PRD-F14-05)', () => {
+  const 것 = { id: 1, kind: 'AUTHOR' as const, specText: '본문' };
+  const 부르기 = (자료폴더: string): string =>
+    줄프롬프트(것, 'MKT', [], undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 자료폴더);
+
+  it('자료 폴더에 api-map.txt 가 있을 때만 그 자리와 보조에게 넘기라는 줄을 싣는다', () => {
+    const 폴더 = mkdtempSync(join(tmpdir(), 'prompt-map-'));
+    try {
+      expect(부르기(폴더)).not.toContain('--- 서비스 지도 ---');
+      writeFileSync(join(폴더, 'api-map.txt'), 'GET s.test/api/goods/:n\n');
+      const 글 = 부르기(폴더);
+      expect(글).toContain('--- 서비스 지도 ---');
+      expect(글).toContain(join(폴더, 'api-map.txt'));
+      expect(글).toContain('fanout.md §4');
+    } finally {
+      rmSync(폴더, { recursive: true, force: true });
+    }
   });
 });

@@ -34,10 +34,10 @@ export interface 돌린기록 {
   글: string;
 }
 
-/** `AUTHORING_GATE3_DIR` 의 돌려 본 기록. 못 읽은 파일은 깨진 글로 넘겨 판정이 「못 읽었다」로 적게 한다 */
-export function 돌린기록들(결과폴더: string): 돌린기록[] {
+/** `AUTHORING_GATE3_DIR` 의 돌려 본 기록. 못 읽은 파일은 깨진 글로 넘겨 판정이 「못 읽었다」로 적게 한다. `꼴` 은 돌려 보기 명령의 1번 기록(`once-`)을 읽을 때만 바꾼다 */
+export function 돌린기록들(결과폴더: string, 꼴 = 돌린기록꼴): 돌린기록[] {
   return 이름들(결과폴더)
-    .filter((이름) => 돌린기록꼴.test(이름))
+    .filter((이름) => 꼴.test(이름) && 이름.endsWith('.json'))
     .sort()
     .map((이름) => ({ 이름, 글: 안전한글(join(결과폴더, 이름), 결과폴더, 결과상한) ?? '{깨짐' }));
 }

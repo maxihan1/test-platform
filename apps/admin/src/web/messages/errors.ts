@@ -139,5 +139,8 @@ export const 오류영어: Record<string, string> = {
     'The API doc path must start with / and the reference server must be one of the target servers',
   'API 인증 칸이 맞지 않습니다. 이름은 1~20자이고 한 서버 안에서 겹치지 않아야 합니다':
     'Invalid API auth. Names are 1–20 characters and must be unique per server',
+  '어드민 키는 게임 애플리케이션에만 넣을 수 있습니다': 'Admin keys can only be set on game applications',
+  '어드민 키 칸이 맞지 않습니다. 머리 이름은 영문 · 숫자 · - 이고 값은 공백 없는 12자 이상이어야 합니다': 'Admin key is invalid. The header name uses letters, digits and -, and the value needs 12+ characters without spaces',
+  '새 어드민 키 머리에는 값을 넣어야 합니다': 'A new admin key header needs a value',
   '새 API 인증에는 비밀값을 넣어야 합니다': 'A new API auth needs a client secret',
 };

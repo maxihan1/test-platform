@@ -33,6 +33,7 @@ export const 작성말: Record<string, string> = {
   '버전 {버전}': 'Version {버전}',
   'API 문서가 아직 없습니다. API 문서 화면에서 먼저 받습니다': 'There is no API doc yet. Fetch one on the API docs screen first',
   'API 문서 화면으로': 'Go to the API docs screen',
+  '지원하지 않는 파일입니다. PDF · 워드 · 엑셀 · md · txt · csv 만 올릴 수 있습니다': 'File type not accepted. Only PDF · Word · Excel · md · txt · csv',
   '지원하지 않는 파일입니다. PDF · 워드 · md · txt 만 올릴 수 있습니다': 'File type not accepted. Only PDF · Word · md · txt',
   '이 요청은 대기열에 들어가지 못했습니다. 새 요청으로 다시 넣으세요': 'This request was not queued. Submit a new request',
   '이 요청은 대기열에 들어가지 못했습니다. 폐기하고 새 요청으로 다시 넣으세요': 'This request was not queued. Discard it and submit a new request',
@@ -263,4 +264,7 @@ export const 작성말: Record<string, string> = {
     'If the target server has an app file path, takes a free phone from the device farm, installs the app, and taps through from the first screen to read element locators. The phone is released when done',
   '앱 케이스는 끝 검사에서 폰으로 돌려 보지 않습니다. 병합 뒤 「테스트 스크립트」에서 실행해 확인합니다':
     'App cases are not run on a phone during the final check. Run them from “Test scripts” after the merge',
+  '게임 화면 읽기': 'Reading game screens',
+  '디바이스 팜에서 빈 폰 하나를 잡아 게임을 설치하고, 로그인 창부터 창을 하나씩 열어 오브젝트 목록을 읽습니다. 끝나면 폰을 놓습니다':
+    'Takes a free phone from the device farm, installs the game, and opens each window from the login window on to read its object list. The phone is released when done',
 };

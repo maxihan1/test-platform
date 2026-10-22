@@ -1,6 +1,6 @@
 // tests 폴더를 훑어 케이스 명세를 뽑는다. 진실의 원천은 코드이고 DB의 test_case는 캐시다 (SPEC §3.1)
 
-import { readdir } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import { join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -52,7 +52,7 @@ async function importSpec(file: string, gen: number): Promise<unknown> {
 }
 
 // 한 쌍만 돌려주면 고치고 다시 돌렸을 때 다음 쌍이 또 나온다. 겹친 것을 한 번에 다 보여준다
-export function duplicatesOf(specs: CaseSpec[]): Duplicate[] {
+export function duplicatesOf(specs: readonly Pick<CaseSpec, 'tcId' | 'filePath'>[]): Duplicate[] {
   const seen = new Map<string, string>();
   const found: Duplicate[] = [];
   for (const spec of specs) {
@@ -64,7 +64,26 @@ export function duplicatesOf(specs: CaseSpec[]): Duplicate[] {
   return found;
 }
 
-export async function scan(root: string = testsRoot()): Promise<ScanResult> {
+// 나머지 케이스는 import 하지 않고 tcId 글자만 읽는다 — 1,112건을 다 import 하면 형식 검사 한 번이 중간값 106초였다 (PRD-F14-04).
+// ponytail: tcId 를 글자로 적은 파일만 견준다. 변수 · 상수 tcId 는 여기서 빠지고 저장소 전체 검사(자식이 합친 뒤)가 잡는다
+const TCID_LITERAL = /\btcId:\s*(['"`])([^'"`]+)\1/;
+
+// 맡은 케이스만 볼 때의 K2 — 맡은 것끼리, 맡은 것과 나머지의 겹침만 돌려준다. 나머지끼리 겹친 것은 이번 일이 아니다
+export async function duplicatesWith(specs: readonly CaseSpec[], root: string = testsRoot()): Promise<Duplicate[]> {
+  if (specs.length === 0) return [];
+  const mine = new Set(specs.map((s) => s.filePath));
+  const others = await Promise.all(
+    (await caseFiles(root))
+      .map((file) => ({ file, filePath: relative(root, file) }))
+      .filter(({ filePath }) => !mine.has(filePath))
+      .map(async ({ file, filePath }) => ({ tcId: TCID_LITERAL.exec(await readFile(file, 'utf8'))?.[2], filePath })),
+  );
+  const read = others.flatMap(({ tcId, filePath }) => (tcId === undefined ? [] : [{ tcId, filePath }]));
+  return duplicatesOf([...read, ...specs]).filter((d) => mine.has(d.files[1]));
+}
+
+// only 를 주면 그 파일만 import 한다. 그때 겹침은 duplicates 말고 duplicatesWith 로 본다
+export async function scan(root: string = testsRoot(), only?: readonly string[]): Promise<ScanResult> {
   // kit의 test() 래퍼가 이 값을 보고 Playwright에 등록하지 않는다. 명세만 읽고 빠져나오기 위한 것이다 (SPEC §3.1)
   process.env.PLATFORM_SCAN = '1';
   const gen = generation++;
@@ -72,7 +91,7 @@ export async function scan(root: string = testsRoot()): Promise<ScanResult> {
   const specs: CaseSpec[] = [];
   const failures: ScanFailure[] = [];
 
-  for (const file of await caseFiles(root)) {
+  for (const file of only ?? (await caseFiles(root))) {
     const at = relative(root, file);
     try {
       const loaded = await importSpec(file, gen);

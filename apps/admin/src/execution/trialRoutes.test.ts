@@ -89,7 +89,7 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
     );
     서비스 = Number((r.rows[0] as { id: string }).id);
     for (const [id, 플랫폼들] of [
-      [케이스, '["desktop","mobile"]'],
+      [케이스, '["desktop","mobile","android"]'],
       [데스크톱만, '["desktop"]'],
     ] as const) {
       await q(
@@ -239,6 +239,20 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
       timeoutMs: 300000,
     });
     expect(받은요청[0]!.historyId).toBeGreaterThan(0);
+  });
+
+  it('게임 애플리케이션의 android 테스트 실행은 엔진 GAME 을 싣고, 다른 환경은 안 싣는다', async () => {
+    await q(`UPDATE service SET kind = 'GAME' WHERE id = $1`, [서비스]);
+    try {
+      const 폰 = await 시작({ ...정상, platform: 'android' });
+      expect(폰.statusCode).toBe(202);
+      await 끝날때까지(폰.json<{ trialId: string }>().trialId);
+      const 웹 = await 시작(정상);
+      await 끝날때까지(웹.json<{ trialId: string }>().trialId);
+      expect(받은요청.map((r) => [r.platform, r.engine])).toEqual([['android', 'GAME'], ['desktop', undefined]]);
+    } finally {
+      await q(`UPDATE service SET kind = 'SCREEN' WHERE id = $1`, [서비스]);
+    }
   });
 
   it('실행 기록(test_run·run_item)을 만들지 않는다', async () => {

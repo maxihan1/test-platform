@@ -17,7 +17,7 @@ import { use말, use언어 } from './i18n.js';
 import { 종류 } from './kind.js';
 import { message, 기다림글자 } from './ui.js';
 
-export { 거절사유, 받는종류 } from './authoringNewText.js';
+export { 가이드받는종류, 거절사유, 받는종류 } from './authoringNewText.js';
 
 const 같은파일 = (a: File, b: File) => a.name === b.name && a.size === b.size && a.lastModified === b.lastModified;
 
@@ -232,11 +232,12 @@ export function AuthoringNew({
           </label>
           {피그마토큰 ? null : <span className="error-text">{피그마거절말('NO_TOKEN', 운영자, t)}</span>}
           {/* 디바이스 팜은 메뉴가 아니라 작성 · 실행이 지나가는 통로라 그 일을 하는 자리에서 보인다 (도메인/러너 §5.2 결정 4) */}
-          {!줄.앱화면읽기 ? null : (
+          {줄.화면읽기 === null ? null : (
             <div className="authoring-field authoring-compare">
-              <strong>{t('앱 화면 읽기')}</strong>
-              <small>{t('대상 서버에 앱 파일 경로가 있으면 디바이스 팜에서 빈 폰 하나를 잡아 앱을 설치하고, 첫 화면부터 눌러 가며 요소 주소를 읽습니다. 끝나면 폰을 놓습니다')}</small>
-              <small>{t('앱 케이스는 끝 검사에서 폰으로 돌려 보지 않습니다. 병합 뒤 「테스트 스크립트」에서 실행해 확인합니다')}</small>
+              <strong>{t(줄.화면읽기.제목)}</strong>
+              {줄.화면읽기.줄들.map((it) => (
+                <small key={it}>{t(it)}</small>
+              ))}
             </div>
           )}
           {!대조칸 ? null : (

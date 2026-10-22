@@ -10,7 +10,8 @@ export type 오류코드 =
   | 'ALREADY_APPROVED'
   | 'APPROVED_USER'
   | 'NOT_APPROVED'
-  | 'API_AUTH_SECRET_REQUIRED';
+  | 'API_AUTH_SECRET_REQUIRED'
+  | 'ADMIN_KEY_VALUE_REQUIRED';
 
 export class 설정오류 extends Error {
   constructor(readonly code: 오류코드) {

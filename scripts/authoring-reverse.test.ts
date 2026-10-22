@@ -77,10 +77,11 @@ describe('대상점검 — 집을 때 다시 대조한다', () => {
 });
 
 describe('대상환경 — 계정은 자식 환경 변수로만 넘긴다', () => {
-  it('다섯 칸을 TARGET_* 로 준다', () => {
+  it('다섯 칸을 TARGET_* 로, 대상 주소는 PLATFORM_BASE_URL 로도 준다', () => {
     expect(대상환경(정상)).toEqual({
       TARGET_ENV: 'qa',
       TARGET_BASE_URL: 'https://qa.example.com',
+      PLATFORM_BASE_URL: 'https://qa.example.com',
       TARGET_START_URL: 'https://qa.example.com/orders',
       TARGET_LOGIN_ID: 'tester',
       TARGET_LOGIN_PASSWORD: 비밀,
@@ -89,6 +90,15 @@ describe('대상환경 — 계정은 자식 환경 변수로만 넘긴다', () =
 
   it('시작 주소가 없으면 키를 싣지 않는다', () => {
     expect(Object.keys(대상환경({ ...정상, startUrl: null }))).not.toContain('TARGET_START_URL');
+  });
+
+  // 14644 에서 보조의 돌려 보기 314회차가 상대 주소 goto 로 「Invalid URL」 — 명령과 Playwright 는 이 이름만 읽는다 (PRD-F14-01)
+  it('돌려 보기 명령과 Playwright 가 읽는 PLATFORM_BASE_URL 에도 대상 서버 주소를 준다', () => {
+    expect(대상환경(정상).PLATFORM_BASE_URL).toBe('https://qa.example.com');
+  });
+
+  it('대상 서버 주소가 없으면 PLATFORM_BASE_URL 을 빈 값으로 싣지 않는다 — 빈 값은 설정된 것처럼 보여 같은 「Invalid URL」 을 가린다', () => {
+    expect(Object.keys(대상환경({ ...정상, baseUrl: null }))).not.toContain('PLATFORM_BASE_URL');
   });
 });
 
