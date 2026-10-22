@@ -26,11 +26,6 @@ const 서비스: SettingsServiceRow = {
   caseCount: 3,
 };
 
-const 프로젝트들 = [
-  { id: 1, name: '데모마켓' },
-  { id: 2, name: '사내 포털' },
-];
-
 function 그린다() {
   render(<ServicePanel row={서비스} onDone={() => {}} />);
 }
@@ -54,13 +49,6 @@ describe('애플리케이션 설정은 구획마다 「어디에 쓰이나」를
     expect(구획('테스트 작성')?.textContent).toContain('피그마 토큰');
     expect(구획('테스트 작성')?.textContent).toContain('탐색 제외 경로');
     expect(구획('대상 서버')?.querySelector('[role="group"]')).not.toBeNull();
-  });
-
-  it('새 애플리케이션에는 애플리케이션 비활성화 구획이 없다 — 끌 것이 아직 없다', () => {
-    render(<ServicePanel onDone={() => {}} />);
-
-    expect(screen.getByText('새 애플리케이션')).toBeTruthy();
-    expect(screen.queryByText('애플리케이션 비활성화')).toBeNull();
   });
 
   it('비활성화는 저장과 따로 애플리케이션 비활성화 구획에서 한다', async () => {
@@ -130,47 +118,8 @@ describe('애플리케이션 설정은 구획마다 「어디에 쓰이나」를
     expect(screen.queryByText('저장했습니다')).toBeNull();
   });
 
-  it('새 애플리케이션을 만들면 그 접두사를 넘긴다 — 틀이 그 애플리케이션으로 옮겨 간다', async () => {
-    const 만듦 = vi.spyOn(api, 'createService').mockResolvedValue({ id: 3 });
-    const onDone = vi.fn();
-    render(<ServicePanel projects={프로젝트들} onDone={onDone} />);
-
-    fireEvent.change(screen.getByLabelText('접두사'), { target: { value: 'NEW' } });
-    fireEvent.change(screen.getByLabelText('이름'), { target: { value: '새것' } });
-    fireEvent.change(screen.getByLabelText('테스트 폴더'), { target: { value: 'new' } });
-    fireEvent.click(screen.getByRole('button', { name: '애플리케이션 추가' }));
-
-    await waitFor(() => expect(onDone).toHaveBeenCalledWith('NEW'));
-    expect(만듦.mock.calls[0]?.[0]).toMatchObject({ projectId: 1 });
-  });
-
-  it('새 애플리케이션은 맨 위 헤더에서 보던 프로젝트를 미리 고르고, 다른 프로젝트로 바꿔 보낼 수 있다', async () => {
-    const 만듦 = vi.spyOn(api, 'createService').mockResolvedValue({ id: 3 });
-    render(<ServicePanel projects={프로젝트들} 기본프로젝트={2} onDone={() => {}} />);
-
-    expect((screen.getByLabelText('프로젝트') as HTMLSelectElement).value).toBe('2');
-    fireEvent.change(screen.getByLabelText('프로젝트'), { target: { value: '1' } });
-    fireEvent.change(screen.getByLabelText('접두사'), { target: { value: 'NEW' } });
-    fireEvent.change(screen.getByLabelText('이름'), { target: { value: '새것' } });
-    fireEvent.change(screen.getByLabelText('테스트 폴더'), { target: { value: 'new' } });
-    fireEvent.click(screen.getByRole('button', { name: '애플리케이션 추가' }));
-
-    await waitFor(() => expect(만듦).toHaveBeenCalledTimes(1));
-    expect(만듦.mock.calls[0]?.[0]).toMatchObject({ projectId: 1 });
-  });
-
-  it('프로젝트가 하나도 없으면 만들지 못하고 이유를 말한다 — 프로젝트부터 만든다', () => {
-    const 만듦 = vi.spyOn(api, 'createService').mockResolvedValue({ id: 3 });
-    render(<ServicePanel projects={[]} onDone={() => {}} />);
-
-    fireEvent.click(screen.getByRole('button', { name: '애플리케이션 추가' }));
-
-    expect(만듦).not.toHaveBeenCalled();
-    expect(document.querySelector('.set-why')?.textContent).toBe('프로젝트를 골라 주세요');
-  });
-
   it('고칠 때는 프로젝트를 고르지 않고 지금 프로젝트로 가는 링크만 보인다 — 옮기는 일은 프로젝트 화면이 한다', () => {
-    render(<ServicePanel row={서비스} projects={프로젝트들} onDone={() => {}} />);
+    render(<ServicePanel row={서비스} onDone={() => {}} />);
 
     expect(screen.queryByLabelText('프로젝트')).toBeNull();
     expect(screen.getByRole('link', { name: '데모마켓' }).getAttribute('href')).toBe('#/settings/project-1');
@@ -349,19 +298,6 @@ describe('탐색 제외 경로 칸 (도메인/인증 §8.8 · 2026-10-04)', () =
     expect(고침).not.toHaveBeenCalled();
   });
 
-  it('새 애플리케이션을 만들 때도 crawlExclude 를 보낸다', async () => {
-    const 만듦 = vi.spyOn(api, 'createService').mockResolvedValue({ id: 2 });
-    render(<ServicePanel projects={프로젝트들} onDone={() => {}} />);
-
-    fireEvent.change(screen.getByLabelText('접두사'), { target: { value: 'CDY' } });
-    fireEvent.change(screen.getByLabelText('이름'), { target: { value: '청도' } });
-    fireEvent.change(screen.getByLabelText('테스트 폴더'), { target: { value: 'cdy' } });
-    fireEvent.change(screen.getByLabelText('탐색 제외 경로'), { target: { value: '/daejeon' } });
-    fireEvent.click(screen.getByRole('button', { name: '애플리케이션 추가' }));
-
-    await waitFor(() => expect(만듦).toHaveBeenCalledTimes(1));
-    expect(만듦.mock.calls[0]?.[0]).toMatchObject({ crawlExclude: ['/daejeon'] });
-  });
 });
 
 function 주소보기() {

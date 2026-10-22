@@ -1,35 +1,21 @@
-// 설정 > 애플리케이션의 API 종류 칸 — 「종류」 고르개와 「API 문서」 구획 (도메인/API §3.8 · 도메인/인증 §8.8 「종류」)
+// 설정 > 애플리케이션의 API 종류 칸 — 「종류」 칸과 「API 문서」 구획 (도메인/API §3.8 · 도메인/인증 §8.8 「종류」)
 // SettingsService.tsx 가 300줄에 닿지 않게 뗐다
 
 import type { 앱종류 } from './api.js';
 import { t as 말, use말, use언어, type 언어 } from './i18n.js';
-import { 종류이름, 종류차례 } from './kind.js';
+import { 종류이름 } from './kind.js';
 import { 구획 } from './SettingsServiceParts.js';
 
-/** 「종류」 — 만들 때만 고른다. 엔진과 화면이 종류마다 달라서, 접두사처럼 나중에 못 바꾼다(서버 400 KIND_IMMUTABLE) */
-export function 종류칸({ 새것, 값, 바꾼다 }: { 새것: boolean; 값: 앱종류; 바꾼다: (v: 앱종류) => void }) {
+/** 「종류」 — 만들 때 마법사에서만 고른다. 엔진과 화면이 종류마다 달라서, 접두사처럼 나중에 못 바꾼다(서버 400 KIND_IMMUTABLE) */
+export function 종류칸({ 값 }: { 값: 앱종류 }) {
   const t = use말();
   const 언어 = use언어();
   return (
     <div className="field">
       <span className="field-label">{t('종류')}</span>
       <div>
-        {새것 ? (
-          <div className="set-seg" role="group" aria-label={t('종류')}>
-            {종류차례.map((v) => (
-              <button key={v} type="button" className="chip" aria-pressed={값 === v} onClick={() => 바꾼다(v)}>
-                {종류이름(v, 언어)}
-              </button>
-            ))}
-          </div>
-        ) : (
-          <span>{종류이름(값, 언어)}</span>
-        )}
-        <div className="hint">
-          {새것
-            ? t('생성할 때만 정할 수 있습니다. Android 앱은 디바이스 팜 폰에서 Appium 으로, 게임은 직접 만든 SDK 로 케이스를 만들고 돌립니다. 웹 사이트와 어드민은 「웹」을 고릅니다')
-            : t('생성 후에는 바꿀 수 없습니다')}
-        </div>
+        <span>{종류이름(값, 언어)}</span>
+        <div className="hint">{t('생성 후에는 바꿀 수 없습니다')}</div>
       </div>
     </div>
   );

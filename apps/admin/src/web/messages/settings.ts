@@ -37,10 +37,7 @@ export const 설정말: Record<string, string> = {
   '배정 없음': 'Unassigned',
 
   // 서비스 편집기
-  '애플리케이션 추가': 'Add application',
   '접두사': 'Prefix',
-  '생성할 때만 정할 수 있습니다. 케이스 번호(PAY-001)에 사용되므로 나중에 바꿀 수 없습니다':
-    'Set once at creation. It is baked into case IDs like PAY-001, so it cannot change later',
   '생성 후에는 바꿀 수 없습니다. 케이스 번호에 이미 사용 중입니다':
     'Cannot be changed after creation. It is already baked into the case IDs',
   '대문자로 시작하는 영문·숫자 12자 이내로 적습니다. 예: PAY · MEM2':
@@ -214,7 +211,6 @@ export const 설정말: Record<string, string> = {
   '새 프로젝트': 'New project',
   '프로젝트 이름': 'Project name',
   '데모마켓': 'Demo Market',
-  '프로젝트 추가': 'Add project',
   '프로젝트 하나에 애플리케이션 여럿이 들어갑니다. 권한은 프로젝트마다 줍니다':
     'A project holds several applications. Permissions are given per project',
   '애플리케이션 옮기기': 'Move applications',
