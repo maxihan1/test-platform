@@ -1,7 +1,7 @@
 // 설정 › 성능 에이전트 — 부하 발생 · 모니터링 에이전트 목록 · 이름과 최대 가상 사용자 고치기 · 지우기 · 붙이기(토큰은 한 번만) (도메인/성능 §8.14 · 도메인/인증 §8.8)
-// 더미 클라이언트 구획은 서버 통로가 생기는 PERF-F1-10 이 이 아래에 더한다
+// 더미 클라이언트 구획은 SettingsPerfDummy.tsx 가 이 아래에 선다
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
@@ -16,7 +16,8 @@ export function 실행상태(a: PerfAgent): string {
 
 const 역할글자: Record<PerfAgent['mode'], string> = { LOAD: '부하 발생', MONITOR: '모니터링' };
 
-export function SettingsPerfAgents({ projects }: { projects: { id: number; name: string }[] }) {
+// 아래 — 같은 패널 안에 이어 붙일 구획(더미 클라이언트)
+export function SettingsPerfAgents({ projects, 아래 }: { projects: { id: number; name: string }[]; 아래?: ReactNode }) {
   const t = use말();
   const 언어 = use언어();
   const list = useAsync(() => perfApi.agents(), []);
@@ -131,6 +132,7 @@ export function SettingsPerfAgents({ projects }: { projects: { id: number; name:
         )}
       </div>
       <에이전트추가 projects={projects} 붙음={() => void list.reload()} />
+      {아래}
       {지울것 === null ? null : (
         <Modal
           제목={t('에이전트를 지울까요?')}

@@ -11,6 +11,7 @@ import { use말 } from './i18n.js';
 import { 할수있나 } from './role.js';
 import { PendingSection } from './SettingsPending.js';
 import { SettingsPerfAgents } from './SettingsPerfAgents.js';
+import { SettingsPerfDummy } from './SettingsPerfDummy.js';
 import { ProjectPanel } from './SettingsProject.js';
 import { ServicePanel } from './SettingsService.js';
 import { UserSection } from './SettingsUser.js';
@@ -112,7 +113,10 @@ export function Settings({ user, onMeChanged, 자리 }: { user: User; onMeChange
         <설정메뉴 프로젝트들={프로젝트줄} 서비스들={서비스들} 고른={고른} 계정수={users.data.items.length - 대기수} 대기수={대기수} />
         <div className="set-main">
           {고른 === 'perf-agents' ? (
-            <SettingsPerfAgents projects={프로젝트들.map(({ id, name }) => ({ id, name }))} />
+            <SettingsPerfAgents
+              projects={프로젝트들.map(({ id, name }) => ({ id, name }))}
+              아래={<SettingsPerfDummy services={서비스들.map(({ id, prefix, name }) => ({ id, prefix, name }))} 기본접두사={헤더서비스} 관리자={할수있나(user, null, '설정')} />}
+            />
           ) : 고른 === 'users' ? (
             <UserSection rows={users.data.items} projects={프로젝트줄} me={user.username} onDone={users.reload} onSelf={onMeChanged} />
           ) : 고른 === 'pending' ? (

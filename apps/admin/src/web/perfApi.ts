@@ -16,8 +16,14 @@ export interface Extract {
 
 export interface Transaction {
   name: string;
+  // 비면 HTTP. WebSocket · gRPC 는 게임 서버 부하의 k6 길이다 (도메인/성능 §3.9 「게임 서버 부하」)
+  type?: 'HTTP' | 'WS' | 'GRPC';
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   url: string;
+  // WebSocket — 연결한 뒤 차례로 보낼 메시지. check.contains 가 있으면 그 글자가 든 메시지가 10초 안에 와야 성공이다
+  messages?: string[];
+  // gRPC — proto 파일의 글과 `패키지.서비스/메서드`. 메시지는 body(JSON)다
+  grpc?: { proto: string; method: string };
   headers?: Record<string, string>;
   body?: string;
   extract?: Extract[];
@@ -85,6 +91,15 @@ export interface 정기실행 {
   at: string;
   tz: string;
   env: string;
+}
+
+/** 회사가 준 리눅스 실행 파일(zip) — 게임 서버 부하의 더미 클라이언트 길 (도메인/성능 §7) */
+export interface 더미클라이언트 {
+  id: number;
+  name: string;
+  command: string;
+  bytes: number;
+  createdAt: string;
 }
 
 export interface PerfAgent {
@@ -275,6 +290,14 @@ export const perfApi = {
   editAgent: (id: number, 고침: { name?: string; maxVus?: number }) =>
     call<object>(`/perf/agents/${String(id)}`, { ...json(고침), method: 'PATCH' }),
   removeAgent: (id: number) => call<undefined>(`/perf/agents/${String(id)}`, { method: 'DELETE' }),
+  dummyClients: (serviceId: number) => call<{ clients: 더미클라이언트[] }>(`/perf/dummy-clients?serviceId=${String(serviceId)}`),
+  // zip 은 본문 그대로 보낸다 — 파일 초안과 같은 꼴이다
+  addDummyClient: (serviceId: number, name: string, command: string, file: Blob) =>
+    call<{ id: number }>(
+      `/perf/dummy-clients?serviceId=${String(serviceId)}&name=${encodeURIComponent(name)}&command=${encodeURIComponent(command)}`,
+      { method: 'POST', headers: { 'content-type': 'application/octet-stream' }, body: file },
+    ),
+  removeDummyClient: (id: number) => call<undefined>(`/perf/dummy-clients/${String(id)}`, { method: 'DELETE' }),
   // 실행 · 결과 (§7 「실행」)
   runs: (serviceId: number, scenarioId?: number) =>
     call<{ runs: 실행줄[] }>(`/perf/runs?serviceId=${String(serviceId)}${scenarioId === undefined ? '' : `&scenarioId=${String(scenarioId)}`}`),
