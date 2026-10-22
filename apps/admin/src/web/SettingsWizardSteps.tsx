@@ -3,6 +3,8 @@
 
 import type { ReactNode } from 'react';
 
+import { 운영이름인가 } from '../settings/roles.js';
+
 import type { SettingsProject, SettingsServiceRow, 앱종류 } from './api.js';
 import { 아이콘 } from './icons.js';
 import { use말, use언어 } from './i18n.js';
@@ -61,6 +63,9 @@ export const 단계제목 = (st: 단계, 새프로젝트: boolean): readonly [st
 
 export const 서버들 = (v: 마법사값): string[] => v.envs.map((it) => it.env).filter((env) => env !== '');
 
+/** 탐색 제외 경로는 크롤러가 도는 웹만 쓴다 — 웹에서 적고 종류를 바꿨으면 안 보이는 칸이 검사를 막거나 몰래 가지 않게 버린다 */
+export const 쓰는제외 = (v: 마법사값): string => (종류(v.kind ?? undefined).대조 ? v.제외 : '');
+
 /** 다 한 단계 · 고른 카드 · 끝 화면의 체크. 처음 그려질 때 한 번 그어진다(그려짐) */
 export const 체크그림 = (
   <svg className="wz-check" viewBox="0 0 24 24" aria-hidden="true">
@@ -78,6 +83,8 @@ export function 단계칸(p: {
   projects: SettingsProject[];
   services: SettingsServiceRow[];
   고치러: (st: 단계) => void;
+  /** 만드는 중 — 「고치기」를 막는다. 그사이 고친 값은 이미 보낸 요청에 안 실린다 */
+  잠김: boolean;
 }) {
   const t = use말();
   const { 값, 고친다 } = p;
@@ -210,16 +217,16 @@ export function 단계칸(p: {
         </>
       );
     case 'confirm':
-      return <확인표 값={값} 새프로젝트={p.새프로젝트} projects={p.projects} 고치러={p.고치러} />;
+      return <확인표 값={값} 새프로젝트={p.새프로젝트} projects={p.projects} 고치러={p.고치러} 잠김={p.잠김} />;
   }
 }
 
 /** 확인 단계 — 고른 것을 줄마다 보이고 줄 끝 「고치기」로 그 단계에 돌아간다. 비밀값은 넣었는지만 보인다 */
-function 확인표(p: { 값: 마법사값; 새프로젝트: boolean; projects: SettingsProject[]; 고치러: (st: 단계) => void }) {
+function 확인표(p: { 값: 마법사값; 새프로젝트: boolean; projects: SettingsProject[]; 고치러: (st: 단계) => void; 잠김: boolean }) {
   const t = use말();
   const 언어 = use언어();
   const { 값 } = p;
-  const 제외수 = 값.제외.split('\n').filter((it) => it.trim() !== '').length;
+  const 제외수 = 쓰는제외(값).split('\n').filter((it) => it.trim() !== '').length;
   const 붙인것 = [
     값.webhook === '' ? null : t('Slack 웹훅'),
     값.figma === '' ? null : t('피그마 토큰'),
@@ -229,7 +236,7 @@ function 확인표(p: { 값: 마법사값; 새프로젝트: boolean; projects: S
     <div key={st}>
       <span className="wz-sum-k">{t(단계이름[st])}</span>
       <span className="wz-sum-v">{내용}</span>
-      <button type="button" className="btn ghost small" aria-label={t('{이름} 고치기', { 이름: t(단계이름[st]) })} onClick={() => p.고치러(st)}>
+      <button type="button" className="btn ghost small" disabled={p.잠김} aria-label={t('{이름} 고치기', { 이름: t(단계이름[st]) })} onClick={() => p.고치러(st)}>
         {t('고치기')}
       </button>
     </div>
@@ -253,7 +260,8 @@ function 확인표(p: { 값: 마법사값; 새프로젝트: boolean; projects: S
       {줄('envs', 값.envs.length === 0 ? t('없음 — 나중에 설정에서 넣습니다') : 값.envs.map((it) => (
         <span key={it.key} className="wz-sum-line">
           <span className="mono">{it.env}</span> {it.baseUrl}
-          {(it.isProd ?? false) ? <span className="wz-badge">{t('실서비스 서버')}</span> : null}
+          {/* 체크 상자를 안 건드린 줄은 편집기 · 보낼모양처럼 이름(prod 등)으로 정한다 — 가장 조심할 값을 확인 표가 빠뜨리지 않게 */}
+          {(it.isProd ?? 운영이름인가(it.env)) ? <span className="wz-badge">{t('실서비스 서버')}</span> : null}
         </span>
       )))}
       {값.kind === 'API' ? 줄('apidoc', (

@@ -85,10 +85,7 @@ export function ProjectPanel({
               disabled={보내는중}
               onChange={(e) => {
                 const projectId = Number(e.target.value);
-                void 한다(async () => {
-                  await api.updateService(it.id, { projectId });
-                  return undefined;
-                });
+                void 한다(() => api.updateService(it.id, { projectId }));
               }}
             >
               {projects.map((p) => (

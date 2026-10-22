@@ -6,13 +6,14 @@ import { useEffect, useRef, useState } from 'react';
 import { api, ApiError, type SettingsProject, type SettingsServiceRow } from './api.js';
 import { t as 말, use말, use언어, type 언어 } from './i18n.js';
 import { 떠나기상자 } from './leaveGuard.js';
+import { 상자열렸나, 포커스가능 } from './Modal.js';
 import { 어드민키못보내는이유 } from './SettingsAdminKey.js';
 import { API인증못보내는이유 } from './SettingsApiAuths.js';
 import { API문서못보내는이유 } from './SettingsApiService.js';
 import { 보낼모양 } from './SettingsEnvs.js';
 import { 오류문장 } from './SettingsService.js';
 import { 단계설명, 완료칸 } from './SettingsWizardHelp.js';
-import { 단계들, 단계이름, 단계제목, 단계칸, 서버들, 체크그림, type 단계, type 마법사값 } from './SettingsWizardSteps.js';
+import { 단계들, 단계이름, 단계제목, 단계칸, 서버들, 쓰는제외, 체크그림, type 단계, type 마법사값 } from './SettingsWizardSteps.js';
 import { 서비스못보내는이유, 설정오류문장, 안쓰는서비스색, 제외경로값 } from './settingsView.js';
 import { 기다림글자 } from './ui.js';
 
@@ -49,7 +50,7 @@ export function 막는이유(st: 단계, v: 마법사값, 새프로젝트: boole
     case 'apidoc':
       return API문서못보내는이유({ 경로: v.apiDocPath, 기준: v.apiDocEnv, 서버들: 서버들(v) }, 언어);
     case 'extra':
-      return 서비스못보내는이유({ 새것: false, prefix: v.prefix, name: v.name, testsDir: v.testsDir, envs: v.envs, 제외: v.제외 }, 언어);
+      return 서비스못보내는이유({ 새것: false, prefix: v.prefix, name: v.name, testsDir: v.testsDir, envs: v.envs, 제외: 쓰는제외(v) }, 언어);
     case 'confirm':
       return null;
   }
@@ -66,8 +67,10 @@ interface Props {
   나가는곳: string;
   /** 서버에 무엇이든 만들었다. 설정이 목록과 맨 위 재료를 다시 읽는다 — 옮겨 가지는 않는다, 끝 화면이 다음 할 일을 고르게 한다 */
   on만듦: () => void;
-  /** 만든 애플리케이션이 맨 위 고르개에 있나 — 나에게 배정된 프로젝트일 때만이다 */
+  /** 만든 애플리케이션이 맨 위 고르개에 있나 — 나에게 배정된 프로젝트일 때만이다. 맨 위 재료를 다시 읽은 뒤에 참이 된다 */
   고를수있나: (serviceId: number) => boolean;
+  /** 그 프로젝트가 나에게 배정돼 있나 — 아니면 다시 읽어도 고르개에 안 나와 끝 화면이 배정하는 길을 알린다 */
+  내프로젝트: (projectId: number) => boolean;
   on작성: (serviceId: number) => void;
   on설정: (prefix: string) => void;
 }
@@ -88,6 +91,7 @@ export function SettingsWizard(p: Props) {
   const [만든프로젝트, set만든프로젝트] = useState<number | null>(null);
   const [만든것, set만든것] = useState<{ id: number; prefix: string; name: string } | null>(null);
   const 본문 = useRef<HTMLDivElement>(null);
+  const 틀 = useRef<HTMLDivElement>(null);
 
   const 목록 = 단계들(값.kind);
   const st = 목록[Math.min(지금, 목록.length - 1)]!;
@@ -99,6 +103,32 @@ export function SettingsWizard(p: Props) {
   useEffect(() => {
     본문.current?.querySelector<HTMLElement>('input:not(:disabled), select, textarea, [aria-pressed]')?.focus({ preventScroll: true });
   }, [지금]);
+
+  // 화면 전체를 덮는 창이라 키보드가 뒤 화면(설정 메뉴 · 머리)으로 새지 않게 가둔다. Esc 는 「나가기」다 —
+  // 떠나기 확인 상자가 떠 있으면 그 상자가 Esc · Tab 을 맡는다
+  useEffect(() => {
+    function 눌림(e: KeyboardEvent) {
+      if (상자열렸나()) return;
+      if (e.key === 'Escape') {
+        window.location.hash = p.나가는곳;
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const 것들 = [...(틀.current?.querySelectorAll<HTMLElement>(포커스가능) ?? [])];
+      const 처음 = 것들[0];
+      const 끝 = 것들[것들.length - 1];
+      if (처음 === undefined || 끝 === undefined) return;
+      if (!e.shiftKey && document.activeElement === 끝) {
+        e.preventDefault();
+        처음.focus();
+      } else if (e.shiftKey && document.activeElement === 처음) {
+        e.preventDefault();
+        끝.focus();
+      }
+    }
+    document.addEventListener('keydown', 눌림);
+    return () => document.removeEventListener('keydown', 눌림);
+  }, [p.나가는곳]);
 
   const 고친다 = (일부: Partial<마법사값>) => {
     set값((앞) => ({ ...앞, ...일부 }));
@@ -152,7 +182,7 @@ export function SettingsWizard(p: Props) {
         testsRepo: 값.testsRepo,
         testsDir: 값.testsDir,
         envs: 보낼모양(값.envs, API종류, 값.kind === 'GAME'),
-        crawlExclude: 제외경로값(값.제외),
+        crawlExclude: 제외경로값(쓰는제외(값)),
         // API 칸은 API 종류만 보낸다 — 다른 종류가 보내면 서버가 400 NOT_API_SERVICE 를 낸다
         ...(API종류 ? { apiDocPath: 값.apiDocPath === '' ? null : 값.apiDocPath, apiDocEnv: 값.apiDocEnv === '' ? null : 값.apiDocEnv } : {}),
         ...(값.webhook === '' ? {} : { slackWebhook: 값.webhook }),
@@ -176,7 +206,7 @@ export function SettingsWizard(p: Props) {
   }
 
   return (
-    <div className="wz" role="dialog" aria-modal="true" aria-label={제목}>
+    <div ref={틀} className="wz" role="dialog" aria-modal="true" aria-label={제목}>
       <aside className="wz-rail">
         <p className="wz-brand">{제목}</p>
         <ol className="wz-steps">
@@ -185,7 +215,7 @@ export function SettingsWizard(p: Props) {
             return (
               <li key={it} className={다함 ? 'done' : i === 지금 ? 'now' : undefined} aria-current={i === 지금 && 만든것 === null ? 'step' : undefined}>
                 {/* 지나온 단계는 눌러 돌아간다. 앞 단계는 차례대로만 간다 — 건너뛰면 검사를 안 거친다 */}
-                <button type="button" className="wz-stepbtn" disabled={만든것 !== null || i >= 지금} onClick={() => 간다(i, 'back')}>
+                <button type="button" className="wz-stepbtn" disabled={만든것 !== null || 보내는중 || i >= 지금} onClick={() => 간다(i, 'back')}>
                   <span className="wz-dot">{다함 ? 체크그림 : i + 1}</span>
                   {t(단계이름[it])}
                 </button>
@@ -213,6 +243,8 @@ export function SettingsWizard(p: Props) {
             이름={만든것.name}
             프로젝트이름={새프로젝트 ? 값.프로젝트이름.trim() : null}
             작성갈수={p.고를수있나(만든것.id)}
+            // 새 프로젝트는 서버가 만든 사람에게 배정한다(§7). 고른 프로젝트는 지금 배정을 본다
+            배정안됨={!새프로젝트 && 값.projectId !== null && !p.내프로젝트(값.projectId)}
             on작성={() => p.on작성(만든것.id)}
             on설정={() => p.on설정(만든것.prefix)}
           />
@@ -223,7 +255,7 @@ export function SettingsWizard(p: Props) {
             <p className="wz-sub">{t(단계제목(st, 새프로젝트)[1])}</p>
             <div className="wz-form">
               <단계칸 단계={st} 값={값} 고친다={고친다} 새프로젝트={새프로젝트} 만든프로젝트={만든프로젝트 !== null}
-                projects={p.projects} services={p.services} 고치러={(it) => 간다(목록.indexOf(it), 'back')} />
+                projects={p.projects} services={p.services} 고치러={(it) => 간다(목록.indexOf(it), 'back')} 잠김={보내는중} />
             </div>
             {err === null ? null : <div className="err">{err}</div>}
             <div className="wz-foot">

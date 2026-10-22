@@ -42,12 +42,12 @@ export function Settings({ user, onMeChanged, 자리, on서비스번호 }: { use
   // 방금 저장한 자리. 그 자리를 보는 동안만 「저장했습니다」를 띄운다 — 앞 판은 저장하면 폼이 닫혀 그것이 확인이었다
   const [저장한곳, set저장한곳] = useState<string | null>(null);
   // 애플리케이션이 하나도 없으면 마법사 주소로 바꿔 둔다 — 다 만든 뒤 목록을 다시 읽어도 마법사(끝 화면)가 그 자리에 남게.
-  // 주소가 비어 있으면 첫 애플리케이션을 여는데, 막 만든 것이 그 첫 애플리케이션이 되어 끝 화면이 사라졌다
-  const 빈곳 =
-    자리 === undefined && services.data?.items.length === 0 && projects.data !== null ? (projects.data.items.length === 0 ? 'project-new' : 'new') : null;
+  // 주소가 비어 있으면 첫 애플리케이션을 여는데, 막 만든 것이 그 첫 애플리케이션이 되어 끝 화면이 사라졌다.
+  // 프로젝트도 없을 때 프로젝트부터 만드는 것은 마법사가 정한다(아래 새프로젝트)
+  const 비었다 = 자리 === undefined && services.data?.items.length === 0;
   useEffect(() => {
-    if (빈곳 !== null) window.location.replace(`#/settings/${빈곳}`);
-  }, [빈곳]);
+    if (비었다) window.location.replace('#/settings/new');
+  }, [비었다]);
 
   // 서버 gate.ts 가 이미 막지만, 주소를 직접 친 사람에게 403 대신 이유를 보여준다
   if (!할수있나(user, null, '설정')) {
@@ -145,6 +145,7 @@ export function Settings({ user, onMeChanged, 자리, on서비스번호 }: { use
               나가는곳={나가는곳}
               on만듦={() => void 프로젝트다시()}
               고를수있나={(번호) => user.services.some((it) => it.id === 번호)}
+              내프로젝트={(번호) => user.services.some((it) => it.projectId === 번호)}
               on작성={(번호) => {
                 on서비스번호?.(번호);
                 떠나기로했다();

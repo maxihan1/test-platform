@@ -180,8 +180,10 @@ export function 단계설명({ 단계: st, 값, 새프로젝트, 프로젝트 }:
 /**
  * 다 만든 뒤 — 무엇이 생겼는지와 다음 할 일. 맨 위 고르개에 없는 애플리케이션(나에게 배정 안 된 프로젝트)은 작성으로 바로 못 가서 그 길을 알린다
  * @param 프로젝트이름 이번에 같이 만든 프로젝트. 애플리케이션만 더했으면 null
+ * @param 작성갈수 맨 위 고르개에 이미 있다 — 「테스트 작성 시작」을 보인다
+ * @param 배정안됨 그 프로젝트가 나에게 배정돼 있지 않다 — 다시 읽어도 고르개에 안 나온다
  */
-export function 완료칸(p: { 이름: string; 프로젝트이름: string | null; 작성갈수: boolean; on작성: () => void; on설정: () => void }) {
+export function 완료칸(p: { 이름: string; 프로젝트이름: string | null; 작성갈수: boolean; 배정안됨: boolean; on작성: () => void; on설정: () => void }) {
   const t = use말();
   return (
     <div className="wz-done">
@@ -191,7 +193,8 @@ export function 완료칸(p: { 이름: string; 프로젝트이름: string | null
         {p.프로젝트이름 === null ? null : <span>{t('「{프로젝트}」 프로젝트도 함께 만들었습니다', { 프로젝트: p.프로젝트이름 })} </span>}
         {t('이제 테스트를 만들 차례입니다. 기획서나 화면을 넣으면 AI 가 테스트 케이스를 만들어 줍니다')}
       </p>
-      {p.작성갈수 ? null : <p className="hint">{t('맨 위 고르개에서 고르려면 「계정」에서 이 프로젝트를 나에게 배정합니다')}</p>}
+      {/* 맨 위 재료를 다시 읽는 동안에도 고르개에는 아직 없다 — 그때는 안내하지 않고 단추가 뜨기를 기다린다 */}
+      {p.배정안됨 ? <p className="hint">{t('맨 위 고르개에서 고르려면 「계정」에서 이 프로젝트를 나에게 배정합니다')}</p> : null}
       <div className="wz-next">
         {p.작성갈수 ? (
           <button type="button" className="btn" onClick={p.on작성}>
