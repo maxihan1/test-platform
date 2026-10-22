@@ -129,8 +129,8 @@ npm run -s authoring:check -- 비밀번호 tests/<폴더> docs/cases/<접두사>
 훑기를 마친 뒤 — 훑을 화면이 하나도 없어도 — 표 · 표준 기획서보다 먼저 `[단계] 바뀐 화면 케이스 고치기` 를 말하고 아래를 한다. `케이스` 칸이 있는 줄이 없으면 건너뛴다.
 **정본은 작성.md 「바뀐 화면 — 닿는 케이스만 다시 본다」다.**
 
-1. 그 줄들의 tcId 를 모아 한 번씩 돌린다 — `npx playwright test <케이스 파일들> --project=desktop --workers=1 --reporter=line > $TMPDIR/changed.log 2>&1; echo "EXIT=$?"`.
-   케이스 파일은 `tests/<폴더>/<tcId>.spec.ts` 다. 없으면 `grep -rl "tcId: '<tcId>'" tests/<폴더>` 로 찾는다. 대화에는 로그의 마지막 요약 줄과 실패한 tcId 만 남긴다
+1. 그 줄들의 tcId 를 모아 한 번씩 돌린다 — `npm run -s authoring:run -- 한번 changed <케이스 파일들>; echo "EXIT=$?"`(빨간 케이스의 첫 오류 줄만 찍는다 · 긴 오류는 찍힌 로그에서 그 케이스만 본다).
+   케이스 파일은 `tests/<폴더>/<tcId>.spec.ts` 다. 없으면 `grep -rl "tcId: '<tcId>'" tests/<폴더>` 로 찾는다
 2. 통과한 케이스는 손대지 않는다
 3. 실패한 케이스는 까닭을 가른다
    - **깨짐** — 요소를 못 찾음 · 요소를 기다리다 시간 초과 · 같은 이름 요소가 여럿(strict) · 가던 길(버튼 · 메뉴)이 없어짐. 화면 구조가 바뀐 것이다.
