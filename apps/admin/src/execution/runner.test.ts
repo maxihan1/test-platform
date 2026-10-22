@@ -87,6 +87,17 @@ describe('callRunner', () => {
     });
   });
 
+  it('항목의 엔진 칸을 그대로 싣는다 (도메인/게임 §3.10 결정 6)', async () => {
+    let 받은것: ExecuteRequest | null = null;
+    await 띄운다((body) => {
+      받은것 = body;
+      return { historyId: body.historyId, status: 'PASS', durationMs: 1, steps: [] };
+    });
+
+    await callRunner(7, { ...항목, engine: 'GAME' });
+    expect(받은것).toMatchObject({ tcId: 'DEMO-001', engine: 'GAME' });
+  });
+
   it('API 케이스면 그 케이스 판 원문을 싣는다 (도메인/API §3.8)', async () => {
     const 판 = { version: 3, doc: { openapi: '3.1.0', paths: {} } };
     vi.mocked(케이스판).mockResolvedValueOnce({ apiDoc: 판 });

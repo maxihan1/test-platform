@@ -84,6 +84,29 @@ describe.skipIf(연결 === undefined)('대상 서버 앱 파일 경로', () => {
     expect(items.map((i) => [i.tcId, i.app])).toEqual([['XAP-001', '/apk/qa.apk'], ['XAP-002', undefined]]);
   });
 
+  it('게임 애플리케이션이면 android 항목에만 엔진 GAME 을 싣고, 아니면 엔진 칸이 없다', async () => {
+    await 저장({ env: 'qa', baseUrl: 'https://qa.example.com', appPath: '/apk/qa.apk' });
+    const 만든다 = async () =>
+      (
+        await createRun({
+          origin: 'MANUAL',
+          triggeredBy: 'tester',
+          env: 'qa',
+          items: [
+            { tcId: 'XAP-001', platforms: ['android'], params: {}, expected: {} },
+            { tcId: 'XAP-002', platforms: ['desktop'], params: {}, expected: {} },
+          ],
+        })
+      ).items.map((i) => i.engine);
+    expect(await 만든다()).toEqual([undefined, undefined]);
+    await pool.query("UPDATE service SET kind = 'GAME' WHERE id = $1", [서비스]);
+    try {
+      expect(await 만든다()).toEqual(['GAME', undefined]);
+    } finally {
+      await pool.query("UPDATE service SET kind = 'SCREEN' WHERE id = $1", [서비스]);
+    }
+  });
+
   it('앱 경로가 빈 줄이면 싣지 않는다 — 러너가 자기 환경값을 쓴다', async () => {
     await 저장({ env: 'qa', baseUrl: 'https://qa.example.com', appPath: null });
     const { items } = await createRun({

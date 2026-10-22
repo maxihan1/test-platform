@@ -84,6 +84,8 @@ export interface PendingItem {
   app?: string;
   // 그 대상 서버 줄의 API 인증. 설정이 API 애플리케이션에만 넣게 하므로 있으면 API 케이스다 (도메인/API §3.8)
   apiAuths?: ApiAuth[];
+  // 게임 애플리케이션의 android 항목만 (도메인/게임 §3.10 결정 6)
+  engine?: 'GAME';
 }
 
 // tcId 접두사가 곧 서비스다. 요청이 서비스를 따로 싣게 두면 번호와 서비스가 어긋날 수 있다 (SPEC §7)
@@ -95,6 +97,7 @@ interface ServiceRow {
   id: string;
   name: string;
   tests_repo: string;
+  kind: string;
   base_url: string | null;
   app_path: string | null;
   api_auths: unknown;
@@ -174,7 +177,7 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
 
     // 서비스와 대상 주소는 표에서 찾는다. 요청이 주소를 싣게 두면 아무 데나 쏠 수 있다 (SPEC §6)
     const service = await client.query<ServiceRow>(
-      `SELECT s.id, s.name, s.tests_repo, e.base_url, NULLIF(e.app_path, '') AS app_path, e.api_auths
+      `SELECT s.id, s.name, s.tests_repo, s.kind, e.base_url, NULLIF(e.app_path, '') AS app_path, e.api_auths
          FROM service s
          LEFT JOIN service_env e ON e.service_id = s.id AND e.env = $2
         WHERE s.prefix = $1 AND s.is_active`,
@@ -276,6 +279,7 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
             timeoutMs,
             ...(platform === 'android' && found서비스.app_path !== null && { app: found서비스.app_path }),
             ...(인증들.length > 0 && { apiAuths: 인증들 }),
+            ...(platform === 'android' && found서비스.kind === 'GAME' && { engine: 'GAME' as const }),
           });
         }
       }
