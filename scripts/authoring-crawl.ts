@@ -1,4 +1,4 @@
-// 화면 크롤러 — 작성 자식이 로그인 뒤 명령 한 번으로 돌린다. 링크를 따라가고 버튼을 눌러 화면마다 ariaSnapshot · 입력칸 속성 · 화면 연결을 파일로 (도메인/작성 §3.6 「★ 역방향」 · 「★ 표준 기획서」)
+// 화면 크롤러 — 작성 자식이 로그인 뒤 명령 한 번으로 돌린다. 링크를 따라가고 버튼을 눌러 화면마다 ariaSnapshot · 입력칸 속성 · 부른 API · 화면 연결을 파일로 (도메인/작성 §3.6 「★ 역방향」 · 「★ 표준 기획서」)
 // 실행: npx tsx scripts/authoring-crawl.ts <주소>... --out <폴더> [--state <로그인 상태 파일>] [--login <로그인 스크립트>] [--follow] [--max 100] [--minutes 10] [--exclude <경로>]... [--covered <파일>] [--cases <파일>]
 // 여기는 인자 · 결과 파일만. 상태 하나 도는 것은 authoring-crawl-state, 판정은 authoring-crawl-rules · authoring-crawl-press, 쪽 다루기는 authoring-crawl-page. 계정 값은 읽지 않는다 — 로그인은 자식의 스크립트가 한다
 
@@ -8,7 +8,7 @@ import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { chromium } from '@playwright/test';
 
 import { 한상태 } from './authoring-crawl-state.js';
-import { type 본화면, type 인자, type 판, API상한, 로그인돌리기 } from './authoring-crawl-session.js';
+import { type 본화면, type 인자, type 판, API머리줄, API상한, 로그인돌리기 } from './authoring-crawl-session.js';
 import { 덮은틀읽기, 덮음인가, 케이스지도읽기, 크롤역할들, 목록고르기, 빼는주소인가, 뺄경로읽기, 연결모으기, 틀케이스 } from './authoring-crawl-rules.js';
 import { 판정줄 } from './authoring-crawl-viewport.js';
 import { 기본역할 } from '@platform/kit/accounts';
@@ -124,6 +124,13 @@ function 남기기(a: 인자, 판: 판, 시작: number, 돈: { 상태들: string
   writeFileSync(join(a.출력, 'links.json'), JSON.stringify(연결들));
   // 화면마다 들은 API — 연결과 같이 에이전트가 화면 기록을 올릴 때 싣는다. 서버가 같은 사이트만 지도에 넣는다 (PRD-F10-05)
   writeFileSync(join(a.출력, 'apis.json'), JSON.stringify(연결모으기(판.본, 판.API, 고른).map((x) => ({ 상태: x.상태, 틀: x.틀, api: x.연결.slice(0, API상한) }))));
+  // 그 화면이 부른 API 를 크롤 파일 머리에도 — 보조는 이 파일만 읽는다. 누를 때 들은 것까지라 다 돈 뒤에 끼운다(글자 지문은 쓸 때 잰 그대로 · PRD-F14-05)
+  for (const [i, 본] of 판.본.entries()) {
+    const 줄들 = API머리줄(판.API.get(i)?.values() ?? [], a.주소들[0]!);
+    if (줄들.length === 0) continue;
+    const [첫줄, ...나머지] = readFileSync(join(a.출력, 본.파일), 'utf8').split('\n');
+    writeFileSync(join(a.출력, 본.파일), [첫줄, ...줄들, ...나머지].join('\n'));
+  }
   // 화면 크기 — 모바일로 연 화면 가운데 PC 와 이름 · 주소가 갈린 것만. 자식이 반응형 케이스의 모바일 길을 여기서 본다(tpx-cases two-kinds.md 「화면 크기 판정」 · PRD-F10-07)
   const 견준 = 판.본.filter((x) => !x.로그인풀림 && x.모바일 !== undefined);
   const 차이들 = 견준.flatMap((x) => (x.모바일 ? [x.모바일] : []));

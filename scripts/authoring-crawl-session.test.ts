@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { chromium } from '@playwright/test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { type 들은API, API더하기, API듣기, API상한, 로그인돌리기, 새쪽 } from './authoring-crawl-session.js';
+import { type 들은API, API더하기, API듣기, API머리줄, API상한, 로그인돌리기, 새쪽 } from './authoring-crawl-session.js';
 
 let 폴더 = '';
 beforeEach(() => {
@@ -56,7 +56,7 @@ describe('API더하기', () => {
 });
 
 describe('API듣기', () => {
-  it('화면이 부른 fetch · xhr 만 물음표 뒤를 빼고 듣는다 — 문서 · 그림은 안 듣는다', async () => {
+  it('화면이 부른 fetch · xhr 만 물음표 뒤를 빼고 응답 상태와 같이 듣는다 — 문서 · 그림은 안 듣는다', async () => {
     const 브라우저 = await chromium.launch();
     try {
       const { 맥락, 쪽 } = await 새쪽(브라우저, undefined);
@@ -65,16 +65,37 @@ describe('API듣기', () => {
       await 맥락.route('https://s.test/**', (r) =>
         r.request().resourceType() === 'document'
           ? r.fulfill({ contentType: 'text/html', body: `<img src="/a.png"><script>fetch('/api/goods/3?token=t0k');const x=new XMLHttpRequest();x.open('POST','/api/cart');x.send()</script>` })
-          : r.fulfill({ contentType: 'application/json', body: '{}' }),
+          : r.fulfill({ status: r.request().method() === 'POST' ? 401 : 200, contentType: 'application/json', body: '{}' }),
       );
       await 쪽.goto('https://s.test/');
-      await expect.poll(() => 들은.size).toBe(2);
+      await expect.poll(() => [...들은.values()].filter((x) => x.status !== undefined).length).toBe(2);
       expect([...들은.values()].sort((a, b) => a.url.localeCompare(b.url))).toEqual([
-        { method: 'POST', url: 'https://s.test/api/cart' },
-        { method: 'GET', url: 'https://s.test/api/goods/3' },
+        { method: 'POST', url: 'https://s.test/api/cart', status: 401 },
+        { method: 'GET', url: 'https://s.test/api/goods/3', status: 200 },
       ]);
     } finally {
       await 브라우저.close();
     }
+  });
+});
+
+describe('API머리줄', () => {
+  it('같은 사이트만 · 지도와 같은 틀로 · 방식과 틀이 같으면 본 상태를 한 줄에 모은다', () => {
+    expect(
+      API머리줄(
+        [
+          { method: 'GET', url: 'https://www.s.test/api/goods/3', status: 200 },
+          { method: 'GET', url: 'https://www.s.test/api/goods/41', status: 404 },
+          { method: 'GET', url: 'https://www.s.test/api/goods/7', status: 200 },
+          { method: 'POST', url: 'https://api.s.test/cart' },
+          { method: 'GET', url: 'https://ads.other.test/pixel', status: 200 },
+        ],
+        'https://www.s.test/',
+      ),
+    ).toEqual(['# API: GET www.s.test/api/goods/:n · 200 404', '# API: POST api.s.test/cart · 응답 못 봄']);
+  });
+
+  it('들은 것이 없으면 줄도 없다', () => {
+    expect(API머리줄([], 'https://s.test/')).toEqual([]);
   });
 });
