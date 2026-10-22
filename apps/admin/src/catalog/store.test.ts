@@ -93,15 +93,16 @@ describe.skipIf(연결 === undefined)('save', () => {
     expect(back.rows[0]?.is_active).toBe(true);
   });
 
-  it('스캔 결과가 비면 아무것도 비활성으로 내리지 않는다', async () => {
-    const result = await save([], true, 'ZZA');
-    expect(result.deactivated).toBe(0);
+  it('케이스가 0건이어도 내리라고 하면 그 접두사 케이스를 전부 비활성으로 내린다', async () => {
+    expect((await save([], false, 'ZZA')).deactivated).toBe(0);
 
-    const still = await pool.query<{ is_active: boolean }>(
-      'SELECT is_active FROM test_case WHERE tc_id = $1',
-      ['ZZA-001'],
+    const result = await save([], true, 'ZZA');
+    expect(result.deactivated).toBe(2);
+
+    const gone = await pool.query<{ is_active: boolean }>(
+      "SELECT is_active FROM test_case WHERE tc_id IN ('ZZA-001', 'ZZA-002')",
     );
-    expect(still.rows[0]?.is_active).toBe(true);
+    expect(gone.rows.map((r) => r.is_active)).toEqual([false, false]);
   });
 
   it('다른 접두사의 케이스는 비활성으로 내리지 않는다', async () => {
