@@ -3,7 +3,9 @@
 import { spawnSync } from 'node:child_process';
 import { readFileSync, statSync } from 'node:fs';
 
-import { type Browser, type BrowserContext, type Page, devices } from '@playwright/test';
+import { type Browser, type BrowserContext, type Page, type Request, devices } from '@playwright/test';
+
+import { API틀, 같은사이트인가 } from '../apps/admin/src/prd/apiMap.js';
 
 import { 환경비밀번호들 } from './authoring-accounts.js';
 import type { 본것 } from './authoring-crawl-page.js';
@@ -62,26 +64,66 @@ export interface 판 {
 /** 크롤 파일 폴더 — 역할끼리는 `로그인/` 하나를 같이 쓴다(크롤 번호가 상태를 넘어 하나씩 늘어 안 겹친다) */
 export const 폴더이름 = (상태: 상태): string => (상태 === '로그아웃' ? '로그아웃' : '로그인');
 
-/** 들은 API — `방식 주소` → 그 줄. 화면을 열거나 누르기 전에 비운다 */
-export type 들은API = Map<string, { method: string; url: string }>;
+/** 들은 API — `방식 주소` → 그 줄. 화면을 열거나 누르기 전에 비운다. 본 응답 상태는 줄에 모은다 */
+export type 들은API = Map<string, { method: string; url: string; status?: number[] }>;
 export const API상한 = 200; // 화면 하나에서 — 서버 상한과 같다(§7 PUT …/screens)
+const API머리상한 = 50; // 보조가 크롤 파일을 통째로 읽는다 — 폴링 · 위젯이 많은 화면이 머리를 덮지 않게
+
+const API인가 = (r: Request): boolean => ['fetch', 'xhr'].includes(r.resourceType());
+const 물음표뺀주소 = (r: Request): string => {
+  const u = new URL(r.url());
+  u.search = '';
+  u.hash = '';
+  return u.toString();
+};
 
 /**
- * 화면이 부른 API(fetch · xhr)를 듣는다 — 물음표 · # 뒤는 뺀다(토큰 · 검색어). 같은 사이트인지 · 상한은 서버가 다시 거른다 (도메인/작성 §3.6 「서비스 지도」 · PRD-F10-05)
+ * 화면이 부른 API(fetch · xhr)를 듣는다 — 물음표 · # 뒤는 뺀다(토큰 · 검색어). 같은 사이트인지 · 상한은 서버가 다시 거른다 (도메인/작성 §3.6 「서비스 지도」 · PRD-F10-05).
+ * 응답 상태도 모은다 — 보조가 기다릴 응답을 고르는 재료다(PRD-F14-05). 요청마다 그때의 줄을 쥐어 두어 비운 뒤에 온 응답도 그 요청을 낸 화면 몫에 붙는다
  */
 export function API듣기(쪽: Page, 들은: 들은API): void {
+  const 요청줄 = new WeakMap<Request, { status?: number[] }>();
   쪽.on('request', (r) => {
-    if (!['fetch', 'xhr'].includes(r.resourceType()) || 들은.size >= API상한) return;
-    const u = new URL(r.url());
-    u.search = '';
-    u.hash = '';
-    들은.set(`${r.method()} ${u.toString()}`, { method: r.method(), url: u.toString() });
+    if (!API인가(r)) return;
+    const url = 물음표뺀주소(r);
+    const 키 = `${r.method()} ${url}`;
+    const 줄 = 들은.get(키) ?? (들은.size < API상한 ? { method: r.method(), url } : undefined);
+    if (줄 === undefined) return;
+    들은.set(키, 줄);
+    요청줄.set(r, 줄);
+  });
+  쪽.on('response', (응답) => {
+    const 줄 = 요청줄.get(응답.request());
+    if (줄 !== undefined && !(줄.status ?? []).includes(응답.status())) 줄.status = [...(줄.status ?? []), 응답.status()];
   });
 }
-/** 들은 API 를 그 화면(본 화면 번호) 몫에 더한다 — 화면 하나에 상한까지 */
+
+/**
+ * 크롤 파일 머리의 `# API:` 줄 — 같은 사이트만 · 서비스 지도와 같은 틀(`:n` · `:id`)로 · 방식과 틀이 같으면 한 줄에 본 상태를 모은다.
+ * 훑기 보조가 화면 기록 「부르는 API」로 옮기고 작성 보조가 기다릴 응답을 고른다 — 기대값의 근거가 아니다 (도메인/작성 §3.6 「화면 기록과 크롤러」 · PRD-F14-05)
+ */
+export function API머리줄(들은: Iterable<{ method: string; url: string; status?: number[] }>, 기준주소: string): string[] {
+  const 모음 = new Map<string, Set<number>>();
+  for (const x of 들은) {
+    const 틀 = API틀(x.url);
+    if (틀 === null || !같은사이트인가(틀.host, 기준주소)) continue;
+    const 키 = `${x.method} ${틀.host}${틀.path}`;
+    const 상태들 = 모음.get(키) ?? new Set<number>();
+    for (const s of x.status ?? []) 상태들.add(s);
+    모음.set(키, 상태들);
+  }
+  const 줄들 = [...모음].map(([키, 상태들]) => `# API: ${키} · ${상태들.size === 0 ? '응답 못 봄' : [...상태들].sort((a, b) => a - b).join(' ')}`);
+  return 줄들.length <= API머리상한 ? 줄들 : [...줄들.slice(0, API머리상한), `# API: … ${줄들.length - API머리상한}개 더(crawl/apis.json)`];
+}
+/** 들은 API 를 그 화면(본 화면 번호) 몫에 더한다 — 화면 하나에 상한까지. 이미 있는 줄은 본 상태만 합친다(열 때 200 · 누를 때 500) */
 export function API더하기(몫: Map<number, 들은API>, 본번: number, 들은: 들은API): void {
-  const 칸 = 몫.get(본번) ?? new Map();
-  for (const [키, 값] of 들은) if (칸.size < API상한) 칸.set(키, 값);
+  const 칸: 들은API = 몫.get(본번) ?? new Map();
+  for (const [키, 값] of 들은) {
+    const 앞 = 칸.get(키);
+    if (앞 === undefined) {
+      if (칸.size < API상한) 칸.set(키, 값);
+    } else if (앞 !== 값) 칸.set(키, { ...앞, status: [...new Set([...(앞.status ?? []), ...(값.status ?? [])])] });
+  }
   몫.set(본번, 칸);
 }
 
