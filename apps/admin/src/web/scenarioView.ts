@@ -1,7 +1,8 @@
 // E2E 시나리오 조립 화면이 쓰는 계산 모음. 화면 없이 검사하려고 순수 함수로 뗐다
 
 import type { ScenarioLink, ScenarioPart } from '@platform/kit';
-import type { Technique } from '@platform/kit/types';
+
+import { 흐름인가 } from '../scenario/flowSide.js';
 
 import type { CaseRow, Platform } from './api.js';
 import { t, type 언어 } from './i18n.js';
@@ -97,20 +98,6 @@ export function 모킹구간(parts: ScenarioPart[]): string[][] {
     if (p.kind === 'unmock') 걸림 = 걸림.filter((u) => u !== p.urlPattern);
     return 지금;
   });
-}
-
-// 상태 전이 기법이 붙은 케이스는 순서가 있는 흐름이라 단계 팔레트의 흐름 칸에 둔다
-const 상태전이: Technique = '상태 전이';
-
-/**
- * 흐름 칸(정상 쪽)인가. PRD 를 쓰는 서비스에서 요구가 붙었으면 종류로 — 경계 · 예외 요구만 덮으면 나머지, 그 밖은 흐름이다.
- * 그 밖에는 설계 기법으로 — 상태 전이가 있거나 기법이 없으면 흐름이다 (도메인/시나리오 §8.11)
- */
-function 흐름인가(c: CaseRow, PRD씀: boolean): boolean {
-  const reqs = c.reqs ?? [];
-  if (PRD씀 && reqs.length > 0) return !reqs.every((r) => r.axis === '경계' || r.axis === '예외');
-  const 기법 = c.techniques ?? [];
-  return 기법.length === 0 || 기법.some((x) => x === 상태전이);
 }
 
 export interface 팔레트묶음 {
