@@ -106,6 +106,14 @@ export interface 대상 {
 export const 작성에실을줄 = (줄: 대상줄 | null): 대상줄 | null =>
   줄 === null || !줄.isProd ? 줄 : { ...줄, loginId: null, loginPassword: null, 계정들: [] };
 
+/**
+ * Android 앱의 앱 줄 — 요청에 대상 서버가 있으면 그 줄, 없으면 앱 파일 경로가 있는 첫 줄(env 순). 「운영 서버」 줄은 어느 쪽이든 건너뛴다.
+ * 앱 첫 화면과 집기 accounts 가 같은 줄을 봐야 AI 가 읽는 앱과 로그인 계정의 서버가 맞는다 (§3.6 「★ 역할별 계정」 「앱 화면」)
+ */
+export function 앱줄고르기<T extends { env: string; appPath: string | null; isProd: boolean }>(줄들: T[], env: string | null): T | undefined {
+  return 줄들.filter((j) => !j.isProd).find((j) => (env === null ? j.appPath !== null : j.env === env));
+}
+
 /** 집기 응답 target 한 벌 — 운영 줄이면 계정이 비고 isProd 가 붙는다 */
 export function 집기대상(env: string, 원줄: 대상줄 | null, startUrl: string | null): 대상 {
   const 줄 = 작성에실을줄(원줄);
@@ -157,10 +165,13 @@ export async function 집기대상칸(
   const target = 대조env !== null ? 집기대상(대조env, 원줄, 행.startUrl) : undefined;
   const 줄 = 작성에실을줄(원줄);
   const 머지줄 = 대조env === null && typeof 머지env === 'string' ? 작성에실을줄(await 대상줄읽기(서비스, 머지env)) : null;
+  // Android 앱은 대조가 없어(역방향칸판정 BAD_ENV) 이 길이 아니면 AI 가 폰에서 로그인할 계정을 받을 곳이 없다 (2026-10-22 사용자)
+  const 앱줄 =
+    행.params.prdApply !== true && (await 문서설정읽기(서비스))?.kind === 'APP' ? (앱줄고르기(await 대상줄들읽기(서비스), 행.env) ?? null) : null;
   const 줄들 =
     행.params.prdApply === true
       ? (await 대상줄들읽기(서비스)).filter((z) => !z.isProd)
-      : [줄, 머지줄].filter((z): z is 대상줄 => z !== null);
+      : [줄, 머지줄, 앱줄].filter((z, i, 모두): z is 대상줄 => z !== null && 모두.findIndex((y) => y?.env === z.env) === i);
   const accounts = 실을계정(줄들);
   return { ...(target === undefined ? {} : { target }), ...(accounts.length === 0 ? {} : { accounts }) };
 }
