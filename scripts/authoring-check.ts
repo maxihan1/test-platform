@@ -210,11 +210,12 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
       return 2;
     }
     const 케이스파일 = 맡은.filter((f) => f.endsWith('.spec.ts'));
+    const 형식대상 = 맡은.filter((f) => f.startsWith('tests/') && f.endsWith('.ts'));
     const [tsc, 형식] = await Promise.all([
       돌린다(트리, 'npx', ['tsc', '--noEmit', '-p', 맡은tsconfig(트리, 자리, 맡은)], 로그('tsc')),
       // 맡은 파일만 넘긴다 — 저장소 전체(1,112건)는 한 번에 중간값 106초 · 5분 한도에 끊기기도 했다(PRD-F14-04). 겹침(K2)만 나머지 tcId 를 글자로 견준다.
-      // 화면 파일만 맡은 서브에이전트(적응형 모바일)는 케이스 형식 검사를 안 돈다
-      케이스파일.length > 0 ? 돌린다(트리, 'npm', ['run', '-s', 'check:tests', '--', ...맡은.filter((f) => f.startsWith('tests/') && f.endsWith('.ts'))], 로그('tests')) : Promise.resolve(null),
+      // 빈 목록을 넘기면 저장소 전체를 보므로 넘길 것이 없으면 안 돈다. 화면 파일만 맡아도 K7 · K15 는 본다
+      형식대상.length > 0 ? 돌린다(트리, 'npm', ['run', '-s', 'check:tests', '--', ...형식대상], 로그('tests')) : Promise.resolve(null),
     ]);
     결과들.push({ 이름: '타입 검사(맡은 파일)', ok: tsc.ok, 줄들: 줄또는끝(tsc, tsc.줄들.filter((l) => /error TS/.test(l))) });
     if (형식 !== null) 결과들.push({ 이름: '케이스 형식 검사(맡은 파일)', ok: 형식.ok, 줄들: 줄또는끝(형식, 형식.줄들.filter((l) => / — \[K\d+\] /.test(l))) });

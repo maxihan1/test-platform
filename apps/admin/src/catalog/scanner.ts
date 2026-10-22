@@ -70,15 +70,16 @@ const TCID_LITERAL = /\btcId:\s*(['"`])([^'"`]+)\1/;
 
 // 맡은 케이스만 볼 때의 K2 — 맡은 것끼리, 맡은 것과 나머지의 겹침만 돌려준다. 나머지끼리 겹친 것은 이번 일이 아니다
 export async function duplicatesWith(specs: readonly CaseSpec[], root: string = testsRoot()): Promise<Duplicate[]> {
+  if (specs.length === 0) return [];
   const mine = new Set(specs.map((s) => s.filePath));
-  const others: Pick<CaseSpec, 'tcId' | 'filePath'>[] = [];
-  for (const file of await caseFiles(root)) {
-    const filePath = relative(root, file);
-    if (mine.has(filePath)) continue;
-    const tcId = TCID_LITERAL.exec(await readFile(file, 'utf8'))?.[2];
-    if (tcId !== undefined) others.push({ tcId, filePath });
-  }
-  return duplicatesOf([...others, ...specs]).filter((d) => mine.has(d.files[1]));
+  const others = await Promise.all(
+    (await caseFiles(root))
+      .map((file) => ({ file, filePath: relative(root, file) }))
+      .filter(({ filePath }) => !mine.has(filePath))
+      .map(async ({ file, filePath }) => ({ tcId: TCID_LITERAL.exec(await readFile(file, 'utf8'))?.[2], filePath })),
+  );
+  const read = others.flatMap(({ tcId, filePath }) => (tcId === undefined ? [] : [{ tcId, filePath }]));
+  return duplicatesOf([...read, ...specs]).filter((d) => mine.has(d.files[1]));
 }
 
 // only 를 주면 그 파일만 import 한다. 그때 겹침은 duplicates 말고 duplicatesWith 로 본다
