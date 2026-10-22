@@ -192,6 +192,28 @@ test('훑기 보조 — 막기를 풀 수 있는 명령 · 주소를 단 open ·
   assert.deepEqual(scanVerdict('npx playwright cli kill-all'), { 세션들: [], 지울: ['*'] });
 });
 
+test('훑기 보조 — open 뒤 출력 돌리기는 주소가 아니다 · 돌리기와 섞인 주소는 그대로 거절한다 (PRD-F14-01)', () => {
+  for (const cmd of [
+    'npx playwright cli -s=a open 2>&1 | tail -3',
+    'npx playwright cli -s=a open --browser=chromium >/dev/null',
+    'npx playwright cli -s=a open --browser=chromium > /dev/null 2>&1',
+    'npx playwright cli -s=a open 2>/dev/null && npx playwright cli -s=a state-load /tmp/rev-state.json',
+    'npx playwright cli -s=a open --browser chromium &>/dev/null',
+  ]) {
+    assert.deepEqual(scanVerdict(cmd), { 세션들: [], 지울: ['a'] }, `막지 말아야 한다: ${cmd}`);
+  }
+  for (const cmd of [
+    'npx playwright cli -s=a open https://x.test/cart 2>&1',
+    'npx playwright cli -s=a open 2>/dev/null https://x.test/cart',
+    'npx playwright cli -s=a open >/dev/null https://x.test/cart',
+    'npx playwright cli -s=a open 2>&1 https://x.test/cart',
+    'npx playwright cli -s=a open >&2 https://x.test/cart',
+    "npx playwright cli -s=a open '>' https://x.test/cart",
+  ]) {
+    assert.match(scanVerdict(cmd).거절 ?? '', /주소 없이/, `거절했어야 한다: ${cmd}`);
+  }
+});
+
 test('막기 코드 — GET 만 지나가고 저장 · 변경 요청과 로그아웃 · 탈퇴 주소는 끊는다 · 가로채기가 걸린 뒤에만 표시를 단다 · run-code 처럼 URL 전역이 없는 vm 에서 돈다', async () => {
   assert.equal(vm.runInNewContext('typeof URL'), 'undefined');
   const 막기 = vm.runInNewContext(`(${막기코드})`);
