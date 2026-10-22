@@ -6,6 +6,7 @@ import perfAgentRoutes from './agentRoutes.js';
 import perfAiRoutes from './aiRoutes.js';
 import perfAgentAdminRoutes from './agents.js';
 import perfDeviceRoutes from './deviceRoutes.js';
+import perfDummyRoutes from './dummy.js';
 import perfPageRoutes from './pageRoutes.js';
 import perfRunRoutes from './runs.js';
 import perfScenarioRoutes from './scenarios.js';
@@ -20,4 +21,5 @@ export default async function perfRoutes(app: FastifyInstance): Promise<void> {
   await app.register(perfDeviceRoutes);
   await app.register(perfAgentAdminRoutes);
   await app.register(perfAiRoutes);
+  await app.register(perfDummyRoutes);
 }
