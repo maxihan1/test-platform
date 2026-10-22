@@ -24,7 +24,7 @@ function 명세(tcId: string, filePath: string): CaseSpec {
   };
 }
 
-const 화면지도 = vi.hoisted(() => ({ 차례: [] as string[], 부름: [] as unknown[][], 깨짐: false, 저장: [] as unknown[][] }));
+const 화면지도 = vi.hoisted(() => ({ 차례: [] as string[], 부름: [] as unknown[][], 깨짐: false, 저장: [] as unknown[][], 내림: 7 }));
 const 뿌리 = vi.hoisted(() => ({ 길: '/뿌리' }));
 
 vi.mock('./store.js', () => ({
@@ -37,7 +37,7 @@ vi.mock('./store.js', () => ({
   save: async (specs: CaseSpec[], deactivate: boolean, prefix: string) => {
     화면지도.차례.push(`저장 ${prefix}`);
     화면지도.저장.push([specs, deactivate, prefix]);
-    return { added: specs.length, updated: 0, deactivated: specs.length === 0 ? 7 : 0 };
+    return { added: specs.length, updated: 0, deactivated: specs.length === 0 ? 화면지도.내림 : 0 };
   },
   findCase: async () => null,
   findService: async () => null,
@@ -216,7 +216,11 @@ describe('스캔 결과 거르기', () => {
       expect(body.error).toContain('XCD 서비스의 테스트 폴더 xcd에 케이스가 없어 7건을 비활성으로 내렸다');
       expect(화면지도.저장).toEqual([[[], true, 'XCD']]);
       expect(화면지도.차례).toEqual(['저장 XCD', '화면 XCD']);
+
+      화면지도.내림 = 0;
+      expect((await 다시스캔()).error).toBeUndefined();
     } finally {
+      화면지도.내림 = 7;
       뿌리.길 = '/뿌리';
       await rm(임시, { recursive: true, force: true });
     }
