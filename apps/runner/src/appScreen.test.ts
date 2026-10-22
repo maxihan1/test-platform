@@ -92,7 +92,13 @@ describe('앱화면을읽는다', () => {
     expect((부름[0]![1].headers as Record<string, string>).Authorization).toBe(`Basic ${Buffer.from('user:pw').toString('base64')}`);
     expect(JSON.parse(부름[0]![1].body as string)).toEqual({
       capabilities: {
-        alwaysMatch: { platformName: 'Android', 'appium:automationName': 'UiAutomator2', 'appium:app': '/apk/dev.apk', 'appium:udid': 'R5CT' },
+        alwaysMatch: {
+          platformName: 'Android',
+          'appium:automationName': 'UiAutomator2',
+          'appium:disableIdLocatorAutocompletion': true,
+          'appium:app': '/apk/dev.apk',
+          'appium:udid': 'R5CT',
+        },
       },
     });
   });

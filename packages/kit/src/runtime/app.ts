@@ -22,10 +22,12 @@ function required(env: Env, name: string): string {
   return value;
 }
 
-export function appCapabilities(env: Env): Record<string, string> {
-  const caps: Record<string, string> = {
+export function appCapabilities(env: Env): Record<string, string | boolean> {
+  const caps: Record<string, string | boolean> = {
     platformName: 'Android',
     'appium:automationName': 'UiAutomator2',
+    // 꾸러미 이름 없는 resource-id 를 쓰는 앱도 id= 로 찾게 한다. 긴 꼴(com.shop:id/x)은 그대로 찾는다 (§5.2 「앱 실행」)
+    'appium:disableIdLocatorAutocompletion': true,
     'appium:app': required(env, 'PLATFORM_APP'),
   };
   // UDID 가 없으면 Appium 이 연결된 한 대를 고른다

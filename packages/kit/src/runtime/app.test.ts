@@ -10,10 +10,11 @@ vi.mock('webdriverio', () => ({ remote }));
 import { appCapabilities, captureApp, closeApp, openApp, type AppDriver } from './app.js';
 
 describe('appCapabilities', () => {
-  it('UDID 가 없으면 appium:udid 를 넣지 않는다', () => {
+  it('UDID 가 없으면 appium:udid 를 넣지 않는다 — id 앞에 꾸러미 이름을 저절로 붙이지 않는다', () => {
     expect(appCapabilities({ PLATFORM_APP: '/tmp/a.apk' })).toEqual({
       platformName: 'Android',
       'appium:automationName': 'UiAutomator2',
+      'appium:disableIdLocatorAutocompletion': true,
       'appium:app': '/tmp/a.apk',
     });
   });

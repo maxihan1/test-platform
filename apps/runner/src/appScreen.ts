@@ -101,6 +101,7 @@ export async function 앱화면을읽는다(req: 앱화면요청, env: NodeJS.Pr
     const alwaysMatch = {
       platformName: 'Android',
       'appium:automationName': 'UiAutomator2',
+      'appium:disableIdLocatorAutocompletion': true,
       'appium:app': app,
       ...(udid ? { 'appium:udid': udid } : {}),
     };

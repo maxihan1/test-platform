@@ -36,6 +36,7 @@ export default defineConfig({
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
     { name: 'mobile', use: { ...devices['iPhone 14'] } },
     // 브라우저를 안 띄운다 — kit 이 Appium 으로 폰에 붙는다 (SPEC 도메인/러너 §5.2)
-    { name: 'android' },
+    // 기다림은 단계마다 조건 기반이고 이건 케이스 전체 상한이다. 앱은 화면 여럿을 지나 정상으로도 30초를 넘긴다 (§5.2 「앱 실행」)
+    { name: 'android', timeout: 120_000 },
   ],
 });
