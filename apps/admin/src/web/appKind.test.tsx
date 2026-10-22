@@ -2,16 +2,15 @@
 // 애플리케이션 종류 「Android 앱」 화면 검사 (도메인/러너 §5.2 「애플리케이션 종류 「Android 앱」」 종류 표 · APP-F1-16)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, render, renderHook, screen } from '@testing-library/react';
 
-import { api, type ServiceRow, type User } from './api.js';
+import type { ServiceRow, User } from './api.js';
 import { AuthoringNew } from './AuthoringNew.js';
 import { use검색조건 } from './CaseListFilter.js';
 import { 조건칩들 } from './CaseListParts.js';
 import { Empty } from './CaseListNotes.js';
 import { 떠나기막기 } from './leaveGuard.js';
 import { RunLocation } from './RunLocation.js';
-import { ServicePanel } from './SettingsService.js';
 import { 서비스고르개, 종류아이콘 } from './ShellPickers.js';
 
 afterEach(() => {
@@ -36,29 +35,6 @@ const 앱 = (prefix: string, name: string, kind?: ServiceRow['kind'], projectId 
 const 사람 = (services: ServiceRow[]): User => ({ username: 'zak1', displayName: '김앱', role: 'member', dashboard: 'read', mustChangePassword: false, services });
 
 const 빈형편 = { scannedAt: '2026-10-21T00:00:00.000Z', 스캔문제: false, 전체건수: 0, 건조건: false, 친글자: '' };
-
-describe('설정 종류 칸', () => {
-  it('칩은 웹 · Android 앱 · 게임 · API 넷이고 Android 앱으로 만들면 kind APP 을 보내고 API 칸은 안 보낸다', async () => {
-    const 만듦 = vi.spyOn(api, 'createService').mockResolvedValue({ id: 9 });
-    render(<ServicePanel projects={[{ id: 1, name: '데모마켓' }]} onDone={() => {}} />);
-
-    const 칩들 = within(screen.getByRole('group', { name: '종류' })).getAllByRole('button').map((b) => b.textContent);
-    expect(칩들).toEqual(['웹', 'Android 앱', '게임', 'API']);
-    expect(screen.getByText('생성할 때만 정할 수 있습니다. Android 앱은 디바이스 팜 폰에서 Appium 으로, 게임은 직접 만든 SDK 로 케이스를 만들고 돌립니다. 웹 사이트와 어드민은 「웹」을 고릅니다')).toBeTruthy();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Android 앱' }));
-    expect(screen.queryByLabelText('문서 경로')).toBeNull();
-    fireEvent.change(screen.getByLabelText('접두사'), { target: { value: 'MKA' } });
-    fireEvent.change(screen.getByLabelText('이름'), { target: { value: '데모마켓 앱' } });
-    fireEvent.change(screen.getByLabelText('테스트 폴더'), { target: { value: 'mka' } });
-    fireEvent.click(screen.getByRole('button', { name: '애플리케이션 추가' }));
-
-    await waitFor(() => expect(만듦).toHaveBeenCalledTimes(1));
-    const 본문 = 만듦.mock.calls[0]?.[0];
-    expect(본문?.kind).toBe('APP');
-    expect(본문).not.toHaveProperty('apiDocPath');
-  });
-});
 
 describe('헤더 애플리케이션 고르개', () => {
   it('종류가 둘 이상이면 웹 · Android 앱 · API 차례의 묶음으로 열고 고른 프로젝트 것만 담는다', () => {

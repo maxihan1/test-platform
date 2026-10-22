@@ -56,6 +56,7 @@ import './authoringStatus.css';
 import './noticeBar.css';
 import './header.css';
 import './projectPick.css';
+import './wizard.css';
 import './noticeDrawer.css';
 import './drawer.css';
 import './phone.css';
@@ -180,7 +181,7 @@ function Screen({
       // '없는 주소입니다' 가 깜빡이지 않게 빈 화면을 낸다
       return <div className="screen" />;
     case 'settings':
-      return <Settings user={user} onMeChanged={onMeChanged} 자리={current.자리} />;
+      return <Settings user={user} onMeChanged={onMeChanged} 자리={current.자리} on서비스번호={on서비스번호} />;
     case 'password':
       if (sso === true) break;
       return (

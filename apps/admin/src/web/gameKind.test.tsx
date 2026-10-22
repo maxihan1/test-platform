@@ -45,28 +45,6 @@ const 머리칸 = () => screen.getByLabelText('대상 서버 1 어드민 키 머
 const 값칸 = () => screen.getByLabelText('대상 서버 1 어드민 키 값');
 
 describe('게임 애플리케이션 설정 — 어드민 키 (도메인/인증 §7 adminKey · GAME-F1-08)', () => {
-  it('게임으로 만들면 kind GAME 과 대상 서버 줄의 어드민 키를 보낸다', async () => {
-    const 만듦 = vi.spyOn(api, 'createService').mockResolvedValue({ id: 9 });
-    render(<ServicePanel projects={[{ id: 1, name: 'Ashveil' }]} onDone={() => {}} />);
-
-    fireEvent.click(screen.getByRole('button', { name: '게임' }));
-    fireEvent.change(screen.getByLabelText('접두사'), { target: { value: 'ASH' } });
-    fireEvent.change(screen.getByLabelText('이름'), { target: { value: 'Ashveil' } });
-    fireEvent.change(screen.getByLabelText('테스트 폴더'), { target: { value: 'ash' } });
-    fireEvent.click(screen.getByRole('button', { name: '+ 대상 서버 추가' }));
-    fireEvent.change(screen.getByLabelText('대상 서버 1 키'), { target: { value: 'qa' } });
-    fireEvent.change(screen.getByLabelText('대상 서버 1 주소'), { target: { value: 'https://qa.ashveil.dev' } });
-    fireEvent.change(머리칸(), { target: { value: 'X-Admin-Key' } });
-    fireEvent.change(값칸(), { target: { value: 'secret-admin-0001' } });
-    fireEvent.click(screen.getByRole('button', { name: '애플리케이션 추가' }));
-
-    await waitFor(() => expect(만듦).toHaveBeenCalledTimes(1));
-    const 본문 = 만듦.mock.calls[0]?.[0];
-    expect(본문?.kind).toBe('GAME');
-    expect(본문?.envs[0]?.adminKey).toEqual({ header: 'X-Admin-Key', value: 'secret-admin-0001' });
-    expect(본문?.envs[0]).not.toHaveProperty('apiAuths');
-  });
-
   it('저장된 키는 끝 4자리만 보이고 손대지 않으면 값 없이 머리만 보내 서버가 옛 값을 잇는다', async () => {
     render(<ServicePanel row={게임앱([키있는줄])} onDone={() => {}} />);
 
