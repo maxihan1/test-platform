@@ -18,7 +18,7 @@ import { type 계정, 사본환경 } from './authoring-copy.js';
 import { 사본치우기, 자식거두기, 자식빈환경 } from './authoring-child.js';
 import { type 작업방, 도는번호, 보관하기, 작업방준비 } from './authoring-keeping.js';
 import { type 보고손, type 칠때, type 판정기, 거절글, 닫으며, 돌린다, 멈춤, 보고손만들기, 부른다, 친다 } from './authoring-io.js';
-import { 머지처리 } from './authoring-merge.js';
+import { 머지행처리 } from './authoring-merge-row.js';
 import { 고치기실행인가, 편집처리 } from './authoring-edit.js';
 import { 자료받기 } from './authoring-marking.js';
 import { 올리기 } from './authoring-upload.js';
@@ -76,28 +76,7 @@ async function 한건(
   손: 보고손,
   박동: 박동,
 ): Promise<void> {
-  if (것.kind === 'MERGE') {
-    // **머지 행에는 PR 주소가 안 실려 온다**(`store.ts` `줄세우기`) — 원본 행을 읽어 주소와 뿌리를 가져온다
-    let 주소 = 것.prUrl ?? null;
-    let 요청뿌리: number | undefined;
-    let 고치기 = false;
-    if (typeof 것.sourceId === 'number') {
-      const 원본 = (await 부른다(주소기지, 토큰, `/authoring/requests/${것.sourceId}?service=${encodeURIComponent(서비스)}`)).몸;
-      주소 ??= (원본 as { prUrl?: string | null } | null)?.prUrl ?? null;
-      요청뿌리 = (원본 as { rootId?: number } | null)?.rootId;
-      // 고치기 반영은 겹침을 안 본다 — params.edits 는 고치기 실행만 가진다 (§3.6 「★ 반영 때 겹침 검사」)
-      고치기 = Array.isArray((원본 as { params?: { edits?: unknown } } | null)?.params?.edits);
-    }
-    if (주소 === null) {
-      await 손.끝내기({ status: 'FAILED', error: '머지할 초안 PR 주소가 없다' });
-      return;
-    }
-    // 브랜치는 author-<뿌리> — 그 전에 선 PR 은 prUrl 을 가진 원본 행(sourceId)의 author-<실행 번호> 다 (§7 「실행 기록」)
-    const 자식 = 판.계정?.자식[자리번호] ?? null;
-    const 반영폴더 = '사유' in 설정.폴더 ? null : 설정.폴더.폴더;
-    await 머지처리(손, 주소, 판.판정, 것.sourceId ?? undefined, 판.원천, 판.호스트로, 요청뿌리, { 것, 서비스, 판, 자식, 폴더: 반영폴더, 고치기 });
-    return;
-  }
+  if (것.kind === 'MERGE') return 머지행처리(주소기지, 토큰, 서비스, 것, 판, 판.계정?.자식[자리번호] ?? null, 설정, 손);
 
   // 테스트 폴더는 서비스 설정의 testsDir 다 (2026-09-25 계약 변경 승인). 아직 없는 폴더여도 된다 — 자식이 만든다.
   // 사본을 만들기 전에 거른다 — 설정이 틀린 건에 작업방을 만들 까닭이 없다
@@ -246,7 +225,9 @@ async function 사본에서(
     돌린다(자식 === null ? 'claude' : 'sh', 자식 === null ? 인자 : ['-c', 'umask 077 && exec claude "$@"', 'sh', ...인자], {
       cwd: 자리.트리,
       input: 줄프롬프트({ ...것, specText: 가림.본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들: 설정.서버들 }, 역방향, 이어하기, 원장.입력, 원장.이어작성, join(자리.자료, 'resume-memo.md'), 옮긴다 ? { ...기획서.입력, 원본: 원장.원본입력, 자료폴더: 자리.자료 } : undefined, 원장.반영, { 판: 가이드판, 글: join(가이드폴더(자리.자료), 'guide.md') }, 앱화면, 자리.자료),
-      env: 결제환경(환경, 키), uid: 자식?.uid, gid: 자식?.gid,
+      env: 결제환경(환경, 키),
+      uid: 자식?.uid,
+      gid: 자식?.gid,
       조용한제한: 자식제한,
       신호,
       흘림: true,
@@ -257,9 +238,13 @@ async function 사본에서(
       },
     }),
   );
-  // 크레딧 키가 있으면 크레딧으로 먼저 — 일하다 떨어지면 앞 자식을 거두고 같은 작업 폴더에서 구독으로 이어 띄운다. 못 거뒀으면 새 자식과 같은 파일을 고쳐 한도 멈춤으로 남긴다 (authoring-billing)
-  const { 돌린것, 크레딧으로, 앞낸것 } = await 크레딧먼저(process.env[크레딧키이름] || undefined, 띄운다, (글) => console.log(`[작성] ${것.id}번 ${사유거르기(글, 비밀번호들(것))}`),
-    async () => ((await 자식거두기(자식)) ? (await 잡은폰놓기(자리.트리, 앱화면, 것.id), 띄운다(undefined, { 번호: 것.id, 이유: 'CREDIT', 까닭: null })) : null));
+  // 크레딧 키가 있으면 크레딧으로 먼저 — 일하다 떨어지면 같은 작업 폴더에서 구독으로 이어 띄운다 (authoring-billing).
+  // 이어받은 실행이면 앞 까닭(올리기 거절 글 등)을 그대로 넘긴다 — 자식이 그것부터 고쳐야 한다
+  const { 돌린것, 크레딧으로, 앞낸것 } = await 크레딧먼저(process.env[크레딧키이름] || undefined, 띄운다, (글) => console.log(`[작성] ${것.id}번 ${사유거르기(글, 비밀번호들(것))}`), {
+    멈추라했다: 박동.멈추라했다,
+    거두기: async () => (await 자식거두기(자식)) && (await 잡은폰놓기(자리.트리, 앱화면, 것.id), true),
+    띄운다: () => 띄운다(undefined, 방.이어하기 ?? { 번호: 것.id, 이유: 'CREDIT', 까닭: null }),
+  });
   const 단계 = 누적.단계표(); // 거절 · 시간초과 · 멈춤 · 끊김에도 남게 어떤 return · 사용량보고보다 먼저 (AUT-F3-21)
   console.log(`[작성] ${것.id}번 단계 시각\n${단계 || '단계 표지 없음'}`);
   // 에이전트가 거절로 멈추는 중이면 자식을 죽인 것이다 — 서버도 받아 주지 않으니 보고하지 않는다
@@ -267,7 +252,7 @@ async function 사본에서(
   // ★ 어떤 끝내기보다 먼저 — 끝난 행에는 서버가 409 라 시간초과 건의 토큰이 버려진다 (작성 §7 「토큰 사용량」).
   // claude 가 아예 안 떴으면 쓴 토큰이 없다 — 0 을 보내면 「돌렸는데 0」으로 읽혀 대시보드 중간값을 끌어내린다
   const 안떴다 = 돌린것.코드 === null && !돌린것.시간초과 && !돌린것.멈춤으로죽음;
-  const 풀린 = 안떴다 && 앞낸것 === null ? 흐름풀기(돌린것.낸것) : await 사용량보고({ 주소기지, 토큰 }, 서비스, 것.id, 돌린것.낸것, 앞낸것 ?? undefined);
+  const 풀린 = 안떴다 ? 흐름풀기(돌린것.낸것) : await 사용량보고({ 주소기지, 토큰 }, 서비스, 것.id, 돌린것.낸것, 앞낸것 ?? undefined);
   // 검사 전에 자식이 남긴 것을 전부 죽인다 — 살아 있으면 검사한 뒤에 파일을 바꿔치기한다
   if (!(await 자식거두기(자식))) return void (await 손.끝내기({ status: 'FAILED', error: '자식이 남긴 프로세스를 거두지 못했다 — 올리지 않는다' }));
   await 잡은폰놓기(자리.트리, 앱화면, 것.id); // AI 가 release 를 잊었으면 — 거둔 뒤라야 살아남은 자식이 다시 잡지 못한다 (§3.6 「앱 화면」)

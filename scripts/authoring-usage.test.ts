@@ -183,6 +183,12 @@ describe('흐름더하기 — 크레딧이 도중에 떨어져 구독으로 이�
     });
   });
 
+  it('모델은 출력이 많은 쪽 것이다', () => {
+    const 앞 = { ...흐름('Credit balance is too low', 500, 1), 사용량: { ...흐름('', 500, 1).사용량, model: 'claude-opus-5-5' } };
+    const 뒤 = { ...흐름('끝', 30, 1), 사용량: { ...흐름('', 30, 1).사용량, model: 'claude-sonnet-5-5' } };
+    expect(흐름더하기(앞, 뒤).사용량.model).toBe('claude-opus-5-5');
+  });
+
   it('한쪽이 끊겼으면 하한값이고 비용은 비운다', () => {
     const 합 = 흐름더하기(흐름('Credit balance is too low', 500, 1.5), 흐름('', 30, null, true)).사용량;
     expect(합.partial).toBe(true);

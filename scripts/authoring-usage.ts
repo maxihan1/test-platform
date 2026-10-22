@@ -149,7 +149,7 @@ export function 흐름더하기(앞: 풀린흐름, 뒤: 풀린흐름): 풀린흐
       cacheWrite: a.cacheWrite + b.cacheWrite,
       partial: a.partial || b.partial,
       costUsd: a.costUsd === null || b.costUsd === null ? null : a.costUsd + b.costUsd,
-      model: b.model ?? a.model,
+      model: (b.output >= a.output ? b.model : a.model) ?? b.model ?? a.model, // 출력이 많은 쪽 — 한 자식 때와 같은 셈이다
     },
   };
 }
