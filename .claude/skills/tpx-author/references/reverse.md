@@ -22,8 +22,9 @@
 실제 값으로 읽지 않는다 — 로그인 칸에 넣지 않고, 「기획서 비밀번호 ≠ 화면」 같은 차이로 적지 않는다. 계정은 아래 환경 변수로만 쓴다.
 
 - 환경 변수 `TARGET_ENV` · `TARGET_BASE_URL` · `TARGET_START_URL`(없을 수 있다) · `TARGET_LOGIN_ID` · `TARGET_LOGIN_PASSWORD`(일반 회원)
+- 환경 변수 `PLATFORM_BASE_URL` — `TARGET_BASE_URL` 과 같은 주소로 에이전트가 넣어 둔다(2026-10-22 PRD-F14-01). 돌려 보기 명령(1번 돌려 보기 `한번` 도)은 앞에 붙이지 않고 그대로 부른다. `npx playwright test` 는 손으로 부르지 않는다(`fanout.md` §4 「1번 돌려 보기」) — 보조 프롬프트의 대상 서버 줄에도 이 이름을 적는다
 - 환경 변수 `PLATFORM_ACCOUNTS` — 그 줄의 계정 전부 JSON `[{ baseUrl, role, loginId, loginPassword }]`(일반 회원 role 은 `일반 회원`, 그다음 관리자 같은 역할 계정. 2026-10-12).
-  `PLATFORM_BASE_URL=$TARGET_BASE_URL npx playwright test …` 로 돌리면 kit 이 케이스의 비밀값 칸을 그 계정으로 채운다 — `PLATFORM_PARAMS` 를 손으로 만들지 않는다.
+  playwright 를 그대로 돌리면 kit 이 `PLATFORM_BASE_URL` 과 출처가 같은 줄의 계정으로 케이스의 비밀값 칸을 채운다 — `PLATFORM_PARAMS` 를 손으로 만들지 않는다.
   관리자 화면을 직접 열어 볼 때는 아래 §2 로그인 스크립트에서 `JSON.parse(process.env.PLATFORM_ACCOUNTS)` 로 그 역할 줄을 골라 쓴다. **필요한 역할이 없으면 그 요구는 원장 「제외」 `계정 미등록`**(`tpx-cases` `2-requirements.md` §2)
 - 산출물 폴더 — 프롬프트가 준 경로. 없으면 만든다(`mkdir -p`). **저장소 트리 밖이다** — 거기 쓴 것은 커밋되지 않고 에이전트가 읽어 올린다
 
@@ -128,8 +129,8 @@ npm run -s authoring:check -- 비밀번호 tests/<폴더> docs/cases/<접두사>
 훑기를 마친 뒤 — 훑을 화면이 하나도 없어도 — 표 · 표준 기획서보다 먼저 `[단계] 바뀐 화면 케이스 고치기` 를 말하고 아래를 한다. `케이스` 칸이 있는 줄이 없으면 건너뛴다.
 **정본은 작성.md 「바뀐 화면 — 닿는 케이스만 다시 본다」다.**
 
-1. 그 줄들의 tcId 를 모아 한 번씩 돌린다 — `npx playwright test <케이스 파일들> --project=desktop --workers=1 --reporter=line > $TMPDIR/changed.log 2>&1; echo "EXIT=$?"`.
-   케이스 파일은 `tests/<폴더>/<tcId>.spec.ts` 다. 없으면 `grep -rl "tcId: '<tcId>'" tests/<폴더>` 로 찾는다. 대화에는 로그의 마지막 요약 줄과 실패한 tcId 만 남긴다
+1. 그 줄들의 tcId 를 모아 한 번씩 돌린다 — `npm run -s authoring:run -- 한번 changed <케이스 파일들>; echo "EXIT=$?"`(빨간 케이스의 첫 오류 줄만 찍는다 · 긴 오류는 찍힌 로그에서 그 케이스만 본다).
+   케이스 파일은 `tests/<폴더>/<tcId>.spec.ts` 다. 없으면 `grep -rl "tcId: '<tcId>'" tests/<폴더>` 로 찾는다
 2. 통과한 케이스는 손대지 않는다
 3. 실패한 케이스는 까닭을 가른다
    - **깨짐** — 요소를 못 찾음 · 요소를 기다리다 시간 초과 · 같은 이름 요소가 여럿(strict) · 가던 길(버튼 · 메뉴)이 없어짐. 화면 구조가 바뀐 것이다.

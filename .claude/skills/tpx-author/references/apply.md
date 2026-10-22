@@ -53,7 +53,7 @@
    케이스 파일은 `tests/<폴더>` 아래 `<tcId>.spec.ts` 다. 관문 3 꼴로 한 번만 돈다.
 
    ```bash
-   PLATFORM_BASE_URL=<env 주소> npx playwright test <케이스 파일> --project=desktop --workers=1 --reporter=line > /tmp/sr.log 2>&1; echo "EXIT=$?"
+   PLATFORM_BASE_URL=<env 주소> npm run -s authoring:run -- 한번 screen-right <케이스 파일>; echo "EXIT=$?"
    ```
 
    계정은 환경 변수 `PLATFORM_ACCOUNTS`(운영 아닌 대상 서버 줄의 계정 전부 — 2026-10-12)에 있어 kit 이 `PLATFORM_BASE_URL` 과 출처가 같은 줄로 비밀값 칸을 채운다. 값을 출력 · 인자 · 파일에 쓰지 않는다.

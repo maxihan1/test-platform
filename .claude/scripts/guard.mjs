@@ -110,18 +110,24 @@ const 거절 = (말) => ({ 거절: `[차단] ${말} (PRD-F9-27)` });
 export function scanVerdict(command) {
   const 세션들 = new Set();
   const 지울 = new Set();
-  for (const 구간 of String(command ?? '').split(/;|&&|\|\||\||&|\n/)) {
+  // 출력 돌리기(`2>&1` · `>&2` · `&>`)의 `&` 는 명령 사이가 아니다 — 거기서 자르면 `2>` 를 주소로 읽고, 뒤에 단 주소는 다른 구간으로 숨는다 (PRD-F14-01)
+  for (const 구간 of String(command ?? '').split(/;|&&|\|\||\||(?<![>&])&(?![>&])|\n/)) {
     const m = 플레이.exec(구간);
     if (!m) continue;
     let 세션 = '';
     let 명령 = null;
     const 남은 = [];
-    const 낱들 = m[1].trim().split(/\s+/).map((x) => x.replace(/^["'`(]+|["'`);]+$/g, ''));
+    const 날것 = m[1].trim().split(/\s+/);
+    const 낱들 = 날것.map((x) => x.replace(/^["'`(]+|["'`);]+$/g, ''));
     for (let i = 0; i < 낱들.length; i++) {
       const 낱 = 낱들[i];
       const s = /^(?:-s|--session)(?:=(.*))?$/.exec(낱);
       if (s) 세션 = (s[1] ?? 낱들[++i] ?? '').replace(/^["']|["']$/g, '');
       else if (값옵션.test(낱)) i++;
+      // 출력 돌리기는 브라우저가 여는 주소가 아니라 파일이다 — 주소로 읽어 open 을 막아 훑기 보조가 21번 헛돌았다.
+      // 따옴표를 걷기 전 꼴로 본다 — 따옴표 친 `'>'` 는 open 에 넘어가는 인자다. 떨어진 돌릴 곳(`> /dev/null`)은 같이 건너뛴다
+      else if (/^(?:\d*>>?|\d*<|&>>?|\d*>&)$/.test(날것[i])) i++;
+      else if (/^(?:\d*>>?|\d*<|&>>?|\d*>&)/.test(날것[i])) continue;
       else if (낱.startsWith('-') || 낱 === '') continue;
       else if (명령 === null) 명령 = 낱;
       else 남은.push(낱);

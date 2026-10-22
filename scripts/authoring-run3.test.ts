@@ -104,6 +104,16 @@ describe('실행 — 잘못 부르면 돌리지 않는다', () => {
     expect(await 실행(['보조', 'shop'], '/없는곳', { AUTHORING_GATE3_DIR: '/tmp' })).toBe(2);
     expect(await 실행(['다시', 'mkt'], '/없는곳', { AUTHORING_GATE3_DIR: '/tmp' })).toBe(2);
     expect(await 실행(['마지막', 'mkt'], '/없는곳', {})).toBe(2);
+    expect(await 실행(['한번', 'shop'], '/없는곳', { AUTHORING_GATE3_DIR: '/tmp' })).toBe(2);
+    expect(await 실행(['보조', 'shop', 'tests/mkt/A.spec.ts', '--trace'], '/없는곳', { AUTHORING_GATE3_DIR: '/tmp' })).toBe(2);
+  });
+
+  it('대상 서버 주소(PLATFORM_BASE_URL)가 없으면 브라우저를 띄우기 전에 2 — 회차마다 Invalid URL 로 빨개지지 않게', async () => {
+    const 트리 = mkdtempSync(join(tmpdir(), 'run3-'));
+    mkdirSync(join(트리, 'tests', 'mkt'), { recursive: true });
+    writeFileSync(join(트리, 'tests', 'mkt', 'A.spec.ts'), '');
+    const 기록 = mkdtempSync(join(tmpdir(), 'run3-기록-'));
+    for (const 모드 of ['보조', '한번']) expect(await 실행([모드, 'shop', 'tests/mkt/A.spec.ts'], 트리, { AUTHORING_GATE3_DIR: 기록 })).toBe(2);
   });
 
   it('tests 밖이거나 없는 케이스 파일을 주면 아무것도 안 돌리고 2 — 「돌릴 것 없음」 성공으로 넘어가지 않게', async () => {
