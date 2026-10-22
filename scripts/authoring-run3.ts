@@ -176,7 +176,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   const 결과폴더 = env.AUTHORING_GATE3_DIR;
   // 묶음 slug 는 기록 이름에 들어가 좁게, 폴더는 명세의 테스트 폴더 규칙(도메인/작성 §3.6 「테스트 폴더」)대로
   const 이름꼴 = 모드 === '마지막' ? /^[A-Za-z0-9._-]+$/ : /^[a-z0-9-]+$/;
-  if (!['보조', '마지막', '한번'].includes(모드 ?? '') || 이름 === undefined || !이름꼴.test(이름) || (모드 !== '마지막' && 나머지.length === 0) || (추적 && 모드 !== '한번')) {
+  if ((모드 !== '보조' && 모드 !== '마지막' && 모드 !== '한번') || 이름 === undefined || !이름꼴.test(이름) || (모드 !== '마지막' && 나머지.length === 0) || (추적 && 모드 !== '한번')) {
     console.error('쓰는 법: npm run authoring:run -- 보조 <묶음(영문 소문자 · 숫자 · -)> <케이스 파일…> [--mobile] | 마지막 <테스트 폴더> [--mobile] | 한번 <묶음> <케이스 파일…> [--mobile] [--trace]');
     return 2;
   }
