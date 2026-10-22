@@ -3,8 +3,9 @@
 import { bucketOf, emptyHist } from './hist.js';
 import type { LoadSecond, TxSecond } from './types.js';
 
-// 요청 하나에 k6 가 14줄을 내는데 쓰는 것은 넷뿐이다. 높은 TPS 에서 JSON.parse 가 CPU 를 가장 많이 먹어 머리 글자로 먼저 거른다
-const WANTED = ['{"metric":"http_req_duration","type":"Point"', '{"metric":"http_req_failed","type":"Point"', '{"metric":"checks","type":"Point"', '{"metric":"vus","type":"Point"'];
+// 요청 하나에 k6 가 14줄을 내는데 쓰는 것은 넷뿐이다. 높은 TPS 에서 JSON.parse 가 CPU 를 가장 많이 먹어 머리 글자로 먼저 거른다.
+// qahub_tx_duration 은 생성기가 WebSocket · gRPC 한 번마다 내는 시간이다 — HTTP 와 같이 요청으로 센다 (§3.9 「게임 서버 부하」)
+const WANTED = ['{"metric":"http_req_duration","type":"Point"', '{"metric":"qahub_tx_duration","type":"Point"', '{"metric":"http_req_failed","type":"Point"', '{"metric":"checks","type":"Point"', '{"metric":"vus","type":"Point"'];
 
 interface Point {
   metric: string;
@@ -41,7 +42,7 @@ export class Seconds {
       tx = { name, requests: 0, errors: 0, hist: emptyHist() };
       bin.txs.set(name, tx);
     }
-    if (p.metric === 'http_req_duration') {
+    if (p.metric === 'http_req_duration' || p.metric === 'qahub_tx_duration') {
       tx.requests += 1;
       tx.hist[bucketOf(p.data.value)] += 1;
     } else if (p.metric === 'http_req_failed' ? p.data.value === 1 : p.data.value === 0) {

@@ -688,6 +688,10 @@ describe('등급 표', () => {
     ['POST /api/perf/agent/claim', 'admin'],
     ['POST /api/perf/agent/runs/:runId/metrics', 'admin'],
     ['POST /api/perf/agent/runs/:runId/done', 'admin'],
+    ['GET /api/perf/agent/dummy-clients/:id', 'admin'],
+    // 더미 클라이언트를 올리고 지우는 일은 admin 이다 (도메인/성능 §7)
+    ['POST /api/perf/dummy-clients', 'admin'],
+    ['DELETE /api/perf/dummy-clients/:id', 'admin'],
   ]);
   const 옛높이 = { viewer: 0, operator: 1, admin: 2 } as const;
   type 옛등급 = keyof typeof 옛높이;

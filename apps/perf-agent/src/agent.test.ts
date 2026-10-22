@@ -13,9 +13,10 @@ import type { Job } from './types.js';
 
 // 가짜 k6 — 받은 인자 · 환경을 파일에 남기고 지금 시각의 k6 JSON 줄을 낸다. HOLD=1 이면 끊길 때까지 떠 있는다
 const FAKE_K6 = `
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 const e = process.env;
-writeFileSync(e.FAKE_ARGV, JSON.stringify({ argv: process.argv.slice(2), env: { BASE_URL: e.BASE_URL, ACCOUNTS_CSV: e.ACCOUNTS_CSV, AGENT_TOKEN: e.AGENT_TOKEN, K6_BROWSER_ARGS: e.K6_BROWSER_ARGS } }));
+const proto = e.QAHUB_FILES ? readFileSync(e.QAHUB_FILES + '/tx0.proto', 'utf8') : undefined;
+writeFileSync(e.FAKE_ARGV, JSON.stringify({ argv: process.argv.slice(2), env: { BASE_URL: e.BASE_URL, ACCOUNTS_CSV: e.ACCOUNTS_CSV, AGENT_TOKEN: e.AGENT_TOKEN, K6_BROWSER_ARGS: e.K6_BROWSER_ARGS, PROTO: proto } }));
 const p = (metric, value, tags) => console.log(JSON.stringify({ metric, type: 'Point', data: { time: new Date().toISOString(), value, tags } }));
 p('vus', 5, {});
 for (const ms of [10, 20, 30]) { p('http_req_duration', ms, { tx: 'login' }); p('http_req_failed', 0, { tx: 'login' }); }
@@ -106,6 +107,15 @@ describe('Agent', () => {
     expect(r.env!.AGENT_TOKEN).toBeUndefined();
     expect(r.metrics[0]).toMatchObject({ sec: 0, vus: 5, txs: [{ name: 'login', requests: 3, errors: 1 }] });
     expect(r.done).toEqual({ status: 'OK' });
+  });
+
+  it('일의 files 를 QAHUB_FILES 폴더에 풀어 k6 에 넘기고, 이름이 폴더 밖을 가리키면 k6 를 켜지 않는다', async () => {
+    const r = await runOnce({ files: { 'tx0.proto': 'syntax = "proto3";' } });
+    expect(r.env!.PROTO).toBe('syntax = "proto3";');
+    expect(r.done).toEqual({ status: 'OK' });
+    const bad = await runOnce({ files: { '../x.proto': 'a' } });
+    expect(bad.argv).toBeNull();
+    expect(bad.done).toEqual({ status: 'ERROR', reason: '일의 파일 이름이 틀렸습니다' });
   });
 
   it('QA Hub 가 멈추라고 답하면 k6 를 끊고 OK 로 끝낸다', async () => {

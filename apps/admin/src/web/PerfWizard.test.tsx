@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { ApiError, type ServiceRow, type User } from './api.js';
-import { perfApi, type PerfAgent, type PerfScenario } from './perfApi.js';
+import { perfApi, type PerfAgent, type PerfScenario, type 더미클라이언트 } from './perfApi.js';
 import { PerfWizard } from './PerfWizard.js';
 import { scenarioApi } from './scenarioApi.js';
 
@@ -37,8 +37,9 @@ afterEach(() => {
   localStorage.clear();
 });
 
-async function 그리기(id: number | null = null, user: User = 사람()) {
+async function 그리기(id: number | null = null, user: User = 사람(), 더미: 더미클라이언트[] = []) {
   vi.spyOn(perfApi, 'agents').mockResolvedValue({ agents: [부하에이전트] });
+  vi.spyOn(perfApi, 'dummyClients').mockResolvedValue({ clients: 더미 });
   const 것 = render(<PerfWizard id={id} 띠서비스={user.services[0] ?? null} user={user} />);
   await screen.findByRole('button', { name: '다음' });
   return 것;

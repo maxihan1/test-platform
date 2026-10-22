@@ -50,8 +50,13 @@ export async function 실행세우기(b: 실행입력, 누가: 실행만든이):
   const sc = s.rows[0];
   if (sc === undefined) return 거절(404, 'NOT_FOUND');
   const serviceId = Number(sc.service_id);
-  // 더미 클라이언트 띄우기는 PERF-F1-10 에서 생긴다
-  if (sc.body.dummyClient !== undefined) return 거절(400, 'INVALID_REQUEST', '더미 클라이언트 시나리오는 아직 실행하지 못합니다');
+  // 더미 클라이언트는 동시 사용자 기준만 받고 부하 중 페이지 측정은 못 한다. 그 클라이언트가 이 애플리케이션 것인지 다시 본다 (§3.9 「게임 서버 부하」)
+  if (sc.body.dummyClient !== undefined) {
+    if (b.basis !== 'VUS') return 거절(400, 'INVALID_REQUEST', '더미 클라이언트는 동시 사용자 기준만 받습니다');
+    if (b.pageCheck) return 거절(400, 'INVALID_REQUEST', '더미 클라이언트는 부하 중 페이지 측정을 못 합니다');
+    const 있나 = await pool.query('SELECT 1 FROM perf_dummy_client WHERE id = $1 AND service_id = $2', [sc.body.dummyClient, serviceId]);
+    if (!있나.rowCount) return 거절(400, 'INVALID_REQUEST', '더미 클라이언트가 없습니다');
+  }
   if (b.pageCheck && !(await 웹인가(serviceId))) return 거절(400, 'INVALID_REQUEST', '부하 중 페이지 로딩 측정은 웹 애플리케이션만 켭니다');
 
   const 줄 = await 대상줄읽기(serviceId, b.env);

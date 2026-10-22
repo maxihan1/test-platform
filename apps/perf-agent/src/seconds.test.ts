@@ -37,6 +37,13 @@ describe('Seconds', () => {
     expect(s.take(1).txs[0]).toMatchObject({ name: 'login', requests: 1, errors: 0 });
   });
 
+  it('WebSocket · gRPC 한 번(qahub_tx_duration)도 요청으로 세고 실패한 check 를 에러로 센다', () => {
+    const s = new Seconds(START);
+    s.add(point('qahub_tx_duration', 100, 42, { tx: '입장' }));
+    s.add(point('checks', 100, 0, { tx: '입장' }));
+    expect(s.take(0).txs[0]).toMatchObject({ name: '입장', requests: 1, errors: 1 });
+  });
+
   it('줄이 없던 초도 빈 숫자로 꺼내고, 꼬리표 없는 요청은 세지 않는다', () => {
     const s = new Seconds(START);
     s.add(point('http_req_duration', 100, 12));

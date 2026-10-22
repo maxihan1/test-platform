@@ -221,11 +221,16 @@ export const 등급표: Record<string, 표값> = {
   'POST /api/perf/agents': 'admin',
   'PATCH /api/perf/agents/:id': 'admin',
   'DELETE /api/perf/agents/:id': 'admin',
+  // 더미 클라이언트 — 목록은 마법사가 고르므로 실행 read, 올리고 지우는 일은 admin (회사가 준 실행 파일이라 대상 밖을 두드려도 막지 못한다 — §3.9 「게임 서버 부하」)
+  'GET /api/perf/dummy-clients': 실행읽기,
+  'POST /api/perf/dummy-clients': 'admin',
+  'DELETE /api/perf/dummy-clients/:id': 'admin',
   // 에이전트가 부르는 통로 — 문이 pga_ 토큰으로만 판정하고 권한 판정 앞에서 돌려보낸다 (gate.ts 성능에이전트문)
   'POST /api/perf/agent/hello': 안따짐,
   'POST /api/perf/agent/claim': 안따짐,
   'POST /api/perf/agent/runs/:runId/metrics': 안따짐,
   'POST /api/perf/agent/runs/:runId/done': 안따짐,
+  'GET /api/perf/agent/dummy-clients/:id': 안따짐,
 };
 
 /**

@@ -18,6 +18,8 @@ export interface Job {
   segmentSequence?: string;
   env: Record<string, string>;
   accountsCsv?: string;
+  // gRPC 트랜잭션의 proto. 이름은 생성기가 짓는 tx<차례>.proto 다
+  files?: Record<string, string>;
   dummyClient?: { id: number; command: string; users: number };
   allowedHosts: string[];
   durationSec: number;

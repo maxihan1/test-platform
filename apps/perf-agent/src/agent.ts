@@ -1,14 +1,16 @@
 // 부하 발생 에이전트 본체 — QA Hub 에 연락하고 일을 받아 k6 를 돌리거나 /proc 를 읽어 1초마다 숫자를 보낸다 (도메인/성능 §5.4)
 
 import { spawn } from 'node:child_process';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { hostname } from 'node:os';
 import { join } from 'node:path';
 import { createInterface } from 'node:readline';
 import { setTimeout as sleep } from 'node:timers/promises';
 
 import { diff, readSnapshot } from './proc.js';
+import { runDummy } from './dummy.js';
 import { Seconds } from './seconds.js';
+import { hostProblem, pumpSeconds } from './sendLoop.js';
 import type { DoneBody, HelloResponse, Job, LoadSecond, MonitorSecond, PageSample } from './types.js';
 
 export interface AgentConfig {
@@ -18,6 +20,8 @@ export interface AgentConfig {
   maxVus?: number;
   // k6 실행 명령. 검사는 가짜 k6 를 node 로 띄운다
   k6: string[];
+  // zip 푸는 명령. 비우면 unzip (Dockerfile 이 넣는다)
+  unzip?: string[];
   procRoot: string;
   workDir: string;
   log: (msg: string) => void;
@@ -26,12 +30,11 @@ export interface AgentConfig {
 
 const HELLO_MS = 30_000;
 const CLAIM_MS = 2_000;
-// k6 JSON 출력은 1초마다 몰아서 쓴다. 2초를 기다려야 그 초의 줄이 다 와 있다 — QA Hub 가 합치기를 기다리는 2초와 같다(§5.4)
-const LAG_SEC = 2;
 // 스크립트가 페이지 한 번 잴 때마다 console.log 로 내는 줄의 머리.
 // 표본 하나가 리소스 100개면 30KB 쯤이라 1초 숫자 하나에 10개만 싣는다 — 서버 본문 상한(1MiB) 안에 든다
 const PAGE_PREFIX = 'QAHUB_PAGE ';
 const PAGES_PER_SEC = 10;
+const FILE_NAME = /^[A-Za-z0-9_-][A-Za-z0-9_.-]{0,99}$/;
 
 class HttpError extends Error {
   constructor(readonly status: number, path: string) {
@@ -89,21 +92,15 @@ export class Agent {
 
   private runJob(job: Job): Promise<DoneBody> {
     if (job.kind === 'MONITOR') return this.runMonitor(job);
-    // 페이지 측정은 부하와 같은 길(k6)로 돈다. 더미 클라이언트는 PERF-F1-10 에서 더한다
-    if (job.dummyClient || !job.script) return Promise.resolve({ status: 'ERROR', reason: '이 에이전트는 아직 더미 클라이언트를 하지 못합니다' });
+    if (job.dummyClient) return runDummy(this.dummyCtx(), job);
+    // 페이지 측정은 부하와 같은 길(k6)로 돈다
+    if (!job.script) return Promise.resolve({ status: 'ERROR', reason: '스크립트가 없는 일입니다' });
     return this.runLoad(job);
   }
 
   private async runLoad(job: Job): Promise<DoneBody> {
-    // 주소가 없으면 검사를 건너뛰지 않고 막는다 — 빈 env 로 아무 호스트에나 부하를 걸지 않게
-    const host = (() => {
-      try {
-        return new URL(job.env.BASE_URL ?? '').host;
-      } catch {
-        return undefined;
-      }
-    })();
-    if (!host || !job.allowedHosts.includes(host)) return { status: 'ERROR', reason: `허용 호스트 밖의 대상 서버입니다 — ${host ?? '주소 없음'}` };
+    const 막힘 = hostProblem(job);
+    if (막힘 !== null) return { status: 'ERROR', reason: 막힘 };
 
     const dir = await mkdtemp(join(this.cfg.workDir, `run-${job.runId}-`));
     try {
@@ -115,6 +112,13 @@ export class Agent {
       if (job.accountsCsv) {
         env.ACCOUNTS_CSV = join(dir, 'accounts.csv');
         await writeFile(env.ACCOUNTS_CSV, job.accountsCsv, { mode: 0o600 });
+      }
+      if (job.files) {
+        // 이름에 / · .. 가 들면 폴더 밖에 쓴다
+        if (Object.keys(job.files).some((n) => !FILE_NAME.test(n))) return { status: 'ERROR', reason: '일의 파일 이름이 틀렸습니다' };
+        env.QAHUB_FILES = join(dir, 'files');
+        await mkdir(env.QAHUB_FILES);
+        for (const [name, text] of Object.entries(job.files)) await writeFile(join(env.QAHUB_FILES, name), text);
       }
       // 시스템 꼬리표를 비워 줄을 줄인다 — 세는 데 쓰는 꼬리표는 생성기가 다는 tx 하나다.
       // json=/dev/stdout 은 안 된다 — node 가 자식 stdout 을 소켓으로 이어 k6 가 그 경로를 열지 못한다(실측 ENXIO). json=- 는 k6 가 자기 stdout 에 쓴다
@@ -164,12 +168,7 @@ export class Agent {
           resolve(null);
         });
       });
-      let finished = false;
-      void exited.then(() => {
-        finished = true;
-      });
 
-      let next = 0;
       let stopping = false;
       // 보내지 못하면 false. 그 틱의 나머지는 다음 틱으로 미룬다 — QA Hub 가 느릴 때 초마다 10초씩 기다리며 밀리지 않게
       const send = async (s: LoadSecond): Promise<boolean> => {
@@ -184,17 +183,8 @@ export class Agent {
         }
         return res !== null;
       };
-      const flush = async (upTo: number) => {
-        for (const late of seconds.leftovers().filter((s) => s < next)) if (!(await send(seconds.take(late)))) return;
-        for (; next <= upTo; next += 1) if (!(await send(seconds.take(next)))) return void (next += 1);
-      };
-      while (!finished) {
-        await Promise.race([sleep(1000), exited]);
-        await flush(Math.floor((Date.now() - startMs) / 1000) - LAG_SEC);
-      }
+      let next = await pumpSeconds(startMs, seconds, exited, send);
       this.cfg.signal?.removeEventListener('abort', onAbort);
-      // 끝난 뒤에는 남은 초를 다 보낸다
-      await flush(Math.max(next - 1, ...seconds.leftovers()));
       // 마지막 틱 뒤에 온 표본은 빈 초에 실어 보낸다. 보내기가 실패하면 그만둔다
       while (pageBuf.length && (await send(seconds.take(next)))) next += 1;
 
@@ -230,6 +220,15 @@ export class Agent {
       this.cfg.log(`1초 숫자를 보내지 못했습니다 — ${String(e)}`);
       return null;
     }
+  }
+
+  private dummyCtx() {
+    return {
+      cfg: this.cfg,
+      localStart: (job: Job) => this.localStart(job),
+      pause: (ms: number) => this.pause(ms),
+      send: (runId: number, body: LoadSecond) => this.sendMetrics(runId, body),
+    };
   }
 
   private localStart(job: Job): number {

@@ -10,6 +10,7 @@ import type { ScenarioBody, Transaction } from './types.js';
 
 export const 트랜잭션 = z.object({
   name: z.string().trim().min(1).max(100),
+  type: z.enum(['HTTP', 'WS', 'GRPC']).optional(),
   method: z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']),
   url: z.string().min(1).max(2000),
   headers: z.record(z.string().max(200), z.string().max(4000)).optional(),
@@ -22,7 +23,12 @@ export const 트랜잭션 = z.object({
   })).max(20).optional(),
   check: z.object({ status: z.array(z.number().int().min(100).max(599)).max(20).optional(), contains: z.string().max(1000).optional() }).optional(),
   thinkTimeSec: z.number().min(0).max(600).optional(),
-});
+  messages: z.array(z.string().max(100_000)).max(50).optional(),
+  grpc: z.object({ proto: z.string().min(1).max(200_000), method: z.string().regex(/^[A-Za-z0-9_]+(\.[A-Za-z0-9_]+)+\/[A-Za-z0-9_]+$/) }).optional(),
+}).refine((t) => (t.type === 'GRPC') === (t.grpc !== undefined), 'gRPC 트랜잭션만 proto · 메서드를 듭니다')
+  .refine((t) => t.type !== 'GRPC' || /^(\/|https?:\/\/)/i.test(t.url), 'gRPC 주소는 경로나 http(s):// 주소입니다')
+  .refine((t) => t.type === 'WS' || !/^wss?:\/\//i.test(t.url), 'ws:// 주소는 WebSocket 트랜잭션만 씁니다')
+  .refine((t) => t.type !== 'WS' || !/^https?:\/\//i.test(t.url), 'WebSocket 주소는 경로나 ws(s):// 주소입니다');
 export const 단계 = z.object({ durationSec: z.number().int().min(1).max(86_400), target: z.number().int().min(0).max(1_000_000) });
 export const 목표 = z.object({
   metric: z.enum(['P95', 'ERROR_RATE', 'TPS']),
@@ -63,7 +69,7 @@ export function 호스트(url: string): string | null {
 /** 절대 주소의 호스트가 허용 목록 밖인 첫 트랜잭션 이름. 상대 주소는 대상 서버 아래라 지나간다 (§3.9 「허용 호스트」) */
 export function 허용밖(txs: readonly Transaction[], 허용: ReadonlySet<string>): string | null {
   for (const t of txs) {
-    if (!/^https?:\/\//i.test(t.url)) continue;
+    if (!/^(https?|wss?):\/\//i.test(t.url)) continue;
     const host = 호스트(t.url);
     // 호스트 자리에 변수를 쓰면 실행 때 어디로 갈지 저장 때 모른다
     if (host === null || host.includes('$') || !허용.has(host)) return t.name;

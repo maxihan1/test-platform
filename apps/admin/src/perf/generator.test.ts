@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { generateScript, segments, splitRows, totalDuration } from './generator.js';
+import { generateScript, protoFiles, segments, splitRows, totalDuration } from './generator.js';
 import type { Transaction } from './types.js';
 
 const 로그인: Transaction = {
@@ -60,6 +60,24 @@ describe('generateScript', () => {
     expect(s).toContain('const ALLOWED = ["shop.test","api.shop.test:8443"]');
     expect(s).toContain('tags: { tx: t.name }');
     expect(s).toContain('http.expectedStatuses(...t.check.status)');
+  });
+
+  it('HTTP 만 있으면 WebSocket · gRPC 모듈을 싣지 않는다', () => {
+    const s = generateScript({ transactions: [로그인], load: { basis: 'VUS', stages: [{ durationSec: 10, target: 1 }] }, smoke: false, allowedHosts: ['shop.test'], maxVus: 1 });
+    expect(s).not.toContain('k6/websockets');
+    expect(s).not.toContain('k6/net/grpc');
+  });
+
+  it('WebSocket · gRPC 트랜잭션은 그 모듈을 싣고 proto 를 tx<차례>.proto 로 읽는다', () => {
+    const 입장: Transaction = { name: '입장', type: 'WS', method: 'GET', url: '/ws', messages: ['{"op":"join","token":"${token}"}'], check: { contains: 'joined' } };
+    const 사냥: Transaction = { name: '사냥', type: 'GRPC', method: 'GET', url: 'http://game.test:50051', body: '{"monster":"Imp"}', grpc: { proto: 'syntax = "proto3";', method: 'game.Hunt/Kill' } };
+    const s = generateScript({ transactions: [로그인, 입장, 사냥], load: { basis: 'VUS', stages: [{ durationSec: 10, target: 1 }] }, smoke: false, allowedHosts: ['shop.test', 'game.test:50051'], maxVus: 1 });
+    expect(s).toContain("import { WebSocket } from 'k6/websockets';");
+    expect(s).toContain("import grpc from 'k6/net/grpc';");
+    expect(s).toContain("new Trend('qahub_tx_duration', true)");
+    expect(s).toContain('setTimeout(() => finish(false), 10000)');
+    문법검사(s);
+    expect(protoFiles([로그인, 입장, 사냥])).toEqual({ 'tx2.proto': 'syntax = "proto3";' });
   });
 
   it('실행 시간은 구간 시간의 합이다', () => {
