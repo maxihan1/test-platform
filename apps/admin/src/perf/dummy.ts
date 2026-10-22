@@ -49,10 +49,11 @@ function 파일로(body: Readable, 막기: Transform, 자리: string): Promise<v
     출력.on('finish', resolve);
     for (const x of [body, 막기, 출력]) x.on('error', reject);
     body.pipe(막기).pipe(출력);
-  }).catch((e: unknown) => {
+  }).catch(async (e: unknown) => {
     body.unpipe();
     body.resume();
-    출력.destroy();
+    // 파일을 여는 중에 부수면 닫힌 뒤에 파일이 생긴다 — 닫힐 때까지 기다려야 뒤의 rm 이 그 파일을 지운다
+    if (!출력.closed) await new Promise<void>((r) => 출력.once('close', () => r()).destroy());
     throw e;
   });
 }
