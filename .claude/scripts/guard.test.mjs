@@ -206,6 +206,9 @@ test('훑기 보조 — open 뒤 출력 돌리기는 주소가 아니다 · 돌�
     'npx playwright cli -s=a open https://x.test/cart 2>&1',
     'npx playwright cli -s=a open 2>/dev/null https://x.test/cart',
     'npx playwright cli -s=a open >/dev/null https://x.test/cart',
+    'npx playwright cli -s=a open 2>&1 https://x.test/cart',
+    'npx playwright cli -s=a open >&2 https://x.test/cart',
+    "npx playwright cli -s=a open '>' https://x.test/cart",
   ]) {
     assert.match(scanVerdict(cmd).거절 ?? '', /주소 없이/, `거절했어야 한다: ${cmd}`);
   }
