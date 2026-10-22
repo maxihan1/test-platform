@@ -122,6 +122,10 @@ export function scanVerdict(command) {
       const s = /^(?:-s|--session)(?:=(.*))?$/.exec(낱);
       if (s) 세션 = (s[1] ?? 낱들[++i] ?? '').replace(/^["']|["']$/g, '');
       else if (값옵션.test(낱)) i++;
+      // 출력 돌리기는 주소가 아니다 — 주소로 읽어 open 을 막아 훑기 보조가 21번 헛돌았다 (PRD-F14-01).
+      // `2>&1` 은 위에서 `&` 로 갈려 `2>` 만 남는다. 떨어진 돌릴 곳(`> /dev/null`)은 같이 건너뛴다 — 브라우저가 여는 주소가 아니라 파일이다
+      else if (/^\d*(?:>>?|<)$/.test(낱)) i++;
+      else if (/^\d*(?:>>?|<)/.test(낱)) continue;
       else if (낱.startsWith('-') || 낱 === '') continue;
       else if (명령 === null) 명령 = 낱;
       else 남은.push(낱);
