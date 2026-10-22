@@ -96,6 +96,10 @@ describe('대상환경 — 계정은 자식 환경 변수로만 넘긴다', () =
   it('돌려 보기 명령과 Playwright 가 읽는 PLATFORM_BASE_URL 에도 대상 서버 주소를 준다', () => {
     expect(대상환경(정상).PLATFORM_BASE_URL).toBe('https://qa.example.com');
   });
+
+  it('대상 서버 주소가 없으면 PLATFORM_BASE_URL 을 빈 값으로 싣지 않는다 — 빈 값은 설정된 것처럼 보여 같은 「Invalid URL」 을 가린다', () => {
+    expect(Object.keys(대상환경({ ...정상, baseUrl: null }))).not.toContain('PLATFORM_BASE_URL');
+  });
 });
 
 describe('차이정리 — 자식이 쓴 차이 파일을 좁혀 받는다', () => {

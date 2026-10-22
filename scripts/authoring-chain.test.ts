@@ -427,6 +427,10 @@ describe('자식 환경 — 탐색 브라우저', () => {
   it('탐색 도구(playwright-cli)의 기본 브라우저는 chromium 이다', () => {
     expect(자식환경({ PATH: '/usr/bin' }, '/빈').PLAYWRIGHT_MCP_BROWSER).toBe('chromium');
   });
+
+  it('부모가 정해 둔 브라우저는 덮지 않는다', () => {
+    expect(자식환경({ PLAYWRIGHT_MCP_BROWSER: 'msedge' }, '/빈').PLAYWRIGHT_MCP_BROWSER).toBe('msedge');
+  });
 });
 
 describe('진짜 main — 로컬 참조가 아니라 GitHub 에 묻는다', () => {

@@ -36,8 +36,9 @@ export function 자식환경(
     GIT_TERMINAL_PROMPT: '0',
     GIT_ASKPASS: '/usr/bin/false',
     SSH_ASKPASS: '/usr/bin/false',
-    // 탐색 도구(playwright-cli)는 기본이 Google Chrome 인데 작성 컨테이너엔 Chromium 뿐이다 — 데스크톱 케이스와 같은 브라우저로 연다 (PRD-F14-01)
-    PLAYWRIGHT_MCP_BROWSER: 'chromium',
+    // 탐색 도구(playwright-cli)는 기본이 Google Chrome 인데 작성 컨테이너엔 Chromium 뿐이다 — 데스크톱 케이스와 같은 브라우저로 연다.
+    // 운영자가 정해 둔 값이 있으면 그것을 쓴다 (PRD-F14-01)
+    PLAYWRIGHT_MCP_BROWSER: 나머지.PLAYWRIGHT_MCP_BROWSER ?? 'chromium',
     ...(피그마토큰 === undefined ? {} : { FIGMA_TOKEN: 피그마토큰 }),
   };
 }

@@ -69,7 +69,7 @@
 > - 테스트 폴더: `tests/<폴더>` · 본보기 `tests/demo/DEMO-011.spec.ts`
 > - 대상 서버: 환경 변수 `<이름들 — 값은 적지 않는다>`
 > - 먼저 Read 로 연다: `.claude/skills/tpx-cases/references/4-selector.md` · `5-writing.md` · `two-kinds.md` · `test-design.md` · `wording.md` · `korean-ai-tells.md` · `6-gates.md` 의 「관문 4」 절(기본 계정 · 입력값 두 번)
-> - 돌려 보기 조건 — 케이스 하나의 시간 한도는 Playwright 기본값(30초)이다. 3회는 화면이 부르는 `fetch` · `xhr` 응답만 늦춘다 — 케이스가 건 모킹 · `browser.newContext()` 로 따로 만든 창 묶음 · `request` 로 보내는 API 요청은 안 늦춘다. 형식 검사 규칙(K 번호)은 명세 `docs/spec/공통/2-명세선언.md` §4 「케이스 파일 규칙」 표가 정본이다. 돌려 보기 · 빠른 검사 명령과 형식 규칙 코드(`scripts/authoring-*` · `apps/admin/src/catalog/`)는 열지 않는다 — 이 줄과 명령이 찍는 줄로 충분하다
+> - 돌려 보기 조건 — PC · 휴대폰 케이스 하나의 시간 한도는 Playwright 기본값(30초)이다(Android 앱 케이스는 `playwright.config.ts` 의 `android` 값). 3회는 화면이 부르는 `fetch` · `xhr` 응답만 늦춘다 — 케이스가 건 모킹 · `browser.newContext()` 로 따로 만든 창 묶음 · `request` 로 보내는 API 요청은 안 늦춘다. 형식 검사 규칙(K 번호)은 명세 `docs/spec/공통/2-명세선언.md` §4 「케이스 파일 규칙」 표가 정본이다. 돌려 보기 · 빠른 검사 명령과 형식 규칙 코드(`scripts/authoring-*` · `apps/admin/src/catalog/`)는 열지 않는다 — 이 줄과 명령이 찍는 줄로 충분하다
 > - 명령은 작업 트리에서 그대로 부른다 — 다른 폴더로 `cd` 한 채 `npx playwright …` 를 부르면 저장소 것이 아닌 새 Playwright 를 내려받는다
 > - 맡은 줄의 `축` 칸이 `UI` 면 UI Test, `정상` · `예외` · `경계` 면 Functional Test 다 (`two-kinds.md` R17)
 > - 역방향이면: 맡은 줄 가운데 미확정 줄은 미확정 케이스로 쓴다(차이 번호와 `확인 필요` 항목 번호는 줄 출처에 있다 — 케이스 파일에 꼬리표는 안 단다). 화면 기록 `<화면 기록 폴더>/*.md` 를 다시 읽고 화면을 다시 훑지 않는다. 로그인 상태는 `state-load <로그인 상태 파일>`

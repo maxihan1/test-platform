@@ -63,8 +63,9 @@ export function 대상환경(t: 대상): Record<string, string> {
   return {
     TARGET_ENV: t.env,
     TARGET_BASE_URL: t.baseUrl ?? '',
-    // 돌려 보기 명령 · Playwright 설정 · kit 계정 채우기는 이 이름만 읽는다 — 없으면 보조가 명령마다 손으로 붙이다 빠뜨려 상대 주소가 「Invalid URL」 (PRD-F14-01)
-    PLATFORM_BASE_URL: t.baseUrl ?? '',
+    // 돌려 보기 명령 · Playwright 설정 · kit 계정 채우기는 이 이름만 읽는다 — 없으면 보조가 명령마다 손으로 붙이다 빠뜨려 상대 주소가 「Invalid URL」 (PRD-F14-01).
+    // 주소가 없으면 빈 값을 싣지 않는다 — 설정된 것처럼 보여 같은 실패를 가린다
+    ...(t.baseUrl ? { PLATFORM_BASE_URL: t.baseUrl } : {}),
     ...(t.startUrl ? { TARGET_START_URL: t.startUrl } : {}),
     TARGET_LOGIN_ID: t.loginId ?? '',
     TARGET_LOGIN_PASSWORD: t.loginPassword ?? '',
@@ -94,7 +95,7 @@ export function 역방향절(입력: { 화면만: boolean; 산출물폴더: stri
     '- PLATFORM_BASE_URL 도 대상 서버 주소로 이미 있다 — 돌려 보기 명령과 playwright 는 앞에 붙이지 말고 그대로 불러라. 보조 프롬프트의 대상 서버 줄에도 이 이름을 적어라.',
     '- 계정 값을 글·명령 인자·출력에 펼치지 마라. 스크립트 안에서 process.env 로 읽어라.',
     // 역할 계정 — 자식이 PLATFORM_PARAMS 를 손으로 만들지 않게 kit 이 채운다 (§3.6 「★ 역할별 계정」)
-    "- 역할 계정(관리자 등)은 환경 변수 PLATFORM_ACCOUNTS(JSON)에 있고 playwright 를 PLATFORM_BASE_URL 로 돌리면 kit 이 비밀값 칸을 채운다. 케이스는 `.meta({ secret: true, account: '<역할>' })` 로 역할을 단다. 필요한 역할 계정이 없으면 보류 케이스를 쓰지 말고 요구사항 표 「제외」에 `계정 미등록`(사유 칸 = 역할 이름)으로 적는다. 값을 출력 · 인자 · 파일에 쓰지 않는다.",
+    "- 역할 계정(관리자 등)은 환경 변수 PLATFORM_ACCOUNTS(JSON)에 있고 playwright 를 그대로 돌리면 kit 이 PLATFORM_BASE_URL 과 출처가 같은 줄의 계정으로 비밀값 칸을 채운다. 케이스는 `.meta({ secret: true, account: '<역할>' })` 로 역할을 단다. 필요한 역할 계정이 없으면 보류 케이스를 쓰지 말고 요구사항 표 「제외」에 `계정 미등록`(사유 칸 = 역할 이름)으로 적는다. 값을 출력 · 인자 · 파일에 쓰지 않는다.",
     `- 산출물 폴더는 \`${입력.산출물폴더}\` 다. 차이 목록은 diffs.json 으로 거기에 써라.`,
     // 산출물 폴더 옆이다 — 그 폴더의 파일은 에이전트가 읽어 올리므로 화면 기록을 섞지 않는다
     `- 본 화면은 \`${join(dirname(입력.산출물폴더), 'screens')}\` 에 화면마다 파일로 적고 대화에는 한 줄만 남겨라.`,
