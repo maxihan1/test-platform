@@ -13,8 +13,8 @@ COPY package.json ./
 RUN npm install --no-save --no-audit --no-fund tsx@4.23.13
 COPY src ./src
 
-# 페이지 측정(k6 browser)이 Chromium 을 쓴다. 컨테이너는 root 로 돌아 sandbox 를 끄고, /dev/shm 이 작아서 디스크를 쓰게 한다
-RUN apt-get update && apt-get install -y --no-install-recommends chromium fonts-noto-cjk && rm -rf /var/lib/apt/lists/*
+# unzip 은 더미 클라이언트 zip 을 푼다. 페이지 측정(k6 browser)이 Chromium 을 쓴다. 컨테이너는 root 로 돌아 sandbox 를 끄고, /dev/shm 이 작아서 디스크를 쓰게 한다
+RUN apt-get update && apt-get install -y --no-install-recommends chromium fonts-noto-cjk unzip && rm -rf /var/lib/apt/lists/*
 ENV K6_BROWSER_EXECUTABLE_PATH=/usr/bin/chromium K6_BROWSER_ARGS=no-sandbox,disable-dev-shm-usage
 
 # 종료 신호는 compose 의 init 이 넘긴다 (공통/6 §9)
