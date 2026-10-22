@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { 글자자르기, 사용량보고, 흐름풀기, 흘릴줄 } from './authoring-usage.js';
+import { 글자자르기, 사용량보고, 흐름더하기, 흐름풀기, 흘릴줄 } from './authoring-usage.js';
 
 const 샘플 = readFileSync(new URL('./fixtures/stream-json-sample.jsonl', import.meta.url), 'utf8');
 const 결과빼고 = 샘플
@@ -170,6 +170,32 @@ describe('글자자르기 — UTF-16 길이 상한 안에서 글자 단위로', 
   });
 });
 
+describe('흐름더하기 — 크레딧이 도중에 떨어져 구독으로 이어 띄운 요청', () => {
+  const 흐름 = (글: string, 출력: number, costUsd: number | null, partial = false) => ({
+    글,
+    사용량: { input: 1, output: 출력, cacheRead: 100, cacheWrite: 10, partial, costUsd, model: 'claude-opus-5-5' },
+  });
+
+  it('두 자식의 토큰과 비용을 더하고 글은 뒤 자식 것이다', () => {
+    expect(흐름더하기(흐름('Credit balance is too low', 500, 1.5), 흐름('끝', 30, 0.5))).toEqual({
+      글: '끝',
+      사용량: { input: 2, output: 530, cacheRead: 200, cacheWrite: 20, partial: false, costUsd: 2, model: 'claude-opus-5-5' },
+    });
+  });
+
+  it('모델은 출력이 많은 쪽 것이다', () => {
+    const 앞 = { ...흐름('Credit balance is too low', 500, 1), 사용량: { ...흐름('', 500, 1).사용량, model: 'claude-opus-5-5' } };
+    const 뒤 = { ...흐름('끝', 30, 1), 사용량: { ...흐름('', 30, 1).사용량, model: 'claude-sonnet-5-5' } };
+    expect(흐름더하기(앞, 뒤).사용량.model).toBe('claude-opus-5-5');
+  });
+
+  it('한쪽이 끊겼으면 하한값이고 비용은 비운다', () => {
+    const 합 = 흐름더하기(흐름('Credit balance is too low', 500, 1.5), 흐름('', 30, null, true)).사용량;
+    expect(합.partial).toBe(true);
+    expect(합.costUsd).toBeNull();
+  });
+});
+
 describe('사용량보고 — 자식이 끝나면 서버에 한 번 알린다', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -190,6 +216,18 @@ describe('사용량보고 — 자식이 끝나면 서버에 한 번 알린다', 
     expect(건것).toHaveLength(1);
     expect(건것[0]!.url).toBe('http://admin:3000/api/authoring/requests/5871/usage?service=MKT');
     expect(건것[0]!.body).toMatchObject({ input: 952, output: 475, partial: false, costUsd: 0.0253434 });
+  });
+
+  it('앞 자식 출력이 있으면 둘을 더해 한 번만 보낸다', async () => {
+    const 건것: unknown[] = [];
+    vi.stubGlobal('fetch', async (_url: string, init: RequestInit) => {
+      건것.push(JSON.parse(String(init.body)));
+      return 답(200);
+    });
+    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    await 사용량보고({ 주소기지: 'http://a', 토큰: 't' }, 'MKT', 1, 샘플, 샘플);
+    expect(건것).toHaveLength(1);
+    expect(건것[0]).toMatchObject({ input: 952 * 2, output: 475 * 2, partial: false });
   });
 
   it('끊긴 흐름은 비용·모델 칸을 빼고 partial 로 보낸다', async () => {
@@ -218,13 +256,14 @@ describe('사용량보고 — 자식이 끝나면 서버에 한 번 알린다', 
 });
 
 describe('보내는 순서 — 어떤 끝내기보다 먼저 (작성 §7 「토큰 사용량」 · 계획 검토 BLOCKER)', () => {
-  it('authoring-run 에서 사용량보고가 자식을 띄운 뒤 첫 끝내기·자식거두기보다 앞에 있다', () => {
+  it('authoring-run 에서 사용량보고가 자식을 띄운 뒤 첫 끝내기·검사 전 자식거두기보다 앞에 있다', () => {
     const 글 = readFileSync(new URL('./authoring-run.ts', import.meta.url), 'utf8');
     const 띄움 = 글.indexOf('클로드인자(');
     const 보고 = 글.indexOf('사용량보고(', 띄움);
     expect(띄움).toBeGreaterThan(0);
     expect(보고).toBeGreaterThan(띄움);
     expect(보고).toBeLessThan(글.indexOf('손.끝내기(', 띄움));
-    expect(보고).toBeLessThan(글.indexOf('자식거두기(', 띄움));
+    // 크레딧이 도중에 떨어져 이어 띄우기 전의 거두기는 끝내기로 안 이어진다 — 못 거두면 이어 띄우지 않을 뿐이다
+    expect(보고).toBeLessThan(글.indexOf('if (!(await 자식거두기(자식))) return void', 띄움));
   });
 });

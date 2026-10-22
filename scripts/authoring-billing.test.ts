@@ -66,25 +66,33 @@ describe('크레딧키검사 — Console API 키만 받는다', () => {
 });
 
 describe('크레딧먼저 — 크레딧으로 먼저, 처음부터 없으면 구독으로 한 번 더', () => {
-  const 띄우기 = (결과들: 돌린결과[]) => {
+  const 띄우기 = (결과들: 돌린결과[], { 멈춤 = false, 거둠 = true } = {}) => {
     const 받은키: (string | undefined)[] = [];
     const 띄운다 = async (키: string | undefined) => {
       받은키.push(키);
-      return 결과들[받은키.length - 1];
+      return 결과들[받은키.length - 1]!;
     };
-    return { 받은키, 띄운다 };
+    const 이어띄운다 = {
+      멈추라했다: () => 멈춤,
+      거두기: async () => 거둠,
+      띄운다: async () => {
+        받은키.push('이어');
+        return 결과들[받은키.length - 1]!;
+      },
+    };
+    return { 받은키, 띄운다, 이어띄운다 };
   };
 
   it('키가 없으면 구독으로 한 번만', async () => {
     const f = 띄우기([실행(결과줄('끝', 10), 0)]);
-    const r = await 크레딧먼저(undefined, f.띄운다, () => {});
+    const r = await 크레딧먼저(undefined, f.띄운다, () => {}, f.이어띄운다);
     expect(f.받은키).toEqual([undefined]);
     expect(r.크레딧으로).toBe(false);
   });
 
   it('크레딧으로 끝까지 돌면 그대로 — 다시 띄우지 않는다', async () => {
     const f = 띄우기([실행(결과줄('끝', 10), 0)]);
-    const r = await 크레딧먼저('sk-ant-api03-k', f.띄운다, () => {});
+    const r = await 크레딧먼저('sk-ant-api03-k', f.띄운다, () => {}, f.이어띄운다);
     expect(f.받은키).toEqual(['sk-ant-api03-k']);
     expect(r.크레딧으로).toBe(true);
   });
@@ -93,15 +101,58 @@ describe('크레딧먼저 — 크레딧으로 먼저, 처음부터 없으면 구
     let 알림 = 0;
     const 둘째 = 실행(결과줄('끝', 10), 0);
     const f = 띄우기([실행(결과줄('Credit balance is too low', 0)), 둘째]);
-    const r = await 크레딧먼저('sk-ant-api03-k', f.띄운다, () => { 알림 += 1; });
+    const r = await 크레딧먼저('sk-ant-api03-k', f.띄운다, () => { 알림 += 1; }, f.이어띄운다);
     expect(f.받은키).toEqual(['sk-ant-api03-k', undefined]);
-    expect(r).toEqual({ 돌린것: 둘째, 크레딧으로: false });
+    expect(r).toEqual({ 돌린것: 둘째, 크레딧으로: false, 앞낸것: null });
     expect(알림).toBe(1);
   });
 
-  it('일하다 도중에 떨어졌으면 다시 띄우지 않는다 — 처음부터 다시 쓰면 만든 것이 겹친다. 한도 멈춤 뒤 이어하기가 잇는다', async () => {
-    const f = 띄우기([실행(결과줄('Credit balance is too low', 500))]);
-    const r = await 크레딧먼저('sk-ant-api03-k', f.띄운다, () => {});
+  it('일하다 도중에 떨어지면 같은 작업 폴더로 구독 자식을 이어 띄운다 — 멈추지 않는다. 앞 출력은 토큰을 더하라고 돌려준다', async () => {
+    let 알림 = '';
+    const 앞 = 실행(결과줄('Credit balance is too low', 500));
+    const 뒤 = 실행(결과줄('끝', 10), 0);
+    const f = 띄우기([앞, 뒤]);
+    const r = await 크레딧먼저('sk-ant-api03-k', f.띄운다, (글) => { 알림 = 글; }, f.이어띄운다);
+    expect(f.받은키).toEqual(['sk-ant-api03-k', '이어']);
+    expect(r).toEqual({ 돌린것: 뒤, 크레딧으로: false, 앞낸것: 앞.낸것 });
+    expect(알림).toMatch(/도중에 떨어졌다\(Credit balance is too low\) — 같은 작업 폴더에서 구독으로 이어 띄운다/);
+  });
+
+  it('앞 자식을 못 거뒀으면 이어 띄우지 않고 크레딧 결과 그대로 — 에이전트가 멈추는 중이다', async () => {
+    const 앞 = 실행(결과줄('Credit balance is too low', 500));
+    const f = 띄우기([앞], { 거둠: false });
+    const r = await 크레딧먼저('sk-ant-api03-k', f.띄운다, () => {}, f.이어띄운다);
+    expect(f.받은키).toEqual(['sk-ant-api03-k']);
+    expect(r).toEqual({ 돌린것: 앞, 크레딧으로: true, 앞낸것: null });
+  });
+
+  it('구독 자식이 아예 안 떴으면 크레딧 결과 그대로 — 실패로 끝나 폴더가 지워지지 않게 한도 멈춤을 남긴다', async () => {
+    const 앞 = 실행(결과줄('Credit balance is too low', 500));
+    const f = 띄우기([앞, 실행('', null)]);
+    const r = await 크레딧먼저('sk-ant-api03-k', f.띄운다, () => {}, f.이어띄운다);
+    expect(f.받은키).toEqual(['sk-ant-api03-k', '이어']);
+    expect(r).toEqual({ 돌린것: 앞, 크레딧으로: true, 앞낸것: null });
+  });
+
+  it('앞 자식이 끝난 뒤 사람이 멈췄으면 이어 띄우지 않고 사람 멈춤으로 돌려준다', async () => {
+    const 앞 = 실행(결과줄('Credit balance is too low', 500));
+    const f = 띄우기([앞], { 멈춤: true });
+    const r = await 크레딧먼저('sk-ant-api03-k', f.띄운다, () => {}, f.이어띄운다);
+    expect(f.받은키).toEqual(['sk-ant-api03-k']);
+    expect(r.돌린것.멈춤으로죽음).toBe(true);
+    expect(r.앞낸것).toBeNull();
+  });
+
+  it('종료 코드 0 이어도 끝 글이 크레딧 바닥이면 이어 띄운다', async () => {
+    const 뒤 = 실행(결과줄('끝', 10), 0);
+    const f = 띄우기([실행(결과줄('Credit balance is too low', 500), 0), 뒤]);
+    const r = await 크레딧먼저('sk-ant-api03-k', f.띄운다, () => {}, f.이어띄운다);
+    expect(r.돌린것).toBe(뒤);
+  });
+
+  it('일하다 크레딧이 아닌 까닭으로 끊겼으면 이어 띄우지 않는다', async () => {
+    const f = 띄우기([실행(결과줄('API Error: 500 overloaded', 500))]);
+    const r = await 크레딧먼저('sk-ant-api03-k', f.띄운다, () => {}, f.이어띄운다);
     expect(f.받은키).toEqual(['sk-ant-api03-k']);
     expect(r.크레딧으로).toBe(true);
   });
@@ -109,7 +160,7 @@ describe('크레딧먼저 — 크레딧으로 먼저, 처음부터 없으면 구
   it('시작하자마자(출력 0) 다른 까닭으로 실패해도 구독으로 한 번 더 — 폐기된 키 · 새 조직 속도 제한으로 작성이 막히지 않고, 구독은 돈이 안 나간다', async () => {
     let 알림 = '';
     const f = 띄우기([실행(결과줄('API Error: 429 rate_limit_error', 0)), 실행(결과줄('끝', 10), 0)]);
-    const r = await 크레딧먼저('sk-ant-api03-k', f.띄운다, (까닭) => { 알림 = 까닭; });
+    const r = await 크레딧먼저('sk-ant-api03-k', f.띄운다, (까닭) => { 알림 = 까닭; }, f.이어띄운다);
     expect(f.받은키).toEqual(['sk-ant-api03-k', undefined]);
     expect(r.크레딧으로).toBe(false);
     expect(알림).toMatch(/429/);
@@ -117,20 +168,20 @@ describe('크레딧먼저 — 크레딧으로 먼저, 처음부터 없으면 구
 
   it('출력이 0 이어도 성공으로 끝났으면 다시 띄우지 않는다', async () => {
     const f = 띄우기([실행(결과줄('할 것이 없다', 0), 0)]);
-    await 크레딧먼저('sk-ant-api03-k', f.띄운다, () => {});
+    await 크레딧먼저('sk-ant-api03-k', f.띄운다, () => {}, f.이어띄운다);
     expect(f.받은키).toEqual(['sk-ant-api03-k']);
   });
 
   it('시작하자마자 크레딧이 없다는 까닭을 알림에 싣는다', async () => {
     let 알림 = '';
     const f = 띄우기([실행(결과줄('Credit balance is too low', 0)), 실행(결과줄('끝', 10), 0)]);
-    await 크레딧먼저('sk-ant-api03-k', f.띄운다, (까닭) => { 알림 = 까닭; });
+    await 크레딧먼저('sk-ant-api03-k', f.띄운다, (까닭) => { 알림 = 까닭; }, f.이어띄운다);
     expect(알림).toMatch(/Credit balance is too low/);
   });
 
   it('사람이 멈췄으면 다시 띄우지 않는다', async () => {
     const f = 띄우기([{ ...실행(결과줄('Credit balance is too low', 0)), 멈춤으로죽음: true }]);
-    await 크레딧먼저('sk-ant-api03-k', f.띄운다, () => {});
+    await 크레딧먼저('sk-ant-api03-k', f.띄운다, () => {}, f.이어띄운다);
     expect(f.받은키).toEqual(['sk-ant-api03-k']);
   });
 });
@@ -145,8 +196,11 @@ describe('배선 — 돈이 지나는 마지막 자리', () => {
     expect(실행글).toMatch(/env: 결제환경\(환경, 키\)/);
   });
 
-  it('크레딧이 도중에 떨어지면 한도 멈춤이다 — 이어하기가 구독으로 잇는다', () => {
-    expect(글('./authoring-run.ts')).toMatch(/크레딧으로 && 크레딧바닥났나\(풀린\.글, 돌린것\.오류\)/);
+  it('크레딧이 도중에 떨어지면 앞 자식을 거둔 뒤에 이어 띄우고, 구독 자식이 안 떴으면 한도 멈춤이다 — 이어하기가 구독으로 잇는다', () => {
+    const 실행글 = 글('./authoring-run.ts');
+    expect(실행글).toMatch(/거두기: async \(\) => \(await 자식거두기\(자식\)\)/);
+    expect(실행글).toMatch(/크레딧으로 && 크레딧바닥났나\(풀린\.글, 돌린것\.오류\)/);
+    expect(실행글).toMatch(/사용량보고\(\{ 주소기지, 토큰 \}, 서비스, 것\.id, 돌린것\.낸것, 앞낸것 \?\? undefined\)/);
   });
 
   it('호스트 uid 로 도는 명령(부품 설치 스크립트 포함)에는 크레딧 키를 안 넘긴다', () => {
