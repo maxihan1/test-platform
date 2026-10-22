@@ -22,7 +22,7 @@ export interface 배정서비스 {
   projectId: number;
   projectName: string;
   /** 애플리케이션 종류. 화면이 종류마다 다르게 그린다 (도메인/러너 §5.2 「애플리케이션 종류 「Android 앱」」 종류 표) */
-  kind: 'SCREEN' | 'APP' | 'API';
+  kind: 'SCREEN' | 'APP' | 'GAME' | 'API';
   /**
    * 그 서비스의 대상 서버 목록 (SPEC §6 `service_env`).
    *

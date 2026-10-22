@@ -1,4 +1,4 @@
-// 대상 서버 줄 저장 — 계정 · 역할 계정 · 운영 서버 표시 · API 인증을 env 이름으로 이어받는다 (도메인/인증 §7 「envs[] 한 줄」)
+// 대상 서버 줄 저장 — 계정 · 역할 계정 · 운영 서버 표시 · API 인증 · 어드민 키를 env 이름으로 이어받는다 (도메인/인증 §7 「envs[] 한 줄」)
 // store.ts 가 300줄에 닿아 뗐다. 작성 집기 · 실행 채우기도 역할계정읽기 로 같은 칸을 읽는다
 
 import type { 역할계정 } from '@platform/kit/accounts';
@@ -26,6 +26,8 @@ export interface 대상서버 {
   appPath: string | null;
   /** API 인증. 비밀값은 끝 4자리만 싣는다 (도메인/API §3.8 「API 인증」) */
   apiAuths: { name: string; tokenUrl: string; clientId: string; clientSecretLast4: string }[];
+  /** 게임 서버 어드민 API 머리. 값은 끝 4자리만 싣는다 (도메인/게임 §3.10 「케이스 꼴」) */
+  adminKey: { header: string; valueLast4: string } | null;
 }
 
 /** service_env.api_auths 한 줄. 비밀값 원문이다 — 러너 · 작성 에이전트까지만 간다 */
@@ -37,6 +39,12 @@ export interface API인증 {
 }
 
 export type API인증입력 = Omit<API인증, 'clientSecret'> & { clientSecret?: string };
+
+/** service_env.admin_key. 원문이다 — 러너 · 작성 에이전트까지만 간다 */
+export interface 어드민키 {
+  header: string;
+  value: string;
+}
 
 export interface 역할계정입력 {
   role: string;
@@ -54,6 +62,7 @@ export interface 대상서버입력 {
   accounts?: 역할계정입력[];
   appPath?: string | null;
   apiAuths?: API인증입력[];
+  adminKey?: { header: string; value?: string } | null;
 }
 
 function 계정칸(보낸것: string | null | undefined, 옛것: string | null): string | null {
@@ -99,6 +108,23 @@ function API인증이어받기(보낸것: API인증입력[] | undefined, 옛것:
   });
 }
 
+/** service_env.admin_key 를 읽는다. 역할계정읽기 와 같은 까닭으로 모양을 다시 본다 */
+export function 어드민키읽기(값: unknown): 어드민키 | null {
+  if (typeof 값 !== 'object' || 값 === null) return null;
+  const { header, value } = 값 as Record<string, unknown>;
+  return typeof header === 'string' && typeof value === 'string' ? { header, value } : null;
+}
+
+/** API인증이어받기 와 같은 규칙 — 키가 없으면 옛 값, null 이면 지운다, 값이 없으면 같은 머리의 옛 값을 잇는다 */
+function 어드민키이어받기(보낸것: 대상서버입력['adminKey'], 옛것: 어드민키 | null): 어드민키 | null {
+  if (보낸것 === undefined) return 옛것;
+  if (보낸것 === null) return null;
+  const header = 보낸것.header.trim();
+  const value = 보낸것.value ?? (옛것?.header === header ? 옛것.value : undefined);
+  if (value === undefined) throw new 설정오류('ADMIN_KEY_VALUE_REQUIRED');
+  return { header, value };
+}
+
 /** 보낸 역할 목록으로 바꾼다. 같은 role 의 옛 값을 일반 회원 계정과 같은 규칙으로 이어받고, 목록에서 뺀 역할은 지운다 */
 function 역할계정이어받기(보낸것: 역할계정입력[] | undefined, 옛것: 역할계정[]): 역할계정[] {
   if (보낸것 === undefined) return 옛것;
@@ -123,15 +149,17 @@ export async function 대상서버넣기(client: PoolClient, serviceId: number, 
     viewport_judged_at: Date | null;
     app_path: string | null;
     api_auths: unknown;
-  }>('SELECT env, base_url, login_id, login_password, is_prod, role_accounts, viewport_kind, viewport_judged_at, app_path, api_auths FROM service_env WHERE service_id = $1', [serviceId]);
+    admin_key: unknown;
+  }>('SELECT env, base_url, login_id, login_password, is_prod, role_accounts, viewport_kind, viewport_judged_at, app_path, api_auths, admin_key FROM service_env WHERE service_id = $1', [serviceId]);
   const 옛계정 = new Map(옛것.rows.map((r) => [r.env, r]));
   await client.query('DELETE FROM service_env WHERE service_id = $1', [serviceId]);
-  for (const { env, baseUrl, loginId, loginPassword, isProd, accounts, appPath, apiAuths } of envs) {
+  for (const { env, baseUrl, loginId, loginPassword, isProd, accounts, appPath, apiAuths, adminKey } of envs) {
     // 이름이 같은 줄만 이어받는다. 이름을 바꾸면 새 줄이라 계정을 다시 넣는다 (SPEC 도메인/인증 §7)
     const 전 = 옛계정.get(env);
+    const 키 = 어드민키이어받기(adminKey, 어드민키읽기(전?.admin_key));
     await client.query(
-      `INSERT INTO service_env (service_id, env, base_url, login_id, login_password, is_prod, role_accounts, viewport_kind, viewport_judged_at, app_path, api_auths)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+      `INSERT INTO service_env (service_id, env, base_url, login_id, login_password, is_prod, role_accounts, viewport_kind, viewport_judged_at, app_path, api_auths, admin_key)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
       [
         serviceId,
         env,
@@ -147,6 +175,7 @@ export async function 대상서버넣기(client: PoolClient, serviceId: number, 
         // 계정 칸과 같은 규칙 — 키가 없으면 옛 값, null · 빈 글자면 지운다. 앞뒤 공백은 경로가 아니라 실수다
         계정칸(typeof appPath === 'string' ? appPath.trim() : appPath, 전?.app_path ?? null),
         JSON.stringify(API인증이어받기(apiAuths, API인증읽기(전?.api_auths))),
+        키 === null ? null : JSON.stringify(키),
       ],
     );
     // 화면별 차이도 옛 서버 것이다 — 남기면 새 판정 옆에 옛 서버 화면이 섞여 보인다 (PRD-F10-08 코드 검토)
@@ -170,6 +199,8 @@ export const 대상서버칸식 = `json_build_object(
                   'name', a.v->>'name', 'tokenUrl', a.v->>'tokenUrl', 'clientId', a.v->>'clientId',
                   'clientSecretLast4', right(a.v->>'clientSecret', 4)) ORDER BY a.n), '[]')
                  FROM jsonb_array_elements(e.api_auths) WITH ORDINALITY AS a(v, n)),
+  'adminKey', CASE WHEN e.admin_key IS NULL THEN NULL
+                   ELSE json_build_object('header', e.admin_key->>'header', 'valueLast4', right(e.admin_key->>'value', 4)) END,
   'accounts', (SELECT COALESCE(json_agg(json_build_object(
                   'role', a.v->>'role', 'loginId', a.v->>'loginId',
                   'hasLoginPassword', COALESCE(a.v->>'loginPassword', '') <> '') ORDER BY a.n), '[]')
