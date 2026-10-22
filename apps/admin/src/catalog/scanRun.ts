@@ -3,7 +3,7 @@
 
 import type { FastifyBaseLogger } from 'fastify';
 
-import { stat } from 'node:fs/promises';
+import { readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { 칸되는서비스 } from '../auth/permissions.js';
@@ -89,12 +89,18 @@ async function runScan(log: FastifyBaseLogger, 고르기?: (s: ServiceRow) => bo
         found = await scan(폴더);
       } catch (err) {
         // 아직 테스트가 없는 새 서비스는 폴더가 없다 — 문제가 아니고 목록이 「아직 테스트가 없습니다」를 보인다 (PRD-F9-19).
-        // 뿌리까지 없으면 마운트가 빠진 것이고, 폴더는 있는데 안의 파일이 사라졌으면 읽기 실패라 알린다. 케이스는 어느 쪽이든 지난 스캔 그대로 둔다
-        if ((err as NodeJS.ErrnoException).code === 'ENOENT' && !(await 있나(폴더)) && (await 있나(root))) continue;
-        결과.problems.push(
-          `${service.prefix} 서비스의 테스트 폴더 ${service.testsDir}을 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`,
-        );
-        continue;
+        // 뿌리까지 없으면 마운트가 빠진 것이고, 폴더는 있는데 안의 파일이 사라졌으면 읽기 실패라 알린다 — 둘 다 케이스는 지난 스캔 그대로 둔다
+        if ((err as NodeJS.ErrnoException).code === 'ENOENT' && !(await 있나(폴더)) && (await 있나(root))) {
+          // git 은 빈 폴더를 안 남겨 케이스를 비운 폴더는 사라진다. 뿌리에 다른 폴더가 있으면 마운트는 멀쩡하니 0건으로 저장해 내린다.
+          // 뿌리가 통째로 비었으면 마운트가 덜 된 쪽이 그럴듯해 건드리지 않는다
+          if ((await readdir(root)).length === 0) continue;
+          found = { specs: [], failures: [], duplicates: [] };
+        } else {
+          결과.problems.push(
+            `${service.prefix} 서비스의 테스트 폴더 ${service.testsDir}을 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`,
+          );
+          continue;
+        }
       }
 
       결과.duplicates.push(...found.duplicates.map((d) => ({ tcId: d.tcId, files: d.files })));
