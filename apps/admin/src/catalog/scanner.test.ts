@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { CaseSpec } from '@platform/kit';
 
-import { caseFiles, duplicatesOf, scan } from './scanner.js';
+import { caseFiles, duplicatesOf, duplicatesWith, scan } from './scanner.js';
 
 let 깨진폴더: string;
 
@@ -76,6 +76,31 @@ describe('duplicatesOf', () => {
   });
 });
 
+describe('duplicatesWith — 맡은 파일만 볼 때 K2', () => {
+  let 폴더: string;
+
+  beforeAll(async () => {
+    폴더 = await mkdtemp(join(tmpdir(), 'ws-a-dupwith-'));
+    await writeFile(join(폴더, 'a.spec.ts'), "export const spec = defineCase({ tcId: 'ZZW-001', name: '하나' });\n");
+    await writeFile(join(폴더, 'b.spec.ts'), "export const spec = defineCase({ tcId: 'ZZW-001', name: '둘' });\n");
+    await writeFile(join(폴더, 'c.spec.ts'), "export const spec = defineCase({ tcId: 'ZZW-002', name: '셋' });\n");
+    await writeFile(join(폴더, 'mine.spec.ts'), "export const spec = defineCase({ tcId: 'ZZW-FN-002', name: '내 것' });\n");
+  });
+
+  afterAll(async () => {
+    await rm(폴더, { recursive: true, force: true });
+  });
+
+  it('맡은 케이스가 나머지와 같은 번호면 잡고, 나머지끼리 겹친 것은 돌려주지 않는다', async () => {
+    expect(await duplicatesWith([spec('ZZW-FN-002', 'mine.spec.ts')], 폴더)).toEqual([{ tcId: 'ZZW-FN-002', files: ['c.spec.ts', 'mine.spec.ts'] }]);
+  });
+
+  it('맡은 케이스끼리 겹쳐도 잡는다', async () => {
+    const found = await duplicatesWith([spec('ZZW-003', 'x.spec.ts'), spec('ZZW-003', 'y.spec.ts')], 폴더);
+    expect(found).toEqual([{ tcId: 'ZZW-003', files: ['x.spec.ts', 'y.spec.ts'] }]);
+  });
+});
+
 describe('scan', () => {
   // 케이스 파일이 1,400개를 넘어 스캔 한 번이 혼자서도 10초쯤 걸린다. 검사마다 다시 훑으면 전체 검사 때 30초 제한을 넘는다(2026-10-12) —
   // 한 번 훑은 결과를 같이 쓰고, 그 한 번을 치르는 첫 검사만 제한을 늘린다
@@ -123,6 +148,12 @@ describe('scan', () => {
     const { specs } = await 전체스캔();
     expect(specs.find((s) => s.tcId === 'DEMO-008')?.platforms).toEqual(['desktop', 'mobile']);
     expect(specs.find((s) => s.tcId === 'DEMO-010')?.platforms).toEqual(['mobile']);
+  });
+
+  it('파일 목록을 주면 그 파일만 읽는다', async () => {
+    const { specs, failures } = await scan(깨진폴더, [join(깨진폴더, '명세없음.spec.ts')]);
+    expect(specs).toEqual([]);
+    expect(failures.map((f) => f.file)).toEqual(['명세없음.spec.ts']);
   });
 
   it('파일 하나가 깨져도 멈추지 않고 나머지까지 읽는다', async () => {

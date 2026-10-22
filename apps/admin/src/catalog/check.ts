@@ -3,7 +3,7 @@
 
 import { execFile } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
-import { relative } from 'node:path';
+import { relative, resolve } from 'node:path';
 import { promisify } from 'node:util';
 
 import {
@@ -16,7 +16,7 @@ import {
   type Violation,
 } from './rules.js';
 import { checkNonCase, nonCaseFiles } from './pageObject.js';
-import { caseFiles, scan, testsRoot } from './scanner.js';
+import { caseFiles, duplicatesWith, scan, testsRoot } from './scanner.js';
 
 const run = promisify(execFile);
 
@@ -24,7 +24,7 @@ function k8(file: string, what: string): Violation {
   return { file, line: 1, rule: 'K8', what, why: '문법 오류나 import 실패로 케이스가 등록되지 않는다' };
 }
 
-async function registration(files: string[]): Promise<Violation[]> {
+async function registration(files: string[], filters: string[]): Promise<Violation[]> {
   // 스캔이 PLATFORM_SCAN=1을 켜 두면 자식 playwright도 그대로 물려받아 테스트를 하나도 등록하지 않는다.
   // 그러면 멀쩡한 파일이 전부 K8 위반으로 찍힌다. 자식에게는 지우고 넘긴다
   const env = { ...process.env };
@@ -32,7 +32,7 @@ async function registration(files: string[]): Promise<Violation[]> {
 
   let stdout: string;
   try {
-    ({ stdout } = await run('npx', ['playwright', 'test', '--list', '--reporter=json'], {
+    ({ stdout } = await run('npx', ['playwright', 'test', '--list', '--reporter=json', ...filters], {
       env,
       maxBuffer: 32 * 1024 * 1024,
     }));
@@ -56,7 +56,10 @@ async function main(): Promise<void> {
   // CI 가 초안이 아닌 PR 에서 켠다. 작성 중(초안)에는 보류 케이스가 정상이라 기본은 끈다
   const noHeld = process.argv.includes('--no-held');
   const root = testsRoot();
-  const files = await caseFiles(root);
+  // 파일을 주면 그 파일만 본다 — 작성 보조가 맡은 파일을 검사할 때 1,112건을 다 보면 한 번에 중간값 106초였다 (PRD-F14-04)
+  const only = process.argv.slice(2).filter((a) => !a.startsWith('--')).map((a) => resolve(a));
+  const scoped = only.length > 0;
+  const files = scoped ? only.filter((f) => f.endsWith('.spec.ts')) : await caseFiles(root);
   const rel = (file: string): string => relative(root, file);
 
   const violations: Violation[] = [];
@@ -70,11 +73,13 @@ async function main(): Promise<void> {
   }
 
   // 케이스가 아닌 .ts 는 K7 만 진다. registration 쪽에 섞으면 테스트가 없다고 K8 로 잘못 찍힌다
-  for (const file of await nonCaseFiles(root)) {
+  for (const file of scoped ? only.filter((f) => !f.endsWith('.spec.ts')) : await nonCaseFiles(root)) {
     violations.push(...checkNonCase(rel(file), await readFile(file, 'utf8')));
   }
 
-  const { specs, failures, duplicates } = await scan(root);
+  const scanned = await scan(root, scoped ? files : undefined);
+  const { specs, failures } = scanned;
+  const duplicates = scoped ? await duplicatesWith(specs, root) : scanned.duplicates;
 
   for (const failure of failures) {
     violations.push(k8(failure.file, `명세를 읽지 못했다: ${failure.message}`));
@@ -93,10 +98,11 @@ async function main(): Promise<void> {
     violations.push(...checkSpec(spec.filePath, spec, propLines.get(spec.filePath) ?? new Map(), { noHeld }));
   }
 
-  violations.push(...(await registration(files.map(rel))));
+  // 맡은 케이스가 없으면(Page Object 만 맡음) 등록 검사를 건너뛴다 — 거르개 없이 부르면 저장소 전체를 수집한다
+  if (!scoped || files.length > 0) violations.push(...(await registration(files.map(rel), scoped ? files.map((f) => relative(process.cwd(), f)) : [])));
 
   if (violations.length === 0) {
-    console.log(`[check:tests] 케이스 ${files.length}건 · SPEC §4 규칙 ${RULES[0]}~${RULES[RULES.length - 1]} 통과`);
+    console.log(`[check:tests] ${scoped ? `맡은 파일 ${only.length}개 · 케이스` : '케이스'} ${files.length}건 · SPEC §4 규칙 ${RULES[0]}~${RULES[RULES.length - 1]} 통과`);
     return;
   }
 

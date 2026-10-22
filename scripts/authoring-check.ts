@@ -212,16 +212,12 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     const 케이스파일 = 맡은.filter((f) => f.endsWith('.spec.ts'));
     const [tsc, 형식] = await Promise.all([
       돌린다(트리, 'npx', ['tsc', '--noEmit', '-p', 맡은tsconfig(트리, 자리, 맡은)], 로그('tsc')),
-      // 화면 파일만 맡은 서브에이전트(적응형 모바일)는 케이스 형식 검사를 안 돈다 — 그때 남이 쓰는 중인 케이스 파일을 읽는다
-      케이스파일.length > 0 ? 돌린다(트리, 'npm', ['run', '-s', 'check:tests'], 로그('tests')) : Promise.resolve(null),
+      // 맡은 파일만 넘긴다 — 저장소 전체(1,112건)는 한 번에 중간값 106초 · 5분 한도에 끊기기도 했다(PRD-F14-04). 겹침(K2)만 나머지 tcId 를 글자로 견준다.
+      // 화면 파일만 맡은 서브에이전트(적응형 모바일)는 케이스 형식 검사를 안 돈다
+      케이스파일.length > 0 ? 돌린다(트리, 'npm', ['run', '-s', 'check:tests', '--', ...맡은.filter((f) => f.startsWith('tests/') && f.endsWith('.ts'))], 로그('tests')) : Promise.resolve(null),
     ]);
     결과들.push({ 이름: '타입 검사(맡은 파일)', ok: tsc.ok, 줄들: 줄또는끝(tsc, tsc.줄들.filter((l) => /error TS/.test(l))) });
-    if (형식 !== null) {
-      // 저장소 전체를 보는 검사라 다른 서브에이전트가 쓰는 중인 파일에서도 빨개진다 — 맡은 파일 줄만 센다. 위반 셈 줄이 없으면(돌다 죽음) 끝 줄을 보인다
-      const 내것 = 형식.줄들.filter((l) => 맡은.some((f) => l.startsWith(`${f}:`) || l.startsWith(`${f.replace(/^tests\//, '')}:`)));
-      const 돌았다 = 형식.ok || 형식.줄들.some((l) => /\[check:tests\] 위반 \d+건/.test(l));
-      결과들.push({ 이름: '케이스 형식 검사(맡은 파일)', ok: 돌았다 && 내것.length === 0, 줄들: 돌았다 ? 내것 : 형식.줄들.slice(-5) });
-    }
+    if (형식 !== null) 결과들.push({ 이름: '케이스 형식 검사(맡은 파일)', ok: 형식.ok, 줄들: 줄또는끝(형식, 형식.줄들.filter((l) => / — \[K\d+\] /.test(l))) });
     if (케이스파일.length > 0) {
       const 문장들 = 케이스파일.flatMap((f) => 케이스문장읽기(readFileSync(resolve(트리, f), 'utf8')) ?? []);
       // 목록은 tcId 접두사로, 폴더는 맡은 파일 경로(tests/<폴더>/…)로 — 새 서비스 폴더 이름은 접두사와 다를 수 있다
