@@ -12,7 +12,7 @@ import { caseSchemas } from './paramSets.js';
 import { 폰을놓는다, 폰을바로잡는다 } from './phone.js';
 import { na, 러너에보낸다, httpTimeoutMs } from './runner.js';
 import { 저장값을채운다 } from './savedInput.js';
-import { prefixOf } from './store.js';
+import { prefixOf, 엔진칸 } from './store.js';
 import { 시작한다, 읽는다, TrialBusyError } from './trial.js';
 import { validate } from './validate.js';
 
@@ -48,15 +48,15 @@ function 웹주소인가(값: string): boolean {
  * 그 케이스 서비스의 대상 서버 줄 가운데 보낸 주소와 출처가 같은 첫 줄(env 순). 없으면 undefined — 계정을 안 채우고 앱은 러너 환경값이다 (실행 §3.2).
  * 테스트 실행은 대상 서버 키 없이 주소만 받아서 출처로 줄을 찾는다
  */
-async function 주소의줄(tcId: string, baseUrl: string): Promise<{ 줄: 대상줄 | undefined; 게임: boolean }> {
+async function 주소의줄(tcId: string, baseUrl: string): Promise<{ 줄: 대상줄 | undefined; 종류: string | undefined }> {
   const { pool } = await import('../db/index.js');
   const r = await pool.query<{ id: string; kind: string }>('SELECT id, kind FROM service WHERE prefix = $1', [prefixOf(tcId)]);
   const 서비스 = r.rows[0];
-  const 게임 = 서비스?.kind === 'GAME';
+  const 종류 = 서비스?.kind;
   const 보낸출처 = 출처(baseUrl);
   // 깨진 주소끼리(null) 같다고 보지 않는다
-  if (서비스 === undefined || 보낸출처 === null) return { 줄: undefined, 게임 };
-  return { 줄: (await 대상줄들읽기(Number(서비스.id))).find((줄) => 출처(줄.baseUrl) === 보낸출처), 게임 };
+  if (서비스 === undefined || 보낸출처 === null) return { 줄: undefined, 종류 };
+  return { 줄: (await 대상줄들읽기(Number(서비스.id))).find((줄) => 출처(줄.baseUrl) === 보낸출처), 종류 };
 }
 
 async function 저장값으로채운다(
@@ -110,7 +110,7 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
     }
 
     // 진짜 실행과 같은 길로 요청에 없는 칸을 저장값 · 대상 서버 계정으로 채운다 — 저장된 비밀번호는 화면이 모른다(「입력됨」)
-    const { 줄, 게임 } = await 주소의줄(tcId, baseUrl);
+    const { 줄, 종류 } = await 주소의줄(tcId, baseUrl);
     const { params, expected } = await 저장값으로채운다(tcId, platform, 줄?.계정들 ?? [], parsed.data.params, parsed.data.expected, {
       param_schema: schemas.paramSchema,
       expected_schema: schemas.expectedSchema,
@@ -135,7 +135,7 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
       timeoutMs: 제한ms,
       ...(앱 !== null && { app: 앱 }),
       // 정식 실행과 같은 규칙 — 게임 애플리케이션이면 엔진을 싣는다 (도메인/게임 §3.10 결정 6)
-      ...(platform === 'android' && 게임 && { engine: 'GAME' as const }),
+      ...엔진칸(종류, platform),
       // 정식 실행과 같은 규칙 — 그 대상 서버 줄에 API 인증이 있으면 싣는다 (도메인/API §3.8)
       ...(줄 !== undefined && 줄.apiAuths.length > 0 && { apiAuths: 줄.apiAuths }),
     };

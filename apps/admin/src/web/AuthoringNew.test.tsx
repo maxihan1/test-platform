@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from './api.js';
-import { AuthoringNew } from './AuthoringNew.js';
+import { AuthoringNew, 거절사유 } from './AuthoringNew.js';
 
 const 부름: { 무엇: string; 값: unknown }[] = [];
 let 만들기답: Promise<{ id: number }> = Promise.resolve({ id: 1 });
@@ -323,5 +323,15 @@ describe('피그마를 미리 막는다 (점검 11.5)', () => {
     fireEvent.click(보내기());
 
     await screen.findByText(/설정 > 애플리케이션에서 새 피그마 토큰을 넣으세요/);
+  });
+});
+
+describe('보내기 전 파일 거르기', () => {
+  it('작성 자료는 엑셀 · CSV 를 받고 서비스 가이드는 안 받는다', () => {
+    const 파일 = (name: string) => new File(['x'], name);
+    expect(거절사유(파일('확률표.xlsx'))).toBeNull();
+    expect(거절사유(파일('아이템.csv'))).toBeNull();
+    expect(거절사유(파일('확률표.xlsx'), true)).toBe('지원하지 않는 파일입니다. PDF · 워드 · md · txt 만 올릴 수 있습니다');
+    expect(거절사유(파일('소개.md'), true)).toBeNull();
   });
 });

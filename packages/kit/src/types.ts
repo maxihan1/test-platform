@@ -57,7 +57,7 @@ export interface ExecuteRequest {
   timeoutMs: number;            // 기본 300000
   app?: string;                 // android 만. 그 대상 서버의 앱 파일 경로나 http(s) 주소(받는 쪽은 Appium 이 도는 PC). 없으면 러너 환경값 PLATFORM_APP (§5.2 · APP-F1-03)
   udid?: string;                // android 만. admin 이 디바이스 팜에서 잡은 폰. 없으면 러너 환경값 PLATFORM_DEVICE_UDID (§5.2 · APP-F1-10)
-  engine?: 'GAME';              // 게임 애플리케이션 케이스만. admin 이 애플리케이션 종류를 보고 싣는다. 없으면 platform 으로 엔진을 고른다(android → Appium) (도메인/게임 §3.10 결정 6 · GAME-F1-07)
+  engine?: 'GAME';              // 게임 애플리케이션의 android 항목만. admin 이 애플리케이션 종류를 보고 싣는다. 없으면 platform 으로 엔진을 고른다(android → Appium) (도메인/게임 §3.10 결정 6 · GAME-F1-07)
   apiAuths?: ApiAuth[];         // 그 대상 서버 줄의 API 인증 전부. API 종류 애플리케이션 케이스만 (도메인/API §3.8 · API-F1-04)
   apiDoc?: ApiDocRef;           // 그 케이스의 판. CaseSpec.apiDoc 이 있을 때만 (도메인/API §3.8 · API-F1-05)
   recordHar?: { jobId: number }; // 성능 시나리오 녹화 — 오면 HAR 를 남긴다. jobId 는 기다리는 perf_ai_job 번호. 기록 · 증적에 안 남는다 (공통/3-공유계약 「성능 테스트 타입」)

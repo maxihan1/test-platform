@@ -65,8 +65,8 @@ export function API칸오류(보낸것: 보낸칸, 지금: 지금칸): string | 
   // 어드민 키는 게임 서버를 두드리는 비밀값이다 — 게임이 아닌 애플리케이션에 들어가면 쓰는 곳 없이 원문만 쌓인다
   const 어드민키들 = (보낸것.envs ?? []).flatMap((e) => (e.adminKey == null ? [] : [e.adminKey]));
   if (어드민키들.length > 0 && 지금.kind !== 'GAME') return 'NOT_GAME_SERVICE';
-  // 머리 이름은 HTTP 토큰 글자만. 값은 API 인증 비밀값과 같이 끝 4자리를 보여도 8자 넘게 남게 12자부터다
-  if (어드민키들.some((k) => !/^[A-Za-z0-9-]{1,100}$/.test(k.header.trim()) || (k.value !== undefined && (k.value.length < 12 || k.value.length > 500)))) {
+  // 머리 이름은 HTTP 토큰 글자만. 값은 머리에 실을 수 있는 글자(공백 · 줄바꿈 · 한글 없음)이고 API 인증 비밀값과 같이 끝 4자리를 보여도 8자 넘게 남게 12자부터다
+  if (어드민키들.some((k) => !/^[A-Za-z0-9-]{1,100}$/.test(k.header.trim()) || (k.value !== undefined && !/^[\x21-\x7e]{12,500}$/.test(k.value)))) {
     return 'BAD_ADMIN_KEY';
   }
   const 인증들 = (보낸것.envs ?? []).flatMap((e) => e.apiAuths ?? []);

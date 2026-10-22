@@ -17,6 +17,7 @@ describe('게임 요소 본문 검사', () => {
   it('칸이 틀리면 그 자리를 돌려준다', () => {
     expect(요소검사({})).toEqual({ error: 'BAD_ELEMENT', detail: 'elements' });
     expect(요소검사({ elements: [{ ...장검, kind: 'QUEST' }] })).toEqual({ error: 'BAD_ELEMENT', detail: 'elements.0.kind' });
+    expect(요소검사({ elements: [{ ...장검, kind: 'toString' }] })).toEqual({ error: 'BAD_ELEMENT', detail: 'elements.0.kind' });
     expect(요소검사({ elements: [{ ...장검, key: 'sword_long' }] })).toEqual({ error: 'BAD_ELEMENT', detail: 'elements.0.key' });
     expect(요소검사({ elements: [장검, 장검] })).toEqual({ error: 'BAD_ELEMENT', detail: 'elements.1.key' });
     expect(요소검사({ elements: [{ ...장검, name: ' ' }] })).toEqual({ error: 'BAD_ELEMENT', detail: 'elements.0.name' });
@@ -120,6 +121,7 @@ describe.skipIf(연결 === undefined)('게임 지도 에이전트 통로', () =>
     try {
       await q(`UPDATE game_element SET server_value = '{"가격": 1200, "공격력": 14}', checked_run = $2 WHERE service_id = $1 AND key = 'item:sword_long'`, [서비스, 번호]);
       await q(`UPDATE game_element SET server_value = '{"안전지대": false}', checked_run = $2 WHERE service_id = $1 AND key = 'zone:Town'`, [서비스, 번호]);
+      await q(`UPDATE game_element SET server_value = '{"성향": "보라"}' WHERE service_id = $1 AND key = 'move:성향 선량→보라'`, [서비스]);
       await q(`INSERT INTO game_element_case (service_id, key, tc_id) VALUES ($1, 'item:sword_long', 'XGE-FN-002'), ($1, 'item:sword_long', 'XGE-FN-001')`, [서비스]);
       expect(await 지도(id)).toBe(
         [
@@ -132,7 +134,7 @@ describe.skipIf(연결 === undefined)('게임 지도 에이전트 통로', () =>
           `- zone:Town · 마을 · 기획서 {"안전지대":true} · 서버 {"안전지대":false} 다름 (실행 #${번호}) · 거친 케이스 없음`,
           '',
           '## 상태 바뀜 (MOVE) — 1개',
-          '- move:성향 선량→보라 · 선량에서 보라로 · 근거 REQ-PK-003 · 서버 값 대조 전 · 거친 케이스 없음',
+          '- move:성향 선량→보라 · 선량에서 보라로 · 근거 REQ-PK-003 · 서버 {"성향":"보라"} 비교할 기획서 값 없음 · 거친 케이스 없음',
         ].join('\n') + '\n',
       );
     } finally {

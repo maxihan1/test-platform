@@ -88,8 +88,8 @@ describe.skipIf(연결 === undefined)('설정 API 의 게임 애플리케이션 
     expect(await 저장된키()).toEqual({ header: 'X-Admin-Key', value: 키값 });
   });
 
-  it('머리 글자가 틀리거나 값이 12자보다 짧으면 400 BAD_ADMIN_KEY', async () => {
-    for (const 키 of [{ header: 'X Admin', value: 키값 }, { header: '', value: 키값 }, { header: 'X-Admin-Key', value: 'short-key' }]) {
+  it('머리 글자가 틀리거나 값이 12자보다 짧거나 머리에 못 싣는 글자(줄바꿈 · 한글)면 400 BAD_ADMIN_KEY', async () => {
+    for (const 키 of [{ header: 'X Admin', value: 키값 }, { header: '', value: 키값 }, { header: 'X-Admin-Key', value: 'short-key' }, { header: 'X-Admin-Key', value: `${키값}\n` }, { header: 'X-Admin-Key', value: `${키값}한글` }]) {
       const res = await 고친다({ envs: [줄(키)] });
       expect(res.statusCode).toBe(400);
       expect(res.json()).toEqual({ error: 'BAD_ADMIN_KEY' });

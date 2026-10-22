@@ -16,11 +16,11 @@ export const 자료상한 = 20;
  * 서버가 거절할 파일을 보내기 전에 거른다. 거절 이유(말 키)를 돌려준다.
  * 보낸 뒤에 걸리면 이미 만든 요청이 「준비 중」으로 남고 되살릴 길이 없다 (§7 「자료」)
  */
-export function 거절사유(파일: File): string | null {
+export function 거절사유(파일: File, 가이드 = false): string | null {
   const 점 = 파일.name.lastIndexOf('.');
   // 점이 맨 앞뿐인 이름(`.md`)은 서버의 extname 이 확장자 없음으로 읽는다. 여기서도 같게 본다
-  if (점 <= 0 || !받는종류.split(',').includes(파일.name.slice(점).toLowerCase())) {
-    return '지원하지 않는 파일입니다. PDF · 워드 · 엑셀 · md · txt · csv 만 올릴 수 있습니다';
+  if (점 <= 0 || !(가이드 ? 가이드받는종류 : 받는종류).split(',').includes(파일.name.slice(점).toLowerCase())) {
+    return 가이드 ? '지원하지 않는 파일입니다. PDF · 워드 · md · txt 만 올릴 수 있습니다' : '지원하지 않는 파일입니다. PDF · 워드 · 엑셀 · md · txt · csv 만 올릴 수 있습니다';
   }
   // 서버 assets.ts 의 이름인가와 같은 규칙. `"` 를 \u0022 로 적은 것은 messages.test 의 글자 훑기가
   // 정규식 안의 따옴표를 문자열 시작으로 읽기 때문이다

@@ -115,7 +115,8 @@ export function 앱줄고르기<T extends { env: string; appPath: string | null;
 }
 
 /** 폰에서 도는 애플리케이션 — Android 앱과 게임은 크롤러가 못 읽어 대조가 없고 앱 줄 계정으로 작성한다 (도메인/게임 §3.10 「작성 — 한 바퀴」) */
-export const 폰앱인가 = (kind: string | null | undefined): boolean => kind === 'APP' || kind === 'GAME';
+export const 폰앱종류 = ['APP', 'GAME'];
+export const 폰앱인가 = (kind: string | null | undefined): boolean => 폰앱종류.includes(kind ?? '');
 
 /** 집기 응답 target 한 벌 — 운영 줄이면 계정이 비고 isProd 가 붙는다 */
 export function 집기대상(env: string, 원줄: 대상줄 | null, startUrl: string | null): 대상 {

@@ -261,7 +261,7 @@ WS-0 과 integration 은 장을 따로 싣지 않는다 — 전 갈래를 건드
 | `req_case` · `case_screen` (2026-10-10) · `req_hold` (2026-10-12) | 카탈로그 (스캐너가 채우는 사본 · 실행 · 작성 · 시나리오가 SQL 로 읽기만 한다. `req_hold` 는 prd · 작성이 읽기만 한다) | [도메인/카탈로그](spec/도메인/카탈로그.md) |
 | `api_doc_version` · `api_call_seen` (2026-10-20) | API (`api_call_seen` 은 실행 저장이 채운다 · 작성이 다시 작성할 케이스를 찾으려고 읽기만 한다) | [도메인/API](spec/도메인/API.md) |
 | `perf_agent` · `perf_scenario` · `perf_scenario_version` · `perf_run` · `perf_series` · `perf_host_metric` · `perf_page_metric` · `perf_device_metric` · `perf_event` · `perf_ai_job` · `perf_dummy_client` (2026-10-21 · PERF-F1-03 반영) | 성능 (`perf_ai_job` 은 작성 에이전트가 통로로 집기만 한다) | [도메인/성능](spec/도메인/성능.md) |
-| `game_element` · `game_element_case` · `app_build` · `service_token` (2026-10-22 · 대기) | 게임 (`game_element` 은 작성이 올리고 실행 저장이 서버 값 칸을 쓴다 · `game_element_case` 는 스캐너가 채우는 사본 · `app_build` 는 실행이 읽는다 · `service_token` 은 설정 화면이 발급하고 인증이 확인한다) | [도메인/게임](spec/도메인/게임.md) |
+| `game_element` · `game_element_case` · `app_build` · `service_token` (2026-10-22 · `game_element` · `game_element_case` 는 GAME-F1-07 반영 · 나머지 대기) | 게임 (`game_element` 은 작성이 올리고 실행 저장이 서버 값 칸을 쓴다 · `game_element_case` 는 스캐너가 채우는 사본 · `app_build` 는 실행이 읽는다 · `service_token` 은 설정 화면이 발급하고 인증이 확인한다) | [도메인/게임](spec/도메인/게임.md) |
 | `scenario` · `scenario_version` · `scenario_run_part` · `scenario_run_step` | 시나리오 (`test_run` 은 실행의 것이고 `kind` 로 갈라 쓴다) | [도메인/시나리오](spec/도메인/시나리오.md) |
 
 **계약 파일을 고치는 `contracts` 단위**는 위 표들이 전부 자기 몫이다. 소유 도메인은 그 뒤에 읽고 쓴다.

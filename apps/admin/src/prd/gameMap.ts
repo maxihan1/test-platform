@@ -32,7 +32,8 @@ export function 요소검사(본문: unknown): { elements: 게임요소[]; remov
   const elements: 게임요소[] = [];
   for (const [i, x] of (b.elements as unknown[]).entries()) {
     const e = (typeof x === 'object' && x !== null ? x : {}) as Record<string, unknown>;
-    if (typeof e.kind !== 'string' || !(e.kind in 요소종류)) return 틀림(`elements.${i}.kind`);
+    // in 은 toString 같은 물려받은 이름도 통과시켜 DB CHECK 가 500 을 낸다
+    if (typeof e.kind !== 'string' || !Object.hasOwn(요소종류, e.kind)) return 틀림(`elements.${i}.kind`);
     // 한 본문에 같은 열쇠가 둘이면 어느 쪽을 뜻했는지 모른다
     if (!글인가(e.key, 상한.열쇠) || !열쇠꼴.test(e.key) || 본열쇠.has(e.key)) return 틀림(`elements.${i}.key`);
     if (!글인가(e.name, 상한.이름)) return 틀림(`elements.${i}.name`);
@@ -93,7 +94,10 @@ export async function 지도글(서비스: number): Promise<string> {
       `- ${x.key} · ${x.name}`,
       x.value === null ? null : `기획서 ${JSON.stringify(x.value)}`,
       x.req_ids.length === 0 ? null : `근거 ${x.req_ids.join(', ')}`,
-      x.checked_run === null ? '서버 값 대조 전' : `서버 ${JSON.stringify(x.server_value)} ${x.same === true ? '같음' : '다름'} (실행 #${x.checked_run})`,
+      // 실행 행을 지우면 checked_run 만 비고 서버 값은 남는다 — 서버 값으로 가른다. 기획서 값이 없으면 견줄 것이 없다
+      x.server_value === null
+        ? '서버 값 대조 전'
+        : `서버 ${JSON.stringify(x.server_value)} ${x.same === null ? '비교할 기획서 값 없음' : x.same ? '같음' : '다름'}${x.checked_run === null ? '' : ` (실행 #${x.checked_run})`}`,
       x.cases.length === 0 ? '거친 케이스 없음' : `케이스 ${x.cases.join(', ')}`,
     ]
       .filter((v) => v !== null)

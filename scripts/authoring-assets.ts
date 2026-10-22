@@ -4,8 +4,10 @@ import { createRequire } from 'node:module';
 import { extname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-// 엑셀은 node 로 따로 띄운다 — 자식은 작업 폴더에서 뜨므로 tsx 를 이름이 아니라 이 저장소의 주소로 건다
+// 엑셀은 node 로 따로 띄운다 — 자식은 작업 폴더에서 뜨므로 tsx 를 이름이 아니라 이 저장소의 주소로 건다.
+// ponytail: exceljs 는 책을 통째로 메모리에 푼다 — 압축 폭탄이 공용 author 컨테이너를 못 잡아먹게 힙을 1GB 로 막는다. 넘는 표가 오면 줄 단위 읽기(WorkbookReader)로
 const 엑셀바꾸기 = [
+  '--max-old-space-size=1024',
   '--import',
   pathToFileURL(createRequire(import.meta.url).resolve('tsx')).href,
   fileURLToPath(new URL('./authoring-xlsx.ts', import.meta.url)),

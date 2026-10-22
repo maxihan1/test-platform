@@ -88,6 +88,10 @@ export interface PendingItem {
   engine?: 'GAME';
 }
 
+/** 실행 요청의 엔진 칸 — 게임 애플리케이션의 android 항목만. 정식 실행 · 테스트 실행 · 기기 성능이 같이 쓴다 (도메인/게임 §3.10 결정 6) */
+export const 엔진칸 = (kind: string | null | undefined, platform: Platform): { engine?: 'GAME' } =>
+  kind === 'GAME' && platform === 'android' ? { engine: 'GAME' } : {};
+
 // tcId 접두사가 곧 서비스다. 요청이 서비스를 따로 싣게 두면 번호와 서비스가 어긋날 수 있다 (SPEC §7)
 export function prefixOf(tcId: string): string {
   return tcId.split('-')[0] ?? '';
@@ -279,7 +283,7 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
             timeoutMs,
             ...(platform === 'android' && found서비스.app_path !== null && { app: found서비스.app_path }),
             ...(인증들.length > 0 && { apiAuths: 인증들 }),
-            ...(platform === 'android' && found서비스.kind === 'GAME' && { engine: 'GAME' as const }),
+            ...엔진칸(found서비스.kind, platform),
           });
         }
       }

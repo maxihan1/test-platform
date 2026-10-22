@@ -2,7 +2,7 @@
 // 자식(AI)이 아니라 이 스크립트가 뽑는다 — 같은 글이면 같은 원장이 나와야 대조가 성립한다 (도메인/작성 §3.6 「★ 원장」)
 
 import { createHash } from 'node:crypto';
-import { extname } from 'node:path';
+import { basename, extname } from 'node:path';
 
 import type { 읽을자료 } from './authoring-assets.js';
 import { type 설계, 설계하기 } from './authoring-design.js';
@@ -311,7 +311,8 @@ export function 원장만들기(
   for (const { c, 글, 첫 } of 뽑은것) {
     const 하나 = 첫.모드 === '문단' && 문단자료수 > 1 ? 원장뽑기(글, c.name, `P${String(++문단순번)}`) : 첫;
     합친.모드[c.name] = 하나.모드;
-    합친.꼴 = { ...합친.꼴, [c.name]: `${extname(c.name).toLowerCase()}/${c.변환?.명령 ?? '그대로'}` };
+    // 엑셀은 명령이 node 절대 경로라 기계마다 다르다 — 이름만 남긴다
+    합친.꼴 = { ...합친.꼴, [c.name]: `${extname(c.name).toLowerCase()}/${c.변환 === null ? '그대로' : basename(c.변환.명령)}` };
     합친.경고.push(...하나.경고);
     for (const 항 of 하나.항목) {
       if (본번호.has(항.번호)) continue;

@@ -39,6 +39,7 @@ describe.skipIf(연결 === undefined)('기기 성능 실행', { timeout: 90_000 
       expect(보냄.filter((b) => b.udid === 'FA1')).toHaveLength(2);
       expect(보냄.filter((b) => b.udid === 'FA2')).toHaveLength(2);
       expect(보냄[0]).toMatchObject({ runId: 0, tcId: 'XQDR-001', platform: 'android', app: '/apps/demo.apk', baseUrl: 'http://shop.xqdr.test', filePath: 'x/x.spec.ts' });
+      expect('engine' in 보냄[0]!).toBe(false);
       expect(팜.호출들.filter((h) => h.method === 'POST' && h.path === '/api/devices/FA1/hold').at(-1)?.body).toMatchObject({ minutes: 120 });
       const r = await 결과(runId);
       for (const serial of ['FA1', 'FA2']) {
@@ -52,6 +53,19 @@ describe.skipIf(연결 === undefined)('기기 성능 실행', { timeout: 90_000 
       expect(홀드삭제수('FA2')).toBeGreaterThan(0);
     } finally {
       f.상태.러너지연 = 0;
+    }
+  });
+
+  it('게임 애플리케이션이면 조작 요청에 엔진 GAME 을 싣는다', async () => {
+    const 원래 = (await 판.pool.query<{ kind: string }>('SELECT kind FROM service WHERE id = $1', [판.서비스])).rows[0]!.kind;
+    await 판.pool.query(`UPDATE service SET kind = 'GAME' WHERE id = $1`, [판.서비스]);
+    try {
+      const 전 = 러너.호출들.length;
+      const runId = await 만들기({ drive: 'APPIUM', durationSec: undefined, caseIds: ['XQDR-001'], repeat: 1, devices: [{ serial: 'FA1', where: 'FARM' }] }, 0);
+      await 끝날때까지(runId);
+      expect(러너.호출들.slice(전).filter((h) => h.path === '/execute').map((h) => h.body.engine)).toEqual(['GAME']);
+    } finally {
+      await 판.pool.query('UPDATE service SET kind = $2 WHERE id = $1', [판.서비스, 원래]);
     }
   });
 
