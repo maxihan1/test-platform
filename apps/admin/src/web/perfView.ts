@@ -68,9 +68,10 @@ export function 저장값(metric: Target['metric'], 화면: number): number {
 }
 
 /** 다음 단계로 넘어가도 되나. 막는 까닭을 돌려준다 — 버튼을 잠그지 않고 누르면 까닭을 보인다 (SPEC §8.2) */
-export function 넘길까닭(단계: 1 | 2 | 3, 값: { name: string; txCount: number; dummy: boolean; stages: readonly Stage[] }, 언어: 언어): string | null {
+export function 넘길까닭(단계: 1 | 2 | 3, 값: { name: string; txCount: number; dummy: boolean; dummyPicked?: boolean; stages: readonly Stage[] }, 언어: 언어): string | null {
   if (단계 === 1) {
     if (값.name.trim() === '') return t('시나리오 이름을 적어 주세요', 언어);
+    if (값.dummy && 값.dummyPicked === false) return t('더미 클라이언트를 골라 주세요', 언어);
     if (값.txCount === 0 && !값.dummy) return t('트랜잭션이 하나도 없습니다. 가져오거나 추가해 주세요', 언어);
   }
   if (단계 === 2 && 최대목표(값.stages) === 0) return t('가상 사용자가 0명입니다. 최대 가상 사용자를 적어 주세요', 언어);

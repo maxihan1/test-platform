@@ -197,6 +197,7 @@ export const 성능말: Record<string, string> = {
   올리기: 'Upload',
   '이름과 실행 명령을 적어 주세요': 'Enter a name and a command',
   '올릴 .zip 파일을 골라 주세요': 'Pick a .zip file to upload',
+  '더미 클라이언트를 골라 주세요': 'Choose a dummy client',
   '파일은 200MB 까지입니다': 'Files can be up to 200 MB',
   '이 더미 클라이언트를 쓰는 시나리오가 있어 지우지 못합니다': 'A scenario uses this dummy client, so it cannot be deleted',
   '실행 파일은 요청이 끝날 때마다 표준 출력에 결과 한 줄을 써야 합니다': 'The executable must write one result line to standard output after each request',

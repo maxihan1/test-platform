@@ -60,6 +60,11 @@ export function SettingsPerfDummy({ services, 기본접두사, 관리자 }: { se
       set오류(t('올릴 .zip 파일을 골라 주세요'));
       return;
     }
+    // 서버 상한(§7)과 같은 값 — 다 보낸 뒤에야 413 을 받지 않게 미리 막는다
+    if (파일.size > 200 * 1024 * 1024) {
+      set오류(t('파일은 200MB 까지입니다'));
+      return;
+    }
     void 해보기(
       () => perfApi.addDummyClient(Number(앱), 이름.trim(), 명령.trim(), 파일),
       () => {
@@ -128,7 +133,7 @@ export function SettingsPerfDummy({ services, 기본접두사, 관리자 }: { se
           <div className="perf-fields">
             <label className="perf-field">
               {t('더미 클라이언트 이름')}
-              <input value={이름} maxLength={100} onChange={(e) => set이름(e.target.value)} />
+              <input value={이름} maxLength={40} onChange={(e) => set이름(e.target.value)} />
             </label>
             <label className="perf-field">
               {t('실행 명령')}

@@ -93,7 +93,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
 
   /** 저장하고 시나리오 번호를 돌려준다. 실패하면 알림을 띄우고 null */
   async function 저장(): Promise<number | null> {
-    const 까닭 = 넘길까닭(1, { name: 일.name, txCount: 일.transactions.length, dummy: 더미, stages: 이.stages }, 언어);
+    const 까닭 = 넘길까닭(1, { name: 일.name, txCount: 일.transactions.length, dummy: 더미, dummyPicked: 일.더미번호 !== null, stages: 이.stages }, 언어);
     if (까닭 !== null) {
       set지금(1);
       set알림({ 글: 까닭, 오류: true });
@@ -152,7 +152,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
 
   function 다음() {
     if (지금 === 4) return;
-    const 까닭 = 넘길까닭(지금, { name: 일.name, txCount: 일.transactions.length, dummy: 더미, stages: 이.stages }, 언어);
+    const 까닭 = 넘길까닭(지금, { name: 일.name, txCount: 일.transactions.length, dummy: 더미, dummyPicked: 일.더미번호 !== null, stages: 이.stages }, 언어);
     if (까닭 !== null) {
       set알림({ 글: 까닭, 오류: true });
       return;
