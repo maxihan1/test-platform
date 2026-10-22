@@ -53,6 +53,13 @@ describe('API더하기', () => {
     API더하기(몫, 1, new Map(Array.from({ length: API상한 + 3 }, (_, i): [string, { method: string; url: string }] => [`GET ${i}`, { method: 'GET', url: String(i) }])));
     expect(몫.get(1)!.size).toBe(API상한);
   });
+
+  it('이미 있는 줄에 다시 들은 것은 본 상태를 합친다 — 열 때 200 · 누를 때 500', () => {
+    const 몫 = new Map<number, 들은API>();
+    API더하기(몫, 0, new Map([['GET c', { method: 'GET', url: 'c', status: [200] }]]));
+    API더하기(몫, 0, new Map([['GET c', { method: 'GET', url: 'c', status: [500] }]]));
+    expect(몫.get(0)!.get('GET c')).toEqual({ method: 'GET', url: 'c', status: [200, 500] });
+  });
 });
 
 describe('API듣기', () => {
@@ -70,9 +77,36 @@ describe('API듣기', () => {
       await 쪽.goto('https://s.test/');
       await expect.poll(() => [...들은.values()].filter((x) => x.status !== undefined).length).toBe(2);
       expect([...들은.values()].sort((a, b) => a.url.localeCompare(b.url))).toEqual([
-        { method: 'POST', url: 'https://s.test/api/cart', status: 401 },
-        { method: 'GET', url: 'https://s.test/api/goods/3', status: 200 },
+        { method: 'POST', url: 'https://s.test/api/cart', status: [401] },
+        { method: 'GET', url: 'https://s.test/api/goods/3', status: [200] },
       ]);
+    } finally {
+      await 브라우저.close();
+    }
+  });
+});
+
+describe('API듣기 — 늦은 응답', () => {
+  it('목록을 비운 뒤에 온 응답도 그 요청을 낸 화면 줄에 붙고 다음 화면 줄에는 안 붙는다', async () => {
+    const 브라우저 = await chromium.launch();
+    try {
+      const { 맥락, 쪽 } = await 새쪽(브라우저, undefined);
+      const 들은: 들은API = new Map();
+      API듣기(쪽, 들은);
+      let 풀기: () => void = () => undefined;
+      const 막힘 = new Promise<void>((r) => (풀기 = r));
+      await 맥락.route('https://s.test/**', async (r) => {
+        if (r.request().resourceType() === 'document') return r.fulfill({ contentType: 'text/html', body: `<script>fetch('/api/me')</script>` });
+        await 막힘;
+        return r.fulfill({ status: 401, contentType: 'application/json', body: '{}' });
+      });
+      await 쪽.goto('https://s.test/');
+      await expect.poll(() => 들은.size).toBe(1);
+      const 앞화면 = new Map(들은);
+      들은.clear();
+      풀기();
+      await expect.poll(() => 앞화면.get('GET https://s.test/api/me')?.status).toEqual([401]);
+      expect(들은.size).toBe(0);
     } finally {
       await 브라우저.close();
     }
@@ -84,11 +118,11 @@ describe('API머리줄', () => {
     expect(
       API머리줄(
         [
-          { method: 'GET', url: 'https://www.s.test/api/goods/3', status: 200 },
-          { method: 'GET', url: 'https://www.s.test/api/goods/41', status: 404 },
-          { method: 'GET', url: 'https://www.s.test/api/goods/7', status: 200 },
+          { method: 'GET', url: 'https://www.s.test/api/goods/3', status: [200] },
+          { method: 'GET', url: 'https://www.s.test/api/goods/41', status: [404] },
+          { method: 'GET', url: 'https://www.s.test/api/goods/7', status: [200] },
           { method: 'POST', url: 'https://api.s.test/cart' },
-          { method: 'GET', url: 'https://ads.other.test/pixel', status: 200 },
+          { method: 'GET', url: 'https://ads.other.test/pixel', status: [200] },
         ],
         'https://www.s.test/',
       ),
@@ -97,5 +131,11 @@ describe('API머리줄', () => {
 
   it('들은 것이 없으면 줄도 없다', () => {
     expect(API머리줄([], 'https://s.test/')).toEqual([]);
+  });
+
+  it('50줄까지만 싣고 나머지는 개수만 — 보조가 크롤 파일을 통째로 읽는다', () => {
+    const 줄들 = API머리줄(Array.from({ length: 53 }, (_, i) => ({ method: 'GET', url: `https://s.test/api/w${i}`, status: [200] })), 'https://s.test/');
+    expect(줄들).toHaveLength(51);
+    expect(줄들.at(-1)).toBe('# API: … 3개 더(crawl/apis.json)');
   });
 });

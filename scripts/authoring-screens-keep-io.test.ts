@@ -275,4 +275,13 @@ describe('지도받기 — 자식 앞에 서비스 지도를 api-map.txt 로 (PR
     expect(await 지도받기(통로, 자료)).toBe(0);
     expect(readdirSync(자료)).not.toContain('api-map.txt');
   });
+
+  it('이어받은 폴더의 앞 지도는 지도가 비었거나 못 받으면 지운다 — 자식 프롬프트가 낡은 지도를 알리지 않게 (PRD-F14-05)', async () => {
+    for (const 답 of [{ status: 200, 몸: { apis: [] } }, { status: 500 }]) {
+      writeFileSync(지도자리(자료), 'GET s.test/api/old\n');
+      서버(() => 답);
+      expect(await 지도받기(통로, 자료)).toBe(0);
+      expect(readdirSync(자료)).not.toContain('api-map.txt');
+    }
+  });
 });
