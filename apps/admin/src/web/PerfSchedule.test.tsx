@@ -43,6 +43,7 @@ afterEach(() => {
 async function 그리기(user: User, schedule: PerfScenario['schedule'] = null) {
   vi.spyOn(perfApi, 'scenario').mockResolvedValue(시나리오(schedule));
   vi.spyOn(perfApi, 'agents').mockResolvedValue({ agents: [] });
+  vi.spyOn(perfApi, 'dummyClients').mockResolvedValue({ clients: [] });
   render(<PerfWizard id={42} 띠서비스={앱} user={user} />);
   await screen.findByRole('button', { name: '다음' });
 }
@@ -55,6 +56,7 @@ describe('정기 실행', () => {
 
   it('새 시나리오는 저장하기 전에는 단추가 없다', async () => {
     vi.spyOn(perfApi, 'agents').mockResolvedValue({ agents: [] });
+    vi.spyOn(perfApi, 'dummyClients').mockResolvedValue({ clients: [] });
     render(<PerfWizard id={null} 띠서비스={앱} user={사람('admin')} />);
     await screen.findByRole('button', { name: '다음' });
     expect(screen.queryByRole('button', { name: '정기 실행' })).toBeNull();

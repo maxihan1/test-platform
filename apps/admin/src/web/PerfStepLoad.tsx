@@ -23,7 +23,7 @@ export const 유형글자: Record<TestType, { 이름: string; 설명: string }> 
 };
 const 유형들: TestType[] = ['LOAD', 'STRESS', 'SPIKE', 'SOAK'];
 
-export function PerfStepLoad({ 값, 고침, serviceId, 쓰나 }: { 값: 이단계값; 고침: (값: 이단계값) => void; serviceId: number; 쓰나: boolean }) {
+export function PerfStepLoad({ 값, 고침, serviceId, 쓰나, 더미 }: { 값: 이단계값; 고침: (값: 이단계값) => void; serviceId: number; 쓰나: boolean; 더미: boolean }) {
   const t = use말();
   // 칸을 고치면 구간을 다시 짓는다 — 「상세 설정」에서 고친 구간은 칸을 다시 고칠 때까지 남는다
   const 칸고침 = (덮: Partial<부하칸>, 유형 = 값.testType) => {
@@ -90,7 +90,9 @@ export function PerfStepLoad({ 값, 고침, serviceId, 쓰나 }: { 값: 이단�
           <summary>{t('상세 설정 (구간별 시간과 목표 직접 입력)')}</summary>
           <구간표 stages={값.stages} 쓰나={쓰나} 단위={단위} 고침={(stages) => 고침({ ...값, stages })} />
         </details>
-        {쓰나 ? (
+        {더미 ? (
+          <div className="perf-faint">{t('더미 클라이언트는 가상 사용자 수 기준으로만 걸 수 있습니다')}</div>
+        ) : 쓰나 ? (
           <div className="perf-faint">
             {값.basis === 'VUS' ? t('가상 사용자 대신 목표 TPS로도 설정할 수 있습니다') : t('초당 요청 수로 부하를 겁니다')}{' '}
             <button type="button" className="perf-toggle" onClick={() => 고침({ ...값, basis: 값.basis === 'VUS' ? 'TPS' : 'VUS' })}>

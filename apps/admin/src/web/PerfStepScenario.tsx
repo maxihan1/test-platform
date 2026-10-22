@@ -4,13 +4,15 @@ import { Fragment, useState } from 'react';
 
 import type { ServiceRow } from './api.js';
 import { use말 } from './i18n.js';
-import type { Transaction, 초안결과 } from './perfApi.js';
+import type { Transaction, 더미클라이언트, 초안결과 } from './perfApi.js';
 import { PerfImport } from './PerfImport.js';
-
-const 메서드들: Transaction['method'][] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
+import { PerfTxDetail, 종류글자, 종류의 } from './PerfTxDetail.js';
 
 export interface 일단계값 {
   name: string;
+  /** 트랜잭션 목록으로 짜나, 올려 둔 더미 클라이언트 하나로 도나. 저장 본문은 둘 중 하나만 싣는다 */
+  방식: 'TX' | 'DUMMY';
+  더미번호: number | null;
   transactions: Transaction[];
   notes: Record<string, string>;
   /** 마지막 가져오기의 녹화 셈 · 제외 목록 · 옮기지 못한 부분 */
@@ -24,6 +26,8 @@ export function PerfStepScenario({
   새것,
   쓰나,
   초안받음,
+  더미들,
+  더미오류,
 }: {
   값: 일단계값;
   고침: (값: 일단계값) => void;
@@ -32,6 +36,9 @@ export function PerfStepScenario({
   새것: boolean;
   쓰나: boolean;
   초안받음: (jobId: number) => void;
+  /** 이 애플리케이션에 올린 더미 클라이언트. 없으면 방식 고르개를 안 보인다 */
+  더미들: 더미클라이언트[];
+  더미오류: string | null;
 }) {
   const t = use말();
   const [편줄, set편줄] = useState<number | null>(null);
@@ -60,7 +67,11 @@ export function PerfStepScenario({
           <input value={값.name} maxLength={100} onChange={(e) => 고침({ ...값, name: e.target.value })} />
         </label>
       ) : null}
-      {쓰나 ? (
+      {더미오류 === null ? null : <p className="perf-err" role="alert">{더미오류}</p>}
+      {더미들.length === 0 && 값.방식 === 'TX' ? null : (
+        <더미고르개 값={값} 고침={고침} 더미들={더미들} 쓰나={쓰나} />
+      )}
+      {값.방식 === 'DUMMY' ? null : 쓰나 ? (
         <PerfImport
           service={service}
           받음={(결과, jobId) => {
@@ -70,8 +81,8 @@ export function PerfStepScenario({
           }}
         />
       ) : null}
-      {가져온 === null ? null : <가져온줄 결과={가져온} />}
-      {txs.length === 0 ? (
+      {가져온 === null || 값.방식 === 'DUMMY' ? null : <가져온줄 결과={가져온} />}
+      {값.방식 === 'DUMMY' ? null : txs.length === 0 ? (
         <div className="empty">{t('아직 트랜잭션이 없습니다. 위에서 가져오거나 직접 추가해 주세요')}</div>
       ) : (
         <div className="perf-table-box">
@@ -80,6 +91,7 @@ export function PerfStepScenario({
               <tr>
                 <th>{t('순서')}</th>
                 <th>{t('트랜잭션')}</th>
+                <th>{t('종류')}</th>
                 <th>{t('요청')}</th>
                 <th>{t('변수 추출')}</th>
                 <th>{t('Think Time')}</th>
@@ -98,8 +110,10 @@ export function PerfStepScenario({
                           {폈나 ? '▾' : '▸'} {tx.name}
                         </button>
                       </td>
+                      <td>{종류글자[종류의(tx)]}</td>
                       <td className="mono">
-                        {tx.method} {tx.url}
+                        {종류의(tx) === 'HTTP' ? `${tx.method} ` : ''}
+                        {종류의(tx) === 'GRPC' ? `${tx.url} ${tx.grpc?.method ?? ''}`.trim() : tx.url}
                       </td>
                       <td>
                         {(tx.extract ?? []).length === 0 ? <span className="perf-faint">-</span> : (tx.extract ?? []).map((x) => x.var).join(', ')}
@@ -125,8 +139,8 @@ export function PerfStepScenario({
                     {폈나 ? (
                       <tr className="perf-open">
                         <td />
-                        <td colSpan={쓰나 ? 5 : 4}>
-                          <줄자세히 tx={tx} 설명={값.notes[tx.name]} 쓰나={쓰나} 고침={(덮) => 줄고침(i, 덮)} />
+                        <td colSpan={쓰나 ? 6 : 5}>
+                          <PerfTxDetail tx={tx} 설명={값.notes[tx.name]} 쓰나={쓰나} 고침={(덮) => 줄고침(i, 덮)} />
                         </td>
                       </tr>
                     ) : null}
@@ -137,7 +151,7 @@ export function PerfStepScenario({
           </table>
         </div>
       )}
-      {쓰나 ? (
+      {쓰나 && 값.방식 === 'TX' ? (
         <div>
           <button type="button" className="btn ghost small" onClick={추가}>
             {t('트랜잭션 추가')}
@@ -194,85 +208,36 @@ function 가져온줄({ 결과 }: { 결과: 초안결과 }) {
   );
 }
 
-function 줄자세히({ tx, 설명, 쓰나, 고침 }: { tx: Transaction; 설명: string | undefined; 쓰나: boolean; 고침: (덮: Partial<Transaction>) => void }) {
+function 더미고르개({ 값, 고침, 더미들, 쓰나 }: { 값: 일단계값; 고침: (값: 일단계값) => void; 더미들: 더미클라이언트[]; 쓰나: boolean }) {
   const t = use말();
-  const 검증 = [
-    tx.check?.status === undefined ? null : t('상태 코드 {코드}', { 코드: tx.check.status.join(', ') }),
-    tx.check?.contains === undefined ? null : t('본문에 {글} 포함', { 글: tx.check.contains }),
-  ].filter((it) => it !== null);
   return (
     <div className="perf-well">
       <div className="perf-fields">
         <label className="perf-field">
-          {t('트랜잭션')}
-          <input value={tx.name} maxLength={100} disabled={!쓰나} onChange={(e) => 고침({ name: e.target.value })} />
-        </label>
-        <label className="perf-field">
-          {t('메서드')}
-          <select value={tx.method} disabled={!쓰나} onChange={(e) => 고침({ method: e.target.value as Transaction['method'] })}>
-            {메서드들.map((m) => (
-              <option key={m}>{m}</option>
-            ))}
+          {t('시나리오 방식')}
+          <select
+            value={값.방식}
+            disabled={!쓰나}
+            onChange={(e) => 고침({ ...값, 방식: e.target.value === 'DUMMY' ? 'DUMMY' : 'TX', 더미번호: e.target.value === 'DUMMY' ? (값.더미번호 ?? 더미들[0]?.id ?? null) : 값.더미번호 })}
+          >
+            <option value="TX">{t('트랜잭션 목록')}</option>
+            <option value="DUMMY">{t('더미 클라이언트')}</option>
           </select>
         </label>
-        <label className="perf-field" style={{ flex: '1 1 320px' }}>
-          {t('주소')}
-          <input value={tx.url} disabled={!쓰나} onChange={(e) => 고침({ url: e.target.value })} />
-        </label>
-        <label className="perf-field">
-          {t('Think Time (초)')}
-          <input
-            type="number"
-            min={0}
-            max={600}
-            value={tx.thinkTimeSec ?? ''}
-            disabled={!쓰나}
-            onChange={(e) => 고침({ thinkTimeSec: e.target.value === '' ? undefined : Number(e.target.value) })}
-          />
-        </label>
+        {값.방식 === 'DUMMY' ? (
+          <label className="perf-field">
+            {t('더미 클라이언트')}
+            <select value={값.더미번호 ?? ''} disabled={!쓰나} onChange={(e) => 고침({ ...값, 더미번호: Number(e.target.value) })}>
+              {더미들.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
       </div>
-      {tx.method === 'GET' ? null : (
-        <label className="perf-field">
-          {t('요청 본문')}
-          <textarea rows={3} value={tx.body ?? ''} disabled={!쓰나} onChange={(e) => 고침({ body: e.target.value === '' ? undefined : e.target.value })} />
-        </label>
-      )}
-      {(tx.extract ?? []).length === 0 ? null : (
-        <table className="perf-table">
-          <thead>
-            <tr>
-              <th>{t('변수')}</th>
-              <th>{t('추출 위치')}</th>
-              <th>{t('추출 방식')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(tx.extract ?? []).map((x) => (
-              <tr key={x.var}>
-                <td className="mono">{x.var}</td>
-                <td>
-                  {t(추출곳[x.where])} <span className="mono">{x.path}</span>
-                </td>
-                <td>{x.pick === 'RANDOM' ? t('무작위 1개') : t('첫 값')}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-      {검증.length === 0 ? null : (
-        <div className="perf-row">
-          <span className="perf-field">{t('응답 검증')}</span>
-          <span className="mono">{검증.join(', ')}</span>
-        </div>
-      )}
-      {설명 === undefined ? null : (
-        <div className="perf-row">
-          <span className="perf-ai">AI</span>
-          <span>{설명}</span>
-        </div>
-      )}
+      {값.방식 === 'DUMMY' ? <span className="perf-faint">{t('올려 둔 실행 파일을 가상 사용자 수만큼 띄웁니다. 동시 사용자 기준으로만 걸 수 있고 트랜잭션 목록은 쓰지 않습니다')}</span> : null}
     </div>
   );
 }
-
-const 추출곳: Record<'JSON' | 'HEADER' | 'COOKIE', string> = { JSON: '응답 본문', HEADER: '응답 머리글', COOKIE: '쿠키' };
