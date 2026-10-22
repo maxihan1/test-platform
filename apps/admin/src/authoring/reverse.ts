@@ -114,6 +114,9 @@ export function 앱줄고르기<T extends { env: string; appPath: string | null;
   return 줄들.filter((j) => !j.isProd).find((j) => (env === null ? j.appPath !== null : j.env === env));
 }
 
+/** 폰에서 도는 애플리케이션 — Android 앱과 게임은 크롤러가 못 읽어 대조가 없고 앱 줄 계정으로 작성한다 (도메인/게임 §3.10 「작성 — 한 바퀴」) */
+export const 폰앱인가 = (kind: string | null | undefined): boolean => kind === 'APP' || kind === 'GAME';
+
 /** 집기 응답 target 한 벌 — 운영 줄이면 계정이 비고 isProd 가 붙는다 */
 export function 집기대상(env: string, 원줄: 대상줄 | null, startUrl: string | null): 대상 {
   const 줄 = 작성에실을줄(원줄);
@@ -172,7 +175,7 @@ export async function 집기대상칸(
       : [줄, 머지줄].filter((z): z is 대상줄 => z !== null);
   // Android 앱은 대조가 없어(역방향칸판정 BAD_ENV) 이 길이 아니면 AI 가 폰에서 로그인할 계정을 받을 곳이 없다 (2026-10-22 사용자).
   // 앱 줄을 맨 앞에 둔다 — 자식은 첫 「일반 회원」으로 로그인하는데 반영 · 머지 행은 다른 줄도 싣는다
-  const 앱줄 = (await 문서설정읽기(서비스))?.kind === 'APP' ? 앱줄고르기(await 대상줄들읽기(서비스), 행.env) : undefined;
+  const 앱줄 = 폰앱인가((await 문서설정읽기(서비스))?.kind) ? 앱줄고르기(await 대상줄들읽기(서비스), 행.env) : undefined;
   const 줄들 = 앱줄 === undefined ? 그밖 : [앱줄, ...그밖.filter((z) => z.env !== 앱줄.env)];
   const accounts = 실을계정(줄들);
   return { ...(target === undefined ? {} : { target }), ...(accounts.length === 0 ? {} : { accounts }) };
@@ -195,7 +198,7 @@ export async function 역방향칸판정(본문: Record<string, unknown>, 서비
   if (compare !== undefined && typeof compare !== 'boolean') return { error: 'BAD_ENV' };
   // Android 앱은 크롤러가 못 읽어 대조가 없다 (§3.6 「앱 화면」). 만들기 · 재실행 · 이어 작성이 모두 여기를 지난다 —
   // 종류가 바뀌기 전에 세운 대조 원본을 물려받아도 막힌다
-  if ((compare === true || 주소있음) && (await 문서설정읽기(서비스))?.kind === 'APP') return { error: 'BAD_ENV' };
+  if ((compare === true || 주소있음) && 폰앱인가((await 문서설정읽기(서비스))?.kind)) return { error: 'BAD_ENV' };
   if (compare !== true) {
     if (주소있음) return { error: 'BAD_START_URL' };
     if (env !== undefined && env !== null) return { error: 'BAD_ENV' };

@@ -25,7 +25,7 @@ async function 이어갈뿌리(서비스: number, 재료: 보류재료): Promise
   // Android 앱은 대조가 없어 정방향 뿌리도 앱 줄 계정으로 이어 간다 (§3.6 「★ 역할별 계정」 표 「이어 작성」 · 2026-10-22)
   const r = await (await db()).query<{ id: string; env: string | null; compare: boolean; kind: string }>(
     `SELECT a.id, a.env, a.compare, s.kind FROM authoring_request a JOIN service s ON s.id = a.service_id
-      WHERE a.service_id = $1 AND a.kind = 'AUTHOR' AND (a.compare OR s.kind = 'APP') AND a.discarded_at IS NULL
+      WHERE a.service_id = $1 AND a.kind = 'AUTHOR' AND (a.compare OR s.kind IN ('APP', 'GAME')) AND a.discarded_at IS NULL
         AND NOT (a.params ? 'prdApply') AND NOT (a.params ? 'edits')
       ORDER BY a.id DESC LIMIT ${String(후보상한)}`,
     [서비스],
