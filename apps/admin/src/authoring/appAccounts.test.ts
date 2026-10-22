@@ -26,13 +26,13 @@ describe.skipIf(연결 === undefined)('Android 앱 작성 집기 accounts', () =
     ]);
   }
 
-  async function 하나만세운다(params: Record<string, unknown> = {}): Promise<void> {
+  async function 하나만세운다(params: Record<string, unknown> = {}, env: string | null = null): Promise<void> {
     const { pool } = await import('../db/index.js');
     await pool.query(`UPDATE authoring_request SET status = 'FAILED' WHERE service_id = $1 AND status IN ('PENDING', 'RUNNING')`, [서비스]);
     await pool.query(
-      `INSERT INTO authoring_request (service_id, kind, params, requested_by, requested_by_name, status)
-       VALUES ($1, 'AUTHOR', $2, $3, '앱 검사', 'PENDING')`,
-      [서비스, JSON.stringify(params), 부르는이],
+      `INSERT INTO authoring_request (service_id, kind, params, requested_by, requested_by_name, status, env)
+       VALUES ($1, 'AUTHOR', $2, $3, '앱 검사', 'PENDING', $4)`,
+      [서비스, JSON.stringify(params), 부르는이, env],
     );
   }
 
@@ -90,8 +90,13 @@ describe.skipIf(연결 === undefined)('Android 앱 작성 집기 accounts', () =
     expect('accounts' in (await 집기())).toBe(false);
   });
 
-  it('반영 행(prdApply)은 지금처럼 실서비스 서버가 아닌 줄 전부를 한 번씩 싣는다', async () => {
+  it('반영 행(prdApply)은 실서비스 서버가 아닌 줄 전부를 한 번씩 싣되 앱 줄을 맨 앞에 둔다 — 자식은 첫 일반 회원으로 로그인한다', async () => {
     await 하나만세운다({ prdApply: true });
-    expect(((await 집기()).accounts as { env: string }[]).map((a) => a.env)).toEqual(['dev', 'dev', 'qa', 'qa']);
+    expect(((await 집기()).accounts as { env: string }[]).map((a) => a.env)).toEqual(['qa', 'qa', 'dev', 'dev']);
+  });
+
+  it('요청에 대상 서버가 있으면 앱 파일 경로가 없어도 그 줄이 앱 줄이다', async () => {
+    await 하나만세운다({}, 'dev');
+    expect(((await 집기()).accounts as { env: string }[]).map((a) => a.env)).toEqual(['dev', 'dev']);
   });
 });
