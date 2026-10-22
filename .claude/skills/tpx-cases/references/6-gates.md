@@ -117,7 +117,7 @@ PLATFORM_SLOW_API=1 npx playwright test tests/<폴더> --project=desktop --repea
 전제 판정이 통과하고 **두 단계 뒤 문장이 죽었다.** 기대값만 뒤집는 부수기로는 안 나왔을 것이다.
 
 **★ 입력값 칸은 기본값 말고 다른 값으로 두 번 돌린다 (2026-10-12 사용자 · PRD-F9-24).** 비밀값이 아닌 입력값 칸(`5-inputs.md`)이 있는 케이스가 대상이고 held 케이스는 뺀다.
-파일을 고치지 않고 `PLATFORM_PARAMS='{"params":{…}}'` 로 넣는다. 관문 3 에 쓴 환경 변수(대상 서버 · 계정)는 그대로 두되 **`PLATFORM_SLOW_API` 는 빼고 돈다** (2026-10-19 사용자 — 케이스가 칸 값을 쓰는지만 보는 확인이라 응답을 늦출 까닭이 없다. 기다림은 3회 실행이 본다. #303 은 178건을 늦춘 채 두 번 넘게 돌아 관문 4 가 22분이었다). 거기서 `PLATFORM_PARAMS` 를 썼으면 그 값에 더해 담는다.
+파일을 고치지 않고 `PLATFORM_PARAMS='{"params":{…}}'` 로 넣는다 — 작성 에이전트는 `PLATFORM_PARAMS='…' npm run -s authoring:run -- 한번 <묶음> <파일들>` 로 돈다. 관문 3 에 쓴 환경 변수(대상 서버 · 계정)는 그대로 두되 **`PLATFORM_SLOW_API` 는 빼고 돈다** (2026-10-19 사용자 — 케이스가 칸 값을 쓰는지만 보는 확인이라 응답을 늦출 까닭이 없다. 기다림은 3회 실행이 본다. #303 은 178건을 늦춘 채 두 번 넘게 돌아 관문 4 가 22분이었다). 거기서 `PLATFORM_PARAMS` 를 썼으면 그 값에 더해 담는다.
 **작성 에이전트가 팬아웃했으면 서브에이전트가 자기 케이스 몫을 자기 3회 앞에 돈다** — 넷이 나란히 돌고 빨개진 것은 서브에이전트가 그 자리에서 고친다. 자식은 합친 뒤 고친 케이스만 돈다(`tpx-author` `references/fanout.md` §4 · §5).
 
 | 넣는 값 | 나와야 할 것 | 어기면 |
@@ -139,6 +139,7 @@ PLATFORM_SLOW_API=1 npx playwright test tests/<폴더> --project=desktop --repea
    PLATFORM_OUTPUT_ID=heal-<tcId> PLATFORM_SLOW_API=1 npx playwright test <케이스 파일> --project=desktop --trace on --reporter=line > /tmp/heal.log 2>&1; echo "EXIT=$?"
    npm run trace:summary -- artifacts/playwright/heal-<tcId>
    ```
+   작성 에이전트(자식 · 보조)는 손으로 부르지 않고 `PLATFORM_SLOW_API=1 npm run -s authoring:run -- 한번 heal <케이스 파일> --trace` 로 돈다 — 브라우저 자리를 받고 찍힌 trace 폴더를 요약에 넘긴다(`tpx-author` `references/fanout.md` §4 「1번 돌려 보기」)
    초록이면 그 자체가 흔들림 근거다 — `5-stable.md` 대로 기다림 · 남의 데이터를 본다. 「화면이 맞음」 요청은 프롬프트가 알려 준 `traces/RUN<번호>-<케이스>.txt`(서버가 가린 그 실행의 요약)를 먼저 읽는다
 2. **요약 몇 줄로 가른다** — `가름:` 줄이 스크립트의 판정이다. 실패한 조작 · 앞 조작 · 그 단계의 API · 콘솔을 보고 맞는지 확인한다.
    자료 폴더 `api-map.txt`(서비스 지도)에 그 화면이 늘 부르는 API 가 있는데 요약에 안 보이면 그 응답을 안 기다린 「대기 부족」을 먼저 의심한다(`4-selector.md` 「서비스 지도」 — 기대값 근거는 아니다)
