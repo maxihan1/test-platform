@@ -18,8 +18,9 @@
 
 | 자료 | 어떻게 읽나 |
 |---|---|
-| `.pdf` · `.md` · `.txt` | 받은 경로를 **Read 로 그대로** 연다 |
+| `.pdf` · `.md` · `.txt` · `.csv` | 받은 경로를 **Read 로 그대로** 연다 |
 | `.doc` · `.docx` | 에이전트가 글자로 바꿔 둔 `.txt` 경로가 온다(맥은 `textutil`, 서버는 `pandoc` — 서버는 옛 `.doc` 을 미리 실패시킨다). 그것을 Read 로 연다 |
+| `.xlsx` | 에이전트가 시트마다 CSV 글(「# 시트: 이름」 머리)로 바꿔 둔 `.txt` 경로가 온다(맥 · 서버 같다 — `scripts/authoring-xlsx.ts`). 그것을 Read 로 연다 |
 | 피그마 주소 | `npx --yes figma-reader@0.4.0 inspect --refresh '<주소>'` |
 
 **피그마 도구** — 저장소 이름은 `figma-reader-cli` 지만 **npm 패키지와 명령 이름은 `figma-reader`** 다
