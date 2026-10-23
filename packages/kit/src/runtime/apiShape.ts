@@ -42,11 +42,18 @@ const 끝빗금뺌 = (길: string): string => (길.length > 1 ? 길.replace(/\/+
 /** 메서드 · 주소로 문서의 경로 틀을 찾는다. 글자 마디가 많은 틀이 이긴다(`/v1/pushes/batch` 가 `/v1/pushes/{id}` 보다 먼저) */
 function 틀찾기(문서: 객체, method: string, url: string): { path: string; op: 객체 } | undefined {
   const paths = 객체인가(문서.paths) ? 문서.paths : {};
-  const 첫서버 = Array.isArray(문서.servers) && 객체인가(문서.servers[0]) ? 문서.servers[0].url : undefined;
-  // servers[0].url 에 경로가 있으면(https://api.x.com/v2 · /v2) 틀 앞에 붙는다. 서버 변수({port})는 주소로 못 읽어 0 으로 채워 읽는다
+  const 첫서버: 객체 = Array.isArray(문서.servers) && 객체인가(문서.servers[0]) ? 문서.servers[0] : {};
+  const 변수들 = 객체인가(첫서버.variables) ? 첫서버.variables : {};
+  // servers[0].url 에 경로가 있으면(https://api.x.com/v2 · /v2) 틀 앞에 붙는다. 서버 변수는 기본값으로 채운다 — {basePath} 를 0 으로 채우면 앞이 /0 이 된다.
+  // 기본값이 없는 문서({port} 만 적은 것)는 주소로 읽히게 0 으로 채운다
+  const 채움 = (_: string, 이름: string): string => {
+    const 변수 = 변수들[이름];
+    // YAML 문서는 default: 2 를 숫자로 읽는다
+    return 객체인가(변수) && ['string', 'number'].includes(typeof 변수.default) ? String(변수.default) : '0';
+  };
   let 앞 = '';
   try {
-    if (typeof 첫서버 === 'string') 앞 = 끝빗금뺌(new URL(첫서버.replace(/\{[^}]*\}/g, '0'), 'http://x').pathname).replace(/^\/$/, '');
+    if (typeof 첫서버.url === 'string') 앞 = 끝빗금뺌(new URL(첫서버.url.replace(/\{([^}]*)\}/g, 채움), 'http://x').pathname).replace(/^\/$/, '');
   } catch {
     // 못 읽는 서버 주소면 앞을 안 붙인다 — 문서 쪽 한계로 케이스 요청이 터지지 않게
   }
