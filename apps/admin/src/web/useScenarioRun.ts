@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { use말, use언어 } from './i18n.js';
 import { 떠나기막기 } from './leaveGuard.js';
 import { scenarioApi } from './scenarioApi.js';
-import { 결과주소 } from './ScenarioResultNext.js';
+import { 결과주소, type 들어온곳 } from './ScenarioResultNext.js';
 import { message } from './ui.js';
 
 // 새 것을 저장하고 실행하다 실행만 실패하면 저장된 주소로 옮겨 화면을 새로 그린다. 실패 문장이 그 사이에 사라지지 않게 넘긴다
@@ -20,10 +20,13 @@ export function 넘겨받은실행글(): string | null {
 
 export function useScenarioRun({
   id,
+  어디서,
   on글,
   on새주소,
 }: {
   id: number | null;
+  /** 결과 화면의 돌아가기 — 조립 화면은 그 시나리오로, 마법사는 목록으로 (§8.11 「마법사」 저장하고 실행) */
+  어디서: 들어온곳;
   on글: (글: string | null) => void;
   /** 저장은 됐는데 실행이 실패한 새 시나리오 — 주소를 옮기기 전에 넘길 것을 넘긴다 */
   on새주소: (새번호: number) => void;
@@ -59,7 +62,7 @@ export function useScenarioRun({
       const { runId } = await scenarioApi.run(번호, 서버);
       // 자기 이동에 떠나기 상자를 띄우지 않는다 — 방금 저장해 잃을 것이 없다
       떠나기막기(null);
-      window.location.hash = 결과주소(runId, 'scenario');
+      window.location.hash = 결과주소(runId, 어디서);
     } catch (err) {
       const 글 = message(err, 언어);
       if (새번호 === null) {

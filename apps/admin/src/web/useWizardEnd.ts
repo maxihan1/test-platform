@@ -34,7 +34,7 @@ export function useWizardEnd({ 서비스, 디바이스, 이름, 보낼, 앱들, 
   const [저장중, set저장중] = useState(false);
   const [저장됨, set저장됨] = useState<{ id: number; version: number; 이름: string } | null>(null);
   const 시험원본 = useScenarioTrial(시험열쇠(null));
-  const 정식 = useScenarioRun({ id: null, on글: on까닭, on새주소: () => undefined });
+  const 정식 = useScenarioRun({ id: null, 어디서: 'scenarios', on글: on까닭, on새주소: () => undefined });
 
   const 서버들 = 서버선택지(앱들, 서비스, 보낼);
   const 가능 = 서버들.filter((s) => s.없는곳.length === 0);
