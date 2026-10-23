@@ -69,6 +69,12 @@ function 요소읽기(명세: ts.ObjectLiteralExpression): string[] | null {
   return 식.elements.map((e) => (e as ts.StringLiteralLike).text);
 }
 
+/** 케이스 글이 적은 요소 열쇠 — 글자 배열이 아니거나 케이스가 아니면 빈 목록(에이전트의 「아직 안 다룬 요소」 셈) */
+export function 케이스요소들(글: string): string[] {
+  const 명세 = 명세글(읽기(글));
+  return 명세 === undefined ? [] : (요소읽기(명세) ?? []);
+}
+
 /**
  * 파일들(저장소 뿌리 기준 경로와 글)을 본다. 지도가 null 이면 게임 작성이 아니다 — 케이스가 elements 를 적었는지만 본다.
  * 케이스(`.spec.ts`)는 요소 · 디바이스 · 몸통을, 모든 파일(화면 객체 · 도우미 포함)은 좌표를 본다
