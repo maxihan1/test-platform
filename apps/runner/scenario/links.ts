@@ -139,7 +139,7 @@ export function 무늬맞음(무늬: string, url: string, baseUrl: string): bool
 }
 
 // Playwright APIRequestContext 와 같은 풀이 — new URL(url, baseURL) 이 못 풀면 그대로 · params 는 append (SPEC 도메인/시나리오 §3.7 결정 12 「요청 고르기」)
-// params 는 Playwright 와 같이 붙인다 — 글자 · URLSearchParams 는 물음표 뒤를 갈아 끼우고 객체는 덧붙인다(playwright-core 의 encodedParams).
+// params 는 Playwright 와 같이 붙인다 — 글자 · URLSearchParams 는 물음표 뒤를 갈아 끼우고(비었으면 그대로) 객체는 덧붙인다(playwright-core 의 encodedParams).
 // 미룬 삭제는 이 주소만으로 다시 보내므로 꼴 하나라도 버리면 쿼리 없는 DELETE 가 나간다 (2026-10-24 FIX-F2-05 · 리뷰 L37)
 export function 요청주소(url: string, 기준: string | undefined, params?: Record<string, string | number | boolean> | URLSearchParams | string): string {
   let 풀린: URL;
@@ -148,8 +148,9 @@ export function 요청주소(url: string, 기준: string | undefined, params?: R
   } catch {
     return url;
   }
-  if (typeof params === 'string' || params instanceof URLSearchParams) 풀린.search = params.toString();
-  else for (const [name, value] of Object.entries(params ?? {})) 풀린.searchParams.append(name, String(value));
+  if (typeof params === 'string' || params instanceof URLSearchParams) {
+    if (params.toString() !== '') 풀린.search = params.toString();
+  } else for (const [name, value] of Object.entries(params ?? {})) 풀린.searchParams.append(name, String(value));
   return 풀린.toString();
 }
 

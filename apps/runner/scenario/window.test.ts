@@ -78,10 +78,14 @@ describe('sendDelete', () => {
     const 도구 = 창.request as unknown as APIRequestContext;
     await 도구.delete('/api/cart?old=1', { params: 'itemId=7' });
     await 도구.delete('/api/cart', { params: new URLSearchParams({ itemId: '8' }), data: { all: true } });
-    await 도구.delete('/api/cart', { params: { itemId: 9 }, form: { reason: 'x' } });
+    const 고쳐쓰는 = { reason: 'x' };
+    await 도구.delete('/api/cart', { params: { itemId: 9 }, form: 고쳐쓰는 });
+    고쳐쓰는.reason = 'y';
+    await 도구.delete('/api/cart?keep=1', { params: new URLSearchParams() });
 
     expect(이음.미룸.map((d) => d.url)).toEqual([
       'https://qa.example.com/api/cart?itemId=7', 'https://qa.example.com/api/cart?itemId=8', 'https://qa.example.com/api/cart?itemId=9',
+      'https://qa.example.com/api/cart?keep=1',
     ]);
     expect(원래도구.delete).not.toHaveBeenCalled();
     await 감싸기.sendDelete(이음.미룸[1]!, 1000);
