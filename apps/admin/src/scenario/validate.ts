@@ -99,15 +99,21 @@ export function 시나리오제한시간(parts: ScenarioPart[]): number {
   return Math.max(부품시간합(parts), 바닥);
 }
 
-/** 60분·크기 상한 사유. 저장(조립검사)과 실행 가능 판정이 같은 것을 본다. 비면 통과다 */
-export function 제한시간크기사유(parts: ScenarioPart[]): string[] {
-  const 사유: string[] = [];
+/** 크기 상한 사유. 넘지 않으면 null. 조립검사는 다른 검사보다 이것을 먼저 본다 — 큰 목록은 부품마다 도는 검사가 서버를 수 초 붙잡는다 */
+function 크기사유(parts: ScenarioPart[]): string | null {
+  const 크기 = Buffer.byteLength(JSON.stringify(parts));
+  return 크기 > 크기상한 ? `단계 목록이 ${크기}바이트로 ${크기상한}바이트를 넘는다` : null;
+}
+
+function 제한시간사유(parts: ScenarioPart[]): string | null {
   // 상한은 바닥 전 합으로 본다 — 바닥은 러너 몫이지 조립이 쓴 시간이 아니다
   const 합 = 부품시간합(parts);
-  if (합 > 제한시간상한) 사유.push(`제한 시간 합이 ${합}ms 로 ${제한시간상한}ms 를 넘는다`);
-  const 크기 = Buffer.byteLength(JSON.stringify(parts));
-  if (크기 > 크기상한) 사유.push(`단계 목록이 ${크기}바이트로 ${크기상한}바이트를 넘는다`);
-  return 사유;
+  return 합 > 제한시간상한 ? `제한 시간 합이 ${합}ms 로 ${제한시간상한}ms 를 넘는다` : null;
+}
+
+/** 60분·크기 상한 사유. 저장(조립검사)과 실행 가능 판정 · 값 연결 제안이 같은 것을 본다. 비면 통과다 */
+export function 제한시간크기사유(parts: ScenarioPart[]): string[] {
+  return [제한시간사유(parts), 크기사유(parts)].filter((s) => s !== null);
 }
 
 // 짧은 무늬는 걸린 창의 주소로 풀려 어느 애플리케이션을 가리키는지 모호하다 (SPEC 도메인/시나리오 §3.7 결정 13)
@@ -128,6 +134,8 @@ function 바른경로(path: string): boolean {
  */
 export function 조립검사(parts: ScenarioPart[], platform: Platform, service: string, 재료: 카탈로그, 허용: readonly string[] = [service]): string[] {
   if (parts.length === 0) return ['단계가 하나도 없다'];
+  const 너무큼 = 크기사유(parts);
+  if (너무큼 !== null) return [너무큼];
 
   const 오류: string[] = [];
   const 섞임 = 섞였나(parts, service);
@@ -193,6 +201,8 @@ export function 조립검사(parts: ScenarioPart[], platform: Platform, service:
       // API 인증 이름은 설정과 같은 1~20자다. 그 대상 서버에 있는지는 실행 때 러너가 본다 — 이름은 서버마다 따로 넣는다 (결정 14)
       if (p.auth !== undefined && (p.auth.length < 1 || p.auth.length > 20)) 오류.push(`${자리}: API 인증 이름은 1~20자다`);
       const 이름들 = new Set<string>();
+      // 값 주입마다 본문을 다시 글자로 바꾸면 「주입 수 × 본문 크기」만큼 돈다
+      const 본문글 = JSON.stringify(p.body ?? null);
       for (const v of p.values ?? []) {
         if (!값이름.test(v.name)) 오류.push(`${자리}: 값 주입 이름 「${v.name}」 은 영문 · 숫자 · 한글 · _ 1~20자여야 한다`);
         else if (이름들.has(v.name)) 오류.push(`${자리}: 값 주입 이름 「${v.name}」 이 둘 이상이다`);
@@ -206,7 +216,7 @@ export function 조립검사(parts: ScenarioPart[], platform: Platform, service:
           오류.push(`${자리}: 값 주입이 가리키는 ${v.value.fromSeq}번 단계는 ${앞.method} 요청이다`);
         }
         // 이름을 잘못 적으면 {…} 가 그대로 나가 엉뚱한 응답 코드로만 드러난다
-        if (값이름.test(v.name) && !p.path.includes(`{${v.name}}`) && !(JSON.stringify(p.body ?? null)).includes(`{${v.name}}`)) {
+        if (값이름.test(v.name) && !p.path.includes(`{${v.name}}`) && !본문글.includes(`{${v.name}}`)) {
           오류.push(`${자리}: 값 주입 이름 「${v.name}」 자리 {${v.name}} 가 경로 · 본문에 없다`);
         }
       }
@@ -221,5 +231,6 @@ export function 조립검사(parts: ScenarioPart[], platform: Platform, service:
     }
   });
 
-  return [...오류, ...제한시간크기사유(parts)];
+  const 시간 = 제한시간사유(parts);
+  return 시간 === null ? 오류 : [...오류, 시간];
 }
