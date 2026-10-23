@@ -32,6 +32,8 @@ export interface 기기 {
 export interface 프레임수 {
   total: number;
   janky: number;
+  /** 폰이 덤프를 뜬 시각(ms). 두 읽기 사이에 실제로 흐른 시간을 재는 데 쓴다 */
+  uptimeMs: number | null;
 }
 
 export interface 틱 {
@@ -53,7 +55,8 @@ export function gfxinfo를읽는다(out: string): 프레임수 | null {
   const total = out.match(/Total frames rendered:\s*(\d+)/);
   const janky = out.match(/Janky frames:\s*(\d+)/);
   if (total === null || janky === null) return null;
-  return { total: Number(total[1]), janky: Number(janky[1]) };
+  const uptime = out.match(/^Uptime:\s*(\d+)/m);
+  return { total: Number(total[1]), janky: Number(janky[1]), uptimeMs: uptime === null ? null : Number(uptime[1]) };
 }
 
 /** `dumpsys SurfaceFlinger --list` 에서 그 패키지가 든 SurfaceView 층 이름. 작은따옴표가 든 이름은 셸에 못 넣어 건너뛴다 */
@@ -62,16 +65,19 @@ export function surfaceView층을찾는다(out: string, pkg: string): string | n
   return 줄.find((l) => l.includes(pkg) && l.includes('SurfaceView') && !l.includes("'")) ?? null;
 }
 
-/** `--latency` 의 둘째 칸(실제 표시 시각, ns). 첫 줄은 갱신 주기, 0 · INT64_MAX 는 아직 안 그려진 칸이다 */
-export function 프레임시각들(out: string): number[] {
+/** `--latency` 의 둘째 칸(실제 표시 시각, ns). 첫 줄은 갱신 주기, 0 은 아직 안 쓴 칸 · INT64_MAX 는 아직 안 그려진 칸이다.
+ *  꽉참 — 안 쓴 칸이 없다. 층의 기록 칸이 다 차서 오래된 프레임이 밀려났을 수 있다 */
+export function 프레임시각들(out: string): { 시각: number[]; 꽉참: boolean } {
   const 시각: number[] = [];
+  let 꽉참 = true;
   for (const l of out.split('\n')) {
     const 칸 = l.trim().split(/\s+/);
     if (칸.length !== 3 || !칸.every((c) => /^\d+$/.test(c))) continue;
+    if (칸[1] === '0') 꽉참 = false;
     if (칸[1] === '0' || 칸[1] === INT64_MAX) continue;
     시각.push(Number(칸[1]));
   }
-  return 시각;
+  return { 시각, 꽉참 };
 }
 
 /** `cat /proc/<pid>/stat /proc/stat` 출력에서 앱의 utime+stime 과 전체 틱 합계. 앱 이름에 괄호 · 공백이 있을 수 있어 마지막 `)` 뒤로 자른다 */

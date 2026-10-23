@@ -30,7 +30,11 @@ describe('연결된serial들', () => {
 describe('gfxinfo를읽는다', () => {
   it('렌더링한 프레임과 끊긴 프레임 수를 읽는다', () => {
     const out = 'Stats since: 1234ns\nTotal frames rendered: 1520\nJanky frames: 38 (2.50%)\n50th percentile: 6ms';
-    expect(gfxinfo를읽는다(out)).toEqual({ total: 1520, janky: 38 });
+    expect(gfxinfo를읽는다(out)).toEqual({ total: 1520, janky: 38, uptimeMs: null });
+  });
+  it('덤프를 뜬 시각(Uptime)도 읽는다', () => {
+    const out = 'Applications Graphics Acceleration Info:\nUptime: 61209466 Realtime: 61209999\n\nTotal frames rendered: 10\nJanky frames: 1 (10.00%)\n';
+    expect(gfxinfo를읽는다(out)).toEqual({ total: 10, janky: 1, uptimeMs: 61209466 });
   });
   it('앱이 없으면 null', () => {
     expect(gfxinfo를읽는다('No process found for: com.x')).toBeNull();
@@ -53,7 +57,11 @@ describe('surfaceView층을찾는다', () => {
 describe('프레임시각들', () => {
   it('둘째 칸만 읽고 첫 줄 · 0 · INT64_MAX 는 거른다', () => {
     const out = ['16666666', '100 1000000000 105', '116 1016666666 121', '0 0 0', '132 9223372036854775807 137', ''].join('\n');
-    expect(프레임시각들(out)).toEqual([1_000_000_000, 1_016_666_666]);
+    expect(프레임시각들(out)).toEqual({ 시각: [1_000_000_000, 1_016_666_666], 꽉참: false });
+  });
+  it('안 쓴 칸(0)이 없으면 꽉 찼다', () => {
+    const out = ['16666666', '100 1000000000 105', '132 9223372036854775807 137', ''].join('\n');
+    expect(프레임시각들(out)).toEqual({ 시각: [1_000_000_000], 꽉참: true });
   });
 });
 
