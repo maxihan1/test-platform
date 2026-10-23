@@ -29,6 +29,11 @@ const 러너사유 = /^(러너에 닿지 못했습니다|러너가 |이 서버�
 // 기다리던 요소를 찾고 나서(보이지 않음 · 누를 수 없음) 시간이 다 된 것은 「못 찾음」이 아니다
 const 요소찾음 = /resolved to/;
 const 시간초과 = /^TIMEOUT\b|Timeout \d+ms exceeded|Test timeout of/;
+// 게임 드라이버 오류 문구(control_cli SDK · kit 게임 몸통 — 도메인/게임 「실행 결과」). 연결이 끊긴 것이 먼저다 —
+// 「게임이 120초 안에 답하지 않았습니다 — 게임 포트 13100 에 붙지 못했습니다」(켜지기 기다림 실패)는 시간 초과가 아니라 환경이다
+const 게임연결끊김 = /게임 포트 \d+ 에 붙지 못했습니다|게임이 답 없이 연결을 닫았습니다|디바이스 팜이 게임 명령을 HTTP \d+ 로 거절했습니다/;
+const 게임요소없음 = /켜진 오브젝트 중에 .+ 이 없습니다/;
+const 게임시간초과 = /초 안에 (뜨지 |사라지지 |「.*」이 되지 )않았습니다|게임이 [\d.]+초 안에 답하지 않았습니다/;
 
 /**
  * 차례가 곧 규칙이다 — 확인 문장 실패가 먼저다. 그 문장이 기대와 실제를 이미 판정했다.
@@ -41,9 +46,9 @@ export function 원인을가른다(재료: 원인재료): 원인 {
   const 글 = `${항목}\n${재료.stepMessage.replace(색코드, '')}`;
   if (재료.status === 'NA' && /^ABORTED\b/.test(항목)) return 'stopped';
   if (재료.assertFailed) return 'mismatch';
-  if (연결끊김.test(글) || (재료.status === 'NA' && 러너사유.test(항목))) return 'environment';
-  if (요소대기.test(글) && !요소찾음.test(글)) return 'notFound';
-  if (시간초과.test(글)) return 'timeout';
+  if (연결끊김.test(글) || 게임연결끊김.test(글) || (재료.status === 'NA' && 러너사유.test(항목))) return 'environment';
+  if ((요소대기.test(글) && !요소찾음.test(글)) || 게임요소없음.test(글)) return 'notFound';
+  if (시간초과.test(글) || 게임시간초과.test(글)) return 'timeout';
   return 'other';
 }
 
