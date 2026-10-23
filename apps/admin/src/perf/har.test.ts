@@ -72,6 +72,12 @@ describe('녹화 가리기', () => {
     expect(가린).toBe(`http://x/?k=${표.get('a b+c/d=e')}`);
   });
 
+  it('폼으로 보낸 비밀번호(! 는 %21, 공백은 +)도 같은 꼬리표다', () => {
+    const 표 = 가림표(['a b!c'], [{ loginId: 'tester01', loginPassword: 'Qwer1234!' }]);
+    const 본문 = new URLSearchParams({ id: 'tester01', pw: 'Qwer1234!', memo: 'a b!c' }).toString();
+    expect(가리기(본문, 표)).toBe(`id=\${username}&pw=\${password}&memo=${표.get('a b!c')}`);
+  });
+
   it('짧은 아이디는 주소를 망가뜨리지 않게 바꾸지 않는다', () => {
     const 표 = 가림표([], [{ loginId: 'admin', loginPassword: null }]);
     expect(가리기('/admin/users', 표)).toBe('/admin/users');
