@@ -14,7 +14,8 @@ datasources:
     isDefault: true
     editable: false
     secureJsonData:
-      password: grafana_ro
+      # compose 가 grafana 에 넘긴 값이다. postgres 가 계정을 만들 때 읽은 칸과 같다 (SPEC 공통/6 §9 「DB 비밀번호」)
+      password: $GRAFANA_RO_PASSWORD
     jsonData:
       sslmode: disable
       postgresVersion: 1600

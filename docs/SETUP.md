@@ -184,6 +184,7 @@ openssl rand -hex 32
 |------|------|
 | `SESSION_SECRET` | 로그인 세션을 서명하는 키. **비어 있거나 32바이트보다 짧으면 admin이 기동을 거부한다** (`openssl rand -hex 32` 면 충분하다). 임시 키를 지어내면 재기동할 때마다 전원 로그아웃되고, 그 사실을 아무도 모른 채 「가끔 로그인이 풀린다」로 겪는다 |
 | `ADMIN_PORT` · `POSTGRES_PORT` | 바깥 포트. 비우면 `3000`·`5433`으로 뜬다. 한 서버에 다른 것과 같이 띄울 때만 바꾼다. **Grafana 는 바깥 포트가 없다** (2026-09-28) — 플랫폼에 로그인한 뒤 `그래프(Grafana) ↗`(같은 주소의 `/grafana/`)로 들어간다. 그래프(Grafana) 권한(설정 → 계정 → 그래프(Grafana) `읽기`)이 있는 사람만 열린다. 옛 `GRAFANA_PORT` 는 `.env` 에서 지워도 된다 |
+| `POSTGRES_PASSWORD` · `GRAFANA_RO_PASSWORD` | DB 비밀번호 둘 (2026-10-23). 슈퍼유저 `platform` 과 Grafana 읽기 전용 계정 `grafana_ro` 의 것이다. **비우면 `platform` · `grafana_ro` 그대로다.** 서버는 `openssl rand -hex 24` 로 만든 값을 넣는다 — 주소에 그대로 들어가므로 영문 · 숫자만 쓴다(`@` · `#` · `$` 같은 글자는 주소나 `.env` 를 깨뜨린다). **DB 를 처음 만들 때만 읽힌다** — 이미 돌던 서버는 아래 「18. DB 비밀번호 바꾸기」 순서대로 한다. 개발 맥은 비워 둔다 — pre-push 의 임시 DB 가 `platform` 비밀번호로 붙는다 |
 | `PLATFORM_PUBLIC_URL` | 이 플랫폼이 바깥에서 열리는 주소. Slack 알림의 「결과 보기」 링크가 이 값 위에 붙는다. **비워 두면 알림에 링크가 안 들어간다** — 틀린 주소를 보내는 것보다 없는 편이 낫다. **아래 maxihan 계정 로그인을 켜면 꼭 채운다** — 돌아올 주소가 이 위에 붙는다 |
 | `AUTH_ISSUER` · `AUTH_CLIENT_ID` · `AUTH_CLIENT_SECRET` | 선택 (2026-10-20). **maxihan 계정(Auth_platform)으로 로그인하게 한다.** Auth_platform 주소와, 거기에 이 플랫폼을 등록하고 받은 client id · secret 이다. 등록할 때 돌아올 주소는 `PLATFORM_PUBLIC_URL` + `/api/auth/sso/callback`, 로그아웃 뒤 돌아올 주소는 `PLATFORM_PUBLIC_URL` + `/` 다. **셋 다 채우면 켜지고 셋 다 비우면 비밀번호 로그인 그대로다. 일부만 채우면 admin 이 기동을 거부한다.** 켜면 로그인 화면이 버튼 하나가 되고 회원가입 · 비밀번호 변경이 사라진다. 기본 계정 `admin` 은 Auth_platform 의 같은 아이디 `admin` 으로 처음 들어올 때 이어진다 (SPEC 도메인/인증 §3.5 「maxihan 계정」) |
 
@@ -569,7 +570,7 @@ mkdir -p /var/lib/postgresql/tp && chown postgres:postgres /var/lib/postgresql/t
 su postgres -c "/usr/lib/postgresql/16/bin/initdb -D /var/lib/postgresql/tp/data -U platform --auth=trust"
 su postgres -c "setsid nohup /usr/lib/postgresql/16/bin/postgres -D /var/lib/postgresql/tp/data -p 5433 -k /var/lib/postgresql/tp > /var/lib/postgresql/tp/log 2>&1 &"
 psql -h 127.0.0.1 -p 5433 -U platform -d postgres -c "CREATE DATABASE platform"
-psql -h 127.0.0.1 -p 5433 -U platform -d platform -f db/init/01-grafana-readonly.sql   # 마이그레이션보다 먼저 (CI 와 같은 순서)
+PGHOST=127.0.0.1 PGPORT=5433 POSTGRES_USER=platform POSTGRES_DB=platform GRAFANA_RO_PASSWORD=grafana_ro bash db/init/01-grafana-readonly.sh   # 마이그레이션보다 먼저 — 마이그레이션이 grafana_ro 에 권한을 준다
 # dbmate 는 CI 와 같은 곳에서 받는다 (.github/workflows) — sslmode=disable 을 붙인다
 DATABASE_URL="postgres://platform:platform@127.0.0.1:5433/platform?sslmode=disable" dbmate --migrations-dir db/migrations --no-dump-schema up
 export DATABASE_URL=postgres://platform:platform@127.0.0.1:5433/platform
@@ -611,7 +612,7 @@ export DATABASE_URL=postgres://platform:platform@127.0.0.1:5433/platform
 ```bash
 export PGPASSWORD=platform
 psql -h 127.0.0.1 -p 5433 -U platform -d postgres -c 'CREATE DATABASE tp_<이름>'
-psql -h 127.0.0.1 -p 5433 -U platform -d tp_<이름> -f db/init/01-grafana-readonly.sql   # 「role already exists」는 정상 — 역할은 서버에 하나다
+PGHOST=127.0.0.1 PGPORT=5433 POSTGRES_USER=platform POSTGRES_DB=tp_<이름> GRAFANA_RO_PASSWORD=grafana_ro bash db/init/01-grafana-readonly.sh   # 역할은 서버에 하나라 이미 있으면 만들기만 건너뛰고 권한을 이 DB 에 건다
 docker run --rm -v "$PWD/db:/db:ro" ghcr.io/amacneil/dbmate:2 \
   --url "postgres://platform:platform@host.docker.internal:5433/tp_<이름>?sslmode=disable" \
   --migrations-dir /db/migrations --no-dump-schema up            # 호스트에 dbmate 가 없어도 된다
@@ -803,3 +804,28 @@ docker run -d --init --restart unless-stopped --name qahub-perf-agent \
 docker run -d --init --restart unless-stopped --network host --name qahub-monitor \
   -e QAHUB_URL=https://<QA Hub 주소> -e AGENT_TOKEN=pga_… qahub-perf-agent
 ```
+
+## 18. DB 비밀번호 바꾸기 (2026-10-23 · FIX-F1-02)
+
+`.env` 의 `POSTGRES_PASSWORD` · `GRAFANA_RO_PASSWORD` 는 **DB 를 처음 만들 때만** 읽힌다. 새 서버는 `.env` 에 적고 띄우면 끝이다.
+이미 돌던 서버는 `.env` 만 고치면 admin 이 DB 에 못 붙는다 — DB 안의 비밀번호를 먼저 바꾼다.
+2번부터 4번까지는 admin 이 새 연결을 못 만든다. 도는 실행이 없을 때 이어서 한다.
+
+1. 새 값 둘을 만든다
+   ```bash
+   openssl rand -hex 24
+   openssl rand -hex 24
+   ```
+2. DB 안에서 바꾼다. 컨테이너 안에서는 비밀번호 없이 들어간다. `\password` 가 새 값을 두 번 묻는다 — 명령 줄에 적지 않아 셸 기록에 남지 않는다
+   ```bash
+   docker compose exec postgres psql -U platform -d platform
+   \password platform
+   \password grafana_ro
+   \q
+   ```
+3. `.env` 에 같은 값을 적는다 — `POSTGRES_PASSWORD=<첫 번째 값>` · `GRAFANA_RO_PASSWORD=<두 번째 값>`
+4. 다시 띄운다
+   ```bash
+   docker compose up -d
+   ```
+5. 화면에 로그인해 케이스 목록이 뜨고, `그래프(Grafana) ↗` 대시보드에 숫자가 나오면 둘 다 붙은 것이다
