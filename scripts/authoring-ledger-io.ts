@@ -37,7 +37,7 @@ export interface 기준표 {
  * **root 가 자식 폴더에 쓴다** — 자식이 심은 링크(`ledger.json` → root 파일)를 따라가지 않게 먼저 지우고 새로 만든다(`wx` — 있으면 실패).
  * 쓰는 동안 자식은 떠 있지 않다(띄우기 전 · 거둔 뒤) — 사이에 다시 심을 프로세스가 없다 (2026-09-30 보안 검토)
  */
-export function 새로쓰기(경로: string, 글: string): boolean {
+export function 새로쓰기(경로: string, 글: string | Uint8Array): boolean {
   try {
     rmSync(경로, { force: true, recursive: true });
     writeFileSync(경로, 글, { mode: 0o644, flag: 'wx' });

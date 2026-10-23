@@ -13,7 +13,7 @@ import ts from 'typescript';
 import { 환경비밀번호들 } from './authoring-accounts.js';
 import { 명세글, 속성, 읽기 } from './authoring-held-apply.js';
 import { 글모두 } from './authoring-reverse.js';
-import { 바뀐것 } from './authoring-run3.js';
+import { 바뀐것 } from './authoring-base-list.js';
 import { 묶었나 } from './authoring-one-value.js';
 import { 백틱벗기기, 표읽기 } from './authoring-md-table.js';
 
@@ -246,12 +246,13 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     결과들.push({ 이름: '빠진 요구 검사', ok: 원장검사.ok, 줄들: 줄또는끝(원장검사, 원장검사.줄들.filter((l) => l !== 원장머리)), 머리: 원장머리, 건너뜀: 원장머리?.startsWith('원장 없음') });
     결과들.push({ 이름: '타입 검사', ok: tsc.ok, 줄들: 줄또는끝(tsc, tsc.줄들.filter((l) => /error TS/.test(l))) });
     결과들.push({ 이름: '케이스 형식 검사', ok: 형식.ok, 줄들: 줄또는끝(형식, 형식.줄들.filter((l) => / — \[K\d+\] /.test(l))) });
-    // 에이전트가 기준 SHA 를 주면 이번 작성이 바꾼 케이스만 본다 — 앞 작성의 케이스가 이 규칙에 걸려도 이번 요청 밖이라 고치지 않는다(첫 작성은 다 새것이라 전체다)
+    // 에이전트가 기준 SHA 의 tests 목록을 주면 이번 작성이 바꾼 케이스만 본다 — 앞 작성의 케이스가 이 규칙에 걸려도 이번 요청 밖이라 고치지 않는다(첫 작성은 다 새것이라 전체다)
     const 문장들 = 케이스문장들(트리, 폴더);
-    const 바뀐 = env.AUTHORING_BASE_SHA ? 바뀐것(트리, env.AUTHORING_BASE_SHA) : null;
+    const 바뀐 = env.AUTHORING_BASE_LIST ? 바뀐것(트리, env.AUTHORING_BASE_LIST) : null;
     const 볼 = 바뀐 === null || '까닭' in 바뀐 ? undefined : new Set(바뀐.filter((f) => f.startsWith(`tests/${폴더}/`) && f.endsWith('.spec.ts')).flatMap((f) => (existsSync(join(트리, f)) ? (케이스문장읽기(readFileSync(join(트리, f), 'utf8'))?.tcId ?? []) : [])));
     const 어긋남 = existsSync(join(트리, 표)) ? 맞춰보기(readFileSync(join(트리, 표), 'utf8'), 문장들, 볼) : [`목록 ${표} 이 없다`];
-    결과들.push({ 이름: '케이스와 요구 목록 맞춰 보기', ok: 어긋남.length === 0, 줄들: 어긋남, 머리: 볼 === undefined ? undefined : `이번에 바뀐 케이스 ${볼.size}건만 봤다` });
+    const 못좁힘 = 바뀐 !== null && '까닭' in 바뀐 ? `바뀐 파일을 못 읽어 케이스 전체를 봤다 — ${바뀐.까닭}` : undefined;
+    결과들.push({ 이름: '케이스와 요구 목록 맞춰 보기', ok: 어긋남.length === 0, 줄들: 어긋남, 머리: 볼 === undefined ? 못좁힘 : `이번에 바뀐 케이스 ${볼.size}건만 봤다` });
     const 묶음 = 묶은확인들(문장들, 볼);
     결과들.push({ 이름: '확인 하나에 값 하나', ok: 묶음.length === 0, 줄들: 묶음 });
     const 가이드 = join('docs', 'cases', `${접두사}.guide.md`);

@@ -10,8 +10,7 @@ import { join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { type 돌린판, 돌린기록들, 앱케이스나누기, 케이스파일읽기, 살필케이스, 파일상태보기, 판들읽기 } from './authoring-gate3.js';
-import { 바뀐파일들 } from './authoring-status.js';
-import { 친다 } from './authoring-io.js';
+import { 바뀐것 } from './authoring-base-list.js';
 import { 자리기다리기, 자리놓기 } from './authoring-slot.js';
 
 /** 한 번 부를 때 돌릴 시간 — Bash 도구 상한이 10분이고 백그라운드는 금지라 한 번에 다 못 돈다. Playwright 띄우고 닫는 몫을 남긴다 */
@@ -179,18 +178,6 @@ async function 한번(트리: string, 결과폴더: string, 이름: string, 파�
   return 빨강.length > 0 ? 1 : 0;
 }
 
-/** 바뀐 파일(저장소 기준 경로) — 기준 SHA 가 있으면 에이전트처럼 기준과의 차이 + 새 파일, 없으면 작업 트리 상태 */
-export function 바뀐것(트리: string, 기준: string | undefined): string[] | { 까닭: string } {
-  if (기준 === undefined || 기준 === '') {
-    const 상태 = 친다('git', ['-c', 'core.quotePath=false', 'status', '--porcelain', '-uall'], 트리);
-    return 상태.ok ? 바뀐파일들(상태.낸것) : { 까닭: 상태.까닭 };
-  }
-  const 차이 = 친다('git', ['-c', 'core.quotePath=false', 'diff', '--name-only', 기준], 트리);
-  const 새것 = 친다('git', ['-c', 'core.quotePath=false', 'ls-files', '--others', '--exclude-standard'], 트리);
-  if (!차이.ok || !새것.ok) return { 까닭: 차이.ok ? 새것.까닭 : 차이.까닭 };
-  return [...차이.낸것.split('\n'), ...새것.낸것.split('\n')].filter((f) => f !== '');
-}
-
 /**
  * 돌릴 기기 — `--mobile` 이면 휴대폰도 나란히. 단 쓰는 중 1번은 기기 하나만 돈다(기본 PC · `--mobile-only` 면 휴대폰):
  * 보조 하나가 PC · 휴대폰으로 자리 둘을 원해 넷이 자리 둘을 두고 줄 섰다(14670 · PRD-F14-09). 휴대폰만 빨간 케이스를 trace 로 가를 길은 남긴다
@@ -225,7 +212,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   }
   let 바뀐: Set<string>;
   if (모드 === '마지막') {
-    const 목록 = 바뀐것(트리, env.AUTHORING_BASE_SHA);
+    const 목록 = 바뀐것(트리, env.AUTHORING_BASE_LIST);
     if ('까닭' in 목록) {
       console.error(`바뀐 파일을 못 읽었다: ${목록.까닭}`);
       return 2;
