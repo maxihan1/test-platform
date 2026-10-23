@@ -99,21 +99,21 @@ export function 시나리오제한시간(parts: ScenarioPart[]): number {
   return Math.max(부품시간합(parts), 바닥);
 }
 
-/** 크기 상한 사유. 넘지 않으면 null. 조립검사 · 값 연결 제안은 다른 검사보다 이것을 먼저 본다 — 큰 목록은 부품마다 도는 검사가 서버를 수 초 붙잡는다 */
-export function 크기사유(parts: ScenarioPart[]): string | null {
+/** 크기 상한 사유. 넘지 않으면 null. 조립검사는 다른 검사보다 이것을 먼저 본다 — 큰 목록은 부품마다 도는 검사가 서버를 수 초 붙잡는다 */
+function 크기사유(parts: ScenarioPart[]): string | null {
   const 크기 = Buffer.byteLength(JSON.stringify(parts));
   return 크기 > 크기상한 ? `단계 목록이 ${크기}바이트로 ${크기상한}바이트를 넘는다` : null;
 }
 
-/** 60분·크기 상한 사유. 저장(조립검사)과 실행 가능 판정이 같은 것을 본다. 비면 통과다 */
-export function 제한시간크기사유(parts: ScenarioPart[]): string[] {
-  const 사유: string[] = [];
+function 제한시간사유(parts: ScenarioPart[]): string | null {
   // 상한은 바닥 전 합으로 본다 — 바닥은 러너 몫이지 조립이 쓴 시간이 아니다
   const 합 = 부품시간합(parts);
-  if (합 > 제한시간상한) 사유.push(`제한 시간 합이 ${합}ms 로 ${제한시간상한}ms 를 넘는다`);
-  const 크기 = 크기사유(parts);
-  if (크기 !== null) 사유.push(크기);
-  return 사유;
+  return 합 > 제한시간상한 ? `제한 시간 합이 ${합}ms 로 ${제한시간상한}ms 를 넘는다` : null;
+}
+
+/** 60분·크기 상한 사유. 저장(조립검사)과 실행 가능 판정 · 값 연결 제안이 같은 것을 본다. 비면 통과다 */
+export function 제한시간크기사유(parts: ScenarioPart[]): string[] {
+  return [제한시간사유(parts), 크기사유(parts)].filter((s) => s !== null);
 }
 
 // 짧은 무늬는 걸린 창의 주소로 풀려 어느 애플리케이션을 가리키는지 모호하다 (SPEC 도메인/시나리오 §3.7 결정 13)
@@ -231,5 +231,6 @@ export function 조립검사(parts: ScenarioPart[], platform: Platform, service:
     }
   });
 
-  return [...오류, ...제한시간크기사유(parts)];
+  const 시간 = 제한시간사유(parts);
+  return 시간 === null ? 오류 : [...오류, 시간];
 }

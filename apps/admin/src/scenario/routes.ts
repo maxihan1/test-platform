@@ -16,7 +16,7 @@ import { 값연결제안들, 제안재료읽기 } from './linkSuggest.js';
 import { 다음케이스읽기, 첫케이스읽기 } from './next.js';
 import { 케이스재료 } from './parts.js';
 import { 고치기, 되돌리기, 만들기, 목록, 상세, 옛버전, 치우기, type 저장하는사람 } from './store.js';
-import { 부품들모양, 조립검사, 크기사유 } from './validate.js';
+import { 부품들모양, 제한시간크기사유, 조립검사 } from './validate.js';
 
 const 이름 = z.string().trim().min(1).max(100);
 const 디바이스 = z.enum(['desktop', 'mobile']);
@@ -109,13 +109,13 @@ export default async function scenarioRoutes(app: FastifyInstance): Promise<void
   });
 
   // 값 연결 제안. 저장 안 한 초안이라 조립 거절은 안 건다. 지도는 작성 칸이라 (작성, read) 가 있는 애플리케이션 단계만 본다 (결정 15)
-  // 크기 상한만은 먼저 본다 — 제안은 단계 수의 제곱으로 돈다. 넘는 초안은 어차피 저장이 안 돼 빈 목록이다
+  // 60분 · 크기 상한만은 먼저 본다 — 제안은 단계 수의 제곱으로 돌고, 크기 안에도 단계가 수천 개 든다. 60분 상한이 케이스 단계 수를 묶는다. 넘는 초안은 어차피 저장이 안 돼 빈 목록이다
   app.post('/scenarios/link-suggestions', async (req, reply) => {
     const parsed = 제안본문.safeParse(req.body);
     if (!parsed.success) return 잘못(reply, parsed.error.message);
     const { service, parts } = parsed.data;
     if ((await findService(service)) === null) return 잘못(reply, `모르는 서비스다: ${service}`);
-    if (크기사유(parts) !== null) return { items: [] };
+    if (제한시간크기사유(parts).length > 0) return { items: [] };
     const 읽는앱 = new Set(칸되는서비스(req.user?.services ?? [], 'authoring', 'read'));
     const 앱들 = (await 같은프로젝트접두사(service)).filter((p) => 읽는앱.has(p) && 케이스번호들(parts).some((t) => t.startsWith(`${p}-`)));
     const { 지도, 입력칸 } = await 제안재료읽기(앱들, 케이스번호들(parts));

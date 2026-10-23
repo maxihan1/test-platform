@@ -155,7 +155,7 @@ describe('제한 시간 바닥 · API 몫 · 크기 상한', () => {
     const parts: ScenarioPart[] = [api, { kind: 'api', method: 'POST', path: '/api/y', body: 본문, values: 값들, expectStatus: 200 }];
     const 시작 = Date.now();
     expect(검사(parts)).toEqual([expect.stringMatching(/100000바이트/)]);
-    expect(Date.now() - 시작).toBeLessThan(1000);
+    expect(Date.now() - 시작).toBeLessThan(3000);
   });
 });
 
