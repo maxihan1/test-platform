@@ -236,15 +236,15 @@ function 번호글들(글: string, 원장번호: Set<string>): { 글들: Map<str
 }
 
 // 원장 사본 JSON 이 요구마다 빈 설계로 불지 않게 경계 · 예외가 둘 다 비면 키를 안 싣는다
-function 설계칸(요구글: string, 로그인?: string): { 설계?: 설계 } {
-  const 설 = 설계하기(요구글);
+function 설계칸(요구글: string, 로그인?: string, 게임 = false): { 설계?: 설계 } {
+  const 설 = 설계하기(요구글, 게임);
   // 비로그인 · 일반 회원 요청이 401 · 403 으로 막히는 묶음이다. PRD 옮기기는 「로그인이 필요하다」로 적어 판정 함수가 같은 기법을 낸다
   if (로그인 !== undefined) 설.예외.push({ 기법: '동등 분할', 근거: `로그인: ${로그인}` });
   return 설.경계.length + 설.예외.length > 0 ? { 설계: 설 } : {};
 }
 
 /** 자료 하나의 원장. 번호 가족이 없으면 문단 모드다. `머리` 는 문단 번호 앞말(P · P1 · P2) */
-export function 원장뽑기(글: string, 자료: string, 머리 = 'P'): 자료원장 {
+export function 원장뽑기(글: string, 자료: string, 머리 = 'P', 게임 = false): 자료원장 {
   const { 번호들, 경고 } = 번호찾기(글, false);
   const 차례 = [...new Set(번호들)];
   const 셈: Record<string, number> = {};
@@ -255,12 +255,12 @@ export function 원장뽑기(글: string, 자료: string, 머리 = 'P'): 자료�
     const { 글들, 로그인 } = 번호글들(글, new Set(원장번호));
     const 항목 = 원장번호.map((번호) => {
       const 요구글 = 글들.get(번호) ?? '';
-      return { 번호, 자료, 지문: 지문내기(요구글), ...설계칸(요구글, 로그인.get(번호)) };
+      return { 번호, 자료, 지문: 지문내기(요구글), ...설계칸(요구글, 로그인.get(번호), 게임) };
     });
     return { 모드: '번호', 항목, 가족: 가족들, 경고 };
   }
   // 설계는 80자로 자른 글이 아니라 문단 전체로 판정한다 — 한도 문장이 80자 뒤에 오면 빠진다
-  const 항목 = 문단들(글).map((u, i) => ({ 번호: `${머리}-${String(i + 1).padStart(3, '0')}`, 자료, 글: u.slice(0, 글상한), 지문: 지문내기(u), ...설계칸(u) }));
+  const 항목 = 문단들(글).map((u, i) => ({ 번호: `${머리}-${String(i + 1).padStart(3, '0')}`, 자료, 글: u.slice(0, 글상한), 지문: 지문내기(u), ...설계칸(u, undefined, 게임) }));
   return { 모드: '문단', 항목, 가족: {}, 경고 };
 }
 
@@ -287,6 +287,8 @@ const 글자본 = (경로: string) => /\.(txt|md)$/i.test(경로);
 export function 원장만들기(
   계획: 읽을자료[],
   읽기: (경로: string) => string | null,
+  /** 종류 「게임」 — 설계에 게임 관점 칸을 더한다(표준 원장과 같은 판정이어야 옮기기 대조가 게임 숫자를 잃은 것을 잡는다) */
+  게임 = false,
 ): { 원장: 원장 } | { 없음: string } {
   const 글자료 = 계획.filter((c): c is Extract<읽을자료, { kind: 'FILE' }> => c.kind === 'FILE' && 글자본(c.읽을자리));
   const 빠진자료 = 계획
@@ -298,7 +300,7 @@ export function 원장만들기(
       빠진자료.push(`${c.name}(글자본을 못 읽음)`);
       return [];
     }
-    return [{ c, 글, 첫: 원장뽑기(글, c.name) }];
+    return [{ c, 글, 첫: 원장뽑기(글, c.name, 'P', 게임) }];
   });
   const 피그마 = 계획.filter((c) => c.kind === 'FIGMA').length;
   const 못읽음 = [...빠진자료, ...(피그마 > 0 ? [`피그마 ${String(피그마)}건`] : [])];
@@ -309,7 +311,7 @@ export function 원장만들기(
   let 문단순번 = 0;
   const 본번호 = new Set<string>();
   for (const { c, 글, 첫 } of 뽑은것) {
-    const 하나 = 첫.모드 === '문단' && 문단자료수 > 1 ? 원장뽑기(글, c.name, `P${String(++문단순번)}`) : 첫;
+    const 하나 = 첫.모드 === '문단' && 문단자료수 > 1 ? 원장뽑기(글, c.name, `P${String(++문단순번)}`, 게임) : 첫;
     합친.모드[c.name] = 하나.모드;
     // 엑셀은 명령이 node 절대 경로라 기계마다 다르다 — 이름만 남긴다
     합친.꼴 = { ...합친.꼴, [c.name]: `${extname(c.name).toLowerCase()}/${c.변환 === null ? '그대로' : basename(c.변환.명령)}` };

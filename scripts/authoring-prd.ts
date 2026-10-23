@@ -168,11 +168,11 @@ export interface 옮기기대조결과 {
  * ① 원장 번호마다 그 번호를 근거로 단 이번 항목이 있나 ② 원본 글의 경계 값 · 예외 기법이 그 항목 문장들의 설계에 다 있나.
  * 잃은 것만 본다 — 여러 번호를 한 항목에 합치면 남는 칸은 늘 생긴다. 이번 항목만 본다 — 남긴 기존 항목의 문단 번호(`P-001`)는 다른 자료 것일 수 있다
  */
-export function 옮기기대조(원장: readonly Pick<원장항목, '번호' | '설계'>[], 옮긴: 옮긴것): 옮기기대조결과 {
+export function 옮기기대조(원장: readonly Pick<원장항목, '번호' | '설계'>[], 옮긴: 옮긴것, 게임 = false): 옮기기대조결과 {
   // 항목 설계는 한 번만 계산한다 — 여러 번호를 근거로 단 항목이 번호마다 다시 판정되지 않게
   const 덮은항목 = new Map<string, 설계[]>();
   for (const i of 옮긴.items) {
-    const 설 = 설계하기(i.text);
+    const 설 = 설계하기(i.text, 게임);
     for (const ref of new Set(i.basis.flatMap((b) => (b.ref === undefined ? [] : [b.ref])))) {
       const 목록 = 덮은항목.get(ref);
       if (목록 === undefined) 덮은항목.set(ref, [설]);
