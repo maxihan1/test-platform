@@ -4,6 +4,8 @@ import type { ExecuteResponse, Platform, StepResult } from '@platform/kit';
 
 import type { Pool } from 'pg';
 
+import { jsonb에맞춘다 } from '../jsonbText.js';
+
 import { 게임결과를넣는다 } from './gameResult.js';
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. 풀은 실제로 쓸 때 가져온다 (catalog/store.ts와 같은 방식)
@@ -54,7 +56,9 @@ export function 받은API(steps: readonly StepResult[]): { method: string; path:
   return [...줄.values()];
 }
 
-export async function finishItem(historyId: number, result: ExecuteResponse): Promise<void> {
+export async function finishItem(historyId: number, 받은결과: ExecuteResponse): Promise<void> {
+  // 바이너리 응답의 NUL · 잘린 이모지 반쪽이 kit 기록에 그대로 실린다. 하나라도 남으면 판정까지 되돌려진다
+  const result = jsonb에맞춘다(받은결과);
   const client = await (await db()).connect();
   try {
     await client.query('BEGIN');

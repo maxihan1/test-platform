@@ -69,9 +69,15 @@ async function 저장한다(item: PendingItem, result: ExecuteResponse): Promise
     // 기다리지 않는다 — 풀기는 실행을 늦추지 않게 따로 한 줄로 돈다 (SPEC 실행 §3.2 「trace」)
     void trace적재를맡긴다(item.historyId);
   } catch (err) {
-    // 결과를 못 적었다고 나머지 항목까지 버리지 않는다. 그 행은 finished_at이 빈 채로 남아 미완임이 드러난다
+    // 결과를 못 적었다고 나머지 항목까지 버리지 않는다
     const reason = err instanceof Error ? err.message : String(err);
     console.error(`[execution] ${item.tcId}/${item.platform}(history ${item.historyId}) 결과를 저장하지 못했다: ${reason}`);
+    // 안 닫으면 finishRun 이 그 실행을 재기동 때까지 RUNNING 에 둔다. 판정은 잃었으니 미실행으로 닫는다
+    try {
+      await finishItem(item.historyId, na(item, '결과를 저장하지 못했습니다', reason));
+    } catch (닫기실패) {
+      console.error(`[execution] history ${item.historyId} 를 미실행으로 닫지도 못했다(재기동 복구가 닫는다)`, 닫기실패);
+    }
   }
 }
 
