@@ -304,6 +304,12 @@ describe.skipIf(연결 === undefined)('확인 함수', () => {
       expect(await 확인(비밀번호출입증)).toBeNull();
     });
 
+    it('SSO 출입증을 받은 뒤 그 계정이 작성 에이전트 이름이 되면 아무도 아니다', async () => {
+      켜기();
+      vi.stubEnv('AUTHORING_AGENT_USER', 'xfu1-live');
+      expect(await 확인(SSO출입증)).toBeNull();
+    });
+
     it('SSO 를 끄면 SSO 출입증은 아무도 아니다', async () => {
       expect(await 확인(SSO출입증)).toBeNull();
     });

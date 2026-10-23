@@ -29,7 +29,8 @@ interface 묶인계정 {
 export async function 계정찾기(sub: string, username: string, displayName: string): Promise<묶인계정 | 'username'> {
   const { pool } = await import('../db/index.js');
   const 찾은것 = await pool.query<묶인계정>('SELECT username, is_approved, is_active FROM app_user WHERE auth_sub = $1', [sub]);
-  if (찾은것.rows[0] !== undefined) return 찾은것.rows[0];
+  // 묶인 뒤에 서버가 작성 에이전트 이름을 이 계정으로 바꿀 수 있다 — 묶을 때만 보면 그 사람이 에이전트 계정으로 들어온다
+  if (찾은것.rows[0] !== undefined) return 작성계정인가(찾은것.rows[0].username) ? 'username' : 찾은것.rows[0];
 
   // 이 플랫폼 아이디 규칙을 못 지키는 이름과 작성 에이전트 이름은 받지 않는다 —
   // 에이전트 이름을 묶으면 Auth_platform 의 같은 이름 사용자가 에이전트 계정을 가져간다 (가입과 같은 규칙, signup.ts)

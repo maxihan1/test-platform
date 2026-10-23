@@ -274,6 +274,46 @@ describe.skipIf(연결 === undefined)('설정 API — 계정', () => {
   const 낮추기 = (username: string) =>
     app.inject({ method: 'PATCH', url: `/api/settings/users/${username}`, payload: { role: 'member' } });
 
+  it('운영 계정 둘을 동시에 낮춰도 하나는 남는다', async (ctx) => {
+    // 「마지막 하나」는 시스템 전체 수다. 다른 운영 계정이 있으면 둘 다 내려도 맞아서 이 장면을 만들 수 없다
+    if ((await 운영계정수()) > 0) ctx.skip();
+    const 둘 = ['xfu9-race1', 'xfu9-race2'];
+    for (const u of 둘) await 계정만들기(u, 'admin');
+    const { pool } = await import('../db/index.js');
+    const 막기 = await pool.connect();
+    try {
+      // 배정 줄을 쓰는 자리를 막아 두 요청이 끝나지 못한 채 겹치게 한다. 운영 수를 차례로 세지 않으면 둘 다 2명으로 센다
+      await 막기.query('BEGIN');
+      await 막기.query('SELECT 1 FROM project WHERE id = $1 FOR UPDATE', [프로젝트.XFS9A]);
+      const 답들 = Promise.all(
+        둘.map((u) =>
+          app.inject({ method: 'PATCH', url: `/api/settings/users/${u}`, payload: { role: 'member', projects: [읽기('XFS9A')] } }),
+        ),
+      );
+      let 겹침 = false;
+      for (let i = 0; i < 250 && !겹침; i++) {
+        const 대기 = await pool.query<{ count: string }>(
+          `SELECT count(*) FROM pg_stat_activity
+            WHERE datname = current_database() AND wait_event_type = 'Lock'
+              AND (query LIKE '%user_project%' OR query LIKE '%last-admin%')`,
+        );
+        겹침 = Number(대기.rows[0]?.count) >= 2;
+        if (!겹침) await new Promise((r) => setTimeout(r, 20));
+      }
+      await 막기.query('COMMIT');
+      const 코드 = (await 답들).map((r) => r.statusCode).sort();
+      expect(겹침).toBe(true);
+      expect(코드).toEqual([200, 409]);
+      expect(await 운영계정수()).toBe(1);
+    } finally {
+      await 막기.query('ROLLBACK');
+      막기.release();
+      // 남은 운영 계정이 다음 검사의 「마지막 하나」 셈을 바꾸지 않게 지운다
+      await pool.query('DELETE FROM user_project WHERE username = ANY($1)', [둘]);
+      await pool.query('DELETE FROM app_user WHERE username = ANY($1)', [둘]);
+    }
+  });
+
   it('운영 계정이 둘이면 하나는 낮출 수 있고, 마지막 하나는 409다', async () => {
     await 계정만들기('xfu9-admin1', 'admin');
     await 계정만들기('xfu9-admin2', 'admin');

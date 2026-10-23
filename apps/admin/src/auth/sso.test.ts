@@ -159,6 +159,19 @@ describe.skipIf(연결 === undefined)('maxihan 계정(SSO) 로그인', () => {
     expect(await 행('xso-agent')).toBeUndefined();
   });
 
+  it('이미 묶인 계정이 나중에 작성 에이전트 이름이 되면 들어오지 못한다', async () => {
+    vi.stubEnv('AUTHORING_AGENT_USER', 'xso-taken');
+    let back: LightMyRequestResponse;
+    try {
+      ({ back } = await 왕복(사람('xso-sub-other', 'xso-taken')));
+    } finally {
+      vi.stubEnv('AUTHORING_AGENT_USER', 'xso-agent');
+    }
+    expect(back.headers.location).toBe('/?sso=username');
+    const me = await app.inject({ method: 'GET', url: '/api/auth/me', cookies: 쿠키(back) });
+    expect(me.statusCode).toBe(401);
+  });
+
   it('비활성 계정은 승인 대기와 같은 답이다', async () => {
     const { back } = await 왕복(사람('xso-sub-off', 'xso-off'));
     expect(back.headers.location).toBe('/?sso=pending');

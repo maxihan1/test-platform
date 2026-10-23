@@ -2,7 +2,7 @@
 // 나중에 회사 계정(SSO)으로 바꾸면 **바뀌는 곳이 이 파일 하나여야 한다** —
 // 실행·카탈로그·리포팅은 돌려받은 값만 쓰고 비밀번호도 세션도 모른다
 
-import { 토큰주인, 헤더토큰 } from './agentToken.js';
+import { 작성계정인가, 토큰주인, 헤더토큰 } from './agentToken.js';
 import { SSO설정읽기 } from './oidc.js';
 import { 비밀번호도장, 사용자와해시, type 사용자 } from './store.js';
 
@@ -30,6 +30,8 @@ export async function 확인(req: 인증요청): Promise<사용자 | null> {
   // 토큰은 비밀번호와 따로 노는 열쇠라 출입증 검사를 안 한다 (SPEC 도메인/인증 §7)
   const SSO켜짐 = SSO설정읽기() !== null;
   if (토큰 === null && !출입증맞나(req, 찾은것.passwordHash, SSO켜짐)) return null;
+  // 작성 에이전트 계정은 토큰으로만 쓴다. SSO 로 묶인 뒤 서버가 에이전트 이름을 그 계정으로 바꾸면 사람의 출입증이 살아 있다 (sso.ts 계정찾기)
+  if (토큰 === null && SSO켜짐 && 작성계정인가(username)) return null;
   // SSO 설치에는 비밀번호 바꾸기 길이 없다 — 변경 강제를 남기면 묶인 기본 계정 admin 이 변경 화면에 갇힌다.
   // DB 값은 지우지 않는다. SSO 를 끄면 admin/admin 의 변경 강제가 되살아나야 한다
   if (SSO켜짐) return { ...찾은것.user, mustChangePassword: false };
