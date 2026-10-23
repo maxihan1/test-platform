@@ -105,7 +105,7 @@ export interface ElementCheck {
 
 export interface ApiCallSeen {  // 값 · 본문은 싣지 않는다
   method: string;               // 'POST'
-  path: string;                 // 대상 서버 주소 기준 경로, 물음표 뒤는 뺀다 '/admin/forced'
+  path: string;                 // 대상 서버 주소 기준 경로, 물음표 뒤는 빼고 번호 칸은 틀로 접는다 '/admin/players/:n'
   status: number;
 }
 
