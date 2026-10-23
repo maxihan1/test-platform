@@ -97,6 +97,18 @@ describe('Grafana 대시보드 프로비저닝', () => {
       await expect(읽기전용.query(sql)).rejects.toThrow(/permission denied/);
     });
 
+    // 거부 목록만 보면 tc_name · param_schema 같은 칸이 새로 열려도 초록이다 — 연 칸을 명세 표 그대로 못 박는다
+    it('run_item 에서 연 칸은 run_id · duration_ms 둘뿐이고 표 단위 권한은 없다', async () => {
+      const 칸 = await 읽기전용.query<{ column_name: string }>(
+        "SELECT column_name FROM information_schema.column_privileges WHERE grantee = 'grafana_ro' AND table_name = 'run_item' AND privilege_type = 'SELECT' ORDER BY column_name",
+      );
+      expect(칸.rows.map((r) => r.column_name)).toEqual(['duration_ms', 'run_id']);
+      const 표 = await 읽기전용.query<{ 읽나: boolean }>(
+        "SELECT has_table_privilege('grafana_ro', 'run_item', 'SELECT') AS \"읽나\"",
+      );
+      expect(표.rows[0]!.읽나).toBe(false);
+    });
+
     it('평균 소요시간은 측정치라 미확정을 빼지 않는다', () => {
       const sql = 대시보드.panels.find((p) => p.title === '평균 소요시간')!.targets[0]!.rawSql;
       expect(sql).not.toContain('unconfirmed');
