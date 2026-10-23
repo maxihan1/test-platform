@@ -14,6 +14,7 @@ import {
   올리기전검사,
   변환환경,
   산출물주소,
+  역방향절,
   차이정리,
 } from './authoring-reverse.js';
 import { 줄프롬프트 } from './authoring-rules.js';
@@ -334,6 +335,13 @@ describe('줄프롬프트 역방향 절 — 계정 값 없이 자리만 준다',
     expect(글).toContain('표준 기획서(항목 전부 확인 필요)로 옮기고');
     expect(글).not.toContain('reverse-spec.md');
     expect(글).not.toContain('--- 기획서 ---');
+  });
+
+  it('크롤 명령은 8분으로 돈다 — 크롤러 10분이 명령 한 번 한도 10분과 같아 목록을 쓰기 전에 끊겼다 (14670 · PRD-F14-10)', () => {
+    for (const 화면만 of [false, true]) {
+      const 크롤 = 역방향절({ 화면만, 산출물폴더: '/w/out', 요청번호: 9 }).find((l) => l.includes('authoring-crawl.ts'));
+      expect(크롤).toContain('--minutes 8');
+    }
   });
 
   it('역방향이 아니면 역방향 절이 없다', () => {

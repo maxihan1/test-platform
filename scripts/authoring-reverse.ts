@@ -101,7 +101,8 @@ export function 역방향절(입력: { 화면만: boolean; 산출물폴더: stri
     `- 본 화면은 \`${join(dirname(입력.산출물폴더), 'screens')}\` 에 화면마다 파일로 적고 대화에는 한 줄만 남겨라.`,
     // 화면 구조는 기계가 먼저 뽑는다 — AI 는 눌러 봐야 아는 「한 칸」만 연다 (§3.6 「★ 역방향」 크롤러 · 2026-10-04). 대조도 사이트 전체를 찍는다(PRD-F6-02)
     // 대조는 기획서 화면 주소도 시작점으로 준다 — 링크로 안 닿거나 상한에 잘려도 목록에 남는다(시작 주소는 폴더 상한이 안 걸린다)
-    `- 로그인 상태 파일을 만든 뒤 \`npx tsx scripts/authoring-crawl.ts "\${TARGET_START_URL:-$TARGET_BASE_URL}"${입력.화면만 ? '' : ' <기획서가 말하는 화면 주소들>'} --follow --state <일반 회원 상태 파일> --login <로그인 스크립트> --keep ${저장본} --cases ${화면케이스}${입력.화면만 ? ` --covered ${덮은파일}` : ''} --out ${크롤}${뺄.map((x) => ` --exclude '${x}'`).join('')}\` 을 한 번 돌려 첫 목록(list.json)을 받아라.`,
+    // 8분 — 크롤러 기본 10분이 명령 한 번 한도 10분과 같아 목록(list.json)을 쓰기 전에 끊겼다(14670 은 10분을 통째로 잃었다 · PRD-F14-10)
+    `- 로그인 상태 파일을 만든 뒤 \`npx tsx scripts/authoring-crawl.ts "\${TARGET_START_URL:-$TARGET_BASE_URL}"${입력.화면만 ? '' : ' <기획서가 말하는 화면 주소들>'} --follow --minutes 8 --state <일반 회원 상태 파일> --login <로그인 스크립트> --keep ${저장본} --cases ${화면케이스}${입력.화면만 ? ` --covered ${덮은파일}` : ''} --out ${크롤}${뺄.map((x) => ` --exclude '${x}'`).join('')}\` 을 한 번 돌려 첫 목록(list.json)을 받아라.`,
     // 역할마다 로그인해 훑는다 — 같은 화면도 관리자에게만 보이는 버튼이 있다 (PRD-F9-30)
     '- 크롤러는 PLATFORM_ACCOUNTS 의 역할마다 로그인 스크립트를 환경 변수 `CRAWL_ROLE`(역할) · `CRAWL_STATE`(쓸 상태 파일)로 돌려 그 역할로도 훑고, 로그아웃을 누르면 같은 식으로 다시 돌린다 — 그 스크립트가 CRAWL_ROLE 의 계정으로 로그인해 CRAWL_STATE 파일에 쓰는지 본다(reverse.md §2). 역할마다의 상태 파일은 크롤 폴더의 states.json 에 있다.',
     ...(입력.화면만
