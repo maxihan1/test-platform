@@ -10,6 +10,7 @@
     "./accounts": "./src/accounts.ts",
     "./runtime": "./src/runtime/index.ts",
     "./app": "./src/runtime/app.ts",
+    "./game": "./src/runtime/game.ts",
     "./scenario": "./src/runtime/scenario.ts",
     "./protocol": "./src/runtime/protocol.ts"
   }

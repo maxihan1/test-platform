@@ -88,6 +88,23 @@ async function 부른다(url: string, init: RequestInit, 제한: number): Promis
 }
 
 export async function 앱화면을읽는다(req: 앱화면요청, env: NodeJS.ProcessEnv = process.env): Promise<string> {
+  return 앱을켜서읽는다(req, env, {}, async ({ base, headers, 연결번호 }) => {
+    const xml = await 부른다(`${base}/session/${encodeURIComponent(연결번호)}/source`, { headers }, 읽기_제한_ms);
+    if (typeof xml !== 'string') throw new Error('Appium 이 화면 글을 주지 않았다');
+    return 화면을줄인다(xml);
+  });
+}
+
+/**
+ * 앱을 한 번 띄워 `읽기` 로 읽고 닫는다 — 앱 화면 · 게임 화면(gameScreen.ts)이 같이 쓴다. 읽는 동안은 이 러너의 다른 화면 읽기를 막는다.
+ * `더할설정` 은 케이스 연결 설정을 고르는 환경값이다(게임은 PLATFORM_ENGINE) — 설정 자체는 케이스와 같은 appCapabilities 로 만든다
+ */
+export async function 앱을켜서읽는다(
+  req: 앱화면요청,
+  env: NodeJS.ProcessEnv,
+  더할설정: Record<string, string>,
+  읽기: (연결: { base: string; headers: Record<string, string>; 연결번호: string }) => Promise<string>,
+): Promise<string> {
   const raw = env.PLATFORM_APPIUM_URL;
   if (raw === undefined || raw === '') throw new Error('Android 앱 화면을 읽으려면 PLATFORM_APPIUM_URL 이 필요하다');
   const app = req.app ?? env.PLATFORM_APP;
@@ -100,7 +117,7 @@ export async function 앱화면을읽는다(req: 앱화면요청, env: NodeJS.Pr
   let 연결번호: string | undefined;
   try {
     // 케이스가 연결을 여는 것과 같은 설정이다 — 손으로 베끼면 한쪽만 바뀐다
-    const alwaysMatch = appCapabilities({ PLATFORM_APP: app, PLATFORM_DEVICE_UDID: udid });
+    const alwaysMatch = appCapabilities({ ...더할설정, PLATFORM_APP: app, PLATFORM_DEVICE_UDID: udid });
     const 열림 = (await 부른다(
       `${base}/session`,
       { method: 'POST', headers: json, body: JSON.stringify({ capabilities: { alwaysMatch } }) },
@@ -108,9 +125,7 @@ export async function 앱화면을읽는다(req: 앱화면요청, env: NodeJS.Pr
     )) as { sessionId?: string } | undefined;
     연결번호 = 열림?.sessionId;
     if (연결번호 === undefined) throw new Error('Appium 이 연결 번호를 주지 않았다');
-    const xml = await 부른다(`${base}/session/${encodeURIComponent(연결번호)}/source`, { headers }, 읽기_제한_ms);
-    if (typeof xml !== 'string') throw new Error('Appium 이 화면 글을 주지 않았다');
-    return 화면을줄인다(xml);
+    return await 읽기({ base, headers, 연결번호 });
   } finally {
     try {
       // 안 닫으면 팜의 폰이 기본 60초 붙들린다. 닫기가 실패해도 읽은 결과는 살린다
