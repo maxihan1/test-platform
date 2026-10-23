@@ -9,7 +9,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 
 import { api, type SettingsServiceRow, type User, type UserRow } from './api.js';
 import { 고른서비스를적는다 } from './layout.js';
-import { useHash, 떠나기막기 } from './leaveGuard.js';
+import { 떠나기막기 } from './leaveGuard.js';
 import { Settings } from './Settings.js';
 
 beforeEach(() => {
@@ -124,14 +124,14 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     expect(메뉴.querySelector('a[href="#/settings/project-1"]')?.textContent).toContain('애플리케이션 2개');
   });
 
-  it('project-<번호> 면 그 프로젝트를, project-new 면 새 프로젝트 칸을 연다', async () => {
+  it('project-<번호> 면 그 프로젝트를, project-new 면 프로젝트 마법사를 연다', async () => {
     const { unmount } = 펼친다('project-1');
     expect(await screen.findByRole('heading', { name: /데모마켓/ })).toBeTruthy();
     expect((screen.getByLabelText('프로젝트 이름') as HTMLInputElement).value).toBe('데모마켓');
     unmount();
 
     펼친다('project-new');
-    expect(await screen.findByText('새 프로젝트')).toBeTruthy();
+    expect(await screen.findByRole('dialog', { name: '새 프로젝트' })).toBeTruthy();
     expect(screen.getByRole('link', { name: '+ 프로젝트 추가' }).getAttribute('aria-current')).toBe('page');
   });
 
@@ -154,18 +154,6 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     expect(내재료).toHaveBeenCalled();
   });
 
-  it('프로젝트를 만들면 그 프로젝트 주소로 옮긴다', async () => {
-    window.location.hash = '#/settings/project-new';
-    vi.spyOn(api, 'createProject').mockResolvedValue({ id: 7 });
-    vi.spyOn(api, 'settingsServices').mockResolvedValue({ items: [서비스] });
-    vi.spyOn(api, 'settingsUsers').mockResolvedValue({ items: [계정] });
-    render(<Settings user={사람('admin')} onMeChanged={() => undefined} 자리="project-new" />);
-    fireEvent.change(await screen.findByLabelText('프로젝트 이름'), { target: { value: '새 제품' } });
-    fireEvent.click(screen.getByRole('button', { name: '프로젝트 추가' }));
-
-    await waitFor(() => expect(window.location.hash).toBe('#/settings/project-7'));
-  });
-
   it('자리가 없으면 첫 애플리케이션을 연다', async () => {
     펼친다();
 
@@ -180,15 +168,14 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     expect((screen.getByLabelText('이름') as HTMLInputElement).value).toBe('ZSU 애플리케이션');
   });
 
-  it('users 면 계정, new 면 새 애플리케이션을 연다', async () => {
+  it('users 면 계정, new 면 애플리케이션 마법사를 연다', async () => {
     const { unmount } = 펼친다('users');
     expect(await screen.findByText('김설정')).toBeTruthy();
-    expect(screen.queryByLabelText('접두사')).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
     unmount();
 
     펼친다('new');
-    expect(await screen.findByText('새 애플리케이션')).toBeTruthy();
-    expect((screen.getByLabelText('접두사') as HTMLInputElement).disabled).toBe(false);
+    expect(await screen.findByRole('dialog', { name: '새 애플리케이션' })).toBeTruthy();
   });
 
   it('기다리는 가입 신청이 있을 때만 메뉴에 가입 신청과 그 수가 선다', async () => {
@@ -216,16 +203,6 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     펼친다('NOPE');
 
     expect(await screen.findByText('그런 애플리케이션이 없습니다')).toBeTruthy();
-  });
-
-  it('애플리케이션이 하나도 없으면 새 애플리케이션 칸을 연다 — 첫 운영자가 처음 하는 일이다', async () => {
-    vi.spyOn(api, 'settingsServices').mockResolvedValue({ items: [] });
-    vi.spyOn(api, 'settingsUsers').mockResolvedValue({ items: [계정] });
-    render(<Settings user={사람('admin')} onMeChanged={() => undefined} />);
-
-    expect(await screen.findByText('새 애플리케이션')).toBeTruthy();
-    expect(screen.getByRole('link', { name: '+ 애플리케이션 추가' }).getAttribute('aria-current')).toBe('page');
-    expect((screen.getByLabelText('접두사') as HTMLInputElement).disabled).toBe(false);
   });
 
   it('주소에 자리가 없으면 맨 위에서 고른 애플리케이션으로 열고 메뉴 표시도 맞는다 — 목록 앞이 아니라도', async () => {
@@ -289,47 +266,4 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     expect(screen.queryByLabelText('Slack 웹훅')).toBeNull();
   });
 
-  it('새 애플리케이션을 만들면 목록을 다시 읽은 뒤에 그 애플리케이션 주소로 옮긴다', async () => {
-    window.location.hash = '#/settings/new';
-    vi.spyOn(api, 'createService').mockResolvedValue({ id: 9 });
-    const 목록 = vi.spyOn(api, 'settingsServices').mockResolvedValue({ items: [서비스] });
-    vi.spyOn(api, 'settingsUsers').mockResolvedValue({ items: [계정] });
-    render(<Settings user={사람('admin')} onMeChanged={() => undefined} 자리="new" />);
-    await screen.findByText('새 애플리케이션');
-
-    fireEvent.change(screen.getByLabelText('접두사'), { target: { value: 'NEW' } });
-    fireEvent.change(screen.getByLabelText('이름'), { target: { value: '새것' } });
-    fireEvent.change(screen.getByLabelText('테스트 폴더'), { target: { value: 'new' } });
-    목록.mockResolvedValue({ items: [서비스, { ...서비스, id: 9, prefix: 'NEW', name: '새것' }] });
-    fireEvent.click(screen.getByRole('button', { name: '애플리케이션 추가' }));
-
-    await waitFor(() => expect(window.location.hash).toBe('#/settings/NEW'));
-    expect(목록.mock.calls.length).toBeGreaterThanOrEqual(2);
-  });
-});
-
-function 주소보기() {
-  return <p data-testid="hash">{useHash()}</p>;
-}
-
-describe('새 애플리케이션을 만든 뒤 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)', () => {
-  it('만든 애플리케이션으로 옮겨 가는 길에는 떠나기 상자를 띄우지 않는다', async () => {
-    window.history.replaceState(null, '', '#/settings/new');
-    vi.spyOn(api, 'settingsServices').mockResolvedValue({ items: [서비스] });
-    vi.spyOn(api, 'settingsUsers').mockResolvedValue({ items: [계정] });
-    vi.spyOn(api, 'createService').mockResolvedValue({ id: 3 });
-    render(
-      <>
-        <주소보기 />
-        <Settings user={사람('admin')} onMeChanged={() => undefined} 자리="new" />
-      </>,
-    );
-    fireEvent.change(await screen.findByLabelText('접두사'), { target: { value: 'NEW' } });
-    fireEvent.change(screen.getByLabelText('이름'), { target: { value: '새것' } });
-    fireEvent.change(screen.getByLabelText('테스트 폴더'), { target: { value: 'new' } });
-    fireEvent.click(screen.getByRole('button', { name: '애플리케이션 추가' }));
-
-    await waitFor(() => expect(screen.getByTestId('hash').textContent).toBe('#/settings/NEW'));
-    expect(screen.queryByRole('dialog')).toBeNull();
-  });
 });

@@ -37,10 +37,7 @@ export const 설정말: Record<string, string> = {
   '배정 없음': 'Unassigned',
 
   // 서비스 편집기
-  '애플리케이션 추가': 'Add application',
   '접두사': 'Prefix',
-  '생성할 때만 정할 수 있습니다. 케이스 번호(PAY-001)에 사용되므로 나중에 바꿀 수 없습니다':
-    'Set once at creation. It is baked into case IDs like PAY-001, so it cannot change later',
   '생성 후에는 바꿀 수 없습니다. 케이스 번호에 이미 사용 중입니다':
     'Cannot be changed after creation. It is already baked into the case IDs',
   '대문자로 시작하는 영문·숫자 12자 이내로 적습니다. 예: PAY · MEM2':
@@ -85,8 +82,8 @@ export const 설정말: Record<string, string> = {
   '실서비스 서버': 'Live service server',
   '대상 서버 {번호} 실서비스 서버': 'Target server {번호} is a live service server',
   '대상 서버 {번호} 앱 파일 경로': 'Target server {번호} app file path',
-  '앱 파일 경로 (Android 앱만)': 'App file path (Android apps only)',
-  '앱 파일 경로는 Android 앱 케이스를 돌릴 때 설치할 apk 입니다. 디바이스 팜 PC 의 파일 경로나 http(s) 주소를 적고, 비우면 테스트 실행기를 켤 때 준 PLATFORM_APP 을 씁니다':
+  '앱 파일 경로 (Android 앱 · 게임)': 'App file path (Android apps · games)',
+  '앱 파일 경로는 Android 앱 · 게임 케이스를 돌릴 때 설치할 apk 입니다. 디바이스 팜 PC 의 파일 경로나 http(s) 주소를 적고, 비우면 테스트 실행기를 켤 때 준 PLATFORM_APP 을 씁니다':
     'The app file path is the apk installed when Android app cases run. Enter a file path on the device farm PC or an http(s) URL. Leave it empty to use PLATFORM_APP given when the runner started',
   '역할 이름': 'Role name',
   '+ 역할 추가': '+ Add role',
@@ -214,7 +211,6 @@ export const 설정말: Record<string, string> = {
   '새 프로젝트': 'New project',
   '프로젝트 이름': 'Project name',
   '데모마켓': 'Demo Market',
-  '프로젝트 추가': 'Add project',
   '프로젝트 하나에 애플리케이션 여럿이 들어갑니다. 권한은 프로젝트마다 줍니다':
     'A project holds several applications. Permissions are given per project',
   '애플리케이션 옮기기': 'Move applications',

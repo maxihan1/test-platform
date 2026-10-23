@@ -205,10 +205,4 @@ describe('역할 이름 제안 (점검 14.2)', () => {
     expect((screen.getByLabelText('대상 서버 1 역할 1 이름') as HTMLInputElement).value).toBe('손님');
   });
 
-  it('새 애플리케이션은 PRD 를 읽지 않는다', () => {
-    const 읽음 = 받음([]);
-    render(<ServicePanel onDone={() => {}} />);
-
-    expect(읽음).not.toHaveBeenCalled();
-  });
 });

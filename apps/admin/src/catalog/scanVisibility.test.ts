@@ -3,7 +3,7 @@
 
 import Fastify, { type FastifyInstance } from 'fastify';
 
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -24,7 +24,7 @@ function 명세(tcId: string, filePath: string): CaseSpec {
   };
 }
 
-const 화면지도 = vi.hoisted(() => ({ 차례: [] as string[], 부름: [] as unknown[][], 깨짐: false }));
+const 화면지도 = vi.hoisted(() => ({ 차례: [] as string[], 부름: [] as unknown[][], 깨짐: false, 저장: [] as unknown[][], 내림: 7 }));
 const 뿌리 = vi.hoisted(() => ({ 길: '/뿌리' }));
 
 vi.mock('./store.js', () => ({
@@ -34,9 +34,10 @@ vi.mock('./store.js', () => ({
     { id: 3, prefix: 'XCC', name: '다', testsDir: 'xcc' },
     { id: 4, prefix: 'XCD', name: '라', testsDir: 'xcd' },
   ],
-  save: async (specs: CaseSpec[], _deactivate: boolean, prefix: string) => {
+  save: async (specs: CaseSpec[], deactivate: boolean, prefix: string) => {
     화면지도.차례.push(`저장 ${prefix}`);
-    return { added: specs.length, updated: 0, deactivated: 0 };
+    화면지도.저장.push([specs, deactivate, prefix]);
+    return { added: specs.length, updated: 0, deactivated: specs.length === 0 ? 화면지도.내림 : 0 };
   },
   findCase: async () => null,
   findService: async () => null,
@@ -194,6 +195,35 @@ describe('스캔 결과 거르기', () => {
       await rm(임시, { recursive: true, force: true });
     }
     expect((await 다시스캔()).error).toContain('XCD 서비스의 테스트 폴더 xcd을 읽지 못했다');
+  });
+
+  it('뿌리 폴더에 다른 폴더가 있는데 서비스 폴더가 없으면 케이스 0건으로 저장해 비활성으로 내리고 건수를 알린다 · 뿌리에 숨김 항목뿐이면 안 건드린다', async () => {
+    부르는이 = 사람('member', { XCD: 'read' });
+    const 다시스캔 = async () => (await app.inject({ method: 'POST', url: '/api/catalog/scan?service=XCD' })).json();
+    const 임시 = await mkdtemp(join(tmpdir(), 'xcd-'));
+    try {
+      뿌리.길 = 임시;
+      화면지도.저장.length = 0;
+      await 다시스캔();
+      await writeFile(join(임시, '.gitkeep'), '');
+      await mkdir(join(임시, 'lost+found'));
+      await 다시스캔();
+      expect(화면지도.저장).toEqual([]);
+
+      await mkdir(join(임시, 'xca'));
+      화면지도.차례.length = 0;
+      const body = await 다시스캔();
+      expect(body.error).toContain('XCD 서비스의 테스트 폴더 xcd에 케이스가 없어 7건을 비활성으로 내렸다');
+      expect(화면지도.저장).toEqual([[[], true, 'XCD']]);
+      expect(화면지도.차례).toEqual(['저장 XCD', '화면 XCD']);
+
+      화면지도.내림 = 0;
+      expect((await 다시스캔()).error).toBeUndefined();
+    } finally {
+      화면지도.내림 = 7;
+      뿌리.길 = '/뿌리';
+      await rm(임시, { recursive: true, force: true });
+    }
   });
 
   it('?service= 로 「다시 스캔」 하면 그 서비스만 훑는다 · 스캔 시각은 서비스마다 따로다 (PRD-F9-19)', async () => {

@@ -60,11 +60,12 @@ export async function save(specs: CaseSpec[], deactivateMissing: boolean, prefix
     }
 
     // 코드에서 사라진 케이스는 지우지 않는다. 과거 실행 이력이 참조하므로 비활성으로만 둔다 (SPEC §3.1).
-    // 스캔 결과가 통째로 비면 마운트가 빠진 쪽이 훨씬 그럴듯하므로 카탈로그를 전부 내리지 않는다.
+    // 0건이어도 내린다 — 폴더를 비운 서비스의 케이스가 남으면 실행이 CASE_NOT_FOUND 로 빈 절차를 쌓는다.
+    // 마운트가 빠진 경우는 부르는 쪽(scanRun.ts)이 뿌리 폴더를 보고 거른다.
     // 범위는 이 서비스의 접두사 안이다 — 서비스마다 자기 폴더만 훑으므로(§9.2) 전체를 범위로 잡으면
     // 한 서비스를 스캔할 때 다른 서비스의 케이스가 통째로 내려간다
     let deactivated = 0;
-    if (deactivateMissing && specs.length > 0) {
+    if (deactivateMissing) {
       const dropped = await client.query(
         `UPDATE test_case SET is_active = false
           WHERE is_active = true AND tc_id LIKE $2 AND tc_id <> ALL($1::text[])`,

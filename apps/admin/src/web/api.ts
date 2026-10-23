@@ -453,6 +453,8 @@ export interface EnvRow {
   appPath?: string | null;
   /** API 인증 (도메인/API §3.8). 비밀값은 끝 4자리만 온다. API 종류 애플리케이션만 담긴다 — 설정 화면만 받는다 (API-F1-03) */
   apiAuths?: { name: string; tokenUrl: string; clientId: string; clientSecretLast4: string }[];
+  /** 게임 서버 어드민 API 머리 (도메인/게임 §3.10). 값은 끝 4자리만 온다. 게임 종류 애플리케이션만 담긴다 — 설정 화면만 받는다 (GAME-F1-07) */
+  adminKey?: { header: string; valueLast4: string } | null;
 }
 
 /** 설정 「화면 크기」 의 화면별 차이 — PC 와 모바일이 다른 화면만 앞 200장까지 오고 전체 수(differ) · 같은 화면 수(same)는 따로 온다 (도메인/인증 §7) */
@@ -478,6 +480,8 @@ export interface EnvInput {
   appPath?: string | null;
   /** 보내면 그 목록으로 바꾼다. clientSecret 이 없는 줄은 같은 env · name · tokenUrl 의 옛 비밀값을 서버가 이어받는다 (도메인/인증 §7) */
   apiAuths?: { name: string; tokenUrl: string; clientId: string; clientSecret?: string }[];
+  /** 키가 없으면 유지 · null 이면 지운다. value 가 없으면 같은 env · 같은 header 의 옛 값을 서버가 이어받는다 (도메인/인증 §7) */
+  adminKey?: { header: string; value?: string } | null;
 }
 
 // 맨 위 띠의 서비스 목록이 이것이다. 배정받은 것만 온다 (SPEC §7 · §8)
@@ -504,7 +508,7 @@ export interface ServiceRow {
 }
 
 /** 애플리케이션 종류 (도메인/러너 §5.2 「애플리케이션 종류 「Android 앱」」 · 도메인/API §3.8) */
-export type 앱종류 = 'SCREEN' | 'APP' | 'API';
+export type 앱종류 = 'SCREEN' | 'APP' | 'GAME' | 'API';
 
 export interface User {
   username: string;

@@ -5,12 +5,15 @@ import type { ScenarioPart } from '@platform/kit';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
-import { findService } from '../catalog/store.js';
+import { 칸되는서비스 } from '../auth/permissions.js';
+import { findCase, findService } from '../catalog/store.js';
+import { 지도를읽는다 } from '../prd/apiMap.js';
 import { 정수 } from '../routeParams.js';
 
 import { 같은프로젝트접두사 } from './apps.js';
 import { 점검 } from './checks.js';
-import { 다음케이스읽기 } from './next.js';
+import { 값연결제안들 } from './linkSuggest.js';
+import { 다음케이스읽기, 첫케이스읽기 } from './next.js';
 import { 케이스재료 } from './parts.js';
 import { 고치기, 되돌리기, 만들기, 목록, 상세, 옛버전, 치우기, type 저장하는사람 } from './store.js';
 import { 부품들모양, 조립검사 } from './validate.js';
@@ -21,6 +24,7 @@ const 디바이스 = z.enum(['desktop', 'mobile']);
 const 만들기본문 = z.object({ service: z.string(), name: 이름, platform: 디바이스, parts: 부품들모양 });
 const 고치기본문 = z.object({ name: 이름, platform: 디바이스, parts: 부품들모양, baseVersion: z.number().int().min(1) });
 const 되돌리기본문 = z.object({ version: z.number().int().min(1) });
+const 제안본문 = z.object({ service: z.string(), parts: 부품들모양 });
 
 const 케이스번호들 = (parts: ScenarioPart[]) => parts.flatMap((p) => (p.kind === 'case' ? [p.tcId] : []));
 
@@ -91,15 +95,38 @@ export default async function scenarioRoutes(app: FastifyInstance): Promise<void
     return 재료;
   });
 
-  // 다음 단계 추천. 정상 쪽 거르기 · 디바이스는 화면이 팔레트 목록으로 한다 (§8.11)
+  // 다음 단계 추천 · 첫 단계 후보. 정상 쪽 거르기 · 디바이스는 화면이 팔레트 목록으로 한다 (§8.11)
   app.get<{ Querystring: { service?: string; after?: unknown } }>('/scenarios/next-cases', async (req, reply) => {
     const prefix = req.query.service ?? '';
     if (prefix === '') return reply.code(400).send({ error: 'SERVICE_REQUIRED' });
     const 서비스 = await findService(prefix);
     if (서비스 === null) return 잘못(reply, `모르는 서비스다: ${prefix}`);
-    // ?after= 를 두 번 붙이면 배열이 온다 — 어느 단계 뒤인지 모르니 추천하지 않는다
+    // after 칸이 아예 없으면 첫 단계 후보다 (결정 15). ?after= 를 두 번 붙이면 배열이 온다 — 어느 단계 뒤인지 모르니 추천하지 않는다
+    if (req.query.after === undefined) return { items: await 첫케이스읽기(서비스.id, prefix) };
     const after = typeof req.query.after === 'string' ? req.query.after : '';
     return { items: await 다음케이스읽기(서비스.id, prefix, after) };
+  });
+
+  // 값 연결 제안. 저장 안 한 초안이라 조립 거절은 안 건다. 지도는 작성 칸이라 (작성, read) 가 있는 애플리케이션 단계만 본다 (결정 15)
+  app.post('/scenarios/link-suggestions', async (req, reply) => {
+    const parsed = 제안본문.safeParse(req.body);
+    if (!parsed.success) return 잘못(reply, parsed.error.message);
+    const { service, parts } = parsed.data;
+    if ((await findService(service)) === null) return 잘못(reply, `모르는 서비스다: ${service}`);
+    const 읽는앱 = new Set(칸되는서비스(req.user?.services ?? [], 'authoring', 'read'));
+    const 앱들 = (await 같은프로젝트접두사(service)).filter((p) => 읽는앱.has(p) && 케이스번호들(parts).some((t) => t.startsWith(`${p}-`)));
+    const 지도 = new Map(await Promise.all(앱들.map(async (앱) => {
+      const 서비스 = await findService(앱);
+      return [앱, 서비스 === null ? [] : (await 지도를읽는다(서비스.id)).apis] as const;
+    })));
+    // 입력값 칸은 DB 의 입력 스키마에서 읽는다 — 케이스 파일을 열 까닭이 없다. 비활성 · 없는 케이스는 칸이 없는 것으로 친다
+    const 번호 = 케이스번호들(parts).filter((t) => 앱들.some((p) => t.startsWith(`${p}-`)));
+    const 입력칸 = new Map(await Promise.all([...new Set(번호)].map(async (tcId) => {
+      const 행 = await findCase(tcId);
+      const 칸들: unknown = 행?.isActive ? 행.paramSchema?.properties : undefined;
+      return [tcId, typeof 칸들 === 'object' && 칸들 !== null ? Object.keys(칸들) : []] as const;
+    })));
+    return { items: 값연결제안들(parts, 지도, 입력칸) };
   });
 
   app.get<{ Params: { id: string } }>('/scenarios/:id', async (req, reply) => {

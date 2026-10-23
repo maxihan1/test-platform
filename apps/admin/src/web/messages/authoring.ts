@@ -264,4 +264,7 @@ export const 작성말: Record<string, string> = {
     'If the target server has an app file path, takes a free phone from the device farm, installs the app, and taps through from the first screen to read element locators. The phone is released when done',
   '앱 케이스는 끝 검사에서 폰으로 돌려 보지 않습니다. 병합 뒤 「테스트 스크립트」에서 실행해 확인합니다':
     'App cases are not run on a phone during the final check. Run them from “Test scripts” after the merge',
+  '게임 화면 읽기': 'Reading game screens',
+  '디바이스 팜에서 빈 폰 하나를 잡아 게임을 설치하고, 로그인 창부터 창을 하나씩 열어 오브젝트 목록을 읽습니다. 끝나면 폰을 놓습니다':
+    'Takes a free phone from the device farm, installs the game, and opens each window from the login window on to read its object list. The phone is released when done',
 };

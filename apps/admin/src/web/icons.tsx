@@ -1,6 +1,6 @@
 // 메뉴 아이콘 — 패키지 없이 SVG 를 직접 둔다 (DESIGN.md 원칙 5). 글자를 대신하지 않고 곁에 선다
 
-export type 아이콘이름 = 'dashboard' | 'cases' | 'prd' | 'api' | 'authoring' | 'scenarios' | 'runs' | 'perf' | 'graph' | 'settings' | 'run' | 'bell' | 'person' | 'desktop' | 'phone';
+export type 아이콘이름 = 'dashboard' | 'cases' | 'prd' | 'api' | 'authoring' | 'scenarios' | 'runs' | 'perf' | 'graph' | 'settings' | 'run' | 'bell' | 'person' | 'desktop' | 'phone' | 'game';
 
 // 24 격자 · 선 1.8 · 둥근 끝. 색은 글자를 따른다(currentColor) — 지금 자리면 글자와 같이 밝아진다
 const 그림: Record<아이콘이름, React.ReactNode> = {
@@ -114,6 +114,15 @@ const 그림: Record<아이콘이름, React.ReactNode> = {
     <>
       <rect x="7" y="2" width="10" height="20" rx="2" />
       <path d="M11 18h2" />
+    </>
+  ),
+  // 게임패드 — 십자 키와 단추 둘. 폰 모양이면 Android 앱과 헤더에서 안 갈린다
+  game: (
+    <>
+      <rect x="2" y="7" width="20" height="11" rx="5" />
+      <path d="M7 10.5v4M5 12.5h4" />
+      <circle cx="15.5" cy="11.5" r="0.8" />
+      <circle cx="18" cy="13.8" r="0.8" />
     </>
   ),
 };
