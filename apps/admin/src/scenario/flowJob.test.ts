@@ -136,9 +136,13 @@ describe.skipIf(연결 === undefined)('E2E AI 흐름 후보', { timeout: 60_000 
     expect((await 결과보기('xfl-writer', 흐름일)).candidates?.[0]?.links).toEqual([]);
   });
 
-  it('다듬은 뒤 후보가 없으면 일은 실패이고 끝 알리기는 204 다', async () => {
+  it('모양이 틀린 결과는 400 이고, 다듬은 뒤 후보가 없으면 일은 실패이고 끝 알리기는 204 다', async () => {
     const job = await 집기();
     expect(job?.id).toBe(흐름글일);
+    const 틀린 = { output: { candidates: [{ name: '거꾸로', why: '뒤에서 앞으로', tcIds: ['XFL-FN-001', 'XFL-FN-002'], links: [{ fromSeq: 2, toSeq: 1, jsonPath: 'id' }] }] } };
+    expect((await 부르기('xfl-agent', 'POST', `/api/perf/ai-jobs/${흐름글일}/finish`, 틀린)).json()).toMatchObject({ error: 'INVALID_OUTPUT' });
+    expect(await 결과보기('xfl-writer', 흐름글일)).toMatchObject({ status: 'FAILED', error: expect.stringContaining('결과 모양') });
+    await pool.query("UPDATE perf_ai_job SET status = 'RUNNING', error = NULL, finished_at = NULL WHERE id = $1", [흐름글일]);
     const 몸 = { output: { candidates: [{ name: '없는 흐름', why: '지어냈다', tcIds: ['XFL-FN-404', 'XFL-FN-405'] }] } };
     expect((await 부르기('xfl-agent', 'POST', `/api/perf/ai-jobs/${흐름글일}/finish`, 몸)).statusCode).toBe(204);
     expect(await 결과보기('xfl-writer', 흐름글일)).toMatchObject({ status: 'FAILED', candidates: null, error: '쓸 수 있는 흐름 후보가 없다' });
