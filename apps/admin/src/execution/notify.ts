@@ -107,11 +107,19 @@ export async function notifyRun(runId: number): Promise<boolean> {
     [runId],
   );
 
-  const text = 본문(run, 실패.rows, process.env.PLATFORM_PUBLIC_URL ?? '', runId);
-  if (!(await 슬랙으로(run.slack_webhook, text))) return false;
+  // 중단 통로와 디스패처가 거의 같이 부른다 — 보내기 전에 한 문장으로 먼저 차지해 둘째는 보내지 않는다.
+  // 보내기에 실패하면 되돌린다. 비어 있어야 「보내려다 실패한 것」으로 읽힌다 (§6)
+  const 차지 = await pool.query('UPDATE test_run SET notified_at = now() WHERE run_id = $1 AND notified_at IS NULL', [runId]);
+  if (차지.rowCount === 0) return false;
 
-  await pool.query('UPDATE test_run SET notified_at = now() WHERE run_id = $1', [runId]);
-  return true;
+  const text = 본문(run, 실패.rows, process.env.PLATFORM_PUBLIC_URL ?? '', runId);
+  let 보냄 = false;
+  try {
+    보냄 = await 슬랙으로(run.slack_webhook, text);
+  } finally {
+    if (!보냄) await pool.query('UPDATE test_run SET notified_at = NULL WHERE run_id = $1', [runId]);
+  }
+  return 보냄;
 }
 
 // 작성 완료 알림(authoring/notify.ts)도 같은 방식으로 보낸다 — JSON 한 번, 10초 제한, 재시도 없음
