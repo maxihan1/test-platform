@@ -77,13 +77,15 @@ describe.skipIf(연결 === undefined)('증적의 기기 정보', () => {
     ]);
   });
 
-  it('실행 상세는 앱 항목이 읽은 앱 판 · 빌드 코드를 겹침 없이 싣고, 둘 다 못 읽은 폰과 브라우저 항목은 뺀다 (도메인/실행 §7)', async () => {
+  it('실행 상세는 빌드 번호가 있는 실행만 앱 항목이 읽은 앱 판 · 빌드 코드를 겹침 없이 싣고, 둘 다 못 읽은 폰과 브라우저 항목은 뺀다 (도메인/실행 §7)', async () => {
     const 깔린 = { model: 'SM-G996N', osVersion: '14', appVersion: '1.4.2', appBuild: '123' };
     const 앱1 = await 항목('XDM-011', 'android');
     const 앱2 = await 항목('XDM-012', 'android');
     await finishItem(앱1, { historyId: 앱1, status: 'PASS', durationMs: 5, steps: [], device: 깔린 });
     await finishItem(앱2, { historyId: 앱2, status: 'PASS', durationMs: 5, steps: [], device: 깔린 });
 
-    expect((await findRun(실행))?.installedApps).toEqual([{ appVersion: '1.4.2', appBuild: '123' }]);
+    const 빌드없이 = (await findRun(실행))?.installedApps;
+    await pool.query("UPDATE test_run SET build_no = '124' WHERE run_id = $1", [실행]);
+    expect([빌드없이, (await findRun(실행))?.installedApps]).toEqual([[], [{ appVersion: '1.4.2', appBuild: '123' }]]);
   });
 });

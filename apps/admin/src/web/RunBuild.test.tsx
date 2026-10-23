@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { api, type RunListRow } from './api.js';
 import { RunResult } from './RunResult.js';
 import { 끝난응답, RUN_ID, 실행, 실행까지 } from './RunResult.fixture.js';
+import { 다른빌드들 } from './RunBuild.js';
 import { 실행줄 } from './RunListRow.js';
 
 afterEach(() => {
@@ -46,6 +47,11 @@ describe('실행 결과 머리 — 다른 빌드', () => {
     결과({ buildNo: '124', installedApps: [{ appVersion: '1.4.2', appBuild: '124' }, { appVersion: '9.9', appBuild: null }] });
     expect(await screen.findByText(/빌드 124/)).toBeTruthy();
     expect(screen.queryByText(/다른 빌드가/)).toBeNull();
+  });
+
+  it('빌드 번호는 수로 견주고, 숫자만이 아닌 빌드 번호는 견주지 않는다 — versionCode 는 정수다', () => {
+    const 폰 = [{ appVersion: '1.4.2', appBuild: '124' }];
+    expect([다른빌드들('0124', 폰), 다른빌드들('v123', 폰), 다른빌드들('1.4.0+123', 폰), 다른빌드들('123', 폰)]).toEqual([[], [], [], ['124']]);
   });
 
   it('빌드 번호가 없는 실행은 견주지 않는다', async () => {

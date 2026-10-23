@@ -50,7 +50,7 @@ export const 케이스말: Record<string, string> = {
   '스모크만': 'Smoke only',
   '직접': 'manual',
   '{아이디} 스모크': '{아이디} smoke',
-  'AI 가 정한 값과 다르게 직접 고쳤습니다. 다시 누르면 AI 가 정한 값으로 돌아갑니다': 'Changed by hand, different from the value the AI set. Press again to go back to the AI value',
+  '직접 고친 값입니다. 다시 누르면 AI 가 정한 값으로 돌아갑니다': 'Set by hand. Press again to go back to the value the AI set',
   'API 서버 {이름}': 'API server {이름}',
   '경계값 분석': 'Boundary value analysis',
   '동등 분할': 'Equivalence partitioning',

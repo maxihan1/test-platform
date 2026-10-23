@@ -197,7 +197,7 @@ export function 케이스줄({
   on실행?: (row: CaseRow) => void;
   on열기: (tcId: string) => void;
   /** 스모크 칩을 고칠 수 있을 때만 온다(cases write) — 없으면 켜진 칩만 글자로 보인다 */
-  on스모크?: () => void;
+  on스모크?: () => Promise<unknown>;
   /** 작성 보기 권한 — 없으면 요구 번호가 「PRD 관리」 고리가 아니라 글자다 (도메인/카탈로그 §8.1 「맥락」) */
   요구보나?: boolean;
   /** 서비스가 PRD 를 쓴다 — 안 쓰면 「연결된 요구 없음」을 줄마다 달지 않는다 */

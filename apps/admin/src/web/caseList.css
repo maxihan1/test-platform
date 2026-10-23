@@ -180,8 +180,10 @@ button.smoke-chip:focus-visible {
   color: var(--link);
 }
 
+/* 안 보이는 동안은 눌리지도 않는다 — 케이스명 옆 빈자리를 누른 것이 스모크를 켜면 안 된다. 포커스는 pointer-events 와 상관없이 닿는다 */
 .smoke-off {
   opacity: 0;
+  pointer-events: none;
   transition: opacity var(--dur) var(--ease);
 }
 
@@ -189,6 +191,7 @@ button.smoke-chip:focus-visible {
 .row:focus-within .smoke-off,
 .smoke-off.smoke-set {
   opacity: 0.7;
+  pointer-events: auto;
 }
 
 .smoke-error {

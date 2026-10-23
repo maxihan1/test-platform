@@ -4,7 +4,6 @@ import { useState } from 'react';
 
 import { api, type SettingsServiceRow } from './api.js';
 import { use말, use언어 } from './i18n.js';
-import { 운영이름인가 } from '../settings/roles.js';
 import { 오류문장 } from './SettingsService.js';
 import { Failed, Loading, useAsync, when } from './ui.js';
 
@@ -41,8 +40,8 @@ export function CI토큰구획({ row }: { row: SettingsServiceRow }) {
   const [env, setEnv] = useState('');
   const [복사, set복사] = useState<'token' | 'example' | null>(null);
 
-  // 실서비스에는 CI 가 빌드를 못 올린다 — 고르개에 아예 안 둔다
-  const 서버들 = row.envs.filter((it) => !(it.isProd ?? 운영이름인가(it.env)));
+  // 실서비스에는 CI 가 빌드를 못 올린다 — 고르개에 아예 안 둔다. 서버가 막는 칸(is_prod) 그대로 본다 — 저장된 줄이라 늘 온다
+  const 서버들 = row.envs.filter((it) => it.isProd !== true);
   const 고른env = 서버들.some((it) => it.env === env) ? env : (서버들[0]?.env ?? '');
   const 종류 = row.kind ?? 'SCREEN';
   const 파일 = 종류 === 'APP' || 종류 === 'GAME';
@@ -74,17 +73,21 @@ export function CI토큰구획({ row }: { row: SettingsServiceRow }) {
     });
   }
 
+  // 클립보드는 https 에서만 열린다. http 로 연 사내 서버에는 navigator.clipboard 가 없어 그 자리에서 던진다 — 약속 안에서 불러 실패 갈래로 받는다(PhoneShell.tsx 와 같다). 토큰은 code 칸에서 골라 복사할 수 있다
   function 복사하기(글: string, 무엇: 'token' | 'example') {
-    void navigator.clipboard.writeText(글).then(() => set복사(무엇), () => set복사(null));
+    void Promise.resolve()
+      .then(() => navigator.clipboard.writeText(글))
+      .then(() => set복사(무엇), () => set복사(null));
   }
 
-  if (list.error !== null) return <Failed error={list.error} />;
-  if (list.data === null) return <Loading />;
+  // 처음 읽기에 실패했을 때만 구획을 오류로 바꾼다 — 만든 직후 다시 읽기가 실패해도 한 번만 보이는 토큰 상자가 사라지면 안 된다
+  if (list.data === null) return list.error !== null ? <Failed error={list.error} /> : <Loading />;
   const 줄들 = list.data.tokens;
 
   return (
     <div className="set-ci">
       {오류 === null ? null : <p className="perf-err" role="alert">{오류}</p>}
+      {list.error === null ? null : <p className="perf-err" role="alert">{list.error}</p>}
       {줄들.length === 0 ? (
         <div className="empty">{t('아직 만든 토큰이 없습니다')}</div>
       ) : (

@@ -16,11 +16,12 @@ export function 시작빌드글(run: Pick<RunSummary, 'origin' | 'buildNo'>, t: 
 
 /**
  * 폰이 읽은 빌드 코드(versionCode) 가운데 실행 빌드 번호와 다른 것. 앱 판(versionName)은 빌드마다 안 바뀌는 일이 많아 견주지 않는다.
- * 빌드 코드를 못 읽은 폰은 견줄 것이 없어 뺀다 — 경고가 늘 뜨면 아무도 안 읽는다
+ * 빌드 코드를 못 읽은 폰은 견줄 것이 없어 뺀다 — 경고가 늘 뜨면 아무도 안 읽는다.
+ * versionCode 는 정수다. 빌드 번호가 숫자만일 때 수로 견주고(「0124」 = 124), 「v124」 · 「1.4.0+124」 처럼 다른 꼴이면 견주지 않는다
  */
 export function 다른빌드들(buildNo: string | null | undefined, apps: 폰에깔린앱[] | undefined): string[] {
-  if (buildNo == null) return [];
-  return [...new Set((apps ?? []).flatMap((a) => (a.appBuild === null || a.appBuild === buildNo ? [] : [a.appBuild])))];
+  if (buildNo == null || !/^\d+$/.test(buildNo)) return [];
+  return [...new Set((apps ?? []).flatMap((a) => (a.appBuild === null || Number(a.appBuild) === Number(buildNo) ? [] : [a.appBuild])))];
 }
 
 export function 다른빌드알림({ buildNo, apps }: { buildNo?: string | null; apps?: 폰에깔린앱[] }) {

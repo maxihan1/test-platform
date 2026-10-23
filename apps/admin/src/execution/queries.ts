@@ -171,12 +171,15 @@ export async function findRun(
     `SELECT ${ITEM_COLUMNS} FROM run_item WHERE run_id = $1 ORDER BY tc_id, platform`,
     [runId],
   );
-  // 둘 다 못 읽은 폰은 뺀다 — 견줄 것이 없다
-  const 깔린 = await pool.query<{ app_version: string | null; app_build: string | null }>(
-    `SELECT DISTINCT device->>'appVersion' AS app_version, device->>'appBuild' AS app_build FROM run_item
-      WHERE run_id = $1 AND COALESCE(device->>'appVersion', device->>'appBuild') IS NOT NULL ORDER BY 1, 2`,
-    [runId],
-  );
+  // 둘 다 못 읽은 폰은 뺀다 — 견줄 것이 없다. 빌드 번호가 없는 실행은 견줄 상대가 없어 읽지 않는다(도는 동안 화면이 이 통로를 거듭 부른다)
+  const 깔린 =
+    row.build_no === null
+      ? { rows: [] }
+      : await pool.query<{ app_version: string | null; app_build: string | null }>(
+          `SELECT DISTINCT device->>'appVersion' AS app_version, device->>'appBuild' AS app_build FROM run_item
+            WHERE run_id = $1 AND COALESCE(device->>'appVersion', device->>'appBuild') IS NOT NULL ORDER BY 1, 2`,
+          [runId],
+        );
 
   return {
     ...toRun(row),

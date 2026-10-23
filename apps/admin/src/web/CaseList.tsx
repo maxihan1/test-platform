@@ -243,7 +243,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
             열림={연줄?.tcId === row.tcId}
             on실행={할수('실행') ? (row) => void 뽑기.하나열기(row) : undefined}
             on열기={열기}
-            on스모크={할수('스모크고치기') ? () => void cases.reload() : undefined}
+            on스모크={할수('스모크고치기') ? cases.reload : undefined}
           />
           );
         })}
