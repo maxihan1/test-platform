@@ -4,7 +4,6 @@
 // **자식은 자기 사본 트리에만 쓴다** (2026-09-24 게이트 0). 서버 저장소(`원천`)에는 아무것도 안 쓴다 —
 // main SHA 는 묻기만 하고, 받는 일은 사본이 한다. 컨테이너(root)에서는 자식이 자리 uid 로 돌아 에이전트의 토큰을 못 읽는다.
 
-import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { type 집은것, 거절인가, 줄프롬프트, 클로드인자 } from './authoring-rules.js';
@@ -29,7 +28,7 @@ import { type 서비스설정 } from './authoring-token.js';
 import { 먼저가리기 } from './authoring-masking.js';
 import { 앱화면받기, 잡은폰놓기, 탐색환경 } from './authoring-app-screen.js';
 import { type 바꾸기, 가이드받기, 가이드폴더 } from './authoring-guide.js';
-import { 원장과남은번호 } from './authoring-ledger-io.js';
+import { 새로쓰기, 원장과남은번호 } from './authoring-ledger-io.js';
 import { API떼기, API반영줄, API원장항목, API점검, API환경, 판파일쓰기 } from './authoring-api.js';
 import { 화면지도준비 } from './authoring-covered.js';
 import { 앞결과, 옮기기올리기, 판받기 } from './authoring-prd-io.js';
@@ -174,8 +173,12 @@ async function 사본에서(
       await 손.끝내기({ status: 'FAILED', error: `자료 「${c.name}」 을 못 받았다 (${답.코드})` });
       return;
     }
-    // 바이트 그대로 쓴다. 글자로 읽으면 PDF·워드가 깨진다. 자식이 읽도록 0644 — 폴더가 자식 것이라 남은 못 본다
-    writeFileSync(c.받을자리, 답.몸, { mode: 0o644 });
+    // 바이트 그대로 쓴다. 글자로 읽으면 PDF·워드가 깨진다. 자식이 읽도록 0644 — 폴더가 자식 것이라 남은 못 본다.
+    // 이어받은 폴더면 앞 자식이 이 이름에 링크를 심어 뒀을 수 있다 — 지우고 새로 만든다(리뷰 H6)
+    if (!새로쓰기(c.받을자리, 답.몸)) {
+      await 손.끝내기({ status: 'FAILED', error: `자료 「${c.name}」 을 자료 폴더에 못 썼다` });
+      return;
+    }
     if (c.변환 === null) continue;
     const 바꾼것 = 바꾸기(c.변환, 자리.자료);
     if (!바꾼것.ok) {

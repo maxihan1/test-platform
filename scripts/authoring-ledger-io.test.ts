@@ -5,7 +5,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { 옛표줄들, 원장과남은번호, 표번호바꾸기, 표준원장사본 } from './authoring-ledger-io.js';
+import { 새로쓰기, 옛표줄들, 원장과남은번호, 표번호바꾸기, 표준원장사본 } from './authoring-ledger-io.js';
 
 let 뿌리 = '';
 let 트리 = '';
@@ -151,5 +151,18 @@ describe('옛표줄들 — 옛 표를 옮긴 요청의 PR 머리 (PRD-F3-03)', (
   it('기준 표에 옛 줄이 없으면 줄이 없다', () => {
     writeFileSync(표자리(), 머리 + 행(1, 'MKT-REQ-001', 'MKT-FN-001'));
     expect(옛표줄들(트리, 'MKT', 'mkt', 머리 + 행(1, 'MKT-REQ-001', 'MKT-FN-001'))).toEqual([]);
+  });
+});
+
+describe('새로쓰기 — 이어서 작성 때 받은 자료 파일 (리뷰 H6)', () => {
+  it('앞 자식이 받을자리에 심은 링크를 따라가지 않고 받은 바이트를 그대로 쓴다', () => {
+    const 훅 = join(뿌리, 'post-merge');
+    writeFileSync(훅, '원래 훅');
+    const 받을자리 = join(뿌리, '7.pdf');
+    symlinkSync(훅, 받을자리);
+    const 몸 = Buffer.from([0x25, 0x50, 0x44, 0x46, 0x00, 0xff]);
+    expect(새로쓰기(받을자리, 몸)).toBe(true);
+    expect(readFileSync(훅, 'utf8')).toBe('원래 훅');
+    expect(readFileSync(받을자리)).toEqual(몸);
   });
 });
