@@ -1,12 +1,12 @@
 // E2E 실행 · 시험 실행의 trace.zip 을 풀어 실패한 부품 몫만 가려 돌려준다 (SPEC 도메인/시나리오 §7 「실패 기록」)
 // 파서 · 가림은 케이스 정식 실행 적재(execution/traceIngest.ts)와 같다. 한 zip 에 부품이 다 섞여 단계 번호(시나리오 전체에서 이어진다)로 가른다
 
-import { readFile, unlink } from 'node:fs/promises';
+import { unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { ScenarioExecuteResponse, ScenarioPart } from '@platform/kit';
 
-import { artifactsDir } from '../execution/routes.js';
+import { artifactsDir, 볼륨파일읽기 } from '../artifactFile.js';
 import { trace가린다 } from '../execution/traceIngest.js';
 import { trace를푼다, type 네트워크줄, type 조작줄, type 콘솔줄 } from '../execution/traceParse.js';
 import { trace없는까닭 } from '../execution/traceReason.js';
@@ -71,7 +71,7 @@ export async function 실패부품trace(
   const 못읽음 = (err: unknown) => 모두(없음('FAILED', `trace 를 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`));
   let zip: Buffer;
   try {
-    zip = await readFile(경로);
+    zip = await 볼륨파일읽기(경로);
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== 'ENOENT') return 못읽음(err);
     // 러너가 제한 시간에 자식을 끊으면 Playwright 가 zip 을 못 쓴다 — 케이스와 같은 사유로 가른다

@@ -62,6 +62,6 @@ describe('볼륨파일읽기', () => {
   it('일반 파일은 읽고 바로가기는 던진다', async () => {
     symlinkSync(join(밖, 'environ'), join(뿌리, 'runs', '1', '2', '2.png'));
     expect((await 볼륨파일읽기(join(뿌리, 'runs', '1', '2', '1.png'))).toString()).toBe('png');
-    await expect(볼륨파일읽기(join(뿌리, 'runs', '1', '2', '2.png'))).rejects.toThrow('볼륨 안의 일반 파일이 아니다');
+    await expect(볼륨파일읽기(join(뿌리, 'runs', '1', '2', '2.png'))).rejects.toMatchObject({ code: 'ENOENT' });
   });
 });

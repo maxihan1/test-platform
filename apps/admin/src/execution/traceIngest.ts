@@ -1,11 +1,12 @@
 // 항목이 닫힌 뒤 trace.zip 을 풀어 가린 네트워크 · 조작 · 콘솔을 DB 에 넣는다 (SPEC 도메인/실행 §3.2 「trace」)
 // 실행을 늦추지 않게 따로, 메모리를 아끼게 한 번에 하나씩 푼다. 다 풀면 통과 항목 zip 은 지우고 실패 항목 zip 은 에이전트 참고용으로 둔다
 
-import { access, readdir, readFile, unlink } from 'node:fs/promises';
+import { access, readdir, unlink } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import type { Pool } from 'pg';
 
+import { 볼륨파일읽기 } from '../artifactFile.js';
 import { 케이스지도를넣는다, 지도줄들 } from '../prd/apiMap.js';
 import { 가려야하나 } from '../web/mask.js';
 import { 가린다, 항목비밀 } from './trial.js';
@@ -166,7 +167,8 @@ export async function trace를적재한다(historyId: number): Promise<상태 | 
   const 경로 = trace경로(Number(row.run_id), historyId);
   let zip: Buffer;
   try {
-    zip = await readFile(경로);
+    // 바로가기는 없는 파일로 친다 — 남의 실행 trace · /dev/zero 를 걸어 둘 수 있다 (리뷰 M4)
+    zip = await 볼륨파일읽기(경로);
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
     // 러너가 자식을 끊으면 리포터가 옮길 틈이 없다. 그 밖은 다른 기계의 러너(공유 폴더 없음)이거나 리포터가 옮기다 실패한 것이다 (실행 §3.2 「trace」)

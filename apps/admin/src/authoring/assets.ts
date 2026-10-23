@@ -3,9 +3,10 @@
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
-import { copyFile, link, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { copyFile, link, mkdir, rm, writeFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 
+import { 볼륨파일읽기 } from '../artifactFile.js';
 import { 집은쪽인가 } from './agentRoutes.js';
 import { 산출물더하기, 자료더하기, 자료목록, 자료지우기, 자료한건, 제출 } from './assetStore.js';
 import { 번호, 사진뿌리 } from './routes.js';
@@ -227,7 +228,8 @@ export default async function authoringAssetRoutes(app: FastifyInstance): Promis
       // 피그마 자료는 파일이 없다. 주소는 상세 응답에 이미 있다
       if (자료 === null || 자료.kind !== 'FILE') return reply.code(404).send({ error: 'NOT_FOUND' });
 
-      return 내려받기(reply, 자료.name, await readFile(join(자료폴더(id), 디스크이름(자료.id, 자료.name))));
+      // 러너도 이 볼륨에 쓴다 — 바로가기를 따라가면 admin 의 아무 파일이나 자료로 나간다 (리뷰 M4)
+      return 내려받기(reply, 자료.name, await 볼륨파일읽기(join(자료폴더(id), 디스크이름(자료.id, 자료.name))));
     },
   );
 }

@@ -29,9 +29,9 @@ export async function 볼륨파일(경로: string): Promise<string | null> {
   }
 }
 
-/** readFile 자리에 그대로 쓴다 — 볼륨 안 일반 파일이 아니면 없는 파일처럼 던져, 부르는 쪽의 404 처리를 그대로 탄다 */
+/** readFile 자리에 그대로 쓴다 — 볼륨 안 일반 파일이 아니면 ENOENT 로 던져, 부르는 쪽의 「없는 파일」 처리를 그대로 탄다 */
 export async function 볼륨파일읽기(경로: string): Promise<Buffer> {
   const 진짜 = await 볼륨파일(경로);
-  if (진짜 === null) throw new Error(`볼륨 안의 일반 파일이 아니다: ${경로}`);
+  if (진짜 === null) throw Object.assign(new Error(`볼륨 안의 일반 파일이 아니다: ${경로}`), { code: 'ENOENT' });
   return readFile(진짜);
 }

@@ -1,10 +1,10 @@
 // 「화면이 맞음」 반영 본문을 읽고 실행 · 지도로 params.screenRight 를 채운다 (도메인/작성 §7 apply 「본문 screenRight」 · §3.6 「화면이 맞음」)
 // 리포팅은 작성 요청을 직접 쓰지 않는다 — 실패 카드 버튼이 이 반영 통로를 부르고, 실행 표는 여기서 읽기만 한다 (도메인/리포팅 「실패 요구사항」)
 
-import { readFile } from 'node:fs/promises';
 
 import { z } from 'zod';
 
+import { 볼륨파일읽기 } from '../artifactFile.js';
 import { TCID } from '../catalog/rules.js';
 import { 종류조건 } from '../execution/runKind.js';
 import { 항목비밀 } from '../execution/trial.js';
@@ -88,7 +88,7 @@ export async function 실패요약(서비스: number, runId: number, tcId: strin
   for (const 행 of 항목.rows) {
     let zip: Buffer;
     try {
-      zip = await readFile(trace경로(runId, Number(행.history_id)));
+      zip = await 볼륨파일읽기(trace경로(runId, Number(행.history_id)));
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
       continue;

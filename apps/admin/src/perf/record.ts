@@ -1,12 +1,13 @@
 // 녹화 실행 — 케이스 · E2E 를 서버 러너로 한 번 돌려 HAR 를 받고, 가려서 AI 일 재료로 바꾼다 (도메인/성능 §3.9 「시나리오 만들기」 · 도메인/러너 「녹화 실행」)
 
 import { randomUUID } from 'node:crypto';
-import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { BrowserPlatform, ExecuteRequest } from '@platform/kit';
 
 import { 케이스판 } from '../apidoc/caseDoc.js';
+import { 볼륨파일읽기 } from '../artifactFile.js';
 import type { 대상줄 } from '../authoring/reverse.js';
 import { enqueue } from '../execution/dispatcher.js';
 import { artifactsDir } from '../execution/routes.js';
@@ -99,7 +100,8 @@ async function HAR읽기(폴더: string): Promise<unknown[]> {
   } catch {
     return [];
   }
-  return Promise.all(이름들.map(async (n) => JSON.parse(await readFile(join(폴더, n), 'utf8')) as unknown));
+  // 러너도 이 볼륨에 쓴다 — 바로가기를 따라가면 admin 의 파일이 AI 재료로 나간다 (리뷰 M4)
+  return Promise.all(이름들.map(async (n) => JSON.parse((await 볼륨파일읽기(join(폴더, n))).toString('utf8')) as unknown));
 }
 
 /**
