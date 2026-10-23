@@ -233,14 +233,14 @@ export const 보낼항목 = (items: readonly 옮긴항목[]): 들어온항목[] 
 
 /**
  * 작성의 원장 — 표준 기획서 항목이 곧 요구 목록이다(늘 번호 모드 · §3.6 「작성은 표준 기획서만 읽는다」).
- * 번호가 아직 없는 새 항목은 임시 번호로 든다. 설계(경계 · 예외)는 요구 문장으로 판정한다 — 원본 글이 아니다.
+ * 번호가 아직 없는 새 항목은 임시 번호로 든다. 설계(경계 · 예외)는 요구 문장으로 판정한다 — 원본 글이 아니다. 게임 애플리케이션이면 게임 관점 칸을 더한다(도메인/게임 §3.10 「설계 칸」).
  * 확인 필요 항목은 표시해 둔다 — 그 항목을 덮는 줄은 화면 기준이라 미확정 표시를 단다(칸 번호를 가른다)
  */
-export function 표준원장(items: readonly 옮긴항목[], api: readonly 원장항목[] = []): 원장 | { 없음: string } {
+export function 표준원장(items: readonly 옮긴항목[], api: readonly 원장항목[] = [], 게임 = false): 원장 | { 없음: string } {
   const 항목: 원장항목[] = items.flatMap((i) => {
     const 번호 = i.reqId ?? i.임시;
     if (번호 === undefined) return [];
-    const 설 = 설계하기(i.text);
+    const 설 = 설계하기(i.text, 게임);
     return [{
       번호,
       자료: '표준 기획서',
