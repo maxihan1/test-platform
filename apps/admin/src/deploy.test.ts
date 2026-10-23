@@ -239,3 +239,46 @@ describe('부하 발생 에이전트', () => {
     expect(에이전트).toMatch(/AGENT_TOKEN:\s*"\$\{PERF_AGENT_TOKEN:-\}"/);
   });
 });
+
+// 러너는 AI 가 쓴 케이스를 돌리고 이미지에 pg 가 깔려 있다. 같은 망이면 케이스 한 줄로 DB 를 읽고 고친다 (리뷰 H5 · M17, SPEC 공통/6 §9)
+describe('DB 에 닿는 서비스', () => {
+  const 붙은망 = (이름: string) => {
+    const 목록 = 망(서비스블록(이름));
+    return 목록.length > 0 ? 목록 : ['default'];
+  };
+  const 서비스들 = [...(/^services:\n((?: {2}.*\n|\s*\n)+)/m.exec(compose)?.[1] ?? '').matchAll(/^ {2}([a-z_-]+):\n/gm)].map(
+    (m) => m[1]!,
+  );
+
+  it('postgres 와 망을 같이 쓰는 서비스는 admin · grafana · migrate 뿐이다 — 러너가 DB 에 닿지 않게', () => {
+    expect(서비스들).toContain('runner');
+    const db망 = 붙은망('postgres');
+    const 닿는것 = 서비스들.filter((이름) => 이름 !== 'postgres' && 붙은망(이름).some((n) => db망.includes(n)));
+    expect(닿는것.sort()).toEqual(['admin', 'grafana', 'migrate']);
+  });
+
+  it('DB 비밀번호는 .env 로 바꾸고 비우면 지금 값이다', () => {
+    expect(compose).not.toMatch(/platform:platform@/);
+    expect(서비스블록('postgres')).toMatch(/^ {6}POSTGRES_PASSWORD:\s*"\$\{POSTGRES_PASSWORD:-platform\}"/m);
+    for (const 이름 of ['admin', 'migrate']) {
+      expect(서비스블록(이름), 이름).toMatch(/DATABASE_URL:\s*"postgres:\/\/platform:\$\{POSTGRES_PASSWORD:-platform\}@postgres:5432\//);
+    }
+  });
+
+  it('grafana_ro 비밀번호는 계정을 만드는 쪽과 붙는 쪽이 같은 칸을 읽는다', () => {
+    for (const 이름 of ['postgres', 'grafana']) {
+      expect(서비스블록(이름), 이름).toMatch(/^ {6}GRAFANA_RO_PASSWORD:\s*"\$\{GRAFANA_RO_PASSWORD:-grafana_ro\}"/m);
+    }
+    const 데이터소스 = readFileSync(resolve(process.cwd(), 'infra/grafana/provisioning/datasources/postgres.yml'), 'utf8');
+    expect(데이터소스).toMatch(/^ {6}password:\s*\$GRAFANA_RO_PASSWORD\s*$/m);
+    const 초기화 = readFileSync(resolve(process.cwd(), 'db/init/01-grafana-readonly.sh'), 'utf8');
+    expect(초기화).toMatch(/GRAFANA_RO_PASSWORD/);
+    expect(초기화).not.toMatch(/PASSWORD 'grafana_ro'/);
+  });
+
+  it('.env.example 에 두 비밀번호 칸이 있다', () => {
+    const env예시 = readFileSync(resolve(process.cwd(), '.env.example'), 'utf8');
+    expect(env예시).toMatch(/^POSTGRES_PASSWORD=/m);
+    expect(env예시).toMatch(/^GRAFANA_RO_PASSWORD=/m);
+  });
+});
