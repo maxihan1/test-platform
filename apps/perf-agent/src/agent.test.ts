@@ -189,4 +189,19 @@ describe('Agent', () => {
     ]);
     expect(r.done).toEqual({ status: 'OK' });
   });
+
+  it('모니터링 일을 시작 시각보다 늦게 받으면 지난 초는 건너뛴다', async () => {
+    const proc = mkdtempSync(join(tmpdir(), 'perf-agent-proc-'));
+    mkdirSync(join(proc, 'net'));
+    writeFileSync(join(proc, 'stat'), 'cpu  100 0 50 800 50 0 0 0 0 0\n');
+    writeFileSync(join(proc, 'meminfo'), 'MemTotal: 1000 kB\nMemAvailable: 250 kB\n');
+    writeFileSync(join(proc, 'diskstats'), '   8       0 sda 10 0 30 0 5 0 70 0 0 0 0\n');
+    writeFileSync(join(proc, 'net/dev'), 'h\nh\n  eth0: 2048 20 0 0 0 0 0 0 1024 10 0 0 0 0 0 0\n');
+    const r = await runOnce({ kind: 'MONITOR', script: null, durationSec: 22, startAt: new Date(Date.now() - 20_000).toISOString() }, { procRoot: proc });
+    const secs = r.metrics.map((m) => m.sec as number);
+    expect(secs.length).toBeGreaterThan(0);
+    expect(secs.length).toBeLessThanOrEqual(2);
+    expect(secs.every((s) => s >= 20)).toBe(true);
+    expect(r.done).toEqual({ status: 'OK' });
+  });
 });
