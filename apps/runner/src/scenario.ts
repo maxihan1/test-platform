@@ -66,23 +66,27 @@ export async function trace를옮긴다(출력: string, req: ScenarioExecuteRequ
 }
 
 /**
- * 부품 판 원문을 파일로 쓰고 부품 줄에는 경로(apiDocFile)만 싣는다 — 시나리오는 한 프로세스라 환경값 한 칸으로 못 나누고
- * 판 원문은 그 칸에 안 든다 (SPEC 도메인/러너 §5.2 「API 케이스 실행」). 자리는 trace 옆이다
+ * 부품 판 원문을 빼고 부품 줄에는 경로(apiDocFile)만 싣는다 — 시나리오는 한 프로세스라 환경값 한 칸으로 못 나누고
+ * 판 원문은 그 칸에 안 든다 (SPEC 도메인/러너 §5.2 「API 케이스 실행」). 자리는 trace 옆이다.
+ * 라우트가 이 꼴로 크기를 잰다 — 원문째 재면 큰 API 문서 하나로 400 이 난다 (2026-10-24 FIX-F2-05 · 리뷰 M15)
  */
-export async function 판을파일로(req: ScenarioExecuteRequest): Promise<{ parts: unknown[]; 파일들: string[] }> {
+export function 판뺀부품들(req: ScenarioExecuteRequest): { parts: unknown[]; 판들: { 경로: string; doc: unknown }[] } {
   const 폴더 = dirname(scenarioTraceDest(req));
-  const 파일들: string[] = [];
-  const parts: unknown[] = [];
-  for (const [i, part] of req.parts.entries()) {
-    if (part.kind !== 'case' || part.apiDoc === undefined) {
-      parts.push(part);
-      continue;
-    }
+  const 판들: { 경로: string; doc: unknown }[] = [];
+  const parts = req.parts.map((part, i) => {
+    if (part.kind !== 'case' || part.apiDoc === undefined) return part;
     const { apiDoc, ...나머지 } = part;
-    const 경로 = await 판쓰기(resolve(폴더, `api-doc-${i + 1}.json`), apiDoc.doc);
-    파일들.push(경로);
-    parts.push({ ...나머지, apiDocFile: 경로 });
-  }
+    const 경로 = resolve(폴더, `api-doc-${i + 1}.json`);
+    판들.push({ 경로, doc: apiDoc.doc });
+    return { ...나머지, apiDocFile: 경로 };
+  });
+  return { parts, 판들 };
+}
+
+export async function 판을파일로(req: ScenarioExecuteRequest): Promise<{ parts: unknown[]; 파일들: string[] }> {
+  const { parts, 판들 } = 판뺀부품들(req);
+  const 파일들: string[] = [];
+  for (const 판 of 판들) 파일들.push(await 판쓰기(판.경로, 판.doc));
   return { parts, 파일들 };
 }
 

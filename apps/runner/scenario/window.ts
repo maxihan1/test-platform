@@ -48,12 +48,8 @@ async function 읽어둠(r: { status(): number; headers(): Record<string, string
   return { status: r.status(), contentType: r.headers()['content-type'] ?? '', body: await r.text() };
 }
 
-function 쿼리(params: unknown): Record<string, string | number | boolean> | undefined {
-  // ponytail: URLSearchParams · 글자 꼴 params 는 무늬 맞추기에 안 붙인다 — 표본 0. 보내는 요청에는 그대로 실린다
-  return typeof params === 'object' && params !== null && !(params instanceof URLSearchParams)
-    ? (params as Record<string, string | number | boolean>)
-    : undefined;
-}
+const 떠둠 = <T>(v: T): T =>
+  Array.isArray(v) || (typeof v === 'object' && v !== null && Object.getPrototypeOf(v) === Object.prototype) ? structuredClone(v) : v;
 
 // API 도구 하나를 감싼다. 케이스가 받는 모양은 그대로다 — 케이스 파일은 안 바뀐다 (SPEC 도메인/시나리오 §3.7 결정 12)
 function 감싼도구(api: APIRequestContext, 이음값: 이음, 묶음: 도구묶음): APIRequestContext {
@@ -66,7 +62,7 @@ function 감싼도구(api: APIRequestContext, 이음값: 이음, 묶음: 도구�
       return async (주소: unknown, options?: Record<string, unknown>): Promise<APIResponse> => {
         if (typeof 주소 !== 'string') return (await call(주소, options)) as APIResponse;
         const method = prop === 'fetch' ? String(options?.method ?? 'GET').toUpperCase() : prop.toUpperCase();
-        const url = 요청주소(주소, 묶음.기준, 쿼리(options?.params));
+        const url = 요청주소(주소, 묶음.기준, options?.params as Parameters<typeof 요청주소>[2]);
         const { 부품 } = 묶음;
         const 가름 = await 가르기(이음값, 부품, 'api', method, url);
         if (가름.kind === 'fail') throw new Error(가름.message);
@@ -75,7 +71,10 @@ function 감싼도구(api: APIRequestContext, 이음값: 이음, 묶음: 도구�
           // 모을 때의 로그인 상태 — 도구가 이미 닫혔으면 한도에 걸려 닫기 직전에 찍은 것 (SPEC 도메인/러너 §5.2 「미룬 삭제」)
           const state = await 묶음.상태읽기().catch(() => 부품.찍은상태 ?? 빈상태);
           const headers = { ...묶음.만들때.headers, ...(options?.headers as Record<string, string> | undefined) };
-          이음값.미룸.push({ fromSeq: 부품.seq, url, headers, state, httpCredentials: 묶음.만들때.httpCredentials });
+          // 본문으로 지울 것을 고르는 서버도 있다 — 빼고 보내면 다른 것이 지워지거나 400 이다 (2026-10-24 FIX-F2-05 · 리뷰 L37).
+          // 케이스가 같은 객체를 고쳐 다시 지우면 보낼 때는 뒤 값이다 — 평범한 객체 · 배열은 모을 때 떠 둔다(Buffer · FormData 는 그대로)
+          const { data, form, multipart } = (options ?? {}) as NonNullable<미룬삭제['본문']>;
+          이음값.미룸.push({ fromSeq: 부품.seq, url, headers, state, httpCredentials: 묶음.만들때.httpCredentials, 본문: { data: 떠둠(data), form: 떠둠(form), multipart } });
           return 가짜응답(미룬응답(이음값, url), url);
         }
         const 응답 = (가름.kind === 'send' && 가름.url !== undefined
@@ -271,7 +270,7 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
         ...(d.httpCredentials === undefined ? {} : { httpCredentials: d.httpCredentials }),
       });
       try {
-        return (await 연결.fetch(d.url, { method: 'DELETE', timeout: 한도 })).status();
+        return (await 연결.fetch(d.url, { ...d.본문, method: 'DELETE', timeout: 한도 })).status();
       } finally {
         await 연결.dispose().catch(남김('뒷정리 연결을 못 닫았다'));
       }

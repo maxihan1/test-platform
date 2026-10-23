@@ -40,6 +40,11 @@ describe('값연결제안들', () => {
     expect(값연결제안들([케이스('MKT-FN-001'), 케이스('MKT-FN-002')], 없음, 칸)).toEqual([]);
   });
 
+  it('중간 마디에 :n 이 있는 모음에는 수정 요청을 안 낸다 — 수정 주소의 그 마디를 채울 값이 없다', () => {
+    const 장바구니 = new Map([['MKT', [줄('POST', '/api/carts/:n/items', 'MKT-FN-001', 'MKT-FN-002'), 줄('PUT', '/api/carts/:n/items/:n')]]]);
+    expect(값연결제안들([케이스('MKT-FN-001'), 케이스('MKT-FN-002')], 장바구니, 칸)).toEqual([]);
+  });
+
   it('앞 단계가 POST 한 모음의 한 칸을 여는 단계에 값 주입을 낸다 — 가장 가까운 앞 단계 · id 로 끝나는 칸 하나', () => {
     const 제안 = 값연결제안들([케이스('MKT-FN-001'), { kind: 'wait', ms: 10 }, 케이스('MKT-FN-002'), 케이스('MKT-FN-003')], 지도, 칸);
     expect(제안.filter((x) => x.link.kind === 'bind')).toEqual([{

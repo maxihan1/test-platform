@@ -44,12 +44,13 @@ async function 시작하기(run: 표.실행행): Promise<void> {
     pending: new Map([[smokeAgent, job]]), heard: new Map(), done: new Map(), smoke: { requests: 0, errors: 0 }, checkedSec: -1,
     lostMonitors: new Set(), errorLogged: false, ending: false, pageSamples: [], browserVus: new Map(),
   });
-  // 대기 → 스모크는 한 문장으로 바꾼다. 그사이 사람이 중단했으면 바뀌지 않으니 일을 거둔다
+  // 에이전트를 먼저 맡기고 대기 → 스모크를 바꾼다(거꾸로면 그 틈에 끝난 중단의 풀기보다 늦게 맡겨 닫힌 실행이 붙든다). 그사이 중단됐으면 거두고 놓는다
+  await 표.에이전트맡기(run.id, cfg.agentIds);
   if (!(await 표.대기에서시작(run.id))) {
     도는것.delete(run.id);
+    await 표.에이전트풀기(run.id);
     return;
   }
-  await 표.에이전트맡기(run.id, cfg.agentIds);
   await 표.로그(run.id, '스모크 테스트를 시작합니다 — 가상 사용자 1명 · 1분');
 }
 
@@ -69,13 +70,14 @@ async function 페이지시작하기(run: 표.실행행, agentId: number): Promi
     pending: new Map([[agentId, job]]), heard: new Map(), done: new Map(), smoke: { requests: 0, errors: 0 }, checkedSec: -1,
     lostMonitors: new Set(), errorLogged: false, ending: false, pageSamples: [], browserVus: new Map(),
   });
+  await 표.에이전트맡기(run.id, cfg.agentIds);
   if (!(await 표.대기에서시작(run.id, 'RUNNING'))) {
     도는것.delete(run.id);
+    await 표.에이전트풀기(run.id);
     return;
   }
   // 맡은 에이전트를 설정에 남긴다 — 실행 화면이 에이전트 수를 읽는다
   await (await 표.풀()).query(`UPDATE perf_run SET config = jsonb_set(config, '{agentIds}', $2::jsonb) WHERE id = $1`, [run.id, JSON.stringify(cfg.agentIds)]);
-  await 표.에이전트맡기(run.id, cfg.agentIds);
   await 표.로그(run.id, `페이지 측정을 시작합니다 — 페이지 ${cfg.pages.length}개 · 페이지마다 3번`);
 }
 
