@@ -71,6 +71,22 @@ describe.skipIf(연결 === undefined)('더미 클라이언트', { timeout: 60_00
     await 틀.사람(틀.관리자, 'DELETE', `/api/perf/dummy-clients/${id}`);
   });
 
+  // 러너도 쓰는 artifacts 볼륨에 두면 케이스가 zip 을 바꿔치기하고 에이전트가 그 코드를 root 로 돌린다 (리뷰 M16)
+  it('PLATFORM_PERF_DUMMY_DIR 가 있으면 zip 은 artifacts 가 아니라 그 자리에 놓이고 지우기도 거기서 한다', async () => {
+    const 따로 = mkdtempSync(join(tmpdir(), 'xqm-dummy-'));
+    process.env.PLATFORM_PERF_DUMMY_DIR = 따로;
+    try {
+      const { id } = (await 올리기(틀.관리자, ZIP)).json<{ id: number }>();
+      expect(readFileSync(join(따로, `${id}.zip`)).equals(ZIP)).toBe(true);
+      expect(existsSync(join(폴더, 'perf-dummy', `${id}.zip`))).toBe(false);
+      expect((await 틀.사람(틀.관리자, 'DELETE', `/api/perf/dummy-clients/${id}`)).statusCode).toBe(204);
+      expect(existsSync(join(따로, `${id}.zip`))).toBe(false);
+    } finally {
+      delete process.env.PLATFORM_PERF_DUMMY_DIR;
+      rmSync(따로, { recursive: true, force: true });
+    }
+  });
+
   it('admin 이 아니면 403 · zip 머리가 아니면 400 · 이름 · 명령이 틀리면 400 이고 행도 파일도 남지 않는다', async () => {
     expect((await 올리기(틀.쓰기, ZIP)).statusCode).toBe(403);
     expect((await 올리기(틀.관리자, Buffer.from('zip 이 아닌 글'))).json()).toMatchObject({ error: 'INVALID_REQUEST' });

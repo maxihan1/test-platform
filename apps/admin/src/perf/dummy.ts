@@ -1,4 +1,4 @@
-// 더미 클라이언트 올리기 · 목록 · 지우기와 에이전트가 받아 가는 길 — zip 은 artifacts/perf-dummy/<id>.zip 에 둔다 (도메인/성능 §3.9 「게임 서버 부하」 · §5.4 · §7)
+// 더미 클라이언트 올리기 · 목록 · 지우기와 에이전트가 받아 가는 길 — zip 은 admin 만 붙이는 perf_dummy 볼륨의 <id>.zip 에 둔다 (도메인/성능 §3.9 「게임 서버 부하」 · §5.4 · §7)
 
 import { createReadStream, createWriteStream } from 'node:fs';
 import { mkdir, rename, rm, stat } from 'node:fs/promises';
@@ -58,7 +58,8 @@ function 파일로(body: Readable, 막기: Transform, 자리: string): Promise<v
   });
 }
 
-const 폴더 = () => join(artifactsDir(), 'perf-dummy');
+// 러너도 쓰는 artifacts 볼륨에 두면 케이스가 zip 을 덮고 에이전트가 그 코드를 root 로 돌린다. 비면(테스트 · 컨테이너 밖 개발) 옛 자리다 (리뷰 M16)
+const 폴더 = () => process.env.PLATFORM_PERF_DUMMY_DIR ?? join(artifactsDir(), 'perf-dummy');
 export const 파일자리 = (id: number) => join(폴더(), `${id}.zip`);
 
 type 질의 = { Querystring: { serviceId?: string; name?: string; command?: string } };
