@@ -1,11 +1,11 @@
 // 돌려 보기 브라우저 번호표 검사 — 자리 수 · 잡고 놓기 · 버려진 자리 치우기 · 기다리기 (작성 §3.6 「돌려 보기 명령」)
-import { existsSync, lstatSync, mkdirSync, mkdtempSync, statSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { 자리기다리기, 자리놓기, 자리수, 자리잡기, 자리폴더열기 } from './authoring-slot.js';
+import { 자리기다리기, 자리놓기, 자리수, 자리잡기, 자리폴더열기, 줄서기 } from './authoring-slot.js';
 
 const 새폴더 = () => join(mkdtempSync(join(tmpdir(), 'slot-')), '자리');
 /** 리눅스 pid 상한(4194304) · macOS 상한(99999) 밖이라 늘 없는 번호 */
@@ -65,6 +65,57 @@ describe('자리기다리기', () => {
     expect(await 자리기다리기(Date.now() + 50, 폴더, 1, 20)).toBeNull();
     setTimeout(() => 자리놓기(잡은), 30);
     expect(await 자리기다리기(Date.now() + 2_000, 폴더, 1, 20)).toBe(잡은);
+  });
+});
+
+describe('줄 서기 — 줄 선 차례대로 (PRD-F14-08)', () => {
+  it('앞에 살아 있는 표가 있으면 하나 빈 자리를 가로채지 않고, 그 표가 빠지면 받는다', async () => {
+    const 폴더 = 새폴더();
+    const 앞표 = 줄서기(폴더, 'a-desktop', process.ppid, Date.now() - 1_000);
+    expect(await 자리기다리기(Date.now() + 60, 폴더, 1, 20, 'b-desktop')).toBeNull();
+    rmSync(앞표);
+    expect(await 자리기다리기(Date.now() + 1_000, 폴더, 1, 20, 'b-desktop')).toBe(join(폴더, '1'));
+  });
+
+  it('「남은 것」으로 돌아와 곧 같은 열쇠로 다시 서면 앞 차례를 이어 그사이 뒤에 선 표보다 먼저 받는다', async () => {
+    const 폴더 = 새폴더();
+    const 쥔 = 자리잡기(폴더, 1)!;
+    expect(await 자리기다리기(Date.now() + 60, 폴더, 1, 20, 'x-desktop')).toBeNull();
+    const 뒤표 = 줄서기(폴더, 'c-desktop', process.ppid, Date.now() - 10);
+    setTimeout(() => 자리놓기(쥔), 40);
+    expect(await 자리기다리기(Date.now() + 1_000, 폴더, 1, 20, 'x-desktop')).toBe(쥔);
+    expect(existsSync(뒤표)).toBe(true);
+  });
+
+  it('15분 넘게 안 고친 표는 주인 번호가 살아 있어도 줄을 막지 않는다 — 같은 번호를 다른 프로세스가 물려받았다', async () => {
+    const 폴더 = 새폴더();
+    const 앞표 = 줄서기(폴더, 'a-desktop', process.ppid, Date.now() - 1_000);
+    const 옛날 = (Date.now() - 16 * 60_000) / 1000;
+    utimesSync(앞표, 옛날, 옛날);
+    expect(await 자리기다리기(Date.now() + 1_000, 폴더, 1, 20, 'b-desktop')).toBe(join(폴더, '1'));
+  });
+
+  it('기다리는 사이 내 표가 지워져도 같은 이름으로 다시 세워 뒤에 선 표보다 먼저 받는다', async () => {
+    const 폴더 = 새폴더();
+    const 쥔 = 자리잡기(폴더, 1)!;
+    const 기다림 = 자리기다리기(Date.now() + 1_000, 폴더, 1, 20, 'x-desktop');
+    setTimeout(() => {
+      줄서기(폴더, 'c-desktop', process.ppid, Date.now() + 10);
+      for (const f of readdirSync(폴더)) if (f.endsWith('-x-desktop')) rmSync(join(폴더, f));
+    }, 30);
+    setTimeout(() => 자리놓기(쥔), 90);
+    expect(await 기다림).toBe(쥔);
+  });
+
+  it('끝이 같은 남의 열쇠 · 3분 넘게 빈 표는 잇지 않고, 오래 빈 표는 기다리는 쪽이 치운다', async () => {
+    const 폴더 = 새폴더();
+    const 빈표 = 줄서기(폴더, 'products-desktop', 죽은pid, Date.now() - 1_000);
+    expect(줄서기(폴더, 'orders-products-desktop', 죽은pid)).not.toBe(빈표);
+    const 옛날 = (Date.now() - 4 * 60_000) / 1000;
+    utimesSync(빈표, 옛날, 옛날);
+    expect(줄서기(폴더, 'products-desktop', 죽은pid)).not.toBe(빈표);
+    await 자리기다리기(Date.now() + 1_000, 폴더, 1, 20, 'z-desktop');
+    expect(existsSync(빈표)).toBe(false);
   });
 });
 

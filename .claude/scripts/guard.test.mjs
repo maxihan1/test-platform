@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
-import { fanoutVerdict, isBanned, scanVerdict, 막기코드 } from './guard.mjs';
+import { fanoutVerdict, isBanned, scanVerdict, 막기코드, 막기폴더 } from './guard.mjs';
 
 test('진짜 위험한 명령을 막는다', () => {
   for (const cmd of [
@@ -283,4 +283,9 @@ test('bash 모드 — 훑기 보조만 막기를 걸고, 못 걸면 exit 2 로 �
   assert.equal(부른다('author-scan', 0, 'npx playwright cli -s=rev-1-0 open').status, 0);
   assert.equal(부른다('author-scan', 1).status, 2, '새로 연 세션은 다시 건다');
   rmSync(자리, { recursive: true, force: true });
+});
+
+test('훑기 보조 저장 막기는 작업 트리에서 playwright 를 부른다 — 세션이 cd 한 자료 폴더에서 부르면 다른 판을 받아 와 열린 세션을 못 찾는다 (PRD-F14-11)', () => {
+  assert.equal(막기폴더({ CLAUDE_PROJECT_DIR: '/work/author-1/tree' }, '/work/author-1/assets'), '/work/author-1/tree');
+  assert.equal(막기폴더({}, '/work/author-1/tree'), '/work/author-1/tree');
 });

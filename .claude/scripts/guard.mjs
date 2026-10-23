@@ -152,12 +152,18 @@ export function scanVerdict(command) {
 // GET 으로 동작하는 주소는 크롤러(authoring-crawl-rules.ts 위험낱말 · 위험파일 · 동작인자)와 같은 낱말로 끊는다 — 내려받기만 뺐다(훑기에는 해가 없다)
 // run-code 는 URL 전역이 없는 vm 격리 환경에서 코드를 돌린다 — new URL 을 쓰면 가로챈 요청마다 ReferenceError 로 멈춰 goto 가 60초 뒤 시간 초과로 끝난다. 주소는 정규식으로 자르고, http(s) 가 아니라 못 자르는 주소는 통째로 위험 낱말을 본다
 export const 막기코드 = String.raw`async page => { const c = page.context(); if (c.__scanReadOnly) return; const cut = [/log-?out|log-?off|sign-?out|(?:^|[\/_.\-?&=])(?:out\.php|delete|del|remove|add|cancel|like|toggle|withdraw\w*|unsubscribe|leave|good|nogood|wish|scrap|vote|follow|unregister|secession|deactivate|resign)(?=$|[\/_.\-?&=])/i, /(?:update|delete|insert|good|wish|scrap|vote|proc)[^\/]*\.(?:php|do|jsp|aspx?)$/i, /[?&](?:(?:action|act|cmd|mode|op)=(?!disp|view|list|read|show)|w=d(?:&|$))/i]; await c.route('**/*', r => { const q = r.request(); const m = /^https?:\/\/[^\/?#]*([^?#]*)(\?[^#]*)?/.exec(q.url()); const p = m ? m[1] : q.url(); const s = m && m[2] ? m[2] : ''; return ['GET', 'HEAD', 'OPTIONS'].includes(q.method()) && !cut[0].test(p + s) && !cut[1].test(p) && !cut[2].test(s) ? r.fallback() : r.abort('blockedbyclient'); }); c.__scanReadOnly = true; }`;
-// 걸었다는 표시 — 명령마다 브라우저에 다시 묻지 않게(한 번에 1~2초). 그 세션을 열거나 닫는 명령이 지운다
+/**
+ * playwright 를 부를 폴더 — 작업 트리. 세션의 지금 폴더(ev.cwd)는 메인이 `cd` 한 자료 폴더일 수 있다. 거기서 부르면
+ * npx 가 저장소 것이 아닌 새 playwright 를 받아 와 판이 달라 열린 세션을 못 찾는다(14670 훑기 보조 넷 · 14638 둘 · PRD-F14-11)
+ */
+export const 막기폴더 = (env = process.env, 기본 = cwd) => env.CLAUDE_PROJECT_DIR || 기본;
+// 걸었다는 표시 — 명령마다 브라우저에 다시 묻지 않게(한 번에 1~2초). 그 세션을 열거나 닫는 명령이 지운다.
+// 세션의 지금 폴더도 같이 넣는다 — 같은 저장소의 다른 워크트리 세션이 같은 세션 이름을 써도 표시가 섞이지 않게(폴더를 옮기면 한 번 더 걸 뿐이다)
 const 표시자리 = () => `${tmpdir()}/scan-guard`;
-const 표시 = (세션) => `${표시자리()}/${createHash('sha1').update(`${cwd}\n${세션}`).digest('hex')}`;
+const 표시 = (세션) => `${표시자리()}/${createHash('sha1').update(`${막기폴더()}\n${cwd}\n${세션}`).digest('hex')}`;
 function 저장막기(세션) {
   if (existsSync(표시(세션))) return null;
-  const r = spawnSync('npx', ['playwright', 'cli', ...(세션 ? [`-s=${세션}`] : []), 'run-code', 막기코드], { cwd, encoding: 'utf8', timeout: 30_000 });
+  const r = spawnSync('npx', ['playwright', 'cli', ...(세션 ? [`-s=${세션}`] : []), 'run-code', 막기코드], { cwd: 막기폴더(), encoding: 'utf8', timeout: 30_000 });
   if (r.error) return r.error.message;
   if (r.status !== 0) return `${r.stdout ?? ''}${r.stderr ?? ''}`.trim().slice(0, 300) || `종료 ${String(r.status)}`;
   try { mkdirSync(표시자리(), { recursive: true }); writeFileSync(표시(세션), ''); } catch { /* 표시를 못 남기면 다음 명령이 다시 묻는다 */ }

@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import type { 돌린판 } from './authoring-gate3.js';
-import { 기본회차, 다음번호, 빨강줄들, 실행, 차례나누기, 케이스경로, 할일고르기, 회차어림 } from './authoring-run3.js';
+import { 기본회차, 다음번호, 돌릴기기, 빨강줄들, 실행, 줄열쇠, 차례나누기, 케이스경로, 할일고르기, 회차어림 } from './authoring-run3.js';
 
 const 수정 = 1_000;
 const 판 = (덧: Partial<돌린판> = {}): 돌린판 => ({
@@ -98,6 +98,25 @@ describe('빨강줄들', () => {
   });
 });
 
+describe('돌릴기기 — 쓰는 중 1번은 기기 하나 (PRD-F14-09)', () => {
+  it('보조 3회 · 마지막은 --mobile 이면 휴대폰도 나란히, 1번은 --mobile 이어도 PC 하나 · --mobile-only 면 휴대폰 하나', () => {
+    expect(돌릴기기('보조', true)).toEqual(['desktop', 'mobile']);
+    expect(돌릴기기('마지막', true)).toEqual(['desktop', 'mobile']);
+    expect(돌릴기기('한번', true)).toEqual(['desktop']);
+    expect(돌릴기기('한번', false, true)).toEqual(['mobile']);
+    expect(돌릴기기('보조', false)).toEqual(['desktop']);
+  });
+});
+
+describe('줄열쇠 — 「남은 것」 뒤 다시 부르면 앞 차례를 잇는 열쇠 (PRD-F14-08)', () => {
+  it('같은 작업 트리 · 묶음 · 기기면 같고, 트리나 기기가 다르면 다르다', () => {
+    expect(줄열쇠('/work/a/tree', 'shop', 'desktop')).toBe(줄열쇠('/work/a/tree/', 'shop', 'desktop'));
+    expect(줄열쇠('/work/a/tree', 'shop', 'desktop')).not.toBe(줄열쇠('/work/b/tree', 'shop', 'desktop'));
+    expect(줄열쇠('/work/a/tree', 'shop', 'desktop')).not.toBe(줄열쇠('/work/a/tree', 'shop', 'mobile'));
+    expect(줄열쇠('/work/a/tree', 'shop', 'desktop')).toMatch(/^[0-9a-f]{8}-shop-desktop$/);
+  });
+});
+
 describe('실행 — 잘못 부르면 돌리지 않는다', () => {
   it('모드 · 묶음 이름이 틀리거나 맡은 파일이 없거나 기록 자리가 없으면 2', async () => {
     expect(await 실행(['보조', 'Shop Order', 'tests/mkt/A.spec.ts'], '/없는곳', { AUTHORING_GATE3_DIR: '/tmp' })).toBe(2);
@@ -106,6 +125,7 @@ describe('실행 — 잘못 부르면 돌리지 않는다', () => {
     expect(await 실행(['마지막', 'mkt'], '/없는곳', {})).toBe(2);
     expect(await 실행(['한번', 'shop'], '/없는곳', { AUTHORING_GATE3_DIR: '/tmp' })).toBe(2);
     expect(await 실행(['보조', 'shop', 'tests/mkt/A.spec.ts', '--trace'], '/없는곳', { AUTHORING_GATE3_DIR: '/tmp' })).toBe(2);
+    expect(await 실행(['보조', 'shop', 'tests/mkt/A.spec.ts', '--mobile-only'], '/없는곳', { AUTHORING_GATE3_DIR: '/tmp' })).toBe(2);
   });
 
   it('대상 서버 주소(PLATFORM_BASE_URL)가 없으면 브라우저를 띄우기 전에 2 — 회차마다 Invalid URL 로 빨개지지 않게', async () => {

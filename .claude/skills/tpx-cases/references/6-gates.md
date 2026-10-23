@@ -139,7 +139,8 @@ PLATFORM_SLOW_API=1 npx playwright test tests/<폴더> --project=desktop --repea
    PLATFORM_OUTPUT_ID=heal-<tcId> PLATFORM_SLOW_API=1 npx playwright test <케이스 파일> --project=desktop --trace on --reporter=line > /tmp/heal.log 2>&1; echo "EXIT=$?"
    npm run trace:summary -- artifacts/playwright/heal-<tcId>
    ```
-   작성 에이전트(자식 · 보조)는 손으로 부르지 않고 `PLATFORM_SLOW_API=1 npm run -s authoring:run -- 한번 heal <케이스 파일> --trace` 로 돈다 — 브라우저 자리를 받고 찍힌 trace 폴더를 요약에 넘긴다(`tpx-author` `references/fanout.md` §4 「1번 돌려 보기」)
+   작성 에이전트(자식 · 보조)는 손으로 부르지 않고 `PLATFORM_SLOW_API=1 npm run -s authoring:run -- 한번 heal-<묶음 slug, 자식은 main> <케이스 파일> --trace` 로 돈다 — 브라우저 자리를 받고 찍힌 trace 폴더를 요약에 넘긴다(`tpx-author` `references/fanout.md` §4 「1번 돌려 보기」).
+   1번은 기기 하나만 돈다 — **휴대폰에서만 빨간 케이스는 끝에 `--mobile-only` 를 붙인다.** 안 붙이면 PC 로 돌아 초록이 나오고, 아래 줄대로 흔들림으로 잘못 가른다
    초록이면 그 자체가 흔들림 근거다 — `5-stable.md` 대로 기다림 · 남의 데이터를 본다. 「화면이 맞음」 요청은 프롬프트가 알려 준 `traces/RUN<번호>-<케이스>.txt`(서버가 가린 그 실행의 요약)를 먼저 읽는다
 2. **요약 몇 줄로 가른다** — `가름:` 줄이 스크립트의 판정이다. 실패한 조작 · 앞 조작 · 그 단계의 API · 콘솔을 보고 맞는지 확인한다.
    자료 폴더 `api-map.txt`(서비스 지도)에 그 화면이 늘 부르는 API 가 있는데 요약에 안 보이면 그 응답을 안 기다린 「대기 부족」을 먼저 의심한다(`4-selector.md` 「서비스 지도」 — 기대값 근거는 아니다)
