@@ -143,10 +143,13 @@ export function registerPerfDeviceRoutes(app: FastifyInstance, deps: PerfDeviceD
       if (!(await 기기목록(adb)).some((d) => d.serial === serial)) {
         return reply.code(404).send({ error: 'DEVICE_NOT_FOUND', detail: serial });
       }
-      // 요즘 pm 은 앱이 없으면 종료 코드 1 이라 adb 가 실패로 돌려준다. 폰 셸에서 0 으로 바꿔 빈 출력으로 받는다 — 폰 연결 오류는 그대로 500 이다
-      if ((await adb(['-s', serial, 'shell', 'pm', 'path', pkg, '||', 'true'])).trim() === '') {
+      // 요즘 pm 은 앱이 없으면 아무것도 안 찍고 종료 코드 1 이라 adb 가 실패로 돌려준다. 폰 셸에서 종료 코드를 0 으로 바꾸고 stderr 도 받아
+      // 빈 출력만 「앱 없음」으로 본다. package: 줄이 없는 글(패키지 서비스가 아직 안 떴다 등)과 폰 연결 오류는 500 이다
+      const 경로 = (await adb(['-s', serial, 'shell', 'pm', 'path', pkg, '2>&1', '||', 'true'])).trim();
+      if (경로 === '') {
         return reply.code(400).send({ error: 'INVALID_REQUEST', detail: `폰에 ${pkg} 앱이 없다` });
       }
+      if (!/^package:/m.test(경로)) throw new Error(`pm path ${pkg}: ${경로}`);
 
       const 폴더 = resolve(산출물폴더(), 'perf', String(runId), serial);
       await mkdir(폴더, { recursive: true });

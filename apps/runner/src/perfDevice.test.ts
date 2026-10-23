@@ -22,7 +22,7 @@ class 가짜자식 extends EventEmitter {
 }
 
 interface 가짜옵션 {
-  앱없음?: '빈 출력' | '종료 코드 1';
+  pm?: '빈 출력' | '종료 코드 1' | '서비스 없음';
   게임?: boolean;
 }
 
@@ -38,10 +38,12 @@ function 가짜Adb(옵션: 가짜옵션 = {}) {
     if (줄.endsWith('getprop ro.product.model')) return 'Pixel 8\n';
     if (줄.endsWith('getprop ro.build.version.release')) return '14\n';
     if (줄.includes(`pm path ${앱}`)) {
-      if (옵션.앱없음 === undefined) return 'package:/data/app/x/base.apk\n';
-      // 요즘 폰의 pm 은 앱이 없으면 아무것도 안 찍고 종료 코드 1 을 낸다. 폰 셸의 `|| true` 가 그것을 0 으로 바꾼다
-      if (옵션.앱없음 === '종료 코드 1' && !줄.endsWith('|| true')) throw new Error(`adb ${줄} 실패: Command failed`);
-      return '';
+      if (옵션.pm === undefined) return 'package:/data/app/x/base.apk\n';
+      // 요즘 폰의 pm 은 앱이 없으면 아무것도 안 찍고 종료 코드 1, 패키지 서비스가 아직 없으면 stderr 에 찍고 종료 코드 20 을 낸다.
+      // 폰 셸의 `2>&1 || true` 가 stderr 를 출력으로 돌리고 종료 코드를 0 으로 바꾼다
+      const 셸이받는다 = 줄.endsWith('2>&1 || true');
+      if (옵션.pm !== '빈 출력' && !셸이받는다) throw new Error(`adb ${줄} 실패: Command failed`);
+      return 옵션.pm === '서비스 없음' ? "cmd: Can't find service: package\n" : '';
     }
     if (줄.endsWith(`resolve-activity --brief ${앱}`)) return `priority=0\n${앱}/.Main\n`;
     if (줄.endsWith(`am start -W -n ${앱}/.Main`)) return 'Status: ok\nTotalTime: 700\n';
@@ -186,12 +188,18 @@ describe('시작 거절', () => {
     expect(res.json()).toMatchObject({ error: 'DEVICE_NOT_FOUND' });
   });
 
-  it.each(['빈 출력', '종료 코드 1'] as const)('앱이 폰에 없으면(pm 이 %s) 400 이고 폰은 다시 잡을 수 있다', async (앱없음) => {
-    const app = 서버({ adb: 가짜Adb({ 앱없음 }).adb });
+  it.each(['빈 출력', '종료 코드 1'] as const)('앱이 폰에 없으면(pm 이 %s) 400 이고 폰은 다시 잡을 수 있다', async (pm) => {
+    const app = 서버({ adb: 가짜Adb({ pm }).adb });
     const res = await 시작(app);
     expect(res.statusCode).toBe(400);
     expect(res.json()).toMatchObject({ error: 'INVALID_REQUEST' });
     expect((await 시작(app)).statusCode).toBe(400);
+  });
+
+  it('패키지 서비스가 아직 안 떴으면 「앱 없음」이 아니라 그 글로 500 이다', async () => {
+    const res = await 시작(서버({ adb: 가짜Adb({ pm: '서비스 없음' }).adb }));
+    expect(res.statusCode).toBe(500);
+    expect(res.json()).toMatchObject({ error: 'RUNNER_ERROR', detail: expect.stringContaining("Can't find service: package") });
   });
 
   it('같은 폰을 이미 재고 있으면 409 DEVICE_BUSY, 중지하면 다시 잡힌다', async () => {

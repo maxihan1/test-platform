@@ -67,13 +67,14 @@ async function 안전(r: 기록기, 칸: string, 읽기: () => Promise<number | 
 async function 표시프레임으로(adb: Adb, r: 기록기): Promise<number | null> {
   if (r.층 === undefined) r.층 = surfaceView층을찾는다(await sh(adb, r, 'dumpsys', 'SurfaceFlinger', '--list'), r.pkg) ?? undefined;
   if (r.층 === undefined) return null;
-  let 시각: number[];
+  let 읽음: ReturnType<typeof 프레임시각들>;
   try {
-    시각 = 프레임시각들(await sh(adb, r, 'dumpsys', 'SurfaceFlinger', '--latency', `'${r.층}'`));
+    읽음 = 프레임시각들(await sh(adb, r, 'dumpsys', 'SurfaceFlinger', '--latency', `'${r.층}'`));
   } catch (err) {
     r.층 = undefined;
     throw err;
   }
+  const { 시각, 꽉참 } = 읽음;
   if (시각.length === 0) return null;
   const 마지막 = Math.max(...시각);
   const 처음 = Math.min(...시각);
@@ -81,8 +82,9 @@ async function 표시프레임으로(adb: Adb, r: 기록기): Promise<number | n
   r.이전표시 = 마지막;
   if (이전 === undefined) return null;
   const 창시작 = 마지막 - r.intervalSec * 1e9;
-  // 층마다 최근 127 프레임만 온다 — 보이는 것이 다 새것인데 간격을 다 못 덮으면 앞이 잘린 것이라 보이는 구간의 빠르기로 센다
-  if (처음 > 이전 && 처음 > 창시작 && 마지막 > 처음) return 반올림(((시각.length - 1) * 1e9) / (마지막 - 처음));
+  // 층마다 최근 127 프레임만 온다 — 칸이 다 찼고 보이는 것이 다 새것인데 간격을 다 못 덮으면 앞이 잘린 것이라 보이는 구간의 빠르기로 센다.
+  // 칸이 덜 찼으면(층이 새로 떴다) 밀려난 프레임이 없으니 그대로 센다
+  if (꽉참 && 처음 > 이전 && 처음 > 창시작 && 마지막 > 처음) return 반올림(((시각.length - 1) * 1e9) / (마지막 - 처음));
   const 새것 = 시각.filter((t) => t > 이전 && t >= 창시작);
   return 반올림(새것.length / r.intervalSec);
 }
@@ -97,8 +99,10 @@ async function fps를읽는다(adb: Adb, r: 기록기, sec: number): Promise<{ f
     const 끊김 = cur.janky - prev.janky;
     // 앱이 다시 떠서 세는 값이 되돌아갔다 — 이번 간격은 기준만 다시 잡는다
     if (렌더 < 0 || 끊김 < 0) return 없음;
-    // 읽기가 간격보다 오래 걸려 틱을 건너뛰었으면 그만큼 쌓인 프레임이다 — 간격 한 칸이 아니라 앞 읽기부터 흐른 초로 나눈다
-    if (렌더 > 0) return { fps: 반올림(렌더 / (sec - prev.sec)), jankPct: 반올림((끊김 / 렌더) * 100) };
+    // 읽기가 간격보다 오래 걸려 틱을 건너뛰었으면 그만큼 쌓인 프레임이다 — 간격 한 칸이 아니라 앞 읽기부터 흐른 초로 나눈다.
+    // 덤프 자체가 늦게 돌 수도 있어 폰이 덤프를 뜬 시각이 있으면 그것을, 없으면 측정 초를 쓴다
+    const 흐른초 = cur.uptimeMs !== null && prev.uptimeMs !== null ? (cur.uptimeMs - prev.uptimeMs) / 1000 : sec - prev.sec;
+    if (렌더 > 0) return { fps: 반올림(렌더 / 흐른초), jankPct: 반올림((끊김 / 렌더) * 100) };
   } else if (cur !== null && cur.total > 0) {
     return 없음;
   }

@@ -35,6 +35,15 @@ describe('한줄을읽는다 — gfxinfo FPS', () => {
     렌더 = 240;
     expect(await 한줄을읽는다(adb, r, 4)).toMatchObject({ sec: 4, fps: 60, jankPct: 0 });
   });
+
+  it('덤프가 늦게 돌았으면 폰이 덤프를 뜬 시각 사이로 나눈다', async () => {
+    let 덤프 = { uptimeMs: 3_600, 렌더: 0 };
+    const adb = 가짜Adb(() => `Uptime: ${덤프.uptimeMs} Realtime: 1\nTotal frames rendered: ${덤프.렌더}\nJanky frames: 0 (0.00%)\n`);
+    const r = 기록기를만든다(2);
+    await 한줄을읽는다(adb, r, 0);
+    덤프 = { uptimeMs: 4_100, 렌더: 30 };
+    expect((await 한줄을읽는다(adb, r, 4)).fps).toBe(60);
+  });
 });
 
 describe('한줄을읽는다 — SurfaceFlinger FPS', () => {
@@ -49,5 +58,15 @@ describe('한줄을읽는다 — SurfaceFlinger FPS', () => {
     expect((await 한줄을읽는다(adb, r, 0)).fps).toBeNull();
     끝초 += 간격;
     expect(await 한줄을읽는다(adb, r, 간격)).toMatchObject({ fps, jankPct: null });
+  });
+
+  it('층이 새로 떠 칸이 덜 찼으면 잘린 것으로 보지 않고 센다', async () => {
+    let 출력 = latency출력(10, 60);
+    const adb = 가짜Adb(() => 'Total frames rendered: 0\nJanky frames: 0 (0.00%)\n', () => 출력);
+    const r = 기록기를만든다(5);
+    await 한줄을읽는다(adb, r, 0);
+    const 새층 = [14_950_000_000, 14_966_666_667, 14_983_333_333].map((t) => `${t - 5} ${t} ${t + 5}`);
+    출력 = `16666666\n${[...Array.from({ length: 124 }, () => '0 0 0'), ...새층].join('\n')}\n`;
+    expect((await 한줄을읽는다(adb, r, 5)).fps).toBe(0.6);
   });
 });
