@@ -16,7 +16,7 @@ import { 실행줄 } from './RunListRow.js';
 import { Failed, Loading, useAsync } from './ui.js';
 
 const 상태들 = ['running', 'failed'] as const;
-const 방식들 = ['manual', 'scheduled', 'rerun'] as const;
+const 방식들 = ['manual', 'scheduled', 'rerun', 'build'] as const;
 const 기간들 = [7, 14, 30] as const;
 
 function 고른값<T extends string>(글: string | null, 값들: readonly T[]): T | undefined {
@@ -158,6 +158,7 @@ export function RunList({ service, envs, 할수, kind }: { service: string; envs
                 <option value="manual">{t('직접 실행')}</option>
                 <option value="rerun">{t('실패 다시 실행')}</option>
                 <option value="scheduled">{t('정기 실행')}</option>
+                <option value="build">{t('빌드 실행')}</option>
               </select>
             </label>
             <label className="run-filter">

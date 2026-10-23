@@ -3,6 +3,7 @@
 import type { RunListRow } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { 시간글자 } from './remainText.js';
+import { 시작빌드글 } from './RunBuild.js';
 import { 도는중, 상태라벨, 실행자이름 } from './runState.js';
 import { when } from './ui.js';
 import { 그중미확정글 } from './unconfirmed.js';
@@ -17,8 +18,6 @@ export function 띠색(run: Pick<RunListRow, 'status' | 'counts'>): string {
   if (run.counts.na > 0 || run.status === 'ABORTED') return 'var(--na)';
   return 'var(--pass)';
 }
-
-export const 시작방식글 = { MANUAL: '직접 실행', SCHEDULED: '정기 실행', RERUN: '실패 다시 실행', BUILD: '빌드 실행' } as const;
 
 export function 실행줄({ run, 고름, on고르기 }: { run: RunListRow; 고름: boolean; on고르기: (runId: number) => void }) {
   const t = use말();
@@ -37,7 +36,7 @@ export function 실행줄({ run, 고름, on고르기 }: { run: RunListRow; 고�
         {run.title}
         <small>
           RUN {run.runId} · {when(run.startedAt, 언어)}
-          {run.origin === undefined ? '' : ` · ${t(시작방식글[run.origin])}`} · {run.env} · {실행자이름(run, 언어)} · {상태글}
+          {시작빌드글(run, t)} · {run.env} · {실행자이름(run, 언어)} · {상태글}
         </small>
       </span>
       <span className="run-verdict">
