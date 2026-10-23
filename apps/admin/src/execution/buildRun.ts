@@ -5,7 +5,7 @@ import type { Pool } from 'pg';
 import { 최신빌드 } from './buildFile.js';
 import { markAborted } from './dispatcher.js';
 import { abortRunner } from './runner.js';
-import { 정기실행을만든다, type 로그 } from './scheduled.js';
+import { 정기실행을만든다, type 로그, type 만든정기실행 } from './scheduled.js';
 import { abortRun, unfinishedItems } from './store.js';
 
 export interface 올린빌드 {
@@ -24,6 +24,12 @@ async function db(): Promise<Pool> {
 }
 
 const 콘솔: 로그 = { info: (말) => console.log(말), error: (말) => console.error(말) };
+
+// 분배는 안 기다린다. 깨지면 잡을 곳이 없어 프로세스가 죽으니 로그로만 남긴다 — 정기실행점검과 같다
+function 분배를맡긴다(결과: 만든정기실행, 빌드번호: string, 로그: 로그): 만든정기실행 {
+  void 결과.끝.catch((err: unknown) => 로그.error(`[build ${빌드번호}] 분배가 깨졌다: ${err instanceof Error ? err.message : String(err)}`));
+  return 결과;
+}
 
 /**
  * 같은 줄의 앞 빌드 실행 가운데 끝난 항목이 하나도 없는 것을 멈춘다 — 새 빌드가 왔으니 옛 빌드를 깔아 돌 까닭이 없다.
@@ -50,9 +56,9 @@ async function 앞빌드건너뛰기(빌드: 올린빌드): Promise<void> {
 /** 올린 빌드로 실행을 건다. 스모크 케이스가 있으면 스모크만, 없거나 돌 곳이 없으면 바로 회귀다. 만든 실행 번호를 돌려준다 */
 export async function 빌드실행을건다(빌드: 올린빌드, 로그: 로그 = 콘솔): Promise<number[]> {
   await 앞빌드건너뛰기(빌드);
-  const 스모크 = await 정기실행을만든다(빌드.prefix, 빌드.env, 로그, { ...빌드, stage: 'SMOKE' });
+  const 스모크 = 분배를맡긴다(await 정기실행을만든다(빌드.prefix, 빌드.env, 로그, { ...빌드, stage: 'SMOKE' }), 빌드.buildNo, 로그);
   if (스모크.runIds.length > 0) return 스모크.runIds;
-  return (await 정기실행을만든다(빌드.prefix, 빌드.env, 로그, { ...빌드, stage: 'FULL' })).runIds;
+  return 분배를맡긴다(await 정기실행을만든다(빌드.prefix, 빌드.env, 로그, { ...빌드, stage: 'FULL' }), 빌드.buildNo, 로그).runIds;
 }
 
 // 스모크 실행 둘(UI · 기능)이 거의 같이 끝나면 둘 다 「남은 스모크 없음」을 보고 회귀를 두 번 건다 — 빌드마다 한 줄로 세운다
@@ -91,13 +97,17 @@ export async function 스모크뒤(runId: number, 로그: 로그 = 콘솔): Prom
       로그.info(`[build ${행.build_no}] ${행.prefix} 새 빌드가 와서 이 빌드의 회귀는 건너뛴다`);
       return;
     }
-    await 정기실행을만든다(행.prefix, 행.env, 로그, {
-      id: buildId,
-      buildNo: 행.build_no,
-      stage: 'FULL',
-      username: 행.triggered_by,
-      displayName: 행.triggered_by_name ?? 행.triggered_by,
-    });
+    분배를맡긴다(
+      await 정기실행을만든다(행.prefix, 행.env, 로그, {
+        id: buildId,
+        buildNo: 행.build_no,
+        stage: 'FULL',
+        username: 행.triggered_by,
+        displayName: 행.triggered_by_name ?? 행.triggered_by,
+      }),
+      행.build_no,
+      로그,
+    );
   });
   줄.set(buildId, 이번.catch(() => undefined));
   try {
