@@ -570,7 +570,7 @@ mkdir -p /var/lib/postgresql/tp && chown postgres:postgres /var/lib/postgresql/t
 su postgres -c "/usr/lib/postgresql/16/bin/initdb -D /var/lib/postgresql/tp/data -U platform --auth=trust"
 su postgres -c "setsid nohup /usr/lib/postgresql/16/bin/postgres -D /var/lib/postgresql/tp/data -p 5433 -k /var/lib/postgresql/tp > /var/lib/postgresql/tp/log 2>&1 &"
 psql -h 127.0.0.1 -p 5433 -U platform -d postgres -c "CREATE DATABASE platform"
-psql -h 127.0.0.1 -p 5433 -U platform -d platform -f db/init/01-grafana-readonly.sql   # 마이그레이션보다 먼저 (CI 와 같은 순서)
+PGHOST=127.0.0.1 PGPORT=5433 POSTGRES_USER=platform POSTGRES_DB=platform GRAFANA_RO_PASSWORD=grafana_ro bash db/init/01-grafana-readonly.sh   # 마이그레이션보다 먼저 — 마이그레이션이 grafana_ro 에 권한을 준다
 # dbmate 는 CI 와 같은 곳에서 받는다 (.github/workflows) — sslmode=disable 을 붙인다
 DATABASE_URL="postgres://platform:platform@127.0.0.1:5433/platform?sslmode=disable" dbmate --migrations-dir db/migrations --no-dump-schema up
 export DATABASE_URL=postgres://platform:platform@127.0.0.1:5433/platform
@@ -612,7 +612,7 @@ export DATABASE_URL=postgres://platform:platform@127.0.0.1:5433/platform
 ```bash
 export PGPASSWORD=platform
 psql -h 127.0.0.1 -p 5433 -U platform -d postgres -c 'CREATE DATABASE tp_<이름>'
-psql -h 127.0.0.1 -p 5433 -U platform -d tp_<이름> -f db/init/01-grafana-readonly.sql   # 「role already exists」는 정상 — 역할은 서버에 하나다
+PGHOST=127.0.0.1 PGPORT=5433 POSTGRES_USER=platform POSTGRES_DB=tp_<이름> GRAFANA_RO_PASSWORD=grafana_ro bash db/init/01-grafana-readonly.sh   # 「role already exists」는 정상 — 역할은 서버에 하나다
 docker run --rm -v "$PWD/db:/db:ro" ghcr.io/amacneil/dbmate:2 \
   --url "postgres://platform:platform@host.docker.internal:5433/tp_<이름>?sslmode=disable" \
   --migrations-dir /db/migrations --no-dump-schema up            # 호스트에 dbmate 가 없어도 된다
