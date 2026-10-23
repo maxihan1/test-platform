@@ -29,6 +29,7 @@ import { 먼저가리기 } from './authoring-masking.js';
 import { 앱화면받기, 잡은폰놓기, 탐색환경 } from './authoring-app-screen.js';
 import { type 바꾸기, 가이드받기, 가이드폴더 } from './authoring-guide.js';
 import { 새로쓰기, 원장과남은번호 } from './authoring-ledger-io.js';
+import { 기준목록이름 } from './authoring-base-list.js';
 import { API떼기, API반영줄, API원장항목, API점검, API환경, 판파일쓰기 } from './authoring-api.js';
 import { 화면지도준비 } from './authoring-covered.js';
 import { 앞결과, 옮기기올리기, 판받기 } from './authoring-prd-io.js';
@@ -200,6 +201,10 @@ async function 사본에서(
   const 깃 = (인자: string[]) => 친다('git', 인자, 자리.트리, undefined, 120_000, { env: 사본환경(자리) });
   const 원장 = 원장과남은번호({ 계획, 자료폴더: 자리.자료, 깃, 기준, 서비스, 폴더: 케이스자리, 이어작성원본, 지금: 기획서.앞판.items, 옮긴다, 옮긴몸: 옮긴다 ? 앞결과(자리, 기획서.앞판.items, 서비스) : undefined, 반영: 반영요청인가(것) ? { 지금판: 기획서.앞판.version, 기준판: 기획서.기준판, 화면이맞음: 화면이맞음읽기(것) } : undefined, 등록역할: new Set((것.accounts ?? []).map((a) => a.role)), api: 것.api === undefined ? [] : API원장항목(것.api.문서, 것.api.반영?.operations) });
   if ('막힘' in 원장) return void (await 손.끝내기({ status: 'FAILED', error: 원장.막힘 }));
+  // 자식은 bare git 을 못 읽는다 — 돌려 보기 · 끝 검사 명령이 기준과의 차이를 셀 수 있게 기준 SHA 의 tests 목록을 둔다 (§3.6 「돌려 보기 명령」)
+  // ponytail: 친다 의 출력 한도 1MB — tests 파일이 1만 개쯤 넘으면 목록을 못 받아 작성이 실패한다. 그때는 git 출력을 파일로 바로 받는다
+  const 기준목록 = 깃(['ls-tree', '-r', '-z', 기준, '--', 'tests']);
+  if (!기준목록.ok || !새로쓰기(join(자리.자료, 기준목록이름), 기준목록.낸것)) return void (await 손.끝내기({ status: 'FAILED', error: `기준 tests 목록을 자료 폴더에 못 썼다${기준목록.ok ? '' : ` — ${기준목록.까닭}`}` }));
   // 역방향은 기준 SHA 의 파일로 화면 ↔ 케이스 지도(바뀐 화면 케이스 — PRD-F6-04)를, 화면만은 PRD 에 이미 있는 화면도 센다. 화면만이 못 세면 기획서 화면을 또 쓰므로 실패, 대조는 바뀐 화면 케이스를 못 볼 뿐이다 (§3.6)
   const 화면지도 = 것.target === undefined ? null : 화면지도준비({ 깃, 기준, 서비스, 폴더: 케이스자리, 번호들: 기획서.앞판.번호들, 자료폴더: 자리.자료, 화면만: 화면만인가(것, 자료들) });
   if (화면지도 !== null && '막힘' in 화면지도) return void (await 손.끝내기({ status: 'FAILED', error: `PRD 에 이미 있는 화면을 못 셌다 — ${화면지도.막힘}` }));
@@ -213,8 +218,8 @@ async function 사본에서(
     ...자식환경(process.env, 자리.gh, 것.figmaToken),
     // 맥은 둘 다 그대로 — 긴 임시 경로는 유닉스 소켓 104자 한도에 닿을 수 있다
     // 돌려 본 기록 자리는 에이전트가 정한다 — 맥은 TMPDIR 이 시스템 것이라 거기 쓰면 못 찾는다. 임시는 실행마다 새것이다(이어하기만 앞 기록을 옮긴다)
-    // 기준 SHA — 돌려 보기 명령이 에이전트 끝 검사와 같은 기준(기준과의 차이)으로 닿은 케이스를 고른다 (§3.6 「돌려 보기 명령」)
-    ...(자식 === null ? {} : { HOME: 자리.집, TMPDIR: 자리.임시 }), AUTHORING_GATE3_DIR: 자리.임시, AUTHORING_BASE_SHA: 기준,
+    // 기준 SHA 의 tests 목록 — 돌려 보기 명령이 에이전트 끝 검사와 같은 기준(기준과의 차이)으로 닿은 케이스를 고른다 (§3.6 「돌려 보기 명령」)
+    ...(자식 === null ? {} : { HOME: 자리.집, TMPDIR: 자리.임시 }), AUTHORING_GATE3_DIR: 자리.임시, AUTHORING_BASE_LIST: join(자리.자료, 기준목록이름),
     // 역방향 — 대상 서버·테스트 계정은 환경 변수로만. 프롬프트·인자에는 값을 안 싣는다 (§7 ★)
     ...(것.target === undefined ? {} : 대상환경(것.target)), ...계정환경(것.accounts, (글) => console.log(`[작성] ${것.id}번 ${글}`)), ...탐색환경(앱화면),
     ...(것.api === undefined ? {} : API환경(것.api, 자리.자료)), // API 대상 서버 · 인증 · 판 파일도 환경 변수로만 (도메인/API §3.8 「API 인증」)
