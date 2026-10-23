@@ -11,6 +11,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Pool } from 'pg';
 import { z } from 'zod';
 
+import { 볼륨파일 } from '../artifactFile.js';
 import { 올리기거절, 올리기막기, 파일로 } from '../perf/dummy.js';
 
 import { APK인가, 빌드상한, 빌드파일자리, 빌드폴더, 서명맞나, 오래된빌드치우기 } from './buildFile.js';
@@ -62,12 +63,13 @@ export default async function buildRoutes(app: FastifyInstance): Promise<void> {
     // 문이 CI 토큰을 확인하고 실었다. 여기 없으면 문이 빠진 것이라 막는다
     const 주인 = req.ciToken;
     if (주인 === null) return reply.code(401).send({ error: 'UNAUTHENTICATED' });
+    // 거절할 때 아직 안 읽은 APK 본문을 끝까지 받지 않는다 — 1GB 넘는 본문을 흘려보내지 않고 응답 뒤 연결을 닫는다
+    const 끊고 = (결과: 거절): Promise<FastifyReply> => {
+      if (typeof (req.body as Readable | undefined)?.pipe === 'function') reply.header('connection', 'close');
+      return 보낸다(reply, 결과);
+    };
     const 값 = 꺼내기(req);
-    if ('status' in 값) {
-      (req.body as Readable | undefined)?.resume?.();
-      return 보낸다(reply, 값);
-    }
-    const 흘려보내기 = (): void => void 값.apk?.resume();
+    if ('status' in 값) return 끊고(값);
 
     const pool = await db();
     // 토큰의 애플리케이션 줄로만 정한다 — 다른 애플리케이션 대상 서버 이름을 보내도 그 줄은 없는 것과 같다
@@ -84,38 +86,32 @@ export default async function buildRoutes(app: FastifyInstance): Promise<void> {
       : 앱인가 && 값.apk === undefined && 값.apkUrl === undefined ? 거절(400, 'APK_REQUIRED', 'Android 앱 · 게임은 APK 나 apkUrl 을 보냅니다')
       : !앱인가 && (값.apk !== undefined || 값.apkUrl !== undefined) ? 거절(400, 'APK_NOT_ALLOWED', '웹 · API 애플리케이션은 파일 없이 빌드 번호만 보냅니다')
       : null;
-    if (막힘 !== null) {
-      흘려보내기();
-      return 보낸다(reply, 막힘);
-    }
+    if (막힘 !== null) return 끊고(막힘);
     const 겹침 = await pool.query('SELECT 1 FROM app_build WHERE service_id = $1 AND env = $2 AND build_no = $3', [주인.serviceId, 값.env, 값.buildNo]);
-    if ((겹침.rowCount ?? 0) > 0) {
-      흘려보내기();
-      return 보낸다(reply, 거절(409, 'BUILD_EXISTS', 값.buildNo));
-    }
+    if ((겹침.rowCount ?? 0) > 0) return 끊고(거절(409, 'BUILD_EXISTS', 값.buildNo));
 
     let buildId: number;
     if (값.apk !== undefined) {
       // 보낸다고 밝힌 크기가 상한을 넘으면 읽지 않고 돌려보낸다
-      if (Number(req.headers['content-length'] ?? 0) > 빌드상한) {
-        흘려보내기();
-        return 보낸다(reply, 거절(413, 'PAYLOAD_TOO_LARGE'));
-      }
+      if (Number(req.headers['content-length'] ?? 0) > 빌드상한) return 끊고(거절(413, 'PAYLOAD_TOO_LARGE'));
       await mkdir(빌드폴더(), { recursive: true });
       const 임시 = join(빌드폴더(), `upload-${String(process.pid)}-${String(Date.now())}-${Math.random().toString(36).slice(2)}.part`);
+      // 번호를 먼저 받아 파일을 제자리로 옮긴 뒤 행을 한 번에 넣는다 — 반쯤 쓴 행(빈 파일 자리)이 최신 빌드로 잡히지 않게
+      let 자리: string | null = null;
       try {
         await 파일로(값.apk, 올리기막기(빌드상한), 임시);
         if (!(await APK인가(임시))) throw new 올리기거절(400, 'BAD_FILE_TYPE');
         const 크기 = (await stat(임시)).size;
-        const r = await pool.query<{ id: string }>(
-          `INSERT INTO app_build (service_id, env, build_no, file_path, size_bytes, uploaded_by) VALUES ($1, $2, $3, '', $4, $5) RETURNING id`,
-          [주인.serviceId, 값.env, 값.buildNo, 크기, 주인.username],
+        buildId = Number((await pool.query<{ id: string }>("SELECT nextval(pg_get_serial_sequence('app_build', 'id')) AS id")).rows[0]!.id);
+        자리 = 빌드파일자리(buildId);
+        await rename(임시, 자리);
+        await pool.query(
+          'INSERT INTO app_build (id, service_id, env, build_no, file_path, size_bytes, uploaded_by) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+          [buildId, 주인.serviceId, 값.env, 값.buildNo, 자리, 크기, 주인.username],
         );
-        buildId = Number(r.rows[0]!.id);
-        await rename(임시, 빌드파일자리(buildId));
-        await pool.query('UPDATE app_build SET file_path = $2 WHERE id = $1', [buildId, 빌드파일자리(buildId)]);
       } catch (e) {
         await rm(임시, { force: true });
+        if (자리 !== null) await rm(자리, { force: true });
         // zip 머리가 아니어도 APK 가 아니다 — 더미 올리기의 말(zip 파일이 아닙니다)을 빌드 말로 바꾼다
         if (e instanceof 올리기거절) return 보낸다(reply, e.status === 413 ? 거절(413, 'PAYLOAD_TOO_LARGE') : 거절(400, 'BAD_FILE_TYPE', 'APK 파일만 받습니다(AAB · OBB 는 안 받습니다)'));
         if ((e as { code?: string }).code === '23505') return 보낸다(reply, 거절(409, 'BUILD_EXISTS', 값.buildNo));
@@ -134,15 +130,27 @@ export default async function buildRoutes(app: FastifyInstance): Promise<void> {
       }
     }
 
-    await 오래된빌드치우기(주인.serviceId, 값.env);
-    const runIds = await 빌드실행을건다({
-      id: buildId,
-      serviceId: 주인.serviceId,
-      prefix: 그줄!.prefix,
-      env: 값.env,
-      buildNo: 값.buildNo,
-      username: 주인.username,
-      displayName: 주인.displayName,
+    let runIds: number[];
+    try {
+      runIds = await 빌드실행을건다({
+        id: buildId,
+        serviceId: 주인.serviceId,
+        prefix: 그줄!.prefix,
+        env: 값.env,
+        buildNo: 값.buildNo,
+        username: 주인.username,
+        displayName: 주인.displayName,
+      });
+    } catch (e) {
+      // 실행을 못 걸었으면 빌드도 남기지 않는다 — 남기면 CI 가 같은 번호로 다시 불러도 409 라 그 빌드는 영영 안 돈다
+      const 지움 = await pool.query<{ file_path: string | null }>('DELETE FROM app_build WHERE id = $1 RETURNING file_path', [buildId]);
+      const 파일 = 지움.rows[0]?.file_path;
+      if (파일 != null) await rm(파일, { force: true });
+      throw new Error(`빌드 ${값.buildNo} 의 실행을 걸지 못해 빌드를 지웠다 — 같은 번호로 다시 부르면 된다: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    // 실행을 다 건 뒤에 치운다 — 방금 건 실행이 쥔 빌드는 도는 중이라 남는다. 못 치워도 실행은 이미 섰다 — 로그로만 남기고 다음 올리기가 다시 치운다
+    await 오래된빌드치우기(주인.serviceId, 값.env).catch((err: unknown) => {
+      req.log.error(`[builds] ${값.env} 줄의 오래된 빌드를 못 치웠다: ${err instanceof Error ? err.message : String(err)}`);
     });
     return reply.code(201).send({ buildId, runIds });
   });
@@ -151,19 +159,21 @@ export default async function buildRoutes(app: FastifyInstance): Promise<void> {
   app.get<{ Params: { buildId: string }; Querystring: { exp?: string; sig?: string } }>('/builds/:buildId/apk', async (req, reply) => {
     const buildId = /^\d{1,15}$/.test(req.params.buildId) ? Number(req.params.buildId) : null;
     if (buildId === null || !서명맞나(buildId, req.query.exp, req.query.sig)) return reply.code(403).send({ error: 'BAD_SIGNATURE' });
-    const r = await (await db()).query<{ file_path: string | null; size_bytes: string | null }>(
-      'SELECT file_path, size_bytes FROM app_build WHERE id = $1',
+    const r = await (await db()).query<{ file_path: string | null }>(
+      'SELECT file_path FROM app_build WHERE id = $1',
       [buildId],
     );
-    const 행 = r.rows[0];
-    if (행?.file_path == null || 행.file_path === '') return reply.code(404).send({ error: 'BUILD_GONE' });
+    // 볼륨은 root 로 도는 케이스도 쓴다 — 가는 길에 바로가기가 끼면 없는 파일로 친다. 안 그러면 APK 자리에 건 /proc/self/environ 이 admin 비밀값을 내준다 (공통/6 §9)
+    const 진짜 = r.rows[0]?.file_path == null ? null : await 볼륨파일(r.rows[0].file_path);
+    if (진짜 === null) return reply.code(404).send({ error: 'BUILD_GONE' });
+    const 크기 = (await stat(진짜)).size;
     return reply
       .header('content-type', 'application/vnd.android.package-archive')
-      .header('content-length', String(행.size_bytes))
+      .header('content-length', String(크기))
       .header('content-disposition', `attachment; filename="build-${String(buildId)}.apk"`)
       // 같은 빌드는 바뀌지 않는다 — Appium 이 받아 둔 파일을 다시 쓰게 한다
       .header('etag', `"build-${String(buildId)}"`)
       .header('cache-control', 'private, max-age=7200, immutable')
-      .send(createReadStream(행.file_path));
+      .send(createReadStream(진짜));
   });
 }

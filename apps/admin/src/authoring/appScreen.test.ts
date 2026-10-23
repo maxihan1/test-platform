@@ -4,11 +4,12 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { 폰을놓는다, 폰을바로잡는다 } from '../execution/phone.js';
 
-import { 게임길, 앱탐색주소, 앱화면읽기, 앱화면줄, type 폰잡기 } from './appScreen.js';
+import { 게임길, 앱탐색주소, 앱화면읽기, type 폰잡기 } from './appScreen.js';
+import { 앱줄고르기 } from './reverse.js';
 
 const 답 = (몸: unknown, status = 200) => vi.fn(async () => new Response(JSON.stringify(몸), { status })) as unknown as typeof fetch;
 
-describe('앱화면줄', () => {
+describe('앱줄고르기 — 앱 화면이 고르는 줄', () => {
   const 줄들 = [
     { env: 'dev', appPath: null, isProd: false },
     { env: 'qa', appPath: '/apk/qa.apk', isProd: false },
@@ -16,12 +17,12 @@ describe('앱화면줄', () => {
   ];
 
   it('요청에 대상 서버가 있으면 그 줄의 경로다 — 다른 줄에 경로가 있어도 따지지 않는다', () => {
-    expect(앱화면줄(줄들, 'stg')?.appPath ?? null).toBe('/apk/stg.apk');
-    expect(앱화면줄(줄들, 'dev')?.appPath ?? null).toBeNull();
+    expect(앱줄고르기(줄들, 'stg')?.appPath ?? null).toBe('/apk/stg.apk');
+    expect(앱줄고르기(줄들, 'dev')?.appPath ?? null).toBeNull();
   });
 
   it('대상 서버가 없으면 경로가 있는 첫 줄(env 순)이다', () => {
-    expect(앱화면줄(줄들, null)?.appPath ?? null).toBe('/apk/qa.apk');
+    expect(앱줄고르기(줄들, null)?.appPath ?? null).toBe('/apk/qa.apk');
   });
 
   it('「운영 서버」 줄은 경로가 있어도 건너뛴다 — 대상 서버를 짚어도, 안 짚어도', () => {
@@ -30,17 +31,13 @@ describe('앱화면줄', () => {
       { env: 'prod', appPath: '/apk/prod.apk', isProd: true },
     ];
 
-    expect(앱화면줄(운영뿐, null)?.appPath ?? null).toBeNull();
-    expect(앱화면줄(운영뿐, 'prod')?.appPath ?? null).toBeNull();
-  });
-
-  it('대상 서버가 없고 경로 있는 줄도 없으면 운영 아닌 첫 줄 — 그 줄의 CI 빌드로 깐다', () => {
-    expect(앱화면줄([{ env: 'prod', appPath: null, isProd: true }, { env: 'qa', appPath: null, isProd: false }], null)?.env).toBe('qa');
+    expect(앱줄고르기(운영뿐, null)?.appPath ?? null).toBeNull();
+    expect(앱줄고르기(운영뿐, 'prod')?.appPath ?? null).toBeNull();
   });
 
   it('경로가 하나도 없으면 null — 앱이 없는 서비스', () => {
-    expect(앱화면줄([{ env: 'dev', appPath: null, isProd: false }], null)?.appPath ?? null).toBeNull();
-    expect(앱화면줄([], 'dev')).toBeUndefined();
+    expect(앱줄고르기([{ env: 'dev', appPath: null, isProd: false }], null)?.appPath ?? null).toBeNull();
+    expect(앱줄고르기([], 'dev')).toBeUndefined();
   });
 });
 

@@ -49,7 +49,7 @@ async function 앞빌드건너뛰기(빌드: 올린빌드): Promise<void> {
     if (결과 === null || 결과 === 'SCENARIO') continue;
     markAborted(runId);
     await Promise.all(미완.map((i) => abortRunner(i.historyId)));
-    콘솔.info(`[build ${빌드.buildNo}] 앞 빌드의 시작 안 한 실행 ${String(runId)}을 건너뛰었다`);
+    콘솔.info(`[build ${빌드.buildNo}] 앞 빌드에서 끝난 항목이 없는 실행 ${String(runId)}을 멈췄다`);
   }
 }
 
@@ -57,6 +57,8 @@ async function 앞빌드건너뛰기(빌드: 올린빌드): Promise<void> {
 export async function 빌드실행을건다(빌드: 올린빌드, 로그: 로그 = 콘솔): Promise<number[]> {
   await 앞빌드건너뛰기(빌드);
   const 스모크 = 분배를맡긴다(await 정기실행을만든다(빌드.prefix, 빌드.env, 로그, { ...빌드, stage: 'SMOKE' }), 빌드.buildNo, 로그);
+  // 스모크를 반만 만들었으면 회귀로 넘어가지 않는다 — 부르는 쪽(빌드 올리기)이 빌드를 지우고 CI 가 다시 부른다
+  if (스모크.실패) throw new Error('스모크 실행을 다 만들지 못했다');
   if (스모크.runIds.length > 0) return 스모크.runIds;
   return 분배를맡긴다(await 정기실행을만든다(빌드.prefix, 빌드.env, 로그, { ...빌드, stage: 'FULL' }), 빌드.buildNo, 로그).runIds;
 }
@@ -109,10 +111,12 @@ export async function 스모크뒤(runId: number, 로그: 로그 = 콘솔): Prom
       로그,
     );
   });
-  줄.set(buildId, 이번.catch(() => undefined));
+  const 꼬리 = 이번.catch(() => undefined);
+  줄.set(buildId, 꼬리);
   try {
     await 이번;
   } finally {
-    if (줄.get(buildId) === 이번 || 줄.get(buildId) === undefined) 줄.delete(buildId);
+    // 내 뒤에 줄 선 것이 없을 때만 치운다 — 있으면 그쪽이 끝나며 치운다
+    if (줄.get(buildId) === 꼬리) 줄.delete(buildId);
   }
 }

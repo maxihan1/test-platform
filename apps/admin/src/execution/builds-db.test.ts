@@ -1,7 +1,7 @@
 // 빌드마다 돌리기 — CI 토큰 발급 · 문 · 빌드 올리기 거절 코드 · 스모크 실행 · 앞 빌드 건너뛰기 · 스모크 뒤 회귀 · APK 서명 내려받기 · 보관 개수
 // (도메인/실행 §3.11 · §7 · 도메인/인증 §7 「인증 적용 범위」). 분배는 가짜라 러너 · 팜에 닿지 않는다. DATABASE_URL 이 있을 때만 돈다
 
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -197,6 +197,18 @@ describe.skipIf(연결 === undefined)('빌드마다 돌리기', { timeout: 60_00
     expect(회귀.rowCount).toBe(0);
   });
 
+  it('스모크 케이스가 없으면 바로 회귀를 건다', async () => {
+    const 원문 = await 토큰('XBD');
+    await pool.query("UPDATE test_case SET smoke_set = false WHERE tc_id = 'XBD-FN-001'");
+    try {
+      const { runIds } = (await 올린다(원문, { env: 'qa', buildNo: '800' })).json<{ runIds: number[] }>();
+      expect(runIds).toHaveLength(1);
+      expect(await 실행(runIds[0]!)).toMatchObject({ build_stage: 'FULL', title: '빌드 800 · 기능 전체 2건' });
+    } finally {
+      await pool.query("UPDATE test_case SET smoke_set = NULL WHERE tc_id = 'XBD-FN-001'");
+    }
+  });
+
   it('줄마다 최근 빌드만 남긴다', async () => {
     const r = await pool.query<{ n: number }>("SELECT count(*)::int AS n FROM app_build WHERE service_id = $1 AND env = 'qa'", [서비스.XBD]);
     expect(r.rows[0]!.n).toBe(보관개수);
@@ -226,5 +238,11 @@ describe.skipIf(연결 === undefined)('빌드마다 돌리기', { timeout: 60_00
     expect(Buffer.compare(받음.rawPayload, 몸)).toBe(0);
     const 위조 = await app.inject({ method: 'GET', url: `${주소.pathname}?exp=${주소.searchParams.get('exp')!}&sig=AAAA` });
     expect(위조.statusCode).toBe(403);
+
+    // 케이스가 APK 자리를 바로가기로 바꿔쳐도 그 끝의 파일을 내주지 않는다
+    const 자리 = join(산출, 'builds', `${String(buildId)}.apk`);
+    await rm(자리);
+    await symlink('/etc/hosts', 자리);
+    expect((await app.inject({ method: 'GET', url: `${주소.pathname}${주소.search}` })).statusCode).toBe(404);
   });
 });

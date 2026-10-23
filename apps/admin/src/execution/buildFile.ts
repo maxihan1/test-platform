@@ -19,7 +19,7 @@ async function db(): Promise<Pool> {
   return pool;
 }
 
-// ponytail: 러너와 같이 쓰는 artifacts 볼륨이라 root 로 도는 케이스가 APK 를 바꿔칠 수는 있다(perf/dummy.ts 리뷰 M16 과 같은 한계). 막으려면 admin 만 붙이는 볼륨을 따로 둔다
+// ponytail: 러너와 같이 쓰는 artifacts 볼륨이라 root 로 도는 케이스가 APK 내용을 바꿔칠 수는 있다(바로가기는 내려받기가 볼륨파일로 막는다). 더미 zip 처럼(리뷰 M16) admin 만 붙이는 볼륨으로 옮기면 풀린다
 export const 빌드파일자리 = (id: number): string => join(artifactsDir(), 'builds', `${id}.apk`);
 export const 빌드폴더 = (): string => join(artifactsDir(), 'builds');
 
@@ -133,13 +133,15 @@ export function 앱칸(빌드: 빌드행 | null, appPath: string | null): { app?
 
 /**
  * 케이스 테스트 실행 · 작성처럼 실행 기록을 안 남기는 쪽이 깔 앱 파일 — 그 줄 최신 빌드의 서명 주소 · 회사 저장소 주소, 없으면 app_path.
- * 서명 주소를 못 만들면(바깥 주소가 비었다) app_path 로 물러선다 — 옛 길이 살아 있는 편이 아무것도 못 까는 것보다 낫다
+ * 서명 주소를 못 만들면(바깥 주소가 비었다) 던진다 — 옛 app_path 로 물러서면 정식 실행(미실행으로 닫힘)과 다른 빌드로 케이스를 쓰고 아무도 모른다
  */
 export async function 깔앱파일(serviceId: number, env: string, appPath: string | null): Promise<string | null> {
   const 빌드 = await 최신빌드(await db(), serviceId, env);
   if (빌드?.appUrl != null) return 빌드.appUrl;
-  if (빌드?.hasFile === true) return 서명주소(빌드.id) ?? appPath;
-  return appPath;
+  if (빌드?.hasFile !== true) return appPath;
+  const 주소 = 서명주소(빌드.id);
+  if (주소 === null) throw new Error(`${env} 줄의 최신 빌드 ${빌드.buildNo} 를 받을 주소를 못 만들었다 — PLATFORM_PUBLIC_URL 을 채운다`);
+  return 주소;
 }
 
 /** 줄마다 최근 보관개수만 남기고 파일과 행을 지운다. 도는 실행이 쥔 빌드는 남긴다 — 그 실행이 끝까지 그 빌드를 깐다 */

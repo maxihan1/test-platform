@@ -9,7 +9,7 @@ import { listCases } from '../catalog/store.js';
 import { dispatch } from './dispatcher.js';
 import { 앱케이스를뺀다 } from './location.js';
 import { 종류별로나눈다 } from './runKind.js';
-import { createRun, MAX_ITEMS, RunInputError } from './store.js';
+import { abortRun, createRun, MAX_ITEMS, RunInputError } from './store.js';
 
 export interface 로그 {
   info: (말: string) => void;
@@ -48,6 +48,11 @@ export async function 정기실행을만든다(prefix: string, env: string, 로�
     ...(빌드?.stage === 'SMOKE' && { smoke: true }),
   });
   if (목록.items.length === 0) {
+    // 스모크 케이스가 없는 것은 흔하다(기본값이 꺼짐) — 부르는 쪽이 바로 회귀를 건다. 스캔 문제와 섞이지 않게 오류로 남기지 않는다
+    if (빌드?.stage === 'SMOKE') {
+      로그.info(`${꼬리} ${prefix} 스모크 케이스가 없다`);
+      return { runIds: [], 실패: false, 끝: Promise.resolve() };
+    }
     로그.error(`${꼬리} ${prefix} 서비스에 돌릴 활성 케이스가 없다. 스캔이 돌았는지 확인해라`);
     return { runIds: [], 실패: true, 끝: Promise.resolve() };
   }
@@ -68,8 +73,7 @@ export async function 정기실행을만든다(prefix: string, env: string, 로�
     expected: {},
   }));
 
-  const runIds: number[] = [];
-  const 분배들: Promise<void>[] = [];
+  const 만든것: { runId: number; 보낼것: Awaited<ReturnType<typeof createRun>>['items'] }[] = [];
   let 실패 = false;
   // 실행 하나에 한 종류다 — 한쪽이 실패해도 다른 쪽은 돈다. 아침 Slack 도 둘이다 (SPEC 공통/4-데이터모델 「실행 종류」)
   for (const 묶음 of 종류별로나눈다(items)) {
@@ -95,15 +99,21 @@ export async function 정기실행을만든다(prefix: string, env: string, 로�
         notifySlack: true,
         items: 묶음.items,
       });
-      runIds.push(runId);
+      만든것.push({ runId, 보낼것 });
       로그.info(`${꼬리} ${prefix} 실행 ${String(runId)}(${이름[묶음.kind]})을 만들었다. 케이스 ${String(묶음.items.length)}건 · 항목 ${String(보낼것.length)}건`);
-      분배들.push(dispatch(runId, 보낼것));
     } catch (err) {
       실패 = true;
       로그.error(`${꼬리} ${prefix} ${이름[묶음.kind]} 실행을 못 만들었다 — ${err instanceof RunInputError ? `${err.code}: ${err.message}` : String(err)}`);
     }
   }
-  return { runIds, 실패, 끝: Promise.all(분배들).then(() => undefined) };
+  const runIds = 만든것.map((m) => m.runId);
+  // 스모크는 둘 다 서야 「다 통과」를 따질 수 있다 — 하나라도 못 만들었으면 만든 것도 돌리지 않고 닫는다(부르는 쪽이 빌드를 지우고 CI 가 다시 부른다)
+  if (실패 && 빌드?.stage === 'SMOKE') {
+    for (const runId of runIds) await abortRun(runId);
+    return { runIds: [], 실패, 끝: Promise.resolve() };
+  }
+  // 다 만든 뒤에 분배한다 — 앞 실행이 뒤 실행이 서기도 전에 끝나 스모크 뒤 판정이 반쪽만 보지 않게
+  return { runIds, 실패, 끝: Promise.all(만든것.map((m) => dispatch(m.runId, m.보낼것))).then(() => undefined) };
 }
 
 /**

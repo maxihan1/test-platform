@@ -23,7 +23,7 @@ CREATE TABLE app_build (
 );
 CREATE INDEX ON app_build (service_id, env, uploaded_at DESC);
 
--- 원문은 발급 때 한 번만 보이고 해시만 둔다. 쓸 때마다 발급한 계정이 아직 그 애플리케이션의 admin 인지 본다
+-- 원문은 발급 때 한 번만 보이고 해시만 둔다. 쓸 때마다 발급한 계정이 아직 살아 있는 admin 인지 본다
 CREATE TABLE service_token (
   id           BIGSERIAL   PRIMARY KEY,
   service_id   BIGINT      NOT NULL REFERENCES service(id) ON DELETE CASCADE,
