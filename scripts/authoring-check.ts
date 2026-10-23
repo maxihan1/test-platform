@@ -259,7 +259,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     const 묶음 = 묶은확인들(문장들, 볼);
     결과들.push({ 이름: '확인 하나에 값 하나', ok: 묶음.length === 0, 줄들: 묶음 });
     // 게임 규칙도 이번에 바뀐 파일만 — 못 읽으면 폴더 전체(화면 객체 · 도우미의 좌표도 본다)
-    const 게임 = 게임검사(트리, 바뀐 !== null && !('까닭' in 바뀐) ? 바뀐.filter((f) => f.startsWith(`tests/${폴더}/`)) : 파일모으기([join(트리, 'tests', 폴더)]).파일들.map((f) => relative(트리, f.경로)), env);
+    const 게임 = 게임검사(트리, 바뀐 !== null && !('까닭' in 바뀐) ? 바뀐.filter((f) => f.startsWith(`tests/${폴더}/`)) : 폴더경로들(트리, 폴더), env);
     if (게임 !== null) 결과들.push(게임);
     const 가이드 = join('docs', 'cases', `${접두사}.guide.md`);
     결과들.push(비밀검사([`tests/${폴더}`, 표, ...(existsSync(join(트리, 가이드)) ? [가이드] : []), ...더]));
@@ -274,6 +274,10 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   console.log(`긴 로그는 ${자리}/check-*.log`);
   return 결과들.every((r) => r.ok) ? 0 : 1;
 }
+
+/** 폴더 아래 파일 경로(저장소 뿌리 기준) — 글은 안 읽는다 */
+const 폴더경로들 = (트리: string, 폴더: string): string[] =>
+  existsSync(join(트리, 'tests', 폴더)) ? readdirSync(join(트리, 'tests', 폴더), { recursive: true, encoding: 'utf8' }).map((p) => join('tests', 폴더, p)) : [];
 
 /** 폴더의 케이스 문장 전부 — 결과 문장 겹침은 맡은 파일 밖과도 견준다 */
 function 케이스문장들(트리: string, 폴더: string, 더할?: readonly 케이스문장[]): 케이스문장[] {

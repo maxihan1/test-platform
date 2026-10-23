@@ -58,6 +58,10 @@ describe('게임형식 — 게임 작성', () => {
     expect(본다(케이스("platforms: ['android'],\n  elements: ['item:sword_long', 'zone:Town'],"))).toEqual([]);
   });
 
+  it('빈 열쇠 · 겹친 열쇠는 kit 처럼 버리고 본다', () => {
+    expect(본다(케이스("platforms: ['android'],\n  elements: ['zone:Town', '', 'zone:Town'],"))).toEqual([]);
+  });
+
   it('elements 칸이 없어도 통과한다 — 닿는 요소가 없는 케이스', () => {
     expect(본다(케이스("platforms: ['android'],"))).toEqual([]);
   });
@@ -94,6 +98,7 @@ describe('게임형식 — 게임 작성', () => {
 
   it('platforms 는 따옴표 꼴과 상관없이 android 하나만 받는다', () => {
     expect(본다(케이스('platforms: ["android"],'))).toEqual([]);
+    expect(본다(케이스("platforms: ['android',] as const,"))).toEqual([]);
     expect(본다(케이스("platforms: ['android', 'desktop'],"))[0]).toMatch(/platforms/);
   });
 });

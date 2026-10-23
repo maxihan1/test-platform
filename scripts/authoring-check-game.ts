@@ -83,7 +83,8 @@ function 요소읽기(명세: ts.ObjectLiteralExpression): string[] | null {
   const 식 = 속성(명세, 'elements')?.initializer;
   if (식 === undefined) return 명세.properties.some((p) => ts.isShorthandPropertyAssignment(p) && p.name.text === 'elements') ? null : [];
   if (!ts.isArrayLiteralExpression(식) || !식.elements.every(ts.isStringLiteralLike)) return null;
-  return 식.elements.map((e) => (e as ts.StringLiteralLike).text);
+  // kit(defineCase)처럼 빈 열쇠 · 겹침은 버린다 — DB 에 안 가는 값으로 관문을 막지 않는다
+  return [...new Set(식.elements.map((e) => (e as ts.StringLiteralLike).text).filter((k) => k !== ''))];
 }
 
 /** 케이스 글이 적은 요소 열쇠 — 글자 배열이 아니거나 케이스가 아니면 빈 목록(에이전트의 「아직 안 다룬 요소」 셈) */
@@ -111,7 +112,8 @@ export function 게임형식(파일들: readonly { 경로: string; 글: string }
     if (명세 !== undefined) {
       if (요소 === null) 틀림.push(`${f.경로} — elements 는 글자 배열 리터럴로 적는다(변수 · 식 · 펼침 금지)`);
       else for (const k of 요소.filter((k) => !지도.has(k))) 틀림.push(`${f.경로} — 요소 ${k} 가 게임 지도에 없다. game-elements.json 에 먼저 적거나 game-map.txt 의 열쇠를 쓴다`);
-      const 기기 = 속성(명세, 'platforms')?.initializer;
+      let 기기 = 속성(명세, 'platforms')?.initializer;
+      while (기기 !== undefined && (ts.isAsExpression(기기) || ts.isSatisfiesExpression(기기) || ts.isParenthesizedExpression(기기))) 기기 = 기기.expression;
       const 안드로이드만 = 기기 !== undefined && ts.isArrayLiteralExpression(기기) && 기기.elements.length === 1 && ts.isStringLiteralLike(기기.elements[0]!) && 기기.elements[0].text === 'android';
       if (!안드로이드만) 틀림.push(`${f.경로} — 게임 케이스의 platforms 는 ['android'] 하나다`);
       if (몸통이름들(sf).includes('page')) 틀림.push(`${f.경로} — 게임 케이스 몸통에는 page 가 없다. game · admin · driver 를 쓴다`);

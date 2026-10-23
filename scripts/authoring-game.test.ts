@@ -180,17 +180,24 @@ describe('안다룬요소줄', () => {
 
   it('지도 열쇠 가운데 어느 케이스도 안 적은 것만 센다 — 이번에 지운 열쇠는 빼고 · 케이스가 아닌 파일은 안 본다', () => {
     const 폴더 = 차리기({ 'ASH-FN-001.spec.ts': 케이스글('ASH-FN-001', "elements: ['item:sword_long'],"), 'notes.ts': "export const elements = ['zone:Town'];\n" });
-    expect(안다룬요소줄(자료, 폴더, [])).toBe('게임 지도: 아직 안 다룬 요소 1개 / 2개 — zone:Town');
+    expect(안다룬요소줄(자료, 폴더, [])).toEqual(['게임 지도: 아직 안 다룬 요소 1개 / 2개 — zone:Town']);
   });
 
   it('모두 다뤘으면 그렇게 적고 · 지도가 비면 줄이 없다', () => {
     const 폴더 = 차리기({ 'ASH-FN-001.spec.ts': 케이스글('ASH-FN-001', "elements: ['item:sword_long', 'zone:Town'],") });
-    expect(안다룬요소줄(자료, 폴더, [])).toBe('게임 지도: 요소 2개를 모두 케이스가 다룸');
-    expect(안다룬요소줄(join(자료, '없음'), 폴더, [])).toBeNull();
+    expect(안다룬요소줄(자료, 폴더, [])).toEqual(['게임 지도: 요소 2개를 모두 케이스가 다룸']);
+    expect(안다룬요소줄(join(자료, '없음'), 폴더, [])).toEqual([]);
+  });
+
+  it('하위 폴더의 케이스도 다룬 것으로 센다 — 스캐너가 하위 폴더까지 읽는다', () => {
+    const 폴더 = 차리기({});
+    mkdirSync(join(폴더, 'enhance'));
+    writeFileSync(join(폴더, 'enhance', 'ASH-FN-002.spec.ts'), 케이스글('ASH-FN-002', "elements: ['item:sword_long', 'zone:Town'],"));
+    expect(안다룬요소줄(자료, 폴더, [])).toEqual(['게임 지도: 요소 2개를 모두 케이스가 다룸']);
   });
 
   it('열쇠에 계정 비밀번호가 섞였으면 열쇠를 적지 않는다', () => {
     const 폴더 = 차리기({});
-    expect(안다룬요소줄(자료, 폴더, ['sword_long'])).toBe('게임 지도: 아직 안 다룬 요소 2개 / 2개 — 열쇠에 테스트 계정 비밀번호가 들어 있어 안 적음');
+    expect(안다룬요소줄(자료, 폴더, ['sword_long'])).toEqual(['게임 지도: 아직 안 다룬 요소 2개 / 2개 — 열쇠에 테스트 계정 비밀번호가 들어 있어 안 적음']);
   });
 });
