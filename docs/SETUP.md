@@ -612,7 +612,7 @@ export DATABASE_URL=postgres://platform:platform@127.0.0.1:5433/platform
 ```bash
 export PGPASSWORD=platform
 psql -h 127.0.0.1 -p 5433 -U platform -d postgres -c 'CREATE DATABASE tp_<이름>'
-PGHOST=127.0.0.1 PGPORT=5433 POSTGRES_USER=platform POSTGRES_DB=tp_<이름> GRAFANA_RO_PASSWORD=grafana_ro bash db/init/01-grafana-readonly.sh   # 「role already exists」는 정상 — 역할은 서버에 하나다
+PGHOST=127.0.0.1 PGPORT=5433 POSTGRES_USER=platform POSTGRES_DB=tp_<이름> GRAFANA_RO_PASSWORD=grafana_ro bash db/init/01-grafana-readonly.sh   # 역할은 서버에 하나라 이미 있으면 만들기만 건너뛰고 권한을 이 DB 에 건다
 docker run --rm -v "$PWD/db:/db:ro" ghcr.io/amacneil/dbmate:2 \
   --url "postgres://platform:platform@host.docker.internal:5433/tp_<이름>?sslmode=disable" \
   --migrations-dir /db/migrations --no-dump-schema up            # 호스트에 dbmate 가 없어도 된다
