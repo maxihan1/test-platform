@@ -144,4 +144,14 @@ describe('실행 — 잘못 부르면 돌리지 않는다', () => {
     expect(await 실행(['보조', 'shop', 'mkt/A.spec.ts'], 트리, { AUTHORING_GATE3_DIR: 기록 })).toBe(2);
     expect(await 실행(['보조', 'shop', 'tests/mkt/없음.spec.ts'], 트리, { AUTHORING_GATE3_DIR: 기록 })).toBe(2);
   });
+
+  it('마지막은 에이전트가 넘긴 기준 목록(AUTHORING_BASE_LIST)으로 바뀐 파일을 센다 — .git 없는 사본 트리에서 늘 2 가 되지 않게 (리뷰 M19)', async () => {
+    const 트리 = mkdtempSync(join(tmpdir(), 'run3-'));
+    mkdirSync(join(트리, 'tests', 'mkt'), { recursive: true });
+    const 기록 = mkdtempSync(join(tmpdir(), 'run3-기록-'));
+    const 목록 = join(기록, 'tests-base.z');
+    writeFileSync(목록, '');
+    expect(await 실행(['마지막', 'mkt'], 트리, { AUTHORING_GATE3_DIR: 기록 })).toBe(2);
+    expect(await 실행(['마지막', 'mkt'], 트리, { AUTHORING_GATE3_DIR: 기록, AUTHORING_BASE_LIST: 목록 })).toBe(0);
+  });
 });

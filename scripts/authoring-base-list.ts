@@ -1,4 +1,4 @@
-// 돌려 보기 · 끝 검사 명령이 이번 작성이 바꾼 파일을 고른다 — 자식은 사본의 bare git 을 못 읽어 에이전트가 둔 기준 tests 목록과 견준다 (SPEC 도메인/작성 §3.6 「돌려 보기 명령」)
+// 돌려 보기 · 빠른 검사 명령이 이번 작성이 바꾼 파일을 고른다 — 자식은 사본의 bare git 을 못 읽어 에이전트가 둔 기준 tests 목록과 견준다 (SPEC 도메인/작성 §3.6 「돌려 보기 명령」)
 import { createHash } from 'node:crypto';
 import { existsSync, lstatSync, readdirSync, readFileSync, readlinkSync } from 'node:fs';
 import { join } from 'node:path';
