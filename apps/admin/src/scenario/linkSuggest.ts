@@ -24,6 +24,8 @@ export interface 값연결제안 {
 }
 
 const 한칸끝 = /\/:(?:n|id)$/;
+// 수정 주소는 `{}` 한 자리만 채운다 — 모음 중간의 `:n` 은 글자째 남아 없는 주소로 간다 (2026-10-24 FIX-F2-05 · 리뷰 L11)
+const 틀마디 = /\/:(?:n|id)(?=\/|$)/;
 // 낱말 끝의 id(paid · valid)는 아니다 — 칸 이름 전체 · 낙타 꼴 · 밑줄 뒤만 본다
 const 아이디칸 = /(?:^id|Id|ID|_id|번호)$/;
 
@@ -64,7 +66,7 @@ export function 값연결제안들(
     // 수정 요청으로 변경 — 둘 다 같은 모음에 POST 하고 그 모음 한 칸을 고치는 PUT · PATCH 가 지도에 있다
     for (const 키 of B부른) {
       const 모음 = 키.slice('POST '.length);
-      if (!키.startsWith('POST ') || 한칸끝.test(모음)) continue;
+      if (!키.startsWith('POST ') || 틀마디.test(모음)) continue;
       const 고침 = (['PUT', 'PATCH'] as const).find((m) => 전체.has(`${m} ${모음}/:n`) || 전체.has(`${m} ${모음}/:id`));
       const urlPattern = 무늬로(모음);
       const 앞 = 앞들.find((x) => 부른(apis, x.A.tcId).has(키) && !바꿈(x.A, urlPattern));
