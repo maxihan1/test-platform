@@ -18,7 +18,7 @@ export function 띠색(run: Pick<RunListRow, 'status' | 'counts'>): string {
   return 'var(--pass)';
 }
 
-export const 시작방식글 = { MANUAL: '직접 실행', SCHEDULED: '정기 실행', RERUN: '실패 다시 실행' } as const;
+export const 시작방식글 = { MANUAL: '직접 실행', SCHEDULED: '정기 실행', RERUN: '실패 다시 실행', BUILD: '빌드 실행' } as const;
 
 export function 실행줄({ run, 고름, on고르기 }: { run: RunListRow; 고름: boolean; on고르기: (runId: number) => void }) {
   const t = use말();

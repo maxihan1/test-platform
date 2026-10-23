@@ -9,6 +9,7 @@ import type { Pool } from 'pg';
 import { 미확정사유SQL } from '../prd/unconfirmed.js';
 import { API인증읽기, type 어드민키, 어드민키읽기 } from '../settings/envs.js';
 
+import { 실행빌드, 앱칸 } from './buildFile.js';
 import { 엔진칸 } from './engineField.js';
 import { DEFAULT_TIMEOUT_MS, 선언밖디바이스 } from './location.js';
 import { 대상서버계정, 저장값을채운다 } from './savedInput.js';
@@ -53,7 +54,9 @@ export interface RunItemInput {
 
 export interface CreateRunInput {
   // 제목은 받지 않는다 — 시작 방식과 담긴 케이스로 서버가 짓는다 (SPEC 실행 §7 「자동 제목」)
-  origin: 'MANUAL' | 'SCHEDULED';
+  origin: 'MANUAL' | 'SCHEDULED' | 'BUILD';
+  // 빌드로 시작한 실행만. 없으면 그 줄의 최신 빌드를 고정한다 (도메인/실행 §3.11)
+  build?: { id: number; no: string; stage: 'SMOKE' | 'FULL' };
   // 「실패 N건 다시 실행」이 싣는 원래 실행. 있으면 시작 방식이 RERUN 이다
   rerunOf?: number;
   // 로그인한 사람의 아이디. 요청 본문이 아니라 문(auth/gate.ts)이 실어 준 값에서 온다 (SPEC §3.5)
@@ -83,6 +86,8 @@ export interface PendingItem {
   timeoutMs: number;
   // android 항목만. 그 대상 서버 줄의 앱 파일 경로 — 없으면 러너가 자기 환경값을 쓴다 (러너 §5.2 · APP-F1-03)
   app?: string;
+  // 실행에 고정한 빌드가 올린 APK 면 app 대신 번호만 — 서명 주소는 폰을 잡은 뒤 만든다 (도메인/실행 §3.11)
+  buildId?: number;
   // 그 대상 서버 줄의 API 인증. 설정이 API 애플리케이션에만 넣게 하므로 있으면 API 케이스다 (도메인/API §3.8)
   apiAuths?: ApiAuth[];
   // 게임 애플리케이션의 android 항목만 (도메인/게임 §3.10 결정 6) — adminKey 는 그 대상 서버 줄의 어드민 키 원문
@@ -214,9 +219,12 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
       const 사유 = await 다시실행사유(client, input.rerunOf, { serviceId: found서비스.id, kind, tcIds });
       if (사유 !== null) throw new RunInputError('BAD_RERUN', 사유);
     }
+    // 실행은 끝까지 만들 때의 빌드를 깐다 — 뒤에 새 빌드가 와도 바뀌지 않는다 (도메인/실행 §3.11)
+    const 빌드 = await 실행빌드(client, Number(found서비스.id), input.env, input.build?.id);
     const title = await 제목을짓는다(client, {
       origin,
       ...(input.rerunOf === undefined ? {} : { rerunOf: input.rerunOf }),
+      ...(input.build === undefined ? {} : { build: { no: input.build.no, stage: input.build.stage } }),
       prefix,
       kind,
       케이스들: tcIds.map((tcId) => ({ tcId, name: cases.get(tcId)!.name })),
@@ -224,8 +232,9 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
 
     // 서비스 이름·저장소·대상 주소는 실행 하나에 하나뿐인 사실이라 test_run에 박제한다 (SPEC §6)
     const run = await client.query<{ run_id: string }>(
-      `INSERT INTO test_run (title, triggered_by, triggered_by_name, status, env, service_id, service_name, tests_repo, base_url, notify_slack, kind, origin, rerun_of)
-       VALUES ($1, $2, $3, 'RUNNING', $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING run_id`,
+      `INSERT INTO test_run (title, triggered_by, triggered_by_name, status, env, service_id, service_name, tests_repo, base_url, notify_slack, kind, origin, rerun_of,
+                             build_id, build_no, build_stage)
+       VALUES ($1, $2, $3, 'RUNNING', $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING run_id`,
       [
         title,
         input.triggeredBy,
@@ -240,6 +249,9 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
         kind,
         origin,
         input.rerunOf ?? null,
+        빌드?.id ?? null,
+        빌드?.buildNo ?? null,
+        input.build?.stage ?? null,
       ],
     );
     const runId = Number(run.rows[0]!.run_id);
@@ -280,7 +292,7 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
             params: item.params,
             expected: item.expected,
             timeoutMs,
-            ...(platform === 'android' && found서비스.app_path !== null && { app: found서비스.app_path }),
+            ...(platform === 'android' && 앱칸(빌드, found서비스.app_path)),
             ...(인증들.length > 0 && { apiAuths: 인증들 }),
             ...엔진칸(found서비스.kind, platform, 어드민키읽기(found서비스.admin_key)),
           });

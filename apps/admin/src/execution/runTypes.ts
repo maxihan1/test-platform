@@ -33,6 +33,8 @@ export interface RunSummary {
   origin: 시작방식;
   /** RERUN 이 다시 돌린 원래 실행. RERUN 인데 원래 실행이 지워졌으면 null (공통/4-데이터모델 「실행 시작 방식」) */
   rerunOf: number | null;
+  /** 실행을 만들 때 고정한 빌드 번호. 그 줄에 빌드가 없었으면 null (도메인/실행 §3.11) */
+  buildNo: string | null;
   /** 그 실행에 든 디바이스, desktop → mobile → android 차례 */
   platforms: Platform[];
   startedAt: string;

@@ -21,6 +21,11 @@ describe('자동 제목', () => {
     expect(자동제목({ origin: 'RERUN', rerunOf: 20914, kind: 'FN', 케이스들: 케이스(7), 전체: false })).toBe('RUN 20914의 실패 7건 다시');
     expect(자동제목({ origin: 'RERUN', rerunOf: 20914, kind: 'FN', 케이스들: 케이스(1), 전체: true })).toBe('RUN 20914의 실패 1건 다시');
   });
+
+  it('빌드는 앞에 빌드 번호를, 스모크면 「스모크 · 」를 더 붙인다', () => {
+    expect(자동제목({ origin: 'BUILD', build: { no: '124', stage: 'SMOKE' }, kind: 'FN', 케이스들: 케이스(7), 전체: false })).toBe('빌드 124 · 스모크 · MKT-FN-014 외 6건');
+    expect(자동제목({ origin: 'BUILD', build: { no: '124', stage: 'FULL' }, kind: 'UI', 케이스들: 케이스(30), 전체: true })).toBe('빌드 124 · UI 전체 30건');
+  });
 });
 
 describe('목록 거르개 읽기', () => {
@@ -28,6 +33,7 @@ describe('목록 거르개 읽기', () => {
     expect(시작방식거르개('rerun', '14')).toEqual({ origin: 'RERUN', days: 14 });
     expect(시작방식거르개('scheduled', '366')).toEqual({ origin: 'SCHEDULED', days: 366 });
     expect(시작방식거르개('manual', undefined)).toEqual({ origin: 'MANUAL' });
+    expect(시작방식거르개('build', undefined)).toEqual({ origin: 'BUILD' });
     expect(시작방식거르개('MANUAL', '0')).toEqual({});
     expect(시작방식거르개('constructor', '367')).toEqual({});
     expect(시작방식거르개(undefined, '1.5')).toEqual({});

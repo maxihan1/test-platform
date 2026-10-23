@@ -151,7 +151,7 @@ export interface RunSummary {
   // 실행 하나에 한 종류다 (PR #131). 옛 가짜 응답을 안 고치려고 선택으로 둔다
   kind?: 'UI' | 'FN' | 'SCENARIO';
   /** 시작 방식과 「실패 다시」의 원래 실행 (도메인/실행 §7 · 공통/4-데이터모델 「실행 시작 방식」). 옛 가짜 응답을 안 고치려고 선택으로 둔다 */
-  origin?: 'MANUAL' | 'SCHEDULED' | 'RERUN';
+  origin?: 'MANUAL' | 'SCHEDULED' | 'RERUN' | 'BUILD';
   rerunOf?: number | null;
   startedAt: string;
   finishedAt: string | null;

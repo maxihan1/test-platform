@@ -694,6 +694,9 @@ describe('등급 표', () => {
     // 더미 클라이언트를 올리고 지우는 일은 admin 이다 (도메인/성능 §7)
     ['POST /api/perf/dummy-clients', 'admin'],
     ['DELETE /api/perf/dummy-clients/:id', 'admin'],
+    // 빌드 올리기 · APK 내려받기는 사람 판정 밖이다 — 문이 CI 토큰 · 서명으로 돌려보낸다 (도메인/실행 §3.11)
+    ['POST /api/builds', 'admin'],
+    ['GET /api/builds/:buildId/apk', 'admin'],
   ]);
   const 옛높이 = { viewer: 0, operator: 1, admin: 2 } as const;
   type 옛등급 = keyof typeof 옛높이;

@@ -16,7 +16,7 @@ import { 풀 } from './store.js';
 export const 올리기상한 = 200 * 1024 * 1024;
 const ZIP머리 = Buffer.from([0x50, 0x4b, 0x03, 0x04]);
 
-class 올리기거절 extends Error {
+export class 올리기거절 extends Error {
   constructor(readonly status: 400 | 413, readonly error: string, readonly detail?: string) {
     super(error);
   }
@@ -43,7 +43,7 @@ export function 올리기막기(상한: number): Transform {
 }
 
 // stream.pipeline 은 실패하면 요청 스트림을 부숴, 이어 보내는 오류 응답이 나가지 못하고 걸린다 — 직접 이어 붙이고 실패하면 남은 본문을 흘려보낸다
-function 파일로(body: Readable, 막기: Transform, 자리: string): Promise<void> {
+export function 파일로(body: Readable, 막기: Transform, 자리: string): Promise<void> {
   const 출력 = createWriteStream(자리);
   return new Promise<void>((resolve, reject) => {
     출력.on('finish', resolve);

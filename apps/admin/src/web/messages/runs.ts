@@ -54,6 +54,7 @@ export const 실행말: Record<string, string> = {
   '시작 방식': 'Started by',
   '직접 실행': 'Manual run',
   '실패 다시 실행': 'Failure rerun',
+  '빌드 실행': 'Build run',
   '기간': 'Period',
   '최근 14일': 'Last 14 days',
   '최근 30일': 'Last 30 days',
