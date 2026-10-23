@@ -88,6 +88,15 @@ describe('Grafana 대시보드 프로비저닝', () => {
       },
     );
 
+    // 실행 입력값 · 기대값에는 대상 서버 비밀번호가 원문으로 박제된다. Grafana Viewer 는 SQL 을 직접 보낸다 (리뷰 H4)
+    it.each([
+      'SELECT params FROM run_item LIMIT 1',
+      'SELECT expected FROM run_item LIMIT 1',
+      'SELECT error FROM run_item LIMIT 1',
+    ])('run_item 은 패널이 읽는 칸만 열린다 — %s 는 거부된다', async (sql) => {
+      await expect(읽기전용.query(sql)).rejects.toThrow(/permission denied/);
+    });
+
     it('평균 소요시간은 측정치라 미확정을 빼지 않는다', () => {
       const sql = 대시보드.panels.find((p) => p.title === '평균 소요시간')!.targets[0]!.rawSql;
       expect(sql).not.toContain('unconfirmed');
