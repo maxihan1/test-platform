@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import type { 돌린판 } from './authoring-gate3.js';
-import { 기본회차, 다음번호, 빨강줄들, 실행, 차례나누기, 케이스경로, 할일고르기, 회차어림 } from './authoring-run3.js';
+import { 기본회차, 다음번호, 돌릴기기, 빨강줄들, 실행, 줄열쇠, 차례나누기, 케이스경로, 할일고르기, 회차어림 } from './authoring-run3.js';
 
 const 수정 = 1_000;
 const 판 = (덧: Partial<돌린판> = {}): 돌린판 => ({
@@ -95,6 +95,24 @@ describe('빨강줄들', () => {
       'C|desktop': [판({ 상태들: ['unexpected'], 오류: '앞 실패' }), 판({ 시작: 3_000 })],
     };
     expect(빨강줄들({ A: 수정, B: 수정, C: 수정 }, (f, 기기) => 표[`${f}|${기기}`], ['desktop', 'mobile'])).toEqual(['- A (PC 1/3): 기대: 15,000원']);
+  });
+});
+
+describe('돌릴기기 — 쓰는 중 1번은 PC 만 (PRD-F14-09)', () => {
+  it('보조 3회 · 마지막은 --mobile 이면 휴대폰도 나란히, 1번은 --mobile 이어도 PC 만', () => {
+    expect(돌릴기기('보조', true)).toEqual(['desktop', 'mobile']);
+    expect(돌릴기기('마지막', true)).toEqual(['desktop', 'mobile']);
+    expect(돌릴기기('한번', true)).toEqual(['desktop']);
+    expect(돌릴기기('보조', false)).toEqual(['desktop']);
+  });
+});
+
+describe('줄열쇠 — 「남은 것」 뒤 다시 부르면 앞 차례를 잇는 열쇠 (PRD-F14-08)', () => {
+  it('같은 작업 트리 · 묶음 · 기기면 같고, 트리나 기기가 다르면 다르다', () => {
+    expect(줄열쇠('/work/a/tree', 'shop', 'desktop')).toBe(줄열쇠('/work/a/tree/', 'shop', 'desktop'));
+    expect(줄열쇠('/work/a/tree', 'shop', 'desktop')).not.toBe(줄열쇠('/work/b/tree', 'shop', 'desktop'));
+    expect(줄열쇠('/work/a/tree', 'shop', 'desktop')).not.toBe(줄열쇠('/work/a/tree', 'shop', 'mobile'));
+    expect(줄열쇠('/work/a/tree', 'shop', 'desktop')).toMatch(/^[0-9a-f]{8}-shop-desktop$/);
   });
 });
 

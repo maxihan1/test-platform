@@ -1,9 +1,10 @@
 // 돌려 보기 명령 — 다시 돌릴 케이스를 고르고, 10분 안쪽으로 나눠 차례로 돌린 뒤 빨간 것만 요약한다 (SPEC 도메인/작성 §3.6 「돌려 보기 명령」)
 // 자식이 grep 으로 케이스를 모으고 덩어리를 손으로 나누고 기록 번호를 붙이던 일이다. #303 마지막 돌려 보기는 명령 11번 · 기록 읽기 11번이었다
-// 실행: npm run authoring:run -- 보조 <묶음> <케이스 파일…> [--mobile]  |  마지막 <폴더> [--mobile]  |  한번 <묶음> <케이스 파일…> [--mobile] [--trace]
+// 실행: npm run authoring:run -- 보조 <묶음> <케이스 파일…> [--mobile]  |  마지막 <폴더> [--mobile]  |  한번 <묶음> <케이스 파일…> [--trace] (PC 만)
 // Playwright 를 띄우기 전에 컨테이너 전체가 같이 세는 브라우저 자리를 받는다(authoring-slot) — 기다린 시간도 한 번 부를 때의 예산 안이다
 
 import { spawn } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { closeSync, openSync, readdirSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -116,11 +117,17 @@ function 돌리기(트리: string, 결과폴더: string, 이름: string, 파일�
 const 기록이름 = (결과폴더: string, 머리: string, 기기: string) => `${머리}-${다음번호(readdirSync(결과폴더), 머리)}${기기 === 'mobile' ? '-mobile' : ''}`;
 
 /**
+ * 줄 열쇠 — 같으면 「남은 것」으로 돌아온 뒤 다시 부를 때 앞 차례를 잇는다(PRD-F14-08). 묶음 · 기기마다 하나이고,
+ * 동시에 도는 다른 작성 요청의 같은 묶음 이름과 섞이지 않게 작업 트리 지문을 앞에 붙인다
+ */
+export const 줄열쇠 = (트리: string, 이름: string, 기기: string): string => `${createHash('sha1').update(resolve(트리)).digest('hex').slice(0, 8)}-${이름}-${기기}`;
+
+/**
  * 브라우저 자리를 받아 `일` 을 돌리고 놓는다. 기다린 시간(ms)을, 자리가 안 났으면 null.
  * 받은 뒤 적어도 `기다림여유` 는 남게 마감을 당긴다 — 막 받고 30초만 남으면 아무 회차도 못 끝내 「케이스 문법 오류」(2)로 읽힌다(code-review)
  */
-async function 자리받아(시작: number, 일: () => Promise<void>): Promise<number | null> {
-  const 자리 = await 자리기다리기(시작 + 차례예산 - 기다림여유);
+async function 자리받아(시작: number, 열쇠: string, 일: () => Promise<void>): Promise<number | null> {
+  const 자리 = await 자리기다리기(시작 + 차례예산 - 기다림여유, undefined, undefined, undefined, 열쇠);
   if (자리 === null) return null;
   const 기다림 = Date.now() - 시작;
   try {
@@ -142,7 +149,7 @@ async function 한번(트리: string, 결과폴더: string, 이름: string, 파�
   const 돈: { 기기: string; 이름: string }[] = [];
   const 기다림들 = await Promise.all(
     기기들.map((기기) =>
-      자리받아(시작, async () => {
+      자리받아(시작, 줄열쇠(트리, 이름, 기기), async () => {
         const 기록 = 기록이름(결과폴더, 머리, 기기);
         돈.push({ 기기, 이름: 기록 });
         await 돌리기(트리, 결과폴더, 기록, 파일들, 1, 기기, 차례예산 - (Date.now() - 시작), { 느림: false, 추적 });
@@ -184,6 +191,12 @@ export function 바뀐것(트리: string, 기준: string | undefined): string[] 
   return [...차이.낸것.split('\n'), ...새것.낸것.split('\n')].filter((f) => f !== '');
 }
 
+/**
+ * 돌릴 기기 — `--mobile` 이면 휴대폰도 나란히. 단 쓰는 중 1번은 PC 만 돈다: 보조 하나가 PC · 휴대폰으로 자리 둘을 원해
+ * 넷이 자리 둘을 두고 줄 섰다(14670 · PRD-F14-09). 휴대폰은 보조 3회와 마지막 전체 돌려 보기에서 돈다
+ */
+export const 돌릴기기 = (모드: string, 휴대폰: boolean): string[] => (휴대폰 && 모드 !== '한번' ? ['desktop', 'mobile'] : ['desktop']);
+
 export async function 실행(인자: string[], 트리 = process.cwd(), env: NodeJS.ProcessEnv = process.env): Promise<number> {
   const 휴대폰 = 인자.includes('--mobile');
   const 추적 = 인자.includes('--trace');
@@ -192,14 +205,14 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   // 묶음 slug 는 기록 이름에 들어가 좁게, 폴더는 명세의 테스트 폴더 규칙(도메인/작성 §3.6 「테스트 폴더」)대로
   const 이름꼴 = 모드 === '마지막' ? /^[A-Za-z0-9._-]+$/ : /^[a-z0-9-]+$/;
   if ((모드 !== '보조' && 모드 !== '마지막' && 모드 !== '한번') || 이름 === undefined || !이름꼴.test(이름) || (모드 !== '마지막' && 나머지.length === 0) || (추적 && 모드 !== '한번')) {
-    console.error('쓰는 법: npm run authoring:run -- 보조 <묶음(영문 소문자 · 숫자 · -)> <케이스 파일…> [--mobile] | 마지막 <테스트 폴더> [--mobile] | 한번 <묶음> <케이스 파일…> [--mobile] [--trace]');
+    console.error('쓰는 법: npm run authoring:run -- 보조 <묶음(영문 소문자 · 숫자 · -)> <케이스 파일…> [--mobile] | 마지막 <테스트 폴더> [--mobile] | 한번 <묶음> <케이스 파일…> [--trace] (1번은 PC 만 돈다)');
     return 2;
   }
   if (결과폴더 === undefined || 결과폴더 === '') {
     console.error('AUTHORING_GATE3_DIR 가 없다 — 작성 에이전트가 주는 기록 자리다');
     return 2;
   }
-  const 기기들 = 휴대폰 ? ['desktop', 'mobile'] : ['desktop'];
+  const 기기들 = 돌릴기기(모드, 휴대폰);
   const 맡은 = 나머지.map((f) => 케이스경로(트리, f));
   const 폴더 = 모드 === '마지막' ? 이름 : (맡은[0]?.split('/')[0] ?? '');
   const 케이스들 = 케이스파일읽기(트리, 폴더);
@@ -232,7 +245,11 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     if (!env.PLATFORM_BASE_URL) console.error('PLATFORM_BASE_URL 이 없다 — 프롬프트의 대상 서버 목록에서 운영 아닌 주소를 골라 `PLATFORM_BASE_URL=<주소> npm run -s authoring:run -- …` 로 다시 부른다');
     return !env.PLATFORM_BASE_URL;
   };
-  if (모드 === '한번') return 주소없음() ? 2 : 한번(트리, 결과폴더, 이름, Object.keys(대상).sort(), 기기들, 추적, env.PLATFORM_ARTIFACTS_DIR ?? 'artifacts');
+  if (모드 === '한번') {
+    if (주소없음()) return 2;
+    if (휴대폰) console.log('[1번 돌려 보기] 휴대폰은 안 돈다 — 쓰는 중에는 PC 만 돌고, 휴대폰은 보조 3회와 마지막 전체 돌려 보기에서 돈다');
+    return 한번(트리, 결과폴더, 이름, Object.keys(대상).sort(), 기기들, 추적, env.PLATFORM_ARTIFACTS_DIR ?? 'artifacts');
+  }
 
   const 읽기 = () => {
     const 판들 = 판들읽기(돌린기록들(결과폴더), true)?.판들 ?? new Map<string, 돌린판[]>();
@@ -250,7 +267,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
       const 어림 = (파일: string) => 회차어림(앞.찾기(파일, 기기), 앞.전체);
       const 고른 = { 기기, 셋: [] as string[], 하나: [] as string[], 로그: [] as string[], 기다림: 0, 자리없음: false };
       if (할일.셋.length + 할일.하나.length === 0) return 고른;
-      const 기다림 = await 자리받아(시작, async () => {
+      const 기다림 = await 자리받아(시작, 줄열쇠(트리, `${모드 === '마지막' ? '마지막-' : ''}${이름}`, 기기), async () => {
         // 덩어리는 자리를 받은 뒤 남은 예산으로 자른다 — 기다린 만큼 덜 돈다. 실제로 띄운 것만 고른 것에 담는다(못 띄운 것을 「돌렸는데 끝난 것 없음」으로 세지 않게)
         const 셋차례 = 차례나누기(할일.셋, 3, 어림, 차례예산 - (Date.now() - 시작));
         for (const [파일들, 회수] of [[셋차례, 3], [할일.하나, 1]] as const) {
