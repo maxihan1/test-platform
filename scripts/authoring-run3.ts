@@ -1,6 +1,6 @@
 // 돌려 보기 명령 — 다시 돌릴 케이스를 고르고, 10분 안쪽으로 나눠 차례로 돌린 뒤 빨간 것만 요약한다 (SPEC 도메인/작성 §3.6 「돌려 보기 명령」)
 // 자식이 grep 으로 케이스를 모으고 덩어리를 손으로 나누고 기록 번호를 붙이던 일이다. #303 마지막 돌려 보기는 명령 11번 · 기록 읽기 11번이었다
-// 실행: npm run authoring:run -- 보조 <묶음> <케이스 파일…> [--mobile]  |  마지막 <폴더> [--mobile]  |  한번 <묶음> <케이스 파일…> [--mobile-only] [--trace] (기기 하나 — 기본 PC)
+// 실행: npm run authoring:run -- 보조 <묶음> <케이스 파일…> [--mobile]  |  마지막 <폴더> [--mobile]  |  한번 <묶음> <케이스 파일…> [--mobile-only] [--trace] (기기 하나 — 기본 PC)  |  게임 <폴더> (잡은 팜 폰 — authoring-run3-game)
 // Playwright 를 띄우기 전에 컨테이너 전체가 같이 세는 브라우저 자리를 받는다(authoring-slot) — 기다린 시간도 한 번 부를 때의 예산 안이다
 
 import { spawn } from 'node:child_process';
@@ -11,6 +11,7 @@ import { pathToFileURL } from 'node:url';
 
 import { type 돌린판, 돌린기록들, 앱케이스나누기, 케이스파일읽기, 살필케이스, 파일상태보기, 판들읽기 } from './authoring-gate3.js';
 import { 바뀐것 } from './authoring-base-list.js';
+import { 게임실행, 앱케이스말 } from './authoring-run3-game.js';
 import { 자리기다리기, 자리놓기 } from './authoring-slot.js';
 
 /** 한 번 부를 때 돌릴 시간 — Bash 도구 상한이 10분이고 백그라운드는 금지라 한 번에 다 못 돈다. Playwright 띄우고 닫는 몫을 남긴다 */
@@ -190,11 +191,12 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   const 휴대폰만 = 인자.includes('--mobile-only');
   const 추적 = 인자.includes('--trace');
   const [모드, 이름, ...나머지] = 인자.filter((a) => a !== '--mobile' && a !== '--mobile-only' && a !== '--trace');
+  if (모드 === '게임') return 게임실행(이름, 트리, env); // 디바이스 팜 폰에서 1번씩 (도메인/게임 §3.10 「작성 — 한 바퀴」 6)
   const 결과폴더 = env.AUTHORING_GATE3_DIR;
   // 묶음 slug 는 기록 이름에 들어가 좁게, 폴더는 명세의 테스트 폴더 규칙(도메인/작성 §3.6 「테스트 폴더」)대로
   const 이름꼴 = 모드 === '마지막' ? /^[A-Za-z0-9._-]+$/ : /^[a-z0-9-]+$/;
   if ((모드 !== '보조' && 모드 !== '마지막' && 모드 !== '한번') || 이름 === undefined || !이름꼴.test(이름) || (모드 !== '마지막' && 나머지.length === 0) || ((추적 || 휴대폰만) && 모드 !== '한번')) {
-    console.error('쓰는 법: npm run authoring:run -- 보조 <묶음(영문 소문자 · 숫자 · -)> <케이스 파일…> [--mobile] | 마지막 <테스트 폴더> [--mobile] | 한번 <묶음> <케이스 파일…> [--mobile-only] [--trace] (1번은 기기 하나 — 기본 PC)');
+    console.error('쓰는 법: npm run authoring:run -- 보조 <묶음(영문 소문자 · 숫자 · -)> <케이스 파일…> [--mobile] | 마지막 <테스트 폴더> [--mobile] | 한번 <묶음> <케이스 파일…> [--mobile-only] [--trace] (1번은 기기 하나 — 기본 PC) | 게임 <테스트 폴더> (잡은 팜 폰에서 1번씩)');
     return 2;
   }
   if (결과폴더 === undefined || 결과폴더 === '') {
@@ -222,7 +224,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   // 맡은 파일 · 이번에 바뀐 파일에 닿는 케이스와, 그 케이스 · 부품 가운데 가장 늦은 수정 시각
   // 앱 케이스는 PC 프로젝트에서 건너뛰기만 해 3번 다 초록으로 찍힌다 — 고르지 않고 안 돌린다고 알린다 (작성 §3.6 「앱 화면」)
   const { 앱, 나머지: 웹케이스 } = 앱케이스나누기(케이스들, 살필케이스(케이스들, 바뀐));
-  if (앱.length > 0) console.log(`[돌려 보기] 앱 케이스 ${앱.length}건은 폰이 없어 안 돌린다 — ${앱.join(' · ')}`);
+  if (앱.length > 0) console.log(앱케이스말(앱, 폴더, env));
   const 대상 = Object.fromEntries(Object.entries(웹케이스).filter(([f]) => 모드 === '마지막' || 바뀐.has(f)));
   if (Object.keys(대상).length === 0) {
     console.log('[돌려 보기] 돌릴 케이스가 없다');
