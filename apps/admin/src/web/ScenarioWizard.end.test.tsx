@@ -222,6 +222,7 @@ describe('ScenarioWizard 시험 실행 · 저장', () => {
     fireEvent.change(screen.getByLabelText('시나리오 이름'), { target: { value: '첫 주문' } });
     fireEvent.click(screen.getByRole('button', { name: '저장하고 실행' }));
     expect((await screen.findByRole('alert')).textContent).toBe('대상 서버를 먼저 고릅니다');
+    expect(screen.queryByRole('button', { name: '시험 실행 중' })).toBeNull();
 
     vi.spyOn(scenarioApi, 'create').mockResolvedValue({ id: 32, version: 1 });
     const 실행 = vi.spyOn(scenarioApi, 'run').mockResolvedValue({ runId: 9 });

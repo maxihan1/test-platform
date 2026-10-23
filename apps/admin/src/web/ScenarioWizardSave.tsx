@@ -4,7 +4,6 @@ import type { ReactNode } from 'react';
 
 import type { Platform } from './api.js';
 import { use말, use언어 } from './i18n.js';
-import { TrialControls } from './ScenarioTrial.js';
 import type { 마법사단계 } from './ScenarioWizardHelp.js';
 import { PLATFORM_LABEL, seconds } from './ui.js';
 import type { 시험상태 } from './useScenarioTrial.js';
@@ -106,9 +105,15 @@ export function 저장칸(p: Props) {
         ))}
       </dl>
       {p.서버칸 === null ? null : (
-        <div className="scw-row">
-          <TrialControls {...p.서버칸} 도는중 on시작={() => undefined} />
-        </div>
+        // 저장 단계에는 시험 실행 단추가 없다 — 고르개만 연다. 못 고르는 서버는 시험 실행 고르개와 같이 잠근다
+        <select aria-label={t('대상 서버')} value={p.서버칸.서버} onChange={(e) => p.서버칸?.on서버(e.target.value)}>
+          <option value="">{t('선택하세요')}</option>
+          {p.서버칸.서버들.map((s) => (
+            <option key={s.env} value={s.env} disabled={s.없는곳.length > 0}>
+              {s.없는곳.length === 0 ? s.env : t('{서버} · {앱}에 없음', { 서버: s.env, 앱: s.없는곳.join(', ') })}
+            </option>
+          ))}
+        </select>
       )}
     </>
   );

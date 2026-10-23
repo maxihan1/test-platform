@@ -170,6 +170,8 @@ export function 값연결칸(p: Props) {
                       className="btn ghost"
                       onClick={() => {
                         p.on지움(열쇠);
+                        // 지우면 그 단계 뒤 카드의 자리가 하나씩 당겨진다 — 그 단계에서 펼친 것은 접어 다른 카드가 열리지 않게
+                        set펼침((앞) => new Set([...앞].filter((k) => !k.startsWith(`${받는번호}-`))));
                         단계고침(받는번호, (s) => ({ ...s, links: (s.links ?? []).filter((_, j) => j !== 자리) }));
                       }}
                     >
