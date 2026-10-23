@@ -145,6 +145,18 @@ describe('제한 시간 바닥 · API 몫 · 크기 상한', () => {
     expect(검사(크기에맞춘(100000))).toEqual([]);
     expect(검사(크기에맞춘(100001))).toEqual([expect.stringMatching(/100000바이트/)]);
   });
+
+  it('크기를 넘는 조립은 부품마다 도는 검사를 건너뛰고 크기 사유 하나만 낸다', () => {
+    const 본문 = Object.fromEntries(Array.from({ length: 30_000 }, (_, i) => [`k${String(i)}`, 'x']));
+    const 값들 = Array.from({ length: 2000 }, (_, i) => ({
+      name: `v${String(i)}`,
+      value: { fromSeq: 1, method: 'GET' as const, urlPattern: '**/api/x', jsonPath: '$.id' },
+    }));
+    const parts: ScenarioPart[] = [api, { kind: 'api', method: 'POST', path: '/api/y', body: 본문, values: 값들, expectStatus: 200 }];
+    const 시작 = Date.now();
+    expect(검사(parts)).toEqual([expect.stringMatching(/100000바이트/)]);
+    expect(Date.now() - 시작).toBeLessThan(1000);
+  });
 });
 
 describe('부품 모양', () => {
