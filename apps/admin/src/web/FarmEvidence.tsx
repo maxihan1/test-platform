@@ -49,8 +49,15 @@ export function 통과영상({ runId, historyId }: { runId: number; historyId: n
   const [까닭, set까닭] = useState<string | null>(null);
   const 주소 = api.farmVideo(runId, historyId);
   const 까닭을읽는다 = (): void => {
+    // 200 이면 영상 몸통(100MB 넘게)이라 읽지 않고 끊는다 — 까닭 글은 404 에만 있다
     void fetch(주소)
-      .then(async (res) => ((await res.json()) as { detail?: unknown }).detail)
+      .then(async (res) => {
+        if (res.ok) {
+          await res.body?.cancel();
+          return undefined;
+        }
+        return ((await res.json()) as { detail?: unknown }).detail;
+      })
       .catch(() => undefined)
       .then((detail) => set까닭(typeof detail === 'string' ? detail : t('영상을 열지 못했습니다')));
   };

@@ -33,7 +33,14 @@ export async function 게임결과를넣는다(client: PoolClient, historyId: nu
           [서비스, JSON.stringify(대조들), runId],
         );
       }
-      if (result.apiCalls !== undefined) {
+      // 미실행은 어디까지 불렀는지 몰라 그대로 둔다(finishItem 의 api_call_seen 과 같다).
+      // 더 새 실행이 이미 이 케이스 줄을 썼으면 낡은 것이라 안 넣는다 — 게임은 trace 가 없어 케이스지도를넣는다 의 run_trace 확인이 안 걸린다
+      const 안넣음 =
+        result.status === 'NA' ||
+        (
+          await client.query('SELECT 1 FROM service_api_use WHERE service_id = $1 AND tc_id = $2 AND run_id > $3 LIMIT 1', [서비스, 자리.tc_id, runId])
+        ).rowCount !== 0;
+      if (result.apiCalls !== undefined && !안넣음) {
         const 줄들 = 지도줄들(
           result.apiCalls.map((c) => ({ method: c.method, url: new URL(c.path, 자리.base_url!).href, resourceType: 'api', status: c.status })),
           자리.base_url,

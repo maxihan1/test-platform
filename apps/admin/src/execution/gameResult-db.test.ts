@@ -100,6 +100,25 @@ describe.skipIf(연결 === undefined)('게임 항목 결과 저장', () => {
     ]);
   });
 
+  it('미실행 항목과 더 새 실행 뒤에 끝난 옛 실행은 케이스 줄을 바꾸지 않는다', async () => {
+    const 경로들 = async () =>
+      (
+        await pool.query<{ path: string }>(
+          `SELECT a.path FROM service_api a JOIN service_api_use u ON u.api_id = a.id WHERE a.service_id = ${서비스번호} AND u.tc_id = $1 ORDER BY a.path`,
+          [번호],
+        )
+      ).rows.map((r) => r.path);
+    const 옛 = await 시작();
+    const 새 = await 시작();
+    await finishItem(새.historyId, { historyId: 새.historyId, status: 'PASS', durationMs: 1, steps: [], apiCalls: [{ method: 'GET', path: '/new', status: 200 }] });
+    await finishItem(옛.historyId, { historyId: 옛.historyId, status: 'PASS', durationMs: 1, steps: [], apiCalls: [{ method: 'GET', path: '/old', status: 200 }] });
+    expect(await 경로들()).toEqual(['/new']);
+
+    const 끊김 = await 시작();
+    await finishItem(끊김.historyId, { historyId: 끊김.historyId, status: 'NA', durationMs: 1, steps: [], apiCalls: [{ method: 'GET', path: '/half', status: 200 }] });
+    expect(await 경로들()).toEqual(['/new']);
+  });
+
   it('지도를 못 채워도 판정과 절차는 남기고 알린다', async () => {
     const 소리 = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const { historyId } = await 시작();
