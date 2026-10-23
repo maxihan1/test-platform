@@ -173,6 +173,13 @@ describe('RunList 거르개 — 거르는 일은 서버가 한다', () => {
     expect(window.location.hash).toBe('#/runs/fn?state=failed&env=stage&origin=rerun&days=14');
     expect(document.querySelector('.head')?.textContent).toMatch(/최근 14일 42건/);
   });
+
+  it('시작 방식 「빌드 실행」은 서버에 origin=build 로 거른다 (도메인/실행 §8.7)', async () => {
+    const { 스파이 } = await 그리기();
+    fireEvent.change(screen.getByLabelText('시작 방식'), { target: { value: 'build' } });
+    await waitFor(() => expect(스파이).toHaveBeenLastCalledWith('ZRL', 1, { kind: 'FN', origin: 'build' }));
+    expect(window.location.hash).toBe('#/runs/fn?origin=build');
+  });
 });
 
 describe('RunList 빈 목록', () => {

@@ -29,9 +29,10 @@ export function 다른빌드알림({ buildNo, apps }: { buildNo?: string | null;
   const 다른 = 다른빌드들(buildNo, apps);
   if (다른.length === 0 || buildNo == null) return null;
   return (
-    // API 문서 줄과 달리 경고색이다 — 다른 빌드에서 돈 결과라 통과 · 실패를 그대로 믿으면 안 된다
-    <div className="set-warn" role="note">
-      {t('다른 빌드가 깔려 있었습니다 — 실행한 빌드 {빌드} · 폰에 깔린 빌드 {깔린}', { 빌드: buildNo, 깔린: 다른.join(', ') })}
+    // 판정 색을 쓰지 않는다 — 결과 머리의 빨간 글은 실패로 읽힌다. 경고성 표시는 중립 꼬리표다(DESIGN.md 「E2E 화면의 칩」 · `.case-tag`)
+    <div className="hint" role="note">
+      <span className="case-tag">{t('다른 빌드')}</span>{' '}
+      <span>{t('다른 빌드가 깔려 있었습니다 — 실행한 빌드 {빌드} · 폰에 깔린 빌드 {깔린}', { 빌드: buildNo, 깔린: 다른.join(', ') })}</span>
     </div>
   );
 }
