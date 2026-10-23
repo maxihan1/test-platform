@@ -40,6 +40,8 @@ export const 실행말: Record<string, string> = {
   '실행 위치 · 디바이스 팜': 'Run location · Device farm',
   '케이스마다 빈 폰을 하나씩 잡고 끝나면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 항목에 남습니다':
     'Each case takes a free phone and releases it when done. Screen video and logcat are kept for items that did not pass',
+  '실행 하나 동안 빈 폰을 한 번 잡고 다 돌면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 항목에 남습니다':
+    'One free phone is taken for the whole run and released when it is done. Screen video and logcat are kept for items that did not pass',
   '상태': 'Status',
 
   // 실행 기록 목록 (§8.7)
