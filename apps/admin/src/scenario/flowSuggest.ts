@@ -131,7 +131,11 @@ export function 흐름다듬기(
       const fromSeq = 새번호.get(짐작.fromSeq);
       if (toSeq === undefined || fromSeq === undefined) continue;
       const jsonPath = 짐작.jsonPath.trim();
-      for (const 제안 of 제안들.filter((x) => !쓴.has(x) && x.toSeq === toSeq && 앞단계(x.link) === fromSeq)) {
+      // 짐작 하나는 제안 하나만 채운다 — 같은 두 단계에 수정 요청 · 값 주입이 다 있어도 AI 가 낸 것은 하나다.
+      // 입력값 칸을 짐작했으면 값 주입을 고른다. 수정 요청을 안 고른 사람 몰래 걸지 않는다
+      const 맞는 = 제안들.filter((x) => !쓴.has(x) && x.toSeq === toSeq && 앞단계(x.link) === fromSeq);
+      const 제안 = 맞는.find((x) => x.link.kind === (짐작.param === undefined ? 'rewrite' : 'bind')) ?? 맞는[0];
+      if (제안 !== undefined) {
         쓴.add(제안);
         let link = 제안.link;
         if (link.kind === 'rewrite') link = { ...link, to: { ...link.to, value: { ...link.to.value, jsonPath } } };

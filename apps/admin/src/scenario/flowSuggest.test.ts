@@ -103,4 +103,12 @@ describe('흐름다듬기', () => {
       needs: ['param'],
     })]);
   });
+
+  it('짐작 하나는 제안 하나만 채운다 — 입력값 칸을 짐작했으면 값 주입, 아니면 수정 요청', () => {
+    const 둘다 = new Map([['MKT', [줄('POST', '/api/orders', 'MKT-FN-001', 'MKT-FN-002'), 줄('PUT', '/api/orders/:n'), 줄('GET', '/api/orders/:n', 'MKT-FN-002')]]]);
+    const 칸 = new Map([['MKT-FN-002', ['orderId']]]);
+    const 종류 = (param?: string) => 흐름다듬기(재료, [후보({ tcIds: ['MKT-FN-001', 'MKT-FN-002'], links: [{ fromSeq: 1, toSeq: 2, param, jsonPath: 'id' }] })], 둘다, 칸)[0]?.links.map((l) => l.link.kind);
+    expect(종류()).toEqual(['rewrite']);
+    expect(종류('orderId')).toEqual(['bind']);
+  });
 });

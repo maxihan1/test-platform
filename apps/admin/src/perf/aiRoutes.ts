@@ -236,7 +236,9 @@ export default async function perfAiRoutes(app: FastifyInstance): Promise<void> 
     let 다듬은 = 결과다듬기(job.kind, job.input, p.data.output);
     if (job.kind === 'SUGGEST_FLOWS' && !('error' in 다듬은)) {
       // 다듬은 뒤 후보가 없는 것은 에이전트 잘못이 아니다 — 일은 FAILED 로 닫고 204 를 준다 (도메인/시나리오 §7)
-      const 흐름 = await 흐름결과다듬기(await 서비스접두사(job.serviceId) ?? '', job.input, 다듬은.output);
+      // 다듬다 DB 가 깨져도 일을 RUNNING 으로 20분 두지 않는다 — 화면이 그동안 돌기만 한다
+      const 흐름 = await 흐름결과다듬기(await 서비스접두사(job.serviceId) ?? '', job.input, 다듬은.output)
+        .catch((e: unknown) => ({ error: `흐름 후보를 다듬지 못했다: ${e instanceof Error ? e.message : String(e)}` }));
       if ('error' in 흐름) return (await 끝내기(id, 흐름)) ? reply.code(204).send() : reply.code(409).send({ error: 'NOT_RUNNING' });
       다듬은 = 흐름;
     }

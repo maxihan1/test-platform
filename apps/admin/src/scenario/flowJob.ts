@@ -31,8 +31,9 @@ export function 집기기록지우기(): void {
 
 /** 그 애플리케이션 일을 집을 에이전트가 없다. 집힌 일이 도는 중이면 에이전트가 바빠 집기가 늦을 뿐이다 */
 export async function 꺼졌나(prefix: string, 지금 = Date.now()): Promise<boolean> {
-  if (마지막집기 === null || !마지막집기.접두사들.has(prefix)) return true;
-  if (지금 - 마지막집기.at <= 꺼짐초 * 1000) return false;
+  // 다시 켜진 admin 은 배정을 모른다 — 집힌 일이 돌면 바쁜 에이전트로 보고, 아니면 첫 집기까지 꺼짐이다
+  if (마지막집기 !== null && !마지막집기.접두사들.has(prefix)) return true;
+  if (마지막집기 !== null && 지금 - 마지막집기.at <= 꺼짐초 * 1000) return false;
   // 녹화를 기다리는 성능 일은 집히기 전에도 RUNNING 이라 세지 않는다
   const r = await (await db()).query("SELECT 1 FROM perf_ai_job WHERE status = 'RUNNING' AND claimed_at IS NOT NULL LIMIT 1");
   return r.rowCount === 0;
@@ -121,9 +122,13 @@ export interface 흐름결과 {
 
 /** 흐름 추천 일 하나. 흐름 추천 일이 아니거나 없으면 null — 라우트가 404 를 낸다 */
 export async function 흐름결과읽기(jobId: number, 지도읽음: (prefix: string) => boolean): Promise<흐름결과 | null> {
-  await 흐름일닫기();
-  const job = await 일하나(jobId);
+  let job = await 일하나(jobId);
   if (job === null || job.kind !== 'SUGGEST_FLOWS') return null;
+  // 닫기는 표를 훑는다 — 화면이 몇 초마다 묻는 매번이 아니라 그 일이 아직 안 끝났을 때만 한다(성능 결과 보기와 같다)
+  if (job.status === 'QUEUED' || job.status === 'RUNNING') {
+    await 흐름일닫기();
+    job = (await 일하나(jobId)) ?? job;
+  }
   const 재료 = job.input as 흐름재료;
   const r = await (await db()).query<{ prefix: string }>('SELECT prefix FROM service WHERE id = $1', [job.serviceId]);
   const 보임 = 지도읽음(r.rows[0]?.prefix ?? '');
