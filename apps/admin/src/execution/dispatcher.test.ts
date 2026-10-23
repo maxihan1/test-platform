@@ -2,13 +2,13 @@
 // 실행 묶음마다가 아니라 서버 전체에서 2다 — CPU가 2코어라 그 이상은 느려지기만 한다 (SPEC §9)
 
 import type { ExecuteResponse } from '@platform/kit';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { dispatch, enqueue, markAborted } from './dispatcher.js';
 import { callRunner } from './runner.js';
-import { finishRun, type PendingItem } from './store.js';
+import { finishItem, finishRun, type PendingItem } from './store.js';
 
-vi.mock('./runner.js', () => ({ callRunner: vi.fn() }));
+vi.mock('./runner.js', async (원본) => ({ ...(await 원본<typeof import('./runner.js')>()), callRunner: vi.fn() }));
 vi.mock('./store.js', () => ({ finishItem: vi.fn(async () => undefined), finishRun: vi.fn(async () => undefined) }));
 vi.mock('./notify.js', () => ({ notifyRun: vi.fn(async () => undefined) }));
 vi.mock('./traceIngest.js', () => ({ trace적재를맡긴다: vi.fn(async () => undefined) }));
@@ -212,5 +212,75 @@ describe('dispatch 의 디바이스 줄', () => {
     첫째.풀기();
     await 끝;
     expect(시작).toEqual([1]);
+  });
+});
+
+describe('dispatch 의 게임 항목 (GAME-F1-09)', () => {
+  const 팜 = 'http://farm.test';
+  const 받음: string[] = [];
+
+  function 가짜팜(기기들: unknown[]): void {
+    vi.stubGlobal('fetch', async (주소: string | URL | Request, 설정?: RequestInit) => {
+      받음.push(`${설정?.method ?? 'GET'} ${String(주소).replace(팜, '')}${설정?.body ? ` ${String(설정.body)}` : ''}`);
+      return new Response(JSON.stringify({ value: { devices: 기기들 }, held: {}, released: true }), { status: 200 });
+    });
+  }
+
+  const 게임항목 = (historyId: number, tcId: string): PendingItem => ({ ...항목(historyId, 'android'), tcId, engine: 'GAME' });
+
+  beforeEach(() => {
+    vi.mocked(finishItem).mockClear();
+  });
+
+  afterEach(() => {
+    vi.mocked(callRunner).mockReset();
+    vi.unstubAllGlobals();
+    delete process.env.DEVICE_FARM_URL;
+    받음.length = 0;
+  });
+
+  it('폰을 한 번만 잡아 120분으로 쥐고 항목마다 늘리며, 세 항목이 같은 폰으로 돈 뒤 한 번 놓는다', async () => {
+    process.env.DEVICE_FARM_URL = 팜;
+    가짜팜([{ serial: 'R3CR10TCVCD', state: 'IDLE', detail: 'ready' }]);
+    const 폰들: (string | undefined)[] = [];
+    vi.mocked(callRunner).mockImplementation(async (_runId, item, _멈췄나, 잡은폰) => {
+      폰들.push(잡은폰);
+      return 결과(item.historyId);
+    });
+
+    await dispatch(9101, [게임항목(1, 'XDP-G1'), 게임항목(2, 'XDP-G2'), 게임항목(3, 'XDP-G3')]);
+
+    expect(폰들).toEqual(['R3CR10TCVCD', 'R3CR10TCVCD', 'R3CR10TCVCD']);
+    expect(받음.filter((줄) => 줄.startsWith('POST /api/devices/R3CR10TCVCD/hold '))).toEqual(['POST /api/devices/R3CR10TCVCD/hold {"minutes":120}']);
+    expect(받음.filter((줄) => 줄 === 'POST /api/devices/R3CR10TCVCD/hold/extend')).toHaveLength(3);
+    expect(받음.filter((줄) => 줄 === 'DELETE /api/devices/R3CR10TCVCD/hold')).toHaveLength(1);
+    expect(받음.at(-1)).toBe('DELETE /api/devices/R3CR10TCVCD/hold');
+    expect(finishItem).toHaveBeenCalledTimes(3);
+  });
+
+  it('못 잡으면 러너를 부르지 않고 세 항목 다 그 까닭의 NA 로 닫는다', async () => {
+    process.env.DEVICE_FARM_URL = 팜;
+    가짜팜([]);
+
+    await dispatch(9102, [게임항목(1, 'XDP-G1'), 게임항목(2, 'XDP-G2'), 게임항목(3, 'XDP-G3')]);
+
+    expect(callRunner).not.toHaveBeenCalled();
+    expect(vi.mocked(finishItem).mock.calls.map(([id, 답]) => [id, 답.status, 답.error?.message])).toEqual([
+      [1, 'NA', '디바이스 팜에 빈 폰이 없습니다'],
+      [2, 'NA', '디바이스 팜에 빈 폰이 없습니다'],
+      [3, 'NA', '디바이스 팜에 빈 폰이 없습니다'],
+    ]);
+  });
+
+  it('팜 주소가 없으면 폰 번호 없이 항목마다 러너 호출로 간다 — callRunner 가 NA 로 닫는다', async () => {
+    const 폰들: (string | undefined)[] = [];
+    vi.mocked(callRunner).mockImplementation(async (_runId, item, _멈췄나, 잡은폰) => {
+      폰들.push(잡은폰);
+      return 결과(item.historyId);
+    });
+
+    await dispatch(9103, [게임항목(1, 'XDP-G1'), 게임항목(2, 'XDP-G2')]);
+
+    expect(폰들).toEqual([undefined, undefined]);
   });
 });
