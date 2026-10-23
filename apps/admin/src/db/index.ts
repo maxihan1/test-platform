@@ -8,4 +8,6 @@ if (!connectionString) {
   throw new Error('DATABASE_URL이 없다. docker-compose.yml의 admin 환경변수를 확인해라');
 }
 
-export const pool = new Pool({ connectionString });
+// 연결을 끝없이 기다리지 않는다 — 연결을 쥔 채 하나 더 기다리는 요청이 풀을 다 채우면 서버 전체가 선다 (2026-10-23 리뷰 H1).
+// 10초면 그 요청만 오류로 끝나고 연결이 풀린다
+export const pool = new Pool({ connectionString, connectionTimeoutMillis: 10_000 });
