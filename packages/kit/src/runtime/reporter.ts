@@ -6,7 +6,7 @@ import { dirname, resolve } from 'node:path';
 
 import type { Reporter, TestCase, TestError, TestResult } from '@playwright/test/reporter';
 
-import type { DeviceInfo, ExecuteResponse, ItemStatus, StepResult } from '../types.js';
+import type { ApiCallSeen, DeviceInfo, ElementCheck, ExecuteResponse, ItemStatus, StepResult } from '../types.js';
 
 // 이 파일에는 값을 가져오는 상대 import를 두지 않는다. 러너 이미지의 Node 24는 './x.js'를 x.ts로
 // 풀어주지 않아 리포터가 통째로 로드되지 않는다. 타입 import는 지워지므로 괜찮다.
@@ -14,6 +14,7 @@ import type { DeviceInfo, ExecuteResponse, ItemStatus, StepResult } from '../typ
 export const RESULT_MARKER = '@@RESULT@@';
 export const STEP_ATTACHMENT = 'platform-step';
 export const DEVICE_ATTACHMENT = 'platform-device';
+export const GAME_ATTACHMENT = 'platform-game';
 // 진행 표시자(PROGRESS_MARKER)는 **여기 두지 않는다.** onStdOut 이 거르지 않아 쓸 일이 없고,
 // 상수가 서 있으면 「골라 쓰는 자리가 있나 보다」로 읽혀 아래 주석이 막으려는 실수를 유도한다
 
@@ -78,6 +79,24 @@ function deviceOf(result: TestResult): DeviceInfo | undefined {
   }
 }
 
+// 게임 항목만 — 데이터 대조 줄 · 부른 서버 API. 빈 목록은 칸을 안 싣는다 (공통/3-공유계약 「게임 테스트 타입」)
+function gameOf(result: TestResult): Pick<ExecuteResponse, 'elementChecks' | 'apiCalls'> {
+  const a = result.attachments.find((x) => x.name === GAME_ATTACHMENT);
+  const raw = a === undefined ? undefined : attachmentText(a);
+  if (raw === undefined) return {};
+  // 곁들이는 값이다 — 깨졌다고 결과 줄(절차 · 판정)까지 잃으면 안 된다
+  try {
+    const v = JSON.parse(raw) as { elementChecks?: ElementCheck[]; apiCalls?: ApiCallSeen[] };
+    return {
+      ...(v.elementChecks?.length ? { elementChecks: v.elementChecks } : {}),
+      ...(v.apiCalls?.length ? { apiCalls: v.apiCalls } : {}),
+    };
+  } catch (err) {
+    process.stderr.write(`[kit] 게임 기록을 읽지 못했다: ${err instanceof Error ? err.message : String(err)}\n`);
+    return {};
+  }
+}
+
 function statusOf(result: TestResult, steps: StepResult[]): ItemStatus {
   // 판정할 근거가 없는 끝맺음은 전부 NA다. 실패와 구분돼야 러너 고장과 케이스 실패가 섞이지 않는다 (SPEC §3.2)
   if (result.status === 'timedOut' || result.status === 'interrupted' || result.status === 'skipped') return 'NA';
@@ -127,6 +146,7 @@ class PlatformReporter implements Reporter {
       steps,
       ...(error === undefined ? {} : { error }),
       ...(device === undefined ? {} : { device }),
+      ...gameOf(result),
     };
 
     process.stdout.write(`${RESULT_MARKER}${JSON.stringify(payload)}\n`);

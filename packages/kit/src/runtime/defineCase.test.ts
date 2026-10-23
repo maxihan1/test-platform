@@ -263,4 +263,35 @@ describe('defineCase', () => {
 
     expect('techniques' in spec).toBe(false);
   });
+
+  it('게임 요소 열쇠는 겹침을 빼고 차례를 맞추고, 스모크는 참일 때만 싣는다', () => {
+    const spec = defineCase({
+      tcId: 'ASH-FN-001',
+      name: '긴 검 공격력',
+      platforms: ['android'],
+      precondition: [],
+      params: null,
+      expected: null,
+      elements: ['zone:Town', 'item:sword_long', 'zone:Town', ''],
+      smoke: true,
+    });
+
+    expect(spec.elements).toEqual(['item:sword_long', 'zone:Town']);
+    expect(spec.smoke).toBe(true);
+  });
+
+  it('게임 요소가 비고 스모크가 거짓이면 두 키 다 없다', () => {
+    const spec = defineCase({
+      tcId: 'ASH-FN-002',
+      name: '요소 없는 케이스',
+      precondition: [],
+      params: null,
+      expected: null,
+      elements: [],
+      smoke: false,
+    });
+
+    expect('elements' in spec).toBe(false);
+    expect('smoke' in spec).toBe(false);
+  });
 });

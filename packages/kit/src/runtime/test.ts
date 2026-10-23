@@ -3,23 +3,28 @@
 import { test as base, type APIRequestContext, type Page, type TestInfo } from '@playwright/test';
 
 import type { ApiAuth, StepResult } from '../types.js';
-import { api만들기, 인증목록 } from './apiAuth.js';
+import { api만들기, 어드민도구, 어드민키, 인증목록 } from './apiAuth.js';
 import { 판읽기 } from './apiShape.js';
-import { captureApp, closeApp, openApp, readDevice, type AppDriver } from './app.js';
+import { captureApp, type AppDriver } from './app.js';
+import { 앱테스트 } from './appFixture.js';
 import { saveShot } from './artifacts.js';
 import { runScope, type RunScope } from './context.js';
 import type { CaseHandle } from './defineCase.js';
+import { isGame, type GameDriver } from './game.js';
 import { traced } from './http.js';
 import { injectedInputs, resolveInputs } from './inputs.js';
-import { DEVICE_ATTACHMENT, STEP_ATTACHMENT } from './protocol.js';
+import { GAME_ATTACHMENT, STEP_ATTACHMENT } from './protocol.js';
 import { registerScenarioCase, type ScenarioCaseRunner } from './scenario.js';
 import { 느린망 } from './slowApi.js';
 import { step, StopTest } from './step.js';
 
-// 브라우저 케이스에는 page, android 앱 케이스에는 driver 만 있다. 없는 쪽을 꺼내면 던진다
+// 브라우저 케이스에는 page, android 앱 케이스에는 driver 만 있다. game 은 게임 애플리케이션 항목에만, admin 은 대상 서버 줄에 어드민 키가 있을 때만. 없는 쪽을 꺼내면 던진다
 export interface CaseBodyArgs<P, E> {
   page: Page;
   driver: AppDriver;
+  game: GameDriver;
+  // 대상 서버 줄의 어드민 키를 머리로 붙인 요청 도구 — 게임 케이스의 준비 · 서버 값 읽기 (도메인/게임 §3.10 「케이스 꼴」)
+  admin: APIRequestContext;
   request: APIRequestContext;
   // 그 이름 API 인증의 토큰을 붙인 요청 도구. request 는 「인증 없이」다 (도메인/API §3.8 「API 인증」)
   api: (name: string) => APIRequestContext;
@@ -28,6 +33,7 @@ export interface CaseBodyArgs<P, E> {
 }
 
 export type CaseBody<P, E> = (args: CaseBodyArgs<P, E>) => Promise<void> | void;
+
 
 async function capture(page: Page, seq: number): Promise<string | undefined> {
   // 화면을 연 적이 없는 케이스는 찍어봐야 흰 그림만 남는다
@@ -43,31 +49,52 @@ function platformLabel(project: string): string {
   return project;
 }
 
-// 없는 쪽(page / driver)은 꺼내면 던진다. 열거되면 `{ ...args }` 나 `({ page, ...rest })` 만 써도 터지므로 숨긴다
+type Side = { page: Page } | { driver: AppDriver; game?: GameDriver };
+type AdminKey = { header: string; value: string };
+
+// 없는 칸(page / driver / game / admin)은 꺼내면 던진다. 열거되면 `{ ...args }` 나 `({ page, ...rest })` 만 써도 터지므로 숨긴다
 function bodyArgs<P, E>(
   tcId: string,
   request: APIRequestContext,
   inputs: { params: P; expected: E },
-  side: { page: Page } | { driver: AppDriver },
+  side: Side,
   인증들: readonly ApiAuth[],
   문서: unknown,
   토큰도구: APIRequestContext = request,
+  키?: AdminKey,
 ): CaseBodyArgs<P, E> {
-  const [missing, message] =
+  const 없는칸: [string, string][] = [
     'page' in side
       ? ['driver', `${tcId}은 브라우저 케이스라 driver 가 없다`]
-      : ['page', `${tcId}은 Android 앱 케이스라 page 가 없다 — driver 를 쓴다`];
-  // 비밀값은 처음부터, 받은 토큰은 받는 대로 더해진다
-  const 비밀 = new Set(인증들.map((a) => a.clientSecret));
+      : ['page', `${tcId}은 Android 앱 케이스라 page 가 없다 — driver 를 쓴다`],
+  ];
+  if (!('game' in side && side.game !== undefined)) {
+    없는칸.push(['game', `${tcId}은 게임 애플리케이션 항목이 아니라 game 이 없다`]);
+  }
+  if (키 === undefined) {
+    없는칸.push(['admin', `${tcId}의 대상 서버 줄에 어드민 키가 없어 admin 을 쓸 수 없다 — 설정 › 대상 서버 줄의 어드민 키를 채운다`]);
+  }
+  // 비밀값은 처음부터, 받은 토큰은 받는 대로 더해진다. 어드민 키 값도 기록 · 오류 글에서 가린다 (공통/3-공유계약 「게임 테스트 타입」 adminKey)
+  const 비밀 = new Set([...인증들.map((a) => a.clientSecret), ...(키 === undefined ? [] : [키.value])]);
   // 판 원문이 있으면 request · api(…) 의 모든 응답을 그 판과 견준다 (도메인/API §3.8 「응답 모양 확인」)
   const 감싼 = traced(request, 비밀, 문서);
-  const args = { request: 감싼, api: api만들기(인증들, 감싼, 토큰도구, 비밀), params: inputs.params, expected: inputs.expected, ...side };
-  return Object.defineProperty(args, missing, {
-    get(): never {
-      throw new Error(message);
-    },
-    enumerable: false,
-  }) as CaseBodyArgs<P, E>;
+  const args = {
+    request: 감싼,
+    api: api만들기(인증들, 감싼, 토큰도구, 비밀),
+    ...(키 === undefined ? {} : { admin: 어드민도구(감싼, 키) }),
+    params: inputs.params,
+    expected: inputs.expected,
+    ...side,
+  };
+  for (const [칸, message] of 없는칸) {
+    Object.defineProperty(args, 칸, {
+      get(): never {
+        throw new Error(message);
+      },
+      enumerable: false,
+    });
+  }
+  return args as unknown as CaseBodyArgs<P, E>;
 }
 
 async function emit(testInfo: TestInfo, result: StepResult): Promise<void> {
@@ -143,45 +170,7 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
   const isApp = spec.platforms.includes('android');
 
   // 케이스를 건너뛸지는 본문에서 가른다. fixture 는 그보다 먼저 돌아서 거기서 열면 보류 케이스도 Appium 에 붙는다
-  const appTest = isApp
-    ? base.extend<{ appSession: { open(): Promise<AppDriver> } }>({
-        appSession: async ({}, use, testInfo) => {
-          // 여는 중인 약속을 쥐어야 한다. 새 폰은 첫 연결에 도우미 앱을 깔아 오래 걸려, 열리는 도중 제한 시간이 오면 Appium 이 뒤늦게 세션을 만든다
-          let opening: Promise<AppDriver> | undefined;
-          // 기기 정보는 연 직후 한 번 남긴다 — 리포터가 결과 줄 device 로 싣는다 (도메인/리포팅 §8.4 · APP-F1-05)
-          const 열고남긴다 = async (): Promise<AppDriver> => {
-            const driver = await openApp(process.env);
-            // 여기서 던지면 열린 연결을 아무도 못 닫는다(opening 이 실패로 끝난다). 남기지 못한 것만 알린다
-            try {
-              await testInfo.attach(DEVICE_ATTACHMENT, { body: JSON.stringify(await readDevice(driver)), contentType: 'application/json' });
-            } catch (err) {
-              console.error(`[kit] 기기 정보를 남기지 못했다: ${err instanceof Error ? err.message : String(err)}`);
-            }
-            return driver;
-          };
-          await use({ open: () => (opening ??= 열고남긴다()) });
-          if (opening === undefined) return;
-          let driver: AppDriver;
-          try {
-            driver = await opening;
-          } catch (err) {
-            // 여는 것이 실패했으면 닫을 세션이 없다. 보통은 본문이 그 오류를 받아 시험 실패로 남았지만,
-            // 열리는 도중 제한 시간이 끝났으면 본문은 이미 떠났다 — 그때만 이유를 알린다
-            if (testInfo.status === 'timedOut') {
-              console.error(`[kit] Appium 연결을 열지 못했다: ${err instanceof Error ? err.message : String(err)}`);
-            }
-            return;
-          }
-          // 본문 안 finally 는 제한 시간에 걸리면 안 돈다. 정리 단계는 그 뒤에도 돈다
-          try {
-            await closeApp(driver);
-          } catch (err) {
-            // 닫기 실패로 이미 난 판정을 덮으면 안 된다. 대신 폰에 세션이 남았을 수 있다는 것은 알린다
-            console.error(`[kit] Appium 연결을 닫지 못했다: ${err instanceof Error ? err.message : String(err)}`);
-          }
-        },
-      })
-    : undefined;
+  const appTest = isApp ? 앱테스트() : undefined;
 
   const prepare = (testInfo: TestInfo) => {
     // 보류 케이스는 사람이 채울 칸에 기본값이 없어 입력 검증부터 깨진다. 채워 held 를 지우면 그대로 돈다
@@ -199,28 +188,49 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
   const execute = async (
     testInfo: TestInfo,
     request: APIRequestContext,
-    side: { page: Page } | { driver: AppDriver },
+    side: Side,
     captureStep: RunScope['capture'],
     inputs: { params: P; expected: E },
   ): Promise<void> => {
+    const 게임 = isGame(process.env);
     const run: RunScope = {
       seq: 0,
       failed: false,
       stopped: false,
       capture: captureStep,
       emit: (result) => emit(testInfo, result),
+      ...(게임 && { elementChecks: [], apiCalls: [] }),
     };
 
-    await runScope.run(run, async () => {
-      try {
-        await body(
-          bodyArgs(spec.tcId, request, inputs, side, 인증목록(process.env.PLATFORM_API_AUTHS), 판읽기(process.env.PLATFORM_API_DOC_FILE)),
-        );
-      } catch (thrown) {
-        // 멈춤 신호는 여기서 끝낸다. 진짜 예외는 Playwright가 위치까지 보여주도록 그대로 올린다
-        if (!(thrown instanceof StopTest)) throw thrown;
+    try {
+      await runScope.run(run, async () => {
+        try {
+          await body(
+            bodyArgs(
+              spec.tcId,
+              request,
+              inputs,
+              side,
+              인증목록(process.env.PLATFORM_API_AUTHS),
+              판읽기(process.env.PLATFORM_API_DOC_FILE),
+              request,
+              어드민키(process.env.PLATFORM_ADMIN_KEY),
+            ),
+          );
+        } catch (thrown) {
+          // 멈춤 신호는 여기서 끝낸다. 진짜 예외는 Playwright가 위치까지 보여주도록 그대로 올린다
+          if (!(thrown instanceof StopTest)) throw thrown;
+        }
+      });
+    } finally {
+      // 예외로 끝나도 그때까지 대조한 값 · 부른 API 는 사실이다 — 리포터가 결과 줄에 싣는다
+      if (게임) {
+        await testInfo.attach(GAME_ATTACHMENT, {
+          body: JSON.stringify({ elementChecks: run.elementChecks, apiCalls: run.apiCalls }),
+          contentType: 'application/json',
+        });
       }
-    });
+    }
 
     if (run.failed) throw new Error(`검증 실패: ${run.firstFailure ?? spec.tcId}`);
   };
@@ -228,8 +238,8 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
   if (appTest) {
     appTest(spec.name, async ({ request, appSession }, testInfo) => {
       const inputs = prepare(testInfo);
-      const driver = await appSession.open();
-      await execute(testInfo, request, { driver }, (seq) => captureApp(driver, seq), inputs);
+      const side = await appSession.open();
+      await execute(testInfo, request, side, (seq) => captureApp(side.driver, seq), inputs);
     });
     return;
   }

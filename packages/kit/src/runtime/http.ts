@@ -5,11 +5,13 @@ import type { APIRequestContext, APIResponse } from '@playwright/test';
 import type { ShapeCheck } from '../types.js';
 
 import { 모양확인 } from './apiShape.js';
-import { stepScope } from './context.js';
+import { runScope, stepScope } from './context.js';
 
 const 가림 = '********';
 const TRACED_METHODS = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'fetch']);
 const TRACE_BODY_LIMIT = 2000;
+// 서비스 지도가 항목 하나에서 받는 상한(apps/admin/src/prd/apiMap.ts 지도상한)과 같다 — 폴링 · 대량 시도가 결과 줄을 덮지 않게
+const API_CALLS_LIMIT = 200;
 
 // 정본은 apps/admin/src/catalog/rules.ts 의 SECRET_NAMES 다. kit 은 admin 을 import 할 수 없어 같은 목록을 두고
 // 갈라지지 않는지는 check:secret-names 가 본다. 'token' · 'secret' 이 access_token · refresh_token · client_secret 을 덮는다
@@ -53,6 +55,25 @@ export function recordHttpTrace(request: unknown, response: unknown): void {
 
 type ApiCall = (url: string, options?: Record<string, unknown>) => Promise<APIResponse>;
 
+/**
+ * 게임 항목이 부른 대상 서버 API — android 는 trace 가 없어 이 줄로 서비스 지도의 케이스 줄을 채운다 (공통/3-공유계약 「게임 테스트 타입」).
+ * 대상 서버 주소와 같은 곳만, 물음표 뒤 없이, (방식 · 경로 · 코드)마다 한 줄이다. 값 · 본문은 안 싣는다
+ */
+export function 부른API를적는다(method: string, url: string, status: number, base = process.env.PLATFORM_BASE_URL): void {
+  const 모음 = runScope.getStore()?.apiCalls;
+  if (모음 === undefined || base === undefined || base === '') return;
+  let 주소: URL;
+  try {
+    주소 = new URL(url, base);
+    if (주소.origin !== new URL(base).origin) return;
+  } catch {
+    return;
+  }
+  const 줄 = { method: method.toUpperCase(), path: 주소.pathname, status };
+  if (모음.length >= API_CALLS_LIMIT || 모음.some((x) => x.method === 줄.method && x.path === 줄.path && x.status === 줄.status)) return;
+  모음.push(줄);
+}
+
 async function traceResponse(
   method: string,
   url: string,
@@ -77,12 +98,13 @@ async function traceResponse(
     data: options?.data,
   };
   recordHttpTrace(가린다(request, 비밀), { status: response.status(), body });
-  // 모양은 자르기 전 본문으로 본다 — 절차 기록은 2000자에서 잘린다 (도메인/API §3.8 「응답 모양 확인」).
   // fetch 는 메서드를 옵션에 싣는다
+  const 메서드 = method === 'fetch' && typeof options?.method === 'string' ? options.method : method === 'fetch' ? 'GET' : method;
+  부른API를적는다(메서드, url, response.status());
+  // 모양은 자르기 전 본문으로 본다 — 절차 기록은 2000자에서 잘린다 (도메인/API §3.8 「응답 모양 확인」)
   const scope = stepScope.getStore();
   // 본문을 못 읽었으면 견줄 것이 없다 — 읽지 못한 것을 모양 실패로 적지 않는다
   if (scope === undefined || 문서 === undefined || 원문 === undefined) return;
-  const 메서드 = method === 'fetch' && typeof options?.method === 'string' ? options.method : method === 'fetch' ? 'GET' : method;
   const 확인 = 모양확인(문서, 메서드, url, response.status(), 원문);
   // 문제 줄의 enum 밖 응답 값도 절차 기록과 같은 규칙으로 가린 뒤 싣는다
   if (확인 !== undefined) (scope.shapeChecks ??= []).push(가린다(확인, 비밀) as ShapeCheck);

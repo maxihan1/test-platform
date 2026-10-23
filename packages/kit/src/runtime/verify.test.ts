@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { stepScope, type StepScope } from './context.js';
+import { runScope, stepScope, type RunScope, type StepScope } from './context.js';
 import { BlockerStop, verify } from './verify.js';
 
 function scope(): StepScope {
@@ -72,5 +72,73 @@ describe('verify', () => {
     });
 
     expect(s.line).toBeTypeOf('number');
+  });
+});
+
+function 게임실행(): RunScope {
+  return { seq: 0, failed: false, stopped: false, capture: async () => undefined, emit: async () => {}, elementChecks: [], apiCalls: [] };
+}
+
+describe('verify.element', () => {
+  it('서버 값을 기획서 값과 견주고 게임 항목이면 지도 줄을 남긴다', async () => {
+    const s = scope();
+    const run = 게임실행();
+    const passed = await runScope.run(run, () =>
+      stepScope.run(s, async () => {
+        await verify.element('긴 검 공격력이 기획서와 같다', 'item:sword_long', 12, 12);
+        return verify.element('짧은 검 공격력이 기획서와 같다', 'item:sword_short', 9, 8);
+      }),
+    );
+
+    expect(passed).toBe(false);
+    expect(run.elementChecks).toEqual([
+      { key: 'item:sword_long', serverValue: 12, same: true },
+      { key: 'item:sword_short', serverValue: 9, same: false },
+    ]);
+    expect(s.assertions.map((a) => [a.status, a.actual, a.expected])).toEqual([
+      ['PASS', 12, 12],
+      ['FAIL', 9, 8],
+    ]);
+    expect(s.line).toBeTypeOf('number');
+  });
+
+  it('절차 밖에서 부르면 던지고 지도 줄을 남기지 않는다', async () => {
+    const run = 게임실행();
+    await expect(runScope.run(run, () => verify.element('값', 'item:a', 1, 1))).rejects.toThrow('절차 밖에서 불렀다');
+    expect(run.elementChecks).toEqual([]);
+  });
+});
+
+describe('verify.rates', () => {
+  it('결과마다 비율이 기대 확률 ± 허용 오차 안이면 통과다', async () => {
+    const s = scope();
+    const passed = await stepScope.run(s, () =>
+      verify.rates('강화 성공 확률이 표대로다', { 성공: 532, 실패: 468 }, { 성공: 0.55, 실패: 0.45 }, 0.03),
+    );
+
+    expect(passed).toBe(true);
+    expect(s.assertions[0]).toEqual({
+      statement: '강화 성공 확률이 표대로다',
+      status: 'PASS',
+      actual: { 시도: 1000, 비율: { 성공: 0.532, 실패: 0.468 } },
+      expected: { 확률: { 성공: 0.55, 실패: 0.45 }, 허용오차: 0.03 },
+    });
+  });
+
+  it('허용 오차 밖이거나 기대에 없는 결과가 나오면 실패다', async () => {
+    const s = scope();
+    await stepScope.run(s, async () => {
+      await verify.rates('밖', { 성공: 500, 실패: 500 }, { 성공: 0.55, 실패: 0.45 }, 0.03);
+      await verify.rates('없는 결과', { 성공: 550, 실패: 440, 파괴: 10 }, { 성공: 0.55, 실패: 0.45 }, 0.03);
+      await verify.rates('시도 0', {}, { 성공: 1 }, 0.03);
+    });
+
+    expect(s.assertions.map((a) => a.status)).toEqual(['FAIL', 'FAIL', 'FAIL']);
+  });
+
+  it('허용 오차 · 확률 · 횟수가 틀린 꼴이면 판정 대신 던진다', async () => {
+    await expect(stepScope.run(scope(), () => verify.rates('a', { 성공: 1 }, { 성공: 1 }, 0))).rejects.toThrow('허용 오차는 0 과 1 사이');
+    await expect(stepScope.run(scope(), () => verify.rates('a', { 성공: 1 }, { 성공: 55 }, 0.03))).rejects.toThrow('기대 확률 성공');
+    await expect(stepScope.run(scope(), () => verify.rates('a', { 성공: 1.5 }, { 성공: 1 }, 0.03))).rejects.toThrow('횟수 성공');
   });
 });

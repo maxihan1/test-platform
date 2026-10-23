@@ -22,8 +22,8 @@ function required(env: Env, name: string): string {
   return value;
 }
 
-export function appCapabilities(env: Env): Record<string, string | boolean> {
-  const caps: Record<string, string | boolean> = {
+export function appCapabilities(env: Env): Record<string, string | boolean | number> {
+  const caps: Record<string, string | boolean | number> = {
     platformName: 'Android',
     'appium:automationName': 'UiAutomator2',
     // 꾸러미 이름 없는 resource-id 를 쓰는 앱도 id= 로 찾게 한다. 긴 꼴(com.shop:id/x)은 그대로 찾는다 (§5.2 「앱 실행」)
@@ -32,6 +32,16 @@ export function appCapabilities(env: Env): Record<string, string | boolean> {
   };
   // UDID 가 없으면 Appium 이 연결된 한 대를 고른다
   if (env.PLATFORM_DEVICE_UDID) caps['appium:udid'] = env.PLATFORM_DEVICE_UDID;
+  // 게임은 실행 하나 동안 폰을 쥐고 한 번만 깐다 — 항목마다 데이터는 두고 앱만 다시 켠다. 상태는 케이스가 어드민 API 로 맞춘다 (도메인/게임 §3.10 「게임 연결」).
+  // 게임 명령은 Appium 을 거치지 않아, 기본 60초면 Appium 명령이 뜸한 긴 절차(확률 대량 시도) 도중 연결이 끊긴다
+  if (env.PLATFORM_ENGINE === 'GAME') {
+    Object.assign(caps, {
+      'appium:noReset': true,
+      'appium:forceAppLaunch': true,
+      'appium:shouldTerminateApp': true,
+      'appium:newCommandTimeout': 300,
+    });
+  }
   return caps;
 }
 
