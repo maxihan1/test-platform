@@ -108,6 +108,17 @@ describe('실행 중', () => {
     expect(screen.getByText('기기 2대를 잡았습니다')).toBeTruthy();
     expect(screen.getByRole('button', { name: '실행 중단' })).toBeTruthy();
   });
+
+  it('쌓인 숫자가 12만 줄이 넘는 긴 측정도 열리고, 다음에는 마지막 초 조금 앞부터 받는다', async () => {
+    vi.spyOn(perfApi, 'runOf').mockResolvedValue(상세({ status: 'RUNNING', finishedAt: null }));
+    const 긴줄 = Array.from({ length: 120_000 }, (_, i) => ({ ...결과.metrics[0]!, serial: i % 2 === 0 ? 'S24' : 'A23', sec: Math.floor(i / 2) }));
+    const 받기 = vi.spyOn(perfApi, 'deviceResult').mockResolvedValue({ ...결과, metrics: 긴줄, markers: [] });
+    vi.spyOn(perfApi, 'events').mockResolvedValue({ events: [] });
+    render(<PerfDevices service={앱} run={40} 쓰나 />);
+
+    await waitFor(() => expect(받기).toHaveBeenCalledWith(40, 59_989));
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
 });
 
 describe('결과', () => {
@@ -135,6 +146,15 @@ describe('결과', () => {
     expect(screen.getByText('회차마다 약 100MB 증가', { exact: false })).toBeTruthy();
     expect(screen.getByText(/2회차 더 돌면 메모리 목표를 넘습니다/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'PDF로 내려받기' })).toBeNull();
+  });
+
+  it('기기 한 대 숫자가 6만 줄인 긴 측정의 결과도 그래프까지 열린다', async () => {
+    vi.spyOn(perfApi, 'runOf').mockResolvedValue(상세());
+    const 긴줄 = Array.from({ length: 120_000 }, (_, i) => ({ ...결과.metrics[0]!, serial: i % 2 === 0 ? 'S24' : 'A23', sec: Math.floor(i / 2) }));
+    vi.spyOn(perfApi, 'deviceResult').mockResolvedValue({ ...결과, metrics: 긴줄 });
+    render(<PerfDevices service={앱} run={40} 쓰나 />);
+    expect(await screen.findByRole('table', { name: '기기별 요약' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Galaxy A23' }).getAttribute('aria-selected')).toBe('true');
   });
 
   it('장면을 누르면 그 초를 담은 녹화 조각으로 바꾼다', async () => {

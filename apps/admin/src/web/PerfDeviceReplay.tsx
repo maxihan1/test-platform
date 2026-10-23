@@ -6,7 +6,7 @@ import { use말 } from './i18n.js';
 import { PerfChart } from './PerfChart.js';
 import { 영상주소, type 기기결과, type 기기목표, type 기기숫자, type 측정지표 } from './perfDeviceApi.js';
 import { 점들, 조각찾기 } from './perfDeviceView.js';
-import { 눈금최대, 분초 } from './perfRunView.js';
+import { 가장큰값, 눈금최대, 분초 } from './perfRunView.js';
 
 /** 구간 띠 색 — 구간 이름 차례로 돌려 쓴다. 회색 셋이라 뜻이 없다 */
 const 띠색 = ['var(--line-2)', 'var(--ink-faint)', 'var(--ink-muted)'];
@@ -38,7 +38,7 @@ export function PerfDeviceReplay({ runId, 결과, 항목, 목표들, 처음기�
   const 갈초 = useRef<number | null>(null);
 
   const 줄들 = 결과.metrics.filter((줄) => 줄.serial === 기기).sort((a, b) => a.sec - b.sec);
-  const 끝초 = Math.max(1, ...줄들.map((줄) => 줄.sec));
+  const 끝초 = 가장큰값(줄들.map((줄) => 줄.sec), 1);
   const 장면들 = 결과.markers.filter((m) => m.serial === 기기).sort((a, b) => a.sec - b.sec);
   const 구간들 = 결과.segments.filter((s) => s.serial === 기기);
   const 구간이름 = [...new Set(구간들.map((s) => s.segment))];
@@ -122,7 +122,7 @@ export function PerfDeviceReplay({ runId, 결과, 항목, 목표들, 처음기�
         .map((g) => {
           const 선 = 점들(줄들, g.값);
           const 목표 = g.목표 === undefined ? undefined : 목표들.find((x) => x.metric === g.목표);
-          const 위 = 눈금최대(...선.map((p) => p.y), 목표?.value ?? 0);
+          const 위 = 눈금최대(가장큰값(선.map((p) => p.y)), 목표?.value ?? 0);
           return (
             <div key={g.항목} className="pd-lane">
               <span className="perf-faint">{t(g.이름)}</span>
