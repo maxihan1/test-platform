@@ -4,6 +4,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import { 집은쪽인가 } from '../authoring/agentRoutes.js';
+import { 대상줄들읽기, 앱줄고르기 } from '../authoring/reverse.js';
 import { 지도를읽는다 } from './apiMap.js';
 import { 게임서비스인가, 요소검사, 요소넣기, 지도글 } from './gameMap.js';
 import type { 요청 } from '../authoring/store.js';
@@ -17,6 +18,15 @@ import { 기준판, 서비스접두사, 옮기기, 읽은판, 지금판, 판하�
 type 경로 = { Params: { id: string } };
 const 서버없음 = { error: 'BAD_SCREEN', detail: 'env' } as const;
 const 게임아님 = { error: 'NOT_GAME_SERVICE' } as const;
+
+/**
+ * 화면 기록을 둘 대상 서버 줄 — 요청의 것이다. 게임은 대조가 없어 요청에 줄이 없으니 앱 줄(게임 첫 화면을 읽는 줄 — 운영 줄은 건너뛴다)에 둔다.
+ * 창 훑기는 그 줄의 앱 파일로 켠 게임을 본 것이다 (도메인/게임 §3.10 「지도」 · GAME-F1-10)
+ */
+async function 화면줄(행: 요청): Promise<string | null> {
+  if (!(await 게임서비스인가(행.serviceId))) return 행.env;
+  return 앱줄고르기(await 대상줄들읽기(행.serviceId), 행.env)?.env ?? null;
+}
 
 /** 맥 계정 · 집은 쪽 · 도는 중. 본문보다 먼저 본다 — 끝난 요청에는 본문 모양과 상관없이 409 다 */
 export async function 도는집은요청(req: FastifyRequest, reply: FastifyReply): Promise<요청 | null> {
@@ -57,20 +67,22 @@ export default async function prdAgentRoutes(app: FastifyInstance): Promise<void
   );
 
   // 화면 기록 — 작업 바탕 디스크 저장본을 대신한다. 본문은 이 통로로만 읽는다(로그인 화면의 이름 · 이메일이 들 수 있다).
-  // 대상 서버는 요청 행의 것이다 — 대상 서버가 없는 요청(대조가 아니다)은 저장본이 없고 올리지 못한다 (PRD-F9-29)
+  // 대상 서버는 요청 행의 것이다 — 대상 서버가 없는 요청(대조가 아니다)은 저장본이 없고 올리지 못한다 (PRD-F9-29). 게임은 앱 줄이다(위 화면줄)
   app.get<경로>('/authoring/requests/:id/screens', async (req, reply) => {
     const 행 = await 도는집은요청(req, reply);
     if (행 === null) return reply;
-    return 행.env === null ? { screens: [], links: [] } : 화면들(행.serviceId, 행.env);
+    const env = await 화면줄(행);
+    return env === null ? { screens: [], links: [] } : 화면들(행.serviceId, env);
   });
 
   app.put<경로 & { Body: unknown }>('/authoring/requests/:id/screens', async (req, reply) => {
     const 행 = await 도는집은요청(req, reply);
     if (행 === null) return reply;
-    if (행.env === null) return reply.code(400).send(서버없음);
+    const env = await 화면줄(행);
+    if (env === null) return reply.code(400).send(서버없음);
     const 읽음 = 화면검사(req.body);
     if ('error' in 읽음) return reply.code(400).send(읽음);
-    await 화면넣기(행.serviceId, 행.env, 읽음.화면, 읽음.links, 읽음.apis);
+    await 화면넣기(행.serviceId, env, 읽음.화면, 읽음.links, 읽음.apis);
     return reply.code(204).send();
   });
 
@@ -116,9 +128,10 @@ export default async function prdAgentRoutes(app: FastifyInstance): Promise<void
   app.post<경로 & { Body: unknown }>('/authoring/requests/:id/screens/done', { bodyLimit: 본문상한 }, async (req, reply) => {
     const 행 = await 도는집은요청(req, reply);
     if (행 === null) return reply;
-    if (행.env === null) return reply.code(400).send(서버없음);
+    const env = await 화면줄(행);
+    if (env === null) return reply.code(400).send(서버없음);
     const 읽음 = 다봄검사(req.body);
     if ('error' in 읽음) return reply.code(400).send(읽음);
-    return 다봄(행.serviceId, 행.env, 읽음.seen, 읽음.complete);
+    return 다봄(행.serviceId, env, 읽음.seen, 읽음.complete);
   });
 }
