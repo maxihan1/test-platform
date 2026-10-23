@@ -22,7 +22,7 @@ class 가짜자식 extends EventEmitter {
 }
 
 interface 가짜옵션 {
-  앱있음?: boolean;
+  앱없음?: '빈 출력' | '종료 코드 1';
   게임?: boolean;
 }
 
@@ -37,7 +37,12 @@ function 가짜Adb(옵션: 가짜옵션 = {}) {
     if (줄 === 'devices -l') return `List of devices attached\n${시리얼} device usb:1\n`;
     if (줄.endsWith('getprop ro.product.model')) return 'Pixel 8\n';
     if (줄.endsWith('getprop ro.build.version.release')) return '14\n';
-    if (줄.endsWith(`pm path ${앱}`)) return 옵션.앱있음 === false ? '' : 'package:/data/app/x/base.apk\n';
+    if (줄.includes(`pm path ${앱}`)) {
+      if (옵션.앱없음 === undefined) return 'package:/data/app/x/base.apk\n';
+      // 요즘 폰의 pm 은 앱이 없으면 아무것도 안 찍고 종료 코드 1 을 낸다. 폰 셸의 `|| true` 가 그것을 0 으로 바꾼다
+      if (옵션.앱없음 === '종료 코드 1' && !줄.endsWith('|| true')) throw new Error(`adb ${줄} 실패: Command failed`);
+      return '';
+    }
     if (줄.endsWith(`resolve-activity --brief ${앱}`)) return `priority=0\n${앱}/.Main\n`;
     if (줄.endsWith(`am start -W -n ${앱}/.Main`)) return 'Status: ok\nTotalTime: 700\n';
     if (줄.endsWith(`dumpsys gfxinfo ${앱}`)) {
@@ -181,12 +186,12 @@ describe('시작 거절', () => {
     expect(res.json()).toMatchObject({ error: 'DEVICE_NOT_FOUND' });
   });
 
-  it('앱이 폰에 없으면 400 이고 폰은 다시 잡을 수 있다', async () => {
-    const 앱없음 = 서버({ adb: 가짜Adb({ 앱있음: false }).adb });
-    const res = await 시작(앱없음);
+  it.each(['빈 출력', '종료 코드 1'] as const)('앱이 폰에 없으면(pm 이 %s) 400 이고 폰은 다시 잡을 수 있다', async (앱없음) => {
+    const app = 서버({ adb: 가짜Adb({ 앱없음 }).adb });
+    const res = await 시작(app);
     expect(res.statusCode).toBe(400);
     expect(res.json()).toMatchObject({ error: 'INVALID_REQUEST' });
-    expect((await 시작(앱없음)).statusCode).toBe(400);
+    expect((await 시작(app)).statusCode).toBe(400);
   });
 
   it('같은 폰을 이미 재고 있으면 409 DEVICE_BUSY, 중지하면 다시 잡힌다', async () => {

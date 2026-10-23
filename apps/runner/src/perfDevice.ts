@@ -143,7 +143,8 @@ export function registerPerfDeviceRoutes(app: FastifyInstance, deps: PerfDeviceD
       if (!(await 기기목록(adb)).some((d) => d.serial === serial)) {
         return reply.code(404).send({ error: 'DEVICE_NOT_FOUND', detail: serial });
       }
-      if ((await adb(['-s', serial, 'shell', 'pm', 'path', pkg])).trim() === '') {
+      // 요즘 pm 은 앱이 없으면 종료 코드 1 이라 adb 가 실패로 돌려준다. 폰 셸에서 0 으로 바꿔 빈 출력으로 받는다 — 폰 연결 오류는 그대로 500 이다
+      if ((await adb(['-s', serial, 'shell', 'pm', 'path', pkg, '||', 'true'])).trim() === '') {
         return reply.code(400).send({ error: 'INVALID_REQUEST', detail: `폰에 ${pkg} 앱이 없다` });
       }
 
