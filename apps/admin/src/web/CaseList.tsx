@@ -17,6 +17,7 @@ import { Empty, 목록부제 } from './CaseListNotes.js';
 import { 쪽넘기기, 표머리 } from './CaseListHead.js';
 import { 기법고르개, 조건칩들, 종류칩들, 찾기폼, 케이스줄 } from './CaseListParts.js';
 import { use묶음접기, 번호들, 줄과머리 } from './caseGroups.js';
+import { 스모크거르개 } from './CaseSmoke.js';
 import { Head } from './Head.js';
 import { keyOf, type LastMap } from './catalogView.js';
 import { use말, use언어 } from './i18n.js';
@@ -44,7 +45,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
   // 고치기 요청 상자를 닫으면 그 상자를 연 버튼이 고른 것과 같이 사라진다 — 포커스는 주 행동으로 보낸다
   const 실행단추 = useRef<HTMLButtonElement>(null);
 
-  const cases = useAsync<CasePage>(() => api.cases(조건), [service, 검색.q, page, 검색.디바이스, 검색.활성만, 결과, 검색.기법, 검색.축, 검색.서버, 검색.묶음, 검색.요구]);
+  const cases = useAsync<CasePage>(() => api.cases(조건), [service, 검색.q, page, 검색.디바이스, 검색.활성만, 결과, 검색.기법, 검색.축, 검색.스모크, 검색.서버, 검색.묶음, 검색.요구]);
   const scan = useAsync(() => api.lastScan(service), [service]);
   const 요구쓰나 = cases.data?.hasFeatures ?? false;
   const 접기 = use묶음접기(cases.data?.groups, 요구쓰나);
@@ -165,13 +166,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
       {/* 찾기와 조건 칩이 한 줄에 선다 (2026-09-22). 두 줄이면 132px 을 먹었다.
           기능 목록은 설계 기법 고르개로 두 줄이 된다 — 받아들였다 (도메인/카탈로그 §8.1, 2026-10-05 게이트 2) */}
       <div className="toolbar">
-        <찾기폼
-          typed={검색.typed}
-          건조건={검색.건조건}
-          onTyped={검색.setTyped}
-          onSearch={() => 검색.search(검색.typed)}
-          onClear={검색.조건지우기}
-        />
+        <찾기폼 typed={검색.typed} 건조건={검색.건조건} onTyped={검색.setTyped} onSearch={() => 검색.search(검색.typed)} onClear={검색.조건지우기} />
 
         <조건칩들
           디바이스={검색.디바이스}
@@ -186,6 +181,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
         {/* 디바이스 · 표시 칩처럼 고른 것은 그대로 둔다 — 다른 쪽에서 고른 것을 말없이 버리지 않는다 (도메인/카탈로그 §8.1 「설계 기법」) */}
         {kind !== 'FN' ? null : <종류칩들 축={검색.축} on축={검색.on축} />}
         {kind !== 'FN' ? null : <기법고르개 기법={검색.기법} on기법={검색.on기법} />}
+        <스모크거르개 스모크={검색.스모크} on스모크={검색.on스모크} />
         <서버칩들 서버={검색.서버} 목록={cases.data?.apiServers ?? []} on서버={검색.on서버} />
         <걸린칩들 검색={검색} 서버목록={cases.data === null ? undefined : (cases.data.apiServers ?? [])} />
         {엑셀.버튼}
@@ -247,6 +243,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
             열림={연줄?.tcId === row.tcId}
             on실행={할수('실행') ? (row) => void 뽑기.하나열기(row) : undefined}
             on열기={열기}
+            on스모크={할수('스모크고치기') ? () => void cases.reload() : undefined}
           />
           );
         })}
