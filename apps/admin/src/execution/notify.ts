@@ -117,7 +117,11 @@ export async function notifyRun(runId: number): Promise<boolean> {
   try {
     보냄 = await 슬랙으로(run.slack_webhook, text);
   } finally {
-    if (!보냄) await pool.query('UPDATE test_run SET notified_at = NULL WHERE run_id = $1', [runId]);
+    // 되돌리기가 깨져도 보내기가 실패한 까닭을 가리지 않게 남기기만 한다
+    if (!보냄) {
+      await pool.query('UPDATE test_run SET notified_at = NULL WHERE run_id = $1', [runId])
+        .catch((e: unknown) => console.error(`[execution] 실행 ${runId}의 알림 표시를 되돌리지 못했다`, e));
+    }
   }
   return 보냄;
 }
