@@ -158,6 +158,20 @@ describe('판비교', () => {
     expect(Date.now() - 시작).toBeLessThan(3000);
   });
 
+  it('큰 스키마 하나를 수천 번 가리키는 문서도 참조마다 통째로 베끼지 않는다', () => {
+    const 큰것 = { type: 'object', properties: Object.fromEntries(Array.from({ length: 1000 }, (_, i) => [`p${String(i)}`, { type: 'string' }])) };
+    const 큰문서 = {
+      openapi: '3.1.0',
+      components: { schemas: { Big: 큰것 } },
+      paths: {
+        '/x': { get: { responses: { '200': { content: { 'application/json': { schema: { allOf: Array.from({ length: 10_000 }, () => ({ $ref: '#/components/schemas/Big' })) } } } } } } },
+      },
+    };
+    const 시작 = Date.now();
+    expect(커버리지틀(큰문서)).toEqual([{ method: 'GET', path: '/x', codes: [{ status: 200, noShape: false }] }]);
+    expect(Date.now() - 시작).toBeLessThan(3000);
+  });
+
   it('돌고 도는 참조에서 멈춘다', () => {
     const 판2 = 복사(판1) as typeof 판1 & { components: { schemas: Record<string, unknown> } };
     판2.components.schemas.Node = { type: 'object', properties: { child: { $ref: '#/components/schemas/Node' } } };

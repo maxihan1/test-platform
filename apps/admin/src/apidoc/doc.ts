@@ -50,21 +50,41 @@ export async function 문서받기(주소: string): Promise<{ 글: string } | { 
   }
 }
 
+interface 풀기예산 {
+  남음: number;
+  칸수: WeakMap<object, number>;
+}
+
+/** 참조를 따라가지 않고 센 칸 수 — 그 값을 한 번 베끼는 품이다. 겹친 경로가 같은 값을 다시 세지 않게 값마다 적어 둔다 */
+function 칸수(v: unknown, 적은것: WeakMap<object, number>): number {
+  if (typeof v !== 'object' || v === null) return 1;
+  const 있음 = 적은것.get(v);
+  if (있음 !== undefined) return 있음;
+  let 합 = 1;
+  for (const x of Array.isArray(v) ? v : Object.values(v)) 합 += 칸수(x, 적은것);
+  적은것.set(v, 합);
+  return 합;
+}
+
 /**
  * 문서 안의 `$ref`(#/…)를 푼다. 돌고 도는 참조는 그 자리에 `$ref` 를 남긴다.
- * 여러 곳이 같은 스키마를 겹겹이 가리키면 푼 크기가 거듭제곱으로 불어서 예산을 둔다 — 다 쓰면 남은 참조는 `$ref` 그대로다.
+ * 참조를 풀 때마다 대상을 통째로 베껴서 푼 크기가 「참조 수 × 대상 크기」로 분다(겹겹이면 거듭제곱) — 그래서 예산을 베낀 칸 수로 센다.
+ * 풀기 전에 대상 칸 수만큼 미리 떼고, 모자라면 그 참조는 `$ref` 그대로다. 참조 개수만 세면 큰 스키마 하나를 수천 번 가리키는 1MB 문서로 메모리가 넘친다
  * ponytail: 예산을 넘긴 깊은 곳의 바뀜은 판 비교가 못 본다. 그런 문서가 나오면 참조 이름 단위로 견준다
  */
-function 풀기(문서: 객체, v: unknown, 예산: { 남음: number }, 본것: ReadonlySet<string> = new Set()): unknown {
+function 풀기(문서: 객체, v: unknown, 예산: 풀기예산, 본것: ReadonlySet<string> = new Set()): unknown {
   if (Array.isArray(v)) return v.map((x) => 풀기(문서, x, 예산, 본것));
   if (!객체인가(v)) return v;
   const ref = v.$ref;
   if (typeof ref === 'string' && ref.startsWith('#/')) {
-    if (본것.has(ref) || 예산.남음-- <= 0) return { $ref: ref };
+    if (본것.has(ref)) return { $ref: ref };
     const 간곳 = ref
       .slice(2)
       .split('/')
       .reduce<unknown>((at, k) => (객체인가(at) ? at[k.replaceAll('~1', '/').replaceAll('~0', '~')] : undefined), 문서);
+    const 품 = 칸수(간곳, 예산.칸수);
+    if (품 > 예산.남음) return { $ref: ref };
+    예산.남음 -= 품;
     return 풀기(문서, 간곳, 예산, new Set([...본것, ref]));
   }
   return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, 풀기(문서, x, 예산, 본것)]));
@@ -84,7 +104,7 @@ interface 작업 {
 function 작업들(문서: 객체): Map<string, 작업> {
   const 결과 = new Map<string, 작업>();
   const paths = 객체인가(문서.paths) ? 문서.paths : {};
-  const 예산 = { 남음: 20_000 };
+  const 예산: 풀기예산 = { 남음: 1_000_000, 칸수: new WeakMap() };
   for (const [path, 원래] of Object.entries(paths)) {
     const 줄 = 풀기(문서, 원래, 예산);
     if (!객체인가(줄)) continue;

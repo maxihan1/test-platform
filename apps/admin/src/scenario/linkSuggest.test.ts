@@ -156,4 +156,12 @@ describe.skipIf(연결 === undefined)('POST /api/scenarios/link-suggestions', ()
     expect(await 묻기(초안)).toEqual({ status: 200, body: { items: [] } });
     expect((await 묻기({ service: 접두사, parts: [{ kind: 'case' }] })).status).toBe(400);
   });
+
+  it('저장 60분 · 크기 상한을 넘는 초안은 지도를 읽지 않고 빈 목록이다', async () => {
+    작성권한 = 'read';
+    const 큰모킹 = { kind: 'mock', urlPattern: '**/a', status: 200, contentType: 'text/plain', body: 'a'.repeat(100_000) };
+    expect(await 묻기({ service: 접두사, parts: [...초안.parts, 큰모킹] })).toEqual({ status: 200, body: { items: [] } });
+    const 긴초안 = [...초안.parts, ...Array.from({ length: 11 }, () => 케이스('XLS-FN-002'))];
+    expect(await 묻기({ service: 접두사, parts: 긴초안 })).toEqual({ status: 200, body: { items: [] } });
+  });
 });
