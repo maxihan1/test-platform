@@ -45,6 +45,9 @@ const 판상한 = { bodyLimit: 16 * 1024 * 1024 };
 // 성능 시나리오 녹화 — 오면 HAR 를 artifacts/perf-record/<jobId>/ 에 남긴다 (공통/3-공유계약 「성능 테스트 타입」)
 const recordHar = z.object({ jobId: z.number().int().positive() }).optional();
 
+// 게임 애플리케이션 항목만. 원문이 지나간다 — 머리는 kit 이 admin 요청에 넣는다 (공통/3-공유계약 「게임 테스트 타입」)
+const adminKey = z.object({ header: z.string().min(1), value: z.string().min(1) }).optional();
+
 const executeRequest = z.object({
   runId: z.number(),
   historyId: z.number(),
@@ -57,6 +60,9 @@ const executeRequest = z.object({
   timeoutMs: z.number().int().positive().default(300_000),
   app: 앱파일경로.optional(),
   udid: z.string().min(1).optional(),
+  // z.object 는 모르는 칸을 버린다 — 여기 안 적으면 게임 항목이 앱처럼 돈다 (도메인/러너 §5.2 종류 결정 3)
+  engine: z.literal('GAME').optional(),
+  adminKey,
   apiAuths,
   apiDoc,
   recordHar,
