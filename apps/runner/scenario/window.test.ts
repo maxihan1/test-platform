@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import type { APIRequest, Browser, BrowserContext } from '@playwright/test';
+import type { APIRequest, APIRequestContext, Browser, BrowserContext } from '@playwright/test';
 import { describe, expect, it, vi } from 'vitest';
 
 import { 새부품, 새이음, type 미룬삭제 } from './links.js';
@@ -54,6 +54,42 @@ describe('sendDelete', () => {
     expect(vi.mocked(요청도구.newContext)).toHaveBeenCalledWith({ storageState: { cookies: [], origins: [] }, extraHTTPHeaders: { a: '1' }, httpCredentials: 인증 });
     expect(연결.fetch).toHaveBeenCalledWith('https://qa.example.com/api/posts/1', { method: 'DELETE', timeout: 1000 });
     expect(연결.dispose).toHaveBeenCalled();
+  });
+
+  it('모은 삭제의 쿼리 · 본문을 그대로 실어 보낸다 — 글자 · URLSearchParams 꼴 params 는 물음표 뒤를 갈아 끼운다(Playwright 와 같다)', async () => {
+    const 이음 = 새이음([], 설정.baseUrl);
+    const 부품 = 새부품(1, []);
+    부품.phase.started = true;
+    const 빈 = { cookies: [], origins: [] };
+    const 원래도구 = { delete: vi.fn(), fetch: vi.fn() };
+    const 창 = {
+      request: 원래도구,
+      newPage: vi.fn(async () => ({})),
+      storageState: vi.fn(async () => 빈),
+    };
+    const 연결 = { fetch: vi.fn(async () => ({ status: () => 204 })), dispose: vi.fn(async () => {}), storageState: vi.fn(async () => 빈) };
+    const 감싸기 = 감싸기걸기(
+      { newContext: vi.fn(async () => 창) } as unknown as Browser,
+      { newContext: vi.fn(async () => 연결) } as unknown as APIRequest,
+      이음, 설정,
+    );
+    await 감싸기.newWindow(undefined, new Map(), 부품);
+
+    const 도구 = 창.request as unknown as APIRequestContext;
+    await 도구.delete('/api/cart?old=1', { params: 'itemId=7' });
+    await 도구.delete('/api/cart', { params: new URLSearchParams({ itemId: '8' }), data: { all: true } });
+    await 도구.delete('/api/cart', { params: { itemId: 9 }, form: { reason: 'x' } });
+
+    expect(이음.미룸.map((d) => d.url)).toEqual([
+      'https://qa.example.com/api/cart?itemId=7', 'https://qa.example.com/api/cart?itemId=8', 'https://qa.example.com/api/cart?itemId=9',
+    ]);
+    expect(원래도구.delete).not.toHaveBeenCalled();
+    await 감싸기.sendDelete(이음.미룸[1]!, 1000);
+    await 감싸기.sendDelete(이음.미룸[2]!, 1000);
+    expect(연결.fetch.mock.calls).toEqual([
+      ['https://qa.example.com/api/cart?itemId=8', expect.objectContaining({ method: 'DELETE', timeout: 1000, data: { all: true } })],
+      ['https://qa.example.com/api/cart?itemId=9', expect.objectContaining({ method: 'DELETE', timeout: 1000, form: { reason: 'x' } })],
+    ]);
   });
 });
 
