@@ -1,7 +1,7 @@
 // 게임 창 훑기 결과를 화면 기록 꼴로 — 장면이 붙은 키 · 버튼으로 이어진 창 연결 · 저장본과 견주기(같음 · 바뀜 · 새 창 · 30일)
 import { describe, expect, it } from 'vitest';
 
-import { 견주기, 저장목록, 창목록 } from './authoring-game-crawl.js';
+import { 견주기, 구역꼴, 저장목록, 창목록 } from './authoring-game-crawl.js';
 
 const 훑음 = [
   { 주소: 'scene:Login', 이름: 'Login', 틀: 'scene:Login', 파일: '001.yml', 지문: 'aa01', 글자지문: 'bb01', 연곳: null },
@@ -17,6 +17,7 @@ describe('창목록', () => {
   it('구역을 주면 시작 화면이 장소 기록 열쇠가 되고 창 열쇠는 그대로다 — 순간이동해 찍은 자리', () => {
     expect(창목록(훑음, 'Town').map((c) => c.키)).toEqual(['game:Login/zone:Town', 'game:Login/Canvas/SignupPanel', 'game:Login/Canvas/SignupPanel/Terms']);
     expect(창목록(훑음, 'Town')[0]?.연결.map((l) => l.toUrl)).toEqual(['game:Login/Canvas/SignupPanel']);
+    expect([구역꼴.test('마을'), 구역꼴.test('Town_2'), 구역꼴.test('a/b'), 구역꼴.test('')]).toEqual([true, true, false, false]);
   });
 
   it('창을 연 버튼을 앞 창의 연결로 단다 — 글자가 있으면 「」 로 붙인다', () => {

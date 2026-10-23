@@ -38,7 +38,7 @@ const 지문꼴 = /^[0-9a-f]{1,64}$/;
 const 파일꼴 = /^\d{3}\.yml$/;
 
 /** 장소 이름 — 지도 열쇠 `zone:<구역>` 의 구역(도메인/게임 §3.10 「게임에만 있는 지도 넷」 열쇠) */
-export const 구역꼴 = /^[A-Za-z0-9_-]{1,64}$/;
+export const 구역꼴 = /^[\p{L}\p{N}_-]{1,64}$/u;
 
 /**
  * list.json 을 창 목록으로 — 첫 줄(`scene:<장면>`)이 장면을 정한다. 꼴이 틀린 줄은 뺀다. 첫 줄이 장면이 아니면 빈 목록이다.
@@ -92,7 +92,7 @@ export function 저장목록(값: unknown): (저장한창 & { 기록: string })[
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const [폴더, 상태값, 구역] = process.argv.slice(2);
   if (폴더 === undefined || !상태인가(상태값) || (구역 !== undefined && !구역꼴.test(구역))) {
-    console.error("쓰는 법: npx tsx scripts/authoring-game-crawl.ts <자료 폴더>/game-crawl/<이름> '<로그아웃 | 로그인:<역할>>' [<구역 — 영문 · 숫자 · _ · ->]");
+    console.error("쓰는 법: npx tsx scripts/authoring-game-crawl.ts <자료 폴더>/game-crawl/<이름> '<로그아웃 | 로그인:<역할>>' [<구역 — 글자 · 숫자 · _ · ->]");
     process.exit(1);
   }
   const 목록글 = 안전히읽기(폴더, 'list.json', 2_000_000);
