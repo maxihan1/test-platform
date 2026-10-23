@@ -9,7 +9,7 @@ import { Modal } from './Modal.js';
 import { perfApi, type 실행로그, type 실행상세 } from './perfApi.js';
 import type { 기기숫자 } from './perfDeviceApi.js';
 import { 값글자, 기기설정of, 메모리글자, 벗어난지표, 지금요약, 지표표, 최근줄 } from './perfDeviceView.js';
-import { 갱신간격, 눈금최대, 분초, 선점, 시각글, 시분 } from './perfRunView.js';
+import { 가장큰값, 갱신간격, 눈금최대, 분초, 선점, 시각글, 시분 } from './perfRunView.js';
 import { message } from './ui.js';
 
 /** 마지막 초에서 이만큼 앞부터 다시 받는다 — 팜이 숫자를 5초마다 묶어 보내 같은 초가 뒤늦게 온다 */
@@ -43,7 +43,7 @@ export function PerfDeviceLive({ run, 다시읽기, 쓰나 }: { run: 실행상�
         if (!살음) return;
         // 받은 구간은 통째로 갈아 끼운다 — 이어 붙이면 늦게 온 초가 두 번 들어간다
         if (r.metrics.length > 0) {
-          마지막.current = Math.max(마지막.current, ...r.metrics.map((줄) => 줄.sec));
+          마지막.current = 가장큰값(r.metrics.map((줄) => 줄.sec), 마지막.current);
           set숫자((앞) => [...앞.filter((줄) => 줄.sec < 부터), ...r.metrics]);
         }
         set로그(e.events);

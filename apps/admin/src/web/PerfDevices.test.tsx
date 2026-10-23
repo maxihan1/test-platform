@@ -108,6 +108,17 @@ describe('실행 중', () => {
     expect(screen.getByText('기기 2대를 잡았습니다')).toBeTruthy();
     expect(screen.getByRole('button', { name: '실행 중단' })).toBeTruthy();
   });
+
+  it('쌓인 숫자가 12만 줄이 넘는 긴 측정도 열리고, 다음에는 마지막 초 조금 앞부터 받는다', async () => {
+    vi.spyOn(perfApi, 'runOf').mockResolvedValue(상세({ status: 'RUNNING', finishedAt: null }));
+    const 긴줄 = Array.from({ length: 120_000 }, (_, i) => ({ ...결과.metrics[0]!, serial: i % 2 === 0 ? 'S24' : 'A23', sec: Math.floor(i / 2) }));
+    const 받기 = vi.spyOn(perfApi, 'deviceResult').mockResolvedValue({ ...결과, metrics: 긴줄, markers: [] });
+    vi.spyOn(perfApi, 'events').mockResolvedValue({ events: [] });
+    render(<PerfDevices service={앱} run={40} 쓰나 />);
+
+    await waitFor(() => expect(받기).toHaveBeenCalledWith(40, 59_989));
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
 });
 
 describe('결과', () => {
