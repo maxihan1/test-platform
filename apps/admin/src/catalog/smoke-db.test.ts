@@ -150,6 +150,7 @@ describe.skipIf(연결 === undefined)('스모크 표시', () => {
 
   it('엑셀도 목록과 같은 스모크 조건을 탄다 — 버튼의 건수와 받은 파일의 건수가 같다 (카탈로그 §8.1 「스모크」)', async () => {
     await save([spec('XSK-001', true), spec('XSK-002'), spec('XSK-003')], false, 'XSK');
+    for (const tcId of 번호들) await 고치기(tcId, { smoke: null });
     const 엑셀 = async (smoke: boolean | undefined) =>
       (await 엑셀자료({ service: 'XSK', serviceId: 서비스, q: '', activeOnly: false, smoke, canSeeRuns: false, canSeeAuthoring: false })).cases.map((c) => c.tcId);
     expect([await 엑셀(true), await 엑셀(false), await 엑셀(undefined)]).toEqual([['XSK-001'], ['XSK-002', 'XSK-003'], 번호들]);
