@@ -1,4 +1,4 @@
-// Android 앱 작성 집기 accounts 검사 — 대조가 없는 앱도 앱 줄 계정을 받는다 (SPEC 도메인/작성 §3.6 「★ 역할별 계정」 · §7 claim)
+// Android 앱 · 게임 작성 집기 accounts · adminKey 검사 — 대조가 없는 앱도 앱 줄 계정을, 게임은 앱 줄 어드민 키를 받는다 (SPEC 도메인/작성 §3.6 「★ 역할별 계정」 · §7 claim)
 
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -37,7 +37,7 @@ describe.skipIf(연결 === undefined)('Android 앱 작성 집기 accounts', () =
   }
 
   const 집기 = async () =>
-    (await app.inject({ method: 'POST', url: `/api/authoring/requests/claim?service=${접두사}` })).json<{ target?: unknown; accounts?: unknown }>();
+    (await app.inject({ method: 'POST', url: `/api/authoring/requests/claim?service=${접두사}` })).json<{ target?: unknown; accounts?: unknown; adminKey?: unknown }>();
 
   beforeAll(async () => {
     const { pool } = await import('../db/index.js');
@@ -93,6 +93,28 @@ describe.skipIf(연결 === undefined)('Android 앱 작성 집기 accounts', () =
     } finally {
       await pool.query(`UPDATE service SET kind = 'APP' WHERE id = $1`, [서비스]);
     }
+  });
+
+  it('게임 애플리케이션은 앱 줄의 어드민 키를 그 줄 이름 · 주소와 같이 받는다 — 다른 줄 · 실서비스 서버 줄 키는 안 싣는다', async () => {
+    const { pool } = await import('../db/index.js');
+    await pool.query(`UPDATE service SET kind = 'GAME' WHERE id = $1`, [서비스]);
+    await pool.query(`UPDATE service_env SET admin_key = jsonb_build_object('header', 'X-Admin-Key', 'value', env || '-xac-어드민-키-원문') WHERE service_id = $1`, [서비스]);
+    try {
+      await 하나만세운다();
+      expect((await 집기()).adminKey).toEqual({ env: 'qa', baseUrl: 'http://qa.xac.test', header: 'X-Admin-Key', value: 'qa-xac-어드민-키-원문' });
+      await pool.query(`UPDATE service_env SET admin_key = NULL WHERE service_id = $1 AND env = 'qa'`, [서비스]);
+      await 하나만세운다();
+      expect('adminKey' in (await 집기())).toBe(false);
+    } finally {
+      await pool.query(`UPDATE service SET kind = 'APP' WHERE id = $1`, [서비스]);
+    }
+  });
+
+  it('Android 앱은 어드민 키가 있어도 싣지 않는다', async () => {
+    const { pool } = await import('../db/index.js');
+    await pool.query(`UPDATE service_env SET admin_key = jsonb_build_object('header', 'X-Admin-Key', 'value', 'xac-앱-어드민-키-원문') WHERE service_id = $1`, [서비스]);
+    await 하나만세운다();
+    expect('adminKey' in (await 집기())).toBe(false);
   });
 
   it('앱 파일 경로가 있는 줄이 실서비스 서버뿐이면 accounts 가 없다', async () => {

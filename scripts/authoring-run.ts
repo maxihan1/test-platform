@@ -11,7 +11,7 @@ import { type 모델, 한도걸렸나 } from './authoring-model.js';
 import { 결제환경, 크레딧먼저, 크레딧바닥났나, 크레딧키이름 } from './authoring-billing.js';
 import { type 자료, 돌릴수있나, 못읽는자료, 입력만, 자료계획, 자료출처, 화면만인가 } from './authoring-assets.js';
 import { 대상점검, 대상환경, 사유거르기 } from './authoring-reverse.js';
-import { 계정환경, 비밀번호들 } from './authoring-accounts.js';
+import { 계정환경, 비밀번호들, 어드민키환경 } from './authoring-accounts.js';
 import { 자식환경 } from './authoring-chain.js';
 import { type 계정, 사본환경 } from './authoring-copy.js';
 import { 사본치우기, 자식거두기, 자식빈환경 } from './authoring-child.js';
@@ -227,7 +227,8 @@ async function 사본에서(
     // 역방향 — 대상 서버·테스트 계정은 환경 변수로만. 프롬프트·인자에는 값을 안 싣는다 (§7 ★)
     ...(것.target === undefined ? {} : 대상환경(것.target)), ...계정환경(것.accounts, (글) => console.log(`[작성] ${것.id}번 ${글}`)), ...탐색환경(앱화면),
     ...(것.api === undefined ? {} : API환경(것.api, 자리.자료)), // API 대상 서버 · 인증 · 판 파일도 환경 변수로만 (도메인/API §3.8 「API 인증」)
-    ...(설정.게임 === true ? { [게임자료환경]: 자리.자료 } : {}), // 빠른 검사가 게임 지도(game-map.txt · game-elements.json)로 케이스 요소를 본다 (도메인/게임 §3.10 「작성 — 한 바퀴」 6)
+    // 빠른 검사가 게임 지도(game-map.txt · game-elements.json)로 케이스 요소를 보고, 상태 도우미 · 폰 돌려 보기가 앱 줄 어드민 키를 쓴다 (도메인/게임 §3.10 「작성 — 한 바퀴」 4 · 6)
+    ...(설정.게임 === true ? { [게임자료환경]: 자리.자료, ...어드민키환경(것.adminKey) } : {}),
   };
   const 역방향 = 것.target === undefined ? undefined : { 화면만: 화면만인가(것, 자료들), 산출물폴더: join(자리.자료, 'out'), 제외: 설정.제외 };
   const 인자 = 클로드인자(자리.자료, 판.모델, 자리.임시);
@@ -294,6 +295,6 @@ async function 사본에서(
   await 올리기(
     자리, 것, 서비스, 판.판정, 기준, 풀린.글, 손,
     역방향 === undefined ? undefined : { 주소기지, 토큰, 자식, 입력자료: 자료들 },
-    { 값: 옮김.원장, 폴더: 케이스자리, 자식, 기준: 옮김.기준 }, 단계, [...API반영줄(것.api), ...옮김.줄, ...게임줄],
+    { 값: 옮김.원장, 폴더: 케이스자리, 자식, 기준: 옮김.기준, 게임: 설정.게임 === true }, 단계, [...API반영줄(것.api), ...옮김.줄, ...게임줄],
   );
 }

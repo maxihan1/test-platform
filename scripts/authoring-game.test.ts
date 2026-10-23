@@ -64,12 +64,12 @@ describe('게임준비', () => {
 
 describe('게임올리기', () => {
   // 견주기 명령이 남긴 꼴 — 상태 · list.json 지문 · 창마다 같음 표시. 상태가 null 이면 견주기를 안 돌린 폴더다
-  const 훑기 = (이름: string, 상태: string | null, 목록: unknown[], 기록들: Record<string, string>, 같음: string[] = []) => {
+  const 훑기 = (이름: string, 상태: string | null, 목록: unknown[], 기록들: Record<string, string>, 같음: string[] = [], 구역?: string) => {
     const 폴더 = join(자료, 'game-crawl', 이름);
     mkdirSync(폴더, { recursive: true });
     const 목록글 = JSON.stringify(목록);
     writeFileSync(join(폴더, 'list.json'), 목록글);
-    if (상태 !== null) writeFileSync(join(폴더, 'game.json'), JSON.stringify({ 상태, 목록: 목록지문(목록글), 창: 같음.map((키) => ({ 키, 저장본: '같음' })) }));
+    if (상태 !== null) writeFileSync(join(폴더, 'game.json'), JSON.stringify({ 상태, 구역, 목록: 목록지문(목록글), 창: 같음.map((키) => ({ 키, 저장본: '같음' })) }));
     for (const [파일, 글] of Object.entries(기록들)) writeFileSync(join(폴더, 파일), 글);
     return 폴더;
   };
@@ -110,6 +110,15 @@ describe('게임올리기', () => {
       state: '로그아웃', url: 'game:Login', name: 'Login', textFp: 'bb01', structFp: 'aa01', record: 저장된창.record, crawledAt: 저장된창.crawledAt,
       links: [{ toUrl: 'game:Login/Canvas/Old', via: 'OldButton' }, { toUrl: 'game:Login/Canvas/SignupPanel', via: 'SignupButton 「가입」' }],
     });
+  });
+
+  it('장소 훑기 폴더는 시작 화면을 장소 기록 열쇠(game:<장면>/zone:<구역>)로 올린다', async () => {
+    훑기('zone-Town', '로그인:일반 회원', [{ ...로그인목록[0], 주소: 'scene:World', 틀: 'scene:World' }], { '001.yml': '# scene:World\n## 정리\n마을 — 상인 NPC' }, [], 'Town');
+    서버(기본답);
+
+    await 게임올리기(통로, 자료, [], new Date('2026-10-23T00:00:00Z'));
+
+    expect((보낸몸('PUT /api/authoring/requests/7/screens') as { url: string }[]).map((c) => c.url)).toEqual(['game:World/zone:Town']);
   });
 
   it('견주기 뒤에 같은 폴더를 다시 훑었으면(목록 지문이 다르다) 낡은 상태로 올리지 않는다', async () => {

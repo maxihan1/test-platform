@@ -4,7 +4,7 @@ import { mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 
 import { 지도열쇠들, 케이스요소들 } from './authoring-check-game.js';
-import { type 저장한창, type 창, 목록지문, 창목록 } from './authoring-game-crawl.js';
+import { type 저장한창, type 창, 구역꼴, 목록지문, 창목록 } from './authoring-game-crawl.js';
 import { 부른다 } from './authoring-io.js';
 import { 계정섞였나 } from './authoring-reverse.js';
 import { type 상태, 상태인가 } from './authoring-screens-keep.js';
@@ -102,10 +102,12 @@ type 훑은폴더 = { 상태: 상태; 폴더: string; 창들: 창[]; 같음: Set
 function 폴더읽기(폴더: string): 훑은폴더 | null {
   try {
     const 목록 = 안전히읽기(폴더, 'list.json', 2_000_000);
-    const 표시 = JSON.parse(안전히읽기(폴더, 'game.json', 기록상한 * 10) ?? 'null') as { 상태?: unknown; 목록?: unknown; 창?: unknown } | null;
+    const 표시 = JSON.parse(안전히읽기(폴더, 'game.json', 기록상한 * 10) ?? 'null') as { 상태?: unknown; 구역?: unknown; 목록?: unknown; 창?: unknown } | null;
     if (목록 === null || !상태인가(표시?.상태) || 표시.목록 !== 목록지문(목록)) return null;
     const 같음 = (Array.isArray(표시.창) ? (표시.창 as { 키?: unknown; 저장본?: unknown }[]) : []).flatMap((c) => (c?.저장본 === '같음' && typeof c.키 === 'string' ? [c.키] : []));
-    return { 상태: 표시.상태, 폴더, 창들: 창목록(JSON.parse(목록)), 같음: new Set(같음) };
+    // 장소 훑기(상태 도우미로 순간이동한 자리)면 시작 화면이 `game:<장면>/zone:<구역>` 이다 — 꼴이 틀린 구역은 장소가 아닌 것으로 본다
+    const 구역 = typeof 표시.구역 === 'string' && 구역꼴.test(표시.구역) ? 표시.구역 : undefined;
+    return { 상태: 표시.상태, 폴더, 창들: 창목록(JSON.parse(목록), 구역), 같음: new Set(같음) };
   } catch {
     return null;
   }
