@@ -56,7 +56,7 @@ vi.mock('./screenMap.js', () => ({
 
 vi.mock('./scanner.js', () => ({
   testsRoot: () => 뿌리.길,
-  scan: async (dir: string) => {
+  scanApart: async (dir: string) => {
     if (dir.endsWith('xcd')) throw Object.assign(new Error(`ENOENT: no such file or directory, scandir '${dir}'`), { code: 'ENOENT' });
     if (dir.endsWith('xca')) return { specs: [명세('XCA-001', 'a.spec.ts')], failures: [], duplicates: [] };
     if (dir.endsWith('xcb')) {

@@ -1,12 +1,17 @@
 // tests 폴더를 훑어 케이스 명세를 뽑는다. 진실의 원천은 코드이고 DB의 test_case는 캐시다 (SPEC §3.1)
 
-import { readdir, readFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { readdir, readFile, stat } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { promisify } from 'node:util';
 
 import type { CaseSpec } from '@platform/kit';
 
 import { 번호열쇠 } from './rules.js';
+
+const run = promisify(execFile);
 
 export interface Duplicate {
   tcId: string;
@@ -42,12 +47,8 @@ function isCaseSpec(value: unknown): value is CaseSpec {
   return typeof value === 'object' && value !== null && typeof (value as { tcId?: unknown }).tcId === 'string';
 }
 
-// 같은 프로세스에서 두 번째 스캔부터는 ESM 캐시가 옛 내용을 물고 있다. 그러면 '다시 스캔하기'가 거짓말을 한다
-let generation = 0;
-
-async function importSpec(file: string, gen: number): Promise<unknown> {
-  const url = pathToFileURL(file).href;
-  const mod = (await import(gen === 0 ? url : `${url}?scan=${gen}`)) as Record<string, unknown>;
+async function importSpec(file: string): Promise<unknown> {
+  const mod = (await import(pathToFileURL(file).href)) as Record<string, unknown>;
   return mod.spec;
 }
 
@@ -82,11 +83,11 @@ export async function duplicatesWith(specs: readonly CaseSpec[], root: string = 
   return duplicatesOf([...read, ...specs]).filter((d) => mine.has(d.files[1]));
 }
 
-// only 를 주면 그 파일만 import 한다. 그때 겹침은 duplicates 말고 duplicatesWith 로 본다
+// only 를 주면 그 파일만 import 한다. 그때 겹침은 duplicates 말고 duplicatesWith 로 본다.
+// 한 프로세스에서 한 번만 부른다 — ESM 캐시가 옛 내용을 물고 있어 두 번째부터는 고친 파일을 못 본다. 다시 훑는 admin 은 scanApart 로 간다
 export async function scan(root: string = testsRoot(), only?: readonly string[]): Promise<ScanResult> {
   // kit의 test() 래퍼가 이 값을 보고 Playwright에 등록하지 않는다. 명세만 읽고 빠져나오기 위한 것이다 (SPEC §3.1)
   process.env.PLATFORM_SCAN = '1';
-  const gen = generation++;
 
   const specs: CaseSpec[] = [];
   const failures: ScanFailure[] = [];
@@ -94,7 +95,7 @@ export async function scan(root: string = testsRoot(), only?: readonly string[])
   for (const file of only ?? (await caseFiles(root))) {
     const at = relative(root, file);
     try {
-      const loaded = await importSpec(file, gen);
+      const loaded = await importSpec(file);
       if (isCaseSpec(loaded)) specs.push(loaded);
       else failures.push({ file: at, message: 'export const spec이 없다' });
     } catch (err) {
@@ -104,4 +105,53 @@ export async function scan(root: string = testsRoot(), only?: readonly string[])
 
   specs.sort((a, b) => a.tcId.localeCompare(b.tcId));
   return { specs, failures, duplicates: duplicatesOf(specs) };
+}
+
+// 하위 프로세스가 결과 앞에 붙이는 표시 — 케이스 파일이 stdout 에 무엇을 찍어도 섞이지 않게
+const 결과표시 = '@@CATALOG-SCAN@@';
+
+/**
+ * admin 이 root 일 때 하위 프로세스를 띄울 uid · gid. 같은 uid 면 `/proc/<admin>/environ` 으로 비밀값을 그대로 읽는다.
+ * 케이스 폴더 주인은 umask 가 좁아도 자기 파일을 읽는다. 주인도 root 면 nobody 다
+ */
+export function 스캔자리({ uid, gid }: { uid: number; gid: number }): { uid: number; gid: number } {
+  return uid === 0 ? { uid: 65534, gid: 65534 } : { uid, gid };
+}
+
+/**
+ * 병합된 케이스는 AI 가 쓴 코드라 import 하면 그 파일과 Page Object 의 최상위 문장이 돈다(H2).
+ * DB 슈퍼유저 · 세션 키를 쥔 admin 안에서 읽지 않고 빈 환경의 하위 프로세스에서 읽는다 — 작성의 authoring-held.ts 와 같은 방식.
+ * 스캔마다 프로세스가 끝나므로 모듈 캐시도 쌓이지 않는다(M1)
+ */
+export async function scanApart(root: string): Promise<ScanResult> {
+  // 폴더가 없으면 여기서 ENOENT 를 던진다 — 부르는 쪽이 새 서비스와 읽기 실패를 그 코드로 가른다
+  if ((await caseFiles(root)).length === 0) return { specs: [], failures: [], duplicates: [] };
+  let stdout: string;
+  try {
+    ({ stdout } = await run(process.execPath, ['--import', 'tsx', fileURLToPath(import.meta.url), root], {
+      // kit 의 defineCase 가 filePath 를 이 뿌리 기준으로 만든다. HOME 은 바꾼 uid 가 계정 목록에 없어도 os.homedir() 가 안 던지게.
+      // 그 밖의 환경변수는 넘기지 않는다
+      env: { PLATFORM_TESTS_DIR: testsRoot(), HOME: tmpdir(), TMPDIR: tmpdir() },
+      ...(process.getuid?.() === 0 ? 스캔자리(await stat(root)) : {}),
+      // 최상위에서 멈춘 케이스 하나가 기동 스캔과 그 뒤 「다시 스캔」을 전부 붙잡지 않게
+      timeout: 600_000,
+      killSignal: 'SIGKILL',
+      maxBuffer: 256 * 1024 * 1024,
+    }));
+  } catch (err) {
+    const e = err as { killed?: boolean; code?: unknown; stderr?: unknown };
+    const 끝 = typeof e.stderr === 'string' ? e.stderr.trim().slice(-500) : '';
+    const 까닭 = e.killed === true ? '10분 안에 못 끝내 끊었다' : `종료 ${String(e.code)}`;
+    throw new Error(`케이스를 따로 읽는 프로세스가 실패했다 (${까닭})${끝 === '' ? '' : `: ${끝}`}`, { cause: err });
+  }
+  const 자리 = stdout.lastIndexOf(결과표시);
+  if (자리 < 0) throw new Error('케이스를 따로 읽는 프로세스가 결과를 내지 않았다');
+  return JSON.parse(stdout.slice(자리 + 결과표시.length)) as ScanResult;
+}
+
+// scanApart 가 띄운 하위 프로세스가 여기로 들어온다 — `node --import tsx scanner.ts <폴더>`
+if (process.argv[1] !== undefined && pathToFileURL(process.argv[1]).href === import.meta.url) {
+  const 결과 = await scan(process.argv[2]);
+  // 케이스 파일이 남긴 타이머가 프로세스를 붙잡지 않게 다 쓴 뒤 바로 끝낸다
+  process.stdout.write(결과표시 + JSON.stringify(결과), () => process.exit(0));
 }
