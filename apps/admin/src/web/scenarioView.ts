@@ -210,11 +210,15 @@ function 빈칸있나(p: ScenarioPart): boolean {
     return 빔(p.path) || (p.values ?? []).some((v) => 빔(v.name) || 빔(v.value.urlPattern) || 빔(v.value.jsonPath)) || (p.expectJson ?? []).some((c) => 빔(c.jsonPath));
   }
   if (p.kind !== 'case') return false;
-  return (p.links ?? []).some((l) => {
-    if (l.kind === 'bind') return 빔(l.param) || 빔(l.value.urlPattern) || 빔(l.value.jsonPath);
-    if (l.kind === 'rewrite') return 빔(l.urlPattern) || 빔(l.to.path) || 빔(l.to.value.urlPattern) || 빔(l.to.value.jsonPath);
-    return 빔(l.urlPattern);
-  });
+  return (p.links ?? []).some(빈연결);
+}
+
+/** 값 연결 하나에 서버가 min(1) 로 막는 빈 칸이 있나 — 마법사 「값 연결」도 이것으로 막는다 */
+export function 빈연결(l: ScenarioLink): boolean {
+  const 빔 = (글: string) => 글.trim() === '';
+  if (l.kind === 'bind') return 빔(l.param) || 빔(l.value.urlPattern) || 빔(l.value.jsonPath);
+  if (l.kind === 'rewrite') return 빔(l.urlPattern) || 빔(l.to.path) || 빔(l.to.value.urlPattern) || 빔(l.to.value.jsonPath);
+  return 빔(l.urlPattern);
 }
 
 /** 필수 칸이 빈 첫 단계의 번호. 없으면 null */

@@ -33,9 +33,11 @@ interface Props {
   /** 서비스 지도의 API. 못 받았거나 읽을 수 없으면 null 이라 「요청 고르기」 없이 손으로 적는다 */
   지도?: 지도API[] | null;
   on바꿈: (links: ScenarioLink[]) => void;
+  /** 이 자리의 값 연결 하나만 편다 — 마법사 「직접 수정」. 더하기 · 삭제는 마법사 카드가 한다 */
+  한칸?: number;
 }
 
-export function ScenarioLinks({ 번호, 단계, 단계들, 재료, 쓰나, 지도, on바꿈 }: Props) {
+export function ScenarioLinks({ 번호, 단계, 단계들, 재료, 쓰나, 지도, on바꿈, 한칸 }: Props) {
   const t = use말();
   const [펼침, set펼침] = useState(false);
   const links = 단계.links ?? [];
@@ -90,6 +92,7 @@ export function ScenarioLinks({ 번호, 단계, 단계들, 재료, 쓰나, 지�
     <div className="scn-links">
       <p className="hint">{t('값 연결은 첫 확인이 나오기 전 사전 단계에서만 적용됩니다')}</p>
       {links.map((l, i) => {
+        if (한칸 !== undefined && i !== 한칸) return null;
         const 아이디 = `scn-link-${번호}-${i}`;
         return (
           <fieldset className="scn-set-block scn-set-group" key={i}>
@@ -155,7 +158,7 @@ export function ScenarioLinks({ 번호, 단계, 단계들, 재료, 쓰나, 지�
                 </fieldset>
               </>
             ) : null}
-            {!쓰나 ? null : (
+            {!쓰나 || 한칸 !== undefined ? null : (
               <button type="button" className="btn ghost" onClick={() => on바꿈(links.filter((_, j) => j !== i))}>
                 {t('값 연결 삭제')}
               </button>
@@ -165,7 +168,7 @@ export function ScenarioLinks({ 번호, 단계, 단계들, 재료, 쓰나, 지�
 
       })}
 
-      {!쓰나 ? null : (
+      {!쓰나 || 한칸 !== undefined ? null : (
         <div className="scn-set-block">
           <button type="button" className="btn ghost" aria-expanded={펼침} onClick={() => set펼침(!펼침)}>
             {t('+ 값 연결 추가')}

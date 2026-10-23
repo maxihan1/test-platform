@@ -37,9 +37,9 @@ export function ScenarioList({ service, envs, 할수 }: { service: string; envs:
   if (list.data === null) return <Loading />;
   const 줄들 = list.data.items.filter((it) => !치운.includes(it.id));
 
-  // 마법사(#/scenarios/new)는 값 연결 · 시험 실행 · 저장 단계가 붙는 진행판 E2E-F2-05 에서 이 단추에 건다. 그때까지는 빈 조립 화면이다
+  // 새 시나리오는 마법사로 만든다. 빈 조립 화면은 마법사 머리의 「조립 화면으로」로 간다 (도메인/시나리오 §3.7 결정 15)
   const 새시나리오 = 쓰나 ? (
-    <a className="btn" href="#/scenarios/new/build">
+    <a className="btn" href="#/scenarios/new">
       {t('새 시나리오')}
     </a>
   ) : null;

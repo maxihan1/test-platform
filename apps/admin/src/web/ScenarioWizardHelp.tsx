@@ -2,6 +2,7 @@
 
 import { use말 } from './i18n.js';
 import type { FlowJob } from './scenarioApi.js';
+import { 체크그림 } from './SettingsWizardSteps.js';
 
 export type 마법사단계 = 'start' | 'ai' | 'steps' | 'values' | 'trial' | 'save';
 
@@ -128,6 +129,38 @@ export function 안내칸({ 단계, 재료 }: { 단계: 마법사단계; 재료:
         <p key={줄}>{t(줄)}</p>
       ))}
       <span className="wz-badge">{t(지금.표)}</span>
+    </aside>
+  );
+}
+
+/** 왼쪽 세로 단계 띠 — 지나온 단계는 체크, 지금 단계 아래에 안내 칸 */
+export function 단계띠({
+  목록,
+  지금,
+  재료,
+  on돌아감,
+}: {
+  목록: 마법사단계[];
+  지금: number;
+  재료: FlowJob['material'] | null;
+  on돌아감: (i: number) => void;
+}) {
+  const t = use말();
+  return (
+    <aside className="wz-rail">
+      <p className="wz-brand">{t('새 시나리오')}</p>
+      <ol className="wz-steps">
+        {목록.map((it, i) => (
+          <li key={it} className={i < 지금 ? 'done' : i === 지금 ? 'now' : undefined} aria-current={i === 지금 ? 'step' : undefined}>
+            {/* 지나온 단계는 눌러 돌아간다. 앞 단계는 차례대로만 간다 — 건너뛰면 넘어가는 조건을 안 거친다 */}
+            <button type="button" className="wz-stepbtn" disabled={i >= 지금} onClick={() => on돌아감(i)}>
+              <span className="wz-dot">{i < 지금 ? 체크그림 : i + 1}</span>
+              {t(단계이름[it])}
+            </button>
+            {i === 지금 ? <안내칸 단계={it} 재료={재료} /> : null}
+          </li>
+        ))}
+      </ol>
     </aside>
   );
 }

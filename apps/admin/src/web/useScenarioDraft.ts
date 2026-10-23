@@ -17,7 +17,7 @@ const 찍는다 = (이름: string, 디바이스: Platform, 단계들: ScenarioPa
 
 // 404 는 비활성 · 사라진 케이스라 그 tcId 만 null(재료 없음)로 둔다. 그 밖의 오류는 서버가 아픈 것이니 삼키지 않는다 —
 // 삼키면 「실행 불가」 칩처럼 보여 케이스 탓으로 읽힌다
-const 재료읽기 = (tcId: string): Promise<CasePartMaterial | null> =>
+export const 재료읽기 = (tcId: string): Promise<CasePartMaterial | null> =>
   scenarioApi.caseParts(tcId).catch((err: unknown) => {
     if (err instanceof ApiError && err.status === 404) return null;
     throw err;
