@@ -3,9 +3,9 @@
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
-import { readFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 
+import { 볼륨파일읽기 } from '../artifactFile.js';
 import { 내려받기, 디스크이름, 머리글이름, 받는확장자, 이름인가, 파일상한 } from '../authoring/assets.js';
 import { 번호, 사진뿌리, 서비스번호 } from '../authoring/routes.js';
 import { 누가, 판번호 } from '../prd/routes.js';
@@ -22,7 +22,8 @@ export const 가이드파일자리 = (서비스: number, 파일: { id: number; n
 
 /** 디스크의 첨부. 행은 있는데 파일이 없으면(볼륨을 옮기다 빠뜨렸다) null — 라우트가 404 로 보낸다 */
 export async function 가이드파일읽기(서비스: number, 파일: { id: number; name: string }): Promise<Buffer | null> {
-  return readFile(가이드파일자리(서비스, 파일)).catch((e: NodeJS.ErrnoException) => {
+  // 러너도 이 볼륨에 쓴다 — 바로가기는 없는 파일로 친다 (리뷰 M4)
+  return 볼륨파일읽기(가이드파일자리(서비스, 파일)).catch((e: NodeJS.ErrnoException) => {
     if (e.code === 'ENOENT') return null;
     throw e;
   });

@@ -1,11 +1,12 @@
 // 붙잡아 둔 증적 문서 한 부를 실제로 그려 파일로 남긴다 (SPEC §8.4)
 // 라우트가 기다리지 않고 띄우므로 이 함수는 절대 던지지 않는다 — 던지면 잡을 사람이 없고 PENDING이 영원히 남는다
 
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
 import { chromium } from '@playwright/test';
 
+import { 볼륨파일읽기 } from '../artifactFile.js';
 import { enqueue } from '../execution/dispatcher.js';
 import { collectRun, type EvidenceStep } from './collect.js';
 import { collectScenario } from './collectScenario.js';
@@ -43,7 +44,8 @@ async function 심는다(경로: string): Promise<string | null> {
 
   try {
     // 저장값의 artifacts/ 접두사는 artifactsDir() 과 겹친다. 떼지 않으면 artifacts/artifacts/ 가 된다
-    const png = await readFile(join(artifactsDir(), 경로.slice(저장접두.length)));
+    // 러너 케이스가 건 바로가기를 따라가면 admin 의 아무 파일이나 문서에 박혀 검수처로 나간다 (리뷰 M4)
+    const png = await 볼륨파일읽기(join(artifactsDir(), 경로.slice(저장접두.length)));
     return `data:image/png;base64,${png.toString('base64')}`;
   } catch (err) {
     // 그림 한 장이 사라졌다고 증적 전체를 실패로 만들지 않는다. 왜 비었는지만 남긴다

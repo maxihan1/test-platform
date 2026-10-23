@@ -1,13 +1,12 @@
 // 시나리오 시험 실행 통로 — 시작 · 결과 · 사진. 기록을 안 남기고 시작한 사람만 본다 (SPEC 도메인/시나리오 §7)
 // 배정과 권한은 문(auth/gate.ts)이 이미 봤다. 남의 번호는 문이 지나보내고 여기서 404 를 낸다
 
-import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
-import { artifactsDir } from '../execution/routes.js';
+import { artifactsDir, 볼륨파일읽기 } from '../artifactFile.js';
 import { 시나리오시험, TrialBusyError } from '../execution/trial.js';
 import { 정수 } from '../routeParams.js';
 
@@ -55,7 +54,7 @@ export default async function scenarioTrialRoutes(app: FastifyInstance): Promise
 
     let png: Buffer;
     try {
-      png = await readFile(join(artifactsDir(), 'runs', 'trial', trialId, `${seq}.png`));
+      png = await 볼륨파일읽기(join(artifactsDir(), 'runs', 'trial', trialId, `${seq}.png`));
     } catch {
       return reply.code(404).send({ error: 'SCREENSHOT_NOT_FOUND', detail: req.url });
     }
