@@ -1045,7 +1045,8 @@
   - 근거 PR #425 · 2026-10-24 (정본 도메인/실행 §3.11 — 웹 · Android 앱 · 게임 · API 공통 · CI 토큰 `cit_` 은 `POST /api/builds` 하나만 · APK 본문 그대로 또는 `apkUrl` · 2GB · 줄마다 5개 · 서명 주소 남은 1~2시간 · 실행에 빌드 고정 · 스모크 다 통과하면 회귀 · 사람이 고친 스모크는 `smoke_set` · 화면에 「빌드 실행」 이름표만 · 서버 실측은 아직)
 - [x] `GAME-F1-13b` 빌드마다 돌리기 ② 화면 — 설정 › 애플리케이션 「CI 토큰」 구획(시안 C — 만든 직후 CI 붙이기 예시, 웹은 파일 줄 없이) · 케이스 목록 스모크 칸 · 누르면 켜고 끄기 · 「스모크만」 거르기 · 실행 목록 「빌드」 거르기 · 실행자 「빌드 · <이름>」 · 빌드 번호 표시와 폰 빌드 코드(versionCode)가 다르면 경고
   - 근거 PR #428 · 2026-10-24 (시작 질문 — 앱 판이 아니라 빌드 코드로 견준다 · kit `DeviceInfo.appBuild` · 실행 상세 `installedApps` · 숫자 빌드 번호만 수로 견줌 · 스모크 칩은 중립 꼬리표 · 엑셀도 「스모크만」을 탄다 · 13c 의 CI 는 versionCode 를 빌드 번호와 같게 둬야 경고가 뜻이 있다 · 서버 실측은 아직)
-- [ ] `GAME-F1-13c` 빌드마다 돌리기 ③ Ashveil CI — `maxihan1/ashveil` `unity-ci.yml` 에 QA APK 를 QA Hub 에 올리는 단계(비밀값 `QAHUB_TOKEN` · `QAHUB_URL`) · 그 저장소 PR + 이 진행판 체크 PR
+- [x] `GAME-F1-13c` 빌드마다 돌리기 ③ Ashveil CI — `maxihan1/ashveil` `unity-ci.yml` 에 QA APK 를 QA Hub 에 올리는 단계(비밀값 `QAHUB_TOKEN` · `QAHUB_URL`) · 그 저장소 PR + 이 진행판 체크 PR
+  - 근거 Ashveil PR #4 · PR #431 · 2026-10-24 (Ashveil D-40 — QA 잡이 아티팩트 업로드 뒤 `POST /api/builds` · 빌드 번호 `run_number` 는 이미 versionCode 라 버전 규칙 그대로 · 주소도 Secret(공개 저장소 로그) · 대상 서버는 Variable `QAHUB_ENV` · 셋 중 하나라도 없으면 건너뜀 · 같은 번호 409 는 통과 · 가짜 서버로 여섯 경우 확인 · 진짜 QA Hub 에 올리기는 GAME-F1-14)
 - [ ] `GAME-F1-14` 시험 — Ashveil 기획서로 작성 → 디바이스 팜 실행 → 빌드마다 스모크 · 회귀 (사용자가 시작하라고 할 때만)
 
 ## HAR — 개발 체계
