@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { 게임올리기, 게임준비 } from './authoring-game.js';
+import { 목록지문 } from './authoring-game-crawl.js';
 
 const 통로 = { 주소기지: 'http://admin:3000', 토큰: 't', 번호: 7 };
 const 저장된창 = { state: '로그아웃', url: 'game:Login', name: 'Login', textFp: 'bb01', structFp: 'aa01', record: '# scene:Login\n- Button LoginButton\n## 정리\n로그인 창', crawledAt: '2026-10-20T01:00:00Z' };
@@ -62,12 +63,15 @@ describe('게임준비', () => {
 });
 
 describe('게임올리기', () => {
-  const 훑기 = (이름: string, 상태: string | null, 목록: unknown[], 기록들: Record<string, string>) => {
+  // 견주기 명령이 남긴 꼴 — 상태 · list.json 지문 · 창마다 같음 표시. 상태가 null 이면 견주기를 안 돌린 폴더다
+  const 훑기 = (이름: string, 상태: string | null, 목록: unknown[], 기록들: Record<string, string>, 같음: string[] = []) => {
     const 폴더 = join(자료, 'game-crawl', 이름);
     mkdirSync(폴더, { recursive: true });
-    writeFileSync(join(폴더, 'list.json'), JSON.stringify(목록));
-    if (상태 !== null) writeFileSync(join(폴더, 'game.json'), JSON.stringify({ 상태, 창: [] }));
+    const 목록글 = JSON.stringify(목록);
+    writeFileSync(join(폴더, 'list.json'), 목록글);
+    if (상태 !== null) writeFileSync(join(폴더, 'game.json'), JSON.stringify({ 상태, 목록: 목록지문(목록글), 창: 같음.map((키) => ({ 키, 저장본: '같음' })) }));
     for (const [파일, 글] of Object.entries(기록들)) writeFileSync(join(폴더, 파일), 글);
+    return 폴더;
   };
   const 로그인목록 = [
     { 주소: 'scene:Login', 이름: 'Login', 틀: 'scene:Login', 파일: '001.yml', 지문: 'aa01', 글자지문: 'bb01', 연곳: null },
@@ -80,9 +84,9 @@ describe('게임올리기', () => {
     'PUT /game-elements': { status: 204 },
   };
 
-  it('지문이 같은 창은 안 올리고 바뀐 · 새 창만 올린 뒤 본 창을 알린다 — 못 본 창은 지우지 않는다', async () => {
-    훑기('logout', '로그아웃', 로그인목록, { '001.yml': '# scene:Login', '002.yml': '# /Canvas/SignupPanel\n## 정리\n가입 창' });
-    서버(기본답);
+  it('자식이 같음으로 본 창은 안 올리고 바뀐 · 새 창만 올린 뒤 본 창을 알린다 — 못 본 창은 지우지 않는다', async () => {
+    훑기('logout', '로그아웃', 로그인목록, { '001.yml': '# scene:Login', '002.yml': '# /Canvas/SignupPanel\n## 정리\n가입 창' }, ['game:Login']);
+    서버({ ...기본답, 'GET /screens': { status: 200, 몸: { screens: [저장된창], links: [{ state: '로그아웃', fromUrl: 'game:Login', toUrl: 'game:Login/Canvas/SignupPanel', via: 'SignupButton 「가입」' }] } } });
 
     const [창줄] = await 게임올리기(통로, 자료, [], new Date('2026-10-23T00:00:00Z'));
 
@@ -93,6 +97,27 @@ describe('게임올리기', () => {
     expect(보낸몸('POST /api/authoring/requests/7/screens/done')).toEqual([
       { seen: [{ state: '로그아웃', url: 'game:Login', name: 'Login' }, { state: '로그아웃', url: 'game:Login/Canvas/SignupPanel', name: '회원가입' }], complete: [] },
     ]);
+  });
+
+  it('같음 창에서 서버가 모르는 창으로 가는 연결이 생겼으면 기록 · 지문 · 훑은 때는 서버 것 그대로 두고 연결만 보태 다시 올린다', async () => {
+    훑기('logout', '로그아웃', 로그인목록, { '002.yml': '# 가입' }, ['game:Login']);
+    서버({ ...기본답, 'GET /screens': { status: 200, 몸: { screens: [저장된창], links: [{ state: '로그아웃', fromUrl: 'game:Login', toUrl: 'game:Login/Canvas/Old', via: 'OldButton' }] } } });
+
+    const [창줄] = await 게임올리기(통로, 자료, []);
+
+    expect(창줄).toBe('게임 창 기록 저장: 본 창 2개 · 그대로라 재사용 1개(연결만 보탬 1개) · 새로 저장 1개');
+    expect(보낸몸('PUT /api/authoring/requests/7/screens')[0]).toEqual({
+      state: '로그아웃', url: 'game:Login', name: 'Login', textFp: 'bb01', structFp: 'aa01', record: 저장된창.record, crawledAt: 저장된창.crawledAt,
+      links: [{ toUrl: 'game:Login/Canvas/Old', via: 'OldButton' }, { toUrl: 'game:Login/Canvas/SignupPanel', via: 'SignupButton 「가입」' }],
+    });
+  });
+
+  it('견주기 뒤에 같은 폴더를 다시 훑었으면(목록 지문이 다르다) 낡은 상태로 올리지 않는다', async () => {
+    const 폴더 = 훑기('a', '로그아웃', 로그인목록, { '001.yml': '# x', '002.yml': '# y' });
+    writeFileSync(join(폴더, 'list.json'), JSON.stringify(로그인목록.slice(0, 1)));
+    서버(기본답);
+
+    expect((await 게임올리기(통로, 자료, []))[0]).toBe('게임 창 기록 저장: 견주기를 마친 훑기 폴더가 없어 건너뜀(폴더 1개)');
   });
 
   it('견주기를 안 한 폴더(game.json 상태 없음)는 건너뛴다', async () => {
@@ -130,6 +155,14 @@ describe('게임올리기', () => {
 
     writeFileSync(join(자료, 'game-elements.json'), JSON.stringify({ elements: [{ kind: 'STATE', key: 'state:x', name: 'Secret!123' }] }));
     expect((await 게임올리기(통로, 자료, ['Secret!123']))[1]).toBe('게임 지도: 테스트 계정 비밀번호가 들어 있어 안 올림');
+    expect(보낸몸('PUT /api/authoring/requests/7/game-elements')).toEqual([]);
+  });
+
+  it('JSON 원문에서 이스케이프로 숨은 비밀번호도 푼 값으로 보고 막는다', async () => {
+    서버(기본답);
+    writeFileSync(join(자료, 'game-elements.json'), '{"elements":[{"kind":"STATE","key":"state:x","name":"a","value":{"메모":"Se\\u0063ret\\"9"}}]}');
+
+    expect((await 게임올리기(통로, 자료, ['Secret"9']))[1]).toBe('게임 지도: 테스트 계정 비밀번호가 들어 있어 안 올림');
     expect(보낸몸('PUT /api/authoring/requests/7/game-elements')).toEqual([]);
   });
 });

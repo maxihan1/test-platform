@@ -23,8 +23,9 @@ export type 폰잡기 = (일: (udid: string) => Promise<앱화면답>, 못잡음
 export type 읽을곳 = { 길: '/app-screen' | '/game-screen'; 기다림_ms: number };
 // 러너의 연결 열기 60초 + 화면 받기 30초 + 닫기 10초에 여유를 더한다 (에이전트 180초)
 export const 앱길: 읽을곳 = { 길: '/app-screen', 기다림_ms: 110_000 };
-// 열기 60초 + 게임이 답하기까지 120초(kit openGame) + 트리 15초 + 닫기 10초에 여유를 더한다 (에이전트 300초)
-export const 게임길: 읽을곳 = { 길: '/game-screen', 기다림_ms: 230_000 };
+// 열기 60초 + 게임이 답하기까지 120초(kit openGame — 마지막 ping 이 20초 더 넘길 수 있다) + 트리 20초 + 닫기 10초에 여유를 더한다 (에이전트 360초).
+// 먼저 끊으면 아래 finally 가 팜 폰을 놓는데 러너는 아직 그 폰에서 읽고 있다
+export const 게임길: 읽을곳 = { 길: '/game-screen', 기다림_ms: 260_000 };
 const 까닭_상한 = 200;
 
 const 짧게 = (글: string): string => (글.length > 까닭_상한 ? `${글.slice(0, 까닭_상한)}…` : 글);

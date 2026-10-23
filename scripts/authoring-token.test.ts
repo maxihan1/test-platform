@@ -93,8 +93,14 @@ describe('나풀기 — /api/auth/me 로 이름·서비스·대상 서버·테�
     expect(나풀기(몸)).toEqual({
       username: 'mac',
       서비스들: ['DEMO'],
-      설정표: { DEMO: { 서버들: [{ env: 'qa', baseUrl: 'https://qa.x' }], 폴더: { 폴더: 'demo' }, 제외: [] } },
+      설정표: { DEMO: { 서버들: [{ env: 'qa', baseUrl: 'https://qa.x' }], 폴더: { 폴더: 'demo' }, 제외: [], 게임: false } },
     });
+  });
+
+  it('종류 「게임」이면 게임 표시를 단다 — 게임 첫 화면 통로가 실패해도 게임으로 다룬다 (GAME-F1-10)', () => {
+    const 게임몸 = { user: { ...몸.user, services: [{ ...몸.user.services[0]!, kind: 'GAME' }] } };
+
+    expect((나풀기(게임몸) as Exclude<ReturnType<typeof 나풀기>, string>).설정표.DEMO?.게임).toBe(true);
   });
 
   it('훑지 않을 경로는 설정과 같은 규칙으로 다시 거른다 — 끝의 / · 앞뒤 공백 · 중복을 걷는다 (#153)', () => {

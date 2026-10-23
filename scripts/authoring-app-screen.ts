@@ -12,10 +12,10 @@ export type 앱탐색 = { url: string; app: string };
 /** 게임 — 게임 첫 화면 통로에서 왔다. 프롬프트 절 · 놓을 폰 기록 자리(control-cli)가 다르다 */
 export type 앱화면 = ({ 글: string } | { 못읽음: string }) & { 탐색?: 앱탐색; 게임?: true };
 
-/** 서버의 어느 통로에서 무엇을 받나. 기다림은 서버의 러너 기다림(앱 110 · 게임 230초)보다 길다 — 먼저 끊으면 폰을 읽는 중에 버린다 */
+/** 서버의 어느 통로에서 무엇을 받나. 기다림은 서버의 러너 기다림(앱 110 · 게임 260초)에 팜 잡기 · 놓기를 더한 것보다 길다 — 먼저 끊으면 폰을 읽는 중에 버린다 */
 type 받을곳 = { 길: string; 파일: string; 칸: 'appium' | 'game'; 기다림_ms: number; 이름: string };
 const 앱곳: 받을곳 = { 길: 'app-screen', 파일: 'app-screen.txt', 칸: 'appium', 기다림_ms: 180_000, 이름: '앱' };
-const 게임곳: 받을곳 = { 길: 'game-screen', 파일: 'game-screen.txt', 칸: 'game', 기다림_ms: 300_000, 이름: '게임' };
+const 게임곳: 받을곳 = { 길: 'game-screen', 파일: 'game-screen.txt', 칸: 'game', 기다림_ms: 360_000, 이름: '게임' };
 
 export const 앱화면파일 = (자료: string): string => join(자료, 앱곳.파일);
 export const 게임화면파일 = (자료: string): string => join(자료, 게임곳.파일);
@@ -27,10 +27,13 @@ export const 게임화면파일 = (자료: string): string => join(자료, 게�
  */
 export const 앱화면받기 = (서버: { 주소기지: string; 토큰: string }, 번호: number, 자료: string): Promise<앱화면 | undefined> => 화면받기(서버, 번호, 자료, 앱곳);
 
-/** 게임 애플리케이션이면 게임 첫 화면 — 서버가 종류로 갈라 게임이 아니면 undefined 다. 앱 화면과 나란히 부르고 둘 중 온 것을 쓴다 (도메인/게임 §7 「게임 첫 화면」) */
-export async function 게임화면받기(서버: { 주소기지: string; 토큰: string }, 번호: number, 자료: string): Promise<앱화면 | undefined> {
+/**
+ * 게임 애플리케이션(`/api/auth/me` 의 종류)만 부른다 — 게임 첫 화면 (도메인/게임 §7 「게임 첫 화면」). 늘 게임 표시가 붙은 값을 돌려준다:
+ * 통로를 못 불렀어도(서버 오류 · 시간 초과) 게임 절 · 게임 지도 · 창 기록 올리기는 붙어야 한다 — 그때는 팜 주소를 몰라 CLI 탐색만 빠진다
+ */
+export async function 게임화면받기(서버: { 주소기지: string; 토큰: string }, 번호: number, 자료: string): Promise<앱화면> {
   const 답 = await 화면받기(서버, 번호, 자료, 게임곳);
-  return 답 === undefined ? undefined : { ...답, 게임: true };
+  return { ...(답 ?? { 못읽음: '게임 화면 통로를 못 불렀다(서버 오류 · 시간 초과 — 에이전트 로그)' }), 게임: true };
 }
 
 async function 화면받기(서버: { 주소기지: string; 토큰: string }, 번호: number, 자료: string, 곳: 받을곳): Promise<앱화면 | undefined> {

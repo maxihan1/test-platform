@@ -38,6 +38,7 @@ describe.skipIf(연결 === undefined)('게임 첫 화면 · 게임 화면 기록
   const 받기 = async (id: number, 길: string) => (await app.inject({ method: 'GET', url: `/api/authoring/requests/${id}/${길}` })).json();
   const 치우기 = async () => {
     await q('DELETE FROM screen_link WHERE service_id = $1', [서비스]);
+    await q('DELETE FROM screen_found WHERE service_id = $1', [서비스]);
     await q('DELETE FROM screen_record WHERE service_id = $1', [서비스]);
     await q('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
     await q('DELETE FROM service_env WHERE service_id = $1', [서비스]);
@@ -114,6 +115,26 @@ describe.skipIf(연결 === undefined)('게임 첫 화면 · 게임 화면 기록
     const 읽음 = await 받기(id, 'screens');
     expect(읽음.screens.map((s: { url: string }) => s.url)).toEqual(['game:Login']);
     expect(읽음.links).toEqual([{ state: '로그아웃', fromUrl: 'game:Login', toUrl: 'game:Login/Canvas/SignupPanel', via: 'SignupButton 「가입」' }]);
+  });
+
+  it('본 창 알리기(done)도 앱 줄의 찾은 창으로 남고, 못 본 창은 complete 가 비면 안 지운다', async () => {
+    await 줄들([['dev', null, false], ['qa', 'https://builds/qa.apk', false]]);
+    const id = await 요청넣기();
+
+    const r = await app.inject({ method: 'POST', url: `/api/authoring/requests/${id}/screens/done`, payload: { seen: [{ state: '로그인:일반 회원', url: 'game:World/Canvas/InventoryPanel', name: '인벤토리' }], complete: [] } });
+
+    expect(r.json()).toEqual({ deleted: 0, viewport: null });
+    const 찾음 = await q<{ env: string; url: string }>('SELECT env, url FROM screen_found WHERE service_id = $1', [서비스]);
+    expect(찾음.rows.map((x) => [x.env, x.url])).toEqual([['qa', 'game:World/Canvas/InventoryPanel']]);
+  });
+
+  it('게임인데 운영 아닌 앱 줄이 없으면 웹과 같이 빈 목록 · 400 BAD_SCREEN env 다', async () => {
+    await 줄들([['prod', 'https://builds/prod.apk', true]]);
+    const id = await 요청넣기();
+
+    expect(await 받기(id, 'screens')).toEqual({ screens: [], links: [] });
+    const r = await app.inject({ method: 'POST', url: `/api/authoring/requests/${id}/screens/done`, payload: { seen: [], complete: [] } });
+    expect([r.statusCode, r.json()]).toEqual([400, { error: 'BAD_SCREEN', detail: 'env' }]);
   });
 
   it('게임이 아닌 요청은 대상 서버가 없으면 지금처럼 올리지 못한다', async () => {

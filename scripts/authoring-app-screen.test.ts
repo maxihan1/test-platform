@@ -223,10 +223,10 @@ describe('게임화면받기 · 게임 폰 놓기 · 게임 화면 절 (도메�
     expect(readFileSync(게임화면파일(자료), 'utf8')).toContain('LoginButton');
   });
 
-  it('게임이 아니면(셋 다 null) undefined — 앱 · 웹 서비스는 아무것도 안 바뀐다', async () => {
-    서버가({ screen: null, reason: null, game: null });
+  it('통로를 못 불렀어도 게임 표시를 단 「못 읽음」을 돌려준다 — 게임 절 · 게임 지도 · 창 기록 올리기가 빠지지 않게', async () => {
+    서버가({ error: 'X' }, 502);
 
-    expect(await 게임화면받기(서버, 7, 자료)).toBeUndefined();
+    expect(await 게임화면받기(서버, 7, 자료)).toEqual({ 못읽음: '게임 화면 통로를 못 불렀다(서버 오류 · 시간 초과 — 에이전트 로그)', 게임: true });
   });
 
   it('게임은 control-cli 가 잡은 폰 기록(.control-cli/held)을 놓는다 — appium-cli 기록은 안 본다', async () => {

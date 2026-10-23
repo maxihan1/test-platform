@@ -1,5 +1,6 @@
-// 게임 창 훑기 결과를 화면 기록 꼴로 바꾸고 저장본과 견준다 — 작성 AI 가 control-cli crawl 직후 부르고, 에이전트가 올릴 때 같은 함수로 다시 견준다 (도메인/게임 §3.10 「창 훑기」)
+// 게임 창 훑기 결과를 화면 기록 꼴로 바꾸고 저장본과 견준다 — 작성 AI 가 control-cli crawl 직후 부르고, 에이전트는 올릴 때 이 표시(game.json)로 같음을 거른다 (도메인/게임 §3.10 「창 훑기」)
 // 쓰는 법: npx tsx scripts/authoring-game-crawl.ts <자료 폴더>/game-crawl/<이름> '<상태>' — 상태는 로그아웃 · 로그인:<역할>
+import { createHash } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -70,6 +71,9 @@ export function 견주기(창들: 창[], 상태: 상태, 저장: 저장한창[],
   });
 }
 
+/** list.json 글의 지문 — game.json 에 남겨, 견주기 뒤에 같은 폴더를 다시 훑었으면(crawl 은 game.json 을 안 지운다) 낡은 표시로 올리지 않게 한다 */
+export const 목록지문 = (글: string): string => createHash('sha1').update(글).digest('hex').slice(0, 16);
+
 /** 저장본 목록(`game-kept/index.json`) — 에이전트가 쓴 파일이지만 자식이 고칠 수 있어 모양을 본다 */
 export function 저장목록(값: unknown): (저장한창 & { 기록: string })[] {
   return (Array.isArray(값) ? 값 : []).filter(
@@ -97,7 +101,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     process.exit(1);
   }
   const 기록 = new Map(저장.map((x) => [`${x.상태} ${x.키}`, x.기록]));
-  writeFileSync(join(폴더, 'game.json'), JSON.stringify({ 상태: 상태값, 창: 창들 }, null, 2));
+  writeFileSync(join(폴더, 'game.json'), JSON.stringify({ 상태: 상태값, 목록: 목록지문(목록글), 창: 창들 }, null, 2));
   const 셈 = (s: string) => 창들.filter((c) => c.저장본 === s);
   console.log(`- 창 ${창들.length}개 — 같음 ${셈('같음').length} · 바뀜 ${셈('바뀜').length} · 새 창 ${셈('새 창').length}`);
   for (const c of 셈('같음')) console.log(`- 같음 ${c.키} → 저장 기록 game-kept/${기록.get(`${상태값} ${c.키}`) ?? '?'} (다시 정리하지 않는다)`);
