@@ -200,8 +200,13 @@ export class Agent {
   private async runMonitor(job: Job): Promise<DoneBody> {
     const startMs = this.localStart(job);
     await this.pause(startMs - Date.now());
+    // 이미 지난 초는 건너뛴다 — 늦게 받은 일 · 늦게 끝난 보내기 뒤에 지난 초를 몇 ms 간격 읽기로 채우면 가짜 숫자가 나간다.
+    // 늦게 받았으면 첫 읽기 간격이 0.5초는 되게 반올림한다
+    const 지난초 = () => (Date.now() - startMs) / 1000;
+    const first = Math.max(0, Math.round(지난초()));
+    if (first >= job.durationSec) return { status: 'ERROR', reason: '실행 시간이 끝난 뒤에 일을 받았습니다' };
     let prev = readSnapshot(this.cfg.procRoot);
-    for (let sec = 0; sec < job.durationSec && !this.cfg.signal?.aborted; sec += 1) {
+    for (let sec = first; sec < job.durationSec && !this.cfg.signal?.aborted; sec = Math.max(sec + 1, Math.floor(지난초()))) {
       await this.pause(startMs + (sec + 1) * 1000 - Date.now());
       const cur = readSnapshot(this.cfg.procRoot);
       const body: MonitorSecond = { sec, ...diff(prev, cur) };

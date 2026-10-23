@@ -42,7 +42,7 @@ interface Call {
 let server: Server | undefined;
 afterEach(() => server?.close());
 
-async function runOnce(job: Partial<Job>, opts: { mode?: string; stop?: boolean; abortAfterMs?: number } = {}) {
+async function runOnce(job: Partial<Job>, opts: { mode?: string; stop?: boolean; abortAfterMs?: number; zipDelayMs?: number } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'perf-dummy-test-'));
   writeFileSync(join(dir, 'client.mjs'), CLIENT);
   const zip = join(dir, 'client.zip');
@@ -60,7 +60,12 @@ async function runOnce(job: Partial<Job>, opts: { mode?: string; stop?: boolean;
       calls.push({ path, auth: req.headers.authorization, body: raw ? (JSON.parse(raw) as Record<string, unknown>) : {} });
       const json = (body: unknown) => res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(body));
       if (path.endsWith('/hello')) return json({ agentId: 1, name: 'perf-1', mode: 'LOAD', serverTime: new Date().toISOString() });
-      if (path.includes('/dummy-clients/')) return void res.writeHead(200, { 'content-type': 'application/zip' }).end(zipBytes);
+      if (path.includes('/dummy-clients/')) {
+        return void setTimeout(() => {
+          calls.push({ path: 'zip-sent', auth: undefined, body: {} });
+          res.writeHead(200, { 'content-type': 'application/zip' }).end(zipBytes);
+        }, opts.zipDelayMs ?? 0);
+      }
       if (path.endsWith('/claim')) {
         const first = !claimed;
         claimed = true;
@@ -95,6 +100,25 @@ describe('Agent 더미 클라이언트', { timeout: 30_000 }, () => {
     expect(r.sum('login')).toEqual({ requests: 2, errors: 1 });
     expect(r.metrics[0]).toMatchObject({ sec: 0, vus: 2 });
     expect(r.metrics[1]).toMatchObject({ sec: 1, vus: 4, txs: [] });
+    expect(r.done).toEqual({ status: 'OK' });
+  });
+
+  it('zip 받기가 시작 시각을 넘기면 받는 동안에도 1초 숫자를 보낸다', async () => {
+    const r = await runOnce({ durationSec: 6, env: { BASE_URL: 'http://game.test:7000', QAHUB_STAGES: '[{"durationSec":6,"target":4}]', MODE: 'hold' } }, { zipDelayMs: 4_000 });
+    const zipSent = r.calls.findIndex((c) => c.path === 'zip-sent');
+    expect(r.calls.findIndex((c) => c.path.endsWith('/metrics'))).toBeLessThan(zipSent);
+    expect(r.calls.slice(0, zipSent).filter((c) => c.path.endsWith('/metrics')).every((c) => c.body.vus === 0)).toBe(true);
+    const secs = r.metrics.map((m) => m.sec);
+    expect(secs).toEqual([...new Set(secs)].sort((a, b) => a - b));
+    expect(r.sum('login')).toEqual({ requests: 2, errors: 1 });
+    expect(r.done).toEqual({ status: 'OK' });
+  });
+
+  it('zip 을 받는 동안 QA Hub 가 멈추라고 하면 받기를 끊고 띄우지 않는다', async () => {
+    const t0 = Date.now();
+    const r = await runOnce({ durationSec: 30, env: { BASE_URL: 'http://game.test:7000', QAHUB_STAGES: '[{"durationSec":30,"target":4}]', MODE: 'hold' } }, { stop: true, zipDelayMs: 8_000 });
+    expect(Date.now() - t0).toBeLessThan(7_000);
+    expect(r.sum('login').requests).toBe(0);
     expect(r.done).toEqual({ status: 'OK' });
   });
 
