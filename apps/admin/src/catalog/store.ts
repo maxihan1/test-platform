@@ -245,15 +245,17 @@ export interface ServiceRow {
   prefix: string;
   name: string;
   testsDir: string;
+  /** 애플리케이션 종류 — 게임만 게임 지도의 요소를 거친 케이스를 채운다 (도메인/게임 §3.10) */
+  kind: string;
 }
 
 // 서비스는 지우지 않고 비활성으로 내린다. 내려간 서비스의 케이스는 더 훑지 않는다 (SPEC §8.8)
 export async function activeServices(): Promise<ServiceRow[]> {
   const pool = await db();
-  const rows = await pool.query<{ id: string; prefix: string; name: string; tests_dir: string }>(
-    'SELECT id, prefix, name, tests_dir FROM service WHERE is_active ORDER BY prefix',
+  const rows = await pool.query<{ id: string; prefix: string; name: string; tests_dir: string; kind: string }>(
+    'SELECT id, prefix, name, tests_dir, kind FROM service WHERE is_active ORDER BY prefix',
   );
-  return rows.rows.map((r) => ({ id: Number(r.id), prefix: r.prefix, name: r.name, testsDir: r.tests_dir }));
+  return rows.rows.map((r) => ({ id: Number(r.id), prefix: r.prefix, name: r.name, testsDir: r.tests_dir, kind: r.kind }));
 }
 
 export async function findService(prefix: string): Promise<ServiceRow | null> {

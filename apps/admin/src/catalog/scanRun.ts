@@ -8,6 +8,7 @@ import { join } from 'node:path';
 
 import { 칸되는서비스 } from '../auth/permissions.js';
 import type { 사용자 } from '../auth/store.js';
+import { 게임밖요소, 요소지도채우기 } from './elementMap.js';
 import { 지도채우기 } from './reqMap.js';
 import { scanApart, testsRoot, type Duplicate } from './scanner.js';
 import { 화면지도채우기 } from './screenMap.js';
@@ -139,6 +140,18 @@ async function runScan(log: FastifyBaseLogger, 고르기?: (s: ServiceRow) => bo
         결과.problems.push(
           `${service.prefix} 서비스의 화면 파일로 지도를 채우지 못했다: ${err instanceof Error ? err.message : String(err)}`,
         );
+      }
+
+      // 게임 지도의 요소를 거친 케이스도 케이스 파일에서 온다 — 게임이 아닌 애플리케이션은 넣지 않고 알린다 (공통/3 「게임 테스트 타입」 elements)
+      if (service.kind !== 'GAME') 결과.problems.push(...게임밖요소(내것));
+      else {
+        try {
+          await 요소지도채우기(service.id, 내것, found.failures.length === 0);
+        } catch (err) {
+          결과.problems.push(
+            `${service.prefix} 게임의 케이스로 게임 지도를 채우지 못했다: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
       }
     }
 
