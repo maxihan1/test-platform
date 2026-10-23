@@ -9,6 +9,7 @@ import { 멈춘듯기준 } from './authoringView.js';
 const 줄들: AuthoringListRow[] = [];
 const 부른쪽: number[] = [];
 const 거른것: boolean[] = [];
+const 읽기 = { 실패: false, 총건수: null as number | null };
 
 vi.mock('./api.js', async () => {
   const 진짜 = await vi.importActual<typeof import('./api.js')>('./api.js');
@@ -18,7 +19,8 @@ vi.mock('./api.js', async () => {
       authoringRequests: (_service: string, page: number, 할일만 = false) => {
         부른쪽.push(page);
         거른것.push(할일만);
-        return Promise.resolve({ items: 줄들, total: 줄들.length, page, pageSize: 50 });
+        if (읽기.실패) return Promise.reject(new Error('목록을 못 읽었다'));
+        return Promise.resolve({ items: 줄들, total: 읽기.총건수 ?? 줄들.length, page, pageSize: 50 });
       },
     },
   };
@@ -49,11 +51,14 @@ beforeEach(() => {
   줄들.length = 0;
   부른쪽.length = 0;
   거른것.length = 0;
+  읽기.실패 = false;
+  읽기.총건수 = null;
   window.history.replaceState(null, '', '#/authoring');
 });
 
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
 });
 
 describe('작성 줄 목록', () => {
@@ -161,9 +166,37 @@ describe('작성 목록 쪽은 주소에 남는다 (점검 11.4)', () => {
   it('주소의 쪽으로 처음부터 부른다 — 상세에 갔다 뒤로 와도 그 쪽이다', async () => {
     window.history.replaceState(null, '', '#/authoring?page=3');
     render(<Authoring service="PAY" 할수={() => true} />);
-    await screen.findByText('아직 작성을 요청한 기록이 없습니다');
+    await screen.findByText('이 쪽에는 요청이 없습니다');
     expect(부른쪽[0]).toBe(3);
     expect(window.location.hash).toBe('#/authoring?page=3');
+  });
+
+  it('건수가 50의 배수라 「다음」으로 간 빈 쪽에서도 쪽 넘기기가 남고 「기록이 없다」고 하지 않는다 (리뷰 L18)', async () => {
+    읽기.총건수 = 50;
+    window.history.replaceState(null, '', '#/authoring?page=2');
+    render(<Authoring service="PAY" 할수={() => true} />);
+    expect(await screen.findByText('이 쪽에는 요청이 없습니다')).toBeTruthy();
+    expect(screen.queryByText('아직 작성을 요청한 기록이 없습니다')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '이전' }));
+    await vi.waitFor(() => expect(부른쪽.at(-1)).toBe(1));
+  });
+});
+
+describe('목록 다시 읽기가 실패해도 쓰던 새 요청은 남는다 (리뷰 L17)', () => {
+  it('5초 다시 읽기가 한 번 실패하면 오류만 보이고 열어 둔 서랍 · 친 피그마 주소는 그대로다', async () => {
+    줄들.push(줄({ id: 3 }));
+    vi.useFakeTimers();
+    render(<Authoring service="PAY" 할수={() => true} />);
+    await vi.waitFor(() => screen.getByRole('button', { name: '새 작성' }));
+    fireEvent.click(screen.getByRole('button', { name: '새 작성' }));
+    const 칸 = within(screen.getByRole('complementary', { name: '새 작성 요청' })).getByPlaceholderText('한 줄에 하나씩');
+    fireEvent.change(칸, { target: { value: 'https://www.figma.com/design/AbC/x' } });
+
+    읽기.실패 = true;
+    await vi.advanceTimersByTimeAsync(5_000);
+    await vi.waitFor(() => screen.getByText('목록을 못 읽었다'));
+    const 남은칸 = within(screen.getByRole('complementary', { name: '새 작성 요청' })).getByPlaceholderText('한 줄에 하나씩');
+    expect((남은칸 as HTMLTextAreaElement).value).toBe('https://www.figma.com/design/AbC/x');
   });
 });
 

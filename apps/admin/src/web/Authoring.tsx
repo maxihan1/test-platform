@@ -141,8 +141,8 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
     return () => clearInterval(timer);
   }, [reload]);
 
-  if (줄들.error !== null) return <Failed error={줄들.error} />;
-  if (줄들.data === null) return <Loading />;
+  // 이미 받은 목록이 있으면 다시 읽기가 실패해도 목록과 서랍을 그대로 둔다 — 통째로 바꾸면 쓰던 새 요청 폼이 사라진다 (리뷰 L17)
+  if (줄들.data === null) return 줄들.error !== null ? <Failed error={줄들.error} /> : <Loading />;
 
   // 「응답 없음」 판정이 지금 시각을 쓴다. 그릴 때 한 번만 읽어 줄마다 다른 기준으로 재지 않는다
   const 지금 = Date.now();
@@ -163,6 +163,7 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
       />
 
       <div className="screen list-screen">
+        {줄들.error === null ? null : <Failed error={줄들.error} />}
         <div className="toolbar">
           <span className="filter-group">
             <span className="filter-label">{t('필터')}</span>
@@ -176,7 +177,10 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
         </div>
 
         <div className="rows-scroll">
-          {줄들.data.items.length === 0 && 할일만 ? (
+          {/* 건수가 한 쪽 크기의 배수면 「다음」이 빈 쪽으로 간다(paging.ts) — 거기서 「기록이 없다」고 하면 거짓이다 (리뷰 L18) */}
+          {줄들.data.items.length === 0 && page > 1 ? (
+            <div className="empty">{t('이 쪽에는 요청이 없습니다')}</div>
+          ) : 줄들.data.items.length === 0 && 할일만 ? (
             <div className="empty">{t('조치가 필요한 요청이 없습니다')}</div>
           ) : 줄들.data.items.length === 0 ? (
             <div className="empty">
@@ -193,7 +197,7 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
           )}
         </div>
 
-        {줄들.data.items.length === 0 ? null : (
+        {줄들.data.items.length === 0 && page === 1 ? null : (
           <div className="pager">
             <button type="button" disabled={page === 1} onClick={() => setPage(page - 1)}>
               {t('이전')}
