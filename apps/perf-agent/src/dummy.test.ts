@@ -107,9 +107,18 @@ describe('Agent 더미 클라이언트', { timeout: 30_000 }, () => {
     const r = await runOnce({ durationSec: 6, env: { BASE_URL: 'http://game.test:7000', QAHUB_STAGES: '[{"durationSec":6,"target":4}]', MODE: 'hold' } }, { zipDelayMs: 4_000 });
     const zipSent = r.calls.findIndex((c) => c.path === 'zip-sent');
     expect(r.calls.findIndex((c) => c.path.endsWith('/metrics'))).toBeLessThan(zipSent);
+    expect(r.calls.slice(0, zipSent).filter((c) => c.path.endsWith('/metrics')).every((c) => c.body.vus === 0)).toBe(true);
     const secs = r.metrics.map((m) => m.sec);
     expect(secs).toEqual([...new Set(secs)].sort((a, b) => a - b));
     expect(r.sum('login')).toEqual({ requests: 2, errors: 1 });
+    expect(r.done).toEqual({ status: 'OK' });
+  });
+
+  it('zip 을 받는 동안 QA Hub 가 멈추라고 하면 받기를 끊고 띄우지 않는다', async () => {
+    const t0 = Date.now();
+    const r = await runOnce({ durationSec: 30, env: { BASE_URL: 'http://game.test:7000', QAHUB_STAGES: '[{"durationSec":30,"target":4}]', MODE: 'hold' } }, { stop: true, zipDelayMs: 8_000 });
+    expect(Date.now() - t0).toBeLessThan(7_000);
+    expect(r.sum('login').requests).toBe(0);
     expect(r.done).toEqual({ status: 'OK' });
   });
 

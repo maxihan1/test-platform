@@ -32,8 +32,8 @@ export interface DummyCtx {
   send: (runId: number, body: LoadSecond) => Promise<{ stop: boolean } | null>;
 }
 
-async function download(ctx: DummyCtx, id: number, to: string): Promise<void> {
-  const res = await fetch(`${ctx.cfg.url}/api/perf/agent/dummy-clients/${id}`, { headers: { authorization: `Bearer ${ctx.cfg.token}` }, signal: ctx.cfg.signal });
+async function download(ctx: DummyCtx, id: number, to: string, signal: AbortSignal): Promise<void> {
+  const res = await fetch(`${ctx.cfg.url}/api/perf/agent/dummy-clients/${id}`, { headers: { authorization: `Bearer ${ctx.cfg.token}` }, signal });
   if (!res.ok || !res.body) throw new Error(`더미 클라이언트를 받지 못했습니다 — ${res.status}`);
   await pipeline(Readable.fromWeb(res.body as unknown as WebStream), createWriteStream(to));
 }
@@ -51,10 +51,10 @@ function unzip(ctx: DummyCtx, zip: string, to: string): Promise<string | null> {
 }
 
 // zip 을 받아 푼다. 못 하면 그 까닭 — 던지지 않는다. 받는 동안 1초 숫자를 보내는 고리가 이 끝을 기다린다
-async function prepare(ctx: DummyCtx, id: number, dir: string, app: string): Promise<string | null> {
+async function prepare(ctx: DummyCtx, id: number, dir: string, app: string, signal: AbortSignal): Promise<string | null> {
   try {
     await mkdir(app);
-    await download(ctx, id, join(dir, 'client.zip'));
+    await download(ctx, id, join(dir, 'client.zip'), signal);
   } catch (e) {
     return e instanceof Error ? e.message : String(e);
   }
@@ -77,7 +77,9 @@ export async function runDummy(ctx: DummyCtx, job: Job): Promise<DoneBody> {
     const seconds = new DummySeconds(startMs, parseStages(job.env.QAHUB_STAGES, spec.users, job.durationSec));
     const errTail: string[] = [];
     let child: ChildProcess | undefined;
-    let idleDone: () => void = () => undefined;
+    // 띄우기 전에 멈추라는 답이 오면 받던 zip 을 끊는다
+    const 받기끊기 = new AbortController();
+    let idleDone: () => void = () => 받기끊기.abort();
     let killTimer: NodeJS.Timeout | undefined;
     const terminate = () => {
       const pid = child?.pid;
@@ -99,17 +101,22 @@ export async function runDummy(ctx: DummyCtx, job: Job): Promise<DoneBody> {
     // 몫이 0 이면 받지도 띄우지도 않는다 — 빈 1초 숫자만 실행 시간 동안 보내 연락을 지킨다
     if (spec.users > 0) {
       // 받기 · 풀기가 startAt 을 넘기면 그동안도 빈 1초 숫자를 보낸다 — 실행 중에는 그것만 연락이라 안 보내면 30초 뒤 AGENT_LOST 다(§5.4)
-      const prepared = prepare(ctx, spec.id, dir, app);
-      next = await pumpSeconds(startMs, seconds, prepared, send);
+      // 그 초들의 사용자 수는 0 이다 — 아직 아무도 붙지 않았다
+      const signal = ctx.cfg.signal ? AbortSignal.any([ctx.cfg.signal, 받기끊기.signal]) : 받기끊기.signal;
+      const prepared = prepare(ctx, spec.id, dir, app, signal);
+      next = await pumpSeconds(startMs, seconds, prepared, (s) => send({ ...s, vus: 0 }));
       const 준비오류 = await prepared;
+      // 받는 동안 QA Hub 가 멈추라고 했으면 띄우지 않는다
+      if (stopping) return { status: 'OK' };
+      if (ctx.cfg.signal?.aborted) return { status: 'ERROR', reason: '에이전트가 꺼졌습니다' };
       if (준비오류 !== null) return { status: 'ERROR', reason: 준비오류 };
+      // 실행 시간이 다 지나서야 받았으면 대상 서버에 부하를 걸지 않는다
+      if (Date.now() >= startMs + job.durationSec * 1000) return { status: 'ERROR', reason: '더미 클라이언트를 받는 동안 실행 시간이 끝났습니다' };
       if (job.accountsCsv) {
         env.QAHUB_ACCOUNTS_CSV = join(dir, 'accounts.csv');
         await writeFile(env.QAHUB_ACCOUNTS_CSV, job.accountsCsv, { mode: 0o600 });
       }
     }
-    // 받는 동안 QA Hub 가 멈추라고 했으면 띄우지 않는다
-    if (stopping) return { status: 'OK' };
 
     await ctx.pause(startMs - Date.now());
     if (ctx.cfg.signal?.aborted) return { status: 'ERROR', reason: '에이전트가 꺼졌습니다' };

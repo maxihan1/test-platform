@@ -24,8 +24,8 @@ export function hostProblem(job: Job): string | null {
   return !host || !job.allowedHosts.includes(host) ? `허용 호스트 밖의 대상 서버입니다 — ${host ?? '주소 없음'}` : null;
 }
 
-// 끝난 뒤 남은 초를 보내다 실패하면 1초 쉬고 이만큼 더 해 본다 — QA Hub 가 아주 멈췄으면 그만둔다
-const FINAL_RETRIES = 5;
+// 끝난 뒤 남은 초를 보내다 실패하면 1초 쉬고 이만큼 더 해 본다. 한 번에 10초까지 기다려 QA Hub 가 아주 멈췄으면 끝 알림이 그만큼 늦는다
+const FINAL_RETRIES = 2;
 
 /**
  * exited 가 풀릴 때까지 1초마다 LAG_SEC 초 전까지의 숫자를 보내고, 풀리면 남은 초를 다 보낸다. from 부터 보내고 다음에 보낼 초를 돌려준다.
@@ -53,7 +53,7 @@ export async function pumpSeconds(startMs: number, src: SecondSource, exited: Pr
     await Promise.race([sleep(1000), exited]);
     await flush(Math.floor((Date.now() - startMs) / 1000) - LAG_SEC);
   }
-  // 끝난 뒤에는 남은 초를 다 보낸다. 실패를 미룰 다음 틱이 없어 여기서 다시 해 본다
+  // 끝난 뒤에는 남은 초를 다 보낸다. 실패한 초는 버리고 그 뒤 초들을 미룰 다음 틱이 없어 여기서 다시 해 본다
   const last = Math.max(next - 1, ...src.leftovers());
   for (let i = 0; !(await flush(last)) && i < FINAL_RETRIES; i += 1) await sleep(1000);
   return next;
