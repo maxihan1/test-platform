@@ -356,6 +356,16 @@ describe('결과', () => {
     });
   });
 
+  it('다시 실행은 부하 중 페이지 로딩 측정을 켠 실행이면 새 실행에도 켠다', async () => {
+    const 상세 = 끝난상세();
+    vi.spyOn(perfApi, 'runOf').mockResolvedValue({ ...상세, config: { ...상세.config, pageCheck: true } });
+    const 실행 = vi.spyOn(perfApi, 'run').mockResolvedValue({ runId: 13 });
+    render(<PerfRun runId={12} 판정하기={된다} />);
+    fireEvent.click(await screen.findByRole('button', { name: '다시 실행' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/perf/runs/13'));
+    expect(실행).toHaveBeenCalledWith(expect.objectContaining({ scenarioId: 5, pageCheck: true }));
+  });
+
   it('PDF 로 내려받기는 실행 번호로 받는다', async () => {
     vi.spyOn(perfApi, 'runOf').mockResolvedValue(끝난상세());
     const 받기 = vi.spyOn(perfApi, 'pdf').mockResolvedValue({ 파일: new Blob(['x']), 머리: null });

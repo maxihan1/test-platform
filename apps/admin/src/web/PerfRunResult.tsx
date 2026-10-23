@@ -78,6 +78,7 @@ export function PerfRunResult({ run, 다시읽기, 쓰나 }: { run: 실행상세
         targets: run.config.targets,
         agentIds: run.config.agentIds,
         monitorIds: run.config.monitorIds,
+        pageCheck: run.config.pageCheck,
       });
       window.location.hash = `#/perf/runs/${String(runId)}`;
     });
