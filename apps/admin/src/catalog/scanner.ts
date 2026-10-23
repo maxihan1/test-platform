@@ -112,10 +112,10 @@ const 결과표시 = '@@CATALOG-SCAN@@';
 
 /**
  * admin 이 root 일 때 하위 프로세스를 띄울 uid · gid. 같은 uid 면 `/proc/<admin>/environ` 으로 비밀값을 그대로 읽는다.
- * 케이스 폴더 주인은 umask 가 좁아도 자기 파일을 읽는다. 주인도 root 면 nobody 다
+ * 남도 읽을 수 있는 폴더면 쓸 수 있는 것이 가장 적은 nobody 다. umask 가 좁아 남이 못 읽으면 폴더 주인으로 — 주인도 root 면 nobody
  */
-export function 스캔자리({ uid, gid }: { uid: number; gid: number }): { uid: number; gid: number } {
-  return uid === 0 ? { uid: 65534, gid: 65534 } : { uid, gid };
+export function 스캔자리({ uid, gid, mode }: { uid: number; gid: number; mode: number }): { uid: number; gid: number } {
+  return (mode & 0o005) === 0o005 || uid === 0 ? { uid: 65534, gid: 65534 } : { uid, gid };
 }
 
 /**
@@ -139,14 +139,20 @@ export async function scanApart(root: string): Promise<ScanResult> {
       maxBuffer: 256 * 1024 * 1024,
     }));
   } catch (err) {
-    const e = err as { killed?: boolean; code?: unknown; stderr?: unknown };
+    const e = err as { killed?: boolean; signal?: unknown; code?: unknown; stderr?: unknown };
     const 끝 = typeof e.stderr === 'string' ? e.stderr.trim().slice(-500) : '';
-    const 까닭 = e.killed === true ? '10분 안에 못 끝내 끊었다' : `종료 ${String(e.code)}`;
+    const 까닭 =
+      e.killed === true ? '10분 안에 못 끝내 끊었다' : typeof e.signal === 'string' ? `${e.signal} 로 꺼졌다` : `종료 ${String(e.code)}`;
     throw new Error(`케이스를 따로 읽는 프로세스가 실패했다 (${까닭})${끝 === '' ? '' : `: ${끝}`}`, { cause: err });
   }
   const 자리 = stdout.lastIndexOf(결과표시);
   if (자리 < 0) throw new Error('케이스를 따로 읽는 프로세스가 결과를 내지 않았다');
-  return JSON.parse(stdout.slice(자리 + 결과표시.length)) as ScanResult;
+  try {
+    return JSON.parse(stdout.slice(자리 + 결과표시.length)) as ScanResult;
+  } catch (err) {
+    // 케이스 코드가 표시 뒤에 글을 더 찍으면 여기로 온다
+    throw new Error('케이스를 따로 읽는 프로세스의 결과 모양이 틀렸다', { cause: err });
+  }
 }
 
 // scanApart 가 띄운 하위 프로세스가 여기로 들어온다 — `node --import tsx scanner.ts <폴더>`

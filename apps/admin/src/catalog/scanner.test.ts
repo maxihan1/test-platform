@@ -200,8 +200,9 @@ describe('scanApart — 케이스 파일을 admin 밖에서 읽는다', () => {
     await expect(scanApart(join(폴더, '없는 폴더'))).rejects.toMatchObject({ code: 'ENOENT' });
   });
 
-  it('admin 이 root 면 폴더 주인으로, 주인도 root 면 nobody 로 띄운다', () => {
-    expect(스캔자리({ uid: 1000, gid: 1001 })).toEqual({ uid: 1000, gid: 1001 });
-    expect(스캔자리({ uid: 0, gid: 0 })).toEqual({ uid: 65534, gid: 65534 });
+  it('남도 읽는 폴더면 nobody, 남이 못 읽으면 폴더 주인, 주인이 root 면 nobody 로 띄운다', () => {
+    expect(스캔자리({ uid: 1000, gid: 1001, mode: 0o40755 })).toEqual({ uid: 65534, gid: 65534 });
+    expect(스캔자리({ uid: 1000, gid: 1001, mode: 0o40750 })).toEqual({ uid: 1000, gid: 1001 });
+    expect(스캔자리({ uid: 0, gid: 0, mode: 0o40700 })).toEqual({ uid: 65534, gid: 65534 });
   });
 });
