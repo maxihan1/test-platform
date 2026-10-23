@@ -183,7 +183,9 @@ describe('옮기기올리기', () => {
     });
     결과쓰기({ items: [{ ...새것, reqId: 'MKT-NEW-001' }] });
     writeFileSync(join(자리.트리, 'docs', 'cases', 'MKT.md'), '| 1 | 정상 | 전 | 조 | 결 | MKT-NEW-001 | MKT-FN-010 |\n');
+    writeFileSync(join(자리.자료, 'game-elements.json'), JSON.stringify({ elements: [{ kind: 'DATA', key: 'item:a', name: 'a', reqIds: ['MKT-NEW-001'] }] }));
     const r = await 올리기(원장하나, {}, { ...앞, items: [있던, 남이더한] as never[] });
+    expect(readFileSync(join(자리.자료, 'game-elements.json'), 'utf8')).toContain('"reqIds":["MKT-REQ-004"]');
     expect(몸.baseVersion).toBe(2);
     expect(몸.items?.map((i) => [i.reqId, i.text, '임시' in i])).toEqual([
       ['MKT-REQ-001', '아이디는 4자 이상', false],
