@@ -3,15 +3,23 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { Game, Link } from 'control-cli';
+import { isDeepStrictEqual } from 'node:util';
+
+import type { Game, Link, WaitOptions } from 'control-cli';
 
 import { runDir } from './artifacts.js';
 import { FARM_EVIDENCE_DIR, GAME_ERRORS_FILE, GAME_TREE_FILE } from './protocol.js';
 
 type Env = Record<string, string | undefined>;
 
-/** 몸통의 game. 꼴의 정본은 control-cli 의 Game 에서 ping · tree · tap(좌표)을 뺀 것이다 (공통/3-공유계약 「게임 테스트 타입」) */
-export type GameDriver = Omit<Game, 'ping' | 'tree' | 'tap'>;
+/**
+ * 몸통의 game. 꼴의 정본은 control-cli 의 Game 에서 ping · tree · tap(좌표)을 뺀 것에 kit 의 waitForValue 하나를 더한 것이다 (공통/3-공유계약 「게임 테스트 타입」).
+ * waitForValue — 「값이 될 때까지」. SDK 에 기다리기 명령이 없어 get 을 waitFor 와 같은 간격 · 한도로 되풀이한다 (도메인/게임 §3.10 「케이스 꼴」 기다림)
+ */
+export type GameDriver = Omit<Game, 'ping' | 'tree' | 'tap'> & {
+  waitForValue(target: string, prop: string, value: unknown, options?: Pick<WaitOptions, 'timeoutMs'>): Promise<void>;
+};
+export type KitGame = Game & Pick<GameDriver, 'waitForValue'>;
 
 export const isGame = (env: Env): boolean => env.PLATFORM_ENGINE === 'GAME';
 
@@ -52,14 +60,28 @@ export async function openGame(
   env: Env,
   link?: Link,
   쉬기: (ms: number) => Promise<void> = (ms) => new Promise((깨운다) => setTimeout(깨운다, ms)),
-): Promise<Game> {
-  const { Game } = await import('control-cli');
+): Promise<KitGame> {
+  const { Game, WAIT } = await import('control-cli');
   const game = new Game(link ?? (await gameLink(env)));
+  // 문구는 waitFor 의 글자 기다림과 같은 꼴이라야 실패 유형이 「시간 초과」로 가른다 (reporting/failureType.ts)
+  const waitForValue: GameDriver['waitForValue'] = async (target, prop, value, options = {}) => {
+    const timeoutMs = options.timeoutMs ?? WAIT.timeoutMs;
+    const 끝 = Date.now() + timeoutMs;
+    for (;;) {
+      const 지금 = await game.get(target, prop);
+      if (isDeepStrictEqual(지금, value)) return;
+      if (Date.now() >= 끝) {
+        throw new Error(`${target}.${prop} 이 ${timeoutMs / 1000}초 안에 「${JSON.stringify(value)}」이 되지 않았습니다 (마지막: ${JSON.stringify(지금)})`);
+      }
+      await 쉬기(WAIT.intervalMs);
+    }
+  };
+  const 드라이버: KitGame = Object.assign(game, { waitForValue });
   const 끝 = Date.now() + 켜짐.timeoutMs;
   for (;;) {
     try {
       await game.ping();
-      return game;
+      return 드라이버;
     } catch (err) {
       // 원문을 남겨야 실패 유형이 「닿지 못함」으로 가른다 (reporting/failureType.ts)
       if (/HTTP 4\d\d/.test(글(err)) || Date.now() >= 끝) throw new Error(`게임이 ${켜짐.timeoutMs / 1000}초 안에 답하지 않았습니다 — ${글(err)}`);

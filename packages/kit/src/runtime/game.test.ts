@@ -45,6 +45,19 @@ describe('openGame', () => {
     expect(번).toBe(3);
   });
 
+  it('waitForValue 는 값이 될 때까지 get 을 되풀이하고, 한도가 지나면 마지막 값을 달아 던진다', async () => {
+    const 골드 = [100, 100, 150];
+    const link: Link = async (c) => (c.cmd === 'get' ? { ok: true, value: 골드.shift() ?? 150 } : { ok: true });
+    const game = await openGame({}, link, 안쉼);
+
+    await game.waitForValue('Player', 'Wallet.gold', 150);
+    expect(골드).toEqual([]);
+
+    await expect(game.waitForValue('Player', 'Wallet.gold', 200, { timeoutMs: 0 })).rejects.toThrow(
+      'Player.Wallet.gold 이 0초 안에 「200」이 되지 않았습니다 (마지막: 150)',
+    );
+  });
+
   it('디바이스 팜이 4xx 로 거절하면 기다리지 않고 원문을 달아 던진다', async () => {
     let 번 = 0;
     const link: Link = async () => {

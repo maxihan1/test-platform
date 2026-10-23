@@ -1,13 +1,12 @@
 // Android 앱 · 게임 케이스의 Appium 연결(과 게임 SDK 연결)을 열고 닫는 Playwright fixture (도메인/러너 §5.2 「앱 실행」 · 도메인/게임 §3.10 「게임 연결」)
 
 import { test as base } from '@playwright/test';
-import type { Game } from 'control-cli';
 
 import { closeApp, openApp, readDevice, type AppDriver } from './app.js';
-import { 게임증적을남긴다, isGame, openGame } from './game.js';
+import { 게임증적을남긴다, isGame, openGame, type KitGame } from './game.js';
 import { DEVICE_ATTACHMENT } from './protocol.js';
 
-export type AppSide = { driver: AppDriver; game?: Game };
+export type AppSide = { driver: AppDriver; game?: KitGame };
 
 // 케이스마다 만든다 — 앞 판처럼 defineTest 가 부를 때 extend 한다
 export const 앱테스트 = () =>
