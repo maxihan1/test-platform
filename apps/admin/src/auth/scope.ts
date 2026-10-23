@@ -50,6 +50,8 @@ export const 라우트표: Record<string, 원천> = {
   '/api/settings/services': { 종류: '안매임' },
   '/api/settings/services/:id': { 종류: '안매임' },
   '/api/settings/services/:id/viewport': { 종류: '안매임' },
+  '/api/settings/services/:id/tokens': { 종류: '안매임' },
+  '/api/settings/services/:id/tokens/:tokenId': { 종류: '안매임' },
   '/api/settings/users': { 종류: '안매임' },
   '/api/settings/users/:username': { 종류: '안매임' },
   '/api/settings/users/:username/password': { 종류: '안매임' },
@@ -209,6 +211,9 @@ export const 라우트표: Record<string, 원천> = {
   '/api/perf/agent/runs/:runId/metrics': { 종류: '안매임' },
   '/api/perf/agent/runs/:runId/done': { 종류: '안매임' },
   '/api/perf/agent/dummy-clients/:id': { 종류: '안매임' },
+  // 사람 판정 밖 — 올리기는 토큰의 애플리케이션으로, 내려받기는 서명으로 정한다
+  '/api/builds': { 종류: '안매임' },
+  '/api/builds/:buildId/apk': { 종류: '안매임' },
 };
 
 // SPEC §2 — 접두사는 자유 형식이고 플랫폼은 모양과 중복만 본다.

@@ -14,6 +14,7 @@ import type {
 
 import { 케이스판 } from '../apidoc/caseDoc.js';
 
+import { 서명주소 } from './buildFile.js';
 import { 팜주소, 팜폰으로 } from './farm.js';
 import type { PendingItem } from './store.js';
 
@@ -163,7 +164,14 @@ export async function callRunner(
 
   if (item.platform !== 'android') return 보낸다(item, body);
   // 항목은 abortRun 이 이미 닫았다 — 이 NA 는 finishItem 이 덮지 않는다(finished_at IS NULL)
-  const 보낸다폰 = async (udid: string) => (멈췄나() ? na(item, '멈춘 실행이라 러너에 보내지 않았습니다') : 보낸다(item, { ...body, udid }));
+  const 보낸다폰 = async (udid: string): Promise<ExecuteResponse> => {
+    if (멈췄나()) return na(item, '멈춘 실행이라 러너에 보내지 않았습니다');
+    if (item.buildId === undefined) return 보낸다(item, { ...body, udid });
+    // 올린 APK 는 폰을 잡은 뒤 서명 주소를 만든다 — 저장하지 않고 이 설치 한 번에만 쓴다 (도메인/실행 §3.11)
+    const app = 서명주소(item.buildId);
+    if (app === null) return na(item, 'PLATFORM_PUBLIC_URL 이 비어 있어 디바이스 팜이 빌드를 받을 주소를 만들지 못했습니다');
+    return 보낸다(item, { ...body, udid, app });
+  };
   if (잡은폰 !== undefined) return 보낸다폰(잡은폰);
   // 앱 항목은 서버 러너가 팜에 붙어 돈다. 폰은 항목마다 잡고 놓는다 — 놓을 때 팜이 깐 앱을 지워 다음 항목이 깨끗한 폰에서 연다 (러너 §5.2 「디바이스 팜 접속 방식」).
   // 팜 주소가 없는데 여기까지 왔다면 요청을 받은 뒤 서버를 다시 띄우며 값을 지웠을 때뿐이다 — 실행 요청 통로가 FARM_OFF 로 거절한다

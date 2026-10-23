@@ -8,6 +8,7 @@ import { z } from 'zod';
 
 import { 케이스판 } from '../apidoc/caseDoc.js';
 import { 대상줄들읽기, type 대상줄 } from '../authoring/reverse.js';
+import { 깔앱파일 } from './buildFile.js';
 import { caseSchemas } from './paramSets.js';
 import { 폰을놓는다, 폰을바로잡는다 } from './phone.js';
 import { na, 러너에보낸다, httpTimeoutMs } from './runner.js';
@@ -49,7 +50,7 @@ function 웹주소인가(값: string): boolean {
  * 그 케이스 서비스의 대상 서버 줄 가운데 보낸 주소와 출처가 같은 첫 줄(env 순). 없으면 undefined — 계정을 안 채우고 앱은 러너 환경값이다 (실행 §3.2).
  * 테스트 실행은 대상 서버 키 없이 주소만 받아서 출처로 줄을 찾는다
  */
-async function 주소의줄(tcId: string, baseUrl: string): Promise<{ 줄: 대상줄 | undefined; 종류: string | undefined }> {
+async function 주소의줄(tcId: string, baseUrl: string): Promise<{ 줄: 대상줄 | undefined; 종류: string | undefined; serviceId?: number }> {
   const { pool } = await import('../db/index.js');
   const r = await pool.query<{ id: string; kind: string }>('SELECT id, kind FROM service WHERE prefix = $1', [prefixOf(tcId)]);
   const 서비스 = r.rows[0];
@@ -57,7 +58,7 @@ async function 주소의줄(tcId: string, baseUrl: string): Promise<{ 줄: 대�
   const 보낸출처 = 출처(baseUrl);
   // 깨진 주소끼리(null) 같다고 보지 않는다
   if (서비스 === undefined || 보낸출처 === null) return { 줄: undefined, 종류 };
-  return { 줄: (await 대상줄들읽기(Number(서비스.id))).find((줄) => 출처(줄.baseUrl) === 보낸출처), 종류 };
+  return { 줄: (await 대상줄들읽기(Number(서비스.id))).find((줄) => 출처(줄.baseUrl) === 보낸출처), 종류, serviceId: Number(서비스.id) };
 }
 
 async function 저장값으로채운다(
@@ -111,7 +112,7 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
     }
 
     // 진짜 실행과 같은 길로 요청에 없는 칸을 저장값 · 대상 서버 계정으로 채운다 — 저장된 비밀번호는 화면이 모른다(「입력됨」)
-    const { 줄, 종류 } = await 주소의줄(tcId, baseUrl);
+    const { 줄, 종류, serviceId } = await 주소의줄(tcId, baseUrl);
     const { params, expected } = await 저장값으로채운다(tcId, platform, 줄?.계정들 ?? [], parsed.data.params, parsed.data.expected, {
       param_schema: schemas.paramSchema,
       expected_schema: schemas.expectedSchema,
@@ -122,8 +123,8 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
       return reply.code(400).send({ error: 'INVALID_PARAMS', detail: violations[0]!.message, violations });
     }
 
-    // 정식 실행과 같은 규칙 — 그 대상 서버 줄의 앱 파일, 없으면 러너 환경값 (러너 §5.2 · APP-F1-03)
-    const 앱 = platform === 'android' ? (줄?.appPath ?? null) : null;
+    // 정식 실행과 같은 규칙 — 그 대상 서버 줄의 최신 빌드, 없으면 그 줄의 앱 파일, 그것도 없으면 러너 환경값 (러너 §5.2 · APP-F1-03 · 도메인/실행 §3.11)
+    const 앱 = platform === 'android' && 줄 !== undefined && serviceId !== undefined ? await 깔앱파일(serviceId, 줄.env, 줄.appPath) : null;
     const 요청: ExecuteRequest = {
       runId: 0,
       historyId: Date.now(),

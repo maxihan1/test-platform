@@ -6,6 +6,7 @@ import type { ExecuteResponse } from '@platform/kit';
 
 import { 실행문서견주기 } from '../apidoc/runCompare.js';
 
+import { 스모크뒤 } from './buildRun.js';
 import { 잡기를늘린다, 팜주소, 팜폰으로 } from './farm.js';
 import { notifyRun } from './notify.js';
 import { 폰차례 } from './phone.js';
@@ -138,6 +139,13 @@ export async function dispatch(runId: number, items: PendingItem[]): Promise<voi
   멈춘실행.delete(runId);
   await 견주기;
   await finishRun(runId);
+
+  // 빌드 스모크의 마지막 실행이 다 통과했으면 회귀를 건다. 실패해도 이 실행은 이미 끝났다 (도메인/실행 §3.11)
+  try {
+    await 스모크뒤(runId);
+  } catch (err) {
+    console.error(`[execution] 실행 ${runId} 뒤 회귀를 걸지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+  }
 
   // 알림 전송이 실패해도 실행은 실패가 아니다. 실행은 이미 끝났고 결과는 test_run 에 남아 있다 (SPEC §8.9)
   try {

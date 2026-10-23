@@ -186,6 +186,10 @@ export const 등급표: Record<string, 표값> = {
   'POST /api/settings/services': 'admin',
   'PATCH /api/settings/services/:id': 'admin',
   'GET /api/settings/services/:id/viewport': 'admin',
+  // CI 토큰 발급 · 목록 · 끊기 (도메인/실행 §3.11)
+  'POST /api/settings/services/:id/tokens': 'admin',
+  'GET /api/settings/services/:id/tokens': 'admin',
+  'DELETE /api/settings/services/:id/tokens/:tokenId': 'admin',
   'GET /api/settings/users': 'admin',
   'POST /api/settings/users': 'admin',
   'PATCH /api/settings/users/:username': 'admin',
@@ -240,6 +244,9 @@ export const 등급표: Record<string, 표값> = {
   'POST /api/perf/agent/runs/:runId/metrics': 안따짐,
   'POST /api/perf/agent/runs/:runId/done': 안따짐,
   'GET /api/perf/agent/dummy-clients/:id': 안따짐,
+  // 빌드 올리기는 CI 토큰으로만, APK 내려받기는 서명으로만 — 문이 권한 판정 앞에서 돌려보낸다 (gate.ts · settings/serviceTokens.ts)
+  'POST /api/builds': 안따짐,
+  'GET /api/builds/:buildId/apk': 안따짐,
 };
 
 /**

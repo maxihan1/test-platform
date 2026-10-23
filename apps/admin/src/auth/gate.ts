@@ -5,6 +5,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import { 시나리오시험 } from '../execution/trial.js';
 import { 성능토큰인가, 성능토큰주인, 성능헤더토큰 } from '../perf/agentToken.js';
+import { CI토큰문, CI토큰인가, 빌드내려받기틀, 빌드올리기틀 } from '../settings/serviceTokens.js';
 
 import { 그라파나문, 그라파나틀인가 } from './grafanaGate.js';
 import { 토큰으로왔나, 확인 } from './identify.js';
@@ -226,6 +227,7 @@ async function 성능에이전트문(req: FastifyRequest, reply: FastifyReply): 
 export function 인증등록(app: FastifyInstance): void {
   app.decorateRequest('user', null);
   app.decorateRequest('perfAgent', null);
+  app.decorateRequest('ciToken', null);
 
   /**
    * **로그인 검사는 본문을 읽기 전에 한다.**
@@ -245,8 +247,11 @@ export function 인증등록(app: FastifyInstance): void {
     if (그라파나틀인가(path)) return 그라파나문(req, reply);
     if (!path.startsWith('/api/')) return;
     if (path.startsWith(성능에이전트통로)) return 성능에이전트문(req, reply);
-    // pga_ 는 에이전트 행의 열쇠라 사람 통로에 쓰이면 안 된다. 세션으로 넘어가지 않게 여기서 막는다
-    if (성능토큰인가(req.headers.authorization)) return reply.code(403).send({ error: 'AGENT_TOKEN_SCOPE' });
+    // 바깥에서 실행을 거는 유일한 문 — CI 토큰만 받는다. 내려받기는 서명이 문이라 라우트가 본다 (도메인/인증 §7 「인증 적용 범위」)
+    if (path === 빌드올리기틀 && req.method === 'POST') return CI토큰문(req, reply);
+    if (path === 빌드내려받기틀) return;
+    // pga_ · cit_ 는 사람 계정이 아닌 열쇠라 사람 통로에 쓰이면 안 된다. 세션으로 넘어가지 않게 여기서 막는다
+    if (성능토큰인가(req.headers.authorization) || CI토큰인가(req.headers.authorization)) return reply.code(403).send({ error: 'AGENT_TOKEN_SCOPE' });
 
     // 로그인·가입 자체는 로그인을 요구할 수 없다 (SPEC §7).
     // 2026-09-17 에 POST /api/runs 예외가 삭제됐다 — 정기 실행은 HTTP 를 쓰지 않는다 (§9.2)
@@ -272,7 +277,7 @@ export function 인증등록(app: FastifyInstance): void {
     // 라우트가 안 잡힌 요청은 지킬 자원이 없다. 라우터가 404 를 내게 둔다
     const path = 라우트틀(req);
     if (path === undefined || !path.startsWith('/api/')) return;
-    if (로그인없이통과.has(path) || path.startsWith(성능에이전트통로)) return;
+    if (로그인없이통과.has(path) || path.startsWith(성능에이전트통로) || path === 빌드올리기틀 || path === 빌드내려받기틀) return;
 
     // 위 onRequest 가 이미 401 을 냈다. 여기 닿았으면 사람이 실려 있다
     const user = req.user;

@@ -18,6 +18,7 @@ import { 인증등록 } from './auth/gate.js';
 import { 세션등록, 열쇠최소길이 } from './auth/session.js';
 import catalogRoutes from './catalog/routes.js';
 import { pool } from './db/index.js';
+import buildRoutes from './execution/buildRoutes.js';
 import executionRoutes from './execution/routes.js';
 import { 정기실행켜기 } from './execution/scheduled.js';
 import trialRoutes from './execution/trialRoutes.js';
@@ -36,6 +37,7 @@ import scenarioRoutes from './scenario/routes.js';
 import scenarioRunRoutes from './scenario/runRoutes.js';
 import scenarioTrialRoutes from './scenario/trialRoutes.js';
 import settingsRoutes from './settings/routes.js';
+import serviceTokenRoutes from './settings/serviceTokens.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -57,6 +59,7 @@ export function buildApp(sessionSecret = process.env.SESSION_SECRET ?? '') {
   app.register(authoringEditRoutes, { prefix: '/api' });
   app.register(catalogRoutes, { prefix: '/api' });
   app.register(executionRoutes, { prefix: '/api' });
+  app.register(buildRoutes, { prefix: '/api' });
   app.register(notificationRoutes, { prefix: '/api' });
   app.register(prdRoutes, { prefix: '/api' });
   app.register(prdAgentRoutes, { prefix: '/api' });
@@ -70,6 +73,7 @@ export function buildApp(sessionSecret = process.env.SESSION_SECRET ?? '') {
   app.register(scenarioRunRoutes, { prefix: '/api' });
   app.register(scenarioTrialRoutes, { prefix: '/api' });
   app.register(settingsRoutes, { prefix: '/api' });
+  app.register(serviceTokenRoutes, { prefix: '/api' });
   app.register(perfRoutes, { prefix: '/api' });
 
   // 대시보드는 /api 밖이다. 문(auth/grafanaGate.ts)을 지난 요청만 Grafana 로 넘어간다 (SPEC 도메인/인증 §7)
