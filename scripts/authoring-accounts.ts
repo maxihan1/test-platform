@@ -12,8 +12,16 @@ export interface 계정줄 {
   loginPassword: string;
 }
 
+/** 집기 응답의 `adminKey` — 게임 애플리케이션 앱 줄의 어드민 키와 그 줄 (도메인/작성 §7 claim · 도메인/게임 §3.10 「작성 — 한 바퀴」) */
+export interface 어드민키줄 {
+  env: string;
+  baseUrl: string;
+  header: string;
+  value: string;
+}
+
 /**
- * 가릴 비밀번호 전부 — 일반 회원(target)과 역할 계정(accounts). 빈 값 · 같은 값은 뺀다.
+ * 가릴 비밀번호 전부 — 일반 회원(target)과 역할 계정(accounts) · 게임 어드민 키 값. 빈 값 · 같은 값은 뺀다.
  * **긴 것부터** 준다 — 짧은 비밀번호가 긴 것의 일부면 짧은 것을 먼저 가린 자리 뒤에 긴 것의 나머지 글자가 남는다
  */
 export function 비밀번호들(것: {
@@ -21,13 +29,15 @@ export function 비밀번호들(것: {
   accounts?: readonly Pick<계정줄, 'loginPassword'>[];
   /** API 애플리케이션의 인증 비밀값도 같은 목록으로 가린다 (도메인/API §3.8 「API 인증」 「작성 에이전트도 받는다」) */
   api?: { 인증들: readonly { clientSecret: string }[] };
+  /** 머리 이름은 비밀이 아니다 — 값만 가린다 (도메인/게임 §3.10 「케이스 꼴」 어드민 키) */
+  adminKey?: Pick<어드민키줄, 'value'>;
 }): string[] {
-  const 모두 = [것.target?.loginPassword, ...(것.accounts ?? []).map((a) => a.loginPassword), ...(것.api?.인증들 ?? []).map((a) => a.clientSecret)];
+  const 모두 = [것.target?.loginPassword, ...(것.accounts ?? []).map((a) => a.loginPassword), ...(것.api?.인증들 ?? []).map((a) => a.clientSecret), 것.adminKey?.value];
   return [...new Set(모두.filter((p): p is string => typeof p === 'string' && p !== ''))].sort((a, b) => b.length - a.length);
 }
 
 /**
- * 자식 쪽(크롤러 · 빠른 검사)이 받은 환경 변수로 같은 목록을 만든다 — 에이전트가 넘긴 `TARGET_LOGIN_PASSWORD` · `PLATFORM_ACCOUNTS` · `PLATFORM_API_AUTHS`.
+ * 자식 쪽(크롤러 · 빠른 검사)이 받은 환경 변수로 같은 목록을 만든다 — 에이전트가 넘긴 `TARGET_LOGIN_PASSWORD` · `PLATFORM_ACCOUNTS` · `PLATFORM_API_AUTHS` · `PLATFORM_ADMIN_KEY`.
  * JSON 이 아니면 던진다 — 에이전트가 만든 값이라 깨졌으면 무엇을 가려야 할지 모른다. 문장에 값을 싣지 않는다
  */
 export function 환경비밀번호들(env: Record<string, string | undefined>): string[] {
@@ -51,10 +61,20 @@ export function 환경비밀번호들(env: Record<string, string | undefined>): 
   }
   if (!Array.isArray(인증들)) throw new Error('PLATFORM_API_AUTHS 가 배열이 아니다');
   const 비밀값들 = 인증들.map((a: unknown) => (a as { clientSecret?: unknown } | null)?.clientSecret);
+  let 키: unknown = null;
+  if ((env.PLATFORM_ADMIN_KEY ?? '').trim() !== '') {
+    try {
+      키 = JSON.parse(env.PLATFORM_ADMIN_KEY ?? '');
+    } catch {
+      throw new Error('PLATFORM_ADMIN_KEY 가 JSON 이 아니다');
+    }
+  }
+  const 키값 = (키 as { value?: unknown } | null)?.value;
   return 비밀번호들({
     target: { loginPassword: env.TARGET_LOGIN_PASSWORD },
     accounts: 줄들.map((p) => ({ loginPassword: typeof p === 'string' ? p : '' })),
     api: { 인증들: 비밀값들.map((p) => ({ clientSecret: typeof p === 'string' ? p : '' })) },
+    adminKey: { value: typeof 키값 === 'string' ? 키값 : '' },
   });
 }
 
@@ -83,4 +103,14 @@ export function 계정환경(계정들: readonly 계정줄[] | undefined, 알림
   const 넘길것 = (계정들 ?? []).filter((a) => !짧은가(a));
   if (넘길것.length === 0) return {};
   return { PLATFORM_ACCOUNTS: JSON.stringify(넘길것.map(({ baseUrl, role, loginId, loginPassword }) => ({ baseUrl, role, loginId, loginPassword }))) };
+}
+
+/**
+ * 게임 자식 · 돌려 보기에 넘길 어드민 키 — 정식 실행과 같은 이름(`PLATFORM_ADMIN_KEY` — 러너 execute.ts `gameEnv`)이라 kit 이 몸통 admin 을 그대로 만든다.
+ * 키의 줄 주소를 `PLATFORM_BASE_URL` 로 같이 넘긴다 — admin 요청이 그 줄로 가야 키가 맞고, API 애플리케이션(`API환경`)처럼 갈 서버가 하나다.
+ * **값을 프롬프트 · 인자에 싣지 않는다** — `계정환경` 과 같다. 키가 없으면 키 자체를 안 넣는다
+ */
+export function 어드민키환경(키: 어드민키줄 | undefined): { PLATFORM_ADMIN_KEY?: string; PLATFORM_BASE_URL?: string } {
+  if (키 === undefined) return {};
+  return { PLATFORM_ADMIN_KEY: JSON.stringify({ header: 키.header, value: 키.value }), PLATFORM_BASE_URL: 키.baseUrl };
 }
