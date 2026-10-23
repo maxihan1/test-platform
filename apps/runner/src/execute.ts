@@ -138,6 +138,15 @@ export function traceEnv(req: Pick<ExecuteRequest, 'runId' | 'platform'>): '0' |
   return req.runId > 0 && req.platform !== 'android' ? '1' : '0';
 }
 
+export function gameEnv(req: Pick<ExecuteRequest, 'platform' | 'engine' | 'udid' | 'adminKey'>): Record<string, string> {
+  const 게임 = req.platform === 'android' && req.engine === 'GAME';
+  return {
+    PLATFORM_ENGINE: 게임 ? 'GAME' : '',
+    PLATFORM_GAME_LINK: 게임 ? (req.udid === undefined ? 'usb' : 'farm') : '',
+    PLATFORM_ADMIN_KEY: req.adminKey === undefined ? '' : JSON.stringify(req.adminKey),
+  };
+}
+
 export async function execute(req: ExecuteRequest, specPath: string): Promise<ExecuteResponse> {
   const startedAt = Date.now();
   const 출력 = 출력폴더이름(req.historyId);
@@ -173,6 +182,9 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
         ...(req.platform === 'android' && req.app !== undefined && { PLATFORM_APP: req.app }),
         // admin 이 팜에서 잡은 폰이다. 안 주면 팜이 잡힌 폰 아무것에나 붙인다 (러너 §5.2 「디바이스 팜 접속 방식」)
         ...(req.platform === 'android' && req.udid !== undefined && { PLATFORM_DEVICE_UDID: req.udid }),
+        // 셋 다 늘 적는다 — 러너를 켠 셸의 값을 자식이 물려받지 않게. 게임에 닿는 길은 칸을 더하지 않고 폰 번호로 정한다:
+        // admin 이 팜 폰을 잡아 번호를 실은 정식 실행은 디바이스 팜, 번호 없는 내 컴퓨터 테스트 실행은 USB (공통/3-공유계약 「게임 테스트 타입」 engine)
+        ...gameEnv(req),
         // 성능 녹화 — 설정 파일이 이 경로로 HAR 를 남긴다. 늘 적는다 — 러너를 켠 셸에 값이 있으면 자식이 물려받아 모든 실행을 녹화한다
         PLATFORM_RECORD_HAR: req.recordHar === undefined ? '' : 다음HAR경로(녹화폴더(req.recordHar.jobId)),
       },
@@ -230,6 +242,9 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
       ...(parsed.error === undefined ? {} : { error: parsed.error }),
       // 앱 항목의 폰 · 앱 판. 증적 머리에 싣는다 (도메인/리포팅 §8.4 · APP-F1-05)
       ...(parsed.device === undefined ? {} : { device: parsed.device }),
+      // 게임 항목만 — admin 이 게임 지도 · 서비스 지도에 쓴다 (공통/3-공유계약 「게임 테스트 타입」)
+      ...(parsed.elementChecks === undefined ? {} : { elementChecks: parsed.elementChecks }),
+      ...(parsed.apiCalls === undefined ? {} : { apiCalls: parsed.apiCalls }),
     };
   }
 

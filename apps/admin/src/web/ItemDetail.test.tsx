@@ -210,3 +210,46 @@ describe('값 바꿔 재실행 (도메인/실행 §8.10)', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 });
+
+describe('통과한 앱 항목의 영상 보기 (GAME-F1-09)', () => {
+  const 통과폰 = { platform: 'android' as const, status: 'PASS' as const };
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('통과한 android 항목에 「영상 보기」가 있고, 누르면 영상 주소를 연다', async () => {
+    그린다(통과폰);
+    fireEvent.click(await screen.findByRole('button', { name: '영상 보기' }));
+    expect(document.querySelector('video')?.getAttribute('src')).toBe(api.farmVideo(RUN_ID, HISTORY_ID));
+    expect(screen.queryByRole('button', { name: '영상 보기' })).toBeNull();
+  });
+
+  it('실패 항목 · 데스크톱 항목 · 팜 증적이 이미 있는 항목에는 버튼이 없다', async () => {
+    for (const 바꿀것 of [{ platform: 'android', status: 'FAIL' }, { platform: 'desktop', status: 'PASS' }, { ...통과폰, farm: [{ name: 'video-1.mp4', bytes: 3 }] }] as Partial<RunItemPage>[]) {
+      그린다(바꿀것);
+      await screen.findByText('로그인하면 토큰이 발급된다');
+      expect(screen.queryByRole('button', { name: '영상 보기' })).toBeNull();
+      cleanup();
+    }
+  });
+
+  it('영상이 404 면 서버가 준 한 줄을 버튼 자리에 보인다', async () => {
+    const 받음 = vi.fn(async () => new Response(JSON.stringify({ error: 'GONE', detail: '디바이스 팜에 이 영상이 없습니다 — 30일이 지났을 수 있습니다' }), { status: 404 }));
+    vi.stubGlobal('fetch', 받음);
+    그린다(통과폰);
+    fireEvent.click(await screen.findByRole('button', { name: '영상 보기' }));
+    fireEvent.error(document.querySelector('video')!);
+    expect(await screen.findByText('디바이스 팜에 이 영상이 없습니다 — 30일이 지났을 수 있습니다')).toBeTruthy();
+    expect(받음).toHaveBeenCalledWith(api.farmVideo(RUN_ID, HISTORY_ID));
+    expect(document.querySelector('video')).toBeNull();
+  });
+
+  it('한 줄을 못 읽으면 「영상을 열지 못했습니다」를 보인다', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('not json', { status: 502 })));
+    그린다(통과폰);
+    fireEvent.click(await screen.findByRole('button', { name: '영상 보기' }));
+    fireEvent.error(document.querySelector('video')!);
+    expect(await screen.findByText('영상을 열지 못했습니다')).toBeTruthy();
+  });
+});

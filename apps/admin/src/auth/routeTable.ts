@@ -72,6 +72,7 @@ export const 등급표: Record<string, 표값> = {
   'GET /api/runs/:runId/items/:historyId': 실행읽기,
   'GET /api/runs/:runId/progress': 실행읽기,
   'GET /api/runs/:runId/items/:historyId/farm/:name': 실행읽기,
+  'GET /api/runs/:runId/items/:historyId/farm-video': 실행읽기,
   'GET /api/screenshots/:runId/:historyId/:seq.png': 실행읽기,
   'POST /api/runs': 실행쓰기,
   'POST /api/runs/:runId/abort': 실행쓰기,

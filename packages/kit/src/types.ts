@@ -21,6 +21,8 @@ export interface CaseSpec {
   held?: string;                // 있으면 보류 케이스 — 사람이 값을 채워야 돈다. 머리는 「판정 불가 — 」 또는 「보류 — 」
   techniques?: Technique[];     // 기능 테스트에만 · 칸의 설계 기법. 값은 DB · URL 에 그대로 가는 식별자라 바꾸지 않는다
   apiDoc?: number;              // API 케이스만 · 케이스가 만들어진 API 문서 판. 없으면 키가 없다 (도메인/API §3.8)
+  elements?: string[];          // 게임 케이스만 · 닿는 게임 요소 열쇠(item:sword_short · zone:Town). 비면 키가 없다 (도메인/게임 §3.10 결정 9)
+  smoke?: true;                 // 스모크 표시. 웹 · 앱 · 게임 다 쓴다. 없으면 키가 없다 (도메인/게임 §3.10 「빌드마다 돌리기」)
 }
 
 export interface AssertionResult {
@@ -58,6 +60,7 @@ export interface ExecuteRequest {
   app?: string;                 // android 만. 그 대상 서버의 앱 파일 경로나 http(s) 주소(받는 쪽은 Appium 이 도는 PC). 없으면 러너 환경값 PLATFORM_APP (§5.2 · APP-F1-03)
   udid?: string;                // android 만. admin 이 디바이스 팜에서 잡은 폰. 없으면 러너 환경값 PLATFORM_DEVICE_UDID (§5.2 · APP-F1-10)
   engine?: 'GAME';              // 게임 애플리케이션의 android 항목만. admin 이 애플리케이션 종류를 보고 싣는다. 없으면 platform 으로 엔진을 고른다(android → Appium) (도메인/게임 §3.10 결정 6 · GAME-F1-07)
+  adminKey?: { header: string; value: string };  // 게임 애플리케이션 항목만. 그 대상 서버 줄의 어드민 키 원문 — kit 이 몸통 admin 요청에 머리로 넣고 기록에서 가린다 (도메인/게임 §3.10 「케이스 꼴」 · GAME-F1-09)
   apiAuths?: ApiAuth[];         // 그 대상 서버 줄의 API 인증 전부. API 종류 애플리케이션 케이스만 (도메인/API §3.8 · API-F1-04)
   apiDoc?: ApiDocRef;           // 그 케이스의 판. CaseSpec.apiDoc 이 있을 때만 (도메인/API §3.8 · API-F1-05)
   recordHar?: { jobId: number }; // 성능 시나리오 녹화 — 오면 HAR 를 남긴다. jobId 는 기다리는 perf_ai_job 번호. 기록 · 증적에 안 남는다 (공통/3-공유계약 「성능 테스트 타입」)
@@ -90,6 +93,20 @@ export interface ExecuteResponse {
   steps: StepResult[];
   error?: { message: string; stack?: string };
   device?: DeviceInfo;          // android 만. Appium 연결이 열렸을 때 싣는다 (도메인/리포팅 §8.4 「증적 문서 머리말」 · APP-F1-05)
+  elementChecks?: ElementCheck[];  // 게임 항목만 · verify.element 가 남긴 줄마다. admin 이 game_element.server_value · checked_run 에 쓴다 (GAME-F1-09)
+  apiCalls?: ApiCallSeen[];     // 게임 항목만 · 케이스가 부른 대상 서버 API. android 는 trace 가 없어 이 칸으로 서비스 지도의 케이스 줄을 채운다 (GAME-F1-09)
+}
+
+export interface ElementCheck {
+  key: string;                  // 게임 요소 열쇠 'item:sword_long'
+  serverValue: unknown;         // 서버가 준 값
+  same: boolean;                // 케이스 기대값(기획서)과 같았나
+}
+
+export interface ApiCallSeen {  // 값 · 본문은 싣지 않는다
+  method: string;               // 'POST'
+  path: string;                 // 대상 서버 주소 기준 경로, 물음표 뒤는 빼고 번호 칸은 틀로 접는다 '/admin/players/:n'
+  status: number;
 }
 
 // 앱 항목을 돌린 폰과 앱의 판. 못 읽은 칸은 null 이다 — 지어내지 않는다

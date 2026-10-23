@@ -4,6 +4,8 @@ import type { ExecuteResponse, Platform, StepResult } from '@platform/kit';
 
 import type { Pool } from 'pg';
 
+import { 게임결과를넣는다 } from './gameResult.js';
+
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. 풀은 실제로 쓸 때 가져온다 (catalog/store.ts와 같은 방식)
 async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
@@ -84,6 +86,7 @@ export async function finishItem(historyId: number, result: ExecuteResponse): Pr
       const 받은것 = result.status === 'PASS' ? 받은API(result.steps) : [];
       if (받은것.length > 0) await client.query(API호출넣기, [historyId, JSON.stringify(받은것)]);
     }
+    await 게임결과를넣는다(client, historyId, result);
     await client.query('COMMIT');
   } catch (err) {
     await client.query('ROLLBACK');

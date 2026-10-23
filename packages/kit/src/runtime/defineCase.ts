@@ -29,6 +29,10 @@ export interface DefineCaseInput<P extends CaseSchema, E extends CaseSchema> {
   techniques?: Technique[];
   // API 케이스만 · 케이스를 만든 API 문서 판. 실행 때 그 판과 응답 모양을 견준다 (공통/2 §4 「API 케이스」)
   apiDoc?: number;
+  // 게임 케이스만 · 닿는 게임 요소 열쇠. 빠른 검사가 게임 지도에 있는지 본다 (공통/3-공유계약 「게임 테스트 타입」)
+  elements?: string[];
+  // 빌드마다 먼저 도는 핵심 경로 케이스 (도메인/게임 §3.10 「빌드마다 돌리기」)
+  smoke?: boolean;
 }
 
 // 선언에 쓴 zod 스키마 원본. 실행 시점에 주입값을 검증하려면 JSON Schema가 아니라 원본이 필요하다.
@@ -86,6 +90,10 @@ export function defineCase<P extends CaseSchema, E extends CaseSchema>(
   const techniques = TECHNIQUES.filter((t) => input.techniques?.includes(t));
   if (techniques.length > 0) spec.techniques = techniques;
   if (input.apiDoc !== undefined) spec.apiDoc = input.apiDoc;
+  // techniques 와 같은 까닭으로 겹침을 빼고 차례를 맞춘다
+  const elements = [...new Set(input.elements ?? [])].filter((e) => e !== '').sort();
+  if (elements.length > 0) spec.elements = elements;
+  if (input.smoke === true) spec.smoke = true;
 
   schemas.set(spec, { params: input.params, expected: input.expected });
 

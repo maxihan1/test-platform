@@ -287,6 +287,13 @@ describe('확인문장들', () => {
     expect(확인문장들(R16)).toEqual(['한 건이다', '완료된다']);
   });
 
+  it('verify 밑 도우미 둘의 문장도 든다', () => {
+    const 소스 = body(`
+  await verify.element('공격력이 기획서와 같다', 'item:a', 1, 1);
+  await verify.rates('확률이 표대로다', { a: 1 }, { a: 1 }, 0.03);`);
+    expect(확인문장들(소스)).toEqual(['공격력이 기획서와 같다', '확률이 표대로다']);
+  });
+
   it('문자열이 아닌 첫 인자와 verify 아닌 호출은 건너뛴다', () => {
     const 소스 = body(`
   const 문장 = '변수';

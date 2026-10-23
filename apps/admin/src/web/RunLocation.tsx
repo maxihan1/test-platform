@@ -12,12 +12,12 @@ export function RunLocation({ android, 앱종류 }: { android: boolean; 앱종�
   const t = use말();
   const 늘 = 종류(앱종류).실행위치늘;
 
-  if (!android && !늘) return null;
+  if (!android && 늘 === null) return null;
 
   return (
     <div className="hint">
       {t('실행 위치 · 디바이스 팜')}
-      {!늘 ? null : <div>{t('케이스마다 빈 폰을 하나씩 잡고 끝나면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 항목에 남습니다')}</div>}
+      {늘 === null ? null : <div>{t(늘)}</div>}
     </div>
   );
 }

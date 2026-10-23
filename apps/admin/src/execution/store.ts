@@ -7,8 +7,9 @@ import type { ApiAuth, Platform } from '@platform/kit';
 import type { Pool } from 'pg';
 
 import { 미확정사유SQL } from '../prd/unconfirmed.js';
-import { API인증읽기 } from '../settings/envs.js';
+import { API인증읽기, type 어드민키, 어드민키읽기 } from '../settings/envs.js';
 
+import { 엔진칸 } from './engineField.js';
 import { DEFAULT_TIMEOUT_MS, 선언밖디바이스 } from './location.js';
 import { 대상서버계정, 저장값을채운다 } from './savedInput.js';
 import { 실행종류 } from './runKind.js';
@@ -84,13 +85,10 @@ export interface PendingItem {
   app?: string;
   // 그 대상 서버 줄의 API 인증. 설정이 API 애플리케이션에만 넣게 하므로 있으면 API 케이스다 (도메인/API §3.8)
   apiAuths?: ApiAuth[];
-  // 게임 애플리케이션의 android 항목만 (도메인/게임 §3.10 결정 6)
+  // 게임 애플리케이션의 android 항목만 (도메인/게임 §3.10 결정 6) — adminKey 는 그 대상 서버 줄의 어드민 키 원문
   engine?: 'GAME';
+  adminKey?: 어드민키;
 }
-
-/** 실행 요청의 엔진 칸 — 게임 애플리케이션의 android 항목만. 정식 실행 · 테스트 실행 · 기기 성능이 같이 쓴다 (도메인/게임 §3.10 결정 6) */
-export const 엔진칸 = (kind: string | null | undefined, platform: Platform): { engine?: 'GAME' } =>
-  kind === 'GAME' && platform === 'android' ? { engine: 'GAME' } : {};
 
 // tcId 접두사가 곧 서비스다. 요청이 서비스를 따로 싣게 두면 번호와 서비스가 어긋날 수 있다 (SPEC §7)
 export function prefixOf(tcId: string): string {
@@ -105,6 +103,7 @@ interface ServiceRow {
   base_url: string | null;
   app_path: string | null;
   api_auths: unknown;
+  admin_key: unknown;
 }
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. 풀은 실제로 쓸 때 가져온다 (catalog/store.ts와 같은 방식)
@@ -181,7 +180,7 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
 
     // 서비스와 대상 주소는 표에서 찾는다. 요청이 주소를 싣게 두면 아무 데나 쏠 수 있다 (SPEC §6)
     const service = await client.query<ServiceRow>(
-      `SELECT s.id, s.name, s.tests_repo, s.kind, e.base_url, NULLIF(e.app_path, '') AS app_path, e.api_auths
+      `SELECT s.id, s.name, s.tests_repo, s.kind, e.base_url, NULLIF(e.app_path, '') AS app_path, e.api_auths, e.admin_key
          FROM service s
          LEFT JOIN service_env e ON e.service_id = s.id AND e.env = $2
         WHERE s.prefix = $1 AND s.is_active`,
@@ -283,7 +282,7 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
             timeoutMs,
             ...(platform === 'android' && found서비스.app_path !== null && { app: found서비스.app_path }),
             ...(인증들.length > 0 && { apiAuths: 인증들 }),
-            ...엔진칸(found서비스.kind, platform),
+            ...엔진칸(found서비스.kind, platform, 어드민키읽기(found서비스.admin_key)),
           });
         }
       }

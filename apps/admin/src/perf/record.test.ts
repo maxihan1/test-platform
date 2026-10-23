@@ -45,7 +45,7 @@ const 로그인HAR = {
   },
 };
 
-const 줄 = { env: 'qa', baseUrl: 'http://shop.test', loginId: 'tester01', loginPassword: 'pw-secret!', isProd: false, 계정들: [], appPath: null, apiAuths: [] };
+const 줄 = { env: 'qa', baseUrl: 'http://shop.test', loginId: 'tester01', loginPassword: 'pw-secret!', isProd: false, 계정들: [], appPath: null, apiAuths: [], adminKey: null };
 const 케이스 = { 케이스: [{ tcId: 'XRD-001', platform: 'desktop' as const, filePath: 'tests/xrd/a.spec.ts', paramSchema: {}, expectedSchema: {} }] };
 const 재료 = { cases: ['로그인'], baseUrl: 'http://shop.test', apiHosts: [] };
 

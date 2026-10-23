@@ -8,9 +8,10 @@ import type { TestCase, TestResult } from '@playwright/test/reporter';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runDir } from './artifacts.js';
-import { DEVICE_ATTACHMENT, PROGRESS_MARKER, RESULT_MARKER, STEP_ATTACHMENT } from './protocol.js';
+import { DEVICE_ATTACHMENT, GAME_ATTACHMENT, PROGRESS_MARKER, RESULT_MARKER, STEP_ATTACHMENT } from './protocol.js';
 import PlatformReporter, {
   DEVICE_ATTACHMENT as REPORTER_DEVICE,
+  GAME_ATTACHMENT as REPORTER_GAME,
   moveTrace,
   RESULT_MARKER as REPORTER_MARKER,
   STEP_ATTACHMENT as REPORTER_ATTACHMENT,
@@ -22,6 +23,7 @@ describe('리포터가 들고 있는 표시자', () => {
     expect(REPORTER_MARKER).toBe(RESULT_MARKER);
     expect(REPORTER_ATTACHMENT).toBe(STEP_ATTACHMENT);
     expect(REPORTER_DEVICE).toBe(DEVICE_ATTACHMENT);
+    expect(REPORTER_GAME).toBe(GAME_ATTACHMENT);
   });
 });
 
@@ -171,5 +173,13 @@ describe('결과 줄의 기기 정보 (APP-F1-05)', () => {
 
   it('없으면 device 칸이 없다 — 브라우저 항목', () => {
     expect('device' in 끝줄([])).toBe(false);
+  });
+
+  it('게임 첨부의 대조 줄 · 부른 API 를 싣고, 빈 목록은 칸을 안 싣는다', () => {
+    const 대조 = [{ key: 'item:sword_long', serverValue: 12, same: true }];
+    const body = Buffer.from(JSON.stringify({ elementChecks: 대조, apiCalls: [] }));
+    const 줄 = 끝줄([{ name: GAME_ATTACHMENT, contentType: 'application/json', body }]);
+    expect(줄.elementChecks).toEqual(대조);
+    expect('apiCalls' in 줄).toBe(false);
   });
 });

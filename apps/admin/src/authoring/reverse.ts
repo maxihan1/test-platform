@@ -5,7 +5,7 @@ import { 기본역할, type 역할계정 } from '@platform/kit/accounts';
 import type { PoolClient } from 'pg';
 
 import { 문서설정읽기 } from '../apidoc/store.js';
-import { API인증읽기, type API인증, 역할계정읽기 } from '../settings/envs.js';
+import { API인증읽기, type API인증, type 어드민키, 어드민키읽기, 역할계정읽기 } from '../settings/envs.js';
 
 /**
  * 시작 주소를 받을 수 있으면 **다시 조립한 href** 를, 아니면 null 을 준다.
@@ -45,11 +45,13 @@ export interface 대상줄 {
   appPath: string | null;
   /** API 인증 — 비밀값 원문이다. 테스트 실행이 러너에 싣는다 (도메인/API §3.8) */
   apiAuths: API인증[];
+  /** 게임 서버 어드민 키 — 원문이다. 게임 케이스 실행이 러너에 싣는다 (도메인/게임 §3.10) */
+  adminKey: 어드민키 | null;
 }
 
 type 묻기 = Pick<PoolClient, 'query'>;
-type 줄행 = { env: string; base_url: string; login_id: string | null; login_password: string | null; is_prod: boolean; role_accounts: unknown; app_path: string | null; api_auths: unknown };
-const 줄칸 = 'env, base_url, login_id, login_password, is_prod, role_accounts, app_path, api_auths';
+type 줄행 = { env: string; base_url: string; login_id: string | null; login_password: string | null; is_prod: boolean; role_accounts: unknown; app_path: string | null; api_auths: unknown; admin_key: unknown };
+const 줄칸 = 'env, base_url, login_id, login_password, is_prod, role_accounts, app_path, api_auths, admin_key';
 
 const 줄로 = (행: 줄행): 대상줄 => ({
   env: 행.env,
@@ -61,6 +63,7 @@ const 줄로 = (행: 줄행): 대상줄 => ({
   // 손으로 고친 빈 글자도 없음이다 — 그대로 보내면 러너가 400 으로 거절한다
   appPath: 행.app_path === '' ? null : 행.app_path,
   apiAuths: API인증읽기(행.api_auths),
+  adminKey: 어드민키읽기(행.admin_key),
 });
 
 // 풀은 쓸 때 가져온다 — DATABASE_URL 없이 도는 검사가 이 파일의 순수 함수를 import 한다

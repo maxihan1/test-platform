@@ -137,6 +137,13 @@ describe('실행 창 실행 위치', () => {
     expect(screen.getByText('케이스마다 빈 폰을 하나씩 잡고 끝나면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 항목에 남습니다')).toBeTruthy();
   });
 
+  it('게임 애플리케이션은 실행 하나에 폰을 한 번 잡는다고 덧붙인다', () => {
+    render(<RunLocation android={false} 앱종류="GAME" />);
+
+    expect(screen.getByText('실행 하나 동안 빈 폰을 한 번 잡고 다 돌면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 항목에 남습니다')).toBeTruthy();
+    expect(screen.queryByText(/케이스마다 빈 폰을/)).toBeNull();
+  });
+
   it('웹 애플리케이션은 지금처럼 앱 케이스가 있을 때 한 줄만이다', () => {
     render(<RunLocation android 앱종류="SCREEN" />);
 

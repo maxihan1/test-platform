@@ -241,16 +241,24 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
     expect(받은요청[0]!.historyId).toBeGreaterThan(0);
   });
 
-  it('게임 애플리케이션의 android 테스트 실행은 엔진 GAME 을 싣고, 다른 환경은 안 싣는다', async () => {
+  it('게임 애플리케이션의 android 테스트 실행은 엔진 GAME 과 그 줄의 어드민 키를 싣고, 다른 환경은 안 싣는다', async () => {
     await q(`UPDATE service SET kind = 'GAME' WHERE id = $1`, [서비스]);
+    await q(
+      `INSERT INTO service_env (service_id, env, base_url, admin_key) VALUES ($1, 'qa', 'https://qa.example.com', $2)`,
+      [서비스, JSON.stringify({ header: 'X-Admin-Key', value: 'xtr-key' })],
+    );
     try {
       const 폰 = await 시작({ ...정상, platform: 'android' });
       expect(폰.statusCode).toBe(202);
       await 끝날때까지(폰.json<{ trialId: string }>().trialId);
       const 웹 = await 시작(정상);
       await 끝날때까지(웹.json<{ trialId: string }>().trialId);
-      expect(받은요청.map((r) => [r.platform, r.engine])).toEqual([['android', 'GAME'], ['desktop', undefined]]);
+      expect(받은요청.map((r) => [r.platform, r.engine, r.adminKey])).toEqual([
+        ['android', 'GAME', { header: 'X-Admin-Key', value: 'xtr-key' }],
+        ['desktop', undefined, undefined],
+      ]);
     } finally {
+      await q('DELETE FROM service_env WHERE service_id = $1', [서비스]);
       await q(`UPDATE service SET kind = 'SCREEN' WHERE id = $1`, [서비스]);
     }
   });

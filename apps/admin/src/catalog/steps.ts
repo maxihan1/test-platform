@@ -45,9 +45,16 @@ function isInlineFunction(node: ts.Node | undefined): node is ts.ArrowFunction |
   return node !== undefined && (ts.isArrowFunction(node) || ts.isFunctionExpression(node));
 }
 
-// 넷째 인자가 객체 리터럴이고 blocker: true 일 때만. 변수로 넘기면 모른다 — 모르면 blocker 가 아니다
+// 판정 호출 — verify 와 그 밑 도우미 둘(공통/3-공유계약 「게임 테스트 타입」). 도우미만 쓴 게임 케이스도 판정이 있는 케이스다
+export function isVerify(call: ts.CallExpression): boolean {
+  const e = call.expression;
+  if (ts.isIdentifier(e)) return e.text === 'verify';
+  return ts.isPropertyAccessExpression(e) && ts.isIdentifier(e.expression) && e.expression.text === 'verify' && ['element', 'rates'].includes(e.name.text);
+}
+
+// 옵션 자리(verify 넷째 · 도우미 다섯째)가 객체 리터럴이고 blocker: true 일 때만. 변수로 넘기면 모른다 — 모르면 blocker 가 아니다
 function isBlocker(call: ts.CallExpression): boolean {
-  const options = call.arguments[3];
+  const options = call.arguments[ts.isIdentifier(call.expression) ? 3 : 4];
   if (options === undefined || !ts.isObjectLiteralExpression(options)) return false;
   return options.properties.some(
     (p) =>
@@ -246,7 +253,7 @@ export function caseSteps(text: string): CaseSteps {
       ) {
         current.unsure = true;
       } else if (ts.isCallExpression(node)) {
-        if (ts.isIdentifier(node.expression) && node.expression.text === 'verify') {
+        if (isVerify(node)) {
           current.verifies += 1;
           if (isBlocker(node)) current.blocker = true;
         } else {
@@ -273,14 +280,14 @@ export function caseSteps(text: string): CaseSteps {
 }
 
 /**
- * 케이스 파일의 `verify('문장', …)` 첫 인자를 소스 차례대로. 문자열이 아닌 첫 인자는 건너뛴다(K6 이 따로 잡는다).
+ * 케이스 파일의 `verify('문장', …)` · `verify.element` · `verify.rates` 첫 인자를 소스 차례대로. 문자열이 아닌 첫 인자는 건너뛴다(K6 이 따로 잡는다).
  * 코드를 실행하지 않고 읽는다 — 작성 끝내기가 확인 문장을 싣는 데 쓴다
  */
 export function 확인문장들(text: string): string[] {
   const sf = ts.createSourceFile('case.spec.ts', text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   const 문장들: string[] = [];
   const walk = (node: ts.Node): void => {
-    if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'verify') {
+    if (ts.isCallExpression(node) && isVerify(node)) {
       const 첫 = node.arguments[0];
       if (첫 !== undefined && ts.isStringLiteralLike(첫)) 문장들.push(첫.text);
     }

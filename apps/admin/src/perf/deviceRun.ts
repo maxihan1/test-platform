@@ -8,7 +8,7 @@ import type { ExecuteRequest, ExecuteResponse } from '@platform/kit';
 
 import { type 대상줄, 대상줄읽기 } from '../authoring/reverse.js';
 import { 저장값을채운다 } from '../execution/savedInput.js';
-import { 엔진칸 } from '../execution/store.js';
+import { 엔진칸 } from '../execution/engineField.js';
 import { artifactsDir } from '../execution/routes.js';
 import { abortRunner, httpTimeoutMs, 러너에보낸다 } from '../execution/runner.js';
 import { type 기록기, 로컬기록기, 팜기록기 } from './deviceRecorder.js';
@@ -218,7 +218,7 @@ async function 케이스보내기(s: 도는기기, d: 기기상태, loop: number
   const historyId = Date.now() * 100 + (보낸수++ % 100);
   const 요청: ExecuteRequest = {
     runId: 0, historyId, tcId: c.tcId, platform: 'android', filePath: c.filePath, baseUrl: 줄.baseUrl, params: c.params, expected: c.expected,
-    timeoutMs: 케이스제한ms, udid: d.serial, ...(줄.appPath !== null && { app: 줄.appPath }), ...엔진칸(종류, 'android'),
+    timeoutMs: 케이스제한ms, udid: d.serial, ...(줄.appPath !== null && { app: 줄.appPath }), ...엔진칸(종류, 'android', 줄.adminKey),
   };
   s.보낸것.add(historyId);
   const t0 = Date.now();

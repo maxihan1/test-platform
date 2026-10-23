@@ -107,3 +107,28 @@ export function api만들기(
     });
   };
 }
+
+/**
+ * 몸통의 admin 칸 — 대상 서버 줄의 어드민 키를 머리로 붙인 요청 도구. 게임 케이스가 상태를 만들고(준비) 서버 값을 읽는다 (도메인/게임 §3.10 「케이스 꼴」).
+ * 키 값은 부르는 쪽이 비밀 모음에 넣어 기록 · 오류 글에서 가린다. 케이스가 같은 이름 머리를 주면 뺀다 — 둘이 함께 나가면 서버마다 고르는 쪽이 다르다
+ */
+export function 어드민도구(감싼: APIRequestContext, 키: { header: string; value: string }): APIRequestContext {
+  return new Proxy(감싼, {
+    get(target, prop, receiver) {
+      const original: unknown = Reflect.get(target, prop, receiver);
+      if (typeof prop !== 'string' || !붙이는메서드.has(prop) || typeof original !== 'function') return original;
+      return (url: string, options?: Record<string, unknown>): Promise<APIResponse> => {
+        const 준머리 = Object.entries((options?.headers as Record<string, string> | undefined) ?? {}).filter(
+          ([k]) => k.toLowerCase() !== 키.header.toLowerCase(),
+        );
+        return (original as ApiCall)(url, { ...options, headers: { ...Object.fromEntries(준머리), [키.header]: 키.value } });
+      };
+    },
+  });
+}
+
+/** 러너가 PLATFORM_ADMIN_KEY 로 넘긴 어드민 키(모양은 러너 입구가 봤다). 없으면 undefined — 그때 admin 을 꺼내면 몸통이 까닭을 받는다 */
+export function 어드민키(값: string | undefined): { header: string; value: string } | undefined {
+  if (값 === undefined || 값 === '') return undefined;
+  return (JSON.parse(값) as { header: string; value: string } | null) ?? undefined;
+}

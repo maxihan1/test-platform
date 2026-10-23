@@ -79,6 +79,15 @@ describe('checkSource', () => {
     expect(rules(없음)).toContain('K6');
   });
 
+  it('K6 — verify.element · verify.rates 만 써도 판정이 있는 케이스이고, 그 문장도 리터럴이어야 한다', () => {
+    const 도우미 = 정상.replace(
+      "await verify('제목이 보인다', true, true);",
+      "await verify.element('공격력이 기획서와 같다', 'item:sword_long', 12, 12);\n    await verify.rates('강화 확률이 표대로다', { 성공: 55 }, { 성공: 0.55 }, 0.03);",
+    );
+    expect(rules(도우미)).toEqual([]);
+    expect(rules(도우미.replace("'공격력이 기획서와 같다'", '문장'))).toContain('K6');
+  });
+
   it('K7 — 주석이 있으면 잡는다', () => {
     expect(rules(정상.replace('test(spec,', '// 로그인 절차\ntest(spec,'))).toContain('K7');
   });
