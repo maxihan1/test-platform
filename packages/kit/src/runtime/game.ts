@@ -90,7 +90,7 @@ export async function openGame(
       await game.ping();
       return 드라이버;
     } catch (err) {
-      // 원문을 남겨야 실패 유형이 「닿지 못함」으로 가른다 (reporting/failureType.ts)
+      // 원문을 남겨야 실패 유형이 「환경 오류」로 가른다 (reporting/failureType.ts)
       if (/HTTP 4(?!08|29)\d\d/.test(글(err)) || Date.now() >= 끝) throw new Error(`게임이 ${켜짐.timeoutMs / 1000}초 안에 답하지 않았습니다 — ${글(err)}`);
       await 쉬기(켜짐.intervalMs);
     }
