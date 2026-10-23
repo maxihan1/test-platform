@@ -4,6 +4,7 @@ import type { ScenarioLink, ScenarioPart } from '@platform/kit';
 
 import { t, type 언어 } from './i18n.js';
 import type { LinkSuggestion, TrialResult } from './scenarioApi.js';
+import { 멈춘사유글자 } from './scenarioResultView.js';
 import { 빈연결, 이미실행, type 재료들 } from './scenarioView.js';
 
 /** 값을 가져올 단계 번호. 요청 차단은 앞 단계가 없다 */
@@ -93,4 +94,13 @@ export function 쓰였나(결과: TrialResult, 받는번호: number, l: Scenario
   const 꼬리 = (r.error?.message ?? '').split('\n').find((줄) => 줄.startsWith(꼬리머리));
   if (꼬리 === undefined) return t('멈춤 · 쓰였는지는 결과에 남지 않습니다', 말);
   return t(꼬리.slice(꼬리머리.length).split(' · ').includes(`${꼬리이름[l.kind]} ${l.method} ${l.urlPattern}`) ? '안 쓰임' : '쓰임', 말);
+}
+
+/**
+ * 멈춘 단계의 한 줄 — 시험 결과에는 정식 실행의 `parts[].failure` 가 없어 같은 차례로 고른다: 실패한 첫 확인 문장, 없으면 단계 오류의 첫 줄.
+ * 확인 문장이 틀려 멈추면 단계 오류가 비어 한 줄이 없었다 (E2E-F2-06 시험). 서버 쪽 고르기(reporting/itemFailure.ts)는 DB 를 끌고 와 화면에서 못 부른다
+ */
+export function 멈춘한줄(part: TrialResult['parts'][number], 말: 언어): string {
+  const 확인 = part.steps.flatMap((s) => s.assertions).find((a) => a.status === 'FAIL');
+  return 확인?.statement ?? 멈춘사유글자(part.error?.message ?? '', 말).split('\n')[0];
 }

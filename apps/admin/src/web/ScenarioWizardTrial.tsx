@@ -8,7 +8,7 @@ import { 멈춘사유글자 } from './scenarioResultView.js';
 import { TrialControls, TrialTab } from './ScenarioTrial.js';
 import type { 재료들 } from './scenarioView.js';
 import { 종류이름 } from './ScenarioWizardValues.js';
-import { 가져올번호, 연결들, 쓰였나 } from './scenarioWizardView.js';
+import { 가져올번호, 멈춘한줄, 연결들, 쓰였나 } from './scenarioWizardView.js';
 import { PLATFORM_LABEL, seconds } from './ui.js';
 import type { 시험상태 } from './useScenarioTrial.js';
 
@@ -90,7 +90,7 @@ export function 시험칸(p: Props) {
               ? 멈춘사유글자(결과.error?.message ?? '', 언어)
               : t('{번호}번 「{이름}」에서 멈췄습니다', { 번호: 실패.seq, 이름: p.이름(실패.seq) })}
           </b>
-          {실패 === undefined ? null : <span>{멈춘사유글자(실패.error?.message ?? '', 언어).split('\n')[0]}</span>}
+          {실패 === undefined ? null : <span>{멈춘한줄(실패, 언어)}</span>}
           <span className="scw-label">{t('이렇게 해 보세요')}</span>
           <ul>
             <li>{t('이 케이스만 따로 돌려 통과하는지 먼저 봅니다')}</li>
