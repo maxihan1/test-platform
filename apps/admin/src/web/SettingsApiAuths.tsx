@@ -28,12 +28,16 @@ function 새인증키(): string {
 export const API인증줄로 = (auths: NonNullable<EnvRow['apiAuths']>): API인증줄[] =>
   auths.map((a) => ({ ...a, key: 새인증키(), 원래이름: a.name, 원래주소: a.tokenUrl, 새비밀값: '' }));
 
+/** 불러온 뒤 대상 서버 주소를 바꿨나. / 로 시작하는 토큰 주소와 케이스의 admin 요청이 그 주소로 가서 옛 비밀값을 못 이어받는다 */
+export const 서버주소바뀜 = (e: { baseUrl: string; 원래서버주소?: string }): boolean => e.원래서버주소 !== undefined && e.baseUrl !== e.원래서버주소;
+
 /**
- * 이어받을 옛 비밀값이 없는데 비밀값 칸이 비었나 — 새로 더했거나 이름 · 토큰 주소 · 대상 서버 이름을 바꾼 인증이다.
+ * 이어받을 옛 비밀값이 없는데 비밀값 칸이 비었나 — 새로 더했거나 이름 · 토큰 주소 · 대상 서버 이름을 바꾼 인증, 주소를 바꾼 줄의 / 토큰 주소다.
  * 그대로 보내면 서버가 400 API_AUTH_SECRET_REQUIRED 를 낸다(토큰 주소를 바꾸면 끝 4자리만 본 사람이 원문을 다른 곳으로 못 보내게 다시 받는다)
  */
-export const 비밀값필요 = (r: API인증줄, 서버이름바뀜: boolean): boolean =>
-  r.새비밀값 === '' && (서버이름바뀜 || r.원래이름 === null || r.name.trim() !== r.원래이름 || r.tokenUrl !== r.원래주소);
+export const 비밀값필요 = (r: API인증줄, 서버이름바뀜: boolean, 주소바뀜: boolean): boolean =>
+  r.새비밀값 === '' &&
+  (서버이름바뀜 || r.원래이름 === null || r.name.trim() !== r.원래이름 || r.tokenUrl !== r.원래주소 || (주소바뀜 && r.tokenUrl.startsWith('/')));
 
 /** 서버로 보낼 한 줄. 비밀값은 새로 넣었을 때만 싣는다 — 화면은 원문을 받은 적이 없다 */
 export const API인증보낼모양 = (r: API인증줄): NonNullable<EnvInput['apiAuths']>[number] => ({
@@ -45,14 +49,14 @@ export const API인증보낼모양 = (r: API인증줄): NonNullable<EnvInput['ap
 
 /** 저장을 막을 까닭. 서버가 400 으로 막을 것을 사람 말로 먼저 짚는다 — 어느 칸인지 응답에 안 담겨 온다 */
 export function API인증못보내는이유(
-  envs: readonly { env: string; 원래키: string | null; API인증들: API인증줄[] }[],
+  envs: readonly { env: string; 원래키: string | null; baseUrl: string; 원래서버주소?: string; API인증들: API인증줄[] }[],
   언어: 언어,
 ): string | null {
-  const 줄들 = envs.flatMap((e) => e.API인증들.map((r) => ({ r, 바뀜: e.원래키 !== null && e.env !== e.원래키 })));
+  const 줄들 = envs.flatMap((e) => e.API인증들.map((r) => ({ r, 바뀜: e.원래키 !== null && e.env !== e.원래키, 주소: 서버주소바뀜(e) })));
   if (줄들.some(({ r }) => r.name.trim() === '' || r.tokenUrl === '' || r.clientId === '')) {
     return 말('API 인증에 비어 있는 칸이 있습니다. 입력하거나 해당 인증을 삭제해 주세요', 언어);
   }
-  if (줄들.some(({ r, 바뀜 }) => 비밀값필요(r, 바뀜))) return 말('새 API 인증은 비밀값을 입력해 주세요', 언어);
+  if (줄들.some(({ r, 바뀜, 주소 }) => 비밀값필요(r, 바뀜, 주소))) return 말('API 인증 비밀값을 입력해 주세요', 언어);
   // 아래는 서버 settings/apiService.ts `API인증틀림` 과 같은 규칙이다 — 서버는 BAD_API_AUTH 하나로만 답해 어느 칸인지 모른다
   const 이름틀림 = envs.some((e) => {
     const 이름들 = e.API인증들.map((r) => r.name.trim());
@@ -73,11 +77,13 @@ export function API인증칸들({
   인증들,
   번호,
   서버이름바뀜,
+  주소바뀜,
   고친다,
 }: {
   인증들: API인증줄[];
   번호: number;
   서버이름바뀜: boolean;
+  주소바뀜: boolean;
   고친다: (next: API인증줄[]) => void;
 }) {
   const t = use말();
@@ -89,7 +95,7 @@ export function API인증칸들({
       </div>
       {인증들.map((r, k) => {
         const 자리 = { 번호, 순번: k + 1 };
-        const 다시넣기 = 비밀값필요(r, 서버이름바뀜);
+        const 다시넣기 = 비밀값필요(r, 서버이름바뀜, 주소바뀜);
         return (
           <div className="set-env-login" key={r.key}>
             <input
@@ -135,7 +141,7 @@ export function API인증칸들({
             </button>
             {/* 막 더한 빈 줄에는 띄우지 않는다 — 아직 적지 않은 것이지 틀린 것이 아니다 */}
             {다시넣기 && r.name.trim() !== '' ? (
-              <div className="err">{t('비밀값을 입력해 주세요. 새 인증이거나 이름 · 토큰 주소를 바꾸면 다시 넣어야 합니다')}</div>
+              <div className="err">{t('비밀값을 입력해 주세요. 새 인증이거나 이름 · 토큰 주소 · 서버 주소를 바꾸면 다시 넣어야 합니다')}</div>
             ) : null}
           </div>
         );

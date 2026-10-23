@@ -106,10 +106,10 @@ describe('API 애플리케이션 설정 (도메인/인증 §8.8 「종류」 · 
     fireEvent.click(screen.getByRole('button', { name: '대상 서버 1 API 인증 추가' }));
     인증을채운다(2, { 이름: '고객사 B', 주소: '/oauth/token', 아이디: 'client-b' });
 
-    expect(screen.getByText('비밀값을 입력해 주세요. 새 인증이거나 이름 · 토큰 주소를 바꾸면 다시 넣어야 합니다')).toBeTruthy();
+    expect(screen.getByText('비밀값을 입력해 주세요. 새 인증이거나 이름 · 토큰 주소 · 서버 주소를 바꾸면 다시 넣어야 합니다')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
     expect(고침).not.toHaveBeenCalled();
-    expect(document.querySelector('.set-why')?.textContent).toBe('새 API 인증은 비밀값을 입력해 주세요');
+    expect(document.querySelector('.set-why')?.textContent).toBe('API 인증 비밀값을 입력해 주세요');
   });
 
   it('저장된 인증의 이름이나 토큰 주소를 바꾸면 옛 비밀값을 못 이어받아 비밀값을 다시 받는다', () => {
@@ -120,6 +120,24 @@ describe('API 애플리케이션 설정 (도메인/인증 §8.8 「종류」 · 
     expect((screen.getByLabelText('대상 서버 1 API 인증 1 비밀값') as HTMLInputElement).placeholder).toBe('비밀값');
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
     expect(고침).not.toHaveBeenCalled();
+  });
+
+  it('대상 서버 주소를 바꾸면 / 로 시작하는 토큰 주소의 인증은 비밀값을 다시 받고, http(s) 토큰 주소는 그대로 잇는다', async () => {
+    const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
+    render(<ServicePanel row={API앱} onDone={() => {}} />);
+    fireEvent.change(screen.getByLabelText('대상 서버 1 주소'), { target: { value: 'https://other.example.com' } });
+
+    expect(screen.getByText('비밀값을 입력해 주세요. 새 인증이거나 이름 · 토큰 주소 · 서버 주소를 바꾸면 다시 넣어야 합니다')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    expect(고침).not.toHaveBeenCalled();
+    expect(document.querySelector('.set-why')?.textContent).toBe('API 인증 비밀값을 입력해 주세요');
+    cleanup();
+
+    const 절대주소 = { name: '고객사 A', tokenUrl: 'https://auth.example.com/token', clientId: 'client-a', clientSecretLast4: 'abcd' };
+    render(<ServicePanel row={{ ...API앱, envs: [{ env: 'qa', baseUrl: 'https://qa.example.com', apiAuths: [절대주소] }] }} onDone={() => {}} />);
+    fireEvent.change(screen.getByLabelText('대상 서버 1 주소'), { target: { value: 'https://other.example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    await waitFor(() => expect(고침).toHaveBeenCalledTimes(1));
   });
 
   it('「삭제」를 누르면 그 인증이 빠진 목록을 보낸다', async () => {

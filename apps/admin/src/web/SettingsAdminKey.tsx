@@ -3,6 +3,7 @@
 
 import type { EnvInput, EnvRow } from './api.js';
 import { t as 말, use말, type 언어 } from './i18n.js';
+import { 서버주소바뀜 } from './SettingsApiAuths.js';
 
 /** 편집 중인 어드민 키. 새값이 빈 글자면 안 보낸다 — 서버가 같은 대상 서버 · 같은 머리의 옛 값을 이어받는다 */
 export interface 어드민키편집 {
@@ -13,6 +14,8 @@ export interface 어드민키편집 {
 interface 어드민키줄 {
   env: string;
   원래키: string | null;
+  baseUrl: string;
+  원래서버주소?: string;
   adminKey?: EnvRow['adminKey'];
   어드민?: 어드민키편집;
 }
@@ -25,11 +28,11 @@ const 지금칸 = (r: 어드민키줄) => {
   return { header: 편집.header.trim(), 새값: 편집.새값 };
 };
 
-/** 옛 값을 이어받을 수 없는데 값이 비었나 — 새 머리 · 바꾼 머리 · 이름을 바꾼 대상 서버다. 그대로 보내면 400 ADMIN_KEY_VALUE_REQUIRED */
+/** 옛 값을 이어받을 수 없는데 값이 비었나 — 새 머리 · 바꾼 머리 · 이름이나 주소를 바꾼 대상 서버다. 그대로 보내면 400 ADMIN_KEY_VALUE_REQUIRED */
 const 값필요 = (r: 어드민키줄): boolean => {
   const { header, 새값 } = 지금칸(r);
   if (header === '' || 새값 !== '') return false;
-  return r.adminKey == null || r.adminKey.header !== header || (r.원래키 !== null && r.env !== r.원래키);
+  return r.adminKey == null || r.adminKey.header !== header || (r.원래키 !== null && r.env !== r.원래키) || 서버주소바뀜(r);
 };
 
 /** 두 칸이 다 비면 지운다(null). 값은 새로 넣었을 때만 싣는다 — 화면은 원문을 받은 적이 없다 */
@@ -49,7 +52,7 @@ export function 어드민키못보내는이유(envs: readonly 어드민키줄[],
   if (칸들.some((it) => it.새값 !== '' && !/^[\x21-\x7e]{12,500}$/.test(it.새값))) {
     return 말('어드민 키 값은 공백 없이 12자 이상 500자 이하로 입력해 주세요', 언어);
   }
-  if (envs.some(값필요)) return 말('새 어드민 키는 값을 입력해 주세요. 머리 이름이나 대상 서버 이름을 바꾸면 다시 넣어야 합니다', 언어);
+  if (envs.some(값필요)) return 말('새 어드민 키는 값을 입력해 주세요. 머리 이름이나 대상 서버 이름 · 주소를 바꾸면 다시 넣어야 합니다', 언어);
   return null;
 }
 

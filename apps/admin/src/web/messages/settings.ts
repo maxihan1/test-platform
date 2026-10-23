@@ -121,6 +121,7 @@ export const 설정말: Record<string, string> = {
   '테스트 폴더를 입력해 주세요': 'Enter the tests folder',
   '대상 서버에 비어 있는 항목이 있습니다. 입력하거나 해당 서버를 삭제해 주세요':
     'A target server has an empty field. Fill it in or delete that server',
+  '같은 키의 대상 서버가 둘 있습니다. 키를 다르게 적어 주세요': 'Two target servers have the same key. Give each a different key',
   '「{줄}」 — / 로 시작하고 글자·숫자·. _ ~ % - 만 쓸 수 있습니다':
     '"{줄}" must start with / and use only letters, digits and . _ ~ % -',
   '경로는 {글자}자까지 적을 수 있습니다': 'A path can be up to {글자} characters long',

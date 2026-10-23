@@ -63,15 +63,19 @@ describe('게임 애플리케이션 설정 — 어드민 키 (도메인/인증 �
     expect((await 고친본문())?.envs?.[0]?.adminKey).toBeNull();
   });
 
-  it('머리 이름이나 대상 서버 이름을 바꾸고 값을 안 넣으면 저장 전에 까닭을 말한다', () => {
+  it('머리 이름이나 대상 서버 이름 · 주소를 바꾸고 값을 안 넣으면 저장 전에 까닭을 말한다', () => {
     render(<ServicePanel row={게임앱([키있는줄])} onDone={() => {}} />);
-    const 까닭 = '새 어드민 키는 값을 입력해 주세요. 머리 이름이나 대상 서버 이름을 바꾸면 다시 넣어야 합니다';
+    const 까닭 = '새 어드민 키는 값을 입력해 주세요. 머리 이름이나 대상 서버 이름 · 주소를 바꾸면 다시 넣어야 합니다';
 
     fireEvent.change(머리칸(), { target: { value: 'X-Gm-Key' } });
     expect(screen.getByText(까닭)).toBeTruthy();
     expect(값칸().getAttribute('placeholder')).toBe('키 값');
     fireEvent.change(머리칸(), { target: { value: 'X-Admin-Key' } });
     fireEvent.change(screen.getByLabelText('대상 서버 1 키'), { target: { value: 'stage' } });
+    expect(screen.getByText(까닭)).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('대상 서버 1 키'), { target: { value: 'qa' } });
+    expect(screen.queryByText(까닭)).toBeNull();
+    fireEvent.change(screen.getByLabelText('대상 서버 1 주소'), { target: { value: 'https://other.ashveil.dev' } });
     expect(screen.getByText(까닭)).toBeTruthy();
   });
 
