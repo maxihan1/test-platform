@@ -6,7 +6,7 @@ import { 흐름인가 } from '../scenario/flowSide.js';
 
 import type { CaseRow, Platform } from './api.js';
 import { t, type 언어 } from './i18n.js';
-import type { CasePartMaterial, NextCase } from './scenarioApi.js';
+import type { CasePartMaterial, FlowCandidate, NextCase } from './scenarioApi.js';
 import { toValues, type Field } from './schema.js';
 
 type CasePart = Extract<ScenarioPart, { kind: 'case' }>;
@@ -236,4 +236,15 @@ export function 넘겨받기끄기(part: CasePart): CasePart {
 
 export function 케이스바꾸기(part: CasePart, tcId: string): CasePart {
   return { ...part, tcId, skipSteps: [], params: {}, expected: {} };
+}
+
+/**
+ * AI 흐름 후보를 단계로 — 값 연결은 받는 케이스 단계에 단다. 후보의 번호는 단계 차례 그대로라 가져올 단계 번호를 고치지 않는다
+ * (도메인/시나리오 §3.7 결정 15 「후보의 값 연결은 케이스 단계에 묶여 다닌다」)
+ */
+export function 후보단계들(후보: FlowCandidate): ScenarioPart[] {
+  return 후보.steps.map((s, i) => {
+    const links = 후보.links.filter((l) => l.toSeq === i + 1).map((l) => l.link);
+    return { kind: 'case', tcId: s.tcId, params: {}, expected: {}, skipSteps: [], ...(links.length === 0 ? {} : { links }) };
+  });
 }

@@ -18,6 +18,7 @@ import { 성능실행말 } from './messages/perfRun.js';
 import { 기획서말 } from './messages/prd.js';
 import { 실행말 } from './messages/runs.js';
 import { 시나리오말 } from './messages/scenario.js';
+import { 시나리오마법사말 } from './messages/scenarioWizard.js';
 import { 설정말 } from './messages/settings.js';
 import { 껍데기말 } from './messages/shell.js';
 import { 마법사말 } from './messages/wizard.js';
@@ -33,6 +34,7 @@ export const 말: Record<string, string> = {
   ...계정말,
   ...오류영어,
   ...시나리오말,
+  ...시나리오마법사말,
   ...대시보드말,
   ...기획서말,
   ...가이드말,

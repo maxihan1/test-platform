@@ -33,7 +33,7 @@ describe('ScenarioBuild 새 시나리오', () => {
   });
 
   it('쓰기 권한이 없으면 목록으로 보낸다', async () => {
-    window.location.hash = '#/scenarios/new';
+    window.location.hash = '#/scenarios/new/build';
     새로그리기(사람('read'));
     await waitFor(() => expect(window.location.hash).toBe('#/scenarios'));
   });

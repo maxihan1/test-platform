@@ -134,7 +134,7 @@ export function 지금자리(name: string, 집: string, 종류?: 'UI' | 'FN' | '
   if (name === 'prd') return '#/prd';
   if (name === 'prdGuide') return '#/prd/guide';
   if (name === 'apiDocs') return '#/api/docs';
-  if (name === 'scenarios' || name === 'scenarioNew' || name === 'scenario') return '#/scenarios';
+  if (name === 'scenarios' || name === 'scenarioNew' || name === 'scenarioNewBuild' || name === 'scenario') return '#/scenarios';
   if (name === 'perfScenarios' || name === 'perfScenarioNew' || name === 'perfScenario') return '#/perf/scenarios';
   if (name === 'perfPages') return '#/perf/pages';
   if (name === 'perfDevices') return '#/perf/devices';

@@ -1,0 +1,313 @@
+/* E2E 시나리오 마법사 (도메인/시나리오 §8.11 「마법사」 · 2026-10-23 사용자 시안). 틀 · 단계 띠 · 안내 칸 · 카드는 wizard.css 의 설정 마법사 것을 그대로 쓴다.
+   색은 토큰만, 시간은 --dur 만 쓴다 — DESIGN.md 원칙 1 · 4. 대표색은 고른 카드 테두리와 진행 막대에만 앉는다 */
+
+.wz-top .scw-exit {
+  margin-left: 0;
+}
+
+.scw-count {
+  margin: 0 0 6px;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+}
+
+.scw-form {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.scw-ic {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.scw-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  max-width: 680px;
+}
+
+.scw-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+
+.scw-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.scw-row > input {
+  flex: 1 1 220px;
+}
+
+.scw-opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.scw-opt {
+  padding: 7px 13px;
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--ink-muted);
+  background: var(--well);
+  border: 1px solid var(--line-2);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.scw-opt:hover {
+  border-color: var(--ink-faint);
+}
+
+.scw-opt[aria-pressed='true'] {
+  color: var(--ink);
+  border-color: var(--accent);
+}
+
+/* AI 추천 — 기다림 · 실패 · 후보 카드 */
+.scw-box {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  max-width: 680px;
+  padding: 16px;
+  border: 1px dashed var(--line-2);
+  border-radius: 10px;
+}
+
+.scw-box b {
+  font-weight: 500;
+}
+
+.scw-wait {
+  justify-items: stretch;
+}
+
+.scw-bar {
+  position: relative;
+  height: 3px;
+  overflow: hidden;
+  background: var(--line);
+  border-radius: 3px;
+}
+
+.scw-bar > i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 35%;
+  background: var(--accent);
+  border-radius: 3px;
+  animation: 미끄럼 calc(var(--dur) * 5) var(--ease) infinite;
+}
+
+@keyframes 미끄럼 {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(290%);
+  }
+}
+
+.scw-cands {
+  display: grid;
+  gap: 10px;
+  max-width: 760px;
+}
+
+.scw-cand {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 14px 44px 14px 14px;
+  font: inherit;
+  text-align: left;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.scw-cand:hover {
+  border-color: var(--ink-faint);
+}
+
+.scw-cand[aria-pressed='true'] {
+  border-color: var(--accent);
+}
+
+.scw-cand[aria-pressed='true'] .wz-tick {
+  opacity: 1;
+}
+
+.scw-cand > b {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.scw-why {
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+/* 단계 — 넓으면 지금 순서와 고르는 칸을 나란히, 좁으면 위아래로 */
+.scw-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  align-items: start;
+  gap: 18px;
+}
+
+.scw-pick {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.scw-sec {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.scw-sec-h {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.scw-sec-h small {
+  font-size: 12.5px;
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+.scw-empty {
+  margin: 0;
+  padding: 14px;
+  font-size: 13px;
+  color: var(--ink-faint);
+  border: 1px dashed var(--line-2);
+  border-radius: 9px;
+}
+
+.scw-seq,
+.scw-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.scw-srow {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+  padding: 9px 10px;
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-radius: 9px;
+  animation: 떠오름 var(--dur) var(--ease);
+}
+
+.scw-t {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.scw-t > b {
+  font-size: 13.5px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.scw-to {
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  overflow-wrap: anywhere;
+}
+
+.scw-acts {
+  display: flex;
+  gap: 4px;
+}
+
+.scw-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink-muted);
+  background: transparent;
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.scw-icon:hover:not(:disabled) {
+  background: var(--rail-active);
+}
+
+.scw-icon:disabled {
+  cursor: default;
+  opacity: 0.3;
+}
+
+/* API 호출 · 모킹 · 대기의 칸은 그 줄 아래에 편다 */
+.scw-set {
+  grid-column: 1 / -1;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line-2);
+}
+
+.scw-rec {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px;
+  background: var(--well);
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+}
+
+.scw-rrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  padding: 8px 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.scw-rrow > .scw-t {
+  flex: 1 1 200px;
+}

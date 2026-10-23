@@ -27,6 +27,19 @@ function 케이스번호들(parts: ScenarioPart[]): string[] {
   return [...new Set(parts.flatMap((p) => (p.kind === 'case' ? [p.tcId] : [])))];
 }
 
+/** 마법사 「조립 화면으로」가 들고 오는 초안 (도메인/시나리오 §8.11 「마법사」) */
+export interface 넘길초안 {
+  서비스: string;
+  이름: string;
+  디바이스: Platform;
+  단계들: ScenarioPart[];
+}
+// 저장 안 한 초안이라 주소에 못 싣고 메모리로 넘긴다. 빈 조립 화면이 처음 그릴 때 한 번 가져간다
+let 넘겨받을: 넘길초안 | null = null;
+export function 초안넘기기(초안: 넘길초안): void {
+  넘겨받을 = 초안;
+}
+
 /**
  * @param id 기존 시나리오 번호. 새 것이면 null
  * @param 새서비스 새 시나리오가 속할 접두사. 처음 받은 값으로 고정한다 — 조립 중 띠를 바꿔도 초안이 다른 서비스로 가지 않게
@@ -34,12 +47,14 @@ function 케이스번호들(parts: ScenarioPart[]): string[] {
 export function useScenarioDraft(id: number | null, 새서비스: string | null) {
   const t = use말();
   const 언어 = use언어();
+  // StrictMode 는 처음값을 두 번 계산한다 — 비우기는 효과에서 한다
+  const [carried] = useState(() => (id === null ? 넘겨받을 : null));
   const [불러옴, set불러옴] = useState(id === null);
   const [오류, set오류] = useState<string | null>(null);
-  const [서비스, set서비스] = useState(새서비스 ?? '');
-  const [이름, set이름] = useState('');
-  const [디바이스, set디바이스] = useState<Platform>('desktop');
-  const [단계들, set단계들] = useState<ScenarioPart[]>([]);
+  const [서비스, set서비스] = useState(carried?.서비스 ?? 새서비스 ?? '');
+  const [이름, set이름] = useState(carried?.이름 ?? '');
+  const [디바이스, set디바이스] = useState<Platform>(carried?.디바이스 ?? 'desktop');
+  const [단계들, set단계들] = useState<ScenarioPart[]>(carried === null ? [] : carried.단계들);
   const [재료, set재료] = useState<재료들>(new Map());
   const [점검, set점검] = useState<점검들>([]);
   const [버전, set버전] = useState<number | null>(null);
@@ -134,6 +149,12 @@ export function useScenarioDraft(id: number | null, 새서비스: string | null)
       (err: unknown) => set저장오류(message(err, 언어쪽.current)),
     );
   }, [재료받기]);
+
+  // 넘겨받은 초안은 저장 안 한 변경이다 — 저장본은 빈 것 그대로 두어 떠나기 상자가 묻게 한다
+  useEffect(() => {
+    넘겨받을 = null;
+    for (const n of 케이스번호들(carried?.단계들 ?? [])) 재료더하기(n);
+  }, [carried, 재료더하기]);
 
   const 바뀜 = 찍는다(이름, 디바이스, 단계들) !== 저장본;
 
