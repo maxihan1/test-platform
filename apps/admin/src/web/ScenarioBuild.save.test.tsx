@@ -70,7 +70,7 @@ describe('ScenarioBuild 저장', () => {
     케이스목록막기('ZSB-001');
     vi.spyOn(scenarioApi, 'caseParts').mockImplementation(async (tcId) => 재료(tcId));
     const create = vi.spyOn(scenarioApi, 'create').mockResolvedValue({ id: 55, version: 1 });
-    await 해시가('#/scenarios/new');
+    await 해시가('#/scenarios/new/build');
     const { rerender } = render(<감싸개 id={null} 도착="#/scenarios/55" />);
     // 띠를 바꿔도 접두사는 처음 것이다
     rerender(<감싸개 id={null} 띠={서비스('ZSC')} 도착="#/scenarios/55" />);
@@ -97,7 +97,7 @@ describe('ScenarioBuild 저장', () => {
     vi.spyOn(scenarioApi, 'detail').mockResolvedValue(
       상세({ id: 55, name: '새 흐름', version: 1, parts: [케이스단계('ZSB-001'), 케이스단계('ZSB-002')] }),
     );
-    await 해시가('#/scenarios/new');
+    await 해시가('#/scenarios/new/build');
     render(<주소따라 />);
     await 케이스더하기('ZSB-001');
     await 케이스더하기('ZSB-002');

@@ -1,43 +1,21 @@
 // E2E 시나리오 조립 화면 「단계 추가」 탭 속 — 다음 단계 추천 · 기능 테스트 스크립트 팔레트(기능 묶음 · 정상 먼저 · 요구 줄) · 다른 단계 넷 · 케이스 바꾸기 모드 (도메인/시나리오 §8.11)
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { ScenarioPart } from '@platform/kit';
 
-import { api, type CaseRow, type Platform } from './api.js';
+import type { CaseRow, Platform } from './api.js';
 import { 요구줄 } from './CaseListContext.js';
-import { use말, use언어 } from './i18n.js';
-import { scenarioApi, type NextCase } from './scenarioApi.js';
+import { use말 } from './i18n.js';
 import { 추천줄들, 케이스접두사, 팔레트차례, type 앱줄 } from './scenarioView.js';
-import { Failed, Loading, message, PLATFORM_LABEL } from './ui.js';
+import { Failed, Loading, PLATFORM_LABEL } from './ui.js';
+import { use단계추천, use케이스목록 } from './useScenarioCases.js';
 
 export type 다른단계 = Exclude<ScenarioPart, { kind: 'case' }>;
 
 // 묶음 이름이 빈 글자일 때와 묶음 없음(null)을 가르려고 JSON 으로 잇는다
 const 열쇠 = (칸: 'group' | 'rest', feature: string | null) => JSON.stringify([칸, feature]);
 
-// ponytail: 20쪽(1000건) 상한. 넘는 서비스가 생기면 서버 찾기로 바꾼다
-const 쪽상한 = 20;
-
-interface 읽은것 {
-  목록: CaseRow[];
-  잘림: boolean;
-  /** 서비스가 PRD 를 쓰나 — 서버 hasFeatures. 검색 조건 · 쪽을 안 따른다 */
-  PRD씀: boolean;
-}
-
-async function 모으기(service: string, 끊겼나: () => boolean): Promise<읽은것> {
-  const 목록: CaseRow[] = [];
-  let PRD씀 = false;
-  for (let page = 1; page <= 쪽상한; page += 1) {
-    const 쪽 = await api.cases({ service, kind: 'FN', page });
-    목록.push(...쪽.items);
-    PRD씀 ||= 쪽.hasFeatures === true;
-    if (끊겼나() || 쪽.items.length === 0 || 쪽.items.length < 쪽.pageSize) return { 목록, 잘림: false, PRD씀 };
-  }
-  return { 목록, 잘림: true, PRD씀 };
-}
-
-const 다른단계들: { 이름: string; 단계: () => 다른단계 }[] = [
+export const 다른단계들: { 이름: string; 단계: () => 다른단계 }[] = [
   { 이름: 'API 호출', 단계: () => ({ kind: 'api', method: 'GET', path: '/', expectStatus: 200 }) },
   {
     이름: '모킹 켜기',
@@ -65,21 +43,21 @@ interface Props {
 
 export function ScenarioPalette({ 서비스, 앱들 = [], 디바이스, 바꿀번호, 뒤, on케이스, on다른단계, on바꾸기취소 }: Props) {
   const t = use말();
-  const 언어 = use언어();
   // 한 번에 한 애플리케이션의 케이스만 목록에 뜬다. 시나리오 서비스가 바뀌면 그 서비스로 돌아간다
   const [고른앱, set고른앱] = useState(서비스);
   const [앞서비스, set앞서비스] = useState(서비스);
-  if (앞서비스 !== 서비스) {
-    set앞서비스(서비스);
-    set고른앱(서비스);
-  }
-  const [읽음, set읽음] = useState<읽은것 | null>(null);
-  const [오류, set오류] = useState<string | null>(null);
-  // 어느 단계 기준 추천인지 같이 쥔다 — 단계를 더한 직후 한 번 그릴 때 앞 기준 추천이 새 머리 아래 보이지 않게
-  const [추천, set추천] = useState<{ 기준: string; items: NextCase[] } | null>(null);
-  const [추천오류, set추천오류] = useState<string | null>(null);
   const [찾기, set찾기] = useState('');
   const [펼친, set펼친] = useState<ReadonlySet<string>>(new Set());
+  // 묶음 이름으로 펼침을 기억한다 — 다른 서비스의 같은 이름 묶음이 펴진 채 열리지 않게 앱을 바꿀 때 비운다
+  const 앱바꿈 = (앱: string) => {
+    set고른앱(앱);
+    set펼친(new Set());
+  };
+  if (앞서비스 !== 서비스) {
+    set앞서비스(서비스);
+    앱바꿈(서비스);
+  }
+  const { 읽음, 오류 } = use케이스목록(고른앱);
   const 뒤집기 = (키: string) =>
     set펼친((전) => {
       const 다음 = new Set(전);
@@ -87,46 +65,11 @@ export function ScenarioPalette({ 서비스, 앱들 = [], 디바이스, 바꿀�
       return 다음;
     });
 
-  useEffect(() => {
-    let 끊김 = false;
-    set읽음(null);
-    set오류(null);
-    // 묶음 이름으로 펼침을 기억한다 — 다른 서비스의 같은 이름 묶음이 펴진 채 열리지 않게 비운다
-    set펼친(new Set());
-    모으기(고른앱, () => 끊김).then(
-      (값) => {
-        if (!끊김) set읽음(값);
-      },
-      (err: unknown) => {
-        if (!끊김) set오류(message(err, 언어));
-      },
-    );
-    return () => {
-      // 서비스가 바뀌거나 탭을 떠난 뒤 늦게 온 쪽이 다른 목록을 덮지 않게 한다
-      끊김 = true;
-    };
-  }, [고른앱, 언어]);
-
-  // 추천의 재료(화면 연결)는 애플리케이션 하나 안의 것이다 — 맨 뒤 케이스와 같은 애플리케이션 칩일 때만 뜬다
+  // 추천의 재료(화면 연결)는 애플리케이션 하나 안의 것이다 — 맨 뒤 케이스와 같은 애플리케이션 칩일 때만 뜬다.
+  // 케이스 단계가 없으면 첫 단계 후보다(결정 15). 케이스 바꾸기 중에는 맨 뒤 기준 추천이 안 맞아 묻지 않는다
+  const 첫단계 = 뒤 === null && 바꿀번호 === null;
   const 뒤번호 = 뒤 !== null && 케이스접두사(뒤.tcId) === 고른앱 ? 뒤.tcId : null;
-  useEffect(() => {
-    let 끊김 = false;
-    set추천(null);
-    set추천오류(null);
-    if (뒤번호 === null) return;
-    scenarioApi.nextCases(고른앱, 뒤번호).then(
-      (값) => {
-        if (!끊김) set추천({ 기준: 뒤번호, items: 값.items });
-      },
-      (err: unknown) => {
-        if (!끊김) set추천오류(message(err, 언어));
-      },
-    );
-    return () => {
-      // 단계를 잇달아 더하면 앞 단계 기준 추천이 늦게 와서 덮을 수 있다
-      끊김 = true;
-    };
-  }, [고른앱, 뒤번호, 언어]);
+  const 추천 = use단계추천(고른앱, 첫단계 ? '' : 뒤번호);
 
   const PRD씀 = 읽음?.PRD씀 ?? false;
   const 차례 = 읽음 === null ? null : 팔레트차례(읽음.목록, 디바이스, PRD씀);
@@ -141,8 +84,7 @@ export function ScenarioPalette({ 서비스, 앱들 = [], 디바이스, 바꿀�
   const 다폄 = 찾는중 && PRD씀;
   const 펴졌나 = (칸: 'group' | 'rest', feature: string | null) => 다폄 || 펼친.has(열쇠(칸, feature));
 
-  const 추천칸 =
-    읽음 === null || 추천 === null || 추천.기준 !== 뒤번호 ? [] : 추천줄들(읽음.목록, 디바이스, PRD씀, 추천.items).filter((x) => 걸린(x.row));
+  const 추천칸 = 읽음 === null || 추천.items === null ? [] : 추천줄들(읽음.목록, 디바이스, PRD씀, 추천.items).filter((x) => 걸린(x.row));
 
   const 줄 = (c: CaseRow, 이어짐?: string) => (
     <li key={c.tcId} className="scn-pal-row">
@@ -196,7 +138,7 @@ export function ScenarioPalette({ 서비스, 앱들 = [], 디바이스, 바꿀�
               type="button"
               className={a.prefix === 고른앱 ? 'scn-app-pick on' : 'scn-app-pick'}
               aria-pressed={a.prefix === 고른앱}
-              onClick={() => set고른앱(a.prefix)}
+              onClick={() => 앱바꿈(a.prefix)}
             >
               {a.prefix} {a.name}
             </button>
@@ -212,14 +154,16 @@ export function ScenarioPalette({ 서비스, 앱들 = [], 디바이스, 바꿀�
         <p className="scn-set-note">{t('이 애플리케이션에는 단계로 쓸 기능 테스트 스크립트가 없습니다')}</p>
       ) : (
         <>
-          {추천오류 !== null ? (
-            <Failed error={추천오류} />
-          ) : 뒤 === null || 뒤번호 === null || 추천칸.length === 0 ? null : (
-            <section className="scn-pal-rec" aria-label={t('다음 단계 추천')}>
+          {추천.오류 !== null ? (
+            <Failed error={추천.오류} />
+          ) : 추천칸.length === 0 ? null : (
+            <section className="scn-pal-rec" aria-label={t(첫단계 ? '첫 단계 추천' : '다음 단계 추천')}>
               <h3 className="scn-set-sub">
-                {t('다음 단계 추천')}
+                {t(첫단계 ? '첫 단계 추천' : '다음 단계 추천')}
                 <span className="scn-pal-count">
-                  {t('{번호}번 단계가 머무는 화면에서 이어지는 정상 케이스 {수}', { 번호: 뒤.번호, 수: 추천칸.length })}
+                  {뒤 === null
+                    ? t('첫 화면에서 갈 수 있는 정상 케이스 {수}', { 수: 추천칸.length })
+                    : t('{번호}번 단계가 머무는 화면에서 이어지는 정상 케이스 {수}', { 번호: 뒤.번호, 수: 추천칸.length })}
                 </span>
               </h3>
               <ul className="scn-pal-list">{추천칸.map((x) => 줄(x.row, x.screen))}</ul>

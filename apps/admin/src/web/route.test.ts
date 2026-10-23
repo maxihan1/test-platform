@@ -79,6 +79,7 @@ describe('route', () => {
   it('시나리오 목록 · 새 시나리오 · 시나리오 한 건', () => {
     expect(route('#/scenarios')).toEqual({ name: 'scenarios' });
     expect(route('#/scenarios/new')).toEqual({ name: 'scenarioNew' });
+    expect(route('#/scenarios/new/build')).toEqual({ name: 'scenarioNewBuild' });
     expect(route('#/perf/scenarios')).toEqual({ name: 'perfScenarios' });
     expect(route('#/perf/scenarios/new')).toEqual({ name: 'perfScenarioNew' });
     expect(route('#/perf/scenarios/42')).toEqual({ name: 'perfScenario', id: 42 });
@@ -215,6 +216,7 @@ describe('route', () => {
     const 실행없음 = 사람([서비스('PAY', { cases: 'read', runs: 'none', authoring: 'none' })]);
     expect(갈자리('#/scenarios', 실행없음, 'PAY')).toBe('#/cases');
     expect(갈자리('#/scenarios/new', 실행없음, 'PAY')).toBe('#/cases');
+    expect(갈자리('#/scenarios/new/build', 실행없음, 'PAY')).toBe('#/cases');
     expect(갈자리('#/perf/scenarios', 실행없음, 'PAY')).toBe('#/cases');
     expect(갈자리('#/scenarios', 실행만, 'PAY')).toBe('#/scenarios');
   });

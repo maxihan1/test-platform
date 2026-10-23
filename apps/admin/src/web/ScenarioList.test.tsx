@@ -70,7 +70,7 @@ describe('ScenarioList 머리 · 표머리', () => {
     expect(머리?.querySelector('.head-meta')?.textContent).toBe(
       '기능 테스트 스크립트를 차례로 실행해 흐름이 끊기지 않는지 확인합니다',
     );
-    expect(screen.getByRole('link', { name: '새 시나리오' }).getAttribute('href')).toBe('#/scenarios/new');
+    expect(screen.getByRole('link', { name: '새 시나리오' }).getAttribute('href')).toBe('#/scenarios/new/build');
   });
 
   it('쓰기 권한이 없으면 새 시나리오 · 실행 · 대상 서버 고르개를 안 그린다', async () => {

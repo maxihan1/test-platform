@@ -6,7 +6,6 @@ import { useEffect, useRef, useState } from 'react';
 import { api, ApiError, type SettingsProject, type SettingsServiceRow } from './api.js';
 import { t as 말, use말, use언어, type 언어 } from './i18n.js';
 import { 떠나기상자 } from './leaveGuard.js';
-import { 상자열렸나, 포커스가능 } from './Modal.js';
 import { 어드민키못보내는이유 } from './SettingsAdminKey.js';
 import { API인증못보내는이유 } from './SettingsApiAuths.js';
 import { API문서못보내는이유 } from './SettingsApiService.js';
@@ -16,6 +15,7 @@ import { 단계설명, 완료칸 } from './SettingsWizardHelp.js';
 import { 단계들, 단계이름, 단계제목, 단계칸, 서버들, 쓰는제외, 체크그림, type 단계, type 마법사값 } from './SettingsWizardSteps.js';
 import { 서비스못보내는이유, 설정오류문장, 안쓰는서비스색, 제외경로값 } from './settingsView.js';
 import { 기다림글자 } from './ui.js';
+import { useWizardKeys } from './useWizardKeys.js';
 
 const 처음값 = (projectId: number | null): 마법사값 => ({
   프로젝트이름: '', projectId, kind: null, prefix: '', name: '', testsDir: '', testsRepo: '', envs: [], apiDocPath: '', apiDocEnv: '', webhook: '', figma: '', 제외: '',
@@ -104,31 +104,7 @@ export function SettingsWizard(p: Props) {
     본문.current?.querySelector<HTMLElement>('input:not(:disabled), select, textarea, [aria-pressed]')?.focus({ preventScroll: true });
   }, [지금]);
 
-  // 화면 전체를 덮는 창이라 키보드가 뒤 화면(설정 메뉴 · 머리)으로 새지 않게 가둔다. Esc 는 「나가기」다 —
-  // 떠나기 확인 상자가 떠 있으면 그 상자가 Esc · Tab 을 맡는다
-  useEffect(() => {
-    function 눌림(e: KeyboardEvent) {
-      if (상자열렸나()) return;
-      if (e.key === 'Escape') {
-        window.location.hash = p.나가는곳;
-        return;
-      }
-      if (e.key !== 'Tab') return;
-      const 것들 = [...(틀.current?.querySelectorAll<HTMLElement>(포커스가능) ?? [])];
-      const 처음 = 것들[0];
-      const 끝 = 것들[것들.length - 1];
-      if (처음 === undefined || 끝 === undefined) return;
-      if (!e.shiftKey && document.activeElement === 끝) {
-        e.preventDefault();
-        처음.focus();
-      } else if (e.shiftKey && document.activeElement === 처음) {
-        e.preventDefault();
-        끝.focus();
-      }
-    }
-    document.addEventListener('keydown', 눌림);
-    return () => document.removeEventListener('keydown', 눌림);
-  }, [p.나가는곳]);
+  useWizardKeys(틀, p.나가는곳);
 
   const 고친다 = (일부: Partial<마법사값>) => {
     set값((앞) => ({ ...앞, ...일부 }));

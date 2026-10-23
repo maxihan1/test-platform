@@ -42,9 +42,9 @@ function 차리기(추천: () => Promise<{ items: { tcId: string; screen: string
   return vi.spyOn(scenarioApi, 'nextCases').mockImplementation(추천);
 }
 
-function 그리기(뒤: { tcId: string; 번호: number } | null) {
+function 그리기(뒤: { tcId: string; 번호: number } | null, 바꿀번호: number | null = null) {
   const 손 = { on케이스: vi.fn(), on다른단계: vi.fn(), on바꾸기취소: vi.fn() };
-  const 판 = (x: typeof 뒤) => <ScenarioPalette 서비스="ZNX" 디바이스="desktop" 바꿀번호={null} 뒤={x} {...손} />;
+  const 판 = (x: typeof 뒤) => <ScenarioPalette 서비스="ZNX" 디바이스="desktop" 바꿀번호={바꿀번호} 뒤={x} {...손} />;
   const { rerender } = render(판(뒤));
   return { ...손, 뒤바꾸기: (x: typeof 뒤) => rerender(판(x)) };
 }
@@ -68,12 +68,26 @@ describe('ScenarioPalette 다음 단계 추천', () => {
     expect(손.on케이스).toHaveBeenCalledWith('ZNX-FN-005');
   });
 
-  it('맨 뒤 케이스가 없으면 부르지 않고, 추천이 비면 칸을 안 그린다', async () => {
+  it('케이스 단계가 없으면 after 없이 첫 단계 후보를 불러 「첫 단계 추천」으로 그린다', async () => {
+    const spy = 차리기(넷);
+    그리기(null);
+
+    const 칸 = await screen.findByRole('region', { name: '첫 단계 추천' });
+    expect(spy).toHaveBeenCalledWith('ZNX', undefined);
+    expect(within(칸).getByText('첫 화면에서 갈 수 있는 정상 케이스 2')).toBeTruthy();
+    expect(within(칸).getAllByRole('button').map((b) => b.textContent)).toEqual(['ZNX-FN-001 추가', 'ZNX-FN-005 추가']);
+  });
+
+  it('케이스 바꾸기 중이면 부르지 않고, 추천이 비면 칸을 안 그린다', async () => {
     const spy = 차리기(async () => ({ items: [] }));
-    const 손 = 그리기(null);
+    그리기(null, 2);
     await screen.findByText('케이스 찾기');
     expect(spy).not.toHaveBeenCalled();
+    cleanup();
 
+    const 손 = 그리기(null);
+    await waitFor(() => expect(spy).toHaveBeenCalledWith('ZNX', undefined));
+    expect(screen.queryByRole('region', { name: '첫 단계 추천' })).toBeNull();
     손.뒤바꾸기({ tcId: 'ZNX-FN-001', 번호: 1 });
     await waitFor(() => expect(spy).toHaveBeenCalledWith('ZNX', 'ZNX-FN-001'));
     expect(screen.queryByRole('region', { name: '다음 단계 추천' })).toBeNull();

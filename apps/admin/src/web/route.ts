@@ -23,7 +23,9 @@ export type Route =
   | { name: 'setup'; tcId: string }
   | { name: 'runs'; kind: 실행종류 }
   | { name: 'scenarios' }
+  /** 새 시나리오 마법사. 빈 조립 화면은 scenarioNewBuild 다 (도메인/시나리오 §8.11 「마법사」) */
   | { name: 'scenarioNew' }
+  | { name: 'scenarioNewBuild' }
   | { name: 'scenario'; id: number }
   /** 성능 테스트 › 시나리오. 마법사는 새것과 고칠 것이 같은 화면이다 (도메인/성능 §8.14) */
   | { name: 'perfScenarios' }
@@ -134,6 +136,7 @@ export function route(hash: string): Route {
   if (parts[0] === 'scenarios') {
     if (parts.length === 1) return { name: 'scenarios' };
     if (parts.length === 2 && parts[1] === 'new') return { name: 'scenarioNew' };
+    if (parts.length === 3 && parts[1] === 'new' && parts[2] === 'build') return { name: 'scenarioNewBuild' };
     if (parts.length === 2 && /^\d{1,10}$/.test(parts[1]!)) return { name: 'scenario', id: Number(parts[1]) };
   }
 
@@ -196,6 +199,7 @@ const 기능자리: Partial<Record<Route['name'], 기능>> = {
   // 시나리오는 실행 칸을 쓴다 (도메인/시나리오 §7). 새 시나리오는 띠의 서비스에 만든다
   scenarios: 'runs',
   scenarioNew: 'runs',
+  scenarioNewBuild: 'runs',
   // 성능 테스트도 실행 칸을 쓴다 (공통/5-화면공통 §8 「자리 목록」)
   perfScenarios: 'runs',
   perfScenarioNew: 'runs',

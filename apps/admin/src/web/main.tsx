@@ -43,6 +43,7 @@ import { PerfRunList } from './PerfRunList.js';
 import { PerfScenarioList } from './PerfScenarioList.js';
 import { PerfWizard } from './PerfWizard.js';
 import { ScenarioBuild } from './ScenarioBuild.js';
+import { ScenarioWizard } from './ScenarioWizard.js';
 import { ScenarioList } from './ScenarioList.js';
 import { ScenarioRunList } from './ScenarioRunList.js';
 import { Settings } from './Settings.js';
@@ -57,6 +58,7 @@ import './noticeBar.css';
 import './header.css';
 import './projectPick.css';
 import './wizard.css';
+import './scenarioWizard.css';
 import './noticeDrawer.css';
 import './drawer.css';
 import './phone.css';
@@ -149,6 +151,9 @@ function Screen({
       // 서비스를 바꾸면 새로 그린다 — 고른 대상 서버와 앞 서비스의 실행 안내가 남으면 다른 서비스에 쏜다
       return <ScenarioList key={prefix} service={prefix} envs={service?.envs ?? []} 할수={할수} />;
     case 'scenarioNew':
+      // 마법사도 서비스로 key 를 걸지 않는다 — 열 때 고른 애플리케이션이 시나리오 서비스다
+      return <ScenarioWizard key="new" 띠서비스={service} user={user} />;
+    case 'scenarioNewBuild':
       // 서비스로 key 를 걸지 않는다 — 조립 중 띠를 바꿔도 초안이 그대로여야 한다. 서비스는 훅이 처음 받은 것으로 고정한다
       return <ScenarioBuild key="new" id={null} 띠서비스={service} user={user} />;
     case 'scenario':

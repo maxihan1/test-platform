@@ -37,8 +37,9 @@ export function ScenarioList({ service, envs, 할수 }: { service: string; envs:
   if (list.data === null) return <Loading />;
   const 줄들 = list.data.items.filter((it) => !치운.includes(it.id));
 
+  // 마법사(#/scenarios/new)는 값 연결 · 시험 실행 · 저장 단계가 붙는 진행판 E2E-F2-05 에서 이 단추에 건다. 그때까지는 빈 조립 화면이다
   const 새시나리오 = 쓰나 ? (
-    <a className="btn" href="#/scenarios/new">
+    <a className="btn" href="#/scenarios/new/build">
       {t('새 시나리오')}
     </a>
   ) : null;
