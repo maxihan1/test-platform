@@ -14,6 +14,11 @@ describe('창목록', () => {
     expect(창목록(훑음).map((c) => c.키)).toEqual(['game:Login', 'game:Login/Canvas/SignupPanel', 'game:Login/Canvas/SignupPanel/Terms']);
   });
 
+  it('구역을 주면 시작 화면이 장소 기록 열쇠가 되고 창 열쇠는 그대로다 — 순간이동해 찍은 자리', () => {
+    expect(창목록(훑음, 'Town').map((c) => c.키)).toEqual(['game:Login/zone:Town', 'game:Login/Canvas/SignupPanel', 'game:Login/Canvas/SignupPanel/Terms']);
+    expect(창목록(훑음, 'Town')[0]?.연결.map((l) => l.toUrl)).toEqual(['game:Login/Canvas/SignupPanel']);
+  });
+
   it('창을 연 버튼을 앞 창의 연결로 단다 — 글자가 있으면 「」 로 붙인다', () => {
     const [시작, 가입] = 창목록(훑음);
 

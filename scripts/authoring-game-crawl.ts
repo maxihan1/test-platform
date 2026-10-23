@@ -1,5 +1,5 @@
 // 게임 창 훑기 결과를 화면 기록 꼴로 바꾸고 저장본과 견준다 — 작성 AI 가 control-cli crawl 직후 부르고, 에이전트는 올릴 때 이 표시(game.json)로 같음을 거른다 (도메인/게임 §3.10 「창 훑기」)
-// 쓰는 법: npx tsx scripts/authoring-game-crawl.ts <자료 폴더>/game-crawl/<이름> '<상태>' — 상태는 로그아웃 · 로그인:<역할>
+// 쓰는 법: npx tsx scripts/authoring-game-crawl.ts <자료 폴더>/game-crawl/<이름> '<상태>' [<구역>] — 상태는 로그아웃 · 로그인:<역할>, 구역은 상태 도우미로 순간이동해 찍은 장소(GAME-F1-12b)
 import { createHash } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -37,8 +37,14 @@ export type 견준창 = 창 & { 저장본: '같음' | '바뀜' | '새 창' };
 const 지문꼴 = /^[0-9a-f]{1,64}$/;
 const 파일꼴 = /^\d{3}\.yml$/;
 
-/** list.json 을 창 목록으로 — 첫 줄(`scene:<장면>`)이 장면을 정한다. 꼴이 틀린 줄은 뺀다. 첫 줄이 장면이 아니면 빈 목록이다 */
-export function 창목록(list: unknown): 창[] {
+/** 장소 이름 — 지도 열쇠 `zone:<구역>` 의 구역(도메인/게임 §3.10 「게임에만 있는 지도 넷」 열쇠) */
+export const 구역꼴 = /^[A-Za-z0-9_-]{1,64}$/;
+
+/**
+ * list.json 을 창 목록으로 — 첫 줄(`scene:<장면>`)이 장면을 정한다. 꼴이 틀린 줄은 뺀다. 첫 줄이 장면이 아니면 빈 목록이다.
+ * `구역` 을 주면 시작 화면이 장소 기록 `game:<장면>/zone:<구역>` 이 된다 — 순간이동한 자리의 NPC · 몬스터 · 바닥 아이템 (도메인/게임 §3.10 「지도」 screen_record)
+ */
+export function 창목록(list: unknown, 구역?: string): 창[] {
   const 줄들 = (Array.isArray(list) ? list : []).filter(
     (x): x is 훑은창 =>
       typeof x?.주소 === 'string' && typeof x.이름 === 'string' && typeof x.틀 === 'string' && 파일꼴.test(String(x.파일)) &&
@@ -47,7 +53,7 @@ export function 창목록(list: unknown): 창[] {
   const 장면 = /^scene:(.+)$/.exec(줄들[0]?.주소 ?? '')?.[1];
   if (장면 === undefined) return [];
   // 시작 화면의 주소는 `scene:` 이고 창 주소는 순번 붙은 경로다 — 연곳이 가리키는 것은 주소라 틀로 옮겨 키를 만든다
-  const 키 = (x: 훑은창): string => (x.주소.startsWith('scene:') ? `game:${장면}` : `game:${장면}${x.틀}`);
+  const 키 = (x: 훑은창): string => (x.주소.startsWith('scene:') ? `game:${장면}${구역 === undefined ? '' : `/zone:${구역}`}` : `game:${장면}${x.틀}`);
   const 주소키 = new Map(줄들.map((x) => [x.주소, 키(x)]));
   const 창들: 창[] = 줄들.map((x) => ({ 키: 키(x), 이름: x.이름, 파일: x.파일, 지문: x.지문, 글자지문: x.글자지문, 연결: [] }));
   const 키창 = new Map(창들.map((c) => [c.키, c]));
@@ -84,9 +90,9 @@ export function 저장목록(값: unknown): (저장한창 & { 기록: string })[
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const [폴더, 상태값] = process.argv.slice(2);
-  if (폴더 === undefined || !상태인가(상태값)) {
-    console.error("쓰는 법: npx tsx scripts/authoring-game-crawl.ts <자료 폴더>/game-crawl/<이름> '<로그아웃 | 로그인:<역할>>'");
+  const [폴더, 상태값, 구역] = process.argv.slice(2);
+  if (폴더 === undefined || !상태인가(상태값) || (구역 !== undefined && !구역꼴.test(구역))) {
+    console.error("쓰는 법: npx tsx scripts/authoring-game-crawl.ts <자료 폴더>/game-crawl/<이름> '<로그아웃 | 로그인:<역할>>' [<구역 — 영문 · 숫자 · _ · ->]");
     process.exit(1);
   }
   const 목록글 = 안전히읽기(폴더, 'list.json', 2_000_000);
@@ -95,13 +101,14 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     process.exit(1);
   }
   const 저장 = 저장목록(JSON.parse(안전히읽기(join(폴더, '..', '..', 'game-kept'), 'index.json', 2_000_000) ?? '[]'));
-  const 창들 = 견주기(창목록(JSON.parse(목록글)), 상태값, 저장, new Date().toISOString().slice(0, 10));
+  const 창들 = 견주기(창목록(JSON.parse(목록글), 구역), 상태값, 저장, new Date().toISOString().slice(0, 10));
   if (창들.length === 0) {
     console.error('list.json 첫 줄이 시작 화면(scene:)이 아니라 창 목록을 못 만들었다 — crawl 을 다시 돌린다');
     process.exit(1);
   }
   const 기록 = new Map(저장.map((x) => [`${x.상태} ${x.키}`, x.기록]));
-  writeFileSync(join(폴더, 'game.json'), JSON.stringify({ 상태: 상태값, 목록: 목록지문(목록글), 창: 창들 }, null, 2));
+  // 구역도 남긴다 — 에이전트가 list.json 에서 창을 다시 만들 때 같은 장소 열쇠를 쓴다(authoring-game 폴더읽기)
+  writeFileSync(join(폴더, 'game.json'), JSON.stringify({ 상태: 상태값, ...(구역 === undefined ? {} : { 구역 }), 목록: 목록지문(목록글), 창: 창들 }, null, 2));
   const 셈 = (s: string) => 창들.filter((c) => c.저장본 === s);
   console.log(`- 창 ${창들.length}개 — 같음 ${셈('같음').length} · 바뀜 ${셈('바뀜').length} · 새 창 ${셈('새 창').length}`);
   for (const c of 셈('같음')) console.log(`- 같음 ${c.키} → 저장 기록 game-kept/${기록.get(`${상태값} ${c.키}`) ?? '?'} (다시 정리하지 않는다)`);
