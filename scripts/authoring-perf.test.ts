@@ -22,9 +22,11 @@ describe('성능프롬프트', () => {
     ['ANALYZE_RUN', 'pages', 'lcpElement'],
     ['SUGGEST_DEVICES', 'osVersion', '같은 모델은 한 대만'],
     ['ANALYZE_RUN', 'markers', 'AI가 표시한 장면'],
+    ['SUGGEST_FLOWS', 'candidates', '재료에 없는 번호를 지어내지 않는다'],
   ])('%s 는 공통 머리 · 규칙 · 내는 모양 · 재료 JSON 을 담는다', (kind, 모양낱말, 규칙낱말) => {
     const 글 = 성능프롬프트(kind, 재료)!;
-    expect(글).toContain('QA Hub 성능 테스트 도우미다. 아래 재료만 보고 JSON 객체 하나만 답한다. 설명 글 · 코드 울타리 없이.');
+    expect(글).toContain(kind === 'SUGGEST_FLOWS' ? 'QA Hub E2E 시나리오 도우미다.' : 'QA Hub 성능 테스트 도우미다.');
+    expect(글).toContain('아래 재료만 보고 JSON 객체 하나만 답한다. 설명 글 · 코드 울타리 없이.');
     expect(글).toContain(모양낱말);
     expect(글).toContain(규칙낱말);
     expect(글).toContain(JSON.stringify(재료));

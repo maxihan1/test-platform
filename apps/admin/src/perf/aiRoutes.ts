@@ -10,6 +10,7 @@ import { 대상줄들읽기 } from '../authoring/reverse.js';
 import { 지금가이드 } from '../guide/store.js';
 import { 지금판 } from '../prd/store.js';
 import { 정수 } from '../routeParams.js';
+import { 집기왔다, 흐름결과다듬기, 흐름일닫기 } from '../scenario/flowJob.js';
 import { 상세 as E2E상세 } from '../scenario/store.js';
 import { 분석끝내기 } from './analysis.js';
 import { 결과다듬기, 끝내기, 오래된일닫기, 일만들기, 일하나, 집기 } from './ai.js';
@@ -200,7 +201,8 @@ export default async function perfAiRoutes(app: FastifyInstance): Promise<void> 
     const id = 정수(req.params.id);
     if (id === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.params.id });
     let job = await 일하나(id);
-    if (job === null) return reply.code(404).send({ error: 'NOT_FOUND' });
+    // 흐름 후보는 시나리오 통로 하나로만 읽는다 — 권한도 그쪽 칸이다 (도메인/시나리오 §7 「마법사 통로」)
+    if (job === null || job.kind === 'SUGGEST_FLOWS') return reply.code(404).send({ error: 'NOT_FOUND' });
     // 닫기는 표를 훑는다 — 화면이 5초마다 묻는 매번이 아니라 그 일이 도는 중일 때만 한다
     if (job.status === 'RUNNING') {
       await 오래된일닫기();
@@ -212,8 +214,11 @@ export default async function perfAiRoutes(app: FastifyInstance): Promise<void> 
   app.post('/perf/ai-jobs/claim', async (req, reply) => {
     // 권한만 걸면 권한 있는 아무나 먼저 집어 결과를 바꿔 넣는다 — 작성 에이전트 계정만 집는다 (§7 「누가 집나」)
     if (!작성계정인가(req.user?.username ?? '')) return reply.code(403).send({ error: 'NOT_AUTHORING_AGENT' });
-    await 오래된일닫기();
-    const job = await 집기((req.user?.services ?? []).map((s) => s.prefix));
+    const 접두사들 = (req.user?.services ?? []).map((s) => s.prefix);
+    // 꺼짐 판정을 먼저 갱신해야 이 집기가 닫기에서 자기 애플리케이션의 대기 흐름 일을 꺼진 것으로 보지 않는다
+    집기왔다(접두사들);
+    await 흐름일닫기();
+    const job = await 집기(접두사들);
     return { job };
   });
 
@@ -228,7 +233,15 @@ export default async function perfAiRoutes(app: FastifyInstance): Promise<void> 
       if (!(await 끝내기(id, { error: p.data.error }))) return reply.code(409).send({ error: 'NOT_RUNNING' });
       return reply.code(204).send();
     }
-    const 다듬은 = 결과다듬기(job.kind, job.input, p.data.output);
+    let 다듬은 = 결과다듬기(job.kind, job.input, p.data.output);
+    if (job.kind === 'SUGGEST_FLOWS' && !('error' in 다듬은)) {
+      // 다듬은 뒤 후보가 없는 것은 에이전트 잘못이 아니다 — 일은 FAILED 로 닫고 204 를 준다 (도메인/시나리오 §7)
+      // 다듬다 DB 가 깨져도 일을 RUNNING 으로 20분 두지 않는다 — 화면이 그동안 돌기만 한다
+      const 흐름 = await 흐름결과다듬기(await 서비스접두사(job.serviceId) ?? '', job.input, 다듬은.output)
+        .catch((e: unknown) => ({ error: `흐름 후보를 다듬지 못했다: ${e instanceof Error ? e.message : String(e)}` }));
+      if ('error' in 흐름) return (await 끝내기(id, 흐름)) ? reply.code(204).send() : reply.code(409).send({ error: 'NOT_RUNNING' });
+      다듬은 = 흐름;
+    }
     const 닫음 = !('error' in 다듬은) && job.kind === 'ANALYZE_RUN' && job.runId !== null ? await 분석끝내기(id, job.runId, 다듬은.output) : await 끝내기(id, 다듬은);
     if (!닫음) return reply.code(409).send({ error: 'NOT_RUNNING' });
     // 모양이 틀린 결과는 일을 FAILED 로 닫고 에이전트에게도 까닭을 돌려준다

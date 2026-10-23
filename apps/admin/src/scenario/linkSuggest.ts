@@ -3,6 +3,9 @@
 
 import type { ScenarioLink, ScenarioPart } from '@platform/kit';
 
+import { findCase, findService } from '../catalog/store.js';
+import { 지도를읽는다 } from '../prd/apiMap.js';
+
 import { 케이스접두사 as 접두사 } from './mixed.js';
 
 /** 지도 한 줄에서 제안이 보는 것 — 방식 · 주소 틀 · 거친 케이스 */
@@ -109,4 +112,22 @@ export function 값연결제안들(
     }
   });
   return 제안;
+}
+
+/**
+ * 제안 재료 — 애플리케이션마다 서비스 지도, 케이스마다 입력값 칸. 입력값 칸은 DB 의 입력 스키마에서 읽는다 — 케이스 파일을 열 까닭이 없다.
+ * 비활성 · 없는 케이스는 칸이 없는 것으로 친다. 받은 애플리케이션 밖의 케이스는 안 읽는다
+ */
+export async function 제안재료읽기(앱들: readonly string[], tcIds: readonly string[]): Promise<{ 지도: Map<string, 지도요청[]>; 입력칸: Map<string, string[]> }> {
+  const 지도 = new Map(await Promise.all(앱들.map(async (앱) => {
+    const 서비스 = await findService(앱);
+    return [앱, 서비스 === null ? [] : (await 지도를읽는다(서비스.id)).apis] as const;
+  })));
+  const 번호 = [...new Set(tcIds.filter((t) => 앱들.includes(접두사(t))))];
+  const 입력칸 = new Map(await Promise.all(번호.map(async (tcId) => {
+    const 행 = await findCase(tcId);
+    const 칸들: unknown = 행?.isActive ? 행.paramSchema?.properties : undefined;
+    return [tcId, typeof 칸들 === 'object' && 칸들 !== null ? Object.keys(칸들) : []] as const;
+  })));
+  return { 지도, 입력칸 };
 }

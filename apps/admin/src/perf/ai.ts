@@ -8,7 +8,7 @@ import { 페이지 } from './pages.js';
 import { 목표, 트랜잭션 } from './scenarios.js';
 import { 풀 } from './store.js';
 
-export type AI일종류 = 'DRAFT_RECORD' | 'DRAFT_SWAGGER' | 'DRAFT_FILE' | 'SUGGEST_LOAD' | 'SUGGEST_TARGETS' | 'SUGGEST_PAGES' | 'SUGGEST_DEVICES' | 'ANALYZE_RUN';
+export type AI일종류 = 'DRAFT_RECORD' | 'DRAFT_SWAGGER' | 'DRAFT_FILE' | 'SUGGEST_LOAD' | 'SUGGEST_TARGETS' | 'SUGGEST_PAGES' | 'SUGGEST_DEVICES' | 'ANALYZE_RUN' | 'SUGGEST_FLOWS';
 
 // 피크 시간은 1시간으로 둔다 (PERF-F1-04 시작 질문). 스트레스 테스트의 최대는 피크의 5배가 기본이다 (§3.9 「부하 설정」)
 export const 피크분 = 60;
@@ -65,6 +65,21 @@ const 출력: Record<AI일종류, z.ZodType> = {
     pages: z.array(z.object({ url: z.string().min(1).max(500), items: z.array(z.string().trim().min(1).max(500)).min(1).max(5) })).max(10).optional(),
     // 기기 실행의 「AI가 표시한 장면」 — 많이 와도 앞 20개만 쓴다
     markers: z.array(z.object({ serial: z.string().min(1).max(64), sec: z.number().int().min(0), label: z.string().trim().min(1).max(200) })).optional(),
+  }),
+  // E2E 마법사의 AI 흐름 후보 (도메인/시나리오 §3.7 결정 15). 재료에 없는 번호 · 값 연결 짐작은 scenario/flowSuggest.ts 가 다듬는다
+  SUGGEST_FLOWS: z.object({
+    candidates: z.array(z.object({
+      name: z.string().trim().min(1).max(60),
+      why: z.string().trim().min(1).max(300),
+      tcIds: z.array(z.string().min(1).max(100)).min(2).max(15),
+      reqIds: z.array(z.string().max(50)).max(50).default([]),
+      links: z.array(z.object({
+        toSeq: z.number().int().min(1),
+        fromSeq: z.number().int().min(1),
+        param: z.string().max(100).optional(),
+        jsonPath: z.string().max(200),
+      }).refine((l) => l.fromSeq < l.toSeq, '가져올 단계가 받는 단계보다 앞이어야 합니다')).max(30).default([]),
+    })).min(1).max(3),
   }),
 };
 
@@ -145,13 +160,13 @@ export async function 녹화끝(jobId: number, 결과: { input: unknown } | { er
   await (await 풀()).query(`UPDATE perf_ai_job SET status = 'QUEUED', input = $2 WHERE id = $1 AND status = 'RUNNING' AND claimed_at IS NULL`, [jobId, JSON.stringify(결과.input)]);
 }
 
-/** 그 애플리케이션들의 가장 오래된 대기 일 하나를 집는다 */
+/** 그 애플리케이션들의 가장 오래된 대기 일 하나를 집는다. 흐름 후보는 사람이 화면 앞에서 기다려 먼저 준다 (도메인/시나리오 §3.7 결정 15) */
 export async function 집기(접두사들: string[]): Promise<{ id: number; kind: string; input: unknown } | null> {
   const r = await (await 풀()).query<{ id: string; kind: string; input: unknown }>(
     `UPDATE perf_ai_job SET status = 'RUNNING', claimed_at = now()
       WHERE id = (SELECT j.id FROM perf_ai_job j JOIN service s ON s.id = j.service_id
                    WHERE j.status = 'QUEUED' AND s.prefix = ANY($1::text[])
-                   ORDER BY j.id LIMIT 1 FOR UPDATE OF j SKIP LOCKED)
+                   ORDER BY j.kind = 'SUGGEST_FLOWS' DESC, j.id LIMIT 1 FOR UPDATE OF j SKIP LOCKED)
       RETURNING id, kind, input`,
     [접두사들],
   );
