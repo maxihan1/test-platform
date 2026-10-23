@@ -14,11 +14,18 @@ export function usePerfJob<T>(끝: (결과: T, jobId: number) => void): { 도나
   const 언어 = use언어();
   const [도나, set도나] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
-  // 화면을 떠난 뒤에는 묻기를 멈춘다 — 안 멈추면 닫힌 화면의 상태를 고치려 든다
+  // 화면을 떠난 뒤에는 묻기를 멈춘다 — 안 멈추면 닫힌 화면의 상태를 고치려 든다.
+  // 설정 단계에서 다시 true 로 둔다 — StrictMode 개발 모드는 정리를 한 번 미리 돌린다
   const 살았나 = useRef(true);
-  useEffect(() => () => {
-    살았나.current = false;
+  useEffect(() => {
+    살았나.current = true;
+    return () => {
+      살았나.current = false;
+    };
   }, []);
+  // 끝은 지금 그린 때의 것을 부른다 — 맡긴 때의 것을 부르면 기다리는 동안 고친 입력을 그때 값으로 덮는다
+  const 끝쪽 = useRef(끝);
+  끝쪽.current = 끝;
 
   async function 맡기기(요청: () => Promise<{ jobId: number }>) {
     set도나(true);
@@ -30,7 +37,7 @@ export function usePerfJob<T>(끝: (결과: T, jobId: number) => void): { 도나
         if (!살았나.current) return;
         if (일.status === 'DONE' && 일.output !== undefined) {
           set도나(false);
-          끝(일.output, jobId);
+          끝쪽.current(일.output, jobId);
           return;
         }
         if (일.status === 'FAILED') {
