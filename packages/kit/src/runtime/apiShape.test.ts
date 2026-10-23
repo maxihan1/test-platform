@@ -210,5 +210,7 @@ describe('모양확인', () => {
       ],
     };
     expect(모양확인(기본값, 'POST', '/v2/v1/pushes', 201, 본문({ status: 'SENT' }))?.problems).toEqual(['필수 필드 없음 — id']);
+    const 숫자 = { ...문서, servers: [{ url: 'https://api.example.com/v{version}', variables: { version: { default: 2 } } }] };
+    expect(모양확인(숫자, 'POST', '/v2/v1/pushes', 201, 본문({ status: 'SENT' }))?.problems).toEqual(['필수 필드 없음 — id']);
   });
 });

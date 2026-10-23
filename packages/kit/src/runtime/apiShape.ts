@@ -48,7 +48,8 @@ function 틀찾기(문서: 객체, method: string, url: string): { path: string;
   // 기본값이 없는 문서({port} 만 적은 것)는 주소로 읽히게 0 으로 채운다
   const 채움 = (_: string, 이름: string): string => {
     const 변수 = 변수들[이름];
-    return 객체인가(변수) && typeof 변수.default === 'string' ? 변수.default : '0';
+    // YAML 문서는 default: 2 를 숫자로 읽는다
+    return 객체인가(변수) && ['string', 'number'].includes(typeof 변수.default) ? String(변수.default) : '0';
   };
   let 앞 = '';
   try {
