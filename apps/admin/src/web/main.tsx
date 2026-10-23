@@ -59,6 +59,7 @@ import './header.css';
 import './projectPick.css';
 import './wizard.css';
 import './scenarioWizard.css';
+import './scenarioWizardEnd.css';
 import './noticeDrawer.css';
 import './drawer.css';
 import './phone.css';

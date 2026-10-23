@@ -30,6 +30,7 @@ export function TrialControls({
   on서버,
   도는중,
   on시작,
+  다시 = false,
 }: {
   /** 없는곳이 있으면 그 이름은 못 고른다 — 든 애플리케이션 가운데 그 이름의 대상 서버가 없는 곳 (도메인/시나리오 §3.7 결정 13) */
   서버들: { env: string; 없는곳?: string[] }[];
@@ -37,6 +38,8 @@ export function TrialControls({
   on서버: (env: string) => void;
   도는중: boolean;
   on시작: () => void;
+  /** 끝난 시험이 있으면 단추가 「다시 돌리기」다 — 마법사 (도메인/시나리오 §8.11 「마법사」) */
+  다시?: boolean;
 }) {
   const t = use말();
   return (
@@ -51,7 +54,7 @@ export function TrialControls({
       </select>
       {/* 옆의 「실행」과 무엇이 다른지 단추에서 알 수 있게 한다 */}
       <button type="button" className="btn ghost" title={t('기록 · 리포트가 남지 않습니다')} disabled={도는중} onClick={on시작}>
-        {도는중 ? t('시험 실행 중') : t('시험 실행')}
+        {도는중 ? t('시험 실행 중') : 다시 ? t('다시 돌리기') : t('시험 실행')}
       </button>
     </>
   );

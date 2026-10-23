@@ -192,6 +192,10 @@ export const scenarioApi = {
   nextCases: (service: string, after?: string) =>
     call<{ items: NextCase[] }>(`/scenarios/next-cases?${new URLSearchParams(after === undefined ? { service } : { service, after }).toString()}`),
 
+  /** 값 연결 제안 — 저장 안 한 초안을 본다. 지도를 못 읽는 사람이면 빈 목록이다 */
+  linkSuggestions: (body: { service: string; parts: ScenarioPart[] }) =>
+    call<{ items: LinkSuggestion[] }>('/scenarios/link-suggestions', json(body)),
+
   /** AI 흐름 후보를 맡긴다. 같은 조건의 안 끝난 일이 있으면 그 번호가 온다 */
   suggestFlows: (body: { service: string; platform: Platform; wish?: string }) =>
     call<{ jobId: number }>('/scenarios/flow-suggestions', json(body)),
