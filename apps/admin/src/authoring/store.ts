@@ -1,6 +1,6 @@
 // 작성 대기줄 표를 읽고 쓴다. 표 주인은 SPEC §6 이고 여기서는 상태 전이만 지킨다 (도메인/작성 §3.6)
 
-import type { Pool } from 'pg';
+import type { Pool, PoolClient } from 'pg';
 
 import { 고치기실행식 } from './edit.js';
 
@@ -196,9 +196,8 @@ export async function 줄세우기(입력: {
   머지대상?: string | null;
   // API 애플리케이션 작성의 재실행만 채운다 — 원본에서 물려받은 대상 서버 (도메인/작성 §7 「AUTHOR API 문서 판」)
   apiEnv?: string;
-}): Promise<number> {
-  const pool = await db();
-  const r = await pool.query<{ id: string }>(
+}, 손?: PoolClient): Promise<number> {
+  const r = await (손 ?? (await db())).query<{ id: string }>(
     `INSERT INTO authoring_request
        (service_id, kind, source_id, spec_text, params, requested_by, requested_by_name, status,
         compare, env, start_url, resume_from)
@@ -278,9 +277,8 @@ export async function 이어받을수있나(id: number): Promise<boolean> {
   return r.rows[0]?.ok === true;
 }
 
-export async function 한건(id: number): Promise<요청 | null> {
-  const pool = await db();
-  const r = await pool.query<행>(`SELECT ${칸들} FROM authoring_request WHERE id = $1`, [id]);
+export async function 한건(id: number, 손?: PoolClient): Promise<요청 | null> {
+  const r = await (손 ?? (await db())).query<행>(`SELECT ${칸들} FROM authoring_request WHERE id = $1`, [id]);
   const row = r.rows[0];
   return row === undefined ? null : 빚기(row);
 }

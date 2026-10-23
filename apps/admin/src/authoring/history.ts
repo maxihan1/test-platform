@@ -22,8 +22,8 @@ export function 위로식(번호자리: string): string {
 /** 오류 글은 첫 줄만 200자 — 목록 · 알림 · Slack 이 같은 길이로 자른다. 긴 까닭은 그 실행 상세에서 본다 */
 export const 오류첫줄 = (글: string): string => (글.split('\n')[0] ?? '').slice(0, 200);
 
-export async function 뿌리(id: number): Promise<number | null> {
-  const r = await (await db()).query<{ id: string }>(
+export async function 뿌리(id: number, 손?: PoolClient): Promise<number | null> {
+  const r = await (손 ?? (await db())).query<{ id: string }>(
     `WITH RECURSIVE ${위로식('$1')} SELECT id FROM 위 WHERE source_id IS NULL`,
     [id],
   );
@@ -103,8 +103,8 @@ export async function 실행들(뿌리번호: number): Promise<실행[]> {
 }
 
 /** 그 뿌리의 실행 중 대기 · 작성 중인 것이 있나 — 둘이 돌면 같은 브랜치를 서로 덮는다 (2026-09-29 계획 검토) */
-export async function 도는실행있나(뿌리번호: number): Promise<boolean> {
-  const r = await (await db()).query(
+export async function 도는실행있나(뿌리번호: number, 손?: PoolClient): Promise<boolean> {
+  const r = await (손 ?? (await db())).query(
     `WITH RECURSIVE ${사슬식('id = $1')}
      SELECT 1 FROM 사슬 JOIN authoring_request a ON a.id = 사슬.id WHERE a.status IN ('PENDING', 'RUNNING') LIMIT 1`,
     [뿌리번호],
@@ -113,8 +113,8 @@ export async function 도는실행있나(뿌리번호: number): Promise<boolean>
 }
 
 /** 그 뿌리의 가장 최근 실행 번호 — 실패한 머지는 건너뛴다 */
-export async function 최신실행(뿌리번호: number): Promise<number> {
-  const r = await (await db()).query<{ id: string }>(`WITH RECURSIVE ${사슬식('id = $1')} SELECT ${최신식('사슬')} AS id`, [
+export async function 최신실행(뿌리번호: number, 손?: PoolClient): Promise<number> {
+  const r = await (손 ?? (await db())).query<{ id: string }>(`WITH RECURSIVE ${사슬식('id = $1')} SELECT ${최신식('사슬')} AS id`, [
     뿌리번호,
   ]);
   return Number(r.rows[0]!.id);
