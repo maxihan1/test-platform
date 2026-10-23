@@ -14,7 +14,7 @@ import { 게임화면을읽는다 } from './gameScreen.js';
 import { abort, execute, resolveSpecPath, running, testsDir } from './execute.js';
 import { 팜증적받기를줄세운다 } from './farmEvidence.js';
 import { registerPerfDeviceRoutes } from './perfDevice.js';
-import { executeScenario } from './scenario.js';
+import { executeScenario, 판뺀부품들 } from './scenario.js';
 
 const require = createRequire(import.meta.url);
 // 이미지 태그와 라이브러리 버전이 어긋나면 브라우저를 못 찾는다. /health가 그 확인 창구다 (SPEC §9)
@@ -157,7 +157,7 @@ type 입구이어주기<K> = Extract<z.infer<typeof scenarioLink>, { kind: K }>;
 >;
 
 // 조립 목록은 환경변수 하나로 넘긴다. 리눅스는 값 하나를 128KiB **바이트**로 자른다 — 넘으면 자식을 못 띄워 500 이 된다.
-// 한글은 한 글자가 3바이트라 글자 수로 재면 빠져나간다. 절대 경로로 푼 뒤에 잰다
+// 한글은 한 글자가 3바이트라 글자 수로 재면 빠져나간다. 절대 경로로 풀고 판 원문을 경로로 바꾼 뒤에 잰다
 const 목록상한 = 120_000;
 
 const scenarioRequest = z
@@ -255,7 +255,7 @@ export function registerRoutes(app: FastifyInstance): void {
       }
       parts.push({ ...part, filePath: specPath });
     }
-    if (Buffer.byteLength(JSON.stringify(parts)) > 목록상한) {
+    if (Buffer.byteLength(JSON.stringify(판뺀부품들({ ...parsed.data, parts }).parts)) > 목록상한) {
       return reply.code(400).send({ error: 'INVALID_REQUEST', detail: `단계 목록이 ${목록상한}바이트를 넘는다` });
     }
 

@@ -13,7 +13,8 @@ import { registerRoutes } from './routes.js';
 import { executeScenario } from './scenario.js';
 
 // 입구가 실행에 무엇을 넘기는지만 본다. 진짜 실행은 자식 프로세스와 브라우저를 띄운다
-vi.mock('./scenario.js', () => ({
+vi.mock('./scenario.js', async (원본) => ({
+  ...(await 원본<typeof import('./scenario.js')>()),
   executeScenario: vi.fn(async (): Promise<ScenarioExecuteResponse> => ({ status: 'PASS', durationMs: 0, parts: [] })),
 }));
 
@@ -430,6 +431,13 @@ describe('POST /execute-scenario — 입구 검사', () => {
 
     expect(res.statusCode).toBe(200);
     expect(executeScenario).toHaveBeenCalledWith(expect.objectContaining({ parts: [expect.objectContaining({ apiDoc: 판 })] }));
+  });
+
+  it('파일로 뺄 API 문서 판 원문은 조립 목록 크기에 안 센다 — 자식에 넘기는 것은 경로뿐이다', async () => {
+    const 큰판 = { version: 2, doc: { openapi: '3.1.0', paths: {}, info: { description: 'x'.repeat(200_000) } } };
+    const res = await 보냄(요청({ parts: [{ ...케이스('todo/TODO-001.spec.ts'), apiDoc: 큰판 }] }));
+
+    expect(res.statusCode).toBe(200);
   });
 
   it('녹화 실행 recordHar 를 버리지 않고 실행에 넘기고, 음수 jobId 는 400 이다', async () => {
