@@ -277,6 +277,8 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
 
       const 행 = await 원본확인(req.body?.sourceId, 서비스, reply);
       if (행 === null) return reply;
+      // 폐기는 되살리는 통로가 없다 — 머지 행이 서면 사슬 끝이 폐기 안 된 행이 되어 목록에 되살아난다 (§7 「중단 · 폐기 · 진척」)
+      if (행.discardedAt !== null) return reply.code(409).send({ error: 'BAD_SOURCE', detail: 'DISCARDED' });
 
       // 도는 실행이 있거나 뒤에 실행이 더 있으면 그 PR 은 이미 옛것이다 — 최신 실행만 머지한다 (§7 「실행 기록」)
       const 뿌리번호 = (await 뿌리(행.id)) ?? 행.id;

@@ -171,6 +171,14 @@ describe.skipIf(연결 === undefined)('보류 상세 · 머지 · 집기', () =>
       }
     });
 
+    it('폐기한 원본이면 409 BAD_SOURCE 이고 머지 행이 안 선다', async () => {
+      const id = await 넣기({ status: 'DONE' });
+      await (await pool()).query('UPDATE authoring_request SET discarded_at = now() WHERE id = $1', [id]);
+      expect((await 머지({ sourceId: id })).json()).toMatchObject({ error: 'BAD_SOURCE' });
+      const 머지행 = await (await pool()).query(`SELECT 1 FROM authoring_request WHERE source_id = $1 AND kind = 'MERGE'`, [id]);
+      expect(머지행.rowCount).toBe(0);
+    });
+
     it('남은 보류가 있으면 409 HELD_OPEN', async () => {
       const id = await 넣기({ status: 'DONE', held: [쿠폰] });
       expect((await 머지({ sourceId: id })).json()).toMatchObject({ error: 'HELD_OPEN' });
