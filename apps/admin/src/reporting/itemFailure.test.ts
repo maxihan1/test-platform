@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { 한줄로자른다 } from './insights.js';
+import { 한줄로자른다 } from './failureType.js';
 import { 유형문장, 항목실패를가른다, type 항목재료 } from './itemFailure.js';
 
 const 그대로 = (글: string): string => 글;

@@ -3,8 +3,7 @@
 
 import { 모양문장, type ItemStatus, type StepResult } from '@platform/kit';
 
-import { 원인을가른다, 색코드, type 실패유형 } from './failureType.js';
-import { 한줄로자른다 } from './insights.js';
+import { 원인을가른다, 색코드, 한줄로자른다, type 실패유형 } from './failureType.js';
 
 export interface 항목실패 {
   type: 실패유형;

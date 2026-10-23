@@ -3,12 +3,14 @@
 import type { ScenarioPart } from '@platform/kit';
 
 import type { Platform } from './api.js';
+import { 실패이유 } from './FailureWhy.js';
 import { use말, use언어 } from './i18n.js';
 import { 멈춘사유글자 } from './scenarioResultView.js';
+import { 멈춘단계 } from './ScenarioResultNext.js';
 import { TrialControls, TrialTab } from './ScenarioTrial.js';
 import type { 재료들 } from './scenarioView.js';
 import { 종류이름 } from './ScenarioWizardValues.js';
-import { 가져올번호, 멈춘한줄, 연결들, 쓰였나 } from './scenarioWizardView.js';
+import { 가져올번호, 멈춘까닭, 연결들, 쓰였나 } from './scenarioWizardView.js';
 import { PLATFORM_LABEL, seconds } from './ui.js';
 import type { 시험상태 } from './useScenarioTrial.js';
 
@@ -33,7 +35,8 @@ export function 시험칸(p: Props) {
   const t = use말();
   const 언어 = use언어();
   const 결과 = p.시험.단계 === 'done' ? p.시험.결과 : null;
-  const 실패 = 결과?.parts.find((x) => x.status === 'FAIL');
+  // 제한 시간 초과 · 러너 거절은 그 단계가 NA 로 온다 — 결과 화면과 같은 고르기로 멈춘 단계를 찾는다
+  const 실패 = 결과 === null ? undefined : (멈춘단계(결과.parts) ?? undefined);
   const 연결 = 연결들(p.단계들);
 
   const 쓰임줄 =
@@ -90,7 +93,7 @@ export function 시험칸(p: Props) {
               ? 멈춘사유글자(결과.error?.message ?? '', 언어)
               : t('{번호}번 「{이름}」에서 멈췄습니다', { 번호: 실패.seq, 이름: p.이름(실패.seq) })}
           </b>
-          {실패 === undefined ? null : <span>{멈춘한줄(실패, 언어)}</span>}
+          {실패 === undefined ? null : <실패이유 failure={멈춘까닭(실패)} />}
           <span className="scw-label">{t('이렇게 해 보세요')}</span>
           <ul>
             <li>{t('이 케이스만 따로 돌려 통과하는지 먼저 봅니다')}</li>

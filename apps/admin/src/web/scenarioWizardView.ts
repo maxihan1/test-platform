@@ -2,9 +2,10 @@
 
 import type { ScenarioLink, ScenarioPart } from '@platform/kit';
 
+import { 원인을가른다, 한줄로자른다 } from '../reporting/failureType.js';
+import type { 항목실패 } from '../reporting/itemFailure.js';
 import { t, type 언어 } from './i18n.js';
 import type { LinkSuggestion, TrialResult } from './scenarioApi.js';
-import { 멈춘사유글자 } from './scenarioResultView.js';
 import { 빈연결, 이미실행, type 재료들 } from './scenarioView.js';
 
 /** 값을 가져올 단계 번호. 요청 차단은 앞 단계가 없다 */
@@ -96,11 +97,25 @@ export function 쓰였나(결과: TrialResult, 받는번호: number, l: Scenario
   return t(꼬리.slice(꼬리머리.length).split(' · ').includes(`${꼬리이름[l.kind]} ${l.method} ${l.urlPattern}`) ? '안 쓰임' : '쓰임', 말);
 }
 
+// 러너가 끊은 자리의 상태 글자(TIMEOUT 따위)는 사람 말이 아니다 — 유형 꼬리표가 대신 말한다
+const 러너글자 = /^[A-Z][A-Z_]*$/;
+
 /**
- * 멈춘 단계의 한 줄 — 시험 결과에는 정식 실행의 `parts[].failure` 가 없어 같은 차례로 고른다: 실패한 첫 확인 문장, 없으면 단계 오류의 첫 줄.
- * 확인 문장이 틀려 멈추면 단계 오류가 비어 한 줄이 없었다 (E2E-F2-06 시험). 서버 쪽 고르기(reporting/itemFailure.ts)는 DB 를 끌고 와 화면에서 못 부른다
+ * 멈춘 단계의 실패 유형 · 한 줄 — 시험 결과에는 정식 실행의 `parts[].failure` 가 없어 화면에서 고른다 (E2E-F2-06 시험).
+ * 서버 고르기(reporting/itemFailure.ts)와 같은 부품 · 같은 차례(실패한 첫 확인 문장 → 단계 오류)다. 그 파일은 kit 의 응답 모양 문장을 가져와
+ * playwright 까지 번들에 끌려 오므로 부르지 못한다 — 응답 모양만 틀린 실패는 한 줄 없이 유형 꼬리표만 선다. 비밀값은 서버가 이미 가렸다
  */
-export function 멈춘한줄(part: TrialResult['parts'][number], 말: 언어): string {
+export function 멈춘까닭(part: TrialResult['parts'][number]): 항목실패 | null {
+  if (part.status === 'PASS' || part.error?.message === 'NOT_RUN') return null;
   const 확인 = part.steps.flatMap((s) => s.assertions).find((a) => a.status === 'FAIL');
-  return 확인?.statement ?? 멈춘사유글자(part.error?.message ?? '', 말).split('\n')[0];
+  const 모양틀림 = part.steps.some((s) => (s.shapeChecks ?? []).some((c) => c.result === 'FAIL'));
+  const 원인 = 원인을가른다({
+    status: part.status,
+    assertFailed: 확인 !== undefined || 모양틀림,
+    itemMessage: part.error?.message ?? '',
+    stepMessage: part.steps.find((s) => s.error !== undefined)?.error?.message ?? '',
+  });
+  if (원인 === 'stopped') return null;
+  const 한줄 = 한줄로자른다(확인?.statement || part.error?.message || '');
+  return { type: 원인, reason: 러너글자.test(한줄) ? '' : 한줄 };
 }
