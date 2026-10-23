@@ -76,6 +76,8 @@ export async function 엑셀자료(입력: 맥락조건 & {
   technique?: Technique | 'none';
   // 목록 칩과 같은 마지막 결과 — 실행 칸이 없으면 무시한다(목록과 같다)
   last?: ItemStatus;
+  // 「스모크만」 — 목록과 같은 조건이라야 버튼 건수와 파일 건수가 같다
+  smoke?: boolean;
   canSeeRuns: boolean;
   canSeeAuthoring: boolean;
 }): Promise<ExportInput> {
@@ -94,6 +96,7 @@ export async function 엑셀자료(입력: 맥락조건 & {
     activeOnly: 입력.activeOnly,
     kind: 입력.kind,
     technique: 입력.technique,
+    smoke: 입력.smoke,
     마지막: 입력.canSeeRuns ? { 판정: 판정으로(마지막), last: 입력.last } : undefined,
     page: 1,
     pageSize: null,

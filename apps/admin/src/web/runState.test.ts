@@ -176,4 +176,9 @@ describe('실행자 이름 (SPEC §3.5 · §8.7)', () => {
     // 실측: scripts/run-scheduled.ts 가 triggeredByName 을 '스케줄러' 로 넣는다
     expect(실행자이름({ triggeredBy: '스케줄러', triggeredByName: '스케줄러' }, 'ko')).toBe('스케줄러');
   });
+
+  it('빌드 실행은 토큰을 만든 사람 이름 앞에 「빌드」를 붙인다 — 그 사람이 직접 누른 것이 아니다 (도메인/실행 §3.11)', () => {
+    expect(실행자이름({ triggeredBy: 'kim', triggeredByName: '김QA', origin: 'BUILD' }, 'ko')).toBe('빌드 · 김QA');
+    expect(실행자이름({ triggeredBy: 'kim', triggeredByName: '김QA', origin: 'MANUAL' }, 'ko')).toBe('김QA');
+  });
 });

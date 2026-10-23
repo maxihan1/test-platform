@@ -10,6 +10,7 @@ import { 서비스못보내는이유, 설정오류문장, 제외경로값, 피�
 import { 어드민키못보내는이유 } from './SettingsAdminKey.js';
 import { API인증못보내는이유 } from './SettingsApiAuths.js';
 import { API문서구획, API문서못보내는이유, 종류칸 } from './SettingsApiService.js';
+import { CI토큰구획 } from './SettingsCiTokens.js';
 import { CrawlExcludeField } from './SettingsCrawlExclude.js';
 import { EnvEditor, 보낼모양, 줄로, type 줄 } from './SettingsEnvs.js';
 import { ScheduleFields } from './SettingsSchedule.js';
@@ -210,6 +211,10 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
 
       <구획 제목={t('화면 크기')} 쓰임={t('테스트 작성이 화면을 PC 와 모바일로 열어 본 결과입니다. 새 케이스를 PC 로만 만들지 모바일도 같이 만들지 이 판정으로 정합니다')}>
         <ViewportSection serviceId={row.id} envs={row.envs} />
+      </구획>
+
+      <구획 제목={t('CI 토큰')} 쓰임={t('CI 가 새 빌드를 올릴 때 쓰는 열쇠입니다. 빌드가 올라오면 스모크 테스트부터 자동으로 실행합니다')}>
+        <CI토큰구획 row={row} />
       </구획>
 
       {/* 저장과 다른 일이라 따로 둔다 — 적다 만 칸은 저장하지 않고 상태만 뒤집는다 */}

@@ -8,6 +8,7 @@ import type { CasePage, CaseRow, ItemStatus, Platform, 앱종류, 케이스축 }
 import { use기법말 } from './CaseDetail.js';
 import { 케이스맥락 } from './CaseListContext.js';
 import { 기법고름들, type 기법고름 } from './CaseListFilter.js';
+import { 스모크칩 } from './CaseSmoke.js';
 import { keyOf, type LastMap, 마지막판정 } from './catalogView.js';
 import { use말, use언어 } from './i18n.js';
 import { 아이콘 } from './icons.js';
@@ -182,6 +183,7 @@ export function 케이스줄({
   열림 = false,
   on실행,
   on열기,
+  on스모크,
   요구보나 = false,
   요구쓰나 = false,
 }: {
@@ -194,6 +196,8 @@ export function 케이스줄({
   /** 줄의 ▶ — 그 한 건으로 실행 창을 연다. 고른 서비스에서 실행 쓰기가 아니면 오지 않고 버튼도 없다 (화면공통 §8) */
   on실행?: (row: CaseRow) => void;
   on열기: (tcId: string) => void;
+  /** 스모크 칩을 고칠 수 있을 때만 온다(cases write) — 없으면 켜진 칩만 글자로 보인다 */
+  on스모크?: () => Promise<unknown>;
   /** 작성 보기 권한 — 없으면 요구 번호가 「PRD 관리」 고리가 아니라 글자다 (도메인/카탈로그 §8.1 「맥락」) */
   요구보나?: boolean;
   /** 서비스가 PRD 를 쓴다 — 안 쓰면 「연결된 요구 없음」을 줄마다 달지 않는다 */
@@ -233,6 +237,7 @@ export function 케이스줄({
         </button>
         {/* 사유는 상세 칸 맨 위에 적는다. 줄에는 배지와 말풍선만 — 판정 색은 쓰지 않는다 (도메인/카탈로그 §8.1) */}
         {typeof row.unconfirmed === 'string' ? <span className="case-tag" title={row.unconfirmed}>{t('미확정')}</span> : null}
+        <스모크칩 row={row} on바뀜={on스모크} />
         {/* 기법은 이름 옆이 아니라 아래 작은 줄에 — 이름 옆이면 기법이 둘일 때 둘째 태그가 다음 줄로 밀린다 (도메인/카탈로그 §8.1) */}
         <케이스맥락 row={row} 요구보나={요구보나} 요구쓰나={요구쓰나} />
       </div>

@@ -14,6 +14,7 @@ import { 인증등록 } from '../auth/gate.js';
 import { 해시 } from '../auth/password.js';
 import authRoutes from '../auth/routes.js';
 import { 세션등록 } from '../auth/session.js';
+import { 엑셀자료 } from './exportData.js';
 import catalogRoutes, { 스모크읽기 } from './routes.js';
 import { findCase, save } from './store.js';
 
@@ -145,6 +146,14 @@ describe.skipIf(연결 === undefined)('스모크 표시', () => {
     expect(await 목록('&smoke=0')).toEqual(['XSK-001', 'XSK-002']);
     expect(await 목록('&smoke=yes')).toEqual(번호들);
     expect(await 목록('')).toEqual(번호들);
+  });
+
+  it('엑셀도 목록과 같은 스모크 조건을 탄다 — 버튼의 건수와 받은 파일의 건수가 같다 (카탈로그 §8.1 「스모크」)', async () => {
+    await save([spec('XSK-001', true), spec('XSK-002'), spec('XSK-003')], false, 'XSK');
+    for (const tcId of 번호들) await 고치기(tcId, { smoke: null });
+    const 엑셀 = async (smoke: boolean | undefined) =>
+      (await 엑셀자료({ service: 'XSK', serviceId: 서비스, q: '', activeOnly: false, smoke, canSeeRuns: false, canSeeAuthoring: false })).cases.map((c) => c.tcId);
+    expect([await 엑셀(true), await 엑셀(false), await 엑셀(undefined)]).toEqual([['XSK-001'], ['XSK-002', 'XSK-003'], 번호들]);
   });
 
   it('비활성 케이스도 고치고, 없으면 404 · 본문이 틀리면 400', async () => {

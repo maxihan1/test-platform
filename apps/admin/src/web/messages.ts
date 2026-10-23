@@ -6,7 +6,9 @@ import { API문서말 } from './messages/apidoc.js';
 import { 계정말 } from './messages/auth.js';
 import { 작성말 } from './messages/authoring.js';
 import { 작성할일말 } from './messages/authoringTodo.js';
+import { 빌드말 } from './messages/build.js';
 import { 케이스말 } from './messages/cases.js';
+import { CI토큰말 } from './messages/ciToken.js';
 import { 대시보드말 } from './messages/dashboard.js';
 import { 고치기말 } from './messages/edit.js';
 import { 오류영어 } from './messages/errors.js';
@@ -44,4 +46,6 @@ export const 말: Record<string, string> = {
   ...성능페이지말,
   ...성능기기말,
   ...마법사말,
+  ...빌드말,
+  ...CI토큰말,
 };

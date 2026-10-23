@@ -55,6 +55,9 @@ export interface CaseRow {
   screens?: CaseScreen[];
   /** 케이스를 실행해서 부른 호스트에 붙은 API 서버 이름 — 목록 응답에만 온다. 없으면 [] (도메인/카탈로그 §8.1 「API 서버」) */
   apiServers?: string[];
+  /** 스모크 — 실제로 쓰는 값(사람이 고친 값, 없으면 코드 값)과 사람이 고친 값. 이 칸 전 가짜 응답을 안 고치려고 선택으로 둔다 (도메인/카탈로그 §7 · 실행 §3.11) */
+  smoke?: boolean;
+  smokeSet?: boolean | null;
 }
 
 /** 지도 ① 의 축 칸 — 서버 `catalog/context.ts` 와 같은 넷. 값 목록은 주소에서 읽은 조건을 거를 때 쓴다 */
@@ -153,6 +156,8 @@ export interface RunSummary {
   /** 시작 방식과 「실패 다시」의 원래 실행 (도메인/실행 §7 · 공통/4-데이터모델 「실행 시작 방식」). 옛 가짜 응답을 안 고치려고 선택으로 둔다 */
   origin?: 'MANUAL' | 'SCHEDULED' | 'RERUN' | 'BUILD';
   rerunOf?: number | null;
+  /** 실행에 고정한 빌드 번호(CI 가 준 글자). 빌드를 받은 적 없는 줄이면 null (도메인/실행 §3.11 「빌드는 실행에 고정한다」) */
+  buildNo?: string | null;
   startedAt: string;
   finishedAt: string | null;
   counts: RunCounts;
@@ -399,7 +404,7 @@ export interface RunQuery {
   q?: string;
   state?: 'running' | 'failed';
   env?: string;
-  origin?: 'manual' | 'scheduled' | 'rerun';
+  origin?: 'manual' | 'scheduled' | 'rerun' | 'build';
   /** 최근 며칠. 없으면 전체 */
   days?: number;
   /** 없으면 UI · 기능 둘 다 — 진행 카드가 그렇게 부른다 (실행 §7 `?kind=` · PR #131) */
@@ -1004,6 +1009,8 @@ export interface CaseQuery {
   apiServer?: string;
   /** 마지막 결과. 서버가 전체에서 거른다 (도메인/카탈로그 §7 `?last=`) */
   last?: ItemStatus;
+  /** 스모크만(true) · 스모크 아닌 것만(false). 없으면 안 거른다 (도메인/카탈로그 §7 `?smoke=`) */
+  smoke?: boolean;
 }
 
 // 목록과 엑셀이 같은 조건을 쓴다 — 두 벌이면 버튼 건수와 받은 파일 건수가 갈린다
@@ -1021,6 +1028,7 @@ function 케이스조건(query: CaseQuery): URLSearchParams {
     if (값 !== undefined) params.set(칸, 값);
   }
   if (query.last !== undefined) params.set('last', query.last.toLowerCase());
+  if (query.smoke !== undefined) params.set('smoke', query.smoke ? '1' : '0');
   return params;
 }
 
@@ -1099,7 +1107,7 @@ export const api = {
   },
 
   run: (runId: number) =>
-    call<RunSummary & { items: RunItemSummary[]; evidence: EvidenceRow[]; apiDocVersion?: number | null; apiDocNote?: 'DIFFERS' | 'FETCH_FAILED' | null }>(
+    call<RunSummary & { items: RunItemSummary[]; evidence: EvidenceRow[]; apiDocVersion?: number | null; apiDocNote?: 'DIFFERS' | 'FETCH_FAILED' | null; installedApps?: 폰에깔린앱[] }>(
       `/runs/${runId}`,
     ),
 
@@ -1373,4 +1381,30 @@ export const api = {
 
   revokeAgentToken: (username: string) =>
     call<void>(`/settings/users/${encodeURIComponent(username)}/agent-token`, { method: 'DELETE' }),
+
+  /** 사람이 고친 스모크 값. null 은 코드 값으로 되돌리기 (도메인/카탈로그 §7 `PUT /api/cases/:tcId/smoke`) */
+  setSmoke: (tcId: string, smoke: boolean | null) =>
+    call<void>(`/cases/${encodeURIComponent(tcId)}/smoke`, { ...json({ smoke }), method: 'PUT' }),
+
+  /** 애플리케이션의 CI 토큰 (도메인/실행 §7 「빌드마다 돌리기」). 원문은 만들 때 응답에만 있다 */
+  serviceTokens: (serviceId: number) => call<{ tokens: CI토큰[] }>(`/settings/services/${serviceId}/tokens`),
+  createServiceToken: (serviceId: number, name: string) =>
+    call<{ tokenId: number; token: string }>(`/settings/services/${serviceId}/tokens`, json({ name })),
+  revokeServiceToken: (serviceId: number, tokenId: number) =>
+    call<void>(`/settings/services/${serviceId}/tokens/${tokenId}`, { method: 'DELETE' }),
 };
+
+/** CI 토큰 한 줄. createdBy 는 만든 사람의 지금 이름 · lastUsedAt 은 안 썼으면 null */
+export interface CI토큰 {
+  tokenId: number;
+  name: string;
+  createdBy: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
+/** 실행의 앱 항목이 폰에서 읽은 앱 판 · 빌드 코드(versionCode) — 겹침 없이. 브라우저 실행은 [] (도메인/실행 §7 `GET /api/runs/:runId`) */
+export interface 폰에깔린앱 {
+  appVersion: string | null;
+  appBuild: string | null;
+}

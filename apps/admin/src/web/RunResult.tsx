@@ -16,7 +16,7 @@ import { RunProgressModal } from './RunProgressModal.js';
 import { 실패다시실행 } from './RerunFailed.js';
 import { PAGE_SIZE, 끝난결과, 디바이스칩, 실패먼저, 쪽넘김 } from './RunResultBody.js';
 import { 결과줄 } from './RunResultRow.js';
-import { 시작방식글 } from './RunListRow.js';
+import { 다른빌드알림, 시작빌드글 } from './RunBuild.js';
 import { ScenarioResult } from './ScenarioResult.js';
 import { 끝났다고알릴까, 도는중, 멈출수있나, 본것으로적는다, 상태라벨, 실행자이름 } from './runState.js';
 import { Failed, Loading, PLATFORM_LABEL, STATUS_LABEL, useAsync, when, 실행디바이스들 } from './ui.js';
@@ -151,7 +151,7 @@ function 케이스결과({
             {/* 알림은 서비스 전체에서 오고 결과는 고른 서비스와 상관없이 열린다 — 어느 서비스 실행인지 적는다 */}
             {data.serviceName} · 
             {when(data.startedAt, 언어)}
-            {data.origin === undefined ? null : <> · {t(시작방식글[data.origin])}</>}
+            {시작빌드글(data, t)}
             {' · '}
             {t('대상 서버 {서버}', { 서버: data.env })}
             {data.baseUrl === '' ? '' : ` (${data.baseUrl})`}
@@ -219,6 +219,7 @@ function 케이스결과({
     ) : data.apiDocNote === 'FETCH_FAILED' ? (
       <div className="hint">{t('API 문서를 받지 못했습니다')}</div>
     ) : null;
+  const 빌드줄 = <다른빌드알림 buildNo={data.buildNo} apps={data.installedApps} />;
 
   // 결과 칸의 머리 — 고른 줄과 같은 제목을 크게 단다. 스크롤 칸 밖에 둬 「실패 N건 다시 실행」 · 증적이 늘 보인다 (도메인/실행 §8.3)
   const 머리 = (
@@ -230,6 +231,7 @@ function 케이스결과({
       {행동}
       {증적줄}
       {문서줄}
+      {빌드줄}
     </div>
   );
 
@@ -247,6 +249,7 @@ function 케이스결과({
               {부제}
               {증적줄}
               {문서줄}
+              {빌드줄}
             </>
           }
           행동={행동}
