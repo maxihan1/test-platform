@@ -157,9 +157,10 @@ export const 막기코드 = String.raw`async page => { const c = page.context();
  * npx 가 저장소 것이 아닌 새 playwright 를 받아 와 판이 달라 열린 세션을 못 찾는다(14670 훑기 보조 넷 · 14638 둘 · PRD-F14-11)
  */
 export const 막기폴더 = (env = process.env, 기본 = cwd) => env.CLAUDE_PROJECT_DIR || 기본;
-// 걸었다는 표시 — 명령마다 브라우저에 다시 묻지 않게(한 번에 1~2초). 그 세션을 열거나 닫는 명령이 지운다
+// 걸었다는 표시 — 명령마다 브라우저에 다시 묻지 않게(한 번에 1~2초). 그 세션을 열거나 닫는 명령이 지운다.
+// 세션의 지금 폴더도 같이 넣는다 — 같은 저장소의 다른 워크트리 세션이 같은 세션 이름을 써도 표시가 섞이지 않게(폴더를 옮기면 한 번 더 걸 뿐이다)
 const 표시자리 = () => `${tmpdir()}/scan-guard`;
-const 표시 = (세션) => `${표시자리()}/${createHash('sha1').update(`${막기폴더()}\n${세션}`).digest('hex')}`;
+const 표시 = (세션) => `${표시자리()}/${createHash('sha1').update(`${막기폴더()}\n${cwd}\n${세션}`).digest('hex')}`;
 function 저장막기(세션) {
   if (existsSync(표시(세션))) return null;
   const r = spawnSync('npx', ['playwright', 'cli', ...(세션 ? [`-s=${세션}`] : []), 'run-code', 막기코드], { cwd: 막기폴더(), encoding: 'utf8', timeout: 30_000 });

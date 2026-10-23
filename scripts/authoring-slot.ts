@@ -112,22 +112,44 @@ function 줄표들(폴더: string): { 열쇠: string; 경로: string }[] {
     .map((이름) => ({ 열쇠: 이름.slice(줄머리.length + 16), 경로: join(폴더, 이름) }));
 }
 
-/** 표 주인 — 다시 부르기 전 빈 표(0)나 죽은 주인은 null */
-function 표주인(경로: string): number | null {
+/** 마지막으로 쓴 뒤 지난 시간 — 남이 막 치웠으면 아주 오래된 것으로 본다 */
+function 나이(경로: string, 지금: number): number {
+  try {
+    return 지금 - statSync(경로).mtimeMs;
+  } catch {
+    return Infinity;
+  }
+}
+
+/**
+ * 표 주인 — 다시 부르기 전 빈 표(0) · 죽은 주인 · `낡음` 넘게 안 고친 표는 null.
+ * 한 번 부를 때 기다림은 7분 30초 안이라, 그보다 훨씬 오래된 표의 「산 주인」은 같은 번호를 물려받은 다른 프로세스다(자리 파일과 같은 까닭)
+ */
+function 표주인(경로: string, 지금: number): number | null {
   try {
     const pid = Number(readFileSync(경로, 'utf8'));
-    return Number.isInteger(pid) && pid > 0 && 살았나(pid) ? pid : null;
+    return Number.isInteger(pid) && pid > 0 && 살았나(pid) && 나이(경로, 지금) <= 낡음 ? pid : null;
   } catch {
     return null;
   }
 }
 
-function 표쓰기(경로: string, pid: number, 새로: boolean): boolean {
+/** 새 표 — 없어야 만든다(남이 심은 링크를 따라 쓰지 않는다). 있으면 EEXIST 를 그대로 던진다 */
+function 새표쓰기(경로: string, pid: number): void {
+  const fd = openSync(경로, 'wx');
   try {
-    // 남이 심은 링크를 따라 쓰지 않는다 — 새 표는 없어야 만들고, 있는 표는 링크면 못 연다(그때는 새 표를 낸다)
-    const fd = openSync(경로, 새로 ? 'wx' : constants.O_RDWR | constants.O_NOFOLLOW);
+    fchmodSync(fd, 0o644); // 다른 uid 가 주인 번호를 읽어 차례를 센다
+    writeSync(fd, String(pid));
+  } finally {
+    closeSync(fd);
+  }
+}
+
+/** 있는 표의 주인을 고쳐 쓴다 — 링크면 못 연다. 못 쓰면 false(그때는 새 표를 낸다) */
+function 표고쳐쓰기(경로: string, pid: number): boolean {
+  try {
+    const fd = openSync(경로, constants.O_RDWR | constants.O_NOFOLLOW);
     try {
-      if (새로) fchmodSync(fd, 0o644); // 다른 uid 가 주인 번호를 읽어 차례를 센다
       ftruncateSync(fd, 0);
       writeSync(fd, String(pid), 0);
     } finally {
@@ -142,11 +164,17 @@ function 표쓰기(경로: string, pid: number, 새로: boolean): boolean {
 /** 줄에 선다 — 같은 열쇠의 빈 표가 `이을틈` 안이면 그 차례를 잇고, 아니면 맨 뒤에 새 표를 낸다 */
 export function 줄서기(폴더: string, 열쇠: string, pid = process.pid, 지금 = Date.now()): string {
   자리폴더열기(폴더);
-  const 옛 = 줄표들(폴더).find((t) => t.열쇠 === 열쇠 && 표주인(t.경로) === null);
-  if (옛 !== undefined && 지금 - statSync(옛.경로).mtimeMs <= 이을틈 && 표쓰기(옛.경로, pid, false)) return 옛.경로;
+  const 옛 = 줄표들(폴더).find((t) => t.열쇠 === 열쇠 && 표주인(t.경로, 지금) === null);
+  if (옛 !== undefined && 나이(옛.경로, 지금) <= 이을틈 && 표고쳐쓰기(옛.경로, pid)) return 옛.경로;
+  // 같은 시각 · 열쇠가 이미 있을 때만 1ms 뒤로 민다. 권한 · 디스크 오류는 그대로 던진다 — 끝없이 돌면 마감도 못 지킨다(code-review)
   for (let 시각 = 지금; ; 시각++) {
     const 경로 = join(폴더, 표이름(시각, 열쇠));
-    if (표쓰기(경로, pid, true)) return 경로;
+    try {
+      새표쓰기(경로, pid);
+      return 경로;
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code !== 'EEXIST') throw new Error(`브라우저 자리 줄 표를 못 만들었다 — ${경로}: ${String(e)}`);
+    }
   }
 }
 
@@ -155,14 +183,8 @@ function 앞사람수(폴더: string, 내표: string, 지금: number): number {
   let 수 = 0;
   for (const t of 줄표들(폴더)) {
     if (t.경로 === 내표) return 수;
-    if (표주인(t.경로) !== null) 수++;
-    else {
-      try {
-        if (지금 - statSync(t.경로).mtimeMs > 이을틈) rmSync(t.경로, { force: true });
-      } catch {
-        // 남이 막 치웠다
-      }
-    }
+    if (표주인(t.경로, 지금) !== null) 수++;
+    else if (나이(t.경로, 지금) > 이을틈) rmSync(t.경로, { force: true });
   }
   return 수;
 }
@@ -184,6 +206,14 @@ export async function 자리기다리기(마감: number, 폴더 = 자리폴더, 
   const 내표 = 줄서기(폴더, 열쇠);
   for (;;) {
     const 지금 = Date.now();
+    // 같은 열쇠로 겹쳐 부른 쪽이 먼저 받아 표를 지웠다 — 같은 이름으로 다시 세워 차례를 지킨다(없으면 모든 표 뒤로 밀린다)
+    if (!existsSync(내표)) {
+      try {
+        새표쓰기(내표, process.pid);
+      } catch {
+        // 그사이 다시 생겼다
+      }
+    }
     if (앞사람수(폴더, 내표, 지금) < 빈자리수(폴더, 수, 지금)) {
       const 잡은 = 자리잡기(폴더, 수);
       if (잡은 !== null) {
@@ -192,7 +222,7 @@ export async function 자리기다리기(마감: number, 폴더 = 자리폴더, 
       }
     }
     if (Date.now() + 쉼 > 마감) {
-      표쓰기(내표, 0, false);
+      표고쳐쓰기(내표, 0);
       return null;
     }
     await 쉬기(쉼);

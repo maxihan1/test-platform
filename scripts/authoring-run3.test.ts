@@ -98,11 +98,12 @@ describe('빨강줄들', () => {
   });
 });
 
-describe('돌릴기기 — 쓰는 중 1번은 PC 만 (PRD-F14-09)', () => {
-  it('보조 3회 · 마지막은 --mobile 이면 휴대폰도 나란히, 1번은 --mobile 이어도 PC 만', () => {
+describe('돌릴기기 — 쓰는 중 1번은 기기 하나 (PRD-F14-09)', () => {
+  it('보조 3회 · 마지막은 --mobile 이면 휴대폰도 나란히, 1번은 --mobile 이어도 PC 하나 · --mobile-only 면 휴대폰 하나', () => {
     expect(돌릴기기('보조', true)).toEqual(['desktop', 'mobile']);
     expect(돌릴기기('마지막', true)).toEqual(['desktop', 'mobile']);
     expect(돌릴기기('한번', true)).toEqual(['desktop']);
+    expect(돌릴기기('한번', false, true)).toEqual(['mobile']);
     expect(돌릴기기('보조', false)).toEqual(['desktop']);
   });
 });
@@ -124,6 +125,7 @@ describe('실행 — 잘못 부르면 돌리지 않는다', () => {
     expect(await 실행(['마지막', 'mkt'], '/없는곳', {})).toBe(2);
     expect(await 실행(['한번', 'shop'], '/없는곳', { AUTHORING_GATE3_DIR: '/tmp' })).toBe(2);
     expect(await 실행(['보조', 'shop', 'tests/mkt/A.spec.ts', '--trace'], '/없는곳', { AUTHORING_GATE3_DIR: '/tmp' })).toBe(2);
+    expect(await 실행(['보조', 'shop', 'tests/mkt/A.spec.ts', '--mobile-only'], '/없는곳', { AUTHORING_GATE3_DIR: '/tmp' })).toBe(2);
   });
 
   it('대상 서버 주소(PLATFORM_BASE_URL)가 없으면 브라우저를 띄우기 전에 2 — 회차마다 Invalid URL 로 빨개지지 않게', async () => {
