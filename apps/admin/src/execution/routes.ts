@@ -1,14 +1,14 @@
 // 실행 컨텍스트의 HTTP 라우트 (SPEC §7 Execution)
 // 규약: default export 한 Fastify 플러그인을 app.ts가 /api 접두사로 등록한다
 
-import { readFile } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
 import { 칸되는서비스 } from '../auth/permissions.js';
 import { 정수 } from '../routeParams.js';
+import { artifactsDir, 볼륨파일읽기 } from '../artifactFile.js';
 import { dispatch, markAborted } from './dispatcher.js';
 import { 실행남은시간 } from './eta.js';
 import { notifyRun } from './notify.js';
@@ -33,10 +33,8 @@ const paramSetBody = z.object({
   expected: z.record(z.string(), z.unknown()).default({}),
 });
 
-// 러너와 어드민이 같은 볼륨을 본다. 경로 규칙은 artifacts/runs/{runId}/{historyId}/{seq}.png (SPEC §9)
-export function artifactsDir(): string {
-  return process.env.PLATFORM_ARTIFACTS_DIR ?? resolve(process.cwd(), 'artifacts');
-}
+// 볼륨 파일 도우미(../artifactFile.ts)로 옮겼다. 다른 갈래가 여기서 가져다 쓰던 자리라 그대로 내준다
+export { artifactsDir };
 
 // 시나리오 사진 통로(scenario/runRoutes.ts)도 같은 판정을 쓴다
 export async function 시나리오실행인가(runId: number): Promise<boolean> {
@@ -237,7 +235,7 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
   app.get<{ Params: { runId: string; historyId: string; seq: string } }>(
     '/screenshots/:runId/:historyId/:seq.png',
     async (req, reply) => {
-      // 경로를 정수로만 조립한다. 볼륨 밖으로 올라가는 경로가 애초에 만들어지지 않는다.
+      // 경로를 정수로만 조립한다. 볼륨 밖으로 올라가는 경로가 애초에 만들어지지 않는다 — 바로가기는 볼륨파일읽기가 막는다.
       // 여기만 규칙을 따로 적었다가 0 과 지수 표기를 통과시키고 있었다 — 같은 자리를 쓴다
       const parts = [req.params.runId, req.params.historyId, req.params.seq].map(정수);
       if (parts.some((n) => n === null)) {
@@ -247,7 +245,7 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
       const file = join(artifactsDir(), 'runs', String(parts[0]), String(parts[1]), `${parts[2]}.png`);
       let png: Buffer;
       try {
-        png = await readFile(file);
+        png = await 볼륨파일읽기(file);
       } catch {
         // 내보낼 것을 손에 쥔 뒤에 형식을 정한다. 먼저 image/png로 박아 두면 404 본문을 png로 쓰려다 500이 난다
         return reply.code(404).send({ error: 'SCREENSHOT_NOT_FOUND', detail: req.url });

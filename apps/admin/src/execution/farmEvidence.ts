@@ -1,13 +1,14 @@
 // 러너가 받아 둔 팜 증적(화면 영상 · logcat)을 찾아 목록과 파일로 내준다 (SPEC 도메인/러너 §5.2 「디바이스 팜 접속 방식」)
 
 import { readdir, stat } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 
 import fastifyStatic from '@fastify/static';
 import { FARM_EVIDENCE_DIR, runDir } from '@platform/kit';
 import type { FastifyInstance } from 'fastify';
 
 import { 정수 } from '../routeParams.js';
+import { 볼륨파일 } from '../artifactFile.js';
 
 export interface 팜파일 {
   name: string;
@@ -30,10 +31,14 @@ export async function 팜증적목록(runId: number, historyId: number): Promise
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') return [];
     throw new Error(`팜 증적 폴더를 읽지 못했다 (${곳}): ${err instanceof Error ? err.message : String(err)}`);
   }
+  // 바로가기 · 폴더는 목록에서 뺀다 — 통로가 이 목록에 있는 이름만 내준다
   const 파일들 = await Promise.all(
-    이름들.sort(차례.compare).map(async (name) => ({ name, bytes: (await stat(join(곳, name))).size })),
+    이름들.sort(차례.compare).map(async (name) => {
+      const 진짜 = await 볼륨파일(join(곳, name));
+      return 진짜 === null ? [] : [{ name, bytes: (await stat(진짜)).size }];
+    }),
   );
-  return 파일들;
+  return 파일들.flat();
 }
 
 /** 증적 문서용 한 줄. 문서에는 영상을 넣을 수 없어 어디서 보는지만 적는다. 받은 것이 없으면 null */
@@ -60,12 +65,14 @@ export async function 팜증적경로(app: FastifyInstance): Promise<void> {
       if (runId === null || historyId === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.url });
       // 폴더에 실제로 있는 이름만 내준다 — 받은 이름으로 경로를 조립하지 않아 폴더 밖으로 못 나간다
       const 있음 = (await 팜증적목록(runId, historyId)).some((f) => f.name === req.params.name);
-      if (!있음) return reply.code(404).send({ error: 'FARM_FILE_NOT_FOUND', detail: req.url });
+      const 진짜 = 있음 ? await 볼륨파일(join(폴더(runId, historyId), req.params.name)) : null;
+      if (진짜 === null) return reply.code(404).send({ error: 'FARM_FILE_NOT_FOUND', detail: req.url });
       // logcat 은 화면에 펼치지 않고 받게 한다. 이름은 팜이 지어 따옴표 · 한글이 섞여도 머리가 안 깨지게 RFC 5987 로 싼다
       if (req.params.name.endsWith('.txt')) {
         reply.header('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(req.params.name)}`);
       }
-      return reply.sendFile(req.params.name, 폴더(runId, historyId));
+      // 확인한 실제 자리로 보낸다 — 이름으로 다시 풀면 그사이 바꿔 건 바로가기를 따라간다
+      return reply.sendFile(basename(진짜), dirname(진짜));
     },
   );
 }

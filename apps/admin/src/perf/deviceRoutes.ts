@@ -1,12 +1,12 @@
 // 기기 성능 통로 — 고를 수 있는 기기 · 측정 만들기 · 결과 읽기 · 녹화 화면 (도메인/성능 §7 「PERF-F1-08 이 연 통로」)
 
-import { readdir, stat } from 'node:fs/promises';
-import { join } from 'node:path';
+import { readdir } from 'node:fs/promises';
+import { basename, dirname, join } from 'node:path';
 
 import fastifyStatic from '@fastify/static';
 import type { FastifyInstance } from 'fastify';
 
-import { artifactsDir } from '../execution/routes.js';
+import { artifactsDir, 볼륨파일 } from '../artifactFile.js';
 import { 정수 } from '../routeParams.js';
 import { 기기목록, 시리얼, 측정본문, 측정세우기 } from './devices.js';
 import { 녹화이름 } from './deviceRecorder.js';
@@ -80,8 +80,9 @@ export default async function perfDeviceRoutes(app: FastifyInstance): Promise<vo
     const id = 정수(req.params.id);
     const { serial, name } = req.params;
     if (id === null || !시리얼.test(serial) || !영상이름.test(name)) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.url });
-    const 있음 = await stat(join(영상폴더(id, serial), name)).then((s) => s.isFile(), () => false);
-    if (!있음) return reply.code(404).send({ error: 'NOT_FOUND' });
-    return reply.sendFile(name, 영상폴더(id, serial));
+    // 러너도 이 볼륨에 쓴다 — 바로가기를 따라가면 admin 의 아무 파일이나 영상 자리로 나간다 (리뷰 M4)
+    const 진짜 = await 볼륨파일(join(영상폴더(id, serial), name));
+    if (진짜 === null) return reply.code(404).send({ error: 'NOT_FOUND' });
+    return reply.sendFile(basename(진짜), dirname(진짜));
   });
 }
