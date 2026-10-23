@@ -109,7 +109,7 @@ describe('API 애플리케이션 설정 (도메인/인증 §8.8 「종류」 · 
     expect(screen.getByText('비밀값을 입력해 주세요. 새 인증이거나 이름 · 토큰 주소 · 서버 주소를 바꾸면 다시 넣어야 합니다')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
     expect(고침).not.toHaveBeenCalled();
-    expect(document.querySelector('.set-why')?.textContent).toBe('새 API 인증은 비밀값을 입력해 주세요');
+    expect(document.querySelector('.set-why')?.textContent).toBe('API 인증 비밀값을 입력해 주세요');
   });
 
   it('저장된 인증의 이름이나 토큰 주소를 바꾸면 옛 비밀값을 못 이어받아 비밀값을 다시 받는다', () => {
@@ -130,6 +130,7 @@ describe('API 애플리케이션 설정 (도메인/인증 §8.8 「종류」 · 
     expect(screen.getByText('비밀값을 입력해 주세요. 새 인증이거나 이름 · 토큰 주소 · 서버 주소를 바꾸면 다시 넣어야 합니다')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
     expect(고침).not.toHaveBeenCalled();
+    expect(document.querySelector('.set-why')?.textContent).toBe('API 인증 비밀값을 입력해 주세요');
     cleanup();
 
     const 절대주소 = { name: '고객사 A', tokenUrl: 'https://auth.example.com/token', clientId: 'client-a', clientSecretLast4: 'abcd' };

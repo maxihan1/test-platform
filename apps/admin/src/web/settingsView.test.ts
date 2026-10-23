@@ -160,6 +160,11 @@ describe('애플리케이션을 아직 못 보내는 이유 (SPEC §8.2 — 버�
     expect(서비스못보내는이유({ ...채운것, testsDir: '' }, 'ko')).toContain('폴더');
   });
 
+  it('키가 같은 대상 서버 줄이 둘이면 막는다. 키가 줄을 가르는 이름이라 서버가 400 을 낸다', () => {
+    const 두줄 = [{ env: 'qa', baseUrl: 'https://qa.pay.test' }, { env: 'qa', baseUrl: 'https://qa2.pay.test' }];
+    expect(서비스못보내는이유({ ...채운것, envs: 두줄 }, 'ko')).toBe('같은 키의 대상 서버가 둘 있습니다. 키를 다르게 적어 주세요');
+  });
+
   it('빈 대상 서버 줄이 있으면 막는다. 그대로 보내면 서버가 400 을 내고 어느 칸인지 모른다', () => {
     const 이유 = 서비스못보내는이유({ ...채운것, envs: [{ env: '', baseUrl: '' }] }, 'ko');
     expect(이유).toContain('대상 서버');

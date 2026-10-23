@@ -78,6 +78,11 @@ describe('녹화 가리기', () => {
     expect(가리기(본문, 표)).toBe(`id=\${username}&pw=\${password}&memo=${표.get('a b!c')}`);
   });
 
+  it('JSON 본문에 이스케이프되어 들어간 비밀번호(따옴표 · 역빗금)도 가린다', () => {
+    const 표 = 가림표([], [{ loginId: null, loginPassword: 'Pa"ss\\word1' }]);
+    expect(가리기(JSON.stringify({ pw: 'Pa"ss\\word1' }), 표)).toBe('{"pw":"${password}"}');
+  });
+
   it('짧은 아이디는 주소를 망가뜨리지 않게 바꾸지 않는다', () => {
     const 표 = 가림표([], [{ loginId: 'admin', loginPassword: null }]);
     expect(가리기('/admin/users', 표)).toBe('/admin/users');

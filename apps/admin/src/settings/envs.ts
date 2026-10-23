@@ -98,9 +98,10 @@ export function API인증읽기(값: unknown): API인증[] {
  * 보낸 목록으로 바꾼다. 비밀값이 없는 줄은 같은 name 의 옛 비밀값을 잇는다 — 화면은 비밀값을 받은 적이 없다.
  * 토큰 주소가 바뀌면 잇지 않는다 — 이으면 끝 4자리만 본 사람이 비밀값 원문을 아무 주소로나 보내게 할 수 있다.
  * / 로 시작하는 토큰 주소는 대상 서버 주소에 붙어 풀리므로 대상 서버 주소가 바뀌어도 바뀐 것이다.
- * 키가 없으면 옛 목록을 비밀값 없이 다시 보낸 것과 같다 — 주소만 바꾼 저장이 이 규칙을 비켜 가지 않게
+ * 키가 없으면 옛 목록 그대로다. 주소가 바뀌었으면 옛 목록을 비밀값 없이 다시 보낸 것과 같다 — 주소만 바꾼 저장이 이 규칙을 비켜 가지 않게
  */
 function API인증이어받기(보낸것: API인증입력[] | undefined, 옛것: API인증[], 주소바뀜: boolean): API인증[] {
+  if (보낸것 === undefined && !주소바뀜) return 옛것;
   const 목록: API인증입력[] = 보낸것 ?? 옛것.map(({ name, tokenUrl, clientId }) => ({ name, tokenUrl, clientId }));
   return 목록.map(({ name, tokenUrl, clientId, clientSecret }) => {
     const 이름 = name.trim();
@@ -119,10 +120,11 @@ export function 어드민키읽기(값: unknown): 어드민키 | null {
 }
 
 /**
- * API인증이어받기 와 같은 규칙 — 키가 없으면 옛 머리를 값 없이 보낸 것, null 이면 지운다, 값이 없으면 같은 머리의 옛 값을 잇는다.
+ * API인증이어받기 와 같은 규칙 — 키가 없으면 옛 값(주소가 바뀌었으면 옛 머리를 값 없이 보낸 것), null 이면 지운다, 값이 없으면 같은 머리의 옛 값을 잇는다.
  * 대상 서버 주소가 바뀌면 잇지 않는다 — 케이스의 admin 요청이 그 주소로 가서 옛 값이 새 서버로 간다
  */
 function 어드민키이어받기(보낸것: 대상서버입력['adminKey'], 옛것: 어드민키 | null, 주소바뀜: boolean): 어드민키 | null {
+  if (보낸것 === undefined && !주소바뀜) return 옛것;
   const 보낸: { header: string; value?: string } | null = 보낸것 === undefined ? 옛것 && { header: 옛것.header } : 보낸것;
   if (보낸 === null) return null;
   const header = 보낸.header.trim();

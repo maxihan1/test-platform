@@ -75,6 +75,8 @@ export function 서비스못보내는이유(
   if (입력.envs.some((it) => it.env === '' || it.baseUrl === '')) {
     return t('대상 서버에 비어 있는 항목이 있습니다. 입력하거나 해당 서버를 삭제해 주세요', 언어);
   }
+  // 키가 줄을 가르는 이름이다 — 서버는 400 INVALID_REQUEST 로만 답해 어느 칸인지 모른다
+  if (new Set(입력.envs.map((it) => it.env)).size !== 입력.envs.length) return t('같은 키의 대상 서버가 둘 있습니다. 키를 다르게 적어 주세요', 언어);
   // 서버와 같은 규칙 파일이다 (settings/roles.ts)
   for (const it of 입력.envs) {
     const 까닭 = 역할까닭찾기((it.역할들 ?? []).map((r) => r.role));

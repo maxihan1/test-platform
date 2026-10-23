@@ -478,9 +478,9 @@ export interface EnvInput {
   accounts?: { role: string; loginId?: string | null; loginPassword?: string | null }[];
   /** 계정 칸과 같다 — 키가 없으면 지금 것을 유지하고 null · 빈 글자면 지운다 */
   appPath?: string | null;
-  /** 보내면 그 목록으로 바꾼다. clientSecret 이 없는 줄은 같은 env · name · tokenUrl 의 옛 비밀값을 서버가 이어받는다 (도메인/인증 §7) */
+  /** 보내면 그 목록으로 바꾼다. clientSecret 이 없는 줄은 같은 env · name · tokenUrl 의 옛 비밀값을 서버가 이어받는다. / 토큰 주소는 baseUrl 까지 같아야 한다 — 키를 안 보내도 같다 (도메인/인증 §7) */
   apiAuths?: { name: string; tokenUrl: string; clientId: string; clientSecret?: string }[];
-  /** 키가 없으면 유지 · null 이면 지운다. value 가 없으면 같은 env · 같은 header 의 옛 값을 서버가 이어받는다 (도메인/인증 §7) */
+  /** 키가 없으면 유지 · null 이면 지운다. value 가 없으면 같은 env · 같은 header 의 옛 값을 서버가 이어받는다. baseUrl 이 바뀌면 키가 없어도 안 잇는다 (도메인/인증 §7) */
   adminKey?: { header: string; value?: string } | null;
 }
 
