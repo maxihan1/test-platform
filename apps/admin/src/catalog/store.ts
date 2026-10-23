@@ -18,8 +18,11 @@ async function db(): Promise<Pool> {
 }
 
 // 명세의 techniques 는 없으면 키가 없다. 응답은 화면이 칸을 늘 읽도록 null · [] 로 채운다 (카탈로그 §7)
-export type CaseRow = Omit<CaseSpec, 'techniques'> & {
+export type CaseRow = Omit<CaseSpec, 'techniques' | 'smoke'> & {
   techniques: Technique[];
+  // 실제로 쓰는 값 COALESCE(smoke_set, smoke). smokeSet 은 사람이 고친 값 — null 이면 코드 값을 따른다
+  smoke: boolean;
+  smokeSet: boolean | null;
   isActive: boolean;
   scannedAt: string;
   // 지도 ① 과 표준 기획서 지금 판에서 계산한 사유 (prd/unconfirmed.ts)
@@ -50,6 +53,8 @@ interface RawRow {
   scanned_at: Date;
   unconfirmed: string | null;
   techniques: Technique[];
+  smoke: boolean;
+  smoke_set: boolean | null;
   saved_params: Record<string, unknown> | null;
   saved_expected: Record<string, unknown> | null;
   saved_by: string | null;
@@ -82,12 +87,14 @@ function toCase(row: RawRow): CaseRow {
     scannedAt: row.scanned_at.toISOString(),
     unconfirmed: row.unconfirmed,
     techniques: row.techniques,
+    smoke: row.smoke,
+    smokeSet: row.smoke_set,
     savedInput: toSaved(row),
   };
 }
 
 const COLUMNS = 'tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, is_active, scanned_at, '
-  + `${미확정사유SQL('test_case')} AS unconfirmed, techniques, `
+  + `${미확정사유SQL('test_case')} AS unconfirmed, techniques, COALESCE(smoke_set, smoke) AS smoke, smoke_set, `
   // 사람 눈에는 아이디(maxi)보다 이름(맥시)이다. 계정이 지워졌으면 적힌 아이디를 그대로 둔다
   + 'ci.params AS saved_params, ci.expected AS saved_expected, '
   + 'COALESCE((SELECT u.display_name FROM app_user u WHERE u.username = ci.saved_by), ci.saved_by) AS saved_by, ci.saved_at';
@@ -117,6 +124,8 @@ export interface CaseQuery extends 맥락조건 {
   kind?: 'UI' | 'FN';
   // 설계 기법. none 은 기법이 안 적힌 것 전부다 (카탈로그 §7 `?technique=` · §8.1)
   technique?: Technique | 'none';
+  // 유효 스모크로 거른다. 없으면 안 거른다 (카탈로그 §7 `?smoke=`)
+  smoke?: boolean;
   // 마지막 결과 (카탈로그 §7 `?last=`). 없으면 (실행, read) 가 없는 것이다 — 거르지도 세지도 않는다
   마지막?: { 판정: 판정함수; last?: ItemStatus };
 }
@@ -186,7 +195,8 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
         AND ($5::jsonb IS NULL OR platforms @> $5::jsonb)
         -- UI 번호 꼴은 catalog/rules.ts tcId종류 와 같은 뜻이다
         AND ($6::text IS NULL OR (tc_id ~ '-UI-[0-9]{3}$') = ($6 = 'UI'))
-        AND ($7::text IS NULL OR ($7 = 'none' AND cardinality(techniques) = 0) OR $7 = ANY(techniques))`,
+        AND ($7::text IS NULL OR ($7 = 'none' AND cardinality(techniques) = 0) OR $7 = ANY(techniques))
+        AND ($9::boolean IS NULL OR COALESCE(smoke_set, smoke) = $9)`,
     [
       `${query.service}-%`,
       query.q,
@@ -196,6 +206,7 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
       query.kind ?? null,
       query.technique ?? null,
       query.q === '' ? [] : 요구로찾기(표, query.q),
+      query.smoke ?? null,
     ],
   );
   const 기기 = new Map(맞은번호.rows.map((r) => [r.tc_id, r.platforms]));
