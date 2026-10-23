@@ -49,7 +49,7 @@ export function 돌린기록들(결과폴더: string, 꼴 = 돌린기록꼴): �
  */
 export function 기록남기며비우기(임시: string, 비우기: () => void): number {
   const 남길 = [
-    ...이름들(임시).filter((n) => 돌린기록꼴.test(n) || /^summary-[^/]+\.md$/.test(n)),
+    ...이름들(임시).filter((n) => 돌린기록꼴.test(n) || /^gate3-game-.*\.json$/.test(n) || /^summary-[^/]+\.md$/.test(n)), // 게임 폰 기록(authoring-run3-game 게임기록꼴)도
     ...이름들(join(임시, 'glossary'))
       .filter((n) => n.endsWith('.md'))
       .map((n) => join('glossary', n)),

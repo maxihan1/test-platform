@@ -38,6 +38,20 @@ export function 잡은폰(트리: string): string | null {
   return 폰번호꼴.test(번호) ? 번호 : null;
 }
 
+/**
+ * 게임 케이스가 갈 서버 — 어드민 키가 있으면 에이전트가 그 줄 주소를 `PLATFORM_BASE_URL` 로 넘겼다. 없으면 `PLATFORM_ACCOUNTS` 맨 앞(앱 줄 — 작성.md §3.6 「★ 역할별 계정」)의 주소.
+ * 둘 다 없으면 null — AI 가 주소를 고르면 키 · 계정과 다른 서버로 갈 수 있다
+ */
+export function 앱줄주소(env: NodeJS.ProcessEnv): string | null {
+  if (env.PLATFORM_BASE_URL) return env.PLATFORM_BASE_URL;
+  try {
+    const 첫줄 = (JSON.parse(env.PLATFORM_ACCOUNTS || '[]') as { baseUrl?: unknown }[])[0]?.baseUrl;
+    return typeof 첫줄 === 'string' && 첫줄 !== '' ? 첫줄 : null;
+  } catch {
+    return null;
+  }
+}
+
 /** kit 이 팜 폰의 게임에 붙는 환경값 — 정식 실행의 러너(execute.ts gameEnv)와 같다. 어드민 키 · 대상 서버는 에이전트가 넘긴 것이 그대로 간다 */
 export const 게임환경 = (폰: string): Record<string, string> => ({ PLATFORM_ENGINE: 'GAME', PLATFORM_GAME_LINK: 'farm', PLATFORM_DEVICE_UDID: 폰 });
 
@@ -130,8 +144,9 @@ export async function 게임실행(폴더: string | undefined, 트리: string, e
     console.error('[게임 돌려 보기] 디바이스 팜이 안 붙어 폰에서 못 돌린다 — 결과 요약 「3번 돌려 보기」 줄에 `안 돌림(디바이스 팜 없음)` 을 적는다');
     return 2;
   }
-  if (!env.PLATFORM_BASE_URL) {
-    console.error('[게임 돌려 보기] PLATFORM_BASE_URL 이 없다 — 앱 줄에 어드민 키가 없다. 프롬프트의 대상 서버 목록에서 앱 줄 주소를 골라 `PLATFORM_BASE_URL=<주소> npm run -s authoring:run -- 게임 …` 로 다시 부른다');
+  const 주소 = 앱줄주소(env);
+  if (주소 === null) {
+    console.error('[게임 돌려 보기] 앱 줄을 모른다(어드민 키 · 계정이 없다) — 폰에서 못 돌린다. 결과 요약 「3번 돌려 보기」 줄에 `안 돌림(앱 줄 모름)` 을 적는다');
     return 2;
   }
   const 폰 = 잡은폰(트리);
@@ -154,7 +169,7 @@ export async function 게임실행(폴더: string | undefined, 트리: string, e
     이번 = 할일.slice(0, Math.max(1, Math.floor(예산 / 어림)));
     const 이름 = `gate3-game-${Math.max(0, ...readdirSync(결과폴더).map((n) => Number(/^gate3-game-(\d+)\.json$/.exec(n)?.[1] ?? 0))) + 1}`;
     로그 = join(결과폴더, `${이름}.log`);
-    await 돌리기(트리, 결과폴더, 이름, 이번, 폰, 예산, env);
+    await 돌리기(트리, 결과폴더, 이름, 이번, 폰, 예산, { ...env, PLATFORM_BASE_URL: 주소 });
   }
   const 뒤 = 읽기();
   const 남은 = 게임할일(대상, 뒤.찾기);
@@ -166,7 +181,7 @@ export async function 게임실행(폴더: string | undefined, 트리: string, e
   }
   if (빨강.length > 0) console.log([`빨강 ${빨강.length}건`, ...빨강.map((r) => `- ${r.파일}: ${r.오류}`)].join('\n'));
   if (남은.length > 0) {
-    console.log(`남은 것 ${남은.length}건 — 같은 명령을 다시 부른다(30분이 지나면 폰을 놓고 다시 잡는다)`);
+    console.log(`남은 것 ${남은.length}건 — 같은 명령을 다시 부른다(30분이 지나면 폰을 놓고 다시 잡는다). 시간 상한이 아니라 폰 연결이 끊긴 것 같으면 로그를 본다: ${로그 || '이번에 안 돌림'}`);
     return 3;
   }
   return 빨강.length > 0 ? 1 : 0;

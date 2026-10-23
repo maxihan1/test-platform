@@ -78,6 +78,14 @@ describe('실행 — 도우미 함수 하나를 어드민 키 머리로 부른�
     expect(오류.mock.calls[0]?.[0]).not.toContain(키.value);
   });
 
+  it('가릴 값 목록이 깨졌으면(계정 JSON) 부르지 않고 2 — 0 · 1 · 2 약속을 지킨다', async () => {
+    const 오류 = vi.spyOn(console, 'error').mockImplementation(() => {});
+    받은머리 = undefined;
+    expect(await 실행(['g', '골드주기'], 트리(), { ...환경(), PLATFORM_ACCOUNTS: '[{' })).toBe(2);
+    expect(오류.mock.calls.at(-1)?.[0]).toMatch(/가릴 값 목록을 못 만들었다/);
+    expect(받은머리).toBeUndefined();
+  });
+
   it('키가 없거나 함수가 아니거나 인자가 배열이 아니면 부르지 않고 2', async () => {
     const 오류 = vi.spyOn(console, 'error').mockImplementation(() => {});
     받은머리 = undefined;
@@ -103,9 +111,21 @@ describe('도우미자리 · 결과글', () => {
     expect(도우미자리(t, '../g')).toBeNull();
   });
 
+  it('도우미가 든 폴더가 링크여도 안 부른다 — 끝 파일만 보면 트리 밖으로 샌다', () => {
+    const t = 트리();
+    const 밖 = mkdtempSync(join(tmpdir(), 'game-state-밖-'));
+    자리들.push(밖);
+    writeFileSync(join(밖, 'game-state.helper.ts'), 도우미);
+    rmSync(join(t, 'tests', 'g', 'helpers'), { recursive: true });
+    symlinkSync(밖, join(t, 'tests', 'g', 'helpers'));
+    expect(도우미자리(t, 'g')).toBeNull();
+    expect(도우미자리(트리(), 'g')).not.toBeNull();
+  });
+
   it('키 · 계정 값을 가리고 상한에서 자른다', () => {
     expect(결과글({ key: 키.value }, [키.value])).toBe('{\n  "key": "••••••"\n}');
     expect(결과글('가'.repeat(9_000), [])).toMatch(/1002자 더 있다/);
     expect(결과글(undefined, [])).toBe('(돌려준 값 없음)');
+    expect(결과글({ n: 1n }, [])).toMatch(/JSON 으로 못 바꾸는 값/);
   });
 });

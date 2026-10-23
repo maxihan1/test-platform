@@ -5,8 +5,8 @@ import { join } from 'node:path';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { 끝검사줄들 } from './authoring-gate3.js';
-import { 게임끝검사, 게임실행, 게임할일, 빨간게임, 앱케이스말, 잡은폰 } from './authoring-run3-game.js';
+import { 기록남기며비우기, 끝검사줄들 } from './authoring-gate3.js';
+import { 게임끝검사, 게임실행, 게임할일, 빨간게임, 앱줄주소, 앱케이스말, 잡은폰 } from './authoring-run3-game.js';
 
 const 게임케이스 = `defineCase({ tcId: 'G-FN-001', platforms: ['android'] }, async ({ game }) => { await game.click('Start'); });`;
 const 웹케이스 = `defineCase({ tcId: 'G-FN-002', platforms: ['desktop'] }, async ({ page }) => { await page.goto('/'); });`;
@@ -116,11 +116,40 @@ describe('게임실행 — 폰에서 돌릴 수 없으면 Playwright 를 띄우�
     expect(오류.mock.calls.at(-1)?.[0]).toMatch(/잡은 폰이 없다/);
   });
 
+  it('어드민 키도 계정도 없어 앱 줄을 모르면 주소를 고르게 하지 않고 2', async () => {
+    const { 트리, 결과폴더 } = 트리만들기();
+    const 오류 = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(await 게임실행('g', 트리, { AUTHORING_GATE3_DIR: 결과폴더, AUTHORING_BASE_LIST: 기준목록(트리), AUTHORING_GAME_DIR: 트리, PLATFORM_APPIUM_URL: 'http://farm.test/wd/hub', PLATFORM_APP: '/apk/g.apk' })).toBe(2);
+    expect(오류.mock.calls.at(-1)?.[0]).toMatch(/앱 줄을 모른다/);
+  });
+
   it('이번에 닿은 게임 케이스가 없으면 폰 없이 0', async () => {
     const { 트리, 결과폴더 } = 트리만들기();
     rmSync(join(트리, 'tests', 'g', 'G-FN-001.spec.ts'));
     vi.spyOn(console, 'log').mockImplementation(() => {});
     expect(await 게임실행('g', 트리, { AUTHORING_GATE3_DIR: 결과폴더, AUTHORING_BASE_LIST: 기준목록(트리), AUTHORING_GAME_DIR: 트리 })).toBe(0);
+  });
+});
+
+describe('앱줄주소 — 게임 케이스가 갈 서버', () => {
+  it('어드민 키 줄 주소가 먼저, 없으면 계정 맨 앞(앱 줄) 주소, 둘 다 없거나 깨졌으면 null', () => {
+    const 계정 = JSON.stringify([{ baseUrl: 'http://qa.g.test', role: '일반 회원' }, { baseUrl: 'http://dev.g.test', role: '일반 회원' }]);
+    expect(앱줄주소({ PLATFORM_BASE_URL: 'http://key.g.test', PLATFORM_ACCOUNTS: 계정 })).toBe('http://key.g.test');
+    expect(앱줄주소({ PLATFORM_ACCOUNTS: 계정 })).toBe('http://qa.g.test');
+    expect(앱줄주소({})).toBeNull();
+    expect(앱줄주소({ PLATFORM_ACCOUNTS: '[{' })).toBeNull();
+  });
+});
+
+describe('기록남기며비우기 — 이어하기가 폰 돌려 보기 기록도 넘긴다', () => {
+  it('gate3-game 기록이 남는다 — 안 남기면 다 돈 게임 케이스를 폰에서 또 돌린다', () => {
+    const { 결과폴더 } = 트리만들기();
+    writeFileSync(join(결과폴더, 'gate3-game-1.json'), '{}');
+    writeFileSync(join(결과폴더, 'cache.bin'), 'x');
+    expect(기록남기며비우기(결과폴더, () => {
+      rmSync(결과폴더, { recursive: true });
+      mkdirSync(결과폴더);
+    })).toBe(1);
   });
 });
 
