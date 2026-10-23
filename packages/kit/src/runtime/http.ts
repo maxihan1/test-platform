@@ -12,6 +12,9 @@ const TRACED_METHODS = new Set(['get', 'post', 'put', 'patch', 'delete', 'head',
 const TRACE_BODY_LIMIT = 2000;
 // 서비스 지도가 항목 하나에서 받는 상한(apps/admin/src/prd/apiMap.ts 지도상한)과 같다 — 폴링 · 대량 시도가 결과 줄을 덮지 않게
 const API_CALLS_LIMIT = 200;
+// 서비스 지도의 API 틀(apps/admin/src/prd/apiMap.ts API틀)과 같은 규칙 — 번호가 든 경로를 대량으로 불러도 상한이 다른 API 를 밀어내지 않게 틀로 접어 센다
+const 틀칸 = (칸: string): string =>
+  /^\d+$/.test(칸) ? ':n' : /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(칸) || /^[0-9a-f]{16,}$/i.test(칸) ? ':id' : 칸;
 
 // 정본은 apps/admin/src/catalog/rules.ts 의 SECRET_NAMES 다. kit 은 admin 을 import 할 수 없어 같은 목록을 두고
 // 갈라지지 않는지는 check:secret-names 가 본다. 'token' · 'secret' 이 access_token · refresh_token · client_secret 을 덮는다
@@ -69,7 +72,7 @@ export function 부른API를적는다(method: string, url: string, status: numbe
   } catch {
     return;
   }
-  const 줄 = { method: method.toUpperCase(), path: 주소.pathname, status };
+  const 줄 = { method: method.toUpperCase(), path: 주소.pathname.split('/').map(틀칸).join('/'), status };
   if (모음.length >= API_CALLS_LIMIT || 모음.some((x) => x.method === 줄.method && x.path === 줄.path && x.status === 줄.status)) return;
   모음.push(줄);
 }

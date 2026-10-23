@@ -45,9 +45,13 @@ describe('openGame', () => {
     expect(번).toBe(3);
   });
 
-  it('waitForValue 는 값이 될 때까지 get 을 되풀이하고, 한도가 지나면 마지막 값을 달아 던진다', async () => {
-    const 골드 = [100, 100, 150];
-    const link: Link = async (c) => (c.cmd === 'get' ? { ok: true, value: 골드.shift() ?? 150 } : { ok: true });
+  it('waitForValue 는 오브젝트가 뜨고 값이 될 때까지 get 을 되풀이하고, 한도가 지나면 마지막 값을 달아 던진다', async () => {
+    const 골드: unknown[] = ['없음', 100, 150];
+    const link: Link = async (c) => {
+      if (c.cmd !== 'get') return { ok: true };
+      const v = 골드.shift() ?? 150;
+      return v === '없음' ? { ok: false, error: '켜진 오브젝트 중에 Player 이 없습니다' } : { ok: true, value: v };
+    };
     const game = await openGame({}, link, 안쉼);
 
     await game.waitForValue('Player', 'Wallet.gold', 150);
@@ -56,6 +60,23 @@ describe('openGame', () => {
     await expect(game.waitForValue('Player', 'Wallet.gold', 200, { timeoutMs: 0 })).rejects.toThrow(
       'Player.Wallet.gold 이 0초 안에 「200」이 되지 않았습니다 (마지막: 150)',
     );
+  });
+
+  it('waitForValue 가 끝까지 못 찾으면 그 까닭을 마지막에 단다', async () => {
+    const link: Link = async (c) => (c.cmd === 'get' ? { ok: false, error: '켜진 오브젝트 중에 Popup 이 없습니다' } : { ok: true });
+    const game = await openGame({}, link, 안쉼);
+    await expect(game.waitForValue('Popup', 'Text.text', '100', { timeoutMs: 0 })).rejects.toThrow('(마지막: 켜진 오브젝트 중에 Popup 이 없습니다)');
+  });
+
+  it('디바이스 팜이 잠깐 막는 429 는 기다린다', async () => {
+    let 번 = 0;
+    const link: Link = async () => {
+      번 += 1;
+      if (번 < 2) throw new Error('디바이스 팜이 게임 명령을 HTTP 429 로 거절했습니다');
+      return { ok: true };
+    };
+    await openGame({}, link, 안쉼);
+    expect(번).toBe(2);
   });
 
   it('디바이스 팜이 4xx 로 거절하면 기다리지 않고 원문을 달아 던진다', async () => {

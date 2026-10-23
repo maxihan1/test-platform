@@ -224,11 +224,11 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
       });
     } finally {
       // 예외로 끝나도 그때까지 대조한 값 · 부른 API 는 사실이다 — 리포터가 결과 줄에 싣는다
+      // 남기기가 실패해도 케이스의 진짜 예외를 덮지 않는다
       if (게임) {
-        await testInfo.attach(GAME_ATTACHMENT, {
-          body: JSON.stringify({ elementChecks: run.elementChecks, apiCalls: run.apiCalls }),
-          contentType: 'application/json',
-        });
+        await testInfo
+          .attach(GAME_ATTACHMENT, { body: JSON.stringify({ elementChecks: run.elementChecks, apiCalls: run.apiCalls }), contentType: 'application/json' })
+          .catch((err: unknown) => console.error(`[kit] 게임 기록을 남기지 못했다: ${err instanceof Error ? err.message : String(err)}`));
       }
     }
 

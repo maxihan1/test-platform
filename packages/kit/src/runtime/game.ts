@@ -55,7 +55,7 @@ export async function gameLink(env: Env): Promise<Link> {
 
 const 글 = (err: unknown): string => (err instanceof Error ? err.message : String(err));
 
-/** 앱을 켠 뒤 게임이 답할 때까지 ping 을 되풀이한다. 팜이 4xx 로 거절하면(잡은 사람 아님 · 다시 켜는 중) 기다려도 안 바뀌어 바로 던진다 */
+/** 앱을 켠 뒤 게임이 답할 때까지 ping 을 되풀이한다. 팜이 4xx 로 거절하면(잡은 사람 아님 · 다시 켜는 중) 기다려도 안 바뀌어 바로 던진다 — 잠깐 막힌 408 · 429 는 기다린다 */
 export async function openGame(
   env: Env,
   link?: Link,
@@ -68,10 +68,17 @@ export async function openGame(
     const timeoutMs = options.timeoutMs ?? WAIT.timeoutMs;
     const 끝 = Date.now() + timeoutMs;
     for (;;) {
-      const 지금 = await game.get(target, prop);
-      if (isDeepStrictEqual(지금, value)) return;
+      // 오브젝트가 아직 안 떴으면 get 이 던진다 — 그것도 「아직 아님」이라 한도까지 다시 본다. 마지막 까닭은 문구에 남겨 실패 유형이 가른다
+      let 마지막: string;
+      try {
+        const 지금 = await game.get(target, prop);
+        if (isDeepStrictEqual(지금, value)) return;
+        마지막 = JSON.stringify(지금);
+      } catch (err) {
+        마지막 = 글(err);
+      }
       if (Date.now() >= 끝) {
-        throw new Error(`${target}.${prop} 이 ${timeoutMs / 1000}초 안에 「${JSON.stringify(value)}」이 되지 않았습니다 (마지막: ${JSON.stringify(지금)})`);
+        throw new Error(`${target}.${prop} 이 ${timeoutMs / 1000}초 안에 「${JSON.stringify(value)}」이 되지 않았습니다 (마지막: ${마지막})`);
       }
       await 쉬기(WAIT.intervalMs);
     }
@@ -84,7 +91,7 @@ export async function openGame(
       return 드라이버;
     } catch (err) {
       // 원문을 남겨야 실패 유형이 「닿지 못함」으로 가른다 (reporting/failureType.ts)
-      if (/HTTP 4\d\d/.test(글(err)) || Date.now() >= 끝) throw new Error(`게임이 ${켜짐.timeoutMs / 1000}초 안에 답하지 않았습니다 — ${글(err)}`);
+      if (/HTTP 4(?!08|29)\d\d/.test(글(err)) || Date.now() >= 끝) throw new Error(`게임이 ${켜짐.timeoutMs / 1000}초 안에 답하지 않았습니다 — ${글(err)}`);
       await 쉬기(켜짐.intervalMs);
     }
   }
