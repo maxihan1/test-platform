@@ -129,10 +129,12 @@ export function 가림표(비밀: readonly string[], 계정들: readonly 녹화�
   }
   let n = 0;
   for (const v of 비밀) if (!표.has(v)) 표.set(v, `<<비밀${++n}>>`);
-  // 주소 · 폼 본문에는 인코딩된 꼴로 들어간다
+  // 주소 · 폼 본문에는 인코딩된 꼴로 들어간다. 폼(URLSearchParams)은 ! ' ( ) ~ 까지 %XX 로, 공백은 + 로 바꿔 꼴이 하나 더 있다.
+  // JSON 본문은 따옴표 · 역빗금 앞에 \ 를 붙인다
   for (const [v, 꼬리표] of [...표]) {
-    const 인코딩 = encodeURIComponent(v);
-    if (인코딩 !== v && !표.has(인코딩)) 표.set(인코딩, 꼬리표);
+    for (const 인코딩 of [encodeURIComponent(v), new URLSearchParams([['', v]]).toString().slice(1), JSON.stringify(v).slice(1, -1)]) {
+      if (인코딩 !== v && !표.has(인코딩)) 표.set(인코딩, 꼬리표);
+    }
   }
   return 표;
 }

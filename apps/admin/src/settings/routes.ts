@@ -45,6 +45,9 @@ const 대상서버 = z.object({
   adminKey: 어드민키줄.nullable().optional(),
 });
 
+// 이름이 키다 — 겹치면 둘째 줄 INSERT 가 기본 키에 걸려 500 이 된다
+const 대상서버목록 = z.array(대상서버).refine((envs) => new Set(envs.map((e) => e.env)).size === envs.length, 'envs 의 env 이름이 겹칩니다');
+
 // 한 줄이라도 어긋나면 저장 전체를 막는다. 어느 줄인지는 싣지 않는다 — 화면이 보내기 전에 같은 규칙으로 짚는다
 const 역할틀림 = (envs: { accounts?: { role: string }[] }[] | undefined): boolean =>
   (envs ?? []).some((e) => e.accounts !== undefined && 역할까닭찾기(e.accounts.map((a) => a.role)) !== null);
@@ -70,7 +73,7 @@ const 새서비스 = z.object({
   projectId: 프로젝트번호,
   testsRepo: z.string(),
   testsDir: z.string().min(1),
-  envs: z.array(대상서버).default([]),
+  envs: 대상서버목록.default([]),
   slackWebhook: z.string().optional(),
   figmaToken: z.string().optional(),
   crawlExclude: 훑지않을경로.optional(),
@@ -92,7 +95,7 @@ const 서비스수정 = z.object({
   testsRepo: z.string().optional(),
   testsDir: z.string().min(1).optional(),
   isActive: z.boolean().optional(),
-  envs: z.array(대상서버).optional(),
+  envs: 대상서버목록.optional(),
   slackWebhook: z.string().optional(),
   figmaToken: z.string().optional(),
   crawlExclude: 훑지않을경로.optional(),

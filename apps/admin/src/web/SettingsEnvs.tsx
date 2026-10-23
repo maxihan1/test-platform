@@ -7,7 +7,7 @@ import type { EnvInput, EnvRow } from './api.js';
 import { use말 } from './i18n.js';
 import { prdApi } from './prdApi.js';
 import { 어드민키보낼모양, 어드민키칸, 어드민키편집으로, type 어드민키편집 } from './SettingsAdminKey.js';
-import { API인증보낼모양, API인증줄로, API인증칸들, type API인증줄 } from './SettingsApiAuths.js';
+import { API인증보낼모양, API인증줄로, API인증칸들, type API인증줄, 서버주소바뀜 } from './SettingsApiAuths.js';
 import { 비밀번호칸, 역할계정칸들, 역할보낼모양, 역할줄로, type 역할줄 } from './SettingsEnvAccounts.js';
 import { useAsync } from './ui.js';
 
@@ -22,6 +22,8 @@ export interface 줄 extends EnvRow {
   key: string;
   /** 불러올 때의 키 이름. 계정은 이름으로 이어받아서 이름을 바꾸면 비밀번호가 비워진다 (도메인/인증 §7) */
   원래키: string | null;
+  /** 불러올 때의 주소. 바꾸면 / 로 시작하는 토큰 주소의 API 인증 · 어드민 키는 값을 다시 받는다 (도메인/인증 §7). 새 줄은 없다 */
+  원래서버주소?: string;
   /** null 이면 안 보낸다 — 서버가 지금 비밀번호를 유지한다. 화면은 비밀번호를 받은 적이 없다 (§7 「envs[] 한 줄」) */
   새비밀번호: string | null;
   /** 있던 비밀번호를 지운다. 운영 줄에 잘못 넣은 계정을 뺄 길이다 (도메인/인증 §8.8) */
@@ -42,7 +44,7 @@ function 새줄키(): string {
 }
 
 export const 줄로 = (envs: EnvRow[]): 줄[] =>
-  envs.map((it) => ({ ...it, key: 새줄키(), 원래키: it.env, 새비밀번호: null, 역할들: 역할줄로(it.accounts ?? []), API인증들: API인증줄로(it.apiAuths ?? []), 어드민: 어드민키편집으로(it.adminKey) }));
+  envs.map((it) => ({ ...it, key: 새줄키(), 원래키: it.env, 원래서버주소: it.baseUrl, 새비밀번호: null, 역할들: 역할줄로(it.accounts ?? []), API인증들: API인증줄로(it.apiAuths ?? []), 어드민: 어드민키편집으로(it.adminKey) }));
 
 /**
  * 서버로 보낼 줄. **아이디는 받은 대로 되돌려 보내고 비밀번호는 새로 넣었을 때만 싣는다** —
@@ -173,6 +175,7 @@ export function EnvEditor(p: { envs: 줄[]; onChange: (next: 줄[]) => void; 접
                 인증들={it.API인증들}
                 번호={i + 1}
                 서버이름바뀜={it.원래키 !== null && it.env !== it.원래키}
+                주소바뀜={서버주소바뀜(it)}
                 고친다={(API인증들) => onChange(envs.map((v, k) => (k === i ? { ...v, API인증들 } : v)))}
               />
             ) : null}

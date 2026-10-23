@@ -96,13 +96,17 @@ export function API인증읽기(값: unknown): API인증[] {
 
 /**
  * 보낸 목록으로 바꾼다. 비밀값이 없는 줄은 같은 name 의 옛 비밀값을 잇는다 — 화면은 비밀값을 받은 적이 없다.
- * 토큰 주소가 바뀌면 잇지 않는다 — 이으면 끝 4자리만 본 사람이 비밀값 원문을 아무 주소로나 보내게 할 수 있다
+ * 토큰 주소가 바뀌면 잇지 않는다 — 이으면 끝 4자리만 본 사람이 비밀값 원문을 아무 주소로나 보내게 할 수 있다.
+ * / 로 시작하는 토큰 주소는 대상 서버 주소에 붙어 풀리므로 대상 서버 주소가 바뀌어도 바뀐 것이다.
+ * 키가 없으면 옛 목록 그대로다. 주소가 바뀌었으면 옛 목록을 비밀값 없이 다시 보낸 것과 같다 — 주소만 바꾼 저장이 이 규칙을 비켜 가지 않게
  */
-function API인증이어받기(보낸것: API인증입력[] | undefined, 옛것: API인증[]): API인증[] {
-  if (보낸것 === undefined) return 옛것;
-  return 보낸것.map(({ name, tokenUrl, clientId, clientSecret }) => {
+function API인증이어받기(보낸것: API인증입력[] | undefined, 옛것: API인증[], 주소바뀜: boolean): API인증[] {
+  if (보낸것 === undefined && !주소바뀜) return 옛것;
+  const 목록: API인증입력[] = 보낸것 ?? 옛것.map(({ name, tokenUrl, clientId }) => ({ name, tokenUrl, clientId }));
+  return 목록.map(({ name, tokenUrl, clientId, clientSecret }) => {
     const 이름 = name.trim();
-    const 비밀값 = clientSecret ?? 옛것.find((o) => o.name === 이름 && o.tokenUrl === tokenUrl)?.clientSecret;
+    const 이을것 = 주소바뀜 && tokenUrl.startsWith('/') ? undefined : 옛것.find((o) => o.name === 이름 && o.tokenUrl === tokenUrl);
+    const 비밀값 = clientSecret ?? 이을것?.clientSecret;
     if (비밀값 === undefined) throw new 설정오류('API_AUTH_SECRET_REQUIRED');
     return { name: 이름, tokenUrl, clientId, clientSecret: 비밀값 };
   });
@@ -115,12 +119,16 @@ export function 어드민키읽기(값: unknown): 어드민키 | null {
   return typeof header === 'string' && typeof value === 'string' ? { header, value } : null;
 }
 
-/** API인증이어받기 와 같은 규칙 — 키가 없으면 옛 값, null 이면 지운다, 값이 없으면 같은 머리의 옛 값을 잇는다 */
-function 어드민키이어받기(보낸것: 대상서버입력['adminKey'], 옛것: 어드민키 | null): 어드민키 | null {
-  if (보낸것 === undefined) return 옛것;
-  if (보낸것 === null) return null;
-  const header = 보낸것.header.trim();
-  const value = 보낸것.value ?? (옛것?.header === header ? 옛것.value : undefined);
+/**
+ * API인증이어받기 와 같은 규칙 — 키가 없으면 옛 값(주소가 바뀌었으면 옛 머리를 값 없이 보낸 것), null 이면 지운다, 값이 없으면 같은 머리의 옛 값을 잇는다.
+ * 대상 서버 주소가 바뀌면 잇지 않는다 — 케이스의 admin 요청이 그 주소로 가서 옛 값이 새 서버로 간다
+ */
+function 어드민키이어받기(보낸것: 대상서버입력['adminKey'], 옛것: 어드민키 | null, 주소바뀜: boolean): 어드민키 | null {
+  if (보낸것 === undefined && !주소바뀜) return 옛것;
+  const 보낸: { header: string; value?: string } | null = 보낸것 === undefined ? 옛것 && { header: 옛것.header } : 보낸것;
+  if (보낸 === null) return null;
+  const header = 보낸.header.trim();
+  const value = 보낸.value ?? (!주소바뀜 && 옛것?.header === header ? 옛것.value : undefined);
   if (value === undefined) throw new 설정오류('ADMIN_KEY_VALUE_REQUIRED');
   return { header, value };
 }
@@ -156,7 +164,8 @@ export async function 대상서버넣기(client: PoolClient, serviceId: number, 
   for (const { env, baseUrl, loginId, loginPassword, isProd, accounts, appPath, apiAuths, adminKey } of envs) {
     // 이름이 같은 줄만 이어받는다. 이름을 바꾸면 새 줄이라 계정을 다시 넣는다 (SPEC 도메인/인증 §7)
     const 전 = 옛계정.get(env);
-    const 키 = 어드민키이어받기(adminKey, 어드민키읽기(전?.admin_key));
+    const 주소바뀜 = 전 !== undefined && 전.base_url !== baseUrl;
+    const 키 = 어드민키이어받기(adminKey, 어드민키읽기(전?.admin_key), 주소바뀜);
     await client.query(
       `INSERT INTO service_env (service_id, env, base_url, login_id, login_password, is_prod, role_accounts, viewport_kind, viewport_judged_at, app_path, api_auths, admin_key)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
@@ -174,12 +183,12 @@ export async function 대상서버넣기(client: PoolClient, serviceId: number, 
         전?.base_url === baseUrl ? 전.viewport_judged_at : null,
         // 계정 칸과 같은 규칙 — 키가 없으면 옛 값, null · 빈 글자면 지운다. 앞뒤 공백은 경로가 아니라 실수다
         계정칸(typeof appPath === 'string' ? appPath.trim() : appPath, 전?.app_path ?? null),
-        JSON.stringify(API인증이어받기(apiAuths, API인증읽기(전?.api_auths))),
+        JSON.stringify(API인증이어받기(apiAuths, API인증읽기(전?.api_auths), 주소바뀜)),
         키 === null ? null : JSON.stringify(키),
       ],
     );
     // 화면별 차이도 옛 서버 것이다 — 남기면 새 판정 옆에 옛 서버 화면이 섞여 보인다 (PRD-F10-08 코드 검토)
-    if (전 !== undefined && 전.base_url !== baseUrl) {
+    if (주소바뀜) {
       await client.query('UPDATE screen_found SET viewport = NULL WHERE service_id = $1 AND env = $2', [serviceId, env]);
     }
   }

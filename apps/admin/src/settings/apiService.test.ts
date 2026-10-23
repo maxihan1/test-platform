@@ -124,13 +124,34 @@ describe.skipIf(연결 === undefined)('설정 API 의 API 애플리케이션 칸
   });
 
   it('비밀값을 안 보낸 줄은 같은 이름의 옛 비밀값을 잇고, 키가 없으면 인증을 통째로 유지한다', async () => {
-    expect((await 고친다({ envs: [{ env: 'stg', baseUrl: 'http://127.0.0.1:3004' }] })).statusCode).toBe(200);
+    expect((await 고친다({ envs: [{ env: 'stg', baseUrl: 'http://127.0.0.1:3003' }] })).statusCode).toBe(200);
     expect((await 읽는다())?.envs[0]?.apiAuths.map((a) => a.clientSecretLast4)).toEqual(['0001', '0002']);
 
-    const res = await 고친다({ envs: [{ env: 'stg', baseUrl: 'http://127.0.0.1:3004', apiAuths: [{ ...인증('고객사 A'), clientId: '새 아이디' }] }] });
+    const res = await 고친다({ envs: [{ env: 'stg', baseUrl: 'http://127.0.0.1:3003', apiAuths: [{ ...인증('고객사 A'), clientId: '새 아이디' }] }] });
     expect(res.statusCode).toBe(200);
     const 저장 = await (await pool()).query<{ api_auths: unknown }>('SELECT api_auths FROM service_env WHERE service_id = $1', [번호]);
     expect(저장.rows[0]?.api_auths).toEqual([{ name: '고객사 A', tokenUrl: '/oauth/token', clientId: '새 아이디', clientSecret: 비밀값A }]);
+  });
+
+  it('키가 없고 주소도 그대로면 DB 에 손으로 넣은 인증도 손대지 않는다', async () => {
+    const 손으로 = [{ name: ' 고객사 A', tokenUrl: '/oauth/token', clientId: 'x', clientSecret: 비밀값A }];
+    await (await pool()).query('UPDATE service_env SET api_auths = $2 WHERE service_id = $1', [번호, JSON.stringify(손으로)]);
+    expect((await 고친다({ envs: [{ env: 'stg', baseUrl: 'http://127.0.0.1:3003' }] })).statusCode).toBe(200);
+    const 저장 = await (await pool()).query<{ api_auths: unknown }>('SELECT api_auths FROM service_env WHERE service_id = $1', [번호]);
+    expect(저장.rows[0]?.api_auths).toEqual(손으로);
+  });
+
+  it('대상 서버 주소를 바꾸면 상대 토큰 주소의 인증은 키를 안 보내도 비밀값을 다시 받고, http(s) 토큰 주소는 잇는다', async () => {
+    const 바꾼주소 = { env: 'stg', baseUrl: 'http://127.0.0.1:3004' };
+    expect((await 고친다({ envs: [{ ...바꾼주소, apiAuths: [인증('고객사 A')] }] })).json()).toEqual({ error: 'API_AUTH_SECRET_REQUIRED' });
+    expect((await 고친다({ envs: [바꾼주소] })).json()).toEqual({ error: 'API_AUTH_SECRET_REQUIRED' });
+    expect((await 읽는다())?.envs[0]?.apiAuths).toHaveLength(2);
+
+    const 절대 = { ...인증('고객사 A'), tokenUrl: 'https://auth.test/token' };
+    expect((await 고친다({ envs: [{ env: 'stg', baseUrl: 'http://127.0.0.1:3003', apiAuths: [{ ...절대, clientSecret: 비밀값A }] }] })).statusCode).toBe(200);
+    expect((await 고친다({ envs: [바꾼주소] })).statusCode).toBe(200);
+    const 저장 = await (await pool()).query<{ api_auths: unknown }>('SELECT api_auths FROM service_env WHERE service_id = $1', [번호]);
+    expect(저장.rows[0]?.api_auths).toEqual([{ ...절대, clientSecret: 비밀값A }]);
   });
 
   it('이어받을 비밀값이 없는 새 이름은 API_AUTH_SECRET_REQUIRED 이고 저장이 통째로 안 된다', async () => {

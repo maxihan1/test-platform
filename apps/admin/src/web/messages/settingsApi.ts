@@ -31,11 +31,11 @@ export const 설정API말: Record<string, string> = {
   '+ API 인증 추가': '+ Add API auth',
   '보안을 위해 저장한 값은 다시 표시하지 않습니다 · 비밀값은 끝 4자리만 보입니다':
     'Saved values are not shown again for security · Only the last 4 characters of a secret are shown',
-  '비밀값을 입력해 주세요. 새 인증이거나 이름 · 토큰 주소를 바꾸면 다시 넣어야 합니다':
-    'Enter the secret. A new auth, or one with a changed name or token URL, needs it again',
+  '비밀값을 입력해 주세요. 새 인증이거나 이름 · 토큰 주소 · 서버 주소를 바꾸면 다시 넣어야 합니다':
+    'Enter the secret. A new auth, or one with a changed name, token URL or server URL, needs it again',
   'API 인증에 비어 있는 칸이 있습니다. 입력하거나 해당 인증을 삭제해 주세요':
     'An API auth has an empty field. Fill it in or delete that auth',
-  '새 API 인증은 비밀값을 입력해 주세요': 'Enter a secret for the new API auth',
+  'API 인증 비밀값을 입력해 주세요': 'Enter the API auth secret',
   'API 인증 이름은 20자까지이고 한 대상 서버 안에서 겹치지 않아야 합니다 (서버마다 10개까지)':
     'API auth names are up to 20 characters and unique per target server (up to 10 per server)',
   '토큰 주소는 / 나 http(s):// 로 시작해야 합니다': 'The token URL must start with / or http(s)://',
@@ -52,6 +52,6 @@ export const 설정API말: Record<string, string> = {
   '어드민 키 머리 이름을 입력해 주세요': 'Enter the admin key header name',
   '어드민 키 머리 이름은 영문 · 숫자 · - 로 100자까지입니다': 'The admin key header name uses letters, digits and - only, up to 100 characters',
   '어드민 키 값은 공백 없이 12자 이상 500자 이하로 입력해 주세요': 'Enter an admin key value of 12 to 500 characters with no spaces',
-  '새 어드민 키는 값을 입력해 주세요. 머리 이름이나 대상 서버 이름을 바꾸면 다시 넣어야 합니다':
-    'Enter a value for the new admin key. Changing the header name or the target server name needs it again',
+  '새 어드민 키는 값을 입력해 주세요. 머리 이름이나 대상 서버 이름 · 주소를 바꾸면 다시 넣어야 합니다':
+    'Enter a value for the new admin key. Changing the header name or the target server name or URL needs it again',
 };
