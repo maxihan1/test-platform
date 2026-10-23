@@ -409,6 +409,40 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
     expect(rows.rows[1]?.screenshot_path).toBe('artifacts/runs/1/1/2.png');
   });
 
+  // 바이너리 응답의 NUL · 2000자 경계에서 잘린 이모지 반쪽이 kit 기록에 그대로 실린다 (FIX-F2-02 · H3)
+  it('jsonb 가 못 받는 글자가 섞여도 판정과 절차를 저장하고 그 글자만 U+FFFD 로 바꾼다', async () => {
+    const run = await createRun({ origin: 'MANUAL', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
+    const historyId = run.items[0]!.historyId;
+    const 깨진글 = `PK\u0000\u0003 끝😀 반쪽\ud83d`;
+    await finishItem(historyId, {
+      historyId,
+      status: 'PASS',
+      durationMs: 10,
+      steps: [
+        {
+          seq: 1,
+          title: `엑셀을 받는다\u0000`,
+          status: 'PASS',
+          durationMs: 5,
+          assertions: [{ statement: '본문이 온다', status: 'PASS', actual: 깨진글, expected: 'PK' }],
+          httpTrace: { request: { url: '/export' }, response: { status: 200, body: 깨진글 } },
+          error: { message: 깨진글 },
+        },
+      ],
+      error: { message: 깨진글 },
+    });
+
+    const 항목행 = await pool.query<{ status: string; error: { message: string } }>('SELECT status, error FROM run_item WHERE history_id = $1', [historyId]);
+    expect(항목행.rows[0]).toEqual({ status: 'PASS', error: { message: 'PK�\u0003 끝😀 반쪽�' } });
+    const 절차 = await pool.query<{ title: string; http_trace: { response: { body: string } }; assertions: { actual: string }[] }>(
+      'SELECT title, http_trace, assertions FROM run_item_step WHERE history_id = $1',
+      [historyId],
+    );
+    expect(절차.rows[0]?.title).toBe('엑셀을 받는다�');
+    expect(절차.rows[0]?.http_trace.response.body).toBe('PK�\u0003 끝😀 반쪽�');
+    expect(절차.rows[0]?.assertions[0]?.actual).toBe('PK�\u0003 끝😀 반쪽�');
+  });
+
   it('러너가 죽은 항목은 NA와 사유로 남는다', async () => {
     const run = await createRun({ origin: 'MANUAL', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
     const historyId = run.items[0]!.historyId;
