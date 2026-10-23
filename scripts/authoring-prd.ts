@@ -168,11 +168,11 @@ export interface 옮기기대조결과 {
  * ① 원장 번호마다 그 번호를 근거로 단 이번 항목이 있나 ② 원본 글의 경계 값 · 예외 기법이 그 항목 문장들의 설계에 다 있나.
  * 잃은 것만 본다 — 여러 번호를 한 항목에 합치면 남는 칸은 늘 생긴다. 이번 항목만 본다 — 남긴 기존 항목의 문단 번호(`P-001`)는 다른 자료 것일 수 있다
  */
-export function 옮기기대조(원장: readonly Pick<원장항목, '번호' | '설계'>[], 옮긴: 옮긴것): 옮기기대조결과 {
+export function 옮기기대조(원장: readonly Pick<원장항목, '번호' | '설계'>[], 옮긴: 옮긴것, 게임 = false): 옮기기대조결과 {
   // 항목 설계는 한 번만 계산한다 — 여러 번호를 근거로 단 항목이 번호마다 다시 판정되지 않게
   const 덮은항목 = new Map<string, 설계[]>();
   for (const i of 옮긴.items) {
-    const 설 = 설계하기(i.text);
+    const 설 = 설계하기(i.text, 게임);
     for (const ref of new Set(i.basis.flatMap((b) => (b.ref === undefined ? [] : [b.ref])))) {
       const 목록 = 덮은항목.get(ref);
       if (목록 === undefined) 덮은항목.set(ref, [설]);
@@ -233,14 +233,14 @@ export const 보낼항목 = (items: readonly 옮긴항목[]): 들어온항목[] 
 
 /**
  * 작성의 원장 — 표준 기획서 항목이 곧 요구 목록이다(늘 번호 모드 · §3.6 「작성은 표준 기획서만 읽는다」).
- * 번호가 아직 없는 새 항목은 임시 번호로 든다. 설계(경계 · 예외)는 요구 문장으로 판정한다 — 원본 글이 아니다.
+ * 번호가 아직 없는 새 항목은 임시 번호로 든다. 설계(경계 · 예외)는 요구 문장으로 판정한다 — 원본 글이 아니다. 게임 애플리케이션이면 게임 관점 칸을 더한다(도메인/게임 §3.10 「설계 칸」).
  * 확인 필요 항목은 표시해 둔다 — 그 항목을 덮는 줄은 화면 기준이라 미확정 표시를 단다(칸 번호를 가른다)
  */
-export function 표준원장(items: readonly 옮긴항목[], api: readonly 원장항목[] = []): 원장 | { 없음: string } {
+export function 표준원장(items: readonly 옮긴항목[], api: readonly 원장항목[] = [], 게임 = false): 원장 | { 없음: string } {
   const 항목: 원장항목[] = items.flatMap((i) => {
     const 번호 = i.reqId ?? i.임시;
     if (번호 === undefined) return [];
-    const 설 = 설계하기(i.text);
+    const 설 = 설계하기(i.text, 게임);
     return [{
       번호,
       자료: '표준 기획서',

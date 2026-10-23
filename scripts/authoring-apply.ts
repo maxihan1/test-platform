@@ -87,9 +87,9 @@ const 예외기법 = (s: 설계) => s.예외.map((x) => x.기법).sort().join('|
  * 문장이 바뀐 요구에서 다시 쓸 종류. 정상 · UI 는 문장 자체가 설계라 늘 다시 쓴다.
  * 경계 · 예외는 설계 미리보기(경계 값 · 예외 기법)가 달라졌을 때만 — 글만 다듬은 요구에 경계 · 예외 케이스를 다시 만들지 않는다(토큰)
  */
-export function 바뀐종류(옛문장: string, 새문장: string): 축[] {
-  const 옛 = 설계하기(옛문장);
-  const 새 = 설계하기(새문장);
+export function 바뀐종류(옛문장: string, 새문장: string, 게임 = false): 축[] {
+  const 옛 = 설계하기(옛문장, 게임);
+  const 새 = 설계하기(새문장, 게임);
   return 네종류.filter((k) => (k === '경계' ? 경계값(옛) !== 경계값(새) : k === '예외' ? 예외기법(옛) !== 예외기법(새) : true));
 }
 
@@ -105,6 +105,7 @@ export function 반영계획만들기(
   표글: string,
   접두사: string,
   화면?: readonly 화면이맞음요청[],
+  게임 = false,
 ): 반영계획 {
   const 차이 = 반영안됨(기준 === null ? null : [...기준.items], [...지금.items]);
   const 지도 = 지도줄들(표글, 접두사);
@@ -117,7 +118,7 @@ export function 반영계획만들기(
     if (케이스.length === 0) return [];
     const 옛문장 = 옛글.get(번호) ?? null;
     const 새문장 = 새글.get(번호) ?? '';
-    return [{ 번호, 옛문장, 새문장, 다시쓸종류: 옛문장 === null ? 네종류 : 바뀐종류(옛문장, 새문장), 케이스 }];
+    return [{ 번호, 옛문장, 새문장, 다시쓸종류: 옛문장 === null ? 네종류 : 바뀐종류(옛문장, 새문장, 게임), 케이스 }];
   });
   const 지운 = new Set(차이.removed);
   const 남나 = (tcId: string) => 지도.some((j) => j.tcId === tcId && !지운.has(j.reqId));
