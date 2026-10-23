@@ -5,7 +5,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { 결정, 겹침 } from '../apps/admin/src/authoring/conflicts.js';
-import { 결정계산, 처리줄 } from './authoring-conflicts-apply.js';
+import { type 바뀐것, 결정계산, 처리줄 } from './authoring-conflicts-apply.js';
 import { 겹침찾기, 표tcId들, type 케이스글 } from './authoring-conflicts.js';
 import { 반영커밋인가, 보류있나, 케이스tcId } from './authoring-held-apply.js';
 import { 겹침상한모양인가 } from '../apps/admin/src/authoring/conflicts.js';
@@ -190,7 +190,7 @@ export function 겹침쓸것(
   서비스: string,
   판: 겹침판,
   결정: { tcId: string; action: 결정 }[],
-): { 쓰기: Map<string, string>; 지우기: string[]; 처리줄: string | null } | { 사유: string } {
+): { 쓰기: Map<string, string>; 지우기: string[]; 처리줄: string | null; 바뀐것: 바뀐것[] } | { 사유: string } {
   // 겹침은 자식이 끝낸 커밋에서 찾았고 작업 폴더도 그 커밋이다 — 없으면 트리가 어긋났다
   const 없는 = 판.겹침.filter((c) => !안전한파일(트리, c.file)).map((c) => c.tcId);
   if (없는.length > 0) return { 사유: `겹친 케이스 파일이 작업 폴더에 없거나 보통 파일이 아니다 — ${없는.join(' · ')}` };
@@ -202,5 +202,5 @@ export function 겹침쓸것(
   if ('사유' in r) return r;
   const 쓰기 = new Map(r.쓰기.map((w) => [w.file, w.글]));
   if (표있나 && r.표 !== 요청표) 쓰기.set(표, r.표);
-  return { 쓰기, 지우기: r.지우기, 처리줄: 처리줄(r.바뀐것) };
+  return { 쓰기, 지우기: r.지우기, 처리줄: 처리줄(r.바뀐것), 바뀐것: r.바뀐것 };
 }
