@@ -251,7 +251,8 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     const 바뀐 = env.AUTHORING_BASE_LIST ? 바뀐것(트리, env.AUTHORING_BASE_LIST) : null;
     const 볼 = 바뀐 === null || '까닭' in 바뀐 ? undefined : new Set(바뀐.filter((f) => f.startsWith(`tests/${폴더}/`) && f.endsWith('.spec.ts')).flatMap((f) => (existsSync(join(트리, f)) ? (케이스문장읽기(readFileSync(join(트리, f), 'utf8'))?.tcId ?? []) : [])));
     const 어긋남 = existsSync(join(트리, 표)) ? 맞춰보기(readFileSync(join(트리, 표), 'utf8'), 문장들, 볼) : [`목록 ${표} 이 없다`];
-    결과들.push({ 이름: '케이스와 요구 목록 맞춰 보기', ok: 어긋남.length === 0, 줄들: 어긋남, 머리: 볼 === undefined ? undefined : `이번에 바뀐 케이스 ${볼.size}건만 봤다` });
+    const 못좁힘 = 바뀐 !== null && '까닭' in 바뀐 ? `바뀐 파일을 못 읽어 케이스 전체를 봤다 — ${바뀐.까닭}` : undefined;
+    결과들.push({ 이름: '케이스와 요구 목록 맞춰 보기', ok: 어긋남.length === 0, 줄들: 어긋남, 머리: 볼 === undefined ? 못좁힘 : `이번에 바뀐 케이스 ${볼.size}건만 봤다` });
     const 묶음 = 묶은확인들(문장들, 볼);
     결과들.push({ 이름: '확인 하나에 값 하나', ok: 묶음.length === 0, 줄들: 묶음 });
     const 가이드 = join('docs', 'cases', `${접두사}.guide.md`);

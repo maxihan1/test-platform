@@ -145,7 +145,8 @@ export function 칠환경(
  */
 export function 친다(명령: string, 인자: string[], cwd: string, input?: string, 제한 = 120_000, 선택: 칠때 = {}) {
   const env = 칠환경(process.env, 선택);
-  const r = spawnSync(명령, 인자, { cwd, input, encoding: 'utf8', timeout: 제한, env, uid: 선택.uid, gid: 선택.gid });
+  // 출력 한도는 기본 1MB 면 tests 가 만 개쯤일 때 기준 목록(`ls-tree -r`)이 잘려 실패한다
+  const r = spawnSync(명령, 인자, { cwd, input, encoding: 'utf8', timeout: 제한, env, uid: 선택.uid, gid: 선택.gid, maxBuffer: 64 * 1024 * 1024 });
   // 시간 초과는 오류 글이 `spawnSync git ETIMEDOUT` 뿐이라 사람이 못 알아본다
   const 시간초과 = (r.error as NodeJS.ErrnoException | undefined)?.code === 'ETIMEDOUT';
   const 까닭 = 시간초과
