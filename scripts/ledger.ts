@@ -136,7 +136,7 @@ if (명령 === '뽑기') {
     process.exit(2);
   }
   const 지금 = JSON.parse(readFileSync(join(폴더, 'prd-current.json'), 'utf8')) as { items: PrdItem[] };
-  const 재료 = JSON.parse(readFileSync(join(폴더, 기준재료이름), 'utf8')) as { 접두사: string; 기준표: { 표글: string; 있는케이스: string[] } | null };
+  const 재료 = JSON.parse(readFileSync(join(폴더, 기준재료이름), 'utf8')) as { 접두사: string; 기준표: { 표글: string; 있는케이스: string[] } | null; 게임?: boolean };
   const 결과자리 = join(폴더, 'out', 'prd.json');
   let 옮긴몸: unknown;
   try {
@@ -165,7 +165,7 @@ if (명령 === '뽑기') {
     console.log(`${e instanceof Error ? e.message : String(e)} — 지우거나 고친 뒤 다시 돌려라`);
     process.exit(1);
   }
-  const r = 표준원장사본(지금.items, 옮긴몸, 재료.접두사, 기준, api);
+  const r = 표준원장사본(지금.items, 옮긴몸, 재료.접두사, 기준, api, 재료.게임 === true);
   // 에이전트가 쓴 사본은 root 파일일 수 있다 — 폴더가 자식 것이라 지우고 새로 쓴다
   rmSync(join(폴더, 원장사본이름), { force: true });
   writeFileSync(join(폴더, 원장사본이름), r.글);

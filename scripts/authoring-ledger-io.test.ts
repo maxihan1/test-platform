@@ -92,6 +92,17 @@ describe('원장과남은번호 — 이어받은 폴더', () => {
     const 안옮김 = 부르기(false);
     expect('막힘' in 안옮김 ? null : 안옮김.입력).toEqual({ 없음: '표준 기획서에 항목이 없다' });
   });
+
+  it('게임 애플리케이션이면 원장 설계에 게임 칸이 들고 자식이 다시 지을 재료에도 게임을 적는다', () => {
+    const 자료 = join(뿌리, '자료');
+    mkdirSync(자료);
+    const 깃 = () => ({ ok: true, 낸것: '' });
+    const 지금 = [{ reqId: 'ASH-REQ-001', feature: '사냥', text: '임프는 리젠 20초 뒤 다시 나온다', basis: [], status: 'CONFIRMED' as const }];
+    const r = 원장과남은번호({ 계획: [], 자료폴더: 자료, 깃, 기준: 'abc', 서비스: 'ASH', 폴더: 'ash', 이어작성원본: null, 지금, 옮긴다: false, 게임: true });
+    expect('막힘' in r || '없음' in r.원장 ? null : r.원장.항목[0]?.설계?.경계).toEqual([{ 근거: '리젠 20초', 값: ['19초', '20초'] }]);
+    expect('막힘' in r ? null : r.게임).toBe(true);
+    expect((JSON.parse(readFileSync(join(자료, 'ledger-base.json'), 'utf8')) as { 게임?: boolean }).게임).toBe(true);
+  });
 });
 
 describe('표준원장사본 — 옛 표 번호 물려받기 (PRD-F3-03)', () => {
