@@ -161,8 +161,12 @@ describe.skipIf(연결 === undefined)('maxihan 계정(SSO) 로그인', () => {
 
   it('이미 묶인 계정이 나중에 작성 에이전트 이름이 되면 들어오지 못한다', async () => {
     vi.stubEnv('AUTHORING_AGENT_USER', 'xso-taken');
-    const { back } = await 왕복(사람('xso-sub-other', 'xso-taken'));
-    vi.stubEnv('AUTHORING_AGENT_USER', 'xso-agent');
+    let back: LightMyRequestResponse;
+    try {
+      ({ back } = await 왕복(사람('xso-sub-other', 'xso-taken')));
+    } finally {
+      vi.stubEnv('AUTHORING_AGENT_USER', 'xso-agent');
+    }
     expect(back.headers.location).toBe('/?sso=username');
     const me = await app.inject({ method: 'GET', url: '/api/auth/me', cookies: 쿠키(back) });
     expect(me.statusCode).toBe(401);
