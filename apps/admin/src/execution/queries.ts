@@ -148,9 +148,15 @@ export interface RunApiDoc {
   apiDocNote: 'DIFFERS' | 'FETCH_FAILED' | null;
 }
 
+/** 앱 항목이 폰에서 읽은 앱 판 · 빌드 코드. 화면이 실행의 빌드 번호와 견줘 「다른 빌드가 깔려 있었다」를 단다 (도메인/실행 §3.11) */
+export interface 폰에깔린앱 {
+  appVersion: string | null;
+  appBuild: string | null;
+}
+
 export async function findRun(
   runId: number,
-): Promise<(RunSummary & RunApiDoc & { items: RunItemSummary[]; evidence: EvidenceSummary[] }) | null> {
+): Promise<(RunSummary & RunApiDoc & { items: RunItemSummary[]; evidence: EvidenceSummary[]; installedApps: 폰에깔린앱[] }) | null> {
   const pool = await db();
   // 시나리오 실행은 run_item 이 없어 케이스 모양이 비어 나온다. 번호가 맞아도 없는 실행으로 본다 (도메인/시나리오 §3.7 결정 10)
   const runs = await pool.query<RawRun & { api_doc_version: number | null; api_doc_note: RunApiDoc['apiDocNote'] }>(
@@ -165,6 +171,12 @@ export async function findRun(
     `SELECT ${ITEM_COLUMNS} FROM run_item WHERE run_id = $1 ORDER BY tc_id, platform`,
     [runId],
   );
+  // 둘 다 못 읽은 폰은 뺀다 — 견줄 것이 없다
+  const 깔린 = await pool.query<{ app_version: string | null; app_build: string | null }>(
+    `SELECT DISTINCT device->>'appVersion' AS app_version, device->>'appBuild' AS app_build FROM run_item
+      WHERE run_id = $1 AND COALESCE(device->>'appVersion', device->>'appBuild') IS NOT NULL ORDER BY 1, 2`,
+    [runId],
+  );
 
   return {
     ...toRun(row),
@@ -173,6 +185,7 @@ export async function findRun(
     apiDocNote: row.api_doc_note,
     items: items.rows.map((r) => toItem(r)),
     evidence: await 증적목록(runId),
+    installedApps: 깔린.rows.map((r) => ({ appVersion: r.app_version, appBuild: r.app_build })),
   };
 }
 
