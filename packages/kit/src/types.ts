@@ -114,6 +114,8 @@ export interface DeviceInfo {
   model: string | null;         // 기기 모델 (예: SM-G996N)
   osVersion: string | null;     // Android 판 (예: 14)
   appVersion: string | null;    // 앱 versionName. Appium 을 adb_shell 허용으로 켰을 때만 읽힌다
+  // 앱 versionCode — 빌드마다 바뀌어 실행의 빌드 번호와 견준다(versionName 은 빌드마다 안 바뀌는 일이 많다). 이 칸 전 기록에는 없다 (도메인/실행 §3.11)
+  appBuild?: string | null;
 }
 
 // kit이 절차를 시작할 때 stdout으로 흘리는 것. 아직 흐른 시간이 없어 칸을 만들지 않는다
