@@ -1015,7 +1015,8 @@
   - 근거 control_cli PR #2 · Ashveil PR #2 · 2026-10-23 (`control-cli instrument` 가 QA 잡에서 SDK · asmdef 참조를 더함 · 명령 `errors` · `layout` · Ashveil 의 AltTester · `qa-tests` 지움 — D-39)
 - [x] `GAME-F1-05` 디바이스 팜 게임 명령 주소 — 명령마다 `adb forward` 걸고 지우기 · 잡은 사람만 · 지금 입구(`:4723` · 회사 서버는 SSH 터널)로만 (Devicefarm 저장소)
   - 근거 Devicefarm PR #62 · test_platform PR #412 · 2026-10-23 (ADR-048 — `POST /api/devices/{serial}/game` · forward 를 잡을 때가 아니라 명령마다 걸고 지운다(사용자 승인) · 팜 입구를 거친 실기기 확인은 아직 — 이 맥에 폰 없음)
-- [ ] `GAME-F1-06` 게임 CLI 첫 태그 — snapshot(줄인 트리 + 스크린샷) · ref 로 누르기 · 끌기 · 글자 넣기 · 액션마다 `Ran:` 케이스 코드 한 줄 · 속성 읽기 · 기다리기 · 잡기 · 열기 · 놓기 · 창 훑기 `crawl` · 디바이스 팜 · USB 두 길 (control_cli)
+- [x] `GAME-F1-06` 게임 CLI 첫 태그 — snapshot(줄인 트리 + 스크린샷) · ref 로 누르기 · 끌기 · 글자 넣기 · 액션마다 `Ran:` 케이스 코드 한 줄 · 속성 읽기 · 기다리기 · 잡기 · 열기 · 놓기 · 창 훑기 `crawl` · 디바이스 팜 · USB 두 길 (control_cli)
+  - 근거 control_cli PR #3(태그 v0.1.0) · Ashveil PR #3 · test_platform PR #413 · 2026-10-23 (SDK 명령을 JSON 한 줄로 · 주소는 이름 또는 `[순번]` 경로 · 게임 드라이버 꼴은 공통/3 「게임 테스트 타입」 · Ashveil QA 원격 빌드 통과 · 실기기 확인은 아직 — 이 맥에 폰 없음, GAME-F1-14)
 - [x] `GAME-F1-07` DB · 서버 — 종류 `GAME` · 작성 자료에 엑셀 · CSV · 실행 요청 엔진 칸 · 어드민 키 비밀값 · 화면 기록 · 지도에 게임 열쇠(`game:`) · 게임 요소 · 요소를 거친 케이스 표와 올리기 통로
   - 근거 PR #388 · 2026-10-22 (게임 명세 0단계 결과로 확정 · 어드민 키는 `service_env.admin_key` · 화면 기록 통로가 게임 요청의 대상 서버 줄을 못 받는 것은 GAME-F1-10 몫)
 - [x] `GAME-F1-08` 화면 — 종류 칩 「게임」 · 종류 표 상수(`kind.ts`) 줄 (시안 먼저) · 게임 지도는 화면을 더하지 않는다
