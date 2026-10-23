@@ -153,21 +153,28 @@ const 실을계정 = (줄들: 대상줄[]): 집기계정[] =>
     ),
   );
 
+/** 집기 응답 adminKey — 게임 애플리케이션의 앱 줄 어드민 키와 그 줄 (§7 claim · 도메인/게임 §3.10 「작성 — 한 바퀴」) */
+export interface 집기어드민키 extends 어드민키 {
+  env: string;
+  baseUrl: string;
+}
+
 /**
- * 집기 응답의 `target` 과 `accounts`. 실을 것이 없으면 그 키 자체를 안 싣는다(피그마 토큰과 같은 규칙).
+ * 집기 응답의 `target` 과 `accounts` · `adminKey`. 실을 것이 없으면 그 키 자체를 안 싣는다(피그마 토큰과 같은 규칙).
  *
  * target 은 대조 행에만 — **줄이 지워졌어도 싣는다**(서버·계정 칸이 null). 키가 없으면 에이전트가 정방향으로 오인한다.
  * 만든 뒤 설정이 바뀌었는지(계정 빠짐 · 출처 어긋남) 가려 실패시키는 것은 **에이전트**다 (§7).
  *
  * accounts 는 자식 · 3회 실행이 갈 줄의 계정이다 (§3.6 「★ 역할별 계정」) — 대조 행은 그 줄, 값을 채운 보류가 있는 머지는
  * `머지env`(머지집기칸 의 target) 줄, 반영 행(`params.prdApply` — 화면이 맞음 포함)은 운영 아닌 줄 전부.
- * Android 앱은 어느 행이든 앱 줄(`앱줄고르기`)을 맨 앞에 둔다
+ * Android 앱은 어느 행이든 앱 줄(`앱줄고르기`)을 맨 앞에 둔다.
+ * adminKey 는 게임의 앱 줄 키다 — 작성 AI 가 상태 도우미를 불러 보고 폰에서 케이스를 돌려 볼 때 kit 이 몸통 admin 의 머리로 쓴다
  */
 export async function 집기대상칸(
   서비스: number,
   행: { compare: boolean; env: string | null; startUrl: string | null; params: Record<string, unknown> },
   머지env: string | null | undefined,
-): Promise<{ target?: 대상; accounts?: 집기계정[] }> {
+): Promise<{ target?: 대상; accounts?: 집기계정[]; adminKey?: 집기어드민키 }> {
   const 대조env = 행.compare ? 행.env : null;
   const 원줄 = 대조env !== null ? await 대상줄읽기(서비스, 대조env) : null;
   const target = 대조env !== null ? 집기대상(대조env, 원줄, 행.startUrl) : undefined;
@@ -179,10 +186,14 @@ export async function 집기대상칸(
       : [줄, 머지줄].filter((z): z is 대상줄 => z !== null);
   // Android 앱은 대조가 없어(역방향칸판정 BAD_ENV) 이 길이 아니면 AI 가 폰에서 로그인할 계정을 받을 곳이 없다 (2026-10-22 사용자).
   // 앱 줄을 맨 앞에 둔다 — 자식은 첫 「일반 회원」으로 로그인하는데 반영 · 머지 행은 다른 줄도 싣는다
-  const 앱줄 = 폰앱인가((await 문서설정읽기(서비스))?.kind) ? 앱줄고르기(await 대상줄들읽기(서비스), 행.env) : undefined;
+  const 종류 = (await 문서설정읽기(서비스))?.kind;
+  const 앱줄 = 폰앱인가(종류) ? 앱줄고르기(await 대상줄들읽기(서비스), 행.env) : undefined;
   const 줄들 = 앱줄 === undefined ? 그밖 : [앱줄, ...그밖.filter((z) => z.env !== 앱줄.env)];
   const accounts = 실을계정(줄들);
-  return { ...(target === undefined ? {} : { target }), ...(accounts.length === 0 ? {} : { accounts }) };
+  // 앱 줄만 — 계정 · 게임 첫 화면과 같은 서버라야 도우미가 AI 가 로그인한 그 캐릭터를 바꾼다. 앱 줄은 「실서비스 서버」가 아니다(앱줄고르기)
+  const 키 = 종류 === 'GAME' ? 앱줄?.adminKey : undefined;
+  const adminKey = 앱줄 === undefined || 키 === undefined || 키 === null ? undefined : { env: 앱줄.env, baseUrl: 앱줄.baseUrl, ...키 };
+  return { ...(target === undefined ? {} : { target }), ...(accounts.length === 0 ? {} : { accounts }), ...(adminKey === undefined ? {} : { adminKey }) };
 }
 
 export type 역방향칸 =
