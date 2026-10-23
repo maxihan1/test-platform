@@ -274,6 +274,41 @@ describe.skipIf(연결 === undefined)('설정 API — 계정', () => {
   const 낮추기 = (username: string) =>
     app.inject({ method: 'PATCH', url: `/api/settings/users/${username}`, payload: { role: 'member' } });
 
+  it('운영 계정 둘을 동시에 낮춰도 하나는 남는다', async () => {
+    const 둘 = ['xfu9-race1', 'xfu9-race2'];
+    for (const u of 둘) await 계정만들기(u, 'admin');
+    const 마지막인가 = (await 운영계정수()) <= 2;
+    const { pool } = await import('../db/index.js');
+    const 막기 = await pool.connect();
+    try {
+      // 두 요청이 남은 운영 계정을 센 뒤 배정 줄을 쓰다가 이 잠금에서 멈춘다 — 둘 다 세기를 마친 채 겹치게 한다
+      await 막기.query('BEGIN');
+      await 막기.query('SELECT 1 FROM project WHERE id = $1 FOR UPDATE', [프로젝트.XFS9A]);
+      const 답들 = Promise.all(
+        둘.map((u) =>
+          app.inject({ method: 'PATCH', url: `/api/settings/users/${u}`, payload: { role: 'member', projects: [읽기('XFS9A')] } }),
+        ),
+      );
+      for (let i = 0; i < 250; i++) {
+        const 대기 = await pool.query<{ count: string }>(
+          `SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock'`,
+        );
+        if (Number(대기.rows[0]?.count) >= 2) break;
+        await new Promise((r) => setTimeout(r, 20));
+      }
+      await 막기.query('COMMIT');
+      const 코드 = (await 답들).map((r) => r.statusCode).sort();
+      expect(코드).toEqual(마지막인가 ? [200, 409] : [200, 200]);
+      expect(await 운영계정수()).toBeGreaterThanOrEqual(1);
+    } finally {
+      await 막기.query('ROLLBACK');
+      막기.release();
+      // 남은 운영 계정이 다음 검사의 「마지막 하나」 셈을 바꾸지 않게 지운다
+      await pool.query('DELETE FROM user_project WHERE username = ANY($1)', [둘]);
+      await pool.query('DELETE FROM app_user WHERE username = ANY($1)', [둘]);
+    }
+  });
+
   it('운영 계정이 둘이면 하나는 낮출 수 있고, 마지막 하나는 409다', async () => {
     await 계정만들기('xfu9-admin1', 'admin');
     await 계정만들기('xfu9-admin2', 'admin');

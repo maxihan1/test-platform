@@ -134,6 +134,8 @@ export async function 계정고치기(username: string, 수정: 계정수정): P
 
     const 내려간다 = (수정.role !== undefined && 수정.role !== 'admin') || 수정.isActive === false;
     if (현재.role === 'admin' && 현재.is_active && 현재.is_approved && 내려간다) {
+      // 운영 계정을 내리는 요청끼리 차례로 센다. 고칠 줄만 잠그면 alice · bob 을 동시에 내릴 때 둘 다 2명으로 세고 통과한다
+      await client.query("SELECT pg_advisory_xact_lock(hashtext('last-admin'))");
       // 승인 대기 admin 은 설정 자리에 못 들어가니 세지 않는다 (SPEC 도메인/인증 §7)
       const 남은운영 = await client.query<{ count: string }>(
         `SELECT count(*) FROM app_user WHERE role = 'admin' AND is_active AND is_approved`,
