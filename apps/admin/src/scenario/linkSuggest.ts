@@ -1,11 +1,12 @@
 // E2E 값 연결 제안 — 서비스 지도로 앞뒤 케이스 단계를 맞춰 수정 요청 · 값 주입을 미리 채운다 (도메인/시나리오 §3.7 결정 15 「값 연결 제안」 · §7)
-// 지도에는 응답 내용이 없어 JSON 경로는 비워서 낸다. 화면의 「요청 고르기」도 이 파일의 무늬 변환을 쓴다 — 둘이 다른 무늬를 만들면 조용히 안 걸린다
+// 지도에는 응답 내용이 없어 JSON 경로는 비워서 낸다. 화면의 「요청 고르기」도 같은 무늬 변환(linkPattern.ts)을 쓴다 — 둘이 다른 무늬를 만들면 조용히 안 걸린다
 
 import type { ScenarioLink, ScenarioPart } from '@platform/kit';
 
 import { findCase, findService } from '../catalog/store.js';
 import { 지도를읽는다 } from '../prd/apiMap.js';
 
+import { 무늬로 } from './linkPattern.js';
 import { 케이스접두사 as 접두사 } from './mixed.js';
 
 /** 지도 한 줄에서 제안이 보는 것 — 방식 · 주소 틀 · 거친 케이스 */
@@ -20,15 +21,6 @@ export interface 값연결제안 {
   link: ScenarioLink;
   needs: ('jsonPath' | 'param')[];
   why: string;
-}
-
-/**
- * 지도의 주소 틀(`:n` · `:id`)을 러너가 맞추는 glob 으로. 러너가 `*` 는 한 칸(`[^/]*`)으로 맞추고 `**` 로 시작하면 호스트를 가린다
- * (apps/runner/scenario/links.ts `globToRegexPattern`). 호스트가 달라도 맞게 `**` 를 앞에 붙인다
- */
-export function 무늬로(path: string): string {
-  // 지도의 주소는 물음표 뒤를 뗐다. 러너 무늬는 끝까지 맞춰야 해서 `?page=1` 이 붙은 요청도 맞게 물음표 꼬리를 열어 둔다
-  return `**${path.replace(/:(?:n|id)(?=\/|$)/g, '*')}{,?*}`;
 }
 
 const 한칸끝 = /\/:(?:n|id)$/;

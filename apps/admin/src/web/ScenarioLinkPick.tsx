@@ -3,7 +3,7 @@
 import type { ScenarioMethod } from '@platform/kit';
 
 import type { 지도API } from '../prd/apiMap.js';
-import { 무늬로 } from '../scenario/linkSuggest.js';
+import { 무늬로 } from '../scenario/linkPattern.js';
 import { use말 } from './i18n.js';
 import { 칸 } from './ScenarioOtherParts.js';
 
