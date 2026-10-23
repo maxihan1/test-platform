@@ -94,15 +94,15 @@ async function traceResponse(
   } catch (err) {
     body = `본문을 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`;
   }
+  // fetch 는 메서드를 옵션에 싣는다
+  const 메서드 = method === 'fetch' && typeof options?.method === 'string' ? options.method : method === 'fetch' ? 'GET' : method;
   const request = {
-    method: method.toUpperCase(),
+    method: 메서드.toUpperCase(),
     url,
     ...(options?.headers === undefined ? {} : { headers: options.headers }),
     data: options?.data,
   };
   recordHttpTrace(가린다(request, 비밀), { status: response.status(), body });
-  // fetch 는 메서드를 옵션에 싣는다
-  const 메서드 = method === 'fetch' && typeof options?.method === 'string' ? options.method : method === 'fetch' ? 'GET' : method;
   부른API를적는다(메서드, url, response.status());
   // 모양은 자르기 전 본문으로 본다 — 절차 기록은 2000자에서 잘린다 (도메인/API §3.8 「응답 모양 확인」)
   const scope = stepScope.getStore();
