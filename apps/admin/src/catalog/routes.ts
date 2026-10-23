@@ -105,7 +105,7 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
     },
   );
 
-  app.get<{ Querystring: { service?: string; q?: string; platform?: string; active?: string; kind?: string; technique?: string; last?: string } & 맥락글 }>(
+  app.get<{ Querystring: { service?: string; q?: string; platform?: string; active?: string; kind?: string; technique?: string; last?: string; smoke?: string } & 맥락글 }>(
     '/catalog/export',
     async (req, reply) => {
       const service = req.query.service ?? '';
@@ -134,6 +134,7 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
         kind: 종류읽기(req.query.kind),
         technique,
         last,
+        smoke: 스모크읽기(req.query.smoke),
         canSeeRuns: 되나('runs'),
         canSeeAuthoring: 되나('authoring'),
       });
