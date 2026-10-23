@@ -81,6 +81,14 @@ describe.skipIf(연결 === undefined)('설정 API 의 게임 애플리케이션 
     expect((await 읽는다())?.envs[0]?.adminKey).toBeNull();
   });
 
+  it('대상 서버 주소를 바꾸면 키를 안 보내도 값을 다시 받는다 — 옛 값이 새 서버로 가지 않게', async () => {
+    for (const 본문 of [{ ...줄({ header: 'X-Admin-Key' }), baseUrl: 'http://127.0.0.1:5081' }, { ...줄(), baseUrl: 'http://127.0.0.1:5081' }]) {
+      const res = await 고친다({ envs: [본문] });
+      expect([res.statusCode, res.json()]).toEqual([400, { error: 'ADMIN_KEY_VALUE_REQUIRED' }]);
+    }
+    expect(await 저장된키()).toEqual({ header: 'X-Admin-Key', value: 키값 });
+  });
+
   it('머리를 바꾸면서 값을 안 보내면 400 ADMIN_KEY_VALUE_REQUIRED 이고 옛 값은 그대로다', async () => {
     const res = await 고친다({ envs: [줄({ header: 'X-Other-Key' })] });
     expect(res.statusCode).toBe(400);

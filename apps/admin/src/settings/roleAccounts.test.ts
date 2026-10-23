@@ -173,6 +173,12 @@ describe.skipIf(연결 === undefined)('대상 서버 줄의 역할 계정 · 운
     expect((await 저장된것('qa'))?.role_accounts).toEqual([{ role: '관리자', loginId: 'admin', loginPassword: 관리자비번 }]);
   });
 
+  it('같은 env 이름 두 줄은 400 INVALID_REQUEST 이고 저장하지 않는다', async () => {
+    const res = await 고친다([{ env: 'qa', baseUrl: 'https://qa.xra.test' }, { env: 'qa', baseUrl: 'https://qa2.xra.test' }]);
+    expect([res.statusCode, res.json<{ error: string }>().error]).toEqual([400, 'INVALID_REQUEST']);
+    expect((await 줄들()).map((e) => e.env).sort()).toEqual(['live', 'qa']);
+  });
+
   it('새 서비스도 역할 이름이 어긋나면 400 BAD_ROLE', async () => {
     const res = await app.inject({
       method: 'POST',
