@@ -20,8 +20,8 @@ async function db(): Promise<Pool> {
 const UPSERT = `
   INSERT INTO test_case
     (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, is_active, scanned_at,
-     techniques, api_doc)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, true, now(), $8::text[], $9)
+     techniques, api_doc, elements)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, true, now(), $8::text[], $9, $10::text[])
   ON CONFLICT (tc_id) DO UPDATE SET
     name            = EXCLUDED.name,
     platforms       = EXCLUDED.platforms,
@@ -31,6 +31,7 @@ const UPSERT = `
     expected_schema = EXCLUDED.expected_schema,
     techniques      = EXCLUDED.techniques,
     api_doc         = EXCLUDED.api_doc,
+    elements        = EXCLUDED.elements,
     is_active       = true,
     scanned_at      = now()
   RETURNING (xmax = 0) AS inserted`;
@@ -55,6 +56,8 @@ export async function save(specs: CaseSpec[], deactivateMissing: boolean, prefix
         spec.techniques ?? [],
         // 케이스가 만들어진 API 문서 판. 실행이 이 판 원문을 러너에 싣는다 (도메인/API §3.8 「응답 모양 확인」)
         spec.apiDoc ?? null,
+        // 게임 요소 열쇠도 기법처럼 지우면 '{}' 로 덮는다 — game_element_case 는 스캔이 이 값에서 다시 채운다 (도메인/게임 §3.10)
+        spec.elements ?? [],
       ]);
       if (upserted.rows[0]?.inserted === true) added += 1;
     }

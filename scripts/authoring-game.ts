@@ -1,8 +1,9 @@
 // 게임 애플리케이션 작성의 앞뒤 — 자식 앞에 창 기록 저장본 · 게임 지도를 받아 두고, 자식 뒤에 훑은 창 · 게임 지도 요소를 올린다 (도메인/게임 §3.10 「창 훑기」 · 「게임에만 있는 지도 넷」 · §7)
 // 에이전트는 서버에서 root 로 돈다 — 자식이 쓴 파일은 링크 · 큰 파일을 따라가지 않고 읽는다(authoring-screens-keep-io 와 같은 손)
 import { mkdirSync, readdirSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 
+import { 지도열쇠들, 케이스요소들 } from './authoring-check-game.js';
 import { type 저장한창, type 창, 목록지문, 창목록 } from './authoring-game-crawl.js';
 import { 부른다 } from './authoring-io.js';
 import { 계정섞였나 } from './authoring-reverse.js';
@@ -67,6 +68,28 @@ export async function 게임준비(통로: 화면통로, 자료: string): Promis
 /** 올리기 전 — 훑은 창과 게임 지도 요소를 올리고 PR 본문 머리 줄을 돌려준다. 어느 쪽이 실패해도 작성은 간다(줄에 적는다) */
 export async function 게임올리기(통로: 화면통로, 자료: string, 비밀: readonly string[], 지금 = new Date()): Promise<string[]> {
   return [await 창올리기(통로, 자료, 비밀, 지금), await 요소올리기(통로, 자료, 비밀)];
+}
+
+const 안다룬상한 = 20;
+
+/**
+ * PR 본문 머리 줄 — 게임 지도 열쇠(지난 지도 + 이번에 쓴 요소 − 지운 요소) 가운데 케이스 폴더의 어느 케이스 elements 에도 없는 것 (도메인/게임 §3.10 「작성 — 한 바퀴」 6).
+ * 자식이 쓴 파일이라 링크 · 큰 파일은 안 읽는다. 케이스는 스캐너처럼 하위 폴더까지 센다. 지도가 비면 줄이 없다(빈 목록).
+ * 공개 저장소의 PR 이라 열쇠에 계정 비밀번호가 섞였으면 열쇠를 적지 않는다. 못 세도 던지지 않는다 — 머리 줄 하나로 PR 을 잃지 않게
+ */
+export function 안다룬요소줄(자료: string, 케이스폴더: string, 비밀: readonly string[]): string[] {
+  try {
+    const { 열쇠 } = 지도열쇠들(안전히읽기(자료, 게임자리.지도, 요소상한), 안전히읽기(자료, 게임자리.요소, 요소상한));
+    if (열쇠.size === 0) return [];
+    const 케이스들 = 폴더인가(케이스폴더) ? readdirSync(케이스폴더, { recursive: true, encoding: 'utf8' }).filter((p) => p.endsWith('.spec.ts')) : [];
+    const 다룬 = new Set(케이스들.flatMap((p) => 케이스요소들(안전히읽기(join(케이스폴더, dirname(p)), basename(p), 기록상한 * 5) ?? '')));
+    const 남은 = [...열쇠].filter((k) => !다룬.has(k)).sort();
+    if (남은.length === 0) return [`게임 지도: 요소 ${열쇠.size}개를 모두 케이스가 다룸`];
+    if (계정섞였나(남은, 비밀)) return [`게임 지도: 아직 안 다룬 요소 ${남은.length}개 / ${열쇠.size}개 — 열쇠에 테스트 계정 비밀번호가 들어 있어 안 적음`];
+    return [`게임 지도: 아직 안 다룬 요소 ${남은.length}개 / ${열쇠.size}개 — ${남은.slice(0, 안다룬상한).join(', ')}${남은.length > 안다룬상한 ? ` 외 ${남은.length - 안다룬상한}개` : ''}`];
+  } catch (e) {
+    return [`게임 지도: 안 다룬 요소를 못 셈 — ${까닭(e)}`];
+  }
 }
 
 type 훑은폴더 = { 상태: 상태; 폴더: string; 창들: 창[]; 같음: Set<string> };
