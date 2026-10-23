@@ -33,6 +33,18 @@ describe('/proc 읽기', () => {
     ].join('\n');
     expect(parseNetDev(text)).toEqual({ inBytes: 3072, outBytes: 2048 });
   });
+
+  it('네트워크는 컨테이너 브리지 · veth 를 빼고 바깥 인터페이스만 센다', () => {
+    const text = [
+      'Inter-|   Receive                                                |  Transmit',
+      ' face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed',
+      '  eth0: 2048      20    0    0    0     0          0         0     1024      10    0    0    0     0       0          0',
+      'docker0: 2048      20    0    0    0     0          0         0     1024      10    0    0    0     0       0          0',
+      'br-1a2b3c4d5e6f: 2048      20    0    0    0     0          0         0     1024      10    0    0    0     0       0          0',
+      'veth9f8e7d6: 2048      20    0    0    0     0          0         0     1024      10    0    0    0     0       0          0',
+    ].join('\n');
+    expect(parseNetDev(text)).toEqual({ inBytes: 2048, outBytes: 1024 });
+  });
 });
 
 describe('diff', () => {

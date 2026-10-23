@@ -38,13 +38,17 @@ export function parseDiskstats(text: string): number {
   return sectors;
 }
 
-// 받은 바이트(첫 칸) · 보낸 바이트(아홉째 칸). lo 는 서버 안에서 도는 것이라 뺀다
+// lo 는 서버 안에서 도는 것이다. 컨테이너 브리지 · veth 는 바깥 인터페이스를 지난 같은 요청을 또 센다(--network host 라 다 보인다).
+// ponytail: 이름으로 거른다 — 다른 가상 장치(br0 같은 손수 만든 브리지)는 겹쳐 센다. 그런 서버가 나오면 /sys/devices/virtual/net 으로 가린다
+const NOT_OUTSIDE = /^(lo$|docker|br-|veth|virbr|cni|flannel|cali)/;
+
+// 받은 바이트(첫 칸) · 보낸 바이트(아홉째 칸). 바깥 인터페이스만 센다
 export function parseNetDev(text: string): { inBytes: number; outBytes: number } {
   let inBytes = 0;
   let outBytes = 0;
   for (const line of text.split('\n').slice(2)) {
     const [name, rest] = line.split(':');
-    if (!rest || name.trim() === 'lo') continue;
+    if (!rest || NOT_OUTSIDE.test(name.trim())) continue;
     const f = rest.trim().split(/\s+/).map(Number);
     inBytes += f[0];
     outBytes += f[8];
