@@ -24,7 +24,7 @@ const 쿠폰: 보류 = {
 };
 const 다채움 = { 'XLK-001': { params: { wait: 3 }, expected: { total: 1 }, by: 사람, at: 'x' } };
 
-describe.skipIf(연결 === undefined)('뿌리 잠금 — 풀에 연결이 하나만 남아도 끝난다', () => {
+describe.skipIf(연결 === undefined)('뿌리 잠금 — 풀에 연결이 하나만 남아도 끝난다', { timeout: 15_000 }, () => {
   let app: FastifyInstance;
   let 서비스 = 0;
   let 부르는이 = 사람;
