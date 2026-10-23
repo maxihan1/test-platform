@@ -98,7 +98,7 @@ describe('admin 이미지', () => {
 
 // Grafana 는 헤더(X-WEBAUTH-USER)를 믿는다. admin 말고 아무도 닿지 못해야 한다 (SPEC 공통/6 §9 · 도메인/인증 §7 「Grafana 통로」)
 function 서비스블록(이름: string): string {
-  return new RegExp(`^ {2}${이름}:\\n((?: {4}.*\\n|\\s*\\n)+)`, 'm').exec(compose)?.[1] ?? '';
+  return new RegExp(`^ {2}${이름}:[^\\S\\n]*(?:#.*)?\\n((?: {4}.*\\n|\\s*\\n)+)`, 'm').exec(compose)?.[1] ?? '';
 }
 
 function 망(블록: string): string[] {
@@ -246,9 +246,10 @@ describe('DB 에 닿는 서비스', () => {
     const 목록 = 망(서비스블록(이름));
     return 목록.length > 0 ? 목록 : ['default'];
   };
-  const 서비스들 = [...(/^services:\n((?: {2}.*\n|\s*\n)+)/m.exec(compose)?.[1] ?? '').matchAll(/^ {2}([a-z_-]+):\n/gm)].map(
-    (m) => m[1]!,
-  );
+  // 이름 뒤에 주석이 붙은 새 서비스도 빠지지 않게 센다
+  const 서비스들 = [
+    ...(/^services:\n((?: {2}.*\n|\s*\n)+)/m.exec(compose)?.[1] ?? '').matchAll(/^ {2}([a-z_-]+):[^\S\n]*(?:#.*)?\n/gm),
+  ].map((m) => m[1]!);
 
   it('postgres 와 망을 같이 쓰는 서비스는 admin · grafana · migrate 뿐이다 — 러너가 DB 에 닿지 않게', () => {
     expect(서비스들).toContain('runner');
