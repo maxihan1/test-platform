@@ -4,7 +4,7 @@
 import { useState } from 'react';
 
 import { api, type RunItemPage } from './api.js';
-import { 팜증적 } from './FarmEvidence.js';
+import { 통과영상, 팜증적 } from './FarmEvidence.js';
 import { 원문보기, 실패이유 } from './FailureWhy.js';
 import { use말, use언어 } from './i18n.js';
 import { 항목실행줄 } from './ItemRunContext.js';
@@ -90,6 +90,8 @@ export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; 
       </div>
 
       <팜증적 runId={item.runId} historyId={item.historyId} files={item.farm} />
+      {/* 통과한 앱 항목은 영상을 받아 두지 않는다 — 누르면 팜에서 가져온다 (도메인/게임 §3.10 「실행 결과」) */}
+      {item.platform === 'android' && item.status === 'PASS' && item.farm.length === 0 ? <통과영상 runId={item.runId} historyId={item.historyId} /> : null}
       <ItemTraceSection trace={item.trace} />
 
       <div className="actions">

@@ -1168,6 +1168,7 @@ export const api = {
   screenshot: (runId: number, historyId: number, seq: number) => `/api/screenshots/${runId}/${historyId}/${seq}.png`,
   farmFile: (runId: number, historyId: number, name: string) =>
     `/api/runs/${runId}/items/${historyId}/farm/${encodeURIComponent(name)}`,
+  farmVideo: (runId: number, historyId: number) => `/api/runs/${runId}/items/${historyId}/farm-video`,
 
   // 작성 대기줄 (SPEC §7 · 도메인/작성 §7). 넣기·읽기는 화면이 부르고
   // 집기·단계·끝내기는 맥이 부른다 — 화면은 그 넷을 안 부른다

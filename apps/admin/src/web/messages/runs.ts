@@ -173,6 +173,8 @@ export const 실행말: Record<string, string> = {
   '{디바이스} {절차} 실패 시점 화면': 'Screenshot of {디바이스} when {절차} failed',
   '화면 영상': 'Screen recording',
   '화면 영상 {번호}': 'Screen recording {번호}',
+  '영상 보기': 'Watch recording',
+  '영상을 열지 못했습니다': 'Could not open the recording',
   '{파일} 받기 ({크기})': 'Download {파일} ({크기})',
   '{케이스} 펼치기': 'Expand {케이스}',
   '{케이스} 접기': 'Collapse {케이스}',
