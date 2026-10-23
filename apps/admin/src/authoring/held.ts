@@ -1,5 +1,7 @@
 // 보류 케이스에 사람이 넣은 값(held_input) — 모양 검사 · 남은 수 · 새 실행으로 옮기기 · 저장 (SPEC 도메인/작성 §3.6 「★ 보류 케이스」)
 
+import type { PoolClient } from 'pg';
+
 import { TCID } from '../catalog/rules.js';
 import { 뿌리, 사슬식 } from './history.js';
 import { db } from './store.js';
@@ -116,9 +118,9 @@ export function 입력옮기기(옛: 보류입력 | null, 새보류들: 보류[]
 }
 
 /** 그 tcId 의 입력을 통째로 바꾼다. 누가 · 언제는 서버가 붙인다 — 부르는 쪽이 적지 않는다 */
-export async function 입력넣기(id: number, tcId: string, 입력: 넣을것, by: string): Promise<void> {
+export async function 입력넣기(id: number, tcId: string, 입력: 넣을것, by: string, 손?: PoolClient): Promise<void> {
   const 한것: 입력한것 = { ...입력, by, at: new Date().toISOString() };
-  await (await db()).query(
+  await (손 ?? (await db())).query(
     `UPDATE authoring_request
         SET held_input = COALESCE(held_input, '{}'::jsonb) || jsonb_build_object($2::text, $3::jsonb)
       WHERE id = $1`,
@@ -127,15 +129,15 @@ export async function 입력넣기(id: number, tcId: string, 입력: 넣을것, 
 }
 
 /** 그 tcId 의 입력을 되돌린다. 모두 비면 NULL */
-export async function 입력지우기(id: number, tcId: string): Promise<void> {
-  await (await db()).query(
+export async function 입력지우기(id: number, tcId: string, 손?: PoolClient): Promise<void> {
+  await (손 ?? (await db())).query(
     `UPDATE authoring_request SET held_input = NULLIF(held_input - $2::text, '{}'::jsonb) WHERE id = $1`,
     [id, tcId],
   );
 }
 
-export async function 입력읽기(id: number): Promise<보류입력> {
-  const r = await (await db()).query<{ held_input: 보류입력 | null }>(
+export async function 입력읽기(id: number, 손?: PoolClient): Promise<보류입력> {
+  const r = await (손 ?? (await db())).query<{ held_input: 보류입력 | null }>(
     'SELECT held_input FROM authoring_request WHERE id = $1',
     [id],
   );
@@ -195,10 +197,10 @@ export function 보류들(result: unknown): 보류[] {
  * 따로 적으면 끝난 뒤 · 적기 전 사이에 들어온 사람 입력을 덮고, 적기가 실패하면 DONE 만 남는다.
  * 머지 행은 입력을 안 가진다. 멈춘 · 실패한 실행은 result.held 가 없어 입력도 못 받았으니 건너뛴다
  */
-export async function 옮겨올입력(id: number, 새보류들: 보류[]): Promise<보류입력 | null> {
+export async function 옮겨올입력(id: number, 새보류들: 보류[], 손?: PoolClient): Promise<보류입력 | null> {
   if (새보류들.length === 0) return null;
-  const 뿌리번호 = (await 뿌리(id)) ?? id;
-  const r = await (await db()).query<{ held_input: 보류입력 | null }>(
+  const 뿌리번호 = (await 뿌리(id, 손)) ?? id;
+  const r = await (손 ?? (await db())).query<{ held_input: 보류입력 | null }>(
     `WITH RECURSIVE ${사슬식('id = $1')}
      SELECT a.held_input FROM 사슬 JOIN authoring_request a ON a.id = 사슬.id
       WHERE a.id < $2 AND a.kind <> 'MERGE' AND a.status = 'DONE'

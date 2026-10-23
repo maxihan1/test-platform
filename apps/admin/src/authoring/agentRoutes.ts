@@ -233,7 +233,7 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
           testSource: req.body?.testSource,
           prUrl: typeof prUrl === 'string' ? prUrl : undefined,
           error: typeof error === 'string' ? error : undefined,
-          heldInput: status === 'DONE' ? await 옮겨올입력(행.id, 보류) : null,
+          heldInput: status === 'DONE' ? await 옮겨올입력(행.id, 보류, 손) : null,
           coverage: 커버리지칸(셈),
         },
         손,

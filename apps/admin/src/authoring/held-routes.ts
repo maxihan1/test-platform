@@ -2,6 +2,7 @@
 // routes.ts 가 300줄에 닿아 뗐다. routes.ts 가 이 플러그인을 부른다
 
 import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { PoolClient } from 'pg';
 
 import { 남은수, 보류들, 보류모름, 입력검사, 입력넣기, 입력읽기, 입력지우기, tcId인가, type 보류입력 } from './held.js';
 import { 입력자이름으로 } from './byName.js';
@@ -45,8 +46,8 @@ export async function 보류상세(행: { id: number; serviceId: number; compare
   };
 }
 
-async function 머지도나(뿌리번호: number): Promise<boolean> {
-  const r = await (await db()).query(
+async function 머지도나(뿌리번호: number, 손: PoolClient): Promise<boolean> {
+  const r = await 손.query(
     `WITH RECURSIVE ${사슬식('id = $1')}
      SELECT 1 FROM 사슬 JOIN authoring_request a ON a.id = 사슬.id
       WHERE a.kind = 'MERGE' AND a.status IN ('PENDING', 'RUNNING') LIMIT 1`,
@@ -64,17 +65,18 @@ export async function 머지보류판정(
   행: 요청,
   서비스: number,
   env: unknown,
+  손: PoolClient,
 ): Promise<{ error: 'HELD_OPEN' | 'HELD_UNKNOWN' | 'BAD_ENV'; code: 400 | 409 } | { env: string | null }> {
   // 목록을 못 읽었으면 held 가 비어도 보류가 없다는 뜻이 아니다 — 다시 작성해 목록을 읽혀야 한다
   if (보류모름(행.result)) return { error: 'HELD_UNKNOWN', code: 409 };
   const 보류 = 보류들(행.result);
-  const 입력 = 보류.length === 0 ? {} : await 입력읽기(행.id);
+  const 입력 = 보류.length === 0 ? {} : await 입력읽기(행.id, 손);
   if (남은수(보류, 입력) > 0) return { error: 'HELD_OPEN', code: 409 };
   if (행.compare) return env === undefined ? { env: null } : { error: 'BAD_ENV', code: 400 };
   const 채웠나 = Object.values(입력).some((e) => e.removed !== true);
   if (env === undefined) return 채웠나 ? { error: 'BAD_ENV', code: 400 } : { env: null };
   // 운영 줄 보호 — 테스트 계정을 넣은 줄만 3회 실행 대상이 된다 (역방향과 같은 규칙)
-  if (typeof env !== 'string' || env === '' || !계정있는줄(await 대상줄읽기(서비스, env))) {
+  if (typeof env !== 'string' || env === '' || !계정있는줄(await 대상줄읽기(서비스, env, 손))) {
     return { error: 'BAD_ENV', code: 400 };
   }
   return { env };
@@ -106,12 +108,12 @@ export async function 머지집기칸(
 type 판정 = { 행: 요청 } | { code: number; error: string; detail?: string };
 
 /** 넣기 · 되돌리기 공통 — 머지가 돌면 에이전트가 집은 입력과 화면이 갈린다. 화면이 보는 결과는 최신 끝난 실행 것이다 */
-async function 자리판정(id: number): Promise<판정> {
-  const 행 = await 한건(id);
+async function 자리판정(id: number, 손: PoolClient): Promise<판정> {
+  const 행 = await 한건(id, 손);
   if (행 === null) return { code: 404, error: 'NOT_FOUND' };
-  const 뿌리번호 = (await 뿌리(id)) ?? id;
-  if (await 머지도나(뿌리번호)) return { code: 409, error: 'MERGE_ACTIVE' };
-  if (행.status !== 'DONE' || (await 최신실행(뿌리번호)) !== id) return { code: 409, error: 'NOT_LATEST' };
+  const 뿌리번호 = (await 뿌리(id, 손)) ?? id;
+  if (await 머지도나(뿌리번호, 손)) return { code: 409, error: 'MERGE_ACTIVE' };
+  if (행.status !== 'DONE' || (await 최신실행(뿌리번호, 손)) !== id) return { code: 409, error: 'NOT_LATEST' };
   return { 행 };
 }
 
@@ -129,14 +131,14 @@ export async function 보류통로(app: FastifyInstance): Promise<void> {
       const tcId = req.params.tcId;
       if (!tcId인가(tcId)) return reply.code(400).send({ error: 'BAD_HELD', detail: '케이스 번호 모양' });
       // 머지 세우기와 같은 뿌리 잠금 — 확인과 쓰기 사이에 머지가 서면 집은 입력과 저장된 입력이 갈린다
-      const 결과 = await 뿌리잠그고((await 뿌리(id)) ?? id, async (): Promise<판정> => {
-        const 자리 = await 자리판정(id);
+      const 결과 = await 뿌리잠그고((await 뿌리(id)) ?? id, async (손): Promise<판정> => {
+        const 자리 = await 자리판정(id, 손);
         if ('error' in 자리) return 자리;
         const 보류 = 보류들(자리.행.result).find((h) => h.tcId === tcId);
         if (보류 === undefined) return { code: 400, error: 'BAD_HELD', detail: `보류가 아닌 케이스: ${tcId}` };
         const 넣을것 = 입력검사(보류, req.body);
         if (typeof 넣을것 === 'string') return { code: 400, error: 'BAD_HELD', detail: 넣을것 };
-        await 입력넣기(id, tcId, 넣을것, req.user?.username ?? '');
+        await 입력넣기(id, tcId, 넣을것, req.user?.username ?? '', 손);
         return 자리;
       });
       return 보내기(reply, 결과);
@@ -148,9 +150,9 @@ export async function 보류통로(app: FastifyInstance): Promise<void> {
     if (id === null) return reply.code(400).send({ error: 'BAD_ID' });
     const tcId = req.params.tcId;
     if (!tcId인가(tcId)) return reply.code(400).send({ error: 'BAD_HELD', detail: '케이스 번호 모양' });
-    const 결과 = await 뿌리잠그고((await 뿌리(id)) ?? id, async (): Promise<판정> => {
-      const 자리 = await 자리판정(id);
-      if (!('error' in 자리)) await 입력지우기(id, tcId);
+    const 결과 = await 뿌리잠그고((await 뿌리(id)) ?? id, async (손): Promise<판정> => {
+      const 자리 = await 자리판정(id, 손);
+      if (!('error' in 자리)) await 입력지우기(id, tcId, 손);
       return 자리;
     });
     return 보내기(reply, 결과);

@@ -193,7 +193,7 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       if ('error' in api) return reply.code(400).send({ error: api.error });
       try {
         // 같은 뿌리에 도는 실행이 있으면 둘이 같은 브랜치를 서로 덮는다 — 확인과 넣기를 뿌리 잠금 안에서 (§7 「실행 기록」)
-        const id = await 뿌리잠그고(행.id, async () => (await 도는실행있나(행.id)) ? null : 줄세우기({
+        const id = await 뿌리잠그고(행.id, async (손) => (await 도는실행있나(행.id, 손)) ? null : 줄세우기({
           서비스,
           kind,
           원본: 행.id,
@@ -204,7 +204,7 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
           ...(대조.compare ? { 대조: { env: 대조.env, startUrl: 대조.startUrl } } : {}),
           ...(api.env === undefined ? {} : { apiEnv: api.env }),
           ...(이어서 ? { 이어받기: 받은것.id } : {}),
-        }));
+        }, 손));
         if (id === null) return reply.code(409).send({ error: 'RUN_ACTIVE' });
         return reply.code(201).send({ id });
       } catch (e) {
@@ -288,8 +288,8 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       }
       // 보류 판정도 잠금 안에서 — 밖에서 보면 판정과 머지 행 사이에 PUT · DELETE 가 끼어든다
       const 세움 = await 뿌리잠그고(뿌리번호, async (손): Promise<{ error: string; code: number; detail?: string } | { id: number }> => {
-        if (await 도는실행있나(뿌리번호)) return { error: 'RUN_ACTIVE', code: 409 };
-        const 보류 = await 머지보류판정(행, 서비스, req.body?.env);
+        if (await 도는실행있나(뿌리번호, 손)) return { error: 'RUN_ACTIVE', code: 409 };
+        const 보류 = await 머지보류판정(행, 서비스, req.body?.env, 손);
         if ('error' in 보류) return 보류;
         // 겹친 케이스를 다 고르기 전에는 반영하지 않는다 — 에이전트가 같은 겹침에서 또 멈춘다 (§3.6 「★ 반영 때 겹침 검사」)
         const 겹침 = await 반영겹침판정(손, 행.id);
@@ -306,7 +306,7 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
           누가: req.user?.username ?? '',
           이름: req.user?.displayName ?? '',
           머지대상: 보류.env,
-        });
+        }, 손);
         return { id };
       });
       if ('error' in 세움) return reply.code(세움.code).send({ error: 세움.error, detail: 세움.detail });
