@@ -30,18 +30,35 @@ export function 지도열쇠들(지도글: string | null, 요소글: string | nu
   return { 열쇠 };
 }
 
-/** 그 파일이 쓴 좌표 — `{ x, y }` 를 함께 든 객체(Appium 누르기 동작 · 제스처 인자). 게임 드라이버에는 좌표를 받는 메서드가 없다 */
+/** 부른 사슬의 맨 앞 — `driver.action('pointer').move(…)` 는 `driver` */
+function 사슬뿌리(e: ts.Expression): ts.Expression {
+  let n = e;
+  while (ts.isPropertyAccessExpression(n) || ts.isElementAccessExpression(n) || ts.isCallExpression(n) || ts.isNonNullExpression(n) || ts.isParenthesizedExpression(n) || ts.isAwaitExpression(n)) n = n.expression;
+  return n;
+}
+
+/**
+ * 그 파일이 쓴 좌표 — Appium `driver` 를 부르는 사슬의 인자에 `{ x, y }` 를 함께 든 객체(누르기 동작 · 제스처). 게임 드라이버에는 좌표를 받는 메서드가 없다.
+ * `driver` 밖의 `{ x, y }`(어드민 순간이동 본문 · 위치 verify 기대값)는 주소가 아니라 값이라 안 본다
+ */
 function 좌표자리(sf: ts.SourceFile): number[] {
-  const 줄들: number[] = [];
-  const 걷기 = (n: ts.Node): void => {
+  const 줄들 = new Set<number>();
+  const 객체들 = (n: ts.Node): void => {
     if (ts.isObjectLiteralExpression(n)) {
       const 이름들 = new Set(n.properties.flatMap((p) => (p.name !== undefined && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) ? [p.name.text] : [])));
-      if (이름들.has('x') && 이름들.has('y')) 줄들.push(sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1);
+      if (이름들.has('x') && 이름들.has('y')) 줄들.add(sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1);
+    }
+    ts.forEachChild(n, 객체들);
+  };
+  const 걷기 = (n: ts.Node): void => {
+    if (ts.isCallExpression(n)) {
+      const 뿌리 = 사슬뿌리(n.expression);
+      if (ts.isIdentifier(뿌리) && 뿌리.text === 'driver') n.arguments.forEach(객체들);
     }
     ts.forEachChild(n, 걷기);
   };
   걷기(sf);
-  return 줄들;
+  return [...줄들].sort((a, b) => a - b);
 }
 
 /** `test(spec, async ({ … }) => …)` 몸통이 꺼내는 이름들. 꺼내지 않고 통째로 받으면 빈 목록 */
@@ -82,6 +99,8 @@ export function 케이스요소들(글: string): string[] {
 export function 게임형식(파일들: readonly { 경로: string; 글: string }[], 지도: Set<string> | null): string[] {
   const 틀림: string[] = [];
   for (const f of 파일들) {
+    // 게임 아닌 작성은 웹 폴더 전체(1,000건 넘게)를 받을 수 있다 — 낱말이 없으면 파서를 안 돌린다
+    if (지도 === null && !f.글.includes('elements')) continue;
     const sf = 읽기(f.글);
     const 명세 = f.경로.endsWith('.spec.ts') ? 명세글(sf) : undefined;
     const 요소 = 명세 === undefined ? [] : 요소읽기(명세);
@@ -93,7 +112,8 @@ export function 게임형식(파일들: readonly { 경로: string; 글: string }
       if (요소 === null) 틀림.push(`${f.경로} — elements 는 글자 배열 리터럴로 적는다(변수 · 식 · 펼침 금지)`);
       else for (const k of 요소.filter((k) => !지도.has(k))) 틀림.push(`${f.경로} — 요소 ${k} 가 게임 지도에 없다. game-elements.json 에 먼저 적거나 game-map.txt 의 열쇠를 쓴다`);
       const 기기 = 속성(명세, 'platforms')?.initializer;
-      if (기기 === undefined || 기기.getText(sf).replace(/\s/g, '') !== "['android']") 틀림.push(`${f.경로} — 게임 케이스의 platforms 는 ['android'] 하나다`);
+      const 안드로이드만 = 기기 !== undefined && ts.isArrayLiteralExpression(기기) && 기기.elements.length === 1 && ts.isStringLiteralLike(기기.elements[0]!) && 기기.elements[0].text === 'android';
+      if (!안드로이드만) 틀림.push(`${f.경로} — 게임 케이스의 platforms 는 ['android'] 하나다`);
       if (몸통이름들(sf).includes('page')) 틀림.push(`${f.경로} — 게임 케이스 몸통에는 page 가 없다. game · admin · driver 를 쓴다`);
     }
     for (const 줄 of 좌표자리(sf)) 틀림.push(`${f.경로}:${줄} — 좌표({ x, y })를 쓴다. 오브젝트 이름이나 / 경로로 찾는다`);

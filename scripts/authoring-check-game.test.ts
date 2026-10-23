@@ -78,14 +78,23 @@ describe('게임형식 — 게임 작성', () => {
     expect(본다(케이스("platforms: ['android'],", '{ page, game }'))).toEqual(['tests/ash/ASH-FN-012.spec.ts — 게임 케이스 몸통에는 page 가 없다. game · admin · driver 를 쓴다']);
   });
 
-  it('{ x, y } 좌표를 케이스 · 화면 객체 어디서든 짚는다 — 한쪽만 든 객체는 좌표가 아니다', () => {
+  it('Appium driver 사슬에 넘긴 { x, y } 좌표를 케이스 · 화면 객체 어디서든 짚는다', () => {
     expect(본다(케이스("platforms: ['android'],", '{ game, driver }', "await driver.action('pointer').move({ x: 120, y: 640 }).down().up().perform();"))).toEqual([
       'tests/ash/ASH-FN-012.spec.ts:12 — 좌표({ x, y })를 쓴다. 오브젝트 이름이나 / 경로로 찾는다',
     ]);
-    expect(본다("export class 강화창 {\n  static readonly 주소 = 'game:World/HudCanvas/EnhancePanel';\n  누르기() { return { 'x': 1, 'y': 2 }; }\n}\n", 'tests/ash/pages/enhance.page.ts')).toEqual([
+    expect(본다("export class 강화창 {\n  누르기(driver: Browser) {\n    return driver.execute('mobile: clickGesture', { 'x': 1, 'y': 2 });\n  }\n}\n", 'tests/ash/pages/enhance.page.ts')).toEqual([
       'tests/ash/pages/enhance.page.ts:3 — 좌표({ x, y })를 쓴다. 오브젝트 이름이나 / 경로로 찾는다',
     ]);
-    expect(본다(케이스("platforms: ['android'],", '{ game }', "const 칸 = { x: 3 };"))).toEqual([]);
+  });
+
+  it('driver 밖의 { x, y } — 어드민 순간이동 본문 · 위치 기대값 · 한쪽만 든 객체 — 는 좌표가 아니다', () => {
+    const 안 = "await admin.post('/admin/teleport', { data: { x: 10, y: 5 } });\n  await verify('마을 광장에 있다', await game.get('/Player', 'position'), { x: 10, y: 5 });\n  await driver.back({ x: 3 });";
+    expect(본다(케이스("platforms: ['android'],", '{ game, admin, driver }', 안))).toEqual([]);
+  });
+
+  it('platforms 는 따옴표 꼴과 상관없이 android 하나만 받는다', () => {
+    expect(본다(케이스('platforms: ["android"],'))).toEqual([]);
+    expect(본다(케이스("platforms: ['android', 'desktop'],"))[0]).toMatch(/platforms/);
   });
 });
 
