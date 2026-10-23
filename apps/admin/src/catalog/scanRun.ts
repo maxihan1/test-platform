@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { 칸되는서비스 } from '../auth/permissions.js';
 import type { 사용자 } from '../auth/store.js';
 import { 지도채우기 } from './reqMap.js';
-import { scan, testsRoot, type Duplicate } from './scanner.js';
+import { scanApart, testsRoot, type Duplicate } from './scanner.js';
 import { 화면지도채우기 } from './screenMap.js';
 import { activeServices, save, type ServiceRow } from './store.js';
 
@@ -88,7 +88,7 @@ async function runScan(log: FastifyBaseLogger, 고르기?: (s: ServiceRow) => bo
       let found;
       const 폴더 = join(root, service.testsDir);
       try {
-        found = await scan(폴더);
+        found = await scanApart(폴더);
       } catch (err) {
         // 아직 테스트가 없는 새 서비스는 폴더가 없다 — 문제가 아니고 목록이 「아직 테스트가 없습니다」를 보인다 (PRD-F9-19).
         // 뿌리까지 없으면 마운트가 빠진 것이고, 폴더는 있는데 안의 파일이 사라졌으면 읽기 실패라 알린다 — 둘 다 케이스는 지난 스캔 그대로 둔다

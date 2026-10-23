@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { CaseSpec } from '@platform/kit';
 
-import { caseFiles, duplicatesOf, duplicatesWith, scan } from './scanner.js';
+import { caseFiles, duplicatesOf, duplicatesWith, scan, scanApart, 스캔자리 } from './scanner.js';
 
 let 깨진폴더: string;
 
@@ -161,5 +161,48 @@ describe('scan', () => {
     expect(specs).toEqual([]);
     expect(failures.map((f) => f.file).sort()).toEqual(['명세없음.spec.ts', '문법오류.spec.ts']);
     expect(failures.find((f) => f.file === '명세없음.spec.ts')?.message).toContain('export const spec');
+  });
+});
+
+describe('scanApart — 케이스 파일을 admin 밖에서 읽는다', () => {
+  let 폴더: string;
+  const 케이스 = (tcId: string, 이름식: string) => `export const spec = { tcId: '${tcId}', name: ${이름식}, filePath: '${tcId}.spec.ts' };\n`;
+
+  beforeAll(async () => {
+    폴더 = await mkdtemp(join(tmpdir(), 'ws-a-apart-'));
+    await writeFile(join(폴더, 'ZZP-001.spec.ts'), 케이스('ZZP-001', "process.env.ZZP_SECRET ?? '비밀 없음'"));
+  });
+
+  afterAll(async () => {
+    await rm(폴더, { recursive: true, force: true });
+  });
+
+  it('H2 — admin 이 쥔 비밀값이 케이스 파일 최상위 코드에 안 보인다', async () => {
+    process.env.ZZP_SECRET = '새면 안 되는 값';
+    try {
+      const { specs, failures } = await scanApart(폴더);
+      expect(failures).toEqual([]);
+      expect(specs.map((s) => s.name)).toEqual(['비밀 없음']);
+    } finally {
+      delete process.env.ZZP_SECRET;
+    }
+  }, 30_000);
+
+  it('M1 — 같은 프로세스에서 다시 훑어도 바뀐 내용을 읽는다', async () => {
+    const 파일 = join(폴더, 'ZZP-002.spec.ts');
+    await writeFile(파일, 케이스('ZZP-002', "'처음'"));
+    expect((await scanApart(폴더)).specs.find((s) => s.tcId === 'ZZP-002')?.name).toBe('처음');
+    await writeFile(파일, 케이스('ZZP-002', "'고친 뒤'"));
+    expect((await scanApart(폴더)).specs.find((s) => s.tcId === 'ZZP-002')?.name).toBe('고친 뒤');
+  }, 30_000);
+
+  it('폴더가 없으면 ENOENT 를 그대로 던진다 — 새 서비스와 읽기 실패를 부르는 쪽이 가른다', async () => {
+    await expect(scanApart(join(폴더, '없는 폴더'))).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
+  it('남도 읽는 폴더면 nobody, 남이 못 읽으면 폴더 주인, 주인이 root 면 nobody 로 띄운다', () => {
+    expect(스캔자리({ uid: 1000, gid: 1001, mode: 0o40755 })).toEqual({ uid: 65534, gid: 65534 });
+    expect(스캔자리({ uid: 1000, gid: 1001, mode: 0o40750 })).toEqual({ uid: 1000, gid: 1001 });
+    expect(스캔자리({ uid: 0, gid: 0, mode: 0o40700 })).toEqual({ uid: 65534, gid: 65534 });
   });
 });
