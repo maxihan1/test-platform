@@ -39,7 +39,7 @@ test(spec, async ({ game, admin }) => {
 });
 ```
 
-- **몸통은 `{ game, admin, request, driver, params, expected }` 다** — `page` 가 없다. `game` 이 게임 안 오브젝트를, `admin` 이 어드민 키를 붙인 서버 요청을, `request` 가 키 없는 서버 요청을, `driver` 가 Appium(앱 끄고 켜기 · 와이파이)을 맡는다
+- **몸통은 `{ game, driver, admin, request, api, params, expected }` 다**(정본 명세 공통/2 「게임 케이스」) — `page` 가 없다. `game` 이 게임 안 오브젝트를, `admin` 이 어드민 키를 붙인 서버 요청을, `request` 가 키 없는 서버 요청을, `driver` 가 Appium(앱 끄고 켜기 · 와이파이)을 맡는다
 - `platforms: ['android']` 만 적는다. 기능 케이스의 `techniques` 는 웹과 같다(`test-design.md` 「기법 표시」)
 - **`elements` 는 그 케이스가 닿는 게임 요소 열쇠다** — `game-elements.json` 에 이번에 쓴 열쇠나 `game-map.txt` 에 있는 열쇠만 적는다. 지어낸 열쇠는 쓰지 않는다. 닿는 요소가 없으면 칸을 빼고, 리터럴 배열로 적는다(`techniques` 와 같다)
 - **주소는 오브젝트 이름(하나뿐일 때) 아니면 `/` 로 시작하는 경로다** — 같은 이름 형제는 `[순번]`(0부터). 주소는 CLI 의 `Ran:` 줄 · 창 기록 · 메인이 찍어 둔 트리 파일에서만 옮긴다. 좌표를 받는 메서드는 없다
