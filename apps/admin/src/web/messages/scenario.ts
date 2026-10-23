@@ -151,6 +151,8 @@ export const 시나리오말: Record<string, string> = {
   '넣을 칸을 골라야 합니다': 'Pick the field to fill',
   '케이스 찾기': 'Find a case',
   '다음 단계 추천': 'Suggested next steps',
+  '첫 단계 추천': 'Suggested first steps',
+  '첫 화면에서 갈 수 있는 정상 케이스 {수}': '{수} normal cases reachable from the first screen',
   '{번호}번 단계가 머무는 화면에서 이어지는 정상 케이스 {수}': '{수} normal cases on screens that follow the screen step {번호} ends on',
   '이어지는 화면': 'Next screen',
   '업무 흐름 케이스': 'Business flow cases',

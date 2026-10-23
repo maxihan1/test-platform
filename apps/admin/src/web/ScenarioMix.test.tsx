@@ -77,7 +77,9 @@ describe('팔레트 애플리케이션 칩 줄', () => {
       const items = service === 'ADM' ? [행('ADM-FN-001')] : [행('MKT-FN-001')];
       return { items, total: items.length, page: 1, pageSize: 50, hasFeatures: false };
     });
-    const 추천 = vi.spyOn(scenarioApi, 'nextCases').mockResolvedValue({ items: [{ tcId: 'MKT-FN-001', screen: '/cart' }] });
+    const 추천 = vi
+      .spyOn(scenarioApi, 'nextCases')
+      .mockImplementation(async (_service, after) => ({ items: after === undefined ? [] : [{ tcId: 'MKT-FN-001', screen: '/cart' }] }));
     const 손 = { on케이스: vi.fn(), on다른단계: vi.fn(), on바꾸기취소: vi.fn() };
     render(<ScenarioPalette 서비스="MKT" 앱들={앱} 디바이스="desktop" 바꿀번호={null} 뒤={뒤} {...손} />);
     return { 목록, 추천, ...손 };

@@ -1,6 +1,6 @@
 // E2E 시나리오 화면이 서버를 부르는 호출 모음. 응답 모양은 admin 의 scenario/ · execution/ 통로가 내보내는 것을 그대로 옮겼다
 
-import type { ScenarioCleanup, ScenarioExecuteResponse, ScenarioPart, ScenarioPartResult } from '@platform/kit';
+import type { ScenarioCleanup, ScenarioExecuteResponse, ScenarioLink, ScenarioPart, ScenarioPartResult } from '@platform/kit';
 
 import {
   call,
@@ -137,6 +137,30 @@ export interface NextCase {
   screen: string;
 }
 
+/** 값 연결 제안 한 줄. toSeq 는 값 연결을 달 단계(1부터)다 (도메인/시나리오 §7 「마법사 통로」) */
+export interface LinkSuggestion {
+  toSeq: number;
+  link: ScenarioLink;
+  needs: ('jsonPath' | 'param')[];
+  why: string;
+}
+
+export interface FlowCandidate {
+  name: string;
+  why: string;
+  reqIds: string[];
+  steps: { tcId: string; name: string }[];
+  links: LinkSuggestion[];
+}
+
+/** AI 흐름 후보 일. candidates 는 DONE 일 때만 찬다 */
+export interface FlowJob {
+  status: 'QUEUED' | 'RUNNING' | 'DONE' | 'FAILED';
+  candidates: FlowCandidate[] | null;
+  error: string | null;
+  material: { reqs: number; cases: number; links: number; truncated: boolean };
+}
+
 export const scenarioApi = {
   /** `uses` 를 주면 그 케이스를 쓰는 시나리오만. 빈 `uses` 는 서버가 「전부」로 읽어 묻지 않고 빈 목록이다 */
   list: (service: string, uses?: string[]) => {
@@ -164,9 +188,15 @@ export const scenarioApi = {
 
   caseParts: (tcId: string) => call<CasePartMaterial>(`/scenarios/case-parts/${encodeURIComponent(tcId)}`),
 
-  /** 다음 단계 추천 — after 케이스가 머무는 화면에서 이어지는 화면에 닿는 케이스. 정상 쪽 거르기는 부르는 쪽이 한다 */
-  nextCases: (service: string, after: string) =>
-    call<{ items: NextCase[] }>(`/scenarios/next-cases?${new URLSearchParams({ service, after }).toString()}`),
+  /** 다음 단계 추천 — after 케이스가 머무는 화면에서 이어지는 화면에 닿는 케이스. after 를 빼면 첫 단계 후보다. 정상 쪽 거르기는 부르는 쪽이 한다 */
+  nextCases: (service: string, after?: string) =>
+    call<{ items: NextCase[] }>(`/scenarios/next-cases?${new URLSearchParams(after === undefined ? { service } : { service, after }).toString()}`),
+
+  /** AI 흐름 후보를 맡긴다. 같은 조건의 안 끝난 일이 있으면 그 번호가 온다 */
+  suggestFlows: (body: { service: string; platform: Platform; wish?: string }) =>
+    call<{ jobId: number }>('/scenarios/flow-suggestions', json(body)),
+
+  flowJob: (jobId: number) => call<FlowJob>(`/scenarios/flow-suggestions/${jobId}`),
 
   run: (id: number, env: string) => call<{ runId: number }>(`/scenarios/${id}/runs`, json({ env })),
 
