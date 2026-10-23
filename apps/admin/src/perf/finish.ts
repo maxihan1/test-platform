@@ -12,10 +12,11 @@ import { 도는것 } from './state.js';
 import * as 표 from './store.js';
 import type { DeviceRunConfig, PageRunConfig } from './types.js';
 
-// 배경에서 도는 뒷일 — 검사가 끝나기를 기다릴 수 있게만 붙들어 둔다
+// 배경에서 도는 뒷일 — 검사가 끝나기를 기다릴 수 있게만 붙들어 둔다.
+// 배경 닫기도 든다 — 닫기는 끝쓰기 뒤에야 끝난 뒤 할 일을 올려, 「끝」을 본 검사가 그 사이에 오면 기다릴 것이 비어 있다
 const 뒷일 = new Set<Promise<void>>();
 export const 뒷일기다리기 = async (): Promise<void> => {
-  await Promise.all([...뒷일]);
+  while (뒷일.size > 0) await Promise.all([...뒷일]);
 };
 
 export type 끝 = { kind: 'DONE' } | { kind: 'STOP'; stop: Stop | { reason: 'USER' | 'AGENT_LOST' | 'SMOKE_FAILED' } } | { kind: 'ERROR'; why: string };
@@ -92,6 +93,9 @@ async function 기기끝내기(runId: number, 끝: 끝): Promise<표.끝값 | nu
     await 표.로그(runId, 멈춤글 ?? 끝줄(값));
     return 값;
   } finally {
+    // 대기 중 중단이면 맵이 비어 위 기기닫기가 할 일이 없었다. 그 뒤 실행을 다시 읽기 전에 대기열이 이 실행을 집어 시작했을 수 있으니
+    // 한 번 더 닫는다 — 안 그러면 맵에서만 지워진 실행이 기록기 · 5초 틱을 돌리며 폰을 붙든다. 이미 닫은 실행이면 기다리기만 한다
+    await 기기닫기(runId);
     기기지우기(runId);
   }
 }
@@ -158,5 +162,8 @@ export async function 끝내기(runId: number, 끝: 끝): Promise<void> {
 
 /** 타이머 · 배경에서 부르는 끝내기 — 던지면 admin 이 죽으므로 여기서 잡아 남긴다 */
 export function 끝내기배경(runId: number, 끝: 끝): void {
-  끝내기(runId, 끝).catch((e: unknown) => console.error(`성능 실행 ${runId} 을 닫지 못했습니다`, e));
+  const 일 = 끝내기(runId, 끝)
+    .catch((e: unknown) => console.error(`성능 실행 ${runId} 을 닫지 못했습니다`, e))
+    .finally(() => 뒷일.delete(일));
+  뒷일.add(일);
 }
