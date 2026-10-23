@@ -4,13 +4,15 @@ import type { PoolClient } from 'pg';
 
 import type { 케이스종류 } from './runKind.js';
 
-export type 시작방식 = 'MANUAL' | 'SCHEDULED' | 'RERUN';
+export type 시작방식 = 'MANUAL' | 'SCHEDULED' | 'RERUN' | 'BUILD';
 
 const 종류말: Record<케이스종류, string> = { UI: 'UI', FN: '기능' };
 
 export interface 제목재료 {
   origin: 시작방식;
   rerunOf?: number;
+  /** 빌드로 시작한 실행만 — 제목 머리에 빌드 번호와 스모크를 단다 */
+  build?: { no: string; stage: 'SMOKE' | 'FULL' };
   kind: 케이스종류;
   /** 담긴 케이스 — 번호 차례, 겹치지 않게 */
   케이스들: { tcId: string; name: string }[];
@@ -28,6 +30,7 @@ export function 자동제목(재료: 제목재료): string {
     : n === 1
       ? `${첫.tcId} ${첫.name}`
       : `${첫.tcId} 외 ${String(n - 1)}건`;
+  if (재료.origin === 'BUILD' && 재료.build !== undefined) return `빌드 ${재료.build.no} · ${재료.build.stage === 'SMOKE' ? '스모크 · ' : ''}${몸}`;
   return 재료.origin === 'SCHEDULED' ? `정기 · ${몸}` : 몸;
 }
 
@@ -76,7 +79,7 @@ export async function 다시실행사유(
   return null;
 }
 
-const 주소값: Record<string, 시작방식> = { manual: 'MANUAL', scheduled: 'SCHEDULED', rerun: 'RERUN' };
+const 주소값: Record<string, 시작방식> = { manual: 'MANUAL', scheduled: 'SCHEDULED', rerun: 'RERUN', build: 'BUILD' };
 
 /** 실행 목록의 `?origin=&days=`. 모르는 값 · 범위 밖은 state 처럼 조용히 버린다 — 거르개는 권한이 아니다 (SPEC 실행 §7) */
 export function 시작방식거르개(origin: string | undefined, days: string | undefined): { origin?: 시작방식; days?: number } {

@@ -3,6 +3,7 @@
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
+import { 깔앱파일 } from '../execution/buildFile.js';
 import { 팜주소, 팜폰으로 } from '../execution/farm.js';
 import { 폰을놓는다, 폰을바로잡는다 } from '../execution/phone.js';
 import { runnerUrl } from '../execution/runner.js';
@@ -73,10 +74,6 @@ export function 앱탐색주소(appPath: string | null, 팜: string | undefined)
   return appPath === null || 팜 === undefined ? null : { url: `${팜.replace(/\/wd\/hub$/, '')}/wd/hub`, app: appPath };
 }
 
-/** 요청에 대상 서버가 있으면 그 줄의 앱 파일 경로, 없으면 앱 파일 경로가 있는 첫 줄(env 순). 「운영 서버」 줄은 어느 쪽이든 건너뛴다 (§3.6 「★ 역할별 계정」 「운영 서버」) */
-export function 앱파일고르기(줄들: { env: string; appPath: string | null; isProd: boolean }[], env: string | null): string | null {
-  return 앱줄고르기(줄들, env)?.appPath ?? null;
-}
 
 const 비움 = { screen: null, reason: null };
 
@@ -86,7 +83,9 @@ export default async function appScreenAgentRoutes(app: FastifyInstance): Promis
     const 행 = await 도는집은요청(req, reply);
     if (행 === null) return reply;
     if ((await 게임서비스인가(행.serviceId)) !== 게임만) return { ...비움, [칸]: null };
-    const appPath = 앱파일고르기(await 대상줄들읽기(행.serviceId), 행.env);
+    // 줄은 집기 계정 · 대상 서버와 같은 규칙으로 고르고(앱줄고르기), 그 줄의 최신 빌드가 앱 파일 경로보다 앞선다 (도메인/실행 §3.11)
+    const 줄 = 앱줄고르기(await 대상줄들읽기(행.serviceId), 행.env);
+    const appPath = 줄 === undefined ? null : await 깔앱파일(행.serviceId, 줄.env, 줄.appPath);
     // 게임은 앱 파일이 없으면 켤 게임이 없다 — 앱처럼 「앱 없는 서비스」로 비우면 AI 가 까닭을 모른다
     if (게임만 && appPath === null) return { screen: null, reason: '대상 서버 줄에 게임 앱 파일 경로가 없다', game: null };
     const 팜 = 팜주소();

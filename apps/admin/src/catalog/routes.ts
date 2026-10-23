@@ -2,6 +2,7 @@
 // 규약: default export 한 Fastify 플러그인을 app.ts가 /api 접두사로 등록한다
 
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 
 import { type Platform, TECHNIQUES, type Technique } from '@platform/kit/types';
 
@@ -40,6 +41,11 @@ export function 기법읽기(값: string | undefined): Technique | 'none' | unde
   return TECHNIQUES.find((t) => t === 값) ?? null;
 }
 
+// 1 · 0 만 받고 그 밖은 조용히 버린다 — technique · last 와 달리 모르는 값에 오류를 내지 않는다 (카탈로그 §7 `?smoke=`)
+export function 스모크읽기(값: string | undefined): boolean | undefined {
+  return 값 === '1' ? true : 값 === '0' ? false : undefined;
+}
+
 const 모르는기법 = (값: string | undefined) => ({ error: 'BAD_TECHNIQUE', detail: `설계 기법 목록에 없는 값입니다 — ${String(값)}` });
 
 // 기법과 같은 까닭으로 모르는 값은 null — 예전에는 조용히 빼서 `?platform=android` 가 웹 케이스까지 냈다 (카탈로그 §7 · APP-F1-04)
@@ -60,7 +66,7 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
   app.get<{ Querystring: { service?: string } }>('/catalog/scan', async (req) => 마지막보기(req.user, req.query.service || undefined));
 
   app.get<{
-    Querystring: { service?: string; q?: string; platform?: string; active?: string; page?: string; kind?: string; technique?: string; last?: string } & 맥락글;
+    Querystring: { service?: string; q?: string; platform?: string; active?: string; page?: string; kind?: string; technique?: string; last?: string; smoke?: string } & 맥락글;
   }>(
     '/catalog/cases',
     async (req, reply) => {
@@ -91,6 +97,7 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
         activeOnly: req.query.active !== 'false',
         kind: 종류읽기(req.query.kind),
         technique,
+        smoke: 스모크읽기(req.query.smoke),
         마지막: 결과본다 ? { 판정: 판정으로(await 기기별결과(service)), last } : undefined,
         page: Math.max(1, Number(req.query.page ?? 1) || 1),
         pageSize: PAGE_SIZE,
@@ -150,6 +157,16 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
     const found = await findCase(req.params.tcId);
     if (found === null) return reply.code(404).send({ error: 'CASE_NOT_FOUND', detail: req.params.tcId });
     return found;
+  });
+
+  // null 은 코드 값으로 되돌리기. 비활성 케이스도 고친다 — 다음 스캔에 살아날 수 있다
+  app.put<{ Params: { tcId: string } }>('/cases/:tcId/smoke', async (req, reply) => {
+    const parsed = z.object({ smoke: z.boolean().nullable() }).strict().safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
+    const { pool } = await import('../db/index.js');
+    const r = await pool.query('UPDATE test_case SET smoke_set = $2 WHERE tc_id = $1', [req.params.tcId, parsed.data.smoke]);
+    if (r.rowCount === 0) return reply.code(404).send({ error: 'CASE_NOT_FOUND', detail: req.params.tcId });
+    return reply.code(204).send();
   });
 
   app.get<{ Params: { tcId: string }; Querystring: { line?: string } }>(

@@ -14,7 +14,7 @@ const 디바이스차례: Platform[] = ['desktop', 'mobile', 'android'];
 // 통과·실패·미실행은 미확정 여부와 상관없이 모든 항목을 센다. 미확정은 「그중 N건」 하나로만 따로 센다 (SPEC 실행 §3.2)
 export const RUN_COLUMNS = `
   r.run_id, r.title, r.triggered_by, r.triggered_by_name, r.env, r.base_url, r.service_name,
-  r.status, r.started_at, r.finished_at, r.kind, r.origin, r.rerun_of,
+  r.status, r.started_at, r.finished_at, r.kind, r.origin, r.rerun_of, r.build_no,
   -- 디바이스 차례는 화면 차례(desktop → mobile → android)다. 시나리오 실행은 항목이 없어 빈 배열이다
   COALESCE(array_agg(DISTINCT i.platform::text) FILTER (WHERE i.history_id IS NOT NULL), '{}') AS platforms,
   count(i.history_id)::int AS total,
@@ -36,6 +36,7 @@ export interface RawRun {
   kind: RunKind;
   origin: 시작방식;
   rerun_of: string | null;
+  build_no: string | null;
   platforms: string[];
   started_at: Date;
   finished_at: Date | null;
@@ -61,6 +62,7 @@ export function toRun(row: RawRun): RunSummary {
     kind: row.kind,
     origin: row.origin,
     rerunOf: row.rerun_of === null ? null : Number(row.rerun_of),
+    buildNo: row.build_no,
     platforms: 디바이스차례.filter((p) => row.platforms.includes(p)),
     startedAt: row.started_at.toISOString(),
     finishedAt: iso(row.finished_at),
