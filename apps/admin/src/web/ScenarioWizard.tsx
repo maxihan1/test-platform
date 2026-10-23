@@ -43,6 +43,7 @@ export function ScenarioWizard({ 띠서비스, user }: { 띠서비스: ServiceRo
   const { 재료 } = useWizardMaterial(단계들.flatMap((p) => (p.kind === 'case' ? [p.tcId] : [])));
   const 틀 = useRef<HTMLDivElement>(null);
   const 본문 = useRef<HTMLDivElement>(null);
+  const 큰틀 = useRef<HTMLDivElement>(null);
   useWizardKeys(틀, 나가는곳);
 
   const 쓰나 = 판정을만든다(user, 서비스)('실행');
@@ -51,8 +52,10 @@ export function ScenarioWizard({ 띠서비스, user }: { 띠서비스: ServiceRo
     if (!쓰나) window.location.hash = 나가는곳;
   }, [쓰나]);
 
-  // 단계가 바뀌면 그 단계 첫 칸에 손이 간다 — 키보드로 넘기는 사람이 칸을 찾아 헤매지 않게
+  // 단계가 바뀌면 그 단계 첫 칸에 손이 간다 — 키보드로 넘기는 사람이 칸을 찾아 헤매지 않게.
+  // 본문 스크롤도 맨 위로 — 긴 후보 목록 아래에서 고르고 넘기면 다음 단계가 제목 없이 중간부터 보였다
   useEffect(() => {
+    if (큰틀.current !== null) 큰틀.current.scrollTop = 0;
     본문.current?.querySelector<HTMLElement>('input:not(:disabled), select, [aria-pressed]')?.focus({ preventScroll: true });
   }, [지금]);
 
@@ -166,7 +169,7 @@ export function ScenarioWizard({ 띠서비스, user }: { 띠서비스: ServiceRo
     <div ref={틀} className="wz" role="dialog" aria-modal="true" aria-label={t('새 시나리오')}>
       <단계띠 목록={목록} 지금={지금} 재료={흐름.결과?.material ?? null} on돌아감={(i) => 간다(i, 'back')} />
 
-      <div className="wz-main">
+      <div ref={큰틀} className="wz-main">
         <div className="wz-top">
           <span>
             {t('E2E 시나리오')} › {t('새 시나리오')}

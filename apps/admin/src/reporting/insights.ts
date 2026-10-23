@@ -5,7 +5,7 @@ import type { Pool } from 'pg';
 import { 종류조건 } from '../execution/runKind.js';
 import { 가린다, 항목비밀 } from '../execution/trial.js';
 import { 판정접기식 } from './dashboardSql.js';
-import { 원인을가른다, 실패유형들, 색코드, type 실패유형 } from './failureType.js';
+import { 원인을가른다, 실패유형들, 색코드, 한줄로자른다, type 실패유형 } from './failureType.js';
 
 export type 변화 = '새로깨짐' | '계속깨짐' | '고쳐짐' | '그대로';
 
@@ -88,12 +88,6 @@ export function 케이스판정들(앞접힘: 접힌행[], 이번접힘: 접힌�
   return { 케이스들, 빠진건수 };
 }
 
-/**
- * 대표 문장 한 줄의 상한. 검증 문장은 사람이 쓴 짧은 한국어라 여기 안 걸리고,
- * 여기 걸리는 것은 러너가 뱉은 오류 원문뿐이다.
- */
-const 대표문장길이 = 120;
-
 // 대표 문장은 실패한 첫 검증 문장이고, 없으면 error.message 다. 둘 다 없으면 NULL 로 나와 덩어리에서 빠진다 —
 // 사유를 모르는 것을 지어내지 않는다.
 // actual·expected 는 붙이지 않는다. 그 값이 비밀값일 수 있고, 붙이면 같은 고장이 값마다 갈라진다
@@ -122,32 +116,6 @@ interface 사유행 {
   param_schema: unknown;
   expected_schema: unknown;
   대표문장: string | null;
-}
-
-/**
- * 대표 문장을 **첫 줄 + 상한**으로 자른다.
- *
- * **셋을 한꺼번에 막는다.**
- * ① 검증 문장이 없는 실패는 `error.message` 가 대표인데, 그 값은 러너가 stderr 를 2000자 안으로 줄여 실어 보낸 것이다
- *    (`apps/runner/src/execute.ts` 의 `tail()` — 1000자 넘는 첫 줄은 빠져 「…」로 시작한다, 도메인/러너 §5.2). 경로·줄번호·시간이 섞여 있어
- *    **같은 고장이 실행마다 다른 글자가 되고 묶기가 한 덩어리도 못 만든다** — 건수 1짜리가 줄줄이 선다.
- *    묶어서 볼 값어치가 가장 큰 것이 바로 그런 실패(문법 오류·import 실패·러너 장애)다
- * ② 「**원문 오류(스택·주소·포트)는 목록에 쓰지 않는다**」가 이 저장소 규칙이다
- *    (`web/runState.ts`). 이 도구의 전제는 「코드를 몰라도 쓴다」다
- * ③ actual·expected 를 안 붙여 막은 비밀값이 **stderr 의 `Expected:`/`Received:` 블록으로 되돌아온다.**
- *    Playwright 가 그것을 통째로 뱉는다
- *
- * 원문은 항목 상세가 그대로 갖고 있다. 여기서 자르는 것은 **요약 자리에 원문을 두지 않는 것**이다.
- */
-export function 한줄로자른다(문장: string): string {
-  // Playwright 원문은 색 코드와 빈 첫 줄로 시작하기도 한다(「\u001b[2m\n Error…」) — 그대로 첫 줄을 고르면 빈 사유나 색 코드가 나온다
-  const 첫줄 =
-    문장
-      .replace(색코드, '')
-      .split('\n')
-      .map((줄) => 줄.trim())
-      .find((줄) => 줄 !== '') ?? '';
-  return 첫줄.length > 대표문장길이 ? `${첫줄.slice(0, 대표문장길이)}…` : 첫줄;
 }
 
 /**

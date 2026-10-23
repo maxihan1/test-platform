@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { CasePartMaterial, TrialResult } from './scenarioApi.js';
 import { 빼기 } from './scenarioView.js';
-import { 연결상태, 쓰였나, 이어받기적용, 제안합치기 } from './scenarioWizardView.js';
+import { 멈춘까닭, 연결상태, 쓰였나, 이어받기적용, 제안합치기 } from './scenarioWizardView.js';
 
 const 케이스 = (tcId: string, links?: ScenarioLink[]): ScenarioPart => ({ kind: 'case', tcId, params: {}, expected: {}, skipSteps: [], ...(links === undefined ? {} : { links }) });
 const 주입: ScenarioLink = { kind: 'bind', param: 'orderId', value: { fromSeq: 1, method: 'POST', urlPattern: '**/api/orders', jsonPath: 'id' } };
@@ -59,5 +59,30 @@ describe('쓰였나', () => {
     expect(쓰였나(결과({ seq: 2, status: 'FAIL', durationMs: 5, steps: [], mocks: [], error: { message: '버튼이 없다' } }), 2, 차단, 'ko')).toBe('멈춤 · 쓰였는지는 결과에 남지 않습니다');
     expect(쓰였나(결과({ seq: 2, status: 'PASS', durationMs: 5, steps: [], mocks: [] }), 2, 차단, 'ko')).toBe('통과 · 쓰였는지는 결과에 남지 않습니다');
     expect(쓰였나(결과({ seq: 2, status: 'NA', durationMs: 0, steps: [], mocks: [], error: { message: 'NOT_RUN' } }), 2, 차단, 'en')).toBe('Not run');
+  });
+});
+
+describe('멈춘까닭', () => {
+  const 확인 = (statement: string, status: 'PASS' | 'FAIL') => ({ statement, status, actual: false, expected: true });
+
+  it('확인 문장이 틀려 멈췄으면 기대와 다름 · 실패한 첫 확인 문장이다', () => {
+    const part: TrialResult['parts'][number] = {
+      seq: 2,
+      status: 'FAIL',
+      durationMs: 5,
+      mocks: [],
+      steps: [
+        { seq: 5, title: '방해 요소를 막는다', status: 'PASS', durationMs: 1, assertions: [] },
+        { seq: 6, title: '로그인하지 않은 상태인지 확인한다', status: 'FAIL', durationMs: 1, assertions: [확인('화면이 열린다', 'PASS'), 확인('로그인한 회원이 없다', 'FAIL')] },
+      ],
+    };
+    expect(멈춘까닭(part)).toEqual({ type: 'mismatch', reason: '로그인한 회원이 없다' });
+  });
+
+  it('확인 문장이 없으면 단계 오류의 첫 줄이고, 시간 초과로 NA 가 된 단계는 유형 꼬리표만 선다', () => {
+    const 오류 = (status: 'FAIL' | 'NA', message: string): TrialResult['parts'][number] => ({ seq: 2, status, durationMs: 5, steps: [], mocks: [], error: { message } });
+    expect(멈춘까닭(오류('FAIL', '\u001b[2m\n버튼이 없다\n적용되지 않은 값 연결 — 요청 차단 DELETE **/api/cart'))?.reason).toBe('버튼이 없다');
+    expect(멈춘까닭(오류('NA', 'TIMEOUT'))).toEqual({ type: 'timeout', reason: '' });
+    expect(멈춘까닭(오류('NA', 'NOT_RUN'))).toBeNull();
   });
 });

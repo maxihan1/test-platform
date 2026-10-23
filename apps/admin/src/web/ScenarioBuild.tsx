@@ -56,6 +56,7 @@ export function ScenarioBuild({
   const 막나 = 쓰나 && 초안.바뀜;
   const 정식 = useScenarioRun({
     id,
+    어디서: 'scenario',
     on글: set시험글,
     on새주소: (새번호) => {
       시험열쇠옮기기(시험열쇠(null), 시험열쇠(새번호));

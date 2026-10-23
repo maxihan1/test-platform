@@ -228,7 +228,7 @@ describe('ScenarioWizard 시험 실행 · 저장', () => {
     const 실행 = vi.spyOn(scenarioApi, 'run').mockResolvedValue({ runId: 9 });
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'stg' } });
     fireEvent.click(screen.getByRole('button', { name: '저장하고 실행' }));
-    await waitFor(() => expect(window.location.hash).toBe(결과주소(9, 'scenario')));
+    await waitFor(() => expect(window.location.hash).toBe(결과주소(9, 'scenarios')));
     expect(실행).toHaveBeenCalledWith(32, 'stg');
   });
 });

@@ -8,8 +8,7 @@ import { 팜기록글 } from '../execution/farmEvidence.js';
 import { 종류조건 } from '../execution/runKind.js';
 import { 가린다, 항목비밀 } from '../execution/trial.js';
 import { api칸, type EvidenceTrace } from './apiTrace.js';
-import { 색코드 } from './failureType.js';
-import { 한줄로자른다 } from './insights.js';
+import { 색코드, 한줄로자른다 } from './failureType.js';
 
 export interface EvidenceField {
   label: string;

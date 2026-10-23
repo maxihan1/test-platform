@@ -16,8 +16,9 @@ export const 결과주소 = (runId: number, 어디서: 들어온곳) => (어디�
  * 실패한 첫 단계. 실패가 없으면 그 단계 탓으로 멈춘 판정 없음(NA) 첫 단계 — 러너 거절 · 제한 시간 초과가 그렇다.
  * 앞 단계 때문에 안 돈 단계(NOT_RUN)와 서버 재시작으로 닫힌 단계(ABORTED)는 고칠 거리가 아니라 고르지 않는다
  */
-export function 멈춘단계(parts: ScenarioRunPart[]): ScenarioRunPart | null {
-  const 그단계탓 = (p: ScenarioRunPart) => p.status === 'NA' && p.error !== null && p.error.message !== 'NOT_RUN' && p.error.message !== 'ABORTED';
+export function 멈춘단계<P extends Pick<ScenarioRunPart, 'status'> & { error?: { message: string } | null }>(parts: P[]): P | null {
+  // 시험 결과 단계는 오류가 없으면 칸이 빠지고(undefined), 정식 실행 단계는 null 이다 — 마법사 시험 칸도 같이 부른다
+  const 그단계탓 = (p: P) => p.status === 'NA' && p.error != null && p.error.message !== 'NOT_RUN' && p.error.message !== 'ABORTED';
   return parts.find((p) => p.status === 'FAIL') ?? parts.find(그단계탓) ?? null;
 }
 
