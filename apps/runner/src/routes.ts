@@ -10,6 +10,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
 import { 앱화면을읽는다, 화면을읽는중인가 } from './appScreen.js';
+import { 게임화면을읽는다 } from './gameScreen.js';
 import { abort, execute, resolveSpecPath, running, testsDir } from './execute.js';
 import { 팜증적받기를줄세운다 } from './farmEvidence.js';
 import { registerPerfDeviceRoutes } from './perfDevice.js';
@@ -211,23 +212,25 @@ export function registerRoutes(app: FastifyInstance): void {
     }
   });
 
-  // 작성 AI 가 앱 케이스를 쓰려고 폰 화면을 읽는다. 돌고 있는 앱 항목이 있으면 폰을 가로채니 막는다 —
-  // 브라우저 항목은 폰을 안 쓴다. 서버 러너가 팜 폰을 읽게 된 뒤로 웹 실행 중에도 읽혀야 한다 (SPEC 도메인/러너 §5.2 「앱 화면 읽기」)
-  app.post('/app-screen', async (request, reply) => {
-    const parsed = appScreenRequest.safeParse(request.body ?? {});
-    if (!parsed.success) {
-      return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
-    }
-    if ([...running.values()].some((r) => r.platform === 'android') || 화면을읽는중인가()) {
-      return reply.code(409).send({ error: 'RUNNER_BUSY', detail: '이 러너가 이미 실행이나 화면 읽기를 하고 있다' });
-    }
-    try {
-      return { screen: await 앱화면을읽는다(parsed.data) };
-    } catch (err) {
-      const detail = err instanceof Error ? err.message : String(err);
-      return reply.code(500).send({ error: 'RUNNER_ERROR', detail });
-    }
-  });
+  // 작성 AI 가 앱 · 게임 케이스를 쓰려고 폰 화면을 읽는다. 돌고 있는 앱 항목이 있으면 폰을 가로채니 막는다 —
+  // 브라우저 항목은 폰을 안 쓴다. 서버 러너가 팜 폰을 읽게 된 뒤로 웹 실행 중에도 읽혀야 한다 (SPEC 도메인/러너 §5.2 「앱 화면 읽기」 · 「게임 화면 읽기」)
+  for (const [길, 읽기] of [['/app-screen', 앱화면을읽는다], ['/game-screen', 게임화면을읽는다]] as const) {
+    app.post(길, async (request, reply) => {
+      const parsed = appScreenRequest.safeParse(request.body ?? {});
+      if (!parsed.success) {
+        return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
+      }
+      if ([...running.values()].some((r) => r.platform === 'android') || 화면을읽는중인가()) {
+        return reply.code(409).send({ error: 'RUNNER_BUSY', detail: '이 러너가 이미 실행이나 화면 읽기를 하고 있다' });
+      }
+      try {
+        return { screen: await 읽기(parsed.data) };
+      } catch (err) {
+        const detail = err instanceof Error ? err.message : String(err);
+        return reply.code(500).send({ error: 'RUNNER_ERROR', detail });
+      }
+    });
+  }
 
   // 시나리오 1개 = 프로세스 1개. 진행 알림과 중단 통로는 없다 — 제한 시간이 상한이다 (SPEC 도메인/러너 §5.2)
   app.post('/execute-scenario', 판상한, async (request, reply) => {

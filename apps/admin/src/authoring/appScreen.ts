@@ -1,12 +1,13 @@
-// 작성 에이전트가 AI 를 띄우기 전에 부르는 통로 — 서버 러너가 디바이스 팜의 폰에서 앱 첫 화면을 읽어 온다 (도메인/작성 §7 「앱 화면 통로」)
+// 작성 에이전트가 AI 를 띄우기 전에 부르는 통로 — 서버 러너가 디바이스 팜의 폰에서 앱 · 게임 첫 화면을 읽어 온다 (도메인/작성 §7 「앱 화면 통로」 · 도메인/게임 §7 「게임 첫 화면」)
 // AI 는 러너에 닿지 않는다. 읽는 것은 에이전트이고 이 라우트가 중계한다
 
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import { 팜주소, 팜폰으로 } from '../execution/farm.js';
 import { 폰을놓는다, 폰을바로잡는다 } from '../execution/phone.js';
 import { runnerUrl } from '../execution/runner.js';
 import { 도는집은요청 } from '../prd/agentRoutes.js';
+import { 게임서비스인가 } from '../prd/gameMap.js';
 
 import { 대상줄들읽기, 앱줄고르기 } from './reverse.js';
 
@@ -17,10 +18,14 @@ export type 앱탐색 = { url: string; app: string };
 /** 팜에서 폰을 잡아 그 번호로 일을 맡기고 놓는다 — 라우트는 팜폰으로, 검사는 가짜를 넘긴다 */
 export type 폰잡기 = (일: (udid: string) => Promise<앱화면답>, 못잡음: (까닭: string) => 앱화면답) => Promise<앱화면답>;
 
-// 러너의 연결 열기 60초 + 화면 받기 30초 + 닫기 10초에 여유를 더한다
-// 에이전트의 기다림(180초)이 이보다 길어야 러너가 폰을 읽는 중에 에이전트가 먼저 끊지 않는다 —
-// 앞뒤의 팜 잡기 · 놓기(farm.ts — 정리 중 기다림 20초 · 부를 때마다 10초)를 더해도 남게 잡았다
-const 러너_기다림_ms = 110_000;
+/** 러너의 어느 통로를 얼마나 기다리나. 에이전트의 기다림이 이보다 길어야 러너가 폰을 읽는 중에 에이전트가 먼저 끊지 않는다 —
+ * 앞뒤의 팜 잡기 · 놓기(farm.ts — 정리 중 기다림 20초 · 부를 때마다 10초)를 더해도 남게 잡았다 */
+export type 읽을곳 = { 길: '/app-screen' | '/game-screen'; 기다림_ms: number };
+// 러너의 연결 열기 60초 + 화면 받기 30초 + 닫기 10초에 여유를 더한다 (에이전트 180초)
+export const 앱길: 읽을곳 = { 길: '/app-screen', 기다림_ms: 110_000 };
+// 열기 60초 + 게임이 답하기까지 120초(kit openGame — 마지막 ping 이 20초 더 넘길 수 있다) + 트리 20초 + 닫기 10초에 여유를 더한다 (에이전트 360초).
+// 먼저 끊으면 아래 finally 가 팜 폰을 놓는데 러너는 아직 그 폰에서 읽고 있다
+export const 게임길: 읽을곳 = { 길: '/game-screen', 기다림_ms: 260_000 };
 const 까닭_상한 = 200;
 
 const 짧게 = (글: string): string => (글.length > 까닭_상한 ? `${글.slice(0, 까닭_상한)}…` : 글);
@@ -31,24 +36,24 @@ const 짧게 = (글: string): string => (글.length > 까닭_상한 ? `${글.sli
  * admin 의 폰 잠금(정식 실행의 디바이스 줄)을 쥐고 읽는다 — 안 쥐면 도는 android 실행의 연결을 가로챈다. 기다리지 않고 바쁘면 까닭만 돌려준다.
  * 팜 폰은 잠금 안에서 잡고 놓는다 — 정식 실행과 같은 길이다 (러너 §5.2 「디바이스 팜 접속 방식」)
  */
-export async function 앱화면읽기(appPath: string | null, 러너: string, 잡기: 폰잡기 | undefined, 부르기: typeof fetch = fetch): Promise<앱화면답> {
+export async function 앱화면읽기(appPath: string | null, 러너: string, 잡기: 폰잡기 | undefined, 부르기: typeof fetch = fetch, 곳: 읽을곳 = 앱길): Promise<앱화면답> {
   if (appPath === null) return { screen: null, reason: null };
   if (잡기 === undefined) return { screen: null, reason: '디바이스 팜(DEVICE_FARM_URL)이 연결되어 있지 않다' };
   if (!폰을바로잡는다()) return { screen: null, reason: '폰이 다른 실행에 쓰이는 중이다' };
   try {
-    return await 잡기((udid) => 러너에묻는다(appPath, udid, 러너, 부르기), (까닭) => ({ screen: null, reason: 까닭 }));
+    return await 잡기((udid) => 러너에묻는다(appPath, udid, 러너, 부르기, 곳), (까닭) => ({ screen: null, reason: 까닭 }));
   } finally {
     폰을놓는다();
   }
 }
 
-async function 러너에묻는다(appPath: string, udid: string, 러너: string, 부르기: typeof fetch): Promise<앱화면답> {
+async function 러너에묻는다(appPath: string, udid: string, 러너: string, 부르기: typeof fetch, 곳: 읽을곳): Promise<앱화면답> {
   try {
-    const res = await 부르기(`${러너}/app-screen`, {
+    const res = await 부르기(`${러너}${곳.길}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ app: appPath, udid }),
-      signal: AbortSignal.timeout(러너_기다림_ms),
+      signal: AbortSignal.timeout(곳.기다림_ms),
     });
     const 몸 = (await res.json().catch(() => null)) as { screen?: unknown; error?: unknown; detail?: unknown } | null;
     if (res.ok && typeof 몸?.screen === 'string') return { screen: 몸.screen, reason: null };
@@ -73,13 +78,21 @@ export function 앱파일고르기(줄들: { env: string; appPath: string | null
   return 앱줄고르기(줄들, env)?.appPath ?? null;
 }
 
+const 비움 = { screen: null, reason: null };
+
 export default async function appScreenAgentRoutes(app: FastifyInstance): Promise<void> {
-  app.get<{ Params: { id: string } }>('/authoring/requests/:id/app-screen', async (req, reply) => {
+  // 게임은 앱 화면을 안 읽는다 — Unity 화면은 Appium 에게 빈 판 하나다. 게임 첫 화면은 아래 game-screen 이 준다 (도메인/게임 §3.10 「작성 — 한 바퀴」 앱 규칙과 다른 곳)
+  const 읽어준다 = (게임만: boolean, 곳: 읽을곳, 칸: 'appium' | 'game') => async (req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     const 행 = await 도는집은요청(req, reply);
     if (행 === null) return reply;
+    if ((await 게임서비스인가(행.serviceId)) !== 게임만) return { ...비움, [칸]: null };
     const appPath = 앱파일고르기(await 대상줄들읽기(행.serviceId), 행.env);
+    // 게임은 앱 파일이 없으면 켤 게임이 없다 — 앱처럼 「앱 없는 서비스」로 비우면 AI 가 까닭을 모른다
+    if (게임만 && appPath === null) return { screen: null, reason: '대상 서버 줄에 게임 앱 파일 경로가 없다', game: null };
     const 팜 = 팜주소();
-    const 답 = await 앱화면읽기(appPath, runnerUrl(), 팜 === undefined ? undefined : (일, 못잡음) => 팜폰으로(팜, 일, 못잡음));
-    return { ...답, appium: 앱탐색주소(appPath, 팜) };
-  });
+    const 답 = await 앱화면읽기(appPath, runnerUrl(), 팜 === undefined ? undefined : (일, 못잡음) => 팜폰으로(팜, 일, 못잡음), fetch, 곳);
+    return { ...답, [칸]: 앱탐색주소(appPath, 팜) };
+  };
+  app.get('/authoring/requests/:id/app-screen', 읽어준다(false, 앱길, 'appium'));
+  app.get('/authoring/requests/:id/game-screen', 읽어준다(true, 게임길, 'game'));
 }

@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { 폰을놓는다, 폰을바로잡는다 } from '../execution/phone.js';
 
-import { 앱탐색주소, 앱파일고르기, 앱화면읽기, type 폰잡기 } from './appScreen.js';
+import { 게임길, 앱탐색주소, 앱파일고르기, 앱화면읽기, type 폰잡기 } from './appScreen.js';
 
 const 답 = (몸: unknown, status = 200) => vi.fn(async () => new Response(JSON.stringify(몸), { status })) as unknown as typeof fetch;
 
@@ -113,6 +113,17 @@ describe('앱화면읽기', () => {
     const [url, init] = (부르기 as unknown as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
     expect(url).toBe('http://runner:4000/app-screen');
     expect(JSON.parse(init.body as string)).toEqual({ app: '/apk/a.apk', udid: 'R3CR10TCVCD' });
+    expect(기록).toEqual({ 잡음: 1, 놓음: 1 });
+  });
+
+  it('게임은 같은 잠금 · 같은 팜 잡기로 러너 /game-screen 을 부른다', async () => {
+    const 부르기 = 답({ screen: '# 장면 Login · 화면 1080×2400' });
+    const { 기록, 잡기 } = 가짜잡기();
+
+    expect(await 앱화면읽기('https://builds/qa.apk', 러너, 잡기, 부르기, 게임길)).toEqual({ screen: '# 장면 Login · 화면 1080×2400', reason: null });
+    const [url, init] = (부르기 as unknown as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('http://runner:4000/game-screen');
+    expect(JSON.parse(init.body as string)).toEqual({ app: 'https://builds/qa.apk', udid: 'R3CR10TCVCD' });
     expect(기록).toEqual({ 잡음: 1, 놓음: 1 });
   });
 

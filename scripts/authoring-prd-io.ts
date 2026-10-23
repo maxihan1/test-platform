@@ -15,7 +15,8 @@ import type { 기준결정 } from './authoring-ledger-check.js';
 import { type 기준표, 기준결정만들기, 옛표줄들, 표번호바꾸기 } from './authoring-ledger-io.js';
 import { type 옮긴것, 대조줄들, 보낼항목, 비밀번호꼴가리기, 새번호맞추기, 옛번호지도, 옮긴것읽기, 옮기기대조, 판줄들, 판합치기, 표준원장 } from './authoring-prd.js';
 import { 계정섞였나, 글모두, 비밀가리기 } from './authoring-reverse.js';
-import { 지도받기, 크롤모두덮음 } from './authoring-screens-keep-io.js';
+import { 게임자리 } from './authoring-game.js';
+import { 안전히읽기, 지도받기, 크롤모두덮음 } from './authoring-screens-keep-io.js';
 import { 산출물읽기 } from './authoring-upload-reverse.js';
 
 export type 서버 = { 주소기지: string; 토큰: string };
@@ -119,7 +120,14 @@ export function 앞결과(자리: 사본, 지금: readonly PrdItem[], 서비스:
   if (맞춤.size === 0 || 표번호바꾸기(자리.트리, 서비스, 맞춤) !== null) return 몸;
   const 새글 = 번호바꾸기(글, 맞춤);
   writeFileSync(join(자리.자료, 'out', 결과이름), 새글);
+  요소번호바꾸기(자리.자료, 맞춤);
   return 가려읽기(새글);
+}
+
+/** 게임 지도 요소의 근거 번호도 표 · 결과 파일과 같이 바꾼다 — 자식은 옮긴 항목을 임시 번호로 적는다. 올리기(authoring-game)는 이 뒤에 돈다 (도메인/게임 §3.10 「게임에만 있는 지도 넷」) */
+function 요소번호바꾸기(자료: string, 맞춤: ReadonlyMap<string, string>): void {
+  const 요소글 = 맞춤.size === 0 ? null : 안전히읽기(자료, 게임자리.요소, 4_000_000);
+  if (요소글 !== null) writeFileSync(join(자료, 게임자리.요소), 번호바꾸기(요소글, 맞춤));
 }
 
 /**
@@ -201,6 +209,7 @@ export async function 옮기기올리기(
     const 표막힘 = 표번호바꾸기(자리.트리, 서비스, 맞춤, true);
     if (표막힘 !== null) return 못함(표막힘);
     if (맞춤.size > 0) writeFileSync(join(자리.자료, 'out', 결과이름), 번호바꾸기(글, 맞춤));
+    요소번호바꾸기(자리.자료, 맞춤);
     // 원장은 자식이 본 것과 같게 — 자식 앞 판에 결과 파일을 합친 항목에 받은 번호를 단다. 저장된 판으로 만들면 사람이 남긴 항목 ·
     // 그 사이 다른 저장이 차례를 밀어 칸 번호(원장 차례로 매긴다)가 어긋난다 (2026-10-10 코드 검토)
     const 항목들 = 판합치기(앞.items, 옮긴).items.map((i) => (i.임시 !== undefined && 맞춤.has(i.임시) ? { ...i, reqId: 맞춤.get(i.임시) } : i));

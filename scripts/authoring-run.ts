@@ -27,7 +27,8 @@ import { 거절로, 끝낼상태, 자식제한, 진척누적기, 진척재기 } 
 import { type 박동, 박동손 } from './authoring-heartbeat.js';
 import { type 서비스설정 } from './authoring-token.js';
 import { 먼저가리기 } from './authoring-masking.js';
-import { 앱화면받기, 잡은폰놓기, 탐색환경 } from './authoring-app-screen.js';
+import { 게임화면받기, 앱화면받기, 잡은폰놓기, 탐색환경 } from './authoring-app-screen.js';
+import { 게임올리기, 게임준비 } from './authoring-game.js';
 import { type 바꾸기, 가이드받기, 가이드폴더 } from './authoring-guide.js';
 import { 원장과남은번호 } from './authoring-ledger-io.js';
 import { API떼기, API반영줄, API원장항목, API점검, API환경, 판파일쓰기 } from './authoring-api.js';
@@ -184,7 +185,10 @@ async function 사본에서(
     }
   }
   // 서비스 가이드는 먼저가리기 앞에 받는다 — 자료 폴더째 가려 guide/ 의 계정 비밀번호도 가려진다. 못 받아도 간다 (§3.6 「★ 서비스 가이드」). 앱 첫 화면(앱이 있는 서비스만 — 폰이 앱을 켜는 데 오래 걸려 나란히 받는다)도 같다 (§3.6 「앱 화면」)
-  const [가이드판, 앱화면] = await Promise.all([가이드받기({ 주소기지, 토큰 }, 서비스, 것.id, 자리.자료, 바꾸기, 자식), 앱화면받기({ 주소기지, 토큰 }, 것.id, 자리.자료)]);
+  // 게임(me 의 종류)은 앱 화면 대신 게임 첫 화면 — 창 기록 저장본 · 게임 지도도 받는다 (도메인/게임 §3.10 「작성 — 한 바퀴」)
+  const [가이드판, 앱만, 게임화면] = await Promise.all([가이드받기({ 주소기지, 토큰 }, 서비스, 것.id, 자리.자료, 바꾸기, 자식), 설정.게임 === true ? undefined : 앱화면받기({ 주소기지, 토큰 }, 것.id, 자리.자료), 설정.게임 === true ? 게임화면받기({ 주소기지, 토큰 }, 것.id, 자리.자료) : undefined]);
+  const 앱화면 = 게임화면 ?? 앱만;
+  if (게임화면 !== undefined) await 게임준비({ 주소기지, 토큰, 번호: 것.id }, 자리.자료);
   // 대조 · 반영 — 자식을 띄우기 전에 기획서·앞 실행이 남긴 파일·본문에서 비밀번호(역할 계정까지)를 먼저 가린다 (§3.6 「★ 역방향」 · 「★ 역할별 계정」)
   const 가림 = 먼저가리기(것.id, 계획, 자리, 본문, 비밀번호들(것));
   if ('사유' in 가림) return void (await 손.끝내기({ status: 'FAILED', error: 가림.사유 }));
@@ -276,10 +280,11 @@ async function 사본에서(
     console.log(`[작성] ${것.id}번 표준 기획서를 못 올려 거절한다\n${옮김.줄.join('\n')}`);
     return void (await 손.끝내기(거절로(사유거르기(옮김.거절, 비밀번호들(것)))));
   }
+  const 게임줄 = 게임화면 === undefined ? [] : await 게임올리기({ 주소기지, 토큰, 번호: 것.id }, 자리.자료, 비밀번호들(것)); // 훑은 창 · 게임 지도 — 못 올려도 PR 은 간다
   // 보류 케이스와 원장 셈은 자식의 말이 아니라 코드에서 계산해 끝내기에 싣는다 — 싣는 손은 올리기가 건다 (작성 §3.6)
   await 올리기(
     자리, 것, 서비스, 판.판정, 기준, 풀린.글, 손,
     역방향 === undefined ? undefined : { 주소기지, 토큰, 자식, 입력자료: 자료들 },
-    { 값: 옮김.원장, 폴더: 케이스자리, 자식, 기준: 옮김.기준 }, 단계, [...API반영줄(것.api), ...옮김.줄],
+    { 값: 옮김.원장, 폴더: 케이스자리, 자식, 기준: 옮김.기준 }, 단계, [...API반영줄(것.api), ...옮김.줄, ...게임줄],
   );
 }

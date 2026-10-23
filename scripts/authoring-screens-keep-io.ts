@@ -22,7 +22,7 @@ export interface 화면통로 {
 }
 
 /** 자리 안의 일반 파일만 읽는다 — 링크 · 하드링크 · 큰 파일 · 자리 밖을 가리키면 null */
-function 안전히읽기(자리: string, 이름: string, 상한: number): string | null {
+export function 안전히읽기(자리: string, 이름: string, 상한: number): string | null {
   const 파일 = join(자리, 이름);
   try {
     const 정보 = lstatSync(파일);
@@ -35,13 +35,13 @@ function 안전히읽기(자리: string, 이름: string, 상한: number): string
 }
 
 /** 진짜 폴더인가(링크 아님) */
-function 폴더인가(경로: string): boolean {
+export function 폴더인가(경로: string): boolean {
   const 정보 = lstatSync(경로, { throwIfNoEntry: false });
   return 정보 !== undefined && 정보.isDirectory() && !정보.isSymbolicLink();
 }
 
 /** 링크를 따라가지 않게 지우고 새로 만든다(`wx` — 있으면 실패) */
-function 새로쓰기(경로: string, 글: string): void {
+export function 새로쓰기(경로: string, 글: string): void {
   rmSync(경로, { force: true, recursive: true });
   writeFileSync(경로, 글, { mode: 0o644, flag: 'wx' });
 }

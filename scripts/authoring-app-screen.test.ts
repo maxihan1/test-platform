@@ -5,7 +5,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { 앱화면받기, 앱화면파일, 잡은폰놓기, 탐색환경 } from './authoring-app-screen.js';
+import { 게임화면받기, 게임화면파일, 앱화면받기, 앱화면파일, 잡은폰놓기, 탐색환경 } from './authoring-app-screen.js';
 import { 줄프롬프트 } from './authoring-prompt.js';
 
 const 서버 = { 주소기지: 'http://admin:3000', 토큰: 't' };
@@ -209,5 +209,49 @@ describe('줄프롬프트 — 앱 화면 절 (도메인/작성 §3.6 「앱 화�
 
   it('없으면 절이 없다 — 앱 없는 서비스의 프롬프트는 그대로다', () => {
     expect(부르기()).not.toContain('--- 앱 화면 ---');
+  });
+});
+
+describe('게임화면받기 · 게임 폰 놓기 · 게임 화면 절 (도메인/게임 §7 「게임 첫 화면」)', () => {
+  const 탐색 = { url: 'http://host.docker.internal:4723/wd/hub', app: 'https://builds/qa.apk' };
+
+  it('게임 통로의 첫 화면을 game-screen.txt 로 받고 game 칸을 탐색으로 읽어 게임 표시를 단다', async () => {
+    const 부름 = 서버가({ screen: '# 장면 Login · 화면 1080×2400\n- Button LoginButton [ref=e1]', reason: null, game: 탐색 });
+
+    expect(await 게임화면받기(서버, 7, 자료)).toEqual({ 글: 게임화면파일(자료), 탐색, 게임: true });
+    expect((부름.mock.calls[0] as unknown as [string])[0]).toBe('http://admin:3000/api/authoring/requests/7/game-screen');
+    expect(readFileSync(게임화면파일(자료), 'utf8')).toContain('LoginButton');
+  });
+
+  it('통로를 못 불렀어도 게임 표시를 단 「못 읽음」을 돌려준다 — 게임 절 · 게임 지도 · 창 기록 올리기가 빠지지 않게', async () => {
+    서버가({ error: 'X' }, 502);
+
+    expect(await 게임화면받기(서버, 7, 자료)).toEqual({ 못읽음: '게임 화면 통로를 못 불렀다(서버 오류 · 시간 초과 — 에이전트 로그)', 게임: true });
+  });
+
+  it('게임은 control-cli 가 잡은 폰 기록(.control-cli/held)을 놓는다 — appium-cli 기록은 안 본다', async () => {
+    mkdirSync(join(자료, '.control-cli'));
+    writeFileSync(join(자료, '.control-cli', 'held'), 'R3CR10TCVCD');
+    mkdirSync(join(자료, '.appium-cli'));
+    writeFileSync(join(자료, '.appium-cli', 'held'), 'OTHER');
+    const 부름 = vi.fn(async () => new Response('', { status: 200 }));
+
+    await 잡은폰놓기(자료, { 글: 'x', 탐색, 게임: true }, 7, 부름 as unknown as typeof fetch);
+
+    expect(부름.mock.calls.map((c) => (c as unknown as [string])[0])).toEqual(['http://host.docker.internal:4723/api/devices/R3CR10TCVCD/hold']);
+    expect(existsSync(join(자료, '.appium-cli', 'held'))).toBe(true);
+  });
+
+  it('게임 화면 절은 game.md 와 저장본 · 지도 · 훑기 · 요소 자리를 싣고 앱 화면 절은 안 싣는다', () => {
+    const 글 = 줄프롬프트(
+      { id: 1, kind: 'AUTHOR' as const, specText: '본문' }, 'ASH', [], undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined,
+      { 글: '/w/자료/game-screen.txt', 탐색, 게임: true }, '/w/자료',
+    );
+
+    expect(글).toContain('--- 게임 화면 ---');
+    expect(글).not.toContain('--- 앱 화면 ---');
+    expect(글).toContain('.claude/skills/tpx-author/references/game.md');
+    expect(글).toContain('npx control-cli');
+    for (const 자리 of ['/w/자료/game-kept/', '/w/자료/game-map.txt', '/w/자료/game-crawl/<이름>/', '/w/자료/game-elements.json']) expect(글).toContain(자리);
   });
 });

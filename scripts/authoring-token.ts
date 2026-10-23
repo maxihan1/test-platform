@@ -113,6 +113,8 @@ export interface 서비스설정 {
   서버들: 서버[];
   폴더: 폴더자리;
   제외: string[];
+  /** 종류 「게임」 — 게임 첫 화면 통로가 실패해도 게임 절 · 게임 지도 · 창 기록 올리기를 붙인다 (도메인/게임 §3.10 「작성 — 한 바퀴」) */
+  게임?: boolean;
 }
 
 /**
@@ -124,7 +126,7 @@ export function 나풀기(몸: unknown): { username: string; 서비스들: strin
     | {
         username?: unknown;
         role?: unknown;
-        services?: { prefix: string; envs?: 서버[]; testsDir?: unknown; crawlExclude?: unknown; permissions?: { authoring?: unknown } }[];
+        services?: { prefix: string; kind?: unknown; envs?: 서버[]; testsDir?: unknown; crawlExclude?: unknown; permissions?: { authoring?: unknown } }[];
       }
     | undefined;
   if (user === undefined || typeof user.username !== 'string' || !Array.isArray(user.services)) {
@@ -140,7 +142,7 @@ export function 나풀기(몸: unknown): { username: string; 서비스들: strin
     username: user.username,
     서비스들: 맡은것.map((s) => s.prefix),
     설정표: Object.fromEntries(
-      맡은것.map((s) => [s.prefix, { 서버들: s.envs ?? [], 폴더: 폴더고르기(s.prefix, s.testsDir), 제외: 제외고르기(s.crawlExclude) }]),
+      맡은것.map((s) => [s.prefix, { 서버들: s.envs ?? [], 폴더: 폴더고르기(s.prefix, s.testsDir), 제외: 제외고르기(s.crawlExclude), 게임: s.kind === 'GAME' }]),
     ),
   };
 }
