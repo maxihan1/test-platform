@@ -443,6 +443,31 @@ describe.skipIf(연결 === undefined)('시나리오 실행 만들기', () => {
     expect((await 실행상태(runId)).status).toBe('FINISHED');
   });
 
+  // 바이너리 응답의 NUL · 잘린 이모지 반쪽이 kit 기록에 그대로 실린다 (FIX-F2-02 · H3)
+  it('jsonb 가 못 받는 글자가 섞여도 결과를 적고 그 글자만 U+FFFD 로 바꾼다', async () => {
+    const runId = await 세부품();
+    const 깨진글 = 'PK\u0000 끝😀 반쪽\ud83d';
+    const 응답: ScenarioExecuteResponse = {
+      status: 'PASS',
+      durationMs: 1,
+      parts: [
+        {
+          seq: 1,
+          status: 'PASS',
+          durationMs: 1,
+          mocks: [],
+          error: { message: 깨진글 },
+          steps: [{ seq: 1, title: 't', status: 'PASS', durationMs: 1, assertions: [], httpTrace: { request: {}, response: { body: 깨진글 } } }],
+        },
+      ],
+    };
+    expect(await 결과저장(runId, 응답)).toBe(true);
+
+    const 고친글 = 'PK� 끝😀 반쪽�';
+    expect((await 부품행(runId))[0]?.error).toEqual({ message: 고친글 });
+    expect((await 절차들(runId))[0]).toMatchObject({ http_trace: { request: {}, response: { body: 고친글 } } });
+  });
+
   it('시나리오분배가 러너를 불러 결과를 적고 실행을 닫는다', async () => {
     const runId = await 세부품();
     const 요청: ScenarioExecuteRequest = { runId, platform: 'desktop', baseUrl: 'http://xse.example', parts: [], timeoutMs: 60000 };

@@ -2,6 +2,8 @@
 
 import { createHash } from 'node:crypto';
 
+import { jsonb에맞춘다 } from '../jsonbText.js';
+
 export const 문서상한 = 5 * 1024 * 1024;
 
 type 객체 = Record<string, unknown>;
@@ -16,9 +18,8 @@ export function 문서읽기(글: string): { 문서: 객체 } | { reason: string
     return { reason: 'JSON 이 아닙니다 — YAML 은 받지 않습니다' };
   }
   if (!객체인가(값)) return { reason: 'JSON 객체가 아닙니다' };
-  // Postgres JSONB 가 못 담는 글자다. 안 거르면 저장에서 터져 500 이 된다
-  if (/\\u0000/i.test(글)) return { reason: '\\u0000 글자가 들어 있습니다' };
-  if (typeof 값.openapi === 'string' && 값.openapi.startsWith('3.')) return { 문서: 값 };
+  // Postgres JSONB 가 못 담는 글자는 바꿔서 받는다. 안 바꾸면 저장에서 터져 500 이 된다
+  if (typeof 값.openapi === 'string' && 값.openapi.startsWith('3.')) return { 문서: jsonb에맞춘다(값) };
   return {
     reason: 'swagger' in 값 ? 'Swagger 2.0 문서입니다 — OpenAPI 3 으로 변환해서 올려 주세요' : '최상위 openapi 가 3. 으로 시작하지 않습니다',
   };

@@ -75,6 +75,20 @@ describe('trace가린다', () => {
   it('콘솔 글도 같은 규칙이다', () => {
     expect(가림.console[0]!.text).toBe(`로그인 실패 token=${별}`);
   });
+
+  // 2000자 자르기가 이모지를 가르고, 바이너리 본문에는 NUL 이 든다. 남으면 저장(json_to_recordset · jsonb)이 깨진다 (FIX-F2-02)
+  it('NUL 과 자르다 생긴 이모지 반쪽은 U+FFFD 로 바꾼다', () => {
+    const 깨짐 = trace가린다(
+      {
+        network: [{ ...풀림.network[0]!, url: 'http://a/x', requestBody: null, responseBody: `${'a'.repeat(1999)}😀` }],
+        actions: [],
+        console: [{ seq: 2, atMs: 8, level: 'error', text: 'PK\u0000', url: null }],
+      },
+      [],
+    );
+    expect(깨짐.network[0]!.responseBody).toBe(`${'a'.repeat(1999)}�`);
+    expect(깨짐.console[0]!.text).toBe('PK�');
+  });
 });
 
 describe('trace적재를맡긴다', () => {

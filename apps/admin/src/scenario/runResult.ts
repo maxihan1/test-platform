@@ -5,6 +5,7 @@ import type { Pool, PoolClient } from 'pg';
 
 import { enqueue } from '../execution/dispatcher.js';
 import { callScenarioRunner } from '../execution/runner.js';
+import { jsonb에맞춘다 } from '../jsonbText.js';
 
 import { type 부품기록, 부품비밀, 실패부품trace, 시나리오trace경로, trace를지운다 } from './runTrace.js';
 
@@ -55,7 +56,9 @@ async function 실패기록(pool: Pool, runId: number, 응답: ScenarioExecuteRe
   return 실패부품trace(시나리오trace경로({ runId }), 응답, 비밀);
 }
 
-async function 적는다(runId: number, 응답: ScenarioExecuteResponse): Promise<boolean> {
+async function 적는다(runId: number, 받은응답: ScenarioExecuteResponse): Promise<boolean> {
+  // 케이스 결과 저장(execution/runLifecycle.ts finishItem)과 같은 까닭으로 거른다 — 글자 하나에 부품 전부가 NA 가 되지 않게
+  const 응답 = jsonb에맞춘다(받은응답);
   const pool = await db();
   // 트랜잭션 밖에서 푼다 — zip 을 푸는 동안 실행 행을 잡고 있지 않게
   const 기록들 = await 실패기록(pool, runId, 응답);

@@ -105,6 +105,27 @@ function 결과(historyId: number): ExecuteResponse {
   return { historyId, status: 'PASS', durationMs: 1, steps: [] };
 }
 
+describe('결과 저장이 깨질 때 (FIX-F2-02 · H3)', () => {
+  afterEach(() => {
+    vi.mocked(callRunner).mockReset();
+  });
+
+  it('그 항목을 미실행으로 닫아 실행이 RUNNING 에 남지 않게 한다', async () => {
+    const 로그 = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    vi.mocked(callRunner).mockImplementation(async (_runId, item) => 결과(item.historyId));
+    vi.mocked(finishItem).mockClear().mockRejectedValueOnce(new Error('unsupported Unicode escape sequence'));
+
+    await dispatch(9201, [항목(1, 'desktop')]);
+    로그.mockRestore();
+
+    expect(vi.mocked(finishItem).mock.calls.map(([id, 답]) => [id, 답.status, 답.error])).toEqual([
+      [1, 'PASS', undefined],
+      [1, 'NA', { message: '결과를 저장하지 못했습니다', stack: 'unsupported Unicode escape sequence' }],
+    ]);
+    expect(finishRun).toHaveBeenCalledWith(9201);
+  });
+});
+
 function 보류(): { 풀기: () => void; 약속: Promise<void> } {
   let 풀기 = (): void => undefined;
   const 약속 = new Promise<void>((done) => { 풀기 = done; });
