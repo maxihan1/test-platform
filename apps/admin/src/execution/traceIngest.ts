@@ -7,6 +7,7 @@ import { resolve } from 'node:path';
 import type { Pool } from 'pg';
 
 import { 볼륨파일읽기 } from '../artifactFile.js';
+import { jsonb에맞춘다 } from '../jsonbText.js';
 import { 케이스지도를넣는다, 지도줄들 } from '../prd/apiMap.js';
 import { 가려야하나 } from '../web/mask.js';
 import { 가린다, 항목비밀 } from './trial.js';
@@ -50,8 +51,9 @@ export function 글가린다(글: string, 비밀: string[]): string {
 const 본문 = (v: string | null, 비밀: string[]): string | null => (v === null ? null : 글가린다(v, 비밀).slice(0, 본문상한));
 const 있으면 = (v: string | null, 비밀: string[]): string | null => (v === null ? null : 글가린다(v, 비밀));
 
+// 케이스 적재와 E2E 실패 기록이 이 결과를 그대로 DB 에 넣는다. 자르기가 가른 이모지 반쪽 · 바이너리 본문의 NUL 은 여기서 바꾼다
 export function trace가린다(풀림: 풀린trace, 비밀: string[]): 풀린trace {
-  return {
+  return jsonb에맞춘다({
     network: 풀림.network.map((n) => ({
       ...n,
       url: 글가린다(n.url, 비밀),
@@ -66,7 +68,7 @@ export function trace가린다(풀림: 풀린trace, 비밀: string[]): 풀린tra
       return { ...a, title: 글가린다(이름, 비밀), target: 있으면(a.target, 비밀), value: 값, error: 있으면(a.error, 비밀) };
     }),
     console: 풀림.console.map((c) => ({ ...c, text: 글가린다(c.text, 비밀), url: 있으면(c.url, 비밀) })),
-  };
+  });
 }
 
 type 상태 = 'DONE' | 'NONE' | 'FAILED';

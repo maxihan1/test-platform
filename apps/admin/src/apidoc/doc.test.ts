@@ -49,8 +49,8 @@ describe('문서읽기', () => {
 
   // jsonb 가 거절하는 글자다. 안 바꾸면 저장에서 터져 500 이 된다 (FIX-F2-02 · L5)
   it('NUL 과 짝 없는 서로게이트는 키 · 값 모두 U+FFFD 로 바꿔 받는다', () => {
-    expect(문서읽기('{"openapi":"3.0.0","info":{"title":"a\\u0000b","x-\\ud800":["\\udc00😀"]}}')).toEqual({
-      문서: { openapi: '3.0.0', info: { title: 'a�b', 'x-�': ['�😀'] } },
+    expect(문서읽기('{"openapi":"3.0.0","info":{"title":"a\\u0000b","x-\\ud800":["\\udc00😀","\\ud83d\\ud83d\\ude00"]}}')).toEqual({
+      문서: { openapi: '3.0.0', info: { title: 'a�b', 'x-�': ['�😀', '�😀'] } },
     });
   });
 });
