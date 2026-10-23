@@ -2,7 +2,7 @@
 
 import type { 실행상세 } from './perfApi.js';
 import type { 기기결과, 기기목표, 기기설정, 기기숫자, 기기요약, 기기지표, 측정지표 } from './perfDeviceApi.js';
-import type { 말 } from './perfRunView.js';
+import { 가장큰값, type 말 } from './perfRunView.js';
 
 /** 지표 차례 · 이름 · 부등호. 부등호는 지표에 매여 있다 — 서버가 거꾸로 온 요청을 거절한다 (§7 「기기 성능 목표 한 줄」) */
 export const 지표표: Record<기기지표, { 이름: string; op: '<=' | '>=' }> = {
@@ -57,7 +57,7 @@ const 평균 = (v: number[]): number | null => (v.length === 0 ? null : v.reduce
 export function 지금요약(줄들: readonly 기기숫자[]): 기기요약 {
   const fps = 값들(줄들.map((r) => r.fps)).sort((a, b) => a - b);
   const 낮은 = fps.slice(0, Math.max(1, Math.floor(fps.length * 0.01)));
-  const 최대 = (v: number[]) => (v.length === 0 ? null : Math.max(...v));
+  const 최대 = (v: number[]) => (v.length === 0 ? null : 가장큰값(v, -Infinity));
   const 반올림 = (v: number | null) => (v === null ? null : 한자리(v));
   return {
     avgFps: 반올림(평균(fps)),

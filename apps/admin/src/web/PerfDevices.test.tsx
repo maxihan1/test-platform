@@ -148,6 +148,15 @@ describe('결과', () => {
     expect(screen.queryByRole('button', { name: 'PDF로 내려받기' })).toBeNull();
   });
 
+  it('기기 한 대 숫자가 6만 줄인 긴 측정의 결과도 그래프까지 열린다', async () => {
+    vi.spyOn(perfApi, 'runOf').mockResolvedValue(상세());
+    const 긴줄 = Array.from({ length: 120_000 }, (_, i) => ({ ...결과.metrics[0]!, serial: i % 2 === 0 ? 'S24' : 'A23', sec: Math.floor(i / 2) }));
+    vi.spyOn(perfApi, 'deviceResult').mockResolvedValue({ ...결과, metrics: 긴줄 });
+    render(<PerfDevices service={앱} run={40} 쓰나 />);
+    expect(await screen.findByRole('table', { name: '기기별 요약' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Galaxy A23' }).getAttribute('aria-selected')).toBe('true');
+  });
+
   it('장면을 누르면 그 초를 담은 녹화 조각으로 바꾼다', async () => {
     결과열기();
     render(<PerfDevices service={앱} run={40} 쓰나 />);
