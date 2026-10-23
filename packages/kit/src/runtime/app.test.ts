@@ -24,6 +24,17 @@ describe('appCapabilities', () => {
     expect(caps['appium:udid']).toBe('R58M');
   });
 
+  it('게임 엔진이면 앱 데이터를 두고 앱만 다시 켜고 연결을 오래 쥔다', () => {
+    const caps = appCapabilities({ PLATFORM_APP: '/tmp/g.apk', PLATFORM_ENGINE: 'GAME' });
+    expect(caps).toMatchObject({
+      'appium:noReset': true,
+      'appium:forceAppLaunch': true,
+      'appium:shouldTerminateApp': true,
+      'appium:newCommandTimeout': 300,
+    });
+    expect('appium:noReset' in appCapabilities({ PLATFORM_APP: '/tmp/a.apk' })).toBe(false);
+  });
+
   it('PLATFORM_APP 이 없으면 던진다', () => {
     expect(() => appCapabilities({})).toThrow('Android 앱 케이스를 돌리려면 PLATFORM_APP 이 필요하다');
   });

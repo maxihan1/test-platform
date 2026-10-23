@@ -2,7 +2,7 @@
 
 import { RESULT_MARKER, type ExecuteResponse } from '@platform/kit';
 
-export type RunnerResult = Pick<ExecuteResponse, 'status' | 'durationMs' | 'steps' | 'error' | 'device'>;
+export type RunnerResult = Pick<ExecuteResponse, 'status' | 'durationMs' | 'steps' | 'error' | 'device' | 'elementChecks' | 'apiCalls'>;
 
 export function parseResult(stdout: string): RunnerResult | null {
   const lines = stdout.split('\n').filter((l) => l.startsWith(RESULT_MARKER));

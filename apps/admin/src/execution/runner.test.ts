@@ -94,8 +94,23 @@ describe('callRunner', () => {
       return { historyId: body.historyId, status: 'PASS', durationMs: 1, steps: [] };
     });
 
-    await callRunner(7, { ...항목, engine: 'GAME' });
-    expect(받은것).toMatchObject({ tcId: 'DEMO-001', engine: 'GAME' });
+    await callRunner(7, { ...항목, engine: 'GAME', adminKey: { header: 'X-Admin-Key', value: 'k-1234' } });
+    expect(받은것).toMatchObject({ tcId: 'DEMO-001', engine: 'GAME', adminKey: { header: 'X-Admin-Key', value: 'k-1234' } });
+  });
+
+  it('디스패처가 잡은 폰이 오면 팜을 거치지 않고 그 번호로 보낸다 — 멈춘 실행이면 보내지 않는다', async () => {
+    const 받은것: ExecuteRequest[] = [];
+    await 띄운다((body) => {
+      받은것.push(body);
+      return { historyId: body.historyId, status: 'PASS', durationMs: 1, steps: [] };
+    });
+    const 폰항목: PendingItem = { ...항목, platform: 'android' };
+
+    expect((await callRunner(7, 폰항목, () => false, 'R3CR10TCVCD')).status).toBe('PASS');
+    expect(받은것.map((b) => b.udid)).toEqual(['R3CR10TCVCD']);
+
+    expect((await callRunner(7, 폰항목, () => true, 'R3CR10TCVCD')).error?.message).toContain('멈춘 실행');
+    expect(받은것).toHaveLength(1);
   });
 
   it('API 케이스면 그 케이스 판 원문을 싣는다 (도메인/API §3.8)', async () => {

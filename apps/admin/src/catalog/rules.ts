@@ -6,7 +6,7 @@ import ts from 'typescript';
 import type { CaseSpec, JsonSchema } from '@platform/kit';
 
 import { k7, K7_WHY, k15, K15_WHY } from './pageObject.js';
-import { caseSteps, isTestStep } from './steps.js';
+import { caseSteps, isTestStep, isVerify as 판정호출 } from './steps.js';
 import { badTechniques } from './techniques.js';
 import { badTag } from './tags.js';
 
@@ -98,9 +98,8 @@ export function checkSource(file: string, text: string): SourceResult {
     }
 
     if (ts.isCallExpression(node)) {
-      const callee = node.expression;
       const isStep = isTestStep(node);
-      const isVerify = ts.isIdentifier(callee) && callee.text === 'verify';
+      const isVerify = 판정호출(node);
 
       if (isStep || isVerify) {
         if (isVerify) verifies += 1;

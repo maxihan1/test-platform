@@ -12,7 +12,8 @@ import { caseSchemas } from './paramSets.js';
 import { 폰을놓는다, 폰을바로잡는다 } from './phone.js';
 import { na, 러너에보낸다, httpTimeoutMs } from './runner.js';
 import { 저장값을채운다 } from './savedInput.js';
-import { prefixOf, 엔진칸 } from './store.js';
+import { 엔진칸 } from './engineField.js';
+import { prefixOf } from './store.js';
 import { 시작한다, 읽는다, TrialBusyError } from './trial.js';
 import { validate } from './validate.js';
 
@@ -135,7 +136,7 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
       timeoutMs: 제한ms,
       ...(앱 !== null && { app: 앱 }),
       // 정식 실행과 같은 규칙 — 게임 애플리케이션이면 엔진을 싣는다 (도메인/게임 §3.10 결정 6)
-      ...엔진칸(종류, platform),
+      ...엔진칸(종류, platform, 줄?.adminKey),
       // 정식 실행과 같은 규칙 — 그 대상 서버 줄에 API 인증이 있으면 싣는다 (도메인/API §3.8)
       ...(줄 !== undefined && 줄.apiAuths.length > 0 && { apiAuths: 줄.apiAuths }),
     };

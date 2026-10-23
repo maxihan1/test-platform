@@ -127,8 +127,14 @@ export function 러너에보낸다(경로: string, 본문: unknown, 제한ms: nu
   });
 }
 
-// 멈췄나는 디스패처가 넘긴다. 팜에서 폰을 잡는 몇 초 사이에 멈추면 러너는 아직 그 항목을 몰라 중단을 못 받는다 — 잡은 뒤 한 번 더 본다
-export async function callRunner(runId: number, item: PendingItem, 멈췄나: () => boolean = () => false): Promise<ExecuteResponse> {
+// 멈췄나는 디스패처가 넘긴다. 팜에서 폰을 잡는 몇 초 사이에 멈추면 러너는 아직 그 항목을 몰라 중단을 못 받는다 — 잡은 뒤 한 번 더 본다.
+// 잡은폰은 디스패처가 실행 하나 동안 한 번 잡은 폰이다(게임) — 오면 여기서 잡지도 놓지도 않는다
+export async function callRunner(
+  runId: number,
+  item: PendingItem,
+  멈췄나: () => boolean = () => false,
+  잡은폰?: string,
+): Promise<ExecuteResponse> {
   // API 애플리케이션 케이스는 그 케이스 판 원문을 싣는다. 판이 없으면 러너에 안 보내고 미실행으로 닫는다 (도메인/API §3.8 「응답 모양 확인」)
   let 판: Awaited<ReturnType<typeof 케이스판>>;
   try {
@@ -151,20 +157,19 @@ export async function callRunner(runId: number, item: PendingItem, 멈췄나: ()
     ...(item.app !== undefined && { app: item.app }),
     ...(item.apiAuths !== undefined && { apiAuths: item.apiAuths }),
     ...(item.engine !== undefined && { engine: item.engine }),
+    ...(item.adminKey !== undefined && { adminKey: item.adminKey }),
     ...판,
   };
 
   if (item.platform !== 'android') return 보낸다(item, body);
+  // 항목은 abortRun 이 이미 닫았다 — 이 NA 는 finishItem 이 덮지 않는다(finished_at IS NULL)
+  const 보낸다폰 = async (udid: string) => (멈췄나() ? na(item, '멈춘 실행이라 러너에 보내지 않았습니다') : 보낸다(item, { ...body, udid }));
+  if (잡은폰 !== undefined) return 보낸다폰(잡은폰);
   // 앱 항목은 서버 러너가 팜에 붙어 돈다. 폰은 항목마다 잡고 놓는다 — 놓을 때 팜이 깐 앱을 지워 다음 항목이 깨끗한 폰에서 연다 (러너 §5.2 「디바이스 팜 접속 방식」).
   // 팜 주소가 없는데 여기까지 왔다면 요청을 받은 뒤 서버를 다시 띄우며 값을 지웠을 때뿐이다 — 실행 요청 통로가 FARM_OFF 로 거절한다
   const 팜 = 팜주소();
   if (팜 === undefined) return na(item, '이 서버에는 디바이스 팜(DEVICE_FARM_URL)이 연결되어 있지 않습니다');
-  return 팜폰으로(
-    팜,
-    // 항목은 abortRun 이 이미 닫았다 — 이 NA 는 finishItem 이 덮지 않는다(finished_at IS NULL)
-    async (udid) => (멈췄나() ? na(item, '멈춘 실행이라 러너에 보내지 않았습니다') : 보낸다(item, { ...body, udid })),
-    (까닭) => na(item, 까닭),
-  );
+  return 팜폰으로(팜, 보낸다폰, (까닭) => na(item, 까닭));
 }
 
 async function 보낸다(item: PendingItem, body: ExecuteRequest): Promise<ExecuteResponse> {

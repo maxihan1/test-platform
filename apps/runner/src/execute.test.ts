@@ -8,7 +8,7 @@ import { runDir, type ExecuteRequest } from '@platform/kit';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { 앱연결을닫는다 } from './appSession.js';
-import { abort, execute, killedResponse, resolveSpecPath, running, statusFromExit, tail, traceEnv } from './execute.js';
+import { abort, execute, gameEnv, killedResponse, resolveSpecPath, running, statusFromExit, tail, traceEnv } from './execute.js';
 import { killTree } from './kill.js';
 
 // playwright 대신 짧은 셸 스크립트를 띄운다. 어느 스크립트인지는 테스트가 정한다
@@ -48,6 +48,23 @@ describe('traceEnv', () => {
   it('테스트 실행(runId 0)과 앱 실행은 끈다', () => {
     expect(traceEnv({ runId: 0, platform: 'desktop' })).toBe('0');
     expect(traceEnv({ runId: 5, platform: 'android' })).toBe('0');
+  });
+});
+
+describe('gameEnv', () => {
+  it('게임 android 항목은 폰 번호가 있으면 디바이스 팜, 없으면 USB 로 간다', () => {
+    expect(gameEnv({ platform: 'android', engine: 'GAME', udid: 'R3CR' })).toMatchObject({ PLATFORM_ENGINE: 'GAME', PLATFORM_GAME_LINK: 'farm' });
+    expect(gameEnv({ platform: 'android', engine: 'GAME' })).toMatchObject({ PLATFORM_ENGINE: 'GAME', PLATFORM_GAME_LINK: 'usb' });
+  });
+
+  it('게임이 아니면 셋 다 빈 값으로 늘 적는다 — 러너를 켠 셸의 값을 물려받지 않게', () => {
+    expect(gameEnv({ platform: 'android', udid: 'R3CR' })).toEqual({ PLATFORM_ENGINE: '', PLATFORM_GAME_LINK: '', PLATFORM_ADMIN_KEY: '' });
+    expect(gameEnv({ platform: 'desktop', engine: 'GAME' }).PLATFORM_ENGINE).toBe('');
+  });
+
+  it('어드민 키는 JSON 으로 넘긴다', () => {
+    const env = gameEnv({ platform: 'android', engine: 'GAME', adminKey: { header: 'X-Admin-Key', value: 'k' } });
+    expect(JSON.parse(env.PLATFORM_ADMIN_KEY!)).toEqual({ header: 'X-Admin-Key', value: 'k' });
   });
 });
 

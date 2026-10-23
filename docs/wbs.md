@@ -1012,14 +1012,18 @@
   - 근거 PR #381 · 2026-10-22
 - [x] `GAME-F1-03` 0단계 실측 — `control_cli` 저장소 · Unity 6000.0.84f1 설치 · SDK 최소(폰 안 127.0.0.1 포트 · 트리 · UI 누르기) · CLI 최소 · Ashveil QA 빌드에서 `LoginButton` 누르기 · 가짜 `Input` 이 IL2CPP 에서 되나 · 디바이스 팜 Appium 연결 끄기 되나 · 결과 `docs/plans/` → GAME-F1-02 계약 블록 확정 (사용자가 시작하라고 할 때만 — 이 맥 부하 · 폰)
   - 근거 control_cli PR #1 · 2026-10-22 (결과 `control_cli/docs/step0.md` — 포트 13100 · 로그인 버튼 누르기 · 가짜 Input IL2CPP · 팜 와이파이 끄기 됨. 빌드는 Ashveil GitHub Actions. 명세 계약 블록 확정은 GAME-F1-07 에서)
-- [ ] `GAME-F1-04` SDK 터치 바꿔치기 — 같은 이름 가짜 `Input` · EventSystem `inputOverride` · QA 빌드가 asmdef 참조를 자동으로 · 게임 오류 받아 두기 · 배치 확인(안전 영역 · 겹침) · Ashveil QA 빌드의 AltTester 를 우리 SDK 로 (control_cli · Ashveil 저장소)
-- [ ] `GAME-F1-05` 디바이스 팜 게임 명령 주소 — 폰을 잡을 때 `adb forward` · 잡은 사람만 · 놓을 때 정리 · 지금 입구(`:4723` · 회사 서버는 SSH 터널)로만 (Devicefarm 저장소)
-- [ ] `GAME-F1-06` 게임 CLI 첫 태그 — snapshot(줄인 트리 + 스크린샷) · ref 로 누르기 · 끌기 · 글자 넣기 · 액션마다 `Ran:` 케이스 코드 한 줄 · 속성 읽기 · 기다리기 · 잡기 · 열기 · 놓기 · 창 훑기 `crawl` · 디바이스 팜 · USB 두 길 (control_cli)
+- [x] `GAME-F1-04` SDK 터치 바꿔치기 — 같은 이름 가짜 `Input` · EventSystem `inputOverride` · QA 빌드가 asmdef 참조를 자동으로 · 게임 오류 받아 두기 · 배치 확인(안전 영역 · 겹침) · Ashveil QA 빌드의 AltTester 를 우리 SDK 로 (control_cli · Ashveil 저장소)
+  - 근거 control_cli PR #2 · Ashveil PR #2 · 2026-10-23 (`control-cli instrument` 가 QA 잡에서 SDK · asmdef 참조를 더함 · 명령 `errors` · `layout` · Ashveil 의 AltTester · `qa-tests` 지움 — D-39)
+- [x] `GAME-F1-05` 디바이스 팜 게임 명령 주소 — 명령마다 `adb forward` 걸고 지우기 · 잡은 사람만 · 지금 입구(`:4723` · 회사 서버는 SSH 터널)로만 (Devicefarm 저장소)
+  - 근거 Devicefarm PR #62 · test_platform PR #412 · 2026-10-23 (ADR-048 — `POST /api/devices/{serial}/game` · forward 를 잡을 때가 아니라 명령마다 걸고 지운다(사용자 승인) · 팜 입구를 거친 실기기 확인은 아직 — 이 맥에 폰 없음)
+- [x] `GAME-F1-06` 게임 CLI 첫 태그 — snapshot(줄인 트리 + 스크린샷) · ref 로 누르기 · 끌기 · 글자 넣기 · 액션마다 `Ran:` 케이스 코드 한 줄 · 속성 읽기 · 기다리기 · 잡기 · 열기 · 놓기 · 창 훑기 `crawl` · 디바이스 팜 · USB 두 길 (control_cli)
+  - 근거 control_cli PR #3(태그 v0.1.0) · Ashveil PR #3 · test_platform PR #413 · 2026-10-23 (SDK 명령을 JSON 한 줄로 · 주소는 이름 또는 `[순번]` 경로 · 게임 드라이버 꼴은 공통/3 「게임 테스트 타입」 · Ashveil QA 원격 빌드 통과 · 실기기 확인은 아직 — 이 맥에 폰 없음, GAME-F1-14)
 - [x] `GAME-F1-07` DB · 서버 — 종류 `GAME` · 작성 자료에 엑셀 · CSV · 실행 요청 엔진 칸 · 어드민 키 비밀값 · 화면 기록 · 지도에 게임 열쇠(`game:`) · 게임 요소 · 요소를 거친 케이스 표와 올리기 통로
   - 근거 PR #388 · 2026-10-22 (게임 명세 0단계 결과로 확정 · 어드민 키는 `service_env.admin_key` · 화면 기록 통로가 게임 요청의 대상 서버 줄을 못 받는 것은 GAME-F1-10 몫)
 - [x] `GAME-F1-08` 화면 — 종류 칩 「게임」 · 종류 표 상수(`kind.ts`) 줄 (시안 먼저) · 게임 지도는 화면을 더하지 않는다
   - 근거 PR #393 · 2026-10-23 (시안 A — 대상 서버 줄마다 어드민 키 두 칸. 게임 0건 빈 목록 안내는 명세가 안 정해 웹 안내 그대로)
-- [ ] `GAME-F1-09` kit · 러너 — 본문 `{ game }` · 디바이스 팜 · USB 두 길 · 실행 하나 동안 폰을 한 번 잡고 한 번 설치 · 증적(실패 순간 오브젝트 목록 · 게임 오류 기록 · 통과 항목 「영상 보기」는 누를 때 디바이스 팜에서) · 실패 유형 다섯에 맞추기 · 케이스가 부른 서버 API 기록 · 확률 검정 도우미 · 케이스 선언 요소 · 데이터 대조 줄마다 결과 (GAME-F1-06 태그 뒤)
+- [x] `GAME-F1-09` kit · 러너 — 본문 `{ game }` · 디바이스 팜 · USB 두 길 · 실행 하나 동안 폰을 한 번 잡고 한 번 설치 · 증적(실패 순간 오브젝트 목록 · 게임 오류 기록 · 통과 항목 「영상 보기」는 누를 때 디바이스 팜에서) · 실패 유형 다섯에 맞추기 · 케이스가 부른 서버 API 기록 · 확률 검정 도우미 · 케이스 선언 요소 · 데이터 대조 줄마다 결과 (GAME-F1-06 태그 뒤)
+  - 근거 PR #414 · 2026-10-23 (control-cli v0.1.0 의존 · 몸통 `admin` · `waitForValue` · `verify.element` · `verify.rates` · 게임 실행은 120분 한 번 잡고 항목마다 늘리기 · 통과 영상은 첫 조각만 · 튜토리얼 데이터 지우기 칸은 아직 없음 · 실기기 확인은 GAME-F1-14)
 - [ ] `GAME-F1-10` 작성 ① 읽기 — 게임 화면 통로(첫 화면 트리) · 게임 화면 지도(창 훑기 → 기록 올리기 · 지문이 같으면 다시 안 훑기) · 표준 기획서 게임 절(규칙 표는 줄마다 요구 · 데이터 표는 표 하나가 요구 하나) · 게임 지도 만들기 단계(데이터 · 월드 · 상태 · 재화 흐름) · 단계마다 폰 잡고 놓기
 - [ ] `GAME-F1-11` 작성 ② 쓰기 — 설계 칸(게임 관점 넷 · 확률 세 겹 · 데이터 표) · `test-design.md` 게임 절 · `game.md`(상태 도우미 — 어드민 API 또는 GM 명령 · 확인 수단 · 기다림 · 스모크 표시 · UI 케이스 배치 확인) · 보조 AI 나눠 쓰기(눌러 보기는 메인만)
 - [ ] `GAME-F1-12` 작성 ③ 검사 — 케이스 형식 게임 규칙(선언 요소가 지도에 있나 · 좌표 금지 · 어드민 키 글자 금지) · 마지막 돌려 보기 게임 갈래(디바이스 팜 폰에서 케이스마다 1번) · 스캔이 게임 지도를 채움 · PR 본문에 아직 안 다룬 요소

@@ -54,10 +54,24 @@ describe('팜증적을받는다', () => {
     expect(farmArtifacts).toHaveBeenCalledTimes(1);
   });
 
-  it('통과 항목은 받지 않고 번호 파일만 지운다', async () => {
+  it('통과 항목은 받지 않고 번호 파일을 남긴다 — 「영상 보기」가 그 번호로 팜에서 받는다', async () => {
     await 팜증적을받는다(3, 9, 'PASS');
     expect(farmArtifacts).not.toHaveBeenCalled();
-    expect(existsSync(idFile())).toBe(false);
+    expect(existsSync(idFile())).toBe(true);
+  });
+
+  it('kit 이 farm 폴더에 먼저 둔 게임 증적과 부딪히지 않고 받은 파일을 옆에 더한다', async () => {
+    mkdirSync(join(폴더(), FARM_EVIDENCE_DIR), { recursive: true });
+    writeFileSync(join(폴더(), FARM_EVIDENCE_DIR, 'game-tree.txt'), '/Hud');
+    farmArtifacts.mockImplementation(async (_u: string, _s: string, 받는곳: string) => {
+      mkdirSync(받는곳, { recursive: true });
+      writeFileSync(join(받는곳, 'logcat.txt'), '로그');
+      return { files: [], errors: [] };
+    });
+    await 팜증적을받는다(3, 9, 'FAIL');
+    expect(existsSync(join(폴더(), FARM_EVIDENCE_DIR, 'game-tree.txt'))).toBe(true);
+    expect(existsSync(join(폴더(), FARM_EVIDENCE_DIR, 'logcat.txt'))).toBe(true);
+    expect(existsSync(join(폴더(), `${FARM_EVIDENCE_DIR}.part`))).toBe(false);
   });
 
   it('케이스 테스트 실행(runId 0)은 받지 않는다', async () => {

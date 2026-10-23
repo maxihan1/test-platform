@@ -1,8 +1,8 @@
 // 디바이스 팜에서 빈 폰을 잡아 일을 맡기고 놓는지 본다. 팜 대신 받은 요청을 적는 가짜 fetch 를 쓴다 (러너 §5.2 「디바이스 팜 접속 방식」)
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { 팜주소, 팜폰으로 } from './farm.js';
+import { 잡기를늘린다, 팜주소, 팜폰으로 } from './farm.js';
 
 const 팜 = 'http://farm.test/wd/hub';
 
@@ -44,6 +44,14 @@ describe('팜폰으로', () => {
       'POST /api/devices/R3CR10TCVCD/hold {"minutes":30}',
       'DELETE /api/devices/R3CR10TCVCD/hold',
     ]);
+  });
+
+  it('잡는 분을 넘기면 그 값으로 잡는다 — 게임 실행은 120분', async () => {
+    const { 받음, 부르기 } = 가짜팜({ 목록: [빈폰하나] });
+
+    await 팜폰으로(팜, async () => '돌림', (까닭) => 까닭, 부르기, 안쉼, 120);
+
+    expect(받음[1]).toBe('POST /api/devices/R3CR10TCVCD/hold {"minutes":120}');
   });
 
   it('일이 던져도 폰을 놓는다', async () => {
@@ -105,6 +113,38 @@ describe('팜폰으로', () => {
     const { 부르기 } = 가짜팜({ 목록: [빈폰하나], 놓기: { status: 409, body: { refused: '잡은 폰이 아니다' } } });
 
     expect(await 팜폰으로(팜, async () => '돌림', (까닭) => 까닭, 부르기, 안쉼)).toBe('돌림');
+  });
+});
+
+describe('잡기를늘린다', () => {
+  it('늘리기 주소를 POST 로 부른다', async () => {
+    const { 받음, 부르기 } = 가짜팜({});
+
+    await 잡기를늘린다(팜, 'R3CR10TCVCD', 부르기);
+
+    expect(받음).toEqual(['POST /api/devices/R3CR10TCVCD/hold/extend']);
+  });
+
+  it('끝나기 10분 전이 아니라 409 로 거절되는 것은 정상이라 조용히 넘긴다', async () => {
+    const 소리 = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { 부르기 } = 가짜팜({ 잡기: { status: 409, body: { refused: '아직 늘릴 수 없습니다' } } });
+
+    await expect(잡기를늘린다(팜, 'R3CR10TCVCD', 부르기)).resolves.toBeUndefined();
+
+    expect(소리).not.toHaveBeenCalled();
+    소리.mockRestore();
+  });
+
+  it('그 밖의 실패는 던지지 않고 알린다', async () => {
+    const 소리 = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { 부르기 } = 가짜팜({ 잡기: 'throw' });
+
+    await expect(잡기를늘린다(팜, 'R3CR10TCVCD', 부르기)).resolves.toBeUndefined();
+    const { 부르기: 오류 } = 가짜팜({ 잡기: { status: 500, body: {} } });
+    await 잡기를늘린다(팜, 'R3CR10TCVCD', 오류);
+
+    expect(소리).toHaveBeenCalledTimes(2);
+    소리.mockRestore();
   });
 });
 

@@ -27,6 +27,13 @@ export const APPIUM_SESSION_ID_FILE = 'appium-session-id';
 // 러너가 받은 팜 증적을 두는 실행 폴더 안 하위 폴더. admin 이 같은 이름으로 찾는다
 export const FARM_EVIDENCE_DIR = 'farm';
 
+// 통과 못 한 게임 항목에 kit 이 위 폴더로 남기는 두 파일 — 실패 순간 켜진 오브젝트 목록 · 케이스 동안 난 게임 오류 (도메인/게임 §3.10 「실행 결과」)
+export const GAME_TREE_FILE = 'game-tree.txt';
+export const GAME_ERRORS_FILE = 'game-errors.txt';
+
+// 게임 항목의 데이터 대조 줄 · 부른 서버 API 를 리포터에 넘길 때 쓰는 첨부 이름 (공통/3-공유계약 「게임 테스트 타입」)
+export const GAME_ATTACHMENT = 'platform-game';
+
 // 앱 파일 칸(대상 서버 줄 · 러너 요청의 app)이 받는 값 — 파일 경로나 http(s) 주소다. 받는 쪽은 Appium 이 도는 PC(팜 PC)이고,
 // file:// 같은 다른 꼴은 그 PC 의 아무 파일이나 깔게 된다. admin 설정과 러너가 같은 규칙을 봐야 해서 여기 둔다 (러너 §5.2 「대상 서버마다 다른 앱 파일」)
 export function 앱파일값인가(값: string): boolean {

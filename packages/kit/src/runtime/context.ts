@@ -3,7 +3,7 @@
 
 import { AsyncLocalStorage } from 'node:async_hooks';
 
-import type { AssertionResult, ShapeCheck, StepResult } from '../types.js';
+import type { ApiCallSeen, AssertionResult, ElementCheck, ShapeCheck, StepResult } from '../types.js';
 
 export interface StepScope {
   assertions: AssertionResult[];
@@ -34,6 +34,9 @@ export interface RunScope {
   skip?: ReadonlySet<string>;
   // 시나리오 모드에서만 있다. 단독 실행은 가로채기가 없어 읽을 쪽이 없다
   phase?: ScenarioPhase;
+  // 게임 항목에서만 있다 — 결과 줄의 elementChecks · apiCalls 로 간다 (공통/3-공유계약 「게임 테스트 타입」)
+  elementChecks?: ElementCheck[];
+  apiCalls?: ApiCallSeen[];
   // 스크린샷과 결과 전달은 Playwright에 닿는 일이라 문맥에는 함수로만 담는다. 이 파일이 Playwright를 몰라야 단위 테스트가 가능하다
   capture(seq: number): Promise<string | undefined>;
   emit(result: StepResult): Promise<void>;

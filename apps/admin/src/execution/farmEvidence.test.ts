@@ -4,12 +4,12 @@ import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { FARM_EVIDENCE_DIR, runDir } from '@platform/kit';
+import { APPIUM_SESSION_ID_FILE, FARM_EVIDENCE_DIR, runDir } from '@platform/kit';
 import fastifyStatic from '@fastify/static';
 import Fastify from 'fastify';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { 팜기록글, 팜증적경로, 팜증적목록 } from './farmEvidence.js';
+import { 팜기록글, 팜영상경로, 팜증적경로, 팜증적목록 } from './farmEvidence.js';
 
 let 임시: string;
 const 팜폴더 = () => join(runDir('3', '9'), FARM_EVIDENCE_DIR);
@@ -129,5 +129,99 @@ describe('팜기록글', () => {
 
   it('받은 것이 없으면 null 이다', async () => {
     expect(await 팜기록글(3, 10)).toBeNull();
+  });
+});
+
+describe('GET /api/runs/:runId/items/:historyId/farm-video', () => {
+  const 팜 = 'http://farm.test:4723/wd/hub';
+  const 영상본문 = '0123456789';
+  const 받음: { 주소: string; range: string | null }[] = [];
+
+  async function 영상앱() {
+    const app = Fastify();
+    await app.register(팜영상경로, { prefix: '/api' });
+    return app;
+  }
+
+  function 가짜팜(목록: { status: number; body?: unknown }, 영상?: { status: number; headers?: Record<string, string>; body?: string }): void {
+    vi.stubGlobal('fetch', async (주소: string | URL, 설정?: RequestInit) => {
+      const 글 = String(주소);
+      받음.push({ 주소: 글, range: new Headers(설정?.headers).get('range') });
+      if (글.endsWith('/artifacts')) return new Response(JSON.stringify(목록.body ?? {}), { status: 목록.status });
+      if (영상 === undefined) throw new Error('connect ECONNREFUSED');
+      return new Response(영상.body ?? 영상본문, { status: 영상.status, headers: 영상.headers ?? { 'content-type': 'video/mp4' } });
+    });
+  }
+
+  const 파일들 = (...이름: string[]) => ({ value: { ready: true, files: 이름.map((name) => ({ name, bytes: 1, url: `/wd/hub/api/sessions/sess-1/artifacts/${name}` })) } });
+  const 불러온다 = async (range?: string) =>
+    (await 영상앱()).inject({ method: 'GET', url: '/api/runs/3/items/9/farm-video', ...(range === undefined ? {} : { headers: { range } }) });
+
+  beforeEach(() => {
+    process.env.DEVICE_FARM_URL = 팜;
+    writeFileSync(join(runDir('3', '9'), APPIUM_SESSION_ID_FILE), 'sess-1\n');
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    delete process.env.DEVICE_FARM_URL;
+    받음.length = 0;
+  });
+
+  it('번호 파일의 연결로 팜 영상 목록을 불러 첫 조각(숫자 순)만 흘려보낸다', async () => {
+    가짜팜({ status: 200, body: 파일들('logcat.txt', 'video-10.mp4', 'video-2.mp4') }, { status: 200 });
+
+    const res = await 불러온다();
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toBe(영상본문);
+    expect(res.headers['content-type']).toBe('video/mp4');
+    expect(받음.map((r) => r.주소)).toEqual([
+      `${팜}/api/sessions/sess-1/artifacts`,
+      'http://farm.test:4723/wd/hub/api/sessions/sess-1/artifacts/video-2.mp4',
+    ]);
+  });
+
+  it('브라우저의 Range 를 팜에 넘기고 206 과 범위 머리를 그대로 옮긴다', async () => {
+    가짜팜({ status: 200, body: 파일들('video-1.mp4') }, { status: 206, headers: { 'content-type': 'video/mp4', 'content-range': 'bytes 2-4/10', 'accept-ranges': 'bytes' }, body: '234' });
+
+    const res = await 불러온다('bytes=2-4');
+
+    expect(받음[1]!.range).toBe('bytes=2-4');
+    expect(res.statusCode).toBe(206);
+    expect(res.headers['content-range']).toBe('bytes 2-4/10');
+    expect(res.body).toBe('234');
+  });
+
+  it.each([
+    ['번호 파일이 없으면', () => rmSync(join(runDir('3', '9'), APPIUM_SESSION_ID_FILE)), { status: 200 }, '이 항목은 디바이스 팜 영상 기록이 없습니다'],
+    ['팜 주소가 없으면', () => delete process.env.DEVICE_FARM_URL, { status: 200 }, '이 서버에는 디바이스 팜이 연결되어 있지 않습니다'],
+    ['팜이 연결을 모르면', () => undefined, { status: 404 }, '디바이스 팜에 이 영상이 없습니다 — 30일이 지났을 수 있습니다'],
+    ['팜 목록이 500 이면', () => undefined, { status: 500 }, '디바이스 팜에 닿지 못했습니다'],
+    ['아직 준비 중이면', () => undefined, { status: 200, body: { value: { ready: false, files: [] } } }, '디바이스 팜에 이 항목의 화면 영상이 없습니다'],
+    ['mp4 가 없으면', () => undefined, { status: 200, body: 파일들('logcat.txt') }, '디바이스 팜에 이 항목의 화면 영상이 없습니다'],
+    ['영상을 받을 때 팜에 못 닿으면', () => undefined, { status: 200, body: 파일들('video-1.mp4') }, '디바이스 팜에 닿지 못했습니다'],
+  ])('%s 404 GONE 과 사람이 읽는 한 줄을 준다', async (_이름, 준비, 목록, 글) => {
+    가짜팜(목록);
+    준비();
+
+    const res = await 불러온다();
+
+    expect(res.statusCode).toBe(404);
+    expect(res.json()).toEqual({ error: 'GONE', detail: 글 });
+  });
+
+  it('팜이 다른 출처를 가리키면 따라가지 않는다', async () => {
+    가짜팜({ status: 200, body: { value: { ready: true, files: [{ name: 'video-1.mp4', bytes: 1, url: 'http://evil.test/video-1.mp4' }] } } }, { status: 200 });
+
+    const res = await 불러온다();
+
+    expect(res.statusCode).toBe(404);
+    expect(받음).toHaveLength(1);
+  });
+
+  it('번호가 정수가 아니면 400 이다', async () => {
+    const res = await (await 영상앱()).inject({ method: 'GET', url: '/api/runs/x/items/9/farm-video' });
+    expect(res.statusCode).toBe(400);
   });
 });

@@ -149,6 +149,24 @@ describe('POST /execute', () => {
     expect((await 보낸다({ udid: '' })).statusCode).toBe(400);
   });
 
+  it('게임 엔진 · 어드민 키를 버리지 않고 넘기고, 모르는 엔진이나 빈 키는 400 이다', async () => {
+    const 보낸다 = (칸: Record<string, unknown>) =>
+      서버().inject({
+        method: 'POST',
+        url: '/execute',
+        payload: {
+          runId: 1, historyId: 6, tcId: 'TODO-001', platform: 'android', filePath: 'todo/TODO-001.spec.ts',
+          baseUrl: 'https://ash.example.com', params: {}, expected: {}, ...칸,
+        },
+      });
+    const 키 = { header: 'X-Admin-Key', value: 'k-1234' };
+
+    expect((await 보낸다({ engine: 'GAME', adminKey: 키 })).statusCode).not.toBe(400);
+    expect(execute).toHaveBeenLastCalledWith(expect.objectContaining({ engine: 'GAME', adminKey: 키 }), expect.any(String));
+    expect((await 보낸다({ engine: 'UNITY' })).statusCode).toBe(400);
+    expect((await 보낸다({ adminKey: { header: 'X-Admin-Key', value: '' } })).statusCode).toBe(400);
+  });
+
   describe('API 인증 (도메인/러너 §5.2 「API 케이스 실행」)', () => {
     const 인증 = { name: '고객사 A', tokenUrl: '/v1/oauth/token', clientId: 'client-a', clientSecret: 'secret-a' };
     const 보낸다 = (apiAuths: unknown) =>

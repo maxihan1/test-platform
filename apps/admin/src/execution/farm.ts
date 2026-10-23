@@ -1,6 +1,6 @@
 // 디바이스 팜에서 빈 폰을 잡아 일을 맡기고 놓는다 — Android 앱 정식 실행과 작성 에이전트의 앱 화면 읽기가 쓴다 (도메인/러너 §5.2 「디바이스 팜 접속 방식」)
 
-// 팜이 받는 가장 짧은 잡기다. 항목 하나의 상한(5분 · DEFAULT_TIMEOUT_MS)보다 넉넉해서 늘리기(/extend)가 필요 없다
+// 팜이 받는 가장 짧은 잡기다. 항목 하나의 상한(5분 · DEFAULT_TIMEOUT_MS)보다 넉넉해서 앱 항목은 늘리기(/extend)가 필요 없다
 const 잡는_분 = 30;
 const 팜_제한_ms = 10_000;
 // 놓은 폰은 팜이 정리하는 동안(실측 1초 안팎) 빈 폰이 아니다. 앞 항목이 막 놓은 폰을 다음 항목이 못 잡고 NA 가 되지 않게 그동안만 기다린다
@@ -33,11 +33,11 @@ async function 빈폰을고른다(팜: string, 부르기: typeof fetch, 쉬기: 
 }
 
 // 거절이면 그 문장, 잡았으면 null. 닿지 못하면 던진다
-async function 잡는다(팜: string, serial: string, 부르기: typeof fetch): Promise<string | null> {
+async function 잡는다(팜: string, serial: string, 부르기: typeof fetch, 분: number): Promise<string | null> {
   const 잡기 = await 부르기(`${팜}/api/devices/${encodeURIComponent(serial)}/hold`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ minutes: 잡는_분 }),
+    body: JSON.stringify({ minutes: 분 }),
     signal: AbortSignal.timeout(팜_제한_ms),
   });
   if (잡기.ok) return null;
@@ -59,15 +59,32 @@ async function 폰을돌려준다(팜: string, serial: string, 부르기: typeof
   }
 }
 
+/**
+ * 긴 실행(게임)이 잡기를 30분 더 늘린다. 끝나기 10분 전이 아니면 팜이 409 로 거절하는데 그건 정상이라 조용히 넘긴다.
+ * 그 밖의 실패도 던지지 않는다 — 늘리지 못해도 지금 항목은 돌고, 정말 끊기면 항목이 NA 로 닫힌다
+ */
+export async function 잡기를늘린다(팜: string, serial: string, 부르기: typeof fetch = fetch): Promise<void> {
+  try {
+    const res = await 부르기(`${팜}/api/devices/${encodeURIComponent(serial)}/hold/extend`, {
+      method: 'POST',
+      signal: AbortSignal.timeout(팜_제한_ms),
+    });
+    if (!res.ok && res.status !== 409) console.error(`[farm] 폰 ${serial} 잡기를 늘리지 못했다: HTTP ${res.status}`);
+  } catch (err) {
+    console.error(`[farm] 폰 ${serial} 잡기를 늘리지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
 const 닿지못함 = (err: unknown): string => `디바이스 팜에 닿지 못했습니다: ${err instanceof Error ? err.message : String(err)}`;
 
-/** 빈 폰 하나를 잡아 그 번호로 일을 맡기고, 일이 어떻게 끝나든 놓는다. 못 잡으면 까닭을 넘긴다 — 던지지 않는다 */
+/** 빈 폰 하나를 잡아 그 번호로 일을 맡기고, 일이 어떻게 끝나든 놓는다. 못 잡으면 까닭을 넘긴다 — 던지지 않는다. 분은 팜이 받는 30 · 60 · 120 */
 export async function 팜폰으로<T>(
   팜: string,
   일: (udid: string) => Promise<T>,
   못잡음: (까닭: string) => T,
   부르기: typeof fetch = fetch,
   쉬기: (ms: number) => Promise<void> = (ms) => new Promise((깨운다) => setTimeout(깨운다, ms)),
+  분: number = 잡는_분,
 ): Promise<T> {
   let serial: string;
   try {
@@ -78,7 +95,7 @@ export async function 팜폰으로<T>(
     return 못잡음(닿지못함(err));
   }
   try {
-    const 거절 = await 잡는다(팜, serial, 부르기);
+    const 거절 = await 잡는다(팜, serial, 부르기, 분);
     if (거절 !== null) return 못잡음(거절);
   } catch (err) {
     // 답이 늦게 왔을 뿐 팜은 잡았을 수 있다. 안 놓으면 그 폰이 30분 동안 빈 폰이 아니다

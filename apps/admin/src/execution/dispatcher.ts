@@ -2,11 +2,14 @@
 // 대기줄은 모듈 전역이다. 실행 묶음마다 2개씩 돌면 두 사람이 동시에 누를 때 4개가 돈다 —
 // 대상 서버가 2코어라 그 이상은 느려지기만 한다 (SPEC §9)
 
+import type { ExecuteResponse } from '@platform/kit';
+
 import { 실행문서견주기 } from '../apidoc/runCompare.js';
 
+import { 잡기를늘린다, 팜주소, 팜폰으로 } from './farm.js';
 import { notifyRun } from './notify.js';
 import { 폰차례 } from './phone.js';
-import { callRunner } from './runner.js';
+import { callRunner, na } from './runner.js';
 import { finishItem, finishRun, type PendingItem } from './store.js';
 import { trace적재를맡긴다 } from './traceIngest.js';
 
@@ -54,10 +57,13 @@ export function markAborted(runId: number): void {
   멈춘실행.add(runId);
 }
 
-async function runOne(runId: number, item: PendingItem): Promise<void> {
+async function runOne(runId: number, item: PendingItem, 잡은폰?: string): Promise<void> {
   if (멈춘실행.has(runId)) return;
 
-  const result = await callRunner(runId, item, () => 멈춘실행.has(runId));
+  await 저장한다(item, await callRunner(runId, item, () => 멈춘실행.has(runId), 잡은폰));
+}
+
+async function 저장한다(item: PendingItem, result: ExecuteResponse): Promise<void> {
   try {
     await finishItem(item.historyId, result);
     // 기다리지 않는다 — 풀기는 실행을 늦추지 않게 따로 한 줄로 돈다 (SPEC 실행 §3.2 「trace」)
@@ -69,6 +75,37 @@ async function runOne(runId: number, item: PendingItem): Promise<void> {
   }
 }
 
+// 게임 항목은 실행 하나 동안 폰을 한 번 잡고 한 번 깐다 — 앱은 항목마다 놓으면 지워져 APK 가 큰 게임은 항목마다 다시 깐다 (도메인/게임 §3.10 결정 12).
+// 120분은 팜이 받는 가장 긴 잡기고, 항목을 시작할 때마다 늘려 회귀 실행이 몇 시간이어도 끊기지 않게 한다
+const 게임잡는_분 = 120;
+
+async function 게임실행(runId: number, 항목들: PendingItem[]): Promise<void> {
+  await 폰차례(async () => {
+    const 팜 = 팜주소();
+    // 팜 주소가 없으면 callRunner 가 항목마다 NA 로 닫는다
+    if (팜 === undefined) {
+      for (const item of 항목들) await runOne(runId, item);
+      return;
+    }
+    await 팜폰으로(
+      팜,
+      async (udid) => {
+        for (const item of 항목들) {
+          if (멈춘실행.has(runId)) return;
+          await 잡기를늘린다(팜, udid);
+          await runOne(runId, item, udid);
+        }
+      },
+      async (까닭) => {
+        for (const item of 항목들) if (!멈춘실행.has(runId)) await 저장한다(item, na(item, 까닭));
+      },
+      undefined,
+      undefined,
+      게임잡는_분,
+    );
+  });
+}
+
 // 요청을 받은 쪽은 기다리지 않는다. run_id만 돌려주고 실행은 여기서 계속된다 (SPEC §7)
 export async function dispatch(runId: number, items: PendingItem[]): Promise<void> {
   // 항목을 기다리게 하지 않는다 — 항목은 케이스가 만들어진 판을 DB 에서 읽는다. 끝내기 전에만 기다린다 (도메인/API §3.8 「실행 시작 때 견주기」)
@@ -78,21 +115,24 @@ export async function dispatch(runId: number, items: PendingItem[]): Promise<voi
   // 같은 케이스 항목(반복 회차 · PC · 모바일)은 하나씩 돈다. 나란히 돌면 같은 데이터를 두고 부딪힌다 —
   // run 20903 에서 재고 1개 상품 · 서버 초기화 케이스가 짝 회차와 같은 시각에 깨졌다 (SPEC 실행 §3.2 · PRD-F9-36).
   // 케이스마다 앞 항목이 끝나야 다음을 대기줄에 넣으므로 회차는 케이스 순서로 한 바퀴씩 돌고, 다른 케이스는 상한까지 나란히 돈다
+  const 게임인가 = (i: PendingItem): boolean => i.engine === 'GAME' && i.platform === 'android';
   const 케이스줄 = new Map<string, PendingItem[]>();
-  for (const item of items) {
+  for (const item of items.filter((i) => !게임인가(i))) {
     const 줄 = 케이스줄.get(item.tcId);
     if (줄 === undefined) 케이스줄.set(item.tcId, [item]);
     else 줄.push(item);
   }
   // android 는 전역 상한 밖의 디바이스 줄이다. 같은 디바이스에 연결 둘이 겹치면 뒤 연결이 앞을 가로채고,
   // 전역 상한은 컨테이너 러너의 CPU 를 지키는 값이라 그 러너에서 돌지 않는 앱 항목이 자리를 쓸 이유가 없다 (SPEC 실행 §3.2)
-  await Promise.all(
-    [...케이스줄.values()].map(async (줄) => {
+  const 게임들 = items.filter(게임인가);
+  await Promise.all([
+    ...[...케이스줄.values()].map(async (줄) => {
       for (const item of 줄) {
         await (item.platform === 'android' ? 폰차례(() => runOne(runId, item)) : enqueue(() => runOne(runId, item)));
       }
     }),
-  );
+    ...(게임들.length > 0 ? [게임실행(runId, 게임들)] : []),
+  ]);
   // 멈춘 실행은 ABORTED 로 이미 닫혔다. finishRun 은 RUNNING 만 건드리므로 그대로 둬도 되지만,
   // 표시를 남겨 두면 다음 실행의 같은 번호에서 오판할 수 있어 여기서 치운다
   멈춘실행.delete(runId);
