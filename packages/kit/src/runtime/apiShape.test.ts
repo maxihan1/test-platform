@@ -198,4 +198,17 @@ describe('모양확인', () => {
     const 못읽음 = { ...문서, servers: [{ url: 'http://[bad' }] };
     expect(모양확인(못읽음, 'POST', '/v1/pushes', 201, 본문({ id: 'a', status: 'SENT' }))?.result).toBe('PASS');
   });
+
+  it('경로 · scheme 자리의 서버 변수는 문서의 기본값으로 채운다 — 0 으로 채우면 앞 경로가 틀어져 검사가 빠진다', () => {
+    const 기본값 = {
+      ...문서,
+      servers: [
+        {
+          url: '{scheme}://{username}.example.com:{port}/{basePath}',
+          variables: { scheme: { default: 'https' }, username: { default: 'demo' }, port: { default: '8443' }, basePath: { default: 'v2' } },
+        },
+      ],
+    };
+    expect(모양확인(기본값, 'POST', '/v2/v1/pushes', 201, 본문({ status: 'SENT' }))?.problems).toEqual(['필수 필드 없음 — id']);
+  });
 });
