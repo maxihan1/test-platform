@@ -20,7 +20,7 @@ import { findItem, findRun, listRuns, serviceExists } from './queries.js';
 import { abortRun, createRun, recoverRunning, RunInputError, unfinishedItems } from './store.js';
 import { validate } from './validate.js';
 import { trace기록을읽는다, 밀린trace를푼다 } from './traceIngest.js';
-import { 팜증적경로, 팜증적목록 } from './farmEvidence.js';
+import { 팜영상경로, 팜증적경로, 팜증적목록 } from './farmEvidence.js';
 import { 목록종류읽기 } from './runKind.js';
 import { 시작방식거르개 } from './runOrigin.js';
 import { runBody, 팜을본다 } from './location.js';
@@ -233,6 +233,7 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
 
   // 영상 Range 를 받는 sendFile 이 따로 등록돼야 해서 플러그인 하나로 붙인다
   await app.register(팜증적경로);
+  await app.register(팜영상경로);
 
   app.get<{ Params: { runId: string; historyId: string; seq: string } }>(
     '/screenshots/:runId/:historyId/:seq.png',
