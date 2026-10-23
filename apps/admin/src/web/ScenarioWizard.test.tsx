@@ -85,6 +85,17 @@ describe('ScenarioWizard 시작 방법', () => {
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
+  it('다음 단계로 넘어가면 본문이 맨 위에서 시작한다', () => {
+    그리기();
+    fireEvent.click(screen.getByRole('button', { name: /직접 고르기/ }));
+    const 본문 = document.querySelector('.wz-main');
+    if (본문 === null) throw new Error('마법사 본문이 없다');
+    본문.scrollTop = 490;
+    다음();
+    expect(screen.getByText(/^2 \/ 5/u)).toBeTruthy();
+    expect(본문.scrollTop).toBe(0);
+  });
+
   it('읽기만 하는 사람은 목록으로 보낸다', async () => {
     그리기(사람('read'));
     await waitFor(() => expect(window.location.hash).toBe('#/scenarios'));
