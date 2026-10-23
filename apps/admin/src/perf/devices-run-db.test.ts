@@ -59,12 +59,15 @@ describe.skipIf(연결 === undefined)('기기 성능 실행', { timeout: 90_000 
   it('게임 애플리케이션이면 조작 요청에 엔진 GAME 을 싣는다', async () => {
     const 원래 = (await 판.pool.query<{ kind: string }>('SELECT kind FROM service WHERE id = $1', [판.서비스])).rows[0]!.kind;
     await 판.pool.query(`UPDATE service SET kind = 'GAME' WHERE id = $1`, [판.서비스]);
+    await 판.pool.query(`UPDATE service_env SET admin_key = $2 WHERE service_id = $1 AND env = 'qa'`, [판.서비스, JSON.stringify({ header: 'X-Admin-Key', value: 'k-1234' })]);
     try {
       const 전 = 러너.호출들.length;
       const runId = await 만들기({ drive: 'APPIUM', durationSec: undefined, caseIds: ['XQDR-001'], repeat: 1, devices: [{ serial: 'FA1', where: 'FARM' }] }, 0);
       await 끝날때까지(runId);
-      expect(러너.호출들.slice(전).filter((h) => h.path === '/execute').map((h) => h.body.engine)).toEqual(['GAME']);
+      const 보낸것 = 러너.호출들.slice(전).filter((h) => h.path === '/execute');
+      expect(보낸것.map((h) => [h.body.engine, h.body.adminKey])).toEqual([['GAME', { header: 'X-Admin-Key', value: 'k-1234' }]]);
     } finally {
+      await 판.pool.query(`UPDATE service_env SET admin_key = NULL WHERE service_id = $1 AND env = 'qa'`, [판.서비스]);
       await 판.pool.query('UPDATE service SET kind = $2 WHERE id = $1', [판.서비스, 원래]);
     }
   });

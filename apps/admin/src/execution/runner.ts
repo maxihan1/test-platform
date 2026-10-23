@@ -151,6 +151,7 @@ export async function callRunner(runId: number, item: PendingItem, 멈췄나: ()
     ...(item.app !== undefined && { app: item.app }),
     ...(item.apiAuths !== undefined && { apiAuths: item.apiAuths }),
     ...(item.engine !== undefined && { engine: item.engine }),
+    ...(item.adminKey !== undefined && { adminKey: item.adminKey }),
     ...판,
   };
 

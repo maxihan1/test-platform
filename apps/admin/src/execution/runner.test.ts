@@ -94,8 +94,8 @@ describe('callRunner', () => {
       return { historyId: body.historyId, status: 'PASS', durationMs: 1, steps: [] };
     });
 
-    await callRunner(7, { ...항목, engine: 'GAME' });
-    expect(받은것).toMatchObject({ tcId: 'DEMO-001', engine: 'GAME' });
+    await callRunner(7, { ...항목, engine: 'GAME', adminKey: { header: 'X-Admin-Key', value: 'k-1234' } });
+    expect(받은것).toMatchObject({ tcId: 'DEMO-001', engine: 'GAME', adminKey: { header: 'X-Admin-Key', value: 'k-1234' } });
   });
 
   it('API 케이스면 그 케이스 판 원문을 싣는다 (도메인/API §3.8)', async () => {
