@@ -841,6 +841,10 @@ docker run -d --init --restart unless-stopped --network host --name qahub-monito
    ```
 2. admin 컨테이너 안에서 한 번 옮긴다. 바로가기는 빼고 일반 파일만 옮긴다 — 옛 자리는 러너가 쓸 수 있던 곳이라, 미덥지 않으면 옮기지 말고 설정 › 성능 에이전트 「더미 클라이언트」에서 지운 뒤 다시 올린다
    ```bash
-   docker compose exec admin sh -c 'find /artifacts/perf-dummy -maxdepth 1 -type f -name "*.zip" -exec cp -n {} /perf-dummy/ \; && rm -rf /artifacts/perf-dummy'
+   docker compose exec admin sh -c 'find /artifacts/perf-dummy -maxdepth 1 -type f -name "*.zip" -exec cp -n {} /perf-dummy/ \;'
    ```
-3. `docker compose exec admin ls /perf-dummy` 에 올린 zip 번호(`3.zip` 같은)가 보이면 끝이다
+3. 두 자리를 견준다 — `docker compose exec admin ls -l /artifacts/perf-dummy /perf-dummy` 에서 옛 자리의 zip 번호 · 크기가 새 자리에 다 있어야 한다
+4. 다 있으면 옛 자리를 지운다. 하나라도 빠졌으면 지우지 말고 2번을 다시 한다
+   ```bash
+   docker compose exec admin rm -rf /artifacts/perf-dummy
+   ```
