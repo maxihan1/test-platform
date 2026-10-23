@@ -1,7 +1,6 @@
 // 시나리오 실행 통로 — 실행 요청 · 결과 조회 · 사진 (SPEC 도메인/시나리오 §7)
 // 배정과 권한은 문(auth/gate.ts)이 이미 봤다. routes.ts 검사 파일이 300줄에 닿아 실행 통로만 뗐다
 
-import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { ItemStatus, JsonSchema, Platform, ScenarioCleanup, ScenarioPart, StepResult } from '@platform/kit';
@@ -9,6 +8,7 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 
 import { 증적목록 } from '../execution/queries.js';
+import { 볼륨파일읽기 } from '../artifactFile.js';
 import { artifactsDir, 시나리오실행인가 } from '../execution/routes.js';
 import { 가린다, 긴것부터 } from '../execution/trial.js';
 import { 항목실패를가른다 } from '../reporting/itemFailure.js';
@@ -242,7 +242,7 @@ export default async function scenarioRunRoutes(app: FastifyInstance): Promise<v
 
     let png: Buffer;
     try {
-      png = await readFile(join(artifactsDir(), 'runs', String(runId), 'scenario', `${seq}.png`));
+      png = await 볼륨파일읽기(join(artifactsDir(), 'runs', String(runId), 'scenario', `${seq}.png`));
     } catch {
       // 내보낼 것을 손에 쥔 뒤에 형식을 정한다. 먼저 image/png 로 박으면 404 본문을 png 로 쓰려다 500 이 난다
       return reply.code(404).send({ error: 'SCREENSHOT_NOT_FOUND', detail: req.url });

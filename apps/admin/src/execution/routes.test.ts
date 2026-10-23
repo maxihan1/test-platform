@@ -1,6 +1,10 @@
 // 실행 API가 SPEC §7의 경로와 응답 형태를 지키는지 본다.
 // CI에는 postgres가 없다. DATABASE_URL이 있을 때만 돈다
 
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { Pool } from 'pg';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -288,6 +292,29 @@ describe.skipIf(연결 === undefined)('ParamSet API', () => {
         expect(res.statusCode, `${자리.method} ${자리.url}`).toBe(400);
         expect(res.json().error, `${자리.method} ${자리.url}`).toBe('INVALID_REQUEST');
       }
+    }
+  });
+
+  // 케이스는 root 로 돌아 볼륨에 바로가기를 만들 수 있고, 바로가기는 읽는 admin 쪽에서 풀린다 (리뷰 M4)
+  it('스크린샷이 볼륨 밖으로 가는 바로가기면 404 다 — admin 의 환경변수 같은 파일을 내주지 않는다', async () => {
+    const 뿌리 = mkdtempSync(join(tmpdir(), 'xbr-shot-'));
+    const 밖 = mkdtempSync(join(tmpdir(), 'xbr-out-'));
+    const 앞 = process.env.PLATFORM_ARTIFACTS_DIR;
+    process.env.PLATFORM_ARTIFACTS_DIR = 뿌리;
+    try {
+      writeFileSync(join(밖, 'environ'), 'SESSION_SECRET=비밀');
+      mkdirSync(join(뿌리, 'runs', '7', '8'), { recursive: true });
+      writeFileSync(join(뿌리, 'runs', '7', '8', '1.png'), 'png');
+      symlinkSync(join(밖, 'environ'), join(뿌리, 'runs', '7', '8', '2.png'));
+      expect((await app.inject({ method: 'GET', url: '/api/screenshots/7/8/1.png' })).statusCode).toBe(200);
+      const res = await app.inject({ method: 'GET', url: '/api/screenshots/7/8/2.png' });
+      expect(res.statusCode).toBe(404);
+      expect(res.body).not.toContain('SESSION_SECRET');
+    } finally {
+      if (앞 === undefined) delete process.env.PLATFORM_ARTIFACTS_DIR;
+      else process.env.PLATFORM_ARTIFACTS_DIR = 앞;
+      rmSync(뿌리, { recursive: true, force: true });
+      rmSync(밖, { recursive: true, force: true });
     }
   });
 });

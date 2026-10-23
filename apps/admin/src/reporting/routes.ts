@@ -1,11 +1,11 @@
 // 리포팅 컨텍스트의 HTTP 라우트 (SPEC §7 Reporting)
 // 규약: default export 한 Fastify 플러그인을 app.ts가 /api 접두사로 등록한다
 
-import { readFile } from 'node:fs/promises';
 
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
+import { 볼륨파일읽기 } from '../artifactFile.js';
 import { 칸되는서비스, type 기능 } from '../auth/permissions.js';
 import { 정수 } from '../routeParams.js';
 import { 대시보드, 대시보드실행중, 틀린시간대 } from './dashboardResults.js';
@@ -196,7 +196,8 @@ export default async function reportingRoutes(app: FastifyInstance): Promise<voi
 
     let 파일: Buffer;
     try {
-      파일 = await readFile(문서.filePath);
+      // 러너도 이 볼륨에 쓴다 — 바로가기를 따라가면 admin 의 아무 파일이나 증적으로 나간다 (리뷰 M4)
+      파일 = await 볼륨파일읽기(문서.filePath);
     } catch {
       // 내보낼 것을 손에 쥔 뒤에 형식을 정한다. 먼저 type()을 박으면 404 본문을 그 형식으로 쓰려다 500이 난다
       return reply.code(404).send({ error: 'EVIDENCE_FILE_NOT_FOUND', detail: req.params.id });

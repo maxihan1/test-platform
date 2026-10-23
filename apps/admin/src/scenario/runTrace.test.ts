@@ -16,10 +16,13 @@ const 부품 = (seq: number, status: ScenarioPartResult['status'], 단계: numbe
 });
 
 let 폴더 = '';
+// trace 는 artifacts 볼륨 안 일반 파일만 읽는다 (리뷰 M4)
 beforeEach(() => {
   폴더 = mkdtempSync(join(tmpdir(), 'run-trace-'));
+  process.env.PLATFORM_ARTIFACTS_DIR = 폴더;
 });
 afterEach(() => {
+  delete process.env.PLATFORM_ARTIFACTS_DIR;
   rmSync(폴더, { recursive: true, force: true });
 });
 

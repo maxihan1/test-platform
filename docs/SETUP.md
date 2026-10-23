@@ -829,3 +829,22 @@ docker run -d --init --restart unless-stopped --network host --name qahub-monito
    docker compose up -d
    ```
 5. 화면에 로그인해 케이스 목록이 뜨고, `그래프(Grafana) ↗` 대시보드에 숫자가 나오면 둘 다 붙은 것이다
+
+## 19. 더미 클라이언트 자리 옮기기 (2026-10-23 · FIX-F1-03)
+
+성능 더미 클라이언트 zip 은 admin 만 붙이는 `perf_dummy` 볼륨(`/perf-dummy`)에 둔다. 러너가 못 보게 하려고 옮겼다(SPEC 공통/6-인프라 §9 「더미 클라이언트 zip 은 러너가 못 보는 볼륨에 둔다」).
+그 전에 올린 zip 은 옛 자리(`/artifacts/perf-dummy`)에 남아 있어, 그대로면 그 더미를 쓰는 성능 실행이 zip 을 못 받아 실패한다. 새 서버나 올린 zip 이 없는 서버는 할 일이 없다.
+
+1. 새 compose 로 다시 띄운다
+   ```bash
+   docker compose up -d --build admin runner
+   ```
+2. admin 컨테이너 안에서 한 번 옮긴다. 바로가기는 빼고 일반 파일만 옮긴다 — 옛 자리는 러너가 쓸 수 있던 곳이라, 미덥지 않으면 옮기지 말고 설정 › 성능 에이전트 「더미 클라이언트」에서 지운 뒤 다시 올린다
+   ```bash
+   docker compose exec admin sh -c 'find /artifacts/perf-dummy -maxdepth 1 -type f -name "*.zip" -exec cp -n {} /perf-dummy/ \;'
+   ```
+3. 두 자리를 견준다 — `docker compose exec admin ls -l /artifacts/perf-dummy /perf-dummy` 에서 옛 자리의 zip 번호 · 크기가 새 자리에 다 있어야 한다
+4. 다 있으면 옛 자리를 지운다. 하나라도 빠졌으면 지우지 말고 2번을 다시 한다
+   ```bash
+   docker compose exec admin rm -rf /artifacts/perf-dummy
+   ```

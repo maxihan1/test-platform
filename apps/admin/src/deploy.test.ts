@@ -238,6 +238,15 @@ describe('부하 발생 에이전트', () => {
     expect(에이전트).toMatch(/^ {4}init:\s*true/m);
     expect(에이전트).toMatch(/AGENT_TOKEN:\s*"\$\{PERF_AGENT_TOKEN:-\}"/);
   });
+
+  // 에이전트는 받은 zip 을 풀어 root 로 돌린다. 러너가 같은 볼륨을 쓰면 케이스가 zip 을 바꿔치기한다 (리뷰 M16)
+  it('더미 클라이언트 zip 볼륨은 admin 만 붙인다', () => {
+    const admin = 서비스블록('admin');
+    expect(admin).toMatch(/^ {6}PLATFORM_PERF_DUMMY_DIR:\s*\/perf-dummy\s*$/m);
+    expect(admin).toMatch(/^ {6}- perf_dummy:\/perf-dummy\b/m);
+    expect(compose).toMatch(/^ {2}perf_dummy:\s*\{\}/m);
+    for (const 이름 of ['runner', 'perf-agent', 'author']) expect(서비스블록(이름), 이름).not.toMatch(/perf[_-]dummy/);
+  });
 });
 
 // 러너는 AI 가 쓴 케이스를 돌리고 이미지에 pg 가 깔려 있다. 같은 망이면 케이스 한 줄로 DB 를 읽고 고친다 (리뷰 H5 · M17, SPEC 공통/6 §9)

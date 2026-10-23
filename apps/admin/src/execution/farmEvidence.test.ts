@@ -1,6 +1,6 @@
 // 러너가 받아 둔 팜 증적의 목록 · 파일 통로 단위 테스트. DB 없이 임시 artifacts 폴더만 쓴다
 
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -88,6 +88,37 @@ describe('GET /api/runs/:runId/items/:historyId/farm/:name', () => {
     const app = await 앱();
     const res = await app.inject({ method: 'GET', url: '/api/runs/x/items/9/farm/logcat.txt' });
     expect(res.statusCode).toBe(400);
+  });
+});
+
+// 볼륨에 쓰는 쪽은 root 로 도는 케이스라 바로가기를 막을 수 없고, 바로가기는 읽는 admin 쪽에서 풀린다 (리뷰 M4)
+describe('바로가기', () => {
+  let 밖: string;
+
+  beforeEach(() => {
+    밖 = mkdtempSync(join(tmpdir(), 'farm-out-'));
+    writeFileSync(join(밖, 'environ'), 'SESSION_SECRET=비밀');
+    mkdirSync(join(밖, FARM_EVIDENCE_DIR));
+    writeFileSync(join(밖, FARM_EVIDENCE_DIR, 'environ'), 'SESSION_SECRET=비밀');
+  });
+
+  afterEach(() => {
+    rmSync(밖, { recursive: true, force: true });
+  });
+
+  it('볼륨 밖으로 가는 바로가기 파일은 목록에도 없고 내주지도 않는다', async () => {
+    symlinkSync(join(밖, 'environ'), join(팜폴더(), 'environ.txt'));
+    expect((await 팜증적목록(3, 9)).map((f) => f.name)).not.toContain('environ.txt');
+    const res = await (await 앱()).inject({ method: 'GET', url: '/api/runs/3/items/9/farm/environ.txt' });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('항목 폴더가 볼륨 밖으로 가는 바로가기여도 그 안 파일을 내주지 않는다', async () => {
+    mkdirSync(join(임시, 'runs', '3'), { recursive: true });
+    symlinkSync(밖, runDir('3', '10'));
+    expect(await 팜증적목록(3, 10)).toEqual([]);
+    const res = await (await 앱()).inject({ method: 'GET', url: '/api/runs/3/items/10/farm/environ' });
+    expect(res.statusCode).toBe(404);
   });
 });
 
