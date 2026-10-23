@@ -50,6 +50,18 @@ function unzip(ctx: DummyCtx, zip: string, to: string): Promise<string | null> {
   });
 }
 
+// zip 을 받아 푼다. 못 하면 그 까닭 — 던지지 않는다. 받는 동안 1초 숫자를 보내는 고리가 이 끝을 기다린다
+async function prepare(ctx: DummyCtx, id: number, dir: string, app: string): Promise<string | null> {
+  try {
+    await mkdir(app);
+    await download(ctx, id, join(dir, 'client.zip'));
+  } catch (e) {
+    return e instanceof Error ? e.message : String(e);
+  }
+  const 풀기오류 = await unzip(ctx, join(dir, 'client.zip'), app);
+  return 풀기오류 === null ? null : `더미 클라이언트 압축을 풀지 못했습니다 — ${풀기오류}`;
+}
+
 export async function runDummy(ctx: DummyCtx, job: Job): Promise<DoneBody> {
   const spec = job.dummyClient;
   if (spec === undefined) return { status: 'ERROR', reason: '더미 클라이언트 정보가 없는 일입니다' };
@@ -61,26 +73,47 @@ export async function runDummy(ctx: DummyCtx, job: Job): Promise<DoneBody> {
     const app = join(dir, 'app');
     // 에이전트 환경(AGENT_TOKEN)은 물려주지 않는다 — 회사가 만든 프로그램이 읽는다
     const env: Record<string, string> = { PATH: process.env.PATH ?? '/usr/local/bin:/usr/bin:/bin', HOME: process.env.HOME ?? '/tmp', ...job.env };
+    const startMs = ctx.localStart(job);
+    const seconds = new DummySeconds(startMs, parseStages(job.env.QAHUB_STAGES, spec.users, job.durationSec));
+    const errTail: string[] = [];
+    let child: ChildProcess | undefined;
+    let idleDone: () => void = () => undefined;
+    let killTimer: NodeJS.Timeout | undefined;
+    const terminate = () => {
+      const pid = child?.pid;
+      if (pid === undefined) return idleDone();
+      killGroup(pid, 'SIGTERM');
+      killTimer ??= setTimeout(() => killGroup(pid, 'SIGKILL'), KILL_GRACE_MS);
+    };
+    let stopping = false;
+    const send = async (s: LoadSecond): Promise<boolean> => {
+      const res = await ctx.send(job.runId, s);
+      if (res?.stop && !stopping) {
+        stopping = true;
+        terminate();
+      }
+      return res !== null;
+    };
+
+    let next = 0;
     // 몫이 0 이면 받지도 띄우지도 않는다 — 빈 1초 숫자만 실행 시간 동안 보내 연락을 지킨다
     if (spec.users > 0) {
-      await mkdir(app);
-      await download(ctx, spec.id, join(dir, 'client.zip'));
-      const 풀기오류 = await unzip(ctx, join(dir, 'client.zip'), app);
-      if (풀기오류 !== null) return { status: 'ERROR', reason: `더미 클라이언트 압축을 풀지 못했습니다 — ${풀기오류}` };
+      // 받기 · 풀기가 startAt 을 넘기면 그동안도 빈 1초 숫자를 보낸다 — 실행 중에는 그것만 연락이라 안 보내면 30초 뒤 AGENT_LOST 다(§5.4)
+      const prepared = prepare(ctx, spec.id, dir, app);
+      next = await pumpSeconds(startMs, seconds, prepared, send);
+      const 준비오류 = await prepared;
+      if (준비오류 !== null) return { status: 'ERROR', reason: 준비오류 };
       if (job.accountsCsv) {
         env.QAHUB_ACCOUNTS_CSV = join(dir, 'accounts.csv');
         await writeFile(env.QAHUB_ACCOUNTS_CSV, job.accountsCsv, { mode: 0o600 });
       }
     }
+    // 받는 동안 QA Hub 가 멈추라고 했으면 띄우지 않는다
+    if (stopping) return { status: 'OK' };
 
-    const startMs = ctx.localStart(job);
     await ctx.pause(startMs - Date.now());
     if (ctx.cfg.signal?.aborted) return { status: 'ERROR', reason: '에이전트가 꺼졌습니다' };
 
-    const seconds = new DummySeconds(startMs, parseStages(job.env.QAHUB_STAGES, spec.users, job.durationSec));
-    const errTail: string[] = [];
-    let child: ChildProcess | undefined;
-    let idleDone: () => void = () => undefined;
     const exited = new Promise<number | null>((resolve) => {
       idleDone = () => resolve(0);
       if (spec.users <= 0) return;
@@ -98,14 +131,6 @@ export async function runDummy(ctx: DummyCtx, job: Job): Promise<DoneBody> {
       });
     });
 
-    let killTimer: NodeJS.Timeout | undefined;
-    const terminate = () => {
-      const pid = child?.pid;
-      if (pid === undefined) return idleDone();
-      killGroup(pid, 'SIGTERM');
-      killTimer ??= setTimeout(() => killGroup(pid, 'SIGKILL'), KILL_GRACE_MS);
-    };
-    let stopping = false;
     let timedOut = false;
     const timer = setTimeout(() => {
       timedOut = true;
@@ -113,15 +138,7 @@ export async function runDummy(ctx: DummyCtx, job: Job): Promise<DoneBody> {
     }, Math.max(0, startMs + job.durationSec * 1000 - Date.now()));
     ctx.cfg.signal?.addEventListener('abort', terminate, { once: true });
 
-    const send = async (s: LoadSecond): Promise<boolean> => {
-      const res = await ctx.send(job.runId, s);
-      if (res?.stop && !stopping) {
-        stopping = true;
-        terminate();
-      }
-      return res !== null;
-    };
-    let next = await pumpSeconds(startMs, seconds, exited, send);
+    next = await pumpSeconds(startMs, seconds, exited, send, next);
     // 실행 시간이 다 돼 끊었으면 줄이 없던 마지막 초들도 계획 사용자 수와 함께 보낸다 — 그래야 결과 화면의 최대 동시 사용자가 계획과 같다
     while (timedOut && next < job.durationSec && (await send(seconds.take(next)))) next += 1;
     clearTimeout(timer);
