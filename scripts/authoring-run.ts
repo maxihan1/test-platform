@@ -27,6 +27,7 @@ import { type 박동, 박동손 } from './authoring-heartbeat.js';
 import { type 서비스설정 } from './authoring-token.js';
 import { 먼저가리기 } from './authoring-masking.js';
 import { 게임화면받기, 앱화면받기, 잡은폰놓기, 탐색환경 } from './authoring-app-screen.js';
+import { 게임자료환경 } from './authoring-check-game.js';
 import { 게임올리기, 게임준비 } from './authoring-game.js';
 import { type 바꾸기, 가이드받기, 가이드폴더 } from './authoring-guide.js';
 import { 새로쓰기, 원장과남은번호 } from './authoring-ledger-io.js';
@@ -226,6 +227,7 @@ async function 사본에서(
     // 역방향 — 대상 서버·테스트 계정은 환경 변수로만. 프롬프트·인자에는 값을 안 싣는다 (§7 ★)
     ...(것.target === undefined ? {} : 대상환경(것.target)), ...계정환경(것.accounts, (글) => console.log(`[작성] ${것.id}번 ${글}`)), ...탐색환경(앱화면),
     ...(것.api === undefined ? {} : API환경(것.api, 자리.자료)), // API 대상 서버 · 인증 · 판 파일도 환경 변수로만 (도메인/API §3.8 「API 인증」)
+    ...(설정.게임 === true ? { [게임자료환경]: 자리.자료 } : {}), // 빠른 검사가 게임 지도(game-map.txt · game-elements.json)로 케이스 요소를 본다 (도메인/게임 §3.10 「작성 — 한 바퀴」 6)
   };
   const 역방향 = 것.target === undefined ? undefined : { 화면만: 화면만인가(것, 자료들), 산출물폴더: join(자리.자료, 'out'), 제외: 설정.제외 };
   const 인자 = 클로드인자(자리.자료, 판.모델, 자리.임시);

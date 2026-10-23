@@ -11,6 +11,7 @@ import { pathToFileURL } from 'node:url';
 import ts from 'typescript';
 
 import { 환경비밀번호들 } from './authoring-accounts.js';
+import { 게임검사 } from './authoring-check-game.js';
 import { 명세글, 속성, 읽기 } from './authoring-held-apply.js';
 import { 글모두 } from './authoring-reverse.js';
 import { 바뀐것 } from './authoring-base-list.js';
@@ -219,6 +220,8 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     ]);
     결과들.push({ 이름: '타입 검사(맡은 파일)', ok: tsc.ok, 줄들: 줄또는끝(tsc, tsc.줄들.filter((l) => /error TS/.test(l))) });
     if (형식 !== null) 결과들.push({ 이름: '케이스 형식 검사(맡은 파일)', ok: 형식.ok, 줄들: 줄또는끝(형식, 형식.줄들.filter((l) => / — \[K\d+\] /.test(l))) });
+    const 게임 = 게임검사(트리, 맡은, env);
+    if (게임 !== null) 결과들.push(게임);
     if (케이스파일.length > 0) {
       const 문장들 = 케이스파일.flatMap((f) => 케이스문장읽기(readFileSync(resolve(트리, f), 'utf8')) ?? []);
       // 목록은 tcId 접두사로, 폴더는 맡은 파일 경로(tests/<폴더>/…)로 — 새 서비스 폴더 이름은 접두사와 다를 수 있다
@@ -255,6 +258,9 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     결과들.push({ 이름: '케이스와 요구 목록 맞춰 보기', ok: 어긋남.length === 0, 줄들: 어긋남, 머리: 볼 === undefined ? 못좁힘 : `이번에 바뀐 케이스 ${볼.size}건만 봤다` });
     const 묶음 = 묶은확인들(문장들, 볼);
     결과들.push({ 이름: '확인 하나에 값 하나', ok: 묶음.length === 0, 줄들: 묶음 });
+    // 게임 규칙도 이번에 바뀐 파일만 — 못 읽으면 폴더 전체(화면 객체 · 도우미의 좌표도 본다)
+    const 게임 = 게임검사(트리, 바뀐 !== null && !('까닭' in 바뀐) ? 바뀐.filter((f) => f.startsWith(`tests/${폴더}/`)) : 파일모으기([join(트리, 'tests', 폴더)]).파일들.map((f) => relative(트리, f.경로)), env);
+    if (게임 !== null) 결과들.push(게임);
     const 가이드 = join('docs', 'cases', `${접두사}.guide.md`);
     결과들.push(비밀검사([`tests/${폴더}`, 표, ...(existsSync(join(트리, 가이드)) ? [가이드] : []), ...더]));
   } else {
