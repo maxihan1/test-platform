@@ -92,10 +92,12 @@ export function Settings({ user, onMeChanged, 자리, on서비스번호 }: { use
     나갈자리 !== undefined ? `#/settings/${encodeURIComponent(나갈자리)}` : 프로젝트들[0] !== undefined ? `#/settings/project-${프로젝트들[0].id}` : '#/settings/users';
   // 서비스는 자기 것인지 가리지 않고 늘 다시 읽는다 — 이름·색·대상 서버·웹훅이 전부 /auth/me 에 실려 띠와 실행 창으로 간다.
   // **읽은 뒤에** 칸을 다시 그리고 옮긴다 — 먼저 옮기면 옛 목록에 새 접두사가 없어 「그런 서비스가 없습니다」가 깜빡였다
-  const 서비스다시 = async (접두사: string, 옮기나: boolean) => {
+  const 서비스다시 = async (접두사: string, 옮기나: boolean, 저장 = true) => {
     onMeChanged();
     // 프로젝트도 같이 읽는다 — 메뉴는 애플리케이션을 제 프로젝트 줄 아래에 그려서, 다른 탭이 막 만든 프로젝트를 모르면 그 애플리케이션이 메뉴에서 빠진다
     if ((await Promise.all([projects.reload(), services.reload()])).includes(false)) return;
+    // 활성만 뒤집었으면 칸을 다시 그리지 않는다 — 다시 그리면 저장 안 한 대상 서버 줄 · 웹훅이 사라지고 「저장했습니다」가 떴다(리뷰 L32)
+    if (!저장) return;
     set판((n) => n + 1);
     set저장한곳(접두사);
     if (옮기나) {
@@ -167,7 +169,7 @@ export function Settings({ user, onMeChanged, 자리, on서비스번호 }: { use
               key={`${서비스.id}-${판}`}
               row={서비스}
               저장했다={저장한곳 === 서비스.prefix}
-              onDone={(접두사) => void 서비스다시(접두사, false)}
+              onDone={(접두사, 저장) => void 서비스다시(접두사, false, 저장)}
             />
           )}
         </div>

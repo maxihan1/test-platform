@@ -45,7 +45,7 @@ function 없음({ trace }: { trace: ItemTrace | null }) {
       ? [t('아직 없음'), t('기록을 아직 정리하지 않았거나 이 기능 전에 돈 항목입니다 — 방금 끝난 실행이면 잠시 뒤 새로 고쳐 주세요')]
       : trace.status === 'FAILED'
         ? [t('읽기 실패'), t('기록 파일을 읽지 못했습니다 — 관리자에게 알려 주세요')]
-        : [t('기록 없음'), 없는까닭글(trace.reason, t)];
+        : [t('기록 없음§실패 기록'), 없는까닭글(trace.reason, t)];
   return (
     <div className="trace-empty">
       <span className="trace-tag">{꼬리표}</span>

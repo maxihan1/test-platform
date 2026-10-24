@@ -23,10 +23,10 @@ import { message } from './ui.js';
  * 앞 판은 목록 줄을 펴면 칸 열 개가 한 줄로 이어져 무슨 설정인지 안 읽혔다(2026-10-07 사용자).
  * 새로 만드는 일은 마법사(SettingsWizard.tsx)가 한다 — 이 칸은 고치기만 한다 (2026-10-23 사용자)
  *
- * @param onDone 저장했다. 접두사를 넘긴다
+ * @param onDone 저장했거나(저장 true) 활성만 뒤집었다(false). 접두사를 넘긴다
  * @param 저장했다 방금 저장해 새로 읽은 칸이다. 저장 단추 곁에 「저장했습니다」를 보인다
  */
-type Props = { row: SettingsServiceRow; onDone: (접두사: string) => void; 저장했다?: boolean };
+type Props = { row: SettingsServiceRow; onDone: (접두사: string, 저장: boolean) => void; 저장했다?: boolean };
 
 export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
   const t = use말();
@@ -84,7 +84,7 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
         ...(정기바뀜 ? { schedule } : {}),
       });
       set보낸칸(지금칸);
-      onDone(row.prefix);
+      onDone(row.prefix, true);
     } catch (e) {
       setErr(오류문장(e, 언어));
     } finally {
@@ -99,7 +99,7 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
     setErr(null);
     try {
       await api.updateService(row.id, { isActive: !row.isActive });
-      onDone(row.prefix);
+      onDone(row.prefix, false);
     } catch (e) {
       setErr(오류문장(e, 언어));
     } finally {
@@ -161,7 +161,7 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
         </div>
       </구획>
 
-      <구획 제목={t('대상 서버')} 쓰임={t('테스트를 실행할 서버 목록입니다. 하나 이상 등록해야 실행할 수 있습니다')}>
+      <구획 제목={t('대상 서버§목록')} 쓰임={t('테스트를 실행할 서버 목록입니다. 하나 이상 등록해야 실행할 수 있습니다')}>
         <EnvEditor envs={envs} onChange={setEnvs} 접두사={row.prefix} api={API종류} 게임={게임종류} />
       </구획>
 

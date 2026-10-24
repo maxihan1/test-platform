@@ -62,7 +62,7 @@ describe('애플리케이션 설정은 구획마다 「어디에 쓰이나」를
     fireEvent.click(screen.getByRole('button', { name: '비활성화한다' }));
 
     await waitFor(() => expect(고침).toHaveBeenCalledWith(1, { isActive: false }));
-    expect(onDone).toHaveBeenCalledWith('ZSS');
+    expect(onDone).toHaveBeenCalledWith('ZSS', false);
   });
 
   it('비활성화 확인에서 그만두면 아무것도 보내지 않고 단추로 돌아온다', () => {

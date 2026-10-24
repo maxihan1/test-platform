@@ -104,7 +104,7 @@ export const 설정말: Record<string, string> = {
   '보안을 위해 저장한 값은 다시 표시하지 않습니다': 'For security, a saved value is never shown again',
 
   // 대상 서버 편집기
-  '대상 서버': 'Target servers',
+  '대상 서버§목록': 'Target servers',
   '대상 서버 목록': 'Target server list',
   '대상 서버 {번호} 키': 'Target server {번호} key',
   '대상 서버 {번호} 주소': 'Target server {번호} URL',
@@ -149,7 +149,7 @@ export const 설정말: Record<string, string> = {
   '운영 계정은 배정된 프로젝트에서 모든 기능을 씁니다. 켜 둘 프로젝트만 고르세요.':
     'Admins use every feature in their assigned projects. Pick only the projects to turn on.',
   '프로젝트와 권한': 'Projects and permissions',
-  '케이스': 'Cases',
+  '케이스§권한': 'Cases',
   '실행§권한': 'Runs',
   '작성': 'Authoring',
   '대시보드': 'Dashboard',
@@ -157,7 +157,7 @@ export const 설정말: Record<string, string> = {
   '권한 묶음': 'Preset',
   '읽기 전용': 'Read only',
   '작성자': 'Author',
-  '실행자': 'Runner',
+  '실행자§권한': 'Runner',
   '안 씀': 'Off',
   '읽기': 'Read',
   '쓰기': 'Write',
@@ -182,7 +182,6 @@ export const 설정말: Record<string, string> = {
   '지금 적어서 본인에게 전합니다.': 'Write it down now and hand it over.',
   '닫으면 다시 볼 수 없습니다': 'Once closed it cannot be seen again',
   '— 잊으면 다시 만듭니다': '— if it is lost, issue a new one',
-  '적었습니다': 'Got it',
 
   // 작성 에이전트 토큰 — 작성 에이전트 계정에만 보인다
   '작성 에이전트 토큰': 'Authoring agent token',

@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 import { 글자 } from './i18n.js';
-import { 말 } from './messages.js';
+import { 말, 표들 } from './messages.js';
 
 const 여기 = dirname(fileURLToPath(import.meta.url));
 
@@ -197,6 +197,20 @@ describe('화면에 한국어가 남아 있으면 표에 있어야 한다', () =
       for (const 자 of 화면글자들(글)) if (!(자 in 말)) 빠진것.push(`${길.split('/web/')[1]}: ${자}`);
     }
     expect(빠진것).toEqual([]);
+  });
+
+  // 표를 펼쳐 합치면 뒤 표가 같은 키를 덮는다. 다른 영어가 들면 앞 표의 화면에 뒤 표의 영어가 뜬다(리뷰 L23 — E2E 결과 「실행자」가 Runner)
+  it('같은 한국어 키를 두 표가 다른 영어로 옮기지 않는다 — 자리마다 다르면 키에 꼬리(§)를 단다', () => {
+    const 앞영어 = new Map<string, string>();
+    const 어긋남: string[] = [];
+    for (const 표 of 표들) {
+      for (const [키, 영어] of Object.entries(표)) {
+        const 앞 = 앞영어.get(키);
+        if (앞 !== undefined && 앞 !== 영어) 어긋남.push(`${키}: ${앞} / ${영어}`);
+        앞영어.set(키, 영어);
+      }
+    }
+    expect(어긋남).toEqual([]);
   });
 
   it('영어 표의 키가 전부 화면에 있다. 워딩을 고친 뒤 옛 키가 남지 않게', () => {

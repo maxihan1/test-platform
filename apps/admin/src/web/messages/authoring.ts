@@ -3,7 +3,6 @@
 
 export const 작성말: Record<string, string> = {
   // 줄의 종류와 상태
-  작성: 'Author',
   재실행: 'Rerun',
   '자료 올리는 중': 'Uploading files',
   '대기 중': 'Queued',
@@ -29,7 +28,6 @@ export const 작성말: Record<string, string> = {
   '시작하는 중…': 'Starting…',
   'API 문서 버전 {버전}': 'API doc version {버전}',
   // API 애플리케이션의 새 요청 폼 (도메인/작성 §7 「AUTHOR API 문서 판」)
-  'API 문서': 'API doc',
   '버전 {버전} (현재 버전)': 'Version {버전} (current)',
   '버전 {버전}': 'Version {버전}',
   'API 문서가 아직 없습니다. API 문서 화면에서 먼저 받습니다': 'There is no API doc yet. Fetch one on the API docs screen first',
@@ -156,7 +154,6 @@ export const 작성말: Record<string, string> = {
 
   // 진척 · 중단 · 폐기 (도메인/작성 §7 「중단 · 폐기 · 진척」). 상태 라벨 「중단」은 실행과 같은 키(runs)를 쓴다
   진척: 'Progress',
-  '{분}분': '{분} min',
   '{수}장': '{수}',
   '{수}개': '{수}',
   시스템: 'System',

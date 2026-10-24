@@ -61,7 +61,6 @@ export const 케이스말: Record<string, string> = {
 
   // 맥락 — 기능 묶음 · 요구 · 종류 · 화면 (도메인/카탈로그 §8.1 「맥락」, 2026-10-11 시안 A).
   // 종류 낱말은 지도 ① 의 축 값 그대로 질의에 가고 글자만 여기서 바뀐다
-  '종류': 'Type',
   '정상': 'Normal',
   '경계': 'Boundary',
   '예외': 'Exception',
@@ -76,7 +75,6 @@ export const 케이스말: Record<string, string> = {
   '연결된 요구 없음': 'No linked requirement',
   'PRD 관리에서 보기': 'Open in PRD',
   'PRD 에 없는 번호예요': 'Not in the PRD',
-  '외 {건수}건': '+{건수} more',
   '요구': 'Requirements',
   '요구 {번호}': 'Requirement {번호}',
   '{조건} 조건 풀기': 'Remove filter {조건}',
@@ -110,14 +108,13 @@ export const 케이스말: Record<string, string> = {
   '사전조건': 'Preconditions',
   '입력값': 'Inputs',
   '이 쪽 전체 선택': 'Select all on this page',
-  '기대결과': 'Expected',
   '시험 절차': 'Test steps',
   '아직 돌린 적이 없습니다. 한 번 돌리면 절차가 여기에 남습니다':
     'Never run. Run it once and the steps will show up here.',
   '절차를 불러오지 못했습니다': 'Could not load the steps',
   '절차를 불러오는 중입니다': 'Loading the steps…',
   '실행 이력': 'Run history',
-  '아직 기록이 없습니다': 'No history yet',
+  '아직 기록이 없습니다§이력': 'No history yet',
 
   // 입력 칸 (Form)
   '이 케이스에는 입력값이 없습니다.': 'This case declares no inputs.',
