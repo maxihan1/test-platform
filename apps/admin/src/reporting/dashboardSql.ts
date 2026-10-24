@@ -65,7 +65,14 @@ export const 접은줄SQL = `
   FROM 대상 t JOIN run_item i ON i.run_id = t.run_id
   GROUP BY t.run_id, t.service_id, t.service_name, t.env, t.kind, t.day, t.started_at, t.finished_at, i.tc_id, i.platform`;
 
-// 실행마다 바로 앞 끝난 실행 하나의 접은 판정이다. 같은 서비스 · env · kind 이고 진행 중은 건너뛴다.
+// 스모크가 아닌 실행은 앞 실행으로 스모크를 고르지 않는다 — 빌드 회귀가 같은 빌드의 스모크(케이스 몇 건)와 견주면
+// 새로 깨진 케이스가 「빠졌다」로만 셈해져 신규 실패 0 이 된다 (SPEC 도메인/리포팅 §7 insights previous · 2026-10-25 GAME-F2-14 · RUN 20929).
+// 스모크는 지금처럼 아무 앞 실행과 견준다 — 스모크끼리만 견주면 회귀에서 이미 깨진 케이스를 다음 빌드 스모크가 또 신규로 센다.
+// 결과 견주기(insights.ts) · 실행 목록 줄(runChange.ts) · 실패 카드 최근 흐름(failures.ts) · 대시보드 신규 실패(아래) 넷이 같이 쓴다
+export const 스모크건너뛰기식 = (앞: string, 이번: string) =>
+  `(${이번}.build_stage IS NOT DISTINCT FROM 'SMOKE' OR ${앞}.build_stage IS DISTINCT FROM 'SMOKE')`;
+
+// 실행마다 바로 앞 끝난 실행 하나의 접은 판정이다. 같은 서비스 · env · kind 이고 진행 중은 건너뛴다. 스모크 아닌 실행은 스모크도 건너뛴다.
 // 앞 실행은 창 밖이어도 찾는다 — 창 첫날 실행이 「앞이 없다」가 되면 안 된다. insights.ts compareWithPrevious 와 같은 규칙.
 // 넘기는 실행 번호는 이번 창 실행뿐이다(앞 판정은 이번 창 줄에서만 쓴다)
 // ponytail: test_run 에 (service_id, env, kind, started_at) 인덱스가 없어 실행마다 test_run 을 훑는다 —
@@ -77,7 +84,7 @@ export const 앞판정SQL = `
   CROSS JOIN LATERAL (
     SELECT p.run_id FROM test_run p
     WHERE p.service_id = c.service_id AND p.env = c.env AND p.kind = c.kind
-      AND p.status <> 'RUNNING' AND p.started_at < c.started_at
+      AND p.status <> 'RUNNING' AND p.started_at < c.started_at AND ${스모크건너뛰기식('p', 'c')}
     ORDER BY p.started_at DESC
     LIMIT 1) prev
   JOIN run_item i ON i.run_id = prev.run_id

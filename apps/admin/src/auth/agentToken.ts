@@ -33,10 +33,15 @@ export function 토큰해시(토큰: string): string {
   return createHash('sha256').update(토큰).digest('hex');
 }
 
+/** 서버가 정한 작성 에이전트 계정 이름. 안 정해져 있으면 null */
+export function 작성계정이름(): string | null {
+  const 정해진이름 = process.env.AUTHORING_AGENT_USER ?? '';
+  return 정해진이름 === '' ? null : 정해진이름;
+}
+
 /** 서버가 정한 작성 에이전트 계정인가. 이름이 안 정해져 있으면 아무 계정도 아니다 */
 export function 작성계정인가(username: string): boolean {
-  const 정해진이름 = process.env.AUTHORING_AGENT_USER ?? '';
-  return 정해진이름 !== '' && username === 정해진이름;
+  return username === 작성계정이름();
 }
 
 /**

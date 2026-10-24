@@ -156,3 +156,39 @@ export function 건설정(몸: unknown, 서비스: string, 켤때: 서비스설�
   const 제외 = typeof 새것 === 'string' ? undefined : 새것.설정표[서비스]?.제외;
   return 제외 === undefined ? 켤때 : { ...켤때, 제외 };
 }
+
+/**
+ * 켠 뒤 새로 맡은 애플리케이션 줄을 연다 — 간격마다 me 를 다시 읽어 아직 줄이 없는 것만 `열기` 로 넘긴다.
+ * 빠진 애플리케이션의 줄은 그대로 둔다. 못 읽으면 까닭만 남기고 다음 차례에 다시 읽는다.
+ * 줄이 던지며 끝나면 다음 차례에 다시 연다 — 켤 때 줄은 던지면 에이전트가 서서 다시 뜨는데, 나중 줄만 조용히 사라지면 안 된다
+ * (SPEC 도메인/작성 §3.6 · 2026-10-25 GAME-F2-14 — 새 프로젝트를 배정해도 author 를 다시 켜야 가져갔다)
+ */
+export function 새줄보기(
+  읽기: () => Promise<unknown>,
+  도는것: Set<string>,
+  열기: (서비스: string, 설정: 서비스설정) => Promise<void>,
+  멈췄나: () => boolean,
+  간격 = 60_000,
+): void {
+  setInterval(() => {
+    if (멈췄나()) return;
+    읽기().then(
+      (몸) => {
+        const 새것 = 나풀기(몸);
+        if (typeof 새것 === 'string') {
+          console.error(`[작성] 맡은 애플리케이션을 다시 못 풀었다: ${새것}`);
+          return;
+        }
+        for (const 서비스 of 새것.서비스들) {
+          if (멈췄나() || 도는것.has(서비스)) continue;
+          도는것.add(서비스);
+          열기(서비스, 새것.설정표[서비스]!).catch((err: unknown) => {
+            도는것.delete(서비스);
+            console.error(`[작성] ${서비스} 줄이 멈췄다 — 다음 차례에 다시 연다: ${err instanceof Error ? err.message : String(err)}`);
+          });
+        }
+      },
+      (err: unknown) => console.error(`[작성] 맡은 애플리케이션을 다시 못 읽었다: ${err instanceof Error ? err.message : String(err)}`),
+    );
+  }, 간격).unref();
+}

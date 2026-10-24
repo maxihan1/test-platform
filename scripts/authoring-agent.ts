@@ -27,7 +27,7 @@ import { 멈춘것닫기 } from './authoring-closing.js';
 import { 성능일돌기 } from './authoring-perf.js';
 import { type 판, 한건처리 } from './authoring-run.js';
 import { 도는일들, 반영줄들, 자리놓을까 } from './authoring-lanes.js';
-import { type 서비스설정, 건설정, 나풀기, 토큰고르기, 토큰모양인가, 토큰묻기, 토큰읽기, 토큰자리, 토큰저장 } from './authoring-token.js';
+import { type 서비스설정, 건설정, 나풀기, 새줄보기, 토큰고르기, 토큰모양인가, 토큰묻기, 토큰읽기, 토큰자리, 토큰저장 } from './authoring-token.js';
 
 // ── 껍데기 ────────────────────────────────────────────────────────────
 // 여기부터는 I/O 다. 판단은 전부 위의 순수 함수에 있고 검사도 거기 붙어 있다.
@@ -272,6 +272,19 @@ async function 돈다(): Promise<number> {
   };
 
   console.log(`[작성] 줄을 본다: ${서비스들.join(' · ')} · 동시에 ${켜기.상한}건 — 멈추려면 Ctrl+C.`);
+  새줄보기(
+    () => 부른다(주소, 토큰, '/auth/me').then((답) => 답.몸),
+    new Set(서비스들),
+    (서비스, 설정) => {
+      설정표[서비스] = 설정;
+      console.log(`[작성] 새로 맡은 ${서비스} 줄을 본다.`);
+      // 켤 때처럼 내 것으로 멈춘 채인 요청부터 닫는다 — 배정이 빠졌다 돌아온 애플리케이션에 남았을 수 있다
+      const 줄 = 멈춘것닫기(주소, 토큰, [서비스], 나).then(() => 줄돌기(서비스));
+      일들.더하기(줄);
+      return 줄;
+    },
+    () => 멈춤.까닭 !== null,
+  );
   await Promise.all([...서비스들.map(줄돌기), 성능일돌기(주소, 토큰)]);
   await 일들.다기다리기();
   console.error(`[멈춤] ${멈춤.까닭}`);

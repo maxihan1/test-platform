@@ -3,9 +3,9 @@ import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { 건설정, 나풀기, 토큰고르기, 토큰모양인가, 토큰읽기, 토큰자리, 토큰저장 } from './authoring-token.js';
+import { 건설정, 나풀기, 새줄보기, 토큰고르기, 토큰모양인가, 토큰읽기, 토큰자리, 토큰저장 } from './authoring-token.js';
 
 const 좋은토큰 = `tpa_${'A1b2_-'.repeat(7)}z`;
 const 치울것: string[] = [];
@@ -184,5 +184,63 @@ describe('건설정 — 건을 가져갈 때 다시 읽은 me 로 훑지 않을 
     ['그 서비스가 빠졌다', 새me([{ prefix: 'PAY', testsDir: 'pay', crawlExclude: ['/x'], permissions: { authoring: 'write' } }])],
   ])('me 를 %s — 켤 때 읽은 것을 쓴다', (_이름, 몸) => {
     expect(건설정(몸, 'DEMO', 켤때)).toBe(켤때);
+  });
+});
+
+describe('새줄보기 — 켠 뒤 새로 맡은 애플리케이션 줄을 다시 켜지 않고 연다 (GAME-F2-14)', () => {
+  const 맡음 = (...prefix: string[]) => ({
+    user: { username: 'mac', role: 'member', services: prefix.map((p) => ({ prefix: p, testsDir: p.toLowerCase(), permissions: { authoring: 'write' } })) },
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('간격마다 me 를 다시 읽어 줄이 없는 것만 한 번 연다 — 빠진 것은 건드리지 않는다', async () => {
+    vi.useFakeTimers();
+    const 도는것 = new Set(['DEMO', 'OLD']);
+    const 연것: [string, unknown][] = [];
+    새줄보기(async () => 맡음('DEMO', 'ASH'), 도는것, async (서비스, 설정) => void 연것.push([서비스, 설정]), () => false, 1000);
+
+    await vi.advanceTimersByTimeAsync(999);
+    expect(연것).toEqual([]);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(연것).toEqual([['ASH', { 서버들: [], 폴더: { 폴더: 'ash' }, 제외: [], 게임: false }]]);
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(연것.map(([서비스]) => 서비스)).toEqual(['ASH']);
+    expect([...도는것]).toEqual(['DEMO', 'OLD', 'ASH']);
+  });
+
+  it('멈췄으면 읽지 않는다', async () => {
+    vi.useFakeTimers();
+    let 읽은수 = 0;
+    새줄보기(async () => (읽은수++, 맡음('ASH')), new Set(), async () => undefined, () => true, 1000);
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(읽은수).toBe(0);
+  });
+
+  it('연 줄이 던지며 끝나면 다음 차례에 다시 연다 — 나중 줄만 조용히 사라지지 않게', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    let 연수 = 0;
+    새줄보기(async () => 맡음('ASH'), new Set(), async () => {
+      연수++;
+      if (연수 === 1) throw new Error('멈춘 것 닫기 실패');
+    }, () => false, 1000);
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(연수).toBe(2);
+  });
+
+  it.each([
+    ['못 읽었다', () => Promise.reject(new Error('연결 끊김')), /다시 못 읽었다: 연결 끊김/],
+    ['모양이 아니다', async () => ({ error: 'x' }), /다시 못 풀었다/],
+  ])('me 를 %s — 까닭만 남기고 줄은 안 연다', async (_이름, 읽기, 까닭) => {
+    vi.useFakeTimers();
+    const 오류 = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const 연것: string[] = [];
+    새줄보기(읽기, new Set(), async (서비스) => void 연것.push(서비스), () => false, 1000);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(연것).toEqual([]);
+    expect(String(오류.mock.calls[0]?.[0])).toMatch(까닭);
   });
 });

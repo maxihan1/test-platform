@@ -6,7 +6,7 @@ import { 팜증적목록, type 팜파일 } from '../execution/farmEvidence.js';
 import { findItem } from '../execution/queries.js';
 import { 최근몇건 } from '../execution/history.js';
 import type { RunItemDetail } from '../execution/runTypes.js';
-import { 판정접기식 } from './dashboardSql.js';
+import { 스모크건너뛰기식, 판정접기식 } from './dashboardSql.js';
 import { 연속실패수, 쪽을자른다, 케이스로묶는다, type 실패행, type 실패디바이스, type 카드변화 } from './failuresShape.js';
 import { 카드요구들, 판정들, type 카드요구, type 판정 } from './failReqs.js';
 import { compareWithPrevious, db } from './insights.js';
@@ -37,6 +37,7 @@ export interface FailureCards {
 
 // 같은 서비스 · env · 종류의 끝난 실행을 이번 실행까지 모아 실행마다 회차를 접고, 쌍마다 새 것부터 최근몇건만 남긴다.
 // 앞 실행은 insights 의 직전 실행처럼 started_at 이 더 이른 것만이다 — 시각이 같은 실행이 끼면 streak 이 계속깨짐을 정한 실행과 어긋난다.
+// 스모크 아닌 실행은 스모크도 건너뛴다 — 같은 까닭이다(dashboardSql.ts 스모크건너뛰기식)
 const 최근흐름SQL = `
   SELECT x.tc_id, x.platform, x.verdict
   FROM (
@@ -44,7 +45,7 @@ const 최근흐름SQL = `
            ROW_NUMBER() OVER (PARTITION BY i.tc_id, i.platform ORDER BY r.started_at DESC, r.run_id DESC) AS n
     FROM test_run t
     JOIN test_run r ON r.service_id = t.service_id AND r.env = t.env AND r.kind = t.kind
-                   AND r.status <> 'RUNNING' AND (r.run_id = t.run_id OR r.started_at < t.started_at)
+                   AND r.status <> 'RUNNING' AND (r.run_id = t.run_id OR (r.started_at < t.started_at AND ${스모크건너뛰기식('r', 't')}))
     JOIN run_item i ON i.run_id = r.run_id
     WHERE t.run_id = $1
       AND (i.tc_id, i.platform) IN (SELECT * FROM unnest($2::text[], $3::text[]))
