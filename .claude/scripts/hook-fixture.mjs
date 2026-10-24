@@ -12,7 +12,7 @@ export const ZERO = '0000000000000000000000000000000000000000';
 // 2026-09-25 에 같은 모양의 검사가 실제 브랜치에 커밋하고 origin/main 을 옮겼다 (LEARNINGS)
 export const 깨끗한환경 = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('GIT_')));
 
-/** base(origin/main) 하나와 그 위에 파일을 더한 커밋 하나가 있는 임시 저장소. 올릴 sha 를 돌려준다 */
+/** base(origin/main) 하나와 그 위에 파일을 더한 커밋 하나가 있는 임시 저장소. 올릴 sha 를 돌려준다. 더할 파일은 경로 또는 [경로, 내용] */
 export function 임시저장소(더할파일들, 옮길것들 = []) {
   const 뿌리 = mkdtempSync(join(tmpdir(), 'pre-push-'));
   const git = (...a) => execFileSync('git', ['-C', 뿌리, ...a], { encoding: 'utf8', env: 깨끗한환경 }).trim();
@@ -23,15 +23,15 @@ export function 임시저장소(더할파일들, 옮길것들 = []) {
   git('init', '-q');
   git('config', 'user.email', 't@example.com');
   git('config', 'user.name', 't');
-  // 가짜 npm 과 호출 기록은 바뀐 파일 목록에 끼면 안 된다
-  writeFileSync(join(뿌리, '.git', 'info', 'exclude'), '.fakebin\n.npm-calls*\n.db-calls\n');
+  // 가짜 npm 과 호출 기록은 바뀐 파일 목록에 끼면 안 된다. `.env` 는 진짜 저장소처럼 추적 밖이다
+  writeFileSync(join(뿌리, '.git', 'info', 'exclude'), '.fakebin\n.npm-calls*\n.db-calls\n.env\n');
   쓴다('package.json', '{}');
   쓴다('tests/todo/TODO-001.spec.ts', 'x');
   for (const [원래] of 옮길것들) 쓴다(원래, `옮겨질 코드 ${원래}\n`.repeat(20));
   git('add', '.');
   git('commit', '-qm', 'base');
   git('update-ref', 'refs/remotes/origin/main', 'HEAD');
-  for (const f of 더할파일들) 쓴다(f, 'y');
+  for (const f of 더할파일들) (Array.isArray(f) ? 쓴다(...f) : 쓴다(f, 'y'));
   for (const [원래, 새] of 옮길것들) git('mv', 원래, 새);
   git('add', '.');
   git('commit', '-qm', 'change', '--allow-empty');
@@ -46,12 +46,12 @@ export function 임시저장소(더할파일들, 옮길것들 = []) {
     `#!/bin/sh\necho "$*" >> "${기록}"\necho "\${DATABASE_URL:-없음}" >> "${기록}.db"\nenv | grep '^GIT_' >> "${기록}.git-env" || true\nif [ -n "$NPM_ON" ]; then case "$*" in *"$NPM_ON"*) eval "$NPM_SH" ;; esac; fi\nif [ -n "$NPM_FAIL" ]; then case "$*" in *"$NPM_FAIL"*) exit 1 ;; esac; fi\n`,
   );
   chmodSync(join(가짜, 'npm'), 0o755);
-  // 임시 DB 를 만드는 psql · docker 도 가짜다 — 인자를 `.db-calls` 에 적고, DB_FAIL 이 인자에 있으면 실패한다
+  // 임시 DB 를 만드는 psql · docker 도 가짜다 — 인자(와 받은 PGPASSWORD)를 `.db-calls` 에 적고, DB_FAIL 이 인자에 있으면 실패한다
   const DB기록 = join(뿌리, '.db-calls');
   for (const 이름 of ['psql', 'docker']) {
     writeFileSync(
       join(가짜, 이름),
-      `#!/bin/sh\necho "${이름} $*" >> "${DB기록}"\nif [ -n "$DB_FAIL" ]; then case "${이름} $*" in *"$DB_FAIL"*) exit 1 ;; esac; fi\n`,
+      `#!/bin/sh\necho "${이름} $*\${PGPASSWORD:+ pw=$PGPASSWORD}" >> "${DB기록}"\nif [ -n "$DB_FAIL" ]; then case "${이름} $*" in *"$DB_FAIL"*) exit 1 ;; esac; fi\n`,
     );
     chmodSync(join(가짜, 이름), 0o755);
   }

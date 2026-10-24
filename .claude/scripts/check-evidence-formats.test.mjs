@@ -1,7 +1,7 @@
 // 증적 형식 이름 목록이 네 곳에서 갈라지지 않는지 본다.
-// `npm run check:evidence-formats` 가 정본이고 CI 가 그 이름으로 돌린다.
-// `npm run check:workflow` 도 이 파일을 같이 집지만 **CI 는 check:workflow 를 안 돈다** —
-// 이름을 따로 주지 않으면 이 검사기가 CI 에서 한 번도 안 돈다 (`check:secret-names` 와 같은 자리).
+// `npm run check:evidence-formats` 가 정본이고 pre-push 무거운 길이 그 이름으로 돌린다 (`check:secret-names` 와 같은 자리).
+// `npm run check:workflow` 도 이 파일을 같이 집지만 pre-push 는 `.claude/` 가 바뀐 push 에서만 그것을 돈다 —
+// 이름을 따로 주지 않으면 목록 네 곳을 고친 사람 PR 에서 이 검사기가 한 번도 안 돈다 (리뷰 M2).
 //
 // 왜 네 벌인가 — 정본은 `reporting/store.ts` 의 `EvidenceFormat` 이다.
 // `generate.ts` 의 `형식표` 는 `Record<EvidenceFormat, …>` 라 tsc 가 양방향으로 이미 묶는다.
