@@ -144,6 +144,16 @@ describe('흘릴줄 — 에이전트 로그에 남길 한 줄', () => {
     expect(흘릴줄(줄)).toBe(`» ${'가'.repeat(120)}`);
   });
 
+  it('한글이 든 첫 줄만 흘린다 — 영어만 있는 글 · 빈 글은 안 흘린다 (GAME-F2-16 · #14671 「It works this time.」 · 「Credit balance is too low」 · 빈 진척 줄)', () => {
+    const 글 = (text: string, ...더: object[]) => JSON.stringify({ type: 'assistant', message: { id: 'm', content: [{ type: 'text', text }, ...더] } });
+    expect(흘릴줄(글('It works this time. Let me look at the first screen.'))).toBeNull();
+    expect(흘릴줄(글('Credit balance is too low'))).toBeNull();
+    expect(흘릴줄(글('\n\n'))).toBeNull();
+    expect(흘릴줄(글('\n  폰을 다시 잡을게요.'))).toBe('» 폰을 다시 잡을게요.');
+    expect(흘릴줄(글('Hold ends soon — release and re-hold.\n폰을 놓았다가 다시 잡을게요.'))).toBe('» 폰을 놓았다가 다시 잡을게요.');
+    expect(흘릴줄(글('Done.', { type: 'tool_use', name: 'Bash' }))).toBe('· Bash');
+  });
+
   it('이모지가 120자 경계에 걸려도 반쪽을 남기지 않는다', () => {
     const 줄 = JSON.stringify({ type: 'assistant', message: { id: 'm', content: [{ type: 'text', text: `${'가'.repeat(119)}😀끝` }] } });
     const 글 = 흘릴줄(줄) ?? '';

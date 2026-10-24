@@ -173,7 +173,10 @@ export function 흘릴줄(줄: string): string | null {
   if (e === null || e.type !== 'assistant') return null;
   for (const c of e.message?.content ?? []) {
     if (c.type === 'tool_use' && c.name) return `· ${c.name}`;
-    if (c.type === 'text' && c.text) return `» ${글자자르기(c.text.split('\n')[0]!, 120)}`;
+    // 한글이 든 첫 줄만 — 자식이 영어로 말하거나(「It works this time.」) CLI 가 영어 안내(「Credit balance is too low」)를 내거나
+    // 첫 줄을 비우면 영어 · 빈 진척 줄이 됐다(GAME-F2-16 · #14671). 크레딧 바닥은 에이전트가 다음 줄에 한국어로 따로 적는다
+    const 한글줄 = c.type === 'text' ? c.text?.split('\n').find((l) => /[가-힣]/.test(l)) : undefined;
+    if (한글줄 !== undefined) return `» ${글자자르기(한글줄.trim(), 120)}`;
   }
   return null;
 }

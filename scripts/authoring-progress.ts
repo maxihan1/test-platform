@@ -57,7 +57,7 @@ export function 진척누적기(limitSec: number, 비밀: 가릴것 = {}, 지금
   const 시작 = 지금();
   const 단계들: { 이름: string; 때: number }[] = [];
   return {
-    /** 줄 하나를 먹고, 로그에 흘릴 글을 돌려준다. 새 단계 표지면 그 줄을 — lastAction 은 늘 글 첫 줄이다(작성 §7) */
+    /** 줄 하나를 먹고, 로그에 흘릴 글을 돌려준다. 새 단계 표지면 그 줄을 — lastAction 은 늘 한글이 든 글 첫 줄이다(작성 §7) */
     먹기(줄: string): string | null {
       const e = 읽기(줄);
       const m = e?.type === 'assistant' ? e.message : undefined;
