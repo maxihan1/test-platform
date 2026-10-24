@@ -287,11 +287,22 @@ export function 칸번호(원장: readonly 원장자리[], 줄들: 표줄[], 재
   }
   // 지금 표에 이미 매긴 뒤 번호는 둔다 — 앞 차례에 칸이 생길 때마다 다시 매기면 이미 쓴 케이스 파일과 어긋난다
   // 덩이 안에서 번호가 적힌 줄을 찾는다 — 첫 줄만 보면 같은 칸 앞자리에 새 줄을 끼울 때 번호가 밀린다(2026-10-04 spec-review)
+  // 고정 범위 안이어도 요구 몫이 아닌 자리(확인 필요 항목 몫)면 둔다 — 작성 중 오류 추정 항목이 원장 끝에 붙어 범위가 늘자
+  // 이미 쓴 보류 케이스 23건 번호가 밀렸다(GAME-F2-16 · #14672). 확인 필요 항목은 요구로 안 세서 그 자리는 고정이 안 쓴다
+  const 요구자리: Record<갈래, Set<number>> = { UI: new Set(), FN: new Set() };
+  const 본 = new Set<string>();
+  원장.forEach((h, i) => {
+    if (본.has(h.번호)) return;
+    본.add(h.번호);
+    if (h.확인필요) return;
+    요구자리.UI.add(i + 1);
+    for (const 자리 of Object.values(기능.자리.get(h.번호) ?? {})) 요구자리.FN.add(자리);
+  });
   const 둘만한가 = (d: 덩이, tcId: string) => {
     const 열 = 번호열머리(tcId);
     // 옛 꼴(종류 글자 없음)은 안 둔다 — 새 번호는 -UI- · -FN- 을 단다(R17)
     if (!TCID.test(tcId) || 열?.머리 !== 접두사 || 열.꼴 === '옛' || tcId종류(tcId) !== d.갈래) return false;
-    return 열.번호 > 끝[d.갈래] && !잡힌.has(번호열쇠(tcId));
+    return (열.번호 > 끝[d.갈래] || !요구자리[d.갈래].has(열.번호)) && !잡힌.has(번호열쇠(tcId));
   };
   for (const d of 덩이들) {
     if (번호.has(d)) continue;
