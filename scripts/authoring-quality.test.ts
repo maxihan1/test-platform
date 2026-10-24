@@ -57,6 +57,19 @@ describe('품질 숫자 (작성 §3.6 · 2026-10-03 — 나눠 쓴 뒤 품질을
     expect(숫자.겹친도우미).toEqual(['가입한다', '탈퇴로치운다']);
   });
 
+  it('도우미 파일끼리 · 도우미와 케이스 사이에 같은 이름 함수도 센다 — 보조 넷의 임시 도우미를 파일 넷으로 옮겨 상점사기가 두 파일에 있어도 0개였다 (GAME-F2-16 · PR #442)', () => {
+    const 숫자 = 품질숫자([
+      { 경로: 'tests/ash/helpers/world.helper.ts', 글: 'async function 읽기<T>(res: R): Promise<T> {}\nexport async function 상점사기(admin) {}' },
+      { 경로: 'tests/ash/helpers/shop.helper.ts', 글: 'async function 읽기<T>(res: R): Promise<T> {}\nexport async function 상점사기(admin, 수량) {}\nexport const 개수 = (가방) => 0;' },
+      { 경로: 'tests/ash/ASH-FN-001.spec.ts', 글: 케이스('const 개수 = (가방) => 1;') },
+      { 경로: 'tests/ash/pages/shop.page.ts', 글: 'export class 상점 {\n  async 상점사기() {}\n}' },
+      { 경로: 'tests/ash/helpers/draft-shop.helper.ts', 글: 'export async function 개수(admin) {}' },
+      { 경로: 'tests/ash/helpers/a.helper.ts', 글: 'export async function 본문<T extends Record<string, unknown>>(res) {}\nexport const 모양 = <T>(값: T) => 값;' },
+      { 경로: 'tests/ash/helpers/b.helper.ts', 글: 'async function 본문<T extends Record<string, unknown>>(res) {}\nconst 모양 = async <T>(값: T) => 값;' },
+    ]);
+    expect(숫자.겹친도우미).toEqual(['개수', '모양', '본문', '상점사기', '읽기']);
+  });
+
   it('한 줄로 — PR 본문 작성 요약 머리에 싣는다', () => {
     const 줄 = 품질줄({ 케이스: 141, 판정평균: 3.81, 전제확인비율: 0.496, 준비없음: 40, 밖CSS: 105, 겹친도우미: ['가입한다', '치운다'] });
     expect(줄).toBe('품질 숫자: 케이스 141 · 판정 평균 3.8 · 전제 확인 50%(준비 없는 케이스 40 제외) · 공용 부품 밖 CSS·XPath 105 · 여러 파일에 따로 만든 도우미 2개(가입한다 · 치운다)');
