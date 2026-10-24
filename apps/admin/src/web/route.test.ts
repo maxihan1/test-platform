@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { ServiceRow, User } from './api.js';
 import type { 권한칸 } from './role.js';
-import { route, 갈자리, 돌아갈자리, 실행기록주소, 집 } from './route.js';
+import { route, 갈자리, 돌아갈자리, 실행기록주소, 주소의서비스, 집, 케이스주소 } from './route.js';
 
 function 서비스(prefix: string, permissions: 권한칸): ServiceRow {
   return { id: 1, prefix, name: prefix, color: '#000000', projectId: 1, projectName: '데모마켓', envs: [], hasSlackWebhook: false, permissions };
@@ -249,5 +249,24 @@ describe('route', () => {
   it('실행 기록 주소는 카드열기를 켜야 케이스를 단다', () => {
     expect(실행기록주소('MKT-FN-014', 130)).toBe('#/runs/fn?run=130');
     expect(실행기록주소('MKT-UI-003', 130, true)).toBe('#/runs/ui?run=130&tc=MKT-UI-003');
+  });
+
+  it('케이스 주소는 그 번호로 찾은 목록에서 상세 칸을 연다 — 케이스가 첫 쪽(50건) 밖이면 목록 쪽 안에 없어 칸이 안 열렸다', () => {
+    expect(케이스주소('MKT-FN-051')).toBe('#/cases/fn?q=MKT-FN-051&case=MKT-FN-051');
+    expect(케이스주소('MKT-UI-003')).toBe('#/cases/ui?q=MKT-UI-003&case=MKT-UI-003');
+  });
+});
+
+describe('요구 번호 주소의 애플리케이션', () => {
+  const 배정 = [서비스('PAY', { cases: 'read', runs: 'read', authoring: 'read' }), 서비스('MEM', { cases: 'read', runs: 'read', authoring: 'read' })];
+
+  it('요구 번호 주소는 그 번호 접두사의 배정 애플리케이션을 고른다 — 다른 애플리케이션 실행의 실패 카드에서 요구 번호를 눌러도 띠 애플리케이션의 PRD 를 열지 않게', () => {
+    expect(주소의서비스('#/prd/MEM-REQ-004', 배정)).toBe('MEM');
+  });
+
+  it('배정에 없는 접두사 · 요구 번호가 없는 주소는 띠를 그대로 둔다', () => {
+    expect(주소의서비스('#/prd/SET-REQ-001', 배정)).toBe(null);
+    expect(주소의서비스('#/prd', 배정)).toBe(null);
+    expect(주소의서비스('#/cases/fn?case=MEM-FN-001', 배정)).toBe(null);
   });
 });

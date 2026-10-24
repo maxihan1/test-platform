@@ -4,7 +4,7 @@
 import type { 대시보드응답 } from '../reporting/dashboardResults.js';
 import { 정기실행켜는곳 } from './DashboardTables.js';
 import { 날짜글자 } from './dashboardView.js';
-import { 실행목록주소, 이동속성, type 이동재료 } from './DashboardPick.js';
+import { 실행목록주소, 실행종류, 이동속성, type 이동재료 } from './DashboardPick.js';
 import { use말, use언어, type 언어 } from './i18n.js';
 
 type 자료 = 대시보드응답;
@@ -20,6 +20,7 @@ const 마디틈 = 2;
 const 실행한날기준 = 3;
 
 const 합 = (c: 건수): number => c.pass + c.fail + c.notRun;
+const 빈건수: 건수 = { pass: 0, fail: 0, notRun: 0 };
 
 interface 날 {
   day: string;
@@ -27,6 +28,8 @@ interface 날 {
   요일: string;
   주말: boolean;
   건수: 건수;
+  /** 그중 UI 테스트 실행 몫 — 막대 고리가 실행 기록 종류를 고른다 */
+  ui: 건수;
 }
 
 /** 서버가 14칸을 주지만 비어 와도 칸을 지킨다 — 오늘에서 거슬러 센다. 날 글자는 서버가 이미 사용자 시간대로 자른 것이라 UTC 로만 셈한다 */
@@ -38,12 +41,14 @@ export function 창날들(값: 자료, 언어: 언어): 날[] {
     const 시각 = new Date(끝 - (값.window.days - 1 - i) * 하루);
     const day = 시각.toISOString().slice(0, 10);
     const 요일번호 = 시각.getUTCDay();
+    const 그날 = 값.daily.find((d) => d.day === day);
     return {
       day,
       날짜: 날짜글자(day),
       요일: 요일식.format(시각),
       주말: 요일번호 === 0 || 요일번호 === 6,
-      건수: 값.daily.find((d) => d.day === day) ?? { pass: 0, fail: 0, notRun: 0 },
+      건수: 그날 ?? 빈건수,
+      ui: 그날?.ui ?? 빈건수,
     };
   });
 }
@@ -176,7 +181,7 @@ export function 일별막대({ 값, 설정갈수있나 = false, 이동 }: { 값:
                   막대
                 ) : (
                   <a
-                    href={실행목록주소(값.window.days, 날.건수.fail > 0 ? { state: 'failed' } : {})}
+                    href={실행목록주소(값.window.days, 날.건수.fail > 0 ? { state: 'failed' } : {}, 실행종류(날.건수, 날.ui, 날.건수.fail > 0))}
                     aria-label={이름}
                     {...이동속성(이동)}
                   >

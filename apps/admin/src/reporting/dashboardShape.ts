@@ -54,6 +54,8 @@ export interface 셈 {
 
 export interface 일별칸 extends 셈 {
   day: string;
+  /** 그중 UI 테스트 실행 몫. 대시보드 고리가 실행 기록 종류(기능 · UI)를 고른다 (도메인/리포팅 §8.12) */
+  ui: 셈;
 }
 
 export const 흐름실행수 = 20;
@@ -62,6 +64,8 @@ export interface 서비스칸 {
   serviceId: number;
   serviceName: string;
   이번: 셈;
+  /** 이번 창 가운데 UI 테스트 실행 몫 — 일별칸 ui 와 같은 쓰임 */
+  이번UI: 셈;
   직전: 셈;
   마지막실행: (셈 & { runId: number; finishedAt: string }) | null;
   /** 창 안 실행을 오래된 것부터 최근 `흐름실행수`개. F 실패 있음 · P 전부 통과 · N 그 밖 */
@@ -108,7 +112,7 @@ export function 날짜더하기(day: string, 일수: number): string {
 
 const 빈셈 = (): 셈 => ({ 통과: 0, 실패: 0, 미실행: 0 });
 const 새항목 = (id: number, name: string): { 칸: 서비스칸; 마지막: Map<number, 셈> } => ({
-  칸: { serviceId: id, serviceName: name, 이번: 빈셈(), 직전: 빈셈(), 마지막실행: null, 흐름: [], 신규실패수: 0, 해결수: 0, 견줌: false },
+  칸: { serviceId: id, serviceName: name, 이번: 빈셈(), 이번UI: 빈셈(), 직전: 빈셈(), 마지막실행: null, 흐름: [], 신규실패수: 0, 해결수: 0, 견줌: false },
   마지막: new Map(),
 });
 
@@ -137,7 +141,7 @@ export function 대시보드집계(
   const 일별 = new Map<string, 일별칸>();
   for (let i = 0; i < 날수; i += 1) {
     const day = 날짜더하기(이번시작, i);
-    일별.set(day, { day, ...빈셈() });
+    일별.set(day, { day, ...빈셈(), ui: 빈셈() });
   }
   const 서비스 = new Map<number, { 칸: 서비스칸; 마지막: Map<number, 셈> }>();
   const 마지막끝 = new Map<number, { runId: number; startedAt: string; finishedAt: string }>();
@@ -151,11 +155,13 @@ export function 대시보드집계(
     더한다(이번인가 ? 이번 : 직전, 줄.verdict);
     const 하루 = 일별.get(줄.day);
     if (하루 !== undefined) 더한다(하루, 줄.verdict);
+    if (하루 !== undefined && 줄.kind === 'UI') 더한다(하루.ui, 줄.verdict);
 
     const 서비스항목 = 서비스.get(줄.serviceId) ?? 새항목(줄.serviceId, 줄.serviceName);
     서비스.set(줄.serviceId, 서비스항목);
     if (이번인가 && 앞판정들.has(줄.runId)) 서비스항목.칸.견줌 = true;
     더한다(이번인가 ? 서비스항목.칸.이번 : 서비스항목.칸.직전, 줄.verdict);
+    if (이번인가 && 줄.kind === 'UI') 더한다(서비스항목.칸.이번UI, 줄.verdict);
 
     const 실행셈 = 서비스항목.마지막.get(줄.runId) ?? 빈셈();
     서비스항목.마지막.set(줄.runId, 실행셈);

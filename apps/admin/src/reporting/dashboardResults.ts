@@ -81,7 +81,8 @@ export interface 대시보드응답 {
   window: { tz: string; today: string; days: number; from: string; previousFrom: string };
   services: { id: number; name: string }[];
   passRate: { current: 건수; previous: 건수 };
-  daily: ({ day: string } & 건수)[];
+  /** ui — 그날 수 가운데 UI 테스트 실행 몫. 기능 몫은 전체에서 뺀 값이다 (도메인/리포팅 §7 · §8.12) */
+  daily: ({ day: string; ui: 건수 } & 건수)[];
   newFailures: {
     runId: number;
     serviceId: number;
@@ -99,6 +100,8 @@ export interface 대시보드응답 {
     serviceId: number;
     serviceName: string;
     current: 건수;
+    /** 이번 창 가운데 UI 테스트 실행 몫 — daily 의 ui 와 같은 쓰임 */
+    currentUi: 건수;
     previous: 건수;
     lastRun: ({ runId: number; finishedAt: string } & 건수) | null;
     flow: ('F' | 'P' | 'N')[];
@@ -284,12 +287,13 @@ export async function 대시보드(
     },
     services: 서비스목록,
     passRate: { current: 건수로(집계.이번), previous: 건수로(집계.직전) },
-    daily: 집계.일별.map((d) => ({ day: d.day, ...건수로(d) })),
+    daily: 집계.일별.map((d) => ({ day: d.day, ...건수로(d), ui: 건수로(d.ui) })),
     newFailures: 집계.신규실패,
     byService: 집계.서비스별.map((s) => ({
       serviceId: s.serviceId,
       serviceName: s.serviceName,
       current: 건수로(s.이번),
+      currentUi: 건수로(s.이번UI),
       previous: 건수로(s.직전),
       lastRun: s.마지막실행 === null ? null : { runId: s.마지막실행.runId, finishedAt: s.마지막실행.finishedAt, ...건수로(s.마지막실행) },
       flow: s.흐름,

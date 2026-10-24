@@ -8,7 +8,7 @@ import { api } from './api.js';
 import { 짧은시각 } from './dashboardView.js';
 import { Drawer } from './Drawer.js';
 import { 카드찾기 } from './failureFind.js';
-import { 서비스를열며, 실행목록주소, 이동속성, type 이동재료 } from './DashboardPick.js';
+import { 서비스를열며, 실행목록주소, 이동속성, 창실패종류, type 이동재료 } from './DashboardPick.js';
 import { 실패유형이름 } from './DashboardTypes.js';
 import { use말, use언어 } from './i18n.js';
 import { 실행기록주소 } from './route.js';
@@ -116,7 +116,7 @@ export function 신규실패표({ 값, 이동 }: { 값: 자료; 이동: 이동�
       {더 > 0 ? (
         <p className="dash-axis dash-more">
           {t('{수}건 더 있습니다', { 수: 더 })} ·{' '}
-          <a className="dash-link" href={실행목록주소(값.window.days, { state: 'failed' })} {...이동속성(이동)}>
+          <a className="dash-link" href={실행목록주소(값.window.days, { state: 'failed' }, 창실패종류(값, false))} {...이동속성(이동)}>
             {t('실행 기록에서 보기')}
           </a>
         </p>

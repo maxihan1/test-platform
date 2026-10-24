@@ -32,7 +32,7 @@ import { ProjectPick } from './ProjectPick.js';
 import { Guide } from './Guide.js';
 import { Prd } from './Prd.js';
 import { 기능보나, 판정을만든다 } from './role.js';
-import { route, 갈자리, 돌아갈자리, 집 } from './route.js';
+import { route, 갈자리, 돌아갈자리, 주소의서비스, 집 } from './route.js';
 import { RunList } from './RunList.js';
 import { RunResult } from './RunResult.js';
 import { RunWindow } from './RunWindow.js';
@@ -146,8 +146,9 @@ function Screen({
       );
     case 'runs':
       // E2E 는 시나리오 실행만 모으는 별도 화면이다 — 줄 모양과 거르개가 UI · 기능 목록과 다르다
-      if (current.kind === 'E2E') return <ScenarioRunList key="E2E" service={prefix} 할수={할수} />;
-      return <RunList key={current.kind} kind={current.kind} service={prefix} envs={service?.envs ?? []} 할수={할수} />;
+      // 결과 칸은 `?run=` 의 실행 서비스로 버튼을 가른다 — 주소의 실행이 띠와 다른 서비스일 수 있다(항목 상세의 「실행 결과」 고리)
+      if (current.kind === 'E2E') return <ScenarioRunList key="E2E" service={prefix} 판정하기={(접두사) => 판정을만든다(user, 접두사)} />;
+      return <RunList key={current.kind} kind={current.kind} service={prefix} envs={service?.envs ?? []} 판정하기={(접두사) => 판정을만든다(user, 접두사)} />;
     case 'scenarios':
       // 서비스를 바꾸면 새로 그린다 — 고른 대상 서버와 앞 서비스의 실행 안내가 남으면 다른 서비스에 쏜다
       return <ScenarioList key={prefix} service={prefix} envs={service?.envs ?? []} 할수={할수} />;
@@ -234,10 +235,12 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
     set상태({ 어디: '안', user });
     // 세션이 끊겨 로그인한 사람은 원래 가려던 화면으로 돌려보낸다 (SPEC §8.6).
     // 기억해 둔 자리도 권한 판정을 탄다 — 그사이 칸이 none 이 됐을 수 있다
-    const 고른 = 고른서비스(prefix, user.services)?.prefix ?? null;
     const 돌아감 = 돌아갈자리를꺼낸다();
+    const 목적지 = 돌아감 ?? window.location.hash;
+    // 요구 번호 주소는 그 번호의 서비스로 연다(아래 띠 맞추기) — 권한도 그 서비스로 봐야 앞 띠의 칸으로 집에 돌려보내지 않는다
+    const 고른 = 주소의서비스(목적지, user.services) ?? 고른서비스(prefix, user.services)?.prefix ?? null;
     set프로젝트묻기(프로젝트물을까(돌아감, user.services));
-    window.location.hash = 돌아갈자리(돌아감 ?? window.location.hash, user, 고른);
+    window.location.hash = 돌아갈자리(목적지, user, 고른);
   };
 
   useEffect(() => {
@@ -260,15 +263,23 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
     });
   }, []);
 
-  // 저장된 서비스가 배정에서 빠졌으면 실제로 연 것을 적어 둔다.
+  // 요구 번호 주소(`#/prd/MKT-REQ-001`)로 오면 띠를 그 번호의 서비스로 맞춘다 — 그리기 전에 바꿔야 아래 집으로 보내기가 앞 띠 서비스의 칸으로 가르지 않는다.
+  // 주소가 바뀔 때 한 번만 맞춘다. 그 주소에 머문 채 띠 고르개로 고른 서비스를 되돌리지 않는다
+  const [맞춘주소, set맞춘주소] = useState<string | null>(null);
+  if (상태.어디 === '안' && 맞춘주소 !== hash) {
+    set맞춘주소(hash);
+    const 주소것 = 주소의서비스(hash, 상태.user.services);
+    if (주소것 !== null && 주소것 !== prefix) setPrefix(주소것);
+  }
+
+  // 저장된 서비스가 배정에서 빠졌거나 주소가 서비스를 골랐으면 실제로 연 것을 적어 둔다.
   // 렌더 안에서 쓰면 매 렌더마다 다시 쓴다
   const 열린것 = 상태.어디 === '안' ? 고른서비스(prefix, 상태.user.services) : null;
   const 열린접두사 = 열린것?.prefix ?? null;
   useEffect(() => {
-    if (열린접두사 !== null && 열린접두사 !== prefix) {
-      고른서비스를적는다(열린접두사);
-      setPrefix(열린접두사);
-    }
+    if (열린접두사 === null) return;
+    고른서비스를적는다(열린접두사);
+    if (열린접두사 !== prefix) setPrefix(열린접두사);
   }, [열린접두사, prefix]);
 
   // 로그인은 했는데 주소가 로그인 화면이면 집으로 보낸다.
@@ -360,6 +371,9 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
         버리기전(() => {
           고른서비스를적는다(접두사);
           setPrefix(접두사);
+          // 다른 서비스의 요구 번호가 주소에 남으면 새로고침 · 뒤로 가기가 그 서비스로 띠를 되돌린다 — 번호를 떼고 목록 자리로 바꿔 둔다
+          const 주소것 = 주소의서비스(window.location.hash, 상태.user.services);
+          if (주소것 !== null && 주소것 !== 접두사) window.location.replace('#/prd');
         });
       }}
       언어={언어}

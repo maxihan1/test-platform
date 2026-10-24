@@ -10,9 +10,9 @@ import { Head } from './Head.js';
 import { use말 } from './i18n.js';
 import { use주소조건, 주소조건 } from './leaveGuard.js';
 import { 다음이있나 } from './paging.js';
-import type { 판정 } from './role.js';
 import { RunResult } from './RunResult.js';
 import { 실행줄 } from './RunListRow.js';
+import type { 판정하기 } from './runJudge.js';
 import { Failed, Loading, useAsync } from './ui.js';
 
 const 상태들 = ['running', 'failed'] as const;
@@ -27,7 +27,8 @@ function 번호(글: string | null): number | null {
   return 글 !== null && /^\d{1,10}$/.test(글) ? Number(글) : null;
 }
 
-export function RunList({ service, envs, 할수, kind }: { service: string; envs: EnvRow[]; 할수: 판정; kind: 'UI' | 'FN' }) {
+// 판정하기 — 결과 칸이 그 실행의 서비스로 버튼을 가른다. 주소의 `?run=` 은 띠와 다른 서비스 실행일 수 있다 (화면공통 §8)
+export function RunList({ service, envs, 판정하기, kind }: { service: string; envs: EnvRow[]; 판정하기: 판정하기; kind: 'UI' | 'FN' }) {
   const t = use말();
   const [처음] = useState(주소조건);
   const [page, setPage] = useState(() => 번호(처음.get('page')) ?? 1);
@@ -224,11 +225,10 @@ export function RunList({ service, envs, 할수, kind }: { service: string; envs
             <button type="button" className="btn small ghost pane-back" onClick={() => set고른(null)}>
               {t('목록으로')}
             </button>
-            {/* 목록은 띠에서 고른 서비스의 실행만 싣는다 — 그 실행의 서비스가 곧 띠의 서비스다 */}
             <RunResult
               key={보는실행}
               runId={보는실행}
-              판정하기={() => 할수}
+              판정하기={판정하기}
               열카드={보는실행 === 처음실행 ? 열카드 : undefined}
               칸안
               on새실행={(runId) => {

@@ -16,7 +16,7 @@ function 건(pass: number, fail: number, notRun: number) {
   return { pass, fail, notRun };
 }
 
-const 많은날들 = 날들.map((day, i) => ({ day, ...건(10 + i, i % 3, i % 4 === 1 ? 1 : 0) }));
+const 많은날들 = 날들.map((day, i) => ({ day, ...건(10 + i, i % 3, i % 4 === 1 ? 1 : 0), ui: 건(0, 0, 0) }));
 
 function 칸들(열: number[]): (0 | 1 | 2)[] {
   return 날들.map((_, i) => (열.includes(i) ? (i % 2 === 0 ? 1 : 2) : 0));
@@ -136,7 +136,7 @@ describe('일별 테스트 결과', () => {
   });
 
   it('실행한 날이 셋 미만이면 정기 실행 안내 한 줄이 가운데 선다', async () => {
-    const 적음 = 날들.map((day, i) => ({ day, ...(i >= 12 ? 건(8, 1, 0) : 건(0, 0, 0)) }));
+    const 적음 = 날들.map((day, i) => ({ day, ...(i >= 12 ? 건(8, 1, 0) : 건(0, 0, 0)), ui: 건(0, 0, 0) }));
     const { container } = await 열기(응답({ daily: 적음 }));
     const 판 = container.querySelector('.dash-daily')!;
     expect(판.textContent).toContain('하루 한 번 정기 실행을 켜 두면 결과가 날마다 쌓여 추이가 보입니다');
@@ -144,7 +144,7 @@ describe('일별 테스트 결과', () => {
   });
 
   it('설정에 갈 수 있는 사람에게는 안내 줄 아래 정기 실행을 켜는 자리로 가는 링크를 단다', async () => {
-    const 적음 = 날들.map((day, i) => ({ day, ...(i >= 12 ? 건(8, 1, 0) : 건(0, 0, 0)) }));
+    const 적음 = 날들.map((day, i) => ({ day, ...(i >= 12 ? 건(8, 1, 0) : 건(0, 0, 0)), ui: 건(0, 0, 0) }));
     읽기를(응답({ daily: 적음 }));
     const { container } = render(<Dashboard 서비스열기={서비스열기} {...기본재료} 설정갈수있나 />);
     await screen.findByText('일별 테스트 결과');
@@ -349,7 +349,7 @@ describe('화면 읽기 (PR #173 독립 검사)', () => {
   });
 
   it('실패가 한 건도 없으면 가장 많은 날 말을 빼고 합계만 적는다', async () => {
-    const 무실패 = 날들.map((day) => ({ day, ...건(5, 0, 0) }));
+    const 무실패 = 날들.map((day) => ({ day, ...건(5, 0, 0), ui: 건(0, 0, 0) }));
     const { container } = await 열기(응답({ daily: 무실패 }));
     expect(container.querySelector('.dash-daily svg')!.getAttribute('aria-label')).toBe('최근 14일 통과 70 · 미실행 0 · 실패 0');
   });
@@ -364,7 +364,7 @@ describe('통과율 칸의 일별 선', () => {
   });
 
   it('셋 미만이면 선이 없다', async () => {
-    const 적음 = 날들.map((day, i) => ({ day, ...(i >= 12 ? 건(8, 1, 0) : 건(0, 0, 0)) }));
+    const 적음 = 날들.map((day, i) => ({ day, ...(i >= 12 ? 건(8, 1, 0) : 건(0, 0, 0)), ui: 건(0, 0, 0) }));
     const { container } = await 열기(응답({ daily: 적음 }));
     expect(container.querySelector('.dash-rate .dash-trend')).toBeNull();
   });

@@ -114,11 +114,11 @@ describe('반영이 겹친 케이스 번호를 바꾼 뒤의 작성 상세 (리�
 
     const 만든 = await screen.findByRole('table', { name: '만든 케이스' });
     const 고리들 = Array.from(만든.querySelectorAll('a.mono')).map((a) => a.getAttribute('href'));
-    expect(고리들).toEqual(['#/cases/fn?case=MKT-FN-014', '#/cases/fn?case=MKT-FN-003']);
+    expect(고리들).toEqual(['#/cases/fn?q=MKT-FN-014&case=MKT-FN-014', '#/cases/fn?q=MKT-FN-003&case=MKT-FN-003']);
     expect(만든.textContent).toContain('반영 때 뺌');
 
     const 차이 = screen.getByRole('table', { name: '기획서와 화면의 차이' });
-    expect(차이.querySelector('a.mono')?.getAttribute('href')).toBe('#/cases/fn?case=MKT-FN-014');
+    expect(차이.querySelector('a.mono')?.getAttribute('href')).toBe('#/cases/fn?q=MKT-FN-014&case=MKT-FN-014');
   });
 
   it('「바로 실행」은 반영된 번호만 돌린다 — 뺀 케이스와 작성 때 번호는 안 싣는다', async () => {
