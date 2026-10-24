@@ -1,8 +1,12 @@
 // 빠른 검사 게임 갈래 — 지도 열쇠 읽기와 게임 케이스 형식 판정을 본다 (도메인/게임 §3.10 「작성 — 한 바퀴」 6)
 
-import { describe, expect, it } from 'vitest';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
-import { 게임형식, 지도열쇠들 } from './authoring-check-game.js';
+import { afterAll, describe, expect, it } from 'vitest';
+
+import { 게임검사, 게임자료환경, 게임형식, 스모크틀림, 지도열쇠들 } from './authoring-check-game.js';
 
 const 지도글 = [
   '# 게임 지도 — 요소 3개. 기대값의 근거가 아니다 — 근거는 표준 기획서 항목뿐이다',
@@ -113,5 +117,44 @@ describe('게임형식 — 게임 아닌 작성', () => {
   it('웹 케이스의 page 몸통 · { x, y }(상자 좌표 비교) · 화면 파일은 짚지 않는다', () => {
     const 웹 = 케이스("platforms: ['desktop', 'mobile'],", '{ page }', 'const 상자 = { x: 0, y: 0, width: 10 };');
     expect(게임형식([{ 경로: 'tests/mku/MKU-FN-001.spec.ts', 글: 웹 }, { 경로: 'tests/mku/pages/cart.page.ts', 글: 'export const 주소 = { x: 1, y: 2 };' }], null)).toEqual([]);
+  });
+});
+
+describe('스모크틀림 — 게임 작성의 폴더 전체', () => {
+  it('폴더에 smoke: true 케이스가 하나도 없으면 짚는다', () => {
+    const 글들 = [케이스("platforms: ['android'],"), 케이스("platforms: ['android'],\n  smoke: false,")];
+    expect(스모크틀림('ash', 글들)).toEqual({
+      수: 0,
+      틀림: ['tests/ash — 스모크 케이스(smoke: true)가 0건이다. 다 합친 뒤 핵심 경로(로그인 → 캐릭터 → 월드 입장 → 사냥 → 상점)를 게임 화면으로 지나는 정상 기능 케이스 5~10건에 단다(tpx-cases game.md §5)'],
+    });
+  });
+
+  it('한 건이라도 있으면 통과하고 수를 센다 — 글자 true 만 센다(as const · 괄호는 벗긴다)', () => {
+    const 글들 = [케이스("platforms: ['android'],\n  smoke: true,"), 케이스("platforms: ['android'],\n  smoke: true as const,"), 케이스("platforms: ['android'],\n  smoke: 켬,"), 'export const 스모크 = { smoke: true };'];
+    expect(스모크틀림('ash', 글들)).toEqual({ 수: 2, 틀림: [] });
+  });
+});
+
+describe('게임검사 — 스모크는 폴더를 줄 때만 센다', () => {
+  const 트리 = mkdtempSync(join(tmpdir(), 'check-game-'));
+  const 자료 = join(트리, 'data');
+  mkdirSync(join(트리, 'tests', 'ash'), { recursive: true });
+  mkdirSync(자료);
+  writeFileSync(join(자료, 'game-map.txt'), 지도글);
+  writeFileSync(join(트리, 'tests', 'ash', 'ASH-FN-012.spec.ts'), 케이스("platforms: ['android'],"));
+  const env = { [게임자료환경]: 자료 };
+  afterAll(() => rmSync(트리, { recursive: true, force: true }));
+
+  it('폴더를 주면 0건을 짚고 머리에 수를 찍는다', () => {
+    const r = 게임검사(트리, ['tests/ash/ASH-FN-012.spec.ts'], env, 'ash');
+    expect(r?.ok).toBe(false);
+    expect(r?.줄들[0]).toMatch(/^tests\/ash — 스모크 케이스/);
+    expect(r?.머리).toMatch(/스모크 0건/);
+  });
+
+  it('폴더를 안 주면(보조 · 고친 요구만 다시 쓰는 작성) 세지 않는다', () => {
+    const r = 게임검사(트리, ['tests/ash/ASH-FN-012.spec.ts'], env);
+    expect(r?.ok).toBe(true);
+    expect(r?.머리).not.toMatch(/스모크/);
   });
 });
