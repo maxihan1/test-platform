@@ -181,7 +181,7 @@ test('커밋 안 한 새 파일 · 고친 파일이 있거나 올리는 커밋�
 // 비밀번호는 박아 쓰면 맥이 옛 비밀번호에 묶인다 — docker compose 와 같은 `.env` 를 읽는다 (FIX-F1-02 에서 넘김)
 test('임시 DB 에 db/init 의 .sh · .sql 을 그 DB 이름으로 걸고, 비밀번호는 .env 에서 읽는다 — 비우면 platform · grafana_ro', () => {
   const 초기화 = '#!/bin/bash\npsql -h "$PGHOST" -p "$PGPORT" --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" -v pw="$GRAFANA_RO_PASSWORD"\n';
-  for (const env of ['', 'POSTGRES_PASSWORD=s3cret\nGRAFANA_RO_PASSWORD="ro9"\n']) {
+  for (const env of ['', 'POSTGRES_PASSWORD=s3cret\nGRAFANA_RO_PASSWORD="ro9"\n', 'export POSTGRES_PASSWORD=s3cret  # 맥 개발용\r\nGRAFANA_RO_PASSWORD=\'ro9\'\r\n']) {
     const 저장소 = 임시저장소(['apps/admin/src/execution/x.ts', ['db/init/01-ro.sh', 초기화], ['db/init/02-x.sql', 'SELECT 1;']]);
     try {
       if (env) writeFileSync(join(저장소.뿌리, '.env'), env);
@@ -197,6 +197,19 @@ test('임시 DB 에 db/init 의 .sh · .sql 을 그 DB 이름으로 걸고, 비�
     } finally {
       rmSync(저장소.뿌리, { recursive: true, force: true });
     }
+  }
+});
+
+test('지금 꺼낸 커밋에 단 주석 태그를 같이 올리면 태그가 가리키는 커밋으로 견준다', () => {
+  const 저장소 = 임시저장소(['apps/admin/src/web/X.tsx']);
+  try {
+    execFileSync('git', ['-C', 저장소.뿌리, 'tag', '-a', 'v1', '-m', 'v1'], { env: 깨끗한환경 });
+    const 태그 = execFileSync('git', ['-C', 저장소.뿌리, 'rev-parse', 'v1'], { encoding: 'utf8', env: 깨끗한환경 }).trim();
+    const 입력 = `refs/heads/b ${저장소.sha} refs/heads/b ${ZERO}\nrefs/tags/v1 ${태그} refs/tags/v1 ${ZERO}\n`;
+    const r = 저장소에서돌린다(저장소, {}, 입력);
+    assert.equal(r.code, 0, `HEAD 에 단 태그인데 막혔다: ${r.out}`);
+  } finally {
+    rmSync(저장소.뿌리, { recursive: true, force: true });
   }
 });
 

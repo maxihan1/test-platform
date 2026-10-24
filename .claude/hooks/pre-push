@@ -73,8 +73,10 @@ fail() {
 # 차선은 올리는 sha 로 고르지만 아래 검사(타입 · 테스트 · check:* · 임시 DB)는 디스크를 읽는다.
 # 커밋 안 한 파일이 있거나 꺼내 둔 커밋이 아닌 것을 올리면 초록이 올라가는 코드를 말하지 않는다 (리뷰 L1 — `git add` 를 잊은 새 파일도 통과했다)
 head_sha=$(git rev-parse HEAD 2>/dev/null) || fail "지금 꺼낸 커밋(HEAD)을 못 읽었다."
+# 주석 태그는 태그 객체 sha 로 온다 — 가리키는 커밋으로 풀어 견준다
 for local_sha in $SHAS; do
-  [ "$local_sha" = "$head_sha" ] || fail "올리는 커밋 $local_sha 가 지금 꺼낸 커밋(HEAD)이 아니다 — 검사는 디스크를 읽는다. 그 커밋을 꺼내고"
+  [ "$(git rev-parse -q --verify "$local_sha^{commit}" 2>/dev/null)" = "$head_sha" ] \
+    || fail "올리는 커밋 $local_sha 가 지금 꺼낸 커밋(HEAD)이 아니다 — 검사는 디스크를 읽는다. 그 커밋을 꺼내고"
 done
 dirty=$(git status --porcelain 2>/dev/null) || fail "작업 폴더 상태(git status)를 못 읽었다."
 if [ -n "$dirty" ]; then
@@ -102,7 +104,8 @@ if [ "$lane" = "full" ]; then
     # 비밀번호는 docker compose 와 같은 main 체크아웃의 `.env` 에서 읽고, 비면 compose 처럼 옛 값이다.
     # 박아 쓰면 맥이 옛 비밀번호에 묶인다 — 맥 Docker Desktop 은 러너가 host.docker.internal 로 DB 에 닿아 비밀번호만 막는다 (FIX-F1-02 에서 넘김)
     ENV_FILE="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)/../.env"
-    env_val() { sed -n "s/^$1=//p" "$ENV_FILE" 2>/dev/null | tail -n 1 | sed "s/^[\"']//; s/[\"']\$//"; }
+    # compose 의 .env 꼴 — 앞의 `export ` · 따옴표 · 값 뒤의 ` # 메모` · CRLF 를 걷는다
+    env_val() { sed -n "s/^\(export[[:space:]]\{1,\}\)\{0,1\}$1=//p" "$ENV_FILE" 2>/dev/null | tail -n 1 | tr -d '\r' | sed "s/[[:space:]]\{1,\}#.*//; s/^[\"']//; s/[\"']\$//"; }
     PG_PW=$(env_val POSTGRES_PASSWORD)
     RO_PW=$(env_val GRAFANA_RO_PASSWORD)
     export PGPASSWORD="${PG_PW:-platform}"

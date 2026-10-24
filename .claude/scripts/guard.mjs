@@ -35,8 +35,9 @@ const BANNED = [
   [/\bbranch\s(?=(?:[^;&|]*\s)?(?:-[a-zA-Z]*d[a-zA-Z]*|--delete)(?:\s|$))(?=(?:[^;&|]*\s)?(?:-[a-zA-Z]*f[a-zA-Z]*|--force)(?:\s|$))/, '브랜치 강제 삭제'],
   [/migrate[:\s-]*(?:down|rollback|undo)/i, '마이그레이션 되돌리기'],
   [/\bdbmate\S*(?:\s+\S+)*\s+(?:down|rollback)(?:\s|$)/, '마이그레이션 되돌리기'],
-  // 맥의 임시 폴더(작업 tmp)는 /Users/<이름>/ 아래 깊은 곳이다 — 홈 폴더 자체만 막고 그 안쪽은 지운다 (2026-10-09 오탐 둘)
-  [/\brm\s+(?:-\S+\s+)*(?:-[a-zA-Z]*[rR][a-zA-Z]*|--recursive)\s+(?:-\S+\s+)*(?:\/(?!tmp|(?:home|Users)\/[^/\s]+\/[^\s])|~\/?(?:\s|$)|\$\{?HOME\}?\/?(?:\s|$))/, '루트 경로 삭제'],
+  // 맥의 임시 폴더(작업 tmp)는 /Users/<이름>/ 아래 깊은 곳이다 — 홈 폴더 자체(`/*` 포함)만 막고 그 안쪽은 지운다 (2026-10-09 오탐 둘).
+  // 되풀이 깃발과 지울 경로는 어느 자리에 와도 본다 — `rm -rf build /` 의 둘째 경로도 지워진다
+  [/\brm\s(?=(?:.*\s)?(?:-[a-zA-Z]*[rR][a-zA-Z]*|--recursive)(?:\s|$))(?=(?:.*\s)?(?:\/(?!tmp|dev\/null|(?:home|Users)\/[^/\s]+\/[^\s*])|~\/?\*?(?:\s|$)|\$\{?HOME\}?\/?\*?(?:\s|$)))/, '루트 경로 삭제'],
   // 명령 줄 무늬로 찾으면 그 무늬를 품은 도구 셸 자신도 걸려 같이 꺼진다 — 결과도 정리도 없이 셸이 죽는다.
   // SETUP §11 에 적었는데 2026-10-01 에 `$(pgrep -f …)` 로 또 겪었다. `pgrep -af` 로 번호를 보고 `kill <번호>`
   // 무늬 고르개는 `-f` 를 품은 묶음(`-af` · `-fx`)과 `--full` 둘 다다. 치환은 `$(…)` 와 백틱 둘 다
@@ -49,16 +50,19 @@ const BANNED_WHOLE = [
   [/\bpgrep\s+(?:[^;&|]*\s)?(?:-\w*f\w*|--full)\b[^;&|]*\|\s*xargs\s+(?:-\S+\s+)*kill\b/, '무늬로 프로세스 끄기'],
 ];
 
+const 감싸기 = /(?:^|[;&|(`\n]|\$\()\s*(?:(?:env|exec|sudo|nohup|command|xargs|time)\s+|\w+=\S*\s+)*(?:\S*\/)?(?:(?:ba|z|da|k)?sh\s+(?:-[\w-]+\s+)*-\w*c\w*|eval)\s+(?:--\s+)?$/;
+
 /** 금지 명령이면 그 이름을, 아니면 null. 판별식이 이 함수만 부른다 */
 export function isBanned(command) {
   // 따옴표 **안쪽만** 지운다. 바깥의 진짜 명령은 그대로 남는다 —
   // `git branch -D "my branch"` 는 여전히 잡히고 `grep "branch -D" f` 는 빠진다.
-  // 셸로 감싼 명령(`bash -c '…'` · `eval "…"`)은 따옴표 안이 진짜 명령이라 걷기 전에 떼어 따로 본다 (리뷰 L2)
+  // 셸로 감싼 명령(`bash -c '…'` · `eval "…"`)은 따옴표 안이 진짜 명령이라 걷기 전에 떼어 따로 본다 (리뷰 L2).
+  // 명령 자리(맨 앞 · `;` `&&` `|` `(` `$(` 뒤 · env · sudo 따위 뒤)에 선 것만 — `echo sh -c '…'` 는 아무것도 실행하지 않는다
   let 껍데기 = '';
   const 감싼명령들 = [];
   for (const [조각] of String(command ?? '').matchAll(/'[^']*'|"[^"]*"|[^'"]+|['"]/g)) {
     if (조각.length < 2 || (조각[0] !== "'" && 조각[0] !== '"')) { 껍데기 += 조각; continue; }
-    if (/(?:\b(?:ba|z|da|k)?sh\s+(?:-\w+\s+)*-\w*c\w*|\beval)\s+$/.test(껍데기)) 감싼명령들.push(조각.slice(1, -1));
+    if (감싸기.test(껍데기)) 감싼명령들.push(조각.slice(1, -1));
     껍데기 += 조각[0] + 조각[0];
   }
   for (const 안쪽 of 감싼명령들) {
@@ -176,8 +180,9 @@ export const 막기폴더 = (env = process.env, 기본 = cwd) => env.CLAUDE_PROJ
  * (playwright-core `lib/tools/cli-client/registry.js` 의 createClientInfo 와 같은 차례). 못 찾으면 폴더 그대로다
  */
 export function 세션공간(폴더) {
-  for (let d = 폴더, i = 0; i < 10 && dirname(d) !== d; i++, d = dirname(d)) {
+  for (let d = 폴더, i = 0; i < 10; i++, d = dirname(d)) {
     if (existsSync(join(d, '.playwright'))) return d;
+    if (dirname(d) === d) break;
   }
   try {
     const 판 = createRequire(join(폴더, '_')).resolve('playwright/package.json');
@@ -190,7 +195,8 @@ export function 세션공간(폴더) {
 // 열쇠는 세션 공간이다 — 같은 설치를 쓰는 워크트리 둘의 같은 이름 세션은 한 브라우저다. 폴더로 가르면 b 가 새로 연 브라우저를
 // a 가 제 표시만 믿고 막기 없이 움직인다 (리뷰 L3)
 const 표시자리 = () => `${tmpdir()}/scan-guard`;
-const 표시 = (세션) => `${표시자리()}/${createHash('sha1').update(`${세션공간(막기폴더())}\n${세션}`).digest('hex')}`;
+let 공간 = null;
+const 표시 = (세션) => `${표시자리()}/${createHash('sha1').update(`${(공간 ??= 세션공간(막기폴더()))}\n${세션}`).digest('hex')}`;
 function 저장막기(세션) {
   if (existsSync(표시(세션))) return null;
   const r = spawnSync('npx', ['playwright', 'cli', ...(세션 ? [`-s=${세션}`] : []), 'run-code', 막기코드], { cwd: 막기폴더(), encoding: 'utf8', timeout: 30_000 });
