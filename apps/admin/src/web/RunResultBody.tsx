@@ -94,6 +94,13 @@ export function 끝난결과(props: Props) {
   const { data, insights, 판정하기, 견줌오류, 칸안, 판정, on판정, device, on디바이스, page, on쪽, 열카드 } = props;
   const t = use말();
   const [변화, set변화] = useState<변화칸 | null>(null);
+  // 다른 실행으로 옮기면 거르개를 푼다 — 주소로 연 결과 화면은 「직전 실행 RUN N」을 눌러도 같은 화면이라 남는다.
+  // 새 실행에 직전 실행이 없으면 풀 칸도 없어 실패 카드가 다 사라진 채 굳는다
+  const [본실행, set본실행] = useState(data.runId);
+  if (본실행 !== data.runId) {
+    set본실행(data.runId);
+    set변화(null);
+  }
   // 「실패 다시 실행」으로 다시 돌린 결과를 원래 카드에 잇는다 — 실패가 있고 끝난 실행일 때만 찾는다 (점검 2.17)
   const 다시돌림 = use다시돌린결과(data.runId, 케이스서비스(data.items[0]?.tcId ?? ''), data.counts.fail > 0);
   const 통과제목 = useRef<HTMLHeadingElement>(null);

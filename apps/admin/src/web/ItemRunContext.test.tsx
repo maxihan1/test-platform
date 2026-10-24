@@ -6,10 +6,12 @@ import { cleanup, render, screen } from '@testing-library/react';
 
 import { api, type FailureCase, type ItemStatus, type Platform, type RunItemDetail, type RunItemSummary } from './api.js';
 import { 항목실행줄, 실패길, 회차글 } from './ItemRunContext.js';
+import { 증적 } from './RunResult.fixture.js';
 
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  vi.useRealTimers();
 });
 
 const RUN_ID = 3301;
@@ -122,6 +124,18 @@ describe('항목실행줄', () => {
 
     expect(await screen.findByText('로그인한다')).toBeTruthy();
     expect(screen.getByRole('button', { name: '버그' })).toBeTruthy();
+  });
+
+  it('만드는 리포트가 있으면 다 될 때까지 다시 읽어 「리포트 생성 중」이 풀린다 — 실행 결과 화면과 같다', async () => {
+    vi.useFakeTimers();
+    const 만드는중 = { ...실행응답(실행항목들), evidence: [증적('PDF', 'PENDING'), 증적('XLSX', 'PENDING'), 증적('HTML', 'PENDING')] };
+    vi.spyOn(api, 'run').mockResolvedValueOnce(만드는중).mockResolvedValue(실행응답(실행항목들));
+    vi.spyOn(api, 'failures').mockResolvedValue({ items: [카드], page: 1, pageSize: 20, total: 1 });
+    render(<항목실행줄 item={상세(실행항목들[2]!)} 판정하기={() => () => true} />);
+
+    expect(await vi.waitFor(() => screen.getByRole('button', { name: '리포트 생성 중' }))).toBeTruthy();
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(await vi.waitFor(() => screen.getByRole('button', { name: '리포트 생성' }))).toBeTruthy();
   });
 
   it('실행을 못 읽으면 아무것도 그리지 않는다 — 항목 상세 본문은 따로 선다', async () => {

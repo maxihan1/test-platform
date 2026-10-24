@@ -62,6 +62,14 @@ export function 항목실행줄({ item, 판정하기 }: { item: RunItemDetail; �
   const 데이터 = 실행.data;
   const 권한 = 실행판정(판정하기, 데이터);
   const 증적칸 = use증적(데이터, 권한, 실행.reload);
+  // 리포트는 뒤에서 만들어진다. 다 될 때까지 다시 묻는다 — 안 그러면 「리포트 생성 중」에 굳고 다 된 파일도 안 받아진다 (RunResult 와 같다)
+  const 만드는문서있나 = 데이터 !== null && 데이터.evidence.some((it) => it.status === 'PENDING');
+  const reload = 실행.reload;
+  useEffect(() => {
+    if (!만드는문서있나) return;
+    const timer = setInterval(reload, 2000);
+    return () => clearInterval(timer);
+  }, [만드는문서있나, reload]);
   // 도는 실행은 카드 통로가 409 다 — 끝난 실행의 실패 항목만 찾는다
   const { 카드, 다시읽기 } = use실패카드(item.runId, item.tcId, item.status === 'FAIL' && 데이터 !== null && 데이터.status !== 'RUNNING');
 
