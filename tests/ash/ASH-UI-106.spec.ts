@@ -34,21 +34,31 @@ async function 지금색(월드: 월드화면, 주소: string): Promise<string> 
 
 async function 색될때까지(월드: 월드화면, 주소: string, 색: string): Promise<string> {
   const 끝 = Date.now() + 30_000;
+  let 사라진때: number | undefined;
   for (;;) {
     const 지금 = await 지금색(월드, 주소);
-    if (지금 === 색 || Date.now() >= 끝) return 지금;
+    사라진때 = 지금 === 안보임 ? (사라진때 ?? Date.now()) : undefined;
+    if (지금 === 색 || Date.now() >= 끝 || (사라진때 !== undefined && Date.now() - 사라진때 >= 3_000)) return 지금;
     await new Promise((깨운다) => setTimeout(깨운다, 500));
   }
 }
 
-async function 보이는봇색(월드: 월드화면, 후보: 봇[], 바꾸기: (봇값: 봇) => Promise<봇>, 색: string): Promise<{ 바뀐: 봇; 색: string }> {
+async function 보이는봇색(
+  월드: 월드화면,
+  후보: 봇[],
+  바꾸기: (봇값: 봇) => Promise<봇>,
+  상태: 봇['alignment']['state'],
+  색: string,
+): Promise<{ 바뀐: 봇; 색: string }> {
   let 남은 = 후보;
   for (let 번 = 1; ; 번 += 1) {
     const 고른 = await 월드.보이는봇(남은, 60_000);
     const 바뀐 = await 바꾸기(고른);
+    if (바뀐.alignment.state !== 상태) return { 바뀐, 색: 안보임 };
     const 읽은 = await 색될때까지(월드, 월드.봇이름표(고른.id, 고른.name), 색);
-    if (읽은 !== 안보임 || 번 === 3) return { 바뀐, 색: 읽은 };
-    남은 = 남은.filter((b) => b.id !== 고른.id);
+    const 다음 = 남은.filter((b) => b.id !== 고른.id);
+    if (읽은 !== 안보임 || 번 === 3 || 다음.length === 0) return { 바뀐, 색: 읽은 };
+    남은 = 다음;
   }
 }
 
@@ -70,18 +80,18 @@ test(spec, async ({ game, admin }) => {
       await verify('월드 화면 구역 이름에 「초록 들판」이 보인다', await 월드.구역글(), '초록 들판', { blocker: true });
     });
     await test.step('선량한 봇 이름표 색을 읽는다', async () => {
-      const { 색 } = await 보이는봇색(new 월드화면(game), 후보, async (봇값) => 봇값, '파란색');
+      const { 색 } = await 보이는봇색(new 월드화면(game), 후보, async (봇값) => 봇값, 'Innocent', '파란색');
       await verify('선량한 봇 이름표가 파란색으로 보인다', 색, '파란색');
     });
     await test.step('보라 이름 봇 이름표 색을 읽는다', async () => {
-      const { 바뀐, 색 } = await 보이는봇색(new 월드화면(game), 후보, (봇값) => 보라봇만들기(admin, 맞는이!, 봇값), '보라색');
+      const { 바뀐, 색 } = await 보이는봇색(new 월드화면(game), 후보, (봇값) => 보라봇만들기(admin, 맞는이!, 봇값), 'Purple', '보라색');
       보라봇 = 바뀐;
       await verify('그 봇이 선공 표시 상태가 됐다', 바뀐.alignment.state, 'Purple', { blocker: true });
       await verify('선공 표시 봇 이름표가 보라색으로 보인다', 색, '보라색');
     });
     await test.step('빨간 이름 봇 이름표 색을 읽는다', async () => {
       const 먼저 = [보라봇!, ...후보.filter((b) => b.id !== 보라봇!.id)];
-      const { 바뀐, 색 } = await 보이는봇색(new 월드화면(game), 먼저, (봇값) => 빨간봇만들기(admin, 맞는이!, 봇값), '빨간색');
+      const { 바뀐, 색 } = await 보이는봇색(new 월드화면(game), 먼저, (봇값) => 빨간봇만들기(admin, 맞는이!, 봇값), 'Chaotic', '빨간색');
       await verify('그 봇이 악명 상태가 됐다', 바뀐.alignment.state, 'Chaotic', { blocker: true });
       await verify('악명 봇 이름표가 빨간색으로 보인다', 색, '빨간색');
     });
