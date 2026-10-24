@@ -1394,7 +1394,8 @@ export const api = {
     call<void>(`/cases/${encodeURIComponent(tcId)}/smoke`, { ...json({ smoke }), method: 'PUT' }),
 
   /** 애플리케이션의 CI 토큰 (도메인/실행 §7 「빌드마다 돌리기」). 원문은 만들 때 응답에만 있다 */
-  serviceTokens: (serviceId: number) => call<{ tokens: CI토큰[] }>(`/settings/services/${serviceId}/tokens`),
+  /** publicUrl 은 서버의 PLATFORM_PUBLIC_URL — CI 예시 주소의 바탕이다. 비었으면 null */
+  serviceTokens: (serviceId: number) => call<{ tokens: CI토큰[]; publicUrl: string | null }>(`/settings/services/${serviceId}/tokens`),
   createServiceToken: (serviceId: number, name: string) =>
     call<{ tokenId: number; token: string }>(`/settings/services/${serviceId}/tokens`, json({ name })),
   revokeServiceToken: (serviceId: number, tokenId: number) =>

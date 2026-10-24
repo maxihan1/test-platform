@@ -11,13 +11,13 @@ type 탭 = 'github' | 'curl';
 
 // 파일을 올리는 종류는 APK 를 보낸다. 화면 · API 는 배포가 끝난 뒤 알리기만 한다.
 // 한국어가 든 템플릿 문자열은 messages.test.ts 가 막으므로 줄을 배열로 이어 붙인다
-function 예시글(종류: SettingsServiceRow['kind'], 탭: 탭, env: string, 제목: string): string {
+function 예시글(종류: SettingsServiceRow['kind'], 탭: 탭, env: string, 제목: string, 바탕: string): string {
   const 파일 = 종류 === 'APP' || 종류 === 'GAME';
   const github = 탭 === 'github';
   const 들여 = github ? '    ' : '';
   const 열쇠 = github ? '${{ secrets.QAHUB_TOKEN }}' : '$QAHUB_TOKEN';
   const 번호 = github ? '${{ github.run_number }}' : '$BUILD_NO';
-  const 주소 = `${window.location.origin}/api/builds?env=${encodeURIComponent(env)}&buildNo=${번호}`;
+  const 주소 = `${바탕}/api/builds?env=${encodeURIComponent(env)}&buildNo=${번호}`;
   const curl = [
     'curl --fail -X POST \\',
     `  -H "Authorization: Bearer ${열쇠}" \\`,
@@ -45,7 +45,9 @@ export function CI토큰구획({ row }: { row: SettingsServiceRow }) {
   const 고른env = 서버들.some((it) => it.env === env) ? env : (서버들[0]?.env ?? '');
   const 종류 = row.kind ?? 'SCREEN';
   const 파일 = 종류 === 'APP' || 종류 === 'GAME';
-  const 예시 = 예시글(종류, 탭, 고른env, 파일 ? t('QA Hub 에 빌드 올리기') : t('QA Hub 에 빌드 알리기'));
+  // 브라우저를 연 주소는 localhost 일 수 있어 CI 가 닿지 않는다 — 서버의 공개 주소가 있으면 그것을 쓴다 (GAME-F2-17)
+  const 바탕 = list.data?.publicUrl ?? window.location.origin;
+  const 예시 = 예시글(종류, 탭, 고른env, 파일 ? t('QA Hub 에 빌드 올리기') : t('QA Hub 에 빌드 알리기'), 바탕);
 
   async function 일하기(일: () => Promise<void>) {
     set오류(null);

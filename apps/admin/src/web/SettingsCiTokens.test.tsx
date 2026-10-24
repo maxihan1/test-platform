@@ -33,8 +33,8 @@ const 행 = (덮: Partial<SettingsServiceRow> = {}): SettingsServiceRow => ({
 
 const 토큰 = (덮: Partial<CI토큰> = {}): CI토큰 => ({ tokenId: 4, name: 'github-main', createdBy: '김QA', createdAt: '2026-10-20T01:00:00Z', lastUsedAt: null, ...덮 });
 
-async function 만든다(r: SettingsServiceRow) {
-  vi.spyOn(api, 'serviceTokens').mockResolvedValue({ tokens: [] });
+async function 만든다(r: SettingsServiceRow, publicUrl: string | null = null) {
+  vi.spyOn(api, 'serviceTokens').mockResolvedValue({ tokens: [], publicUrl });
   const 만들기 = vi.spyOn(api, 'createServiceToken').mockResolvedValue({ tokenId: 5, token: 'cit_abc123' });
   render(<CI토큰구획 row={r} />);
   fireEvent.change(await screen.findByLabelText('토큰 이름'), { target: { value: 'github-main' } });
@@ -45,7 +45,7 @@ async function 만든다(r: SettingsServiceRow) {
 
 describe('설정 › CI 토큰', () => {
   it('목록에 이름과 「쓴 적 없음」이 보인다', async () => {
-    vi.spyOn(api, 'serviceTokens').mockResolvedValue({ tokens: [토큰()] });
+    vi.spyOn(api, 'serviceTokens').mockResolvedValue({ tokens: [토큰()], publicUrl: null });
     render(<CI토큰구획 row={행()} />);
     const 줄 = (await screen.findByText('github-main')).closest('tr')!;
     expect(줄.textContent).toContain('김QA');
@@ -66,6 +66,13 @@ describe('설정 › CI 토큰', () => {
     expect(screen.queryByText('cit_abc123')).toBeNull();
   });
 
+  it('서버가 공개 주소를 주면 예시가 브라우저를 연 주소 대신 그 주소를 쓴다 — localhost 는 CI 가 닿지 않는다', async () => {
+    await 만든다(행(), 'http://192.168.1.14:3000');
+    const 예시 = document.querySelector('pre')!.textContent!;
+    expect(예시).toContain('"http://192.168.1.14:3000/api/builds?env=qa&buildNo=');
+    expect(예시).not.toContain(window.location.origin);
+  });
+
   it('화면 종류 예시에는 파일 올리기 줄이 없다', async () => {
     await 만든다(행({ kind: 'SCREEN' }));
     const 예시 = document.querySelector('pre')!.textContent!;
@@ -81,7 +88,7 @@ describe('설정 › CI 토큰', () => {
   });
 
   it('「끊기」 뒤 「끊는다」를 눌러야 끊고 목록을 다시 읽는다', async () => {
-    const 읽기 = vi.spyOn(api, 'serviceTokens').mockResolvedValue({ tokens: [토큰()] });
+    const 읽기 = vi.spyOn(api, 'serviceTokens').mockResolvedValue({ tokens: [토큰()], publicUrl: null });
     const 끊기 = vi.spyOn(api, 'revokeServiceToken').mockResolvedValue(undefined);
     render(<CI토큰구획 row={행()} />);
     fireEvent.click(await screen.findByRole('button', { name: 'github-main 끊기' }));
@@ -93,7 +100,7 @@ describe('설정 › CI 토큰', () => {
   });
 
   it('이름이 비면 서버에 보내지 않는다', async () => {
-    vi.spyOn(api, 'serviceTokens').mockResolvedValue({ tokens: [] });
+    vi.spyOn(api, 'serviceTokens').mockResolvedValue({ tokens: [], publicUrl: null });
     const 만들기 = vi.spyOn(api, 'createServiceToken');
     render(<CI토큰구획 row={행()} />);
     fireEvent.click(await screen.findByRole('button', { name: '토큰 만들기' }));
