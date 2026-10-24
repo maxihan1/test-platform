@@ -64,6 +64,19 @@ describe('PRD 관리 — 쓴 것을 버리기 전에 묻기 (점검 8.4)', () =>
     expect(screen.getAllByLabelText('요구 문장')).toHaveLength(1);
   });
 
+  it('찾기로 펴진 묶음에서 고치다 찾기 글자를 지워도 그 묶음은 펴진 채 쓴 글이 남는다', async () => {
+    render(<Prd service="MKT" 할수={쓰는사람} />);
+    const 찾기 = await screen.findByRole('textbox', { name: '요구 문장 · 번호 검색' });
+    fireEvent.change(찾기, { target: { value: '잠긴다' } });
+    fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-041/ }));
+    fireEvent.click(screen.getByRole('button', { name: '고치기' }));
+    fireEvent.change(screen.getByLabelText('요구 문장'), { target: { value: '쓰다 만 글' } });
+
+    fireEvent.change(찾기, { target: { value: '' } });
+    expect((screen.getByLabelText('요구 문장') as HTMLTextAreaElement).value).toBe('쓰다 만 글');
+    expect(screen.getByRole('button', { name: /^로그인/ }).getAttribute('aria-expanded')).toBe('true');
+  });
+
   it('안 고친 줄은 다른 줄을 고치기 시작해도 묻지 않는다', async () => {
     await 펴서고치기(/회원가입/, /MKT-REQ-031/);
     fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-032/ }));
