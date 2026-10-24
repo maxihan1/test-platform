@@ -10,6 +10,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { api, type EnvRow, type Paged, type RunListRow, type RunTally } from './api.js';
 import { use이동 } from './leaveGuard.js';
 import { RunList } from './RunList.js';
+import { 도는중응답 } from './RunResult.fixture.js';
 import type { 판정 } from './role.js';
 
 const 운영: 판정 = () => true;
@@ -58,7 +59,7 @@ const 빈쪽: 답 = { items: [], total: 0, page: 1, pageSize: 2, summary: 빈집
 
 async function 그리기(답: 답 = 한쪽, kind: 'UI' | 'FN' = 'FN') {
   const 스파이 = vi.spyOn(api, 'runs').mockResolvedValue(답);
-  const 것 = render(<RunList kind={kind} service="ZRL" envs={서버들} 할수={운영} />);
+  const 것 = render(<RunList kind={kind} service="ZRL" envs={서버들} 판정하기={() => 운영} />);
   await waitFor(() => expect(스파이).toHaveBeenCalled());
   return { ...것, 스파이 };
 }
@@ -256,7 +257,7 @@ describe('RunList 오른쪽 결과 칸 (§8.7 「A안」)', () => {
     vi.spyOn(api, 'runs').mockResolvedValue(한쪽);
     function 뿌리() {
       const { 조건번 } = use이동();
-      return <RunList key={조건번} kind="FN" service="ZRL" envs={서버들} 할수={운영} />;
+      return <RunList key={조건번} kind="FN" service="ZRL" envs={서버들} 판정하기={() => 운영} />;
     }
     render(<뿌리 />);
     await waitFor(() => expect(api.run).toHaveBeenCalledWith(2112));
@@ -278,5 +279,28 @@ describe('RunList 오른쪽 결과 칸 (§8.7 「A안」)', () => {
 
     expect(container.querySelector('.runs-split.picked')).toBeNull();
     expect(window.location.hash).toBe('#/runs/fn');
+  });
+});
+
+describe('RunList 결과 칸 권한', () => {
+  it('주소의 실행이 다른 애플리케이션 것이면 결과 칸 버튼을 그 애플리케이션 권한으로 가른다 — 띠 권한이면 실행 읽기만 있는 사람에게 「실행 중단」이 섰다', async () => {
+    window.location.hash = '#/runs/fn?run=2113';
+    vi.spyOn(api, 'runs').mockResolvedValue(한쪽);
+    vi.spyOn(api, 'run').mockResolvedValue({
+      ...도는중응답,
+      runId: 2113,
+      items: [
+        {
+          historyId: 1, tcId: 'MEM-FN-001', tcName: '회원 가입', platform: 'desktop', attempt: 1, params: {}, paramSchema: {},
+          status: 'PASS', durationMs: 1, error: null, startedAt: '2026-09-15T17:13:00.000Z', finishedAt: null,
+        },
+      ],
+    });
+    vi.spyOn(api, 'progress').mockResolvedValue({ items: [], remainingMs: null });
+    const 보기만: 판정 = () => false;
+    render(<RunList kind="FN" service="ZRL" envs={서버들} 판정하기={(접두사) => (접두사 === 'MEM' ? 보기만 : 운영)} />);
+
+    await screen.findByText('결제 회귀');
+    expect(screen.queryByText('실행 중단')).toBeNull();
   });
 });

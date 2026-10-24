@@ -10,7 +10,7 @@ import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { use주소조건, 주소조건 } from './leaveGuard.js';
 import { 다음이있나 } from './paging.js';
-import type { 판정 } from './role.js';
+import type { 판정하기 } from './runJudge.js';
 import { 상태라벨, 실행자이름 } from './runState.js';
 import { scenarioApi, type ScenarioRunList as 목록답, type ScenarioRunRow } from './scenarioApi.js';
 import { ScenarioResult } from './ScenarioResult.js';
@@ -23,7 +23,8 @@ function 번호(글: string | null): number | null {
   return 글 !== null && /^\d{1,10}$/.test(글) ? Number(글) : null;
 }
 
-export function ScenarioRunList({ service, 할수 }: { service: string; 할수: 판정 }) {
+// 판정하기 — 결과 칸이 그 실행의 케이스 서비스로 버튼을 가른다. 주소의 `?run=` 은 띠와 다른 서비스 실행일 수 있다 (화면공통 §8)
+export function ScenarioRunList({ service, 판정하기 }: { service: string; 판정하기: 판정하기 }) {
   const t = use말();
   const [처음] = useState(주소조건);
   const [page, setPage] = useState(() => 번호(처음.get('page')) ?? 1);
@@ -173,7 +174,7 @@ export function ScenarioRunList({ service, 할수 }: { service: string; 할수: 
             <ScenarioResult
               key={보는실행}
               runId={보는실행}
-              판정하기={() => 할수}
+              판정하기={판정하기}
               칸안
               on새실행={(runId) => {
                 // 새 실행은 첫 쪽 맨 위에 선다 — 뒤쪽에 머물면 고른 줄이 목록 어디에도 없다

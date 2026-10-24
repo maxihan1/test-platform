@@ -70,7 +70,7 @@ const 빈쪽 = (summary: 목록답['summary']): 목록답 => ({ items: [], total
 async function 그리기(답: 목록답 = 한쪽) {
   const 스파이 = vi.spyOn(scenarioApi, 'runs').mockResolvedValue(답);
   const 결과 = vi.spyOn(scenarioApi, 'result').mockReturnValue(new Promise(() => {}));
-  const 것 = render(<ScenarioRunList service="ZSL" 할수={운영} />);
+  const 것 = render(<ScenarioRunList service="ZSL" 판정하기={() => 운영} />);
   await waitFor(() => expect(스파이).toHaveBeenCalled());
   return { ...것, 스파이, 결과 };
 }
@@ -295,5 +295,18 @@ describe('ScenarioRunList 오른쪽 결과 칸 (실행 §8.7 「A안」)', () =>
 
     expect(container.querySelector('.runs-split.picked')).toBeNull();
     expect(window.location.hash).toBe('#/runs/e2e');
+  });
+});
+
+describe('ScenarioRunList 결과 칸 권한', () => {
+  it('결과 칸 버튼은 띠가 아니라 그 시나리오 실행의 케이스 애플리케이션 권한으로 가른다', async () => {
+    window.location.hash = '#/runs/e2e?run=12';
+    vi.spyOn(scenarioApi, 'runs').mockResolvedValue(한쪽);
+    vi.spyOn(scenarioApi, 'result').mockResolvedValue(시나리오결과());
+    const 보기만: 판정 = () => false;
+    render(<ScenarioRunList service="ZSL" 판정하기={(접두사) => (접두사 === 'XSX' ? 보기만 : 운영)} />);
+
+    await screen.findAllByText(/결제 시나리오/);
+    expect(screen.queryByRole('button', { name: 'qa에서 다시 실행' })).toBeNull();
   });
 });
