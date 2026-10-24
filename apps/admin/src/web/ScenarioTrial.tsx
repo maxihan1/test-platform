@@ -97,6 +97,7 @@ export function TrialTab({ 시험, 단계들, 재료 }: { 시험: 시험상태; 
   const t = use말();
   const 언어 = use언어();
   const 결과 = 시험.결과;
+  const 돌린단계 = 시험.단계들 ?? 단계들;
   return (
     <div className="scn-trial">
       <p className="scn-trial-intro">
@@ -113,7 +114,7 @@ export function TrialTab({ 시험, 단계들, 재료 }: { 시험: 시험상태; 
           {결과.error === undefined ? null : <p className={오류칠(결과.status)}>{멈춘사유글자(결과.error.message, 언어)}</p>}
           <ol className="scn-steps">
             {결과.parts.map((p) => (
-              <TrialRow key={p.seq} part={p} 단계={단계들[p.seq - 1]} 재료={재료} trialId={시험.trialId} />
+              <TrialRow key={p.seq} part={p} 단계={돌린단계[p.seq - 1]} 재료={재료} trialId={시험.trialId} />
             ))}
           </ol>
         </>
