@@ -95,8 +95,8 @@ describe('만든 케이스 표', () => {
 
   it('반영이 끝나면 케이스 번호가 기능 · UI 상세 고리다', () => {
     render(<AuthoringCases cases={[결제, 버튼]} prUrl={null} 등록됨 />);
-    expect(screen.getByRole('link', { name: 'PAY-FN-001' }).getAttribute('href')).toBe('#/cases/fn?case=PAY-FN-001');
-    expect(screen.getByRole('link', { name: 'PAY-UI-002' }).getAttribute('href')).toBe('#/cases/ui?case=PAY-UI-002');
+    expect(screen.getByRole('link', { name: 'PAY-FN-001' }).getAttribute('href')).toBe('#/cases/fn?q=PAY-FN-001&case=PAY-FN-001');
+    expect(screen.getByRole('link', { name: 'PAY-UI-002' }).getAttribute('href')).toBe('#/cases/ui?q=PAY-UI-002&case=PAY-UI-002');
   });
 
   it('반영 전에 사람이 뺀 케이스는 반영 뒤에도 고리가 아니고 반영 때 뺐다고 적는다', () => {

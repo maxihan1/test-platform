@@ -60,8 +60,14 @@ export function 실행기록주소(tcId: string, runId: number, 카드열기 = f
   return 카드열기 ? `${주소}&tc=${encodeURIComponent(tcId)}` : 주소;
 }
 
-/** 케이스 목록에서 그 케이스 상세를 편 주소 (CaseListFilter 의 `case` 조건) */
-export const 케이스주소 = (tcId: string) => `#/cases/${UI케이스인가(tcId) ? 'ui' : 'fn'}?case=${encodeURIComponent(tcId)}`;
+/**
+ * 케이스 목록에서 그 케이스 상세를 편 주소 (CaseListFilter 의 `case` 조건).
+ * 그 번호로 찾아(`q`) 연다 — 목록은 받은 쪽 안에서만 연 줄을 찾아 첫 쪽(50건) 밖 케이스는 칸이 안 열렸다
+ */
+export const 케이스주소 = (tcId: string) => {
+  const 번호 = encodeURIComponent(tcId);
+  return `#/cases/${UI케이스인가(tcId) ? 'ui' : 'fn'}?q=${번호}&case=${번호}`;
+};
 
 /** 「PRD 관리」의 그 항목 주소. 거기서 묶음을 펴고 그 줄로 간다 (도메인/카탈로그 §8.1 「맥락」) */
 export const PRD항목주소 = (reqId: string) => `#/prd/${encodeURIComponent(reqId)}`;

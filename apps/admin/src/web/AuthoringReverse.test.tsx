@@ -310,7 +310,7 @@ describe('상세 — 대조 설정 · 산출물 · 차이 목록', () => {
     const 때 = new Date().toISOString();
     const 반영 = { id: 7, kind: 'MERGE' as const, resumeFrom: null, status: 'DONE' as const, stopReason: null, error: null, createdAt: 때, startedAt: 때, finishedAt: 때, caseFiles: null, tokens: null, prUrl: null };
     await 상세를연다(줄({ compare: true, env: 'qa', startUrl: null, result: 차이, runs: [반영] }));
-    expect(screen.getByRole('link', { name: 'PAY-012' }).getAttribute('href')).toBe('#/cases/fn?case=PAY-012');
+    expect(screen.getByRole('link', { name: 'PAY-012' }).getAttribute('href')).toBe('#/cases/fn?q=PAY-012&case=PAY-012');
   });
 
   it('차이 표 아래에 PRD 관리에서 확인 필요 보기 고리가 있다', async () => {

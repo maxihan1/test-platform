@@ -265,7 +265,7 @@ describe('칸에서 내려가기', () => {
     const 다시 = render(<Dashboard 서비스열기={서비스열기} {...기본재료} />);
     await screen.findByText('실패 히트맵');
     const 링크 = 다시.container.querySelector('.dash-heat a')!;
-    expect(링크.getAttribute('href')).toBe('#/cases/fn?case=ZDA-001');
+    expect(링크.getAttribute('href')).toBe('#/cases/fn?q=ZDA-001&case=ZDA-001');
     fireEvent.click(링크);
     expect(서비스열기).toHaveBeenCalledWith(1);
   });
