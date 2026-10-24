@@ -11,13 +11,21 @@ import { type 앱화면요청, 앱을켜서읽는다 } from './appScreen.js';
  */
 export async function 게임화면을읽는다(req: 앱화면요청, env: NodeJS.ProcessEnv = process.env): Promise<string> {
   // 게임 케이스와 같은 연결 설정이다 — 기본 60초면 게임이 뜨기를 기다리는 동안(Appium 명령이 없다) 연결이 끊긴다
-  return 앱을켜서읽는다(req, env, { PLATFORM_ENGINE: 'GAME' }, async () => {
-    const game = await openGame({
-      ...env,
-      PLATFORM_DEVICE_UDID: req.udid ?? env.PLATFORM_DEVICE_UDID,
-      PLATFORM_GAME_LINK: req.udid === undefined ? 'usb' : 'farm',
-    });
-    const { snapshot } = await import('control-cli');
-    return snapshot(await game.tree()).text;
-  });
+  return 앱을켜서읽는다(
+    req,
+    env,
+    { PLATFORM_ENGINE: 'GAME' },
+    async () => {
+      const game = await openGame({
+        ...env,
+        PLATFORM_DEVICE_UDID: req.udid ?? env.PLATFORM_DEVICE_UDID,
+        PLATFORM_GAME_LINK: req.udid === undefined ? 'usb' : 'farm',
+      });
+      const { snapshot } = await import('control-cli');
+      return snapshot(await game.tree()).text;
+    },
+    // noReset 이면 Appium 이 같은 패키지가 깔린 폰에 넘긴 APK 를 깔지 않는다 — 판을 견주지 않는다. 폰에 남은 옛 판(SDK 없음)이 켜져
+    // 게임 포트가 120초 내내 연결을 거부했다(2026-10-24 GAME-F1-14 · 팜 세션 14287f6f). 화면 읽기는 연결 하나뿐이라 지우고 새로 깐다
+    { 'appium:noReset': false },
+  );
 }
