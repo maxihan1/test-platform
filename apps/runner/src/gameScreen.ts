@@ -25,7 +25,8 @@ export async function 게임화면을읽는다(req: 앱화면요청, env: NodeJS
       return snapshot(await game.tree()).text;
     },
     // noReset 이면 Appium 이 같은 패키지가 깔린 폰에 넘긴 APK 를 깔지 않는다 — 판을 견주지 않는다. 폰에 남은 옛 판(SDK 없음)이 켜져
-    // 게임 포트가 120초 내내 연결을 거부했다(2026-10-24 GAME-F1-14 · 팜 세션 14287f6f). 화면 읽기는 연결 하나뿐이라 지우고 새로 깐다
-    { 'appium:noReset': false },
+    // 게임 포트가 120초 내내 연결을 거부했다(2026-10-24 GAME-F1-14 · 팜 세션 14287f6f). noReset 만 끄면 깔린 판이 같거나 높을 때 또 안 깐다
+    // (2026-10-25 팜 실측 「0.1.39 >= 0.1.39 — no need to install」). 화면 읽기는 연결 하나뿐이라 늘 넘긴 APK 를 다시 깐다
+    { 'appium:noReset': false, 'appium:enforceAppInstall': true },
   );
 }

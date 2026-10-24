@@ -55,11 +55,12 @@ describe('게임화면을읽는다', () => {
     expect(openGame.mock.calls[0]![0]).toMatchObject({ PLATFORM_GAME_LINK: 'farm', PLATFORM_DEVICE_UDID: 'R5CT', PLATFORM_APPIUM_URL: 'http://user:pw@farm:4723/wd/hub' });
   });
 
-  it('폰에 같은 게임의 다른 판이 먼저 깔려 있어도 넘긴 APK 를 새로 깐다 — noReset 만 끄고 나머지는 게임 케이스 설정 그대로다', async () => {
+  it('폰에 같은 게임의 다른 판이 먼저 깔려 있어도 넘긴 APK 를 새로 깐다 — 판이 같거나 높아도 깐다 · 나머지는 게임 케이스 설정 그대로다', async () => {
     await 게임화면을읽는다({ udid: 'R5CT' });
 
     const caps = JSON.parse((fetchMock.mock.calls[0] as [string, RequestInit])[1].body as string).capabilities.alwaysMatch;
     expect(caps['appium:noReset']).toBe(false);
+    expect(caps['appium:enforceAppInstall']).toBe(true);
     expect(caps['appium:forceAppLaunch']).toBe(true);
     expect(caps['appium:shouldTerminateApp']).toBe(true);
   });
