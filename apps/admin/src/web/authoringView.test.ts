@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { AuthoringRow } from './api.js';
-import { 고치기실행인가, 고칠것목록, 보임라벨, 멈춘듯기준, 종류라벨, 줄보임, 중단이유라벨, 칩글 } from './authoringView.js';
+import { 고치기실행인가, 고칠것목록, 반영번호, 보임라벨, 멈춘듯기준, 종류라벨, 줄보임, 중단이유라벨, 칩글 } from './authoringView.js';
 
 const 지금 = new Date('2026-09-22T12:00:00Z').getTime();
 
@@ -129,5 +129,24 @@ describe('고칠 내용 목록', () => {
     ]);
     expect(고칠것목록({})).toBeNull();
     expect(고칠것목록(undefined)).toBeNull();
+  });
+});
+
+describe('반영번호 — 반영 끝내기 result.mergedAs 를 읽는다', () => {
+  it('새 번호와 뺀 케이스(null)를 읽고, 글자 · null 이 아닌 값 · 빈 글자 · 접두사가 다른 번호는 버린다', () => {
+    const 표 = 반영번호({
+      pulled: true,
+      mergedAs: { 'MKT-FN-001': 'MKT-FN-014', 'MKT-FN-002': null, 'MKT-FN-003': 5, 'MKT-FN-004': '', 'MKT-FN-005': 'PAY-FN-001' },
+    });
+    expect([...표]).toEqual([
+      ['MKT-FN-001', 'MKT-FN-014'],
+      ['MKT-FN-002', null],
+    ]);
+  });
+
+  it('칸이 없거나 모양이 틀리면 빈 표다 — 작성 때 번호를 그대로 쓴다', () => {
+    expect(반영번호({ pulled: true }).size).toBe(0);
+    expect(반영번호({ mergedAs: ['MKT-FN-001'] }).size).toBe(0);
+    expect(반영번호(null).size).toBe(0);
   });
 });

@@ -7,7 +7,7 @@ import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { 겹침 } from '../apps/admin/src/authoring/conflicts.js';
-import { 겹침끝몸, 겹침판읽기, 결정들, 반영길, 본문처리줄, 자식커밋찾기 } from './authoring-conflicts-io.js';
+import { 겹침끝몸, 겹침쓸것, 겹침판읽기, 결정들, 반영길, 본문처리줄, 자식커밋찾기 } from './authoring-conflicts-io.js';
 
 // GIT_* 를 전부 뺀다 — pre-push 훅 안에서는 git 이 GIT_DIR 을 넣어 두어 이 저장소에 커밋한다 (HOOKS.md)
 const 깨끗한환경 = Object.fromEntries(Object.entries(process.env).filter(([키]) => !키.startsWith('GIT_')));
@@ -200,5 +200,27 @@ describe('가져가기의 결정 · 끝내기 몸 · PR 본문 줄', () => {
     const 한번 = 본문처리줄('본문\n', '겹침 처리: PAY-002 → PAY-041');
     expect(한번).toBe('본문\n\n겹침 처리: PAY-002 → PAY-041\n');
     expect(본문처리줄(한번, '겹침 처리: PAY-002 뺌')).toBe('본문\n\n겹침 처리: PAY-002 뺌\n');
+  });
+});
+
+describe('고른 대로 바꿀 것', () => {
+  it('바꾼 번호 · 뺀 번호를 처리줄과 함께 돌려준다 — 반영 끝내기 mergedAs 가 이것을 싣는다 (리뷰 M6)', () => {
+    const { 트리, 쓰기 } = 판();
+    쓰기('tests/pay/PAY-001.spec.ts', 케이스('PAY-001', '쿠폰'));
+    쓰기('tests/pay/PAY-002.spec.ts', 케이스('PAY-002', '환불'));
+    쓰기('docs/cases/PAY.md', 표([줄(1, 'FR-1', 'PAY-001'), 줄(2, 'FR-2', 'PAY-002')]));
+    const 겹친 = (tcId: string, kinds: 겹침['kinds']): 겹침 => ({ tcId, name: tcId, file: `tests/pay/${tcId}.spec.ts`, kinds, with: [] });
+    const r = 겹침쓸것(
+      트리,
+      'PAY',
+      { 자식커밋: 'a', mainSha: 'b', 합칠까: false, 겹침: [겹친('PAY-001', ['TCID']), 겹친('PAY-002', ['NAME'])], 쓴번호: new Set(['PAY-001', 'PAY-002', 'PAY-005']) },
+      [
+        { tcId: 'PAY-001', action: 'KEEP' },
+        { tcId: 'PAY-002', action: 'DROP' },
+      ],
+    );
+    if ('사유' in r) throw new Error(r.사유);
+    expect(r.바뀐것).toEqual([{ 옛: 'PAY-001', 새: 'PAY-006' }, { 옛: 'PAY-002', 뺌: true }]);
+    expect(r.처리줄).toBe('겹침 처리: PAY-001 → PAY-006 · PAY-002 뺌');
   });
 });

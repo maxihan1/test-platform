@@ -7,15 +7,15 @@ import { api, type AuthoringRow } from './api.js';
 import { 산출물설명, 자료고리 } from './AuthoringAssetParts.js';
 import { 고칠내용 } from './AuthoringEditParts.js';
 import { AuthoringCases } from './AuthoringCases.js';
+import { AuthoringDiffs } from './AuthoringDiffs.js';
 import { AuthoringMergeFailed } from './AuthoringMergeFailed.js';
 import { AuthoringRuns } from './AuthoringRuns.js';
 import { AuthoringStatusCard } from './AuthoringStatusCard.js';
 import { AuthoringTodo } from './AuthoringTodo.js';
-import { 고칠것목록, 끝났나, 요청제목, 자료요약, 종류라벨, 차이목록, 차이종류라벨 } from './authoringView.js';
+import { 고칠것목록, 끝났나, 반영번호, 요청제목, 자료요약, 종류라벨, 차이목록 } from './authoringView.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import type { 판정 } from './role.js';
-import { 케이스주소 } from './route.js';
 import { Failed, Loading, useAsync, when } from './ui.js';
 
 export function AuthoringDetail({
@@ -110,13 +110,18 @@ export function AuthoringDetail({
   const 반영실패 = 뿌리.runs?.[0]?.kind === 'MERGE' && 뿌리.runs[0].status === 'FAILED';
   // 반영이 끝나야 케이스가 카탈로그에 있다 — 그 전의 케이스 고리는 빈 상세로 간다
   const 반영됨 = 뿌리.runs?.[0]?.kind === 'MERGE' && 뿌리.runs[0].status === 'DONE';
-  // 반영 전에 사람이 뺀 케이스(입력 단계의 케이스 제외 · 중복의 새 케이스 제외)는 반영이 파일째 지운다 — 수 · 실행 · 고리에서 뺀다.
-  // ponytail: 반영이 병합되면 상세가 중복 결정을 더는 싣지 않아(최근 반영이 실패일 때만) 중복으로 뺀 것은 못 거른다 — 실행 창이 카탈로그에 없는 번호를 빼고 알린다
+  // 반영이 병합되면 최신 실행이 그 반영 행이고, 겹친 케이스를 새 번호로 넣었거나 뺀 것을 싣는다 — 작성 때 번호는 main 의 다른 케이스다
+  // (§3.6 「★ 반영 때 겹침 검사」 「작성 상세」 · 리뷰 M6). 병합 뒤에는 상세가 중복 결정을 더는 싣지 않아 뺀 것도 여기서 안다
+  const 바뀐번호 = 반영됨 ? 반영번호(data.result) : new Map<string, string | null>();
+  const 번호 = (tcId: string) => 바뀐번호.get(tcId) ?? tcId;
+  // 반영 전에 사람이 뺀 케이스(입력 단계의 케이스 제외 · 중복의 새 케이스 제외)는 반영이 파일째 지운다 — 수 · 실행 · 고리에서 뺀다
   const 뺀번호 = new Set([
     ...(작성.held ?? []).filter((h) => h.input?.removed === true).map((h) => h.tcId),
     ...(작성.conflicts ?? []).filter((c) => c.input?.action === 'DROP').map((c) => c.tcId),
+    ...[...바뀐번호].filter(([, 새]) => 새 === null).map(([옛]) => 옛),
   ]);
-  const 넣은것 = 작성.cases == null ? null : 작성.cases.filter((c) => !뺀번호.has(c.tcId));
+  const 반영케이스 = 작성.cases?.map((c) => ({ ...c, tcId: 번호(c.tcId) })) ?? null;
+  const 넣은것 = 작성.cases?.filter((c) => !뺀번호.has(c.tcId)).map((c) => ({ ...c, tcId: 번호(c.tcId) })) ?? null;
   const 부제글 = 고치기
     ? 종류라벨('EDIT', 언어)
     : data.compare === true
@@ -198,55 +203,10 @@ export function AuthoringDetail({
           reload={reload}
         />
 
-        {고치기 ? null : <AuthoringCases cases={작성.cases ?? null} prUrl={작성.prUrl} 등록됨={반영됨} 뺀번호={뺀번호} />}
+        {고치기 ? null : <AuthoringCases cases={반영케이스} prUrl={작성.prUrl} 등록됨={반영됨} 뺀번호={뺀번호} />}
 
         {차이들 === null ? null : (
-          <section id="diffs" className="authoring-panel" aria-labelledby="diffs-title">
-            <h3 id="diffs-title">
-              {t('기획서와 화면의 차이')} · {t('{수}건', { 수: 차이들.length })}
-            </h3>
-            {/* 좁은 화면에서 칸이 쪼개지지 않게 표만 옆으로 구른다 (DESIGN.md 「반응형」).
-                에이전트 안 번호 · 표시 성공 칸은 사람이 할 일과 상관없어 뺐다 (점검 12.11) */}
-            <div className="authoring-diffs-wrap">
-              <table className="dhist authoring-diffs" aria-label={t('기획서와 화면의 차이')}>
-                <thead>
-                  <tr>
-                    <th>{t('종류')}</th>
-                    <th>{t('자리')}</th>
-                    <th>{t('기획서')}</th>
-                    <th>{t('화면')}</th>
-                    <th>{t('케이스')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {차이들.map((d, i) => (
-                    <tr key={`${d.no}-${String(i)}`}>
-                      <td>{차이종류라벨(d.kind, 언어)}</td>
-                      <td>{d.where ?? '—'}</td>
-                      <td>{d.doc ?? '—'}</td>
-                      <td>{d.screen ?? '—'}</td>
-                      <td>
-                        {d.tcId == null ? (
-                          '—'
-                        ) : 반영됨 ? (
-                          <a className="mono" href={케이스주소(d.tcId)}>
-                            {d.tcId}
-                          </a>
-                        ) : (
-                          <span className="mono">{d.tcId}</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="btns">
-              <a className="btn ghost" href="#/prd">
-                {t('PRD 관리에서 확인 필요 보기')}
-              </a>
-            </div>
-          </section>
+          <AuthoringDiffs 차이들={차이들} 고리번호={(tcId) => (반영됨 && !뺀번호.has(tcId) ? 번호(tcId) : null)} />
         )}
 
         <section className="authoring-panel" aria-label={t('요청 정보')}>
@@ -292,8 +252,9 @@ export function AuthoringDetail({
               <ol className="authoring-assets" aria-label={t('산출물')}>
                 {산출물.map((a) => (
                   <li key={a.id}>
-                    <자료고리 요청={data.id} 자료={a} 글={a.name} />
-                    <small>{산출물설명(a, 자료들, data.kind === 'RERUN' ? data.sourceId ?? null : null, t)}</small>
+                    {/* 산출물은 그것을 만든 작성 실행의 자료다 — 반영이 최신이면 data 는 반영 행이라 서버가 404 를 준다 (리뷰 M7) */}
+                    <자료고리 요청={작성.id} 자료={a} 글={a.name} />
+                    <small>{산출물설명(a, 자료들, 작성.kind === 'RERUN' ? 작성.sourceId ?? null : null, t)}</small>
                   </li>
                 ))}
               </ol>

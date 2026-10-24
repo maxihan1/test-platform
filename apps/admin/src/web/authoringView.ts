@@ -197,6 +197,22 @@ export function 차이목록(result: unknown): 차이[] | null {
     }));
 }
 
+/**
+ * 반영이 겹친 케이스를 바꾼 번호 — 반영 끝내기 result.mergedAs (도메인/작성 §7). 작성 때 번호 → 반영된 번호, null 은 뺀 케이스.
+ * 이 칸이 없는 반영(옛 에이전트 · 이미 병합된 PR 을 다시 집은 반영)은 빈 표라 작성 때 번호를 그대로 쓴다.
+ * 서버가 이 칸을 안 보므로 접두사가 다른 번호 · 빈 글자는 버린다 — 고리 · 실행이 남의 서비스 케이스로 가지 않게
+ */
+export function 반영번호(result: unknown): Map<string, string | null> {
+  const 표 = typeof result === 'object' && result !== null ? (result as { mergedAs?: unknown }).mergedAs : undefined;
+  if (typeof 표 !== 'object' || 표 === null || Array.isArray(표)) return new Map();
+  const 머리 = (tcId: string) => tcId.split('-')[0];
+  return new Map(
+    Object.entries(표).filter(
+      (e): e is [string, string | null] => e[1] === null || (typeof e[1] === 'string' && e[1] !== '' && 머리(e[1]) === 머리(e[0])),
+    ),
+  );
+}
+
 /** 차이 종류를 사람 말로. 모르는 값은 「알 수 없는 종류」 — 식별자를 화면에 흘리지 않는다 */
 export function 차이종류라벨(kind: string, 언어: 언어): string {
   if (kind === 'DIFFERENT') return t('기획서와 다름', 언어);

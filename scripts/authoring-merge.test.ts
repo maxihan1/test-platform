@@ -79,6 +79,19 @@ describe('머지끝몸 — 병합 끝내기에 서버 체크아웃을 당겼는�
     expect(머지끝몸('MERGED', 주소, '', false)).toEqual({ status: 'DONE', prUrl: 주소, result: { pulled: false } });
   });
 
+  it('겹친 케이스를 고른 대로 바꿨으면 바뀐 번호 · 뺀 번호를 mergedAs 로 싣는다 — 작성 상세가 새 번호로 고리를 단다', () => {
+    const 바뀐것 = [{ 옛: 'MKT-FN-001', 새: 'MKT-FN-014' }, { 옛: 'MKT-FN-002', 뺌: true as const }];
+    expect(머지끝몸('MERGED', 주소, '', true, 바뀐것)).toEqual({
+      status: 'DONE',
+      prUrl: 주소,
+      result: { pulled: true, mergedAs: { 'MKT-FN-001': 'MKT-FN-014', 'MKT-FN-002': null } },
+    });
+  });
+
+  it('바꾼 것이 없으면 mergedAs 를 싣지 않는다', () => {
+    expect(머지끝몸('MERGED', 주소, '', true, [])).toEqual({ status: 'DONE', prUrl: 주소, result: { pulled: true } });
+  });
+
   it('병합이 안 됐으면 FAILED 이고 result 를 싣지 않는다', () => {
     expect(머지끝몸('OPEN', 주소, 'merge conflict', null)).toEqual({
       status: 'FAILED',

@@ -14,6 +14,7 @@ import { 도는번호 } from './authoring-keeping.js';
 import { 계정섞였나, 대상점검, 대상환경, 사유거르기 } from './authoring-reverse.js';
 import { 계정점검, 비밀번호들 } from './authoring-accounts.js';
 import { type 겹침판, 겹침쓸것, 결정들, 본문처리줄, 자식커밋찾기 } from './authoring-conflicts-io.js';
+import type { 바뀐것 } from './authoring-conflicts-apply.js';
 import { main합치기 } from './authoring-main-merge.js';
 import type { 모델 } from './authoring-model.js';
 import { AI부품합치기 } from './authoring-po-merge.js';
@@ -133,7 +134,7 @@ export async function 반영작업방(
   뿌리: number,
   머리: string,
   겹침: 겹침판 | null,
-): Promise<{ 자리: 사본; 처리줄: string | null } | null> {
+): Promise<{ 자리: 사본; 처리줄: string | null; 바뀐것: 바뀐것[] } | null> {
   const 받은보류 = 준비.것.held;
   const held = 보류있나(받은보류) ? 받은보류 : null;
   const 비밀 = 비밀번호들(준비.것);
@@ -196,7 +197,7 @@ export async function 반영작업방(
     });
     if ('사유' in 합침) return 그만(합침.사유);
   }
-  return { 자리, 처리줄: 고른?.처리줄 ?? null };
+  return { 자리, 처리줄: 고른?.처리줄 ?? null, 바뀐것: 고른?.바뀐것 ?? [] };
 }
 
 /** 보류 값을 적고 관문(타입 · K 규칙 · 채운 케이스 3회)을 돈 뒤, 케이스 코드가 바꾼 것을 되돌리고 계산한 글만 다시 쓴다 */

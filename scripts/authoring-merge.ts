@@ -19,6 +19,7 @@ import { 병합직전막힘 } from './authoring-merge-files.js';
 import { type 보고손, type 칠때, type 판정기, 멈춤, 쉬기, 진짜main받기, 친다, 커밋받기 } from './authoring-io.js';
 import { type 반영준비, 반영올리기, 반영작업방, 반영치우기 } from './authoring-held-merge.js';
 import { 겹침보기 } from './authoring-conflicts-io.js';
+import type { 바뀐것 } from './authoring-conflicts-apply.js';
 
 const 폴링간격 = 15_000;
 // ponytail: 루프 시간으로 잰다 — 맥에는 GNU timeout 이 없다. CI 가 늘 17분을 넘기면 이 숫자를 올린다
@@ -207,10 +208,10 @@ export async function 머지처리(
   // 당기기를 DONE 보다 먼저 한다 — 서버는 DONE 을 받으면 케이스 고치기의 저장값을 지우는데,
   // 체크아웃(/tests)이 옛 코드면 실행이 옛 기본값으로 돈다. 그래서 당겼는지를 함께 싣는다 (작성 §3.6 「★ 케이스 고치기」).
   // 예외는 여기서 false 로 닫는다 — 끝내기 전에 던지면 `닫으며` 가 된 병합을 FAILED 로 보낸다
-  await 당기고끝내기(손, 상태, prUrl, 친것.까닭, 뿌리, 호스트로);
+  await 당기고끝내기(손, 상태, prUrl, 친것.까닭, 뿌리, 호스트로, 작업?.바뀐것);
 }
 
-async function 당기고끝내기(손: 보고손, 상태: string, prUrl: string, 까닭: string, 뿌리: string, 호스트로: 칠때): Promise<void> {
+async function 당기고끝내기(손: 보고손, 상태: string, prUrl: string, 까닭: string, 뿌리: string, 호스트로: 칠때, 바뀐것: 바뀐것[] = []): Promise<void> {
   const 당김 =
     상태 === 'MERGED'
       ? await 한번에하나(async () => main당기기(뿌리, 호스트로)).catch((e: unknown) => {
@@ -218,12 +219,15 @@ async function 당기고끝내기(손: 보고손, 상태: string, prUrl: string,
           return false;
         })
       : null;
-  await 손.끝내기(머지끝몸(상태, prUrl, 까닭, 당김));
+  await 손.끝내기(머지끝몸(상태, prUrl, 까닭, 당김, 바뀐것));
 }
 
-/** 병합 끝내기 몸. 병합됐으면 당겼는지(`pulled`)를 싣는다 — 서버가 이것이 true 일 때만 저장값을 지운다 */
-export function 머지끝몸(상태: string, prUrl: string, 까닭: string, 당김: boolean | null): Record<string, unknown> {
-  if (상태 === 'MERGED') return { status: 'DONE', prUrl, result: { pulled: 당김 === true } };
+/** 병합 끝내기 몸 — 당겼는지(`pulled`, 서버가 true 일 때만 저장값을 지운다)와 겹침으로 바뀐 번호(`mergedAs`, 작성 상세의 고리 · 리뷰 M6) */
+export function 머지끝몸(상태: string, prUrl: string, 까닭: string, 당김: boolean | null, 바뀐것: 바뀐것[] = []): Record<string, unknown> {
+  if (상태 === 'MERGED') {
+    const mergedAs = Object.fromEntries(바뀐것.map((b) => [b.옛, '새' in b ? b.새 : null]));
+    return { status: 'DONE', prUrl, result: { pulled: 당김 === true, ...(바뀐것.length > 0 ? { mergedAs } : {}) } };
+  }
   return { status: 'FAILED', error: `병합이 안 됐다 (${상태}): ${까닭 || '충돌이나 보호 규칙을 봐라'}` };
 }
 
