@@ -26,12 +26,15 @@ const ok = () => process.exit(0);
 // CLAUDE.md §5 의 금지 명령. **실행되는 자리에만 건다.**
 // 2026-09-18 — `grep -n "branch -D" file` 같은 조회가 막혔다. 명령 문자열 어디에 있든
 // 걸렸기 때문이다. 따옴표 안을 먼저 걷어내고, 이어 붙인 구간마다 따로 본다.
+// 같은 뜻의 다른 꼴 — `--force-with-lease` · 묶은 깃발(`-fu`) · `+참조` · `-d -f` · `rm -fr ~` · dbmate 도 막는다 (리뷰 L2)
 const BANNED = [
-  [/\bpush\s+(?:[^;&|]*\s)?(?:--force|-f)(?:\s|$)/, '강제 push'],
-  [/\bbranch\s+-D(?:\s|$)/, '브랜치 강제 삭제'],
+  [/\bpush\s+(?:[^;&|]*\s)?(?:--force\S*|-[a-zA-Z]*f[a-zA-Z]*|\+\S+)(?:\s|$)/, '강제 push'],
+  [/\bbranch\s+(?:[^;&|]*\s)?-[a-zA-Z]*D[a-zA-Z]*(?:\s|$)/, '브랜치 강제 삭제'],
+  [/\bbranch\s(?=(?:[^;&|]*\s)?(?:-[a-zA-Z]*d[a-zA-Z]*|--delete)(?:\s|$))(?=(?:[^;&|]*\s)?(?:-[a-zA-Z]*f[a-zA-Z]*|--force)(?:\s|$))/, '브랜치 강제 삭제'],
   [/migrate[:\s-]*(?:down|rollback|undo)/i, '마이그레이션 되돌리기'],
+  [/\bdbmate\S*(?:\s+\S+)*\s+(?:down|rollback)(?:\s|$)/, '마이그레이션 되돌리기'],
   // 맥의 임시 폴더(작업 tmp)는 /Users/<이름>/ 아래 깊은 곳이다 — 홈 폴더 자체만 막고 그 안쪽은 지운다 (2026-10-09 오탐 둘)
-  [/\brm\s+-rf\s+\/(?!tmp|(?:home|Users)\/[^/\s]+\/[^\s])/, '루트 경로 삭제'],
+  [/\brm\s+(?:-\S+\s+)*(?:-[a-zA-Z]*[rR][a-zA-Z]*|--recursive)\s+(?:-\S+\s+)*(?:\/(?!tmp|(?:home|Users)\/[^/\s]+\/[^\s])|~\/?(?:\s|$)|\$\{?HOME\}?\/?(?:\s|$))/, '루트 경로 삭제'],
   // 명령 줄 무늬로 찾으면 그 무늬를 품은 도구 셸 자신도 걸려 같이 꺼진다 — 결과도 정리도 없이 셸이 죽는다.
   // SETUP §11 에 적었는데 2026-10-01 에 `$(pgrep -f …)` 로 또 겪었다. `pgrep -af` 로 번호를 보고 `kill <번호>`
   // 무늬 고르개는 `-f` 를 품은 묶음(`-af` · `-fx`)과 `--full` 둘 다다. 치환은 `$(…)` 와 백틱 둘 다
@@ -47,10 +50,19 @@ const BANNED_WHOLE = [
 /** 금지 명령이면 그 이름을, 아니면 null. 판별식이 이 함수만 부른다 */
 export function isBanned(command) {
   // 따옴표 **안쪽만** 지운다. 바깥의 진짜 명령은 그대로 남는다 —
-  // `git branch -D "my branch"` 는 여전히 잡히고 `grep "branch -D" f` 는 빠진다
-  const 껍데기 = String(command ?? '')
-    .replace(/'[^']*'/g, "''")
-    .replace(/"[^"]*"/g, '""');
+  // `git branch -D "my branch"` 는 여전히 잡히고 `grep "branch -D" f` 는 빠진다.
+  // 셸로 감싼 명령(`bash -c '…'` · `eval "…"`)은 따옴표 안이 진짜 명령이라 걷기 전에 떼어 따로 본다 (리뷰 L2)
+  let 껍데기 = '';
+  const 감싼명령들 = [];
+  for (const [조각] of String(command ?? '').matchAll(/'[^']*'|"[^"]*"|[^'"]+|['"]/g)) {
+    if (조각.length < 2 || (조각[0] !== "'" && 조각[0] !== '"')) { 껍데기 += 조각; continue; }
+    if (/(?:\b(?:ba|z|da|k)?sh\s+(?:-\w+\s+)*-\w*c\w*|\beval)\s+$/.test(껍데기)) 감싼명령들.push(조각.slice(1, -1));
+    껍데기 += 조각[0] + 조각[0];
+  }
+  for (const 안쪽 of 감싼명령들) {
+    const 이유 = isBanned(안쪽);
+    if (이유) return 이유;
+  }
 
   for (const [re, label] of BANNED_WHOLE) {
     if (re.test(껍데기)) return label;

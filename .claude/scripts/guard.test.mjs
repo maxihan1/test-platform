@@ -80,6 +80,61 @@ test('무늬로 프로세스를 찾아 끄는 명령은 자기 셸까지 끈다 
   }
 });
 
+test('같은 뜻의 다른 꼴도 막는다 — 덮어쓰기 깃발 · 묶은 깃발 · + 참조 · 홈 폴더 · dbmate · 셸로 감싼 명령 (리뷰 L2)', () => {
+  for (const [cmd, 이유] of [
+    ['git push --force-with-lease origin x', '강제 push'],
+    ['git push --force-if-includes origin x', '강제 push'],
+    ['git push -fu origin x', '강제 push'],
+    ['git push -uf origin x', '강제 push'],
+    ['git push origin +main', '강제 push'],
+    ['git push origin +HEAD:main', '강제 push'],
+    ['git branch --delete --force old', '브랜치 강제 삭제'],
+    ['git branch -d -f old', '브랜치 강제 삭제'],
+    ['git branch -df old', '브랜치 강제 삭제'],
+    ['git branch -fd old', '브랜치 강제 삭제'],
+    ['git branch --force -d old', '브랜치 강제 삭제'],
+    ['rm -rf ~', '루트 경로 삭제'],
+    ['rm -rf ~/', '루트 경로 삭제'],
+    ['rm -rf $HOME', '루트 경로 삭제'],
+    ['rm -rf ${HOME}/', '루트 경로 삭제'],
+    ['rm -fr /etc', '루트 경로 삭제'],
+    ['rm -r -f /etc', '루트 경로 삭제'],
+    ['rm -Rf /', '루트 경로 삭제'],
+    ['rm --recursive --force /Users', '루트 경로 삭제'],
+    ['dbmate rollback', '마이그레이션 되돌리기'],
+    ['dbmate --url "$DATABASE_URL" down', '마이그레이션 되돌리기'],
+    ['docker run --rm ghcr.io/amacneil/dbmate:2 --url x rollback', '마이그레이션 되돌리기'],
+    ['bash -c "git push --force origin main"', '강제 push'],
+    ["sh -c 'git branch -D old'", '브랜치 강제 삭제'],
+    ['zsh -lc "rm -rf ~"', '루트 경로 삭제'],
+    ["eval 'git push -f'", '강제 push'],
+  ]) {
+    assert.equal(isBanned(cmd), 이유, `막았어야 한다: ${cmd}`);
+  }
+  for (const cmd of [
+    'git push -u origin x',
+    'git push --follow-tags origin x',
+    'git push origin --delete old',
+    'git push -d origin old',
+    'git branch -d old',
+    'git branch --delete old',
+    'git branch -f old HEAD~1',
+    'gh pr merge 441 --merge --delete-branch --match-head-commit abc',
+    'rm -rf ./build',
+    'rm -rf node_modules/@platform',
+    'rm -rf ~/Projects/x/build',
+    'rm -f /tmp/x',
+    'rm -rf /Users/maxi.moff/.claude/jobs/9b90ddef/tmp/x',
+    'dbmate up',
+    'dbmate --url x --migrations-dir /db/migrations --no-dump-schema up',
+    'bash -c "git push origin main"',
+    'grep -n "bash -c \'git push -f\'" docs/HOOKS.md',
+    'echo "eval \'git branch -D x\'"',
+  ]) {
+    assert.equal(isBanned(cmd), null, `통과했어야 한다: ${cmd}`);
+  }
+});
+
 test('막는 이유를 함께 돌려준다', () => {
   assert.equal(isBanned('git branch -D x'), '브랜치 강제 삭제');
   assert.equal(isBanned('git branch -d x'), null);
