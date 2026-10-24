@@ -340,6 +340,38 @@ test('bash 모드 — 훑기 보조만 막기를 걸고, 못 걸면 exit 2 로 �
   rmSync(자리, { recursive: true, force: true });
 });
 
+test('막기 표시는 playwright 세션 공간 단위다 — 같은 설치(또는 .playwright 윗폴더)를 쓰는 다른 폴더가 같은 세션을 다시 열면 앞 폴더도 다시 건다 (리뷰 L3)', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const { mkdtempSync, mkdirSync, writeFileSync, existsSync, chmodSync, rmSync, symlinkSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const 가드 = new URL('./guard.mjs', import.meta.url).pathname;
+  for (const 꼴 of ['설치 연결', '.playwright']) {
+    const 자리 = mkdtempSync(`${tmpdir()}/scan-guard-`);
+    writeFileSync(`${자리}/npx`, '#!/bin/sh\necho "$@" >> "$NPX_LOG"\nexit "$NPX_CODE"\n');
+    chmodSync(`${자리}/npx`, 0o755);
+    for (const 폴더 of ['a', 'b']) mkdirSync(`${자리}/${폴더}`);
+    if (꼴 === '.playwright') mkdirSync(`${자리}/.playwright`);
+    else {
+      for (const 이름 of ['playwright', 'playwright-core']) {
+        mkdirSync(`${자리}/install/node_modules/${이름}`, { recursive: true });
+        writeFileSync(`${자리}/install/node_modules/${이름}/package.json`, JSON.stringify({ name: 이름 }));
+      }
+      for (const 폴더 of ['a', 'b']) symlinkSync(`${자리}/install/node_modules`, `${자리}/${폴더}/node_modules`);
+    }
+    const 기록 = `${자리}/npx.log`;
+    const 부른다 = (폴더, 코드, command = 'npx playwright cli -s=rev-1-0 click e15') => spawnSync('node', [가드, 'bash'], {
+      input: JSON.stringify({ cwd: `${자리}/${폴더}`, agent_type: 'author-scan', tool_input: { command } }),
+      env: { PATH: `${자리}:${process.env.PATH}`, TMPDIR: 자리, NPX_LOG: 기록, NPX_CODE: String(코드) },
+    });
+    assert.equal(부른다('a', 0).status, 0);
+    assert.equal(부른다('b', 1).status, 0, `${꼴} — 같은 공간의 같은 세션은 이미 걸려 있다`);
+    assert.equal(부른다('b', 0, 'npx playwright cli -s=rev-1-0 open').status, 0);
+    assert.equal(부른다('a', 1).status, 2, `${꼴} — b 가 새로 연 브라우저를 a 가 막기 없이 움직였다`);
+    assert.ok(existsSync(기록));
+    rmSync(자리, { recursive: true, force: true });
+  }
+});
+
 test('훑기 보조 저장 막기는 작업 트리에서 playwright 를 부른다 — 세션이 cd 한 자료 폴더에서 부르면 다른 판을 받아 와 열린 세션을 못 찾는다 (PRD-F14-11)', () => {
   assert.equal(막기폴더({ CLAUDE_PROJECT_DIR: '/work/author-1/tree' }, '/work/author-1/assets'), '/work/author-1/tree');
   assert.equal(막기폴더({}, '/work/author-1/tree'), '/work/author-1/tree');
