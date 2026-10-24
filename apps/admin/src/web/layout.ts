@@ -6,7 +6,7 @@ import { 기본언어, t, type 언어 } from './i18n.js';
 import type { 아이콘이름 } from './icons.js';
 import { 종류 } from './kind.js';
 import { 기능보나, 할수있나 } from './role.js';
-import { 대시보드보나 } from './route.js';
+import { route, 대시보드보나 } from './route.js';
 
 // 제품 이름은 고유 이름이라 어느 언어에서도 그대로 쓴다 (2026-10-20 사용자 — 10-19 에 「테스트 플랫폼」으로 바꾼 것을 되돌림)
 const 제품이름 = 'QA Hub';
@@ -156,6 +156,17 @@ export function 지금자리(name: string, 집: string, 종류?: 'UI' | 'FN' | '
 export function 고른서비스(저장값: string | null, 배정: ServiceRow[]): ServiceRow | null {
   const 찾은것 = 배정.find((service) => service.prefix === 저장값);
   return 찾은것 ?? 배정[0] ?? null;
+}
+
+/**
+ * 요구 번호 주소(`#/prd/<접두사>-REQ-<3자리>`)가 가리키는 배정 서비스. 그 밖의 주소 · 배정에 없는 접두사는 null — 띠를 그대로 둔다.
+ * 실패 카드는 다른 서비스 실행에서도 요구 고리를 건다. 띠로 열면 PRD 관리가 띠 서비스의 판에서 그 번호를 찾는다
+ */
+export function 주소의서비스(주소: string, 배정: ServiceRow[]): string | null {
+  const 지금 = route(주소);
+  if (지금.name !== 'prd' || 지금.reqId === undefined) return null;
+  const 접두사 = 지금.reqId.slice(0, 지금.reqId.indexOf('-REQ-'));
+  return 배정.some((service) => service.prefix === 접두사) ? 접두사 : null;
 }
 
 export interface 프로젝트 {

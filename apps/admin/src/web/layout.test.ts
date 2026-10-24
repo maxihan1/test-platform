@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ServiceRow, User } from './api.js';
-import { 고른서비스, 대시보드재료, 배정서비스접두사, 배정프로젝트들, 빈띠사유, 자리목록, 지금자리, 탭제목, 프로젝트물을까, 프로젝트서비스들 } from './layout.js';
+import { 고른서비스, 대시보드재료, 주소의서비스, 배정서비스접두사, 배정프로젝트들, 빈띠사유, 자리목록, 지금자리, 탭제목, 프로젝트물을까, 프로젝트서비스들 } from './layout.js';
 
 const 결제: ServiceRow = {
   id: 1,
@@ -290,6 +290,18 @@ describe('대시보드 재료', () => {
     expect(대시보드재료(김, 'SET').프로젝트).toBe(20);
     expect(대시보드재료(김, 'PAY').프로젝트).toBe(10);
     expect(대시보드재료(김, null).프로젝트).toBe(null);
+  });
+});
+
+describe('요구 번호 주소의 애플리케이션', () => {
+  it('요구 번호 주소는 그 번호 접두사의 배정 애플리케이션을 고른다 — 다른 애플리케이션 실행의 실패 카드에서 요구 번호를 눌러도 띠 애플리케이션의 PRD 를 열지 않게', () => {
+    expect(주소의서비스('#/prd/MEM-REQ-004', [결제, 회원])).toBe('MEM');
+  });
+
+  it('배정에 없는 접두사 · 요구 번호가 없는 주소는 띠를 그대로 둔다', () => {
+    expect(주소의서비스('#/prd/SET-REQ-001', [결제, 회원])).toBe(null);
+    expect(주소의서비스('#/prd', [결제, 회원])).toBe(null);
+    expect(주소의서비스('#/cases/fn?case=MEM-FN-001', [결제, 회원])).toBe(null);
   });
 });
 
