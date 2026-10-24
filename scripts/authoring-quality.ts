@@ -44,8 +44,10 @@ const 전제목록 = (글: string): string[] => {
 };
 // testid(`[data-testid=…]`)는 locator 1순위라 뺀다
 const CSS찾기 = /locator\(\s*['"`](?:[.#]|\[(?!data-testid)|\/\/|xpath=|css=)/g;
-// 맨 위(들여 쓰지 않은) 정의만 — 클래스 메서드는 안 센다. 형 인자(`읽기<T>(`)도 받는다
-const 도우미 = /^(?:export\s+)?(?:async\s+function\s+|function\s+|const\s+)([\p{L}_$][\p{L}\p{N}_$]*)\s*(?:<[^>()]*>\s*)?(?:\(|=\s*(?:async\s*)?\()/gmu;
+// 맨 위(들여 쓰지 않은) 정의만 — 클래스 메서드는 안 센다. 형 인자(`읽기<T extends A<B>>(` · `= <T>(`)도 받는다
+const 도우미 = /^(?:export\s+)?(?:async\s+function\s+|function\s+|const\s+)([\p{L}_$][\p{L}\p{N}_$]*)\s*(?:<.*?>\s*)?(?:\(|=\s*(?:async\s*)?(?:<.*?>\s*)?\()/gmu;
+// 옮기지 않은 임시 도우미는 따로 ⚠️ 한 줄이 짚는다(남은임시도우미) — 옮기는 공용 도우미와 겹친 것으로 또 세지 않는다
+const 임시도우미 = /(^|\/)(components|helpers)\/draft-[^/]*\.ts$/;
 
 export function 품질숫자(파일들: 파일글[]): 품질 {
   const 케이스들 = 파일들.filter((f) => 케이스파일.test(f.경로));
@@ -57,7 +59,7 @@ export function 품질숫자(파일들: 파일글[]): 품질 {
     .reduce((n, f) => n + (f.글.match(CSS찾기)?.length ?? 0), 0);
 
   const 이름파일수 = new Map<string, number>();
-  for (const f of 파일들) for (const 이름 of new Set([...f.글.matchAll(도우미)].map((m) => m[1]!))) 이름파일수.set(이름, (이름파일수.get(이름) ?? 0) + 1);
+  for (const f of 파일들.filter((f) => !임시도우미.test(f.경로))) for (const 이름 of new Set([...f.글.matchAll(도우미)].map((m) => m[1]!))) 이름파일수.set(이름, (이름파일수.get(이름) ?? 0) + 1);
   const 겹친도우미 = [...이름파일수].filter(([, n]) => n >= 2).map(([이름]) => 이름).sort();
 
   const n = 케이스들.length;

@@ -63,8 +63,11 @@ describe('품질 숫자 (작성 §3.6 · 2026-10-03 — 나눠 쓴 뒤 품질을
       { 경로: 'tests/ash/helpers/shop.helper.ts', 글: 'async function 읽기<T>(res: R): Promise<T> {}\nexport async function 상점사기(admin, 수량) {}\nexport const 개수 = (가방) => 0;' },
       { 경로: 'tests/ash/ASH-FN-001.spec.ts', 글: 케이스('const 개수 = (가방) => 1;') },
       { 경로: 'tests/ash/pages/shop.page.ts', 글: 'export class 상점 {\n  async 상점사기() {}\n}' },
+      { 경로: 'tests/ash/helpers/draft-shop.helper.ts', 글: 'export async function 개수(admin) {}' },
+      { 경로: 'tests/ash/helpers/a.helper.ts', 글: 'export async function 본문<T extends Record<string, unknown>>(res) {}\nexport const 모양 = <T>(값: T) => 값;' },
+      { 경로: 'tests/ash/helpers/b.helper.ts', 글: 'async function 본문<T extends Record<string, unknown>>(res) {}\nconst 모양 = async <T>(값: T) => 값;' },
     ]);
-    expect(숫자.겹친도우미).toEqual(['개수', '상점사기', '읽기']);
+    expect(숫자.겹친도우미).toEqual(['개수', '모양', '본문', '상점사기', '읽기']);
   });
 
   it('한 줄로 — PR 본문 작성 요약 머리에 싣는다', () => {
