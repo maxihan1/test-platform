@@ -166,7 +166,7 @@ describe('작성 목록 쪽은 주소에 남는다 (점검 11.4)', () => {
   it('주소의 쪽으로 처음부터 부른다 — 상세에 갔다 뒤로 와도 그 쪽이다', async () => {
     window.history.replaceState(null, '', '#/authoring?page=3');
     render(<Authoring service="PAY" 할수={() => true} />);
-    await screen.findByText('이 쪽에는 요청이 없습니다');
+    await screen.findByText('아직 작성을 요청한 기록이 없습니다');
     expect(부른쪽[0]).toBe(3);
     expect(window.location.hash).toBe('#/authoring?page=3');
   });
@@ -197,6 +197,16 @@ describe('목록 다시 읽기가 실패해도 쓰던 새 요청은 남는다 (�
     await vi.waitFor(() => screen.getByText('목록을 못 읽었다'));
     const 남은칸 = within(screen.getByRole('complementary', { name: '새 작성 요청' })).getByPlaceholderText('한 줄에 하나씩');
     expect((남은칸 as HTMLTextAreaElement).value).toBe('https://www.figma.com/design/AbC/x');
+  });
+
+  it('다른 서비스로 바꾼 뒤 읽기가 실패하면 앞 서비스의 줄을 남기지 않는다', async () => {
+    줄들.push(줄({ id: 3 }));
+    const 그림 = render(<Authoring service="PAY" 할수={() => true} />);
+    await screen.findByText('#3');
+    읽기.실패 = true;
+    그림.rerender(<Authoring service="MKT" 할수={() => true} />);
+    await screen.findByText('목록을 못 읽었다');
+    expect(screen.queryByText('#3')).toBeNull();
   });
 });
 

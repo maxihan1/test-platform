@@ -121,7 +121,7 @@ export function AuthoringDetail({
     ...[...바뀐번호].filter(([, 새]) => 새 === null).map(([옛]) => 옛),
   ]);
   const 반영케이스 = 작성.cases?.map((c) => ({ ...c, tcId: 번호(c.tcId) })) ?? null;
-  const 넣은것 = 반영케이스 === null ? null : 반영케이스.filter((c) => !뺀번호.has(c.tcId));
+  const 넣은것 = 작성.cases?.filter((c) => !뺀번호.has(c.tcId)).map((c) => ({ ...c, tcId: 번호(c.tcId) })) ?? null;
   const 부제글 = 고치기
     ? 종류라벨('EDIT', 언어)
     : data.compare === true

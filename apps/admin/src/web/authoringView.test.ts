@@ -133,8 +133,11 @@ describe('고칠 내용 목록', () => {
 });
 
 describe('반영번호 — 반영 끝내기 result.mergedAs 를 읽는다', () => {
-  it('새 번호와 뺀 케이스(null)를 읽고, 글자 · null 이 아닌 값은 버린다', () => {
-    const 표 = 반영번호({ pulled: true, mergedAs: { 'MKT-FN-001': 'MKT-FN-014', 'MKT-FN-002': null, 'MKT-FN-003': 5 } });
+  it('새 번호와 뺀 케이스(null)를 읽고, 글자 · null 이 아닌 값 · 빈 글자 · 접두사가 다른 번호는 버린다', () => {
+    const 표 = 반영번호({
+      pulled: true,
+      mergedAs: { 'MKT-FN-001': 'MKT-FN-014', 'MKT-FN-002': null, 'MKT-FN-003': 5, 'MKT-FN-004': '', 'MKT-FN-005': 'PAY-FN-001' },
+    });
     expect([...표]).toEqual([
       ['MKT-FN-001', 'MKT-FN-014'],
       ['MKT-FN-002', null],

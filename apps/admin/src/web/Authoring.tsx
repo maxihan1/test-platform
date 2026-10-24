@@ -126,7 +126,12 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
     setPage(1);
   }
 
-  const 줄들 = useAsync<Paged<AuthoringListRow>>(() => api.authoringRequests(service, page, 할일만), [service, page, 할일만]);
+  // 받은 목록에 무엇을 물은 답인지 붙여 둔다 — 서비스 · 쪽 · 거르기를 바꾼 뒤의 실패에 앞 조건의 줄을 남기지 않게 (리뷰 L17 검사)
+  const 물음 = `${service}|${String(page)}|${String(할일만)}`;
+  const 줄들 = useAsync<Paged<AuthoringListRow> & { 물음: string }>(
+    () => api.authoringRequests(service, page, 할일만).then((r) => ({ ...r, 물음 })),
+    [service, page, 할일만],
+  );
   const 거르기 = (값: boolean) => {
     set할일만(값);
     setPage(1);
@@ -141,8 +146,9 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
     return () => clearInterval(timer);
   }, [reload]);
 
-  // 이미 받은 목록이 있으면 다시 읽기가 실패해도 목록과 서랍을 그대로 둔다 — 통째로 바꾸면 쓰던 새 요청 폼이 사라진다 (리뷰 L17)
-  if (줄들.data === null) return 줄들.error !== null ? <Failed error={줄들.error} /> : <Loading />;
+  // 같은 조건의 다시 읽기가 실패했으면 받아 둔 목록과 서랍을 그대로 둔다 — 통째로 바꾸면 쓰던 새 요청 폼이 사라진다 (리뷰 L17)
+  if (줄들.error !== null && 줄들.data?.물음 !== 물음) return <Failed error={줄들.error} />;
+  if (줄들.data === null) return <Loading />;
 
   // 「응답 없음」 판정이 지금 시각을 쓴다. 그릴 때 한 번만 읽어 줄마다 다른 기준으로 재지 않는다
   const 지금 = Date.now();
@@ -178,7 +184,7 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
 
         <div className="rows-scroll">
           {/* 건수가 한 쪽 크기의 배수면 「다음」이 빈 쪽으로 간다(paging.ts) — 거기서 「기록이 없다」고 하면 거짓이다 (리뷰 L18) */}
-          {줄들.data.items.length === 0 && page > 1 ? (
+          {줄들.data.items.length === 0 && page > 1 && 줄들.data.total > 0 ? (
             <div className="empty">{t('이 쪽에는 요청이 없습니다')}</div>
           ) : 줄들.data.items.length === 0 && 할일만 ? (
             <div className="empty">{t('조치가 필요한 요청이 없습니다')}</div>

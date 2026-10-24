@@ -211,15 +211,7 @@ export async function 머지처리(
   await 당기고끝내기(손, 상태, prUrl, 친것.까닭, 뿌리, 호스트로, 작업?.바뀐것);
 }
 
-async function 당기고끝내기(
-  손: 보고손,
-  상태: string,
-  prUrl: string,
-  까닭: string,
-  뿌리: string,
-  호스트로: 칠때,
-  바뀐것: 바뀐것[] = [],
-): Promise<void> {
+async function 당기고끝내기(손: 보고손, 상태: string, prUrl: string, 까닭: string, 뿌리: string, 호스트로: 칠때, 바뀐것: 바뀐것[] = []): Promise<void> {
   const 당김 =
     상태 === 'MERGED'
       ? await 한번에하나(async () => main당기기(뿌리, 호스트로)).catch((e: unknown) => {
@@ -230,10 +222,7 @@ async function 당기고끝내기(
   await 손.끝내기(머지끝몸(상태, prUrl, 까닭, 당김, 바뀐것));
 }
 
-/**
- * 병합 끝내기 몸. 병합됐으면 당겼는지(`pulled`)를 싣는다 — 서버가 이것이 true 일 때만 저장값을 지운다.
- * 겹친 케이스를 고른 대로 바꿨으면 `mergedAs` 도 — 작성 상세가 작성 때 번호(main 의 다른 케이스)로 고리를 달지 않게 (§7 · 리뷰 M6)
- */
+/** 병합 끝내기 몸 — 당겼는지(`pulled`, 서버가 true 일 때만 저장값을 지운다)와 겹침으로 바뀐 번호(`mergedAs`, 작성 상세의 고리 · 리뷰 M6) */
 export function 머지끝몸(상태: string, prUrl: string, 까닭: string, 당김: boolean | null, 바뀐것: 바뀐것[] = []): Record<string, unknown> {
   if (상태 === 'MERGED') {
     const mergedAs = Object.fromEntries(바뀐것.map((b) => [b.옛, '새' in b ? b.새 : null]));
