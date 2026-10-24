@@ -101,6 +101,7 @@ test('테스트만 바뀐 커밋은 cases 차선 — 타입·check:tests 만 돌
     assert.match(호출, /check:tests/, '가벼운 길에서 check:tests 를 안 돌렸다');
     // 가벼운 길의 유일한 규칙 검사다 — 스크립트가 사라지면 조용히 초록이 아니라 그 자리에서 죽어야 한다
     assert.doesNotMatch(호출, /check:tests.*--if-present/, '가벼운 길의 check:tests 에 --if-present 가 붙어 있다');
+    assert.doesNotMatch(호출, /--no-held/, '초안 push 에는 보류 케이스가 정상인데 막는다 — 막기는 /tpx 병합 직전이다 (K13)');
     assert.doesNotMatch(호출, /^test\b/m, '가벼운 길인데 전체 단위 테스트를 돌렸다');
   } finally {
     rmSync(저장소.뿌리, { recursive: true, force: true });
@@ -135,6 +136,88 @@ test('코드가 섞인 커밋은 무거운 길 — 타입 검사 · 바뀐 것�
     assert.match(호출, /typecheck/, '사람 PR 에는 CI 가 없는데 타입 검사를 안 돌렸다');
     assert.match(호출, /check:tests/, 'check:tests 를 안 돌렸다');
     assert.doesNotMatch(호출, /check:workflow/, '하네스를 안 바꿨는데 하네스 검사를 돌렸다');
+  } finally {
+    rmSync(저장소.뿌리, { recursive: true, force: true });
+  }
+});
+
+// 작성 에이전트 PR 의 CI 에만 있던 목록 대조 둘 — 사람 PR 에는 CI 가 없어 여기서 안 돌면 어디서도 안 돈다 (리뷰 M2)
+test('무거운 길은 비밀값 이름 · 증적 형식 목록 대조도 돌고, 실패하면 막는다', () => {
+  for (const 실패 of ['', 'check:secret-names', 'check:evidence-formats']) {
+    const 저장소 = 임시저장소(['apps/admin/src/web/X.tsx']);
+    try {
+      const r = 저장소에서돌린다(저장소, 실패 ? { NPM_FAIL: 실패 } : {});
+      assert.equal(r.code, 실패 ? 1 : 0, `${실패 || '모두 통과'}인데 종료 ${r.code}: ${r.out}`);
+      if (실패) continue;
+      const 호출 = 불린것(저장소.기록);
+      assert.match(호출, /^run check:secret-names\b/m, '비밀값 이름 목록 대조를 안 돌렸다');
+      assert.match(호출, /^run check:evidence-formats\b/m, '증적 형식 목록 대조를 안 돌렸다');
+    } finally {
+      rmSync(저장소.뿌리, { recursive: true, force: true });
+    }
+  }
+});
+
+// 검사는 디스크를 읽는다 — 차선은 올리는 sha 로 골랐어도 디스크가 그 커밋과 다르면 초록이 올라가는 코드를 말하지 않는다 (리뷰 L1)
+test('커밋 안 한 새 파일 · 고친 파일이 있거나 올리는 커밋이 HEAD 가 아니면 검사 전에 막는다', () => {
+  for (const 꼴 of ['새 파일', '고친 파일', '다른 커밋']) {
+    const 저장소 = 임시저장소(['apps/admin/src/web/X.tsx']);
+    try {
+      if (꼴 === '새 파일') writeFileSync(join(저장소.뿌리, 'apps/admin/src/web/Y.tsx'), 'z');
+      if (꼴 === '고친 파일') writeFileSync(join(저장소.뿌리, 'apps/admin/src/web/X.tsx'), 'z');
+      if (꼴 === '다른 커밋') execFileSync('git', ['-C', 저장소.뿌리, 'checkout', '-q', '-b', 'other', 'HEAD~1'], { env: 깨끗한환경 });
+      const r = 저장소에서돌린다(저장소);
+      assert.equal(r.code, 1, `${꼴} — 디스크가 올리는 커밋과 다른데 통과했다: ${r.out}`);
+      assert.match(r.out, 꼴 === '다른 커밋' ? /HEAD/ : /커밋 안 한/, `${꼴} — 왜 막았는지 안 알렸다: ${r.out}`);
+      assert.equal(불린것(저장소.기록), '', `${꼴} — 막기 전에 검사를 돌렸다`);
+    } finally {
+      rmSync(저장소.뿌리, { recursive: true, force: true });
+    }
+  }
+});
+
+// db/init 이 `.sql` 에서 `.sh` 로 바뀐 뒤 `*.sql` 만 보던 훅이 아무것도 못 잡아 조용히 건너뛰었다.
+// 비밀번호는 박아 쓰면 맥이 옛 비밀번호에 묶인다 — docker compose 와 같은 `.env` 를 읽는다 (FIX-F1-02 에서 넘김)
+test('임시 DB 에 db/init 의 .sh · .sql 을 그 DB 이름으로 걸고, 비밀번호는 .env 에서 읽는다 — 비우면 platform · grafana_ro', () => {
+  const 초기화 = '#!/bin/bash\npsql -h "$PGHOST" -p "$PGPORT" --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" -v pw="$GRAFANA_RO_PASSWORD"\n';
+  for (const env of ['', 'POSTGRES_PASSWORD=s3cret\nGRAFANA_RO_PASSWORD="ro9"\n', 'export POSTGRES_PASSWORD=s3cret  # 맥 개발용\r\nGRAFANA_RO_PASSWORD=\'ro9\'\r\n']) {
+    const 저장소 = 임시저장소(['apps/admin/src/execution/x.ts', ['db/init/01-ro.sh', 초기화], ['db/init/02-x.sql', 'SELECT 1;']]);
+    try {
+      if (env) writeFileSync(join(저장소.뿌리, '.env'), env);
+      const r = 저장소에서돌린다(저장소);
+      assert.equal(r.code, 0, `막혔다: ${r.out}`);
+      const db = 불린것(저장소.DB기록);
+      const 이름 = /CREATE DATABASE (tp_prepush_\w+)/.exec(db)?.[1];
+      const [pw, ro] = env ? ['s3cret', 'ro9'] : ['platform', 'grafana_ro'];
+      assert.match(db, new RegExp(`psql -h 127\\.0\\.0\\.1 -p 5433 --username platform --dbname ${이름} -v pw=${ro} pw=${pw}`), `.sh 를 임시 DB 에 안 걸었다: ${db}`);
+      assert.match(db, new RegExp(`psql .*-d ${이름} .*-f db/init/02-x\\.sql pw=${pw}`), `.sql 을 임시 DB 에 안 걸었다: ${db}`);
+      assert.match(db, new RegExp(`docker run .*platform:${pw}@host\\.docker\\.internal:5433/${이름}`), `마이그레이션이 .env 비밀번호를 안 썼다: ${db}`);
+      assert.match(불린것(`${저장소.기록}.db`), new RegExp(`platform:${pw}@127\\.0\\.0\\.1:5433/${이름}`), '검사가 .env 비밀번호를 안 받았다');
+    } finally {
+      rmSync(저장소.뿌리, { recursive: true, force: true });
+    }
+  }
+});
+
+test('지금 꺼낸 커밋에 단 주석 태그를 같이 올리면 태그가 가리키는 커밋으로 견준다', () => {
+  const 저장소 = 임시저장소(['apps/admin/src/web/X.tsx']);
+  try {
+    execFileSync('git', ['-C', 저장소.뿌리, 'tag', '-a', 'v1', '-m', 'v1'], { env: 깨끗한환경 });
+    const 태그 = execFileSync('git', ['-C', 저장소.뿌리, 'rev-parse', 'v1'], { encoding: 'utf8', env: 깨끗한환경 }).trim();
+    const 입력 = `refs/heads/b ${저장소.sha} refs/heads/b ${ZERO}\nrefs/tags/v1 ${태그} refs/tags/v1 ${ZERO}\n`;
+    const r = 저장소에서돌린다(저장소, {}, 입력);
+    assert.equal(r.code, 0, `HEAD 에 단 태그인데 막혔다: ${r.out}`);
+  } finally {
+    rmSync(저장소.뿌리, { recursive: true, force: true });
+  }
+});
+
+test('db/init 스크립트가 실패하면 막는다 — 건너뛰면 grafana_ro 권한을 보는 검사가 거짓 초록이다', () => {
+  const 저장소 = 임시저장소(['apps/admin/src/execution/x.ts', ['db/init/02-x.sql', 'SELECT 1;']]);
+  try {
+    const r = 저장소에서돌린다(저장소, { DB_FAIL: '-f db/init/02-x.sql' });
+    assert.equal(r.code, 1, `초기화가 실패했는데 통과했다: ${r.out}`);
+    assert.match(r.out, /db\/init\/02-x\.sql/, '어느 파일이 실패했는지 안 알렸다');
   } finally {
     rmSync(저장소.뿌리, { recursive: true, force: true });
   }

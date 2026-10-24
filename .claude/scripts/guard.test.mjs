@@ -80,6 +80,72 @@ test('무늬로 프로세스를 찾아 끄는 명령은 자기 셸까지 끈다 
   }
 });
 
+test('같은 뜻의 다른 꼴도 막는다 — 덮어쓰기 깃발 · 묶은 깃발 · + 참조 · 홈 폴더 · dbmate · 셸로 감싼 명령 (리뷰 L2)', () => {
+  for (const [cmd, 이유] of [
+    ['git push --force-with-lease origin x', '강제 push'],
+    ['git push --force-if-includes origin x', '강제 push'],
+    ['git push -fu origin x', '강제 push'],
+    ['git push -uf origin x', '강제 push'],
+    ['git push origin +main', '강제 push'],
+    ['git push origin +HEAD:main', '강제 push'],
+    ['git branch --delete --force old', '브랜치 강제 삭제'],
+    ['git branch -d -f old', '브랜치 강제 삭제'],
+    ['git branch -df old', '브랜치 강제 삭제'],
+    ['git branch -fd old', '브랜치 강제 삭제'],
+    ['git branch --force -d old', '브랜치 강제 삭제'],
+    ['rm -rf ~', '루트 경로 삭제'],
+    ['rm -rf ~/', '루트 경로 삭제'],
+    ['rm -rf $HOME', '루트 경로 삭제'],
+    ['rm -rf ${HOME}/', '루트 경로 삭제'],
+    ['rm -fr /etc', '루트 경로 삭제'],
+    ['rm -r -f /etc', '루트 경로 삭제'],
+    ['rm -Rf /', '루트 경로 삭제'],
+    ['rm --recursive --force /Users', '루트 경로 삭제'],
+    ['rm -rf ~/*', '루트 경로 삭제'],
+    ['rm -rf $HOME/*', '루트 경로 삭제'],
+    ['rm -rf /Users/maxi.moff/*', '루트 경로 삭제'],
+    ['rm -rf build /', '루트 경로 삭제'],
+    ['bash --norc -c "rm -rf /etc"', '루트 경로 삭제'],
+    ["bash -c -- 'git push -f'", '강제 push'],
+    ["/bin/bash -c 'git push -f'", '강제 push'],
+    ["cd x && sh -c 'git branch -D old'", '브랜치 강제 삭제'],
+    ['dbmate rollback', '마이그레이션 되돌리기'],
+    ['dbmate --url "$DATABASE_URL" down', '마이그레이션 되돌리기'],
+    ['docker run --rm ghcr.io/amacneil/dbmate:2 --url x rollback', '마이그레이션 되돌리기'],
+    ['bash -c "git push --force origin main"', '강제 push'],
+    ["sh -c 'git branch -D old'", '브랜치 강제 삭제'],
+    ['zsh -lc "rm -rf ~"', '루트 경로 삭제'],
+    ["eval 'git push -f'", '강제 push'],
+  ]) {
+    assert.equal(isBanned(cmd), 이유, `막았어야 한다: ${cmd}`);
+  }
+  for (const cmd of [
+    'git push -u origin x',
+    'git push --follow-tags origin x',
+    'git push origin --delete old',
+    'git push -d origin old',
+    'git branch -d old',
+    'git branch --delete old',
+    'git branch -f old HEAD~1',
+    'gh pr merge 441 --merge --delete-branch --match-head-commit abc',
+    'rm -rf ./build',
+    'rm -rf node_modules/@platform',
+    'rm -rf ~/Projects/x/build',
+    'rm -f /tmp/x',
+    'rm -rf /Users/maxi.moff/.claude/jobs/9b90ddef/tmp/x',
+    'rm -rf /Users/maxi.moff/.claude/jobs/9b90ddef/tmp/*',
+    'rm -rf ./x > /dev/null',
+    "echo sh -c 'rm -rf /etc'",
+    'dbmate up',
+    'dbmate --url x --migrations-dir /db/migrations --no-dump-schema up',
+    'bash -c "git push origin main"',
+    'grep -n "bash -c \'git push -f\'" docs/HOOKS.md',
+    'echo "eval \'git branch -D x\'"',
+  ]) {
+    assert.equal(isBanned(cmd), null, `통과했어야 한다: ${cmd}`);
+  }
+});
+
 test('막는 이유를 함께 돌려준다', () => {
   assert.equal(isBanned('git branch -D x'), '브랜치 강제 삭제');
   assert.equal(isBanned('git branch -d x'), null);
@@ -283,6 +349,38 @@ test('bash 모드 — 훑기 보조만 막기를 걸고, 못 걸면 exit 2 로 �
   assert.equal(부른다('author-scan', 0, 'npx playwright cli -s=rev-1-0 open').status, 0);
   assert.equal(부른다('author-scan', 1).status, 2, '새로 연 세션은 다시 건다');
   rmSync(자리, { recursive: true, force: true });
+});
+
+test('막기 표시는 playwright 세션 공간 단위다 — 같은 설치(또는 .playwright 윗폴더)를 쓰는 다른 폴더가 같은 세션을 다시 열면 앞 폴더도 다시 건다 (리뷰 L3)', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const { mkdtempSync, mkdirSync, writeFileSync, existsSync, chmodSync, rmSync, symlinkSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const 가드 = new URL('./guard.mjs', import.meta.url).pathname;
+  for (const 꼴 of ['설치 연결', '.playwright']) {
+    const 자리 = mkdtempSync(`${tmpdir()}/scan-guard-`);
+    writeFileSync(`${자리}/npx`, '#!/bin/sh\necho "$@" >> "$NPX_LOG"\nexit "$NPX_CODE"\n');
+    chmodSync(`${자리}/npx`, 0o755);
+    for (const 폴더 of ['a', 'b']) mkdirSync(`${자리}/${폴더}`);
+    if (꼴 === '.playwright') mkdirSync(`${자리}/.playwright`);
+    else {
+      for (const 이름 of ['playwright', 'playwright-core']) {
+        mkdirSync(`${자리}/install/node_modules/${이름}`, { recursive: true });
+        writeFileSync(`${자리}/install/node_modules/${이름}/package.json`, JSON.stringify({ name: 이름 }));
+      }
+      for (const 폴더 of ['a', 'b']) symlinkSync(`${자리}/install/node_modules`, `${자리}/${폴더}/node_modules`);
+    }
+    const 기록 = `${자리}/npx.log`;
+    const 부른다 = (폴더, 코드, command = 'npx playwright cli -s=rev-1-0 click e15') => spawnSync('node', [가드, 'bash'], {
+      input: JSON.stringify({ cwd: `${자리}/${폴더}`, agent_type: 'author-scan', tool_input: { command } }),
+      env: { PATH: `${자리}:${process.env.PATH}`, TMPDIR: 자리, NPX_LOG: 기록, NPX_CODE: String(코드) },
+    });
+    assert.equal(부른다('a', 0).status, 0);
+    assert.equal(부른다('b', 1).status, 0, `${꼴} — 같은 공간의 같은 세션은 이미 걸려 있다`);
+    assert.equal(부른다('b', 0, 'npx playwright cli -s=rev-1-0 open').status, 0);
+    assert.equal(부른다('a', 1).status, 2, `${꼴} — b 가 새로 연 브라우저를 a 가 막기 없이 움직였다`);
+    assert.ok(existsSync(기록));
+    rmSync(자리, { recursive: true, force: true });
+  }
 });
 
 test('훑기 보조 저장 막기는 작업 트리에서 playwright 를 부른다 — 세션이 cd 한 자료 폴더에서 부르면 다른 판을 받아 와 열린 세션을 못 찾는다 (PRD-F14-11)', () => {

@@ -69,6 +69,21 @@ fail() {
   exit 1
 }
 
+# ── 디스크가 올리는 커밋과 같아야 한다 ──────────────────────────────────────
+# 차선은 올리는 sha 로 고르지만 아래 검사(타입 · 테스트 · check:* · 임시 DB)는 디스크를 읽는다.
+# 커밋 안 한 파일이 있거나 꺼내 둔 커밋이 아닌 것을 올리면 초록이 올라가는 코드를 말하지 않는다 (리뷰 L1 — `git add` 를 잊은 새 파일도 통과했다)
+head_sha=$(git rev-parse HEAD 2>/dev/null) || fail "지금 꺼낸 커밋(HEAD)을 못 읽었다."
+# 주석 태그는 태그 객체 sha 로 온다 — 가리키는 커밋으로 풀어 견준다
+for local_sha in $SHAS; do
+  [ "$(git rev-parse -q --verify "$local_sha^{commit}" 2>/dev/null)" = "$head_sha" ] \
+    || fail "올리는 커밋 $local_sha 가 지금 꺼낸 커밋(HEAD)이 아니다 — 검사는 디스크를 읽는다. 그 커밋을 꺼내고"
+done
+dirty=$(git status --porcelain 2>/dev/null) || fail "작업 폴더 상태(git status)를 못 읽었다."
+if [ -n "$dirty" ]; then
+  printf '%s\n' "$dirty" >&2
+  fail "커밋 안 한 변경이 위에 있다 — 검사는 디스크를 읽어 올리는 커밋과 다른 것을 본다. 커밋하거나 치우고"
+fi
+
 if [ "$lane" = "docs" ] || [ "$lane" = "spec" ]; then
   # check:spec 은 node 표준 모듈만 쓴다 — 문서 PR 에 테스트·타입 검사가 볼 것이 없다
   npm run check:spec --silent || fail "SPEC 문서 검사 실패 (없는 절·깨진 링크·색인 분량)."
@@ -86,18 +101,32 @@ if [ "$lane" = "full" ]; then
   # 전체를 다시 도는 설정 파일(아래 npm test 조건)이 바뀌어도 DB 검사가 같이 돌아야 한다
   if printf '%s\n' "$changed_all" | grep -v '^apps/admin/src/web/' | grep -qE '^(apps/|packages/|scripts/|db/|package(-lock)?\.json$|vitest\.config\.|tsconfig)'; then
     DB_NAME="tp_prepush_$$"
-    export PGPASSWORD=platform
+    # 비밀번호는 docker compose 와 같은 main 체크아웃의 `.env` 에서 읽고, 비면 compose 처럼 옛 값이다.
+    # 박아 쓰면 맥이 옛 비밀번호에 묶인다 — 맥 Docker Desktop 은 러너가 host.docker.internal 로 DB 에 닿아 비밀번호만 막는다 (FIX-F1-02 에서 넘김)
+    ENV_FILE="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)/../.env"
+    # compose 의 .env 꼴 — 앞의 `export ` · 따옴표 · 값 뒤의 ` # 메모` · CRLF 를 걷는다
+    env_val() { sed -n "s/^\(export[[:space:]]\{1,\}\)\{0,1\}$1=//p" "$ENV_FILE" 2>/dev/null | tail -n 1 | tr -d '\r' | sed "s/[[:space:]]\{1,\}#.*//; s/^[\"']//; s/[\"']\$//"; }
+    PG_PW=$(env_val POSTGRES_PASSWORD)
+    RO_PW=$(env_val GRAFANA_RO_PASSWORD)
+    export PGPASSWORD="${PG_PW:-platform}"
     psql -h 127.0.0.1 -p 5433 -U platform -d postgres -qc "CREATE DATABASE $DB_NAME" >/dev/null 2>&1 \
       || fail "개발 DB(127.0.0.1:5433)에 못 붙었다. 도커를 켜고(docker compose up -d postgres)"
     drop_db() { psql -h 127.0.0.1 -p 5433 -U platform -d postgres -qc "DROP DATABASE IF EXISTS $DB_NAME" >/dev/null 2>&1 || true; }
     trap drop_db EXIT
-    # 역할은 서버에 하나라 「role already exists」가 나는 것이 정상이다
-    for f in db/init/*.sql; do psql -h 127.0.0.1 -p 5433 -U platform -d "$DB_NAME" -q -f "$f" >/dev/null 2>&1 || true; done
+    # postgres 이미지처럼 *.sh · *.sql 을 이름 차례로 돈다 — `*.sql` 만 보다가 `.sh` 로 바뀐 뒤 아무것도 못 잡아 조용히 건너뛰었다.
+    # 역할은 서버에 하나지만 스크립트가 있으면 만들기만 건너뛰므로 실패는 진짜 실패다
+    for f in db/init/*; do
+      case "$f" in
+        *.sh) PGHOST=127.0.0.1 PGPORT=5433 POSTGRES_USER=platform POSTGRES_DB="$DB_NAME" GRAFANA_RO_PASSWORD="${RO_PW:-grafana_ro}" bash "$f" >/dev/null ;;
+        *.sql) psql -h 127.0.0.1 -p 5433 -U platform -d "$DB_NAME" -v ON_ERROR_STOP=1 -q -f "$f" >/dev/null ;;
+        *) continue ;;
+      esac || fail "임시 DB 에 $f 를 못 걸었다."
+    done
     docker run --rm -v "$PWD/db:/db:ro" ghcr.io/amacneil/dbmate:2 \
-      --url "postgres://platform:platform@host.docker.internal:5433/$DB_NAME?sslmode=disable" \
+      --url "postgres://platform:$PGPASSWORD@host.docker.internal:5433/$DB_NAME?sslmode=disable" \
       --migrations-dir /db/migrations --no-dump-schema up >/dev/null \
       || fail "임시 DB 에 마이그레이션을 못 걸었다. 도커가 켜져 있는지 보고"
-    export DATABASE_URL="postgres://platform:platform@127.0.0.1:5433/$DB_NAME"
+    export DATABASE_URL="postgres://platform:$PGPASSWORD@127.0.0.1:5433/$DB_NAME"
     echo "[pre-push] 임시 DB $DB_NAME 에서 DB 검사도 돈다"
   fi
   # 바뀐 것과 이어진 검사만 돈다 (vitest --changed) + import 로 안 이어지는 검사(test:always).
@@ -111,9 +140,13 @@ if [ "$lane" = "full" ]; then
   if printf '%s\n' "$changed_all" | grep -q '^\.claude/'; then
     npm run check:workflow --silent || fail "하네스 검사(.claude/scripts)가 실패했다."
   fi
+  # 작성 에이전트 PR 의 CI 에만 있던 목록 대조 둘 — 사람 PR 에는 CI 가 없어 여기서 안 돌면 어디서도 안 돈다 (리뷰 M2)
+  npm run check:secret-names --silent || fail "비밀값 이름 목록이 갈라졌다 (SPEC §4.1)."
+  npm run check:evidence-formats --silent || fail "증적 형식 목록이 갈라졌다."
 fi
 
 # --if-present 를 안 붙인다 — 케이스 차선의 유일한 규칙 검사라 스크립트가 사라지면 조용히 통과하지 말고 죽어야 한다
+# --no-held 는 안 붙인다 — 초안 push 에는 보류 케이스가 정상이다(K13). 사람 PR 은 /tpx 4단계가 병합 직전에 막는다 (리뷰 M2 · 2026-10-24 사용자)
 npm run check:tests --silent || fail "테스트 코드 규칙 위반 (SPEC §4 K표)."
 
 echo "[pre-push] 통과"

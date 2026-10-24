@@ -11,7 +11,7 @@
 
 | 모드 | 시점 | 막는 것 |
 |------|------|--------|
-| `bash` | 실행 전 | 강제 push · 브랜치 강제 삭제 · 마이그레이션 되돌리기 · 루트 · 홈 폴더 자체 삭제(`/Users/<이름>/` 안쪽은 허용) · 무늬로 프로세스 끄기(`pkill -f` · `$(pgrep -f …)`). **화면 훑기 보조(`author-scan`)에서만** playwright cli 로 브라우저를 움직이기 전에 그 세션에 GET · HEAD · OPTIONS 말고는 끊는(로그아웃 · 탈퇴 · 크롤러의 동작 낱말 주소는 GET 도) 가로채기를 걸고(못 걸면 막는다 · 건 세션은 임시 폴더 `scan-guard/` 표시로 다시 묻지 않고 open · close 가 지운다), `guard.mjs` `못씀`(`run-code` · `route` · `unroute` · `network-state-set`) · 주소를 단 `open` · 같은 명령에서 연 세션 움직이기 · 한 명령에 세션 둘을 막는다(도메인/작성 §3.6 「★ 역방향」 훑기 규칙 · PRD-F9-27) |
+| `bash` | 실행 전 | 강제 push(`--force-with-lease` · `-fu` 같은 묶은 깃발 · `+참조` 포함) · 브랜치 강제 삭제(`-D` · `-d -f` · `--delete --force`) · 마이그레이션 되돌리기(`dbmate down` · `rollback` 포함) · 루트 · 홈 폴더 자체 삭제(`-rf` · `-fr` · `-r -f` · `~` · `$HOME` 포함, `/Users/<이름>/` 안쪽은 허용) · 무늬로 프로세스 끄기(`pkill -f` · `$(pgrep -f …)`). `bash -c '…'` · `eval "…"` 로 감싼 명령은 따옴표 안도 본다. **화면 훑기 보조(`author-scan`)에서만** playwright cli 로 브라우저를 움직이기 전에 그 세션에 GET · HEAD · OPTIONS 말고는 끊는(로그아웃 · 탈퇴 · 크롤러의 동작 낱말 주소는 GET 도) 가로채기를 걸고(못 걸면 막는다 · 건 세션은 임시 폴더 `scan-guard/` 표시로 다시 묻지 않고 open · close 가 지운다 · 표시는 playwright 세션 공간 단위라 같은 설치를 쓰는 다른 폴더가 같은 세션을 다시 열어도 지워진다), `guard.mjs` `못씀`(`run-code` · `route` · `unroute` · `network-state-set`) · 주소를 단 `open` · 같은 명령에서 연 세션 움직이기 · 한 명령에 세션 둘을 막는다(도메인/작성 §3.6 「★ 역방향」 훑기 규칙 · PRD-F9-27) |
 | `tests` | 수정 후 | 작업 폴더 안 `tests/**` 의 주석 · `expect` 직접 호출 |
 | `fanout` | 보조(Agent) 띄우기 전 | **작성 자식에서만**(`AUTHORING_GATE3_DIR` 이 있을 때) 케이스 작성 보조의 다섯 번째 묶음 · 같은 묶음 세 번째 띄우기(도메인/작성 §3.6 팬아웃) |
 
@@ -40,10 +40,12 @@ echo '{"tool_input":{"command":"git push --force origin main"}}' | node .claude/
 | `docs` | 문서만 | `check:spec` |
 | `spec` | 명세가 든 문서만 | `check:spec` |
 | `cases` | 테스트만 (가벼운 길) | `typecheck` · `check:tests` |
-| `full` | 그 밖 | `typecheck` · `test:changed` + `test:always` · `.claude/` 가 바뀌면 `check:workflow` · `check:tests` |
+| `full` | 그 밖 | `typecheck` · `test:changed` + `test:always` · `.claude/` 가 바뀌면 `check:workflow` · `check:secret-names` · `check:evidence-formats` · `check:tests` |
 
+- **검사 전에 디스크가 올리는 커밋과 같은지 본다** (리뷰 L1). 검사는 디스크를 읽으므로 커밋 안 한 변경 · 새 파일이 있거나 올리는 커밋이 지금 꺼낸 커밋(HEAD)이 아니면 막는다 — 커밋하거나 치우고 다시 push
+- `check:secret-names` · `check:evidence-formats` 는 작성 에이전트 PR 의 CI 와 같은 검사다 — 사람 PR 에는 CI 가 없어 여기서 돈다 (리뷰 M2). 보류 케이스 막기(`check:tests -- --no-held`)는 초안 push 에는 보류가 정상이라(K13) 여기서 안 돌고, `/tpx` 4단계가 「검토 준비」 직전에 돈다 (2026-10-24 사용자)
 - `db/` · `package.json` · `vitest.config.*` · `tsconfig` 가 바뀌면 `npm test` 전체를 돈다 — vitest 의 자동 재실행 조건이 점 폴더(`.claude/worktrees`) 경로에서 안 걸린다
-- **서버 · DB 코드(`apps/` 의 화면 밖 · `packages/` · `scripts/` · `db/`)나 위 설정 파일이 바뀌면 임시 DB 에서 DB 검사도 돈다** (2026-10-09). 개발 postgres(127.0.0.1:5433)에 `tp_prepush_<번호>` 를 만들고 `db/init` · 마이그레이션을 건 뒤 `DATABASE_URL` 로 넘기고, 끝나면(실패해도) 지운다. **도커가 꺼져 있으면 막는다** — `docker compose up -d postgres` 뒤 다시 push. DB 검사는 `DATABASE_URL` 이 없으면 조용히 건너뛰므로 건너뛰지 않고 막는 쪽을 골랐다
+- **서버 · DB 코드(`apps/` 의 화면 밖 · `packages/` · `scripts/` · `db/`)나 위 설정 파일이 바뀌면 임시 DB 에서 DB 검사도 돈다** (2026-10-09). 개발 postgres(127.0.0.1:5433)에 `tp_prepush_<번호>` 를 만들고 `db/init` 의 `*.sh` · `*.sql`(postgres 이미지처럼 이름 차례로, 실패하면 막는다)과 마이그레이션을 건 뒤 `DATABASE_URL` 로 넘기고, 끝나면(실패해도) 지운다. 비밀번호는 main 체크아웃 `.env` 의 `POSTGRES_PASSWORD` · `GRAFANA_RO_PASSWORD` 이고 비면 `platform` · `grafana_ro` 다(docker compose 와 같다). **도커가 꺼져 있으면 막는다** — `docker compose up -d postgres` 뒤 다시 push. DB 검사는 `DATABASE_URL` 이 없으면 조용히 건너뛰므로 건너뛰지 않고 막는 쪽을 골랐다
 - 단위 테스트는 동시에 돈다. `DATABASE_URL` 을 읽는 검사 파일만 한 프로세스에서 차례로 돈다(`vitest.config.ts` 의 `db` 묶음 — 저절로 고른다). 전체 실측 DB 없이 75초 · DB 포함 109초(전에는 전부 차례로 268초)
 - 브랜치 삭제 push · 빈 시작 커밋은 검사 없이 지나간다. 입력이 비거나 diff 를 못 읽으면 `full` 이다(보수적)
 - 훅은 검사 전에 git 이 넣어 준 `GIT_*` 환경 변수를 걷는다 — 임시 저장소를 만드는 검사가 이 저장소에 커밋한 사고가 두 번 있었다

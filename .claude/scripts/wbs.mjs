@@ -32,7 +32,9 @@ export function parseWbs(text) {
       if (!area) throw new Error(`${i + 1}행 체크박스가 영역 밖이다 — 위의 「## KEY — 이름」 제목을 확인한다`);
       if (!(m = TASK.exec(line))) throw new Error(`${i + 1}행 체크박스가 「- [ ] \`KEY-번호\` 제목」 모양이 아니다`);
       if (!feat) throw new Error(`${i + 1}행 태스크가 기능 제목 밖에 있다`);
-      const ev = EVID.exec(lines[i + 1] ?? '');
+      // 근거 줄은 태스크 아래 들여쓴 줄 어디에나 온다 — 바로 다음 줄만 보다가 「항목: …」 뒤에 근거를 적은 완료 24건이 번호 없이 보였다 (리뷰 L4)
+      let ev = null;
+      for (let j = i + 1; !ev && /^\s+\S/.test(lines[j] ?? ''); j++) ev = EVID.exec(lines[j]);
       feat.tasks.push({
         id: m[2],
         title: m[3].trim(),
