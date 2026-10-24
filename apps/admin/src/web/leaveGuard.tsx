@@ -147,6 +147,7 @@ export function use이동(): { hash: string; 조건번: number } {
   return 보는;
 }
 
+/** 앱 뿌리 없이 화면만 그리는 검사 감싸개가 쓴다 — 앱에서는 main.tsx 의 use이동 하나만 듣는다 */
 export function useHash(): string {
   return use이동().hash;
 }
