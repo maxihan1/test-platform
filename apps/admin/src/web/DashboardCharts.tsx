@@ -20,6 +20,7 @@ const 마디틈 = 2;
 const 실행한날기준 = 3;
 
 const 합 = (c: 건수): number => c.pass + c.fail + c.notRun;
+const 빈건수: 건수 = { pass: 0, fail: 0, notRun: 0 };
 
 interface 날 {
   day: string;
@@ -46,8 +47,8 @@ export function 창날들(값: 자료, 언어: 언어): 날[] {
       날짜: 날짜글자(day),
       요일: 요일식.format(시각),
       주말: 요일번호 === 0 || 요일번호 === 6,
-      건수: 그날 ?? { pass: 0, fail: 0, notRun: 0 },
-      ui: 그날?.ui ?? { pass: 0, fail: 0, notRun: 0 },
+      건수: 그날 ?? 빈건수,
+      ui: 그날?.ui ?? 빈건수,
     };
   });
 }

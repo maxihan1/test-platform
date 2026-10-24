@@ -72,7 +72,7 @@ export function 실패유형칸({ 값, 이동 }: { 값: 자료; 이동?: 이동�
                     {수 === 0 ? (
                       <span>{t(실패유형이름[유형.type])}</span>
                     ) : (
-                      <a className="dash-link" href={실행목록주소(값.window.days, { state: 'failed' }, 창실패종류(값))} {...이동속성(이동)}>
+                      <a className="dash-link" href={실행목록주소(값.window.days, { state: 'failed' }, 창실패종류(값, true))} {...이동속성(이동)}>
                         {t(실패유형이름[유형.type])}
                       </a>
                     )}

@@ -7,7 +7,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import type { 대시보드응답 } from '../reporting/dashboardResults.js';
 import { api } from './api.js';
 import { Dashboard } from './Dashboard.js';
-import { 실행목록주소, 실행종류, 조건을주소로, 주소에서조건 } from './DashboardPick.js';
+import { 실행목록주소, 실행종류, 조건을주소로, 주소에서조건, 창실패종류 } from './DashboardPick.js';
 
 const 시간대 = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const 건 = (pass: number, fail: number, notRun: number) => ({ pass, fail, notRun });
@@ -303,6 +303,12 @@ describe('칸에서 내려가기', () => {
     expect(실행종류(건(3, 0, 0), 건(3, 0, 0), false)).toBe('UI');
     expect(실행종류(건(0, 0, 0), 건(0, 0, 0), false)).toBe('FN');
     expect(실행목록주소(14, { state: 'failed' }, 'UI')).toBe('#/runs/ui?state=failed&days=14');
+  });
+
+  it('실패 유형 고리는 미실행까지 세어 고른다 — UI 미실행만 있는 창에서 빈 기능 목록으로 가지 않게', () => {
+    const 창 = { passRate: { current: 건(5, 0, 2), previous: 건(0, 0, 0) }, daily: [{ day: '2026-10-07', ...건(5, 0, 2), ui: 건(0, 0, 2) }] };
+    expect(창실패종류(창, true)).toBe('UI');
+    expect(창실패종류(창, false)).toBe('FN');
   });
 
   it('실행 목록 주소는 창 길이를 그대로 싣는다', () => {

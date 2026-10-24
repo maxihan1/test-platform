@@ -119,10 +119,14 @@ export function 실행종류(전체: 건수, ui: 건수, 실패만: boolean): 'U
   return 셈(ui) > 0 && 셈(ui) === 셈(전체) ? 'UI' : 'FN';
 }
 
-/** 이번 창 전체로 고른 실패한 실행의 종류 — 날 · 서비스에 안 매인 고리(신규 실패 「더 있습니다」 · 실패 유형)가 쓴다 */
-export function 창실패종류(값: Pick<대시보드응답, 'passRate' | 'daily'>): 'UI' | 'FN' {
-  const ui실패 = 값.daily.reduce((합, 날) => 합 + 날.ui.fail, 0);
-  return 실행종류(값.passRate.current, { pass: 0, fail: ui실패, notRun: 0 }, true);
+/**
+ * 이번 창 전체로 고른 실패한 실행의 종류 — 날 · 서비스에 안 매인 고리(신규 실패 「더 있습니다」 · 실패 유형)가 쓴다.
+ * 미실행도 — 실패 유형 칸은 실패와 미실행을 같이 센다. 그 고리는 둘을 합쳐 고른다
+ */
+export function 창실패종류(값: Pick<대시보드응답, 'passRate' | 'daily'>, 미실행도: boolean): 'UI' | 'FN' {
+  const 셈 = (c: 건수): number => c.fail + (미실행도 ? c.notRun : 0);
+  const ui = 값.daily.reduce((합, 날) => 합 + 셈(날.ui), 0);
+  return ui > 0 && ui === 셈(값.passRate.current) ? 'UI' : 'FN';
 }
 
 /** 실행 기록 목록으로 가는 주소. 목록도 7 · 14 · 30일을 알아서 창 길이를 그대로 싣는다 */
