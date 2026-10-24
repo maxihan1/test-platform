@@ -1,12 +1,12 @@
 // 실행 목록 줄의 직전 대비 수 — 쪽에 든 실행과 그 앞 실행들을 한 번에 읽어 센다 (SPEC 도메인/실행 §7 `GET /api/runs` change)
 
-import { 스모크끼리식, 판정접기식 } from './dashboardSql.js';
+import { 스모크건너뛰기식, 판정접기식 } from './dashboardSql.js';
 import { db, 케이스판정들, type 접힌행 } from './insights.js';
 
 export type 직전대비 = { newFail: number; stillFail: number };
 
 /**
- * 직전 실행 고르기는 compareWithPrevious 와 같다 — 같은 서비스 · 대상 서버 · 종류 · 스모크 여부에서 더 일찍 시작해 끝난 실행.
+ * 직전 실행 고르기는 compareWithPrevious 와 같다 — 같은 서비스 · 대상 서버 · 종류에서 더 일찍 시작해 끝난 실행(스모크 아닌 실행은 스모크를 건너뛴다).
  * 이번 실행이 도는 중이거나 견줄 앞이 없으면 맵에 없다(화면에는 null).
  * 큰 수는 케이스 수다 — 디바이스를 접는다. 결과 화면 요약 띠(web/RunSummary.tsx 칸수)와 같은 단위다
  */
@@ -19,7 +19,7 @@ export async function 직전대비수(runIds: number[]): Promise<Map<number, 직
        CROSS JOIN LATERAL (
          SELECT q.run_id FROM test_run q
           WHERE q.service_id = r.service_id AND q.env = r.env AND q.started_at < r.started_at
-            AND q.status <> 'RUNNING' AND q.kind = r.kind AND ${스모크끼리식('q', 'r')}
+            AND q.status <> 'RUNNING' AND q.kind = r.kind AND ${스모크건너뛰기식('q', 'r')}
           ORDER BY q.started_at DESC
           LIMIT 1) p
       WHERE r.run_id = ANY($1::bigint[]) AND r.status <> 'RUNNING' AND r.kind IN ('UI','FN')`,

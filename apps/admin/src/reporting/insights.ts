@@ -4,7 +4,7 @@
 import type { Pool } from 'pg';
 import { 종류조건 } from '../execution/runKind.js';
 import { 가린다, 항목비밀 } from '../execution/trial.js';
-import { 스모크끼리식, 판정접기식 } from './dashboardSql.js';
+import { 스모크건너뛰기식, 판정접기식 } from './dashboardSql.js';
 import { 원인을가른다, 실패유형들, 색코드, 한줄로자른다, type 실패유형 } from './failureType.js';
 
 export type 변화 = '새로깨짐' | '계속깨짐' | '고쳐짐' | '그대로';
@@ -220,7 +220,7 @@ export async function compareWithPrevious(runId: number): Promise<비교> {
   const 앞 = await pool.query<{ run_id: string; started_at: Date; base_url: string }>(
     `SELECT p.run_id, p.started_at, p.base_url FROM test_run p JOIN test_run c ON c.run_id = $1
      WHERE p.service_id = c.service_id AND p.env = c.env AND p.started_at < c.started_at AND p.status <> 'RUNNING'
-       AND p.kind = c.kind AND ${스모크끼리식('p', 'c')}
+       AND p.kind = c.kind AND ${스모크건너뛰기식('p', 'c')}
      ORDER BY p.started_at DESC
      LIMIT 1`,
     // 같은 종류끼리만 견준다 — UI 실행 앞에 기능 실행을 두면 모든 케이스가 「빠졌다」로 뜬다 (PR #131)

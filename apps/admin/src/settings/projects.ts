@@ -1,6 +1,7 @@
 // 프로젝트(애플리케이션을 묶는 폴더)를 읽고 만들고 이름을 바꾸는 곳 (SPEC 도메인/인증 §7 · 공통/4-데이터모델 「프로젝트 표」).
 // 지우지 않는다 — 지난 실행이 가리키는 것을 흔들지 않는다
 
+import { 작성계정이름 } from '../auth/agentToken.js';
 import { db, 설정오류, 한묶음 } from './store.js';
 
 export interface 프로젝트행 {
@@ -23,7 +24,7 @@ export async function 프로젝트목록(): Promise<프로젝트행[]> {
  * (2026-10-25 GAME-F2-14 · Ashveil 시험에서 설정으로 돌아가 배정해야 했다)
  */
 export async function 프로젝트만들기(name: string, 만든이?: string): Promise<number> {
-  const 배정할것 = [만든이, process.env.AUTHORING_AGENT_USER].filter((u): u is string => u !== undefined && u !== '');
+  const 배정할것 = [만든이, 작성계정이름()].filter((u): u is string => u !== undefined && u !== null);
   return 한묶음(async (client) => {
     const rows = await client.query<{ id: string }>('INSERT INTO project (name) VALUES ($1) RETURNING id', [name]);
     const id = Number(rows.rows[0]!.id);

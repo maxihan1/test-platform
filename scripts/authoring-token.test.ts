@@ -200,7 +200,7 @@ describe('새줄보기 — 켠 뒤 새로 맡은 애플리케이션 줄을 다�
     vi.useFakeTimers();
     const 도는것 = new Set(['DEMO', 'OLD']);
     const 연것: [string, unknown][] = [];
-    새줄보기(async () => 맡음('DEMO', 'ASH'), 도는것, (서비스, 설정) => 연것.push([서비스, 설정]), () => false, 1000);
+    새줄보기(async () => 맡음('DEMO', 'ASH'), 도는것, async (서비스, 설정) => void 연것.push([서비스, 설정]), () => false, 1000);
 
     await vi.advanceTimersByTimeAsync(999);
     expect(연것).toEqual([]);
@@ -214,9 +214,21 @@ describe('새줄보기 — 켠 뒤 새로 맡은 애플리케이션 줄을 다�
   it('멈췄으면 읽지 않는다', async () => {
     vi.useFakeTimers();
     let 읽은수 = 0;
-    새줄보기(async () => (읽은수++, 맡음('ASH')), new Set(), () => undefined, () => true, 1000);
+    새줄보기(async () => (읽은수++, 맡음('ASH')), new Set(), async () => undefined, () => true, 1000);
     await vi.advanceTimersByTimeAsync(3000);
     expect(읽은수).toBe(0);
+  });
+
+  it('연 줄이 던지며 끝나면 다음 차례에 다시 연다 — 나중 줄만 조용히 사라지지 않게', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    let 연수 = 0;
+    새줄보기(async () => 맡음('ASH'), new Set(), async () => {
+      연수++;
+      if (연수 === 1) throw new Error('멈춘 것 닫기 실패');
+    }, () => false, 1000);
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(연수).toBe(2);
   });
 
   it.each([
@@ -226,7 +238,7 @@ describe('새줄보기 — 켠 뒤 새로 맡은 애플리케이션 줄을 다�
     vi.useFakeTimers();
     const 오류 = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const 연것: string[] = [];
-    새줄보기(읽기, new Set(), (서비스) => 연것.push(서비스), () => false, 1000);
+    새줄보기(읽기, new Set(), async (서비스) => void 연것.push(서비스), () => false, 1000);
     await vi.advanceTimersByTimeAsync(1000);
     expect(연것).toEqual([]);
     expect(String(오류.mock.calls[0]?.[0])).toMatch(까닭);
