@@ -236,8 +236,12 @@ export function 고른서비스를적는다(prefix: string): void {
  */
 const 고른서버키 = (prefix: string) => '대상서버:' + prefix;
 
-/** 그 서비스에 아직 있는 서버일 때만 돌려준다. 처음이거나 설정에서 지웠으면 빈 글자 — 고르지 않은 채로 연다 */
+/**
+ * 그 서비스에 아직 있는 서버일 때만 돌려준다. 처음이거나 설정에서 지웠으면 빈 글자 — 고르지 않은 채로 연다.
+ * 서버가 하나뿐이면 그것이다 — 고를 것이 하나라 틀린 값이 남을 수 없다. 앞 판은 처음 실행마다 「고르세요」로 떴다 (GAME-F2-17)
+ */
 export function 마지막서버(prefix: string, envs: readonly { env: string }[]): string {
+  if (envs.length === 1) return envs[0]!.env;
   try {
     const 값 = localStorage.getItem(고른서버키(prefix));
     return envs.some((it) => it.env === 값) ? 값! : '';

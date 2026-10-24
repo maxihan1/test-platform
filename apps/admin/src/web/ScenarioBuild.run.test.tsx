@@ -59,8 +59,10 @@ describe('ScenarioBuild 정식 실행', () => {
     expect(run).not.toHaveBeenCalled();
   });
 
-  it('서버를 안 고르면 서버를 부르지 않고 고르라는 문장만 뜬다', async () => {
-    await 기존그리기({}, 서버있는사람());
+  it('서버가 둘 이상인데 안 고르면 서버를 부르지 않고 고르라는 문장만 뜬다', async () => {
+    const 기본 = 사람();
+    const envs = [{ env: 'qa', baseUrl: 'https://qa.example.com' }, { env: 'stg', baseUrl: 'https://stg.example.com' }];
+    await 기존그리기({}, { ...기본, services: 기본.services.map((s) => ({ ...s, envs })) });
     const run = vi.spyOn(scenarioApi, 'run');
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
     expect((await screen.findByRole('alert')).textContent).toBe('실행할 대상 서버를 먼저 고릅니다');

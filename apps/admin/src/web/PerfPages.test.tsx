@@ -116,7 +116,7 @@ describe('측정할 페이지', () => {
     });
     render(<PerfPages service={앱} 쓰나 />);
     expect(await screen.findByText('측정 대상: 화면 지도 기준 주요 페이지 3개')).toBeTruthy();
-    expect(추천).toHaveBeenCalledWith(7, undefined);
+    expect(추천).toHaveBeenCalledWith(7, 'qa');
     expect(screen.getByText('AI', { selector: '.perf-ai' })).toBeTruthy();
     expect(screen.getByText('아직 측정 결과가 없습니다. 측정을 누르면 페이지마다 속도를 잽니다')).toBeTruthy();
   });

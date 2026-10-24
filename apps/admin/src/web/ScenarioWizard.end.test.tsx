@@ -68,8 +68,8 @@ afterEach(() => {
 const 다음 = () => fireEvent.click(screen.getByRole('button', { name: '다음' }));
 const 바닥 = () => document.querySelector('.wz-why')?.textContent;
 
-async function 값연결로() {
-  render(<ScenarioWizard 띠서비스={서비스('ZSB')} user={사람()} />);
+async function 값연결로(user = 사람()) {
+  render(<ScenarioWizard 띠서비스={서비스('ZSB')} user={user} />);
   fireEvent.click(screen.getByRole('button', { name: /직접 고르기/ }));
   다음();
   fireEvent.click(within(await screen.findByRole('region', { name: '첫 단계 추천' })).getByRole('button', { name: 'ZSB-001 넣기' }));
@@ -78,8 +78,8 @@ async function 값연결로() {
   await screen.findByText('값 연결 1곳 찾음');
 }
 
-async function 경로채우고시험으로() {
-  await 값연결로();
+async function 경로채우고시험으로(user = 사람()) {
+  await 값연결로(user);
   fireEvent.change(screen.getByLabelText('JSON 경로'), { target: { value: 'id' } });
   다음();
   await screen.findByRole('heading', { name: '끝까지 이어지는지 돌려 봅니다' });
@@ -132,6 +132,13 @@ describe('ScenarioWizard 값 연결', () => {
 });
 
 describe('ScenarioWizard 시험 실행 · 저장', () => {
+  it('고를 서버가 하나뿐이면 그 서버로 고르고 「지난번에 고른」이라 하지 않는다', async () => {
+    const 기본 = 사람();
+    await 경로채우고시험으로({ ...기본, services: 기본.services.map((s) => ({ ...s, envs: s.envs.slice(0, 1) })) });
+    expect((screen.getByLabelText('대상 서버') as HTMLSelectElement).value).toBe('stg');
+    expect(screen.queryByText('지난번에 고른 서버를 미리 골라 두었습니다')).toBeNull();
+  });
+
   it('지난번 서버로 돌려 값 연결이 쓰였는지 알리고, 같은 단계로 저장한다', async () => {
     localStorage.setItem('대상서버:ZSB', 'stg');
     await 경로채우고시험으로();
