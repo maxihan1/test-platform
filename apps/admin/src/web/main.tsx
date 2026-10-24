@@ -23,7 +23,6 @@ import {
   고른서비스를적는다,
   고른언어를읽는다,
   고른언어를적는다,
-  주소의서비스,
   지금자리,
 } from './layout.js';
 import { Login } from './Login.js';
@@ -33,7 +32,7 @@ import { ProjectPick } from './ProjectPick.js';
 import { Guide } from './Guide.js';
 import { Prd } from './Prd.js';
 import { 기능보나, 판정을만든다 } from './role.js';
-import { route, 갈자리, 돌아갈자리, 집 } from './route.js';
+import { route, 갈자리, 돌아갈자리, 주소의서비스, 집 } from './route.js';
 import { RunList } from './RunList.js';
 import { RunResult } from './RunResult.js';
 import { RunWindow } from './RunWindow.js';
@@ -236,10 +235,12 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
     set상태({ 어디: '안', user });
     // 세션이 끊겨 로그인한 사람은 원래 가려던 화면으로 돌려보낸다 (SPEC §8.6).
     // 기억해 둔 자리도 권한 판정을 탄다 — 그사이 칸이 none 이 됐을 수 있다
-    const 고른 = 고른서비스(prefix, user.services)?.prefix ?? null;
     const 돌아감 = 돌아갈자리를꺼낸다();
+    const 목적지 = 돌아감 ?? window.location.hash;
+    // 요구 번호 주소는 그 번호의 서비스로 연다(아래 띠 맞추기) — 권한도 그 서비스로 봐야 앞 띠의 칸으로 집에 돌려보내지 않는다
+    const 고른 = 주소의서비스(목적지, user.services) ?? 고른서비스(prefix, user.services)?.prefix ?? null;
     set프로젝트묻기(프로젝트물을까(돌아감, user.services));
-    window.location.hash = 돌아갈자리(돌아감 ?? window.location.hash, user, 고른);
+    window.location.hash = 돌아갈자리(목적지, user, 고른);
   };
 
   useEffect(() => {
@@ -370,6 +371,9 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
         버리기전(() => {
           고른서비스를적는다(접두사);
           setPrefix(접두사);
+          // 다른 서비스의 요구 번호가 주소에 남으면 새로고침 · 뒤로 가기가 그 서비스로 띠를 되돌린다 — 번호를 떼고 목록 자리로 바꿔 둔다
+          const 주소것 = 주소의서비스(window.location.hash, 상태.user.services);
+          if (주소것 !== null && 주소것 !== 접두사) window.location.replace('#/prd');
         });
       }}
       언어={언어}

@@ -1,7 +1,7 @@
 // 주소창의 해시를 화면 한 개로 푼다. 서버 라우팅을 건드리지 않으려고 해시를 쓴다
 // app.ts의 정적 서빙은 Phase 0가 고정한 공용 골격이라 history API용 되돌림 규칙을 넣을 수 없다
 
-import type { User } from './api.js';
+import type { ServiceRow, User } from './api.js';
 import { 기능보나, type 기능 } from './role.js';
 
 // 사이드바 하위 메뉴(UI 테스트 · 기능 테스트). 종류 없는 옛 주소는 기능이다 — 지금 케이스가 전부 기능이라서 (화면공통 §8 · PR #132)
@@ -71,6 +71,17 @@ export const 케이스주소 = (tcId: string) => {
 
 /** 「PRD 관리」의 그 항목 주소. 거기서 묶음을 펴고 그 줄로 간다 (도메인/카탈로그 §8.1 「맥락」) */
 export const PRD항목주소 = (reqId: string) => `#/prd/${encodeURIComponent(reqId)}`;
+
+/**
+ * 요구 번호 주소(`#/prd/<접두사>-REQ-<3자리>`)가 가리키는 배정 서비스. 그 밖의 주소 · 배정에 없는 접두사는 null — 띠를 그대로 둔다.
+ * 실패 카드는 다른 서비스 실행에서도 요구 고리를 건다. 띠로 열면 PRD 관리가 띠 서비스의 판에서 그 번호를 찾는다
+ */
+export function 주소의서비스(주소: string, 배정: ServiceRow[]): string | null {
+  const 지금 = route(주소);
+  if (지금.name !== 'prd' || 지금.reqId === undefined) return null;
+  const 접두사 = 지금.reqId.slice(0, 지금.reqId.indexOf('-REQ-'));
+  return 배정.some((service) => service.prefix === 접두사) ? 접두사 : null;
+}
 
 /**
  * 주소 조각을 푼다. 깨진 % 꼴(`%` · `%E0`)이면 null — 그 주소는 「없는 주소」다.
