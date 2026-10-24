@@ -12,7 +12,7 @@ import { CaseList } from './CaseList.js';
 import { Dashboard } from './Dashboard.js';
 import { 언어함, use말, type 언어 } from './i18n.js';
 import { ItemDetail } from './ItemDetail.js';
-import { useHash, 떠나기막기, 버리기전 } from './leaveGuard.js';
+import { use이동, 떠나기막기, 버리기전 } from './leaveGuard.js';
 import {
   고른서비스,
   대시보드재료,
@@ -212,7 +212,7 @@ function Screen({
 type 상태 = { 어디: '묻는중' } | { 어디: '밖' } | { 어디: '안'; user: User };
 
 function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) => void }) {
-  const hash = useHash();
+  const { hash, 조건번 } = use이동();
   const [상태, set상태] = useState<상태>({ 어디: '묻는중' });
   // 로그인한 직후에만 프로젝트를 먼저 묻는다. 새로고침이나 끊겼다 돌아온 로그인은 보던 프로젝트 그대로다
   const [프로젝트묻기, set프로젝트묻기] = useState(false);
@@ -375,6 +375,8 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
     >
       {비밀번호바꿈 ? <PasswordNotice onGone={알림끄기} /> : null}
       <Screen
+        // 조건 붙은 주소로 오면 새로 그린다 — 목록은 조건을 그릴 때 한 번만 읽어 「RUN N에서 통과」 고리를 눌러도 앞 실행에 남았다
+        key={조건번}
         hash={hash}
         service={열린것}
         user={상태.user}

@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { api, type EnvRow, type Paged, type RunListRow, type RunTally } from './api.js';
+import { use이동 } from './leaveGuard.js';
 import { RunList } from './RunList.js';
 import type { 판정 } from './role.js';
 
@@ -248,6 +249,24 @@ describe('RunList 오른쪽 결과 칸 (§8.7 「A안」)', () => {
     await waitFor(() => expect(api.run).toHaveBeenCalledWith(2001));
     // 거르개에 걸려 목록에 없는 실행도 결과 칸은 그대로 연다 — 대신 까닭을 한 줄 적는다
     expect(await screen.findByText('고른 실행은 지금 조건 밖입니다')).toBeTruthy();
+  });
+
+  it('같은 화면에서 조건이 다른 고리(「RUN N에서 통과」)를 누르면 주소가 옛 실행으로 돌아가지 않고 결과 칸이 그 실행을 연다', async () => {
+    window.location.hash = '#/runs/fn?run=2112';
+    vi.spyOn(api, 'runs').mockResolvedValue(한쪽);
+    function 뿌리() {
+      const { 조건번 } = use이동();
+      return <RunList key={조건번} kind="FN" service="ZRL" envs={서버들} 할수={운영} />;
+    }
+    render(<뿌리 />);
+    await waitFor(() => expect(api.run).toHaveBeenCalledWith(2112));
+
+    const 도착 = new Promise<void>((끝) => window.addEventListener('hashchange', () => 끝(), { once: true }));
+    window.location.hash = '#/runs/fn?run=2113&tc=ZRL-001';
+    await 도착;
+
+    await waitFor(() => expect(api.run).toHaveBeenCalledWith(2113));
+    expect(window.location.hash).toBe('#/runs/fn?run=2113');
   });
 
   it('「목록으로」를 누르면 고른 실행을 풀어 좁은 창에서 목록이 다시 보인다', async () => {

@@ -79,10 +79,10 @@ export function use주소조건(경로: string, 조건: Record<string, string>):
       주소고치기(주소);
     };
     맞춘다();
-    // 앱 뿌리의 useHash 보다 먼저 걸려 먼저 듣는다(자식 effect 가 먼저 돈다). 같은 화면이면 그쪽은 같은 주소라 그냥 넘긴다
+    // 조건 붙은 주소는 되돌리지 않는다 — 고리를 눌러 온 것(「RUN N에서 통과」)이라 그 조건을 따르고, 화면은 앱 뿌리가 새로 그린다(use이동 의 조건번)
     const 들음 = () => {
       const 지금 = window.location.hash;
-      if (JSON.stringify(route(지금)) === JSON.stringify(route(주소))) 맞춘다();
+      if (조건글(지금) === '' && JSON.stringify(route(지금)) === JSON.stringify(route(주소))) 맞춘다();
     };
     window.addEventListener('hashchange', 들음);
     return () => window.removeEventListener('hashchange', 들음);
@@ -101,9 +101,13 @@ function 칸적기(번호: number): void {
   window.history.replaceState({ ...(typeof s === 'object' && s !== null ? s : {}), navIndex: 번호 }, '');
 }
 
+/**
+ * 그린 해시와 조건 붙은 주소로 온 횟수. 앱 뿌리는 그 횟수를 화면 열쇠로 쓴다 —
+ * 목록은 조건을 그릴 때 한 번만 읽어서, 같은 화면에 조건만 다른 주소로 오면 새로 그려야 그 조건을 따른다
+ */
 // ponytail: 앱 뿌리(main.tsx) 한 곳에서만 부른다. 둘이 걸리면 막힐 때 둘 다 물러나 두 칸을 간다 — 더 필요해지면 듣는 쪽을 모듈 하나로 모은다
-export function useHash(): string {
-  const [hash, setHash] = useState(window.location.hash);
+export function use이동(): { hash: string; 조건번: number } {
+  const [보는, set보는] = useState({ hash: window.location.hash, 조건번: 0 });
   useEffect(() => {
     이전 = window.location.hash;
     let 지금칸 = 칸번호() ?? 0;
@@ -135,12 +139,16 @@ export function useHash(): string {
       한번통과 = false;
       const 앞 = 이전;
       이전 = 새것;
-      화면을바꾼다(앞, 새것, () => setHash(새것));
+      화면을바꾼다(앞, 새것, () => set보는((전) => ({ hash: 새것, 조건번: 조건글(새것) === '' ? 전.조건번 : 전.조건번 + 1 })));
     };
     window.addEventListener('hashchange', onChange);
     return () => window.removeEventListener('hashchange', onChange);
   }, []);
-  return hash;
+  return 보는;
+}
+
+export function useHash(): string {
+  return use이동().hash;
 }
 
 export function useBeforeUnload(막나: boolean): void {
