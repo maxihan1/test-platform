@@ -3,12 +3,12 @@
 
 import { StrictMode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { ApiError } from './api.js';
 import { 떠나기막기 } from './leaveGuard.js';
 import { scenarioApi } from './scenarioApi.js';
 import { ScenarioBuild } from './ScenarioBuild.js';
-import { 서비스, 사람, 단계셋, 상세, 재료, 실패결과, 통과결과, 기존그리기, 흘리기, 서버고르기, 시험누르기, 탭 } from './ScenarioTrial.fixture.js';
+import { 서비스, 사람, 케이스단계, 단계셋, 상세, 재료, 실패결과, 통과결과, 기존그리기, 흘리기, 서버고르기, 시험누르기, 탭 } from './ScenarioTrial.fixture.js';
 import { 케이스목록막기, 케이스더하기 } from './ScenarioBuild.fixture.js';
 
 
@@ -88,7 +88,7 @@ describe('시험 실행 돌리기', () => {
     fireEvent.change(screen.getByLabelText('시나리오 이름'), { target: { value: '새 흐름' } });
     서버고르기('stg');
     await 시험누르기();
-    expect(JSON.parse(sessionStorage.getItem('scn-trial:new') ?? 'null')).toEqual({ trialId: 't-n', env: 'stg' });
+    expect(JSON.parse(sessionStorage.getItem('scn-trial:new') ?? 'null')).toMatchObject({ trialId: 't-n', env: 'stg' });
 
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: '저장' }));
@@ -96,7 +96,7 @@ describe('시험 실행 돌리기', () => {
     await 흘리기(0);
 
     expect(sessionStorage.getItem('scn-trial:new')).toBeNull();
-    expect(JSON.parse(sessionStorage.getItem('scn-trial:55') ?? 'null')).toEqual({ trialId: 't-n', env: 'stg' });
+    expect(JSON.parse(sessionStorage.getItem('scn-trial:55') ?? 'null')).toMatchObject({ trialId: 't-n', env: 'stg' });
   });
 
   it('StrictMode 로 그려 이어 묻기가 두 줄로 시작돼도 2초 타이머는 한 줄만 돈다', async () => {
@@ -164,7 +164,7 @@ describe('시험 실행 돌리기', () => {
       응답하기({ trialId: 't-late' });
     });
 
-    expect(JSON.parse(sessionStorage.getItem('scn-trial:55') ?? 'null')).toEqual({ trialId: 't-late', env: 'stg' });
+    expect(JSON.parse(sessionStorage.getItem('scn-trial:55') ?? 'null')).toMatchObject({ trialId: 't-late', env: 'stg' });
     expect(sessionStorage.getItem('scn-trial:new')).toBeNull();
   });
 
@@ -223,5 +223,49 @@ describe('시험 실행 돌리기', () => {
     await 흘리기(2000);
 
     expect(screen.getByText('시험 실행 · stg · 1.50초')).toBeTruthy();
+  });
+});
+
+describe('시험 결과 줄은 돌린 때의 단계 이름이다 (FIX-F4-05 · L31)', () => {
+  const 줄들 = () => within(screen.getByRole('tabpanel')).getAllByRole('listitem');
+
+  it('시험이 끝난 뒤 단계를 옮겨도 실패한 2번 줄은 그때 돌린 ZSB-002 다', async () => {
+    await 기존그리기();
+    vi.spyOn(scenarioApi, 'startTrial').mockResolvedValue({ trialId: 't-1' });
+    vi.spyOn(scenarioApi, 'trial').mockResolvedValue({ status: 'FINISHED', result: 실패결과 });
+    vi.useFakeTimers();
+    서버고르기('stg');
+    await 시험누르기();
+    await 흘리기(2000);
+
+    fireEvent.click(screen.getByRole('button', { name: '1번 아래로' }));
+
+    expect(within(줄들()[0]!).getByText('ZSB-001')).toBeTruthy();
+    expect(within(줄들()[1]!).getByText('ZSB-002')).toBeTruthy();
+  });
+
+  it('화면을 다시 열어 이어 물어도 sessionStorage 에 둔 그때의 단계로 이름 붙인다', async () => {
+    const 그때 = [케이스단계('ZSB-002'), 케이스단계('ZSB-001'), 케이스단계('ZSB-001')];
+    sessionStorage.setItem('scn-trial:12', JSON.stringify({ trialId: 't-9', env: 'stg', parts: 그때 }));
+    vi.spyOn(scenarioApi, 'trial').mockResolvedValue({ status: 'FINISHED', result: 실패결과 });
+    await 기존그리기();
+    await screen.findByText('시험 실행 · stg · 3.40초');
+
+    fireEvent.click(screen.getByRole('button', { name: '자세히' }));
+
+    expect(within(줄들()[0]!).getByText('ZSB-002')).toBeTruthy();
+    expect(within(줄들()[1]!).getByText('ZSB-001')).toBeTruthy();
+  });
+
+  it('시작하면 sessionStorage 에 보낸 단계도 같이 둔다', async () => {
+    await 기존그리기();
+    vi.spyOn(scenarioApi, 'startTrial').mockResolvedValue({ trialId: 't-1' });
+    vi.spyOn(scenarioApi, 'trial').mockResolvedValue({ status: 'RUNNING' });
+    vi.useFakeTimers();
+    서버고르기('stg');
+
+    await 시험누르기();
+
+    expect(JSON.parse(sessionStorage.getItem('scn-trial:12') ?? 'null')).toEqual({ trialId: 't-1', env: 'stg', parts: 단계셋 });
   });
 });

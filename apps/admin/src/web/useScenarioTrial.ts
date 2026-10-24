@@ -14,6 +14,8 @@ export interface 시험상태 {
   env: string;
   결과: TrialResult | null;
   오류문장: string | null;
+  /** 돌린 때의 단계. 결과에는 번호만 있어 실행 뒤 초안을 고치면 줄 이름이 다른 단계로 붙는다. null 은 모른다 */
+  단계들: ScenarioPart[] | null;
 }
 
 export interface 시험본문 {
@@ -24,25 +26,33 @@ export interface 시험본문 {
 }
 
 const 묻는간격 = 2000;
-const 비어있다: 시험상태 = { 단계: 'idle', trialId: null, env: '', 결과: null, 오류문장: null };
+const 비어있다: 시험상태 = { 단계: 'idle', trialId: null, env: '', 결과: null, 오류문장: null, 단계들: null };
+
+interface 저장값 {
+  trialId: string;
+  env: string;
+  parts?: ScenarioPart[];
+}
 
 export const 시험열쇠 = (id: number | null) => 'scn-trial:' + String(id ?? 'new');
 
 // 저장소가 막힌 브라우저에서도 화면이 돌아야 해서 읽기 · 쓰기를 전부 감싼다. 잃는 것은 이어 묻기뿐이다
-function 읽기(열쇠: string): { trialId: string; env: string } | null {
+function 읽기(열쇠: string): 저장값 | null {
   try {
     const 글 = sessionStorage.getItem(열쇠);
     if (글 === null) return null;
     const 값: unknown = JSON.parse(글);
     if (typeof 값 !== 'object' || 값 === null) return null;
-    const { trialId, env } = 값 as Record<string, unknown>;
-    return typeof trialId === 'string' && typeof env === 'string' ? { trialId, env } : null;
+    const { trialId, env, parts } = 값 as Record<string, unknown>;
+    if (typeof trialId !== 'string' || typeof env !== 'string') return null;
+    // 단계는 이 화면이 적은 것이다. 없으면 이름을 지금 초안으로 붙인다
+    return Array.isArray(parts) ? { trialId, env, parts: parts as ScenarioPart[] } : { trialId, env };
   } catch {
     return null;
   }
 }
 
-function 쓰기(열쇠: string, 값: { trialId: string; env: string } | null) {
+function 쓰기(열쇠: string, 값: 저장값 | null) {
   try {
     if (값 === null) sessionStorage.removeItem(열쇠);
     else sessionStorage.setItem(열쇠, JSON.stringify(값));
@@ -118,7 +128,7 @@ export function useScenarioTrial(열쇠: string) {
     } else {
       const 저장 = 읽기(열쇠쪽.current);
       if (저장 !== null) {
-        set상태({ ...비어있다, 단계: 'running', trialId: 저장.trialId, env: 저장.env });
+        set상태({ ...비어있다, 단계: 'running', trialId: 저장.trialId, env: 저장.env, 단계들: 저장.parts ?? null });
         void 묻기(저장.trialId, 이줄);
       }
     }
@@ -132,11 +142,11 @@ export function useScenarioTrial(열쇠: string) {
     async (본문: 시험본문) => {
       const 이줄 = 지금줄.current;
       clearTimeout(타이머.current);
-      set상태({ ...비어있다, 단계: 'running', env: 본문.env });
+      set상태({ ...비어있다, 단계: 'running', env: 본문.env, 단계들: 본문.parts });
       try {
         const { trialId } = await scenarioApi.startTrial(본문);
         // 화면을 떠났거나 열쇠가 옮겨진 뒤에 와도 지금 열쇠에는 적어 둔다
-        쓰기(옮긴곳.get(열쇠쪽.current) ?? 열쇠쪽.current, { trialId, env: 본문.env });
+        쓰기(옮긴곳.get(열쇠쪽.current) ?? 열쇠쪽.current, { trialId, env: 본문.env, parts: 본문.parts });
         if (이줄.끝남) return;
         set상태((앞) => ({ ...앞, trialId }));
         타이머.current = setTimeout(() => void 묻기(trialId, 이줄), 묻는간격);
