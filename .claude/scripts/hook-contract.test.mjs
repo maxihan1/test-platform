@@ -101,7 +101,7 @@ test('테스트만 바뀐 커밋은 cases 차선 — 타입·check:tests 만 돌
     assert.match(호출, /check:tests/, '가벼운 길에서 check:tests 를 안 돌렸다');
     // 가벼운 길의 유일한 규칙 검사다 — 스크립트가 사라지면 조용히 초록이 아니라 그 자리에서 죽어야 한다
     assert.doesNotMatch(호출, /check:tests.*--if-present/, '가벼운 길의 check:tests 에 --if-present 가 붙어 있다');
-    assert.match(호출, /check:tests.*--no-held/, '값 안 채운 보류 케이스를 막지 않는다 (리뷰 M2 · K13)');
+    assert.doesNotMatch(호출, /--no-held/, '초안 push 에는 보류 케이스가 정상인데 막는다 — 막기는 /tpx 병합 직전이다 (K13)');
     assert.doesNotMatch(호출, /^test\b/m, '가벼운 길인데 전체 단위 테스트를 돌렸다');
   } finally {
     rmSync(저장소.뿌리, { recursive: true, force: true });
@@ -141,9 +141,9 @@ test('코드가 섞인 커밋은 무거운 길 — 타입 검사 · 바뀐 것�
   }
 });
 
-// 작성 에이전트 PR 의 CI 에만 있던 검사 셋 — 사람 PR 에는 CI 가 없어 여기서 안 돌면 어디서도 안 돈다 (리뷰 M2)
-test('무거운 길은 비밀값 이름 · 증적 형식 목록 대조와 보류 케이스 막기도 돌고, 실패하면 막는다', () => {
-  for (const 실패 of ['', 'check:secret-names', 'check:evidence-formats', '--no-held']) {
+// 작성 에이전트 PR 의 CI 에만 있던 목록 대조 둘 — 사람 PR 에는 CI 가 없어 여기서 안 돌면 어디서도 안 돈다 (리뷰 M2)
+test('무거운 길은 비밀값 이름 · 증적 형식 목록 대조도 돌고, 실패하면 막는다', () => {
+  for (const 실패 of ['', 'check:secret-names', 'check:evidence-formats']) {
     const 저장소 = 임시저장소(['apps/admin/src/web/X.tsx']);
     try {
       const r = 저장소에서돌린다(저장소, 실패 ? { NPM_FAIL: 실패 } : {});
@@ -152,7 +152,6 @@ test('무거운 길은 비밀값 이름 · 증적 형식 목록 대조와 보류
       const 호출 = 불린것(저장소.기록);
       assert.match(호출, /^run check:secret-names\b/m, '비밀값 이름 목록 대조를 안 돌렸다');
       assert.match(호출, /^run check:evidence-formats\b/m, '증적 형식 목록 대조를 안 돌렸다');
-      assert.match(호출, /^run check:tests\b.*--no-held/m, '보류 케이스 막기를 안 돌렸다');
     } finally {
       rmSync(저장소.뿌리, { recursive: true, force: true });
     }

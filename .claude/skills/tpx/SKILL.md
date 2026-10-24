@@ -75,7 +75,8 @@ description: 테스트 자동화 플랫폼의 모든 코드 작업 진입점. �
 
 1. `git status --porcelain` 이 비고 `git log origin/<브랜치>..HEAD` 가 0 인지 본다
 2. 진행판 — `docs/wbs.md` 에서 이번에 끝낸 태스크를 `[x]` 로, 다음 줄에 `  - 근거 PR #<번호> · <오늘>` 을 달고 커밋 · push. 해당 태스크가 없으면 건너뛴다
-3. `gh pr ready <번호>` → `gh pr edit <번호> --title "<[작업중] 을 뗀 제목>" --body "<최종 본문 — 한 일 · 확인 방법 · 검사 결과 한 줄>"`
+3. `npm run check:tests -- --no-held` — 값을 안 채운 보류 케이스(`held`)가 남았으면 병합하지 않고 멈춰 보고한다. 초안 push 에는 보류가 정상이라 pre-push 는 안 막는다(K13 · 2026-10-24 사용자) →
+   `gh pr ready <번호>` → `gh pr edit <번호> --title "<[작업중] 을 뗀 제목>" --body "<최종 본문 — 한 일 · 확인 방법 · 검사 결과 한 줄>"`
 4. `gh pr view <번호> --json headRefOid -q .headRefOid` 로 헤드를 읽고 `gh pr merge <번호> --merge --delete-branch --match-head-commit <헤드>` →
    `gh pr view <번호> --json state -q .state` 가 `MERGED` 인지 본다. 사람 PR 은 CI 잡이 건너뛰기라 기다릴 것이 없다
 5. **병합이 `MERGED` 로 확인되고 루트의 pull 이 성공한 뒤에만** 작업 폴더와 브랜치를 지운다. 사용자가 손으로 병합했어도 같은 순서다. 앞 단계가 실패하면 아무것도 지우지 않고 보고한다

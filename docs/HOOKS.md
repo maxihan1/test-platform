@@ -39,11 +39,11 @@ echo '{"tool_input":{"command":"git push --force origin main"}}' | node .claude/
 |------|------|----------|
 | `docs` | 문서만 | `check:spec` |
 | `spec` | 명세가 든 문서만 | `check:spec` |
-| `cases` | 테스트만 (가벼운 길) | `typecheck` · `check:tests -- --no-held` |
-| `full` | 그 밖 | `typecheck` · `test:changed` + `test:always` · `.claude/` 가 바뀌면 `check:workflow` · `check:secret-names` · `check:evidence-formats` · `check:tests -- --no-held` |
+| `cases` | 테스트만 (가벼운 길) | `typecheck` · `check:tests` |
+| `full` | 그 밖 | `typecheck` · `test:changed` + `test:always` · `.claude/` 가 바뀌면 `check:workflow` · `check:secret-names` · `check:evidence-formats` · `check:tests` |
 
 - **검사 전에 디스크가 올리는 커밋과 같은지 본다** (리뷰 L1). 검사는 디스크를 읽으므로 커밋 안 한 변경 · 새 파일이 있거나 올리는 커밋이 지금 꺼낸 커밋(HEAD)이 아니면 막는다 — 커밋하거나 치우고 다시 push
-- `check:secret-names` · `check:evidence-formats` · `--no-held` 는 작성 에이전트 PR 의 CI 와 같은 검사다 — 사람 PR 에는 CI 가 없어 여기서 돈다 (리뷰 M2)
+- `check:secret-names` · `check:evidence-formats` 는 작성 에이전트 PR 의 CI 와 같은 검사다 — 사람 PR 에는 CI 가 없어 여기서 돈다 (리뷰 M2). 보류 케이스 막기(`check:tests -- --no-held`)는 초안 push 에는 보류가 정상이라(K13) 여기서 안 돌고, `/tpx` 4단계가 「검토 준비」 직전에 돈다 (2026-10-24 사용자)
 - `db/` · `package.json` · `vitest.config.*` · `tsconfig` 가 바뀌면 `npm test` 전체를 돈다 — vitest 의 자동 재실행 조건이 점 폴더(`.claude/worktrees`) 경로에서 안 걸린다
 - **서버 · DB 코드(`apps/` 의 화면 밖 · `packages/` · `scripts/` · `db/`)나 위 설정 파일이 바뀌면 임시 DB 에서 DB 검사도 돈다** (2026-10-09). 개발 postgres(127.0.0.1:5433)에 `tp_prepush_<번호>` 를 만들고 `db/init` 의 `*.sh` · `*.sql`(postgres 이미지처럼 이름 차례로, 실패하면 막는다)과 마이그레이션을 건 뒤 `DATABASE_URL` 로 넘기고, 끝나면(실패해도) 지운다. 비밀번호는 main 체크아웃 `.env` 의 `POSTGRES_PASSWORD` · `GRAFANA_RO_PASSWORD` 이고 비면 `platform` · `grafana_ro` 다(docker compose 와 같다). **도커가 꺼져 있으면 막는다** — `docker compose up -d postgres` 뒤 다시 push. DB 검사는 `DATABASE_URL` 이 없으면 조용히 건너뛰므로 건너뛰지 않고 막는 쪽을 골랐다
 - 단위 테스트는 동시에 돈다. `DATABASE_URL` 을 읽는 검사 파일만 한 프로세스에서 차례로 돈다(`vitest.config.ts` 의 `db` 묶음 — 저절로 고른다). 전체 실측 DB 없이 75초 · DB 포함 109초(전에는 전부 차례로 268초)
