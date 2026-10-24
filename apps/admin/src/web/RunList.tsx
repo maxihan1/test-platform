@@ -3,7 +3,7 @@
 // **거르는 일은 서버가 한다.** 목록이 쪽으로 나뉘어 오므로 받은 쪽만 거르면 뒤쪽이 조용히 빠진다.
 // **고른 실행과 거르개는 주소에 남긴다** — 항목 상세에 갔다 돌아오기 · 새로고침 · 뒤로 가기에 풀리지 않는다(점검 2.9).
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { api, type EnvRow, type RunQuery } from './api.js';
 import { Head } from './Head.js';
@@ -12,6 +12,7 @@ import { use주소조건, 주소조건 } from './leaveGuard.js';
 import { 다음이있나 } from './paging.js';
 import { RunResult } from './RunResult.js';
 import { 실행줄 } from './RunListRow.js';
+import { 도는중 } from './runState.js';
 import type { 판정하기 } from './runJudge.js';
 import { Failed, Loading, useAsync } from './ui.js';
 
@@ -77,6 +78,15 @@ export function RunList({ service, envs, 판정하기, kind }: { service: string
     ...(days === undefined ? {} : { days }),
   };
   const runs = useAsync(() => api.runs(service, page, 조건), [service, page, q, state, env, origin, days]);
+  // 목록은 한 번 받고 말아 결과 칸만 따라갔다 — 실행이 끝나도 카드가 「진행 중」에 멈췄다 (GAME-F2-17).
+  // 도는 실행이 보이는 동안만 다시 받는다. 3초는 알림 줄이 도는 것을 묻는 주기와 같다
+  const 도는것있나 = runs.data?.items.some((run) => 도는중(run.status)) === true;
+  const 다시받기 = runs.reload;
+  useEffect(() => {
+    if (!도는것있나) return;
+    const timer = setInterval(() => void 다시받기(), 3000);
+    return () => clearInterval(timer);
+  }, [도는것있나, 다시받기]);
 
   if (runs.error !== null) return <Failed error={runs.error} />;
   if (runs.data === null) return <Loading />;
