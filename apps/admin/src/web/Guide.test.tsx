@@ -109,6 +109,45 @@ describe('애플리케이션 가이드 — 시안 A', () => {
     expect(정책칸().value).toBe('결제는 테스트 카드만 씁니다');
   });
 
+  it('다른 사람이 먼저 바꾼 구획은 손대지 않았으면 새 글로 보이고, 다시 저장해도 그 글을 덮지 않는다', async () => {
+    저장.mockRejectedValueOnce(new ApiError(409, 'GUIDE_STALE', ''));
+    지금.mockResolvedValueOnce(가이드()).mockResolvedValue(가이드({ version: 4, intro: '다른 사람이 고친 소개' }));
+    render(<Guide service="MKT" 할수={쓰는사람} />);
+    await screen.findByText(/버전 3/);
+    fireEvent.change(정책칸(), { target: { value: '결제는 테스트 카드만 씁니다' } });
+    fireEvent.click(저장버튼());
+    await screen.findByText(/버전 4 · 첨부/);
+    expect((screen.getByRole('textbox', { name: '애플리케이션 소개' }) as HTMLTextAreaElement).value).toBe('다른 사람이 고친 소개');
+    expect(정책칸().value).toBe('결제는 테스트 카드만 씁니다');
+
+    fireEvent.click(저장버튼());
+    await vi.waitFor(() =>
+      expect(저장).toHaveBeenLastCalledWith('MKT', 4, {
+        intro: '다른 사람이 고친 소개',
+        policy: '결제는 테스트 카드만 씁니다',
+        rules: '테스트로 만든 주문 이름은 qa- 로 시작합니다',
+      }),
+    );
+  });
+
+  it('저장이 오가는 동안 친 글자는 저장이 끝나도 남고 저장이 다시 켜진다', async () => {
+    let 끝내기: (값: { version: number }) => void = () => undefined;
+    저장.mockReturnValueOnce(new Promise((r) => (끝내기 = r)));
+    지금.mockResolvedValueOnce(가이드()).mockResolvedValue(가이드({ version: 4, policy: '결제는 테스트 카드만 씁니다' }));
+    render(<Guide service="MKT" 할수={쓰는사람} />);
+    await screen.findByText(/버전 3/);
+    fireEvent.change(정책칸(), { target: { value: '결제는 테스트 카드만 씁니다' } });
+    fireEvent.click(저장버튼());
+    const 규칙칸 = () => screen.getByRole('textbox', { name: '작업 규칙' }) as HTMLTextAreaElement;
+    fireEvent.change(규칙칸(), { target: { value: '주문 이름은 qa- 로, 회원 이름은 qa_ 로 시작합니다' } });
+    await act(async () => 끝내기({ version: 4 }));
+
+    await screen.findByText(/버전 4 · 첨부/);
+    expect(규칙칸().value).toBe('주문 이름은 qa- 로, 회원 이름은 qa_ 로 시작합니다');
+    expect(정책칸().value).toBe('결제는 테스트 카드만 씁니다');
+    expect(저장버튼().disabled).toBe(false);
+  });
+
   it('파일 첨부는 그 구획과 지금 버전으로 보내고, 받지 않는 파일은 보내기 전에 막는다', async () => {
     render(<Guide service="MKT" 할수={쓰는사람} />);
     await screen.findByText(/버전 3/);

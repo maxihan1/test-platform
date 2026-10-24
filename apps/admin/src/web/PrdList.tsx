@@ -147,7 +147,15 @@ export function PrdList({
                       }}
                       쓰나={쓰나}
                       고치나={고치는 === x.reqId}
-                      on고치기={() => (고치는 === null ? set고치는(x.reqId) : 버리기전(() => set고치는(x.reqId), 고치는))}
+                      on고치기={() => {
+                        // 찾기로 펴진 묶음은 연묶음에 없다 — 넣어 두지 않으면 찾기 글자를 지울 때 묶음이 접혀 쓴 글이 묻지 않고 사라진다
+                        const 고치기 = () => {
+                          set고치는(x.reqId);
+                          set연묶음((전) => new Set(전).add(x.feature));
+                        };
+                        if (고치는 === null) 고치기();
+                        else 버리기전(고치기, 고치는);
+                      }}
                       on고치기닫기={() => set고치는(null)}
                       기능들={기능들}
                       on저장={async (새것, 실패) => {

@@ -20,19 +20,19 @@ export function Guide({ service, 할수 }: { service: string; 할수: 판정 }) 
   const t = use말();
   const 언어 = use언어();
   const 판 = useAsync(() => guideApi.now(service), [service]);
-  // null 이면 고치지 않았다 — 지금 판 글을 그대로 보인다
-  const [초안, set초안] = useState<가이드글 | null>(null);
+  // 손댄 구획만 든다 — 다른 사람이 먼저 저장해 판을 다시 읽으면 손대지 않은 구획은 새 판 글이 보이고 그대로 보내진다
+  const [초안, set초안] = useState<Partial<가이드글>>({});
   const [알림, set알림] = useState<{ ok: boolean; 글: string } | null>(null);
   const [기록, set기록] = useState(false);
   const [busy, setBusy] = useState(false);
-  const 바뀜 = 판.data !== null && 초안 !== null && 구획들.some((s) => 초안[s] !== 판.data![s]);
+  const 바뀜 = 판.data !== null && 구획들.some((s) => 초안[s] !== undefined && 초안[s] !== 판.data![s]);
 
   if (판.error !== null) return <Failed error={판.error} />;
   if (판.data === null) return <Loading />;
   const now = 판.data;
   // 보기는 작성 read, 고치기는 작성 write (도메인/인증 §7). 서버가 다시 막는다
   const 쓰나 = 할수('작성요청');
-  const 글 = 초안 ?? now;
+  const 글: 가이드글 = { intro: 초안.intro ?? now.intro, policy: 초안.policy ?? now.policy, rules: 초안.rules ?? now.rules };
 
   /** 새 판을 짓는다. 지금 판 번호를 넘겨 보낸다 — 그 사이 다른 저장이 있었으면 서버가 GUIDE_STALE 로 막는다 */
   async function 짓기(일: (baseVersion: number) => Promise<{ version: number }>): Promise<boolean> {
@@ -54,7 +54,10 @@ export function Guide({ service, 할수 }: { service: string; 할수: 판정 }) 
   }
 
   async function 저장() {
-    if (await 짓기((base) => guideApi.save(service, base, { intro: 글.intro, policy: 글.policy, rules: 글.rules }))) set초안(null);
+    const 보낸 = 글;
+    if (!(await 짓기((base) => guideApi.save(service, base, 보낸)))) return;
+    // 저장이 오가는 동안 친 글자는 보낸 글과 다르다 — 그 구획은 초안에 남긴다
+    set초안((전) => Object.fromEntries(구획들.filter((s) => 전[s] !== undefined && 전[s] !== 보낸[s]).map((s) => [s, 전[s]])));
   }
 
   function 더하기(section: 구획, file: File) {
@@ -111,7 +114,7 @@ export function Guide({ service, 할수 }: { service: string; 할수: 판정 }) 
           busy={busy}
           {...(쓰나
             ? {
-                on글: (값: string) => set초안({ intro: 글.intro, policy: 글.policy, rules: 글.rules, [s]: 값 }),
+                on글: (값: string) => set초안((전) => ({ ...전, [s]: 값 })),
                 on더하기: (file: File) => 더하기(s, file),
                 on빼기: 빼기,
               }
