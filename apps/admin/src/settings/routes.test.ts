@@ -101,9 +101,38 @@ describe.skipIf(연결 === undefined)('설정 API', () => {
 
   it('만든 사람을 모르는 요청은 프로젝트를 아무에게도 배정하지 않는다', async () => {
     const { pool } = await import('../db/index.js');
-    const 번호 = await 프로젝트만들기('XFS4 익명 프로젝트');
-    const 줄 = await pool.query('SELECT 1 FROM user_project WHERE project_id = $1', [번호]);
-    expect(줄.rowCount).toBe(0);
+    const 옛이름 = process.env.AUTHORING_AGENT_USER;
+    delete process.env.AUTHORING_AGENT_USER;
+    try {
+      const 번호 = await 프로젝트만들기('XFS4 익명 프로젝트');
+      const 줄 = await pool.query('SELECT 1 FROM user_project WHERE project_id = $1', [번호]);
+      expect(줄.rowCount).toBe(0);
+    } finally {
+      if (옛이름 !== undefined) process.env.AUTHORING_AGENT_USER = 옛이름;
+    }
+  });
+
+  it('프로젝트를 만들면 작성 에이전트 계정도 세 칸 쓰기로 배정된다 — 없는 계정 이름이면 만든 사람만', async () => {
+    const { pool } = await import('../db/index.js');
+    await pool.query(
+      `INSERT INTO app_user (username, display_name, password_hash, role, perm_dashboard, is_approved, must_change_password)
+            VALUES ('xfu4agent', '작성', 'x', 'member', 'none', true, false), ('xfu4maker2', '만든이', 'x', 'admin', 'read', true, false)`,
+    );
+    const 옛이름 = process.env.AUTHORING_AGENT_USER;
+    try {
+      process.env.AUTHORING_AGENT_USER = 'xfu4agent';
+      const 번호 = await 프로젝트만들기('XFS4 에이전트 프로젝트', 'xfu4maker2');
+      const 세칸 = [{ perm_cases: 'write', perm_runs: 'write', perm_authoring: 'write' }];
+      expect(await 배정줄(번호, 'xfu4agent')).toEqual(세칸);
+      expect(await 배정줄(번호, 'xfu4maker2')).toEqual(세칸);
+
+      process.env.AUTHORING_AGENT_USER = 'xfu4없는계정';
+      const 둘째 = await 프로젝트만들기('XFS4 에이전트 없는 프로젝트', 'xfu4maker2');
+      expect((await pool.query('SELECT username FROM user_project WHERE project_id = $1', [둘째])).rows).toEqual([{ username: 'xfu4maker2' }]);
+    } finally {
+      if (옛이름 === undefined) delete process.env.AUTHORING_AGENT_USER;
+      else process.env.AUTHORING_AGENT_USER = 옛이름;
+    }
   });
 
   it('애플리케이션을 만든다고 만든 계정에게 권한을 더하지 않는다 — 프로젝트 권한자에게만 열린다', async () => {
