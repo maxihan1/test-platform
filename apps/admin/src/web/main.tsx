@@ -49,7 +49,7 @@ import { ScenarioRunList } from './ScenarioRunList.js';
 import { Settings } from './Settings.js';
 import { Shell } from './Shell.js';
 import { Signup } from './Signup.js';
-import { useSSO } from './useSSO.js';
+import { useSSO, 막로그인표시를뗀다 } from './useSSO.js';
 import { 칩움직임을건다 } from './motion.js';
 import { Loading } from './ui.js';
 import './styles.css';
@@ -241,9 +241,7 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
   };
 
   useEffect(() => {
-    // maxihan 계정 왕복이 막 끝났으면 서버(auth/sso.ts)가 /?sso=ok 로 보낸다. 새로고침과 가르려고 표시를 읽고 바로 지운다
-    const 막로그인 = new URLSearchParams(window.location.search).get('sso') === 'ok';
-    if (막로그인) window.history.replaceState(null, '', window.location.pathname + window.location.hash);
+    const 막로그인 = 막로그인표시를뗀다();
     api
       .me()
       .then(({ user }) => (막로그인 ? 들어왔다(user) : set상태({ 어디: '안', user })))
