@@ -97,13 +97,15 @@ export async function 앱화면을읽는다(req: 앱화면요청, env: NodeJS.Pr
 
 /**
  * 앱을 한 번 띄워 `읽기` 로 읽고 닫는다 — 앱 화면 · 게임 화면(gameScreen.ts)이 같이 쓴다. 읽는 동안은 이 러너의 다른 화면 읽기를 막는다.
- * `더할설정` 은 케이스 연결 설정을 고르는 환경값이다(게임은 PLATFORM_ENGINE) — 설정 자체는 케이스와 같은 appCapabilities 로 만든다
+ * `더할설정` 은 케이스 연결 설정을 고르는 환경값이다(게임은 PLATFORM_ENGINE) — 설정 자체는 케이스와 같은 appCapabilities 로 만든다.
+ * `덮을설정` 은 그 위에 덮는 칸이다(게임 화면 읽기의 noReset — gameScreen.ts)
  */
 export async function 앱을켜서읽는다(
   req: 앱화면요청,
   env: NodeJS.ProcessEnv,
   더할설정: Record<string, string>,
   읽기: (연결: { base: string; headers: Record<string, string>; 연결번호: string }) => Promise<string>,
+  덮을설정: Record<string, string | boolean | number> = {},
 ): Promise<string> {
   const raw = env.PLATFORM_APPIUM_URL;
   if (raw === undefined || raw === '') throw new Error('Android 앱 화면을 읽으려면 PLATFORM_APPIUM_URL 이 필요하다');
@@ -117,7 +119,7 @@ export async function 앱을켜서읽는다(
   let 연결번호: string | undefined;
   try {
     // 케이스가 연결을 여는 것과 같은 설정이다 — 손으로 베끼면 한쪽만 바뀐다
-    const alwaysMatch = appCapabilities({ ...더할설정, PLATFORM_APP: app, PLATFORM_DEVICE_UDID: udid });
+    const alwaysMatch = { ...appCapabilities({ ...더할설정, PLATFORM_APP: app, PLATFORM_DEVICE_UDID: udid }), ...덮을설정 };
     const 열림 = (await 부른다(
       `${base}/session`,
       { method: 'POST', headers: json, body: JSON.stringify({ capabilities: { alwaysMatch } }) },
