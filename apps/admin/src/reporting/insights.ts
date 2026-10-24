@@ -194,7 +194,7 @@ async function 유형으로묶는다(pool: Pool, runId: number): Promise<비교[
   });
 }
 
-/** 같은 서비스·같은 대상 서버의 바로 앞 실행을 찾아 케이스마다 무엇이 달라졌는지 낸다 */
+/** 같은 서비스·같은 대상 서버·같은 종류의 바로 앞 실행(스모크 아닌 실행은 스모크를 건너뛴다)을 찾아 케이스마다 무엇이 달라졌는지 낸다 */
 export async function compareWithPrevious(runId: number): Promise<비교> {
   const pool = await db();
 
