@@ -300,4 +300,17 @@ describe('받아 오기', () => {
     expect(부름.mock.calls.length).toBe(처음);
     expect(screen.getByText(/E2E RUN 7 실행 중/)).toBeTruthy();
   });
+
+  it('작성 요청을 폐기하면 20초를 기다리지 않고 바로 다시 물어 그 끝난 줄을 지운다', async () => {
+    const 부름 = 띄운다({ running: [], recent: [끝난작성(14671)] });
+    expect(await screen.findByText(/#14671 작성 요청이 끝났습니다/)).toBeTruthy();
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+    부름.mockResolvedValue({ running: [], recent: [] });
+
+    await act(async () => {
+      await api.discardAuthoring('PAY', 14671);
+    });
+
+    expect(screen.queryByText(/#14671 작성 요청이 끝났습니다/)).toBeNull();
+  });
 });

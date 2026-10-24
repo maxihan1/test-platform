@@ -183,6 +183,9 @@ export interface RunCounts {
  * 알림 통로 `GET /api/notifications` (SPEC 공통/5-화면공통 §8 「알림」). 볼 수 있는 서비스 전체에서 도는 것과 최근 7일 끝난 것을 준다.
  * 읽음은 서버가 모른다 — 이 브라우저가 들고 있다 (`noticeRead.ts`)
  */
+/** 알림 목록이 바뀌었으니 다음 주기를 기다리지 말고 다시 물으라는 신호. 알림 줄(Notice.tsx)이 받는다 */
+export const 알림바뀜 = 'notice-changed';
+
 export interface NoticeService {
   serviceId: number;
   prefix: string;
@@ -1220,8 +1223,12 @@ export const api = {
       method: 'POST',
     }),
 
+  // 폐기한 요청은 서버 알림 목록에서 빠진다. 알림 줄은 20초마다 물어 그동안 「끝났습니다」가 남았다 — 바로 다시 묻게 알린다 (GAME-F2-17)
   discardAuthoring: (service: string, id: number) =>
-    call<{ ok: true }>(`/authoring/requests/${id}/discard?service=${encodeURIComponent(service)}`, { method: 'POST' }),
+    call<{ ok: true }>(`/authoring/requests/${id}/discard?service=${encodeURIComponent(service)}`, { method: 'POST' }).then((답) => {
+      window.dispatchEvent(new Event(알림바뀜));
+      return 답;
+    }),
 
   authoringAssetUrl: (id: number, assetId: number) => `/api/authoring/requests/${id}/assets/${assetId}`,
 

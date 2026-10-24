@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { api, ApiError, type NoticeResponse } from './api.js';
+import { api, ApiError, 알림바뀜, type NoticeResponse } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { 아이콘 } from './icons.js';
 import { NoticeDrawer } from './NoticeDrawer.js';
@@ -36,9 +36,11 @@ function use알림받기(): { 답: NoticeResponse | null; 막힘: boolean } {
     };
     묻는다();
     const timer = setInterval(묻는다, 도는중 ? 3000 : 20000);
+    window.addEventListener(알림바뀜, 묻는다);
     return () => {
       끝 = true;
       clearInterval(timer);
+      window.removeEventListener(알림바뀜, 묻는다);
     };
   }, [도는중, 막힘]);
 
