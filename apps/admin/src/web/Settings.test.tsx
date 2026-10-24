@@ -266,4 +266,25 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     expect(screen.queryByLabelText('Slack 웹훅')).toBeNull();
   });
 
+  it('비활성화해도 저장 안 한 이름 · Slack 웹훅이 칸에 남고 「저장했습니다」를 띄우지 않는다', async () => {
+    const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
+    const 목록 = vi.spyOn(api, 'settingsServices').mockResolvedValue({ items: [서비스] });
+    vi.spyOn(api, 'settingsUsers').mockResolvedValue({ items: [계정] });
+    render(<Settings user={사람('admin')} onMeChanged={() => undefined} 자리="ZST" />);
+    await screen.findByRole('heading', { name: /ZST 애플리케이션/ });
+
+    fireEvent.change(screen.getByLabelText('이름'), { target: { value: '고치던 이름' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Slack 웹훅 추가' }));
+    fireEvent.change(screen.getByLabelText('Slack 웹훅'), { target: { value: 'https://hooks.slack.com/x' } });
+    목록.mockResolvedValue({ items: [{ ...서비스, isActive: false }] });
+    fireEvent.click(screen.getByRole('button', { name: '비활성화' }));
+    fireEvent.click(screen.getByRole('button', { name: '비활성화한다' }));
+
+    expect(await screen.findByRole('button', { name: '다시 활성화' })).toBeTruthy();
+    expect(고침).toHaveBeenCalledWith(1, { isActive: false });
+    expect((screen.getByLabelText('이름') as HTMLInputElement).value).toBe('고치던 이름');
+    expect((screen.getByLabelText('Slack 웹훅') as HTMLInputElement).value).toBe('https://hooks.slack.com/x');
+    expect(screen.queryByText('저장했습니다')).toBeNull();
+  });
+
 });
