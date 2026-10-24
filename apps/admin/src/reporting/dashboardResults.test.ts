@@ -244,6 +244,7 @@ describe.skipIf(연결 === undefined)('대시보드 질의', () => {
       expect(결과.byService).toHaveLength(1);
       const 칸 = 결과.byService[0]!;
       expect(칸.current).toEqual({ pass: 4, fail: 7, notRun: 1 });
+      expect(칸.currentUi).toEqual({ pass: 4, fail: 7, notRun: 1 });
       expect(칸.lastRun).toMatchObject({ runId: 실행번호['XDQ R5'], pass: 0, fail: 2, notRun: 0 });
       expect(칸.flow).toEqual(['F', 'P', 'F', 'F', 'F']);
       expect(칸.newFailureCount).toBe(2);

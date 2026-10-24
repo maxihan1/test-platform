@@ -7,7 +7,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import type { 대시보드응답 } from '../reporting/dashboardResults.js';
 import { api } from './api.js';
 import { Dashboard } from './Dashboard.js';
-import { 실행목록주소, 조건을주소로, 주소에서조건 } from './DashboardPick.js';
+import { 실행목록주소, 실행종류, 조건을주소로, 주소에서조건 } from './DashboardPick.js';
 
 const 시간대 = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const 건 = (pass: number, fail: number, notRun: number) => ({ pass, fail, notRun });
@@ -37,13 +37,14 @@ function 응답(고침: Partial<대시보드응답> = {}, 일 = 14): 대시보�
       { id: 2, name: 'ZDA 회원' },
     ],
     passRate: { current: 건(90, 8, 2), previous: 건(0, 0, 0) },
-    daily: [{ day: '2026-10-07', ...건(9, 1, 0) }],
+    daily: [{ day: '2026-10-07', ...건(9, 1, 0), ui: 건(0, 0, 0) }],
     newFailures: [신규(7, 'ZDA-001', 1, 'FN'), 신규(6, 'ZDA-UI-014', 2, 'UI')],
     byService: [
       {
         serviceId: 1,
         serviceName: 'ZDA 결제',
         current: 건(40, 5, 0),
+        currentUi: 건(0, 0, 0),
         previous: 건(0, 0, 0),
         lastRun: { runId: 7, finishedAt: '2026-10-07T05:10:00.000Z', ...건(8, 2, 0) },
         flow: ['P', 'F'],
@@ -268,6 +269,40 @@ describe('칸에서 내려가기', () => {
     expect(링크.getAttribute('href')).toBe('#/cases/fn?q=ZDA-001&case=ZDA-001');
     fireEvent.click(링크);
     expect(서비스열기).toHaveBeenCalledWith(1);
+  });
+
+  it('UI 테스트만 실패한 날 · 창이면 실패한 실행 고리가 UI 테스트 실행 기록으로 간다 — 늘 기능 목록이라 빈 목록이 열렸다', async () => {
+    const UI만 = { pass: 0, fail: 1, notRun: 0 };
+    vi.spyOn(api, 'dashboard').mockResolvedValue(
+      응답({
+        passRate: { current: 건(9, 1, 0), previous: 건(0, 0, 0) },
+        daily: [{ day: '2026-10-07', ...건(9, 1, 0), ui: UI만 }],
+      }) as never,
+    );
+    const { container } = render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
+    await screen.findByText('일별 테스트 결과');
+    expect(container.querySelector('.dash-daily svg a')!.getAttribute('href')).toBe('#/runs/ui?state=failed&days=14');
+    const 신규 = (await screen.findByText('신규 실패')).closest('section')!;
+    expect(within(신규).getByRole('link', { name: '실행 기록에서 보기' }).getAttribute('href')).toBe('#/runs/ui?state=failed&days=14');
+    const 유형 = (await screen.findByText('실패 유형')).closest('section')!;
+    expect(within(유형).getByRole('link', { name: '기대 결과 불일치' }).getAttribute('href')).toBe('#/runs/ui?state=failed&days=14');
+  });
+
+  it('UI 테스트만 돌린 애플리케이션이면 애플리케이션 이름이 UI 테스트 실행 기록으로 간다', async () => {
+    vi.spyOn(api, 'dashboard').mockResolvedValue(
+      응답({ byService: 응답().byService.map((서비스) => ({ ...서비스, currentUi: 서비스.current })) }) as never,
+    );
+    render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
+    const 칸 = (await screen.findByText('애플리케이션별 품질')).closest('section')!;
+    expect(within(칸).getByRole('link', { name: 'ZDA 결제' }).getAttribute('href')).toBe('#/runs/ui?days=14');
+  });
+
+  it('기능 쪽에 보낼 것이 있으면 UI 몫이 있어도 기능 테스트 실행 기록으로 간다', () => {
+    expect(실행종류(건(3, 2, 0), 건(1, 1, 0), true)).toBe('FN');
+    expect(실행종류(건(3, 2, 0), 건(0, 2, 0), true)).toBe('UI');
+    expect(실행종류(건(3, 0, 0), 건(3, 0, 0), false)).toBe('UI');
+    expect(실행종류(건(0, 0, 0), 건(0, 0, 0), false)).toBe('FN');
+    expect(실행목록주소(14, { state: 'failed' }, 'UI')).toBe('#/runs/ui?state=failed&days=14');
   });
 
   it('실행 목록 주소는 창 길이를 그대로 싣는다', () => {

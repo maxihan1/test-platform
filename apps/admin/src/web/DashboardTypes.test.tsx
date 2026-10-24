@@ -13,6 +13,8 @@ function 칸을그린다(나눔: Partial<Record<유형, [number, number]>>, stop
   const 차례 = ['mismatch', 'notFound', 'timeout', 'environment', 'other'] as const;
   const 값 = {
     window: { tz: 'UTC', today: '2026-10-12', days: 14, from: '2026-09-29', previousFrom: '2026-09-15' },
+    passRate: { current: { pass: 0, fail: 10, notRun: 0 }, previous: { pass: 0, fail: 0, notRun: 0 } },
+    daily: [],
     failureTypes: { types: 차례.map((type) => ({ type, fail: 나눔[type]?.[0] ?? 0, notRun: 나눔[type]?.[1] ?? 0 })), stopped },
   } as 대시보드응답;
   render(<실패유형칸 값={값} />);

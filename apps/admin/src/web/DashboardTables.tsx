@@ -4,7 +4,7 @@ import type { 대시보드응답 } from '../reporting/dashboardResults.js';
 
 import { 흐름글자, 짧은시각, 증감, 통과율 } from './dashboardView.js';
 import { use말, use언어 } from './i18n.js';
-import { 서비스를열며, 실행목록주소 } from './DashboardPick.js';
+import { 서비스를열며, 실행목록주소, 실행종류 } from './DashboardPick.js';
 import { 아이콘 } from './icons.js';
 
 type 자료 = 대시보드응답;
@@ -68,7 +68,7 @@ export function 서비스별표({ 값, 서비스열기 }: { 값: 자료; 서비�
                     <span className="dash-name">
                       <i role="img" className={`dash-dot ${점}`} aria-label={점글} />
                       {/* 그 서비스의 실행 기록으로 간다. 목록은 고른 서비스 것만 보여 가기 전에 고른 서비스를 맞춘다 */}
-                      <a className="dash-link" href={실행목록주소(값.window.days)} {...서비스를열며(서비스열기, 서비스.serviceId)}>
+                      <a className="dash-link" href={실행목록주소(값.window.days, {}, 실행종류(서비스.current, 서비스.currentUi, false))} {...서비스를열며(서비스열기, 서비스.serviceId)}>
                         {서비스.serviceName}
                       </a>
                     </span>
