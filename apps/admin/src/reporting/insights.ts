@@ -4,7 +4,7 @@
 import type { Pool } from 'pg';
 import { 종류조건 } from '../execution/runKind.js';
 import { 가린다, 항목비밀 } from '../execution/trial.js';
-import { 판정접기식 } from './dashboardSql.js';
+import { 스모크끼리식, 판정접기식 } from './dashboardSql.js';
 import { 원인을가른다, 실패유형들, 색코드, 한줄로자른다, type 실패유형 } from './failureType.js';
 
 export type 변화 = '새로깨짐' | '계속깨짐' | '고쳐짐' | '그대로';
@@ -199,8 +199,8 @@ export async function compareWithPrevious(runId: number): Promise<비교> {
   const pool = await db();
 
   // 시나리오 실행은 run_item 이 없어 케이스 모양이 비어 나온다. 번호가 맞아도 없는 실행으로 본다 (도메인/시나리오 §3.7 결정 10)
-  const 이번 = await pool.query<{ service_id: string | null; env: string; base_url: string; started_at: Date; kind: string }>(
-    `SELECT service_id, env, base_url, started_at, kind FROM test_run WHERE run_id = $1 AND ${종류조건('case', '')}`,
+  const 이번 = await pool.query<{ base_url: string }>(
+    `SELECT base_url FROM test_run WHERE run_id = $1 AND ${종류조건('case', '')}`,
     [runId],
   );
   const 현재 = 이번.rows[0];
@@ -218,12 +218,13 @@ export async function compareWithPrevious(runId: number): Promise<비교> {
   //
   // 시나리오 실행은 run_item 이 없어 고르면 모든 케이스가 「빠졌다」로 뜬다 (도메인/시나리오 §3.7 결정 10)
   const 앞 = await pool.query<{ run_id: string; started_at: Date; base_url: string }>(
-    `SELECT run_id, started_at, base_url FROM test_run
-     WHERE service_id = $1 AND env = $2 AND started_at < $3 AND status <> 'RUNNING' AND kind = $4
-     ORDER BY started_at DESC
+    `SELECT p.run_id, p.started_at, p.base_url FROM test_run p JOIN test_run c ON c.run_id = $1
+     WHERE p.service_id = c.service_id AND p.env = c.env AND p.started_at < c.started_at AND p.status <> 'RUNNING'
+       AND p.kind = c.kind AND ${스모크끼리식('p', 'c')}
+     ORDER BY p.started_at DESC
      LIMIT 1`,
     // 같은 종류끼리만 견준다 — UI 실행 앞에 기능 실행을 두면 모든 케이스가 「빠졌다」로 뜬다 (PR #131)
-    [현재.service_id, 현재.env, 현재.started_at, 현재.kind],
+    [runId],
   );
   const 직전 = 앞.rows[0];
   if (직전 === undefined) {
