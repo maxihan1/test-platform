@@ -5,8 +5,8 @@ import { use말 } from './i18n.js';
 import type { 기능, 등급, 칸 } from './role.js';
 import { 계정요약, 권한경고, 기능순서, type 프로젝트줄 } from './settingsView.js';
 
-// 값이 곧 번역 키다. `실행` 은 다른 화면에서 버튼(Run)이라 꼬리를 달아 따로 옮긴다
-const 기능이름: Record<기능, string> = { cases: '케이스', runs: '실행§권한', authoring: '작성' };
+// 값이 곧 번역 키다. `실행` · `케이스` · `실행자` 는 다른 화면에서 영어가 달라(Run · Case · Run by) 꼬리를 달아 따로 옮긴다
+const 기능이름: Record<기능, string> = { cases: '케이스§권한', runs: '실행§권한', authoring: '작성' };
 const 칸이름: Record<칸, string> = { none: '안 씀', read: '읽기', write: '쓰기' };
 // 켜자마자 쓰기를 주면 사람이 모르고 넘긴다. 처음은 읽기다 (§8.8)
 const 처음칸 = { cases: 'read', runs: 'read', authoring: 'read' } as const;
@@ -14,7 +14,7 @@ const 처음칸 = { cases: 'read', runs: 'read', authoring: 'read' } as const;
 const 권한묶음: { 이름: string; 칸들: Record<기능, 칸> }[] = [
   { 이름: '읽기 전용', 칸들: { cases: 'read', runs: 'read', authoring: 'read' } },
   { 이름: '작성자', 칸들: { cases: 'read', runs: 'read', authoring: 'write' } },
-  { 이름: '실행자', 칸들: { cases: 'read', runs: 'write', authoring: 'read' } },
+  { 이름: '실행자§권한', 칸들: { cases: 'read', runs: 'write', authoring: 'read' } },
 ];
 
 function 칸고르개<T extends 칸>({ 이름, 값, 값들, on }: { 이름: string; 값: T; 값들: T[]; on: (v: T) => void }) {

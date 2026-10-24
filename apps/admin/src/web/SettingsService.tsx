@@ -161,7 +161,7 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
         </div>
       </구획>
 
-      <구획 제목={t('대상 서버')} 쓰임={t('테스트를 실행할 서버 목록입니다. 하나 이상 등록해야 실행할 수 있습니다')}>
+      <구획 제목={t('대상 서버§목록')} 쓰임={t('테스트를 실행할 서버 목록입니다. 하나 이상 등록해야 실행할 수 있습니다')}>
         <EnvEditor envs={envs} onChange={setEnvs} 접두사={row.prefix} api={API종류} 게임={게임종류} />
       </구획>
 

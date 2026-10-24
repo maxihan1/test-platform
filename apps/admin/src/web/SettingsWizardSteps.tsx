@@ -41,7 +41,7 @@ export const 단계이름: Record<단계, string> = {
   project: '프로젝트',
   kind: '종류',
   basic: '이름 · 번호',
-  envs: '대상 서버',
+  envs: '대상 서버§목록',
   apidoc: 'API 문서',
   extra: '알림 · 작성 도구',
   confirm: '확인',

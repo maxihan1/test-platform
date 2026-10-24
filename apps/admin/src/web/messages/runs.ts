@@ -288,7 +288,7 @@ export const 실행말: Record<string, string> = {
   '디버그': 'Debug',
   '잡히지 않은 오류': 'Uncaught error',
   '기록 파일을 읽지 못했습니다 — 관리자에게 알려 주세요': 'Could not read the trace file — tell your administrator',
-  '기록 없음': 'No trace',
+  '기록 없음§실패 기록': 'No trace',
   '이 쪽에 {보인}건 · 이 유형 전체 {전체}건 — 나머지는 다른 쪽에 있습니다': '{보인} on this page · {전체} of this type in total — the rest are on other pages',
   '화면이 맞다고 판정할까요?': 'Mark the screen as correct?',
   '버그로 판정할까요?': 'Mark as a bug?',

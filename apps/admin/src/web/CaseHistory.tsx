@@ -20,7 +20,7 @@ export function 실행이력칸({ 묶음 }: { 묶음: 이력묶음[] | null | un
       ) : 묶음 === null ? (
         <p className="hint">{t('이력을 불러오지 못했습니다')}</p>
       ) : 묶음.length === 0 ? (
-        <p className="hint">{t('아직 기록이 없습니다')}</p>
+        <p className="hint">{t('아직 기록이 없습니다§이력')}</p>
       ) : (
         <table className="dhist">
           <tbody>
