@@ -163,10 +163,15 @@ function 가리킴바꿔(link: ScenarioLink, 바꿈: (n: number) => number): Sce
   return link;
 }
 
+// API 호출 단계의 값 주입도 앞 단계 번호를 가리킨다 (결정 14)
 function 다시가리킴(parts: ScenarioPart[], 바꿈: (n: number) => number): ScenarioPart[] {
-  return parts.map((p) =>
-    p.kind === 'case' && p.links !== undefined ? { ...p, links: p.links.map((l) => 가리킴바꿔(l, 바꿈)) } : p,
-  );
+  return parts.map((p) => {
+    if (p.kind === 'case' && p.links !== undefined) return { ...p, links: p.links.map((l) => 가리킴바꿔(l, 바꿈)) };
+    if (p.kind === 'api' && p.values !== undefined) {
+      return { ...p, values: p.values.map((v) => ({ ...v, value: { ...v.value, fromSeq: 바꿈(v.value.fromSeq) } })) };
+    }
+    return p;
+  });
 }
 
 export function 순서바꾸기(parts: ScenarioPart[], from: number, to: number): ScenarioPart[] {
@@ -185,18 +190,25 @@ export function 빼기(parts: ScenarioPart[], seq: number): ScenarioPart[] {
   return 다시가리킴(남음, (n) => (n === seq ? 0 : n > seq ? n - 1 : n));
 }
 
+/** 0 · 자기 이상 · 못 가리키는 종류를 가리키는 단계 번호. 값 연결은 앞 case 만, API 값 주입은 앞 api 도 된다 (서버 scenario/validate.ts 와 같다) */
 export function 가리킴빈곳(parts: ScenarioPart[]): number[] {
   const 빈곳: number[] = [];
   parts.forEach((p, i) => {
-    if (p.kind !== 'case' || p.links === undefined) return;
     const 자기 = i + 1;
+    const 나쁜번호 = (n: number, api도: boolean) => {
+      const 앞 = parts[n - 1]?.kind;
+      return n < 1 || n >= 자기 || !(앞 === 'case' || (api도 && 앞 === 'api'));
+    };
     let 나쁨 = false;
-    for (const l of p.links) {
-      가리킴바꿔(l, (n) => {
-        if (n < 1 || n >= 자기 || parts[n - 1]?.kind !== 'case') 나쁨 = true;
-        return n;
-      });
+    if (p.kind === 'case') {
+      for (const l of p.links ?? []) {
+        가리킴바꿔(l, (n) => {
+          if (나쁜번호(n, false)) 나쁨 = true;
+          return n;
+        });
+      }
     }
+    if (p.kind === 'api') 나쁨 = (p.values ?? []).some((v) => 나쁜번호(v.value.fromSeq, true));
     if (나쁨) 빈곳.push(자기);
   });
   return 빈곳;
