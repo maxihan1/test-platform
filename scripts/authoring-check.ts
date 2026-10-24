@@ -258,8 +258,10 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     결과들.push({ 이름: '케이스와 요구 목록 맞춰 보기', ok: 어긋남.length === 0, 줄들: 어긋남, 머리: 볼 === undefined ? 못좁힘 : `이번에 바뀐 케이스 ${볼.size}건만 봤다` });
     const 묶음 = 묶은확인들(문장들, 볼);
     결과들.push({ 이름: '확인 하나에 값 하나', ok: 묶음.length === 0, 줄들: 묶음 });
-    // 게임 규칙도 이번에 바뀐 파일만 — 못 읽으면 폴더 전체(화면 객체 · 도우미의 좌표도 본다)
-    const 게임 = 게임검사(트리, 바뀐 !== null && !('까닭' in 바뀐) ? 바뀐.filter((f) => f.startsWith(`tests/${폴더}/`)) : 폴더경로들(트리, 폴더), env, 폴더);
+    // 게임 규칙도 이번에 바뀐 파일만 — 못 읽으면 폴더 전체(화면 객체 · 도우미의 좌표도 본다).
+    // 스모크 0건은 폴더를 이번 작성이 다 쓴 때만 센다 — 고친 요구만 다시 쓰는 작성에 앞 작성 케이스를 고치게 하지 않는다
+    const 처음 = 볼 === undefined || 문장들.every((c) => 볼.has(c.tcId));
+    const 게임 = 게임검사(트리, 바뀐 !== null && !('까닭' in 바뀐) ? 바뀐.filter((f) => f.startsWith(`tests/${폴더}/`)) : 폴더경로들(트리, 폴더), env, 처음 ? 폴더 : undefined);
     if (게임 !== null) 결과들.push(게임);
     const 가이드 = join('docs', 'cases', `${접두사}.guide.md`);
     결과들.push(비밀검사([`tests/${폴더}`, 표, ...(existsSync(join(트리, 가이드)) ? [가이드] : []), ...더]));

@@ -130,12 +130,14 @@ export function 게임형식(파일들: readonly { 경로: string; 글: string }
 export function 스모크틀림(폴더: string, 글들: readonly string[]): { 수: number; 틀림: string[] } {
   const 수 = 글들.filter((글) => {
     const 명세 = 글.includes('smoke') ? 명세글(읽기(글)) : undefined;
-    return 명세 !== undefined && 속성(명세, 'smoke')?.initializer.kind === ts.SyntaxKind.TrueKeyword;
+    let 값 = 명세 === undefined ? undefined : 속성(명세, 'smoke')?.initializer;
+    while (값 !== undefined && (ts.isAsExpression(값) || ts.isSatisfiesExpression(값) || ts.isParenthesizedExpression(값))) 값 = 값.expression;
+    return 값?.kind === ts.SyntaxKind.TrueKeyword;
   }).length;
   return { 수, 틀림: 수 > 0 ? [] : [`tests/${폴더} — 스모크 케이스(smoke: true)가 0건이다. 다 합친 뒤 핵심 경로(로그인 → 캐릭터 → 월드 입장 → 사냥 → 상점)를 게임 화면으로 지나는 정상 기능 케이스 5~10건에 단다(tpx-cases game.md §5)`] };
 }
 
-/** 빠른 검사가 부른다 — 게임 작성이 아니고 걸린 것도 없으면 null(웹 · 앱 작성의 출력은 그대로). 폴더를 주면(`마지막`) 스모크도 폴더 전체로 센다 */
+/** 빠른 검사가 부른다 — 게임 작성이 아니고 걸린 것도 없으면 null(웹 · 앱 작성의 출력은 그대로). 폴더를 주면(`마지막` · 이번 작성이 폴더를 다 썼을 때) 스모크도 폴더 전체로 센다 */
 export function 게임검사(트리: string, 경로들: readonly string[], env: NodeJS.ProcessEnv, 폴더?: string): { 이름: string; ok: boolean; 줄들: string[]; 머리?: string } | null {
   const 자료 = env[게임자료환경];
   const 읽음 = (p: string) => (existsSync(p) ? readFileSync(p, 'utf8') : null);
