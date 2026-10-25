@@ -23,11 +23,14 @@ function use알림받기(): { 답: NoticeResponse | null; 막힘: boolean } {
   useEffect(() => {
     if (막힘) return;
     let 끝 = false;
+    // 폐기 신호로 다시 물으면 앞서 나간 주기 요청과 겹친다 — 늦게 온 옛 답이 지운 줄을 되살리지 않게 마지막 요청의 답만 받는다
+    let 차례 = 0;
     const 묻는다 = () => {
+      const 내차례 = ++차례;
       void api
         .notifications()
         .then((온것) => {
-          if (!끝) set답(온것);
+          if (!끝 && 내차례 === 차례) set답(온것);
         })
         .catch((err: unknown) => {
           if (!끝 && err instanceof ApiError && err.status === 403) set막힘(true);

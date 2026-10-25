@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react';
 
-import { api, type EnvRow, type RunQuery } from './api.js';
+import { api, type EnvRow, type RunListRow, type RunQuery } from './api.js';
 import { Head } from './Head.js';
 import { use말 } from './i18n.js';
 import { use주소조건, 주소조건 } from './leaveGuard.js';
@@ -79,14 +79,29 @@ export function RunList({ service, envs, 판정하기, kind }: { service: string
   };
   const runs = useAsync(() => api.runs(service, page, 조건), [service, page, q, state, env, origin, days]);
   // 목록은 한 번 받고 말아 결과 칸만 따라갔다 — 실행이 끝나도 카드가 「진행 중」에 멈췄다 (GAME-F2-17).
-  // 도는 실행이 보이는 동안만 다시 받는다. 3초는 알림 줄이 도는 것을 묻는 주기와 같다
-  const 도는것있나 = runs.data?.items.some((run) => 도는중(run.status)) === true;
-  const 다시받기 = runs.reload;
+  // 도는 실행이 보이는 동안 3초마다(알림 줄과 같은 주기) 다시 받아 **보이는 줄의 숫자 · 상태만** 덮는다. 목록을 통째로 바꾸면
+  // 고르지 않았을 때의 결과 칸(맨 위 줄)이 새 실행이 위에 서거나 끝난 실행이 거르개 밖으로 나갈 때 말없이 바뀐다.
+  // 덮은 것은 그때 받은 목록(바탕)에만 붙인다 — 거르개 · 쪽을 바꿔 목록을 새로 받으면 버린다. 다시 받기가 실패해도 마지막 것을 둔다
+  const [덮개, set덮개] = useState<{ 바탕: unknown; 줄: ReadonlyMap<number, RunListRow> } | null>(null);
+  const 줄들 = (runs.data?.items ?? []).map((run) => (덮개?.바탕 === runs.data ? 덮개.줄.get(run.runId) : undefined) ?? run);
+  const 도는것있나 = 줄들.some((run) => 도는중(run.status));
   useEffect(() => {
     if (!도는것있나) return;
-    const timer = setInterval(() => void 다시받기(), 3000);
-    return () => clearInterval(timer);
-  }, [도는것있나, 다시받기]);
+    const 바탕 = runs.data;
+    let 끝 = false;
+    const timer = setInterval(() => {
+      api.runs(service, page, 조건).then(
+        (답) => {
+          if (!끝) set덮개({ 바탕, 줄: new Map(답.items.map((run) => [run.runId, run])) });
+        },
+        () => undefined,
+      );
+    }, 3000);
+    return () => {
+      끝 = true;
+      clearInterval(timer);
+    };
+  }, [도는것있나, runs.data]);
 
   if (runs.error !== null) return <Failed error={runs.error} />;
   if (runs.data === null) return <Loading />;
@@ -94,9 +109,9 @@ export function RunList({ service, envs, 판정하기, kind }: { service: string
   // 총건수로 페이지 수를 계산하지 않는다 (SPEC §8.7 — §8.1 과 같은 함정이다)
   const 더있나 = 다음이있나(runs.data);
   const 건조건 = q !== '' || state !== undefined || env !== '' || origin !== undefined || days !== undefined;
-  const 보는실행 = 고른 ?? runs.data.items[0]?.runId ?? null;
+  const 보는실행 = 고른 ?? 줄들[0]?.runId ?? null;
   // 거르개를 바꿔도 고른 실행은 그대로 둔다 — 대신 목록에 없는 까닭을 한 줄 적는다
-  const 조건밖 = 고른 !== null && 건조건 && !runs.data.items.some((run) => run.runId === 고른);
+  const 조건밖 = 고른 !== null && 건조건 && !줄들.some((run) => run.runId === 고른);
 
   // 거르개를 바꾸면 첫 쪽으로 간다
   function 거르기(바꾸기: () => void) {
@@ -186,7 +201,7 @@ export function RunList({ service, envs, 판정하기, kind }: { service: string
           {조건밖 ? <p className="runs-out">{t('고른 실행은 지금 조건 밖입니다')}</p> : null}
 
           <div className="rows-scroll">
-            {runs.data.items.length === 0 ? (
+            {줄들.length === 0 ? (
               <div className="empty">
                 {/* 서비스를 바꿔 들어온 사람과 검색한 사람에게 같은 문장을 쓰면 한쪽에게는 거짓이다 (SPEC §8.7) */}
                 {건조건 ? t('조건에 맞는 실행이 없습니다') : t('이 애플리케이션에서 아직 실행한 기록이 없습니다')}
@@ -209,7 +224,7 @@ export function RunList({ service, envs, 판정하기, kind }: { service: string
                   <span role="columnheader">{t('실행')}</span>
                   <span role="columnheader">{t('판정')}</span>
                 </div>
-                {runs.data.items.map((run) => (
+                {줄들.map((run) => (
                   <실행줄 key={run.runId} run={run} 고름={run.runId === 보는실행} on고르기={set고른} />
                 ))}
               </>

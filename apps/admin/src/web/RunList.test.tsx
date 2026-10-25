@@ -28,6 +28,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  vi.useRealTimers();
 });
 
 function 실행(runId: number, fail: number, 덮어쓸: Partial<RunListRow> = {}): RunListRow {
@@ -233,7 +234,25 @@ describe('RunList 지킬 것', () => {
       vi.advanceTimersByTime(10_000);
     });
     expect(스파이.mock.calls.length).toBe(끝난뒤);
-    vi.useRealTimers();
+  });
+
+  it('다시 받기는 보이는 줄만 덮는다 — 실패해도 목록이 오류 화면으로 안 바뀌고, 위에 새 실행이 서도 줄과 결과 칸이 그대로다', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const 도는 = 실행(20925, 0, { status: 'RUNNING', finishedAt: null });
+    const { container, 스파이 } = await 그리기({ ...한쪽, items: [도는] });
+    await screen.findByText('ZRL 실행 20925');
+    스파이.mockRejectedValue(new Error('502'));
+    await act(async () => {
+      vi.advanceTimersByTime(3100);
+    });
+    expect(줄(container).map((el) => el.textContent?.includes('ZRL 실행 20925'))).toEqual([true]);
+
+    스파이.mockResolvedValue({ ...한쪽, items: [실행(20929, 0, { status: 'RUNNING', finishedAt: null }), 도는] });
+    await act(async () => {
+      vi.advanceTimersByTime(3100);
+    });
+    expect(줄(container)).toHaveLength(1);
+    expect(screen.queryByText('ZRL 실행 20929')).toBeNull();
   });
 });
 

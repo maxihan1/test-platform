@@ -4,7 +4,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 
-import { api, ApiError, type NoticeResponse } from './api.js';
+import { api, ApiError, 알림바뀜, type NoticeResponse } from './api.js';
 import { 언어함 } from './i18n.js';
 import { Notice } from './Notice.js';
 import { 끝난실행, 끝난작성, 도는E2E, 도는실행, 도는작성, 전에 } from './notice.fixture.js';
@@ -311,6 +311,28 @@ describe('받아 오기', () => {
       await api.discardAuthoring('PAY', 14671);
     });
 
+    expect(screen.queryByText(/#14671 작성 요청이 끝났습니다/)).toBeNull();
+  });
+
+  it('폐기 전에 나간 주기 요청의 답이 늦게 와도 지운 줄을 되살리지 않는다', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const 옛답 = { running: [], recent: [끝난작성(14671)] };
+    const 부름 = 띄운다(옛답);
+    expect(await screen.findByText(/#14671 작성 요청이 끝났습니다/)).toBeTruthy();
+    let 늦은답풀기: (답: NoticeResponse) => void = () => undefined;
+    부름.mockReturnValueOnce(new Promise((풀기) => { 늦은답풀기 = 풀기; }));
+    await act(async () => {
+      vi.advanceTimersByTime(20_100);
+    });
+
+    부름.mockResolvedValue({ running: [], recent: [] });
+    await act(async () => {
+      window.dispatchEvent(new Event(알림바뀜));
+    });
+    expect(screen.queryByText(/#14671 작성 요청이 끝났습니다/)).toBeNull();
+    await act(async () => {
+      늦은답풀기(옛답);
+    });
     expect(screen.queryByText(/#14671 작성 요청이 끝났습니다/)).toBeNull();
   });
 });

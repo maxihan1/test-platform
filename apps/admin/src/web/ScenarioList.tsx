@@ -21,7 +21,7 @@ export function ScenarioList({ service, envs, 할수 }: { service: string; envs:
   const t = use말();
   const 언어 = use언어();
   const 쓰나 = 할수('실행');
-  // 이 서비스에서 마지막에 고른 서버로 연다 — 기본값은 없다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
+  // 이 서비스에서 마지막에 고른 서버(하나뿐이면 그 서버)로 연다 — 기본값은 없다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
   const [env, setEnv] = useState(() => {
     return 마지막서버(service, envs);
   });
