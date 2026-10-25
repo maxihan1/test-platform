@@ -38,7 +38,7 @@ export function AuthoringNew({
   envs?: EnvRow[];
   /** 설정 메뉴를 볼 수 있는 사람(admin). 아니면 「운영자에게 요청하세요」로 안내한다 */
   운영자?: boolean;
-  /** 서비스에 피그마 토큰이 있나. 없으면 피그마 칸을 잠근다 — 보내도 서버가 거절한다. 모르면(옛 응답) 잠그지 않는다 (도메인/인증 §7) */
+  /** 서비스에 피그마 토큰이 있나. 없는데 주소를 적으면 알리고 보내기를 막는다 — 보내도 서버가 거절한다. 모르면(옛 응답) 막지 않는다 (도메인/인증 §7) */
   피그마토큰?: boolean;
   /** 「실제 화면과 대조」를 켠 채 열린다 — 「PRD 에 없는 화면」에서 넘어올 때 */
   대조처음?: boolean;
@@ -75,7 +75,7 @@ export function AuthoringNew({
   const 서버 = 후보.some((it) => it.env === 고른서버) ? 고른서버 : 기본서버;
   const 주소 = 시작주소.trim();
 
-  const 주소들 = (피그마토큰 && !api모드 ? 피그마 : '')
+  const 주소들 = (api모드 ? '' : 피그마)
     .split('\n')
     .map((줄) => 줄.trim())
     .filter((줄) => 줄 !== '');
@@ -89,8 +89,9 @@ export function AuthoringNew({
   // 화면만(대조 + 자료 0)은 기획서 없이 그 화면을 훑는다 — 시작 주소가 없어도 크롤러가 대상 서버 주소에서 시작한다 (§7 submit)
   const 빈것 = 파일들.length === 0 && 주소들.length === 0 && !대조;
   const 서버없음 = 대조 && 서버 === null;
+  const 토큰없는주소 = !피그마토큰 && 주소들.length > 0; // 칸은 잠그지 않고 적었을 때만 알린다 — 늘 뜨던 빨간 글이 피그마 없는 게임에 오류로 읽혔다 (GAME-F2-17)
   const 못보낸다 =
-    문서.대기 || 거절.size > 0 || 너무많다 || (api모드 ? 판 === null || 서버 === null : 빈것 || 서버없음);
+    문서.대기 || 거절.size > 0 || 너무많다 || 토큰없는주소 || (api모드 ? 판 === null || 서버 === null : 빈것 || 서버없음);
 
   function 사유(err: unknown): string {
     if (err instanceof ApiError && err.status === 413) return t('파일 크기가 한 파일 상한을 넘었습니다');
@@ -224,13 +225,12 @@ export function AuthoringNew({
             <textarea
               className="mono"
               placeholder={t('한 줄에 하나씩')}
-              value={피그마토큰 ? 피그마 : ''}
+              value={피그마}
               rows={3}
-              disabled={!피그마토큰}
               onChange={(e) => set피그마(e.target.value)}
             />
           </label>
-          {피그마토큰 ? null : <span className="error-text">{피그마거절말('NO_TOKEN', 운영자, t)}</span>}
+          {토큰없는주소 ? <span className="error-text">{피그마거절말('NO_TOKEN', 운영자, t)}</span> : null}
           {/* 디바이스 팜은 메뉴가 아니라 작성 · 실행이 지나가는 통로라 그 일을 하는 자리에서 보인다 (도메인/러너 §5.2 결정 4) */}
           {줄.화면읽기 === null ? null : (
             <div className="authoring-field authoring-compare">

@@ -108,6 +108,8 @@ export default async function serviceTokenRoutes(app: FastifyInstance): Promise<
         WHERE t.service_id = $1 ORDER BY t.id`,
       [id.data],
     );
+    // 화면이 CI 예시에 넣을 주소. 브라우저를 연 주소(localhost)는 CI 가 닿지 않는다 — 비었으면 화면이 그것으로 물러선다 (GAME-F2-17)
+    const 공개주소 = (process.env.PLATFORM_PUBLIC_URL ?? '').replace(/\/+$/, '');
     return {
       tokens: r.rows.map((t) => ({
         tokenId: Number(t.id),
@@ -116,6 +118,7 @@ export default async function serviceTokenRoutes(app: FastifyInstance): Promise<
         createdAt: t.created_at.toISOString(),
         lastUsedAt: t.last_used_at?.toISOString() ?? null,
       })),
+      publicUrl: 공개주소 === '' ? null : 공개주소,
     };
   });
 

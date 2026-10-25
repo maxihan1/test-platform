@@ -131,8 +131,10 @@ describe.skipIf(연결 === undefined)('빌드마다 돌리기', { timeout: 60_00
     expect(원문).toMatch(/^cit_[A-Za-z0-9_-]{43}$/);
     const 목록 = await 사람(관리자, 'GET', `/api/settings/services/${String(서비스.XBD)}/tokens`);
     expect(목록.body).not.toContain(원문);
-    const 줄 = 목록.json<{ tokens: { tokenId: number; name: string; createdBy: string; lastUsedAt: string | null }[] }>().tokens[0]!;
+    const 답 = 목록.json<{ tokens: { tokenId: number; name: string; createdBy: string; lastUsedAt: string | null }[]; publicUrl: string | null }>();
+    const 줄 = 답.tokens[0]!;
     expect(줄).toMatchObject({ name: 'XBD CI', createdBy: 'xbd-admin 이름', lastUsedAt: null });
+    expect(답.publicUrl).toBe('http://qahub.test');
     expect((await 사람(관리자, 'DELETE', `/api/settings/services/${String(서비스.XBD)}/tokens/${String(줄.tokenId)}`)).statusCode).toBe(204);
     expect((await 올린다(원문, { env: 'qa', buildNo: '1' })).statusCode).toBe(401);
   });

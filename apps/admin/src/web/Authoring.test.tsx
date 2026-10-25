@@ -100,11 +100,12 @@ describe('작성 줄 목록', () => {
 });
 
 // 작성 읽기면 새 작성 자리가 아예 없다 (화면공통 §8)
-describe('피그마 칸 잠금이 새 요청 폼까지 넘어간다', () => {
-  it('피그마토큰={false} 면 피그마 칸이 잠긴다', async () => {
+describe('피그마 토큰 여부가 새 요청 폼까지 넘어간다', () => {
+  it('피그마토큰={false} 면 주소를 적을 때 토큰이 없다고 알린다', async () => {
     render(<Authoring service="PAY" 피그마토큰={false} 할수={() => true} />);
     fireEvent.click(await screen.findByRole('button', { name: '새 작성' }));
-    expect(screen.getByLabelText('피그마 주소') as HTMLTextAreaElement).toHaveProperty('disabled', true);
+    fireEvent.change(screen.getByLabelText('피그마 주소'), { target: { value: 'https://www.figma.com/design/A/' } });
+    expect(screen.getByText(/피그마 토큰이 없어 피그마 주소를 받을 수 없습니다/)).toBeTruthy();
   });
 });
 

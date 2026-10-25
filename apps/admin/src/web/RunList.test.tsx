@@ -5,7 +5,7 @@
 // ④ 거르는 일은 서버가 한다 ⑤ 고른 실행 · 거르개가 주소에 남는다 ⑥ 줄을 눌러도 화면을 떠나지 않는다
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { api, type EnvRow, type Paged, type RunListRow, type RunTally } from './api.js';
 import { use이동 } from './leaveGuard.js';
@@ -28,6 +28,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  vi.useRealTimers();
 });
 
 function 실행(runId: number, fail: number, 덮어쓸: Partial<RunListRow> = {}): RunListRow {
@@ -215,6 +216,43 @@ describe('RunList 지킬 것', () => {
     await 그리기();
     await screen.findByText('ZRL 실행 2113');
     expect(screen.getAllByRole('columnheader').map((el) => el.textContent)).toEqual(['실행', '판정']);
+  });
+
+  it('도는 실행이 있으면 3초마다 목록을 다시 받아 끝난 카드의 숫자 · 상태를 바꾼다. 다 끝나면 그친다', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const 도는 = 실행(20925, 0, { status: 'RUNNING', finishedAt: null, counts: { total: 249, pass: 79, fail: 0, na: 0, running: 1 } });
+    const { container, 스파이 } = await 그리기({ ...한쪽, items: [도는] });
+    await screen.findByText('ZRL 실행 20925');
+    스파이.mockResolvedValue({ ...한쪽, items: [{ ...도는, status: 'FINISHED', finishedAt: '2026-09-22T00:50:00.000Z', counts: { total: 249, pass: 247, fail: 2, na: 0, running: 0 } }] });
+
+    await act(async () => {
+      vi.advanceTimersByTime(3100);
+    });
+    await waitFor(() => expect(줄(container)[0]?.textContent).toContain('247'));
+    const 끝난뒤 = 스파이.mock.calls.length;
+    await act(async () => {
+      vi.advanceTimersByTime(10_000);
+    });
+    expect(스파이.mock.calls.length).toBe(끝난뒤);
+  });
+
+  it('다시 받기는 보이는 줄만 덮는다 — 실패해도 목록이 오류 화면으로 안 바뀌고, 위에 새 실행이 서도 줄과 결과 칸이 그대로다', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const 도는 = 실행(20925, 0, { status: 'RUNNING', finishedAt: null });
+    const { container, 스파이 } = await 그리기({ ...한쪽, items: [도는] });
+    await screen.findByText('ZRL 실행 20925');
+    스파이.mockRejectedValue(new Error('502'));
+    await act(async () => {
+      vi.advanceTimersByTime(3100);
+    });
+    expect(줄(container).map((el) => el.textContent?.includes('ZRL 실행 20925'))).toEqual([true]);
+
+    스파이.mockResolvedValue({ ...한쪽, items: [실행(20929, 0, { status: 'RUNNING', finishedAt: null }), 도는] });
+    await act(async () => {
+      vi.advanceTimersByTime(3100);
+    });
+    expect(줄(container)).toHaveLength(1);
+    expect(screen.queryByText('ZRL 실행 20929')).toBeNull();
   });
 });
 

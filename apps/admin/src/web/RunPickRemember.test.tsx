@@ -83,6 +83,12 @@ describe('실행 창 — 마지막 대상 서버', () => {
     expect(서버칸().value).toBe('');
   });
 
+  it('대상 서버가 하나뿐이면 처음 열어도 그 서버를 미리 고른다', async () => {
+    render(<RunPickModal 케이스들={[저장값케이스]} service={{ ...서비스, envs: [{ env: 'qa', baseUrl: 'https://qa.example.com' }] }} user={사람} onRun={vi.fn()} onClose={vi.fn()} />);
+    await act(async () => {});
+    expect(서버칸().value).toBe('qa');
+  });
+
   it('여는 쪽이 준 서버(실패 다시 실행)가 마지막 서버를 이긴다', async () => {
     고른서버를적는다('ZRS', 'stage');
     await 연다({ 초기서버: 'qa' });
