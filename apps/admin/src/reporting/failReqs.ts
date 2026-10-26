@@ -97,9 +97,14 @@ export async function 판정들(runId: number, tcIds: string[]): Promise<Map<str
 
 export type 버그결과 = { byName: string; at: string } | 'NOT_FAILED';
 
-/** 「버그」 한 줄을 남긴다. 이미 있으면 처음 것을 그대로 돌려준다 */
-export async function 버그남기기(runId: number, tcId: string, 누가: { username: string; displayName: string }): Promise<버그결과> {
-  const pool = await db();
+/** 「버그」 한 줄을 남긴다. 이미 있으면 처음 것을 그대로 돌려준다. 결정 진행은 자기 트랜잭션(`손`) 안에서 부른다 (작성 §3.6 「★ 결정 목록」 진행 1) */
+export async function 버그남기기(
+  runId: number,
+  tcId: string,
+  누가: { username: string; displayName: string },
+  손?: Pick<Pool, 'query'>,
+): Promise<버그결과> {
+  const pool = 손 ?? (await db());
   const 실패 = await pool.query(`SELECT 1 FROM run_item WHERE run_id = $1 AND tc_id = $2 AND status = 'FAIL' LIMIT 1`, [runId, tcId]);
   if (실패.rowCount === 0) return 'NOT_FAILED';
   await pool.query(

@@ -124,6 +124,9 @@ export const 등급표: Record<string, 표값> = {
   'DELETE /api/authoring/requests/:id/conflicts/:tcId': 작성쓰기,
   // 케이스 고치기 — 결과가 초안 PR 이라 작성 요청과 무게가 같다. 병합은 아래 merges 가 admin 으로 따로 본다 (작성 §3.6 「★ 케이스 고치기」)
   'POST /api/authoring/edits': 작성쓰기,
+  // 결정 목록 — 항목마다 더 드는 권한(반영은 admin · 실행 read · write)은 라우트가 본다 (작성 §7 「결정 목록 통로」 · 인증 §7)
+  'GET /api/authoring/decisions': 작성읽기,
+  'POST /api/authoring/decisions/run': 작성쓰기,
   // 표준 기획서 — 주소에 authoring 이 없지만 작성 기능이다. 반영 PR 의 병합은 아래 merges 가 admin 으로 따로 본다 (작성 §7 「표준 기획서 통로」)
   'GET /api/prd': 작성읽기,
   'GET /api/prd/versions': 작성읽기,

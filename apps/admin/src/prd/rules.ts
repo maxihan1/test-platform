@@ -108,9 +108,17 @@ function 화면칸들(params: Record<string, unknown>): { reqIds?: unknown; runI
   return (Array.isArray(s) ? s : s === undefined ? [] : [s]) as { reqIds?: unknown; runId?: unknown; tcId?: unknown }[];
 }
 
-/** 작성 요청 params 의 「화면이 맞음」 번호(screenRight 칸마다의 reqIds 를 합친 것). 화면이 맞음 요청이 아니면 빈 묶음 */
-export function 화면번호들(params: Record<string, unknown>): Set<string> {
-  return new Set(화면칸들(params).flatMap((칸) => (Array.isArray(칸?.reqIds) ? 칸.reqIds.filter((x): x is string => typeof x === 'string') : [])));
+/**
+ * 작성 요청 params 의 「화면이 맞음」 번호(screenRight 칸마다의 reqIds 를 합친 것)와 그 번호를 덮은 실패 케이스(먼저 실린 칸). 화면이 맞음 요청이 아니면 빈 표.
+ * 케이스는 버전 기록 「바뀐 것」의 까닭 「화면이 맞음(<tcId>)」에 쓴다 (작성 §7 「결정 목록 통로」 changes)
+ */
+export function 화면번호들(params: Record<string, unknown>): Map<string, string> {
+  const 표 = new Map<string, string>();
+  for (const 칸 of 화면칸들(params)) {
+    if (!Array.isArray(칸?.reqIds)) continue;
+    for (const 번호 of 칸.reqIds) if (typeof 번호 === 'string' && !표.has(번호)) 표.set(번호, typeof 칸.tcId === 'string' ? 칸.tcId : '');
+  }
+  return 표;
 }
 
 /** 그 요청의 「화면이 맞음」 칸에 실린 실행 · 케이스인가 — 에이전트가 받을 수 있는 실패 trace 는 이 짝뿐이다 */
@@ -226,7 +234,7 @@ export function 옮기기판(
   보낸것: 들어온항목[],
   접두사: string,
   지금: string,
-  화면번호: ReadonlySet<string> = new Set(),
+  화면번호: Pick<ReadonlySet<string>, 'has'> = new Set(),
 ): { items: PrdItem[]; lastNo: number; keptByPerson: string[] } | 판짓기오류 {
   const 받은것들 = new Map((받은판?.items ?? []).map((x) => [x.reqId, x]));
   const 지금것들 = new Map((지금판?.items ?? []).map((x) => [x.reqId, x]));

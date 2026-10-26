@@ -2,7 +2,7 @@
 
 import type { PoolClient } from 'pg';
 
-import { 열린반영식 } from './chainSql.js';
+import { 열린반영식, 열린뿌리식 } from './chainSql.js';
 import { type 셈칸, 커버리지칸 } from './coverage.js';
 import { db, 빚기, 칸들, type 요청, type 행 } from './store.js';
 
@@ -35,6 +35,9 @@ export async function 집기(서비스: number, 집는이: string): Promise<요�
                  -- 사슬은 반영 요청만 담아 다른 줄은 늘 통과한다. 병합(MERGE)은 자기 PR 을 닫는 일이라 기다리지 않는다
                  AND (줄.kind = 'MERGE'
                       OR NOT EXISTS (SELECT 1 FROM 열린반영 앞, 사슬 내것 WHERE 내것.id = 줄.id AND 앞.root_id < 내것.root_id))
+                 -- 결정 진행이 세운 요청은 그때 열려 있던 작성 · 앞서 세운 요청이 다 열린 작성이 아니게 될 때까지 기다린다 — 한 번에 하나씩 돈다 (§7 「결정 목록 통로」)
+                 AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements_text(COALESCE(줄.params->'decision'->'after', '[]'::jsonb)) 앞(id)
+                                  WHERE ${열린뿌리식('앞.id::bigint')})
                ORDER BY id
                LIMIT 1
             )

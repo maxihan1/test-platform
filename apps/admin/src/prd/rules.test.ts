@@ -181,13 +181,15 @@ describe('옮기기판', () => {
   });
 
   it('화면이 맞음 번호는 요청 params.screenRight.reqIds 에서 읽는다', () => {
-    expect(화면번호들({ prdApply: true, screenRight: { runId: 1, tcId: 'MKT-FN-001', env: 'qa', reqIds: ['MKT-REQ-001', 2] } })).toEqual(new Set(['MKT-REQ-001']));
-    expect(화면번호들({ prdApply: true })).toEqual(new Set());
+    expect(화면번호들({ prdApply: true, screenRight: { runId: 1, tcId: 'MKT-FN-001', env: 'qa', reqIds: ['MKT-REQ-001', 2] } })).toEqual(new Map([['MKT-REQ-001', 'MKT-FN-001']]));
+    expect(화면번호들({ prdApply: true })).toEqual(new Map());
   });
 
-  it('screenRight 가 목록이면 모든 칸의 번호를 합친다 (PRD-F9-20)', () => {
-    const 칸 = (reqIds: unknown[]) => ({ runId: 1, tcId: 'MKT-FN-001', env: 'qa', reqIds, byName: '검사', at: '2026-10-13T00:00:00.000Z' });
-    expect(화면번호들({ prdApply: true, screenRight: [칸(['MKT-REQ-001', 2]), 칸(['MKT-REQ-003', 'MKT-REQ-001'])] })).toEqual(new Set(['MKT-REQ-001', 'MKT-REQ-003']));
+  it('screenRight 가 목록이면 모든 칸의 번호를 합치고 번호마다 먼저 실린 칸의 케이스를 단다 (PRD-F9-20 · WEB-F6-04)', () => {
+    const 칸 = (tcId: string, reqIds: unknown[]) => ({ runId: 1, tcId, env: 'qa', reqIds, byName: '검사', at: '2026-10-13T00:00:00.000Z' });
+    expect(화면번호들({ prdApply: true, screenRight: [칸('MKT-FN-001', ['MKT-REQ-001', 2]), 칸('MKT-FN-002', ['MKT-REQ-003', 'MKT-REQ-001'])] })).toEqual(
+      new Map([['MKT-REQ-001', 'MKT-FN-001'], ['MKT-REQ-003', 'MKT-FN-002']]),
+    );
   });
 });
 

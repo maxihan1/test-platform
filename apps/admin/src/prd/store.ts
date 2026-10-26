@@ -17,7 +17,16 @@ export interface 저장하는사람 {
   displayName: string;
 }
 
-type 출처 = 'AGENT' | 'PERSON' | 'REVERT';
+type 출처 = 'AGENT' | 'PERSON' | 'REVERT' | 'DECISION';
+
+/** 버전 기록 「바뀐 것」 한 줄 — 결정 진행 버전과 화면이 맞음 요청이 올린 버전만 서버가 적는다 (작성 §7 「결정 목록 통로」 changes) */
+export interface 판변경 {
+  kind: 'EDIT' | 'PICK' | 'CONFIRM';
+  reqId: string;
+  text: string | null;
+  asset: string | null;
+  tcId: string | null;
+}
 export type 저장결과 = { version: number } | { error: 'PRD_STALE'; latest: number } | 판짓기오류;
 
 interface 판행 {
@@ -71,14 +80,30 @@ export interface 판줄 {
   source: 출처;
   savedByName: string;
   savedAt: string;
+  requestId: number | null;
+  /** 그 요청이 결정 진행이 세운 것(params.decision — 재실행 · 이어하기도 물려받는다)인가. 화면이 「테스트 작성에서 결정 · AI #N」으로 적는다 */
+  fromDecision: boolean;
+  changes: 판변경[] | null;
 }
 
 export async function 판목록(서비스: number): Promise<판줄[]> {
-  const r = await (await db()).query<{ version: number; source: 출처; saved_by_name: string; saved_at: Date }>(
-    'SELECT version, source, saved_by_name, saved_at FROM prd_version WHERE service_id = $1 ORDER BY version DESC',
+  const r = await (await db()).query<{
+    version: number; source: 출처; saved_by_name: string; saved_at: Date; request_id: string | null; from_decision: boolean; changes: 판변경[] | null;
+  }>(
+    `SELECT v.version, v.source, v.saved_by_name, v.saved_at, v.request_id, v.changes, COALESCE(a.params ? 'decision', false) AS from_decision
+       FROM prd_version v LEFT JOIN authoring_request a ON a.id = v.request_id
+      WHERE v.service_id = $1 ORDER BY v.version DESC`,
     [서비스],
   );
-  return r.rows.map((x) => ({ version: x.version, source: x.source, savedByName: x.saved_by_name, savedAt: x.saved_at.toISOString() }));
+  return r.rows.map((x) => ({
+    version: x.version,
+    source: x.source,
+    savedByName: x.saved_by_name,
+    savedAt: x.saved_at.toISOString(),
+    requestId: x.request_id === null ? null : Number(x.request_id),
+    fromDecision: x.from_decision,
+    changes: x.changes,
+  }));
 }
 
 /** 요청이 집힐 때 적힌 읽은 판(prd_version). 안 적혔으면 null */
@@ -124,15 +149,39 @@ async function 판넣기(
   출처: 출처,
   사람: 저장하는사람,
   요청: number | null = null,
+  changes: 판변경[] | null = null,
 ): Promise<number> {
   if (앞 === null ? 새.items.length === 0 : 새.lastNo === 앞.lastNo && 판같나(새.items, 앞.items)) return 앞?.version ?? 0;
   const version = (앞?.version ?? 0) + 1;
   await 손.query(
-    `INSERT INTO prd_version (service_id, version, items, last_no, source, request_id, saved_by, saved_by_name)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-    [서비스, version, JSON.stringify(새.items), 새.lastNo, 출처, 요청, 사람.username, 사람.displayName],
+    `INSERT INTO prd_version (service_id, version, items, last_no, source, request_id, saved_by, saved_by_name, changes)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+    [서비스, version, JSON.stringify(새.items), 새.lastNo, 출처, 요청, 사람.username, 사람.displayName, changes === null ? null : JSON.stringify(changes)],
   );
   return version;
+}
+
+/**
+ * 결정 진행(진행 2)이 짓는 버전 — 결정 진행이 이미 서비스 잠금(`잠그고`)을 쥔 트랜잭션 안에서 부른다. 고른 항목만 바꾼 지금 판이라 번호는 늘지 않는다.
+ * 저장 규칙(같은 판이면 안 만듦)은 사람 저장과 같다 (작성 §7 「결정 목록 통로」)
+ */
+export async function 결정판넣기(손: PoolClient, 서비스: number, items: PrdItem[], 사람: 저장하는사람, changes: 판변경[]): Promise<number> {
+  const 앞 = await 지금판읽기(손, 서비스);
+  return 판넣기(손, 서비스, 앞, { items, lastNo: 앞?.lastNo ?? 0 }, 'DECISION', 사람, null, changes);
+}
+
+/** 화면이 맞음 번호 가운데 지금 판에서 바뀐 것 — 문장이 바뀌었으면 EDIT, 확인 필요가 확정만 됐으면 CONFIRM. 없으면 null(화면이 앞 판과 견준다) */
+function 화면변경(지금: 앞판 | null, items: PrdItem[], 화면번호: ReadonlyMap<string, string>): 판변경[] | null {
+  const 앞것들 = new Map((지금?.items ?? []).map((x) => [x.reqId, x]));
+  const 변경: 판변경[] = [];
+  for (const x of items) {
+    const 앞것 = 앞것들.get(x.reqId);
+    const tcId = 화면번호.get(x.reqId);
+    if (앞것 === undefined || tcId === undefined) continue;
+    if (앞것.text !== x.text) 변경.push({ kind: 'EDIT', reqId: x.reqId, text: x.text, asset: null, tcId });
+    else if (앞것.status === 'NEEDS_CHECK' && x.status === 'CONFIRMED') 변경.push({ kind: 'CONFIRM', reqId: x.reqId, text: null, asset: null, tcId });
+  }
+  return 변경.length === 0 ? null : 변경;
 }
 
 const 낡음 = (앞: 앞판 | null) => ({ error: 'PRD_STALE' as const, latest: 앞?.version ?? 0 });
@@ -194,7 +243,7 @@ export async function 옮기기(
   baseVersion: number,
   items: 들어온항목[],
   사람: 저장하는사람,
-  화면번호: ReadonlySet<string> = new Set(),
+  화면번호: ReadonlyMap<string, string> = new Map(),
 ): Promise<{ version: number; keptByPerson: string[] } | 판짓기오류 | { error: 'NOT_RUNNING'; detail: string }> {
   return 잠그고(서비스, async (손) => {
     // 라우트가 이미 봤다. 여기는 그 사이 끝난 요청을 막는 그물이다
@@ -206,7 +255,7 @@ export async function 옮기기(
     if (baseVersion !== 0 && 받은판 === null) return { error: 'BAD_PRD' as const, detail: 'baseVersion' };
     const 새 = 옮기기판(받은판, 지금, items, 접두사, new Date().toISOString(), 화면번호);
     if ('error' in 새) return 새;
-    const version = await 판넣기(손, 서비스, 지금, 새, 'AGENT', 사람, 요청);
+    const version = await 판넣기(손, 서비스, 지금, 새, 'AGENT', 사람, 요청, 화면변경(지금, 새.items, 화면번호));
     await 손.query('UPDATE authoring_request SET prd_version = NULLIF($2, 0) WHERE id = $1', [요청, version]);
     return { version, keptByPerson: 새.keptByPerson };
   });

@@ -99,6 +99,8 @@ export const 라우트표: Record<string, 원천> = {
   '/api/authoring/requests': { 종류: '질의' },
   '/api/authoring/merges': { 종류: '질의' }, // sourceId 의 서비스는 라우트가 본다 — 본문이라 문이 못 읽는다
   '/api/authoring/edits': { 종류: '질의' }, // 본문 tcId 가 이 서비스 것인지는 라우트가 접두사로 본다
+  '/api/authoring/decisions': { 종류: '질의' },
+  '/api/authoring/decisions/run': { 종류: '질의' },
   '/api/authoring/requests/claim': { 종류: '질의' },
   '/api/authoring/requests/:id': { 종류: '작성요청', 칸: 'id' },
   '/api/authoring/requests/:id/stage': { 종류: '작성요청', 칸: 'id' },

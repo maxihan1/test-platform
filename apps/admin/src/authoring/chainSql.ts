@@ -33,3 +33,18 @@ export const 열린반영식 = (서비스자리: string) => `${뿌리최신식(`
       SELECT 뿌리.root_id, 뿌리.latest FROM 뿌리 JOIN authoring_request m ON m.id = 뿌리.latest
        WHERE NOT (m.kind = 'MERGE' AND m.status = 'DONE')
     )`;
+
+/**
+ * 번호식(뿌리 번호)의 뿌리가 열린 작성인가 — 폐기 안 됨 · 최신 실행이 대기 · 도는 중 · 끝났고 반영 전 · 반영 중 · 반영 실패. 뜻은 openRoots.ts `열린작성` 과 같다.
+ * 결정 진행이 세운 요청의 `params.decision.after` 를 집기가 기다릴 때 쓴다 — 다른 CTE 안에 넣을 수 있게 이름(`앞사슬`)이 겹치지 않는 하위 질의다 (작성 §7 「결정 목록 통로」)
+ */
+export const 열린뿌리식 = (번호식: string) => `EXISTS (
+    WITH RECURSIVE 앞사슬(id) AS (
+      SELECT id FROM authoring_request WHERE id = ${번호식} AND kind IN ('AUTHOR', 'EDIT') AND discarded_at IS NULL
+      UNION ALL
+      SELECT a.id FROM authoring_request a JOIN 앞사슬 ON a.source_id = 앞사슬.id WHERE a.kind <> 'AUTHOR'
+    )
+    SELECT 1 FROM authoring_request m
+     WHERE m.id = ${최신식('앞사슬')}
+       AND (m.status IN ('PENDING', 'RUNNING') OR (m.status = 'DONE' AND m.kind <> 'MERGE'))
+  )`;
