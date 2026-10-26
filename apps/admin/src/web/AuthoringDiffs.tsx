@@ -53,8 +53,8 @@ export function AuthoringDiffs({ 차이들, 고리번호 }: { 차이들: 차이[
         </table>
       </div>
       <div className="btns">
-        <a className="btn ghost" href="#/prd">
-          {t('PRD 관리에서 확인 필요 보기')}
+        <a className="btn ghost" href="#/authoring?todo=1">
+          {t('결정 필요에서 확인하기')}
         </a>
       </div>
     </section>

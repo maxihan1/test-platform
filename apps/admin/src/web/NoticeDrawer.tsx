@@ -95,14 +95,14 @@ export function NoticeDrawer({ recent, 읽음, 지금, onClose, on읽음, 서비
                   <div className="nt-item-prd">
                     <span className="case-tag">{t('PRD 확인 필요 {수}건', { 수: 줄.확인필요 })}</span>
                     <a
-                      href="#/prd"
+                      href="#/authoring?todo=1"
                       onClick={() => {
                         서비스바꿈(줄.접두사);
                         on읽음([줄.열쇠]);
                         onClose();
                       }}
                     >
-                      {t('PRD 관리에서 확인')}
+                      {t('결정 필요에서 확인')}
                     </a>
                   </div>
                 )}

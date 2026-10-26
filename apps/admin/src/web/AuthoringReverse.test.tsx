@@ -315,7 +315,7 @@ describe('상세 — 대조 설정 · 산출물 · 차이 목록', () => {
 
   it('차이 표 아래에 PRD 관리에서 확인 필요 보기 고리가 있다', async () => {
     await 상세를연다(줄({ compare: true, env: 'qa', startUrl: null, result: { diffs: [{ no: 'D1', kind: 'DIFFERENT', where: 'x', doc: 'a', screen: 'b', marked: false }] } }));
-    expect(screen.getByRole('link', { name: 'PRD 관리에서 확인 필요 보기' }).getAttribute('href')).toBe('#/prd');
+    expect(screen.getByRole('link', { name: '결정 필요에서 확인하기' }).getAttribute('href')).toBe('#/authoring?todo=1');
   });
 
   it('차이 목록 줄에 판정 색을 입히지 않는다 — 차이는 판정이 아니다', async () => {

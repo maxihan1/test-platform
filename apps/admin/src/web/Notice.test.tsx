@@ -93,7 +93,7 @@ describe('알림 줄', () => {
     띄운다({ running: [], recent: [끝난작성(9, { prdNeedsCheck: 3 })] });
     const 줄 = (await screen.findByText('#9 작성 요청이 끝났습니다 · 케이스 파일 12개')).closest('.nt-line') as HTMLElement;
     expect(within(줄).getByText(/PRD 확인 필요 3건/)).toBeTruthy();
-    expect(within(줄).getByRole('link', { name: 'PRD 관리' }).getAttribute('href')).toBe('#/prd');
+    expect(within(줄).getByRole('link', { name: '결정 필요' }).getAttribute('href')).toBe('#/authoring?todo=1');
     expect(within(줄).getByRole('link', { name: '작성 결과' }).getAttribute('href')).toBe('#/authoring/9');
   });
 
@@ -149,7 +149,7 @@ describe('알림 서랍', () => {
     const 제목들 = 서랍.getAllByRole('listitem').map((li) => li.querySelector('.nt-item-title')?.textContent);
     expect(제목들).toEqual(['RUN 1 실행이 끝났습니다', '#2 작성 요청이 끝났습니다', '#3 작성 요청이 실패했습니다']);
     expect(서랍.getByText('PRD 확인 필요 2건')).toBeTruthy();
-    expect(서랍.getByRole('link', { name: 'PRD 관리에서 확인' }).getAttribute('href')).toBe('#/prd');
+    expect(서랍.getByRole('link', { name: '결정 필요에서 확인' }).getAttribute('href')).toBe('#/authoring?todo=1');
     expect(서랍.getByText('볼 수 있는 애플리케이션 전체 · 최근 7일')).toBeTruthy();
   });
 
@@ -205,7 +205,7 @@ describe('다른 애플리케이션의 작성 · PRD 고리', () => {
     fireEvent.click(await screen.findByRole('link', { name: '결과 보기' }));
     expect(서비스바꿈).not.toHaveBeenCalled();
     fireEvent.click(screen.getAllByRole('link', { name: '작성 결과' })[0]!);
-    fireEvent.click(screen.getByRole('link', { name: 'PRD 관리' }));
+    fireEvent.click(screen.getByRole('link', { name: '결정 필요' }));
     expect(서비스바꿈.mock.calls).toEqual([['ORD'], ['ORD']]);
   });
 
@@ -214,7 +214,7 @@ describe('다른 애플리케이션의 작성 · PRD 고리', () => {
     await screen.findByLabelText('안 읽은 알림 1건');
     fireEvent.click(버튼());
     const 서랍 = within(screen.getByRole('complementary', { name: '알림' }));
-    fireEvent.click(서랍.getByRole('link', { name: 'PRD 관리에서 확인' }));
+    fireEvent.click(서랍.getByRole('link', { name: '결정 필요에서 확인' }));
     expect(서비스바꿈).toHaveBeenCalledExactlyOnceWith('ORD');
   });
 
