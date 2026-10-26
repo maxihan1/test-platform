@@ -10,7 +10,7 @@ import { 볼륨파일읽기 } from '../artifactFile.js';
 import { jsonb에맞춘다 } from '../jsonbText.js';
 import { 케이스지도를넣는다, 지도줄들 } from '../prd/apiMap.js';
 import { 가려야하나 } from '../web/mask.js';
-import { 가린다, 항목비밀 } from './trial.js';
+import { 가린다, 경로비밀, 항목비밀 } from './trial.js';
 import { trace를푼다, type 풀린trace } from './traceParse.js';
 import { trace없는까닭 } from './traceReason.js';
 
@@ -51,12 +51,21 @@ export function 글가린다(글: string, 비밀: string[]): string {
 const 본문 = (v: string | null, 비밀: string[]): string | null => (v === null ? null : 글가린다(v, 비밀).slice(0, 본문상한));
 const 있으면 = (v: string | null, 비밀: string[]): string | null => (v === null ? null : 글가린다(v, 비밀));
 
-// 케이스 적재와 E2E 실패 기록이 이 결과를 그대로 DB 에 넣는다. 자르기가 가른 이모지 반쪽 · 바이너리 본문의 NUL 은 여기서 바꾼다
-export function trace가린다(풀림: 풀린trace, 비밀: string[]): 풀린trace {
+// 경로(물음표 · # 앞)는 경로 목록으로, 그 뒤는 값 목록 전부로 — 계정 아이디가 API 경로 낱말과 같으면 서비스 지도가 틀린다 (도메인/작성 §3.6 「세는 방식」)
+function 주소가린다(주소: string, 비밀: string[], 경로비밀: string[]): string {
+  const 꼬리 = 주소.search(/[?#]/);
+  return 꼬리 < 0 ? 글가린다(주소, 경로비밀) : 글가린다(주소.slice(0, 꼬리), 경로비밀) + 글가린다(주소.slice(꼬리), 비밀);
+}
+
+/**
+ * 케이스 적재와 E2E 실패 기록이 이 결과를 그대로 DB 에 넣는다. 자르기가 가른 이모지 반쪽 · 바이너리 본문의 NUL 은 여기서 바꾼다.
+ * 경로비밀은 주소 경로만 가리는 목록이다(trial.ts `경로비밀`) — 안 주면 값 목록 전부다
+ */
+export function trace가린다(풀림: 풀린trace, 비밀: string[], 경로비밀: string[] = 비밀): 풀린trace {
   return jsonb에맞춘다({
     network: 풀림.network.map((n) => ({
       ...n,
-      url: 글가린다(n.url, 비밀),
+      url: 주소가린다(n.url, 비밀, 경로비밀),
       failure: 있으면(n.failure, 비밀),
       requestBody: 본문(n.requestBody, 비밀),
       responseBody: 본문(n.responseBody, 비밀),
@@ -67,7 +76,7 @@ export function trace가린다(풀림: 풀린trace, 비밀: string[]): 풀린tra
       const 이름 = a.value !== null && 값 !== null ? a.title.replace(`"${a.value}"`, `"${값}"`) : a.title;
       return { ...a, title: 글가린다(이름, 비밀), target: 있으면(a.target, 비밀), value: 값, error: 있으면(a.error, 비밀) };
     }),
-    console: 풀림.console.map((c) => ({ ...c, text: 글가린다(c.text, 비밀), url: 있으면(c.url, 비밀) })),
+    console: 풀림.console.map((c) => ({ ...c, text: 글가린다(c.text, 비밀), url: c.url === null ? null : 주소가린다(c.url, 비밀, 경로비밀) })),
   });
 }
 
@@ -184,7 +193,7 @@ export async function trace를적재한다(historyId: number): Promise<상태 | 
   try {
     const 풀림 = await trace를푼다(zip, { 본문: !통과 });
     const 지도 = row.service_id === null ? null : { serviceId: Number(row.service_id), tcId: row.tc_id, runId: Number(row.run_id), baseUrl: row.base_url };
-    await 기록을넣는다(pool, historyId, trace가린다(풀림, 항목비밀(row)), 지도);
+    await 기록을넣는다(pool, historyId, trace가린다(풀림, 항목비밀(row), 경로비밀(row)), 지도);
   } catch (err) {
     // zip 은 남긴다 — 사람이 서버에서 직접 열어 볼 수 있다
     await 상태를남긴다(pool, historyId, 'FAILED', `trace 를 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`);

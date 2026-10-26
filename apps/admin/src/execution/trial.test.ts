@@ -1,7 +1,7 @@
 import type { ExecuteResponse, ScenarioExecuteResponse } from '@platform/kit';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { 시나리오시험, 시작한다, 읽는다, 전부비운다, TrialBusyError } from './trial.js';
+import { 경로비밀, 시나리오시험, 시작한다, 읽는다, 전부비운다, 항목비밀, TrialBusyError } from './trial.js';
 
 const 명세 = {
   paramSchema: { type: 'object', properties: { loginId: { type: 'string' }, password: { type: 'string', secret: true } } },
@@ -202,5 +202,28 @@ describe('시나리오 시험 실행 보관소', () => {
     const id = 시나리오시험.시작한다('kim', 'MKT', () => Promise.resolve(응답), ['abc', 'abc123']);
     await vi.waitFor(() => expect(시나리오시험.읽는다('kim', id)?.status).toBe('FINISHED'));
     expect(시나리오시험.읽는다('kim', id)).toMatchObject({ result: { error: { message: '******** 와 ********' } } });
+  });
+});
+
+describe('경로비밀', () => {
+  const 스키마 = {
+    properties: {
+      adminId: { secret: true, account: '관리자' },
+      adminPassword: { secret: true, account: '관리자' },
+      loginId: { secret: true },
+      memo: { secret: true },
+      title: {},
+    },
+  };
+
+  it('계정 아이디 칸 값만 뺀 비밀 글자다 — 비밀번호 · 그 밖 비밀 칸은 남긴다', () => {
+    const row = { params: { adminId: 'admin', adminPassword: 'pa55', loginId: 'kim', memo: '몰래', title: '공지' }, expected: {}, param_schema: 스키마, expected_schema: {} };
+    expect(경로비밀(row)).toEqual(['pa55', '몰래']);
+    expect(항목비밀(row)).toEqual(expect.arrayContaining(['admin', 'kim', 'pa55', '몰래']));
+  });
+
+  it('비밀번호가 아이디와 같은 글자면 그 글자는 경로에서도 가린다', () => {
+    const 칸 = { properties: { loginId: { secret: true }, password: { secret: true } } };
+    expect(경로비밀({ params: { loginId: 'same', password: 'same' }, expected: {}, param_schema: 칸, expected_schema: {} })).toEqual(['same']);
   });
 });
