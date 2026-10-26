@@ -39,6 +39,34 @@ describe('카드 안 접힌 줄은 디바이스 거르기를 따른다', () => {
   });
 });
 
+describe('요약 띠의 디바이스별 실패 단추는 디바이스 칩과 같은 거르개다 (도메인/실행 §8.3 표 1번 줄)', () => {
+  it('「PC 1건」을 누르면 PC 칩이 눌리고 카드를 PC 로 다시 받는다 — 다시 누르면 전체', async () => {
+    const 실패부름 = 연다([
+      항목줄(1, 'ZRR-001', 'desktop', 'FAIL'),
+      항목줄(2, 'ZRR-001', 'mobile', 'FAIL'),
+      항목줄(3, 'ZRR-002', 'desktop', 'PASS'),
+      항목줄(4, 'ZRR-002', 'mobile', 'FAIL'),
+    ]);
+    const PC = await screen.findByRole('button', { name: 'PC 1건' });
+    expect(screen.getByRole('button', { name: '모바일 2건' })).toBeDefined();
+
+    fireEvent.click(PC);
+    await waitFor(() => expect(실패부름).toHaveBeenLastCalledWith(RUN_ID, 1, 'desktop'));
+    expect(screen.getByRole('button', { name: 'PC' }).getAttribute('aria-pressed')).toBe('true');
+
+    fireEvent.click(screen.getByRole('button', { name: 'PC 1건' }));
+    await waitFor(() => expect(실패부름).toHaveBeenLastCalledWith(RUN_ID, 1, undefined));
+    expect(screen.getByRole('button', { name: '전체' }).getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('PC 만 돈 실행에는 단추가 없다 — 칩 칸이 모바일을 두어도 돈 디바이스는 하나다', async () => {
+    연다([항목줄(1, 'ZRR-001', 'desktop', 'FAIL'), 항목줄(2, 'ZRR-002', 'desktop', 'PASS')]);
+    await waitFor(() => expect(document.querySelector('.fc-list')).not.toBeNull());
+
+    expect(screen.queryByRole('group', { name: '디바이스별 실패 케이스' })).toBeNull();
+  });
+});
+
 describe('카드 쪽은 디바이스 칩이나 실행이 바뀌면 처음으로 돌아간다', () => {
   function 쪽마다한장() {
     vi.spyOn(api, 'run').mockImplementation((id) => Promise.resolve({ ...끝난실행(섞인항목), runId: id }));

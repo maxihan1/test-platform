@@ -62,6 +62,8 @@ export const 실행말: Record<string, string> = {
   '검색어나 거르개를 바꿔 보세요': 'Try a different search or filter',
   '목록으로': 'Back to list',
   '계속 실패 {수}': '{수} still failing',
+  '디바이스별 실패 케이스': 'Failed cases by device',
+  '{디바이스} {수}건': '{디바이스} {수}',
   '찾기': 'Search',
   '조건 지우기': 'Clear filters',
   '조건에 맞는 실행이 없습니다': 'No runs match the filters',

@@ -13,7 +13,7 @@ import { RunFailJudge } from './RunFailJudge.js';
 import { 관련요구줄 } from './RunFailedReqs.js';
 import { 실패이유 } from './FailureWhy.js';
 import { 같은실패끼리, RunFailDevice, 변화글 } from './RunFailDevice.js';
-import { 다시돌림꼬리표, 판정꼬리표 } from './RunFailCardTags.js';
+import { 다시돌림꼬리표, 디바이스꼬리표, 판정꼬리표 } from './RunFailCardTags.js';
 import { Failed, Loading, PLATFORM_LABEL, seconds, useAsync, Verdict, 디바이스순서 } from './ui.js';
 import type { 다시돌린결과 } from './useRerunResults.js';
 
@@ -222,6 +222,7 @@ export function 실패카드({
             {머리변화 === null ? null : <span className="fc-tag">{머리변화}</span>}
             <판정꼬리표 judgment={c.judgment} />
             <다시돌림꼬리표 tcId={c.tcId} 결과={다시돌림} />
+            <디바이스꼬리표 tcId={c.tcId} items={items} />
           </div>
           <h3 className="fc-name-h">{c.tcName}</h3>
           {미확정사유 === null ? null : (
