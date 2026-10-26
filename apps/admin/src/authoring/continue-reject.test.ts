@@ -1,6 +1,6 @@
 // 남은 요구로 이어 작성 — POST { kind: 'AUTHOR', continueFrom } 의 거절 (SPEC 도메인/작성 §7 · §3.6 「★ 원장」)
 
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { type 판, 판차리기, 셈있음 } from './continue-fixture.js';
 
@@ -11,6 +11,10 @@ describe.skipIf(연결 === undefined)('이어 작성 — 거절', () => {
 
   beforeAll(async () => {
     판 = await 판차리기('XWP');
+  });
+
+  beforeEach(async () => {
+    await 판.치우기();
   });
 
   afterAll(async () => {
@@ -90,6 +94,13 @@ describe.skipIf(연결 === undefined)('이어 작성 — 거절', () => {
   ])('%s 이면 409 NOTHING_LEFT', async (_, 칸) => {
     const { 뿌리 } = await 판.원본(칸);
     expect(await 오류({ kind: 'AUTHOR', continueFrom: 뿌리 })).toEqual([409, 'NOTHING_LEFT']);
+  });
+
+  it('반영 안 된 다른 작성이 있으면 409 AUTHORING_OPEN 과 그 번호 — 원본은 병합이 끝나 열린 것이 아니다', async () => {
+    const { 뿌리: 열린 } = await 판.원본({ coverage: 셈있음, 최신: 'AUTHOR_DONE' });
+    const { 뿌리 } = await 판.원본({ coverage: 셈있음 });
+    const 답 = await 판.이어작성({ kind: 'AUTHOR', continueFrom: 뿌리 });
+    expect([답.statusCode, 답.json()]).toEqual([409, { error: 'AUTHORING_OPEN', detail: [열린] }]);
   });
 
   it('대조 원본인데 대상 서버 줄의 계정이 빠졌으면 400 BAD_ENV — 줄에서 한참 기다린 뒤 실패하지 않게', async () => {

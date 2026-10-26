@@ -5,6 +5,7 @@ import type { FastifyInstance } from 'fastify';
 
 import { 고치기상한, 고칠것검사, type 고칠것, type 고치기판, type 케이스정보 } from './edit.js';
 import { 사슬식, 최신식 } from './history.js';
+import { 케이스쓴열린작성 } from './openRoots.js';
 import { 서비스번호 } from './routes.js';
 import { db } from './store.js';
 
@@ -43,8 +44,8 @@ async function 판읽기(서비스: number, 접두사: string, 본문: unknown):
 }
 
 /**
- * 열린 고치기와 겹치지 않으면 EDIT 행을 넣는다. 확인과 넣기를 서비스 잠금 한 트랜잭션에서 —
- * 둘이 동시에 같은 tcId 를 요청하면 확인을 둘 다 통과해 같은 파일을 고치는 PR 이 둘 선다 (게이트 1 BLOCKER ⒜)
+ * 열린 고치기 · 그 케이스를 다 쓴 열린 작성과 겹치지 않으면 EDIT 행을 넣는다. 확인과 넣기를 서비스 잠금 한 트랜잭션에서 —
+ * 둘이 동시에 같은 tcId 를 요청하면 확인을 둘 다 통과해 같은 파일을 고치는 PR 이 둘 선다 (게이트 1 BLOCKER ⒜ · §3.6 「★ 결정 목록」 「서버 막기」)
  */
 async function 세우기(
   서비스: number,
@@ -69,9 +70,10 @@ async function 세우기(
         ORDER BY r.id`,
       [서비스, edits.map((e) => e.tcId)],
     );
-    if (열린.rows.length > 0) {
+    const 작성 = await 케이스쓴열린작성(손, 서비스, edits.map((e) => e.tcId));
+    if (열린.rows.length + 작성.length > 0) {
       await 손.query('ROLLBACK');
-      return { 열린것: 열린.rows.map((r) => Number(r.id)) };
+      return { 열린것: [...열린.rows.map((r) => Number(r.id)), ...작성].sort((a, b) => a - b) };
     }
     const r = await 손.query<{ id: string }>(
       `INSERT INTO authoring_request (service_id, kind, params, requested_by, requested_by_name, status)

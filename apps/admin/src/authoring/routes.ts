@@ -20,6 +20,7 @@ import { 역방향칸판정 } from './reverse.js';
 import { 번호, 물려받을값 } from './params.js';
 import { 상세읽기, 중단통로 } from './stop.js';
 import { 밖화면뿌리읽기 } from './uncovered.js';
+import { 열린작성 } from './openRoots.js';
 import { 도는실행있나, 뿌리, 뿌리잠그고, 실행들, 최신실행, 한쪽 } from './history.js';
 import { 이어받을수있나, 줄세우기, 한건, type 요청, type 상태 } from './store.js';
 
@@ -144,6 +145,9 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
         if (api.api && 받은것.length + 1 > 자료상한) return reply.code(400).send({ error: 'TOO_MANY_ASSETS' });
         const 대조 = api.api ? ({ compare: false } as const) : await 역방향칸판정(req.body, 서비스);
         if ('error' in 대조) return reply.code(400).send({ error: 대조.error });
+        // 반영 안 된 작성이 있으면 초안도 안 남긴다. 둘이 같이 열리는 것은 제출이 잠금 안에서 다시 막는다 (§3.6 「★ 결정 목록」 「서버 막기」)
+        const 열린 = await 열린작성(서비스);
+        if (열린.length > 0) return reply.code(409).send({ error: 'AUTHORING_OPEN', detail: 열린 });
         // 줄에 선 뒤 몇십 분 기다리다 실패하지 않게 여기서 연다 — 거절하면 DRAFT 도 안 남는다 (§7 「자료」 「미리 열어 보기」)
         const 막힘 = await 피그마막힘(서비스, 피그마);
         if (막힘 !== null) return reply.code(400).send({ error: 'FIGMA_DENIED', detail: 막힘 });
@@ -192,21 +196,28 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       const api = await 재실행API(서비스, 행);
       if ('error' in api) return reply.code(400).send({ error: api.error });
       try {
-        // 같은 뿌리에 도는 실행이 있으면 둘이 같은 브랜치를 서로 덮는다 — 확인과 넣기를 뿌리 잠금 안에서 (§7 「실행 기록」)
-        const id = await 뿌리잠그고(행.id, async (손) => (await 도는실행있나(행.id, 손)) ? null : 줄세우기({
-          서비스,
-          kind,
-          원본: 행.id,
-          기획서: null,
-          값: 물려받을값(행, 값),
-          누가,
-          이름,
-          ...(대조.compare ? { 대조: { env: 대조.env, startUrl: 대조.startUrl } } : {}),
-          ...(api.env === undefined ? {} : { apiEnv: api.env }),
-          ...(이어서 ? { 이어받기: 받은것.id } : {}),
-        }, 손));
-        if (id === null) return reply.code(409).send({ error: 'RUN_ACTIVE' });
-        return reply.code(201).send({ id });
+        // 같은 뿌리에 도는 실행이 있으면 둘이 같은 브랜치를 서로 덮는다 — 확인과 넣기를 뿌리 잠금 안에서 (§7 「실행 기록」).
+        // 다른 뿌리가 열려 있어도 안 세운다 — 그 뿌리 자신의 재실행 · 이어하기만 받는다 (§3.6 「★ 결정 목록」 「서버 막기」)
+        const 세움 = await 뿌리잠그고(행.id, async (손) => {
+          if (await 도는실행있나(행.id, 손)) return { error: 'RUN_ACTIVE' } as const;
+          const 열린 = await 열린작성(서비스, 손, 행.id);
+          if (열린.length > 0) return { error: 'AUTHORING_OPEN', detail: 열린 } as const;
+          const id = await 줄세우기({
+            서비스,
+            kind,
+            원본: 행.id,
+            기획서: null,
+            값: 물려받을값(행, 값),
+            누가,
+            이름,
+            ...(대조.compare ? { 대조: { env: 대조.env, startUrl: 대조.startUrl } } : {}),
+            ...(api.env === undefined ? {} : { apiEnv: api.env }),
+            ...(이어서 ? { 이어받기: 받은것.id } : {}),
+          }, 손);
+          return { id };
+        });
+        if ('error' in 세움) return reply.code(409).send(세움);
+        return reply.code(201).send({ id: 세움.id });
       } catch (e) {
         // 둘이 동시에 눌렀다 — 위 판정은 둘 다 통과하고 유일 색인이 뒤엣것을 막는다
         if (이어서 && (e as { constraint?: string }).constraint === 'authoring_request_resume_from_once') {

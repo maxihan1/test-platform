@@ -32,6 +32,8 @@ export interface 판 {
   원본(칸?: 원본칸): Promise<{ 뿌리: number; 머지: number | null; 자료: number[] }>;
   이어작성(본문: Record<string, unknown>, 서비스접두사?: string): Promise<LightMyRequestResponse>;
   상세(id: number): Promise<Record<string, unknown>>;
+  /** 앞 검사가 세운 요청 · 자료 행을 지운다(대상 서버 줄은 남긴다) — 열린 작성이 남으면 다음 요청이 AUTHORING_OPEN 으로 막힌다 (도메인/작성 §3.6 「서버 막기」) */
+  치우기(): Promise<void>;
   닫기(): Promise<void>;
 }
 
@@ -52,12 +54,15 @@ export async function 판차리기(접두사: string): Promise<판> {
     [접두사, `${접두사} 이어 작성 검사용`, `https://github.com/acme/${접두사.toLowerCase()}`, 접두사.toLowerCase()],
   );
   const 서비스 = Number(r.rows[0]!.id);
-  const 치우기 = async () => {
+  const 요청치우기 = async () => {
     await pool.query(
       'DELETE FROM authoring_asset WHERE request_id IN (SELECT id FROM authoring_request WHERE service_id = $1)',
       [서비스],
     );
     await pool.query('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
+  };
+  const 치우기 = async () => {
+    await 요청치우기();
     await pool.query('DELETE FROM service_env WHERE service_id = $1', [서비스]);
   };
   await 치우기();
@@ -140,6 +145,7 @@ export async function 판차리기(접두사: string): Promise<판> {
     async 상세(id) {
       return (await app.inject({ method: 'GET', url: `/api/authoring/requests/${String(id)}?service=${접두사}` })).json();
     },
+    치우기: 요청치우기,
     async 닫기() {
       await 치우기();
       await pool.query('DELETE FROM service WHERE id = $1', [서비스]);

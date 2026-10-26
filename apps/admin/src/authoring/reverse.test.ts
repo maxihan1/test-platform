@@ -1,7 +1,7 @@
 // 역방향 작성 요청 검사 — 시작 주소 · 만들기 · 줄 세우기 · 목록/상세 칸 · 집기 target · diffs (SPEC 도메인/작성 §3.6 「★ 역방향」 · §7)
 
 import Fastify, { type FastifyInstance } from 'fastify';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import authoringAgentRoutes from './agentRoutes.js';
 import assetRoutes from './assets.js';
@@ -115,6 +115,12 @@ describe.skipIf(연결 === undefined)('역방향 작성 요청', () => {
     await pool.query('DELETE FROM service_env WHERE service_id = $1', [서비스]);
     await pool.query('DELETE FROM service WHERE id = $1', [서비스]);
     await app.close();
+  });
+
+  // 앞 검사가 세운 요청이 열려 있으면 다음 요청이 AUTHORING_OPEN 으로 막힌다 (도메인/작성 §3.6 「서버 막기」)
+  beforeEach(async () => {
+    const { pool } = await import('../db/index.js');
+    await pool.query('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
   });
 
   describe('만들기', () => {

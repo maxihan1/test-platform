@@ -8,7 +8,8 @@ import { extname, join } from 'node:path';
 
 import { 볼륨파일읽기 } from '../artifactFile.js';
 import { 집은쪽인가 } from './agentRoutes.js';
-import { 산출물더하기, 자료더하기, 자료목록, 자료지우기, 자료한건, 제출 } from './assetStore.js';
+import { 산출물더하기, 자료더하기, 자료목록, 자료지우기, 자료한건 } from './assetStore.js';
+import { 막고제출 } from './openRoots.js';
 import { 번호, 사진뿌리 } from './routes.js';
 import { 한건, type 요청 } from './store.js';
 
@@ -159,7 +160,10 @@ export default async function authoringAssetRoutes(app: FastifyInstance): Promis
   app.post<{ Params: { id: string } }>('/authoring/requests/:id/submit', async (req, reply) => {
     const 행 = await 내준비행(req, reply);
     if (행 === null) return reply;
-    if (!(await 제출(행.id))) {
+    // 반영 안 된 작성이 있으면 줄에 안 세운다 (§3.6 「★ 결정 목록」 「서버 막기」)
+    const 세움 = await 막고제출(행.id, 행.serviceId);
+    if (Array.isArray(세움)) return reply.code(409).send({ error: 'AUTHORING_OPEN', detail: 세움 });
+    if (!세움) {
       // 제출은 한 문장이라 둘 중 무엇에 걸렸는지 말해 주지 않는다. 사람에게 줄 이유만 다시 읽어 가른다
       const 없음 = (await 자료목록(행.id)).length === 0;
       return reply.code(409).send({ error: 없음 ? 'NO_ASSETS' : 'NOT_DRAFT' });

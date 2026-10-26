@@ -48,8 +48,9 @@ describe.skipIf(연결 === undefined)('기획서에 없는 화면 — 두 번째
     판 = await 판차리기('XWZ');
   });
 
+  // 세운 화면만 요청 · 실패한 반영이 열려 있으면 다음 검사의 두 번째 작성이 서버 막기에 걸린다 (도메인/작성 §3.6 「서버 막기」)
   afterEach(async () => {
-    await q("UPDATE authoring_request SET discarded_at = now() WHERE service_id = $1 AND params ? 'uncoveredOf' AND discarded_at IS NULL", [판.서비스]);
+    await 판.치우기();
   });
 
   afterAll(async () => {
@@ -108,6 +109,13 @@ describe.skipIf(연결 === undefined)('기획서에 없는 화면 — 두 번째
     } finally {
       await q('UPDATE authoring_request SET discarded_at = now() WHERE id = $1', [Number(사람.rows[0]!.id)]);
     }
+  });
+
+  it('반영 안 된 다른 작성이 있으면 안 세운다 — 사람이 새로 못 세우는 판정 그대로다', async () => {
+    await 판.원본({ coverage: 셈있음, 최신: 'AUTHOR_DONE' });
+    const { 뿌리, 머지 } = await 원본();
+    expect((await 병합끝내기(머지!)).statusCode).toBe(200);
+    expect(await 세운것(뿌리)).toEqual([]);
   });
 
   it('병합이 실패하면 안 세운다', async () => {

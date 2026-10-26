@@ -154,46 +154,21 @@ describe.skipIf(연결 === undefined)('화면이 맞음 반영 통로', () => {
     });
   });
 
-  it('여러 번 눌러도 막지 않는다 — 대기 중인 반영에 더하고, 집힌 뒤에는 앞 반영을 기다리는 요청을 세운다 (PRD-F9-20)', async () => {
+  it('반영 안 된 작성이 있으면 409 AUTHORING_OPEN — 결정 진행 밖의 반영 요청이다 (2026-10-26 · 앞 판 PRD-F9-20 은 대기 중인 반영에 더했다)', async () => {
     const 가 = await 실행넣기('FINISHED', 'FAIL');
     const 나 = await 실행넣기('FINISHED', 'FAIL');
-    const 첫 = (await 화면이맞음(가)).json() as { id: number; waitsFor: number[] };
-    expect((await 화면이맞음(나)).json()).toEqual({ id: 첫.id, waitsFor: [] });
-    expect((await 화면이맞음(나)).json()).toEqual({ id: 첫.id, waitsFor: [] });
-    const 목록 = async (id: number) =>
-      ((await q<{ params: { screenRight: { runId: number }[] } }>('SELECT params FROM authoring_request WHERE id = $1', [id])).rows[0]!.params.screenRight).map((x) => x.runId);
-    expect(await 목록(첫.id)).toEqual([가, 나]);
-
-    await q(`UPDATE authoring_request SET status = 'RUNNING' WHERE id = $1`, [첫.id]);
-    expect((await 화면이맞음(가)).json()).toEqual({ id: 첫.id, waitsFor: [] });
-    const 다 = await 실행넣기('FINISHED', 'FAIL');
-    const 둘째 = (await 화면이맞음(다)).json() as { id: number; waitsFor: number[] };
-    expect(둘째.id).not.toBe(첫.id);
-    expect(둘째.waitsFor).toEqual([첫.id]);
-    expect(await 목록(둘째.id)).toEqual([다]);
-    const 라 = await 실행넣기('FINISHED', 'FAIL');
-    expect((await 화면이맞음(라)).json()).toEqual({ id: 둘째.id, waitsFor: [첫.id] });
-  });
-
-  it('최신 실행이 병합 · 재실행 대기면 거기 더하지 않고 새로 세운다 — 병합은 목록을 안 읽고 재실행은 뿌리 것을 물려받는다', async () => {
-    const 첫 = (await 화면이맞음(await 실행넣기('FINISHED', 'FAIL'))).json() as { id: number };
-    await q(`UPDATE authoring_request SET status = 'DONE' WHERE id = $1`, [첫.id]);
-    for (const kind of ['MERGE', 'RERUN']) {
-      const 뒤 = await q<{ id: string }>(
-        `INSERT INTO authoring_request (service_id, kind, source_id, params, requested_by, requested_by_name, status)
-         VALUES ($1, $2, $3, '{}', 'xpf', '검사', 'PENDING') RETURNING id`,
-        [서비스, kind, 첫.id],
-      );
-      const r = (await 화면이맞음(await 실행넣기('FINISHED', 'FAIL'))).json() as { id: number; waitsFor: number[] };
-      expect([r.id === Number(뒤.rows[0]!.id), r.waitsFor]).toEqual([false, [첫.id]]);
-      await q('DELETE FROM authoring_request WHERE id = ANY($1)', [[Number(뒤.rows[0]!.id), r.id]]);
+    const 첫 = (await 화면이맞음(가)).json() as { id: number };
+    for (const status of ['PENDING', 'RUNNING', 'DONE']) {
+      await q(`UPDATE authoring_request SET status = $2 WHERE id = $1`, [첫.id, status]);
+      const r = await 화면이맞음(나);
+      expect([r.statusCode, r.json()], status).toEqual([409, { error: 'AUTHORING_OPEN', detail: [첫.id] }]);
     }
   });
 
-  it('기다리는 반영은 앞 반영이 병합 · 폐기될 때까지 에이전트가 안 집는다 — 다른 작성 요청은 집는다', async () => {
+  it('실패한 앞 반영이 남았으면 새 반영은 그것이 폐기될 때까지 에이전트가 안 집는다 — 다른 작성 요청은 집는다', async () => {
     const { 집기 } = await import('../authoring/agentStore.js');
     const 첫 = (await 화면이맞음(await 실행넣기('FINISHED', 'FAIL'))).json() as { id: number };
-    await q(`UPDATE authoring_request SET status = 'DONE' WHERE id = $1`, [첫.id]);
+    await q(`UPDATE authoring_request SET status = 'FAILED' WHERE id = $1`, [첫.id]);
     const 둘째 = (await 화면이맞음(await 실행넣기('FINISHED', 'FAIL'))).json() as { id: number; waitsFor: number[] };
     expect(둘째.waitsFor).toEqual([첫.id]);
     const 보통 = await q<{ id: string }>(

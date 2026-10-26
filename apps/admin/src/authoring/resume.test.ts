@@ -1,7 +1,7 @@
 // 작성 이어하기 통로 검사 — 이어서 작성 · canResume · resumedBy · 집기는 원본을 집었던 에이전트만 (SPEC 도메인/작성 §7 「이어하기」)
 
 import Fastify, { type FastifyInstance } from 'fastify';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import authoringAgentRoutes from './agentRoutes.js';
 import assetRoutes from './assets.js';
@@ -95,6 +95,12 @@ describe.skipIf(연결 === undefined)('작성 이어하기', () => {
     await app.ready();
   });
 
+  // 앞 검사가 세운 이어받기가 열려 있으면 다음 이어받기가 AUTHORING_OPEN 으로 막힌다 (도메인/작성 §3.6 「서버 막기」)
+  beforeEach(async () => {
+    const { pool } = await import('../db/index.js');
+    await pool.query('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
+  });
+
   afterAll(async () => {
     const { pool } = await import('../db/index.js');
     await pool.query('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
@@ -182,6 +188,7 @@ describe.skipIf(연결 === undefined)('작성 이어하기', () => {
       const 남의것 = await 멈춘것({ 집은이: '다른-에이전트' });
       await 이어서(남의것);
       expect((await 집기()).statusCode).toBe(204);
+      await pool.query('UPDATE authoring_request SET discarded_at = now() WHERE service_id = $1', [서비스]);
 
       const 내것 = await 멈춘것();
       const 새것 = (await 이어서(내것)).json<{ id: number }>().id;

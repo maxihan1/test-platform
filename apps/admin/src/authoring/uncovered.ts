@@ -4,6 +4,7 @@ import type { PoolClient } from 'pg';
 
 import { 이어작성상태읽기 } from './continue.js';
 import { 사슬식, 최신식 } from './history.js';
+import { 열린작성 } from './openRoots.js';
 import { 밖화면뿌리 } from './params.js';
 import { db } from './store.js';
 
@@ -61,6 +62,8 @@ export async function 기획서밖화면세우기(손: PoolClient, 뿌리번호:
   // 이미 열린 화면만 요청(사람이 보낸 것 · 다른 대조 뒤에 선 것)이 있으면 같은 화면을 두 PR 이 쓴다 — 그 요청이 맡는다.
   // 반영은 서비스마다 차례로 돌아(에이전트 반영 줄) 두 병합이 겹쳐 둘 다 못 보는 일은 없다
   if ((await 열린화면요청(Number(행.service_id), 손)).length > 0) return null;
+  // 반영 안 된 다른 작성이 있어도 안 세운다 — 사람이 새로 못 세우는 판정 그대로다. 남은 화면은 결정 목록이 보인다 (§3.6 「★ 결정 목록」 「서버 막기」)
+  if ((await 열린작성(Number(행.service_id), 손, 뿌리번호)).length > 0) return null;
   const r = await 손.query<{ id: string }>(
     `INSERT INTO authoring_request
        (service_id, kind, params, requested_by, requested_by_name, status, compare, env, start_url)

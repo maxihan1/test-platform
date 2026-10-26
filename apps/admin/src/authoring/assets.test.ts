@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import Fastify, { type FastifyInstance } from 'fastify';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import assetRoutes from './assets.js';
 import { 자료목록, 준비세우기 } from './assetStore.js';
@@ -161,6 +161,12 @@ describe.skipIf(연결 === undefined)('작성 자료 통로', () => {
   describe('줄에 세우기', () => {
     const 세우기 = (id: number) =>
       app.inject({ method: 'POST', url: `/api/authoring/requests/${String(id)}/submit` });
+
+    // 앞 검사가 세운 요청이 열려 있으면 제출이 AUTHORING_OPEN 으로 막힌다 (도메인/작성 §3.6 「서버 막기」)
+    beforeEach(async () => {
+      const { pool } = await import('../db/index.js');
+      await pool.query('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
+    });
 
     it('자료가 있는 DRAFT 는 200 · PENDING', async () => {
       const id = await 준비(['https://www.figma.com/design/A1/']);

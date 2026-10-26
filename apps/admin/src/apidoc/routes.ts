@@ -113,7 +113,7 @@ export default async function apiDocRoutes(app: FastifyInstance): Promise<void> 
         누가: req.user?.username ?? '',
         이름: req.user?.displayName ?? '',
       });
-      if ('error' in 답) return reply.code(답.error === 'NOT_FOUND' ? 404 : 답.error === 'APPLY_OPEN' ? 409 : 400).send({ error: 답.error });
+      if ('error' in 답) return reply.code(답.error === 'NOT_FOUND' ? 404 : 답.error === 'AUTHORING_OPEN' ? 409 : 400).send(답);
       return reply.code(201).send({ requestId: 답.id });
     },
   );

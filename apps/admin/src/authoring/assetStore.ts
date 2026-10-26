@@ -274,8 +274,8 @@ export async function 자료한건(요청: number, 자료번호: number): Promis
  * 읽고 나서 고치면 그 사이에 맥이 집거나 자료가 빠질 수 있다.
  * 화면만(대조 + 자료 0)은 읽을 기획서 없이 그 화면을 훑으므로 선다 — 시작 주소가 없어도 크롤러가 대상 서버 주소에서 시작한다 (§3.6 「★ 역방향」 · 2026-10-11 PRD-F6-03).
  */
-export async function 제출(요청: number): Promise<boolean> {
-  const r = await (await db()).query(
+export async function 제출(요청: number, 손?: PoolClient): Promise<boolean> {
+  const r = await (손 ?? (await db())).query(
     `UPDATE authoring_request SET status = 'PENDING'
       WHERE id = $1 AND status = 'DRAFT' AND discarded_at IS NULL
         AND (EXISTS (SELECT 1 FROM authoring_asset WHERE request_id = $1) OR compare)`,
