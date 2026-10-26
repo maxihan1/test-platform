@@ -1,7 +1,8 @@
 // 빠른 검사 명령 검사 — 케이스 문장 읽기 · 케이스와 요구 목록 맞춰 보기 · 비밀번호 자리 (작성 §3.6 「빠른 검사 명령」)
 import { describe, expect, it } from 'vitest';
 
-import { type 케이스문장, 맞춰보기, 묶은확인들, 비밀자리들, 실행, 케이스문장읽기 } from './authoring-check.js';
+import { type 케이스문장, 맞춰보기, 묶은확인들, 실행, 케이스문장읽기 } from './authoring-check.js';
+import { 비밀자리들 } from './authoring-secret-spots.js';
 
 const 케이스글 = `import { defineCase, test, verify } from '@platform/kit';
 export const spec = defineCase({
@@ -50,6 +51,12 @@ describe('케이스문장읽기', () => {
       ].join('\n'),
     );
     expect(케이스문장읽기(글)?.묶은판정).toEqual(['배열', '객체', 'every', 'Promise.all', 'as const']);
+  });
+
+  it('held 가 글자면 같이 읽는다 — 남은 보류 경고의 재료', () => {
+    const 글 = 케이스글.replace("tcId: 'MKT-FN-105',", "tcId: 'MKT-FN-105',\n  held: '보류 — 검증 실패: 안내가 보인다',");
+    expect(케이스문장읽기(글)?.held).toBe('보류 — 검증 실패: 안내가 보인다');
+    expect(케이스문장읽기(케이스글)?.held).toBeUndefined();
   });
 
   it('defineCase 가 없으면 null', () => {
