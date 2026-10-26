@@ -162,6 +162,7 @@ describe('PRD 관리 — 할 일 먼저', () => {
     fireEvent.click(within(칸).getByRole('button', { name: '바뀐 요구 2건 테스트에 반영' }));
     expect(await within(칸).findByText(글)).toBeTruthy();
     expect(within(칸).getByRole('link', { name: '#6101 요청 보기' }).getAttribute('href')).toBe('#/authoring/6101');
+    expect((within(칸).getByRole('button', { name: '바뀐 요구 2건 테스트에 반영' }) as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('반영 안 됨 요구를 덮는 케이스를 쓰는 E2E 시나리오를 버튼 위에 번호 · 이름으로 보인다', async () => {

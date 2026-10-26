@@ -79,6 +79,8 @@ export function PrdTodo({ service, now, 쓰나, 짓기 }: { service: string; now
           : null;
       const 번호들 = 열린?.번호들 ?? [];
       set반영결과({ 글: 열린 !== null && 번호들.length > 0 ? 요청오류문장(열린.코드, 언어) : message(err, 언어), 번호들 });
+      // 그 요청을 반영 · 폐기하기 전에는 또 눌러도 같은 거절이다 — 버튼을 잠근다 (도메인/작성 §3.6 「서버 막기」)
+      if (번호들.length > 0) set세움(true);
     }
     setBusy(false);
   }
