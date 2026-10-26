@@ -201,13 +201,14 @@ export function 옮기기대조(원장: readonly Pick<원장항목, '번호' | '
   return 결과;
 }
 
-/** PR 본문 머리의 대조 줄. 원장이 없는 원본(PDF · 피그마)은 대조를 건너뛴다 */
-export function 대조줄들(r: 옮기기대조결과 | { 없음: string }): string[] {
+/** PR 본문 머리의 대조 줄. 원장이 없는 원본(PDF · 피그마)은 대조를 건너뛴다. `제목밖` 은 자식의 `prd:ledger` 가 막는데도 남은 것이다 — 올리기는 안 막는다 */
+export function 대조줄들(r: 옮기기대조결과 | { 없음: string }, 제목밖: readonly string[] = []): string[] {
   if ('없음' in r) return [`⚠️ 옮기기 대조 없음 — ${r.없음}`];
   return [
     `옮기기 대조: 요구 ${String(r.요구수)} 중 빠짐 ${String(r.빠짐.length)} · 요구 아님 ${String(r.요구아님.length)} · 설계 잃음 ${String(r.설계잃음.length)}`,
     ...경고줄('옮기기 빠짐', r.빠짐, 10),
     ...경고줄('설계 잃음', r.설계잃음, 10),
+    ...경고줄('기획서 제목에 없는 기능 묶음', [...제목밖], 10),
     ...경고줄('요구 아님', r.요구아님, 10, ''),
   ];
 }

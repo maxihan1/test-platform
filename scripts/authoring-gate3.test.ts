@@ -175,7 +175,7 @@ describe('마지막 전체 돌려 보기 경고 (작성 §3.6 · 2026-10-26 사�
   });
 });
 
-describe('끝검사줄들 — 앱 케이스는 폰이 없어 돌지 않았다고 적는다 (작성 §3.6 「앱 화면」 · APP-F1-09)', () => {
+describe('끝검사줄들 — 앱 케이스는 웹 돌려 보기로 세지 않는다 (작성 §3.6 「앱 화면」 · APP-F1-09 · 폰 줄은 폰끝검사 — PRD-F16-02)', () => {
   const 앱케이스 = "export const spec = defineCase({ tcId: 'MDA-FN-002', platforms: ['android'] });\n";
   const 웹케이스 = "export const spec = defineCase({ tcId: 'MDA-FN-003' });\n";
 
@@ -191,7 +191,7 @@ describe('끝검사줄들 — 앱 케이스는 폰이 없어 돌지 않았다고
 
     const 줄들 = 끝검사줄들(기록, 트리, 'mda', ['tests/mda/MDA-FN-002.spec.ts', 'tests/mda/MDA-FN-003.spec.ts']);
 
-    expect(줄들[0]).toBe('⚠️ 폰이 없어 돌려 보지 않은 앱 케이스 1개 — mda/MDA-FN-002.spec.ts');
+    expect(줄들.some((줄) => 줄.includes('앱 케이스'))).toBe(false);
     expect(줄들.some((줄) => 줄.includes('규칙대로 돌지 않았다'))).toBe(false);
   });
 
@@ -204,7 +204,7 @@ describe('끝검사줄들 — 앱 케이스는 폰이 없어 돌지 않았다고
     expect(앱케이스나누기(파일들, { 'mda/A.spec.ts': 1, 'mda/B.spec.ts': 2 })).toEqual({ 앱: ['mda/A.spec.ts'], 나머지: { 'mda/B.spec.ts': 2 } });
   });
 
-  it('앱 케이스만 바꿨으면 돌려 본 기록이 없어도 앱 경고 하나만 낸다', () => {
+  it('앱 케이스만 바꿨으면 돌려 본 기록이 없어도 웹 경고를 내지 않는다', () => {
     const 트리 = mkdtempSync(join(tmpdir(), 'gate3-트리-'));
     const 기록 = mkdtempSync(join(tmpdir(), 'gate3-기록-'));
     mkdirSync(join(트리, 'tests', 'mda'), { recursive: true });
@@ -212,7 +212,7 @@ describe('끝검사줄들 — 앱 케이스는 폰이 없어 돌지 않았다고
 
     const 줄들 = 끝검사줄들(기록, 트리, 'mda', ['tests/mda/MDA-FN-002.spec.ts']);
 
-    expect(줄들.filter((줄) => 줄.startsWith('⚠️'))).toEqual(['⚠️ 폰이 없어 돌려 보지 않은 앱 케이스 1개 — mda/MDA-FN-002.spec.ts']);
+    expect(줄들.filter((줄) => 줄.startsWith('⚠️'))).toEqual([]);
   });
 });
 
