@@ -1,13 +1,13 @@
-// 기준(main) SHA 의 파일로 화면 ↔ 케이스 지도를 세어 자료 폴더에 적는다 — 화면만 요청이 기획서 화면을 또 쓰지 않게(PRD-F6-03),
+// 기준(main) SHA 의 파일로 화면 ↔ 케이스 지도를 세어 자료 폴더에 적는다 — 화면만 요청이 테스트가 이미 확인한 화면을 또 쓰지 않게(PRD-F6-03),
 // 저장본과 달라진 화면을 쓰는 케이스만 돌려 보게(PRD-F6-04) (도메인/작성 §3.6 「기획서에 없는 화면 — 두 번째 작성」 · 「바뀐 화면 — 닿는 케이스만 다시 본다」)
-// 지도 ① · ② 와 같은 함수로 잇는다. 표준 기획서 지금 판 번호 → 그 번호를 덮는 케이스 → 케이스가 가져오는 화면 파일 → 화면 주소 → 크롤러 같은 틀.
+// 지도 ② 와 같은 함수로 잇는다. 서비스 폴더의 케이스 → 가져오는 화면 파일 → 화면 주소 · 여는 주소 → 크롤러 같은 틀.
+// 요구 번호는 안 본다 — 미검증 화면 셈(apps/admin/src/prd/found.ts)과 같은 규칙이다(작성 §3.6 「★ 결정 목록」 「세는 방식」 · WEB-F6-03).
 // DB 지도를 안 쓰는 까닭 — 지도는 병합 뒤 스캔이 채우므로 그 스캔이 끝나기 전이거나 main 을 못 받아 왔으면 방금 병합한 첫 PR 의 케이스가 없다
 
 import { rmSync } from 'node:fs';
 import { join, posix } from 'node:path';
 
-import { 지도줄들 } from '../apps/admin/src/catalog/reqMap.js';
-import { 가져온화면파일, 화면주소 } from '../apps/admin/src/catalog/screenMap.js';
+import { 가져온화면파일, 여는주소들, 화면주소 } from '../apps/admin/src/catalog/screenMap.js';
 import { 주소틀, 틀닿나 } from './authoring-crawl-rules.js';
 import { 케이스tcId } from './authoring-held-apply.js';
 import { type 깃손, 새로쓰기 } from './authoring-ledger-io.js';
@@ -18,8 +18,6 @@ export interface 덮은입력 {
   기준: string;
   서비스: string;
   폴더: string;
-  /** 표준 기획서 지금 판의 번호 */
-  번호들: readonly string[];
 }
 
 /** 기준 SHA 의 케이스 하나가 닿는 화면 */
@@ -29,29 +27,23 @@ export interface 케이스화면 {
   파일: string;
   /** 가져오는 화면 파일(pages · components) 경로 — 이번에 고쳤는지 볼 때 쓴다 */
   화면파일들: string[];
-  /** pages 화면 주소의 같은 틀(정렬) — 화면 조각은 여러 화면에 나와 주소가 없다(지도 ② 와 같다) */
+  /** pages 화면 주소 · 여는 주소의 같은 틀(정렬) — 화면 조각은 여러 화면에 나와 주소가 없다(지도 ② 와 같다) */
   틀들: string[];
 }
 
 /**
- * 기준 SHA 에서 서비스 폴더 케이스마다 닿는 화면과, PRD 의 번호를 덮는 케이스가 닿는 같은 틀 목록(정렬 · 중복 없음).
- * git 이 실패하면 까닭 — 다만 PRD 번호를 안 덮는 케이스의 화면 파일은 못 읽어도 `건너뜀` 에 싣고 간다(바뀐 화면 지도에서만 빠진다)
+ * 기준 SHA 에서 서비스 폴더 케이스마다 닿는 화면과, 그 케이스들이 닿는 같은 틀 목록(정렬 · 중복 없음 — 테스트가 이미 확인한 화면).
+ * 파일 목록이나 케이스 파일을 못 읽으면 까닭. 화면 파일은 못 읽어도 `건너뜀` 에 싣고 간다 — 화면만이면 화면지도준비가 막는다
  */
 export function 기준화면지도(입력: 덮은입력): { 케이스: 케이스화면[]; 덮은틀: string[]; 건너뜀: string[] } | { 까닭: string } {
-  const { 깃, 기준, 서비스, 폴더, 번호들 } = 입력;
-  const 표 = `docs/cases/${서비스}.md`;
-  const 목록 = 깃(['ls-tree', '-r', '-z', '--name-only', 기준, '--', 표, `tests/${폴더}`]);
+  const { 깃, 기준, 폴더 } = 입력;
+  const 목록 = 깃(['ls-tree', '-r', '-z', '--name-only', 기준, '--', `tests/${폴더}`]);
   if (!목록.ok) return { 까닭: `기준 판의 파일 목록을 못 읽었다: ${목록.까닭 ?? ''}` };
   const 파일들 = new Set(목록.낸것.split('\0').filter((f) => f !== ''));
   const 읽기 = (f: string): string | { 까닭: string } => {
     const r = 깃(['show', `${기준}:${f}`]);
     return r.ok ? r.낸것 : { 까닭: `기준 판의 ${f} 를 못 읽었다: ${r.까닭 ?? ''}` };
   };
-  // 표를 먼저 읽어 PRD 번호를 덮는 케이스를 안다 — 표가 없으면(처음 작성하는 서비스) 덮는 케이스가 없다
-  const 표글 = 파일들.has(표) ? 읽기(표) : '';
-  if (typeof 표글 !== 'string') return 표글;
-  const 지금 = new Set(번호들);
-  const 덮는케이스 = new Set(지도줄들(표글, 서비스).filter((x) => 지금.has(x.reqId)).map((x) => x.tcId));
   // 화면 파일 하나를 여러 케이스가 가져온다 — 한 번만 읽는다
   const 화면들 = new Map<string, string | { 까닭: string }>();
   const 화면읽기 = (f: string) => 화면들.get(f) ?? 화면들.set(f, 읽기(f)).get(f)!;
@@ -72,18 +64,18 @@ export function 기준화면지도(입력: 덮은입력): { 케이스: 케이스
       if (!상대.startsWith('pages/')) continue;
       const 화면글 = 화면읽기(경로);
       if (typeof 화면글 !== 'string') {
-        // PRD 에 있는 화면을 모르고 돌면 기획서 화면을 또 쓴다 — 그 케이스 것만 까닭이다
-        if (덮는케이스.has(tcId)) return 화면글;
         건너뜀.add(경로);
         continue;
       }
       const 주소 = 화면주소(화면글);
-      const 틀 = 주소 === null ? null : 주소틀(주소);
-      if (틀 !== null) 틀들.add(틀);
+      for (const u of [...(주소 === null ? [] : [주소]), ...여는주소들(화면글)]) {
+        const 틀 = 주소틀(u);
+        if (틀 !== null) 틀들.add(틀);
+      }
     }
     케이스.push({ tcId, 파일: f, 화면파일들, 틀들: [...틀들].sort() });
   }
-  const 덮은틀 = [...new Set(케이스.filter((x) => 덮는케이스.has(x.tcId)).flatMap((x) => x.틀들))].sort();
+  const 덮은틀 = [...new Set(케이스.flatMap((x) => x.틀들))].sort();
   return { 케이스, 덮은틀, 건너뜀: [...건너뜀].sort() };
 }
 
@@ -96,8 +88,8 @@ export function 화면케이스지도(케이스: readonly 케이스화면[]): Re
 }
 
 /**
- * 자료 폴더에 화면 ↔ 케이스 지도(`screen-cases.json`)를 쓰고, 화면만이면 PRD 에 이미 있는 화면(`covered.json`)도 쓴다(root 가 자식 폴더에 쓰는 안전한 꼴).
- * 화면만이 PRD 에 있는 화면을 못 세면 막힘(기획서 화면을 또 쓴다). 지도만 못 세거나 못 쓰면 경고 — 바뀐 화면 케이스를 안 볼 뿐이다
+ * 자료 폴더에 화면 ↔ 케이스 지도(`screen-cases.json`)를 쓰고, 화면만이면 테스트가 이미 확인한 화면(`covered.json`)도 쓴다(root 가 자식 폴더에 쓰는 안전한 꼴).
+ * 화면만이 확인한 화면을 다 못 세면 막힘(그 화면을 또 쓴다) — 화면 파일 하나를 못 읽어도 막는다. 지도만 못 세거나 못 쓰면 경고 — 바뀐 화면 케이스를 안 볼 뿐이다
  */
 export function 화면지도준비(입력: 덮은입력 & { 자료폴더: string; 화면만: boolean }): { 막힘: string } | { 경고: string | null } {
   const 지도파일 = join(입력.자료폴더, 화면케이스파일이름);
@@ -105,10 +97,12 @@ export function 화면지도준비(입력: 덮은입력 & { 자료폴더: string
   const 지도없이 = (까닭: string) => (rmSync(지도파일, { force: true }), 입력.화면만 ? { 막힘: 까닭 } : { 경고: 까닭 });
   const 지도 = 기준화면지도(입력);
   if ('까닭' in 지도) return 지도없이(지도.까닭);
+  const 앞 = 지도.건너뜀.slice(0, 3).join(' · ') + (지도.건너뜀.length > 3 ? ' …' : '');
+  const 건너뜀줄 = `화면 파일 ${String(지도.건너뜀.length)}개를 못 읽어 그 화면은 지도에서 뺐다 — ${앞}`;
+  if (입력.화면만 && 지도.건너뜀.length > 0) return 지도없이(건너뜀줄);
   if (입력.화면만 && !새로쓰기(join(입력.자료폴더, 덮은파일이름), JSON.stringify(지도.덮은틀))) return 지도없이(`${덮은파일이름} 를 자료 폴더에 못 썼다`);
   if (!새로쓰기(지도파일, JSON.stringify(화면케이스지도(지도.케이스)))) return { 경고: `${화면케이스파일이름} 를 자료 폴더에 못 썼다` };
-  const 앞 = 지도.건너뜀.slice(0, 3).join(' · ') + (지도.건너뜀.length > 3 ? ' …' : '');
-  return { 경고: 지도.건너뜀.length === 0 ? null : `화면 파일 ${String(지도.건너뜀.length)}개를 못 읽어 그 화면은 지도에서 뺐다 — ${앞}` };
+  return { 경고: 지도.건너뜀.length === 0 ? null : 건너뜀줄 };
 }
 
 /** 크롤 목록(list.json 글)에서 저장본이 바뀐 줄의 같은 틀(상태는 안 가른다). 못 읽으면 null */
@@ -138,7 +132,7 @@ export function 바뀐화면줄(바뀐틀: ReadonlySet<string>, 케이스: reado
   return `바뀐 화면: ${화면수}장 · 그 화면을 쓰는 케이스 ${닿는.length}건 · 그 케이스 · 화면 파일 가운데 이번에 고친 파일 ${고친.length}개${고친.length > 0 ? ` — ${앞}` : ''}`;
 }
 
-/** 크롤 목록(list.json 글)이 하나 이상이고 전부 PRD 에 이미 있는 화면이면 그 장수, 아니면 null */
+/** 크롤 목록(list.json 글)이 하나 이상이고 전부 테스트가 이미 확인한 화면이면 그 장수, 아니면 null */
 export function 모두덮음(목록글: string): number | null {
   try {
     const 목록: unknown = JSON.parse(목록글);

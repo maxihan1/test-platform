@@ -142,7 +142,7 @@ export function 틀케이스(틀: string, 지도: ReadonlyMap<string, readonly s
   return 모음.length === 0 && !지도.has(틀) ? undefined : [...new Set(모음)].sort();
 }
 
-/** 목록 줄이 PRD 에 이미 있는 화면인가 — 덮은 틀 집합에 `틀닿나` (상태는 안 가른다). 집합이 없으면 늘 아니다 */
+/** 목록 줄이 테스트가 이미 확인한 화면인가 — 덮은 틀 집합에 `틀닿나` (상태는 안 가른다). 집합이 없으면 늘 아니다 */
 export function 덮음인가(틀: string, 덮은틀: ReadonlySet<string> | null): boolean {
   return 덮은틀 !== null && 틀닿나(틀, 덮은틀);
 }

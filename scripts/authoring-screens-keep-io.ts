@@ -114,7 +114,7 @@ export function 크롤목록(자료: string): string | null {
   return 폴더인가(크롤) ? 안전히읽기(크롤, 'list.json', 목록상한) : null;
 }
 
-/** 자료 폴더의 크롤 목록(list.json)이 전부 PRD 에 이미 있는 화면이면 그 장수, 아니면(목록이 없거나 못 읽거나 덮지 않은 화면이 있다) null (PRD-F6-03) */
+/** 자료 폴더의 크롤 목록(list.json)이 전부 테스트가 이미 확인한 화면이면 그 장수, 아니면(목록이 없거나 못 읽거나 덮지 않은 화면이 있다) null (PRD-F6-03) */
 export function 크롤모두덮음(자료: string): number | null {
   const 글 = 크롤목록(자료);
   return 글 === null ? null : 모두덮음(글);
