@@ -56,18 +56,24 @@ const 셋 = ['expected', 'expected', 'expected'];
 const 하나 = ['expected'];
 const 수정 = (...파일들: string[]) => Object.fromEntries(파일들.map((f) => [f, 앞수정]));
 
-describe('마지막 전체 돌려 보기 경고 (작성 §3.6 · 2026-10-19 사용자 — 보조 AI 3번 + 마지막 1번)', () => {
-  it('보조 AI 가 3번 다 초록이고 그 뒤 안 고친 파일은 마지막 1번이면 된다', () => {
+describe('마지막 전체 돌려 보기 경고 (작성 §3.6 · 2026-10-26 사용자 — 보조 AI 한 판 + 마지막 3번)', () => {
+  it('보조 AI 한 판 뒤 마지막 3번이 다 초록이면 된다', () => {
+    expect(
+      끝돌려보기경고([보조(결과({ 'mkt/A.spec.ts': 하나 }, { workers: 2 })), 끝(결과({ 'mkt/A.spec.ts': 셋 }, { startTime: 뒤 }))], 수정('mkt/A.spec.ts')),
+    ).toBeNull();
+  });
+
+  it('보조 AI 3번 + 마지막 1번이면 경고 — 이어받은 옛 보조 3번 기록은 근거가 아니다 (PRD-F15-01)', () => {
     expect(
       끝돌려보기경고([보조(결과({ 'mkt/A.spec.ts': 셋 }, { workers: 2 })), 끝(결과({ 'mkt/A.spec.ts': 하나 }, { startTime: 뒤 }))], 수정('mkt/A.spec.ts')),
-    ).toBeNull();
+    ).toMatch(/3번 다 초록인 기록이 없는 파일 1개/);
   });
 
   it('마지막 기록이 3번 다 초록이면 그것 하나로 된다 — 합친 뒤 고친 케이스', () => {
     expect(끝돌려보기경고([끝(결과({ 'mkt/A.spec.ts': 셋, 'mkt/B.spec.ts': 셋 }))], 수정('mkt/A.spec.ts', 'mkt/B.spec.ts'))).toBeNull();
   });
 
-  it('보조 AI 3번만 있고 마지막 전체 돌려 보기에 없으면 경고', () => {
+  it('보조 AI 기록만 있고 마지막 전체 돌려 보기에 없으면 경고', () => {
     expect(끝돌려보기경고([보조(결과({ 'mkt/A.spec.ts': 셋 }))], 수정('mkt/A.spec.ts'))).toMatch(/마지막 전체 돌려 보기에서 빠진 파일 1개/);
   });
 
@@ -75,20 +81,11 @@ describe('마지막 전체 돌려 보기 경고 (작성 §3.6 · 2026-10-19 사�
     expect(끝돌려보기경고([끝(결과({ 'mkt/A.spec.ts': 하나 }))], 수정('mkt/A.spec.ts'))).toMatch(/3번 다 초록인 기록이 없는 파일 1개/);
   });
 
-  it('보조 AI 가 돌린 뒤 고쳤으면 그 3번은 못 쓴다 — 마지막 1번이면 경고, 마지막 3번이면 된다', () => {
+  it('보조 AI 한 판이 빨강이어도 고친 뒤 마지막 3번이 다 초록이면 된다', () => {
     const 사이 = Date.parse(시작) + 60_000;
-    const 앞3번 = 보조(결과({ 'mkt/A.spec.ts': 셋 }));
-    expect(끝돌려보기경고([앞3번, 끝(결과({ 'mkt/A.spec.ts': 하나 }, { startTime: 뒤 }))], { 'mkt/A.spec.ts': 사이 })).toMatch(/3번 다 초록인 기록이 없는/);
-    expect(끝돌려보기경고([앞3번, 끝(결과({ 'mkt/A.spec.ts': 셋 }, { startTime: 뒤 }))], { 'mkt/A.spec.ts': 사이 })).toBeNull();
-  });
-
-  it('보조 AI 의 3번에 빨강이 섞였으면 3번 근거가 아니다', () => {
     expect(
-      끝돌려보기경고(
-        [보조(결과({ 'mkt/A.spec.ts': ['expected', 'unexpected', 'expected'] })), 끝(결과({ 'mkt/A.spec.ts': 하나 }, { startTime: 뒤 }))],
-        수정('mkt/A.spec.ts'),
-      ),
-    ).toMatch(/3번 다 초록인 기록이 없는 파일 1개/);
+      끝돌려보기경고([보조(결과({ 'mkt/A.spec.ts': ['unexpected'] })), 끝(결과({ 'mkt/A.spec.ts': 셋 }, { startTime: 뒤 }))], { 'mkt/A.spec.ts': 사이 }),
+    ).toBeNull();
   });
 
   it('차례로 나눠 돈 덩어리 여럿을 합쳐 본다', () => {
@@ -120,17 +117,14 @@ describe('마지막 전체 돌려 보기 경고 (작성 §3.6 · 2026-10-19 사�
   it('마지막 기록을 동시에 돌렸으면 경고 — 보조 AI 기록은 PC · 휴대폰을 한 번에 돌려 동시 둘이어도 된다', () => {
     expect(끝돌려보기경고([끝(결과({ 'mkt/A.spec.ts': 셋 }, { workers: 3 }))], 수정('mkt/A.spec.ts'))).toMatch(/동시 3개/);
     expect(
-      끝돌려보기경고([보조(결과({ 'mkt/A.spec.ts': 셋 }, { workers: 2 })), 끝(결과({ 'mkt/A.spec.ts': 하나 }, { startTime: 뒤 }))], 수정('mkt/A.spec.ts')),
+      끝돌려보기경고([보조(결과({ 'mkt/A.spec.ts': 하나 }, { workers: 2 })), 끝(결과({ 'mkt/A.spec.ts': 셋 }, { startTime: 뒤 }))], 수정('mkt/A.spec.ts')),
     ).toBeNull();
   });
 
-  it('응답을 늦추지 않고 돈 기록은 3번 근거가 아니고, 마지막 기록이 그러면 따로 센다 (PRD-F9-35)', () => {
-    expect(
-      끝돌려보기경고([보조(결과({ 'mkt/A.spec.ts': 셋 }, { slowApi: false })), 끝(결과({ 'mkt/A.spec.ts': 하나 }, { startTime: 뒤 }))], 수정('mkt/A.spec.ts')),
-    ).toMatch(/3번 다 초록인 기록이 없는 파일 1개/);
-    expect(
-      끝돌려보기경고([보조(결과({ 'mkt/A.spec.ts': 셋 })), 끝(결과({ 'mkt/A.spec.ts': 하나 }, { startTime: 뒤, slowApi: false }))], 수정('mkt/A.spec.ts')),
-    ).toMatch(/서버 응답을 늦추지 않고 돈 파일 1개/);
+  it('응답을 늦추지 않고 돈 마지막 기록은 3번 근거가 아니고 따로 센다 (PRD-F9-35)', () => {
+    expect(끝돌려보기경고([끝(결과({ 'mkt/A.spec.ts': 셋 }, { slowApi: false }))], 수정('mkt/A.spec.ts'))).toMatch(
+      /3번 다 초록인 기록이 없는 파일 1개 · 서버 응답을 늦추지 않고 돈 파일 1개/,
+    );
   });
 
   it('돌려 보지 않은 파일을 센다 · 휴대폰 결과는 세지 않는다 — PC 만', () => {
