@@ -46,17 +46,19 @@ export function 잡은폰(트리: string, 갈래: 폰갈래 = '게임'): string 
 }
 
 /**
- * 폰 케이스가 갈 서버 — 어드민 키가 있으면 에이전트가 그 줄 주소를 `PLATFORM_BASE_URL` 로 넘겼다. 없으면 `PLATFORM_ACCOUNTS` 맨 앞(앱 줄 — 작성.md §3.6 「★ 역할별 계정」)의 주소.
+ * 폰 케이스가 갈 서버 — 게임은 어드민 키가 있으면 에이전트가 그 줄 주소를 `PLATFORM_BASE_URL` 로 넘겼다. 없으면 `PLATFORM_ACCOUNTS` 맨 앞(앱 줄 — 작성.md §3.6 「★ 역할별 계정」)의 주소.
+ * 앱은 에이전트가 주소를 안 넘겨 `PLATFORM_BASE_URL` 이 AI 가 고른 것이다 — 프롬프트 서버 목록에는 어느 줄이 앱 줄인지 없어서 계정 맨 앞을 먼저 본다(`계정먼저`).
  * 둘 다 없으면 null — AI 가 주소를 고르면 키 · 계정과 다른 서버로 갈 수 있다
  */
-export function 앱줄주소(env: NodeJS.ProcessEnv): string | null {
-  if (env.PLATFORM_BASE_URL) return env.PLATFORM_BASE_URL;
+export function 앱줄주소(env: NodeJS.ProcessEnv, 계정먼저 = false): string | null {
+  let 첫줄: unknown;
   try {
-    const 첫줄 = (JSON.parse(env.PLATFORM_ACCOUNTS || '[]') as { baseUrl?: unknown }[])[0]?.baseUrl;
-    return typeof 첫줄 === 'string' && 첫줄 !== '' ? 첫줄 : null;
+    첫줄 = (JSON.parse(env.PLATFORM_ACCOUNTS || '[]') as { baseUrl?: unknown }[])[0]?.baseUrl;
   } catch {
-    return null;
+    첫줄 = undefined;
   }
+  const 계정줄 = typeof 첫줄 === 'string' && 첫줄 !== '' ? 첫줄 : null;
+  return (계정먼저 ? (계정줄 ?? env.PLATFORM_BASE_URL) : (env.PLATFORM_BASE_URL || 계정줄)) || null;
 }
 
 /** kit 이 팜 폰에 붙는 환경값 — 정식 실행의 러너(execute.ts gameEnv)와 같다. 앱도 셋 다 적는다 — 셸의 게임 값을 물려받으면 kit 이 게임 설정으로 붙는다 */
@@ -156,7 +158,7 @@ export async function 폰실행(갈래: 폰갈래, 폴더: string | undefined, �
     console.error(`${머리} 디바이스 팜이 안 붙어 폰에서 못 돌린다 — 결과 요약 「3번 돌려 보기」 줄에 \`안 돌림(디바이스 팜 없음)\` 을 적는다`);
     return 2;
   }
-  const 주소 = 앱줄주소(env);
+  const 주소 = 앱줄주소(env, 갈래 === '앱');
   if (주소 === null) {
     console.error(`${머리} 앱 줄을 모른다(어드민 키 · 계정이 없다) — 폰에서 못 돌린다. 결과 요약 「3번 돌려 보기」 줄에 \`안 돌림(앱 줄 모름)\` 을 적는다`);
     return 2;
@@ -219,6 +221,14 @@ export function 폰에서볼자리(주소: string): { 호스트: string; 포트:
 
 export type 두드린결과 = { 닿음: boolean } | { 모름: string };
 
+/** `nc -z … ; echo rc=$?` 의 답. -z 가 없는 옛 toybox · nc 가 없는 폰 · 끝 코드가 없는 답은 닿는지 모른다 — 못 닿음으로 치면 멀쩡한 작성을 멈춘다 */
+export function nc답읽기(답: { stdout?: string; stderr?: string }): 두드린결과 {
+  const 끝코드 = /rc=(\d+)/.exec(답.stdout ?? '')?.[1];
+  const 오류 = (답.stderr ?? '').trim().split('\n')[0] ?? '';
+  if (끝코드 === undefined || /unknown option|usage|not found|inaccessible/i.test(오류)) return { 모름: 오류 || '폰이 끝 코드를 안 돌려줬다' };
+  return { 닿음: 끝코드 === '0' };
+}
+
 /** 잡은 폰에 앱 없이 붙어 `nc -z` 로 포트를 두드린다. 팜이 연 adb 명령 길(`uiautomator2:adb_shell` — 러너 §5.2 「디바이스 팜 접속 방식」)을 쓴다 */
 async function 폰에서두드리기(appium: string, 폰: string, 자리: { 호스트: string; 포트: number }): Promise<두드린결과> {
   const url = new URL(appium);
@@ -240,12 +250,7 @@ async function 폰에서두드리기(appium: string, 폰: string, 자리: { 호�
   }
   try {
     // 끝 코드를 글로 받는다 — 옛 adb(shell v2 없음)는 끝 코드를 안 넘겨 던지기만으로는 거절도 닿음으로 읽힌다. `;` 뒤는 폰 셸이 읽는다
-    const 답 = (await 연결.execute('mobile: shell', { command: 'nc', args: ['-z', '-w', '3', 자리.호스트, String(자리.포트), ';', 'echo', 'rc=$?'], includeStderr: true })) as { stdout?: string; stderr?: string };
-    const 끝코드 = /rc=(\d+)/.exec(답.stdout ?? '')?.[1];
-    const 오류 = (답.stderr ?? '').trim().split('\n')[0] ?? '';
-    // -z 가 없는 옛 toybox · nc 가 없는 폰은 닿는지 모른다 — 못 닿음으로 치면 멀쩡한 작성을 멈춘다
-    if (끝코드 === undefined || /unknown option|usage|not found|inaccessible/i.test(오류)) return { 모름: 오류 || '폰이 끝 코드를 안 돌려줬다' };
-    return { 닿음: 끝코드 === '0' };
+    return nc답읽기((await 연결.execute('mobile: shell', { command: 'nc', args: ['-z', '-w', '3', 자리.호스트, String(자리.포트), ';', 'echo', 'rc=$?'], includeStderr: true })) as { stdout?: string; stderr?: string });
   } catch (e) {
     // 명령이 안 돌았다 — 팜이 adb 명령 길을 닫았거나 세션이 끊겼다
     return { 모름: e instanceof Error ? e.message.split('\n')[0]! : String(e) };
@@ -265,7 +270,7 @@ export async function 앱서버확인(트리: string, env: NodeJS.ProcessEnv, �
     return 2;
   };
   if (!env.PLATFORM_APPIUM_URL) return 모름('디바이스 팜이 안 붙었다');
-  const 주소 = 앱줄주소(env);
+  const 주소 = 앱줄주소(env, true);
   if (주소 === null) return 모름('앱 줄을 모른다(계정이 없다)');
   const 자리 = 폰에서볼자리(주소);
   if (자리 === null) return 모름(`주소 꼴이 아니다: ${주소}`);

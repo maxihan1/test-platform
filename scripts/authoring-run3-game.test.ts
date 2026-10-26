@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { 기록남기며비우기, 끝검사줄들 } from './authoring-gate3.js';
-import { 빨간폰케이스, 앱서버확인, 앱줄주소, 앱케이스말, 잡은폰, 폰끝검사, 폰실행, 폰에서볼자리, 폰할일 } from './authoring-run3-game.js';
+import { nc답읽기, 빨간폰케이스, 앱서버확인, 앱줄주소, 앱케이스말, 잡은폰, 폰끝검사, 폰실행, 폰에서볼자리, 폰할일 } from './authoring-run3-game.js';
 
 const 게임케이스 = `defineCase({ tcId: 'G-FN-001', platforms: ['android'] }, async ({ game }) => { await game.click('Start'); });`;
 const 웹케이스 = `defineCase({ tcId: 'G-FN-002', platforms: ['desktop'] }, async ({ page }) => { await page.goto('/'); });`;
@@ -157,6 +157,13 @@ describe('앱줄주소 — 게임 케이스가 갈 서버', () => {
     expect(앱줄주소({})).toBeNull();
     expect(앱줄주소({ PLATFORM_ACCOUNTS: '[{' })).toBeNull();
   });
+
+  it('앱은 계정 맨 앞(앱 줄)이 AI 가 붙인 주소보다 먼저, 계정이 없으면 붙인 주소', () => {
+    const 계정 = JSON.stringify([{ baseUrl: 'http://qa.g.test', role: '일반 회원' }]);
+    expect(앱줄주소({ PLATFORM_BASE_URL: 'http://dev.g.test', PLATFORM_ACCOUNTS: 계정 }, true)).toBe('http://qa.g.test');
+    expect(앱줄주소({ PLATFORM_BASE_URL: 'http://dev.g.test' }, true)).toBe('http://dev.g.test');
+    expect(앱줄주소({}, true)).toBeNull();
+  });
 });
 
 describe('기록남기며비우기 — 이어하기가 폰 돌려 보기 기록도 넘긴다', () => {
@@ -187,6 +194,16 @@ describe('폰에서볼자리 — 맥의 서버는 팜이 이은 폰의 127.0.0.1
     expect(폰에서볼자리('https://qa.shop.test')).toEqual({ 호스트: 'qa.shop.test', 포트: 443 });
     expect(폰에서볼자리('http://10.0.0.5')).toEqual({ 호스트: '10.0.0.5', 포트: 80 });
     expect(폰에서볼자리('qa.shop.test')).toBeNull();
+  });
+});
+
+describe('nc답읽기 — 폰 셸이 돌려준 끝 코드 글', () => {
+  it('rc=0 닿음 · rc=1 못 닿음 · 옵션을 모르거나 nc 가 없거나 끝 코드가 없으면 모름', () => {
+    expect(nc답읽기({ stdout: 'rc=0\n', stderr: '' })).toEqual({ 닿음: true });
+    expect(nc답읽기({ stdout: 'rc=1\n', stderr: '' })).toEqual({ 닿음: false });
+    expect(nc답읽기({ stdout: 'rc=1\n', stderr: "nc: Unknown option 'z' (see \"nc --help\")" })).toEqual({ 모름: "nc: Unknown option 'z' (see \"nc --help\")" });
+    expect(nc답읽기({ stdout: 'rc=127\n', stderr: '/system/bin/sh: nc: inaccessible or not found' })).toEqual({ 모름: '/system/bin/sh: nc: inaccessible or not found' });
+    expect(nc답읽기({ stdout: '' })).toEqual({ 모름: '폰이 끝 코드를 안 돌려줬다' });
   });
 });
 
