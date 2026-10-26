@@ -248,7 +248,8 @@ export async function 케이스지도(서비스: number): Promise<Record<string,
  * 케이스 고치기(EDIT · 그 다시 적용)는 표준 기획서를 안 읽어 기준이 못 된다. 기준이 없거나 그 실행이 판을 안 읽었으면 null — 전부 반영 안 됨이다.
  * 바뀐 API 다시 작성(apiApply)도 못 된다 — 집을 때 지금 판을 적지만 요구를 안 고쳐, 그 사이 고친 요구가 반영된 것처럼 사라진다 (작성 §3.6 「세는 방식」)
  */
-export async function 기준판(서비스: number): Promise<{ version: number; items: PrdItem[] } | null> {
+// 전 — 그 시각까지 끝난 병합만 본다. 작성 목록이 반영 요청이 시작할 때의 기준을 다시 잴 때 쓴다 (§7 「목록 줄 summary」)
+export async function 기준판(서비스: number, 전?: Date): Promise<{ version: number; items: PrdItem[] } | null> {
   const r = await (await db()).query<{ version: number | null; items: PrdItem[] | null }>(
     `SELECT v.version, v.items
        FROM authoring_request m
@@ -256,9 +257,10 @@ export async function 기준판(서비스: number): Promise<{ version: number; i
        LEFT JOIN prd_version v ON v.service_id = src.service_id AND v.version = src.prd_version
       WHERE m.service_id = $1 AND m.kind = 'MERGE' AND m.status = 'DONE'
         AND src.kind IN ('AUTHOR', 'RERUN') AND NOT (src.params ? 'edits') AND NOT (src.params ? 'apiApply')
+        AND ($2::timestamptz IS NULL OR m.finished_at <= $2)
       ORDER BY m.finished_at DESC NULLS LAST, m.id DESC
       LIMIT 1`,
-    [서비스],
+    [서비스, 전 ?? null],
   );
   const 행 = r.rows[0];
   return 행?.version == null || 행.items === null ? null : { version: 행.version, items: 행.items };

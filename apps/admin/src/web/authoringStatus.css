@@ -259,3 +259,8 @@
 .side-by-side ul { margin: 0; padding-left: 18px; font-size: 13px; color: var(--ink-muted); }
 .side-same { background: var(--rail-active); border-radius: 3px; padding: 0 3px; }
 .side-by-side .mono + .mono { margin-left: 6px; }
+
+/* 목록 줄 — [종류] 무슨 테스트 / 결과 / 시작한 곳. 꼬리표는 판정이 아니라 잉크다 (WEB-F6-06 시안 「목록 요청 내용」) */
+.authoring-kind { display: inline-block; margin-right: 8px; padding: 1px 8px; border-radius: 6px; background: var(--line); color: var(--ink); font-size: 12px; font-weight: 600; white-space: nowrap; }
+.title small.authoring-result { color: var(--ink-muted); }
+.title small.authoring-result.fail { color: var(--fail-text); }

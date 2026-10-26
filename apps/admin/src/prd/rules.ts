@@ -103,7 +103,7 @@ function 내용같나(a: 들어온항목 | PrdItem, b: PrdItem): boolean {
 }
 
 // params.screenRight 의 칸들 — 2026-10-13 PRD-F9-20 부터 목록이고 그 전 행은 한 칸 객체다
-function 화면칸들(params: Record<string, unknown>): { reqIds?: unknown; runId?: unknown; tcId?: unknown }[] {
+export function 화면칸들(params: Record<string, unknown>): { reqIds?: unknown; runId?: unknown; tcId?: unknown }[] {
   const s = params.screenRight;
   return (Array.isArray(s) ? s : s === undefined ? [] : [s]) as { reqIds?: unknown; runId?: unknown; tcId?: unknown }[];
 }

@@ -1,4 +1,4 @@
-// 작성 목록 줄의 assets · todo · ?todo=1 검사 (SPEC 도메인/작성 §7 목록 · 2026-10-19 ⑫ 점검 11.1 · 11.2)
+// 작성 목록 줄의 summary 자료 · todo · ?todo=1 검사 (SPEC 도메인/작성 §7 목록 · 2026-10-19 ⑫ 점검 11.2 · 2026-10-26 WEB-F6-06)
 
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -18,7 +18,7 @@ const 보류 = {
 };
 const 겹침 = { tcId: 'XWI-FN-002', name: '로그인', file: 'tests/xwi/login.spec.ts', kinds: ['NAME'], with: [{ tcId: 'XWI-FN-009', name: '로그인', file: 'tests/xwi/a.spec.ts' }] };
 
-describe.skipIf(연결 === undefined)('작성 목록 assets · todo', () => {
+describe.skipIf(연결 === undefined)('작성 목록 summary 자료 · todo', () => {
   let app: FastifyInstance;
   let 서비스 = 0;
 
@@ -45,7 +45,7 @@ describe.skipIf(연결 === undefined)('작성 목록 assets · todo', () => {
 
   const 목록 = async (쿼리 = '') =>
     (await app.inject({ method: 'GET', url: `/api/authoring/requests?service=${접두사}${쿼리}` })).json<{
-      items: { rootId: number; assets: { first: string; more: number } | null; todo: { heldOpen: number; conflictsOpen: number; apply: string | null } }[];
+      items: { rootId: number; assets?: unknown; summary: { from: { assets: { name: string; figma: boolean }[]; assetsMore: number } }; todo: { heldOpen: number; conflictsOpen: number; apply: string | null } }[];
       total: number;
     }>();
 
@@ -77,7 +77,7 @@ describe.skipIf(연결 === undefined)('작성 목록 assets · todo', () => {
     await app.close();
   });
 
-  it('assets 는 뿌리의 입력 자료 가운데 처음 넣은 것과 나머지 수 · 자료가 없으면 null', async () => {
+  it('summary 자료는 뿌리의 입력 자료를 자리 차례로 · 옛 assets 칸은 없다', async () => {
     const { pool } = await import('../db/index.js');
     await pool.query('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
     const 가 = await 행({ status: 'FAILED' });
@@ -89,8 +89,10 @@ describe.skipIf(연결 === undefined)('작성 목록 assets · todo', () => {
     const 나 = await 행({ status: 'FAILED' });
 
     const r = await 목록();
-    expect(r.items.find((i) => i.rootId === 가)?.assets).toEqual({ first: '회원가입 기획서.docx', more: 1 });
-    expect(r.items.find((i) => i.rootId === 나)?.assets).toBeNull();
+    const 줄 = (id: number) => r.items.find((i) => i.rootId === id)!;
+    expect(줄(가).summary.from.assets).toEqual([{ name: '회원가입 기획서.docx', figma: false }, { name: '결제.pdf', figma: false }]);
+    expect(줄(나).summary.from.assets).toEqual([]);
+    expect(줄(가).assets).toBeUndefined();
   });
 
   it('todo — 보류 · 겹침은 머지를 뺀 최신 작성 실행 기준, apply 는 뿌리의 최신 실행 기준', async () => {

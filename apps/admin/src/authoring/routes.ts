@@ -14,6 +14,7 @@ import { 행케이스 } from './cases.js';
 import { 행커버리지 } from './coverage.js';
 import { 피그마주소정규화 } from './figma.js';
 import { 피그마막힘 } from './figmaCheck.js';
+import { 목록요약들 } from './listSummary.js';
 import { 보류상세, 보류통로 } from './held-routes.js';
 import { 머지세우기 } from './merge.js';
 import { API칸판정, 재실행API } from './apiDoc.js';
@@ -276,6 +277,8 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
         cases: 행케이스(행.result),
         ...(await 이어작성상세(뿌리번호)),
         uncoveredOf: await 밖화면뿌리읽기(뿌리번호),
+        // 상세 머리 제목 — 목록 줄과 같은 summary 다 (§7 「목록 줄 summary」)
+        summary: (await 목록요약들(행.serviceId, [뿌리번호])).get(뿌리번호)!,
         expected: 다섯단계인가(행) ? await 작성예상(행.serviceId) : null,
       };
     },

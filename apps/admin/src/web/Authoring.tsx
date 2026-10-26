@@ -12,14 +12,14 @@ import { decideApi } from './decideApi.js';
 import { Drawer } from './Drawer.js';
 import { AuthoringStartModal } from './AuthoringStartModal.js';
 import { 목록글 } from './authoringStatus.js';
-import { 반영보임, 요청제목, 종류라벨, 줄보임, 칩글, 할일칩들, type 보임 } from './authoringView.js';
+import { 결과글, 무슨테스트, 시작글, 종류꼬리표 } from './authoringSummary.js';
+import { 반영보임, 줄보임, 칩글, 할일칩들, type 보임 } from './authoringView.js';
 import { Head } from './Head.js';
-import { 방식 } from './AuthoringRuns.js';
 import { use말, use언어 } from './i18n.js';
 import { use주소조건, 주소조건 } from './leaveGuard.js';
 import { 다음이있나 } from './paging.js';
 import type { 판정 } from './role.js';
-import { Failed, Loading, useAsync, when } from './ui.js';
+import { Failed, Loading, useAsync } from './ui.js';
 
 function 표머리() {
   const t = use말();
@@ -44,46 +44,29 @@ function 띠색(보: 보임 | 'waiting'): string {
 }
 
 function 작성줄({ 것, 지금, 운영자 }: { 것: AuthoringListRow; 지금: number; 운영자: boolean }) {
-  const t = use말();
   const 언어 = use언어();
   const 보 = 줄보임(것, 지금);
   // 사람 손이 남았으면 상태 대신 할 일 칩을 단다 — 남았는데 초록 「완료」로 보이던 것을 고친다 (점검 11.2 · N2)
   const 할일 = 할일칩들(것.todo, 언어);
   const 보임 = 반영보임(보, 것.todo.apply);
-  // 보이는 번호는 뿌리 하나다 — 줄은 그 요청의 최신 실행이고 몇 차인지 붙인다 (도메인/작성 §7 「실행 기록」)
+  // 보이는 번호는 뿌리 하나다 — 줄은 그 요청의 최신 실행이다 (도메인/작성 §7 「실행 기록」)
   const 번호 = 것.rootId ?? 것.id;
-  const 차 = 것.runCount ?? 1;
+  // 끝나기 전이거나 셀 것이 없으면 지금 상태 글이 둘째 줄이다 (2026-10-26 WEB-F6-06 시작 질문)
+  const 결과 = 결과글(것.summary, 언어);
+  const 종류 = 종류꼬리표(것.summary, 언어);
+  const 제목 = 무슨테스트(것.summary, 언어);
   return (
     <div className="row authoring-row">
       <div className="gutter" style={{ background: 띠색(보임) }} />
       <div className="tcid">#{번호}</div>
       <div className="title">
-        {/* 제목은 넣은 자료 이름이다 — 번호 · 상태 문장만으로는 무엇을 요청했는지 몰랐다 (점검 11.1) */}
-        <a href={`#/authoring/${String(번호)}`}>{요청제목(것.assets, 것, 언어)}</a>
-        <small>
-          {목록글(것, 언어, 운영자)} ·{' '}
-          {차 > 1 ? (
-            <>
-              {t('{차}차', { 차 })} · {방식(것, t, 것.rootKind)}
-            </>
-          ) : 것.continueFrom == null && 것.uncoveredOf == null ? (
-            종류라벨(것.rootKind ?? 것.kind, 언어)
-          ) : null}
-          {/* 평문이다 — 줄 전체가 링크라 안에 링크를 두면 마우스로 못 누른다. 첫 실행이면 종류 라벨 자리에 */}
-          {것.continueFrom == null ? null : (
-            <>
-              {차 > 1 ? ' · ' : null}
-              {t('#{번호}의 남은 요구', { 번호: 것.continueFrom })}
-            </>
-          )}
-          {것.uncoveredOf == null ? null : (
-            <>
-              {차 > 1 ? ' · ' : null}
-              {t('#{번호} 다음 · 기획서에 없는 화면', { 번호: 것.uncoveredOf })}
-            </>
-          )}
-          {것.compare === true ? ` · ${t('화면과 대조')}` : ''} · {t('요청한 사람')} {것.requestedByName} · {when(것.createdAt, 언어)}
-        </small>
+        {/* 제목은 무슨 테스트인가다 — 자료 이름 제목은 무엇을 만들었는지 몰랐다 (도메인/작성 §3.6 「작성 목록 줄」) */}
+        {/* 제목이 종류로 떨어졌으면(끝나기 전 · 자료 없음) 꼬리표를 또 달지 않는다 — 같은 글이 두 번 선다 */}
+        {제목 === 종류 ? null : <span className="authoring-kind">{종류}</span>}
+        <a href={`#/authoring/${String(번호)}`}>{제목}</a>
+        {/* 중단은 판정이 아니다 — 사람이나 한도가 멈춘 것이라 실패 색을 쓰지 않는다 (DESIGN.md 「작성 상태」 · 띠색과 같다) */}
+        <small className={결과?.실패 === true && 것.status !== 'STOPPED' ? 'authoring-result fail' : 'authoring-result'}>{결과?.글 ?? 목록글(것, 언어, 운영자)}</small>
+        <small>{시작글(것.summary, 것, 언어)}</small>
       </div>
       <div className="right">
         {할일.length === 0 ? (

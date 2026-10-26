@@ -100,24 +100,6 @@ export function 반영보임(보: 보임, 반영: 반영 | undefined): 보임 | 
   return 보;
 }
 
-/** 목록 · 상세 머리의 제목 — 넣은 자료 이름(점검 11.1). 자료가 없으면 무엇을 하는 요청인지 */
-export function 요청제목(
-  자료: { first: string; more: number } | null | undefined,
-  행: Pick<AuthoringRow, 'compare'> & { rootKind?: AuthoringRow['kind'] },
-  언어: 언어,
-): string {
-  if (자료 != null) return 자료.more > 0 ? t('{이름} 외 {수}개', 언어, { 이름: 자료.first, 수: 자료.more }) : 자료.first;
-  if (행.rootKind === 'EDIT') return t('케이스 고치기', 언어);
-  if (행.compare === true) return t('화면만 — 기획서 없이 대조', 언어);
-  return t('자료 없음', 언어);
-}
-
-/** 상세의 입력 자료 목록을 목록 줄과 같은 모양으로 — 처음 넣은 것(자리 순)과 나머지 수 */
-export function 자료요약(입력: { name: string; position?: number }[]): { first: string; more: number } | null {
-  const 첫 = [...입력].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))[0];
-  return 첫 === undefined ? null : { first: 첫.name, more: 입력.length - 1 };
-}
-
 /** 할 일 칩 글자들 — 입력 필요 N · 중복 N · 반영 대기 · 반영 실패 (도메인/작성 §7 목록 todo) */
 export function 할일칩들(todo: AuthoringTodoCount, 언어: 언어): { 글: string; 실패: boolean }[] {
   return [
