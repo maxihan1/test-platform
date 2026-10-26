@@ -10,7 +10,7 @@ import { 행의고칠것 } from './edit.js';
 import { 보류들 } from './held.js';
 import { 결정수, 밖화면뿌리 } from './params.js';
 import { 기준판 } from '../prd/store.js';
-import { 반영안됨, 화면번호들 } from '../prd/rules.js';
+import { 반영안됨, 화면번호들, 화면칸들 } from '../prd/rules.js';
 import { db } from './store.js';
 
 export type 요약종류 = 'PRD' | 'API_DOC' | 'UNCOVERED' | 'SCREEN_ONLY' | 'CONTINUE' | 'PRD_APPLY' | 'API_APPLY' | 'DECISION' | 'EDIT';
@@ -55,7 +55,7 @@ interface 줄 {
   root_params: Record<string, unknown>;
   continue_from: string | null;
   compare: boolean;
-  status: string;
+  status: string | null;
   stage: string | null;
   result: unknown;
   prd_version: number | null;
@@ -128,7 +128,7 @@ export async function 목록요약들(서비스: number, 뿌리들: number[]): P
               (SELECT COALESCE(json_agg(json_build_object('name', y.name, 'figma', y.kind = 'FIGMA') ORDER BY y.position), '[]'::json)
                  FROM (SELECT name, kind, position FROM authoring_asset s
                         WHERE s.request_id = r.id AND s.role = 'INPUT' ORDER BY position LIMIT ${자료수}) y) AS assets
-         FROM authoring_request r JOIN 작성 ON 작성.root_id = r.id
+         FROM authoring_request r LEFT JOIN 작성 ON 작성.root_id = r.id
         WHERE r.id = ANY($1::bigint[])`,
       [뿌리들],
     ),
@@ -167,6 +167,13 @@ export async function 목록요약들(서비스: number, 뿌리들: number[]): P
     for (const x of s.rows) 화면이름.set(x.url, x.name);
   }
 
+  const 바뀐요구 = new Map(
+    await Promise.all(
+      r.rows
+        .filter((x) => { const k = 종류들.get(x.root_id); return k === 'PRD_APPLY' || k === 'DECISION'; })
+        .map(async (x) => [x.root_id, await 바뀐요구수(서비스, x, 판들)] as const),
+    ),
+  );
   const 결과표 = new Map<number, 목록요약>();
   for (const x of r.rows) {
     const kind = 종류들.get(x.root_id)!;
@@ -182,7 +189,6 @@ export async function 목록요약들(서비스: number, 뿌리들: number[]): P
     const 고칠것 = kind === 'EDIT' ? 행의고칠것(x.root_params) : null;
     const tcIds = (고칠것 ?? []).map((e) => (e as { tcId: string }).tcId);
     const 지우기수 = (고칠것 ?? []).filter((e) => (e as { delete?: unknown }).delete === true).length;
-    const 화면이맞음 = Array.isArray(x.root_params.screenRight) ? x.root_params.screenRight.length : 0;
     결과표.set(Number(x.root_id), {
       kind,
       what: {
@@ -190,8 +196,8 @@ export async function 목록요약들(서비스: number, 뿌리들: number[]): P
         featuresMore: 기능.더,
         screens: 화면.위,
         screensMore: 화면.더,
-        reqs: kind === 'PRD_APPLY' || kind === 'DECISION' ? await 바뀐요구수(서비스, x, 판들) : 0,
-        screenRight: 화면이맞음,
+        reqs: 바뀐요구.get(x.root_id) ?? 0,
+        screenRight: 화면칸들(x.root_params).length,
         tcIds: tcIds.slice(0, 보일수),
         tcMore: Math.max(0, tcIds.length - 보일수),
         fix: 고칠것 === null || 고칠것.length === 0 ? null : 지우기수 === 고칠것.length ? 'DELETE' : 지우기수 === 0 ? 'EXPECTED' : null,
@@ -219,7 +225,7 @@ function 요구들(x: 줄, 판들: Map<number, PrdItem[]>): PrdItem[] {
 async function 바뀐요구수(서비스: number, x: 줄, 판들: Map<number, PrdItem[]>): Promise<number> {
   const 항목들 = x.prd_version === null ? undefined : 판들.get(x.prd_version);
   if (항목들 === undefined || x.started_at === null) return 0;
-  // ponytail: 반영 줄마다 질의 하나 — 한 쪽에 반영 요청이 몇 줄뿐이다. 많아지면 시각별로 묶어 한 번에 읽는다
+  // ponytail: 반영 줄마다 질의 하나(동시에) — 한 쪽에 반영 요청이 몇 줄뿐이다. 많아지면 시각별로 묶어 한 번에 읽는다
   const 기준 = await 기준판(서비스, x.started_at);
   const 차이 = 반영안됨(기준?.items ?? null, 항목들);
   const 화면 = 화면번호들(x.root_params);

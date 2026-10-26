@@ -153,7 +153,7 @@ describe('작성 권한 칸', () => {
     const 첫 = await screen.findByText(/#5873의 남은 요구/);
     expect(첫.textContent).toContain('#5873의 남은 요구');
     expect(첫.closest('a')).toBe(null);
-    expect(screen.getAllByText('남은 요구 이어 작성')).toHaveLength(2);
+    expect(screen.getAllByText('남은 요구 이어 작성')).toHaveLength(1);
   });
 
   it('대조 병합 뒤 서버가 세운 기획서에 없는 화면 요청 줄은 종류 꼬리표와 앞 뿌리 번호를 단다 — 요청한 사람은 안 적는다', async () => {
@@ -162,7 +162,7 @@ describe('작성 권한 칸', () => {
     const 꼬리 = await screen.findByText(/#5901 다음 · 서버가 자동으로 시작/);
     expect(꼬리.closest('a')).toBe(null);
     expect(꼬리.textContent).not.toContain('요청한 사람');
-    expect(screen.getAllByText('기획서에 없는 화면')).toHaveLength(2);
+    expect(screen.getAllByText('기획서에 없는 화면')).toHaveLength(1);
   });
 });
 
@@ -222,37 +222,7 @@ describe('새 작성 서랍', () => {
   });
 });
 
-describe('작성 목록 줄 제목과 할 일 (⑫ 점검 11.1 · 11.2 · N2)', () => {
-  it('줄은 [종류] 무슨 테스트 / 결과 / 시작한 곳 세 줄이다 — 피그마는 「Figma 디자인」 (WEB-F6-06)', async () => {
-    줄들.push(줄({
-      id: 14675, rootId: 14675, status: 'DONE',
-      summary: 요약({
-        what: { features: ['공통', '홈', '회원가입'], featuresMore: 22 },
-        result: { casesMade: 412, casesFixed: 0, reqsCovered: 347, reqsTotal: 348, held: 2 },
-        from: { assets: [{ name: '기획서.docx', figma: false }, { name: 'https://www.figma.com/design/abc', figma: true }] },
-      }),
-    }));
-    render(<Authoring service="PAY" 할수={() => true} />);
-    expect((await screen.findByText('기능 25개 테스트 · 공통 · 홈 · 회원가입 외 22개')).getAttribute('href')).toBe('#/authoring/14675');
-    expect(screen.getByText('기획서로 작성')).toBeTruthy();
-    expect(screen.getByText('케이스 412건 만듦 · 요구 348건 중 347건 · 보류 2건')).toBeTruthy();
-    expect(screen.getByText(/^자료 기획서\.docx · Figma 디자인 · 요청한 사람 테스터 · /)).toBeTruthy();
-  });
-
-  it('끝나기 전이면 둘째 줄은 지금 상태 글이고 제목은 종류다 · 멈춘 줄은 실패 색으로 어디서 멈췄는지', async () => {
-    줄들.push(줄({ id: 6121, rootId: 6121, compare: true, summary: 요약({ kind: 'SCREEN_ONLY' }) }));
-    줄들.push(줄({
-      id: 14679, rootId: 14679, status: 'STOPPED',
-      summary: 요약({ kind: 'PRD_APPLY', what: { reqs: 348 }, result: { stoppedAt: '케이스를 만드는 중' }, from: { by: 'PRD' } }),
-    }));
-    render(<Authoring service="PAY" 할수={() => true} />);
-    expect(await screen.findByText('작성 순서를 기다리는 중')).toBeTruthy();
-    expect(screen.getAllByText('화면만 대조')).toHaveLength(2);
-    expect(screen.getByText('요구 348건 테스트 다시 작성')).toBeTruthy();
-    expect(screen.getByText('케이스 작성 단계에서 멈춤 · 만든 케이스 없음').className).toContain('fail');
-    expect(screen.getByText(/^PRD 관리에서 시작 · 요청한 사람 테스터/)).toBeTruthy();
-  });
-
+describe('작성 목록 줄 할 일 (⑫ 점검 11.2 · N2) — 줄 내용은 AuthoringListRow.test.tsx', () => {
   it('사람 손이 남은 줄은 초록 완료 대신 할 일 칩을 단다', async () => {
     줄들.push(줄({ id: 7001, rootId: 7001, status: 'DONE', todo: { heldOpen: 3, conflictsOpen: 0, apply: 'WAITING' } }));
     render(<Authoring service="PAY" 할수={() => true} />);

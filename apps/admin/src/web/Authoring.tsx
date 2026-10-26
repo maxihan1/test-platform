@@ -53,14 +53,17 @@ function 작성줄({ 것, 지금, 운영자 }: { 것: AuthoringListRow; 지금: 
   const 번호 = 것.rootId ?? 것.id;
   // 끝나기 전이거나 셀 것이 없으면 지금 상태 글이 둘째 줄이다 (2026-10-26 WEB-F6-06 시작 질문)
   const 결과 = 결과글(것.summary, 언어);
+  const 종류 = 종류꼬리표(것.summary, 언어);
+  const 제목 = 무슨테스트(것.summary, 언어);
   return (
     <div className="row authoring-row">
       <div className="gutter" style={{ background: 띠색(보임) }} />
       <div className="tcid">#{번호}</div>
       <div className="title">
         {/* 제목은 무슨 테스트인가다 — 자료 이름 제목은 무엇을 만들었는지 몰랐다 (도메인/작성 §3.6 「작성 목록 줄」) */}
-        <span className="authoring-kind">{종류꼬리표(것.summary, 언어)}</span>
-        <a href={`#/authoring/${String(번호)}`}>{무슨테스트(것.summary, 언어)}</a>
+        {/* 제목이 종류로 떨어졌으면(끝나기 전 · 자료 없음) 꼬리표를 또 달지 않는다 — 같은 글이 두 번 선다 */}
+        {제목 === 종류 ? null : <span className="authoring-kind">{종류}</span>}
+        <a href={`#/authoring/${String(번호)}`}>{제목}</a>
         <small className={결과?.실패 === true ? 'authoring-result fail' : 'authoring-result'}>{결과?.글 ?? 목록글(것, 언어, 운영자)}</small>
         <small>{시작글(것.summary, 것, 언어)}</small>
       </div>

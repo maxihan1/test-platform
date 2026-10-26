@@ -31,6 +31,9 @@ describe('결과 · 시작한 곳', () => {
     expect(결과글(요약({ kind: 'EDIT', result: { casesFixed: 3 } }), 'ko')).toEqual({ 글: '케이스 3건 고침', 실패: false });
     expect(결과글(요약({ result: { casesMade: 0, reqsTotal: 0, reqsCovered: 0, held: 0 } }), 'ko')).toBeNull();
     expect(결과글(요약({ kind: 'EDIT', result: { stoppedAt: '케이스를 고치는 중' } }), 'ko')).toEqual({ 글: '고치는 중에 멈춤', 실패: true });
+    // 칸 표에 없는 단계 글은 첫 칸(준비)으로 옮기지 않는다
+    expect(결과글(요약({ result: { stoppedAt: '채운 케이스를 3회 돌리는 중' } }), 'ko')).toEqual({ 글: '중간에 멈춤 · 만든 케이스 없음', 실패: true });
+    expect(결과글(요약({ result: { stoppedAt: '준비' } }), 'ko')?.글).toBe('준비 단계에서 멈춤 · 만든 케이스 없음');
   });
 
   it('서버가 세운 요청은 앞 뿌리를 적고 요청한 사람을 안 적는다 · 이어 작성 · 결정 · 케이스 목록', () => {
@@ -40,9 +43,11 @@ describe('결과 · 시작한 곳', () => {
     expect(시작글(요약({ kind: 'EDIT', from: { by: 'CASES' } }), 행, 'ko')).toMatch(/^케이스 목록에서 시작 · 요청한 사람 맥시/);
   });
 
-  it('결정 목록 ① 의 N 은 만든 케이스와 고친 케이스 — 모르면 null', () => {
+  it('결정 목록 ① 의 N 은 만든 케이스와 고친 케이스 — 모르거나 0 이거나 고치기면 null', () => {
     expect(올릴테스트수(요약({ result: { casesMade: 410, casesFixed: 2 } }))).toBe(412);
     expect(올릴테스트수(요약({ result: { held: 1 } }))).toBeNull();
     expect(올릴테스트수(요약())).toBeNull();
+    expect(올릴테스트수(요약({ result: { casesMade: 0, casesFixed: 0 } }))).toBeNull();
+    expect(올릴테스트수(요약({ kind: 'EDIT', result: { casesFixed: 3 } }))).toBeNull();
   });
 });

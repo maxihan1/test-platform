@@ -2,7 +2,7 @@
 
 import type { 목록요약, 요약종류 } from '../authoring/listSummary.js';
 
-import { 단계라벨, 단계이름들, 단계칸 } from './authoringStatus.js';
+import { 단계라벨, 단계이름들, 단계칸, 아는단계글 } from './authoringStatus.js';
 import { t, type 언어 } from './i18n.js';
 import { when } from './ui.js';
 
@@ -73,8 +73,10 @@ export function 결과글(s: 목록요약, 언어: 언어): { 글: string; 실�
   if (r.stoppedAt !== null) {
     // 고치기는 단계 막대가 없다 — 「준비 단계에서」라 하면 어디서 멈췄는지 거짓말을 한다
     if (s.kind === 'EDIT') return { 글: t('고치는 중에 멈춤', 언어), 실패: true };
-    const 단계 = 단계라벨(단계이름들[단계칸(r.stoppedAt, false)] ?? '준비', 언어);
     const 만든 = (r.casesMade ?? 0) > 0 ? t('케이스 {수}건 만듦', 언어, { 수: r.casesMade! }) : t('만든 케이스 없음', 언어);
+    // 칸 표에 없는 단계 글(겹침 보기 · 3회 돌리기 같은)을 첫 칸으로 옮기면 어디서 멈췄는지 거짓말을 한다 — 단계 없이 멈춤만 말한다
+    if (r.stoppedAt !== '준비' && !아는단계글(r.stoppedAt)) return { 글: [t('중간에 멈춤', 언어), 만든].join(' · '), 실패: true };
+    const 단계 = 단계라벨(단계이름들[단계칸(r.stoppedAt, false)] ?? '준비', 언어);
     return { 글: [t('{단계} 단계에서 멈춤', 언어, { 단계 }), 만든].join(' · '), 실패: true };
   }
   const 조각 = [
@@ -103,9 +105,13 @@ export function 시작글(s: 목록요약, 행: { requestedByName: string; creat
   return 조각.join(' · ');
 }
 
-/** 결정 목록 ① 의 N — 그 실행이 만들고 고친 케이스. 모르면 null */
+/**
+ * 결정 목록 ① 의 N — 그 실행이 만들고 고친 케이스. 모르거나 0 이면 null(수 없이 묻는다).
+ * 케이스 고치기는 지우기도 고친 수에 들어 「올릴까요」의 수로 쓰면 틀린다 — 수 없이 묻는다
+ */
 export function 올릴테스트수(s: 목록요약): number | null {
   const r = s.result;
-  if (r === null || (r.casesMade === null && r.casesFixed === null)) return null;
-  return (r.casesMade ?? 0) + (r.casesFixed ?? 0);
+  if (r === null || s.kind === 'EDIT') return null;
+  const 수 = (r.casesMade ?? 0) + (r.casesFixed ?? 0);
+  return 수 > 0 ? 수 : null;
 }
