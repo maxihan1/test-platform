@@ -157,8 +157,8 @@ describe.skipIf(연결 === undefined)('실행 시작 방식', () => {
     await 판정(실행, 'XBO-001', 'mobile', 'FAIL');
     await 판정(실행, 'XBO-002', 'mobile', 'FAIL');
     await pool.query(
-      `INSERT INTO run_item (run_id, tc_id, platform, tc_name, precondition, params, expected, status, finished_at, attempt, file_path, param_schema, expected_schema)
-       SELECT run_id, tc_id, platform, tc_name, precondition, params, expected, status, finished_at, 2, file_path, param_schema, expected_schema
+      `INSERT INTO run_item (run_id, tc_id, platform, tc_name, precondition, params, expected, status, finished_at, attempt, file_path, timeout_ms, param_schema, expected_schema)
+       SELECT run_id, tc_id, platform, tc_name, precondition, params, expected, status, finished_at, 2, file_path, timeout_ms, param_schema, expected_schema
          FROM run_item WHERE run_id = $1 AND tc_id = 'XBO-001' AND platform = 'mobile'`,
       [실행],
     );
