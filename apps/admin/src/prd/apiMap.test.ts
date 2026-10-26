@@ -18,6 +18,10 @@ describe('API틀', () => {
     expect(API틀('https://a.example.com/api/sha256/v2/2fa/2024-summary')).toEqual({ host: 'a.example.com', path: '/api/sha256/v2/2fa/2024-summary' });
   });
 
+  it('이미 접힌 칸(:id · :n)은 그대로다 — kit 이 접어 보낸 게임 API 줄을 다시 넣어도 같은 틀이다', () => {
+    expect(API틀('https://g.example.com/users/:id/items/:n')).toEqual({ host: 'g.example.com', path: '/users/:id/items/:n' });
+  });
+
   it('짧은 16진 · 글자 칸은 그대로, 포트는 호스트에 남는다', () => {
     expect(API틀('http://LOCALHOST:3001/api/cafe/v2')).toEqual({ host: 'localhost:3001', path: '/api/cafe/v2' });
     expect(API틀('http://localhost:3001')).toEqual({ host: 'localhost:3001', path: '/' });
@@ -49,6 +53,8 @@ describe('러너 주소틀과 같은 규칙', () => {
     'https://a.example.com/reset/a1b2c3',
     'http://demo:3002/api/me',
     'http://demo:3002',
+    'https://a.example.com/api/orders/DM20261026-0038',
+    'https://g.example.com/users/:id/items/:n',
   ])('%s', (url) => {
     const 틀 = API틀(url)!;
     expect(러너주소틀(url)).toBe(틀.host + 틀.path);

@@ -34,7 +34,10 @@ export function API틀(url: string): { host: string; path: string } | null {
     return null;
   }
   if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
-  const 칸들 = u.pathname.split('/').map((칸) => (숫자칸.test(칸) ? ':n' : uuid칸.test(칸) || 긴16진.test(칸) ? ':id' : 숫자마디.test(칸) ? ':n' : 칸));
+  // 이미 접힌 칸(`:id` · `:n`)은 그대로 둔다 — 게임 결과는 kit 이 접어 보낸 경로를 여기 다시 넣는다(execution/gameResult.ts). 숫자마디의 `:\w+` 갈래가 `:id` 를 `:n` 으로 바꾸면 옛 줄과 갈린다
+  const 칸들 = u.pathname
+    .split('/')
+    .map((칸) => (숫자칸.test(칸) ? ':n' : uuid칸.test(칸) || 긴16진.test(칸) ? ':id' : !칸.startsWith(':') && 숫자마디.test(칸) ? ':n' : 칸));
   return { host: u.host.toLowerCase(), path: 칸들.join('/') || '/' };
 }
 
