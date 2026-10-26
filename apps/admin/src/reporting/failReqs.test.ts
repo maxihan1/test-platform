@@ -1,32 +1,22 @@
-// 실패 요구사항 · 카드 판정 · 버그 통로 검사 — reqs · judgment · POST /api/runs/:runId/bugs (도메인/리포팅 「실패 요구사항」)
-// CI에는 postgres가 없다. DATABASE_URL이 있을 때만 돈다
+// 실패 요구사항 · 카드 판정 · 버그 남기기 검사 — reqs · judgment · 버그남기기 (도메인/리포팅 「실패 요구사항」)
+// 버그를 고르는 통로(결정 진행)의 권한 · 거절은 authoring/decisions.test.ts 가 본다. CI에는 postgres가 없다. DATABASE_URL이 있을 때만 돈다
 
 import Fastify, { type FastifyInstance } from 'fastify';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { 인증등록 } from '../auth/gate.js';
-import { 해시 } from '../auth/password.js';
-import authRoutes from '../auth/routes.js';
-import { 세션등록 } from '../auth/session.js';
+import { 버그남기기 } from './failReqs.js';
 import reportingRoutes from './routes.js';
 
 const 연결 = process.env.DATABASE_URL;
-const 열쇠 = 'xdb-검사용-세션-열쇠-32글자를-넘긴다-넘긴다';
-const 계정들 = ['xdb-writer', 'xdb-reader'];
 
 describe.skipIf(연결 === undefined)('실패 요구사항 · 판정', () => {
   let pool: Pool;
   let 라우트앱: FastifyInstance;
-  let 문앱: FastifyInstance;
   let 서비스 = 0;
   let 끝남 = 0;
-  let 도는중 = 0;
-  let 시나리오실행 = 0;
 
   async function 치우기(): Promise<void> {
-    await pool.query('DELETE FROM user_project WHERE username = ANY($1)', [계정들]);
-    await pool.query('DELETE FROM app_user WHERE username = ANY($1)', [계정들]);
     const 서비스들 = (await pool.query<{ id: string }>(`SELECT id FROM service WHERE prefix = 'XDB'`)).rows.map((r) => Number(r.id));
     if (서비스들.length === 0) return;
     await pool.query('DELETE FROM run_case_bug WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = ANY($1))', [서비스들]);
@@ -40,13 +30,12 @@ describe.skipIf(연결 === undefined)('실패 요구사항 · 판정', () => {
     await pool.query('DELETE FROM service WHERE id = ANY($1)', [서비스들]);
   }
 
-  async function 실행만들기(status: string, 시나리오: number | null = null): Promise<number> {
+  async function 실행만들기(): Promise<number> {
     const r = await pool.query<{ run_id: string }>(
-      `INSERT INTO test_run (title, triggered_by, env, status, service_id, service_name, tests_repo, base_url,
-                             kind, scenario_id, scenario_version, finished_at)
-       VALUES ('XDB 실행', 'xdb', 'qa', $1, $2, 'XDB 마켓', '', '', $3, $4, $5, CASE WHEN $1 = 'RUNNING' THEN NULL ELSE now() END)
+      `INSERT INTO test_run (title, triggered_by, env, status, service_id, service_name, tests_repo, base_url, kind, finished_at)
+       VALUES ('XDB 실행', 'xdb', 'qa', 'FINISHED', $1, 'XDB 마켓', '', '', 'UI', now())
        RETURNING run_id`,
-      [status, 서비스, 시나리오 === null ? 'UI' : 'SCENARIO', 시나리오, 시나리오 === null ? null : 1],
+      [서비스],
     );
     return Number(r.rows[0]!.run_id);
   }
@@ -72,25 +61,7 @@ describe.skipIf(연결 === undefined)('실패 요구사항 · 판정', () => {
     return Number(r.rows[0]!.id);
   }
 
-  async function 계정(username: string, runs: 'read' | 'write'): Promise<void> {
-    await pool.query(
-      `INSERT INTO app_user (username, display_name, password_hash, role, perm_dashboard, is_approved, must_change_password)
-            VALUES ($1, $1, $2, 'member', 'read', true, false)`,
-      [username, await 해시('열려라참깨')],
-    );
-    await pool.query(
-      `INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring) SELECT $1, project_id, 'read', $3, 'none' FROM service WHERE id = $2`,
-      [username, 서비스, runs],
-    );
-  }
-
-  async function 출입증(username: string): Promise<Record<string, string>> {
-    const res = await 문앱.inject({ method: 'POST', url: '/api/auth/login', payload: { username, password: '열려라참깨' } });
-    return { platform_session: res.cookies[0]!.value };
-  }
-
-  const 버그 = (앱: FastifyInstance, runId: number | string, body: unknown, cookies?: Record<string, string>) =>
-    앱.inject({ method: 'POST', url: `/api/runs/${String(runId)}/bugs`, payload: body as object, ...(cookies === undefined ? {} : { cookies }) });
+  const 버그 = (tcId: string, 이름 = 'xdb-writer') => 버그남기기(끝남, tcId, { username: 이름, displayName: 이름 });
 
   beforeAll(async () => {
     pool = new Pool({ connectionString: 연결 });
@@ -99,8 +70,6 @@ describe.skipIf(연결 === undefined)('실패 요구사항 · 판정', () => {
       `INSERT INTO service (prefix, name, color, tests_repo, tests_dir) VALUES ('XDB', 'XDB 마켓', '#445566', '', 'xdb') RETURNING id`,
     );
     서비스 = Number(s.rows[0]!.id);
-    const 시나리오 = await pool.query<{ id: string }>(`INSERT INTO scenario (service_id, name, created_by) VALUES ($1, 'XDB 흐름', 'xdb') RETURNING id`, [서비스]);
-    await pool.query(`INSERT INTO scenario_version (scenario_id, version, parts, saved_by, saved_by_name) VALUES ($1, 1, '[]', 'xdb', '검사')`, [시나리오.rows[0]!.id]);
 
     const 판 = [
       { reqId: 'XDB-R2', feature: '가입', text: '두 번째 요구', basis: [], status: '확정' },
@@ -111,7 +80,7 @@ describe.skipIf(연결 === undefined)('실패 요구사항 · 판정', () => {
       [서비스, JSON.stringify(판)],
     );
 
-    끝남 = await 실행만들기('FINISHED');
+    끝남 = await 실행만들기();
     await 항목(끝남, 'XDB-001', 'desktop', 'FAIL');
     await 항목(끝남, 'XDB-001', 'mobile', 'PASS');
     await 항목(끝남, 'XDB-002', 'mobile', 'FAIL');
@@ -119,8 +88,6 @@ describe.skipIf(연결 === undefined)('실패 요구사항 · 판정', () => {
     await 항목(끝남, 'XDB-004', 'desktop', 'FAIL');
     await 항목(끝남, 'XDB-005', 'desktop', 'PASS');
     await 항목(끝남, 'XDB-005', 'desktop', 'FAIL', 2);
-    도는중 = await 실행만들기('RUNNING');
-    시나리오실행 = await 실행만들기('FINISHED', Number(시나리오.rows[0]!.id));
 
     await 요구('XDB-R1', 'XDB-001');
     await 요구('XDB-R1', 'XDB-001', '경계');
@@ -130,23 +97,13 @@ describe.skipIf(연결 === undefined)('실패 요구사항 · 판정', () => {
     await 요구('XDB-R1', 'XDB-005');
     await 요구('XDB-OLD', 'XDB-002');
 
-    await 계정('xdb-writer', 'write');
-    await 계정('xdb-reader', 'read');
-
     라우트앱 = Fastify();
     await 라우트앱.register(reportingRoutes, { prefix: '/api' });
     await 라우트앱.ready();
-    문앱 = Fastify();
-    세션등록(문앱, 열쇠);
-    인증등록(문앱);
-    await 문앱.register(authRoutes, { prefix: '/api' });
-    await 문앱.register(reportingRoutes, { prefix: '/api' });
-    await 문앱.ready();
   });
 
   afterAll(async () => {
     await 라우트앱.close();
-    await 문앱.close();
     await 치우기();
     await pool.end();
     const { pool: shared } = await import('../db/index.js');
@@ -171,15 +128,11 @@ describe.skipIf(연결 === undefined)('실패 요구사항 · 판정', () => {
     ]);
   });
 
-  it('버그 통로는 서비스 쓰기만 되고 두 번 눌러도 처음 것이 남는다', async () => {
-    const 쓰는사람 = await 출입증('xdb-writer');
-    const 첫 = await 버그(문앱, 끝남, { tcId: 'XDB-002' }, 쓰는사람);
+  it('버그는 두 번 남겨도 처음 것이 남는다', async () => {
+    const 첫 = await 버그('XDB-002');
 
-    expect(첫.statusCode).toBe(200);
-    expect(첫.json().byName).toBe('xdb-writer');
-    const 다시 = await 버그(라우트앱, 끝남, { tcId: 'XDB-002' });
-    expect(다시.statusCode).toBe(200);
-    expect(다시.json()).toEqual(첫.json());
+    expect(첫).toMatchObject({ byName: 'xdb-writer' });
+    expect(await 버그('XDB-002', '나중')).toEqual(첫);
     const 줄수 = await pool.query('SELECT 1 FROM run_case_bug WHERE run_id = $1 AND tc_id = $2', [끝남, 'XDB-002']);
     expect(줄수.rowCount).toBe(1);
   });
@@ -192,7 +145,7 @@ describe.skipIf(연결 === undefined)('실패 요구사항 · 판정', () => {
   });
 
   it('화면이 맞음 작성 요청이 버그를 이기고 폐기한 요청은 치지 않는다', async () => {
-    await 버그(라우트앱, 끝남, { tcId: 'XDB-001' });
+    await 버그('XDB-001');
     await 화면이맞음(끝남, 'XDB-001', '먼저');
     const 나중 = await 화면이맞음(끝남, 'XDB-001', '나중');
     await 화면이맞음(끝남, 'XDB-002', '폐기됨', true);
@@ -227,29 +180,9 @@ describe.skipIf(연결 === undefined)('실패 요구사항 · 판정', () => {
     expect(카드들.find((c) => c.tcId === 'XDB-001')!.judgment).toMatchObject({ kind: 'SCREEN', byName: '처음' });
   });
 
-  it('실패 항목이 없는 케이스는 400 NOT_FAILED 다', async () => {
-    const res = await 버그(라우트앱, 끝남, { tcId: 'XDB-003' });
-
-    expect(res.statusCode).toBe(400);
-    expect(res.json().error).toBe('NOT_FAILED');
-  });
-
-  it('도는 실행은 409 · 없는 실행과 시나리오 실행은 404 · 글자가 아닌 tcId 는 400 이다', async () => {
-    expect((await 버그(라우트앱, 도는중, { tcId: 'XDB-001' })).json().error).toBe('RUN_NOT_FINISHED');
-    expect((await 버그(라우트앱, 999999999, { tcId: 'XDB-001' })).statusCode).toBe(404);
-    expect((await 버그(라우트앱, 시나리오실행, { tcId: 'XDB-001' })).statusCode).toBe(404);
-    expect((await 버그(라우트앱, 끝남, { tcId: 7 })).json().error).toBe('INVALID_REQUEST');
-    expect((await 버그(라우트앱, 끝남, {})).json().error).toBe('INVALID_REQUEST');
-    expect((await 버그(라우트앱, '1e3', { tcId: 'XDB-001' })).statusCode).toBe(400);
-  });
-
-  it('실행 읽기만 있는 사람은 버그를 남길 수 없다', async () => {
-    const 읽는사람 = await 출입증('xdb-reader');
-
-    const res = await 버그(문앱, 끝남, { tcId: 'XDB-004' }, 읽는사람);
-
-    expect(res.statusCode).toBe(403);
-    const 줄수 = await pool.query('SELECT 1 FROM run_case_bug WHERE run_id = $1 AND tc_id = $2', [끝남, 'XDB-004']);
+  it('실패 항목이 없는 케이스는 NOT_FAILED 이고 아무것도 안 남긴다', async () => {
+    expect(await 버그('XDB-003')).toBe('NOT_FAILED');
+    const 줄수 = await pool.query('SELECT 1 FROM run_case_bug WHERE run_id = $1 AND tc_id = $2', [끝남, 'XDB-003']);
     expect(줄수.rowCount).toBe(0);
   });
 });

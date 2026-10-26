@@ -1,4 +1,4 @@
-// 표준 기획서 HTTP 라우트 — 지금 판 · 판 이력 · 저장 · 일괄 확정 · 되돌리기 · 반영 요청 (도메인/작성 §7 「표준 기획서 통로」)
+// 표준 기획서 HTTP 라우트 — 지금 판 · 판 이력 · 저장 · 되돌리기 (도메인/작성 §7 「표준 기획서 통로」)
 // 배정과 권한(보기 작성 read · 고치기 작성 write)은 문(auth/gate.ts)이 ?service= 로 이미 봤다. 여기서는 그 서비스 것만 읽고 쓴다
 
 import type { PrdItem } from '@platform/kit';
@@ -11,17 +11,12 @@ import { 한국시각 } from '../catalog/exportData.js';
 import { lastByCase } from '../execution/history.js';
 import { 지도를읽는다 } from './apiMap.js';
 import { 워드만들기 } from './docx.js';
-import { 찾은화면셈 } from './found.js';
 import { 보류읽기 } from './held.js';
 import { 성능목표읽기 } from './perf.js';
-import { 반영안됨, 본문상한, 확인필요, 항목검사 } from './rules.js';
-import { 반영세우기 } from './apply.js';
-import { 반영본문, 화면이맞음채우기, type 화면이맞음 } from './screenRight.js';
+import { 본문상한, 항목검사 } from './rules.js';
 import {
-  기준판,
   되돌리기,
   사람저장,
-  일괄확정,
   지금판,
   케이스지도,
   판목록,
@@ -55,17 +50,13 @@ export default async function prdRoutes(app: FastifyInstance): Promise<void> {
   app.get<질의>('/prd', async (req, reply) => {
     const 서비스 = await 서비스번호(req, reply);
     if (서비스 === null) return reply;
-    const [판, cases, 기준, held] = await Promise.all([지금판(서비스), 케이스지도(서비스), 기준판(서비스), 보류읽기(서비스)]);
-    const items = 판?.items ?? [];
+    const [판, cases, held] = await Promise.all([지금판(서비스), 케이스지도(서비스), 보류읽기(서비스)]);
     // 성능 판정은 실행 결과라서 실행 read 가 없으면 빈 칸이다 — 케이스의 마지막 결과와 같은 기준이다
     const 결과보나 = 칸되는서비스(req.user?.services ?? [], 'runs', 'read').includes(req.query.service ?? '');
     return {
       version: 판?.version ?? 0,
-      items,
+      items: 판?.items ?? [],
       cases,
-      unapplied: 반영안됨(기준?.items ?? null, items),
-      needsCheck: 확인필요(items),
-      ...(await 찾은화면셈(서비스)),
       held,
       perf: 결과보나 ? await 성능목표읽기(서비스) : {},
     };
@@ -125,14 +116,6 @@ export default async function prdRoutes(app: FastifyInstance): Promise<void> {
     return 보내기(reply, await 사람저장(서비스, 접두사, baseVersion, 읽음.items, 누가(req)));
   });
 
-  app.post<본문>('/prd/confirm', async (req, reply) => {
-    const 서비스 = await 서비스번호(req, reply);
-    if (서비스 === null) return reply;
-    const baseVersion = 판번호(req.body?.baseVersion);
-    if (baseVersion === null) return 틀린판번호(reply, 'baseVersion');
-    return 보내기(reply, await 일괄확정(서비스, baseVersion, req.body?.reqIds, 누가(req)));
-  });
-
   app.post<본문>('/prd/revert', async (req, reply) => {
     const 서비스 = await 서비스번호(req, reply);
     if (서비스 === null) return reply;
@@ -142,25 +125,6 @@ export default async function prdRoutes(app: FastifyInstance): Promise<void> {
     if (toVersion === null || toVersion === 0) return 틀린판번호(reply, 'toVersion');
     const 결과 = await 되돌리기(서비스, req.query.service ?? '', baseVersion, toVersion, 누가(req));
     return 결과 === null ? reply.code(404).send({ error: 'NOT_FOUND' }) : 보내기(reply, 결과);
-  });
-
-  app.post<본문>('/prd/apply', async (req, reply) => {
-    const 서비스 = await 서비스번호(req, reply);
-    if (서비스 === null) return reply;
-    const 받은 = 반영본문(req.body);
-    if (받은 === null) return reply.code(400).send({ error: 'INVALID_REQUEST' });
-    let 화면: 화면이맞음 | undefined;
-    if (받은.screenRight !== undefined) {
-      // 문은 (작성, write) 만 봤다. 실행 결과를 못 보는 사람이 실패 여부를 떠보는 길이 되지 않게 실행 read 를 따로 본다
-      if (!칸되는서비스(req.user?.services ?? [], 'runs', 'read').includes(req.query.service ?? '')) {
-        return reply.code(403).send({ error: 'FORBIDDEN', need: 'runs:read' });
-      }
-      const 채움 = await 화면이맞음채우기(서비스, 받은.screenRight.runId, 받은.screenRight.tcId);
-      if ('error' in 채움) return reply.code(채움.code).send({ error: 채움.error });
-      화면 = 채움;
-    }
-    const 결과 = await 반영세우기(서비스, 누가(req), 화면);
-    return 'error' in 결과 ? reply.code(409).send(결과) : reply.code(201).send(결과);
   });
 }
 

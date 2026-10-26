@@ -4,7 +4,7 @@ import type { Platform, PrdItem } from '@platform/kit';
 import type { Pool, PoolClient } from 'pg';
 
 import { 화면변경, type 판변경 } from './changes.js';
-import { 사람판, 옮기기판, 판같나, 확정판, type 들어온항목, type 앞판, type 판짓기오류 } from './rules.js';
+import { 사람판, 옮기기판, 판같나, type 들어온항목, type 앞판, type 판짓기오류 } from './rules.js';
 import type { 덮는케이스 } from './trace.js';
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. CI 는 DB 없이 돌아야 하므로 쓸 때 가져온다
@@ -176,16 +176,6 @@ export async function 사람저장(
     const 앞 = await 지금판읽기(손, 서비스);
     if (baseVersion !== (앞?.version ?? 0)) return 낡음(앞);
     const 새 = 사람판(앞, items, 접두사, new Date().toISOString());
-    if ('error' in 새) return 새;
-    return { version: await 판넣기(손, 서비스, 앞, 새, 'PERSON', 사람) };
-  });
-}
-
-export async function 일괄확정(서비스: number, baseVersion: number, reqIds: unknown, 사람: 저장하는사람): Promise<저장결과> {
-  return 잠그고(서비스, async (손) => {
-    const 앞 = await 지금판읽기(손, 서비스);
-    if (baseVersion !== (앞?.version ?? 0)) return 낡음(앞);
-    const 새 = 확정판(앞, reqIds);
     if ('error' in 새) return 새;
     return { version: await 판넣기(손, 서비스, 앞, 새, 'PERSON', 사람) };
   });

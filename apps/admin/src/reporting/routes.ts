@@ -10,7 +10,6 @@ import { 칸되는서비스, type 기능 } from '../auth/permissions.js';
 import { 정수 } from '../routeParams.js';
 import { 대시보드, 대시보드실행중, 틀린시간대 } from './dashboardResults.js';
 import { 허용날수 } from './dashboardShape.js';
-import { 버그남기기 } from './failReqs.js';
 import { 실패카드 } from './failures.js';
 import { generate, 형식표 } from './generate.js';
 import { compareWithPrevious } from './insights.js';
@@ -137,23 +136,6 @@ export default async function reportingRoutes(app: FastifyInstance): Promise<voi
       return 실패카드(runId, page, platform.data);
     },
   );
-
-  // 실패 카드의 「버그」 (도메인/리포팅 「실패 요구사항」). 표준 기획서 · 케이스는 안 건드리고 (실행, 케이스) 한 줄만 남긴다
-  app.post<{ Params: { runId: string }; Body: { tcId?: unknown } | null }>('/runs/:runId/bugs', async (req, reply) => {
-    const runId = 정수(req.params.runId);
-    if (runId === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.params.runId });
-    const tcId = req.body?.tcId;
-    if (typeof tcId !== 'string' || tcId === '') return reply.code(400).send({ error: 'INVALID_REQUEST', detail: 'tcId' });
-    const 상태 = await 실행상태(runId);
-    if (상태 === null) return reply.code(404).send({ error: 'RUN_NOT_FOUND', detail: req.params.runId });
-    if (상태 === 'RUNNING') return reply.code(409).send({ error: 'RUN_NOT_FINISHED', detail: 상태 });
-    const 결과 = await 버그남기기(runId, tcId, {
-      username: req.user?.username ?? '알 수 없음',
-      displayName: req.user?.displayName ?? '알 수 없음',
-    });
-    if (결과 === 'NOT_FAILED') return reply.code(400).send({ error: 'NOT_FAILED', detail: tcId });
-    return 결과;
-  });
 
   // 서비스에 안 매인다. 문은 「배정 중 하나라도 실행 read」만 보므로 경계는 여기서 넘기는 번호 목록이 건다 (도메인/리포팅 §7 · 인증 §7)
   app.get<{ Querystring: { tz?: unknown; only?: unknown; service?: unknown; days?: unknown; project?: unknown } }>('/dashboard', async (req, reply) => {

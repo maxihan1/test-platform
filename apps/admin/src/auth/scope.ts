@@ -83,7 +83,6 @@ export const 라우트표: Record<string, 원천> = {
   '/api/runs/:runId': { 종류: '실행', 칸: 'runId' },
   '/api/runs/:runId/abort': { 종류: '실행', 칸: 'runId' },
   '/api/runs/:runId/evidence': { 종류: '실행', 칸: 'runId' },
-  '/api/runs/:runId/bugs': { 종류: '실행', 칸: 'runId' },
   '/api/runs/:runId/insights': { 종류: '실행', 칸: 'runId' },
   '/api/runs/:runId/failures': { 종류: '실행', 칸: 'runId' },
   '/api/runs/:runId/items/:historyId': { 종류: '실행', 칸: 'runId' },
@@ -133,16 +132,13 @@ export const 라우트표: Record<string, 원천> = {
   '/api/prd/versions/:version': { 종류: '질의' },
   '/api/prd/export': { 종류: '질의' },
   '/api/prd/apis': { 종류: '질의' },
-  '/api/prd/confirm': { 종류: '질의' },
   '/api/prd/revert': { 종류: '질의' },
-  '/api/prd/apply': { 종류: '질의' },
 
   // API 문서 (도메인/API §7). 경로의 :id 가 애플리케이션 번호다
   '/api/services/:id/api-docs': { 종류: '서비스', 칸: 'id' },
   '/api/services/:id/api-docs/:version': { 종류: '서비스', 칸: 'id' },
   '/api/services/:id/api-docs/fetch': { 종류: '서비스', 칸: 'id' },
   '/api/services/:id/api-docs/compare': { 종류: '서비스', 칸: 'id' },
-  '/api/services/:id/api-docs/:version/rewrite': { 종류: '서비스', 칸: 'id' },
   '/api/services/:id/api-coverage': { 종류: '서비스', 칸: 'id' },
 
   // 서비스 가이드 (도메인/작성 §7 「서비스 가이드 통로」). 라우트가 ?service= 의 서비스 것만 읽고 쓴다

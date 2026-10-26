@@ -1,12 +1,11 @@
-// API 문서 통로 — 판 목록 · 원문 · 파일 올리기 · 지금 받기 · 판 비교 · 커버리지 · 바뀐 API 만 다시 작성 (도메인/API §7)
-// 권한(보기 작성 read · 올리기 · 받기 · 다시 작성 작성 write)과 그 애플리케이션 배정은 문(auth/gate.ts)이 경로 :id 로 이미 봤다
+// API 문서 통로 — 판 목록 · 원문 · 파일 올리기 · 지금 받기 · 판 비교 · 커버리지 (도메인/API §7)
+// 권한(보기 작성 read · 올리기 · 받기 작성 write)과 그 애플리케이션 배정은 문(auth/gate.ts)이 경로 :id 로 이미 봤다
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import { 칸이되나 } from '../auth/permissions.js';
 import { 정수 } from '../routeParams.js';
 import { 문서받기, 문서상한, 문서읽기, 판비교 } from './doc.js';
-import { 고른것읽기, 다시작성세우기 } from './rewrite.js';
 import { type 문서설정, 문서설정읽기, 커버리지, 판목록, 판올리기, 판원문 } from './store.js';
 
 type 경로 = { Params: { id: string } };
@@ -93,30 +92,6 @@ export default async function apiDocRoutes(app: FastifyInstance): Promise<void> 
     if (전 === null || 후 === null) return reply.code(404).send({ error: 'NOT_FOUND' });
     return { changes: 판비교(전.doc, 후.doc) };
   });
-
-  app.post<{ Params: { id: string; version: string }; Body: { fromVersion?: unknown; env?: unknown; operations?: unknown } | null }>(
-    '/services/:id/api-docs/:version/rewrite',
-    async (req, reply) => {
-      const 앱 = await API서비스(req, reply);
-      if (앱 === null) return reply;
-      const to = 판번호(req.params.version);
-      const from = typeof req.body?.fromVersion === 'number' ? 판번호(String(req.body.fromVersion)) : null;
-      const 고른 = 고른것읽기(req.body?.operations);
-      if (to === null || from === null || from >= to || 고른 === null) return reply.code(400).send({ error: 'INVALID_REQUEST' });
-      if (고른.length === 0) return reply.code(400).send({ error: 'NOTHING_TO_APPLY' });
-      const 답 = await 다시작성세우기({
-        서비스: 앱.id,
-        from,
-        to,
-        고른,
-        env: req.body?.env,
-        누가: req.user?.username ?? '',
-        이름: req.user?.displayName ?? '',
-      });
-      if ('error' in 답) return reply.code(답.error === 'NOT_FOUND' ? 404 : 답.error === 'AUTHORING_OPEN' ? 409 : 400).send(답);
-      return reply.code(201).send({ requestId: 답.id });
-    },
-  );
 
   app.get<경로>('/services/:id/api-coverage', async (req, reply) => {
     const 앱 = await API서비스(req, reply);

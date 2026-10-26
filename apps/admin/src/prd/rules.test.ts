@@ -3,7 +3,7 @@
 import type { PrdItem } from '@platform/kit';
 import { describe, expect, it } from 'vitest';
 
-import { 반영안됨, 사람판, 옮기기판, 확인필요, 화면번호들, 확정판, 항목검사, type 들어온항목 } from './rules.js';
+import { 반영안됨, 사람판, 옮기기판, 확인필요, 화면번호들, 항목검사, type 들어온항목 } from './rules.js';
 
 const 근거 = [{ from: '기획서.docx', ref: 'REQ-1', quote: '비밀번호는 8자 이상' }];
 const 항목 = (reqId: string, 덧: Partial<PrdItem> = {}): PrdItem => ({
@@ -94,22 +94,6 @@ describe('사람판', () => {
     });
     const 확정 = 사람판(앞, [항목('MKT-REQ-004')], 'MKT', 시각);
     expect('error' in 확정 ? null : 확정.items[0]).not.toHaveProperty('checkSince');
-  });
-});
-
-describe('확정판', () => {
-  const 앞 = { version: 2, lastNo: 2, items: [항목('MKT-REQ-001'), 항목('MKT-REQ-002', { status: 'NEEDS_CHECK', checkSince: 시각 })] };
-
-  it('확인 필요만 확정하고 checkSince 를 빼고 byPerson 을 단다', () => {
-    expect(확정판(앞, ['MKT-REQ-002'])).toEqual({
-      lastNo: 2,
-      items: [항목('MKT-REQ-001'), 항목('MKT-REQ-002', { byPerson: true })],
-    });
-  });
-
-  it('확인 필요가 아닌 번호 · 빈 목록은 BAD_CONFIRM', () => {
-    expect(확정판(앞, ['MKT-REQ-001'])).toEqual({ error: 'BAD_CONFIRM', detail: 'MKT-REQ-001' });
-    expect(확정판(앞, [])).toEqual({ error: 'BAD_CONFIRM', detail: '' });
   });
 });
 

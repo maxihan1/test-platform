@@ -1,10 +1,12 @@
 // API 문서 통로가 도메인/API §7 의 경로 · 응답 · 거절을 지키는지 본다 — 판 올리기 · 지금 받기 · 판 비교 · 커버리지. 문 없이 라우트만 띄운다
+// 바뀐 API 다시 작성은 결정 진행(POST /api/authoring/decisions/run)으로 세운다 (작성 §3.6 「★ 결정 목록」 ③ 「바뀐 API」)
 
 import Fastify, { type FastifyInstance } from 'fastify';
 import { type Server, createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
+import decisionRoutes from '../authoring/decisionRoutes.js';
 import apiDocRoutes from './routes.js';
 
 const 연결 = process.env.DATABASE_URL;
@@ -40,7 +42,29 @@ describe.skipIf(연결 === undefined)('API 문서 통로', { timeout: 30_000 }, 
     return pool.query<T & Record<string, unknown>>(sql, 값);
   };
   const 부르기 = (method: 'GET' | 'POST', 경로: string, id = 서비스) => app.inject({ method, url: `/api/services/${String(id)}${경로}` });
-  const 다시작성 = (판: string, 몸: unknown) => app.inject({ method: 'POST', url: `/api/services/${String(서비스)}/api-docs/${판}/rewrite`, payload: 몸 as object });
+  const 바뀐API = async () =>
+    (await app.inject({ method: 'GET', url: `/api/authoring/decisions?service=${접두사}` }))
+      .json<{ items: { key: string; kind: string; picks: string[] }[] }>()
+      .items.filter((x) => x.kind === 'API_CHANGED');
+  const 다시작성 = (key: string, env: string) =>
+    app.inject({ method: 'POST', url: `/api/authoring/decisions/run?service=${접두사}`, payload: { prdVersion: 0, picks: [{ key, pick: 'REDO', env }] } });
+  /** 그 판으로 쓴 API 작성이 병합됐다 — 바뀐 API 의 기준 판이 된다 */
+  const 병합된작성 = async (version: number) => {
+    const r = await q<{ id: string }>(
+      `INSERT INTO authoring_request (service_id, kind, params, requested_by, requested_by_name, status) VALUES ($1, 'AUTHOR', '{}', 'xad-person', '검사', 'DONE') RETURNING id`,
+      [서비스],
+    );
+    const id = Number(r.rows[0]!.id);
+    await q(
+      `INSERT INTO authoring_asset (request_id, position, kind, name, api_doc_version_id)
+       SELECT $1, 1, 'API_DOC', '판', id FROM api_doc_version WHERE service_id = $2 AND version = $3`,
+      [id, 서비스, version],
+    );
+    await q(
+      `INSERT INTO authoring_request (service_id, kind, source_id, params, requested_by, requested_by_name, status, finished_at) VALUES ($1, 'MERGE', $2, '{}', 'xad-person', '검사', 'DONE', now())`,
+      [서비스, id],
+    );
+  };
   const 올리기 = (몸: string | Buffer, 이름 = 'openapi.json') =>
     app.inject({
       method: 'POST',
@@ -86,6 +110,7 @@ describe.skipIf(연결 === undefined)('API 문서 통로', { timeout: 30_000 }, 
       } as unknown as NonNullable<typeof req.user>;
     });
     await app.register(apiDocRoutes, { prefix: '/api' });
+    await app.register(decisionRoutes, { prefix: '/api' });
     await app.ready();
   }, 60_000);
 
@@ -206,27 +231,25 @@ describe.skipIf(연결 === undefined)('API 문서 통로', { timeout: 30_000 }, 
     expect((await 부르기('GET', '/api-coverage')).json()).toEqual(기대(null));
   });
 
-  it('바뀐 API 만 다시 작성은 고른 API 가운데 바뀐 것과 그 API 를 부르던 활성 케이스를 담아 작성 요청을 세운다', async () => {
+  it('바뀐 API 다시 작성은 없어진 API 를 빼고 바뀐 API · 그 API 를 부르던 활성 케이스 · 새 판 자료를 싣고 결정 진행을 단다', async () => {
     await 올리기(JSON.stringify(문서('1', { '/v1/old': { delete: { responses: { '204': {} } } } })));
-    await 올리기(JSON.stringify(문서('2', { '/v1/devices': { post: { responses: { '201': {} } } } })));
+    await 올리기(JSON.stringify(문서('2', { '/v1/devices': { post: { responses: { '201': {} } } }, '/v1/pushes': { post: { responses: { '202': {} } } } })));
+    await 병합된작성(1);
     await q(
       `INSERT INTO test_case (tc_id, name, file_path, param_schema, expected_schema, is_active)
-       VALUES ('XAD-FN-001', '지우기', 'xad/a.spec.ts', '{}', '{}', true), ('XAD-FN-002', '꺼짐', 'xad/b.spec.ts', '{}', '{}', false)`,
+       VALUES ('XAD-FN-001', '보내기', 'xad/a.spec.ts', '{}', '{}', true), ('XAD-FN-002', '꺼짐', 'xad/b.spec.ts', '{}', '{}', false)`,
     );
     await q(
       `INSERT INTO api_call_seen (service_id, tc_id, method, path, status, run_id) VALUES
-         ($1, 'XAD-FN-001', 'DELETE', '/v1/old', 204, 11), ($1, 'XAD-FN-002', 'DELETE', '/v1/old', 204, 12)`,
+         ($1, 'XAD-FN-001', 'POST', '/v1/pushes', 201, 11), ($1, 'XAD-FN-002', 'POST', '/v1/pushes', 400, 12)`,
       [서비스],
     );
-    const 답 = await 다시작성('2', {
-      fromVersion: 1,
-      env: 'stg',
-      operations: [{ method: 'delete', path: '/v1/old' }, { method: 'POST', path: '/v1/devices' }, { method: 'POST', path: '/v1/pushes' }],
-    });
+    expect((await 바뀐API()).map((x) => [x.key, x.picks])).toEqual([['api:1:2', ['REDO']]]);
+    const 답 = await 다시작성('api:1:2', 'stg');
     expect(답.statusCode).toBe(201);
-    const id = 답.json<{ requestId: number }>().requestId;
+    const id = 답.json<{ steps: { requestId: number }[] }>().steps[0]!.requestId;
     const 행 = (await q<{ kind: string; status: string; env: string; params: unknown }>('SELECT kind, status, env, params FROM authoring_request WHERE id = $1', [id])).rows[0];
-    expect(행).toEqual({
+    expect(행).toMatchObject({
       kind: 'AUTHOR',
       status: 'PENDING',
       env: 'stg',
@@ -235,10 +258,11 @@ describe.skipIf(연결 === undefined)('API 문서 통로', { timeout: 30_000 }, 
           fromVersion: 1,
           toVersion: 2,
           operations: [
-            { method: 'DELETE', path: '/v1/old', change: 'REMOVED', breaking: true, notes: ['API 삭제'], tcIds: ['XAD-FN-001'] },
-            { method: 'POST', path: '/v1/devices', change: 'NEW', breaking: false, notes: [], tcIds: [] },
+            { method: 'POST', path: '/v1/devices', change: 'NEW', tcIds: [] },
+            { method: 'POST', path: '/v1/pushes', change: 'CHANGED', tcIds: ['XAD-FN-001'] },
           ],
         },
+        decision: { after: [], count: 1 },
       },
     });
     const 자료 = (await q<{ kind: string; version: number }>(
@@ -248,33 +272,19 @@ describe.skipIf(연결 === undefined)('API 문서 통로', { timeout: 30_000 }, 
     expect(자료).toEqual([{ kind: 'API_DOC', version: 2 }]);
   });
 
-  it('다시 작성 — 고른 게 없거나 안 바뀐 API 만이면 400 NOTHING_TO_APPLY · 없는 판 404 · 대상 서버가 틀리면 400 BAD_ENV · 모양이 틀리면 400', async () => {
-    await 올리기(JSON.stringify(문서('1')));
-    await 올리기(JSON.stringify(문서('2', { '/v1/devices': { post: { responses: { '201': {} } } } })));
-    const 하나 = [{ method: 'POST', path: '/v1/devices' }];
-    expect((await 다시작성('2', { fromVersion: 1, env: 'stg', operations: [] })).json()).toEqual({ error: 'NOTHING_TO_APPLY' });
-    expect((await 다시작성('2', { fromVersion: 1, env: 'stg', operations: [{ method: 'POST', path: '/v1/pushes' }] })).json()).toEqual({ error: 'NOTHING_TO_APPLY' });
-    expect((await 다시작성('7', { fromVersion: 1, env: 'stg', operations: 하나 })).statusCode).toBe(404);
-    expect((await 다시작성('2', { fromVersion: 1, env: 'prod', operations: 하나 })).json()).toEqual({ error: 'BAD_ENV' });
-    expect((await 다시작성('2', { fromVersion: '1', env: 'stg', operations: 하나 })).json()).toEqual({ error: 'INVALID_REQUEST' });
-    expect((await 다시작성('2', { fromVersion: 1, env: 'stg', operations: [{ method: 'POST' }] })).json()).toEqual({ error: 'INVALID_REQUEST' });
-    expect((await 다시작성('2', { fromVersion: 2, env: 'stg', operations: 하나 })).json()).toEqual({ error: 'INVALID_REQUEST' });
-    expect((await q('SELECT 1 FROM authoring_request WHERE service_id = $1', [서비스])).rowCount).toBe(0);
-  });
-
-  it('다시 작성 — 없어진 API 만 고르면 NOTHING_TO_APPLY · 새 판이 마지막 판이 아니면 NOT_LATEST_VERSION · 반영 안 된 작성이 있으면 409 AUTHORING_OPEN', async () => {
+  it('다시 작성 — 없어진 API 뿐이면 항목이 없고, 대상 서버가 틀리거나 열린 작성이 있으면 400 BAD_PICK, 새 판이 오르면 고를 때 본 열쇠는 409', async () => {
     await 올리기(JSON.stringify(문서('1', { '/v1/old': { delete: { responses: { '204': {} } } } })));
-    await 올리기(JSON.stringify(문서('2', { '/v1/devices': { post: { responses: { '201': {} } } } })));
-    const 몸 = { fromVersion: 1, env: 'stg', operations: [{ method: 'POST', path: '/v1/devices' }] };
-    expect((await 다시작성('2', { ...몸, operations: [{ method: 'DELETE', path: '/v1/old' }] })).json()).toEqual({ error: 'NOTHING_TO_APPLY' });
-    const 첫 = await 다시작성('2', 몸);
-    expect(첫.statusCode).toBe(201);
-    const 두번째 = await 다시작성('2', 몸);
-    expect([두번째.statusCode, 두번째.json()]).toEqual([409, { error: 'AUTHORING_OPEN', detail: [첫.json<{ requestId: number }>().requestId] }]);
-    // 끝났고 병합 전인 다시 작성도 막는다 — 앞 판은 대기 · 도는 중만 봤다
-    await q(`UPDATE authoring_request SET status = 'DONE' WHERE service_id = $1`, [서비스]);
-    expect((await 다시작성('2', 몸)).json()).toMatchObject({ error: 'AUTHORING_OPEN' });
-    await 올리기(JSON.stringify(문서('3')));
-    expect((await 다시작성('2', 몸)).json()).toEqual({ error: 'NOT_LATEST_VERSION' });
+    await 올리기(JSON.stringify(문서('2')));
+    await 병합된작성(1);
+    expect(await 바뀐API()).toEqual([]);
+    await 올리기(JSON.stringify(문서('3', { '/v1/devices': { post: { responses: { '201': {} } } } })));
+    const 틀린서버 = await 다시작성('api:1:3', 'prod');
+    expect([틀린서버.statusCode, 틀린서버.json()]).toEqual([400, { error: 'BAD_PICK', detail: 'api:1:3' }]);
+    expect((await 다시작성('api:1:3', 'stg')).statusCode).toBe(201);
+    const 두번째 = await 다시작성('api:1:3', 'stg');
+    expect([두번째.statusCode, 두번째.json()]).toEqual([400, { error: 'BAD_PICK', detail: 'api:1:3' }]);
+    await 올리기(JSON.stringify(문서('4', { '/v1/devices': { post: { responses: { '201': {} } } }, '/v1/keys': { get: { responses: { '200': {} } } } })));
+    expect((await 다시작성('api:1:3', 'stg')).json()).toEqual({ error: 'DECISIONS_STALE' });
+    expect((await q("SELECT 1 FROM authoring_request WHERE service_id = $1 AND params ? 'apiApply'", [서비스])).rowCount).toBe(1);
   });
 });

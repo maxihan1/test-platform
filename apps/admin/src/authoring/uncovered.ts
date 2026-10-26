@@ -10,7 +10,7 @@ import { db } from './store.js';
 
 /**
  * 열린 화면만 요청의 뿌리 번호들 — 폐기 안 됨 · 대조 · 입력 자료 없음 · 반영 요청 아님 · 최신 실행이 초안 · 실패 · 병합된 반영이 아님.
- * 「PRD 관리」 카드의 「작성하는 중」과 두 번째 작성의 겹침 막기가 같이 쓴다 — 초안(자료를 올리는 중인 대조)과 실패로 끝난 요청은 화면을 쓰지 않는다
+ * 두 번째 작성의 겹침 막기가 쓴다 — 초안(자료를 올리는 중인 대조)과 실패로 끝난 요청은 화면을 쓰지 않는다
  */
 export async function 열린화면요청(서비스: number, 손?: PoolClient): Promise<number[]> {
   const r = await (손 ?? (await db())).query<{ id: string }>(

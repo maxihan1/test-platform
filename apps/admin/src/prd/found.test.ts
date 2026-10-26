@@ -1,8 +1,10 @@
-// GET /api/prd 의 PRD 에 없는 화면 셈 — uncoveredScreens · foundScreens · screensOpen (도메인/작성 §7 「표준 기획서 통로」)
+// PRD 에 없는 화면 셈(결정 목록 ③ 미검증 화면 재료)과 그 화면을 작성 중인 요청 (도메인/작성 §3.6 「★ 결정 목록」 · 「기획서에 없는 화면 — 두 번째 작성」)
 
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
+import { 열린화면요청 } from '../authoring/uncovered.js';
+import { 찾은화면셈 } from './found.js';
 import prdRoutes from './routes.js';
 
 const 연결 = process.env.DATABASE_URL;
@@ -18,13 +20,7 @@ describe.skipIf(연결 === undefined)('PRD 에 없는 화면 셈', () => {
     const { pool } = await import('../db/index.js');
     return pool.query<T & Record<string, unknown>>(sql, 값);
   };
-  const 읽기 = async () =>
-    (await app.inject({ method: 'GET', url: `/api/prd?service=${접두사}` })).json() as {
-      version: number;
-      uncoveredScreens: { state: string; url: string; name: string }[];
-      foundScreens: number;
-      screensOpen: number[];
-    };
+  const 읽기 = () => 찾은화면셈(서비스);
   const 찾음 = (rows: [string, string, string][], env = 'qa') =>
     q(
       `INSERT INTO screen_found (service_id, env, state, url, name)
@@ -84,11 +80,10 @@ describe.skipIf(연결 === undefined)('PRD 에 없는 화면 셈', () => {
   });
 
   it('케이스가 없으면 찾은 화면 전부가 미검증 화면이다', async () => {
-    expect(await 읽기()).toMatchObject({ version: 0, uncoveredScreens: [], foundScreens: 0, screensOpen: [] });
+    expect(await 읽기()).toEqual({ uncoveredScreens: [] });
     await 찾음([['로그인:일반 회원', '/cart', '장바구니'], ['로그아웃', '/', '홈']]);
-    expect(await 읽기()).toMatchObject({
+    expect(await 읽기()).toEqual({
       uncoveredScreens: [{ state: '로그아웃', url: '/', name: '홈' }, { state: '로그인:일반 회원', url: '/cart', name: '장바구니' }],
-      foundScreens: 2,
     });
   });
 
@@ -126,9 +121,7 @@ describe.skipIf(연결 === undefined)('PRD 에 없는 화면 셈', () => {
       ['로그인:일반 회원', '/other', '요구 없는 케이스 화면'],
       ['로그인:일반 회원', '/cart', '장바구니'],
     ]);
-    const 몸 = await 읽기();
-    expect(몸.foundScreens).toBe(7);
-    expect(몸.uncoveredScreens).toEqual([
+    expect((await 읽기()).uncoveredScreens).toEqual([
       { state: '로그인:일반 회원', url: '/cart', name: '장바구니' },
       { state: '로그인:일반 회원', url: '/hidden', name: '숨은 화면' },
     ]);
@@ -137,9 +130,8 @@ describe.skipIf(연결 === undefined)('PRD 에 없는 화면 셈', () => {
   it('대상 서버가 달라도 같은 상태 · 틀은 한 줄이다 — 이름은 빈 것보다 있는 것 (PRD-F9-29)', async () => {
     await 찾음([['로그인:일반 회원', '/cart', '']], 'qa');
     await 찾음([['로그인:일반 회원', '/cart', '장바구니'], ['로그인:관리자', '/cart', '장바구니']], 'prod');
-    expect(await 읽기()).toMatchObject({
+    expect(await 읽기()).toEqual({
       uncoveredScreens: [{ state: '로그인:관리자', url: '/cart', name: '장바구니' }, { state: '로그인:일반 회원', url: '/cart', name: '장바구니' }],
-      foundScreens: 2,
     });
   });
 
@@ -153,6 +145,6 @@ describe.skipIf(연결 === undefined)('PRD 에 없는 화면 셈', () => {
     await 요청({ params: { prdApply: true } });
     await 요청({ compare: false });
     await 요청({ 머지: 'DONE' });
-    expect((await 읽기()).screensOpen).toEqual([열림, 실패머지]);
+    expect(await 열린화면요청(서비스)).toEqual([열림, 실패머지]);
   });
 });

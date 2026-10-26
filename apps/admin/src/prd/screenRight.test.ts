@@ -1,18 +1,19 @@
-// 「화면이 맞음」 반영 본문이 도메인/작성 §7 apply 「본문 screenRight」의 거절 · params 모양 · 잠금과 작성 요청 통로의 BAD_PRD_APPLY · 물려받기를 지키는지 본다
-// 문 없이 라우트만 띄우고 실행 칸만 머리글로 흉내 낸다
+// 「화면이 맞음」 채우기의 거절 · 판 차례 번호, 앞 반영을 기다리는 집기, 작성 요청 통로의 BAD_PRD_APPLY · 물려받기를 본다 (도메인/작성 §3.6 「화면이 맞음」)
+// 요청을 세우는 것은 결정 진행이다 — 그 통로 검사는 authoring/decisions.test.ts
 
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import authoringRoutes from '../authoring/routes.js';
 import prdRoutes from './routes.js';
+import { 화면이맞음채우기 } from './screenRight.js';
 
 const 연결 = process.env.DATABASE_URL;
 const 접두사 = 'XPF';
 const 남의접두사 = 'XPFB';
 const 항목 = (text: string) => ({ feature: '회원가입', text, basis: [{ from: '기획서.docx', quote: text }], status: 'CONFIRMED' });
 
-describe.skipIf(연결 === undefined)('화면이 맞음 반영 통로', () => {
+describe.skipIf(연결 === undefined)('화면이 맞음 채우기', () => {
   let app: FastifyInstance;
   let 서비스 = 0;
   let 남의서비스 = 0;
@@ -21,10 +22,8 @@ describe.skipIf(연결 === undefined)('화면이 맞음 반영 통로', () => {
     const { pool } = await import('../db/index.js');
     return pool.query<T & Record<string, unknown>>(sql, 값);
   };
-  const 부르기 = (method: 'PUT' | 'POST', 주소: string, payload?: object, runs: 'read' | 'none' = 'read') =>
-    app.inject({ method, url: `/api${주소}?service=${접두사}`, headers: { 'x-runs': runs }, ...(payload ? { payload } : {}) });
-  const 화면이맞음 = (runId: unknown, tcId = 'XPF-FN-001', runs: 'read' | 'none' = 'read') =>
-    부르기('POST', '/prd/apply', { screenRight: { runId, tcId } }, runs);
+  const 부르기 = (method: 'PUT' | 'POST', 주소: string, payload?: object) =>
+    app.inject({ method, url: `/api${주소}?service=${접두사}`, ...(payload ? { payload } : {}) });
 
   const 실행넣기 = async (status: string, 항목상태: string, 어느서비스 = 서비스, tcId = 'XPF-FN-001') => {
     const run = await q<{ run_id: string }>(
@@ -70,11 +69,10 @@ describe.skipIf(연결 === undefined)('화면이 맞음 반영 통로', () => {
     남의서비스 = await 넣기(남의접두사);
     app = Fastify();
     app.addHook('onRequest', async (req) => {
-      const runs = req.headers['x-runs'] === 'none' ? 'none' : 'read';
       req.user = {
         username: 'xpf',
         displayName: '검사',
-        services: [{ prefix: 접두사, permissions: { cases: 'read', runs, authoring: 'write' } }],
+        services: [{ prefix: 접두사, permissions: { cases: 'read', runs: 'read', authoring: 'write' } }],
       } as unknown as NonNullable<typeof req.user>;
     });
     await app.register(prdRoutes, { prefix: '/api' });
@@ -84,7 +82,7 @@ describe.skipIf(연결 === undefined)('화면이 맞음 반영 통로', () => {
 
   beforeEach(async () => {
     await 치우기();
-    // 판 1 = 기준 판(병합된 반영이 읽은 판) — 반영 안 됨이 0 이어도 화면이 맞음은 서야 한다
+    // 판 1 = 기준 판(병합된 반영이 읽은 판)
     await 부르기('PUT', '/prd', { baseVersion: 0, items: [항목('비밀번호는 8자 이상'), 항목('약관에 동의한다'), 항목('가입하면 메일이 간다')] });
     const 앞작성 = await q<{ id: string }>(
       `INSERT INTO authoring_request (service_id, kind, params, requested_by, requested_by_name, status, prd_version)
@@ -110,68 +108,18 @@ describe.skipIf(연결 === undefined)('화면이 맞음 반영 통로', () => {
     await q('DELETE FROM service WHERE id = ANY($1)', [[서비스, 남의서비스]]);
   });
 
-  it('본문이 {} · 화면이 맞음 꼴이 아니면 400 INVALID_REQUEST', async () => {
-    for (const 몸 of [{ foo: 1 }, { screenRight: { runId: '1', tcId: 'XPF-FN-001' } }, { screenRight: { runId: 1, tcId: 'XPF-FN-001', env: 'qa' } }, { screenRight: { runId: 1, tcId: '아무거나' } }]) {
-      const r = await 부르기('POST', '/prd/apply', 몸);
-      expect([r.statusCode, r.json()]).toEqual([400, { error: 'INVALID_REQUEST' }]);
-    }
+  it('없는 실행 · 남의 서비스 실행은 RUN_NOT_FOUND, 도는 중이면 RUN_NOT_FINISHED, 그 케이스의 실패가 없으면 NOT_FAILED, 덮는 번호가 판에 없으면 NO_PRD_REQ', async () => {
+    const 기대 = async (runId: number, error: string, tcId = 'XPF-FN-001') => expect(await 화면이맞음채우기(서비스, runId, tcId)).toEqual({ error });
+    await 기대(999_999_999, 'RUN_NOT_FOUND');
+    await 기대(await 실행넣기('FINISHED', 'FAIL', 남의서비스), 'RUN_NOT_FOUND');
+    await 기대(await 실행넣기('RUNNING', 'FAIL'), 'RUN_NOT_FINISHED');
+    await 기대(await 실행넣기('FINISHED', 'PASS'), 'NOT_FAILED');
+    await 기대(await 실행넣기('FINISHED', 'FAIL', 서비스, 'XPF-FN-002'), 'NO_PRD_REQ', 'XPF-FN-002');
   });
 
-  it('실행 read 가 없으면 실행을 보기 전에 403 — 실패 여부를 떠보는 길이 되지 않게', async () => {
-    const runId = await 실행넣기('FINISHED', 'FAIL');
-    for (const id of [runId, 999_999_999]) {
-      const r = await 화면이맞음(id, 'XPF-FN-001', 'none');
-      expect([r.statusCode, r.json()]).toEqual([403, { error: 'FORBIDDEN', need: 'runs:read' }]);
-    }
-  });
-
-  it('없는 실행 · 남의 서비스 실행은 404, 도는 중이면 409, 그 케이스의 실패가 없으면 400, 덮는 번호가 판에 없으면 409', async () => {
-    const 기대 = async (runId: number, 코드: number, error: string, tcId = 'XPF-FN-001') => {
-      const r = await 화면이맞음(runId, tcId);
-      expect([r.statusCode, r.json()]).toEqual([코드, { error }]);
-    };
-    await 기대(999_999_999, 404, 'RUN_NOT_FOUND');
-    await 기대(await 실행넣기('FINISHED', 'FAIL', 남의서비스), 404, 'RUN_NOT_FOUND');
-    await 기대(await 실행넣기('RUNNING', 'FAIL'), 409, 'RUN_NOT_FINISHED');
-    await 기대(await 실행넣기('FINISHED', 'PASS'), 400, 'NOT_FAILED');
-    await 기대(await 실행넣기('FINISHED', 'FAIL', 서비스, 'XPF-FN-002'), 409, 'NO_PRD_REQ', 'XPF-FN-002');
-    expect((await q('SELECT 1 FROM authoring_request WHERE service_id = $1 AND kind = $2 AND status = $3', [서비스, 'AUTHOR', 'PENDING'])).rowCount).toBe(0);
-  });
-
-  it('반영 안 됨이 0 이어도 세우고 params.screenRight 목록에 env · 판 차례 번호 · 누른 사람을 싣는다', async () => {
-    const 보통 = await 부르기('POST', '/prd/apply', {});
-    expect([보통.statusCode, 보통.json()]).toEqual([409, { error: 'NOTHING_TO_APPLY' }]);
+  it('중단한 실행도 끝난 실행이고, 그 실행의 대상 서버와 덮는 번호를 판 차례로 한 번씩 싣는다', async () => {
     const runId = await 실행넣기('ABORTED', 'FAIL');
-    const r = await 화면이맞음(runId);
-    expect(r.statusCode).toBe(201);
-    const { id, waitsFor } = r.json() as { id: number; waitsFor: number[] };
-    expect(waitsFor).toEqual([]);
-    const 행 = await q<{ kind: string; status: string; params: object }>('SELECT kind, status, params FROM authoring_request WHERE id = $1', [id]);
-    expect(행.rows[0]).toEqual({
-      kind: 'AUTHOR',
-      status: 'PENDING',
-      params: { prdApply: true, screenRight: [{ runId, tcId: 'XPF-FN-001', env: 'qa', reqIds: ['XPF-REQ-001', 'XPF-REQ-002'], byName: '검사', at: expect.any(String) }] },
-    });
-  });
-
-  it('반영 안 된 작성이 있으면 409 AUTHORING_OPEN — 결정 진행 밖의 반영 요청이다 (2026-10-26 · 앞 판 PRD-F9-20 은 대기 중인 반영에 더했다)', async () => {
-    const 가 = await 실행넣기('FINISHED', 'FAIL');
-    const 나 = await 실행넣기('FINISHED', 'FAIL');
-    const 첫 = (await 화면이맞음(가)).json() as { id: number };
-    for (const status of ['PENDING', 'RUNNING', 'DONE']) {
-      await q(`UPDATE authoring_request SET status = $2 WHERE id = $1`, [첫.id, status]);
-      const r = await 화면이맞음(나);
-      expect([r.statusCode, r.json()], status).toEqual([409, { error: 'AUTHORING_OPEN', detail: [첫.id] }]);
-    }
-  });
-
-  it('실패 · 중단으로 남은 반영이 있으면 409 APPLY_OPEN — 뒤에 서면 앞 반영의 재실행이 뒤 요청에 막혀 둘 다 못 돈다', async () => {
-    const 첫 = (await 화면이맞음(await 실행넣기('FINISHED', 'FAIL'))).json() as { id: number };
-    await q(`UPDATE authoring_request SET status = 'FAILED' WHERE id = $1`, [첫.id]);
-    const 막힘 = await 화면이맞음(await 실행넣기('FINISHED', 'FAIL'));
-    expect([막힘.statusCode, 막힘.json()]).toEqual([409, { error: 'APPLY_OPEN', detail: [첫.id] }]);
-    await q(`UPDATE authoring_request SET discarded_at = now() WHERE id = $1`, [첫.id]);
-    expect((await 화면이맞음(await 실행넣기('FINISHED', 'FAIL'))).json()).toMatchObject({ waitsFor: [] });
+    expect(await 화면이맞음채우기(서비스, runId, 'XPF-FN-001')).toEqual({ runId, tcId: 'XPF-FN-001', env: 'qa', reqIds: ['XPF-REQ-001', 'XPF-REQ-002'] });
   });
 
   it('앞에 선 반영이 병합 · 폐기될 때까지 뒤 반영은 에이전트가 안 집는다 — 다른 작성 요청은 집는다', async () => {

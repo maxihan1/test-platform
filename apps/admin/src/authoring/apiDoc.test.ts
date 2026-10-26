@@ -3,7 +3,7 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { 다시작성세우기 } from '../apidoc/rewrite.js';
+import { 다시작성넣기, 다시작성준비하기 } from '../apidoc/rewrite.js';
 import authoringAgentRoutes from './agentRoutes.js';
 import { 이어작성준비, 제출 } from './assetStore.js';
 import { 역방향칸판정 } from './reverse.js';
@@ -174,8 +174,13 @@ describe.skipIf(연결 === undefined)('API 애플리케이션 작성 요청', { 
     await 치우기();
     const 새문서 = { ...문서, paths: { ...문서.paths, '/v1/devices': { post: { responses: { '201': { description: '됨' } } } } } };
     await q("INSERT INTO api_doc_version (service_id, version, source, file_name, fingerprint, doc) VALUES ($1, 2, 'FILE', 'b.json', 'xaw2', $2)", [서비스, JSON.stringify(새문서)]);
-    const 세움 = await 다시작성세우기({ 서비스, from: 1, to: 2, 고른: [{ method: 'POST', path: '/v1/devices' }], env: 'stg', 누가: 맥, 이름: '맥' });
-    if (!('id' in 세움)) throw new Error(세움.error);
+    const 준비 = await 다시작성준비하기({ 서비스, from: 1, to: 2, env: 'stg' });
+    if ('error' in 준비) throw new Error(준비.error);
+    const { pool } = await import('../db/index.js');
+    const 손 = await pool.connect();
+    const id = await 다시작성넣기(손, 준비, { 누가: 맥, 이름: '맥' }).finally(() => 손.release());
+    if (id === null) throw new Error('새 판 자료를 못 달았다');
+    const 세움 = { id };
     const apiApply = { fromVersion: 1, toVersion: 2, operations: [{ method: 'POST', path: '/v1/devices', change: 'NEW', breaking: false, notes: [], tcIds: [] }] };
     const 집은 = (await 집기()).json<Record<string, unknown>>();
     expect(집은).toMatchObject({ id: 세움.id, params: { apiApply }, apiDoc: { version: 2 }, target: { env: 'stg' } });
