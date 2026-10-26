@@ -1,9 +1,5 @@
 // 남은 보류를 애초에 안 나오게 하는 길로 가른다 — 빠른 검사가 막지 않고 경고만 한다 (SPEC 도메인/작성 §3.6 「★ 보류 케이스」 「애초에 안 나오게」)
 
-import ts from 'typescript';
-
-import { 명세글, 속성, 읽기 } from './authoring-held-apply.js';
-
 export type 보류갈래 = '판정 불가' | '값 다름' | '그 밖';
 
 const 갈래차례: readonly 보류갈래[] = ['판정 불가', '값 다름', '그 밖'];
@@ -20,24 +16,20 @@ const 길: Record<보류갈래, string> = {
  */
 export function 보류갈래(사유: string): 보류갈래 | null {
   const s = 사유.trim();
-  if (s.startsWith('판정 불가 — 자료 어긋남') || /^보류 — (서버 오류|끊김)/.test(s)) return null;
+  if ((s.startsWith('판정 불가') && s.includes('자료 어긋남')) || /^보류 — (서버 오류|끊김)/.test(s)) return null;
   if (s.startsWith('판정 불가')) return '판정 불가';
-  // kit 이 판정이 틀린 케이스를 「검증 실패: <문장>」으로 던진다 — 같은 까닭 3회 빨강을 보류로 단 것이다
-  if (s.startsWith('보류 — 검증 실패')) return '값 다름';
+  // kit 이 판정이 틀린 케이스를 「검증 실패: <문장>」으로 던진다 — 같은 까닭 3회 빨강을 보류로 단 것이다. 에러 첫 줄을 그대로 옮기면 「Error: 」가 붙는다
+  if (/^보류 — (Error: )?검증 실패/.test(s)) return '값 다름';
   return '그 밖';
 }
 
-/** 케이스 파일 글들의 `held` 를 갈래마다 한 줄로. `볼` 이 있으면 그 tcId 만. 글자가 아닌 held 는 K13 몫이라 건너뛴다 */
-export function 보류경고(글들: readonly string[], 볼?: ReadonlySet<string>): string[] {
+/** 케이스마다 읽은 `held` 를 갈래마다 한 줄로. `볼` 이 있으면 그 tcId 만. 글자가 아닌 held 는 읽은 쪽이 빼 둔다(K13 몫) */
+export function 보류경고(케이스들: readonly { tcId: string; held?: string }[], 볼?: ReadonlySet<string>): string[] {
   const 모음 = new Map<보류갈래, string[]>();
-  for (const 글 of 글들) {
-    const 명세 = 명세글(읽기(글));
-    const tcId = 명세 === undefined ? undefined : 속성(명세, 'tcId')?.initializer;
-    const held = 명세 === undefined ? undefined : 속성(명세, 'held')?.initializer;
-    if (tcId === undefined || held === undefined || !ts.isStringLiteralLike(tcId) || !ts.isStringLiteralLike(held)) continue;
-    if (볼 !== undefined && !볼.has(tcId.text)) continue;
-    const 갈래 = 보류갈래(held.text);
-    if (갈래 !== null) 모음.set(갈래, [...(모음.get(갈래) ?? []), tcId.text]);
+  for (const { tcId, held } of 케이스들) {
+    if (held === undefined || (볼 !== undefined && !볼.has(tcId))) continue;
+    const 갈래 = 보류갈래(held);
+    if (갈래 !== null) 모음.set(갈래, [...(모음.get(갈래) ?? []), tcId]);
   }
   return 갈래차례.flatMap((k) => {
     const t = 모음.get(k);

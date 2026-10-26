@@ -3,16 +3,18 @@ import { describe, expect, it } from 'vitest';
 
 import { 보류갈래, 보류경고 } from './authoring-held-kinds.js';
 
-const 케이스 = (tcId: string, held?: string) => `export const spec = defineCase({ tcId: '${tcId}', name: '이름'${held === undefined ? '' : `, held: '${held}'`} });`;
+const 케이스 = (tcId: string, held?: string) => (held === undefined ? { tcId } : { tcId, held });
 
 describe('보류갈래', () => {
   it('판정 불가 · 값 다름 · 그 밖으로 가르고, 서버 탓 · 자료 어긋남은 세지 않는다', () => {
     expect(보류갈래('판정 불가 — 토스트가 사라지는 시간이 기획서에 없다')).toBe('판정 불가');
     expect(보류갈래('보류 — 검증 실패: 상품 상세 응답에 이미지 칸이 있다')).toBe('값 다름');
+    expect(보류갈래('보류 — Error: 검증 실패: 금액이 49,999원이다')).toBe('값 다름');
     expect(보류갈래('보류 — 후보가 정확히 5개인 검색어가 상품 데이터에 없다')).toBe('그 밖');
     expect(보류갈래('보류 — 서버 오류(5xx): POST /api/cart 500')).toBeNull();
     expect(보류갈래('보류 — 끊김: GET /api/products')).toBeNull();
     expect(보류갈래('판정 불가 — 자료 어긋남: 기획서 6초 · 메일 4초')).toBeNull();
+    expect(보류갈래('판정 불가(자료 어긋남: 기획서 6초 · 메일 4초)')).toBeNull();
   });
 });
 
