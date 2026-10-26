@@ -25,7 +25,7 @@ export function PerfDevicePick({
   /** 기기키 목록 */
   고른: string[];
   고침: (고른: string[]) => void;
-  /** Appium 케이스는 팜 폰만 잰다 — 내 컴퓨터 러너 폰은 고를 수 없다 */
+  /** Appium · 게임 케이스는 팜 폰만 잰다 — 내 컴퓨터 러너 폰은 고를 수 없다 */
   팜만: boolean;
   쓰나: boolean;
 }) {
@@ -99,7 +99,7 @@ export function PerfDevicePick({
                     </td>
                     <td>{d.where === 'FARM' ? t('디바이스 팜') : t('내 컴퓨터')}</td>
                     <td className="mono">{d.os}</td>
-                    <td>{d.status === 'BUSY' ? t('다른 실행에서 사용 중') : 팜만 && d.where === 'LOCAL' ? t('Appium 케이스는 팜 폰만') : t('사용 가능')}</td>
+                    <td>{d.status === 'BUSY' ? t('다른 실행에서 사용 중') : 팜만 && d.where === 'LOCAL' ? t('케이스로 잴 때는 팜 폰만') : t('사용 가능')}</td>
                   </tr>
                 );
               })}

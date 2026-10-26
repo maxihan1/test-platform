@@ -1,4 +1,4 @@
-// 기기 성능 실행 — Appium 2대 × 2회의 구간 · 회차 붙이기 · 사람의 중단 · 도중 중단의 러너 끊기 · 무소식 AGENT_LOST 를 실제 DB 와 가짜 팜 · 가짜 서버 러너로 본다
+// 기기 성능 실행 — Appium 2대 × 2회 · 게임 케이스의 구간 · 회차 붙이기 · 사람의 중단 · 도중 중단의 러너 끊기 · 무소식 AGENT_LOST 를 실제 DB 와 가짜 팜 · 가짜 서버 러너로 본다
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -56,17 +56,20 @@ describe.skipIf(연결 === undefined)('기기 성능 실행', { timeout: 90_000 
     }
   });
 
-  it('게임 애플리케이션이면 조작 요청에 엔진 GAME 을 싣는다', async () => {
+  it('게임 케이스는 조작 요청에 엔진 GAME 과 어드민 키를 싣고 단계 제목으로 구간을 붙인다', async () => {
     const 원래 = (await 판.pool.query<{ kind: string }>('SELECT kind FROM service WHERE id = $1', [판.서비스])).rows[0]!.kind;
     await 판.pool.query(`UPDATE service SET kind = 'GAME' WHERE id = $1`, [판.서비스]);
     await 판.pool.query(`UPDATE service_env SET admin_key = $2 WHERE service_id = $1 AND env = 'qa'`, [판.서비스, JSON.stringify({ header: 'X-Admin-Key', value: 'k-1234' })]);
+    f.상태.러너지연 = 2100;
     try {
       const 전 = 러너.호출들.length;
-      const runId = await 만들기({ drive: 'APPIUM', durationSec: undefined, caseIds: ['XQDR-001'], repeat: 1, devices: [{ serial: 'FA1', where: 'FARM' }] }, 0);
-      await 끝날때까지(runId);
+      const runId = await 만들기({ drive: 'GAME', durationSec: undefined, caseIds: ['XQDR-001'], repeat: 1, devices: [{ serial: 'FA1', where: 'FARM' }] }, 0);
+      expect(await 끝날때까지(runId)).toMatchObject({ status: 'DONE', config: { drive: 'GAME', caseIds: ['XQDR-001'] } });
       const 보낸것 = 러너.호출들.slice(전).filter((h) => h.path === '/execute');
       expect(보낸것.map((h) => [h.body.engine, h.body.adminKey])).toEqual([['GAME', { header: 'X-Admin-Key', value: 'k-1234' }]]);
+      expect((await 결과(runId)).segments.map((x) => x.segment)).toEqual(expect.arrayContaining(['XQDR-001 · 로그인', 'XQDR-001 · 목록']));
     } finally {
+      f.상태.러너지연 = 0;
       await 판.pool.query(`UPDATE service_env SET admin_key = NULL WHERE service_id = $1 AND env = 'qa'`, [판.서비스]);
       await 판.pool.query('UPDATE service SET kind = $2 WHERE id = $1', [판.서비스, 원래]);
     }

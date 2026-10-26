@@ -5,7 +5,7 @@ import { call, json } from './api.js';
 import type { 실행줄 } from './perfApi.js';
 
 export type 기기자리 = 'FARM' | 'LOCAL';
-export type 조작 = 'APPIUM' | 'MANUAL';
+export type 조작 = 'APPIUM' | 'GAME' | 'MANUAL';
 export type 측정지표 = 'FPS' | 'JANK' | 'CPU' | 'MEM' | 'TEMP' | 'BATTERY';
 export type 기기지표 = 'AVG_FPS' | 'LOW1_FPS' | 'MAX_TEMP' | 'MAX_MEM' | 'LAUNCH_MS';
 

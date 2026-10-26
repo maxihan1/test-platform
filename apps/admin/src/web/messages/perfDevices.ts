@@ -7,6 +7,7 @@ export const 성능기기말: Record<string, string> = {
   '{앱} · 새 측정': '{앱} · New measurement',
   '직접 플레이': 'Manual play',
   'Appium 케이스 {수}개': '{수} Appium cases',
+  '게임 케이스 {수}개': '{수} game cases',
   '반복 {수}회': 'Repeat {수}×',
   '기기 {수}대': '{수} devices',
 
@@ -14,6 +15,8 @@ export const 성능기기말: Record<string, string> = {
   '조작 방식': 'How to drive',
   'Appium 케이스': 'Appium cases',
   '고른 Android 앱 케이스를 기기마다 반복해 돌리며 측정합니다. 팜 폰만 됩니다': 'Runs the chosen Android app cases on each device in a loop while measuring. Farm phones only',
+  '게임 케이스': 'Game cases',
+  '고른 게임 케이스를 기기마다 반복해 돌리며 측정합니다. 팜 폰만 됩니다': 'Runs the chosen game cases on each device in a loop while measuring. Farm phones only',
   '팜 PC 에 꽂힌 폰을 손에 들고 플레이하는 동안 기록합니다': 'Records while you play on a phone plugged into the farm PC',
   '케이스와 빌드': 'Cases and build',
   '측정 시간과 빌드': 'Duration and build',
@@ -21,6 +24,7 @@ export const 성능기기말: Record<string, string> = {
   '측정 시간(분)': 'Duration (min)',
   '케이스 목록을 읽는 중입니다': 'Loading cases',
   '돌릴 케이스 ({수}/{상한})': 'Cases to run ({수}/{상한})',
+  '아직 게임 케이스가 없습니다': 'No game cases yet',
   '직접 플레이는 반복 없이 한 번 잽니다. 정한 시간이 지나면 끝납니다': 'Manual play is measured once without repeats. It ends when the time is up',
   '측정 항목': 'Metrics',
   '수집 간격': 'Sampling interval',
@@ -31,6 +35,7 @@ export const 성능기기말: Record<string, string> = {
   '측정 시작': 'Start measuring',
   '앱 패키지 이름을 com.demo.market 꼴로 적어 주세요': 'Enter the app package name like com.demo.market',
   '측정하며 돌릴 Android 앱 케이스를 골라 주세요': 'Choose the Android app cases to run while measuring',
+  '측정하며 돌릴 게임 케이스를 골라 주세요': 'Choose the game cases to run while measuring',
   '측정할 기기를 골라 주세요': 'Choose devices to measure',
   '측정 항목을 하나 이상 골라 주세요': 'Choose at least one metric',
 
@@ -48,7 +53,7 @@ export const 성능기기말: Record<string, string> = {
   '디바이스 팜': 'Device farm',
   '내 컴퓨터': 'My computer',
   '다른 실행에서 사용 중': 'In use by another run',
-  'Appium 케이스는 팜 폰만': 'Appium cases need a farm phone',
+  '케이스로 잴 때는 팜 폰만': 'Cases need a farm phone',
   '사용 가능': 'Available',
   '한 번에 {수}대까지 나란히 잽니다': 'Up to {수} devices are measured side by side',
 
