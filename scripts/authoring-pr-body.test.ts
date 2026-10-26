@@ -6,7 +6,7 @@ import { PR본문, 본문상한 } from './authoring-pr-body.js';
 const 바이트 = (글: string) => Buffer.byteLength(글, 'utf8');
 const 경로 = 'docs/cases/MKT.md';
 const 셈 = '원장: 요구 172 → 케이스 150 · 제외 22 · 빠짐 0\n⚠️ 빠짐 0\nUI 로만 덮음 11 — REQ-COM-003';
-const 꼬리 = '3번 돌려 보기: [돌려 보기] 마지막 · 케이스 133건 가운데 이번 3번 0건 · 1번 133건 (PC) · 400초 · EXIT=0';
+const 꼬리 = '3번 돌려 보기: [돌려 보기] 마지막 · 케이스 133건 가운데 이번 PC 3번 133건 · 400초 · EXIT=0';
 
 describe('PR본문 — 절 조립', () => {
   it('요구별 케이스 목록과 자식 요약을 싣고, 3번 돌려 본 기록이 병합 근거라고 쉬운 말로 적는다 (2026-10-19)', () => {
