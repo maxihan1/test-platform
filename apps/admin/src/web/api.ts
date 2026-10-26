@@ -1142,9 +1142,6 @@ export const api = {
   failures: (runId: number, page: number, platform?: Platform) =>
     call<Paged<FailureCase>>(`/runs/${runId}/failures?page=${page}${platform === undefined ? '' : `&platform=${platform}`}`),
 
-  /** 실패 카드의 「버그」 판정. 이미 있으면 처음 것이 돌아온다 (SPEC §7) */
-  markBug: (runId: number, tcId: string) => call<{ byName: string; at: string }>(`/runs/${runId}/bugs`, json({ tcId })),
-
   createRun: (body: {
     /** 대상 서버 키. **기본값을 두지 않는다** — 안 고르면 빈 칸이 아니라 틀린 값이 증적에 남는다 (SPEC §8.2) */
     env: string;

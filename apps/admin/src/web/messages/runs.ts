@@ -245,7 +245,7 @@ export const 실행말: Record<string, string> = {
   '화면이 맞음으로 바꾸기': 'Change to screen is right',
   '버그': 'Bug',
   '작성 요청 #{번호}': 'Authoring request #{번호}',
-  '앞 요청이 반영되거나 폐기되면 시작합니다': 'Starts once the earlier request is applied or discarded',
+  '테스트 작성 › 결정 필요에서 판정합니다': 'Decide in Test authoring › Needs decision',
   // 항목 상세 「네트워크 · 조작 · 콘솔」 (ItemTrace.tsx · 도메인/실행 §3.2 「trace」)
   '네트워크 · 조작 · 콘솔': 'Network · Actions · Console',
   '기록 종류': 'Record kind',
@@ -293,9 +293,7 @@ export const 실행말: Record<string, string> = {
   '기록 없음§실패 기록': 'No trace',
   '이 쪽에 {보인}건 · 이 유형 전체 {전체}건 — 나머지는 다른 쪽에 있습니다': '{보인} on this page · {전체} of this type in total — the rest are on other pages',
   '화면이 맞다고 판정할까요?': 'Mark the screen as correct?',
-  '버그로 판정할까요?': 'Mark as a bug?',
   '{번호} 가 덮는 요구를 지금 화면에 맞게 고치는 작성 요청을 바로 만듭니다.': 'This immediately creates an authoring request that updates the requirements {번호} covers to match the current screen.',
-  '{번호} 의 실패를 제품 버그로 남깁니다. 나중에 「화면이 맞음」으로 바꿀 수 있습니다.': 'Records the failure of {번호} as a product bug. You can change it to “Screen is correct” later.',
   '해결 {건수}': 'Fixed {건수}',
   '실패 케이스 {수}건': '{수} failed cases',
   '직전 실행 {실행} 대비 · 케이스 수': 'Against previous run {실행} · cases',

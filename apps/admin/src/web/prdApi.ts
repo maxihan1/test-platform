@@ -70,7 +70,4 @@ export const prdApi = {
   wordExport: (service: string) => 파일받기(`/prd/export${꼬리(service)}&format=docx`),
   /** 요구사항 추적표 엑셀. 마지막 결과 칸은 실행 read 가 있어야 찬다 */
   rtmExport: (service: string) => 파일받기(`/prd/export${꼬리(service)}&format=xlsx`),
-  /** 실패 카드의 「화면이 맞음」(RunFailJudge)이 아직 쓴다 — 그쪽이 결정 목록 통로로 옮기면 지운다 */
-  apply: (service: string, body: { screenRight?: { runId: number; tcId: string } } = {}) =>
-    call<{ id: number; waitsFor: number[] }>(`/prd/apply${꼬리(service)}`, json(body)),
 };
