@@ -5,7 +5,8 @@ import type { PoolClient } from 'pg';
 import { 사슬식, 최신식 } from './chainSql.js';
 import { db, 빚기, 칸들, type 상태, type 요청, type 행 } from './store.js';
 import { 밖화면뿌리 } from './params.js';
-import { 남은손들, 반영할일, 자료이름들, 할일남았나, 할일없음, type 자료이름, type 할일 } from './listTodo.js';
+import { 목록요약들, type 목록요약 } from './listSummary.js';
+import { 남은손들, 반영할일, 할일남았나, 할일없음, type 할일 } from './listTodo.js';
 
 // 사슬 · 최신 SQL 은 chainSql.ts 로 옮겼다(집기가 가져오기 고리 없이 쓰게). 부르는 쪽 import 는 그대로 둔다
 export { 사슬식, 최신식 };
@@ -143,13 +144,13 @@ export async function 뿌리잠그고<T>(뿌리번호: number, 일: (손: PoolCl
 }
 
 // rootKind — 줄의 kind 는 최신 실행 것이라 반영 · 다시 적용 뒤에는 뿌리가 작성인지 고치기인지 안 보인다 (§7 목록)
-// assets · todo — 목록 줄 제목과 할 일 칩 (2026-10-19 ⑫ · 점검 11.1 · 11.2)
+// summary · todo — 목록 줄 내용과 할 일 칩 (2026-10-26 WEB-F6-06 · 2026-10-19 ⑫ 점검 11.2)
 export type 요약 = Omit<요청, 'specText'> & {
   rootId: number;
   runCount: number;
   rootKind: 요청['kind'];
   uncoveredOf: number | null;
-  assets: 자료이름 | null;
+  summary: 목록요약;
   todo: 할일;
 };
 
@@ -217,7 +218,7 @@ export async function 한쪽(입력: {
     줄들 = r.rows;
     할일들 = await 할일칸(줄들);
   }
-  const 자료 = await 자료이름들(줄들.map((x) => Number(x.root_id)));
+  const 줄요약 = await 목록요약들(입력.서비스, 줄들.map((x) => Number(x.root_id)));
   return {
     items: 줄들.map((x) => {
       const { specText: _본문, ...나머지 } = 빚기({ ...x, spec_text: null });
@@ -230,7 +231,8 @@ export async function 한쪽(입력: {
         runCount: Number(x.run_count),
         rootKind: x.root_kind,
         uncoveredOf: 밖화면뿌리(x.root_uncovered_of),
-        assets: 자료.get(Number(x.root_id)) ?? null,
+        // 줄은 모두 이 서비스의 살아 있는 뿌리라 요약이 늘 있다
+        summary: 줄요약.get(Number(x.root_id))!,
         todo: 할일들(x),
       };
     }),

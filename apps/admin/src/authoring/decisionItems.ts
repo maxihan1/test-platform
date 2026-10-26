@@ -6,6 +6,7 @@ import type { PrdItem } from '@platform/kit';
 
 import { 상한, 화면에서 } from '../prd/rules.js';
 import type { 판변경 } from '../prd/changes.js';
+import type { 목록요약 } from './listSummary.js';
 
 export type 고르기 = 'APPLY' | 'SCREEN' | 'BUG' | 'SAME' | 'EDIT' | 'PICK' | 'OWN' | 'REDO' | 'FIX';
 export type 막힘 = 'ADMIN_ONLY' | 'NO_WRITE' | 'NO_RUN_WRITE' | 'AUTHORING_OPEN';
@@ -27,8 +28,8 @@ export interface 바뀐요구줄 {
 
 export type 결정항목 = 머리 &
   (
-    | { kind: 'APPLY'; rootId: number; runId: number; summary: null; prUrl: string | null; requestedByName: string; finishedAt: string | null }
-    | { kind: 'FIX'; rootId: number; summary: null; why: 'APPLY_FAILED' | 'HELD' | 'CONFLICT'; count: number; waiting: number[] }
+    | { kind: 'APPLY'; rootId: number; runId: number; summary: 목록요약; prUrl: string | null; requestedByName: string; finishedAt: string | null }
+    | { kind: 'FIX'; rootId: number; summary: 목록요약; why: 'APPLY_FAILED' | 'HELD' | 'CONFLICT'; count: number; waiting: number[] }
     | { kind: 'FAIL'; runId: number; tcId: string; reqs: { reqId: string; text: string }[]; verify: string | null; reason: string | null; finishedAt: string | null }
     | { kind: 'CHECK'; reqId: string; feature: string; text: string; checkSince: string | null; basis: 'SCREEN' | 'DOCS' | 'OTHER'; options: { asset: string; quote: string }[] }
     | { kind: 'PRD_CHANGED'; changed: 바뀐요구줄[] | null; added: 바뀐요구줄[] | null; removed: 바뀐요구줄[] | null; scenarios: { id: number; name: string }[] }

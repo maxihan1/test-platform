@@ -23,6 +23,7 @@ import {
   type 막힘,
 } from './decisionItems.js';
 import { 기다리는요청들, 병합된API버전, 손남은뿌리들, 최근대조, 판정없는실패들 } from './decisionReads.js';
+import { 목록요약들 } from './listSummary.js';
 import { 열린작성 } from './openRoots.js';
 
 /** 부른 사람이 그 애플리케이션에서 할 수 있는 것 — admin 은 배정된 애플리케이션에서 전부다(auth/gate.ts `권한이되나`) */
@@ -40,6 +41,7 @@ const 고름 = (되나: boolean, picks: 고르기[], 까닭: 막힘) => (되나 
 /** ① 반영 대기 · 상세에서 할 일 */
 async function 첫묶음(서비스: number, 누구: 부른이): Promise<결정항목[]> {
   const [뿌리들, 기다림] = await Promise.all([손남은뿌리들(서비스), 기다리는요청들(서비스)]);
+  const 요약 = await 목록요약들(서비스, 뿌리들.map((x) => x.rootId));
   const 대기: 결정항목[] = [];
   const 할일: 결정항목[] = [];
   for (const x of 뿌리들) {
@@ -49,13 +51,13 @@ async function 첫묶음(서비스: number, 누구: 부른이): Promise<결정�
     if (!막힘) {
       대기.push({
         key: `apply:${String(x.rootId)}:${String(x.runId)}`, group: 1, kind: 'APPLY', ...고름(누구.admin, ['APPLY'], 'ADMIN_ONLY'),
-        rootId: x.rootId, runId: x.runId, summary: null, prUrl: x.prUrl, requestedByName: x.requestedByName, finishedAt: x.finishedAt,
+        rootId: x.rootId, runId: x.runId, summary: 요약.get(x.rootId)!, prUrl: x.prUrl, requestedByName: x.requestedByName, finishedAt: x.finishedAt,
       });
       continue;
     }
     const why = x.conflictsOpen > 0 ? 'CONFLICT' : x.할일 === 'FAILED' ? 'APPLY_FAILED' : 'HELD';
     할일.push({
-      key: `fix:${String(x.rootId)}`, group: 1, kind: 'FIX', picks: [], blockedBy: null, rootId: x.rootId, summary: null, why,
+      key: `fix:${String(x.rootId)}`, group: 1, kind: 'FIX', picks: [], blockedBy: null, rootId: x.rootId, summary: 요약.get(x.rootId)!, why,
       count: why === 'CONFLICT' ? x.conflictsOpen : why === 'HELD' ? x.heldOpen : 0,
       waiting: 기다림.filter((w) => w.after.includes(x.rootId)).map((w) => w.id),
     });

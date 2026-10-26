@@ -1,4 +1,4 @@
-// 작성 목록 줄의 assets(넣은 자료 이름) · todo(사람이 할 일) 를 뿌리 여러 개에 한 번에 계산한다 (도메인/작성 §7 목록 · 2026-10-19 ⑫)
+// 작성 목록 줄의 todo(사람이 할 일) 를 뿌리 여러 개에 한 번에 계산한다 (도메인/작성 §7 목록 · 2026-10-19 ⑫). 줄 내용은 listSummary.ts
 
 import { 반영할일, type 반영 } from './applyTodo.js';
 import { 겹침들, 남은겹침수, type 겹침입력 } from './conflicts.js';
@@ -7,11 +7,6 @@ import { 사슬식 } from './chainSql.js';
 import { db } from './store.js';
 
 export { 반영할일 };
-
-export interface 자료이름 {
-  first: string;
-  more: number;
-}
 
 export interface 할일 {
   heldOpen: number;
@@ -23,20 +18,6 @@ export const 할일없음: 할일 = { heldOpen: 0, conflictsOpen: 0, apply: null
 
 export function 할일남았나(t: 할일): boolean {
   return t.heldOpen > 0 || t.conflictsOpen > 0 || t.apply !== null;
-}
-
-/** 뿌리마다 입력 자료(INPUT) 가운데 처음 넣은 것의 이름과 나머지 수. 자료가 없는 뿌리(화면만)는 맵에 없다 */
-export async function 자료이름들(뿌리들: number[]): Promise<Map<number, 자료이름>> {
-  if (뿌리들.length === 0) return new Map();
-  const r = await (await db()).query<{ request_id: string; name: string; n: string }>(
-    `SELECT request_id, name, n FROM (
-       SELECT request_id, name, count(*) OVER (PARTITION BY request_id) AS n,
-              row_number() OVER (PARTITION BY request_id ORDER BY position) AS 차례
-         FROM authoring_asset WHERE request_id = ANY($1::bigint[]) AND role = 'INPUT'
-     ) x WHERE 차례 = 1`,
-    [뿌리들],
-  );
-  return new Map(r.rows.map((x) => [Number(x.request_id), { first: x.name, more: Number(x.n) - 1 }]));
 }
 
 /**
