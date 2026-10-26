@@ -8,7 +8,7 @@ import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import { perfApi, type 실행로그, type 실행상세 } from './perfApi.js';
 import type { 기기숫자 } from './perfDeviceApi.js';
-import { 값글자, 기기설정of, 메모리글자, 벗어난지표, 지금요약, 지표표, 최근줄 } from './perfDeviceView.js';
+import { 값글자, 기기설정of, 메모리글자, 벗어난지표, 조작글, 지금요약, 지표표, 최근줄 } from './perfDeviceView.js';
 import { 가장큰값, 갱신간격, 눈금최대, 분초, 선점, 시각글, 시분 } from './perfRunView.js';
 import { message } from './ui.js';
 
@@ -82,17 +82,16 @@ export function PerfDeviceLive({ run, 다시읽기, 쓰나 }: { run: 실행상�
   const 직접 = 설정.drive === 'MANUAL';
   const 지금회차 = 숫자.reduce((큰, 줄) => Math.max(큰, 줄.loop ?? 0), 0);
   const 지금구간 = 숫자.filter((줄) => 줄.sec === 지난초).find((줄) => 줄.segment !== null)?.segment ?? null;
-  // 직접 플레이는 시간으로, Appium 케이스는 끝낸 회차로 센다 — 도는 회차는 아직 안 끝났다
+  // 직접 플레이는 시간으로, Appium · 게임 케이스는 끝낸 회차로 센다 — 도는 회차는 아직 안 끝났다
   const 진행 = 직접 ? Math.min(100, (지난초 / Math.max(1, 설정.durationSec)) * 100) : Math.min(100, (Math.max(0, 지금회차 - 1) / Math.max(1, 설정.repeat)) * 100);
   const 상태글 = run.status === 'QUEUED' ? t('대기') : t('실행 중');
-  const 조작글 = 직접 ? t('직접 플레이') : t('Appium 케이스 {수}개', { 수: 설정.caseIds.length });
 
   return (
     <>
       <Head
         위치={t('성능 테스트')}
         제목={`${t('기기 성능')} ${run.code}`}
-        부제={[조작글, 직접 ? t('{수}분', { 수: Math.round(설정.durationSec / 60) }) : t('반복 {수}회', { 수: 설정.repeat }), t('기기 {수}대', { 수: 설정.devices.length }), run.env, run.startedAt === null ? t('아직 시작 전') : t('{시각} 시작', { 시각: 시각글(run.startedAt, 언어) })].join(' · ')}
+        부제={[조작글(설정, t), 직접 ? t('{수}분', { 수: Math.round(설정.durationSec / 60) }) : t('반복 {수}회', { 수: 설정.repeat }), t('기기 {수}대', { 수: 설정.devices.length }), run.env, run.startedAt === null ? t('아직 시작 전') : t('{시각} 시작', { 시각: 시각글(run.startedAt, 언어) })].join(' · ')}
         행동={
           <div className="perf-row">
             <span>

@@ -102,7 +102,7 @@ export interface RunConfig {
 
 // 기기 성능(kind DEVICE)의 perf_run.config (§7 「PERF-F1-08 이 연 통로」)
 export interface DeviceRunConfig {
-  drive: 'APPIUM' | 'MANUAL';
+  drive: 'APPIUM' | 'GAME' | 'MANUAL';
   caseIds: string[];
   durationSec: number;
   package: string;

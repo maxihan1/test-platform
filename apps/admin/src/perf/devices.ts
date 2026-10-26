@@ -16,7 +16,7 @@ export const 측정지표들 = ['FPS', 'JANK', 'CPU', 'MEM', 'TEMP', 'BATTERY'] 
 export const 측정본문 = z.object({
   serviceId: z.number().int().positive(),
   env: z.string().min(1).max(100),
-  drive: z.enum(['APPIUM', 'ALTTESTER', 'MANUAL']),
+  drive: z.enum(['APPIUM', 'GAME', 'MANUAL']),
   caseIds: z.array(z.string().min(1).max(100)).min(1).max(20).optional(),
   durationSec: z.number().int().min(60).max(3600).optional(),
   build: z.object({ package: z.string().regex(앱이름).max(200) }),
@@ -31,7 +31,7 @@ export const 측정본문 = z.object({
   if (new Set(b.devices.map((d) => d.serial)).size !== b.devices.length) 막음('기기가 겹칩니다');
   if (new Set(b.metrics).size !== b.metrics.length) 막음('측정 항목이 겹칩니다');
   if (b.caseIds !== undefined && new Set(b.caseIds).size !== b.caseIds.length) 막음('케이스가 겹칩니다');
-  if (b.drive === 'APPIUM' && b.caseIds === undefined) 막음('Appium 은 케이스를 고릅니다');
+  if (b.drive !== 'MANUAL' && b.caseIds === undefined) 막음('Appium · 게임 케이스는 케이스를 고릅니다');
   if (b.drive === 'MANUAL' && (b.durationSec === undefined || b.repeat !== 1)) 막음('직접 플레이는 측정 시간을 적고 반복은 1회입니다');
 });
 
@@ -106,8 +106,8 @@ export async function 팜기기재료(): Promise<{ serial: string; model: string
   }
 }
 
-/** 요청한 케이스가 이 애플리케이션의 Android 케이스인가 — 아니면 까닭 */
-async function 케이스검사(serviceId: number, caseIds: string[]): Promise<string | null> {
+/** 요청한 케이스가 이 애플리케이션의 Android 케이스인가(게임 케이스도 android 다) — 아니면 까닭 */
+async function 케이스검사(serviceId: number, caseIds: string[], 이름: string): Promise<string | null> {
   const 접두사 = (await (await 표.풀()).query<{ prefix: string }>('SELECT prefix FROM service WHERE id = $1', [serviceId])).rows[0]?.prefix;
   if (접두사 === undefined) return '애플리케이션이 없습니다';
   const r = await (await 표.풀()).query<{ tc_id: string; platforms: string[] }>(
@@ -118,7 +118,7 @@ async function 케이스검사(serviceId: number, caseIds: string[]): Promise<st
   for (const id of caseIds) {
     const x = 행.get(id);
     if (x === undefined) return `이 애플리케이션의 케이스가 아닙니다: ${id}`;
-    if (!x.platforms.includes('android')) return `Android 앱 케이스가 아닙니다: ${id}`;
+    if (!x.platforms.includes('android')) return `${이름} 케이스가 아닙니다: ${id}`;
   }
   return null;
 }
@@ -128,15 +128,18 @@ export async function 측정세우기(b: z.infer<typeof 측정본문>, 누가: {
   const 종류 = (await (await 표.풀()).query<{ kind: string }>('SELECT kind FROM service WHERE id = $1', [b.serviceId])).rows[0]?.kind;
   if (종류 === undefined) return 나쁨('애플리케이션이 없습니다');
   if (종류 === 'API') return 나쁨('API 애플리케이션은 기기 성능을 잴 수 없습니다');
-  if (b.drive === 'ALTTESTER') return 나쁨('AltTester 시나리오는 아직 못 합니다');
+  // 게임 화면은 엔진이 그림으로 그려 Appium 이 버튼을 못 찾는다 — 게임은 게임 케이스로만 (§3.9 「조작 셋」)
+  if (b.drive === 'GAME' && 종류 !== 'GAME') return 나쁨('게임 케이스는 게임 애플리케이션만 고릅니다');
+  if (b.drive === 'APPIUM' && 종류 === 'GAME') return 나쁨('게임 애플리케이션은 게임 케이스로 잽니다');
   const 줄 = await 대상줄읽기(b.serviceId, b.env);
   if (줄 === null) return 나쁨('대상 서버가 없습니다');
-  if (b.drive === 'APPIUM') {
+  if (b.drive !== 'MANUAL') {
     const 케이스 = b.caseIds ?? [];
-    const 까닭 = await 케이스검사(b.serviceId, 케이스);
+    const 까닭 = await 케이스검사(b.serviceId, 케이스, b.drive === 'GAME' ? '게임' : 'Android 앱');
     if (까닭 !== null) return 나쁨(까닭);
     if (줄.appPath === null) return 나쁨('대상 서버 줄에 앱 파일이 없습니다');
-    if (b.devices.some((d) => d.where !== 'FARM')) return 나쁨('Appium 케이스는 팜 폰만 잴 수 있습니다');
+    // 케이스는 서버 러너가 팜에서 잡은 폰으로 돌린다 — 내 컴퓨터 러너 폰에는 보낼 길이 없다
+    if (b.devices.some((d) => d.where !== 'FARM')) return 나쁨(`${b.drive === 'GAME' ? '게임' : 'Appium'} 케이스는 팜 폰만 잴 수 있습니다`);
   }
   if (b.devices.some((d) => d.where === 'FARM') && 팜주소() === undefined) return { status: 409, error: 'FARM_OFF' };
   if (b.devices.some((d) => d.where === 'LOCAL') && 내컴퓨터러너() === undefined) return 나쁨('이 서버에는 내 컴퓨터 러너(LOCAL_RUNNER_URL)가 연결되어 있지 않습니다');
