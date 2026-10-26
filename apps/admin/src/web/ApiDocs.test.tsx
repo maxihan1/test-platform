@@ -7,18 +7,17 @@ import { ApiError, type ServiceRow } from './api.js';
 import { ApiDocs } from './ApiDocs.js';
 import type { 판정 } from './role.js';
 
-const { 목록, 덮음, 원문, 비교, 받기, 올리기, 반영 } = vi.hoisted(() => ({
+const { 목록, 덮음, 원문, 비교, 받기, 올리기 } = vi.hoisted(() => ({
   목록: vi.fn((_id: number): Promise<ApiDocList> => Promise.reject(new Error('목록을 정하지 않았다'))),
   덮음: vi.fn((_id: number): Promise<ApiCoverage> => Promise.reject(new Error('커버리지를 정하지 않았다'))),
   원문: vi.fn((_id: number, v: number) => Promise.resolve({ version: v, doc: {} as object })),
   비교: vi.fn((_id: number, _from: number, _to: number): Promise<{ changes: ApiDocChange[] }> => Promise.resolve({ changes: [] })),
   받기: vi.fn((_id: number) => Promise.resolve({ version: 3, created: false })),
   올리기: vi.fn((_id: number, _f: File) => Promise.resolve({ version: 4, created: true })),
-  반영: vi.fn((_id: number, _v: number, _from: number, _env: string, _ops: unknown) => Promise.resolve({ requestId: 41 })),
 }));
 
 vi.mock('./apiDocApi.js', () => ({
-  apiDocApi: { list: 목록, coverage: 덮음, doc: 원문, compare: 비교, fetch: 받기, upload: 올리기, rewrite: 반영 },
+  apiDocApi: { list: 목록, coverage: 덮음, doc: 원문, compare: 비교, fetch: 받기, upload: 올리기 },
 }));
 
 const 앱 = {
@@ -72,7 +71,7 @@ afterEach(() => {
   cleanup();
 });
 
-describe('API 문서 — 시안 C 할 일 먼저', () => {
+describe('API 문서', () => {
   it('API 애플리케이션이 아니면 안내 한 줄이고, 설정 고리는 운영 계정에게만 보인다', async () => {
     목록.mockRejectedValue(new ApiError(400, 'NOT_API_SERVICE', 'NOT_API_SERVICE'));
     const { rerender } = render(<ApiDocs service={앱} 할수={쓰는사람} 설정보나={false} />);
@@ -103,35 +102,18 @@ describe('API 문서 — 시안 C 할 일 먼저', () => {
     expect(within(표).getByText('확인한 응답 3/5')).toBeTruthy();
   });
 
-  it('바뀐 API 를 반영 안 됨 카드에 보이고, 누르면 지운 API 를 빼고 고른 대상 서버로 반영을 요청한다', async () => {
+
+
+  it('바뀐 API 를 테스트에 반영하는 카드는 이제 없다 — 결정 필요 한 곳으로 옮겼다. 안 거친 응답 카드는 그대로다', async () => {
     render(<ApiDocs service={앱} 할수={쓰는사람} 설정보나 />);
-    const 카드 = await screen.findByRole('region', { name: '반영 안 됨 2건' });
-    expect(within(카드).getAllByText('기존 테스트가 실패할 수 있음')).toHaveLength(2);
-    expect(within(카드).getByText('지운 API 를 쓰던 케이스는 지우지 않고 PR 에 삭제 제안으로 적습니다')).toBeTruthy();
-    // 「실서비스 서버」 표시는 /auth/me 에 없다 — 기본값은 설정의 기준 서버다
-    expect((within(카드).getByRole('combobox') as HTMLSelectElement).value).toBe('stg');
-    fireEvent.click(within(카드).getByRole('button', { name: '바뀐 API 2건 테스트에 반영' }));
-    expect(await within(카드).findByText(/작성 요청 41번을 만들었습니다/)).toBeTruthy();
-    expect(반영).toHaveBeenCalledWith(7, 3, 2, 'stg', [
-      { method: 'POST', path: '/v1/pushes' },
-      { method: 'POST', path: '/v1/pushes/{id}/cancel' },
-    ]);
-    expect((within(카드).getByRole('button', { name: '바뀐 API 2건 테스트에 반영' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(await screen.findByRole('region', { name: '케이스가 안 거친 응답 2개' })).toBeTruthy();
+    expect(screen.queryByRole('region', { name: /반영 안 됨/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /테스트에 반영/ })).toBeNull();
   });
 
-  it('반영 안 된 작성에 막히면 그 요청으로 가는 링크를 띄우고 버튼을 잠근다', async () => {
-    반영.mockRejectedValueOnce(new ApiError(409, 'AUTHORING_OPEN', '6101,6105'));
-    render(<ApiDocs service={앱} 할수={쓰는사람} 설정보나 />);
-    const 카드 = await screen.findByRole('region', { name: '반영 안 됨 2건' });
-    fireEvent.click(within(카드).getByRole('button', { name: '바뀐 API 2건 테스트에 반영' }));
-    expect(await within(카드).findByText(/반영하지 않은 테스트 작성 요청이 있습니다/)).toBeTruthy();
-    expect(within(카드).getByRole('link', { name: '#6105 요청 보기' }).getAttribute('href')).toBe('#/authoring/6105');
-    expect((within(카드).getByRole('button', { name: '바뀐 API 2건 테스트에 반영' }) as HTMLButtonElement).disabled).toBe(true);
-  });
-
-  it('작성 read 만 있으면 받기 · 첨부 · 반영 버튼이 없다', async () => {
+  it('작성 read 만 있으면 받기 · 첨부 버튼이 없다', async () => {
     render(<ApiDocs service={앱} 할수={보는사람} 설정보나={false} />);
-    await screen.findByRole('region', { name: '반영 안 됨 2건' });
+    await screen.findByRole('region', { name: '케이스가 안 거친 응답 2개' });
     expect(screen.queryByRole('button', { name: '문서 새로 받기' })).toBeNull();
     expect(screen.queryByRole('button', { name: '파일 첨부' })).toBeNull();
     expect(screen.queryByRole('button', { name: /테스트에 반영/ })).toBeNull();

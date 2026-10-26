@@ -1,12 +1,12 @@
-// 「API › API 문서」 화면 — Swagger 버전을 받고 · 보고 · 바뀐 API 를 테스트에 반영한다 (도메인/API §8.13 · 2026-10-21 시안 C 「할 일 먼저」)
-// PRD 관리 · 애플리케이션 가이드와 같은 배치다 — 머리의 「버전 기록」 표 → 할 일 카드 둘 → 전체 목록
+// 「API › API 문서」 화면 — Swagger 버전을 받고 · 본다. 바뀐 API 를 테스트에 반영하는 일은 테스트 작성의 「결정 필요」 한 곳이다 (도메인/API §8.13 · 도메인/작성 §3.6 「★ 결정 목록」)
+// PRD 관리 · 애플리케이션 가이드와 같은 배치다 — 머리의 「버전 기록」 표 → 할 일 카드 → 전체 목록
 
 import { useRef, useState } from 'react';
 
 import { apiDocApi, type ApiDocList } from './apiDocApi.js';
 import { ApiError, type ServiceRow } from './api.js';
 import { ApiDocList as 전체API } from './ApiDocList.js';
-import { 반영카드, 안거친응답카드 } from './ApiDocCards.js';
+import { 안거친응답카드 } from './ApiDocCards.js';
 import { ApiDocVersions } from './ApiDocVersions.js';
 import { 받은곳 } from './apidocView.js';
 import { Head } from './Head.js';
@@ -50,22 +50,15 @@ export function ApiDocs({ service, 할수, 버전, 설정보나 }: { service: Se
   );
   const API앱 = 목록.data !== null && 목록.data !== 화면앱;
   const 최신 = API앱 ? (목록.data as ApiDocList).versions[0] : undefined;
-  const 앞 = API앱 ? (목록.data as ApiDocList).versions[1] : undefined;
   const 판 = 최신?.version;
-  // 커버리지 · 원문 · 비교는 버전이 있어야 뜻이 있다. 버전이 바뀌면(받기 · 첨부) 다시 읽는다
+  // 커버리지 · 원문은 버전이 있어야 뜻이 있다. 버전이 바뀌면(받기 · 첨부) 다시 읽는다
   const 덮음 = useAsync(() => (판 === undefined ? Promise.resolve(null) : apiDocApi.coverage(id)), [id, 판]);
   const 원문 = useAsync(() => (판 === undefined ? Promise.resolve(null) : apiDocApi.doc(id, 판).then((x) => x.doc)), [id, 판]);
-  // 결과에 어느 두 버전인지 박아 둔다 — 새 버전을 받은 뒤 새 비교가 오기 전까지 옛 비교가 남아 새 버전 번호로 보내지 않게
-  const 비교 = useAsync(
-    () => (판 === undefined || 앞 === undefined ? Promise.resolve(null) : apiDocApi.compare(id, 앞.version, 판).then((x) => ({ 앞: 앞.version, 뒤: 판, changes: x.changes }))),
-    [id, 판, 앞?.version],
-  );
-  const 맞는비교 = 비교.data !== null && 비교.data.앞 === 앞?.version && 비교.data.뒤 === 판 ? 비교.data.changes : null;
   const [이력, set이력] = useState(버전 !== undefined);
   const [알림, set알림] = useState<{ ok: boolean; 글: string } | null>(null);
   const [받는중, set받는중] = useState<'fetch' | 'upload' | null>(null);
   const 파일칸 = useRef<HTMLInputElement>(null);
-  // 보기는 작성 read, 받기 · 첨부 · 반영은 작성 write (도메인/API §7). 서버가 다시 막는다
+  // 보기는 작성 read, 받기 · 첨부는 작성 write (도메인/API §7). 서버가 다시 막는다
   const 쓰나 = 할수('작성요청');
 
   if (목록.error !== null) return <Failed error={목록.error} />;
@@ -157,19 +150,6 @@ export function ApiDocs({ service, 할수, 버전, 설정보나 }: { service: Se
         <>
           {이력 ? <ApiDocVersions id={id} versions={versions} 연버전={버전} /> : null}
           <div className="prd-todo">
-            {앞 === undefined || 최신 === undefined ? null : (
-              // 버전마다 새로 그린다 — 앞 버전에서 세운 요청 안내 · 잠금이 새 버전 카드에 남지 않게
-              <반영카드
-                key={`${String(앞.version)}-${String(최신.version)}`}
-                id={id}
-                버전={최신.version}
-                앞버전={앞.version}
-                비교={{ ...비교, data: 맞는비교 }}
-                envs={service.envs}
-                기준서버={docEnv}
-                쓰나={쓰나}
-              />
-            )}
             {덮음.data === null ? null : <안거친응답카드 coverage={덮음.data} />}
           </div>
           {덮음.error !== null ? <Failed error={덮음.error} /> : 덮음.data === null ? <Loading /> : <전체API coverage={덮음.data} doc={원문.data} />}

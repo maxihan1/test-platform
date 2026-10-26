@@ -20,13 +20,6 @@ export const API문서말: Record<string, string> = {
   '{서버} 서버': '{서버} server',
 
   // 할 일 카드
-  '버전 {버전}에서 바뀐 API 가 아직 테스트에 없습니다': 'APIs changed in version {버전} are not in the tests yet',
-  '앞 버전({버전})에서 바뀐 API 가 없습니다': 'No API changed since version {버전}',
-  '기존 테스트가 실패할 수 있음': 'Existing tests may fail',
-  '지운 API 를 쓰던 케이스는 지우지 않고 PR 에 삭제 제안으로 적습니다':
-    'Cases that used a removed API are not deleted. The PR lists them as deletion suggestions',
-  '테스트를 돌려 볼 대상 서버가 없습니다. 설정에서 먼저 넣습니다': 'No target server to try the tests on. Add one in settings first',
-  '바뀐 API {건수}건 테스트에 반영': 'Apply {건수} changed APIs to tests',
   '케이스가 안 거친 응답 {건수}개': '{건수} responses no case has hit',
   '응답 코드 {전체}개 중 아직 통과한 케이스가 받지 못한 응답입니다': 'Responses, out of {전체} codes, that no passing case has received yet',
   '모든 응답을 케이스가 거칩니다': 'Cases hit every response',
