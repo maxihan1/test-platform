@@ -252,5 +252,6 @@ describe('미룬응답', () => {
     expect(미룬응답(이음, 'https://X.com/api/cart/57?force=1')).toEqual(빈객체(200));
     expect(미룬응답(이음, 'https://x.com/api/files/0f8fad5b-d9cb-469f-a165-70867728950e')).toEqual(빈객체(202));
     expect(미룬응답(이음, 'https://x.com/api/files/a1b2c3d4e5f60718293a')).toEqual(빈객체(202));
+    expect(미룬응답(이음, 'https://x.com/api/cart/DM20261026-0038')).toEqual(빈객체(200));
   });
 });

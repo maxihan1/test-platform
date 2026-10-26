@@ -27,10 +27,13 @@ describe('부른API를적는다', () => {
       부른API를적는다('POST', 'https://ash.example.com/gacha/13/draw', 200, base);
       부른API를적는다('GET', '/users/0f8fad5b-d9cb-469f-a165-70867728950e', 404, base);
       부른API를적는다('GET', 'https://ads.example.net/pixel', 200, base);
+      부른API를적는다('GET', '/orders/DM20261026-0038', 200, base);
+      부른API를적는다('GET', '/orders/DM20261026-0039', 200, base);
     });
     expect(모음).toEqual([
       { method: 'POST', path: '/gacha/:n/draw', status: 200 },
       { method: 'GET', path: '/users/:id', status: 404 },
+      { method: 'GET', path: '/orders/:n', status: 200 },
     ]);
   });
 

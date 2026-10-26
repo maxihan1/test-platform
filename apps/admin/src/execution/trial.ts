@@ -3,6 +3,7 @@
 import { randomUUID } from 'node:crypto';
 
 import type { ExecuteResponse, ScenarioExecuteResponse, ScenarioPartResult } from '@platform/kit';
+import { 계정칸 } from '@platform/kit/accounts';
 
 import type { 부품기록 } from '../scenario/runTrace.js';
 
@@ -59,6 +60,19 @@ export function 항목비밀(row: { params: unknown; expected: unknown; param_sc
   return 긴것부터(
     비밀글자들({ paramSchema: row.param_schema, expectedSchema: row.expected_schema, params: 객체(row.params), expected: 객체(row.expected) }),
   );
+}
+
+/**
+ * trace 주소 경로(물음표 앞)를 가리는 비밀 글자 — 항목비밀에서 계정 아이디 칸 값을 뺀다. 아이디가 `admin` 이면
+ * `/api/admin/banners` 의 admin 이 별표로 남아 서비스 지도가 그 API 를 못 맞춘다 (도메인/작성 §3.6 「세는 방식」 · 공통/2 §4.1)
+ */
+export function 경로비밀(row: { params: unknown; expected: unknown; param_schema: unknown; expected_schema: unknown }): string[] {
+  // 값과 기대값 둘 다에서 아이디 칸을 뺀다. 아이디와 같은 글자인 비밀번호는 남아 경로도 가린다 — 비밀번호를 내보이지 않는 쪽을 골랐다
+  const 아이디뺀 = (값: unknown, schema: unknown): Record<string, unknown> => {
+    const 칸들 = 객체(객체(schema).properties);
+    return Object.fromEntries(Object.entries(객체(값)).filter(([k]) => 계정칸(k, 객체(칸들[k]))?.칸 !== 'loginId'));
+  };
+  return 항목비밀({ ...row, params: 아이디뺀(row.params, row.param_schema), expected: 아이디뺀(row.expected, row.expected_schema) });
 }
 
 export function 가린다(값: unknown, 비밀: string[]): unknown {

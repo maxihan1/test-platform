@@ -228,7 +228,8 @@ export async function 케이스지도(서비스: number): Promise<Record<string,
 
 /**
  * 「반영 안 됨」의 기준 판 — 병합으로 끝난 반영(MERGE) 가운데 가장 최근 것이 병합한 작성 실행이 읽은 판.
- * 케이스 고치기(EDIT · 그 다시 적용)는 표준 기획서를 안 읽어 기준이 못 된다. 기준이 없거나 그 실행이 판을 안 읽었으면 null — 전부 반영 안 됨이다
+ * 케이스 고치기(EDIT · 그 다시 적용)는 표준 기획서를 안 읽어 기준이 못 된다. 기준이 없거나 그 실행이 판을 안 읽었으면 null — 전부 반영 안 됨이다.
+ * 바뀐 API 다시 작성(apiApply)도 못 된다 — 집을 때 지금 판을 적지만 요구를 안 고쳐, 그 사이 고친 요구가 반영된 것처럼 사라진다 (작성 §3.6 「세는 방식」)
  */
 export async function 기준판(서비스: number): Promise<{ version: number; items: PrdItem[] } | null> {
   const r = await (await db()).query<{ version: number | null; items: PrdItem[] | null }>(
@@ -237,7 +238,7 @@ export async function 기준판(서비스: number): Promise<{ version: number; i
        JOIN authoring_request src ON src.id = m.source_id
        LEFT JOIN prd_version v ON v.service_id = src.service_id AND v.version = src.prd_version
       WHERE m.service_id = $1 AND m.kind = 'MERGE' AND m.status = 'DONE'
-        AND src.kind IN ('AUTHOR', 'RERUN') AND NOT (src.params ? 'edits')
+        AND src.kind IN ('AUTHOR', 'RERUN') AND NOT (src.params ? 'edits') AND NOT (src.params ? 'apiApply')
       ORDER BY m.finished_at DESC NULLS LAST, m.id DESC
       LIMIT 1`,
     [서비스],

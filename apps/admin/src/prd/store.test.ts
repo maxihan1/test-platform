@@ -127,6 +127,19 @@ describe.skipIf(연결 === undefined)('표준 기획서 저장소', () => {
     expect(await s.기준판(서비스)).toBeNull();
   });
 
+  it('바뀐 API 다시 작성의 병합은 기준 판을 앞당기지 않는다 — 기획서를 안 다뤄서 그 사이 고친 요구가 반영 안 됨으로 남는다', async () => {
+    const s = await 저장소();
+    await s.사람저장(서비스, 접두사, 0, [새것('20개까지')], 사람);
+    const 첫작성 = await 요청넣기('AUTHOR', { status: 'DONE', prd: 1 });
+    await 요청넣기('MERGE', { source: 첫작성, status: 'DONE' });
+    await s.사람저장(서비스, 접두사, 1, [{ ...새것('30개까지'), reqId: 'XPS-REQ-001' }], 사람);
+    const API다시 = await 요청넣기('AUTHOR', { status: 'DONE', prd: 2, params: { apiApply: { fromVersion: 1, toVersion: 2, operations: [] } } });
+    await 요청넣기('MERGE', { source: API다시, status: 'DONE' });
+    const 재실행 = await 요청넣기('RERUN', { source: API다시, status: 'DONE', prd: 2, params: { apiApply: { fromVersion: 1, toVersion: 2, operations: [] } } });
+    await 요청넣기('MERGE', { source: 재실행, status: 'DONE' });
+    expect(await s.기준판(서비스)).toMatchObject({ version: 1, items: [{ text: '20개까지' }] });
+  });
+
   it('지도 ① 은 활성 케이스만 번호마다 묶고 기기 목록을 싣는다', async () => {
     const s = await 저장소();
     for (const [tc, 활성] of [['XPS-001', true], ['XPS-002', false]] as const) {

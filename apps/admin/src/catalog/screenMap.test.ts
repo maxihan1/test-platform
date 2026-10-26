@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { CaseSpec } from '@platform/kit';
 
-import { 가져온화면파일, 화면이름, 화면주소, 화면지도줄들 } from './screenMap.js';
+import { 가져온화면파일, 여는주소들, 화면이름, 화면주소, 화면지도줄들 } from './screenMap.js';
 
 describe('가져온화면파일', () => {
   it('pages · components 를 가져온 줄만 — helpers · 타입만 · 다른 자리 · 꼴이 틀린 이름은 뺀다', () => {
@@ -41,6 +41,33 @@ describe('화면주소', () => {
   });
 });
 
+describe('여는주소들 — 화면 파일 안 이동이 여는 주소 틀 (WEB-F6-03)', () => {
+  it('page.goto 의 글자 · 템플릿을 읽고 ${…} 자리는 :n 이다 — 조건식은 두 갈래 다', () => {
+    const 글 = [
+      'export class 글쓰기화면 {',
+      "  static readonly 주소 = '/board/write';",
+      '  async 열기() { await this.page.goto(글쓰기화면.주소); }',
+      '  async 수정열기(번호: number) { await this.page.goto(`/board/${번호}/edit`); }',
+      "  async 주문(n: string) { await this.page.goto(n === '' ? '/my/orders' : `/my/orders/${encodeURIComponent(n)}`); }",
+      "  async 뒤로() { await this.page.goto(('/board')); }",
+      '}',
+    ].join('\n');
+    expect(여는주소들(글)).toEqual(['/board/:n/edit', '/my/orders', '/my/orders/:n', '/board']);
+  });
+
+  it('앞이 계산식이거나 / 로 시작하지 않으면 모른다 — 짐작한 주소로 잇느니 뺀다', () => {
+    const 글 = [
+      'export class A {',
+      "  static readonly 주소 = '/a';",
+      '  async 열기(x: string) { await this.page.goto(`${A.주소}?items=${x}`); }',
+      "  async 상세(n: number) { await this.page.goto(A.주소.replace(':n', String(n))); }",
+      "  async 밖() { await this.page.goto('https://other.example.com/x'); }",
+      '}',
+    ].join('\n');
+    expect(여는주소들(글)).toEqual([]);
+  });
+});
+
 describe('화면이름 — 목록에 보일 화면 파일의 클래스 이름 (PRD-F9-18)', () => {
   it('내보낸 첫 클래스 이름을 읽는다', () => {
     expect(화면이름("import type { Page } from '@playwright/test';\n\nexport class 게시판목록화면 {\n  static readonly 주소 = '/board';\n}")).toBe('게시판목록화면');
@@ -60,8 +87,14 @@ describe('화면지도줄들', () => {
     뿌리 = await mkdtemp(join(tmpdir(), 'xcs-'));
     await mkdir(join(뿌리, 'xcs', 'pages'), { recursive: true });
     await mkdir(join(뿌리, 'xcs', 'components'), { recursive: true });
-    await writeFile(join(뿌리, 'xcs', 'pages', 'cart.page.ts'), "export class CartPage {\n  static readonly 주소 = '/cart';\n}");
-    await writeFile(join(뿌리, 'xcs', 'components', 'site-header.component.ts'), "export class SiteHeader {\n  static readonly 주소 = '/';\n}");
+    await writeFile(
+      join(뿌리, 'xcs', 'pages', 'cart.page.ts'),
+      "export class CartPage {\n  static readonly 주소 = '/cart';\n  async 열기() { await this.page.goto('/cart'); }\n  async 주문(n: number) { await this.page.goto(`/cart/${n}/order`); }\n}",
+    );
+    await writeFile(
+      join(뿌리, 'xcs', 'components', 'site-header.component.ts'),
+      "export class SiteHeader {\n  static readonly 주소 = '/';\n  async 홈() { await this.page.goto('/home'); }\n}",
+    );
     await writeFile(
       join(뿌리, 'xcs', 'XCS-001.spec.ts'),
       "import { CartPage } from './pages/cart.page.js';\nimport { SiteHeader } from './components/site-header.component.js';",
@@ -73,12 +106,12 @@ describe('화면지도줄들', () => {
     await rm(뿌리, { recursive: true, force: true });
   });
 
-  it('케이스마다 화면 파일을 저장소 뿌리 기준 경로로 잇고 주소를 붙인다 — 화면 조각은 값을 적어 둬도 주소가 없다', async () => {
+  it('케이스마다 화면 파일을 저장소 뿌리 기준 경로로 잇고 주소 · 이동이 여는 다른 주소를 붙인다 — 화면 조각은 값을 적어 둬도 주소가 없다', async () => {
     const 명세 = (tcId: string) => ({ tcId, filePath: `xcs/${tcId}.spec.ts` }) as CaseSpec;
     expect(await 화면지도줄들(뿌리, [명세('XCS-001'), 명세('XCS-002')])).toEqual([
-      { tcId: 'XCS-001', file: 'tests/xcs/pages/cart.page.ts', screenUrl: '/cart', name: 'CartPage' },
-      { tcId: 'XCS-001', file: 'tests/xcs/components/site-header.component.ts', screenUrl: null, name: 'SiteHeader' },
-      { tcId: 'XCS-002', file: 'tests/xcs/pages/cart.page.ts', screenUrl: '/cart', name: 'CartPage' },
+      { tcId: 'XCS-001', file: 'tests/xcs/pages/cart.page.ts', screenUrl: '/cart', name: 'CartPage', openUrls: ['/cart/:n/order'] },
+      { tcId: 'XCS-001', file: 'tests/xcs/components/site-header.component.ts', screenUrl: null, name: 'SiteHeader', openUrls: [] },
+      { tcId: 'XCS-002', file: 'tests/xcs/pages/cart.page.ts', screenUrl: '/cart', name: 'CartPage', openUrls: ['/cart/:n/order'] },
     ]);
   });
 });
@@ -148,6 +181,14 @@ describe.skipIf(연결 === undefined)('화면지도채우기', () => {
     await writeFile(join(뿌리, 'xcs', 'XCS-001.spec.ts'), "import { LoginPage } from './pages/login.page.js';");
     await 채우기(['XCS-001'], false);
     expect(await 지도()).toEqual(['XCS-001 tests/xcs/pages/login.page.ts /login LoginPage', 'XCS-002 tests/xcs/pages/login.page.ts /login LoginPage']);
+  });
+
+  it('화면 파일 안 이동이 여는 다른 주소를 open_urls 에 넣는다', async () => {
+    await writeFile(join(뿌리, 'xcs', 'pages', 'edit.page.ts'), "export class EditPage {\n  static readonly 주소 = '/w';\n  async 고치기(n: number) { await this.page.goto(`/w/${n}/edit`); }\n}");
+    await writeFile(join(뿌리, 'xcs', 'XCS-001.spec.ts'), "import { EditPage } from './pages/edit.page.js';");
+    await 채우기(['XCS-001']);
+    const r = await q<{ open_urls: string[] }>('SELECT open_urls FROM case_screen WHERE tc_id = $1', ['XCS-001']);
+    expect(r.rows).toEqual([{ open_urls: ['/w/:n/edit'] }]);
   });
 
   it('화면 파일을 못 읽으면 던지고 옛 지도를 그대로 둔다', async () => {

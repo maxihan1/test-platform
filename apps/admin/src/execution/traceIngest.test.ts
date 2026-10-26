@@ -76,6 +76,28 @@ describe('trace가린다', () => {
     expect(가림.console[0]!.text).toBe(`로그인 실패 token=${별}`);
   });
 
+  it('주소 경로(물음표 앞)는 경로 목록으로만 가린다 — 계정 아이디 admin 이 /api/admin/banners 를 가리지 않고, 물음표 뒤와 본문은 다 가린다', () => {
+    const 아이디 = trace가린다(
+      {
+        network: [{ ...풀림.network[0]!, url: 'http://a/api/admin/banners?loginId=admin&pw=pa55word', requestBody: '{"id":"admin"}', responseBody: null }],
+        actions: [],
+        console: [{ seq: 2, atMs: 8, level: 'error', text: 'admin 실패', url: 'http://a/api/admin/x?u=admin' }],
+      },
+      ['pa55word', 'admin'],
+      ['pa55word'],
+    );
+    expect(아이디.network[0]!.url).toBe(`http://a/api/admin/banners?loginId=${별}&pw=${별}`);
+    expect(아이디.network[0]!.requestBody).toBe(`{"id":"${별}"}`);
+    expect(아이디.console[0]).toMatchObject({ text: `${별} 실패`, url: `http://a/api/admin/x?u=${별}` });
+    expect(trace가린다({ ...풀림, network: [{ ...풀림.network[0]!, url: 'http://a/u/pa55word/admin#admin' }] }, ['pa55word', 'admin'], ['pa55word']).network[0]!.url).toBe(
+      `http://a/u/${별}/admin#${별}`,
+    );
+  });
+
+  it('경로 목록을 안 주면 경로도 값 목록 전부로 가린다', () => {
+    expect(trace가린다({ ...풀림, network: [{ ...풀림.network[0]!, url: 'http://a/api/admin/banners' }] }, ['admin']).network[0]!.url).toBe(`http://a/api/${별}/banners`);
+  });
+
   // 2000자 자르기가 이모지를 가르고, 바이너리 본문에는 NUL 이 든다. 남으면 저장(json_to_recordset · jsonb)이 깨진다 (FIX-F2-02)
   it('NUL 과 자르다 생긴 이모지 반쪽은 U+FFFD 로 바꾼다', () => {
     const 깨짐 = trace가린다(

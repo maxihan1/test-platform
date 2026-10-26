@@ -4,6 +4,7 @@
 import type { ScenarioDeleteStatus } from '@platform/kit';
 import type { PoolClient } from 'pg';
 
+import { 숫자마디 } from '../../../../scripts/authoring-crawl-rules.js';
 import { db } from '../settings/store.js';
 
 export interface API줄 {
@@ -20,8 +21,10 @@ const uuid칸 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const 긴16진 = /^[0-9a-f]{16,}$/i;
 
 /**
- * 주소 → (호스트, 주소 틀). 숫자 칸은 `:n`, uuid · 16자 넘는 16진 칸은 `:id`, 물음표 · # 뒤는 뺀다. http(s) 가 아니면 null.
- * 화면 틀(`틀키`)과 따로 둔다 — 화면은 물음표 뒤를 남기고(게시판 `?bo_table=`), API 는 뺀다(토큰 · 검색어)
+ * 주소 → (호스트, 주소 틀). 숫자 칸은 `:n`, uuid · 16자 넘는 16진 칸은 `:id`, 그 밖에 화면 틀의 번호 마디(주문번호 `DM20261026-0038`)도 `:n`,
+ * 물음표 · # 뒤는 뺀다. http(s) 가 아니면 null. 주문번호를 안 묶으면 주문마다 API 가 한 줄씩 는다 (도메인/작성 §3.6 「세는 방식」).
+ * 화면 틀(`틀키`)과 따로 둔다 — 화면은 물음표 뒤를 남기고(게시판 `?bo_table=`), API 는 뺀다(토큰 · 검색어).
+ * 러너 `scenario/links.ts` 주소틀 · kit `runtime/http.ts` 틀칸이 같은 규칙을 따로 둔다 — 고치면 셋을 같이
  */
 export function API틀(url: string): { host: string; path: string } | null {
   let u: URL;
@@ -31,7 +34,10 @@ export function API틀(url: string): { host: string; path: string } | null {
     return null;
   }
   if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
-  const 칸들 = u.pathname.split('/').map((칸) => (숫자칸.test(칸) ? ':n' : uuid칸.test(칸) || 긴16진.test(칸) ? ':id' : 칸));
+  // 이미 접힌 칸(`:id` · `:n`)은 그대로 둔다 — 게임 결과는 kit 이 접어 보낸 경로를 여기 다시 넣는다(execution/gameResult.ts). 숫자마디의 `:\w+` 갈래가 `:id` 를 `:n` 으로 바꾸면 옛 줄과 갈린다
+  const 칸들 = u.pathname
+    .split('/')
+    .map((칸) => (숫자칸.test(칸) ? ':n' : uuid칸.test(칸) || 긴16진.test(칸) ? ':id' : !칸.startsWith(':') && 숫자마디.test(칸) ? ':n' : 칸));
   return { host: u.host.toLowerCase(), path: 칸들.join('/') || '/' };
 }
 
