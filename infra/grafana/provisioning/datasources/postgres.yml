@@ -9,7 +9,6 @@ datasources:
     type: postgres
     access: proxy
     url: postgres:5432
-    database: platform
     user: grafana_ro
     isDefault: true
     editable: false
@@ -17,5 +16,7 @@ datasources:
       # compose 가 grafana 에 넘긴 값이다. postgres 가 계정을 만들 때 읽은 칸과 같다 (SPEC 공통/6 §9 「DB 비밀번호」)
       password: $GRAFANA_RO_PASSWORD
     jsonData:
+      # 바깥 칸 database 는 옛 자리다 — Grafana 13 화면은 이 칸만 읽고, 없으면 쿼리를 보내기 전에 「default database」 오류로 막는다
+      database: platform
       sslmode: disable
       postgresVersion: 1600

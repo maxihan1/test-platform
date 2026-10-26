@@ -284,6 +284,7 @@ describe('DB 에 닿는 서비스', () => {
     }
     const 데이터소스 = readFileSync(resolve(process.cwd(), 'infra/grafana/provisioning/datasources/postgres.yml'), 'utf8');
     expect(데이터소스).toMatch(/^ {6}password:\s*\$GRAFANA_RO_PASSWORD\s*$/m);
+    expect(데이터소스, 'Grafana 13 화면은 jsonData.database 만 읽는다').toMatch(/^ {4}jsonData:\n(?: {6}.*\n)*? {6}database:\s*platform\s*$/m);
     const 초기화 = readFileSync(resolve(process.cwd(), 'db/init/01-grafana-readonly.sh'), 'utf8');
     expect(초기화).toMatch(/GRAFANA_RO_PASSWORD/);
     expect(초기화).not.toMatch(/PASSWORD 'grafana_ro'/);
