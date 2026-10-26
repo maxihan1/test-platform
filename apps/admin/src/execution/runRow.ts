@@ -24,6 +24,18 @@ export const RUN_COLUMNS = `
   count(i.history_id) FILTER (WHERE i.finished_at IS NULL)::int AS running,
   count(i.history_id) FILTER (WHERE i.unconfirmed IS NOT NULL)::int AS u_total`;
 
+// 디바이스마다 실패한 케이스 수 — 회차를 접어 tc_id 로 센다. 결과 칸의 「실패 케이스 N건」과 같은 단위라 목록 줄만 싣는다 (SPEC 실행 §8.7 「줄」)
+export const FAIL_CASE_COLUMNS = 디바이스차례
+  .map((p) => `count(DISTINCT i.tc_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'FAIL' AND i.platform = '${p}')::int AS fail_${p}`)
+  .join(',\n  ');
+
+export type RawFailCases = Record<`fail_${Platform}`, number>;
+
+/** 그 실행에 든 디바이스만 키로 싣는다. 실패가 없으면 0 이다 (SPEC 실행 §7 `GET /api/runs`) */
+export function toFailCases(row: Pick<RawRun, 'platforms'> & RawFailCases): Partial<Record<Platform, number>> {
+  return Object.fromEntries(디바이스차례.filter((p) => row.platforms.includes(p)).map((p) => [p, row[`fail_${p}`]]));
+}
+
 export interface RawRun {
   run_id: string;
   title: string;

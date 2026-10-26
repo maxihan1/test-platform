@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 
-import type { ItemStatus, RunCounts, RunInsights, RunItemSummary } from './api.js';
+import type { ItemStatus, Platform, RunCounts, RunInsights, RunItemSummary } from './api.js';
 import { 도넛조각 } from './dashboardView.js';
 import { use말, use언어 } from './i18n.js';
 import { 해결목록 } from './RunInsights.js';
 import { 빠진목록 } from './RunMissing.js';
+import { PLATFORM_LABEL } from './ui.js';
 import { 그중미확정글 } from './unconfirmed.js';
 
 // 큰 숫자는 케이스 수로 맞춘다 — 「실패 N건」 · 실패 카드 수 · 「실패 N건 다시 실행」과 같은 단위다. 디바이스로 갈라 세면 한 화면에 단위가 셋이 됐다 (점검 2.15)
@@ -28,10 +29,18 @@ export function RunSummary({
   변화 = null,
   on변화,
   항목들 = [],
+  디바이스실패 = [],
+  device = 'ALL',
+  on디바이스,
 }: {
   counts: RunCounts;
   /** 한 번이라도 실패한 케이스 수 — 디바이스 · 회차를 접는다 */
   실패케이스수: number;
+  /** 디바이스마다 실패한 케이스 수. 디바이스가 둘 이상일 때만 단추로 선다 (도메인/실행 §8.3 표 1번 줄) */
+  디바이스실패?: { platform: Platform; 수: number }[];
+  /** 아래 디바이스 칩과 같은 거르개다 — 단추와 칩이 한 값을 같이 든다 */
+  device?: Platform | 'ALL';
+  on디바이스?: (값: Platform | 'ALL') => void;
   insights: RunInsights | null;
   판정: ItemStatus | 'ALL';
   on판정: (v: ItemStatus | 'ALL') => void;
@@ -106,6 +115,23 @@ export function RunSummary({
               <span className="verdict v-fail rs-fails">{t('실패 케이스 {수}건', { 수: 실패케이스수 })}</span>
             ) : (
               <span className="rs-fails none">{t('실패 케이스 {수}건', { 수: 0 })}</span>
+            )}
+            {실패케이스수 === 0 || 디바이스실패.length < 2 ? null : (
+              <div className="rs-devs" role="group" aria-label={t('디바이스별 실패 케이스')}>
+                {디바이스실패.map(({ platform, 수 }) => (
+                  // 한 번 더 누르면 「전체」로 돌아간다. 0건이면 걸러 봐야 빈 칸이라 누를 수 없다 — 칩으로 이미 고른 때만은 풀 수 있게 둔다
+                  <button
+                    key={platform}
+                    type="button"
+                    className="rs-dev"
+                    aria-pressed={device === platform}
+                    disabled={수 === 0 && device !== platform}
+                    onClick={() => on디바이스?.(device === platform ? 'ALL' : platform)}
+                  >
+                    {t('{디바이스} {수}건', { 디바이스: t(PLATFORM_LABEL[platform]), 수 })}
+                  </button>
+                ))}
+              </div>
             )}
             <span className="rs-of">
               {전체 === 0
