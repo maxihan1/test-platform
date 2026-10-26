@@ -206,3 +206,39 @@ describe('요약 띠 — 직전 실행 대비', () => {
     expect(screen.queryByText(/직전 실행/)).toBeNull();
   });
 });
+
+describe('요약 띠 — 디바이스별 실패 단추 (도메인/실행 §8.3 표 1번 줄)', () => {
+  const 나눔 = [
+    { platform: 'desktop' as const, 수: 4 },
+    { platform: 'mobile' as const, 수: 6 },
+    { platform: 'android' as const, 수: 0 },
+  ];
+  const 띠 = (device: 'ALL' | 'desktop', on디바이스: (v: string) => void) => (
+    <RunSummary counts={집계(595, 10, 1)} 실패케이스수={6} insights={null} 판정="ALL" on판정={() => undefined} 디바이스실패={나눔} device={device} on디바이스={on디바이스} />
+  );
+
+  it('디바이스마다 실패 케이스 수 단추를 둔다 — 누르면 그 디바이스, 다시 누르면 전체, 0건은 누를 수 없다', () => {
+    const on디바이스 = vi.fn();
+    const { rerender } = render(띠('ALL', on디바이스));
+    const 묶음 = screen.getByRole('group', { name: '디바이스별 실패 케이스' });
+    expect(within(묶음).getAllByRole('button').map((b) => b.textContent)).toEqual(['PC 4건', '모바일 6건', 'Android 앱 0건']);
+    expect(within(묶음).getByRole('button', { name: 'Android 앱 0건' }).hasAttribute('disabled')).toBe(true);
+
+    fireEvent.click(within(묶음).getByRole('button', { name: 'PC 4건' }));
+    expect(on디바이스).toHaveBeenLastCalledWith('desktop');
+
+    rerender(띠('desktop', on디바이스));
+    const PC = screen.getByRole('button', { name: 'PC 4건' });
+    expect(PC.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(PC);
+    expect(on디바이스).toHaveBeenLastCalledWith('ALL');
+  });
+
+  it('디바이스가 하나이거나 실패가 없으면 단추가 없다', () => {
+    render(<RunSummary counts={집계(9, 1, 0)} 실패케이스수={1} insights={null} 판정="ALL" on판정={() => undefined} 디바이스실패={[{ platform: 'desktop', 수: 1 }]} />);
+    expect(screen.queryByRole('group', { name: '디바이스별 실패 케이스' })).toBeNull();
+    cleanup();
+    render(<RunSummary counts={집계(10, 0, 0)} 실패케이스수={0} insights={null} 판정="ALL" on판정={() => undefined} 디바이스실패={나눔.map((d) => ({ ...d, 수: 0 }))} />);
+    expect(screen.queryByRole('group', { name: '디바이스별 실패 케이스' })).toBeNull();
+  });
+});
