@@ -69,7 +69,7 @@ export async function listRuns(
   // **걸린 뒤의 수**다 (2026-09-22 실측 — 감싸는 서브질의로 바꿔도 결과가 같았다).
   // 계획 검토가 「HAVING 이전을 센다」고 의심했는데 재 보니 그렇지 않았다
   const rows = await pool.query<Parameters<typeof to시나리오줄>[0] & RawFailCases>(
-    `SELECT ${RUN_COLUMNS}, ${FAIL_CASE_COLUMNS}${시나리오 ? 시나리오칸 : ''}, count(*) OVER ()::int AS grand_total
+    `SELECT ${RUN_COLUMNS}${시나리오 ? 시나리오칸 : `, ${FAIL_CASE_COLUMNS}`}, count(*) OVER ()::int AS grand_total
        FROM test_run r
        LEFT JOIN run_item i USING (run_id)
       WHERE r.service_id = (SELECT id FROM service WHERE prefix = $3) ${조건.where}
