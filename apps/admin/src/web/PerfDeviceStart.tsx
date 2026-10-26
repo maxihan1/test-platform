@@ -1,5 +1,5 @@
 // 성능 테스트 › 기기 성능 › 새 측정 — 조작 방식 · 케이스와 반복 · 빌드 · 측정 기기 · 성능 목표 · 측정 항목 · 「측정 시작」 (도메인/성능 §8.14 · 시안 Dev-Start)
-// 앞 측정이 있으면 그 조건을 채워 연다. AltTester 시나리오는 그 기능이 생길 때(PERF-F1-11)까지 칸이 없다
+// 앞 측정이 있으면 그 조건을 채워 연다. 게임 애플리케이션은 Appium 케이스 자리에 게임 케이스가 선다 — 게임 화면은 Appium 이 버튼을 못 찾는다
 
 import { useEffect, useState } from 'react';
 
@@ -35,10 +35,12 @@ export function PerfDeviceStart({
 }) {
   const t = use말();
   const 언어 = use언어();
-  const [조작, set조작] = useState<조작>(앞?.drive ?? 'APPIUM');
+  const 게임 = service.kind === 'GAME';
+  const 케이스조작: 조작 = 게임 ? 'GAME' : 'APPIUM';
+  const [조작, set조작] = useState<조작>(앞?.drive === 'MANUAL' ? 'MANUAL' : 케이스조작);
   const [케이스들, set케이스들] = useState<CaseRow[] | null>(null);
   const [고른케이스, set고른케이스] = useState<string[]>(앞?.caseIds ?? []);
-  const [반복, set반복] = useState(앞?.drive === 'APPIUM' ? 앞.repeat : 3);
+  const [반복, set반복] = useState(앞 !== null && 앞.drive !== 'MANUAL' ? 앞.repeat : 3);
   const [분, set분] = useState(앞 !== null && 앞.durationSec > 0 ? Math.round(앞.durationSec / 60) : 10);
   const [env, setEnv] = useState(앞env !== null && service.envs.some((it) => it.env === 앞env) ? 앞env : 마지막서버(service.prefix, service.envs));
   const [앱, set앱] = useState(앞?.package ?? '');
@@ -62,7 +64,7 @@ export function PerfDeviceStart({
         set알림(message(err, 언어));
       },
     );
-    // 앱 케이스만 고른다 — 서버도 Android 앱 케이스가 아니면 거절한다. 목록은 쪽마다 50건이라 끝까지 받는다
+    // 폰 케이스만 고른다(게임 케이스도 android 다) — 서버도 아니면 거절한다. 목록은 쪽마다 50건이라 끝까지 받는다
     void (async () => {
       try {
         const 모음: CaseRow[] = [];
@@ -83,7 +85,8 @@ export function PerfDeviceStart({
     };
   }, []);
 
-  const 팜만 = 조작 === 'APPIUM';
+  const 케이스로 = 조작 !== 'MANUAL';
+  const 팜만 = 케이스로;
   // 앞 측정 · 추천에서 온 기기가 지금 쓰는 중이거나 이 조작으로 못 쓰면 고른 것에서 뺀다 — 상한 5대에도 안 센다
   const 쓸기기 = 고른기기.flatMap((키) => {
     const d = 기기들?.find((x) => 기기키(x) === 키);
@@ -94,7 +97,7 @@ export function PerfDeviceStart({
   function 막는까닭(): string | null {
     if (env === '') return t('대상 서버를 골라 주세요');
     if (!앱이름.test(앱)) return t('앱 패키지 이름을 com.demo.market 꼴로 적어 주세요');
-    if (조작 === 'APPIUM' && 고른케이스.length === 0) return t('측정하며 돌릴 Android 앱 케이스를 골라 주세요');
+    if (케이스로 && 고른케이스.length === 0) return 게임 ? t('측정하며 돌릴 게임 케이스를 골라 주세요') : t('측정하며 돌릴 Android 앱 케이스를 골라 주세요');
     if (골라보냄.length === 0) return t('측정할 기기를 골라 주세요');
     if (항목.length === 0) return t('측정 항목을 하나 이상 골라 주세요');
     return null;
@@ -110,10 +113,10 @@ export function PerfDeviceStart({
         serviceId: service.id,
         env,
         drive: 조작,
-        ...(조작 === 'APPIUM' ? { caseIds: 고른케이스 } : { durationSec: 분 * 60 }),
+        ...(케이스로 ? { caseIds: 고른케이스 } : { durationSec: 분 * 60 }),
         build: { package: 앱 },
         devices: 골라보냄,
-        repeat: 조작 === 'APPIUM' ? 반복 : 1,
+        repeat: 케이스로 ? 반복 : 1,
         targets: 목표들,
         metrics: 항목,
         intervalSec: 간격,
@@ -145,13 +148,15 @@ export function PerfDeviceStart({
         <section className="perf-panel" aria-labelledby="pd-m">
           <h2 id="pd-m">{t('조작 방식')}</h2>
           <div className="pd-kinds" role="radiogroup" aria-label={t('조작 방식')}>
-            {조작칸('APPIUM', 'Appium 케이스', '고른 Android 앱 케이스를 기기마다 반복해 돌리며 측정합니다. 팜 폰만 됩니다')}
+            {게임
+              ? 조작칸('GAME', '게임 케이스', '고른 게임 케이스를 기기마다 반복해 돌리며 측정합니다. 팜 폰만 됩니다')
+              : 조작칸('APPIUM', 'Appium 케이스', '고른 Android 앱 케이스를 기기마다 반복해 돌리며 측정합니다. 팜 폰만 됩니다')}
             {조작칸('MANUAL', '직접 플레이', '팜 PC 에 꽂힌 폰을 손에 들고 플레이하는 동안 기록합니다')}
           </div>
         </section>
 
         <section className="perf-panel" aria-labelledby="pd-s">
-          <h2 id="pd-s">{조작 === 'APPIUM' ? t('케이스와 빌드') : t('측정 시간과 빌드')}</h2>
+          <h2 id="pd-s">{케이스로 ? t('케이스와 빌드') : t('측정 시간과 빌드')}</h2>
           <div className="perf-fields">
             <label className="perf-field">
               {t('대상 서버')}
@@ -168,7 +173,7 @@ export function PerfDeviceStart({
               {t('앱 패키지 이름')}
               <input className="mono" value={앱} placeholder="com.demo.market" disabled={!쓰나} onChange={(e) => set앱(e.target.value.trim())} />
             </label>
-            {조작 === 'APPIUM' ? (
+            {케이스로 ? (
               <label className="perf-field">
                 {t('반복')}
                 <input type="number" min={1} max={20} value={반복} disabled={!쓰나} onChange={(e) => set반복(Math.min(20, Math.max(1, Math.round(Number(e.target.value)) || 1)))} />
@@ -180,13 +185,13 @@ export function PerfDeviceStart({
               </label>
             )}
           </div>
-          {조작 === 'APPIUM' ? (
+          {케이스로 ? (
             케이스들 === null ? (
               <span className="perf-faint">{t('케이스 목록을 읽는 중입니다')}</span>
             ) : 케이스오류 !== null ? (
               <span className="perf-err">{케이스오류}</span>
             ) : 케이스들.length === 0 ? (
-              <span className="perf-faint">{t('아직 Android 앱 케이스가 없습니다')}</span>
+              <span className="perf-faint">{게임 ? t('아직 게임 케이스가 없습니다') : t('아직 Android 앱 케이스가 없습니다')}</span>
             ) : (
               <fieldset className="pd-cases">
                 <legend className="perf-faint">{t('돌릴 케이스 ({수}/{상한})', { 수: 고른케이스.length, 상한: 케이스상한 })}</legend>

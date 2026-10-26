@@ -8,7 +8,7 @@ import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { perfApi, type 실행상세 } from './perfApi.js';
 import { PerfDeviceReplay } from './PerfDeviceReplay.js';
-import { 값글자, 기기설정of, 메모리글자, 벗어난지표, 실행열기 } from './perfDeviceView.js';
+import { 값글자, 기기설정of, 메모리글자, 벗어난지표, 실행열기, 조작글 } from './perfDeviceView.js';
 import { 갱신간격, 분석틈, 분초, 사유이름, 시각글, 판정꼴, 판정이름, 판정종류 } from './perfRunView.js';
 import { Loading, message, useAsync } from './ui.js';
 
@@ -52,7 +52,7 @@ export function PerfDeviceResult({ run, service, 다시읽기, 쓰나, 새측정
         serviceId: service.id,
         env: run.env,
         drive: 설정.drive,
-        ...(설정.drive === 'APPIUM' ? { caseIds: 설정.caseIds } : { durationSec: 설정.durationSec }),
+        ...(설정.drive === 'MANUAL' ? { durationSec: 설정.durationSec } : { caseIds: 설정.caseIds }),
         build: { package: 설정.package },
         devices: 설정.devices.map(({ serial, where }) => ({ serial, where })),
         repeat: 설정.repeat,
@@ -71,7 +71,6 @@ export function PerfDeviceResult({ run, service, 다시읽기, 쓰나, 새측정
     });
 
   const 걸린 = run.startedAt !== null && run.finishedAt !== null ? [분초((new Date(run.finishedAt).getTime() - new Date(run.startedAt).getTime()) / 1000)] : [];
-  const 조작글 = 설정.drive === 'MANUAL' ? t('직접 플레이') : t('Appium 케이스 {수}개', { 수: 설정.caseIds.length });
   const 받음 = 결과.data;
   // 처음 고르는 기기 — 먼저 봐야 할 실패가 있으면 그것
   const 처음기기 = 받음 === null ? '' : ((받음.devices.find((d) => d.verdict === 'FAIL') ?? 받음.devices[0])?.serial ?? '');
@@ -84,7 +83,7 @@ export function PerfDeviceResult({ run, service, 다시읽기, 쓰나, 새측정
         부제={
           <>
             {종류 === 'LIVE' ? null : <span className={`verdict ${판정꼴[종류]}`}>{판정이름(종류, t)}</span>}{' '}
-            {[조작글, 설정.drive === 'APPIUM' ? t('반복 {수}회', { 수: 설정.repeat }) : null, t('기기 {수}대', { 수: 설정.devices.length }), run.env, 시각글(run.startedAt, 언어), ...걸린, run.stopReason === null ? null : 사유이름(run.stopReason, t)]
+            {[조작글(설정, t), 설정.drive === 'MANUAL' ? null : t('반복 {수}회', { 수: 설정.repeat }), t('기기 {수}대', { 수: 설정.devices.length }), run.env, 시각글(run.startedAt, 언어), ...걸린, run.stopReason === null ? null : 사유이름(run.stopReason, t)]
               .filter((x): x is string => x !== null)
               .join(' · ')}
           </>

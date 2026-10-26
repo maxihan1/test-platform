@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 성능 테스트 › 기기 성능 화면 검사 — 측정 시작 요청 · 실행 중 목표 미달 · 결과 녹화 화면과 장면 · 요약 · 누수 의심 (도메인/성능 §8.14 「기기 성능」)
+// 성능 테스트 › 기기 성능 화면 검사 — 측정 시작 요청(게임 케이스 포함) · 실행 중 목표 미달 · 결과 녹화 화면과 장면 · 요약 · 누수 의심 (도메인/성능 §8.14 「기기 성능」)
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -66,6 +66,24 @@ describe('측정 시작', () => {
     await waitFor(() => expect(만들기).toHaveBeenCalled());
     expect(만들기.mock.calls[0]![0]).toMatchObject({ drive: 'MANUAL', durationSec: 300, repeat: 1, devices: [{ serial: 'PX7', where: 'LOCAL' }] });
     expect(만들기.mock.calls[0]![0]).not.toHaveProperty('caseIds');
+  });
+
+  it('게임 애플리케이션은 Appium 케이스 자리에 게임 케이스가 서고, 고른 케이스를 drive GAME 으로 보낸다', async () => {
+    const 만들기 = 빈화면();
+    render(<PerfDevices service={{ ...앱, kind: 'GAME' }} 쓰나 />);
+    expect((await screen.findByLabelText<HTMLInputElement>(/게임 케이스/)).checked).toBe(true);
+    expect(screen.queryByLabelText(/Appium 케이스/)).toBeNull();
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
+    fireEvent.change(screen.getByLabelText('앱 패키지 이름'), { target: { value: 'com.demo.game' } });
+    fireEvent.click(screen.getByRole('button', { name: '측정 시작' }));
+    expect((await screen.findByRole('alert')).textContent).toBe('측정하며 돌릴 게임 케이스를 골라 주세요');
+    fireEvent.click(await screen.findByLabelText(/ZQD-001/));
+    fireEvent.click(await screen.findByLabelText('Galaxy S24 선택'));
+    fireEvent.click(screen.getByRole('button', { name: '측정 시작' }));
+
+    await waitFor(() => expect(만들기).toHaveBeenCalled());
+    expect(만들기.mock.calls[0]![0]).toMatchObject({ drive: 'GAME', caseIds: ['ZQD-001'], repeat: 3, devices: [{ serial: 'S24', where: 'FARM' }] });
+    expect(만들기.mock.calls[0]![0]).not.toHaveProperty('durationSec');
   });
 
   it('앱 패키지 이름이 꼴에 안 맞으면 보내지 않고 까닭을 알린다', async () => {
@@ -169,6 +187,17 @@ describe('결과', () => {
     render(<PerfDevices service={앱} run={40} 쓰나 />);
     fireEvent.click(await screen.findByRole('tab', { name: 'Galaxy S24' }));
     expect(screen.getByText('녹화 화면이 없습니다')).toBeTruthy();
+  });
+
+  it('게임 케이스 측정은 머리에 게임 케이스 수와 반복을 보이고 다시 실행도 게임 케이스로 만든다', async () => {
+    vi.spyOn(perfApi, 'runOf').mockResolvedValue(상세({}, 설정({ drive: 'GAME' })));
+    vi.spyOn(perfApi, 'deviceResult').mockResolvedValue(결과);
+    const 만들기 = vi.spyOn(perfApi, 'measureDevices').mockResolvedValue({ runId: 43 });
+    render(<PerfDevices service={{ ...앱, kind: 'GAME' }} run={40} 쓰나 />);
+    expect(await screen.findByText(/게임 케이스 1개 · 반복 3회/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '다시 실행' }));
+    await waitFor(() => expect(만들기).toHaveBeenCalled());
+    expect(만들기.mock.calls[0]![0]).toMatchObject({ drive: 'GAME', caseIds: ['ZQD-001'], repeat: 3 });
   });
 
   it('다시 실행은 같은 조건으로 새 측정을 만들고, 새 측정은 앞 조건을 채운 시작 화면을 연다', async () => {
