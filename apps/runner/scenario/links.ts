@@ -52,6 +52,8 @@ export const 빈응답: 받은응답 = { status: 200, contentType: 'application/
 // admin 의 API틀(prd/apiMap.ts)과 같은 규칙이다 — 고정 spec 은 admin 을 못 부른다. 둘이 갈리면 본 코드를 못 찾고 204 로 답할 뿐이다
 const 숫자칸 = /^\d+$/;
 const 묶을칸 = /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{16,})$/i;
+// 주문번호 꼴(`DM20261026-0038`) — admin 이 화면 틀의 번호 마디(scripts/authoring-crawl-rules.ts 숫자마디)에서 들인 칸이다
+const 번호칸 = /^[a-z]{0,3}(?=(?:[-_]?\d){4})[\d_-]+$/i;
 export function 주소틀(url: string): string | null {
   let u: URL;
   try {
@@ -60,7 +62,7 @@ export function 주소틀(url: string): string | null {
     // 기준 주소 없는 연결의 상대 주소 — 못 맞추니 기본값으로 답한다
     return null;
   }
-  return u.host.toLowerCase() + (u.pathname.split('/').map((칸) => (숫자칸.test(칸) ? ':n' : 묶을칸.test(칸) ? ':id' : 칸)).join('/') || '/');
+  return u.host.toLowerCase() + (u.pathname.split('/').map((칸) => (숫자칸.test(칸) ? ':n' : 묶을칸.test(칸) ? ':id' : 번호칸.test(칸) ? ':n' : 칸)).join('/') || '/');
 }
 
 /**
