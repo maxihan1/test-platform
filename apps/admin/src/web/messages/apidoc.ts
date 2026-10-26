@@ -51,5 +51,4 @@ export const API문서말: Record<string, string> = {
   '응답 형식 없음': 'No response format',
   '● 통과한 케이스가 받은 응답 · ○ 아직 안 받은 응답 · 「응답 형식 없음」 문서에 응답 형식이 적혀 있지 않은 코드':
     '● received by a passing case · ○ not received yet · "No response format": the doc gives no format for that code',
-  '테스트 작성 목록 보기': 'Open authoring list',
 };

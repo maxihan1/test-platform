@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { apiDocApi, type ApiCoverage, type ApiDocChange } from './apiDocApi.js';
 import { ApiError, type EnvRow } from './api.js';
 import { 바뀐종류, 반영할줄, 안거친응답 } from './apidocView.js';
+import { 요청오류문장 } from './errorText.js';
 import { use말, use언어 } from './i18n.js';
 import { use반영종류글 } from './PrdTodo.js';
 import { message, type Async } from './ui.js';
@@ -47,9 +48,9 @@ export function 반영카드({
       const { requestId } = await apiDocApi.rewrite(id, 버전, 앞버전, 서버, 반영.map(({ method, path }) => ({ method, path })));
       set결과({ 글: t('작성 요청 {번호}번을 만들었습니다', { 번호: requestId }), 번호들: [requestId], 잠금: true });
     } catch (err) {
-      // API 다시 작성 통로의 APPLY_OPEN 은 열린 번호를 싣지 않는다(apidoc/routes.ts) — 작성 목록으로 보내고 버튼을 잠근다
-      const 열림 = err instanceof ApiError && err.code === 'APPLY_OPEN';
-      set결과({ 글: message(err, 언어), 번호들: [], 잠금: 열림 });
+      // 반영 안 된 작성이 있으면 서버가 그 요청 번호들을 준다 — 글자로 오면 「12,15」다. 그 요청으로 가는 고리를 달고 버튼을 잠근다
+      const 열린 = err instanceof ApiError && err.code === 'AUTHORING_OPEN' ? err.message.split(',').map(Number).filter(Number.isSafeInteger) : [];
+      set결과({ 글: 열린.length > 0 ? 요청오류문장('AUTHORING_OPEN', 언어) : message(err, 언어), 번호들: 열린, 잠금: 열린.length > 0 });
     } finally {
       setBusy(false);
     }
@@ -95,12 +96,6 @@ export function 반영카드({
                   {t('#{번호} 요청 보기', { 번호 })}
                 </a>
               ))}
-              {결과.잠금 && 결과.번호들.length === 0 ? (
-                <a href="#/authoring">
-                  {' '}
-                  {t('테스트 작성 목록 보기')}
-                </a>
-              ) : null}
             </span>
           )}
           {서버들.length === 0 ? (
@@ -117,7 +112,7 @@ export function 반영카드({
               </select>
             </label>
           )}
-          {/* 세운 뒤 또 누르면 자기가 세운 요청에 APPLY_OPEN 이 난다 — 막아 둔다 (PrdTodo 와 같다) */}
+          {/* 세운 뒤 또 누르면 자기가 세운 요청에 AUTHORING_OPEN 이 난다 — 막아 둔다 (PrdTodo 와 같다) */}
           <button className="btn small" disabled={busy || 서버 === '' || 결과?.잠금 === true} onClick={() => void 테스트에반영()}>
             {t('바뀐 API {건수}건 테스트에 반영', { 건수: 반영.length })}
           </button>

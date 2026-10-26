@@ -72,9 +72,13 @@ export function PrdTodo({ service, now, 쓰나, 짓기 }: { service: string; now
       set반영결과({ 글: t('작성 요청 {번호}번을 만들었습니다', { 번호: id }), 번호들: [id] });
       set세움(true);
     } catch (err) {
-      // 열린 반영이 있으면 서버가 그 요청 번호들을 준다 — 글자로 오면 「12,15」다(케이스 고치기의 EDIT_OPEN 과 같다)
-      const 열린 = err instanceof ApiError && err.code === 'APPLY_OPEN' ? err.message.split(',').map(Number).filter(Number.isSafeInteger) : [];
-      set반영결과({ 글: 열린.length > 0 ? 요청오류문장('APPLY_OPEN', 언어) : message(err, 언어), 번호들: 열린 });
+      // 반영 안 된 작성(AUTHORING_OPEN) · 실패로 남은 반영(APPLY_OPEN)이 있으면 서버가 그 요청 번호들을 준다 — 글자로 오면 「12,15」다(케이스 고치기의 EDIT_OPEN 과 같다)
+      const 열린 =
+        err instanceof ApiError && (err.code === 'AUTHORING_OPEN' || err.code === 'APPLY_OPEN')
+          ? { 코드: err.code, 번호들: err.message.split(',').map(Number).filter(Number.isSafeInteger) }
+          : null;
+      const 번호들 = 열린?.번호들 ?? [];
+      set반영결과({ 글: 열린 !== null && 번호들.length > 0 ? 요청오류문장(열린.코드, 언어) : message(err, 언어), 번호들 });
     }
     setBusy(false);
   }

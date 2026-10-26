@@ -81,6 +81,8 @@ export const 오류말: Record<string, string> = {
   // 「바뀐 요구 N건 테스트에 반영」. APPLY_OPEN 의 detail 은 열린 요청 번호들이다 — 화면(PrdTodo)이 그 요청으로 가는 링크를 붙인다
   NOTHING_TO_APPLY: '테스트에 반영할 바뀐 것이 없습니다',
   APPLY_OPEN: '이미 열린 반영 요청이 있습니다. 그 요청을 반영하거나 폐기한 뒤 다시 누릅니다',
+  // 서버 막기 (도메인/작성 §3.6 「★ 결정 목록」 「서버 막기」) — 새 작성 · 다시 작성 · 이어 작성 · 반영 요청이 만난다. detail 은 열린 요청 번호들이다
+  AUTHORING_OPEN: '반영하지 않은 테스트 작성 요청이 있습니다. 그 요청을 반영하거나 폐기한 뒤에 할 수 있습니다',
   // 실패 카드의 「화면이 맞음」 · 「버그」 (도메인/리포팅 「실패 요구사항」)
   NOT_FAILED: '이 실행에서 실패한 케이스가 아닙니다',
   NO_PRD_REQ: '이 케이스와 연결된 요구가 표준 기획서에 없습니다',
@@ -167,5 +169,8 @@ export function 요청오류문장(code: string, 언어: 언어, detail?: string
     return detail !== undefined && detail !== '' ? detail : t('요청이 실패했습니다 ({코드})', 언어, { 코드: code });
   }
   const 옮긴말 = t(있는말, 언어);
-  return detail === undefined || detail === '' ? 옮긴말 : `${옮긴말} — ${detail}`;
+  if (detail === undefined || detail === '') return 옮긴말;
+  // 요청 번호 목록은 「12,15」로 온다 — 사람이 그 요청을 찾게 #번호로 붙인다
+  const 붙일 = code === 'AUTHORING_OPEN' ? detail.split(',').map((x) => `#${x.trim()}`).join(' · ') : detail;
+  return `${옮긴말} — ${붙일}`;
 }
