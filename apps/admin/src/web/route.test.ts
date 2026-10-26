@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { ServiceRow, User } from './api.js';
 import type { 권한칸 } from './role.js';
-import { route, 갈자리, 돌아갈자리, 실행기록주소, 주소의서비스, 집, 케이스주소 } from './route.js';
+import { route, 갈자리, 결정필요주소, 돌아갈자리, 실행기록주소, 주소의서비스, 집, 케이스주소 } from './route.js';
 
 function 서비스(prefix: string, permissions: 권한칸): ServiceRow {
   return { id: 1, prefix, name: prefix, color: '#000000', projectId: 1, projectName: '데모마켓', envs: [], hasSlackWebhook: false, permissions };
@@ -268,5 +268,12 @@ describe('요구 번호 주소의 애플리케이션', () => {
     expect(주소의서비스('#/prd/SET-REQ-001', 배정)).toBe(null);
     expect(주소의서비스('#/prd', 배정)).toBe(null);
     expect(주소의서비스('#/cases/fn?case=MEM-FN-001', 배정)).toBe(null);
+  });
+
+  it('결정 필요 주소는 실은 애플리케이션을 고른다 — 다른 애플리케이션 실행의 실패 카드에서 판정하러 가도 그 실패가 있는 목록을 연다', () => {
+    expect(결정필요주소('MEM')).toBe('#/authoring?todo=1&service=MEM');
+    expect(주소의서비스(결정필요주소('MEM'), 배정)).toBe('MEM');
+    expect(주소의서비스('#/authoring?todo=1&service=SET', 배정)).toBe(null);
+    expect(주소의서비스('#/authoring?todo=1', 배정)).toBe(null);
   });
 });

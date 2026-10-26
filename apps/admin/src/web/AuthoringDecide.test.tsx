@@ -120,6 +120,36 @@ describe('결정 목록', () => {
     expect(screen.getByText('문장이 바뀐 요구 1건 · 바뀐 요구 1건의 테스트를 고치고 다시 만듭니다 (바뀐 요구도 같이 다시 만듭니다)')).toBeTruthy();
   });
 
+  it('바뀐 API 다시 만들기는 대상 서버를 미리 골라 진행에 넣고, 서버를 비우면 안내와 함께 뺀다', () => {
+    const 바뀐API: 결정항목 = { key: 'api:1:2', group: 3, kind: 'API_CHANGED', picks: ['REDO'], blockedBy: null, fromVersion: 1, toVersion: 2, operations: [{ method: 'GET', path: '/a', change: 'CHANGED', breaking: true }] };
+    render(<AuthoringDecide service="DMW" 목록={목록([바뀐API])} envs={[{ env: 'stg', baseUrl: 'https://stg.test' }]} 다시읽기={() => {}} />);
+    expect(screen.getByText('기존 테스트가 실패할 수 있음', { exact: false })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '다시 만든다' }));
+    expect(screen.getByText('바뀐 API 1건의 테스트를 다시 만듭니다')).toBeTruthy();
+    fireEvent.change(screen.getByRole('combobox', { name: /대상 서버/ }), { target: { value: '' } });
+    expect(screen.getByText('대상 서버를 고르면 진행에 들어갑니다')).toBeTruthy();
+    expect(screen.getByText('아직 고른 것이 없습니다')).toBeTruthy();
+  });
+
+  it('② 는 명세 표 차례 — 실패 → 화면 기준 → 기획서 간 불일치', () => {
+    const 실패: 결정항목 = { key: 'fail:7:DMW-FN-271', group: 2, kind: 'FAIL', picks: ['SCREEN', 'BUG'], blockedBy: null, runId: 7, tcId: 'DMW-FN-271', reqs: [], verify: null, reason: null, finishedAt: null };
+    const 문구: 결정항목 = { ...화면확인('DMW-REQ-021'), key: 'check:DMW-REQ-021', basis: 'DOCS', picks: ['PICK', 'OWN'], options: [{ asset: 'a.docx', quote: '가' }, { asset: 'b.md', quote: '나' }] };
+    const { container } = render(<AuthoringDecide service="DMW" 목록={목록([문구, 화면확인('DMW-REQ-349'), 실패])} envs={[]} 다시읽기={() => {}} />);
+    const 질문들 = [...container.querySelectorAll('.decide-q')].map((x) => x.textContent ?? '');
+    expect(질문들.map((q) => q.slice(0, 8))).toEqual(['테스트가 실패했', '기획서에 없어서', '기획서 2개가 ']);
+    expect(screen.getByRole('link', { name: 'DMW-REQ-349' }).getAttribute('href')).toBe('#/prd/DMW-REQ-349');
+  });
+
+  it('고를 권한이 없는 불일치는 고르개 없이 원문만, 열린 작성 때문에 못 센 미검증 API 는 「#N 이 반영된 뒤에 셉니다」', () => {
+    const 문구: 결정항목 = { ...화면확인('DMW-REQ-021'), key: 'check:DMW-REQ-021', basis: 'DOCS', picks: [], blockedBy: 'NO_WRITE', options: [{ asset: 'a.docx', quote: '가' }, { asset: 'b.md', quote: '나' }] };
+    const 미검증: 결정항목 = { key: 'apis', group: 3, kind: 'APIS', picks: [], blockedBy: null, apis: null };
+    render(<AuthoringDecide service="DMW" 목록={목록([문구, 미검증], { open: [14675] })} envs={[]} 다시읽기={() => {}} />);
+    expect(screen.queryByRole('radio')).toBeNull();
+    expect(screen.getByText('「가」')).toBeTruthy();
+    expect(screen.getByText('작성 쓰기 권한이 있는 사람이 고릅니다')).toBeTruthy();
+    expect(screen.getByRole('link', { name: '#14675' })).toBeTruthy();
+  });
+
   it('그 사이 목록이 바뀌었으면 고른 것을 비우고 다시 불러왔다고 알린다', async () => {
     진행답.값 = Promise.reject(new ApiError(409, 'DECISIONS_STALE', ''));
     const 다시읽기 = vi.fn();

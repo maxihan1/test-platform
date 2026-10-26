@@ -32,8 +32,8 @@ export const 결정말: Record<string, string> = {
   '#{번호} 반영이 실패했습니다': 'Applying #{번호} failed',
   '#{번호} 케이스 {수}건에 값이 필요합니다': '{수} cases in #{번호} need values',
   '#{번호} 케이스 {수}건이 다른 요청과 겹칩니다': '{수} cases in #{번호} overlap another request',
-  '뒤에서 기다리는 요청': 'Waiting behind it',
-  '고치거나 폐기하면 이어서 돕니다': 'they run once this is fixed or discarded',
+  '뒤에서': 'Behind it,',
+  '이 기다립니다 — 고치거나 폐기하면 이어서 돕니다': 'is waiting — it runs once this is fixed or discarded',
 
   // ② 무엇이 맞는지
   '테스트가 실패했습니다. 화면과 기획서 중 어느 쪽이 맞나요?': 'A test failed. Which is right, the screen or the spec?',
@@ -53,14 +53,12 @@ export const 결정말: Record<string, string> = {
   // ③ 새로 만들기
   '기획서에서 바뀐 요구의 테스트를 다시 만들까요?': 'Rewrite the tests for the changed requirements?',
   '기획서에서 바뀐 요구 {수}건의 테스트를 다시 만들까요?': 'Rewrite the tests for {수} changed requirements?',
-  '이번에 바뀌거나 지워질 수 있는 케이스를 쓰는 E2E 시나리오 {수}개': '{수} E2E scenarios use cases that may change or be removed',
+  '이번 반영으로 바뀌거나 지워질 수 있는 케이스를 쓰는 E2E 시나리오 {수}개': '{수} E2E scenarios use cases this may change or remove',
+  '반영한 뒤 시험 실행으로 확인하고 지운 케이스는 다른 케이스로 바꿉니다': 'After applying, check them with a trial run and replace removed cases',
   'API 문서가 버전 {앞} 에서 {뒤} 로 바뀌었습니다. 바뀐 API 의 테스트를 다시 만들까요?':
     'The API document changed from version {앞} to {뒤}. Rewrite the tests for the changed APIs?',
   'API 문서가 버전 {앞} 에서 {뒤} 로 바뀌었습니다. 바뀐 API {수}건의 테스트를 다시 만들까요?':
     'The API document changed from version {앞} to {뒤}. Rewrite the tests for {수} changed APIs?',
-  '새 API': 'New API',
-  '바뀐 API': 'Changed API',
-  '없어진 API': 'Removed API',
   '테스트가 확인하지 않은 화면의 테스트를 만들까요?': 'Write tests for the screens no test checks?',
   '테스트가 확인하지 않은 화면 {수}개의 테스트를 만들까요?': 'Write tests for {수} screens no test checks?',
   '{역할} 로그인': 'Signed in as {역할}',
@@ -92,4 +90,6 @@ export const 결정말: Record<string, string> = {
   '위에서부터 차례로 진행합니다. 바뀐 내용은 PRD 관리 › 버전 기록에서 볼 수 있습니다': 'Runs top to bottom. See what changed in PRD › Version history',
   '앞 일이 끝나면 시작': 'Starts after the previous step',
   '결정 목록으로 돌아가기': 'Back to decisions',
+  '대상 서버를 고르면 진행에 들어갑니다': 'Choose a target server to include this',
+  '요구 문장은 {수}자까지입니다': 'A requirement can be up to {수} characters',
 };

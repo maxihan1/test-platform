@@ -123,7 +123,7 @@ export const 오류영어: Record<string, string> = {
   '글자를 뽑을 수 없는 파일입니다. 파일 이름을 눌러 내려받습니다': 'This file has no readable text. Click the file name to download it',
   '반영하지 않은 테스트 작성 요청이 있습니다. 그 요청을 반영하거나 폐기한 뒤에 할 수 있습니다':
     'An authoring request is not merged yet. Merge or discard it first',
-  '그 사이 바뀐 것이 있습니다. 결정 목록을 다시 불러와 고릅니다': 'Something changed in the meantime. Reload the decision list and choose again',
+  '그 사이 바뀐 것이 있습니다. 화면을 다시 불러온 뒤 다시 합니다': 'Something changed in the meantime. Reload the page and try again',
   '고른 값으로 진행할 수 없습니다. 그 항목을 다시 고릅니다': 'Cannot run with that choice. Choose that item again',
   'API 애플리케이션이 아닙니다': 'Not an API application',
   '설정에 API 문서 경로와 기준 서버가 없습니다. 설정에서 먼저 넣거나 파일을 첨부합니다':

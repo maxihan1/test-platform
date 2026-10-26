@@ -2,11 +2,12 @@
 
 import { Fragment } from 'react';
 
+import { 상한 } from '../prd/rules.js';
 import type { 결정항목, 고르기, 막힘 } from './decideApi.js';
-import type { 고른값, 고른표 } from './decideView.js';
+import { 넘치나, type 고른값, type 고른표 } from './decideView.js';
 import { use말, use언어 } from './i18n.js';
 import { use나이글 } from './prdWords.js';
-import { 실행기록주소 } from './route.js';
+import { PRD항목주소, 실행기록주소 } from './route.js';
 import { when } from './ui.js';
 
 type 항목of<K extends 결정항목['kind']> = Extract<결정항목, { kind: K }>;
@@ -117,7 +118,7 @@ export function 상세할일({ x }: { x: 항목of<'FIX'> }) {
       <span className="decide-q">{질문}</span>
       {x.waiting.length === 0 ? null : (
         <small className="hint">
-          {t('뒤에서 기다리는 요청')} <요청고리 번호들={x.waiting} /> · {t('고치거나 폐기하면 이어서 돕니다')}
+          {t('뒤에서')} <요청고리 번호들={x.waiting} /> {t('이 기다립니다 — 고치거나 폐기하면 이어서 돕니다')}
         </small>
       )}
       <a className="btn ghost small decide-go" href={`#/authoring/${String(x.rootId)}`}>
@@ -199,7 +200,10 @@ export function 의도확인({ 줄들, 화면기준, 고른표, on고름 }: { �
             <div className="decide-box">
               <span className="hint">{t('요구')}</span>
               <span>
-                <span className="prd-id">{x.reqId}</span> {x.text}
+                <a className="prd-id" href={PRD항목주소(x.reqId)}>
+                  {x.reqId}
+                </a>{' '}
+                {x.text}
                 {나이 === null ? null : <span className="hint"> · {나이}</span>}
               </span>
             </div>
@@ -217,6 +221,7 @@ export function 의도확인({ 줄들, 화면기준, 고른표, on고름 }: { �
               <label className="decide-text">
                 {t('원래 의도한 동작')}
                 <textarea rows={2} value={고른.text ?? ''} onChange={(e) => on고름(x.key, { pick: 'EDIT', text: e.target.value })} />
+                {넘치나(고른.text ?? '') ? <small className="hint">{t('요구 문장은 {수}자까지입니다', { 수: 상한.요구문장 })}</small> : null}
               </label>
             )}
             <막힘줄 까닭={x.blockedBy} open={[]} />
@@ -236,28 +241,39 @@ export function 문구고르기({ x, 고른, on고름 }: { x: 항목of<'CHECK'>;
   const 자료수 = new Set(x.options.map((o) => o.asset)).size;
   const 고르나 = x.picks.length > 0;
   return (
-    <fieldset className="decide-item decide-docs" disabled={!고르나}>
+    <fieldset className="decide-item decide-docs">
       <legend className="decide-q">{t('기획서 {수}개가 서로 다르게 적었습니다. 어느 쪽이 맞나요?', { 수: 자료수 })}</legend>
       <small className="hint">
         <span className="prd-id">{x.reqId}</span> {x.feature}
         {나이 === null ? null : ` · ${나이}`}
       </small>
-      {x.options.map((o, i) => (
-        <label key={`${String(i)}-${o.asset}`} className="decide-box decide-radio">
-          <input type="radio" name={이름} checked={고른?.pick === 'PICK' && 고른.option === i} onChange={() => on고름(x.key, { pick: 'PICK', option: i })} />
-          <span>「{o.quote}」</span>
-          <span className="hint">{o.asset}</span>
+      {/* 고를 권한이 없으면 고르개 없이 원문만 — 꺼진 고르개는 누를 수 있어 보인다(화면공통 §8 「등급이 낮아서 못 하는 것은 보이지 않는다」) */}
+      {x.options.map((o, i) =>
+        고르나 ? (
+          <label key={`${String(i)}-${o.asset}`} className="decide-box decide-radio">
+            <input type="radio" name={이름} checked={고른?.pick === 'PICK' && 고른.option === i} onChange={() => on고름(x.key, { pick: 'PICK', option: i })} />
+            <span>「{o.quote}」</span>
+            <span className="hint">{o.asset}</span>
+          </label>
+        ) : (
+          <div key={`${String(i)}-${o.asset}`} className="decide-box">
+            <span>「{o.quote}」</span>
+            <span className="hint">{o.asset}</span>
+          </div>
+        ),
+      )}
+      {!고르나 ? null : (
+        <label className="decide-box decide-radio">
+          <input type="radio" name={이름} checked={고른?.pick === 'OWN'} onChange={() => on고름(x.key, { pick: 'OWN', text: 고른?.text ?? x.text })} />
+          <span>{t('둘 다 틀림 · 직접 입력')}</span>
+          <span />
         </label>
-      ))}
-      <label className="decide-box decide-radio">
-        <input type="radio" name={이름} checked={고른?.pick === 'OWN'} onChange={() => on고름(x.key, { pick: 'OWN', text: 고른?.text ?? x.text })} />
-        <span>{t('둘 다 틀림 · 직접 입력')}</span>
-        <span />
-      </label>
+      )}
       {고른?.pick !== 'OWN' ? null : (
         <label className="decide-text">
           {t('요구 문장')}
           <textarea rows={2} value={고른.text ?? ''} onChange={(e) => on고름(x.key, { pick: 'OWN', text: e.target.value })} />
+          {넘치나(고른.text ?? '') ? <small className="hint">{t('요구 문장은 {수}자까지입니다', { 수: 상한.요구문장 })}</small> : null}
         </label>
       )}
       {고르나 && 고른 !== undefined ? (

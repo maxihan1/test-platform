@@ -1,5 +1,6 @@
 // 결정 목록의 판단 — 고른 것 중 보낼 것 · ③ 이 켜졌나 · 「진행하면 이렇게 됩니다」 차례. 그림은 AuthoringDecide*.tsx 가 그린다 (도메인/작성 §3.6 「★ 결정 목록」 진행)
 
+import { 상한 } from '../prd/rules.js';
 import type { 결정항목, 고르기, 보낼고름 } from './decideApi.js';
 
 /** 항목 하나에 고른 값. 「나중에」도 고른 것이라 화면에 눌린 채 남지만 보내지는 않는다 */
@@ -14,33 +15,39 @@ export type 고른표 = ReadonlyMap<string, 고른값>;
 
 type 항목of<K extends 결정항목['kind']> = Extract<결정항목, { kind: K }>;
 
+/** ① 을 모두 「올린다」로 골랐나 */
+const 다올림 = (items: readonly 결정항목[], 고른: 고른표) => items.every((y) => y.kind !== 'APPLY' || 고른.get(y.key)?.pick === 'APPLY');
+
 /** ③ 이 반영 대기를 기다리면 ① 을 모두 「올린다」로 골라야 켠다 — 서버도 같은 것을 본다(BAD_PICK) */
 export function 켜졌나(x: 결정항목, items: readonly 결정항목[], 고른: 고른표): boolean {
-  if (x.needsApply !== true) return true;
-  return items.filter((y) => y.kind === 'APPLY').every((y) => 고른.get(y.key)?.pick === 'APPLY');
+  return x.needsApply !== true || 다올림(items, 고른);
 }
+
+/** 요구 문장 상한을 넘었나 — 서버(PUT /api/prd 와 같은 상한)가 진행 전체를 BAD_PICK 으로 거절하므로 미리 빼고 칸 곁에 알린다 */
+export const 넘치나 = (글: string) => 글.length > 상한.요구문장;
 
 /** ① 을 「올린다」에서 바꾸면 그것을 기다리던 ③ 고름도 뺀다 — 남기면 보낼 수 없는 고름이 눌린 채 보인다 */
 export function 고름바꾼표(items: readonly 결정항목[], 고른: 고른표, key: string, 값: 고른값 | null): Map<string, 고른값> {
   const 새 = new Map(고른);
   if (값 === null) 새.delete(key);
   else 새.set(key, 값);
-  for (const x of items) if (!켜졌나(x, items, 새)) 새.delete(x.key);
+  const 올림 = 다올림(items, 새);
+  for (const x of items) if (x.needsApply === true && !올림) 새.delete(x.key);
   return 새;
 }
 
 /** 확인 필요 하나가 요구 문장을 바꾸나 — 같은 문장을 적으면 서버도 확정으로 본다(decisionItems.ts `결정판`) */
 function 문장(x: 항목of<'CHECK'>, 값: 고른값): string | null {
-  if (값.pick === 'PICK') return 값.option === undefined ? null : (x.options[값.option]?.quote ?? null);
-  if (값.pick === 'EDIT' || 값.pick === 'OWN') return (값.text ?? '').trim() === '' ? null : 값.text!;
-  return null;
+  const 글 = 값.pick === 'PICK' ? (값.option === undefined ? undefined : x.options[값.option]?.quote) : 값.pick === 'EDIT' || 값.pick === 'OWN' ? 값.text : undefined;
+  return 글 === undefined || 글.trim() === '' || 넘치나(글) ? null : 글;
 }
 
-/** 다 고른 것만 보낸다 — 문장 칸이 비었거나 대상 서버를 안 고른 것은 사람이 아직 고르는 중이다 */
+/** 다 고른 것만 보낸다 — 문장 칸이 비었거나 넘쳤거나 대상 서버를 안 고른 것은 사람이 아직 고르는 중이다 */
 export function 보낼것(items: readonly 결정항목[], 고른: 고른표): 보낼고름[] {
+  const 올림 = 다올림(items, 고른);
   return items.flatMap((x): 보낼고름[] => {
     const 값 = 고른.get(x.key);
-    if (값 === undefined || 값.pick === 'LATER' || !x.picks.includes(값.pick) || !켜졌나(x, items, 고른)) return [];
+    if (값 === undefined || 값.pick === 'LATER' || !x.picks.includes(값.pick) || (x.needsApply === true && !올림)) return [];
     if (x.kind === 'CHECK' && 값.pick !== 'SAME') {
       const 새문장 = 문장(x, 값);
       if (새문장 === null) return [];
@@ -112,14 +119,8 @@ export function 차례(items: readonly 결정항목[], 고른: 고른표, prdVer
   const API = 고른항목.find((x): x is 항목of<'API_CHANGED'> => x.kind === 'API_CHANGED');
   if (API !== undefined) 줄.push({ 곳: 'TEST', 종류: 'api', keys: [API.key], 수: 다시쓸API(API)?.length ?? null });
   const 화면 = 고른항목.find((x): x is 항목of<'SCREENS'> => x.kind === 'SCREENS');
-  if (화면 !== undefined) 줄.push({ 곳: 'TEST', 종류: 'screens', keys: [화면.key], 수: 화면.screens?.length ?? null });
+  if (화면 !== undefined) 줄.push({ 곳: 'TEST', 종류: 'screens', keys: [화면.key], 수: 화면.screens === null ? null : new Set(화면.screens.map((s) => s.url)).size });
   return 줄;
-}
-
-/** 문장을 바꾸는 고름이 있으면 바뀐 요구는 같이 돈다 — 그 항목의 「나중에」를 끈다(§3.6 진행 4) */
-export function 같이다시만드나(items: readonly 결정항목[], 고른: 고른표): boolean {
-  const 줄 = 차례(items, 고른, 0).find((x) => x.종류 === 'fix');
-  return 줄 !== undefined && 줄.종류 === 'fix' && 줄.화면 + 줄.문장 > 0;
 }
 
 /** 진행 뒤 차례 줄마다 서버가 세운 요청 번호 — 기획서 · 버그는 요청이 없다. 문장 변경만으로 세운 고치기는 key 가 null 이다 */

@@ -9,6 +9,7 @@ import { 고르개, 막힘줄, type 고름하기 } from './AuthoringDecideItems.
 import type { 결정항목 } from './decideApi.js';
 import { 다시쓸API, 바뀐요구수, type 고른값 } from './decideView.js';
 import { use말 } from './i18n.js';
+import { 고른서버를적는다, 마지막서버 } from './layout.js';
 
 type 항목of<K extends 결정항목['kind']> = Extract<결정항목, { kind: K }>;
 
@@ -20,6 +21,7 @@ function 상태글(state: string, t: ReturnType<typeof use말>): string {
 
 /** ③ 묶음 한 항목의 머리 — 질문 · 볼 것 · 고르개 · 기다림 · 대상 서버 */
 export function 새로만들기({
+  service,
   x,
   고른,
   on고름,
@@ -28,6 +30,7 @@ export function 새로만들기({
   켜짐,
   같이,
 }: {
+  service: string;
   x: 항목of<'PRD_CHANGED' | 'API_CHANGED' | 'SCREENS' | 'APIS'>;
   고른: 고른값 | undefined;
   on고름: 고름하기;
@@ -56,7 +59,7 @@ export function 새로만들기({
         <ul className="decide-list">
           {x.operations.map((o) => (
             <li key={`${o.method} ${o.path}`}>
-              <span className="case-tag">{{ NEW: t('새 API'), CHANGED: t('바뀐 API'), REMOVED: t('없어진 API') }[o.change]}</span> <span className="prd-id">{o.method} {o.path}</span>
+              <span className="case-tag">{{ NEW: t('새 항목'), CHANGED: t('바뀜'), REMOVED: t('지움') }[o.change]}</span> <span className="prd-id">{o.method} {o.path}</span>
               {o.breaking ? <span className="hint"> · {t('기존 테스트가 실패할 수 있음')}</span> : null}
             </li>
           ))}
@@ -92,11 +95,14 @@ export function 새로만들기({
     );
   }
   // 대상 서버는 API 다시 작성 · 물려받을 대조가 없는 보완만 고른다. 실서비스 서버는 서버가 BAD_PICK 으로 막는다
-  const 서버고름 = (x.kind === 'API_CHANGED' || (x.kind === 'SCREENS' && x.env === null)) && 고른 !== undefined && 고른.pick !== 'LATER';
+  // 열린 작성이 있으면 서버가 셈을 null 로 준다 — 반영 대기만 남았으면 고를 수 있지만 숫자는 반영 뒤에 센다
+  const 셈모름 = x.kind === 'PRD_CHANGED' ? 바뀐요구수(x) === null : x.kind === 'API_CHANGED' ? x.operations === null : x.kind === 'SCREENS' ? x.screens === null : x.apis === null;
+  const 서버필요 = x.kind === 'API_CHANGED' || (x.kind === 'SCREENS' && x.env === null);
+  const 서버고름 = 서버필요 && 고른 !== undefined && 고른.pick !== 'LATER';
   return (
     <div className="decide-item">
       <span className="decide-q">{질문}</span>
-      {x.needsApply === true && 볼것 !== null && (x.kind === 'PRD_CHANGED' ? 바뀐요구수(x) === null : true) ? <small className="hint">{t('몇 건인지는 1번이 반영된 뒤에 셉니다')}</small> : null}
+      {x.needsApply === true && 셈모름 ? <small className="hint">{t('몇 건인지는 1번이 반영된 뒤에 셉니다')}</small> : null}
       {볼것}
       <고르개
         x={x}
@@ -108,13 +114,21 @@ export function 새로만들기({
         ]}
         꺼짐={!켜짐 || 같이}
         나중꺼짐={같이}
+        // 대상 서버는 마지막에 고른 것을 미리 고른다 — 다른 실행 창과 같다(⑫-2). 안 고른 채면 진행에 안 들어간다
+        처음값={서버필요 ? { env: 마지막서버(service, envs) } : {}}
       />
       {켜짐 ? null : <small className="hint">{t('1번을 모두 「올린다」로 골라야 고를 수 있습니다')}</small>}
       {같이 ? <small className="hint">{t('기획서 문장이 바뀌어 바뀐 요구도 같이 다시 만듭니다')}</small> : null}
       {!서버고름 ? null : (
         <label className="decide-text">
           {t('대상 서버')}
-          <select value={고른.env ?? ''} onChange={(e) => on고름(x.key, { ...고른, env: e.target.value })}>
+          <select
+            value={고른.env ?? ''}
+            onChange={(e) => {
+              고른서버를적는다(service, e.target.value);
+              on고름(x.key, { ...고른, env: e.target.value });
+            }}
+          >
             <option value="">{t('고르세요')}</option>
             {envs.map((e) => (
               <option key={e.env} value={e.env}>
@@ -122,9 +136,11 @@ export function 새로만들기({
               </option>
             ))}
           </select>
+          {(고른.env ?? '') === '' ? <small className="hint">{t('대상 서버를 고르면 진행에 들어갑니다')}</small> : null}
         </label>
       )}
-      <막힘줄 까닭={x.blockedBy} open={open} />
+      {/* 미검증 API 는 고르개가 없어 서버가 까닭을 안 단다 — 열린 작성 때문에 못 센 것은 같은 줄로 알린다 */}
+      <막힘줄 까닭={x.kind === 'APIS' && x.apis === null ? 'AUTHORING_OPEN' : x.blockedBy} open={open} />
     </div>
   );
 }
@@ -149,7 +165,7 @@ function 바뀐요구들({ x }: { x: 항목of<'PRD_CHANGED'> }) {
       </ul>
       {x.scenarios.length === 0 ? null : (
         <small className="hint">
-          {t('이번에 바뀌거나 지워질 수 있는 케이스를 쓰는 E2E 시나리오 {수}개', { 수: x.scenarios.length })}{' '}
+          {t('이번 반영으로 바뀌거나 지워질 수 있는 케이스를 쓰는 E2E 시나리오 {수}개', { 수: x.scenarios.length })}{' '}
           {x.scenarios.map((s, i) => (
             <Fragment key={s.id}>
               {i === 0 ? null : ' · '}
@@ -158,6 +174,9 @@ function 바뀐요구들({ x }: { x: 항목of<'PRD_CHANGED'> }) {
               </a>
             </Fragment>
           ))}
+          {/* 병합 뒤 사라진 절차는 「확인 필요」, 지운 케이스는 「실행 불가」라 무엇을 할지까지 적는다 (작성 §3.6 「고친 요구만 다시 작성」) */}
+          {' · '}
+          {t('반영한 뒤 시험 실행으로 확인하고 지운 케이스는 다른 케이스로 바꿉니다')}
         </small>
       )}
     </>

@@ -146,24 +146,27 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
   // **맥이 뒤에서 이어 간다.** 안 읽으면 사람이 손으로 새로고침할 때까지 화면이
   // 「대기」인 채로 멈춰 있고, 「응답 없음」 판정도 그때서야 뜬다 (2026-09-23 검토가 잡았다).
   // 상세와 달리 **끝난 것만 있어도 계속 읽는다** — 새 요청이 언제든 들어오는 목록이다
+  // 결정 목록을 보는 동안은 안 읽는다 — 보이지 않는 목록이고, 결정 목록은 목록을 기다리지 않는다
   useEffect(() => {
+    if (할일만) return;
     const timer = setInterval(reload, 5000);
     return () => clearInterval(timer);
-  }, [reload]);
+  }, [reload, 할일만]);
 
   // 같은 조건의 다시 읽기가 실패했으면 받아 둔 목록과 서랍을 그대로 둔다 — 통째로 바꾸면 쓰던 새 요청 폼이 사라진다 (리뷰 L17)
-  if (줄들.error !== null && 줄들.data?.물음 !== 물음) return <Failed error={줄들.error} />;
-  if (줄들.data === null) return <Loading />;
+  if (!할일만 && 줄들.error !== null && 줄들.data?.물음 !== 물음) return <Failed error={줄들.error} />;
+  if (!할일만 && 줄들.data === null) return <Loading />;
+  const 목록 = 줄들.data;
 
   // 「응답 없음」 판정이 지금 시각을 쓴다. 그릴 때 한 번만 읽어 줄마다 다른 기준으로 재지 않는다
   const 지금 = Date.now();
-  const 더있나 = 다음이있나(줄들.data);
+  const 더있나 = 목록 !== null && 다음이있나(목록);
 
   return (
     <>
       <Head
         제목={t('테스트 작성')}
-        부제={t('모두 {건수}건', { 건수: 줄들.data.total })}
+        부제={목록 === null ? undefined : t('모두 {건수}건', { 건수: 목록.total })}
         행동={
           할수('작성요청') ? (
             <button className="btn" type="button" aria-expanded={서랍} aria-controls="authoring-new-drawer" onClick={() => (서랍 ? 서랍닫기() : set서랍(true))}>
@@ -174,7 +177,7 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
       />
 
       <div className="screen list-screen">
-        {줄들.error === null ? null : <Failed error={줄들.error} />}
+        {할일만 || 줄들.error === null ? null : <Failed error={줄들.error} />}
         <div className="toolbar">
           <span className="filter-group">
             <span className="filter-label">{t('필터')}</span>
@@ -186,8 +189,9 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
               type="button"
               aria-pressed={할일만}
               onClick={() => {
+                // 들어올 때만 다시 읽는다 — 결정 목록에서 또 누르면 고르던 항목이 바뀐다
+                if (!할일만) 결정.reload();
                 거르기(true);
-                결정.reload();
               }}
             >
               {결정판 === null ? t('결정 필요') : t('결정 필요 {수}', { 수: 결정판.count })}
@@ -203,13 +207,13 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
           ) : (
             <AuthoringDecide key={service} service={service} 목록={결정판} envs={envs} 다시읽기={결정.reload} />
           )
-        ) : (
+        ) : 목록 === null ? null : (
           <>
         <div className="rows-scroll">
           {/* 건수가 한 쪽 크기의 배수면 「다음」이 빈 쪽으로 간다(paging.ts) — 거기서 「기록이 없다」고 하면 거짓이다 (리뷰 L18) */}
-          {줄들.data.items.length === 0 && page > 1 && 줄들.data.total > 0 ? (
+          {목록.items.length === 0 && page > 1 && 목록.total > 0 ? (
             <div className="empty">{t('이 쪽에는 요청이 없습니다')}</div>
-          ) : 줄들.data.items.length === 0 ? (
+          ) : 목록.items.length === 0 ? (
             <div className="empty">
               {t('아직 작성을 요청한 기록이 없습니다')}
               <small>{t(할수('작성요청') ? '기획서를 넣으면 여기에 줄이 생깁니다' : '작성 요청이 들어오면 여기에 줄이 생깁니다')}</small>
@@ -217,14 +221,14 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
           ) : (
             <>
               <표머리 />
-              {줄들.data.items.map((것) => (
+              {목록.items.map((것) => (
                 <작성줄 key={것.id} 것={것} 지금={지금} 운영자={할수('설정')} />
               ))}
             </>
           )}
         </div>
 
-        {줄들.data.items.length === 0 && page === 1 ? null : (
+        {목록.items.length === 0 && page === 1 ? null : (
           <div className="pager">
             <button type="button" disabled={page === 1} onClick={() => setPage(page - 1)}>
               {t('이전')}

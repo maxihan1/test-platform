@@ -9,6 +9,7 @@ import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import { prdApi } from './prdApi.js';
 import { 케이스서비스, type 판정 } from './role.js';
+import { 결정필요주소 } from './route.js';
 import { message, when } from './ui.js';
 
 interface Props {
@@ -56,7 +57,8 @@ export function RunFailJudge({ c, runId, 권한, on남김 }: Props) {
       <span className="fc-cause-label">{t('판정')}</span>
       {지금 === null ? (
         <p className="fc-judged">
-          {권한('작성보기') ? <a href="#/authoring?todo=1">{t('테스트 작성 › 결정 필요에서 판정합니다')}</a> : t('테스트 작성 › 결정 필요에서 판정합니다')}
+          {/* 띠가 다른 애플리케이션이어도 이 실행의 애플리케이션 결정 목록으로 간다 — 띠 것을 열면 이 실패가 없다 */}
+          {권한('작성보기') ? <a href={서비스 === null ? '#/authoring?todo=1' : 결정필요주소(서비스)}>{t('테스트 작성 › 결정 필요에서 판정합니다')}</a> : t('테스트 작성 › 결정 필요에서 판정합니다')}
         </p>
       ) : (
         <p className="fc-judged">

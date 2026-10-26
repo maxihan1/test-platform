@@ -7,7 +7,7 @@ import { api, ApiError, type AuthoringRow, type EnvRow } from './api.js';
 import { 문구고르기, 반영대기, 상세할일, 실패판정, 의도확인 } from './AuthoringDecideItems.js';
 import { 새로만들기 } from './AuthoringDecideNew.js';
 import { decideApi, type 결정목록, type 결정항목, type 진행단계 } from './decideApi.js';
-import { 같이다시만드나, 고름바꾼표, 보낼것, 줄요청, 차례, 켜졌나, type 고른값, type 차례줄 } from './decideView.js';
+import { 고름바꾼표, 보낼것, 줄요청, 차례, 켜졌나, type 고른값, type 차례줄 } from './decideView.js';
 import { use말, use언어 } from './i18n.js';
 import { message, 기다림글자 } from './ui.js';
 
@@ -117,7 +117,9 @@ export function AuthoringDecide({ service, 목록, envs, 다시읽기 }: { servi
 
   const 보냄 = 보낼것(items, 고른);
   const 줄들 = 차례(items, 고른, 목록.prdVersion);
-  const 같이 = 같이다시만드나(items, 고른);
+  // 문장을 바꾸는 고름이 있으면 바뀐 요구는 같이 돈다 — 그 항목의 「나중에」를 끈다(§3.6 진행 4)
+  const 고침줄 = 줄들.find((x) => x.종류 === 'fix');
+  const 같이 = 고침줄?.종류 === 'fix' && 고침줄.화면 + 고침줄.문장 > 0;
 
   async function 진행하기() {
     set바쁨(true);
@@ -153,7 +155,7 @@ export function AuthoringDecide({ service, 목록, envs, 다시읽기 }: { servi
         return x.basis === 'DOCS' ? <문구고르기 key={x.key} x={x} 고른={값} on고름={on고름} /> : null;
       default:
         return (
-          <새로만들기 key={x.key} x={x} 고른={값} on고름={on고름} open={목록.open} envs={envs} 켜짐={켜졌나(x, items, 고른)} 같이={x.kind === 'PRD_CHANGED' && 같이} />
+          <새로만들기 key={x.key} service={service} x={x} 고른={값} on고름={on고름} open={목록.open} envs={envs} 켜짐={켜졌나(x, items, 고른)} 같이={x.kind === 'PRD_CHANGED' && 같이} />
         );
     }
   };
@@ -173,15 +175,18 @@ export function AuthoringDecide({ service, 목록, envs, 다시읽기 }: { servi
               {t(묶음제목[g - 1])}
               {g === 2 ? <span className="decide-prd">{t('고른 내용은 기획서(PRD) 새 버전으로 저장됩니다')}</span> : null}
             </div>
-            {묶음(g).map(항목그림)}
-            {g !== 2 ? null : (
+            {g !== 2 ? (
+              묶음(g).map(항목그림)
+            ) : (
+              // 명세 표 차례 — 실패 → 화면 기준 → 기획서 간 불일치 → 그 밖의 확인 필요
               <>
-                {(['SCREEN', 'OTHER'] as const).map((b) =>
-                  확인(b).length === 0 ? null : <의도확인 key={b} 줄들={확인(b)} 화면기준={b === 'SCREEN'} 고른표={고른} on고름={on고름} />,
-                )}
+                {묶음(g).filter((x) => x.kind === 'FAIL').map(항목그림)}
                 {목록.failMore === 0 ? null : (
                   <p className="decide-item hint">{t('실패 {수}건이 더 있습니다. 위의 것을 정하면 이어서 보입니다', { 수: 목록.failMore })}</p>
                 )}
+                {확인('SCREEN').length === 0 ? null : <의도확인 줄들={확인('SCREEN')} 화면기준 고른표={고른} on고름={on고름} />}
+                {묶음(g).filter((x) => x.kind === 'CHECK' && x.basis === 'DOCS').map(항목그림)}
+                {확인('OTHER').length === 0 ? null : <의도확인 줄들={확인('OTHER')} 화면기준={false} 고른표={고른} on고름={on고름} />}
               </>
             )}
           </div>

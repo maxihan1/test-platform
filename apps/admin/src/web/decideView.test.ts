@@ -2,8 +2,9 @@
 
 import { describe, expect, it } from 'vitest';
 
+import { 상한 } from '../prd/rules.js';
 import type { 결정항목 } from './decideApi.js';
-import { 같이다시만드나, 고름바꾼표, 보낼것, 줄요청, 차례, 켜졌나, type 고른값 } from './decideView.js';
+import { 고름바꾼표, 보낼것, 줄요청, 차례, 켜졌나, type 고른값 } from './decideView.js';
 
 const 반영: 결정항목 = { key: 'apply:10:11', group: 1, kind: 'APPLY', picks: ['APPLY'], blockedBy: null, rootId: 10, runId: 11, summary: null, prUrl: null, requestedByName: '맥시', finishedAt: null };
 const 실패: 결정항목 = { key: 'fail:7:DMW-FN-271', group: 2, kind: 'FAIL', picks: ['SCREEN', 'BUG'], blockedBy: null, runId: 7, tcId: 'DMW-FN-271', reqs: [{ reqId: 'DMW-REQ-088', text: '주문 취소' }], verify: null, reason: null, finishedAt: null };
@@ -18,10 +19,11 @@ const items = [반영, 실패, 화면확인, 문구, 바뀐요구, 바뀐API];
 const 표 = (줄: [string, 고른값][]) => new Map(줄);
 
 describe('보낼것', () => {
-  it('「나중에」 · 문장이 빈 고치기 · 대상 서버 없는 API 다시 작성 · 켜지지 않은 ③ 은 안 보낸다', () => {
+  it('「나중에」 · 문장이 빈 고치기 · 상한을 넘은 문장 · 대상 서버 없는 API 다시 작성 · 켜지지 않은 ③ 은 안 보낸다', () => {
     const 고른 = 표([
       [실패.key, { pick: 'LATER' }],
       [화면확인.key, { pick: 'EDIT', text: '  ' }],
+      [문구.key, { pick: 'OWN', text: '가'.repeat(상한.요구문장 + 1) }],
       [바뀐API.key, { pick: 'REDO' }],
       [바뀐요구.key, { pick: 'REDO' }],
     ]);
@@ -80,13 +82,12 @@ describe('차례', () => {
     const 줄 = 차례(items, 고른, 3);
     expect(줄.find((x) => x.종류 === 'prd')).toMatchObject({ 바뀜: [{ kind: 'CONFIRM', reqId: 'DMW-REQ-349' }] });
     expect(줄.find((x) => x.종류 === 'fix')).toMatchObject({ 화면: 1, 문장: 0, 바뀐요구: true, 같이: true, keys: [실패.key] });
-    expect(같이다시만드나(items, 고른)).toBe(true);
   });
 
   it('문구 선택이 지금 문장과 같으면 문장이 안 바뀌어 같이 다시 만들지 않는다', () => {
     const 고른 = 표([[문구.key, { pick: 'PICK', option: 0 }]]);
     expect(차례(items, 고른, 1).map((x) => x.종류)).toEqual(['prd']);
-    expect(같이다시만드나(items, 고른)).toBe(false);
+    expect(차례(items, 고른, 1).find((x) => x.종류 === 'fix')).toBeUndefined();
   });
 });
 

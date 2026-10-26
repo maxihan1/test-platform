@@ -48,7 +48,7 @@ describe('판정 줄 — 판정이 없을 때', () => {
     열기(null);
 
     const 고리 = await screen.findByRole('link', { name: '테스트 작성 › 결정 필요에서 판정합니다' });
-    expect(고리.getAttribute('href')).toBe('#/authoring?todo=1');
+    expect(고리.getAttribute('href')).toBe('#/authoring?todo=1&service=ZZI');
     expect(버튼('화면이 맞음')).toBeNull();
     expect(버튼('버그')).toBeNull();
   });

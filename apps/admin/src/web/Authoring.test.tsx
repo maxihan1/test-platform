@@ -286,6 +286,14 @@ describe('작성 목록 줄 제목과 할 일 (⑫ 점검 11.1 · 11.2 · N2)', 
     expect(window.location.hash).toBe('#/authoring?todo=1');
   });
 
+  it('결정 목록은 작성 목록을 기다리지 않는다 — 목록을 못 읽어도 결정 목록이 서고 실패 띠가 없다', async () => {
+    window.history.replaceState(null, '', '#/authoring?todo=1');
+    읽기.실패 = true;
+    render(<Authoring service="PAY" 할수={() => true} />);
+    expect(await screen.findByText('결정이 필요한 일이 없습니다')).toBeTruthy();
+    expect(screen.queryByText('목록을 못 읽었다')).toBeNull();
+  });
+
   it('결정이 하나도 없으면 「결정이 필요한 일이 없습니다」', async () => {
     window.history.replaceState(null, '', '#/authoring?todo=1');
     render(<Authoring service="PAY" 할수={() => true} />);
