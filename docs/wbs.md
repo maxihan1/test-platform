@@ -13,6 +13,38 @@
 
 ---
 
+## OPS — 운영 이전 (Mac + 클라우드 1대 · 위에서부터 차례로)
+
+> 2026-10-27 사용자 승인. 계획 원문은 Auth_platform `docs/superpowers/plans/2026-10-27-infra-ops-plan.md`.
+> 클라우드(Naver Cloud `101.79.19.193`)에는 늘 떠 있어야 하는 것을, Mac 에는 폰과 CPU 를 많이 쓰는 작성 · 부하 테스트를 둔다. 클라우드로 간 컨테이너는 Mac Docker 에서 내린다.
+> 태스크마다 일하는 저장소가 다르다 — 줄 끝 괄호. 이어 달리기(`/tpx` 4단계 7)는 이 영역을 보지 않는다. 운영 서버를 바꾸는 일이라 사람이 하나씩 연다.
+
+### ① 준비 · 백업
+**무엇** 서버 실측과 도메인을 먼저 확인하고, 아무것도 더하기 전에 서버 밖 백업부터 만든다.
+- [ ] `OPS-F1-01` 사전 점검 — 서버 `df -h` · `free -m` · `docker stats` · 컨테이너가 자기 공개 도메인에 닿는지(hairpin) · Mac 자리에서 바깥 22번 포트 · 닷홈 A 레코드 6개(`auth` · `qahub` · `farm` · `demo` · `demo-notify` · `game` .maxihan.com → 101.79.19.193)
+- [ ] `OPS-F1-02` 백업 — 매일 03:15 pg_dump(bts · auth · qahub · ashveil) + pgmq 큐 목록 + Auth 서명 키 · MFA 키 + MinIO `mc mirror` · 14일 보관 · Mac 전용 계정이 DB · 키만 가져간다 · 복원 연습 1회 (Auth_platform `infra/`)
+
+### ② 공개 입구 · 로그인
+**무엇** 공개 입구 Caddy 를 BTS compose 밖(host)으로 꺼내 도메인 7개를 받고, 모든 앱이 쓸 로그인 서버를 띄운다.
+- [ ] `OPS-F2-03` host Caddy 전환 — Rocky 에 caddy · 도메인 7개 · 앱은 `127.0.0.1` 포트로만 · bts-caddy 인증서 옮기고 제거 · BTS #509 닫음 (Auth_platform `infra/edge/` + BTS)
+- [ ] `OPS-F2-04` Auth_platform 운영(Auth S14) — Auth PR #14 README 1~7(Caddy 단계는 host Caddy) · BTS · QA Hub 컨테이너에 `extra_hosts` 로 auth 를 host Caddy 에 바로 (Auth_platform)
+
+### ③ Mac 쪽 연결
+**무엇** 폰이 꽂힌 Mac 의 팜을 클라우드 주소로 내보낸다. 팜 본체는 Mac 에 그대로 둔다(Devicefarm ADR-039).
+- [ ] `OPS-F3-05` farm 앞단 — `farmtunnel` 계정 · sshd · Caddy `farm` · `/wd/hub/status` 막기 · 가짜 토큰 속도 제한 · Mac launchd(wd-hub · tunnel) (Devicefarm CTL-F1-19)
+
+### ④ 클라우드로 옮기기
+**무엇** 테스트 대상과 QA Hub 의 상시 서비스를 클라우드로 옮기고, Mac Docker 에는 작성 · 부하 테스트만 남긴다.
+- [ ] `OPS-F4-06` 테스트 대상 이전 — 데모마켓(`/opt/demo`, `demo` · `demo-notify`) · Ashveil 서버 + DB(`/opt/ashveil` · `JWT_KEY` · `ADMIN_KEY` 교체 · `Qa` 환경) · QA APK 를 `https://game.maxihan.com` 으로 다시 빌드 (demo-market · ashveil)
+- [ ] `OPS-F4-07` QA Hub 클라우드 이전 — `/opt/qahub` git checkout + pull timer(Mac 작성이 병합한 케이스를 받는다) · admin · postgres · grafana · 서버 러너(`cpus` 1 · `EXECUTION_CONCURRENCY=1` 을 admin 에 전달 · `extra_hosts` · `127.0.0.1:3000`) · 서버에서 author · perf-agent 를 켜지 않는다 · 맥 DB · 산출물 옮기기 · 대상 서버 주소를 새 도메인으로 (test_platform)
+- [ ] `OPS-F4-08` Mac Docker 정리 — Mac override 로 author(`AUTHORING_MAX_PARALLEL=1`) · perf-agent 만 `https://qahub.maxihan.com` 에 붙인다 · npm 작성 에이전트는 쓰지 않는다(자식 셸이 맥 계정의 운영 서버 키에 닿는다) · 나머지 컨테이너 · 이미지 · 볼륨 삭제 · Docker 메모리 8GB (test_platform)
+
+### ⑤ 로그인 전환 · 마무리
+**무엇** 세 앱을 Auth_platform 로그인으로 바꾸고, 러너 위치를 설정으로 고르게 하고, 감시를 붙인다.
+- [ ] `OPS-F5-09` SSO 전환(Auth S15) — QA Hub `AUTH_*` · Devicefarm `DF_BTS_URL` · `DF_AUTH_ISSUER` · BTS LOCAL 끄기(되돌리는 SQL 먼저 · 팜 토큰은 Auth 에서 먼저 발급 · maxi-api PAT) · 다른 사람 계정으로 결과 보기 (Auth_platform)
+- [ ] `OPS-F5-10` 러너 위치 설정 — `RUNNER_URL`(정식 실행) · `LOCAL_RUNNER_URL`(내 컴퓨터 러너)로 서버 · 맥을 고른다 · 산출물이 admin 에 없으면 러너에서 HTTP 로 가져온다 · `RUNNER_TOKEN` · 맥 러너 터널 · 잠자기 감지 health check (test_platform)
+- [ ] `OPS-F5-11` 운영 기본기 — 바깥 uptime 감시(도메인 7개) · 디스크 70% 알림 · 배포 뒤 `docker image prune` · 실측으로 `mem_limit` 다시 맞추기
+
 ## PRD — 표준 기획서 · 지도 (최우선 · 위에서부터 차례로)
 
 ### ① 명세와 계약 · Phase 2
