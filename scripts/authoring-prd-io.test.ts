@@ -136,7 +136,7 @@ describe('옮기기올리기', () => {
     expect(건것).not.toHaveBeenCalled();
   });
 
-  it('결과 파일이 없어도 크롤 목록이 전부 PRD 에 있는 화면이면 거절하지 않는다 — 화면만이 아무것도 안 쓴 것이 맞다 (PRD-F6-03)', async () => {
+  it('결과 파일이 없어도 크롤 목록이 전부 테스트가 이미 확인한 화면이면 거절하지 않는다 — 화면만이 아무것도 안 쓴 것이 맞다 (PRD-F6-03)', async () => {
     const 건것 = vi.fn(async () => 답(200));
     vi.stubGlobal('fetch', 건것);
     mkdirSync(join(자리.자료, 'crawl'));

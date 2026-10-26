@@ -247,7 +247,7 @@ describe('클로드인자 — 자료 폴더를 읽게 연다', () => {
   it('역방향 절 — 화면만이면 크롤러에 --covered 를 붙이고 덮음 줄은 훑지 않게 한다. 대조는 둘 다 없다 (PRD-F6-03)', () => {
     const 화면만 = 역방향절({ 화면만: true, 산출물폴더: '/w/author-7/assets/out', 요청번호: 7 }).join('\n');
     expect(화면만).toContain('--keep /w/author-7/assets/kept/index.json --cases /w/author-7/assets/screen-cases.json --covered /w/author-7/assets/covered.json --out /w/author-7/assets/crawl');
-    expect(화면만).toContain('`덮음: true` 인 화면은 PRD 에 이미 있다 — 훑지 말고 항목 · 새 케이스도 만들지 마라');
+    expect(화면만).toContain('`덮음: true` 인 화면은 테스트가 이미 확인한 화면이다 — 훑지 말고 항목 · 새 케이스도 만들지 마라');
     expect(화면만).toContain('훑을 화면이 하나도 없으면 아래 바뀐 화면 케이스만 하고');
     expect(화면만).toContain('PRD 에 없는 화면 0');
     const 대조 = 역방향절({ 화면만: false, 산출물폴더: '/w/author-7/assets/out', 요청번호: 7 }).join('\n');
