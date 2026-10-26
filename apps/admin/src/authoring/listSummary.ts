@@ -101,8 +101,8 @@ function 결과(x: 줄, kind: 요약종류, 고칠것: unknown[] | null): 목록
     reqsCovered: 원장?.cased ?? null,
     reqsTotal: 원장?.total ?? null,
     held: x.status === 'DONE' ? 보류들(x.result).length : null,
-    // 단계 글이 없으면(집자마자 멈춤) 첫 칸이다 — 화면이 단계 글을 칸 이름으로 옮긴다
-    stoppedAt: x.status === 'DONE' ? null : (x.stage ?? '준비'),
+    // 단계 글이 없으면 집힌 뒤면 첫 칸(「준비」), 집히기 전이면 빈 글이다 — 화면이 단계 글을 칸 이름으로, 빈 글을 「시작 전에 멈춤」으로 옮긴다
+    stoppedAt: x.status === 'DONE' ? null : (x.stage ?? (x.started_at === null ? '' : '준비')),
   };
 }
 

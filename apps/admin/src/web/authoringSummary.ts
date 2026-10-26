@@ -73,6 +73,7 @@ export function 결과글(s: 목록요약, 언어: 언어): { 글: string; 실�
   if (r.stoppedAt !== null) {
     // 고치기는 단계 막대가 없다 — 「준비 단계에서」라 하면 어디서 멈췄는지 거짓말을 한다
     if (s.kind === 'EDIT') return { 글: t('고치는 중에 멈춤', 언어), 실패: true };
+    if (r.stoppedAt === '') return { 글: t('시작 전에 멈춤', 언어), 실패: true };
     const 만든 = (r.casesMade ?? 0) > 0 ? t('케이스 {수}건 만듦', 언어, { 수: r.casesMade! }) : t('만든 케이스 없음', 언어);
     // 칸 표에 없는 단계 글(겹침 보기 · 3회 돌리기 같은)을 첫 칸으로 옮기면 어디서 멈췄는지 거짓말을 한다 — 단계 없이 멈춤만 말한다
     if (r.stoppedAt !== '준비' && !아는단계글(r.stoppedAt)) return { 글: [t('중간에 멈춤', 언어), 만든].join(' · '), 실패: true };

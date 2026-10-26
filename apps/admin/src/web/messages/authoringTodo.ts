@@ -162,6 +162,7 @@ export const 작성할일말: Record<string, string> = {
   '만든 케이스 없음': 'No cases written',
   '{단계} 단계에서 멈춤': 'Stopped at {단계}',
   '중간에 멈춤': 'Stopped midway',
+  '시작 전에 멈춤': 'Stopped before starting',
   '케이스 {수}건 고침': '{수} cases changed',
   '요구 {전체}건 중 {덮음}건': '{덮음} of {전체} requirements',
   '보류 {수}건': '{수} on hold',

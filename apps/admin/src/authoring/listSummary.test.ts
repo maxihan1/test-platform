@@ -44,7 +44,7 @@ describe.skipIf(연결 === undefined)('작성 목록 summary', () => {
 
   async function 행(칸: {
     kind?: string; sourceId?: number; status: string; params?: object; result?: object; prdVersion?: number;
-    stage?: string; compare?: boolean; startedAt?: string; finishedAt?: string; continueFrom?: number;
+    stage?: string; compare?: boolean; startedAt?: string | null; finishedAt?: string; continueFrom?: number;
   }): Promise<number> {
     const { pool } = await import('../db/index.js');
     const r = await pool.query<{ id: string }>(
@@ -56,7 +56,7 @@ describe.skipIf(연결 === undefined)('작성 목록 summary', () => {
        RETURNING id`,
       [서비스, 칸.kind ?? 'AUTHOR', 칸.sourceId ?? null, JSON.stringify(칸.params ?? {}), 칸.status,
         칸.result === undefined ? null : JSON.stringify(칸.result), 칸.prdVersion ?? null, 칸.stage ?? null, 칸.compare ?? false,
-        칸.startedAt ?? (칸.status === 'PENDING' ? null : '2026-10-26T01:00:00Z'), 칸.finishedAt ?? null, 칸.continueFrom ?? null],
+        칸.startedAt !== undefined ? 칸.startedAt : 칸.status === 'PENDING' ? null : '2026-10-26T01:00:00Z', 칸.finishedAt ?? null, 칸.continueFrom ?? null],
     );
     return Number(r.rows[0]!.id);
   }
@@ -145,8 +145,10 @@ describe.skipIf(연결 === undefined)('작성 목록 summary', () => {
     });
     // 기준 판보다 먼저 시작한 반영은 그때의 기준이 없다 — 판 2 의 요구가 모두 새 것이다
     const 앞선 = await 행({ status: 'FAILED', params: { prdApply: true }, prdVersion: 2, startedAt: '2026-10-25T23:00:00Z' });
+    // 집히기 전에 멈춘 요청은 단계 글 대신 빈 글 — 화면이 「시작 전에 멈춤」으로 옮긴다
+    const 시작전 = await 행({ status: 'STOPPED', params: { prdApply: true }, startedAt: null });
 
-    const 표 = await 목록요약들(서비스, [반영, 결정, 앞선]);
+    const 표 = await 목록요약들(서비스, [반영, 결정, 앞선, 시작전]);
     expect(표.get(반영)!.kind).toBe('PRD_APPLY');
     expect(표.get(반영)!.what.reqs).toBe(3);
     expect(표.get(반영)!.from.by).toBe('PRD');
@@ -158,6 +160,8 @@ describe.skipIf(연결 === undefined)('작성 목록 summary', () => {
 
     expect(표.get(앞선)!.what.reqs).toBe(4);
     expect(표.get(앞선)!.result?.stoppedAt).toBe('준비');
+    expect(표.get(시작전)!.result?.stoppedAt).toBe('');
+    expect(표.get(시작전)!.what.reqs).toBe(0);
   });
 
   it('기획서에 없는 화면 — 화면 근거 주소를 화면 기록 이름으로 · 서버가 시작 · 앞 뿌리 번호', async () => {

@@ -59,18 +59,21 @@ describe('작성 목록 줄 내용 (도메인/작성 §3.6 「작성 목록 줄�
     expect(screen.getByText(/^자료 기획서\.docx · Figma 디자인 · 요청한 사람 테스터 · /)).toBeTruthy();
   });
 
-  it('끝나기 전이면 둘째 줄은 지금 상태 글이고 제목은 종류(꼬리표는 한 번) · 멈춘 줄은 실패 색으로 어디서 멈췄는지', async () => {
+  it('끝나기 전이면 둘째 줄은 지금 상태 글이고 제목은 종류(꼬리표는 한 번) · 중단한 줄은 어디서 멈췄는지(실패 색 아님)', async () => {
     줄들.push(줄({ id: 6121, rootId: 6121, compare: true, summary: 요약({ kind: 'SCREEN_ONLY' }) }));
     줄들.push(줄({
       id: 14679, rootId: 14679, status: 'STOPPED',
       summary: 요약({ kind: 'PRD_APPLY', what: { reqs: 348 }, result: { stoppedAt: '케이스를 만드는 중' }, from: { by: 'PRD' } }),
     }));
+    줄들.push(줄({ id: 14680, rootId: 14680, status: 'FAILED', summary: 요약({ result: { stoppedAt: '자료를 받는 중' } }) }));
     render(<Authoring service="PAY" 할수={() => true} />);
     expect(await screen.findByText('작성 순서를 기다리는 중')).toBeTruthy();
     // 제목이 종류로 떨어지면 꼬리표를 또 달지 않는다
     expect(screen.getAllByText('화면만 대조')).toHaveLength(1);
     expect(screen.getByText('요구 348건 테스트 다시 작성')).toBeTruthy();
-    expect(screen.getByText('케이스 작성 단계에서 멈춤 · 만든 케이스 없음').className).toContain('fail');
+    // 중단은 판정이 아니라 실패 색을 쓰지 않는다 — 실패만 실패 색이다
+    expect(screen.getByText('케이스 작성 단계에서 멈춤 · 만든 케이스 없음').className).not.toContain('fail');
     expect(screen.getByText(/^PRD 관리에서 시작 · 요청한 사람 테스터/)).toBeTruthy();
+    expect(screen.getByText('자료 · PRD 읽기 단계에서 멈춤 · 만든 케이스 없음').className).toContain('fail');
   });
 });

@@ -64,7 +64,8 @@ function 작성줄({ 것, 지금, 운영자 }: { 것: AuthoringListRow; 지금: 
         {/* 제목이 종류로 떨어졌으면(끝나기 전 · 자료 없음) 꼬리표를 또 달지 않는다 — 같은 글이 두 번 선다 */}
         {제목 === 종류 ? null : <span className="authoring-kind">{종류}</span>}
         <a href={`#/authoring/${String(번호)}`}>{제목}</a>
-        <small className={결과?.실패 === true ? 'authoring-result fail' : 'authoring-result'}>{결과?.글 ?? 목록글(것, 언어, 운영자)}</small>
+        {/* 중단은 판정이 아니다 — 사람이나 한도가 멈춘 것이라 실패 색을 쓰지 않는다 (DESIGN.md 「작성 상태」 · 띠색과 같다) */}
+        <small className={결과?.실패 === true && 것.status !== 'STOPPED' ? 'authoring-result fail' : 'authoring-result'}>{결과?.글 ?? 목록글(것, 언어, 운영자)}</small>
         <small>{시작글(것.summary, 것, 언어)}</small>
       </div>
       <div className="right">
