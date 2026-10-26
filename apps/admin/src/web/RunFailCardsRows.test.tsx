@@ -53,11 +53,12 @@ describe('실패 카드 — 통과 줄 · 거르개 · 쪽 · 불러오기 (실�
     expect(상세부름).toHaveBeenCalledTimes(1);
   });
 
-  it('디바이스가 둘 이상인 실행이면 카드 머리에 디바이스마다 판정을 적는다 — 한 번이라도 깨졌으면 실패', async () => {
+  it('디바이스가 둘 이상인 실행이면 카드 머리에 디바이스마다 판정을 적는다 — 한 번이라도 깨졌으면 실패, 통과와 미실행이 섞이면 미실행', async () => {
     const { container } = 그리기(
       쪽([케이스('ZZI-0001', '회원가입', [장치('mobile', 2)]), 케이스('ZZI-0002', '로그인', [장치('desktop', 3)])]),
       [
         줄(1, 'ZZI-0001', 'desktop', 'PASS'),
+        줄(6, 'ZZI-0001', 'desktop', 'NA', { attempt: 2 }),
         줄(2, 'ZZI-0001', 'mobile', 'FAIL'),
         줄(3, 'ZZI-0002', 'desktop', 'FAIL'),
         줄(4, 'ZZI-0002', 'desktop', 'PASS', { attempt: 2 }),
@@ -66,7 +67,7 @@ describe('실패 카드 — 통과 줄 · 거르개 · 쪽 · 불러오기 (실�
     );
     await screen.findByText('회원가입');
 
-    expect([...container.querySelectorAll('.fc-devs')].map((e) => e.textContent)).toEqual(['PC 통과모바일 실패', 'PC 실패모바일 미실행']);
+    expect([...container.querySelectorAll('.fc-devs')].map((e) => e.textContent)).toEqual(['PC 미실행모바일 실패', 'PC 실패모바일 미실행']);
   });
 
   it('디바이스가 하나인 실행이면 카드 머리에 디바이스 꼬리표가 없다', async () => {
