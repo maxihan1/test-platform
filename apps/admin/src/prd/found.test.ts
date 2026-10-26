@@ -83,7 +83,7 @@ describe.skipIf(연결 === undefined)('PRD 에 없는 화면 셈', () => {
     await q('DELETE FROM service WHERE id = $1', [서비스]);
   });
 
-  it('표준 기획서가 없으면 찾은 화면 전부가 PRD 에 없는 화면이다', async () => {
+  it('케이스가 없으면 찾은 화면 전부가 미검증 화면이다', async () => {
     expect(await 읽기()).toMatchObject({ version: 0, uncoveredScreens: [], foundScreens: 0, screensOpen: [] });
     await 찾음([['로그인:일반 회원', '/cart', '장바구니'], ['로그아웃', '/', '홈']]);
     expect(await 읽기()).toMatchObject({
@@ -92,7 +92,7 @@ describe.skipIf(연결 === undefined)('PRD 에 없는 화면 셈', () => {
     });
   });
 
-  it('지금 판 번호의 활성 케이스가 가져오는 화면 주소를 같은 틀로 바꿔 덮고, 상태는 안 가른다 — `:id` · 인자 꼬리도 (PRD-F9-04)', async () => {
+  it('그 애플리케이션의 활성 케이스가 가져오는 화면 주소 · 여는 주소를 같은 틀로 바꿔 덮고, 상태는 안 가른다 — 요구 번호가 없는 케이스도 · `:id` · 인자 꼬리도 (PRD-F9-04 · WEB-F6-03)', async () => {
     const 저장 = await app.inject({
       method: 'PUT',
       url: `/api/prd?service=${접두사}`,
@@ -108,29 +108,29 @@ describe.skipIf(연결 === undefined)('PRD 에 없는 화면 셈', () => {
     }
     await q(
       `INSERT INTO req_case (service_id, req_id, tc_id, axis)
-       VALUES ($1, 'XPD-REQ-001', 'XPD-FN-001', '정상'), ($1, 'XPD-REQ-001', 'XPD-FN-002', '정상'), ($1, 'XPD-REQ-099', 'XPD-FN-003', '정상')`,
+       VALUES ($1, 'XPD-REQ-001', 'XPD-FN-001', '정상'), ($1, 'XPD-REQ-001', 'XPD-FN-002', '정상')`,
       [서비스],
     );
     await q(
-      `INSERT INTO case_screen (tc_id, file, screen_url)
-       VALUES ('XPD-FN-001', 'tests/xpd/pages/board.page.ts', '/board/:id'), ('XPD-FN-001', 'tests/xpd/components/nav.component.ts', NULL),
-              ('XPD-FN-001', 'tests/xpd/pages/board-list.page.ts', '/board'),
-              ('XPD-FN-002', 'tests/xpd/pages/hidden.page.ts', '/hidden'), ('XPD-FN-003', 'tests/xpd/pages/other.page.ts', '/other')`,
+      `INSERT INTO case_screen (tc_id, file, screen_url, open_urls)
+       VALUES ('XPD-FN-001', 'tests/xpd/pages/board.page.ts', '/board/:id', '{/board/:id/edit}'), ('XPD-FN-001', 'tests/xpd/components/nav.component.ts', NULL, '{}'),
+              ('XPD-FN-001', 'tests/xpd/pages/board-list.page.ts', '/board', '{}'),
+              ('XPD-FN-002', 'tests/xpd/pages/hidden.page.ts', '/hidden', '{}'), ('XPD-FN-003', 'tests/xpd/pages/other.page.ts', '/other', '{}')`,
     );
     await 찾음([
       ['로그아웃', '/board/:n', '게시판'],
       ['로그인:일반 회원', '/board/:n', '게시판'],
+      ['로그인:일반 회원', '/board/:n/edit', '게시글 수정'],
       ['로그인:일반 회원', '/board?category=자유', '자유게시판'],
       ['로그인:일반 회원', '/hidden', '숨은 화면'],
-      ['로그인:일반 회원', '/other', '다른 요구'],
+      ['로그인:일반 회원', '/other', '요구 없는 케이스 화면'],
       ['로그인:일반 회원', '/cart', '장바구니'],
     ]);
     const 몸 = await 읽기();
-    expect(몸.foundScreens).toBe(6);
+    expect(몸.foundScreens).toBe(7);
     expect(몸.uncoveredScreens).toEqual([
       { state: '로그인:일반 회원', url: '/cart', name: '장바구니' },
       { state: '로그인:일반 회원', url: '/hidden', name: '숨은 화면' },
-      { state: '로그인:일반 회원', url: '/other', name: '다른 요구' },
     ]);
   });
 

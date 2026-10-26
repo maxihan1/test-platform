@@ -65,7 +65,7 @@ export default async function prdRoutes(app: FastifyInstance): Promise<void> {
       cases,
       unapplied: 반영안됨(기준?.items ?? null, items),
       needsCheck: 확인필요(items),
-      ...(await 찾은화면셈(서비스, items)),
+      ...(await 찾은화면셈(서비스)),
       held,
       perf: 결과보나 ? await 성능목표읽기(서비스) : {},
     };

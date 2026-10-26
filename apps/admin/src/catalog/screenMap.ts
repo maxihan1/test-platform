@@ -13,6 +13,8 @@ export interface 화면줄 {
   screenUrl: string | null;
   /** 화면 파일 클래스 이름(`게시판목록화면`) — 목록이 주소 · 영문 파일 이름 대신 보인다 (PRD-F9-18) */
   name: string | null;
+  /** 화면 파일 안 이동이 여는 다른 주소 틀(`/board/:n/edit`) — 미검증 화면 셈이 화면 주소와 같이 본다 (WEB-F6-03) */
+  openUrls: string[];
 }
 
 // helpers/ 는 넣지 않는다 — 로그인 · 계정 · 데이터 도구는 거의 모든 케이스가 써서, 넣으면 「모든 케이스가 그 화면에 닿는다」가 된다 (작성 §3.6 「지도」).
@@ -60,6 +62,34 @@ export function 화면주소(화면글: string): string | null {
   return null;
 }
 
+/**
+ * 화면 파일 안 이동(`page.goto`)이 여는 주소 틀 — 글자 그대로이거나 `${…}` 자리를 `:n` 으로 바꾼 템플릿, `/` 로 시작하는 것만. 조건식은 두 갈래 다.
+ * `수정열기` 의 `/board/${번호}/edit` 처럼 화면 파일 하나가 여는 두 번째 화면이다. 앞이 계산식(`${화면.주소}?…`)이면 짐작하지 않고 뺀다 (도메인/작성 §3.6 「세는 방식」)
+ */
+export function 여는주소들(화면글: string): string[] {
+  const sf = ts.createSourceFile('screen.page.ts', 화면글, ts.ScriptTarget.Latest, false, ts.ScriptKind.TS);
+  const 모음 = new Set<string>();
+  const 값 = (n: ts.Expression): void => {
+    if (ts.isParenthesizedExpression(n)) return 값(n.expression);
+    if (ts.isConditionalExpression(n)) {
+      값(n.whenTrue);
+      값(n.whenFalse);
+      return;
+    }
+    const 글 =
+      ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n) ? n.text
+        : ts.isTemplateExpression(n) ? n.head.text + n.templateSpans.map((s) => `:n${s.literal.text}`).join('')
+          : null;
+    if (글?.startsWith('/') === true) 모음.add(글);
+  };
+  const 훑기 = (n: ts.Node): void => {
+    if (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression) && n.expression.name.text === 'goto' && n.arguments[0] !== undefined) 값(n.arguments[0]);
+    ts.forEachChild(n, 훑기);
+  };
+  훑기(sf);
+  return [...모음];
+}
+
 /** 화면 파일이 내보내는 첫 클래스 이름 — 작성 규칙이 한글 이름(`게시판목록화면` · `머리글`)으로 짓는다. 없으면 모른다 */
 export function 화면이름(화면글: string): string | null {
   const sf = ts.createSourceFile('screen.page.ts', 화면글, ts.ScriptTarget.Latest, false, ts.ScriptKind.TS);
@@ -71,7 +101,7 @@ export function 화면이름(화면글: string): string | null {
 
 /** 읽어 낸 케이스마다 가져온 화면 파일과 그 주소 · 이름을 잇는다. `file` 은 저장소 뿌리 기준(`tests/<폴더>/pages/<이름>.page.ts`)이다 */
 export async function 화면지도줄들(root: string, specs: CaseSpec[]): Promise<화면줄[]> {
-  const 파일들 = new Map<string, { screenUrl: string | null; name: string | null }>();
+  const 파일들 = new Map<string, Omit<화면줄, 'tcId' | 'file'>>();
   const 줄들: 화면줄[] = [];
   for (const spec of specs) {
     const 자리 = posix.dirname(spec.filePath.split(sep).join('/'));
@@ -80,7 +110,9 @@ export async function 화면지도줄들(root: string, specs: CaseSpec[]): Promi
       if (!파일들.has(경로)) {
         const 글 = await readFile(join(root, 경로), 'utf8');
         // 화면 조각은 여러 화면에 나오므로 주소가 없다 — 값을 적어 둬도 넣지 않는다 (공통/4-데이터모델 case_screen)
-        파일들.set(경로, { screenUrl: 상대.startsWith('pages/') ? 화면주소(글) : null, name: 화면이름(글) });
+        const 화면 = 상대.startsWith('pages/');
+        const screenUrl = 화면 ? 화면주소(글) : null;
+        파일들.set(경로, { screenUrl, name: 화면이름(글), openUrls: 화면 ? 여는주소들(글).filter((u) => u !== screenUrl) : [] });
       }
       줄들.push({ tcId: spec.tcId, file: `tests/${경로}`, ...파일들.get(경로)! });
     }
@@ -117,10 +149,12 @@ export async function 화면지도채우기(
       전부읽음,
       specs.map((s) => s.tcId),
     ]);
+    // 여는 주소는 줄마다 길이가 달라 unnest 로 못 펴서 JSON 으로 넘긴다
     await client.query(
-      `INSERT INTO case_screen (tc_id, file, screen_url, name)
-       SELECT * FROM unnest($1::text[], $2::text[], $3::text[], $4::text[])`,
-      [줄들.map((x) => x.tcId), 줄들.map((x) => x.file), 줄들.map((x) => x.screenUrl), 줄들.map((x) => x.name)],
+      `INSERT INTO case_screen (tc_id, file, screen_url, name, open_urls)
+       SELECT x."tcId", x.file, x."screenUrl", x.name, ARRAY(SELECT json_array_elements_text(x."openUrls"))
+         FROM json_to_recordset($1) AS x("tcId" text, file text, "screenUrl" text, name text, "openUrls" json)`,
+      [JSON.stringify(줄들)],
     );
     await client.query('COMMIT');
     return 줄들.length;
