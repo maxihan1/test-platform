@@ -220,6 +220,8 @@ describe.skipIf(연결 === undefined)('작성 요청 실행 기록', () => {
   });
 
   it('동시에 두 번 눌러도 한 뿌리에 새 실행은 하나만 선다', async () => {
+    const { pool } = await import('../db/index.js');
+    await pool.query('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
     const 가 = await 행({ status: 'FAILED' });
     const 누름 = () =>
       app.inject({ method: 'POST', url: `/api/authoring/requests?service=${접두사}`, payload: { kind: 'RERUN', sourceId: 가 } });

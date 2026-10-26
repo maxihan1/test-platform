@@ -152,13 +152,17 @@ describe('PRD 관리 — 할 일 먼저', () => {
     expect((within(칸).getByRole('button', { name: '바뀐 요구 2건 테스트에 반영' }) as HTMLButtonElement).disabled).toBe(true);
   });
 
-  it('이미 열린 반영이 있으면 그 요청 번호로 가는 링크를 띄운다', async () => {
-    반영.mockRejectedValueOnce(new ApiError(409, 'APPLY_OPEN', '6101'));
+  it.each([
+    ['APPLY_OPEN', /이미 열린 반영 요청이 있습니다/],
+    ['AUTHORING_OPEN', /반영하지 않은 테스트 작성 요청이 있습니다/],
+  ])('%s 로 막히면 그 요청 번호로 가는 링크를 띄운다', async (코드, 글) => {
+    반영.mockRejectedValueOnce(new ApiError(409, 코드, '6101'));
     render(<Prd service="MKT" 할수={쓰는사람} />);
     const 칸 = await screen.findByRole('region', { name: /반영 안 됨 2건/ });
     fireEvent.click(within(칸).getByRole('button', { name: '바뀐 요구 2건 테스트에 반영' }));
-    expect(await within(칸).findByText(/이미 열린 반영 요청이 있습니다/)).toBeTruthy();
+    expect(await within(칸).findByText(글)).toBeTruthy();
     expect(within(칸).getByRole('link', { name: '#6101 요청 보기' }).getAttribute('href')).toBe('#/authoring/6101');
+    expect((within(칸).getByRole('button', { name: '바뀐 요구 2건 테스트에 반영' }) as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('반영 안 됨 요구를 덮는 케이스를 쓰는 E2E 시나리오를 버튼 위에 번호 · 이름으로 보인다', async () => {

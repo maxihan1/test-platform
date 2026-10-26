@@ -4,7 +4,7 @@ import { readdirSync, statSync } from 'node:fs';
 import { readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { 자료폴더 } from './assets.js';
 import { type 판, 판차리기, 셈있음 } from './continue-fixture.js';
@@ -16,6 +16,10 @@ describe.skipIf(연결 === undefined)('이어 작성 — 자료 복사 · 줄 �
 
   beforeAll(async () => {
     판 = await 판차리기('XWQ');
+  });
+
+  beforeEach(async () => {
+    await 판.치우기();
   });
 
   afterAll(async () => {
@@ -104,10 +108,15 @@ describe.skipIf(연결 === undefined)('이어 작성 — 자료 복사 · 줄 �
     expect(새.ino).toBe(옛.ino);
   });
 
-  it('서로 다른 원본 열둘을 한꺼번에 눌러도 다 선다 — 잠금 안에서 풀 연결을 또 잡지 않는다', async () => {
+  it('서로 다른 원본 열둘을 한꺼번에 눌러도 서버가 서지 않고 하나만 선다 — 잠금 안에서 풀 연결을 또 잡지 않는다', async () => {
     const 원본들 = await Promise.all(Array.from({ length: 12 }, () => 판.원본({ coverage: 셈있음 })));
     const 답들 = await Promise.all(원본들.map(({ 뿌리 }) => 판.이어작성({ kind: 'AUTHOR', continueFrom: 뿌리 })));
-    expect(답들.map((d) => d.statusCode)).toEqual(Array(12).fill(201));
+    const 선것 = 답들.filter((d) => d.statusCode === 201).map((d) => d.json<{ id: number }>().id);
+    expect(선것).toHaveLength(1);
+    expect(답들.filter((d) => d.statusCode !== 201).map((d) => d.json())).toEqual(Array(11).fill({ error: 'AUTHORING_OPEN', detail: 선것 }));
+    const { pool } = await import('../db/index.js');
+    const 초안 = await pool.query("SELECT 1 FROM authoring_request WHERE service_id = $1 AND status = 'DRAFT'", [판.서비스]);
+    expect(초안.rowCount).toBe(0);
   }, 20_000);
 });
 

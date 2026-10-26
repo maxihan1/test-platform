@@ -119,6 +119,16 @@ describe('API 문서 — 시안 C 할 일 먼저', () => {
     expect((within(카드).getByRole('button', { name: '바뀐 API 2건 테스트에 반영' }) as HTMLButtonElement).disabled).toBe(true);
   });
 
+  it('반영 안 된 작성에 막히면 그 요청으로 가는 링크를 띄우고 버튼을 잠근다', async () => {
+    반영.mockRejectedValueOnce(new ApiError(409, 'AUTHORING_OPEN', '6101,6105'));
+    render(<ApiDocs service={앱} 할수={쓰는사람} 설정보나 />);
+    const 카드 = await screen.findByRole('region', { name: '반영 안 됨 2건' });
+    fireEvent.click(within(카드).getByRole('button', { name: '바뀐 API 2건 테스트에 반영' }));
+    expect(await within(카드).findByText(/반영하지 않은 테스트 작성 요청이 있습니다/)).toBeTruthy();
+    expect(within(카드).getByRole('link', { name: '#6105 요청 보기' }).getAttribute('href')).toBe('#/authoring/6105');
+    expect((within(카드).getByRole('button', { name: '바뀐 API 2건 테스트에 반영' }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
   it('작성 read 만 있으면 받기 · 첨부 · 반영 버튼이 없다', async () => {
     render(<ApiDocs service={앱} 할수={보는사람} 설정보나={false} />);
     await screen.findByRole('region', { name: '반영 안 됨 2건' });

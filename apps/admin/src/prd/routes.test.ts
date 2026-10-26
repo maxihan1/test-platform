@@ -142,8 +142,13 @@ describe.skipIf(연결 === undefined)('표준 기획서 API', () => {
     ]);
     expect(행.rows[0]).toEqual({ kind: 'AUTHOR', status: 'PENDING', params: { prdApply: true } });
 
+    const 첫 = (r.json() as { id: number }).id;
     const 또 = await 부르기('POST', '/prd/apply');
-    expect([또.statusCode, 또.json()]).toEqual([409, { error: 'APPLY_OPEN', detail: [(r.json() as { id: number }).id] }]);
+    expect([또.statusCode, 또.json()]).toEqual([409, { error: 'AUTHORING_OPEN', detail: [첫] }]);
+    // 실패한 반영은 열린 작성이 아니지만 폐기해야 다시 누른다 — 집기가 앞 반영을 기다린다
+    await q(`UPDATE authoring_request SET status = 'FAILED' WHERE id = $1`, [첫]);
+    const 실패뒤 = await 부르기('POST', '/prd/apply');
+    expect([실패뒤.statusCode, 실패뒤.json()]).toEqual([409, { error: 'APPLY_OPEN', detail: [첫] }]);
     await q('UPDATE authoring_request SET discarded_at = now() WHERE service_id = $1', [서비스]);
     expect((await 부르기('POST', '/prd/apply')).statusCode).toBe(201);
   });

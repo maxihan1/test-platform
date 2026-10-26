@@ -9,6 +9,7 @@ const 부름: { 무엇: string; 값: unknown }[] = [];
 let 만들기답: Promise<{ id: number }> = Promise.resolve({ id: 1 });
 let 올리기답: (이름: string) => Promise<{ id: number }> = () => Promise.resolve({ id: 1 });
 let 치우기답: Promise<unknown> = Promise.resolve({});
+let 세우기답: Promise<unknown> = Promise.resolve({ ok: true });
 
 vi.mock('./api.js', async () => {
   const 진짜 = await vi.importActual<typeof import('./api.js')>('./api.js');
@@ -29,7 +30,7 @@ vi.mock('./api.js', async () => {
       },
       submitAuthoringRequest: (_service: string, id: number) => {
         부름.push({ 무엇: '세우기', 값: { id } });
-        return Promise.resolve({ ok: true });
+        return 세우기답;
       },
     },
   };
@@ -40,6 +41,7 @@ beforeEach(() => {
   만들기답 = Promise.resolve({ id: 7 });
   올리기답 = () => Promise.resolve({ id: 1 });
   치우기답 = Promise.resolve({});
+  세우기답 = Promise.resolve({ ok: true });
 });
 
 afterEach(() => {
@@ -198,6 +200,16 @@ describe('새 작성 요청 — 자료 목록', () => {
     expect(screen.getByText(/\(둘\.docx — /)).toBeTruthy();
     expect(screen.queryByText(/목록에 남은 그 줄은 폐기하세요/)).toBeNull();
     expect(넣었다).toBe(0);
+  });
+
+  it('줄에 세우기가 서버 막기(AUTHORING_OPEN)로 거절되면 안 섰다는 뜻이라 그 요청을 치운다', async () => {
+    세우기답 = Promise.reject(new ApiError(409, 'AUTHORING_OPEN', '6101'));
+    render(<AuthoringNew service="PAY" on넣었다={() => {}} />);
+    파일을고른다('하나.pdf');
+    fireEvent.click(보내기());
+    expect(await screen.findByText(/반영하지 않은 테스트 작성 요청이 있습니다/)).toBeTruthy();
+    expect(screen.getByText(/#6101/)).toBeTruthy();
+    expect(부름.map((b) => b.무엇)).toEqual(['만들기', '올리기', '세우기', '치우기']);
   });
 
   it('치우기도 실패하면 남은 줄을 폐기하라고 덧붙인다 — 왜 줄이 남았는지 말한다', async () => {

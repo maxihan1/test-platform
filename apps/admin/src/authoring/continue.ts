@@ -7,10 +7,11 @@ import type { PoolClient } from 'pg';
 import { rm } from 'node:fs/promises';
 
 import { type 보류재료, 등록역할표, 보류줄들, 줄에등록된보류있나 } from '../prd/heldQuery.js';
-import { 이어작성준비, 제출, 초안지우기 } from './assetStore.js';
+import { 이어작성준비, 초안지우기 } from './assetStore.js';
 import { 자료파일복사, 자료폴더 } from './assets.js';
 import { 행커버리지 } from './coverage.js';
 import { 사슬식, 뿌리잠그고, 최신식 } from './history.js';
+import { 막고제출, 열린작성 } from './openRoots.js';
 import { 재실행API } from './apiDoc.js';
 import { 대상줄들읽기, 앱줄고르기, 역방향칸판정, 폰앱인가 } from './reverse.js';
 import { db, type 요청 } from './store.js';
@@ -152,9 +153,12 @@ export async function 이어작성세우기(
     : ({ compare: false } as const);
   // API 애플리케이션 원본은 대조가 아니어도 env 를 물려받는다 — 재실행과 같은 판정 (§7 「AUTHOR API 문서 판」)
   const api = await 재실행API(입력.서비스, 원본);
-  const 결과 = await 뿌리잠그고(원본.id, async (손): Promise<{ code: number; error: string } | Awaited<ReturnType<typeof 이어작성준비>>> => {
+  const 결과 = await 뿌리잠그고(원본.id, async (손): Promise<{ code: number; error: string; detail?: number[] } | Awaited<ReturnType<typeof 이어작성준비>>> => {
     const 까닭 = 막는까닭(await 이어작성상태읽기(원본.id, 손));
     if (까닭 !== null) return { code: 409, error: 까닭 };
+    // 반영 안 된 다른 작성이 있으면 안 세운다 — 원본은 병합이 끝나 열린 것이 아니다 (§3.6 「★ 결정 목록」 「서버 막기」)
+    const 열린 = await 열린작성(입력.서비스, 손);
+    if (열린.length > 0) return { code: 409, error: 'AUTHORING_OPEN', detail: 열린 };
     if ('error' in 대조) return { code: 400, error: 대조.error };
     if ('error' in api) return { code: 400, error: api.error };
     try {
@@ -178,16 +182,23 @@ export async function 이어작성세우기(
       throw e;
     }
   });
-  if ('error' in 결과) return reply.code(결과.code).send({ error: 결과.error });
+  if ('error' in 결과) return reply.code(결과.code).send({ error: 결과.error, detail: 결과.detail });
   // 파일은 잠금 밖에서 복사한다 — 스무 개 · 20MB 를 잠금 안에서 옮기면 같은 뿌리의 다른 누름이 그만큼 선다.
   // DRAFT 라 복사가 끝나기 전에는 에이전트가 안 집는다. 실패하면 초안을 지워 원본을 다시 풀어 준다
+  let 세움: number[] | boolean;
   try {
     await 자료파일복사(원본.id, 결과.id, 결과.파일);
+    세움 = await 막고제출(결과.id, 입력.서비스);
     // 원본에 입력 자료가 있어야 여기 온다(NOTHING_LEFT) — 자료 0 이면 제출이 거짓이라 초안이 남는다
-    if (!(await 제출(결과.id))) throw new Error(`이어 작성 요청 ${String(결과.id)} 을 줄에 세우지 못했다`);
+    if (세움 === false) throw new Error(`이어 작성 요청 ${String(결과.id)} 을 줄에 세우지 못했다`);
   } catch (원래) {
     await 초안치우기(결과.id, 원래);
     throw 원래;
+  }
+  // 복사하는 사이 다른 작성이 열렸다 — 초안을 치우고 그 번호로 거절한다
+  if (Array.isArray(세움)) {
+    await 초안치우기(결과.id);
+    return reply.code(409).send({ error: 'AUTHORING_OPEN', detail: 세움 });
   }
   return reply.code(201).send({ id: 결과.id });
 }
@@ -196,11 +207,12 @@ export async function 이어작성세우기(
  * 실패한 이어 작성 초안을 행 · 자료 폴더째 치운다 — 남으면 폐기 안 된 이어 작성으로 쳐 원본이 막히고 디스크에 파일이 남는다.
  * 치우기마저 실패하면 두 오류를 함께 던진다 — 원래 오류를 덮지 않는다(CLAUDE.md 「에러」)
  */
-async function 초안치우기(요청: number, 원래: unknown): Promise<void> {
+async function 초안치우기(요청: number, 원래?: unknown): Promise<void> {
   try {
     await 초안지우기(요청);
     await rm(자료폴더(요청), { recursive: true, force: true });
   } catch (정리오류) {
+    if (원래 === undefined) throw new Error(`이어 작성 요청 ${String(요청)} 의 초안을 치우지 못했다`, { cause: 정리오류 });
     throw new AggregateError([원래, 정리오류], `이어 작성 요청 ${String(요청)} 이 실패했고 초안도 치우지 못했다`);
   }
 }

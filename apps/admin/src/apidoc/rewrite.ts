@@ -1,6 +1,7 @@
 // 「바뀐 API 만 다시 작성」 작성 요청을 세운다 — 판 비교와 그 API 를 부르는 케이스를 요청에 박아 둔다 (도메인/API §3.8 「바뀐 API 만 다시 작성」)
 
 import { API대상줄인가 } from '../authoring/apiDoc.js';
+import { 열린작성 } from '../authoring/openRoots.js';
 import { type 판변화, 판비교 } from './doc.js';
 import { 판원문 } from './store.js';
 
@@ -36,7 +37,8 @@ export function 고른것읽기(v: unknown): 고른것[] | null {
  * 고른 API 가운데 판 비교에 든 것만 남긴다 — 안 바뀐 API 를 골라 보내도 다시 쓸 것이 없다.
  * 남은 게 없거나 없어진 API 뿐이면 NOTHING_TO_APPLY — 없어진 API 의 케이스는 지우지 않으니 자식이 할 일이 없다(지우기는 케이스 고치기).
  * 판이 없으면 NOT_FOUND(판 비교 통로와 같다). 새 판이 마지막 판이 아니면 NOT_LATEST_VERSION — 옛 판으로 다시 쓰면 케이스가 뒤로 간다.
- * 열린 다시 작성(대기 · 도는 중)이 있으면 APPLY_OPEN — 두 번 누르면 같은 케이스를 고치는 PR 이 둘 선다(표준 기획서 반영과 같다)
+ * 열린 작성(authoring/openRoots.ts — 끝났고 병합 전인 작성도)이 있으면 AUTHORING_OPEN 과 그 뿌리 번호 — 두 번 누르면 같은 케이스를 고치는 PR 이 둘 선다
+ * (도메인/작성 §3.6 「★ 결정 목록」 「서버 막기」 · 앞 판은 대기 · 도는 중인 다시 작성만 APPLY_OPEN 으로 봤다)
  */
 export async function 다시작성세우기(입력: {
   서비스: number;
@@ -46,7 +48,9 @@ export async function 다시작성세우기(입력: {
   env: unknown;
   누가: string;
   이름: string;
-}): Promise<{ id: number } | { error: 'NOT_FOUND' | 'NOTHING_TO_APPLY' | 'BAD_ENV' | 'NOT_LATEST_VERSION' | 'APPLY_OPEN' }> {
+}): Promise<
+  { id: number } | { error: 'NOT_FOUND' | 'NOTHING_TO_APPLY' | 'BAD_ENV' | 'NOT_LATEST_VERSION' } | { error: 'AUTHORING_OPEN'; detail: number[] }
+> {
   const [전, 후] = await Promise.all([판원문(입력.서비스, 입력.from), 판원문(입력.서비스, 입력.to)]);
   if (전 === null || 후 === null) return { error: 'NOT_FOUND' };
   if ((await 판원문(입력.서비스))?.version !== 입력.to) return { error: 'NOT_LATEST_VERSION' };
@@ -58,16 +62,11 @@ export async function 다시작성세우기(입력: {
   const client = await (await db()).connect();
   try {
     await client.query('BEGIN');
-    // 확인과 넣기를 서비스 잠금 안에서 — 두 번 눌러도 하나만 선다.
-    // ponytail: 대기 · 도는 중만 본다. 끝났는데 병합 안 된 PR 이 있으면 또 선다 — 겹치면 표준 기획서 반영의 「열린 반영」(chainSql 열린반영식)처럼 뿌리 사슬로 본다
-    await client.query('SELECT 1 FROM service WHERE id = $1 FOR UPDATE', [입력.서비스]);
-    const 열린 = await client.query(
-      `SELECT 1 FROM authoring_request WHERE service_id = $1 AND params ? 'apiApply' AND status IN ('PENDING', 'RUNNING') AND discarded_at IS NULL`,
-      [입력.서비스],
-    );
-    if ((열린.rowCount ?? 0) > 0) {
+    // 확인과 넣기를 잠금 안에서 — 두 번 눌러도 하나만 선다(열린작성이 서비스 잠금을 잡는다)
+    const 열린 = await 열린작성(입력.서비스, client);
+    if (열린.length > 0) {
       await client.query('ROLLBACK');
-      return { error: 'APPLY_OPEN' };
+      return { error: 'AUTHORING_OPEN', detail: 열린 };
     }
     // 지운 케이스는 안 맡긴다 — 커버리지와 같은 규칙(활성 케이스 줄만)
     const 본것 = await client.query<{ method: string; path: string; tc_ids: string[] }>(

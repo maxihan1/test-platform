@@ -127,7 +127,7 @@
   - 에이전트는 이 칸을 자료 폴더 `api-apply.json` 에 새 판의 그 API 원장 번호(`API POST /v1/pushes 201`)와 같이 쓰고 줄 프롬프트에 「바뀐 API 만 다시 작성」 절을 붙인다. 칸 모양이 틀리거나 `toVersion` 이 자료의 판과 다르면 자식을 안 띄우고 FAILED 다. 자식 지침은 `tpx-author` `references/apply.md` §6 이다
   - **원장의 API 줄은 고른 API 것만 든다** — 안 고른 새 API 줄이 main 표에 없어 관문 0 이 막지 않게. 그 밖 API 줄을 출처로 단 표 줄은 「원장에 없는 번호」 경고로만 남는다. 기획서 번호는 전체 그대로다
   - 바뀐 API 안에서 응답 코드가 없어져 덮을 코드가 없는 케이스도 지우지 않는다 — 자식이 결과 요약에 「지우기 제안」으로 적는다
-  - **한 번에 하나** — 같은 애플리케이션에 대기 · 도는 중인 다시 작성이 있으면 409 `APPLY_OPEN`(표준 기획서 반영과 같은 까닭). 열린 작성 전부를 보고 409 `AUTHORING_OPEN` 으로 바꾼다 — 끝났고 병합 전인 작성도 막는다([작성.md](작성.md) §3.6 「★ 결정 목록」 「서버 막기」 · WEB-F6-02 · 계약 대기). 결정 진행이 세우는 다시 작성은 막지 않고 열린 작성을 기다린다(같은 절 「뒤 단계는 앞 일이 끝나야 집힌다」).
+  - **한 번에 하나** — 같은 애플리케이션에 열린 작성이 있으면 409 `AUTHORING_OPEN` 과 그 뿌리 번호다 — 끝났고 병합 전인 작성도 막는다([작성.md](작성.md) §3.6 「★ 결정 목록」 「서버 막기」 · 2026-10-26 WEB-F6-02 — 앞 판은 대기 · 도는 중인 다시 작성만 `APPLY_OPEN`). 결정 진행이 세우는 다시 작성은 막지 않고 열린 작성을 기다린다(같은 절 「뒤 단계는 앞 일이 끝나야 집힌다」).
     누르는 자리는 테스트 작성 결정 목록 ③ 「바뀐 API」다(같은 절 · WEB-F6-05). 새 판은 마지막 판이어야 한다(400 `NOT_LATEST_VERSION` — 옛 판으로 다시 쓰면 케이스 머리의 판이 뒤로 간다)
   - PR 본문 머리 — `API 문서 반영: 판 a → 판 b · 바뀜 n · 새 API m · 없어진 API k` 와 부르던 케이스가 있는 없어진 API 마다 `지우기 제안 — <메서드> <경로> 가 없어졌다: <tcId 들>`
   - 재실행 · 이어서 작성은 원본의 `apiApply` · env 를 물려받는다. 남은 요구로 이어 작성은 `apiApply` 를 안 물려받는다 — 누를 때 박아 둔 케이스로 또 다시 쓰지 않게. 작성 요청 만들기 · 재실행 본문에 `apiApply` 를 실으면 400 `BAD_API_APPLY` 다(도메인/작성 §7)
@@ -168,7 +168,7 @@ GET    /api/services/:id/api-coverage                 마지막 판 기준 커�
 POST   /api/services/:id/api-docs/:version/rewrite    바뀐 API 만 다시 작성 { fromVersion, env, operations: [{ method, path }] } → 201 { requestId }
                                                       operations 가 비거나 판 비교(fromVersion → :version)에 든 API 가 하나도 없으면 400 NOTHING_TO_APPLY · 어느 판이 없으면 404 NOT_FOUND ·
                                                       fromVersion 이 숫자가 아니거나 :version 보다 작지 않거나 operations 가 배열이 아니거나 줄에 method · path 글자가 없으면 400 INVALID_REQUEST.
-                                                      :version 이 마지막 판이 아니면 400 NOT_LATEST_VERSION · 대기 · 도는 중인 다시 작성이 있으면 409 APPLY_OPEN. method 는 대문자로 읽는다 · env 는 작성 중 돌려 볼 대상 서버 — 작성 요청 만들기의 API 판정과 같다(없거나 그 애플리케이션 줄이 아니거나 「실서비스 서버」면 400 BAD_ENV, 도메인/작성 §7 「AUTHOR API 문서 판」)
+                                                      :version 이 마지막 판이 아니면 400 NOT_LATEST_VERSION · 열린 작성이 있으면 409 { error: 'AUTHORING_OPEN', detail: [<뿌리 번호>] }(2026-10-26 — 앞 판은 대기 · 도는 중인 다시 작성만 APPLY_OPEN). method 는 대문자로 읽는다 · env 는 작성 중 돌려 볼 대상 서버 — 작성 요청 만들기의 API 판정과 같다(없거나 그 애플리케이션 줄이 아니거나 「실서비스 서버」면 400 BAD_ENV, 도메인/작성 §7 「AUTHOR API 문서 판」)
 
 늘어나는 칸 — 이미 있는 통로
 GET    /api/runs/:runId                               + apiDocVersion · apiDocNote ('DIFFERS' | 'FETCH_FAILED' | null)   (실행 §7)

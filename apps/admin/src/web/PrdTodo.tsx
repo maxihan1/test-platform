@@ -72,9 +72,15 @@ export function PrdTodo({ service, now, 쓰나, 짓기 }: { service: string; now
       set반영결과({ 글: t('작성 요청 {번호}번을 만들었습니다', { 번호: id }), 번호들: [id] });
       set세움(true);
     } catch (err) {
-      // 열린 반영이 있으면 서버가 그 요청 번호들을 준다 — 글자로 오면 「12,15」다(케이스 고치기의 EDIT_OPEN 과 같다)
-      const 열린 = err instanceof ApiError && err.code === 'APPLY_OPEN' ? err.message.split(',').map(Number).filter(Number.isSafeInteger) : [];
-      set반영결과({ 글: 열린.length > 0 ? 요청오류문장('APPLY_OPEN', 언어) : message(err, 언어), 번호들: 열린 });
+      // 반영 안 된 작성(AUTHORING_OPEN) · 실패로 남은 반영(APPLY_OPEN)이 있으면 서버가 그 요청 번호들을 준다 — 글자로 오면 「12,15」다(케이스 고치기의 EDIT_OPEN 과 같다)
+      const 열린 =
+        err instanceof ApiError && (err.code === 'AUTHORING_OPEN' || err.code === 'APPLY_OPEN')
+          ? { 코드: err.code, 번호들: err.message.split(',').map(Number).filter(Number.isSafeInteger) }
+          : null;
+      const 번호들 = 열린?.번호들 ?? [];
+      set반영결과({ 글: 열린 !== null && 번호들.length > 0 ? 요청오류문장(열린.코드, 언어) : message(err, 언어), 번호들 });
+      // 그 요청을 반영 · 폐기하기 전에는 또 눌러도 같은 거절이다 — 버튼을 잠근다 (도메인/작성 §3.6 「서버 막기」)
+      if (번호들.length > 0) set세움(true);
     }
     setBusy(false);
   }
@@ -173,7 +179,7 @@ export function PrdTodo({ service, now, 쓰나, 짓기 }: { service: string; now
                 ))}
               </span>
             )}
-            {/* 세운 뒤 또 누르면 자기가 세운 요청에 APPLY_OPEN 이 난다 — 막아 둔다. 판을 다시 읽어도 반영 안 됨은 병합 전까지 그대로다 */}
+            {/* 세운 뒤 또 누르면 자기가 세운 요청에 AUTHORING_OPEN 이 난다 — 막아 둔다. 판을 다시 읽어도 반영 안 됨은 병합 전까지 그대로다 */}
             <button className="btn small" disabled={busy || 세움} onClick={() => void 테스트에반영()}>
               {t('바뀐 요구 {건수}건 테스트에 반영', { 건수: 반영.length })}
             </button>

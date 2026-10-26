@@ -124,6 +124,8 @@ export const 오류영어: Record<string, string> = {
   '테스트에 반영할 바뀐 것이 없습니다': 'Nothing changed to apply to tests',
   '이미 열린 반영 요청이 있습니다. 그 요청을 반영하거나 폐기한 뒤 다시 누릅니다':
     'An apply request is already open. Merge or discard it, then try again',
+  '반영하지 않은 테스트 작성 요청이 있습니다. 그 요청을 반영하거나 폐기한 뒤에 할 수 있습니다':
+    'An authoring request is not merged yet. Merge or discard it first',
   '이 실행에서 실패한 케이스가 아닙니다': 'This case did not fail in this run',
   '이 케이스와 연결된 요구가 표준 기획서에 없습니다': 'The requirements linked to this case are not in the PRD',
   'API 애플리케이션이 아닙니다': 'Not an API application',
