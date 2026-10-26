@@ -52,6 +52,12 @@ describe('결정판', () => {
     expect(r?.문장바뀜).toBe(false);
   });
 
+  it('문구 선택은 지금 문장과 같은 쪽을 골라도 고른 자료를 남기고, 문장은 안 바뀐 것으로 본다', () => {
+    const r = 결정판(판, [{ reqId: 'MK-REQ-002', pick: 'PICK', text: '3만원 이상 무료', asset: '웹.docx' }]);
+    expect(r?.changes).toEqual([{ kind: 'PICK', reqId: 'MK-REQ-002', text: '3만원 이상 무료', asset: '웹.docx', tcId: null }]);
+    expect(r?.문장바뀜).toBe(false);
+  });
+
   it('확인 필요가 아닌 번호 · 없는 번호를 고르면 null', () => {
     expect(결정판(판, [{ reqId: 'MK-REQ-003', pick: 'SAME' }])).toBeNull();
     expect(결정판(판, [{ reqId: 'MK-REQ-009', pick: 'SAME' }])).toBeNull();

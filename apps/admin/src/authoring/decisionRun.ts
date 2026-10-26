@@ -4,7 +4,7 @@ import type { PoolClient } from 'pg';
 
 import { 다시작성넣기, 다시작성준비하기, type 다시작성준비 } from '../apidoc/rewrite.js';
 import { 상한 } from '../prd/rules.js';
-import { 화면이맞음채우기, type 화면이맞음 } from '../prd/screenRight.js';
+import { 화면목록식, 화면이맞음채우기, type 화면이맞음 } from '../prd/screenRight.js';
 import { 결정판넣기, 잠그고, 지금판, type 저장하는사람 } from '../prd/store.js';
 import { 버그남기기 } from '../reporting/failReqs.js';
 import { 결정판, 요구문장, type 결정항목, type 확인결정 } from './decisionItems.js';
@@ -13,7 +13,7 @@ import { 결정재료읽기, type 부른이 } from './decisions.js';
 import { 머지세우기 } from './merge.js';
 import { 열린작성 } from './openRoots.js';
 import { 역방향칸판정 } from './reverse.js';
-import { 줄세우기, 한건, type 요청 } from './store.js';
+import { 줄세우기, 한건 } from './store.js';
 
 export interface 진행단계 {
   step: 1 | 2 | 3 | 4 | 5;
@@ -58,13 +58,20 @@ function 본문읽기(body: unknown): { prdVersion: number; picks: 받은것[] }
   return { prdVersion, picks: 읽음 };
 }
 
-/** 버그로 판정돼 목록에 없는 실패 — 「화면이 맞음으로 바꾸기」만 받는다(§3.6 「고를 때 본 것과 다르면」 예외) */
+/**
+ * 버그로 판정돼 목록에 없는 실패 — 「화면이 맞음으로 바꾸기」만 받는다(§3.6 「고를 때 본 것과 다르면」 예외).
+ * 이미 화면이 맞음 요청(폐기 안 됨)이 그 실패를 실었으면 안 받는다 — 같은 고침을 두 번 쓰게 된다
+ */
 async function 버그판정실패(서비스: number, key: string): Promise<결정항목 | null> {
   const m = /^fail:(\d{1,15}):(.+)$/.exec(key);
   if (m === null) return null;
   const { pool } = await import('../db/index.js');
   const r = await pool.query(
-    'SELECT 1 FROM run_case_bug b JOIN test_run t ON t.run_id = b.run_id WHERE b.run_id = $1 AND b.tc_id = $2 AND t.service_id = $3',
+    `SELECT 1 FROM run_case_bug b JOIN test_run t ON t.run_id = b.run_id
+      WHERE b.run_id = $1 AND b.tc_id = $2 AND t.service_id = $3
+        AND NOT EXISTS (SELECT 1 FROM authoring_request q CROSS JOIN LATERAL jsonb_array_elements(${화면목록식('q.params')}) 칸
+                         WHERE q.service_id = $3 AND q.discarded_at IS NULL AND q.kind IN ('AUTHOR', 'RERUN')
+                           AND 칸->>'runId' = $1::text AND 칸->>'tcId' = $2)`,
     [Number(m[1]), m[2], 서비스],
   );
   if (r.rowCount === 0) return null;
@@ -74,19 +81,21 @@ async function 버그판정실패(서비스: number, key: string): Promise<결�
 interface 준비 {
   버그: { key: string; runId: number; tcId: string }[];
   확인: { key: string; 결정: 확인결정 }[];
-  반영: { key: string; rootId: number; 행: 요청 }[];
+  반영: { key: string; rootId: number; runId: number }[];
   화면: { key: string; 칸: 화면이맞음 }[];
   요구다시: string | null;
   API: { key: string; 준비: 다시작성준비 } | null;
   보완: { key: string; env: string; startUrl: string | null } | null;
+  /** 고를 때 본 열린 작성 — 잠금 안에서 다시 견준다 */
+  열린: number[];
 }
 
 /** 고른 것마다 권한 · 열쇠 · 값을 보고 진행 재료를 모은다. 풀 연결로 읽기만 한다 — 잠금을 잡기 전이다 */
 async function 준비하기(서비스: number, 누구: 부른이, 본문: { prdVersion: number; picks: 받은것[] }): Promise<준비 | 진행결과> {
-  const 재료 = await 결정재료읽기(서비스, 누구);
+  const 재료 = await 결정재료읽기(서비스, 누구, false);
   if (본문.prdVersion !== 재료.목록.prdVersion) return 낡음;
   const 항목들 = new Map(재료.목록.items.map((x) => [x.key, x]));
-  const 준: 준비 = { 버그: [], 확인: [], 반영: [], 화면: [], 요구다시: null, API: null, 보완: null };
+  const 준: 준비 = { 버그: [], 확인: [], 반영: [], 화면: [], 요구다시: null, API: null, 보완: null, 열린: 재료.목록.open };
   const 본열쇠 = new Set<string>();
   for (const p of 본문.picks) {
     if (본열쇠.has(p.key)) return 틀림(p.key);
@@ -112,12 +121,9 @@ async function 준비하기(서비스: number, 누구: 부른이, 본문: { prdV
 
 async function 하나준비(서비스: number, 항목: 결정항목, p: 받은것, 준: 준비): Promise<진행결과 | null> {
   switch (항목.kind) {
-    case 'APPLY': {
-      const 행 = await 한건(항목.runId);
-      if (행 === null) return 낡음;
-      준.반영.push({ key: p.key, rootId: 항목.rootId, 행 });
+    case 'APPLY':
+      준.반영.push({ key: p.key, rootId: 항목.rootId, runId: 항목.runId });
       return null;
-    }
     case 'FAIL': {
       if (p.pick === 'BUG') {
         준.버그.push({ key: p.key, runId: 항목.runId, tcId: 항목.tcId });
@@ -167,8 +173,13 @@ async function 하나준비(서비스: number, 항목: 결정항목, p: 받은�
   }
 }
 
-/** 반영 하나 — 보류 값을 넣었으면 그 실행의 대상 서버로 3회 돌린다(2026-10-26 시작 질문). 거절은 진행 전체를 되돌린다 */
-async function 반영세우기(손: PoolClient, 서비스: number, 행: 요청, 사람: 저장하는사람, key: string): Promise<number> {
+/**
+ * 반영 하나 — 보류 값을 넣었으면 그 실행의 대상 서버로 3회 돌린다(2026-10-26 시작 질문). 거절은 진행 전체를 되돌린다.
+ * 행은 뿌리 잠금 안에서 다시 읽는다 — 고른 뒤 그 사이 폐기 · 보류 입력이 바뀌었으면 옛 모습으로 판정하게 된다
+ */
+async function 반영세우기(손: PoolClient, 서비스: number, runId: number, 사람: 저장하는사람, key: string): Promise<number> {
+  const 행 = await 한건(runId, 손);
+  if (행 === null || 행.serviceId !== 서비스) throw new 되돌림(낡음);
   let 판정 = await 머지세우기(손, 행, 서비스, undefined, 사람);
   if ('error' in 판정 && 판정.error === 'BAD_ENV' && !행.compare && 행.env !== null) 판정 = await 머지세우기(손, 행, 서비스, 행.env, 사람);
   if (!('error' in 판정)) return 판정.id;
@@ -194,6 +205,9 @@ export async function 결정진행(서비스: number, 누구: 부른이, 사람:
         await 손.query(`SELECT pg_advisory_xact_lock(hashtext('authoring-root'), ($1::bigint % 2147483647)::int)`, [뿌리]);
       }
       const 열린 = await 열린작성(서비스, 손);
+      // 요청을 세우는 진행은 열린 작성이 고를 때와 같아야 한다 — 두 번 누르면 둘째가 첫째가 세운 요청을 못 본 채 같은 요청을 또 세운다
+      const 세우나 = 준.반영.length + 준.화면.length + (준.요구다시 === null ? 0 : 1) + (준.API === null ? 0 : 1) + (준.보완 === null ? 0 : 1) > 0 || 판?.문장바뀜 === true;
+      if (세우나 && 열린.join() !== 준.열린.join()) throw new 되돌림(낡음);
       const steps: 진행단계[] = [];
       for (const b of 준.버그) {
         if ((await 버그남기기(b.runId, b.tcId, 사람, 손)) === 'NOT_FAILED') throw new 되돌림(틀림(b.key));
@@ -203,7 +217,7 @@ export async function 결정진행(서비스: number, 누구: 부른이, 사람:
         const version = await 결정판넣기(손, 서비스, 판.items, 사람, 판.changes);
         for (const x of 준.확인) steps.push({ step: 2, key: x.key, requestId: null, version });
       }
-      for (const x of 준.반영) steps.push({ step: 3, key: x.key, requestId: await 반영세우기(손, 서비스, x.행, 사람, x.key), version: null });
+      for (const x of 준.반영) steps.push({ step: 3, key: x.key, requestId: await 반영세우기(손, 서비스, x.runId, 사람, x.key), version: null });
       // 뒤 요청은 그때 열린 작성 전부와 이번에 앞서 세운 요청 전부를 기다린다 — 한 번에 하나씩 돈다
       const 앞것 = [...열린];
       const 결정 = () => ({ decision: { after: [...앞것], count } });

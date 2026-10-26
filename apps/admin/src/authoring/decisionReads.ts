@@ -6,6 +6,7 @@ import { 보류모름 } from './held.js';
 import { 남은손들 } from './listTodo.js';
 import { 반영할일 } from './applyTodo.js';
 import { db } from './store.js';
+import { 종류조건 } from '../execution/runKind.js';
 import { 화면목록식 } from '../prd/screenRight.js';
 
 export interface 손남은뿌리 {
@@ -78,13 +79,14 @@ export interface 실패줄 {
  * 실패 판정 재료 — 활성 케이스마다 그 케이스가 실제로 돈 가장 최근에 끝난 케이스 실행(시나리오 실행 빼고)이 실패이고, 판정(버그 기록 · 폐기 안 된 화면이 맞음 요청)이 없는 것.
  * 최근 실행 차례다. 요구가 지금 판에 있는지는 부르는 쪽이 지도 ① 로 거른다
  */
+// ponytail: 그 애플리케이션의 끝난 케이스 실행 항목을 다 묶는다. 실행 기록이 수십만 줄이 되면 케이스마다 최근 실행 하나를 LATERAL 로 찾는다
 export async function 판정없는실패들(서비스: number): Promise<실패줄[]> {
   const r = await (await db()).query<{ run_id: string; tc_id: string; history_id: string; finished_at: Date | null }>(
     `WITH 돈것 AS (
        SELECT i.tc_id, r.run_id, r.finished_at, bool_or(i.status = 'FAIL') AS 실패,
               min(i.history_id) FILTER (WHERE i.status = 'FAIL') AS history_id
          FROM test_run r JOIN run_item i ON i.run_id = r.run_id
-        WHERE r.service_id = $1 AND r.kind IN ('UI', 'FN') AND r.status <> 'RUNNING' AND i.finished_at IS NOT NULL
+        WHERE r.service_id = $1 AND ${종류조건('case', 'r')} AND r.status <> 'RUNNING' AND i.finished_at IS NOT NULL
         GROUP BY i.tc_id, r.run_id, r.finished_at
      ), 최근 AS (
        SELECT DISTINCT ON (tc_id) * FROM 돈것 ORDER BY tc_id, finished_at DESC NULLS LAST, run_id DESC

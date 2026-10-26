@@ -43,7 +43,9 @@ async function 첫묶음(서비스: number, 누구: 부른이): Promise<결정�
   const 대기: 결정항목[] = [];
   const 할일: 결정항목[] = [];
   for (const x of 뿌리들) {
-    const 막힘 = x.할일 === 'FAILED' || x.heldOpen > 0 || x.heldUnknown || x.prUrl === null;
+    const 막힘 = x.할일 === 'FAILED' || x.heldOpen > 0 || x.heldUnknown;
+    // PR 없이 끝난 작성은 올릴 것이 없다 — 보류 · 겹침 까닭으로 적지 않는다. 열린 작성(open)으로 남아 ③ 의 「#N 이 반영된 뒤에」가 그 요청을 가리킨다
+    if (!막힘 && x.prUrl === null) continue;
     if (!막힘) {
       대기.push({
         key: `apply:${String(x.rootId)}:${String(x.runId)}`, group: 1, kind: 'APPLY', ...고름(누구.admin, ['APPLY'], 'ADMIN_ONLY'),
@@ -62,7 +64,7 @@ async function 첫묶음(서비스: number, 누구: 부른이): Promise<결정�
 }
 
 /** ② 실패 판정 — 지금 판에 있는 요구를 덮는 실패만. 목록에는 최근 20건까지 싣고, 진행이 받을 열쇠(`전부`)는 다 둔다 */
-async function 실패묶음(서비스: number, 판: PrdItem[], 누구: 부른이): Promise<{ items: 결정항목[]; more: number; 전부: Map<string, 결정항목> }> {
+async function 실패묶음(서비스: number, 판: PrdItem[], 누구: 부른이, 상세: boolean): Promise<{ items: 결정항목[]; more: number; 전부: Map<string, 결정항목> }> {
   if (!누구.실행읽기) return { items: [], more: 0, 전부: new Map() };
   const [실패들, 지도] = await Promise.all([판정없는실패들(서비스), 케이스지도(서비스)]);
   const 덮는요구 = new Map<string, Set<string>>();
@@ -83,6 +85,7 @@ async function 실패묶음(서비스: number, 판: PrdItem[], 누구: 부른이
   });
   const items = await Promise.all(
     든것.slice(0, 실패상한).map(async (f) => {
+      if (!상세) return 줄(f, null, null);
       // 확인 문장 · 실패 까닭은 항목 상세와 같은 함수로 가린 뒤 고른다 — 비밀값이 결정 목록으로 새지 않게
       const 항목 = await findItem(f.runId, f.historyId);
       return 줄(f, 항목?.steps.flatMap((s) => s.assertions).find((a) => a.status === 'FAIL')?.statement ?? null, 항목?.failure?.reason ?? null);
@@ -137,12 +140,11 @@ async function 셋째묶음(서비스: number, 지금: { version: number; items:
     const from = await 병합된API버전(서비스);
     const 전문서 = from === null || from === 지금문서.version ? null : await 판원문(서비스, from);
     const 바뀜 = 전문서 === null ? [] : 판비교(전문서.doc, 지금문서.doc);
-    if (바뀜.length > 0 && from !== null) {
-      const 다시쓸것 = 바뀜.some((c) => c.change !== 'REMOVED');
+    // 없어진 API 뿐이면 다시 쓸 것이 없어 0 인 항목이다 — 그 케이스 지우기는 케이스 고치기다(도메인/API 「바뀐 API 만 다시 작성」)
+    if (바뀜.some((c) => c.change !== 'REMOVED') && from !== null) {
       items.push({
         key: `api:${String(from)}:${String(지금문서.version)}`, group: 3, kind: 'API_CHANGED',
-        // 없어진 API 뿐이면 다시 쓸 것이 없다 — 그 케이스 지우기는 케이스 고치기다(도메인/API 「바뀐 API 만 다시 작성」)
-        ...(다시쓸것 ? 셋째고름(누구, 열린, 대기뿌리, ['REDO']) : { picks: [], blockedBy: null }),
+        ...셋째고름(누구, 열린, 대기뿌리, ['REDO']),
         fromVersion: from, toVersion: 지금문서.version,
         operations: 닫힘 ? null : 바뀜.map(({ method, path, change, breaking }) => ({ method, path, change, breaking })),
       });
@@ -161,7 +163,8 @@ async function 셋째묶음(서비스: number, 지금: { version: number; items:
     const 이름들 = 지금문서 === null ? [] : 요약이름들(지금문서.doc);
     items.push({
       key: 'apis', group: 3, kind: 'APIS', picks: [], blockedBy: null,
-      apis: 안거친.map((a) => ({ method: a.method, path: a.path, name: API요약이름(이름들, a.method, a.path) })),
+      // 열린 작성이 있으면 그 테스트가 아직 안 올라와 셀 수 없다 — ③ 의 다른 항목과 같다(§3.6 「③ 은 열린 작성이 없을 때만」)
+      apis: 닫힘 ? null : 안거친.map((a) => ({ method: a.method, path: a.path, name: API요약이름(이름들, a.method, a.path) })),
     });
   }
   return items;
@@ -181,13 +184,16 @@ export async function 결정목록읽기(서비스: number, 누구: 부른이): 
   return (await 결정재료읽기(서비스, 누구)).목록;
 }
 
-/** 목록과 진행이 받을 실패 열쇠 전부(20건 상한 밖 포함) — 진행은 사람이 본 것과 같은 함수로 다시 짓고 견준다 */
-export async function 결정재료읽기(서비스: number, 누구: 부른이): Promise<{ 목록: 결정목록; 실패: Map<string, 결정항목> }> {
+/**
+ * 목록과 진행이 받을 실패 열쇠 전부(20건 상한 밖 포함) — 진행은 사람이 본 것과 같은 함수로 다시 짓고 견준다.
+ * 진행은 실패의 확인 문장 · 까닭(`상세`)을 안 쓴다 — 항목 상세 20건을 또 읽지 않는다
+ */
+export async function 결정재료읽기(서비스: number, 누구: 부른이, 상세 = true): Promise<{ 목록: 결정목록; 실패: Map<string, 결정항목> }> {
   const [판, 열린] = await Promise.all([지금판(서비스), 열린작성(서비스)]);
   const items = 판?.items ?? [];
   const 첫 = await 첫묶음(서비스, 누구);
   const 대기뿌리 = new Set(첫.flatMap((x) => (x.kind === 'APPLY' ? [x.rootId] : [])));
-  const [실패, 셋째] = await Promise.all([실패묶음(서비스, items, 누구), 셋째묶음(서비스, { version: 판?.version ?? 0, items }, 열린, 대기뿌리, 누구)]);
+  const [실패, 셋째] = await Promise.all([실패묶음(서비스, items, 누구, 상세), 셋째묶음(서비스, { version: 판?.version ?? 0, items }, 열린, 대기뿌리, 누구)]);
   const 모두 = [...첫, ...실패.items, ...확인묶음(items, 누구), ...셋째];
   return { 목록: { prdVersion: 판?.version ?? 0, count: 결정수세기(모두, 실패.more), open: 열린, items: 모두, failMore: 실패.more }, 실패: 실패.전부 };
 }

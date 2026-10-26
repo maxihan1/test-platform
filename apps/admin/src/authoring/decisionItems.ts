@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 import type { PrdItem } from '@platform/kit';
 
 import { 상한, 화면에서 } from '../prd/rules.js';
-import type { 판변경 } from '../prd/store.js';
+import type { 판변경 } from '../prd/changes.js';
 
 export type 고르기 = 'APPLY' | 'SCREEN' | 'BUG' | 'SAME' | 'EDIT' | 'PICK' | 'OWN' | 'REDO' | 'FIX';
 export type 막힘 = 'ADMIN_ONLY' | 'NO_WRITE' | 'NO_RUN_WRITE' | 'AUTHORING_OPEN';
@@ -34,7 +34,7 @@ export type 결정항목 = 머리 &
     | { kind: 'PRD_CHANGED'; changed: 바뀐요구줄[] | null; added: 바뀐요구줄[] | null; removed: 바뀐요구줄[] | null; scenarios: { id: number; name: string }[] }
     | { kind: 'API_CHANGED'; fromVersion: number; toVersion: number; operations: { method: string; path: string; change: 'NEW' | 'CHANGED' | 'REMOVED'; breaking: boolean }[] | null }
     | { kind: 'SCREENS'; screens: { state: string; url: string; name: string }[] | null; env: string | null }
-    | { kind: 'APIS'; apis: { method: string; path: string; name: string | null }[] }
+    | { kind: 'APIS'; apis: { method: string; path: string; name: string | null }[] | null }
   );
 
 export interface 결정목록 {
@@ -131,11 +131,12 @@ export function 결정판(지금: PrdItem[], 결정들: 확인결정[]): { items
       changes.push({ kind: 'CONFIRM', reqId: x.reqId, text: null, asset: null, tcId: null });
       return { ...나머지, status: 'CONFIRMED', byPerson: true };
     }
-    if (결정.text === x.text) {
+    // 문구 선택은 지금 문장과 같은 쪽을 골라도 어느 자료를 골랐는지 남긴다 — 버전 기록의 까닭 「<자료 이름> 쪽」
+    if (결정.text === x.text && 결정.pick !== 'PICK') {
       changes.push({ kind: 'CONFIRM', reqId: x.reqId, text: null, asset: null, tcId: null });
       return { ...나머지, status: 'CONFIRMED', byPerson: true };
     }
-    문장바뀜 = true;
+    if (결정.text !== x.text) 문장바뀜 = true;
     changes.push({ kind: 결정.pick === 'PICK' ? 'PICK' : 'EDIT', reqId: x.reqId, text: 결정.text, asset: 결정.pick === 'PICK' ? 결정.asset : null, tcId: null });
     return { ...나머지, text: 결정.text, status: 'CONFIRMED', byPerson: true };
   });

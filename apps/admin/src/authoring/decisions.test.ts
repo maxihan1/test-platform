@@ -7,6 +7,7 @@ import type { 서비스권한 } from '../auth/permissions.js';
 import prdRoutes from '../prd/routes.js';
 import { 집기 } from './agentStore.js';
 import decisionRoutes from './decisionRoutes.js';
+import authoringRoutes from './routes.js';
 
 const 연결 = process.env.DATABASE_URL;
 const 접두사 = 'XWX';
@@ -72,6 +73,7 @@ describe.skipIf(연결 === undefined)('결정 목록 · 결정 진행', () => {
       } as unknown as NonNullable<typeof req.user>;
     });
     await app.register(decisionRoutes, { prefix: '/api' });
+    await app.register(authoringRoutes, { prefix: '/api' });
     await app.register(prdRoutes, { prefix: '/api' });
     await app.ready();
   });
@@ -220,5 +222,28 @@ describe.skipIf(연결 === undefined)('결정 목록 · 결정 진행', () => {
       screenRight: [{ runId, tcId: 케이스, env: 'qa', reqIds: ['XWX-REQ-001'], byName: '검사' }],
       decision: { after: [], count: 1 },
     });
+    const 또 = await 진행({ prdVersion: 1, picks: [{ key, pick: 'SCREEN' }] });
+    expect([또.statusCode, 또.json()]).toEqual([409, { error: 'DECISIONS_STALE' }]);
+  });
+
+  it('바뀐 요구 다시 만들기를 두 번 보내면 둘째는 열린 작성에 막혀 요청이 하나만 선다 · 만들기 통로는 params.decision 을 400 BAD_DECISION', async () => {
+    await 판저장(0, [{ feature: '주문', text: '주문은 취소할 수 있다', basis: [근거('기획서.docx', '취소')], status: 'CONFIRMED' }]);
+    const 본문 = { prdVersion: 1, picks: [{ key: 'prd:0:1', pick: 'REDO' }] };
+    expect((await 진행(본문)).statusCode).toBe(201);
+    const 둘째 = await 진행(본문);
+    expect([둘째.statusCode, 둘째.json()]).toEqual([400, { error: 'BAD_PICK', detail: 'prd:0:1' }]);
+    expect(await 요청수()).toBe(1);
+    const 만들기 = await app.inject({
+      method: 'POST', url: `/api/authoring/requests?service=${접두사}`, payload: { kind: 'AUTHOR', params: { decision: { after: [1], count: 1 } } },
+    });
+    expect([만들기.statusCode, 만들기.json()]).toEqual([400, { error: 'BAD_DECISION' }]);
+  });
+
+  it('PR 없이 끝난 작성은 ① 에 싣지 않고 열린 작성으로만 남는다', async () => {
+    const 첫 = await 넣기({ status: 'DONE' });
+    await q('UPDATE authoring_request SET pr_url = NULL WHERE id = $1', [첫]);
+    const r = await 목록();
+    expect(r.open).toEqual([첫]);
+    expect(r.items).toEqual([]);
   });
 });

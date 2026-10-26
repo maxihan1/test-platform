@@ -204,8 +204,9 @@ export async function 이어작성준비(
       [
         입력.서비스,
         입력.원본.specText,
-        // 바뀐 API 만 다시 작성은 뿌리 한 번만이다 — 이어 작성이 물려받으면 누를 때 박아 둔 케이스로 다시 쓴다 (도메인/API §3.8)
-        JSON.stringify(Object.fromEntries(Object.entries(입력.원본.params).filter(([k]) => k !== 'apiApply'))),
+        // 바뀐 API 만 다시 작성은 뿌리 한 번만이다 — 이어 작성이 물려받으면 누를 때 박아 둔 케이스로 다시 쓴다 (도메인/API §3.8).
+        // 결정 진행 표시(decision)도 안 물려받는다 — 사람이 새로 시작한 작성이고, 물려받으면 집기가 옛 앞 일을 다시 기다린다 (작성 §7 「결정 목록 통로」)
+        JSON.stringify(Object.fromEntries(Object.entries(입력.원본.params).filter(([k]) => k !== 'apiApply' && k !== 'decision'))),
         입력.누가,
         입력.이름,
         입력.대조 !== undefined,

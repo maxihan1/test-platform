@@ -3,6 +3,7 @@
 import type { Platform, PrdItem } from '@platform/kit';
 import type { Pool, PoolClient } from 'pg';
 
+import { 화면변경, type 판변경 } from './changes.js';
 import { 사람판, 옮기기판, 판같나, 확정판, type 들어온항목, type 앞판, type 판짓기오류 } from './rules.js';
 import type { 덮는케이스 } from './trace.js';
 
@@ -18,15 +19,6 @@ export interface 저장하는사람 {
 }
 
 type 출처 = 'AGENT' | 'PERSON' | 'REVERT' | 'DECISION';
-
-/** 버전 기록 「바뀐 것」 한 줄 — 결정 진행 버전과 화면이 맞음 요청이 올린 버전만 서버가 적는다 (작성 §7 「결정 목록 통로」 changes) */
-export interface 판변경 {
-  kind: 'EDIT' | 'PICK' | 'CONFIRM';
-  reqId: string;
-  text: string | null;
-  asset: string | null;
-  tcId: string | null;
-}
 export type 저장결과 = { version: number } | { error: 'PRD_STALE'; latest: number } | 판짓기오류;
 
 interface 판행 {
@@ -168,20 +160,6 @@ async function 판넣기(
 export async function 결정판넣기(손: PoolClient, 서비스: number, items: PrdItem[], 사람: 저장하는사람, changes: 판변경[]): Promise<number> {
   const 앞 = await 지금판읽기(손, 서비스);
   return 판넣기(손, 서비스, 앞, { items, lastNo: 앞?.lastNo ?? 0 }, 'DECISION', 사람, null, changes);
-}
-
-/** 화면이 맞음 번호 가운데 지금 판에서 바뀐 것 — 문장이 바뀌었으면 EDIT, 확인 필요가 확정만 됐으면 CONFIRM. 없으면 null(화면이 앞 판과 견준다) */
-function 화면변경(지금: 앞판 | null, items: PrdItem[], 화면번호: ReadonlyMap<string, string>): 판변경[] | null {
-  const 앞것들 = new Map((지금?.items ?? []).map((x) => [x.reqId, x]));
-  const 변경: 판변경[] = [];
-  for (const x of items) {
-    const 앞것 = 앞것들.get(x.reqId);
-    const tcId = 화면번호.get(x.reqId);
-    if (앞것 === undefined || tcId === undefined) continue;
-    if (앞것.text !== x.text) 변경.push({ kind: 'EDIT', reqId: x.reqId, text: x.text, asset: null, tcId });
-    else if (앞것.status === 'NEEDS_CHECK' && x.status === 'CONFIRMED') 변경.push({ kind: 'CONFIRM', reqId: x.reqId, text: null, asset: null, tcId });
-  }
-  return 변경.length === 0 ? null : 변경;
 }
 
 const 낡음 = (앞: 앞판 | null) => ({ error: 'PRD_STALE' as const, latest: 앞?.version ?? 0 });
