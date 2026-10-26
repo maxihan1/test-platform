@@ -133,6 +133,9 @@ describe.skipIf(연결 === undefined)('표준 기획서 에이전트 통로', ()
     const items = (판.json() as { items: Record<string, unknown>[] }).items;
     expect(items[0]).toEqual({ reqId: 'XPG-REQ-001', feature: '주문', text: '2만원 이상 무료 배송', basis: 화면근거, status: 'CONFIRMED', byPerson: true });
     expect(items[1]).toMatchObject({ reqId: 'XPG-REQ-002', text: '주문은 하루 안에 취소한다', byPerson: true });
+    // 버전 기록 「바뀐 것」 — 화면이 맞음 번호만 그 케이스를 달고 적는다(사람 것을 남긴 002 는 안 적는다)
+    const 변경 = await q<{ changes: unknown }>('SELECT changes FROM prd_version WHERE service_id = $1 AND version = 3', [서비스]);
+    expect(변경.rows[0]!.changes).toEqual([{ kind: 'EDIT', reqId: 'XPG-REQ-001', text: '2만원 이상 무료 배송', asset: null, tcId: 'XPG-FN-001' }]);
 
     // 안 바뀐 번호는 지금 판 그대로 — 새 판이 서지 않는다
     const 또 = await app.inject({

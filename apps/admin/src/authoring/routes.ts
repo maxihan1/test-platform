@@ -7,14 +7,15 @@ import { resolve } from 'node:path';
 
 import { findService } from '../catalog/store.js';
 import { 자료상한, 자료목록, 준비세우기 } from './assetStore.js';
-import { 반영겹침판정, 겹침상세, 겹침통로 } from './conflict-routes.js';
+import { 겹침상세, 겹침통로 } from './conflict-routes.js';
 import { 같이온칸, 이어작성상세, 이어작성세우기 } from './continue.js';
 import { 다섯단계인가, 작성예상 } from './eta.js';
 import { 행케이스 } from './cases.js';
 import { 행커버리지 } from './coverage.js';
 import { 피그마주소정규화 } from './figma.js';
 import { 피그마막힘 } from './figmaCheck.js';
-import { 머지보류판정, 보류상세, 보류통로 } from './held-routes.js';
+import { 보류상세, 보류통로 } from './held-routes.js';
+import { 머지세우기 } from './merge.js';
 import { API칸판정, 재실행API } from './apiDoc.js';
 import { 역방향칸판정 } from './reverse.js';
 import { 번호, 물려받을값 } from './params.js';
@@ -114,6 +115,8 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       if (Object.hasOwn(값, 'prdApply') || Object.hasOwn(값, 'screenRight')) return reply.code(400).send({ error: 'BAD_PRD_APPLY' });
       // apiApply 는 「바뀐 API 만 다시 작성」 통로만 싣는다 — 맡길 케이스 목록을 서버가 채운다 (도메인/API §7)
       if (Object.hasOwn(값, 'apiApply')) return reply.code(400).send({ error: 'BAD_API_APPLY' });
+      // decision 은 결정 진행(POST /api/authoring/decisions/run)만 싣는다 — 집기가 after 를 기다리고 버전 기록이 「테스트 작성에서 결정」으로 적는다 (§7 「결정 목록 통로」)
+      if (Object.hasOwn(값, 'decision')) return reply.code(400).send({ error: 'BAD_DECISION' });
       // 부른 사람은 요청에 안 싣는다. 로그인한 세션에서 채운다 — 실행이 triggeredBy 를 그렇게 한다
       const 누가 = req.user?.username ?? '';
       const 이름 = req.user?.displayName ?? '';
@@ -288,40 +291,11 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
 
       const 행 = await 원본확인(req.body?.sourceId, 서비스, reply);
       if (행 === null) return reply;
-      // 폐기는 되살리는 통로가 없다 — 머지 행이 서면 사슬 끝이 폐기 안 된 행이 되어 목록에 되살아난다 (§7 「중단 · 폐기 · 진척」)
-      if (행.discardedAt !== null) return reply.code(409).send({ error: 'BAD_SOURCE', detail: 'DISCARDED' });
-
-      // 도는 실행이 있거나 뒤에 실행이 더 있으면 그 PR 은 이미 옛것이다 — 최신 실행만 머지한다 (§7 「실행 기록」)
+      // 판정은 모두 뿌리 잠금 안에서 — 밖에서 보면 판정과 머지 행 사이에 재실행 · 보류 PUT · DELETE 가 끼어든다
       const 뿌리번호 = (await 뿌리(행.id)) ?? 행.id;
-      if (await 도는실행있나(뿌리번호)) return reply.code(409).send({ error: 'RUN_ACTIVE' });
-      if ((await 최신실행(뿌리번호)) !== 행.id) return reply.code(409).send({ error: 'NOT_LATEST' });
-      // 아직 안 끝났거나 실패한 요청은 머지할 것이 없다. PR 주소가 비어 있다
-      if (행.status !== 'DONE' || 행.prUrl === null) {
-        return reply.code(409).send({ error: 'NOT_MERGEABLE', detail: 행.status });
-      }
-      // 보류 판정도 잠금 안에서 — 밖에서 보면 판정과 머지 행 사이에 PUT · DELETE 가 끼어든다
-      const 세움 = await 뿌리잠그고(뿌리번호, async (손): Promise<{ error: string; code: number; detail?: string } | { id: number }> => {
-        if (await 도는실행있나(뿌리번호, 손)) return { error: 'RUN_ACTIVE', code: 409 };
-        const 보류 = await 머지보류판정(행, 서비스, req.body?.env, 손);
-        if ('error' in 보류) return 보류;
-        // 겹친 케이스를 다 고르기 전에는 반영하지 않는다 — 에이전트가 같은 겹침에서 또 멈춘다 (§3.6 「★ 반영 때 겹침 검사」)
-        const 겹침 = await 반영겹침판정(손, 행.id);
-        if (겹침 !== null) return 겹침;
-        const id = await 줄세우기({
-          서비스,
-          kind: 'MERGE',
-          원본: 행.id,
-          // ★ 기획서 본문을 복사하지 않는다. 그것은 실행 등급이 쓴 자유 텍스트이고 맥에서 도는
-          // 에이전트가 읽고 따르는 지시문이다 — 머지 행에까지 실어 보내면 admin 이 승인한 것은
-          // 「이 요청을 머지한다」인데 맥에게 가는 것은 그 사람이 쓴 문장이 된다.
-          // 맥은 원본 번호로 필요한 것을 읽으면 된다 (2026-09-22 보안 검토가 잡았다)
-          기획서: `머지 요청 — 원본 #${String(행.id)}`,
-          누가: req.user?.username ?? '',
-          이름: req.user?.displayName ?? '',
-          머지대상: 보류.env,
-        }, 손);
-        return { id };
-      });
+      const 세움 = await 뿌리잠그고(뿌리번호, (손) =>
+        머지세우기(손, 행, 서비스, req.body?.env, { username: req.user?.username ?? '', displayName: req.user?.displayName ?? '' }),
+      );
       if ('error' in 세움) return reply.code(세움.code).send({ error: 세움.error, detail: 세움.detail });
       return reply.code(201).send({ id: 세움.id });
     },
