@@ -13,6 +13,7 @@ import ts from 'typescript';
 import { 환경비밀번호들 } from './authoring-accounts.js';
 import { 게임검사 } from './authoring-check-game.js';
 import { 명세글, 속성, 읽기 } from './authoring-held-apply.js';
+import { 보류경고 } from './authoring-held-kinds.js';
 import { 글모두 } from './authoring-reverse.js';
 import { 바뀐것 } from './authoring-base-list.js';
 import { 묶었나 } from './authoring-one-value.js';
@@ -173,7 +174,10 @@ function 돌린다(트리: string, 명령: string, 인자: string[], 로그: str
 /** 걸러 낸 줄이 없는데 실패면(시간 초과 · 메모리 부족 · 명령 없음) 끝 몇 줄을 보인다 — 「어긋남 0줄」만 남으면 왜 빨간지 모른다 */
 const 줄또는끝 = (r: { ok: boolean; 줄들: string[] }, 거른: string[]) => (r.ok ? [] : 거른.length > 0 ? 거른 : r.줄들.slice(-5));
 
-type 결과 = { 이름: string; ok: boolean; 줄들: string[]; 머리?: string; 건너뜀?: boolean };
+type 결과 = { 이름: string; ok: boolean; 줄들: string[]; 머리?: string; 건너뜀?: boolean; 경고?: boolean };
+
+/** 남은 보류는 막지 않는다 — 초안 PR 에는 보류가 정상이다. 애초에 안 나오게 하는 길만 짚는다 (도메인/작성 §3.6 「★ 보류 케이스」) */
+const 남은보류 = (결과들: 결과[], 줄들: string[]) => (줄들.length > 0 ? 결과들.push({ 이름: '남은 보류', ok: true, 경고: true, 줄들 }) : 0);
 
 /** 맡은 파일만 타입 검사하는 임시 tsconfig — 저장소 전체는 한 번에 1.2GB 라 서브에이전트 넷이 겹치면 Docker 상자(4.8GB)를 다 쓴다. 100건이면 약 320MB(2026-10-19 실측).
  * 맡은 파일이 가져다 쓰는 것만 따라간다 — 남의 케이스는 안 본다. Page Object 는 주인이 하나고 더하기만 해서(`fanout.md` §3) 남의 케이스가 깨질 일이 없고, 저장소 전체는 자식이 합친 뒤 한 번 본다 */
@@ -233,6 +237,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
       결과들.push({ 이름: '케이스와 요구 목록 맞춰 보기', ok: 어긋남.length === 0, 줄들: 어긋남 });
       const 묶음 = 묶은확인들(문장들);
       결과들.push({ 이름: '확인 하나에 값 하나', ok: 묶음.length === 0, 줄들: 묶음 });
+      남은보류(결과들, 보류경고(케이스파일.map((f) => readFileSync(resolve(트리, f), 'utf8'))));
     }
   } else if (모드 === '마지막' && 나머지.length >= 3) {
     const [원장, 접두사, 폴더, ...더] = 나머지 as [string, string, string, ...string[]];
@@ -258,6 +263,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     결과들.push({ 이름: '케이스와 요구 목록 맞춰 보기', ok: 어긋남.length === 0, 줄들: 어긋남, 머리: 볼 === undefined ? 못좁힘 : `이번에 바뀐 케이스 ${볼.size}건만 봤다` });
     const 묶음 = 묶은확인들(문장들, 볼);
     결과들.push({ 이름: '확인 하나에 값 하나', ok: 묶음.length === 0, 줄들: 묶음 });
+    남은보류(결과들, 보류경고(폴더경로들(트리, 폴더).filter((p) => p.endsWith('.spec.ts')).map((p) => readFileSync(join(트리, p), 'utf8')), 볼));
     // 게임 규칙도 이번에 바뀐 파일만 — 못 읽으면 폴더 전체(화면 객체 · 도우미의 좌표도 본다).
     // 스모크 0건은 폴더를 이번 작성이 다 쓴 때만 센다 — 고친 요구만 다시 쓰는 작성에 앞 작성 케이스를 고치게 하지 않는다
     const 처음 = 볼 === undefined || 문장들.every((c) => 볼.has(c.tcId));
@@ -270,9 +276,9 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     return 2;
   }
 
-  console.log(`[빠른 검사] ${결과들.map((r) => `${r.이름} ${r.건너뜀 ? '건너뜀' : r.ok ? '통과' : `어긋남 ${r.줄들.length}줄`}`).join(' · ')}`);
+  console.log(`[빠른 검사] ${결과들.map((r) => `${r.이름} ${r.건너뜀 ? '건너뜀' : r.경고 ? `경고 ${r.줄들.length}줄` : r.ok ? '통과' : `어긋남 ${r.줄들.length}줄`}`).join(' · ')}`);
   for (const r of 결과들) if (r.머리) console.log(`${r.이름}: ${r.머리}`);
-  for (const r of 결과들.filter((x) => !x.ok)) console.log([`${r.이름}:`, ...줄이기(r.줄들).map((l) => `  ${l}`)].join('\n'));
+  for (const r of 결과들.filter((x) => !x.ok || x.경고)) console.log([`${r.이름}:`, ...줄이기(r.줄들).map((l) => `  ${l}`)].join('\n'));
   console.log(`긴 로그는 ${자리}/check-*.log`);
   return 결과들.every((r) => r.ok) ? 0 : 1;
 }
