@@ -11,8 +11,8 @@ import { basename, join } from 'node:path';
 import type { PrdItem } from '@platform/kit/types';
 
 import type { 읽을자료 } from './authoring-assets.js';
-import { 기준재료이름, 원장사본이름, 표준원장사본 } from './authoring-ledger-io.js';
-import { 옮긴것읽기 } from './authoring-prd.js';
+import { 기준재료이름, 원본원장사본이름, 원장사본이름, 표준원장사본 } from './authoring-ledger-io.js';
+import { 옮긴것읽기, 제목밖묶음 } from './authoring-prd.js';
 import { API원장읽기 } from './authoring-api.js';
 import { type 원장, 원장만들기 } from './authoring-ledger.js';
 import { 설계글, 설계요약 } from './authoring-design.js';
@@ -173,6 +173,14 @@ if (명령 === '뽑기') {
   else {
     const 임시 = r.원장.항목.filter((h) => h.번호.includes('-NEW-')).map((h) => h.번호);
     console.log(`원장을 다시 만들었다 — 요구 ${String(r.원장.항목.length)} · 확인 필요 ${String(r.원장.항목.filter((h) => h.확인필요).length)} · 임시 번호 ${String(임시.length)}${임시.length > 0 ? `(${임시.slice(0, 10).join(' · ')})` : ''}`);
+  }
+  // 기능 묶음은 원본 기획서 제목에서만 고른다 — 원장 사본은 만들어 두고 고칠 때까지 1 로 막는다 (작성 §3.6 「항목 — 칸 다섯」 기능 묶음 · PRD-F16-02)
+  const 원본사본 = join(폴더, 원본원장사본이름);
+  const 제목 = existsSync(원본사본) ? (JSON.parse(readFileSync(원본사본, 'utf8')) as { 원장?: 원장 }).원장?.제목 : undefined;
+  const 밖 = 옮긴 !== null && !('사유' in 옮긴) ? 제목밖묶음(옮긴.items, 제목) : [];
+  if (밖.length > 0) {
+    console.log(`기능 묶음이 기획서 제목에 없다 — ${밖.join(' · ')}. 결과 파일의 feature 를 아래 제목 가운데 그 요구가 든 장 · 절 이름으로 고치고 다시 돌려라: ${제목!.map((t) => `「${t}」`).join(' · ')}`);
+    process.exit(1);
   }
   process.exit(0);
 } else {

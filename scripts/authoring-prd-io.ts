@@ -13,7 +13,7 @@ import { 거절글, 부른다 } from './authoring-io.js';
 import { type 원장, type 원장항목, 번호바꾸기 } from './authoring-ledger.js';
 import type { 기준결정 } from './authoring-ledger-check.js';
 import { type 기준표, 기준결정만들기, 옛표줄들, 표번호바꾸기 } from './authoring-ledger-io.js';
-import { type 옮긴것, 대조줄들, 보낼항목, 비밀번호꼴가리기, 새번호맞추기, 옛번호지도, 옮긴것읽기, 옮기기대조, 판줄들, 판합치기, 표준원장 } from './authoring-prd.js';
+import { type 옮긴것, 대조줄들, 보낼항목, 비밀번호꼴가리기, 새번호맞추기, 옛번호지도, 옮긴것읽기, 옮기기대조, 제목밖묶음, 판줄들, 판합치기, 표준원장 } from './authoring-prd.js';
 import { 계정섞였나, 글모두, 비밀가리기 } from './authoring-reverse.js';
 import { 게임자리 } from './authoring-game.js';
 import { 안전히읽기, 지도받기, 크롤모두덮음 } from './authoring-screens-keep-io.js';
@@ -186,7 +186,7 @@ export async function 옮기기올리기(
   // 워드에 PDF · 피그마가 섞이면 원장은 있어도 그 자료 몫은 대조하지 못한다 — 그 사실도 남긴다. 화면만은 원본이 없어 대조할 것이 없다
   const 대조 = '없음' in 원본원장
     ? 대조줄들(원본원장)
-    : [...대조줄들(옮기기대조(원본원장.항목, 옮긴, 게임)), ...(원본원장.빠진자료.length > 0 ? 대조줄들({ 없음: 원본원장.빠진자료.join(' · ') }) : [])];
+    : [...대조줄들(옮기기대조(원본원장.항목, 옮긴, 게임), 제목밖묶음(옮긴.items, 원본원장.제목)), ...(원본원장.빠진자료.length > 0 ? 대조줄들({ 없음: 원본원장.빠진자료.join(' · ') }) : [])];
   const 못함 = (까닭: string) => ({ 거절: `표준 기획서를 못 올렸다 — ${까닭}`, 줄: 대조 });
   try {
     // 자식 앞에서 받은 판이 아니라 지금 판에 합친다 — 자식이 도는 동안 같은 서비스의 다른 작성이 올린 항목 ·
