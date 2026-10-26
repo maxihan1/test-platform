@@ -42,8 +42,14 @@ export interface RunSummary {
   counts: RunCounts;
 }
 
-/** 실행 목록 줄 — 직전 실행 대비 케이스 수. 견줄 앞이 없거나 이번 실행이 도는 중이면 null (SPEC 실행 §7 `GET /api/runs`) */
-export type RunListRow = RunSummary & { change: { newFail: number; stillFail: number } | null };
+/**
+ * 실행 목록 줄 — 직전 실행 대비 케이스 수(견줄 앞이 없거나 이번 실행이 도는 중이면 null)와
+ * 디바이스마다 실패한 케이스 수 (SPEC 실행 §7 `GET /api/runs`)
+ */
+export type RunListRow = RunSummary & {
+  change: { newFail: number; stillFail: number } | null;
+  failCases: Partial<Record<Platform, number>>;
+};
 
 export interface RunItemSummary {
   historyId: number;

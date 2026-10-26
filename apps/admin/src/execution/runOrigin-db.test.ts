@@ -152,6 +152,23 @@ describe.skipIf(연결 === undefined)('실행 시작 방식', () => {
     expect(이름으로.items.find((r) => r.runId === 오래된)?.platforms).toEqual(['desktop', 'mobile']);
   });
 
+  it('목록 줄은 디바이스마다 실패한 케이스 수를 싣는다 — 회차를 접고 실패 없는 디바이스도 0', async () => {
+    const 실행 = await 건다(['XBO-001', 'XBO-002', 'XBO-003']);
+    await 판정(실행, 'XBO-001', 'mobile', 'FAIL');
+    await 판정(실행, 'XBO-002', 'mobile', 'FAIL');
+    await pool.query(
+      `INSERT INTO run_item (run_id, tc_id, platform, tc_name, precondition, params, expected, status, finished_at, attempt, file_path, timeout_ms, param_schema, expected_schema)
+       SELECT run_id, tc_id, platform, tc_name, precondition, params, expected, status, finished_at, 2, file_path, timeout_ms, param_schema, expected_schema
+         FROM run_item WHERE run_id = $1 AND tc_id = 'XBO-001' AND platform = 'mobile'`,
+      [실행],
+    );
+    await 닫는다(실행);
+
+    const 한줄 = (await listRuns('XBO', 1, 50, {})).items.find((r) => r.runId === 실행);
+    expect(한줄?.counts.fail).toBe(3);
+    expect(한줄?.failCases).toEqual({ desktop: 0, mobile: 2 });
+  });
+
   it('직전 대비는 같은 대상 서버의 앞 실행과 견준 케이스 수다 — 디바이스를 접고, 앞이 없거나 도는 중이면 null', async () => {
     const 첫 = await 건다(['XBO-001', 'XBO-002', 'XBO-003'], { env: 'cmp' });
     await 판정(첫, 'XBO-002', 'desktop', 'FAIL');
