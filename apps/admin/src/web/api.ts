@@ -163,8 +163,14 @@ export interface RunSummary {
   counts: RunCounts;
 }
 
-/** 실행 목록 줄 — 직전 실행 대비 케이스 수. 견줄 앞이 없거나 도는 중이면 null (도메인/실행 §7 `GET /api/runs`) */
-export type RunListRow = RunSummary & { change?: { newFail: number; stillFail: number } | null };
+/**
+ * 실행 목록 줄 — 직전 실행 대비 케이스 수(견줄 앞이 없거나 도는 중이면 null)와 디바이스마다 실패한 케이스 수
+ * (도메인/실행 §7 `GET /api/runs`). 옛 가짜 응답을 안 고치려고 선택으로 둔다
+ */
+export type RunListRow = RunSummary & {
+  change?: { newFail: number; stillFail: number } | null;
+  failCases?: Partial<Record<Platform, number>>;
+};
 
 /**
  * 실행 집계 (도메인/실행 §7). pass·fail·na·running 은 미확정까지 모든 항목이고, `unconfirmed` 는 그중 미확정 항목 수 하나다 (§3.2).

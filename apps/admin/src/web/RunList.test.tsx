@@ -141,6 +141,23 @@ describe('RunList 줄 (§8.7 「A안」)', () => {
     expect(줄(container)[1]?.querySelector('.unconf-line')).toBeNull();
   });
 
+  it('디바이스가 둘 이상이고 실패가 있으면 실패를 디바이스별 케이스 수로 나눠 적는다 — 하나이거나 실패가 없으면 숫자 하나', async () => {
+    const { container } = await 그리기({
+      ...한쪽,
+      items: [
+        실행(20932, 10, { counts: { total: 606, pass: 595, fail: 10, na: 1, running: 0 }, failCases: { desktop: 4, mobile: 6 } }),
+        실행(20931, 0, { failCases: { desktop: 0, mobile: 0 } }),
+        실행(20930, 2, { failCases: { android: 2 } }),
+      ],
+    });
+    await screen.findByText('ZRL 실행 20932');
+
+    const 칸 = (i: number) => [...(줄(container)[i]?.querySelectorAll('.tally') ?? [])].map((e) => e.textContent);
+    expect(칸(0)).toEqual(['595 통과1 미실행', '실패PC 4모바일 6']);
+    expect(칸(1)).toEqual(['3 통과0 실패0 미실행']);
+    expect(칸(2)).toEqual(['1 통과2 실패0 미실행']);
+  });
+
   it('판정을 색만으로 전달하지 않는다 — 통과 · 실패 · 미실행이 글자로 적힌다', async () => {
     await 그리기();
     await screen.findByText('ZRL 실행 2113');
