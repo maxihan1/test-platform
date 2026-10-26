@@ -106,8 +106,8 @@ export async function 팜기기재료(): Promise<{ serial: string; model: string
   }
 }
 
-/** 요청한 케이스가 이 애플리케이션의 Android 케이스인가 — 아니면 까닭 */
-async function 케이스검사(serviceId: number, caseIds: string[]): Promise<string | null> {
+/** 요청한 케이스가 이 애플리케이션의 Android 케이스인가(게임 케이스도 android 다) — 아니면 까닭 */
+async function 케이스검사(serviceId: number, caseIds: string[], 이름: string): Promise<string | null> {
   const 접두사 = (await (await 표.풀()).query<{ prefix: string }>('SELECT prefix FROM service WHERE id = $1', [serviceId])).rows[0]?.prefix;
   if (접두사 === undefined) return '애플리케이션이 없습니다';
   const r = await (await 표.풀()).query<{ tc_id: string; platforms: string[] }>(
@@ -118,7 +118,7 @@ async function 케이스검사(serviceId: number, caseIds: string[]): Promise<st
   for (const id of caseIds) {
     const x = 행.get(id);
     if (x === undefined) return `이 애플리케이션의 케이스가 아닙니다: ${id}`;
-    if (!x.platforms.includes('android')) return `Android 앱 케이스가 아닙니다: ${id}`;
+    if (!x.platforms.includes('android')) return `${이름} 케이스가 아닙니다: ${id}`;
   }
   return null;
 }
@@ -135,7 +135,7 @@ export async function 측정세우기(b: z.infer<typeof 측정본문>, 누가: {
   if (줄 === null) return 나쁨('대상 서버가 없습니다');
   if (b.drive !== 'MANUAL') {
     const 케이스 = b.caseIds ?? [];
-    const 까닭 = await 케이스검사(b.serviceId, 케이스);
+    const 까닭 = await 케이스검사(b.serviceId, 케이스, b.drive === 'GAME' ? '게임' : 'Android 앱');
     if (까닭 !== null) return 나쁨(까닭);
     if (줄.appPath === null) return 나쁨('대상 서버 줄에 앱 파일이 없습니다');
     // 케이스는 서버 러너가 팜에서 잡은 폰으로 돌린다 — 내 컴퓨터 러너 폰에는 보낼 길이 없다

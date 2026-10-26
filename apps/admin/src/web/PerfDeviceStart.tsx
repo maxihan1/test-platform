@@ -11,7 +11,7 @@ import { perfApi } from './perfApi.js';
 import type { 고를기기, 기기목표, 기기설정, 조작, 측정지표 } from './perfDeviceApi.js';
 import { PerfDevicePick, 기기키 } from './PerfDevicePick.js';
 import { PerfDeviceTargets } from './PerfDeviceTargets.js';
-import { 기본목표, 실행열기, 측정항목 } from './perfDeviceView.js';
+import { 기본목표, 실행열기, 케이스조작, 측정항목 } from './perfDeviceView.js';
 import { message } from './ui.js';
 
 /** 서버와 같은 꼴 — 점으로 이은 앱 이름(`com.demo.market`) */
@@ -36,8 +36,7 @@ export function PerfDeviceStart({
   const t = use말();
   const 언어 = use언어();
   const 게임 = service.kind === 'GAME';
-  const 케이스조작: 조작 = 게임 ? 'GAME' : 'APPIUM';
-  const [조작, set조작] = useState<조작>(앞?.drive === 'MANUAL' ? 'MANUAL' : 케이스조작);
+  const [조작, set조작] = useState<조작>(앞?.drive === 'MANUAL' ? 'MANUAL' : 케이스조작(service.kind));
   const [케이스들, set케이스들] = useState<CaseRow[] | null>(null);
   const [고른케이스, set고른케이스] = useState<string[]>(앞?.caseIds ?? []);
   const [반복, set반복] = useState(앞 !== null && 앞.drive !== 'MANUAL' ? 앞.repeat : 3);
@@ -86,11 +85,10 @@ export function PerfDeviceStart({
   }, []);
 
   const 케이스로 = 조작 !== 'MANUAL';
-  const 팜만 = 케이스로;
   // 앞 측정 · 추천에서 온 기기가 지금 쓰는 중이거나 이 조작으로 못 쓰면 고른 것에서 뺀다 — 상한 5대에도 안 센다
   const 쓸기기 = 고른기기.flatMap((키) => {
     const d = 기기들?.find((x) => 기기키(x) === 키);
-    return d === undefined || d.status !== 'IDLE' || (팜만 && d.where === 'LOCAL') ? [] : [d];
+    return d === undefined || d.status !== 'IDLE' || (케이스로 && d.where === 'LOCAL') ? [] : [d];
   });
   const 골라보냄 = 쓸기기.map((d) => ({ serial: d.serial, where: d.where }));
 
@@ -216,7 +214,7 @@ export function PerfDeviceStart({
           )}
         </section>
 
-        <PerfDevicePick serviceId={service.id} 기기들={기기들} 고른={쓸기기.map(기기키)} 고침={set고른기기} 팜만={팜만} 쓰나={쓰나} />
+        <PerfDevicePick serviceId={service.id} 기기들={기기들} 고른={쓸기기.map(기기키)} 고침={set고른기기} 팜만={케이스로} 쓰나={쓰나} />
         <PerfDeviceTargets 목표들={목표들} 고침={set목표들} 쓰나={쓰나} />
 
         <section className="perf-panel" aria-labelledby="pd-k">

@@ -38,8 +38,6 @@ interface 기기상태 {
 
 interface 조작재료 {
   줄: 대상줄;
-  /** 애플리케이션 종류 — 게임이면 실행 요청에 엔진을 싣는다 */
-  종류: string | undefined;
   케이스들: { tcId: string; filePath: string; params: Record<string, unknown>; expected: Record<string, unknown> }[];
 }
 
@@ -105,7 +103,6 @@ async function 조작재료읽기(run: 표.실행행, cfg: DeviceRunConfig): Pro
   const 줄 = await 대상줄읽기(run.serviceId, run.env);
   if (줄 === null || 줄.appPath === null) throw new Error('대상 서버 줄이나 앱 파일이 없어졌습니다');
   const pool = await 표.풀();
-  const 종류 = (await pool.query<{ kind: string }>('SELECT kind FROM service WHERE id = $1', [run.serviceId])).rows[0]?.kind;
   const r = await pool.query<{ tc_id: string; file_path: string; param_schema: unknown; expected_schema: unknown }>(
     'SELECT tc_id, file_path, param_schema, expected_schema FROM test_case WHERE tc_id = ANY($1::text[])',
     [cfg.caseIds],
@@ -116,7 +113,7 @@ async function 조작재료읽기(run: 표.실행행, cfg: DeviceRunConfig): Pro
     return { tcId, params: {} as Record<string, unknown>, expected: {} as Record<string, unknown> };
   });
   const 채움 = await 저장값을채운다(pool, 아이템, new Map(r.rows.map((x) => [x.tc_id, { param_schema: x.param_schema, expected_schema: x.expected_schema }])), 줄.계정들);
-  return { 줄, 종류, 케이스들: 채움.map((c) => ({ ...c, filePath: 행.get(c.tcId)?.file_path ?? '' })) };
+  return { 줄, 케이스들: 채움.map((c) => ({ ...c, filePath: 행.get(c.tcId)?.file_path ?? '' })) };
 }
 
 async function 시작하기(run: 표.실행행, s: 도는기기): Promise<void> {
@@ -214,11 +211,11 @@ async function 기기조작(s: 도는기기, d: 기기상태, 재료: 조작재�
   }
 }
 
-async function 케이스보내기(s: 도는기기, d: 기기상태, loop: number, c: 조작재료['케이스들'][number], { 줄, 종류 }: 조작재료): Promise<void> {
+async function 케이스보내기(s: 도는기기, d: 기기상태, loop: number, c: 조작재료['케이스들'][number], { 줄 }: 조작재료): Promise<void> {
   const historyId = Date.now() * 100 + (보낸수++ % 100);
   const 요청: ExecuteRequest = {
     runId: 0, historyId, tcId: c.tcId, platform: 'android', filePath: c.filePath, baseUrl: 줄.baseUrl, params: c.params, expected: c.expected,
-    timeoutMs: 케이스제한ms, udid: d.serial, ...(줄.appPath !== null && { app: 줄.appPath }), ...엔진칸(종류, 'android', 줄.adminKey),
+    timeoutMs: 케이스제한ms, udid: d.serial, ...(줄.appPath !== null && { app: 줄.appPath }), ...엔진칸(s.cfg.drive === 'GAME' ? 'GAME' : null, 'android', 줄.adminKey),
   };
   s.보낸것.add(historyId);
   const t0 = Date.now();

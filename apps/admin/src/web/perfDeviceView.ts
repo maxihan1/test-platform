@@ -1,7 +1,7 @@
 // 기기 성능 화면의 계산 — 지표 이름 · 값 글자 · 목표 미달 · 실행 중 요약 · 녹화 조각 고르기 (도메인/성능 §3.9 「기기 성능」 · §8.14)
 
 import type { 실행상세 } from './perfApi.js';
-import type { 기기결과, 기기목표, 기기설정, 기기숫자, 기기요약, 기기지표, 측정지표 } from './perfDeviceApi.js';
+import type { 기기결과, 기기목표, 기기설정, 기기숫자, 기기요약, 기기지표, 조작, 측정지표 } from './perfDeviceApi.js';
 import { 가장큰값, type 말 } from './perfRunView.js';
 
 /** 지표 차례 · 이름 · 부등호. 부등호는 지표에 매여 있다 — 서버가 거꾸로 온 요청을 거절한다 (§7 「기기 성능 목표 한 줄」) */
@@ -23,6 +23,9 @@ export const 측정항목: [측정지표, string][] = [
   ['TEMP', '기기 온도'],
   ['BATTERY', '배터리'],
 ];
+
+/** 케이스로 재는 조작 방식은 애플리케이션 종류가 정한다 — 게임 화면은 Appium 이 버튼을 못 찾는다 (§3.9 「조작 셋」) */
+export const 케이스조작 = (kind: string | undefined): 조작 => (kind === 'GAME' ? 'GAME' : 'APPIUM');
 
 /** 머리 부제의 조작 방식 글자 — 실행 중 · 결과가 같이 쓴다 */
 export const 조작글 = (설정: 기기설정, t: 말): string =>

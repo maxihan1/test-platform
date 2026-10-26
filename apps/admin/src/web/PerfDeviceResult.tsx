@@ -8,7 +8,7 @@ import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { perfApi, type 실행상세 } from './perfApi.js';
 import { PerfDeviceReplay } from './PerfDeviceReplay.js';
-import { 값글자, 기기설정of, 메모리글자, 벗어난지표, 실행열기, 조작글 } from './perfDeviceView.js';
+import { 값글자, 기기설정of, 메모리글자, 벗어난지표, 실행열기, 조작글, 케이스조작 } from './perfDeviceView.js';
 import { 갱신간격, 분석틈, 분초, 사유이름, 시각글, 판정꼴, 판정이름, 판정종류 } from './perfRunView.js';
 import { Loading, message, useAsync } from './ui.js';
 
@@ -51,7 +51,8 @@ export function PerfDeviceResult({ run, service, 다시읽기, 쓰나, 새측정
       const { runId } = await perfApi.measureDevices({
         serviceId: service.id,
         env: run.env,
-        drive: 설정.drive,
+        // 게임 케이스 칸이 생기기 전(PERF-F1-11)에 게임을 Appium 으로 잰 결과 · 종류가 바뀐 애플리케이션도 지금 종류의 조작으로 다시 잰다
+        drive: 설정.drive === 'MANUAL' ? 'MANUAL' : 케이스조작(service.kind),
         ...(설정.drive === 'MANUAL' ? { durationSec: 설정.durationSec } : { caseIds: 설정.caseIds }),
         build: { package: 설정.package },
         devices: 설정.devices.map(({ serial, where }) => ({ serial, where })),

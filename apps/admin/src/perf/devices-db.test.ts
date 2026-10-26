@@ -34,8 +34,8 @@ describe.skipIf(연결 === undefined)('기기 성능', { timeout: 90_000 }, () =
 
   it('애플리케이션 종류 · 조작 방식 · 팜 · 내 컴퓨터 러너 · 앱 파일 · 남의 케이스를 거절한다', async () => {
     expect((await 측정({ serviceId: API앱 })).json()).toMatchObject({ error: 'INVALID_REQUEST', detail: 'API 애플리케이션은 기기 성능을 잴 수 없습니다' });
-    expect((await 측정({ drive: 'ALTTESTER', durationSec: undefined, caseIds: ['XQD-001'] })).statusCode).toBe(400);
-    expect((await 측정({ drive: 'GAME', durationSec: undefined })).statusCode).toBe(400);
+    expect((await 측정({ drive: 'ALTTESTER', durationSec: undefined, caseIds: ['XQD-001'] })).json()).toMatchObject({ error: 'INVALID_REQUEST', detail: expect.stringContaining('"drive"') });
+    expect((await 측정({ drive: 'GAME', durationSec: undefined })).json()).toMatchObject({ error: 'INVALID_REQUEST', detail: expect.stringContaining('Appium · 게임 케이스는 케이스를 고릅니다') });
     expect((await 측정({ drive: 'GAME', durationSec: undefined, caseIds: ['XQD-001'] })).json()).toMatchObject({ error: 'INVALID_REQUEST', detail: '게임 케이스는 게임 애플리케이션만 고릅니다' });
     await 환경로({ DEVICE_FARM_URL: undefined }, async () => {
       const r = await 측정();
@@ -57,6 +57,7 @@ describe.skipIf(연결 === undefined)('기기 성능', { timeout: 90_000 }, () =
       expect((await 앱({})).json()).toMatchObject({ error: 'INVALID_REQUEST', detail: '게임 애플리케이션은 게임 케이스로 잽니다' });
       expect((await 앱({ drive: 'GAME', devices: [{ serial: 'LC1', where: 'LOCAL' }] })).json()).toMatchObject({ detail: '게임 케이스는 팜 폰만 잴 수 있습니다' });
       expect((await 앱({ drive: 'GAME', env: 'dev' })).json()).toMatchObject({ detail: '대상 서버 줄에 앱 파일이 없습니다' });
+      expect((await 앱({ drive: 'GAME', caseIds: ['XQD-002'] })).json()).toMatchObject({ detail: '게임 케이스가 아닙니다: XQD-002' });
     } finally {
       await 판.pool.query('UPDATE service SET kind = $2 WHERE id = $1', [판.서비스, 원래]);
     }

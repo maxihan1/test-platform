@@ -200,6 +200,17 @@ describe('결과', () => {
     expect(만들기.mock.calls[0]![0]).toMatchObject({ drive: 'GAME', caseIds: ['ZQD-001'], repeat: 3 });
   });
 
+  it('게임 케이스 칸이 생기기 전에 게임을 Appium 케이스로 잰 결과도 다시 실행은 게임 케이스로 보낸다', async () => {
+    vi.spyOn(perfApi, 'runOf').mockResolvedValue(상세({}, 설정({ drive: 'APPIUM' })));
+    vi.spyOn(perfApi, 'deviceResult').mockResolvedValue(결과);
+    const 만들기 = vi.spyOn(perfApi, 'measureDevices').mockResolvedValue({ runId: 44 });
+    render(<PerfDevices service={{ ...앱, kind: 'GAME' }} run={40} 쓰나 />);
+    expect(await screen.findByText(/Appium 케이스 1개 · 반복 3회/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '다시 실행' }));
+    await waitFor(() => expect(만들기).toHaveBeenCalled());
+    expect(만들기.mock.calls[0]![0]).toMatchObject({ drive: 'GAME', caseIds: ['ZQD-001'] });
+  });
+
   it('다시 실행은 같은 조건으로 새 측정을 만들고, 새 측정은 앞 조건을 채운 시작 화면을 연다', async () => {
     결과열기();
     const 만들기 = vi.spyOn(perfApi, 'measureDevices').mockResolvedValue({ runId: 42 });
