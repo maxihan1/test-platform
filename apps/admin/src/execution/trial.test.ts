@@ -217,7 +217,12 @@ describe('경로비밀', () => {
   };
 
   it('계정 아이디 칸 값만 뺀 비밀 글자다 — 비밀번호 · 그 밖 비밀 칸은 남긴다', () => {
-    const row = { params: { adminId: 'admin', adminPassword: 'pa55', loginId: 'kim', memo: '몰래', title: '공지' }, expected: {}, param_schema: 스키마, expected_schema: {} };
+    const row = {
+      params: { adminId: 'admin', adminPassword: 'pa55', loginId: 'kim', memo: '몰래', title: '공지' },
+      expected: { loginId: 'kim' },
+      param_schema: 스키마,
+      expected_schema: { properties: { loginId: { secret: true } } },
+    };
     expect(경로비밀(row)).toEqual(['pa55', '몰래']);
     expect(항목비밀(row)).toEqual(expect.arrayContaining(['admin', 'kim', 'pa55', '몰래']));
   });

@@ -67,10 +67,12 @@ export function 항목비밀(row: { params: unknown; expected: unknown; param_sc
  * `/api/admin/banners` 의 admin 이 별표로 남아 서비스 지도가 그 API 를 못 맞춘다 (도메인/작성 §3.6 「세는 방식」 · 공통/2 §4.1)
  */
 export function 경로비밀(row: { params: unknown; expected: unknown; param_schema: unknown; expected_schema: unknown }): string[] {
-  const 칸들 = 객체(객체(row.param_schema).properties);
-  const 아이디칸 = new Set(Object.keys(칸들).filter((k) => 계정칸(k, 객체(칸들[k]))?.칸 === 'loginId'));
-  const params = Object.fromEntries(Object.entries(객체(row.params)).filter(([k]) => !아이디칸.has(k)));
-  return 항목비밀({ ...row, params });
+  // 값과 기대값 둘 다에서 아이디 칸을 뺀다. 아이디와 같은 글자인 비밀번호는 남아 경로도 가린다 — 비밀번호를 내보이지 않는 쪽을 골랐다
+  const 아이디뺀 = (값: unknown, schema: unknown): Record<string, unknown> => {
+    const 칸들 = 객체(객체(schema).properties);
+    return Object.fromEntries(Object.entries(객체(값)).filter(([k]) => 계정칸(k, 객체(칸들[k]))?.칸 !== 'loginId'));
+  };
+  return 항목비밀({ ...row, params: 아이디뺀(row.params, row.param_schema), expected: 아이디뺀(row.expected, row.expected_schema) });
 }
 
 export function 가린다(값: unknown, 비밀: string[]): unknown {

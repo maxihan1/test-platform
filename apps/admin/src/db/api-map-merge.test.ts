@@ -59,17 +59,17 @@ describe.skipIf(연결 === undefined)('서비스 지도 쌓인 줄 합치기 (�
     }
   });
 
-  it('주문번호마다 갈린 줄이 :n 한 줄로 합쳐진다 — 처음 본 때는 이른 것, 마지막 본 때는 늦은 것', () => {
+  it('주문번호마다 갈린 줄이 :n 한 줄로 합쳐진다 — 처음 본 때는 이른 것, 마지막 본 때 · 성공 코드는 늦게 본 것', () => {
     expect(줄들.filter((x) => x.path === '/api/orders/:n')).toEqual([
-      { method: 'DELETE', path: '/api/orders/:n', first_seen: '09-01', last_seen: '10-04', ok_status: 200 },
+      { method: 'DELETE', path: '/api/orders/:n', first_seen: '09-01', last_seen: '10-04', ok_status: 204 },
       { method: 'GET', path: '/api/orders/:n', first_seen: '10-01', last_seen: '10-05', ok_status: null },
     ]);
     expect(줄들.some((x) => x.path.includes('DM2026'))).toBe(false);
   });
 
-  it('케이스 줄은 케이스마다 한 줄 — 늦은 실행 번호와 합친 단계, 화면 줄은 같은 화면이면 하나', () => {
+  it('케이스 줄은 케이스마다 한 줄 — 늦은 실행의 단계만 남기고, 화면 줄은 같은 화면이면 하나', () => {
     expect(쓴줄들.filter((x) => x.path === '/api/orders/:n')).toEqual([
-      { method: 'GET', path: '/api/orders/:n', tc_id: 'T1', run_id: '12', steps: [1, 2, 3], screen_url: null },
+      { method: 'GET', path: '/api/orders/:n', tc_id: 'T1', run_id: '12', steps: [2], screen_url: null },
       { method: 'GET', path: '/api/orders/:n', tc_id: 'T2', run_id: '11', steps: [], screen_url: null },
       { method: 'GET', path: '/api/orders/:n', tc_id: null, run_id: null, steps: [], screen_url: '/my/orders/:n' },
     ]);

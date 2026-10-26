@@ -37,6 +37,11 @@ describe('기준화면지도 — 덮은틀', () => {
     expect(덮은틀들(입력(가짜깃(기본파일)))).toEqual(['/board/:n', '/cart']);
   });
 
+  it('폴더를 같이 쓰는 다른 애플리케이션 케이스의 화면은 안 센다 — 접두사로 가른다', () => {
+    const 파일들 = { ...기본파일, 'tests/mkt/other.spec.ts': 케이스('MKO-FN-001', "import { P } from './pages/other.page.js';"), 'tests/mkt/pages/other.page.ts': 화면('/ops') };
+    expect(덮은틀들(입력(가짜깃(파일들)))).toEqual(['/board/:n', '/cart']);
+  });
+
   it('화면 파일 안 이동이 여는 주소도 덮는다 — `${…}` 자리는 :n', () => {
     const 파일들 = {
       ...기본파일,

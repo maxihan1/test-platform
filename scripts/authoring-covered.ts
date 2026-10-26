@@ -36,7 +36,7 @@ export interface 케이스화면 {
  * 파일 목록이나 케이스 파일을 못 읽으면 까닭. 화면 파일은 못 읽어도 `건너뜀` 에 싣고 간다 — 화면만이면 화면지도준비가 막는다
  */
 export function 기준화면지도(입력: 덮은입력): { 케이스: 케이스화면[]; 덮은틀: string[]; 건너뜀: string[] } | { 까닭: string } {
-  const { 깃, 기준, 폴더 } = 입력;
+  const { 깃, 기준, 서비스, 폴더 } = 입력;
   const 목록 = 깃(['ls-tree', '-r', '-z', '--name-only', 기준, '--', `tests/${폴더}`]);
   if (!목록.ok) return { 까닭: `기준 판의 파일 목록을 못 읽었다: ${목록.까닭 ?? ''}` };
   const 파일들 = new Set(목록.낸것.split('\0').filter((f) => f !== ''));
@@ -75,7 +75,8 @@ export function 기준화면지도(입력: 덮은입력): { 케이스: 케이스
     }
     케이스.push({ tcId, 파일: f, 화면파일들, 틀들: [...틀들].sort() });
   }
-  const 덮은틀 = [...new Set(케이스.flatMap((x) => x.틀들))].sort();
+  // 폴더는 애플리케이션끼리 같이 쓸 수 있다(tests_dir 에 겹침 막기가 없다) — 덮은 틀은 이 애플리케이션 접두사 케이스만. 미검증 화면 셈(found.ts)도 접두사로 가른다
+  const 덮은틀 = [...new Set(케이스.filter((x) => x.tcId.startsWith(`${서비스}-`)).flatMap((x) => x.틀들))].sort();
   return { 케이스, 덮은틀, 건너뜀: [...건너뜀].sort() };
 }
 

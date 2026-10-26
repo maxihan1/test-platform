@@ -15,7 +15,7 @@ SELECT a.id, a.service_id, a.method, a.host,
   FROM service_api a;
 DELETE FROM api_새틀 b USING service_api a WHERE a.id = b.id AND a.path = b.path;
 
--- 합칠 줄 — 처음 본 때는 가장 이른 것, 마지막 본 때 · 성공 코드는 가장 늦은 것
+-- 합칠 줄 — 처음 본 때는 가장 이른 것, 마지막 본 때 · 성공 코드는 가장 늦은 것(성공 코드가 없는 줄은 앞 코드를 둔다 — apiMap.ts API넣기와 같다)
 INSERT INTO service_api (service_id, method, host, path, first_seen, last_seen, ok_status)
 SELECT b.service_id, b.method, b.host, b.path, min(a.first_seen), max(a.last_seen),
        (array_agg(a.ok_status ORDER BY a.last_seen DESC) FILTER (WHERE a.ok_status IS NOT NULL))[1]
@@ -24,19 +24,24 @@ SELECT b.service_id, b.method, b.host, b.path, min(a.first_seen), max(a.last_see
 ON CONFLICT (service_id, method, host, path) DO UPDATE
    SET first_seen = least(service_api.first_seen, EXCLUDED.first_seen),
        last_seen = greatest(service_api.last_seen, EXCLUDED.last_seen),
-       ok_status = COALESCE(service_api.ok_status, EXCLUDED.ok_status);
+       ok_status = CASE WHEN EXCLUDED.last_seen > service_api.last_seen THEN COALESCE(EXCLUDED.ok_status, service_api.ok_status)
+                        ELSE COALESCE(service_api.ok_status, EXCLUDED.ok_status) END;
 
--- 케이스 줄 — 같은 케이스가 주문 여럿을 불렀으면 한 줄로, 부른 단계는 합친다
+-- 케이스 줄 — 같은 케이스가 주문 여럿을 불렀으면 한 줄로. 늦은 실행의 단계만 남긴다 — 실행 중에는 더 옛 실행 줄을 지우고 같은 실행만 합친다(apiMap.ts 케이스지도를넣는다)
 INSERT INTO service_api_use (api_id, service_id, tc_id, run_id, steps, seen_at)
-SELECT c.id, u.service_id, u.tc_id, max(u.run_id), COALESCE(array_agg(DISTINCT t.s ORDER BY t.s) FILTER (WHERE t.s IS NOT NULL), '{}'), max(u.seen_at)
-  FROM api_새틀 b
-  JOIN service_api c ON c.service_id = b.service_id AND c.method = b.method AND c.host = b.host AND c.path = b.path
-  JOIN service_api_use u ON u.api_id = b.id AND u.tc_id IS NOT NULL
-  LEFT JOIN LATERAL unnest(u.steps) AS t(s) ON true
- GROUP BY c.id, u.service_id, u.tc_id
+SELECT x.api_id, x.service_id, x.tc_id, x.run_id, COALESCE(array_agg(DISTINCT t.s ORDER BY t.s) FILTER (WHERE t.s IS NOT NULL), '{}'), max(x.seen_at)
+  FROM (SELECT c.id AS api_id, u.service_id, u.tc_id, u.run_id, u.steps, u.seen_at, max(u.run_id) OVER (PARTITION BY c.id, u.tc_id) AS 늦은실행
+          FROM api_새틀 b
+          JOIN service_api c ON c.service_id = b.service_id AND c.method = b.method AND c.host = b.host AND c.path = b.path
+          JOIN service_api_use u ON u.api_id = b.id AND u.tc_id IS NOT NULL) x
+  LEFT JOIN LATERAL unnest(x.steps) AS t(s) ON true
+ WHERE x.run_id = x.늦은실행
+ GROUP BY x.api_id, x.service_id, x.tc_id, x.run_id
 ON CONFLICT (api_id, tc_id) WHERE tc_id IS NOT NULL DO UPDATE
-   SET run_id = greatest(service_api_use.run_id, EXCLUDED.run_id),
-       steps = ARRAY(SELECT DISTINCT x FROM unnest(service_api_use.steps || EXCLUDED.steps) AS x ORDER BY x),
+   SET steps = CASE WHEN EXCLUDED.run_id > service_api_use.run_id THEN EXCLUDED.steps
+                    WHEN EXCLUDED.run_id < service_api_use.run_id THEN service_api_use.steps
+                    ELSE ARRAY(SELECT DISTINCT s FROM unnest(service_api_use.steps || EXCLUDED.steps) AS s ORDER BY s) END,
+       run_id = greatest(service_api_use.run_id, EXCLUDED.run_id),
        seen_at = greatest(service_api_use.seen_at, EXCLUDED.seen_at);
 
 -- 화면 줄 — 같은 화면이면 한 줄
