@@ -6,7 +6,9 @@
 import { useEffect, useState } from 'react';
 
 import { api, type AuthoringListRow, type EnvRow, type Paged, type 앱종류 } from './api.js';
+import { AuthoringDecide } from './AuthoringDecide.js';
 import { AuthoringNew } from './AuthoringNew.js';
+import { decideApi } from './decideApi.js';
 import { Drawer } from './Drawer.js';
 import { AuthoringStartModal } from './AuthoringStartModal.js';
 import { 목록글 } from './authoringStatus.js';
@@ -104,7 +106,7 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
   const t = use말();
   // 쪽은 주소에 남는다 — 상세에 갔다 뒤로 와도 그 쪽이다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
   const [page, setPage] = useState(() => Math.max(1, Math.floor(Number(주소조건().get('page')) || 1)));
-  // 「조치 필요」만 — 입력 필요 · 중복 · 반영 대기 · 반영 실패가 남은 요청 (점검 11.2 · 도메인/작성 §7 ?todo=1)
+  // 「결정 필요」 — 목록 자리에 결정 목록이 선다. 주소의 todo=1 은 앞 이름 「조치 필요」 때 것을 그대로 쓴다 (도메인/작성 §3.6 「★ 결정 목록」)
   const [할일만, set할일만] = useState(() => 주소조건().get('todo') === '1');
   use주소조건('#/authoring', { ...(할일만 ? { todo: '1' } : {}), ...(page === 1 ? {} : { page: String(page) }) });
   // 「PRD 관리」의 「이 화면들 테스트 작성」이 `?compare=1` 로 연다 — 아래 use주소조건이 조건을 정리하기 전에 한 번만 읽는다
@@ -127,11 +129,14 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
   }
 
   // 받은 목록에 무엇을 물은 답인지 붙여 둔다 — 서비스 · 쪽 · 거르기를 바꾼 뒤의 실패에 앞 조건의 줄을 남기지 않게 (리뷰 L17 검사)
-  const 물음 = `${service}|${String(page)}|${String(할일만)}`;
+  const 물음 = `${service}|${String(page)}`;
   const 줄들 = useAsync<Paged<AuthoringListRow> & { 물음: string }>(
-    () => api.authoringRequests(service, page, 할일만).then((r) => ({ ...r, 물음 })),
-    [service, page, 할일만],
+    () => api.authoringRequests(service, page).then((r) => ({ ...r, 물음 })),
+    [service, page],
   );
+  // 칩의 「결정 필요 N」과 결정 목록이 같은 답을 쓴다. 목록처럼 저절로 다시 읽지 않는다 — 고르는 중에 항목이 바뀌면 안 된다
+  const 결정 = useAsync(() => decideApi.list(service).then((r) => ({ ...r, service })), [service]);
+  const 결정판 = 결정.data?.service === service ? 결정.data : null;
   const 거르기 = (값: boolean) => {
     set할일만(값);
     setPage(1);
@@ -176,18 +181,34 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
             <button className="chip" type="button" aria-pressed={!할일만} onClick={() => 거르기(false)}>
               {t('전체')}
             </button>
-            <button className="chip" type="button" aria-pressed={할일만} onClick={() => 거르기(true)}>
-              {t('조치 필요')}
+            <button
+              className="chip"
+              type="button"
+              aria-pressed={할일만}
+              onClick={() => {
+                거르기(true);
+                결정.reload();
+              }}
+            >
+              {결정판 === null ? t('결정 필요') : t('결정 필요 {수}', { 수: 결정판.count })}
             </button>
           </span>
         </div>
 
+        {할일만 ? (
+          결정.error !== null && 결정판 === null ? (
+            <Failed error={결정.error} />
+          ) : 결정판 === null ? (
+            <Loading />
+          ) : (
+            <AuthoringDecide key={service} service={service} 목록={결정판} envs={envs} 다시읽기={결정.reload} />
+          )
+        ) : (
+          <>
         <div className="rows-scroll">
           {/* 건수가 한 쪽 크기의 배수면 「다음」이 빈 쪽으로 간다(paging.ts) — 거기서 「기록이 없다」고 하면 거짓이다 (리뷰 L18) */}
           {줄들.data.items.length === 0 && page > 1 && 줄들.data.total > 0 ? (
             <div className="empty">{t('이 쪽에는 요청이 없습니다')}</div>
-          ) : 줄들.data.items.length === 0 && 할일만 ? (
-            <div className="empty">{t('조치가 필요한 요청이 없습니다')}</div>
           ) : 줄들.data.items.length === 0 ? (
             <div className="empty">
               {t('아직 작성을 요청한 기록이 없습니다')}
@@ -212,6 +233,8 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
               {t('다음')}
             </button>
           </div>
+        )}
+          </>
         )}
       </div>
 

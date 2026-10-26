@@ -6,6 +6,7 @@ import { API문서말 } from './messages/apidoc.js';
 import { 계정말 } from './messages/auth.js';
 import { 작성말 } from './messages/authoring.js';
 import { 작성할일말 } from './messages/authoringTodo.js';
+import { 결정말 } from './messages/decide.js';
 import { 빌드말 } from './messages/build.js';
 import { 케이스말 } from './messages/cases.js';
 import { CI토큰말 } from './messages/ciToken.js';
@@ -31,6 +32,7 @@ export const 표들: Record<string, string>[] = [
   케이스말,
   작성말,
   작성할일말,
+  결정말,
   고치기말,
   실행말,
   설정말,

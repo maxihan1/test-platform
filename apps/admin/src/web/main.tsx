@@ -54,6 +54,7 @@ import { 칩움직임을건다 } from './motion.js';
 import { Loading } from './ui.js';
 import './styles.css';
 import './authoringStatus.css';
+import './decide.css';
 import './noticeBar.css';
 import './header.css';
 import './projectPick.css';

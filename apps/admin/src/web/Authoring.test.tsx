@@ -3,12 +3,13 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { AuthoringListRow } from './api.js';
+import type { 결정목록 } from './decideApi.js';
 import { Authoring } from './Authoring.js';
 import { 멈춘듯기준 } from './authoringView.js';
 
 const 줄들: AuthoringListRow[] = [];
 const 부른쪽: number[] = [];
-const 거른것: boolean[] = [];
+const 결정: { 목록: 결정목록 } = { 목록: { prdVersion: 1, count: 0, open: [], items: [], failMore: 0 } };
 const 읽기 = { 실패: false, 총건수: null as number | null };
 
 vi.mock('./api.js', async () => {
@@ -16,15 +17,16 @@ vi.mock('./api.js', async () => {
   return {
     ...진짜,
     api: {
-      authoringRequests: (_service: string, page: number, 할일만 = false) => {
+      authoringRequests: (_service: string, page: number) => {
         부른쪽.push(page);
-        거른것.push(할일만);
         if (읽기.실패) return Promise.reject(new Error('목록을 못 읽었다'));
         return Promise.resolve({ items: 줄들, total: 읽기.총건수 ?? 줄들.length, page, pageSize: 50 });
       },
     },
   };
 });
+
+vi.mock('./decideApi.js', () => ({ decideApi: { list: () => Promise.resolve(결정.목록) } }));
 
 function 줄(덮을것: Partial<AuthoringListRow>): AuthoringListRow {
   return {
@@ -50,7 +52,7 @@ function 줄(덮을것: Partial<AuthoringListRow>): AuthoringListRow {
 beforeEach(() => {
   줄들.length = 0;
   부른쪽.length = 0;
-  거른것.length = 0;
+  결정.목록 = { prdVersion: 1, count: 0, open: [], items: [], failMore: 0 };
   읽기.실패 = false;
   읽기.총건수 = null;
   window.history.replaceState(null, '', '#/authoring');
@@ -266,13 +268,28 @@ describe('작성 목록 줄 제목과 할 일 (⑫ 점검 11.1 · 11.2 · N2)', 
     expect(await screen.findByText('반영 완료')).toBeTruthy();
   });
 
-  it('「조치 필요」를 누르면 서버에 그것만 묻고 주소에 남긴다 · 첫 쪽으로 간다', async () => {
+  it('「결정 필요 N」을 누르면 목록 자리에 결정 목록이 서고 주소에 남는다 · 줄과 쪽 넘김은 안 보인다', async () => {
     window.history.replaceState(null, '', '#/authoring?page=2');
+    결정.목록 = {
+      prdVersion: 3,
+      count: 1,
+      open: [7001],
+      failMore: 0,
+      items: [{ key: 'apply:7001:7002', group: 1, kind: 'APPLY', picks: ['APPLY'], blockedBy: null, rootId: 7001, runId: 7002, summary: null, prUrl: null, requestedByName: '테스터', finishedAt: null }],
+    };
+    줄들.push(줄({ id: 7001, rootId: 7001, status: 'DONE' }));
     render(<Authoring service="PAY" 할수={() => true} />);
-    fireEvent.click(await screen.findByRole('button', { name: '조치 필요' }));
-    expect(await screen.findByText('조치가 필요한 요청이 없습니다')).toBeTruthy();
-    expect(거른것.at(-1)).toBe(true);
-    expect(부른쪽.at(-1)).toBe(1);
+    fireEvent.click(await screen.findByRole('button', { name: '결정 필요 1' }));
+    expect(await screen.findByText('결정이 필요한 일 1건')).toBeTruthy();
+    expect(screen.getByText('테스트를 케이스 목록에 올릴까요?')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '다음' })).toBeNull();
     expect(window.location.hash).toBe('#/authoring?todo=1');
+  });
+
+  it('결정이 하나도 없으면 「결정이 필요한 일이 없습니다」', async () => {
+    window.history.replaceState(null, '', '#/authoring?todo=1');
+    render(<Authoring service="PAY" 할수={() => true} />);
+    expect(await screen.findByText('결정이 필요한 일이 없습니다')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '결정 필요 0' }).getAttribute('aria-pressed')).toBe('true');
   });
 });

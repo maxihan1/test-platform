@@ -1189,9 +1189,9 @@ export const api = {
 
   // 작성 대기줄 (SPEC §7 · 도메인/작성 §7). 넣기·읽기는 화면이 부르고
   // 집기·단계·끝내기는 맥이 부른다 — 화면은 그 넷을 안 부른다
-  authoringRequests: (service: string, page: number, 할일만 = false) =>
+  authoringRequests: (service: string, page: number) =>
     call<{ items: AuthoringListRow[]; total: number; page: number; pageSize: number }>(
-      `/authoring/requests?service=${encodeURIComponent(service)}&page=${page}${할일만 ? '&todo=1' : ''}`,
+      `/authoring/requests?service=${encodeURIComponent(service)}&page=${page}`,
     ),
 
   authoringRequest: (service: string, id: number) =>

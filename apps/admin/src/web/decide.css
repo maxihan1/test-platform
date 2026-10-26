@@ -1,0 +1,131 @@
+/* 테스트 작성 「결정 필요」 결정 목록 (도메인/작성 §3.6 「★ 결정 목록」 · 2026-10-26 시안 3판). 고르기 버튼은 .chip-group 의 .chip 을 그대로 쓴다 */
+.decide {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  min-width: 0;
+}
+.decide > header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  gap: 4px;
+}
+.decide h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+.decide-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px 20px 4px;
+  font-weight: 600;
+}
+.decide-num {
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--line-2);
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+.decide-prd {
+  font-size: 12px;
+  font-weight: 400;
+  padding: 1px 8px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  color: var(--ink-muted);
+}
+.decide-item {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+  margin: 0;
+}
+.decide-docs {
+  border-width: 0 0 1px;
+}
+.decide-q {
+  font-weight: 500;
+  padding: 0;
+}
+.decide-qline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+.decide-sub {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  width: 100%;
+}
+.decide-box {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 12px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 13px;
+}
+.decide-radio {
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+  cursor: pointer;
+}
+.decide-req {
+  display: block;
+}
+.decide-text {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+.decide-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+}
+.decide-states {
+  display: block;
+}
+.decide > footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--line-2);
+  display: grid;
+  gap: 10px;
+}
+.decide-plan {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+}
+.decide-run {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
