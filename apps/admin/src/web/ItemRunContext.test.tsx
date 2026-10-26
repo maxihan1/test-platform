@@ -119,11 +119,11 @@ describe('항목실행줄', () => {
     expect(await screen.findByText('2/2회차')).toBeTruthy();
   });
 
-  it('실패 항목이면 카드를 찾아 관련 요구와 판정 단추를 낸다', async () => {
+  it('실패 항목이면 카드를 찾아 관련 요구와 판정 줄(결정 목록 고리)을 낸다', async () => {
     그린다(상세(실행항목들[2]!));
 
     expect(await screen.findByText('로그인한다')).toBeTruthy();
-    expect(screen.getByRole('button', { name: '버그' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: '테스트 작성 › 결정 필요에서 판정합니다' })).toBeTruthy();
   });
 
   it('만드는 리포트가 있으면 다 될 때까지 다시 읽어 「리포트 생성 중」이 풀린다 — 실행 결과 화면과 같다', async () => {

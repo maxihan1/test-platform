@@ -1,15 +1,15 @@
 // 표준 기획서 버전 기록 — 버전마다 누가 언제 무엇으로 만들었는지, 무엇이 바뀌었는지와 복원 (도메인/작성 §3.6 「★ 표준 기획서」 「판 이력」)
 // 복원도 새 버전이고 옛 버전은 지우지 않는다 — 그래서 확인 상자 대신 그 자리에서 한 번 더 묻는다
-// 바뀐 것은 저장하지 않고 앞 버전과 견줘 그때 계산한다 — 서버 칸이 없다(점검 8.8)
+// 바뀐 것은 서버가 changes 를 적어 준 버전(결정 진행 · 화면이 맞음)만 그대로 쓰고, 나머지는 앞 버전과 견줘 그때 계산한다
 
 import type { PrdItem } from '@platform/kit';
 import { useRef, useState } from 'react';
 
 import { use말, use언어 } from './i18n.js';
 import type { 판짓기 } from './Prd.js';
-import { prdApi, type PrdVersionRow } from './prdApi.js';
-import { use반영종류글 } from './PrdTodo.js';
+import { prdApi, type PrdVersionChange, type PrdVersionRow } from './prdApi.js';
 import { 판차이, type 차이줄 } from './prdView.js';
+import { use반영종류글 } from './prdWords.js';
 import { Failed, Loading, useAsync, when } from './ui.js';
 
 /** 이 화면을 연 동안 읽은 버전. 옛 버전은 고치지 않으니 다시 읽지 않는다 */
@@ -52,6 +52,26 @@ function 차이줄글({ 줄 }: { 줄: 차이줄 }) {
         <span className="prd-diff-text">{(줄.뒤 ?? 줄.앞)?.text}</span>
       )}
     </li>
+  );
+}
+
+/** 서버가 적어 준 「바뀐 것」 — 앞 버전과 견주지 않고 그대로 줄마다 적는다 */
+function 적힌바뀐것({ changes }: { changes: PrdVersionChange[] }) {
+  const t = use말();
+  const 종류글: Record<PrdVersionChange['kind'], string> = { EDIT: t('문장 변경'), PICK: t('문구 선택'), CONFIRM: t('확정') };
+  return (
+    <ul className="prd-diff">
+      {changes.map((c) => {
+        const 까닭 = [c.tcId === null ? null : t('화면이 맞음({번호})', { 번호: c.tcId }), c.asset === null ? null : t('{자료} 쪽', { 자료: c.asset })].filter((x) => x !== null);
+        return (
+          <li key={`${c.kind}\n${c.reqId}`}>
+            <span className="prd-kind">{종류글[c.kind]}</span>
+            <span className="prd-id">{c.reqId}</span>
+            <span className="prd-text">{[c.text, ...까닭].filter((x) => x !== null).join(' · ')}</span>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -120,10 +140,12 @@ export function PrdVersions({ service, 지금판, 쓰나, 짓기 }: { service: s
   const 읽은 = useRef<읽은판>(new Map());
   const [묻는판, set묻는판] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
-  const 출처글: Record<PrdVersionRow['source'], string> = {
-    AGENT: t('AI 작성'),
-    PERSON: t('직접 수정'),
-    REVERT: t('복원'),
+  const 어디서 = (v: PrdVersionRow): string => {
+    if (v.source === 'AGENT') {
+      if (v.fromDecision) return v.requestId === null ? t('테스트 작성에서 결정 · AI') : t('테스트 작성에서 결정 · AI #{번호}', { 번호: v.requestId });
+      return v.requestId === null ? t('AI 작성') : t('AI 작성 #{번호}', { 번호: v.requestId });
+    }
+    return { PERSON: t('직접 수정'), REVERT: t('되돌림'), DECISION: t('테스트 작성에서 결정') }[v.source];
   };
 
   async function 되돌리기(toVersion: number) {
@@ -150,28 +172,38 @@ export function PrdVersions({ service, 지금판, 쓰나, 짓기 }: { service: s
             <thead>
               <tr>
                 <th>{t('버전')}</th>
+                <th>{t('어디서')}</th>
+                <th>{t('바뀐 것')}</th>
                 <th>{t('저장한 사람')}</th>
                 <th>{t('저장 일시')}</th>
-                <th>{t('바뀐 것')}</th>
                 <th aria-label={t('복원')} />
               </tr>
             </thead>
             <tbody>
               {목록.data.map((v, i) => (
                 <tr key={v.version}>
-                  <td className="prd-id">{v.version}</td>
-                  <td>
-                    {v.savedByName} · {출처글[v.source]}
-                  </td>
-                  <td>{when(v.savedAt, 언어)}</td>
-                  <td className="prd-vchange">
-                    {/* 목록은 새 버전부터다. 앞 버전은 바로 다음 줄이다 */}
-                    <바뀐것 service={service} 판={v.version} 앞판={목록.data![i + 1]?.version ?? null} 읽은={읽은.current} 바로={i < 바로계산} />
-                  </td>
-                  <td className="prd-vact">
+                  <td className="prd-id">
+                    {v.version}
                     {v.version === 지금판 ? (
-                      <span className="prd-plain">{t('현재 버전')}</span>
-                    ) : !쓰나 ? null : 묻는판 === v.version ? (
+                      <>
+                        {' · '}
+                        <span className="prd-plain">{t('현재 버전')}</span>
+                      </>
+                    ) : null}
+                  </td>
+                  <td>{어디서(v)}</td>
+                  <td className="prd-vchange">
+                    {v.changes !== null ? (
+                      <적힌바뀐것 changes={v.changes} />
+                    ) : (
+                      // 목록은 새 버전부터다. 앞 버전은 바로 다음 줄이다
+                      <바뀐것 service={service} 판={v.version} 앞판={목록.data![i + 1]?.version ?? null} 읽은={읽은.current} 바로={i < 바로계산} />
+                    )}
+                  </td>
+                  <td>{v.savedByName}</td>
+                  <td>{when(v.savedAt, 언어)}</td>
+                  <td className="prd-vact">
+                    {v.version === 지금판 || !쓰나 ? null : 묻는판 === v.version ? (
                       <>
                         <button className="btn small" disabled={busy} onClick={() => void 되돌리기(v.version)}>
                           {t('버전 {버전} 복원 확인', { 버전: v.version })}

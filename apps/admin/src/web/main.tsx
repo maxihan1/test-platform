@@ -54,6 +54,7 @@ import { 칩움직임을건다 } from './motion.js';
 import { Loading } from './ui.js';
 import './styles.css';
 import './authoringStatus.css';
+import './decide.css';
 import './noticeBar.css';
 import './header.css';
 import './projectPick.css';
@@ -263,7 +264,7 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
     });
   }, []);
 
-  // 요구 번호 주소(`#/prd/MKT-REQ-001`)로 오면 띠를 그 번호의 서비스로 맞춘다 — 그리기 전에 바꿔야 아래 집으로 보내기가 앞 띠 서비스의 칸으로 가르지 않는다.
+  // 요구 번호 주소(`#/prd/MKT-REQ-001`) · 결정 필요 주소(`#/authoring?todo=1&service=MKT`)로 오면 띠를 그 서비스로 맞춘다 — 그리기 전에 바꿔야 아래 집으로 보내기가 앞 띠 서비스의 칸으로 가르지 않는다.
   // 주소가 바뀔 때 한 번만 맞춘다. 그 주소에 머문 채 띠 고르개로 고른 서비스를 되돌리지 않는다
   const [맞춘주소, set맞춘주소] = useState<string | null>(null);
   if (상태.어디 === '안' && 맞춘주소 !== hash) {

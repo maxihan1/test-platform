@@ -80,14 +80,14 @@ export function 작성끝단계({ service, 요청, 할수, 차이수, 커버리�
         <일
           표={다음()}
           제목={t('기획서와 다른 곳 {수}건 확인', { 수: 차이수 })}
-          설명={t('화면에서 본 값으로 만든 케이스라 미확정 표시가 붙었습니다. PRD 관리에서 어느 쪽이 맞는지 정하세요.')}
+          설명={t('화면에서 본 값으로 만든 케이스라 미확정 표시가 붙었습니다. 테스트 작성 › 결정 필요에서 어느 쪽이 맞는지 정하세요.')}
         >
           <div className="btns">
             <button className="btn ghost" type="button" onClick={내려가기('diffs')}>
               {t('다른 곳 보기')}
             </button>
-            <a className="btn ghost" href="#/prd">
-              {t('PRD 관리로 가기')}
+            <a className="btn ghost" href="#/authoring?todo=1">
+              {t('결정 필요로 가기')}
             </a>
             {표시사본.map((a) => (
               <a key={a.id} className="btn ghost" href={api.authoringAssetUrl(요청.id, a.id)} download>

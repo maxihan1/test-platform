@@ -25,7 +25,7 @@ export interface 앞판 {
   lastNo: number;
 }
 
-export type 판짓기오류 = { error: 'BAD_PRD' | 'PRD_REUSED' | 'PRD_FULL' | 'BAD_CONFIRM'; detail: string };
+export type 판짓기오류 = { error: 'BAD_PRD' | 'PRD_REUSED' | 'PRD_FULL'; detail: string };
 
 const 상태들: readonly PrdStatus[] = ['CONFIRMED', 'NEEDS_CHECK'];
 
@@ -200,25 +200,6 @@ export function 사람판(
   if ('error' in 매김) return 매김;
   const items = 매김.items.map((x) => 표시달기(x, 앞것들.get(x.reqId), 지금, true)).sort(번호차례);
   return { items, lastNo: 매김.lastNo };
-}
-
-/** 일괄 확정. 확인 필요가 아닌 번호가 섞이면 BAD_CONFIRM — 확정한 항목은 checkSince 를 빼고 byPerson 을 단다 */
-export function 확정판(앞: 앞판 | null, 번호들: unknown): { items: PrdItem[]; lastNo: number } | 판짓기오류 {
-  if (!Array.isArray(번호들) || 번호들.length === 0) return { error: 'BAD_CONFIRM', detail: '' };
-  const 고를것 = new Set<string>();
-  const 앞것들 = new Map((앞?.items ?? []).map((x) => [x.reqId, x]));
-  for (const 번호 of 번호들) {
-    if (typeof 번호 !== 'string' || 앞것들.get(번호)?.status !== 'NEEDS_CHECK') {
-      return { error: 'BAD_CONFIRM', detail: String(번호) };
-    }
-    고를것.add(번호);
-  }
-  const items = (앞?.items ?? []).map((x): PrdItem => {
-    if (!고를것.has(x.reqId)) return x;
-    const { checkSince: _뺌, ...나머지 } = x;
-    return { ...나머지, status: 'CONFIRMED', byPerson: true };
-  });
-  return { items, lastNo: 앞?.lastNo ?? 0 };
 }
 
 /**

@@ -1,6 +1,6 @@
 // 「API 문서」 화면과 작성 요청이 서버를 부르는 호출 모음. 응답 모양은 admin 의 apidoc/routes.ts 를 그대로 옮겼다 (도메인/API §7)
 
-import { call, json } from './api.js';
+import { call } from './api.js';
 
 export interface ApiDocVersionRow {
   version: number;
@@ -57,7 +57,4 @@ export const apiDocApi = {
       headers: { 'content-type': 'application/octet-stream' },
       body: file,
     }),
-  /** 「바뀐 API N건 테스트에 반영」 — 작성 요청 하나를 세운다 (도메인/API §3.8 「바뀐 API 만 다시 작성」) */
-  rewrite: (id: number, version: number, fromVersion: number, env: string, operations: { method: string; path: string }[]) =>
-    call<{ requestId: number }>(`${앞(id)}/${String(version)}/rewrite`, json({ fromVersion, env, operations })),
 };

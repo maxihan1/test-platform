@@ -17,15 +17,8 @@ export interface PrdNow {
   /** 0 이면 아직 표준 기획서가 없다 */
   version: number;
   items: PrdItem[];
-  /** 지도 ① — 번호마다 덮는 활성 케이스. 추적표 칸이 세고, 반영 칸이 바뀔 수 있는 케이스를 쓰는 E2E 시나리오를 찾는다 */
+  /** 지도 ① — 번호마다 덮는 활성 케이스. 추적표 칸이 센다 */
   cases: Record<string, 덮는케이스[]>;
-  unapplied: { changed: string[]; added: string[]; removed: string[] };
-  needsCheck: { count: number; oldestSince: string | null };
-  /** 「PRD 에 없는 화면」 — 찾은 화면 가운데 지도로 닿지 않는 화면(상태 · 같은 틀 차례). foundScreens 는 찾은 화면 수 */
-  uncoveredScreens: { state: string; url: string; name: string }[];
-  foundScreens: number;
-  /** 열린 화면만 요청 번호들 — 카드 아래 「#N 요청 보기」 고리 */
-  screensOpen: number[];
   held: PrdHeld;
   /** 요구 번호 → 그 요구를 근거로 든 성능 목표 수와 최근 판정. 실행 read 가 없으면 {} (도메인/성능 §3.9 「추적표」) */
   perf: Record<string, 성능칸>;
@@ -37,11 +30,25 @@ export interface 성능칸 {
   runId: number | null;
 }
 
+/** 버전 기록의 「바뀐 것」 한 줄 — 결정 진행 · 화면이 맞음이 올린 버전만 서버가 적는다 (prd/changes.ts) */
+export interface PrdVersionChange {
+  kind: 'EDIT' | 'PICK' | 'CONFIRM';
+  reqId: string;
+  text: string | null;
+  asset: string | null;
+  tcId: string | null;
+}
+
 export interface PrdVersionRow {
   version: number;
-  source: 'AGENT' | 'PERSON' | 'REVERT';
+  source: 'AGENT' | 'PERSON' | 'REVERT' | 'DECISION';
   savedByName: string;
   savedAt: string;
+  requestId: number | null;
+  /** 그 AI 작성이 테스트 작성 「결정 필요」에서 세운 것인가 */
+  fromDecision: boolean;
+  /** null 이면 앞 버전과 견줘 화면이 계산한다 */
+  changes: PrdVersionChange[] | null;
 }
 
 /** 보내는 항목. 새 항목은 번호가 없다 — 번호 · checkSince · byPerson 은 서버가 매긴다 */
@@ -58,14 +65,9 @@ export const prdApi = {
   version: (service: string, version: number) => call<{ version: number; items: PrdItem[] }>(`/prd/versions/${String(version)}${꼬리(service)}`),
   save: (service: string, baseVersion: number, items: PrdItemDraft[]) =>
     call<{ version: number }>(`/prd${꼬리(service)}`, { ...json({ baseVersion, items }), method: 'PUT' }),
-  confirm: (service: string, baseVersion: number, reqIds: string[]) =>
-    call<{ version: number }>(`/prd/confirm${꼬리(service)}`, json({ baseVersion, reqIds })),
   revert: (service: string, baseVersion: number, toVersion: number) =>
     call<{ version: number }>(`/prd/revert${꼬리(service)}`, json({ baseVersion, toVersion })),
   wordExport: (service: string) => 파일받기(`/prd/export${꼬리(service)}&format=docx`),
   /** 요구사항 추적표 엑셀. 마지막 결과 칸은 실행 read 가 있어야 찬다 */
   rtmExport: (service: string) => 파일받기(`/prd/export${꼬리(service)}&format=xlsx`),
-  /** 「바뀐 요구 N건 테스트에 반영」 — 작성 요청 하나를 세운다. 실패 카드의 「화면이 맞음」은 screenRight 를 실어 같은 통로를 쓴다. 그 PR 이 병합돼야 반영 안 됨이 준다 */
-  apply: (service: string, body: { screenRight?: { runId: number; tcId: string } } = {}) =>
-    call<{ id: number; waitsFor: number[] }>(`/prd/apply${꼬리(service)}`, json(body)),
 };

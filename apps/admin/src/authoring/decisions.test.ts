@@ -1,4 +1,4 @@
-// 결정 목록 · 결정 진행 통로 — 항목과 고르기 · 진행 차례 · 뒤 요청이 앞 작성을 기다리는 집기 (도메인/작성 §3.6 「★ 결정 목록」 · §7 「결정 목록 통로」)
+// 결정 목록 · 결정 진행 통로 — 항목과 고르기 · 진행 차례 · 뒤 요청이 앞 작성을 기다리는 집기 · 화면이 맞음 · 버그 (도메인/작성 §3.6 「★ 결정 목록」 · §7 「결정 목록 통로」)
 
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -43,6 +43,26 @@ describe.skipIf(연결 === undefined)('결정 목록 · 결정 진행', () => {
   const 진행 = (payload: object) => app.inject({ method: 'POST', url: `/api/authoring/decisions/run?service=${접두사}`, payload });
   const 요청수 = async () => Number((await q<{ n: string }>('SELECT count(*) AS n FROM authoring_request WHERE service_id = $1', [서비스])).rows[0]!.n);
   const params = async (id: number) => (await q<{ params: Record<string, unknown> }>('SELECT params FROM authoring_request WHERE id = $1', [id])).rows[0]!.params;
+  /** 활성 케이스 하나가 확정 요구 하나를 덮는 판 1 */
+  const 케이스넣기 = async () => {
+    await q(`INSERT INTO test_case (tc_id, name, file_path, param_schema, expected_schema, is_active) VALUES ($1, '검사', 'tests/xwx/a.spec.ts', '{}', '{}', true)`, [케이스]);
+    await q(`INSERT INTO req_case (service_id, req_id, tc_id, axis) VALUES ($1, 'XWX-REQ-001', $2, '정상')`, [서비스, 케이스]);
+    await 판저장(0, [{ feature: '주문', text: '주문은 취소할 수 있다', basis: [근거('기획서.docx', '취소')], status: 'CONFIRMED' }]);
+  };
+  const 실행넣기 = async (status = 'FINISHED', 항목 = 'FAIL'): Promise<number> => {
+    const r = await q<{ run_id: string }>(
+      `INSERT INTO test_run (title, triggered_by, env, status, service_id, service_name, tests_repo, base_url, kind, finished_at)
+       VALUES ('XWX 실행', 'xwx', 'qa', $2, $1, 'XWX', '', '', 'FN', CASE WHEN $2 = 'RUNNING' THEN NULL ELSE now() END) RETURNING run_id`,
+      [서비스, status],
+    );
+    const runId = Number(r.rows[0]!.run_id);
+    await q(
+      `INSERT INTO run_item (run_id, tc_id, platform, tc_name, file_path, params, expected, param_schema, expected_schema, status, attempt, finished_at)
+       VALUES ($1, $2, 'chromium', '검사', '', '{}', '{}', '{}', '{}', $3, 1, now())`,
+      [runId, 케이스, 항목],
+    );
+    return runId;
+  };
 
   const 치우기 = async () => {
     await q('DELETE FROM run_case_bug WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = $1)', [서비스]);
@@ -181,20 +201,8 @@ describe.skipIf(연결 === undefined)('결정 목록 · 결정 진행', () => {
   });
 
   it('실패 판정 — 실행 read 가 없으면 항목이 없고 403, 실행 write 가 없으면 버그를 못 고른다. 버그를 남기면 목록에서 빠지고 화면이 맞음으로 바꿀 수 있다', async () => {
-    await q(`INSERT INTO test_case (tc_id, name, file_path, param_schema, expected_schema, is_active) VALUES ($1, '검사', 'tests/xwx/a.spec.ts', '{}', '{}', true)`, [케이스]);
-    await q(`INSERT INTO req_case (service_id, req_id, tc_id, axis) VALUES ($1, 'XWX-REQ-001', $2, '정상')`, [서비스, 케이스]);
-    await 판저장(0, [{ feature: '주문', text: '주문은 취소할 수 있다', basis: [근거('기획서.docx', '취소')], status: 'CONFIRMED' }]);
-    const 실행 = await q<{ run_id: string }>(
-      `INSERT INTO test_run (title, triggered_by, env, status, service_id, service_name, tests_repo, base_url, kind, finished_at)
-       VALUES ('XWX 실행', 'xwx', 'qa', 'FINISHED', $1, 'XWX', '', '', 'FN', now()) RETURNING run_id`,
-      [서비스],
-    );
-    const runId = Number(실행.rows[0]!.run_id);
-    await q(
-      `INSERT INTO run_item (run_id, tc_id, platform, tc_name, file_path, params, expected, param_schema, expected_schema, status, attempt, finished_at)
-       VALUES ($1, $2, 'chromium', '검사', '', '{}', '{}', '{}', '{}', 'FAIL', 1, now())`,
-      [runId, 케이스],
-    );
+    await 케이스넣기();
+    const runId = await 실행넣기();
     const key = `fail:${String(runId)}:${케이스}`;
 
     사람 = { role: 'member', 권한: { cases: 'read', runs: 'none', authoring: 'write' } };
@@ -224,6 +232,45 @@ describe.skipIf(연결 === undefined)('결정 목록 · 결정 진행', () => {
     });
     const 또 = await 진행({ prdVersion: 1, picks: [{ key, pick: 'SCREEN' }] });
     expect([또.statusCode, 또.json()]).toEqual([409, { error: 'DECISIONS_STALE' }]);
+  });
+
+  it('반영 안 됨이 0 이면 ③ 에 바뀐 요구가 없고, 화면이 맞음은 그래도 서서 누른 사람 · 때를 달고 열린 작성이 끝날 때까지 안 집힌다', async () => {
+    await 케이스넣기();
+    const 병합된 = await 넣기({ status: 'DONE' });
+    await q('UPDATE authoring_request SET prd_version = 1 WHERE id = $1', [병합된]);
+    await 넣기({ kind: 'MERGE', status: 'DONE', source: 병합된 });
+    const 열린 = await 넣기({ status: 'PENDING' });
+    const runId = await 실행넣기();
+    const key = `fail:${String(runId)}:${케이스}`;
+    expect((await 목록()).items.map((x) => x.key)).toEqual([key]);
+
+    const r = await 진행({ prdVersion: 1, picks: [{ key, pick: 'SCREEN' }] });
+    const 단계 = (r.json() as { steps: { step: number; key: string; requestId: number }[] }).steps;
+    expect(단계.map((s) => [s.step, s.key])).toEqual([[4, key]]);
+    const id = 단계[0]!.requestId;
+    expect(await params(id)).toEqual({
+      prdApply: true,
+      screenRight: [{ runId, tcId: 케이스, env: 'qa', reqIds: ['XWX-REQ-001'], byName: '검사', at: expect.any(String) }],
+      decision: { after: [열린], count: 1 },
+    });
+    expect((await 집기(서비스, 'xwx-agent'))?.id).toBe(열린);
+    expect(await 집기(서비스, 'xwx-agent')).toBeNull();
+    await q(`UPDATE authoring_request SET status = 'FAILED' WHERE id = $1`, [열린]);
+    expect((await 집기(서비스, 'xwx-agent'))?.id).toBe(id);
+  });
+
+  it('목록에 없는 실패는 버그 · 화면이 맞음 모두 409 이고 아무것도 안 남긴다 — 도는 실행 · 통과한 실행 · 없는 실행', async () => {
+    await 케이스넣기();
+    const 도는 = await 실행넣기('RUNNING');
+    const 통과 = await 실행넣기('FINISHED', 'PASS');
+    for (const runId of [도는, 통과, 999_999_999]) {
+      for (const pick of ['BUG', 'SCREEN']) {
+        const r = await 진행({ prdVersion: 1, picks: [{ key: `fail:${String(runId)}:${케이스}`, pick }] });
+        expect([r.statusCode, r.json()], `${String(runId)} ${pick}`).toEqual([409, { error: 'DECISIONS_STALE' }]);
+      }
+    }
+    expect(await 요청수()).toBe(0);
+    expect((await q('SELECT 1 FROM run_case_bug WHERE run_id = ANY($1)', [[도는, 통과]])).rowCount).toBe(0);
   });
 
   it('바뀐 요구 다시 만들기를 두 번 보내면 둘째는 열린 작성에 막혀 요청이 하나만 선다 · 만들기 통로는 params.decision 을 400 BAD_DECISION', async () => {

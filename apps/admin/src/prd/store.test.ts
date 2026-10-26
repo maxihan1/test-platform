@@ -1,4 +1,4 @@
-// 표준 기획서 판 저장소 — 판 이력 · 낡은 판 거절 · 되돌리기 · 옮기기 · 기준 판 · 반영 세우기 (도메인/작성 §3.6 「★ 표준 기획서」)
+// 표준 기획서 판 저장소 — 판 이력 · 낡은 판 거절 · 되돌리기 · 옮기기 · 기준 판 (도메인/작성 §3.6 「★ 표준 기획서」)
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
@@ -76,10 +76,10 @@ describe.skipIf(연결 === undefined)('표준 기획서 저장소', () => {
     expect(await s.사람저장(서비스, 접두사, 1, 지금!.items, 사람)).toEqual({ version: 1 });
   });
 
-  it('일괄 확정과 되돌리기도 새 판이다 — 되돌린 판은 옛 판 항목을 복사한다', async () => {
+  it('되돌리기도 새 판이다 — 되돌린 판은 옛 판 항목을 복사한다', async () => {
     const s = await 저장소();
     await s.사람저장(서비스, 접두사, 0, [새것('20개까지', 'NEEDS_CHECK')], 사람);
-    expect(await s.일괄확정(서비스, 1, ['XPS-REQ-001'], 사람)).toEqual({ version: 2 });
+    expect(await s.사람저장(서비스, 접두사, 1, [{ ...새것('20개까지'), reqId: 'XPS-REQ-001' }], 사람)).toEqual({ version: 2 });
     expect((await s.지금판(서비스))?.items[0]).toMatchObject({ status: 'CONFIRMED', byPerson: true });
     expect(await s.되돌리기(서비스, 접두사, 2, 1, 사람)).toEqual({ version: 3 });
     expect((await s.지금판(서비스))?.items[0]).toMatchObject({ status: 'NEEDS_CHECK' });
@@ -100,22 +100,11 @@ describe.skipIf(연결 === undefined)('표준 기획서 저장소', () => {
 
   it('기준 판은 가장 최근에 병합된 반영이 병합한 작성 실행이 읽은 판이다. 없으면 전부 반영 안 됨', async () => {
     const s = await 저장소();
-    expect(await (await import('./apply.js')).반영세우기(서비스, 사람)).toEqual({ error: 'NOTHING_TO_APPLY' });
     await s.사람저장(서비스, 접두사, 0, [새것('20개까지')], 사람);
     expect(await s.기준판(서비스)).toBeNull();
     const 뿌리 = await 요청넣기('AUTHOR', { status: 'DONE', prd: 1 });
     await 요청넣기('MERGE', { source: 뿌리, status: 'DONE' });
     expect(await s.기준판(서비스)).toMatchObject({ version: 1, items: [{ reqId: 'XPS-REQ-001' }] });
-    expect(await (await import('./apply.js')).반영세우기(서비스, 사람)).toEqual({ error: 'NOTHING_TO_APPLY' });
-
-    await s.사람저장(서비스, 접두사, 1, [{ ...새것('30개까지'), reqId: 'XPS-REQ-001' }], 사람);
-    const 세움 = await (await import('./apply.js')).반영세우기(서비스, 사람);
-    expect(세움).toHaveProperty('id');
-    const 행 = await q<{ kind: string; status: string; params: object; source_id: string | null }>(
-      'SELECT kind, status, params, source_id FROM authoring_request WHERE id = $1',
-      ['id' in 세움 ? 세움.id : 0],
-    );
-    expect(행.rows[0]).toEqual({ kind: 'AUTHOR', status: 'PENDING', params: { prdApply: true }, source_id: null });
   });
 
   it('케이스 고치기의 병합은 기준이 못 된다', async () => {

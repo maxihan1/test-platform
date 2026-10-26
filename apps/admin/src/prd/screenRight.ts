@@ -1,11 +1,7 @@
-// 「화면이 맞음」 반영 본문을 읽고 실행 · 지도로 params.screenRight 를 채운다 (도메인/작성 §7 apply 「본문 screenRight」 · §3.6 「화면이 맞음」)
-// 리포팅은 작성 요청을 직접 쓰지 않는다 — 실패 카드 버튼이 이 반영 통로를 부르고, 실행 표는 여기서 읽기만 한다 (도메인/리포팅 「실패 요구사항」)
-
-
-import { z } from 'zod';
+// 「화면이 맞음」 판정을 실행 · 지도로 params.screenRight 에 채운다 (도메인/작성 §3.6 「화면이 맞음」 · 「★ 결정 목록」 진행 4)
+// 리포팅은 작성 요청을 직접 쓰지 않는다 — 결정 진행(authoring/decisionRun.ts)이 이 채우기로 요청을 세우고, 실행 표는 여기서 읽기만 한다 (도메인/리포팅 「실패 요구사항」)
 
 import { 볼륨파일읽기 } from '../artifactFile.js';
-import { TCID } from '../catalog/rules.js';
 import { 종류조건 } from '../execution/runKind.js';
 import { 항목비밀 } from '../execution/trial.js';
 import { trace경로 } from '../execution/traceIngest.js';
@@ -27,23 +23,7 @@ export interface 화면이맞음 {
 export const 화면목록식 = (params: string) =>
   `CASE jsonb_typeof(${params}->'screenRight') WHEN 'array' THEN ${params}->'screenRight' WHEN 'object' THEN jsonb_build_array(${params}->'screenRight') ELSE '[]'::jsonb END`;
 
-// 빈 본문 · {} 는 보통 반영이다 — 「PRD 관리」 버튼이 json({}) 를 보낸다
-const 본문꼴 = z.union([
-  z.object({}).strict(),
-  z.object({ screenRight: z.object({ runId: z.number().int().positive().max(Number.MAX_SAFE_INTEGER), tcId: z.string().regex(TCID) }).strict() }).strict(),
-]);
-
-/** 본문을 읽는다. 꼴이 틀리면 null — 라우트가 400 INVALID_REQUEST 로 돌려보낸다 */
-export function 반영본문(body: unknown): { screenRight?: { runId: number; tcId: string } } | null {
-  const r = 본문꼴.safeParse(body ?? {});
-  return r.success ? r.data : null;
-}
-
-type 채움오류 =
-  | { code: 404; error: 'RUN_NOT_FOUND' }
-  | { code: 409; error: 'RUN_NOT_FINISHED' }
-  | { code: 400; error: 'NOT_FAILED' }
-  | { code: 409; error: 'NO_PRD_REQ' };
+type 채움오류 = { error: 'RUN_NOT_FOUND' | 'RUN_NOT_FINISHED' | 'NOT_FAILED' | 'NO_PRD_REQ' };
 
 /**
  * 실행이 있고 같은 서비스의 케이스 실행이며 끝났고, 그 케이스의 실패 항목이 있으면 params.screenRight 를 채운다.
@@ -58,16 +38,16 @@ export async function 화면이맞음채우기(서비스: number, runId: number,
     [runId, 서비스, tcId],
   );
   const 행 = 실행.rows[0];
-  if (행 === undefined) return { code: 404, error: 'RUN_NOT_FOUND' };
-  if (행.status === 'RUNNING') return { code: 409, error: 'RUN_NOT_FINISHED' };
-  if (!행.실패) return { code: 400, error: 'NOT_FAILED' };
+  if (행 === undefined) return { error: 'RUN_NOT_FOUND' };
+  if (행.status === 'RUNNING') return { error: 'RUN_NOT_FINISHED' };
+  if (!행.실패) return { error: 'NOT_FAILED' };
   const [판, 지도] = await Promise.all([
     지금판(서비스),
     pool.query<{ req_id: string }>('SELECT DISTINCT req_id FROM req_case WHERE service_id = $1 AND tc_id = $2', [서비스, tcId]),
   ]);
   const 덮는 = new Set(지도.rows.map((x) => x.req_id));
   const reqIds = (판?.items ?? []).map((x) => x.reqId).filter((번호) => 덮는.has(번호));
-  if (reqIds.length === 0) return { code: 409, error: 'NO_PRD_REQ' };
+  if (reqIds.length === 0) return { error: 'NO_PRD_REQ' };
   return { runId, tcId, env: 행.env, reqIds };
 }
 

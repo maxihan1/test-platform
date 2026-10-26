@@ -73,7 +73,7 @@ export const 껍데기말: Record<string, string> = {
   '{번호} / {전체} 단계 {이름}': 'Step {번호} / {전체} {이름}',
   '케이스 파일 {수}개': '{수} case files',
   'PRD 확인 필요 {수}건': '{수} PRD items to check',
-  'PRD 관리에서 확인': 'Check in PRD',
+  '결정 필요에서 확인': 'Check in Needs decision',
   '외 {수}건 — 알림 열기': '{수} more — open notifications',
   '모두 읽음으로': 'Mark all read',
   '안 읽음 {수}': 'Unread {수}',

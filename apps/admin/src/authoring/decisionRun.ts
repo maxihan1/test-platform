@@ -152,7 +152,7 @@ async function 하나준비(서비스: number, 항목: 결정항목, p: 받은�
       준.요구다시 = p.key;
       return null;
     case 'API_CHANGED': {
-      const 준비 = await 다시작성준비하기({ 서비스, from: 항목.fromVersion, to: 항목.toVersion, 고른: null, env: p.env });
+      const 준비 = await 다시작성준비하기({ 서비스, from: 항목.fromVersion, to: 항목.toVersion, env: p.env });
       if ('error' in 준비) return 준비.error === 'BAD_ENV' || 준비.error === 'NOTHING_TO_APPLY' ? 틀림(p.key) : 낡음;
       준.API = { key: p.key, 준비 };
       return null;

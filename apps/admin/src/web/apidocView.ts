@@ -43,11 +43,8 @@ export function 안거친응답(coverage: ApiCoverage): { method: string; path: 
     .filter((x) => x.codes.length > 0);
 }
 
-/** 판 비교의 바뀐 종류 → PRD 관리 「반영 안 됨」 카드와 같은 낱말 키 (PrdTodo `use반영종류글`) */
+/** 판 비교의 바뀐 종류 → PRD 관리와 같은 낱말 키 (prdWords `use반영종류글`) */
 export const 바뀐종류 = { CHANGED: 'changed', NEW: 'added', REMOVED: 'removed' } as const satisfies Record<ApiDocChange['change'], string>;
-
-/** 테스트에 반영할 줄 — 지운 API 는 다시 쓸 케이스가 없다. 그 케이스는 PR 에 삭제 제안으로만 적힌다 (도메인/API §3.8) */
-export const 반영할줄 = (changes: ApiDocChange[]): ApiDocChange[] => changes.filter((c) => c.change !== 'REMOVED');
 
 /** 버전이 어디서 왔나 — 대상 서버에서 받았거나 파일로 올렸다 */
 export function 받은곳(v: ApiDocVersionRow, t: (키: string, 값?: Record<string, string | number>) => string): string {

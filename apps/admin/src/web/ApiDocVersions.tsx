@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { apiDocApi, type ApiDocVersionRow } from './apiDocApi.js';
 import { 바뀐종류, 받은곳 } from './apidocView.js';
 import { use말, use언어 } from './i18n.js';
-import { use반영종류글 } from './PrdTodo.js';
+import { use반영종류글 } from './prdWords.js';
 import { Failed, Loading, useAsync, when } from './ui.js';
 
 // 앞 몇 줄은 열자마자 바뀐 것을 센다 — PRD 버전 기록(바로계산)과 같은 까닭. 그 아래는 누를 때 읽는다

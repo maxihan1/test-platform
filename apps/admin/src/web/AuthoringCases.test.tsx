@@ -137,12 +137,12 @@ describe('다음 단계의 만든 케이스 확인', () => {
     expect(screen.queryByRole('button', { name: '만든 케이스 보기' })).toBeNull();
   });
 
-  it('차이 항목 설명은 PRD 관리에서 정하라고 하고 다른 곳 보기 · PRD 관리로 가기를 낸다', () => {
+  it('차이 항목 설명은 결정 필요에서 정하라고 하고 다른 곳 보기 · 결정 필요로 가기를 낸다', () => {
     render(<AuthoringTodo service="PAY" 요청={줄({})} 할수={운영} 차이수={2} reload={reload} />);
     expect(screen.getByText('기획서와 다른 곳 2건 확인')).toBeTruthy();
-    expect(screen.getByText(/PRD 관리에서 어느 쪽이 맞는지 정하세요\./)).toBeTruthy();
+    expect(screen.getByText(/결정 필요에서 어느 쪽이 맞는지 정하세요\./)).toBeTruthy();
     expect(screen.getByRole('button', { name: '다른 곳 보기' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'PRD 관리로 가기' }).getAttribute('href')).toBe('#/prd');
+    expect(screen.getByRole('link', { name: '결정 필요로 가기' }).getAttribute('href')).toBe('#/authoring?todo=1');
   });
 });
 

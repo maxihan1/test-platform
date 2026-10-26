@@ -78,10 +78,20 @@ export const PRD항목주소 = (reqId: string) => `#/prd/${encodeURIComponent(re
  */
 export function 주소의서비스(주소: string, 배정: ServiceRow[]): string | null {
   const 지금 = route(주소);
-  if (지금.name !== 'prd' || 지금.reqId === undefined) return null;
-  const 접두사 = 지금.reqId.slice(0, 지금.reqId.indexOf('-REQ-'));
-  return 배정.some((service) => service.prefix === 접두사) ? 접두사 : null;
+  const 접두사 =
+    지금.name === 'prd' && 지금.reqId !== undefined
+      ? 지금.reqId.slice(0, 지금.reqId.indexOf('-REQ-'))
+      : 지금.name === 'authoring'
+        ? new URLSearchParams(주소.split('?')[1] ?? '').get('service')
+        : null;
+  return 접두사 !== null && 배정.some((service) => service.prefix === 접두사) ? 접두사 : null;
 }
+
+/**
+ * 그 애플리케이션의 「결정 필요」 주소. 실패 카드는 다른 애플리케이션 실행에서도 판정하러 보낸다 — 띠로 열면 띠 애플리케이션의 결정 목록이라 그 실패가 없다.
+ * 띠는 위 주소의서비스 가 맞추고, 목록은 열자마자 주소 조건을 todo 만 남겨 다시 쓴다
+ */
+export const 결정필요주소 = (접두사: string) => `#/authoring?todo=1&service=${encodeURIComponent(접두사)}`;
 
 /**
  * 주소 조각을 푼다. 깨진 % 꼴(`%` · `%E0`)이면 null — 그 주소는 「없는 주소」다.

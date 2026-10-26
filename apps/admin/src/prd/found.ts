@@ -1,7 +1,6 @@
-// 「PRD 에 없는 화면」 셈 — 찾은 화면 가운데 지도로 닿지 않는 틀과 그 화면을 작성 중인 요청 (도메인/작성 §7 GET /api/prd)
+// 「PRD 에 없는 화면」 셈 — 찾은 화면 가운데 지도로 닿지 않는 틀 (도메인/작성 §3.6 「★ 결정 목록」 ③ 미검증 화면)
 
 import { 주소틀, 틀닿나 } from '../../../../scripts/authoring-crawl-rules.js';
-import { 열린화면요청 } from '../authoring/uncovered.js';
 import { db } from '../settings/store.js';
 
 export interface 없는화면 {
@@ -12,8 +11,6 @@ export interface 없는화면 {
 
 export interface 찾은화면셈 {
   uncoveredScreens: 없는화면[];
-  foundScreens: number;
-  screensOpen: number[];
 }
 
 /**
@@ -23,7 +20,7 @@ export interface 찾은화면셈 {
  */
 export async function 찾은화면셈(서비스: number): Promise<찾은화면셈> {
   const pool = await db();
-  const [찾음, 틀들, 열림] = await Promise.all([
+  const [찾음, 틀들] = await Promise.all([
     // 대상 서버는 합친다 — 화면 파일은 서버를 모른다. 이름은 빈 것보다 있는 것 (PRD-F9-29)
     pool.query<{ state: string; url: string; name: string }>(
       `SELECT state, url, max(name) AS name FROM screen_found WHERE service_id = $1
@@ -40,12 +37,7 @@ export async function 찾은화면셈(서비스: number): Promise<찾은화면�
         WHERE s.id = $1 AND u.url IS NOT NULL`,
       [서비스],
     ),
-    열린화면요청(서비스),
   ]);
   const 닿는틀 = new Set(틀들.rows.map((x) => 주소틀(x.screen_url)).filter((x): x is string => x !== null));
-  return {
-    uncoveredScreens: 찾음.rows.filter((x) => !틀닿나(x.url, 닿는틀)),
-    foundScreens: 찾음.rowCount ?? 0,
-    screensOpen: 열림,
-  };
+  return { uncoveredScreens: 찾음.rows.filter((x) => !틀닿나(x.url, 닿는틀)) };
 }

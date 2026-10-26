@@ -42,7 +42,7 @@ export interface 반영계획 {
   화면이맞음?: { runId: number; tcId: string; env: string; 번호들: { 번호: string; 문장: string; 케이스: { tcId: string; 축: 축 }[] }[] }[];
 }
 
-/** 요청 params.screenRight 목록의 한 칸 — 서버가 반영 통로에서 채웠다. env 는 그 실행의 대상 서버 (작성 §7 apply 「본문 screenRight」) */
+/** 요청 params.screenRight 목록의 한 칸 — 서버가 결정 진행에서 채웠다. env 는 그 실행의 대상 서버 (작성 §7 apply 「본문 screenRight」) */
 export interface 화면이맞음요청 {
   runId: number;
   tcId: string;
@@ -55,7 +55,7 @@ export interface 반영입력 {
   사본: string;
 }
 
-/** 반영 요청인가 — 서버가 반영 통로로만 세운 행이고 재실행 · 이어서 작성은 원본에서 물려받는다 (작성 §7 「표준 기획서 통로」) */
+/** 반영 요청인가 — 서버가 결정 진행으로만 세운 행이고 재실행 · 이어서 작성은 원본에서 물려받는다 (작성 §7 「표준 기획서 통로」) */
 export function 반영요청인가(것: { params?: unknown }): boolean {
   return (것.params as { prdApply?: unknown } | undefined)?.prdApply === true;
 }

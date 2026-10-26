@@ -1,12 +1,11 @@
-// 「PRD 관리」의 서비스 지도 — 편 요구 줄의 「거치는 API」와 할 일 칸 아래 「케이스가 안 거친 API」 카드 (도메인/작성 §3.6 「서비스 지도」 · 2026-10-16 시안)
+// 「PRD 관리」의 서비스 지도 — 편 요구 줄의 「거치는 API」 (도메인/작성 §3.6 「서비스 지도」 · 2026-10-16 시안)
 // 요구 → API 는 지도 ①(GET /prd 의 cases)과 지도 API 의 케이스 줄을 tcId 로 잇는다. 관찰한 API 라 기대값의 근거가 아니다
 
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 import type { API줄 as 주소, 지도API } from '../prd/apiMap.js';
 import type { 덮는케이스 } from '../prd/trace.js';
-import { use말, use언어 } from './i18n.js';
-import { when } from './ui.js';
+import { use말 } from './i18n.js';
 
 export interface 거치는줄 {
   method: string;
@@ -66,44 +65,6 @@ export function 거치는API({ 줄들 }: { 줄들: 거치는줄[] }) {
           ))}
         </ul>
       </details>
-    </section>
-  );
-}
-
-/** 지도가 아직 비었으면(실행 · 화면 훑기 전) 카드를 안 그린다 */
-export function 안거친API카드({ apis }: { apis: 지도API[] }) {
-  const t = use말();
-  const 언어 = use언어();
-  // 수십 개가 한꺼번에 펴지면 아래 요구 목록이 화면 밖으로 밀린다 — 접어 두고 제목 옆에 개수만 보인다 (점검 8.6)
-  const [폈나, set폈나] = useState(false);
-  if (apis.length === 0) return null;
-  const 안거친 = apis.filter((a) => a.cases.length === 0);
-  return (
-    <section className="prd-card prd-untested" aria-labelledby="prd-untested-title">
-      <header>
-        <h2 id="prd-untested-title">{t('케이스가 안 거친 API {건수}개', { 건수: 안거친.length })}</h2>
-        <small>{t('이 애플리케이션에서 본 API {전체}개 중 아직 어떤 케이스도 부르지 않은 API 입니다', { 전체: apis.length })}</small>
-        {안거친.length === 0 ? null : (
-          <button type="button" className="btn ghost small" aria-expanded={폈나} onClick={() => set폈나(!폈나)}>
-            {폈나 ? t('접기') : t('펴기')}
-          </button>
-        )}
-      </header>
-      {안거친.length === 0 ? (
-        <p className="prd-card-empty">{t('본 API 를 모두 케이스가 거칩니다')}</p>
-      ) : !폈나 ? null : (
-        <ul className="prd-apis">
-          {안거친.map((a) => (
-            <API줄 key={`${a.method} ${a.host}${a.path}`} a={a}>
-              <span className="prd-api-via">
-                {a.screens[0] === undefined
-                  ? t('마지막 {때}', { 때: when(a.lastSeen, 언어) })
-                  : t('화면 {주소} 에서 봤습니다 · 마지막 {때}', { 주소: a.screens[0].url, 때: when(a.lastSeen, 언어) })}
-              </span>
-            </API줄>
-          ))}
-        </ul>
-      )}
     </section>
   );
 }

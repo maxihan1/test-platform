@@ -3,14 +3,12 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import prdRoutes from '../prd/routes.js';
 import authoringAssetRoutes from './assets.js';
 import { 열린작성, 케이스쓴열린작성 } from './openRoots.js';
 import authoringRoutes from './routes.js';
 
 const 연결 = process.env.DATABASE_URL;
 const 접두사 = 'XWD';
-const 근거 = [{ from: '기획서.docx', ref: 'REQ-CART-1', quote: '장바구니는 20개까지 담는다' }];
 
 describe.skipIf(연결 === undefined)('서버 막기 — 열린 작성', () => {
   let app: FastifyInstance;
@@ -53,7 +51,6 @@ describe.skipIf(연결 === undefined)('서버 막기 — 열린 작성', () => {
     });
     await app.register(authoringRoutes, { prefix: '/api' });
     await app.register(authoringAssetRoutes, { prefix: '/api' });
-    await app.register(prdRoutes, { prefix: '/api' });
     await app.ready();
   });
 
@@ -63,19 +60,6 @@ describe.skipIf(연결 === undefined)('서버 막기 — 열린 작성', () => {
     await app.close();
     await 치우기();
     await q('DELETE FROM service WHERE id = $1', [서비스]);
-  });
-
-  it('#14679 꼴 — 첫 작성이 끝났고 반영 전이면 PRD 를 저장한 뒤 반영 요청을 409 AUTHORING_OPEN 으로 거절한다', async () => {
-    const 첫 = await 넣기({ status: 'DONE' });
-    await app.inject({
-      method: 'PUT',
-      url: `/api/prd?service=${접두사}`,
-      payload: { baseVersion: 0, items: [{ feature: '장바구니', text: '20개까지', basis: 근거, status: 'CONFIRMED' }] },
-    });
-    const r = await 부르기('/prd/apply');
-    expect([r.statusCode, r.json()]).toEqual([409, { error: 'AUTHORING_OPEN', detail: [첫] }]);
-    const 선것 = await q<{ n: string }>('SELECT count(*) AS n FROM authoring_request WHERE service_id = $1', [서비스]);
-    expect(선것.rows[0]?.n).toBe('1');
   });
 
   it('열린 작성은 대기 · 도는 중 · 끝났고 반영 전 · 반영 중 · 반영 실패 · 고치기이고, 작성 실패 · 중단 · 초안 · 병합 · 폐기는 아니다', async () => {

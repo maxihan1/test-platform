@@ -27,8 +27,8 @@ beforeEach(() => {
   저장.mockClear();
   판들.mockReset();
   판들.mockResolvedValue([
-    { version: 12, source: 'PERSON', savedByName: '한지수', savedAt: '2026-10-09T08:42:00.000Z' },
-    { version: 11, source: 'AGENT', savedByName: '작성 에이전트', savedAt: '2026-10-01T00:12:00.000Z' },
+    { version: 12, source: 'PERSON', savedByName: '한지수', savedAt: '2026-10-09T08:42:00.000Z', requestId: null, fromDecision: false, changes: null },
+    { version: 11, source: 'AGENT', savedByName: '작성 에이전트', savedAt: '2026-10-01T00:12:00.000Z', requestId: 14681, fromDecision: false, changes: null },
   ]);
   되돌림.mockClear();
   // 버전마다 첫 요구의 문장이 달라 앞 버전과 견주면 늘 「바뀜 1건」이다
@@ -98,6 +98,40 @@ describe('PRD 관리 — 고치기', () => {
     expect(보낸것[1]).toMatchObject({ reqId: 'MKT-REQ-032', text: '아이디 칸에는 12자까지 들어간다', status: 'CONFIRMED', basis: 아이디칸.basis });
     expect(await screen.findByText('저장했습니다 (버전 13)')).toBeTruthy();
     await vi.waitFor(() => expect(screen.queryByLabelText('요구 문장')).toBeNull());
+  });
+
+  it('요구 문장을 고쳐 저장하면 그 줄 아래에 결정 필요로 가는 고리가 한 번 뜬다', async () => {
+    await 펴서고치기(/회원가입/, /MKT-REQ-031/);
+    fireEvent.change(screen.getByLabelText('요구 문장'), { target: { value: '아이디는 영문 소문자·숫자 4~14자이다' } });
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    const 고리 = await screen.findByRole('link', { name: '테스트 작성 › 결정 필요에서 테스트를 다시 만들 수 있어요 →' });
+    expect(고리.getAttribute('href')).toBe('#/authoring?todo=1');
+    expect(고리.closest('.prd-item')?.id).toBe('prd-item-MKT-REQ-031');
+    expect(screen.getAllByRole('link', { name: /테스트를 다시 만들 수 있어요/ })).toHaveLength(1);
+  });
+
+  it('상태만 바꾸거나 지우는 저장에는 고리가 안 뜬다', async () => {
+    await 펴서고치기(/회원가입/, /MKT-REQ-032/);
+    fireEvent.change(screen.getByLabelText('상태'), { target: { value: 'CONFIRMED' } });
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    await screen.findByText('저장했습니다 (버전 13)');
+    await vi.waitFor(() => expect(screen.queryByLabelText('요구 문장')).toBeNull());
+    expect(screen.queryByRole('link', { name: /테스트를 다시 만들 수 있어요/ })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: '고치기' }));
+    fireEvent.click(screen.getByRole('button', { name: '이 요구 지우기' }));
+    fireEvent.click(screen.getByRole('button', { name: '지우기 확인' }));
+    await vi.waitFor(() => expect(저장).toHaveBeenCalledTimes(2));
+    expect(screen.queryByRole('link', { name: /테스트를 다시 만들 수 있어요/ })).toBeNull();
+  });
+
+  it('저장이 실패하면 고리가 안 뜬다', async () => {
+    저장.mockRejectedValueOnce(new ApiError(409, 'PRD_STALE', ''));
+    await 펴서고치기(/회원가입/, /MKT-REQ-031/);
+    fireEvent.change(screen.getByLabelText('요구 문장'), { target: { value: '고치다 만 글' } });
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    await screen.findByRole('alert');
+    expect(screen.queryByRole('link', { name: /테스트를 다시 만들 수 있어요/ })).toBeNull();
   });
 
   it('고치던 줄을 접으면 먼저 묻고, 버리고 접은 뒤 다시 펴면 고치기 전 모습이다', async () => {
@@ -180,12 +214,12 @@ describe('PRD 관리 — 고치기', () => {
     expect(저장.mock.calls[0]![2][4]).toMatchObject({ status: 'NEEDS_CHECK', basis: [{ from: '직접 작성' }] });
   });
 
-  it('요구사항 추가 칸은 할 일 카드 위에서 열리고 기능 묶음 칸에 커서가 간다 (점검 8.5)', async () => {
+  it('요구사항 추가 칸은 전체 요구 위에서 열리고 기능 묶음 칸에 커서가 간다 (점검 8.5)', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
     fireEvent.click(await screen.findByRole('button', { name: '요구사항 추가' }));
     const 칸 = screen.getByRole('heading', { name: '새 요구' }).parentElement!;
-    const 확인 = screen.getByRole('region', { name: /확인 필요 2건/ });
-    expect(칸.compareDocumentPosition(확인) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const 전체 = screen.getByRole('region', { name: '전체 요구' });
+    expect(칸.compareDocumentPosition(전체) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(document.activeElement).toBe(within(칸).getByLabelText('기능 묶음'));
   });
 
@@ -206,100 +240,10 @@ describe('PRD 관리 — 고치기', () => {
   });
 
   it('판이 없을 때 요구사항 추가를 누르면 빈 화면 대신 새 요구 칸이 열린다', async () => {
-    지금.mockResolvedValue(판({ version: 0, items: [], unapplied: { changed: [], added: [], removed: [] }, needsCheck: { count: 0, oldestSince: null } }));
+    지금.mockResolvedValue(판({ version: 0, items: [] }));
     render(<Prd service="MKT" 할수={쓰는사람} />);
     fireEvent.click(await screen.findByRole('button', { name: '요구사항 추가' }));
     expect(screen.getByRole('heading', { name: '새 요구' })).toBeTruthy();
     expect(screen.queryByText('테스트 작성 요청으로 기획서를 올리거나, 요구사항 추가로 첫 요구를 직접 적습니다')).toBeNull();
-  });
-});
-
-describe('PRD 관리 — 버전 기록', () => {
-  it('작성 쓰기가 없으면 버전 기록은 보이고 복원은 아예 없다', async () => {
-    render(<Prd service="MKT" 할수={() => false} />);
-    fireEvent.click(await screen.findByRole('button', { name: '버전 기록' }));
-    expect(await screen.findByText('작성 에이전트 · AI 작성')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /복원/ })).toBeNull();
-  });
-
-  it('버전마다 누가 무엇으로 저장했는지 보이고 현재 버전에는 복원이 없다', async () => {
-    render(<Prd service="MKT" 할수={쓰는사람} />);
-    fireEvent.click(await screen.findByRole('button', { name: '버전 기록' }));
-    const 줄들 = (await screen.findAllByRole('row')).slice(1);
-    expect(within(줄들[0]!).getByText('한지수 · 직접 수정')).toBeTruthy();
-    expect(within(줄들[0]!).getByText('현재 버전')).toBeTruthy();
-    expect(within(줄들[1]!).getByText('작성 에이전트 · AI 작성')).toBeTruthy();
-  });
-
-  it('버전마다 앞 버전과 견준 바뀐 것을 한 줄로 보이고, 누르면 바뀐 요구가 펼쳐진다 (점검 8.8)', async () => {
-    한판.mockImplementation((_s, version) =>
-      Promise.resolve({ version, items: version === 11 ? [아이디, 아이디칸] : [아이디, { ...아이디칸, text: '아이디 칸에는 12자까지만 들어간다(고침)' }, 잠금] }),
-    );
-    render(<Prd service="MKT" 할수={쓰는사람} />);
-    fireEvent.click(await screen.findByRole('button', { name: '버전 기록' }));
-    const 줄들 = (await screen.findAllByRole('row')).slice(1);
-    const 요약 = await within(줄들[0]!).findByRole('button', { name: '바뀜 1건 · 새 항목 1건' });
-    expect(한판).toHaveBeenCalledWith('MKT', 11);
-    expect(한판).toHaveBeenCalledWith('MKT', 12);
-    expect(within(줄들[1]!).getByText('처음 버전')).toBeTruthy();
-    expect(within(줄들[0]!).queryByRole('list')).toBeNull();
-    fireEvent.click(요약);
-    const 목록 = within(줄들[0]!).getByRole('list', { name: '버전 12에서 바뀐 요구' });
-    const 항목들 = within(목록).getAllByRole('listitem').map((x) => x.textContent);
-    expect(항목들).toEqual([
-      '바뀜MKT-REQ-032아이디 칸에는 12자까지만 들어간다 → 아이디 칸에는 12자까지만 들어간다(고침)',
-      `새 항목MKT-REQ-041${잠금.text}`,
-    ]);
-  });
-
-  it('상태만 바뀐 요구는 따로 센다', async () => {
-    한판.mockImplementation((_s, version) =>
-      Promise.resolve({ version, items: [version === 11 ? 아이디칸 : { ...아이디칸, status: 'CONFIRMED' as const }] }),
-    );
-    render(<Prd service="MKT" 할수={쓰는사람} />);
-    fireEvent.click(await screen.findByRole('button', { name: '버전 기록' }));
-    const 줄들 = (await screen.findAllByRole('row')).slice(1);
-    fireEvent.click(await within(줄들[0]!).findByRole('button', { name: '상태만 바뀜 1건' }));
-    expect(within(줄들[0]!).getByText('확정으로 바뀜')).toBeTruthy();
-  });
-
-  it('글과 상태를 한 번에 고친 요구는 상태도 같이 적는다', async () => {
-    한판.mockImplementation((_s, version) =>
-      Promise.resolve({ version, items: [version === 11 ? 아이디칸 : { ...아이디칸, text: '고친 문장', status: 'CONFIRMED' as const }] }),
-    );
-    render(<Prd service="MKT" 할수={쓰는사람} />);
-    fireEvent.click(await screen.findByRole('button', { name: '버전 기록' }));
-    const 줄들 = (await screen.findAllByRole('row')).slice(1);
-    fireEvent.click(await within(줄들[0]!).findByRole('button', { name: '바뀜 1건' }));
-    expect(within(줄들[0]!).getByRole('listitem').textContent).toContain('고친 문장 · 확정으로 바뀜');
-  });
-
-  it('최근 열 개 밖의 버전은 누를 때만 읽는다', async () => {
-    판들.mockResolvedValue(
-      Array.from({ length: 12 }, (_, i): PrdVersionRow => ({ version: 12 - i, source: 'PERSON', savedByName: '한지수', savedAt: '2026-10-09T08:42:00.000Z' })),
-    );
-    render(<Prd service="MKT" 할수={쓰는사람} />);
-    fireEvent.click(await screen.findByRole('button', { name: '버전 기록' }));
-    const 줄들 = (await screen.findAllByRole('row')).slice(1);
-    expect(줄들).toHaveLength(12);
-    await within(줄들[0]!).findByRole('button', { name: '바뀜 1건' });
-    const 열한째 = within(줄들[10]!).getByRole('button', { name: '바뀐 것 보기' });
-    const 읽은 = 한판.mock.calls.length;
-    fireEvent.click(열한째);
-    await within(줄들[10]!).findByRole('button', { name: '바뀜 1건' });
-    expect(within(줄들[11]!).getByText('처음 버전')).toBeTruthy();
-    // 버전 2 는 앞 줄이 이미 읽어 다시 부르지 않고, 처음 버전 1 만 새로 읽는다
-    expect(한판.mock.calls.length).toBe(읽은 + 1);
-    expect(한판).toHaveBeenLastCalledWith('MKT', 1);
-  });
-
-  it('복원은 한 번 더 묻고, 확인하면 현재 버전 번호와 고른 버전을 보낸다', async () => {
-    render(<Prd service="MKT" 할수={쓰는사람} />);
-    fireEvent.click(await screen.findByRole('button', { name: '버전 기록' }));
-    fireEvent.click(await screen.findByRole('button', { name: '이 버전으로 복원' }));
-    expect(되돌림).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: '버전 11 복원 확인' }));
-    await vi.waitFor(() => expect(되돌림).toHaveBeenCalledWith('MKT', 12, 11));
-    expect(await screen.findByText('저장했습니다 (버전 13)')).toBeTruthy();
   });
 });

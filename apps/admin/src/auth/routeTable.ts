@@ -78,7 +78,6 @@ export const 등급표: Record<string, 표값> = {
   'POST /api/runs': 실행쓰기,
   'POST /api/runs/:runId/abort': 실행쓰기,
   'POST /api/runs/:runId/evidence': 실행쓰기,
-  'POST /api/runs/:runId/bugs': 실행쓰기,
 
   // E2E 시나리오는 실행 칸을 쓴다 (도메인/시나리오 §7 · 인증 §7 「등급으로 갈리는 자리」)
   'GET /api/scenarios': 실행읽기,
@@ -134,9 +133,7 @@ export const 등급표: Record<string, 표값> = {
   'GET /api/prd/export': 작성읽기,
   'GET /api/prd/apis': 작성읽기,
   'PUT /api/prd': 작성쓰기,
-  'POST /api/prd/confirm': 작성쓰기,
   'POST /api/prd/revert': 작성쓰기,
-  'POST /api/prd/apply': 작성쓰기,
   // 표준 기획서 읽기 · 올리기 — 작성 에이전트가 부른다. 라우트가 맥 계정 · 집은 쪽을 다시 본다
   'GET /api/authoring/requests/:id/prd': 작성쓰기,
   'POST /api/authoring/requests/:id/prd': 작성쓰기,
@@ -161,14 +158,13 @@ export const 등급표: Record<string, 표값> = {
   'PUT /api/guide': 작성쓰기,
   'POST /api/guide/files': 작성쓰기,
   'DELETE /api/guide/files/:fileId': 작성쓰기,
-  // API 문서 — 주소에 authoring 이 없지만 작성 기능이다. 보기는 작성 read, 올리기 · 받기 · 다시 작성은 작성 write (도메인/API §7)
+  // API 문서 — 주소에 authoring 이 없지만 작성 기능이다. 보기는 작성 read, 올리기 · 받기는 작성 write (도메인/API §7)
   'GET /api/services/:id/api-docs': 작성읽기,
   'GET /api/services/:id/api-docs/:version': 작성읽기,
   'GET /api/services/:id/api-docs/compare': 작성읽기,
   'GET /api/services/:id/api-coverage': 작성읽기,
   'POST /api/services/:id/api-docs': 작성쓰기,
   'POST /api/services/:id/api-docs/fetch': 작성쓰기,
-  'POST /api/services/:id/api-docs/:version/rewrite': 작성쓰기,
 
   // 서비스 가이드 받기 — 작성 에이전트가 부른다. 다른 에이전트 통로와 같은 무게다
   'GET /api/authoring/requests/:id/guide': 작성쓰기,

@@ -1142,9 +1142,6 @@ export const api = {
   failures: (runId: number, page: number, platform?: Platform) =>
     call<Paged<FailureCase>>(`/runs/${runId}/failures?page=${page}${platform === undefined ? '' : `&platform=${platform}`}`),
 
-  /** 실패 카드의 「버그」 판정. 이미 있으면 처음 것이 돌아온다 (SPEC §7) */
-  markBug: (runId: number, tcId: string) => call<{ byName: string; at: string }>(`/runs/${runId}/bugs`, json({ tcId })),
-
   createRun: (body: {
     /** 대상 서버 키. **기본값을 두지 않는다** — 안 고르면 빈 칸이 아니라 틀린 값이 증적에 남는다 (SPEC §8.2) */
     env: string;
@@ -1189,9 +1186,9 @@ export const api = {
 
   // 작성 대기줄 (SPEC §7 · 도메인/작성 §7). 넣기·읽기는 화면이 부르고
   // 집기·단계·끝내기는 맥이 부른다 — 화면은 그 넷을 안 부른다
-  authoringRequests: (service: string, page: number, 할일만 = false) =>
+  authoringRequests: (service: string, page: number) =>
     call<{ items: AuthoringListRow[]; total: number; page: number; pageSize: number }>(
-      `/authoring/requests?service=${encodeURIComponent(service)}&page=${page}${할일만 ? '&todo=1' : ''}`,
+      `/authoring/requests?service=${encodeURIComponent(service)}&page=${page}`,
     ),
 
   authoringRequest: (service: string, id: number) =>

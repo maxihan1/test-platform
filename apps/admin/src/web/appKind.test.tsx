@@ -154,7 +154,7 @@ describe('실행 창 실행 위치', () => {
 
 describe('작성 새 요청', () => {
   it('Android 앱은 「실제 화면과 대조」 없이 「앱 화면 읽기」 안내가 서고 피그마 칸은 그대로다', () => {
-    render(<AuthoringNew service="MKA" envs={[{ env: 'qa', baseUrl: 'https://qa.example.com' }]} 앱종류="APP" 대조처음 on넣었다={() => {}} />);
+    render(<AuthoringNew service="MKA" envs={[{ env: 'qa', baseUrl: 'https://qa.example.com' }]} 앱종류="APP" on넣었다={() => {}} />);
 
     expect(screen.queryByLabelText('실제 화면과 대조')).toBeNull();
     expect(screen.getByText('앱 화면 읽기')).toBeTruthy();
