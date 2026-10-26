@@ -165,20 +165,33 @@ describe.skipIf(연결 === undefined)('화면이 맞음 반영 통로', () => {
     }
   });
 
-  it('실패한 앞 반영이 남았으면 새 반영은 그것이 폐기될 때까지 에이전트가 안 집는다 — 다른 작성 요청은 집는다', async () => {
-    const { 집기 } = await import('../authoring/agentStore.js');
+  it('실패 · 중단으로 남은 반영이 있으면 409 APPLY_OPEN — 뒤에 서면 앞 반영의 재실행이 뒤 요청에 막혀 둘 다 못 돈다', async () => {
     const 첫 = (await 화면이맞음(await 실행넣기('FINISHED', 'FAIL'))).json() as { id: number };
     await q(`UPDATE authoring_request SET status = 'FAILED' WHERE id = $1`, [첫.id]);
-    const 둘째 = (await 화면이맞음(await 실행넣기('FINISHED', 'FAIL'))).json() as { id: number; waitsFor: number[] };
-    expect(둘째.waitsFor).toEqual([첫.id]);
-    const 보통 = await q<{ id: string }>(
-      `INSERT INTO authoring_request (service_id, kind, requested_by, requested_by_name, status) VALUES ($1, 'AUTHOR', 'xpf', '검사', 'PENDING') RETURNING id`,
-      [서비스],
-    );
-    expect((await 집기(서비스, 'xpf-agent'))?.id).toBe(Number(보통.rows[0]!.id));
-    expect(await 집기(서비스, 'xpf-agent')).toBeNull();
+    const 막힘 = await 화면이맞음(await 실행넣기('FINISHED', 'FAIL'));
+    expect([막힘.statusCode, 막힘.json()]).toEqual([409, { error: 'APPLY_OPEN', detail: [첫.id] }]);
     await q(`UPDATE authoring_request SET discarded_at = now() WHERE id = $1`, [첫.id]);
-    expect((await 집기(서비스, 'xpf-agent'))?.id).toBe(둘째.id);
+    expect((await 화면이맞음(await 실행넣기('FINISHED', 'FAIL'))).json()).toMatchObject({ waitsFor: [] });
+  });
+
+  it('앞에 선 반영이 병합 · 폐기될 때까지 뒤 반영은 에이전트가 안 집는다 — 다른 작성 요청은 집는다', async () => {
+    const { 집기 } = await import('../authoring/agentStore.js');
+    const 넣기 = async (params: object, status: string) =>
+      Number(
+        (
+          await q<{ id: string }>(
+            `INSERT INTO authoring_request (service_id, kind, params, requested_by, requested_by_name, status) VALUES ($1, 'AUTHOR', $2, 'xpf', '검사', $3) RETURNING id`,
+            [서비스, JSON.stringify(params), status],
+          )
+        ).rows[0]!.id,
+      );
+    const 첫 = await 넣기({ prdApply: true }, 'FAILED');
+    const 둘째 = await 넣기({ prdApply: true }, 'PENDING');
+    const 보통 = await 넣기({}, 'PENDING');
+    expect((await 집기(서비스, 'xpf-agent'))?.id).toBe(보통);
+    expect(await 집기(서비스, 'xpf-agent')).toBeNull();
+    await q(`UPDATE authoring_request SET discarded_at = now() WHERE id = $1`, [첫]);
+    expect((await 집기(서비스, 'xpf-agent'))?.id).toBe(둘째);
   });
 
   it('작성 요청 통로로 screenRight 를 실으면 400, 재실행은 원본의 screenRight 를 물려받는다', async () => {

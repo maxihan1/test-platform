@@ -177,7 +177,7 @@ export function PrdTodo({ service, now, 쓰나, 짓기 }: { service: string; now
                 ))}
               </span>
             )}
-            {/* 세운 뒤 또 누르면 자기가 세운 요청에 APPLY_OPEN 이 난다 — 막아 둔다. 판을 다시 읽어도 반영 안 됨은 병합 전까지 그대로다 */}
+            {/* 세운 뒤 또 누르면 자기가 세운 요청에 AUTHORING_OPEN 이 난다 — 막아 둔다. 판을 다시 읽어도 반영 안 됨은 병합 전까지 그대로다 */}
             <button className="btn small" disabled={busy || 세움} onClick={() => void 테스트에반영()}>
               {t('바뀐 요구 {건수}건 테스트에 반영', { 건수: 반영.length })}
             </button>

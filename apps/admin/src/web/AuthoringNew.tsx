@@ -136,9 +136,11 @@ export function AuthoringNew({
       const 어디 = 지금 === null ? 사유(err) : `${지금.name} — ${사유(err)}`;
       // 자료를 못 올린 요청은 치운다 — 남겨 두면 목록에 「자료 올리는 중」으로 영영 남는다 (점검 11.6).
       // 줄에 세우기(지금 === null)에서 난 실패는 치우지 않는다 — 응답만 끊기고 서버는 세웠을 수 있다(코드 검토).
+      // 서버 막기(AUTHORING_OPEN)는 안 세웠다고 확실히 답한 것이라 치운다 (도메인/작성 §3.6 「서버 막기」).
       // 치우기도 실패하면 그 줄을 손으로 폐기하라고 덧붙인다 — 삼키면 왜 줄이 남았는지 모른다
+      const 안섰다 = 지금 !== null || (err instanceof ApiError && err.code === 'AUTHORING_OPEN');
       const 치움 =
-        지금 === null
+        !안섰다
           ? ''
           : await api.discardAuthoring(service, id).then(
               () => '',

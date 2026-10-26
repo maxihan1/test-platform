@@ -3,19 +3,13 @@
 import type { PoolClient } from 'pg';
 
 import { 제출 } from './assetStore.js';
-import { 사슬식, 최신식 } from './chainSql.js';
+import { 뿌리최신식 } from './chainSql.js';
 import { 뿌리잠그고 } from './history.js';
 import { db } from './store.js';
 
-/** 뿌리마다 최신 실행(`뿌리(root_id, latest)`). 실패한 머지는 최신식이 건너뛴다 — 반영 실패는 앞 DONE 이 최신이라 열린 것으로 든다 */
-const 뿌리최신식 = (뿌리조건: string) => `${사슬식(뿌리조건)},
-    뿌리(root_id, latest) AS (
-      SELECT DISTINCT 사슬.root_id, ${최신식('(SELECT 안.id FROM 사슬 안 WHERE 안.root_id = 사슬.root_id)')} FROM 사슬
-    )`;
-
 /**
  * 그 애플리케이션의 열린 작성 뿌리 번호들 — 폐기 안 됨 · 최신 실행이 대기 · 도는 중 · 끝났고 반영 전(작성 · 고치기 DONE) · 반영 중 · 반영 실패.
- * 작성 실패 · 중단 · 초안 · 병합된 반영은 안 든다. `빼고` 는 그 뿌리 자신의 재실행 · 방금 병합한 뿌리처럼 셈에서 뺄 번호다.
+ * 반영 실패는 최신식이 실패한 머지를 건너뛰어 앞 DONE 이 최신이라 든다. 작성 실패 · 중단 · 초안 · 병합된 반영은 안 든다. `빼고` 는 그 뿌리 자신의 재실행 · 방금 병합한 뿌리처럼 셈에서 뺄 번호다.
  * `손`(트랜잭션)을 주면 서비스 잠금을 먼저 잡는다 — 확인과 넣기 사이에 다른 요청이 끼면 둘이 같이 열린다(#14679 꼴). 트랜잭션이 끝나면 풀린다
  */
 export async function 열린작성(서비스: number, 손?: PoolClient, 빼고 = 0): Promise<number[]> {

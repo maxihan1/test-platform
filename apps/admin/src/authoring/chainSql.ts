@@ -18,14 +18,18 @@ export function 사슬식(뿌리조건: string): string {
 export const 최신식 = (사슬이름: string) =>
   `(SELECT max(s.id) FROM ${사슬이름} s JOIN authoring_request x ON x.id = s.id WHERE NOT (x.kind = 'MERGE' AND x.status = 'FAILED'))`;
 
+/** 뿌리마다 최신 실행(`뿌리(root_id, latest)`). `WITH RECURSIVE` 안에 넣고 `사슬` 도 같이 생긴다 — 열린 반영 · 열린 작성(openRoots.ts)이 같은 「최신」을 쓴다 */
+export const 뿌리최신식 = (뿌리조건: string) => `${사슬식(뿌리조건)},
+    뿌리(root_id, latest) AS (
+      SELECT DISTINCT 사슬.root_id, ${최신식('(SELECT 안.id FROM 사슬 안 WHERE 안.root_id = 사슬.root_id)')} FROM 사슬
+    )`;
+
 /**
  * 서비스의 열린 반영 뿌리(`열린반영(root_id, latest)`) — 폐기 안 됨 · 최신 실행이 병합된 반영이 아님 (도메인/작성 §7 apply).
- * 반영 통로(APPLY_OPEN · 화면이 맞음 더하기)와 집기(앞 반영 기다리기)가 같은 뜻을 쓴다. `WITH RECURSIVE` 안에 넣고 `사슬` 도 같이 생긴다
+ * 반영 통로(APPLY_OPEN)와 집기(앞 반영 기다리기)가 같은 뜻을 쓴다. `WITH RECURSIVE` 안에 넣고 `사슬` · `뿌리` 도 같이 생긴다
  */
-export const 열린반영식 = (서비스자리: string) => `${사슬식(`service_id = ${서비스자리} AND kind = 'AUTHOR' AND params->>'prdApply' = 'true' AND discarded_at IS NULL`)},
+export const 열린반영식 = (서비스자리: string) => `${뿌리최신식(`service_id = ${서비스자리} AND kind = 'AUTHOR' AND params->>'prdApply' = 'true' AND discarded_at IS NULL`)},
     열린반영(root_id, latest) AS (
-      SELECT 뿌리.root_id, 뿌리.latest
-        FROM (SELECT DISTINCT 사슬.root_id, ${최신식('(SELECT 안.id FROM 사슬 안 WHERE 안.root_id = 사슬.root_id)')} AS latest FROM 사슬) 뿌리
-        JOIN authoring_request m ON m.id = 뿌리.latest
+      SELECT 뿌리.root_id, 뿌리.latest FROM 뿌리 JOIN authoring_request m ON m.id = 뿌리.latest
        WHERE NOT (m.kind = 'MERGE' AND m.status = 'DONE')
     )`;

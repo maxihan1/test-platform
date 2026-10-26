@@ -22,7 +22,7 @@ export interface 화면이맞음 {
 
 /**
  * params.screenRight 를 목록(jsonb 배열)으로 읽는 SQL — 2026-10-13 PRD-F9-20 부터 목록이고, 그 전 행은 한 건(객체)이다.
- * 반영에 더하기 · 실패 카드 판정이 같은 식을 쓴다
+ * 실패 카드 판정이 쓴다
  */
 export const 화면목록식 = (params: string) =>
   `CASE jsonb_typeof(${params}->'screenRight') WHEN 'array' THEN ${params}->'screenRight' WHEN 'object' THEN jsonb_build_array(${params}->'screenRight') ELSE '[]'::jsonb END`;
