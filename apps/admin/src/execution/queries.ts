@@ -17,7 +17,7 @@ import { 가린다, 항목비밀 } from './trial.js';
 import { runSummary, 거르는조건, 시나리오칸, type 시나리오실행줄, type 실행거르개, type 실행집계 } from './runSummary.js';
 
 import { 종류조건 } from './runKind.js';
-import { RUN_COLUMNS, toRun, to시나리오줄, type RawRun } from './runRow.js';
+import { FAIL_CASE_COLUMNS, RUN_COLUMNS, toFailCases, toRun, to시나리오줄, type RawFailCases, type RawRun } from './runRow.js';
 import type { RunItemDetail, RunItemSummary, RunListRow, RunSummary } from './runTypes.js';
 
 async function db(): Promise<Pool> {
@@ -68,8 +68,8 @@ export async function listRuns(
   // count(*) OVER () 가 HAVING 뒤·LIMIT 앞에서 돈다. 그래서 거르개를 걸어도 총건수가
   // **걸린 뒤의 수**다 (2026-09-22 실측 — 감싸는 서브질의로 바꿔도 결과가 같았다).
   // 계획 검토가 「HAVING 이전을 센다」고 의심했는데 재 보니 그렇지 않았다
-  const rows = await pool.query<Parameters<typeof to시나리오줄>[0]>(
-    `SELECT ${RUN_COLUMNS}${시나리오 ? 시나리오칸 : ''}, count(*) OVER ()::int AS grand_total
+  const rows = await pool.query<Parameters<typeof to시나리오줄>[0] & RawFailCases>(
+    `SELECT ${RUN_COLUMNS}, ${FAIL_CASE_COLUMNS}${시나리오 ? 시나리오칸 : ''}, count(*) OVER ()::int AS grand_total
        FROM test_run r
        LEFT JOIN run_item i USING (run_id)
       WHERE r.service_id = (SELECT id FROM service WHERE prefix = $3) ${조건.where}
@@ -87,7 +87,7 @@ export async function listRuns(
   ]);
   const 머리 = { total: rows.rows[0]?.grand_total ?? 0, page, pageSize, summary };
   if (시나리오) return { items: rows.rows.map(to시나리오줄), ...머리 };
-  return { items: rows.rows.map((r) => ({ ...toRun(r), change: 대비.get(Number(r.run_id)) ?? null })), ...머리 };
+  return { items: rows.rows.map((r) => ({ ...toRun(r), failCases: toFailCases(r), change: 대비.get(Number(r.run_id)) ?? null })), ...머리 };
 }
 
 interface RawItem {
