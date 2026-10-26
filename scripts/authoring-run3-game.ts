@@ -17,10 +17,8 @@ const 갈래들 = {
   앱: { 기록: 'gate3-app', 도구: 'appium-cli', 세션: 'probe' },
 } as const;
 
-/** 폰 돌려 보기 기록 — 웹 3번 판정(`gate3-final` · `gate3-part-`)에 안 섞인다 */
-export const 게임기록꼴 = /^gate3-game-.*\.json$/;
-export const 앱기록꼴 = /^gate3-app-.*\.json$/;
-const 기록꼴 = (갈래: 폰갈래) => (갈래 === '게임' ? 게임기록꼴 : 앱기록꼴);
+/** 폰 돌려 보기 기록 — 웹 3번 판정(`gate3-final` · `gate3-part-`)에 안 섞인다. 이어하기가 넘기는 꼴은 authoring-gate3 `기록남기며비우기` 에 따로 적혀 있다(그쪽이 이 파일을 못 부른다) */
+const 기록꼴 = (갈래: 폰갈래) => new RegExp(`^${갈래들[갈래].기록}-.*\\.json$`);
 /** 한 번 부를 때 돌릴 시간 — 웹 돌려 보기와 같다(Bash 10분 상한) */
 const 예산 = 7.5 * 60_000;
 /** 앞 기록이 없을 때 한 케이스 어림 — 앱을 깔거나 다시 켜고 상태를 만드는 몫 */
@@ -241,12 +239,16 @@ async function 폰에서두드리기(appium: string, 폰: string, 자리: { 호�
     return { 모름: `폰에 못 붙었다 — ${e instanceof Error ? e.message.split('\n')[0] : String(e)}` };
   }
   try {
-    await 연결.execute('mobile: shell', { command: 'nc', args: ['-z', '-w', '3', 자리.호스트, String(자리.포트)] });
-    return { 닿음: true };
+    // 끝 코드를 글로 받는다 — 옛 adb(shell v2 없음)는 끝 코드를 안 넘겨 던지기만으로는 거절도 닿음으로 읽힌다. `;` 뒤는 폰 셸이 읽는다
+    const 답 = (await 연결.execute('mobile: shell', { command: 'nc', args: ['-z', '-w', '3', 자리.호스트, String(자리.포트), ';', 'echo', 'rc=$?'], includeStderr: true })) as { stdout?: string; stderr?: string };
+    const 끝코드 = /rc=(\d+)/.exec(답.stdout ?? '')?.[1];
+    const 오류 = (답.stderr ?? '').trim().split('\n')[0] ?? '';
+    // -z 가 없는 옛 toybox · nc 가 없는 폰은 닿는지 모른다 — 못 닿음으로 치면 멀쩡한 작성을 멈춘다
+    if (끝코드 === undefined || /unknown option|usage|not found|inaccessible/i.test(오류)) return { 모름: 오류 || '폰이 끝 코드를 안 돌려줬다' };
+    return { 닿음: 끝코드 === '0' };
   } catch (e) {
-    const 글 = e instanceof Error ? e.message.split('\n')[0]! : String(e);
-    // adb 명령 길이 닫힌 팜 · nc 가 없는 폰은 닿는지 모른다 — 못 닿음으로 치면 멀쩡한 작성을 멈춘다
-    return /adb_shell|insecure|not found|inaccessible/i.test(글) ? { 모름: 글 } : { 닿음: false };
+    // 명령이 안 돌았다 — 팜이 adb 명령 길을 닫았거나 세션이 끊겼다
+    return { 모름: e instanceof Error ? e.message.split('\n')[0]! : String(e) };
   } finally {
     await 연결.deleteSession().catch(() => undefined);
   }
