@@ -121,15 +121,10 @@ export const 오류영어: Record<string, string> = {
     'Attachment limit reached: 20 in the current version, 200 per application including removed ones',
   '글이 너무 깁니다. 구획마다 20,000자까지입니다': 'Too long. Each section takes up to 20,000 characters',
   '글자를 뽑을 수 없는 파일입니다. 파일 이름을 눌러 내려받습니다': 'This file has no readable text. Click the file name to download it',
-  '테스트에 반영할 바뀐 것이 없습니다': 'Nothing changed to apply to tests',
-  '이미 열린 반영 요청이 있습니다. 그 요청을 반영하거나 폐기한 뒤 다시 누릅니다':
-    'An apply request is already open. Merge or discard it, then try again',
   '반영하지 않은 테스트 작성 요청이 있습니다. 그 요청을 반영하거나 폐기한 뒤에 할 수 있습니다':
     'An authoring request is not merged yet. Merge or discard it first',
   '그 사이 바뀐 것이 있습니다. 결정 목록을 다시 불러와 고릅니다': 'Something changed in the meantime. Reload the decision list and choose again',
   '고른 값으로 진행할 수 없습니다. 그 항목을 다시 고릅니다': 'Cannot run with that choice. Choose that item again',
-  '이 실행에서 실패한 케이스가 아닙니다': 'This case did not fail in this run',
-  '이 케이스와 연결된 요구가 표준 기획서에 없습니다': 'The requirements linked to this case are not in the PRD',
   'API 애플리케이션이 아닙니다': 'Not an API application',
   '설정에 API 문서 경로와 기준 서버가 없습니다. 설정에서 먼저 넣거나 파일을 첨부합니다':
     'No API doc path or reference server in settings. Add them in settings or attach a file',
