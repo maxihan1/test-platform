@@ -3,6 +3,7 @@
 import { Fragment } from 'react';
 
 import { 상한 } from '../prd/rules.js';
+import { 무슨테스트, 올릴테스트수 } from './authoringSummary.js';
 import type { 결정항목, 고르기, 막힘 } from './decideApi.js';
 import { 넘치나, type 고른값, type 고른표 } from './decideView.js';
 import { use말, use언어 } from './i18n.js';
@@ -85,11 +86,12 @@ export function 고르개({
 export function 반영대기({ x, 고른, on고름 }: { x: 항목of<'APPLY'>; 고른: 고른값 | undefined; on고름: 고름하기 }) {
   const t = use말();
   const 언어 = use언어();
+  const 수 = 올릴테스트수(x.summary);
   return (
     <div className="decide-item">
-      <span className="decide-q">{t('테스트를 케이스 목록에 올릴까요?')}</span>
+      <span className="decide-q">{수 === null ? t('테스트를 케이스 목록에 올릴까요?') : t('테스트 {수}건을 케이스 목록에 올릴까요?', { 수 })}</span>
       <small className="hint">
-        <요청고리 번호들={[x.rootId]} /> · {t('요청한 사람')} {x.requestedByName}
+        <요청고리 번호들={[x.rootId]} /> · {무슨테스트(x.summary, 언어)} · {t('요청한 사람')} {x.requestedByName}
         {x.finishedAt === null ? null : ` · ${when(x.finishedAt, 언어)}`}
         {x.prUrl === null ? null : (
           <>

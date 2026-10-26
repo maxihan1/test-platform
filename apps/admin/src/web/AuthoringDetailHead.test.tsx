@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { AuthoringRow } from './api.js';
 import { AuthoringDetail } from './AuthoringDetail.js';
+import { 요약 } from './authoringSummary.fixture.js';
 
 let 답: AuthoringRow;
 
@@ -40,10 +41,13 @@ const 자료 = (id: number, name: string, position: number) => ({ id, position, 
 afterEach(cleanup);
 
 describe('작성 상세 머리와 애플리케이션 (⑫ 점검 12.14 · 12.16)', () => {
-  it('제목은 넣은 자료 이름이고 번호는 부제로 내려간다', async () => {
-    답 = 줄({ assets: [자료(2, '결제.pdf', 2), 자료(1, '회원가입 기획서.docx', 1)] });
+  it('제목은 목록 줄과 같은 「무슨 테스트」이고 번호는 부제로 내려간다 (WEB-F6-06)', async () => {
+    답 = 줄({
+      assets: [자료(2, '결제.pdf', 2), 자료(1, '회원가입 기획서.docx', 1)],
+      summary: 요약({ what: { features: ['회원가입', '결제'] }, from: { assets: [{ name: '회원가입 기획서.docx', figma: false }, { name: '결제.pdf', figma: false }] } }),
+    });
     render(<AuthoringDetail service="MKT" id={6120} 할수={() => true} 서비스번호={3} 배정번호들={[3]} on서비스번호={() => {}} />);
-    expect(await screen.findByRole('heading', { name: '회원가입 기획서.docx 외 1개' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: '기능 2개 테스트 · 회원가입 · 결제' })).toBeTruthy();
     expect(screen.getByText(/^#6120 · /)).toBeTruthy();
   });
 
@@ -57,7 +61,7 @@ describe('작성 상세 머리와 애플리케이션 (⑫ 점검 12.14 · 12.16)
   });
 
   it('배정 밖 애플리케이션의 요청이면 띠를 못 옮기니 기다리지 않고 그린다 — 「불러오는 중」에서 멈추지 않는다', async () => {
-    답 = 줄({ serviceId: 9, assets: [자료(1, '결제.pdf', 1)] });
+    답 = 줄({ serviceId: 9, assets: [자료(1, '결제.pdf', 1)], summary: 요약({ from: { assets: [{ name: '결제.pdf', figma: false }] } }) });
     const 옮김 = vi.fn();
     render(<AuthoringDetail service="MKT" id={6120} 할수={() => true} 서비스번호={3} 배정번호들={[3]} on서비스번호={옮김} />);
     expect(await screen.findByRole('heading', { name: '결제.pdf' })).toBeTruthy();

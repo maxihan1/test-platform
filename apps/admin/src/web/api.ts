@@ -5,6 +5,7 @@ import type { ItemStatus, JsonSchema, Platform, RunningStep, StepResult } from '
 import type { Technique } from '@platform/kit/types';
 
 import type { 고칠것 } from '../authoring/edit.js';
+import type { 목록요약 } from '../authoring/listSummary.js';
 import type { 네트워크줄, 조작줄, 콘솔줄 } from '../execution/traceParse.js';
 import type { 대시보드응답 } from '../reporting/dashboardResults.js';
 import type { 서비스판정, 화면차이 } from '../../../../scripts/authoring-crawl-viewport.js';
@@ -585,9 +586,9 @@ export interface AuthoringTodoCount {
   apply: 'WAITING' | 'FAILED' | null;
 }
 
-/** 목록 줄 — assets 가 상세의 배열이 아니라 처음 넣은 자료 이름과 나머지 수다 (도메인/작성 §7 목록) */
+/** 목록 줄 — 자료 배열 대신 서버가 계산한 줄 내용(summary)을 싣는다 (도메인/작성 §7 「목록 줄 summary」) */
 export type AuthoringListRow = Omit<AuthoringRow, 'assets'> & {
-  assets: { first: string; more: number } | null;
+  summary: 목록요약;
   todo: AuthoringTodoCount;
 };
 
@@ -684,6 +685,8 @@ export interface AuthoringRow {
   coverage?: AuthoringCoverage | null;
   /** 이 작성 실행이 새로 만들거나 바꾼 케이스 (도메인/작성 §7 finish result.cases). 상세에만 — null 이면 목록을 싣기 전의 에이전트다 */
   cases?: AuthoringMadeCase[] | null;
+  /** 상세에만 — 머리 제목. 목록 줄과 같은 뿌리의 summary 다 */
+  summary?: 목록요약;
 }
 
 /** 에이전트가 PR 브랜치 파일에서 센 케이스 한 건. reqs 는 요구사항 표 출처 칸의 요구 번호다 */

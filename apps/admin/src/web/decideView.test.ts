@@ -4,9 +4,10 @@ import { describe, expect, it } from 'vitest';
 
 import { 상한 } from '../prd/rules.js';
 import type { 결정항목 } from './decideApi.js';
+import { 요약 } from './authoringSummary.fixture.js';
 import { 고름바꾼표, 보낼것, 줄요청, 차례, 켜졌나, type 고른값 } from './decideView.js';
 
-const 반영: 결정항목 = { key: 'apply:10:11', group: 1, kind: 'APPLY', picks: ['APPLY'], blockedBy: null, rootId: 10, runId: 11, summary: null, prUrl: null, requestedByName: '맥시', finishedAt: null };
+const 반영: 결정항목 = { key: 'apply:10:11', group: 1, kind: 'APPLY', picks: ['APPLY'], blockedBy: null, rootId: 10, runId: 11, summary: 요약(), prUrl: null, requestedByName: '맥시', finishedAt: null };
 const 실패: 결정항목 = { key: 'fail:7:DMW-FN-271', group: 2, kind: 'FAIL', picks: ['SCREEN', 'BUG'], blockedBy: null, runId: 7, tcId: 'DMW-FN-271', reqs: [{ reqId: 'DMW-REQ-088', text: '주문 취소' }], verify: null, reason: null, finishedAt: null };
 const 화면확인: 결정항목 = { key: 'check:DMW-REQ-349', group: 2, kind: 'CHECK', picks: ['SAME', 'EDIT'], blockedBy: null, reqId: 'DMW-REQ-349', feature: '약관', text: '제목이 보인다', checkSince: null, basis: 'SCREEN', options: [] };
 const 문구: 결정항목 = {

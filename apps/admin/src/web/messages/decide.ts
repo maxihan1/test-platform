@@ -27,6 +27,7 @@ export const 결정말: Record<string, string> = {
 
   // ① 테스트 올리기 · 상세에서 할 일
   '테스트를 케이스 목록에 올릴까요?': 'Add these tests to the case list?',
+  '테스트 {수}건을 케이스 목록에 올릴까요?': 'Add {수} tests to the case list?',
   '테스트 검토하기': 'Review tests',
   '올린다 (반영)': 'Add (apply)',
   '#{번호} 반영이 실패했습니다': 'Applying #{번호} failed',

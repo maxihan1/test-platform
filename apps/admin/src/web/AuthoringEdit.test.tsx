@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AuthoringRow, AuthoringRun } from './api.js';
 import { Authoring } from './Authoring.js';
 import { AuthoringDetail } from './AuthoringDetail.js';
+import { 요약 } from './authoringSummary.fixture.js';
 import type { 판정 } from './role.js';
 
 const 운영: 판정 = () => true;
@@ -31,7 +32,7 @@ vi.mock('./api.js', async () => {
       },
       authoringRequests: () =>
         Promise.resolve({
-          items: 줄들.map((x) => ({ ...x, assets: null, todo: { heldOpen: 0, conflictsOpen: 0, apply: null } })),
+          items: 줄들.map((x) => ({ ...x, todo: { heldOpen: 0, conflictsOpen: 0, apply: null } })),
           total: 줄들.length,
           page: 1,
           pageSize: 50,
@@ -256,14 +257,21 @@ describe('케이스 고치기 상세', () => {
 
 describe('작성 목록의 케이스 고치기 줄', () => {
   it('뿌리 종류로 가른다 — 다시 적용이 최신이어도 고치기 줄이다', async () => {
-    줄들.push(줄({ id: 9, kind: 'RERUN', sourceId: 7, rootId: 7, runCount: 2, rootKind: 'EDIT' }));
-    줄들.push(줄({ id: 8, rootId: 8, runCount: 1, rootKind: 'EDIT', status: 'RUNNING', prUrl: null, finishedAt: null }));
+    줄들.push(줄({
+      id: 9, kind: 'RERUN', sourceId: 7, rootId: 7, runCount: 2, rootKind: 'EDIT',
+      summary: 요약({ kind: 'EDIT', what: { tcIds: ['PAY-001', 'PAY-002'], fix: 'EXPECTED' }, result: { casesFixed: 2 }, from: { by: 'CASES' } }),
+    }));
+    줄들.push(줄({
+      id: 8, rootId: 8, runCount: 1, rootKind: 'EDIT', status: 'RUNNING', prUrl: null, finishedAt: null,
+      summary: 요약({ kind: 'EDIT', what: { tcIds: ['PAY-003'], fix: 'DELETE' }, from: { by: 'CASES' } }),
+    }));
     render(<Authoring service="PAY" 할수={() => true} />);
 
-    expect(await screen.findByText(/2차 · 다시 적용/)).toBeTruthy();
-    expect(screen.getByText(/케이스를 고쳐 PR 을 만들었습니다/)).toBeTruthy();
-    // 자료가 없는 고치기 줄은 제목이 「케이스 고치기」다
-    expect(screen.getAllByRole('link', { name: '케이스 고치기' })).toHaveLength(2);
+    expect(await screen.findByRole('link', { name: 'PAY-001 외 1건 기대값 고치기' })).toBeTruthy();
+    expect(screen.getByText('케이스 2건 고침')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'PAY-003 지우기' })).toBeTruthy();
+    expect(screen.getAllByText('케이스 고치기')).toHaveLength(2);
+    expect(screen.getAllByText(/^케이스 목록에서 시작 · /)).toHaveLength(2);
     expect(screen.getByText('고치는 중')).toBeTruthy();
   });
 });

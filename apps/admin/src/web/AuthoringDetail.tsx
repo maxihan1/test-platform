@@ -12,7 +12,8 @@ import { AuthoringMergeFailed } from './AuthoringMergeFailed.js';
 import { AuthoringRuns } from './AuthoringRuns.js';
 import { AuthoringStatusCard } from './AuthoringStatusCard.js';
 import { AuthoringTodo } from './AuthoringTodo.js';
-import { 고칠것목록, 끝났나, 반영번호, 요청제목, 자료요약, 종류라벨, 차이목록 } from './authoringView.js';
+import { 무슨테스트 } from './authoringSummary.js';
+import { 고칠것목록, 끝났나, 반영번호, 종류라벨, 차이목록 } from './authoringView.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import type { 판정 } from './role.js';
@@ -154,10 +155,10 @@ export function AuthoringDetail({
 
   return (
     <>
-      {/* 상세의 제목은 **그 대상 자체**다 — 목록 줄과 같은 넣은 자료 이름. 번호만으로는 무엇을 요청했는지 몰랐다 (점검 12.16).
+      {/* 상세의 제목은 **그 대상 자체**다 — 목록 줄과 같은 「무슨 테스트」(summary). 번호만으로는 무엇을 요청했는지 몰랐다 (점검 12.16 · WEB-F6-06).
           자리 이름(`테스트 작성`)을 또 쓰면 어느 요청을 보고 있는지가 안 보인다 */}
       <Head
-        제목={요청제목(자료요약(입력), { compare: data.compare, rootKind: 뿌리.kind }, 언어)}
+        제목={뿌리.summary === undefined ? 종류라벨(뿌리.kind, 언어) : 무슨테스트(뿌리.summary, 언어)}
         부제={
           <>
             #{String(뿌리.id)} · {부제}

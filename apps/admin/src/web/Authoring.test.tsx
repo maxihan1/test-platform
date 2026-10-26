@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AuthoringListRow } from './api.js';
 import type { 결정목록 } from './decideApi.js';
 import { Authoring } from './Authoring.js';
+import { 요약 } from './authoringSummary.fixture.js';
 import { 멈춘듯기준 } from './authoringView.js';
 
 const 줄들: AuthoringListRow[] = [];
@@ -43,7 +44,7 @@ function 줄(덮을것: Partial<AuthoringListRow>): AuthoringListRow {
     createdAt: new Date().toISOString(),
     startedAt: null,
     finishedAt: null,
-    assets: null,
+    summary: 요약(),
     todo: { heldOpen: 0, conflictsOpen: 0, apply: null },
     ...덮을것,
   };
@@ -90,14 +91,14 @@ describe('작성 줄 목록', () => {
     expect(await screen.findByText('중단')).toBeTruthy();
   });
 
-  it('여러 번 돈 요청은 뿌리 번호 한 줄 — 링크도 뿌리로 가고 몇 차인지 보인다 (도메인/작성 §7 「실행 기록」)', async () => {
+  it('여러 번 돈 요청은 뿌리 번호 한 줄 — 링크도 뿌리로 간다. 몇 차인지는 상세 실행 기록이 말한다 (도메인/작성 §7 「실행 기록」 · WEB-F6-06)', async () => {
     줄들.push(줄({ id: 5877, kind: 'RERUN', sourceId: 5873, resumeFrom: 5876, rootId: 5873, runCount: 5, status: 'RUNNING', stageAt: new Date().toISOString() }));
     render(<Authoring service="PAY" 할수={() => true} />);
     expect(await screen.findByText('#5873')).toBeTruthy();
     expect(screen.queryByText('#5877')).toBeNull();
     const 고리 = screen.getAllByRole('link').find((a) => a.getAttribute('href')?.startsWith('#/authoring/'));
     expect(고리?.getAttribute('href')).toBe('#/authoring/5873');
-    expect(screen.getByText(/5차 · 이어서/)).toBeTruthy();
+    expect(screen.queryByText(/5차/)).toBeNull();
   });
 });
 
@@ -147,21 +148,21 @@ describe('작성 권한 칸', () => {
   });
 
   it('남은 요구를 이어 작성한 요청 줄은 원본을 평문으로 적는다 — 줄 전체가 고리라 안에 고리를 두지 않는다', async () => {
-    줄들.push(줄({ id: 5901, rootId: 5901, continueFrom: 5873, runCount: 1 }));
-    줄들.push(줄({ id: 5910, rootId: 5902, continueFrom: 5877, kind: 'RERUN', runCount: 2 }));
+    줄들.push(줄({ id: 5901, rootId: 5901, continueFrom: 5873, runCount: 1, summary: 요약({ kind: 'CONTINUE', from: { after: 5873 } }) }));
     render(<Authoring service="PAY" 할수={() => true} />);
     const 첫 = await screen.findByText(/#5873의 남은 요구/);
     expect(첫.textContent).toContain('#5873의 남은 요구');
     expect(첫.closest('a')).toBe(null);
-    expect(screen.getByText(/2차 · .* · #5877의 남은 요구/)).toBeTruthy();
+    expect(screen.getAllByText('남은 요구 이어 작성')).toHaveLength(2);
   });
 
-  it('대조 병합 뒤 서버가 세운 기획서에 없는 화면 요청 줄은 뿌리 번호와 함께 꼬리표를 단다', async () => {
-    줄들.push(줄({ id: 5920, rootId: 5920, uncoveredOf: 5901, runCount: 1 }));
+  it('대조 병합 뒤 서버가 세운 기획서에 없는 화면 요청 줄은 종류 꼬리표와 앞 뿌리 번호를 단다 — 요청한 사람은 안 적는다', async () => {
+    줄들.push(줄({ id: 5920, rootId: 5920, uncoveredOf: 5901, runCount: 1, summary: 요약({ kind: 'UNCOVERED', from: { by: 'AUTO', after: 5901 } }) }));
     render(<Authoring service="PAY" 할수={() => true} />);
-    const 꼬리 = await screen.findByText(/#5901 다음 · 기획서에 없는 화면/);
-    expect(꼬리.textContent).toContain('#5901 다음 · 기획서에 없는 화면');
+    const 꼬리 = await screen.findByText(/#5901 다음 · 서버가 자동으로 시작/);
     expect(꼬리.closest('a')).toBe(null);
+    expect(꼬리.textContent).not.toContain('요청한 사람');
+    expect(screen.getAllByText('기획서에 없는 화면')).toHaveLength(2);
   });
 });
 
@@ -222,12 +223,34 @@ describe('새 작성 서랍', () => {
 });
 
 describe('작성 목록 줄 제목과 할 일 (⑫ 점검 11.1 · 11.2 · N2)', () => {
-  it('줄 제목은 넣은 자료 이름이다 — 여럿이면 「외 N개」, 자료가 없는 화면만 대조는 그렇게 적는다', async () => {
-    줄들.push(줄({ id: 6120, rootId: 6120, assets: { first: '회원가입 기획서.docx', more: 2 } }));
-    줄들.push(줄({ id: 6121, rootId: 6121, compare: true }));
+  it('줄은 [종류] 무슨 테스트 / 결과 / 시작한 곳 세 줄이다 — 피그마는 「Figma 디자인」 (WEB-F6-06)', async () => {
+    줄들.push(줄({
+      id: 14675, rootId: 14675, status: 'DONE',
+      summary: 요약({
+        what: { features: ['공통', '홈', '회원가입'], featuresMore: 22 },
+        result: { casesMade: 412, casesFixed: 0, reqsCovered: 347, reqsTotal: 348, held: 2 },
+        from: { assets: [{ name: '기획서.docx', figma: false }, { name: 'https://www.figma.com/design/abc', figma: true }] },
+      }),
+    }));
     render(<Authoring service="PAY" 할수={() => true} />);
-    expect((await screen.findByText('회원가입 기획서.docx 외 2개')).getAttribute('href')).toBe('#/authoring/6120');
-    expect(screen.getByText('화면만 — 기획서 없이 대조')).toBeTruthy();
+    expect((await screen.findByText('기능 25개 테스트 · 공통 · 홈 · 회원가입 외 22개')).getAttribute('href')).toBe('#/authoring/14675');
+    expect(screen.getByText('기획서로 작성')).toBeTruthy();
+    expect(screen.getByText('케이스 412건 만듦 · 요구 348건 중 347건 · 보류 2건')).toBeTruthy();
+    expect(screen.getByText(/^자료 기획서\.docx · Figma 디자인 · 요청한 사람 테스터 · /)).toBeTruthy();
+  });
+
+  it('끝나기 전이면 둘째 줄은 지금 상태 글이고 제목은 종류다 · 멈춘 줄은 실패 색으로 어디서 멈췄는지', async () => {
+    줄들.push(줄({ id: 6121, rootId: 6121, compare: true, summary: 요약({ kind: 'SCREEN_ONLY' }) }));
+    줄들.push(줄({
+      id: 14679, rootId: 14679, status: 'STOPPED',
+      summary: 요약({ kind: 'PRD_APPLY', what: { reqs: 348 }, result: { stoppedAt: '케이스를 만드는 중' }, from: { by: 'PRD' } }),
+    }));
+    render(<Authoring service="PAY" 할수={() => true} />);
+    expect(await screen.findByText('작성 순서를 기다리는 중')).toBeTruthy();
+    expect(screen.getAllByText('화면만 대조')).toHaveLength(2);
+    expect(screen.getByText('요구 348건 테스트 다시 작성')).toBeTruthy();
+    expect(screen.getByText('케이스 작성 단계에서 멈춤 · 만든 케이스 없음').className).toContain('fail');
+    expect(screen.getByText(/^PRD 관리에서 시작 · 요청한 사람 테스터/)).toBeTruthy();
   });
 
   it('사람 손이 남은 줄은 초록 완료 대신 할 일 칩을 단다', async () => {
@@ -258,7 +281,7 @@ describe('작성 목록 줄 제목과 할 일 (⑫ 점검 11.1 · 11.2 · N2)', 
       count: 1,
       open: [7001],
       failMore: 0,
-      items: [{ key: 'apply:7001:7002', group: 1, kind: 'APPLY', picks: ['APPLY'], blockedBy: null, rootId: 7001, runId: 7002, summary: null, prUrl: null, requestedByName: '테스터', finishedAt: null }],
+      items: [{ key: 'apply:7001:7002', group: 1, kind: 'APPLY', picks: ['APPLY'], blockedBy: null, rootId: 7001, runId: 7002, summary: 요약(), prUrl: null, requestedByName: '테스터', finishedAt: null }],
     };
     줄들.push(줄({ id: 7001, rootId: 7001, status: 'DONE' }));
     render(<Authoring service="PAY" 할수={() => true} />);

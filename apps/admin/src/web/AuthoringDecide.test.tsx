@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from './api.js';
 import { AuthoringDecide } from './AuthoringDecide.js';
+import { 요약 } from './authoringSummary.fixture.js';
 import type { 결정목록, 결정항목, 보낼고름 } from './decideApi.js';
 
 const 보낸: { prdVersion: number; picks: 보낼고름[] }[] = [];
@@ -24,7 +25,7 @@ vi.mock('./api.js', async () => {
   return { ...진짜, api: { authoringRequest: (_s: string, id: number) => Promise.resolve({ id, status: id === 501 ? 'RUNNING' : 'PENDING' }) } };
 });
 
-const 반영: 결정항목 = { key: 'apply:10:11', group: 1, kind: 'APPLY', picks: ['APPLY'], blockedBy: null, rootId: 10, runId: 11, summary: null, prUrl: 'https://github.com/x/pull/1', requestedByName: '맥시', finishedAt: null };
+const 반영: 결정항목 = { key: 'apply:10:11', group: 1, kind: 'APPLY', picks: ['APPLY'], blockedBy: null, rootId: 10, runId: 11, summary: 요약(), prUrl: 'https://github.com/x/pull/1', requestedByName: '맥시', finishedAt: null };
 const 화면확인 = (reqId: string): Extract<결정항목, { kind: 'CHECK' }> => ({
   key: `check:${reqId}`, group: 2, kind: 'CHECK', picks: ['SAME', 'EDIT'], blockedBy: null, reqId, feature: '약관', text: `${reqId} 제목이 보인다`, checkSince: null, basis: 'SCREEN', options: [],
 });
@@ -47,6 +48,13 @@ describe('결정 목록', () => {
   it('없으면 「결정이 필요한 일이 없습니다」', () => {
     render(<AuthoringDecide service="DMW" 목록={목록([])} envs={[]} 다시읽기={() => {}} />);
     expect(screen.getByText('결정이 필요한 일이 없습니다')).toBeTruthy();
+  });
+
+  it('① 은 올릴 테스트 수와 무슨 테스트를 보인다 — 셈을 모르면 수 없이 묻는다 (WEB-F6-06)', () => {
+    const 셈있음: 결정항목 = { ...반영, summary: 요약({ what: { features: ['회원가입'] }, result: { casesMade: 410, casesFixed: 2 } }) };
+    render(<AuthoringDecide service="DMW" 목록={목록([셈있음])} envs={[]} 다시읽기={() => {}} />);
+    expect(screen.getByText('테스트 412건을 케이스 목록에 올릴까요?')).toBeTruthy();
+    expect(screen.getByText(/기능 1개 테스트 · 회원가입/)).toBeTruthy();
   });
 
   it('고른 것을 차례 목록으로 보이고 한 번에 보낸다 — 「나중에」는 안 보낸다', async () => {
