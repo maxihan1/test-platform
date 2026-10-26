@@ -491,7 +491,7 @@
 | 485 | 정상 | 비회원이다 | 로그인 없이 GET /api/cart 를 불러 message 를 확인한다 | 실패 응답의 message 는 한국어 문장이다 | DMW-REQ-248 | DMW-FN-341 | 2026-10-25 |
 | 486 | 정상 | 비회원이다 | GET /api/posts?page=2&size=5 를 부른다 | 목록 조회는 items · total · page · size 를 담아 응답한다 | DMW-REQ-249 | DMW-FN-342 | 2026-10-25 |
 | 487 | 정상 | 비회원이다 | page=2&size=5 응답의 page · size 를 확인한다 | 목록 조회 응답의 page · size 는 요청한 값이다 | DMW-REQ-249 | DMW-FN-342 | 2026-10-25 |
-| 488 | 정상 | 비회원이다 | POST /api/reset 을 부른다 | POST /api/reset 은 204 로 응답한다 | DMW-REQ-250 · 보류 — 서버 전체 자료를 처음으로 되돌려 같이 도는 케이스를 깨뜨린다 | DMW-FN-539 | 2026-10-25 |
+| 488 | 정상 | 비회원이다 | POST /api/reset 을 부른다 | POST /api/reset 은 204 로 응답한다 | DMW-REQ-250 · 보류 — 서버 전체 자료를 처음으로 되돌려 같이 도는 케이스를 깨뜨린다 | 제거함(DMW-FN-539) | 2026-10-25 |
 | 489 | 정상 | 비회원이다 | 로그인 응답을 1.5초 늦춘 채 로그인한다 | 응답이 1.5초 늦어도 로그인하면 홈 화면으로 간다 | DMW-REQ-251 | DMW-FN-344 | 2026-10-25 |
 | 490 | 예외 | 비회원이다 | 리뷰 응답을 500 UNAVAILABLE 로 둔 채 「리뷰」 탭을 누른다 | 리뷰 조회가 500 UNAVAILABLE 이어도 상품 상세 화면은 그대로 보인다 | DMW-REQ-251 · 모킹 — 리뷰 500 | DMW-FN-540 | 2026-10-25 |
 | 491 | 정상 | 비회원이다 | 새 아이디로 POST /api/auth/signup 을 부른다 | 새 아이디로 가입하면 201 로 응답한다 | DMW-REQ-252 | DMW-FN-346 | 2026-10-25 |
@@ -533,8 +533,8 @@
 | 527 | 정상 | 비회원이다 | GET /api/products?sort=priceAsc 를 부른다 | sort=priceAsc 로 부르면 가격이 낮은 순으로 온다 | DMW-REQ-265 | DMW-FN-368 | 2026-10-25 |
 | 528 | 정상 | 비회원이다 | GET /api/products/{id} 를 부른다 | 상품 상세 API 는 이미지 · 옵션 · 재고 · 문의를 담아 응답한다 | DMW-REQ-266 | DMW-FN-369 | 2026-10-25 |
 | 529 | 정상 | 비회원이다 | GET /api/products/{id}/reviews 를 부른다 | 리뷰 목록 API 는 리뷰 목록을 돌려준다 | DMW-REQ-267 | DMW-FN-370 | 2026-10-25 |
-| 530 | 경계 | 비회원이다 | 후보가 많은 검색어로 GET /api/products/suggest 를 부른다 | 후보가 5개를 넘는 검색어로 부르면 자동완성 API 는 5개만 준다 | DMW-REQ-268 | DMW-FN-372 | 2026-10-25 |
-| 531 | 경계 | 비회원이다 | 후보가 5개인 검색어로 GET /api/products/suggest 를 부른다 | 후보가 5개인 검색어로 부르면 자동완성 API 는 5개를 다 준다 | DMW-REQ-268 | DMW-FN-372 | 2026-10-25 |
+| 530 | 경계 | 비회원이다 | 후보가 많은 검색어로 GET /api/products/suggest 를 부른다 | 후보가 5개를 넘는 검색어로 부르면 자동완성 API 는 5개만 준다 | DMW-REQ-268 | 제거함(DMW-FN-372) | 2026-10-25 |
+| 531 | 경계 | 비회원이다 | 후보가 5개인 검색어로 GET /api/products/suggest 를 부른다 | 후보가 5개인 검색어로 부르면 자동완성 API 는 5개를 다 준다 | DMW-REQ-268 | 제거함(DMW-FN-372) | 2026-10-25 |
 | 532 | 정상 | 일회용 회원으로 로그인해 있다 | GET /api/coupons 를 부른다 | 쿠폰 목록 API 는 보유 쿠폰 두 가지를 돌려준다 | DMW-REQ-269 | DMW-FN-373 | 2026-10-25 |
 | 533 | 예외 | 비회원이다 | 로그인 없이 GET /api/coupons 를 부른다 | 로그인 없이 쿠폰 목록 API 를 부르면 401 로 응답한다 | DMW-REQ-269 | DMW-FN-374 | 2026-10-25 |
 | 534 | 정상 | 일회용 회원으로 로그인해 있다 | POST /api/cart 로 상품을 담고 GET /api/cart 로 조회한다 | 장바구니 담기 API 로 담으면 장바구니 조회에 그 줄이 있다 | DMW-REQ-270 | DMW-FN-375 | 2026-10-25 |
