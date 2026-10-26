@@ -16,48 +16,22 @@ export const 기획서말: Record<string, string> = {
   '저장했습니다 (버전 {버전})': 'Saved (version {버전})',
 
   // 할 일 두 칸
-  '확인할 요구도 테스트에 반영할 요구도 없습니다': 'Nothing to check and nothing to apply to tests',
   '확인 필요 {건수}건': '{건수} need checking',
-  '가장 오래된 것 {나이}': 'oldest {나이}',
-  '화면 기준으로 적었거나 문서끼리 달라 사람이 판단합니다':
-    'Written from the screen or from conflicting documents, so a person decides',
-  '확인할 요구가 없습니다': 'Nothing to check',
-  '{번호} 고르기': 'Select {번호}',
-  '모두 고르기': 'Select all',
-  '출처 {건수}개': '{건수} sources',
   '이 요구사항을 어디서 읽었는지입니다': 'Where this requirement was read from',
   자료: 'Document',
   위치: 'Location',
   원문: 'Original text',
   '실제 화면에서 본 것': 'Seen on the live screen',
   '사람이 직접 적은 것': 'Written by a person',
-  '확정하면 바로 새 버전으로 저장됩니다': 'Confirming saves a new version right away',
-  '고른 {건수}건 확정': 'Confirm {건수} selected',
-  '반영 안 됨 {건수}건': '{건수} not in tests',
-  '고친 요구가 아직 테스트에 없습니다': 'Edited requirements are not in the tests yet',
-  '테스트와 어긋난 요구가 없습니다': 'Every requirement matches the tests',
-  '바뀐 요구 {건수}건 테스트에 반영': 'Apply {건수} changed requirements to tests',
-  '작성 요청 {번호}번을 만들었습니다': 'Created authoring request {번호}',
-  '이번 반영으로 바뀌거나 지워질 수 있는 케이스를 쓰는 E2E 시나리오 {수}개 — 반영한 뒤 시험 실행으로 확인하고 지운 케이스는 다른 케이스로 바꿉니다':
-    '{수} E2E scenarios use cases this apply may change or remove — after applying, check them with a trial run and swap in another case for any removed one',
   바뀜: 'Changed',
   '새 항목': 'New',
   지움: 'Removed',
-  '지운 요구': 'Removed requirement',
   오늘: 'today',
   '{일}일째': 'day {일}',
 
   // 「PRD 에 없는 화면」 카드 (PRD-F6-03)
-  'PRD 에 없는 화면 {건수}개': '{건수} screens not in the PRD',
-  '찾은 화면 {전체}개 중 · 아직 요구사항도 테스트도 없는 화면입니다':
-    'Out of {전체} screens found · screens with no requirement or test yet',
-  'PRD 에 없는 화면이 없습니다': 'Every screen found is in the PRD',
-  '#{번호} 요청이 이 화면들을 작성하는 중입니다': 'Request #{번호} is writing these screens',
-  '기획서 없이 「실제 화면과 대조」로 보내면 이 화면만 작성합니다':
-    'Send a request with Compare with the live screen and no spec, and only these screens are written',
+
   'UI 실패 {건수}건 보기': 'View {건수} failing UI cases',
-  '이 화면들 테스트 작성': 'Author tests for these screens',
-  '{역할} 로그인': 'Signed in as {역할}',
 
   // 전체 요구
   '전체 요구': 'All requirements',
@@ -68,20 +42,18 @@ export const 기획서말: Record<string, string> = {
   '찾는 요구가 없습니다': 'No matching requirements',
   '{건수}건': '{건수}',
   '모두 확인 필요': 'All need checking',
-  '모두 반영 안 됨': 'All not in tests',
   '모두 보류': 'All on hold',
   '모두 미작성': 'All not written',
   '모두 실패': 'All failing',
   '확인 필요 · {나이}': 'Needs check · {나이}',
   // 상태 칸의 「확정」 — 버튼의 「확정」(Confirm)과 영어가 다르다
   '확정§상태': 'Confirmed',
-  '{종류} · 반영 안 됨': '{종류} · not in tests',
   '사람이 고침': 'Edited by a person',
+  '테스트 작성 › 결정 필요에서 테스트를 다시 만들 수 있어요 →': 'You can remake the tests in Test authoring › Decisions needed →',
   출처: 'Source',
   '설계 미리보기': 'Test design preview',
   '요구 문장에서 잡힌 경계 · 예외가 없습니다': 'No boundaries or exceptions found in this requirement',
   고치기: 'Edit',
-  '이 요구만 확정': 'Confirm this one',
 
   // 보류 카드 — 계정이 없어 테스트를 못 쓴 요구 (도메인/작성 §3.6 「★ 역할별 계정」)
   '보류 {건수}건 — {역할} 계정이 등록되지 않았습니다': '{건수} on hold — no {역할} account registered',
@@ -137,12 +109,22 @@ export const 기획서말: Record<string, string> = {
   // 버전을 만든 쪽
   'AI 작성': 'AI',
   '직접 수정': 'Edited by hand',
+  'AI 작성 #{번호}': 'AI #{번호}',
+  되돌림: 'Reverted',
+  '테스트 작성에서 결정': 'Decided in test authoring',
+  '테스트 작성에서 결정 · AI': 'Decided in test authoring · AI',
+  '테스트 작성에서 결정 · AI #{번호}': 'Decided in test authoring · AI #{번호}',
   복원: 'Restore',
+  어디서: 'Where from',
   '현재 버전': 'Current',
   '이 버전으로 복원': 'Restore this version',
   '버전 {버전} 복원 확인': 'Confirm restoring version {버전}',
   '복원해도 새 버전으로 저장됩니다. 이전 버전은 남아 있습니다': 'A restore is saved as a new version. Earlier versions stay.',
-  // 바뀐 것은 앞 버전과 견줘 화면이 계산한다
+  // 바뀐 것은 서버가 적어 준 줄(changes)을 그대로 쓰고, 없으면 앞 버전과 견줘 화면이 계산한다
+  '문장 변경': 'Wording changed',
+  '문구 선택': 'Wording picked',
+  '화면이 맞음({번호})': 'Screen is right ({번호})',
+  '{자료} 쪽': 'from {자료}',
   '바뀐 것 보기': 'Show changes',
   '처음 버전': 'First version',
   '바뀐 요구 없음': 'No requirement changed',
@@ -159,9 +141,4 @@ export const 기획서말: Record<string, string> = {
   '거치는 API {건수}개': 'APIs used: {건수}',
   '{케이스} {단계}단계': '{케이스} step {단계}',
   펴기: 'Expand',
-  '케이스가 안 거친 API {건수}개': 'APIs no case calls: {건수}',
-  '이 애플리케이션에서 본 API {전체}개 중 아직 어떤 케이스도 부르지 않은 API 입니다': 'Of the {전체} APIs seen in this application, no case calls these yet',
-  '본 API 를 모두 케이스가 거칩니다': 'A case calls every API seen',
-  '마지막 {때}': 'Last seen {때}',
-  '화면 {주소} 에서 봤습니다 · 마지막 {때}': 'Seen on {주소} · last {때}',
 };

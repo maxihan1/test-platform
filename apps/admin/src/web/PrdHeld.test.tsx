@@ -123,10 +123,8 @@ describe('PRD 관리 — 보류 카드', () => {
     expect(within(카드()).getByRole('link', { name: '설정에서 계정 등록' })).toBeTruthy();
   });
 
-  it('확인할 요구도 반영할 요구도 없어도 보류가 있으면 카드만은 선다', async () => {
-    지금.mockResolvedValue(
-      판({ items: [], unapplied: { changed: [], added: [], removed: [] }, needsCheck: { count: 0, oldestSince: null }, held: 보류() }),
-    );
+  it('요구가 없어도 보류가 있으면 카드만은 선다', async () => {
+    지금.mockResolvedValue(판({ items: [], held: 보류() }));
     render(<Prd service="MKT" 할수={쓰는사람} />);
     expect(await screen.findByRole('region', { name: /보류 2건/ })).toBeTruthy();
     expect(screen.queryByText('확인할 요구도 테스트에 반영할 요구도 없습니다')).toBeNull();

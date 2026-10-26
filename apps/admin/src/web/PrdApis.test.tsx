@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 「PRD 관리」 서비스 지도 — 편 요구 줄의 「거치는 API」와 「케이스가 안 거친 API」 카드
+// 「PRD 관리」 서비스 지도 — 편 요구 줄의 「거치는 API」
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -67,27 +67,18 @@ describe('PRD 관리 — 애플리케이션 지도', () => {
     expect(접기.open).toBe(false);
   });
 
-  it('케이스가 안 부른 API 를 카드에 모으고 본 화면을 단다', async () => {
+  it('케이스가 안 거친 API 카드는 이제 없다 — 결정 필요 한 곳으로 옮겼다', async () => {
     render(<Prd service="MKT" 할수={보는사람} />);
-    const 카드 = await screen.findByRole('region', { name: '케이스가 안 거친 API 2개' });
-    expect(within(카드).getByText('이 애플리케이션에서 본 API 4개 중 아직 어떤 케이스도 부르지 않은 API 입니다')).toBeTruthy();
-    // 접혀 있다가 펴면 나온다 — 수십 개가 요구 목록을 밀어내지 않게 (점검 8.6)
-    expect(within(카드).queryByText(/화면 \/login\/forgot 에서 봤습니다/)).toBeNull();
-    fireEvent.click(within(카드).getByRole('button', { name: '펴기' }));
-    expect(within(카드).getByText(/화면 \/login\/forgot 에서 봤습니다/)).toBeTruthy();
-    fireEvent.click(within(카드).getByRole('button', { name: '접기' }));
-    expect(within(카드).queryByText(/화면 \/login\/forgot 에서 봤습니다/)).toBeNull();
-    fireEvent.click(within(카드).getByRole('button', { name: '펴기' }));
-    expect(within(카드).queryByText('demo.market/api/auth/login')).toBeNull();
+    await screen.findByText('버전 12 · 요구 4건');
+    expect(screen.queryByRole('region', { name: /케이스가 안 거친 API/ })).toBeNull();
   });
 
-  it('지도가 비었으면 카드도 거치는 API 도 없다', async () => {
+  it('지도가 비었으면 거치는 API 가 없다', async () => {
     지도.mockResolvedValue({ apis: [] });
     render(<Prd service="MKT" 할수={보는사람} />);
     fireEvent.click(await screen.findByRole('button', { name: /로그인/ }));
     fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-040/ }));
     await screen.findByRole('heading', { name: '테스트' });
-    expect(screen.queryByText(/케이스가 안 거친 API/)).toBeNull();
     expect(screen.queryByText(/거치는 API/)).toBeNull();
   });
 

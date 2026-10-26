@@ -1,5 +1,5 @@
 // 「PRD 관리」 화면 — 표준 기획서를 보고 고치고 확정한다 (도메인/작성 §3.6 「★ 표준 기획서」 「사람이 고칠 때」 · 2026-10-10 시안 C 「할 일 먼저」)
-// 저장 · 확정 · 되돌리기는 모두 바로 새 판이다. 테스트에 넣는 반영 버튼은 PrdTodo 의 반영 안 됨 칸이다 — 작성 요청 하나 · PR 하나 (PR #207)
+// 저장 · 되돌리기는 바로 새 판이다. 확인 필요 확정 · 바뀐 요구 반영은 여기가 아니라 테스트 작성의 「결정 필요」 한 곳에서 한다 (도메인/작성 §3.6 「★ 결정 목록」)
 
 import { useMemo, useState } from 'react';
 
@@ -8,10 +8,9 @@ import { api, ApiError } from './api.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { prdApi } from './prdApi.js';
-import { 안거친API카드 } from './PrdApis.js';
+import { PrdHeldCard } from './PrdHeld.js';
 import { PrdList } from './PrdList.js';
 import { PrdNew } from './PrdNew.js';
-import { PrdTodo } from './PrdTodo.js';
 import { PrdVersions } from './PrdVersions.js';
 import type { 판정 } from './role.js';
 import { Failed, Loading, message, useAsync, 기다림글자, 받을이름, 파일로저장 } from './ui.js';
@@ -156,8 +155,11 @@ export function Prd({
         </div>
       ) : (
         <>
-          {now.version === 0 ? null : <PrdTodo service={service} now={now} 쓰나={쓰나} 짓기={짓기} />}
-          {now.version === 0 || 지도.data === null ? null : <안거친API카드 apis={지도.data.apis} />}
+          {now.version === 0 || Object.keys(now.held.reqs).length === 0 ? null : (
+            <div className="prd-todo">
+              <PrdHeldCard service={service} held={now.held} 쓰나={쓰나} />
+            </div>
+          )}
           <PrdList
             service={service}
             now={now}

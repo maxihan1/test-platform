@@ -27,8 +27,8 @@ beforeEach(() => {
   저장.mockClear();
   판들.mockReset();
   판들.mockResolvedValue([
-    { version: 12, source: 'PERSON', savedByName: '한지수', savedAt: '2026-10-09T08:42:00.000Z' },
-    { version: 11, source: 'AGENT', savedByName: '작성 에이전트', savedAt: '2026-10-01T00:12:00.000Z' },
+    { version: 12, source: 'PERSON', savedByName: '한지수', savedAt: '2026-10-09T08:42:00.000Z', requestId: null, fromDecision: false, changes: null },
+    { version: 11, source: 'AGENT', savedByName: '작성 에이전트', savedAt: '2026-10-01T00:12:00.000Z', requestId: 14681, fromDecision: false, changes: null },
   ]);
   되돌림.mockClear();
   // 버전마다 첫 요구의 문장이 달라 앞 버전과 견주면 늘 「바뀜 1건」이다
@@ -98,6 +98,40 @@ describe('PRD 관리 — 고치기', () => {
     expect(보낸것[1]).toMatchObject({ reqId: 'MKT-REQ-032', text: '아이디 칸에는 12자까지 들어간다', status: 'CONFIRMED', basis: 아이디칸.basis });
     expect(await screen.findByText('저장했습니다 (버전 13)')).toBeTruthy();
     await vi.waitFor(() => expect(screen.queryByLabelText('요구 문장')).toBeNull());
+  });
+
+  it('요구 문장을 고쳐 저장하면 그 줄 아래에 결정 필요로 가는 고리가 한 번 뜬다', async () => {
+    await 펴서고치기(/회원가입/, /MKT-REQ-031/);
+    fireEvent.change(screen.getByLabelText('요구 문장'), { target: { value: '아이디는 영문 소문자·숫자 4~14자이다' } });
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    const 고리 = await screen.findByRole('link', { name: '테스트 작성 › 결정 필요에서 테스트를 다시 만들 수 있어요 →' });
+    expect(고리.getAttribute('href')).toBe('#/authoring?todo=1');
+    expect(고리.closest('.prd-item')?.id).toBe('prd-item-MKT-REQ-031');
+    expect(screen.getAllByRole('link', { name: /테스트를 다시 만들 수 있어요/ })).toHaveLength(1);
+  });
+
+  it('상태만 바꾸거나 지우는 저장에는 고리가 안 뜬다', async () => {
+    await 펴서고치기(/회원가입/, /MKT-REQ-032/);
+    fireEvent.change(screen.getByLabelText('상태'), { target: { value: 'CONFIRMED' } });
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    await screen.findByText('저장했습니다 (버전 13)');
+    await vi.waitFor(() => expect(screen.queryByLabelText('요구 문장')).toBeNull());
+    expect(screen.queryByRole('link', { name: /테스트를 다시 만들 수 있어요/ })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: '고치기' }));
+    fireEvent.click(screen.getByRole('button', { name: '이 요구 지우기' }));
+    fireEvent.click(screen.getByRole('button', { name: '지우기 확인' }));
+    await vi.waitFor(() => expect(저장).toHaveBeenCalledTimes(2));
+    expect(screen.queryByRole('link', { name: /테스트를 다시 만들 수 있어요/ })).toBeNull();
+  });
+
+  it('저장이 실패하면 고리가 안 뜬다', async () => {
+    저장.mockRejectedValueOnce(new ApiError(409, 'PRD_STALE', ''));
+    await 펴서고치기(/회원가입/, /MKT-REQ-031/);
+    fireEvent.change(screen.getByLabelText('요구 문장'), { target: { value: '고치다 만 글' } });
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    await screen.findByRole('alert');
+    expect(screen.queryByRole('link', { name: /테스트를 다시 만들 수 있어요/ })).toBeNull();
   });
 
   it('고치던 줄을 접으면 먼저 묻고, 버리고 접은 뒤 다시 펴면 고치기 전 모습이다', async () => {
@@ -180,12 +214,12 @@ describe('PRD 관리 — 고치기', () => {
     expect(저장.mock.calls[0]![2][4]).toMatchObject({ status: 'NEEDS_CHECK', basis: [{ from: '직접 작성' }] });
   });
 
-  it('요구사항 추가 칸은 할 일 카드 위에서 열리고 기능 묶음 칸에 커서가 간다 (점검 8.5)', async () => {
+  it('요구사항 추가 칸은 전체 요구 위에서 열리고 기능 묶음 칸에 커서가 간다 (점검 8.5)', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
     fireEvent.click(await screen.findByRole('button', { name: '요구사항 추가' }));
     const 칸 = screen.getByRole('heading', { name: '새 요구' }).parentElement!;
-    const 확인 = screen.getByRole('region', { name: /확인 필요 2건/ });
-    expect(칸.compareDocumentPosition(확인) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const 전체 = screen.getByRole('region', { name: '전체 요구' });
+    expect(칸.compareDocumentPosition(전체) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(document.activeElement).toBe(within(칸).getByLabelText('기능 묶음'));
   });
 
@@ -206,7 +240,7 @@ describe('PRD 관리 — 고치기', () => {
   });
 
   it('판이 없을 때 요구사항 추가를 누르면 빈 화면 대신 새 요구 칸이 열린다', async () => {
-    지금.mockResolvedValue(판({ version: 0, items: [], unapplied: { changed: [], added: [], removed: [] }, needsCheck: { count: 0, oldestSince: null } }));
+    지금.mockResolvedValue(판({ version: 0, items: [] }));
     render(<Prd service="MKT" 할수={쓰는사람} />);
     fireEvent.click(await screen.findByRole('button', { name: '요구사항 추가' }));
     expect(screen.getByRole('heading', { name: '새 요구' })).toBeTruthy();
@@ -218,7 +252,7 @@ describe('PRD 관리 — 버전 기록', () => {
   it('작성 쓰기가 없으면 버전 기록은 보이고 복원은 아예 없다', async () => {
     render(<Prd service="MKT" 할수={() => false} />);
     fireEvent.click(await screen.findByRole('button', { name: '버전 기록' }));
-    expect(await screen.findByText('작성 에이전트 · AI 작성')).toBeTruthy();
+    expect(await screen.findByText('AI 작성 #14681')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /복원/ })).toBeNull();
   });
 
@@ -226,9 +260,60 @@ describe('PRD 관리 — 버전 기록', () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
     fireEvent.click(await screen.findByRole('button', { name: '버전 기록' }));
     const 줄들 = (await screen.findAllByRole('row')).slice(1);
-    expect(within(줄들[0]!).getByText('한지수 · 직접 수정')).toBeTruthy();
+    expect(within(줄들[0]!).getByText('직접 수정')).toBeTruthy();
+    expect(within(줄들[0]!).getByText('한지수')).toBeTruthy();
     expect(within(줄들[0]!).getByText('현재 버전')).toBeTruthy();
-    expect(within(줄들[1]!).getByText('작성 에이전트 · AI 작성')).toBeTruthy();
+    expect(within(줄들[0]!).queryByRole('button', { name: '이 버전으로 복원' })).toBeNull();
+    expect(within(줄들[1]!).getByText('AI 작성 #14681')).toBeTruthy();
+    expect(within(줄들[1]!).getByText('작성 에이전트')).toBeTruthy();
+    expect(within(줄들[1]!).queryByText('현재 버전')).toBeNull();
+  });
+
+  it('어디서 칸은 출처마다 글이 다르다 — 요청 번호 · 결정에서 · 되돌림', async () => {
+    const 행 = (version: number, source: PrdVersionRow['source'], 덮을것: Partial<PrdVersionRow> = {}): PrdVersionRow => ({
+      version, source, savedByName: '맥시', savedAt: '2026-10-09T08:42:00.000Z', requestId: null, fromDecision: false, changes: null, ...덮을것,
+    });
+    판들.mockResolvedValue([
+      행(16, 'REVERT'),
+      행(15, 'DECISION'),
+      행(14, 'AGENT', { requestId: 20, fromDecision: true }),
+      행(13, 'AGENT', { requestId: null }),
+      행(12, 'AGENT', { requestId: 14681 }),
+    ]);
+    render(<Prd service="MKT" 할수={쓰는사람} />);
+    fireEvent.click(await screen.findByRole('button', { name: '버전 기록' }));
+    const 줄들 = (await screen.findAllByRole('row')).slice(1);
+    const 칸 = (n: number) => 줄들[n]!.querySelectorAll('td')[1]!.textContent;
+    expect([0, 1, 2, 3, 4].map(칸)).toEqual(['되돌림', '테스트 작성에서 결정', '테스트 작성에서 결정 · AI #20', 'AI 작성', 'AI 작성 #14681']);
+    expect([...줄들[0]!.closest('table')!.querySelectorAll('th')].map((th) => th.textContent)).toEqual(['버전', '어디서', '바뀐 것', '저장한 사람', '저장 일시', '']);
+  });
+
+  it('changes 가 있으면 앞 버전을 읽지 않고 그 줄을 그대로 적는다 — 종류 · 번호 · 새 문장 · 까닭', async () => {
+    판들.mockResolvedValue([
+      {
+        version: 12,
+        source: 'DECISION',
+        savedByName: '맥시',
+        savedAt: '2026-10-26T06:20:00.000Z',
+        requestId: null,
+        fromDecision: false,
+        changes: [
+          { kind: 'EDIT', reqId: 'MKT-REQ-088', text: '주문 취소 버튼은 배송 전에만 보인다', asset: null, tcId: 'MKT-FN-271' },
+          { kind: 'PICK', reqId: 'MKT-REQ-021', text: '쿠폰은 한 번만 쓴다', asset: '화면설명메모.md', tcId: null },
+          { kind: 'CONFIRM', reqId: 'MKT-REQ-349', text: null, asset: null, tcId: null },
+        ],
+      },
+    ]);
+    render(<Prd service="MKT" 할수={쓰는사람} />);
+    fireEvent.click(await screen.findByRole('button', { name: '버전 기록' }));
+    const 줄 = (await screen.findAllByRole('row'))[1]!;
+    expect(within(줄).getAllByRole('listitem').map((x) => x.textContent)).toEqual([
+      '문장 변경MKT-REQ-088주문 취소 버튼은 배송 전에만 보인다 · 화면이 맞음(MKT-FN-271)',
+      '문구 선택MKT-REQ-021쿠폰은 한 번만 쓴다 · 화면설명메모.md 쪽',
+      '확정MKT-REQ-349',
+    ]);
+    expect(within(줄).queryByRole('button', { name: '바뀐 것 보기' })).toBeNull();
+    expect(한판).not.toHaveBeenCalled();
   });
 
   it('버전마다 앞 버전과 견준 바뀐 것을 한 줄로 보이고, 누르면 바뀐 요구가 펼쳐진다 (점검 8.8)', async () => {
@@ -276,7 +361,7 @@ describe('PRD 관리 — 버전 기록', () => {
 
   it('최근 열 개 밖의 버전은 누를 때만 읽는다', async () => {
     판들.mockResolvedValue(
-      Array.from({ length: 12 }, (_, i): PrdVersionRow => ({ version: 12 - i, source: 'PERSON', savedByName: '한지수', savedAt: '2026-10-09T08:42:00.000Z' })),
+      Array.from({ length: 12 }, (_, i): PrdVersionRow => ({ version: 12 - i, source: 'PERSON', savedByName: '한지수', savedAt: '2026-10-09T08:42:00.000Z', requestId: null, fromDecision: false, changes: null })),
     );
     render(<Prd service="MKT" 할수={쓰는사람} />);
     fireEvent.click(await screen.findByRole('button', { name: '버전 기록' }));

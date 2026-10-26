@@ -13,7 +13,7 @@ import type { 지도API } from '../prd/apiMap.js';
 import { 요구가거치는 } from './PrdApis.js';
 import { prd줄아이디, 요구줄 } from './PrdRow.js';
 import { PRD항목주소 } from './route.js';
-import { 고친판, 뒤집은, 묶음들, 반영안됨줄 } from './prdView.js';
+import { 고친판, 뒤집은, 묶음들 } from './prdView.js';
 
 export function PrdList({
   service,
@@ -54,6 +54,8 @@ export function PrdList({
     // 처음 열 때 한 번만 — 판이 바뀔 때마다 그 줄로 끌려가면 다른 줄을 고칠 수 없다
   }, []);
   const [고치는, set고치는] = useState<string | null>(null);
+  // 문장을 고쳐 저장한 줄 — 저장 응답으로만 아는 안내라 새로 고치면 없다. 테스트는 「결정 필요」에서 다시 만든다
+  const [고친줄, set고친줄] = useState<Set<string>>(new Set());
 
   const 찾는말 = q.trim().toLowerCase();
   // 고치는 줄은 찾기가 걸러 내지 않는다 — 걸러지면 고치기 칸이 내려가 쓴 글이 묻지 않고 사라진다
@@ -63,7 +65,6 @@ export function PrdList({
   const 접기 = (남길: Set<string>) => (고치는 !== null && 고치는묶음 !== undefined && !남길.has(고치는묶음) ? 버리기전(() => set연묶음(남길), 고치는) : set연묶음(남길));
   const 묶음 = 묶음들(찾은것);
   const 기능들 = [...new Set(now.items.map((x) => x.feature))];
-  const 반영표 = new Map(반영안됨줄(now).map((x) => [x.reqId, x.kind]));
   const 추적표 = useMemo(() => new Map(now.items.map((x) => [x.reqId, 추적하기(now.cases[x.reqId] ?? [], 결과)])), [now, 결과]);
   const 추적of = (reqId: string) => 추적표.get(reqId) ?? 추적하기([], 결과);
   // 찾는 동안은 맞은 묶음을 다 편다 — 접힌 묶음 속에 맞은 줄이 숨으면 「없다」로 읽힌다
@@ -100,7 +101,6 @@ export function PrdList({
       ) : (
         묶음.map((g) => {
           const 확인수 = g.items.filter((x) => x.status === 'NEEDS_CHECK').length;
-          const 반영수 = g.items.filter((x) => 반영표.has(x.reqId)).length;
           const 추적들 = g.items.map((x) => 추적of(x.reqId));
           const 없는줄 = g.items.filter((_, i) => 추적들[i]!.기능.length + 추적들[i]!.UI.length === 0);
           const 보류수 = 없는줄.filter((x) => 줄보류of(now.held, x.reqId) !== null).length;
@@ -117,7 +117,6 @@ export function PrdList({
                   {t('{건수}건', { 건수: g.items.length })}
                   {/* 묶음 전체가 같은 꼬리면 같은 숫자가 세 번 나온다 — 「모두 ~」 한 마디로 줄인다 (점검 N9) */}
                   {확인수 === 0 ? null : <> · {확인수 === g.items.length ? t('모두 확인 필요') : t('확인 필요 {건수}건', { 건수: 확인수 })}</>}
-                  {반영수 === 0 ? null : <> · {반영수 === g.items.length ? t('모두 반영 안 됨') : t('반영 안 됨 {건수}건', { 건수: 반영수 })}</>}
                   {보류수 === 0 ? null : <> · {보류수 === g.items.length ? t('모두 보류') : t('보류 {건수}건', { 건수: 보류수 })}</>}
                   {미작성수 === 0 ? null : <> · {미작성수 === g.items.length ? t('모두 미작성') : t('미작성 {건수}건', { 건수: 미작성수 })}</>}
                   {실패수 === 0 ? null : <> · <span className="prd-gfail">{실패수 === g.items.length ? t('모두 실패') : t('실패 {건수}건', { 건수: 실패수 })}</span></>}
@@ -130,7 +129,7 @@ export function PrdList({
                       key={x.reqId}
                       x={x}
                       여기={x.reqId === 여기}
-                      반영={반영표.get(x.reqId)}
+                      안내={고친줄.has(x.reqId)}
                       추적={추적of(x.reqId)}
                       거치는={apis === null || !편줄.has(x.reqId) ? [] : 요구가거치는(now.cases[x.reqId] ?? [], apis)}
                       보류={줄보류of(now.held, x.reqId)}
@@ -160,10 +159,13 @@ export function PrdList({
                       기능들={기능들}
                       on저장={async (새것, 실패) => {
                         const 됐나 = await 저장(x.reqId, 새것, 실패);
-                        if (됐나) set고치는(null);
+                        if (됐나) {
+                          set고치는(null);
+                          // 지우기 · 상태만 바꾼 저장은 테스트와 상관없다
+                          if (새것 !== null && 새것.text !== x.text) set고친줄((전) => new Set(전).add(x.reqId));
+                        }
                         return 됐나;
                       }}
-                      on확정={() => 짓기((base) => prdApi.confirm(service, base, [x.reqId]))}
                     />
                   ))}
             </div>

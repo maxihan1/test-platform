@@ -2,7 +2,7 @@ import type { PrdItem } from '@platform/kit';
 import { describe, expect, it } from 'vitest';
 
 import { 직접근거, 로그인역할 } from '../prd/rules.js';
-import { 고친판, 고치기검사, 묶음들, 반영안됨줄, 판차이, 확인필요줄 } from './prdView.js';
+import { 고친판, 고치기검사, 묶음들, 판차이 } from './prdView.js';
 
 const 항목 = (reqId: string, feature: string, 덮을것: Partial<PrdItem> = {}): PrdItem => ({
   reqId,
@@ -19,32 +19,6 @@ describe('기능 묶음', () => {
     expect(묶음들(판).map((g) => [g.feature, g.items.map((x) => x.reqId)])).toEqual([
       ['회원가입', ['MKT-REQ-001', 'MKT-REQ-003']],
       ['로그인', ['MKT-REQ-002']],
-    ]);
-  });
-});
-
-describe('확인 필요 줄', () => {
-  it('확인 필요만 오래 기다린 것부터, 시각이 없으면 맨 아래', () => {
-    const 판 = [
-      항목('MKT-REQ-001', '가', { status: 'NEEDS_CHECK', checkSince: '2026-10-09T00:00:00.000Z' }),
-      항목('MKT-REQ-002', '가'),
-      항목('MKT-REQ-003', '가', { status: 'NEEDS_CHECK' }),
-      항목('MKT-REQ-004', '가', { status: 'NEEDS_CHECK', checkSince: '2026-10-01T00:00:00.000Z' }),
-    ];
-    expect(확인필요줄(판).map((x) => x.reqId)).toEqual(['MKT-REQ-004', 'MKT-REQ-001', 'MKT-REQ-003']);
-  });
-});
-
-describe('반영 안 됨 줄', () => {
-  it('바뀜 · 새 항목 · 지움 차례로, 지운 번호는 글 없이', () => {
-    const 줄 = 반영안됨줄({
-      items: [항목('MKT-REQ-001', '가'), 항목('MKT-REQ-005', '가')],
-      unapplied: { changed: ['MKT-REQ-001'], added: ['MKT-REQ-005'], removed: ['MKT-REQ-002'] },
-    });
-    expect(줄).toEqual([
-      { kind: 'changed', reqId: 'MKT-REQ-001', text: 'MKT-REQ-001 요구' },
-      { kind: 'added', reqId: 'MKT-REQ-005', text: 'MKT-REQ-005 요구' },
-      { kind: 'removed', reqId: 'MKT-REQ-002', text: null },
     ]);
   });
 });

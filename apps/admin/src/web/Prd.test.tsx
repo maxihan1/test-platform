@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from './api.js';
@@ -7,16 +7,13 @@ import { Prd } from './Prd.js';
 import { 판, 로그인실패 } from './prd.fixture.js';
 import type { PrdNow } from './prdApi.js';
 import type { 판정 } from './role.js';
-import { scenarioApi, type ScenarioRow } from './scenarioApi.js';
 
-const { 지금, 확정, 워드, 반영 } = vi.hoisted(() => ({
+const { 지금, 워드 } = vi.hoisted(() => ({
   지금: vi.fn((_s: string): Promise<PrdNow> => Promise.reject(new Error('판을 정하지 않았다'))),
-  확정: vi.fn((_s: string, _base: number, _ids: string[]) => Promise.resolve({ version: 13 })),
   워드: vi.fn((_s: string): Promise<{ 파일: Blob; 머리: string | null }> => Promise.reject(new Error('워드를 정하지 않았다'))),
-  반영: vi.fn((_s: string) => Promise.resolve({ id: 6120 })),
 }));
 
-vi.mock('./prdApi.js', () => ({ prdApi: { now: 지금, confirm: 확정, wordExport: 워드, apply: 반영, apis: () => Promise.resolve({ apis: [] }) } }));
+vi.mock('./prdApi.js', () => ({ prdApi: { now: 지금, wordExport: 워드, apis: () => Promise.resolve({ apis: [] }) } }));
 
 const 쓰는사람: 판정 = () => true;
 const 보는사람: 판정 = () => false;
@@ -24,9 +21,7 @@ const 보는사람: 판정 = () => false;
 beforeEach(() => {
   지금.mockReset();
   지금.mockResolvedValue(판());
-  확정.mockClear();
   워드.mockReset();
-  반영.mockClear();
 });
 
 afterEach(() => {
@@ -35,11 +30,9 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const 확인칸 = () => screen.getByRole('region', { name: /확인 필요 2건/ });
-
-describe('PRD 관리 — 할 일 먼저', () => {
+describe('PRD 관리 — 머리와 할 일 칸', () => {
   it('판이 없으면 빈 화면과 첫 요구를 적는 길을 보인다', async () => {
-    지금.mockResolvedValue(판({ version: 0, items: [], unapplied: { changed: [], added: [], removed: [] }, needsCheck: { count: 0, oldestSince: null } }));
+    지금.mockResolvedValue(판({ version: 0, items: [] }));
     render(<Prd service="MKT" 할수={쓰는사람} />);
     expect(await screen.findByText('테스트 작성 요청으로 기획서를 올리거나, 요구사항 추가로 첫 요구를 직접 적습니다')).toBeTruthy();
     expect(screen.getByRole('link', { name: '테스트 작성 요청' }).getAttribute('href')).toBe('#/authoring');
@@ -65,197 +58,41 @@ describe('PRD 관리 — 할 일 먼저', () => {
     expect(screen.getByRole('button', { name: '추적표 엑셀로 내려받기' })).toBeTruthy();
   });
 
-  it('확인 필요 줄에서 출처 개수를 누르면 자료 · 위치 · 원문을 다 펴고 다시 누르면 접는다 (점검 8.2)', async () => {
-    render(<Prd service="MKT" 할수={쓰는사람} />);
-    await screen.findByText('버전 12 · 요구 4건');
-    const 줄 = within(확인칸()).getAllByRole('listitem')[0]!;
-    const 인용 = `원문: 「${로그인실패.basis[0]!.quote}」`;
-    expect(within(줄).queryByText(인용)).toBeNull();
-    fireEvent.click(within(줄).getByRole('button', { name: '출처 2개' }));
-    for (const b of 로그인실패.basis) expect(within(줄).getByText(`원문: 「${b.quote}」`)).toBeTruthy();
-    expect(within(줄).getByText('이 요구사항을 어디서 읽었는지입니다')).toBeTruthy();
-    expect(within(줄).getByText('자료: 실제 화면에서 본 것 · 위치:', { exact: false })).toBeTruthy();
-    expect(within(줄).getByText('자료: 기획서.docx · 위치:', { exact: false })).toBeTruthy();
-    fireEvent.click(within(줄).getByRole('button', { name: '출처 2개' }));
-    expect(within(줄).queryByText(인용)).toBeNull();
-  });
 
   it('묶음 전체가 같은 꼬리면 같은 숫자를 되풀이하지 않고 「모두」 로 줄인다 (점검 N9)', async () => {
-    지금.mockResolvedValue(판({ items: [판().items[1]!], unapplied: { changed: ['MKT-REQ-032'], added: [], removed: [] } }));
+    지금.mockResolvedValue(판({ items: [판().items[1]!] }));
     render(<Prd service="MKT" 할수={쓰는사람} />);
     const 묶음 = await screen.findByRole('button', { name: /회원가입/ });
-    expect(묶음.textContent).toContain('1건 · 모두 확인 필요 · 모두 반영 안 됨 · 모두 미작성');
+    expect(묶음.textContent).toContain('1건 · 모두 확인 필요 · 모두 미작성');
     expect(묶음.textContent).not.toContain('확인 필요 1건');
   });
 
-  it('확정 안내에 PR 이라는 개발 말이 없다 (점검 8.12)', async () => {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  it('확인 필요 · 반영 안 됨 · PRD 에 없는 화면 카드와 일괄 확정 · 반영 단추는 이제 없다 (결정 필요 한 곳으로 옮겼다)', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
     await screen.findByText('버전 12 · 요구 4건');
-    expect(screen.getByText('확정하면 바로 새 버전으로 저장됩니다')).toBeTruthy();
-  });
-
-  it('머리에 판과 요구 수, 확인 필요는 오래 기다린 것부터 나이와 근거 자리를 단다', async () => {
-    render(<Prd service="MKT" 할수={쓰는사람} />);
-    expect(await screen.findByText('버전 12 · 요구 4건')).toBeTruthy();
-    expect(within(확인칸()).getByText(/가장 오래된 것 9일째/)).toBeTruthy();
-    const 줄들 = within(확인칸()).getAllByRole('listitem');
-    expect(줄들.map((줄) => within(줄).getByText(/^MKT-REQ/).textContent)).toEqual(['MKT-REQ-040', 'MKT-REQ-032']);
-    expect(within(줄들[0]!).getByText('9일째')).toBeTruthy();
-    expect(within(줄들[0]!).getByText('로그인 · 화면 · /login')).toBeTruthy();
-  });
-
-  it('고른 확인 필요만 지금 판 번호와 함께 한 번에 확정하고 판을 다시 읽는다', async () => {
-    render(<Prd service="MKT" 할수={쓰는사람} />);
-    await screen.findByText('버전 12 · 요구 4건');
-    const 버튼 = screen.getByRole('button', { name: '고른 0건 확정' }) as HTMLButtonElement;
-    expect(버튼.disabled).toBe(true);
-    fireEvent.click(screen.getByRole('checkbox', { name: 'MKT-REQ-040 고르기' }));
-    fireEvent.click(screen.getByRole('button', { name: '고른 1건 확정' }));
-    await vi.waitFor(() => expect(확정).toHaveBeenCalledWith('MKT', 12, ['MKT-REQ-040']));
-    expect(await screen.findByText('저장했습니다 (버전 13)')).toBeTruthy();
-    await vi.waitFor(() => expect(지금).toHaveBeenCalledTimes(2));
-  });
-
-  it('모두 고르기는 확인 필요 전부를 고른다', async () => {
-    render(<Prd service="MKT" 할수={쓰는사람} />);
-    await screen.findByText('버전 12 · 요구 4건');
-    fireEvent.click(screen.getByRole('checkbox', { name: '모두 고르기' }));
-    fireEvent.click(screen.getByRole('button', { name: '고른 2건 확정' }));
-    await vi.waitFor(() => expect(확정).toHaveBeenCalledWith('MKT', 12, ['MKT-REQ-040', 'MKT-REQ-032']));
-  });
-
-  it('다른 사람이 먼저 저장했으면 까닭을 말하고 새 판을 다시 읽는다', async () => {
-    확정.mockRejectedValueOnce(new ApiError(409, 'PRD_STALE', ''));
-    render(<Prd service="MKT" 할수={쓰는사람} />);
-    await screen.findByText('버전 12 · 요구 4건');
-    fireEvent.click(screen.getByRole('checkbox', { name: 'MKT-REQ-032 고르기' }));
-    fireEvent.click(screen.getByRole('button', { name: '고른 1건 확정' }));
-    expect(await screen.findByText('다른 사람이 먼저 PRD 를 바꿨습니다. 최신 버전을 불러왔으니 확인하고 다시 합니다')).toBeTruthy();
-    await vi.waitFor(() => expect(지금).toHaveBeenCalledTimes(2));
-  });
-
-  it('반영 안 됨은 종류와 번호를 보이고 지운 요구는 글 없이 적는다', async () => {
-    render(<Prd service="MKT" 할수={쓰는사람} />);
-    const 칸 = await screen.findByRole('region', { name: /반영 안 됨 2건/ });
-    expect(within(칸).getByText('새 항목')).toBeTruthy();
-    expect(within(칸).getByText('MKT-REQ-012')).toBeTruthy();
-    expect(within(칸).getByText('지운 요구')).toBeTruthy();
-  });
-
-  it('반영 버튼을 누르면 작성 요청 하나를 세우고 그 요청으로 가는 링크를 띄운다', async () => {
-    render(<Prd service="MKT" 할수={쓰는사람} />);
-    const 칸 = await screen.findByRole('region', { name: /반영 안 됨 2건/ });
-    fireEvent.click(within(칸).getByRole('button', { name: '바뀐 요구 2건 테스트에 반영' }));
-    await vi.waitFor(() => expect(반영).toHaveBeenCalledWith('MKT'));
-    expect(await within(칸).findByText('작성 요청 6120번을 만들었습니다')).toBeTruthy();
-    expect(within(칸).getByRole('link', { name: '#6120 요청 보기' }).getAttribute('href')).toBe('#/authoring/6120');
-    expect((within(칸).getByRole('button', { name: '바뀐 요구 2건 테스트에 반영' }) as HTMLButtonElement).disabled).toBe(true);
-  });
-
-  it.each([
-    ['APPLY_OPEN', /이미 열린 반영 요청이 있습니다/],
-    ['AUTHORING_OPEN', /반영하지 않은 테스트 작성 요청이 있습니다/],
-  ])('%s 로 막히면 그 요청 번호로 가는 링크를 띄운다', async (코드, 글) => {
-    반영.mockRejectedValueOnce(new ApiError(409, 코드, '6101'));
-    render(<Prd service="MKT" 할수={쓰는사람} />);
-    const 칸 = await screen.findByRole('region', { name: /반영 안 됨 2건/ });
-    fireEvent.click(within(칸).getByRole('button', { name: '바뀐 요구 2건 테스트에 반영' }));
-    expect(await within(칸).findByText(글)).toBeTruthy();
-    expect(within(칸).getByRole('link', { name: '#6101 요청 보기' }).getAttribute('href')).toBe('#/authoring/6101');
-    expect((within(칸).getByRole('button', { name: '바뀐 요구 2건 테스트에 반영' }) as HTMLButtonElement).disabled).toBe(true);
-  });
-
-  it('반영 안 됨 요구를 덮는 케이스를 쓰는 E2E 시나리오를 버튼 위에 번호 · 이름으로 보인다', async () => {
-    const 시나리오: ScenarioRow = { id: 3, name: '회원가입 후 첫 주문', platform: 'desktop', version: 1, partCount: 2, isActive: true, needsCheck: false, runnable: true, lastRun: null };
-    const 부름 = vi.spyOn(scenarioApi, 'list').mockResolvedValue({ items: [시나리오] });
-    const 덮음 = (tcId: string) => ({ tcId, axis: '정상', techniques: [], platforms: ['desktop' as const] });
-    지금.mockResolvedValue(판({ cases: { 'MKT-REQ-012': [덮음('MKT-031')], 'MKT-REQ-041': [덮음('MKT-040'), 덮음('MKT-031')], 'MKT-REQ-031': [덮음('MKT-010')] } }));
-    render(<Prd service="MKT" 할수={쓰는사람} />);
-    const 칸 = await screen.findByRole('region', { name: /반영 안 됨 2건/ });
-    expect(await within(칸).findByText('이번 반영으로 바뀌거나 지워질 수 있는 케이스를 쓰는 E2E 시나리오 1개 — 반영한 뒤 시험 실행으로 확인하고 지운 케이스는 다른 케이스로 바꿉니다')).toBeTruthy();
-    expect(부름).toHaveBeenCalledWith('MKT', ['MKT-031', 'MKT-040']);
-    expect(within(칸).getByRole('link', { name: 'SC-3 회원가입 후 첫 주문' }).getAttribute('href')).toBe('#/scenarios/3');
-  });
-
-  it('반영 안 됨 요구를 덮는 케이스가 없으면 시나리오를 묻지 않고 알림도 없다', async () => {
-    const 부름 = vi.fn();
-    vi.stubGlobal('fetch', 부름);
-    지금.mockResolvedValue(판({ cases: { 'MKT-REQ-031': [{ tcId: 'MKT-010', axis: '정상', techniques: [], platforms: ['desktop' as const] }] } }));
-    render(<Prd service="MKT" 할수={쓰는사람} />);
-    const 칸 = await screen.findByRole('region', { name: /반영 안 됨 2건/ });
-    expect(within(칸).getByRole('button', { name: '바뀐 요구 2건 테스트에 반영' })).toBeTruthy();
-    expect(부름).not.toHaveBeenCalled();
-    expect(within(칸).queryByText(/E2E 시나리오/)).toBeNull();
-  });
-
-  it('시나리오 목록을 못 읽으면 알림 없이 버튼만 남고 삭제 경고 문장도 없다', async () => {
-    const 부름 = vi.spyOn(scenarioApi, 'list').mockRejectedValue(new ApiError(403, 'FORBIDDEN', '권한이 없습니다'));
-    지금.mockResolvedValue(판({ cases: { 'MKT-REQ-012': [{ tcId: 'MKT-031', axis: '정상', techniques: [], platforms: ['desktop' as const] }] } }));
-    render(<Prd service="MKT" 할수={쓰는사람} />);
-    const 칸 = await screen.findByRole('region', { name: /반영 안 됨 2건/ });
-    await vi.waitFor(() => expect(부름).toHaveBeenCalledWith('MKT', ['MKT-031']));
-    expect(within(칸).getByRole('button', { name: '바뀐 요구 2건 테스트에 반영' })).toBeTruthy();
-    expect(within(칸).queryByText(/E2E 시나리오/)).toBeNull();
-  });
-
-  it('할 일이 없으면 두 칸 대신 한 줄', async () => {
-    지금.mockResolvedValue(
-      판({ items: [판().items[0]!], unapplied: { changed: [], added: [], removed: [] }, needsCheck: { count: 0, oldestSince: null } }),
-    );
-    render(<Prd service="MKT" 할수={쓰는사람} />);
-    expect(await screen.findByText('확인할 요구도 테스트에 반영할 요구도 없습니다')).toBeTruthy();
-  });
-
-  it('찾은 화면이 있으면 할 일이 없어도 「PRD 에 없는 화면」 카드를 그린다', async () => {
-    지금.mockResolvedValue(
-      판({
-        items: [판().items[0]!],
-        unapplied: { changed: [], added: [], removed: [] },
-        needsCheck: { count: 0, oldestSince: null },
-        foundScreens: 5,
-        uncoveredScreens: [
-          { state: '로그인', url: '/cart', name: '장바구니' },
-          { state: '로그아웃', url: '/event/:n', name: '' },
-        ],
-      }),
-    );
-    render(<Prd service="MKT" 할수={쓰는사람} />);
-    const 카드 = await screen.findByRole('region', { name: 'PRD 에 없는 화면 2개' });
+    expect(screen.queryByRole('region', { name: /^확인 필요 \d|반영 안 됨|PRD 에 없는 화면|케이스가 안 거친 API/ })).toBeNull();
     expect(screen.queryByText('확인할 요구도 테스트에 반영할 요구도 없습니다')).toBeNull();
-    expect(within(카드).getByText('찾은 화면 5개 중 · 아직 요구사항도 테스트도 없는 화면입니다')).toBeTruthy();
-    const 줄들 = within(카드).getAllByRole('listitem');
-    expect(줄들.map((줄) => 줄.textContent)).toEqual(['로그인/cart장바구니', '로그아웃/event/:n']);
-    expect(within(카드).getByText('기획서 없이 「실제 화면과 대조」로 보내면 이 화면만 작성합니다')).toBeTruthy();
-    expect(within(카드).getByRole('link', { name: '이 화면들 테스트 작성' }).getAttribute('href')).toBe('#/authoring?compare=1');
-  });
-
-  it('「PRD 에 없는 화면」 단추는 작성 쓰기가 있을 때만 있고, 로그인 상태는 사람 말로 읽는다 (점검 8.10)', async () => {
-    지금.mockResolvedValue(판({ foundScreens: 2, uncoveredScreens: [{ state: '로그인:일반 회원', url: '/cart', name: '장바구니' }] }));
-    render(<Prd service="MKT" 할수={보는사람} />);
-    const 카드 = await screen.findByRole('region', { name: 'PRD 에 없는 화면 1개' });
-    expect(within(카드).getByText('일반 회원 로그인')).toBeTruthy();
-    expect(within(카드).queryByText('로그인:일반 회원')).toBeNull();
-    expect(within(카드).queryByRole('link')).toBeNull();
-  });
-
-  it('PRD 에 없는 화면이 0 이면 비었다고 적고, 열린 요청이 있으면 번호마다 고리를 단다', async () => {
-    지금.mockResolvedValue(판({ foundScreens: 3, uncoveredScreens: [], screensOpen: [31, 34] }));
-    render(<Prd service="MKT" 할수={쓰는사람} />);
-    const 카드 = await screen.findByRole('region', { name: 'PRD 에 없는 화면 0개' });
-    expect(within(카드).getByText('PRD 에 없는 화면이 없습니다')).toBeTruthy();
-    expect(within(카드).getByText(/#31 요청이 이 화면들을 작성하는 중입니다/)).toBeTruthy();
-    const 고리 = within(카드).getAllByRole('link');
-    expect(고리.map((a) => [a.textContent, a.getAttribute('href')])).toEqual([
-      ['#31 요청 보기', '#/authoring/31'],
-      ['#34 요청 보기', '#/authoring/34'],
-    ]);
-    expect(within(카드).queryByText(/기획서 없이/)).toBeNull();
-  });
-
-  it('찾은 화면이 0 이면 카드를 안 그린다', async () => {
-    render(<Prd service="MKT" 할수={쓰는사람} />);
-    await screen.findByText('버전 12 · 요구 4건');
-    expect(screen.queryByRole('region', { name: /PRD 에 없는 화면/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /확정|테스트에 반영/ })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /로그인/ }));
+    fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-032|MKT-REQ-040/ }));
+    expect(screen.queryByRole('button', { name: '이 요구만 확정' })).toBeNull();
+    expect(screen.getByRole('button', { name: '고치기' })).toBeTruthy();
   });
 
   it('작성 쓰기가 없으면 고르기 · 확정 · 더하기 · 고치기가 아예 없다', async () => {
@@ -264,7 +101,6 @@ describe('PRD 관리 — 할 일 먼저', () => {
     expect(screen.queryAllByRole('checkbox')).toEqual([]);
     expect(screen.queryByRole('button', { name: /확정/ })).toBeNull();
     expect(screen.queryByRole('button', { name: '요구사항 추가' })).toBeNull();
-    expect(screen.queryByRole('button', { name: /테스트에 반영/ })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /회원가입/ }));
     fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-031/ }));
     expect(screen.getByText('설계 미리보기')).toBeTruthy();
@@ -273,15 +109,15 @@ describe('PRD 관리 — 할 일 먼저', () => {
 });
 
 describe('PRD 관리 — 전체 요구', () => {
-  it('기능 묶음으로 접혀 있고 묶음 머리에 건수와 확인 필요 · 반영 안 됨을 단다', async () => {
+  it('기능 묶음으로 접혀 있고 묶음 머리에 건수와 확인 필요를 단다', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
     const 로그인 = await screen.findByRole('button', { name: /로그인/ });
-    expect(로그인.textContent).toContain('2건 · 확인 필요 1건 · 반영 안 됨 1건');
+    expect(로그인.textContent).toContain('2건 · 확인 필요 1건');
     expect(로그인.getAttribute('aria-expanded')).toBe('false');
     expect(screen.queryByRole('button', { name: /MKT-REQ-041/ })).toBeNull();
     fireEvent.click(로그인);
     const 줄 = screen.getByRole('button', { name: /MKT-REQ-041/ });
-    expect(줄.textContent).toContain('새 항목 · 반영 안 됨');
+    expect(줄.textContent).not.toContain('반영 안 됨');
     expect(줄.textContent).toContain('사람이 고침');
   });
 
@@ -304,13 +140,6 @@ describe('PRD 관리 — 전체 요구', () => {
     expect(screen.getByText('찾는 요구가 없습니다')).toBeTruthy();
   });
 
-  it('펼친 확인 필요 줄에서 그 요구만 확정한다', async () => {
-    render(<Prd service="MKT" 할수={쓰는사람} />);
-    fireEvent.click(await screen.findByRole('button', { name: /회원가입/ }));
-    fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-032/ }));
-    fireEvent.click(screen.getByRole('button', { name: '이 요구만 확정' }));
-    await vi.waitFor(() => expect(확정).toHaveBeenCalledWith('MKT', 12, ['MKT-REQ-032']));
-  });
 
   it('케이스 목록의 요구 번호에서 오면 그 묶음과 줄을 편 채로 열고 그 줄에 초점을 둔다 (도메인/카탈로그 §8.1 「맥락」)', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} 여기="MKT-REQ-041" />);
