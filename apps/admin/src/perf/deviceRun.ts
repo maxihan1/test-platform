@@ -1,4 +1,4 @@
-// 기기 성능 실행의 엔진 갈래 — 기록기 켜기 · 5초마다 새 줄 받기 · Appium 조작 · 닫기 (도메인/성능 §7 「PERF-F1-08 이 연 통로」)
+// 기기 성능 실행의 엔진 갈래 — 기록기 켜기 · 5초마다 새 줄 받기 · Appium · 게임 케이스 조작 · 닫기 (도메인/성능 §7 「PERF-F1-08 이 연 통로」)
 // 도는 실행은 이 파일의 자기 Map 에 둔다 — 부하 에이전트가 없어 engine 의 도는것(에이전트 일 목록)에 들지 않는다
 
 import { rm } from 'node:fs/promises';
@@ -73,7 +73,7 @@ const 쉬기 = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 const 경고 = (s: 도는기기, message: string) => 표.로그(s.runId, message, 'WARN').catch((e: unknown) => console.error('성능 실행 로그를 남기지 못했습니다', e));
 const 초 = (s: 도는기기, ms: number) => Math.max(0, Math.floor((ms - s.startMs) / 1000));
 
-// 직접 플레이는 측정 시간 + 5분을 넘는 가장 짧은 값, Appium 케이스는 120분 (§7 「팜 폰」)
+// 직접 플레이는 측정 시간 + 5분을 넘는 가장 짧은 값, Appium · 게임 케이스는 120분 (§7 「팜 폰」)
 function 잡을분(cfg: DeviceRunConfig): number {
   return cfg.drive === 'MANUAL' ? ([30, 60, 120].find((m) => m > cfg.durationSec / 60 + 5) ?? 120) : 120;
 }
@@ -127,7 +127,7 @@ async function 시작하기(run: 표.실행행, s: 도는기기): Promise<void> 
   s.startMs = Date.now();
   const { cfg } = s;
   if (cfg.devices.some((d) => d.where === 'LOCAL') && (process.env.LOCAL_RUNNER_URL ?? '') === '') throw new Error('내 컴퓨터 러너(LOCAL_RUNNER_URL)가 연결되어 있지 않습니다');
-  const 재료 = cfg.drive === 'APPIUM' ? await 조작재료읽기(run, cfg) : null;
+  const 재료 = cfg.drive === 'MANUAL' ? null : await 조작재료읽기(run, cfg);
   if (s.ending) return;
   const 결과 = await Promise.allSettled(s.devices.map(async (d) => {
     await d.rec.켜기({ runId: run.id, package: cfg.package, intervalSec: cfg.intervalSec, record: cfg.record, holdMinutes: 잡을분(cfg) });

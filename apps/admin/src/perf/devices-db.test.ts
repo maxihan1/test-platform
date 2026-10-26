@@ -32,9 +32,11 @@ describe.skipIf(연결 === undefined)('기기 성능', { timeout: 90_000 }, () =
     await f.정리();
   }, 60_000);
 
-  it('애플리케이션 종류 · AltTester · 팜 · 내 컴퓨터 러너 · 앱 파일 · 남의 케이스를 거절한다', async () => {
+  it('애플리케이션 종류 · 조작 방식 · 팜 · 내 컴퓨터 러너 · 앱 파일 · 남의 케이스를 거절한다', async () => {
     expect((await 측정({ serviceId: API앱 })).json()).toMatchObject({ error: 'INVALID_REQUEST', detail: 'API 애플리케이션은 기기 성능을 잴 수 없습니다' });
-    expect((await 측정({ drive: 'ALTTESTER', durationSec: undefined })).json()).toMatchObject({ error: 'INVALID_REQUEST', detail: 'AltTester 시나리오는 아직 못 합니다' });
+    expect((await 측정({ drive: 'ALTTESTER', durationSec: undefined, caseIds: ['XQD-001'] })).statusCode).toBe(400);
+    expect((await 측정({ drive: 'GAME', durationSec: undefined })).statusCode).toBe(400);
+    expect((await 측정({ drive: 'GAME', durationSec: undefined, caseIds: ['XQD-001'] })).json()).toMatchObject({ error: 'INVALID_REQUEST', detail: '게임 케이스는 게임 애플리케이션만 고릅니다' });
     await 환경로({ DEVICE_FARM_URL: undefined }, async () => {
       const r = await 측정();
       expect(r.statusCode).toBe(409);
@@ -49,6 +51,15 @@ describe.skipIf(연결 === undefined)('기기 성능', { timeout: 90_000 }, () =
     expect((await 앱({ caseIds: ['XQD-002'] })).json()).toMatchObject({ detail: 'Android 앱 케이스가 아닙니다: XQD-002' });
     expect((await 앱({ devices: [{ serial: 'LC1', where: 'LOCAL' }] })).json()).toMatchObject({ detail: 'Appium 케이스는 팜 폰만 잴 수 있습니다' });
     expect((await 앱({ devices: [{ serial: 'FA1', where: 'FARM' }, { serial: 'FA1', where: 'FARM' }] })).statusCode).toBe(400);
+    const 원래 = (await 판.pool.query<{ kind: string }>('SELECT kind FROM service WHERE id = $1', [판.서비스])).rows[0]!.kind;
+    await 판.pool.query(`UPDATE service SET kind = 'GAME' WHERE id = $1`, [판.서비스]);
+    try {
+      expect((await 앱({})).json()).toMatchObject({ error: 'INVALID_REQUEST', detail: '게임 애플리케이션은 게임 케이스로 잽니다' });
+      expect((await 앱({ drive: 'GAME', devices: [{ serial: 'LC1', where: 'LOCAL' }] })).json()).toMatchObject({ detail: '게임 케이스는 팜 폰만 잴 수 있습니다' });
+      expect((await 앱({ drive: 'GAME', env: 'dev' })).json()).toMatchObject({ detail: '대상 서버 줄에 앱 파일이 없습니다' });
+    } finally {
+      await 판.pool.query('UPDATE service SET kind = $2 WHERE id = $1', [판.서비스, 원래]);
+    }
     expect((await 측정({ repeat: 2 })).statusCode).toBe(400);
     expect((await 측정({ targets: [{ metric: 'AVG_FPS', op: '<=', value: 50, source: 'MANUAL' }] })).statusCode).toBe(400);
     expect((await 측정({}, 판.읽기만)).statusCode).toBe(403);
