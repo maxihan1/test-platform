@@ -49,7 +49,7 @@ export function 돌린기록들(결과폴더: string, 꼴 = 돌린기록꼴): �
  */
 export function 기록남기며비우기(임시: string, 비우기: () => void): number {
   const 남길 = [
-    ...이름들(임시).filter((n) => 돌린기록꼴.test(n) || /^gate3-game-.*\.json$/.test(n) || /^summary-[^/]+\.md$/.test(n)), // 게임 폰 기록(authoring-run3-game 게임기록꼴)도
+    ...이름들(임시).filter((n) => 돌린기록꼴.test(n) || /^gate3-(game|app)-.*\.json$/.test(n) || /^summary-[^/]+\.md$/.test(n)), // 게임 · 앱 폰 기록(authoring-run3-game 게임기록꼴 · 앱기록꼴)도
     ...이름들(join(임시, 'glossary'))
       .filter((n) => n.endsWith('.md'))
       .map((n) => join('glossary', n)),
@@ -91,20 +91,19 @@ export function 케이스파일읽기(트리: string, 폴더: string): (파일�
  * `바뀐` 은 커밋한 뒤 기준과의 차이(저장소 기준 경로) — 그 파일에 닿는 케이스만 본다(살필케이스).
  * 부르는 쪽은 예외를 잡아 「끝 검사를 못 했다」로 적는다 — 이 검사로 올리기가 죽으면 안 된다
  */
-export function 끝검사줄들(결과폴더: string, 트리: string, 폴더: string, 바뀐: readonly string[], 게임 = false): string[] {
+export function 끝검사줄들(결과폴더: string, 트리: string, 폴더: string, 바뀐: readonly string[]): string[] {
   const 파일들 = 케이스파일읽기(트리, 폴더);
   const 바뀐테스트 = new Set([...바뀐].filter((p) => p.startsWith('tests/')).map((p) => p.slice('tests/'.length)));
-  const { 앱, 나머지 } = 앱케이스나누기(파일들, 살필케이스(파일들, 바뀐테스트));
-  // 게임 케이스는 잡은 폰에서 1번씩 돈다 — 그 줄은 게임끝검사(authoring-run3-game)가 쓴다
-  const 앱경고 = 앱.length === 0 || 게임 ? null : `⚠️ 폰이 없어 돌려 보지 않은 앱 케이스 ${앱.length}개 — ${앱.join(' · ')}`;
+  // 게임 · 앱 케이스는 잡은 폰에서 1번씩 돈다 — 그 줄은 폰끝검사(authoring-run3-game)가 쓴다
+  const { 나머지 } = 앱케이스나누기(파일들, 살필케이스(파일들, 바뀐테스트));
   const 경고 = 끝돌려보기경고(돌린기록들(결과폴더), 나머지);
   const 임시 = 남은임시도우미(파일들.map((f) => f.경로));
-  return [...[앱경고, 경고, 임시].filter((줄) => 줄 !== null), 품질줄(품질숫자(파일들))];
+  return [...[경고, 임시].filter((줄) => 줄 !== null), 품질줄(품질숫자(파일들))];
 }
 
 /**
  * 앱 케이스 선언. 작성 컨테이너에는 폰이 없어 PC 프로젝트에서 「선언하지 않은 환경」으로 건너뛰는데,
- * 그 건너뜀에도 보류처럼 skip 표시가 붙어 3번 다 초록으로 세졌다 — 따로 빼서 안 돌았다고 적는다 (작성 §3.6 「앱 화면」 · APP-F1-09)
+ * 그 건너뜀에도 보류처럼 skip 표시가 붙어 3번 다 초록으로 세졌다 — 따로 빼서 잡은 폰에서 돈 기록으로 본다 (작성 §3.6 「앱 화면」 · APP-F1-09 · PRD-F16-02)
  */
 const 앱케이스꼴 = /platforms:\s*\[\s*['"`]android['"`]\s*,?\s*\]/;
 
@@ -121,9 +120,9 @@ export function 남은임시도우미(경로들: string[]): string | null {
 }
 
 /** 올리기가 부르는 문 — 끝 검사가 예외를 던져도 올리기는 간다. 경고만 하고 막지 않는 장치다 (작성 §3.6) */
-export function 끝검사(결과폴더: string, 트리: string, 폴더: string, 바뀐: readonly string[], 게임 = false): string[] {
+export function 끝검사(결과폴더: string, 트리: string, 폴더: string, 바뀐: readonly string[]): string[] {
   try {
-    return 끝검사줄들(결과폴더, 트리, 폴더, 바뀐, 게임);
+    return 끝검사줄들(결과폴더, 트리, 폴더, 바뀐);
   } catch (e) {
     return [`⚠️ 끝 검사를 못 했다 — ${e instanceof Error ? e.message.split('\n')[0] : String(e)}`];
   }
