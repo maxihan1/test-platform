@@ -213,25 +213,8 @@ describe('목록 다시 읽기가 실패해도 쓰던 새 요청은 남는다 (�
   });
 });
 
-describe('「PRD 에 없는 화면」에서 넘어오면 대조가 켜져 있다 (⑫ 점검 8.10)', () => {
-  it('?compare=1 이면 서랍이 열린 채 「실제 화면과 대조」를 켜고 뜨고 주소에서는 그 조건이 정리된다', async () => {
-    window.history.replaceState(null, '', '#/authoring?compare=1');
-    render(<Authoring service="PAY" 할수={() => true} />);
-    const 칸 = (await screen.findByLabelText('실제 화면과 대조')) as HTMLInputElement;
-    expect(칸.checked).toBe(true);
-    expect(window.location.hash).toBe('#/authoring');
-  });
-
-  it('?compare=1 로 열린 서랍을 닫았다 다시 열면 대조가 꺼져 있다 — 처음 한 번만 켠다', async () => {
-    window.history.replaceState(null, '', '#/authoring?compare=1');
-    render(<Authoring service="PAY" 할수={() => true} />);
-    await screen.findByLabelText('실제 화면과 대조');
-    fireEvent.click(screen.getByRole('button', { name: '닫기' }));
-    fireEvent.click(screen.getByRole('button', { name: '새 작성' }));
-    expect((screen.getByLabelText('실제 화면과 대조') as HTMLInputElement).checked).toBe(false);
-  });
-
-  it('조건이 없으면 서랍을 열었을 때 꺼져 있다', async () => {
+describe('새 작성 서랍', () => {
+  it('서랍을 열었을 때 「실제 화면과 대조」는 꺼져 있다', async () => {
     render(<Authoring service="PAY" 할수={() => true} />);
     fireEvent.click(await screen.findByRole('button', { name: '새 작성' }));
     expect((screen.getByLabelText('실제 화면과 대조') as HTMLInputElement).checked).toBe(false);

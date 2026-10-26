@@ -25,7 +25,7 @@ vi.mock('./api.js', async () => {
 });
 
 const 반영: 결정항목 = { key: 'apply:10:11', group: 1, kind: 'APPLY', picks: ['APPLY'], blockedBy: null, rootId: 10, runId: 11, summary: null, prUrl: 'https://github.com/x/pull/1', requestedByName: '맥시', finishedAt: null };
-const 화면확인 = (reqId: string): 결정항목 => ({
+const 화면확인 = (reqId: string): Extract<결정항목, { kind: 'CHECK' }> => ({
   key: `check:${reqId}`, group: 2, kind: 'CHECK', picks: ['SAME', 'EDIT'], blockedBy: null, reqId, feature: '약관', text: `${reqId} 제목이 보인다`, checkSince: null, basis: 'SCREEN', options: [],
 });
 const 바뀐요구: 결정항목 = {

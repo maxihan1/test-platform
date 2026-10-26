@@ -26,7 +26,6 @@ export function AuthoringNew({
   envs = [],
   운영자 = false,
   피그마토큰 = true,
-  대조처음 = false,
   serviceId,
   앱종류,
   on넣었다,
@@ -40,8 +39,6 @@ export function AuthoringNew({
   운영자?: boolean;
   /** 서비스에 피그마 토큰이 있나. 없는데 주소를 적으면 알리고 보내기를 막는다 — 보내도 서버가 거절한다. 모르면(옛 응답) 막지 않는다 (도메인/인증 §7) */
   피그마토큰?: boolean;
-  /** 「실제 화면과 대조」를 켠 채 열린다 — 「PRD 에 없는 화면」에서 넘어올 때 */
-  대조처음?: boolean;
   /** Android 앱은 대조가 없고 「앱 화면 읽기」 안내가 선다 (도메인/러너 §5.2 종류 표) */
   앱종류?: 앱종류;
   /** 줄에 세운 요청 번호. 목록이 시작 모달을 연다 */
@@ -55,7 +52,7 @@ export function AuthoringNew({
   const [오류, set오류] = useState<string | null>(null);
   const 고르개 = useRef<HTMLInputElement>(null);
   // 역방향 (도메인/작성 §3.6 「★ 역방향」). 대상 서버는 고르지 않으면 첫 줄이다
-  const [대조켜짐, set대조] = useState(대조처음);
+  const [대조켜짐, set대조] = useState(false);
   const [고른서버, set고른서버] = useState<string | null>(null);
   const [시작주소, set시작주소] = useState('');
   // 고른 값이 지금 서비스의 목록에 있을 때만 쓴다 — 띠에서 서비스를 바꿔도 이 폼은 그대로 남아

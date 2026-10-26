@@ -109,15 +109,10 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
   // 「결정 필요」 — 목록 자리에 결정 목록이 선다. 주소의 todo=1 은 앞 이름 「조치 필요」 때 것을 그대로 쓴다 (도메인/작성 §3.6 「★ 결정 목록」)
   const [할일만, set할일만] = useState(() => 주소조건().get('todo') === '1');
   use주소조건('#/authoring', { ...(할일만 ? { todo: '1' } : {}), ...(page === 1 ? {} : { page: String(page) }) });
-  // 「PRD 관리」의 「이 화면들 테스트 작성」이 `?compare=1` 로 연다 — 아래 use주소조건이 조건을 정리하기 전에 한 번만 읽는다
-  const [대조처음, set대조처음] = useState(() => 주소조건().get('compare') === '1');
-  // 새 요청 폼은 오른쪽 서랍에 둔다 — 요청은 가끔 넣고 목록은 자주 보니 목록이 폭을 다 쓴다 (2026-10-20 사용자 · WEB-F5-04 시안 C).
-  // 「PRD 에 없는 화면」에서 넘어오면 바로 넣으러 온 것이라 열린 채로 뜬다
-  const [서랍, set서랍] = useState(대조처음);
-  // 대조를 켜 주는 것은 넘어온 첫 서랍 한 번뿐이다 — 닫았다 다시 열 때 사람이 끈 대조가 도로 켜지면 안 된다
+  // 새 요청 폼은 오른쪽 서랍에 둔다 — 요청은 가끔 넣고 목록은 자주 보니 목록이 폭을 다 쓴다 (2026-10-20 사용자 · WEB-F5-04 시안 C)
+  const [서랍, set서랍] = useState(false);
   const 서랍닫기 = () => {
     set서랍(false);
-    set대조처음(false);
   };
   // 방금 줄에 세운 요청. 시작 모달이 이것을 보인다 — 닫으면 null
   const [방금, set방금] = useState<number | null>(null);
@@ -250,7 +245,7 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
               ✕
             </button>
           </div>
-          <AuthoringNew service={service} serviceId={serviceId} envs={envs} 운영자={할수('설정')} 피그마토큰={피그마토큰} 대조처음={대조처음} 앱종류={앱종류} on넣었다={(id) => {
+          <AuthoringNew service={service} serviceId={serviceId} envs={envs} 운영자={할수('설정')} 피그마토큰={피그마토큰} 앱종류={앱종류} on넣었다={(id) => {
               줄들.reload();
               서랍닫기();
               set방금(id);

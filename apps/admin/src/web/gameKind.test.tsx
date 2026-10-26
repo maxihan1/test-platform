@@ -121,7 +121,7 @@ describe('게임 종류가 그리는 곳 (도메인/러너 §5.2 종류 표 GAME
   });
 
   it('작성 새 요청은 「실제 화면과 대조」 없이 「게임 화면 읽기」 안내가 선다', () => {
-    render(<AuthoringNew service="ASH" envs={[{ env: 'qa', baseUrl: 'https://qa.ashveil.dev' }]} 앱종류="GAME" 대조처음 on넣었다={() => {}} />);
+    render(<AuthoringNew service="ASH" envs={[{ env: 'qa', baseUrl: 'https://qa.ashveil.dev' }]} 앱종류="GAME" on넣었다={() => {}} />);
 
     expect(screen.queryByLabelText('실제 화면과 대조')).toBeNull();
     expect(screen.getByText('게임 화면 읽기')).toBeTruthy();
