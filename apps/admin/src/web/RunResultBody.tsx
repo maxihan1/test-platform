@@ -10,7 +10,7 @@ import { 실패케이스들 } from './RerunFailed.js';
 import { 실행판정, type 판정하기 } from './runJudge.js';
 import { 결과줄 } from './RunResultRow.js';
 import { RunSummary, type 변화칸 } from './RunSummary.js';
-import { PLATFORM_LABEL, 디바이스순서, 실행디바이스들 } from './ui.js';
+import { PLATFORM_LABEL, 돈디바이스들, 실행디바이스들 } from './ui.js';
 import { use다시돌린결과 } from './useRerunResults.js';
 import { 케이스서비스 } from './role.js';
 
@@ -107,7 +107,7 @@ export function 끝난결과(props: Props) {
   const 권한 = 실행판정(판정하기, data);
   const 디바이스들 = 실행디바이스들(data.items);
   // 디바이스별 실패 단추는 실제로 돈 디바이스로 센다 — 목록 줄의 failCases 와 같은 디바이스다 (도메인/실행 §8.3 표 1번 줄)
-  const 돈디바이스 = 디바이스순서.filter((p) => data.items.some((i) => i.platform === p));
+  const 돈디바이스 = 돈디바이스들(data.items);
   const columns = device === 'ALL' ? 디바이스들 : [device];
   const { 줄들, 카드안항목수 } = 갈라낸다(data.items, 판정, device);
   const 전체쪽 = Math.max(1, Math.ceil(줄들.length / PAGE_SIZE));

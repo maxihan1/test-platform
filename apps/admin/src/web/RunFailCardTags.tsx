@@ -3,7 +3,7 @@
 import type { FailureJudgment, ItemStatus, RunItemSummary } from './api.js';
 import { use말 } from './i18n.js';
 import { 실행기록주소 } from './route.js';
-import { PLATFORM_LABEL, Verdict, 디바이스순서 } from './ui.js';
+import { PLATFORM_LABEL, Verdict, 돈디바이스들 } from './ui.js';
 import type { 다시돌린결과 } from './useRerunResults.js';
 
 /**
@@ -11,8 +11,9 @@ import type { 다시돌린결과 } from './useRerunResults.js';
  * 디바이스 칩으로 걸러도 모든 디바이스를 적는다 — 「PC 에서만 깨졌나」를 펼치지 않고 보려는 칸이다
  */
 export function 디바이스꼬리표({ tcId, items }: { tcId: string; items: RunItemSummary[] }) {
+  const t = use말();
   // 실제로 돈 디바이스로 센다 — 칩 칸(실행디바이스들)은 PC 만 돌아도 모바일 칸을 두어 꼬리표가 하나짜리에도 붙었다
-  const 돈 = 디바이스순서.filter((p) => items.some((i) => i.platform === p));
+  const 돈 = 돈디바이스들(items);
   if (돈.length < 2) return null;
   const 칸들 = 돈.flatMap((p) => {
     const 판정들 = items.filter((i) => i.tcId === tcId && i.platform === p).map((i) => i.status);
@@ -24,7 +25,7 @@ export function 디바이스꼬리표({ tcId, items }: { tcId: string; items: Ru
     <span className="fc-devs">
       {칸들.map(({ p, 판정 }) => (
         <span key={p} className="fc-dev">
-          {PLATFORM_LABEL[p]} <Verdict status={판정} />
+          {t(PLATFORM_LABEL[p])} <Verdict status={판정} />
         </span>
       ))}
     </span>

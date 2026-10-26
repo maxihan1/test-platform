@@ -16,6 +16,11 @@ export const 디바이스순서: Platform[] = ['desktop', 'mobile', 'android'];
  * 결과 칸과 디바이스 칩이 그 실행에 든 디바이스를 따르게 한다 (도메인/실행 §8.3).
  * 브라우저 칸은 한쪽만 돌았어도 둘 다 둔다 — 「PC 는 되는데 모바일만 깨짐」이 한 줄에서 보여야 한다.
  */
+/** 실제로 돈 디바이스만 화면 차례로 — 디바이스별 실패 단추 · 카드 꼬리표가 쓴다. 칩 칸(아래)은 PC 만 돌아도 모바일 칸을 둔다 (도메인/실행 §8.3) */
+export function 돈디바이스들(items: { platform: Platform }[]): Platform[] {
+  return 디바이스순서.filter((p) => items.some((i) => i.platform === p));
+}
+
 export function 실행디바이스들(items: { platform: Platform }[]): Platform[] {
   const 앱 = items.some((it) => it.platform === 'android');
   const 브라우저 = !앱 || items.some((it) => it.platform !== 'android');

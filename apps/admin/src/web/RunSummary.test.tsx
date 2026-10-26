@@ -213,7 +213,7 @@ describe('요약 띠 — 디바이스별 실패 단추 (도메인/실행 §8.3 �
     { platform: 'mobile' as const, 수: 6 },
     { platform: 'android' as const, 수: 0 },
   ];
-  const 띠 = (device: 'ALL' | 'desktop', on디바이스: (v: string) => void) => (
+  const 띠 = (device: 'ALL' | 'desktop' | 'android', on디바이스: (v: string) => void) => (
     <RunSummary counts={집계(595, 10, 1)} 실패케이스수={6} insights={null} 판정="ALL" on판정={() => undefined} 디바이스실패={나눔} device={device} on디바이스={on디바이스} />
   );
 
@@ -231,6 +231,12 @@ describe('요약 띠 — 디바이스별 실패 단추 (도메인/실행 §8.3 �
     const PC = screen.getByRole('button', { name: 'PC 4건' });
     expect(PC.getAttribute('aria-pressed')).toBe('true');
     fireEvent.click(PC);
+    expect(on디바이스).toHaveBeenLastCalledWith('ALL');
+
+    rerender(띠('android', on디바이스));
+    const 앱 = screen.getByRole('button', { name: 'Android 앱 0건' });
+    expect(앱.hasAttribute('disabled')).toBe(false);
+    fireEvent.click(앱);
     expect(on디바이스).toHaveBeenLastCalledWith('ALL');
   });
 

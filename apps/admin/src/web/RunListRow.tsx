@@ -68,7 +68,7 @@ export function 실행줄({ run, 고름, on고르기 }: { run: RunListRow; 고�
             <span>{t('실패')}</span>
             {나눈실패.map((p) => (
               <span key={p}>
-                {PLATFORM_LABEL[p]} <b style={{ color: 'var(--fail-text)' }}>{run.failCases?.[p]}</b>
+                {t(PLATFORM_LABEL[p])} <b style={{ color: 'var(--fail-text)' }}>{run.failCases?.[p]}</b>
               </span>
             ))}
           </span>

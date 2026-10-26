@@ -119,16 +119,16 @@ export function RunSummary({
             {실패케이스수 === 0 || 디바이스실패.length < 2 ? null : (
               <div className="rs-devs" role="group" aria-label={t('디바이스별 실패 케이스')}>
                 {디바이스실패.map(({ platform, 수 }) => (
-                  // 한 번 더 누르면 「전체」로 돌아간다. 0건이면 걸러 봐야 빈 칸이라 누를 수 없다
+                  // 한 번 더 누르면 「전체」로 돌아간다. 0건이면 걸러 봐야 빈 칸이라 누를 수 없다 — 칩으로 이미 고른 때만은 풀 수 있게 둔다
                   <button
                     key={platform}
                     type="button"
                     className="rs-dev"
                     aria-pressed={device === platform}
-                    disabled={수 === 0}
+                    disabled={수 === 0 && device !== platform}
                     onClick={() => on디바이스?.(device === platform ? 'ALL' : platform)}
                   >
-                    {t('{디바이스} {수}건', { 디바이스: PLATFORM_LABEL[platform], 수 })}
+                    {t('{디바이스} {수}건', { 디바이스: t(PLATFORM_LABEL[platform]), 수 })}
                   </button>
                 ))}
               </div>
