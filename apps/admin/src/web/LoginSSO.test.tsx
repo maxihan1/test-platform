@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 // maxihan 계정(SSO)이 켜진 설치의 로그인 화면 (SPEC §8.6). useSSO 가 답을 기억하므로 비밀번호 로그인 화면 검사(Login.test.tsx)와 파일을 나눈다
 
+import { StrictMode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 
@@ -34,6 +35,19 @@ describe('통합계정 로그인 — 알림 없이 오면 화면 없이 바로 �
     expect(screen.queryByLabelText('비밀번호')).toBeNull();
   });
 
+  it('StrictMode 가 효과를 두 번 돌려도 한 번만 보낸다', async () => {
+    window.history.replaceState(null, '', '/');
+    const 떠난다 = vi.fn();
+    render(
+      <StrictMode>
+        <Login onLogin={() => undefined} on언어={() => undefined} 떠난다={떠난다} />
+      </StrictMode>,
+    );
+
+    await waitFor(() => expect(떠난다).toHaveBeenCalled());
+    expect(떠난다).toHaveBeenCalledTimes(1);
+  });
+
   it('Grafana 에서 왔으면 돌아올 자리를 실어 보낸다', async () => {
     const 떠난다 = 그리기('/?next=%2Fgrafana%2Fd%2Fabc');
 
@@ -62,6 +76,13 @@ describe('통합계정 로그인 — 알림이 있을 때만 화면', () => {
     expect(떠난다).not.toHaveBeenCalled();
     expect(screen.queryByLabelText('비밀번호')).toBeNull();
     expect(screen.queryByText('회원가입')).toBeNull();
+  });
+
+  it('Auth_platform 을 못 끊은 로그아웃이면 다시 보내지 않고 로그아웃 안내를 보인다', async () => {
+    const 떠난다 = 그리기('/?sso=out#/login');
+
+    expect((await screen.findByText('로그아웃했습니다')).className).toBe('login-info');
+    expect(떠난다).not.toHaveBeenCalled();
   });
 
   it('쓸 수 없는 아이디 · 실패로 돌아오면 오류 모양으로 알리고 다시 보내지 않는다', async () => {

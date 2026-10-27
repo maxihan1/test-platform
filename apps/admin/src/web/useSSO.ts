@@ -39,9 +39,10 @@ export function 막로그인표시를뗀다(): boolean {
 }
 
 /**
- * 막 돌아왔는데(`?sso=ok`) 로그인 확인이 실패했으면 실패 알림으로 바꿔 단다. 쿠키가 막힌 브라우저 같은 때다.
- * 안 달면 로그인 화면이 알림 없이 온 것으로 보고 다시 Auth_platform 으로 보내 둘이 끝없이 오간다 (도메인/인증 §8.6)
+ * 로그인 화면이 Auth_platform 으로 바로 보내지 않고 카드를 그리게 알림을 단다 (도메인/인증 §8.6).
+ * `failed` — 막 돌아왔는데(`?sso=ok`) 로그인 확인이 실패했다. 안 달면 다시 보내 둘이 끝없이 오간다.
+ * `out` — 로그아웃했는데 Auth_platform 은 못 끊었다. 안 달면 살아 있는 Auth_platform 세션이 곧장 다시 들여보낸다
  */
-export function 왕복실패를적는다(): void {
-  window.history.replaceState(window.history.state, '', `${window.location.pathname}?sso=failed${window.location.hash}`);
+export function sso알림을단다(값: 'failed' | 'out'): void {
+  window.history.replaceState(window.history.state, '', `${window.location.pathname}?sso=${값}${window.location.hash}`);
 }

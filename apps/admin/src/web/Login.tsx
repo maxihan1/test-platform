@@ -2,7 +2,7 @@
 // maxihan 계정(SSO)이 켜진 설치는 화면 없이 바로 Auth_platform 으로 보내고, 돌아온 알림이 있을 때만 카드를 그린다 (SSO로그인)
 // 가입은 승인 대기 계정만 만든다 — 문을 여는 판단은 여전히 운영자가 설정 화면에서 한다 (§8.8)
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { api, ApiError, type User } from './api.js';
 import { use말, use언어, type 언어 } from './i18n.js';
@@ -15,6 +15,8 @@ const SSO안내: Record<string, { 문장: string; 오류: boolean }> = {
   pending: { 문장: '가입 신청을 검토하고 있습니다. 운영자가 수락하면 로그인할 수 있습니다', 오류: false },
   username: { 문장: '이 플랫폼에서 쓸 수 없는 아이디입니다. 운영자가 확인해야 합니다', 오류: true },
   failed: { 문장: '로그인하지 못했습니다. 버튼을 다시 누르면 됩니다', 오류: true },
+  // 서버가 아니라 화면이 단다 — Auth_platform 을 못 끊은 로그아웃 (main.tsx 나간다)
+  out: { 문장: '로그아웃했습니다', 오류: false },
 };
 
 /**
@@ -32,8 +34,12 @@ function SSO로그인({ on언어, 떠난다 }: { on언어: (고른: 언어) => v
   // Grafana 에서 왔으면 돌아올 자리를 실어 보낸다 — 서버가 같은 규칙으로 다시 거른다 (auth/sso.ts)
   const 그래프 = 그래프로돌아갈곳(주소칸);
   const 시작 = 그래프 === null ? '/api/auth/sso/start' : `/api/auth/sso/start?next=${encodeURIComponent(그래프)}`;
+  // 한 번만 보낸다. StrictMode 가 효과를 두 번 돌리면 sso/start 가 두 번 불려 출입증의 왕복 값이 엇갈린다
+  const 보냄 = useRef(false);
   useEffect(() => {
-    if (안내 === undefined) 떠난다(시작);
+    if (안내 !== undefined || 보냄.current) return;
+    보냄.current = true;
+    떠난다(시작);
   }, [안내, 시작, 떠난다]);
 
   // 페이지가 옮겨 가는 동안 바탕만 둔다. 빈 흰 화면이 번쩍이지 않게

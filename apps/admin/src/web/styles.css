@@ -2278,6 +2278,13 @@ input[type='file']::file-selector-button {
   margin-top: 8px;
 }
 
+/* 휴대폰 — 위 좁은 화면 규칙의 .login-box 여백을 .login-sso 가 뒤에서 덮어서 다시 적는다 (공통/5 §8 「휴대폰 화면」) */
+@media (max-width: 620px) {
+  .login-sso {
+    padding: 22px 18px 20px;
+  }
+}
+
 /* ── 설정 화면 (SPEC §8.8) ────────────────────────────────────────── */
 /* 책상에서만 쓰는 화면이다. 좁은 화면 대응을 하지 않는다 (§8) */
 
