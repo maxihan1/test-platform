@@ -208,6 +208,13 @@ describe('러너 위치 · 토큰 (OPS-F5-10)', () => {
     expect(runner).toMatch(/^ {6}RUNNER_TOKEN:\s*"\$\{RUNNER_TOKEN:-\}"/m);
     expect(readFileSync(resolve(process.cwd(), '.env.example'), 'utf8')).toMatch(/^RUNNER_TOKEN=/m);
   });
+
+  it('팜 토큰은 .env 의 DEVICE_FARM_TOKEN 하나다 — admin 은 그 이름, runner · author 는 appium-cli 이름으로 받고 기본값은 비어 있다', () => {
+    expect(admin).toMatch(/^ {6}DEVICE_FARM_TOKEN:\s*"\$\{DEVICE_FARM_TOKEN:-\}"/m);
+    expect(runner).toMatch(/^ {6}PLATFORM_APPIUM_TOKEN:\s*"\$\{DEVICE_FARM_TOKEN:-\}"/m);
+    expect(author).toMatch(/^ {6}PLATFORM_APPIUM_TOKEN:\s*"\$\{DEVICE_FARM_TOKEN:-\}"/m);
+    expect(readFileSync(resolve(process.cwd(), '.env.example'), 'utf8')).toMatch(/^DEVICE_FARM_TOKEN=/m);
+  });
 });
 
 describe('서버와 맥에 나눠 띄우기', () => {
