@@ -35,7 +35,8 @@
 
 ### ③ Mac 쪽 연결
 **무엇** 폰이 꽂힌 Mac 의 팜을 클라우드 주소로 내보낸다. 팜 본체는 Mac 에 그대로 둔다(Devicefarm ADR-039).
-- [ ] `OPS-F3-05` farm 앞단 — `farmtunnel` 계정 · sshd · Caddy `farm` · `/wd/hub/status` 막기 · 가짜 토큰 속도 제한 · Mac launchd(wd-hub · tunnel) (Devicefarm CTL-F1-19)
+- [x] `OPS-F3-05` farm 앞단 — `farmtunnel` 계정 · sshd · Caddy `farm` · `/wd/hub/status` 막기 · 가짜 토큰 속도 제한(팜 — 모르는 토큰 1초 10번) · Mac launchd(wd-hub · tunnel) · 팜 토큰은 Auth_platform PAT(인증 상시) (Devicefarm CTL-F1-19)
+  - 근거 Devicefarm PR #64 · Auth_platform PR #21 · 2026-10-27 — farm.maxihan.com: 토큰 없이 401 · Auth 토큰이면 기기 목록 · /status 404 · 서버에서 끊으면 5초 뒤 다시 붙음 · 클라우드 QA Hub run 20936 PASS
 
 ### ④ 클라우드로 옮기기
 **무엇** 테스트 대상과 QA Hub 의 상시 서비스를 클라우드로 옮기고, Mac Docker 에는 작성 · 부하 테스트만 남긴다.
@@ -48,7 +49,7 @@
 
 ### ⑤ 로그인 전환 · 마무리
 **무엇** 세 앱을 Auth_platform 로그인으로 바꾸고, 러너 위치를 설정으로 고르게 하고, 감시를 붙인다.
-- [ ] `OPS-F5-09` SSO 전환(Auth S15) — QA Hub `AUTH_*` · Devicefarm `DF_AUTH_ISSUER`(`DF_BTS_URL` 은 OPS-F3-05 때 Auth 로 바꿨고, 팜 토큰도 OPS-F4-07 때 Auth 에서 발급했다) · BTS LOCAL 끄기(되돌리는 SQL 먼저 · maxi-api PAT) · 다른 사람 계정으로 결과 보기 (Auth_platform)
+- [ ] `OPS-F5-09` SSO 전환(Auth S15) — QA Hub `AUTH_*` · Devicefarm `DF_AUTH_ISSUER`(로그인 버튼 — Auth 에 devicefarm client 먼저 · `DF_BTS_URL` 은 OPS-F3-05 때 Auth 로 바꿨고, 팜 토큰도 OPS-F4-07 때 Auth 에서 발급했다) · BTS LOCAL 끄기(되돌리는 SQL 먼저 · maxi-api PAT) · 다른 사람 계정으로 결과 보기 (Auth_platform)
 - [x] `OPS-F5-10` 러너 위치 설정 — `RUNNER_URL`(정식 실행) · `LOCAL_RUNNER_URL`(내 컴퓨터 러너)로 서버 · 맥을 고른다 · 산출물이 admin 에 없으면 러너에서 HTTP 로 가져온다 · `RUNNER_TOKEN` · 맥 러너 터널 · 잠자기 감지 health check (test_platform)
   - 근거 PR #476 · 2026-10-27 — 코드 · 명세 · 터널 스크립트까지. 서버 sshd 설정 · 실측은 `docs/SETUP.md` §10 「admin 이 다른 기계에 있을 때」(F4-07 뒤 사람이 한다)
 - [ ] `OPS-F5-11` 운영 기본기 — 바깥 uptime 감시(도메인 7개) · 디스크 70% 알림 · 배포 뒤 `docker image prune` · 실측으로 `mem_limit` 다시 맞추기
