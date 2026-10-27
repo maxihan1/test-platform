@@ -6,4 +6,6 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
+# oneshot 은 기본이 무한정 기다린다 — pull 이나 훑기가 멈추면 timer 가 다시 못 돈다
+TimeoutStartSec=10min
 ExecStart=/bin/sh /opt/qahub/infra/server/qahub-pull.sh

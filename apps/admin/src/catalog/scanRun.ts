@@ -51,7 +51,8 @@ let startup: Promise<스캔기록> | null = null;
 const 있나 = (길: string): Promise<boolean> => stat(길).then(() => true, () => false);
 
 // 고르기 — 고른 서비스만 훑고 나머지 서비스 결과는 지난 스캔 것을 그대로 둔다(병합 뒤 · 목록의 「다시 스캔」)
-async function runScan(log: 스캔로그, 고르기?: (s: ServiceRow) => boolean): Promise<스캔기록> {
+// 서버의 다시 훑기 명령(scripts/scan.ts)도 부른다 — 통째로 깨졌는지(`깨짐`)를 보고 끝 코드를 정한다
+export async function runScan(log: 스캔로그, 고르기?: (s: ServiceRow) => boolean): Promise<스캔기록> {
   // 기동 스캔이 끝나기 전에 한 서비스 결과를 먼저 적으면 화면이 기동 스캔을 안 기다리고 반쪽 기록을 읽는다
   if (고르기 !== undefined && startup !== null) await startup;
   const scannedAt = new Date().toISOString();

@@ -865,6 +865,7 @@ docker run -d --init --restart unless-stopped --network host --name qahub-monito
 ```
 
 아래 명령의 `qahub` 는 맥 `~/.ssh/config` 에 적어 둔 서버 이름이다(`HostName 101.79.19.193` · 서버에 들어가는 계정과 키). **서버를 바꾸는 명령은 사람이 친다.**
+**서버의 QA Hub 는 root 한 계정으로 다룬다** — 받기 · pull timer(root 로 돈다) · 배포가 같은 계정이어야 git 이 「detected dubious ownership」으로 멈추지 않고, 남의 계정 소유 파일도 안 생긴다.
 
 ### 서버 처음 한 번 (약 20분 — 이미지 빌드가 대부분)
 
@@ -894,12 +895,14 @@ docker run -d --init --restart unless-stopped --network host --name qahub-monito
    ssh qahub 'cd /opt/qahub && docker compose build'
    ```
 4. 맥 데이터를 옮긴다 — 아래 「데이터 옮기기」. 새로 시작하는 서버면 건너뛰고 `ssh qahub 'cd /opt/qahub && docker compose up -d'`
-5. pull timer 를 건다 — 맥이 병합한 케이스를 1분마다 받아 오고, 받은 것이 있으면 60초 뒤 목록을 다시 훑는다
+5. pull timer 를 건다 — 맥이 병합한 케이스를 1분마다 받아 오고, 마지막으로 훑은 커밋과 다르면 60초 뒤 목록을 다시 훑는다. `infra/server/qahub-pull.service` · `.timer` 가 바뀐 병합 뒤에는 아래 첫 줄을 다시 친다(복사본이라 저절로 안 바뀐다)
    ```bash
    ssh qahub 'cp /opt/qahub/infra/server/qahub-pull.service /opt/qahub/infra/server/qahub-pull.timer /etc/systemd/system/ && systemctl daemon-reload && systemctl enable --now qahub-pull.timer'
    ssh qahub 'systemctl list-timers qahub-pull.timer'   # 다음 실행 시각이 1분 안이면 걸린 것이다
    ```
-   받은 기록은 `ssh qahub 'journalctl -u qahub-pull.service -n 20'` 로 본다. 받아 온 커밋이 있던 줄 끝에 `[scan] 다시 훑었다` 가 찍힌다.
+   받은 기록은 `ssh qahub 'journalctl -u qahub-pull.service -n 20'` 로 본다. 새 커밋을 훑은 줄 끝에 `[scan] 다시 훑었다` 가 찍힌다.
+   훑기가 통째로 깨졌거나(admin 이 꺼져 있었다 등) pull 이 10분 안에 안 끝나면 실패로 남고 다음 1분에 다시 한다.
+   읽지 못한 파일 · 겹친 번호 같은 경고는 이 기록에만 남는다 — 화면의 「다시 스캔」 옆 시각과 경고는 admin 이 직접 훑은 것이다.
    훑기가 60초를 넘기는 큰 애플리케이션은 새 케이스가 비활성으로 남을 수 있다 — 그때는 화면의 「다시 스캔」을 누른다
 6. 확인 — `https://qahub.maxihan.com` 에 로그인 → 케이스 목록이 뜨고 → 지난 실행을 열어 스크린샷이 보이고 → 웹 정식 실행 1건 · Android 앱 정식 실행 1건이 끝까지 돈다
 
@@ -969,7 +972,7 @@ ssh qahub 'cd /opt/qahub && git pull --ff-only origin main && docker compose up 
    ```bash
    docker compose -p test_platform --profile authoring down
    ```
-3. author · perf-agent 만 띄운다 — admin 은 클라우드에 있어 맥에 같이 뜨지 않는다
+3. author · perf-agent 만 띄운다 — admin 은 클라우드에 있어 맥에 같이 뜨지 않는다. 맥용 덧붙임 파일의 `!reset` 은 Docker Compose 2.24.4 부터 읽는다(`docker compose version` — 낮으면 Docker Desktop 을 올린다)
    ```bash
    docker compose -p test_platform -f docker-compose.yml -f docker-compose.mac.yml --profile authoring up -d --build author perf-agent
    docker compose -p test_platform logs -f author   # [작성] … 로 붙었다 가 뜨면 된 것이다

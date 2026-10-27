@@ -2,13 +2,14 @@
 // 맥이 병합하면 admin 이 곧바로 훑지만 그때 서버 폴더는 아직 옛 파일이다. 「다시 스캔」과 같은 일을 컨테이너 안에서 한다 — HTTP 문을 새로 열지 않는다
 //   docker compose exec -T admin node --import tsx scripts/scan.ts
 
-import { 훑고보기 } from '../apps/admin/src/catalog/scanRun.js';
+import { runScan } from '../apps/admin/src/catalog/scanRun.js';
 import { pool } from '../apps/admin/src/db/index.js';
 
 try {
-  // 부른 사람이 없어 결과는 안 돌려준다 — 훑어 DB 에 적기만 하고 문제는 스캔이 경고 줄로 남긴다
-  await 훑고보기(console, null);
-  console.log('[scan] 다시 훑었다');
+  // 서비스 하나의 문제(읽지 못한 파일 · 겹친 번호)는 스캔이 경고 줄로 남기고 넘어간다. 통째로 깨졌을 때만 실패로 끝내 timer 가 다음에 다시 훑게 한다
+  const 기록 = await runScan(console);
+  if (기록.깨짐 === undefined) console.log('[scan] 다시 훑었다');
+  else process.exitCode = 1;
 } catch (err) {
   console.error(err);
   process.exitCode = 1;
