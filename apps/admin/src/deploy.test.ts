@@ -39,7 +39,7 @@ describe('작성 에이전트 컨테이너(author)', () => {
 
   // 망을 갈라도 postgres 가 호스트의 모든 주소에 열려 있으면 author 가 게이트웨이로 돌아 닿는다 (2026-09-23 보안 검사)
   it('postgres 는 호스트의 모든 주소가 아니라 이 기계 안(127.0.0.1)에만 연다', () => {
-    expect(compose).toMatch(/- "127\.0\.0\.1:\$\{POSTGRES_PORT:-5433\}:5432"/);
+    expect(compose).toMatch(/- "127\.0\.0\.1:\$\{POSTGRES_PORT:-5434\}:5432"/);
   });
 
   // 2026-09-24 게이트 0 — root 로 켜야 자식을 다른 uid 로 띄워 에이전트의 토큰(/proc/<pid>/environ)을 못 읽게 한다.
