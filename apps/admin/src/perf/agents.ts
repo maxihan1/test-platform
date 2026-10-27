@@ -18,7 +18,13 @@ export function 설치명령(주소: string, 토큰: string, mode: 'LOAD' | 'MON
   return `docker build -t qahub-perf-agent apps/perf-agent && docker run -d --name qahub-perf-agent --restart unless-stopped --init${망} -e QAHUB_URL=${주소} -e AGENT_TOKEN=${토큰} qahub-perf-agent`;
 }
 
-const 이름겹침 = (e: unknown) => typeof e === 'object' && e !== null && (e as { code?: string }).code === '23505';
+// 앞단(Caddy) 뒤에서는 요청이 http 로 들어와 설치 명령이 http 주소가 된다 — 에이전트가 https 로 넘어가며 토큰이 떨어져 401 이라 공개 주소를 먼저 쓴다
+export function 설치주소(공개주소: string | undefined, protocol: string, host: string | undefined): string {
+  const 바탕 = (공개주소 ?? '').replace(/\/+$/, '');
+  return 바탕 !== '' ? 바탕 : `${protocol}://${host ?? 'localhost'}`;
+}
+
+const 이름겹침 =(e: unknown) => typeof e === 'object' && e !== null && (e as { code?: string }).code === '23505';
 
 export default async function perfAgentAdminRoutes(app: FastifyInstance): Promise<void> {
   app.get<{ Querystring: { projectId?: string } }>('/perf/agents', async (req, reply) => {
@@ -48,7 +54,7 @@ export default async function perfAgentAdminRoutes(app: FastifyInstance): Promis
         'INSERT INTO perf_agent (name, mode, project_id, token_hash, created_by) VALUES ($1, $2, $3, $4, $5) RETURNING id',
         [p.data.name, p.data.mode, p.data.projectId ?? null, 해시, req.user?.username ?? ''],
       );
-      const 주소 = `${req.protocol}://${req.headers.host ?? 'localhost'}`;
+      const 주소 = 설치주소(process.env.PLATFORM_PUBLIC_URL, req.protocol, req.headers.host);
       return reply.code(201).send({ id: Number(r.rows[0]?.id), token: 토큰, installCommand: 설치명령(주소, 토큰, p.data.mode) });
     } catch (e) {
       if (이름겹침(e)) return reply.code(409).send({ error: 'NAME_TAKEN' });
