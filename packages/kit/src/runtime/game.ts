@@ -26,11 +26,14 @@ export const isGame = (env: Env): boolean => env.PLATFORM_ENGINE === 'GAME';
 // 앱을 켠 뒤 게임이 포트를 열기까지 — 큰 게임은 첫 장면까지 수십 초 걸린다
 export const 켜짐 = { timeoutMs: 120_000, intervalMs: 1_000 };
 
-// fetch 는 주소 안 계정을 거절한다. 계정은 머리로 옮기고, 게임 명령 주소는 Appium 주소에서 /wd/hub 를 뗀 곳이다 (Devicefarm 안내서 12절)
-export function 팜원점(appiumUrl: string): { base: string; headers: Record<string, string> } {
+// fetch 는 주소 안 계정을 거절한다. 계정은 머리로 옮기고, 게임 명령 주소는 Appium 주소에서 /wd/hub 를 뗀 곳이다 (Devicefarm 안내서 12절).
+// 인증 켠 팜은 토큰(PLATFORM_APPIUM_TOKEN)을 Bearer 로 받는다 — 둘 다 있으면 토큰이 앞선다 (도메인/러너 §5.2 「디바이스 팜 접속 방식」)
+export function 팜원점(appiumUrl: string, token: string | undefined): { base: string; headers: Record<string, string> } {
   const url = new URL(appiumUrl);
   const headers: Record<string, string> = {};
-  if (url.username !== '') {
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  } else if (url.username !== '') {
     const 계정 = `${decodeURIComponent(url.username)}:${decodeURIComponent(url.password)}`;
     headers.Authorization = `Basic ${Buffer.from(계정).toString('base64')}`;
   }
@@ -46,7 +49,7 @@ export async function gameLink(env: Env): Promise<Link> {
     const serial = env.PLATFORM_DEVICE_UDID;
     const appium = env.PLATFORM_APPIUM_URL;
     if (!serial || !appium) throw new Error('디바이스 팜 게임 명령을 보내려면 PLATFORM_APPIUM_URL 과 PLATFORM_DEVICE_UDID 가 필요하다');
-    const { base, headers } = 팜원점(appium);
+    const { base, headers } = 팜원점(appium, env.PLATFORM_APPIUM_TOKEN);
     return farmLink(base, headers, serial);
   }
   if (env.PLATFORM_GAME_LINK === 'usb') return usbLink(env.PLATFORM_DEVICE_UDID || undefined);

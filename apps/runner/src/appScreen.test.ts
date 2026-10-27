@@ -74,9 +74,20 @@ afterEach(() => {
   delete process.env.PLATFORM_APPIUM_URL;
   delete process.env.PLATFORM_APP;
   delete process.env.PLATFORM_DEVICE_UDID;
+  delete process.env.PLATFORM_APPIUM_TOKEN;
 });
 
 describe('앱화면을읽는다', () => {
+  it('PLATFORM_APPIUM_TOKEN 이 있으면 열기 · 읽기 · 닫기 모두 Bearer 로 보낸다', async () => {
+    process.env.PLATFORM_APPIUM_TOKEN = 'pat_abc';
+
+    await 앱화면을읽는다({});
+
+    const 부름 = fetchMock.mock.calls as [string, RequestInit][];
+    expect(부름).toHaveLength(3);
+    for (const [, init] of 부름) expect(new Headers(init.headers).get('authorization')).toBe('Bearer pat_abc');
+  });
+
   it('연결을 열고 · 화면을 읽고 · 닫는다 — 계정은 머리로 옮기고 설정은 케이스와 같다', async () => {
     process.env.PLATFORM_DEVICE_UDID = 'R5CT';
 

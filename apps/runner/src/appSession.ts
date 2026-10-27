@@ -8,11 +8,14 @@ import { APPIUM_SESSION_FILE, runDir } from '@platform/kit';
 // admin 이 러너를 기다리는 유예가 30초다. 그 안에 답해야 부분 결과가 남는다
 const 닫기_제한_ms = 10_000;
 
-// fetch 는 주소 안 계정을 거절한다. 계정은 머리로 옮겨 보내고 주소에서는 뺀다 (앱 화면 읽기도 같이 쓴다)
-export function appium주소(raw: string): { base: string; headers: Record<string, string> } {
+// fetch 는 주소 안 계정을 거절한다. 계정은 머리로 옮겨 보내고 주소에서는 뺀다 (앱 화면 읽기도 같이 쓴다).
+// 인증 켠 디바이스 팜은 계정 대신 토큰(PLATFORM_APPIUM_TOKEN)을 Bearer 로 받는다 — 둘 다 있으면 토큰이 앞선다 (appium-cli 연결주소와 같은 규칙)
+export function appium주소(raw: string, token: string | undefined): { base: string; headers: Record<string, string> } {
   const url = new URL(raw);
   const headers: Record<string, string> = {};
-  if (url.username !== '') {
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  } else if (url.username !== '') {
     const 계정 = `${decodeURIComponent(url.username)}:${decodeURIComponent(url.password)}`;
     headers.Authorization = `Basic ${Buffer.from(계정).toString('base64')}`;
   }
@@ -39,7 +42,7 @@ export async function 앱연결을닫는다(runId: number, historyId: number): P
   if (sessionId === '' || raw === undefined || raw === '') return;
 
   try {
-    const { base, headers } = appium주소(raw);
+    const { base, headers } = appium주소(raw, process.env.PLATFORM_APPIUM_TOKEN);
     const res = await fetch(`${base}/session/${encodeURIComponent(sessionId)}`, {
       method: 'DELETE',
       headers,

@@ -11,11 +11,18 @@ import { 게임증적을남긴다, gameLink, openGame, 팜원점 } from './game.
 
 describe('팜원점', () => {
   it('/wd/hub 를 떼고 주소 안 계정을 Basic 머리로 옮긴다', () => {
-    expect(팜원점('http://qa:p%40ss@farm.local:4723/wd/hub/')).toEqual({
+    expect(팜원점('http://qa:p%40ss@farm.local:4723/wd/hub/', undefined)).toEqual({
       base: 'http://farm.local:4723',
       headers: { Authorization: `Basic ${Buffer.from('qa:p@ss').toString('base64')}` },
     });
-    expect(팜원점('http://farm.local:4723')).toEqual({ base: 'http://farm.local:4723', headers: {} });
+    expect(팜원점('http://farm.local:4723', '')).toEqual({ base: 'http://farm.local:4723', headers: {} });
+  });
+
+  it('토큰이 있으면 주소 안 계정보다 앞서 Bearer 머리로 싣는다', () => {
+    expect(팜원점('https://qa:pw@farm.example.com/wd/hub', 'pat_abc')).toEqual({
+      base: 'https://farm.example.com',
+      headers: { Authorization: 'Bearer pat_abc' },
+    });
   });
 });
 
