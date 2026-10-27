@@ -37,3 +37,12 @@ export function 막로그인표시를뗀다(): boolean {
   if (막로그인) window.history.replaceState(window.history.state, '', window.location.pathname + window.location.hash);
   return 막로그인;
 }
+
+/**
+ * 로그인 화면이 Auth_platform 으로 바로 보내지 않고 카드를 그리게 알림을 단다 (도메인/인증 §8.6).
+ * `failed` — 막 돌아왔는데(`?sso=ok`) 로그인 확인이 실패했다. 안 달면 다시 보내 둘이 끝없이 오간다.
+ * `out` — 로그아웃했는데 Auth_platform 은 못 끊었다. 안 달면 살아 있는 Auth_platform 세션이 곧장 다시 들여보낸다
+ */
+export function sso알림을단다(값: 'failed' | 'out'): void {
+  window.history.replaceState(window.history.state, '', `${window.location.pathname}?sso=${값}${window.location.hash}`);
+}

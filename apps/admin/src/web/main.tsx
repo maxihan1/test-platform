@@ -49,7 +49,7 @@ import { ScenarioRunList } from './ScenarioRunList.js';
 import { Settings } from './Settings.js';
 import { Shell } from './Shell.js';
 import { Signup } from './Signup.js';
-import { useSSO, 막로그인표시를뗀다 } from './useSSO.js';
+import { sso알림을단다, useSSO, 막로그인표시를뗀다 } from './useSSO.js';
 import { 칩움직임을건다 } from './motion.js';
 import { Loading } from './ui.js';
 import './styles.css';
@@ -224,6 +224,7 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
   // 스스로 바꾼 직후에만 돌아간 자리에서 확인 한 줄을 보인다. 강제로 바꾼 사람은 집으로 가며 그 줄이 없다
   const [비밀번호바꿈, set비밀번호바꿈] = useState(false);
   const 알림끄기 = useCallback(() => set비밀번호바꿈(false), []);
+  const sso = useSSO();
   useEffect(() => {
     if (!['password', 'login', 'signup'].includes(route(hash).name)) 직전.current = hash;
   }, [hash]);
@@ -249,7 +250,10 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
     api
       .me()
       .then(({ user }) => (막로그인 ? 들어왔다(user) : set상태({ 어디: '안', user })))
-      .catch(() => set상태({ 어디: '밖' }));
+      .catch(() => {
+        if (막로그인) sso알림을단다('failed');
+        set상태({ 어디: '밖' });
+      });
     // 처음 열 때 한 번만 묻는다
   }, []);
 
@@ -322,6 +326,9 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
       set프로젝트묻기(false);
       // 알림이 뜬 채 나가면 줄이 사라져 끄는 길(onGone)이 안 불린다. 남겨 두면 다음 로그인에 옛 알림이 뜬다
       set비밀번호바꿈(false);
+      // SSO 설치인데 Auth_platform 을 못 끊었다(세션이 이미 끊겨 204 · 요청 실패). 알림 없이 두면 로그인 화면이 바로 보내고
+      // 살아 있는 Auth_platform 세션이 곧장 다시 들여보내 로그아웃이 안 된 것처럼 보인다
+      if (sso === true) sso알림을단다('out');
       window.location.hash = '#/login';
     };
     void api.logout().then((답) => {

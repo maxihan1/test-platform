@@ -2190,6 +2190,101 @@ input[type='file']::file-selector-button {
   color: var(--link);
 }
 
+/* 통합계정(SSO) 설치의 카드 — 실패 · 승인 대기로 돌아왔을 때만 뜬다 (도메인/인증 §8.6).
+   BTS · 디바이스 팜과 같은 시안(2026-10-27 B안)이라 세 앱이 한 모양이다. 모서리 · 테두리는 이 앱의 판 규칙(8px · --line-2)을 따른다.
+   시안의 굵게(700)는 싣지 않은 굵기라 600 그대로다 — .login-greet · .btn 이 이미 600 이다 */
+.login-sso {
+  max-width: 360px;
+  padding: 28px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+}
+
+.login-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--on-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.login-app {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.login-sso .login-greet {
+  font-size: 20px;
+  line-height: 1.35;
+}
+
+.login-sso .login-sub {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+
+.login-sso .login-err,
+.login-sso .login-info {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+/* 시안의 오류 상자 색 그대로다. 세 앱이 같은 빨강을 써야 같은 알림으로 읽힌다 */
+.login-sso .login-err {
+  background: #2a1512;
+  border: 1px solid #5a2620;
+  color: #ff9c8f;
+}
+
+.login-sso .login-err svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* 승인 대기는 잘못이 아니라 기다림이라 빨간 상자가 아니라 우묵한 면이다 */
+.login-sso .login-info {
+  background: var(--well);
+  border: 1px solid var(--line-2);
+}
+
+/* 주 행동은 이것 하나라 카드 폭을 다 쓴다. `.login-box a` 의 링크 색 · `.login-box > a` 의 가운데 놓기가 버튼을 덮지 않게 a.btn 으로 집는다 */
+.login-sso a.btn,
+.login-sso a.btn:visited {
+  justify-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 18px;
+  border-radius: 6px;
+  font-size: 15px;
+  color: var(--on-accent);
+  margin-top: 8px;
+}
+
+/* 휴대폰 — 위 좁은 화면 규칙의 .login-box 여백을 .login-sso 가 뒤에서 덮어서 다시 적는다 (공통/5 §8 「휴대폰 화면」) */
+@media (max-width: 620px) {
+  .login-sso {
+    padding: 22px 18px 20px;
+  }
+}
+
 /* ── 설정 화면 (SPEC §8.8) ────────────────────────────────────────── */
 /* 책상에서만 쓰는 화면이다. 좁은 화면 대응을 하지 않는다 (§8) */
 
