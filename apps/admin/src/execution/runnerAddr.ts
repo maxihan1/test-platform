@@ -2,7 +2,7 @@
 
 // 컨테이너에서는 compose 가 넣어 준다(.env 로 바꾼다 — 서버 러너 · 터널로 이은 맥 러너). 호스트에서 손으로 돌릴 때가 이 기본값이다
 export function runnerUrl(): string {
-  return process.env.RUNNER_URL ?? 'http://localhost:4000';
+  return process.env.RUNNER_URL || 'http://localhost:4000';
 }
 
 // 진행 · 파일을 물을 러너들. 로컬 러너가 있고 정식 실행 러너와 다를 때만 둘이다
