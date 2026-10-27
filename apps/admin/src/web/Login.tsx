@@ -1,8 +1,8 @@
 // 로그인 화면 (SPEC §8.6). 아이디 칸, 비밀번호 칸, 로그인 버튼, 그 아래 회원가입 링크, 언어 고르개. 그 밖에 아무것도 없다
-// maxihan 계정(SSO)이 켜진 설치는 그 대신 버튼 하나다 (SSO로그인)
+// maxihan 계정(SSO)이 켜진 설치는 화면 없이 바로 Auth_platform 으로 보내고, 돌아온 알림이 있을 때만 카드를 그린다 (SSO로그인)
 // 가입은 승인 대기 계정만 만든다 — 문을 여는 판단은 여전히 운영자가 설정 화면에서 한다 (§8.8)
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { api, ApiError, type User } from './api.js';
 import { use말, use언어, type 언어 } from './i18n.js';
@@ -17,22 +17,55 @@ const SSO안내: Record<string, { 문장: string; 오류: boolean }> = {
   failed: { 문장: '로그인하지 못했습니다. 버튼을 다시 누르면 됩니다', 오류: true },
 };
 
-/** maxihan 계정(SSO)이 켜진 설치의 로그인 화면 (SPEC §8.6). 버튼 하나 · 언어 고르개. 가입 · 비밀번호 칸은 없다 */
-function SSO로그인({ on언어, 결과, 그래프 }: { on언어: (고른: 언어) => void; 결과: string | null; 그래프: string | null }) {
+/**
+ * maxihan 계정(SSO)이 켜진 설치의 로그인 화면 (SPEC §8.6). 알림 없이 오면 그리지 않고 바로 Auth_platform 으로 보낸다 —
+ * 버튼 하나짜리 중간 화면이 있으면 로그인 화면을 두 번 거친다 (2026-10-27 사용자).
+ * 알림이 있으면 카드를 그리고 보내지 않는다 — 실패해 돌아온 사람을 다시 보내면 Auth_platform 과 끝없이 오간다
+ */
+function SSO로그인({ on언어, 떠난다 }: { on언어: (고른: 언어) => void; 떠난다: (주소: string) => void }) {
   const t = use말();
   const 언어 = use언어();
-  const 안내 = 결과 === null ? undefined : SSO안내[결과];
+  const 주소칸 = window.location.search;
+  const 결과 = new URLSearchParams(주소칸).get('sso');
+  // 표에 없는 값(`toString` 같은 물려받은 이름 포함)은 알림이 없는 것과 같다
+  const 안내 = 결과 !== null && Object.hasOwn(SSO안내, 결과) ? SSO안내[결과] : undefined;
+  // Grafana 에서 왔으면 돌아올 자리를 실어 보낸다 — 서버가 같은 규칙으로 다시 거른다 (auth/sso.ts)
+  const 그래프 = 그래프로돌아갈곳(주소칸);
+  const 시작 = 그래프 === null ? '/api/auth/sso/start' : `/api/auth/sso/start?next=${encodeURIComponent(그래프)}`;
+  useEffect(() => {
+    if (안내 === undefined) 떠난다(시작);
+  }, [안내, 시작, 떠난다]);
+
+  // 페이지가 옮겨 가는 동안 바탕만 둔다. 빈 흰 화면이 번쩍이지 않게
+  if (안내 === undefined) return <div className="login" />;
   return (
     <div className="login">
-      <div className="login-box">
-        <div className="login-title">QA Hub</div>
-        <h1 className="login-greet">{t('로그인')}</h1>
-        <p className="login-sub">{t('maxihan 계정으로 로그인하면 맡은 애플리케이션이 열립니다.')}</p>
-        {안내 === undefined ? null : <p className={안내.오류 ? 'err login-err' : 'login-info'}>{t(안내.문장)}</p>}
-        {/* 서버가 Auth_platform 으로 보낸다. 화면 안 이동이 아니라 페이지 이동이다.
-            Grafana 에서 왔으면 돌아올 자리를 실어 보낸다 — 서버가 같은 규칙으로 다시 거른다 (auth/sso.ts) */}
-        <a className="btn" href={그래프 === null ? '/api/auth/sso/start' : `/api/auth/sso/start?next=${encodeURIComponent(그래프)}`}>
-          {t('maxihan 계정으로 로그인')}
+      <div className="login-box login-sso">
+        <div className="login-logo" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4" />
+            <path d="m21 2-9.6 9.6" />
+            <circle cx="7.5" cy="15.5" r="5.5" />
+          </svg>
+        </div>
+        <div className="login-head">
+          <p className="login-app">QA Hub</p>
+          <h1 className="login-greet">{t('로그인')}</h1>
+          <p className="login-sub">{t('로그인하면 맡은 애플리케이션이 열립니다.')}</p>
+        </div>
+        <p className={안내.오류 ? 'err login-err' : 'login-info'}>
+          {안내.오류 ? (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" x2="12" y1="8" y2="12" />
+              <line x1="12" x2="12.01" y1="16" y2="16" />
+            </svg>
+          ) : null}
+          {t(안내.문장)}
+        </p>
+        {/* 서버가 Auth_platform 으로 보낸다. 화면 안 이동이 아니라 페이지 이동이다 */}
+        <a className="btn" href={시작}>
+          {t('QA Hub 통합계정으로 로그인')}
         </a>
         <div className="side-lang login-lang">
           <언어고르개 언어={언어} on언어={on언어} />
@@ -51,11 +84,14 @@ function 그래프로돌아갈곳(search: string): string | null {
   return next?.startsWith('/grafana/') ? next : null;
 }
 
+// 렌더마다 새 함수가 되면 SSO로그인의 보내기가 다시 돈다
+const 페이지를옮긴다 = (주소: string) => window.location.assign(주소);
+
 export function Login({
   onLogin,
   on언어,
   // 검사가 진짜 페이지 이동 대신 끼운다. jsdom 의 location.assign 은 바꿔 끼울 수 없다
-  떠난다 = (주소: string) => window.location.assign(주소),
+  떠난다 = 페이지를옮긴다,
 }: {
   onLogin: (user: User) => void;
   /** 로그인 전에도 언어를 고른다. 들고 있는 것은 `main.tsx` 다 */
@@ -72,10 +108,7 @@ export function Login({
   // 묻는 동안은 아이디 · 비밀번호 칸을 그린다 — 대부분의 설치가 그 모양이고, 칸이 비어 보이는 것보다 낫다
   const sso = useSSO();
 
-  if (sso === true) {
-    const 주소칸 = window.location.search;
-    return <SSO로그인 on언어={on언어} 결과={new URLSearchParams(주소칸).get('sso')} 그래프={그래프로돌아갈곳(주소칸)} />;
-  }
+  if (sso === true) return <SSO로그인 on언어={on언어} 떠난다={떠난다} />;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();

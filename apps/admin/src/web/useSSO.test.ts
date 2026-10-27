@@ -3,7 +3,7 @@
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { 막로그인표시를뗀다 } from './useSSO.js';
+import { 막로그인표시를뗀다, 왕복실패를적는다 } from './useSSO.js';
 
 afterEach(() => window.history.replaceState(null, '', '/'));
 
@@ -23,5 +23,17 @@ describe('막로그인표시를뗀다', () => {
     expect(막로그인표시를뗀다()).toBe(false);
     expect(window.location.search).toBe('?x=1');
     expect(window.history.state).toEqual({ navIndex: 2 });
+  });
+});
+
+describe('왕복실패를적는다', () => {
+  it('?sso=failed 를 달아 로그인 화면이 다시 보내지 않고 실패 알림을 그리게 하고, 칸 번호와 해시는 남긴다', () => {
+    window.history.replaceState({ navIndex: 1 }, '', '/#/runs/fn');
+
+    왕복실패를적는다();
+
+    expect(window.location.search).toBe('?sso=failed');
+    expect(window.location.hash).toBe('#/runs/fn');
+    expect(window.history.state).toEqual({ navIndex: 1 });
   });
 });

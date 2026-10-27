@@ -7,8 +7,8 @@ export const 계정말: Record<string, string> = {
     'Your sign-up is under review. You can sign in once an admin accepts it.',
 
   // maxihan 계정(SSO)이 켜진 설치의 로그인 화면 (§8.6)
-  'maxihan 계정으로 로그인': 'Sign in with maxihan account',
-  'maxihan 계정으로 로그인하면 맡은 애플리케이션이 열립니다.': 'Sign in with your maxihan account to open your applications.',
+  'QA Hub 통합계정으로 로그인': 'Sign in with QA Hub account',
+  '로그인하면 맡은 애플리케이션이 열립니다.': 'Sign in to open your applications.',
   '이 플랫폼에서 쓸 수 없는 아이디입니다. 운영자가 확인해야 합니다': 'This ID cannot be used here. An admin needs to check it.',
   '로그인하지 못했습니다. 버튼을 다시 누르면 됩니다': 'Sign-in failed. Press the button again.',
 

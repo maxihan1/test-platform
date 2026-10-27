@@ -49,7 +49,7 @@ import { ScenarioRunList } from './ScenarioRunList.js';
 import { Settings } from './Settings.js';
 import { Shell } from './Shell.js';
 import { Signup } from './Signup.js';
-import { useSSO, 막로그인표시를뗀다 } from './useSSO.js';
+import { useSSO, 막로그인표시를뗀다, 왕복실패를적는다 } from './useSSO.js';
 import { 칩움직임을건다 } from './motion.js';
 import { Loading } from './ui.js';
 import './styles.css';
@@ -249,7 +249,10 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
     api
       .me()
       .then(({ user }) => (막로그인 ? 들어왔다(user) : set상태({ 어디: '안', user })))
-      .catch(() => set상태({ 어디: '밖' }));
+      .catch(() => {
+        if (막로그인) 왕복실패를적는다();
+        set상태({ 어디: '밖' });
+      });
     // 처음 열 때 한 번만 묻는다
   }, []);
 

@@ -37,3 +37,11 @@ export function 막로그인표시를뗀다(): boolean {
   if (막로그인) window.history.replaceState(window.history.state, '', window.location.pathname + window.location.hash);
   return 막로그인;
 }
+
+/**
+ * 막 돌아왔는데(`?sso=ok`) 로그인 확인이 실패했으면 실패 알림으로 바꿔 단다. 쿠키가 막힌 브라우저 같은 때다.
+ * 안 달면 로그인 화면이 알림 없이 온 것으로 보고 다시 Auth_platform 으로 보내 둘이 끝없이 오간다 (도메인/인증 §8.6)
+ */
+export function 왕복실패를적는다(): void {
+  window.history.replaceState(window.history.state, '', `${window.location.pathname}?sso=failed${window.location.hash}`);
+}
