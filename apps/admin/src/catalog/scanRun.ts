@@ -14,6 +14,9 @@ import { scanApart, testsRoot, type Duplicate } from './scanner.js';
 import { 화면지도채우기 } from './screenMap.js';
 import { activeServices, save, type ServiceRow } from './store.js';
 
+// 경고 · 오류 줄만 쓴다 — 서버의 다시 훑기 명령(scripts/scan.ts)이 console 을 넘긴다
+type 스캔로그 = Pick<FastifyBaseLogger, 'warn' | 'error'>;
+
 export interface LastScan {
   scannedAt: string;
   added: number;
@@ -48,7 +51,7 @@ let startup: Promise<스캔기록> | null = null;
 const 있나 = (길: string): Promise<boolean> => stat(길).then(() => true, () => false);
 
 // 고르기 — 고른 서비스만 훑고 나머지 서비스 결과는 지난 스캔 것을 그대로 둔다(병합 뒤 · 목록의 「다시 스캔」)
-async function runScan(log: FastifyBaseLogger, 고르기?: (s: ServiceRow) => boolean): Promise<스캔기록> {
+async function runScan(log: 스캔로그, 고르기?: (s: ServiceRow) => boolean): Promise<스캔기록> {
   // 기동 스캔이 끝나기 전에 한 서비스 결과를 먼저 적으면 화면이 기동 스캔을 안 기다리고 반쪽 기록을 읽는다
   if (고르기 !== undefined && startup !== null) await startup;
   const scannedAt = new Date().toISOString();
@@ -207,7 +210,7 @@ export function 기동훑기(log: FastifyBaseLogger): void {
 }
 
 /** 「다시 스캔」 — 전부 훑고 부른 사람이 볼 수 있는 것만 낸다. service 를 주면 그 서비스만 훑고 그 결과만 */
-export async function 훑고보기(log: FastifyBaseLogger, user: 사용자 | null, service?: string): Promise<LastScan> {
+export async function 훑고보기(log: 스캔로그, user: 사용자 | null, service?: string): Promise<LastScan> {
   return 보이는결과(await runScan(log, service === undefined ? undefined : (s) => s.prefix === service), user, service);
 }
 

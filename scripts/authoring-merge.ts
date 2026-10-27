@@ -257,7 +257,7 @@ export const 상태인자 = ['status', '--porcelain', '--untracked-files=no'];
  * **서버는 맥의 체크아웃을 `/tests` 로 본다** (docker-compose `./tests:/tests:ro`) — 안 당기면
  * 병합된 새 테스트가 목록에 안 뜬다 (#3811 뒤 실측, 2026-09-23). 사람이 그 체크아웃에서
  * 다른 가지를 보고 있거나 고치던 것이 있으면 손대지 않는다.
- * 서버와 맥이 다른 기계면 이것으로 안 풀린다 — 서버 쪽 동기화는 후속이다 (docs/SETUP.md §8).
+ * 서버와 맥이 다른 기계면 이것으로 안 풀린다 — 서버는 pull timer 가 받아 와 다시 훑는다 (docs/SETUP.md §20).
  */
 export function 당길까(가지: { ok: boolean; 낸것: string }, 상태: { ok: boolean; 낸것: string }): string | null {
   if (!가지.ok || !상태.ok) return '체크아웃의 가지나 상태를 못 읽었다';
