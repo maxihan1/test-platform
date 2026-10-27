@@ -8,7 +8,7 @@ services:
     mem_limit: 512m
   admin:
     cpus: 0.75        # 러너가 브라우저를 돌리는 동안에도 화면이 버티게 러너 몫을 먼저 뺀 나머지
-    mem_limit: 1536m  # Node 라 상한을 걸어도 쓰는 양이 줄지 않는다 — 최고치의 두 배 가까이 둔다
+    mem_limit: 1536m  # Node 가 이 상한을 읽어 heap 상한을 864MB 로 줄인다(Node 24 실측) — 증적 PDF 의 Chromium 몫까지 최고치의 두 배 가까이 둔다
   grafana:
     mem_limit: 512m
   runner:
