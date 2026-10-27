@@ -47,7 +47,7 @@
 
 ### ⑤ 로그인 전환 · 마무리
 **무엇** 세 앱을 Auth_platform 로그인으로 바꾸고, 러너 위치를 설정으로 고르게 하고, 감시를 붙인다.
-- [ ] `OPS-F5-09` SSO 전환(Auth S15) — QA Hub `AUTH_*` · Devicefarm `DF_BTS_URL` · `DF_AUTH_ISSUER` · BTS LOCAL 끄기(되돌리는 SQL 먼저 · 팜 토큰은 Auth 에서 먼저 발급 · maxi-api PAT) · 다른 사람 계정으로 결과 보기 (Auth_platform)
+- [ ] `OPS-F5-09` SSO 전환(Auth S15) — QA Hub `AUTH_*` · Devicefarm `DF_AUTH_ISSUER`(`DF_BTS_URL` 은 OPS-F3-05 때 Auth 로 바꿨고, 팜 토큰도 OPS-F4-07 때 Auth 에서 발급했다) · BTS LOCAL 끄기(되돌리는 SQL 먼저 · maxi-api PAT) · 다른 사람 계정으로 결과 보기 (Auth_platform)
 - [x] `OPS-F5-10` 러너 위치 설정 — `RUNNER_URL`(정식 실행) · `LOCAL_RUNNER_URL`(내 컴퓨터 러너)로 서버 · 맥을 고른다 · 산출물이 admin 에 없으면 러너에서 HTTP 로 가져온다 · `RUNNER_TOKEN` · 맥 러너 터널 · 잠자기 감지 health check (test_platform)
   - 근거 PR #476 · 2026-10-27 — 코드 · 명세 · 터널 스크립트까지. 서버 sshd 설정 · 실측은 `docs/SETUP.md` §10 「admin 이 다른 기계에 있을 때」(F4-07 뒤 사람이 한다)
 - [ ] `OPS-F5-11` 운영 기본기 — 바깥 uptime 감시(도메인 7개) · 디스크 70% 알림 · 배포 뒤 `docker image prune` · 실측으로 `mem_limit` 다시 맞추기
