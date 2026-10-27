@@ -14,6 +14,7 @@ import { 게임화면을읽는다 } from './gameScreen.js';
 import { abort, execute, resolveSpecPath, running, testsDir } from './execute.js';
 import { 팜증적받기를줄세운다 } from './farmEvidence.js';
 import { registerPerfDeviceRoutes } from './perfDevice.js';
+import { registerRemote } from './remote.js';
 import { executeScenario, 판뺀부품들 } from './scenario.js';
 
 const require = createRequire(import.meta.url);
@@ -184,6 +185,9 @@ const scenarioRequest = z
 const abortRequest = z.object({ historyId: z.number() });
 
 export function registerRoutes(app: FastifyInstance): void {
+  // 토큰 검사를 맨 먼저 건다 — 뒤에 붙는 통로가 모두 그 아래다
+  registerRemote(app);
+
   app.get('/health', async () => ({ ok: true, playwrightVersion }));
 
   registerPerfDeviceRoutes(app);

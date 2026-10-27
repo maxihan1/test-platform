@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { 대상줄읽기 } from '../authoring/reverse.js';
 import { 팜주소 } from '../execution/farm.js';
+import { 러너머리 } from '../execution/runnerAddr.js';
 import { 기기목표 } from './deviceStats.js';
 import * as 표 from './store.js';
 import type { DeviceRunConfig } from './types.js';
@@ -76,7 +77,7 @@ async function 팜기기들(팜: string): Promise<기기[]> {
 
 async function 로컬기기들(로컬: string): Promise<기기[]> {
   try {
-    const res = await fetch(`${로컬}/perf/devices`, { signal: AbortSignal.timeout(목록제한ms) });
+    const res = await fetch(`${로컬}/perf/devices`, { headers: 러너머리(), signal: AbortSignal.timeout(목록제한ms) });
     if (!res.ok) return [];
     const 몸 = (await res.json()) as { devices?: { serial?: unknown; model?: unknown; os?: unknown }[] };
     return (몸.devices ?? []).flatMap((d) =>
