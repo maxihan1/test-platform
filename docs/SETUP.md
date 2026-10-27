@@ -185,7 +185,7 @@ openssl rand -hex 32
 | `SESSION_SECRET` | 로그인 세션을 서명하는 키. **비어 있거나 32바이트보다 짧으면 admin이 기동을 거부한다** (`openssl rand -hex 32` 면 충분하다). 임시 키를 지어내면 재기동할 때마다 전원 로그아웃되고, 그 사실을 아무도 모른 채 「가끔 로그인이 풀린다」로 겪는다 |
 | `ADMIN_PORT` · `POSTGRES_PORT` | 바깥 포트. 비우면 `3000`·`5434`으로 뜬다(postgres 는 2026-10-27 에 5433 에서 옮겼다 — 맥의 BTS 개발 DB 가 5433 을 쓴다. 옮기는 법은 「20. 서버와 맥에 나눠 띄우기」 「맥 postgres 를 5434 로 옮기기」). 한 서버에 다른 것과 같이 띄울 때만 바꾼다. **Grafana 는 바깥 포트가 없다** (2026-09-28) — 플랫폼에 로그인한 뒤 `그래프(Grafana) ↗`(같은 주소의 `/grafana/`)로 들어간다. 그래프(Grafana) 권한(설정 → 계정 → 그래프(Grafana) `읽기`)이 있는 사람만 열린다. 옛 `GRAFANA_PORT` 는 `.env` 에서 지워도 된다 |
 | `POSTGRES_PASSWORD` · `GRAFANA_RO_PASSWORD` | DB 비밀번호 둘 (2026-10-23). 슈퍼유저 `platform` 과 Grafana 읽기 전용 계정 `grafana_ro` 의 것이다. **비우면 `platform` · `grafana_ro` 그대로다.** 서버는 `openssl rand -hex 24` 로 만든 값을 넣는다 — 주소에 그대로 들어가므로 영문 · 숫자만 쓴다(`@` · `#` · `$` 같은 글자는 주소나 `.env` 를 깨뜨린다). **DB 를 처음 만들 때만 읽힌다** — 이미 돌던 서버는 아래 「18. DB 비밀번호 바꾸기」 순서대로 한다. 개발 맥도 바꿔도 된다 — pre-push 의 임시 DB 도 이 두 칸을 읽는다. 맥 Docker Desktop 은 러너가 `host.docker.internal:5434` 으로 DB 에 닿아 비밀번호만 막는다 |
-| `PLATFORM_PUBLIC_URL` | 이 플랫폼이 바깥에서 열리는 주소. Slack 알림의 「결과 보기」 링크가 이 값 위에 붙는다. **비워 두면 알림에 링크가 안 들어간다** — 틀린 주소를 보내는 것보다 없는 편이 낫다. **아래 maxihan 계정 로그인을 켜면 꼭 채운다** — 돌아올 주소가 이 위에 붙는다. **CI 가 APK 를 올리는 애플리케이션(Android 앱 · 게임)도 꼭 채운다** — 디바이스 팜이 APK 를 받는 서명 주소가 이 위에 붙고, 비우면 그 항목은 미실행으로 닫힌다(도메인/실행 §3.11). 설정 › CI 토큰의 CI 예시 주소도 이 값 위에 붙는다 — 비우면 브라우저를 연 주소가 들어가 localhost 면 CI 가 닿지 않는다 |
+| `PLATFORM_PUBLIC_URL` | 이 플랫폼이 바깥에서 열리는 주소. Slack 알림의 「결과 보기」 링크가 이 값 위에 붙는다. **비워 두면 알림에 링크가 안 들어간다** — 틀린 주소를 보내는 것보다 없는 편이 낫다. **아래 maxihan 계정 로그인을 켜면 꼭 채운다** — 돌아올 주소가 이 위에 붙는다. **CI 가 APK 를 올리는 애플리케이션(Android 앱 · 게임)도 꼭 채운다** — 디바이스 팜이 APK 를 받는 서명 주소가 이 위에 붙고, 비우면 그 항목은 미실행으로 닫힌다(도메인/실행 §3.11). 설정 › CI 토큰의 CI 예시 주소도 이 값 위에 붙는다 — 비우면 브라우저를 연 주소가 들어가 localhost 면 CI 가 닿지 않는다. 설정 › 성능 에이전트의 설치 명령도 이 값 위에 붙는다 — **앞단 프록시(Caddy) 뒤에 두면 꼭 채운다.** 비우면 설치 명령이 `http://` 주소가 되어 에이전트 토큰이 거절된다 |
 | `AUTH_ISSUER` · `AUTH_CLIENT_ID` · `AUTH_CLIENT_SECRET` | 선택 (2026-10-20). **maxihan 계정(Auth_platform)으로 로그인하게 한다.** Auth_platform 주소와, 거기에 이 플랫폼을 등록하고 받은 client id · secret 이다. 등록할 때 돌아올 주소는 `PLATFORM_PUBLIC_URL` + `/api/auth/sso/callback`, 로그아웃 뒤 돌아올 주소는 `PLATFORM_PUBLIC_URL` + `/` 다. **셋 다 채우면 켜지고 셋 다 비우면 비밀번호 로그인 그대로다. 일부만 채우면 admin 이 기동을 거부한다.** 켜면 로그인 화면이 버튼 하나가 되고 회원가입 · 비밀번호 변경이 사라진다. 기본 계정 `admin` 은 Auth_platform 의 같은 아이디 `admin` 으로 처음 들어올 때 이어진다 (SPEC 도메인/인증 §3.5 「maxihan 계정」) |
 
 **2026-09-17에 넷이 이 표에서 빠졌다.** `PLATFORM_INSTANCE_NAME`·`_COLOR`·`PLATFORM_TESTS_REPO`·`PLATFORM_ENV_URLS`.
@@ -1046,14 +1046,14 @@ ssh qahub 'cd /opt/qahub && git pull --ff-only origin main && docker compose up 
 
 이미지를 서버에서 만들어 몇 분 걸린다. 도는 실행은 끊긴다 — admin 이 다시 뜨며 `ABORTED` 로 닫는다(SPEC 공통/6-인프라 §9.2 「배포 절차」).
 
-### 맥 정리 — author · perf-agent 만 (OPS-F4-08, 약 1시간)
+### 맥 정리 — author · perf-agent 와 pre-push postgres 만 (OPS-F4-08, 약 1시간)
 
 서버가 위 6번 확인을 통과한 뒤에 한다.
 
-1. 맥 `.env` 를 고친다 — `PLATFORM_PUBLIC_URL=https://qahub.maxihan.com`(맥 author · perf-agent 가 붙을 주소. 맥용 덧붙임 파일이 이 칸을 읽는다) · `PERF_AGENT_TOKEN=pga_…`(설정 › 성능 에이전트에서 발급한 값) · `DEVICE_FARM_TOKEN=<서버와 같은 값>`(작성 AI 가 서버가 넘겨준 팜 주소로 폰을 잡고 누른다 — 없으면 앱 「눌러 가며 읽기」가 401 이다). 작성 토큰 셋은 그대로 둔다
-2. 맥 QA Hub 를 내린다 — 컨테이너만 지우고 볼륨은 남긴다. `--profile authoring` 을 빼면 author 컨테이너가 남는다
+1. 맥 `.env` 를 고친다 — `PLATFORM_PUBLIC_URL=https://qahub.maxihan.com`(맥 author · perf-agent 가 붙을 주소. 맥용 덧붙임 파일이 이 칸을 읽는다) · `PERF_AGENT_TOKEN=pga_…`(설정 › 성능 에이전트에서 발급한 값 — 옮긴 DB 에 맥 에이전트가 없으면 「에이전트 추가」에서 역할 「부하 발생」으로 새로 만든다. 「복사」는 설치 명령 통째라 그 안의 `pga_…` 만 옮기고 설치 명령은 돌리지 않는다 — 아래 3번의 perf-agent 가 대신 붙는다) · `DEVICE_FARM_TOKEN=<서버와 같은 값>`(작성 AI 가 서버가 넘겨준 팜 주소로 폰을 잡고 누른다 — 없으면 앱 「눌러 가며 읽기」가 401 이다). 작성 토큰 셋은 그대로 둔다
+2. 맥 QA Hub 를 내린다 — 컨테이너만 지우고 볼륨은 남긴다. **postgres 는 남긴다** — 맥 pre-push 가 그 안에 임시 DB 를 만들어서(아래 「맥 pre-push 는 맥 postgres 를 쓴다」) `down` 하면 서버 · DB 코드 push 가 「개발 DB 에 못 붙었다」로 막힌다. `--profile authoring` 을 빼면 author 컨테이너가 남는다
    ```bash
-   docker compose -p test_platform --profile authoring down
+   docker compose -p test_platform --profile authoring rm -sf admin runner grafana migrate author perf-agent
    ```
 3. author · perf-agent 만 띄운다 — admin 은 클라우드에 있어 맥에 같이 뜨지 않는다. 맥용 덧붙임 파일의 `!reset` 은 Docker Compose 2.24.4 부터 읽는다(`docker compose version` — 낮으면 Docker Desktop 을 올린다)
    ```bash
@@ -1062,16 +1062,26 @@ ssh qahub 'cd /opt/qahub && git pull --ff-only origin main && docker compose up 
    ```
    author 는 맥에서 한 번에 한 건(`AUTHORING_MAX_PARALLEL=1` · 메모리 4g)만 돈다 — 맥용 덧붙임 파일이 정한다.
    **npm 작성 에이전트(`npm run authoring-agent`)는 쓰지 않는다** — 자식 셸이 맥 계정의 파일(운영 서버 ssh 키 포함)에 닿는다. 컨테이너는 `~/.ssh` 를 못 본다
-4. 확인 — 화면에서 작성 1건을 넣고 병합 → 2분쯤 뒤 `https://qahub.maxihan.com` 목록에 새 케이스가 뜬다 · 설정 › 성능 에이전트에 맥 에이전트가 붙어 있다
-5. 서버에서 며칠 써 본 뒤 맥에서 옛 볼륨 · 이미지를 지운다 — **되돌릴 수 없다.** 서버 확인 전에는 지우지 않는다
+4. 작성 계정의 비밀번호 로그인을 막는다 — 3번에서 author 가 붙은 걸 본 뒤에 한다. 작성 토큰은 비밀번호를 안 봐서 그대로 붙고, 로그인 화면만 거절한다(`apps/admin/src/auth/identify.ts` · `routes.ts`). 되살릴 때는 admin 이 설정 › 계정에서 비밀번호를 새로 준다
    ```bash
-   docker volume rm test_platform_pgdata test_platform_artifacts test_platform_perf_dummy
+   ssh qahub 'cd /opt/qahub && docker compose exec -T postgres psql -U platform -d platform -v ON_ERROR_STOP=1' <<'SQL'
+   UPDATE app_user SET password_hash = NULL WHERE username = 'mac' AND agent_token_hash IS NOT NULL RETURNING username;
+   SQL
+   ```
+   `UPDATE 1` 과 `mac` 한 줄이 찍혀야 한다. `UPDATE 0` 이면 그 이름에 토큰이 없다는 뜻이라 아무것도 안 바뀌었다 — 설정 › 계정 › 작성 계정에서 토큰을 먼저 발급한다.
+   `mac` 은 이 설치의 `AUTHORING_AGENT_USER` 다. 다르면 그 이름으로 바꾼다
+5. 확인 — 화면에서 작성 1건을 넣고 병합 → 2분쯤 뒤 `https://qahub.maxihan.com` 목록에 새 케이스가 뜬다 · 설정 › 성능 에이전트에 맥 에이전트가 붙어 있다
+6. 서버에서 며칠 써 본 뒤 맥에서 옛 볼륨 · 이미지를 지운다 — **되돌릴 수 없다.** 서버 확인 전에는 지우지 않는다
+   ```bash
+   docker volume rm test_platform_perf_dummy
    docker image rm test_platform-admin test_platform-runner grafana/grafana:13.2.2
    ```
+   **`test_platform_artifacts`(스크린샷 · 증적)는 서버 백업이 산출물을 담을 때까지 남긴다** — 서버 백업(`ops-backup.sh`)은 DB 만 떠서 맥 볼륨이 산출물의 유일한 사본이다(OPS-F5-11).
+   **`test_platform_pgdata` 는 남긴다** — 맥 pre-push 가 쓰는 postgres 의 볼륨이다. 옛 QA Hub 기록을 비울지는 사용자와 따로 정한다(볼륨을 지우면 다음 `up -d postgres` 가 빈 DB 로 새로 만든다).
    남기는 것 — `author_node_modules` · `author_work` 볼륨(작성), `postgres:16` · `ghcr.io/amacneil/dbmate:2` 이미지(pre-push)
-6. Docker Desktop › Settings › Resources 에서 메모리를 8GB 로 둔다
+7. Docker Desktop 메모리(Settings › Resources)는 기본 5.8GB 그대로 둔다 — author 한 건(4g)이 들어가고, 작성과 부하 테스트를 같이 돌리지 않는다. 같이 돌리거나 메모리가 모자라 꺼지면 올린다(2026-10-27 사용자). 올리면 Docker 가 다시 켜지며 떠 있던 컨테이너가 잠깐 멈춘다
 
-**맥 pre-push 는 맥 postgres 를 쓴다** — 서버 · DB 코드를 push 할 때 맥 `.env` 의 `POSTGRES_PORT`(비면 5434)에 임시 DB 를 만든다(`docs/HOOKS.md`). 그때만 빈 postgres 를 띄운다. 덧붙임 파일 없이 친다
+**맥 pre-push 는 맥 postgres 를 쓴다** — 서버 · DB 코드를 push 할 때 맥 `.env` 의 `POSTGRES_PORT`(비면 5434)에 임시 DB 를 만든다(`docs/HOOKS.md`). 그래서 위 2번에서 postgres 는 내리지 않는다. 꺼져 있으면 덧붙임 파일 없이 다시 띄운다
 ```bash
 docker compose -p test_platform up -d postgres
 ```
