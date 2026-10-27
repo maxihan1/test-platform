@@ -42,12 +42,13 @@
 - [x] `OPS-F4-06` 테스트 대상 이전 — 데모마켓(`/opt/demo` · 쇼핑몰 + 어드민 `/admin` · 운영툴 `/ops` → `demo`, 알림 서버 → `demo-notify`) · Ashveil 서버 + DB(`/opt/ashveil` · `JWT_KEY` · `ADMIN_KEY` 교체 · `Qa` 환경) · QA APK 를 `https://game.maxihan.com` 으로 다시 빌드 (demo-market · ashveil)
   - 근거 demo-market PR #4 · Auth_platform PR #20 · 2026-10-27 — 데모마켓 부분: https://demo.maxihan.com 200 · /admin 로그인 → /admin · /ops 200 · https://demo-notify.maxihan.com/openapi.json 200 · /_demo/* 바깥 404
   - 근거 ashveil PR #6 · #7 · Auth_platform PR #23 · 2026-10-27 — Ashveil 부분: 폰 브라우저 https://game.maxihan.com/health 200 · `/opt/ashveil` Qa · JWT_KEY · ADMIN_KEY 서버에서 새로 만듦(옛 기본키 401) · 백업 ashveil.dump TABLE DATA 13건 · QA APK 빌드 47 기본 서버 주소 game.maxihan.com
-- [ ] `OPS-F4-07` QA Hub 클라우드 이전 — `/opt/qahub` git checkout + pull timer(Mac 작성이 병합한 케이스를 받는다) · admin · postgres · grafana · 서버 러너(`cpus` 1 · `EXECUTION_CONCURRENCY=1` 을 admin 에 전달 · `127.0.0.1:13000`(Auth_platform `infra/edge/README.md` 포트 표) · `extra_hosts` 안 씀(hairpin 이 된다)) · 서버에서 author · perf-agent 를 켜지 않는다 · 맥 DB · 산출물 옮기기 · 대상 서버 주소를 새 도메인으로 (test_platform)
+- [x] `OPS-F4-07` QA Hub 클라우드 이전 — `/opt/qahub` git checkout + pull timer(Mac 작성이 병합한 케이스를 받는다) · admin · postgres · grafana · 서버 러너(`cpus` 1 · `EXECUTION_CONCURRENCY=1` 을 admin 에 전달 · `127.0.0.1:13000`(Auth_platform `infra/edge/README.md` 포트 표) · `extra_hosts` 안 씀(hairpin 이 된다)) · 서버에서 author · perf-agent 를 켜지 않는다 · 맥 DB · 산출물 옮기기 · 대상 서버 주소를 새 도메인으로 · 팜 서버 토큰(Auth_platform 개인 액세스 토큰 — PR #481) (test_platform)
+  - 근거 PR #483 · 2026-10-27 — https://qahub.maxihan.com 200 · 맥 DB 옮김(test_run 56 · run_item 13716 · test_case 2403 행 수 같음 · 스크린샷 파일 1000개 · 340583438 바이트 같음) · 웹 DMW-FN-126 PASS(run 20935, demo.maxihan.com) · Android ASH-FN-134 PASS(run 20936, game.maxihan.com · 팜 토큰) · 옮긴 실패 실행 run 20934 스크린샷 서버 화면에서 열림 · pull timer 켬 · 백업 platform.dump 3.4M(Auth_platform PR #22) · 시험 계정 zzadmin · qalow 끔
 - [ ] `OPS-F4-08` Mac Docker 정리 — Mac override 로 author(`AUTHORING_MAX_PARALLEL=1`) · perf-agent 만 `https://qahub.maxihan.com` 에 붙인다 · npm 작성 에이전트는 쓰지 않는다(자식 셸이 맥 계정의 운영 서버 키에 닿는다) · 나머지 컨테이너 · 이미지 · 볼륨 삭제 · Docker 메모리 8GB (test_platform)
 
 ### ⑤ 로그인 전환 · 마무리
 **무엇** 세 앱을 Auth_platform 로그인으로 바꾸고, 러너 위치를 설정으로 고르게 하고, 감시를 붙인다.
-- [ ] `OPS-F5-09` SSO 전환(Auth S15) — QA Hub `AUTH_*` · Devicefarm `DF_BTS_URL` · `DF_AUTH_ISSUER` · BTS LOCAL 끄기(되돌리는 SQL 먼저 · 팜 토큰은 Auth 에서 먼저 발급 · maxi-api PAT) · 다른 사람 계정으로 결과 보기 (Auth_platform)
+- [ ] `OPS-F5-09` SSO 전환(Auth S15) — QA Hub `AUTH_*` · Devicefarm `DF_AUTH_ISSUER`(`DF_BTS_URL` 은 OPS-F3-05 때 Auth 로 바꿨고, 팜 토큰도 OPS-F4-07 때 Auth 에서 발급했다) · BTS LOCAL 끄기(되돌리는 SQL 먼저 · maxi-api PAT) · 다른 사람 계정으로 결과 보기 (Auth_platform)
 - [x] `OPS-F5-10` 러너 위치 설정 — `RUNNER_URL`(정식 실행) · `LOCAL_RUNNER_URL`(내 컴퓨터 러너)로 서버 · 맥을 고른다 · 산출물이 admin 에 없으면 러너에서 HTTP 로 가져온다 · `RUNNER_TOKEN` · 맥 러너 터널 · 잠자기 감지 health check (test_platform)
   - 근거 PR #476 · 2026-10-27 — 코드 · 명세 · 터널 스크립트까지. 서버 sshd 설정 · 실측은 `docs/SETUP.md` §10 「admin 이 다른 기계에 있을 때」(F4-07 뒤 사람이 한다)
 - [ ] `OPS-F5-11` 운영 기본기 — 바깥 uptime 감시(도메인 7개) · 디스크 70% 알림 · 배포 뒤 `docker image prune` · 실측으로 `mem_limit` 다시 맞추기
@@ -1085,7 +1086,7 @@
   - 근거 PR #344 · 2026-10-20
 - [x] `APP-F1-12` WS-B 디바이스 팜 증적 영상 · logcat 받기 — 연결을 닫은 뒤 `GET /wd/hub/api/sessions/{id}/artifacts` 로 받아 증적에 싣는다 (APP-F1-10 에서 떼어 냄 · 러너 §5.2 「디바이스 팜 접속 방식」 · 2026-10-20 사용자)
   - 근거 PR #349 · 2026-10-20
-- [ ] `APP-F1-13` WS-F 팜이 인증을 켤 때 — 사람마다 BTS 토큰 (APP-F1-10 에서 떼어 냄 · 2026-10-20 사용자. 서버 몫 토큰 하나 · kit 의 토큰 머리는 PR #481 에서 했다 — 2026-10-27 OPS-F4-07)
+- [ ] `APP-F1-13` WS-F 팜이 인증을 켤 때 — 사람마다 Auth_platform 토큰 (APP-F1-10 에서 떼어 냄 · 2026-10-20 사용자. 서버 몫 토큰 하나 · kit 의 토큰 머리는 PR #481 에서 했다 — 2026-10-27 OPS-F4-07)
 - [x] `APP-F1-07` WS-B 디바이스 팜 전에 — 정식 실행이 요청한 디바이스를 케이스 선언과 대조(없으면 400, 테스트 실행은 이미 본다) · `timeoutMs` 상한(디바이스 잠금을 오래 쥐지 못하게) (PR #174 보안 검사 주의 둘)
   - 근거 PR #176 · 2026-10-08
 

@@ -176,7 +176,7 @@ services:
       GH_TOKEN: "${GH_TOKEN:-}"
       DISABLE_AUTOUPDATER: "1"   # claude 가 스스로 올리지 않는다 — 올리는 것은 에이전트다(점검·되돌리기)
       # 작성 AI 의 appium-cli 가 인증 켠 팜 폰을 잡고 누를 때 싣는 토큰. 자식 세션 환경에 그대로 가서 AI 가 읽을 수 있다 —
-      # 팜에만 쓰는 권한 작은 BTS 계정의 토큰을 넣는다 (docs/SETUP.md §20)
+      # 새면 팜을 토큰 주인 이름으로 쓸 수 있다 — Auth_platform 개인 액세스 토큰이라 다른 API 는 못 연다 (docs/SETUP.md §20)
       PLATFORM_APPIUM_TOKEN: "${DEVICE_FARM_TOKEN:-}"
     volumes:
       - ./:/repo                              # 사본의 원천 · 병합 뒤 당기기(admin 의 /tests 가 바로 본다). 자식은 여기 못 쓴다(다른 uid)
