@@ -967,7 +967,7 @@ docker run -d --init --restart unless-stopped --network host --name qahub-monito
      새면 팜(폰 잡기 · 놓기 · 앱 설치 · adb 명령)을 그 계정 이름으로 쓸 수 있고, Auth_platform 의 다른 API 는 못 연다(SPEC 도메인/러너 §5.2 「토큰은 서버 몫 하나다」). 발급할 때 기간을 길게 고른다 — 끝나면 앱 · 게임 정식 실행이 모두 「DEVICE_FARM_TOKEN 을 확인하세요」로 미실행이 된다
    - 이 값은 **서버** `.env` 에 넣는다(root 만 읽는 파일에 평문으로 남는다). 맥에서 넘길 때는 토큰을 맥 `~/.config/farm-pat`(`chmod 600`)에 두고 파일에서 읽어 ssh 표준 입력으로 보낸다 — 대화 · 명령줄에 값이 안 남게.
      맥 author 도 같은 값이 필요하다 — 아래 「맥 정리」 1번
-   - `COMPOSE_FILE` 이 서버용 덧붙임 파일을 늘 같이 읽게 한다 — 서버에서 그냥 `docker compose up -d` 를 쳐도 perf-agent 가 안 뜨고 CPU 상한이 걸린다
+   - `COMPOSE_FILE` 이 서버용 덧붙임 파일을 늘 같이 읽게 한다 — 서버에서 그냥 `docker compose up -d` 를 쳐도 perf-agent 가 안 뜨고 CPU · 메모리 상한이 걸린다
    - **`ADMIN_PORT` 앞의 `127.0.0.1` 을 빼지 않는다** — 빼면 Docker 가 서버 방화벽(firewalld)을 건너뛰고 13000 을 바깥에 연다. 바깥에서는 Caddy(https)로만 들어온다
    - 작성 토큰 셋(`AUTHORING_AGENT_TOKEN` · `CLAUDE_CODE_OAUTH_TOKEN` · `GH_TOKEN`) · `PERF_AGENT_TOKEN` 은 서버에 두지 않는다 — author · perf-agent 는 맥에 뜬다
    - `LOCAL_RUNNER_URL` 은 처음에 비워 둔다 — 서버 admin 은 맥의 「내 컴퓨터 러너」에 바로 못 닿는다. 그동안 그 러너를 부르는 일(케이스 「테스트 실행」 · 기기 성능 직접 플레이의 내 PC 폰 측정 · E2E 시험 실행의 브라우저 창)이 꺼진다.
