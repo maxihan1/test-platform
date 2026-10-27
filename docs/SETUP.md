@@ -531,6 +531,7 @@ npx playwright cli --version    # npm ci 만 돌렸으면 바로 나온다
 
 **먼저 알아 둘 것** — 「내 컴퓨터」는 **관리 서버가 도는 기계와 화면을 보는 내 기계가 같을 때만** 뜻이 맞다.
 서버를 따로 둔 회사에서는 창이 서버 기계에 뜨니, 그 경우에는 이 절을 하지 않고 꺼 둔다.
+관리 서버가 클라우드에 있고 내 맥을 이어 쓰려면 아래 「admin 이 다른 기계에 있을 때」를 한다(2026-10-27).
 
 1. **러너를 켠다.** 저장소 루트에서 아래를 친다. 창을 닫지 말고 켜 둔다.
    ```bash
@@ -558,7 +559,80 @@ npx playwright cli --version    # npm ci 만 돌렸으면 바로 나온다
 끄려면 `.env` 의 그 줄을 비우고 3번을 다시 한다.
 「▶ 시험해 보기」의 결과는 기록에 남지 않는다 — 통계·증적·알림에도 잡히지 않는다.
 컨테이너에서 러너에 안 닿는다는 오류가 나면 1번 러너가 켜져 있는지, 그 주소(`127.0.0.1`)가 컨테이너에서 닿는지부터 본다.
-**확인한 범위** — 맥의 Docker Desktop 에서만 컨테이너가 `host.docker.internal` 로 `127.0.0.1` 전용 러너에 닿는 것을 확인했다. 리눅스 Docker 는 이 이름이 브리지 주소로 풀려 `127.0.0.1` 전용 러너에 안 닿을 수 있고 확인하지 않았다 — 리눅스 서버에서는 켜지 않는다(위 「먼저 알아 둘 것」과 같은 이유다).
+**확인한 범위** — 맥의 Docker Desktop 에서만 컨테이너가 `host.docker.internal` 로 `127.0.0.1` 전용 러너에 닿는 것을 확인했다. 리눅스 Docker 는 이 이름이 브리지 주소로 풀려 `127.0.0.1` 전용 러너에 안 닿을 수 있고 확인하지 않았다 — 리눅스 서버에서 같은 기계의 러너로는 켜지 않는다(위 「먼저 알아 둘 것」과 같은 이유다). 리눅스 서버에 맥을 터널로 잇는 길은 바로 아래다.
+
+### admin 이 다른 기계에 있을 때 — 맥 러너를 터널로 잇는다 (2026-10-27 · OPS-F5-10)
+
+관리 서버(admin)는 클라우드(`qahub.maxihan.com`)에, 창이 뜨는 러너는 내 맥에 두는 배치다. **코드는 그대로고 설정만 바꾼다.**
+맥이 SSH 역터널(맥에서 서버로 거는 통로)을 걸고, 서버의 admin 은 그 통로 끝으로 맥 러너를 부른다. 규칙은 SPEC 공통/6-인프라 §9.2 「내 컴퓨터 러너」 · 도메인/러너 §5.2 「러너 토큰 · 파일 내주기」.
+
+**먼저 알아 둘 것 — 창이 뜨는 러너는 맥 계정으로 돈다.** Docker 안에서는 창이 안 떠서 `npm run runner:local` 로 켠다.
+그래서 AI 가 쓴 케이스가 맥 계정의 파일(`~/.ssh` 의 서버 키 같은 것)에 닿을 수 있다 — 운영 계획의 「맥 러너는 Docker 로만」과 어긋나는 자리다.
+창이 필요 없으면 아래 「정식 실행도 맥에서」처럼 Docker 러너를 쓴다.
+
+**서버에서 한 번** (서버 관리자가 한다)
+1. 터널 전용 계정을 만들고 맥의 공개 키를 넣는다.
+   ```bash
+   sudo useradd -m -s /sbin/nologin qahubtunnel
+   sudo install -d -m 700 -o qahubtunnel -g qahubtunnel /home/qahubtunnel/.ssh
+   sudo tee /home/qahubtunnel/.ssh/authorized_keys < 맥의_공개키.pub
+   sudo chown qahubtunnel: /home/qahubtunnel/.ssh/authorized_keys && sudo chmod 600 /home/qahubtunnel/.ssh/authorized_keys
+   ```
+2. 그 계정은 터널 끝 하나만 열게 한다. `/etc/ssh/sshd_config.d/qahubtunnel.conf` 에 적는다.
+   ```
+   Match User qahubtunnel
+     AllowTcpForwarding remote
+     GatewayPorts clientspecified
+     PermitListen 172.17.0.1:14001
+     PermitTTY no
+     X11Forwarding no
+     ClientAliveInterval 15
+     ClientAliveCountMax 3
+   ```
+   `sudo sshd -t && sudo systemctl reload sshd` 로 다시 읽힌다. `172.17.0.1` 은 서버의 Docker 다리 주소다 — `ip -4 addr show docker0` 의 값이 다르면 그 값으로 바꾸고 맥의 `QAHUB_TUNNEL_REMOTE` 도 같이 바꾼다.
+   admin 은 컨테이너라 서버의 `127.0.0.1` 에는 못 닿고, 다리 주소는 바깥에서 안 닿는다. **서버의 다른 앱 컨테이너는 닿으므로 3번의 토큰을 꼭 건다.**
+   `ClientAlive` 두 줄은 맥이 잠든 뒤 남은 통로 끝을 45초 안에 치운다 — 안 치우면 맥이 깨어나 다시 걸 때 「이미 쓰는 포트」로 실패한다
+3. 서버 `.env` 에 두 줄을 적고 admin 을 다시 띄운다. 토큰은 `openssl rand -hex 32` 로 만든다.
+   ```
+   LOCAL_RUNNER_URL=http://host.docker.internal:14001
+   RUNNER_TOKEN=<만든 값>
+   ```
+   ```bash
+   docker compose up -d admin runner
+   ```
+
+**맥에서** (쓸 때마다)
+
+4. 저장소를 main 으로 받아 둔다. 이 러너는 맥의 `./tests` 를 돌린다 — 서버와 케이스가 다르면 옛 케이스가 돌거나 「CASE_NOT_FOUND」다.
+5. 러너를 켠다. 서버와 같은 토큰을 준다.
+   ```bash
+   RUNNER_TOKEN=<서버와 같은 값> npm run runner:local
+   ```
+6. 다른 창에서 터널을 켠다. 러너보다 먼저 켜도 된다 — 러너가 뜨면 건다.
+   ```bash
+   QAHUB_TUNNEL_HOST=qahubtunnel@101.79.19.193 bash scripts/runner-tunnel.sh
+   ```
+   「터널 건다 — …」 줄이 뜨면 걸린 것이다. 「토큰이 없다」가 뜨면 5번에 `RUNNER_TOKEN` 을 빠뜨린 것이다 — 토큰 없는 러너는 내보내지 않는다.
+
+**확인** — 서버에서 `docker compose exec admin wget -qO- http://host.docker.internal:14001/health` 가 `{"ok":true,…}` 면 통로가 닿는다.
+화면에서 「▶ 시험해 보기」을 누르면 맥 화면에 창이 뜨고, 실패 사진도 보인다(admin 이 맥 러너에서 받아 와 서버에 남긴다).
+맥을 덮어 두고 누르면 2초 남짓 만에 「러너에 닿지 못했습니다」로 끝난다. `wget` 이 안 닿으면 서버 방화벽(firewalld)이 Docker 다리에서 오는 연결을 막는지 본다.
+
+**정식 실행도 맥에서 (창 없이)** — 서버가 버거우면 정식 실행 러너도 맥으로 돌릴 수 있다. 창이 필요 없어 Docker 러너를 쓴다.
+1. 맥의 compose 에 러너 포트만 맥 안쪽에 연다(맥 전용 덧붙임 파일).
+   ```yaml
+   services:
+     runner:
+       ports: ["127.0.0.1:4002:4000"]
+   ```
+   맥 `.env` 에 서버와 같은 `RUNNER_TOKEN` 을 적고 `docker compose -f docker-compose.yml -f <덧붙임 파일> up -d runner`.
+2. 서버 sshd 설정의 `PermitListen` 에 `172.17.0.1:14002` 를 더하고, 맥에서 `QAHUB_RUNNER_PORT=4002 QAHUB_TUNNEL_REMOTE=172.17.0.1:14002 QAHUB_TUNNEL_HOST=… bash scripts/runner-tunnel.sh`.
+3. 서버 `.env` 에 `RUNNER_URL=http://host.docker.internal:14002` 를 적고 admin 을 다시 띄운다. 되돌리려면 그 줄을 비운다(옆 `runner` 컨테이너로 돌아간다).
+
+**알아 둘 것**
+- 결과 파일은 처음 볼 때 맥에서 받아 와 서버에 남긴다. 맥이 잠든 사이에 처음 여는 사진은 안 보인다 — 깨우면 보인다
+- 기기 성능 직접 플레이(내 PC 폰)의 녹화 조각은 측정을 멈출 때 서버가 받아 온다. 길게 녹화했으면 멈추는 데 몇 분 걸린다
+- 끄려면 서버 `.env` 의 `LOCAL_RUNNER_URL` 을 비우고 admin 을 다시 띄운다. 맥의 두 창은 Ctrl+C
 
 ## 11. 클라우드 세션에서 DB 검사 돌리기 (2026-09-30)
 
