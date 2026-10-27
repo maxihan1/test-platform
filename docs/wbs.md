@@ -21,13 +21,17 @@
 
 ### ① 준비 · 백업
 **무엇** 서버 실측과 도메인을 먼저 확인하고, 아무것도 더하기 전에 서버 밖 백업부터 만든다.
-- [ ] `OPS-F1-01` 사전 점검 — 서버 `df -h` · `free -m` · `docker stats` · 컨테이너가 자기 공개 도메인에 닿는지(hairpin) · Mac 자리에서 바깥 22번 포트 · 닷홈 A 레코드 6개(`auth` · `qahub` · `farm` · `demo` · `demo-notify` · `game` .maxihan.com → 101.79.19.193)
-- [ ] `OPS-F1-02` 백업 — 매일 03:15 pg_dump(bts · auth · qahub · ashveil) + pgmq 큐 목록 + Auth 서명 키 · MFA 키 + MinIO `mc mirror` · 14일 보관 · Mac 전용 계정이 DB · 키만 가져간다 · 복원 연습 1회 (Auth_platform `infra/`)
+- [x] `OPS-F1-01` 사전 점검 — 서버 `df -h` · `free -m` · `docker stats` · 컨테이너가 자기 공개 도메인에 닿는지(hairpin) · Mac 자리에서 바깥 22번 포트 · 닷홈 A 레코드 6개(`auth` · `qahub` · `farm` · `demo` · `demo-notify` · `game` .maxihan.com → 101.79.19.193)
+  - 근거 Auth_platform PR #19 · 2026-10-27 — 실측: 디스크 78G 남음 · available 12.4G / 15.7G · hairpin 200 · 바깥 22번 열림 · 닷홈 A 레코드 6개
+- [x] `OPS-F1-02` 백업 — 매일 03:15 pg_dump(bts · auth · qahub · ashveil) + pgmq 큐 목록 + Auth 서명 키 · MFA 키 + MinIO `mc mirror` · 14일 보관 · Mac 전용 계정이 DB · 키만 가져간다 · 복원 연습 1회 (Auth_platform `infra/`)
+  - 근거 Auth_platform PR #19 · 2026-10-27 — 서버 cron 03:15 · Mac launchd 09:00 · 복원 연습 통과 · auth DB · 키는 F2-04 에서 더함
 
 ### ② 공개 입구 · 로그인
 **무엇** 공개 입구 Caddy 를 BTS compose 밖(host)으로 꺼내 도메인 7개를 받고, 모든 앱이 쓸 로그인 서버를 띄운다.
-- [ ] `OPS-F2-03` host Caddy 전환 — Rocky 에 caddy · 도메인 7개 · 앱은 `127.0.0.1` 포트로만 · bts-caddy 인증서 옮기고 제거 · BTS #509 닫음 (Auth_platform `infra/edge/` + BTS)
-- [ ] `OPS-F2-04` Auth_platform 운영(Auth S14) — Auth PR #14 README 1~7(Caddy 단계는 host Caddy) · BTS · QA Hub 컨테이너에 `extra_hosts` 로 auth 를 host Caddy 에 바로 (Auth_platform)
+- [x] `OPS-F2-03` host Caddy 전환 — Rocky 에 caddy · 도메인 7개 · 앱은 `127.0.0.1` 포트로만 · bts-caddy 인증서 옮기고 제거 · BTS #509 닫음 (Auth_platform `infra/edge/` + BTS)
+  - 근거 Auth_platform PR #19 · BTS #567 · 2026-10-27 — host caddy v2.11.7 · 옛 bts-caddy 는 멈춰 둠(며칠 뒤 rm)
+- [x] `OPS-F2-04` Auth_platform 운영(Auth S14) — Auth PR #14 README 1~6 · 서버 1회 준비 `setup-server.sh` · host Caddy auth 블록 · `extra_hosts` 는 안 씀(hairpin 이 된다 — F1-01) (Auth_platform)
+  - 근거 Auth_platform PR #14 · 2026-10-27 — https://auth.maxihan.com discovery 200 · bts-net 안 hairpin 200
 
 ### ③ Mac 쪽 연결
 **무엇** 폰이 꽂힌 Mac 의 팜을 클라우드 주소로 내보낸다. 팜 본체는 Mac 에 그대로 둔다(Devicefarm ADR-039).
@@ -36,7 +40,7 @@
 ### ④ 클라우드로 옮기기
 **무엇** 테스트 대상과 QA Hub 의 상시 서비스를 클라우드로 옮기고, Mac Docker 에는 작성 · 부하 테스트만 남긴다.
 - [ ] `OPS-F4-06` 테스트 대상 이전 — 데모마켓(`/opt/demo`, `demo` · `demo-notify`) · Ashveil 서버 + DB(`/opt/ashveil` · `JWT_KEY` · `ADMIN_KEY` 교체 · `Qa` 환경) · QA APK 를 `https://game.maxihan.com` 으로 다시 빌드 (demo-market · ashveil)
-- [ ] `OPS-F4-07` QA Hub 클라우드 이전 — `/opt/qahub` git checkout + pull timer(Mac 작성이 병합한 케이스를 받는다) · admin · postgres · grafana · 서버 러너(`cpus` 1 · `EXECUTION_CONCURRENCY=1` 을 admin 에 전달 · `extra_hosts` · `127.0.0.1:3000`) · 서버에서 author · perf-agent 를 켜지 않는다 · 맥 DB · 산출물 옮기기 · 대상 서버 주소를 새 도메인으로 (test_platform)
+- [ ] `OPS-F4-07` QA Hub 클라우드 이전 — `/opt/qahub` git checkout + pull timer(Mac 작성이 병합한 케이스를 받는다) · admin · postgres · grafana · 서버 러너(`cpus` 1 · `EXECUTION_CONCURRENCY=1` 을 admin 에 전달 · `127.0.0.1:13000`(Auth_platform `infra/edge/README.md` 포트 표) · `extra_hosts` 안 씀(hairpin 이 된다)) · 서버에서 author · perf-agent 를 켜지 않는다 · 맥 DB · 산출물 옮기기 · 대상 서버 주소를 새 도메인으로 (test_platform)
 - [ ] `OPS-F4-08` Mac Docker 정리 — Mac override 로 author(`AUTHORING_MAX_PARALLEL=1`) · perf-agent 만 `https://qahub.maxihan.com` 에 붙인다 · npm 작성 에이전트는 쓰지 않는다(자식 셸이 맥 계정의 운영 서버 키에 닿는다) · 나머지 컨테이너 · 이미지 · 볼륨 삭제 · Docker 메모리 8GB (test_platform)
 
 ### ⑤ 로그인 전환 · 마무리
