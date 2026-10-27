@@ -101,7 +101,13 @@ export async function 잡은폰놓기(트리: string, 앱: 앱화면 | undefined
   if (!폰번호꼴.test(serial)) return void console.error(`[작성] ${번호}번 — 잡은 폰 기록이 폰 번호 꼴이 아니라 놓지 않는다`);
   const 팜 = 앱.탐색.url.replace(/\/wd\/hub\/?$/, '');
   try {
-    const res = await 부르기(`${팜}/api/devices/${encodeURIComponent(serial)}/hold`, { method: 'DELETE', signal: AbortSignal.timeout(10_000) });
+    // AI 는 이 컨테이너의 팜 토큰(PLATFORM_APPIUM_TOKEN — 자식 환경에 그대로 간다)으로 잡았다. 잡은 사람과 같은 토큰이라야 팜이 놓아 준다
+    const 토큰 = process.env.PLATFORM_APPIUM_TOKEN;
+    const res = await 부르기(`${팜}/api/devices/${encodeURIComponent(serial)}/hold`, {
+      method: 'DELETE',
+      headers: 토큰 ? { authorization: `Bearer ${토큰}` } : {},
+      signal: AbortSignal.timeout(10_000),
+    });
     // 409 는 이미 놓았거나 시간이 끝난 것이다 — 놓을 것이 없다
     const 말 = res.ok ? '놓았다' : res.status === 409 ? '이미 풀려 있었다' : '놓지 못했다';
     console.error(`[작성] ${번호}번 — AI 가 잡아 둔 폰 ${serial} 을 ${말}: HTTP ${res.status}`);
