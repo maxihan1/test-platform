@@ -97,7 +97,7 @@ async function HAR읽기(폴더: string): Promise<unknown[]> {
   let 이름들: string[] = [];
   try {
     // 녹화를 돌린 서버 러너가 터널로 이은 맥이면 그 러너의 것도 합친다 (SPEC 공통/3 §5.3 「러너 여러 대」)
-    이름들 = (await 볼륨목록(폴더)).filter((n) => /^\d+\.har$/.test(n)).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+    이름들 = (await 볼륨목록(폴더)).map((f) => f.name).filter((n) => /^\d+\.har$/.test(n)).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
   } catch {
     return [];
   }

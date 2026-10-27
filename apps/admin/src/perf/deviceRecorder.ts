@@ -185,7 +185,7 @@ export function 로컬기록기(serial: string, 주소: string, 부르기: typeo
       if (!res.ok) throw new Error(`내 컴퓨터 러너가 측정을 멈추지 않았습니다: ${await 거절문장(res)}`);
       const { files } = (await res.json().catch(() => ({}))) as { files?: unknown };
       const 조각 = Array.isArray(files) ? files.filter((f): f is string => typeof f === 'string' && f === basename(f)) : [];
-      if (폴더 === null || 조각.length === 0) return;
+      if (폴더 === null) return;
       // 터널로 이은 맥 러너면 조각이 이 볼륨에 없다 — 이름을 밀기 전에 받아 온다. 같은 볼륨이면 그대로 있어 묻지 않는다 (SPEC 공통/3 §5.3 「러너 여러 대」)
       for (const f of 조각) await 볼륨파일(join(폴더, f));
       if (오프셋 !== 0) await 이름밀기(폴더, 오프셋);
@@ -195,7 +195,12 @@ export function 로컬기록기(serial: string, 주소: string, 부르기: typeo
 
 /** 폴더의 녹화 조각 이름에 오프셋을 더한다 — 큰 번호부터 옮겨 겹치지 않게 */
 export async function 이름밀기(폴더: string, 오프셋: number): Promise<void> {
-  const 번호들 = (await readdir(폴더)).flatMap((n) => {
+  // 원격 러너가 조각을 하나도 안 남겼으면 이 볼륨에 폴더가 없다 — 밀 것이 없다
+  const 이름들 = await readdir(폴더).catch((err: NodeJS.ErrnoException) => {
+    if (err.code === 'ENOENT') return [] as string[];
+    throw err;
+  });
+  const 번호들 = 이름들.flatMap((n) => {
     const m = 녹화이름.exec(n);
     return m === null ? [] : [Number(m[1])];
   }).sort((a, b) => b - a);

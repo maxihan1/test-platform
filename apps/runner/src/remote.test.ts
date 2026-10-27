@@ -55,12 +55,12 @@ describe('GET /files', () => {
     expect(res.body).toBe('png');
   });
 
-  it('dir 은 그 폴더의 일반 파일 이름만 낸다', async () => {
+  it('dir 은 그 폴더의 일반 파일 이름 · 크기만 낸다', async () => {
     await mkdir(join(뿌리, 'runs', '7', '3', 'farm'));
     await symlink(join(뿌리, 'secret.txt'), join(뿌리, 'runs', '7', '3', 'link.png'));
     const res = await 서버().inject({ method: 'GET', url: '/files?dir=runs/7/3/' });
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ names: ['1.png'] });
+    expect(res.json()).toEqual({ files: [{ name: '1.png', bytes: 3 }] });
   });
 
   it('바로가기를 따라가지 않는다 — 파일도 가는 길의 폴더도', async () => {
@@ -90,6 +90,7 @@ describe('GET /files', () => {
 describe('상대경로', () => {
   it('끝의 빗금을 떼고 runs · perf 아래만 받는다', () => {
     expect(상대경로('perf/3/abc/')).toBe(join('perf', '3', 'abc'));
+    expect(상대경로('perf-record/12/1.har')).toBe(join('perf-record', '12', '1.har'));
     expect(상대경로('runs/a\0b')).toBeNull();
     expect(상대경로(3)).toBeNull();
   });

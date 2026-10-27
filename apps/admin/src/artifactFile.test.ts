@@ -84,7 +84,7 @@ describe('볼륨을 같이 안 보는 러너의 파일', () => {
     const app = Fastify();
     app.get<{ Querystring: { path?: string; dir?: string } }>('/files', async (req, reply) => {
       받은.push({ url: req.url, 머리: req.headers.authorization });
-      if (req.query.dir === 'runs/5/6') return { names: ['1.png', '../x', '2.png'] };
+      if (req.query.dir === 'runs/5/6') return { files: [{ name: '1.png', bytes: 3 }, { name: '../x', bytes: 1 }, { name: '2.png', bytes: 9 }, { name: '3.png', bytes: 99 }] };
       if (req.query.path === 'runs/5/6/1.png') return reply.header('content-length', 3).send('맥');
       if (req.query.path === 'runs/5/6/2.png') return reply.send(Readable.from(['길이 없음']));
       return reply.code(404).send({ error: 'NOT_FOUND' });
@@ -112,6 +112,12 @@ describe('볼륨을 같이 안 보는 러너의 파일', () => {
     expect(await 볼륨파일(join(뿌리, 'runs', '5', '6', '9.png'))).toBeNull();
     expect(await 볼륨파일(join(뿌리, 'runs', '5', '6', '2.png'))).toBeNull();
     expect(existsSync(join(뿌리, 'runs', '5', '6', '2.png'))).toBe(false);
+  });
+
+  it('녹화 실행 HAR(perf-record/)도 러너에서 받아 온다', async () => {
+    await 러너띄운다();
+    expect(await 볼륨파일(join(뿌리, 'perf-record', '12', '1.har'))).toBeNull();
+    expect(받은.map((r) => r.url)).toEqual(['/files?path=perf-record%2F12%2F1.har']);
   });
 
   it('바로가기로 막힌 파일 · 러너가 안 쓰는 폴더는 러너에 묻지 않는다', async () => {
@@ -144,11 +150,21 @@ describe('볼륨을 같이 안 보는 러너의 파일', () => {
     }
   }, 10_000);
 
-  it('볼륨목록은 이 볼륨과 러너의 이름을 합치고 폴더 밖으로 나가는 이름은 버린다', async () => {
+  it('볼륨목록은 이 볼륨과 러너의 이름 · 크기를 합치고(같은 이름이면 이 볼륨 것) 내용은 받지 않는다', async () => {
     await 러너띄운다();
     mkdirSync(join(뿌리, 'runs', '5', '6'), { recursive: true });
     writeFileSync(join(뿌리, 'runs', '5', '6', '3.png'), 'x');
-    expect((await 볼륨목록(join(뿌리, 'runs', '5', '6'))).sort()).toEqual(['1.png', '2.png', '3.png']);
+    const 목록 = (await 볼륨목록(join(뿌리, 'runs', '5', '6'))).sort((a, b) => a.name.localeCompare(b.name));
+    expect(목록).toEqual([{ name: '1.png', bytes: 3 }, { name: '2.png', bytes: 9 }, { name: '3.png', bytes: 1 }]);
+    expect(받은.map((r) => r.url)).toEqual(['/files?dir=runs%2F5%2F6']);
     expect(await 볼륨목록(join(뿌리, 'runs', '7'))).toEqual([]);
+  });
+
+  it('같은 파일을 한꺼번에 여럿이 찾아도 러너에서 한 번만 받는다', async () => {
+    await 러너띄운다();
+    const 자리 = join(뿌리, 'runs', '5', '6', '1.png');
+    const 답들 = await Promise.all([볼륨파일(자리), 볼륨파일(자리), 볼륨파일(자리)]);
+    expect(답들.every((답) => 답 !== null)).toBe(true);
+    expect(받은).toHaveLength(1);
   });
 });

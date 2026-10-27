@@ -19,8 +19,6 @@ import { 팜주소, 팜폰으로 } from './farm.js';
 import { runnerUrl, 답하나, 러너들, 러너머리 } from './runnerAddr.js';
 import type { PendingItem } from './store.js';
 
-export { runnerUrl };
-
 // 러너는 자기 제한 시간이 지나면 자식을 죽이고 200 + NA로 돌려준다. 이쪽이 먼저 끊으면 그 부분 결과가 사라진다
 const RUNNER_GRACE_MS = 30_000;
 

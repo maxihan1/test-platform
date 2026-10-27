@@ -91,6 +91,7 @@ describe.skipIf(연결 === undefined)('시나리오 시험 실행 통로', () =>
 
   beforeAll(async () => {
     러너 = http.createServer((req, res) => {
+      if (req.url === '/health') return void res.end('{"ok":true}');
       const 조각: Buffer[] = [];
       req.on('data', (c: Buffer) => 조각.push(c));
       req.on('end', () => {

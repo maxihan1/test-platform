@@ -6,8 +6,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { 깔앱파일 } from '../execution/buildFile.js';
 import { 팜주소, 팜폰으로 } from '../execution/farm.js';
 import { 폰을놓는다, 폰을바로잡는다 } from '../execution/phone.js';
-import { runnerUrl } from '../execution/runner.js';
-import { 러너머리 } from '../execution/runnerAddr.js';
+import { runnerUrl, 러너머리 } from '../execution/runnerAddr.js';
 import { 도는집은요청 } from '../prd/agentRoutes.js';
 import { 게임서비스인가 } from '../prd/gameMap.js';
 
