@@ -69,6 +69,8 @@ services:
       # 성능 더미 클라이언트 zip 자리. 부하 에이전트가 받아 root 로 돌리므로 러너가 못 보는 볼륨에 둔다 (SPEC 공통/6 §9 · 리뷰 M16)
       PLATFORM_PERF_DUMMY_DIR: /perf-dummy
       PORT: "3000"
+      # 정식 실행이 동시에 몇 건 도나. 다른 앱과 CPU 를 나눠 쓰는 서버는 1 로 둔다 (SPEC 공통/6 §9 · §9.2 「서버와 맥에 나눠 띄우기」)
+      EXECUTION_CONCURRENCY: "${EXECUTION_CONCURRENCY:-2}"
       # 로그인 세션을 서명하는 키. DB에 둘 수 없다. 없으면 admin이 기동을 거부한다 (SPEC §9 · §3.5).
       # 서비스 이름·색·저장소·대상 서버 주소는 환경변수가 아니라 DB에 있다 (§6 service·service_env)
       SESSION_SECRET: "${SESSION_SECRET}"

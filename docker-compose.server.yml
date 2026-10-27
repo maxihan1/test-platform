@@ -1,0 +1,12 @@
+# 서버용 덧붙임 — 다른 앱과 2 vCPU 를 나눠 쓰는 클라우드 서버에 QA Hub 상시 서비스만 띄운다 (SPEC 공통/6 §9.2 「서버와 맥에 나눠 띄우기」)
+# 서버 .env 의 COMPOSE_FILE=docker-compose.yml:docker-compose.server.yml 이 늘 같이 읽게 한다. 포트 · 주소 · 동시 수는 .env 에 둔다 (docs/SETUP.md §20)
+
+services:
+  admin:
+    cpus: 0.75        # 러너가 브라우저를 돌리는 동안에도 화면이 버티게 러너 몫을 먼저 뺀 나머지
+  runner:
+    cpus: 1.0         # 정식 실행 한 건(EXECUTION_CONCURRENCY=1)의 브라우저 하나
+  perf-agent:
+    # 서버에서는 켜지 않는다 — 부하는 맥에서 건다(docker-compose.mac.yml). 같은 서버의 BTS · 대상 서버를 끌고 내려가지 않게.
+    # 프로필을 붙이면 `docker compose up -d` 가 건너뛴다 (author 의 authoring 과 같다)
+    profiles: [perf]

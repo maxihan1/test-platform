@@ -210,6 +210,26 @@ describe('러너 위치 · 토큰 (OPS-F5-10)', () => {
   });
 });
 
+describe('서버와 맥에 나눠 띄우기', () => {
+  const admin = /^ {2}admin:\n((?: {4}.*\n|\s*\n)+)/m.exec(compose)?.[1] ?? '';
+  const 덧붙임 = (이름: string): string => readFileSync(resolve(process.cwd(), 이름), 'utf8');
+
+  it('admin 이 EXECUTION_CONCURRENCY 를 .env 로 받고 비우면 2 다 — 안 넘기면 서버가 늘 2 로 돈다', () => {
+    expect(admin).toMatch(/^ {6}EXECUTION_CONCURRENCY:\s*"\$\{EXECUTION_CONCURRENCY:-2\}"/m);
+  });
+
+  it('서버용 덧붙임은 perf-agent 에 프로필을 붙여 docker compose up -d 가 띄우지 않는다', () => {
+    expect(덧붙임('docker-compose.server.yml')).toMatch(/^ {2}perf-agent:\n(?: {4}.*\n)*? {4}profiles: \[perf\]/m);
+  });
+
+  it('맥용 덧붙임은 author · perf-agent 의 depends_on 을 비워 맥에 admin 이 같이 뜨지 않는다', () => {
+    const 맥 = 덧붙임('docker-compose.mac.yml');
+    for (const 서비스 of ['author', 'perf-agent']) {
+      expect(맥).toMatch(new RegExp(`^ {2}${서비스}:\\n {4}depends_on: !reset \\[\\]`, 'm'));
+    }
+  });
+});
+
 // npx tsx 는 진짜 node 앞에 npm · sh · tsx 프로세스를 더 띄워 상자마다 40MB 쯤 잡는다.
 // node 를 바로 띄우면 PID 1 이 되어 종료 신호를 무시하고 강제 종료되므로 init 이 있어야 한다 (SPEC 공통/6 §9, 2026-10-19)
 describe('상자는 node 를 바로 띄운다', () => {

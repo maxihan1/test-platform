@@ -1,0 +1,11 @@
+# 맥이 병합한 케이스를 /opt/qahub 로 받아 온다 — qahub-pull.timer 가 부른다 (docs/SETUP.md §20)
+[Unit]
+Description=QA Hub 병합된 케이스 받아 오기
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# oneshot 은 기본이 무한정 기다린다 — pull 이나 훑기가 멈추면 timer 가 다시 못 돈다
+TimeoutStartSec=10min
+ExecStart=/bin/sh /opt/qahub/infra/server/qahub-pull.sh

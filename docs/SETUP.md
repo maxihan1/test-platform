@@ -234,6 +234,7 @@ openssl rand -hex 32
 **기획서는 화면에서 넣는다.** 사이드바의 **「테스트 작성」** 자리에서 **PRD 파일을 고르고 피그마 주소를 적어** 보내면
 줄이 하나 생긴다. 파일도 피그마도 **여럿을 한 세트로** 넣는다. **서버의 작성 에이전트 컨테이너(`author`)가 5초 안에 집어 간다** (2026-09-23).
 맥을 켜 둘 필요가 없고, 누가 어느 기계에서 보내든 같다.
+**서버와 맥에 나눠 띄웠으면 author 는 맥에 있다** — 맥이 켜져 있어야 집는다(「20. 서버와 맥에 나눠 띄우기」).
 
 - 받는 파일 종류와 상한(한 파일 크기 · 한 요청의 자료 개수)은 `docs/spec/도메인/작성.md` §7 「자료」가 정본이다. 여기 옮겨 적지 않는다
 - 파일을 다 올린 뒤에야 줄에 선다. **중간에 실패하면 그 요청은 줄에 서지 않는다** — 화면이 안내하는 대로 새 요청으로 다시 넣는다
@@ -421,7 +422,7 @@ npm run authoring-agent
 
 - 체크아웃이 `main` 이 아니거나 **고치던 파일이 있으면 건너뛴다** — 터미널에 `[머지] main 을 안 당겼다: …` 가 찍힌다. 그때는 손으로 당긴다.
   추적 안 하는 새 파일(다른 세션이 설치한 스킬 등)은 보지 않는다 — 빨리감기가 건드리지 않는다(2026-10-13 PRD-F9-34)
-- **서버 author 컨테이너면 서버 저장소를 바로 당기므로 사람이 할 일이 없다** (2026-09-23). 맥(개발용 대체)에서 돌 때 서버와 맥이 다른 기계면 서버 쪽은 서버에서 당겨야 한다
+- **서버 author 컨테이너면 서버 저장소를 바로 당기므로 사람이 할 일이 없다** (2026-09-23). 서버와 맥이 다른 기계면 서버는 pull timer 가 1분마다 받아 와 다시 훑는다 — 「20. 서버와 맥에 나눠 띄우기」 (2026-10-27)
 - **admin 을 다른 작업방에서 띄웠으면 그 작업방을 본다** — `docker compose` 는 **저장소 뿌리에서** 띄운다 (2026-09-23, 목록에 새 테스트가 안 뜬 원인이었다)
 
 ### 전용 OS 계정 — 사람 계정의 파일과 떼어 놓는다
@@ -853,6 +854,7 @@ Android 앱 케이스의 「실행」(결과가 실행 기록 · 증적에 남�
 성능 테스트의 부하는 「부하 발생 에이전트」가 건다. k6 를 담은 컨테이너이고, QA Hub 에 2초마다 할 일을 묻고 1초마다 숫자를 보낸다. QA Hub 로 나가는 연결만 해서 들어오는 포트를 열 필요가 없다. 규칙은 SPEC 도메인/성능 §5.4 가 정본이다.
 
 **기본 에이전트(같은 서버)** — `docker compose up -d` 에 같이 뜬다. 처음에는 토큰이 없어 일하지 않고 떠 있기만 한다.
+**서버와 맥에 나눠 띄운 서버에서는 안 뜬다** — 맥에서 띄운다(「20. 서버와 맥에 나눠 띄우기」).
 
 1. 설정 › 성능 에이전트 › 「에이전트 추가」에서 토큰(`pga_…`)을 받는다 (화면은 PERF-F1-05 에서 생긴다)
 2. `.env` 에 `PERF_AGENT_TOKEN=pga_…` 를 적는다
@@ -925,3 +927,144 @@ docker run -d --init --restart unless-stopped --network host --name qahub-monito
    ```bash
    docker compose exec admin rm -rf /artifacts/perf-dummy
    ```
+
+## 20. 서버와 맥에 나눠 띄우기 (2026-10-27 · OPS-F4-07 · F4-08)
+
+클라우드 서버 한 대에는 늘 떠 있어야 하는 admin · postgres · migrate · grafana · runner 를, 맥에는 작성(author) · 부하(perf-agent)만 둔다. 맥이 꺼져도 화면 · 결과 보기 · 웹 정식 실행은 돈다. 무엇을 왜 그렇게 두는지는 SPEC 공통/6-인프라 §9.2 「서버와 맥에 나눠 띄우기」가 정본이다.
+
+```
+브라우저 ──https──▶ 서버 Caddy ──▶ 127.0.0.1:13000 admin ──┬── postgres · grafana
+                                                           └── runner ──https──▶ farm.maxihan.com ──▶ 맥의 폰
+맥 author · perf-agent ──https──▶ qahub.maxihan.com
+맥 author 가 병합 ──▶ GitHub main ──(1분마다 pull timer)──▶ 서버 /opt/qahub ──(60초 뒤)──▶ 목록 다시 훑기
+```
+
+아래 명령의 `qahub` 는 맥 `~/.ssh/config` 에 적어 둔 서버 이름이다(`HostName 101.79.19.193` · 서버에 들어가는 계정과 키). **서버를 바꾸는 명령은 사람이 친다.**
+**서버의 QA Hub 는 root 한 계정으로 다룬다** — 받기 · pull timer(root 로 돈다) · 배포가 같은 계정이어야 git 이 「detected dubious ownership」으로 멈추지 않고, 남의 계정 소유 파일도 안 생긴다.
+
+### 서버 처음 한 번 (약 20분 — 이미지 빌드가 대부분)
+
+1. 받는다 — 저장소가 공개라 키가 없다
+   ```bash
+   ssh qahub 'git clone https://github.com/maxihan1/test-platform.git /opt/qahub && cp /opt/qahub/.env.example /opt/qahub/.env'
+   ```
+2. 서버 `/opt/qahub/.env` 에 아래를 채운다. 비밀값 셋은 서버에서 `openssl rand -hex 32` · `openssl rand -hex 24` 로 새로 만든다 — 맥 값을 옮기지 않는다
+   ```
+   COMPOSE_FILE=docker-compose.yml:docker-compose.server.yml
+   ADMIN_PORT=127.0.0.1:13000
+   EXECUTION_CONCURRENCY=1
+   SESSION_SECRET=<새 값>
+   POSTGRES_PASSWORD=<새 값>
+   GRAFANA_RO_PASSWORD=<새 값>
+   PLATFORM_PUBLIC_URL=https://qahub.maxihan.com
+   DEVICE_FARM_URL=https://farm.maxihan.com/wd/hub
+   AUTHORING_AGENT_USER=<맥 .env 와 같은 아이디>
+   ```
+   - `COMPOSE_FILE` 이 서버용 덧붙임 파일을 늘 같이 읽게 한다 — 서버에서 그냥 `docker compose up -d` 를 쳐도 perf-agent 가 안 뜨고 CPU 상한이 걸린다
+   - **`ADMIN_PORT` 앞의 `127.0.0.1` 을 빼지 않는다** — 빼면 Docker 가 서버 방화벽(firewalld)을 건너뛰고 13000 을 바깥에 연다. 바깥에서는 Caddy(https)로만 들어온다
+   - 작성 토큰 셋(`AUTHORING_AGENT_TOKEN` · `CLAUDE_CODE_OAUTH_TOKEN` · `GH_TOKEN`) · `PERF_AGENT_TOKEN` 은 서버에 두지 않는다 — author · perf-agent 는 맥에 뜬다
+   - `LOCAL_RUNNER_URL` 은 처음에 비워 둔다 — 서버 admin 은 맥의 「내 컴퓨터 러너」에 바로 못 닿는다. 그동안 그 러너를 부르는 일(케이스 「테스트 실행」 · 기기 성능 직접 플레이의 내 PC 폰 측정 · E2E 시험 실행의 브라우저 창)이 꺼진다.
+     켜려면 맥 러너를 터널로 잇고 `LOCAL_RUNNER_URL` · `RUNNER_TOKEN` 을 적는다 — 「10. 내 컴퓨터 러너 켜는 법」 「admin 이 다른 기계에 있을 때」
+   - 세션 키가 새것이라 옮긴 뒤 모두 한 번 다시 로그인한다. 작성 · 성능 에이전트 토큰은 DB 에 있어 옮긴 그대로 쓴다
+3. 이미지를 만든다 — 맥은 arm64 라 맥에서 만든 이미지는 서버(x86_64)에서 안 돈다. 사람이 적은 시간에 한다
+   ```bash
+   ssh qahub 'cd /opt/qahub && docker compose build'
+   ```
+4. 맥 데이터를 옮긴다 — 아래 「데이터 옮기기」. 새로 시작하는 서버면 건너뛰고 `ssh qahub 'cd /opt/qahub && docker compose up -d'`
+5. pull timer 를 건다 — 맥이 병합한 케이스를 1분마다 받아 오고, 마지막으로 훑은 커밋과 다르면 60초 뒤 목록을 다시 훑는다. `infra/server/qahub-pull.service` · `.timer` 가 바뀐 병합 뒤에는 아래 첫 줄을 다시 친다(복사본이라 저절로 안 바뀐다)
+   ```bash
+   ssh qahub 'cp /opt/qahub/infra/server/qahub-pull.service /opt/qahub/infra/server/qahub-pull.timer /etc/systemd/system/ && systemctl daemon-reload && systemctl enable --now qahub-pull.timer'
+   ssh qahub 'systemctl list-timers qahub-pull.timer'   # 다음 실행 시각이 1분 안이면 걸린 것이다
+   ```
+   받은 기록은 `ssh qahub 'journalctl -u qahub-pull.service -n 20'` 로 본다. 새 커밋을 훑은 줄 끝에 `[scan] 다시 훑었다` 가 찍힌다.
+   훑기가 통째로 깨졌거나(admin 이 꺼져 있었다 등) 받기 · 기다리기 · 훑기가 합쳐 10분 안에 안 끝나면 실패로 남고 다음 1분에 다시 한다.
+   읽지 못한 파일 · 겹친 번호 같은 경고는 이 기록에만 남는다 — 화면의 「다시 스캔」 옆 시각과 경고는 admin 이 직접 훑은 것이다.
+   훑기가 60초를 넘기는 큰 애플리케이션은 새 케이스가 비활성으로 남을 수 있다 — 그때는 화면의 「다시 스캔」을 누른다
+6. 확인 — `https://qahub.maxihan.com` 에 로그인 → 케이스 목록이 뜨고 → 지난 실행을 열어 스크린샷이 보이고 → 웹 정식 실행 1건 · Android 앱 정식 실행 1건이 끝까지 돈다
+
+### 데이터 옮기기 — 맥 → 서버 (한 번, 약 30분)
+
+**맥 QA Hub 에 도는 실행 · 작성이 없을 때 한다.** 맥 디스크가 거의 차 있어 파일로 떨구지 않고 ssh 로 바로 흘려 보낸다.
+
+- [ ] 맥의 admin · author · perf-agent 를 멈춘다 — 옮기는 동안 맥 DB 에 새 기록이 쌓이면 서버에 안 간다. postgres 는 켜 둔다
+  ```bash
+  docker compose -p test_platform stop admin author perf-agent
+  ```
+- [ ] 서버에 빈 DB 를 띄운다 — `db/init` 이 Grafana 읽기 전용 계정까지 만든다. 마이그레이션은 아직 안 돈다
+  ```bash
+  ssh qahub 'cd /opt/qahub && docker compose up -d --wait postgres'
+  ```
+- [ ] DB 를 옮긴다 — 맥에서 뽑아 서버에서 바로 넣는다
+  ```bash
+  docker exec test_platform-postgres-1 pg_dump -U platform -d platform -Fc \
+    | ssh qahub 'cd /opt/qahub && docker compose exec -T postgres pg_restore -U platform -d platform --no-owner --exit-on-error'
+  ```
+  오류로 멈추면 그 줄을 읽고 서버의 빈 DB 를 지운 뒤(`ssh qahub 'cd /opt/qahub && docker compose down -v'` — 서버 QA Hub 의 볼륨만 지운다. 옮기기 전이라 잃을 것이 없다) 위 칸부터 다시 한다
+- [ ] 스크린샷 · 증적 문서(`artifacts` 볼륨)와 더미 클라이언트 zip(`perf_dummy` 볼륨)을 옮긴다 — 맥은 이미 있는 `postgres:16` 이미지로 묶고, 서버는 admin 이미지로 같은 자리에 푼다
+  ```bash
+  docker run --rm -v test_platform_artifacts:/v:ro postgres:16 tar czf - -C /v . \
+    | ssh qahub 'cd /opt/qahub && docker compose run --rm --no-deps -T --entrypoint tar admin xzf - -C /artifacts'
+  docker run --rm -v test_platform_perf_dummy:/v:ro postgres:16 tar czf - -C /v . \
+    | ssh qahub 'cd /opt/qahub && docker compose run --rm --no-deps -T --entrypoint tar admin xzf - -C /perf-dummy'
+  ```
+- [ ] 서버를 다 띄운다 — 맥 DB 보다 새 마이그레이션이 있으면 migrate 가 건다. admin 이 뜨면서 목록을 한 번 훑는다
+  ```bash
+  ssh qahub 'cd /opt/qahub && docker compose up -d'
+  ```
+- [ ] 대상 서버 주소를 새 도메인으로 바꾼다 — 화면(설정 › 애플리케이션 › 대상 서버)에서 하나씩 바꿔도 같다. **첫 실행 전에 한다** — `service_api` 는 실행이 배운 API 지도라 새 주소로 실행이 돌면 새 줄이 따로 생긴다
+  ```bash
+  ssh qahub 'cd /opt/qahub && docker compose exec -T postgres psql -U platform -d platform -v ON_ERROR_STOP=1' <<'SQL'
+  BEGIN;
+  UPDATE service_env SET base_url = 'https://demo.maxihan.com' WHERE base_url = 'http://demo:3002';
+  UPDATE service_env SET base_url = 'https://game.maxihan.com' WHERE base_url = 'http://192.168.1.14:8080';
+  UPDATE service_api SET host = 'demo.maxihan.com' WHERE host = 'demo:3002';
+  UPDATE service_api SET host = 'game.maxihan.com' WHERE host = '192.168.1.14:8080';
+  COMMIT;
+  SELECT s.prefix, e.env, e.base_url FROM service_env e JOIN service s ON s.id = e.service_id ORDER BY 1, 2;
+  SQL
+  ```
+  - 옛 주소 둘은 2026-10-27 맥 DB 의 값이다 — 데모마켓(웹 · 운영툴 · Android 앱 `DM*` · `MK*`)은 `http://demo:3002`, Ashveil(`ASH`)은 맥 LAN 주소였다. 다른 주소가 더 있으면 마지막 SELECT 에 남는다 — 같은 꼴로 바꾼다
+  - 알림 서버(`https://demo-notify.maxihan.com`)는 맥 DB 에 주소가 없다. API 애플리케이션으로 붙일 때 이 주소를 넣는다
+  - 설정 › 프로젝트의 API 서버 이름(`project_api_server`)은 2026-10-27 맥 DB 에 없다. 있으면 새 주소로 다시 단다
+  - 지난 실행의 주소(`test_run.base_url`)는 「그때 친 주소」라 안 바꾼다
+- [ ] 위 「서버 처음 한 번」 5번(pull timer) · 6번(확인)으로 간다
+
+### 배포 — 맥에서 한 줄
+
+플랫폼 코드(`apps/` · `packages/` · `db/` · `docker-compose*.yml`)가 바뀐 병합만 배포한다. 케이스만 바뀐 병합은 pull timer 가 받는다.
+
+```bash
+ssh qahub 'cd /opt/qahub && git pull --ff-only origin main && docker compose up -d --build'
+```
+
+이미지를 서버에서 만들어 몇 분 걸린다. 도는 실행은 끊긴다 — admin 이 다시 뜨며 `ABORTED` 로 닫는다(SPEC 공통/6-인프라 §9.2 「배포 절차」).
+
+### 맥 정리 — author · perf-agent 만 (OPS-F4-08, 약 1시간)
+
+서버가 위 6번 확인을 통과한 뒤에 한다.
+
+1. 맥 `.env` 를 고친다 — `PLATFORM_PUBLIC_URL=https://qahub.maxihan.com`(맥 author · perf-agent 가 붙을 주소. 맥용 덧붙임 파일이 이 칸을 읽는다) · `PERF_AGENT_TOKEN=pga_…`(설정 › 성능 에이전트에서 발급한 값). 작성 토큰 셋은 그대로 둔다
+2. 맥 QA Hub 를 내린다 — 컨테이너만 지우고 볼륨은 남긴다. `--profile authoring` 을 빼면 author 컨테이너가 남는다
+   ```bash
+   docker compose -p test_platform --profile authoring down
+   ```
+3. author · perf-agent 만 띄운다 — admin 은 클라우드에 있어 맥에 같이 뜨지 않는다. 맥용 덧붙임 파일의 `!reset` 은 Docker Compose 2.24.4 부터 읽는다(`docker compose version` — 낮으면 Docker Desktop 을 올린다)
+   ```bash
+   docker compose -p test_platform -f docker-compose.yml -f docker-compose.mac.yml --profile authoring up -d --build author perf-agent
+   docker compose -p test_platform logs -f author   # [작성] … 로 붙었다 가 뜨면 된 것이다
+   ```
+   author 는 맥에서 한 번에 한 건(`AUTHORING_MAX_PARALLEL=1` · 메모리 4g)만 돈다 — 맥용 덧붙임 파일이 정한다.
+   **npm 작성 에이전트(`npm run authoring-agent`)는 쓰지 않는다** — 자식 셸이 맥 계정의 파일(운영 서버 ssh 키 포함)에 닿는다. 컨테이너는 `~/.ssh` 를 못 본다
+4. 확인 — 화면에서 작성 1건을 넣고 병합 → 2분쯤 뒤 `https://qahub.maxihan.com` 목록에 새 케이스가 뜬다 · 설정 › 성능 에이전트에 맥 에이전트가 붙어 있다
+5. 서버에서 며칠 써 본 뒤 맥에서 옛 볼륨 · 이미지를 지운다 — **되돌릴 수 없다.** 서버 확인 전에는 지우지 않는다
+   ```bash
+   docker volume rm test_platform_pgdata test_platform_artifacts test_platform_perf_dummy
+   docker image rm test_platform-admin test_platform-runner grafana/grafana:13.2.2
+   ```
+   남기는 것 — `author_node_modules` · `author_work` 볼륨(작성), `postgres:16` · `ghcr.io/amacneil/dbmate:2` 이미지(pre-push)
+6. Docker Desktop › Settings › Resources 에서 메모리를 8GB 로 둔다
+
+**맥 pre-push 는 맥 postgres 를 쓴다** — 서버 · DB 코드를 push 할 때 `127.0.0.1:5433` 에 임시 DB 를 만든다(`docs/HOOKS.md`). 그때만 빈 postgres 를 띄운다. 덧붙임 파일 없이 친다
+```bash
+docker compose -p test_platform up -d postgres
+```
