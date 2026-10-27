@@ -2263,9 +2263,10 @@ input[type='file']::file-selector-button {
   border: 1px solid var(--line-2);
 }
 
-/* 주 행동은 이것 하나라 카드 폭을 다 쓴다. `.login-box a` 의 링크 색이 버튼 글자를 덮지 않게 a.btn 으로 집는다 */
+/* 주 행동은 이것 하나라 카드 폭을 다 쓴다. `.login-box a` 의 링크 색 · `.login-box > a` 의 가운데 놓기가 버튼을 덮지 않게 a.btn 으로 집는다 */
 .login-sso a.btn,
 .login-sso a.btn:visited {
+  justify-self: stretch;
   display: flex;
   align-items: center;
   justify-content: center;
