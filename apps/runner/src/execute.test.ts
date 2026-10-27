@@ -231,6 +231,22 @@ describe('execute 가 끝난 뒤 앱 연결을 닫는다', () => {
     expect(닫기).not.toHaveBeenCalled();
   });
 
+  it('팜 토큰은 android 항목 자식만 받는다 — 웹 케이스는 읽지 못한다', async () => {
+    const 임시 = mkdtempSync(join(tmpdir(), 'exec-token-'));
+    const 기록 = join(임시, 'token.txt');
+    process.env.PLATFORM_APPIUM_TOKEN = 'pat_abc';
+    스크립트.지금 = `printf %s "\${PLATFORM_APPIUM_TOKEN-없음}" > '${기록}'`;
+    try {
+      await execute(요청('desktop'), 'a.spec.ts');
+      expect(readFileSync(기록, 'utf8')).toBe('없음');
+      await execute(요청('android'), 'a.spec.ts');
+      expect(readFileSync(기록, 'utf8')).toBe('pat_abc');
+    } finally {
+      delete process.env.PLATFORM_APPIUM_TOKEN;
+      rmSync(임시, { recursive: true, force: true });
+    }
+  });
+
   it('상대 경로 환경값도 자식에게는 러너 cwd 기준 절대 경로로 넘긴다', async () => {
     const 임시 = mkdtempSync(join(tmpdir(), 'exec-env-'));
     const 기록 = join(임시, 'env.txt');

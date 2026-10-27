@@ -183,7 +183,8 @@ export async function executeScenario(req: ScenarioExecuteRequest): Promise<Scen
     ['playwright', 'test', '--config', scenarioConfig, '--project', req.platform],
     {
       cwd: appRoot,
-      env: { ...process.env, ...scenarioEnv(req, 판.parts), PLATFORM_OUTPUT_ID: 출력 },
+      // 시나리오는 브라우저만 돈다 — 팜 토큰을 넘기지 않는다 (execute.ts 와 같은 까닭)
+      env: { ...process.env, PLATFORM_APPIUM_TOKEN: undefined, ...scenarioEnv(req, 판.parts), PLATFORM_OUTPUT_ID: 출력 },
       stdio: ['ignore', 'pipe', 'pipe'],
       // 제한 시간에 브라우저까지 한 번에 끊으려면 자식이 자기 프로세스 그룹의 장이어야 한다 (kill.ts)
       detached: true,
