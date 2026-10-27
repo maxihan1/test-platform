@@ -39,7 +39,8 @@
 
 ### ④ 클라우드로 옮기기
 **무엇** 테스트 대상과 QA Hub 의 상시 서비스를 클라우드로 옮기고, Mac Docker 에는 작성 · 부하 테스트만 남긴다.
-- [ ] `OPS-F4-06` 테스트 대상 이전 — 데모마켓(`/opt/demo`, `demo` · `demo-notify`) · Ashveil 서버 + DB(`/opt/ashveil` · `JWT_KEY` · `ADMIN_KEY` 교체 · `Qa` 환경) · QA APK 를 `https://game.maxihan.com` 으로 다시 빌드 (demo-market · ashveil)
+- [ ] `OPS-F4-06` 테스트 대상 이전 — 데모마켓(`/opt/demo` · 쇼핑몰 + 어드민 `/admin` · 운영툴 `/ops` → `demo`, 알림 서버 → `demo-notify`) · Ashveil 서버 + DB(`/opt/ashveil` · `JWT_KEY` · `ADMIN_KEY` 교체 · `Qa` 환경) · QA APK 를 `https://game.maxihan.com` 으로 다시 빌드 (demo-market · ashveil)
+  - 근거 demo-market PR #4 · Auth_platform PR #20 · 2026-10-27 — 데모마켓 부분: https://demo.maxihan.com 200 · /admin 로그인 → /admin · /ops 200 · https://demo-notify.maxihan.com/openapi.json 200 · /_demo/* 바깥 404
 - [ ] `OPS-F4-07` QA Hub 클라우드 이전 — `/opt/qahub` git checkout + pull timer(Mac 작성이 병합한 케이스를 받는다) · admin · postgres · grafana · 서버 러너(`cpus` 1 · `EXECUTION_CONCURRENCY=1` 을 admin 에 전달 · `127.0.0.1:13000`(Auth_platform `infra/edge/README.md` 포트 표) · `extra_hosts` 안 씀(hairpin 이 된다)) · 서버에서 author · perf-agent 를 켜지 않는다 · 맥 DB · 산출물 옮기기 · 대상 서버 주소를 새 도메인으로 (test_platform)
 - [ ] `OPS-F4-08` Mac Docker 정리 — Mac override 로 author(`AUTHORING_MAX_PARALLEL=1`) · perf-agent 만 `https://qahub.maxihan.com` 에 붙인다 · npm 작성 에이전트는 쓰지 않는다(자식 셸이 맥 계정의 운영 서버 키에 닿는다) · 나머지 컨테이너 · 이미지 · 볼륨 삭제 · Docker 메모리 8GB (test_platform)
 
@@ -49,6 +50,7 @@
 - [x] `OPS-F5-10` 러너 위치 설정 — `RUNNER_URL`(정식 실행) · `LOCAL_RUNNER_URL`(내 컴퓨터 러너)로 서버 · 맥을 고른다 · 산출물이 admin 에 없으면 러너에서 HTTP 로 가져온다 · `RUNNER_TOKEN` · 맥 러너 터널 · 잠자기 감지 health check (test_platform)
   - 근거 PR #476 · 2026-10-27 — 코드 · 명세 · 터널 스크립트까지. 서버 sshd 설정 · 실측은 `docs/SETUP.md` §10 「admin 이 다른 기계에 있을 때」(F4-07 뒤 사람이 한다)
 - [ ] `OPS-F5-11` 운영 기본기 — 바깥 uptime 감시(도메인 7개) · 디스크 70% 알림 · 배포 뒤 `docker image prune` · 실측으로 `mem_limit` 다시 맞추기
+  - 넘김: F4-08 뒤 데모마켓 cookie `Secure` (demo-market `src/http.ts:60`) — 맥 QA Hub 가 `http://demo:3002` 로 붙던 까닭이 F4-08 뒤 사라진다(서버 QA Hub · 맥 author 모두 `https://demo.maxihan.com`)
 
 ## PRD — 표준 기획서 · 지도 (최우선 · 위에서부터 차례로)
 
