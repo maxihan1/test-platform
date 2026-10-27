@@ -50,12 +50,15 @@
 
 ### ⑤ 로그인 전환 · 마무리
 **무엇** 세 앱을 Auth_platform 로그인으로 바꾸고, 러너 위치를 설정으로 고르게 하고, 감시를 붙인다.
-- [ ] `OPS-F5-09` SSO 전환(Auth S15) — QA Hub `AUTH_*` · Devicefarm `DF_AUTH_ISSUER`(로그인 버튼 — Auth 에 devicefarm client 먼저 · `DF_BTS_URL` 은 OPS-F3-05 때 Auth 로 바꿨고, 팜 토큰도 OPS-F4-07 때 Auth 에서 발급했다) · BTS LOCAL 끄기(되돌리는 SQL 먼저 · maxi-api PAT) · 다른 사람 계정으로 결과 보기 (Auth_platform)
+- [x] `OPS-F5-09` SSO 전환(Auth S15) — QA Hub `AUTH_*` · Devicefarm `DF_AUTH_ISSUER`(로그인 버튼 — Auth 에 devicefarm client 먼저 · `DF_BTS_URL` 은 OPS-F3-05 때 Auth 로 바꿨고, 팜 토큰도 OPS-F4-07 때 Auth 에서 발급했다) · BTS LOCAL 끄기(되돌리는 SQL 먼저 · maxi-api PAT) · 다른 사람 계정으로 결과 보기 (Auth_platform)
+  - 근거 Auth_platform PR #24 · BTS PR #571 · Devicefarm PR #65 · 2026-10-27 — 세 앱이 auth.maxihan.com 으로 로그인: QA Hub maxi SSO(auth_sub 연결 · 비밀번호 로그인 · 가입 404) · 팜 로그인 버튼(토큰 없이 401 + login.issuer · Auth PAT 200) · BTS 기존 계정에 연결(새 계정 없음 · 콜백이 http 로 나가 서버 `.env` 에 `SERVER_FORWARD_HEADERS_STRATEGY=native`) · BTS LOCAL · LDAP 끔(비밀번호 방식 0개 · local 로그인 401 · 되돌리는 SQL 서버 파일) · 다른 사람: Maxi 가 Auth 에 gwalho 를 만들어 QA Hub SSO → 승인 대기 → 수락 → 로그인(프로젝트 읽기) · maxi-api 는 뺌(쓰지 않음)
+  - 후속(F5-09 밖) — PAT 를 Auth 하나로(BTS 가 Auth PAT 를 받게 · BTS PAT 화면 빼기) · 로그인 화면 통일(Maxi 요청)
 - [x] `OPS-F5-10` 러너 위치 설정 — `RUNNER_URL`(정식 실행) · `LOCAL_RUNNER_URL`(내 컴퓨터 러너)로 서버 · 맥을 고른다 · 산출물이 admin 에 없으면 러너에서 HTTP 로 가져온다 · `RUNNER_TOKEN` · 맥 러너 터널 · 잠자기 감지 health check (test_platform)
   - 근거 PR #476 · 2026-10-27 — 코드 · 명세 · 터널 스크립트까지. 서버 sshd 설정 · 실측은 `docs/SETUP.md` §10 「admin 이 다른 기계에 있을 때」(F4-07 뒤 사람이 한다)
 - [ ] `OPS-F5-11` 운영 기본기 — 바깥 uptime 감시(도메인 7개) · 디스크 70% 알림 · 배포 뒤 `docker image prune` · 실측으로 `mem_limit` 다시 맞추기
   - 넘김: F4-08 뒤 데모마켓 cookie `Secure` (demo-market `src/http.ts:60`) — 맥 QA Hub 가 `http://demo:3002` 로 붙던 까닭이 F4-08 뒤 사라진다(서버 QA Hub · 맥 author 모두 `https://demo.maxihan.com`)
   - 넘김: F4-08 — 서버 백업에 QA Hub 산출물 볼륨(`qahub_artifacts` 약 340M · 스크린샷 · 증적)을 담는다. 그 전까지 맥 `test_platform_artifacts` 가 유일한 사본이라 지우지 않는다(`docs/SETUP.md` §20 「맥 정리」 6번)
+  - 넘김: F5-09 — 운영 백업 `FILES` 에 `/opt/bts/infra/prod/.env` 가 없다(`BTS_AUTH_PLATFORM_*` · `SERVER_FORWARD_HEADERS_STRATEGY` 가 새 서버로 옮길 때 빠진다) · 며칠 뒤 지우기: 서버 `/root/s15-bak/`(비밀값 사본) · 옛 `bts-caddy` 컨테이너 · `/etc/caddy/Caddyfile.bak`
 
 ## PRD — 표준 기획서 · 지도 (최우선 · 위에서부터 차례로)
 
