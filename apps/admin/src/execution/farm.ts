@@ -11,6 +11,12 @@ export function 팜주소(env: Record<string, string | undefined> = process.env)
   return env.DEVICE_FARM_URL?.replace(/\/+$/, '') || undefined;
 }
 
+// 인증 켠 팜은 모든 요청에 토큰을 받는다. 서버 몫 토큰 하나를 싣고, 사람마다 토큰은 통합 인증 뒤(APP-F1-13)다 (도메인/러너 §5.2 「디바이스 팜 접속 방식」)
+export function 팜머리(env: Record<string, string | undefined> = process.env): Record<string, string> {
+  const 토큰 = env.DEVICE_FARM_TOKEN ?? '';
+  return 토큰 === '' ? {} : { authorization: `Bearer ${토큰}` };
+}
+
 type 기기 = { serial?: unknown; state?: unknown; detail?: unknown };
 type 고름 = { serial: string } | { reason: string };
 
@@ -19,8 +25,9 @@ type 고름 = { serial: string } | { reason: string };
 async function 빈폰을고른다(팜: string, 부르기: typeof fetch, 쉬기: (ms: number) => Promise<void>): Promise<고름> {
   const 끝 = Date.now() + 정리_기다림_ms;
   for (;;) {
-    const 목록 = await 부르기(`${팜}/api/devices`, { signal: AbortSignal.timeout(팜_제한_ms) });
-    if (!목록.ok) return { reason: `디바이스 팜이 기기 목록을 주지 않았습니다 (HTTP ${목록.status})` };
+    const 목록 = await 부르기(`${팜}/api/devices`, { headers: 팜머리(), signal: AbortSignal.timeout(팜_제한_ms) });
+    // 인증 켠 팜은 토큰이 없거나 틀리면 401 이다 — 주소나 팜을 의심하기 전에 토큰을 보게 한다
+    if (!목록.ok) return { reason: `디바이스 팜이 기기 목록을 주지 않았습니다 (HTTP ${목록.status})${목록.status === 401 ? ' — DEVICE_FARM_TOKEN 을 확인하세요' : ''}` };
     // 주소가 틀려 다른 쪽이 200 으로 HTML 을 주면 「닿지 못했다」가 아니라 이 말이어야 주소를 다시 본다
     const 몸 = (await 목록.json().catch(() => null)) as { value?: { devices?: 기기[] } } | null;
     if (몸 === null) return { reason: '디바이스 팜의 기기 목록을 읽지 못했습니다 — DEVICE_FARM_URL 을 확인하세요' };
@@ -36,7 +43,7 @@ async function 빈폰을고른다(팜: string, 부르기: typeof fetch, 쉬기: 
 async function 잡는다(팜: string, serial: string, 부르기: typeof fetch, 분: number): Promise<string | null> {
   const 잡기 = await 부르기(`${팜}/api/devices/${encodeURIComponent(serial)}/hold`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', ...팜머리() },
     body: JSON.stringify({ minutes: 분 }),
     signal: AbortSignal.timeout(팜_제한_ms),
   });
@@ -51,6 +58,7 @@ async function 폰을돌려준다(팜: string, serial: string, 부르기: typeof
   try {
     const res = await 부르기(`${팜}/api/devices/${encodeURIComponent(serial)}/hold`, {
       method: 'DELETE',
+      headers: 팜머리(),
       signal: AbortSignal.timeout(팜_제한_ms),
     });
     if (!res.ok) console.error(`[farm] 폰 ${serial} 을 놓지 못했다: HTTP ${res.status}`);
@@ -67,6 +75,7 @@ export async function 잡기를늘린다(팜: string, serial: string, 부르기:
   try {
     const res = await 부르기(`${팜}/api/devices/${encodeURIComponent(serial)}/hold/extend`, {
       method: 'POST',
+      headers: 팜머리(),
       signal: AbortSignal.timeout(팜_제한_ms),
     });
     if (!res.ok && res.status !== 409) console.error(`[farm] 폰 ${serial} 잡기를 늘리지 못했다: HTTP ${res.status}`);

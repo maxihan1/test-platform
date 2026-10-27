@@ -230,7 +230,7 @@ export function nc답읽기(답: { stdout?: string; stderr?: string }): 두드�
 }
 
 /** 잡은 폰에 앱 없이 붙어 `nc -z` 로 포트를 두드린다. 팜이 연 adb 명령 길(`uiautomator2:adb_shell` — 러너 §5.2 「디바이스 팜 접속 방식」)을 쓴다 */
-async function 폰에서두드리기(appium: string, 폰: string, 자리: { 호스트: string; 포트: number }): Promise<두드린결과> {
+async function 폰에서두드리기(appium: string, 폰: string, 자리: { 호스트: string; 포트: number }, token: string | undefined): Promise<두드린결과> {
   const url = new URL(appium);
   const { remote } = await import('webdriverio');
   let 연결: Awaited<ReturnType<typeof remote>>;
@@ -242,7 +242,7 @@ async function 폰에서두드리기(appium: string, 폰: string, 자리: { 호�
       port: url.port ? Number(url.port) : url.protocol === 'https:' ? 443 : 80,
       path: url.pathname,
       logLevel: 'error',
-      ...(url.username && { user: decodeURIComponent(url.username), key: decodeURIComponent(url.password) }),
+      ...(token ? { headers: { Authorization: `Bearer ${token}` } } : url.username && { user: decodeURIComponent(url.username), key: decodeURIComponent(url.password) }),
       capabilities: { platformName: 'Android', 'appium:automationName': 'UiAutomator2', 'appium:udid': 폰 },
     });
   } catch (e) {
@@ -276,7 +276,7 @@ export async function 앱서버확인(트리: string, env: NodeJS.ProcessEnv, �
   if (자리 === null) return 모름(`주소 꼴이 아니다: ${주소}`);
   const 폰 = 잡은폰(트리, '앱');
   if (폰 === null) return 모름('잡은 폰이 없다 — `npx appium-cli hold --minutes 30` 뒤에 부른다');
-  const 결과 = await 두드리기(env.PLATFORM_APPIUM_URL, 폰, 자리);
+  const 결과 = await 두드리기(env.PLATFORM_APPIUM_URL, 폰, 자리, env.PLATFORM_APPIUM_TOKEN);
   if ('모름' in 결과) return 모름(결과.모름);
   const 어디 = `${주소}(폰에서 ${자리.호스트}:${자리.포트})`;
   if (결과.닿음) {

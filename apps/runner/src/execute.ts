@@ -182,6 +182,8 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
         ...(req.platform === 'android' && req.app !== undefined && { PLATFORM_APP: req.app }),
         // admin 이 팜에서 잡은 폰이다. 안 주면 팜이 잡힌 폰 아무것에나 붙인다 (러너 §5.2 「디바이스 팜 접속 방식」)
         ...(req.platform === 'android' && req.udid !== undefined && { PLATFORM_DEVICE_UDID: req.udid }),
+        // 팜 토큰은 앱 · 게임 항목만 받는다 — 웹 · API 케이스(AI 가 쓴 코드)는 쓸 일이 없는데 읽을 수는 있다. undefined 는 spawn 이 빼고 넘긴다 (러너 §5.2 「토큰은 서버 몫 하나다」)
+        PLATFORM_APPIUM_TOKEN: req.platform === 'android' ? process.env.PLATFORM_APPIUM_TOKEN : undefined,
         // 셋 다 늘 적는다 — 러너를 켠 셸의 값을 자식이 물려받지 않게. 게임에 닿는 길은 칸을 더하지 않고 폰 번호로 정한다:
         // admin 이 팜 폰을 잡아 번호를 실은 정식 실행은 디바이스 팜, 번호 없는 내 컴퓨터 테스트 실행은 USB (공통/3-공유계약 「게임 테스트 타입」 engine)
         ...gameEnv(req),

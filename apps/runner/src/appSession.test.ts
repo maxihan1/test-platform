@@ -34,6 +34,7 @@ afterEach(() => {
   vi.restoreAllMocks();
   delete process.env.PLATFORM_ARTIFACTS_DIR;
   delete process.env.PLATFORM_APPIUM_URL;
+  delete process.env.PLATFORM_APPIUM_TOKEN;
   rmSync(임시, { recursive: true, force: true });
 });
 
@@ -69,6 +70,39 @@ describe('앱연결을닫는다', () => {
     expect(url).toBe('https://farm.example:8443/wd/hub/session/abc-123');
     const 머리 = new Headers(init.headers).get('authorization');
     expect(머리).toBe(`Basic ${Buffer.from('us@er:p:w').toString('base64')}`);
+  });
+
+  it('PLATFORM_APPIUM_TOKEN 이 있으면 주소 안 계정보다 앞서 Bearer 로 보낸다', async () => {
+    process.env.PLATFORM_APPIUM_URL = 'https://user:pw@farm.example/wd/hub';
+    process.env.PLATFORM_APPIUM_TOKEN = 'pat_abc';
+    번호를_적는다(3, 9, 'abc-123');
+
+    await 앱연결을닫는다(3, 9);
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://farm.example/wd/hub/session/abc-123');
+    expect(new Headers(init.headers).get('authorization')).toBe('Bearer pat_abc');
+  });
+
+  it('PLATFORM_APPIUM_TOKEN 이 비면 머리를 싣지 않는다', async () => {
+    process.env.PLATFORM_APPIUM_TOKEN = '';
+    번호를_적는다(3, 9, 'abc-123');
+
+    await 앱연결을닫는다(3, 9);
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(new Headers(init.headers).has('authorization')).toBe(false);
+  });
+
+  it('닫기가 실패해도 토큰을 로그에 찍지 않는다', async () => {
+    process.env.PLATFORM_APPIUM_TOKEN = 'pat_secret';
+    fetchMock.mockRejectedValue(new Error('connect ECONNREFUSED'));
+    번호를_적는다(3, 9, 'abc-123');
+
+    await 앱연결을닫는다(3, 9);
+
+    expect(console.error).toHaveBeenCalled();
+    expect(JSON.stringify(vi.mocked(console.error).mock.calls)).not.toContain('pat_secret');
   });
 
   it('번호 파일이 없으면 아무것도 안 보낸다', async () => {

@@ -231,10 +231,10 @@ describe('앱서버확인 — 잡은 폰이 대상 서버에 닿는지', () => {
     잡기(트리);
     const 말 = vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    const env = { PLATFORM_APPIUM_URL: 'http://farm.test/wd/hub', PLATFORM_ACCOUNTS: 계정 };
+    const env = { PLATFORM_APPIUM_URL: 'http://farm.test/wd/hub', PLATFORM_APPIUM_TOKEN: 'pat_abc', PLATFORM_ACCOUNTS: 계정 };
     const 닿음 = vi.fn().mockResolvedValue({ 닿음: true });
     expect(await 앱서버확인(트리, env, 닿음)).toBe(0);
-    expect(닿음).toHaveBeenCalledWith('http://farm.test/wd/hub', 'R3CR10TCVCD', { 호스트: '127.0.0.1', 포트: 3002 });
+    expect(닿음).toHaveBeenCalledWith('http://farm.test/wd/hub', 'R3CR10TCVCD', { 호스트: '127.0.0.1', 포트: 3002 }, 'pat_abc');
     expect(await 앱서버확인(트리, env, vi.fn().mockResolvedValue({ 닿음: false }))).toBe(1);
     expect(말.mock.calls.at(-1)?.[0]).toMatch(/못 닿는다 — 케이스를 쓰지 않는다/);
     expect(await 앱서버확인(트리, env, vi.fn().mockResolvedValue({ 모름: 'adb_shell 이 닫혔다' }))).toBe(2);

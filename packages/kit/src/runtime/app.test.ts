@@ -125,6 +125,23 @@ describe('openApp', () => {
     );
   });
 
+  it('PLATFORM_APPIUM_TOKEN 이 있으면 모든 요청 머리에 Bearer 를 싣고 user · key 는 넘기지 않는다', async () => {
+    await openApp({
+      PLATFORM_APPIUM_URL: 'https://alice:s3cret@farm.example.com/wd/hub',
+      PLATFORM_APPIUM_TOKEN: 'pat_abc',
+      PLATFORM_APP: '/tmp/a.apk',
+    });
+    const 옵션 = remote.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(옵션.headers).toEqual({ Authorization: 'Bearer pat_abc' });
+    expect(옵션).not.toHaveProperty('user');
+    expect(옵션).not.toHaveProperty('key');
+  });
+
+  it('PLATFORM_APPIUM_TOKEN 이 비면 머리를 싣지 않는다', async () => {
+    await openApp({ ...OPEN_ENV, PLATFORM_APPIUM_TOKEN: '' });
+    expect(remote.mock.calls[0]?.[0]).not.toHaveProperty('headers');
+  });
+
   it('포트가 없으면 protocol 기본 포트를 쓴다', async () => {
     await openApp({ PLATFORM_APPIUM_URL: 'https://farm.example.com/wd/hub', PLATFORM_APP: '/a.apk' });
     await openApp({ PLATFORM_APPIUM_URL: 'http://farm.example.com', PLATFORM_APP: '/a.apk' });

@@ -43,7 +43,8 @@ export async function 팜증적을받는다(runId: number, historyId: number, st
     // admin 은 farm 폴더를 보고 목록을 낸다. 받는 동안은 옆 이름에 두고 다 받은 뒤에 옮겨 덜 받은 영상이 화면 · 증적에 안 뜨게 한다
     const 받는곳 = join(폴더, `${FARM_EVIDENCE_DIR}.part`);
     try {
-      const { errors } = await farmArtifacts(raw, sessionId, 받는곳);
+      const token = process.env.PLATFORM_APPIUM_TOKEN;
+      const { errors } = await farmArtifacts(raw, sessionId, 받는곳, token ? { token } : {});
       // 팜이 녹화를 못 했어도 받은 것(logcat 등)은 둔다
       if (errors.length > 0) console.error(`[runner] 팜이 증적 일부를 만들지 못했다: ${errors.join(' · ')}`);
       // 게임 항목은 kit 이 이 폴더에 실패 순간 오브젝트 목록 · 게임 오류 기록을 먼저 둔다 — 폴더째 옮기면 그 파일과 부딪혀 파일마다 옮긴다

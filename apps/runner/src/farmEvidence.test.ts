@@ -31,6 +31,7 @@ afterEach(() => {
   vi.restoreAllMocks();
   delete process.env.PLATFORM_ARTIFACTS_DIR;
   delete process.env.PLATFORM_APPIUM_URL;
+  delete process.env.PLATFORM_APPIUM_TOKEN;
   rmSync(임시, { recursive: true, force: true });
 });
 
@@ -44,9 +45,15 @@ describe('팜증적을받는다', () => {
       return { files: [], errors: [] };
     });
     await 팜증적을받는다(3, 9, 'FAIL');
-    expect(farmArtifacts).toHaveBeenCalledWith('http://farm:4723/wd/hub', 'sess-1', join(폴더(), `${FARM_EVIDENCE_DIR}.part`));
+    expect(farmArtifacts).toHaveBeenCalledWith('http://farm:4723/wd/hub', 'sess-1', join(폴더(), `${FARM_EVIDENCE_DIR}.part`), {});
     expect(existsSync(join(폴더(), FARM_EVIDENCE_DIR, 'video-1.mp4'))).toBe(true);
     expect(existsSync(idFile())).toBe(false);
+  });
+
+  it('PLATFORM_APPIUM_TOKEN 이 있으면 팜 토큰으로 받는다', async () => {
+    process.env.PLATFORM_APPIUM_TOKEN = 'pat_abc';
+    await 팜증적을받는다(3, 9, 'FAIL');
+    expect(farmArtifacts).toHaveBeenCalledWith('http://farm:4723/wd/hub', 'sess-1', expect.any(String), { token: 'pat_abc' });
   });
 
   it('미실행(중단 · 시간 초과) 항목도 받는다', async () => {

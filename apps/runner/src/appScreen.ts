@@ -112,7 +112,7 @@ export async function 앱을켜서읽는다(
   const app = req.app ?? env.PLATFORM_APP;
   if (app === undefined || app === '') throw new Error('Android 앱 화면을 읽으려면 PLATFORM_APP 이 필요하다');
   const udid = req.udid ?? env.PLATFORM_DEVICE_UDID;
-  const { base, headers } = appium주소(raw);
+  const { base, headers } = appium주소(raw, env.PLATFORM_APPIUM_TOKEN);
   const json = { ...headers, 'Content-Type': 'application/json' };
 
   읽는중 = true;

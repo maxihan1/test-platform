@@ -2,7 +2,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { 잡기를늘린다, 팜주소, 팜폰으로 } from './farm.js';
+import { 잡기를늘린다, 팜머리, 팜주소, 팜폰으로 } from './farm.js';
 
 const 팜 = 'http://farm.test/wd/hub';
 
@@ -145,6 +145,39 @@ describe('잡기를늘린다', () => {
 
     expect(소리).toHaveBeenCalledTimes(2);
     소리.mockRestore();
+  });
+});
+
+describe('팜머리', () => {
+  it('DEVICE_FARM_TOKEN 이 있으면 Bearer 머리고 비면 빈 머리다', () => {
+    expect(팜머리({ DEVICE_FARM_TOKEN: 'pat_abc' })).toEqual({ authorization: 'Bearer pat_abc' });
+    expect(팜머리({ DEVICE_FARM_TOKEN: '' })).toEqual({});
+    expect(팜머리({})).toEqual({});
+  });
+
+  it('토큰이 있으면 목록 · 잡기 · 놓기 · 늘리기 모두 싣는다', async () => {
+    const 머리들: (string | null)[] = [];
+    const 부르기 = (async (주소: string | URL | Request, 설정?: RequestInit) => {
+      머리들.push(new Headers(설정?.headers).get('authorization'));
+      return String(주소).endsWith('/api/devices')
+        ? new Response(JSON.stringify(빈폰하나.body), { status: 200 })
+        : new Response(JSON.stringify({ held: {} }), { status: 200 });
+    }) as typeof fetch;
+    vi.stubEnv('DEVICE_FARM_TOKEN', 'pat_abc');
+    try {
+      await 팜폰으로(팜, async (udid) => 잡기를늘린다(팜, udid, 부르기), (까닭) => 까닭, 부르기, 안쉼);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+    expect(머리들).toEqual(['Bearer pat_abc', 'Bearer pat_abc', 'Bearer pat_abc', 'Bearer pat_abc']);
+  });
+
+  it('기기 목록이 401 이면 토큰을 보라고 말한다', async () => {
+    const { 부르기 } = 가짜팜({ 목록: [{ status: 401, body: {} }] });
+
+    expect(await 팜폰으로(팜, async () => '돌림', (까닭) => 까닭, 부르기, 안쉼)).toBe(
+      '디바이스 팜이 기기 목록을 주지 않았습니다 (HTTP 401) — DEVICE_FARM_TOKEN 을 확인하세요',
+    );
   });
 });
 

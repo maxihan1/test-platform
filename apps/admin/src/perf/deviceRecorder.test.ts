@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { 로컬기록기, 이름밀기 } from './deviceRecorder.js';
+import { 로컬기록기, 이름밀기, 팜기록기 } from './deviceRecorder.js';
 
 let 뿌리: string;
 let 가짜러너: FastifyInstance | null = null;
@@ -31,6 +31,28 @@ function 부르기(멈춤답: unknown): typeof fetch {
     String(url).endsWith('/stop') ? Response.json(멈춤답) : Response.json({ recId: 'r1' }, { status: 201 }),
   ) as unknown as typeof fetch;
 }
+
+describe('팜기록기 · 토큰', () => {
+  it('DEVICE_FARM_TOKEN 이 있으면 잡기 · 새 줄 · 늘리기 · 녹화 목록 · 놓기 모두 Bearer 로 부른다', async () => {
+    vi.stubEnv('DEVICE_FARM_URL', 'http://farm.test/wd/hub');
+    vi.stubEnv('DEVICE_FARM_TOKEN', 'pat_abc');
+    const 머리들: (string | null)[] = [];
+    const 가짜 = vi.fn(async (url: string | URL | Request, 설정?: RequestInit) => {
+      머리들.push(new Headers(설정?.headers).get('authorization'));
+      const 글 = String(url);
+      if (글.includes('/perf?since=')) return Response.json({ rows: [], launchMs: null });
+      if (글.endsWith('/perf/files')) return Response.json({ files: [] });
+      return Response.json({ held: { until: 2, now: 1 } });
+    }) as unknown as typeof fetch;
+    const rec = 팜기록기('R3CR', 가짜);
+    await rec.켜기(켜기);
+    await rec.새줄(0);
+    await rec.늘리기();
+    await rec.파일받기(join(뿌리, 'farm'), 0);
+    await rec.놓기();
+    expect(머리들).toEqual(Array(5).fill('Bearer pat_abc'));
+  });
+});
 
 describe('로컬기록기 · 놓기', () => {
   it('러너가 조각 이름을 안 줘도 이 볼륨에 있는 조각은 실행 기준 초로 민다', async () => {

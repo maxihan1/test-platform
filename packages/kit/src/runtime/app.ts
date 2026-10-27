@@ -51,6 +51,7 @@ export async function openApp(env: Env): Promise<AppDriver> {
   const capabilities = appCapabilities(env);
   // 브라우저 케이스가 쓰지도 않는 부품을 싣지 않으려고 쓸 때 불러온다
   const { remote } = await import('webdriverio');
+  const token = env.PLATFORM_APPIUM_TOKEN;
   // 디바이스 팜이 https · 인증을 써도 같은 값으로 붙게 URL 의 조각을 전부 넘긴다
   const driver = await remote({
     protocol: url.protocol.replace(':', ''),
@@ -59,10 +60,13 @@ export async function openApp(env: Env): Promise<AppDriver> {
     path: url.pathname,
     // 기본 수준(info)은 명령마다 stdout 에 찍어 러너가 실패 사유로 보는 꼬리를 채운다
     logLevel: 'warn',
-    ...(url.username && {
-      user: decodeURIComponent(url.username),
-      key: decodeURIComponent(url.password),
-    }),
+    // 인증 켠 팜은 모든 요청에 토큰을 받는다. user · key 는 연결 열기 요청에만 붙고 그 머리를 Basic 으로 덮어 같이 넘기지 않는다 (도메인/러너 §5.2 「디바이스 팜 접속 방식」)
+    ...(token
+      ? { headers: { Authorization: `Bearer ${token}` } }
+      : url.username && {
+          user: decodeURIComponent(url.username),
+          key: decodeURIComponent(url.password),
+        }),
     capabilities,
   });
   await writeSessionFile(driver.sessionId);
