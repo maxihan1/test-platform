@@ -140,8 +140,8 @@ test('배포 설정값 목록도 3등급 — 미분류로 새면 안 된다 (202
   assert.deepEqual(detectTier(['.env.example']).unmapped, []);
 });
 
-test('서버 · 맥 덧붙임 compose 와 서버 pull timer 도 3등급 — 운영 배포 설정이다 (2026-10-27 미분류였다)', () => {
-  const 파일들 = ['docker-compose.server.yml', 'docker-compose.mac.yml', 'infra/server/qahub-pull.sh', 'infra/server/qahub-pull.timer'];
+test('서버 · 맥 덧붙임 compose · 서버 pull timer · Grafana 프로비저닝도 3등급 — 운영 배포 설정이다 (2026-10-27 미분류였다)', () => {
+  const 파일들 = ['docker-compose.server.yml', 'docker-compose.mac.yml', 'infra/server/qahub-pull.sh', 'infra/server/qahub-pull.timer', 'infra/grafana/provisioning/datasources/postgres.yml'];
   for (const p of 파일들) assert.equal(surfaceOf(p)?.name, 'COMPOSE', p);
   assert.equal(detectTier(파일들).tier, 3);
   assert.deepEqual(detectTier(파일들).unmapped, []);
