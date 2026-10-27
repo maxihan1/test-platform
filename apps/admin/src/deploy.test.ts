@@ -195,6 +195,21 @@ describe('내 컴퓨터 러너(테스트 실행)', () => {
   });
 });
 
+describe('러너 위치 · 토큰 (OPS-F5-10)', () => {
+  const admin = /^ {2}admin:\n((?: {4}.*\n|\s*\n)+)/m.exec(compose)?.[1] ?? '';
+  const runner = /^ {2}runner:\n((?: {4}.*\n|\s*\n)+)/m.exec(compose)?.[1] ?? '';
+
+  it('정식 실행 러너는 .env 로 바꾸고 비면 옆 runner 컨테이너다', () => {
+    expect(admin).toMatch(/^ {6}RUNNER_URL:\s*"\$\{RUNNER_URL:-http:\/\/runner:4000\}"/m);
+  });
+
+  it('admin 과 runner 가 같은 RUNNER_TOKEN 을 받고 기본값은 비어 있다', () => {
+    expect(admin).toMatch(/^ {6}RUNNER_TOKEN:\s*"\$\{RUNNER_TOKEN:-\}"/m);
+    expect(runner).toMatch(/^ {6}RUNNER_TOKEN:\s*"\$\{RUNNER_TOKEN:-\}"/m);
+    expect(readFileSync(resolve(process.cwd(), '.env.example'), 'utf8')).toMatch(/^RUNNER_TOKEN=/m);
+  });
+});
+
 describe('서버와 맥에 나눠 띄우기', () => {
   const admin = /^ {2}admin:\n((?: {4}.*\n|\s*\n)+)/m.exec(compose)?.[1] ?? '';
   const 덧붙임 = (이름: string): string => readFileSync(resolve(process.cwd(), 이름), 'utf8');

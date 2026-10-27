@@ -112,6 +112,8 @@ export async function 기기차림(접두사: string, api: boolean) {
   });
   const 러너 = await 서버(async (h, 응답) => {
     if (h.path === '/abort') return 응답(200, { aborted: true });
+    if (h.path === '/health') return 응답(200, { ok: true });
+    if (h.method === 'GET') return 응답(404, { error: 'NOT_FOUND' });
     await 쉼(상태.러너지연);
     응답(200, { historyId: (h.body as { historyId: number }).historyId, status: 'PASS', durationMs: 2000, steps: [
       { seq: 1, title: '로그인', status: 'PASS', durationMs: 1000, assertions: [] },

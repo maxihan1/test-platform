@@ -1,6 +1,8 @@
 // 두 러너(컨테이너 · 로컬) 중 어디로 보내고 끊고 진행을 묻는지, 앱 항목이 팜 폰을 잡고 놓는지 본다 (SPEC 실행 §3.2).
 // 진짜 러너 · 팜 대신 같은 계약을 흉내내는 서버를 띄운다
 
+import { createServer } from 'node:net';
+
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -51,6 +53,7 @@ afterEach(async () => {
   delete process.env.RUNNER_URL;
   delete process.env.LOCAL_RUNNER_URL;
   delete process.env.DEVICE_FARM_URL;
+  delete process.env.RUNNER_TOKEN;
 });
 
 describe('callRunner — 어느 러너로 가는가', () => {
@@ -188,4 +191,41 @@ describe('진행 — 두 러너', () => {
 
     expect(await 진행()).toEqual([컨테이너절차]);
   });
+});
+
+describe('RUNNER_TOKEN · 잠든 러너', () => {
+  it('토큰을 걸면 실행 · 중단 · 진행 모두에 실어 보낸다', async () => {
+    process.env.RUNNER_TOKEN = 't0ken';
+    const 머리: string[] = [];
+    const app = Fastify();
+    app.addHook('onRequest', async (req) => {
+      머리.push(`${req.method} ${req.url} ${req.headers.authorization ?? '없음'}`);
+    });
+    app.post('/execute', async (req) => ({ historyId: (req.body as ExecuteRequest).historyId, status: 'PASS', durationMs: 1, steps: [] }));
+    app.post('/abort', async () => ({ aborted: true }));
+    app.get('/progress', async () => ({ items: [] }));
+    await 붙인다(app);
+
+    await callRunner(7, 항목);
+    await abortRunner(1);
+    await 진행();
+    expect(머리.filter((줄) => !줄.startsWith('GET /health'))).toEqual(['POST /execute Bearer t0ken', 'POST /abort Bearer t0ken', 'GET /progress Bearer t0ken']);
+  });
+
+  it('연결만 받고 답이 없는 러너(잠든 맥의 터널 끝)면 제한 시간까지 매달리지 않고 2초 남짓에 NA 로 접는다', async () => {
+    const 먹통 = createServer(() => {});
+    await new Promise<void>((r) => 먹통.listen(0, '127.0.0.1', r));
+    const addr = 먹통.address();
+    process.env.RUNNER_URL = `http://127.0.0.1:${typeof addr === 'object' && addr !== null ? addr.port : 0}`;
+    const 시작 = Date.now();
+    try {
+      const res = await callRunner(7, { ...항목, timeoutMs: 60_000 });
+      expect(res.status).toBe('NA');
+      expect(res.error?.message).toBe('러너에 닿지 못했습니다');
+      expect(res.error?.stack).toContain('/health');
+      expect(Date.now() - 시작).toBeLessThan(5_000);
+    } finally {
+      먹통.close();
+    }
+  }, 10_000);
 });
