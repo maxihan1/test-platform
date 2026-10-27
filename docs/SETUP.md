@@ -645,12 +645,12 @@ DB 검사는 `DATABASE_URL` 이 없으면 **조용히 건너뛴다**(초록으�
 ```bash
 mkdir -p /var/lib/postgresql/tp && chown postgres:postgres /var/lib/postgresql/tp
 su postgres -c "/usr/lib/postgresql/16/bin/initdb -D /var/lib/postgresql/tp/data -U platform --auth=trust"
-su postgres -c "setsid nohup /usr/lib/postgresql/16/bin/postgres -D /var/lib/postgresql/tp/data -p 5433 -k /var/lib/postgresql/tp > /var/lib/postgresql/tp/log 2>&1 &"
-psql -h 127.0.0.1 -p 5433 -U platform -d postgres -c "CREATE DATABASE platform"
-PGHOST=127.0.0.1 PGPORT=5433 POSTGRES_USER=platform POSTGRES_DB=platform GRAFANA_RO_PASSWORD=grafana_ro bash db/init/01-grafana-readonly.sh   # 마이그레이션보다 먼저 — 마이그레이션이 grafana_ro 에 권한을 준다
+su postgres -c "setsid nohup /usr/lib/postgresql/16/bin/postgres -D /var/lib/postgresql/tp/data -p 5434 -k /var/lib/postgresql/tp > /var/lib/postgresql/tp/log 2>&1 &"
+psql -h 127.0.0.1 -p 5434 -U platform -d postgres -c "CREATE DATABASE platform"
+PGHOST=127.0.0.1 PGPORT=5434 POSTGRES_USER=platform POSTGRES_DB=platform GRAFANA_RO_PASSWORD=grafana_ro bash db/init/01-grafana-readonly.sh   # 마이그레이션보다 먼저 — 마이그레이션이 grafana_ro 에 권한을 준다
 # dbmate 는 CI 와 같은 곳에서 받는다 (.github/workflows) — sslmode=disable 을 붙인다
-DATABASE_URL="postgres://platform:platform@127.0.0.1:5433/platform?sslmode=disable" dbmate --migrations-dir db/migrations --no-dump-schema up
-export DATABASE_URL=postgres://platform:platform@127.0.0.1:5433/platform
+DATABASE_URL="postgres://platform:platform@127.0.0.1:5434/platform?sslmode=disable" dbmate --migrations-dir db/migrations --no-dump-schema up
+export DATABASE_URL=postgres://platform:platform@127.0.0.1:5434/platform
 ```
 
 - 죽었으면(`ECONNREFUSED`) `postmaster.pid` 를 지우고 셋째 줄만 다시 친다 — 데이터는 남아 있다
@@ -1064,7 +1064,7 @@ ssh qahub 'cd /opt/qahub && git pull --ff-only origin main && docker compose up 
    남기는 것 — `author_node_modules` · `author_work` 볼륨(작성), `postgres:16` · `ghcr.io/amacneil/dbmate:2` 이미지(pre-push)
 6. Docker Desktop › Settings › Resources 에서 메모리를 8GB 로 둔다
 
-**맥 pre-push 는 맥 postgres 를 쓴다** — 서버 · DB 코드를 push 할 때 `127.0.0.1:5434` 에 임시 DB 를 만든다(`docs/HOOKS.md`). 그때만 빈 postgres 를 띄운다. 덧붙임 파일 없이 친다
+**맥 pre-push 는 맥 postgres 를 쓴다** — 서버 · DB 코드를 push 할 때 맥 `.env` 의 `POSTGRES_PORT`(비면 5434)에 임시 DB 를 만든다(`docs/HOOKS.md`). 그때만 빈 postgres 를 띄운다. 덧붙임 파일 없이 친다
 ```bash
 docker compose -p test_platform up -d postgres
 ```
@@ -1072,14 +1072,15 @@ docker compose -p test_platform up -d postgres
 ### 맥 postgres 를 5434 로 옮기기 (2026-10-27, 한 번 · 약 2분)
 
 5433 은 맥의 BTS 개발 DB(`bts-postgres-dev`)가 쓴다. BTS 배포 검사(`./gradlew test`)가 거기에 붙는데, QA Hub postgres 가 5433 을 잡고 있으면 BTS 배포가 막힌다. 그래서 QA Hub 쪽이 5434 로 비킨다.
-컨테이너 안 5432 와 데이터(볼륨)는 그대로다. 서버 `.env` 의 `POSTGRES_PORT` 는 이 일로 안 바꾼다 — 맥에서 부딪히는 것만 푼다.
+컨테이너 안 5432 와 데이터(볼륨)는 그대로다. 서버는 손대지 않는다 — 옛 `.env.example` 을 복사한 서버 `.env` 에는 `POSTGRES_PORT=5433` 줄이 있어 그대로 5433 에 뜬다. 그 줄이 없는 서버는 다음 배포부터 5434 에 뜨지만, admin · grafana 는 컨테이너 망 안의 5432 로 붙어 상관없다.
+**이 판이 병합되고 루트를 pull 한 뒤에 한다** — 루트의 pre-push 가 push 마다 돌아서, 병합 전에 옮기면 옛 훅이 5433 을 찾다가 서버 · DB 코드 push 를 막는다.
 
 1. 맥 `.env` 의 `POSTGRES_PORT=5433` 줄을 `POSTGRES_PORT=5434` 로 고친다 — `.env.example` 을 복사한 맥에는 이 줄이 있고, 남아 있으면 compose 가 계속 5433 에 띄운다
-2. postgres 만 새 포트로 다시 만든다 — 데이터는 볼륨에 남는다. admin · grafana 는 컨테이너 망 안의 5432 로 붙어 손대지 않는다
+2. postgres 만 새 포트로 다시 만든다 — 데이터는 볼륨에 남는다. 맥에 admin · grafana 가 아직 떠 있어도 컨테이너 망 안의 5432 로 붙어 손대지 않는다
    ```bash
    docker compose -p test_platform up -d postgres
    ```
 3. 확인 — `docker ps --format '{{.Names}} {{.Ports}}' | grep postgres` 에 `test_platform-postgres-1 127.0.0.1:5434->5432/tcp` 가 보이면 된 것이다. 이제 BTS 개발 DB 를 5433 에 띄워도 안 부딪힌다
 
-- pre-push 는 이 판이 병합되고 루트가 pull 된 뒤부터 5434 에 붙는다. 옮기기 전에 서버 · DB 코드를 push 하면 「개발 DB(127.0.0.1:5434)에 못 붙었다」로 막힌다 — 위 1 · 2 를 하고 다시 push 한다
+- pre-push 는 compose 와 같은 맥 `.env` 의 `POSTGRES_PORT` 를 읽어서 1 · 2 를 하면 같이 옮겨 간다. 「개발 DB(127.0.0.1:…)에 못 붙었다」로 막히면 찍힌 포트와 `docker ps` 의 postgres 포트가 같은지 본다
 - DB 도구나 셸에 `localhost:5433/platform` 을 적어 둔 곳이 있으면 5434 로 바꾼다

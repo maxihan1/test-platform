@@ -178,9 +178,10 @@ test('커밋 안 한 새 파일 · 고친 파일이 있거나 올리는 커밋�
 
 // db/init 이 `.sql` 에서 `.sh` 로 바뀐 뒤 `*.sql` 만 보던 훅이 아무것도 못 잡아 조용히 건너뛰었다.
 // 비밀번호는 박아 쓰면 맥이 옛 비밀번호에 묶인다 — docker compose 와 같은 `.env` 를 읽는다 (FIX-F1-02 에서 넘김)
-test('임시 DB 에 db/init 의 .sh · .sql 을 그 DB 이름으로 걸고, 비밀번호는 .env 에서 읽는다 — 비우면 platform · grafana_ro', () => {
+// 포트도 같다 — 박아 쓰면 compose 가 .env 대로 다른 포트에 띄웠을 때 막힌다 (2026-10-27 5433 → 5434)
+test('임시 DB 에 db/init 의 .sh · .sql 을 그 DB 이름으로 걸고, 비밀번호 · 포트는 .env 에서 읽는다 — 비우면 platform · grafana_ro · 5434', () => {
   const 초기화 = '#!/bin/bash\npsql -h "$PGHOST" -p "$PGPORT" --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" -v pw="$GRAFANA_RO_PASSWORD"\n';
-  for (const env of ['', 'POSTGRES_PASSWORD=s3cret\nGRAFANA_RO_PASSWORD="ro9"\n', 'export POSTGRES_PASSWORD=s3cret  # 맥 개발용\r\nGRAFANA_RO_PASSWORD=\'ro9\'\r\n']) {
+  for (const env of ['', 'POSTGRES_PASSWORD=s3cret\nGRAFANA_RO_PASSWORD="ro9"\n', 'export POSTGRES_PASSWORD=s3cret  # 맥 개발용\r\nGRAFANA_RO_PASSWORD=\'ro9\'\r\nPOSTGRES_PORT="5499"\r\n']) {
     const 저장소 = 임시저장소(['apps/admin/src/execution/x.ts', ['db/init/01-ro.sh', 초기화], ['db/init/02-x.sql', 'SELECT 1;']]);
     try {
       if (env) writeFileSync(join(저장소.뿌리, '.env'), env);
@@ -189,10 +190,11 @@ test('임시 DB 에 db/init 의 .sh · .sql 을 그 DB 이름으로 걸고, 비�
       const db = 불린것(저장소.DB기록);
       const 이름 = /CREATE DATABASE (tp_prepush_\w+)/.exec(db)?.[1];
       const [pw, ro] = env ? ['s3cret', 'ro9'] : ['platform', 'grafana_ro'];
-      assert.match(db, new RegExp(`psql -h 127\\.0\\.0\\.1 -p 5434 --username platform --dbname ${이름} -v pw=${ro} pw=${pw}`), `.sh 를 임시 DB 에 안 걸었다: ${db}`);
+      const 포트 = env.includes('POSTGRES_PORT') ? '5499' : '5434';
+      assert.match(db, new RegExp(`psql -h 127\\.0\\.0\\.1 -p ${포트} --username platform --dbname ${이름} -v pw=${ro} pw=${pw}`), `.sh 를 임시 DB 에 안 걸었다: ${db}`);
       assert.match(db, new RegExp(`psql .*-d ${이름} .*-f db/init/02-x\\.sql pw=${pw}`), `.sql 을 임시 DB 에 안 걸었다: ${db}`);
-      assert.match(db, new RegExp(`docker run .*platform:${pw}@host\\.docker\\.internal:5434/${이름}`), `마이그레이션이 .env 비밀번호를 안 썼다: ${db}`);
-      assert.match(불린것(`${저장소.기록}.db`), new RegExp(`platform:${pw}@127\\.0\\.0\\.1:5434/${이름}`), '검사가 .env 비밀번호를 안 받았다');
+      assert.match(db, new RegExp(`docker run .*platform:${pw}@host\\.docker\\.internal:${포트}/${이름}`), `마이그레이션이 .env 비밀번호를 안 썼다: ${db}`);
+      assert.match(불린것(`${저장소.기록}.db`), new RegExp(`platform:${pw}@127\\.0\\.0\\.1:${포트}/${이름}`), '검사가 .env 비밀번호 · 포트를 안 받았다');
     } finally {
       rmSync(저장소.뿌리, { recursive: true, force: true });
     }
