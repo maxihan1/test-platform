@@ -163,13 +163,21 @@ describe('팜머리', () => {
         ? new Response(JSON.stringify(빈폰하나.body), { status: 200 })
         : new Response(JSON.stringify({ held: {} }), { status: 200 });
     }) as typeof fetch;
-    process.env.DEVICE_FARM_TOKEN = 'pat_abc';
+    vi.stubEnv('DEVICE_FARM_TOKEN', 'pat_abc');
     try {
       await 팜폰으로(팜, async (udid) => 잡기를늘린다(팜, udid, 부르기), (까닭) => 까닭, 부르기, 안쉼);
     } finally {
-      delete process.env.DEVICE_FARM_TOKEN;
+      vi.unstubAllEnvs();
     }
     expect(머리들).toEqual(['Bearer pat_abc', 'Bearer pat_abc', 'Bearer pat_abc', 'Bearer pat_abc']);
+  });
+
+  it('기기 목록이 401 이면 토큰을 보라고 말한다', async () => {
+    const { 부르기 } = 가짜팜({ 목록: [{ status: 401, body: {} }] });
+
+    expect(await 팜폰으로(팜, async () => '돌림', (까닭) => 까닭, 부르기, 안쉼)).toBe(
+      '디바이스 팜이 기기 목록을 주지 않았습니다 (HTTP 401) — DEVICE_FARM_TOKEN 을 확인하세요',
+    );
   });
 });
 
