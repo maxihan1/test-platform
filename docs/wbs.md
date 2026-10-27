@@ -50,6 +50,7 @@
 - [x] `OPS-F5-10` 러너 위치 설정 — `RUNNER_URL`(정식 실행) · `LOCAL_RUNNER_URL`(내 컴퓨터 러너)로 서버 · 맥을 고른다 · 산출물이 admin 에 없으면 러너에서 HTTP 로 가져온다 · `RUNNER_TOKEN` · 맥 러너 터널 · 잠자기 감지 health check (test_platform)
   - 근거 PR #476 · 2026-10-27 — 코드 · 명세 · 터널 스크립트까지. 서버 sshd 설정 · 실측은 `docs/SETUP.md` §10 「admin 이 다른 기계에 있을 때」(F4-07 뒤 사람이 한다)
 - [ ] `OPS-F5-11` 운영 기본기 — 바깥 uptime 감시(도메인 7개) · 디스크 70% 알림 · 배포 뒤 `docker image prune` · 실측으로 `mem_limit` 다시 맞추기
+  - 넘김: F4-08 뒤 데모마켓 cookie `Secure` (demo-market `src/http.ts:60`) — 맥 QA Hub 가 `http://demo:3002` 로 붙던 까닭이 F4-08 뒤 사라진다(서버 QA Hub · 맥 author 모두 `https://demo.maxihan.com`)
 
 ## PRD — 표준 기획서 · 지도 (최우선 · 위에서부터 차례로)
 
