@@ -1065,9 +1065,10 @@ ssh qahub 'cd /opt/qahub && git pull --ff-only origin main && docker compose up 
 4. 작성 계정의 비밀번호 로그인을 막는다 — 3번에서 author 가 붙은 걸 본 뒤에 한다. 작성 토큰은 비밀번호를 안 봐서 그대로 붙고, 로그인 화면만 거절한다(`apps/admin/src/auth/identify.ts` · `routes.ts`). 되살릴 때는 admin 이 설정 › 계정에서 비밀번호를 새로 준다
    ```bash
    ssh qahub 'cd /opt/qahub && docker compose exec -T postgres psql -U platform -d platform -v ON_ERROR_STOP=1' <<'SQL'
-   UPDATE app_user SET password_hash = NULL WHERE username = 'mac' AND agent_token_hash IS NOT NULL;
+   UPDATE app_user SET password_hash = NULL WHERE username = 'mac' AND agent_token_hash IS NOT NULL RETURNING username;
    SQL
    ```
+   `UPDATE 1` 과 `mac` 한 줄이 찍혀야 한다. `UPDATE 0` 이면 그 이름에 토큰이 없다는 뜻이라 아무것도 안 바뀌었다 — 설정 › 계정 › 작성 계정에서 토큰을 먼저 발급한다.
    `mac` 은 이 설치의 `AUTHORING_AGENT_USER` 다. 다르면 그 이름으로 바꾼다
 5. 확인 — 화면에서 작성 1건을 넣고 병합 → 2분쯤 뒤 `https://qahub.maxihan.com` 목록에 새 케이스가 뜬다 · 설정 › 성능 에이전트에 맥 에이전트가 붙어 있다
 6. 서버에서 며칠 써 본 뒤 맥에서 옛 볼륨 · 이미지를 지운다 — **되돌릴 수 없다.** 서버 확인 전에는 지우지 않는다
@@ -1078,9 +1079,9 @@ ssh qahub 'cd /opt/qahub && git pull --ff-only origin main && docker compose up 
    **`test_platform_artifacts`(스크린샷 · 증적)는 서버 백업이 산출물을 담을 때까지 남긴다** — 서버 백업(`ops-backup.sh`)은 DB 만 떠서 맥 볼륨이 산출물의 유일한 사본이다(OPS-F5-11).
    **`test_platform_pgdata` 는 남긴다** — 맥 pre-push 가 쓰는 postgres 의 볼륨이다. 옛 QA Hub 기록을 비우려면 「빈 개발 DB 로 다시 만들기」로 따로 정한다.
    남기는 것 — `author_node_modules` · `author_work` 볼륨(작성), `postgres:16` · `ghcr.io/amacneil/dbmate:2` 이미지(pre-push)
-7. Docker Desktop › Settings › Resources 에서 메모리를 8GB 로 둔다 — Docker 가 다시 켜지며 떠 있던 컨테이너가 잠깐 멈춘다
+7. Docker Desktop 메모리(Settings › Resources)는 기본 5.8GB 그대로 둔다 — author 한 건(4g)이 들어가고, 작성과 부하 테스트를 같이 돌리지 않는다. 같이 돌리거나 메모리가 모자라 꺼지면 올린다(2026-10-27 사용자). 올리면 Docker 가 다시 켜지며 떠 있던 컨테이너가 잠깐 멈춘다
 
-**맥 pre-push 는 맥 postgres 를 쓴다** — 서버 · DB 코드를 push 할 때 맥 `.env` 의 `POSTGRES_PORT`(비면 5434)에 임시 DB 를 만든다(`docs/HOOKS.md`). 그때만 빈 postgres 를 띄운다. 덧붙임 파일 없이 친다
+**맥 pre-push 는 맥 postgres 를 쓴다** — 서버 · DB 코드를 push 할 때 맥 `.env` 의 `POSTGRES_PORT`(비면 5434)에 임시 DB 를 만든다(`docs/HOOKS.md`). 그래서 위 2번에서 postgres 는 내리지 않는다. 꺼져 있으면 덧붙임 파일 없이 다시 띄운다
 ```bash
 docker compose -p test_platform up -d postgres
 ```

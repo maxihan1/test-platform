@@ -9,7 +9,7 @@ services:
     environment:
       # 맥 .env 의 PLATFORM_PUBLIC_URL(클라우드 QA Hub 주소) — 토큰이 망을 지나므로 https 다
       PLATFORM_ADMIN_URL: "${PLATFORM_PUBLIC_URL:?맥 .env 에 PLATFORM_PUBLIC_URL(클라우드 QA Hub 주소)을 적는다}"
-      AUTHORING_MAX_PARALLEL: "1"   # 맥 Docker 메모리 8GB 에 한 건(4g)만 — 아래 mem_limit 과 같이 움직인다
+      AUTHORING_MAX_PARALLEL: "1"   # 맥 Docker 메모리(기본 5.8GB)에 한 건(4g)만 — 아래 mem_limit 과 같이 움직인다
     mem_limit: 4g
   perf-agent:
     depends_on: !reset []
