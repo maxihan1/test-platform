@@ -888,7 +888,7 @@ docker run -d --init --restart unless-stopped --network host --name qahub-monito
    - `COMPOSE_FILE` 이 서버용 덧붙임 파일을 늘 같이 읽게 한다 — 서버에서 그냥 `docker compose up -d` 를 쳐도 perf-agent 가 안 뜨고 CPU 상한이 걸린다
    - **`ADMIN_PORT` 앞의 `127.0.0.1` 을 빼지 않는다** — 빼면 Docker 가 서버 방화벽(firewalld)을 건너뛰고 13000 을 바깥에 연다. 바깥에서는 Caddy(https)로만 들어온다
    - 작성 토큰 셋(`AUTHORING_AGENT_TOKEN` · `CLAUDE_CODE_OAUTH_TOKEN` · `GH_TOKEN`) · `PERF_AGENT_TOKEN` 은 서버에 두지 않는다 — author · perf-agent 는 맥에 뜬다
-   - `LOCAL_RUNNER_URL` 은 비워 둔다 — 서버 admin 은 맥의 「내 컴퓨터 러너」에 닿지 않는다. 그동안 케이스 「테스트 실행」은 꺼진다(진행판 OPS-F5-10 에서 고른다)
+   - `LOCAL_RUNNER_URL` 은 비워 둔다 — 서버 admin 은 맥의 「내 컴퓨터 러너」에 닿지 않는다. 그동안 그 러너를 부르는 일(케이스 「테스트 실행」 · 기기 성능 직접 플레이의 내 PC 폰 측정 · E2E 시험 실행의 브라우저 창)이 꺼진다(진행판 OPS-F5-10 에서 고른다)
    - 세션 키가 새것이라 옮긴 뒤 모두 한 번 다시 로그인한다. 작성 · 성능 에이전트 토큰은 DB 에 있어 옮긴 그대로 쓴다
 3. 이미지를 만든다 — 맥은 arm64 라 맥에서 만든 이미지는 서버(x86_64)에서 안 돈다. 사람이 적은 시간에 한다
    ```bash
@@ -901,7 +901,7 @@ docker run -d --init --restart unless-stopped --network host --name qahub-monito
    ssh qahub 'systemctl list-timers qahub-pull.timer'   # 다음 실행 시각이 1분 안이면 걸린 것이다
    ```
    받은 기록은 `ssh qahub 'journalctl -u qahub-pull.service -n 20'` 로 본다. 새 커밋을 훑은 줄 끝에 `[scan] 다시 훑었다` 가 찍힌다.
-   훑기가 통째로 깨졌거나(admin 이 꺼져 있었다 등) pull 이 10분 안에 안 끝나면 실패로 남고 다음 1분에 다시 한다.
+   훑기가 통째로 깨졌거나(admin 이 꺼져 있었다 등) 받기 · 기다리기 · 훑기가 합쳐 10분 안에 안 끝나면 실패로 남고 다음 1분에 다시 한다.
    읽지 못한 파일 · 겹친 번호 같은 경고는 이 기록에만 남는다 — 화면의 「다시 스캔」 옆 시각과 경고는 admin 이 직접 훑은 것이다.
    훑기가 60초를 넘기는 큰 애플리케이션은 새 케이스가 비활성으로 남을 수 있다 — 그때는 화면의 「다시 스캔」을 누른다
 6. 확인 — `https://qahub.maxihan.com` 에 로그인 → 케이스 목록이 뜨고 → 지난 실행을 열어 스크린샷이 보이고 → 웹 정식 실행 1건 · Android 앱 정식 실행 1건이 끝까지 돈다
