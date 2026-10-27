@@ -1,5 +1,5 @@
 # 맥용 덧붙임 — 작성(author) · 부하(perf-agent)만 띄워 클라우드 QA Hub 에 붙인다 (SPEC 공통/6 §9.2 「서버와 맥에 나눠 띄우기」)
-# 띄울 때만 -f 로 붙인다. 맥의 pre-push 가 쓰는 빈 postgres 는 덧붙임 없이 `docker compose up -d postgres` 다 (docs/SETUP.md §20)
+# 띄울 때만 -f 로 붙인다. 맥의 pre-push 가 쓰는 postgres 는 내리지 않고, 꺼져 있으면 덧붙임 없이 `docker compose up -d postgres` 다 (docs/SETUP.md §20)
 # `!reset` 은 Docker Compose 2.24.4 부터 읽는다 — 그보다 낮으면 depends_on 이 남아 맥에 admin 이 같이 뜬다(`docker compose version`)
 #   docker compose -f docker-compose.yml -f docker-compose.mac.yml --profile authoring up -d --build author perf-agent
 
