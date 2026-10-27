@@ -39,6 +39,7 @@ const 면제 = new Map([
   ['apps/perf-agent/src/dummy.test.ts', '가짜 더미 클라이언트가 임시 폴더에 쓴 파일만 읽는다 (2026-10-22 PR #378 — PR #382 에서 더함)'],
   ['scripts/authoring-xlsx.test.ts', '테스트가 만든 임시 폴더에 변환 명령이 쓴 글자본만 읽는다 (2026-10-22 PR #388)'],
   ['scripts/authoring-game.test.ts', '테스트가 만든 임시 자료 폴더에 받은 창 기록 저장본 · 게임 지도만 읽는다 (2026-10-23 PR #415)'],
+  ['apps/admin/src/artifactFile.test.ts', '테스트가 만든 임시 볼륨 폴더에 러너에서 받아 남긴 파일만 읽는다 (2026-10-27 PR #476 — PR #478 에서 더함)'],
 ]);
 
 function 테스트파일들(폴더) {
