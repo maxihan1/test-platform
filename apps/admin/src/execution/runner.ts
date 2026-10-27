@@ -16,24 +16,16 @@ import { 케이스판 } from '../apidoc/caseDoc.js';
 
 import { 서명주소 } from './buildFile.js';
 import { 팜주소, 팜폰으로 } from './farm.js';
+import { runnerUrl, 답하나, 러너들, 러너머리 } from './runnerAddr.js';
 import type { PendingItem } from './store.js';
+
+export { runnerUrl };
 
 // 러너는 자기 제한 시간이 지나면 자식을 죽이고 200 + NA로 돌려준다. 이쪽이 먼저 끊으면 그 부분 결과가 사라진다
 const RUNNER_GRACE_MS = 30_000;
 
 export function httpTimeoutMs(timeoutMs: number): number {
   return timeoutMs + RUNNER_GRACE_MS;
-}
-
-// 컨테이너에서는 compose가 http://runner:4000을 넣어 준다. 호스트에서 손으로 돌릴 때가 이 기본값이다
-export function runnerUrl(): string {
-  return process.env.RUNNER_URL ?? 'http://localhost:4000';
-}
-
-// 진행을 물을 러너들. 로컬 러너가 있고 컨테이너와 다를 때만 둘이다
-function 러너들(): string[] {
-  const 로컬 = process.env.LOCAL_RUNNER_URL;
-  return 로컬 && 로컬 !== runnerUrl() ? [runnerUrl(), 로컬] : [runnerUrl()];
 }
 
 export function na(item: Pick<PendingItem, 'historyId'>, message: string, stack?: string): ExecuteResponse {
@@ -47,7 +39,7 @@ export async function abortRunner(historyId: number): Promise<boolean> {
   try {
     const res = await fetch(`${runnerUrl()}/abort`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', ...러너머리() },
       body: JSON.stringify({ historyId }),
       signal: AbortSignal.timeout(10_000),
     });
@@ -68,7 +60,7 @@ export async function 진행(): Promise<RunningStep[]> {
     러너들().map(async (주소): Promise<RunningStep[]> => {
       try {
         // 화면이 짧은 주기로 다시 묻는다. 오래 매달려 있어 봐야 다음 물음이 덮는다
-        const res = await fetch(`${주소}/progress`, { signal: AbortSignal.timeout(3_000) });
+        const res = await fetch(`${주소}/progress`, { headers: 러너머리(), signal: AbortSignal.timeout(3_000) });
         if (!res.ok) return [];
         return ((await res.json()) as { items?: RunningStep[] }).items ?? [];
       } catch {
@@ -89,8 +81,10 @@ function 거절사유(status: number, json: unknown): string {
 
 // fetch(undici) 는 응답 머리를 300초까지만 기다린다(headersTimeout). 러너는 판이 끝나야 머리를 보내므로
 // 5분 넘는 케이스·시나리오가 그 벽에 끊긴다. 그래서 긴 호출은 node:http 로 보내고 제한은 요청 전체에 한 번만 건다
-// 주소를 넘기면 그 러너로 간다 — 테스트 실행이 내 컴퓨터 러너(LOCAL_RUNNER_URL)를 부른다
-export function 러너에보낸다(경로: string, 본문: unknown, 제한ms: number, 주소: string = runnerUrl()): Promise<{ status: number; json: unknown }> {
+// 주소를 넘기면 그 러너로 간다 — 테스트 실행이 내 컴퓨터 러너(LOCAL_RUNNER_URL)를 부른다.
+// 잠든 맥 러너에 매달리지 않게 2초 안에 답하는지 먼저 본다 — 못 닿은 것과 같은 길로 접힌다 (SPEC 도메인/러너 §5.2 「러너 토큰 · 파일 내주기」)
+export async function 러너에보낸다(경로: string, 본문: unknown, 제한ms: number, 주소: string = runnerUrl()): Promise<{ status: number; json: unknown }> {
+  if (!(await 답하나(주소))) throw new Error(`러너가 2초 안에 /health 에 답하지 않았다 — 꺼졌거나 잠들었을 수 있다 (${주소})`);
   const url = new URL(`${주소}${경로}`);
   const data = JSON.stringify(본문);
   return new Promise((resolve, reject) => {
@@ -98,7 +92,7 @@ export function 러너에보낸다(경로: string, 본문: unknown, 제한ms: nu
       url,
       {
         method: 'POST',
-        headers: { 'content-type': 'application/json', 'content-length': Buffer.byteLength(data) },
+        headers: { 'content-type': 'application/json', 'content-length': Buffer.byteLength(data), ...러너머리() },
         // 공용 agent 의 keep-alive 소켓 제한(5초)이 긴 응답에 끼어들지 않게 한 번 쓰고 버린다
         agent: false,
       },

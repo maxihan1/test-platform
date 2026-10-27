@@ -1,6 +1,6 @@
 // 러너가 받아 둔 팜 증적(화면 영상 · logcat)을 찾아 목록과 파일로 내준다 (SPEC 도메인/러너 §5.2 「디바이스 팜 접속 방식」)
 
-import { readdir, stat } from 'node:fs/promises';
+import { stat } from 'node:fs/promises';
 import { Readable } from 'node:stream';
 import type { ReadableStream as 웹스트림 } from 'node:stream/web';
 import { basename, dirname, join, resolve } from 'node:path';
@@ -10,7 +10,7 @@ import { APPIUM_SESSION_ID_FILE, FARM_EVIDENCE_DIR, runDir } from '@platform/kit
 import type { FastifyInstance } from 'fastify';
 
 import { 정수 } from '../routeParams.js';
-import { 볼륨파일, 볼륨파일읽기 } from '../artifactFile.js';
+import { 볼륨목록, 볼륨파일, 볼륨파일읽기 } from '../artifactFile.js';
 
 import { 팜주소 } from './farm.js';
 
@@ -28,13 +28,8 @@ const 차례 = new Intl.Collator('en', { numeric: true });
 /** 없으면 빈 목록이다 — 통과 항목 · 브라우저 항목 · 팜이 아닌 Appium · 아직 받는 중 */
 export async function 팜증적목록(runId: number, historyId: number): Promise<팜파일[]> {
   const 곳 = 폴더(runId, historyId);
-  let 이름들: string[];
-  try {
-    이름들 = await readdir(곳);
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return [];
-    throw new Error(`팜 증적 폴더를 읽지 못했다 (${곳}): ${err instanceof Error ? err.message : String(err)}`);
-  }
+  // 정식 실행을 터널로 이은 맥 러너가 돌렸으면 그 러너의 것도 합친다 (SPEC 공통/3 §5.3 「러너 여러 대」)
+  const 이름들 = await 볼륨목록(곳);
   // 바로가기 · 폴더는 목록에서 뺀다 — 통로가 이 목록에 있는 이름만 내준다
   const 파일들 = await Promise.all(
     이름들.sort(차례.compare).map(async (name) => {

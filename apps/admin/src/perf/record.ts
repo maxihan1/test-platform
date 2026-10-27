@@ -1,13 +1,13 @@
 // 녹화 실행 — 케이스 · E2E 를 서버 러너로 한 번 돌려 HAR 를 받고, 가려서 AI 일 재료로 바꾼다 (도메인/성능 §3.9 「시나리오 만들기」 · 도메인/러너 「녹화 실행」)
 
 import { randomUUID } from 'node:crypto';
-import { mkdir, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { BrowserPlatform, ExecuteRequest } from '@platform/kit';
 
 import { 케이스판 } from '../apidoc/caseDoc.js';
-import { 볼륨파일읽기 } from '../artifactFile.js';
+import { 볼륨목록, 볼륨파일읽기 } from '../artifactFile.js';
 import type { 대상줄 } from '../authoring/reverse.js';
 import { enqueue } from '../execution/dispatcher.js';
 import { artifactsDir } from '../execution/routes.js';
@@ -96,7 +96,8 @@ async function 시나리오돌리기(jobId: number, env: string, 대상: Extract
 async function HAR읽기(폴더: string): Promise<unknown[]> {
   let 이름들: string[] = [];
   try {
-    이름들 = (await readdir(폴더)).filter((n) => /^\d+\.har$/.test(n)).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+    // 녹화를 돌린 서버 러너가 터널로 이은 맥이면 그 러너의 것도 합친다 (SPEC 공통/3 §5.3 「러너 여러 대」)
+    이름들 = (await 볼륨목록(폴더)).filter((n) => /^\d+\.har$/.test(n)).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
   } catch {
     return [];
   }
