@@ -135,7 +135,7 @@ describe('팜기록글', () => {
 describe('GET /api/runs/:runId/items/:historyId/farm-video', () => {
   const 팜 = 'http://farm.test:4723/wd/hub';
   const 영상본문 = '0123456789';
-  const 받음: { 주소: string; range: string | null }[] = [];
+  const 받음: { 주소: string; range: string | null; 인증: string | null }[] = [];
 
   async function 영상앱() {
     const app = Fastify();
@@ -146,7 +146,7 @@ describe('GET /api/runs/:runId/items/:historyId/farm-video', () => {
   function 가짜팜(목록: { status: number; body?: unknown }, 영상?: { status: number; headers?: Record<string, string>; body?: string }): void {
     vi.stubGlobal('fetch', async (주소: string | URL, 설정?: RequestInit) => {
       const 글 = String(주소);
-      받음.push({ 주소: 글, range: new Headers(설정?.headers).get('range') });
+      받음.push({ 주소: 글, range: new Headers(설정?.headers).get('range'), 인증: new Headers(설정?.headers).get('authorization') });
       if (글.endsWith('/artifacts')) return new Response(JSON.stringify(목록.body ?? {}), { status: 목록.status });
       if (영상 === undefined) throw new Error('connect ECONNREFUSED');
       return new Response(영상.body ?? 영상본문, { status: 영상.status, headers: 영상.headers ?? { 'content-type': 'video/mp4' } });
@@ -165,7 +165,16 @@ describe('GET /api/runs/:runId/items/:historyId/farm-video', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     delete process.env.DEVICE_FARM_URL;
+    delete process.env.DEVICE_FARM_TOKEN;
     받음.length = 0;
+  });
+
+  it('DEVICE_FARM_TOKEN 이 있으면 목록 · 영상 둘 다 Bearer 로 받는다', async () => {
+    process.env.DEVICE_FARM_TOKEN = 'pat_abc';
+    가짜팜({ status: 200, body: 파일들('video-1.mp4') }, { status: 200 });
+
+    expect((await 불러온다()).statusCode).toBe(200);
+    expect(받음.map((r) => r.인증)).toEqual(['Bearer pat_abc', 'Bearer pat_abc']);
   });
 
   it('번호 파일의 연결로 팜 영상 목록을 불러 첫 조각(숫자 순)만 흘려보낸다', async () => {

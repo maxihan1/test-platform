@@ -3,7 +3,7 @@
 import { z } from 'zod';
 
 import { 대상줄읽기 } from '../authoring/reverse.js';
-import { 팜주소 } from '../execution/farm.js';
+import { 팜머리, 팜주소 } from '../execution/farm.js';
 import { 러너머리 } from '../execution/runnerAddr.js';
 import { 기기목표 } from './deviceStats.js';
 import * as 표 from './store.js';
@@ -62,7 +62,7 @@ export async function 기기목록(): Promise<기기[]> {
 
 async function 팜기기들(팜: string): Promise<기기[]> {
   try {
-    const res = await fetch(`${팜}/api/devices`, { signal: AbortSignal.timeout(목록제한ms) });
+    const res = await fetch(`${팜}/api/devices`, { headers: 팜머리(), signal: AbortSignal.timeout(목록제한ms) });
     if (!res.ok) return [];
     const 몸 = (await res.json()) as { value?: { devices?: { serial?: unknown; state?: unknown; model?: unknown; osVersion?: unknown }[] } };
     return (몸.value?.devices ?? []).flatMap((d) =>
@@ -95,7 +95,7 @@ export async function 팜기기재료(): Promise<{ serial: string; model: string
   const 팜 = 팜주소();
   if (팜 === undefined) return [];
   try {
-    const res = await fetch(`${팜}/api/devices`, { signal: AbortSignal.timeout(목록제한ms) });
+    const res = await fetch(`${팜}/api/devices`, { headers: 팜머리(), signal: AbortSignal.timeout(목록제한ms) });
     if (!res.ok) return [];
     const 몸 = (await res.json()) as { value?: { devices?: { serial?: unknown; model?: unknown; osVersion?: unknown; resolution?: unknown }[] } };
     const 글 = (v: unknown) => (typeof v === 'string' ? v : '');
