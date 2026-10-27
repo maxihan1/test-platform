@@ -12,7 +12,8 @@ export const SURFACES = [
   { name: 'SPEC', tier: 3, globs: ['docs/SPEC.md', 'docs/spec/**'] },
   // .env.example 도 COMPOSE 다 — docker-compose 가 읽는 값의 목록이고, 여기 빠진 설정값은
   // 배포하는 사람이 적을 자리를 못 찾는다 (2026-09-22 미분류였다)
-  { name: 'COMPOSE', tier: 3, globs: ['docker-compose.yml', '.env.example', 'apps/*/Dockerfile', 'playwright.config.ts'] },
+  // 서버 · 맥 덧붙임 compose 와 서버 pull timer 도 운영 배포 설정이라 같다 (2026-10-27 PR #477 뒤 미분류였다)
+  { name: 'COMPOSE', tier: 3, globs: ['docker-compose*.yml', '.env.example', 'apps/*/Dockerfile', 'playwright.config.ts', 'infra/server/**'] },
 
   { name: 'AUTH', tier: 2, globs: ['apps/admin/src/auth/**', 'apps/admin/src/settings/**'] },
   { name: 'RUNNER', tier: 2, globs: ['apps/runner/**'] },
