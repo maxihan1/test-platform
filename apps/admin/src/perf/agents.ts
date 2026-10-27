@@ -21,10 +21,13 @@ export function 설치명령(주소: string, 토큰: string, mode: 'LOAD' | 'MON
 // 앞단(Caddy) 뒤에서는 요청이 http 로 들어와 설치 명령이 http 주소가 된다 — 에이전트가 https 로 넘어가며 토큰이 떨어져 401 이라 공개 주소를 먼저 쓴다
 export function 설치주소(공개주소: string | undefined, protocol: string, host: string | undefined): string {
   const 바탕 = (공개주소 ?? '').replace(/\/+$/, '');
-  return 바탕 !== '' ? 바탕 : `${protocol}://${host ?? 'localhost'}`;
+  if (바탕 !== '') return 바탕;
+  // Host 는 요청이 보낸 글자다 — 관리자가 복사해 돌릴 셸 명령에 그대로 넣지 않는다
+  const 호스트 = host !== undefined && /^[A-Za-z0-9.:[\]-]+$/.test(host) ? host : 'localhost';
+  return `${protocol}://${호스트}`;
 }
 
-const 이름겹침 =(e: unknown) => typeof e === 'object' && e !== null && (e as { code?: string }).code === '23505';
+const 이름겹침 = (e: unknown) => typeof e === 'object' && e !== null && (e as { code?: string }).code === '23505';
 
 export default async function perfAgentAdminRoutes(app: FastifyInstance): Promise<void> {
   app.get<{ Querystring: { projectId?: string } }>('/perf/agents', async (req, reply) => {

