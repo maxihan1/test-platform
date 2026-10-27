@@ -183,8 +183,8 @@ openssl rand -hex 32
 | 이름 | 무엇 |
 |------|------|
 | `SESSION_SECRET` | 로그인 세션을 서명하는 키. **비어 있거나 32바이트보다 짧으면 admin이 기동을 거부한다** (`openssl rand -hex 32` 면 충분하다). 임시 키를 지어내면 재기동할 때마다 전원 로그아웃되고, 그 사실을 아무도 모른 채 「가끔 로그인이 풀린다」로 겪는다 |
-| `ADMIN_PORT` · `POSTGRES_PORT` | 바깥 포트. 비우면 `3000`·`5433`으로 뜬다. 한 서버에 다른 것과 같이 띄울 때만 바꾼다. **Grafana 는 바깥 포트가 없다** (2026-09-28) — 플랫폼에 로그인한 뒤 `그래프(Grafana) ↗`(같은 주소의 `/grafana/`)로 들어간다. 그래프(Grafana) 권한(설정 → 계정 → 그래프(Grafana) `읽기`)이 있는 사람만 열린다. 옛 `GRAFANA_PORT` 는 `.env` 에서 지워도 된다 |
-| `POSTGRES_PASSWORD` · `GRAFANA_RO_PASSWORD` | DB 비밀번호 둘 (2026-10-23). 슈퍼유저 `platform` 과 Grafana 읽기 전용 계정 `grafana_ro` 의 것이다. **비우면 `platform` · `grafana_ro` 그대로다.** 서버는 `openssl rand -hex 24` 로 만든 값을 넣는다 — 주소에 그대로 들어가므로 영문 · 숫자만 쓴다(`@` · `#` · `$` 같은 글자는 주소나 `.env` 를 깨뜨린다). **DB 를 처음 만들 때만 읽힌다** — 이미 돌던 서버는 아래 「18. DB 비밀번호 바꾸기」 순서대로 한다. 개발 맥도 바꿔도 된다 — pre-push 의 임시 DB 도 이 두 칸을 읽는다. 맥 Docker Desktop 은 러너가 `host.docker.internal:5433` 으로 DB 에 닿아 비밀번호만 막는다 |
+| `ADMIN_PORT` · `POSTGRES_PORT` | 바깥 포트. 비우면 `3000`·`5434`으로 뜬다(postgres 는 2026-10-27 에 5433 에서 옮겼다 — 맥의 BTS 개발 DB 가 5433 을 쓴다. 옮기는 법은 「20. 서버와 맥에 나눠 띄우기」 「맥 postgres 를 5434 로 옮기기」). 한 서버에 다른 것과 같이 띄울 때만 바꾼다. **Grafana 는 바깥 포트가 없다** (2026-09-28) — 플랫폼에 로그인한 뒤 `그래프(Grafana) ↗`(같은 주소의 `/grafana/`)로 들어간다. 그래프(Grafana) 권한(설정 → 계정 → 그래프(Grafana) `읽기`)이 있는 사람만 열린다. 옛 `GRAFANA_PORT` 는 `.env` 에서 지워도 된다 |
+| `POSTGRES_PASSWORD` · `GRAFANA_RO_PASSWORD` | DB 비밀번호 둘 (2026-10-23). 슈퍼유저 `platform` 과 Grafana 읽기 전용 계정 `grafana_ro` 의 것이다. **비우면 `platform` · `grafana_ro` 그대로다.** 서버는 `openssl rand -hex 24` 로 만든 값을 넣는다 — 주소에 그대로 들어가므로 영문 · 숫자만 쓴다(`@` · `#` · `$` 같은 글자는 주소나 `.env` 를 깨뜨린다). **DB 를 처음 만들 때만 읽힌다** — 이미 돌던 서버는 아래 「18. DB 비밀번호 바꾸기」 순서대로 한다. 개발 맥도 바꿔도 된다 — pre-push 의 임시 DB 도 이 두 칸을 읽는다. 맥 Docker Desktop 은 러너가 `host.docker.internal:5434` 으로 DB 에 닿아 비밀번호만 막는다 |
 | `PLATFORM_PUBLIC_URL` | 이 플랫폼이 바깥에서 열리는 주소. Slack 알림의 「결과 보기」 링크가 이 값 위에 붙는다. **비워 두면 알림에 링크가 안 들어간다** — 틀린 주소를 보내는 것보다 없는 편이 낫다. **아래 maxihan 계정 로그인을 켜면 꼭 채운다** — 돌아올 주소가 이 위에 붙는다. **CI 가 APK 를 올리는 애플리케이션(Android 앱 · 게임)도 꼭 채운다** — 디바이스 팜이 APK 를 받는 서명 주소가 이 위에 붙고, 비우면 그 항목은 미실행으로 닫힌다(도메인/실행 §3.11). 설정 › CI 토큰의 CI 예시 주소도 이 값 위에 붙는다 — 비우면 브라우저를 연 주소가 들어가 localhost 면 CI 가 닿지 않는다 |
 | `AUTH_ISSUER` · `AUTH_CLIENT_ID` · `AUTH_CLIENT_SECRET` | 선택 (2026-10-20). **maxihan 계정(Auth_platform)으로 로그인하게 한다.** Auth_platform 주소와, 거기에 이 플랫폼을 등록하고 받은 client id · secret 이다. 등록할 때 돌아올 주소는 `PLATFORM_PUBLIC_URL` + `/api/auth/sso/callback`, 로그아웃 뒤 돌아올 주소는 `PLATFORM_PUBLIC_URL` + `/` 다. **셋 다 채우면 켜지고 셋 다 비우면 비밀번호 로그인 그대로다. 일부만 채우면 admin 이 기동을 거부한다.** 켜면 로그인 화면이 버튼 하나가 되고 회원가입 · 비밀번호 변경이 사라진다. 기본 계정 `admin` 은 Auth_platform 의 같은 아이디 `admin` 으로 처음 들어올 때 이어진다 (SPEC 도메인/인증 §3.5 「maxihan 계정」) |
 
@@ -688,12 +688,12 @@ export DATABASE_URL=postgres://platform:platform@127.0.0.1:5433/platform
 
 ```bash
 export PGPASSWORD=platform
-psql -h 127.0.0.1 -p 5433 -U platform -d postgres -c 'CREATE DATABASE tp_<이름>'
-PGHOST=127.0.0.1 PGPORT=5433 POSTGRES_USER=platform POSTGRES_DB=tp_<이름> GRAFANA_RO_PASSWORD=grafana_ro bash db/init/01-grafana-readonly.sh   # 역할은 서버에 하나라 이미 있으면 만들기만 건너뛰고 권한을 이 DB 에 건다
+psql -h 127.0.0.1 -p 5434 -U platform -d postgres -c 'CREATE DATABASE tp_<이름>'
+PGHOST=127.0.0.1 PGPORT=5434 POSTGRES_USER=platform POSTGRES_DB=tp_<이름> GRAFANA_RO_PASSWORD=grafana_ro bash db/init/01-grafana-readonly.sh   # 역할은 서버에 하나라 이미 있으면 만들기만 건너뛰고 권한을 이 DB 에 건다
 docker run --rm -v "$PWD/db:/db:ro" ghcr.io/amacneil/dbmate:2 \
-  --url "postgres://platform:platform@host.docker.internal:5433/tp_<이름>?sslmode=disable" \
+  --url "postgres://platform:platform@host.docker.internal:5434/tp_<이름>?sslmode=disable" \
   --migrations-dir /db/migrations --no-dump-schema up            # 호스트에 dbmate 가 없어도 된다
-DATABASE_URL=postgres://platform:platform@127.0.0.1:5433/tp_<이름> npx vitest run <폴더들>
+DATABASE_URL=postgres://platform:platform@127.0.0.1:5434/tp_<이름> npx vitest run <폴더들>
 ```
 
 - 작업방 안에서 돌린다 — `$PWD/db` 가 그 브랜치의 마이그레이션이다
@@ -1064,7 +1064,22 @@ ssh qahub 'cd /opt/qahub && git pull --ff-only origin main && docker compose up 
    남기는 것 — `author_node_modules` · `author_work` 볼륨(작성), `postgres:16` · `ghcr.io/amacneil/dbmate:2` 이미지(pre-push)
 6. Docker Desktop › Settings › Resources 에서 메모리를 8GB 로 둔다
 
-**맥 pre-push 는 맥 postgres 를 쓴다** — 서버 · DB 코드를 push 할 때 `127.0.0.1:5433` 에 임시 DB 를 만든다(`docs/HOOKS.md`). 그때만 빈 postgres 를 띄운다. 덧붙임 파일 없이 친다
+**맥 pre-push 는 맥 postgres 를 쓴다** — 서버 · DB 코드를 push 할 때 `127.0.0.1:5434` 에 임시 DB 를 만든다(`docs/HOOKS.md`). 그때만 빈 postgres 를 띄운다. 덧붙임 파일 없이 친다
 ```bash
 docker compose -p test_platform up -d postgres
 ```
+
+### 맥 postgres 를 5434 로 옮기기 (2026-10-27, 한 번 · 약 2분)
+
+5433 은 맥의 BTS 개발 DB(`bts-postgres-dev`)가 쓴다. BTS 배포 검사(`./gradlew test`)가 거기에 붙는데, QA Hub postgres 가 5433 을 잡고 있으면 BTS 배포가 막힌다. 그래서 QA Hub 쪽이 5434 로 비킨다.
+컨테이너 안 5432 와 데이터(볼륨)는 그대로다. 서버 `.env` 의 `POSTGRES_PORT` 는 이 일로 안 바꾼다 — 맥에서 부딪히는 것만 푼다.
+
+1. 맥 `.env` 의 `POSTGRES_PORT=5433` 줄을 `POSTGRES_PORT=5434` 로 고친다 — `.env.example` 을 복사한 맥에는 이 줄이 있고, 남아 있으면 compose 가 계속 5433 에 띄운다
+2. postgres 만 새 포트로 다시 만든다 — 데이터는 볼륨에 남는다. admin · grafana 는 컨테이너 망 안의 5432 로 붙어 손대지 않는다
+   ```bash
+   docker compose -p test_platform up -d postgres
+   ```
+3. 확인 — `docker ps --format '{{.Names}} {{.Ports}}' | grep postgres` 에 `test_platform-postgres-1 127.0.0.1:5434->5432/tcp` 가 보이면 된 것이다. 이제 BTS 개발 DB 를 5433 에 띄워도 안 부딪힌다
+
+- pre-push 는 이 판이 병합되고 루트가 pull 된 뒤부터 5434 에 붙는다. 옮기기 전에 서버 · DB 코드를 push 하면 「개발 DB(127.0.0.1:5434)에 못 붙었다」로 막힌다 — 위 1 · 2 를 하고 다시 push 한다
+- DB 도구나 셸에 `localhost:5433/platform` 을 적어 둔 곳이 있으면 5434 로 바꾼다

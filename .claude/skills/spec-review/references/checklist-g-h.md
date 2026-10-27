@@ -16,7 +16,7 @@
 
 **G3는 1회로 본다** (2026-09-25 — 서비스 전이라 연속 3회를 걷었다. 서비스를 열 때 apps/admin/CLAUDE.md 의 fixture 규칙과 함께 되살린다). DB 검사는 다시 안 돌린다 — push 때 pre-push 가 돌렸다.
 그래서 **정리 구문을 눈으로 보는 것이 유일한 그물**이다 — 2회차에만 깨지는 찌꺼기를 실행으로는 더 못 잡는다.
-사람이 직접 부르면 `DATABASE_URL='postgres://platform:platform@localhost:5433/platform' npm run test:changed -- origin/main` 한 번.
+사람이 직접 부르면 `DATABASE_URL='postgres://platform:platform@localhost:5434/platform' npm run test:changed -- origin/main` 한 번.
 갈래별 접두사의 정본은 `apps/admin/CLAUDE.md` 의 「DB 테스트 fixture」 목록이다 — 여기 옮겨 적지 않는다.
 **WS-D는 `ZZ`로 시작하는 것을 쓰지 않는다** (WS-A의 `ZZA%` 정리에 지워진다).
 파일이 여러 개면 파일마다 또 가른다.

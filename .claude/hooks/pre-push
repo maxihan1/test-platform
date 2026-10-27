@@ -96,7 +96,7 @@ npm run typecheck --silent || fail "타입 검사가 실패했다."
 if [ "$lane" = "full" ]; then
   # ── 서버 · DB 코드가 바뀌었으면 임시 DB 에서 DB 검사도 돈다 ──────────────────
   # 사람 PR 에 CI 가 없어 DB 검사는 여기서만 돈다 (2026-10-09 사용자). DATABASE_URL 이 없으면 DB 검사는 조용히 건너뛰므로
-  # 개발 postgres(docker compose 의 5433)에 임시 DB 를 만들어 넘긴다. 평소 쓰는 platform DB 에는 새 마이그레이션을 안 건다 (SETUP §13).
+  # 개발 postgres(docker compose 의 5434)에 임시 DB 를 만들어 넘긴다. 평소 쓰는 platform DB 에는 새 마이그레이션을 안 건다 (SETUP §13).
   # 못 붙으면 막는다 — 건너뛰면 초록이 거짓말을 한다
   # 전체를 다시 도는 설정 파일(아래 npm test 조건)이 바뀌어도 DB 검사가 같이 돌아야 한다
   if printf '%s\n' "$changed_all" | grep -v '^apps/admin/src/web/' | grep -qE '^(apps/|packages/|scripts/|db/|package(-lock)?\.json$|vitest\.config\.|tsconfig)'; then
@@ -109,24 +109,24 @@ if [ "$lane" = "full" ]; then
     PG_PW=$(env_val POSTGRES_PASSWORD)
     RO_PW=$(env_val GRAFANA_RO_PASSWORD)
     export PGPASSWORD="${PG_PW:-platform}"
-    psql -h 127.0.0.1 -p 5433 -U platform -d postgres -qc "CREATE DATABASE $DB_NAME" >/dev/null 2>&1 \
-      || fail "개발 DB(127.0.0.1:5433)에 못 붙었다. 도커를 켜고(docker compose up -d postgres)"
-    drop_db() { psql -h 127.0.0.1 -p 5433 -U platform -d postgres -qc "DROP DATABASE IF EXISTS $DB_NAME" >/dev/null 2>&1 || true; }
+    psql -h 127.0.0.1 -p 5434 -U platform -d postgres -qc "CREATE DATABASE $DB_NAME" >/dev/null 2>&1 \
+      || fail "개발 DB(127.0.0.1:5434)에 못 붙었다. main 체크아웃 .env 의 POSTGRES_PORT 가 5434 인지 보고(5433 이면 SETUP §20 「맥 postgres 를 5434 로 옮기기」) 도커를 켜고(docker compose up -d postgres)"
+    drop_db() { psql -h 127.0.0.1 -p 5434 -U platform -d postgres -qc "DROP DATABASE IF EXISTS $DB_NAME" >/dev/null 2>&1 || true; }
     trap drop_db EXIT
     # postgres 이미지처럼 *.sh · *.sql 을 이름 차례로 돈다 — `*.sql` 만 보다가 `.sh` 로 바뀐 뒤 아무것도 못 잡아 조용히 건너뛰었다.
     # 역할은 서버에 하나지만 스크립트가 있으면 만들기만 건너뛰므로 실패는 진짜 실패다
     for f in db/init/*; do
       case "$f" in
-        *.sh) PGHOST=127.0.0.1 PGPORT=5433 POSTGRES_USER=platform POSTGRES_DB="$DB_NAME" GRAFANA_RO_PASSWORD="${RO_PW:-grafana_ro}" bash "$f" >/dev/null ;;
-        *.sql) psql -h 127.0.0.1 -p 5433 -U platform -d "$DB_NAME" -v ON_ERROR_STOP=1 -q -f "$f" >/dev/null ;;
+        *.sh) PGHOST=127.0.0.1 PGPORT=5434 POSTGRES_USER=platform POSTGRES_DB="$DB_NAME" GRAFANA_RO_PASSWORD="${RO_PW:-grafana_ro}" bash "$f" >/dev/null ;;
+        *.sql) psql -h 127.0.0.1 -p 5434 -U platform -d "$DB_NAME" -v ON_ERROR_STOP=1 -q -f "$f" >/dev/null ;;
         *) continue ;;
       esac || fail "임시 DB 에 $f 를 못 걸었다."
     done
     docker run --rm -v "$PWD/db:/db:ro" ghcr.io/amacneil/dbmate:2 \
-      --url "postgres://platform:$PGPASSWORD@host.docker.internal:5433/$DB_NAME?sslmode=disable" \
+      --url "postgres://platform:$PGPASSWORD@host.docker.internal:5434/$DB_NAME?sslmode=disable" \
       --migrations-dir /db/migrations --no-dump-schema up >/dev/null \
       || fail "임시 DB 에 마이그레이션을 못 걸었다. 도커가 켜져 있는지 보고"
-    export DATABASE_URL="postgres://platform:$PGPASSWORD@127.0.0.1:5433/$DB_NAME"
+    export DATABASE_URL="postgres://platform:$PGPASSWORD@127.0.0.1:5434/$DB_NAME"
     echo "[pre-push] 임시 DB $DB_NAME 에서 DB 검사도 돈다"
   fi
   # 바뀐 것과 이어진 검사만 돈다 (vitest --changed) + import 로 안 이어지는 검사(test:always).

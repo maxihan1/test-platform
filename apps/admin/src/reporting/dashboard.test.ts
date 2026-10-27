@@ -21,7 +21,7 @@ const 대시보드: 대시보드 = JSON.parse(
 const 연결 = process.env.DATABASE_URL;
 
 // 주소를 글자로 박지 않고 DATABASE_URL 에서 가져와 계정만 갈아 끼운다.
-// 개발 PC 는 5433, CI 는 5432 라 박아 두면 CI 에서만 ECONNREFUSED 로 죽는다 (2026-09-22 실측).
+// 개발 PC 는 5434, CI 는 5432 라 박아 두면 CI 에서만 ECONNREFUSED 로 죽는다 (2026-09-22 실측).
 // CI 에 DB 가 붙기 전에는 이 검사가 통째로 건너뛰어져 드러나지 않았다
 function 읽기전용주소(원본: string): string {
   const 주소 = new URL(원본);

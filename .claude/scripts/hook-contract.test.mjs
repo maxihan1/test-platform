@@ -189,10 +189,10 @@ test('임시 DB 에 db/init 의 .sh · .sql 을 그 DB 이름으로 걸고, 비�
       const db = 불린것(저장소.DB기록);
       const 이름 = /CREATE DATABASE (tp_prepush_\w+)/.exec(db)?.[1];
       const [pw, ro] = env ? ['s3cret', 'ro9'] : ['platform', 'grafana_ro'];
-      assert.match(db, new RegExp(`psql -h 127\\.0\\.0\\.1 -p 5433 --username platform --dbname ${이름} -v pw=${ro} pw=${pw}`), `.sh 를 임시 DB 에 안 걸었다: ${db}`);
+      assert.match(db, new RegExp(`psql -h 127\\.0\\.0\\.1 -p 5434 --username platform --dbname ${이름} -v pw=${ro} pw=${pw}`), `.sh 를 임시 DB 에 안 걸었다: ${db}`);
       assert.match(db, new RegExp(`psql .*-d ${이름} .*-f db/init/02-x\\.sql pw=${pw}`), `.sql 을 임시 DB 에 안 걸었다: ${db}`);
-      assert.match(db, new RegExp(`docker run .*platform:${pw}@host\\.docker\\.internal:5433/${이름}`), `마이그레이션이 .env 비밀번호를 안 썼다: ${db}`);
-      assert.match(불린것(`${저장소.기록}.db`), new RegExp(`platform:${pw}@127\\.0\\.0\\.1:5433/${이름}`), '검사가 .env 비밀번호를 안 받았다');
+      assert.match(db, new RegExp(`docker run .*platform:${pw}@host\\.docker\\.internal:5434/${이름}`), `마이그레이션이 .env 비밀번호를 안 썼다: ${db}`);
+      assert.match(불린것(`${저장소.기록}.db`), new RegExp(`platform:${pw}@127\\.0\\.0\\.1:5434/${이름}`), '검사가 .env 비밀번호를 안 받았다');
     } finally {
       rmSync(저장소.뿌리, { recursive: true, force: true });
     }
@@ -234,7 +234,7 @@ test('서버 코드가 바뀐 커밋은 임시 DB 를 만들어 검사에 넘기
     assert.ok(이름, `임시 DB 를 안 만들었다: ${db}`);
     assert.match(db, /docker run .*dbmate.*up/, '마이그레이션을 안 걸었다');
     assert.match(db, new RegExp(`DROP DATABASE IF EXISTS ${이름}`), '임시 DB 를 안 지웠다');
-    assert.match(불린것(`${저장소.기록}.db`), new RegExp(`127\\.0\\.0\\.1:5433/${이름}`), '검사가 임시 DB 주소를 못 받았다');
+    assert.match(불린것(`${저장소.기록}.db`), new RegExp(`127\\.0\\.0\\.1:5434/${이름}`), '검사가 임시 DB 주소를 못 받았다');
   } finally {
     rmSync(저장소.뿌리, { recursive: true, force: true });
   }
