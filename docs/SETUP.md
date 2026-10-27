@@ -846,7 +846,7 @@ Android 앱 케이스의 「실행」(결과가 실행 기록 · 증적에 남�
 - 「디바이스 팜이 폰을 내주지 않았습니다: …」 뒤의 문장은 팜이 준 거절 사유다. 뜻은 팜 안내서 7절 표에 있다.
 - 증적의 앱 판이 「판 모름」이면 먼저 팜이 옛 판인지 본다 — 폰에 앱 판을 묻는 옵션(`adb_shell`)은 팜 저장소가 연다(2026-10-22 결정). 팜 저장소를 받아 팜을 `kill -INT` 로 끈 뒤 다시 켠다. 그래도 그러면 SPEC 러너 §5.2 「앱 실행」 「기기 정보」의 다른 까닭을 본다.
 - 「▶ 시험해 보기」는 팜이 아니라 내 컴퓨터 러너다(§10 · §15). 같은 맥이면 팜 화면에서 폰을 「쓰기」로 먼저 잡는다.
-  팜이 인증을 켰으면 러너를 `PLATFORM_APPIUM_TOKEN=<폰을 잡은 사람의 BTS 토큰> npm run runner:local` 로 켠다 — 폰을 잡은 사람과 연결을 여는 토큰이 같아야 팜이 받는다.
+  팜이 인증을 켰으면 러너를 `PLATFORM_APPIUM_TOKEN=<폰을 잡은 사람의 Auth_platform 개인 액세스 토큰> npm run runner:local` 로 켠다 — 폰을 잡은 사람과 연결을 여는 토큰이 같아야 팜이 받는다.
 
 **끄기** — `.env` 의 `DEVICE_FARM_URL` 을 비우고 3번을 다시 한다. 팜 자체를 끄는 법은 팜 안내서에 있다 — `kill -9` 로 끄면 잡은 폰의 정리를 건너뛴다.
 
@@ -959,11 +959,12 @@ docker run -d --init --restart unless-stopped --network host --name qahub-monito
    GRAFANA_RO_PASSWORD=<새 값>
    PLATFORM_PUBLIC_URL=https://qahub.maxihan.com
    DEVICE_FARM_URL=https://farm.maxihan.com/wd/hub
-   DEVICE_FARM_TOKEN=pat_<팜 전용 BTS 계정의 개인 액세스 토큰>
+   DEVICE_FARM_TOKEN=pat_<Auth_platform 에서 발급한 개인 액세스 토큰>
    AUTHORING_AGENT_USER=<맥 .env 와 같은 아이디>
    ```
    - **`DEVICE_FARM_TOKEN` 이 없으면 Android 앱 · 게임 정식 실행이 모두 미실행이다** — 이 팜 주소는 인증 켠 팜만 열려 토큰 없는 요청을 401 로 거절한다. admin · runner 가 팜에 가는 모든 요청에 `Authorization: Bearer` 로 싣는다(SPEC 도메인/러너 §5.2 「디바이스 팜 접속 방식」 「토큰은 서버 몫 하나다」)
-   - **BTS 개인 토큰은 Maxi 계정 것이 아니라, 팜 사용에만 쓰는 권한 작은 BTS 계정에서 발급한다** — 러너에서 도는 Android 앱 · 게임 케이스(AI 가 쓴 코드)와 작성 AI 자식 세션이 이 값을 읽을 수 있다
+   - **토큰은 Auth_platform 에서 발급한다** — 팜이 토큰 주인을 Auth_platform 에 묻는다(OPS-F3-05 부터). 러너에서 도는 Android 앱 · 게임 케이스(AI 가 쓴 코드)와 작성 AI 자식 세션이 이 값을 읽을 수 있지만, Auth_platform 의 개인 액세스 토큰은 누구인지 묻기에만 통해 새도 팜만 쓸 수 있다.
+     맥에서 넣을 때는 `~/.config/farm-pat`(`chmod 600`)에 두고 파일에서 읽어 넣는다 — 대화 · 명령줄에 값이 안 남게
    - `COMPOSE_FILE` 이 서버용 덧붙임 파일을 늘 같이 읽게 한다 — 서버에서 그냥 `docker compose up -d` 를 쳐도 perf-agent 가 안 뜨고 CPU 상한이 걸린다
    - **`ADMIN_PORT` 앞의 `127.0.0.1` 을 빼지 않는다** — 빼면 Docker 가 서버 방화벽(firewalld)을 건너뛰고 13000 을 바깥에 연다. 바깥에서는 Caddy(https)로만 들어온다
    - 작성 토큰 셋(`AUTHORING_AGENT_TOKEN` · `CLAUDE_CODE_OAUTH_TOKEN` · `GH_TOKEN`) · `PERF_AGENT_TOKEN` 은 서버에 두지 않는다 — author · perf-agent 는 맥에 뜬다
