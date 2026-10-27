@@ -963,7 +963,7 @@ docker run -d --init --restart unless-stopped --network host --name qahub-monito
    AUTHORING_AGENT_USER=<맥 .env 와 같은 아이디>
    ```
    - **`DEVICE_FARM_TOKEN` 이 없으면 Android 앱 · 게임 정식 실행이 모두 미실행이다** — 이 팜 주소는 인증 켠 팜만 열려 토큰 없는 요청을 401 로 거절한다. admin · runner 가 팜에 가는 모든 요청에 `Authorization: Bearer` 로 싣는다(SPEC 도메인/러너 §5.2 「디바이스 팜 접속 방식」 「토큰은 서버 몫 하나다」)
-   - **BTS 개인 토큰은 Maxi 계정 것이 아니라, 팜 사용에만 쓰는 권한 작은 BTS 계정에서 발급한다** — 러너에서 도는 케이스(AI 가 쓴 코드)와 작성 AI 자식 세션이 이 값을 읽을 수 있다
+   - **BTS 개인 토큰은 Maxi 계정 것이 아니라, 팜 사용에만 쓰는 권한 작은 BTS 계정에서 발급한다** — 러너에서 도는 Android 앱 · 게임 케이스(AI 가 쓴 코드)와 작성 AI 자식 세션이 이 값을 읽을 수 있다
    - `COMPOSE_FILE` 이 서버용 덧붙임 파일을 늘 같이 읽게 한다 — 서버에서 그냥 `docker compose up -d` 를 쳐도 perf-agent 가 안 뜨고 CPU 상한이 걸린다
    - **`ADMIN_PORT` 앞의 `127.0.0.1` 을 빼지 않는다** — 빼면 Docker 가 서버 방화벽(firewalld)을 건너뛰고 13000 을 바깥에 연다. 바깥에서는 Caddy(https)로만 들어온다
    - 작성 토큰 셋(`AUTHORING_AGENT_TOKEN` · `CLAUDE_CODE_OAUTH_TOKEN` · `GH_TOKEN`) · `PERF_AGENT_TOKEN` 은 서버에 두지 않는다 — author · perf-agent 는 맥에 뜬다
