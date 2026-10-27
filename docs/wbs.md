@@ -55,7 +55,9 @@
   - 후속(F5-09 밖) — PAT 를 Auth 하나로(BTS 가 Auth PAT 를 받게 · BTS PAT 화면 빼기) · 로그인 화면 통일(Maxi 요청)
 - [x] `OPS-F5-10` 러너 위치 설정 — `RUNNER_URL`(정식 실행) · `LOCAL_RUNNER_URL`(내 컴퓨터 러너)로 서버 · 맥을 고른다 · 산출물이 admin 에 없으면 러너에서 HTTP 로 가져온다 · `RUNNER_TOKEN` · 맥 러너 터널 · 잠자기 감지 health check (test_platform)
   - 근거 PR #476 · 2026-10-27 — 코드 · 명세 · 터널 스크립트까지. 서버 sshd 설정 · 실측은 `docs/SETUP.md` §10 「admin 이 다른 기계에 있을 때」(F4-07 뒤 사람이 한다)
-- [ ] `OPS-F5-11` 운영 기본기 — 바깥 uptime 감시(도메인 7개) · 디스크 70% 알림 · 배포 뒤 `docker image prune` · 실측으로 `mem_limit` 다시 맞추기
+- [x] `OPS-F5-11` 운영 기본기 — 바깥 uptime 감시(도메인 7개) · 디스크 70% 알림 · 배포 뒤 `docker image prune` · 실측으로 `mem_limit` 다시 맞추기
+  - 근거 Auth_platform PR #26 · #27 · test_platform PR #490 · demo-market PR #6 · 2026-10-27 — 백업에 BTS `.env` · QA Hub 산출물 볼륨(1001개 · 328M · `opsbackup` 이 읽음) · 이미지 정리 cron 04:30(이미지만 지우면 build cache 가 layer 를 잡아 0B — cache 도 같이, 디스크 31G → 26G · 27%) · 실측 뒤 상한 없던 QA Hub admin 1.5GiB · postgres 512MiB · grafana 512MiB(나머지는 최고치가 상한 안이라 그대로 · 55장 증적 PDF 최고치 742M · OOM 0) · 데모마켓 cookie `Secure`(https 로그인만 · 서버 안 http 는 없음) · 도메인 7개 바깥 200
+  - 후속(F5-11 밖) — 바깥 감시 도메인 7개 · 디스크 70% heartbeat · 일부러 꺼서 알림 확인(Maxi 「나중에」 — 감시 서비스 가입이 필요하다. 스크립트는 서버 `/opt/ops/disk-check.sh` 에 설치만, 절차는 Auth_platform `infra/ops/README.md`)
   - 넘김: F4-08 뒤 데모마켓 cookie `Secure` (demo-market `src/http.ts:60`) — 맥 QA Hub 가 `http://demo:3002` 로 붙던 까닭이 F4-08 뒤 사라진다(서버 QA Hub · 맥 author 모두 `https://demo.maxihan.com`)
   - 넘김: F4-08 — 서버 백업에 QA Hub 산출물 볼륨(`qahub_artifacts` 약 340M · 스크린샷 · 증적)을 담는다. 그 전까지 맥 `test_platform_artifacts` 가 유일한 사본이라 지우지 않는다(`docs/SETUP.md` §20 「맥 정리」 6번)
   - 넘김: F5-09 — 운영 백업 `FILES` 에 `/opt/bts/infra/prod/.env` 가 없다(`BTS_AUTH_PLATFORM_*` · `SERVER_FORWARD_HEADERS_STRATEGY` 가 새 서버로 옮길 때 빠진다) · 며칠 뒤 지우기: 서버 `/root/s15-bak/`(비밀값 사본) · 옛 `bts-caddy` 컨테이너 · `/etc/caddy/Caddyfile.bak`
