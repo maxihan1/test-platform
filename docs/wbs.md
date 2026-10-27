@@ -39,8 +39,9 @@
 
 ### ④ 클라우드로 옮기기
 **무엇** 테스트 대상과 QA Hub 의 상시 서비스를 클라우드로 옮기고, Mac Docker 에는 작성 · 부하 테스트만 남긴다.
-- [ ] `OPS-F4-06` 테스트 대상 이전 — 데모마켓(`/opt/demo` · 쇼핑몰 + 어드민 `/admin` · 운영툴 `/ops` → `demo`, 알림 서버 → `demo-notify`) · Ashveil 서버 + DB(`/opt/ashveil` · `JWT_KEY` · `ADMIN_KEY` 교체 · `Qa` 환경) · QA APK 를 `https://game.maxihan.com` 으로 다시 빌드 (demo-market · ashveil)
+- [x] `OPS-F4-06` 테스트 대상 이전 — 데모마켓(`/opt/demo` · 쇼핑몰 + 어드민 `/admin` · 운영툴 `/ops` → `demo`, 알림 서버 → `demo-notify`) · Ashveil 서버 + DB(`/opt/ashveil` · `JWT_KEY` · `ADMIN_KEY` 교체 · `Qa` 환경) · QA APK 를 `https://game.maxihan.com` 으로 다시 빌드 (demo-market · ashveil)
   - 근거 demo-market PR #4 · Auth_platform PR #20 · 2026-10-27 — 데모마켓 부분: https://demo.maxihan.com 200 · /admin 로그인 → /admin · /ops 200 · https://demo-notify.maxihan.com/openapi.json 200 · /_demo/* 바깥 404
+  - 근거 ashveil PR #6 · #7 · Auth_platform PR #23 · 2026-10-27 — Ashveil 부분: 폰 브라우저 https://game.maxihan.com/health 200 · `/opt/ashveil` Qa · JWT_KEY · ADMIN_KEY 서버에서 새로 만듦(옛 기본키 401) · 백업 ashveil.dump TABLE DATA 13건 · QA APK 빌드 47 기본 서버 주소 game.maxihan.com
 - [ ] `OPS-F4-07` QA Hub 클라우드 이전 — `/opt/qahub` git checkout + pull timer(Mac 작성이 병합한 케이스를 받는다) · admin · postgres · grafana · 서버 러너(`cpus` 1 · `EXECUTION_CONCURRENCY=1` 을 admin 에 전달 · `127.0.0.1:13000`(Auth_platform `infra/edge/README.md` 포트 표) · `extra_hosts` 안 씀(hairpin 이 된다)) · 서버에서 author · perf-agent 를 켜지 않는다 · 맥 DB · 산출물 옮기기 · 대상 서버 주소를 새 도메인으로 (test_platform)
 - [ ] `OPS-F4-08` Mac Docker 정리 — Mac override 로 author(`AUTHORING_MAX_PARALLEL=1`) · perf-agent 만 `https://qahub.maxihan.com` 에 붙인다 · npm 작성 에이전트는 쓰지 않는다(자식 셸이 맥 계정의 운영 서버 키에 닿는다) · 나머지 컨테이너 · 이미지 · 볼륨 삭제 · Docker 메모리 8GB (test_platform)
 
