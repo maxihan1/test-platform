@@ -13,6 +13,8 @@ const 연결 = process.env.DATABASE_URL;
 
 describe.skipIf(연결 === undefined)('카탈로그 API', () => {
   let app: FastifyInstance;
+  // DB 검사는 한 프로세스에서 차례로 돌아 이 값이 다음 파일로 샌다. 사본 폴더를 가리킨 채 두면 다음 파일이 tests 대신 사본을 훑는다
+  const 원래뿌리 = process.env.PLATFORM_TESTS_DIR;
 
   beforeAll(async () => {
     // 같은 워커에서 앞서 돈 테스트가 PLATFORM_TESTS_DIR 을 바꿔 두면 엉뚱한 폴더를 훑는다.
@@ -39,6 +41,8 @@ describe.skipIf(연결 === undefined)('카탈로그 API', () => {
   });
 
   afterAll(async () => {
+    if (원래뿌리 === undefined) delete process.env.PLATFORM_TESTS_DIR;
+    else process.env.PLATFORM_TESTS_DIR = 원래뿌리;
     await app.close();
     const { pool } = await import('../db/index.js');
     await pool.end();

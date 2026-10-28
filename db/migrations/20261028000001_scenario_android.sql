@@ -8,5 +8,6 @@ ALTER TABLE scenario_version ADD CONSTRAINT scenario_version_platform_check CHEC
 
 -- migrate:down
 
+-- android 버전이 한 줄이라도 저장된 뒤에는 아래 CHECK 가 그 줄에 걸려 되돌리기가 실패한다 — 버전은 고치지 않는 이력이라 지우거나 바꾸지 않는다
 ALTER TABLE scenario_version DROP CONSTRAINT scenario_version_platform_check;
 ALTER TABLE scenario_version ADD CONSTRAINT scenario_version_platform_check CHECK (platform IN ('desktop','mobile'));

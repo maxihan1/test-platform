@@ -1,4 +1,4 @@
-// 스캐너 검사용 옛 데모 케이스 사본 — tests/demo 를 작성 에이전트가 다시 써도 scanner.test.ts 가 안 깨지게 둔다
+// 카탈로그 검사용 옛 데모 케이스 사본 — scanner.test.ts · routes.test.ts 가 읽는다(routes 는 DEMO-001 줄 번호까지 본다). tests/demo 가 다시 작성돼도 안 깨지게 둔다
 import { defineCase, test, verify } from '@platform/kit';
 
 export const spec = defineCase({

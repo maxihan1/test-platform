@@ -120,7 +120,9 @@ describe('scan', () => {
   // 특정 케이스 번호를 적지 않는다 — 작성 에이전트가 tests/demo 를 다시 쓰며 DEMO-001~013 을 지워(2026-10-27 작성 요청 14683번) 이 검사가 메인에서 빨갰다
   it('filePath는 tests 폴더 기준 상대 경로다', async () => {
     const { specs } = await 전체스캔();
-    const 첫파일 = (await caseFiles())[0]!;
+    const 파일들 = await caseFiles();
+    expect(파일들.length).toBeGreaterThan(0);
+    const 첫파일 = 파일들[0]!;
     const 뿌리 = resolve(process.cwd(), 'tests');
     expect(specs.find((s) => s.tcId === basename(첫파일, '.spec.ts'))?.filePath).toBe(relative(뿌리, 첫파일));
   });
