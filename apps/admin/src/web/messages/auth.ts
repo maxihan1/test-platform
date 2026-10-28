@@ -12,6 +12,8 @@ export const 계정말: Record<string, string> = {
   '이 플랫폼에서 쓸 수 없는 아이디입니다. 운영자가 확인해야 합니다': 'This ID cannot be used here. An admin needs to check it.',
   '로그인하지 못했습니다. 버튼을 다시 누르면 됩니다': 'Sign-in failed. Press the button again.',
   로그아웃했습니다: 'Signed out',
+  '이 계정으로 로그인': 'Sign in with this account',
+  '다른 계정으로 로그인': 'Sign in with another account',
 
   // 회원가입 화면
   '가입 신청': 'Request access',
