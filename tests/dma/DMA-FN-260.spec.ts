@@ -18,7 +18,7 @@ export const spec = defineCase({
     loginPassword: z.string().describe('일반 회원 비밀번호').optional().meta({ secret: true }),
     상품이름: z.string().describe('주문할 상품 이름 — 옵션이 없고 품절이 아닌 상품').default('USB-C 허브'),
     한글자검색어: z.string().describe('1자 주소 검색어 — 글자 한 개').default('역'),
-    두글자검색어: z.string().describe('2자 주소 검색어 — 결과가 1건 이상인 글자 두 개').default('역삼'),
+    두글자검색어: z.string().describe('2자 주소 검색어 — 결과가 1건 이상인 글자 두 개').default('강남'),
   }),
   expected: null,
 });
@@ -47,7 +47,7 @@ test(spec, async ({ driver, params }) => {
     );
   });
 
-  await test.step('2자 검색어 「역삼」으로 검색한다', async () => {
+  await test.step('2자 검색어 「강남」으로 검색한다', async () => {
     await 토스트비우기(driver);
     await 창.주소찾기(params.두글자검색어);
     await 결과줄뜰때까지(driver).catch(() => undefined);

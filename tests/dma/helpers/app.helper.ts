@@ -4,7 +4,6 @@ export type 앱 = CaseBodyArgs<unknown, unknown>['driver'];
 export type 요소 = WebdriverIO.Element;
 
 export const 앱꾸러미 = 'com.demomarket.app';
-export const 기본서버주소 = 'http://localhost:3002';
 
 const 앞에서도는중 = 4;
 
@@ -16,7 +15,7 @@ export async function 앱다시켜기(driver: 앱): Promise<void> {
 export async function 서버주소로켜기(driver: 앱, 주소: string): Promise<void> {
   await driver.terminateApp(앱꾸러미);
   await driver.execute('mobile: startActivity', {
-    intent: `${앱꾸러미}/.MainActivity`,
+    component: `${앱꾸러미}/.MainActivity`,
     extras: [['s', 'server', 주소]],
   });
 }

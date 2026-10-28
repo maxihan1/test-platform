@@ -1,7 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
-import { 기본서버주소, 서버주소로켜기, 서버값없이켜기 } from './helpers/app.helper.js';
+import { 서버값없이켜기 } from './helpers/app.helper.js';
 import { 로그인화면 } from './pages/login.page.js';
 import { 상품목록화면 } from './pages/product-list.page.js';
 
@@ -34,6 +34,6 @@ test(spec, async ({ driver, params }) => {
       await verify('server 값 없이 켠 앱으로 로그인하면 기본 주소 서버에 붙어 상품 목록이 보인다', await 목록.보이나(), true);
     }, { capture: true });
   } finally {
-    await 서버주소로켜기(driver, 기본서버주소);
+    await 서버값없이켜기(driver);
   }
 });

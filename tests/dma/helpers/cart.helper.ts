@@ -33,6 +33,7 @@ export async function 상품담기(driver: 앱, 상품이름: string): Promise<v
 }
 
 export async function 장바구니줄지우기(driver: 앱, 상품이름: string): Promise<void> {
+  await 목록으로돌아가기(driver);
   const 장바구니 = await 장바구니열기(driver);
   if ((await 장바구니.줄찾기(상품이름)) !== undefined) {
     await 장바구니.한줄만체크(상품이름);
