@@ -34,6 +34,9 @@ export interface 창 {
   close(): Promise<void>;
 }
 
+// 앱 · 게임 단계가 쓰는 자리 — 창 없이 케이스 실행과 그 단계 request 의 로그인 상태 · 닫기만 있다 (SPEC 도메인/시나리오 §3.7 결정 16)
+export type 단계창 = Pick<창, 'runCase' | 'state' | 'close'>;
+
 export interface PartDeps {
   baseUrl: string;
   // 0 이면 한도 없음 — 루트 설정 timeout 0(무제한)에 모든 부품이 0ms 에 죽지 않게 (SPEC 도메인/시나리오 §3.7 「동시성 · 시간」)
@@ -41,6 +44,10 @@ export interface PartDeps {
   이음: 이음;
   // 부품이 있으면 그 부품의 이어 주기를 그 창 · 그 창의 도구에 건다
   newWindow(state: 상태 | undefined, mocks: ReadonlyMap<string, RouteHandler>, 부품?: 부품상태): Promise<창>;
+  // 앱 · 게임 단계 자리. 폰 연결은 그 안에서 하나를 같이 쓴다. 없으면 앱 단계가 실패한다
+  appWindow?(부품: 부품상태): Promise<단계창>;
+  // 앱 · 게임 단계 하나의 한도 — android project 한도다. 없으면 partTimeoutMs (SPEC 도메인/시나리오 §3.7 「동시성 · 시간」)
+  appPartTimeoutMs?: number;
   // 응답 코드를 돌려준다. 못 보내면 던진다. 한도는 Playwright 요청 한도로 건다 — 바깥 상한은 그보다 늦게 걸어야 날아가는 삭제와 다음 삭제가 겹치지 않는다
   sendDelete(d: 미룬삭제, 한도: number): Promise<number>;
   write(result: ScenarioPartResult): void;
@@ -88,7 +95,7 @@ async function 늦어도<T>(일: Promise<T>, ms: number): Promise<T | undefined>
 // 케이스 부품 하나를 부품 시험 한도 안에서 돌린다. 넘으면 상태를 찍고 창을 닫는다 — 끝없는 기다림이
 // 시나리오 전체 제한 시간까지 가 판정 없음(TIMEOUT)이 되면 「틀린 건너뛰기는 언제나 빨강」이 깨진다 (SPEC 도메인/시나리오 §3.7 「동시성 · 시간」)
 async function 한도안에(
-  지금: 창,
+  지금: 단계창,
   part: CasePart,
   seq: number,
   부품: 부품상태,
@@ -141,26 +148,41 @@ export async function runParts(parts: readonly Part[], deps: PartDeps): Promise<
             }
             bound = 꽂음.bound;
 
-            // 부품마다 새 창 — 앞 케이스의 시계 고정 · 주입 스크립트가 뒤로 새지 않게 로그인 상태만 넘긴다 (SPEC 도메인/시나리오 §3.7 결정 3)
-            const 넘김 = part.carryOver === false ? undefined : await 지금창.state();
-            const 앞창 = 지금창;
-            // 앞 창을 닫다가 던져도 새 창이 지금 창이어야 끝에 닫힌다
-            지금창 = await deps.newWindow(넘김, 걸린, 부품);
-            await 앞창.close();
+            let 단계: 단계창;
+            let 한도 = deps.partTimeoutMs;
+            if (part.appStep === true) {
+              // 앱 · 게임 단계는 창을 안 연다 — 웹 창과 그 로그인 상태는 그대로 두어 다음 웹 단계가 이어받는다 (SPEC 도메인/시나리오 §3.7 결정 16)
+              if (deps.appWindow === undefined) throw new Error('이 실행은 앱 · 게임 단계를 돌릴 수 없다');
+              단계 = await deps.appWindow(부품);
+              한도 = deps.appPartTimeoutMs ?? 한도;
+            } else {
+              // 부품마다 새 창 — 앞 케이스의 시계 고정 · 주입 스크립트가 뒤로 새지 않게 로그인 상태만 넘긴다 (SPEC 도메인/시나리오 §3.7 결정 3)
+              const 넘김 = part.carryOver === false ? undefined : await 지금창.state();
+              const 앞창 = 지금창;
+              // 앞 창을 닫다가 던져도 새 창이 지금 창이어야 끝에 닫힌다
+              지금창 = await deps.newWindow(넘김, 걸린, 부품);
+              await 앞창.close();
+              단계 = 지금창;
+            }
 
             돈부품 = 부품;
-            const { outcome, 넘었다 } = await 한도안에(지금창, part, seq, 부품, 꽂음.params, deps.partTimeoutMs);
-            if (outcome !== undefined) {
-              seq = outcome.seq;
-              steps = outcome.steps;
-              if (outcome.failed) {
-                status = 'FAIL';
-                error = outcome.error;
+            try {
+              const { outcome, 넘었다 } = await 한도안에(단계, part, seq, 부품, 꽂음.params, 한도);
+              if (outcome !== undefined) {
+                seq = outcome.seq;
+                steps = outcome.steps;
+                if (outcome.failed) {
+                  status = 'FAIL';
+                  error = outcome.error;
+                }
               }
-            }
-            if (넘었다) {
-              status = 'FAIL';
-              error = { message: `단계 제한 시간 ${deps.partTimeoutMs}ms 를 넘었다` };
+              if (넘었다) {
+                status = 'FAIL';
+                error = { message: `단계 제한 시간 ${한도}ms 를 넘었다` };
+              }
+            } finally {
+              // 앱 단계 자리는 그 단계의 request 만 쥔다. 폰 연결은 시나리오 끝까지 남는다
+              if (단계 !== 지금창) await 단계.close().catch(남김(`${part.tcId} 앱 단계 자리를 못 닫았다`));
             }
             break;
           }

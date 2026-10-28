@@ -3,12 +3,14 @@
 // 여기서 kit 을 한 방식으로 먼저 올리면 같은 kit 파일이 두 방식으로 섞여 죽는다 — 이미지에서는 'Unexpected token export',
 // 로컬에서는 'does not provide an export named' 였다 (2026-09-28 실측)
 
-import type { ScenarioCaseRunner } from '@platform/kit/scenario';
-import type { ScenarioCleanup, ScenarioPartResult } from '@platform/kit';
+import type { ScenarioCaseRunner, ScenarioPhoneOpener } from '@platform/kit/scenario';
+import type { DeviceInfo, ScenarioCleanup, ScenarioPartResult } from '@platform/kit';
 
 export const SCENARIO_PART_MARKER = '@@SCENARIO_PART@@';
 export const SCENARIO_CLEANUP_MARKER = '@@SCENARIO_CLEANUP@@';
 export const SCENARIO_REGISTRY_KEY = 'platform.scenarioCases';
+export const SCENARIO_DEVICE_MARKER = '@@SCENARIO_DEVICE@@';
+export const SCENARIO_PHONE_KEY = 'platform.scenarioPhone';
 
 export function 꺼냄(tcId: string): ScenarioCaseRunner | undefined {
   const g = globalThis as unknown as Record<symbol, Map<string, ScenarioCaseRunner> | undefined>;
@@ -21,4 +23,13 @@ export function 부품줄(result: ScenarioPartResult): string {
 
 export function 뒷정리줄(list: ScenarioCleanup[]): string {
   return `${SCENARIO_CLEANUP_MARKER}${JSON.stringify(list)}\n`;
+}
+
+// 앱 케이스 파일을 import 한 뒤에야 오른다 — 그 케이스의 kit 이 올린다 (도메인/시나리오 §3.7 결정 16)
+export function 폰꺼냄(): ScenarioPhoneOpener | undefined {
+  return (globalThis as unknown as Record<symbol, ScenarioPhoneOpener | undefined>)[Symbol.for(SCENARIO_PHONE_KEY)];
+}
+
+export function 기기줄(device: DeviceInfo): string {
+  return `${SCENARIO_DEVICE_MARKER}${JSON.stringify(device)}\n`;
 }

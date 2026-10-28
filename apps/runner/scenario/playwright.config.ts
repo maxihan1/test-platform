@@ -8,6 +8,7 @@ import root from '../../../playwright.config.js';
 // E2E 시나리오 전용 설정. 고정 spec 하나만 본다 (SPEC 도메인/러너 §5.2)
 const here = dirname(fileURLToPath(import.meta.url));
 // 상대 경로는 이 파일 기준으로 풀린다. 산출물이 이 폴더에 떨어지지 않게 저장소 뿌리 기준으로 적는다
+const 늦춤 = Number(process.env.PLATFORM_SLOW_MO) > 0 ? 5 : 1;
 const artifactsDir = process.env.PLATFORM_ARTIFACTS_DIR ?? resolve(here, '../../../artifacts');
 
 export default defineConfig({
@@ -23,7 +24,11 @@ export default defineConfig({
   timeout: 0,
   // 케이스 부품 하나는 단독 실행과 같은 시험 한도로 돈다. 루트에 timeout 을 넣는 날 둘이 갈리지 않게 거기서 읽는다 — 없으면 Playwright 기본 30초 (SPEC 도메인/시나리오 §3.7 「동시성 · 시간」)
   // 천천히 도는 시험은 다섯 배로 늘린다 — 늦춘 시간이 한도를 먹어 멀쩡한 부품이 끊긴다. 끄면 틀린 건너뛰기가 빨강 대신 전체 제한 시간에 걸린다
-  metadata: { partTimeoutMs: (root.timeout ?? 30_000) * (Number(process.env.PLATFORM_SLOW_MO) > 0 ? 5 : 1) },
+  // 앱 · 게임 단계는 android project 한도로 돈다 — 단독 앱 실행과 같다 (도메인/시나리오 §3.7 결정 16)
+  metadata: {
+    partTimeoutMs: (root.timeout ?? 30_000) * 늦춤,
+    appPartTimeoutMs: (root.projects?.find((p) => p.name === 'android')?.timeout ?? 120_000) * 늦춤,
+  },
   reporter: [[resolve(here, 'reporter.ts')]],
   // 루트 use 를 그대로 받는다 — 회사 서버의 기본 인증 · 사설 인증서 · 창 띄우기가 단독 실행과 같아야 한다
   use: { ...root.use, baseURL: process.env.PLATFORM_BASE_URL },
