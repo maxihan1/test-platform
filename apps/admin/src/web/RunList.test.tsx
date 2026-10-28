@@ -91,6 +91,13 @@ describe('RunList 머리', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'API › 실행 기록' })).toBeTruthy();
   });
 
+  it('API 애플리케이션이라도 UI 테스트 옛 주소면 「실행 기록 › UI 테스트」 그대로다 — API 메뉴에 UI 테스트가 없다', async () => {
+    const 스파이 = vi.spyOn(api, 'runs').mockResolvedValue(한쪽);
+    render(<RunList kind="UI" service="ZRL" envs={서버들} 판정하기={() => 운영} API아래 />);
+    await waitFor(() => expect(스파이).toHaveBeenCalled());
+    expect(await screen.findByRole('heading', { level: 1, name: '실행 기록 › UI 테스트' })).toBeTruthy();
+  });
+
   it('머리 집계 띠가 없다 — 평균 소요는 판단에 안 쓰였다 (점검 1.5)', async () => {
     const { container } = await 그리기();
     await screen.findByText('ZRL 실행 2113');
