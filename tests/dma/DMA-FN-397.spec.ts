@@ -12,12 +12,11 @@ export const spec = defineCase({
   name: '토스트가 뜨고 정해 둔 시간이 지나면 사라진다',
   platforms: ['android'],
   precondition: ['옵션 있는 상품 상세 화면이 떠 있다'],
-  held: '판정 불가 — 토스트가 사라지는 시간 기준이 기획서에 없다',
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),
     loginPassword: z.string().describe('일반 회원 비밀번호').optional().meta({ secret: true }),
     productName: z.string().describe('옵션 있는 상품 — 색상 · 사이즈 옵션이 있는 상품').default('데모 니트 가디건'),
-    toastLimitSeconds: z.number().describe('토스트가 사라질 때까지의 상한(초)'),
+    toastLimitSeconds: z.number().describe('토스트가 사라질 때까지의 상한(초)').default(10),
   }),
   expected: null,
 });

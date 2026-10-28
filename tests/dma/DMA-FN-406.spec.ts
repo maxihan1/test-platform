@@ -9,13 +9,12 @@ export const spec = defineCase({
   name: '최소 주문 금액에 못 미치는 쿠폰은 흐리게 보이고 눌러도 쿠폰 할인이 「쿠폰 할인 -0원」 그대로다',
   platforms: ['android'],
   techniques: ['동등 분할'],
-  held: '보류 — 쿠폰의 최소 주문 금액이 기획서에 없다',
   precondition: ['일반 회원 계정으로 로그인해 있다', '최소 주문 금액에 못 미치는 쿠폰이 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),
     loginPassword: z.string().describe('일반 회원 비밀번호').optional().meta({ secret: true }),
     상품이름: z.string().describe('주문할 상품 이름 — 옵션이 없고 품절이 아닌 상품').default('USB-C 허브'),
-    쿠폰칸이름: z.string().describe('최소 주문 금액에 못 미치는 쿠폰 칸 이름 — 주문 금액이 최소 주문 금액보다 적은 쿠폰의 칸 이름'),
+    쿠폰칸이름: z.string().describe('최소 주문 금액에 못 미치는 쿠폰 칸 이름 — 주문 금액이 최소 주문 금액보다 적은 쿠폰의 칸 이름').default('coupon_FLAT3000'),
   }),
   expected: null,
 });
