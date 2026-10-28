@@ -35,6 +35,13 @@ describe('appCapabilities', () => {
     expect('appium:noReset' in appCapabilities({ PLATFORM_APP: '/tmp/a.apk' })).toBe(false);
   });
 
+  it('E2E 시나리오가 준 연결 유지 시간이 앱 · 게임 기본값보다 앞선다', () => {
+    const env = { PLATFORM_APP: '/tmp/g.apk', PLATFORM_APPIUM_NEW_COMMAND_TIMEOUT: '1800' };
+    expect(appCapabilities(env)['appium:newCommandTimeout']).toBe(1800);
+    expect(appCapabilities({ ...env, PLATFORM_ENGINE: 'GAME' })['appium:newCommandTimeout']).toBe(1800);
+    expect('appium:newCommandTimeout' in appCapabilities({ ...env, PLATFORM_APPIUM_NEW_COMMAND_TIMEOUT: '' })).toBe(false);
+  });
+
   it('PLATFORM_APP 이 없으면 던진다', () => {
     expect(() => appCapabilities({})).toThrow('Android 앱 케이스를 돌리려면 PLATFORM_APP 이 필요하다');
   });

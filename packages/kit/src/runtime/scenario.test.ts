@@ -5,7 +5,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
 import { defineCase } from './defineCase.js';
-import { scenarioCase, type ScenarioCaseInput, type ScenarioPhase } from './scenario.js';
+import type { AppDriver } from './app.js';
+import { SCENARIO_PHONE_KEY, scenarioCase, type ScenarioCaseInput, type ScenarioPhase } from './scenario.js';
 import { test } from './test.js';
 import { verify } from './verify.js';
 
@@ -97,6 +98,16 @@ beforeAll(() => {
       await api('고객사 A').get('/v1/pushes');
     });
   });
+
+  test(defineCase({ tcId: 'XKS-008', name: '앱에서 본다', precondition: [], params: null, expected: null, platforms: ['android'] }), async (args) => {
+    받은입력.push(args.driver);
+    await test.step('어드민으로 고친다', async () => {
+      await args.admin.post('/admin/items');
+    });
+    await test.step('창을 꺼낸다', async () => {
+      void args.page;
+    });
+  });
 });
 
 afterAll(() => {
@@ -177,6 +188,48 @@ describe('시나리오 모드', () => {
     expect(결과.failed).toBe(true);
     expect(결과.error?.message).toBe('XKS-001은 모바일 환경을 선언하지 않았다');
     expect(결과.steps).toEqual([]);
+  });
+
+  describe('앱 · 게임 단계 — page 대신 driver', () => {
+    const 찍은: string[] = [];
+    const driver = { saveScreenshot: async (path: string) => { 찍은.push(path); } } as unknown as AppDriver;
+
+    it('driver 로 돌고 폰 화면을 찍는다 · 어드민 키를 머리로 붙인다 · 없는 page 는 꺼내면 던진다', async () => {
+      받은입력.length = 0;
+      찍은.length = 0;
+      const 보낸머리: unknown[] = [];
+      const 가짜 = {
+        post: async (_url: string, options?: { headers?: unknown }) => {
+          보낸머리.push(options?.headers);
+          return { status: () => 200, text: async () => '{}' };
+        },
+      } as unknown as APIRequestContext;
+
+      const 결과 = await scenarioCase('XKS-008')!(
+        입력({ page: undefined, driver, request: 가짜, platform: 'android', adminKey: { header: 'X-Admin-Key', value: 'k1' } }),
+      );
+
+      expect(받은입력).toEqual([driver]);
+      expect(보낸머리).toEqual([{ 'X-Admin-Key': 'k1' }]);
+      expect(결과.steps.map((s) => s.status)).toEqual(['PASS', 'FAIL']);
+      expect(결과.error?.message ?? 결과.steps[1]?.error?.message).toContain('Android 앱 케이스라 page 가 없다');
+      expect(찍은.length).toBeGreaterThan(0);
+    });
+
+    it('android 단계에 웹 디바이스를 주면 선언하지 않았다로 실패한다', async () => {
+      const 결과 = await scenarioCase('XKS-008')!(입력({ page: undefined, driver, platform: 'desktop' }));
+      expect(결과.error?.message).toBe('XKS-008은 PC 환경을 선언하지 않았다');
+    });
+
+    it('창도 폰 연결도 없으면 실패로 돌려준다', async () => {
+      const 결과 = await scenarioCase('XKS-008')!(입력({ page: undefined, platform: 'android' }));
+      expect(결과.error?.message).toBe('XKS-008에 줄 창도 폰 연결도 없다');
+    });
+
+    it('앱 케이스를 올리면 폰 여는 함수도 등록부에 오른다 — 러너 고정 spec 이 꺼내 쓴다', () => {
+      const 폰 = (globalThis as unknown as Record<symbol, unknown>)[Symbol.for(SCENARIO_PHONE_KEY)];
+      expect(폰).toMatchObject({ open: expect.any(Function), close: expect.any(Function) });
+    });
   });
 
   describe('표시판 — 준비 구간과 절차 밖', () => {
