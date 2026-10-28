@@ -6,7 +6,7 @@ import { basename, dirname, join, resolve } from 'node:path';
 
 import fastifyStatic from '@fastify/static';
 import { APPIUM_SESSION_ID_FILE, FARM_EVIDENCE_DIR, runDir } from '@platform/kit';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 
 import { 정수 } from '../routeParams.js';
 import { 볼륨목록, 볼륨파일, 볼륨파일읽기 } from '../artifactFile.js';
@@ -18,14 +18,14 @@ export interface 팜파일 {
   bytes: number;
 }
 
-// 러너가 쓴 자리와 어긋나지 않게 kit 의 계산을 그대로 쓴다
-const 폴더 = (runId: number, historyId: number): string => join(runDir(String(runId), String(historyId)), FARM_EVIDENCE_DIR);
+// 러너가 쓴 자리와 어긋나지 않게 kit 의 계산을 그대로 쓴다. E2E 시나리오는 항목 번호 자리가 'scenario' 다 (러너 scenario.ts 시나리오폴더)
+const 폴더 = (runId: number, historyId: number | 'scenario'): string => join(runDir(String(runId), String(historyId)), FARM_EVIDENCE_DIR);
 
 // video-10 이 video-2 앞에 오지 않게 숫자를 숫자로 비교한다
 const 차례 = new Intl.Collator('en', { numeric: true });
 
-/** 없으면 빈 목록이다 — 통과 항목 · 브라우저 항목 · 팜이 아닌 Appium · 아직 받는 중 */
-export async function 팜증적목록(runId: number, historyId: number): Promise<팜파일[]> {
+/** 없으면 빈 목록이다 — 통과 항목 · 브라우저 항목 · 팜이 아닌 Appium · 아직 받는 중. 'scenario' 는 E2E 시나리오 한 벌이다 (도메인/시나리오 §3.7 결정 16) */
+export async function 팜증적목록(runId: number, historyId: number | 'scenario'): Promise<팜파일[]> {
   const 곳 = 폴더(runId, historyId);
   // 정식 실행을 터널로 이은 맥 러너가 돌렸으면 그 러너의 것도 합친다 — 이름과 크기만 받고 내용은 내려받을 때 받는다 (SPEC 공통/3 §5.3 「러너 여러 대」).
   // 바로가기 · 폴더는 볼륨목록이 뺀다 — 통로가 이 목록에 있는 이름만 내준다
@@ -120,22 +120,32 @@ export async function 팜증적경로(app: FastifyInstance): Promise<void> {
   // root 는 등록에 필요할 뿐이고 파일마다 그 항목 폴더를 root 로 넘긴다
   await app.register(fastifyStatic, { root: resolve(process.env.PLATFORM_ARTIFACTS_DIR ?? 'artifacts'), serve: false });
 
+  // 이름 하나만 받아 폴더 밖으로 못 나가고, 바로가기 · 폴더는 볼륨파일이 거른다 — 목록과 같은 기준이다
+  const 내준다 = async (reply: FastifyReply, url: string, 곳: string, name: string) => {
+    const 진짜 = name === basename(name) ? await 볼륨파일(join(곳, name)) : null;
+    if (진짜 === null) return reply.code(404).send({ error: 'FARM_FILE_NOT_FOUND', detail: url });
+    // logcat 은 화면에 펼치지 않고 받게 한다. 이름은 팜이 지어 따옴표 · 한글이 섞여도 머리가 안 깨지게 RFC 5987 로 싼다
+    if (name.endsWith('.txt')) {
+      reply.header('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(name)}`);
+    }
+    // 확인한 실제 자리로 보낸다 — 이름으로 다시 풀면 그사이 바꿔 건 바로가기를 따라간다
+    return reply.sendFile(basename(진짜), dirname(진짜));
+  };
+
   app.get<{ Params: { runId: string; historyId: string; name: string } }>(
     '/runs/:runId/items/:historyId/farm/:name',
     async (req, reply) => {
       const runId = 정수(req.params.runId);
       const historyId = 정수(req.params.historyId);
       if (runId === null || historyId === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.url });
-      // 이름 하나만 받아 폴더 밖으로 못 나가고, 바로가기 · 폴더는 볼륨파일이 거른다 — 목록과 같은 기준이다
-      const { name } = req.params;
-      const 진짜 = name === basename(name) ? await 볼륨파일(join(폴더(runId, historyId), name)) : null;
-      if (진짜 === null) return reply.code(404).send({ error: 'FARM_FILE_NOT_FOUND', detail: req.url });
-      // logcat 은 화면에 펼치지 않고 받게 한다. 이름은 팜이 지어 따옴표 · 한글이 섞여도 머리가 안 깨지게 RFC 5987 로 싼다
-      if (name.endsWith('.txt')) {
-        reply.header('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(name)}`);
-      }
-      // 확인한 실제 자리로 보낸다 — 이름으로 다시 풀면 그사이 바꿔 건 바로가기를 따라간다
-      return reply.sendFile(basename(진짜), dirname(진짜));
+      return 내준다(reply, req.url, 폴더(runId, historyId), req.params.name);
     },
   );
+
+  // E2E 시나리오는 팜 증적이 시나리오에 한 벌이다 (도메인/시나리오 §3.7 결정 16 「결과」)
+  app.get<{ Params: { runId: string; name: string } }>('/runs/:runId/scenario/farm/:name', async (req, reply) => {
+    const runId = 정수(req.params.runId);
+    if (runId === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.url });
+    return 내준다(reply, req.url, 폴더(runId, 'scenario'), req.params.name);
+  });
 }

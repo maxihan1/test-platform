@@ -1,6 +1,8 @@
 // E2E AI 흐름 후보 일 — 재료 모으기 · 맡기기 · 작성 에이전트 꺼짐 · 오래된 일 닫기 · 결과 다듬기 · 결과 보기 (도메인/시나리오 §3.7 결정 15 · §7 「마법사 통로」)
 // 일 표 · 집기 · 끝 알리기는 성능 AI 일 그대로다(perf/ai.ts) — 여기는 흐름 후보만의 규칙을 둔다
 
+import type { Platform } from '@platform/kit';
+
 import { tcId종류 } from '../catalog/rules.js';
 import { 맥락읽기 } from '../catalog/context.js';
 import { 오래된일닫기, 일만들기, 일하나 } from '../perf/ai.js';
@@ -58,7 +60,7 @@ export async function 흐름일닫기(): Promise<void> {
 }
 
 /** 시작 애플리케이션 하나의 재료. 케이스 파일 원문 · 화면 기록 원문 · 서비스 가이드는 넣지 않는다 */
-async function 재료읽기(서비스: number, prefix: string, platform: 'desktop' | 'mobile', wish: string | null): Promise<흐름재료> {
+async function 재료읽기(서비스: number, prefix: string, platform: Platform, wish: string | null): Promise<흐름재료> {
   const [판, 맥락, 케이스, 연결들] = await Promise.all([
     지금판(서비스),
     맥락읽기(prefix),
@@ -85,7 +87,7 @@ async function 재료읽기(서비스: number, prefix: string, platform: 'deskto
  */
 export async function 흐름맡기기(
   서비스: { id: number; prefix: string },
-  platform: 'desktop' | 'mobile',
+  platform: Platform,
   wish: string | null,
   who: string,
 ): Promise<{ jobId: number } | { error: 'AGENT_OFFLINE' | 'NO_DATA' }> {

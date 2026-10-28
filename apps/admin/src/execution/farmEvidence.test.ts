@@ -91,6 +91,27 @@ describe('GET /api/runs/:runId/items/:historyId/farm/:name', () => {
   });
 });
 
+describe('E2E 시나리오의 팜 증적', () => {
+  const 시나리오폴더 = () => join(runDir('5', 'scenario'), FARM_EVIDENCE_DIR);
+
+  it('목록은 runs/<runId>/scenario/farm 의 것이고 받는 주소로 내준다 — 남의 폴더 이름은 404 다', async () => {
+    mkdirSync(시나리오폴더(), { recursive: true });
+    writeFileSync(join(시나리오폴더(), 'game-tree.txt'), '/Hud');
+    writeFileSync(join(runDir('5', 'scenario'), '1.png'), 'png');
+
+    expect(await 팜증적목록(5, 'scenario')).toEqual([{ name: 'game-tree.txt', bytes: 4 }]);
+    expect(await 팜증적목록(3, 'scenario')).toEqual([]);
+    const app = await 앱();
+    const res = await app.inject({ method: 'GET', url: '/api/runs/5/scenario/farm/game-tree.txt' });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-disposition']).toBe("attachment; filename*=UTF-8''game-tree.txt");
+    for (const url of ['/api/runs/5/scenario/farm/..%2F1.png', '/api/runs/3/scenario/farm/logcat.txt']) {
+      expect((await app.inject({ method: 'GET', url })).statusCode).toBe(404);
+    }
+    expect((await app.inject({ method: 'GET', url: '/api/runs/x/scenario/farm/game-tree.txt' })).statusCode).toBe(400);
+  });
+});
+
 // 볼륨에 쓰는 쪽은 root 로 도는 케이스라 바로가기를 막을 수 없고, 바로가기는 읽는 admin 쪽에서 풀린다 (리뷰 M4)
 describe('바로가기', () => {
   let 밖: string;

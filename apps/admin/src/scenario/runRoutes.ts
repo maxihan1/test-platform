@@ -3,12 +3,13 @@
 
 import { join } from 'node:path';
 
-import type { ItemStatus, JsonSchema, Platform, ScenarioCleanup, ScenarioPart, StepResult } from '@platform/kit';
+import type { DeviceInfo, ItemStatus, JsonSchema, Platform, ScenarioCleanup, ScenarioPart, StepResult } from '@platform/kit';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 
 import { 증적목록 } from '../execution/queries.js';
 import { 볼륨파일읽기 } from '../artifactFile.js';
+import { 팜증적목록 } from '../execution/farmEvidence.js';
 import { artifactsDir, 시나리오실행인가 } from '../execution/routes.js';
 import { 가린다, 긴것부터 } from '../execution/trial.js';
 import { 항목실패를가른다 } from '../reporting/itemFailure.js';
@@ -29,6 +30,7 @@ const 오류응답: Record<시나리오실행오류['code'], [number, string]> =
   SERVICE_INACTIVE: [400, 'INVALID_REQUEST'],
   ENV_NOT_FOUND: [400, 'ENV_NOT_FOUND'],
   NOT_RUNNABLE: [409, 'SCENARIO_NOT_RUNNABLE'],
+  FARM_OFF: [409, 'FARM_OFF'],
 };
 
 const 잘못 = (reply: FastifyReply, detail: string) => reply.code(400).send({ error: 'INVALID_REQUEST', detail });
@@ -111,9 +113,10 @@ export async function 시나리오결과(runId: number) {
     triggered_by_name: string | null;
     started_at: Date;
     finished_at: Date | null;
+    device: DeviceInfo | null;
   }>(
     `SELECT r.scenario_id, r.scenario_version, r.status, v.platform, s.prefix,
-            r.title, r.env, r.base_url, r.triggered_by, r.triggered_by_name, r.started_at, r.finished_at
+            r.title, r.env, r.base_url, r.triggered_by, r.triggered_by_name, r.started_at, r.finished_at, r.device
        FROM test_run r
        JOIN service s ON s.id = r.service_id
        JOIN scenario_version v ON v.scenario_id = r.scenario_id AND v.version = r.scenario_version
@@ -195,6 +198,10 @@ export async function 시나리오결과(runId: number) {
     triggeredByName: 행.triggered_by_name,
     startedAt: 행.started_at.toISOString(),
     finishedAt: 행.finished_at?.toISOString() ?? null,
+    // 앱 · 게임 단계가 있는 시나리오만 찬다 — 폰 연결이 하나라 시나리오에 한 벌이다 (§3.7 결정 16)
+    device: 행.device,
+    // 러너 볼륨을 훑는 일이라 폰을 쓴 시나리오만 본다 — 웹 시나리오의 결과 · 증적마다 러너를 두드리지 않게
+    farm: 행.platform === 'android' || 행.device !== null ? await 팜증적목록(runId, 'scenario') : [],
     // 케이스 결과 응답(GET /api/runs/:runId)과 같은 모양이다 — 화면이 증적 칸 하나로 둘 다 그린다 (§7)
     evidence: await 증적목록(runId),
   };
@@ -210,9 +217,9 @@ export default async function scenarioRunRoutes(app: FastifyInstance): Promise<v
     // 문 없이 라우트만 띄우는 검사에서만 사람이 빈다 (scenario/routes.ts 의 누가 와 같다)
     const 사람 = { username: req.user?.username ?? '알 수 없음', displayName: req.user?.displayName ?? '알 수 없음' };
     try {
-      const { runId, 요청 } = await 실행만들기(id, parsed.data.env, 사람);
+      const { runId, 요청, 폰 } = await 실행만들기(id, parsed.data.env, 사람);
       // 기다리지 않는다. 시나리오 하나가 수십 분이면 응답이 그동안 열려 있게 된다 (§7)
-      void 시나리오분배(runId, 요청).catch((err: unknown) => {
+      void 시나리오분배(runId, 요청, 폰).catch((err: unknown) => {
         app.log.error(`[scenario] 실행 ${runId} 분배가 깨졌다: ${err instanceof Error ? err.message : String(err)}`);
       });
       return reply.code(201).send({ runId });

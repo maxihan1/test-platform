@@ -17,7 +17,8 @@ import { 부품들모양 } from './validate.js';
 const 시작본문 = z.object({
   service: z.string(),
   env: z.string().min(1),
-  platform: z.enum(['desktop', 'mobile']),
+  // android 는 Android 앱 · 게임 애플리케이션의 시나리오다 (§3.7 결정 16)
+  platform: z.enum(['desktop', 'mobile', 'android']),
   parts: 부품들모양,
 });
 
@@ -35,7 +36,9 @@ export default async function scenarioTrialRoutes(app: FastifyInstance): Promise
       return reply.code(202).send({ trialId });
     } catch (err) {
       if (err instanceof TrialBusyError) return reply.code(409).send({ error: err.code, detail: err.message });
-      if (err instanceof 시험시작오류) return reply.code(400).send({ error: err.code, detail: err.message });
+      // detail 을 싣지 않는다 — 화면 문장이 사유를 다 말한다(케이스 테스트 실행과 같다)
+      if (err instanceof 시험시작오류 && err.code === 'DEVICE_BUSY') return reply.code(409).send({ error: err.code });
+      if (err instanceof 시험시작오류) return reply.code(err.code === 'FARM_OFF' ? 409 : 400).send({ error: err.code, detail: err.message });
       throw err;
     }
   });

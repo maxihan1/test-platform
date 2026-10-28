@@ -7,7 +7,7 @@ import { z } from 'zod';
 
 import { tcId종류 } from '../catalog/rules.js';
 
-import { 섞였나 } from './mixed.js';
+import { type 앱종류, 앱단계인가, 섞였나, 케이스접두사 } from './mixed.js';
 
 // 러너 입구(apps/runner/src/routes.ts scenarioLink · responseRef)와 맞춘다 — 여기서 통과한 것을 러너가 400 으로 돌려보내면 저장만 되고 영영 못 돈다.
 // 바꿔 보내기 경로 규칙과 {} 개수는 사람 말 사유로 알려 주려고 조립검사가 본다
@@ -130,14 +130,30 @@ function 바른경로(path: string): boolean {
 
 /**
  * 거절 사유를 사람 말로 모은다. 비면 통과다. 되돌리기는 이것을 안 건다 (§7 restore)
- * `허용` 은 섞을 수 있는 애플리케이션 접두사 — 시작 애플리케이션과 같은 프로젝트의 것이다 (결정 13). 안 주면 시작 애플리케이션 하나다
+ * `허용` 은 섞을 수 있는 애플리케이션 접두사 — 시작 애플리케이션과 같은 프로젝트의 것이다 (결정 13). 안 주면 시작 애플리케이션 하나다.
+ * `종류` 는 그 가운데 Android 앱 · 게임 애플리케이션 — 그 케이스 단계는 폰에서 도는 앱 · 게임 단계다 (결정 16)
  */
-export function 조립검사(parts: ScenarioPart[], platform: Platform, service: string, 재료: 카탈로그, 허용: readonly string[] = [service]): string[] {
+export function 조립검사(
+  parts: ScenarioPart[],
+  platform: Platform,
+  service: string,
+  재료: 카탈로그,
+  허용: readonly string[] = [service],
+  종류: 앱종류 = new Map(),
+): string[] {
   if (parts.length === 0) return ['단계가 하나도 없다'];
   const 너무큼 = 크기사유(parts);
   if (너무큼 !== null) return [너무큼];
 
   const 오류: string[] = [];
+  // 시작 애플리케이션이 앱 · 게임이면 디바이스는 android 하나고, 웹이면 android 를 못 고른다 (결정 16)
+  if (종류.has(service) && platform !== 'android') 오류.push(`${service} 는 Android 앱 · 게임 애플리케이션이라 디바이스는 android 만 고른다`);
+  if (!종류.has(service) && platform === 'android') 오류.push(`${service} 는 Android 앱 · 게임 애플리케이션이 아니라 android 를 고를 수 없다`);
+  // 폰 연결 하나에 앱 하나다
+  const 앱들 = [...new Set(parts.flatMap((p) => (p.kind === 'case' && 앱단계인가(p, 종류) ? [케이스접두사(p.tcId)] : [])))];
+  if (앱들.length > 1) 오류.push(`앱 · 게임 애플리케이션은 한 시나리오에 하나다: ${앱들.join(' · ')}`);
+  // android 시나리오의 웹 단계는 PC 창으로 돈다
+  const 웹디바이스: Platform = platform === 'android' ? 'desktop' : platform;
   const 섞임 = 섞였나(parts, service);
   const 켜진모킹 = new Set<string>();
   parts.forEach((p, i) => {
@@ -162,7 +178,17 @@ export function 조립검사(parts: ScenarioPart[], platform: Platform, service:
         오류.push(`${자리}: ${p.tcId} 는 없거나 비활성인 케이스다`);
         return;
       }
-      if (!케이스.platforms.includes(platform)) 오류.push(`${자리}: ${p.tcId} 는 ${platform} 을 선언하지 않았다`);
+      const 앱단계 = 앱단계인가(p, 종류);
+      const 필요 = 앱단계 ? 'android' : 웹디바이스;
+      if (!케이스.platforms.includes(필요)) 오류.push(`${자리}: ${p.tcId} 는 ${필요} 을 선언하지 않았다`);
+      // 앱은 폰 안에서 자기 서버와 바로 주고받아 러너가 그 요청을 못 본다 — 결정 16 표가 정본이고 러너 입구(scenarioGate.ts)도 막는다
+      if (앱단계) {
+        if (켜진모킹.size > 0) 오류.push(`${자리}: 앱 · 게임 단계가 모킹 구간 안에 있다 — 모킹은 앱 단계 앞에서 끈다`);
+        if (p.carryOver === false) 오류.push(`${자리}: 앱 · 게임 단계는 넘겨받기를 끌 수 없다 — 끄려면 앱을 다시 켜야 한다`);
+        if (p.links?.some((l) => l.kind !== 'bind') === true) {
+          오류.push(`${자리}: 앱 · 게임 단계에는 값 꽂기만 건다 — 앞 응답 돌려주기 · 요청 막기 · 바꿔 보내기는 앱 요청에 안 걸린다`);
+        }
+      }
       for (const 제목 of p.skipSteps) {
         // 케이스에서 사라진 제목은 실행처럼 무시한다 — 명세 결정 8 · 2026-10-06 사용자
         if (케이스.titles.includes(제목) && !케이스.skippable.includes(제목)) 오류.push(`${자리}: 「${제목}」 은 건너뛸 수 있는 절차가 아니다`);

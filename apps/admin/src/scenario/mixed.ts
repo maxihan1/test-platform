@@ -9,6 +9,12 @@ export type 박제부품 = ScenarioPart & { baseUrl?: string };
 // '-' 가 없는 번호는 번호 전체를 접두사로 본다 — 빈 접두사가 별개의 애플리케이션처럼 끼지 않게
 export const 케이스접두사 = (tcId: string): string => (tcId.includes('-') ? tcId.slice(0, tcId.indexOf('-')) : tcId);
 
+/** 접두사 → 애플리케이션 종류. Android 앱 · 게임 애플리케이션만 든다 — 없으면 웹 애플리케이션이다 (결정 16) */
+export type 앱종류 = ReadonlyMap<string, 'APP' | 'GAME'>;
+
+/** 앱 · 게임 단계인가 — 저장하지 않고 케이스 번호 앞 글자로 그 애플리케이션 종류를 읽는다 (결정 16) */
+export const 앱단계인가 = (part: ScenarioPart, 종류: 앱종류): boolean => part.kind === 'case' && 종류.has(케이스접두사(part.tcId));
+
 /** 시나리오가 쓰는 애플리케이션 접두사. 시작 애플리케이션이 맨 앞이고 중복은 없다 */
 export function 쓰는접두사(parts: readonly ScenarioPart[], 시작: string): string[] {
   const 목록 = new Set([시작]);
