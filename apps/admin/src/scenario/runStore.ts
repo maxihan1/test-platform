@@ -1,16 +1,18 @@
 // 시나리오 실행을 만든다 — 최신 버전으로 test_run(SCENARIO) 한 행과 부품마다 NA 행을 세우고 러너 요청을 돌려준다 (SPEC 도메인/시나리오 §3.7 · §7)
 
-import type { BrowserPlatform, ScenarioExecuteRequest, ScenarioPart } from '@platform/kit';
+import type { Platform, ScenarioExecuteRequest, ScenarioPart } from '@platform/kit';
 import type { 역할계정 } from '@platform/kit/accounts';
 import type { Pool, PoolClient } from 'pg';
 
 import { 부품판 } from '../apidoc/caseDoc.js';
+import { 팜주소 } from '../execution/farm.js';
 import { 저장값을채운다 } from '../execution/savedInput.js';
 import { 미확정사유SQL } from '../prd/unconfirmed.js';
-import { 같은프로젝트접두사, 계정없음, 단계인증, 단계주소, 삭제코드합치기, 쓰는앱읽기 } from './apps.js';
+import { 같은프로젝트접두사, 계정없음, 단계인증, 단계주소, 삭제코드합치기, 쓰는앱읽기, 앱종류들 } from './apps.js';
 import { 점검 } from './checks.js';
-import { 케이스접두사, 쓰는접두사 } from './mixed.js';
+import { 앱단계인가, 케이스접두사, 쓰는접두사 } from './mixed.js';
 import { 케이스재료 } from './parts.js';
+import { type 폰앱, 폰값 } from './phone.js';
 import type { 저장하는사람 } from './store.js';
 import { 시나리오제한시간, 제한시간크기사유, type 카탈로그 } from './validate.js';
 
@@ -25,7 +27,7 @@ const 케이스몫 = 300000;
 
 export class 시나리오실행오류 extends Error {
   constructor(
-    readonly code: 'NOT_FOUND' | 'ARCHIVED' | 'SERVICE_INACTIVE' | 'ENV_NOT_FOUND' | 'NOT_RUNNABLE',
+    readonly code: 'NOT_FOUND' | 'ARCHIVED' | 'SERVICE_INACTIVE' | 'ENV_NOT_FOUND' | 'NOT_RUNNABLE' | 'FARM_OFF',
     message: string,
   ) {
     super(message);
@@ -41,7 +43,7 @@ interface 머리행 {
   tests_repo: string;
   service_active: boolean;
   version: number;
-  platform: BrowserPlatform;
+  platform: Platform;
   parts: ScenarioPart[];
 }
 
@@ -62,7 +64,8 @@ interface 판정 {
   카탈로그: 카탈로그;
 }
 
-type 실행 = { runId: number; 요청: ScenarioExecuteRequest };
+// 폰은 앱 · 게임 단계가 있을 때만 — 분배가 팜에서 폰을 잡고 앱 파일을 정한다 (결정 16)
+type 실행 = { runId: number; 요청: ScenarioExecuteRequest; 폰?: 폰앱 };
 
 export async function 실행만들기(id: number, env: string, 사람: 저장하는사람): Promise<실행> {
   // 판정(케이스 파일 읽기 · pool 연결)은 트랜잭션 밖에서 먼저 한다. 연결 하나를 쥔 채 pool 에서 또 꺼내면
@@ -122,6 +125,10 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
     const { 앱들, 없음 } = await 쓰는앱읽기(쓰는, env, c);
     if (없음 !== null) throw new 시나리오실행오류('ENV_NOT_FOUND', `${없음} 서비스에 ${env} 대상 서버가 없다`);
     const baseUrl = 앱들.get(행.prefix)!.baseUrl;
+    const 종류 = 앱종류들(앱들);
+    const 폰 = 폰값(행.parts, 앱들, env);
+    // 정식 실행은 늘 디바이스 팜이다. 실행 행을 세우기 전에 거절한다 (결정 16)
+    if (폰 !== null && 팜주소() === undefined) throw new 시나리오실행오류('FARM_OFF', 'DEVICE_FARM_URL 이 비어 있다');
 
     if (판정 === undefined || 판정.version !== 행.version) {
       await c.query('ROLLBACK');
@@ -193,7 +200,12 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
           케?.unconfirmed ?? null,
         ],
       );
-      요청부품.push(케 === undefined ? { ...p, ...주소, ...단계인증(p, 행.prefix, 앱들) } : { ...p, ...주소, ...단계인증(p, 행.prefix, 앱들), ...(await 부품판(p, c)), filePath: 케.file_path });
+      // 앱 · 게임 단계 표시는 러너 요청에만 싣는다 — 부품 기록은 종류에서 다시 읽는다 (결정 16)
+      요청부품.push(
+        케 === undefined
+          ? { ...p, ...주소, ...단계인증(p, 행.prefix, 앱들) }
+          : { ...p, ...주소, ...단계인증(p, 행.prefix, 앱들), ...(await 부품판(p, c)), filePath: 케.file_path, ...(앱단계인가(p, 종류) && { appStep: true }) },
+      );
     }
 
     // 확정 전에 쥔 손으로 읽는다 — 확정 뒤에 던지면 RUNNING 실행이 러너 없이 남는다
@@ -202,7 +214,8 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
     await c.query('COMMIT');
     return {
       runId,
-      요청: { runId, platform: 행.platform, baseUrl, parts: 요청부품, timeoutMs: 시나리오제한시간(parts), deleteStatuses },
+      요청: { runId, platform: 행.platform, ...폰?.칸, baseUrl, parts: 요청부품, timeoutMs: 시나리오제한시간(parts), deleteStatuses },
+      ...(폰 !== null && { 폰: 폰.폰 }),
     };
   } catch (err) {
     await c.query('ROLLBACK');

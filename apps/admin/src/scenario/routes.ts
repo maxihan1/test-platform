@@ -1,7 +1,7 @@
 // 시나리오 컨텍스트의 HTTP 라우트 — 저장·버전·되돌리기·치우기·케이스 부품 재료 (SPEC 도메인/시나리오 §7)
 // 배정과 권한은 문(auth/gate.ts)이 이미 봤다. 여기서는 서비스가 실재하는가와 조립 규칙만 본다
 
-import type { ScenarioPart } from '@platform/kit';
+import type { Platform, ScenarioPart } from '@platform/kit';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
@@ -9,7 +9,7 @@ import { 칸되는서비스 } from '../auth/permissions.js';
 import { findService } from '../catalog/store.js';
 import { 정수 } from '../routeParams.js';
 
-import { 같은프로젝트접두사 } from './apps.js';
+import { 같은프로젝트접두사, 앱종류읽기 } from './apps.js';
 import { 점검 } from './checks.js';
 import { 흐름결과읽기, 흐름맡기기 } from './flowJob.js';
 import { 값연결제안들, 제안재료읽기 } from './linkSuggest.js';
@@ -19,7 +19,8 @@ import { 고치기, 되돌리기, 만들기, 목록, 상세, 옛버전, 치우�
 import { 부품들모양, 제한시간크기사유, 조립검사 } from './validate.js';
 
 const 이름 = z.string().trim().min(1).max(100);
-const 디바이스 = z.enum(['desktop', 'mobile']);
+// android 는 Android 앱 · 게임 애플리케이션의 시나리오다 (§3.7 결정 16)
+const 디바이스 = z.enum(['desktop', 'mobile', 'android']);
 // 문이 본문 service 를 접두사 모양으로 이미 봤다. 여기서는 바꾸지 않고 그대로 쓴다
 const 만들기본문 = z.object({ service: z.string(), name: 이름, platform: 디바이스, parts: 부품들모양 });
 const 고치기본문 = z.object({ name: 이름, platform: 디바이스, parts: 부품들모양, baseVersion: z.number().int().min(1) });
@@ -47,11 +48,11 @@ async function 고칠수없음(reply: FastifyReply, 지금: { id: number; isActi
 }
 
 // 만들기·고치기는 조립 규칙을 전부 건다. 되돌리기는 안 건다 — 옛 조합의 복사본이라 막으면 영영 못 되돌린다
-async function 조립오류(parts: ScenarioPart[], platform: 'desktop' | 'mobile', service: string): Promise<string[]> {
+async function 조립오류(parts: ScenarioPart[], platform: Platform, service: string): Promise<string[]> {
   // 시작 애플리케이션과 같은 프로젝트의 애플리케이션 케이스를 섞을 수 있다 (§3.7 결정 13)
   const 허용 = await 같은프로젝트접두사(service);
   const { 카탈로그 } = await 케이스재료(케이스번호들(parts), 허용);
-  return 조립검사(parts, platform, service, 카탈로그, 허용);
+  return 조립검사(parts, platform, service, 카탈로그, 허용, await 앱종류읽기(허용));
 }
 
 export default async function scenarioRoutes(app: FastifyInstance): Promise<void> {

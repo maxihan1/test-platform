@@ -1,7 +1,7 @@
 // E2E AI 흐름 후보 — 재료 짓기 · AI 결과 다듬기 (도메인/시나리오 §3.7 결정 15 「AI 흐름 후보」 · §7 「마법사 통로」)
 // AI 는 있는 케이스를 고르고 잇기만 한다. 재료에 없는 번호와 지도 밖 값 연결은 admin 이 버린다 — 지어낸 주소는 조용히 안 걸린다(결정 12)
 
-import type { ScenarioLink, ScenarioPart } from '@platform/kit';
+import type { Platform, ScenarioLink, ScenarioPart } from '@platform/kit';
 
 import { 주소틀 } from '../../../../scripts/authoring-crawl-rules.js';
 
@@ -14,7 +14,7 @@ export const 연결상한 = 2000;
 export const 요구상한 = 1000;
 
 export interface 흐름재료 {
-  platform: 'desktop' | 'mobile';
+  platform: Platform;
   wish: string | null;
   reqs: { reqId: string; feature: string; kinds: string[]; text: string }[];
   cases: { tcId: string; name: string; reqIds: string[]; screens: string[]; normal: boolean }[];
@@ -23,7 +23,7 @@ export interface 흐름재료 {
 }
 
 export interface 재료원천 {
-  platform: 'desktop' | 'mobile';
+  platform: Platform;
   wish: string | null;
   prd: { reqId: string; feature: string; text: string }[];
   /** 그 애플리케이션의 활성 기능 테스트 — 디바이스는 여기서 거른다 */

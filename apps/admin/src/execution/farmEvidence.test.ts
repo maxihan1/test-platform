@@ -9,7 +9,7 @@ import fastifyStatic from '@fastify/static';
 import Fastify from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { 팜기록글, 팜영상경로, 팜증적경로, 팜증적목록 } from './farmEvidence.js';
+import { 시나리오팜목록, 팜기록글, 팜영상경로, 팜증적경로, 팜증적목록 } from './farmEvidence.js';
 
 let 임시: string;
 const 팜폴더 = () => join(runDir('3', '9'), FARM_EVIDENCE_DIR);
@@ -88,6 +88,27 @@ describe('GET /api/runs/:runId/items/:historyId/farm/:name', () => {
     const app = await 앱();
     const res = await app.inject({ method: 'GET', url: '/api/runs/x/items/9/farm/logcat.txt' });
     expect(res.statusCode).toBe(400);
+  });
+});
+
+describe('E2E 시나리오의 팜 증적', () => {
+  const 시나리오폴더 = () => join(runDir('5', 'scenario'), FARM_EVIDENCE_DIR);
+
+  it('목록은 runs/<runId>/scenario/farm 의 것이고 받는 주소로 내준다 — 남의 폴더 이름은 404 다', async () => {
+    mkdirSync(시나리오폴더(), { recursive: true });
+    writeFileSync(join(시나리오폴더(), 'game-tree.txt'), '/Hud');
+    writeFileSync(join(runDir('5', 'scenario'), '1.png'), 'png');
+
+    expect(await 시나리오팜목록(5)).toEqual([{ name: 'game-tree.txt', bytes: 4 }]);
+    expect(await 시나리오팜목록(3)).toEqual([]);
+    const app = await 앱();
+    const res = await app.inject({ method: 'GET', url: '/api/runs/5/scenario/farm/game-tree.txt' });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-disposition']).toBe("attachment; filename*=UTF-8''game-tree.txt");
+    for (const url of ['/api/runs/5/scenario/farm/..%2F1.png', '/api/runs/3/scenario/farm/logcat.txt']) {
+      expect((await app.inject({ method: 'GET', url })).statusCode).toBe(404);
+    }
+    expect((await app.inject({ method: 'GET', url: '/api/runs/x/scenario/farm/game-tree.txt' })).statusCode).toBe(400);
   });
 });
 

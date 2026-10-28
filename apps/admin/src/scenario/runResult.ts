@@ -4,9 +4,11 @@ import type { ScenarioCleanup, ScenarioExecuteRequest, ScenarioExecuteResponse, 
 import type { Pool, PoolClient } from 'pg';
 
 import { enqueue } from '../execution/dispatcher.js';
+import { 폰차례 } from '../execution/phone.js';
 import { callScenarioRunner } from '../execution/runner.js';
 import { jsonb에맞춘다 } from '../jsonbText.js';
 
+import { type 폰앱, 팜폰으로돌린다 } from './phone.js';
 import { type 부품기록, 부품비밀, 실패부품trace, 시나리오trace경로, trace를지운다 } from './runTrace.js';
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. CI 는 DB 없이 돌아야 하므로 쓸 때 가져온다
@@ -16,11 +18,14 @@ async function db(): Promise<Pool> {
 }
 
 // 케이스 분배와 같은 대기줄을 탄다 — 동시 상한을 나눠 써야 대상 서버가 버틴다 (SPEC §9).
-// finishRun 을 안 쓴다: run_item 이 0건이라 부르는 즉시 FINISHED 가 된다
-export function 시나리오분배(runId: number, 요청: ScenarioExecuteRequest): Promise<void> {
-  return enqueue(async () => {
-    await 결과저장(runId, await callScenarioRunner(요청));
-  });
+// finishRun 을 안 쓴다: run_item 이 0건이라 부르는 즉시 FINISHED 가 된다.
+// 앱 · 게임 단계가 있으면 디바이스 줄 → 동시성 자리 → 팜 폰 차례로 잡는다 — 줄에서 기다리는 동안 웹 실행 자리를 묶지 않게 (§3.7 결정 16)
+export function 시나리오분배(runId: number, 요청: ScenarioExecuteRequest, 폰?: 폰앱): Promise<void> {
+  const 돌기 = () =>
+    enqueue(async () => {
+      await 결과저장(runId, 폰 === undefined ? await callScenarioRunner(요청) : await 팜폰으로돌린다(요청, 폰));
+    });
+  return 폰 === undefined ? 돌기() : 폰차례(돌기);
 }
 
 const 빠진부품 = '러너가 이 단계 결과를 돌려주지 않았다';
@@ -66,10 +71,11 @@ async function 적는다(runId: number, 받은응답: ScenarioExecuteResponse): 
   try {
     await c.query('BEGIN');
     // 실행 행을 먼저 RUNNING 조건으로 닫는다. 재기동 복구가 ABORTED 로 닫은 실행을 늦은 결과가 덮지 않게 한다
+    // 폰 판은 앱 · 게임 단계가 있고 연결이 열렸을 때만 온다 — 시나리오에 한 벌이라 실행 행에 둔다 (§3.7 결정 16)
     const 닫힘 = await c.query(
-      `UPDATE test_run SET status = 'FINISHED', finished_at = now()
+      `UPDATE test_run SET status = 'FINISHED', finished_at = now(), device = $2
         WHERE run_id = $1 AND kind = 'SCENARIO' AND status = 'RUNNING'`,
-      [runId],
+      [runId, 기기글(응답.device)],
     );
     if (닫힘.rowCount === 0) {
       await c.query('ROLLBACK');
@@ -128,6 +134,10 @@ async function 적는다(runId: number, 받은응답: ScenarioExecuteResponse): 
     c.release();
   }
 }
+
+// runLifecycle.ts finishItem 과 같은 거름 — 객체가 아닌 값은 CHECK 에 걸려 결과 전체를 잃는다
+const 기기글 = (device: unknown): string | null =>
+  typeof device === 'object' && device !== null && !Array.isArray(device) ? JSON.stringify(device) : null;
 
 async function 부품적기(c: PoolClient, partId: string, 결과: ScenarioPartResult, 기록: 부품기록 | null): Promise<void> {
   await c.query(
