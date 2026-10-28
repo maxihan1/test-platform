@@ -13,11 +13,14 @@ const 연결 = process.env.DATABASE_URL;
 
 describe.skipIf(연결 === undefined)('카탈로그 API', () => {
   let app: FastifyInstance;
+  // DB 검사는 한 프로세스에서 차례로 돌아 이 값이 다음 파일로 샌다. 사본 폴더를 가리킨 채 두면 다음 파일이 tests 대신 사본을 훑는다
+  const 원래뿌리 = process.env.PLATFORM_TESTS_DIR;
 
   beforeAll(async () => {
     // 같은 워커에서 앞서 돈 테스트가 PLATFORM_TESTS_DIR 을 바꿔 두면 엉뚱한 폴더를 훑는다.
-    // 이 검사는 저장소의 tests 를 봐야 하므로 스스로 고정한다
-    process.env.PLATFORM_TESTS_DIR = resolve(process.cwd(), 'tests');
+    // 스스로 고정한다. 저장소의 tests 대신 옛 데모 케이스 사본을 본다 — 작성 에이전트가 tests/demo 를 다시 쓰며
+    // DEMO-001~013 을 지워(2026-10-27 작성 요청 14683번) 이 검사가 메인에서 빨갰다
+    process.env.PLATFORM_TESTS_DIR = resolve(import.meta.dirname, 'fixtures');
 
     // 스캔은 서비스마다 자기 폴더만 훑는다 (SPEC §9.2). 데모 케이스를 훑으려면 그 서비스가 있어야 한다
     const { pool } = await import('../db/index.js');
@@ -38,6 +41,8 @@ describe.skipIf(연결 === undefined)('카탈로그 API', () => {
   });
 
   afterAll(async () => {
+    if (원래뿌리 === undefined) delete process.env.PLATFORM_TESTS_DIR;
+    else process.env.PLATFORM_TESTS_DIR = 원래뿌리;
     await app.close();
     const { pool } = await import('../db/index.js');
     await pool.end();
@@ -64,7 +69,7 @@ describe.skipIf(연결 === undefined)('카탈로그 API', () => {
 
   it('GET /api/catalog/cases — 활성 케이스를 tcId 순으로 돌려준다', async () => {
     const body = (await app.inject({ method: 'GET', url: '/api/catalog/cases?service=DEMO' })).json();
-    expect(body.total).toBeGreaterThanOrEqual(10);
+    expect(body.total).toBeGreaterThanOrEqual(2);
     expect(body.items.map((i: { tcId: string }) => i.tcId)).toContain('DEMO-001');
     expect(body.items[0].tcId <= body.items[1].tcId).toBe(true);
   });
@@ -105,12 +110,13 @@ describe.skipIf(연결 === undefined)('카탈로그 API', () => {
   });
 
   it('GET /api/catalog/cases?platform= — 그 디바이스를 지원하는 케이스만 남긴다', async () => {
+    const 전체 = (await app.inject({ method: 'GET', url: '/api/catalog/cases?service=DEMO' })).json();
     const body = (await app.inject({ method: 'GET', url: '/api/catalog/cases?service=DEMO&platform=mobile' })).json();
     expect(body.items.length).toBeGreaterThan(0);
     for (const item of body.items) {
       expect(item.platforms).toContain('mobile');
     }
-    expect(body.items.length).toBeLessThan(10);
+    expect(body.items.length).toBeLessThan(전체.total);
   });
 
   it('GET /api/catalog/cases?active=false — 비활성까지 전부 본다', async () => {

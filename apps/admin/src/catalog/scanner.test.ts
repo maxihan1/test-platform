@@ -2,7 +2,7 @@
 
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { basename, join, resolve } from 'node:path';
+import { basename, join, relative, resolve } from 'node:path';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -117,13 +117,23 @@ describe('scan', () => {
     expect(specs.map((s) => s.tcId)).toEqual(파일이름들);
   }, 120_000);
 
+  // 특정 케이스 번호를 적지 않는다 — 작성 에이전트가 tests/demo 를 다시 쓰며 DEMO-001~013 을 지워(2026-10-27 작성 요청 14683번) 이 검사가 메인에서 빨갰다
   it('filePath는 tests 폴더 기준 상대 경로다', async () => {
     const { specs } = await 전체스캔();
-    expect(specs.find((s) => s.tcId === 'DEMO-001')?.filePath).toBe('demo/DEMO-001.spec.ts');
+    const 파일들 = await caseFiles();
+    expect(파일들.length).toBeGreaterThan(0);
+    const 첫파일 = 파일들[0]!;
+    const 뿌리 = resolve(process.cwd(), 'tests');
+    expect(specs.find((s) => s.tcId === basename(첫파일, '.spec.ts'))?.filePath).toBe(relative(뿌리, 첫파일));
   });
 
+  // 아래 넷은 tests 폴더 대신 옛 데모 케이스 사본을 읽는다 — 위와 같은 까닭이다
+  const 데모 = resolve(import.meta.dirname, 'fixtures');
+  let 데모한번: ReturnType<typeof scan> | undefined;
+  const 데모스캔 = () => (데모한번 ??= scan(데모));
+
   it('zod 스키마가 JSON Schema로 변환돼 있고 describe가 라벨로 남는다', async () => {
-    const { specs } = await 전체스캔();
+    const { specs } = await 데모스캔();
     const four = specs.find((s) => s.tcId === 'DEMO-004');
     const properties = four?.paramSchema.properties as Record<string, { description?: string }>;
     expect(properties.resource.description).toBe('조회할 자원');
@@ -132,20 +142,20 @@ describe('scan', () => {
   // 기대값 칸의 라벨도 케이스가 준다. 이 라벨이 실행 설정 화면의 칸 이름이 되므로
   // 길고 서술적이면 폼이 읽히지 않는다. 다국어 표로도 못 옮긴다 — 케이스 저자의 말이다
   it('기대값 칸의 describe 도 라벨로 남는다', async () => {
-    const { specs } = await 전체스캔();
+    const { specs } = await 데모스캔();
     const two = specs.find((s) => s.tcId === 'DEMO-002');
     const properties = two?.expectedSchema.properties as Record<string, { description?: string }>;
     expect(properties.todoCount.description).toBe('기대 할 일 개수');
   });
 
   it('없다고 적은 케이스는 빈 객체 스키마가 된다', async () => {
-    const { specs } = await 전체스캔();
+    const { specs } = await 데모스캔();
     const one = specs.find((s) => s.tcId === 'DEMO-001');
     expect(one?.paramSchema).toEqual({ type: 'object', properties: {} });
   });
 
   it('환경 2개를 선언한 케이스는 그대로 실려 온다', async () => {
-    const { specs } = await 전체스캔();
+    const { specs } = await 데모스캔();
     expect(specs.find((s) => s.tcId === 'DEMO-008')?.platforms).toEqual(['desktop', 'mobile']);
     expect(specs.find((s) => s.tcId === 'DEMO-010')?.platforms).toEqual(['mobile']);
   });
