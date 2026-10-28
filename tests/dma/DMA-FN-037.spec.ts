@@ -1,7 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
-import { 기본서버주소, 서버주소로켜기, 앱다시켜기 } from './helpers/app.helper.js';
+import { 서버값없이켜기, 서버주소로켜기, 앱다시켜기 } from './helpers/app.helper.js';
 import { 로그인화면 } from './pages/login.page.js';
 import { 토스트글읽기 } from './helpers/wait.helper.js';
 
@@ -36,6 +36,6 @@ test(spec, async ({ driver, params }) => {
       await verify('한 번 받은 서버 주소는 다음 실행에도 쓰여 토스트에 그 주소가 다시 보인다', 글.includes(params.serverAddress), true);
     }, { capture: true });
   } finally {
-    await 서버주소로켜기(driver, 기본서버주소);
+    await 서버값없이켜기(driver);
   }
 });

@@ -2,7 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 토스트 } from './components/toast.component.js';
-import { 기본서버주소, 서버주소로켜기 } from './helpers/app.helper.js';
+import { 서버값없이켜기, 서버주소로켜기 } from './helpers/app.helper.js';
 import { 로그인화면 } from './pages/login.page.js';
 
 export const spec = defineCase({
@@ -34,6 +34,6 @@ test(spec, async ({ driver, params }) => {
       await verify('빈 칸으로 「로그인」을 누르면 서버에 보내지 않아 「서버에 연결할 수 없습니다」 토스트가 보이지 않는다', await 알림.보이나(), false);
     }, { capture: true });
   } finally {
-    await 서버주소로켜기(driver, 기본서버주소);
+    await 서버값없이켜기(driver);
   }
 });

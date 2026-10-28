@@ -1,7 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
-import { 기본서버주소, 서버주소로켜기 } from './helpers/app.helper.js';
+import { 서버값없이켜기, 서버주소로켜기 } from './helpers/app.helper.js';
 import { 로그인화면 } from './pages/login.page.js';
 
 export const spec = defineCase({
@@ -32,6 +32,6 @@ test(spec, async ({ driver, params }) => {
       await verify('로그인하는 동안 「로그인」 버튼은 눌리지 않는다', await 로그인.로그인버튼눌리나(), false);
     }, { capture: true });
   } finally {
-    await 서버주소로켜기(driver, 기본서버주소);
+    await 서버값없이켜기(driver);
   }
 });
