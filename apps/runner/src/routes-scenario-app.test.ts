@@ -2,7 +2,7 @@
 
 import type { ScenarioExecuteResponse } from '@platform/kit';
 import Fastify from 'fastify';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { 팜증적받기를줄세운다 } from './farmEvidence.js';
 import { registerRoutes } from './routes.js';
@@ -35,8 +35,14 @@ const 앞응답 = { fromSeq: 1, method: 'POST', urlPattern: '**/api/orders', jso
 const 모킹 = { kind: 'mock', urlPattern: '**/api/pay', status: 200, contentType: 'application/json', body: '{}' };
 
 beforeEach(() => {
+  vi.stubEnv('PLATFORM_APPIUM_URL', 'http://farm.example.com:4723');
+  vi.stubEnv('PLATFORM_APP', '/apk/기본.apk');
   vi.mocked(executeScenario).mockClear();
   vi.mocked(팜증적받기를줄세운다).mockClear();
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe('POST /execute-scenario — 앱 · 게임 단계', () => {
@@ -62,6 +68,17 @@ describe('POST /execute-scenario — 앱 · 게임 단계', () => {
     expect(res.statusCode).toBe(400);
     expect(res.json()).toMatchObject({ error: 'INVALID_REQUEST', detail: expect.stringContaining(까닭) });
     expect(executeScenario).not.toHaveBeenCalled();
+  });
+
+  it('앱 파일 · Appium 주소가 없으면 웹 단계가 돌기 전에 400 이다 — 웹만의 시나리오는 상관없다', async () => {
+    vi.stubEnv('PLATFORM_APP', '');
+    const 앱없음 = await 보냄(요청({ parts: [케이스(), 앱()] }));
+    expect(앱없음.json()).toMatchObject({ error: 'INVALID_REQUEST', detail: expect.stringContaining('깔 앱 파일이 없다') });
+    expect((await 보냄(요청({ app: '/apk/dma.apk' }))).statusCode).toBe(200);
+
+    vi.stubEnv('PLATFORM_APPIUM_URL', '');
+    expect((await 보냄(요청({ app: '/apk/dma.apk' }))).json().detail).toContain('Appium 주소');
+    expect((await 보냄(요청({ platform: 'desktop', parts: [케이스()] }))).statusCode).toBe(200);
   });
 
   it('모킹을 앱 단계 앞에서 끄면 받는다 · 웹 단계의 막기는 그대로 받는다', async () => {

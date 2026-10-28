@@ -135,6 +135,8 @@ function scenarioRunner<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): Sce
       await base.info().attach(STEP_ATTACHMENT, { body: JSON.stringify({ seq }), contentType: 'application/json' });
     }
 
+    // 앞 게임 단계의 오류가 이 단계 실패 기록에 섞이지 않게 시작 자리를 받아 둔다. 못 받으면 처음부터 남긴다
+    const 오류시작 = game === undefined ? 0 : await game.errors().then((r) => r.last, () => 0);
     let error: { message: string; stack?: string } | undefined;
     try {
       // 조립할 때 서버가 막지만, 조립 뒤에 케이스가 디바이스를 뺄 수 있다. 틀린 조립은 언제나 빨강이다 (2026-09-28 사용자)
@@ -159,7 +161,7 @@ function scenarioRunner<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): Sce
     const failed = run.failed || error !== undefined;
     // 실패한 게임 단계 — 그 순간 오브젝트 목록 · 게임 오류 기록을 시나리오 폴더에 둔다. 단독 항목은 정리 단계(appFixture)가 하는 일이다 (도메인/시나리오 §3.7 결정 16 「결과」)
     if (failed && game !== undefined) {
-      await 게임증적을남긴다(game, process.env.PLATFORM_RUN_ID ?? '0', process.env.PLATFORM_HISTORY_ID ?? '0');
+      await 게임증적을남긴다(game, process.env.PLATFORM_RUN_ID ?? '0', process.env.PLATFORM_HISTORY_ID ?? '0', 오류시작);
     }
     return { seq: run.seq, steps, failed, ...(error === undefined ? {} : { error }) };
   };

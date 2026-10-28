@@ -33,7 +33,7 @@ export const 폰시나리오가도는가 = (): boolean => 폰시나리오 > 0;
 
 // 폰 연결 값 — 단독 앱 항목과 같은 이름이고 요청 값이 러너를 켤 때 준 값보다 앞선다. 앱 단계가 없으면 팜 토큰을 빼고 넘긴다(execute.ts 와 같은 까닭)
 export function 폰환경(req: ScenarioExecuteRequest): Record<string, string | undefined> {
-  // 넷 다 늘 적는다 — 러너를 켠 셸의 값을 자식이 물려받지 않게
+  // 다섯 다 늘 적는다 — 러너를 켠 셸의 값을 자식이 물려받지 않게
   if (!폰단계가있나(req)) {
     return { PLATFORM_APPIUM_TOKEN: undefined, PLATFORM_APPIUM_NEW_COMMAND_TIMEOUT: '', PLATFORM_ENGINE: '', PLATFORM_GAME_LINK: '', PLATFORM_ADMIN_KEY: '' };
   }

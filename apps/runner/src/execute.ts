@@ -187,6 +187,8 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
         // 셋 다 늘 적는다 — 러너를 켠 셸의 값을 자식이 물려받지 않게. 게임에 닿는 길은 칸을 더하지 않고 폰 번호로 정한다:
         // admin 이 팜 폰을 잡아 번호를 실은 정식 실행은 디바이스 팜, 번호 없는 내 컴퓨터 테스트 실행은 USB (공통/3-공유계약 「게임 테스트 타입」 engine)
         ...gameEnv(req),
+        // 시나리오만 쓰는 값이다 — 러너를 켠 셸에 남은 값이 단독 항목의 연결 유지 시간을 바꾸지 않게 늘 비운다
+        PLATFORM_APPIUM_NEW_COMMAND_TIMEOUT: '',
         // 성능 녹화 — 설정 파일이 이 경로로 HAR 를 남긴다. 늘 적는다 — 러너를 켠 셸에 값이 있으면 자식이 물려받아 모든 실행을 녹화한다
         PLATFORM_RECORD_HAR: req.recordHar === undefined ? '' : 다음HAR경로(녹화폴더(req.recordHar.jobId)),
       },

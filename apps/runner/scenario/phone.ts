@@ -10,6 +10,9 @@ export interface 폰자리 {
   닫기(): Promise<void>;
 }
 
+// 열리기를 기다리는 상한. 앱 화면 읽기의 연결 열기 한도(src/appScreen.ts)와 같다
+const 닫기상한 = 60_000;
+
 // 여는 일은 kit 이 한다. 고정 spec 은 kit 을 값으로 못 불러, 앱 케이스 파일을 import 한 뒤 등록부에서 꺼낸다(wire.ts 폰꺼냄)
 export function 새폰자리(
   꺼낸다: () => ScenarioPhoneOpener | undefined,
@@ -34,8 +37,15 @@ export function 새폰자리(
     },
     async 닫기() {
       if (여는중 === undefined || 여는것 === undefined) return;
-      // 못 열었으면 닫을 것이 없다 — 그 오류는 그 단계의 실패로 이미 남았다
-      const 폰 = await 여는중.catch(() => undefined);
+      // 못 열었으면 닫을 것이 없다 — 그 오류는 그 단계의 실패로 이미 남았다.
+      // 열리는 도중에 앱 단계가 한도로 떠났고 Appium 이 안 돌아오면 끝없이 기다리게 된다 — 상한 뒤에는 러너가 번호 파일로 닫는다
+      let 타이머: ReturnType<typeof setTimeout> | undefined;
+      const 폰 = await Promise.race([
+        여는중.catch(() => undefined),
+        new Promise<undefined>((done) => {
+          타이머 = setTimeout(() => done(undefined), 닫기상한);
+        }),
+      ]).finally(() => clearTimeout(타이머));
       if (폰 === undefined) return;
       // 못 닫아도 판정은 그대로다. 러너가 연결 번호 파일로 다시 닫는다
       await 여는것.close(폰).catch(남김('폰 연결을 닫지 못했다'));

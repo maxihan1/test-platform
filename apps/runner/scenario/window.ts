@@ -163,9 +163,9 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
 
   return {
     // 앱 · 게임 단계 자리 — 창을 안 연다. 폰은 설정의 연결 하나를 같이 쓰고, 단계마다 새로 만드는 것은 그 단계 request 뿐이다 (SPEC 도메인/시나리오 §3.7 결정 16)
-    async appWindow(부품: 부품상태): Promise<단계창> {
+    async appWindow(부품: 부품상태, state: 상태): Promise<단계창> {
       const 이번: 지금부품 = { 부품, 직접만든: [], 닫힘: false };
-      const 부품요청 = await 원래요청(주소채움({}, 이음값, 부품));
+      const 부품요청 = await 원래요청(주소채움({ storageState: state }, 이음값, 부품));
       let 닫음 = false;
       const 폰쪽: 단계쪽 = async () => {
         if (설정.폰 === undefined) throw new Error('이 실행에는 폰 연결이 없다');

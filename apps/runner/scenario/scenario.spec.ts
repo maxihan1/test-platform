@@ -14,7 +14,7 @@ const 목록 = JSON.parse(process.env.PLATFORM_SCENARIO ?? '[]') as ScenarioExec
 const 삭제코드 = JSON.parse(process.env.PLATFORM_DELETE_STATUSES ?? '[]') as NonNullable<ScenarioExecuteRequest['deleteStatuses']>;
 
 // 팜 토큰 · 어드민 키는 폰을 여는 데와 게임 단계에만 쓴다. 웹 단계 케이스 코드가 process.env 로 못 읽게 케이스를 불러오기 전에 떼어 둔다 (SPEC 도메인/시나리오 §3.7 결정 16)
-const 폰환경 = { ...process.env };
+const 폰열기환경 = { ...process.env };
 const 어드민키 = process.env.PLATFORM_ADMIN_KEY ? (JSON.parse(process.env.PLATFORM_ADMIN_KEY) as NonNullable<ScenarioExecuteRequest['adminKey']>) : undefined;
 delete process.env.PLATFORM_APPIUM_TOKEN;
 delete process.env.PLATFORM_ADMIN_KEY;
@@ -27,7 +27,7 @@ test('E2E 시나리오', async ({ browser }, testInfo) => {
   const partTimeoutMs = typeof 적힌한도 === 'number' ? 적힌한도 : 30_000;
   const 앱한도: unknown = testInfo.config.metadata['appPartTimeoutMs'];
   // 첫 앱 · 게임 단계가 부를 때 연다. 기기 줄은 열린 뒤 한 번 흘린다
-  const 폰 = 새폰자리(폰꺼냄, 폰환경, (device) => {
+  const 폰 = 새폰자리(폰꺼냄, 폰열기환경, (device) => {
     process.stdout.write(기기줄(device));
   });
   const 감싸기 = 감싸기걸기(browser, request, 이음, {

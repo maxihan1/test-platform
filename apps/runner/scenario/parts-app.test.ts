@@ -44,6 +44,8 @@ describe('앱 · 게임 단계', () => {
     expect(받은).toHaveLength(3);
     expect(받은[2]!.state?.cookies).toEqual([쿠키('창1')]);
     expect(appWindow).toHaveBeenCalledTimes(2);
+    // 앱 단계의 request 도 앞 웹 창의 로그인으로 부른다
+    expect(appWindow).toHaveBeenNthCalledWith(1, expect.anything(), { cookies: [쿠키('창1')], origins: [] });
     expect(연.map((자리) => vi.mocked(자리.close).mock.calls.length)).toEqual([1, 1]);
     expect(받은[1]!.창.close).toHaveBeenCalledTimes(1);
   });

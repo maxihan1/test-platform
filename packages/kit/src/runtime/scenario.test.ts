@@ -1,11 +1,16 @@
 // kit 시나리오 모드 검사 — 등록부 · 한 RunScope 로 이어지는 순번 · 부품마다 새로 서는 실패 표시 (SPEC 공통/3-공유계약 §5.1)
 
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import type { APIRequestContext, Page } from '@playwright/test';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
-import { defineCase } from './defineCase.js';
 import type { AppDriver } from './app.js';
+import { defineCase } from './defineCase.js';
+import type { KitGame } from './game.js';
 import { SCENARIO_PHONE_KEY, scenarioCase, type ScenarioCaseInput, type ScenarioPhase } from './scenario.js';
 import { test } from './test.js';
 import { verify } from './verify.js';
@@ -214,6 +219,33 @@ describe('시나리오 모드', () => {
       expect(결과.steps.map((s) => s.status)).toEqual(['PASS', 'FAIL']);
       expect(결과.error?.message ?? 결과.steps[1]?.error?.message).toContain('Android 앱 케이스라 page 가 없다');
       expect(찍은.length).toBeGreaterThan(0);
+    });
+
+    it('실패한 게임 단계는 그 단계가 시작할 때의 오류 번호부터 남긴다 — 앞 게임 단계 오류가 안 섞인다', async () => {
+      const 폴더 = mkdtempSync(join(tmpdir(), 'kit-scn-game-'));
+      const 이전 = { dir: process.env.PLATFORM_ARTIFACTS_DIR, run: process.env.PLATFORM_RUN_ID, his: process.env.PLATFORM_HISTORY_ID };
+      Object.assign(process.env, { PLATFORM_ARTIFACTS_DIR: 폴더, PLATFORM_RUN_ID: '9', PLATFORM_HISTORY_ID: 'scenario' });
+      const 받은since: unknown[] = [];
+      const game = {
+        errors: async (since?: number) => {
+          받은since.push(since);
+          return since === undefined ? { last: 5, errors: [] } : { last: 6, errors: [{ seq: 6, time: 't', type: 'Exception', message: '강화 실패', stack: '' }] };
+        },
+        tree: async () => Promise.reject(new Error('트리 없음')),
+      } as unknown as KitGame;
+      try {
+        const 결과 = await scenarioCase('XKS-008')!(입력({ page: undefined, driver, game, platform: 'android' }));
+
+        expect(결과.failed).toBe(true);
+        expect(받은since).toEqual([undefined, 5]);
+        expect(readFileSync(join(폴더, 'runs', '9', 'scenario', 'farm', 'game-errors.txt'), 'utf8')).toContain('강화 실패');
+      } finally {
+        for (const [키, 값] of [['PLATFORM_ARTIFACTS_DIR', 이전.dir], ['PLATFORM_RUN_ID', 이전.run], ['PLATFORM_HISTORY_ID', 이전.his]] as const) {
+          if (값 === undefined) delete process.env[키];
+          else process.env[키] = 값;
+        }
+        rmSync(폴더, { recursive: true, force: true });
+      }
     });
 
     it('android 단계에 웹 디바이스를 주면 선언하지 않았다로 실패한다', async () => {

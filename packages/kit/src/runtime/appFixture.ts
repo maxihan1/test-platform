@@ -2,8 +2,9 @@
 
 import { test as base } from '@playwright/test';
 
-import { closeApp, openApp, readDevice, type AppDriver } from './app.js';
-import { 게임증적을남긴다, isGame, openGame, type KitGame } from './game.js';
+import { closeApp, type AppDriver } from './app.js';
+import { 게임증적을남긴다, type KitGame } from './game.js';
+import { 폰을연다 } from './phone.js';
 import { DEVICE_ATTACHMENT } from './protocol.js';
 
 export type AppSide = { driver: AppDriver; game?: KitGame };
@@ -16,22 +17,16 @@ export const 앱테스트 = () =>
       let opening: Promise<AppSide> | undefined;
       // 기기 정보는 연 직후 한 번 남긴다 — 리포터가 결과 줄 device 로 싣는다 (도메인/리포팅 §8.4 · APP-F1-05)
       const 열고남긴다 = async (): Promise<AppSide> => {
-        const driver = await openApp(process.env);
+        const { device, ...side } = await 폰을연다(process.env);
         // 여기서 던지면 열린 연결을 아무도 못 닫는다(opening 이 실패로 끝난다). 남기지 못한 것만 알린다
-        try {
-          await testInfo.attach(DEVICE_ATTACHMENT, { body: JSON.stringify(await readDevice(driver)), contentType: 'application/json' });
-        } catch (err) {
-          console.error(`[kit] 기기 정보를 남기지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+        if (device !== undefined) {
+          try {
+            await testInfo.attach(DEVICE_ATTACHMENT, { body: JSON.stringify(device), contentType: 'application/json' });
+          } catch (err) {
+            console.error(`[kit] 기기 정보를 남기지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+          }
         }
-        if (!isGame(process.env)) return { driver };
-        // 게임은 Appium 이 깔고 켠 뒤 게임 SDK 에 붙는다 (도메인/게임 §3.10 「게임 연결」).
-        // 못 붙으면 opening 이 실패로 끝나 정리 단계가 연결을 모른다 — 여기서 닫는다. 못 닫아도 러너가 번호 파일로 닫는다
-        try {
-          return { driver, game: await openGame(process.env) };
-        } catch (err) {
-          await closeApp(driver).catch((e: unknown) => console.error(`[kit] Appium 연결을 닫지 못했다: ${e instanceof Error ? e.message : String(e)}`));
-          throw err;
-        }
+        return side;
       };
       await use({ open: () => (opening ??= 열고남긴다()) });
       if (opening === undefined) return;

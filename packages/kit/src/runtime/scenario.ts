@@ -4,9 +4,10 @@
 import type { APIRequestContext, Page } from '@playwright/test';
 
 import type { ApiAuth, DeviceInfo, StepResult } from '../types.js';
-import { closeApp, openApp, readDevice, type AppDriver } from './app.js';
+import { closeApp, type AppDriver } from './app.js';
 import type { ScenarioPhase } from './context.js';
-import { isGame, openGame, type KitGame } from './game.js';
+import type { KitGame } from './game.js';
+import { 폰을연다 } from './phone.js';
 import { SCENARIO_CLEANUP_MARKER, SCENARIO_DEVICE_MARKER, SCENARIO_PART_MARKER } from './protocol.js';
 
 // 러너가 결과 줄 · 뒷정리 줄 · 기기 줄을 가를 때 같은 표시자를 봐야 한다
@@ -86,25 +87,7 @@ export interface ScenarioPhoneOpener {
 // 러너 고정 spec 이 옮겨 적는다 (apps/runner/scenario/wire.ts)
 export const SCENARIO_PHONE_KEY = 'platform.scenarioPhone';
 
-const 폰열기: ScenarioPhoneOpener = {
-  async open(env) {
-    const driver = await openApp(env);
-    // 판을 못 읽어도 단계는 돈다 — 결과 머리에 빈칸일 뿐이다
-    const device = await readDevice(driver).catch((err: unknown) => {
-      console.error(`[kit] 기기 정보를 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`);
-      return undefined;
-    });
-    if (!isGame(env)) return { driver, ...(device && { device }) };
-    // 게임 SDK 에 못 붙으면 연 연결을 아무도 모른다 — 여기서 닫는다. 못 닫아도 러너가 번호 파일로 닫는다
-    try {
-      return { driver, game: await openGame(env), ...(device && { device }) };
-    } catch (err) {
-      await closeApp(driver).catch((e: unknown) => console.error(`[kit] Appium 연결을 닫지 못했다: ${e instanceof Error ? e.message : String(e)}`));
-      throw err;
-    }
-  },
-  close: (phone) => closeApp(phone.driver),
-};
+const 폰열기: ScenarioPhoneOpener = { open: 폰을연다, close: (phone) => closeApp(phone.driver) };
 
 export function registerScenarioPhone(): void {
   const g = globalThis as unknown as Record<symbol, ScenarioPhoneOpener | undefined>;

@@ -45,7 +45,8 @@ export interface PartDeps {
   // 부품이 있으면 그 부품의 이어 주기를 그 창 · 그 창의 도구에 건다
   newWindow(state: 상태 | undefined, mocks: ReadonlyMap<string, RouteHandler>, 부품?: 부품상태): Promise<창>;
   // 앱 · 게임 단계 자리. 폰 연결은 그 안에서 하나를 같이 쓴다. 없으면 앱 단계가 실패한다
-  appWindow?(부품: 부품상태): Promise<단계창>;
+  // state 는 앞 웹 창의 로그인 상태 — 앱 단계 케이스 코드의 request · api 도 그 로그인으로 부른다(웹 단계처럼)
+  appWindow?(부품: 부품상태, state: 상태): Promise<단계창>;
   // 앱 · 게임 단계 하나의 한도 — android project 한도다. 없으면 partTimeoutMs (SPEC 도메인/시나리오 §3.7 「동시성 · 시간」)
   appPartTimeoutMs?: number;
   // 응답 코드를 돌려준다. 못 보내면 던진다. 한도는 Playwright 요청 한도로 건다 — 바깥 상한은 그보다 늦게 걸어야 날아가는 삭제와 다음 삭제가 겹치지 않는다
@@ -153,7 +154,7 @@ export async function runParts(parts: readonly Part[], deps: PartDeps): Promise<
             if (part.appStep === true) {
               // 앱 · 게임 단계는 창을 안 연다 — 웹 창과 그 로그인 상태는 그대로 두어 다음 웹 단계가 이어받는다 (SPEC 도메인/시나리오 §3.7 결정 16)
               if (deps.appWindow === undefined) throw new Error('이 실행은 앱 · 게임 단계를 돌릴 수 없다');
-              단계 = await deps.appWindow(부품);
+              단계 = await deps.appWindow(부품, await 지금창.state());
               한도 = deps.appPartTimeoutMs ?? 한도;
             } else {
               // 부품마다 새 창 — 앞 케이스의 시계 고정 · 주입 스크립트가 뒤로 새지 않게 로그인 상태만 넘긴다 (SPEC 도메인/시나리오 §3.7 결정 3)
