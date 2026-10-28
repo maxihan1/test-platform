@@ -8,7 +8,7 @@ import { t } from '../web/i18n.js';
 import type { ScenarioRunPart, ScenarioRunResult } from '../web/scenarioApi.js';
 import { 값연결글, 건너뜀번호, 멈춘사유글자, 미확정있나, 접은판정 } from '../web/scenarioResultView.js';
 import { 카드요약, 종류글 } from '../web/scenarioView.js';
-import { toFields, 값글자, type EvidenceHeader, type EvidenceItem, type EvidenceStep } from './collect.js';
+import { toFields, 값글자, 기기글, type EvidenceHeader, type EvidenceItem, type EvidenceStep } from './collect.js';
 
 export interface E2E단계 {
   seq: number;
@@ -135,6 +135,8 @@ export function E2E모양(runId: number, 결과: 결과, 머리: { serviceName: 
         결과.triggeredByName === null || 결과.triggeredByName === '' ? '실행자 미상 (인증 도입 이전)' : 결과.triggeredByName,
       env: 결과.env === '' ? 기록없음 : 결과.env,
       baseUrl: 결과.baseUrl === '' ? 기록없음 : 결과.baseUrl,
+      // 앱 · 게임 단계가 있는 시나리오만 — 폰 연결이 하나라 실행에 박제된 한 벌(test_run.device)이다 (도메인/리포팅 §8.4 「증적 문서 머리말」)
+      ...(결과.device == null ? {} : { devices: [기기글(결과.device)] }),
     },
     scenarioId: 결과.scenarioId,
     version: 결과.version,
