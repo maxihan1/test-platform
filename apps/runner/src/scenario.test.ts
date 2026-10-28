@@ -5,9 +5,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import type { ScenarioCleanup, ScenarioExecuteRequest, ScenarioPartResult } from '@platform/kit';
+import { SCENARIO_DEVICE_MARKER } from '@platform/kit/scenario';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { finishScenario, parseCleanup, parseParts, scenarioEnv, trace를옮긴다, 판을파일로 } from './scenario.js';
+import { finishScenario, parseCleanup, parseDevice, parseParts, scenarioEnv, trace를옮긴다, 판을파일로, 시나리오project, 폰환경 } from './scenario.js';
 
 const 줄 = (p: Partial<ScenarioPartResult> & { seq: number }): ScenarioPartResult => ({
   status: 'PASS', durationMs: 1, steps: [], mocks: [], ...p,
@@ -267,5 +268,44 @@ describe('판을파일로', () => {
     expect(parts[1]).not.toHaveProperty('apiDoc');
     expect(JSON.parse(readFileSync(파일들[0] ?? '', 'utf8'))).toEqual(doc);
     expect(JSON.parse(scenarioEnv(req, parts).PLATFORM_SCENARIO ?? '')[1]).not.toHaveProperty('apiDoc');
+  });
+});
+
+describe('앱 · 게임 단계가 있는 시나리오', () => {
+  const 앱단계 = { kind: 'case' as const, tcId: 'DMA-001', params: {}, expected: {}, skipSteps: [], filePath: '/t/a.spec.ts', appStep: true };
+  const 웹만: ScenarioExecuteRequest = {
+    runId: 42, platform: 'desktop', baseUrl: 'https://qa.example.com', parts: [{ kind: 'wait', ms: 1 }], timeoutMs: 1_200_001,
+    adminKey: { header: 'X-Admin-Key', value: 'k1' },
+  };
+  const 앱: ScenarioExecuteRequest = { ...웹만, platform: 'android', parts: [앱단계], app: '/apk/dma.apk', udid: 'R58M', engine: 'GAME' };
+
+  it('폰 연결 값을 싣고 연결 유지 시간은 시나리오 제한 시간을 초로 올린 값이다', () => {
+    const 이전 = process.env.PLATFORM_APPIUM_TOKEN;
+    process.env.PLATFORM_APPIUM_TOKEN = 'farm-token';
+    try {
+      expect(폰환경(앱)).toEqual({
+        PLATFORM_APPIUM_TOKEN: 'farm-token', PLATFORM_APP: '/apk/dma.apk', PLATFORM_DEVICE_UDID: 'R58M',
+        PLATFORM_APPIUM_NEW_COMMAND_TIMEOUT: '1201', PLATFORM_ENGINE: 'GAME', PLATFORM_GAME_LINK: 'farm', PLATFORM_ADMIN_KEY: '{"header":"X-Admin-Key","value":"k1"}',
+      });
+      // 앱 단계가 없으면 팜 토큰 · 어드민 키를 안 넘긴다 — 러너를 켠 셸의 값도 덮는다
+      expect(폰환경(웹만)).toEqual({
+        PLATFORM_APPIUM_TOKEN: undefined, PLATFORM_APPIUM_NEW_COMMAND_TIMEOUT: '', PLATFORM_ENGINE: '', PLATFORM_GAME_LINK: '', PLATFORM_ADMIN_KEY: '',
+      });
+    } finally {
+      if (이전 === undefined) delete process.env.PLATFORM_APPIUM_TOKEN;
+      else process.env.PLATFORM_APPIUM_TOKEN = 이전;
+    }
+  });
+
+  it('android 시나리오는 PC 창 project 로 띄운다 — android project 에는 브라우저가 없다', () => {
+    expect(시나리오project(앱)).toBe('desktop');
+    expect(시나리오project({ platform: 'mobile' })).toBe('mobile');
+  });
+
+  it('기기 줄은 맨 앞 표시자만 읽고 잘린 줄은 버린다', () => {
+    const 기기 = { model: 'SM-S918N', osVersion: '14', appVersion: '1.2.0', appBuild: '120' };
+    expect(parseDevice(`케이스 로그\n${SCENARIO_DEVICE_MARKER}${JSON.stringify(기기)}\n`)).toEqual(기기);
+    expect(parseDevice(`${SCENARIO_DEVICE_MARKER}{"model":"SM`)).toBeUndefined();
+    expect(parseDevice(`앞글 ${SCENARIO_DEVICE_MARKER}{}`)).toBeUndefined();
   });
 });

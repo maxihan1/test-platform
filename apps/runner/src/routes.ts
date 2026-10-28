@@ -15,7 +15,7 @@ import { abort, execute, resolveSpecPath, running, testsDir } from './execute.js
 import { 팜증적받기를줄세운다 } from './farmEvidence.js';
 import { registerPerfDeviceRoutes } from './perfDevice.js';
 import { registerRemote } from './remote.js';
-import { executeScenario, 판뺀부품들 } from './scenario.js';
+import { executeScenario, 판뺀부품들, 폰단계가있나, 폰시나리오가도는가 } from './scenario.js';
 
 const require = createRequire(import.meta.url);
 // 이미지 태그와 라이브러리 버전이 어긋나면 브라우저를 못 찾는다. /health가 그 확인 창구다 (SPEC §9)
@@ -115,6 +115,8 @@ const scenarioPart = z.discriminatedUnion('kind', [
     baseUrl: z.string().url().optional(),
     apiAuths,
     apiDoc,
+    // 앱 · 게임 단계 — admin 이 애플리케이션 종류로 정해 싣는다. 창 대신 폰 연결로 돈다 (SPEC 도메인/시나리오 §3.7 결정 16)
+    appStep: z.boolean().optional(),
   }),
   z.object({
     kind: z.literal('api'),
@@ -161,12 +163,33 @@ type 입구이어주기<K> = Extract<z.infer<typeof scenarioLink>, { kind: K }>;
 // 한글은 한 글자가 3바이트라 글자 수로 재면 빠져나간다. 절대 경로로 풀고 판 원문을 경로로 바꾼 뒤에 잰다
 const 목록상한 = 120_000;
 
+// 앱 · 게임 단계에 못 거는 것 — 앱은 폰 안에서 자기 서버와 바로 주고받아 러너가 그 요청을 못 본다. 표의 정본은 SPEC 도메인/시나리오 §3.7 결정 16.
+// admin 조립 검사도 막지만 러너가 마지막으로 막는다 — 걸린 줄 아는데 앱 요청은 진짜 서버로 가는 실행이 가장 나쁘다
+export function 앱단계에못거는것(parts: readonly z.infer<typeof scenarioPart>[]): string | undefined {
+  const 켜진모킹 = new Set<string>();
+  for (const [i, part] of parts.entries()) {
+    if (part.kind === 'mock') 켜진모킹.add(part.urlPattern);
+    if (part.kind === 'unmock') 켜진모킹.delete(part.urlPattern);
+    if (part.kind !== 'case' || part.appStep !== true) continue;
+    const 번 = `${i + 1}번 앱 · 게임 단계`;
+    if (켜진모킹.size > 0) return `${번}가 모킹 구간 안에 있다 — 모킹은 앱 단계 앞에서 끈다`;
+    if (part.carryOver === false) return `${번}는 넘겨받기를 끌 수 없다 — 끄려면 앱을 다시 켜야 한다`;
+    if (part.links?.some((link) => link.kind !== 'bind')) return `${번}에는 값 꽂기만 건다 — 앞 응답 돌려주기 · 요청 막기 · 바꿔 보내기는 앱 요청에 안 걸린다`;
+  }
+  return undefined;
+}
+
 const scenarioRequest = z
   .object({
     runId: z.number().nullable(),
     // 사진 폴더 경로(runs/trial/<trialId>/)에 그대로 들어간다. UUID 가 아니면 ../ 로 빠져나갈 수 있다
     trialId: z.string().uuid().optional(),
-    platform: z.enum(['desktop', 'mobile']),
+    platform: z.enum(['desktop', 'mobile', 'android']),
+    // 폰 연결이 시나리오에 하나라 요청에 한 벌이다. 뜻은 /execute 의 같은 칸과 같다 (SPEC 도메인/시나리오 §3.7 결정 16)
+    app: 앱파일경로.optional(),
+    udid: z.string().min(1).optional(),
+    engine: z.literal('GAME').optional(),
+    adminKey,
     baseUrl: z.string(),
     parts: z.array(scenarioPart).min(1),
     // 시나리오 제한 시간은 60분을 넘지 않는다 (SPEC 도메인/시나리오 §3.7 「동시성 · 시간」)
@@ -178,7 +201,11 @@ const scenarioRequest = z
       .optional(),
     recordHar,
   })
-  .refine((r) => r.runId !== null || r.trialId !== undefined, '시험 실행에는 trialId 가 있어야 한다');
+  .refine((r) => r.runId !== null || r.trialId !== undefined, '시험 실행에는 trialId 가 있어야 한다')
+  .superRefine((r, ctx) => {
+    const 까닭 = 앱단계에못거는것(r.parts);
+    if (까닭 !== undefined) ctx.addIssue({ code: 'custom', message: 까닭 });
+  });
 
 // 실행 묶음 전체를 끊는 일은 admin이 자기가 아는 historyId를 하나씩 부르는 것으로 한다.
 // runId 단위 중단을 여기 두면 러너가 실행 묶음을 알아야 한다 (SPEC §5.2)
@@ -224,7 +251,7 @@ export function registerRoutes(app: FastifyInstance): void {
       if (!parsed.success) {
         return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
       }
-      if ([...running.values()].some((r) => r.platform === 'android') || 화면을읽는중인가()) {
+      if ([...running.values()].some((r) => r.platform === 'android') || 폰시나리오가도는가() || 화면을읽는중인가()) {
         return reply.code(409).send({ error: 'RUNNER_BUSY', detail: '이 러너가 이미 실행이나 화면 읽기를 하고 있다' });
       }
       try {
@@ -264,7 +291,11 @@ export function registerRoutes(app: FastifyInstance): void {
     }
 
     try {
-      return await executeScenario({ ...parsed.data, parts });
+      const req = { ...parsed.data, parts };
+      const res = await executeScenario(req);
+      // 통과 못 한 정식 실행의 팜 영상 · logcat 은 답한 뒤에 받는다 — 시나리오에 한 벌, 시나리오 폴더에 둔다 (SPEC 도메인/시나리오 §3.7 결정 16 「결과」)
+      if (req.runId !== null && 폰단계가있나(req)) 팜증적받기를줄세운다(req.runId, 'scenario', res.status);
+      return res;
     } catch (err) {
       // 자식 프로세스를 띄우지도 못한 경우다. 러너 고장이므로 500이다 (SPEC §5.2)
       const detail = err instanceof Error ? err.message : String(err);
