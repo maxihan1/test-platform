@@ -6,6 +6,7 @@ import type { Pool, PoolClient } from 'pg';
 import { enqueue } from '../execution/dispatcher.js';
 import { 폰차례 } from '../execution/phone.js';
 import { callScenarioRunner } from '../execution/runner.js';
+import { 기기칸 } from '../execution/runLifecycle.js';
 import { jsonb에맞춘다 } from '../jsonbText.js';
 
 import { type 폰앱, 팜폰으로돌린다 } from './phone.js';
@@ -75,7 +76,7 @@ async function 적는다(runId: number, 받은응답: ScenarioExecuteResponse): 
     const 닫힘 = await c.query(
       `UPDATE test_run SET status = 'FINISHED', finished_at = now(), device = $2
         WHERE run_id = $1 AND kind = 'SCENARIO' AND status = 'RUNNING'`,
-      [runId, 기기글(응답.device)],
+      [runId, 기기칸(응답.device)],
     );
     if (닫힘.rowCount === 0) {
       await c.query('ROLLBACK');
@@ -134,10 +135,6 @@ async function 적는다(runId: number, 받은응답: ScenarioExecuteResponse): 
     c.release();
   }
 }
-
-// runLifecycle.ts finishItem 과 같은 거름 — 객체가 아닌 값은 CHECK 에 걸려 결과 전체를 잃는다
-const 기기글 = (device: unknown): string | null =>
-  typeof device === 'object' && device !== null && !Array.isArray(device) ? JSON.stringify(device) : null;
 
 async function 부품적기(c: PoolClient, partId: string, 결과: ScenarioPartResult, 기록: 부품기록 | null): Promise<void> {
   await c.query(

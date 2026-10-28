@@ -9,7 +9,7 @@ import fastifyStatic from '@fastify/static';
 import Fastify from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { 시나리오팜목록, 팜기록글, 팜영상경로, 팜증적경로, 팜증적목록 } from './farmEvidence.js';
+import { 팜기록글, 팜영상경로, 팜증적경로, 팜증적목록 } from './farmEvidence.js';
 
 let 임시: string;
 const 팜폴더 = () => join(runDir('3', '9'), FARM_EVIDENCE_DIR);
@@ -99,8 +99,8 @@ describe('E2E 시나리오의 팜 증적', () => {
     writeFileSync(join(시나리오폴더(), 'game-tree.txt'), '/Hud');
     writeFileSync(join(runDir('5', 'scenario'), '1.png'), 'png');
 
-    expect(await 시나리오팜목록(5)).toEqual([{ name: 'game-tree.txt', bytes: 4 }]);
-    expect(await 시나리오팜목록(3)).toEqual([]);
+    expect(await 팜증적목록(5, 'scenario')).toEqual([{ name: 'game-tree.txt', bytes: 4 }]);
+    expect(await 팜증적목록(3, 'scenario')).toEqual([]);
     const app = await 앱();
     const res = await app.inject({ method: 'GET', url: '/api/runs/5/scenario/farm/game-tree.txt' });
     expect(res.statusCode).toBe(200);

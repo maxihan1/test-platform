@@ -126,6 +126,11 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
     if (없음 !== null) throw new 시나리오실행오류('ENV_NOT_FOUND', `${없음} 서비스에 ${env} 대상 서버가 없다`);
     const baseUrl = 앱들.get(행.prefix)!.baseUrl;
     const 종류 = 앱종류들(앱들);
+    // 되돌린 옛 버전 · 저장 뒤 종류를 바꾼 애플리케이션은 조립 검사를 안 거쳤다 — 연결 하나에 앱 하나를 여기서 다시 본다 (결정 16)
+    const 앱접두사 = new Set(행.parts.flatMap((p) => (p.kind === 'case' && 앱단계인가(p, 종류) ? [케이스접두사(p.tcId)] : [])));
+    if (앱접두사.size > 1) {
+      throw new 시나리오실행오류('NOT_RUNNABLE', `실행할 수 없는 시나리오다: 앱 · 게임 애플리케이션은 한 시나리오에 하나다: ${[...앱접두사].join(' · ')}`);
+    }
     const 폰 = 폰값(행.parts, 앱들, env);
     // 정식 실행은 늘 디바이스 팜이다. 실행 행을 세우기 전에 거절한다 (결정 16)
     if (폰 !== null && 팜주소() === undefined) throw new 시나리오실행오류('FARM_OFF', 'DEVICE_FARM_URL 이 비어 있다');

@@ -7,8 +7,8 @@ import { 엔진칸 } from '../execution/engineField.js';
 import { 팜주소, 팜폰으로 } from '../execution/farm.js';
 import { callScenarioRunner } from '../execution/runner.js';
 
-import type { 쓰는앱 } from './apps.js';
-import { 케이스접두사 } from './mixed.js';
+import { type 쓰는앱, 앱종류들 } from './apps.js';
+import { 앱단계인가, 케이스접두사 } from './mixed.js';
 
 /** 폰에 깔 앱 파일을 정할 재료. 앱 파일은 폰을 잡은 뒤 정한다 — 올린 빌드의 서명 주소에 기한이 있다 */
 export interface 폰앱 {
@@ -22,13 +22,11 @@ export interface 폰앱 {
  * 조립 검사가 앱 · 게임 애플리케이션을 하나만 남겼으므로 첫 앱 · 게임 단계의 것이다
  */
 export function 폰값(parts: readonly ScenarioPart[], 앱들: ReadonlyMap<string, 쓰는앱>, env: string): { 폰: 폰앱; 칸: Pick<ScenarioExecuteRequest, 'engine' | 'adminKey'> } | null {
-  for (const p of parts) {
-    if (p.kind !== 'case') continue;
-    const 앱 = 앱들.get(케이스접두사(p.tcId));
-    if (앱 === undefined || (앱.kind !== 'APP' && 앱.kind !== 'GAME')) continue;
-    return { 폰: { serviceId: 앱.serviceId, env, appPath: 앱.appPath }, 칸: 엔진칸(앱.kind, 'android', 앱.adminKey) };
-  }
-  return null;
+  const 종류 = 앱종류들(앱들);
+  const 첫 = parts.find((p) => 앱단계인가(p, 종류));
+  if (첫?.kind !== 'case') return null;
+  const 앱 = 앱들.get(케이스접두사(첫.tcId))!;
+  return { 폰: { serviceId: 앱.serviceId, env, appPath: 앱.appPath }, 칸: 엔진칸(앱.kind, 'android', 앱.adminKey) };
 }
 
 /** 시나리오 제한 시간에 10분을 더한 값이 들어가는 가장 짧은 잡기 — 늘리기를 부르지 않는다. 60분 상한이라 120분이면 늘 든다 */

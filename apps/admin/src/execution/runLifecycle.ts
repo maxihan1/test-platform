@@ -47,6 +47,10 @@ const API호출넣기 = `
    WHERE i.history_id = $1
   ON CONFLICT (service_id, tc_id, method, path, status) DO UPDATE SET no_shape = EXCLUDED.no_shape, run_id = EXCLUDED.run_id, seen_at = now()`;
 
+/** 객체가 아니면 칸 제약(jsonb_typeof = 'object')에 걸려 판정 · 절차까지 되돌려진다 — 곁들이는 값만 버린다. E2E 시나리오 결과 저장도 쓴다 */
+export const 기기칸 = (device: unknown): string | null =>
+  typeof device === 'object' && device !== null && !Array.isArray(device) ? JSON.stringify(device) : null;
+
 /** 받은 API × 응답 코드. 같은 것을 여러 번 불렀어도 한 줄이다 */
 export function 받은API(steps: readonly StepResult[]): { method: string; path: string; status: number; no_shape: boolean }[] {
   const 줄 = new Map<string, { method: string; path: string; status: number; no_shape: boolean }>();
@@ -71,8 +75,7 @@ export async function finishItem(historyId: number, 받은결과: ExecuteRespons
         result.status,
         result.durationMs,
         result.error === undefined ? null : JSON.stringify(result.error),
-        // 객체가 아니면 칸 제약에 걸려 판정 · 절차까지 되돌려진다 — 곁들이는 값만 버린다
-        typeof result.device === 'object' && result.device !== null && !Array.isArray(result.device) ? JSON.stringify(result.device) : null,
+        기기칸(result.device),
       ],
     );
     if (closed.rowCount === 0) {

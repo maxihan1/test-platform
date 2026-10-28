@@ -163,6 +163,19 @@ describe.skipIf(연결 === undefined)('앱 · 게임 단계가 있는 시나리�
     }
   });
 
+  it('저장 뒤 섞은 애플리케이션이 앱으로 바뀌어 앱이 둘이면 실행을 거절한다', async () => {
+    const id = await 앱시나리오();
+    await q("UPDATE service SET kind = 'APP' WHERE id = $1", [서비스['XAEW']]);
+    try {
+      const 잡은 = await 실행만들기(id, 'stg', 사람).then(() => null, (e: unknown) => e);
+
+      expect((잡은 as 시나리오실행오류).code).toBe('NOT_RUNNABLE');
+      expect((잡은 as 시나리오실행오류).message).toContain('앱 · 게임 애플리케이션은 한 시나리오에 하나다: XAE · XAEW');
+    } finally {
+      await q("UPDATE service SET kind = 'SCREEN' WHERE id = $1", [서비스['XAEW']]);
+    }
+  });
+
   it('서버에 디바이스 팜이 없으면 실행 행을 세우지 않고 FARM_OFF 로 거절한다', async () => {
     가짜.팜 = undefined;
     const id = await 앱시나리오();

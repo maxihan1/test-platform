@@ -130,6 +130,10 @@ export default async function scenarioRoutes(app: FastifyInstance): Promise<void
     const { service, platform } = parsed.data;
     const 서비스 = await findService(service);
     if (서비스 === null) return 잘못(reply, `모르는 서비스다: ${service}`);
+    // 조립 검사와 같은 규칙 — 저장하면 거절될 디바이스로 AI 일을 쓰지 않는다 (결정 16)
+    if ((platform === 'android') !== (await 앱종류읽기([service])).has(service)) {
+      return 잘못(reply, platform === 'android' ? `${service} 는 Android 앱 · 게임 애플리케이션이 아니라 android 를 고를 수 없다` : `${service} 는 Android 앱 · 게임 애플리케이션이라 디바이스는 android 만 고른다`);
+    }
     const wish = parsed.data.wish === undefined || parsed.data.wish === '' ? null : parsed.data.wish;
     const r = await 흐름맡기기({ id: 서비스.id, prefix: service }, platform, wish, req.user?.username ?? '');
     if ('jobId' in r) return reply.code(202).send(r);

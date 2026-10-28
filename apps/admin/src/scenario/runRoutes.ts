@@ -9,7 +9,7 @@ import { z } from 'zod';
 
 import { 증적목록 } from '../execution/queries.js';
 import { 볼륨파일읽기 } from '../artifactFile.js';
-import { 시나리오팜목록 } from '../execution/farmEvidence.js';
+import { 팜증적목록 } from '../execution/farmEvidence.js';
 import { artifactsDir, 시나리오실행인가 } from '../execution/routes.js';
 import { 가린다, 긴것부터 } from '../execution/trial.js';
 import { 항목실패를가른다 } from '../reporting/itemFailure.js';
@@ -200,7 +200,8 @@ export async function 시나리오결과(runId: number) {
     finishedAt: 행.finished_at?.toISOString() ?? null,
     // 앱 · 게임 단계가 있는 시나리오만 찬다 — 폰 연결이 하나라 시나리오에 한 벌이다 (§3.7 결정 16)
     device: 행.device,
-    farm: await 시나리오팜목록(runId),
+    // 러너 볼륨을 훑는 일이라 폰을 쓴 시나리오만 본다 — 웹 시나리오의 결과 · 증적마다 러너를 두드리지 않게
+    farm: 행.platform === 'android' || 행.device !== null ? await 팜증적목록(runId, 'scenario') : [],
     // 케이스 결과 응답(GET /api/runs/:runId)과 같은 모양이다 — 화면이 증적 칸 하나로 둘 다 그린다 (§7)
     evidence: await 증적목록(runId),
   };

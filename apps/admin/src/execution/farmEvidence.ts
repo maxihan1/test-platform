@@ -24,17 +24,12 @@ const 폴더 = (runId: number, historyId: number | 'scenario'): string => join(r
 // video-10 이 video-2 앞에 오지 않게 숫자를 숫자로 비교한다
 const 차례 = new Intl.Collator('en', { numeric: true });
 
-/** 없으면 빈 목록이다 — 통과 항목 · 브라우저 항목 · 팜이 아닌 Appium · 아직 받는 중 */
-export async function 팜증적목록(runId: number, historyId: number): Promise<팜파일[]> {
+/** 없으면 빈 목록이다 — 통과 항목 · 브라우저 항목 · 팜이 아닌 Appium · 아직 받는 중. 'scenario' 는 E2E 시나리오 한 벌이다 (도메인/시나리오 §3.7 결정 16) */
+export async function 팜증적목록(runId: number, historyId: number | 'scenario'): Promise<팜파일[]> {
   const 곳 = 폴더(runId, historyId);
   // 정식 실행을 터널로 이은 맥 러너가 돌렸으면 그 러너의 것도 합친다 — 이름과 크기만 받고 내용은 내려받을 때 받는다 (SPEC 공통/3 §5.3 「러너 여러 대」).
   // 바로가기 · 폴더는 볼륨목록이 뺀다 — 통로가 이 목록에 있는 이름만 내준다
   return (await 볼륨목록(곳)).sort((a, b) => 차례.compare(a.name, b.name));
-}
-
-/** 앱 · 게임 단계가 있는 E2E 시나리오의 팜 증적 — 폰 연결이 하나라 시나리오에 한 벌이다 (도메인/시나리오 §3.7 결정 16 「결과」) */
-export async function 시나리오팜목록(runId: number): Promise<팜파일[]> {
-  return (await 볼륨목록(폴더(runId, 'scenario'))).sort((a, b) => 차례.compare(a.name, b.name));
 }
 
 /** 증적 문서용 한 줄. 문서에는 영상을 넣을 수 없어 어디서 보는지만 적는다. 받은 것이 없으면 null */
