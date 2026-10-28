@@ -120,8 +120,9 @@ function errorOf(
     return { message: result.error?.message ?? skipped ?? '판정 없이 실행이 끝났다' };
   }
   // 검증 문장으로 갈린 실패는 문장 자체가 사유다. error는 코드가 더 갈 수 없었던 경우에만 채운다.
-  // 단계가 다 통과했는데 실패면 단계 밖(뒷정리 finally)에서 던진 것이다 — 안 채우면 사유가 빈 칸이 된다 (2026-10-29 DMA-FN-016)
-  const byException = steps.length === 0 || steps.some((s) => s.error !== undefined) || !steps.some((s) => s.status === 'FAIL');
+  // 실패한 단계가 없는데 실패면 단계 밖(단계 사이 코드 · 뒷정리 finally · 연결 정리)에서 던진 것이다 — 안 채우면 사유가 빈 칸이 된다 (2026-10-29 DMA-FN-016).
+  // 실패한 단계가 있으면 그 문장이 사유라 단계 밖 오류를 덧붙이지 않는다 — 사유가 둘로 갈리지 않게 (2026-10-29 사용자 승인)
+  const byException = steps.some((s) => s.error !== undefined) || !steps.some((s) => s.status === 'FAIL');
   if (status === 'FAIL' && byException && result.error !== undefined) {
     return {
       message: result.error.message ?? '알 수 없는 오류',

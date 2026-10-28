@@ -218,4 +218,14 @@ describe('결과 줄의 실패 사유', () => {
     expect(줄.status).toBe('FAIL');
     expect('error' in 줄).toBe(false);
   });
+
+  it('실패한 단계가 있으면 단계 밖 오류도 싣지 않는다 — 사유가 둘로 갈리지 않게', () => {
+    const 줄 = 끝줄([단계('FAIL', 1), 단계('PASS', 2)], 'Can\'t call click on element with selector "id=cart_button" because element wasn\'t found');
+    expect(줄.status).toBe('FAIL');
+    expect('error' in 줄).toBe(false);
+  });
+
+  it('단계 결과가 하나도 없이 실패하면 오류 글을 싣는다', () => {
+    expect(끝줄([], '앱 연결을 열지 못했다').error?.message).toBe('앱 연결을 열지 못했다');
+  });
 });
