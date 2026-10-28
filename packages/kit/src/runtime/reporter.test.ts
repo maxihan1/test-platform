@@ -183,3 +183,39 @@ describe('결과 줄의 기기 정보 (APP-F1-05)', () => {
     expect('apiCalls' in 줄).toBe(false);
   });
 });
+
+describe('결과 줄의 실패 사유', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const 단계 = (status: 'PASS' | 'FAIL', seq: number) => ({
+    name: STEP_ATTACHMENT,
+    contentType: 'application/json',
+    body: Buffer.from(JSON.stringify({ seq, title: `${seq}단계`, status, durationMs: 1, assertions: [] })),
+  });
+
+  const 끝줄 = (attachments: TestResult['attachments'], message: string) => {
+    const 쓰기 = vi.spyOn(process.stdout, 'write').mockReturnValue(true);
+    const result = {
+      status: 'failed', duration: 3, attachments, annotations: [], errors: [], steps: [],
+      error: { message, stack: `${message}\n    at 뒷정리` },
+    } as unknown as TestResult;
+    new PlatformReporter().onTestEnd({ annotations: [] } as unknown as TestCase, result);
+    const 줄 = String(쓰기.mock.calls.at(-1)?.[0]);
+    return JSON.parse(줄.slice(RESULT_MARKER.length)) as { status: string; error?: { message: string; stack?: string } };
+  };
+
+  it('단계가 다 통과했는데 실패로 끝나면 그 오류 글을 싣는다 — 단계 밖 뒷정리에서 던진 경우', () => {
+    const 줄 = 끝줄([단계('PASS', 1), 단계('PASS', 2)], 'Can\'t call click on element with selector "id=cart_button" because element wasn\'t found');
+    expect(줄.status).toBe('FAIL');
+    expect(줄.error?.message).toContain('cart_button');
+    expect(줄.error?.stack).toContain('뒷정리');
+  });
+
+  it('확인 문장으로 실패한 단계가 있으면 오류 글을 싣지 않는다 — 문장이 사유다', () => {
+    const 줄 = 끝줄([단계('PASS', 1), 단계('FAIL', 2)], '검증 실패: 상품 목록이 보인다');
+    expect(줄.status).toBe('FAIL');
+    expect('error' in 줄).toBe(false);
+  });
+});

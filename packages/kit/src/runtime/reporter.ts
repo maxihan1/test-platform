@@ -119,8 +119,9 @@ function errorOf(
   if (status === 'NA') {
     return { message: result.error?.message ?? skipped ?? '판정 없이 실행이 끝났다' };
   }
-  // 검증 문장으로 갈린 실패는 문장 자체가 사유다. error는 코드가 더 갈 수 없었던 경우에만 채운다
-  const byException = steps.length === 0 || steps.some((s) => s.error !== undefined);
+  // 검증 문장으로 갈린 실패는 문장 자체가 사유다. error는 코드가 더 갈 수 없었던 경우에만 채운다.
+  // 단계가 다 통과했는데 실패면 단계 밖(뒷정리 finally)에서 던진 것이다 — 안 채우면 사유가 빈 칸이 된다 (2026-10-29 DMA-FN-016)
+  const byException = steps.length === 0 || steps.some((s) => s.error !== undefined) || !steps.some((s) => s.status === 'FAIL');
   if (status === 'FAIL' && byException && result.error !== undefined) {
     return {
       message: result.error.message ?? '알 수 없는 오류',
