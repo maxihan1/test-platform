@@ -243,9 +243,10 @@ describe.skipIf(연결 === undefined)('E2E 시나리오 표', () => {
     await expect(실행({ kind: 'SCENARIO', scenarioId: s, version: 99 })).rejects.toThrow('test_run_scenario_version_fkey');
   });
 
-  it('버전은 1부터 · 한 번씩 · 디바이스는 둘 중 하나다', async () => {
+  it('버전은 1부터 · 한 번씩 · 디바이스는 셋 중 하나다', async () => {
     const s = await 시나리오();
     await 버전(s, 1, 'mobile');
+    await 버전(s, 4, 'android');
     await expect(버전(s, 0)).rejects.toThrow('scenario_version_version_check');
     await expect(버전(s, 1)).rejects.toThrow('scenario_version_pkey');
     await expect(버전(s, 2, 'tablet')).rejects.toThrow('scenario_version_platform_check');
