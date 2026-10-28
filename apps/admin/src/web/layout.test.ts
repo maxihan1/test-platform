@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ServiceRow, User } from './api.js';
-import { 고른서비스, 대시보드재료, 배정서비스접두사, 배정프로젝트들, 빈띠사유, 자리목록, 지금자리, 탭제목, 프로젝트물을까, 프로젝트서비스들 } from './layout.js';
+import { 고른서비스, 대시보드재료, 밑줄자리, 배정서비스접두사, 배정프로젝트들, 빈띠사유, 실행기록자리, 자리목록, 지금자리, 탭제목, 프로젝트물을까, 프로젝트서비스들 } from './layout.js';
 
 const 결제: ServiceRow = {
   id: 1,
@@ -177,9 +177,23 @@ describe('자리 목록', () => {
     expect(목록.find((자리) => 자리.해시 === '#/api/docs')?.하위).toEqual([
       { 이름: 'API 문서', 해시: '#/api/docs', 라벨: 'API · API 문서' },
       { 이름: '실행 기록', 해시: '#/runs/fn', 라벨: 'API · 실행 기록' },
+      { 이름: 'E2E 실행 기록', 해시: '#/runs/e2e', 라벨: 'API · E2E 실행 기록' },
     ]);
     expect(목록.map((자리) => 자리.이름)).toEqual(['대시보드', 'PRD 관리', 'API', '테스트 작성', '테스트 스크립트', 'E2E 시나리오', '성능 테스트', '그래프(Grafana)']);
     expect(지금자리('runs', '#/cases', 'FN')).toBe('#/runs/fn');
+  });
+
+  it('API 애플리케이션에서 실행 결과 · 항목 상세를 열면 밑줄은 「API › 실행 기록」 이다. 다른 애플리케이션은 그대로다', () => {
+    const API목록 = 자리목록(사람('member', [{ ...결제, kind: 'API' as const }]), 'PAY', 'ko');
+    expect(실행기록자리(API목록)).toMatchObject({ 이름: '실행 기록', 해시: '#/runs/fn', 아이콘: 'runs' });
+    expect(실행기록자리(API목록)?.하위?.map((it) => it.해시)).toEqual(['#/runs/fn', '#/runs/e2e']);
+    expect(밑줄자리('#/runs', API목록)).toBe('#/runs/fn');
+    expect(밑줄자리('#/runs/e2e', API목록)).toBe('#/runs/e2e');
+    expect(밑줄자리('#/runs/ui', API목록)).toBe('#/runs/fn');
+    expect(밑줄자리('#/prd', API목록)).toBe('#/prd');
+    const 웹목록 = 자리목록(김, 'MEM', 'ko');
+    expect(실행기록자리(웹목록)?.해시).toBe('#/runs');
+    expect(밑줄자리('#/runs', 웹목록)).toBe('#/runs');
   });
 
   it('API 애플리케이션이라도 작성 칸이 없으면 API 자리가 없어 실행 기록 묶음에 남는다', () => {

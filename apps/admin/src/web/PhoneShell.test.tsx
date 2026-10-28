@@ -137,6 +137,18 @@ describe('휴대폰 껍데기', () => {
     expect(링크.getAttribute('aria-current')).toBe('page');
   });
 
+  it('API 애플리케이션에서 PC 전용 화면을 열면 안내 버튼은 「실행 기록으로」 다', () => {
+    const API = { ...결제, kind: 'API' as const };
+    render(
+      <언어함 value="ko">
+        <Shell user={{ ...사람, role: 'member', services: [API] }} service={API} onService={() => {}} 언어="ko" on언어={() => {}} onLogout={나가기} current="#/cases/fn">
+          <div>본문</div>
+        </Shell>
+      </언어함>,
+    );
+    expect(screen.getByRole('link', { name: '실행 기록으로' }).getAttribute('href')).toBe('#/runs/fn');
+  });
+
   it('실행 칸이 없는 애플리케이션만 배정됐으면 실행 기록 탭이 없다', () => {
     // admin 은 모든 칸을 본다 — 칸으로 가르는 사람은 일반 등급이다
     띄운다('#/dashboard', { ...사람, role: 'member', services: [{ ...결제, permissions: { ...결제.permissions, runs: 'none' } }] });

@@ -88,7 +88,8 @@ export function 자리목록(user: User, prefix: string | null, 언어: 언어, 
       해시: '#/api/docs',
       아이콘: 'api',
       // 화면은 기능 테스트 실행 기록 그대로다 — 같은 주소라 밑줄도 여기 간다
-      하위: [API하위('API 문서', '#/api/docs'), ...(API실행기록 ? [API하위('실행 기록', '#/runs/fn')] : [])],
+      // UI 테스트는 API 애플리케이션에 없다. E2E 는 API 케이스도 시나리오에 섞이므로 남긴다
+      하위: [API하위('API 문서', '#/api/docs'), ...(API실행기록 ? [API하위('실행 기록', '#/runs/fn'), API하위('E2E 실행 기록', '#/runs/e2e')] : [])],
     });
     목록.push({ 이름: t('테스트 작성', 언어), 해시: '#/authoring', 아이콘: 'authoring' });
   }
@@ -122,6 +123,23 @@ export function 자리목록(user: User, prefix: string | null, 언어: 언어, 
   if (user.dashboard === 'read') 목록.push({ 이름: t('그래프(Grafana)', 언어), 해시: 그래프주소, 아이콘: 'graph', 바깥: true });
   if (할수있나(user, prefix, '설정')) 목록.push({ 이름: t('설정', 언어), 해시: '#/settings', 아이콘: 'settings' });
   return 목록;
+}
+
+/** 실행 기록으로 가는 자리 — 「실행 기록」 묶음이고, API 애플리케이션이면 「API」 아래 자리다. 휴대폰 탭 · 밑줄이 쓴다 */
+export function 실행기록자리(자리들: 자리[]): 자리 | undefined {
+  const 묶음 = 자리들.find((it) => it.해시 === '#/runs');
+  if (묶음 !== undefined) return 묶음;
+  const API아래 = (자리들.find((it) => it.해시 === '#/api/docs')?.하위 ?? []).filter((it) => it.해시.startsWith('#/runs/'));
+  const 첫 = API아래[0];
+  return 첫 === undefined ? undefined : { 이름: 첫.이름, 해시: 첫.해시, 아이콘: 'runs', 하위: API아래 };
+}
+
+/** 실행 기록 묶음이 없는 메뉴(API 애플리케이션)에서 실행 결과 · 항목 상세처럼 메뉴에 없는 실행 주소를 열면 「API › 실행 기록」 에 밑줄을 둔다 — 안 그러면 어디에도 밑줄이 없다 */
+export function 밑줄자리(current: string, 자리들: 자리[]): string {
+  if (current !== '#/runs' && !current.startsWith('#/runs/')) return current;
+  const 곳 = 실행기록자리(자리들);
+  if (곳 === undefined || 곳.해시 === '#/runs' || 곳.하위?.some((it) => it.해시 === current) === true) return current;
+  return 곳.해시;
 }
 
 /**

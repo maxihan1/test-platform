@@ -196,6 +196,21 @@ describe('사이드바 하위 메뉴 (화면공통 §8 · PR #132)', () => {
     expect(screen.getByRole('group', { name: '실행 기록' })).toBeTruthy();
   });
 
+  it('API 애플리케이션에서 실행 결과를 열면 「API › 실행 기록」 에 밑줄이 가고 API 묶음이 펼친 표시를 받는다', () => {
+    const API = { ...결제, kind: 'API' as const };
+    vi.spyOn(api, 'notifications').mockResolvedValue({ running: [], recent: [] });
+    render(
+      <언어함 value="ko">
+        <Shell user={{ ...사람, services: [API] }} service={API} onService={() => {}} 언어="ko" on언어={() => {}} onLogout={() => {}} current="#/runs">
+          <div>본문</div>
+        </Shell>
+      </언어함>,
+    );
+    expect(screen.getByRole('link', { name: 'API · 실행 기록' }).getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('link', { name: 'API' }).hasAttribute('data-open')).toBe(true);
+    expect(screen.queryByRole('group', { name: '실행 기록' })).toBeNull();
+  });
+
   it('접혀도 하위 메뉴에 키보드로 닿는다 — 지우지 않고 글자만 숨긴다', () => {
     사이드바접음을적는다(true);
     띄운다(결제, 'ko', () => {}, '#/cases/ui');
