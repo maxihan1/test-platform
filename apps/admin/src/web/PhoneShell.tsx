@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ServiceRow, User } from './api.js';
 import { use말, type 언어 } from './i18n.js';
 import { 아이콘 } from './icons.js';
-import { 고른서비스를적는다, 자리목록, type 빈띠, type 자리 } from './layout.js';
+import { 고른서비스를적는다, 실행기록자리, 자리목록, type 빈띠, type 자리 } from './layout.js';
 import { Notice } from './Notice.js';
 import { 휴대폰자리인가 } from './phone.js';
 import { 서비스고르개, 언어고르개, 프로젝트고르개 } from './ShellPickers.js';
@@ -54,7 +54,8 @@ export function PhoneShell({ user, service, onService, 언어, on언어, onLogou
   const 대시보드인가 = current === '#/dashboard';
   const 자리들 = 자리목록(user, service?.prefix ?? null, 언어, 앱케이스);
   const 대시보드 = 자리들.find((it) => it.해시 === '#/dashboard');
-  const 실행기록 = 자리들.find((it) => it.해시 === '#/runs');
+  // API 애플리케이션은 실행 기록이 「API」 아래에 선다 — 휴대폰 탭은 그 자리로 간다
+  const 실행기록 = 실행기록자리(자리들);
   // 하위 고르개는 실행 기록 목록에서만 — 실행 결과 · 항목 상세(`#/runs`)는 종류를 모른다
   const 하위 = 실행기록?.하위?.some((it) => it.해시 === current) === true ? 실행기록.하위 : undefined;
 
@@ -177,7 +178,7 @@ function PC전용({ 자리: 여기, 갈곳 }: { 자리: 자리 | undefined; 갈�
         {복사됨 === false ? <p className="err">{t('주소를 복사하지 못했습니다. 주소창에서 직접 복사하세요')}</p> : null}
         {갈곳 === undefined ? null : (
           <a className="btn" href={갈곳.해시}>
-            {갈곳.해시 === '#/runs' ? t('실행 기록으로') : t('대시보드로')}
+            {갈곳.아이콘 === 'runs' ? t('실행 기록으로') : t('대시보드로')}
           </a>
         )}
       </div>

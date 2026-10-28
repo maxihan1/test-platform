@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import type { ServiceRow, User } from './api.js';
 import {
   고른서비스를적는다,
+  밑줄자리,
   빈띠사유,
   사이드바접었나,
   사이드바접음을적는다,
@@ -62,6 +63,8 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
   // 가입 신청은 운영 계정이 설정에서 수락한다. 사이드바가 없는 휴대폰에서는 읽지 않는다
   const 가입대기 = use가입대기수(user.role === 'admin' && !휴대폰, current);
   const 앱케이스 = use앱케이스(user, service);
+  const 자리들 = 자리목록(user, service?.prefix ?? null, 언어, 앱케이스);
+  const 밑줄 = 밑줄자리(current, 자리들);
   if (휴대폰) {
     return (
       <PhoneShell user={user} service={service} onService={onService} 언어={언어} on언어={on언어} onLogout={onLogout} current={current} 주소={주소} 사유={사유} 앱케이스={앱케이스}>
@@ -92,14 +95,14 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
           {접음 ? '»' : '«'}
         </button>
         <nav className="side-nav">
-          {자리목록(user, service?.prefix ?? null, 언어, 앱케이스).map((자리) =>
+          {자리들.map((자리) =>
             자리.바깥 === true ? (
               <a key={자리.해시} href={자리.해시} target="_blank" rel="noreferrer">
                 <아이콘 이름={자리.아이콘} />
                 {자리.이름} ↗
               </a>
             ) : 자리.하위 === undefined ? (
-              <a key={자리.해시} href={자리.해시} {...(current === 자리.해시 ? { 'aria-current': 'page' as const } : {})}>
+              <a key={자리.해시} href={자리.해시} {...(밑줄 === 자리.해시 ? { 'aria-current': 'page' as const } : {})}>
                 <아이콘 이름={자리.아이콘} />
                 {자리.이름}
                 {자리.해시 === '#/settings' && 가입대기 > 0 ? (
@@ -116,7 +119,8 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
                 <a
                   id={`side-${자리.해시.slice(2)}`}
                   href={자리.해시}
-                  {...(current === 자리.해시 || current.startsWith(`${자리.해시}/`) ? { 'data-open': '' } : {})}
+                  // 「API › 실행 기록」 처럼 하위 주소가 묶음 주소 아래가 아니어도 그 하위가 지금이면 펼친다
+                  {...(밑줄 === 자리.해시 || 밑줄.startsWith(`${자리.해시}/`) || 자리.하위.some((하위) => 하위.해시 === 밑줄) ? { 'data-open': '' } : {})}
                 >
                   <아이콘 이름={자리.아이콘} />
                   {자리.이름}
@@ -127,7 +131,7 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
                     className="side-sub"
                     href={하위.해시}
                     aria-label={하위.라벨}
-                    {...(current === 하위.해시 ? { 'aria-current': 'page' as const } : {})}
+                    {...(밑줄 === 하위.해시 ? { 'aria-current': 'page' as const } : {})}
                   >
                     {하위.이름}
                   </a>
