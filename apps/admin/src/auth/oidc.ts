@@ -6,7 +6,7 @@ export interface SSO설정 {
   issuer: string;
   clientId: string;
   clientSecret: string;
-  /** 이 플랫폼이 바깥에서 열리는 주소. 돌아올 주소(redirect URI)와 로그아웃 뒤 돌아올 주소가 이 위에 붙는다 */
+  /** 이 플랫폼이 바깥에서 열리는 주소. 돌아올 주소(redirect URI)가 이 위에 붙는다 */
   publicUrl: string;
 }
 
@@ -50,7 +50,13 @@ export interface 왕복값 {
   verifier: string;
 }
 
-export async function 시작(s: SSO설정): Promise<{ url: string; 왕복: 왕복값 }> {
+/** 로그인 카드가 고른 갈래 — 기억한 계정으로(`loginHint`) · 다른 계정으로(`prompt: 'login'` — Auth_platform 이 세션을 끊고 다시 묻는다) */
+export interface 시작갈래 {
+  loginHint?: string;
+  prompt?: 'login';
+}
+
+export async function 시작(s: SSO설정, 갈래: 시작갈래 = {}): Promise<{ url: string; 왕복: 왕복값 }> {
   const config = await 발견(s);
   const 왕복 = { state: oidc.randomState(), nonce: oidc.randomNonce(), verifier: oidc.randomPKCECodeVerifier() };
   const url = oidc.buildAuthorizationUrl(config, {
@@ -60,6 +66,8 @@ export async function 시작(s: SSO설정): Promise<{ url: string; 왕복: 왕�
     nonce: 왕복.nonce,
     code_challenge: await oidc.calculatePKCECodeChallenge(왕복.verifier),
     code_challenge_method: 'S256',
+    ...(갈래.loginHint === undefined ? {} : { login_hint: 갈래.loginHint }),
+    ...(갈래.prompt === undefined ? {} : { prompt: 갈래.prompt }),
   });
   return { url: url.href, 왕복 };
 }
@@ -68,7 +76,6 @@ export interface 받은사람 {
   sub: string;
   username: string;
   displayName: string;
-  idToken: string;
 }
 
 /** 돌아온 주소의 code 를 token 으로 바꾸고 id token 을 검증한다 (서명 · iss · aud · nonce · state 는 라이브러리가 본다) */
@@ -86,11 +93,5 @@ export async function 교환(s: SSO설정, 돌아온주소: URL, 왕복: 왕복�
     throw new Error('id token 에 sub · preferred_username 이 없다');
   }
   const 이름 = typeof claims.name === 'string' && claims.name.trim() !== '' ? claims.name.trim() : username;
-  return { sub: claims.sub, username, displayName: 이름, idToken: tokens.id_token };
-}
-
-/** Auth_platform 의 SSO 세션까지 끊는 주소 (RP-initiated logout). 끝나면 이 플랫폼 첫 화면으로 돌아온다 */
-export async function 로그아웃주소(s: SSO설정, idToken: string): Promise<string> {
-  const config = await 발견(s);
-  return oidc.buildEndSessionUrl(config, { id_token_hint: idToken, post_logout_redirect_uri: s.publicUrl + '/' }).href;
+  return { sub: claims.sub, username, displayName: 이름 };
 }

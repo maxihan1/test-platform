@@ -4,7 +4,7 @@ import Fastify, { type FastifyInstance, type LightMyRequestResponse } from 'fast
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { 인증등록 } from './gate.js';
-import { 교환, 로그아웃주소, 시작, type 받은사람 } from './oidc.js';
+import { 교환, 시작, type 받은사람 } from './oidc.js';
 import authRoutes from './routes.js';
 import { 세션등록 } from './session.js';
 
@@ -12,7 +12,6 @@ vi.mock('./oidc.js', async (원본) => ({
   ...(await 원본<typeof import('./oidc.js')>()),
   시작: vi.fn(),
   교환: vi.fn(),
-  로그아웃주소: vi.fn(),
 }));
 
 const 연결 = process.env.DATABASE_URL;
@@ -60,7 +59,6 @@ describe.skipIf(연결 === undefined)('maxihan 계정(SSO) 로그인', () => {
       url: 'http://127.0.0.1:9/oauth2/authorize?client_id=test-platform',
       왕복: { state: 'xso-state', nonce: 'xso-nonce', verifier: 'xso-verifier' },
     });
-    vi.mocked(로그아웃주소).mockResolvedValue('http://127.0.0.1:9/connect/logout?id_token_hint=xso');
   });
 
   const 쿠키 = (res: LightMyRequestResponse): Record<string, string> => {
@@ -81,7 +79,7 @@ describe.skipIf(연결 === undefined)('maxihan 계정(SSO) 로그인', () => {
     return { start, back };
   }
 
-  const 사람 = (sub: string, username: string): 받은사람 => ({ sub, username, displayName: `${username} 이름`, idToken: `id.${sub}` });
+  const 사람 = (sub: string, username: string): 받은사람 => ({ sub, username, displayName: `${username} 이름` });
 
   async function 행(username: string) {
     const { pool } = await import('../db/index.js');
@@ -95,6 +93,15 @@ describe.skipIf(연결 === undefined)('maxihan 계정(SSO) 로그인', () => {
     const { start } = await 왕복(사람('xso-sub-new', 'xso-new'));
     expect(start.statusCode).toBe(302);
     expect(start.headers.location).toBe('http://127.0.0.1:9/oauth2/authorize?client_id=test-platform');
+  });
+
+  it('start 는 로그인 카드가 고른 login_hint · prompt=login 만 authorize 에 넘긴다', async () => {
+    await app.inject({ method: 'GET', url: '/api/auth/sso/start?login_hint=xso-linked' });
+    expect(vi.mocked(시작).mock.lastCall?.[1]).toEqual({ loginHint: 'xso-linked' });
+    await app.inject({ method: 'GET', url: '/api/auth/sso/start?prompt=login' });
+    expect(vi.mocked(시작).mock.lastCall?.[1]).toEqual({ prompt: 'login' });
+    await app.inject({ method: 'GET', url: '/api/auth/sso/start?login_hint=Evil%20One&prompt=none' });
+    expect(vi.mocked(시작).mock.lastCall?.[1]).toEqual({});
   });
 
   it('처음 온 사람은 승인 대기 member 가 되고 출입증 없이 대기 안내로 간다', async () => {
@@ -209,6 +216,29 @@ describe.skipIf(연결 === undefined)('maxihan 계정(SSO) 로그인', () => {
     expect(back.headers.location).toBe('/?sso=failed');
   });
 
+  it('들어와 있는 사람이 뒤로 가기로 옛 돌아올 주소를 열어도 출입증이 살아 있고 첫 화면으로 간다', async () => {
+    const { back } = await 왕복(사람('xso-sub-linked', 'xso-linked'));
+    const 옛것 = await app.inject({ method: 'GET', url: '/api/auth/sso/callback?code=xso-code&state=xso-state', cookies: 쿠키(back) });
+    expect(옛것.headers.location).toBe('/');
+    const me = await app.inject({ method: 'GET', url: '/api/auth/me', cookies: { ...쿠키(back), ...쿠키(옛것) } });
+    expect(me.statusCode).toBe(200);
+  });
+
+  it('왕복 중에 state 가 다른 주소가 오면 교환하지 않고 왕복 값도 남겨 진짜 돌아오기가 들어온다', async () => {
+    vi.mocked(교환).mockClear();
+    vi.mocked(교환).mockResolvedValueOnce(사람('xso-sub-linked', 'xso-linked'));
+    const start = await app.inject({ method: 'GET', url: '/api/auth/sso/start' });
+    const 엉뚱 = await app.inject({ method: 'GET', url: '/api/auth/sso/callback?code=x&state=other', cookies: 쿠키(start) });
+    expect(엉뚱.headers.location).toBe('/?sso=failed');
+    expect(교환).not.toHaveBeenCalled();
+    const back = await app.inject({
+      method: 'GET',
+      url: '/api/auth/sso/callback?code=xso-code&state=xso-state',
+      cookies: { ...쿠키(start), ...쿠키(엉뚱) },
+    });
+    expect(back.headers.location).toBe('/?sso=ok');
+  });
+
   it('start 를 거치지 않고 돌아오면 교환하지 않는다', async () => {
     vi.mocked(교환).mockClear();
     const back = await app.inject({ method: 'GET', url: '/api/auth/sso/callback?code=x&state=y' });
@@ -216,11 +246,11 @@ describe.skipIf(연결 === undefined)('maxihan 계정(SSO) 로그인', () => {
     expect(교환).not.toHaveBeenCalled();
   });
 
-  it('로그아웃은 출입증을 지우고 Auth_platform 로그아웃 주소를 준다', async () => {
+  it('로그아웃은 이 앱 출입증만 지우고 Auth_platform 으로 보낼 주소를 주지 않는다', async () => {
     const { back } = await 왕복(사람('xso-sub-new', 'xso-new'));
     const out = await app.inject({ method: 'POST', url: '/api/auth/logout', cookies: 쿠키(back) });
-    expect(out.json()).toEqual({ redirect: 'http://127.0.0.1:9/connect/logout?id_token_hint=xso' });
-    expect(vi.mocked(로그아웃주소).mock.lastCall?.[1]).toBe('id.xso-sub-new');
+    expect(out.statusCode).toBe(204);
+    expect(out.body).toBe('');
     const me = await app.inject({ method: 'GET', url: '/api/auth/me', cookies: 쿠키(out) });
     expect(me.statusCode).toBe(401);
   });
