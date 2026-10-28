@@ -47,7 +47,7 @@ export function 단계칸({ 시작, 앱들, 디바이스, 단계들, on단계들
   const PRD씀 = 읽음?.PRD씀 ?? false;
   // 섞은 앱 · 게임 케이스는 폰에서, android 시나리오의 웹 케이스는 PC 로 돈다 (도메인/시나리오 §3.7 결정 16)
   const 도는디바이스 = 단계디바이스(앱들, 고른앱, 디바이스);
-  const 디바이스안내 = 단계디바이스안내(앱들, 고른앱, 디바이스);
+  const 디바이스안내 = 단계디바이스안내(도는디바이스, 디바이스);
   const 소문자 = 찾기.trim().toLowerCase();
   const 걸린 = (c: CaseRow) =>
     소문자 === '' || [c.tcId, c.name, ...(c.reqs ?? []).flatMap((r) => [r.reqId, r.text ?? ''])].join(' ').toLowerCase().includes(소문자);

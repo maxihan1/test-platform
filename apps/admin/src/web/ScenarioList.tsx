@@ -19,7 +19,7 @@ import { Failed, Loading, message, useAsync, Verdict, when } from './ui.js';
 
 type 마지막 = NonNullable<ScenarioRow['lastRun']>;
 
-export function ScenarioList({ service, 앱종류, envs, 할수 }: { service: string; 앱종류?: 앱종류; envs: EnvRow[]; 할수: 판정 }) {
+export function ScenarioList({ service, kind, envs, 할수 }: { service: string; kind?: 앱종류; envs: EnvRow[]; 할수: 판정 }) {
   const t = use말();
   const 언어 = use언어();
   const 쓰나 = 할수('실행');
@@ -94,7 +94,7 @@ export function ScenarioList({ service, 앱종류, envs, 할수 }: { service: st
               </>
             )}
             {/* 앱 · 게임 애플리케이션의 시나리오는 늘 폰 단계로 시작한다 — 목록의 실행은 정식 실행이라 시험 실행 줄은 뺀다 (§3.7 결정 16) */}
-            {종류(앱종류).시나리오디바이스.includes('android') ? <폰실행위치 시험={false} /> : null}
+            {종류(kind).시나리오디바이스.includes('android') ? <폰실행위치 시험={false} /> : null}
           </div>
         )}
 

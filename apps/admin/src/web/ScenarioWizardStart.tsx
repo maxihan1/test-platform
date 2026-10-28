@@ -2,8 +2,7 @@
 
 import type { Platform } from './api.js';
 import { use말 } from './i18n.js';
-import { 종류 } from './kind.js';
-import type { 앱줄 } from './scenarioView.js';
+import { 시나리오칩들, type 앱줄 } from './scenarioView.js';
 import { 체크그림 } from './SettingsWizardSteps.js';
 import { PLATFORM_LABEL } from './ui.js';
 import type { 흐름일 } from './useFlowSuggest.js';
@@ -53,7 +52,7 @@ export function 시작칸(p: {
 }) {
   const t = use말();
   // 앱 · 게임 애플리케이션은 「Android 앱」 칩 하나다 (도메인/시나리오 §3.7 결정 16)
-  const 디바이스들 = 종류(p.앱들.find((a) => a.prefix === p.서비스)?.kind).시나리오디바이스;
+  const 디바이스들 = 시나리오칩들(p.앱들, p.서비스);
   return (
     <>
       <div className="wz-kinds" role="group" aria-label={t('시작 방법')}>

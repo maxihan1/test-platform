@@ -16,7 +16,7 @@ import { ScenarioCards } from './ScenarioCards.js';
 import { ScenarioBuildTabs } from './ScenarioBuildTabs.js';
 import { ScenarioTabs, type 조립탭 } from './ScenarioTabs.js';
 import { 시험막는글, TrialControls, TrialSummary, TrialTab, 폰실행위치 } from './ScenarioTrial.js';
-import { 끄기기본, 빈칸있는단계, 서버선택지, 케이스바꾸기, 폰단계있나 } from './scenarioView.js';
+import { 끄기기본, 빈칸있는단계, 서버선택지, 시나리오칩들, 케이스바꾸기, 폰단계있나 } from './scenarioView.js';
 import { useScenarioDraft } from './useScenarioDraft.js';
 import { useScenarioRun, 넘겨받은실행글 } from './useScenarioRun.js';
 import { 시험열쇠, 시험열쇠옮기기, useScenarioTrial } from './useScenarioTrial.js';
@@ -91,7 +91,7 @@ export function ScenarioBuild({
   const 앱들 = user.services.filter((s) => s.projectId === user.services.find((x) => x.prefix === 초안.서비스)?.projectId);
   const 서버들 = 서버선택지(앱들, 초안.서비스, 초안.단계들);
   // 앱 · 게임 애플리케이션은 「Android 앱」 하나다. 저장된 값이 목록에 없으면(옛 시나리오) 그 값도 보여 고르개가 빈칸이 되지 않게 한다 (§3.7 결정 16)
-  const 칩들 = 종류(앱들.find((a) => a.prefix === 초안.서비스)?.kind).시나리오디바이스;
+  const 칩들 = 시나리오칩들(앱들, 초안.서비스);
   const 디바이스들 = 칩들.includes(초안.디바이스) ? 칩들 : [초안.디바이스, ...칩들];
   const 가능 = 서버들.filter((s) => s.없는곳.length === 0);
   const 서버후보 = 고른서버 ?? 마지막서버(초안.서비스, 가능);
@@ -235,6 +235,10 @@ export function ScenarioBuild({
 
       <div className="screen scn-screen">
         {폰단계있나(앱들, 초안.단계들) ? <폰실행위치 /> : null}
+        {/* 그 애플리케이션 칩에 없는 디바이스로 저장된 옛 시나리오 — 서버가 저장 · 실행을 거절하니 미리 알린다 (§3.7 결정 16) */}
+        {칩들.includes(초안.디바이스) ? null : (
+          <p className="scn-note">{t('이 애플리케이션은 디바이스 「{디바이스}」로만 돌립니다. 디바이스를 바꿔 저장합니다', { 디바이스: 칩들.map((p) => t(PLATFORM_LABEL[p])).join(' · ') })}</p>
+        )}
         {상태글 === null ? null : (
           <p className="scn-note" role="status">
             {상태글}

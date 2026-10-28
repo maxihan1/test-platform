@@ -169,7 +169,7 @@ export function ScenarioResult({
           ))}
         </ol>
         {팜.length === 0 ? null : (
-          <section className="scn-farm" aria-label={t('디바이스 팜 기록')}>
+          <section aria-label={t('디바이스 팜 기록')}>
             <h2 className="scn-heading">{t('디바이스 팜 기록')}</h2>
             <팜증적 주소={(name) => scenarioApi.runFarm(runId, name)} files={팜} />
           </section>
@@ -182,7 +182,8 @@ export function ScenarioResult({
 /** 폰 모델 · Android 판 한 줄. 둘 다 못 읽었으면 null — 빈 칸을 세우지 않는다 */
 export function 폰글(device: DeviceInfo | null | undefined): string | null {
   if (device == null) return null;
-  const 조각 = [device.model, device.osVersion === null ? null : `Android ${device.osVersion}`].filter((x) => x !== null && x !== '');
+  const 있음 = (x: string | null): x is string => x !== null && x.trim() !== '';
+  const 조각 = [...(있음(device.model) ? [device.model] : []), ...(있음(device.osVersion) ? [`Android ${device.osVersion}`] : [])];
   return 조각.length === 0 ? null : 조각.join(' · ');
 }
 

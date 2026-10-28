@@ -7,7 +7,7 @@ import { z } from 'zod';
 
 import { tcId종류 } from '../catalog/rules.js';
 
-import { type 앱종류, 앱단계인가, 섞였나, 케이스접두사 } from './mixed.js';
+import { type 앱종류, 단계디바이스, 앱단계인가, 섞였나, 케이스접두사 } from './mixed.js';
 
 // 러너 입구(apps/runner/src/routes.ts scenarioLink · responseRef)와 맞춘다 — 여기서 통과한 것을 러너가 400 으로 돌려보내면 저장만 되고 영영 못 돈다.
 // 바꿔 보내기 경로 규칙과 {} 개수는 사람 말 사유로 알려 주려고 조립검사가 본다
@@ -152,8 +152,6 @@ export function 조립검사(
   // 폰 연결 하나에 앱 하나다
   const 앱들 = [...new Set(parts.flatMap((p) => (p.kind === 'case' && 앱단계인가(p, 종류) ? [케이스접두사(p.tcId)] : [])))];
   if (앱들.length > 1) 오류.push(`앱 · 게임 애플리케이션은 한 시나리오에 하나다: ${앱들.join(' · ')}`);
-  // android 시나리오의 웹 단계는 PC 창으로 돈다
-  const 웹디바이스: Platform = platform === 'android' ? 'desktop' : platform;
   const 섞임 = 섞였나(parts, service);
   const 켜진모킹 = new Set<string>();
   parts.forEach((p, i) => {
@@ -179,7 +177,7 @@ export function 조립검사(
         return;
       }
       const 앱단계 = 앱단계인가(p, 종류);
-      const 필요 = 앱단계 ? 'android' : 웹디바이스;
+      const 필요 = 단계디바이스(앱단계, platform);
       if (!케이스.platforms.includes(필요)) 오류.push(`${자리}: ${p.tcId} 는 ${필요} 을 선언하지 않았다`);
       // 앱은 폰 안에서 자기 서버와 바로 주고받아 러너가 그 요청을 못 본다 — 결정 16 표가 정본이고 러너 입구(scenarioGate.ts)도 막는다
       if (앱단계) {

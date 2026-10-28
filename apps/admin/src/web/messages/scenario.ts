@@ -236,4 +236,5 @@ export const 시나리오말: Record<string, string> = {
     'Test runs use the phone plugged into your computer runner when it is on, and the device farm when it is off',
   '폰': 'Phone',
   '디바이스 팜 기록': 'Device farm records',
+  '이 애플리케이션은 디바이스 「{디바이스}」로만 돌립니다. 디바이스를 바꿔 저장합니다': 'This application runs only on {디바이스}. Change the device and save',
 };

@@ -3,6 +3,7 @@
 import type { ScenarioLink, ScenarioPart } from '@platform/kit';
 
 import { 흐름인가 } from '../scenario/flowSide.js';
+import { 단계디바이스 as 도는디바이스 } from '../scenario/mixed.js';
 
 import type { CaseRow, Platform, 앱종류 } from './api.js';
 import { t, type 언어 } from './i18n.js';
@@ -108,26 +109,22 @@ export interface 팔레트묶음 {
   입력값: CaseRow[];
 }
 
-/** 앱 · 게임 애플리케이션인가 — 그 케이스 단계는 폰에서 돈다 (도메인/시나리오 §3.7 결정 16) */
-export const 폰앱인가 = (앱들: readonly 앱줄[], 접두사: string): boolean =>
-  종류(앱들.find((a) => a.prefix === 접두사)?.kind).시나리오디바이스.includes('android');
+/** 그 애플리케이션의 시나리오 디바이스 칩. 앱 · 게임은 「Android 앱」 하나다 (도메인/시나리오 §3.7 결정 16) */
+export const 시나리오칩들 = (앱들: readonly 앱줄[], 접두사: string): readonly Platform[] =>
+  종류(앱들.find((a) => a.prefix === 접두사)?.kind).시나리오디바이스;
 
-/**
- * 그 애플리케이션 케이스가 이 시나리오에서 도는 디바이스 — 팔레트가 이 값으로 거른다.
- * 앱 · 게임은 시나리오 디바이스와 상관없이 폰이고, android 시나리오에 섞은 웹 단계는 PC 다 (§3.7 결정 16 — 서버 조립 검사와 같은 판정)
- */
-export function 단계디바이스(앱들: readonly 앱줄[], 접두사: string, 디바이스: Platform): Platform {
-  if (폰앱인가(앱들, 접두사)) return 'android';
-  return 디바이스 === 'android' ? 'desktop' : 디바이스;
-}
+/** 앱 · 게임 애플리케이션인가 — 그 케이스 단계는 폰에서 돈다 */
+export const 폰앱인가 = (앱들: readonly 앱줄[], 접두사: string): boolean => 시나리오칩들(앱들, 접두사).includes('android');
+
+/** 그 애플리케이션 케이스가 이 시나리오에서 도는 디바이스 — 팔레트가 이 값으로 거른다. 판정은 서버 조립 검사와 한 함수다 */
+export const 단계디바이스 = (앱들: readonly 앱줄[], 접두사: string, 디바이스: Platform): Platform => 도는디바이스(폰앱인가(앱들, 접두사), 디바이스);
 
 /** 앱 · 게임 단계가 하나라도 있나 — 있으면 실행이 폰을 한 번 잡는다 (§3.7 결정 16 「폰은 시나리오 동안 한 번 잡고 한 번 놓는다」) */
 export const 폰단계있나 = (앱들: readonly 앱줄[], 단계들: ScenarioPart[]): boolean =>
   단계들.some((p) => p.kind === 'case' && 폰앱인가(앱들, 케이스접두사(p.tcId)));
 
-/** 고른 칩이 시나리오 디바이스와 다른 디바이스로 돌 때만 붙는 안내 한 줄(영어 표의 키). 같으면 null */
-export function 단계디바이스안내(앱들: readonly 앱줄[], 접두사: string, 디바이스: Platform): string | null {
-  const 도는 = 단계디바이스(앱들, 접두사, 디바이스);
+/** 고른 칩이 시나리오 디바이스와 다른 디바이스(도는)로 돌 때만 붙는 안내 한 줄(영어 표의 키). 같으면 null */
+export function 단계디바이스안내(도는: Platform, 디바이스: Platform): string | null {
   if (도는 === 디바이스) return null;
   return 도는 === 'android' ? '앱 단계는 폰에서 돕니다. Android 앱 케이스만 보입니다' : '웹 단계는 PC 화면으로 돕니다. PC 에서 도는 케이스만 보입니다';
 }

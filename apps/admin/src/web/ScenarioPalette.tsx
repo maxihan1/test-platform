@@ -74,7 +74,7 @@ export function ScenarioPalette({ 서비스, 앱들 = [], 디바이스, 바꿀�
   const PRD씀 = 읽음?.PRD씀 ?? false;
   // 섞은 앱 · 게임 케이스는 폰에서, android 시나리오의 웹 케이스는 PC 로 돈다 — 그 디바이스로 거른다 (도메인/시나리오 §3.7 결정 16)
   const 도는디바이스 = 단계디바이스(앱들, 고른앱, 디바이스);
-  const 디바이스안내 = 단계디바이스안내(앱들, 고른앱, 디바이스);
+  const 디바이스안내 = 단계디바이스안내(도는디바이스, 디바이스);
   const 차례 = 읽음 === null ? null : 팔레트차례(읽음.목록, 도는디바이스, PRD씀);
   const 소문자 = 찾기.trim().toLowerCase();
   const 찾는중 = 소문자 !== '';

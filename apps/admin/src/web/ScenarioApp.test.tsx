@@ -5,7 +5,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 
 import { api, type CaseRow, type Platform } from './api.js';
-import { 사람, 서비스 } from './ScenarioBuild.fixture.js';
+import { ScenarioBuild } from './ScenarioBuild.js';
+import { 사람, 상세, 서비스, 재료, 케이스단계 } from './ScenarioBuild.fixture.js';
 import { scenarioApi } from './scenarioApi.js';
 import { ScenarioList } from './ScenarioList.js';
 import { ScenarioPalette } from './ScenarioPalette.js';
@@ -34,9 +35,10 @@ const 행 = (tcId: string, platforms: Platform[]): CaseRow => ({
   techniques: [],
 });
 
-describe('마법사 디바이스 칩', () => {
-  const 앱사람 = () => ({ ...사람(), services: [{ ...서비스('ZAA'), kind: 'APP' as const }, 서비스('ZAW')] });
+const 앱서비스 = () => ({ ...서비스('ZAA'), kind: 'APP' as const });
+const 앱사람 = () => ({ ...사람(), services: [앱서비스(), 서비스('ZAW')] });
 
+describe('마법사 디바이스 칩', () => {
   it('Android 앱 애플리케이션이면 칩은 「Android 앱」 하나이고 폰 안내가 붙는다', () => {
     window.location.hash = '#/scenarios/new';
     render(<ScenarioWizard 띠서비스={{ ...서비스('ZAA'), kind: 'APP' }} user={앱사람()} />);
@@ -98,7 +100,7 @@ describe('목록의 실행 위치', () => {
     vi.spyOn(scenarioApi, 'list').mockResolvedValue({
       items: [{ id: 1, name: '주문 흐름', platform: 'android', version: 1, partCount: 3, isActive: true, needsCheck: false, runnable: true, lastRun: null }],
     });
-    render(<ScenarioList service="ZAA" {...(앱종류 === undefined ? {} : { 앱종류 })} envs={[{ env: 'qa', baseUrl: 'https://qa.example.com' }]} 할수={() => true} />);
+    render(<ScenarioList service="ZAA" {...(앱종류 === undefined ? {} : { kind: 앱종류 })} envs={[{ env: 'qa', baseUrl: 'https://qa.example.com' }]} 할수={() => true} />);
   };
 
   it('앱 · 게임 애플리케이션은 실행 위치 · 디바이스 팜을 늘 알린다', async () => {
@@ -145,5 +147,61 @@ describe('결과 화면 — 폰 줄과 디바이스 팜 기록', () => {
     await screen.findByText('단계별 결과');
     expect(screen.queryByText('폰')).toBeNull();
     expect(screen.queryByRole('region', { name: '디바이스 팜 기록' })).toBeNull();
+  });
+});
+
+describe('조립 화면 — 디바이스 고르개와 실행 위치', () => {
+  const 고르개 = () => screen.getByRole('combobox', { name: '디바이스' }) as HTMLSelectElement;
+
+  it('새 Android 앱 시나리오는 「Android 앱」 하나로 잠긴 채 열린다', async () => {
+    vi.spyOn(api, 'cases').mockResolvedValue({ items: [행('ZAA-001', ['android']), 행('ZAA-002', ['desktop'])], total: 2, page: 1, pageSize: 50, hasFeatures: false });
+    vi.spyOn(scenarioApi, 'nextCases').mockResolvedValue({ items: [] });
+    render(<ScenarioBuild id={null} 띠서비스={앱서비스()} user={앱사람()} />);
+    await screen.findByRole('button', { name: 'ZAA-001 추가' });
+
+    expect([...고르개().options].map((o) => o.textContent)).toEqual(['Android 앱']);
+    expect(고르개().disabled).toBe(true);
+    expect(screen.queryByRole('button', { name: 'ZAA-002 추가' })).toBeNull();
+    expect(screen.queryByText(실행위치)).toBeNull();
+  });
+
+  it('앱 단계가 있으면 머리 아래 실행 위치와 시험 실행 줄이 선다', async () => {
+    vi.spyOn(scenarioApi, 'detail').mockResolvedValue(상세({ service: 'ZAA', platform: 'android', parts: [케이스단계('ZAA-001')] }));
+    vi.spyOn(scenarioApi, 'caseParts').mockImplementation(async (tcId) => ({ ...재료(tcId), platforms: ['android'] }));
+    render(<ScenarioBuild id={12} 띠서비스={앱서비스()} user={앱사람()} />);
+
+    expect(await screen.findByText(실행위치)).toBeTruthy();
+    expect(screen.getByText('시험 실행은 내 컴퓨터 러너가 켜져 있으면 거기 꽂은 폰에서, 꺼져 있으면 디바이스 팜에서 돕니다')).toBeTruthy();
+  });
+
+  it('PC 로 저장된 옛 Android 앱 시나리오는 그 값도 보이고 바꾸라고 알린다', async () => {
+    vi.spyOn(scenarioApi, 'detail').mockResolvedValue(상세({ service: 'ZAA', platform: 'desktop', parts: [] }));
+    render(<ScenarioBuild id={12} 띠서비스={앱서비스()} user={앱사람()} />);
+
+    expect(await screen.findByText('이 애플리케이션은 디바이스 「Android 앱」로만 돌립니다. 디바이스를 바꿔 저장합니다')).toBeTruthy();
+    expect([...고르개().options].map((o) => o.textContent)).toEqual(['PC', 'Android 앱']);
+    fireEvent.change(고르개(), { target: { value: 'android' } });
+    expect(screen.queryByText(/로만 돌립니다/u)).toBeNull();
+  });
+});
+
+describe('마법사 시험 실행 — 실행 위치', () => {
+  it('앱 단계를 넣고 시험 실행 단계로 가면 실행 위치 세 줄이 뜬다', async () => {
+    window.location.hash = '#/scenarios/new';
+    vi.spyOn(api, 'cases').mockResolvedValue({ items: [행('ZAA-001', ['android'])], total: 1, page: 1, pageSize: 50, hasFeatures: false });
+    vi.spyOn(scenarioApi, 'nextCases').mockResolvedValue({ items: [] });
+    vi.spyOn(scenarioApi, 'caseParts').mockImplementation(async (tcId) => ({ ...재료(tcId), platforms: ['android'] }));
+    vi.spyOn(scenarioApi, 'linkSuggestions').mockResolvedValue({ items: [] });
+    render(<ScenarioWizard 띠서비스={앱서비스()} user={앱사람()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /직접 고르기/ }));
+    fireEvent.click(screen.getByRole('button', { name: '다음' }));
+    fireEvent.change(await screen.findByRole('textbox'), { target: { value: 'ZAA' } });
+    fireEvent.click(await screen.findByRole('button', { name: 'ZAA-001 넣기' }));
+    fireEvent.click(screen.getByRole('button', { name: '다음' }));
+    fireEvent.click(await screen.findByRole('button', { name: '다음' }));
+
+    expect(await screen.findByText(실행위치)).toBeTruthy();
+    expect(screen.getByText(/시험 실행은 내 컴퓨터 러너가/u)).toBeTruthy();
   });
 });
