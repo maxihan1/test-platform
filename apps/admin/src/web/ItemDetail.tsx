@@ -89,7 +89,7 @@ export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; 
         )}
       </div>
 
-      <팜증적 runId={item.runId} historyId={item.historyId} files={item.farm} />
+      <팜증적 주소={(name) => api.farmFile(item.runId, item.historyId, name)} files={item.farm} />
       {/* 통과한 앱 항목은 영상을 받아 두지 않는다 — 누르면 팜에서 가져온다 (도메인/게임 §3.10 「실행 결과」) */}
       {item.platform === 'android' && item.status === 'PASS' && item.farm.length === 0 ? <통과영상 runId={item.runId} historyId={item.historyId} /> : null}
       <ItemTraceSection trace={item.trace} />

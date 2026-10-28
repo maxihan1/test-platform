@@ -157,7 +157,7 @@ function Screen({
     }
     case 'scenarios':
       // 서비스를 바꾸면 새로 그린다 — 고른 대상 서버와 앞 서비스의 실행 안내가 남으면 다른 서비스에 쏜다
-      return <ScenarioList key={prefix} service={prefix} envs={service?.envs ?? []} 할수={할수} />;
+      return <ScenarioList key={prefix} service={prefix} kind={service?.kind} envs={service?.envs ?? []} 할수={할수} />;
     case 'scenarioNew':
       // 마법사도 서비스로 key 를 걸지 않는다 — 열 때 고른 애플리케이션이 시나리오 서비스다
       return <ScenarioWizard key="new" 띠서비스={service} user={user} />;

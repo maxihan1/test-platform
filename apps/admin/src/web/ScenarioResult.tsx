@@ -1,8 +1,10 @@
 // 실행 결과 › E2E 모양 (#/runs/:runId 가 시나리오 실행 번호일 때). 도메인/시나리오 §8.11 · 실행 §8.7
 
 import { useEffect } from 'react';
+import type { DeviceInfo } from '@platform/kit';
 
 import { use증적, 증적만들기버튼들, 증적알림과목록 } from './EvidenceSection.js';
+import { 팜증적 } from './FarmEvidence.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { 주소조건 } from './leaveGuard.js';
@@ -92,6 +94,10 @@ export function ScenarioResult({
     [t('대상 주소'), data.baseUrl],
     [t('실행자'), 실행자이름(data, 언어)],
   ];
+  // 앱 · 게임 단계가 있는 시나리오만 폰 정보가 온다 — 폰 연결이 하나라 시나리오에 한 벌이다 (도메인/시나리오 §3.7 결정 16)
+  const 폰 = 폰글(data.device);
+  if (폰 !== null) 칸들.push([t('폰'), 폰]);
+  const 팜 = data.farm ?? [];
 
   return (
     <>
@@ -162,9 +168,23 @@ export function ScenarioResult({
             <ScenarioResultPart key={part.seq} part={part} parts={data.parts} runId={runId} 실행중={running} />
           ))}
         </ol>
+        {팜.length === 0 ? null : (
+          <section aria-label={t('디바이스 팜 기록')}>
+            <h2 className="scn-heading">{t('디바이스 팜 기록')}</h2>
+            <팜증적 주소={(name) => scenarioApi.runFarm(runId, name)} files={팜} />
+          </section>
+        )}
       </div>
     </>
   );
+}
+
+/** 폰 모델 · Android 판 한 줄. 둘 다 못 읽었으면 null — 빈 칸을 세우지 않는다 */
+export function 폰글(device: DeviceInfo | null | undefined): string | null {
+  if (device == null) return null;
+  const 있음 = (x: string | null): x is string => x !== null && x.trim() !== '';
+  const 조각 = [...(있음(device.model) ? [device.model] : []), ...(있음(device.osVersion) ? [`Android ${device.osVersion}`] : [])];
+  return 조각.length === 0 ? null : 조각.join(' · ');
 }
 
 function 들어온곳읽기(): 들어온곳 {

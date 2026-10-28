@@ -13,7 +13,7 @@ import { 단계띠, 단계이름, 단계제목, type 마법사단계 } from './S
 import { 저장칸 } from './ScenarioWizardSave.js';
 import { 시험칸 } from './ScenarioWizardTrial.js';
 import { 값연결칸 } from './ScenarioWizardValues.js';
-import { 종류글, 후보단계들 } from './scenarioView.js';
+import { 시나리오칩들, 종류글, 폰단계있나, 후보단계들 } from './scenarioView.js';
 import { useFlowSuggest } from './useFlowSuggest.js';
 import { 초안넘기기 } from './useScenarioDraft.js';
 import { useWizardEnd } from './useWizardEnd.js';
@@ -28,7 +28,7 @@ export function ScenarioWizard({ 띠서비스, user }: { 띠서비스: ServiceRo
   // 열 때 고른 애플리케이션이 시나리오 서비스다 — 헤더 고르개를 바꿔도 따라가지 않는다(조립 화면과 같다)
   const [서비스, set서비스] = useState(띠서비스?.prefix ?? '');
   const [방법, set방법] = useState<시작방법 | null>(null);
-  const [디바이스, set디바이스] = useState<Platform>('desktop');
+  const [디바이스, set디바이스] = useState<Platform>(() => 시나리오칩들(user.services, 띠서비스?.prefix ?? '')[0] ?? 'desktop');
   const [단계들, set단계들] = useState<ScenarioPart[]>([]);
   const [이름, set이름] = useState('');
   const [바람, set바람] = useState('');
@@ -205,6 +205,8 @@ export function ScenarioWizard({ 띠서비스, user }: { 띠서비스: ServiceRo
                   추천버림();
                   set단계들([]);
                   set서비스(값);
+                  // 앱 · 게임과 웹은 칩이 달라 새 애플리케이션에 없는 디바이스면 그 첫 칩으로 바꾼다 (§3.7 결정 16)
+                  if (!시나리오칩들(user.services, 값).includes(디바이스)) set디바이스(시나리오칩들(user.services, 값)[0] ?? 'desktop');
                 }}
                 on디바이스={(값) => {
                   추천버림();
@@ -243,6 +245,7 @@ export function ScenarioWizard({ 띠서비스, user }: { 띠서비스: ServiceRo
                 막는글={끝.시험글}
                 단계들={보낼}
                 디바이스={디바이스}
+                폰={폰단계있나(앱들, 보낼)}
                 재료={재료}
                 이름={이름의}
                 on시작={끝.시험시작}

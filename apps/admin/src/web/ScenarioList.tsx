@@ -4,20 +4,22 @@
 
 import { Fragment, useState } from 'react';
 
-import { ApiError, type EnvRow } from './api.js';
+import { ApiError, type EnvRow, type 앱종류 } from './api.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
+import { 종류 } from './kind.js';
 import { 고른서버를적는다, 마지막서버 } from './layout.js';
 import { Modal } from './Modal.js';
 import type { 판정 } from './role.js';
 import { scenarioApi, type ScenarioRow } from './scenarioApi.js';
 import { ScenarioWhy } from './ScenarioListWhy.js';
 import { 결과주소 } from './ScenarioResultNext.js';
+import { 폰실행위치 } from './ScenarioTrial.js';
 import { Failed, Loading, message, useAsync, Verdict, when } from './ui.js';
 
 type 마지막 = NonNullable<ScenarioRow['lastRun']>;
 
-export function ScenarioList({ service, envs, 할수 }: { service: string; envs: EnvRow[]; 할수: 판정 }) {
+export function ScenarioList({ service, kind, envs, 할수 }: { service: string; kind?: 앱종류; envs: EnvRow[]; 할수: 판정 }) {
   const t = use말();
   const 언어 = use언어();
   const 쓰나 = 할수('실행');
@@ -91,6 +93,8 @@ export function ScenarioList({ service, envs, 할수 }: { service: string; envs:
                 </select>
               </>
             )}
+            {/* 앱 · 게임 애플리케이션의 시나리오는 늘 폰 단계로 시작한다 — 목록의 실행은 정식 실행이라 시험 실행 줄은 뺀다 (§3.7 결정 16) */}
+            {종류(kind).시나리오디바이스.includes('android') ? <폰실행위치 시험={false} /> : null}
           </div>
         )}
 

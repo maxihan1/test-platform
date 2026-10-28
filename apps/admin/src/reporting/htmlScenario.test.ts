@@ -147,6 +147,16 @@ describe('E2E 증적 HTML', () => {
     expect(html).not.toContain('hunter2');
     expect(html).toContain('********');
   });
+
+  it('웹만의 시나리오는 머리에 기기 줄이 없다', () => {
+    expect(html).not.toContain('<dt>기기</dt>');
+  });
+
+  it('앱 · 게임 단계가 있는 시나리오는 머리에 폰 한 벌을 기기 줄로 적는다', () => {
+    const 앱결과 = { ...결과, platform: 'android' as const, device: { model: 'SM-S921N', osVersion: '14', appVersion: null } };
+    const 앱html = renderScenarioHtml(E2E모양(78, 앱결과, { serviceName: '커머스', testsRepo: 'https://git.example.com/t' }), { generatedAt: '2026-10-29 15:00' });
+    expect(앱html).toContain('<dt>기기</dt><dd>SM-S921N · Android 14 · 앱 판 모름</dd>');
+  });
 });
 
 describe('E2E 증적 모델', () => {

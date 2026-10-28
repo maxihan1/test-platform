@@ -6,7 +6,7 @@ import type { ScenarioPart } from '@platform/kit';
 import type { CaseRow, Platform } from './api.js';
 import { 요구줄 } from './CaseListContext.js';
 import { use말 } from './i18n.js';
-import { 추천줄들, 케이스접두사, 팔레트차례, type 앱줄 } from './scenarioView.js';
+import { 단계디바이스, 단계디바이스안내, 추천줄들, 케이스접두사, 팔레트차례, type 앱줄 } from './scenarioView.js';
 import { Failed, Loading, PLATFORM_LABEL } from './ui.js';
 import { use단계추천, use케이스목록 } from './useScenarioCases.js';
 
@@ -72,7 +72,10 @@ export function ScenarioPalette({ 서비스, 앱들 = [], 디바이스, 바꿀�
   const 추천 = use단계추천(고른앱, 첫단계 ? '' : 뒤번호);
 
   const PRD씀 = 읽음?.PRD씀 ?? false;
-  const 차례 = 읽음 === null ? null : 팔레트차례(읽음.목록, 디바이스, PRD씀);
+  // 섞은 앱 · 게임 케이스는 폰에서, android 시나리오의 웹 케이스는 PC 로 돈다 — 그 디바이스로 거른다 (도메인/시나리오 §3.7 결정 16)
+  const 도는디바이스 = 단계디바이스(앱들, 고른앱, 디바이스);
+  const 디바이스안내 = 단계디바이스안내(도는디바이스, 디바이스);
+  const 차례 = 읽음 === null ? null : 팔레트차례(읽음.목록, 도는디바이스, PRD씀);
   const 소문자 = 찾기.trim().toLowerCase();
   const 찾는중 = 소문자 !== '';
   const 걸린 = (c: CaseRow) =>
@@ -84,7 +87,7 @@ export function ScenarioPalette({ 서비스, 앱들 = [], 디바이스, 바꿀�
   const 다폄 = 찾는중 && PRD씀;
   const 펴졌나 = (칸: 'group' | 'rest', feature: string | null) => 다폄 || 펼친.has(열쇠(칸, feature));
 
-  const 추천칸 = 읽음 === null || 추천.items === null ? [] : 추천줄들(읽음.목록, 디바이스, PRD씀, 추천.items).filter((x) => 걸린(x.row));
+  const 추천칸 = 읽음 === null || 추천.items === null ? [] : 추천줄들(읽음.목록, 도는디바이스, PRD씀, 추천.items).filter((x) => 걸린(x.row));
 
   const 줄 = (c: CaseRow, 이어짐?: string) => (
     <li key={c.tcId} className="scn-pal-row">
@@ -145,6 +148,7 @@ export function ScenarioPalette({ 서비스, 앱들 = [], 디바이스, 바꿀�
           ))}
         </div>
       )}
+      {디바이스안내 === null ? null : <p className="hint">{t(디바이스안내)}</p>}
 
       {오류 !== null ? (
         <Failed error={오류} />

@@ -1,6 +1,6 @@
 // E2E 시나리오 화면이 서버를 부르는 호출 모음. 응답 모양은 admin 의 scenario/ · execution/ 통로가 내보내는 것을 그대로 옮겼다
 
-import type { ScenarioCleanup, ScenarioExecuteResponse, ScenarioLink, ScenarioPart, ScenarioPartResult } from '@platform/kit';
+import type { DeviceInfo, ScenarioCleanup, ScenarioExecuteResponse, ScenarioLink, ScenarioPart, ScenarioPartResult } from '@platform/kit';
 
 import {
   call,
@@ -15,6 +15,7 @@ import {
   type RunSummary,
   type RunTally,
   type StepResult,
+  type 팜파일,
 } from './api.js';
 
 export interface ScenarioRow {
@@ -104,6 +105,10 @@ export interface ScenarioRunResult {
   startedAt: string;
   finishedAt: string | null;
   parts: ScenarioRunPart[];
+  /** 폰 모델 · Android 판 — 앱 · 게임 단계가 있고 폰 연결이 열렸을 때만 찬다. 폰 연결이 하나라 시나리오에 한 벌이다 (도메인/시나리오 §3.7 결정 16) */
+  device?: DeviceInfo | null;
+  /** 팜 증적(화면 영상 · logcat · 게임 실패 파일) — 통과하지 못한 정식 실행만. 옛 응답에는 없다 */
+  farm?: 팜파일[];
   /** 만든 증적 문서 — 케이스 결과 응답과 같은 모양이라 증적 칸(EvidenceSection.tsx)을 그대로 쓴다 (도메인/시나리오 §7) */
   evidence: EvidenceRow[];
 }
@@ -212,6 +217,7 @@ export const scenarioApi = {
 
   // 사진은 <img src> 가 직접 부른다. 글자만 돌려준다
   runShot: (runId: number, seq: number) => `/api/runs/${runId}/scenario/screenshots/${seq}`,
+  runFarm: (runId: number, name: string) => `/api/runs/${runId}/scenario/farm/${encodeURIComponent(name)}`,
 
   trialShot: (trialId: string, seq: number) => `/api/scenario-trials/${encodeURIComponent(trialId)}/screenshots/${seq}`,
 

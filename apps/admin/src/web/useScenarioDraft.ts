@@ -43,8 +43,9 @@ export function 초안넘기기(초안: 넘길초안): void {
 /**
  * @param id 기존 시나리오 번호. 새 것이면 null
  * @param 새서비스 새 시나리오가 속할 접두사. 처음 받은 값으로 고정한다 — 조립 중 띠를 바꿔도 초안이 다른 서비스로 가지 않게
+ * @param 새디바이스 새 시나리오의 처음 디바이스 — 앱 · 게임 애플리케이션은 android 하나다 (도메인/시나리오 §3.7 결정 16)
  */
-export function useScenarioDraft(id: number | null, 새서비스: string | null) {
+export function useScenarioDraft(id: number | null, 새서비스: string | null, 새디바이스: Platform = 'desktop') {
   const t = use말();
   const 언어 = use언어();
   // StrictMode 는 처음값을 두 번 계산한다 — 비우기는 효과에서 한다
@@ -53,7 +54,7 @@ export function useScenarioDraft(id: number | null, 새서비스: string | null)
   const [오류, set오류] = useState<string | null>(null);
   const [서비스, set서비스] = useState(carried?.서비스 ?? 새서비스 ?? '');
   const [이름, set이름] = useState(carried?.이름 ?? '');
-  const [디바이스, set디바이스] = useState<Platform>(carried?.디바이스 ?? 'desktop');
+  const [디바이스, set디바이스] = useState(carried?.디바이스 ?? 새디바이스);
   const [단계들, set단계들] = useState<ScenarioPart[]>(carried === null ? [] : carried.단계들);
   const [재료, set재료] = useState<재료들>(new Map());
   const [점검, set점검] = useState<점검들>([]);
@@ -62,7 +63,7 @@ export function useScenarioDraft(id: number | null, 새서비스: string | null)
   const [살아있나, set살아있나] = useState(true);
   // 초안을 통째로 갈아 끼울 때마다 오른다. 패널 key 에 넣어 글자 칸이 옛 값을 붙들지 않게 한다
   const [판, set판] = useState(0);
-  const [저장본, set저장본] = useState(() => 찍는다('', 'desktop', []));
+  const [저장본, set저장본] = useState(() => 찍는다('', 새디바이스, []));
   const [저장오류, set저장오류] = useState<string | null>(null);
   const [저장하는중, set저장하는중] = useState(false);
   // 같은 재료를 두 번 부르지 않으려고 부른 요청 자체를 기억한다. 번호만 기억하면 StrictMode 에서 둘째 읽기가
