@@ -171,7 +171,23 @@ describe('자리 목록', () => {
     expect(지금자리('perfDevices', '#/cases')).toBe('#/perf/devices');
   });
 
-  it('API 자리는 PRD 관리 바로 다음이고 하위는 API 문서 하나다', () => {
+  it('API 애플리케이션에서는 실행 기록이 API 아래에 서고 실행 기록 묶음은 없다. 밑줄은 기능 테스트 실행 기록 주소로 간다', () => {
+    const API = { ...결제, kind: 'API' as const };
+    const 목록 = 자리목록(사람('member', [API]), 'PAY', 'ko');
+    expect(목록.find((자리) => 자리.해시 === '#/api/docs')?.하위).toEqual([
+      { 이름: 'API 문서', 해시: '#/api/docs', 라벨: 'API · API 문서' },
+      { 이름: '실행 기록', 해시: '#/runs/fn', 라벨: 'API · 실행 기록' },
+    ]);
+    expect(목록.map((자리) => 자리.이름)).toEqual(['대시보드', 'PRD 관리', 'API', '테스트 작성', '테스트 스크립트', 'E2E 시나리오', '성능 테스트', '그래프(Grafana)']);
+    expect(지금자리('runs', '#/cases', 'FN')).toBe('#/runs/fn');
+  });
+
+  it('API 애플리케이션이라도 작성 칸이 없으면 API 자리가 없어 실행 기록 묶음에 남는다', () => {
+    const API작성없음 = { ...결제, kind: 'API' as const, permissions: { cases: 'read' as const, runs: 'read' as const, authoring: 'none' as const } };
+    expect(자리목록(사람('member', [API작성없음]), 'PAY', 'ko').map((자리) => 자리.이름)).toContain('실행 기록');
+  });
+
+  it('API 애플리케이션이 아니면 API 하위는 API 문서 하나다', () => {
     const 해시들 = 자리목록(김, 'MEM', 'ko').map((자리) => 자리.해시);
     expect(해시들.indexOf('#/api/docs')).toBe(해시들.indexOf('#/prd') + 1);
     expect(자리목록(김, 'MEM', 'ko').find((자리) => 자리.해시 === '#/api/docs')).toMatchObject({

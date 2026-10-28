@@ -68,6 +68,10 @@ const 그래프주소 = '/grafana/';
  */
 export function 자리목록(user: User, prefix: string | null, 언어: 언어, 앱케이스 = false): 자리[] {
   const 목록: 자리[] = [];
+  const 고른종류 = user.services.find((서비스) => 서비스.prefix === prefix)?.kind;
+  // API 애플리케이션의 실행 기록은 「API」 아래에 선다 — 기능 테스트 묶음에 섞이면 찾기 어렵다 (화면공통 §8 「자리 목록」 · 2026-10-28 사용자).
+  // 작성 칸이 없으면 API 자리가 없어 옛 묶음에 남는다
+  const API실행기록 = 고른종류 === 'API' && 기능보나(user, prefix, 'authoring') && 기능보나(user, prefix, 'runs');
   // 맨 위다. 고른 서비스가 아니라 배정 서비스 전체의 실행 칸을 본다 (route.ts 의 `대시보드보나`)
   if (대시보드보나(user)) 목록.push({ 이름: t('대시보드', 언어), 해시: '#/dashboard', 아이콘: 'dashboard' });
   if (기능보나(user, prefix, 'authoring')) {
@@ -78,7 +82,14 @@ export function 자리목록(user: User, prefix: string | null, 언어: 언어, 
     목록.push({ 이름, 해시: '#/prd', 아이콘: 'prd', 하위: [하위('요구사항', '#/prd'), 하위('애플리케이션 가이드', '#/prd/guide')] });
     // PRD 바로 다음 · 늘 보인다 — API 애플리케이션이 아니면 본문이 안내 한 줄이다 (화면공통 §8 「자리 목록」 · 도메인/API §3.8 결정 6)
     const API이름 = t('API', 언어);
-    목록.push({ 이름: API이름, 해시: '#/api/docs', 아이콘: 'api', 하위: [{ 이름: t('API 문서', 언어), 해시: '#/api/docs', 라벨: `${API이름} · ${t('API 문서', 언어)}` }] });
+    const API하위 = (글: string, 해시: string): 하위자리 => ({ 이름: t(글, 언어), 해시, 라벨: `${API이름} · ${t(글, 언어)}` });
+    목록.push({
+      이름: API이름,
+      해시: '#/api/docs',
+      아이콘: 'api',
+      // 화면은 기능 테스트 실행 기록 그대로다 — 같은 주소라 밑줄도 여기 간다
+      하위: [API하위('API 문서', '#/api/docs'), ...(API실행기록 ? [API하위('실행 기록', '#/runs/fn')] : [])],
+    });
     목록.push({ 이름: t('테스트 작성', 언어), 해시: '#/authoring', 아이콘: 'authoring' });
   }
   if (기능보나(user, prefix, 'cases')) {
@@ -89,12 +100,12 @@ export function 자리목록(user: User, prefix: string | null, 언어: 언어, 
     // 만드는 일(작성 → 케이스 → 시나리오) 끝, 보는 일 앞이다 (화면공통 §8). 시나리오는 실행 칸을 쓴다 (도메인/시나리오 §7)
     목록.push({ 이름: t('E2E 시나리오', 언어), 해시: '#/scenarios', 아이콘: 'scenarios' });
     const 이름 = t('실행 기록', 언어);
-    목록.push({ 이름, 해시: '#/runs', 아이콘: 'runs', 하위: 종류하위(이름, '#/runs', 언어) });
+    if (!API실행기록) 목록.push({ 이름, 해시: '#/runs', 아이콘: 'runs', 하위: 종류하위(이름, '#/runs', 언어) });
     // 실행 기록 다음 · 그래프 앞 (화면공통 §8 「자리 목록」). 하위는 시나리오 · 페이지 성능 · 기기 성능 · 실행 기록이다
     // 페이지 성능 · 기기 성능은 고른 애플리케이션 종류에 맞을 때만 선다 (kind.ts). 웹의 기기 성능은 앱 케이스가 있을 때만이다 — 그 여부는 껍데기가 읽어 넘긴다
     const 성능 = t('성능 테스트', 언어);
     const 성능하위 = (글: string, 해시: string): 하위자리 => ({ 이름: t(글, 언어), 해시, 라벨: `${성능} · ${t(글, 언어)}` });
-    const 줄 = 종류(user.services.find((서비스) => 서비스.prefix === prefix)?.kind);
+    const 줄 = 종류(고른종류);
     const 기기성능 = 줄.기기성능 === 'ALWAYS' || (줄.기기성능 === 'APP_CASES' && 앱케이스);
     목록.push({
       이름: 성능,

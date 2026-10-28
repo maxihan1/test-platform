@@ -54,7 +54,9 @@ export function PhoneShell({ user, service, onService, 언어, on언어, onLogou
   const 대시보드인가 = current === '#/dashboard';
   const 자리들 = 자리목록(user, service?.prefix ?? null, 언어, 앱케이스);
   const 대시보드 = 자리들.find((it) => it.해시 === '#/dashboard');
-  const 실행기록 = 자리들.find((it) => it.해시 === '#/runs');
+  // API 애플리케이션은 실행 기록이 「API」 아래에 선다(layout.ts) — 휴대폰 탭은 그 자리를 쓴다
+  const API실행기록 = 자리들.find((it) => it.해시 === '#/api/docs')?.하위?.find((it) => it.해시 === '#/runs/fn');
+  const 실행기록: 자리 | undefined = 자리들.find((it) => it.해시 === '#/runs') ?? (API실행기록 === undefined ? undefined : { 이름: API실행기록.이름, 해시: API실행기록.해시, 아이콘: 'runs' });
   // 하위 고르개는 실행 기록 목록에서만 — 실행 결과 · 항목 상세(`#/runs`)는 종류를 모른다
   const 하위 = 실행기록?.하위?.some((it) => it.해시 === current) === true ? 실행기록.하위 : undefined;
 
