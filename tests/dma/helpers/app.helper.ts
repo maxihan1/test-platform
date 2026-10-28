@@ -69,10 +69,11 @@ export async function 켜졌나(칸: 요소): Promise<boolean> {
   return (await 칸.getAttribute('checked')) === 'true';
 }
 
-export async function 칸에적기(칸: 요소, 값: string): Promise<void> {
+export async function 칸에적기(driver: 앱, 칸: 요소, 값: string): Promise<void> {
   await 칸.click();
   await 칸.clearValue();
   if (값 !== '') await 칸.setValue(값);
+  await driver.hideKeyboard().catch(() => undefined);
 }
 
 export function 일요일아닌첫날(오늘: Date): Date {

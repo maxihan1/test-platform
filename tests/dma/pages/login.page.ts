@@ -46,11 +46,11 @@ export class 로그인화면 {
   }
 
   async 아이디적기(값: string): Promise<void> {
-    await 칸에적기(await this.아이디칸.getElement(), 값);
+    await 칸에적기(this.driver, await this.아이디칸.getElement(), 값);
   }
 
   async 비밀번호적기(값: string): Promise<void> {
-    await 칸에적기(await this.비밀번호칸.getElement(), 값);
+    await 칸에적기(this.driver, await this.비밀번호칸.getElement(), 값);
   }
 
   async 아이디칸글(): Promise<string> {
@@ -68,7 +68,6 @@ export class 로그인화면 {
   async 로그인(아이디: string, 비밀번호: string): Promise<void> {
     await this.아이디적기(아이디);
     await this.비밀번호적기(비밀번호);
-    await this.driver.hideKeyboard().catch(() => undefined);
     await this.로그인누르기();
   }
 

@@ -38,8 +38,7 @@ export class 주소검색창 {
   }
 
   async 주소찾기(검색어: string): Promise<void> {
-    await 칸에적기(await this.검색어칸.getElement(), 검색어);
-    await this.driver.hideKeyboard().catch(() => undefined);
+    await 칸에적기(this.driver, await this.검색어칸.getElement(), 검색어);
     await this.검색버튼.click();
   }
 

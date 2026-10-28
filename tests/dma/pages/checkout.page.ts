@@ -80,12 +80,12 @@ export class 주문하기화면 {
 
   async 받는분적기(값: string): Promise<void> {
     await this.보일때까지밀기(await this.받는분.getElement(), false);
-    await 칸에적기(await this.받는분.getElement(), 값);
+    await 칸에적기(this.driver, await this.받는분.getElement(), 값);
   }
 
   async 연락처적기(값: string): Promise<void> {
     await this.보일때까지밀기(await this.연락처.getElement(), false);
-    await 칸에적기(await this.연락처.getElement(), 값);
+    await 칸에적기(this.driver, await this.연락처.getElement(), 값);
   }
 
   async 연락처글(): Promise<string> {
@@ -94,7 +94,7 @@ export class 주문하기화면 {
 
   async 상세주소적기(값: string): Promise<void> {
     await this.보일때까지밀기(await this.상세주소.getElement(), false);
-    await 칸에적기(await this.상세주소.getElement(), 값);
+    await 칸에적기(this.driver, await this.상세주소.getElement(), 값);
   }
 
   async 주소줄글(): Promise<string> {
