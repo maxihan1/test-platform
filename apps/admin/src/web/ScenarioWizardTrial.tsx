@@ -7,7 +7,7 @@ import { 실패이유 } from './FailureWhy.js';
 import { use말, use언어 } from './i18n.js';
 import { 멈춘사유글자 } from './scenarioResultView.js';
 import { 멈춘단계 } from './ScenarioResultNext.js';
-import { TrialControls, TrialTab } from './ScenarioTrial.js';
+import { TrialControls, TrialTab, 폰실행위치 } from './ScenarioTrial.js';
 import type { 재료들 } from './scenarioView.js';
 import { 종류이름 } from './ScenarioWizardValues.js';
 import { 가져올번호, 멈춘까닭, 연결들, 쓰였나 } from './scenarioWizardView.js';
@@ -25,6 +25,8 @@ interface Props {
   막는글: string | null;
   단계들: ScenarioPart[];
   디바이스: Platform;
+  /** 앱 · 게임 단계가 있나 — 있으면 실행 위치 안내를 띄운다 (도메인/시나리오 §3.7 결정 16) */
+  폰: boolean;
   재료: 재료들;
   이름: (번호: number) => string;
   on시작: () => void;
@@ -69,6 +71,7 @@ export function 시험칸(p: Props) {
         <TrialControls 서버들={p.서버들} 서버={p.서버} on서버={p.on서버} 도는중={p.시험.단계 === 'running'} on시작={p.on시작} 다시={결과 !== null} />
       </div>
       {p.미리 ? <p className="hint">{t('지난번에 고른 서버를 미리 골라 두었습니다')}</p> : null}
+      {p.폰 ? <폰실행위치 /> : null}
       {p.막는글 === null ? null : (
         <p className="err" role="alert">
           {p.막는글}

@@ -1,7 +1,7 @@
 import type { ScenarioPart } from '@platform/kit';
 import { describe, expect, it } from 'vitest';
 
-import { 단계앱, 서버선택지, 섞였나, 케이스접두사 } from './scenarioView.js';
+import { 단계디바이스, 단계디바이스안내, 단계앱, 서버선택지, 섞였나, 케이스접두사, 폰단계있나 } from './scenarioView.js';
 
 const 케이스 = (tcId: string): ScenarioPart => ({ kind: 'case', tcId, params: {}, expected: {}, skipSteps: [] });
 const API = (service?: string): ScenarioPart => ({ kind: 'api', method: 'GET', path: '/x', expectStatus: 200, ...(service === undefined ? {} : { service }) });
@@ -45,5 +45,38 @@ describe('대상 서버 선택지', () => {
       ['qa', ['ADM', 'PAY']],
       ['prod', ['PAY']],
     ]);
+  });
+});
+
+describe('앱 · 게임 단계의 디바이스 (도메인/시나리오 §3.7 결정 16)', () => {
+  const 앱들 = [
+    { prefix: 'DMA', name: '데모마켓 앱', kind: 'APP' as const, envs: [] },
+    { prefix: 'ASH', name: '게임', kind: 'GAME' as const, envs: [] },
+    { prefix: 'MKO', name: '운영툴', kind: 'SCREEN' as const, envs: [] },
+    { prefix: 'OLD', name: '옛 응답', envs: [] },
+  ];
+
+  it('앱 · 게임 케이스는 시나리오 디바이스와 상관없이 android 로 거른다', () => {
+    expect(단계디바이스(앱들, 'DMA', 'desktop')).toBe('android');
+    expect(단계디바이스(앱들, 'ASH', 'mobile')).toBe('android');
+    expect(단계디바이스(앱들, 'DMA', 'android')).toBe('android');
+  });
+
+  it('android 시나리오에 섞은 웹 케이스는 PC 로, 웹 시나리오의 웹 케이스는 그 디바이스로 거른다', () => {
+    expect(단계디바이스(앱들, 'MKO', 'android')).toBe('desktop');
+    expect(단계디바이스(앱들, 'MKO', 'mobile')).toBe('mobile');
+    expect(단계디바이스(앱들, 'OLD', 'desktop')).toBe('desktop');
+  });
+
+  it('시나리오 디바이스와 다르게 돌 때만 안내 한 줄이 붙는다', () => {
+    expect(단계디바이스안내(앱들, 'DMA', 'desktop')).toBe('앱 단계는 폰에서 돕니다. Android 앱 케이스만 보입니다');
+    expect(단계디바이스안내(앱들, 'MKO', 'android')).toBe('웹 단계는 PC 화면으로 돕니다. PC 에서 도는 케이스만 보입니다');
+    expect(단계디바이스안내(앱들, 'DMA', 'android')).toBeNull();
+    expect(단계디바이스안내(앱들, 'MKO', 'desktop')).toBeNull();
+  });
+
+  it('앱 · 게임 케이스 단계가 하나라도 있어야 폰을 잡는 시나리오다', () => {
+    expect(폰단계있나(앱들, [케이스('MKO-FN-001'), API('DMA')])).toBe(false);
+    expect(폰단계있나(앱들, [케이스('MKO-FN-001'), 케이스('ASH-FN-002')])).toBe(true);
   });
 });

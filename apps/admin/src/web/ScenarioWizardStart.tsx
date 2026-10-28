@@ -2,9 +2,10 @@
 
 import type { Platform } from './api.js';
 import { use말 } from './i18n.js';
+import { 종류 } from './kind.js';
 import type { 앱줄 } from './scenarioView.js';
 import { 체크그림 } from './SettingsWizardSteps.js';
-import { PLATFORM_LABEL, PLATFORMS } from './ui.js';
+import { PLATFORM_LABEL } from './ui.js';
 import type { 흐름일 } from './useFlowSuggest.js';
 
 export type 시작방법 = 'ai' | 'manual';
@@ -51,6 +52,8 @@ export function 시작칸(p: {
   on디바이스: (디바이스: Platform) => void;
 }) {
   const t = use말();
+  // 앱 · 게임 애플리케이션은 「Android 앱」 칩 하나다 (도메인/시나리오 §3.7 결정 16)
+  const 디바이스들 = 종류(p.앱들.find((a) => a.prefix === p.서비스)?.kind).시나리오디바이스;
   return (
     <>
       <div className="wz-kinds" role="group" aria-label={t('시작 방법')}>
@@ -83,13 +86,19 @@ export function 시작칸(p: {
           {t('디바이스')}
         </span>
         <div className="scw-opts" role="group" aria-labelledby="scw-device">
-          {PLATFORMS.map((d) => (
+          {디바이스들.map((d) => (
             <button key={d} type="button" className="scw-opt" aria-pressed={p.디바이스 === d} onClick={() => p.on디바이스(d)}>
               {t(PLATFORM_LABEL[d])}
             </button>
           ))}
         </div>
-        <span className="hint">{t('그 디바이스에서 도는 케이스만 단계로 고를 수 있습니다')}</span>
+        <span className="hint">
+          {t(
+            디바이스들.includes('android')
+              ? 'Android 앱 애플리케이션은 폰 한 대에서 돌립니다. 단계 사이에 앱을 다시 켜지 않고, 앞 단계가 끝난 화면에서 이어 갑니다'
+              : '그 디바이스에서 도는 케이스만 단계로 고를 수 있습니다',
+          )}
+        </span>
       </div>
     </>
   );

@@ -138,4 +138,6 @@ export const 시나리오마법사말: Record<string, string> = {
   '멈춤 · 쓰였는지는 결과에 남지 않습니다': 'Stopped · the result doesn’t record whether it was used',
   '대상 서버를 먼저 고릅니다': 'Pick a target server first',
   '다시 돌리기': 'Run again',
+  'Android 앱 애플리케이션은 폰 한 대에서 돌립니다. 단계 사이에 앱을 다시 켜지 않고, 앞 단계가 끝난 화면에서 이어 갑니다':
+    'Android app applications run on one phone. The app is not restarted between steps; each step continues from the screen the previous one ended on',
 };

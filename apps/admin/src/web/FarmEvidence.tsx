@@ -7,7 +7,8 @@ import { use말 } from './i18n.js';
 
 const MB = (bytes: number): string => `${(bytes / 1024 / 1024).toFixed(1)}MB`;
 
-export function 팜증적({ runId, historyId, files }: { runId: number; historyId: number; files: 팜파일[] }) {
+/** @param 주소 파일 이름으로 원본 주소를 만든다 — 앱 항목과 E2E 시나리오(시나리오에 한 벌)가 통로만 다르다 */
+export function 팜증적({ 주소, files }: { 주소: (name: string) => string; files: 팜파일[] }) {
   const t = use말();
   if (files.length === 0) return null;
   const 영상 = files.filter((f) => f.name.endsWith('.mp4'));
@@ -24,14 +25,14 @@ export function 팜증적({ runId, historyId, files }: { runId: number; historyI
               className="farm-ev-video"
               controls
               preload="none"
-              src={api.farmFile(runId, historyId, f.name)}
+              src={주소(f.name)}
               aria-label={t('화면 영상 {번호}', { 번호: i + 1 })}
             />
           ))}
         </div>
       )}
       {로그.map((f) => (
-        <a key={f.name} className="farm-ev-file" href={api.farmFile(runId, historyId, f.name)} download={f.name}>
+        <a key={f.name} className="farm-ev-file" href={주소(f.name)} download={f.name}>
           {t('{파일} 받기 ({크기})', { 파일: f.name, 크기: MB(f.bytes) })}
         </a>
       ))}

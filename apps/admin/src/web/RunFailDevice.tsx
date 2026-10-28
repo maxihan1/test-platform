@@ -124,7 +124,7 @@ export function RunFailDevice({
       )}
 
       {devices.map((d) => (
-        <팜증적 key={d.platform} runId={d.item.runId} historyId={d.item.historyId} files={d.farm} />
+        <팜증적 key={d.platform} 주소={(name) => api.farmFile(d.item.runId, d.item.historyId, name)} files={d.farm} />
       ))}
     </div>
   );
