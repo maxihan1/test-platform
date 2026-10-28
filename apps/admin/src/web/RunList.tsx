@@ -29,8 +29,11 @@ function 번호(글: string | null): number | null {
 }
 
 // 판정하기 — 결과 칸이 그 실행의 서비스로 버튼을 가른다. 주소의 `?run=` 은 띠와 다른 서비스 실행일 수 있다 (화면공통 §8)
-export function RunList({ service, envs, 판정하기, kind }: { service: string; envs: EnvRow[]; 판정하기: 판정하기; kind: 'UI' | 'FN' }) {
+// API아래 — 이 애플리케이션의 실행 기록이 메뉴 「API」 아래에 선다(layout.ts). 위치 표시도 메뉴와 같게 「API › 실행 기록」 이다
+export function RunList({ service, envs, 판정하기, kind, API아래 = false }: { service: string; envs: EnvRow[]; 판정하기: 판정하기; kind: 'UI' | 'FN'; API아래?: boolean }) {
   const t = use말();
+  // UI 테스트는 API 애플리케이션 메뉴에 없다 — 옛 주소로 열면 예전 위치 그대로 둔다
+  const API쪽 = API아래 && kind === 'FN';
   const [처음] = useState(주소조건);
   const [page, setPage] = useState(() => 번호(처음.get('page')) ?? 1);
   const [typed, setTyped] = useState(처음.get('q') ?? '');
@@ -133,8 +136,7 @@ export function RunList({ service, envs, 판정하기, kind }: { service: string
   return (
     <>
       <Head
-        위치={t('실행 기록')}
-        제목={kind === 'UI' ? t('UI 테스트') : t('기능 테스트')}
+        {...(API쪽 ? { 위치: t('API'), 제목: t('실행 기록') } : { 위치: t('실행 기록'), 제목: kind === 'UI' ? t('UI 테스트') : t('기능 테스트') })}
         부제={days === undefined ? t('모두 {건수}건', { 건수: runs.data.total }) : t('최근 {일}일 {건수}건', { 일: days, 건수: runs.data.total })}
       />
 

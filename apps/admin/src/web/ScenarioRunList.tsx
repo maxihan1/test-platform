@@ -24,7 +24,8 @@ function 번호(글: string | null): number | null {
 }
 
 // 판정하기 — 결과 칸이 그 실행의 케이스 서비스로 버튼을 가른다. 주소의 `?run=` 은 띠와 다른 서비스 실행일 수 있다 (화면공통 §8)
-export function ScenarioRunList({ service, 판정하기 }: { service: string; 판정하기: 판정하기 }) {
+// API아래 — 메뉴 「API › E2E 실행 기록」 에서 여는 화면이다(layout.ts). 위치 표시도 메뉴와 같게 한다
+export function ScenarioRunList({ service, 판정하기, API아래 = false }: { service: string; 판정하기: 판정하기; API아래?: boolean }) {
   const t = use말();
   const [처음] = useState(주소조건);
   const [page, setPage] = useState(() => 번호(처음.get('page')) ?? 1);
@@ -79,7 +80,7 @@ export function ScenarioRunList({ service, 판정하기 }: { service: string; �
 
   return (
     <>
-      <Head 위치={t('실행 기록')} 제목="E2E" 부제={t('모두 {건수}건', { 건수: runs.data.total })} />
+      <Head 위치={API아래 ? t('API') : t('실행 기록')} 제목={API아래 ? t('E2E 실행 기록') : 'E2E'} 부제={t('모두 {건수}건', { 건수: runs.data.total })} />
 
       <div className={고른 === null ? 'runs-split' : 'runs-split picked'}>
         <div className="screen list-screen runs-list">

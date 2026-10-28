@@ -69,9 +69,7 @@ const 그래프주소 = '/grafana/';
 export function 자리목록(user: User, prefix: string | null, 언어: 언어, 앱케이스 = false): 자리[] {
   const 목록: 자리[] = [];
   const 고른종류 = user.services.find((서비스) => 서비스.prefix === prefix)?.kind;
-  // API 애플리케이션의 실행 기록은 「API」 아래에 선다 — 기능 테스트 묶음에 섞이면 찾기 어렵다 (화면공통 §8 「자리 목록」 · 2026-10-28 사용자).
-  // 작성 칸이 없으면 API 자리가 없어 옛 묶음에 남는다
-  const API실행기록 = 고른종류 === 'API' && 기능보나(user, prefix, 'authoring') && 기능보나(user, prefix, 'runs');
+  const API실행기록 = API실행기록인가(user, prefix);
   // 맨 위다. 고른 서비스가 아니라 배정 서비스 전체의 실행 칸을 본다 (route.ts 의 `대시보드보나`)
   if (대시보드보나(user)) 목록.push({ 이름: t('대시보드', 언어), 해시: '#/dashboard', 아이콘: 'dashboard' });
   if (기능보나(user, prefix, 'authoring')) {
@@ -123,6 +121,14 @@ export function 자리목록(user: User, prefix: string | null, 언어: 언어, 
   if (user.dashboard === 'read') 목록.push({ 이름: t('그래프(Grafana)', 언어), 해시: 그래프주소, 아이콘: 'graph', 바깥: true });
   if (할수있나(user, prefix, '설정')) 목록.push({ 이름: t('설정', 언어), 해시: '#/settings', 아이콘: 'settings' });
   return 목록;
+}
+
+/**
+ * API 애플리케이션의 실행 기록이 「API」 아래에 서나 — 기능 테스트 묶음에 섞이면 찾기 어렵다 (화면공통 §8 「자리 목록」 · 2026-10-28 사용자).
+ * 작성 칸이 없으면 API 자리가 없어 옛 묶음에 남는다. 메뉴와 실행 기록 화면의 위치 표시가 같이 본다
+ */
+export function API실행기록인가(user: User, prefix: string | null): boolean {
+  return user.services.find((서비스) => 서비스.prefix === prefix)?.kind === 'API' && 기능보나(user, prefix, 'authoring') && 기능보나(user, prefix, 'runs');
 }
 
 /** 실행 기록으로 가는 자리 — 「실행 기록」 묶음이고, API 애플리케이션이면 「API」 아래 자리다. 휴대폰 탭 · 밑줄이 쓴다 */
