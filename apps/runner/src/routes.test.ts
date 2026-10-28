@@ -345,7 +345,6 @@ describe('POST /execute-scenario — 입구 검사', () => {
 
   it.each([
     ['형태가 계약과 다르다', { runId: '숫자가 아니다' }],
-    ['android 는 브라우저 시나리오에 못 쓴다', { platform: 'android' }],
     ['시험 실행인데 trialId 가 없다', { runId: null }],
     ['trialId 가 UUID 가 아니다 — 사진 폴더 경로에 그대로 들어간다', { runId: null, trialId: '../../etc' }],
     ['대기가 60초를 넘는다', { parts: [{ kind: 'wait', ms: 60_001 }] }],

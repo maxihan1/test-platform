@@ -42,6 +42,9 @@ export function appCapabilities(env: Env): Record<string, string | boolean | num
       'appium:newCommandTimeout': 300,
     });
   }
+  // E2E 시나리오는 앱 단계 사이에 웹 단계가 몇 개 끼어도 연결이 안 끊기게 시나리오 제한 시간으로 연다 (도메인/시나리오 §3.7 결정 16)
+  const 한도 = Number(env.PLATFORM_APPIUM_NEW_COMMAND_TIMEOUT);
+  if (한도 > 0) caps['appium:newCommandTimeout'] = 한도;
   return caps;
 }
 

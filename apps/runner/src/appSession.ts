@@ -25,7 +25,8 @@ export function appium주소(raw: string, token: string | undefined): { base: st
 }
 
 // 자식이 죽었든 정상 종료했든 kit 이 못 닫았으면 번호 파일이 남아 있다. 팜의 디바이스를 붙들고 있는 연결이라 반드시 닫는다
-export async function 앱연결을닫는다(runId: number, historyId: number): Promise<void> {
+// 시나리오는 폴더 열쇠가 글자다(trial · scenario · trialId)
+export async function 앱연결을닫는다(runId: number | string, historyId: number | string): Promise<void> {
   // 경로를 여기서 따로 계산하면 kit 이 적은 곳과 어긋나도 아무것도 못 닫고 조용히 넘어간다. kit 의 것을 그대로 쓴다
   const file = join(runDir(String(runId), String(historyId)), APPIUM_SESSION_FILE);
   let sessionId: string;

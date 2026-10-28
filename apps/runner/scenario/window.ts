@@ -5,87 +5,17 @@ import { readFileSync } from 'node:fs';
 import { basename } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import type { APIRequest, APIRequestContext, APIResponse, Browser, BrowserContext, Route } from '@playwright/test';
+import type { APIRequest, APIRequestContext, Browser, BrowserContext, Route } from '@playwright/test';
+import type { ScenarioCaseInput } from '@platform/kit/scenario';
 
-import { 가르기, 미룬응답, 요청주소, 적기, 주소의, type CasePart, type 미룬삭제, type 받은응답, type 부품상태, type 상태, type 이음 } from './links.js';
+import { 가르기, 적기, 주소의, type CasePart, type 미룬삭제, type 부품상태, type 상태, type 이음 } from './links.js';
 import { 다음HAR경로 } from '../src/recordHar.js';
-import { 남김, 합친상태, type RouteHandler, type 창 } from './parts.js';
+import { 남김, 합친상태, type RouteHandler, type 단계창, type 창 } from './parts.js';
+import type { 폰자리 } from './phone.js';
+import { 감싼도구, 빈상태, 읽어둠, type 도구묶음 } from './tool.js';
 import { 꺼냄 } from './wire.js';
 
 type 연결옵션 = Parameters<APIRequest['newContext']>[0];
-
-const 빈상태: 상태 = { cookies: [], origins: [] };
-const API = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'fetch']);
-
-interface 도구묶음 {
-  부품: 부품상태 | undefined;
-  기준: string | undefined;
-  // 미룬 삭제를 보낼 때 다시 싣는다 — Bearer 머리 · 기본 인증도 로그인 상태다 (SPEC 도메인/러너 §5.2 「미룬 삭제」)
-  만들때: { headers?: Record<string, string>; httpCredentials?: 미룬삭제['httpCredentials'] };
-  상태읽기(): Promise<상태>;
-}
-
-// Playwright 의 APIResponse 는 밖에서 못 만든다. 케이스는 판정을 verify 로만 하므로 같은 메서드만 갖춘다 (SPEC 도메인/러너 §5.2 「이어 주기를 건다」)
-function 가짜응답(r: 받은응답, url: string): APIResponse {
-  const 값 = {
-    ok: () => r.status >= 200 && r.status <= 299,
-    status: () => r.status,
-    statusText: () => '',
-    url: () => url,
-    headers: () => ({ 'content-type': r.contentType }),
-    headersArray: () => [{ name: 'content-type', value: r.contentType }],
-    body: async () => Buffer.from(r.body),
-    text: async () => r.body,
-    json: async (): Promise<unknown> => JSON.parse(r.body),
-    dispose: async () => {},
-    [Symbol.asyncDispose]: async () => {},
-  };
-  return 값 as unknown as APIResponse;
-}
-
-// 브라우저 응답과 API 응답이 같은 세 메서드를 가진다
-async function 읽어둠(r: { status(): number; headers(): Record<string, string>; text(): Promise<string> }): Promise<받은응답> {
-  return { status: r.status(), contentType: r.headers()['content-type'] ?? '', body: await r.text() };
-}
-
-const 떠둠 = <T>(v: T): T =>
-  Array.isArray(v) || (typeof v === 'object' && v !== null && Object.getPrototypeOf(v) === Object.prototype) ? structuredClone(v) : v;
-
-// API 도구 하나를 감싼다. 케이스가 받는 모양은 그대로다 — 케이스 파일은 안 바뀐다 (SPEC 도메인/시나리오 §3.7 결정 12)
-function 감싼도구(api: APIRequestContext, 이음값: 이음, 묶음: 도구묶음): APIRequestContext {
-  return new Proxy(api, {
-    get(target, prop) {
-      const original: unknown = Reflect.get(target, prop, target);
-      if (typeof original !== 'function') return original;
-      const call = (original as (...args: unknown[]) => unknown).bind(target);
-      if (typeof prop !== 'string' || !API.has(prop)) return call;
-      return async (주소: unknown, options?: Record<string, unknown>): Promise<APIResponse> => {
-        if (typeof 주소 !== 'string') return (await call(주소, options)) as APIResponse;
-        const method = prop === 'fetch' ? String(options?.method ?? 'GET').toUpperCase() : prop.toUpperCase();
-        const url = 요청주소(주소, 묶음.기준, options?.params as Parameters<typeof 요청주소>[2]);
-        const { 부품 } = 묶음;
-        const 가름 = await 가르기(이음값, 부품, 'api', method, url);
-        if (가름.kind === 'fail') throw new Error(가름.message);
-        if (가름.kind === 'fulfill') return 가짜응답(가름.응답, url);
-        if (가름.kind === 'defer' && 부품 !== undefined) {
-          // 모을 때의 로그인 상태 — 도구가 이미 닫혔으면 한도에 걸려 닫기 직전에 찍은 것 (SPEC 도메인/러너 §5.2 「미룬 삭제」)
-          const state = await 묶음.상태읽기().catch(() => 부품.찍은상태 ?? 빈상태);
-          const headers = { ...묶음.만들때.headers, ...(options?.headers as Record<string, string> | undefined) };
-          // 본문으로 지울 것을 고르는 서버도 있다 — 빼고 보내면 다른 것이 지워지거나 400 이다 (2026-10-24 FIX-F2-05 · 리뷰 L37).
-          // 케이스가 같은 객체를 고쳐 다시 지우면 보낼 때는 뒤 값이다 — 평범한 객체 · 배열은 모을 때 떠 둔다(Buffer · FormData 는 그대로)
-          const { data, form, multipart } = (options ?? {}) as NonNullable<미룬삭제['본문']>;
-          이음값.미룸.push({ fromSeq: 부품.seq, url, headers, state, httpCredentials: 묶음.만들때.httpCredentials, 본문: { data: 떠둠(data), form: 떠둠(form), multipart } });
-          return 가짜응답(미룬응답(이음값, url), url);
-        }
-        const 응답 = (가름.kind === 'send' && 가름.url !== undefined
-          ? await target.fetch(가름.url, { ...options, params: undefined, method: 가름.method })
-          : await call(주소, options)) as APIResponse;
-        if (부품 !== undefined) 적기(이음값, 부품.seq, method, url, () => 읽어둠(응답));
-        return 응답;
-      };
-    },
-  });
-}
 
 // 창의 브라우저 요청에 이어 주기를 건다. 모킹보다 나중에 걸어야 먼저 돈다(Playwright 는 나중 route 가 먼저). 손 안 대면 fallback —
 // continue 는 먼저 건 모킹을 건너뛰고 진짜 서버로 간다. 오류면 abort — 그냥 보내면 막으려던 준비가 서버를 바꾼다.
@@ -128,7 +58,13 @@ export interface 감싸기설정 {
   // 프로젝트 use 의 머리글 · 기본 인증 — 미룬 삭제는 칸을 명시해 보내므로 Playwright 가 기본값을 안 채운다. 그래서 모을 때 정해 둔다
   기본머리?: Record<string, string>;
   기본인증?: 미룬삭제['httpCredentials'];
+  // 앱 · 게임 단계가 같이 쓰는 폰 연결과 게임 단계에 넘길 어드민 키. 앱 단계가 없는 시나리오는 안 연다 (SPEC 도메인/시나리오 §3.7 결정 16)
+  폰?: 폰자리;
+  adminKey?: { header: string; value: string };
 }
+
+// 단계 쪽 — 웹 단계는 그 창의 page, 앱 · 게임 단계는 폰 연결. 케이스 파일을 import 한 뒤에 부른다(폰 여는 함수가 그때 오른다)
+type 단계쪽 = () => Promise<Pick<ScenarioCaseInput, 'page' | 'driver' | 'game' | 'adminKey' | 'platform'>>;
 
 // 미룬 삭제에 다시 실을 머리글 · 기본 인증. Playwright 와 같은 규칙이다 — 그 도구를 만들 때 그 칸을 안 줬을 때만 프로젝트 기본값을 쓴다
 // (playwright/lib/index.js runBeforeCreateRequestContext 의 `key in options`). 칸을 준 연결에 기본값을 깔면 다른 계정으로 나간다 (SPEC 도메인/러너 §5.2 「미룬 삭제」)
@@ -196,7 +132,59 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
     return 감싼도구(r, 이음값, 묶음(부품.부품, () => r.storageState(), options));
   };
 
+  // 웹 단계 · 앱 단계가 같이 쓴다. 부품 request 를 감싸 값 꽂기용 응답 적기 · 뒷정리 미루기를 거는 것은 둘이 같다 (SPEC 도메인/러너 §5.2 「앱 · 게임 단계」)
+  const 케이스돌리기 = async (
+    part: CasePart, 이번: 지금부품, 부품요청: APIRequestContext, 쪽: 단계쪽,
+    seq: number, phase: ScenarioCaseInput['phase'], params: Record<string, unknown>,
+  ) => {
+    // 같은 케이스를 두 번 쓰면 두 번째 import 는 캐시다. 등록부가 안 지우므로 그대로 꺼내진다
+    await import(pathToFileURL(part.filePath ?? '').href);
+    const run = 꺼냄(part.tcId);
+    if (run === undefined) throw new Error(`${part.filePath ?? '(경로 없음)'} 가 ${part.tcId} 를 등록하지 않았다`);
+    const 받은쪽 = await 쪽();
+    지금 = 이번;
+    try {
+      const outcome = await run({
+        ...받은쪽,
+        request: 감싼도구(부품요청, 이음값, 묶음(이번.부품, () => 부품요청.storageState())),
+        params, expected: part.expected, skipSteps: part.skipSteps, seq, phase,
+        apiAuths: part.apiAuths ?? [],
+        // 그 부품 판으로 응답 모양을 본다. 없으면 안 본다 (도메인/API §3.8 「응답 모양 확인」)
+        ...(part.apiDocFile !== undefined && { apiDoc: JSON.parse(readFileSync(part.apiDocFile, 'utf8')) as unknown }),
+        tokenRequest: 부품요청,
+      });
+      // 창을 닫으면 본문을 못 읽는다 — 이 부품이 잡은 자리를 다 읽을 때까지 기다린다(부품 한도 경주 안). 자리는 못 읽으면 사유 글자라 던지지 않는다
+      await Promise.all(이음값.응답.values());
+      return outcome;
+    } finally {
+      지금 = undefined;
+    }
+  };
+
   return {
+    // 앱 · 게임 단계 자리 — 창을 안 연다. 폰은 설정의 연결 하나를 같이 쓰고, 단계마다 새로 만드는 것은 그 단계 request 뿐이다 (SPEC 도메인/시나리오 §3.7 결정 16)
+    async appWindow(부품: 부품상태, state: 상태): Promise<단계창> {
+      const 이번: 지금부품 = { 부품, 직접만든: [], 닫힘: false };
+      const 부품요청 = await 원래요청(주소채움({ storageState: state }, 이음값, 부품));
+      let 닫음 = false;
+      const 폰쪽: 단계쪽 = async () => {
+        if (설정.폰 === undefined) throw new Error('이 실행에는 폰 연결이 없다');
+        const { driver, game } = await 설정.폰.얻기();
+        return { driver, ...(game && { game }), ...(설정.adminKey && { adminKey: 설정.adminKey }), platform: 'android' };
+      };
+      return {
+        runCase: (part, seq, phase, params) => 케이스돌리기(part, 이번, 부품요청, 폰쪽, seq, phase, params),
+        state: () => 부품요청.storageState(),
+        async close() {
+          if (닫음) return;
+          닫음 = true;
+          이번.닫힘 = true;
+          for (const 닫기 of 이번.직접만든) await 닫기().catch(남김('케이스가 직접 만든 창 · 연결을 못 닫았다'));
+          await 부품요청.dispose().catch(남김('부품 request 를 못 닫았다'));
+        },
+      };
+    },
+
     async newWindow(state: 상태 | undefined, mocks: ReadonlyMap<string, RouteHandler>, 부품?: 부품상태): Promise<창> {
       걸린 = mocks;
       // 디바이스(화면 크기 · 사용자 에이전트) · baseURL 은 Playwright 가 프로젝트 use 로 채운다 (playwright/lib/index.js runBeforeCreateBrowserContext)
@@ -227,27 +215,7 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
         fetch: (url, options) => 창request.fetch(url, options),
         async runCase(part: CasePart, seq, phase, params) {
           if (이번 === undefined || 부품요청 === undefined) throw new Error('단계 없이 연 창에서 케이스를 돌리려 했다');
-          // 같은 케이스를 두 번 쓰면 두 번째 import 는 캐시다. 등록부가 안 지우므로 그대로 꺼내진다
-          await import(pathToFileURL(part.filePath ?? '').href);
-          const run = 꺼냄(part.tcId);
-          if (run === undefined) throw new Error(`${part.filePath ?? '(경로 없음)'} 가 ${part.tcId} 를 등록하지 않았다`);
-          지금 = 이번;
-          try {
-            const outcome = await run({
-              page,
-              request: 감싼도구(부품요청, 이음값, 묶음(이번.부품, () => 부품요청.storageState())),
-              platform: 설정.platform, params, expected: part.expected, skipSteps: part.skipSteps, seq, phase,
-              apiAuths: part.apiAuths ?? [],
-              // 그 부품 판으로 응답 모양을 본다. 없으면 안 본다 (도메인/API §3.8 「응답 모양 확인」)
-              ...(part.apiDocFile !== undefined && { apiDoc: JSON.parse(readFileSync(part.apiDocFile, 'utf8')) as unknown }),
-              tokenRequest: 부품요청,
-            });
-            // 창을 닫으면 본문을 못 읽는다 — 이 부품이 잡은 자리를 다 읽을 때까지 기다린다(부품 한도 경주 안). 자리는 못 읽으면 사유 글자라 던지지 않는다
-            await Promise.all(이음값.응답.values());
-            return outcome;
-          } finally {
-            지금 = undefined;
-          }
+          return 케이스돌리기(part, 이번, 부품요청, async () => ({ page, platform: 설정.platform }), seq, phase, params);
         },
         state: async () => 합친상태(await context.storageState(), 부품요청 === undefined ? 빈상태 : await 부품요청.storageState()),
         async close() {

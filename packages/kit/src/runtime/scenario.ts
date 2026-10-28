@@ -3,17 +3,25 @@
 
 import type { APIRequestContext, Page } from '@playwright/test';
 
-import type { ApiAuth, StepResult } from '../types.js';
+import type { ApiAuth, DeviceInfo, StepResult } from '../types.js';
+import { closeApp, type AppDriver } from './app.js';
 import type { ScenarioPhase } from './context.js';
-import { SCENARIO_CLEANUP_MARKER, SCENARIO_PART_MARKER } from './protocol.js';
+import type { KitGame } from './game.js';
+import { 폰을연다 } from './phone.js';
+import { SCENARIO_CLEANUP_MARKER, SCENARIO_DEVICE_MARKER, SCENARIO_PART_MARKER } from './protocol.js';
 
-// 러너가 결과 줄 · 뒷정리 줄을 가를 때 같은 표시자를 봐야 한다
-export { SCENARIO_CLEANUP_MARKER, SCENARIO_PART_MARKER };
+// 러너가 결과 줄 · 뒷정리 줄 · 기기 줄을 가를 때 같은 표시자를 봐야 한다
+export { SCENARIO_CLEANUP_MARKER, SCENARIO_DEVICE_MARKER, SCENARIO_PART_MARKER };
 // 러너가 표시판을 만들려면 모양을 알아야 한다. 고정 spec 은 이 진입점에서 타입만 가져간다
 export type { ScenarioPhase };
 
+// 웹 단계는 page, 앱 · 게임 단계는 driver(게임이면 game 도)를 받는다. 둘 다 없으면 부품이 실패한다 (도메인/시나리오 §3.7 결정 16)
 export interface ScenarioCaseInput {
-  page: Page;
+  page?: Page;
+  driver?: AppDriver;
+  game?: KitGame;
+  // 대상 서버 줄의 어드민 키. 게임 단계에만 온다 — 웹 단계 케이스 코드에는 안 넘긴다
+  adminKey?: { header: string; value: string };
   request: APIRequestContext;
   platform: string;
   params: unknown;
@@ -61,4 +69,27 @@ export function registerScenarioCase(tcId: string, runner: ScenarioCaseRunner): 
 // 러너 고정 spec 은 이것을 안 부르고 같은 등록부를 wire.ts 로 직접 읽는다 — kit 검사와 wire.test 가 쓰는 통로다
 export function scenarioCase(tcId: string): ScenarioCaseRunner | undefined {
   return 등록부().get(tcId);
+}
+
+// 앱 · 게임 단계가 쓰는 폰 연결 — 시나리오에 하나다. 여는 일은 kit 이 하고(Appium · 게임 SDK 를 아는 곳), 언제 열고 닫을지는 러너 고정 spec 이 정한다.
+// 고정 spec 은 kit 을 값으로 못 불러 케이스처럼 등록부(globalThis)로 꺼낸다 — 앱 케이스 파일을 import 하면 이미 올라 있다 (도메인/시나리오 §3.7 결정 16)
+export interface ScenarioPhone {
+  driver: AppDriver;
+  game?: KitGame;
+  device?: DeviceInfo;
+}
+
+export interface ScenarioPhoneOpener {
+  open(env: Record<string, string | undefined>): Promise<ScenarioPhone>;
+  close(phone: ScenarioPhone): Promise<void>;
+}
+
+// 러너 고정 spec 이 옮겨 적는다 (apps/runner/scenario/wire.ts)
+export const SCENARIO_PHONE_KEY = 'platform.scenarioPhone';
+
+const 폰열기: ScenarioPhoneOpener = { open: 폰을연다, close: (phone) => closeApp(phone.driver) };
+
+export function registerScenarioPhone(): void {
+  const g = globalThis as unknown as Record<symbol, ScenarioPhoneOpener | undefined>;
+  g[Symbol.for(SCENARIO_PHONE_KEY)] ??= 폰열기;
 }

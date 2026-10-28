@@ -104,7 +104,8 @@ export async function openGame(
  * 통과 못 한 항목의 두 파일을 팜 증적 폴더에 둔다 — 화면 영상 · logcat 과 같은 「받기」 줄에 뜬다.
  * 오브젝트 목록은 케이스가 쓰는 주소(경로) 그대로라 「이름이 바뀌었나 · 창이 안 열렸나」를 바로 본다. 무엇이 실패해도 던지지 않는다 — 이미 난 판정을 덮지 않는다
  */
-export async function 게임증적을남긴다(game: Game, runId: string, historyId: string): Promise<void> {
+// since — E2E 시나리오는 단계 사이에 게임을 다시 켜지 않아, 그 단계가 시작할 때 받아 둔 last 를 넘겨 그 단계 몫만 남긴다 (도메인/시나리오 §3.7 결정 16)
+export async function 게임증적을남긴다(game: Game, runId: string, historyId: string, since = 0): Promise<void> {
   // 내 컴퓨터 테스트 실행은 admin 이 이 폴더를 못 본다
   if (runId === '0') return;
   const { flatten } = await import('control-cli');
@@ -128,7 +129,7 @@ export async function 게임증적을남긴다(game: Game, runId: string, histor
   });
   // 항목마다 앱을 다시 켜서(appCapabilities) 0 부터 읽으면 이 케이스 동안의 것만 온다. 없으면 파일을 안 만든다
   await 남긴다(GAME_ERRORS_FILE, async () => {
-    const r = await game.errors(0);
+    const r = await game.errors(since);
     if (r.errors.length === 0) return null;
     const 머리 = [
       `# 게임 오류 ${r.errors.length}개`,

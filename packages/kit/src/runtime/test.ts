@@ -10,11 +10,11 @@ import { 앱테스트 } from './appFixture.js';
 import { saveShot } from './artifacts.js';
 import { runScope, type RunScope } from './context.js';
 import type { CaseHandle } from './defineCase.js';
-import { isGame, type GameDriver } from './game.js';
+import { 게임증적을남긴다, isGame, type GameDriver } from './game.js';
 import { traced } from './http.js';
 import { injectedInputs, resolveInputs } from './inputs.js';
 import { GAME_ATTACHMENT, STEP_ATTACHMENT } from './protocol.js';
-import { registerScenarioCase, type ScenarioCaseRunner } from './scenario.js';
+import { registerScenarioCase, registerScenarioPhone, type ScenarioCaseRunner } from './scenario.js';
 import { 느린망 } from './slowApi.js';
 import { step, StopTest } from './step.js';
 
@@ -112,15 +112,17 @@ function errorOf(thrown: unknown): { message: string; stack?: string } {
 // E2E 시나리오의 부품 하나. 이 kit 인스턴스의 문맥으로 본체를 감싸야 본체 안 step() 이 문맥을 찾는다.
 // 부를 때마다 실패 표시·건너뛸 제목·결과 모으기를 새로 세운다 — 앞 부품의 것이 새면 안 된다 (SPEC 공통/3-공유계약 §5.1)
 function scenarioRunner<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): ScenarioCaseRunner {
-  return async ({ page, request, platform, params, expected, skipSteps, seq, phase, apiAuths, apiDoc, tokenRequest }) => {
+  return async ({ page, driver, game, adminKey, request, platform, params, expected, skipSteps, seq, phase, apiAuths, apiDoc, tokenRequest }) => {
     const steps: StepResult[] = [];
+    // 앱 · 게임 단계는 폰 화면을 찍는다. 러너가 둘 중 하나는 꼭 싣는다 (도메인/시나리오 §3.7 결정 16)
+    const side: Side | undefined = page !== undefined ? { page } : driver !== undefined ? { driver, ...(game && { game }) } : undefined;
     const run: RunScope = {
       seq,
       failed: false,
       stopped: false,
       skip: new Set(skipSteps),
       phase,
-      capture: (s) => capture(page, s),
+      capture: (s) => (side === undefined ? Promise.resolve(undefined) : 'page' in side ? capture(side.page, s) : captureApp(side.driver, s)),
       emit: async (result) => {
         steps.push(result);
         // trace 를 단계로 가르는 경계다. 한 zip 에 부품이 다 섞여 이것 없이는 admin 이 실패 부품 몫을 못 뗀다 (도메인/시나리오 §7 「실패 기록」)
@@ -133,17 +135,20 @@ function scenarioRunner<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): Sce
       await base.info().attach(STEP_ATTACHMENT, { body: JSON.stringify({ seq }), contentType: 'application/json' });
     }
 
+    // 앞 게임 단계의 오류가 이 단계 실패 기록에 섞이지 않게 시작 자리를 받아 둔다. 못 받으면 처음부터 남긴다
+    const 오류시작 = game === undefined ? 0 : await game.errors().then((r) => r.last, () => 0);
     let error: { message: string; stack?: string } | undefined;
     try {
       // 조립할 때 서버가 막지만, 조립 뒤에 케이스가 디바이스를 뺄 수 있다. 틀린 조립은 언제나 빨강이다 (2026-09-28 사용자)
       if (!spec.platforms.some((p) => p === platform)) {
         throw new Error(`${spec.tcId}은 ${platformLabel(platform)} 환경을 선언하지 않았다`);
       }
+      if (side === undefined) throw new Error(`${spec.tcId}에 줄 창도 폰 연결도 없다`);
       const inputs = resolveInputs(spec, { params, expected });
       await runScope.run(run, async () => {
         try {
           // 부품마다 그 부품 애플리케이션의 인증으로 새로 받고 그 부품 판과 견준다 — 앞 부품의 토큰 · 판이 다음 부품에 새지 않게
-          await body(bodyArgs(spec.tcId, request, inputs, { page }, apiAuths ?? [], apiDoc, tokenRequest));
+          await body(bodyArgs(spec.tcId, request, inputs, side, apiAuths ?? [], apiDoc, tokenRequest, adminKey));
         } catch (thrown) {
           if (!(thrown instanceof StopTest)) throw thrown;
         }
@@ -153,7 +158,12 @@ function scenarioRunner<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): Sce
       error = errorOf(thrown);
     }
 
-    return { seq: run.seq, steps, failed: run.failed || error !== undefined, ...(error === undefined ? {} : { error }) };
+    const failed = run.failed || error !== undefined;
+    // 실패한 게임 단계 — 그 순간 오브젝트 목록 · 게임 오류 기록을 시나리오 폴더에 둔다. 단독 항목은 정리 단계(appFixture)가 하는 일이다 (도메인/시나리오 §3.7 결정 16 「결과」)
+    if (failed && game !== undefined) {
+      await 게임증적을남긴다(game, process.env.PLATFORM_RUN_ID ?? '0', process.env.PLATFORM_HISTORY_ID ?? '0', 오류시작);
+    }
+    return { seq: run.seq, steps, failed, ...(error === undefined ? {} : { error }) };
   };
 }
 
@@ -164,6 +174,7 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
   // 러너 고정 spec 이 조립 목록대로 불러 쓴다. 그때도 Playwright 에 등록하지 않는다 (SPEC 공통/3-공유계약 §5.1)
   if (process.env.PLATFORM_SCENARIO_MODE === '1') {
     registerScenarioCase(spec.tcId, scenarioRunner(spec, body));
+    if (spec.platforms.includes('android')) registerScenarioPhone();
     return;
   }
 

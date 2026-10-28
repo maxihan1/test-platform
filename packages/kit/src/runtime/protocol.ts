@@ -18,6 +18,9 @@ export const SCENARIO_PART_MARKER = '@@SCENARIO_PART@@';
 // 시나리오 끝에 보낸 미룬 삭제 결과 한 줄. 부품 줄과 섞이지 않게 따로 둔다
 export const SCENARIO_CLEANUP_MARKER = '@@SCENARIO_CLEANUP@@';
 
+// 앱 · 게임 단계가 연 폰의 판(DeviceInfo) 한 줄. 연결이 시나리오에 하나라 한 번만 흘린다 (도메인/시나리오 §3.7 결정 16)
+export const SCENARIO_DEVICE_MARKER = '@@SCENARIO_DEVICE@@';
+
 // 킷이 Appium 연결 번호를 적는 파일 이름. 실행 폴더 안에 둔다. 러너가 끊을 때 이 파일로 남은 연결을 닫는다 (러너 §5.2)
 export const APPIUM_SESSION_FILE = 'appium-session';
 
