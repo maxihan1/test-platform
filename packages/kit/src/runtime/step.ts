@@ -57,6 +57,7 @@ export async function runStep(
       const err = thrown instanceof Error ? thrown : new Error(String(thrown));
       error = { message: err.message, ...(err.stack === undefined ? {} : { stack: err.stack }) };
       if (scope.line === undefined) scope.line = callerLine(err);
+      if (!('실패요소' in scope)) scope.실패요소 = scope.마지막요소;
     }
   } finally {
     if (run.phase) run.phase.inStep--;
@@ -76,7 +77,9 @@ export async function runStep(
   }
 
   // 통과한 화면은 아무도 열어보지 않는다. 실패했거나 증적용으로 지정한 절차만 찍는다 (SPEC §4)
-  const screenshotPath = failed || options?.capture === true ? await run.capture(seq) : undefined;
+  // 표시는 실패한 절차에만 — 증적용으로 찍은 통과 화면에 짚을 문제가 없다. 모양 실패처럼 굳힌 때가 없으면 마지막 요소다
+  const 짚을요소 = '실패요소' in scope ? scope.실패요소 : scope.마지막요소;
+  const screenshotPath = failed || options?.capture === true ? await run.capture(seq, failed ? 짚을요소 : undefined) : undefined;
 
   const result: StepResult = { seq, title, status, durationMs, assertions: scope.assertions };
   if (scope.line !== undefined) result.line = scope.line;

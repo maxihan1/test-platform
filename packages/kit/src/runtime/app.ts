@@ -8,6 +8,7 @@ import type { Browser } from 'webdriverio';
 import type { DeviceInfo } from '../types.js';
 
 import { runDir, saveShot } from './artifacts.js';
+import { 앱사진 } from './highlight.js';
 import { APPIUM_SESSION_FILE, APPIUM_SESSION_ID_FILE } from './protocol.js';
 
 export type AppDriver = Browser;
@@ -124,6 +125,6 @@ export async function readDevice(driver: AppDriver): Promise<DeviceInfo> {
   return { model: 칸('deviceModel'), osVersion: 칸('platformVersion'), appVersion, appBuild };
 }
 
-export function captureApp(driver: AppDriver, seq: number): Promise<string | undefined> {
-  return saveShot(seq, (path) => driver.saveScreenshot(path));
+export function captureApp(driver: AppDriver, seq: number, 요소?: unknown): Promise<string | undefined> {
+  return saveShot(seq, (path) => 앱사진(driver, path, typeof 요소 === 'string' ? 요소 : undefined));
 }

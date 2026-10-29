@@ -1,6 +1,6 @@
 // Playwright의 test를 감싼 래퍼. 케이스 명세와 주입된 입력값을 본문에 넘기고 절차 결과를 리포터로 흘린다 (SPEC §4)
 
-import { test as base, type APIRequestContext, type Page, type TestInfo } from '@playwright/test';
+import { test as base, type APIRequestContext, type Locator, type Page, type TestInfo } from '@playwright/test';
 
 import type { ApiAuth, StepResult } from '../types.js';
 import { api만들기, 어드민도구, 어드민키, 인증목록 } from './apiAuth.js';
@@ -11,6 +11,7 @@ import { saveShot } from './artifacts.js';
 import { runScope, type RunScope } from './context.js';
 import type { CaseHandle } from './defineCase.js';
 import { 게임증적을남긴다, isGame, type GameDriver } from './game.js';
+import { 앱을지켜본다, 웹사진, 웹을지켜본다 } from './highlight.js';
 import { traced } from './http.js';
 import { injectedInputs, resolveInputs } from './inputs.js';
 import { GAME_ATTACHMENT, STEP_ATTACHMENT } from './protocol.js';
@@ -35,10 +36,10 @@ export interface CaseBodyArgs<P, E> {
 export type CaseBody<P, E> = (args: CaseBodyArgs<P, E>) => Promise<void> | void;
 
 
-async function capture(page: Page, seq: number): Promise<string | undefined> {
+async function capture(page: Page, seq: number, 요소?: Locator | string): Promise<string | undefined> {
   // 화면을 연 적이 없는 케이스는 찍어봐야 흰 그림만 남는다
   if (page.isClosed() || page.url() === 'about:blank') return undefined;
-  return saveShot(seq, (path) => page.screenshot({ path }));
+  return saveShot(seq, (path) => 웹사진(page, path, typeof 요소 === 'object' ? 요소 : undefined));
 }
 
 // desktop·mobile은 코드 안에서만 쓰는 값이다. 사람이 읽는 자리에는 PC·모바일로 적는다 (SPEC §8)
@@ -84,7 +85,8 @@ function bodyArgs<P, E>(
     ...(키 === undefined ? {} : { admin: 어드민도구(감싼, 키) }),
     params: inputs.params,
     expected: inputs.expected,
-    ...side,
+    // 케이스가 다룬 요소를 적는 판으로 넘긴다 — 실패 사진에 그 요소를 네모로 짚는다 (highlight.ts)
+    ...('page' in side ? { page: 웹을지켜본다(side.page) } : { ...side, driver: 앱을지켜본다(side.driver) }),
   };
   for (const [칸, message] of 없는칸) {
     Object.defineProperty(args, 칸, {
@@ -122,7 +124,7 @@ function scenarioRunner<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): Sce
       stopped: false,
       skip: new Set(skipSteps),
       phase,
-      capture: (s) => (side === undefined ? Promise.resolve(undefined) : 'page' in side ? capture(side.page, s) : captureApp(side.driver, s)),
+      capture: (s, 요소) => (side === undefined ? Promise.resolve(undefined) : 'page' in side ? capture(side.page, s, 요소) : captureApp(side.driver, s, 요소)),
       emit: async (result) => {
         steps.push(result);
         // trace 를 단계로 가르는 경계다. 한 zip 에 부품이 다 섞여 이것 없이는 admin 이 실패 부품 몫을 못 뗀다 (도메인/시나리오 §7 「실패 기록」)
@@ -250,7 +252,7 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
     appTest(spec.name, async ({ request, appSession }, testInfo) => {
       const inputs = prepare(testInfo);
       const side = await appSession.open();
-      await execute(testInfo, request, side, (seq) => captureApp(side.driver, seq), inputs);
+      await execute(testInfo, request, side, (seq, 요소) => captureApp(side.driver, seq, 요소), inputs);
     });
     return;
   }
@@ -258,7 +260,7 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
   base(spec.name, async ({ page, request }, testInfo) => {
     const inputs = prepare(testInfo);
     await 느린망(page);
-    await execute(testInfo, request, { page }, (seq) => capture(page, seq), inputs);
+    await execute(testInfo, request, { page }, (seq, 요소) => capture(page, seq, 요소), inputs);
   });
 }
 
