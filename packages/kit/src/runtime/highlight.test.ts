@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { AppDriver } from './app.js';
 import { stepScope, type RunScope, type StepScope } from './context.js';
-import { PNG, 앱을지켜본다, 웹사진, 웹을지켜본다, 테두리를그린다 } from './highlight.js';
+import { PNG, 앱을지켜본다, 웹사진, 웹을지켜본다, 표시를그린다 } from './highlight.js';
 import { runStep } from './step.js';
 import { verify } from './verify.js';
 
@@ -121,7 +121,7 @@ describe('웹 — 실패 절차의 마지막 요소에 네모', () => {
   }, 30_000);
 });
 
-describe('앱 — 마지막으로 찾은 요소 번호', () => {
+describe('앱 — 마지막으로 다룬 요소 번호', () => {
   const 가짜폰 = () => {
     const 듣기: Record<string, ((e: unknown) => void)[]> = {};
     const 폰 = { on: (이름: string, fn: (e: unknown) => void) => (듣기[이름] ??= []).push(fn) };
@@ -133,37 +133,58 @@ describe('앱 — 마지막으로 찾은 요소 번호', () => {
     stepScope.run(scope, () => fn(scope));
     return scope;
   };
+  const 찾은값 = (id: string) => ({ value: { 'element-6066-11e4-a52e-4f735466cecf': id } });
 
-  it('찾은 요소 번호를 적고, 새 찾기가 실패하면 비운다 · 한 연결에 한 번만 듣는다', () => {
+  it('찾은 요소를 적고, 새 찾기가 실패하면 비운다 · 한 연결에 한 번만 듣는다', () => {
     const { driver, 쏜다, 듣기 } = 가짜폰();
     앱을지켜본다(driver);
     앱을지켜본다(driver);
     expect(듣기.result).toHaveLength(1);
 
     const 찾음 = 절차안(() => {
-      쏜다('command', { command: 'findElement' });
-      쏜다('result', { command: 'findElement', result: { value: { 'element-6066-11e4-a52e-4f735466cecf': 'el-1' } } });
-      쏜다('command', { command: 'elementClick' });
+      쏜다('command', { command: 'findElement', endpoint: '/session/s/element' });
+      쏜다('result', { command: 'findElement', result: 찾은값('el-1') });
     });
     expect(찾음.마지막요소).toBe('el-1');
 
     const 못찾음 = 절차안((scope) => {
       scope.마지막요소 = 'el-1';
-      쏜다('command', { command: 'findElement' });
+      쏜다('command', { command: 'findElement', endpoint: '/session/s/element' });
       쏜다('result', { command: 'findElement', result: { error: new Error('no such element') } });
     });
     expect(못찾음.마지막요소).toBeUndefined();
   });
+
+  it('$$ 목록의 줄 안에서 이어 찾아 읽은 요소를 짚는다 — 요소 주소로 간 명령의 번호다', () => {
+    const { driver, 쏜다 } = 가짜폰();
+    앱을지켜본다(driver);
+    const 읽음 = 절차안(() => {
+      쏜다('command', { command: 'findElements', endpoint: '/session/s/elements' });
+      쏜다('command', { command: 'getElementText', endpoint: '/session/s/element/row-2/text' });
+      쏜다('command', { command: 'findElementFromElement', endpoint: '/session/s/element/row-2/element' });
+      쏜다('result', { command: 'findElementFromElement', result: 찾은값('qty-2') });
+      쏜다('command', { command: 'getElementText', endpoint: '/session/s/element/qty-2/text' });
+    });
+    expect(읽음.마지막요소).toBe('qty-2');
+  });
 });
 
-describe('테두리를그린다', () => {
-  it('요소 바깥 1~3화소는 빨강, 4화소는 흰색, 안과 그림 밖은 그대로다', () => {
-    const png = { width: 20, height: 20, data: new Uint8Array(20 * 20 * 4) };
-    테두리를그린다(png, { x: 5, y: 5, width: 5, height: 5 });
+describe('표시를그린다', () => {
+  it('요소 안은 반투명 빨강, 둘레는 빨간 테두리와 흰 바깥줄, 그 밖은 그대로다', () => {
+    const png = { width: 20, height: 20, data: new Uint8Array(20 * 20 * 4).fill(255) };
+    표시를그린다(png, { x: 5, y: 5, width: 5, height: 5 });
+    expect(색(png, 7, 7)).toEqual([245, 182, 184]);
     expect(색(png, 4, 7)).toEqual([229, 72, 77]);
     expect(색(png, 2, 7)).toEqual([229, 72, 77]);
     expect(색(png, 1, 7)).toEqual([255, 255, 255]);
-    expect(색(png, 7, 7)).toEqual([0, 0, 0]);
-    테두리를그린다(png, { x: -3, y: -3, width: 30, height: 30 });
+    expect(색(png, 15, 15)).toEqual([255, 255, 255]);
+    표시를그린다(png, { x: -3, y: -3, width: 30, height: 30 });
+  });
+
+  it('폭이 넓은 폰 사진은 테두리가 굵다 — 1080 폭이면 4화소', () => {
+    const png = { width: 1080, height: 40, data: new Uint8Array(1080 * 40 * 4).fill(255) };
+    표시를그린다(png, { x: 100, y: 10, width: 50, height: 20 });
+    expect(색(png, 96, 20)).toEqual([229, 72, 77]);
+    expect(색(png, 95, 20)).toEqual([255, 255, 255]);
   });
 });
