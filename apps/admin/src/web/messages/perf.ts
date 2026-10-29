@@ -97,7 +97,7 @@ export const 성능말: Record<string, string> = {
   '{번호}구간 목표': 'Stage {번호} target',
   '구간 추가': 'Add stage',
   'AI 동시 사용자 산정': 'AI concurrent user estimate',
-  '기획서 비기능 요구사항과 애플리케이션 가이드에서 방문자 수를 찾아 피크 동시 사용자를 셉니다': 'Finds visitor numbers in the PRD non-functional requirements and the application guide to estimate peak concurrent users',
+  '기획서 비기능 요구사항과 가이드에서 방문자 수를 찾아 피크 동시 사용자를 셉니다': 'Finds visitor numbers in the PRD non-functional requirements and the guide to estimate peak concurrent users',
   산정하기: 'Estimate',
   '찾는 중': 'Searching',
   '기획서에서 근거를 찾지 못했습니다. 세 값을 직접 적어 주세요': 'No basis found in the PRD. Enter the three values',

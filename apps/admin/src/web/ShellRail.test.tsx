@@ -59,6 +59,21 @@ describe('줄과 메뉴가 같이 맞는 자리', () => {
     expect(screen.getByRole('link', { name: '테스트 스크립트' }).getAttribute('aria-current')).toBe('page');
   });
 
+  it('서버가 준 차례와 상관없이 웹 · Android 앱 · 게임 · API 차례로 선다 — 휴대폰 고르개의 묶음 차례와 같다', () => {
+    vi.spyOn(api, 'notifications').mockResolvedValue({ running: [], recent: [] });
+    const API앱: ServiceRow = { ...웹, id: 4, prefix: 'ZRD', name: '알림 API', kind: 'API' };
+    const 게임: ServiceRow = { ...웹, id: 5, prefix: 'ZRE', name: '퍼즐', kind: 'GAME' };
+    render(
+      <언어함 value="ko">
+        <Shell user={{ username: 'zra4', displayName: '김수민', role: 'member', dashboard: 'read', mustChangePassword: false, services: [API앱, 게임, 앱, 웹] }} service={웹} onService={() => {}} 언어="ko" on언어={() => {}} onLogout={() => {}} current="#/cases">
+          <div>본문</div>
+        </Shell>
+      </언어함>,
+    );
+
+    expect(within(줄()).getAllByRole('button').map((단추) => 단추.textContent)).toEqual(['ZRA', 'ZRB', 'ZRE', 'ZRD']);
+  });
+
   it('고른 애플리케이션이 없어도 줄 칸은 서고 운영 계정에게는 「+」만 있다', () => {
     vi.spyOn(api, 'notifications').mockResolvedValue({ running: [], recent: [] });
     vi.spyOn(api, 'settingsUsers').mockResolvedValue({ items: [] });
