@@ -162,6 +162,19 @@ describe('시나리오 실측 (브라우저)', () => {
       await 서버.닫기();
     }
   }, 90_000);
+
+  // Playwright 는 목록을 만들 때 본 프로세스에서도 고정 spec 을 읽는다. 거기서 토큰을 지우면 작업 프로세스가 지워진 환경을 물려받는다 (2026-10-29 실행 20961)
+  it('앱 단계의 폰 열기는 러너가 넘긴 팜 토큰을 받는다', async () => {
+    const 이전 = process.env.PLATFORM_APPIUM_TOKEN;
+    process.env.PLATFORM_APPIUM_TOKEN = 'xsf-farm-token';
+    try {
+      const 결과 = await executeScenario({ ...요청([{ ...케이스('XSF-011'), appStep: true }]), platform: 'android' });
+      expect(결과.parts[0]!.error?.message ?? 결과.parts[0]!.error?.stack).toContain('폰 열기 토큰=xsf-farm-token');
+    } finally {
+      if (이전 === undefined) delete process.env.PLATFORM_APPIUM_TOKEN;
+      else process.env.PLATFORM_APPIUM_TOKEN = 이전;
+    }
+  }, 90_000);
 });
 
 describe('무늬 맞추기 대조 (브라우저)', () => {

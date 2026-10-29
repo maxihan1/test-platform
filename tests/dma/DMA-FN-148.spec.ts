@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import { 목록으로돌아가기, 상품상세열기, 장바구니열기, 장바구니줄지우기 } from './helpers/cart.helper.js';
 import { 담은줄정리 } from './helpers/product-flow.helper.js';
-import { 로그인하기 } from './helpers/login.helper.js';
+import { 로그인화면 } from './pages/login.page.js';
 import { 상품목록화면 } from './pages/product-list.page.js';
 import { 토스트글읽기 } from './helpers/wait.helper.js';
 
@@ -26,11 +26,18 @@ export const spec = defineCase({
 
 test(spec, async ({ driver, params }) => {
   const 목록 = new 상품목록화면(driver);
+  const 로그인창 = new 로그인화면(driver);
   let 담았나 = false;
 
   try {
-    await test.step('일반 회원 계정으로 로그인해 상품 목록을 연다', async () => {
-      await 로그인하기(driver, params.loginId, params.loginPassword);
+    await test.step('일반 회원 계정으로 로그인한다', async () => {
+      await 로그인창.열릴때까지();
+      await 로그인창.로그인(params.loginId ?? '', params.loginPassword ?? '');
+      await 목록.열릴때까지();
+    });
+
+    await test.step('상품 목록을 확인한다', async () => {
+      await 목록으로돌아가기(driver);
       await verify('상품 목록이 보인다', await 목록.보이나(), true, { blocker: true });
     });
 

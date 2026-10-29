@@ -16,8 +16,12 @@ const 삭제코드 = JSON.parse(process.env.PLATFORM_DELETE_STATUSES ?? '[]') as
 // 팜 토큰 · 어드민 키는 폰을 여는 데와 게임 단계에만 쓴다. 웹 단계 케이스 코드가 process.env 로 못 읽게 케이스를 불러오기 전에 떼어 둔다 (SPEC 도메인/시나리오 §3.7 결정 16)
 const 폰열기환경 = { ...process.env };
 const 어드민키 = process.env.PLATFORM_ADMIN_KEY ? (JSON.parse(process.env.PLATFORM_ADMIN_KEY) as NonNullable<ScenarioExecuteRequest['adminKey']>) : undefined;
-delete process.env.PLATFORM_APPIUM_TOKEN;
-delete process.env.PLATFORM_ADMIN_KEY;
+// 작업 프로세스에서만 뗀다. Playwright 는 목록을 만들 때 본 프로세스에서도 이 파일을 읽는데, 거기서 지우면 뒤에 뜨는 작업 프로세스가
+// 지워진 환경을 물려받아 폰을 못 연다 (2026-10-29 실행 20961 「인증 필요」)
+if (process.env.TEST_WORKER_INDEX !== undefined) {
+  delete process.env.PLATFORM_APPIUM_TOKEN;
+  delete process.env.PLATFORM_ADMIN_KEY;
+}
 
 // 부품마다 새 창을 직접 연다 — page · request fixture 는 테스트 하나에 하나뿐이다 (SPEC 도메인/시나리오 §3.7 결정 3)
 test('E2E 시나리오', async ({ browser }, testInfo) => {

@@ -2,9 +2,13 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 기기오늘 } from './helpers/app.helper.js';
-import { 결제누르고토스트글, 로그인하고주문하기열기, 주문서 } from './helpers/checkout-flow.helper.js';
+import { 목록으로돌아가기 } from './helpers/cart.helper.js';
+import { 결제누르고토스트글, 주문서 } from './helpers/checkout-flow.helper.js';
+import { 바로구매열기 } from './helpers/order.helper.js';
 import { 주문하기화면 } from './pages/checkout.page.js';
 import { 주문상세화면 } from './pages/order-detail.page.js';
+import { 로그인화면 } from './pages/login.page.js';
+import { 상품목록화면 } from './pages/product-list.page.js';
 
 export const spec = defineCase({
   tcId: 'DMA-FN-292',
@@ -28,9 +32,22 @@ export const spec = defineCase({
 test(spec, async ({ driver, params }) => {
   const 주문하기 = new 주문하기화면(driver);
   const 상세 = new 주문상세화면(driver);
+  const 목록 = new 상품목록화면(driver);
+  const 로그인창 = new 로그인화면(driver);
 
-  await test.step('일반 회원 계정으로 로그인해 주문하기 화면을 다 채운다', async () => {
-    await 로그인하고주문하기열기(driver, params.loginId, params.loginPassword, params.상품이름);
+  await test.step('일반 회원 계정으로 로그인한다', async () => {
+    await 로그인창.열릴때까지();
+    await 로그인창.로그인(params.loginId ?? '', params.loginPassword ?? '');
+    await 목록.열릴때까지();
+  });
+
+  await test.step('상품 목록을 확인한다', async () => {
+    await 목록으로돌아가기(driver);
+    await verify('상품 목록이 보인다', await 목록.보이나(), true, { blocker: true });
+  });
+
+  await test.step('주문하기 화면을 다 채운다', async () => {
+    await 바로구매열기(driver, params.상품이름);
     await 주문하기.다채우기(
       주문서({
         받는분: params.받는분,
