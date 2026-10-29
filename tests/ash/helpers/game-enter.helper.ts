@@ -39,6 +39,10 @@ export async function 게임입장(game: GameDriver, 누구: { 아이디: string
     if (await 상점.떠있나()) await 상점.닫기누르기();
     const 강화 = new 강화창(game);
     if (await 강화.떠있나()) await 강화.닫기누르기();
+    await new 월드화면(game).나가기누르기();
+    const 다시 = await 캐릭터선택화면.열기(game);
+    await 다시.칸뜰때까지(누구.이름);
+    await 다시.게임시작누르기(누구.이름);
     const 월드 = await 월드화면.열기(game);
     게임에들어갔다(누구.아이디);
     return 월드;
