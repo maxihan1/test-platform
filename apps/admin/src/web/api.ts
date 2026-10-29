@@ -1063,6 +1063,11 @@ export const api = {
   changePassword: (body: { currentPassword: string; newPassword: string }) =>
     call<void>('/auth/password', json(body)),
 
+  /** 본인 디바이스 팜 토큰. 끝 4자만 온다 — 원문은 화면에 안 내려온다 (도메인/인증 §7 「디바이스 팜 토큰」) */
+  farmToken: () => call<{ farmToken: { last4: string } | null }>('/auth/farm-token'),
+  setFarmToken: (token: string) => call<{ farmToken: { last4: string } }>('/auth/farm-token', { ...json({ token }), method: 'PUT' }),
+  deleteFarmToken: () => call<undefined>('/auth/farm-token', { method: 'DELETE' }),
+
   cases: (query: CaseQuery) => {
     const params = 케이스조건(query);
     params.set('page', String(query.page ?? 1));
