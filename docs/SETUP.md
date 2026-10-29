@@ -962,9 +962,9 @@ docker run -d --init --restart unless-stopped --network host --name qahub-monito
    DEVICE_FARM_TOKEN=pat_<Auth_platform 에서 발급한 개인 액세스 토큰>
    AUTHORING_AGENT_USER=<맥 .env 와 같은 아이디>
    ```
-   - **`DEVICE_FARM_TOKEN` 이 없으면 Android 앱 · 게임 정식 실행이 모두 미실행이다** — 이 팜 주소는 인증 켠 팜만 열려 토큰 없는 요청을 401 로 거절한다. admin · runner 가 팜에 가는 모든 요청에 `Authorization: Bearer` 로 싣는다(SPEC 도메인/러너 §5.2 「디바이스 팜 접속 방식」 「토큰은 서버 몫 하나다」)
+   - **`DEVICE_FARM_TOKEN` 이 없으면 Android 앱 · 게임 정식 실행이 모두 미실행이다** — 이 팜 주소는 인증 켠 팜만 열려 토큰 없는 요청을 401 로 거절한다. admin · runner 가 팜에 가는 모든 요청에 `Authorization: Bearer` 로 싣는다(SPEC 도메인/러너 §5.2 「디바이스 팜 접속 방식」 「팜 토큰은 누른 사람 것이 먼저다」)
    - **토큰은 Auth_platform 에서 발급한다(지금은 `maxi` 계정)** — 팜이 토큰 주인을 Auth_platform 에 묻는다(OPS-F3-05 부터). 러너에서 도는 Android 앱 · 게임 케이스(AI 가 쓴 코드)와 작성 AI 자식 세션이 이 값을 읽을 수 있다.
-     새면 팜(폰 잡기 · 놓기 · 앱 설치 · adb 명령)을 그 계정 이름으로 쓸 수 있고, Auth_platform 의 다른 API 는 못 연다(SPEC 도메인/러너 §5.2 「토큰은 서버 몫 하나다」). 발급할 때 기간을 길게 고른다 — 끝나면 앱 · 게임 정식 실행이 모두 「DEVICE_FARM_TOKEN 을 확인하세요」로 미실행이 된다
+     새면 팜(폰 잡기 · 놓기 · 앱 설치 · adb 명령)을 그 계정 이름으로 쓸 수 있고, BTS API 도 그 계정 권한으로 열린다(Auth_platform S20 부터 BTS 가 같은 토큰을 받는다 — SPEC 도메인/러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」). 그래서 BTS 권한이 작은 팜 전용 Auth 계정에서 발급하는 쪽이 낫다. 사람이 누른 실행은 그 사람이 계정 메뉴 「디바이스 팜 토큰」에 넣은 토큰이 먼저다. 발급할 때 기간을 길게 고른다 — 끝나면 앱 · 게임 정식 실행이 모두 「DEVICE_FARM_TOKEN 을 확인하세요」로 미실행이 된다
    - 이 값은 **서버** `.env` 에 넣는다(root 만 읽는 파일에 평문으로 남는다). 맥에서 넘길 때는 토큰을 맥 `~/.config/farm-pat`(`chmod 600`)에 두고 파일에서 읽어 ssh 표준 입력으로 보낸다 — 대화 · 명령줄에 값이 안 남게.
      맥 author 도 같은 값이 필요하다 — 아래 「맥 정리」 1번
    - `COMPOSE_FILE` 이 서버용 덧붙임 파일을 늘 같이 읽게 한다 — 서버에서 그냥 `docker compose up -d` 를 쳐도 perf-agent 가 안 뜨고 CPU · 메모리 상한이 걸린다
