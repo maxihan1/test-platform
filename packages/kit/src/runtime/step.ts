@@ -76,7 +76,8 @@ export async function runStep(
   }
 
   // 통과한 화면은 아무도 열어보지 않는다. 실패했거나 증적용으로 지정한 절차만 찍는다 (SPEC §4)
-  const screenshotPath = failed || options?.capture === true ? await run.capture(seq) : undefined;
+  // 네모는 실패한 절차에만 — 증적용으로 찍은 통과 화면에 짚을 문제가 없다
+  const screenshotPath = failed || options?.capture === true ? await run.capture(seq, failed ? scope.마지막요소 : undefined) : undefined;
 
   const result: StepResult = { seq, title, status, durationMs, assertions: scope.assertions };
   if (scope.line !== undefined) result.line = scope.line;
