@@ -1,4 +1,4 @@
-// 실패 사진에 문제 요소를 빨간 네모로 그려 넣는다 — 절차 안에서 마지막으로 다룬 요소를 적어 두고 찍을 때 그린다 (SPEC 공통/2-명세선언 「스크린샷」)
+// 실패 사진에 문제 요소를 빨갛게 표시한다 — 절차 안에서 마지막으로 다룬 요소를 적어 두고 찍을 때 그린다 (SPEC 공통/2-명세선언 「스크린샷」)
 // verify 는 값만 받아 어느 요소의 값인지 모른다. 그래서 「그 절차에서 마지막으로 다룬 요소」를 짚는다 — 절차마다 새 문맥이라 앞 절차 요소는 안 짚는다
 
 import { readFile, writeFile } from 'node:fs/promises';
@@ -69,31 +69,46 @@ function 감싼다<T extends object>(대상: T, 요소틀: 틀, 틀들: 틀[]): 
 
 // 번들 속 클래스 이름은 판마다 바뀐다(1.63 은 _Locator) — 그 page 가 만든 것에서 틀을 꺼내 견준다
 export function 웹을지켜본다(page: Page): Page {
-  // Locator 를 못 만드는 대역(단위 테스트의 가짜 page)은 감싸지 않는다 — 네모만 없고 케이스는 그대로 돈다
+  // Locator 를 못 만드는 대역(단위 테스트의 가짜 page)은 감싸지 않는다 — 표시만 없고 케이스는 그대로 돈다
   if (typeof page.locator !== 'function' || typeof page.frameLocator !== 'function') return page;
   const 요소틀 = page.locator('html').constructor as 틀;
   return 감싼다(page, 요소틀, [요소틀, page.frameLocator('html').constructor as 틀]);
 }
 
+const 지켜보는폰 = new WeakSet<object>();
 const W3C요소 = 'element-6066-11e4-a52e-4f735466cecf';
+const 요소주소 = /\/element\/([^/]+)\//;
 interface 명령기록 {
   command: string;
+  endpoint?: string;
+  body?: { args?: unknown[] };
   result?: { value?: unknown };
 }
-const 지켜보는폰 = new WeakSet<object>();
 
-// WebdriverIO 는 요소 명령 이벤트를 폰 연결에 안 올린다. 대신 찾기(findElement)는 올린다 — 마지막으로 찾은 요소를 적는다.
-// 찾기를 시작하면 먼저 비운다 — 못 찾은 요소 자리에 앞 요소를 잘못 짚지 않게
+// WebdriverIO 는 요소가 내는 명령 이벤트도 폰 연결로 올린다(요소의 emit 이 연결의 것이다).
+// 요소 주소로 가는 명령(누르기 · 글 읽기 · 보이나 …)은 그 요소 번호를 적는다 — $$ 목록 · 이어 찾은 요소도 짚는다.
+// 찾기를 시작하면 비우고 찾으면 적는다 — 못 찾은 요소 자리에 앞 요소를 잘못 짚지 않게
 export function 앱을지켜본다(driver: AppDriver): AppDriver {
   if (지켜보는폰.has(driver)) return driver;
   지켜보는폰.add(driver);
   const 폰 = driver as unknown as { on?: (event: string, fn: (e: 명령기록) => void) => void };
   if (typeof 폰.on !== 'function') return driver;
   폰.on('command', (e: 명령기록) => {
-    if (e.command.startsWith('findElement')) 적는다(undefined);
+    if (e.command.startsWith('findElement')) {
+      적는다(undefined);
+      return;
+    }
+    const id = 요소주소.exec(e.endpoint ?? '')?.[1];
+    if (id !== undefined) {
+      적는다(decodeURIComponent(id));
+      return;
+    }
+    // 요소 번호를 실어 보내는 손짓 명령(driver.execute('mobile: clickGesture', { elementId }))도 그 요소를 다룬 것이다
+    const 실은번호 = (e.body?.args?.[0] as { elementId?: unknown } | undefined)?.elementId;
+    if (typeof 실은번호 === 'string') 적는다(실은번호);
   });
   폰.on('result', (e: 명령기록) => {
-    if (e.command !== 'findElement') return;
+    if (e.command !== 'findElement' && e.command !== 'findElementFromElement') return;
     const 값 = e.result?.value as Record<string, unknown> | undefined;
     const id = 값?.[W3C요소] ?? 값?.ELEMENT;
     if (typeof id === 'string') 적는다(id);
@@ -101,29 +116,33 @@ export function 앱을지켜본다(driver: AppDriver): AppDriver {
   return driver;
 }
 
-// 요소 바깥에 1~3px 빨강, 4px 흰 줄 — 어두운 화면 · 빨간 화면 어디서도 보이게
-export function 테두리를그린다(png: 그림, 상자: 상자): void {
+const 덮는세기 = 0.4;
+const 웹덮개색 = `rgba(${빨강.join(', ')}, ${덮는세기})`;
+
+// 웹(mask)과 같은 반투명 빨강으로 덮고 둘레에 빨간 테두리 · 흰 바깥줄 — 폰 해상도에서도 보이게 굵기는 사진 크기에 맞춘다
+export function 표시를그린다(png: 그림, 상자: 상자): void {
   const x0 = Math.round(상자.x);
   const y0 = Math.round(상자.y);
   const x1 = Math.round(상자.x + 상자.width) - 1;
   const y1 = Math.round(상자.y + 상자.height) - 1;
-  const 칠한다 = (x: number, y: number, 색: readonly number[]): void => {
+  const 칠한다 = (x: number, y: number, 색: readonly number[], 세기: number): void => {
     if (x < 0 || y < 0 || x >= png.width || y >= png.height) return;
     const i = (y * png.width + x) * 4;
-    png.data[i] = 색[0]!;
-    png.data[i + 1] = 색[1]!;
-    png.data[i + 2] = 색[2]!;
+    for (let k = 0; k < 3; k++) png.data[i + k] = Math.round(png.data[i + k]! * (1 - 세기) + 색[k]! * 세기);
     png.data[i + 3] = 255;
   };
-  for (let d = 1; d <= 4; d++) {
-    const 색 = d === 4 ? 흰색 : 빨강;
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) 칠한다(x, y, 빨강, 덮는세기);
+  // 짧은 변 기준 — 가로 화면이라고 테두리가 두 배로 굵어지지 않게
+  const 굵기 = Math.max(3, Math.round(Math.min(png.width, png.height) / 270));
+  for (let d = 1; d <= 굵기 + 1; d++) {
+    const 색 = d > 굵기 ? 흰색 : 빨강;
     for (let x = x0 - d; x <= x1 + d; x++) {
-      칠한다(x, y0 - d, 색);
-      칠한다(x, y1 + d, 색);
+      칠한다(x, y0 - d, 색, 1);
+      칠한다(x, y1 + d, 색, 1);
     }
     for (let y = y0 - d; y <= y1 + d; y++) {
-      칠한다(x0 - d, y, 색);
-      칠한다(x1 + d, y, 색);
+      칠한다(x0 - d, y, 색, 1);
+      칠한다(x1 + d, y, 색, 1);
     }
   }
 }
@@ -136,7 +155,7 @@ export async function 웹사진(page: Page, path: string, 요소: Locator | unde
     return;
   }
   // 덮기가 깨지면(틀린 선택자 · 떨어진 iframe) 맨 사진으로 다시 찍는다 — 표시 때문에 사진을 잃지 않는다
-  await page.screenshot({ path, mask: [요소], maskColor: 'rgba(229, 72, 77, 0.4)' }).catch(() => page.screenshot({ path }));
+  await page.screenshot({ path, mask: [요소], maskColor: 웹덮개색 }).catch(() => page.screenshot({ path }));
 }
 
 export async function 앱사진(driver: AppDriver, path: string, 요소: string | undefined): Promise<void> {
@@ -147,9 +166,9 @@ export async function 앱사진(driver: AppDriver, path: string, 요소: string 
     const [자리, 창] = await Promise.all([driver.getElementRect(요소), driver.getWindowRect().catch(() => undefined)]);
     const png = PNG.sync.read(await readFile(path));
     const 배 = 창 !== undefined && 창.width > 0 ? png.width / 창.width : 1;
-    테두리를그린다(png, { x: 자리.x * 배, y: 자리.y * 배, width: 자리.width * 배, height: 자리.height * 배 });
+    표시를그린다(png, { x: 자리.x * 배, y: 자리.y * 배, width: 자리.width * 배, height: 자리.height * 배 });
     await writeFile(path, PNG.sync.write(png));
   } catch (err) {
-    console.error(`[kit] 실패 사진에 네모를 그리지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+    console.error(`[kit] 실패 사진에 표시를 그리지 못했다: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
