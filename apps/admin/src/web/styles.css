@@ -2263,9 +2263,8 @@ input[type='file']::file-selector-button {
   border: 1px solid var(--line-2);
 }
 
-/* 주 행동은 이것 하나라 카드 폭을 다 쓴다. `.login-box a` 의 링크 색 · `.login-box > a` 의 가운데 놓기가 버튼을 덮지 않게 a.btn 으로 집는다 */
-.login-sso a.btn,
-.login-sso a.btn:visited {
+/* 카드의 버튼은 폭을 다 쓴다 — 기억한 계정이 없으면 하나, 있으면 「이 계정으로 로그인」과 「다른 계정으로 로그인」 둘이다 */
+.login-sso .btn {
   justify-self: stretch;
   display: flex;
   align-items: center;
@@ -2276,6 +2275,54 @@ input[type='file']::file-selector-button {
   font-size: 15px;
   color: var(--on-accent);
   margin-top: 8px;
+}
+
+/* 기억한 계정으로 들어가는 주 버튼 — 동그란 첫 글자 · 두 줄 글 · 오른쪽 화살표 (2026-10-29 시안 「최종 ①」). 두 줄이라 위 44px 보다 높다 */
+.login-sso .login-account {
+  height: auto;
+  min-height: 56px;
+  padding: 10px 12px;
+  justify-content: flex-start;
+  gap: 12px;
+  text-align: left;
+}
+
+.login-avatar {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--on-accent);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.login-account-text {
+  flex-grow: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 14px;
+}
+
+/* 이름 · 아이디가 길면 버튼이 넓어지지 않고 끝을 줄인다 */
+.login-account-who {
+  font-size: 12px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 보조 버튼은 주 버튼 바로 아래 붙는다. 테두리만 쓰는 `.ghost` 라 색은 그쪽 것이다 */
+.login-sso .btn.ghost {
+  margin-top: 0;
+  font-size: 14px;
+  color: var(--ink);
 }
 
 /* 휴대폰 — 위 좁은 화면 규칙의 .login-box 여백을 .login-sso 가 뒤에서 덮어서 다시 적는다 (공통/5 §8 「휴대폰 화면」) */

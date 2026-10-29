@@ -3,7 +3,7 @@
 import type { FastifyInstance } from 'fastify';
 
 import { 확인 } from './identify.js';
-import { SSO설정읽기, 로그아웃주소 } from './oidc.js';
+import { SSO설정읽기 } from './oidc.js';
 import { 검증, 해시 } from './password.js';
 import { 비밀번호최대, 비밀번호최소 } from './rules.js';
 import signupRoutes from './signup.js';
@@ -27,11 +27,10 @@ export default async function authRoutes(app: FastifyInstance): Promise<void> {
   // 로그인 화면이 어느 모양을 그릴지 묻는다. 로그인 전에 부르므로 문이 그냥 통과시킨다 (gate.ts)
   app.get('/auth/methods', async () => ({ sso: sso !== null }));
 
+  // 이 앱의 출입증만 지운다. Auth_platform 세션은 남긴다 — 로그인 카드의 「이 계정으로 로그인」이 비밀번호 없이 들어오는 길이다.
+  // 그 세션까지 끊는 것은 Auth_platform 「내 계정」의 로그아웃이다 (도메인/인증 §8.6, 2026-10-29 사용자)
   app.post('/auth/logout', async (req, reply) => {
-    const idToken = req.session.get('idToken');
     req.session.delete();
-    // SSO 출입증이면 Auth_platform 세션까지 끊어야 다음 로그인에서 다시 묻는다. 화면이 이 주소로 옮겨 간다
-    if (sso !== null && idToken !== undefined) return { redirect: await 로그아웃주소(sso, idToken) };
     return reply.code(204).send();
   });
 
@@ -67,7 +66,6 @@ export default async function authRoutes(app: FastifyInstance): Promise<void> {
     req.session.set('stamp', 비밀번호도장(찾은것.passwordHash));
     // 앞서 SSO 로 구운 칸이 남아 있으면 SSO 를 다시 켰을 때 이 출입증이 SSO 출입증 행세를 한다
     req.session.set('method', undefined);
-    req.session.set('idToken', undefined);
     return { user: 찾은것.user };
   });
 

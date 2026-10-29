@@ -50,7 +50,7 @@ import { ScenarioRunList } from './ScenarioRunList.js';
 import { Settings } from './Settings.js';
 import { Shell } from './Shell.js';
 import { Signup } from './Signup.js';
-import { sso알림을단다, useSSO, 막로그인표시를뗀다 } from './useSSO.js';
+import { sso알림을단다, useSSO, 계정을기억한다, 로그아웃표시를단다, 로그아웃표시를뗀다, 막로그인표시를뗀다 } from './useSSO.js';
 import { 칩움직임을건다 } from './motion.js';
 import { Loading } from './ui.js';
 import './styles.css';
@@ -254,7 +254,14 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
     const 막로그인 = 막로그인표시를뗀다();
     api
       .me()
-      .then(({ user }) => (막로그인 ? 들어왔다(user) : set상태({ 어디: '안', user })))
+      .then(({ user }) => {
+        // 들어와 있으면 로그아웃 표시는 낡았다 — 카드를 거치지 않고 들어온 길(바로 연 sso/start 등)도 있다.
+        // 계정은 막 로그인할 때만이 아니라 열 때마다 적는다 — 기억이 생기기 전부터 들어와 있던 사람도 카드에 그 계정이 나온다 (도메인/인증 §8.6 「로그인 카드」)
+        로그아웃표시를뗀다();
+        계정을기억한다({ username: user.username, name: user.displayName });
+        if (막로그인) 들어왔다(user);
+        else set상태({ 어디: '안', user });
+      })
       .catch(() => {
         if (막로그인) sso알림을단다('failed');
         set상태({ 어디: '밖' });
@@ -331,18 +338,15 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
       set프로젝트묻기(false);
       // 알림이 뜬 채 나가면 줄이 사라져 끄는 길(onGone)이 안 불린다. 남겨 두면 다음 로그인에 옛 알림이 뜬다
       set비밀번호바꿈(false);
-      // SSO 설치인데 Auth_platform 을 못 끊었다(세션이 이미 끊겨 204 · 요청 실패). 알림 없이 두면 로그인 화면이 바로 보내고
-      // 살아 있는 Auth_platform 세션이 곧장 다시 들여보내 로그아웃이 안 된 것처럼 보인다
-      if (sso === true) sso알림을단다('out');
+      // SSO 로그아웃은 Auth_platform 세션을 남긴다(도메인/인증 §8.6). 표시 없이 두면 로그인 화면이 바로 보내고 그 세션이 곧장 다시 들여보낸다.
+      // 주소의 알림은 이 탭, 브라우저의 표시는 새 탭 · 북마크 몫이다
+      if (sso === true) {
+        로그아웃표시를단다();
+        sso알림을단다('out');
+      }
       window.location.hash = '#/login';
     };
-    void api.logout().then((답) => {
-      if (답?.redirect === undefined) return 정리();
-      // maxihan 계정이면 Auth_platform 세션도 끊어야 다음 로그인에서 다시 묻는다. 끊고 나면 첫 화면으로 돌아온다.
-      // 해시를 바꾸지 않는다 — 바꾸면 페이지를 떠나는 이동이 끊긴다
-      떠나기막기(null);
-      window.location.assign(답.redirect);
-    }, 정리);
+    void api.logout().then(정리, 정리);
   };
 
   // 바뀐 나를 받아 강제면 집으로, 스스로면 직전 자리로 (도메인/인증 §8.6). 세션은 그대로다
