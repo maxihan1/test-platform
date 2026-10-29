@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-async function 설정읽기(): Promise<{ use?: { headless?: boolean; launchOptions?: { slowMo?: number } } }> {
+type 실행옵션 = { slowMo?: number; args?: string[] };
+async function 설정읽기(): Promise<{ use?: { headless?: boolean; launchOptions?: 실행옵션 }; projects?: { name?: string; use?: { launchOptions?: 실행옵션 } }[] }> {
   vi.resetModules();
   return (await import('../../../playwright.config.js')).default;
 }
@@ -28,6 +29,21 @@ describe('PLATFORM_HEADED', () => {
   it('1 이 아닌 값도 창을 띄우지 않는다', async () => {
     vi.stubEnv('PLATFORM_HEADED', '0');
     expect((await 설정읽기()).use).not.toHaveProperty('headless');
+  });
+
+  it('창을 띄우면 PC 창은 늘 같은 자리 · 크기로 열고, 늦추기도 그대로 싣는다 — E2E 단계마다 새 창이 같은 자리에 뜬다', async () => {
+    vi.stubEnv('PLATFORM_HEADED', '1');
+    vi.stubEnv('PLATFORM_SLOW_MO', '1000');
+    const 설정 = await 설정읽기();
+    const pc = 설정.projects?.find((p) => p.name === 'desktop')?.use?.launchOptions;
+    expect(pc?.args).toEqual(['--window-position=0,0', '--window-size=1320,900']);
+    expect(pc?.slowMo).toBe(1000);
+    expect(설정.projects?.find((p) => p.name === 'mobile')?.use).not.toHaveProperty('launchOptions');
+  });
+
+  it('창을 안 띄우면 PC 창 자리를 정하지 않는다 — 컨테이너 러너는 그대로다', async () => {
+    vi.stubEnv('PLATFORM_HEADED', '');
+    expect((await 설정읽기()).projects?.find((p) => p.name === 'desktop')?.use).not.toHaveProperty('launchOptions');
   });
 });
 
