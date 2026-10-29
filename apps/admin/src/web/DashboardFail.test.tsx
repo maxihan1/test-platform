@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 대시보드 신규 실패 서랍 검사 (도메인/리포팅 §8.12 · DESIGN.md 「모달」 서랍)
+// 대시보드 회귀 실패 서랍 검사 (도메인/리포팅 §8.12 · DESIGN.md 「모달」 서랍)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
@@ -55,7 +55,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('신규 실패 서랍', () => {
+describe('회귀 실패 서랍', () => {
   it('케이스 이름을 누르면 화면을 떠나지 않고 서랍에 그 케이스의 실패 카드가 펼쳐진다', async () => {
     const 서비스열기 = vi.fn();
     const 이름 = 그리기(서비스열기);
@@ -64,7 +64,7 @@ describe('신규 실패 서랍', () => {
 
     const 서랍 = document.getElementById('fail-drawer')!;
     expect(서랍.tagName).toBe('ASIDE');
-    expect(within(서랍).getByRole('heading', { level: 2 }).textContent).toBe('신규 실패 · RUN 7');
+    expect(within(서랍).getByRole('heading', { level: 2 }).textContent).toBe('회귀 실패 · RUN 7');
     expect(await within(서랍).findByRole('heading', { name: '카드로 결제한다' })).toBeTruthy();
     expect(서랍.querySelector('details')?.open).toBe(true);
     expect(within(서랍).getByRole('link', { name: '실행 기록에서 보기' }).getAttribute('href')).toBe('#/runs/fn?run=7&tc=ZDA-001');

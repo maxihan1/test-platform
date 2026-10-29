@@ -1,4 +1,4 @@
-// 증적 자료 · 견주기 · 대시보드의 되비친 비밀값 검사 — 확인의 기대 · 실제 값, 판정 못 낸 사유, 실패 덩어리 대표 문장, 신규 실패 사유에 실린 비밀 글자도 가린다 (공통/2 §4.1 · 진행판 WEB-F3-13)
+// 증적 자료 · 견주기 · 대시보드의 되비친 비밀값 검사 — 확인의 기대 · 실제 값, 판정 못 낸 사유, 실패 덩어리 대표 문장, 회귀 실패 사유에 실린 비밀 글자도 가린다 (공통/2 §4.1 · 진행판 WEB-F3-13)
 // CI에는 postgres가 없다. DATABASE_URL이 있을 때만 돈다. fixture 접두사 XDK — 자기 service_id 로만 지운다 (apps/admin/CLAUDE.md)
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -84,7 +84,7 @@ describe.skipIf(연결 === undefined)('증적 · 견주기 · 대시보드 — �
     expect(결과.실패덩어리들.map((d) => d.대표문장)).toEqual(['******** 로 로그인하지 못했다']);
   });
 
-  it('대시보드 신규 실패 사유도 견주기와 같이 ******** 다', async () => {
+  it('대시보드 회귀 실패 사유도 견주기와 같이 ******** 다', async () => {
     const id = await pool.query<{ id: string }>(`SELECT id FROM service WHERE prefix = 'XDK'`);
     const 결과 = await 대시보드('UTC', [Number(id.rows[0]!.id)], []);
     expect(결과.newFailures.map((n) => n.reason)).toEqual(['******** 로 로그인하지 못했다']);

@@ -102,7 +102,7 @@ describe('카드 쪽은 디바이스 칩이나 실행이 바뀌면 처음으로 
 });
 
 describe('다른 실행으로 옮기면 직전 대비 거르개를 푼다', () => {
-  it('「직전 실행 RUN N」으로 옮기면 앞 실행에서 누른 「신규 실패」가 풀려 실패 카드가 보인다 — 새 실행에 직전 실행이 없으면 풀 칸도 없다', async () => {
+  it('「직전 실행 RUN N」으로 옮기면 앞 실행에서 누른 「회귀 실패」가 풀려 실패 카드가 보인다 — 새 실행에 직전 실행이 없으면 풀 칸도 없다', async () => {
     vi.spyOn(api, 'run').mockImplementation((id) => Promise.resolve({ ...끝난실행([항목줄(1, 'ZRR-001', 'desktop', 'FAIL')]), runId: id }));
     vi.spyOn(api, 'insights').mockImplementation((id) => Promise.resolve(id === RUN_ID ? 견줌 : 첫실행));
     vi.spyOn(api, 'failures').mockImplementation((id) => {
@@ -111,7 +111,7 @@ describe('다른 실행으로 옮기면 직전 대비 거르개를 푼다', () =
       return Promise.resolve({ items: [{ ...카드, devices: 카드.devices.map((d) => ({ ...d, change: 변화 })) }], total: 1, page: 1, pageSize: 20 });
     });
     const { rerender } = render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
-    fireEvent.click(await screen.findByRole('button', { name: /^신규 실패/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /^회귀 실패/ }));
     await screen.findByRole('article');
 
     rerender(<RunResult runId={2110} 판정하기={() => 실행까지} />);

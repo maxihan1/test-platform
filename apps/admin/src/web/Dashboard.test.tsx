@@ -155,7 +155,7 @@ describe('머리와 읽기', () => {
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
     const 판 = await screen.findByRole('alert');
     expect(판.textContent).toContain('Moon/Base');
-    expect(screen.queryByText('신규 실패')).toBeNull();
+    expect(screen.queryByText('회귀 실패')).toBeNull();
   });
 
   it('다른 오류는 서버가 준 말을 판 하나에 낸다', async () => {
@@ -169,7 +169,7 @@ describe('실행 중 줄', () => {
   it('도는 실행이 없으면 줄 자체가 없다', async () => {
     읽기를(응답());
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
-    await screen.findByText('신규 실패');
+    await screen.findByText('회귀 실패');
     expect(screen.queryByText(/^실행 중 /)).toBeNull();
   });
 
@@ -195,11 +195,11 @@ describe('실행 중 줄', () => {
   });
 });
 
-describe('신규 실패 표', () => {
+describe('회귀 실패 표', () => {
   it('애플리케이션 · TC ID · 케이스 이름 링크 · 디바이스 · 언제 · 실패 유형이 한 줄에 있다', async () => {
     읽기를(응답());
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
-    const 칸 = (await screen.findByText('신규 실패')).closest('section')!;
+    const 칸 = (await screen.findByText('회귀 실패')).closest('section')!;
     const 줄들 = within(칸).getAllByRole('row');
     const 첫줄 = 줄들[1]!;
     expect(within(첫줄).getByText('ZDA-001')).toBeTruthy();
@@ -218,11 +218,11 @@ describe('신규 실패 표', () => {
   it('머리의 건수는 애플리케이션별로 센 전체와 보이는 줄 가운데 큰 쪽이다', async () => {
     읽기를(응답());
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
-    const 제목 = (await screen.findByText('신규 실패')).closest('h2')!;
-    expect(제목.textContent).toBe('신규 실패 2');
+    const 제목 = (await screen.findByText('회귀 실패')).closest('h2')!;
+    expect(제목.textContent).toBe('회귀 실패 2');
   });
 
-  it('신규 실패가 없고 견줄 앞 실행도 없으면 견줄 것이 없다고 중립으로 적는다', async () => {
+  it('회귀 실패가 없고 견줄 앞 실행도 없으면 견줄 것이 없다고 중립으로 적는다', async () => {
     읽기를(
       응답({
         newFailures: [],
@@ -232,10 +232,10 @@ describe('신규 실패 표', () => {
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
     expect(await screen.findByText('견줄 앞 실행이 없습니다')).toBeTruthy();
     expect(screen.getAllByText('견줄 실행 없음')).toHaveLength(2);
-    expect(screen.queryByText('새 실패가 없습니다')).toBeNull();
+    expect(screen.queryByText('회귀 실패가 없습니다')).toBeNull();
   });
 
-  it('앞 실행이 있는데 신규 실패가 없으면 좋은 소식으로 짧게 적는다', async () => {
+  it('앞 실행이 있는데 회귀 실패가 없으면 좋은 소식으로 짧게 적는다', async () => {
     읽기를(
       응답({
         newFailures: [],
@@ -243,7 +243,7 @@ describe('신규 실패 표', () => {
       }),
     );
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
-    expect(await screen.findByText('새 실패가 없습니다')).toBeTruthy();
+    expect(await screen.findByText('회귀 실패가 없습니다')).toBeTruthy();
     expect(screen.queryByText('견줄 실행 없음')).toBeNull();
     expect(screen.queryByText('견줄 앞 실행이 없습니다')).toBeNull();
   });
@@ -308,7 +308,7 @@ describe('애플리케이션별 품질 표', () => {
     expect(within(결제).getByText('89%')).toBeTruthy();
     expect(within(결제).getByText('▲ 3%p')).toBeTruthy();
     expect(within(결제).getByRole('img', { name: /통과 2/ }).querySelectorAll('i')).toHaveLength(4);
-    expect(within(결제).getByText('신규 실패 2').classList.contains('f')).toBe(true);
+    expect(within(결제).getByText('회귀 실패 2').classList.contains('f')).toBe(true);
     expect(within(결제).getByText('해결 1').classList.contains('p')).toBe(true);
     const 회원 = 줄들[2]!;
     expect(within(회원).getByText('견줄 실행 없음')).toBeTruthy();
@@ -348,7 +348,7 @@ describe('비어 있을 때', () => {
     expect(await screen.findByText('아직 실행한 테스트가 없습니다')).toBeTruthy();
     expect(screen.getByText(/정기 실행/)).toBeTruthy();
     expect(screen.getByRole('link', { name: '케이스 보기' }).getAttribute('href')).toBe('#/cases');
-    for (const 제목 of ['신규 실패', '통과율', '애플리케이션별 품질', '일별 테스트 결과', '실패 히트맵', '요구사항 커버리지']) {
+    for (const 제목 of ['회귀 실패', '통과율', '애플리케이션별 품질', '일별 테스트 결과', '실패 히트맵', '요구사항 커버리지']) {
       expect(screen.queryByRole('heading', { name: 제목 })).toBeNull();
     }
   });
@@ -385,7 +385,7 @@ describe('그래프 칸 자리', () => {
     읽기를(응답({ running: [실행중(12, 3, 8)] }));
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
     await screen.findByText('실행 중 1건');
-    const 순서 = ['실행 중 1건', '신규 실패', '통과율', '애플리케이션별 품질', '일별 테스트 결과', '실패 히트맵', '실패 유형', '요구사항 커버리지'];
+    const 순서 = ['실행 중 1건', '회귀 실패', '통과율', '애플리케이션별 품질', '일별 테스트 결과', '실패 히트맵', '실패 유형', '요구사항 커버리지'];
     const 위치 = 순서.map((글) => screen.getByText(글, { selector: 'h2, .dash-live-head' }));
     for (let i = 1; i < 위치.length; i += 1) {
       expect(위치[i - 1]!.compareDocumentPosition(위치[i]!) & Node.DOCUMENT_POSITION_FOLLOWING, 순서[i]).toBeTruthy();

@@ -30,7 +30,7 @@ const 원인식 = `CASE WHEN NOT bool_and(i.status = 'PASS') AND t.day >= $4::te
 // 접는 규칙은 insights.ts 의 접기 SQL 과 같은 말이다 — 한 실행이 아니라 창 안 실행 전부를 한 번에 접는다.
 // 갈래가 셋이다(전부 PASS = PASS · 하나라도 FAIL = FAIL · 나머지 NA). 날은 started_at 을 tz 로 자른 글자다.
 // 사유는 실패한 첫 항목의 대표 문장이다(insights.ts 대표문장뽑기와 같다). actual · expected 는 읽지 않는다.
-// 사유는 신규 실패(이번 창)에서만 쓰므로 $4(이번 창 첫날)보다 앞 날의 줄에는 안 뽑는다.
+// 사유는 회귀 실패(이번 창)에서만 쓰므로 $4(이번 창 첫날)보다 앞 날의 줄에는 안 뽑는다.
 // started_at 은 어느 실행이 최신인지 가르는 기준이다 — insights 와 앞 실행 고르기가 같은 기준을 쓴다
 // ponytail: 28일을 매번 접는다 — 설치가 커져 느리면 일별 요약 표를 둔다
 export const 접은줄SQL = `
@@ -66,9 +66,9 @@ export const 접은줄SQL = `
   GROUP BY t.run_id, t.service_id, t.service_name, t.env, t.kind, t.day, t.started_at, t.finished_at, i.tc_id, i.platform`;
 
 // 스모크가 아닌 실행은 앞 실행으로 스모크를 고르지 않는다 — 빌드 회귀가 같은 빌드의 스모크(케이스 몇 건)와 견주면
-// 새로 깨진 케이스가 「빠졌다」로만 셈해져 신규 실패 0 이 된다 (SPEC 도메인/리포팅 §7 insights previous · 2026-10-25 GAME-F2-14 · RUN 20929).
+// 새로 깨진 케이스가 「빠졌다」로만 셈해져 회귀 실패 0 이 된다 (SPEC 도메인/리포팅 §7 insights previous · 2026-10-25 GAME-F2-14 · RUN 20929).
 // 스모크는 지금처럼 아무 앞 실행과 견준다 — 스모크끼리만 견주면 회귀에서 이미 깨진 케이스를 다음 빌드 스모크가 또 신규로 센다.
-// 결과 견주기(insights.ts) · 실행 목록 줄(runChange.ts) · 실패 카드 최근 흐름(failures.ts) · 대시보드 신규 실패(아래) 넷이 같이 쓴다
+// 결과 견주기(insights.ts) · 실행 목록 줄(runChange.ts) · 실패 카드 최근 흐름(failures.ts) · 대시보드 회귀 실패(아래) 넷이 같이 쓴다
 export const 스모크건너뛰기식 = (앞: string, 이번: string) =>
   `(${이번}.build_stage IS NOT DISTINCT FROM 'SMOKE' OR ${앞}.build_stage IS DISTINCT FROM 'SMOKE')`;
 

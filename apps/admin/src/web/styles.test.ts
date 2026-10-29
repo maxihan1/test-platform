@@ -866,7 +866,7 @@ describe('대시보드 좁은 화면 · 표 · 포커스 (PR #173 독립 검사)
     expect(몸들('.dash-rate20')).toMatch(/white-space:\s*nowrap/);
   });
 
-  it('신규 실패 표의 TC 아래 서비스 이름은 말줄임이다 — 길면 디바이스 · 실행 열이 스크롤 뒤로 밀렸다', () => {
+  it('회귀 실패 표의 TC 아래 서비스 이름은 말줄임이다 — 길면 디바이스 · 실행 열이 스크롤 뒤로 밀렸다', () => {
     const 몸 = 몸들('.dash-sub');
     expect(몸).toMatch(/max-width:\s*\d+px/);
     expect(몸).toMatch(/overflow:\s*hidden/);
@@ -881,7 +881,7 @@ describe('대시보드 좁은 화면 · 표 · 포커스 (PR #173 독립 검사)
     expect(몸들('.dash-lines li.dash-prev')).toMatch(/grid-template-columns:\s*12px minmax\(0, 1fr\) auto;/);
   });
 
-  it('신규 실패 링크와 커버리지 링크의 포커스 고리는 잉크 2px 다 — 브라우저 기본 파랑을 안 쓴다', () => {
+  it('회귀 실패 링크와 커버리지 링크의 포커스 고리는 잉크 2px 다 — 브라우저 기본 파랑을 안 쓴다', () => {
     for (const 선택자 of ['.dash-test a.ink:focus-visible', '.dash-cov-name a:focus-visible']) {
       expect(몸들(선택자), 선택자).toMatch(/outline:\s*2px solid var\(--ink\)/);
     }

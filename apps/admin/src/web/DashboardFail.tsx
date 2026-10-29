@@ -1,4 +1,4 @@
-// 대시보드 「신규 실패」 표 — 케이스 이름을 누르면 그 실행의 실패 카드가 오른쪽 서랍으로 들어온다 (도메인/리포팅 §8.12)
+// 대시보드 「회귀 실패」 표 — 케이스 이름을 누르면 그 실행의 실패 카드가 오른쪽 서랍으로 들어온다 (도메인/리포팅 §8.12)
 
 import { useState } from 'react';
 
@@ -38,7 +38,7 @@ export function 신규실패표({ 값, 이동 }: { 값: 자료; 이동: 이동�
     <section className="dash-flat dash-fail">
       <div className="dash-ttl">
         <h2>
-          {t('신규 실패')} <b className={전부 > 0 ? 'num bad' : 'num'}>{전부}</b>
+          {t('회귀 실패')} <b className={전부 > 0 ? 'num bad' : 'num'}>{전부}</b>
         </h2>
         <span className="dash-axis">{t('최근 {일}일, 같은 서버의 직전 실행과 견줌', { 일: 값.window.days })}</span>
       </div>
@@ -47,7 +47,7 @@ export function 신규실패표({ 값, 이동 }: { 값: 자료; 이동: 이동�
         견줄앞실행있나(값.byService) ? (
           <p className="dash-calm good">
             <span aria-hidden="true">✓</span>
-            <span>{t('새 실패가 없습니다')}</span>
+            <span>{t('회귀 실패가 없습니다')}</span>
           </p>
         ) : (
           <p className="dash-calm">
@@ -137,7 +137,7 @@ function 실패서랍({ 실패, 이동, onClose }: { 실패: 실패줄; 이동: 
     <Drawer className="fail-drawer" id="fail-drawer" aria-labelledby="fail-drawer-title" onClose={onClose}>
       <div className="fail-drawer-head">
         <h2 id="fail-drawer-title">
-          {t('신규 실패')} · <span className="mono">RUN {실패.runId}</span>
+          {t('회귀 실패')} · <span className="mono">RUN {실패.runId}</span>
         </h2>
         <button type="button" className="btn ghost icon" aria-label={t('닫기')} onClick={onClose}>
           ✕

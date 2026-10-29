@@ -140,7 +140,7 @@ describe('RunList 줄 (§8.7 「A안」)', () => {
     await screen.findByText('ZRL 실행 2130');
 
     const [첫, 둘] = 줄(container);
-    expect(첫?.querySelector('.run-tags')?.textContent).toBe('신규 실패 2계속 실패 1');
+    expect(첫?.querySelector('.run-tags')?.textContent).toBe('회귀 실패 2기존 실패 1');
     expect(둘?.querySelector('.run-tags')).toBeNull();
   });
 

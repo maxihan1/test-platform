@@ -131,13 +131,13 @@ export function RunFailDevice({
 }
 
 /**
- * 변화 글자. 연속 실패는 계속깨짐일 때만 낸다 — 앞 실행에 그 케이스가 없어 견줄 앞이 없으면
+ * 변화 글자. 기존 실패는 계속깨짐일 때만 낸다 — 앞 실행에 그 케이스가 없어 견줄 앞이 없으면
  * 막대에 실패가 이어져도 글자를 안 낸다 (서버가 그때 streak 를 null 로 준다)
  */
 export function 변화글(d: FailureDevice, t: (키: string, 값?: Record<string, string | number>) => string): string | null {
-  if (d.change === '새로깨짐') return t('신규 실패');
+  if (d.change === '새로깨짐') return t('회귀 실패');
   if (d.change !== '계속깨짐' || d.streak === null) return null;
   // 막대가 칸 수만큼 다 차고 전부 실패면 더 앞에서도 이어졌을 수 있다
   const 이상 = d.streak === d.recent.length && d.recent.length >= 흐름칸수;
-  return t(이상 ? '연속 실패 {회}회 이상' : '연속 실패 {회}회', { 회: d.streak });
+  return t(이상 ? '기존 실패 · {회}회 이상 연속' : '기존 실패 · {회}회 연속', { 회: d.streak });
 }

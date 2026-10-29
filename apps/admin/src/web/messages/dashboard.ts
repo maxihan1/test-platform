@@ -15,10 +15,10 @@ export const 대시보드말: Record<string, string> = {
   '{끝난} / {전체}건': '{끝난} / {전체}',
   '외 {수}건': '+{수} more',
 
-  // 신규 실패
-  '신규 실패': 'New failures',
+  // 회귀 실패
+  '회귀 실패': 'Regressions',
   '최근 {일}일, 같은 서버의 직전 실행과 견줌': 'Last {일} days, compared with the previous run on the same server',
-  '새 실패가 없습니다': 'No new failures',
+  '회귀 실패가 없습니다': 'No regressions',
   '{수}건 더 있습니다': '{수} more',
   '실행 기록에서 보기': 'View in run history',
   '이 실행에서 실패 카드를 찾지 못했습니다': 'Could not find the failure card in this run',
@@ -43,7 +43,7 @@ export const 대시보드말: Record<string, string> = {
   '마지막 실행이 없습니다': 'No run yet',
   '마지막 실행에 실패가 있습니다': 'The last run has failures',
   '마지막 실행에 실패가 없습니다': 'The last run has no failures',
-  '신규 실패 {수}': '{수} new failures',
+  '회귀 실패 {수}': '{수} regressions',
   '해결 {수}': '{수} fixed',
   '견줄 실행 없음': 'Nothing to compare',
   '변화 없음': 'No change',
@@ -105,7 +105,7 @@ export const 대시보드말: Record<string, string> = {
 
   // 실행 0
   '아직 실행한 테스트가 없습니다': 'No tests have run yet',
-  '테스트 스크립트를 실행하면 여기에 통과율 · 신규 실패 · 일별 결과가 쌓입니다': 'Run test scripts and the pass rate, new failures and daily results build up here',
+  '테스트 스크립트를 실행하면 여기에 통과율 · 회귀 실패 · 일별 결과가 쌓입니다': 'Run test scripts and the pass rate, regressions and daily results build up here',
   '하루 한 번 정기 실행을 켜 두면 결과가 날마다 쌓여 추이가 보입니다': 'Turn on a daily scheduled run and results build up into a trend',
   '설정에서 정기 실행 켜기': 'Turn on scheduled runs in Settings',
   '케이스 보기': 'View cases',

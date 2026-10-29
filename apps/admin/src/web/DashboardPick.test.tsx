@@ -184,13 +184,13 @@ describe('통과율 비교 글', () => {
 });
 
 describe('칸에서 내려가기', () => {
-  it('신규 실패의 케이스 이름은 그 실행의 실패 카드까지 가는 주소이고, 서랍의 「실행 기록에서 보기」가 그 애플리케이션을 고른다', async () => {
+  it('회귀 실패의 케이스 이름은 그 실행의 실패 카드까지 가는 주소이고, 서랍의 「실행 기록에서 보기」가 그 애플리케이션을 고른다', async () => {
     vi.spyOn(api, 'dashboard').mockResolvedValue(응답() as never);
     vi.spyOn(api, 'run').mockReturnValue(new Promise(() => {}));
     vi.spyOn(api, 'failures').mockReturnValue(new Promise(() => {}));
     const 서비스열기 = vi.fn();
     render(<Dashboard 서비스열기={서비스열기} {...기본재료} />);
-    const 칸 = (await screen.findByText('신규 실패')).closest('section')!;
+    const 칸 = (await screen.findByText('회귀 실패')).closest('section')!;
     const 기능 = within(칸).getByRole('link', { name: 'ZDA-001 이름' });
     expect(기능.getAttribute('href')).toBe('#/runs/fn?run=7&tc=ZDA-001');
     const UI = within(칸).getByRole('link', { name: 'ZDA-UI-014 이름' });
@@ -208,7 +208,7 @@ describe('칸에서 내려가기', () => {
   it('표가 상한에서 잘렸으면 나머지 건수와 실패한 실행 목록 링크를 단다', async () => {
     vi.spyOn(api, 'dashboard').mockResolvedValue(응답() as never);
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
-    const 칸 = (await screen.findByText('신규 실패')).closest('section')!;
+    const 칸 = (await screen.findByText('회귀 실패')).closest('section')!;
     expect(within(칸).getByText(/10건 더 있습니다/)).toBeTruthy();
     expect(within(칸).getByRole('link', { name: '실행 기록에서 보기' }).getAttribute('href')).toBe('#/runs/fn?state=failed&days=14');
   });
@@ -218,7 +218,7 @@ describe('칸에서 내려가기', () => {
       응답({ byService: 응답().byService.map((서비스) => ({ ...서비스, newFailureCount: 2 })) }) as never,
     );
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
-    const 칸 = (await screen.findByText('신규 실패')).closest('section')!;
+    const 칸 = (await screen.findByText('회귀 실패')).closest('section')!;
     expect(within(칸).queryByText(/더 있습니다/)).toBeNull();
   });
 
@@ -282,7 +282,7 @@ describe('칸에서 내려가기', () => {
     const { container } = render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
     await screen.findByText('일별 테스트 결과');
     expect(container.querySelector('.dash-daily svg a')!.getAttribute('href')).toBe('#/runs/ui?state=failed&days=14');
-    const 신규 = (await screen.findByText('신규 실패')).closest('section')!;
+    const 신규 = (await screen.findByText('회귀 실패')).closest('section')!;
     expect(within(신규).getByRole('link', { name: '실행 기록에서 보기' }).getAttribute('href')).toBe('#/runs/ui?state=failed&days=14');
     const 유형 = (await screen.findByText('실패 유형')).closest('section')!;
     expect(within(유형).getByRole('link', { name: '기대 결과 불일치' }).getAttribute('href')).toBe('#/runs/ui?state=failed&days=14');
