@@ -50,7 +50,7 @@ import { ScenarioRunList } from './ScenarioRunList.js';
 import { Settings } from './Settings.js';
 import { Shell } from './Shell.js';
 import { Signup } from './Signup.js';
-import { sso알림을단다, useSSO, 계정을기억한다, 로그아웃표시를단다, 막로그인표시를뗀다 } from './useSSO.js';
+import { sso알림을단다, useSSO, 계정을기억한다, 로그아웃표시를단다, 로그아웃표시를뗀다, 막로그인표시를뗀다 } from './useSSO.js';
 import { 칩움직임을건다 } from './motion.js';
 import { Loading } from './ui.js';
 import './styles.css';
@@ -255,10 +255,12 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
     api
       .me()
       .then(({ user }) => {
-        if (!막로그인) return set상태({ 어디: '안', user });
-        // 로그아웃 뒤 카드의 「이 계정으로 로그인」이 쓴다 (도메인/인증 §8.6 「로그인 카드」)
+        // 들어와 있으면 로그아웃 표시는 낡았다 — 카드를 거치지 않고 들어온 길(바로 연 sso/start 등)도 있다.
+        // 계정은 막 로그인할 때만이 아니라 열 때마다 적는다 — 기억이 생기기 전부터 들어와 있던 사람도 카드에 그 계정이 나온다 (도메인/인증 §8.6 「로그인 카드」)
+        로그아웃표시를뗀다();
         계정을기억한다({ username: user.username, name: user.displayName });
-        들어왔다(user);
+        if (막로그인) 들어왔다(user);
+        else set상태({ 어디: '안', user });
       })
       .catch(() => {
         if (막로그인) sso알림을단다('failed');

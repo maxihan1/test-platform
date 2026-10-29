@@ -47,35 +47,34 @@ export function sso알림을단다(값: 'failed' | 'out'): void {
   window.history.replaceState(window.history.state, '', `${window.location.pathname}?sso=${값}${window.location.hash}`);
 }
 
+// 브라우저가 저장을 막아도 로그인 화면은 떠야 한다 — 읽기는 빈 값, 쓰기는 조용히 넘어간다.
+// 막히면 이 탭의 `?sso=out` 만 남고 카드에 버튼 하나만 보일 뿐이다
+function 읽기(키: string): string | null {
+  try {
+    return localStorage.getItem(키);
+  } catch {
+    return null;
+  }
+}
+
+function 쓰기(키: string, 값: string | null): void {
+  try {
+    if (값 === null) localStorage.removeItem(키);
+    else localStorage.setItem(키, 값);
+  } catch {
+    // 위와 같다
+  }
+}
+
 /**
  * 로그아웃 표시 (도메인/인증 §8.6 「로그인 카드」). 주소(`?sso=out`)는 그 탭에만 남아 새 탭 · 북마크로 열면 바로 다시 들어갔다 —
  * 브라우저에 둬서 카드의 버튼을 누를 때까지 Auth_platform 으로 저절로 보내지 않는다
  */
 const 로그아웃키 = '로그아웃함';
 
-export function 로그아웃표시를단다(): void {
-  try {
-    localStorage.setItem(로그아웃키, '1');
-  } catch {
-    // 브라우저가 저장을 막으면 이 탭의 `?sso=out` 만 남는다
-  }
-}
-
-export function 로그아웃했나(): boolean {
-  try {
-    return localStorage.getItem(로그아웃키) === '1';
-  } catch {
-    return false;
-  }
-}
-
-export function 로그아웃표시를뗀다(): void {
-  try {
-    localStorage.removeItem(로그아웃키);
-  } catch {
-    // 위와 같다
-  }
-}
+export const 로그아웃표시를단다 = (): void => 쓰기(로그아웃키, '1');
+export const 로그아웃했나 = (): boolean => 읽기(로그아웃키) === '1';
+export const 로그아웃표시를뗀다 = (): void => 쓰기(로그아웃키, null);
 
 /** 마지막으로 들어온 계정 — 로그인 카드의 「이 계정으로 로그인」이 이 아이디를 Auth_platform 에 싣는다 */
 export interface 기억한계정 {
@@ -85,30 +84,18 @@ export interface 기억한계정 {
 
 const 계정키 = '마지막계정';
 
-export function 계정을기억한다(계정: 기억한계정): void {
-  try {
-    localStorage.setItem(계정키, JSON.stringify({ username: 계정.username, name: 계정.name }));
-  } catch {
-    // 저장이 막히면 카드에 버튼 하나만 보일 뿐이다
-  }
-}
+export const 계정을기억한다 = (계정: 기억한계정): void =>
+  쓰기(계정키, JSON.stringify({ username: 계정.username, name: 계정.name }));
+export const 기억한계정을지운다 = (): void => 쓰기(계정키, null);
 
 export function 기억한계정을읽는다(): 기억한계정 | null {
   try {
-    const 값: unknown = JSON.parse(localStorage.getItem(계정키) ?? 'null');
+    const 값: unknown = JSON.parse(읽기(계정키) ?? 'null');
     if (typeof 값 !== 'object' || 값 === null) return null;
     const { username, name } = 값 as Record<string, unknown>;
     return typeof username === 'string' && username !== '' && typeof name === 'string' ? { username, name } : null;
   } catch {
-    // 깨진 값 · 막힌 저장은 기억한 계정이 없는 것과 같다
+    // 깨진 값은 기억한 계정이 없는 것과 같다
     return null;
-  }
-}
-
-export function 기억한계정을지운다(): void {
-  try {
-    localStorage.removeItem(계정키);
-  } catch {
-    // 위와 같다
   }
 }
