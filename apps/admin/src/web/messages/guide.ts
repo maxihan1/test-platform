@@ -4,7 +4,11 @@
 export const 가이드말: Record<string, string> = {
   // 메뉴 하위 자리
   요구사항: 'Requirements',
-  '애플리케이션 가이드': 'Application guide',
+  // 가이드 자리 이름은 애플리케이션 종류를 따른다 (kind.ts 「가이드」 · 2026-10-29)
+  '웹 가이드': 'Web guide',
+  '앱 가이드': 'App guide',
+  '게임 가이드': 'Game guide',
+  'API 가이드': 'API guide',
 
   // 머리와 알림
   '테스트를 작성할 때 참고하는 애플리케이션 설명입니다': 'Application description used as a reference when tests are authored',

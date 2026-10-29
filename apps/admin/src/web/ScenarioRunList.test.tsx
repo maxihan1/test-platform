@@ -78,15 +78,7 @@ async function 그리기(답: 목록답 = 한쪽) {
 const 줄들 = (container: HTMLElement) => [...container.querySelectorAll<HTMLElement>('.run-row')];
 
 describe('ScenarioRunList 머리', () => {
-  it('API 애플리케이션이면 위치를 메뉴처럼 「API › E2E 실행 기록」 으로 적는다', async () => {
-    const 스파이 = vi.spyOn(scenarioApi, 'runs').mockResolvedValue(한쪽);
-    vi.spyOn(scenarioApi, 'result').mockReturnValue(new Promise(() => {}));
-    render(<ScenarioRunList service="ZSL" 판정하기={() => 운영} API아래 />);
-    await waitFor(() => expect(스파이).toHaveBeenCalled());
-    expect(await screen.findByRole('heading', { level: 1, name: 'API › E2E 실행 기록' })).toBeTruthy();
-  });
-
-  it('API 애플리케이션이 아니면 「실행 기록 › E2E」 다', async () => {
+  it('위치는 「실행 기록 › E2E」 다 — API 애플리케이션도 같다', async () => {
     await 그리기();
     expect(await screen.findByRole('heading', { level: 1, name: '실행 기록 › E2E' })).toBeTruthy();
   });

@@ -11,7 +11,8 @@ import { 조건칩들 } from './CaseListParts.js';
 import { Empty } from './CaseListNotes.js';
 import { 떠나기막기 } from './leaveGuard.js';
 import { RunLocation } from './RunLocation.js';
-import { 서비스고르개, 종류아이콘 } from './ShellPickers.js';
+import { 애플리케이션줄 } from './ShellRail.js';
+import { 서비스고르개 } from './ShellPickers.js';
 
 afterEach(() => {
   떠나기막기(null);
@@ -57,23 +58,32 @@ describe('헤더 애플리케이션 고르개', () => {
     expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(['데모마켓 웹', '데모마켓 운영툴']);
   });
 
-  it('표에 없는 종류는 웹으로 읽어 목록에서 빠지지 않고 아이콘도 없다', () => {
+  it('표에 없는 종류는 웹으로 읽어 목록에서 빠지지 않는다', () => {
     const 모름 = { ...앱('MKI', 'iOS 앱'), kind: 'IOS' } as unknown as ServiceRow;
     const 목록 = [앱('MKW', '데모마켓 웹'), 앱('MKA', '데모마켓 앱', 'APP'), 모름];
-    const { container } = render(<종류아이콘 service={모름} />);
-    expect(container.innerHTML).toBe('');
-    cleanup();
     render(<서비스고르개 user={사람(목록)} service={모름} onService={() => {}} />);
     expect([...document.querySelectorAll('optgroup')][0]?.querySelectorAll('option')).toHaveLength(2);
   });
+});
 
-  it('고른 칸의 종류 아이콘은 Android 앱 · API 에만 서고 웹에는 없다', () => {
-    const { rerender, container } = render(<종류아이콘 service={앱('MKA', '데모마켓 앱', 'APP')} />);
-    expect(screen.getByRole('img', { name: 'Android 앱' })).toBeTruthy();
-    rerender(<종류아이콘 service={앱('MKN', '알림', 'API')} />);
-    expect(screen.getByRole('img', { name: 'API' })).toBeTruthy();
-    rerender(<종류아이콘 service={앱('MKW', '데모마켓 웹')} />);
-    expect(container.innerHTML).toBe('');
+describe('애플리케이션 줄의 종류 아이콘', () => {
+  const 아이콘들 = (목록: ServiceRow[]) => {
+    render(<애플리케이션줄 user={사람(목록)} service={목록[0]!} onService={() => {}} 새로만들기={false} />);
+    return screen.getAllByRole('button').map((단추) => 단추.querySelector('svg')?.innerHTML);
+  };
+
+  it('웹 · Android 앱 · API 모두 아이콘이 서고 서로 다르다. 웹도 있다', () => {
+    const [웹, 폰, API] = 아이콘들([앱('MKW', '데모마켓 웹'), 앱('MKA', '데모마켓 앱', 'APP'), 앱('MKN', '알림', 'API')]);
+    expect(웹).toBeTruthy();
+    expect(폰).toBeTruthy();
+    expect(API).toBeTruthy();
+    expect(new Set([웹, 폰, API]).size).toBe(3);
+  });
+
+  it('표에 없는 종류는 웹 아이콘으로 읽는다', () => {
+    const 모름 = { ...앱('MKI', 'iOS 앱'), kind: 'IOS' } as unknown as ServiceRow;
+    const [웹, 읽은것] = 아이콘들([앱('MKW', '데모마켓 웹'), 모름]);
+    expect(읽은것).toBe(웹);
   });
 });
 

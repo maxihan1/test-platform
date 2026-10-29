@@ -10,8 +10,9 @@ import { 거절사유 } from './AuthoringNew.js';
 import { guideApi, type 가이드글 } from './guideApi.js';
 import { GuideSection, 구획들 } from './GuideSection.js';
 import { GuideVersions } from './GuideVersions.js';
-import { Head } from './Head.js';
+import { Head, use지금앱 } from './Head.js';
 import { use말, use언어 } from './i18n.js';
+import { 종류 } from './kind.js';
 import { 떠나기상자 } from './leaveGuard.js';
 import type { 판정 } from './role.js';
 import { Failed, Loading, message, useAsync } from './ui.js';
@@ -73,7 +74,7 @@ export function Guide({ service, 할수 }: { service: string; 할수: 판정 }) 
     <>
       <Head
         위치={t('PRD 관리')}
-        제목={t('애플리케이션 가이드')}
+        제목={t(종류(use지금앱()?.kind).가이드)}
         부제={
           <>
             {t('테스트를 작성할 때 참고하는 애플리케이션 설명입니다')} ·{' '}

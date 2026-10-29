@@ -135,8 +135,7 @@ export function 단계칸(p: {
             return (
               <button key={k} type="button" className="wz-kind" aria-pressed={값.kind === k} onClick={() => 고친다({ kind: k })}>
                 <span className="wz-kind-h">
-                  {/* 웹은 헤더에서 아이콘을 안 달지만 카드는 넷이 나란히라 모양을 맞춘다 */}
-                  <아이콘 이름={줄.아이콘 ?? 'desktop'} />
+                  <아이콘 이름={줄.아이콘} />
                   {t(줄.이름)}
                 </span>
                 <p>{t(줄.소개.한줄)}</p>

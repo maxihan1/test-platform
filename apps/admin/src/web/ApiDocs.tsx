@@ -1,4 +1,4 @@
-// 「API › API 문서」 화면 — Swagger 버전을 받고 · 본다. 바뀐 API 를 테스트에 반영하는 일은 테스트 작성의 「결정 필요」 한 곳이다 (도메인/API §8.13 · 도메인/작성 §3.6 「★ 결정 목록」)
+// 「PRD 관리 › API 문서」 화면 — Swagger 버전을 받고 · 본다. 바뀐 API 를 테스트에 반영하는 일은 테스트 작성의 「결정 필요」 한 곳이다 (도메인/API §8.13 · 도메인/작성 §3.6 「★ 결정 목록」)
 // PRD 관리 · 애플리케이션 가이드와 같은 배치다 — 머리의 「버전 기록」 표 → 할 일 카드 → 전체 목록
 
 import { useRef, useState } from 'react';
@@ -19,7 +19,7 @@ export function API안내({ 설정보나 }: { 설정보나: boolean }) {
   const t = use말();
   return (
     <>
-      <Head 위치={t('API')} 제목={t('API 문서')} />
+      <Head 위치={t('PRD 관리')} 제목={t('API 문서')} />
       <div className="screen">
         <div className="empty">
           {t('API 애플리케이션을 고르면 API 문서가 보입니다')}
@@ -87,7 +87,7 @@ export function ApiDocs({ service, 할수, 버전, 설정보나 }: { service: Se
   return (
     <>
       <Head
-        위치={t('API')}
+        위치={t('PRD 관리')}
         제목={t('API 문서')}
         부제={
           최신 === undefined

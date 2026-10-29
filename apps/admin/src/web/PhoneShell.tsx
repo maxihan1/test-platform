@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ServiceRow, User } from './api.js';
 import { use말, type 언어 } from './i18n.js';
 import { 아이콘 } from './icons.js';
-import { 고른서비스를적는다, 실행기록자리, 자리목록, type 빈띠, type 자리 } from './layout.js';
+import { 고른서비스를적는다, 자리목록, type 빈띠, type 자리 } from './layout.js';
 import { Notice } from './Notice.js';
 import { 휴대폰자리인가 } from './phone.js';
 import { 서비스고르개, 언어고르개, 프로젝트고르개 } from './ShellPickers.js';
@@ -24,14 +24,12 @@ interface Props {
   주소?: string;
   /** 배정 · 권한이 없어 본문 대신 띄울 안내. PC 껍데기와 같은 판단이다 (layout.ts `빈띠사유`) */
   사유: 빈띠 | null;
-  /** 웹 애플리케이션에 앱 케이스가 있나 — 「기기 성능」 메뉴를 가른다. PC 껍데기가 읽어 넘긴다 */
-  앱케이스?: boolean;
   children: React.ReactNode;
 }
 
 const 지금이면 = (맞나: boolean) => (맞나 ? { 'aria-current': 'page' as const } : {});
 
-export function PhoneShell({ user, service, onService, 언어, on언어, onLogout, current, 주소, 사유, 앱케이스 = false, children }: Props) {
+export function PhoneShell({ user, service, onService, 언어, on언어, onLogout, current, 주소, 사유, children }: Props) {
   const t = use말();
   const sso = useSSO();
   // 「알림」 버튼은 아래 탭의 한 칸이다. 줄 · 서랍과 열림 상태를 같이 쓰도록 Notice 가 이 자리에 버튼을 그린다
@@ -52,10 +50,9 @@ export function PhoneShell({ user, service, onService, 언어, on언어, onLogou
     };
   }, []);
   const 대시보드인가 = current === '#/dashboard';
-  const 자리들 = 자리목록(user, service?.prefix ?? null, 언어, 앱케이스);
+  const 자리들 = 자리목록(user, service?.prefix ?? null, 언어);
   const 대시보드 = 자리들.find((it) => it.해시 === '#/dashboard');
-  // API 애플리케이션은 실행 기록이 「API」 아래에 선다 — 휴대폰 탭은 그 자리로 간다
-  const 실행기록 = 실행기록자리(자리들);
+  const 실행기록 = 자리들.find((it) => it.해시 === '#/runs');
   // 하위 고르개는 실행 기록 목록에서만 — 실행 결과 · 항목 상세(`#/runs`)는 종류를 모른다
   const 하위 = 실행기록?.하위?.some((it) => it.해시 === current) === true ? 실행기록.하위 : undefined;
 

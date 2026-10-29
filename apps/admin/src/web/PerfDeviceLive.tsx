@@ -3,8 +3,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { Head } from './Head.js';
+import { Head, use지금앱 } from './Head.js';
 import { use말, use언어 } from './i18n.js';
+import { 기기성능이름 } from './kind.js';
 import { Modal } from './Modal.js';
 import { perfApi, type 실행로그, type 실행상세 } from './perfApi.js';
 import type { 기기숫자 } from './perfDeviceApi.js';
@@ -90,7 +91,7 @@ export function PerfDeviceLive({ run, 다시읽기, 쓰나 }: { run: 실행상�
     <>
       <Head
         위치={t('성능 테스트')}
-        제목={`${t('기기 성능')} ${run.code}`}
+        제목={`${t(기기성능이름(use지금앱()?.kind))} ${run.code}`}
         부제={[조작글(설정, t), 직접 ? t('{수}분', { 수: Math.round(설정.durationSec / 60) }) : t('반복 {수}회', { 수: 설정.repeat }), t('기기 {수}대', { 수: 설정.devices.length }), run.env, run.startedAt === null ? t('아직 시작 전') : t('{시각} 시작', { 시각: 시각글(run.startedAt, 언어) })].join(' · ')}
         행동={
           <div className="perf-row">

@@ -2,6 +2,8 @@
 // 여기에 넣은 키는 화면 어딘가가 실제로 써야 한다 — messages.test.ts 가 양방향으로 센다
 
 export const 껍데기말: Record<string, string> = {
+  // 애플리케이션 줄 맨 아래 「+」 (화면공통 §8 「껍데기」 · 2026-10-29)
+  '애플리케이션 추가': 'Add application',
   // 자리 목록
   대시보드: 'Dashboard',
   // 영어는 못 박는다 (화면공통 §8 「자리 목록」)
@@ -10,8 +12,6 @@ export const 껍데기말: Record<string, string> = {
   // 영어는 못 박는다 (화면공통 §8 「자리 목록」)
   'E2E 시나리오': 'E2E scenarios',
   '실행 기록': 'Run history',
-  // API 애플리케이션의 「API」 하위 (화면공통 §8 「자리 목록」 · 2026-10-28)
-  'E2E 실행 기록': 'E2E run history',
   // 영어는 이 자리를 만든 PR 이 정한다 (화면공통 §8 「자리 목록」 · PERF-F1-05)
   '성능 테스트': 'Performance',
   시나리오: 'Scenarios',

@@ -2,7 +2,7 @@
 // 맨 위 헤더의 프로젝트 고르개 검사 (SPEC 공통/5-화면공통 §8 「껍데기」 · 2026-10-19 PRJ-F1-03)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 
 import { api, type ServiceRow, type User } from './api.js';
 import { 언어함 } from './i18n.js';
@@ -42,22 +42,21 @@ function 띄운다(service: ServiceRow, 배정: ServiceRow[], onService: (접두
 }
 
 describe('프로젝트 고르개', () => {
-  it('프로젝트가 둘 이상이면 헤더에 프로젝트 고르개가 애플리케이션 고르개 앞에 선다', () => {
+  it('프로젝트가 둘 이상이면 헤더에 프로젝트 고르개가 서고 애플리케이션 고르개는 없다', () => {
     띄운다(결제, [결제, 정산, 포털]);
 
     const 고르개 = screen.getByRole('combobox', { name: '프로젝트 선택' }) as HTMLSelectElement;
     expect(고르개.value).toBe('1');
     expect([...고르개.options].map((it) => it.textContent)).toEqual(['데모마켓', '사내 포털']);
-    const 띠 = [...document.querySelectorAll('.hd-svc')];
-    expect(띠[0]?.contains(고르개)).toBe(true);
-    expect(띠[1]?.contains(screen.getByRole('combobox', { name: '애플리케이션 선택' }))).toBe(true);
+    expect(document.querySelector('header.hd')?.contains(고르개)).toBe(true);
+    expect(screen.queryByRole('combobox', { name: '애플리케이션 선택' })).toBeNull();
   });
 
-  it('애플리케이션 고르개에는 고른 프로젝트의 애플리케이션만 뜬다', () => {
+  it('애플리케이션 줄에는 고른 프로젝트의 애플리케이션만 선다', () => {
     띄운다(포털, [결제, 정산, 포털, 포털어드민]);
 
-    const 앱들 = screen.getByRole('combobox', { name: '애플리케이션 선택' }) as HTMLSelectElement;
-    expect([...앱들.options].map((it) => it.textContent)).toEqual(['직원 포털', '관리자 콘솔']);
+    const 줄 = screen.getByRole('navigation', { name: '애플리케이션' });
+    expect(within(줄).getAllByRole('button').map((it) => it.getAttribute('aria-label'))).toEqual(['직원 포털 · 웹', '관리자 콘솔 · 웹']);
   });
 
   it('프로젝트를 바꾸면 그 프로젝트의 첫 애플리케이션으로 열고 그것을 브라우저에 적어 둔다', () => {

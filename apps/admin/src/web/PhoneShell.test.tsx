@@ -123,7 +123,7 @@ describe('휴대폰 껍데기', () => {
     expect(메뉴.open).toBe(false);
   });
 
-  it('API 애플리케이션은 실행 기록 묶음이 없어도 실행 기록 탭이 기능 테스트 실행 기록으로 간다', () => {
+  it('API 애플리케이션도 실행 기록 탭이 있고 묶음 주소로 간다 — API 묶음을 거치지 않는다', () => {
     const API = { ...결제, kind: 'API' as const };
     render(
       <언어함 value="ko">
@@ -133,7 +133,7 @@ describe('휴대폰 껍데기', () => {
       </언어함>,
     );
     const 링크 = within(탭()).getByRole('link', { name: '실행 기록' });
-    expect(링크.getAttribute('href')).toBe('#/runs/fn');
+    expect(링크.getAttribute('href')).toBe('#/runs');
     expect(링크.getAttribute('aria-current')).toBe('page');
   });
 
@@ -146,7 +146,7 @@ describe('휴대폰 껍데기', () => {
         </Shell>
       </언어함>,
     );
-    expect(screen.getByRole('link', { name: '실행 기록으로' }).getAttribute('href')).toBe('#/runs/fn');
+    expect(screen.getByRole('link', { name: '실행 기록으로' }).getAttribute('href')).toBe('#/runs');
   });
 
   it('실행 칸이 없는 애플리케이션만 배정됐으면 실행 기록 탭이 없다', () => {

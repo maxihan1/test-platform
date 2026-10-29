@@ -2,7 +2,9 @@
 
 export const 성능기기말: Record<string, string> = {
   // 머리 · 사이드바
-  '기기 성능': 'Device performance',
+  // 기기 성능 자리 이름은 애플리케이션 종류를 따른다 (kind.ts 「기기성능」 · 2026-10-29)
+  '앱 성능': 'App performance',
+  '게임 성능': 'Game performance',
   '새 측정': 'New measurement',
   '{앱} · 새 측정': '{앱} · New measurement',
   '직접 플레이': 'Manual play',

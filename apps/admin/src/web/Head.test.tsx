@@ -8,7 +8,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 
-import { Head } from './Head.js';
+import type { ServiceRow } from './api.js';
+import { Head, 지금앱칸 } from './Head.js';
 
 afterEach(cleanup);
 
@@ -51,5 +52,37 @@ describe('화면 머리', () => {
     const { container } = render(<Head 제목="설정" />);
 
     expect(container.querySelector('.head-acts')).toBeNull();
+  });
+
+  it('껍데기가 지금 애플리케이션을 넣으면 위치 줄 맨 앞에 그 이름이 선다', () => {
+    const 앱 = { id: 1, prefix: 'ZHD', name: '데모마켓 앱' } as ServiceRow;
+    render(
+      <지금앱칸.Provider value={앱}>
+        <Head 제목="기능 테스트" 위치="테스트 스크립트" />
+      </지금앱칸.Provider>,
+    );
+
+    expect(screen.getByRole('heading', { level: 1, name: '데모마켓 앱 › 테스트 스크립트 › 기능 테스트' })).toBeTruthy();
+  });
+
+  it('위치가 없는 화면도 애플리케이션 이름이 제목 앞에 선다', () => {
+    const 앱 = { id: 1, prefix: 'ZHD', name: '데모마켓 앱' } as ServiceRow;
+    render(
+      <지금앱칸.Provider value={앱}>
+        <Head 제목="요구사항" />
+      </지금앱칸.Provider>,
+    );
+
+    expect(screen.getByRole('heading', { level: 1, name: '데모마켓 앱 › 요구사항' })).toBeTruthy();
+  });
+
+  it('칸이 비어 있으면(대시보드 · 껍데기 밖) 예전 그대로다', () => {
+    render(
+      <지금앱칸.Provider value={null}>
+        <Head 제목="기능 테스트" 위치="테스트 스크립트" />
+      </지금앱칸.Provider>,
+    );
+
+    expect(screen.getByRole('heading', { level: 1, name: '테스트 스크립트 › 기능 테스트' })).toBeTruthy();
   });
 });

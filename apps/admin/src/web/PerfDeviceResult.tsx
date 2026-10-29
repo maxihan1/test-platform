@@ -4,8 +4,9 @@
 import { useEffect, useState } from 'react';
 
 import type { ServiceRow } from './api.js';
-import { Head } from './Head.js';
+import { Head, use지금앱 } from './Head.js';
 import { use말, use언어 } from './i18n.js';
+import { 기기성능이름 } from './kind.js';
 import { perfApi, type 실행상세 } from './perfApi.js';
 import { PerfDeviceReplay } from './PerfDeviceReplay.js';
 import { 값글자, 기기설정of, 메모리글자, 벗어난지표, 실행열기, 조작글, 케이스조작 } from './perfDeviceView.js';
@@ -80,7 +81,7 @@ export function PerfDeviceResult({ run, service, 다시읽기, 쓰나, 새측정
     <>
       <Head
         위치={t('성능 테스트')}
-        제목={`${t('기기 성능')} ${run.code}`}
+        제목={`${t(기기성능이름(use지금앱()?.kind))} ${run.code}`}
         부제={
           <>
             {종류 === 'LIVE' ? null : <span className={`verdict ${판정꼴[종류]}`}>{판정이름(종류, t)}</span>}{' '}

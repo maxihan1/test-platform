@@ -4,6 +4,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
+import type { ServiceRow } from './api.js';
+import { 지금앱칸 } from './Head.js';
 import { perfApi, type 실행줄 } from './perfApi.js';
 import { PerfRunList } from './PerfRunList.js';
 
@@ -37,7 +39,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-async function 그리기(runs = 줄들) {
+async function 그리기(runs = 줄들, 앱: ServiceRow | null = null) {
   vi.spyOn(perfApi, 'scenarios').mockResolvedValue({
     scenarios: [
       { id: 5, name: '주문하기', version: 1, updatedAt: null, lastRun: null },
@@ -45,7 +47,11 @@ async function 그리기(runs = 줄들) {
     ],
   });
   const 부르기 = vi.spyOn(perfApi, 'runs').mockResolvedValue({ runs });
-  const 것 = render(<PerfRunList serviceId={7} />);
+  const 것 = render(
+    <지금앱칸.Provider value={앱}>
+      <PerfRunList serviceId={7} />
+    </지금앱칸.Provider>,
+  );
   await screen.findByRole('table', { name: '성능 실행 목록' });
   return { 부르기, ...것 };
 }
@@ -109,11 +115,16 @@ describe('성능 실행 기록 표', () => {
     expect(screen.getByRole('link', { name: 'PRF-0012' }).getAttribute('href')).toBe('#/perf/runs/12');
   });
 
-  it('기기 측정 줄은 제목이 「기기 성능」이고 누르면 기기 성능 화면의 그 실행으로 간다', async () => {
+  it('기기 측정 줄은 제목이 「앱 성능」이고 누르면 기기 성능 화면의 그 실행으로 간다', async () => {
     await 그리기([줄({ id: 40, kind: 'DEVICE', title: '', testType: null, degraded: null, summary: { peakVus: null, maxTps: null, p95Ms: null, errorRate: null } })]);
     const 기기줄 = screen.getByRole('link', { name: 'PRF-0040' }).closest('tr')!;
     expect(screen.getByRole('link', { name: 'PRF-0040' }).getAttribute('href')).toBe('#/perf/devices?run=40');
-    expect(within(기기줄).getByRole('link', { name: '기기 성능' }).getAttribute('href')).toBe('#/perf/devices?run=40');
+    expect(within(기기줄).getByRole('link', { name: '앱 성능' }).getAttribute('href')).toBe('#/perf/devices?run=40');
+  });
+
+  it('기기 측정 줄의 제목은 종류를 따른다 — 게임이면 「게임 성능」', async () => {
+    await 그리기([줄({ id: 40, kind: 'DEVICE', title: '', testType: null, degraded: null, summary: { peakVus: null, maxTps: null, p95Ms: null, errorRate: null } })], { kind: 'GAME' } as ServiceRow);
+    expect(within(screen.getByRole('link', { name: 'PRF-0040' }).closest('tr')!).getByRole('link', { name: '게임 성능' })).toBeTruthy();
   });
 
   it('실행이 없으면 안내를 한다', async () => {
