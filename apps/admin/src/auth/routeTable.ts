@@ -35,6 +35,10 @@ export const 등급표: Record<string, 표값> = {
   'GET /api/auth/me': 안따짐,
   // 본인 비밀번호 바꾸기 — 라우트가 로그인을 직접 확인한다 (auth/routes.ts)
   'POST /api/auth/password': 안따짐,
+  // 본인 디바이스 팜 토큰 — 라우트가 로그인을 직접 확인한다 (auth/farmToken.ts)
+  'GET /api/auth/farm-token': 안따짐,
+  'PUT /api/auth/farm-token': 안따짐,
+  'DELETE /api/auth/farm-token': 안따짐,
   // 가입은 로그인 없이 지나간다. 만드는 것은 아무것도 못 하는 승인 대기 계정뿐이다 (인증 §7 「인증 적용 범위」)
   'POST /api/auth/signup': 안따짐,
   // 로그인 화면이 그릴 모양 · maxihan 계정 로그인 왕복. 셋 다 로그인 없이 지나간다 (auth/sso.ts)
