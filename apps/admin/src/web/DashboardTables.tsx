@@ -91,7 +91,7 @@ export function 서비스별표({ 값, 서비스열기 }: { 값: 자료; 서비�
                   </td>
                   <td>
                     {서비스.newFailureCount > 0 ? (
-                      <span className="dash-chip f">{t('신규 실패 {수}', { 수: 서비스.newFailureCount })}</span>
+                      <span className="dash-chip f">{t('회귀 실패 {수}', { 수: 서비스.newFailureCount })}</span>
                     ) : null}
                     {서비스.resolvedCount > 0 ? (
                       <span className="dash-chip p">{t('해결 {수}', { 수: 서비스.resolvedCount })}</span>
@@ -170,7 +170,7 @@ export function 안내판({ 케이스갈수있나, 설정갈수있나 }: { 케�
     <section className="dash-slab dash-empty">
       <아이콘 이름="dashboard" />
       <h2>{t('아직 실행한 테스트가 없습니다')}</h2>
-      <p>{t('테스트 스크립트를 실행하면 여기에 통과율 · 신규 실패 · 일별 결과가 쌓입니다')}</p>
+      <p>{t('테스트 스크립트를 실행하면 여기에 통과율 · 회귀 실패 · 일별 결과가 쌓입니다')}</p>
       <p>
         {t('하루 한 번 정기 실행을 켜 두면 결과가 날마다 쌓여 추이가 보입니다')}
         {설정갈수있나 ? <정기실행켜는곳 /> : null}

@@ -239,7 +239,7 @@ describe.skipIf(연결 === undefined)('대시보드 질의', () => {
       expect(결과.services).toEqual([{ id: A, name: 'XDQ 마켓' }]);
     });
 
-    it('서비스별에 마지막 실행과 흐름 · 신규 실패 수 · 해결 수를 싣는다', async () => {
+    it('서비스별에 마지막 실행과 흐름 · 회귀 실패 수 · 해결 수를 싣는다', async () => {
       const 결과 = await 대시보드('UTC', [A], [A]);
       expect(결과.byService).toHaveLength(1);
       const 칸 = 결과.byService[0]!;
@@ -265,7 +265,7 @@ describe.skipIf(연결 === undefined)('대시보드 질의', () => {
     });
   });
 
-  describe('신규 실패', () => {
+  describe('회귀 실패', () => {
     it('앞 실행이 28일 창 밖이어도 견주고, 다시 통과한 것은 뺀다', async () => {
       const 결과 = await 대시보드('UTC', [A], [A]);
       const ids = 결과.newFailures.map((n) => n.tcId);

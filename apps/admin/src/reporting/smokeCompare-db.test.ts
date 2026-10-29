@@ -83,7 +83,7 @@ describe.skipIf(연결 === undefined)('빌드 회귀의 직전 실행 — 스모
     expect(수.get(다음스모크)).toEqual({ newFail: 1, stillFail: 1 });
   });
 
-  it('대시보드 신규 실패의 앞 판정도 앞 전체 실행 것이다', async () => {
+  it('대시보드 회귀 실패의 앞 판정도 앞 전체 실행 것이다', async () => {
     const 줄 = await pool.query<{ tc_id: string }>(앞판정SQL, [[회귀]]);
     expect(줄.rows.map((r) => r.tc_id).sort()).toEqual(['XRG-001', 'XRG-002', 'XRG-003']);
   });

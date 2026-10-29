@@ -208,7 +208,7 @@ describe.skipIf(연결 === undefined)('실패 카드 질의', () => {
     expect(데스크톱.streak).toBe(4);
   });
 
-  it('change 는 앞 실행과 견준 케이스 판정이고 연속 실패 수는 계속깨짐일 때만이다', async () => {
+  it('change 는 앞 실행과 견준 케이스 판정이고 기존 실패 수는 계속깨짐일 때만이다', async () => {
     const 결과 = await 실패카드(실행번호['XFC RT 이번']!, 1);
     const [데스크톱, 모바일] = 결과.items[0]!.devices;
     expect(데스크톱).toMatchObject({ change: '계속깨짐', streak: 4 });

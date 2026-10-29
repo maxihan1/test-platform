@@ -77,8 +77,8 @@ export function 실행줄({ run, 고름, on고르기 }: { run: RunListRow; 고�
         {/* 견줄 앞이 없거나 도는 중이면 change 가 null 이라 꼬리표가 없다 (도메인/실행 §7 `GET /api/runs`) */}
         {run.change == null || run.change.newFail + run.change.stillFail === 0 ? null : (
           <span className="run-tags">
-            {run.change.newFail === 0 ? null : <span className="fc-tag fc-new">{t('신규 실패 {수}', { 수: run.change.newFail })}</span>}
-            {run.change.stillFail === 0 ? null : <span className="fc-tag">{t('계속 실패 {수}', { 수: run.change.stillFail })}</span>}
+            {run.change.newFail === 0 ? null : <span className="fc-tag fc-new">{t('회귀 실패 {수}', { 수: run.change.newFail })}</span>}
+            {run.change.stillFail === 0 ? null : <span className="fc-tag">{t('기존 실패 {수}', { 수: run.change.stillFail })}</span>}
           </span>
         )}
       </span>

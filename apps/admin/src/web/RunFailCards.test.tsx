@@ -135,16 +135,16 @@ describe('실패 케이스 카드 (실행 §8.3)', () => {
     const 첫 = within(카드들[0]!);
     // 카드는 접힌 채로 선다 (실행 §8.3 「실패 카드는 접어 둔다」)
     expect(카드들.every((카드) => 카드.querySelector('details')?.open === false)).toBe(true);
-    // 접힌 머리에는 디바이스 차례로 처음 이어진 연속 실패 하나만 선다 — 신규 실패 · 디바이스마다의 글은 펼친 디바이스 머리다
-    expect(within(카드들[0]!.querySelector('summary')!).getByText('연속 실패 2회')).toBeDefined();
-    expect(within(카드들[0]!.querySelector('summary')!).queryByText('신규 실패')).toBeNull();
-    expect(within(카드들[0]!.querySelector('.fc-body')!).getByText('신규 실패')).toBeDefined();
-    expect(첫.getAllByText('연속 실패 2회')).toHaveLength(2);
-    expect(첫.getByText('연속 실패 5회 이상')).toBeDefined();
+    // 접힌 머리에는 디바이스 차례로 처음 이어진 기존 실패 하나만 선다 — 회귀 실패 · 디바이스마다의 글은 펼친 디바이스 머리다
+    expect(within(카드들[0]!.querySelector('summary')!).getByText('기존 실패 · 2회 연속')).toBeDefined();
+    expect(within(카드들[0]!.querySelector('summary')!).queryByText('회귀 실패')).toBeNull();
+    expect(within(카드들[0]!.querySelector('.fc-body')!).getByText('회귀 실패')).toBeDefined();
+    expect(첫.getAllByText('기존 실패 · 2회 연속')).toHaveLength(2);
+    expect(첫.getByText('기존 실패 · 5회 이상 연속')).toBeDefined();
     expect(첫.getByText('5회 중 2회 실패')).toBeDefined();
     expect(첫.getAllByText('qa 서버 · 이 실행까지')).toHaveLength(3);
     const 둘째 = within(카드들[1]!);
-    expect(둘째.queryByText(/신규 실패|연속 실패|회 중/)).toBeNull();
+    expect(둘째.queryByText(/회귀 실패|기존 실패|회 중/)).toBeNull();
     expect(둘째.getByText('qa 서버 · 이 실행까지')).toBeDefined();
   });
 
@@ -169,7 +169,7 @@ describe('실패 케이스 카드 (실행 §8.3)', () => {
 });
 
 describe('실패 카드의 디바이스 머리 (실행 §8.3 · DESIGN.md 실행 결과)', () => {
-  it('신규 실패 글자는 실패 글자 색 클래스를 쓰고 연속 실패는 안 쓴다', async () => {
+  it('회귀 실패 글자는 실패 글자 색 클래스를 쓰고 기존 실패는 안 쓴다', async () => {
     const 칸 = (실제값: string) => ({ steps: 기본단계(실제값) });
     그리기(
       쪽([
@@ -182,8 +182,8 @@ describe('실패 카드의 디바이스 머리 (실행 §8.3 · DESIGN.md 실행
     );
 
     await screen.findAllByRole('article');
-    expect(within(document.querySelector('.fc-body')!).getByText('신규 실패').className).toContain('fc-new');
-    expect(within(document.querySelector('.fc-body')!).getByText('연속 실패 2회').className).not.toContain('fc-new');
+    expect(within(document.querySelector('.fc-body')!).getByText('회귀 실패').className).toContain('fc-new');
+    expect(within(document.querySelector('.fc-body')!).getByText('기존 실패 · 2회 연속').className).not.toContain('fc-new');
   });
 
   it('회차가 둘 이상이면 소요는 회차 평균이고 「평균」을 붙인다', async () => {

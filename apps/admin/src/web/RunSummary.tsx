@@ -44,7 +44,7 @@ export function RunSummary({
   insights: RunInsights | null;
   판정: ItemStatus | 'ALL';
   on판정: (v: ItemStatus | 'ALL') => void;
-  /** 직전 대비 칸을 눌러 건 거르개 — 「신규 실패」 · 「연속 실패」가 실패 카드를 그 변화만 남긴다 (점검 2.20) */
+  /** 직전 대비 칸을 눌러 건 거르개 — 「회귀 실패」 · 「기존 실패」가 실패 카드를 그 변화만 남긴다 (점검 2.20) */
   변화?: 변화칸 | null;
   on변화?: (v: 변화칸 | null) => void;
   /** 이번 실행의 항목 — 「이번에 실행되지 않은 케이스」 목록이 직전 실행과 맞대 본다 */
@@ -169,7 +169,7 @@ export function RunSummary({
               {직전뒤}
             </span>
             <div className="rs-stats">
-              {/* 숫자를 누르면 그 케이스로 간다 — 눌러도 아무 일 없던 숫자였다 (점검 2.20). 신규 · 연속은 실패 카드를 거르고 해결은 아래 목록을 편다 */}
+              {/* 숫자를 누르면 그 케이스로 간다 — 눌러도 아무 일 없던 숫자였다 (점검 2.20). 회귀 · 기존 실패는 실패 카드를 거르고 해결은 아래 목록을 편다 */}
               <button
                 type="button"
                 className="rs-stat"
@@ -177,7 +177,7 @@ export function RunSummary({
                 disabled={칸수(insights, '새로깨짐') === 0 || on변화 === undefined}
                 onClick={() => on변화?.(변화 === '새로깨짐' ? null : '새로깨짐')}
               >
-                <span className="rs-k f">{t('신규 실패')}</span>
+                <span className="rs-k f">{t('회귀 실패')}</span>
                 <span className="rs-n num">{칸수(insights, '새로깨짐')}</span>
               </button>
               <button
@@ -187,7 +187,7 @@ export function RunSummary({
                 disabled={칸수(insights, '계속깨짐') === 0 || on변화 === undefined}
                 onClick={() => on변화?.(변화 === '계속깨짐' ? null : '계속깨짐')}
               >
-                <span className="rs-k">{t('연속 실패')}</span>
+                <span className="rs-k">{t('기존 실패')}</span>
                 <span className="rs-n num">{칸수(insights, '계속깨짐')}</span>
               </button>
               <button

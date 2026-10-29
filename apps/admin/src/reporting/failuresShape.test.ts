@@ -16,7 +16,7 @@ const 표 = (줄: [string, Platform, '새로깨짐' | '계속깨짐' | null][]) 
   new Map(줄.map(([tcId, platform, 변화]) => [`${tcId}|${platform}`, 변화]));
 
 describe('케이스로묶는다', () => {
-  it('실패를 케이스로 묶고 신규 → 연속 → 견줄 앞 없음 → tcId 순으로 세운다', () => {
+  it('실패를 케이스로 묶고 회귀 → 기존 실패 → 견줄 앞 없음 → tcId 순으로 세운다', () => {
     const 행들 = [
       행만들기(1, 'A-1', 'desktop', 1, 'FAIL'),
       행만들기(2, 'B-1', 'desktop', 1, 'FAIL'),

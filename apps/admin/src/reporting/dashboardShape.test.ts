@@ -1,4 +1,4 @@
-// 대시보드 집계 순수 함수 검사 — DB 없이 접은 줄만 넣어 통과율 · 일별 · 서비스별 · 신규 실패 · 히트맵을 본다
+// 대시보드 집계 순수 함수 검사 — DB 없이 접은 줄만 넣어 통과율 · 일별 · 서비스별 · 회귀 실패 · 히트맵을 본다
 
 import { describe, expect, it } from 'vitest';
 import {
@@ -242,7 +242,7 @@ describe('서비스별', () => {
   });
 });
 
-describe('신규 실패', () => {
+describe('회귀 실패', () => {
   it('앞 PASS 와 앞 NA 에서 FAIL 이 된 것만 낸다', () => {
     const a = 줄({ runId: 10, tcId: 'MKT-001', verdict: 'FAIL' });
     const b = 줄({ runId: 10, tcId: 'MKT-002', verdict: 'FAIL' });
@@ -256,7 +256,7 @@ describe('신규 실패', () => {
     expect(결과.신규실패.map((n) => n.tcId).sort()).toEqual(['MKT-001', 'MKT-002']);
   });
 
-  it('신규 실패 줄은 원인 유형을 싣고, 원인 재료가 없으면 그 밖이다', () => {
+  it('회귀 실패 줄은 원인 유형을 싣고, 원인 재료가 없으면 그 밖이다', () => {
     const a = 줄({ runId: 10, tcId: 'MKT-001', verdict: 'FAIL', cause: 'notFound' });
     const b = 줄({ runId: 10, tcId: 'MKT-002', verdict: 'FAIL', cause: null });
     const 결과 = 대시보드집계([a, b], new Map([[10, [앞('MKT-001', 'PASS'), 앞('MKT-002', 'PASS')]]]), 오늘);
@@ -339,7 +339,7 @@ describe('신규 실패', () => {
   });
 });
 
-describe('신규 실패 — 지금도 실패인 것만', () => {
+describe('회귀 실패 — 지금도 실패인 것만', () => {
   const 앞PASS = (...runIds: number[]): Map<number, 앞판정[]> => new Map(runIds.map((id) => [id, [앞('MKT-001', 'PASS')]]));
 
   it('뒤 실행에서 다시 통과하면 뺀다', () => {
@@ -379,7 +379,7 @@ describe('신규 실패 — 지금도 실패인 것만', () => {
     expect(결과.신규실패.map((n) => [n.runId, n.env])).toEqual([[10, 'qa']]);
   });
 
-  it('계속 실패면 처음 깨진 실행으로 남긴다', () => {
+  it('기존 실패면 처음 깨진 실행으로 남긴다', () => {
     const 결과 = 대시보드집계(
       [
         줄({ runId: 10, day: '2026-10-03', finishedAt: '2026-10-03T10:00:00.000Z', verdict: 'FAIL' }),
@@ -416,7 +416,7 @@ describe('신규 실패 — 지금도 실패인 것만', () => {
     expect(Object.keys(결과.신규실패[0] ?? {})).not.toContain('actual');
   });
 
-  it('서비스별 신규 실패 수는 상한으로 자르기 전 전부다', () => {
+  it('서비스별 회귀 실패 수는 상한으로 자르기 전 전부다', () => {
     const 줄들 = Array.from({ length: 신규실패상한 + 3 }, (_, i) =>
       줄({ runId: 300 + i, tcId: `MKT-${100 + i}`, verdict: 'FAIL' }),
     );
@@ -530,7 +530,7 @@ describe('정렬은 시작 시각 기준이다 — 끝 시각이 겹쳐도 insig
     [32, [앞('MKT-001', 'FAIL')]],
   ]);
 
-  it('나중에 시작한 실행이 최신이라 먼저 시작한 실행의 실패는 신규 실패가 아니고 고쳐짐으로 센다', () => {
+  it('나중에 시작한 실행이 최신이라 먼저 시작한 실행의 실패는 회귀 실패가 아니고 고쳐짐으로 센다', () => {
     const 결과 = 대시보드집계([A({ verdict: 'FAIL' }), B({ verdict: 'PASS' })], 앞들, 오늘);
     expect(결과.신규실패).toEqual([]);
     expect(결과.서비스별[0]?.신규실패수).toBe(0);

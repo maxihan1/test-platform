@@ -155,7 +155,7 @@ describe('상자 안에서 정보 UI 가 목록 자리를 뺏지 않는다 (SPEC
       return 칸!;
     });
     expect(대비.textContent).toContain('RUN 2110');
-    expect(대비.textContent).toContain('신규 실패1');
+    expect(대비.textContent).toContain('회귀 실패1');
     expect(document.querySelector('details')).toBeNull();
   });
 
