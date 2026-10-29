@@ -21,7 +21,7 @@ const 색 = (png: { width: number; data: Uint8Array }, x: number, y: number): nu
   const i = (y * png.width + x) * 4;
   return [png.data[i]!, png.data[i + 1]!, png.data[i + 2]!];
 };
-const 빨간가 = (c: number[]): boolean => c[0]! > 200 && c[1]! < 110 && c[2]! < 110;
+const 빨간가 = (c: number[]): boolean => c[0]! - c[1]! > 40 && c[0]! - c[2]! > 40;
 
 describe('웹 — 실패 절차의 마지막 요소에 네모', () => {
   let browser: Browser;
@@ -61,15 +61,14 @@ describe('웹 — 실패 절차의 마지막 요소에 네모', () => {
     return { 받은, 사진: 사진 === '' ? undefined : PNG.sync.read(await readFile(사진)) };
   };
 
-  it('누른 버튼의 값이 틀리면 그 버튼 둘레가 빨갛고, 얹은 테두리는 찍은 뒤 걷힌다', async () => {
+  it('누른 버튼의 값이 틀리면 그 버튼 자리가 빨갛게 덮이고, 조작은 사진 찍기 한 번뿐이다', async () => {
     const { 받은, 사진 } = await 돌린다(async (p) => {
       await p.getByRole('button', { name: '저장' }).click();
       await verify('저장 뒤 글이 바뀐다', '저장', '완료');
     });
     expect(받은).toHaveLength(1);
-    expect(빨간가(색(사진!, 97, 115))).toBe(true);
-    expect(빨간가(색(사진!, 140, 115))).toBe(false);
-    expect(await page.locator('#__qahub_fail_box').count()).toBe(0);
+    expect(빨간가(색(사진!, 140, 115))).toBe(true);
+    expect(빨간가(색(사진!, 60, 115))).toBe(false);
   }, 30_000);
 
   it('사슬 끝 요소(first)를 짚는다', async () => {
@@ -85,7 +84,7 @@ describe('웹 — 실패 절차의 마지막 요소에 네모', () => {
       await p.getByRole('button', { name: '없는 단추' }).click({ timeout: 300 });
     });
     expect(받은[0]).toBeDefined();
-    expect(빨간가(색(사진!, 97, 115))).toBe(false);
+    expect(빨간가(색(사진!, 140, 115))).toBe(false);
   }, 30_000);
 
   it('통과한 증적 절차에는 요소를 넘기지 않는다', async () => {

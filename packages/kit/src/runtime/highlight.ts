@@ -29,7 +29,6 @@ const { PNG } = createRequire(import.meta.url)('playwright-core/lib/utilsBundle'
 
 const 빨강 = [229, 72, 77] as const;
 const 흰색 = [255, 255, 255] as const;
-const 상자이름 = '__qahub_fail_box';
 
 function 적는다(요소: Locator | string | undefined): void {
   const scope = stepScope.getStore();
@@ -119,35 +118,10 @@ export function 테두리를그린다(png: 그림, 상자: 상자): void {
   }
 }
 
-// 요소를 못 읽으면(사라짐 · 숨김 · 여럿) 맨 사진만 찍는다 — 사진은 절대 잃지 않는다
+// 사진 찍기 한 번 안에서 얹고 걷는다 — 따로 부른 스크롤 · 자리 읽기가 trace 조작 목록에 섞이지 않게(admin 은 Screenshot 만 거른다 · traceParse.ts).
+// 글자가 비치게 반투명으로 덮는다. 없거나 숨은 요소는 덮을 자리가 없어 맨 사진이 된다 · 여럿이면 다 덮는다
 export async function 웹사진(page: Page, path: string, 요소: Locator | undefined): Promise<void> {
-  const 자리 =
-    요소 === undefined
-      ? null
-      : await 요소
-          .scrollIntoViewIfNeeded({ timeout: 1000 })
-          .then(() => 요소.boundingBox({ timeout: 1000 }))
-          .catch(() => null);
-  const 얹었다 =
-    자리 !== null &&
-    (await page
-      .evaluate(
-        ({ id, x, y, width, height }) => {
-          const d = document.createElement('div');
-          d.id = id;
-          d.style.cssText =
-            `position:fixed;left:${x - 4}px;top:${y - 4}px;width:${width + 8}px;height:${height + 8}px;box-sizing:border-box;` +
-            'border:3px solid #e5484d;outline:1px solid #fff;z-index:2147483647;pointer-events:none';
-          document.documentElement.appendChild(d);
-        },
-        { id: 상자이름, ...자리 },
-      )
-      .then(() => true, () => false));
-  try {
-    await page.screenshot({ path });
-  } finally {
-    if (얹었다) await page.evaluate((id) => document.getElementById(id)?.remove(), 상자이름).catch(() => undefined);
-  }
+  await page.screenshot({ path, ...(요소 === undefined ? {} : { mask: [요소], maskColor: 'rgba(229, 72, 77, 0.4)' }) });
 }
 
 export async function 앱사진(driver: AppDriver, path: string, 요소: string | undefined): Promise<void> {
