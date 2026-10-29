@@ -26,8 +26,13 @@ describe.skipIf(연결 === undefined)('실행팜토큰 · 사람팜토큰', () =
     );
     const 넣기 = async (누구: string, origin: string): Promise<number> =>
       Number(
-        (await pool.query<{ run_id: string }>(`INSERT INTO test_run (title, triggered_by, status, origin) VALUES ('XFTR 실행', $1, 'FINISHED', $2) RETURNING run_id`, [누구, origin]))
-          .rows[0]!.run_id,
+        (
+          await pool.query<{ run_id: string }>(
+            `INSERT INTO test_run (title, triggered_by, env, status, service_id, service_name, tests_repo, base_url, kind, origin, finished_at)
+                  VALUES ('XFTR 실행', $1, 'qa', 'FINISHED', NULL, '', '', '', 'FN', $2, now()) RETURNING run_id`,
+            [누구, origin],
+          )
+        ).rows[0]!.run_id,
       );
     실행.MANUAL = await 넣기('xftr-on', 'MANUAL');
     실행.RERUN = await 넣기('xftr-on', 'RERUN');
