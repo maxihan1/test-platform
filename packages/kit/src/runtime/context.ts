@@ -16,6 +16,8 @@ export interface StepScope {
   shapeChecks?: ShapeCheck[];
   // 이 절차에서 마지막으로 다룬 요소 — 웹은 Locator, 앱은 Appium 요소 번호. 실패 사진에 네모를 그릴 자리다 (highlight.ts)
   마지막요소?: Locator | string | undefined;
+  // 처음 실패한 순간의 마지막요소. blocker 가 아닌 실패 뒤에도 절차는 돌아 다른 요소를 다루므로 그때 굳힌다
+  실패요소?: Locator | string | undefined;
 }
 
 // E2E 시나리오에서 러너가 만들어 건넨 표시판. kit 은 적기만 하고 러너의 가로채기가 읽는다 (SPEC 공통/3-공유계약 §5.1 ④)

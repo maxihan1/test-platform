@@ -45,6 +45,7 @@ function 남긴다(
   if (!passed && options?.blocker) result.blocker = true;
   scope.assertions.push(result);
 
+  if (!passed && !('실패요소' in scope)) scope.실패요소 = scope.마지막요소;
   if (!passed && scope.line === undefined) {
     // 도우미 자신의 프레임을 지워야 스택 첫 줄이 테스트 코드의 호출 위치가 된다
     const here = new Error();

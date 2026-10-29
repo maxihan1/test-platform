@@ -23,7 +23,7 @@ interface 그림 {
 }
 
 // ponytail: Playwright 안에 든 pngjs 를 빌려 쓴다(exports 에 공개된 경로) — Playwright 를 올릴 때 이 경로가 없어지면 highlight.test.ts 가 깨진다
-const { PNG } = createRequire(import.meta.url)('playwright-core/lib/utilsBundle') as {
+export const { PNG } = createRequire(import.meta.url)('playwright-core/lib/utilsBundle') as {
   PNG: { sync: { read(buf: Buffer): 그림; write(png: 그림): Buffer } };
 };
 
@@ -38,19 +38,29 @@ function 적는다(요소: Locator | string | undefined): void {
 const 감싼것 = new WeakMap<object, object>();
 type 틀 = abstract new (...args: never[]) => object;
 
-// Locator 의 메서드를 부르기 전에 그 Locator 를 적는다. 돌려받은 Locator(first · filter · getBy…)도 감싸 사슬 끝까지 따라간다
+// Locator · FrameLocator 를 돌려주는 동기 메서드 — 이것만 감싸 결과를 사슬 끝까지 따라간다
+const 만드는이름 = new Set(['locator', 'frameLocator', 'first', 'last', 'nth', 'filter', 'and', 'or', 'owner', 'contentFrame']);
+const 만든다 = (key: PropertyKey): boolean => typeof key === 'string' && (key.startsWith('getBy') || 만드는이름.has(key));
+
+// 동작 · 읽기 메서드는 꺼내는 순간 적고 원래 함수를 묶어 넘긴다 — 감싼 함수가 스택 맨 위에 끼면 trace 조작 위치 · 실패 줄이 kit 을 가리킨다.
+// page 에서 바로 부른 것(page.fill('#x') · page.url())은 짚을 Locator 가 없어 비운다 — 앞 요소를 잘못 짚지 않게
 function 감싼다<T extends object>(대상: T, 요소틀: 틀, 틀들: 틀[]): T {
   const 있던 = 감싼것.get(대상);
   if (있던) return 있던 as T;
+  const 요소 = 대상 instanceof 요소틀 ? (대상 as unknown as Locator) : undefined;
   const 판 = new Proxy(대상, {
     get(t, key) {
       const 값 = Reflect.get(t, key, t) as unknown;
       if (typeof 값 !== 'function') return 값;
-      return (...args: unknown[]) => {
-        if (t instanceof 요소틀) 적는다(t as unknown as Locator);
-        const 결과 = (값 as (...a: unknown[]) => unknown).apply(t, args);
-        return 틀들.some((c) => 결과 instanceof c) ? 감싼다(결과 as object, 요소틀, 틀들) : 결과;
-      };
+      const 함수 = 값 as (...a: unknown[]) => unknown;
+      if (만든다(key)) {
+        return (...args: unknown[]) => {
+          const 결과 = 함수.apply(t, args);
+          return 틀들.some((c) => 결과 instanceof c) ? 감싼다(결과 as object, 요소틀, 틀들) : 결과;
+        };
+      }
+      적는다(요소);
+      return 함수.bind(t);
     },
   });
   감싼것.set(대상, 판);
@@ -121,17 +131,21 @@ export function 테두리를그린다(png: 그림, 상자: 상자): void {
 // 사진 찍기 한 번 안에서 얹고 걷는다 — 따로 부른 스크롤 · 자리 읽기가 trace 조작 목록에 섞이지 않게(admin 은 Screenshot 만 거른다 · traceParse.ts).
 // 글자가 비치게 반투명으로 덮는다. 없거나 숨은 요소는 덮을 자리가 없어 맨 사진이 된다 · 여럿이면 다 덮는다
 export async function 웹사진(page: Page, path: string, 요소: Locator | undefined): Promise<void> {
-  await page.screenshot({ path, ...(요소 === undefined ? {} : { mask: [요소], maskColor: 'rgba(229, 72, 77, 0.4)' }) });
+  if (요소 === undefined) {
+    await page.screenshot({ path });
+    return;
+  }
+  // 덮기가 깨지면(틀린 선택자 · 떨어진 iframe) 맨 사진으로 다시 찍는다 — 표시 때문에 사진을 잃지 않는다
+  await page.screenshot({ path, mask: [요소], maskColor: 'rgba(229, 72, 77, 0.4)' }).catch(() => page.screenshot({ path }));
 }
 
 export async function 앱사진(driver: AppDriver, path: string, 요소: string | undefined): Promise<void> {
   await driver.saveScreenshot(path);
   if (요소 === undefined) return;
   try {
-    const 자리 = await driver.getElementRect(요소);
-    const png = PNG.sync.read(await readFile(path));
     // 요소 자리와 사진은 둘 다 실제 화소다. 창 크기를 못 읽으면 그대로 1배로 본다
-    const 창 = await driver.getWindowRect().catch(() => undefined);
+    const [자리, 창] = await Promise.all([driver.getElementRect(요소), driver.getWindowRect().catch(() => undefined)]);
+    const png = PNG.sync.read(await readFile(path));
     const 배 = 창 !== undefined && 창.width > 0 ? png.width / 창.width : 1;
     테두리를그린다(png, { x: 자리.x * 배, y: 자리.y * 배, width: 자리.width * 배, height: 자리.height * 배 });
     await writeFile(path, PNG.sync.write(png));

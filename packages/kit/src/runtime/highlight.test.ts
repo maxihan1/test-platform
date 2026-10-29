@@ -1,6 +1,5 @@
 // 실패 사진의 빨간 네모 — 실제 Chromium 으로 웹 감싸기 · 그리기, 가짜 폰 연결로 앱 요소 적기, 그림 칠하기를 본다 (SPEC 공통/2-명세선언 「스크린샷」)
 import { mkdtemp, readFile } from 'node:fs/promises';
-import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -9,13 +8,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { AppDriver } from './app.js';
 import { stepScope, type RunScope, type StepScope } from './context.js';
-import { 앱을지켜본다, 웹사진, 웹을지켜본다, 테두리를그린다 } from './highlight.js';
+import { PNG, 앱을지켜본다, 웹사진, 웹을지켜본다, 테두리를그린다 } from './highlight.js';
 import { runStep } from './step.js';
 import { verify } from './verify.js';
-
-const { PNG } = createRequire(import.meta.url)('playwright-core/lib/utilsBundle') as {
-  PNG: { sync: { read(buf: Buffer): { width: number; height: number; data: Uint8Array } } };
-};
 
 const 색 = (png: { width: number; data: Uint8Array }, x: number, y: number): number[] => {
   const i = (y * png.width + x) * 4;
@@ -85,6 +80,37 @@ describe('웹 — 실패 절차의 마지막 요소에 네모', () => {
     });
     expect(받은[0]).toBeDefined();
     expect(빨간가(색(사진!, 140, 115))).toBe(false);
+  }, 30_000);
+
+  it('처음 실패한 때의 요소를 짚는다 — 그 뒤 다른 요소를 다뤄도 옮겨 가지 않는다', async () => {
+    const { 받은 } = await 돌린다(async (p) => {
+      await p.getByRole('button', { name: '저장' }).click();
+      await verify('저장 글', '저장', '완료');
+      await p.getByRole('listitem').first().textContent();
+    });
+    expect(String(받은[0])).toContain('button');
+  }, 30_000);
+
+  it('page 에서 바로 부르면 짚을 요소를 비운다', async () => {
+    const { 받은 } = await 돌린다(async (p) => {
+      await p.getByRole('button', { name: '저장' }).click();
+      await verify('주소', p.url(), 'https://없는.test/');
+    });
+    expect(받은).toEqual([undefined]);
+  }, 30_000);
+
+  it('동작이 실패해도 스택 맨 위는 kit 이 아니라 부른 자리다', async () => {
+    const 스택 = await 웹을지켜본다(page)
+      .getByRole('button', { name: '없는 단추' })
+      .click({ timeout: 200 })
+      .then(() => '', (e: Error) => e.stack ?? '');
+    expect(스택.split('\n').find((l) => l.includes(' at '))).not.toContain('highlight.ts');
+  }, 30_000);
+
+  it('덮기가 깨지는 선택자여도 맨 사진은 남는다', async () => {
+    const 사진 = join(폴더, 'bad.png');
+    await 웹사진(page, 사진, page.locator('button:has-text('));
+    expect(PNG.sync.read(await readFile(사진)).width).toBe(400);
   }, 30_000);
 
   it('통과한 증적 절차에는 요소를 넘기지 않는다', async () => {
