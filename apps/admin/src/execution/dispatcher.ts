@@ -8,9 +8,10 @@ import { 실행문서견주기 } from '../apidoc/runCompare.js';
 
 import { 스모크뒤 } from './buildRun.js';
 import { 잡기를늘린다, 팜주소, 팜폰으로 } from './farm.js';
+import { 실행팜토큰 } from './farmToken.js';
 import { notifyRun } from './notify.js';
 import { 폰차례 } from './phone.js';
-import { callRunner, na } from './runner.js';
+import { callRunner, na, type 잡은폰 } from './runner.js';
 import { finishItem, finishRun, type PendingItem } from './store.js';
 import { trace적재를맡긴다 } from './traceIngest.js';
 
@@ -58,7 +59,7 @@ export function markAborted(runId: number): void {
   멈춘실행.add(runId);
 }
 
-async function runOne(runId: number, item: PendingItem, 잡은폰?: string): Promise<void> {
+async function runOne(runId: number, item: PendingItem, 잡은폰?: 잡은폰): Promise<void> {
   if (멈춘실행.has(runId)) return;
 
   await 저장한다(item, await callRunner(runId, item, () => 멈춘실행.has(runId), 잡은폰));
@@ -94,13 +95,22 @@ async function 게임실행(runId: number, 항목들: PendingItem[]): Promise<vo
       for (const item of 항목들) await runOne(runId, item);
       return;
     }
+    // 실행 하나에 한 번 고른다 — 도중에 사람이 토큰을 바꿔도 잡은 폰은 잡을 때 토큰으로 늘리고 붙고 놓는다
+    let 토큰: string | undefined;
+    try {
+      토큰 = await 실행팜토큰(runId);
+    } catch (err) {
+      const 까닭 = err instanceof Error ? err.message : String(err);
+      for (const item of 항목들) if (!멈춘실행.has(runId)) await 저장한다(item, na(item, '누른 사람의 디바이스 팜 토큰을 읽지 못했습니다', 까닭));
+      return;
+    }
     await 팜폰으로(
       팜,
       async (udid) => {
         for (const item of 항목들) {
           if (멈춘실행.has(runId)) return;
-          await 잡기를늘린다(팜, udid);
-          await runOne(runId, item, udid);
+          await 잡기를늘린다(팜, udid, fetch, 토큰);
+          await runOne(runId, item, { udid, 토큰 });
         }
       },
       async (까닭) => {
@@ -109,6 +119,7 @@ async function 게임실행(runId: number, 항목들: PendingItem[]): Promise<vo
       undefined,
       undefined,
       게임잡는_분,
+      토큰,
     );
   });
 }

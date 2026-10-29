@@ -10,6 +10,9 @@ import Fastify from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { 팜기록글, 팜영상경로, 팜증적경로, 팜증적목록 } from './farmEvidence.js';
+import { 실행팜토큰 } from './farmToken.js';
+
+vi.mock('./farmToken.js', () => ({ 실행팜토큰: vi.fn(async () => undefined) }));
 
 let 임시: string;
 const 팜폴더 = () => join(runDir('3', '9'), FARM_EVIDENCE_DIR);
@@ -188,6 +191,39 @@ describe('GET /api/runs/:runId/items/:historyId/farm-video', () => {
     delete process.env.DEVICE_FARM_URL;
     delete process.env.DEVICE_FARM_TOKEN;
     받음.length = 0;
+    vi.mocked(실행팜토큰).mockResolvedValue(undefined);
+  });
+
+  function 주인만주는팜(주인: string): void {
+    vi.stubGlobal('fetch', async (주소: string | URL, 설정?: RequestInit) => {
+      const 인증 = new Headers(설정?.headers).get('authorization');
+      받음.push({ 주소: String(주소), range: null, 인증 });
+      if (인증 !== `Bearer ${주인}`) return new Response('{}', { status: 404 });
+      if (String(주소).endsWith('/artifacts')) return new Response(JSON.stringify(파일들('video-1.mp4')), { status: 200 });
+      return new Response(영상본문, { status: 200, headers: { 'content-type': 'video/mp4' } });
+    });
+  }
+
+  it('누른 사람 토큰이 있으면 그 토큰으로 목록 · 영상을 받는다', async () => {
+    process.env.DEVICE_FARM_TOKEN = 'pat_server';
+    vi.mocked(실행팜토큰).mockResolvedValue('pat_kim');
+    주인만주는팜('pat_kim');
+
+    const res = await 불러온다();
+    expect(res.statusCode).toBe(200);
+    expect(실행팜토큰).toHaveBeenCalledWith(3);
+    expect(받음.map((r) => r.인증)).toEqual(['Bearer pat_kim', 'Bearer pat_kim']);
+  });
+
+  it('누른 사람 토큰으로 404 면 서버 몫으로 한 번 더 묻는다 — 토큰을 넣기 전에 돈 실행이다', async () => {
+    process.env.DEVICE_FARM_TOKEN = 'pat_server';
+    vi.mocked(실행팜토큰).mockResolvedValue('pat_kim');
+    주인만주는팜('pat_server');
+
+    const res = await 불러온다();
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toBe(영상본문);
+    expect(받음.map((r) => r.인증)).toEqual(['Bearer pat_kim', 'Bearer pat_server', 'Bearer pat_server']);
   });
 
   it('DEVICE_FARM_TOKEN 이 있으면 목록 · 영상 둘 다 Bearer 로 받는다', async () => {

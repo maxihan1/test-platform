@@ -84,6 +84,16 @@ describe('앱연결을닫는다', () => {
     expect(new Headers(init.headers).get('authorization')).toBe('Bearer pat_abc');
   });
 
+  it('요청이 준 토큰이 있으면 환경값보다 앞선다 — 그 연결을 연 사람의 토큰이다', async () => {
+    process.env.PLATFORM_APPIUM_TOKEN = 'pat_server';
+    번호를_적는다(3, 9, 'abc-123');
+
+    await 앱연결을닫는다(3, 9, 'pat_kim');
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(new Headers(init.headers).get('authorization')).toBe('Bearer pat_kim');
+  });
+
   it('PLATFORM_APPIUM_TOKEN 이 비면 머리를 싣지 않는다', async () => {
     process.env.PLATFORM_APPIUM_TOKEN = '';
     번호를_적는다(3, 9, 'abc-123');

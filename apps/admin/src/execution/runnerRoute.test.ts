@@ -8,11 +8,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { ExecuteRequest } from '@platform/kit';
 
+import { 실행팜토큰 } from './farmToken.js';
 import { abortRunner, callRunner, 진행 } from './runner.js';
 import type { PendingItem } from './store.js';
 
 // 화면 애플리케이션 케이스로 둔다 — 판 읽기는 runner.test.ts 가 본다
 vi.mock('../apidoc/caseDoc.js', () => ({ 케이스판: vi.fn(async () => ({})) }));
+vi.mock('./farmToken.js', () => ({ 실행팜토큰: vi.fn(async () => undefined) }));
 
 const 항목: PendingItem = {
   historyId: 42,
@@ -67,8 +69,11 @@ describe('callRunner — 어느 러너로 가는가', () => {
     await 붙임(app);
   }
 
-  async function 팜띄운다(불렸다: string[]): Promise<void> {
+  async function 팜띄운다(불렸다: string[], 받은머리: (string | undefined)[] = []): Promise<void> {
     const app = Fastify();
+    app.addHook('onRequest', async (req) => {
+      받은머리.push(req.headers.authorization);
+    });
     app.get('/wd/hub/api/devices', async () => ({ value: { devices: [{ serial: 'R3CR10TCVCD', state: 'IDLE', detail: 'ready' }] } }));
     app.post('/wd/hub/api/devices/:serial/hold', async () => {
       불렸다.push('잡기');
@@ -95,6 +100,37 @@ describe('callRunner — 어느 러너로 가는가', () => {
     expect(res.status).toBe('PASS');
     expect(불렸다).toEqual(['잡기', '서버', '놓기']);
     expect(받은요청[0]?.udid).toBe('R3CR10TCVCD');
+  });
+
+  it('누른 사람 토큰이 있으면 팜에 그 토큰으로 잡고 놓고, 러너 요청에도 farmToken 으로 싣는다', async () => {
+    vi.mocked(실행팜토큰).mockResolvedValueOnce('pat_kim');
+    vi.stubEnv('DEVICE_FARM_TOKEN', 'pat_server');
+    const 불렸다: string[] = [];
+    const 받은요청: ExecuteRequest[] = [];
+    const 받은머리: (string | undefined)[] = [];
+    await 이름띄운다(붙인다, 불렸다, '서버', 받은요청);
+    await 팜띄운다(불렸다, 받은머리);
+
+    await callRunner(7, { ...항목, platform: 'android' });
+    vi.unstubAllEnvs();
+    expect(실행팜토큰).toHaveBeenCalledWith(7);
+    expect(불렸다).toEqual(['잡기', '서버', '놓기']);
+    expect(new Set(받은머리)).toEqual(new Set(['Bearer pat_kim']));
+    expect(받은요청[0]?.farmToken).toBe('pat_kim');
+  });
+
+  it('누른 사람 토큰이 없으면 서버 몫으로 잡고 러너 요청에 farmToken 을 싣지 않는다', async () => {
+    vi.stubEnv('DEVICE_FARM_TOKEN', 'pat_server');
+    const 불렸다: string[] = [];
+    const 받은요청: ExecuteRequest[] = [];
+    const 받은머리: (string | undefined)[] = [];
+    await 이름띄운다(붙인다, 불렸다, '서버', 받은요청);
+    await 팜띄운다(불렸다, 받은머리);
+
+    await callRunner(7, { ...항목, platform: 'android' });
+    vi.unstubAllEnvs();
+    expect(new Set(받은머리)).toEqual(new Set(['Bearer pat_server']));
+    expect(받은요청[0]).not.toHaveProperty('farmToken');
   });
 
   it('폰을 잡는 사이에 실행이 멈췄으면 러너에 보내지 않고 폰을 놓는다', async () => {

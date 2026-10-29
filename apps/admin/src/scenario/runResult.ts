@@ -4,6 +4,7 @@ import type { ScenarioCleanup, ScenarioExecuteRequest, ScenarioExecuteResponse, 
 import type { Pool, PoolClient } from 'pg';
 
 import { enqueue } from '../execution/dispatcher.js';
+import { 실행팜토큰 } from '../execution/farmToken.js';
 import { 폰차례 } from '../execution/phone.js';
 import { callScenarioRunner } from '../execution/runner.js';
 import { 기기칸 } from '../execution/runLifecycle.js';
@@ -24,7 +25,7 @@ async function db(): Promise<Pool> {
 export function 시나리오분배(runId: number, 요청: ScenarioExecuteRequest, 폰?: 폰앱): Promise<void> {
   const 돌기 = () =>
     enqueue(async () => {
-      await 결과저장(runId, 폰 === undefined ? await callScenarioRunner(요청) : await 팜폰으로돌린다(요청, 폰));
+      await 결과저장(runId, 폰 === undefined ? await callScenarioRunner(요청) : await 팜폰으로돌린다(요청, 폰, () => 실행팜토큰(runId)));
     });
   return 폰 === undefined ? 돌기() : 폰차례(돌기);
 }

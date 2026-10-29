@@ -182,8 +182,9 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
         ...(req.platform === 'android' && req.app !== undefined && { PLATFORM_APP: req.app }),
         // admin 이 팜에서 잡은 폰이다. 안 주면 팜이 잡힌 폰 아무것에나 붙인다 (러너 §5.2 「디바이스 팜 접속 방식」)
         ...(req.platform === 'android' && req.udid !== undefined && { PLATFORM_DEVICE_UDID: req.udid }),
-        // 팜 토큰은 앱 · 게임 항목만 받는다 — 웹 · API 케이스(AI 가 쓴 코드)는 쓸 일이 없는데 읽을 수는 있다. undefined 는 spawn 이 빼고 넘긴다 (러너 §5.2 「토큰은 서버 몫 하나다」)
-        PLATFORM_APPIUM_TOKEN: req.platform === 'android' ? process.env.PLATFORM_APPIUM_TOKEN : undefined,
+        // 팜 토큰은 앱 · 게임 항목만 받는다 — 웹 · API 케이스(AI 가 쓴 코드)는 쓸 일이 없는데 읽을 수는 있다. undefined 는 spawn 이 빼고 넘긴다.
+        // admin 이 누른 사람 토큰으로 폰을 잡았으면 그것이다 — 잡은 사람과 붙는 사람이 다르면 팜이 거절한다 (러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」)
+        PLATFORM_APPIUM_TOKEN: req.platform === 'android' ? (req.farmToken ?? process.env.PLATFORM_APPIUM_TOKEN) : undefined,
         // 셋 다 늘 적는다 — 러너를 켠 셸의 값을 자식이 물려받지 않게. 게임에 닿는 길은 칸을 더하지 않고 폰 번호로 정한다:
         // admin 이 팜 폰을 잡아 번호를 실은 정식 실행은 디바이스 팜, 번호 없는 내 컴퓨터 테스트 실행은 USB (공통/3-공유계약 「게임 테스트 타입」 engine)
         ...gameEnv(req),
@@ -230,7 +231,7 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
 
   // killedBy 와 상관없이 닫는다 — 정상 종료라도 kit 의 닫기가 실패했으면 번호 파일이 남는다.
   // 답하기 전에 끝내야 admin 이 답을 받았을 때 팜의 디바이스가 이미 풀려 있다
-  if (req.platform === 'android') await 앱연결을닫는다(req.runId, req.historyId);
+  if (req.platform === 'android') await 앱연결을닫는다(req.runId, req.historyId, req.farmToken);
 
   if (entry.killedBy !== null) {
     return killedResponse(req.historyId, entry.killedBy, Date.now() - startedAt, stdout);

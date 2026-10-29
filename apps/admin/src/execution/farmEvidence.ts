@@ -12,6 +12,7 @@ import { 정수 } from '../routeParams.js';
 import { 볼륨목록, 볼륨파일, 볼륨파일읽기 } from '../artifactFile.js';
 
 import { 팜머리, 팜주소 } from './farm.js';
+import { 실행팜토큰 } from './farmToken.js';
 
 export interface 팜파일 {
   name: string;
@@ -63,8 +64,8 @@ async function 연결번호(runId: number, historyId: number): Promise<string | 
 }
 
 /** 팜이 들고 있는 그 연결의 첫 영상 조각 주소. 팜이 다른 출처를 가리키면 따라가지 않는다 */
-async function 첫영상주소(팜: string, sessionId: string): Promise<URL | keyof typeof 영상글> {
-  const 목록 = await fetch(`${팜}/api/sessions/${encodeURIComponent(sessionId)}/artifacts`, { headers: 팜머리(), signal: AbortSignal.timeout(팜_제한_ms) });
+async function 첫영상주소(팜: string, sessionId: string, 토큰: string | undefined): Promise<URL | keyof typeof 영상글> {
+  const 목록 = await fetch(`${팜}/api/sessions/${encodeURIComponent(sessionId)}/artifacts`, { headers: 팜머리(process.env, 토큰), signal: AbortSignal.timeout(팜_제한_ms) });
   if (목록.status === 404) return '지남';
   if (!목록.ok) return '못닿음';
   const 값 = ((await 목록.json().catch(() => null)) as { value?: { ready?: unknown; files?: { name?: unknown; url?: unknown }[] } } | null)?.value;
@@ -92,11 +93,19 @@ export async function 팜영상경로(app: FastifyInstance): Promise<void> {
     const 타이머 = setTimeout(() => 끊기.abort(), 팜_제한_ms);
     reply.raw.on('close', () => 끊기.abort());
     try {
-      const 주소 = await 첫영상주소(팜, sessionId);
+      // 팜은 연결을 연 사람에게만 영상을 준다(남의 것은 404). 그 실행을 누른 사람의 지금 토큰으로 먼저 묻고, 없다면 서버 몫으로 한 번 더 묻는다 —
+      // 토큰을 넣기 전에 돈 실행은 서버 몫이 주인이다 (러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」)
+      const 사람 = await 실행팜토큰(runId);
+      let 토큰 = 사람;
+      let 주소 = await 첫영상주소(팜, sessionId, 토큰);
+      if (주소 === '지남' && 사람 !== undefined) {
+        토큰 = undefined;
+        주소 = await 첫영상주소(팜, sessionId, 토큰);
+      }
       if (typeof 주소 === 'string') return 없음(주소);
       const range = req.headers.range;
       // 팜과 같은 출처만 따라가므로(첫영상주소) 토큰이 다른 곳에 실려 나가지 않는다
-      const 영상 = await fetch(주소, { headers: { ...팜머리(), ...(range === undefined ? {} : { range }) }, signal: 끊기.signal });
+      const 영상 = await fetch(주소, { headers: { ...팜머리(process.env, 토큰), ...(range === undefined ? {} : { range }) }, signal: 끊기.signal });
       if (영상.status === 404) return 없음('지남');
       if (!영상.ok && 영상.status !== 416) return 없음('못닿음');
       for (const 머리 of ['content-type', 'content-length', 'content-range', 'accept-ranges']) {

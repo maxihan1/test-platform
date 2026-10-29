@@ -195,7 +195,7 @@ describe('execute 가 끝난 뒤 앱 연결을 닫는다', () => {
 
     await execute(요청('android'), 'a.spec.ts');
 
-    expect(닫기).toHaveBeenCalledWith(5, 8);
+    expect(닫기).toHaveBeenCalledWith(5, 8, undefined);
     expect(상태.닫혔나()).toBe(true);
   });
 
@@ -208,7 +208,7 @@ describe('execute 가 끝난 뒤 앱 연결을 닫는다', () => {
     abort(8);
 
     expect((await 응답).error?.message).toBe('ABORTED');
-    expect(닫기).toHaveBeenCalledWith(5, 8);
+    expect(닫기).toHaveBeenCalledWith(5, 8, undefined);
     expect(상태.닫혔나()).toBe(true);
   });
 
@@ -219,7 +219,7 @@ describe('execute 가 끝난 뒤 앱 연결을 닫는다', () => {
     const 응답 = await execute(요청('android', 200), 'a.spec.ts');
 
     expect(응답.error?.message).toBe('TIMEOUT');
-    expect(닫기).toHaveBeenCalledWith(5, 8);
+    expect(닫기).toHaveBeenCalledWith(5, 8, undefined);
     expect(상태.닫혔나()).toBe(true);
   });
 
@@ -241,6 +241,11 @@ describe('execute 가 끝난 뒤 앱 연결을 닫는다', () => {
       expect(readFileSync(기록, 'utf8')).toBe('없음');
       await execute(요청('android'), 'a.spec.ts');
       expect(readFileSync(기록, 'utf8')).toBe('pat_abc');
+      // admin 이 누른 사람 토큰으로 폰을 잡았으면 자식도 그 토큰이다
+      await execute({ ...요청('android'), farmToken: 'pat_kim' }, 'a.spec.ts');
+      expect(readFileSync(기록, 'utf8')).toBe('pat_kim');
+      await execute({ ...요청('desktop'), farmToken: 'pat_kim' }, 'a.spec.ts');
+      expect(readFileSync(기록, 'utf8')).toBe('없음');
     } finally {
       delete process.env.PLATFORM_APPIUM_TOKEN;
       rmSync(임시, { recursive: true, force: true });

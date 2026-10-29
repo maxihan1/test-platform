@@ -8,6 +8,8 @@ import { 앱단계에못거는것 } from './scenarioGate.js';
 
 // 주소는 http(s) 만 받는다 — 규칙은 admin 설정과 같은 kit 의 것이다 (러너 §5.2 「대상 서버마다 다른 앱 파일」)
 const 앱파일경로 = z.string().min(1).refine(앱파일값인가, 'app 은 파일 경로나 http(s) 주소여야 한다');
+// 자식 환경변수와 HTTP 머리로 간다 — 줄바꿈 · 공백이 섞이면 머리가 깨지고 다른 머리를 끼워 넣을 수 있다. admin 이 pat_ 200자 이하만 받는다(auth/farmToken.ts)
+const 팜토큰 = z.string().min(1).max(200).regex(/^\S+$/);
 
 // 비밀값 원문이 지나간다. 모양만 보고 그대로 kit 에 넘긴다 — 토큰 받기는 kit 몫이다 (SPEC 도메인/러너 §5.2 「API 케이스 실행」)
 const apiAuths = z
@@ -47,6 +49,8 @@ export const executeRequest = z.object({
   timeoutMs: z.number().int().positive().default(300_000),
   app: 앱파일경로.optional(),
   udid: z.string().min(1).optional(),
+  // 누른 사람의 팜 토큰. 안 적으면 버려져 서버 몫 토큰으로 붙고, 그 사람이 잡은 폰을 팜이 거절한다 (도메인/러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」)
+  farmToken: 팜토큰.optional(),
   // z.object 는 모르는 칸을 버린다 — 여기 안 적으면 게임 항목이 앱처럼 돈다 (도메인/러너 §5.2 종류 결정 3)
   engine: z.literal('GAME').optional(),
   adminKey,
@@ -158,6 +162,7 @@ export const scenarioRequest = z
     // 폰 연결이 시나리오에 하나라 요청에 한 벌이다. 뜻은 /execute 의 같은 칸과 같다 (SPEC 도메인/시나리오 §3.7 결정 16)
     app: 앱파일경로.optional(),
     udid: z.string().min(1).optional(),
+    farmToken: 팜토큰.optional(),
     engine: z.literal('GAME').optional(),
     adminKey,
     baseUrl: z.string(),

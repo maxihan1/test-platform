@@ -68,20 +68,34 @@ export async function 꽂은폰으로(요청: ScenarioExecuteRequest, 폰: 폰�
   return typeof 실은 === 'string' ? 못돌린응답(요청.parts.length, 실은) : callScenarioRunner(실은, 주소);
 }
 
-/** 서버 러너 — 팜에서 빈 폰 하나를 시나리오 동안 잡고, 러너가 답하면(통과 · 실패 · 러너 고장 모두) 놓는다 */
-export async function 팜폰으로돌린다(요청: ScenarioExecuteRequest, 폰: 폰앱): Promise<ScenarioExecuteResponse> {
+/**
+ * 서버 러너 — 팜에서 빈 폰 하나를 시나리오 동안 잡고, 러너가 답하면(통과 · 실패 · 러너 고장 모두) 놓는다.
+ * 토큰찾기는 누른 사람 토큰을 준다(없으면 undefined — 서버 몫). 잡은 토큰을 러너에도 실어야 팜이 연결을 받는다 (러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」)
+ */
+export async function 팜폰으로돌린다(
+  요청: ScenarioExecuteRequest,
+  폰: 폰앱,
+  토큰찾기: () => Promise<string | undefined>,
+): Promise<ScenarioExecuteResponse> {
   const 팜 = 팜주소();
   // 요청을 받은 뒤 서버를 다시 띄우며 값을 지웠을 때뿐이다 — 실행 통로가 FARM_OFF 로 먼저 거절한다
   if (팜 === undefined) return 못돌린응답(요청.parts.length, '이 서버에는 디바이스 팜(DEVICE_FARM_URL)이 연결되어 있지 않습니다');
+  let 토큰: string | undefined;
+  try {
+    토큰 = await 토큰찾기();
+  } catch (err) {
+    return 못돌린응답(요청.parts.length, `누른 사람의 디바이스 팜 토큰을 읽지 못했습니다: ${err instanceof Error ? err.message : String(err)}`);
+  }
   return 팜폰으로(
     팜,
     async (udid) => {
-      const 실은 = await 앱실기({ ...요청, udid }, 폰);
+      const 실은 = await 앱실기({ ...요청, udid, ...(토큰 !== undefined && { farmToken: 토큰 }) }, 폰);
       return typeof 실은 === 'string' ? 못돌린응답(요청.parts.length, 실은) : callScenarioRunner(실은);
     },
     (까닭) => 못돌린응답(요청.parts.length, 까닭),
     undefined,
     undefined,
     잡는분(요청.timeoutMs),
+    토큰,
   );
 }

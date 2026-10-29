@@ -10,6 +10,7 @@ import { 부품판 } from '../apidoc/caseDoc.js';
 import { findService } from '../catalog/store.js';
 import { enqueue } from '../execution/dispatcher.js';
 import { 팜주소 } from '../execution/farm.js';
+import { 사람팜토큰 } from '../execution/farmToken.js';
 import { 폰을바로잡는다, 폰을놓는다 } from '../execution/phone.js';
 import { callScenarioRunner, 켜진내컴퓨터러너 } from '../execution/runner.js';
 import { artifactsDir } from '../execution/routes.js';
@@ -190,7 +191,7 @@ async function 시험돌기(id: string, 누구: string, 본문: 시험본문, �
     폰 === null
       ? await callScenarioRunner(요청, 내러너)
       : 내러너 === undefined
-        ? await 팜폰으로돌린다(요청, 폰.폰)
+        ? await 팜폰으로돌린다(요청, 폰.폰, () => 사람팜토큰(누구))
         : await 꽂은폰으로(요청, 폰.폰, 내러너);
   console.info(`[scenario-trial] 끝 ${id} · ${내러너 === undefined ? '서버 러너' : '내 컴퓨터 러너'} · ${누구} · ${본문.service} · ${응답.status} · ${Date.now() - 시작}ms`);
   // 기록은 DB 없이 결과에 싣는다. 꽂은 값의 비밀도 자르기 전에 넣는다 — 본문을 2000자로 자른 뒤에 가리면 경계에 걸친 조각이 남는다 (§7 「실패 기록」)

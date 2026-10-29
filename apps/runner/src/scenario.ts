@@ -38,7 +38,7 @@ export function 폰환경(req: ScenarioExecuteRequest): Record<string, string | 
     return { PLATFORM_APPIUM_TOKEN: undefined, PLATFORM_APPIUM_NEW_COMMAND_TIMEOUT: '', PLATFORM_ENGINE: '', PLATFORM_GAME_LINK: '', PLATFORM_ADMIN_KEY: '' };
   }
   return {
-    PLATFORM_APPIUM_TOKEN: process.env.PLATFORM_APPIUM_TOKEN,
+    PLATFORM_APPIUM_TOKEN: req.farmToken ?? process.env.PLATFORM_APPIUM_TOKEN,
     ...(req.app !== undefined && { PLATFORM_APP: req.app }),
     ...(req.udid !== undefined && { PLATFORM_DEVICE_UDID: req.udid }),
     // 웹 단계가 몇 개 끼어도 앱에 명령이 안 가는 동안 끊기지 않게 시나리오 제한 시간(초로 올림)으로 연다
@@ -258,7 +258,7 @@ export async function executeScenario(req: ScenarioExecuteRequest): Promise<Scen
     await 판지우기(판.파일들);
     // 죽였든 끝났든 kit 이 못 닫은 연결이 남아 있으면 닫는다 — 답하기 전에 끝내야 admin 이 폰을 놓을 때 팜 연결이 이미 풀려 있다 (execute.ts 와 같다)
     if (폰) {
-      await 앱연결을닫는다(...시나리오폴더(req));
+      await 앱연결을닫는다(...시나리오폴더(req), req.farmToken);
       폰시나리오--;
     }
   });

@@ -106,11 +106,15 @@ describe('callRunner', () => {
     });
     const 폰항목: PendingItem = { ...항목, platform: 'android' };
 
-    expect((await callRunner(7, 폰항목, () => false, 'R3CR10TCVCD')).status).toBe('PASS');
+    expect((await callRunner(7, 폰항목, () => false, { udid: 'R3CR10TCVCD', 토큰: undefined })).status).toBe('PASS');
     expect(받은것.map((b) => b.udid)).toEqual(['R3CR10TCVCD']);
+    expect(받은것[0]).not.toHaveProperty('farmToken');
 
-    expect((await callRunner(7, 폰항목, () => true, 'R3CR10TCVCD')).error?.message).toContain('멈춘 실행');
+    expect((await callRunner(7, 폰항목, () => true, { udid: 'R3CR10TCVCD', 토큰: undefined })).error?.message).toContain('멈춘 실행');
     expect(받은것).toHaveLength(1);
+
+    await callRunner(7, 폰항목, () => false, { udid: 'R3CR10TCVCD', 토큰: 'pat_kim' });
+    expect(받은것[1]?.farmToken).toBe('pat_kim');
   });
 
   it('API 케이스면 그 케이스 판 원문을 싣는다 (도메인/API §3.8)', async () => {

@@ -14,8 +14,8 @@ const 알림 = (말: string, err: unknown): void =>
 let 줄: Promise<void> = Promise.resolve();
 
 /** 응답 뒤에 부른다. 실패가 몰려도 큰 영상을 한꺼번에 받지 않게 앞 받기가 끝난 뒤에 받는다 */
-export function 팜증적받기를줄세운다(runId: number, historyId: number | string, status: ItemStatus): void {
-  줄 = 줄.then(() => 팜증적을받는다(runId, historyId, status));
+export function 팜증적받기를줄세운다(runId: number, historyId: number | string, status: ItemStatus, 토큰?: string): void {
+  줄 = 줄.then(() => 팜증적을받는다(runId, historyId, status, 토큰));
 }
 
 /**
@@ -23,7 +23,8 @@ export function 팜증적받기를줄세운다(runId: number, historyId: number 
  * 통과한 정식 실행 항목은 번호 파일을 남긴다 — 「영상 보기」를 누를 때 admin 이 그 번호로 팜에서 받아 온다 (도메인/게임 §3.10 「실행 결과」).
  * 무엇이 실패해도 던지지 않는다 — 이미 admin 에 답한 판정은 바뀌지 않고, 증적이 없을 뿐이다
  */
-export async function 팜증적을받는다(runId: number, historyId: number | string, status: ItemStatus): Promise<void> {
+// 토큰은 그 연결을 연 것이어야 한다 — 팜은 남의 연결 증적을 없는 것처럼 404 로 답한다 (러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」)
+export async function 팜증적을받는다(runId: number, historyId: number | string, status: ItemStatus, 요청토큰?: string): Promise<void> {
   const 폴더 = runDir(String(runId), String(historyId));
   const idFile = join(폴더, APPIUM_SESSION_ID_FILE);
   let sessionId: string;
@@ -43,7 +44,7 @@ export async function 팜증적을받는다(runId: number, historyId: number | s
     // admin 은 farm 폴더를 보고 목록을 낸다. 받는 동안은 옆 이름에 두고 다 받은 뒤에 옮겨 덜 받은 영상이 화면 · 증적에 안 뜨게 한다
     const 받는곳 = join(폴더, `${FARM_EVIDENCE_DIR}.part`);
     try {
-      const token = process.env.PLATFORM_APPIUM_TOKEN;
+      const token = 요청토큰 ?? process.env.PLATFORM_APPIUM_TOKEN;
       const { errors } = await farmArtifacts(raw, sessionId, 받는곳, token ? { token } : {});
       // 팜이 녹화를 못 했어도 받은 것(logcat 등)은 둔다
       if (errors.length > 0) console.error(`[runner] 팜이 증적 일부를 만들지 못했다: ${errors.join(' · ')}`);

@@ -56,6 +56,12 @@ describe('팜증적을받는다', () => {
     expect(farmArtifacts).toHaveBeenCalledWith('http://farm:4723/wd/hub', 'sess-1', expect.any(String), { token: 'pat_abc' });
   });
 
+  it('요청이 준 토큰이 있으면 환경값보다 앞선다 — 팜은 연결을 연 사람에게만 증적을 준다', async () => {
+    process.env.PLATFORM_APPIUM_TOKEN = 'pat_server';
+    await 팜증적을받는다(3, 9, 'FAIL', 'pat_kim');
+    expect(farmArtifacts).toHaveBeenCalledWith('http://farm:4723/wd/hub', 'sess-1', expect.any(String), { token: 'pat_kim' });
+  });
+
   it('미실행(중단 · 시간 초과) 항목도 받는다', async () => {
     await 팜증적을받는다(3, 9, 'NA');
     expect(farmArtifacts).toHaveBeenCalledTimes(1);
