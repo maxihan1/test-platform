@@ -36,7 +36,7 @@ describe('PLATFORM_HEADED', () => {
     vi.stubEnv('PLATFORM_SLOW_MO', '1000');
     const 설정 = await 설정읽기();
     const pc = 설정.projects?.find((p) => p.name === 'desktop')?.use?.launchOptions;
-    expect(pc?.args).toEqual(['--window-position=0,0', '--window-size=1320,900']);
+    expect(pc?.args).toEqual(['--window-position=40,40', '--window-size=1280,800']);
     expect(pc?.slowMo).toBe(1000);
     expect(설정.projects?.find((p) => p.name === 'mobile')?.use).not.toHaveProperty('launchOptions');
   });

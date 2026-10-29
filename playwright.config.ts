@@ -10,12 +10,13 @@ const outputDir = `${artifactsDir}/playwright/${process.env.PLATFORM_OUTPUT_ID ?
 const trace = process.env.PLATFORM_TRACE === '1' ? { trace: { mode: 'on', snapshots: true, screenshots: false, sources: false } as const } : {};
 // 러너가 창을 띄운 E2E 시험 실행에만 준다. 사람이 눈으로 따라가게 동작마다 쉰다 (도메인/시나리오 §7 「시험 실행 규칙」)
 const slowMoMs = Number(process.env.PLATFORM_SLOW_MO);
-const slowMo = slowMoMs > 0 ? { launchOptions: { slowMo: slowMoMs } } : {};
+const 늦추기 = slowMoMs > 0 ? { slowMo: slowMoMs } : {};
+const slowMo = slowMoMs > 0 ? { launchOptions: 늦추기 } : {};
 // 창을 띄우면 PC 창은 늘 같은 자리 · 크기로 연다. E2E 는 단계마다 새 창을 여는데(도메인/시나리오 §3.7 결정 3) Chromium 은 그냥 두면 새 창을 비켜 띄워
 // 창이 여러 개로 보였다 — 같은 자리에 뜨면 한 창이 이어지는 것처럼 보인다(2026-10-29 사용자). 모바일은 WebKit 이라 Chromium 인자를 안 넘긴다.
 // project 의 launchOptions 는 위 것을 통째로 덮으므로 slowMo 도 같이 싣는다
 const pc창 = process.env.PLATFORM_HEADED === '1'
-  ? { launchOptions: { ...(slowMoMs > 0 && { slowMo: slowMoMs }), args: ['--window-position=0,0', '--window-size=1320,900'] } }
+  ? { launchOptions: { ...늦추기, args: ['--window-position=40,40', '--window-size=1280,800'] } }
   : {};
 // 성능 시나리오 녹화 — 러너가 recordHar 요청에만 파일 경로를 준다. 없으면 아무것도 더하지 않는다 (공통/3-공유계약 「성능 테스트 타입」)
 const recordHar = process.env.PLATFORM_RECORD_HAR
