@@ -37,6 +37,7 @@ test(spec, async ({ driver, params }) => {
     });
 
     await test.step('상품 목록을 확인한다', async () => {
+      await 목록으로돌아가기(driver);
       await verify('상품 목록이 보인다', await 목록.보이나(), true, { blocker: true });
     });
 
