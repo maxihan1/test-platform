@@ -44,8 +44,22 @@ export const 구역자리: Record<구역, { x: number; z: number }> = {
   Boss: { x: 200, z: 360 },
 };
 
+const 만든캐릭터 = new Map<string, { 누구: 캐릭터; 직업: 직업 }>();
+let 들어간: { 누구: 캐릭터; 직업: 직업 } | undefined;
+
+export function 들어간캐릭터(): 캐릭터 | undefined {
+  return 들어간?.누구;
+}
+
+export function 게임에들어갔다(아이디: string): void {
+  if (process.env.PLATFORM_SCENARIO_MODE === '1') 들어간 = 만든캐릭터.get(아이디);
+}
+
 export async function 새캐릭터(admin: APIRequestContext, 앞머리: string, 직업값: 직업 = 'Warrior'): Promise<캐릭터> {
-  return 캐릭터만들기(admin, await 새계정(admin, 앞머리), 직업값);
+  if (들어간 !== undefined && 들어간.직업 === 직업값) return 들어간.누구;
+  const 누구 = await 캐릭터만들기(admin, await 새계정(admin, 앞머리), 직업값);
+  만든캐릭터.set(누구.아이디, { 누구, 직업: 직업값 });
+  return 누구;
 }
 
 export async function 계정지우기(admin: APIRequestContext, 아이디: string): Promise<{ accountsDeleted: number; charactersDeleted: number }> {
@@ -54,6 +68,7 @@ export async function 계정지우기(admin: APIRequestContext, 아이디: strin
 }
 
 export async function 캐릭터지우기(admin: APIRequestContext, 누구: { 아이디: string }): Promise<{ accountsDeleted: number; charactersDeleted: number }> {
+  if (누구.아이디 === 들어간?.누구.아이디) return { accountsDeleted: 0, charactersDeleted: 0 };
   return 계정지우기(admin, 누구.아이디);
 }
 
