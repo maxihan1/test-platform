@@ -20,6 +20,7 @@ import { Failed, Loading, message, useAsync } from './ui.js';
 export function Guide({ service, 할수 }: { service: string; 할수: 판정 }) {
   const t = use말();
   const 언어 = use언어();
+  const 가이드 = 종류(use지금앱()?.kind).가이드;
   const 판 = useAsync(() => guideApi.now(service), [service]);
   // 손댄 구획만 든다 — 다른 사람이 먼저 저장해 판을 다시 읽으면 손대지 않은 구획은 새 판 글이 보이고 그대로 보내진다
   const [초안, set초안] = useState<Partial<가이드글>>({});
@@ -74,7 +75,7 @@ export function Guide({ service, 할수 }: { service: string; 할수: 판정 }) 
     <>
       <Head
         위치={t('PRD 관리')}
-        제목={t(종류(use지금앱()?.kind).가이드)}
+        제목={t(가이드)}
         부제={
           <>
             {t('테스트를 작성할 때 참고하는 애플리케이션 설명입니다')} ·{' '}

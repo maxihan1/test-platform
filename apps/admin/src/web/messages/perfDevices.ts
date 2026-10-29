@@ -6,7 +6,6 @@ export const 성능기기말: Record<string, string> = {
   '앱 성능': 'App performance',
   '게임 성능': 'Game performance',
   '새 측정': 'New measurement',
-  '{앱} · 새 측정': '{앱} · New measurement',
   '직접 플레이': 'Manual play',
   'Appium 케이스 {수}개': '{수} Appium cases',
   '게임 케이스 {수}개': '{수} game cases',

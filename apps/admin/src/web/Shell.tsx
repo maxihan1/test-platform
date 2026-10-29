@@ -66,7 +66,7 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
   const 자리들 = 자리목록(user, service?.prefix ?? null, 언어);
   // 화면 머리가 제목 앞에 애플리케이션 이름을 붙인다 (화면공통 §8 「화면 머리」 · 2026-10-29).
   // 대시보드는 여러 애플리케이션을 모으고, 설정은 안에서 애플리케이션을 따로 고르고, 비밀번호는 계정의 일이라 고른 애플리케이션과 상관없다
-  const 앱과상관없다 = 대시보드인가 || current === '#/password' || current === '#/settings' || current.startsWith('#/settings/');
+  const 앱과상관없다 = 대시보드인가 || current === '#/password' || current === '#/settings';
   const 본문 = <지금앱칸.Provider value={앱과상관없다 ? null : service}>{children}</지금앱칸.Provider>;
   if (휴대폰) {
     return (
@@ -83,7 +83,7 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
           2026-09-21 ② 에 옛 이름(`.band`·`.nav`·`.notice`·`.svc-dot`)을 걷어냈다.
           PR① 이 남겨 둔 것은 그 이름으로 단언하는 검사가 있었기 때문이고, 그 검사를 같이 고쳤다 */}
       <aside className="side">
-        {service === null ? null : <애플리케이션줄 user={user} service={service} onService={onService} 새로만들기={할수있나(user, service.prefix, '설정')} />}
+        <애플리케이션줄 user={user} service={service} onService={onService} 새로만들기={할수있나(user, service?.prefix ?? null, '설정')} />
         <div className="side-col">
         {/* 접어도 자리 목록을 **지우지 않는다.** display:none 을 쓰면 키보드 탭 대상에서 빠져
             키보드로만 쓰는 사람이 이동을 통째로 잃는다. 폭만 줄이고 글자를 숨긴다 */}

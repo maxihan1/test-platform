@@ -3,8 +3,8 @@
 export const 성능페이지말: Record<string, string> = {
   // 머리 · 측정 조건
   '페이지 성능': 'Page speed',
-  '{앱} · 최근 측정 {시각} · 페이지별 3회 측정 중앙값': '{앱} · Last measured {시각} · Median of 3 runs per page',
-  '{앱} · 아직 측정한 적이 없습니다 · 페이지별 3회 측정 중앙값': '{앱} · Not measured yet · Median of 3 runs per page',
+  '최근 측정 {시각} · 페이지별 3회 측정 중앙값': 'Last measured {시각} · Median of 3 runs per page',
+  '아직 측정한 적이 없습니다 · 페이지별 3회 측정 중앙값': 'Not measured yet · Median of 3 runs per page',
   측정: 'Measure',
   '측정 중': 'Measuring',
   '측정 조건': 'Measurement conditions',

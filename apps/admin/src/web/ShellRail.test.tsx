@@ -44,6 +44,37 @@ function 띄운다(service: ServiceRow, 옵션: { role?: User['role']; current?:
 
 const 줄 = () => screen.getByRole('navigation', { name: '애플리케이션' });
 
+describe('줄과 메뉴가 같이 맞는 자리', () => {
+  it('API 애플리케이션의 테스트 스크립트는 하위가 없어도 그 목록을 열면 지금 자리로 표시된다', () => {
+    vi.spyOn(api, 'notifications').mockResolvedValue({ running: [], recent: [] });
+    const API앱: ServiceRow = { ...웹, id: 4, prefix: 'ZRD', name: '알림 API', kind: 'API' };
+    render(
+      <언어함 value="ko">
+        <Shell user={{ username: 'zra2', displayName: '김수민', role: 'member', dashboard: 'read', mustChangePassword: false, services: [API앱] }} service={API앱} onService={() => {}} 언어="ko" on언어={() => {}} onLogout={() => {}} current="#/cases/fn">
+          <div>본문</div>
+        </Shell>
+      </언어함>,
+    );
+
+    expect(screen.getByRole('link', { name: '테스트 스크립트' }).getAttribute('aria-current')).toBe('page');
+  });
+
+  it('고른 애플리케이션이 없어도 줄 칸은 서고 운영 계정에게는 「+」만 있다', () => {
+    vi.spyOn(api, 'notifications').mockResolvedValue({ running: [], recent: [] });
+    vi.spyOn(api, 'settingsUsers').mockResolvedValue({ items: [] });
+    render(
+      <언어함 value="ko">
+        <Shell user={{ username: 'zra3', displayName: '김수민', role: 'admin', dashboard: 'read', mustChangePassword: false, services: [] }} service={null} onService={() => {}} 언어="ko" on언어={() => {}} onLogout={() => {}} current="#/settings">
+          <div>본문</div>
+        </Shell>
+      </언어함>,
+    );
+
+    expect(within(줄()).queryAllByRole('button')).toHaveLength(0);
+    expect(within(줄()).getByRole('link', { name: '애플리케이션 추가' }).getAttribute('href')).toBe('#/settings/new');
+  });
+});
+
 describe('애플리케이션 줄', () => {
   it('고른 프로젝트의 애플리케이션만 서고 지금 것이 aria-current 다', () => {
     띄운다(웹);
@@ -114,7 +145,7 @@ describe('껍데기가 화면 머리에 넣는 애플리케이션 이름', () =>
   });
 
   it('설정 · 비밀번호 변경에서도 이름이 없다 — 고른 애플리케이션과 상관없는 화면이다', () => {
-    띄운다(앱, { current: '#/settings/new' });
+    띄운다(앱, { current: '#/settings' });
     expect(screen.getByRole('heading', { level: 1, name: '테스트 스크립트 › 기능 테스트' })).toBeTruthy();
     cleanup();
 

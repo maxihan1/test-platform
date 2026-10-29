@@ -10,14 +10,15 @@ import './rail.css';
 
 /**
  * 고른 프로젝트 안의 애플리케이션을 늘 세워 둔다 — 고르개를 펼쳐야만 보이면 지금 것이 어느 것인지 견줄 수가 없었다 (2026-10-29 사용자 「구분이 안 돼서 헷갈린다」).
- * 색은 쓰지 않는다 — 종류 아이콘과 접두사로 가른다 (화면공통 §8 「서비스 색을 화면에서 쓰지 않는다」)
+ * 색은 쓰지 않는다 — 종류 아이콘과 접두사로 가른다 (화면공통 §8 「서비스 색을 화면에서 쓰지 않는다」).
+ * 고른 애플리케이션이 없어도 칸은 선다 — 격자가 줄 몫의 폭을 늘 잡고, 운영 계정은 「+」로 첫 애플리케이션을 만든다
  */
-export function 애플리케이션줄({ user, service, onService, 새로만들기 }: { user: User; service: ServiceRow; onService: (prefix: string) => void; 새로만들기: boolean }) {
+export function 애플리케이션줄({ user, service, onService, 새로만들기 }: { user: User; service: ServiceRow | null; onService: (prefix: string) => void; 새로만들기: boolean }) {
   const t = use말();
   const 언어 = use언어();
   return (
     <nav className="rail" aria-label={t('애플리케이션')}>
-      {프로젝트서비스들(service.projectId, user.services).map((it) => {
+      {(service === null ? [] : 프로젝트서비스들(service.projectId, user.services)).map((it) => {
         const 이름 = `${it.name} · ${종류이름(it.kind, 언어)}`;
         return (
           <button
@@ -26,7 +27,7 @@ export function 애플리케이션줄({ user, service, onService, 새로만들�
             className="rail-app"
             title={이름}
             aria-label={이름}
-            {...(it.prefix === service.prefix ? { 'aria-current': 'page' as const } : {})}
+            {...(it.prefix === service?.prefix ? { 'aria-current': 'page' as const } : {})}
             onClick={() => {
               고른서비스를적는다(it.prefix);
               onService(it.prefix);

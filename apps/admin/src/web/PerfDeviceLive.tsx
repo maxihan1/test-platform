@@ -23,6 +23,7 @@ const 선구간 = 120;
 export function PerfDeviceLive({ run, 다시읽기, 쓰나 }: { run: 실행상세; 다시읽기: () => Promise<boolean>; 쓰나: boolean }) {
   const t = use말();
   const 언어 = use언어();
+  const 기기성능 = 기기성능이름(use지금앱()?.kind);
   const 설정 = 기기설정of(run);
   const [숫자, set숫자] = useState<기기숫자[]>([]);
   const [로그, set로그] = useState<실행로그[]>([]);
@@ -91,7 +92,7 @@ export function PerfDeviceLive({ run, 다시읽기, 쓰나 }: { run: 실행상�
     <>
       <Head
         위치={t('성능 테스트')}
-        제목={`${t(기기성능이름(use지금앱()?.kind))} ${run.code}`}
+        제목={`${t(기기성능)} ${run.code}`}
         부제={[조작글(설정, t), 직접 ? t('{수}분', { 수: Math.round(설정.durationSec / 60) }) : t('반복 {수}회', { 수: 설정.repeat }), t('기기 {수}대', { 수: 설정.devices.length }), run.env, run.startedAt === null ? t('아직 시작 전') : t('{시각} 시작', { 시각: 시각글(run.startedAt, 언어) })].join(' · ')}
         행동={
           <div className="perf-row">

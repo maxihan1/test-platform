@@ -12,8 +12,6 @@ export const 성능말: Record<string, string> = {
   '스모크 테스트': 'Smoke test',
 
   // 마법사 머리 · 단계
-  '{앱} · 새 시나리오': '{앱} · New scenario',
-  '{앱} · 버전 {버전}': '{앱} · Version {버전}',
   '임시 저장': 'Save draft',
   '시나리오 만들기 단계': 'Scenario steps',
   '부하 설정': 'Load profile',

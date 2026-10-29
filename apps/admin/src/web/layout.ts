@@ -32,7 +32,7 @@ export interface 하위자리 {
   라벨: string;
 }
 
-function 종류하위(묶음: string, 바탕: '#/cases' | '#/runs', 언어: 언어, UI없음: boolean): 하위자리[] {
+function 종류하위(묶음: string, 바탕: '#/cases' | '#/runs', 언어: 언어, UI없음 = false): 하위자리[] {
   // 묶음을 누르면 기능으로 간다(route.ts — 종류 없는 주소는 기능). 첫 하위가 그 화면이어야 누른 자리와 열린 화면이 맞는다
   // UI 테스트는 API 애플리케이션에 없다 — 화면이 없어 작성이 만들지 않는다 (도메인/API §3.1)
   const 종류들 = [['기능 테스트', 'fn']];
@@ -88,8 +88,8 @@ export function 자리목록(user: User, prefix: string | null, 언어: 언어):
   }
   if (기능보나(user, prefix, 'cases')) {
     const 이름 = t('테스트 스크립트', 언어);
-    // API 애플리케이션은 기능 테스트뿐이라 하위 없이 바로 그 목록이다 (route.ts — 종류 없는 주소는 기능)
-    목록.push(API ? { 이름, 해시: '#/cases', 아이콘: 'cases' } : { 이름, 해시: '#/cases', 아이콘: 'cases', 하위: 종류하위(이름, '#/cases', 언어, false) });
+    // API 애플리케이션은 기능 테스트뿐이라 하위 없이 바로 그 목록이다. 주소는 지금 자리(`지금자리` 의 `#/cases/fn`)와 같아야 밑줄이 간다
+    목록.push(API ? { 이름, 해시: '#/cases/fn', 아이콘: 'cases' } : { 이름, 해시: '#/cases', 아이콘: 'cases', 하위: 종류하위(이름, '#/cases', 언어) });
   }
   if (기능보나(user, prefix, 'runs')) {
     // 만드는 일(작성 → 케이스 → 시나리오) 끝, 보는 일 앞이다 (화면공통 §8). 시나리오는 실행 칸을 쓴다 (도메인/시나리오 §7)

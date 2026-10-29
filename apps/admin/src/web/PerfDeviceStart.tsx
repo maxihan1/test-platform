@@ -142,7 +142,7 @@ export function PerfDeviceStart({
 
   return (
     <>
-      <Head 위치={t('성능 테스트')} 제목={t(기기성능이름(service.kind))} 부제={t('{앱} · 새 측정', { 앱: service.name })} />
+      <Head 위치={t('성능 테스트')} 제목={t(기기성능이름(service.kind))} 부제={t('새 측정')} />
       <div className="screen perf-run">
         <section className="perf-panel" aria-labelledby="pd-m">
           <h2 id="pd-m">{t('조작 방식')}</h2>
