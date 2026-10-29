@@ -167,6 +167,23 @@ describe('앱 — 마지막으로 다룬 요소 번호', () => {
     });
     expect(읽음.마지막요소).toBe('qty-2');
   });
+
+  it('요소 번호를 실은 손짓 명령은 그 요소를 짚고, 요소와 상관없는 명령은 표시를 그대로 둔다', () => {
+    const { driver, 쏜다 } = 가짜폰();
+    앱을지켜본다(driver);
+    const 손짓 = 절차안(() => {
+      쏜다('command', { command: 'getElementText', endpoint: '/session/s/element/a/text' });
+      쏜다('command', { command: 'executeScript', endpoint: '/session/s/execute/sync', body: { script: 'mobile: clickGesture', args: [{ elementId: 'b' }] } });
+    });
+    expect(손짓.마지막요소).toBe('b');
+
+    const 그대로 = 절차안(() => {
+      쏜다('command', { command: 'getElementText', endpoint: '/session/s/element/a/text' });
+      쏜다('command', { command: 'getPageSource', endpoint: '/session/s/source' });
+      쏜다('command', { command: 'executeScript', endpoint: '/session/s/execute/sync', body: { script: 'mobile: shell', args: [{ command: 'dumpsys' }] } });
+    });
+    expect(그대로.마지막요소).toBe('a');
+  });
 });
 
 describe('표시를그린다', () => {
@@ -181,8 +198,8 @@ describe('표시를그린다', () => {
     표시를그린다(png, { x: -3, y: -3, width: 30, height: 30 });
   });
 
-  it('폭이 넓은 폰 사진은 테두리가 굵다 — 1080 폭이면 4화소', () => {
-    const png = { width: 1080, height: 40, data: new Uint8Array(1080 * 40 * 4).fill(255) };
+  it('큰 폰 사진은 테두리가 굵다 — 짧은 변 1080 이면 4화소', () => {
+    const png = { width: 1080, height: 1200, data: new Uint8Array(1080 * 1200 * 4).fill(255) };
     표시를그린다(png, { x: 100, y: 10, width: 50, height: 20 });
     expect(색(png, 96, 20)).toEqual([229, 72, 77]);
     expect(색(png, 95, 20)).toEqual([255, 255, 255]);

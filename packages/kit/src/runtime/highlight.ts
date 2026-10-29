@@ -1,4 +1,4 @@
-// 실패 사진에 문제 요소를 빨간 네모로 그려 넣는다 — 절차 안에서 마지막으로 다룬 요소를 적어 두고 찍을 때 그린다 (SPEC 공통/2-명세선언 「스크린샷」)
+// 실패 사진에 문제 요소를 빨갛게 표시한다 — 절차 안에서 마지막으로 다룬 요소를 적어 두고 찍을 때 그린다 (SPEC 공통/2-명세선언 「스크린샷」)
 // verify 는 값만 받아 어느 요소의 값인지 모른다. 그래서 「그 절차에서 마지막으로 다룬 요소」를 짚는다 — 절차마다 새 문맥이라 앞 절차 요소는 안 짚는다
 
 import { readFile, writeFile } from 'node:fs/promises';
@@ -69,7 +69,7 @@ function 감싼다<T extends object>(대상: T, 요소틀: 틀, 틀들: 틀[]): 
 
 // 번들 속 클래스 이름은 판마다 바뀐다(1.63 은 _Locator) — 그 page 가 만든 것에서 틀을 꺼내 견준다
 export function 웹을지켜본다(page: Page): Page {
-  // Locator 를 못 만드는 대역(단위 테스트의 가짜 page)은 감싸지 않는다 — 네모만 없고 케이스는 그대로 돈다
+  // Locator 를 못 만드는 대역(단위 테스트의 가짜 page)은 감싸지 않는다 — 표시만 없고 케이스는 그대로 돈다
   if (typeof page.locator !== 'function' || typeof page.frameLocator !== 'function') return page;
   const 요소틀 = page.locator('html').constructor as 틀;
   return 감싼다(page, 요소틀, [요소틀, page.frameLocator('html').constructor as 틀]);
@@ -81,6 +81,7 @@ const 요소주소 = /\/element\/([^/]+)\//;
 interface 명령기록 {
   command: string;
   endpoint?: string;
+  body?: { args?: unknown[] };
   result?: { value?: unknown };
 }
 
@@ -98,7 +99,13 @@ export function 앱을지켜본다(driver: AppDriver): AppDriver {
       return;
     }
     const id = 요소주소.exec(e.endpoint ?? '')?.[1];
-    if (id !== undefined) 적는다(decodeURIComponent(id));
+    if (id !== undefined) {
+      적는다(decodeURIComponent(id));
+      return;
+    }
+    // 요소 번호를 실어 보내는 손짓 명령(driver.execute('mobile: clickGesture', { elementId }))도 그 요소를 다룬 것이다
+    const 실은번호 = (e.body?.args?.[0] as { elementId?: unknown } | undefined)?.elementId;
+    if (typeof 실은번호 === 'string') 적는다(실은번호);
   });
   폰.on('result', (e: 명령기록) => {
     if (e.command !== 'findElement' && e.command !== 'findElementFromElement') return;
@@ -110,22 +117,23 @@ export function 앱을지켜본다(driver: AppDriver): AppDriver {
 }
 
 const 덮는세기 = 0.4;
+const 웹덮개색 = `rgba(${빨강.join(', ')}, ${덮는세기})`;
 
-// 웹(mask)과 같은 반투명 빨강으로 덮고 둘레에 빨간 테두리 · 흰 바깥줄 — 폰 해상도에서도 보이게 굵기는 사진 폭에 맞춘다
+// 웹(mask)과 같은 반투명 빨강으로 덮고 둘레에 빨간 테두리 · 흰 바깥줄 — 폰 해상도에서도 보이게 굵기는 사진 크기에 맞춘다
 export function 표시를그린다(png: 그림, 상자: 상자): void {
   const x0 = Math.round(상자.x);
   const y0 = Math.round(상자.y);
   const x1 = Math.round(상자.x + 상자.width) - 1;
   const y1 = Math.round(상자.y + 상자.height) - 1;
-  const 안이다 = (x: number, y: number): boolean => x >= 0 && y >= 0 && x < png.width && y < png.height;
   const 칠한다 = (x: number, y: number, 색: readonly number[], 세기: number): void => {
-    if (!안이다(x, y)) return;
+    if (x < 0 || y < 0 || x >= png.width || y >= png.height) return;
     const i = (y * png.width + x) * 4;
     for (let k = 0; k < 3; k++) png.data[i + k] = Math.round(png.data[i + k]! * (1 - 세기) + 색[k]! * 세기);
     png.data[i + 3] = 255;
   };
   for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) 칠한다(x, y, 빨강, 덮는세기);
-  const 굵기 = Math.max(3, Math.round(png.width / 270));
+  // 짧은 변 기준 — 가로 화면이라고 테두리가 두 배로 굵어지지 않게
+  const 굵기 = Math.max(3, Math.round(Math.min(png.width, png.height) / 270));
   for (let d = 1; d <= 굵기 + 1; d++) {
     const 색 = d > 굵기 ? 흰색 : 빨강;
     for (let x = x0 - d; x <= x1 + d; x++) {
@@ -147,7 +155,7 @@ export async function 웹사진(page: Page, path: string, 요소: Locator | unde
     return;
   }
   // 덮기가 깨지면(틀린 선택자 · 떨어진 iframe) 맨 사진으로 다시 찍는다 — 표시 때문에 사진을 잃지 않는다
-  await page.screenshot({ path, mask: [요소], maskColor: 'rgba(229, 72, 77, 0.4)' }).catch(() => page.screenshot({ path }));
+  await page.screenshot({ path, mask: [요소], maskColor: 웹덮개색 }).catch(() => page.screenshot({ path }));
 }
 
 export async function 앱사진(driver: AppDriver, path: string, 요소: string | undefined): Promise<void> {

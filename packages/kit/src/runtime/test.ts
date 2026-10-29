@@ -85,7 +85,7 @@ function bodyArgs<P, E>(
     ...(키 === undefined ? {} : { admin: 어드민도구(감싼, 키) }),
     params: inputs.params,
     expected: inputs.expected,
-    // 케이스가 다룬 요소를 적는 판으로 넘긴다 — 실패 사진에 그 요소를 네모로 짚는다 (highlight.ts)
+    // 케이스가 다룬 요소를 적는 판으로 넘긴다 — 실패 사진에 그 요소를 표시한다 (highlight.ts)
     ...('page' in side ? { page: 웹을지켜본다(side.page) } : { ...side, driver: 앱을지켜본다(side.driver) }),
   };
   for (const [칸, message] of 없는칸) {
