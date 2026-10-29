@@ -139,7 +139,7 @@ describe('요약 띠 — 직전 실행 대비', () => {
     expect(on변화).toHaveBeenLastCalledWith(null);
   });
 
-  it('수가 0 이거나 거르는 길이 없으면 신규 · 연속 칸은 눌리지 않는다', () => {
+  it('수가 0 이거나 거르는 길이 없으면 회귀 · 기존 실패 칸은 눌리지 않는다', () => {
     그린다(집계(47, 3, 0), 견줌({ 케이스들: [] }), 'ALL', undefined, undefined, { on변화: vi.fn() });
     expect((screen.getByRole('button', { name: /^회귀 실패/ }) as HTMLButtonElement).disabled).toBe(true);
     cleanup();

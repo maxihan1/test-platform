@@ -67,7 +67,7 @@ export const 접은줄SQL = `
 
 // 스모크가 아닌 실행은 앞 실행으로 스모크를 고르지 않는다 — 빌드 회귀가 같은 빌드의 스모크(케이스 몇 건)와 견주면
 // 새로 깨진 케이스가 「빠졌다」로만 셈해져 회귀 실패 0 이 된다 (SPEC 도메인/리포팅 §7 insights previous · 2026-10-25 GAME-F2-14 · RUN 20929).
-// 스모크는 지금처럼 아무 앞 실행과 견준다 — 스모크끼리만 견주면 회귀에서 이미 깨진 케이스를 다음 빌드 스모크가 또 신규로 센다.
+// 스모크는 지금처럼 아무 앞 실행과 견준다 — 스모크끼리만 견주면 빌드 회귀 실행에서 이미 깨진 케이스를 다음 빌드 스모크가 또 회귀 실패로 센다.
 // 결과 견주기(insights.ts) · 실행 목록 줄(runChange.ts) · 실패 카드 최근 흐름(failures.ts) · 대시보드 회귀 실패(아래) 넷이 같이 쓴다
 export const 스모크건너뛰기식 = (앞: string, 이번: string) =>
   `(${이번}.build_stage IS NOT DISTINCT FROM 'SMOKE' OR ${앞}.build_stage IS DISTINCT FROM 'SMOKE')`;

@@ -163,8 +163,8 @@ export const 실행말: Record<string, string> = {
 
   // 실패 케이스 카드와 펼치기 (§8.3 결과 화면)
   '실패한 케이스가 없습니다': 'No failed cases',
-  '기존 실패 · {회}회 연속': 'Failed {회} runs in a row',
-  '기존 실패 · {회}회 이상 연속': 'Failed {회}+ runs in a row',
+  '기존 실패 · {회}회 연속': 'Still failing · {회} runs in a row',
+  '기존 실패 · {회}회 이상 연속': 'Still failing · {회}+ runs in a row',
   '{회수}회 중 {실패}회 실패': '{실패} of {회수} attempts failed',
   '{서버} 서버 · 이 실행까지': '{서버} server · up to this run',
   '{앞말} 최근 {회}회, 맨 앞이 이번 실행: {판정}': '{앞말}, last {회} runs, newest first: {판정}',

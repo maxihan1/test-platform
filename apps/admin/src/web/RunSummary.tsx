@@ -169,7 +169,7 @@ export function RunSummary({
               {직전뒤}
             </span>
             <div className="rs-stats">
-              {/* 숫자를 누르면 그 케이스로 간다 — 눌러도 아무 일 없던 숫자였다 (점검 2.20). 신규 · 연속은 실패 카드를 거르고 해결은 아래 목록을 편다 */}
+              {/* 숫자를 누르면 그 케이스로 간다 — 눌러도 아무 일 없던 숫자였다 (점검 2.20). 회귀 · 기존 실패는 실패 카드를 거르고 해결은 아래 목록을 편다 */}
               <button
                 type="button"
                 className="rs-stat"
