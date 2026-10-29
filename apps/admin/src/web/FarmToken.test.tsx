@@ -43,6 +43,14 @@ describe('디바이스 팜 토큰 창', () => {
     expect(screen.getByText('넣음 (…abcd)')).toBeTruthy();
   });
 
+  it('처음 읽기가 실패하면 불러오는 중으로 남지 않고 까닭을 띄운다', async () => {
+    vi.spyOn(api, 'farmToken').mockRejectedValue(new Error('끊김'));
+    render(<FarmToken onClose={() => undefined} />);
+
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(screen.queryByText('불러오는 중입니다')).toBeNull();
+  });
+
   it('토큰 지우기를 누르면 서버 토큰으로 돌아간다', async () => {
     vi.spyOn(api, 'farmToken').mockResolvedValue({ farmToken: { last4: 'abcd' } });
     const 지우기 = vi.spyOn(api, 'deleteFarmToken').mockResolvedValue(undefined);

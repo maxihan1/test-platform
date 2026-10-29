@@ -12,7 +12,7 @@ const 거절말: Record<string, string> = {
   FARM_TOKEN_SHAPE: 'pat_ 로 시작하는 토큰이 아닙니다',
   FARM_TOKEN_INVALID: '통합계정이 받지 않는 토큰입니다 — 폐기했거나 기간이 끝났을 수 있습니다',
   FARM_TOKEN_NOT_YOURS: '다른 사람의 토큰입니다 — 내 계정에서 발급한 토큰만 넣을 수 있습니다',
-  AUTH_UNREACHABLE: '통합계정에 닿지 못해 토큰을 확인하지 못했습니다 — 잠시 뒤 다시 저장합니다',
+  AUTH_UNREACHABLE: '통합계정에 닿지 못해 토큰을 확인하지 못했습니다 — 잠시 뒤 저장을 다시 눌러 주세요',
 };
 
 export function FarmToken({ onClose }: { onClose: () => void }) {
@@ -77,7 +77,8 @@ export function FarmToken({ onClose }: { onClose: () => void }) {
       <p>{t('내가 누른 실행은 이 토큰으로 디바이스 팜의 폰을 빌립니다')}</p>
       <p className="hint">{t('통합계정 「내 계정」 화면에서 개인 액세스 토큰을 발급해 붙여 넣습니다')}</p>
       <p>
-        {끝넷 === undefined ? t('불러오는 중입니다') : 끝넷 === null ? t('없음 — 서버 토큰으로 빌립니다') : t('넣음 (…{끝})', { 끝: 끝넷 })}
+        {/* 읽기가 실패하면 아래 오류 줄이 까닭을 말한다 — 불러오는 중으로 남겨 두지 않는다 */}
+        {끝넷 === undefined ? (오류 === null ? t('불러오는 중입니다') : null) : 끝넷 === null ? t('없음 — 서버 토큰으로 빌립니다') : t('넣음 (…{끝})', { 끝: 끝넷 })}
         {typeof 끝넷 === 'string' ? (
           <button className="btn ghost" type="button" disabled={busy} onClick={() => void 지운다()}>
             {t('토큰 지우기')}

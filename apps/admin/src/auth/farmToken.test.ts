@@ -41,6 +41,7 @@ describe.skipIf(연결 === undefined)('디바이스 팜 토큰 통로', () => {
       if (머리 === 'Bearer pat_mine1234') return { userId: 'xft-sub-me', username: 'xft-me', authMethod: 'pat' };
       if (머리 === 'Bearer pat_other5678') return { userId: 'xft-sub-other', username: 'xft-other', authMethod: 'pat' };
       if (머리 === 'Bearer pat_down0000') return reply.code(500).send({ error: 'boom' });
+      if (머리 === 'Bearer pat_forbid00') return reply.code(403).send({ error: 'forbidden' });
       return reply.code(401).send({ error: 'invalid_token' });
     });
     await 가짜인증.listen({ port: 0, host: '127.0.0.1' });
@@ -105,6 +106,7 @@ describe.skipIf(연결 === undefined)('디바이스 팜 토큰 통로', () => {
 
   it('Auth_platform 이 401 이면 FARM_TOKEN_INVALID · 남의 토큰이면 FARM_TOKEN_NOT_YOURS · 고장이면 502 이고 저장하지 않는다', async () => {
     expect((await 넣기('pat_wrong999')).json()).toEqual({ error: 'FARM_TOKEN_INVALID' });
+    expect((await 넣기('pat_forbid00')).json()).toEqual({ error: 'FARM_TOKEN_INVALID' });
     const 남의것 = await 넣기('pat_other5678');
     expect(남의것.statusCode).toBe(400);
     expect(남의것.json()).toEqual({ error: 'FARM_TOKEN_NOT_YOURS' });

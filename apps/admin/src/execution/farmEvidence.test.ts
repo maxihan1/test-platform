@@ -226,6 +226,21 @@ describe('GET /api/runs/:runId/items/:historyId/farm-video', () => {
     expect(받음.map((r) => r.인증)).toEqual(['Bearer pat_kim', 'Bearer pat_server', 'Bearer pat_server']);
   });
 
+  it('누른 사람 토큰이 401(폐기 · 기간 끝)이어도 서버 몫으로 한 번 더 묻는다', async () => {
+    process.env.DEVICE_FARM_TOKEN = 'pat_server';
+    vi.mocked(실행팜토큰).mockResolvedValue('pat_old');
+    vi.stubGlobal('fetch', async (주소: string | URL, 설정?: RequestInit) => {
+      const 인증 = new Headers(설정?.headers).get('authorization');
+      받음.push({ 주소: String(주소), range: null, 인증 });
+      if (인증 === 'Bearer pat_old') return new Response('{}', { status: 401 });
+      if (String(주소).endsWith('/artifacts')) return new Response(JSON.stringify(파일들('video-1.mp4')), { status: 200 });
+      return new Response(영상본문, { status: 200, headers: { 'content-type': 'video/mp4' } });
+    });
+
+    expect((await 불러온다()).statusCode).toBe(200);
+    expect(받음.map((r) => r.인증)).toEqual(['Bearer pat_old', 'Bearer pat_server', 'Bearer pat_server']);
+  });
+
   it('DEVICE_FARM_TOKEN 이 있으면 목록 · 영상 둘 다 Bearer 로 받는다', async () => {
     process.env.DEVICE_FARM_TOKEN = 'pat_abc';
     가짜팜({ status: 200, body: 파일들('video-1.mp4') }, { status: 200 });

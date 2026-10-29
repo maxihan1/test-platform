@@ -20,7 +20,8 @@ export type 주인답 = { 주인: string } | '틀림' | '닿지못함';
 export async function 토큰주인묻기(issuer: string, 토큰: string, 부르기: typeof fetch = fetch): Promise<주인답> {
   let res: Response;
   try {
-    res = await 부르기(`${issuer.replace(/\/+$/, '')}/api/v1/users/me/whoami`, {
+    // whoami 는 Auth_platform 맨 앞 자리에 있다 — issuer 에 경로가 붙어도 그 아래가 아니다
+    res = await 부르기(new URL('/api/v1/users/me/whoami', issuer), {
       headers: { authorization: `Bearer ${토큰}` },
       signal: AbortSignal.timeout(묻기제한ms),
     });
@@ -28,7 +29,7 @@ export async function 토큰주인묻기(issuer: string, 토큰: string, 부르�
     console.error(`[farm-token] Auth_platform 에 닿지 못했다: ${err instanceof Error ? err.message : String(err)}`);
     return '닿지못함';
   }
-  if (res.status === 401) return '틀림';
+  if (res.status === 401 || res.status === 403) return '틀림';
   const 몸 = res.ok ? ((await res.json().catch(() => null)) as { userId?: unknown; authMethod?: unknown } | null) : null;
   if (typeof 몸?.userId === 'string' && 몸.authMethod === 'pat') return { 주인: 몸.userId };
   console.error(`[farm-token] Auth_platform whoami 답을 읽지 못했다: HTTP ${res.status}`);

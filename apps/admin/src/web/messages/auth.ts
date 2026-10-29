@@ -67,6 +67,6 @@ export const 계정말: Record<string, string> = {
   '통합계정이 받지 않는 토큰입니다 — 폐기했거나 기간이 끝났을 수 있습니다':
     'The QA Hub account does not accept this token — it may be revoked or expired',
   '다른 사람의 토큰입니다 — 내 계정에서 발급한 토큰만 넣을 수 있습니다': "This is someone else's token — only tokens issued from your own account work",
-  '통합계정에 닿지 못해 토큰을 확인하지 못했습니다 — 잠시 뒤 다시 저장합니다':
+  '통합계정에 닿지 못해 토큰을 확인하지 못했습니다 — 잠시 뒤 저장을 다시 눌러 주세요':
     'Could not reach the QA Hub account to check the token — save again in a moment',
 };

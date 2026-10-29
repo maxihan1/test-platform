@@ -7,6 +7,17 @@ import type { ItemStatus } from '@platform/kit';
 import { APPIUM_SESSION_ID_FILE, FARM_EVIDENCE_DIR, runDir } from '@platform/kit';
 import { farmArtifacts } from 'appium-cli';
 
+/**
+ * 답에서 팜 토큰을 지운다. 케이스(AI 가 쓴 코드)가 환경값이나 머리를 찍으면 admin 이 그 글을 실행 기록에 남기고,
+ * admin 의 가리기는 항목 값만 알아 이 토큰을 모른다. 이 토큰은 BTS 도 받아 새면 그 사람으로 열린다 (러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」)
+ */
+export function 팜토큰을지운다<T>(답: T, 토큰들: (string | undefined)[]): T {
+  const 지울것 = 토큰들.filter((t): t is string => t !== undefined && t !== '');
+  if (지울것.length === 0) return 답;
+  const 글 = 지울것.reduce((g, t) => g.replaceAll(JSON.stringify(t).slice(1, -1), '********'), JSON.stringify(답));
+  return JSON.parse(글) as T;
+}
+
 const 알림 = (말: string, err: unknown): void =>
   console.error(`[runner] ${말}: ${err instanceof Error ? err.message : String(err)}`);
 

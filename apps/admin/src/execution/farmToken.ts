@@ -3,13 +3,19 @@
 
 import type { Pool } from 'pg';
 
+import { SSO설정읽기 } from '../auth/oidc.js';
+
 async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
   return pool;
 }
 
+// 넣고 지우는 통로 · 메뉴가 SSO 설치에만 있다. 끈 뒤에 남은 토큰을 쓰면 기간이 끝나도 지울 길이 없다
+const 사람토큰을쓰나 = (): boolean => SSO설정읽기() !== null;
+
 /** 그 사람이 넣은 토큰. 비활성 계정은 없는 것으로 친다 */
 export async function 사람팜토큰(username: string): Promise<string | undefined> {
+  if (!사람토큰을쓰나()) return undefined;
   const { rows } = await (await db()).query<{ farm_token: string | null }>(
     'SELECT farm_token FROM app_user WHERE username = $1 AND is_active',
     [username],
@@ -22,6 +28,8 @@ export async function 사람팜토큰(username: string): Promise<string | undefi
  * 정기 실행의 triggered_by 는 '스케줄러' 라 계정이 아니고, 빌드 실행은 CI 가 눌렀다
  */
 export async function 실행팜토큰(runId: number): Promise<string | undefined> {
+  if (!사람토큰을쓰나()) return undefined;
+  // kind 로 거르지 않는다 — 케이스 실행과 E2E 실행이 같은 번호 줄을 쓰고, 꺼내는 것은 화면에 안 실리는 토큰뿐이다
   const { rows } = await (await db()).query<{ farm_token: string | null }>(
     `SELECT u.farm_token FROM test_run r JOIN app_user u ON u.username = r.triggered_by
       WHERE r.run_id = $1 AND r.origin IN ('MANUAL', 'RERUN') AND u.is_active`,
