@@ -177,7 +177,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
       <Head
         위치={t('성능 테스트')}
         제목={일.name.trim() === '' ? t('새 시나리오') : 일.name}
-        부제={버전 === null ? t('{앱} · 새 시나리오', { 앱: service.name }) : t('{앱} · 버전 {버전}', { 앱: service.name, 버전 })}
+        부제={버전 === null ? t('새 시나리오') : t('버전 {버전}', { 버전 })}
         행동={
           <>
             {관리자 && 번호 !== null ? (

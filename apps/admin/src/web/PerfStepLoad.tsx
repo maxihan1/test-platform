@@ -167,7 +167,7 @@ function AI산정({ serviceId, 스트레스, 적용 }: { serviceId: number; 스�
       <div className="perf-well">
         <div className="perf-row">
           <span className="perf-ai">{t('AI 동시 사용자 산정')}</span>
-          <span className="perf-faint">{t('기획서 비기능 요구사항과 애플리케이션 가이드에서 방문자 수를 찾아 피크 동시 사용자를 셉니다')}</span>
+          <span className="perf-faint">{t('기획서 비기능 요구사항과 가이드에서 방문자 수를 찾아 피크 동시 사용자를 셉니다')}</span>
           <div className="perf-acts">
             <button type="button" className="btn ghost small" disabled={일.도나} onClick={맡기기}>
               <기다림글자 중={일.도나} 평소={t('산정하기')} 기다림={t('찾는 중')} />

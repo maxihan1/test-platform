@@ -5,7 +5,18 @@
 // 화면이 자기 첫 자식으로 이것을 그리면 같은 결과가 나오고 배선이 0이다.
 // PR① 이 `Shell` 에 뚫어 둔 `header` 통로는 **부르는 곳이 하나도 없어** 2026-09-22 에 걷어냈다.
 
-import type { ReactNode } from 'react';
+import { createContext, useContext, type ReactNode } from 'react';
+
+import type { ServiceRow } from './api.js';
+
+/**
+ * 지금 보는 애플리케이션 — 껍데기(Shell)가 본문을 감싸 넣는다. 화면마다 이름을 내려보내지 않고 머리가 여기서 읽는다.
+ * 대시보드 · 껍데기 밖(검사에서 화면만 그릴 때)은 비어 있다
+ */
+export const 지금앱칸 = createContext<ServiceRow | null>(null);
+
+/** 종류에 따라 이름이 바뀌는 화면(가이드 · 기기 성능)이 지금 애플리케이션 종류를 읽는다 */
+export const use지금앱 = (): ServiceRow | null => useContext(지금앱칸);
 
 export function Head({
   제목,
@@ -24,12 +35,15 @@ export function Head({
   /** 화면이 머리 배치를 따로 다듬어야 할 때 붙이는 클래스 */
   클래스?: string;
 }) {
+  // 어느 화면을 캡처해도 어느 애플리케이션인지 남게 위치 줄 맨 앞에 이름을 둔다 (화면공통 §8 「화면 머리」 · 2026-10-29 사용자)
+  const 앱 = use지금앱();
+  const 앞 = [앱?.name, 위치].filter((글): 글 is string => 글 !== undefined).join(' › ');
   return (
     <header className={클래스 === undefined ? 'head' : `head ${클래스}`}>
       <div className="head-title">
         <h1>
-          {위치 === undefined ? null : <span className="head-crumb">{위치} ›</span>}
-          {위치 === undefined ? 제목 : ` ${제목}`}
+          {앞 === '' ? null : <span className="head-crumb">{앞} ›</span>}
+          {앞 === '' ? 제목 : ` ${제목}`}
         </h1>
         {부제 === undefined ? null : <div className="head-meta">{부제}</div>}
       </div>

@@ -177,7 +177,7 @@ export function PerfPages({ service, run, 쓰나 }: { service: ServiceRow; run?:
       <Head
         위치={t('성능 테스트')}
         제목={t('페이지 성능')}
-        부제={시각 === null ? t('{앱} · 아직 측정한 적이 없습니다 · 페이지별 3회 측정 중앙값', { 앱: service.name }) : t('{앱} · 최근 측정 {시각} · 페이지별 3회 측정 중앙값', { 앱: service.name, 시각: 시각글(시각, 언어) })}
+        부제={시각 === null ? t('아직 측정한 적이 없습니다 · 페이지별 3회 측정 중앙값') : t('최근 측정 {시각} · 페이지별 3회 측정 중앙값', { 시각: 시각글(시각, 언어) })}
         행동={
           쓰나 ? (
             <button type="button" className="btn" disabled={재는중 || 목록.length === 0} onClick={() => void 측정()}>

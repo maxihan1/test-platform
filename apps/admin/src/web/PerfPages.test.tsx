@@ -37,7 +37,7 @@ describe('가장 최근 측정', () => {
 
     expect(읽기).toHaveBeenCalledWith(21);
     expect(container.querySelector('h1')!.textContent).toContain('성능 테스트');
-    expect(container.querySelector('.head-meta')!.textContent).toContain('데모마켓 웹 · 최근 측정');
+    expect(container.querySelector('.head-meta')!.textContent).toContain('최근 측정');
     expect(container.querySelector('.head-meta')!.textContent).toContain('페이지별 3회 측정 중앙값');
     expect(screen.getByText('목표 LCP 2.5초 · FCP 1.8초 · CLS 0.1 이하')).toBeTruthy();
 

@@ -55,7 +55,7 @@ export function PerfScenarioList({ serviceId, 할수 }: { serviceId: number; 할
     <>
       <Head
         위치={t('성능 테스트')}
-        제목={t('시나리오')}
+        제목={t('부하 테스트')}
         부제={t('시나리오 {수}개', { 수: 줄들.length })}
         행동={
           쓰나 ? (

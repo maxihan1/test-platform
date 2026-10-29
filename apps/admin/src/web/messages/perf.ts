@@ -12,8 +12,6 @@ export const 성능말: Record<string, string> = {
   '스모크 테스트': 'Smoke test',
 
   // 마법사 머리 · 단계
-  '{앱} · 새 시나리오': '{앱} · New scenario',
-  '{앱} · 버전 {버전}': '{앱} · Version {버전}',
   '임시 저장': 'Save draft',
   '시나리오 만들기 단계': 'Scenario steps',
   '부하 설정': 'Load profile',
@@ -41,7 +39,7 @@ export const 성능말: Record<string, string> = {
   고르기: 'Select',
   '녹화 시작': 'Start recording',
   '서버 러너가 시나리오를 한 번 돌리며 오간 요청을 남깁니다. 이 실행은 실행 기록에 남지 않습니다': 'The server runner runs the scenario once and keeps the requests. This run is not kept in run history',
-  '이 애플리케이션에 올린 API 문서가 없습니다. API › API 문서에서 먼저 올려 주세요': 'This application has no API document. Upload one in API › API docs first',
+  '이 애플리케이션에 올린 API 문서가 없습니다. PRD 관리 › API 문서에서 먼저 올려 주세요': 'This application has no API document. Upload one in PRD › API docs first',
   'API 를 하나 이상 골라 주세요': 'Pick at least one API',
   'API 문서 버전 {번호} · 고른 차례대로 트랜잭션이 됩니다 (50개까지)': 'API doc version {번호} · Transactions follow the order you pick (up to 50)',
   '고른 API 가져오기': 'Import selected APIs',
@@ -99,7 +97,7 @@ export const 성능말: Record<string, string> = {
   '{번호}구간 목표': 'Stage {번호} target',
   '구간 추가': 'Add stage',
   'AI 동시 사용자 산정': 'AI concurrent user estimate',
-  '기획서 비기능 요구사항과 애플리케이션 가이드에서 방문자 수를 찾아 피크 동시 사용자를 셉니다': 'Finds visitor numbers in the PRD non-functional requirements and the application guide to estimate peak concurrent users',
+  '기획서 비기능 요구사항과 가이드에서 방문자 수를 찾아 피크 동시 사용자를 셉니다': 'Finds visitor numbers in the PRD non-functional requirements and the guide to estimate peak concurrent users',
   산정하기: 'Estimate',
   '찾는 중': 'Searching',
   '기획서에서 근거를 찾지 못했습니다. 세 값을 직접 적어 주세요': 'No basis found in the PRD. Enter the three values',

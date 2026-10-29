@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { api, type CaseRow, type ServiceRow } from './api.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
+import { 기기성능이름 } from './kind.js';
 import { 고른서버를적는다, 마지막서버 } from './layout.js';
 import { perfApi } from './perfApi.js';
 import type { 고를기기, 기기목표, 기기설정, 조작, 측정지표 } from './perfDeviceApi.js';
@@ -141,7 +142,7 @@ export function PerfDeviceStart({
 
   return (
     <>
-      <Head 위치={t('성능 테스트')} 제목={t('기기 성능')} 부제={t('{앱} · 새 측정', { 앱: service.name })} />
+      <Head 위치={t('성능 테스트')} 제목={t(기기성능이름(service.kind))} 부제={t('새 측정')} />
       <div className="screen perf-run">
         <section className="perf-panel" aria-labelledby="pd-m">
           <h2 id="pd-m">{t('조작 방식')}</h2>

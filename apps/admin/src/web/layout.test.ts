@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ServiceRow, User } from './api.js';
-import { 고른서비스, 대시보드재료, 밑줄자리, 배정서비스접두사, 배정프로젝트들, 빈띠사유, 실행기록자리, 자리목록, 지금자리, 탭제목, 프로젝트물을까, 프로젝트서비스들 } from './layout.js';
+import { 고른서비스, 대시보드재료, 배정서비스접두사, 배정프로젝트들, 빈띠사유, 자리목록, 지금자리, 탭제목, 프로젝트물을까, 프로젝트서비스들 } from './layout.js';
 
 const 결제: ServiceRow = {
   id: 1,
@@ -83,16 +83,16 @@ describe('자리 목록', () => {
   const 이름들 = (user: User, prefix: string | null) => 자리목록(user, prefix, 'ko').map((자리) => 자리.이름);
 
   it('설정은 운영 계정에게만 뜬다. 흐리게가 아니라 아예 없다', () => {
-    expect(이름들(운영, 'PAY')).toEqual(['대시보드', 'PRD 관리', 'API', '테스트 작성', '테스트 스크립트', 'E2E 시나리오', '실행 기록', '성능 테스트', '그래프(Grafana)', '설정']);
+    expect(이름들(운영, 'PAY')).toEqual(['대시보드', 'PRD 관리', '테스트 작성', '테스트 스크립트', 'E2E 시나리오', '실행 기록', '성능 테스트', '그래프(Grafana)', '설정']);
   });
 
   it('운영이 아닌 사람에게 설정 자리는 없다', () => {
-    expect(이름들(김, 'PAY')).toEqual(['대시보드', 'PRD 관리', 'API', '테스트 작성', '테스트 스크립트', 'E2E 시나리오', '실행 기록', '성능 테스트', '그래프(Grafana)']);
-    expect(이름들(김, 'MEM')).toEqual(['대시보드', 'PRD 관리', 'API', '테스트 작성', '테스트 스크립트', 'E2E 시나리오', '실행 기록', '성능 테스트', '그래프(Grafana)']);
+    expect(이름들(김, 'PAY')).toEqual(['대시보드', 'PRD 관리', '테스트 작성', '테스트 스크립트', 'E2E 시나리오', '실행 기록', '성능 테스트', '그래프(Grafana)']);
+    expect(이름들(김, 'MEM')).toEqual(['대시보드', 'PRD 관리', '테스트 작성', '테스트 스크립트', 'E2E 시나리오', '실행 기록', '성능 테스트', '그래프(Grafana)']);
   });
 
   it('고른 애플리케이션에서 none 인 기능은 자리가 없다. 애플리케이션을 바꾸면 자리도 바뀐다', () => {
-    expect(이름들(김, 'SET')).toEqual(['대시보드', 'PRD 관리', 'API', '테스트 작성', 'E2E 시나리오', '실행 기록', '성능 테스트', '그래프(Grafana)']);
+    expect(이름들(김, 'SET')).toEqual(['대시보드', 'PRD 관리', '테스트 작성', 'E2E 시나리오', '실행 기록', '성능 테스트', '그래프(Grafana)']);
     const 작성없음 = 사람('member', [{ ...회원, permissions: { cases: 'read', runs: 'read', authoring: 'none' } }]);
     expect(이름들(작성없음, 'MEM')).toEqual(['대시보드', '테스트 스크립트', 'E2E 시나리오', '실행 기록', '성능 테스트', '그래프(Grafana)']);
   });
@@ -100,12 +100,12 @@ describe('자리 목록', () => {
   // 시나리오는 실행 칸을 쓴다 (도메인/시나리오 §7) — 실행이 none 이면 만드는 곳도 돌린 기록도 없다
   it('E2E 시나리오 자리는 실행 칸을 본다', () => {
     const 실행없음 = 사람('member', [{ ...회원, permissions: { cases: 'read', runs: 'none', authoring: 'read' } }]);
-    expect(이름들(실행없음, 'MEM')).toEqual(['PRD 관리', 'API', '테스트 작성', '테스트 스크립트', '그래프(Grafana)']);
+    expect(이름들(실행없음, 'MEM')).toEqual(['PRD 관리', '테스트 작성', '테스트 스크립트', '그래프(Grafana)']);
   });
 
   it('그래프는 사람의 대시보드 칸을 본다. 애플리케이션과 상관없다', () => {
     const 대시보드없음 = 사람('member', [결제], 'none');
-    expect(이름들(대시보드없음, 'PAY')).toEqual(['대시보드', 'PRD 관리', 'API', '테스트 작성', '테스트 스크립트', 'E2E 시나리오', '실행 기록', '성능 테스트']);
+    expect(이름들(대시보드없음, 'PAY')).toEqual(['대시보드', 'PRD 관리', '테스트 작성', '테스트 스크립트', 'E2E 시나리오', '실행 기록', '성능 테스트']);
   });
 
   // 대시보드는 배정 서비스 전체의 실행 칸을 본다 — 고른 서비스가 아니다 (화면공통 §8 · 도메인/리포팅 §8.12)
@@ -135,23 +135,23 @@ describe('자리 목록', () => {
     expect(지금자리('prd', '#/cases')).toBe('#/prd');
   });
 
-  it('PRD 관리 하위는 요구사항 · 애플리케이션 가이드 둘이고 가이드 화면에서는 가이드에 밑줄이 간다', () => {
+  it('PRD 관리 하위는 요구사항 · 종류의 가이드 둘이고 가이드 화면에서는 가이드에 밑줄이 간다', () => {
     expect(자리목록(김, 'MEM', 'ko').find((자리) => 자리.해시 === '#/prd')?.하위).toEqual([
       { 이름: '요구사항', 해시: '#/prd', 라벨: 'PRD 관리 · 요구사항' },
-      { 이름: '애플리케이션 가이드', 해시: '#/prd/guide', 라벨: 'PRD 관리 · 애플리케이션 가이드' },
+      { 이름: '웹 가이드', 해시: '#/prd/guide', 라벨: 'PRD 관리 · 웹 가이드' },
     ]);
     expect(지금자리('prdGuide', '#/cases')).toBe('#/prd/guide');
   });
 
   it('성능 테스트 하위는 시나리오 · 페이지 성능 · 실행 기록 차례다 (웹)', () => {
     expect(자리목록(김, 'MEM', 'ko').find((자리) => 자리.이름 === '성능 테스트')?.하위).toEqual([
-      { 이름: '시나리오', 해시: '#/perf/scenarios', 라벨: '성능 테스트 · 시나리오' },
+      { 이름: '부하 테스트', 해시: '#/perf/scenarios', 라벨: '성능 테스트 · 부하 테스트' },
       { 이름: '페이지 성능', 해시: '#/perf/pages', 라벨: '성능 테스트 · 페이지 성능' },
       { 이름: '실행 기록', 해시: '#/perf/runs', 라벨: '성능 테스트 · 실행 기록' },
     ]);
   });
 
-  it('Android 앱 · API 애플리케이션에는 페이지 성능이 없고 시나리오 · 실행 기록은 늘 있다', () => {
+  it('Android 앱 · API 애플리케이션에는 페이지 성능이 없고 부하 테스트 · 실행 기록은 늘 있다', () => {
     const 앱 = { ...회원, kind: 'APP' as const };
     const API = { ...결제, kind: 'API' as const };
     const 하위해시 = (user: User, prefix: string) => 자리목록(user, prefix, 'ko').find((자리) => 자리.이름 === '성능 테스트')?.하위?.map((it) => it.해시);
@@ -161,55 +161,20 @@ describe('자리 목록', () => {
     expect(하위해시(사람('member', [앱, 결제]), 'PAY')).toContain('#/perf/pages');
   });
 
-  it('기기 성능은 Android 앱에는 늘, 웹에는 앱 케이스가 있을 때만, API 에는 없다. 자리는 페이지 성능 다음 · 실행 기록 앞이다', () => {
-    const API = { ...결제, kind: 'API' as const };
-    const 하위 = (user: User, prefix: string, 앱케이스: boolean) => 자리목록(user, prefix, 'ko', 앱케이스).find((자리) => 자리.이름 === '성능 테스트')?.하위;
-    expect(하위(김, 'MEM', false)?.map((it) => it.해시)).not.toContain('#/perf/devices');
-    expect(하위(김, 'MEM', true)?.map((it) => it.해시)).toEqual(['#/perf/scenarios', '#/perf/pages', '#/perf/devices', '#/perf/runs']);
-    expect(하위(김, 'MEM', true)?.find((it) => it.해시 === '#/perf/devices')).toEqual({ 이름: '기기 성능', 해시: '#/perf/devices', 라벨: '성능 테스트 · 기기 성능' });
-    expect(하위(사람('member', [API]), 'PAY', true)?.map((it) => it.해시)).toEqual(['#/perf/scenarios', '#/perf/runs']);
+  it('기기 성능은 Android 앱 · 게임에만 선다. 웹 · API 에는 없다. 자리는 페이지 성능 다음 · 실행 기록 앞이다', () => {
+    const 하위 = (kind: ServiceRow['kind']) => 자리목록(사람('member', [{ ...결제, kind }]), 'PAY', 'ko').find((자리) => 자리.이름 === '성능 테스트')?.하위;
+    expect(하위('SCREEN')?.map((it) => it.해시)).toEqual(['#/perf/scenarios', '#/perf/pages', '#/perf/runs']);
+    expect(하위('APP')?.find((it) => it.해시 === '#/perf/devices')).toEqual({ 이름: '앱 성능', 해시: '#/perf/devices', 라벨: '성능 테스트 · 앱 성능' });
+    expect(하위('GAME')?.find((it) => it.해시 === '#/perf/devices')?.이름).toBe('게임 성능');
+    expect(하위('API')?.map((it) => it.해시)).toEqual(['#/perf/scenarios', '#/perf/runs']);
     expect(지금자리('perfDevices', '#/cases')).toBe('#/perf/devices');
   });
 
-  it('API 애플리케이션에서는 실행 기록이 API 아래에 서고 실행 기록 묶음은 없다. 밑줄은 기능 테스트 실행 기록 주소로 간다', () => {
-    const API = { ...결제, kind: 'API' as const };
-    const 목록 = 자리목록(사람('member', [API]), 'PAY', 'ko');
-    expect(목록.find((자리) => 자리.해시 === '#/api/docs')?.하위).toEqual([
-      { 이름: 'API 문서', 해시: '#/api/docs', 라벨: 'API · API 문서' },
-      { 이름: '실행 기록', 해시: '#/runs/fn', 라벨: 'API · 실행 기록' },
-      { 이름: 'E2E 실행 기록', 해시: '#/runs/e2e', 라벨: 'API · E2E 실행 기록' },
-    ]);
-    expect(목록.map((자리) => 자리.이름)).toEqual(['대시보드', 'PRD 관리', 'API', '테스트 작성', '테스트 스크립트', 'E2E 시나리오', '성능 테스트', '그래프(Grafana)']);
-    expect(지금자리('runs', '#/cases', 'FN')).toBe('#/runs/fn');
-  });
-
-  it('API 애플리케이션에서 실행 결과 · 항목 상세를 열면 밑줄은 「API › 실행 기록」 이다. 다른 애플리케이션은 그대로다', () => {
-    const API목록 = 자리목록(사람('member', [{ ...결제, kind: 'API' as const }]), 'PAY', 'ko');
-    expect(실행기록자리(API목록)).toMatchObject({ 이름: '실행 기록', 해시: '#/runs/fn', 아이콘: 'runs' });
-    expect(실행기록자리(API목록)?.하위?.map((it) => it.해시)).toEqual(['#/runs/fn', '#/runs/e2e']);
-    expect(밑줄자리('#/runs', API목록)).toBe('#/runs/fn');
-    expect(밑줄자리('#/runs/e2e', API목록)).toBe('#/runs/e2e');
-    expect(밑줄자리('#/runs/ui', API목록)).toBe('#/runs/fn');
-    expect(밑줄자리('#/prd', API목록)).toBe('#/prd');
-    const 웹목록 = 자리목록(김, 'MEM', 'ko');
-    expect(실행기록자리(웹목록)?.해시).toBe('#/runs');
-    expect(밑줄자리('#/runs', 웹목록)).toBe('#/runs');
-  });
-
-  it('API 애플리케이션이라도 작성 칸이 없으면 API 자리가 없어 실행 기록 묶음에 남는다', () => {
+  it('API 애플리케이션이라도 작성 칸이 없으면 PRD 관리가 없고 실행 기록 묶음은 그대로다', () => {
     const API작성없음 = { ...결제, kind: 'API' as const, permissions: { cases: 'read' as const, runs: 'read' as const, authoring: 'none' as const } };
-    expect(자리목록(사람('member', [API작성없음]), 'PAY', 'ko').map((자리) => 자리.이름)).toContain('실행 기록');
-  });
-
-  it('API 애플리케이션이 아니면 API 하위는 API 문서 하나다', () => {
-    const 해시들 = 자리목록(김, 'MEM', 'ko').map((자리) => 자리.해시);
-    expect(해시들.indexOf('#/api/docs')).toBe(해시들.indexOf('#/prd') + 1);
-    expect(자리목록(김, 'MEM', 'ko').find((자리) => 자리.해시 === '#/api/docs')).toMatchObject({
-      이름: 'API',
-      아이콘: 'api',
-      하위: [{ 이름: 'API 문서', 해시: '#/api/docs', 라벨: 'API · API 문서' }],
-    });
-    expect(지금자리('apiDocs', '#/cases')).toBe('#/api/docs');
+    const 이름들 = 자리목록(사람('member', [API작성없음]), 'PAY', 'ko').map((자리) => 자리.이름);
+    expect(이름들).not.toContain('PRD 관리');
+    expect(이름들).toContain('실행 기록');
   });
 
   it('실행 결과와 항목 상세도 같은 규칙이다', () => {

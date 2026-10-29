@@ -1,0 +1,102 @@
+/* 사이드바 왼쪽 애플리케이션 줄 · 사이드바 머리 (SPEC 공통/5-화면공통 §8 「껍데기」 · 2026-10-29 시안 B). 색은 토큰만 쓴다.
+   줄은 `.side` 안의 첫 칸이다. 사이드바를 접어도 줄은 그대로 남는다 — 폭은 styles.css 의 `.wrap` 격자가 줄 몫(56px)을 더해 잡는다 */
+
+.rail {
+  flex: none;
+  width: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 0;
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+}
+
+.rail-app,
+.rail-add {
+  position: relative;
+  width: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 0 4px;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--ink-faint);
+  cursor: pointer;
+  font: inherit;
+  text-decoration: none;
+}
+
+.rail-app:hover,
+.rail-add:hover {
+  background: var(--rail-active);
+  color: var(--ink);
+}
+
+/* 지금 연 애플리케이션 — 자리 목록의 「지금 있는 자리」와 같은 말이라 같은 대표색 막대다 (화면공통 §8 「대표색 자리」) */
+.rail-app[aria-current='page'] {
+  background: var(--rail-active);
+  color: var(--ink);
+}
+
+.rail-app[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.rail-app:focus-visible,
+.rail-add:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+
+.rail-code {
+  max-width: 40px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+}
+
+.rail-add {
+  font-size: 18px;
+  line-height: 1;
+  padding: 8px 0;
+}
+
+.side-app {
+  display: flex;
+  flex-direction: column;
+  padding: 0 10px 10px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+}
+
+.side-app b {
+  font-size: 14px;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.side-app small {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+/* 접으면 머리 글자는 숨긴다 — 줄이 같은 것을 말한다 */
+.folded .side-app {
+  display: none;
+}

@@ -1,6 +1,6 @@
 // 메뉴 아이콘 — 패키지 없이 SVG 를 직접 둔다 (DESIGN.md 원칙 5). 글자를 대신하지 않고 곁에 선다
 
-export type 아이콘이름 = 'dashboard' | 'cases' | 'prd' | 'api' | 'authoring' | 'scenarios' | 'runs' | 'perf' | 'graph' | 'settings' | 'run' | 'bell' | 'person' | 'desktop' | 'phone' | 'game';
+export type 아이콘이름 = 'dashboard' | 'cases' | 'prd' | 'api' | 'authoring' | 'scenarios' | 'runs' | 'perf' | 'graph' | 'settings' | 'run' | 'bell' | 'person' | 'desktop' | 'web' | 'phone' | 'game';
 
 // 24 격자 · 선 1.8 · 둥근 끝. 색은 글자를 따른다(currentColor) — 지금 자리면 글자와 같이 밝아진다
 const 그림: Record<아이콘이름, React.ReactNode> = {
@@ -109,14 +109,21 @@ const 그림: Record<아이콘이름, React.ReactNode> = {
       <path d="M8 21h8M12 17v4" />
     </>
   ),
-  // 폰 — 헤더 고른 칸의 종류 「Android 앱」 표시. 접두사 칩이 곁에 선다
+  // 지구 — 애플리케이션 줄의 종류 「웹」 표시. 웹만 빈칸이면 「아이콘이 없으면 웹」을 외워야 한다 (2026-10-29 사용자)
+  web: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" />
+    </>
+  ),
+  // 폰 — 애플리케이션 줄의 종류 「Android 앱」 표시
   phone: (
     <>
       <rect x="7" y="2" width="10" height="20" rx="2" />
       <path d="M11 18h2" />
     </>
   ),
-  // 게임패드 — 십자 키와 단추 둘. 폰 모양이면 Android 앱과 헤더에서 안 갈린다
+  // 게임패드 — 십자 키와 단추 둘. 폰 모양이면 Android 앱과 애플리케이션 줄에서 안 갈린다
   game: (
     <>
       <rect x="2" y="7" width="20" height="11" rx="5" />

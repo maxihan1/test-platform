@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 
-import { Head } from './Head.js';
+import { Head, use지금앱 } from './Head.js';
 import { use말, use언어 } from './i18n.js';
+import { 기기성능이름 } from './kind.js';
 import { perfApi } from './perfApi.js';
 import { 실행상태글자 } from './PerfScenarioList.js';
 import { 명글자, 분초, 시각글, 사유이름, 초글자, 측정자리, 퍼센트글자, 판정꼴, 판정이름, 판정종류 } from './perfRunView.js';
@@ -21,6 +22,7 @@ const 거르개들: { 값: 판정종류 | ''; 이름: string }[] = [
 export function PerfRunList({ serviceId }: { serviceId: number }) {
   const t = use말();
   const 언어 = use언어();
+  const 기기성능 = 기기성능이름(use지금앱()?.kind);
   const [시나리오, set시나리오] = useState<number | undefined>(undefined);
   const [판정, set판정] = useState<판정종류 | ''>('');
   const 시나리오들 = useAsync(() => perfApi.scenarios(serviceId), [serviceId]);
@@ -98,7 +100,7 @@ export function PerfRunList({ serviceId }: { serviceId: number }) {
                           </a>
                         </td>
                         <td>
-                          {자리 === null ? 줄.title : <a href={주소}>{t(자리 === '#/perf/pages' ? '페이지 성능' : '기기 성능')}</a>} {줄.origin === 'SCHEDULED' ? <span className="perf-tag">{t('정기')}</span> : null}
+                          {자리 === null ? 줄.title : <a href={주소}>{t(자리 === '#/perf/pages' ? '페이지 성능' : 기기성능)}</a>} {줄.origin === 'SCHEDULED' ? <span className="perf-tag">{t('정기')}</span> : null}
                         </td>
                         <td>{줄.testType === null ? '-' : t(유형글자[줄.testType].이름)} · {줄.env}</td>
                         <td className="perf-faint">{시각글(줄.startedAt, 언어)}</td>

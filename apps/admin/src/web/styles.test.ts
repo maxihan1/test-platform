@@ -191,7 +191,7 @@ describe('화면 토큰 (DESIGN.md)', () => {
     // 접은 보람이 없다. 상한을 풀어야 창을 채운다 (2026-09-21 실측 — 960 → 1160 밖에 안 늘었다)
     const 접힘 = /\.wrap\.folded\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
     expect(접힘).toMatch(/max-width:\s*none/);
-    expect(접힘).toMatch(/grid-template-columns:\s*44px/);
+    expect(접힘).toMatch(/grid-template-columns:\s*100px/);
   });
 
   it('접어도 자리 목록을 화면에서 지우지 않는다', () => {

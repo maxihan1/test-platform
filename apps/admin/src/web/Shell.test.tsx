@@ -65,6 +65,11 @@ function 띄운다(
   );
 }
 
+// 줄(애플리케이션)과 자리 목록, nav 가 둘이다 — 자리 목록은 클래스로 고른다
+function 자리nav() {
+  return screen.getAllByRole('navigation').find((nav) => nav.className === 'side-nav')!;
+}
+
 function 색표시() {
   return document.querySelector('[data-service-color]');
 }
@@ -88,27 +93,29 @@ describe('애플리케이션 색을 걷었다 (SPEC §8, 2026-09-22)', () => {
     expect(document.querySelector('[style*="--svc"]')).toBeNull();
   });
 
-  it('`DEMO-` 꼴의 접두사 표시는 없다. 헤더 칩은 접두사 글자 하나만 보인다 (2026-10-13)', () => {
+  it('`DEMO-` 꼴의 접두사 표시는 없다. 줄 단추는 접두사 글자 하나만 보인다 (2026-10-13)', () => {
     띄운다(결제);
     expect(document.querySelector('.side-svc-id')).toBeNull();
     expect(document.body.textContent).not.toContain('ZSH-');
-    expect(document.querySelector('.hd-svc-code')?.textContent).toBe('ZSH');
+    expect(document.querySelector('.hd-svc-code')).toBeNull();
+    expect(Array.from(document.querySelectorAll('.rail-code')).map((it) => it.textContent)).toEqual(['ZSH', 'ZSI']);
   });
 
-  it('구분은 이름이 한다. 색을 걷어도 어느 애플리케이션인지 읽힌다', () => {
+  it('구분은 이름이 한다. 색을 걷어도 줄 단추 이름과 사이드바 머리로 어느 애플리케이션인지 읽힌다', () => {
     띄운다(결제);
-    expect(screen.getByRole('combobox', { name: '애플리케이션 선택' })).toBeTruthy();
-    expect(screen.getByText('결제 애플리케이션')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '결제 애플리케이션 · 웹' }).getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('button', { name: '정산 애플리케이션 · 웹' }).getAttribute('aria-current')).toBeNull();
+    expect(document.querySelector('.side-app b')?.textContent).toBe('결제 애플리케이션');
   });
 });
 
 describe('세로 껍데기 (SPEC §8)', () => {
-  it('맨 위 헤더가 애플리케이션 선택 · 알림 · 언어 · 계정을, 사이드바가 자리 전부를 들고 있다', () => {
+  it('맨 위 헤더가 알림 · 언어 · 계정을, 사이드바가 애플리케이션 줄과 자리 전부를 들고 있다', () => {
     띄운다(결제);
     const 헤더 = document.querySelector('header.hd') as HTMLElement | null;
     expect(헤더).not.toBeNull();
     const 위 = within(헤더!);
-    expect(위.getByRole('combobox', { name: '애플리케이션 선택' })).toBeTruthy();
+    expect(위.queryByRole('combobox', { name: '애플리케이션 선택' })).toBeNull();
     expect(위.getByLabelText('언어')).toBeTruthy();
     expect(위.getByRole('button', { name: 사람.displayName })).toBeTruthy();
     expect(위.getByRole('button', { name: /알림/ })).toBeTruthy();
@@ -120,7 +127,7 @@ describe('세로 껍데기 (SPEC §8)', () => {
     expect(헤더!.compareDocumentPosition(사이드!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // 하위 메뉴도 링크다 (PR #132)
     const 자리들 = 자리목록(사람, 결제.prefix, 'ko');
-    expect(within(안.getByRole('navigation')).getAllByRole('link')).toHaveLength(
+    expect(within(자리nav()).getAllByRole('link')).toHaveLength(
       자리들.length + 자리들.reduce((합, 자리) => 합 + (자리.하위?.length ?? 0), 0),
     );
     // 앞 판이 사이드바 바닥에 두던 것은 이제 사이드바에 없다
@@ -196,7 +203,7 @@ describe('사이드바 하위 메뉴 (화면공통 §8 · PR #132)', () => {
     expect(screen.getByRole('group', { name: '실행 기록' })).toBeTruthy();
   });
 
-  it('API 애플리케이션에서 실행 결과를 열면 「API › 실행 기록」 에 밑줄이 가고 API 묶음이 펼친 표시를 받는다', () => {
+  it('API 애플리케이션도 실행 기록 묶음(기능 테스트 · E2E)을 쓰고 API 묶음은 없다', () => {
     const API = { ...결제, kind: 'API' as const };
     vi.spyOn(api, 'notifications').mockResolvedValue({ running: [], recent: [] });
     render(
@@ -206,9 +213,11 @@ describe('사이드바 하위 메뉴 (화면공통 §8 · PR #132)', () => {
         </Shell>
       </언어함>,
     );
-    expect(screen.getByRole('link', { name: 'API · 실행 기록' }).getAttribute('aria-current')).toBe('page');
-    expect(screen.getByRole('link', { name: 'API' }).hasAttribute('data-open')).toBe(true);
-    expect(screen.queryByRole('group', { name: '실행 기록' })).toBeNull();
+    expect(screen.getByRole('link', { name: '실행 기록' }).hasAttribute('data-open')).toBe(true);
+    expect(screen.getByRole('link', { name: '실행 기록 · 기능 테스트' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: '실행 기록 · E2E' })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: '실행 기록 · UI 테스트' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'API' })).toBeNull();
   });
 
   it('접혀도 하위 메뉴에 키보드로 닿는다 — 지우지 않고 글자만 숨긴다', () => {
@@ -225,7 +234,7 @@ describe('껍데기 이름 정리 (2026-09-21 ②)', () => {
 
     // 이름을 기계로 바꾸다가 `<nav>` 가 `<side-nav>` 라는 없는 요소가 된 적이 있다.
     // 링크는 그대로 보여서 검사가 전부 초록이었는데, 화면을 안 보는 사람은 자리 목록을 통째로 못 찾는다
-    const 자리 = screen.getByRole('navigation');
+    const 자리 = 자리nav();
     expect(자리.className).toBe('side-nav');
     expect(자리.tagName).toBe('NAV');
   });
@@ -271,7 +280,7 @@ describe('언어 고르개 (SPEC §8 다국어)', () => {
 
   it('영어면 자리 목록이 영어로 뜬다', () => {
     띄운다(결제, 'en');
-    expect(screen.getByRole('navigation').textContent).not.toContain('실행 기록');
+    expect(자리nav().textContent).not.toContain('실행 기록');
   });
 
   it('이름을 누르면 비밀번호 변경이 나온다 — 변경 강제가 아니어도 본인이 바꾼다', () => {
@@ -324,15 +333,15 @@ describe('언어 고르개 (SPEC §8 다국어)', () => {
 describe('대시보드 자리 (화면공통 §8 · 도메인/리포팅 §8.12)', () => {
   it('대시보드가 자리 목록 맨 위에 있고 지금 자리면 표시한다', () => {
     띄운다(결제, 'ko', () => {}, '#/dashboard');
-    const 링크 = within(screen.getByRole('navigation')).getAllByRole('link')[0]!;
+    const 링크 = within(자리nav()).getAllByRole('link')[0]!;
     expect(링크.textContent).toBe('대시보드');
     expect(링크.getAttribute('href')).toBe('#/dashboard');
     expect(링크.getAttribute('aria-current')).toBe('page');
   });
 
-  it('대시보드에서도 애플리케이션 선택 칸이 남는다. 알림 줄은 없고 「알림」 버튼만 있다 (2026-10-13 시안 A)', () => {
+  it('대시보드에서도 애플리케이션 줄이 남는다. 알림 줄은 없고 「알림」 버튼만 있다 (2026-10-13 시안 A)', () => {
     const { container } = 띄운다(결제, 'ko', () => {}, '#/dashboard');
-    expect(screen.getByRole('combobox', { name: '애플리케이션 선택' })).toBeTruthy();
+    expect(screen.getByRole('navigation', { name: '애플리케이션' })).toBeTruthy();
     expect(container.querySelector('.nt-lines')).toBeNull();
     expect(screen.getByRole('button', { name: /알림/ })).toBeTruthy();
   });
@@ -349,15 +358,15 @@ describe('대시보드 자리 (화면공통 §8 · 도메인/리포팅 §8.12)',
     expect(container.querySelector('.foot')!.textContent).toBe('결제 애플리케이션 · QA Hub');
   });
 
-  it('다른 자리에서는 고르개가 그대로 있다', () => {
+  it('다른 자리에서도 애플리케이션 줄이 그대로 있다', () => {
     띄운다(결제, 'ko', () => {}, '#/cases');
-    expect(screen.getByRole('combobox', { name: '애플리케이션 선택' })).toBeTruthy();
+    expect(screen.getByRole('navigation', { name: '애플리케이션' })).toBeTruthy();
     expect(api.notifications).toHaveBeenCalled();
   });
 
   it('영어 이름은 Dashboard 다', () => {
     띄운다(결제, 'en', () => {}, '#/dashboard');
-    expect(within(screen.getByRole('navigation')).getAllByRole('link')[0]!.textContent).toBe('Dashboard');
+    expect(within(자리nav()).getAllByRole('link')[0]!.textContent).toBe('Dashboard');
   });
 });
 

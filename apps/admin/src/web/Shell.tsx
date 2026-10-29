@@ -6,20 +6,21 @@ import { useEffect, useState } from 'react';
 import type { ServiceRow, User } from './api.js';
 import {
   고른서비스를적는다,
-  밑줄자리,
   빈띠사유,
   사이드바접었나,
   사이드바접음을적는다,
   자리목록,
   탭제목,
 } from './layout.js';
+import { 지금앱칸 } from './Head.js';
 import { use말, type 언어 } from './i18n.js';
 import { 아이콘 } from './icons.js';
 import { Notice } from './Notice.js';
 import { use휴대폰 } from './phone.js';
 import { PhoneShell } from './PhoneShell.js';
+import { 할수있나 } from './role.js';
 import { ShellHeader } from './ShellHeader.js';
-import { use앱케이스 } from './useAppCases.js';
+import { 사이드바머리, 애플리케이션줄 } from './ShellRail.js';
 import { use가입대기수 } from './useSignupWaiting.js';
 
 interface Props {
@@ -62,13 +63,15 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
   const 휴대폰 = use휴대폰();
   // 가입 신청은 운영 계정이 설정에서 수락한다. 사이드바가 없는 휴대폰에서는 읽지 않는다
   const 가입대기 = use가입대기수(user.role === 'admin' && !휴대폰, current);
-  const 앱케이스 = use앱케이스(user, service);
-  const 자리들 = 자리목록(user, service?.prefix ?? null, 언어, 앱케이스);
-  const 밑줄 = 밑줄자리(current, 자리들);
+  const 자리들 = 자리목록(user, service?.prefix ?? null, 언어);
+  // 화면 머리가 제목 앞에 애플리케이션 이름을 붙인다 (화면공통 §8 「화면 머리」 · 2026-10-29).
+  // 대시보드는 여러 애플리케이션을 모으고, 설정은 안에서 애플리케이션을 따로 고르고, 비밀번호는 계정의 일이라 고른 애플리케이션과 상관없다
+  const 앱과상관없다 = 대시보드인가 || current === '#/password' || current === '#/settings';
+  const 본문 = <지금앱칸.Provider value={앱과상관없다 ? null : service}>{children}</지금앱칸.Provider>;
   if (휴대폰) {
     return (
-      <PhoneShell user={user} service={service} onService={onService} 언어={언어} on언어={on언어} onLogout={onLogout} current={current} 주소={주소} 사유={사유} 앱케이스={앱케이스}>
-        {children}
+      <PhoneShell user={user} service={service} onService={onService} 언어={언어} on언어={on언어} onLogout={onLogout} current={current} 주소={주소} 사유={사유}>
+        {본문}
       </PhoneShell>
     );
   }
@@ -80,6 +83,8 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
           2026-09-21 ② 에 옛 이름(`.band`·`.nav`·`.notice`·`.svc-dot`)을 걷어냈다.
           PR① 이 남겨 둔 것은 그 이름으로 단언하는 검사가 있었기 때문이고, 그 검사를 같이 고쳤다 */}
       <aside className="side">
+        <애플리케이션줄 user={user} service={service} onService={onService} 새로만들기={할수있나(user, service?.prefix ?? null, '설정')} />
+        <div className="side-col">
         {/* 접어도 자리 목록을 **지우지 않는다.** display:none 을 쓰면 키보드 탭 대상에서 빠져
             키보드로만 쓰는 사람이 이동을 통째로 잃는다. 폭만 줄이고 글자를 숨긴다 */}
         <button
@@ -94,6 +99,7 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
         >
           {접음 ? '»' : '«'}
         </button>
+        {service === null ? null : <사이드바머리 service={service} />}
         <nav className="side-nav">
           {자리들.map((자리) =>
             자리.바깥 === true ? (
@@ -102,7 +108,7 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
                 {자리.이름} ↗
               </a>
             ) : 자리.하위 === undefined ? (
-              <a key={자리.해시} href={자리.해시} {...(밑줄 === 자리.해시 ? { 'aria-current': 'page' as const } : {})}>
+              <a key={자리.해시} href={자리.해시} {...(current === 자리.해시 ? { 'aria-current': 'page' as const } : {})}>
                 <아이콘 이름={자리.아이콘} />
                 {자리.이름}
                 {자리.해시 === '#/settings' && 가입대기 > 0 ? (
@@ -119,8 +125,8 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
                 <a
                   id={`side-${자리.해시.slice(2)}`}
                   href={자리.해시}
-                  // 「API › 실행 기록」 처럼 하위 주소가 묶음 주소 아래가 아니어도 그 하위가 지금이면 펼친다
-                  {...(밑줄 === 자리.해시 || 밑줄.startsWith(`${자리.해시}/`) || 자리.하위.some((하위) => 하위.해시 === 밑줄) ? { 'data-open': '' } : {})}
+                  // 「PRD 관리 › API 문서」 처럼 하위 주소가 묶음 주소 아래가 아니어도 그 하위가 지금이면 펼친다
+                  {...(current === 자리.해시 || current.startsWith(`${자리.해시}/`) || 자리.하위.some((하위) => 하위.해시 === current) ? { 'data-open': '' } : {})}
                 >
                   <아이콘 이름={자리.아이콘} />
                   {자리.이름}
@@ -131,7 +137,7 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
                     className="side-sub"
                     href={하위.해시}
                     aria-label={하위.라벨}
-                    {...(밑줄 === 하위.해시 ? { 'aria-current': 'page' as const } : {})}
+                    {...(current === 하위.해시 ? { 'aria-current': 'page' as const } : {})}
                   >
                     {하위.이름}
                   </a>
@@ -140,6 +146,7 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
             ),
           )}
         </nav>
+        </div>
       </aside>
 
       <div className="main">
@@ -157,7 +164,7 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
         )}
 
         {사유 === null ? (
-          children
+          본문
         ) : (
           <div className="screen">
             <div className="empty">

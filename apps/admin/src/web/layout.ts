@@ -4,7 +4,7 @@
 import type { ServiceRow, User } from './api.js';
 import { 기본언어, t, type 언어 } from './i18n.js';
 import type { 아이콘이름 } from './icons.js';
-import { 종류 } from './kind.js';
+import { 종류, 종류키 } from './kind.js';
 import { 기능보나, 할수있나 } from './role.js';
 import { 대시보드보나 } from './route.js';
 
@@ -32,12 +32,11 @@ export interface 하위자리 {
   라벨: string;
 }
 
-function 종류하위(묶음: string, 바탕: '#/cases' | '#/runs', 언어: 언어): 하위자리[] {
+function 종류하위(묶음: string, 바탕: '#/cases' | '#/runs', 언어: 언어, UI없음 = false): 하위자리[] {
   // 묶음을 누르면 기능으로 간다(route.ts — 종류 없는 주소는 기능). 첫 하위가 그 화면이어야 누른 자리와 열린 화면이 맞는다
-  const 종류들 = [
-    ['기능 테스트', 'fn'],
-    ['UI 테스트', 'ui'],
-  ];
+  // UI 테스트는 API 애플리케이션에 없다 — 화면이 없어 작성이 만들지 않는다 (도메인/API §3.1)
+  const 종류들 = [['기능 테스트', 'fn']];
+  if (!UI없음) 종류들.push(['UI 테스트', 'ui']);
   // E2E 는 돌린 기록에만 있다. 시나리오는 케이스가 아니라 케이스 목록에 없다 (도메인/실행 §8.7)
   if (바탕 === '#/runs') 종류들.push(['E2E', 'e2e']);
   return 종류들.map(([이름, 꼬리]) => ({
@@ -66,54 +65,49 @@ const 그래프주소 = '/grafana/';
  * 케이스·작성·실행은 **고른 서비스**의 칸을 보고, 그래프는 사람의 대시보드 칸을 본다.
  * 앱 대시보드는 배정 서비스 전체의 실행 칸이다 — 둘은 이름만 같고 칸이 다르다 (화면공통 §8).
  */
-export function 자리목록(user: User, prefix: string | null, 언어: 언어, 앱케이스 = false): 자리[] {
+export function 자리목록(user: User, prefix: string | null, 언어: 언어): 자리[] {
   const 목록: 자리[] = [];
   const 고른종류 = user.services.find((서비스) => 서비스.prefix === prefix)?.kind;
-  const API실행기록 = API실행기록인가(user, prefix);
+  // 메뉴는 고른 애플리케이션 종류 하나로만 정한다 — 케이스 유무로 자리가 생기거나 사라지지 않는다 (화면공통 §8 「자리 목록」 · 2026-10-29 사용자 메뉴 C안)
+  const 줄 = 종류(고른종류);
+  const API = 종류키(고른종류) === 'API';
   // 맨 위다. 고른 서비스가 아니라 배정 서비스 전체의 실행 칸을 본다 (route.ts 의 `대시보드보나`)
   if (대시보드보나(user)) 목록.push({ 이름: t('대시보드', 언어), 해시: '#/dashboard', 아이콘: 'dashboard' });
   if (기능보나(user, prefix, 'authoring')) {
     // 작성은 표준 기획서를 읽어 테스트를 만든다 — 흐름 차례대로 그 위에 둔다 (화면공통 §8)
-    // 하위 둘 — 요구사항(표준 기획서) · 서비스 가이드 (화면공통 §8 「자리 목록」 · PRD-F11-03)
+    // 작성이 읽는 기준 문서는 다 여기 모인다 — API 문서도 API 애플리케이션이면 PRD 옆 하위다. 네 종류의 맨 위 메뉴가 같아진다 (2026-10-29 사용자)
     const 이름 = t('PRD 관리', 언어);
     const 하위 = (글: string, 해시: string): 하위자리 => ({ 이름: t(글, 언어), 해시, 라벨: `${이름} · ${t(글, 언어)}` });
-    목록.push({ 이름, 해시: '#/prd', 아이콘: 'prd', 하위: [하위('요구사항', '#/prd'), 하위('애플리케이션 가이드', '#/prd/guide')] });
-    // PRD 바로 다음 · 늘 보인다 — API 애플리케이션이 아니면 본문이 안내 한 줄이다 (화면공통 §8 「자리 목록」 · 도메인/API §3.8 결정 6)
-    const API이름 = t('API', 언어);
-    const API하위 = (글: string, 해시: string): 하위자리 => ({ 이름: t(글, 언어), 해시, 라벨: `${API이름} · ${t(글, 언어)}` });
     목록.push({
-      이름: API이름,
-      해시: '#/api/docs',
-      아이콘: 'api',
-      // 화면은 기능 테스트 실행 기록 그대로다 — 같은 주소라 밑줄도 여기 간다
-      // UI 테스트는 API 애플리케이션에 없다. E2E 는 API 케이스도 시나리오에 섞이므로 남긴다
-      하위: [API하위('API 문서', '#/api/docs'), ...(API실행기록 ? [API하위('실행 기록', '#/runs/fn'), API하위('E2E 실행 기록', '#/runs/e2e')] : [])],
+      이름,
+      해시: '#/prd',
+      아이콘: 'prd',
+      하위: [하위('요구사항', '#/prd'), ...(API ? [하위('API 문서', '#/api/docs')] : []), 하위(줄.가이드, '#/prd/guide')],
     });
     목록.push({ 이름: t('테스트 작성', 언어), 해시: '#/authoring', 아이콘: 'authoring' });
   }
   if (기능보나(user, prefix, 'cases')) {
     const 이름 = t('테스트 스크립트', 언어);
-    목록.push({ 이름, 해시: '#/cases', 아이콘: 'cases', 하위: 종류하위(이름, '#/cases', 언어) });
+    // API 애플리케이션은 기능 테스트뿐이라 하위 없이 바로 그 목록이다. 주소는 지금 자리(`지금자리` 의 `#/cases/fn`)와 같아야 밑줄이 간다
+    목록.push(API ? { 이름, 해시: '#/cases/fn', 아이콘: 'cases' } : { 이름, 해시: '#/cases', 아이콘: 'cases', 하위: 종류하위(이름, '#/cases', 언어) });
   }
   if (기능보나(user, prefix, 'runs')) {
     // 만드는 일(작성 → 케이스 → 시나리오) 끝, 보는 일 앞이다 (화면공통 §8). 시나리오는 실행 칸을 쓴다 (도메인/시나리오 §7)
     목록.push({ 이름: t('E2E 시나리오', 언어), 해시: '#/scenarios', 아이콘: 'scenarios' });
     const 이름 = t('실행 기록', 언어);
-    if (!API실행기록) 목록.push({ 이름, 해시: '#/runs', 아이콘: 'runs', 하위: 종류하위(이름, '#/runs', 언어) });
-    // 실행 기록 다음 · 그래프 앞 (화면공통 §8 「자리 목록」). 하위는 시나리오 · 페이지 성능 · 기기 성능 · 실행 기록이다
-    // 페이지 성능 · 기기 성능은 고른 애플리케이션 종류에 맞을 때만 선다 (kind.ts). 웹의 기기 성능은 앱 케이스가 있을 때만이다 — 그 여부는 껍데기가 읽어 넘긴다
+    목록.push({ 이름, 해시: '#/runs', 아이콘: 'runs', 하위: 종류하위(이름, '#/runs', 언어, API) });
+    // 실행 기록 다음 · 그래프 앞 (화면공통 §8 「자리 목록」). 페이지 성능 · 기기 성능은 고른 애플리케이션 종류에 맞을 때만 선다 (kind.ts)
     const 성능 = t('성능 테스트', 언어);
     const 성능하위 = (글: string, 해시: string): 하위자리 => ({ 이름: t(글, 언어), 해시, 라벨: `${성능} · ${t(글, 언어)}` });
-    const 줄 = 종류(고른종류);
-    const 기기성능 = 줄.기기성능 === 'ALWAYS' || (줄.기기성능 === 'APP_CASES' && 앱케이스);
     목록.push({
       이름: 성능,
       해시: '#/perf/scenarios',
       아이콘: 'perf',
       하위: [
-        성능하위('시나리오', '#/perf/scenarios'),
+        // 「시나리오」는 「E2E 시나리오」와 헷갈렸다 — 만드는 것이 부하 시나리오라 「부하 테스트」 (2026-10-29 사용자)
+        성능하위('부하 테스트', '#/perf/scenarios'),
         ...(줄.페이지성능 ? [성능하위('페이지 성능', '#/perf/pages')] : []),
-        ...(기기성능 ? [성능하위('기기 성능', '#/perf/devices')] : []),
+        ...(줄.기기성능 === null ? [] : [성능하위(줄.기기성능, '#/perf/devices')]),
         성능하위('실행 기록', '#/perf/runs'),
       ],
     });
@@ -121,31 +115,6 @@ export function 자리목록(user: User, prefix: string | null, 언어: 언어, 
   if (user.dashboard === 'read') 목록.push({ 이름: t('그래프(Grafana)', 언어), 해시: 그래프주소, 아이콘: 'graph', 바깥: true });
   if (할수있나(user, prefix, '설정')) 목록.push({ 이름: t('설정', 언어), 해시: '#/settings', 아이콘: 'settings' });
   return 목록;
-}
-
-/**
- * API 애플리케이션의 실행 기록이 「API」 아래에 서나 — 기능 테스트 묶음에 섞이면 찾기 어렵다 (화면공통 §8 「자리 목록」 · 2026-10-28 사용자).
- * 작성 칸이 없으면 API 자리가 없어 옛 묶음에 남는다. 메뉴와 실행 기록 화면의 위치 표시가 같이 본다
- */
-export function API실행기록인가(user: User, prefix: string | null): boolean {
-  return user.services.find((서비스) => 서비스.prefix === prefix)?.kind === 'API' && 기능보나(user, prefix, 'authoring') && 기능보나(user, prefix, 'runs');
-}
-
-/** 실행 기록으로 가는 자리 — 「실행 기록」 묶음이고, API 애플리케이션이면 「API」 아래 자리다. 휴대폰 탭 · 밑줄이 쓴다 */
-export function 실행기록자리(자리들: 자리[]): 자리 | undefined {
-  const 묶음 = 자리들.find((it) => it.해시 === '#/runs');
-  if (묶음 !== undefined) return 묶음;
-  const API아래 = (자리들.find((it) => it.해시 === '#/api/docs')?.하위 ?? []).filter((it) => it.해시.startsWith('#/runs/'));
-  const 첫 = API아래[0];
-  return 첫 === undefined ? undefined : { 이름: 첫.이름, 해시: 첫.해시, 아이콘: 'runs', 하위: API아래 };
-}
-
-/** 실행 기록 묶음이 없는 메뉴(API 애플리케이션)에서 실행 결과 · 항목 상세처럼 메뉴에 없는 실행 주소를 열면 「API › 실행 기록」 에 밑줄을 둔다 — 안 그러면 어디에도 밑줄이 없다 */
-export function 밑줄자리(current: string, 자리들: 자리[]): string {
-  if (current !== '#/runs' && !current.startsWith('#/runs/')) return current;
-  const 곳 = 실행기록자리(자리들);
-  if (곳 === undefined || 곳.해시 === '#/runs' || 곳.하위?.some((it) => it.해시 === current) === true) return current;
-  return 곳.해시;
 }
 
 /**

@@ -164,7 +164,7 @@ it('고칠 때는 네 단계를 다 끝낸 것으로 보고 바로 간다', asyn
   fireEvent.click(screen.getByRole('button', { name: '임시 저장' }));
   await waitFor(() => expect(저장).toHaveBeenCalled());
   expect(저장.mock.calls[0]![1].targets).toEqual([{ metric: 'ERROR_RATE', op: '<=', value: 2, source: 'MANUAL', reqId: undefined }]);
-  expect(await screen.findByText('ZPW 웹 · 버전 4')).toBeTruthy();
+  expect(await screen.findByText('버전 4')).toBeTruthy();
 });
 
 it('실행 읽기만 있는 사람에게는 저장 · 실행 · 가져오기가 없다', async () => {

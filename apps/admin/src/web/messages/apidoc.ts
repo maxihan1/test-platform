@@ -1,4 +1,4 @@
-// 「API › API 문서」 화면 글자의 영어 (도메인/API §8.13). 키는 한국어 원문이다
+// 「PRD 관리 › API 문서」 화면 글자의 영어 (도메인/API §8.13). 키는 한국어 원문이다
 // 여기에 넣은 키는 화면 어딘가가 실제로 써야 한다 — messages.test.ts 가 양방향으로 센다
 
 export const API문서말: Record<string, string> = {

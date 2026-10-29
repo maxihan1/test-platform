@@ -145,7 +145,7 @@ function 스웨거칸({ service, 맡기기 }: { service: ServiceRow; 맡기기: 
 
   if (문서.error !== null) return <Failed error={문서.error} />;
   if (문서.data === null) return <Loading />;
-  if (문서.data.판 === null) return <div className="perf-well perf-faint">{t('이 애플리케이션에 올린 API 문서가 없습니다. API › API 문서에서 먼저 올려 주세요')}</div>;
+  if (문서.data.판 === null) return <div className="perf-well perf-faint">{t('이 애플리케이션에 올린 API 문서가 없습니다. PRD 관리 › API 문서에서 먼저 올려 주세요')}</div>;
   const { version, 작업들 } = 문서.data.판;
 
   function 가져오기() {
