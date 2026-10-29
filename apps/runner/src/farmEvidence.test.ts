@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const farmArtifacts = vi.fn();
 vi.mock('appium-cli', () => ({ farmArtifacts: (...a: unknown[]) => farmArtifacts(...a) }));
 
-const { 팜증적받기를줄세운다, 팜증적을받는다 } = await import('./farmEvidence.js');
+const { 팜증적받기를줄세운다, 팜증적을받는다, 팜토큰을지운다 } = await import('./farmEvidence.js');
 
 let 임시: string;
 const 폴더 = () => runDir('3', '9');
@@ -54,6 +54,22 @@ describe('팜증적을받는다', () => {
     process.env.PLATFORM_APPIUM_TOKEN = 'pat_abc';
     await 팜증적을받는다(3, 9, 'FAIL');
     expect(farmArtifacts).toHaveBeenCalledWith('http://farm:4723/wd/hub', 'sess-1', expect.any(String), { token: 'pat_abc' });
+  });
+
+  it('요청이 준 토큰이 있으면 환경값보다 앞선다 — 팜은 연결을 연 사람에게만 증적을 준다', async () => {
+    process.env.PLATFORM_APPIUM_TOKEN = 'pat_server';
+    await 팜증적을받는다(3, 9, 'FAIL', 'pat_kim');
+    expect(farmArtifacts).toHaveBeenCalledWith('http://farm:4723/wd/hub', 'sess-1', expect.any(String), { token: 'pat_kim' });
+  });
+
+  it('답 안의 팜 토큰은 어디에 있든 별표로 바꾸고, 줄 글자 꼴(따옴표 · 줄바꿈 이스케이프)도 깨지지 않는다', () => {
+    const 답 = { status: 'FAIL', error: { message: 'Bearer pat_kim 401', stack: 'env PLATFORM_APPIUM_TOKEN="pat_server"\n' }, steps: [{ name: 'pat_kim' }] };
+    expect(팜토큰을지운다(답, ['pat_kim', 'pat_server', undefined])).toEqual({
+      status: 'FAIL',
+      error: { message: 'Bearer ******** 401', stack: 'env PLATFORM_APPIUM_TOKEN="********"\n' },
+      steps: [{ name: '********' }],
+    });
+    expect(팜토큰을지운다(답, [undefined, ''])).toBe(답);
   });
 
   it('미실행(중단 · 시간 초과) 항목도 받는다', async () => {

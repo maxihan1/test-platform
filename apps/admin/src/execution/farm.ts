@@ -11,9 +11,9 @@ export function 팜주소(env: Record<string, string | undefined> = process.env)
   return env.DEVICE_FARM_URL?.replace(/\/+$/, '') || undefined;
 }
 
-// 인증 켠 팜은 모든 요청에 토큰을 받는다. 서버 몫 토큰 하나를 싣고, 사람마다 토큰은 통합 인증 뒤(APP-F1-13)다 (도메인/러너 §5.2 「디바이스 팜 접속 방식」)
-export function 팜머리(env: Record<string, string | undefined> = process.env): Record<string, string> {
-  const 토큰 = env.DEVICE_FARM_TOKEN ?? '';
+// 인증 켠 팜은 모든 요청에 토큰을 받는다. 누른 사람 토큰을 받았으면 그것, 아니면 서버 몫이다 (도메인/러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」)
+export function 팜머리(env: Record<string, string | undefined> = process.env, 사람토큰?: string): Record<string, string> {
+  const 토큰 = 사람토큰 ?? env.DEVICE_FARM_TOKEN ?? '';
   return 토큰 === '' ? {} : { authorization: `Bearer ${토큰}` };
 }
 
@@ -22,12 +22,13 @@ type 고름 = { serial: string } | { reason: string };
 
 // 빈 폰(IDLE)만 고른다. 사람이 팜 화면에서 「쓰기」로 잡은 폰도 인증 없는 팜에서는 「내 것」으로 보여,
 // 그 폰을 잡았다 놓으면 쓰던 사람이 쫓겨난다
-async function 빈폰을고른다(팜: string, 부르기: typeof fetch, 쉬기: (ms: number) => Promise<void>): Promise<고름> {
+async function 빈폰을고른다(팜: string, 부르기: typeof fetch, 쉬기: (ms: number) => Promise<void>, 토큰: string | undefined): Promise<고름> {
   const 끝 = Date.now() + 정리_기다림_ms;
   for (;;) {
-    const 목록 = await 부르기(`${팜}/api/devices`, { headers: 팜머리(), signal: AbortSignal.timeout(팜_제한_ms) });
-    // 인증 켠 팜은 토큰이 없거나 틀리면 401 이다 — 주소나 팜을 의심하기 전에 토큰을 보게 한다
-    if (!목록.ok) return { reason: `디바이스 팜이 기기 목록을 주지 않았습니다 (HTTP ${목록.status})${목록.status === 401 ? ' — DEVICE_FARM_TOKEN 을 확인하세요' : ''}` };
+    const 목록 = await 부르기(`${팜}/api/devices`, { headers: 팜머리(process.env, 토큰), signal: AbortSignal.timeout(팜_제한_ms) });
+    // 인증 켠 팜은 토큰이 없거나 틀리면 401 이다 — 주소나 팜을 의심하기 전에 토큰을 보게 한다. 누른 사람 토큰이면 Auth 에서 폐기했거나 기간이 끝났다
+    const 볼곳 = 토큰 === undefined ? 'DEVICE_FARM_TOKEN 을' : '계정 메뉴의 디바이스 팜 토큰을';
+    if (!목록.ok) return { reason: `디바이스 팜이 기기 목록을 주지 않았습니다 (HTTP ${목록.status})${목록.status === 401 ? ` — ${볼곳} 확인하세요` : ''}` };
     // 주소가 틀려 다른 쪽이 200 으로 HTML 을 주면 「닿지 못했다」가 아니라 이 말이어야 주소를 다시 본다
     const 몸 = (await 목록.json().catch(() => null)) as { value?: { devices?: 기기[] } } | null;
     if (몸 === null) return { reason: '디바이스 팜의 기기 목록을 읽지 못했습니다 — DEVICE_FARM_URL 을 확인하세요' };
@@ -40,10 +41,10 @@ async function 빈폰을고른다(팜: string, 부르기: typeof fetch, 쉬기: 
 }
 
 // 거절이면 그 문장, 잡았으면 null. 닿지 못하면 던진다
-async function 잡는다(팜: string, serial: string, 부르기: typeof fetch, 분: number): Promise<string | null> {
+async function 잡는다(팜: string, serial: string, 부르기: typeof fetch, 분: number, 토큰: string | undefined): Promise<string | null> {
   const 잡기 = await 부르기(`${팜}/api/devices/${encodeURIComponent(serial)}/hold`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', ...팜머리() },
+    headers: { 'content-type': 'application/json', ...팜머리(process.env, 토큰) },
     body: JSON.stringify({ minutes: 분 }),
     signal: AbortSignal.timeout(팜_제한_ms),
   });
@@ -54,11 +55,11 @@ async function 잡는다(팜: string, serial: string, 부르기: typeof fetch, �
 }
 
 // 놓아야 팜이 깐 앱 · 앱 데이터를 정리한다. 실패해도 던지지 않는다 — 이미 난 판정을 덮지 않고, 잡기는 30분 뒤 팜이 스스로 푼다
-async function 폰을돌려준다(팜: string, serial: string, 부르기: typeof fetch): Promise<void> {
+async function 폰을돌려준다(팜: string, serial: string, 부르기: typeof fetch, 토큰: string | undefined): Promise<void> {
   try {
     const res = await 부르기(`${팜}/api/devices/${encodeURIComponent(serial)}/hold`, {
       method: 'DELETE',
-      headers: 팜머리(),
+      headers: 팜머리(process.env, 토큰),
       signal: AbortSignal.timeout(팜_제한_ms),
     });
     if (!res.ok) console.error(`[farm] 폰 ${serial} 을 놓지 못했다: HTTP ${res.status}`);
@@ -71,11 +72,11 @@ async function 폰을돌려준다(팜: string, serial: string, 부르기: typeof
  * 긴 실행(게임)이 잡기를 30분 더 늘린다. 끝나기 10분 전이 아니면 팜이 409 로 거절하는데 그건 정상이라 조용히 넘긴다.
  * 그 밖의 실패도 던지지 않는다 — 늘리지 못해도 지금 항목은 돌고, 정말 끊기면 항목이 NA 로 닫힌다
  */
-export async function 잡기를늘린다(팜: string, serial: string, 부르기: typeof fetch = fetch): Promise<void> {
+export async function 잡기를늘린다(팜: string, serial: string, 부르기: typeof fetch = fetch, 토큰?: string): Promise<void> {
   try {
     const res = await 부르기(`${팜}/api/devices/${encodeURIComponent(serial)}/hold/extend`, {
       method: 'POST',
-      headers: 팜머리(),
+      headers: 팜머리(process.env, 토큰),
       signal: AbortSignal.timeout(팜_제한_ms),
     });
     if (!res.ok && res.status !== 409) console.error(`[farm] 폰 ${serial} 잡기를 늘리지 못했다: HTTP ${res.status}`);
@@ -86,7 +87,10 @@ export async function 잡기를늘린다(팜: string, serial: string, 부르기:
 
 const 닿지못함 = (err: unknown): string => `디바이스 팜에 닿지 못했습니다: ${err instanceof Error ? err.message : String(err)}`;
 
-/** 빈 폰 하나를 잡아 그 번호로 일을 맡기고, 일이 어떻게 끝나든 놓는다. 못 잡으면 까닭을 넘긴다 — 던지지 않는다. 분은 팜이 받는 30 · 60 · 120 */
+/**
+ * 빈 폰 하나를 잡아 그 번호로 일을 맡기고, 일이 어떻게 끝나든 놓는다. 못 잡으면 까닭을 넘긴다 — 던지지 않는다. 분은 팜이 받는 30 · 60 · 120.
+ * 토큰은 누른 사람 것이다. 없으면 서버 몫 — 고르기 · 잡기 · 놓기가 같은 토큰이어야 팜이 받는다
+ */
 export async function 팜폰으로<T>(
   팜: string,
   일: (udid: string) => Promise<T>,
@@ -94,26 +98,27 @@ export async function 팜폰으로<T>(
   부르기: typeof fetch = fetch,
   쉬기: (ms: number) => Promise<void> = (ms) => new Promise((깨운다) => setTimeout(깨운다, ms)),
   분: number = 잡는_분,
+  토큰?: string,
 ): Promise<T> {
   let serial: string;
   try {
-    const 고른것 = await 빈폰을고른다(팜, 부르기, 쉬기);
+    const 고른것 = await 빈폰을고른다(팜, 부르기, 쉬기, 토큰);
     if ('reason' in 고른것) return 못잡음(고른것.reason);
     serial = 고른것.serial;
   } catch (err) {
     return 못잡음(닿지못함(err));
   }
   try {
-    const 거절 = await 잡는다(팜, serial, 부르기, 분);
+    const 거절 = await 잡는다(팜, serial, 부르기, 분, 토큰);
     if (거절 !== null) return 못잡음(거절);
   } catch (err) {
     // 답이 늦게 왔을 뿐 팜은 잡았을 수 있다. 안 놓으면 그 폰이 30분 동안 빈 폰이 아니다
-    await 폰을돌려준다(팜, serial, 부르기);
+    await 폰을돌려준다(팜, serial, 부르기, 토큰);
     return 못잡음(닿지못함(err));
   }
   try {
     return await 일(serial);
   } finally {
-    await 폰을돌려준다(팜, serial, 부르기);
+    await 폰을돌려준다(팜, serial, 부르기, 토큰);
   }
 }

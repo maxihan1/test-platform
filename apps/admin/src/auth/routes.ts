@@ -2,6 +2,7 @@
 
 import type { FastifyInstance } from 'fastify';
 
+import farmTokenRoutes from './farmToken.js';
 import { 확인 } from './identify.js';
 import { SSO설정읽기 } from './oidc.js';
 import { 검증, 해시 } from './password.js';
@@ -43,6 +44,7 @@ export default async function authRoutes(app: FastifyInstance): Promise<void> {
   // SSO 가 켜진 설치는 비밀번호 길(로그인 · 가입 · 비밀번호 바꾸기)을 아예 안 붙인다 — 부르면 404 다 (2026-10-20 사용자)
   if (sso !== null) {
     await app.register(ssoRoutes, { sso });
+    await app.register(farmTokenRoutes, { sso });
     return;
   }
   await app.register(signupRoutes);

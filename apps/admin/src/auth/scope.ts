@@ -38,6 +38,7 @@ export const 라우트표: Record<string, 원천> = {
   '/api/auth/logout': { 종류: '안매임' },
   '/api/auth/me': { 종류: '안매임' },
   '/api/auth/password': { 종류: '안매임' },
+  '/api/auth/farm-token': { 종류: '안매임' },
   '/api/auth/signup': { 종류: '안매임' },
   '/api/auth/methods': { 종류: '안매임' },
   '/api/auth/sso/start': { 종류: '안매임' },

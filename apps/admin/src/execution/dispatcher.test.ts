@@ -5,7 +5,8 @@ import type { ExecuteResponse } from '@platform/kit';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { dispatch, enqueue, markAborted } from './dispatcher.js';
-import { callRunner } from './runner.js';
+import { 실행팜토큰 } from './farmToken.js';
+import { callRunner, type 잡은폰 } from './runner.js';
 import { finishItem, finishRun, type PendingItem } from './store.js';
 
 vi.mock('./runner.js', async (원본) => ({ ...(await 원본<typeof import('./runner.js')>()), callRunner: vi.fn() }));
@@ -13,6 +14,7 @@ vi.mock('./store.js', () => ({ finishItem: vi.fn(async () => undefined), finishR
 vi.mock('./notify.js', () => ({ notifyRun: vi.fn(async () => undefined) }));
 vi.mock('./traceIngest.js', () => ({ trace적재를맡긴다: vi.fn(async () => undefined) }));
 vi.mock('../apidoc/runCompare.js', () => ({ 실행문서견주기: vi.fn(async () => undefined) }));
+vi.mock('./farmToken.js', () => ({ 실행팜토큰: vi.fn(async () => undefined) }));
 
 function 관찰기(): { 시작: () => void; 끝: () => void; 최대: () => number } {
   let 지금 = 0;
@@ -239,10 +241,12 @@ describe('dispatch 의 디바이스 줄', () => {
 describe('dispatch 의 게임 항목 (GAME-F1-09)', () => {
   const 팜 = 'http://farm.test';
   const 받음: string[] = [];
+  const 받은토큰: (string | undefined)[] = [];
 
   function 가짜팜(기기들: unknown[]): void {
     vi.stubGlobal('fetch', async (주소: string | URL | Request, 설정?: RequestInit) => {
       받음.push(`${설정?.method ?? 'GET'} ${String(주소).replace(팜, '')}${설정?.body ? ` ${String(설정.body)}` : ''}`);
+      받은토큰.push((설정?.headers as Record<string, string> | undefined)?.authorization);
       return new Response(JSON.stringify({ value: { devices: 기기들 }, held: {}, released: true }), { status: 200 });
     });
   }
@@ -256,14 +260,17 @@ describe('dispatch 의 게임 항목 (GAME-F1-09)', () => {
   afterEach(() => {
     vi.mocked(callRunner).mockReset();
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
     delete process.env.DEVICE_FARM_URL;
     받음.length = 0;
+    받은토큰.length = 0;
+    vi.mocked(실행팜토큰).mockResolvedValue(undefined);
   });
 
   it('폰을 한 번만 잡아 120분으로 쥐고 항목마다 늘리며, 세 항목이 같은 폰으로 돈 뒤 한 번 놓는다', async () => {
     process.env.DEVICE_FARM_URL = 팜;
     가짜팜([{ serial: 'R3CR10TCVCD', state: 'IDLE', detail: 'ready' }]);
-    const 폰들: (string | undefined)[] = [];
+    const 폰들: (잡은폰 | undefined)[] = [];
     vi.mocked(callRunner).mockImplementation(async (_runId, item, _멈췄나, 잡은폰) => {
       폰들.push(잡은폰);
       return 결과(item.historyId);
@@ -271,12 +278,31 @@ describe('dispatch 의 게임 항목 (GAME-F1-09)', () => {
 
     await dispatch(9101, [게임항목(1, 'XDP-G1'), 게임항목(2, 'XDP-G2'), 게임항목(3, 'XDP-G3')]);
 
-    expect(폰들).toEqual(['R3CR10TCVCD', 'R3CR10TCVCD', 'R3CR10TCVCD']);
+    expect(폰들).toEqual([1, 2, 3].map(() => ({ udid: 'R3CR10TCVCD', 토큰: undefined })));
     expect(받음.filter((줄) => 줄.startsWith('POST /api/devices/R3CR10TCVCD/hold '))).toEqual(['POST /api/devices/R3CR10TCVCD/hold {"minutes":120}']);
     expect(받음.filter((줄) => 줄 === 'POST /api/devices/R3CR10TCVCD/hold/extend')).toHaveLength(3);
     expect(받음.filter((줄) => 줄 === 'DELETE /api/devices/R3CR10TCVCD/hold')).toHaveLength(1);
     expect(받음.at(-1)).toBe('DELETE /api/devices/R3CR10TCVCD/hold');
     expect(finishItem).toHaveBeenCalledTimes(3);
+  });
+
+  it('누른 사람 토큰이 있으면 고르기 · 잡기 · 늘리기 · 놓기를 그 토큰으로 하고 러너 호출에도 같은 토큰을 넘긴다', async () => {
+    process.env.DEVICE_FARM_URL = 팜;
+    vi.stubEnv('DEVICE_FARM_TOKEN', 'pat_server');
+    vi.mocked(실행팜토큰).mockResolvedValue('pat_kim');
+    가짜팜([{ serial: 'R3CR10TCVCD', state: 'IDLE', detail: 'ready' }]);
+    const 폰들: (잡은폰 | undefined)[] = [];
+    vi.mocked(callRunner).mockImplementation(async (_runId, item, _멈췄나, 잡은폰) => {
+      폰들.push(잡은폰);
+      return 결과(item.historyId);
+    });
+
+    await dispatch(9104, [게임항목(1, 'XDP-G1'), 게임항목(2, 'XDP-G2')]);
+
+    expect(실행팜토큰).toHaveBeenCalledWith(9104);
+    expect(폰들).toEqual([{ udid: 'R3CR10TCVCD', 토큰: 'pat_kim' }, { udid: 'R3CR10TCVCD', 토큰: 'pat_kim' }]);
+    expect(받은토큰.length).toBeGreaterThan(0);
+    expect(new Set(받은토큰)).toEqual(new Set(['Bearer pat_kim']));
   });
 
   it('못 잡으면 러너를 부르지 않고 세 항목 다 그 까닭의 NA 로 닫는다', async () => {
@@ -294,7 +320,7 @@ describe('dispatch 의 게임 항목 (GAME-F1-09)', () => {
   });
 
   it('팜 주소가 없으면 폰 번호 없이 항목마다 러너 호출로 간다 — callRunner 가 NA 로 닫는다', async () => {
-    const 폰들: (string | undefined)[] = [];
+    const 폰들: (잡은폰 | undefined)[] = [];
     vi.mocked(callRunner).mockImplementation(async (_runId, item, _멈췄나, 잡은폰) => {
       폰들.push(잡은폰);
       return 결과(item.historyId);

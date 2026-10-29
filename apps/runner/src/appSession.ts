@@ -26,7 +26,8 @@ export function appium주소(raw: string, token: string | undefined): { base: st
 
 // 자식이 죽었든 정상 종료했든 kit 이 못 닫았으면 번호 파일이 남아 있다. 팜의 디바이스를 붙들고 있는 연결이라 반드시 닫는다
 // 시나리오는 폴더 열쇠가 글자다(trial · scenario · trialId)
-export async function 앱연결을닫는다(runId: number | string, historyId: number | string): Promise<void> {
+// 토큰은 그 연결을 연 것이어야 팜이 닫아 준다. 없으면 러너 환경값이다 (러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」)
+export async function 앱연결을닫는다(runId: number | string, historyId: number | string, 토큰?: string): Promise<void> {
   // 경로를 여기서 따로 계산하면 kit 이 적은 곳과 어긋나도 아무것도 못 닫고 조용히 넘어간다. kit 의 것을 그대로 쓴다
   const file = join(runDir(String(runId), String(historyId)), APPIUM_SESSION_FILE);
   let sessionId: string;
@@ -43,7 +44,7 @@ export async function 앱연결을닫는다(runId: number | string, historyId: n
   if (sessionId === '' || raw === undefined || raw === '') return;
 
   try {
-    const { base, headers } = appium주소(raw, process.env.PLATFORM_APPIUM_TOKEN);
+    const { base, headers } = appium주소(raw, 토큰 ?? process.env.PLATFORM_APPIUM_TOKEN);
     const res = await fetch(`${base}/session/${encodeURIComponent(sessionId)}`, {
       method: 'DELETE',
       headers,

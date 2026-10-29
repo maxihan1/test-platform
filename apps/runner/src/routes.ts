@@ -9,7 +9,7 @@ import type { FastifyInstance } from 'fastify';
 import { 앱화면을읽는다, 화면을읽는중인가 } from './appScreen.js';
 import { 게임화면을읽는다 } from './gameScreen.js';
 import { abort, execute, resolveSpecPath, running, testsDir } from './execute.js';
-import { 팜증적받기를줄세운다 } from './farmEvidence.js';
+import { 팜증적받기를줄세운다, 팜토큰을지운다 } from './farmEvidence.js';
 import { registerPerfDeviceRoutes } from './perfDevice.js';
 import { registerRemote } from './remote.js';
 import { executeScenario, 판뺀부품들, 폰단계가있나, 폰시나리오가도는가 } from './scenario.js';
@@ -43,8 +43,8 @@ export function registerRoutes(app: FastifyInstance): void {
     try {
       const res = await execute(req, specPath);
       // 큰 영상을 받느라 답이 늦으면 admin 의 디바이스 줄이 막힌다. 답한 뒤에 받는다 (SPEC 도메인/러너 §5.2 「디바이스 팜 접속 방식」)
-      if (req.platform === 'android') 팜증적받기를줄세운다(req.runId, req.historyId, res.status);
-      return res;
+      if (req.platform === 'android') 팜증적받기를줄세운다(req.runId, req.historyId, res.status, req.farmToken);
+      return req.platform === 'android' ? 팜토큰을지운다(res, [req.farmToken, process.env.PLATFORM_APPIUM_TOKEN]) : res;
     } catch (err) {
       // 자식 프로세스를 띄우지도 못한 경우다. 케이스 실패가 아니라 러너 고장이므로 500이다 (SPEC §5.2)
       const detail = err instanceof Error ? err.message : String(err);
@@ -106,8 +106,8 @@ export function registerRoutes(app: FastifyInstance): void {
       const req = { ...parsed.data, parts };
       const res = await executeScenario(req);
       // 통과 못 한 정식 실행의 팜 영상 · logcat 은 답한 뒤에 받는다 — 시나리오에 한 벌, 시나리오 폴더에 둔다 (SPEC 도메인/시나리오 §3.7 결정 16 「결과」)
-      if (req.runId !== null && 폰단계가있나(req)) 팜증적받기를줄세운다(req.runId, 'scenario', res.status);
-      return res;
+      if (req.runId !== null && 폰단계가있나(req)) 팜증적받기를줄세운다(req.runId, 'scenario', res.status, req.farmToken);
+      return 폰단계가있나(req) ? 팜토큰을지운다(res, [req.farmToken, process.env.PLATFORM_APPIUM_TOKEN]) : res;
     } catch (err) {
       // 자식 프로세스를 띄우지도 못한 경우다. 러너 고장이므로 500이다 (SPEC §5.2)
       const detail = err instanceof Error ? err.message : String(err);

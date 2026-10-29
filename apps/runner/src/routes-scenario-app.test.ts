@@ -88,7 +88,7 @@ describe('POST /execute-scenario — 앱 · 게임 단계', () => {
 
   it('통과 못 한 정식 실행은 시나리오 폴더로 팜 증적을 받고, 시험 실행 · 웹만의 시나리오는 안 받는다', async () => {
     await 보냄(요청());
-    expect(팜증적받기를줄세운다).toHaveBeenCalledWith(7, 'scenario', 'FAIL');
+    expect(팜증적받기를줄세운다).toHaveBeenCalledWith(7, 'scenario', 'FAIL', undefined);
 
     vi.mocked(팜증적받기를줄세운다).mockClear();
     await 보냄(요청({ runId: null, trialId: '5f0c1a2b-3c4d-4e5f-8a9b-0c1d2e3f4a5b' }));

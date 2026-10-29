@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import type { ServiceRow, User } from './api.js';
+import { FarmToken } from './FarmToken.js';
 import { use말, type 언어 } from './i18n.js';
 import { 집 } from './route.js';
 import { 서비스고르개, 언어고르개, 종류아이콘, 프로젝트고르개 } from './ShellPickers.js';
@@ -69,12 +70,13 @@ export function ShellHeader({ user, service, onService, 언어, on언어, onLogo
 }
 
 /**
- * 이름을 누르면 비밀번호 변경과 로그아웃이 나온다. 앞 판은 사이드바 맨 아래에 늘 펼쳐 둔 자리였다.
+ * 이름을 누르면 비밀번호 변경(SSO 면 디바이스 팜 토큰)과 로그아웃이 나온다. 앞 판은 사이드바 맨 아래에 늘 펼쳐 둔 자리였다.
  * 바깥을 누르거나 Esc 를 누르면 닫힌다 — 안 닫히면 본문의 버튼을 가린 채 남는다 (PhoneShell 의 내 메뉴와 같은 처리)
  */
 function 계정메뉴({ user, onLogout }: { user: User; onLogout: () => void }) {
   const t = use말();
   const [열림, set열림] = useState(false);
+  const [팜토큰창, set팜토큰창] = useState(false);
   const sso = useSSO();
   const 상자 = useRef<HTMLDivElement>(null);
   const 버튼 = useRef<HTMLButtonElement>(null);
@@ -118,6 +120,18 @@ function 계정메뉴({ user, onLogout }: { user: User; onLogout: () => void }) 
               {t('비밀번호 변경')}
             </a>
           )}
+          {/* 토큰 주인을 통합계정에 묻고 계정에 묶인 사람과 견줘서 SSO 설치에만 있다 (도메인/인증 §8.6) */}
+          {sso === true ? (
+            <button
+              type="button"
+              onClick={() => {
+                set열림(false);
+                set팜토큰창(true);
+              }}
+            >
+              {t('디바이스 팜 토큰')}
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => {
@@ -130,6 +144,7 @@ function 계정메뉴({ user, onLogout }: { user: User; onLogout: () => void }) 
           </button>
         </div>
       ) : null}
+      {팜토큰창 ? <FarmToken onClose={() => set팜토큰창(false)} /> : null}
     </div>
   );
 }

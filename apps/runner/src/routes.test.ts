@@ -150,6 +150,22 @@ describe('POST /execute', () => {
     expect((await 보낸다({ udid: '' })).statusCode).toBe(400);
   });
 
+  it('누른 사람의 팜 토큰을 버리지 않고 넘기고, 비었거나 공백 · 줄바꿈이 섞이면 400 이다', async () => {
+    const 보낸다 = (칸: Record<string, string>) =>
+      서버().inject({
+        method: 'POST',
+        url: '/execute',
+        payload: {
+          runId: 1, historyId: 5, tcId: 'TODO-001', platform: 'android', filePath: 'todo/TODO-001.spec.ts',
+          baseUrl: 'https://qa.example.com', params: {}, expected: {}, udid: 'R3CR10TCVCD', ...칸,
+        },
+      });
+
+    expect((await 보낸다({ farmToken: 'pat_kim' })).statusCode).not.toBe(400);
+    expect(execute).toHaveBeenLastCalledWith(expect.objectContaining({ farmToken: 'pat_kim' }), expect.any(String));
+    for (const 틀림 of ['', 'pat_a b', 'pat_a\r\nX-Evil: 1']) expect((await 보낸다({ farmToken: 틀림 })).statusCode).toBe(400);
+  });
+
   it('게임 엔진 · 어드민 키를 버리지 않고 넘기고, 모르는 엔진이나 빈 키는 400 이다', async () => {
     const 보낸다 = (칸: Record<string, unknown>) =>
       서버().inject({
