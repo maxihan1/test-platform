@@ -110,7 +110,7 @@ export const 붙지않은한건SQL = `
   FROM test_run r JOIN run_item s ON s.run_id = r.run_id
   WHERE r.origin = 'SINGLE' AND r.service_id = ANY($1::bigint[])
     AND s.finished_at IS NOT NULL AND s.status IN ('PASS', 'FAIL')
-    AND (r.started_at AT TIME ZONE $2::text)::date >= $3::date
+    AND (s.finished_at AT TIME ZONE $2::text)::date >= $3::date
     AND NOT EXISTS (SELECT 1 FROM run_item o WHERE o.run_id = r.rerun_of AND o.tc_id = s.tc_id AND o.platform = s.platform)`;
 
 // 중단(STOPPED) · 실패는 대조 뒤 거절이거나 덮음이 끝나지 않아 status 조건으로 빠진다

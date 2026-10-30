@@ -187,6 +187,11 @@ describe.skipIf(연결 === undefined)('한 건 실행은 묶음 실행에 붙는
     expect(다시.attachedTo).toBe(원래);
     expect((await 줄(다시.runId)).origin).toBe('SINGLE');
 
+    // 한 건 실행 번호를 다시 실행의 원래 실행으로 보내면 거절한다 — 어느 실행 결과도 안 고친다
+    await expect(건다(['XJA-001'], { rerunOf: 다시.runId })).rejects.toMatchObject({ code: 'BAD_RERUN' });
+    // 대상 서버를 바꿔 다시 돌리면 원래 실행을 고치지 않고 그 서버에서 붙을 곳을 고른다
+    expect((await 건다(['XJA-001'], { rerunOf: 원래, env: 'stg', platforms: ['desktop'] })).attachedTo).toBeNull();
+
     const 반복 = await 건다(['XJA-001', 'XJA-002'], { repeat: 2 });
     await 판정(반복.runId, 'XJA-001', 'desktop', 'FAIL');
     await 닫는다(반복.runId);

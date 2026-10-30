@@ -15,8 +15,10 @@ async function db(): Promise<Pool> {
  *
  * 조건은 원래 항목 `o` 에 건다 — 바깥에서 run_id 로 거르면 바꿔 낀 행에서 나온 칸이라 색인을 못 타고 표를 다 훑는다.
  * 바깥 행을 보는 조건(`o.run_id = r.run_id`)이면 `LATERAL` 로 잇는다.
- * 덮였으면 rerun_* · orig_* 칸이 차고 아니면 NULL 이다. 미실행으로 끝난 한 건은 덮지 않는다 — 실패가 미실행으로 가려지면 안 된다
+ * 덮였으면 rerun_* · orig_* 칸이 차고 아니면 NULL 이다. 미실행으로 끝난 한 건은 덮지 않는다 — 실패가 미실행으로 가려지면 안 된다.
+ * 바꿔 끼우는 서브질의의 OFFSET 0 은 끌어올리기를 막는다 — 끌어올려지면 (n.r).* 가 칸마다 CASE 를 다시 푼다
  */
+// ponytail: 원래 항목마다 붙은 한 건을 부분 색인(test_run_single_of)으로 한 번 찾는다 — 한 건이 드물어 빈 탐색이다. 창이 수십만 항목으로 커져 느리면 붙은 한 건을 먼저 모아 잇는다
 export const 지금항목 = (조건: string): string => `(
   SELECT (n.r).*, d.run_id AS rerun_run_id, d.finished_at AS rerun_finished_at, d.누가 AS rerun_by,
          CASE WHEN d.run_id IS NULL THEN NULL ELSE o.history_id END AS orig_history_id,
@@ -34,6 +36,7 @@ export const 지금항목 = (조건: string): string => `(
     ) d ON true
     CROSS JOIN LATERAL (
       SELECT CASE WHEN d.run_id IS NULL THEN o ELSE jsonb_populate_record(d.r, jsonb_build_object('run_id', o.run_id)) END AS r
+      OFFSET 0
     ) n
    WHERE ${조건})`;
 
@@ -126,9 +129,14 @@ export async function 시작방식정하기<기본 extends string>(
     return 다시 === undefined ? { origin: 재료.origin, rerunOf: null, attachedTo: null } : { origin: 'RERUN', rerunOf: 다시, attachedTo: null };
   }
   if (다시 !== undefined) {
-    return (await 반복실행인가(client, 다시))
-      ? { origin: 'RERUN', rerunOf: 다시, attachedTo: null }
-      : { origin: 'SINGLE', rerunOf: 다시, attachedTo: 다시 };
+    if (await 반복실행인가(client, 다시)) return { origin: 'RERUN', rerunOf: 다시, attachedTo: null };
+    // 대상 서버를 바꿔 다시 돌렸거나 스모크면 그 실행을 고치지 않는다 — qa 에서 깨진 것은 qa 에서 다시 통과해야 고친 것이다.
+    // 그때는 rerunOf 가 없을 때처럼 이번 대상 서버에서 붙을 곳을 고른다
+    const r = await client.query(
+      "SELECT 1 FROM test_run WHERE run_id = $1 AND env = $2 AND build_stage IS DISTINCT FROM 'SMOKE'",
+      [다시, 재료.env],
+    );
+    if ((r.rowCount ?? 0) > 0) return { origin: 'SINGLE', rerunOf: 다시, attachedTo: 다시 };
   }
   const 곳 = await 붙을곳고르기(client, { serviceId: 재료.serviceId, env: 재료.env, tcId: 재료.tcIds[0]!, platforms: 재료.platforms });
   return { origin: 'SINGLE', rerunOf: 곳?.runId ?? null, attachedTo: 곳?.runId ?? null };

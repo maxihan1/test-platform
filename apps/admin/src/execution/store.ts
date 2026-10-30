@@ -227,7 +227,8 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
       repeat,
       serviceId: found서비스.id,
       env: input.env,
-      platforms: input.items[0]!.platforms,
+      // 같은 케이스가 디바이스마다 따로 와도 한 건이다 — 고른 디바이스를 모두 본다
+      platforms: input.items.flatMap((i) => i.platforms),
     });
     // 실행은 끝까지 만들 때의 빌드를 깐다 — 뒤에 새 빌드가 와도 바뀌지 않는다 (도메인/실행 §3.11)
     const 빌드 = await 실행빌드(client, Number(found서비스.id), input.env, input.build?.id);
