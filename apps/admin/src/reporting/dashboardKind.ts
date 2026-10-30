@@ -54,15 +54,17 @@ export interface 창 {
   today: string;
 }
 
-// 기능 테스트는 아직 FPS 를 안 남겨 같은 창의 게임 성능 측정 1초 숫자를 쓴다. 떨어짐은 선 위에서 아래로 넘어간 번수다 — 머문 초를 세면 한 번 끊긴 것도 수십 번이 된다
+// 기능 테스트는 아직 FPS 를 안 남겨 같은 창의 끝난(DONE) 게임 성능 측정 1초 숫자를 쓴다 — 도는 · 멈춘 측정은 반쪽 숫자라 뺀다.
+// 떨어짐은 선 위에서 아래로 넘어간 번수다 — 머문 초를 세면 한 번 끊긴 것도 수십 번이 된다. 빈 FPS 를 거르기 전에 앞 숫자를 읽어 빈 칸을 건너 잇지 않는다
 async function 게임FPS(pool: Pool, serviceId: number, { tz, from, today }: 창): Promise<종류칸['fps']> {
   const { rows } = await pool.query<{ runs: number; avg: number | null; drops: number }>(
     `WITH s AS (
        SELECT m.run_id, m.fps, LAG(m.fps) OVER (PARTITION BY m.run_id, m.serial ORDER BY m.sec) AS prev
          FROM perf_device_metric m JOIN perf_run r ON r.id = m.run_id
-        WHERE r.service_id = $1 AND r.kind = 'DEVICE' AND m.fps IS NOT NULL
+        WHERE r.service_id = $1 AND r.kind = 'DEVICE' AND r.status = 'DONE'
           AND (r.started_at AT TIME ZONE $2::text)::date BETWEEN $3::date AND $4::date)
-     SELECT COUNT(DISTINCT run_id)::int AS runs, ROUND(AVG(fps), 1)::float AS avg, COUNT(*) FILTER (WHERE fps < $5 AND prev >= $5)::int AS drops FROM s`,
+     SELECT COUNT(DISTINCT run_id)::int AS runs, ROUND(AVG(fps), 1)::float AS avg, COUNT(*) FILTER (WHERE fps < $5 AND prev >= $5)::int AS drops
+       FROM s WHERE fps IS NOT NULL`,
     [serviceId, tz, from, today, 낮은FPS],
   );
   const r = rows[0]!;

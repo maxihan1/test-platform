@@ -111,23 +111,25 @@ describe.skipIf(연결 === undefined)('대시보드 종류별 칸', () => {
     );
     await 항목(게임실행, 'XDYG-FN-001', 'FAIL');
     await 항목(게임실행, 'XDYG-FN-002', 'PASS');
-    // 게임 성능 측정 — 이번 창 둘(기기 두 대 하나 포함)과 창 밖 하나. 떨어짐은 30 이상에서 30 밑으로 넘어간 번수다
-    const 측정 = async (전: string): Promise<number> =>
+    // 게임 성능 측정 — 이번 창 끝난 둘(기기 두 대 하나 포함) · 도는 하나와 창 밖 하나. 떨어짐은 30 이상에서 바로 다음 초에 30 밑으로 넘어간 번수다
+    const 측정 = async (전: string, 끝남 = true): Promise<number> =>
       Number(
         (
           await pool.query<{ id: string }>(
             `INSERT INTO perf_run (kind, service_id, env, base_url, config, status, verdict, origin, started_at)
-             VALUES ('DEVICE', $1, 'qa', '', '{}', 'DONE', 'PASS', 'MANUAL', now() - $2::interval) RETURNING id`,
-            [게임, 전],
+             VALUES ('DEVICE', $1, 'qa', '', '{}', $3, $4, 'MANUAL', now() - $2::interval) RETURNING id`,
+            [게임, 전, 끝남 ? 'DONE' : 'RUNNING', 끝남 ? 'PASS' : null],
           )
         ).rows[0]!.id,
       );
-    const [첫측정, 둘측정, 옛측정] = [await 측정('1 hour'), await 측정('2 hours'), await 측정('40 days')];
+    const [첫측정, 둘측정, 옛측정, 도는측정] = [await 측정('1 hour'), await 측정('2 hours'), await 측정('40 days'), await 측정('10 minutes', false)];
     await pool.query(
       `INSERT INTO perf_device_metric (run_id, serial, device, sec, fps) VALUES
          ($1, 'a', 'A', 1, 20), ($1, 'a', 'A', 2, 40), ($1, 'a', 'A', 3, 25), ($1, 'a', 'A', 4, 28), ($1, 'a', 'A', 5, 60),
-         ($1, 'b', 'B', 1, 60), ($1, 'b', 'B', 2, NULL), ($2, 'a', 'A', 1, 60), ($2, 'a', 'A', 2, 10), ($3, 'a', 'A', 1, 60), ($3, 'a', 'A', 2, 1)`,
-      [첫측정, 둘측정, 옛측정],
+         ($1, 'b', 'B', 1, 60), ($1, 'b', 'B', 2, NULL), ($2, 'a', 'A', 1, 60), ($2, 'a', 'A', 2, 10),
+         ($2, 'a', 'A', 3, 50), ($2, 'a', 'A', 4, NULL), ($2, 'a', 'A', 5, 20),
+         ($3, 'a', 'A', 1, 60), ($3, 'a', 'A', 2, 1), ($4, 'a', 'A', 1, 60), ($4, 'a', 'A', 2, 1)`,
+      [첫측정, 둘측정, 옛측정, 도는측정],
     );
   });
 
@@ -174,8 +176,8 @@ describe.skipIf(연결 === undefined)('대시보드 종류별 칸', () => {
         { label: null, pass: 1, fail: 0, notRun: 0, p95Ms: null },
       ],
       onlyFail: [],
-      // 이번 창 1초 숫자 여덟 개(빈 FPS 뺌)의 평균 · 40→25 와 60→10 두 번
-      fps: { runs: 2, avg: 37.9, drops: 2, below: 30 },
+      // 이번 창 끝난 측정의 1초 숫자 열 개(빈 FPS 뺌)의 평균 · 40→25 와 60→10 두 번 — 50→빈 칸→20 은 건너 잇지 않는다
+      fps: { runs: 2, avg: 37.3, drops: 2, below: 30 },
     });
   });
 });
