@@ -89,7 +89,7 @@ async function 실패묶음(서비스: number, 판: PrdItem[], 누구: 부른이
     든것.slice(0, 실패상한).map(async (f) => {
       if (!상세) return 줄(f, null, null);
       // 확인 문장 · 실패 까닭은 항목 상세와 같은 함수로 가린 뒤 고른다 — 비밀값이 결정 목록으로 새지 않게
-      const 항목 = await findItem(f.runId, f.historyId);
+      const 항목 = await findItem(f.itemRunId, f.historyId);
       return 줄(f, 항목?.steps.flatMap((s) => s.assertions).find((a) => a.status === 'FAIL')?.statement ?? null, 항목?.failure?.reason ?? null);
     }),
   );

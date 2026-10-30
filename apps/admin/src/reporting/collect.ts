@@ -6,8 +6,10 @@ import type { DeviceInfo, ItemStatus, Platform, ShapeCheck } from '@platform/kit
 import type { Pool } from 'pg';
 import { 팜기록글 } from '../execution/farmEvidence.js';
 import { 종류조건 } from '../execution/runKind.js';
+import { 다시실행칸들, 다시실행칸으로, 지금항목, type 다시실행원재료 } from '../execution/single.js';
 import { 가린다, 항목비밀 } from '../execution/trial.js';
 import { api칸, type EvidenceTrace } from './apiTrace.js';
+import { 원래항목읽기, 지금열 } from './collectRerun.js';
 import { 색코드, 한줄로자른다 } from './failureType.js';
 
 export interface EvidenceField {
@@ -59,6 +61,8 @@ export interface EvidenceItem {
   params: EvidenceField[];
   expected: EvidenceField[];
   steps: EvidenceStep[];
+  /** 한 건 실행이 덮은 항목만 — 이 항목이 다시 돈 결과이고 원래 항목이 여기 남는다 (도메인/리포팅 §8.4 「다시 실행이 붙은 실행」) */
+  rerun?: { finishedAt: string; triggeredBy: string; original: EvidenceItem };
 }
 
 export interface EvidenceHeader {
@@ -103,7 +107,7 @@ interface RawRun {
   service_kind: 'SCREEN' | 'APP' | 'GAME' | 'API' | null;
 }
 
-interface RawItem {
+export interface RawItem {
   history_id: string;
   tc_id: string;
   tc_name: string;
@@ -292,22 +296,62 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
   const run = runs.rows[0];
   if (run === undefined) return null;
 
-  const items = await pool.query<RawItem>(
-    `SELECT history_id, tc_id, tc_name, platform, attempt, status, duration_ms, finished_at, error,
-            unconfirmed, precondition, params, expected, param_schema, expected_schema, device
-       FROM run_item WHERE run_id = $1 ORDER BY history_id`,
+  // 지금 결과로 읽는다 — 한 건 실행이 덮은 자리는 다시 돈 항목이다. 줄 차례는 원래 항목 차례를 지킨다
+  const items = await pool.query<RawItem & 다시실행원재료>(
+    `SELECT ${지금열}, ${다시실행칸들}
+       FROM ${지금항목('o.run_id = $1')} i ORDER BY COALESCE(i.orig_history_id, i.history_id)`,
     [runId],
   );
+  const 원래들 = await 원래항목읽기(pool, items.rows);
 
+  // 다시 돈 항목 · 원래 항목의 절차는 다른 history_id 라 번호 목록으로 읽는다
   const steps = await pool.query<RawStep>(
     `SELECT s.history_id, s.seq, s.title, s.status, s.duration_ms, s.assertions, s.screenshot_path, s.error, s.http_trace, s.shape_checks
-       FROM run_item_step s JOIN run_item i ON i.history_id = s.history_id
-      WHERE i.run_id = $1 ORDER BY s.seq`,
-    [runId],
+       FROM run_item_step s WHERE s.history_id = ANY($1::bigint[]) ORDER BY s.seq`,
+    [[...items.rows.map((r) => r.history_id), ...원래들.keys()]],
   );
 
-  const 기기들 = items.rows.map((row) => (row.device === null ? null : 기기글(row.device)));
-  const 팜들 = await Promise.all(items.rows.map((row) => (row.platform === 'android' ? 팜기록글(runId, Number(row.history_id)) : null)));
+  // 팜 기록은 항목이 돈 실행 폴더에 있다 — 다시 돈 항목은 한 건 실행 번호다
+  const 항목으로 = async (row: RawItem, 돈실행: number): Promise<EvidenceItem> => {
+    // 못 돈 항목을 'NA' 로 그대로 찍으면 「돌았는데 판정이 없다」로 읽혀 문서에서 사라진다.
+    // 40건 중 12건 돌고 멈춘 실행은 「12건 돌았다」가 아니라 「28건은 이래서 못 돌았다」여야 한다 (SPEC §8.4)
+    const 못돈사유 = 미실행사유를찾는다(row, run.status);
+    // 키로 가린 칸 밖에도 비밀값이 되비친다 — 확인의 기대 · 실제 값과 판정 못 낸 사유. 실행 조회 응답(execution/queries.ts)과 같은 규칙이다 (공통/2 §4.1)
+    const 비밀 = 항목비밀(row);
+    const 절차들 = steps.rows.filter((s) => s.history_id === row.history_id);
+
+    return {
+      tcId: row.tc_id,
+      tcName: row.tc_name,
+      platform: row.platform,
+      device: row.device === null ? null : 기기글(row.device),
+      farm: row.platform === 'android' ? await 팜기록글(돈실행, Number(row.history_id)) : null,
+      attempt: row.attempt,
+      status: 못돈사유 === null ? row.status : ('NOT_RUN' as const),
+      // 중단 처리가 박아 넣은 duration_ms 0 은 「0밀리초 걸렸다」가 아니라 「안 돌았다」다
+      durationMs: 못돈사유 === null ? row.duration_ms : null,
+      notRunReason: 못돈사유 ?? 돈항목사유(row, 절차들, 비밀),
+      unconfirmed: row.unconfirmed,
+      precondition: row.precondition,
+      params: toFields(row.params, row.param_schema),
+      expected: toFields(row.expected, row.expected_schema),
+      steps: 절차들.map((s) => toStep(s, 비밀, run.service_kind === 'API')),
+    };
+  };
+
+  const 증적항목들 = await Promise.all(
+    items.rows.map(async (row) => {
+      const 덮음 = 다시실행칸으로(row);
+      if (덮음 === null) return 항목으로(row, runId);
+      const 지금 = await 항목으로(row, 덮음.runId);
+      const 원래 = 원래들.get(row.orig_history_id!)!;
+      return {
+        ...지금,
+        // 실행자 문구는 머리말과 같다 — 빈칸이면 「없는 사람」으로 읽힌다
+        rerun: { finishedAt: 덮음.finishedAt, triggeredBy: 덮음.triggeredBy === '' ? '실행자 미상 (인증 도입 이전)' : 덮음.triggeredBy, original: await 항목으로(원래, runId) },
+      };
+    }),
+  );
 
   return {
     runId: Number(run.run_id),
@@ -324,33 +368,8 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
           : run.triggered_by_name,
       env: run.env === '' ? 기록없음 : run.env,
       baseUrl: run.base_url === '' ? 기록없음 : run.base_url,
-      devices: [...new Set(기기들.filter((d) => d !== null))],
+      devices: [...new Set(증적항목들.flatMap((i) => (i.device == null ? [] : [i.device])))],
     },
-    items: items.rows.map((row, i) => {
-      // 못 돈 항목을 'NA' 로 그대로 찍으면 「돌았는데 판정이 없다」로 읽혀 문서에서 사라진다.
-      // 40건 중 12건 돌고 멈춘 실행은 「12건 돌았다」가 아니라 「28건은 이래서 못 돌았다」여야 한다 (SPEC §8.4)
-      const 못돈사유 = 미실행사유를찾는다(row, run.status);
-      // 키로 가린 칸 밖에도 비밀값이 되비친다 — 확인의 기대 · 실제 값과 판정 못 낸 사유. 실행 조회 응답(execution/queries.ts)과 같은 규칙이다 (공통/2 §4.1)
-      const 비밀 = 항목비밀(row);
-      const 절차들 = steps.rows.filter((s) => s.history_id === row.history_id);
-
-      return {
-        tcId: row.tc_id,
-        tcName: row.tc_name,
-        platform: row.platform,
-        device: 기기들[i] ?? null,
-        farm: 팜들[i] ?? null,
-        attempt: row.attempt,
-        status: 못돈사유 === null ? row.status : ('NOT_RUN' as const),
-        // 중단 처리가 박아 넣은 duration_ms 0 은 「0밀리초 걸렸다」가 아니라 「안 돌았다」다
-        durationMs: 못돈사유 === null ? row.duration_ms : null,
-        notRunReason: 못돈사유 ?? 돈항목사유(row, 절차들, 비밀),
-        unconfirmed: row.unconfirmed,
-        precondition: row.precondition,
-        params: toFields(row.params, row.param_schema),
-        expected: toFields(row.expected, row.expected_schema),
-        steps: 절차들.map((s) => toStep(s, 비밀, run.service_kind === 'API')),
-      };
-    }),
+    items: 증적항목들,
   };
 }

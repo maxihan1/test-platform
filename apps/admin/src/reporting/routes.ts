@@ -27,13 +27,14 @@ const 증적본문 = z.object({
 const 카드디바이스 = z.enum(['desktop', 'mobile', 'android']).optional();
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. 풀은 실제로 쓸 때 가져온다 (store.ts와 같은 방식)
-// 있는지와 어떤 상태인지를 한 번에 묻는다. 둘로 나누면 같은 행을 두 번 왕복한다
+// 있는지와 어떤 상태인지를 한 번에 묻는다. 둘로 나누면 같은 행을 두 번 왕복한다.
+// 한 건 실행은 상태 대신 'SINGLE' 이다 — 실행으로 서지 않아 결과 화면 · 증적이 없는 기록이다 (도메인/실행 §7 `GET /api/runs/:runId`)
 async function 실행상태(runId: number, 시나리오도 = false): Promise<string | null> {
   const { pool } = await import('../db/index.js');
   // 시나리오 실행은 run_item 이 없어 케이스 모양이 비어 나온다. 번호가 맞아도 없는 실행으로 본다 (도메인/시나리오 §3.7 결정 10).
   // 증적 만들기만 예외다 — 시나리오 실행이면 E2E 증적을 만든다 (도메인/리포팅 §8.4 「E2E 시나리오 증적」)
   const rows = await pool.query<{ status: string }>(
-    `SELECT status FROM test_run WHERE run_id = $1 AND (${종류조건('case', '')}${시나리오도 ? ` OR kind = 'SCENARIO'` : ''})`,
+    `SELECT CASE WHEN origin = 'SINGLE' THEN 'SINGLE' ELSE status END AS status FROM test_run WHERE run_id = $1 AND (${종류조건('case', '')}${시나리오도 ? ` OR kind = 'SCENARIO'` : ''})`,
     [runId],
   );
   return rows.rows[0]?.status ?? null;
@@ -90,6 +91,7 @@ export default async function reportingRoutes(app: FastifyInstance): Promise<voi
     if (상태 === null) {
       return reply.code(404).send({ error: 'RUN_NOT_FOUND', detail: req.params.runId });
     }
+    if (상태 === 'SINGLE') return reply.code(404).send({ error: 'SINGLE_RUN', detail: req.params.runId });
     // 도는 중에 뽑으면 아직 안 끝난 항목이 빠진 문서가 나온다 — 증적 재현 불변식이 깨진다 (SPEC §3.3 · §7).
     // 화면도 같은 값으로 버튼을 잠그지만(web/runState.ts) 번들이 달라 그 코드를 가져다 쓸 수 없다.
     // 정본은 SPEC §7 이고 양쪽이 그것을 따로 따른다 — 판정 값이 'RUNNING' 하나뿐이라 공유 자리를 만들지 않았다.
@@ -131,9 +133,9 @@ export default async function reportingRoutes(app: FastifyInstance): Promise<voi
     const runId = 정수(req.params.runId);
     if (runId === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.params.runId });
     // compareWithPrevious 는 없는 실행에 던진다. 여기서 막아야 500 이 아니라 404 가 나간다
-    if ((await 실행상태(runId)) === null) {
-      return reply.code(404).send({ error: 'RUN_NOT_FOUND', detail: req.params.runId });
-    }
+    const 상태 = await 실행상태(runId);
+    if (상태 === null) return reply.code(404).send({ error: 'RUN_NOT_FOUND', detail: req.params.runId });
+    if (상태 === 'SINGLE') return reply.code(404).send({ error: 'SINGLE_RUN', detail: req.params.runId });
     return compareWithPrevious(runId);
   });
 
@@ -152,6 +154,7 @@ export default async function reportingRoutes(app: FastifyInstance): Promise<voi
       // 실패카드 는 compareWithPrevious 를 거쳐 없는 실행 · 시나리오 실행에 던진다. 여기서 막아야 500 이 아니라 404 다
       const 상태 = await 실행상태(runId);
       if (상태 === null) return reply.code(404).send({ error: 'RUN_NOT_FOUND', detail: req.params.runId });
+      if (상태 === 'SINGLE') return reply.code(404).send({ error: 'SINGLE_RUN', detail: req.params.runId });
       // 도는 중이면 실패가 아직 다 안 모였다 — 카드 재료는 끝나야 사실이 된다
       if (상태 === 'RUNNING') return reply.code(409).send({ error: 'RUN_NOT_FINISHED', detail: 상태 });
       return 실패카드(runId, page, platform.data);

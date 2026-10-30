@@ -1,5 +1,6 @@
 // 실행 목록 줄의 직전 대비 수 — 쪽에 든 실행과 그 앞 실행들을 한 번에 읽어 센다 (SPEC 도메인/실행 §7 `GET /api/runs` change)
 
+import { 지금항목 } from '../execution/single.js';
 import { 스모크건너뛰기식, 판정접기식 } from './dashboardSql.js';
 import { db, 케이스판정들, type 접힌행 } from './insights.js';
 
@@ -30,8 +31,7 @@ export async function 직전대비수(runIds: number[]): Promise<Map<number, 직
   const 읽을것 = [...new Set(짝.rows.flatMap((r) => [r.run_id, r.prev_id]))];
   const 접힘 = await pool.query<접힌행 & { run_id: string }>(
     `SELECT i.run_id, i.tc_id, max(i.tc_name) AS tc_name, i.platform, ${판정접기식} AS status
-       FROM run_item i
-      WHERE i.run_id = ANY($1::bigint[])
+       FROM ${지금항목('o.run_id = ANY($1::bigint[])')} i
       GROUP BY i.run_id, i.tc_id, i.platform`,
     [읽을것],
   );

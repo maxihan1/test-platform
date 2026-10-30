@@ -5,6 +5,8 @@ import type { ItemStatus, Platform } from '@platform/kit';
 
 import type { Pool } from 'pg';
 
+import type { 시작방식 } from './runOrigin.js';
+
 export interface HistoryRow {
   historyId: number;
   runId: number;
@@ -14,6 +16,9 @@ export interface HistoryRow {
   durationMs: number | null;
   startedAt: string;
   finishedAt: string | null;
+  /** 한 건 실행이면 SINGLE 이고 rerunOf 가 붙은 실행(없으면 null)이다 — 이력은 바꿔 끼우지 않는다 (도메인/실행 §7 history) */
+  origin: 시작방식;
+  rerunOf: number | null;
 }
 
 export interface LastResult {
@@ -59,10 +64,12 @@ export async function caseHistory(
     duration_ms: number | null;
     started_at: Date;
     finished_at: Date | null;
+    origin: 시작방식;
+    rerun_of: string | null;
     total: number;
   }>(
     `SELECT i.history_id, i.run_id, r.title AS run_title, i.platform, i.status, i.duration_ms,
-            i.started_at, i.finished_at, count(*) OVER ()::int AS total
+            i.started_at, i.finished_at, r.origin, r.rerun_of, count(*) OVER ()::int AS total
        FROM run_item i JOIN test_run r ON r.run_id = i.run_id
       WHERE i.tc_id = $1 AND ($2::text IS NULL OR i.platform = $2)
       ORDER BY i.started_at DESC, i.history_id DESC
@@ -80,6 +87,8 @@ export async function caseHistory(
       durationMs: row.duration_ms,
       startedAt: row.started_at.toISOString(),
       finishedAt: iso(row.finished_at),
+      origin: row.origin,
+      rerunOf: row.rerun_of === null ? null : Number(row.rerun_of),
     })),
     total: rows.rows[0]?.total ?? 0,
     page,

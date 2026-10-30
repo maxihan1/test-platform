@@ -4,7 +4,7 @@ import type { PoolClient } from 'pg';
 
 import type { 케이스종류 } from './runKind.js';
 
-export type 시작방식 = 'MANUAL' | 'SCHEDULED' | 'RERUN' | 'BUILD';
+export type 시작방식 = 'MANUAL' | 'SCHEDULED' | 'RERUN' | 'BUILD' | 'SINGLE';
 
 const 종류말: Record<케이스종류, string> = { UI: 'UI', FN: '기능' };
 
@@ -25,7 +25,8 @@ export function 자동제목(재료: 제목재료): string {
   const n = 재료.케이스들.length;
   if (재료.origin === 'RERUN') return `RUN ${String(재료.rerunOf)}의 실패 ${String(n)}건 다시`;
   const 첫 = 재료.케이스들[0]!;
-  const 몸 = 재료.전체
+  // 한 건은 그 종류 케이스가 하나뿐이어도 「전체 1건」이 아니라 번호 + 이름이다 (도메인/실행 §7 「한 건」 줄)
+  const 몸 = 재료.전체 && 재료.origin !== 'SINGLE'
     ? `${종류말[재료.kind]} 전체 ${String(n)}건`
     : n === 1
       ? `${첫.tcId} ${첫.name}`
@@ -61,8 +62,8 @@ export async function 다시실행사유(
 ): Promise<string | null> {
   // 다른 서비스의 실행은 없는 것과 같은 말로 거절한다 — 볼 권한 없는 서비스의 실행 번호가 있는지 새지 않게.
   // 만들기까지 원래 실행이 지워지지 않게 잡아 둔다 — 지워지면 rerun_of 외래 키가 500 으로 깨진다
-  const r = await client.query<{ kind: string; status: string; failed: string[] }>(
-    `SELECT kind, status,
+  const r = await client.query<{ kind: string; status: string; origin: string; failed: string[] }>(
+    `SELECT kind, status, origin,
             ARRAY(SELECT DISTINCT tc_id FROM run_item WHERE run_id = $1 AND status = 'FAIL' AND finished_at IS NOT NULL) AS failed
        FROM test_run WHERE run_id = $1 AND service_id = $2
         FOR SHARE`,
@@ -71,6 +72,8 @@ export async function 다시실행사유(
   const 원래 = r.rows[0];
   if (원래 === undefined) return `이 서비스에 실행 ${String(rerunOf)}이 없다`;
   if (원래.kind === 'SCENARIO') return `실행 ${String(rerunOf)}은 시나리오 실행이다`;
+  // 한 건 실행은 실행으로 서지 않는 기록이다 — 거기에 붙이면 어느 실행 결과도 안 고친다 (도메인/실행 §3.2)
+  if (원래.origin === 'SINGLE') return `실행 ${String(rerunOf)}은 한 건 실행이다`;
   if (원래.kind !== 이번.kind) return `실행 ${String(rerunOf)}은 다른 종류의 실행이다`;
   if (원래.status === 'RUNNING') return `실행 ${String(rerunOf)}은 아직 도는 중이다`;
   const 실패 = new Set(원래.failed);

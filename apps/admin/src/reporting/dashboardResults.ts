@@ -14,7 +14,7 @@ import {
   type 접은줄,
 } from './dashboardShape.js';
 import { 고른종류칸, type 종류칸 } from './dashboardKind.js';
-import { 접은줄SQL, 앞판정SQL, 실행중SQL, 커버리지SQL } from './dashboardSql.js';
+import { 접은줄SQL, 앞판정SQL, 붙지않은한건SQL, 실행중SQL, 커버리지SQL } from './dashboardSql.js';
 import { 원인을가른다, type 원인재료, type 실패유형 } from './failureType.js';
 import { db, 가려서자른다 } from './insights.js';
 
@@ -264,7 +264,7 @@ export async function 대시보드(
   ).rows[0]!.today;
   const 줄들 = await 줄읽기(pool, 실행서비스ids, tz, 오늘, 날수);
   const 이번시작 = 날짜더하기(오늘, -(날수 - 1));
-  const [앞판정들, running, coverage, 서비스] = await Promise.all([
+  const [앞판정들, running, coverage, 서비스, 한건] = await Promise.all([
     앞판정읽기(pool, [...new Set(줄들.filter((줄) => 줄.day >= 이번시작 && 줄.day <= 오늘).map((줄) => 줄.runId))]),
     실행중읽기(pool, 실행서비스ids),
     커버리지읽기(pool, 작성서비스ids),
@@ -272,6 +272,10 @@ export async function 대시보드(
     pool.query<{ id: string; name: string }>('SELECT id, name FROM service WHERE id = ANY($1::bigint[]) ORDER BY id', [
       볼수있는실행ids,
     ]),
+    pool.query<{ service_id: string; env: string; run_id: string; tc_id: string; platform: 접은줄['platform']; verdict: 'PASS' | 'FAIL'; finished_at: Date }>(
+      붙지않은한건SQL,
+      [실행서비스ids, tz, 날짜더하기(오늘, -(날수 * 2 - 1))],
+    ),
   ]);
 
   // 여러 종류가 섞이면 줄 단위가 서로 맞지 않아 하나를 골랐을 때만 짓는다. 세는 줄은 통과율과 같은 이번 창 줄이다
@@ -285,6 +289,15 @@ export async function 대시보드(
     오늘,
     서비스목록.filter((s) => 실행서비스ids.includes(s.id)),
     날수,
+    한건.rows.map((r) => ({
+      serviceId: Number(r.service_id),
+      env: r.env,
+      runId: Number(r.run_id),
+      tcId: r.tc_id,
+      platform: r.platform,
+      verdict: r.verdict,
+      startedAt: r.finished_at.toISOString(),
+    })),
   );
   return {
     window: {

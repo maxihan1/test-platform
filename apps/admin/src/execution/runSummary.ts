@@ -7,6 +7,7 @@ import { 미확정SQL, 접은판정SQL } from '../scenario/verdict.js';
 
 import type { RunSummary } from './runTypes.js';
 import { 종류조건, type 목록종류 } from './runKind.js';
+import { 지금항목 } from './single.js';
 import type { 시작방식 } from './runOrigin.js';
 
 async function db(): Promise<Pool> {
@@ -47,7 +48,8 @@ const 시나리오미확정 = `(SELECT ${미확정SQL('p')} FROM scenario_run_pa
 export function 거르는조건(거르개: 실행거르개, 시작번호: number): { where: string; having: string; 값: unknown[] } {
   // 시나리오 실행은 run_item 이 없어 항목 0건인 케이스 실행처럼 섞인다. 목록·집계 모두 여기를 타므로 한 곳에 건다 (도메인/시나리오 §3.7 결정 10)
   const 시나리오 = 거르개.kind === 'scenario';
-  const where: string[] = [종류조건(거르개.kind ?? 'case')];
+  // 한 건 실행은 실행으로 서지 않는다 — 목록 · 집계 · 거르개 어디에도 없다 (도메인/실행 §3.2)
+  const where: string[] = [종류조건(거르개.kind ?? 'case'), `r.origin <> 'SINGLE'`];
   const 값: unknown[] = [];
   let n = 시작번호;
 
@@ -140,7 +142,7 @@ export async function runSummary(service: string, 거르개: 실행거르개): P
                 -- 도는 실행은 끝난 시각이 없다. NULL 이면 avg·count 가 알아서 뺀다
                 extract(epoch FROM (r.finished_at - r.started_at)) * 1000 AS duration
            FROM test_run r
-           LEFT JOIN run_item i USING (run_id)
+           LEFT JOIN LATERAL ${지금항목('o.run_id = r.run_id')} i ON true
           WHERE r.service_id = (SELECT id FROM service WHERE prefix = $1) ${조건.where}
           GROUP BY r.run_id, r.started_at, r.finished_at
           ${조건.having}

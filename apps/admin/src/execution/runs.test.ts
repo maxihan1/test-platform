@@ -64,21 +64,25 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
     await pool.query(케이스, ['XBX-001', '두 환경 케이스', JSON.stringify(['desktop', 'mobile']), 'demo/XBX-001.spec.ts']);
 
     // 실패가 하나도 없는 실행. state=failed 가 이것을 빼야 검사가 무는 것이 된다 —
-    // 러너 흉내가 늘 FAIL 을 내므로 이 한 건은 직접 넣는다
-    await pool.query(
-      `WITH r AS (
-         INSERT INTO test_run (title, triggered_by, triggered_by_name, env, base_url,
-                               service_name, service_id, tests_repo, status, finished_at)
-         SELECT 'XBX 모두 통과', 'xbx-사람', '실행 검사용', 'qa', 'https://qa.example.com',
-                'XBX 서비스', id, 'https://xbx.example.com', 'FINISHED', now()
-           FROM service WHERE prefix = 'XBX'
-         RETURNING run_id
-       )
-       INSERT INTO run_item (run_id, tc_id, tc_name, platform, file_path, params, expected,
-                             param_schema, expected_schema, timeout_ms, status, duration_ms, finished_at)
-       SELECT run_id, 'XBX-001', '두 환경 케이스', 'desktop', 'demo/XBX-001.spec.ts', '{}', '{}',
-              '{}', '{}', 300000, 'PASS', 100, now() FROM r`,
-    );
+    // 러너 흉내가 늘 FAIL 을 내므로 이 한 건은 직접 넣는다. 아래 검사들의 케이스 한 건 실행이 qa 실행에 붙어 지금 결과를 덮으므로
+    // 이것은 다른 대상 서버(cmp)에 두고, 붙을 실패 실행을 qa 에 따로 둔다 (도메인/실행 §3.2)
+    for (const [제목, env, 판정] of [['XBX 모두 통과', 'cmp', 'PASS'], ['XBX 실패 섞임', 'qa', 'FAIL']] as const) {
+      await pool.query(
+        `WITH r AS (
+           INSERT INTO test_run (title, triggered_by, triggered_by_name, env, base_url,
+                                 service_name, service_id, tests_repo, status, finished_at)
+           SELECT $1::text, 'xbx-사람', '실행 검사용', $2::text, 'https://qa.example.com',
+                  'XBX 서비스', id, 'https://xbx.example.com', 'FINISHED', now() + interval '1 second'
+             FROM service WHERE prefix = 'XBX'
+           RETURNING run_id
+         )
+         INSERT INTO run_item (run_id, tc_id, tc_name, platform, file_path, params, expected,
+                               param_schema, expected_schema, timeout_ms, status, duration_ms, finished_at)
+         SELECT run_id, 'XBX-001', '두 환경 케이스', 'desktop', 'demo/XBX-001.spec.ts', '{}', '{}',
+                '{}', '{}', 300000, $3::text, 100, now() FROM r`,
+        [제목, env, 판정],
+      );
+    }
 
     러너 = Fastify();
     러너.post('/execute', async (req) => {
@@ -300,7 +304,7 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
     expect(res.statusCode).toBe(400);
   });
 
-  it('실어 보낸 제목은 버리고 서버가 짓는다 — 시작 방식은 직접 실행이다', async () => {
+  it('실어 보낸 제목은 버리고 서버가 짓는다 — 케이스 하나는 한 건 실행이라 qa 의 끝난 실행에 붙는다', async () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/runs',
@@ -308,7 +312,8 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
     });
     expect(res.statusCode).toBe(200);
     const run = await 끝날때까지(res.json().runId);
-    expect([run.title, run.origin, run.rerunOf]).toEqual(['기능 전체 1건', 'MANUAL', null]);
+    expect([run.title, run.origin, typeof run.rerunOf]).toEqual(['XBX-001 두 환경 케이스', 'SINGLE', 'number']);
+    expect(res.json().attachedTo).toBe(run.rerunOf);
   });
 
   it('GET /api/runs — 실행 목록이 최근 순으로 나온다', async () => {
@@ -327,8 +332,8 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
     expect(body.items.length).toBeGreaterThan(0);
     for (const run of body.items) {
       expect(run.serviceName).toBe('XBX 서비스');
-      // 실행 기록 목록은 대상 서버를 시각 옆에 적는다 (SPEC §8.7)
-      expect(run.env).toBe('qa');
+      // 실행 기록 목록은 대상 서버를 시각 옆에 적는다 (SPEC §8.7). cmp 는 위 「모두 통과」 바탕 실행이다
+      expect(['qa', 'cmp']).toContain(run.env);
     }
   });
 

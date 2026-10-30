@@ -24,7 +24,7 @@
           "datasource": { "type": "postgres", "uid": "platform-postgres" },
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT date_trunc('day', r.started_at) AS time,\n       round(avg(i.duration_ms)) AS \"평균 소요시간\"\nFROM run_item i\nJOIN test_run r ON r.run_id = i.run_id\nWHERE r.started_at >= now() - interval '30 days'\n  AND r.kind IN ('UI','FN')\n  AND i.duration_ms IS NOT NULL\nGROUP BY 1\nORDER BY 1"
+          "rawSql": "SELECT date_trunc('day', r.started_at) AS time,\n       round(avg(i.duration_ms)) AS \"평균 소요시간\"\nFROM run_item i\nJOIN test_run r ON r.run_id = i.run_id\nWHERE r.started_at >= now() - interval '30 days'\n  AND r.kind IN ('UI','FN') AND r.origin <> 'SINGLE'\n  AND i.duration_ms IS NOT NULL\nGROUP BY 1\nORDER BY 1"
         }
       ]
     },
@@ -41,7 +41,7 @@
           "datasource": { "type": "postgres", "uid": "platform-postgres" },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT r.run_id AS \"실행 번호\",\n       r.title AS \"제목\",\n       r.service_name AS \"서비스\",\n       r.env AS \"대상 서버\",\n       r.status AS \"상태\",\n       CASE r.kind WHEN 'UI' THEN 'UI 테스트' ELSE '기능 테스트' END AS \"종류\",\n       r.started_at AS \"시작 시각\"\nFROM test_run r\nWHERE r.kind IN ('UI','FN')\nORDER BY r.started_at DESC\nLIMIT 20"
+          "rawSql": "SELECT r.run_id AS \"실행 번호\",\n       r.title AS \"제목\",\n       r.service_name AS \"서비스\",\n       r.env AS \"대상 서버\",\n       r.status AS \"상태\",\n       CASE r.kind WHEN 'UI' THEN 'UI 테스트' ELSE '기능 테스트' END AS \"종류\",\n       r.started_at AS \"시작 시각\"\nFROM test_run r\nWHERE r.kind IN ('UI','FN') AND r.origin <> 'SINGLE'\nORDER BY r.started_at DESC\nLIMIT 20"
         }
       ]
     },

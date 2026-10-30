@@ -57,7 +57,7 @@ describe('증적 머리말의 「기기」 줄', () => {
 });
 
 describe('증적 엑셀의 「기기」 칸', () => {
-  it('끝에서 두 번째 칸에 그 항목의 기기를, 맨 끝 칸에 팜 기록을 적는다', async () => {
+  it('끝에서 세 번째 칸에 그 항목의 기기를, 두 번째 칸에 팜 기록을 적는다', async () => {
     const 팜 = '화면 영상 2개 · logcat.txt — 실행 화면의 이 항목에서 받는다';
     const doc: EvidenceDocument = { runId: 7, header: 머리, items: [{ ...항목('SM-G996N · Android 14 · 앱 1.4.2'), farm: 팜 }, 항목(null)] };
     const wb = new ExcelJS.Workbook();
@@ -65,8 +65,8 @@ describe('증적 엑셀의 「기기」 칸', () => {
     const ws = wb.worksheets[0]!;
     const 끝 = ws.getRow(1).cellCount;
     const 칸 = (열: number) => [1, 2, 3].map((줄) => ws.getRow(줄).getCell(열).value ?? null);
-    expect(칸(끝 - 1)).toEqual(['기기', 'SM-G996N · Android 14 · 앱 1.4.2', null]);
-    expect(칸(끝)).toEqual(['팜 기록', 팜, null]);
+    expect(칸(끝 - 2)).toEqual(['기기', 'SM-G996N · Android 14 · 앱 1.4.2', null]);
+    expect(칸(끝 - 1)).toEqual(['팜 기록', 팜, null]);
   });
 });
 
