@@ -56,6 +56,8 @@ export interface CaseRow {
   screens?: CaseScreen[];
   /** 케이스를 실행해서 부른 호스트에 붙은 API 서버 이름 — 목록 응답에만 온다. 없으면 [] (도메인/카탈로그 §8.1 「API 서버」) */
   apiServers?: string[];
+  /** API 애플리케이션 케이스가 실행에서 부른 엔드포인트 `POST /api/orders` — 목록 응답에만 온다. 맨 앞이 묶음 머리다 (도메인/카탈로그 §8.1 「맥락」) */
+  endpoints?: string[];
   /** 스모크 — 실제로 쓰는 값(사람이 고친 값, 없으면 코드 값)과 사람이 고친 값. 이 칸 전 가짜 응답을 안 고치려고 선택으로 둔다 (도메인/카탈로그 §7 · 실행 §3.11) */
   smoke?: boolean;
   smokeSet?: boolean | null;
@@ -89,6 +91,8 @@ export interface CaseGroup {
   screenName?: string | null;
   part: string | null;
   partName?: string | null;
+  /** API 애플리케이션의 2단 머리 — 화면 대신 엔드포인트 `POST /api/orders`. 없으면 null (도메인/카탈로그 §8.1 「맥락」) */
+  endpoint?: string | null;
   tcIds: string[];
 }
 
@@ -1040,6 +1044,8 @@ export interface CaseQuery {
   req?: string;
   /** API 서버 이름. 그 이름이 붙은 호스트를 실행해서 부른 케이스만 (도메인/카탈로그 §7 `?apiServer=`) */
   apiServer?: string;
+  /** 묶인 엔드포인트 `POST /api/orders` (도메인/카탈로그 §7 `?endpoint=`) */
+  endpoint?: string;
   /** 마지막 결과. 서버가 전체에서 거른다 (도메인/카탈로그 §7 `?last=`) */
   last?: ItemStatus;
   /** 스모크만(true) · 스모크 아닌 것만(false). 없으면 안 거른다 (도메인/카탈로그 §7 `?smoke=`) */
@@ -1056,7 +1062,7 @@ function 케이스조건(query: CaseQuery): URLSearchParams {
   if (query.technique !== undefined) params.set('technique', query.technique);
   // feature 는 빈 글자도 보낸다 — 「기능 묶음 없음」이다
   if (query.feature !== undefined) params.set('feature', query.feature);
-  for (const 칸 of ['screen', 'part', 'axis', 'req', 'apiServer'] as const) {
+  for (const 칸 of ['screen', 'part', 'axis', 'req', 'apiServer', 'endpoint'] as const) {
     const 값 = query[칸];
     if (값 !== undefined) params.set(칸, 값);
   }

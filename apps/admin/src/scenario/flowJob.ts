@@ -4,7 +4,7 @@
 import type { Platform } from '@platform/kit';
 
 import { tcId종류 } from '../catalog/rules.js';
-import { 맥락읽기 } from '../catalog/context.js';
+import { 맥락읽기 } from '../catalog/contextRead.js';
 import { 오래된일닫기, 일만들기, 일하나 } from '../perf/ai.js';
 import { 지금판 } from '../prd/store.js';
 import { db } from '../settings/store.js';

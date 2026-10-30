@@ -5,7 +5,8 @@ import type { Pool } from 'pg';
 import type { CaseSpec, ItemStatus, Platform, Technique } from '@platform/kit';
 
 import { 미확정사유SQL } from '../prd/unconfirmed.js';
-import { API서버세기, 맥락, 맥락거르기, 맥락읽기, 요구로찾기, 줄세우기, type CaseContext, type CaseGroup, type 맥락조건 } from './context.js';
+import { API서버세기, 맥락, 맥락거르기, 요구로찾기, 줄세우기, type CaseContext, type CaseGroup, type 맥락조건 } from './context.js';
+import { 맥락읽기 } from './contextRead.js';
 import type { 판정함수 } from './last.js';
 // 화면이 가리는 칸과 응답에서 빼는 칸이 같아야 한다. 판단을 둘로 두면 한쪽만 고쳐진다
 import { 저장값나누기 } from '../web/mask.js';

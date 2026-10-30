@@ -99,6 +99,26 @@ describe('묶음 머리', () => {
     expect(screen.queryByRole('button', { name: /^\/signup화면/ })).toBeNull();
   });
 
+  it('API 는 묶음 머리가 엔드포인트이고 · 줄 아래에 메서드 · 경로를 다 적고 · 「이것만 보기」가 그 엔드포인트로 부른다 (WEB-F7-22)', async () => {
+    const 주문 = 케이스('ZCL-FN-001', { feature: '주문', endpoints: ['POST /api/orders', 'POST /api/auth/login'] });
+    const 스파이 = 그리기({
+      앱종류: 'API',
+      받을쪽: {
+        ...쪽,
+        items: [주문],
+        total: 1,
+        groups: [{ feature: '주문', screen: null, screenUrl: null, part: null, endpoint: 'POST /api/orders', tcIds: ['ZCL-FN-001'] }],
+      },
+    });
+    expect(await screen.findByRole('button', { name: /^POST \/api\/orders엔드포인트/ })).toBeTruthy();
+    const 칩 = [...(await screen.findByText('ZCL-FN-001')).closest('.row')!.querySelectorAll('.case-screen')];
+    expect(칩.map((el) => el.textContent)).toEqual(['POST /api/orders', 'POST /api/auth/login']);
+    fireEvent.click(screen.getByRole('button', { name: '주문 › POST /api/orders만 보기' }));
+    expect(마지막조건(스파이)).toMatchObject({ feature: '주문', endpoint: 'POST /api/orders', page: 1 });
+    expect(마지막조건(스파이).screen).toBeUndefined();
+    expect(await screen.findByRole('button', { name: '주문 › POST /api/orders 조건 풀기' })).toBeTruthy();
+  });
+
   it('머리를 누르면 그 아래 머리 · 줄이 접히고 다시 누르면 편다', async () => {
     그리기();
     const 회원가입 = await screen.findByRole('button', { name: /^회원가입\s*\d+건/ });

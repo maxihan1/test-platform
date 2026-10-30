@@ -18,20 +18,21 @@ const 조각글 = (머리: 묶음머리, file: string) => (머리.조각이름 =
 /** 머리 이름 — 기능 묶음 이름 · 화면 이름(없으면 주소 · 파일 이름) · 화면 조각 이름(없으면 파일 이름) */
 export function 머리이름(머리: 묶음머리, 없음글: string): string {
   if (머리.단 === 1) return 머리.값 ?? 없음글;
+  if (머리.단 === 2 && 머리.조건.endpoint !== undefined) return 머리.조건.endpoint;
   if (머리.단 === 2) return 화면글(머리, 머리.값 ?? '');
   return 조각글(머리, 머리.값 ?? '');
 }
 
 /** 「이것만 보기」로 건 조건 칩의 글 — 위 묶음까지 `회원가입 › /signup › terms` */
 function 묶음글(머리: 묶음머리, 없음글: string): string {
-  const { feature, screen, part } = 머리.조건;
-  return [feature === '' ? 없음글 : feature, screen === undefined || screen === '' ? null : 화면글(머리, screen), part === undefined ? null : 조각글(머리, part)]
+  const { feature, screen, part, endpoint } = 머리.조건;
+  return [feature === '' ? 없음글 : feature, screen === undefined || screen === '' ? null : 화면글(머리, screen), endpoint ?? null, part === undefined ? null : 조각글(머리, part)]
     .filter((x) => x !== null)
     .join(' › ');
 }
 
 function 같은묶음(걸린: 묶음조건 | null, 조건: 묶음자리): boolean {
-  return 걸린 !== null && 걸린.feature === 조건.feature && 걸린.screen === 조건.screen && 걸린.part === 조건.part;
+  return 걸린 !== null && 걸린.feature === 조건.feature && 걸린.screen === 조건.screen && 걸린.part === 조건.part && 걸린.endpoint === 조건.endpoint;
 }
 
 export function 묶음머리줄({
@@ -133,6 +134,11 @@ export function 케이스맥락({ row, 요구보나, 요구쓰나 }: { row: Case
         {(row.screens ?? []).map((s) => (
           <span className="case-screen" key={s.file} title={s.url ?? undefined}>
             {s.name == null ? (s.url ?? 파일이름(s.file)) : 화면이름글(s.name)}
+          </span>
+        ))}
+        {(row.endpoints ?? []).map((e) => (
+          <span className="case-screen" key={e}>
+            {e}
           </span>
         ))}
         {row.techniques?.length ? (

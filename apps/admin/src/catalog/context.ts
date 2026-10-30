@@ -1,5 +1,5 @@
 // 케이스 목록의 맥락 — 지도 ① ② 와 표준 기획서 지금 판에서 기능 묶음 · 요구 · 화면을 붙이고 접는 차례를 짓는다 (도메인/카탈로그 §8.1 「맥락」)
-// 카탈로그는 표준 기획서를 읽기만 한다 (카탈로그 §3.1 「지도」). 판단은 순수 함수로 두고 DB 읽기는 맨 아래 하나다
+// 카탈로그는 표준 기획서를 읽기만 한다 (카탈로그 §3.1 「지도」). 판단은 순수 함수로 두고 DB 읽기는 contextRead.ts 하나다
 
 import type { PrdItem } from '@platform/kit';
 
@@ -28,9 +28,11 @@ export interface CaseContext {
   screens: CaseScreen[];
   /** 케이스를 실행해서 부른 호스트에 붙은 API 서버 이름 — 글자 순, 같은 이름은 한 번 (§8.1 「API 서버」). 없으면 [] */
   apiServers: string[];
+  /** API 애플리케이션 케이스가 실행에서 부른 엔드포인트 `POST /api/orders` — 묶음 머리가 되는 것이 맨 앞 (§8.1 「맥락」). 다른 종류 · 실행 전이면 [] */
+  endpoints: string[];
 }
 
-/** 목록이 접는 자리 하나 — 기능 묶음 > 화면 > 화면 조각. 화면 · 화면 조각은 파일 경로이고 없으면 null 이다 */
+/** 목록이 접는 자리 하나 — 기능 묶음 > 화면(API 는 엔드포인트) > 화면 조각. 화면 · 화면 조각은 파일 경로이고 없으면 null 이다 */
 export interface CaseGroup {
   feature: string | null;
   screen: string | null;
@@ -39,6 +41,7 @@ export interface CaseGroup {
   screenName: string | null;
   part: string | null;
   partName: string | null;
+  endpoint: string | null;
   tcIds: string[];
 }
 
@@ -48,6 +51,8 @@ export interface 맥락재료 {
   screens: { tcId: string; file: string; url: string | null; name: string | null }[];
   /** 없으면 API 서버 이름을 안 단다 — 목록 밖(실패 요구사항)이 요구만 짓는 데 쓴다 */
   apis?: { tcId: string; name: string }[];
+  /** 서비스 지도 케이스 줄 — API 애플리케이션만 넘긴다. step 은 그 엔드포인트를 부른 첫 단계, 준비 · 정리에서만 불렀으면 null */
+  endpoints?: { tcId: string; method: string; path: string; step: number | null }[];
 }
 
 interface 자리 {
@@ -60,15 +65,16 @@ interface 자리 {
   screenName: string | null;
   part: string | null;
   partName: string | null;
+  endpoint: string | null;
 }
 
 export type 맥락표 = Map<string, CaseContext & { 자리: 자리 }>;
 
-const 빈맥락: CaseContext = { feature: null, reqs: [], screens: [], apiServers: [] };
+const 빈맥락: CaseContext = { feature: null, reqs: [], screens: [], apiServers: [], endpoints: [] };
 
 export function 맥락(표: 맥락표, tcId: string): CaseContext {
   const 것 = 표.get(tcId);
-  return 것 === undefined ? 빈맥락 : { feature: 것.feature, reqs: 것.reqs, screens: 것.screens, apiServers: 것.apiServers };
+  return 것 === undefined ? 빈맥락 : { feature: 것.feature, reqs: 것.reqs, screens: 것.screens, apiServers: 것.apiServers, endpoints: 것.endpoints };
 }
 
 const 화면순 = (s: CaseScreen) => s.url ?? s.file;
@@ -97,8 +103,21 @@ export function 맥락짓기(재료: 맥락재료): 맥락표 {
   const 서버들 = new Map<string, Set<string>>();
   for (const a of 재료.apis ?? []) 서버들.set(a.tcId, (서버들.get(a.tcId) ?? new Set()).add(a.name));
 
+  // 대상 서버 주소가 달라도 메서드 · 경로가 같으면 한 엔드포인트다 — 대시보드 「엔드포인트별 결과」와 같은 셈 (리포팅 §8.12)
+  const 첫단계들 = new Map<string, Map<string, { 경로: string; 단계: number }>>();
+  for (const e of 재료.endpoints ?? []) {
+    const 줄 = 첫단계들.get(e.tcId) ?? new Map<string, { 경로: string; 단계: number }>();
+    const 이름 = `${e.method} ${e.path}`;
+    // 준비 · 정리에서만 불렀으면 단계가 없다 — 단계 번호 뒤로 민다
+    줄.set(이름, { 경로: `${e.path} ${e.method}`, 단계: Math.min(줄.get(이름)?.단계 ?? Infinity, e.step ?? Infinity) });
+    첫단계들.set(e.tcId, 줄);
+  }
+  // 단계에서 먼저 부른 것이 앞 — 준비에서만 부른 로그인이 앞서면 케이스 대부분이 로그인 머리 아래로 몰린다 (2026-10-30 시작 질문)
+  const 엔드포인트들 = (tcId: string) =>
+    [...(첫단계들.get(tcId) ?? [])].sort(([a, x], [b, y]) => (x.단계 === y.단계 ? a.localeCompare(b) : x.단계 < y.단계 ? -1 : 1));
+
   const 표: 맥락표 = new Map();
-  for (const tcId of new Set([...요구들.keys(), ...화면들.keys(), ...서버들.keys()])) {
+  for (const tcId of new Set([...요구들.keys(), ...화면들.keys(), ...서버들.keys(), ...첫단계들.keys()])) {
     // 판의 차례가 앞인 요구가 먼저 — 그 요구의 기능 묶음이 케이스의 묶음이다(카탈로그 §7 계약 블록). 판에 없는 번호는 뒤에 번호 차례로
     const reqs = (요구들.get(tcId) ?? []).sort(
       (a, b) => (번호차례.get(a.reqId) ?? Infinity) - (번호차례.get(b.reqId) ?? Infinity) || a.reqId.localeCompare(b.reqId),
@@ -109,28 +128,34 @@ export function 맥락짓기(재료: 맥락재료): 맥락표 {
     const screens = (화면들.get(tcId) ?? []).sort((a, b) => 화면순(a).localeCompare(화면순(b)) || a.file.localeCompare(b.file));
     const 화면 = screens.find((s) => s.file.endsWith('.page.ts')) ?? null;
     const 조각 = screens.find((s) => s.file.endsWith('.component.ts')) ?? null;
+    const 부른것 = 엔드포인트들(tcId);
+    const endpoints = 부른것.map(([이름]) => 이름);
+    const 엔드포인트 = endpoints[0] ?? null;
     표.set(tcId, {
       feature,
       reqs,
       screens,
       apiServers: [...(서버들.get(tcId) ?? [])].sort((a, b) => a.localeCompare(b)),
+      endpoints,
       자리: {
         차례: feature === null ? Infinity : 묶음차례.get(feature)!,
-        화면차례: 화면 === null ? '' : 화면순(화면),
+        // 엔드포인트 머리는 경로 차례 — 같은 경로의 GET · POST 가 이웃한다
+        화면차례: 화면 !== null ? 화면순(화면) : (부른것[0]?.[1].경로 ?? ''),
         screen: 화면?.file ?? null,
         screenUrl: 화면?.url ?? null,
         screenName: 화면?.name ?? null,
         part: 조각?.file ?? null,
         partName: 조각?.name ?? null,
+        endpoint: 엔드포인트,
       },
     });
   }
   return 표;
 }
 
-const 빈자리: 자리 = { 차례: Infinity, 화면차례: '', screen: null, screenUrl: null, screenName: null, part: null, partName: null };
+const 빈자리: 자리 = { 차례: Infinity, 화면차례: '', screen: null, screenUrl: null, screenName: null, part: null, partName: null, endpoint: null };
 
-/** 목록 순서 — 기능 묶음(판 차례) → 화면(주소) → 화면 조각 → 번호. 화면 없는 케이스가 그 묶음 맨 앞이다 — 머리 줄 없이 묶음 바로 아래 선다 */
+/** 목록 순서 — 기능 묶음(판 차례) → 화면(주소) · 엔드포인트(경로) → 화면 조각 → 번호. 화면 없는 케이스가 그 묶음 맨 앞이다 — 머리 줄 없이 묶음 바로 아래 선다 */
 export function 줄세우기(tcIds: string[], 표: 맥락표): { 차례: string[]; groups: CaseGroup[] } {
   const 자리of = (id: string) => 표.get(id)?.자리 ?? 빈자리;
   const 차례 = [...tcIds].sort((a, b) => {
@@ -150,8 +175,8 @@ export function 줄세우기(tcIds: string[], 표: 맥락표): { 차례: string[
     const 곳 = 자리of(id);
     const feature = 표.get(id)?.feature ?? null;
     const 끝 = groups.at(-1);
-    if (끝 !== undefined && 끝.feature === feature && 끝.screen === 곳.screen && 끝.part === 곳.part) 끝.tcIds.push(id);
-    else groups.push({ feature, screen: 곳.screen, screenUrl: 곳.screenUrl, screenName: 곳.screenName, part: 곳.part, partName: 곳.partName, tcIds: [id] });
+    if (끝 !== undefined && 끝.feature === feature && 끝.screen === 곳.screen && 끝.part === 곳.part && 끝.endpoint === 곳.endpoint) 끝.tcIds.push(id);
+    else groups.push({ feature, screen: 곳.screen, screenUrl: 곳.screenUrl, screenName: 곳.screenName, part: 곳.part, partName: 곳.partName, endpoint: 곳.endpoint, tcIds: [id] });
   }
   return { 차례, groups };
 }
@@ -166,6 +191,8 @@ export interface 맥락조건 {
   req?: string;
   /** API 서버 이름 — 그 이름이 붙은 호스트를 실행해서 부른 케이스 (§8.1 「API 서버」). 모르는 이름은 빈 목록이다 */
   apiServer?: string;
+  /** 묶인 엔드포인트 `POST /api/orders` — 케이스가 부른 다른 엔드포인트로는 안 걸린다 (§8.1 「맥락」) */
+  endpoint?: string;
 }
 
 /** 「이것만 보기」는 묶음 자리를 그대로 거른다 — 케이스가 쓰는 다른 화면으로는 안 걸린다. 걸리면 고른 묶음에 다른 묶음 머리가 섞여 보인다 */
@@ -180,6 +207,7 @@ export function 맥락거르기(tcIds: string[], 표: 맥락표, 조건: 맥락�
     if (조건.axis !== undefined && !reqs.some((r) => r.axis === 조건.axis)) return false;
     if (조건.req !== undefined && !reqs.some((r) => r.reqId === 조건.req)) return false;
     if (조건.apiServer !== undefined && !(것?.apiServers ?? []).includes(조건.apiServer)) return false;
+    if (조건.endpoint !== undefined && 곳.endpoint !== 조건.endpoint) return false;
     return true;
   });
 }
@@ -198,7 +226,7 @@ export function 요구로찾기(표: 맥락표, q: string): string[] {
 }
 
 /** 쿼리 글자 그대로 — 같은 이름을 두 번 보내면 Fastify 가 배열로 준다 */
-export type 맥락글 = { feature?: unknown; screen?: unknown; part?: unknown; axis?: unknown; req?: unknown; apiServer?: unknown };
+export type 맥락글 = { feature?: unknown; screen?: unknown; part?: unknown; axis?: unknown; req?: unknown; apiServer?: unknown; endpoint?: unknown };
 
 // 배열이면 마지막 값을 쓴다 — 배열을 그대로 견주면 아무것도 안 맞아 조용히 빈 목록이 된다
 const 한글자 = (x: unknown): string | undefined => {
@@ -211,7 +239,7 @@ const 한글자 = (x: unknown): string | undefined => {
  * 모르는 종류는 null — 설계 기법과 같은 까닭으로 거르지 않고 전부 내지 않는다
  */
 export function 맥락조건읽기(q: 맥락글): 맥락조건 | null {
-  const [feature, screen, part, axis, req, apiServer] = [q.feature, q.screen, q.part, q.axis, q.req, q.apiServer].map(한글자);
+  const [feature, screen, part, axis, req, apiServer, endpoint] = [q.feature, q.screen, q.part, q.axis, q.req, q.apiServer, q.endpoint].map(한글자);
   const 있나 = (x: string | undefined): x is string => x !== undefined && x !== '';
   const 종류 = 종류들.find((a) => a === axis);
   if (있나(axis) && 종류 === undefined) return null;
@@ -222,43 +250,8 @@ export function 맥락조건읽기(q: 맥락글): 맥락조건 | null {
     ...(종류 === undefined ? {} : { axis: 종류 }),
     ...(있나(req) ? { req } : {}),
     ...(있나(apiServer) ? { apiServer } : {}),
+    ...(있나(endpoint) ? { endpoint } : {}),
   };
 }
 
 export const 모르는종류 = (값: unknown) => ({ error: 'BAD_AXIS', detail: `종류는 정상 · 경계 · 예외 · UI 중 하나입니다 — ${String(값)}` });
-
-/** 그 서비스의 지도 ① ② 와 표준 기획서 지금 판. 서비스 · 판이 없으면 빈 표다 */
-export async function 맥락읽기(prefix: string): Promise<맥락표> {
-  const { pool } = await import('../db/index.js');
-  const [판, 요구, 화면, 서버] = await Promise.all([
-    pool.query<{ items: PrdItem[] }>(
-      `SELECT pv.items FROM prd_version pv JOIN service s ON s.id = pv.service_id
-        WHERE s.prefix = $1 ORDER BY pv.version DESC LIMIT 1`,
-      [prefix],
-    ),
-    pool.query<{ req_id: string; tc_id: string; axis: 종류 }>(
-      'SELECT rc.req_id, rc.tc_id, rc.axis FROM req_case rc JOIN service s ON s.id = rc.service_id WHERE s.prefix = $1',
-      [prefix],
-    ),
-    pool.query<{ tc_id: string; file: string; screen_url: string | null; name: string | null }>(
-      'SELECT tc_id, file, screen_url, name FROM case_screen WHERE tc_id LIKE $1',
-      [`${prefix}-%`],
-    ),
-    // 케이스를 실행해서 부른 호스트의 이름만 — 크롤러가 본 호출(화면 줄)은 tc_id 가 비어 안 든다 (§8.1 「API 서버」)
-    pool.query<{ tc_id: string; name: string }>(
-      `SELECT DISTINCT u.tc_id, n.name
-         FROM service_api_use u
-         JOIN service_api a ON a.id = u.api_id
-         JOIN service s ON s.id = a.service_id
-         JOIN project_api_server n ON n.project_id = s.project_id AND n.host = a.host
-        WHERE s.prefix = $1 AND u.tc_id IS NOT NULL`,
-      [prefix],
-    ),
-  ]);
-  return 맥락짓기({
-    prd: 판.rows[0]?.items ?? [],
-    reqs: 요구.rows.map((r) => ({ reqId: r.req_id, tcId: r.tc_id, axis: r.axis })),
-    screens: 화면.rows.map((r) => ({ tcId: r.tc_id, file: r.file, url: r.screen_url, name: r.name })),
-    apis: 서버.rows.map((r) => ({ tcId: r.tc_id, name: r.name })),
-  });
-}
