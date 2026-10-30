@@ -179,7 +179,7 @@ describe.skipIf(연결 === undefined)('실행 시작 방식', () => {
     await 기기('XBO-002', 'Pixel 7');
     await 기기('XBO-003', 'SM-S911N');
     await 닫는다(실행);
-    const 빈 = await 건다(['XBO-001']);
+    const 빈 = await 건다(['XBO-001', 'XBO-002']);
     await 닫는다(빈);
 
     const 목록 = await listRuns('XBO', 1, 50, {});
