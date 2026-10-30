@@ -1945,6 +1945,23 @@ input[type='file']::file-selector-button {
   max-width: 1400px;
 }
 
+/* 창(②) 안에서 묻는 줄 — 확인 창을 겹치지 않고 그 자리에서 묻는다 (DESIGN.md 「휴대폰의 창」 · 시안 11판 「디바이스 팜 토큰」) */
+.farm-ask {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+  padding: 8px 10px;
+  background: var(--accent-soft);
+  border-radius: 6px;
+  font-size: 12.5px;
+}
+
+.farm-ask span {
+  flex: 1 1 200px;
+}
+
 .modal-title {
   font-size: 19px;
   font-weight: 600;

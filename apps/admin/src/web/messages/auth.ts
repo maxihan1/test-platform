@@ -63,6 +63,8 @@ export const 계정말: Record<string, string> = {
   '넣음 (…{끝})': 'Set (…{끝})',
   '토큰 지우기': 'Remove token',
   '새 토큰': 'New token',
+  '지금 토큰(…{끝})을 버리고 새 토큰으로 바꿀까요?': 'Replace the current token (…{끝}) with the new one?',
+  '지금 토큰(…{끝})을 지울까요? 지우면 서버 토큰으로 빌립니다': 'Remove the current token (…{끝})? Phones will be borrowed with the server token',
   'pat_ 로 시작하는 토큰이 아닙니다': 'This is not a token starting with pat_',
   '통합계정이 받지 않는 토큰입니다 — 폐기했거나 기간이 끝났을 수 있습니다':
     'The QA Hub account does not accept this token — it may be revoked or expired',
