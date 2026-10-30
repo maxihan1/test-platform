@@ -154,6 +154,7 @@ export function RunWindow({
       안내={안내글}
       거는중={걸기.거는중}
       onClose={onClose}
+      원래실행={rerunOf}
       on값고침={걸기.사유지우기}
       on다시읽기={(tcId) => {
         // 저장은 이미 됐다. 다시 읽기만 실패하면 「저장값 · 누가 · 언제」가 옛것이라는 사실을 창에 적는다

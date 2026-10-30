@@ -3,7 +3,8 @@
 import type { RunSummary, 폰에깔린앱 } from './api.js';
 import { use말, type 값들 } from './i18n.js';
 
-const 시작방식글 = { MANUAL: '직접 실행', SCHEDULED: '정기 실행', RERUN: '실패 다시 실행', BUILD: '빌드 실행' } as const;
+// 한 건 실행은 실행 기록 줄로 서지 않아(도메인/실행 §3.2) 그 번호의 결과 화면을 주소로 곧장 열 때만 이 글이 보인다
+const 시작방식글 = { MANUAL: '직접 실행', SCHEDULED: '정기 실행', RERUN: '실패 다시 실행', BUILD: '빌드 실행', SINGLE: '한 건 실행' } as const;
 
 /**
  * 시작 방식 · 빌드 번호 조각(앞에 ` · ` 가 붙는다). 빌드 실행은 시작 방식을 적지 않는다 — 실행자가 이미 「빌드 · <이름>」이다.

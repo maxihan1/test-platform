@@ -1,13 +1,14 @@
 // 실행 하나를 「도는 중」과 「끝났다」 두 모습으로 그리는 모달 (SPEC §8.9 · DESIGN.md 모달)
 // 모달을 둘로 나누면 같은 화면이 두 번 가로막는다. 그래서 상자는 하나이고 상태가 내용을 고른다
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 
 import { api, type RunItemSummary, type 항목실패, type 항목진행 } from './api.js';
 import { 실패이유 } from './FailureWhy.js';
 import { groupByCase, 회차요약 } from './group.js';
 import { t, use말, use언어, type 언어 } from './i18n.js';
 import { Modal } from './Modal.js';
+import { 항목실행번호 } from './RerunTag.js';
 import { type RunDetail, type 진행막대, 진행상황 } from './runProgress.js';
 import { 실행남은글, 시간글자 } from './remainText.js';
 import { 도는중, 미실행사유 } from './runState.js';
@@ -182,7 +183,7 @@ function 진행내용({ data, 진행목록, 남은ms }: { data: RunDetail; 진�
  * 접는 규칙은 목록과 같은 `회차요약()` 이다 — SPEC §8.3 이 「케이스 1건 = 1행」으로 정했고
  * 바로 아래 결과 목록이 이미 그 규칙으로 그린다. **한 화면이 같은 것을 두 단위로 말하면 안 된다.**
  */
-function 실패한케이스들(items: RunItemSummary[]): { tcId: string; tcName: string; historyId: number }[] {
+function 실패한케이스들(items: RunItemSummary[]): (RunItemSummary & { tcName: string })[] {
   return groupByCase(items)
     .filter((묶음) =>
       Object.values(묶음.byPlatform).some((칸) => 칸 !== undefined && 칸.length > 0 && 회차요약(칸).status === 'FAIL'),
@@ -193,7 +194,7 @@ function 실패한케이스들(items: RunItemSummary[]): { tcId: string; tcName:
         .flat()
         .filter((it): it is RunItemSummary => it !== undefined && it.status === 'FAIL')
         .sort((a, b) => a.historyId - b.historyId)[0];
-      return 깨진 === undefined ? [] : [{ tcId: 묶음.tcId, tcName: 묶음.tcName, historyId: 깨진.historyId }];
+      return 깨진 === undefined ? [] : [{ ...깨진, tcName: 묶음.tcName }];
     });
 }
 
@@ -219,7 +220,7 @@ function 완료내용({ data, onClose }: { data: RunDetail; onClose: () => void 
           {/* 눌러도 아무 일 없던 줄이다 — 그 케이스의 깨진 항목 상세로 간다. 상자는 닫아 「봤다」로 적는다 */}
           {실패목록.slice(0, 실패목록최대).map((것) => (
             <div className="pre" key={것.tcId}>
-              <a href={`#/runs/${String(data.runId)}/items/${String(것.historyId)}`} onClick={onClose}>
+              <a href={`#/runs/${String(항목실행번호(것, data.runId))}/items/${String(것.historyId)}`} onClick={onClose}>
                 {것.tcId} {것.tcName}
               </a>
             </div>
@@ -248,6 +249,7 @@ export function RunProgressModal({
   onClose,
   on멈추기,
   on결과보기,
+  덧붙임,
 }: {
   data: RunDetail;
   /** 러너에게 따로 물어 온 지금 절차들. 기본값을 두지 않는다 — 두면 호출부가 조회를 빠뜨려도
@@ -260,6 +262,8 @@ export function RunProgressModal({
   on멈추기?: () => void;
   /** 그 실행 화면 밖에서 뜬 완료 상자 — 「결과 보기」가 그 화면으로 간다. 없으면 이미 그 화면이라 닫기만 한다 (도메인/실행 §8.9) */
   on결과보기?: () => void;
+  /** 끝난 상자 맨 위에 붙는 한 줄 — 한 건 실행이 어디에 붙었나 (RunSingleDone) */
+  덧붙임?: ReactNode;
 }) {
   const t말 = use말();
   const 언어 = use언어();
@@ -298,7 +302,7 @@ export function RunProgressModal({
         )
       }
     >
-      {도는가 ? <진행내용 data={data} 진행목록={진행목록} 남은ms={남은ms} /> : <완료내용 data={data} onClose={onClose} />}
+      {도는가 ? <진행내용 data={data} 진행목록={진행목록} 남은ms={남은ms} /> : <>{덧붙임}<완료내용 data={data} onClose={onClose} /></>}
     </Modal>
   );
 }

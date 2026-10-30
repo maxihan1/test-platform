@@ -3,11 +3,11 @@
 
 import { useState } from 'react';
 
-import { ApiError, type CaseRow, type RunRequestItem, type ServiceRow, type User } from './api.js';
+import { ApiError, type CaseRow, type ServiceRow, type User } from './api.js';
 import { Form } from './Form.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
-import { type 글자표, 건수재료, 몇건, 실행항목, 안드로이드있나 } from './pickRun.js';
+import { type 글자표, type 실행요청, 건수재료, 몇건, 실행항목, 안드로이드있나 } from './pickRun.js';
 import { 고른서버를적는다, 마지막서버 } from './layout.js';
 import { RunLocation } from './RunLocation.js';
 import { use닫기묻기, 건수풀이, 반복과알림, 실행버튼들 } from './RunPickFoot.js';
@@ -20,13 +20,6 @@ import { 케이스서비스, 할수있나 } from './role.js';
 import { message, PLATFORM_LABEL } from './ui.js';
 import { useRunPickValues } from './useRunPickValues.js';
 import { messagesByKey } from './validation.js';
-
-export interface 실행요청 {
-  env: string;
-  repeat: number;
-  notifySlack: boolean;
-  items: RunRequestItem[];
-}
 
 interface Props {
   /** 돌릴 것. 비활성·결과칩 거르기는 여는 쪽이 이미 했다 */
@@ -57,9 +50,11 @@ interface Props {
   /** 저장값을 바꿨다. 그 케이스를 새로 읽어 「저장값 · 누가 · 언제」를 맞춘다 */
   on다시읽기?: (tcId: string) => void;
   onRun: (요청: 실행요청) => void;
+  /** 「실패 1건 다시 실행」의 원래 실행 — 「결과가 남는 곳」이 그 실행에 붙는지 읽는다 */
+  원래실행?: number;
 }
 
-export function RunPickModal({ 케이스들, service, 초기글자, 초기서버, user, 사유, 안내, 거는중, onClose, on값고침, on다시읽기, onRun }: Props) {
+export function RunPickModal({ 케이스들, service, 초기글자, 초기서버, user, 사유, 안내, 거는중, onClose, on값고침, on다시읽기, onRun, 원래실행 }: Props) {
   const t = use말();
   const 언어 = use언어();
   // **기본값을 두지 않는다.** 안 고르면 빈 칸이 아니라 틀린 값이 증적에 남는다 (SPEC §8.2).
@@ -290,6 +285,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
         repeat={repeat}
         on반복={(값) => { 손댐(); setRepeat(값); }}
         slack칸={service?.hasSlackWebhook === true}
+        남는곳={{ tcId: 한건?.tcId ?? null, 디바이스: 하나.디바이스, env, 반복수, 원래실행 }}
         notifySlack={notifySlack}
         onSlack={setNotifySlack}
       />

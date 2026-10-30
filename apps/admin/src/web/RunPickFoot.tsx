@@ -1,9 +1,10 @@
 // 실행 창 바닥 칸 — 결과가 남는 곳 · 반복 횟수 · 끝나면 Slack 으로 알리기 · 건수 풀이 · 테스트 실행과 실행 버튼 (도메인/실행 §8.2 · §8.10) · 고친 채 닫을 때 묻는 버튼 줄
 // RunPickModal 이 300줄을 넘어 떼어 냈다 (2026-10-12 휴대폰 값 접기)
 
-import { useState } from 'react';
+import { useState, type ComponentProps } from 'react';
 
 import { use말 } from './i18n.js';
+import { 결과남는곳 } from './RunPickDest.js';
 
 /**
  * 값을 고친 채 Esc · 취소로 닫으려 하면 버튼 줄이 한 번 묻는다. 상자 안에 상자를 겹쳐 열지 않는다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」).
@@ -69,17 +70,15 @@ interface Props {
   slack칸: boolean;
   notifySlack: boolean;
   onSlack: (켬: boolean) => void;
+  /** 「결과가 남는 곳」 줄의 재료 — 누르기 전에 결과를 어디서 찾을지 적는다 (도메인/실행 §8.10) */
+  남는곳: ComponentProps<typeof 결과남는곳>;
 }
 
-export function 반복과알림({ repeat, on반복, slack칸, notifySlack, onSlack }: Props) {
+export function 반복과알림({ repeat, on반복, slack칸, notifySlack, onSlack, 남는곳 }: Props) {
   const t = use말();
   return (
     <>
-    {/* 누르기 전에 결과를 어디서 찾을지 적는다 (도메인/실행 §8.10). 한 건이 앞 실행에 「다시 실행」으로 붙는 글은 서버가 붙인 뒤(WEB-F7-11 · 12) */}
-    <div className="mdest">
-      <span className="one-label">{t('결과가 남는 곳')}</span>
-      <span>{t('실행 기록에 새 RUN 으로 남습니다')}</span>
-    </div>
+    <결과남는곳 {...남는곳} />
     <div className="mfoot">
       <label htmlFor="pick-repeat">{t('반복')}</label>
       {/* 새로 쓴 테스트가 매번 같은 결과를 내는지 여러 번 돌려 본다 (SPEC §3.2 · §5.2) */}
@@ -92,8 +91,9 @@ export function 반복과알림({ repeat, on반복, slack칸, notifySlack, onSla
         value={repeat}
         onChange={(e) => on반복(e.target.value)}
       />
-      {/* 웹훅이 없는 서비스에서는 칸 자체를 그리지 않는다. 흐리게 두지 않는다 (SPEC §8.2) */}
-      {!slack칸 ? null : (
+      {/* 웹훅이 없는 서비스에서는 칸 자체를 그리지 않는다. 흐리게 두지 않는다 (SPEC §8.2).
+          한 건 · 반복 1 도 숨긴다 — 실행으로 서지 않아 서버가 알림을 버린다 (도메인/실행 §8.9 「언제 보내나」) */}
+      {!slack칸 || (남는곳.tcId !== null && 남는곳.반복수 === 1) ? null : (
         <label className="check-inline" htmlFor="pick-slack">
           <input
             type="checkbox"

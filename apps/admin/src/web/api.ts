@@ -155,7 +155,8 @@ export interface RunSummary {
   // 실행 하나에 한 종류다 (PR #131). 옛 가짜 응답을 안 고치려고 선택으로 둔다
   kind?: 'UI' | 'FN' | 'SCENARIO';
   /** 시작 방식과 「실패 다시」의 원래 실행 (도메인/실행 §7 · 공통/4-데이터모델 「실행 시작 방식」). 옛 가짜 응답을 안 고치려고 선택으로 둔다 */
-  origin?: 'MANUAL' | 'SCHEDULED' | 'RERUN' | 'BUILD';
+  origin?: 'MANUAL' | 'SCHEDULED' | 'RERUN' | 'BUILD' | 'SINGLE';
+  /** SINGLE 이면 붙은 실행(없으면 null)이다 (도메인/실행 §3.2 「★ 한 건 실행은 묶음 실행에 붙는다」) */
   rerunOf?: number | null;
   /** 실행에 고정한 빌드 번호(CI 가 준 글자). 빌드를 받은 적 없는 줄이면 null (도메인/실행 §3.11 「빌드는 실행에 고정한다」) */
   buildNo?: string | null;
@@ -325,6 +326,16 @@ export interface RunItemSummary {
   finishedAt: string | null;
   /** 실행 때 박제한 미확정 사유. 지금의 케이스를 읽으면 확정된 뒤 옛 실행이 바뀌어 보인다 (도메인/실행 §8.3) */
   unconfirmed?: string | null;
+  /** 한 건 실행이 덮은 항목 — 위 칸들은 그 한 건 항목 것이다. 상세는 `rerun.runId` 로 연다 (도메인/실행 §7 `GET /api/runs/:runId`) */
+  rerun?: 다시실행 | null;
+}
+
+/** 한 건 실행이 덮은 항목에 붙는 칸. original 은 원래 실행의 원래 항목이다 */
+export interface 다시실행 {
+  runId: number;
+  finishedAt: string;
+  triggeredBy: string;
+  original: { historyId: number; status: ItemStatus; finishedAt: string | null };
 }
 
 /**
@@ -380,6 +391,8 @@ export interface FailureDevice {
   /** 처음 실패한 회차. 항목 상세와 같은 함수가 읽은 값이라 비밀값이 이미 가려져 있다 */
   item: RunItemDetail;
   farm: 팜파일[];
+  /** 한 건 실행이 덮은 디바이스 — item 은 그 한 건 항목이다 */
+  rerun?: 다시실행 | null;
 }
 
 /** 실패 카드의 「실패 원인」 판정. SCREEN 이 BUG 를 이긴다 */
@@ -430,6 +443,9 @@ export interface HistoryRow {
   durationMs: number | null;
   startedAt: string;
   finishedAt: string | null;
+  /** SINGLE 줄은 한 건 실행이고 rerunOf 가 붙은 실행(없으면 null)이다. 옛 가짜 응답을 안 고치려고 선택으로 둔다 */
+  origin?: RunSummary['origin'];
+  rerunOf?: number | null;
 }
 
 export interface ParamSetRow {
@@ -1161,7 +1177,13 @@ export const api = {
     items: RunRequestItem[];
     // 실행자는 싣지 않는다. 로그인한 세션에서 서버가 채운다 —
     // 보내는 쪽이 정할 수 있으면 아무 이름이나 적을 수 있어 증적이 증적이 아니게 된다 (SPEC §3.5)
-  }) => call<{ runId: number }>('/runs', json(body)),
+  }) => call<{ runId: number; attachedTo?: number | null }>('/runs', json(body)),
+
+  /** 지금 이 케이스 한 건을 걸면 붙을 실행 — 실행 창 「결과가 남는 곳」 (도메인/실행 §7 `rerun-target`) */
+  rerunTarget: (tcId: string, env: string, platforms: Platform[]) =>
+    call<{ target: { runId: number; title: string; startedAt: string } | null }>(
+      `/cases/${encodeURIComponent(tcId)}/rerun-target?${new URLSearchParams({ env, platforms: platforms.join(',') }).toString()}`,
+    ),
 
   /** 대기 중인 것과 돌고 있는 것을 둘 다 끊는다 (SPEC §8.3) */
   abortRun: (runId: number) => call<{ aborted: number }>(`/runs/${runId}/abort`, { method: 'POST' }),

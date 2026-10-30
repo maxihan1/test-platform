@@ -10,6 +10,7 @@ import { use말, use언어 } from './i18n.js';
 import { ItemExpand } from './ItemExpand.js';
 import type { 판정 } from './role.js';
 import { RunFailJudge } from './RunFailJudge.js';
+import { 다시실행꼬리표, 항목실행번호 } from './RerunTag.js';
 import { 관련요구줄 } from './RunFailedReqs.js';
 import { 실패이유 } from './FailureWhy.js';
 import { 같은실패끼리, RunFailDevice, 변화글 } from './RunFailDevice.js';
@@ -236,7 +237,7 @@ export function 실패카드({
           <관련요구줄 reqs={c.reqs} 권한={권한} />
 
           {같은실패끼리(c.devices).map((묶음) => (
-            <RunFailDevice key={묶음.map((d) => d.platform).join('-')} devices={묶음} env={env} items={items} 머리이유={머리이유} />
+            <RunFailDevice key={묶음.map((d) => d.platform).join('-')} runId={runId} devices={묶음} env={env} items={items} 머리이유={머리이유} />
           ))}
 
           {나머지.map((칸) => (
@@ -257,7 +258,7 @@ function 통과줄({ 칸, runId }: { 칸: RunItemSummary[]; runId: number }) {
   const 처음 = 칸[0]!;
 
   return (
-    <ItemExpand className="fc-pass" runId={runId} historyId={처음.historyId} tcId={처음.tcId} platform={처음.platform}>
+    <ItemExpand className="fc-pass" runId={항목실행번호(처음, runId)} historyId={처음.historyId} tcId={처음.tcId} platform={처음.platform}>
       <b>{PLATFORM_LABEL[처음.platform]}</b>
       {요약.글 === null ? (
         <Verdict status={요약.status} />
@@ -265,6 +266,7 @@ function 통과줄({ 칸, runId }: { 칸: RunItemSummary[]; runId: number }) {
         <span className={`verdict ${요약.status === 'PASS' ? 'v-pass' : 요약.status === 'FAIL' ? 'v-fail' : 'v-na'}`}>{요약.글}</span>
       )}
       <span>{요약.회차수 > 1 ? t('{시간} 평균', { 시간: seconds(요약.평균소요ms, 언어) }) : seconds(요약.평균소요ms, 언어)}</span>
+      {처음.rerun == null ? null : <다시실행꼬리표 rerun={처음.rerun} status={처음.status} />}
     </ItemExpand>
   );
 }

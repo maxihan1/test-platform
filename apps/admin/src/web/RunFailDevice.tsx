@@ -6,6 +6,7 @@ import { 원문보기, 실패이유 } from './FailureWhy.js';
 import { 회차요약 } from './group.js';
 import { use말, use언어 } from './i18n.js';
 import { 증거본문 } from './ItemExpand.js';
+import { 다시실행꼬리표, 원래결과보기 } from './RerunTag.js';
 import { PLATFORM_LABEL, seconds, Verdict } from './ui.js';
 import { 판정흐름, 흐름칸수 } from './Summary.js';
 
@@ -43,13 +44,18 @@ export function 같은실패끼리(devices: FailureDevice[]): FailureDevice[][] 
   return [...묶음.values()];
 }
 
-/** @param 머리이유 카드 머리에 적은 이유 — 같은 이유는 디바이스 줄에 또 적지 않는다 */
+/**
+ * @param 머리이유 카드 머리에 적은 이유 — 같은 이유는 디바이스 줄에 또 적지 않는다
+ * @param runId 이 결과 화면의 실행 — 한 건 실행이 덮은 디바이스의 원래 항목이 여기 있다
+ */
 export function RunFailDevice({
+  runId,
   devices,
   env,
   items,
   머리이유,
 }: {
+  runId: number;
   devices: FailureDevice[];
   env: string;
   items: RunItemSummary[];
@@ -82,6 +88,7 @@ export function RunFailDevice({
           <div key={d.platform} className="fc-meta">
             {devices.length > 1 ? <span className="fc-name">{PLATFORM_LABEL[d.platform]}</span> : null}
             {변화 === null ? null : <span className={d.change === '새로깨짐' ? 'fc-tag fc-new' : 'fc-tag'}>{변화}</span>}
+            {d.rerun == null ? null : <다시실행꼬리표 rerun={d.rerun} status="FAIL" />}
             {d.attempts > 1 ? (
               <span>{t('{회수}회 중 {실패}회 실패', { 회수: d.attempts, 실패: d.failedAttempts })}</span>
             ) : null}
@@ -100,6 +107,8 @@ export function RunFailDevice({
       <원문보기 글={오류} />
 
       <증거본문 item={대표} 화면숨김={묶임} />
+      {/* 펼친 본문은 다시 돈 항목이다 — 원래 항목은 그 아래 접어 둔다 (도메인/실행 §8.3 「한 건 실행이 붙은 실행」) */}
+      {devices.map((d) => (d.rerun == null ? null : <원래결과보기 key={d.platform} runId={runId} rerun={d.rerun} />))}
 
       {!묶임 ? null : (
         <div className="fc-shots">

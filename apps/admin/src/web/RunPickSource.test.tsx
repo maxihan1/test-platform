@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 실행 창 입력값 출처 줄 — 저장값 · 코드 기본값 · 「이번 실행에만 · 이 값 저장 · 되돌리기」 · 저장하고 닫기 · 결과가 남는 곳 (도메인/실행 §8.10)
+// 실행 창 입력값 출처 줄 — 저장값 · 코드 기본값 · 「이번 실행에만 · 이 값 저장 · 되돌리기」 · 저장하고 닫기 (도메인/실행 §8.10). 결과가 남는 곳은 RunPickDest.test.tsx
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -225,12 +225,5 @@ describe('저장 안 한 채 닫기', () => {
     Esc();
 
     expect(onClose).toHaveBeenCalledOnce();
-  });
-});
-
-describe('결과가 남는 곳', () => {
-  it('「실행」을 누르기 전에 결과가 실행 기록에 새 RUN 으로 남는다고 적는다', async () => {
-    await 연다([값케이스]);
-    expect(document.querySelector('.mdest')?.textContent).toBe('결과가 남는 곳실행 기록에 새 RUN 으로 남습니다');
   });
 });

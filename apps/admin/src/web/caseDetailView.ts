@@ -38,6 +38,11 @@ export interface 이력묶음 {
   통과: number;
   실패: number;
   끝난때: string | null;
+  /** 한 건 실행 줄 — 붙은 실행(없으면 null)을 같이 적는다 (도메인/실행 §3.2) */
+  한건: boolean;
+  붙은: number | null;
+  /** 아직 안 끝난 항목이 있다. 도는 한 건은 이 줄에서 진행 창을 다시 연다 */
+  도는중: boolean;
 }
 
 export function 실행마다묶기(이력: HistoryRow[]): 이력묶음[] {
@@ -52,11 +57,15 @@ export function 실행마다묶기(이력: HistoryRow[]): 이력묶음[] {
       통과: 0,
       실패: 0,
       끝난때: 줄.finishedAt,
+      한건: 줄.origin === 'SINGLE',
+      붙은: 줄.rerunOf ?? null,
+      도는중: false,
     };
     if (!것.디바이스들.includes(줄.platform)) 것.디바이스들.push(줄.platform);
     것.회수 += 1;
     if (줄.status === 'PASS') 것.통과 += 1;
     if (줄.status === 'FAIL') 것.실패 += 1;
+    if (줄.finishedAt === null) 것.도는중 = true;
     묶음.set(줄.runId, 것);
   }
   return [...묶음.values()];
