@@ -6,13 +6,13 @@ import type { 기기숫자 } from './perfDeviceApi.js';
 import { 값글자, 결과칸들, 벗어난지표, 조각찾기, 지금요약 } from './perfDeviceView.js';
 
 const t = (키: string, 값?: Record<string, string | number>) => 키.replace(/\{([^}]+)\}/g, (_, k: string) => String(값?.[k] ?? ''));
-const 줄 = (sec: number, fps: number | null, 덮: Partial<기기숫자> = {}): 기기숫자 => ({ serial: 'A', sec, loop: 1, segment: null, fps, jankPct: null, cpu: null, memMb: null, tempC: null, batteryPct: null, ...덮 });
+const 줄 = (sec: number, fps: number | null, 덮: Partial<기기숫자> = {}): 기기숫자 => ({ serial: 'A', sec, loop: 1, segment: null, fps, jankPct: null, freezeCount: null, cpu: null, memMb: null, tempC: null, batteryPct: null, ...덮 });
 
 describe('기기 성능 계산', () => {
-  it('지금 요약은 서버와 같이 센다 — 평균 FPS · 아래 1% 평균(적어도 한 개) · 최대 온도 · 메모리 최대', () => {
-    const 요약 = 지금요약([줄(0, 60, { tempC: 38, memMb: 900 }), 줄(1, 30, { tempC: 41 }), 줄(2, null, { memMb: 1000 })]);
-    expect(요약).toMatchObject({ avgFps: 45, low1Fps: 30, maxTempC: 41, maxMemMb: 1000 });
-    expect(지금요약([])).toMatchObject({ avgFps: null, low1Fps: null, maxTempC: null });
+  it('지금 요약은 서버와 같이 센다 — 평균 FPS · 아래 1% 평균(적어도 한 개) · 최대 온도 · 프리징 합 · 메모리 최대', () => {
+    const 요약 = 지금요약([줄(0, 60, { tempC: 38, memMb: 900, freezeCount: 1 }), 줄(1, 30, { tempC: 41, freezeCount: 2 }), 줄(2, null, { memMb: 1000 })]);
+    expect(요약).toMatchObject({ avgFps: 45, low1Fps: 30, maxTempC: 41, freezeCount: 3, maxMemMb: 1000 });
+    expect(지금요약([])).toMatchObject({ avgFps: null, low1Fps: null, maxTempC: null, freezeCount: null });
   });
 
   it('목표 벗어남은 부등호 방향을 따른다. 값이 없으면 아직 모르는 것이라 벗어나지 않은 것으로 본다', () => {
@@ -21,8 +21,8 @@ describe('기기 성능 계산', () => {
       { metric: 'MAX_TEMP' as const, op: '<=' as const, value: 45, source: 'MANUAL' as const },
       { metric: 'LAUNCH_MS' as const, op: '<=' as const, value: 3000, source: 'MANUAL' as const },
     ];
-    expect([...벗어난지표(목표들, { avgFps: 44.9, low1Fps: null, maxTempC: 45, maxMemMb: null, avgCpu: null }, 3001)]).toEqual(['AVG_FPS', 'LAUNCH_MS']);
-    expect([...벗어난지표(목표들, { avgFps: null, low1Fps: null, maxTempC: null, maxMemMb: null, avgCpu: null }, null)]).toEqual([]);
+    expect([...벗어난지표(목표들, { avgFps: 44.9, low1Fps: null, maxTempC: 45, freezeCount: null, maxMemMb: null, avgCpu: null }, 3001)]).toEqual(['AVG_FPS', 'LAUNCH_MS']);
+    expect([...벗어난지표(목표들, { avgFps: null, low1Fps: null, maxTempC: null, freezeCount: null, maxMemMb: null, avgCpu: null }, null)]).toEqual([]);
   });
 
   it('녹화 조각은 그 초 앞에서 시작한 마지막 조각이고 조각 안의 초를 돌려준다', () => {
@@ -44,11 +44,11 @@ describe('기기 성능 계산', () => {
     expect(값글자('AVG_FPS', null, t)).toBe('-');
   });
 
-  it('결과 숫자 칸 — 앱 · 게임이 보는 숫자가 다르고, 기기가 여럿이면 가장 나쁜 기기 값과 그 기기 이름 · 목표를 단다 (WEB-F7-16)', () => {
-    const 요약 = (avgFps: number | null, avgCpu: number | null, maxMemMb: number | null, maxTempC: number | null) => ({ avgFps, low1Fps: null, maxTempC, maxMemMb, avgCpu });
+  it('결과 숫자 칸 — 앱 · 게임이 보는 숫자가 다르고, 기기가 여럿이면 가장 나쁜 기기 값과 그 기기 이름 · 목표를 단다 (WEB-F7-16 · 프리징 WEB-F7-26)', () => {
+    const 요약 = (avgFps: number | null, avgCpu: number | null, maxMemMb: number | null, freezeCount: number | null) => ({ avgFps, low1Fps: null, maxTempC: 38, freezeCount, maxMemMb, avgCpu });
     const 결과 = {
       devices: [
-        { serial: 'A', model: 'Galaxy S23', where: 'FARM' as const, launchMs: 1800, summary: 요약(54, 31, 412, 38), verdict: null },
+        { serial: 'A', model: 'Galaxy S23', where: 'FARM' as const, launchMs: 1800, summary: 요약(54, 31, 412, 2), verdict: null },
         { serial: 'B', model: 'Pixel 7', where: 'FARM' as const, launchMs: 2400, summary: 요약(41, 48, 380, null), verdict: null },
       ],
       metrics: [줄(0, 50, { jankPct: 2 }), 줄(1, 50, { jankPct: 4 }), 줄(0, 40, { serial: 'B', jankPct: 1 })],
@@ -62,11 +62,12 @@ describe('기기 성능 계산', () => {
       ['메모리 최대', '412MB', 'Galaxy S23', false],
     ]);
     const 앱 = 결과칸들(false, { ...결과, devices: [결과.devices[0]!] }, [], t);
-    expect(앱.map((칸) => [칸.이름, 칸.값, 칸.보조.length])).toEqual([
-      ['CPU 평균', '31%', 0],
-      ['메모리 최대', '412MB', 0],
-      ['앱 실행 시간', '1.8초', 0],
-      ['최대 기기 온도', '38도', 0],
+    expect(앱.map((칸) => [칸.이름, 칸.값, 칸.보조.join(' · ')])).toEqual([
+      ['CPU 평균', '31%', ''],
+      ['메모리 최대', '412MB', ''],
+      ['앱 실행 시간', '1.8초', ''],
+      ['프리징', '2번', '0.7초 넘게 멈춤'],
     ]);
+    expect(결과칸들(false, 결과, [], t).at(-1)?.보조).toEqual(['Galaxy S23', '0.7초 넘게 멈춤']);
   });
 });

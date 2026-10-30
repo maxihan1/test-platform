@@ -83,7 +83,7 @@ export async function 기기차림(접두사: string, api: boolean) {
   const 줄들 = (시작: number, since: number, serial: string) => {
     if (줄끔.has(serial)) return [];
     const 지금 = Math.floor((Date.now() - 시작) / 1000);
-    return Array.from({ length: Math.max(0, 지금 - since) }, (_, i) => since + 1 + i).map((sec) => ({ sec, fps: 상태.fps값, jankPct: 1, cpu: 20, memMb: 500 + sec * 10, tempC: 38, batteryPct: 80 }));
+    return Array.from({ length: Math.max(0, 지금 - since) }, (_, i) => since + 1 + i).map((sec) => ({ sec, fps: 상태.fps값, jankPct: 1, freezeCount: 1, cpu: 20, memMb: 500 + sec * 10, tempC: 38, batteryPct: 80 }));
   };
 
   const 팜 = await 서버((h, 응답, 원본) => {

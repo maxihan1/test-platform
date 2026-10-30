@@ -25,6 +25,7 @@ export interface 기기줄 {
   segment: string | null;
   fps: number | null;
   jankPct: number | null;
+  freezeCount: number | null;
   cpu: number | null;
   memMb: number | null;
   tempC: number | null;
@@ -35,6 +36,8 @@ export interface 기기요약 {
   avgFps: number | null;
   low1Fps: number | null;
   maxTempC: number | null;
+  /** 실행 동안 1초 숫자의 프리징을 더한 것 */
+  freezeCount: number | null;
   maxMemMb: number | null;
   avgCpu: number | null;
 }
@@ -45,8 +48,9 @@ const 값들 = (xs: (number | null)[]): number[] => xs.filter((x): x is number =
 const 평균 = (v: number[]): number | null => (v.length === 0 ? null : v.reduce((a, b) => a + b, 0) / v.length);
 const 최대 = (v: number[]): number | null => (v.length === 0 ? null : Math.max(...v));
 const 한자리 = (v: number | null): number | null => (v === null ? null : Math.round(v * 10) / 10);
+const 합 = (v: number[]): number | null => (v.length === 0 ? null : v.reduce((a, b) => a + b, 0));
 
-/** 평균 FPS · 1% Low FPS(낮은 차례 아래 1%, 적어도 한 개의 평균) · 최대 온도 · 메모리 최대 · 평균 CPU. 값이 없으면 null */
+/** 평균 FPS · 1% Low FPS(낮은 차례 아래 1%, 적어도 한 개의 평균) · 최대 온도 · 프리징 합 · 메모리 최대 · 평균 CPU. 값이 없으면 null */
 export function 기기요약하기(rows: readonly 기기줄[]): 기기요약 {
   const fps = 값들(rows.map((r) => r.fps)).sort((a, b) => a - b);
   const 낮은 = fps.slice(0, Math.max(1, Math.floor(fps.length * 0.01)));
@@ -54,6 +58,7 @@ export function 기기요약하기(rows: readonly 기기줄[]): 기기요약 {
     avgFps: 한자리(평균(fps)),
     low1Fps: fps.length === 0 ? null : 한자리(평균(낮은)),
     maxTempC: 최대(값들(rows.map((r) => r.tempC))),
+    freezeCount: 합(값들(rows.map((r) => r.freezeCount))),
     maxMemMb: 최대(값들(rows.map((r) => r.memMb))),
     avgCpu: 한자리(평균(값들(rows.map((r) => r.cpu)))),
   };

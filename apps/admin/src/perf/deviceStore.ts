@@ -8,9 +8,9 @@ import * as 표 from './store.js';
 export async function 줄넣기(runId: number, serial: string, model: string, 오프셋: number, rows: 기기줄원본[]): Promise<void> {
   if (rows.length === 0) return;
   await (await 표.풀()).query(
-    `INSERT INTO perf_device_metric (run_id, serial, device, sec, fps, jank_pct, cpu, mem_mb, temp_c, battery_pct)
-     SELECT $1, $2, $3, x.sec + $4, x.fps, x."jankPct", x.cpu, round(x."memMb"), x."tempC", x."batteryPct"
-       FROM jsonb_to_recordset($5::jsonb) AS x(sec int, fps numeric, "jankPct" numeric, cpu numeric, "memMb" numeric, "tempC" numeric, "batteryPct" numeric)
+    `INSERT INTO perf_device_metric (run_id, serial, device, sec, fps, jank_pct, freeze_count, cpu, mem_mb, temp_c, battery_pct)
+     SELECT $1, $2, $3, x.sec + $4, x.fps, x."jankPct", round(x."freezeCount"), x.cpu, round(x."memMb"), x."tempC", x."batteryPct"
+       FROM jsonb_to_recordset($5::jsonb) AS x(sec int, fps numeric, "jankPct" numeric, "freezeCount" numeric, cpu numeric, "memMb" numeric, "tempC" numeric, "batteryPct" numeric)
       WHERE x.sec + $4 >= 0
      ON CONFLICT (run_id, serial, sec) DO NOTHING`,
     [runId, serial, model, 오프셋, JSON.stringify(rows)],
@@ -48,7 +48,7 @@ export interface 기기줄행 extends 기기줄 {
 /** 이 실행의 기기 줄 — from 초부터(실행 중 화면이 5초마다 부른다 — series 와 같이 from 을 포함한다), serial 을 주면 그 기기만 */
 export async function 줄읽기(runId: number, from = 0, serial?: string): Promise<기기줄행[]> {
   const r = await (await 표.풀()).query<기기줄행>(
-    `SELECT serial, sec, loop, segment, fps::float AS fps, jank_pct::float AS "jankPct", cpu::float AS cpu, mem_mb AS "memMb", temp_c::float AS "tempC", battery_pct::float AS "batteryPct"
+    `SELECT serial, sec, loop, segment, fps::float AS fps, jank_pct::float AS "jankPct", freeze_count AS "freezeCount", cpu::float AS cpu, mem_mb AS "memMb", temp_c::float AS "tempC", battery_pct::float AS "batteryPct"
        FROM perf_device_metric WHERE run_id = $1 AND sec >= $2 AND ($3::text IS NULL OR serial = $3) ORDER BY serial, sec`,
     [runId, from, serial ?? null],
   );

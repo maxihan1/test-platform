@@ -73,6 +73,9 @@ export const 성능기기말: Record<string, string> = {
   배터리: 'Battery',
   도: '°C',
   '{수}도': '{수}°C',
+  프리징: 'Freezes',
+  '{수}번': '{수}',
+  '0.7초 넘게 멈춤': 'Stuck over 0.7s',
 
   // 실행 중
   '시나리오 진행': 'Scenario progress',

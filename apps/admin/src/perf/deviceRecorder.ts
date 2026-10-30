@@ -15,6 +15,8 @@ export interface 기기줄원본 {
   sec: number;
   fps: number | null;
   jankPct: number | null;
+  /** 내 컴퓨터 러너가 싣는다. 팜이 아직 안 주면 없다 */
+  freezeCount?: number | null;
   cpu: number | null;
   memMb: number | null;
   tempC: number | null;
