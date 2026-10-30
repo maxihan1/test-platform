@@ -85,4 +85,30 @@ describe.skipIf(연결 === undefined)('성능 결과 보기 칸', { timeout: 60_
     const id = Number(목록[0]?.id);
     expect((await 결과(id)).scenarioName).toBe('곧 지울 것');
   });
+
+  it('목록 수치 — 페이지는 주소마다 마지막 줄의 LCP 평균, 기기는 기기마다 평균의 가장 나쁜 값, 부하는 null', async () => {
+    const 실행 = async (kind: 'PAGE' | 'DEVICE') =>
+      Number((await f.pool.query<{ id: string }>(
+        `INSERT INTO perf_run (kind, service_id, env, base_url, config, status, verdict, origin) VALUES ($1, $2, 'stg', 'http://xpk.test', '{}', 'DONE', 'PASS', 'MANUAL') RETURNING id`,
+        [kind, f.서비스],
+      )).rows[0]?.id);
+    const 페이지 = await 실행('PAGE');
+    await f.pool.query(
+      `INSERT INTO perf_page_metric (run_id, url, device, network, lcp_ms) VALUES ($1, '/a', 'desktop', 'NONE', 9000), ($1, '/a', 'desktop', 'NONE', 1000), ($1, '/b', 'desktop', 'NONE', 2000), ($1, '/c', 'desktop', 'NONE', NULL)`,
+      [페이지],
+    );
+    const 기기 = await 실행('DEVICE');
+    await f.pool.query(
+      `INSERT INTO perf_device_metric (run_id, serial, device, sec, fps, jank_pct, cpu, mem_mb) VALUES
+         ($1, 'p1', 'Galaxy S23', 1, 60, 1, 20, 300), ($1, 'p1', 'Galaxy S23', 2, 50, 3, 30, 400),
+         ($1, 'p2', 'Galaxy A23', 1, 40, 5, 10, 500), ($1, 'p2', 'Galaxy A23', 2, 30, 7, 20, 200)`,
+      [기기],
+    );
+    const 부하 = await f.실행넣기({ scenarioId: 시나리오 });
+    const 목록 = (await f.사람(f.읽기만, 'GET', `/api/perf/runs?serviceId=${f.서비스}`)).json<{ runs: { id: number; measures: unknown }[] }>().runs;
+    const 수치 = (id: number) => 목록.find((r) => r.id === id)?.measures;
+    expect(수치(페이지)).toEqual({ lcpAvgMs: 1500 });
+    expect(수치(기기)).toEqual({ avgCpu: 25, maxMemMb: 500, avgFps: 35, jankPct: 6 });
+    expect(수치(부하)).toBeNull();
+  });
 });

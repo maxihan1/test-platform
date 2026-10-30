@@ -38,8 +38,16 @@ export default async function perfRunRoutes(app: FastifyInstance): Promise<void>
     const r = await (await 표.풀()).query(
       `SELECT r.id, r.kind, r.status, r.verdict, COALESCE(s.name, '') AS title, r.env, r.test_type AS "testType", r.origin, r.degraded, r.stop_reason AS "stopReason", r.started_at AS "startedAt",
               CASE WHEN r.started_at IS NULL THEN NULL ELSE EXTRACT(EPOCH FROM COALESCE(r.finished_at, now()) - r.started_at)::int END AS "durationSec",
-              json_build_object('peakVus', r.peak_vus, 'maxTps', r.max_tps, 'p95Ms', r.p95_ms, 'errorRate', r.error_rate) AS summary
+              json_build_object('peakVus', r.peak_vus, 'maxTps', r.max_tps, 'p95Ms', r.p95_ms, 'errorRate', r.error_rate) AS summary,
+              CASE r.kind WHEN 'PAGE' THEN json_build_object('lcpAvgMs', pg.lcp)
+                          WHEN 'DEVICE' THEN json_build_object('avgCpu', dv.cpu, 'maxMemMb', dv.mem, 'avgFps', dv.fps, 'jankPct', dv.jank) END AS measures
          FROM perf_run r LEFT JOIN perf_scenario s ON s.id = r.scenario_id
+         -- 결과 화면 숫자 칸과 같은 셈 — 페이지는 주소마다 마지막 줄의 LCP 평균, 기기는 기기마다 평균을 내고 가장 나쁜 기기 값 (§8.14 「실행 기록」)
+         -- ponytail: 부를 때마다 실행 200개의 1초 숫자를 다 센다. 긴 기기 측정이 쌓여 느려지면 끝날 때 perf_run 에 요약을 적어 두고 그것을 읽는다
+         LEFT JOIN LATERAL (SELECT AVG(x.lcp_ms)::float AS lcp FROM (SELECT DISTINCT ON (url) lcp_ms FROM perf_page_metric WHERE run_id = r.id AND r.kind = 'PAGE' ORDER BY url, id DESC) x) pg ON true
+         LEFT JOIN LATERAL (SELECT MAX(d.cpu) AS cpu, MAX(d.mem) AS mem, MIN(d.fps) AS fps, MAX(d.jank) AS jank
+                              FROM (SELECT AVG(cpu)::float AS cpu, MAX(mem_mb) AS mem, AVG(fps)::float AS fps, AVG(jank_pct)::float AS jank
+                                      FROM perf_device_metric WHERE run_id = r.id AND r.kind = 'DEVICE' GROUP BY serial) d) dv ON true
         WHERE r.service_id = $1 AND ($2::text IS NULL OR r.kind = $2) AND ($3::bigint IS NULL OR r.scenario_id = $3)
         ORDER BY r.id DESC LIMIT 200`,
       [serviceId, req.query.kind ?? null, scenarioId],

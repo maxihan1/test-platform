@@ -30,6 +30,7 @@ export const 줄 = (덮: Partial<실행줄>): 실행줄 => ({
   origin: 'MANUAL',
   degraded: null,
   stopReason: null,
+  measures: null,
   ...덮,
 });
 
