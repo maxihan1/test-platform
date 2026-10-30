@@ -8,6 +8,7 @@ import { type CaseGroup, 회차요약 } from './group.js';
 import { use말, use언어 } from './i18n.js';
 import { 상세본문 } from './ItemExpand.js';
 import { 한줄로 } from './mask.js';
+import { 다시실행꼬리표, 항목실행번호 } from './RerunTag.js';
 import { 칸사유 } from './runState.js';
 import { PLATFORM_LABEL, seconds, STATUS_COLOR, Verdict } from './ui.js';
 
@@ -83,7 +84,7 @@ export function 결과줄({
           {/* 둘을 한 덩어리로 묶는다 — 본문 칸이 좁아 줄이 접혀도 「상세」와 「펼치기」가 갈라지지 않고 같이 오른쪽에 붙는다 */}
           {첫항목 === undefined ? null : (
             <span className="rr-acts">
-            <a className="btn small ghost" href={`#/runs/${runId}/items/${첫항목.historyId}`}>
+            <a className="btn small ghost" href={`#/runs/${항목실행번호(첫항목, runId)}/items/${첫항목.historyId}`}>
               {t('상세')}
             </a>
             <button
@@ -110,7 +111,7 @@ export function 결과줄({
           : 칸들.map((칸) => (
               <div className="rr-dev" key={칸[0]!.platform}>
                 <디바이스머리 칸={칸} />
-                <상세본문 runId={runId} historyId={칸[0]!.historyId} />
+                <상세본문 runId={항목실행번호(칸[0]!, runId)} historyId={칸[0]!.historyId} />
               </div>
             ))}
       </div>
@@ -138,7 +139,7 @@ function Verdicts({ 칸, runId }: { 칸: RunItemSummary[]; runId: number }) {
 
   return (
     <>
-      <a href={`#/runs/${runId}/items/${처음.historyId}`}>
+      <a href={`#/runs/${항목실행번호(처음, runId)}/items/${처음.historyId}`}>
         {요약.글 === null ? (
           <Verdict status={요약.status} />
         ) : (
@@ -150,6 +151,8 @@ function Verdicts({ 칸, runId }: { 칸: RunItemSummary[]; runId: number }) {
       <span className="device-dur">
         {요약.회차수 > 1 ? t('{시간} 평균', { 시간: seconds(요약.평균소요ms, 언어) }) : seconds(요약.평균소요ms, 언어)}
       </span>
+      {/* 한 건 실행이 덮은 칸 — 지금 판정은 다시 돈 결과다 (도메인/실행 §8.3 「한 건 실행이 붙은 실행」) */}
+      {처음.rerun == null ? null : <다시실행꼬리표 rerun={처음.rerun} status={처음.status} />}
     </>
   );
 }

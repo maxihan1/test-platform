@@ -6701,6 +6701,18 @@ details.raw {
   padding-top: 8px;
 }
 
+/* 원래 결과 보기 — 한 건 실행이 덮은 디바이스의 원래 항목. 카드 안 통과 줄과 같은 금으로 가르고 접힌 채 선다 (도메인/실행 §8.3) */
+.fc-orig {
+  border-top: 1px solid var(--line-2);
+  padding-top: 8px;
+}
+
+.fc-orig > summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
 .fc-line {
   display: flex;
   align-items: center;
