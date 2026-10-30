@@ -79,6 +79,7 @@ const 숫자 = (serial: string, sec: number, fps: number, 덮: Partial<기기결
   segment: 'ZQD-001 · 로그인',
   fps,
   jankPct: 1,
+  freezeCount: 0,
   cpu: 40,
   memMb: 900,
   tempC: 38,
@@ -88,8 +89,8 @@ const 숫자 = (serial: string, sec: number, fps: number, 덮: Partial<기기결
 
 export const 결과: 기기결과 = {
   devices: [
-    { serial: 'S24', model: 'Galaxy S24', where: 'FARM', launchMs: 2100, summary: { avgFps: 59.4, low1Fps: 53, maxTempC: 41, maxMemMb: 1200, avgCpu: 40 }, verdict: 'PASS' },
-    { serial: 'A23', model: 'Galaxy A23', where: 'FARM', launchMs: 4600, summary: { avgFps: 31, low1Fps: 22, maxTempC: 46.8, maxMemMb: 1500, avgCpu: 90 }, verdict: 'FAIL' },
+    { serial: 'S24', model: 'Galaxy S24', where: 'FARM', launchMs: 2100, summary: { avgFps: 59.4, low1Fps: 53, maxTempC: 41, freezeCount: 0, maxMemMb: 1200, avgCpu: 40 }, verdict: 'PASS' },
+    { serial: 'A23', model: 'Galaxy A23', where: 'FARM', launchMs: 4600, summary: { avgFps: 31, low1Fps: 22, maxTempC: 46.8, freezeCount: 3, maxMemMb: 1500, avgCpu: 90 }, verdict: 'FAIL' },
   ],
   metrics: [숫자('S24', 0, 60), 숫자('S24', 1, 59), 숫자('A23', 0, 40), 숫자('A23', 1, 31, { loop: 2 })],
   segments: [{ serial: 'A23', loop: 1, segment: 'ZQD-001 · 로그인', fromSec: 0, toSec: 1 }],

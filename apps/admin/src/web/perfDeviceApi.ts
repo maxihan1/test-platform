@@ -58,6 +58,8 @@ export interface 기기요약 {
   avgFps: number | null;
   low1Fps: number | null;
   maxTempC: number | null;
+  /** 실행 동안 0.7초 넘게 걸린 프레임(프리징)을 더한 것 */
+  freezeCount: number | null;
   maxMemMb: number | null;
   avgCpu: number | null;
 }
@@ -69,6 +71,7 @@ export interface 기기숫자 {
   segment: string | null;
   fps: number | null;
   jankPct: number | null;
+  freezeCount: number | null;
   cpu: number | null;
   memMb: number | null;
   tempC: number | null;

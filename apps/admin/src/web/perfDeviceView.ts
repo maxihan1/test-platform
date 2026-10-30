@@ -63,6 +63,7 @@ export const 벗어남 = (목표: Pick<기기목표, 'op' | 'value'>, 값: numbe
 
 const 값들 = (xs: (number | null)[]): number[] => xs.filter((x): x is number => x !== null);
 const 평균 = (v: number[]): number | null => (v.length === 0 ? null : v.reduce((a, b) => a + b, 0) / v.length);
+const 합 = (v: number[]): number | null => (v.length === 0 ? null : v.reduce((a, b) => a + b, 0));
 
 /** 실행 중 지금까지 받은 숫자의 요약 — 서버 deviceStats 의 기기요약하기와 같은 셈이다(서버 쪽은 zod 를 끌고 와 화면이 따로 센다) */
 export function 지금요약(줄들: readonly 기기숫자[]): 기기요약 {
@@ -74,6 +75,7 @@ export function 지금요약(줄들: readonly 기기숫자[]): 기기요약 {
     avgFps: 반올림(평균(fps)),
     low1Fps: fps.length === 0 ? null : 반올림(평균(낮은)),
     maxTempC: 최대(값들(줄들.map((r) => r.tempC))),
+    freezeCount: 합(값들(줄들.map((r) => r.freezeCount))),
     maxMemMb: 최대(값들(줄들.map((r) => r.memMb))),
     avgCpu: 반올림(평균(값들(줄들.map((r) => r.cpu)))),
   };
@@ -107,8 +109,8 @@ export interface 결과칸 {
 type 결과기기 = 기기결과['devices'][number];
 
 /**
- * 결과 화면 위 숫자 칸 줄 — 앱은 CPU · 메모리 · 앱 실행 시간 · 기기 온도, 게임은 FPS · 프레임 드랍 · CPU · 메모리 (시안 11판 「앱 성능 · 게임 성능」 · WEB-F7-16).
- * 시안의 「화면 멈춤」은 기록기가 재지 않아 기기 온도로 바꿨다. 기기가 여럿이면 가장 나쁜 기기의 값이다 — 한 대라도 넘으면 넘은 것이다
+ * 결과 화면 위 숫자 칸 줄 — 앱은 CPU · 메모리 · 앱 실행 시간 · 프리징, 게임은 FPS · 프레임 드랍 · CPU · 메모리 (시안 11판 「앱 성능 · 게임 성능」 · WEB-F7-16).
+ * 시안의 「화면 멈춤」은 QA 현장 말 「프리징」으로 적었다(WEB-F7-26 사용자). 기기가 여럿이면 가장 나쁜 기기의 값이다 — 한 대라도 넘으면 넘은 것이다
  */
 export function 결과칸들(게임: boolean, 결과: Pick<기기결과, 'devices' | 'metrics'>, 목표들: readonly 기기목표[], t: 말): 결과칸[] {
   const 여럿 = 결과.devices.length > 1;
@@ -133,9 +135,10 @@ export function 결과칸들(게임: boolean, 결과: Pick<기기결과, 'device
   const 퍼센트 = (n: number) => `${String(한자리(n))}%`;
   const cpu = 칸('CPU 평균', (d) => d.summary.avgCpu, true, 퍼센트);
   const 메모리 = 칸('메모리 최대', (d) => d.summary.maxMemMb, true, 메모리글자, 'MAX_MEM');
-  return 게임
-    ? [칸('평균 FPS', (d) => d.summary.avgFps, false, (n) => String(한자리(n)), 'AVG_FPS'), 칸('프레임 드랍', (d) => 드랍(d.serial), true, 퍼센트), cpu, 메모리]
-    : [cpu, 메모리, 칸('앱 실행 시간', (d) => d.launchMs, true, (n) => 값글자('LAUNCH_MS', n, t), 'LAUNCH_MS'), 칸('최대 기기 온도', (d) => d.summary.maxTempC, true, (n) => 값글자('MAX_TEMP', n, t), 'MAX_TEMP')];
+  if (게임) return [칸('평균 FPS', (d) => d.summary.avgFps, false, (n) => String(한자리(n)), 'AVG_FPS'), 칸('프레임 드랍', (d) => 드랍(d.serial), true, 퍼센트), cpu, 메모리];
+  const 프리징 = 칸('프리징', (d) => d.summary.freezeCount, true, (n) => t('{수}번', { 수: n }));
+  프리징.보조.push(t('0.7초 넘게 멈춤'));
+  return [cpu, 메모리, 칸('앱 실행 시간', (d) => d.launchMs, true, (n) => 값글자('LAUNCH_MS', n, t), 'LAUNCH_MS'), 프리징];
 }
 
 /** 그 초를 담은 녹화 조각과 조각 안의 초. 조각은 시작 초 차례로 온다 — 그 초 앞에서 시작한 마지막 조각이다 */

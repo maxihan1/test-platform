@@ -1,4 +1,4 @@
-// 기기 성능 한 줄 읽기 — adb 로 FPS · 프레임 드랍 · CPU · 메모리 · 온도 · 배터리를 한 번 읽는다 (SPEC 도메인/러너 「Android 에서 읽는 곳」)
+// 기기 성능 한 줄 읽기 — adb 로 FPS · 프레임 드랍 · 프리징 · CPU · 메모리 · 온도 · 배터리를 한 번 읽는다 (SPEC 도메인/러너 「Android 에서 읽는 곳」)
 
 import {
   type Adb,
@@ -17,6 +17,8 @@ export interface PerfRow {
   sec: number;
   fps: number | null;
   jankPct: number | null;
+  /** 그 간격에 0.7초 넘게 걸린 프레임 수(프리징) */
+  freezeCount: number | null;
   cpu: number | null;
   memMb: number | null;
   tempC: number | null;
@@ -93,24 +95,30 @@ export async function 표시프레임으로(adb: Adb, r: 프레임상태): Promi
   return 반올림(새것.length / r.intervalSec);
 }
 
-async function fps를읽는다(adb: Adb, r: 프레임상태, sec: number): Promise<{ fps: number | null; jankPct: number | null }> {
-  const 없음 = { fps: null, jankPct: null };
+type 프레임칸 = Pick<PerfRow, 'fps' | 'jankPct' | 'freezeCount'>;
+
+async function fps를읽는다(adb: Adb, r: 프레임상태, sec: number): Promise<프레임칸> {
+  const 없음 = { fps: null, jankPct: null, freezeCount: null };
   const cur = gfxinfo를읽는다(await sh(adb, r, 'dumpsys', 'gfxinfo', r.pkg));
   const prev = r.이전gfx;
   if (cur !== null) r.이전gfx = { ...cur, sec };
+  let freezeCount: number | null = null;
   if (cur !== null && prev !== undefined) {
     const 렌더 = cur.total - prev.total;
     const 끊김 = cur.janky - prev.janky;
     // 앱이 다시 떠서 세는 값이 되돌아갔다 — 이번 간격은 기준만 다시 잡는다
     if (렌더 < 0 || 끊김 < 0) return 없음;
+    // 게임처럼 gfxinfo 로 하나도 안 그린 앱은 비워 둔다. 그린 적이 있으면 이번 간격에 안 그렸어도 0 이다 — 가만히 있는 것이지 굳은 것이 아니다
+    if (cur.total > 0 && cur.frozen !== null && prev.frozen !== null && cur.frozen >= prev.frozen) freezeCount = cur.frozen - prev.frozen;
     // 읽기가 간격보다 오래 걸려 틱을 건너뛰었으면 그만큼 쌓인 프레임이다 — 간격 한 칸이 아니라 앞 읽기부터 흐른 초로 나눈다.
     // 덤프 자체가 늦게 돌 수도 있어 폰이 덤프를 뜬 시각이 있으면 그것을, 없으면 측정 초를 쓴다
     const 흐른초 = cur.uptimeMs !== null && prev.uptimeMs !== null ? (cur.uptimeMs - prev.uptimeMs) / 1000 : sec - prev.sec;
-    if (렌더 > 0) return { fps: 반올림(렌더 / 흐른초), jankPct: 반올림((끊김 / 렌더) * 100) };
+    if (렌더 > 0) return { fps: 반올림(렌더 / 흐른초), jankPct: 반올림((끊김 / 렌더) * 100), freezeCount };
   } else if (cur !== null && cur.total > 0) {
     return 없음;
   }
-  return { fps: await 안전(r, 'SurfaceFlinger 프레임', () => 표시프레임으로(adb, r)), jankPct: null };
+  // 게임 · SurfaceView 는 gfxinfo 가 0 이라 프리징은 비어 있다(SurfaceFlinger 표시 시각 사이는 가만히 있는 것과 굳은 것을 못 가른다)
+  return { fps: await 안전(r, 'SurfaceFlinger 프레임', () => 표시프레임으로(adb, r)), jankPct: null, freezeCount };
 }
 
 async function cpu를읽는다(adb: Adb, r: 기록기): Promise<number | null> {
@@ -127,7 +135,7 @@ async function cpu를읽는다(adb: Adb, r: 기록기): Promise<number | null> {
 
 /** sec 는 부르는 쪽이 시계로 정한다 — 읽기가 간격보다 오래 걸려 한 번 건너뛰어도 녹화 · 구간과 시각이 맞는다 */
 export async function 한줄을읽는다(adb: Adb, r: 기록기, sec: number): Promise<PerfRow> {
-  let 프레임: { fps: number | null; jankPct: number | null } = { fps: null, jankPct: null };
+  let 프레임: 프레임칸 = { fps: null, jankPct: null, freezeCount: null };
   let 배터리: { tempC: number | null; batteryPct: number | null } = { tempC: null, batteryPct: null };
   const [cpu, memMb] = await Promise.all([
     안전(r, 'CPU', () => cpu를읽는다(adb, r)),

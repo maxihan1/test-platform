@@ -104,7 +104,8 @@ describe.skipIf(연결 === undefined)('기기 성능', { timeout: 90_000 }, () =
     const r = await 결과(직접플레이);
     expect(r.devices).toMatchObject([{ serial: 'FA1', model: 'SM-A236', where: 'FARM', launchMs: 2300, summary: { avgFps: 58, maxTempC: 38 }, verdict: 'PASS' }]);
     expect(r.metrics.length).toBeGreaterThan(0);
-    expect(r.metrics[0]).toMatchObject({ serial: 'FA1', sec: expect.any(Number), loop: null, segment: null, fps: 58 });
+    expect(r.metrics[0]).toMatchObject({ serial: 'FA1', sec: expect.any(Number), loop: null, segment: null, fps: 58, freezeCount: 1 });
+    expect(r.devices[0]?.summary.freezeCount).toBe(r.metrics.length);
     expect(r.segments).toEqual([]);
     expect(r.leak).toEqual([]);
     expect(r.videos).toEqual([{ serial: 'FA1', name: 영상이름, startSec: Number(/\d+/.exec(영상이름)?.[0]) }]);

@@ -46,6 +46,25 @@ describe('한줄을읽는다 — gfxinfo FPS', () => {
   });
 });
 
+describe('한줄을읽는다 — 프리징', () => {
+  it('간격 사이에 늘어난 0.7초 넘는 프레임만 센다', async () => {
+    let 덤프 = { 렌더: 100, 막대: '5ms=90 750ms=1' };
+    const adb = 가짜Adb(() => `Total frames rendered: ${덤프.렌더}\nJanky frames: 0 (0.00%)\nHISTOGRAM: ${덤프.막대}\n`);
+    const r = 기록기를만든다(1);
+    expect((await 한줄을읽는다(adb, r, 0)).freezeCount).toBeNull();
+    덤프 = { 렌더: 160, 막대: '5ms=148 750ms=2 1150ms=1' };
+    expect((await 한줄을읽는다(adb, r, 1)).freezeCount).toBe(2);
+    expect((await 한줄을읽는다(adb, r, 2)).freezeCount).toBe(0);
+  });
+
+  it('gfxinfo 로 하나도 안 그린 게임은 비워 둔다', async () => {
+    const adb = 가짜Adb(() => 'Total frames rendered: 0\nJanky frames: 0 (0.00%)\nHISTOGRAM: 5ms=0 750ms=0\n', () => latency출력(10, 60));
+    const r = 기록기를만든다(1);
+    await 한줄을읽는다(adb, r, 0);
+    expect((await 한줄을읽는다(adb, r, 1)).freezeCount).toBeNull();
+  });
+});
+
 describe('한줄을읽는다 — SurfaceFlinger FPS', () => {
   it.each([
     [1, 60],

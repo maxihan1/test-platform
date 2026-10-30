@@ -30,14 +30,18 @@ describe('연결된serial들', () => {
 describe('gfxinfo를읽는다', () => {
   it('렌더링한 프레임과 끊긴 프레임 수를 읽는다', () => {
     const out = 'Stats since: 1234ns\nTotal frames rendered: 1520\nJanky frames: 38 (2.50%)\n50th percentile: 6ms';
-    expect(gfxinfo를읽는다(out)).toEqual({ total: 1520, janky: 38, uptimeMs: null });
+    expect(gfxinfo를읽는다(out)).toEqual({ total: 1520, janky: 38, uptimeMs: null, frozen: null });
   });
   it('덤프를 뜬 시각(Uptime)도 읽는다', () => {
     const out = 'Applications Graphics Acceleration Info:\nUptime: 61209466 Realtime: 61209999\n\nTotal frames rendered: 10\nJanky frames: 1 (10.00%)\n';
-    expect(gfxinfo를읽는다(out)).toEqual({ total: 10, janky: 1, uptimeMs: 61209466 });
+    expect(gfxinfo를읽는다(out)).toEqual({ total: 10, janky: 1, uptimeMs: 61209466, frozen: null });
   });
   it('앱이 없으면 null', () => {
     expect(gfxinfo를읽는다('No process found for: com.x')).toBeNull();
+  });
+  it('프레임 시간 막대에서 700ms 칸(700~749ms)부터 더하고 GPU 막대는 안 본다', () => {
+    const out = 'Total frames rendered: 10\nJanky frames: 3 (30.00%)\nHISTOGRAM: 5ms=5 650ms=1 700ms=2 750ms=3 4950ms=1\nGPU HISTOGRAM: 1ms=4 4950ms=9\n';
+    expect(gfxinfo를읽는다(out)?.frozen).toBe(6);
   });
 });
 

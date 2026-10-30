@@ -4,17 +4,17 @@ import { describe, expect, it } from 'vitest';
 
 import { 구간묶기, 기기목표, 기기요약하기, 기기판정, 누수의심, 회차메모리, type 기기줄 } from './deviceStats.js';
 
-const 줄 = (sec: number, o: Partial<기기줄> = {}): 기기줄 => ({ sec, loop: null, segment: null, fps: null, jankPct: null, cpu: null, memMb: null, tempC: null, batteryPct: null, ...o });
+const 줄 = (sec: number, o: Partial<기기줄> = {}): 기기줄 => ({ sec, loop: null, segment: null, fps: null, jankPct: null, freezeCount: null, cpu: null, memMb: null, tempC: null, batteryPct: null, ...o });
 
 describe('기기 요약', () => {
-  it('평균 FPS · 1% Low · 최대 온도 · 메모리 최대 · 평균 CPU', () => {
-    const rows = Array.from({ length: 200 }, (_, i) => 줄(i, { fps: i < 2 ? 10 : 60, tempC: 30 + (i % 5), memMb: 500 + i, cpu: 20 }));
-    expect(기기요약하기(rows)).toEqual({ avgFps: 59.5, low1Fps: 10, maxTempC: 34, maxMemMb: 699, avgCpu: 20 });
+  it('평균 FPS · 1% Low · 최대 온도 · 프리징 합 · 메모리 최대 · 평균 CPU', () => {
+    const rows = Array.from({ length: 200 }, (_, i) => 줄(i, { fps: i < 2 ? 10 : 60, tempC: 30 + (i % 5), freezeCount: i % 50 === 0 ? 2 : i === 1 ? null : 0, memMb: 500 + i, cpu: 20 }));
+    expect(기기요약하기(rows)).toEqual({ avgFps: 59.5, low1Fps: 10, maxTempC: 34, freezeCount: 8, maxMemMb: 699, avgCpu: 20 });
   });
 
   it('줄이 적으면 1% Low 는 가장 낮은 한 개이고 값이 없으면 null', () => {
     expect(기기요약하기([줄(0, { fps: 50 }), 줄(1, { fps: 20 }), 줄(2, { fps: null })]).low1Fps).toBe(20);
-    expect(기기요약하기([줄(0)])).toEqual({ avgFps: null, low1Fps: null, maxTempC: null, maxMemMb: null, avgCpu: null });
+    expect(기기요약하기([줄(0)])).toEqual({ avgFps: null, low1Fps: null, maxTempC: null, freezeCount: null, maxMemMb: null, avgCpu: null });
   });
 });
 
@@ -26,13 +26,13 @@ describe('기기 판정', () => {
   ];
 
   it('기기마다 일련번호를 scope 로 한 줄씩 쓰고 지킨 것만 통과', () => {
-    const r = 기기판정('R3CT', 목표, { avgFps: 58, low1Fps: 40, maxTempC: 47, maxMemMb: 800, avgCpu: 30 }, 2500);
+    const r = 기기판정('R3CT', 목표, { avgFps: 58, low1Fps: 40, maxTempC: 47, freezeCount: 0, maxMemMb: 800, avgCpu: 30 }, 2500);
     expect(r.map((x) => [x.metric, x.scope, x.measured, x.verdict])).toEqual([['AVG_FPS', 'R3CT', 58, 'PASS'], ['MAX_TEMP', 'R3CT', 47, 'FAIL'], ['LAUNCH_MS', 'R3CT', 2500, 'PASS']]);
     expect(r[1]).toMatchObject({ reqId: 'FN-001', source: 'PRD' });
   });
 
   it('값이 없는 지표는 실패다', () => {
-    const r = 기기판정('R3CT', 목표, { avgFps: null, low1Fps: null, maxTempC: null, maxMemMb: null, avgCpu: null }, null);
+    const r = 기기판정('R3CT', 목표, { avgFps: null, low1Fps: null, maxTempC: null, freezeCount: null, maxMemMb: null, avgCpu: null }, null);
     expect(r.every((x) => x.measured === null && x.verdict === 'FAIL')).toBe(true);
   });
 
