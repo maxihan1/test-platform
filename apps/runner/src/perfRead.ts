@@ -46,7 +46,7 @@ export interface 기록기 {
   경고: Set<string>;
 }
 
-/** FPS 를 세는 데 드는 칸만 — 게임 기능 테스트 항목도 같은 셈으로 잰다 (gameFps.ts · WEB-F7-25) */
+/** FPS 를 세는 데 드는 칸만 — 게임 기능 테스트 항목도 표시 시각 셈을 같이 쓴다 (gameFps.ts · WEB-F7-25) */
 export type 프레임상태 = Pick<기록기, 'serial' | 'pkg' | 'intervalSec' | '이전gfx' | '층' | '이전표시' | '경고'>;
 
 const 반올림 = (x: number) => Math.round(x * 10) / 10;
@@ -66,8 +66,9 @@ async function 안전(r: 프레임상태, 칸: string, 읽기: () => Promise<num
   }
 }
 
-// 표시 시각을 세는 길 — 게임 · SurfaceView 는 gfxinfo 가 0 이라 이쪽으로 센다. 끝난 간격 안에 새로 찍힌 프레임만 센다
-async function 표시프레임으로(adb: Adb, r: 프레임상태): Promise<number | null> {
+// 표시 시각을 세는 길 — 게임 · SurfaceView 는 gfxinfo 가 0 이라 이쪽으로 센다. 끝난 간격 안에 새로 찍힌 프레임만 센다.
+// 게임 기능 테스트 항목은 gfxinfo 를 건너뛰고 이것만 부른다(gameFps.ts)
+export async function 표시프레임으로(adb: Adb, r: 프레임상태): Promise<number | null> {
   if (r.층 === undefined) r.층 = surfaceView층을찾는다(await sh(adb, r, 'dumpsys', 'SurfaceFlinger', '--list'), r.pkg) ?? undefined;
   if (r.층 === undefined) return null;
   let 읽음: ReturnType<typeof 프레임시각들>;
@@ -92,7 +93,7 @@ async function 표시프레임으로(adb: Adb, r: 프레임상태): Promise<numb
   return 반올림(새것.length / r.intervalSec);
 }
 
-export async function fps를읽는다(adb: Adb, r: 프레임상태, sec: number): Promise<{ fps: number | null; jankPct: number | null }> {
+async function fps를읽는다(adb: Adb, r: 프레임상태, sec: number): Promise<{ fps: number | null; jankPct: number | null }> {
   const 없음 = { fps: null, jankPct: null };
   const cur = gfxinfo를읽는다(await sh(adb, r, 'dumpsys', 'gfxinfo', r.pkg));
   const prev = r.이전gfx;

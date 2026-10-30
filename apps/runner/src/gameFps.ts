@@ -8,7 +8,7 @@ import { APPIUM_SESSION_FILE, runDir } from '@platform/kit';
 
 import { appium주소 } from './appSession.js';
 import type { Adb } from './perfAdb.js';
-import { fps를읽는다, type 프레임상태 } from './perfRead.js';
+import { 표시프레임으로, type 프레임상태 } from './perfRead.js';
 
 const 간격ms = 1_000;
 // 한 번 묻기가 간격보다 오래 걸리면 그 초는 건너뛴다 — 팜이 느려도 묻기가 쌓이지 않는다
@@ -33,9 +33,10 @@ export function FPS를잰다(
 ): FPS측정 {
   const 줄들: FpsSample[] = [];
   const 상태: 프레임상태 & { 연결?: string } = { serial: '', pkg: '', intervalSec: 간격ms / 1000, 경고: new Set() };
-  const 시작 = Date.now();
   let 읽는중: Promise<void> | undefined;
   let 알림 = false;
+  // 멈출 때 도는 묻기를 끊는다 — 팜이 멈춰 있어도 연결 닫기 · 답이 묻기 제한만큼 밀리지 않는다
+  const 그만 = new AbortController();
 
   const 부른다 = async (연결: string, script: string, args: unknown[]): Promise<string> => {
     const raw = process.env.PLATFORM_APPIUM_URL;
@@ -45,7 +46,7 @@ export function FPS를잰다(
       method: 'POST',
       headers: { ...headers, 'Content-Type': 'application/json' },
       body: JSON.stringify({ script, args }),
-      signal: AbortSignal.timeout(묻기제한ms),
+      signal: AbortSignal.any([AbortSignal.timeout(묻기제한ms), 그만.signal]),
     });
     if (!res.ok) throw new Error(`Appium ${script} HTTP ${String(res.status)}`);
     return String(((await res.json()) as { value?: unknown }).value ?? '');
@@ -63,14 +64,19 @@ export function FPS를잰다(
     if (연결 === '' || seq === undefined) return;
     try {
       // 연결이 바뀌면(케이스가 다시 열었다) 앞 셈의 기준을 버린다
-      if (상태.연결 !== 연결) Object.assign(상태, { 연결, 이전gfx: undefined, 이전표시: undefined, 층: undefined });
-      // 앱 층을 못 찾는 동안은 앞에 뜬 앱을 다시 묻는다 — 켜지는 동안 런처가 앞에 있을 수 있다
-      if (상태.층 === undefined) 상태.pkg = await 부른다(연결, 'mobile: getCurrentPackage', []);
+      if (상태.연결 !== 연결) Object.assign(상태, { 연결, 이전표시: undefined, 층: undefined });
+      // 앱 층을 못 찾는 동안은 앞에 뜬 앱을 다시 묻는다 — 켜지는 동안 런처가 앞에 있을 수 있다. 앱이 바뀌면 기준도 버린다
+      if (상태.층 === undefined) {
+        const pkg = await 부른다(연결, 'mobile: getCurrentPackage', []);
+        if (pkg !== 상태.pkg) Object.assign(상태, { pkg, 이전표시: undefined });
+      }
       // perfRead 는 adb 인자(-s 번호 shell 명령 …)로 부른다 — 앞 셋을 떼고 Appium 에 넘긴다
       const adb: Adb = (args) => 부른다(연결, 'mobile: shell', [{ command: args[3], args: args.slice(4) }]);
-      const { fps } = await fps를읽는다(adb, 상태, Math.round((Date.now() - 시작) / 1000));
-      줄들.push({ seq, fps });
+      // 게임은 SurfaceView 라 gfxinfo 가 0 이다 — 그 묻기를 건너뛰어 케이스와 같은 연결에 1초에 한 번만 묻는다(Appium 은 연결마다 명령을 하나씩 받는다)
+      줄들.push({ seq, fps: await 표시프레임으로(adb, 상태) });
     } catch (err) {
+      // 멈추며 끊은 묻기는 못 읽은 초가 아니다
+      if (그만.signal.aborted) return;
       줄들.push({ seq, fps: null });
       if (!알림) {
         알림 = true;
@@ -89,6 +95,7 @@ export function FPS를잰다(
   return {
     async 멈춘다() {
       clearInterval(타이머);
+      그만.abort();
       await 읽는중;
       return 줄들;
     },

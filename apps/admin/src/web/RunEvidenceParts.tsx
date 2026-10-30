@@ -53,7 +53,9 @@ export const 점선FPS = 30;
  */
 export function FPS선({ steps, fps, 폭 }: { steps: StepResult[]; fps: FpsSample[]; 폭: (s: StepResult) => number }) {
   const t = use말();
-  const 값들 = fps.flatMap((f) => (f.fps === null ? [] : [f.fps]));
+  // 그리는 숫자로만 센다 — 결과가 잘려 절차가 없는 번호의 숫자는 선에도 요약에도 없다
+  const 단계번호 = new Set(steps.map((s) => s.seq));
+  const 값들 = fps.flatMap((f) => (f.fps === null || !단계번호.has(f.seq) ? [] : [f.fps]));
   if (값들.length === 0) return null;
   // 120Hz 폰은 60 을 넘는다 — 위끝은 60 과 가장 큰 값 중 큰 쪽이다
   const 위 = Math.max(60, ...값들);
@@ -64,8 +66,15 @@ export function FPS선({ steps, fps, 폭 }: { steps: StepResult[]; fps: FpsSampl
       <div className="ev-fps" role="img" aria-label={t('FPS 흐름 · 평균 {평균} · 가장 낮을 때 {최저}', { 평균, 최저: Math.round(Math.min(...값들)) })}>
         {steps.map((s) => {
           const 줄 = fps.filter((f) => f.seq === s.seq);
+          const 끊김 = (i: number): boolean => 줄[i]?.fps == null;
+          // 앞뒤가 빈 숫자 하나는 같은 자리로 잇는 길이 0 선이다 — 둥근 끝이라 점으로 보인다
           const d = 줄
-            .map((f, i) => (f.fps === null ? null : `${i === 0 || 줄[i - 1]!.fps === null ? 'M' : 'L'}${(((i + 0.5) / 줄.length) * 100).toFixed(1)} ${y(f.fps)}`))
+            .map((f, i) => {
+              if (f.fps === null) return null;
+              const 점 = `${(((i + 0.5) / 줄.length) * 100).toFixed(1)} ${y(f.fps)}`;
+              if (!끊김(i - 1)) return `L${점}`;
+              return 끊김(i + 1) ? `M${점} L${점}` : `M${점}`;
+            })
             .filter((x) => x !== null)
             .join(' ');
           return (

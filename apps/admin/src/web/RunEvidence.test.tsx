@@ -202,6 +202,7 @@ describe('실패 카드의 시간축 증거 (WEB-F7-13)', () => {
       { seq: 1, fps: 60 },
       { seq: 2, fps: null },
       { seq: 2, fps: 38 },
+      { seq: 9, fps: 12 },
     ];
     그리기(쪽([케이스('ZZI-0001', '물약 사기', [장치('android', 11, { fps }, { steps: 화면단계들() })])]), [줄(11, 'ZZI-0001', 'android', 'FAIL')]);
 
@@ -209,7 +210,8 @@ describe('실패 카드의 시간축 증거 (WEB-F7-13)', () => {
     const 칸들 = 선.querySelectorAll('span');
     expect(칸들).toHaveLength(2);
     expect(칸들[0]!.querySelector('path')!.getAttribute('d')).toMatch(/^M25\.0 [\d.]+ L75\.0 [\d.]+$/);
-    expect(칸들[1]!.querySelector('path')!.getAttribute('d')).toMatch(/^M75\.0 [\d.]+$/);
+    // 앞이 빈 마지막 숫자 하나는 점이다
+    expect(칸들[1]!.querySelector('path')!.getAttribute('d')).toMatch(/^M75\.0 ([\d.]+) L75\.0 \1$/);
     expect(screen.getByText('FPS (점선 30)')).toBeTruthy();
   });
 

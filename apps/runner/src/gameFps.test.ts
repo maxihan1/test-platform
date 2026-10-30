@@ -75,6 +75,8 @@ describe('게임 항목 FPS 측정', () => {
       { seq: 1, fps: 60 },
       { seq: 3, fps: 60 },
     ]);
+    expect(받은것.some((r) => r.body.args[0]?.args?.[0] === 'gfxinfo')).toBe(false);
+    expect(받은것.filter((r) => r.body.script === 'mobile: getCurrentPackage')).toHaveLength(1);
     expect(받은것[0]!.url).toBe('http://farm:4723/wd/hub/session/sess-1/execute/sync');
     expect(받은것[0]!.headers.Authorization).toBe('Bearer 팜토큰');
     expect(받은것.find((r) => r.body.args[0]?.args?.[1] === '--latency')!.body).toEqual({
@@ -107,5 +109,19 @@ describe('게임 항목 FPS 측정', () => {
     ]);
     expect(경고).toHaveBeenCalledTimes(1);
     expect(String(경고.mock.calls[0]?.[0])).toContain('HTTP 500');
+  });
+
+  it('팜이 답하지 않아도 멈추면 도는 묻기를 바로 끊고 그 초는 남기지 않는다', async () => {
+    const 매달림 = vi.fn(
+      (_url: string, init: RequestInit) =>
+        new Promise<Response>((_, 거절) => init.signal!.addEventListener('abort', () => 거절(new Error('끊김')))),
+    );
+    const 측정 = FPS를잰다(7, 70, undefined, () => 2, 매달림 as unknown as typeof fetch);
+    await 틱(1);
+    expect(매달림).toHaveBeenCalledTimes(1);
+
+    const 처음 = Date.now();
+    expect(await 측정.멈춘다()).toEqual([]);
+    expect(Date.now() - 처음).toBeLessThan(1_000);
   });
 });
