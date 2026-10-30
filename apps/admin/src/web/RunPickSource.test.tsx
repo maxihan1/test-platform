@@ -49,6 +49,7 @@ describe('출처 줄', () => {
     expect(screen.getByText('저장값과 다릅니다 · 이번 실행에만 씁니다')).toBeTruthy();
     expect(단추('이 값 저장')).toBeTruthy();
     expect(단추('되돌리기')).toBeTruthy();
+    expect(screen.getByText('팀 모두와 정기 실행에 쓰입니다')).toBeTruthy();
   });
 
   it('저장값이 없는 케이스는 코드 기본값과 다르다고 적는다', async () => {
@@ -120,6 +121,53 @@ describe('출처 줄', () => {
   });
 });
 
+describe('저장한 뒤', () => {
+  it('저장값을 지우면 「저장했습니다」에 머물지 않고 코드 기본값과 다르다고 적는다', async () => {
+    await 연다([저장값케이스]);
+    vi.spyOn(api, 'saveInput').mockResolvedValue(null);
+    vi.spyOn(api, 'clearInput').mockResolvedValue(undefined);
+    고친다('user2');
+    fireEvent.click(단추('이 값 저장'));
+    await screen.findByText('저장값으로 저장했습니다.');
+
+    fireEvent.click(단추('저장값 지우기'));
+    fireEvent.click(단추('지우기 확인'));
+
+    await waitFor(() => expect(screen.queryByText('저장값으로 저장했습니다.')).toBeNull());
+  });
+
+  it('출처 줄에서 저장해 케이스를 다시 읽으면 「저장한 값」 목록도 저장값을 고른다', async () => {
+    const 묶음 = { id: 7, tcId: 'ZRS-001', name: '회원', params: { userId: 'bundle' }, expected: {}, createdAt: '2026-09-29T05:02:00.000Z' };
+    vi.mocked(api.paramSets).mockResolvedValue({ items: [묶음] });
+    const 그림 = render(<RunPickModal 케이스들={[값케이스]} service={서비스} user={사람} onRun={vi.fn()} onClose={vi.fn()} />);
+    await act(async () => {});
+    const 목록 = () => screen.getByLabelText('저장한 값') as HTMLSelectElement;
+    expect(목록().value).toBe('code');
+
+    const 저장된: CaseRow = {
+      ...값케이스,
+      savedInput: { params: { userId: 'user2' }, expected: {}, savedSecrets: { params: [], expected: [] }, savedBy: '김실행', savedAt: '2026-10-30T01:00:00.000Z' },
+    };
+    그림.rerender(<RunPickModal 케이스들={[저장된]} service={서비스} user={사람} onRun={vi.fn()} onClose={vi.fn()} />);
+
+    expect(목록().value).toBe('saved');
+  });
+
+  it('여러 건 창에서 서버가 칸 사유를 주면 저장한 그 케이스 칸에만 붙인다', async () => {
+    const 둘째: CaseRow = { ...값케이스, tcId: 'ZRS-002' };
+    await 연다([값케이스, 둘째]);
+    vi.spyOn(api, 'saveInput').mockRejectedValue(
+      new ApiError(400, 'INVALID_PARAMS', '아이디가 틀렸다', [{ path: 'userId', message: '아이디가 틀렸다' }]),
+    );
+    고친다('user2', 'ZRS-002');
+
+    fireEvent.click(단추('이 값 저장'));
+
+    expect(await screen.findAllByText('아이디가 틀렸다')).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: '값' })[1]?.getAttribute('aria-expanded')).toBe('true');
+  });
+});
+
 describe('저장 안 한 채 닫기', () => {
   it('고친 값을 저장하지 않고 닫으려 하면 「저장하고 닫기」까지 묻고, 누르면 저장한 뒤 닫는다', async () => {
     const { onClose } = await 연다([저장값케이스]);
@@ -127,7 +175,7 @@ describe('저장 안 한 채 닫기', () => {
     고친다('user2');
 
     Esc();
-    expect(screen.getByText('고친 입력값이 저장되지 않았습니다')).toBeTruthy();
+    expect(screen.getByText('고친 입력값이 저장되지 않았습니다 · 팀 모두와 정기 실행에 쓰입니다')).toBeTruthy();
     fireEvent.click(단추('저장하고 닫기'));
 
     await waitFor(() => expect(onClose).toHaveBeenCalledOnce());

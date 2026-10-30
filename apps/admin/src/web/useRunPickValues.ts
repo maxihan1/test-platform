@@ -31,7 +31,9 @@ export function useRunPickValues(케이스들: CaseRow[], 초기글자: 글자�
   const [처음글자] = useState<글자표>(초기글자 ?? {});
   const [글자, set글자] = useState(처음글자);
   // 한 건 창에서 묶음 · 저장값을 저장하다 서버가 준 칸별 사유 (SPEC §8.2). 칸을 고치면 옛 사유라 걷는다
-  const [서버오류, set서버오류] = useState<Record<string, string>>({});
+  // 여러 건 창은 칸 이름이 케이스끼리 겹친다 — 사유가 어느 케이스 것인지 같이 든다(null 이면 창의 모든 케이스, 한 건 창의 묶음 저장)
+  const [서버오류, set서버오류표] = useState<{ tcId: string | null; 표: Record<string, string> }>({ tcId: null, 표: {} });
+  const set서버오류 = (표: Record<string, string>, tcId: string | null = null) => set서버오류표({ tcId, 표 });
   // 이 창에서 저장값으로 저장한 글자. 저장한 비밀값은 다시 읽어도 칸이 비어 와 저장값과 견주면 늘 「다름」이라 이것과도 견준다
   const [저장한글자, set저장한글자] = useState<Record<string, 칸글자>>({});
 
@@ -109,7 +111,7 @@ export function useRunPickValues(케이스들: CaseRow[], 초기글자: 글자�
     const 칸 = 칸들.get(tcId);
     const 표: Record<string, string> = {};
     for (const field of (which === 'params' ? 칸?.params : 칸?.expected) ?? []) {
-      const 글 = 서버오류[field.key];
+      const 글 = 서버오류.tcId === null || 서버오류.tcId === tcId ? 서버오류.표[field.key] : undefined;
       if (글 !== undefined) 표[field.key] = 글;
     }
     return 표;
@@ -140,9 +142,7 @@ export function useRunPickValues(케이스들: CaseRow[], 초기글자: 글자�
   const 안저장 = 케이스들
     .map((c) => c.tcId)
     .filter((tcId) => {
-      const 칸 = 칸들.get(tcId);
-      const 처음 = { params: 채운글자(칸?.params ?? [], 처음글자[tcId]?.params), expected: 채운글자(칸?.expected ?? [], 처음글자[tcId]?.expected) };
-      return !같은글자(보이는글자(tcId), 처음) && 출처(tcId) === 'changed';
+      return !같은글자(보이는글자(tcId), 지금글자(처음글자, tcId)) && 출처(tcId) === 'changed';
     });
 
   /** 저장값으로 보낼 값. 안 고친 칸도 보이는 값 그대로 싣는다 — 고친 것만 실으면 「이 값 저장」이 빈 값을 저장한다 */
@@ -153,6 +153,11 @@ export function useRunPickValues(케이스들: CaseRow[], 초기글자: 글자�
 
   function 저장됨(tcId: string) {
     set저장한글자((전) => ({ ...전, [tcId]: 보이는글자(tcId) }));
+  }
+
+  /** 저장값을 지웠다. 방금 저장한 글자를 잊어야 줄이 「저장했습니다」에 머물지 않고 코드 기본값과 견준다 */
+  function 저장잊기(tcId: string) {
+    set저장한글자((전) => Object.fromEntries(Object.entries(전).filter(([key]) => key !== tcId)));
   }
 
   /** 고친 글자를 버려 저장값(없으면 코드 기본값)으로 돈다. 표에서 빼면 실행 요청에도 값이 안 실려 서버가 같은 저장값으로 채운다 */
@@ -183,5 +188,5 @@ export function useRunPickValues(케이스들: CaseRow[], 초기글자: 글자�
     });
   }
 
-  return { 칸들, 고친값, 오류, 글자of, 고치기, 불러오기, 되돌리기, 칸오류, set서버오류, 출처, 안저장, 저장할값, 저장됨 };
+  return { 칸들, 고친값, 오류, 글자of, 고치기, 불러오기, 되돌리기, 칸오류, set서버오류, 출처, 안저장, 저장할값, 저장됨, 저장잊기 };
 }

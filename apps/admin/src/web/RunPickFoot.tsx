@@ -32,7 +32,7 @@ function 닫기묻는줄({ on계속, on닫기, on저장닫기 }: { on계속: () 
     return (
       <>
         <span className="note" role="status">
-          {t('고친 입력값이 저장되지 않았습니다')}
+          {t('고친 입력값이 저장되지 않았습니다')} · {t('팀 모두와 정기 실행에 쓰입니다')}
         </span>
         <button className="btn ghost" onClick={on계속}>
           {t('계속 고치기')}

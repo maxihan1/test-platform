@@ -124,10 +124,12 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
   const 빨갛나 = notice !== null || 너무많나 || 사유 !== undefined;
 
   /** 서버가 칸별 사유를 주면 그 칸 아래에 붙인다. 아니면 창의 한 줄로 (SPEC §8.2) */
-  function 저장실패(err: unknown) {
+  function 저장실패(err: unknown, tcId?: string) {
     if (err instanceof ApiError && err.violations.length > 0) {
       set오류보임(false);
-      값.set서버오류(messagesByKey(err.violations));
+      값.set서버오류(messagesByKey(err.violations), tcId ?? null);
+      // 여러 건 창은 값 칸이 접혀 있다 — 사유가 붙은 케이스를 편다
+      if (tcId !== undefined) set펼친((전) => new Set([...전, tcId]));
       setNotice(t('입력값이 명세와 맞지 않습니다.'));
     } else {
       setNotice(message(err, 언어));
@@ -275,7 +277,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
                   user={user ?? null}
                   값={값.저장할값(c.tcId)}
                   on불러오기={(글자) => 값.불러오기(c.tcId, 글자)}
-                  on다시읽기={() => on다시읽기?.(c.tcId)}
+                  on다시읽기={() => { 값.저장잊기(c.tcId); on다시읽기?.(c.tcId); }}
                   on실패={저장실패}
                 />
               )}

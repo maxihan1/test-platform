@@ -1,7 +1,7 @@
 // 실행 창 케이스마다 입력값 칸 아래의 출처 줄 — 저장값 · 코드 기본값, 고치면 「이번 실행에만 · 이 값 저장 · 되돌리기」 (도메인/실행 §8.10)
 // 한 건 · 여러 건 창이 같이 쓴다. 저장은 창이 한다 — 「저장하고 닫기」도 같은 저장을 거친다
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { api, type CaseRow } from './api.js';
 import { use말, use언어 } from './i18n.js';
@@ -10,34 +10,42 @@ import type { useRunPickValues, 출처상태 } from './useRunPickValues.js';
 
 /**
  * 고친 값을 저장값으로 저장한다 — 줄의 「이 값 저장」과 「저장하고 닫기」가 같이 쓴다 (도메인/실행 §8.10 · §8.2).
- * 명세에 안 맞는 케이스가 있으면 하나도 저장하지 않는다. 앞 케이스만 저장되고 멈추면 무엇이 남았는지 알 수 없다
+ * 명세에 안 맞는 케이스가 있으면 하나도 저장하지 않는다 — 화면이 미리 아는 실패로 반쯤 저장되면 무엇이 남았는지 알 수 없다.
+ * 서버가 도중에 거절하면 앞 케이스는 저장된 채다. 그 줄은 「저장값으로 저장했습니다.」로 바뀌어 무엇이 남았는지 보인다
  */
 export function use입력값저장(
   값: ReturnType<typeof useRunPickValues>,
   on다시읽기: ((tcId: string) => void) | undefined,
-  on실패: (err: unknown) => void,
+  on실패: (err: unknown, tcId: string) => void,
   on틀림: (tcIds: string[]) => void,
 ) {
   const [저장중, set저장중] = useState(false);
+  // 상태는 다음 그리기에야 바뀐다 — 느린 망에서 「저장하고 닫기」를 두 번 누르면 같은 저장이 두 벌 돈다
+  const 도는중 = useRef(false);
 
   async function 저장(tcIds: string[]): Promise<boolean> {
+    if (도는중.current) return false;
     const 틀린 = tcIds.filter((tcId) => 값.오류[tcId] !== undefined);
     if (틀린.length > 0) {
       on틀림(틀린);
       return false;
     }
+    도는중.current = true;
     set저장중(true);
+    let 지금 = '';
     try {
       for (const tcId of tcIds) {
+        지금 = tcId;
         await api.saveInput(tcId, 값.저장할값(tcId));
         값.저장됨(tcId);
         on다시읽기?.(tcId);
       }
       return true;
     } catch (err) {
-      on실패(err);
+      on실패(err, 지금);
       return false;
     } finally {
+      도는중.current = false;
       set저장중(false);
     }
   }
@@ -84,9 +92,13 @@ export function 출처줄({
     <p className="prow-src changed">
       <span>{saved === undefined ? t('코드 기본값과 다릅니다 · 이번 실행에만 씁니다') : t('저장값과 다릅니다 · 이번 실행에만 씁니다')}</span>
       {!저장된다 ? null : (
-        <button type="button" className="btn small" onClick={on저장} disabled={저장중}>
-          {t('이 값 저장')}
-        </button>
+        <>
+          <button type="button" className="btn small" onClick={on저장} disabled={저장중}>
+            {t('이 값 저장')}
+          </button>
+          {/* 누르기 전에 팀 값이 바뀐다는 것을 알아야 한다 — 상세 칸 「모두에게 저장」과 같다 (도메인/실행 §8.2 · 점검 7.6) */}
+          <span className="hint">{t('팀 모두와 정기 실행에 쓰입니다')}</span>
+        </>
       )}
       <button type="button" className="btn small ghost" onClick={on되돌리기} disabled={저장중}>
         {t('되돌리기')}

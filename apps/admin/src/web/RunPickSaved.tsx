@@ -53,6 +53,12 @@ export function 저장한값줄({
   const saved = 케이스.savedInput ?? undefined;
   // 창은 저장값(없으면 코드 기본값)으로 칸을 채워 열린다 — 목록의 처음 선택도 그것이다
   const [고른, set고른] = useState(saved === undefined ? 'code' : 'saved');
+  // 칸 아래 출처 줄에서 저장값을 저장하면 케이스를 다시 읽어 저장 시각이 바뀐다 — 목록도 저장값을 고른 것으로 맞춘다
+  const [본저장, set본저장] = useState(saved?.savedAt);
+  if (saved?.savedAt !== 본저장) {
+    set본저장(saved?.savedAt);
+    if (saved !== undefined) set고른('saved');
+  }
   const [저장칸, set저장칸] = useState(false);
   const [이름, set이름] = useState('');
   const [확인중, set확인중] = useState(false);
