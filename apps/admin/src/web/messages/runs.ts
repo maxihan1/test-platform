@@ -216,6 +216,8 @@ export const 실행말: Record<string, string> = {
   '파일로 받기': 'Download as a file',
   '네트워크 요청': 'Network request',
   '실패한 요청': 'Failed request',
+  'FPS 흐름 · 평균 {평균} · 가장 낮을 때 {최저}': 'FPS trend · average {평균} · lowest {최저}',
+  'FPS (점선 {선})': 'FPS (dashed line {선})',
   '영상 보기': 'Watch recording',
   '영상을 열지 못했습니다': 'Could not open the recording',
   '{파일} 받기 ({크기})': 'Download {파일} ({크기})',

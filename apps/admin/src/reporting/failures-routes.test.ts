@@ -102,10 +102,11 @@ describe.skipIf(연결 === undefined)('실패 카드 통로', () => {
     await 항목(끝남, 'XFCR-003', 'desktop', 'PASS');
     const 앱 = await 실행만들기('앱', 'FINISHED');
     await 항목(앱, 'XFCR-004', 'android', 'FAIL');
-    await pool.query(`UPDATE run_item SET device = $2, element_checks = $3 WHERE run_id = $1`, [
+    await pool.query(`UPDATE run_item SET device = $2, element_checks = $3, fps = $4 WHERE run_id = $1`, [
       앱,
       JSON.stringify({ model: 'SM-S911N', osVersion: '14', appVersion: null, appBuild: '241' }),
       JSON.stringify([{ key: 'item:potion', serverValue: 10000, same: false }]),
+      JSON.stringify([{ seq: 1, fps: 60 }, { seq: 1, fps: null }]),
     ]);
     await 실행만들기('도는중', 'RUNNING');
     await 실행만들기('시나리오', 'FINISHED', 시나리오번호);
@@ -158,6 +159,14 @@ describe.skipIf(연결 === undefined)('실패 카드 통로', () => {
 
     const 웹 = (await 라우트앱.inject({ method: 'GET', url: 주소(실행.끝남!) })).json();
     expect(웹.items[0].devices[0].elementChecks).toEqual([]);
+  });
+
+  it('디바이스 칸에 그 회차의 FPS 를 싣고 안 잰 항목은 빈 목록이다 (WEB-F7-25)', async () => {
+    const 앱 = (await 라우트앱.inject({ method: 'GET', url: 주소(실행.앱!) })).json();
+    expect(앱.items[0].devices[0].fps).toEqual([{ seq: 1, fps: 60 }, { seq: 1, fps: null }]);
+
+    const 웹 = (await 라우트앱.inject({ method: 'GET', url: 주소(실행.끝남!) })).json();
+    expect(웹.items[0].devices[0].fps).toEqual([]);
   });
 
   it('도는 실행은 409 RUN_NOT_FINISHED 다', async () => {

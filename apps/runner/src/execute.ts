@@ -7,10 +7,11 @@ import type { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import { stripVTControlCharacters } from 'node:util';
 
-import type { ExecuteRequest, ExecuteResponse, ItemStatus, StepProgress } from '@platform/kit';
+import type { ExecuteRequest, ExecuteResponse, FpsSample, ItemStatus, StepProgress } from '@platform/kit';
 
 import { 판쓰기, 판지우기 } from './apiDoc.js';
 import { 앱연결을닫는다 } from './appSession.js';
+import { FPS를잰다 } from './gameFps.js';
 import { killTree } from './kill.js';
 import { 산출물폴더, 출력폴더를지운다, 출력폴더이름 } from './outputDir.js';
 import { 녹화폴더, 다음HAR경로 } from './recordHar.js';
@@ -207,9 +208,12 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
   child.stdout.setEncoding('utf8');
   child.stderr.setEncoding('utf8');
   진행을_모은다(entry, child.stdout);
+  // 게임 정식 실행 항목만 — 테스트 실행(runId 0)은 기록이 안 남는다 (러너 §5.2 「게임 항목 FPS」)
+  const 측정 = req.runId > 0 && gameEnv(req).PLATFORM_ENGINE === 'GAME' ? FPS를잰다(req.runId, req.historyId, req.farmToken, () => entry.progress?.step.seq) : undefined;
 
   let stdout = '';
   let stderr = '';
+  let fps: FpsSample[] = [];
   child.stdout.on('data', (chunk: string) => { stdout += chunk; });
   child.stderr.on('data', (chunk: string) => { stderr += chunk; });
 
@@ -225,6 +229,7 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
   }).finally(async () => {
     clearTimeout(timer);
     running.delete(req.historyId);
+    fps = (await 측정?.멈춘다()) ?? [];
     if (판파일 !== undefined) await 판지우기([판파일]);
   });
   await 출력폴더를지운다(출력);
@@ -233,8 +238,11 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
   // 답하기 전에 끝내야 admin 이 답을 받았을 때 팜의 디바이스가 이미 풀려 있다
   if (req.platform === 'android') await 앱연결을닫는다(req.runId, req.historyId, req.farmToken);
 
+  // 하나도 못 읽었으면 칸을 안 싣는다 — 화면이 빈 선을 그리지 않는다
+  const fps칸 = fps.some((f) => f.fps !== null) ? { fps } : {};
+
   if (entry.killedBy !== null) {
-    return killedResponse(req.historyId, entry.killedBy, Date.now() - startedAt, stdout);
+    return { ...killedResponse(req.historyId, entry.killedBy, Date.now() - startedAt, stdout), ...fps칸 };
   }
 
   const parsed = parseResult(stdout);
@@ -250,6 +258,7 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
       // 게임 항목만 — admin 이 게임 지도 · 서비스 지도에 쓴다 (공통/3-공유계약 「게임 테스트 타입」)
       ...(parsed.elementChecks === undefined ? {} : { elementChecks: parsed.elementChecks }),
       ...(parsed.apiCalls === undefined ? {} : { apiCalls: parsed.apiCalls }),
+      ...fps칸,
     };
   }
 
@@ -261,5 +270,6 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
     durationMs: Date.now() - startedAt,
     steps: [],
     ...(status === 'PASS' ? {} : { error: { message: tail(stderr) || tail(stdout) } }),
+    ...fps칸,
   };
 }

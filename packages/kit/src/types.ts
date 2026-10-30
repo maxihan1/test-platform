@@ -96,6 +96,12 @@ export interface ExecuteResponse {
   device?: DeviceInfo;          // android 만. Appium 연결이 열렸을 때 싣는다 (도메인/리포팅 §8.4 「증적 문서 머리말」 · APP-F1-05)
   elementChecks?: ElementCheck[];  // 게임 항목만 · verify.element 가 남긴 줄마다. admin 이 game_element.server_value · checked_run 과 run_item.element_checks 에 쓴다 (GAME-F1-09 · WEB-F7-24)
   apiCalls?: ApiCallSeen[];     // 게임 항목만 · 케이스가 부른 대상 서버 API. android 는 trace 가 없어 이 칸으로 서비스 지도의 케이스 줄을 채운다 (GAME-F1-09)
+  fps?: FpsSample[];            // 게임 정식 실행 항목만 · 러너가 1초마다 읽은 FPS. 하나도 못 읽었으면 키가 없다. admin 이 run_item.fps 에 쓴다 (WEB-F7-25)
+}
+
+export interface FpsSample {
+  seq: number;                  // 읽은 때 돌던 절차 번호 — 화면이 시간축 단계 칸에 맞춰 그린다
+  fps: number | null;           // 그 1초의 FPS. 못 읽은 초는 null
 }
 
 export interface ElementCheck {

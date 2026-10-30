@@ -93,6 +93,23 @@ describe.skipIf(연결 === undefined)('게임 항목 결과 저장', () => {
     expect(await 칸(둘.historyId)).toBeNull();
   });
 
+  it('항목에는 러너가 읽은 FPS 를 빈칸까지 그대로 남기고 다 빈칸이면 비운다 (WEB-F7-25)', async () => {
+    const 칸 = async (historyId: number) =>
+      (await pool.query<{ fps: unknown }>('SELECT fps FROM run_item WHERE history_id = $1', [historyId])).rows[0]!.fps;
+    const fps = [
+      { seq: 1, fps: null },
+      { seq: 1, fps: 60 },
+      { seq: 2, fps: 38.5 },
+    ];
+    const 첫 = await 시작();
+    await finishItem(첫.historyId, { historyId: 첫.historyId, status: 'FAIL', durationMs: 1, steps: [], fps });
+    expect(await 칸(첫.historyId)).toEqual(fps);
+
+    const 둘 = await 시작();
+    await finishItem(둘.historyId, { historyId: 둘.historyId, status: 'PASS', durationMs: 1, steps: [], fps: [{ seq: 1, fps: null }] });
+    expect(await 칸(둘.historyId)).toBeNull();
+  });
+
   it('부른 API 는 서비스 지도의 케이스 줄이 되고 같은 방식 · 주소는 한 줄이다', async () => {
     const { runId, historyId } = await 시작();
     await finishItem(historyId, {
