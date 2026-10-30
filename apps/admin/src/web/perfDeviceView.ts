@@ -93,6 +93,46 @@ export function 벗어난지표(목표들: readonly 기기목표[], 요약: 기�
   return new Set(목표들.filter((목표) => 벗어남(목표, 잰값[목표.metric])).map((목표) => 목표.metric));
 }
 
+export interface 결과칸 {
+  이름: string;
+  값: string;
+  /** 그 값을 낸 기기(여럿일 때만) · 목표 */
+  보조: string[];
+  나쁨: boolean;
+}
+
+type 결과기기 = 기기결과['devices'][number];
+
+/**
+ * 결과 화면 위 숫자 칸 줄 — 앱은 CPU · 메모리 · 앱 실행 시간 · 기기 온도, 게임은 FPS · 프레임 드랍 · CPU · 메모리 (시안 11판 「앱 성능 · 게임 성능」 · WEB-F7-16).
+ * 시안의 「화면 멈춤」은 기록기가 재지 않아 기기 온도로 바꿨다. 기기가 여럿이면 가장 나쁜 기기의 값이다 — 한 대라도 넘으면 넘은 것이다
+ */
+export function 결과칸들(게임: boolean, 결과: Pick<기기결과, 'devices' | 'metrics'>, 목표들: readonly 기기목표[], t: 말): 결과칸[] {
+  const 여럿 = 결과.devices.length > 1;
+  const 드랍 = (serial: string) => 평균(값들(결과.metrics.filter((줄) => 줄.serial === serial).map((줄) => 줄.jankPct)));
+  const 칸 = (이름: string, 값: (d: 결과기기) => number | null, 높을수록나쁨: boolean, 글: (n: number) => string, 지표?: 기기지표): 결과칸 => {
+    const 잰 = 결과.devices.flatMap((d) => {
+      const n = 값(d);
+      return n === null ? [] : [{ d, n }];
+    });
+    const 나쁜 = 잰.reduce<{ d: 결과기기; n: number } | null>((가장, x) => (가장 === null || (높을수록나쁨 ? x.n > 가장.n : x.n < 가장.n) ? x : 가장), null);
+    const 목표 = 지표 === undefined ? undefined : 목표들.find((x) => x.metric === 지표);
+    const 목표글 = 목표 === undefined || 지표 === undefined ? null : t(목표.op === '>=' ? '목표 {값} 이상' : '목표 {값} 이하', { 값: 값글자(지표, 목표.value, t) });
+    return {
+      이름,
+      값: 나쁜 === null ? '-' : 글(나쁜.n),
+      보조: [여럿 && 나쁜 !== null ? 나쁜.d.model : null, 목표글].filter((x): x is string => x !== null),
+      나쁨: 나쁜 !== null && 목표 !== undefined && 벗어남(목표, 나쁜.n),
+    };
+  };
+  const 퍼센트 = (n: number) => `${String(한자리(n))}%`;
+  const cpu = 칸('CPU 평균', (d) => d.summary.avgCpu, true, 퍼센트);
+  const 메모리 = 칸('메모리 최대', (d) => d.summary.maxMemMb, true, 메모리글자, 'MAX_MEM');
+  return 게임
+    ? [칸('평균 FPS', (d) => d.summary.avgFps, false, (n) => String(한자리(n)), 'AVG_FPS'), 칸('프레임 드랍', (d) => 드랍(d.serial), true, 퍼센트), cpu, 메모리]
+    : [cpu, 메모리, 칸('앱 실행 시간', (d) => d.launchMs, true, (n) => 값글자('LAUNCH_MS', n, t), 'LAUNCH_MS'), 칸('최대 기기 온도', (d) => d.summary.maxTempC, true, (n) => 값글자('MAX_TEMP', n, t), 'MAX_TEMP')];
+}
+
 /** 그 초를 담은 녹화 조각과 조각 안의 초. 조각은 시작 초 차례로 온다 — 그 초 앞에서 시작한 마지막 조각이다 */
 export function 조각찾기(영상들: 기기결과['videos'], serial: string, sec: number): { name: string; 안초: number } | null {
   const 고름 = 영상들.filter((v) => v.serial === serial && v.startSec <= sec).at(-1) ?? 영상들.find((v) => v.serial === serial);

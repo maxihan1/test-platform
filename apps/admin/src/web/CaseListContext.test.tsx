@@ -4,7 +4,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 
-import { api, type CaseGroup, type CasePage, type CaseRow, type CaseQuery } from './api.js';
+import { api, type CaseGroup, type CasePage, type CaseRow, type CaseQuery, type 앱종류 } from './api.js';
 import { CaseList } from './CaseList.js';
 import { 판열기, 판칩누르기 } from './CaseListFilterBar.fixture.js';
 import type { 판정 } from './role.js';
@@ -54,13 +54,13 @@ const 쪽: CasePage = { items: [겹침, 비번, 옛것], total: 3, page: 1, page
 
 const 전부된다: 판정 = () => true;
 
-function 그리기(더: { 요구보나?: boolean; 요구?: string; kind?: 'UI' | 'FN'; 받을쪽?: CasePage } = {}) {
+function 그리기(더: { 요구보나?: boolean; 요구?: string; kind?: 'UI' | 'FN'; 받을쪽?: CasePage; 앱종류?: 앱종류 } = {}) {
   vi.spyOn(api, 'lastScan').mockResolvedValue(null);
   vi.spyOn(api, 'lastByCase').mockResolvedValue({
     items: [{ tcId: 'ZCL-FN-001', platform: 'desktop', status: 'FAIL', runId: 1, historyId: 1, finishedAt: '2026-10-11T00:00:00.000Z', durationMs: 10, recent: ['FAIL'] }],
   } as Awaited<ReturnType<typeof api.lastByCase>>);
   const 스파이 = vi.spyOn(api, 'cases').mockResolvedValue(더.받을쪽 ?? 쪽);
-  render(<CaseList kind={더.kind ?? 'FN'} service="ZCL" 할수={전부된다} 결과보나 요구보나={더.요구보나 ?? true} 요구={더.요구} />);
+  render(<CaseList kind={더.kind ?? 'FN'} service="ZCL" 할수={전부된다} 결과보나 요구보나={더.요구보나 ?? true} 요구={더.요구} 앱종류={더.앱종류} />);
   return 스파이;
 }
 
@@ -91,6 +91,12 @@ describe('묶음 머리', () => {
     expect(screen.getByRole('button', { name: '회원가입 › 회원가입 화면 › 약관동의만 보기' })).toBeTruthy();
     const 칩 = [...(await screen.findByText('ZCL-FN-001')).closest('.row')!.querySelectorAll('.case-screen')];
     expect(칩.map((el) => [el.textContent, el.getAttribute('title')])).toEqual([['회원가입 화면', '/signup'], ['약관동의', null]]);
+  });
+
+  it('게임은 화면 파일을 「창」이라 부른다 — 묶음 머리 꼬리표가 종류를 따른다 (WEB-F7-16)', async () => {
+    그리기({ 앱종류: 'GAME' });
+    expect(await screen.findByRole('button', { name: /^\/signup창/ })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^\/signup화면/ })).toBeNull();
   });
 
   it('머리를 누르면 그 아래 머리 · 줄이 접히고 다시 누르면 편다', async () => {

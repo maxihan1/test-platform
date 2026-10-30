@@ -21,6 +21,13 @@ export const 성능페이지말: Record<string, string> = {
   // 기본 페이지 이름 — 서버에 저장되는 값이라 번역하지 않는다
   메인: 'Home',
 
+  // 표 위 숫자 칸 줄 (WEB-F7-16) — 「목표 {값} 이하」 · 「측정 요약」은 기기 성능 결과도 같이 쓴다
+  '측정 요약': 'Measurement summary',
+  'LCP 평균': 'Average LCP',
+  'FCP 평균': 'Average FCP',
+  '목표 넘은 페이지': 'Pages over target',
+  '목표 {값} 이하': 'Target {값} or less',
+  '목표 {값} 이상': 'Target {값} or more',
   // 결과 표
   '페이지별 측정 결과': 'Results per page',
   '목표 LCP 2.5초 · FCP 1.8초 · CLS 0.1 이하': 'Targets: LCP 2.5s · FCP 1.8s · CLS 0.1 or less',

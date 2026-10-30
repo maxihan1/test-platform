@@ -2,8 +2,33 @@
 
 import { use말 } from './i18n.js';
 import type { Compare, PageRow } from './perfPageApi.js';
-import { 넘음, 비교값, 클글자 } from './perfPagesView.js';
+import { 넘음, 목표, 비교값, 숫자칸, 클글자 } from './perfPagesView.js';
 import { 초글자 } from './perfRunView.js';
+
+/** 표 위 숫자 칸 줄 — 측정 하나를 한눈에 (시안 11판 「페이지 성능」 · WEB-F7-16). 칸 이름은 표와 같은 업계 말(LCP · FCP)이다 */
+export function PerfPagesTiles({ 줄들 }: { 줄들: PageRow[] }) {
+  const t = use말();
+  const 칸 = 숫자칸(줄들);
+  return (
+    <section className="perf-panel num-tiles" aria-label={t('측정 요약')}>
+      <div className={넘음.lcp(칸.lcp평균) ? 'bad' : undefined}>
+        <span>{t('LCP 평균')}</span>
+        <b>{초글자(칸.lcp평균, t)}</b>
+        <em>{t('목표 {값} 이하', { 값: 초글자(목표.lcpMs, t) })}</em>
+      </div>
+      <div className={넘음.fcp(칸.fcp평균) ? 'bad' : undefined}>
+        <span>{t('FCP 평균')}</span>
+        <b>{초글자(칸.fcp평균, t)}</b>
+        <em>{t('목표 {값} 이하', { 값: 초글자(목표.fcpMs, t) })}</em>
+      </div>
+      <div className={칸.넘은.length > 0 ? 'bad' : undefined}>
+        <span>{t('목표 넘은 페이지')}</span>
+        <b>{t('{수}개', { 수: 칸.넘은.length })}</b>
+        <em>{칸.넘은.join(' · ')}</em>
+      </div>
+    </section>
+  );
+}
 
 export function PerfPagesTable({ 줄들, 비교, 고른, on고름 }: { 줄들: PageRow[]; 비교: Compare | null; 고른: string | null; on고름: (url: string) => void }) {
   const t = use말();

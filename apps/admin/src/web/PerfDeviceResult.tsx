@@ -9,7 +9,7 @@ import { use말, use언어 } from './i18n.js';
 import { 기기성능이름 } from './kind.js';
 import { perfApi, type 실행상세 } from './perfApi.js';
 import { PerfDeviceReplay } from './PerfDeviceReplay.js';
-import { 값글자, 기기설정of, 메모리글자, 벗어난지표, 실행열기, 조작글, 케이스조작 } from './perfDeviceView.js';
+import { 값글자, 결과칸들, 기기설정of, 메모리글자, 벗어난지표, 실행열기, 조작글, 케이스조작 } from './perfDeviceView.js';
 import { 갱신간격, 분석틈, 분초, 사유이름, 시각글, 판정꼴, 판정이름, 판정종류 } from './perfRunView.js';
 import { Loading, message, useAsync } from './ui.js';
 
@@ -130,6 +130,16 @@ export function PerfDeviceResult({ run, service, 다시읽기, 쓰나, 새측정
           결과.error !== null ? <p className="perf-err" role="alert">{결과.error}</p> : <Loading />
         ) : 받음.devices.length === 0 ? null : (
           <>
+            {/* 위 숫자 칸 줄 — 종류마다 보는 숫자가 다르다 (시안 11판 · WEB-F7-16) */}
+            <section className="perf-panel num-tiles" aria-label={t('측정 요약')}>
+              {결과칸들(service.kind === 'GAME', 받음, 설정.targets, t).map((칸) => (
+                <div key={칸.이름} className={칸.나쁨 ? 'bad' : undefined}>
+                  <span>{t(칸.이름)}</span>
+                  <b>{칸.값}</b>
+                  <em>{칸.보조.join(' · ')}</em>
+                </div>
+              ))}
+            </section>
             <PerfDeviceReplay runId={run.id} 결과={받음} 항목={설정.metrics} 목표들={설정.targets} 처음기기={처음기기} />
 
             {받음.leak.length === 0 ? null : (

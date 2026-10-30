@@ -9,7 +9,7 @@ import { 고른서버를적는다, 마지막서버 } from './layout.js';
 import { perfApi, type 실행상세, type 실행줄 } from './perfApi.js';
 import type { Compare, PageRow, 측정페이지, 페이지기기, 페이지망, 페이지추천 } from './perfPageApi.js';
 import { PerfPagesPick } from './PerfPagesPick.js';
-import { PerfPagesTable } from './PerfPagesTable.js';
+import { PerfPagesTable, PerfPagesTiles } from './PerfPagesTable.js';
 import { PerfPagesWaterfall } from './PerfPagesWaterfall.js';
 import { 처음고른 } from './perfPagesView.js';
 import { 도는중인가, 시각글 } from './perfRunView.js';
@@ -231,6 +231,7 @@ export function PerfPages({ service, run, 쓰나 }: { service: ServiceRow; run?:
           <div className="empty">{t('아직 측정 결과가 없습니다. 측정을 누르면 페이지마다 속도를 잽니다')}</div>
         ) : (
           <>
+            <PerfPagesTiles 줄들={읽은.pages} />
             <PerfPagesTable 줄들={읽은.pages} 비교={읽은.compare} 고른={고른} on고름={set고른} />
             {고른줄 === undefined ? null : <PerfPagesWaterfall 줄={고른줄} />}
           </>

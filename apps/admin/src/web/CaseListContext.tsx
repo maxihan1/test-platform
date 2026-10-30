@@ -1,11 +1,12 @@
 // 케이스 목록의 맥락 조각 — 묶음 머리 줄 · 줄 아래 요구 줄과 작은 줄 · 걸린 묶음 칩 (도메인/카탈로그 §8.1 「맥락」, 시안 A)
 // 줄 하나를 그리는 케이스줄(CaseListParts)이 300줄에 닿아 맥락 부분을 여기로 뗐다
 
-import type { CaseRow, 케이스축 } from './api.js';
+import type { CaseRow, 앱종류, 케이스축 } from './api.js';
 import { 기법태그들 } from './CaseDetail.js';
 import type { 묶음자리, 묶음조건 } from './CaseListFilter.js';
 import { 파일이름, type 묶음머리 } from './caseGroups.js';
 import { use말 } from './i18n.js';
+import { 종류 } from './kind.js';
 import { PRD항목주소 } from './route.js';
 
 /** 화면 파일 클래스 이름을 읽기 좋게 — `게시판목록화면` → `게시판목록 화면` (PRD-F9-18) */
@@ -40,6 +41,7 @@ export function 묶음머리줄({
   걸린,
   on접기,
   on이것만,
+  앱종류,
 }: {
   머리: 묶음머리;
   접힘: boolean;
@@ -49,8 +51,10 @@ export function 묶음머리줄({
   걸린: 묶음조건 | null;
   on접기: () => void;
   on이것만: (조건: 묶음조건) => void;
+  앱종류?: 앱종류;
 }) {
   const t = use말();
+  const [화면말, 조각말] = 종류(앱종류).묶음말;
   const 없음글 = t('기능 묶음 없음');
   const 이름 = 머리이름(머리, 없음글);
   // 화면 · 화면 조각은 위 묶음까지 붙인 이름 — 같은 화면이 두 기능 묶음 아래 설 수 있다
@@ -63,7 +67,7 @@ export function 묶음머리줄({
           ▸
         </span>
         <span className="grp-name">{이름}</span>
-        {머리.단 === 1 ? null : <span className="grp-kind">{머리.단 === 2 ? t('화면') : t('화면 조각')}</span>}
+        {머리.단 === 1 ? null : <span className="grp-kind">{t(머리.단 === 2 ? 화면말 : 조각말)}</span>}
         <span className="grp-count">
           {t('{건수}건', { 건수: 머리.tcIds.length })}
           {실패수 === 0 ? null : <> · <b>{t('실패 {건수}', { 건수: 실패수 })}</b></>}

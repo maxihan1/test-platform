@@ -310,3 +310,72 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* 성능 하위 메뉴 위 숫자 칸 줄 — 판 하나를 칸 여럿으로 나눈다. 대시보드 「검토할 것」과 같은 짜임 (시안 11판 · WEB-F7-16).
+   목표를 넘은 칸은 숫자만 빨갛고 옆 글이 목표를 말한다 — 색만으로 알리지 않는다 */
+.perf-panel.num-tiles {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 0;
+  padding: 0;
+}
+
+.num-tiles > div {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  padding: 14px 16px;
+  min-width: 0;
+}
+
+.num-tiles > div + div {
+  border-left: 1px solid var(--line);
+}
+
+.num-tiles span {
+  color: var(--ink-muted);
+  font-size: 12px;
+}
+
+.num-tiles b {
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+.num-tiles em {
+  color: var(--ink-faint);
+  font-size: 11.5px;
+  font-style: normal;
+  overflow-wrap: anywhere;
+}
+
+.num-tiles .bad b {
+  color: var(--fail-text);
+}
+
+/* 좁으면 두 칸씩 두 줄 */
+@media (max-width: 620px) {
+  .perf-panel.num-tiles {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .num-tiles > div + div {
+    border-left: 0;
+  }
+
+  .num-tiles > div:nth-child(even) {
+    border-left: 1px solid var(--line);
+  }
+
+  .num-tiles > div:nth-child(n + 3) {
+    border-top: 1px solid var(--line);
+  }
+
+  .num-tiles b {
+    font-size: 22px;
+  }
+}
