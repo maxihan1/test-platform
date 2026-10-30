@@ -3,6 +3,7 @@
 
 import type { Pool } from 'pg';
 import { 종류조건 } from '../execution/runKind.js';
+import { 지금항목 } from '../execution/single.js';
 import { 가린다, 항목비밀 } from '../execution/trial.js';
 import { 스모크건너뛰기식, 판정접기식 } from './dashboardSql.js';
 import { 원인을가른다, 실패유형들, 색코드, 한줄로자른다, type 실패유형 } from './failureType.js';
@@ -52,8 +53,7 @@ const 접기 = `
          max(i.tc_name) AS tc_name,
          i.platform,
          ${판정접기식} AS status
-  FROM run_item i
-  WHERE i.run_id = $1
+  FROM ${지금항목('o.run_id = $1')} i
   GROUP BY i.tc_id, i.platform
   ORDER BY i.tc_id, i.platform`;
 
@@ -102,8 +102,8 @@ const 대표문장뽑기 = `
             LIMIT 1),
            i.error->>'message'
          ) AS 대표문장
-  FROM run_item i
-  WHERE i.run_id = $1 AND i.status = 'FAIL'
+  FROM ${지금항목('o.run_id = $1')} i
+  WHERE i.status = 'FAIL'
   ORDER BY i.history_id`;
 
 interface 사유행 {
@@ -167,8 +167,8 @@ const 유형재료뽑기 = `
             WHERE s.history_id = i.history_id AND s.error IS NOT NULL
             ORDER BY s.seq
             LIMIT 1), '') AS step_message
-  FROM run_item i
-  WHERE i.run_id = $1 AND i.status = 'FAIL'
+  FROM ${지금항목('o.run_id = $1')} i
+  WHERE i.status = 'FAIL'
   ORDER BY i.tc_id, array_position(ARRAY['desktop', 'mobile', 'android']::text[], i.platform::text), i.attempt, i.history_id`;
 
 async function 유형으로묶는다(pool: Pool, runId: number): Promise<비교['실패유형들']> {

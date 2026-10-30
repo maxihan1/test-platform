@@ -6,6 +6,7 @@ import { 팜증적목록, type 팜파일 } from '../execution/farmEvidence.js';
 import { findItem } from '../execution/queries.js';
 import { 최근몇건 } from '../execution/history.js';
 import type { RunItemDetail } from '../execution/runTypes.js';
+import { 다시실행칸들, 다시실행칸으로, 지금항목, type 다시실행원재료, type 다시실행칸 } from '../execution/single.js';
 import { 스모크건너뛰기식, 판정접기식 } from './dashboardSql.js';
 import { 연속실패수, 쪽을자른다, 케이스로묶는다, type 실패행, type 실패디바이스, type 카드변화 } from './failuresShape.js';
 import { 카드요구들, 판정들, type 카드요구, type 판정 } from './failReqs.js';
@@ -17,6 +18,8 @@ export interface FailureDevice extends Omit<실패디바이스, 'firstFailedHist
   item: RunItemDetail;
   /** 러너가 받아 둔 팜 화면 영상 · logcat — 앱 항목이 통과하지 못했을 때만 있다 (도메인/러너 §5.2) */
   farm: 팜파일[];
+  /** 한 건 실행이 덮은 디바이스면 그 한 건 · 원래 결과 (도메인/실행 §7 `GET /api/runs/:runId` items[].rerun) */
+  rerun: 다시실행칸 | null;
 }
 
 export interface FailureCase {
@@ -46,7 +49,7 @@ const 최근흐름SQL = `
     FROM test_run t
     JOIN test_run r ON r.service_id = t.service_id AND r.env = t.env AND r.kind = t.kind
                    AND r.status <> 'RUNNING' AND (r.run_id = t.run_id OR (r.started_at < t.started_at AND ${스모크건너뛰기식('r', 't')}))
-    JOIN run_item i ON i.run_id = r.run_id
+    JOIN LATERAL ${지금항목('o.run_id = r.run_id')} i ON true
     WHERE t.run_id = $1
       AND (i.tc_id, i.platform) IN (SELECT * FROM unnest($2::text[], $3::text[]))
     GROUP BY r.run_id, r.started_at, i.tc_id, i.platform
@@ -54,10 +57,10 @@ const 최근흐름SQL = `
   WHERE x.n <= $4
   ORDER BY x.tc_id, x.platform, x.n`;
 
+// 지금 결과다 — 다시 돌려 통과한 케이스는 카드가 되지 않는다 (도메인/실행 §3.2)
 const 실패행들SQL = `
-  SELECT history_id, tc_id, tc_name, platform, attempt, status
-  FROM run_item
-  WHERE run_id = $1`;
+  SELECT i.history_id, i.tc_id, i.tc_name, i.platform, i.attempt, i.status, ${다시실행칸들}
+  FROM ${지금항목('o.run_id = $1')} i`;
 
 export async function 실패카드(runId: number, page: number, platform?: Platform): Promise<FailureCards> {
   const pool = await db();
@@ -74,7 +77,9 @@ export async function 실패카드(runId: number, page: number, platform?: Platf
     platform: Platform;
     attempt: number;
     status: ItemStatus;
-  }>(실패행들SQL, [runId]);
+  } & 다시실행원재료>(실패행들SQL, [runId]);
+  // 덮인 항목은 한 건 실행의 것이라 상세 · 팜 증적을 그 실행 번호로 읽는다
+  const 다시실행들 = new Map(행들.rows.map((r) => [Number(r.history_id), 다시실행칸으로(r)]));
   const 모양: 실패행[] = 행들.rows.map((r) => ({
     historyId: Number(r.history_id),
     tcId: r.tc_id,
@@ -113,10 +118,19 @@ export async function 실패카드(runId: number, page: number, platform?: Platf
       judgment: 판정표.get(c.tcId) ?? null,
       devices: await Promise.all(
         c.devices.map(async ({ firstFailedHistoryId, ...나머지 }): Promise<FailureDevice> => {
-          const item = await findItem(runId, firstFailedHistoryId);
-          if (item === null) throw new Error(`실패 카드의 항목 ${firstFailedHistoryId}을 실행 ${runId}에서 찾을 수 없다`);
+          const rerun = 다시실행들.get(firstFailedHistoryId) ?? null;
+          const 실행번호 = rerun?.runId ?? runId;
+          const item = await findItem(실행번호, firstFailedHistoryId);
+          if (item === null) throw new Error(`실패 카드의 항목 ${firstFailedHistoryId}을 실행 ${실행번호}에서 찾을 수 없다`);
           const recent = 흐름.get(`${c.tcId}|${나머지.platform}`) ?? [];
-          return { ...나머지, streak: 연속실패수(나머지.change, recent), recent, item, farm: await 팜증적목록(runId, firstFailedHistoryId) };
+          return {
+            ...나머지,
+            streak: 연속실패수(나머지.change, recent),
+            recent,
+            item,
+            farm: await 팜증적목록(실행번호, firstFailedHistoryId),
+            rerun,
+          };
         }),
       ),
     })),

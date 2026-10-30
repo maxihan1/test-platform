@@ -128,6 +128,7 @@ export function 대시보드집계(
   오늘: string,
   서비스들: { id: number; name: string }[] = [],
   날수: number = 창날수,
+  붙지않은한건: 최근판정재료[] = [],
 ): 집계 {
   const 이번시작 = 날짜더하기(오늘, -(날수 - 1));
   const 직전시작 = 날짜더하기(오늘, -(날수 * 2 - 1));
@@ -175,7 +176,7 @@ export function 대시보드집계(
   // 줄이 없는 서비스도 한 줄은 낸다 — 화면의 「마지막 실행이 없습니다」 갈래가 이 칸으로 탄다
   for (const { id, name } of 서비스들) if (!서비스.has(id)) 서비스.set(id, 새항목(id, name));
 
-  const 최근 = 최근판정(줄들);
+  const 최근 = 최근판정([...줄들, ...붙지않은한건]);
   const 신규전부 = 신규실패를뽑는다(줄들, 앞맵, 이번창, 최근);
   const 해결 = 해결을센다(줄들, 앞맵, 이번창, 최근);
   const 흐름 = 흐름을만든다(줄들, 이번창);
@@ -207,7 +208,7 @@ export function 대시보드집계(
 }
 
 // 대상 서버(env)까지 가른다 — qa 에서 깨진 것은 qa 에서 다시 통과해야 고친 것이다 (2026-10-07 게이트 2 사용자)
-const 케이스키 = (줄: 접은줄): string => `${줄.serviceId}\u0000${줄.env}\u0000${줄.tcId}\u0000${줄.platform}`;
+const 케이스키 = (줄: 최근판정재료): string => `${줄.serviceId}\u0000${줄.env}\u0000${줄.tcId}\u0000${줄.platform}`;
 const 오래된순 = <T extends { startedAt: string; runId: number }>(a: T, b: T): number =>
   a.startedAt < b.startedAt ? -1 : a.startedAt > b.startedAt ? 1 : a.runId - b.runId;
 
@@ -217,9 +218,12 @@ type 앞맵형 = Map<string, 앞판정>;
 const 앞판정맵 = (앞판정들: Map<number, 앞판정[]>): 앞맵형 =>
   new Map([...앞판정들].flatMap(([runId, 목록]) => 목록.map((a): [string, 앞판정] => [앞키(runId, a.tcId, a.platform), a])));
 
+/** 가장 최근 판정의 재료. 어디에도 안 붙은 한 건 항목은 startedAt 자리에 끝난 때를 담아 줄을 선다 (도메인/리포팅 §8.12 「회귀 실패는」) */
+export type 최근판정재료 = Pick<접은줄, 'serviceId' | 'env' | 'tcId' | 'platform' | 'verdict' | 'startedAt' | 'runId'>;
+
 // (서비스, 대상 서버, 케이스, 디바이스)마다 가장 최근 판정. 회귀 실패 · 해결을 「지금도 그런가」로 거르는 데 쓴다.
 // 미실행은 못 돈 것이지 고친 것이 아니라서 뺀다
-function 최근판정(줄들: 접은줄[]): Map<string, 접힌판정> {
+function 최근판정(줄들: 최근판정재료[]): Map<string, 접힌판정> {
   const 결과 = new Map<string, 접힌판정>();
   for (const 줄 of [...줄들].filter((l) => l.verdict !== 'NA').sort(오래된순)) 결과.set(케이스키(줄), 줄.verdict);
   return 결과;

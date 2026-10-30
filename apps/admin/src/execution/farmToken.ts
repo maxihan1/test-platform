@@ -24,7 +24,7 @@ export async function 사람팜토큰(username: string): Promise<string | undefi
 }
 
 /**
- * 사람이 누른 실행(실행 버튼 · 실패 다시 실행)이면 누른 사람 토큰. 정기 · 빌드 실행은 늘 서버 몫이다 —
+ * 사람이 누른 실행(실행 버튼 · 실패 다시 실행 · 한 건 실행)이면 누른 사람 토큰. 정기 · 빌드 실행은 늘 서버 몫이다 —
  * 정기 실행의 triggered_by 는 '스케줄러' 라 계정이 아니고, 빌드 실행은 CI 가 눌렀다
  */
 export async function 실행팜토큰(runId: number): Promise<string | undefined> {
@@ -32,7 +32,7 @@ export async function 실행팜토큰(runId: number): Promise<string | undefined
   // kind 로 거르지 않는다 — 케이스 실행과 E2E 실행이 같은 번호 줄을 쓰고, 꺼내는 것은 화면에 안 실리는 토큰뿐이다
   const { rows } = await (await db()).query<{ farm_token: string | null }>(
     `SELECT u.farm_token FROM test_run r JOIN app_user u ON u.username = r.triggered_by
-      WHERE r.run_id = $1 AND r.origin IN ('MANUAL', 'RERUN') AND u.is_active`,
+      WHERE r.run_id = $1 AND r.origin IN ('MANUAL', 'RERUN', 'SINGLE') AND u.is_active`,
     [runId],
   );
   return rows[0]?.farm_token ?? undefined;

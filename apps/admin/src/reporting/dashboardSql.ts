@@ -1,6 +1,7 @@
 // 앱 대시보드 질의의 SQL 글 — 접은 줄 · 앞 실행 · 실행 중 · 요구사항 커버리지 (dashboardResults.ts 가 300줄을 넘어 뗐다)
 
 import { 종류조건 } from '../execution/runKind.js';
+import { 지금항목 } from '../execution/single.js';
 
 // 실행 한 번 안에서 한 (케이스, 디바이스)의 회차를 한 판정으로 접는 식이다. insights.ts 의 접기 · failures.ts 의 최근 흐름도 같은 식을 쓴다 — i 는 run_item 의 별칭이다
 export const 판정접기식 = `CASE WHEN bool_or(i.status = 'FAIL')  THEN 'FAIL'
@@ -22,8 +23,8 @@ const 원인식 = `CASE WHEN NOT bool_and(i.status = 'PASS') AND t.day >= $4::te
                        WHERE s.history_id = f.history_id AND s.error IS NOT NULL
                        ORDER BY s.seq
                        LIMIT 1), ''))
-           FROM run_item f
-           WHERE f.run_id = t.run_id AND f.tc_id = i.tc_id AND f.platform = i.platform AND f.status <> 'PASS'
+           FROM ${지금항목('o.run_id = t.run_id AND o.tc_id = i.tc_id AND o.platform = i.platform')} f
+           WHERE f.status <> 'PASS'
            ORDER BY f.status = 'FAIL' DESC, f.history_id
            LIMIT 1) END`;
 
@@ -39,7 +40,7 @@ export const 접은줄SQL = `
            to_char((r.started_at AT TIME ZONE $2::text)::date, 'YYYY-MM-DD') AS day, r.started_at,
            COALESCE(r.finished_at, r.started_at) AS finished_at
     FROM test_run r
-    WHERE r.service_id = ANY($1::bigint[]) AND r.status <> 'RUNNING' AND ${종류조건('case', 'r')}
+    WHERE r.service_id = ANY($1::bigint[]) AND r.status <> 'RUNNING' AND ${종류조건('case', 'r')} AND r.origin <> 'SINGLE'
       AND (r.started_at AT TIME ZONE $2::text)::date >= $3::date
   )
   SELECT t.run_id, t.service_id, t.service_name, t.env, t.kind, t.day, t.started_at, t.finished_at,
@@ -56,21 +57,21 @@ export const 접은줄SQL = `
                      LIMIT 1),
                     f.error->>'message'),
                     'params', f.params, 'expected', f.expected, 'param_schema', f.param_schema, 'expected_schema', f.expected_schema)
-           FROM run_item f
-           WHERE f.run_id = t.run_id AND f.tc_id = i.tc_id AND f.platform = i.platform
-             AND f.status = 'FAIL'
+           FROM ${지금항목('o.run_id = t.run_id AND o.tc_id = i.tc_id AND o.platform = i.platform')} f
+           WHERE f.status = 'FAIL'
            ORDER BY f.history_id
            LIMIT 1) END AS reason,
          ${원인식} AS cause
-  FROM 대상 t JOIN run_item i ON i.run_id = t.run_id
+  FROM 대상 t JOIN LATERAL ${지금항목('o.run_id = t.run_id')} i ON true
   GROUP BY t.run_id, t.service_id, t.service_name, t.env, t.kind, t.day, t.started_at, t.finished_at, i.tc_id, i.platform`;
 
 // 스모크가 아닌 실행은 앞 실행으로 스모크를 고르지 않는다 — 빌드 회귀가 같은 빌드의 스모크(케이스 몇 건)와 견주면
 // 새로 깨진 케이스가 「빠졌다」로만 셈해져 회귀 실패 0 이 된다 (SPEC 도메인/리포팅 §7 insights previous · 2026-10-25 GAME-F2-14 · RUN 20929).
 // 스모크는 지금처럼 아무 앞 실행과 견준다 — 스모크끼리만 견주면 빌드 회귀 실행에서 이미 깨진 케이스를 다음 빌드 스모크가 또 회귀 실패로 센다.
+// 한 건 실행(SINGLE)도 앞 실행 후보가 아니다 — 실행으로 서지 않고 붙은 실행의 지금 결과로 이미 든다 (도메인/실행 §3.2).
 // 결과 견주기(insights.ts) · 실행 목록 줄(runChange.ts) · 실패 카드 최근 흐름(failures.ts) · 대시보드 회귀 실패(아래) 넷이 같이 쓴다
 export const 스모크건너뛰기식 = (앞: string, 이번: string) =>
-  `(${이번}.build_stage IS NOT DISTINCT FROM 'SMOKE' OR ${앞}.build_stage IS DISTINCT FROM 'SMOKE')`;
+  `(${이번}.build_stage IS NOT DISTINCT FROM 'SMOKE' OR ${앞}.build_stage IS DISTINCT FROM 'SMOKE') AND ${앞}.origin <> 'SINGLE'`;
 
 // 실행마다 바로 앞 끝난 실행 하나의 접은 판정이다. 같은 서비스 · env · kind 이고 진행 중은 건너뛴다. 스모크 아닌 실행은 스모크도 건너뛴다.
 // 앞 실행은 창 밖이어도 찾는다 — 창 첫날 실행이 「앞이 없다」가 되면 안 된다. insights.ts compareWithPrevious 와 같은 규칙.
@@ -87,7 +88,7 @@ export const 앞판정SQL = `
       AND p.status <> 'RUNNING' AND p.started_at < c.started_at AND ${스모크건너뛰기식('p', 'c')}
     ORDER BY p.started_at DESC
     LIMIT 1) prev
-  JOIN run_item i ON i.run_id = prev.run_id
+  JOIN LATERAL ${지금항목('o.run_id = prev.run_id')} i ON true
   WHERE c.run_id = ANY($1::bigint[])
   GROUP BY c.run_id, i.tc_id, i.platform`;
 
@@ -98,9 +99,19 @@ export const 실행중SQL = `
          count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL) AS done,
          count(i.history_id) FILTER (WHERE i.status = 'FAIL') AS failed
   FROM test_run r LEFT JOIN run_item i ON i.run_id = r.run_id
-  WHERE r.service_id = ANY($1::bigint[]) AND r.status = 'RUNNING' AND ${종류조건('case', 'r')}
+  WHERE r.service_id = ANY($1::bigint[]) AND r.status = 'RUNNING' AND ${종류조건('case', 'r')} AND r.origin <> 'SINGLE'
   GROUP BY r.run_id, r.service_id, r.service_name, r.title, r.started_at
   ORDER BY r.started_at DESC, r.run_id DESC`;
+
+// 어디에도 안 붙은 한 건 판정 — 붙지 않았거나 붙은 실행에 그 디바이스 항목이 없었다. 회귀 실패 「지금도 실패」의 가장 최근 판정에
+// 끝난 때로 줄을 선다. 붙은 한 건은 붙은 실행의 지금 결과로 이미 줄에 들었다 (도메인/리포팅 §8.12 「회귀 실패는」)
+export const 붙지않은한건SQL = `
+  SELECT r.service_id, r.env, s.run_id, s.tc_id, s.platform, s.status AS verdict, s.finished_at
+  FROM test_run r JOIN run_item s ON s.run_id = r.run_id
+  WHERE r.origin = 'SINGLE' AND r.service_id = ANY($1::bigint[])
+    AND s.finished_at IS NOT NULL AND s.status IN ('PASS', 'FAIL')
+    AND (r.started_at AT TIME ZONE $2::text)::date >= $3::date
+    AND NOT EXISTS (SELECT 1 FROM run_item o WHERE o.run_id = r.rerun_of AND o.tc_id = s.tc_id AND o.platform = s.platform)`;
 
 // 중단(STOPPED) · 실패는 대조 뒤 거절이거나 덮음이 끝나지 않아 status 조건으로 빠진다
 export const 커버리지SQL = `

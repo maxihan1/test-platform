@@ -171,8 +171,13 @@ describe.skipIf(연결 === undefined)('미확정 항목', () => {
     ]);
     await 끝낸다(미확정실패, 'XBU-001', 'desktop', 'PASS');
     await 끝낸다(미확정실패, 'XBU-002', 'desktop', 'FAIL');
-    const 미확정만 = await 실행([{ tcId: 'XBU-002', platforms: ['desktop'] }]);
+    // 케이스 하나면 한 건 실행이라 실행 목록에 안 선다 — 미확정 케이스 둘로 건다 (도메인/실행 §3.2)
+    const 미확정만 = await 실행([
+      { tcId: 'XBU-002', platforms: ['desktop'] },
+      { tcId: 'XBU-003', platforms: ['desktop'] },
+    ]);
     await 끝낸다(미확정만, 'XBU-002', 'desktop', 'PASS');
+    await 끝낸다(미확정만, 'XBU-003', 'desktop', 'PASS');
 
     expect((await listRuns('XBU', 1, 50, { state: 'failed' })).items.map((r) => r.runId)).toEqual([미확정실패]);
     const { summary } = await listRuns('XBU', 1, 50);

@@ -8,6 +8,7 @@ import { 실행남은시간 } from '../execution/eta.js';
 import { RUN_COLUMNS, toRun, type RawRun } from '../execution/runRow.js';
 import { 종류조건 } from '../execution/runKind.js';
 import type { RunCounts, RunSummary } from '../execution/runTypes.js';
+import { 지금항목 } from '../execution/single.js';
 import { 지금판 } from '../prd/store.js';
 import { 확인필요 } from '../prd/rules.js';
 
@@ -97,7 +98,7 @@ const 서비스칸 = (맵: Map<number, 보이는서비스>, id: number): NoticeS
 async function 실행들(서비스들: 보이는서비스[], 조건: string): Promise<(RawRun & { service_id: string })[]> {
   const r = await (await db()).query<RawRun & { service_id: string }>(
     `SELECT ${RUN_COLUMNS}, r.service_id
-       FROM test_run r LEFT JOIN run_item i USING (run_id)
+       FROM test_run r LEFT JOIN LATERAL ${지금항목('o.run_id = r.run_id')} i ON true
       WHERE ${조건}
       GROUP BY r.run_id
       ORDER BY COALESCE(r.finished_at, r.started_at) DESC, r.run_id DESC`,
@@ -171,8 +172,9 @@ export async function 알림(
 ): Promise<{ running: NoticeRunning[]; recent: NoticeRecent[] }> {
   const 서비스맵 = new Map([...실행서비스, ...작성서비스].map((s) => [s.id, s]));
   const 비었다 = <T>(목록: 보이는서비스[], 읽기: () => Promise<T[]>) => (목록.length === 0 ? Promise.resolve([] as T[]) : 읽기());
-  // 시나리오 실행은 항목이 없어 집계가 늘 0 이다 — 케이스 실행 칸에서 빼고, 도는 것만 따로 담는다 (공통/5-화면공통 §8 「알림」)
-  const 케이스실행 = 종류조건('case');
+  // 시나리오 실행은 항목이 없어 집계가 늘 0 이다 — 케이스 실행 칸에서 빼고, 도는 것만 따로 담는다 (공통/5-화면공통 §8 「알림」).
+  // 한 건 실행은 실행으로 서지 않아 알림에 없다 — 끝은 건 사람의 진행 창이 알린다 (도메인/실행 §3.2)
+  const 케이스실행 = `${종류조건('case')} AND r.origin <> 'SINGLE'`;
 
   const [도는실행, 도는시나리오, 끝난실행, 작성줄] = await Promise.all([
     비었다(실행서비스, () => 실행들(실행서비스, `r.service_id = ANY($1) AND r.status = 'RUNNING' AND ${케이스실행}`)),
@@ -180,7 +182,7 @@ export async function 알림(
     비었다(실행서비스, () =>
       실행들(
         실행서비스,
-        `r.run_id IN (SELECT run_id FROM test_run WHERE service_id = ANY($1) AND status <> 'RUNNING' AND ${종류조건('case', '')}
+        `r.run_id IN (SELECT run_id FROM test_run WHERE service_id = ANY($1) AND status <> 'RUNNING' AND ${종류조건('case', '')} AND origin <> 'SINGLE'
                          AND finished_at >= now() - interval '${최근날수} days'
                        ORDER BY finished_at DESC LIMIT ${최근상한})`,
       ),
