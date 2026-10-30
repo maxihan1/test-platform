@@ -2,6 +2,7 @@
 
 import type { Pool } from 'pg';
 
+import { 지금항목 } from '../execution/single.js';
 import { API틀 } from '../prd/apiMap.js';
 import type { 접은줄 } from './dashboardShape.js';
 
@@ -59,7 +60,7 @@ async function 기기들(pool: Pool, runIds: number[]): Promise<Map<string, stri
   const { rows } = await pool.query<{ run_id: string; tc_id: string; platform: string; device: { model?: unknown; osVersion?: unknown } | null }>(
     `SELECT run_id, tc_id, platform,
             (array_agg(device ORDER BY device->>'model') FILTER (WHERE device->>'model' <> ''))[1] AS device
-       FROM run_item WHERE run_id = ANY($1::bigint[])
+       FROM ${지금항목('o.run_id = ANY($1::bigint[])')} i
       GROUP BY run_id, tc_id, platform`,
     [runIds],
   );
@@ -105,8 +106,8 @@ async function 엔드포인트들(
   }
   // ponytail: 이번 창 요청 기록을 다 읽는다 — 실행이 수천 건으로 커져 느리면 걸린 시간을 지도 줄에 모아 둔다
   const 기록 = await pool.query<{ method: string; url: string; duration_ms: number }>(
-    `SELECT n.method, n.url, n.duration_ms FROM run_network n JOIN run_item i ON i.history_id = n.history_id
-      WHERE i.run_id = ANY($1::bigint[]) AND n.duration_ms IS NOT NULL`,
+    `SELECT n.method, n.url, n.duration_ms FROM run_network n JOIN ${지금항목('o.run_id = ANY($1::bigint[])')} i ON i.history_id = n.history_id
+      WHERE n.duration_ms IS NOT NULL`,
     [runIds],
   );
   const 걸린시간 = new Map<string, number[]>();
