@@ -281,7 +281,11 @@ export async function 대시보드(
   // 여러 종류가 섞이면 줄 단위가 서로 맞지 않아 하나를 골랐을 때만 짓는다. 세는 줄은 통과율과 같은 이번 창 줄이다
   const byKind = 고른서비스 === undefined || !실행서비스ids.includes(고른서비스)
     ? null
-    : await 고른종류칸(pool, 고른서비스, 줄들.filter((줄) => 줄.serviceId === 고른서비스 && 줄.day >= 이번시작 && 줄.day <= 오늘));
+    : await 고른종류칸(pool, 고른서비스, 줄들.filter((줄) => 줄.serviceId === 고른서비스 && 줄.day >= 이번시작 && 줄.day <= 오늘), {
+        tz,
+        from: 이번시작,
+        today: 오늘,
+      });
   const 서비스목록 = 서비스.rows.map((r) => ({ id: Number(r.id), name: r.name }));
   const 집계 = 대시보드집계(
     줄들,

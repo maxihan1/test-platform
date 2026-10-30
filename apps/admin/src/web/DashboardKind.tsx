@@ -28,6 +28,20 @@ export function 종류칸({ 칸, 일 }: { 칸: 종류칸; 일: number }) {
   const t = use말();
   const 이름 = (label: string | null): string =>
     label === null ? t(모름[칸.kind]) : 칸.kind === 'SCREEN' ? t(웹이름[label] ?? label) : label;
+  // 칸 아래 한 줄 — 셀 것이 없으면 안 띄운다 (§8.12 「종류별 칸」)
+  const 아래줄 =
+    칸.fps !== null
+      ? t('게임 성능 측정 {회}회 · 평균 FPS {평균} · {선} 아래로 떨어짐 {번}회', {
+          회: 칸.fps.runs,
+          평균: 칸.fps.avg,
+          선: 칸.fps.below,
+          번: 칸.fps.drops,
+        })
+      : 칸.onlyFail.length === 0
+        ? null
+        : 칸.kind === 'SCREEN'
+          ? t('모바일에서만 실패한 케이스 {건}건', { 건: 칸.onlyFail[0]!.count })
+          : 칸.onlyFail.map((x) => t('{기기} 에서만 실패한 케이스 {건}건', { 기기: x.label, 건: x.count })).join(', ');
 
   return (
     <section className="dash-flat dash-kind">
@@ -85,6 +99,7 @@ export function 종류칸({ 칸, 일 }: { 칸: 종류칸; 일: number }) {
           })}
         </ul>
       )}
+      {아래줄 === null ? null : <p className="dash-calm dash-kind-note">{아래줄}</p>}
     </section>
   );
 }

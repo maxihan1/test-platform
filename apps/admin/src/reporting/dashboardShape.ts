@@ -12,6 +12,8 @@ export const 허용날수: readonly number[] = [7, 14, 30];
 /** 커버리지 추이를 보는 날 수. 질의(할 일 4)가 쓰고 여기서는 값만 둔다 */
 export const 커버리지날수 = 30;
 export const 신규실패상한 = 10;
+/** 게임 종류별 칸 아래 한 줄이 「떨어졌다」고 세는 FPS 선 (§8.12 「종류별 칸」) */
+export const 낮은FPS = 30;
 
 export type 접힌판정 = 'PASS' | 'FAIL' | 'NA';
 

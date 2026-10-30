@@ -1,4 +1,4 @@
-// 대시보드 종류별 칸 질의 — 앱 기기 · 게임 창 · API 엔드포인트와 95% 응답 (도메인/리포팅 §8.12 「종류별 칸」)
+// 대시보드 종류별 칸 질의 — 앱 기기 · 게임 창 · API 엔드포인트와 95% 응답 · 칸 아래 한 줄 (도메인/리포팅 §8.12 「종류별 칸」)
 // CI에는 postgres가 없을 수 있다. 실접속 검사는 DATABASE_URL이 있을 때만 돈다
 
 import { Pool } from 'pg';
@@ -22,6 +22,7 @@ describe.skipIf(연결 === undefined)('대시보드 종류별 칸', () => {
     await pool.query('DELETE FROM test_case WHERE tc_id = ANY($1)', [케이스들]);
     if (ids.length === 0) return;
     await pool.query('DELETE FROM service_api WHERE service_id = ANY($1)', [ids]);
+    await pool.query('DELETE FROM perf_run WHERE service_id = ANY($1)', [ids]);
     await pool.query('DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = ANY($1))', [ids]);
     await pool.query('DELETE FROM test_run WHERE service_id = ANY($1)', [ids]);
     await pool.query('DELETE FROM service WHERE id = ANY($1)', [ids]);
@@ -72,6 +73,8 @@ describe.skipIf(연결 === undefined)('대시보드 종류별 칸', () => {
     // 빈 모델 글자는 고르지 않는다 — 글자 차례로 맨 앞이라 진짜 모델을 가렸다
     await 항목(앱실행, 'XDY-FN-004', 'PASS', { platform: 'android', device: { model: '', osVersion: '14' } });
     await 항목(앱실행, 'XDY-FN-004', 'PASS', { platform: 'android', attempt: 2, device: { model: 'Pixel 7', osVersion: '14' } });
+    // 다음 실행에서 Pixel 7 로 통과해 002 는 Galaxy A34 에서만 실패한 케이스가 된다
+    await 항목(await 실행(앱), 'XDY-FN-002', 'PASS', { platform: 'android', device: { model: 'Pixel 7', osVersion: '14' } });
 
     const api실행 = await 실행(api);
     const 첫 = await 항목(api실행, 'XDYA-FN-001', 'PASS');
@@ -108,6 +111,24 @@ describe.skipIf(연결 === undefined)('대시보드 종류별 칸', () => {
     );
     await 항목(게임실행, 'XDYG-FN-001', 'FAIL');
     await 항목(게임실행, 'XDYG-FN-002', 'PASS');
+    // 게임 성능 측정 — 이번 창 둘(기기 두 대 하나 포함)과 창 밖 하나. 떨어짐은 30 이상에서 30 밑으로 넘어간 번수다
+    const 측정 = async (전: string): Promise<number> =>
+      Number(
+        (
+          await pool.query<{ id: string }>(
+            `INSERT INTO perf_run (kind, service_id, env, base_url, config, status, origin, started_at)
+             VALUES ('DEVICE', $1, 'qa', '', '{}', 'DONE', 'MANUAL', now() - $2::interval) RETURNING id`,
+            [게임, 전],
+          )
+        ).rows[0]!.id,
+      );
+    const [첫측정, 둘측정, 옛측정] = [await 측정('1 hour'), await 측정('2 hours'), await 측정('40 days')];
+    await pool.query(
+      `INSERT INTO perf_device_metric (run_id, serial, device, sec, fps) VALUES
+         ($1, 'a', 'A', 1, 20), ($1, 'a', 'A', 2, 40), ($1, 'a', 'A', 3, 25), ($1, 'a', 'A', 4, 28), ($1, 'a', 'A', 5, 60),
+         ($1, 'b', 'B', 1, 60), ($1, 'b', 'B', 2, NULL), ($2, 'a', 'A', 1, 60), ($2, 'a', 'A', 2, 10), ($3, 'a', 'A', 1, 60), ($3, 'a', 'A', 2, 1)`,
+      [첫측정, 둘측정, 옛측정],
+    );
   });
 
   afterAll(async () => {
@@ -124,9 +145,11 @@ describe.skipIf(연결 === undefined)('대시보드 종류별 칸', () => {
       kind: 'APP',
       rows: [
         { label: 'Galaxy A34 · Android 13', pass: 0, fail: 1, notRun: 0, p95Ms: null },
-        { label: 'Pixel 7 · Android 14', pass: 2, fail: 0, notRun: 0, p95Ms: null },
+        { label: 'Pixel 7 · Android 14', pass: 3, fail: 0, notRun: 0, p95Ms: null },
         { label: null, pass: 0, fail: 0, notRun: 1, p95Ms: null },
       ],
+      onlyFail: [{ label: 'Galaxy A34 · Android 13', count: 1 }],
+      fps: null,
     });
   });
 
@@ -138,6 +161,8 @@ describe.skipIf(연결 === undefined)('대시보드 종류별 칸', () => {
         { label: 'POST /items/:n', pass: 1, fail: 1, notRun: 0, p95Ms: 400 },
         { label: null, pass: 1, fail: 0, notRun: 0, p95Ms: null },
       ],
+      onlyFail: [],
+      fps: null,
     });
   });
 
@@ -148,6 +173,9 @@ describe.skipIf(연결 === undefined)('대시보드 종류별 칸', () => {
         { label: 'BagWindow', pass: 0, fail: 1, notRun: 0, p95Ms: null },
         { label: null, pass: 1, fail: 0, notRun: 0, p95Ms: null },
       ],
+      onlyFail: [],
+      // 이번 창 1초 숫자 여덟 개(빈 FPS 뺌)의 평균 · 40→25 와 60→10 두 번
+      fps: { runs: 2, avg: 37.9, drops: 2, below: 30 },
     });
   });
 });
