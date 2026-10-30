@@ -39,9 +39,9 @@ describe('gfxinfo를읽는다', () => {
   it('앱이 없으면 null', () => {
     expect(gfxinfo를읽는다('No process found for: com.x')).toBeNull();
   });
-  it('프레임 시간 막대에서 0.7초 넘는 칸만 더하고 GPU 막대는 안 본다', () => {
+  it('프레임 시간 막대에서 700ms 칸(700~749ms)부터 더하고 GPU 막대는 안 본다', () => {
     const out = 'Total frames rendered: 10\nJanky frames: 3 (30.00%)\nHISTOGRAM: 5ms=5 650ms=1 700ms=2 750ms=3 4950ms=1\nGPU HISTOGRAM: 1ms=4 4950ms=9\n';
-    expect(gfxinfo를읽는다(out)?.frozen).toBe(4);
+    expect(gfxinfo를읽는다(out)?.frozen).toBe(6);
   });
 });
 

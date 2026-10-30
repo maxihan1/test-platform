@@ -4,12 +4,13 @@ import type { 기기줄원본 } from './deviceRecorder.js';
 import type { 기기줄 } from './deviceStats.js';
 import * as 표 from './store.js';
 
-/** 기록기의 초(켠 때부터)를 실행 기준 초로 옮겨 넣는다. 같은 (실행, 기기, 초)는 먼저 온 줄을 둔다. 메모리는 팜이 소수로 보내도 정수 칸에 들게 반올림한다 */
+/** 기록기의 초(켠 때부터)를 실행 기준 초로 옮겨 넣는다. 같은 (실행, 기기, 초)는 먼저 온 줄을 둔다. 메모리는 팜이 소수로 보내도 정수 칸에 들게 반올림한다.
+ *  프리징은 음수면 비운다 — 칸 검사(>= 0)에 한 줄이 걸리면 그 묶음의 FPS · CPU · 메모리까지 다 버려진다 */
 export async function 줄넣기(runId: number, serial: string, model: string, 오프셋: number, rows: 기기줄원본[]): Promise<void> {
   if (rows.length === 0) return;
   await (await 표.풀()).query(
     `INSERT INTO perf_device_metric (run_id, serial, device, sec, fps, jank_pct, freeze_count, cpu, mem_mb, temp_c, battery_pct)
-     SELECT $1, $2, $3, x.sec + $4, x.fps, x."jankPct", round(x."freezeCount"), x.cpu, round(x."memMb"), x."tempC", x."batteryPct"
+     SELECT $1, $2, $3, x.sec + $4, x.fps, x."jankPct", CASE WHEN x."freezeCount" >= 0 THEN round(x."freezeCount") END, x.cpu, round(x."memMb"), x."tempC", x."batteryPct"
        FROM jsonb_to_recordset($5::jsonb) AS x(sec int, fps numeric, "jankPct" numeric, "freezeCount" numeric, cpu numeric, "memMb" numeric, "tempC" numeric, "batteryPct" numeric)
       WHERE x.sec + $4 >= 0
      ON CONFLICT (run_id, serial, sec) DO NOTHING`,

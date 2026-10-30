@@ -58,10 +58,10 @@ export function gfxinfo를읽는다(out: string): 프레임수 | null {
   const janky = out.match(/Janky frames:\s*(\d+)/);
   if (total === null || janky === null) return null;
   const uptime = out.match(/^Uptime:\s*(\d+)/m);
-  // 막대 칸 이름이 그 칸의 프레임 시간(ms)이다. 「GPU HISTOGRAM」 줄은 GPU 만 잰 것이라 줄 머리로 거른다.
+  // 150ms 위 막대 칸 이름은 50ms 칸의 아래 끝이다(700ms 칸은 700~749ms). 「GPU HISTOGRAM」 줄은 GPU 만 잰 것이라 줄 머리로 거른다.
   // 0.7초는 Android 가 정지된 프레임(frozen frame)으로 세는 기준이다
   const 막대 = out.match(/^\s*HISTOGRAM:(.*)$/m);
-  const frozen = 막대 === null ? null : [...막대[1].matchAll(/(\d+)ms=(\d+)/g)].reduce((합, m) => (Number(m[1]) > 700 ? 합 + Number(m[2]) : 합), 0);
+  const frozen = 막대 === null ? null : [...막대[1].matchAll(/(\d+)ms=(\d+)/g)].reduce((합, m) => (Number(m[1]) >= 700 ? 합 + Number(m[2]) : 합), 0);
   return { total: Number(total[1]), janky: Number(janky[1]), uptimeMs: uptime === null ? null : Number(uptime[1]), frozen };
 }
 
