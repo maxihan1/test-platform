@@ -304,6 +304,12 @@
 .ev-dev dd {
   margin: 0;
 }
+.ev-obj-h {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
 .ev-json {
   margin: 0;
   padding: 10px 12px;
