@@ -105,6 +105,17 @@ describe('판정 줄 — 화면이 맞음으로 바꾸기', () => {
     expect(진행).not.toHaveBeenCalled();
   });
 
+  it('창 안에 처음 깨진 확인의 기대 결과와 지금 화면을 같이 보인다', async () => {
+    진행을흉내();
+    열기(버그판정);
+
+    fireEvent.click(await screen.findByRole('button', { name: '화면이 맞음으로 바꾸기' }));
+    const 창 = await screen.findByRole('dialog');
+    expect(within(창).getByText('가입한 이메일이 보인다')).toBeTruthy();
+    expect(within(창).getByText(/기대 new@demo\.kr · 지금 화면/)).toBeTruthy();
+    expect(within(창).getByText('없음').tagName).toBe('B');
+  });
+
   it('지금 기획서 버전과 그 실패 하나를 결정 진행으로 보내고 세운 요청 고리를 단다', async () => {
     const 진행 = 진행을흉내();
     열기(버그판정);

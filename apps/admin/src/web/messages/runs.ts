@@ -245,6 +245,7 @@ export const 실행말: Record<string, string> = {
   '예': 'Yes',
   '기대 {값}': 'Expected {값}',
   '실제': 'Actual',
+  '지금 화면': 'Current screen',
   '실행 중단§막음': 'Halted here',
   '{절차} 실패 시점 화면': 'Screenshot when {절차} failed',
   '요청·응답 원문': 'Raw request and response',
