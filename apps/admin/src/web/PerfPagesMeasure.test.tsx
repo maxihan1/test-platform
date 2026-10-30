@@ -46,7 +46,7 @@ describe('측정', () => {
     상태 = 'DONE';
     expect(await screen.findByRole('table', { name: '페이지별 측정 결과' })).toBeTruthy();
     expect(읽기).toHaveBeenCalledWith(30);
-    expect(screen.getByRole('button', { name: '측정' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '다시 측정' })).toBeTruthy();
   });
 
   it('고른 에이전트가 없으면(409 NO_AGENT) 서버 말을 그 자리에 보인다', async () => {
@@ -57,9 +57,9 @@ describe('측정', () => {
     render(<PerfPages service={앱} 쓰나 />);
     await screen.findByRole('table', { name: '페이지별 측정 결과' });
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
-    fireEvent.click(screen.getByRole('button', { name: '측정' }));
+    fireEvent.click(screen.getByRole('button', { name: '다시 측정' }));
     expect((await screen.findByRole('alert')).textContent).toBe('고른 부하 발생 에이전트가 연결돼 있지 않습니다');
-    expect(screen.getByRole('button', { name: '측정' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '다시 측정' })).toBeTruthy();
   });
 
   it('로그인 화면이 없다는 400 은 서버가 준 까닭을 붙여 보인다', async () => {
@@ -70,7 +70,7 @@ describe('측정', () => {
     render(<PerfPages service={앱} 쓰나 />);
     await screen.findByRole('table', { name: '페이지별 측정 결과' });
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
-    fireEvent.click(screen.getByRole('button', { name: '측정' }));
+    fireEvent.click(screen.getByRole('button', { name: '다시 측정' }));
     expect((await screen.findByRole('alert')).textContent).toContain('로그인 화면 기록이 없어 /my 를 열 수 없습니다');
   });
 
@@ -88,7 +88,7 @@ describe('측정', () => {
     render(<PerfPages service={앱} 쓰나 />);
     await screen.findByRole('table', { name: '페이지별 측정 결과' });
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
-    fireEvent.click(screen.getByRole('button', { name: '측정' }));
+    fireEvent.click(screen.getByRole('button', { name: '다시 측정' }));
     expect((await screen.findByRole('alert')).textContent).toBe('측정이 오류로 끝났습니다 — 브라우저를 열지 못했습니다');
   });
 
@@ -98,7 +98,7 @@ describe('측정', () => {
     vi.spyOn(perfApi, 'pages').mockResolvedValue(결과);
     render(<PerfPages service={앱} 쓰나={false} />);
     await screen.findByRole('table', { name: '페이지별 측정 결과' });
-    expect(screen.queryByRole('button', { name: '측정' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '다시 측정' })).toBeNull();
     expect(screen.queryByRole('button', { name: '페이지 선택' })).toBeNull();
     expect((screen.getByLabelText('모바일') as HTMLInputElement).disabled).toBe(true);
   });

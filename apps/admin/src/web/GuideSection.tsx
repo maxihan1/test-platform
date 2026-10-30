@@ -34,6 +34,7 @@ export function GuideSection({
   on더하기,
   on빼기,
   busy = false,
+  예,
 }: {
   service: string;
   section: 구획;
@@ -43,6 +44,8 @@ export function GuideSection({
   on더하기?: (file: File) => void;
   on빼기?: (file: GuideFile) => void;
   busy?: boolean;
+  /** 종류마다 적을 것의 예 — 빈 칸 안내 뒤에 붙인다 */
+  예?: string;
 }) {
   const t = use말();
   const 언어 = use언어();
@@ -81,7 +84,7 @@ export function GuideSection({
           aria-label={제목}
           rows={Math.max(4, 글.split('\n').length + 1)}
           value={글}
-          placeholder={t('문서에 없는 것만 적습니다')}
+          placeholder={예 === undefined ? t('문서에 없는 것만 적습니다') : `${t('문서에 없는 것만 적습니다')} — ${t(예)}`}
           onChange={(e) => on글(e.target.value)}
         />
       )}

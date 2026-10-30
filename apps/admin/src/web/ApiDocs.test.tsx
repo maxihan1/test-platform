@@ -134,4 +134,14 @@ describe('API 문서', () => {
     await waitFor(() => expect(원문).toHaveBeenCalledWith(7, 2));
     expect(within(기록).getByRole('group', { name: '버전 2 원문' })).toBeTruthy();
   });
+
+  it('「바뀐 API 만 다시 작성」은 견줄 앞 버전이 있을 때만 서고 결정 필요 목록으로 보낸다 (시안 11판 · WEB-F7-18)', async () => {
+    render(<ApiDocs service={앱} 할수={쓰는사람} 설정보나 />);
+    expect((await screen.findByRole('link', { name: '바뀐 API 만 다시 작성' })).getAttribute('href')).toBe('#/authoring?todo=1');
+    cleanup();
+    목록.mockResolvedValue({ docPath: '/openapi.json', docEnv: 'stg', versions: [버전줄(1)] });
+    render(<ApiDocs service={앱} 할수={쓰는사람} 설정보나 />);
+    await screen.findByText(/버전 1/);
+    expect(screen.queryByRole('link', { name: '바뀐 API 만 다시 작성' })).toBeNull();
+  });
 });

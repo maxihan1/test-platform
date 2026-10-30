@@ -168,8 +168,8 @@
 }
 
 @keyframes nt-pop {
-  from {
-    transform: scale(1.35);
+  45% {
+    transform: scale(1.7);
   }
   to {
     transform: scale(1);

@@ -76,4 +76,6 @@ export const 성능실행말: Record<string, string> = {
 
   // PRD 추적표
   '성능 목표 {수}개': '{수} performance targets',
+  // 성능 실행 기록 — 페이지 · 기기 측정 줄의 고리 (종류는 꼬리표가 말한다, WEB-F7-18)
+  '측정 결과': 'Measurement result',
 };

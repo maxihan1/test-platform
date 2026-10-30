@@ -68,3 +68,15 @@ export function 숫자칸(줄들: PageRow[]): { lcp평균: number | null; fcp평
     넘은: 줄들.filter((줄) => 줄.verdict === 'FAIL').map((줄) => 줄.name),
   };
 }
+
+/**
+ * 전체 로드 · 요청 수 — 수집한 리소스 끝 시각 중 가장 늦은 것과 리소스 수 (시안 11판 「페이지 성능」 · WEB-F7-18).
+ * ponytail: 수집 스크립트(perf/pageScript.ts)가 리소스를 시작 차례로 문서 + 99개까지만 남긴다 — 그보다 많은 페이지는 요청 수가 100 에서 멈추고(화면은 「100+」)
+ * 전체 로드도 뒤늦게 시작한 리소스를 못 봐 짧게 나온다. 정확히 하려면 수집 스크립트가 loadEventEnd 를 같이 남기게 한다
+ */
+export function 로드요약(줄: PageRow): { 전체로드Ms: number | null; 요청수: number } {
+  return {
+    전체로드Ms: 줄.resources.length === 0 ? null : Math.max(...줄.resources.map((it) => it.startMs + it.durationMs)),
+    요청수: 줄.resources.length,
+  };
+}

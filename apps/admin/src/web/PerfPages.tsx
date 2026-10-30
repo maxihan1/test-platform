@@ -181,7 +181,7 @@ export function PerfPages({ service, run, 쓰나 }: { service: ServiceRow; run?:
         행동={
           쓰나 ? (
             <button type="button" className="btn" disabled={재는중 || 목록.length === 0} onClick={() => void 측정()}>
-              {재는중 ? t('측정 중') : t('측정')}
+              {재는중 ? t('측정 중') : 읽은 !== null && 읽은.pages.length > 0 ? t('다시 측정') : t('측정')}
             </button>
           ) : null
         }

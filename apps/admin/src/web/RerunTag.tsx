@@ -1,4 +1,4 @@
-// 한 건 실행이 덮은 항목의 꼬리표 「다시 실행해서 통과 / 다시 실행해서도 실패」와 「원래 결과 보기」 (도메인/실행 §8.3 「한 건 실행이 붙은 실행」)
+// 한 건 실행이 덮은 항목의 꼬리표 「다시 실행해서 통과 / 다시 실행해서도 실패」와 「지난 결과 보기」 (도메인/실행 §8.3 「한 건 실행이 붙은 실행」)
 
 import { useState } from 'react';
 
@@ -33,7 +33,7 @@ export function 원래결과보기({ runId, rerun }: { runId: number; rerun: 다
   return (
     <details className="fc-orig" onToggle={(e) => { if (e.currentTarget.open) set불렀나(true); }}>
       <summary>
-        {t('원래 결과 보기')} <Verdict status={rerun.original.status} /> {when(rerun.original.finishedAt, 언어)}
+        {t('지난 결과 보기')} <Verdict status={rerun.original.status} /> {when(rerun.original.finishedAt, 언어)}
       </summary>
       {불렀나 ? <상세본문 runId={runId} historyId={rerun.original.historyId} /> : null}
     </details>

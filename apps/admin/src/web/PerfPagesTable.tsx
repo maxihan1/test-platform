@@ -2,7 +2,8 @@
 
 import { use말 } from './i18n.js';
 import type { Compare, PageRow } from './perfPageApi.js';
-import { 넘음, 목표, 비교값, 숫자칸, 클글자 } from './perfPagesView.js';
+import { 넘음, 로드요약, 목표, 비교값, 숫자칸, 클글자 } from './perfPagesView.js';
+import { 올라가는값 } from './ui.js';
 import { 초글자 } from './perfRunView.js';
 
 /** 표 위 숫자 칸 줄 — 측정 하나를 한눈에 (시안 11판 「페이지 성능」 · WEB-F7-16). 칸 이름은 표와 같은 업계 말(LCP · FCP)이다 */
@@ -13,17 +14,17 @@ export function PerfPagesTiles({ 줄들 }: { 줄들: PageRow[] }) {
     <section className="perf-panel num-tiles" aria-label={t('측정 요약')}>
       <div className={넘음.lcp(칸.lcp평균) ? 'bad' : undefined}>
         <span>{t('LCP 평균')}</span>
-        <b>{초글자(칸.lcp평균, t)}</b>
+        <올라가는값 수={칸.lcp평균} 글={(n) => 초글자(n, t)} />
         <em>{t('목표 {값} 이하', { 값: 초글자(목표.lcpMs, t) })}</em>
       </div>
       <div className={넘음.fcp(칸.fcp평균) ? 'bad' : undefined}>
         <span>{t('FCP 평균')}</span>
-        <b>{초글자(칸.fcp평균, t)}</b>
+        <올라가는값 수={칸.fcp평균} 글={(n) => 초글자(n, t)} />
         <em>{t('목표 {값} 이하', { 값: 초글자(목표.fcpMs, t) })}</em>
       </div>
       <div className={칸.넘은.length > 0 ? 'bad' : undefined}>
         <span>{t('목표 넘은 페이지')}</span>
-        <b>{t('{수}개', { 수: 칸.넘은.length })}</b>
+        <올라가는값 수={칸.넘은.length} 글={(n) => t('{수}개', { 수: Math.round(n) })} />
         <em>{칸.넘은.join(' · ')}</em>
       </div>
     </section>
@@ -47,6 +48,8 @@ export function PerfPagesTable({ 줄들, 비교, 고른, on고름 }: { 줄들: P
               <th className="r">{t('LCP 부하 중')}</th>
               <th className="r">FCP</th>
               <th className="r">CLS</th>
+              <th className="r">{t('전체 로드')}</th>
+              <th className="r">{t('요청 수')}</th>
               <th>{t('판정')}</th>
             </tr>
           </thead>
@@ -54,6 +57,7 @@ export function PerfPagesTable({ 줄들, 비교, 고른, on고름 }: { 줄들: P
             {줄들.map((줄) => {
               const 부하 = 비교값(비교, 줄.url);
               const 부하넘음 = 넘음.lcp(부하);
+              const 로드 = 로드요약(줄);
               return (
                 <tr key={줄.url} className={줄.url === 고른 ? 'perf-open pp-row' : 'pp-row'} onClick={() => on고름(줄.url)}>
                   <td>
@@ -65,6 +69,8 @@ export function PerfPagesTable({ 줄들, 비교, 고른, on고름 }: { 줄들: P
                   <td className={부하넘음 ? 'r mono perf-err' : 'r mono'}>{초글자(부하, t)}</td>
                   <td className={넘음.fcp(줄.fcpMs) ? 'r mono perf-err' : 'r mono'}>{초글자(줄.fcpMs, t)}</td>
                   <td className={넘음.cls(줄.cls) ? 'r mono perf-err' : 'r mono'}>{클글자(줄.cls)}</td>
+                  <td className="r mono">{초글자(로드.전체로드Ms, t)}</td>
+                  <td className="r mono">{로드.요청수 === 0 ? '-' : 로드.요청수 >= 100 ? '100+' : 로드.요청수}</td>
                   <td>
                     {줄.verdict === null ? (
                       '-'

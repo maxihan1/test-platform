@@ -148,7 +148,7 @@ describe('측정할 페이지', () => {
     fireEvent.click(창.getByRole('button', { name: '적용' }));
 
     expect(screen.getByText('측정 대상: 페이지 3개')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: '측정' }));
+    fireEvent.click(screen.getByRole('button', { name: '다시 측정' }));
     await waitFor(() => expect(측정).toHaveBeenCalled());
     expect(측정.mock.calls[0]![0].pages).toEqual([
       { url: '/products', name: '상품 목록', login: false },

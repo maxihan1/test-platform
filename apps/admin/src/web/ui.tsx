@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { t, use말, use언어, type 언어 } from './i18n.js';
 import { ApiError, type ItemStatus, type Platform } from './api.js';
+import { use올라가기 } from './dashboardView.js';
 import { 요청오류문장 } from './errorText.js';
 
 export const PLATFORM_LABEL: Record<Platform, string> = { desktop: 'PC', mobile: '모바일', android: 'Android 앱' };
@@ -82,6 +83,16 @@ export function message(err: unknown, 언어: 언어): string {
 }
 
 // 글자 한 줄 대신 목록 줄 모양을 먼저 깔아 둔다 — 다 오면 그 자리에 줄이 들어와 화면이 덜 튄다 (⑬-7)
+/**
+ * 숫자 칸 하나의 값 — 0 에서 올라간다 (원칙 4 「숫자 · 막대 · 선」 · 성능 숫자 칸 WEB-F7-18). 소수 한 자리를 살리려고 열 배로 올리고,
+ * 다 올라가면 반올림하지 않은 값의 글자로 끝난다 — 반올림한 값으로 끝내면 1023.96MB 가 1.00GB 로 보인다
+ */
+export function 올라가는값({ 수, 글 }: { 수: number | null; 글: (n: number) => string }) {
+  const 끝 = 수 === null ? 0 : Math.round(수 * 10);
+  const 지금 = use올라가기(끝);
+  return <b>{수 === null ? '-' : 지금 === 끝 ? 글(수) : 글(지금 / 10)}</b>;
+}
+
 export function Loading() {
   const t = use말();
   return (

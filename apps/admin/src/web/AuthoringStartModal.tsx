@@ -28,8 +28,12 @@ export function AuthoringStartModal({ service, id, onClose }: { service: string;
       onClose={onClose}
       버튼={
         <>
+          {/* 닫기가 첫 포커스, 주 단추는 끝 — 휴대폰에서 세로로 쌓이면 주 단추가 엄지 쪽 맨 아래다 (시안 11판 「창」 · WEB-F7-18) */}
+          <button className="btn ghost" type="button" onClick={onClose}>
+            {t('닫기')}
+          </button>
           <button
-            className="btn ghost"
+            className="btn"
             type="button"
             onClick={() => {
               window.location.hash = `#/authoring/${String(id)}`;
@@ -37,9 +41,6 @@ export function AuthoringStartModal({ service, id, onClose }: { service: string;
             }}
           >
             {t('상세 페이지로')}
-          </button>
-          <button className="btn" type="button" onClick={onClose}>
-            {t('닫기')}
           </button>
         </>
       }
