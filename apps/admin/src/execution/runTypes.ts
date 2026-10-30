@@ -47,8 +47,10 @@ export interface RunSummary {
  * 디바이스마다 실패한 케이스 수 (SPEC 실행 §7 `GET /api/runs`)
  */
 export type RunListRow = RunSummary & {
-  change: { newFail: number; stillFail: number } | null;
+  change: { newFail: number; stillFail: number; fixed: number } | null;
   failCases: Partial<Record<Platform, number>>;
+  /** 앱 · 게임 항목을 돌린 폰 모델(device.model), 글자 차례. 폰 연결이 안 열렸거나 웹뿐이면 빈 배열 (실행 §8.7 「줄」 실행 위치) */
+  devices: string[];
 };
 
 export interface RunItemSummary {

@@ -62,6 +62,8 @@ export const 실행말: Record<string, string> = {
   '검색어나 거르개를 바꿔 보세요': 'Try a different search or filter',
   '목록으로': 'Back to list',
   '기존 실패 {수}': '{수} still failing',
+  '모바일 Safari': 'Mobile Safari',
+  '{모델} 외 {수}대': '{모델} + {수} more',
   '디바이스별 실패 케이스': 'Failed cases by device',
   '{디바이스} {수}건': '{디바이스} {수}',
   '찾기': 'Search',

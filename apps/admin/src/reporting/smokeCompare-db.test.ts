@@ -79,8 +79,8 @@ describe.skipIf(연결 === undefined)('빌드 회귀의 직전 실행 — 스모
 
   it('실행 기록 줄의 직전 대비 수도 같은 실행과 견준다', async () => {
     const 수 = await 직전대비수([회귀, 다음스모크]);
-    expect(수.get(회귀)).toEqual({ newFail: 2, stillFail: 0 });
-    expect(수.get(다음스모크)).toEqual({ newFail: 1, stillFail: 1 });
+    expect(수.get(회귀)).toEqual({ newFail: 2, stillFail: 0, fixed: 0 });
+    expect(수.get(다음스모크)).toEqual({ newFail: 1, stillFail: 1, fixed: 0 });
   });
 
   it('대시보드 회귀 실패의 앞 판정도 앞 전체 실행 것이다', async () => {

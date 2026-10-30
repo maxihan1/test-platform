@@ -171,6 +171,22 @@ describe.skipIf(연결 === undefined)('실행 시작 방식', () => {
     expect(한줄?.failCases).toEqual({ desktop: 0, mobile: 2 });
   });
 
+  it('목록 줄은 앱 항목이 남긴 폰 모델을 겹치지 않게 글자 차례로 싣는다 — 기기가 없으면 빈 배열', async () => {
+    const 실행 = await 건다(['XBO-001', 'XBO-002', 'XBO-003']);
+    const 기기 = (tcId: string, model: string) =>
+      pool.query('UPDATE run_item SET device = $3 WHERE run_id = $1 AND tc_id = $2', [실행, tcId, JSON.stringify({ model, osVersion: '14', appVersion: null })]);
+    await 기기('XBO-001', 'SM-S911N');
+    await 기기('XBO-002', 'Pixel 7');
+    await 기기('XBO-003', 'SM-S911N');
+    await 닫는다(실행);
+    const 빈 = await 건다(['XBO-001', 'XBO-002']);
+    await 닫는다(빈);
+
+    const 목록 = await listRuns('XBO', 1, 50, {});
+    expect(목록.items.find((r) => r.runId === 실행)?.devices).toEqual(['Pixel 7', 'SM-S911N']);
+    expect(목록.items.find((r) => r.runId === 빈)?.devices).toEqual([]);
+  });
+
   it('직전 대비는 같은 대상 서버의 앞 실행과 견준 케이스 수다 — 디바이스를 접고, 앞이 없거나 도는 중이면 null', async () => {
     const 첫 = await 건다(['XBO-001', 'XBO-002', 'XBO-003'], { env: 'cmp' });
     await 판정(첫, 'XBO-002', 'desktop', 'FAIL');
@@ -185,12 +201,12 @@ describe.skipIf(연결 === undefined)('실행 시작 방식', () => {
     const 목록 = await listRuns('XBO', 1, 50, { env: 'cmp' });
     const 대비 = new Map(목록.items.map((r) => [r.runId, r.change]));
     expect(대비.get(첫)).toBeNull();
-    expect(대비.get(둘)).toEqual({ newFail: 2, stillFail: 0 });
+    expect(대비.get(둘)).toEqual({ newFail: 2, stillFail: 0, fixed: 1 });
     expect(대비.get(셋)).toBeNull();
 
     await 판정(셋, 'XBO-001', 'desktop', 'FAIL');
     await 닫는다(셋);
     const 다음 = await listRuns('XBO', 1, 50, { env: 'cmp' });
-    expect(다음.items.find((r) => r.runId === 셋)?.change).toEqual({ newFail: 0, stillFail: 1 });
+    expect(다음.items.find((r) => r.runId === 셋)?.change).toEqual({ newFail: 0, stillFail: 1, fixed: 2 });
   });
 });

@@ -4,7 +4,7 @@ import { 지금항목 } from '../execution/single.js';
 import { 스모크건너뛰기식, 판정접기식 } from './dashboardSql.js';
 import { db, 케이스판정들, type 접힌행 } from './insights.js';
 
-export type 직전대비 = { newFail: number; stillFail: number };
+export type 직전대비 = { newFail: number; stillFail: number; fixed: number };
 
 /**
  * 직전 실행 고르기는 compareWithPrevious 와 같다 — 같은 서비스 · 대상 서버 · 종류에서 더 일찍 시작해 끝난 실행(스모크 아닌 실행은 스모크를 건너뛴다).
@@ -46,7 +46,7 @@ export async function 직전대비수(runIds: number[]): Promise<Map<number, 직
   for (const { run_id, prev_id } of 짝.rows) {
     const { 케이스들 } = 케이스판정들(실행마다.get(prev_id) ?? [], 실행마다.get(run_id) ?? []);
     const 센다 = (판정: string) => new Set(케이스들.filter((c) => c.판정 === 판정).map((c) => c.tcId)).size;
-    결과.set(Number(run_id), { newFail: 센다('새로깨짐'), stillFail: 센다('계속깨짐') });
+    결과.set(Number(run_id), { newFail: 센다('새로깨짐'), stillFail: 센다('계속깨짐'), fixed: 센다('고쳐짐') });
   }
   return 결과;
 }

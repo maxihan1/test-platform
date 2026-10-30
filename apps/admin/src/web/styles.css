@@ -6653,6 +6653,11 @@ details.raw {
   color: var(--fail-text);
 }
 
+/* 해결은 통과 글자 색 — 요약 띠 · 대시보드 견준 칩과 같은 뜻 (DESIGN.md 실행 결과 「변화 글자의 색」) */
+.fc-tag.fc-fixed {
+  color: var(--pass-text);
+}
+
 .fc-flow {
   margin-left: auto;
   display: flex;
