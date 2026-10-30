@@ -94,7 +94,7 @@ export interface ExecuteResponse {
   steps: StepResult[];
   error?: { message: string; stack?: string };
   device?: DeviceInfo;          // android 만. Appium 연결이 열렸을 때 싣는다 (도메인/리포팅 §8.4 「증적 문서 머리말」 · APP-F1-05)
-  elementChecks?: ElementCheck[];  // 게임 항목만 · verify.element 가 남긴 줄마다. admin 이 game_element.server_value · checked_run 에 쓴다 (GAME-F1-09)
+  elementChecks?: ElementCheck[];  // 게임 항목만 · verify.element 가 남긴 줄마다. admin 이 game_element.server_value · checked_run 과 run_item.element_checks 에 쓴다 (GAME-F1-09 · WEB-F7-24)
   apiCalls?: ApiCallSeen[];     // 게임 항목만 · 케이스가 부른 대상 서버 API. android 는 trace 가 없어 이 칸으로 서비스 지도의 케이스 줄을 채운다 (GAME-F1-09)
 }
 
