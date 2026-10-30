@@ -9,7 +9,7 @@ import { api, type CaseQuery, type CaseRow, type ServiceRow, type User } from '.
 import { use말, use언어 } from './i18n.js';
 import { 다음이있나 } from './paging.js';
 import { 담을것 } from './pickRun.js';
-import type { 실행요청 } from './RunPickModal.js';
+import type { 실행요청 } from './pickRun.js';
 import { message } from './ui.js';
 import { useRunStart } from './useRunStart.js';
 

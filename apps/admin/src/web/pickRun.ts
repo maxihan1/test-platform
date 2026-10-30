@@ -4,6 +4,14 @@ import type { CaseRow, RunRequestItem } from './api.js';
 import { 항목수 } from './runPlan.js';
 import type { Field } from './schema.js';
 
+/** 실행 창이 「실행」으로 넘기는 것 (SPEC §8.10). RunPickModal 이 300줄에 닿아 여기로 옮겼다 */
+export interface 실행요청 {
+  env: string;
+  repeat: number;
+  notifySlack: boolean;
+  items: RunRequestItem[];
+}
+
 /** 모달에서 케이스마다 고쳐 넣은 값. 안 고친 케이스는 아예 없다 */
 export type 고친값표 = Record<
   string,
