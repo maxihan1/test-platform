@@ -6,21 +6,21 @@ import { Head, use지금앱 } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { 기기성능이름 } from './kind.js';
 import { perfApi, type 측정수치 } from './perfApi.js';
-import { 메모리글자 } from './perfDeviceView.js';
+import { 메모리글자, 한자리 } from './perfDeviceView.js';
 import { 실행상태글자 } from './PerfScenarioList.js';
 import { type 말, 명글자, 분초, 시각글, 사유이름, 초글자, 측정자리, 퍼센트글자, 판정꼴, 판정이름, 판정종류 } from './perfRunView.js';
 import { 유형글자 } from './PerfStepLoad.js';
 import { Failed, Loading, useAsync } from './ui.js';
 
 /** 페이지 · 기기 줄의 핵심 수치 한 줄 — 결과 화면 숫자 칸과 같은 이름이다 (§8.14 「실행 기록」 · 시안 11판) */
-function 수치글(자리: string, 게임: boolean, m: 측정수치 | null, t: 말): string {
+function 수치글(kind: string, 게임: boolean, m: 측정수치 | null, t: 말): string {
   if (m === null) return '-';
   const 칸 = (이름: string, 값: number | null | undefined, 글: (n: number) => string) => (값 === null || 값 === undefined ? null : `${t(이름)} ${글(값)}`);
   const 칸들 =
-    자리 === '#/perf/pages'
+    kind === 'PAGE'
       ? [칸('LCP 평균', m.lcpAvgMs, (n) => 초글자(n, t))]
       : 게임
-        ? [칸('평균 FPS', m.avgFps, (n) => String(Number(n.toFixed(1)))), 칸('프레임 드랍', m.jankPct, 퍼센트글자)]
+        ? [칸('평균 FPS', m.avgFps, (n) => String(한자리(n))), 칸('프레임 드랍', m.jankPct, 퍼센트글자)]
         : [칸('CPU 평균', m.avgCpu, 퍼센트글자), 칸('메모리 최대', m.maxMemMb, 메모리글자)];
   const 글 = 칸들.filter((x): x is string => x !== null).join(' · ');
   return 글 === '' ? '-' : 글;
@@ -147,7 +147,7 @@ export function PerfRunList({ serviceId }: { serviceId: number }) {
                         ) : (
                           // 측정 실행에는 동시 사용자 · 응답시간이 없다 — 세 칸을 합쳐 그 측정의 핵심 수치를 적는다
                           <td colSpan={3} className="r mono">
-                            {수치글(자리, 앱종류 === 'GAME', 줄.measures, t)}
+                            {수치글(줄.kind, 앱종류 === 'GAME', 줄.measures, t)}
                           </td>
                         )}
                         <td>{줄.degraded === null ? <span className="perf-faint">-</span> : 줄.degraded ? <span className="perf-chg">{t('성능 저하')}</span> : <span className="perf-faint">{t('변화 없음')}</span>}</td>

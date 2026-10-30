@@ -44,7 +44,7 @@ export const 기본목표: 기기목표[] = [
   { metric: 'LAUNCH_MS', op: '<=', value: 3000, source: 'MANUAL' },
 ];
 
-const 한자리 = (n: number): number => Math.round(n * 10) / 10;
+export const 한자리 = (n: number): number => Math.round(n * 10) / 10;
 
 export const 메모리글자 = (mb: number | null): string => (mb === null ? '-' : mb >= 1024 ? `${(mb / 1024).toFixed(2)}GB` : `${String(Math.round(mb))}MB`);
 

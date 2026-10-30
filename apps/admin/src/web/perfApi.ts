@@ -182,13 +182,7 @@ export interface 실행줄 {
   measures: 측정수치 | null;
 }
 
-export interface 측정수치 {
-  lcpAvgMs?: number | null;
-  avgCpu?: number | null;
-  maxMemMb?: number | null;
-  avgFps?: number | null;
-  jankPct?: number | null;
-}
+export type 측정수치 = Partial<Record<'lcpAvgMs' | 'avgCpu' | 'maxMemMb' | 'avgFps' | 'jankPct', number | null>>;
 
 export interface 실행목표 extends Target {
   measured: number | null;
