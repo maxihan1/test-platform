@@ -132,18 +132,19 @@ describe('화면 토큰 (DESIGN.md)', () => {
     expect(Number(값 ?? 0)).toBeGreaterThanOrEqual(44);
   });
 
-  it('화면 머리가 본문과 다른 면이고 아래가 괘선으로 닫힌다', () => {
-    // 머리와 본문이 같은 바탕이면 「헤드와 메인이 분리 안 돼 있다」로 다시 돌아간다 (2026-09-22)
+  // 2026-10-30 부터 판 없이 본문 바탕 위에 선다 — 머리 판이 표를 한 칸 더 밀어 내리는 것만 남았다 (DESIGN.md 「화면 머리」)
+  it('화면 머리는 판 없이 한 줄이고 아래 판과는 간격으로 가른다', () => {
     const 블록 = /^\.head\s*\{([^}]*)\}/m.exec(css)?.[1] ?? '';
-    expect(블록, '.head 에 바탕이 없다').toMatch(/background:\s*var\(--well\)/);
-    expect(블록, '.head 아래가 안 닫혔다').toMatch(/border-bottom:/);
+    expect(블록, '.head 에 판 바탕이 남았다').not.toMatch(/background:/);
+    expect(블록, '.head 에 테두리가 남았다').not.toMatch(/border/);
+    expect(블록).toMatch(/min-height:\s*32px/);
+    expect(블록).toMatch(/margin-bottom:\s*14px/);
   });
 
-  it('화면 제목이 큰 글자 기준을 넘는다', () => {
-    // DESIGN.md 명암비 — 24px 이상이면 「큰 글자」라 3:1 이 기준이 된다.
-    // 제목이 그보다 작으면 4.5 기준으로 다시 재야 한다
+  it('화면 제목은 18px 이다', () => {
+    // 24px 아래라 명암비는 4.5:1 기준이다 — 제목 색 `--ink` 는 두 벌 모두 넘는다 (DESIGN.md 명암비 표)
     const 값 = /^\.head h1\s*\{[^}]*font-size:\s*(\d+)px/m.exec(css)?.[1];
-    expect(Number(값 ?? 0)).toBeGreaterThanOrEqual(24);
+    expect(Number(값 ?? 0)).toBe(18);
   });
 
   it('좁은 화면에서 머리가 세로로 쌓이고 행동 버튼이 44px 이다', () => {
@@ -198,7 +199,8 @@ describe('화면 토큰 (DESIGN.md)', () => {
     // 접은 보람이 없다. 상한을 풀어야 창을 채운다 (2026-09-21 실측 — 960 → 1160 밖에 안 늘었다)
     const 접힘 = /\.wrap\.folded\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
     expect(접힘).toMatch(/max-width:\s*none/);
-    expect(접힘).toMatch(/grid-template-columns:\s*100px/);
+    // 왼쪽 줄 60px + 접힌 레일 44px (DESIGN.md 「PC 껍데기」)
+    expect(접힘).toMatch(/grid-template-columns:\s*104px/);
   });
 
   it('접어도 자리 목록을 화면에서 지우지 않는다', () => {
@@ -429,7 +431,7 @@ describe('서비스 색이 되살아나지 않는다 (SPEC §8, 2026-09-22)', ()
 
 // 「예쁘게」는 잴 수 없다. 숫자로 적어야 검사가 붙는다 (계획 게이트 1 주의 7)
 describe('서비스 고르개 (SPEC §8, 2026-09-22)', () => {
-  // 기본 규칙은 손가락 기준(휴대폰 위 줄이 쓴다). PC 헤더는 사용자가 작게 해 달라고 해서 header.css 가 32px 로 덮는다 (2026-10-13)
+  // 기본 규칙은 손가락 기준(휴대폰 위 줄이 쓴다). PC 사이드바 바닥은 rail.css 가 32px 로 덮는다 (2026-10-30)
   it('누르는 영역이 44px 기준을 넘는다. 브라우저 반올림 때문에 46 으로 건다', () => {
     const 규칙 = css.slice(css.indexOf('.side-pick {'));
     const 높이 = /min-height:\s*(\d+)px/.exec(규칙);
@@ -579,17 +581,16 @@ describe('표가 창을 쓴다 (2026-09-22)', () => {
     expect(토큰들()['--body-pad-bottom']).toBe('24px');
   });
 
-  // 맨 위 헤더가 생긴 뒤 위 여백 24px 이 헤더 위 빈 띠로 남았다 (2026-10-20 사용자)
-  it('body 위 여백이 0 이라 맨 위 헤더가 창 위에 붙는다', () => {
+  // 맨 위 헤더가 생긴 뒤 위 여백 24px 이 헤더 위 빈 띠로 남았다 (2026-10-20 사용자). 헤더를 걷은 뒤로는 왼쪽 줄 · 사이드바가 창 위에 붙는다
+  it('body 위 여백이 0 이라 껍데기가 창 위에 붙는다', () => {
     expect(토큰들()['--body-pad-top']).toBe('0px');
   });
 
-  // 제목 글자는 안 줄인다 — 24px 이 명암비 기준이 갈리는 경계다 (위 「화면 제목」 검사).
-  // 되찾는 세로는 여백에서 뺀다
-  it('화면 머리 여백을 줄였다', () => {
+  // 위쪽 바를 걷어 본문이 창 맨 위부터 시작한다 — 머리 위 여백이 창 끝과 제목 사이를 맡는다
+  it('화면 머리 위 여백이 창 끝과 제목을 가른다', () => {
     const 값 = /padding:\s*(\d+)px/.exec(규칙('.head'))?.[1];
     expect(값, '.head 에 padding 이 없다').toBeDefined();
-    expect(Number(값)).toBeLessThanOrEqual(12);
+    expect(Number(값)).toBeLessThanOrEqual(16);
   });
 
   // 숫자 아래에 라벨을 쌓으면 띠가 120px 이 된다. 눕히면 한 줄이고 **글자는 하나도 안 잃는다**
@@ -786,9 +787,10 @@ describe('움직임 (DESIGN.md 원칙 4, 2026-10-07)', () => {
 });
 
 describe('대표색 자리 (화면공통 §8 「대표색」, 2026-10-07)', () => {
-  it('사이드바의 지금 있는 자리가 대표색 막대를 받는다', () => {
-    // `.side-nav a[aria-current]` 만 보면 가로 탭 밑줄 규칙을 잡는다 — 사이드바 막대가 빠져도 통과했다 (2026-10-07 코드 검토)
-    expect(첫규칙(".side .side-nav a[aria-current='page']")).toMatch(/border-left-color:\s*var\(--accent-mark\)/);
+  it('사이드바의 지금 있는 자리가 옅은 대표색 바탕을, 하위 줄은 대표색 선을 받는다 (2026-10-30)', () => {
+    // `.side-nav a[aria-current]` 만 보면 가로 탭 밑줄 규칙을 잡는다 — 사이드바 표시가 빠져도 통과했다 (2026-10-07 코드 검토)
+    expect(첫규칙(".side .side-nav a[aria-current='page']")).toMatch(/background:\s*var\(--accent-soft\)/);
+    expect(첫규칙(".side .side-nav a.side-sub[aria-current='page']")).toMatch(/var\(--accent-mark\)/);
   });
 
   it('주 버튼은 대표색 위 짙은 글자이고, 나머지 버튼은 테두리만 쓴다', () => {

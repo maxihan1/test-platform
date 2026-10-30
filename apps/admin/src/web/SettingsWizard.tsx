@@ -61,7 +61,7 @@ interface Props {
   새프로젝트: boolean;
   projects: SettingsProject[];
   services: SettingsServiceRow[];
-  /** 애플리케이션만 더할 때 미리 고를 프로젝트 — 맨 위 헤더에서 보던 애플리케이션이 든 프로젝트 */
+  /** 애플리케이션만 더할 때 미리 고를 프로젝트 — 왼쪽 줄에서 보던 애플리케이션이 든 프로젝트 */
   기본프로젝트?: number | undefined;
   /** 「나가기」가 갈 설정 주소 */
   나가는곳: string;

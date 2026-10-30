@@ -126,12 +126,10 @@ describe('애플리케이션 줄', () => {
     expect(within(줄()).queryByRole('link', { name: '애플리케이션 추가' })).toBeNull();
   });
 
-  it('헤더에는 애플리케이션 고르개도 접두사 칩도 없다', () => {
+  it('애플리케이션 고르개는 따로 없다 — 줄이 고르개다', () => {
     띄운다(웹);
 
-    const 헤더 = within(document.querySelector('header.hd') as HTMLElement);
-    expect(헤더.queryByRole('combobox', { name: '애플리케이션 선택' })).toBeNull();
-    expect(document.querySelector('.hd-svc-code')).toBeNull();
+    expect(screen.queryByRole('combobox', { name: '애플리케이션 선택' })).toBeNull();
   });
 });
 
