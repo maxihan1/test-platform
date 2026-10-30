@@ -104,16 +104,17 @@ export function 맥락짓기(재료: 맥락재료): 맥락표 {
   for (const a of 재료.apis ?? []) 서버들.set(a.tcId, (서버들.get(a.tcId) ?? new Set()).add(a.name));
 
   // 대상 서버 주소가 달라도 메서드 · 경로가 같으면 한 엔드포인트다 — 대시보드 「엔드포인트별 결과」와 같은 셈 (리포팅 §8.12)
-  const 첫단계들 = new Map<string, Map<string, number>>();
+  const 첫단계들 = new Map<string, Map<string, { 경로: string; 단계: number }>>();
   for (const e of 재료.endpoints ?? []) {
-    const 줄 = 첫단계들.get(e.tcId) ?? new Map<string, number>();
+    const 줄 = 첫단계들.get(e.tcId) ?? new Map<string, { 경로: string; 단계: number }>();
     const 이름 = `${e.method} ${e.path}`;
-    줄.set(이름, Math.min(줄.get(이름) ?? Infinity, e.step ?? Infinity));
+    // 준비 · 정리에서만 불렀으면 단계가 없다 — 단계 번호 뒤로 민다
+    줄.set(이름, { 경로: `${e.path} ${e.method}`, 단계: Math.min(줄.get(이름)?.단계 ?? Infinity, e.step ?? Infinity) });
     첫단계들.set(e.tcId, 줄);
   }
   // 단계에서 먼저 부른 것이 앞 — 준비에서만 부른 로그인이 앞서면 케이스 대부분이 로그인 머리 아래로 몰린다 (2026-10-30 시작 질문)
   const 엔드포인트들 = (tcId: string) =>
-    [...(첫단계들.get(tcId) ?? [])].sort(([a, x], [b, y]) => x - y || a.localeCompare(b)).map(([이름]) => 이름);
+    [...(첫단계들.get(tcId) ?? [])].sort(([a, x], [b, y]) => (x.단계 === y.단계 ? a.localeCompare(b) : x.단계 < y.단계 ? -1 : 1));
 
   const 표: 맥락표 = new Map();
   for (const tcId of new Set([...요구들.keys(), ...화면들.keys(), ...서버들.keys(), ...첫단계들.keys()])) {
@@ -127,7 +128,8 @@ export function 맥락짓기(재료: 맥락재료): 맥락표 {
     const screens = (화면들.get(tcId) ?? []).sort((a, b) => 화면순(a).localeCompare(화면순(b)) || a.file.localeCompare(b.file));
     const 화면 = screens.find((s) => s.file.endsWith('.page.ts')) ?? null;
     const 조각 = screens.find((s) => s.file.endsWith('.component.ts')) ?? null;
-    const endpoints = 엔드포인트들(tcId);
+    const 부른것 = 엔드포인트들(tcId);
+    const endpoints = 부른것.map(([이름]) => 이름);
     const 엔드포인트 = endpoints[0] ?? null;
     표.set(tcId, {
       feature,
@@ -138,7 +140,7 @@ export function 맥락짓기(재료: 맥락재료): 맥락표 {
       자리: {
         차례: feature === null ? Infinity : 묶음차례.get(feature)!,
         // 엔드포인트 머리는 경로 차례 — 같은 경로의 GET · POST 가 이웃한다
-        화면차례: 화면 !== null ? 화면순(화면) : 엔드포인트 === null ? '' : 엔드포인트.replace(/^(\S+) (.*)$/, '$2 $1'),
+        화면차례: 화면 !== null ? 화면순(화면) : (부른것[0]?.[1].경로 ?? ''),
         screen: 화면?.file ?? null,
         screenUrl: 화면?.url ?? null,
         screenName: 화면?.name ?? null,

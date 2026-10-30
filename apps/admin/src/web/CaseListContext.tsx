@@ -18,7 +18,7 @@ const 조각글 = (머리: 묶음머리, file: string) => (머리.조각이름 =
 /** 머리 이름 — 기능 묶음 이름 · 화면 이름(없으면 주소 · 파일 이름) · 화면 조각 이름(없으면 파일 이름) */
 export function 머리이름(머리: 묶음머리, 없음글: string): string {
   if (머리.단 === 1) return 머리.값 ?? 없음글;
-  if (머리.조건.endpoint !== undefined) return 머리.조건.endpoint;
+  if (머리.단 === 2 && 머리.조건.endpoint !== undefined) return 머리.조건.endpoint;
   if (머리.단 === 2) return 화면글(머리, 머리.값 ?? '');
   return 조각글(머리, 머리.값 ?? '');
 }

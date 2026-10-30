@@ -89,7 +89,7 @@ export function 줄과머리(
     // API 애플리케이션은 화면 자리에 엔드포인트가 선다 — 한 케이스에 둘이 같이 오지 않는다 (도메인/카탈로그 §8.1 「맥락」)
     const 끝점 = g.endpoint ?? null;
     const s = g.screen !== null ? 열쇠('s', g.feature, g.screen) : 끝점 === null ? null : 열쇠('e', g.feature, 끝점);
-    const p = g.part === null ? null : 열쇠('p', g.feature, g.screen, g.part);
+    const p = g.part === null ? null : 열쇠('p', g.feature, g.screen, g.endpoint, g.part);
     const 머리 = (단: 1 | 2 | 3, 키: string, 값: string | null, ids: string[], 조건: 묶음자리, 위: string[]): 묶음머리 => ({
       단,
       열쇠: 키,
@@ -114,9 +114,9 @@ export function 줄과머리(
       끼우기(머리(2, s, g.screen ?? 끝점, ids, 조건, f === null ? [] : [f]));
     }
     if (p !== null && 새조각) {
-      const ids = 모으기((x) => x.feature === g.feature && x.screen === g.screen && x.part === g.part);
+      const ids = 모으기((x) => x.feature === g.feature && x.screen === g.screen && (x.endpoint ?? null) === 끝점 && x.part === g.part);
       // 화면 없이 조각만 쓰는 자리는 「화면 없음」(빈 글자)까지 건다 — 빼면 같은 조각을 쓰는 다른 화면 케이스까지 걸린다
-      const 조건 = { feature, screen: g.screen ?? '', part: g.part! };
+      const 조건 = { feature, screen: g.screen ?? '', ...(끝점 === null ? {} : { endpoint: 끝점 }), part: g.part! };
       끼우기(머리(3, p, g.part, ids, 조건, [f, s].filter((x) => x !== null)));
     }
     칸들.push({ row, 위: [f, s, p].filter((x) => x !== null) });
