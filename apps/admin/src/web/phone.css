@@ -603,6 +603,17 @@ a.sheet-row[aria-current='page'] {
     transition: transform var(--t2) var(--ease);
   }
 
+  /* 새 작성 서랍은 값을 넣는 폼이라 전체 화면이다. 끌다가 쓴 값을 잃지 않게 손잡이를 숨긴다 — 닫기 단추 · Esc 로만 닫힌다 */
+  .drawer.authoring-drawer {
+    top: 0;
+    max-height: none;
+    border-radius: 0;
+  }
+
+  .authoring-drawer > .sheet-grab {
+    display: none;
+  }
+
   /* 고르기 바는 아래 탭 자리를 덮는다 — 아래에 붙고 폭을 다 쓰고, 단추가 같은 폭으로 나란하다 (DESIGN.md 「고르기 바」) */
   .ph .pick-bar {
     position: fixed;
