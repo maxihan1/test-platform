@@ -112,4 +112,24 @@ export const 대시보드말: Record<string, string> = {
 
   // 실패 이유 읽기 (2026-10-19 ⑫-3 · 도메인/실행 §8.3)
   '테스트와 실패 유형': 'Test and failure type',
+
+  // 검토할 것 (2026-10-30 WEB-F7-06)
+  '검토할 것': 'To review',
+  '건': 'items',
+  '직전 실행에서는 통과': 'Passed in the previous run',
+  '테스트 작성에서 고를 것': 'Waiting for your pick in test authoring',
+  '서버 · 테스트 실행기에 닿지 못함': 'Could not reach the server or test runner',
+
+  // 종류별 칸
+  '브라우저별 결과': 'Results by browser',
+  '기기별 결과': 'Results by device',
+  '창별 결과': 'Results by window',
+  '엔드포인트별 결과': 'Results by endpoint',
+  '모바일 · Chromium': 'Mobile · Chromium',
+  '디바이스 정보 없음': 'No device info',
+  '기기 정보 없음': 'No device info',
+  '창 정보 없음': 'No window info',
+  '최근 {일}일 결과가 없습니다': 'No results in the last {일} days',
+  '엔드포인트': 'Endpoint',
+  '95% 응답': 'p95 response',
 };
