@@ -4,6 +4,7 @@ import { 고치기상한 } from '../authoring/edit.js';
 
 import { 고른것고치기 } from './CaseBulkEdit.js';
 import { use말 } from './i18n.js';
+import { use휴대폰 } from './phone.js';
 import type { 판정 } from './role.js';
 import type { useRunPick } from './useRunPick.js';
 
@@ -70,11 +71,13 @@ export function 고르기바({
 }) {
   const t = use말();
   const 수 = 뽑기.모두 ? 전체 : 뽑기.고른.size;
+  // 휴대폰 바는 아래 탭 자리를 덮고 단추가 같은 폭으로 나란하다 — 긴 글은 단추를 밀어내 「모두 N건」으로 줄인다 (DESIGN.md 「고르기 바」)
+  const 휴대폰 = use휴대폰();
   // 고른 것으로 할 일이 하나도 없는 사람에게는 마지막 줄을 가리는 빈 바를 띄우지 않는다
   if (수 === 0 || (!할수('실행') && !할수('작성요청'))) return null;
   return (
     <div className="pick-bar" role="toolbar" aria-label={t('고른 케이스')}>
-      <span>{뽑기.모두 ? t('조건에 맞는 {수}건 모두 고름', { 수 }) : t('{수}건 고름', { 수 })}</span>
+      <span>{뽑기.모두 ? (휴대폰 ? t('모두 {수}건', { 수 }) : t('조건에 맞는 {수}건 모두 고름', { 수 })) : t('{수}건 고름', { 수 })}</span>
       {!할수('실행') ? null : (
         <button type="button" className="btn" onClick={() => void 뽑기.고른모으기()} disabled={뽑기.모으는중}>
           {t('실행')}

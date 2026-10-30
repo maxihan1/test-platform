@@ -1,6 +1,6 @@
 // 메뉴 아이콘 — 패키지 없이 SVG 를 직접 둔다 (DESIGN.md 원칙 5). 글자를 대신하지 않고 곁에 선다
 
-export type 아이콘이름 = 'dashboard' | 'cases' | 'prd' | 'api' | 'authoring' | 'scenarios' | 'runs' | 'perf' | 'graph' | 'settings' | 'run' | 'bell' | 'person' | 'desktop' | 'web' | 'phone' | 'game' | 'sun' | 'moon' | 'search' | 'chev' | 'project';
+export type 아이콘이름 = 'dashboard' | 'cases' | 'prd' | 'api' | 'authoring' | 'scenarios' | 'runs' | 'perf' | 'graph' | 'settings' | 'run' | 'bell' | 'person' | 'desktop' | 'web' | 'phone' | 'game' | 'sun' | 'moon' | 'search' | 'chev' | 'project' | 'menu';
 
 // 24 격자 · 선 1.8 · 둥근 끝. 색은 글자를 따른다(currentColor) — 지금 자리면 글자와 같이 밝아진다
 const 그림: Record<아이콘이름, React.ReactNode> = {
@@ -156,6 +156,8 @@ const 그림: Record<아이콘이름, React.ReactNode> = {
       <path d="M3 13l9 5 9-5" />
     </>
   ),
+  // 세 줄 — 휴대폰 아래 탭 「전체」. 누르면 메뉴판이 올라온다
+  menu: <path d="M4 7h16M4 12h16M4 17h16" />,
 };
 
 /** 꾸밈이라 화면 읽기에서 숨긴다 — 이름은 곁의 글자가 말한다. 접힌 사이드바에서도 글자는 0 크기로 남아 읽힌다 */

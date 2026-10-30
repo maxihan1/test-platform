@@ -42,8 +42,8 @@ function 밝기를적는다(값: 밝기): void {
   }
 }
 
-/** 사이드바 바닥 단추. 지금 아닌 쪽 아이콘을 보인다(어둡게면 해) */
-export function 밝기단추() {
+/** 사이드바 바닥 단추. 지금 아닌 쪽 아이콘을 보인다(어둡게면 해). 휴대폰 메뉴판은 줄이라 `글자` 로 이름까지 적는다 */
+export function 밝기단추({ 글자 = false }: { 글자?: boolean }) {
   const t = use말();
   const [지금, set지금] = useState(지금밝기);
   const 다음: 밝기 = 지금 === 'dark' ? 'light' : 'dark';
@@ -61,6 +61,7 @@ export function 밝기단추() {
       }
     >
       <아이콘 이름={다음 === 'light' ? 'sun' : 'moon'} />
+      {글자 ? (다음 === 'light' ? t('밝게 보기') : t('어둡게 보기')) : null}
     </button>
   );
 }

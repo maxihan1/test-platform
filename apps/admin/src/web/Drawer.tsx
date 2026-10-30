@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { 상자열렸나 } from './Modal.js';
+import { use휴대폰 } from './phone.js';
+import { 손잡이, use끌어닫기 } from './Sheet.js';
 
 interface Props {
   onClose: () => void;
@@ -43,8 +45,13 @@ export function Drawer({ onClose, children, className, ...속성 }: Props) {
     return () => document.removeEventListener('keydown', 누름);
   }, []);
 
+  // 휴대폰에서는 아래에서 올라오는 판이라 손잡이로 끌어 닫는다 (DESIGN.md 「휴대폰의 창」 「서랍」)
+  const 휴대폰 = use휴대폰();
+  const 끌기 = use끌어닫기(() => 닫기.current());
+
   return (
-    <aside ref={서랍} tabIndex={-1} className={className === undefined ? 'drawer' : `drawer ${className}`} {...속성}>
+    <aside ref={서랍} tabIndex={-1} className={className === undefined ? 'drawer' : `drawer ${className}`} style={휴대폰 ? 끌기.판 : undefined} {...속성}>
+      {휴대폰 ? <손잡이 끌기={끌기} /> : null}
       {children}
     </aside>
   );

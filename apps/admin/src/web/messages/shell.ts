@@ -57,18 +57,16 @@ export const 껍데기말: Record<string, string> = {
   '설정에서 자기 자신을 프로젝트에 배정하세요': 'Assign yourself to a project in Settings',
   '운영 계정에게 프로젝트 배정을 요청하세요': 'Ask an admin to assign you a project',
 
-  // 휴대폰 껍데기 · PC 전용 안내 (PhoneShell.tsx · 화면공통 §8 「휴대폰 화면」)
+  // 휴대폰 껍데기 — 위 줄 · 아래 탭 · 전체 메뉴판 (PhoneShell.tsx · 화면공통 §8 「휴대폰 화면」)
   '내 메뉴': 'My menu',
   '휴대폰 메뉴': 'Phone menu',
-  '이 화면은 PC 에서 엽니다': 'This screen opens on a computer',
-  '「{이름}」 화면은 PC 에서 엽니다': '“{이름}” opens on a computer',
-  '휴대폰에서는 실행 결과 확인 · 진행 상황 · 다시 실행만 합니다. 같은 주소를 PC 에서 여세요':
-    'On a phone you check results, follow progress and rerun. Open the same address on a computer',
-  '주소 복사': 'Copy address',
-  '주소를 복사했습니다': 'Address copied',
-  '주소를 복사하지 못했습니다. 주소창에서 직접 복사하세요': "Couldn't copy the address. Copy it from the address bar",
-  '실행 기록으로': 'Go to run history',
-  '대시보드로': 'Go to dashboard',
+  테스트: 'Tests',
+  '결정 필요 {수}건': '{수} need a decision',
+  '전체 메뉴': 'All menus',
+  '애플리케이션 바꾸기 · {프로젝트}': 'Switch application · {프로젝트}',
+  '{이름} 메뉴': '{이름} menu',
+  // 휴대폰 고르기 바 — 단추가 같은 폭으로 나란해 「조건에 맞는 N건 모두 고름」을 줄였다 (CaseListPick.tsx)
+  '모두 {수}건': 'All {수}',
 
   // 본문 위 알림 줄과 알림 서랍 (noticeView.ts · Notice.tsx · NoticeDrawer.tsx). 실행 문구는 runs.ts 의 `RUN {번호} 실행 …` 을 같이 쓴다
   '{수} 통과': '{수} passed',

@@ -11,6 +11,7 @@ import { 결과라벨 } from './CaseListParts.js';
 import { use말 } from './i18n.js';
 import { 종류 } from './kind.js';
 import { use휴대폰 } from './phone.js';
+import { 손잡이, use끌어닫기 } from './Sheet.js';
 import { PLATFORM_LABEL } from './ui.js';
 
 const 결과칩: (ItemStatus | 'ALL')[] = ['ALL', 'PASS', 'FAIL', 'NA'];
@@ -161,6 +162,8 @@ export function 필터판({ 조건들, 건수 }: { 조건들: 필터조건[]; �
     set열림(false);
     단추.current?.focus();
   }
+  // 휴대폰에서는 아래 판이라 손잡이를 끌어 내려도 닫힌다 (DESIGN.md 「휴대폰의 창」)
+  const 끌기 = use끌어닫기(닫기);
 
   useEffect(() => {
     if (!열림) return;
@@ -199,8 +202,9 @@ export function 필터판({ 조건들, 건수 }: { 조건들: 필터조건[]; �
           role="dialog"
           aria-labelledby={머리id}
           tabIndex={-1}
-          style={휴대폰 || 자리 === null ? undefined : { top: 자리.top, right: 자리.right, maxHeight: `calc(100vh - ${자리.top + 16}px)` }}
+          style={휴대폰 ? 끌기.판 : 자리 === null ? undefined : { top: 자리.top, right: 자리.right, maxHeight: `calc(100vh - ${자리.top + 16}px)` }}
         >
+          {휴대폰 ? <손잡이 끌기={끌기} /> : null}
           <div className="filter-pop-head">
             <b id={머리id}>{t('필터')}</b>
             <span>{t('고른 조건에 맞는 케이스만 목록에 남습니다')}</span>

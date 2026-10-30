@@ -1,4 +1,4 @@
-/* 휴대폰 껍데기 — 위 줄 · 아래 탭 · 실행 기록 하위 줄 · PC 전용 안내 · 붙는 「실패 N건 다시 실행」 · 아래 판 모달
+/* 휴대폰 껍데기 — 위 줄 · 아래 탭 다섯 · 아래 판(메뉴판 · 고르기 판) · 표 카드 줄 · 붙는 「실패 N건 다시 실행」 · 창 · 서랍 · 고르기 바
    (SPEC 공통/5-화면공통 §8 「휴대폰 화면」 · DESIGN.md 「반응형」 · 「모달」). 색은 토큰만 쓴다.
    PhoneShell 은 창 620px 미만에서만 그려진다(phone.ts) — `.ph` 아래 규칙은 미디어 질의 없이 둔다 */
 
@@ -8,93 +8,132 @@
   align-items: center;
   gap: 8px;
   margin: calc(-1 * var(--body-pad-top)) -16px 12px;
-  padding: 10px 16px;
-  background: var(--rail);
+  padding: 8px 12px;
+  background: var(--panel);
   border-bottom: 1px solid var(--line);
 }
 
-.ph-top .side-pick {
+/* 애플리케이션 고르개 — 누르면 고르기 판이 올라온다 (DESIGN.md 「휴대폰(창 620px 미만) 껍데기」) */
+.ph-app {
   flex: 1;
   min-width: 0;
-}
-
-.ph-top .side-svc-name,
-.ph-gap {
-  flex: 1;
-}
-
-/* 사람 버튼 — 펼침(details)이라 따로 닫는 버튼이 없다. 다시 누르거나 자리를 옮기면 접힌다 */
-.ph-me {
-  position: relative;
-  flex: none;
-}
-
-.ph-me summary {
-  list-style: none;
+  min-height: 46px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 46px;
-  height: 46px;
-  border: 1px solid var(--line-2);
-  border-radius: 4px;
+  gap: 8px;
+  padding: 5px 10px 5px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--well);
   color: var(--ink);
+  font: inherit;
+  text-align: left;
   cursor: pointer;
 }
 
-.ph-me summary::-webkit-details-marker {
-  display: none;
+.ph-app-text {
+  min-width: 0;
+  display: grid;
 }
 
-.ph-me summary:focus-visible {
+.ph-app-text b {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ph-app-text small {
+  font-size: 10.5px;
+  color: var(--ink-faint);
+}
+
+.ph-app-chev {
+  margin-left: auto;
+  color: var(--ink-faint);
+}
+
+.ph-app-none {
+  flex: 1;
+  color: var(--ink-faint);
+}
+
+/* 알림 종 — Notice 가 그린 버튼이다(.nt-btn). 글자는 읽기 프로그램에만 남기고 안 읽은 수는 대표색 점으로 줄인다 */
+.ph-bell .nt-btn {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  margin: 0;
+  padding: 0;
+  justify-content: center;
+  background: transparent;
+  border-color: transparent;
+  color: var(--ink-muted);
+}
+
+.ph-bell .nt-btn-text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.ph-bell .nt-badge {
+  position: absolute;
+  top: 11px;
+  right: 11px;
+  width: 7px;
+  min-width: 0;
+  height: 7px;
+  padding: 0;
+  border: 2px solid var(--panel);
+  border-radius: 50%;
+  font-size: 0;
+}
+
+/* 내 동그라미 — 누르면 내 메뉴가 아래 판으로 올라온다 */
+.ph-me {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.ph-me span {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--well);
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ph-app:focus-visible,
+.ph-me:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
 
-.ph-me[open] summary {
-  background: var(--well);
-}
-
-.ph-me-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 40;
-  width: 240px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 14px;
-  background: var(--panel);
-  border: 1px solid var(--line-2);
-  border-radius: 8px;
-  box-shadow: var(--shadow);
-}
-
-/* 손가락으로 누르는 자리 — 46 인 까닭은 화면공통 §8 「휴대폰 화면」 */
-.ph-me-menu > a,
-.ph-me-menu > .btn {
-  display: flex;
-  align-items: center;
-  min-height: 46px;
-}
-
-.ph-me-menu .side-lang {
-  padding: 8px 0 0;
-  border-top-color: var(--line);
-}
-
-.ph-me-menu .side-lang select {
-  min-height: 46px;
-}
-
-/* 알림 줄은 위에 붙이지 않는다 — PC 는 「알림」 버튼을 남기려고 붙였는데 휴대폰에서는 그 버튼이 아래 탭에 있고,
-   두 줄짜리 알림이 내리는 내내 화면 위 1/6 을 덮었다 (2026-10-12 390 실측) */
+/* 알림 줄은 위에 붙이지 않는다 — 두 줄짜리 알림이 내리는 내내 화면 위 1/6 을 덮었다 (2026-10-12 390 실측) */
 .ph .nt-top {
   position: static;
 }
 
-/* 알릴 줄이 없으면 버튼은 아래 탭에 가 있어 이 상자가 빈다 — 빈 띠를 남기지 않는다 */
+/* 알릴 줄이 없으면 버튼은 위 줄에 가 있어 이 상자가 빈다 — 빈 띠를 남기지 않는다 */
 .ph .nt-top:empty {
   display: none;
 }
@@ -124,7 +163,7 @@
   color: var(--ink);
 }
 
-/* 아래 탭 — 화면 바닥에 붙는다. 칸은 같은 폭, 아이콘 위 · 글자 아래 */
+/* 아래 탭 다섯 — 화면 바닥에 붙는다. 칸은 같은 폭, 아이콘 20px 위 · 글자 10.5px 아래 */
 .ph-tabs {
   position: fixed;
   right: 0;
@@ -132,105 +171,328 @@
   left: 0;
   z-index: 30;
   display: flex;
-  background: var(--rail);
-  border-top: 1px solid var(--line-2);
+  background: var(--panel);
+  border-top: 1px solid var(--line);
 }
 
 .ph-tabs > a,
-.ph-slot {
+.ph-tabs > button {
+  position: relative;
   flex: 1 1 0;
   min-width: 0;
-  display: flex;
-}
-
-/* 알림 통로가 막힌 사람 · 서비스가 없는 사람은 Notice 가 버튼을 안 그린다 — 빈 칸이 탭 한 칸을 차지하지 않게 */
-.ph-slot:empty {
-  display: none;
-}
-
-/* 「알림」 탭은 Notice 가 그린 버튼이다(.nt-btn) — 본문 위 버튼 모양을 걷고 탭 모양을 입힌다 */
-.ph-tabs a,
-.ph-tabs .nt-btn {
-  position: relative;
-  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 3px;
   min-height: var(--ph-tabs);
   margin: 0;
   padding: 6px 0;
   background: transparent;
   border: 0;
-  border-radius: 0;
   color: var(--ink-faint);
-  font-size: 11.5px;
+  font: inherit;
+  font-size: 10.5px;
   text-decoration: none;
+  cursor: pointer;
+  transition: transform var(--t1) var(--ease);
 }
 
-.ph-tabs .nt-btn .side-ico {
+.ph-tabs > a:active,
+.ph-tabs > button:active {
+  transform: scale(0.96);
+}
+
+.ph-tabs .side-ico {
   width: 20px;
   height: 20px;
 }
 
-.ph-tabs a[aria-current='page'],
-.ph-tabs .nt-btn[aria-expanded='true'] {
-  color: var(--ink);
+/* 지금 탭은 대표색 글자 · 600 이다 (화면공통 §8 「대표색」 · 2026-10-30 — 앞 판은 윗막대) */
+.ph-tabs > a[aria-current='page'],
+.ph-tabs > button[aria-expanded='true'] {
+  color: var(--link);
   font-weight: 600;
 }
 
-/* 지금 탭은 위쪽 대표색 막대 — 사이드바 지금 자리 막대와 같은 자리다 (화면공통 §8 「대표색」) */
-.ph-tabs a[aria-current='page']::before {
-  content: '';
-  position: absolute;
-  top: -1px;
-  right: 30%;
-  left: 30%;
-  height: 3px;
-  background: var(--accent-mark);
-}
-
-.ph-tabs a:focus-visible,
-.ph-tabs .nt-btn:focus-visible {
+.ph-tabs > a:focus-visible,
+.ph-tabs > button:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: -2px;
 }
 
-.ph-tabs .nt-badge {
+/* `작성` 탭의 결정 필요 수 */
+.ph-badge {
   position: absolute;
   top: 4px;
   left: calc(50% + 6px);
+  padding: 0 5px;
+  border-radius: 99px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 9.5px;
+  font-weight: 600;
+  line-height: 15px;
 }
 
-/* PC 전용 화면 안내 — 본문 가운데 한 장 */
-.pc-only {
+/* ── 아래 판(Sheet.tsx) — 전체 메뉴판 · 애플리케이션 고르기 · 내 메뉴 ── */
+.sheet-back {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
   display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 32px 8px;
-  text-align: center;
+  align-items: flex-end;
+  background: var(--scrim);
+  animation: 나타남 var(--t2) linear;
 }
 
-.pc-only .side-ico {
-  align-self: center;
-  width: 44px;
-  height: 44px;
+.sheet {
+  width: 100%;
+  max-height: 86%;
+  overflow-y: auto;
+  padding: 0 14px 24px;
+  background: var(--panel);
+  border-radius: 16px 16px 0 0;
+  box-shadow: var(--shadow);
+  animation: 판올라옴 var(--t3) var(--ease);
+  transition: transform var(--t2) var(--ease);
+}
+
+.sheet:focus {
+  outline: none;
+}
+
+@keyframes 판올라옴 {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+/* 손잡이 — 끌어 내리면 닫힌다. 누르는 자리는 막대보다 넓게 잡는다 */
+.sheet-grab {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 10px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.sheet-grab::before {
+  content: '';
+  width: 40px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--line-2);
+}
+
+.sheet-h {
+  margin: 12px 4px 6px;
   color: var(--ink-faint);
-}
-
-.pc-only h1 {
-  font-size: 18px;
+  font-size: 12px;
   font-weight: 600;
 }
 
-.pc-only p {
+/* 애플리케이션 칸 — 네 칸 격자, 지금 칸은 대표색 2px 안쪽 테두리 */
+.sheet-apps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.sheet-apps button {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  min-height: 46px;
+  padding: 10px 4px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--well);
+  color: var(--ink);
+  font: inherit;
+  font-size: 11px;
+  line-height: 1.3;
+  text-align: center;
+  cursor: pointer;
+}
+
+.sheet-apps button span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sheet-apps button b {
+  color: var(--ink-faint);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10.5px;
+  font-weight: 500;
+}
+
+.sheet-apps button[aria-current='page'] {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+/* 메뉴 · 계정 줄 */
+.sheet-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 46px;
+  padding: 0 8px;
+  border-radius: 8px;
+  color: var(--ink);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.sheet-row > .side-ico {
   color: var(--ink-muted);
 }
 
-.pc-only .btn {
-  justify-content: center;
+a.sheet-row[aria-current='page'] {
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+
+.sheet-group {
+  min-height: 36px;
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+
+.sheet-ext {
+  margin-left: auto;
+  color: var(--ink-faint);
+  font-size: 12px;
+}
+
+/* 묶음 하위는 두 칸 격자로 다 편다 */
+.sheet-subs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 0 0 6px 36px;
+}
+
+.sheet-subs a {
+  display: flex;
+  align-items: center;
   min-height: 46px;
+  padding: 0 10px;
+  border-radius: 8px;
+  background: var(--well);
+  color: var(--ink);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.sheet-subs a[aria-current='page'] {
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+
+/* 계정 — 프로젝트 고르개 · 밝기 · 언어는 줄 안에서 폭을 다 쓴다 */
+.sheet-row .side-pick,
+.sheet-row select {
+  flex: 1;
+  min-width: 0;
+  min-height: 46px;
+}
+
+.sheet-row .theme-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 46px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+}
+
+.sheet-row.side-lang {
+  padding-top: 0;
+  border-top: 0;
+}
+
+/* 내 메뉴 — PC 와 같은 줄들(ShellMe 의 내메뉴항목) */
+.sheet-me {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sheet-me .rail-me-who {
+  display: grid;
+  padding: 4px 8px 10px;
+}
+
+.sheet-me .rail-me-who small {
+  color: var(--ink-faint);
+}
+
+.sheet-me > a,
+.sheet-me > button {
+  display: flex;
+  align-items: center;
+  min-height: 46px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  text-decoration: none;
+}
+
+.sheet-me .side-lang select {
+  min-height: 46px;
+}
+
+/* ── 표는 카드 줄이다 — 칸 이름 줄을 숨기고 칸을 한 줄씩 쌓는다. 칸 이름은 표에라벨을단다(phone.ts)가 붙인 data-label ── */
+.ph table,
+.ph tbody,
+.ph tr,
+.ph td,
+.ph tbody th {
+  display: block;
+  width: auto !important;
+}
+
+.ph thead {
+  display: none;
+}
+
+.ph tbody tr {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.ph tbody tr:last-child {
+  border-bottom: 0;
+}
+
+.ph tbody td,
+.ph tbody th {
+  padding: 2px 0;
+  border: 0;
+  text-align: left;
+}
+
+.ph td[data-label]::before,
+.ph tbody th[data-label]::before {
+  content: attr(data-label);
+  display: block;
+  color: var(--ink-faint);
+  font-size: 11.5px;
+  font-weight: 400;
 }
 
 /* 실행 결과의 「실패 N건 다시 실행」. PC 에서는 머리 행동 줄의 버튼 하나다 */
@@ -298,5 +560,85 @@
     max-width: none;
     border-bottom: 0;
     border-radius: 16px 16px 0 0;
+    padding-top: 0;
+    transition: transform var(--t2) var(--ease);
+  }
+
+  /* 값을 넣는 창(실행 창)은 전체 화면이다 — 높이를 다 쓰고 모서리가 없다. 주 단추 줄은 화면 아래에 붙어 키보드가 올라와도 남는다 */
+  .modal-back:has(.modal.full) {
+    padding: 0;
+  }
+
+  .modal.full {
+    height: 100%;
+    max-height: none;
+    padding-top: 20px;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .modal.full .modal-body {
+    flex: 1;
+  }
+
+  /* 단추는 엄지가 닿는 아래에 세로로 쌓는다. 주 단추(PC 오른쪽 끝 = 마지막)가 맨 아래다 */
+  .modal-foot {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .modal-foot .btn {
+    width: 100%;
+    min-height: 46px;
+    justify-content: center;
+  }
+
+  /* 서랍(상세 칸)은 아래에서 올라오는 판이다 — PC 는 오른쪽 */
+  .drawer {
+    top: auto;
+    max-height: 86vh;
+    border-left: 0;
+    border-radius: 16px 16px 0 0;
+    animation: 판올라옴 var(--t3) var(--ease);
+    transition: transform var(--t2) var(--ease);
+  }
+
+  /* 새 작성 서랍은 값을 넣는 폼이라 전체 화면이다. 끌다가 쓴 값을 잃지 않게 손잡이를 숨긴다 — 닫기 단추 · Esc 로만 닫힌다 */
+  .drawer.authoring-drawer {
+    top: 0;
+    max-height: none;
+    border-radius: 0;
+  }
+
+  .authoring-drawer > .sheet-grab {
+    display: none;
+  }
+
+  /* 고르기 바는 아래 탭 자리를 덮는다 — 아래에 붙고 폭을 다 쓰고, 단추가 같은 폭으로 나란하다 (DESIGN.md 「고르기 바」) */
+  .ph .pick-bar {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 31;
+    width: auto;
+    max-width: none;
+    min-height: var(--ph-tabs);
+    margin: 0;
+    flex-wrap: nowrap;
+    padding: 6px 12px;
+    border-radius: 0;
+  }
+
+  .ph .pick-bar > span {
+    flex: none;
+    white-space: nowrap;
+  }
+
+  .ph .pick-bar .btn {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 44px;
+    justify-content: center;
   }
 }
