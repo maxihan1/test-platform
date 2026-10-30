@@ -38,7 +38,7 @@ describe.skipIf(연결 === undefined)('대시보드 종류별 칸', () => {
   async function 실행(서비스번호: number): Promise<number> {
     const r = await pool.query<{ run_id: string }>(
       `INSERT INTO test_run (title, triggered_by, env, status, service_id, service_name, tests_repo, base_url, kind, started_at, finished_at)
-       VALUES ('XDY 실행', 'xdy', 'qa', 'FINISHED', $1, '', '', '', 'FN', now() - interval '1 hour', now() - interval '55 minutes')
+       VALUES ('XDY 실행', 'xdy', 'qa', 'FINISHED', $1, 'XDY', '', '', 'FN', now() - interval '1 hour', now() - interval '55 minutes')
        RETURNING run_id`,
       [서비스번호],
     );

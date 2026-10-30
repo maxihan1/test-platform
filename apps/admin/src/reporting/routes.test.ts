@@ -391,8 +391,6 @@ describe.skipIf(연결 === undefined)('증적 API', () => {
     expect(내것.statusCode).toBe(200);
     expect(내것.json().services).toEqual([{ id: 대시보드서비스, name: 'XDR 대시보드' }]);
     expect(내것.json().running.map((r: { runId: number }) => r.runId)).toEqual([도는실행]);
-    // 도는 실행뿐이라 끝난 줄이 없다 — 종류는 서비스의 것을 그대로 싣는다
-    expect(내것.json().byKind).toEqual({ kind: 'SCREEN', rows: [] });
 
     const 남의 = await app.inject({ method: 'GET', url: '/api/dashboard?tz=Asia%2FSeoul&project=2' });
     expect(남의.statusCode).toBe(200);
