@@ -14,11 +14,40 @@ import { Failed, Loading, PLATFORM_LABEL, useAsync } from './ui.js';
  */
 export function 증거본문({ item, 화면숨김 = false }: { item: RunItemDetail; 화면숨김?: boolean }) {
   const t = use말();
+
+  return (
+    <div className="fc-body">
+      <사전입력 item={item} />
+
+      <div className="fc-steps">
+        {item.steps.length === 0 ? (
+          <span className="fc-faint">{t('실행된 절차가 없습니다.')}</span>
+        ) : (
+          item.steps.map((step) => (
+            <Step
+              key={step.seq}
+              step={step}
+              tcId={item.tcId}
+              runId={item.runId}
+              historyId={item.historyId}
+              코드={false}
+              화면={!화면숨김}
+            />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** 사전조건 · 입력값 두 줄 — 실패 카드는 그 아래에 절차 대신 시간축 증거를 단다 */
+export function 사전입력({ item }: { item: RunItemDetail }) {
+  const t = use말();
   const 언어 = use언어();
   const 입력 = fieldsOf(item.params, item.paramSchema, 언어);
 
   return (
-    <div className="fc-body">
+    <>
       <div className="fc-sec">
         <span className="fc-k">{t('사전조건')}</span>
         {item.precondition.length === 0 ? (
@@ -45,25 +74,7 @@ export function 증거본문({ item, 화면숨김 = false }: { item: RunItemDeta
           ))
         )}
       </div>
-
-      <div className="fc-steps">
-        {item.steps.length === 0 ? (
-          <span className="fc-faint">{t('실행된 절차가 없습니다.')}</span>
-        ) : (
-          item.steps.map((step) => (
-            <Step
-              key={step.seq}
-              step={step}
-              tcId={item.tcId}
-              runId={item.runId}
-              historyId={item.historyId}
-              코드={false}
-              화면={!화면숨김}
-            />
-          ))
-        )}
-      </div>
-    </div>
+    </>
   );
 }
 

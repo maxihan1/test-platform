@@ -7,12 +7,17 @@ import { use말 } from './i18n.js';
 
 const MB = (bytes: number): string => `${(bytes / 1024 / 1024).toFixed(1)}MB`;
 
-/** @param 주소 파일 이름으로 원본 주소를 만든다 — 앱 항목과 E2E 시나리오(시나리오에 한 벌)가 통로만 다르다 */
-export function 팜증적({ 주소, files }: { 주소: (name: string) => string; files: 팜파일[] }) {
+export const 팜영상인가 = (f: 팜파일): boolean => f.name.endsWith('.mp4');
+
+/**
+ * @param 주소 파일 이름으로 원본 주소를 만든다 — 앱 항목과 E2E 시나리오(시나리오에 한 벌)가 통로만 다르다
+ * @param 보일 실패 카드의 증거 칸은 영상 · logcat 을 탭으로 나눠 한쪽만 그린다
+ */
+export function 팜증적({ 주소, files, 보일 }: { 주소: (name: string) => string; files: 팜파일[]; 보일?: 'video' | 'log' }) {
   const t = use말();
   if (files.length === 0) return null;
-  const 영상 = files.filter((f) => f.name.endsWith('.mp4'));
-  const 로그 = files.filter((f) => !f.name.endsWith('.mp4'));
+  const 영상 = 보일 === 'log' ? [] : files.filter(팜영상인가);
+  const 로그 = 보일 === 'video' ? [] : files.filter((f) => !f.name.endsWith('.mp4'));
   return (
     <div className="farm-ev">
       {영상.length === 0 ? null : (

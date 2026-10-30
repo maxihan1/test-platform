@@ -68,6 +68,7 @@ import './prd.css';
 import './apidoc.css';
 import './guide.css';
 import './itemTrace.css';
+import './runEvidence.css';
 import './runList.css';
 import './caseList.css';
 import './casePick.css';

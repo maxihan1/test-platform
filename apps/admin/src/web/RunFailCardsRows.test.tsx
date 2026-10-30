@@ -197,7 +197,7 @@ describe('묶인 칸의 화면은 실패한 절차 것만 (실행 §8.3)', () =>
     );
 
     await screen.findByRole('article');
-    const 묶음사진 = [...document.querySelectorAll('.fc-shots img')].map((img) => img.getAttribute('src'));
+    const 묶음사진 = [...document.querySelectorAll('.ev-pane img')].map((img) => img.getAttribute('src'));
     expect(묶음사진).toEqual([`/api/screenshots/${RUN_ID}/11/2.png`, `/api/screenshots/${RUN_ID}/12/2.png`]);
   });
 });

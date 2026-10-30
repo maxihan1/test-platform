@@ -1,0 +1,260 @@
+/* 실행 결과의 「실패 원인」 판과 실패 카드의 시간축 증거 (RunFailCards.tsx · RunEvidence.tsx · WEB-F7-13 · 시안 11판 「실행 결과」).
+   판은 테두리 면, 고른 원인 · 고른 단계는 고른 표시(대표색 옅은 바탕), 실패는 판정 색이다 (DESIGN 원칙 1 · 2) */
+
+.fc-causes {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.fc-causes-h {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+.fc-causes-h span {
+  color: var(--ink-faint);
+  font-size: 12px;
+}
+.fc-cause {
+  display: grid;
+  grid-template-columns: 36px 130px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  width: 100%;
+  padding: 8px 16px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--t1) var(--ease);
+}
+.fc-cause:last-child {
+  border-bottom: 0;
+}
+.fc-cause:hover {
+  background: var(--well);
+}
+.fc-cause[aria-pressed='true'] {
+  background: var(--accent-soft);
+}
+.fc-cause:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+.fc-cause-n {
+  font-size: 20px;
+  text-align: right;
+  color: var(--fail-text);
+}
+.fc-cause.env .fc-cause-n {
+  color: var(--ink-muted);
+}
+.fc-cause-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.fc-cause-type::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fail);
+}
+.fc-cause.env .fc-cause-type::before {
+  background: var(--na);
+}
+.fc-cause-tcs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+.fc-cause-tcs .mono {
+  background: var(--well);
+  border-radius: 4px;
+  padding: 1px 6px;
+  color: var(--ink-muted);
+}
+
+/* 시간축 — 단계마다 걸린 시간만큼 폭을 받는다 */
+.ev {
+  container-type: inline-size;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+.ev-tl {
+  padding: 10px 14px 12px;
+  background: var(--well);
+  border-bottom: 1px solid var(--line);
+}
+.ev-tl-h {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  margin-bottom: 8px;
+}
+.ev-track {
+  display: flex;
+  gap: 2px;
+  height: 30px;
+}
+.ev-seg {
+  min-width: 18px;
+  height: 100%;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--pass) 50%, transparent);
+  background: color-mix(in srgb, var(--pass) 22%, var(--panel));
+  color: var(--ink);
+  font: inherit;
+  font-size: 11px;
+  padding: 0 8px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: left;
+  cursor: pointer;
+  transition: outline-color var(--t1) var(--ease);
+}
+.ev-seg.bad {
+  background: var(--fail-soft);
+  border-color: color-mix(in srgb, var(--fail) 60%, transparent);
+}
+.ev-seg[aria-pressed='true'] {
+  outline: 2px solid var(--accent-mark);
+  outline-offset: 1px;
+}
+.ev-seg:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+/* 단계 목록 · 증거 칸 두 단 — 좁으면 증거 칸이 아래로 */
+.ev-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+}
+.ev-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+.ev-steps li {
+  padding: 4px 14px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  transition: background-color var(--t1) var(--ease);
+}
+.ev-steps li:last-child {
+  border-bottom: 0;
+}
+.ev-steps li:hover {
+  background: var(--well);
+}
+.ev-steps li.on {
+  background: var(--accent-soft);
+}
+/* 확인 줄의 실패 바탕은 카드 본문 여백(24px)에 맞춰 빠져나온다 — 단계 줄 여백에 맞춘다 */
+.ev-steps .assert.bad {
+  margin: 4px -14px;
+  padding: 8px 14px 8px 42px;
+}
+/* 증거 바꾸기 — 고른 단계의 실패 확인 줄이 한 번 진하게 깜박인다 (DESIGN 원칙 4) */
+.ev-steps li.flash .assert.bad {
+  animation: 증거깜박 var(--t3) ease-out;
+}
+@keyframes 증거깜박 {
+  from {
+    background: color-mix(in srgb, var(--fail) 34%, var(--panel));
+  }
+  to {
+    background: var(--fail-soft);
+  }
+}
+
+.ev-view {
+  border-left: 1px solid var(--line);
+  min-width: 0;
+}
+.ev-view .trace-tabs {
+  padding: 0 10px;
+}
+.ev-pane {
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  min-width: 0;
+  overflow-x: auto;
+  /* 탭 · 단계가 바뀌면 겹쳐 바뀐다 (DESIGN 원칙 4 「증거 바꾸기」) */
+  animation: 나타남 var(--t2) var(--ease);
+}
+.ev-shot {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+.ev-shot img {
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.ev-shot figcaption {
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  text-align: center;
+}
+.ev-json {
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--well);
+  border-radius: 6px;
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+@container (max-width: 640px) {
+  .ev-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ev-view {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}
+
+@media (max-width: 640px) {
+  .fc-cause {
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 2px 10px;
+  }
+  .fc-cause-what {
+    grid-column: 2;
+  }
+  .fc-cause-tcs {
+    display: none;
+  }
+}

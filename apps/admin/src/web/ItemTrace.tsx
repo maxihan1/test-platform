@@ -33,12 +33,12 @@ export function ItemTraceSection({ trace }: { trace: ItemTrace | null }) {
   return (
     <div className="sec">
       <div className="sec-h">{t('네트워크 · 조작 · 콘솔')}</div>
-      {trace === null || trace.status !== 'DONE' ? <없음 trace={trace} /> : <기록 trace={trace} />}
+      {trace === null || trace.status !== 'DONE' ? <기록없음 trace={trace} /> : <기록 trace={trace} />}
     </div>
   );
 }
 
-function 없음({ trace }: { trace: ItemTrace | null }) {
+export function 기록없음({ trace }: { trace: ItemTrace | null }) {
   const t = use말();
   const [꼬리표, 글] =
     trace === null
@@ -124,7 +124,7 @@ function 빈표({ 칸 }: { 칸: number }) {
   );
 }
 
-function 네트워크표({ 줄들 }: { 줄들: 네트워크[] }) {
+export function 네트워크표({ 줄들 }: { 줄들: 네트워크[] }) {
   const t = use말();
   // 처음엔 본문이 있는 첫 실패 줄을 펴 둔다 — 실패를 가르는 재료가 거기 있다
   const [편, set편] = useState<Set<number>>(() => {
@@ -214,7 +214,7 @@ function 조작표({ 줄들 }: { 줄들: ItemTrace['actions'] }) {
   );
 }
 
-function 콘솔표({ 줄들 }: { 줄들: ItemTrace['console'] }) {
+export function 콘솔표({ 줄들 }: { 줄들: ItemTrace['console'] }) {
   const t = use말();
   return (
     <table className="trace-table">
