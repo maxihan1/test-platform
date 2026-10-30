@@ -131,6 +131,37 @@ describe('RunList 줄 (§8.7 「A안」)', () => {
     expect(둘?.querySelector('.run-tags')).toBeNull();
   });
 
+  it('해결도 꼬리표다 — 실패가 없어도 해결만 있으면 선다', async () => {
+    const { container } = await 그리기({
+      ...한쪽,
+      items: [실행(2134, 1, { change: { newFail: 1, stillFail: 0, fixed: 3 } }), 실행(2135, 0, { change: { newFail: 0, stillFail: 0, fixed: 2 } })],
+    });
+    await screen.findByText('ZRL 실행 2134');
+
+    const [첫, 둘] = 줄(container);
+    expect(첫?.querySelector('.run-tags')?.textContent).toBe('회귀 실패 1해결 3');
+    expect(둘?.querySelector('.fc-fixed')?.textContent).toBe('해결 2');
+  });
+
+  it('실행 위치 — 웹은 디바이스마다 브라우저, 앱 · 게임은 디바이스 팜과 폰 모델', async () => {
+    const { container } = await 그리기({
+      ...한쪽,
+      items: [
+        실행(2136, 0, { platforms: ['desktop', 'mobile'] }),
+        실행(2137, 0, { platforms: ['android'], devices: ['SM-S911N'] }),
+        실행(2138, 0, { platforms: ['android'], devices: ['Pixel 7', 'SM-S911N'] }),
+        실행(2139, 0, { platforms: ['android'], devices: [] }),
+      ],
+    });
+    await screen.findByText('ZRL 실행 2136');
+
+    const 글 = 줄(container).map((r) => r.querySelector('small')?.textContent ?? '');
+    expect(글[0]).toContain('qa · PC Chrome · 모바일 Safari · 김검사');
+    expect(글[1]).toContain('qa · 디바이스 팜 · SM-S911N · 김검사');
+    expect(글[2]).toContain('qa · 디바이스 팜 · Pixel 7 외 1대 · 김검사');
+    expect(글[3]).toContain('qa · 디바이스 팜 · 김검사');
+  });
+
   it('미확정은 「그중 미확정 N건」 한 줄이고 없으면 쓰지 않는다', async () => {
     const { container } = await 그리기({
       ...한쪽,

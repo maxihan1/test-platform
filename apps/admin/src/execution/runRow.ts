@@ -31,6 +31,9 @@ export const FAIL_CASE_COLUMNS = 디바이스차례
 
 export type RawFailCases = Record<`fail_${Platform}`, number>;
 
+// 실행 위치 「디바이스 팜 · 모델」 — 앱 · 게임 항목이 남긴 device 에서 읽는다. 웹 항목 · 연결이 안 열린 항목은 NULL 이라 빠진다 (실행 §8.7 「줄」)
+export const DEVICE_COLUMN = `COALESCE(array_agg(DISTINCT i.device->>'model' ORDER BY i.device->>'model') FILTER (WHERE i.device->>'model' <> ''), '{}') AS devices`;
+
 /** 그 실행에 든 디바이스만 키로 싣는다. 실패가 없으면 0 이다 (SPEC 실행 §7 `GET /api/runs`) */
 export function toFailCases(row: Pick<RawRun, 'platforms'> & RawFailCases): Partial<Record<Platform, number>> {
   return Object.fromEntries(디바이스차례.filter((p) => row.platforms.includes(p)).map((p) => [p, row[`fail_${p}`]]));

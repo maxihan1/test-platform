@@ -170,8 +170,11 @@ export interface RunSummary {
  * (도메인/실행 §7 `GET /api/runs`). 옛 가짜 응답을 안 고치려고 선택으로 둔다
  */
 export type RunListRow = RunSummary & {
-  change?: { newFail: number; stillFail: number } | null;
+  change?: { newFail: number; stillFail: number; fixed?: number } | null;
   failCases?: Partial<Record<Platform, number>>;
+  /** 그 실행에 든 디바이스와 앱 · 게임 항목을 돌린 폰 모델(글자 차례) — 줄의 실행 위치 (도메인/실행 §8.7 「줄」) */
+  platforms?: Platform[];
+  devices?: string[];
 };
 
 /**
