@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 
+import type { DeviceInfo } from '@platform/kit';
+
 import { api, type FailureDevice, type ItemTrace, type RunItemDetail, type StepResult } from './api.js';
 import { 팜영상인가, 팜증적 } from './FarmEvidence.js';
 import { use말, use언어 } from './i18n.js';
@@ -10,7 +12,7 @@ import { 기록없음, 네트워크표, 콘솔표 } from './ItemTrace.js';
 import { Failed, Loading, PLATFORM_LABEL, seconds, useAsync } from './ui.js';
 
 export type 증거종류 = 'web' | 'app' | 'api';
-type 탭 = 'shot' | 'net' | 'con' | 'log' | 'video' | 'req' | 'res' | 'diff';
+type 탭 = 'shot' | 'net' | 'con' | 'log' | 'video' | 'dev' | 'req' | 'res' | 'diff';
 
 /** 애플리케이션 종류를 따로 받지 않고 항목으로 가른다 — API 케이스만 절차에 요청 · 응답 원문을 남긴다 */
 export function 증거종류(item: RunItemDetail): 증거종류 {
@@ -102,6 +104,8 @@ function 증거칸({ devices, seq }: { devices: FailureDevice[]; seq: number }) 
             // 팜이 받아 둔 것만 탭이 선다 — 팜 기능 전 항목은 화면 하나다
             ...(팜.some((f) => !팜영상인가(f)) ? [{ id: 'log' as const, 이름: 'logcat' }] : []),
             ...(팜.some(팜영상인가) ? [{ id: 'video' as const, 이름: t('화면 영상') }] : []),
+            // 폰 연결이 열려 판을 읽은 항목만 — 이 칸 전 기록에는 없다
+            ...(devices.some((d) => d.device != null) ? [{ id: 'dev' as const, 이름: t('기기 정보') }] : []),
           ]
         : [
             { id: 'shot', 이름: t('화면') },
@@ -168,6 +172,8 @@ function 증거칸({ devices, seq }: { devices: FailureDevice[]; seq: number }) 
         ))}
       </>
     );
+  } else if (탭 === 'dev') {
+    본문 = devices.map((d) => <기기정보 key={d.platform} device={d.device ?? null} 이름={묶임 ? PLATFORM_LABEL[d.platform] : null} />);
   } else {
     본문 = <API증거 step={단계(devices[0]!)} 탭={탭} />;
   }
@@ -196,6 +202,26 @@ function 증거칸({ devices, seq }: { devices: FailureDevice[]; seq: number }) 
         {본문}
       </div>
     </div>
+  );
+}
+
+/** 못 읽은 칸은 「모름」 — 지어내지 않는다. 판은 실행 전체라 단계를 바꿔도 같다 */
+function 기기정보({ device, 이름 }: { device: DeviceInfo | null; 이름: string | null }) {
+  const t = use말();
+  const 모름 = t('모름');
+  const 앱 = [device?.appVersion ?? null, device?.appBuild == null ? null : t('빌드 {번호}', { 번호: device.appBuild })].filter((x) => x !== null);
+  return (
+    <>
+      {이름 === null ? null : <b>{이름}</b>}
+      <dl className="ev-dev">
+        <dt>{t('기기')}</dt>
+        <dd className="mono">{device?.model ?? 모름}</dd>
+        <dt>Android</dt>
+        <dd className="mono">{device?.osVersion ?? 모름}</dd>
+        <dt>{t('앱 버전')}</dt>
+        <dd className="mono">{앱.length === 0 ? 모름 : 앱.join(' · ')}</dd>
+      </dl>
+    </>
   );
 }
 

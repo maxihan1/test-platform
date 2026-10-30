@@ -80,4 +80,25 @@ describe('실패 카드의 시간축 증거 (WEB-F7-13)', () => {
     fireEvent.click(screen.getByRole('button', { name: '1단계 토큰을 받는다' }));
     expect(screen.getByText('이 단계는 기대값과 다른 곳이 없습니다')).toBeTruthy();
   });
+
+  it('앱 항목은 판을 읽었을 때만 「기기 정보」 탭이 서고 못 읽은 칸은 「모름」이다', async () => {
+    const 판 = { model: 'SM-S911N', osVersion: '14', appVersion: null, appBuild: '241' };
+    그리기(쪽([케이스('ZZI-0001', '주소 검색', [장치('android', 11, { device: 판 }, { steps: 화면단계들() })])]), [줄(11, 'ZZI-0001', 'android', 'FAIL')]);
+
+    fireEvent.click(await screen.findByRole('tab', { name: '기기 정보' }));
+    expect(screen.getByRole('tabpanel').textContent).toBe('기기SM-S911NAndroid14앱 버전빌드 241');
+  });
+
+  it('판을 못 읽은 앱 항목 · 웹 항목에는 「기기 정보」 탭이 없다', async () => {
+    그리기(
+      쪽([
+        케이스('ZZI-0001', '주소 검색', [장치('android', 11, { device: null }, { steps: 화면단계들() })]),
+        케이스('ZZI-0002', '장바구니', [장치('desktop', 12, {}, { steps: 화면단계들() })]),
+      ]),
+      [줄(11, 'ZZI-0001', 'android', 'FAIL'), 줄(12, 'ZZI-0002', 'desktop', 'FAIL')],
+    );
+
+    await screen.findAllByRole('group', { name: '단계 고르기' });
+    expect(screen.queryByRole('tab', { name: '기기 정보' })).toBeNull();
+  });
 });

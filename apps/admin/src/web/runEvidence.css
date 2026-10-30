@@ -224,6 +224,19 @@
   color: var(--ink-faint);
   text-align: center;
 }
+.ev-dev {
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 6px 14px;
+  font-size: 12.5px;
+}
+.ev-dev dt {
+  color: var(--ink-faint);
+}
+.ev-dev dd {
+  margin: 0;
+}
 .ev-json {
   margin: 0;
   padding: 10px 12px;
