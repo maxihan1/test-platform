@@ -74,6 +74,20 @@ describe('찾기 창', () => {
     expect(window.location.hash).toBe('#/cases/fn?q=ZSH-FN-001&case=ZSH-FN-001');
   });
 
+  it('말을 고친 직후에는 앞 말로 찾은 케이스를 보이지 않는다 — Enter 가 엉뚱한 케이스로 가지 않게', async () => {
+    vi.spyOn(api, 'cases').mockResolvedValueOnce(쪽(['ZSH-FN-001'])).mockReturnValueOnce(new Promise(() => {}));
+    띄운다();
+    fireEvent.click(screen.getByRole('button', { name: '찾기' }));
+    const 칸 = screen.getByRole('searchbox', { name: '찾을 말' });
+    fireEvent.change(칸, { target: { value: 'ZSH-FN' } });
+    await screen.findByText('ZSH-FN-001 이름');
+
+    fireEvent.change(칸, { target: { value: 'ZSH-UI' } });
+    expect(screen.queryByText('ZSH-FN-001 이름')).toBeNull();
+    fireEvent.keyDown(칸, { key: 'Enter' });
+    expect(window.location.hash).toBe('');
+  });
+
   it('케이스를 못 보는 사람은 메뉴만 찾는다 — 케이스 검색을 부르지 않는다', async () => {
     const 찾기 = vi.spyOn(api, 'cases').mockResolvedValue(쪽(['ZSH-FN-001']));
     띄운다(false);

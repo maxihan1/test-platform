@@ -105,7 +105,9 @@ function 찾기창({ 자리들, prefix, onClose }: { 자리들: readonly 자리[
     };
   }, [말, prefix, 언어]);
 
-  const 찾은것들: 찾은것[] = [...메뉴찾기(자리들, 말), ...케이스.map((it) => ({ 이름: it.name, 해시: 케이스주소(it.tcId), 번호: it.tcId }))];
+  // 앞 말로 찾은 케이스는 보이지 않는다 — 고친 직후 Enter 가 지금 말과 안 맞는 케이스로 갔다 (끝 검사 지적)
+  const 지금케이스 = 답한말 === 말.trim() ? 케이스 : [];
+  const 찾은것들: 찾은것[] = [...메뉴찾기(자리들, 말), ...지금케이스.map((it) => ({ 이름: it.name, 해시: 케이스주소(it.tcId), 번호: it.tcId }))];
   const 간다 = (해시: string) => {
     onClose();
     window.location.hash = 해시;
