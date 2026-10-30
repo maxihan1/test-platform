@@ -69,11 +69,14 @@ describe.skipIf(연결 === undefined)('대시보드 종류별 칸', () => {
     await 항목(앱실행, 'XDY-FN-002', 'FAIL', { platform: 'android', device: { model: 'Pixel 7', osVersion: '14' } });
     await 항목(앱실행, 'XDY-FN-002', 'FAIL', { platform: 'android', attempt: 2, device: { model: 'Galaxy A34', osVersion: '13' } });
     await 항목(앱실행, 'XDY-FN-003', 'NA', { platform: 'android' });
+    // 빈 모델 글자는 고르지 않는다 — 글자 차례로 맨 앞이라 진짜 모델을 가렸다
+    await 항목(앱실행, 'XDY-FN-004', 'PASS', { platform: 'android', device: { model: '', osVersion: '14' } });
+    await 항목(앱실행, 'XDY-FN-004', 'PASS', { platform: 'android', attempt: 2, device: { model: 'Pixel 7', osVersion: '14' } });
 
     const api실행 = await 실행(api);
     const 첫 = await 항목(api실행, 'XDYA-FN-001', 'PASS');
     await 항목(api실행, 'XDYA-FN-002', 'FAIL');
-    await 항목(api실행, 'XDYA-FN-003', 'PASS'); // 지도에 없는 케이스는 어느 줄에도 안 든다
+    await 항목(api실행, 'XDYA-FN-003', 'PASS'); // 지도에 없는 케이스는 「엔드포인트 정보 없음」 줄에 든다
     const 목록 = await pool.query<{ id: string }>(
       `INSERT INTO service_api (service_id, method, host, path) VALUES ($1, 'GET', 'api.x:3001', '/items'), ($1, 'POST', 'api.x:3001', '/items/:n'),
               ($1, 'DELETE', 'api.x:3001', '/items/:n') RETURNING id`,
@@ -121,18 +124,19 @@ describe.skipIf(연결 === undefined)('대시보드 종류별 칸', () => {
       kind: 'APP',
       rows: [
         { label: 'Galaxy A34 · Android 13', pass: 0, fail: 1, notRun: 0, p95Ms: null },
-        { label: 'Pixel 7 · Android 14', pass: 1, fail: 0, notRun: 0, p95Ms: null },
+        { label: 'Pixel 7 · Android 14', pass: 2, fail: 0, notRun: 0, p95Ms: null },
         { label: null, pass: 0, fail: 0, notRun: 1, p95Ms: null },
       ],
     });
   });
 
-  it('API 는 지도의 엔드포인트마다 거친 케이스를 세고 같은 틀의 요청 기록으로 95% 응답을 낸다', async () => {
+  it('API 는 지도의 엔드포인트마다 거친 케이스를 세고 같은 틀의 요청 기록으로 95% 응답을 내며, 지도에 없는 케이스는 맨 뒤 한 줄이다', async () => {
     expect((await 대시보드('UTC', [api], [], { 서비스: api })).byKind).toEqual({
       kind: 'API',
       rows: [
         { label: 'GET /items', pass: 1, fail: 0, notRun: 0, p95Ms: 120 },
         { label: 'POST /items/:n', pass: 1, fail: 1, notRun: 0, p95Ms: 400 },
+        { label: null, pass: 1, fail: 0, notRun: 0, p95Ms: null },
       ],
     });
   });

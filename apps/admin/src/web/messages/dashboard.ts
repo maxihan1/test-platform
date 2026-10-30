@@ -129,6 +129,7 @@ export const 대시보드말: Record<string, string> = {
   '디바이스 정보 없음': 'No device info',
   '기기 정보 없음': 'No device info',
   '창 정보 없음': 'No window info',
+  '엔드포인트 정보 없음': 'No endpoint info',
   '최근 {일}일 결과가 없습니다': 'No results in the last {일} days',
   '엔드포인트': 'Endpoint',
   '95% 응답': 'p95 response',

@@ -14,7 +14,7 @@ const 제목: Record<종류칸['kind'], string> = {
 
 // 러너 브라우저가 Chromium 하나라 디바이스 이름 뒤에 붙인다
 const 웹이름: Record<string, string> = { desktop: 'PC · Chromium', mobile: '모바일 · Chromium' };
-const 모름: Record<종류칸['kind'], string> = { SCREEN: '디바이스 정보 없음', APP: '기기 정보 없음', GAME: '창 정보 없음', API: '' };
+const 모름: Record<종류칸['kind'], string> = { SCREEN: '디바이스 정보 없음', APP: '기기 정보 없음', GAME: '창 정보 없음', API: '엔드포인트 정보 없음' };
 
 const 전체 = (줄: 종류칸['rows'][number]) => 줄.pass + 줄.fail + 줄.notRun;
 
@@ -50,9 +50,15 @@ export function 종류칸({ 칸, 일 }: { 칸: 종류칸; 일: number }) {
             {칸.rows.map((줄) => {
               const [method, ...경로] = (줄.label ?? '').split(' ');
               return (
-                <tr key={줄.label}>
+                <tr key={줄.label ?? ''}>
                   <td>
-                    <span className="dash-meth mono">{method}</span> <span className="mono">{경로.join(' ')}</span>
+                    {줄.label === null ? (
+                      이름(null)
+                    ) : (
+                      <>
+                        <span className="dash-meth mono">{method}</span> <span className="mono">{경로.join(' ')}</span>
+                      </>
+                    )}
                   </td>
                   <td className="r num">{응답시간(줄.p95Ms)}</td>
                   <td className="r num">

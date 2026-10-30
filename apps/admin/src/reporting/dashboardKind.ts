@@ -58,7 +58,7 @@ const 줄키 = (runId: number, tcId: string, platform: string) => `${String(runI
 async function 기기들(pool: Pool, runIds: number[]): Promise<Map<string, string | null>> {
   const { rows } = await pool.query<{ run_id: string; tc_id: string; platform: string; device: { model?: unknown; osVersion?: unknown } | null }>(
     `SELECT run_id, tc_id, platform,
-            (array_agg(device ORDER BY device->>'model') FILTER (WHERE device ? 'model'))[1] AS device
+            (array_agg(device ORDER BY device->>'model') FILTER (WHERE device->>'model' <> ''))[1] AS device
        FROM run_item WHERE run_id = ANY($1::bigint[])
       GROUP BY run_id, tc_id, platform`,
     [runIds],
@@ -131,7 +131,8 @@ export async function 종류칸읽기(pool: Pool, serviceId: number, kind: 애�
     return { kind, rows: 종류줄을센다(줄들, (줄) => [창.get(줄.tcId) ?? null]) };
   }
   const { 케이스, 걸린시간 } = await 엔드포인트들(pool, serviceId, runIds);
-  return { kind, rows: 종류줄을센다(줄들, (줄) => 케이스.get(줄.tcId) ?? [], 걸린시간) };
+  // 지도에 없는 케이스는 「엔드포인트 정보 없음」 한 줄로 — 빼면 지도를 아직 안 쌓은 애플리케이션이 「결과가 없습니다」로 읽힌다
+  return { kind, rows: 종류줄을센다(줄들, (줄) => 케이스.get(줄.tcId) ?? [null], 걸린시간) };
 }
 
 /** 서비스의 종류를 읽어 종류별 칸을 짓는다. 없는 서비스면 null */

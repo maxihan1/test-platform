@@ -5027,8 +5027,9 @@ details[open]:not(.ph-me)::details-content {
   background: var(--pass);
 }
 
+/* 낮음 표시는 판정이 아니다 — 미실행 색(--na)을 빌리지 않고 회색 단계로 */
 .dash-kind-bar i.lo {
-  background: var(--na);
+  background: var(--line-2);
 }
 
 .dash-meth {
@@ -6209,7 +6210,8 @@ button.dash-rv:focus-visible {
 /* 좁은 폭 규칙은 대시보드 기본 규칙들 **뒤**에 둔다 — 같은 우선순위는 뒤에 온 규칙이 이긴다.
    앞에 두었더니 `.dash-live` 기본 열(4칸)이 이겨 390 에서 실행 중 줄이 58px 로 눌렸다 (styles.test.ts 가 지킨다) */
 @container (max-width: 900px) {
-  .dash-board > * {
+  .dash-board > *,
+  .dash-board.has-kind > * {
     grid-column: 1 / -1;
     grid-row: auto;
   }
