@@ -19,7 +19,8 @@ import { 아이콘 } from './icons.js';
 import { Notice } from './Notice.js';
 import { use휴대폰 } from './phone.js';
 import { PhoneShell } from './PhoneShell.js';
-import { 기능보나, 할수있나 } from './role.js';
+import { 기능보나, 판정을만든다, 할수있나 } from './role.js';
+import { RunWatch } from './RunWatch.js';
 import { 찾기칸 } from './ShellFind.js';
 import { 서비스고르개, 프로젝트고르개 } from './ShellPickers.js';
 import { 사이드바머리, 왼쪽줄 } from './ShellRail.js';
@@ -71,11 +72,16 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
   // 대시보드는 여러 애플리케이션을 모으고, 설정은 안에서 애플리케이션을 따로 고르고, 비밀번호는 계정의 일이라 고른 애플리케이션과 상관없다
   const 앱과상관없다 = 대시보드인가 || current === '#/password' || current === '#/settings';
   const 본문 = <지금앱칸.Provider value={앱과상관없다 ? null : service}>{children}</지금앱칸.Provider>;
+  // 진행 알약 · 진행 창은 화면을 옮겨도 남는다 — 화면이 아니라 틀에 하나 둔다 (도메인/실행 §8.9)
+  const 진행알약 = <RunWatch 판정하기={(접두사) => 판정을만든다(user, 접두사)} />;
   if (휴대폰) {
     return (
-      <PhoneShell user={user} service={service} onService={onService} 언어={언어} on언어={on언어} onLogout={onLogout} current={current} 주소={주소} 사유={사유}>
-        {본문}
-      </PhoneShell>
+      <>
+        <PhoneShell user={user} service={service} onService={onService} 언어={언어} on언어={on언어} onLogout={onLogout} current={current} 주소={주소} 사유={사유}>
+          {본문}
+        </PhoneShell>
+        {진행알약}
+      </>
     );
   }
 
@@ -173,6 +179,7 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
             지어내는 대신 확실히 아는 것만 적는다 — 제품 이름과 지금 보고 있는 서비스 */}
         <footer className="foot">{제목}</footer>
       </div>
+      {진행알약}
     </div>
   );
 }

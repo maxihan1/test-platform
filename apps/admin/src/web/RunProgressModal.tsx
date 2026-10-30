@@ -246,6 +246,8 @@ export function RunProgressModal({
   진행목록,
   남은ms = null,
   onClose,
+  on멈추기,
+  on결과보기,
 }: {
   data: RunDetail;
   /** 러너에게 따로 물어 온 지금 절차들. 기본값을 두지 않는다 — 두면 호출부가 조회를 빠뜨려도
@@ -254,6 +256,10 @@ export function RunProgressModal({
   /** 서버가 잰 남은 시간. 모르면 null — 「계산 중」으로 적는다 */
   남은ms?: number | null;
   onClose: () => void;
+  /** 도는 동안 멈출 수 있는 사람에게만 준다. 없으면 버튼을 아예 두지 않는다 — 못 누르는 버튼을 놓지 않는다 */
+  on멈추기?: () => void;
+  /** 그 실행 화면 밖에서 뜬 완료 상자 — 「결과 보기」가 그 화면으로 간다. 없으면 이미 그 화면이라 닫기만 한다 (도메인/실행 §8.9) */
+  on결과보기?: () => void;
 }) {
   const t말 = use말();
   const 언어 = use언어();
@@ -263,11 +269,33 @@ export function RunProgressModal({
     <Modal
       제목={제목(data, 언어)}
       onClose={onClose}
-      // 도는 중에도 못 누르는 버튼을 놓지 않는다. 이 상자에서 사람이 할 수 있는 일은 닫는 것 하나뿐이다
       버튼={
-        <button className="btn" onClick={onClose}>
-          {도는가 ? t말('닫기') : t말('결과 보기')}
-        </button>
+        도는가 ? (
+          <>
+            {/* 멈추기 확인은 이 상자 위에 겹친다 (DESIGN.md 「휴대폰의 창」 — 창 위의 창은 ①끼리만) */}
+            {on멈추기 === undefined ? null : (
+              <button className="btn ghost" onClick={on멈추기}>
+                {t말('실행 중단')}
+              </button>
+            )}
+            <button className="btn" onClick={onClose} data-first>
+              {t말('닫기')}
+            </button>
+          </>
+        ) : on결과보기 === undefined ? (
+          <button className="btn" onClick={onClose}>
+            {t말('결과 보기')}
+          </button>
+        ) : (
+          <>
+            <button className="btn ghost" onClick={onClose}>
+              {t말('닫기')}
+            </button>
+            <button className="btn" onClick={on결과보기}>
+              {t말('결과 보기')}
+            </button>
+          </>
+        )
       }
     >
       {도는가 ? <진행내용 data={data} 진행목록={진행목록} 남은ms={남은ms} /> : <완료내용 data={data} onClose={onClose} />}
