@@ -101,4 +101,52 @@ describe('실패 카드의 시간축 증거 (WEB-F7-13)', () => {
     await screen.findAllByRole('group', { name: '단계 고르기' });
     expect(screen.queryByRole('tab', { name: '기기 정보' })).toBeNull();
   });
+
+  it('같은 단계를 다시 눌러도 단계 칸이 다시 깜박이고 포커스는 그 칸에 남는다', async () => {
+    그리기(쪽([케이스('ZZI-0001', '장바구니', [장치('desktop', 11, {}, { steps: 화면단계들() })])]), [줄(11, 'ZZI-0001', 'desktop', 'FAIL')]);
+
+    const 칸 = within(await screen.findByRole('group', { name: '단계 고르기' })).getByRole('button', { name: '1단계 장바구니 화면을 연다' });
+    칸.focus();
+    fireEvent.click(칸);
+    expect(칸.className).toBe('ev-seg flash-a');
+    fireEvent.click(칸);
+    expect(칸.className).toBe('ev-seg flash-b');
+    expect(document.activeElement).toBe(칸);
+  });
+
+  it('카드를 펼치면 항목 상세를 한 번 읽어 단계 칸 아래 요청마다 눈금을 긋고 실패한 요청은 따로 표시한다', async () => {
+    const 기록들 = 기록();
+    기록들.network.push({ ...기록들.network[1]!, atMs: 1520, status: 500 });
+    const 읽기 = vi.spyOn(api, 'item').mockResolvedValue({ ...상세(11, 'desktop', { steps: 화면단계들() }), trace: 기록들 });
+    그리기(쪽([케이스('ZZI-0001', '장바구니', [장치('desktop', 11, {}, { steps: 화면단계들() })])]), [줄(11, 'ZZI-0001', 'desktop', 'FAIL')]);
+
+    const 접이 = (await screen.findByRole('group', { name: '단계 고르기' })).closest('details')!;
+    접이.open = true;
+    fireEvent(접이, new Event('toggle'));
+
+    expect(await screen.findByText('실패한 요청')).toBeTruthy();
+    const 칸들 = [...document.querySelectorAll('.ev-ticks span')];
+    expect(칸들.map((칸) => 칸.querySelectorAll('i').length)).toEqual([1, 2]);
+    const 둘째 = [...칸들[1]!.querySelectorAll('i')];
+    expect(둘째.map((눈금) => [눈금.className, (눈금 as HTMLElement).style.left])).toEqual([
+      ['', '0%'],
+      ['bad', '50%'],
+    ]);
+
+    fireEvent.click(screen.getByRole('tab', { name: '네트워크' }));
+    expect(await screen.findAllByText('/api/cart/items/88')).toHaveLength(2);
+    expect(읽기).toHaveBeenCalledTimes(1);
+  });
+
+  it('API · 앱 케이스는 카드를 펼쳐도 항목 상세를 읽지 않고 눈금도 없다', async () => {
+    const 읽기 = vi.spyOn(api, 'item');
+    그리기(쪽([케이스('ZZI-0001', '주소 검색', [장치('android', 11, {}, { steps: 화면단계들() })])]), [줄(11, 'ZZI-0001', 'android', 'FAIL')]);
+
+    const 접이 = (await screen.findByRole('group', { name: '단계 고르기' })).closest('details')!;
+    접이.open = true;
+    fireEvent(접이, new Event('toggle'));
+
+    expect(읽기).not.toHaveBeenCalled();
+    expect(document.querySelector('.ev-ticks')).toBeNull();
+  });
 });

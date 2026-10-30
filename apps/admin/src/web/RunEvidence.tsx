@@ -1,15 +1,15 @@
 // 실패 카드 디바이스 칸의 시간축 증거 — 단계 띠 · 단계 목록 · 종류별 증거 칸이 고른 단계 하나를 같이 본다 (WEB-F7-13 · 시안 11판 「실행 결과」)
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { DeviceInfo } from '@platform/kit';
 
-import { api, type FailureDevice, type ItemTrace, type RunItemDetail, type StepResult } from './api.js';
+import { api, type FailureDevice, type ItemTrace, type RunItemDetail, type RunItemPage, type StepResult } from './api.js';
 import { 팜영상인가, 팜증적 } from './FarmEvidence.js';
 import { use말, use언어 } from './i18n.js';
 import { show, Step } from './ItemSteps.js';
 import { 기록없음, 네트워크표, 콘솔표 } from './ItemTrace.js';
-import { Failed, Loading, PLATFORM_LABEL, seconds, useAsync } from './ui.js';
+import { type Async, Failed, Loading, PLATFORM_LABEL, seconds, useAsync } from './ui.js';
 
 export type 증거종류 = 'web' | 'app' | 'api';
 type 탭 = 'shot' | 'net' | 'con' | 'log' | 'video' | 'dev' | 'req' | 'res' | 'diff';
@@ -31,6 +31,21 @@ export function 시간축증거({ devices }: { devices: FailureDevice[] }) {
   const [고른, set고른] = useState(() => 첫고름(대표.steps));
   // 고를 때마다 늘려 그 단계 줄을 새로 그린다 — 실패 확인 줄 깜박임이 다시 돈다(DESIGN 원칙 4 「증거 바꾸기」)
   const [깜박, set깜박] = useState(0);
+  const 웹 = 증거종류(대표) === 'web';
+  const 뿌리 = useRef<HTMLDivElement>(null);
+  // 항목 상세는 네트워크 눈금과 네트워크 · 콘솔 탭이 같이 쓴다. 카드를 펼칠 때 한 번 읽는다 — 접힌 카드까지 미리 읽으면 쪽 하나에 스무 번 부른다
+  const [읽음, set읽음] = useState(false);
+  const 상세 = useAsync(() => (읽음 ? api.item(대표.runId, 대표.historyId) : Promise.resolve(null)), [읽음, 대표.runId, 대표.historyId]);
+  useEffect(() => {
+    const 접이 = 뿌리.current?.closest('details');
+    if (!웹 || 접이 == null) return;
+    const 펼침 = (): void => {
+      if (접이.open) set읽음(true);
+    };
+    펼침();
+    접이.addEventListener('toggle', 펼침);
+    return () => 접이.removeEventListener('toggle', 펼침);
+  }, [웹]);
 
   if (대표.steps.length === 0 || 고른 === null) return <span className="fc-faint">{t('실행된 절차가 없습니다.')}</span>;
 
@@ -39,9 +54,14 @@ export function 시간축증거({ devices }: { devices: FailureDevice[] }) {
     set고른(seq);
     set깜박((n) => n + 1);
   };
+  // 짧은 단계도 누를 자리는 남긴다 — 눈금 줄도 같은 폭을 받아 단계 칸과 줄이 맞는다
+  const 폭 = (s: StepResult): number => Math.max(전체ms === 0 ? 1 : (s.durationMs / 전체ms) * 100, 2);
+  // 단추를 다시 그리면 포커스가 빠진다 — 이름이 다른 같은 깜박임 둘을 번갈아 걸어 다시 돌린다
+  const 깜박이 = 깜박 === 0 ? '' : 깜박 % 2 === 1 ? ' flash-a' : ' flash-b';
+  const 기록 = 상세.data?.trace ?? null;
 
   return (
-    <div className="ev">
+    <div className="ev" ref={뿌리}>
       <div className="ev-tl">
         <div className="ev-tl-h">
           <span>{t('시간축 · 단계를 누르면 증거 칸이 그 단계로 바뀝니다')}</span>
@@ -52,9 +72,8 @@ export function 시간축증거({ devices }: { devices: FailureDevice[] }) {
             <button
               key={s.seq}
               type="button"
-              className={s.status === 'FAIL' ? 'ev-seg bad' : 'ev-seg'}
-              // 짧은 단계도 누를 자리는 남긴다
-              style={{ flex: Math.max(전체ms === 0 ? 1 : (s.durationMs / 전체ms) * 100, 2) }}
+              className={(s.status === 'FAIL' ? 'ev-seg bad' : 'ev-seg') + (s.seq === 고른 ? 깜박이 : '')}
+              style={{ flex: 폭(s) }}
               aria-pressed={s.seq === 고른}
               aria-label={t('{번호}단계 {제목}', { 번호: s.seq, 제목: s.title })}
               title={`${String(s.seq)} ${s.title}`}
@@ -64,6 +83,7 @@ export function 시간축증거({ devices }: { devices: FailureDevice[] }) {
             </button>
           ))}
         </div>
+        {웹 ? <네트워크눈금 steps={대표.steps} trace={기록} 폭={폭} /> : null}
       </div>
 
       <div className="ev-grid">
@@ -79,13 +99,48 @@ export function 시간축증거({ devices }: { devices: FailureDevice[] }) {
             </li>
           ))}
         </ol>
-        <증거칸 devices={devices} seq={고른} />
+        <증거칸 devices={devices} seq={고른} 상세={상세} 읽기={() => set읽음(true)} />
       </div>
     </div>
   );
 }
 
-function 증거칸({ devices, seq }: { devices: FailureDevice[]; seq: number }) {
+/**
+ * 단계 칸 아래에 그 단계에서 보낸 요청마다 눈금 하나. 단계 안 자리는 그 단계의 첫 조작 · 요청부터 잰 시각이다
+ * ponytail: 단계가 시작한 시각을 따로 남기지 않아 첫 기록을 시작으로 본다 — 단계가 기다림으로 시작하면 눈금이 앞당겨진다. 단계 시작 시각을 남기면 그것으로 바꾼다
+ */
+function 네트워크눈금({ steps, trace, 폭 }: { steps: StepResult[]; trace: ItemTrace | null; 폭: (s: StepResult) => number }) {
+  const t = use말();
+  if (trace === null || trace.status !== 'DONE' || !trace.network.some((n) => n.seq !== null)) return null;
+  const 실패 = (n: ItemTrace['network'][number]): boolean => n.failure !== null || (n.status ?? 0) >= 400;
+  return (
+    <>
+      <div className="ev-ticks" aria-hidden="true">
+        {steps.map((s) => {
+          const 요청들 = trace.network.filter((n) => n.seq === s.seq);
+          const 시작 = Math.min(...[...요청들, ...trace.actions.filter((a) => a.seq === s.seq)].map((x) => x.atMs));
+          return (
+            <span key={s.seq} style={{ flex: 폭(s) }}>
+              {요청들.map((n, i) => (
+                <i
+                  key={i}
+                  className={실패(n) ? 'bad' : undefined}
+                  style={{ left: `${String(s.durationMs === 0 ? 0 : Math.min(100, ((n.atMs - 시작) / s.durationMs) * 100))}%` }}
+                />
+              ))}
+            </span>
+          );
+        })}
+      </div>
+      <div className="ev-tl-leg">
+        <span>{t('네트워크 요청')}</span>
+        <span className="bad">{t('실패한 요청')}</span>
+      </div>
+    </>
+  );
+}
+
+function 증거칸({ devices, seq, 상세, 읽기 }: { devices: FailureDevice[]; seq: number; 상세: Async<RunItemPage | null>; 읽기: () => void }) {
   const t = use말();
   const 대표 = devices[0]!.item;
   const 종류 = 증거종류(대표);
@@ -113,9 +168,6 @@ function 증거칸({ devices, seq }: { devices: FailureDevice[]; seq: number }) 
             { id: 'con', 이름: t('콘솔') },
           ];
   const [탭, set탭] = useState<탭>(탭들[0]!.id);
-  // 네트워크 · 콘솔은 실패 카드 통로에 없다 — 그 탭을 처음 누를 때 항목 상세를 한 번 읽는다. 카드마다 미리 읽으면 쪽 하나에 스무 번 부른다
-  const [읽음, set읽음] = useState(false);
-  const 상세 = useAsync(() => (읽음 ? api.item(대표.runId, 대표.historyId) : Promise.resolve(null)), [읽음, 대표.runId, 대표.historyId]);
   const 단계 = (d: FailureDevice): StepResult | undefined => d.item.steps.find((s) => s.seq === seq);
 
   let 본문;
@@ -190,7 +242,8 @@ function 증거칸({ devices, seq }: { devices: FailureDevice[]; seq: number }) 
             className="trace-tab"
             onClick={() => {
               set탭(x.id);
-              if (x.id === 'net' || x.id === 'con') set읽음(true);
+              // 네트워크 · 콘솔은 실패 카드 통로에 없다 — 펼치지 않은 채 탭을 누르면 여기서 읽는다
+              if (x.id === 'net' || x.id === 'con') 읽기();
             }}
           >
             {x.이름}

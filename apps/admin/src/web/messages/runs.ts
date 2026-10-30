@@ -200,6 +200,8 @@ export const 실행말: Record<string, string> = {
   '기기': 'Device',
   '앱 버전': 'App version',
   '모름': 'Unknown',
+  '네트워크 요청': 'Network request',
+  '실패한 요청': 'Failed request',
   '영상 보기': 'Watch recording',
   '영상을 열지 못했습니다': 'Could not open the recording',
   '{파일} 받기 ({크기})': 'Download {파일} ({크기})',
