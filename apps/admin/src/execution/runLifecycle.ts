@@ -69,13 +69,15 @@ export async function finishItem(historyId: number, 받은결과: ExecuteRespons
     // 아래 CLOSE_UNFINISHED와 같은 규칙이다 — 닫는 UPDATE에는 언제나 AND finished_at IS NULL 을 붙인다.
     // 사람이 멈춘 직후에는 그 항목의 러너 호출이 이미 나가 있어 응답이 뒤늦게 도착한다
     const closed = await client.query(
-      'UPDATE run_item SET status = $2, duration_ms = $3, error = $4, device = $5, finished_at = now() WHERE history_id = $1 AND finished_at IS NULL',
+      'UPDATE run_item SET status = $2, duration_ms = $3, error = $4, device = $5, element_checks = $6, finished_at = now() WHERE history_id = $1 AND finished_at IS NULL',
       [
         historyId,
         result.status,
         result.durationMs,
         result.error === undefined ? null : JSON.stringify(result.error),
         기기칸(result.device),
+        // 지도에는 열쇠마다 마지막 것만 남는다 — 항목에는 받은 줄을 그대로 둔다. 배열이 아니면 칸 제약에 걸려 판정까지 되돌려져 버린다
+        Array.isArray(result.elementChecks) && result.elementChecks.length > 0 ? JSON.stringify(result.elementChecks) : null,
       ],
     );
     if (closed.rowCount === 0) {
