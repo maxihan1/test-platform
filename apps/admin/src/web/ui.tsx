@@ -34,7 +34,7 @@ export const STATUS_COLOR: Record<ItemStatus, string> = {
   FAIL: 'var(--fail)',
   NA: 'var(--na)',
 };
-/** 글자로 쓸 때는 밝은 판이다 — 어두운 바탕에서 도형 색을 글자에 쓰면 줄 hover 위에서 4.5 를 못 넘는다 (DESIGN.md 「새 토큰」) */
+/** 글자로 쓸 때는 밝은 판이다 — 어두운 바탕에서 도형 색을 글자에 쓰면 줄 hover 위에서 4.5 를 못 넘는다 (DESIGN.md 「두 벌 토큰」) */
 export const STATUS_TEXT_COLOR: Record<ItemStatus, string> = {
   PASS: 'var(--pass-text)',
   FAIL: 'var(--fail-text)',

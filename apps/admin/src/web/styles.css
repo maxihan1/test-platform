@@ -790,7 +790,7 @@ select,
 .field textarea {
   font: inherit;
   font-size: 13px;
-  /* 판 안의 우묵한 자리다 (DESIGN.md 「새 토큰」 --well) */
+  /* 판 안의 우묵한 자리다 (DESIGN.md 「두 벌 토큰」 --well) */
   background: var(--well);
   color: var(--ink);
   border: 1px solid var(--line-2);
