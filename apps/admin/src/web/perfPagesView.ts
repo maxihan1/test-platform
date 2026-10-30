@@ -55,3 +55,16 @@ export function 페이지별최근(줄들: PageRow[]): PageRow[] {
   for (const 줄 of 줄들) if ((최근.get(줄.url)?.sec ?? -1) <= (줄.sec ?? 0)) 최근.set(줄.url, 줄);
   return [...최근.values()];
 }
+
+/** 표 위 숫자 칸 줄 — LCP · FCP 평균과 목표 넘은 페이지 (시안 11판 「페이지 성능」 · WEB-F7-16). 값이 없는 페이지는 평균에서 뺀다 */
+export function 숫자칸(줄들: PageRow[]): { lcp평균: number | null; fcp평균: number | null; 넘은: string[] } {
+  const 평균 = (v: (number | null)[]) => {
+    const 값 = v.filter((x): x is number => x !== null);
+    return 값.length === 0 ? null : 값.reduce((a, b) => a + b, 0) / 값.length;
+  };
+  return {
+    lcp평균: 평균(줄들.map((줄) => 줄.lcpMs)),
+    fcp평균: 평균(줄들.map((줄) => 줄.fcpMs)),
+    넘은: 줄들.filter((줄) => 줄.verdict === 'FAIL').map((줄) => 줄.name),
+  };
+}

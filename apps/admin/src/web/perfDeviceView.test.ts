@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { 기기숫자 } from './perfDeviceApi.js';
-import { 값글자, 벗어난지표, 조각찾기, 지금요약 } from './perfDeviceView.js';
+import { 값글자, 결과칸들, 벗어난지표, 조각찾기, 지금요약 } from './perfDeviceView.js';
 
 const t = (키: string, 값?: Record<string, string | number>) => 키.replace(/\{([^}]+)\}/g, (_, k: string) => String(값?.[k] ?? ''));
 const 줄 = (sec: number, fps: number | null, 덮: Partial<기기숫자> = {}): 기기숫자 => ({ serial: 'A', sec, loop: 1, segment: null, fps, jankPct: null, cpu: null, memMb: null, tempC: null, batteryPct: null, ...덮 });
@@ -42,5 +42,31 @@ describe('기기 성능 계산', () => {
     expect(값글자('MAX_MEM', 900, t)).toBe('900MB');
     expect(값글자('MAX_TEMP', 46.84, t)).toBe('46.8도');
     expect(값글자('AVG_FPS', null, t)).toBe('-');
+  });
+
+  it('결과 숫자 칸 — 앱 · 게임이 보는 숫자가 다르고, 기기가 여럿이면 가장 나쁜 기기 값과 그 기기 이름 · 목표를 단다 (WEB-F7-16)', () => {
+    const 요약 = (avgFps: number | null, avgCpu: number | null, maxMemMb: number | null, maxTempC: number | null) => ({ avgFps, low1Fps: null, maxTempC, maxMemMb, avgCpu });
+    const 결과 = {
+      devices: [
+        { serial: 'A', model: 'Galaxy S23', where: 'FARM' as const, launchMs: 1800, summary: 요약(54, 31, 412, 38), verdict: null },
+        { serial: 'B', model: 'Pixel 7', where: 'FARM' as const, launchMs: 2400, summary: 요약(41, 48, 380, null), verdict: null },
+      ],
+      metrics: [줄(0, 50, { jankPct: 2 }), 줄(1, 50, { jankPct: 4 }), 줄(0, 40, { serial: 'B', jankPct: 1 })],
+    };
+    const 목표들 = [{ metric: 'AVG_FPS' as const, op: '>=' as const, value: 45, source: 'MANUAL' as const }];
+    const 게임 = 결과칸들(true, 결과, 목표들, t);
+    expect(게임.map((칸) => [칸.이름, 칸.값, 칸.보조.join(' · '), 칸.나쁨])).toEqual([
+      ['평균 FPS', '41', 'Pixel 7 · 목표 45 이상', true],
+      ['프레임 드랍', '3%', 'Galaxy S23', false],
+      ['CPU 평균', '48%', 'Pixel 7', false],
+      ['메모리 최대', '412MB', 'Galaxy S23', false],
+    ]);
+    const 앱 = 결과칸들(false, { ...결과, devices: [결과.devices[0]!] }, [], t);
+    expect(앱.map((칸) => [칸.이름, 칸.값, 칸.보조.length])).toEqual([
+      ['CPU 평균', '31%', 0],
+      ['메모리 최대', '412MB', 0],
+      ['앱 실행 시간', '1.8초', 0],
+      ['최대 기기 온도', '38도', 0],
+    ]);
   });
 });

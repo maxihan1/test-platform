@@ -68,6 +68,7 @@ export const 성능기기말: Record<string, string> = {
   '메모리 최대': 'Peak memory',
   '앱 실행 시간': 'App launch time',
   '프레임 드랍': 'Frame drops',
+  'CPU 평균': 'Average CPU',
   '기기 온도': 'Device temperature',
   배터리: 'Battery',
   도: '°C',
