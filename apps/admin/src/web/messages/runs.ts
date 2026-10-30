@@ -17,10 +17,10 @@ export const 실행말: Record<string, string> = {
   '미확정': 'Unconfirmed',
 
   // 테스트 실행 (실행 창)
-  '▶ 시험해 보기': '▶ Try it',
+  '▶ 테스트 실행': '▶ Test run',
   '기록·리포트가 남지 않습니다': 'Leaves no record or report',
   '기록이 남습니다': 'Leaves a record',
-  '고급 · 시험해 보기 설정': 'Advanced · try-it settings',
+  '고급 · 테스트 실행 설정': 'Advanced · test-run settings',
   '열 주소': 'Address to open',
   '대기': 'Waiting',
   '실행 중': 'Running',
@@ -92,10 +92,16 @@ export const 실행말: Record<string, string> = {
   // 케이스 저장값 — 목록 줄과 한 건 실행 창이 같이 쓴다 (도메인/실행 §8.2)
   '저장값 · {누가} · {언제}': 'Saved · {누가} · {언제}',
   '저장한 값': 'Saved values',
-  '이 값을 저장': 'Save these values',
+  '묶음으로 저장': 'Save as a set',
+  '묶음 이름을 적으세요': 'Enter a set name',
+  // 실행 창 입력값 칸 아래 출처 줄 (도메인/실행 §8.10)
+  '코드 기본값과 다릅니다 · 이번 실행에만 씁니다': 'Differs from the code default · used for this run only',
+  '저장값과 다릅니다 · 이번 실행에만 씁니다': 'Differs from the saved values · used for this run only',
+  '이 값 저장': 'Save these values',
+  '결과가 남는 곳': 'Where results go',
+  '실행 기록에 새 RUN 으로 남습니다': 'Saved to run history as a new RUN',
   '저장값 지우기': 'Clear saved values',
   '저장값으로 저장했습니다.': 'Saved as the saved values.',
-  '이름을 비우면 저장값으로 저장합니다. 팀 모두와 정기 실행에 쓰입니다': 'Leave the name empty to save as the saved values, used by the whole team and scheduled runs',
   '이 이름의 묶음으로 따로 저장합니다': 'Saved separately as a set with this name',
   '지우기 확인': 'Confirm clear',
   '팀 모두와 정기 실행에 쓰입니다': 'Used by the whole team and scheduled runs',
@@ -277,6 +283,9 @@ export const 실행말: Record<string, string> = {
   // 실행 창을 고친 채 닫을 때 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
   '고친 값이 사라집니다': 'Your changes will be lost',
   '계속 고치기': 'Keep editing',
+  '고친 입력값이 저장되지 않았습니다': 'Your edited inputs are not saved',
+  '저장 안 하고 닫기': 'Close without saving',
+  '저장하고 닫기': 'Save and close',
 
   // 실패 이유 읽기 (2026-10-19 ⑫-3 · 도메인/실행 §8.3)
   '원문 보기': 'Show raw',

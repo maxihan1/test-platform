@@ -66,7 +66,8 @@ export function RunWindow({
   const t = use말();
   const 언어 = use언어();
   const 걸기 = useRunStart(on걸었다);
-  const [다시, set다시] = useState<CaseRow | null>(null);
+  // 저장값을 바꿔 새로 읽은 케이스. 여러 건 창도 줄마다 저장한다 (도메인/실행 §8.10)
+  const [다시, set다시] = useState<Record<string, CaseRow>>({});
   const [읽기오류, set읽기오류] = useState<string | undefined>(undefined);
   const 열기 = useAsync<연것>(async () => {
     // ponytail: 케이스마다 한 번씩 읽는다(같이 보낸다). 실패가 수백 건인 실행이 생기면 목록 통로에 tcId 거르개를 연다
@@ -106,9 +107,9 @@ export function RunWindow({
     };
   }, [tcIds.join(',')]);
 
-  // 저장값을 바꾼 한 건만 새로 읽은 것으로 갈아 낀다. 그릴 때마다 새 배열이면 창의 칸 계산이 매번 다시 돈다
+  // 저장값을 바꾼 케이스만 새로 읽은 것으로 갈아 낀다. 그릴 때마다 새 배열이면 창의 칸 계산이 매번 다시 돈다
   const 케이스들 = useMemo(
-    () => (열기.data === null ? [] : 열기.data.케이스들.map((c) => (c.tcId === 다시?.tcId ? 다시 : c))),
+    () => (열기.data === null ? [] : 열기.data.케이스들.map((c) => 다시[c.tcId] ?? c)),
     [열기.data, 다시],
   );
 
@@ -157,7 +158,7 @@ export function RunWindow({
       on다시읽기={(tcId) => {
         // 저장은 이미 됐다. 다시 읽기만 실패하면 「저장값 · 누가 · 언제」가 옛것이라는 사실을 창에 적는다
         set읽기오류(undefined);
-        api.caseOf(tcId).then(set다시, (err: unknown) => set읽기오류(message(err, 언어)));
+        api.caseOf(tcId).then((새) => set다시((전) => ({ ...전, [tcId]: 새 })), (err: unknown) => set읽기오류(message(err, 언어)));
       }}
       onRun={(요청) => void 걸기.걸기(rerunOf === undefined ? 요청 : { ...요청, rerunOf }).then((됨) => { if (됨) on걸림(); })}
     />

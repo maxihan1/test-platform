@@ -1,4 +1,4 @@
-// 실행 창 바닥 칸 — 반복 횟수 · 끝나면 Slack 으로 알리기 · 건수 풀이 · 시험해 보기와 실행 버튼 (도메인/실행 §8.2 · §8.10) · 고친 채 닫을 때 묻는 버튼 줄
+// 실행 창 바닥 칸 — 결과가 남는 곳 · 반복 횟수 · 끝나면 Slack 으로 알리기 · 건수 풀이 · 테스트 실행과 실행 버튼 (도메인/실행 §8.2 · §8.10) · 고친 채 닫을 때 묻는 버튼 줄
 // RunPickModal 이 300줄을 넘어 떼어 냈다 (2026-10-12 휴대폰 값 접기)
 
 import { useState } from 'react';
@@ -8,20 +8,44 @@ import { use말 } from './i18n.js';
 /**
  * 값을 고친 채 Esc · 취소로 닫으려 하면 버튼 줄이 한 번 묻는다. 상자 안에 상자를 겹쳐 열지 않는다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」).
  * 묻는 중의 Esc 는 「계속 고치기」다 — Esc 를 두 번 눌러 고친 값을 잃지 않게
+ *
+ * @param 저장하고닫기 저장할 권한이 있으면 준다 — 「저장하고 닫기」를 같이 묻는다 (도메인/실행 §8.10). 저장에 실패하면 창이 사유를 보이도록 묻기를 먼저 거둔다
  */
-export function use닫기묻기(고쳤나: boolean, onClose: () => void) {
+export function use닫기묻기(고쳤나: boolean, onClose: () => void, 저장하고닫기?: () => void) {
   const [묻나, set묻나] = useState(false);
   return {
     묻나,
     요청: () => (묻나 ? set묻나(false) : 고쳤나 ? set묻나(true) : onClose()),
     줄: (
-      <닫기묻는줄 on계속={() => set묻나(false)} on닫기={onClose} />
+      <닫기묻는줄
+        on계속={() => set묻나(false)}
+        on닫기={onClose}
+        on저장닫기={저장하고닫기 === undefined ? undefined : () => { set묻나(false); 저장하고닫기(); }}
+      />
     ),
   };
 }
 
-function 닫기묻는줄({ on계속, on닫기 }: { on계속: () => void; on닫기: () => void }) {
+function 닫기묻는줄({ on계속, on닫기, on저장닫기 }: { on계속: () => void; on닫기: () => void; on저장닫기: (() => void) | undefined }) {
   const t = use말();
+  if (on저장닫기 !== undefined) {
+    return (
+      <>
+        <span className="note" role="status">
+          {t('고친 입력값이 저장되지 않았습니다')}
+        </span>
+        <button className="btn ghost" onClick={on계속}>
+          {t('계속 고치기')}
+        </button>
+        <button className="btn ghost" onClick={on닫기}>
+          {t('저장 안 하고 닫기')}
+        </button>
+        <button className="btn" onClick={on저장닫기}>
+          {t('저장하고 닫기')}
+        </button>
+      </>
+    );
+  }
   return (
     <>
       {/* 오류가 아니라 묻는 글이라 실패 색을 쓰지 않는다 (DESIGN.md 원칙 1) */}
@@ -50,6 +74,12 @@ interface Props {
 export function 반복과알림({ repeat, on반복, slack칸, notifySlack, onSlack }: Props) {
   const t = use말();
   return (
+    <>
+    {/* 누르기 전에 결과를 어디서 찾을지 적는다 (도메인/실행 §8.10). 한 건이 앞 실행에 「다시 실행」으로 붙는 글은 서버가 붙인 뒤(WEB-F7-11 · 12) */}
+    <div className="mdest">
+      <span className="one-label">{t('결과가 남는 곳')}</span>
+      <span>{t('실행 기록에 새 RUN 으로 남습니다')}</span>
+    </div>
     <div className="mfoot">
       <label htmlFor="pick-repeat">{t('반복')}</label>
       {/* 새로 쓴 테스트가 매번 같은 결과를 내는지 여러 번 돌려 본다 (SPEC §3.2 · §5.2) */}
@@ -75,6 +105,7 @@ export function 반복과알림({ repeat, on반복, slack칸, notifySlack, onSla
         </label>
       )}
     </div>
+    </>
   );
 }
 
@@ -91,7 +122,7 @@ export function 건수풀이(
 }
 
 /**
- * 시험해 보기와 실행. 버튼 아래에 기록이 남는지를 화면 글자로 적는다 — 말풍선(title)만으로는 누르기 전에 못 읽는다.
+ * 테스트 실행과 실행. 버튼 아래에 기록이 남는지를 화면 글자로 적는다 — 말풍선(title)만으로는 누르기 전에 못 읽는다.
  * 설명은 버튼 밖에 둔다. 안에 넣으면 버튼 이름이 길어져 다른 자리가 이름으로 못 찾는다
  */
 export function 실행버튼들({
@@ -110,7 +141,7 @@ export function 실행버튼들({
     <>
       <span className="foot-act">
         <button className="btn ghost" onClick={on시험}>
-          {t('▶ 시험해 보기')}
+          {t('▶ 테스트 실행')}
         </button>
         <span className="hint">{t('기록·리포트가 남지 않습니다')}</span>
       </span>

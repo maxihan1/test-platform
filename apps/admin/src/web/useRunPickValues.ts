@@ -6,12 +6,21 @@ import { useMemo, useState } from 'react';
 import type { CaseRow } from './api.js';
 import { 채운글자 } from './caseValues.js';
 import type { 고친값표, 글자표 } from './pickRun.js';
-import { type Field, schemaToFields, toValues } from './schema.js';
+import { type Field, initialText, schemaToFields, toValues } from './schema.js';
 import { fieldErrors } from './validation.js';
 
 type 갈래 = 'params' | 'expected';
 type 칸글자 = { params: Record<string, string>; expected: Record<string, string> };
 export type 칸오류표 = Record<string, 칸글자 | undefined>;
+/** 칸 아래 출처 줄이 말할 것 — 저장값 · 코드 기본값 그대로 · 그것과 다름(이번 실행에만) · 이 창에서 방금 저장함 (도메인/실행 §8.10) */
+export type 출처상태 = 'source' | 'changed' | 'savedNow';
+
+const 같은글자 = (a: 칸글자, b: 칸글자) =>
+  (['params', 'expected'] as const).every((which) => {
+    const 왼 = a[which];
+    const 오른 = b[which];
+    return Object.keys({ ...왼, ...오른 }).every((key) => (왼[key] ?? '') === (오른[key] ?? ''));
+  });
 
 /**
  * @param 초기글자 목록 줄에서 이미 고쳐 둔 값(2026-09-21 ②) · 지난 실행의 값. **두 자리가 같은 표를 쓴다** —
@@ -23,6 +32,8 @@ export function useRunPickValues(케이스들: CaseRow[], 초기글자: 글자�
   const [글자, set글자] = useState(처음글자);
   // 한 건 창에서 묶음 · 저장값을 저장하다 서버가 준 칸별 사유 (SPEC §8.2). 칸을 고치면 옛 사유라 걷는다
   const [서버오류, set서버오류] = useState<Record<string, string>>({});
+  // 이 창에서 저장값으로 저장한 글자. 저장한 비밀값은 다시 읽어도 칸이 비어 와 저장값과 견주면 늘 「다름」이라 이것과도 견준다
+  const [저장한글자, set저장한글자] = useState<Record<string, 칸글자>>({});
 
   const 칸들 = useMemo(
     () =>
@@ -104,6 +115,53 @@ export function useRunPickValues(케이스들: CaseRow[], 초기글자: 글자�
     return 표;
   }
 
+  /** 칸이 지금 보이는 글자 */
+  function 보이는글자(tcId: string): 칸글자 {
+    return { params: 글자of(tcId, 'params'), expected: 글자of(tcId, 'expected') };
+  }
+
+  /** 저장값(없으면 코드 기본값)으로 채운 글자 — 창이 처음 칸을 채우는 규칙이고 「되돌리기」가 돌아갈 곳이다 */
+  function 기준글자(tcId: string): 칸글자 {
+    const 칸 = 칸들.get(tcId);
+    return { params: initialText(칸?.params ?? []), expected: initialText(칸?.expected ?? []) };
+  }
+
+  function 출처(tcId: string): 출처상태 {
+    const 지금 = 보이는글자(tcId);
+    const 저장한 = 저장한글자[tcId];
+    if (저장한 !== undefined && 같은글자(지금, 저장한)) return 'savedNow';
+    return 같은글자(지금, 기준글자(tcId)) ? 'source' : 'changed';
+  }
+
+  /**
+   * 이 창에서 고쳤고 저장값과도 다른 케이스 — 닫을 때 「저장하고 닫기」를 물을 것들.
+   * 목록 상세 칸에서 고쳐 온 값은 창을 닫아도 목록에 남아 넣지 않는다
+   */
+  const 안저장 = 케이스들
+    .map((c) => c.tcId)
+    .filter((tcId) => {
+      const 칸 = 칸들.get(tcId);
+      const 처음 = { params: 채운글자(칸?.params ?? [], 처음글자[tcId]?.params), expected: 채운글자(칸?.expected ?? [], 처음글자[tcId]?.expected) };
+      return !같은글자(보이는글자(tcId), 처음) && 출처(tcId) === 'changed';
+    });
+
+  /** 저장값으로 보낼 값. 안 고친 칸도 보이는 값 그대로 싣는다 — 고친 것만 실으면 「이 값 저장」이 빈 값을 저장한다 */
+  function 저장할값(tcId: string) {
+    const 칸 = 칸들.get(tcId);
+    return { params: toValues(칸?.params ?? [], 글자of(tcId, 'params')), expected: toValues(칸?.expected ?? [], 글자of(tcId, 'expected')) };
+  }
+
+  function 저장됨(tcId: string) {
+    set저장한글자((전) => ({ ...전, [tcId]: 보이는글자(tcId) }));
+  }
+
+  /** 고친 글자를 버려 저장값(없으면 코드 기본값)으로 돈다. 표에서 빼면 실행 요청에도 값이 안 실려 서버가 같은 저장값으로 채운다 */
+  function 되돌리기(tcId: string) {
+    손댐();
+    set서버오류({});
+    set글자((전) => Object.fromEntries(Object.entries(전).filter(([key]) => key !== tcId)));
+  }
+
   function 고치기(tcId: string, which: 갈래) {
     return (key: string, value: string) => {
       손댐();
@@ -125,6 +183,5 @@ export function useRunPickValues(케이스들: CaseRow[], 초기글자: 글자�
     });
   }
 
-  // 창에서 값을 고쳤나 — 고치면 늘 새 표가 된다. 목록 줄에서 고쳐 온 값은 고친 것으로 치지 않는다(창을 닫아도 목록에 남는다)
-  return { 칸들, 고친값, 오류, 글자of, 고치기, 불러오기, 칸오류, set서버오류, 고쳤나: 글자 !== 처음글자 };
+  return { 칸들, 고친값, 오류, 글자of, 고치기, 불러오기, 되돌리기, 칸오류, set서버오류, 출처, 안저장, 저장할값, 저장됨 };
 }
