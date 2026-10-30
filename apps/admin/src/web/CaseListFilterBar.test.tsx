@@ -106,6 +106,36 @@ describe('필터 판 — 닫기', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
+  it('바깥을 눌러 닫을 때는 포커스를 필터 단추로 끌어오지 않는다', () => {
+    그리기();
+    판열기();
+    const 바깥 = screen.getByText('바깥');
+
+    fireEvent.pointerDown(바깥);
+
+    expect(document.activeElement).not.toBe(필터단추());
+  });
+
+  it('판의 빈 곳을 눌러 포커스가 판에 있어도 Esc 로 닫힌다 — 판 자신이 포커스를 받는다', () => {
+    그리기();
+    const 판 = 판열기();
+    판.focus();
+    expect(document.activeElement).toBe(판);
+
+    fireEvent.keyDown(판, { key: 'Escape' });
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('탭으로 판 밖에 나가면 닫힌다', () => {
+    그리기();
+    const 판 = 판열기();
+
+    fireEvent.blur(within(판).getAllByRole('button')[0]!, { relatedTarget: document.body.appendChild(document.createElement('button')) });
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
   it('휴대폰에서는 맨 아래 「N건 보기」를 누르면 닫힌다', () => {
     vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener() {}, removeEventListener() {} }));
     그리기();

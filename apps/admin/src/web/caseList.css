@@ -140,7 +140,7 @@
   box-shadow: inset -3px 0 0 var(--accent-mark);
 }
 
-/* 마지막 결과 칩의 건수. 실패가 있으면 수만 판정 글자색 — 칩 바탕은 고른 것 표시라 칠하지 않는다 */
+/* 칩의 건수(상세의 판정 칩 · 필터 판의 API 서버 칩). 결과 탭은 아래 .result-tab .chip-n 이 맡는다. 실패가 있으면 수만 판정 글자색 — 칩 바탕은 고른 것 표시라 칠하지 않는다 */
 .chip .chip-n {
   margin-left: 2px;
   font-weight: 600;
@@ -252,10 +252,8 @@ button.smoke-chip:focus-visible {
   color: var(--fail-text);
 }
 
-/* 필터 단추와 판. 판은 단추 오른쪽 모서리에서 열린다 */
-.filter-menu {
-  position: relative;
-}
+/* 필터 단추와 판. 판은 단추 오른쪽 모서리에서 열린다 — 자리(top · right · 높이 상한)는 열 때 단추를 재서 CaseListFilterBar 가 준다.
+   absolute 로 두면 목록 판(.screen)의 overflow: hidden 에 잘려 낮은 창에서 아래 단추가 안 보였다 */
 
 .filter-btn .filter-n {
   margin-left: 6px;
@@ -269,9 +267,7 @@ button.smoke-chip:focus-visible {
 }
 
 .filter-pop {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 6px);
+  position: fixed;
   z-index: 20;
   width: 380px;
   max-width: calc(100vw - 32px);
@@ -302,6 +298,7 @@ button.smoke-chip:focus-visible {
   gap: 16px;
   padding: 14px 16px;
   max-height: 440px;
+  min-height: 0;
   overflow-y: auto;
 }
 

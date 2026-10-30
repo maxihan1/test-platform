@@ -145,11 +145,18 @@ export function 필터판({ 조건들, 건수 }: { 조건들: 필터조건[]; �
   const t = use말();
   const 휴대폰 = use휴대폰();
   const [열림, set열림] = useState(false);
+  // 판은 화면에 고정해 단추 아래에 띄운다 — 목록 판(.screen)이 넘침을 숨겨 그 안에 두면 낮은 창에서 판 아래가 잘렸다
+  const [자리, set자리] = useState<{ top: number; right: number } | null>(null);
   const 그릇 = useRef<HTMLSpanElement>(null);
   const 단추 = useRef<HTMLButtonElement>(null);
   const 머리id = useId();
   const 걸린수 = 조건들.filter((x) => x.걸림 !== null).length;
 
+  function 열기() {
+    const r = 단추.current?.getBoundingClientRect();
+    set자리(r === undefined ? null : { top: r.bottom + 6, right: window.innerWidth - r.right });
+    set열림(true);
+  }
   function 닫기() {
     set열림(false);
     단추.current?.focus();
@@ -158,8 +165,9 @@ export function 필터판({ 조건들, 건수 }: { 조건들: 필터조건[]; �
   useEffect(() => {
     if (!열림) return;
     그릇.current?.querySelector<HTMLButtonElement>('.filter-pop button')?.focus();
+    // 바깥을 눌러 닫을 때는 포커스를 단추로 끌어오지 않는다 — 누른 자리(결과 탭 · 칩의 ✕)에 남아야 한다
     const 바깥 = (e: PointerEvent) => {
-      if (!(e.target instanceof Node) || 그릇.current?.contains(e.target) !== true) 닫기();
+      if (!(e.target instanceof Node) || 그릇.current?.contains(e.target) !== true) set열림(false);
     };
     document.addEventListener('pointerdown', 바깥);
     return () => document.removeEventListener('pointerdown', 바깥);
@@ -175,13 +183,24 @@ export function 필터판({ 조건들, 건수 }: { 조건들: 필터조건[]; �
           닫기();
         }
       }}
+      // 탭으로 판 밖에 나가면 닫는다 — 열린 판이 포커스가 간 줄을 덮는다. relatedTarget 이 없는(빈 곳을 누른) 경우는 위 pointerdown 이 맡는다
+      onBlur={(e) => {
+        if (e.relatedTarget !== null && !e.currentTarget.contains(e.relatedTarget)) set열림(false);
+      }}
     >
-      <button ref={단추} type="button" className="btn ghost filter-btn" aria-haspopup="dialog" aria-expanded={열림} onClick={() => (열림 ? 닫기() : set열림(true))}>
+      <button ref={단추} type="button" className="btn ghost filter-btn" aria-haspopup="dialog" aria-expanded={열림} onClick={() => (열림 ? 닫기() : 열기())}>
         {t('필터')}
         {걸린수 === 0 ? null : <> <span className="filter-n">{걸린수}</span></>}
       </button>
       {!열림 ? null : (
-        <div className="filter-pop" role="dialog" aria-labelledby={머리id}>
+        // tabIndex -1 — 판의 빈 곳을 눌러도 포커스가 판에 남아 Esc 가 듣는다
+        <div
+          className="filter-pop"
+          role="dialog"
+          aria-labelledby={머리id}
+          tabIndex={-1}
+          style={휴대폰 || 자리 === null ? undefined : { top: 자리.top, right: 자리.right, maxHeight: `calc(100vh - ${자리.top + 16}px)` }}
+        >
           <div className="filter-pop-head">
             <b id={머리id}>{t('필터')}</b>
             <span>{t('고른 조건에 맞는 케이스만 목록에 남습니다')}</span>
@@ -220,8 +239,9 @@ function 조건줄({ 조건 }: { 조건: 필터조건 }) {
         {조건.이름}
       </span>
       <span className="chip-group">
-        {조건.칸들.map((칸) => (
-          <button type="button" className="chip" key={칸.글} aria-pressed={칸.눌림} onClick={칸.누르기}>
+        {/* 열쇠는 차례다 — API 서버 이름이 「전체」면 글자가 겹친다 */}
+        {조건.칸들.map((칸, i) => (
+          <button type="button" className="chip" key={i} aria-pressed={칸.눌림} onClick={칸.누르기}>
             {칸.글}
             {칸.수 === undefined ? null : <> <span className="chip-n">{칸.수}</span></>}
           </button>
