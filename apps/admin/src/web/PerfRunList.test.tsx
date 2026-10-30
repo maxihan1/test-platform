@@ -23,6 +23,7 @@ const 줄 = (덮: Partial<실행줄>): 실행줄 => ({
   origin: 'MANUAL',
   degraded: false,
   stopReason: null,
+  measures: null,
   ...덮,
 });
 
@@ -108,26 +109,36 @@ describe('성능 실행 기록 표', () => {
   });
 
   it('페이지 측정 줄은 종류 꼬리표가 「페이지 성능」이고 「측정 결과」를 누르면 페이지 성능 화면의 그 실행으로 간다', async () => {
-    await 그리기([줄({ id: 30, kind: 'PAGE', title: '', testType: null, degraded: null, summary: { peakVus: null, maxTps: null, p95Ms: null, errorRate: null } }), 줄({ id: 12 })]);
+    await 그리기([줄({ id: 30, kind: 'PAGE', title: '', testType: null, degraded: null, summary: { peakVus: null, maxTps: null, p95Ms: null, errorRate: null }, measures: { lcpAvgMs: 1870 } }), 줄({ id: 12 })]);
     const 페이지줄 = screen.getByRole('link', { name: 'PRF-0030' }).closest('tr')!;
     expect(screen.getByRole('link', { name: 'PRF-0030' }).getAttribute('href')).toBe('#/perf/pages?run=30');
     expect(within(페이지줄).getByText('페이지 성능', { selector: '.perf-tag' })).toBeTruthy();
     expect(within(페이지줄).getByRole('link', { name: '측정 결과' }).getAttribute('href')).toBe('#/perf/pages?run=30');
+    expect(페이지줄.textContent).toContain('LCP 평균 1.9초');
+    expect(페이지줄.textContent).not.toContain('명');
     expect(screen.getByRole('link', { name: 'PRF-0012' }).getAttribute('href')).toBe('#/perf/runs/12');
     expect(within(screen.getByRole('link', { name: 'PRF-0012' }).closest('tr')!).getByText('부하 테스트', { selector: '.perf-tag' })).toBeTruthy();
   });
 
+  const 기기수치 = { avgCpu: 31.04, maxMemMb: 412, avgFps: 54.26, jankPct: 3.1 };
+
   it('기기 측정 줄은 종류 꼬리표가 「앱 성능」이고 「측정 결과」를 누르면 기기 성능 화면의 그 실행으로 간다', async () => {
-    await 그리기([줄({ id: 40, kind: 'DEVICE', title: '', testType: null, degraded: null, summary: { peakVus: null, maxTps: null, p95Ms: null, errorRate: null } })]);
+    await 그리기([줄({ id: 40, kind: 'DEVICE', title: '', testType: null, degraded: null, summary: { peakVus: null, maxTps: null, p95Ms: null, errorRate: null }, measures: 기기수치 })]);
     const 기기줄 = screen.getByRole('link', { name: 'PRF-0040' }).closest('tr')!;
     expect(screen.getByRole('link', { name: 'PRF-0040' }).getAttribute('href')).toBe('#/perf/devices?run=40');
     expect(within(기기줄).getByText('앱 성능', { selector: '.perf-tag' })).toBeTruthy();
     expect(within(기기줄).getByRole('link', { name: '측정 결과' }).getAttribute('href')).toBe('#/perf/devices?run=40');
+    expect(기기줄.textContent).toContain('CPU 평균 31% · 메모리 최대 412MB');
+    expect(기기줄.textContent).not.toContain('FPS');
   });
 
   it('기기 측정 줄의 종류 꼬리표는 애플리케이션 종류를 따른다 — 게임이면 「게임 성능」', async () => {
-    await 그리기([줄({ id: 40, kind: 'DEVICE', title: '', testType: null, degraded: null, summary: { peakVus: null, maxTps: null, p95Ms: null, errorRate: null } })], { kind: 'GAME' } as ServiceRow);
-    expect(within(screen.getByRole('link', { name: 'PRF-0040' }).closest('tr')!).getByText('게임 성능', { selector: '.perf-tag' })).toBeTruthy();
+    await 그리기([줄({ id: 40, kind: 'DEVICE', title: '', testType: null, degraded: null, summary: { peakVus: null, maxTps: null, p95Ms: null, errorRate: null }, measures: 기기수치 }), 줄({ id: 41, kind: 'DEVICE', title: '', testType: null, degraded: null, measures: {} })], { kind: 'GAME' } as ServiceRow);
+    const 게임줄 = screen.getByRole('link', { name: 'PRF-0040' }).closest('tr')!;
+    expect(within(게임줄).getByText('게임 성능', { selector: '.perf-tag' })).toBeTruthy();
+    expect(게임줄.textContent).toContain('평균 FPS 54.3 · 프레임 드랍 3.1%');
+    expect(게임줄.textContent).not.toContain('CPU');
+    expect(screen.getByRole('link', { name: 'PRF-0041' }).closest('tr')!.querySelector('td[colspan="3"]')!.textContent).toBe('-');
   });
 
   it('실행이 없으면 안내를 한다', async () => {

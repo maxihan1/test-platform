@@ -178,6 +178,16 @@ export interface 실행줄 {
   origin: 'MANUAL' | 'SCHEDULED';
   degraded: boolean | null;
   stopReason: 중단사유;
+  /** 페이지 · 기기 측정의 핵심 수치 — 부하 실행은 null (§7 「실행 목록」). 기기가 여럿이면 가장 나쁜 기기 값이다 */
+  measures: 측정수치 | null;
+}
+
+export interface 측정수치 {
+  lcpAvgMs?: number | null;
+  avgCpu?: number | null;
+  maxMemMb?: number | null;
+  avgFps?: number | null;
+  jankPct?: number | null;
 }
 
 export interface 실행목표 extends Target {
