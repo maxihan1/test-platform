@@ -113,11 +113,23 @@ function 필드행(라벨: string, 칸: EvidenceField[], 빈말: string): string
   return [`    <div class="row">`, `      <div class="row-k">${라벨}</div>`, `      <div class="row-v">`, 값, `      </div>`, `    </div>`];
 }
 
+/** 한 건 실행이 덮은 항목의 머리 문구 — 이 블록이 다시 돈 결과이고 처음에는 어땠는지 같이 적는다 (도메인/리포팅 §8.4 「다시 실행이 붙은 실행」) */
+function 다시실행글(item: EvidenceItem): string {
+  const r = item.rerun;
+  return r === undefined ? '' : `<span class="axis">다시 실행 · ${안전(r.finishedAt)} · ${안전(r.triggeredBy)} · 원래 결과 ${판정글자[r.original.status]}</span>`;
+}
+
+/** 머리말 판정 한 줄 끝에 붙는 꼬리 — 덮인 항목이 없으면 빈 글자. 시각은 그중 가장 늦게 끝난 것이다 */
+export function 다시실행꼬리(items: EvidenceItem[]): string {
+  const 끝난때 = items.flatMap((i) => (i.rerun === undefined ? [] : [i.rerun.finishedAt])).sort();
+  return 끝난때.length === 0 ? '' : ` · 다시 실행 ${끝난때.length}건 포함 · 마지막 ${끝난때[끝난때.length - 1]}`;
+}
+
 /** 항목 한 줄 — 디바이스 · 회차 · 판정 · 소요 · 사유. 카드의 디바이스 머리 · 접힌 줄 · 부록 머리가 같은 줄이다 */
 export function 항목줄(item: EvidenceItem, 덧말 = ''): string {
   // 배지 옆에 붙인다. 떨어뜨리면 러너 고장과 사람이 멈춘 것을 구분할 수 없다 (SPEC §8.3)
   const 사유 = item.notRunReason === null ? '' : `<span class="not-run">${안전(item.notRunReason)}</span>`;
-  return `<span class="badge">${디바이스[item.platform]}</span><span class="badge">${item.attempt}회차</span>${판정(item.status)}${소요(item.durationMs)}${덧말}${사유}`;
+  return `<span class="badge">${디바이스[item.platform]}</span><span class="badge">${item.attempt}회차</span>${판정(item.status)}${소요(item.durationMs)}${덧말}${다시실행글(item)}${사유}`;
 }
 
 /**

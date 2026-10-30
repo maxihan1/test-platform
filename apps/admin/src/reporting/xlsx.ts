@@ -122,8 +122,15 @@ export async function renderXlsx(doc: EvidenceDocument, options: RenderOptions):
   // 머리행만 고정한다. 머리행 길이만큼 가로로 훑는 표라 머리가 흘러가면 무슨 칸인지 못 읽는다
   sheet.views = [{ state: 'frozen', ySplit: 1 }];
   // 「기기」는 종류 뒤 맨 끝이다 — E2E 엑셀과 같이 쓰는 머리행에 끼우면 그쪽 칸 위치가 밀린다 (APP-F1-05)
-  sheet.addRow([...머리행, '기기', '팜 기록']);
-  for (const item of doc.items) sheet.addRows(항목행들(doc, item).map((행) => [...행, doc.header.kind, item.device ?? null, item.farm ?? null]));
+  sheet.addRow([...머리행, '기기', '팜 기록', '다시 실행']);
+  // 한 건 실행이 덮은 디바이스는 원래 항목과 다시 돈 항목을 둘 다 펴고 맨 끝 칸으로 가른다. 앞 묶음 칸은 원래 실행 것이다 (도메인/리포팅 §8.4)
+  const 끝칸 = (item: EvidenceItem, 다시: string | null) => (행: 칸값[]): 칸값[] => [...행, doc.header.kind, item.device ?? null, item.farm ?? null, 다시];
+  for (const item of doc.items) {
+    const r = item.rerun;
+    if (r !== undefined) sheet.addRows(항목행들(doc, r.original).map(끝칸(r.original, '원래 결과')));
+    const 다시 = r === undefined ? null : `다시 실행 · ${r.finishedAt} · ${r.triggeredBy}`;
+    sheet.addRows(항목행들(doc, item).map(끝칸(item, 다시)));
+  }
 
   // exceljs 는 자기 모듈 안에 Buffer 를 따로 선언해 둔다. 노드 Buffer 로 맞춰 내보낸다
   return Buffer.from(await workbook.xlsx.writeBuffer());

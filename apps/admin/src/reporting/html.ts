@@ -4,7 +4,8 @@
 import type { EvidenceDocument, EvidenceHeader, EvidenceItem } from './collect.js';
 import type { E2E요약줄 } from './e2eSummary.js';
 import { 디바이스순서, 케이스로묶는다 } from './failuresShape.js';
-import { 디바이스, 본문, 안전, 원문몸, 판정, 판정글자, 항목줄 } from './htmlItem.js';
+import { 원래결과, 원래결과부록, 원문고리, 접힌줄, type 항목칸 } from './htmlFold.js';
+import { 다시실행꼬리, 디바이스, 본문, 안전, 원문몸, 판정, 판정글자, 항목줄 } from './htmlItem.js';
 import { 증적스타일 } from './htmlStyle.js';
 import { 판정줄 } from './summary.js';
 
@@ -20,11 +21,7 @@ export interface RenderOptions {
   e2e?: E2E요약줄[];
 }
 
-/** 번호는 doc.items 안 자리다 — 부록 고리 이름(`i-번호`)이라 같은 모델이면 같은 글자가 나온다 (SPEC §3.3) */
-interface 칸 {
-  item: EvidenceItem;
-  번호: number;
-}
+type 칸 = 항목칸;
 
 interface 케이스 {
   /** 문서 안 케이스 차례 — 부록 고리 이름(`c-차례`)이다 */
@@ -97,24 +94,9 @@ function 케이스머리(c: 케이스): string {
   return `${판정(가장나쁜(c.칸들))}<span class="tc-id">${안전(c.tcId)}</span><span class="tc-name">${안전(c.tcName)}</span>`;
 }
 
-/** PDF 의 API 원문 부록 고리 이름(`t-번호-절차`). HTML 은 그 자리에서 접으므로 고리가 없다 */
-function 원문고리(format: RenderOptions['format'], k: 칸): ((seq: number) => string) | undefined {
-  return format === 'PDF' ? (seq) => `t-${k.번호}-${seq}` : undefined;
-}
-
+// 덮인 항목이면 다시 돈 블록 바로 아래에 접힌 줄 「원래 결과」가 붙는다 (도메인/리포팅 §8.4 「다시 실행이 붙은 실행」)
 function 펼친항목(k: 칸, format: RenderOptions['format'], 덧말 = '', id = ''): string[] {
-  return [`  <div class="dev"${id}>`, `    <div class="dev-head">${항목줄(k.item, 덧말)}</div>`, ...본문(k.item, 원문고리(format, k)), `  </div>`];
-}
-
-/**
- * 접힌 줄 하나. HTML 은 그 자리에서 펼치고, PDF 는 줄이 부록 고리다 — 몸은 부록()이 같은 목록(접힌칸들)으로 그린다.
- * 어느 길이든 모든 항목이 블록으로 문서에 남는다 — 검수처에 내는 서류에서 회차 하나도 빠지면 안 된다 (도메인/리포팅 §8.4)
- */
-function 접힌줄(format: RenderOptions['format'], 줄: string, 고리: string, 몸: () => string[]): string[] {
-  if (format === 'HTML') {
-    return [`<details class="fold"><summary class="fold-line">${줄}</summary><div class="fold-body">`, ...몸(), `</div></details>`];
-  }
-  return [`<a class="fold fold-line" href="#${고리}">${줄}<span class="to-app">부록에서 보기</span></a>`];
+  return [`  <div class="dev"${id}>`, `    <div class="dev-head">${항목줄(k.item, 덧말)}</div>`, ...본문(k.item, 원문고리(format, k.번호)), ...원래결과(k, format), `  </div>`];
 }
 
 function 카드(c: 케이스, format: RenderOptions['format']): string[] {
@@ -123,7 +105,7 @@ function 카드(c: 케이스, format: RenderOptions['format']): string[] {
     `  <h3 class="card-head">${케이스머리(c)}</h3>`,
     ...미확정줄(c),
     ...c.펼침.flatMap((p) => 펼친항목(p.칸, format, p.회차글)),
-    ...접힌칸들(c).flatMap((k) => 접힌줄(format, 항목줄(k.item), `i-${k.번호}`, () => 본문(k.item))),
+    ...접힌칸들(c).flatMap((k) => 접힌줄(format, 항목줄(k.item), `i-${k.번호}`, () => [...본문(k.item), ...원래결과(k, format)])),
     `</section>`,
   ];
 }
@@ -172,16 +154,21 @@ function 부록(케이스들: 케이스[]): string[] {
 
 // API 항목의 절차 원문 — PDF 만. 카드 · 접힌 줄 · 부록 어디서 건 고리든 여기 한 곳으로 온다 (도메인/API §3.8 「리포트」)
 function 원문부록(케이스들: 케이스[]): string[] {
+  // 덮인 항목의 원래 결과도 같은 고리 규칙으로 싣는다(`t-o번호-절차`)
   const 실을것 = 케이스들.flatMap((c) =>
-    c.칸들.flatMap((k) => k.item.steps.flatMap((s) => (s.httpTrace === undefined ? [] : [{ k, s, t: s.httpTrace }]))),
+    c.칸들.flatMap((k) =>
+      [{ item: k.item, 원래: false }, ...(k.item.rerun === undefined ? [] : [{ item: k.item.rerun.original, 원래: true }])].flatMap(({ item, 원래 }) =>
+        item.steps.flatMap((s) => (s.httpTrace === undefined ? [] : [{ k, item, 원래, s, t: s.httpTrace }])),
+      ),
+    ),
   );
   if (실을것.length === 0) return [];
   return [
     `<section class="appendix">`,
     `<h2 class="sec">부록 — 요청 · 응답 원문</h2>`,
-    ...실을것.flatMap(({ k, s, t }) => [
-      `<section class="app-trace" id="t-${k.번호}-${s.seq}">`,
-      `  <div class="dev-head"><span class="tc-id">${안전(k.item.tcId)}</span>${항목줄(k.item)}<span class="step-title">${s.seq}. ${안전(s.title)}</span></div>`,
+    ...실을것.flatMap(({ k, item, 원래, s, t }) => [
+      `<section class="app-trace" id="t-${원래 ? 'o' : ''}${k.번호}-${s.seq}">`,
+      `  <div class="dev-head"><span class="tc-id">${안전(item.tcId)}</span>${항목줄(item)}<span class="step-title">${s.seq}. ${안전(s.title)}</span></div>`,
       ...원문몸(t),
       `</section>`,
     ]),
@@ -200,7 +187,7 @@ function 요약(items: EvidenceItem[]): string[] {
     `  <div class="tally">`,
     `    <span class="${실패 > 0 ? 'verdict v-fail' : 'zero'}">실패 ${실패}건</span>`,
     `    <span>${전체 === 0 ? '항목 없음' : `항목 ${전체}건 중 ${통과}건 통과`}</span>`,
-    `    <span class="axis">${안전(판정줄(items))}</span>`,
+    `    <span class="axis">${안전(판정줄(items) + 다시실행꼬리(items))}</span>`,
     `  </div>`,
     `</section>`,
   ];
@@ -284,6 +271,8 @@ export function renderHtml(doc: EvidenceDocument, options: RenderOptions): strin
           ...줄들.flatMap((c) => 접힌줄(options.format, 줄글(c), `c-${c.차례}`, () => c.칸들.flatMap((k) => 펼친항목(k, options.format)))),
         ]),
     ...E2E요약절(options.e2e ?? []),
-    ...(options.format === 'PDF' ? [...부록([...실패들, ...줄들]), ...원문부록([...실패들, ...줄들])] : []),
+    ...(options.format === 'PDF'
+      ? [...부록([...실패들, ...줄들]), ...원래결과부록([...실패들, ...줄들].flatMap((c) => c.칸들.map((k) => ({ 머리: 케이스머리(c), k })))), ...원문부록([...실패들, ...줄들])]
+      : []),
   ]);
 }
