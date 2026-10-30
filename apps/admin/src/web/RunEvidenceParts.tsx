@@ -1,6 +1,6 @@
-// 실패 카드 시간축 증거의 작은 부품 — 네트워크 눈금 줄 · 「기기 정보」 · 「오브젝트」 탭 본문 (WEB-F7-19 · WEB-F7-24 · DESIGN.md 「시간축 증거」)
+// 실패 카드 시간축 증거의 작은 부품 — 네트워크 눈금 줄 · FPS 선 · 「기기 정보」 · 「오브젝트」 탭 본문 (WEB-F7-19 · WEB-F7-24 · WEB-F7-25 · DESIGN.md 「시간축 증거」)
 
-import type { DeviceInfo, ElementCheck, StepResult } from '@platform/kit';
+import type { DeviceInfo, ElementCheck, FpsSample, StepResult } from '@platform/kit';
 import { GAME_TREE_FILE } from '@platform/kit/protocol';
 
 import type { ItemTrace } from './api.js';
@@ -38,6 +38,48 @@ export function 네트워크눈금({ steps, trace, 폭 }: { steps: StepResult[];
       <div className="ev-tl-leg">
         <span>{t('네트워크 요청')}</span>
         <span className="bad">{t('실패한 요청')}</span>
+      </div>
+    </>
+  );
+}
+
+const FPS높이 = 26;
+/** 대시보드 「30 아래로 떨어짐」 선(reporting/dashboardShape.ts 낮은FPS)과 같다 — 그 파일은 DB 질의까지 끌고 와 화면이 못 읽는다. 같은지는 테스트가 본다 */
+export const 점선FPS = 30;
+
+/**
+ * 단계 칸 아래 FPS 선. 러너가 1초마다 읽은 숫자를 그때 돌던 단계 칸 안에 고르게 놓는다 — 눈금 줄처럼 칸 폭을 같이 받아 경계가 맞는다.
+ * 점선은 대시보드 「30 아래로 떨어짐」과 같은 선이다. 못 읽은 초에서 선이 끊긴다
+ */
+export function FPS선({ steps, fps, 폭 }: { steps: StepResult[]; fps: FpsSample[]; 폭: (s: StepResult) => number }) {
+  const t = use말();
+  const 값들 = fps.flatMap((f) => (f.fps === null ? [] : [f.fps]));
+  if (값들.length === 0) return null;
+  // 120Hz 폰은 60 을 넘는다 — 위끝은 60 과 가장 큰 값 중 큰 쪽이다
+  const 위 = Math.max(60, ...값들);
+  const y = (v: number): string => (FPS높이 - 1 - (v / 위) * (FPS높이 - 2)).toFixed(1);
+  const 평균 = Math.round(값들.reduce((a, b) => a + b, 0) / 값들.length);
+  return (
+    <>
+      <div className="ev-fps" role="img" aria-label={t('FPS 흐름 · 평균 {평균} · 가장 낮을 때 {최저}', { 평균, 최저: Math.round(Math.min(...값들)) })}>
+        {steps.map((s) => {
+          const 줄 = fps.filter((f) => f.seq === s.seq);
+          const d = 줄
+            .map((f, i) => (f.fps === null ? null : `${i === 0 || 줄[i - 1]!.fps === null ? 'M' : 'L'}${(((i + 0.5) / 줄.length) * 100).toFixed(1)} ${y(f.fps)}`))
+            .filter((x) => x !== null)
+            .join(' ');
+          return (
+            <span key={s.seq} style={{ flex: 폭(s) }}>
+              <svg viewBox={`0 0 100 ${String(FPS높이)}`} preserveAspectRatio="none" aria-hidden="true">
+                <line x1="0" x2="100" y1={y(점선FPS)} y2={y(점선FPS)} vectorEffect="non-scaling-stroke" />
+                {d === '' ? null : <path d={d} vectorEffect="non-scaling-stroke" />}
+              </svg>
+            </span>
+          );
+        })}
+      </div>
+      <div className="ev-tl-leg">
+        <span className="fps">{t('FPS (점선 {선})', { 선: 점선FPS })}</span>
       </div>
     </>
   );

@@ -9,7 +9,7 @@ import { 팜영상인가, 팜증적 } from './FarmEvidence.js';
 import { use말, use언어 } from './i18n.js';
 import { show, Step } from './ItemSteps.js';
 import { 기록없음, 네트워크표, 콘솔표 } from './ItemTrace.js';
-import { 게임오브젝트, 기기정보, 네트워크눈금 } from './RunEvidenceParts.js';
+import { FPS선, 게임오브젝트, 기기정보, 네트워크눈금 } from './RunEvidenceParts.js';
 import { type Async, Failed, Loading, PLATFORM_LABEL, seconds, useAsync } from './ui.js';
 
 export type 증거종류 = 'web' | 'app' | 'api';
@@ -88,6 +88,8 @@ export function 시간축증거({ devices }: { devices: FailureDevice[] }) {
           ))}
         </div>
         {웹 ? <네트워크눈금 steps={대표.steps} trace={기록} 폭={폭} /> : null}
+        {/* 단계를 한 번 그리듯 선도 첫 디바이스 것 하나다 */}
+        <FPS선 steps={대표.steps} fps={devices[0]!.fps ?? []} 폭={폭} />
       </div>
 
       <div className="ev-grid">

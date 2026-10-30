@@ -3,7 +3,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, screen, within } from '@testing-library/react';
 
+import { 낮은FPS } from '../reporting/dashboardShape.js';
+
 import { api, type ItemTrace } from './api.js';
+import { 점선FPS } from './RunEvidenceParts.js';
 import { RUN_ID, 그리기, 단계, 상세, 장치, 줄, 쪽, 케이스 } from './RunFailCards.fixture.js';
 
 afterEach(() => {
@@ -191,5 +194,40 @@ describe('실패 카드의 시간축 증거 (WEB-F7-13)', () => {
 
     await screen.findAllByRole('group', { name: '단계 고르기' });
     expect(screen.queryByRole('tab', { name: '오브젝트' })).toBeNull();
+  });
+
+  it('게임 항목은 띠 아래에 FPS 선이 단계 칸마다 그 단계 숫자로 서고 못 읽은 초에서 끊긴다 (WEB-F7-25)', async () => {
+    const fps = [
+      { seq: 1, fps: 60 },
+      { seq: 1, fps: 60 },
+      { seq: 2, fps: null },
+      { seq: 2, fps: 38 },
+    ];
+    그리기(쪽([케이스('ZZI-0001', '물약 사기', [장치('android', 11, { fps }, { steps: 화면단계들() })])]), [줄(11, 'ZZI-0001', 'android', 'FAIL')]);
+
+    const 선 = await screen.findByRole('img', { name: 'FPS 흐름 · 평균 53 · 가장 낮을 때 38' });
+    const 칸들 = 선.querySelectorAll('span');
+    expect(칸들).toHaveLength(2);
+    expect(칸들[0]!.querySelector('path')!.getAttribute('d')).toMatch(/^M25\.0 [\d.]+ L75\.0 [\d.]+$/);
+    expect(칸들[1]!.querySelector('path')!.getAttribute('d')).toMatch(/^M75\.0 [\d.]+$/);
+    expect(screen.getByText('FPS (점선 30)')).toBeTruthy();
+  });
+
+  it('FPS 선의 점선은 대시보드가 떨어짐을 세는 선과 같다', () => {
+    expect(점선FPS).toBe(낮은FPS);
+  });
+
+  it('FPS 를 안 쟀거나 다 못 읽은 항목에는 선이 없다', async () => {
+    그리기(
+      쪽([
+        케이스('ZZI-0001', '물약 사기', [장치('android', 11, { fps: [{ seq: 1, fps: null }] }, { steps: 화면단계들() })]),
+        케이스('ZZI-0002', '주소 검색', [장치('android', 12, {}, { steps: 화면단계들() })]),
+      ]),
+      [줄(11, 'ZZI-0001', 'android', 'FAIL'), 줄(12, 'ZZI-0002', 'android', 'FAIL')],
+    );
+
+    await screen.findAllByRole('group', { name: '단계 고르기' });
+    expect(screen.queryByRole('img', { name: /FPS 흐름/ })).toBeNull();
+    expect(screen.queryByText('FPS (점선 30)')).toBeNull();
   });
 });
