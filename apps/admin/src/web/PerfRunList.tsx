@@ -75,6 +75,7 @@ export function PerfRunList({ serviceId }: { serviceId: number }) {
                 <thead>
                   <tr>
                     <th>{t('번호')}</th>
+                    <th>{t('종류')}</th>
                     <th>{t('시나리오')}</th>
                     <th>{t('테스트 유형 · 대상 서버')}</th>
                     <th>{t('시작')}</th>
@@ -100,7 +101,10 @@ export function PerfRunList({ serviceId }: { serviceId: number }) {
                           </a>
                         </td>
                         <td>
-                          {자리 === null ? 줄.title : <a href={주소}>{t(자리 === '#/perf/pages' ? '페이지 성능' : 기기성능)}</a>} {줄.origin === 'SCHEDULED' ? <span className="perf-tag">{t('정기')}</span> : null}
+                          <span className="perf-tag">{t(자리 === null ? '부하 테스트' : 자리 === '#/perf/pages' ? '페이지 성능' : 기기성능)}</span>
+                        </td>
+                        <td>
+                          {자리 === null ? 줄.title : <a href={주소}>{t('측정 결과')}</a>} {줄.origin === 'SCHEDULED' ? <span className="perf-tag">{t('정기')}</span> : null}
                         </td>
                         <td>{줄.testType === null ? '-' : t(유형글자[줄.testType].이름)} · {줄.env}</td>
                         <td className="perf-faint">{시각글(줄.startedAt, 언어)}</td>

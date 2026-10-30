@@ -115,4 +115,10 @@ describe('테스트 작성 시작 모달', () => {
     await vi.advanceTimersByTimeAsync(10_000);
     expect(부른횟수).toBe(1);
   });
+
+  it('단추는 「닫기」 다음 주 단추 「상세 페이지로」 차례다 — 휴대폰에서 주 단추가 맨 아래 (시안 11판 · WEB-F7-18)', () => {
+    render(<AuthoringStartModal service="MKT" id={5872} onClose={() => undefined} />);
+    const 단추들 = [...screen.getByRole('dialog').querySelectorAll('button')].map((b) => b.textContent).filter((x) => x === '닫기' || x === '상세 페이지로');
+    expect(단추들).toEqual(['닫기', '상세 페이지로']);
+  });
 });

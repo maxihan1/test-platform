@@ -1,7 +1,9 @@
 // 실행 기록 목록의 줄 하나 — 자동 제목 · 작은 글 한 줄 · 통과/실패/미실행 막대 · 직전 대비 꼬리표 (도메인/실행 §8.7 「A안」)
 
 import type { RunListRow } from './api.js';
+import { use지금앱 } from './Head.js';
 import { use말, use언어 } from './i18n.js';
+import { 종류키 } from './kind.js';
 import { 시간글자 } from './remainText.js';
 import { 시작빌드글 } from './RunBuild.js';
 import { 도는중, 상태라벨, 실행자이름 } from './runState.js';
@@ -22,6 +24,8 @@ export function 띠색(run: Pick<RunListRow, 'status' | 'counts'>): string {
 export function 실행줄({ run, 고름, on고르기 }: { run: RunListRow; 고름: boolean; on고르기: (runId: number) => void }) {
   const t = use말();
   const 언어 = use언어();
+  // API 는 브라우저 · 폰이 없어 실행 위치가 곧 친 주소다 (시안 11판 「실행 기록」 · WEB-F7-18)
+  const 위치 = 종류키(use지금앱()?.kind) === 'API' && run.baseUrl !== '' ? run.baseUrl : run.env;
   const 미확정 = 그중미확정글(run.counts, 언어);
   const { pass, fail, na } = run.counts;
   // 디바이스가 둘 이상이고 실패가 있으면 실패 수를 디바이스별 케이스 수로 나눈다 — 항목 수 하나는 결과 칸 「실패 케이스 N건」과 엇갈려 보였다 (도메인/실행 §8.7 「줄」)
@@ -39,7 +43,7 @@ export function 실행줄({ run, 고름, on고르기 }: { run: RunListRow; 고�
         {run.title}
         <small>
           RUN {run.runId} · {when(run.startedAt, 언어)}
-          {시작빌드글(run, t)} · {run.env} · {실행자이름(run, 언어)} · {상태글}
+          {시작빌드글(run, t)} · {위치} · {실행자이름(run, 언어)} · {상태글}
         </small>
       </span>
       <span className="run-verdict">

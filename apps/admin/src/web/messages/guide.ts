@@ -41,4 +41,9 @@ export const 가이드말: Record<string, string> = {
   '뺌 — {이름}': 'Removed — {이름}',
   '버전 {버전} 보기': 'View version {버전}',
   '버전 {버전} 읽기 전용': 'Version {버전}, read only',
+  // 종류마다 적을 것의 예 — 글 칸 안내 뒤 (kind.ts 가이드예 · WEB-F7-18)
+  '예: 접속 주소 · 역할별 계정 · 테스트 카드': 'e.g. URLs · accounts per role · test cards',
+  '예: apk 설치 · 서버 주소 바꾸기 · 키보드 설정': 'e.g. installing the apk · switching the server URL · keyboard settings',
+  '예: 치트 명령 · 점검 시간 · 확률 확인 방법': 'e.g. cheat commands · maintenance hours · how to check odds',
+  '예: 기본 주소 · 토큰 받는 법 · 호출 한도': 'e.g. base URL · getting a token · rate limits',
 };

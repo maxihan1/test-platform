@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { PageRow } from './perfPageApi.js';
-import { 숫자칸 } from './perfPagesView.js';
+import { 로드요약, 숫자칸 } from './perfPagesView.js';
 
 const 줄 = (name: string, lcpMs: number | null, fcpMs: number | null, verdict: PageRow['verdict']): PageRow => ({
   url: `/${name}`,
@@ -26,5 +26,11 @@ describe('페이지 성능 숫자 칸', () => {
   it('LCP · FCP 평균은 값이 없는 페이지를 빼고 내고, 목표 넘은 페이지는 판정이 실패인 것만 센다', () => {
     expect(숫자칸([줄('메인', 1600, 900, 'PASS'), 줄('결제', 3200, null, 'FAIL'), 줄('목록', null, 1500, null)])).toEqual({ lcp평균: 2400, fcp평균: 1200, 넘은: ['결제'] });
     expect(숫자칸([])).toEqual({ lcp평균: null, fcp평균: null, 넘은: [] });
+  });
+
+  it('전체 로드는 가장 늦게 끝난 리소스의 끝 시각이고 요청 수는 리소스 수다. 리소스가 없으면 전체 로드는 비운다 (WEB-F7-18)', () => {
+    const 리소스 = (startMs: number, durationMs: number) => ({ name: 'x', type: 'script' as const, startMs, durationMs, bytes: 0 });
+    expect(로드요약({ ...줄('메인', 1600, 900, 'PASS'), resources: [리소스(0, 400), 리소스(900, 2500), 리소스(3000, 100)] })).toEqual({ 전체로드Ms: 3400, 요청수: 3 });
+    expect(로드요약(줄('메인', 1600, 900, 'PASS'))).toEqual({ 전체로드Ms: null, 요청수: 0 });
   });
 });

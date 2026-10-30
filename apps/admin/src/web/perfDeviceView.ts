@@ -96,6 +96,9 @@ export function 벗어난지표(목표들: readonly 기기목표[], 요약: 기�
 export interface 결과칸 {
   이름: string;
   값: string;
+  /** 움직임이 올리는 수와 그 수의 글자. 값은 끝 글자다 */
+  수: number | null;
+  글: (n: number) => string;
   /** 그 값을 낸 기기(여럿일 때만) · 목표 */
   보조: string[];
   나쁨: boolean;
@@ -121,6 +124,8 @@ export function 결과칸들(게임: boolean, 결과: Pick<기기결과, 'device
     return {
       이름,
       값: 나쁜 === null ? '-' : 글(나쁜.n),
+      수: 나쁜?.n ?? null,
+      글,
       보조: [여럿 && 나쁜 !== null ? 나쁜.d.model : null, 목표글].filter((x): x is string => x !== null),
       나쁨: 나쁜 !== null && 목표 !== undefined && 벗어남(목표, 나쁜.n),
     };

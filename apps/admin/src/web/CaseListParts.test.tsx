@@ -10,7 +10,8 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 
 import { TECHNIQUES, type Technique } from '@platform/kit/types';
 
-import type { CaseRow, JsonSchema } from './api.js';
+import type { CaseRow, JsonSchema, ServiceRow } from './api.js';
+import { 지금앱칸 } from './Head.js';
 import { Empty } from './CaseListNotes.js';
 import { 표머리 } from './CaseListHead.js';
 import { 케이스줄 } from './CaseListParts.js';
@@ -275,5 +276,17 @@ describe('빈 목록의 스캔 버튼', () => {
   it('조건 초기화는 스캔 길과 상관없이 선다', () => {
     render(<Empty 형편={{ scannedAt: '2026-09-21T00:00:00.000Z', 스캔문제: false, 전체건수: 3, 건조건: true, 친글자: 'x' }} onClear={vi.fn()} />);
     expect(screen.getByRole('button', { name: '조건 초기화' })).toBeTruthy();
+  });
+
+  it('API 애플리케이션 케이스 줄에는 디바이스 이름을 그리지 않는다 — 웹은 그대로 (도메인/API · WEB-F7-18)', () => {
+    const 줄 = (kind: ServiceRow['kind']) =>
+      render(
+        <지금앱칸.Provider value={{ kind } as ServiceRow}>
+          <케이스줄 row={케이스({})} 마지막={{}} 고름={false} 뒤집기={() => {}} on열기={vi.fn()} />
+        </지금앱칸.Provider>,
+      ).container;
+    expect(줄('API').querySelector('.device-name')).toBeNull();
+    cleanup();
+    expect(줄('SCREEN').querySelector('.device-name')?.textContent).toBe('PC');
   });
 });

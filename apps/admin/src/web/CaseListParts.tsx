@@ -6,7 +6,9 @@ import type { CaseRow, ItemStatus } from './api.js';
 import { 케이스맥락 } from './CaseListContext.js';
 import { 스모크칩 } from './CaseSmoke.js';
 import { keyOf, type LastMap, 마지막판정 } from './catalogView.js';
+import { use지금앱 } from './Head.js';
 import { use말, use언어 } from './i18n.js';
+import { 종류 } from './kind.js';
 import { 아이콘 } from './icons.js';
 import { 판정흐름 } from './Summary.js';
 import { PLATFORM_LABEL, seconds, STATUS_COLOR, Verdict, when } from './ui.js';
@@ -90,6 +92,7 @@ export function 케이스줄({
   /** 서비스가 PRD 를 쓴다 — 안 쓰면 「연결된 요구 없음」을 줄마다 달지 않는다 */
   요구쓰나?: boolean;
 }) {
+  const 디바이스이름 = 종류(use지금앱()?.kind).디바이스칩;
   const t = use말();
   const 언어 = use언어();
 
@@ -135,7 +138,7 @@ export function 케이스줄({
             const result = 마지막[keyOf(row.tcId, platform)];
             return (
               <div className="device" key={platform}>
-                <span className="device-name">{t(PLATFORM_LABEL[platform])}</span>
+                {디바이스이름 ? <span className="device-name">{t(PLATFORM_LABEL[platform])}</span> : null}
                 {result === undefined ? (
                   <span className="device-none">{t('실행 이력 없음')}</span>
                 ) : (

@@ -9,6 +9,7 @@ import { use말, use언어 } from './i18n.js';
 import { 기기성능이름 } from './kind.js';
 import { perfApi, type 실행상세 } from './perfApi.js';
 import { PerfDeviceReplay } from './PerfDeviceReplay.js';
+import { 올라가는값 } from './PerfPagesTable.js';
 import { 값글자, 결과칸들, 기기설정of, 메모리글자, 벗어난지표, 실행열기, 조작글, 케이스조작 } from './perfDeviceView.js';
 import { 갱신간격, 분석틈, 분초, 사유이름, 시각글, 판정꼴, 판정이름, 판정종류 } from './perfRunView.js';
 import { Loading, message, useAsync } from './ui.js';
@@ -135,7 +136,7 @@ export function PerfDeviceResult({ run, service, 다시읽기, 쓰나, 새측정
               {결과칸들(service.kind === 'GAME', 받음, 설정.targets, t).map((칸) => (
                 <div key={칸.이름} className={칸.나쁨 ? 'bad' : undefined}>
                   <span>{t(칸.이름)}</span>
-                  <b>{칸.값}</b>
+                  <올라가는값 수={칸.수} 글={칸.글} />
                   <em>{칸.보조.join(' · ')}</em>
                 </div>
               ))}

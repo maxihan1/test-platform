@@ -24,6 +24,9 @@ export const 성능페이지말: Record<string, string> = {
   // 표 위 숫자 칸 줄 (WEB-F7-16) — 「목표 {값} 이하」 · 「측정 요약」은 기기 성능 결과도 같이 쓴다
   '측정 요약': 'Measurement summary',
   'LCP 평균': 'Average LCP',
+  '다시 측정': 'Measure again',
+  '전체 로드': 'Full load',
+  '요청 수': 'Requests',
   'FCP 평균': 'Average FCP',
   '목표 넘은 페이지': 'Pages over target',
   '목표 {값} 이하': 'Target {값} or less',
