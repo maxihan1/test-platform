@@ -7,7 +7,6 @@
 import { useRef, useState } from 'react';
 
 import { api, type CasePage, type 앱종류 } from './api.js';
-import { 고른것고치기 } from './CaseBulkEdit.js';
 import { CaseDetail } from './CaseDetail.js';
 import { 빈기억 } from './caseDetailView.js';
 import { use엑셀받기 } from './CaseExport.js';
@@ -15,6 +14,7 @@ import { use검색조건 } from './CaseListFilter.js';
 import { 걸린칩들, 묶음머리줄 } from './CaseListContext.js';
 import { 결과탭들, 고른조건칩들, use필터조건들, 필터판 } from './CaseListFilterBar.js';
 import { Empty, 목록부제 } from './CaseListNotes.js';
+import { 고르기띠, 고르기바 } from './CaseListPick.js';
 import { 쪽넘기기, 표머리 } from './CaseListHead.js';
 import { 찾기폼, 케이스줄 } from './CaseListParts.js';
 import { use묶음접기, 번호들, 줄과머리 } from './caseGroups.js';
@@ -26,7 +26,7 @@ import type { 판정 } from './role.js';
 import { 다음이있나 } from './paging.js';
 import { RunPickModal } from './RunPickModal.js';
 import { Failed, Loading, message, useAsync } from './ui.js';
-import { useRunPick } from './useRunPick.js';
+import { useRunPick, 쪽상한 } from './useRunPick.js';
 
 // 결과보나 — 실행 칸이 none 이면 마지막 결과를 부르지 않는다. 부르면 서버가 403 을 낸다
 // 요구보나 — 작성 칸이 none 이면 요구 번호가 「PRD 관리」 고리가 아니라 글자다. 요구 — 「PRD 관리」에서 넘어온 요구 번호 (§8.1 「맥락」)
@@ -116,6 +116,13 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
 
   // 총건수로 페이지 수를 계산하지 않는다. 그 값은 안내로만 쓴다 (SPEC §8.1)
   const 더있나 = cases.data !== null && 다음이있나(cases.data);
+  const 전체 = cases.data?.total ?? 0;
+  const 이쪽다 = 보일것.length > 0 && 보일것.every((row) => 뽑기.고른.has(row.tcId));
+  // 바가 사라지면 누른 단추도 사라진다 — 포커스는 주 행동으로 보낸다
+  function 풀기() {
+    뽑기.비우기();
+    실행단추.current?.focus();
+  }
 
   return (
     <>
@@ -142,20 +149,16 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
               </button>
             )}
             {엑셀.버튼}
-            {/* 고른 것으로 삭제 · 확정 요청 — 작성 쓰기일 때만 (도메인/카탈로그 §8.1 「여러 건 골라」) */}
-            {!할수('작성요청') ? null : (
-              <고른것고치기 service={service} 고른={뽑기.고른} 다되면={() => { 뽑기.비우기(); 실행단추.current?.focus(); }} />
-            )}
             {!접기.묶음있나 ? null : (
               <button className="btn ghost" onClick={접기.모두}>
                 {접기.다접었나 ? t('모두 펴기') : t('모두 접기')}
               </button>
             )}
-            {/* 버튼은 하나이고 글자만 바뀐다. 둘로 나누면 같은 자리에서 같은 일을 하는 버튼이 둘이 된다 (SPEC §8.1) */}
+            {/* 머리는 늘 조건 기준이다. 고른 것의 실행은 고르기 바에만 있다 (도메인/카탈로그 §8.1 · 2026-10-30 WEB-F7-08) */}
             {!할수('실행') ? null : (
-              <button className="btn" ref={실행단추} onClick={() => void 뽑기.모으기()} disabled={뽑기.모으는중}>
+              <button className="btn" ref={실행단추} onClick={() => void 뽑기.조건모으기()} disabled={뽑기.모으는중}>
                 {/* 「전체」가 아니라 조건에 맞는 것만 건다 — 이름이 그렇게 말해야 한다(점검 7.8) */}
-                {뽑기.고른.size === 0 ? t('조건에 맞는 {건수}건 실행', { 건수: cases.data?.total ?? 0 }) : t('선택한 {건수}건 실행', { 건수: 뽑기.고른.size })}
+                {t('조건에 맞는 {건수}건 실행', { 건수: cases.data?.total ?? 0 })}
               </button>
             )}
           </>
@@ -197,11 +200,22 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
       ) : (
         <>
         <표머리
-          고름상태={
-            보일것.every((row) => 뽑기.고른.has(row.tcId)) ? 'all' : 보일것.some((row) => 뽑기.고른.has(row.tcId)) ? 'some' : 'none'
-          }
+          고름상태={이쪽다 ? 'all' : 보일것.some((row) => 뽑기.고른.has(row.tcId)) ? 'some' : 'none'}
           on모두고르기={() => 뽑기.모두뒤집기(보일것)}
         />
+        {/* 이 쪽이 조건에 맞는 전부면 넓힐 것이 없다 */}
+        {!뽑기.모두 && !(이쪽다 && 보일것.length < 전체) ? null : (
+          <고르기띠
+            보일수={보일것.length}
+            전체={전체}
+            모두={뽑기.모두}
+            담기한계={쪽상한 * cases.data.pageSize}
+            실행보나={할수('실행')}
+            삭제보나={할수('작성요청')}
+            on모두={뽑기.모두고르기}
+            on풀기={풀기}
+          />
+        )}
         {칸들.map((칸) => {
           if (칸.위.some((k) => 접기.접은.has(k))) return null; // 위 묶음이 접혀 있으면 머리도 줄도 그리지 않는다
           if (!('row' in 칸)) {
@@ -226,7 +240,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
             요구쓰나={요구쓰나}
             마지막={lastMap}
             고름={뽑기.고른.has(row.tcId)}
-            뒤집기={뽑기.뒤집기}
+            뒤집기={(row, 사이) => 뽑기.뒤집기(row, 사이 ? 보일것 : undefined)}
             열림={연줄?.tcId === row.tcId}
             on실행={할수('실행') ? (row) => void 뽑기.하나열기(row) : undefined}
             on열기={열기}
@@ -236,6 +250,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
         })}
         </>
       )}
+      <고르기바 뽑기={뽑기} 전체={전체} service={service} 할수={할수} on풀기={풀기} />
       </div>
 
       {page === 1 && !더있나 ? null : <쪽넘기기 page={page} 더있나={더있나} 받은={cases.data} setPage={검색.setPage} />}

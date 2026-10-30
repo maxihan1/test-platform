@@ -3,7 +3,7 @@
 // 고른 것을 tcId 가 아니라 **줄 통째로** 든다. tcId 만 들면 실체를 찾으러 쪽을 처음부터 되돌아야 하고,
 // 그 길에서 결과 칩과 검색 조건이 고른 것을 다시 걸러 말없이 버렸다
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { api, type CaseQuery, type CaseRow, type ServiceRow, type User } from './api.js';
 import { use말, use언어 } from './i18n.js';
@@ -21,7 +21,7 @@ import { useRunStart } from './useRunStart.js';
  * 그래서 뒤에 더 있어도 조용히 1000건만 걸렸다. 세는 단위가 달랐다.
  * 무한 반복도 여기서 막는다 — `다음이있나` 는 `items.length >= pageSize` 라 pageSize 가 0 이면 영영 돈다.
  */
-const 쪽상한 = 40;
+export const 쪽상한 = 40;
 
 /** 훅이 꺼낸 번역기를 모듈 안의 순수 함수들에 넘긴다 */
 type 말하기 = ReturnType<typeof use말>;
@@ -55,6 +55,10 @@ export function useRunPick(옵션: {
   const t = use말();
   const 언어 = use언어();
   const [고른, set고른] = useState<ReadonlyMap<string, CaseRow>>(new Map());
+  // 「조건에 맞는 N건 모두 고르기」를 누른 때의 조건. 줄을 모으지 않고 조건만 든다 — 쪽을 넘기지 않는다 (도메인/카탈로그 §8.1)
+  const [모두조건, set모두조건] = useState<string | null>(null);
+  // Shift 사이 고르기의 한쪽 끝. 마지막으로 누른 줄이다
+  const 기준 = useRef<string | null>(null);
   const [모으는중, set모으는중] = useState(false);
   // 모은 결과. null 이면 모달이 닫힌 것이다 — 닫으면 모은 것을 버린다 (SPEC §8.10)
   const [담은것, set담은것] = useState<CaseRow[] | null>(null);
@@ -65,6 +69,12 @@ export function useRunPick(옵션: {
   // 담는 사이에 빠진 것. 버튼이 「전체」라 말해 놓고 조용히 자르지 않는다
   const [안내, set안내] = useState<string | undefined>(undefined);
   const 걸기 = useRunStart();
+
+  // 쪽은 조건이 아니다 — 모두 고른 채 쪽을 넘겨도 풀리지 않는다
+  const 조건열쇠 = JSON.stringify({ ...조건, page: undefined });
+  // 필터 · 찾기를 바꾸면 「모두」는 다른 목록을 가리킨다. 되돌려도 다시 살아나지 않게 그 자리에서 푼다
+  if (모두조건 !== null && 모두조건 !== 조건열쇠) set모두조건(null);
+  const 모두 = 모두조건 === 조건열쇠;
 
   /**
    * 「전체」는 보이는 쪽이 아니라 모든 쪽이다 (SPEC §8.1).
@@ -87,20 +97,25 @@ export function useRunPick(옵션: {
     return { 모은: [...본것.values()], 잘렸나 };
   }
 
-  async function 모으기() {
+  /**
+   * `고른것` 이 거짓이면 머리의 「조건에 맞는 N건 실행」 — 고른 것과 상관없이 조건에 맞는 전부다.
+   * 참이면 고르기 바의 「실행」 — 모두 골랐으면 조건에 맞는 전부와 같다
+   */
+  async function 모으기(고른것: boolean) {
     set모으는중(true);
     알림(null);
+    const 지목: ReadonlyMap<string, CaseRow> = 고른것 && !모두 ? 고른 : new Map();
     try {
       // 고른 것이 있으면 손에 이미 다 있다. 실체를 찾으러 쪽을 되돌 이유가 없다
-      const { 모은, 잘렸나 } = 고른.size > 0 ? { 모은: [], 잘렸나: false } : await 쪽모으기();
-      const 담을 = 담을것(모은, 고른);
+      const { 모은, 잘렸나 } = 지목.size > 0 ? { 모은: [], 잘렸나: false } : await 쪽모으기();
+      const 담을 = 담을것(모은, 지목);
       if (담을.length === 0) {
         // 빈 모달을 열지 않는다. 열어 봐야 실행이 서버에서 400 으로 되돌아온다
         알림(t('실행할 케이스가 없습니다. 고른 것이 전부 비활성이거나 걸러졌습니다'));
         return;
       }
       await 사람읽기();
-      set안내(빠진안내({ 고른수: 고른.size, 담을수: 담을.length, 잘렸나, 모은수: 모은.length }, t));
+      set안내(빠진안내({ 고른수: 지목.size, 담을수: 담을.length, 잘렸나, 모은수: 모은.length }, t));
       set담은것(담을);
     } catch (err) {
       알림(message(err, 언어));
@@ -148,16 +163,36 @@ export function useRunPick(옵션: {
     if (await 걸기.걸기(요청)) set담은것(null);
   }
 
-  function 뒤집기(row: CaseRow) {
+  /**
+   * 줄 하나를 고르거나 푼다. `사이` 를 주면(Shift) 지난번 누른 줄부터 이 줄까지를 이 줄이 바뀌는 쪽으로 맞춘다.
+   * 지난번 줄이 `사이` 에 없으면(쪽을 넘겼다) 이 줄 하나만 바꾼다. 손으로 바꾸면 「모두」는 풀린다
+   */
+  function 뒤집기(row: CaseRow, 사이?: readonly CaseRow[]) {
+    set모두조건(null);
+    const 앞 = 기준.current;
+    기준.current = row.tcId;
+    const 시작 = 사이 === undefined || 앞 === null ? -1 : 사이.findIndex((r) => r.tcId === 앞);
+    const 끝 = 사이 === undefined ? -1 : 사이.findIndex((r) => r.tcId === row.tcId);
     set고른((전) => {
       const 다음 = new Map(전);
-      if (!다음.delete(row.tcId)) 다음.set(row.tcId, row);
+      const 켜기 = !전.has(row.tcId);
+      const 줄들 = 사이 !== undefined && 시작 >= 0 && 끝 >= 0 ? 사이.slice(Math.min(시작, 끝), Math.max(시작, 끝) + 1) : [row];
+      for (const r of 줄들) {
+        if (켜기) 다음.set(r.tcId, r);
+        else 다음.delete(r.tcId);
+      }
       return 다음;
     });
   }
 
+  /** 띠의 「조건에 맞는 N건 모두 고르기」 */
+  function 모두고르기() {
+    set모두조건(조건열쇠);
+  }
+
   /** 이 쪽에 보이는 줄을 전부 골랐으면 풀고, 아니면 전부 고른다. 다른 쪽에서 고른 것은 건드리지 않는다 */
   function 모두뒤집기(줄들: CaseRow[]) {
+    set모두조건(null);
     set고른((전) => {
       const 다음 = new Map(전);
       const 전부 = 줄들.length > 0 && 줄들.every((row) => 전.has(row.tcId));
@@ -172,6 +207,7 @@ export function useRunPick(옵션: {
   /** 서비스를 바꾸면 고른 것도 버린다. 남겨 두면 버튼이 「고른 2건」이라 말하고 사실이 아닌 이유를 보여준다 */
   function 비우기() {
     set고른(new Map());
+    set모두조건(null);
   }
 
   function 닫기() {
@@ -183,6 +219,7 @@ export function useRunPick(옵션: {
 
   return {
     고른,
+    모두,
     모으는중,
     담은것,
     서비스,
@@ -190,12 +227,14 @@ export function useRunPick(옵션: {
     사유: 걸기.사유,
     안내,
     거는중: 걸기.거는중,
-    모으기,
+    조건모으기: () => 모으기(false),
+    고른모으기: () => 모으기(true),
     하나열기,
     다시읽기,
     실행걸기,
     뒤집기,
     모두뒤집기,
+    모두고르기,
     비우기,
     닫기,
     // 값을 고치면 아까 거절당한 사유는 더 이상 지금 화면의 사실이 아니다

@@ -76,7 +76,8 @@ export function 케이스줄({
   row: CaseRow;
   마지막: LastMap;
   고름: boolean;
-  뒤집기: (row: CaseRow) => void;
+  /** `사이` — Shift 를 누른 채 골랐다. 지난번 고른 줄부터 이 줄까지 (도메인/카탈로그 §8.1) */
+  뒤집기: (row: CaseRow, 사이: boolean) => void;
   /** 오른쪽 상세 칸에 이 케이스가 열려 있나 */
   열림?: boolean;
   /** 줄의 ▶ — 그 한 건으로 실행 창을 연다. 고른 서비스에서 실행 쓰기가 아니면 오지 않고 버튼도 없다 (화면공통 §8) */
@@ -104,7 +105,8 @@ export function 케이스줄({
           checked={고름}
           // ID 만 읽으면 화면을 안 보는 사람에게는 무엇을 고르는지가 암호다
           aria-label={t('{아이디} {이름} 고르기', { 아이디: row.tcId, 이름: row.name })}
-          onChange={() => 뒤집기(row)}
+          // 체크박스의 onChange 는 React 가 click 으로 받는다 — 원래 사건이 Shift 를 안다
+          onChange={(e) => 뒤집기(row, (e.nativeEvent as MouseEvent).shiftKey === true)}
         />
       </label>
       <div className="tcid">{row.tcId}</div>

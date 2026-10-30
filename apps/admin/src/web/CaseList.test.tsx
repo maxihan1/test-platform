@@ -90,8 +90,10 @@ describe('CaseList 종류 (화면공통 §8 하위 메뉴 · PR #132)', () => {
 const 고르기칸 = () => screen.getAllByRole('checkbox', { name: /고르기$/ });
 const 머리칸 = () => screen.getByRole('checkbox', { name: '이 쪽 전체 선택' }) as HTMLInputElement;
 const 실행버튼 = () => screen.getByRole('button', { name: /(전체|건) 실행$/ });
-// 모달의 버튼은 글자가 딱 '실행'이다. 목록 쪽은 앞에 '전체'·'선택한 N건'이 붙는다
-const 모달실행 = () => screen.getByRole('button', { name: '실행' });
+const 모달실행 = () => within(screen.getByRole('dialog')).getByRole('button', { name: '실행' });
+const 고르기바 = () => screen.getByRole('toolbar', { name: '고른 케이스' });
+const 바글 = () => screen.queryByRole('toolbar', { name: '고른 케이스' })?.querySelector('span')?.textContent ?? null;
+const 바실행 = () => within(고르기바()).getByRole('button', { name: '실행' });
 
 const 전체실행글 = '조건에 맞는 3건 실행';
 const 결과칩 = (글: string) => screen.getByRole('button', { name: new RegExp(`^${글} \\d+$`) });
@@ -281,11 +283,11 @@ describe('CaseList 여러 건 고르기', () => {
     await 그리기();
     fireEvent.click(머리칸());
     expect(고르기칸().every((칸) => (칸 as HTMLInputElement).checked)).toBe(true);
-    expect(실행버튼().textContent).toBe('선택한 2건 실행');
+    expect(바글()).toBe('2건 고름');
 
     fireEvent.click(머리칸());
     expect(고르기칸().some((칸) => (칸 as HTMLInputElement).checked)).toBe(false);
-    expect(실행버튼().textContent).toBe(전체실행글);
+    expect(바글()).toBeNull();
   });
 
   it('일부만 골랐으면 머리 체크박스가 일부 선택 상태이고 누르면 나머지까지 고른다', async () => {
@@ -309,12 +311,36 @@ describe('CaseList 여러 건 고르기', () => {
     expect(실행버튼().textContent).toBe('조건에 맞는 7건 실행');
   });
 
-  it('고른 수만큼 버튼 글자가 바뀐다', async () => {
+  it('고르면 고르기 바에 고른 수가 뜨고 머리 단추는 조건 기준 그대로다', async () => {
+    await 그리기();
+    expect(바글()).toBeNull();
+    fireEvent.click(고르기칸()[0]!);
+    expect(바글()).toBe('1건 고름');
+    fireEvent.click(고르기칸()[1]!);
+    expect(바글()).toBe('2건 고름');
+    expect(실행버튼().textContent).toBe(전체실행글);
+  });
+
+  it('골라 두어도 머리 단추는 조건에 맞는 전부를 쪽마다 모은다', async () => {
+    const { 스파이 } = await 그리기();
+    fireEvent.click(고르기칸()[0]!);
+    스파이.mockClear();
+
+    fireEvent.click(실행버튼());
+
+    const 모달 = await screen.findByRole('dialog');
+    expect(모달.getAttribute('aria-label')).toBe('실행할 케이스 3건');
+    expect(스파이.mock.calls.map(([q]) => q.page)).toEqual([1, 2]);
+  });
+
+  it('바의 고르기 풀기는 고른 것을 비우고 포커스를 머리 실행 단추로 보낸다', async () => {
     await 그리기();
     fireEvent.click(고르기칸()[0]!);
-    expect(실행버튼().textContent).toBe('선택한 1건 실행');
-    fireEvent.click(고르기칸()[1]!);
-    expect(실행버튼().textContent).toBe('선택한 2건 실행');
+    fireEvent.click(within(고르기바()).getByRole('button', { name: '고르기 풀기' }));
+
+    expect(바글()).toBeNull();
+    expect(고르기칸().some((칸) => (칸 as HTMLInputElement).checked)).toBe(false);
+    expect(document.activeElement).toBe(실행버튼());
   });
 
   it('조건에 맞는 건 실행을 누르면 마지막 쪽까지 쪽마다 받아 모은다', async () => {
@@ -379,7 +405,7 @@ describe('CaseList 고른 것을 줄 통째로 든다', () => {
     fireEvent.click(고르기칸()[0]!);
     스파이.mockClear();
 
-    fireEvent.click(실행버튼());
+    fireEvent.click(바실행());
 
     const 모달 = await screen.findByRole('dialog');
     expect(모달.getAttribute('aria-label')).toBe('실행할 케이스 1건');
@@ -394,8 +420,8 @@ describe('CaseList 고른 것을 줄 통째로 든다', () => {
 
     // 칩은 「무엇을 볼까」이지 「무엇을 돌릴까」가 아니다. 서버가 거른 새 목록이 와도 고른 것은 줄 통째로 들고 있다
     fireEvent.click(결과칩('실패'));
-    expect(실행버튼().textContent).toBe('선택한 2건 실행');
-    fireEvent.click(실행버튼());
+    expect(바글()).toBe('2건 고름');
+    fireEvent.click(바실행());
 
     const 모달 = await screen.findByRole('dialog');
     expect(모달.getAttribute('aria-label')).toBe('실행할 케이스 2건');
@@ -404,12 +430,12 @@ describe('CaseList 고른 것을 줄 통째로 든다', () => {
   it('애플리케이션을 바꾸면 고른 것도 버린다', async () => {
     const { rerender } = await 그리기();
     fireEvent.click(고르기칸()[0]!);
-    expect(실행버튼().textContent).toBe('선택한 1건 실행');
+    expect(바글()).toBe('1건 고름');
 
     rerender(<CaseList kind="FN" service="ZPY" 할수={전부된다} 결과보나 />);
 
     // 남겨 두면 다른 서비스에서 「고른 1건」이라 말하고 누르면 사실이 아닌 이유를 보여준다
-    await waitFor(() => expect(실행버튼().textContent).toBe(전체실행글));
+    await waitFor(() => expect(바글()).toBeNull());
   });
 });
 
@@ -465,7 +491,7 @@ describe('CaseList 담지 못한 것을 말한다', () => {
     fireEvent.click(고르기칸()[0]!);
     fireEvent.click(고르기칸()[1]!);
 
-    fireEvent.click(실행버튼());
+    fireEvent.click(바실행());
 
     const 모달 = await screen.findByRole('dialog');
     expect(within(모달).getByText(/고른 2건 중 1건이 대상입니다/)).toBeTruthy();
@@ -796,7 +822,7 @@ describe('CaseList 오른쪽 상세 칸 (⑫ 시안 A · 점검 7.12 · ⑬-2 �
     fireEvent.click(screen.getByRole('button', { name: 'ZPK-002 케이스' }));
 
     expect(screen.getByText('ZPK-001')).toBeTruthy();
-    expect(실행버튼().textContent).toBe('선택한 1건 실행');
+    expect(바글()).toBe('1건 고름');
   });
 
   it('이 쪽에 없는 케이스가 열려 있으면 칸을 안 그리지만 주소는 남겨 돌아오면 다시 열린다', async () => {
@@ -885,7 +911,7 @@ describe('CaseList 권한 칸', () => {
     await screen.findByText('ZPK-001');
     expect(screen.queryByRole('button', { name: /(전체|건) 실행$/ })).toBeNull();
     fireEvent.click(고르기칸()[0]!);
-    expect(screen.queryByRole('button', { name: /(전체|건) 실행$/ })).toBeNull();
+    expect(within(고르기바()).queryByRole('button', { name: '실행' })).toBeNull();
   });
 
   it('실행 읽기면 줄마다의 실행 버튼도 없다', async () => {
@@ -980,11 +1006,11 @@ describe('CaseList 설계 기법 (도메인/카탈로그 §8.1 「설계 기법�
   it('고르면 고른 것은 그대로 둔다 — 디바이스 · 표시 칩과 같다', async () => {
     const { 스파이 } = await 그리기();
     fireEvent.click(고르기칸()[0]!);
-    expect(실행버튼().textContent).toBe('선택한 1건 실행');
+    expect(바글()).toBe('1건 고름');
 
     기법('상태 전이');
     await waitFor(() => expect(마지막질의(스파이)?.technique).toBe('상태 전이'));
-    expect(실행버튼().textContent).toBe('선택한 1건 실행');
+    expect(바글()).toBe('1건 고름');
   });
 
   it('찾기 칸의 조건 초기화가 기법도 비운다', async () => {
