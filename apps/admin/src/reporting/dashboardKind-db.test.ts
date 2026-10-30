@@ -116,8 +116,8 @@ describe.skipIf(연결 === undefined)('대시보드 종류별 칸', () => {
       Number(
         (
           await pool.query<{ id: string }>(
-            `INSERT INTO perf_run (kind, service_id, env, base_url, config, status, origin, started_at)
-             VALUES ('DEVICE', $1, 'qa', '', '{}', 'DONE', 'MANUAL', now() - $2::interval) RETURNING id`,
+            `INSERT INTO perf_run (kind, service_id, env, base_url, config, status, verdict, origin, started_at)
+             VALUES ('DEVICE', $1, 'qa', '', '{}', 'DONE', 'PASS', 'MANUAL', now() - $2::interval) RETURNING id`,
             [게임, 전],
           )
         ).rows[0]!.id,
