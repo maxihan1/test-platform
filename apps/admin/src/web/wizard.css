@@ -10,7 +10,7 @@
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr);
   background: var(--bg);
-  animation: 나타남 var(--dur) var(--ease);
+  animation: 나타남 var(--t2) var(--ease);
 }
 
 /* 왼쪽 — 단계 목록과 지금 단계의 설명 */
@@ -48,7 +48,7 @@
   left: 11px;
   width: 2px;
   background: var(--line);
-  transition: background var(--dur) var(--ease);
+  transition: background var(--t2) var(--ease);
 }
 
 .wz-steps > li.done::after {
@@ -98,12 +98,12 @@
   background: var(--rail);
   border: 1.5px solid var(--line-2);
   border-radius: 50%;
-  transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease);
+  transition: border-color var(--t2) var(--ease), color var(--t2) var(--ease);
 }
 
 .wz-steps .now .wz-dot {
-  color: var(--accent);
-  border-color: var(--accent);
+  color: var(--link);
+  border-color: var(--accent-mark);
 }
 
 .wz-steps .done .wz-dot {
@@ -123,7 +123,7 @@
 
 /* 처음 그려질 때 한 번 그어진다 */
 .wz-check path {
-  animation: 그려짐 var(--dur) var(--ease);
+  animation: 그려짐 var(--t2) var(--ease);
 }
 
 .wz-help {
@@ -133,10 +133,10 @@
   padding: 14px;
   font-size: 13px;
   color: var(--ink-muted);
-  background: var(--head);
+  background: var(--well);
   border: 1px solid var(--line);
   border-radius: 10px;
-  animation: 떠오름 var(--dur) var(--ease);
+  animation: 떠오름 var(--t2) var(--ease);
 }
 
 .wz-help h3 {
@@ -181,7 +181,7 @@
 
 .wz-chip.hot {
   color: var(--ink);
-  background: var(--rail-active);
+  background: var(--accent-soft);
   border-color: var(--ink-faint);
 }
 
@@ -198,7 +198,7 @@
   background: var(--panel);
   border: 1px solid var(--line-2);
   border-radius: 6px;
-  animation: 커짐 var(--dur) var(--ease);
+  animation: 커짐 var(--t2) var(--ease);
 }
 
 .wz-tc > span {
@@ -225,12 +225,12 @@
   padding: 6px 9px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  transition: border-color var(--dur) var(--ease);
+  transition: border-color var(--t2) var(--ease);
 }
 
 .wz-guide > span.hot {
   color: var(--ink);
-  background: var(--rail-active);
+  background: var(--accent-soft);
   border-color: var(--ink-faint);
 }
 
@@ -284,11 +284,11 @@
 
 /* 넘긴 쪽에서 미끄러져 들어온다 — 앞으로는 오른쪽에서, 돌아갈 때는 왼쪽에서 */
 .wz-step.fwd {
-  animation: 넘어옴 var(--dur) var(--ease);
+  animation: 넘어옴 var(--t2) var(--ease);
 }
 
 .wz-step.back {
-  animation: 되넘어옴 var(--dur) var(--ease);
+  animation: 되넘어옴 var(--t2) var(--ease);
 }
 
 @keyframes 넘어옴 {
@@ -333,7 +333,7 @@
 
 /* 막히면 까닭 줄이 한 번 흔들린다 — 로그인 상자의 오류와 같은 움직임 */
 .wz-shake {
-  animation: 흔들림 var(--dur) var(--ease);
+  animation: 흔들림 var(--t2) var(--ease);
 }
 
 /* 종류 카드 */
@@ -357,7 +357,7 @@
   border-radius: 10px;
   cursor: pointer;
   /* 색 전환은 반응이라 숫자로 두고, 들림은 움직임이라 토큰을 쓴다 (DESIGN.md 원칙 4) */
-  transition: border-color 0.15s, transform var(--dur) var(--ease);
+  transition: border-color 0.15s, transform var(--t2) var(--ease);
 }
 
 .wz-kind:hover {
@@ -366,7 +366,7 @@
 }
 
 .wz-kind[aria-pressed='true'] {
-  border-color: var(--accent);
+  border-color: var(--accent-mark);
 }
 
 .wz-kind-h {
@@ -401,7 +401,7 @@
   right: 14px;
   color: var(--ink);
   opacity: 0;
-  transition: opacity var(--dur) var(--ease);
+  transition: opacity var(--t2) var(--ease);
 }
 
 .wz-kind[aria-pressed='true'] .wz-tick {
@@ -441,7 +441,7 @@
 }
 
 .wz-pick[aria-pressed='true'] {
-  border-color: var(--accent);
+  border-color: var(--accent-mark);
 }
 
 /* 확인 표 */
@@ -488,7 +488,7 @@
   max-width: 640px;
   margin: 40px auto 0;
   text-align: center;
-  animation: 떠오름 var(--dur) var(--ease);
+  animation: 떠오름 var(--t2) var(--ease);
 }
 
 .wz-bigcheck {

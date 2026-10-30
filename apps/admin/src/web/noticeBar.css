@@ -19,8 +19,8 @@
   min-width: 0;
   border: 1px solid var(--line-2);
   border-top: none;
-  background: var(--head);
-  animation: 나타남 var(--dur) var(--ease);
+  background: var(--well);
+  animation: 나타남 var(--t2) var(--ease);
 }
 
 .nt-line {
@@ -164,7 +164,7 @@
   font-weight: 600;
   line-height: 18px;
   text-align: center;
-  animation: nt-pop var(--dur) var(--ease);
+  animation: nt-pop var(--t2) var(--ease);
 }
 
 @keyframes nt-pop {

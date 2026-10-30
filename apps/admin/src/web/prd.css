@@ -151,7 +151,7 @@
 }
 .prd-ghead:hover,
 .prd-row:hover {
-  background: var(--rail-active);
+  background: var(--well);
 }
 .prd-ghead:focus-visible,
 .prd-row:focus-visible {
@@ -161,7 +161,7 @@
 .prd-caret {
   color: var(--ink-muted);
   font-size: 13px;
-  transition: transform var(--dur) var(--ease);
+  transition: transform var(--t2) var(--ease);
 }
 [aria-expanded='true'] > .prd-caret {
   transform: rotate(90deg);
@@ -171,7 +171,7 @@
 }
 /* 케이스 목록의 요구 번호에서 왔다 — 그 줄을 한 단계 밝은 면으로 (도메인/카탈로그 §8.1 「맥락」) */
 .prd-here {
-  background: var(--rail-active);
+  background: var(--accent-soft);
 }
 .prd-row {
   display: grid;
@@ -348,7 +348,7 @@
   grid-template-columns: minmax(0, 1fr) 10rem;
 }
 .prd-line:hover {
-  background: var(--rail-active);
+  background: var(--well);
 }
 .prd-trace {
   display: flex;

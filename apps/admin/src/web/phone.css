@@ -52,7 +52,7 @@
 }
 
 .ph-me[open] summary {
-  background: var(--rail-active);
+  background: var(--well);
 }
 
 .ph-me-menu {
@@ -68,7 +68,7 @@
   background: var(--panel);
   border: 1px solid var(--line-2);
   border-radius: 8px;
-  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.8);
+  box-shadow: var(--shadow);
 }
 
 /* 손가락으로 누르는 자리 — 46 인 까닭은 화면공통 §8 「휴대폰 화면」 */
@@ -120,7 +120,7 @@
 }
 
 .ph-sub a[aria-current='page'] {
-  border-color: var(--accent);
+  border-color: var(--accent-mark);
   color: var(--ink);
 }
 
@@ -188,7 +188,7 @@
   right: 30%;
   left: 30%;
   height: 3px;
-  background: var(--accent);
+  background: var(--accent-mark);
 }
 
 .ph-tabs a:focus-visible,

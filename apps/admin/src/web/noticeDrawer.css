@@ -14,8 +14,8 @@
   max-width: 100%;
   background: var(--panel);
   border-left: 1px solid var(--line-2);
-  box-shadow: -24px 0 60px -20px rgba(0, 0, 0, 0.8);
-  animation: nt-slide var(--dur) var(--ease);
+  box-shadow: var(--shadow);
+  animation: nt-slide var(--t2) var(--ease);
 }
 
 @keyframes nt-slide {
@@ -63,7 +63,7 @@
 }
 
 .nt-chip.on {
-  border-color: var(--accent);
+  border-color: var(--accent-mark);
   color: var(--ink);
 }
 
@@ -104,7 +104,7 @@
 }
 
 .nt-item.unread .nt-dot {
-  background: var(--accent);
+  background: var(--accent-mark);
 }
 
 .nt-item.unread .nt-item-title {

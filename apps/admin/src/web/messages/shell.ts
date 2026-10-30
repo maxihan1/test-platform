@@ -24,6 +24,9 @@ export const 껍데기말: Record<string, string> = {
   '가입 신청 {수}건': '{수} sign-up requests',
   '사이드바 펴기': 'Expand sidebar',
   '사이드바 접기': 'Collapse sidebar',
+  // 사이드바 바닥 — 지금 아닌 쪽 이름이다 (화면공통 §8 「껍데기」 바닥)
+  '밝게 보기': 'Light mode',
+  '어둡게 보기': 'Dark mode',
   '애플리케이션 선택': 'Choose application',
   '프로젝트 선택': 'Choose project',
   '프로젝트를 고르세요': 'Choose a project',

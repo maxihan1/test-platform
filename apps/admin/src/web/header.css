@@ -8,7 +8,7 @@
   grid-template-columns: inherit;
   min-width: 0;
   min-height: 56px;
-  background: var(--head);
+  background: var(--well);
   border-bottom: 1px solid var(--line);
 }
 
@@ -29,7 +29,7 @@
 }
 
 .hd-logo b {
-  color: var(--accent);
+  color: var(--link);
   font-weight: 700;
 }
 
@@ -147,7 +147,7 @@
 }
 
 .hd .nt-btn:hover {
-  background: var(--rail-active);
+  background: var(--well);
   color: var(--ink);
 }
 
@@ -212,7 +212,7 @@
 }
 
 .hd-lang select:hover {
-  background-color: var(--rail-active);
+  background-color: var(--well);
   color: var(--ink);
 }
 
@@ -249,7 +249,7 @@
 
 .hd-me-btn:hover,
 .hd-me-btn[aria-expanded='true'] {
-  background: var(--rail-active);
+  background: var(--well);
 }
 
 .hd-me-btn:focus-visible,
@@ -288,7 +288,7 @@
   background: var(--panel);
   border: 1px solid var(--line-2);
   border-radius: 8px;
-  box-shadow: 0 18px 30px -20px rgba(0, 0, 0, 0.9);
+  box-shadow: var(--shadow);
 }
 
 .hd-me-menu a,
@@ -311,7 +311,7 @@
 
 .hd-me-menu a:hover,
 .hd-me-menu button:hover {
-  background: var(--rail-active);
+  background: var(--well);
 }
 
 /* 알림 줄이 없으면 비어 있다 — 버튼이 헤더로 옮겨 가서 이 자리에 남는 것이 없다 */

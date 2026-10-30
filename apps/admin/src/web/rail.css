@@ -9,6 +9,7 @@
   align-items: center;
   gap: 6px;
   padding: 12px 0;
+  background: var(--rail);
   border-right: 1px solid var(--line);
   overflow-y: auto;
 }
@@ -33,13 +34,13 @@
 
 .rail-app:hover,
 .rail-add:hover {
-  background: var(--rail-active);
+  background: var(--well);
   color: var(--ink);
 }
 
 /* 지금 연 애플리케이션 — 자리 목록의 「지금 있는 자리」와 같은 말이라 같은 대표색 막대다 (화면공통 §8 「대표색 자리」) */
 .rail-app[aria-current='page'] {
-  background: var(--rail-active);
+  background: var(--panel);
   color: var(--ink);
 }
 
@@ -51,7 +52,7 @@
   bottom: 8px;
   width: 3px;
   border-radius: 2px;
-  background: var(--accent);
+  background: var(--accent-mark);
 }
 
 .rail-app:focus-visible,

@@ -264,7 +264,7 @@ function 케이스결과({
               <i style={{ background: 'var(--pass)', flex: pass }} />
               <i style={{ background: 'var(--fail)', flex: fail }} />
               <i style={{ background: 'var(--na)', flex: na }} />
-              <i style={{ background: 'var(--chart-track)', flex: data.counts.running }} />
+              <i style={{ background: 'var(--well)', flex: data.counts.running }} />
             </div>
           )}
 

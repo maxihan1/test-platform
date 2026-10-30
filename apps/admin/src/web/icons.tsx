@@ -1,6 +1,6 @@
 // 메뉴 아이콘 — 패키지 없이 SVG 를 직접 둔다 (DESIGN.md 원칙 5). 글자를 대신하지 않고 곁에 선다
 
-export type 아이콘이름 = 'dashboard' | 'cases' | 'prd' | 'api' | 'authoring' | 'scenarios' | 'runs' | 'perf' | 'graph' | 'settings' | 'run' | 'bell' | 'person' | 'desktop' | 'web' | 'phone' | 'game';
+export type 아이콘이름 = 'dashboard' | 'cases' | 'prd' | 'api' | 'authoring' | 'scenarios' | 'runs' | 'perf' | 'graph' | 'settings' | 'run' | 'bell' | 'person' | 'desktop' | 'web' | 'phone' | 'game' | 'sun' | 'moon';
 
 // 24 격자 · 선 1.8 · 둥근 끝. 색은 글자를 따른다(currentColor) — 지금 자리면 글자와 같이 밝아진다
 const 그림: Record<아이콘이름, React.ReactNode> = {
@@ -132,6 +132,14 @@ const 그림: Record<아이콘이름, React.ReactNode> = {
       <circle cx="18" cy="13.8" r="0.8" />
     </>
   ),
+  // 해 · 달 — 사이드바 바닥 밝게 · 어둡게 단추. 지금 아닌 쪽을 보인다 (화면공통 §8 「껍데기」)
+  sun: (
+    <>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+    </>
+  ),
+  moon: <path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" />,
 };
 
 /** 꾸밈이라 화면 읽기에서 숨긴다 — 이름은 곁의 글자가 말한다. 접힌 사이드바에서도 글자는 0 크기로 남아 읽힌다 */
