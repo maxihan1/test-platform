@@ -17,14 +17,14 @@
 }
 
 .pd-kind.on {
-  border-color: var(--accent);
+  border-color: var(--accent-mark);
   background: var(--well);
 }
 
 .pd-kind input,
 .pd-checks input,
 .pd-cases input {
-  accent-color: var(--accent);
+  accent-color: var(--accent-mark);
 }
 
 .pd-checks {
@@ -149,7 +149,7 @@
 
 .pd-tabs button.on {
   color: var(--ink);
-  border-color: var(--accent);
+  border-color: var(--accent-mark);
   background: var(--well);
 }
 
@@ -195,7 +195,7 @@
 }
 
 .pd-mark.on {
-  border-color: var(--accent);
+  border-color: var(--accent-mark);
 }
 
 .pd-lane {

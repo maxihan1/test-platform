@@ -136,8 +136,8 @@
 
 /* 지금 상세 칸에 연 줄. 판정 색이 아니라 「지금 고른 것」의 대표색이다 (DESIGN.md 원칙 1 · 실행 기록 고른 줄과 같다) */
 .row.pickable.row-open {
-  background: var(--rail-active);
-  box-shadow: inset -3px 0 0 var(--accent);
+  background: var(--accent-soft);
+  box-shadow: inset -3px 0 0 var(--accent-mark);
 }
 
 /* 마지막 결과 칩의 건수. 실패가 있으면 수만 판정 글자색 — 칩 바탕은 고른 것 표시라 칠하지 않는다 */
@@ -171,7 +171,7 @@ button.smoke-chip {
 }
 
 button.smoke-chip:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-mark);
   outline-offset: 1px;
 }
 
@@ -185,7 +185,7 @@ button.smoke-chip:focus-visible {
 .smoke-off {
   opacity: 0;
   pointer-events: none;
-  transition: opacity var(--dur) var(--ease);
+  transition: opacity var(--t2) var(--ease);
 }
 
 .row:hover .smoke-off,

@@ -159,7 +159,7 @@
 }
 
 .perf-steps button[aria-current='step'] {
-  border-color: var(--accent);
+  border-color: var(--accent-mark);
   background: var(--well);
   color: var(--ink);
 }
@@ -177,8 +177,8 @@
 }
 
 .perf-steps button[aria-current='step'] .perf-dot {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--accent-mark);
+  border-color: var(--accent-mark);
   color: var(--on-accent);
   font-weight: 600;
 }
@@ -200,7 +200,7 @@
 }
 
 .perf-kind:has(input:checked) {
-  border-color: var(--accent);
+  border-color: var(--accent-mark);
   background: var(--well);
 }
 

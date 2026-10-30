@@ -60,8 +60,8 @@
 
 /* 고른 줄. 판정 색이 아니라 「지금 고른 것」의 대표색이다 (DESIGN.md 원칙 1) */
 .run-row[aria-current='true'] {
-  background: var(--rail-active);
-  box-shadow: inset -3px 0 0 var(--accent);
+  background: var(--accent-soft);
+  box-shadow: inset -3px 0 0 var(--accent-mark);
 }
 
 .run-verdict {

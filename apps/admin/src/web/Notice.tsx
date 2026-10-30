@@ -59,7 +59,7 @@ function 막대({ 줄 }: { 줄: 도는줄 }) {
       <i style={{ flex: 통과, background: 'var(--pass)' }} />
       <i style={{ flex: 실패, background: 'var(--fail)' }} />
       <i style={{ flex: 미실행, background: 'var(--na)' }} />
-      <i style={{ flex: 남음, background: 'var(--chart-track)' }} />
+      <i style={{ flex: 남음, background: 'var(--well)' }} />
     </span>
   );
 }

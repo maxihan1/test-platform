@@ -28,7 +28,7 @@
 }
 
 .api-group td {
-  background: var(--head);
+  background: var(--well);
   color: var(--ink-muted);
   font-weight: 600;
   font-size: 12.5px;

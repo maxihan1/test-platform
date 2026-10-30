@@ -62,7 +62,7 @@
   width: 8px;
   height: 8px;
   border-radius: 999px;
-  background: var(--accent);
+  background: var(--accent-mark);
 }
 
 .perf-stop {
@@ -139,7 +139,7 @@
 .perf-bar {
   height: 8px;
   border-radius: 2px;
-  background: var(--chart-track);
+  background: var(--well);
   overflow: hidden;
 }
 

@@ -6,12 +6,20 @@ import { describe, expect, it } from 'vitest';
 
 const css = readFileSync(new URL('./styles.css', import.meta.url), 'utf8');
 
-/** `:root` 블록의 토큰만 뽑는다. 다른 규칙 안의 색은 세지 않는다 */
-function 토큰들(): Record<string, string> {
-  const 블록 = /:root\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+function 블록토큰(블록: string): Record<string, string> {
   const 표: Record<string, string> = {};
   for (const m of 블록.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) 표[m[1]!] = m[2]!.trim();
   return 표;
+}
+
+/** `:root` 블록(밝게)의 토큰만 뽑는다. 다른 규칙 안의 색은 세지 않는다 */
+function 토큰들(): Record<string, string> {
+  return 블록토큰(/:root\s*\{([^}]*)\}/.exec(css)?.[1] ?? '');
+}
+
+/** 어둡게 — 사람이 고른 블록. 색만 다시 적으므로 움직임 · 모양 토큰은 밝게에서 물려받는다 */
+function 어둡게토큰들(): Record<string, string> {
+  return { ...토큰들(), ...블록토큰(/:root\[data-theme='dark'\]\s*\{([^}]*)\}/.exec(css)?.[1] ?? '') };
 }
 
 /** 화면 폴더의 CSS · 화면 코드 원본(검사 파일 제외). 인라인 style 의 var() 도 같은 토큰을 부른다 */
@@ -47,7 +55,7 @@ describe('화면 토큰 (DESIGN.md)', () => {
     // 대표색이 앉는 자리의 정본은 화면공통 §8 이다. 자리마다 값을 적으면 한쪽만 바뀐다.
     // 껍데기 색은 2026-10-07 개편에서 대표색 자리로 합쳤다 — 되살아나면 「지금 자리」 색이 두 벌이 된다
     const 표 = 토큰들();
-    for (const 이름 of ['--accent', '--accent-edge', '--on-accent', '--link']) {
+    for (const 이름 of ['--accent', '--accent-mark', '--on-accent', '--link']) {
       expect(표[이름], 이름).toMatch(/^#[0-9a-f]{6}$/i);
     }
     expect(css).not.toMatch(/var\(--chrome\b/);
@@ -76,7 +84,6 @@ describe('화면 토큰 (DESIGN.md)', () => {
   it('면은 판 8px 이고, 위에 뜨는 상자만 그림자를 갖고, 행에는 그림자가 없다', () => {
     // 원칙 2 (2026-10-07 새 토큰). 판 모서리는 8px 한 가지다.
     // 어두운 바탕에서는 그림자가 면을 가르지 못해 목록 면은 테두리로 가른다 — 그림자는 다른 화면 위에 뜨는 상자만 쓴다.
-    // 두께 있는 판(--slab)은 그래프 · 요약 칸에만 둔다 (DESIGN.md 원칙 2)
     const 첫정의 = (면: string) =>
       // 줄 맨 앞에 선 것이 첫 정의다. 좁은 화면 재정의는 들여쓴 채로 뒤에 또 나온다 —
       // 그것을 잡으면 「없다」고 거짓 실패한다 (2026-09-21 실제로 그랬다)
@@ -128,7 +135,7 @@ describe('화면 토큰 (DESIGN.md)', () => {
   it('화면 머리가 본문과 다른 면이고 아래가 괘선으로 닫힌다', () => {
     // 머리와 본문이 같은 바탕이면 「헤드와 메인이 분리 안 돼 있다」로 다시 돌아간다 (2026-09-22)
     const 블록 = /^\.head\s*\{([^}]*)\}/m.exec(css)?.[1] ?? '';
-    expect(블록, '.head 에 바탕이 없다').toMatch(/background:\s*var\(--head\)/);
+    expect(블록, '.head 에 바탕이 없다').toMatch(/background:\s*var\(--well\)/);
     expect(블록, '.head 아래가 안 닫혔다').toMatch(/border-bottom:/);
   });
 
@@ -253,15 +260,36 @@ describe('화면 토큰 (DESIGN.md)', () => {
     expect(걸린것).toEqual([]);
   });
 
-  it('판정 세 색과 그 글자 · 옅은 바탕이 전부 있다', () => {
-    // 어두운 바탕에서는 도형(점 · 막대)과 글자가 같은 색이면 한쪽이 모자란다 — 둘을 따로 둔다 (DESIGN.md 「새 토큰」)
-    const 표 = 토큰들();
+  it.each([
+    ['밝게', 토큰들],
+    ['어둡게', 어둡게토큰들],
+  ] as const)('%s — 판정 세 색과 그 글자 · 옅은 바탕이 전부 있다', (_, 벌) => {
+    // 도형(점 · 막대)과 글자가 같은 색이면 한쪽이 모자란다 — 둘을 따로 둔다 (DESIGN.md 「두 벌 토큰」)
+    const 표 = 벌();
     for (const 이름 of ['--pass', '--fail', '--na', '--pass-text', '--fail-text', '--na-text', '--fail-badge']) {
       expect(표[이름], 이름).toMatch(/^#[0-9a-f]{6}$/i);
     }
     for (const 이름 of ['--pass-soft', '--fail-soft', '--na-soft']) {
-      expect(표[이름], 이름).toMatch(/^rgba\(/);
+      expect(표[이름], 이름).toMatch(/^(#[0-9a-f]{6}|rgba\()/i);
     }
+  });
+
+  it('어둡게 두 블록(고른 것 · 컴퓨터 설정)이 같은 값이다', () => {
+    // 한쪽만 고치면 컴퓨터 설정이 어두운 사람과 단추로 고른 사람이 다른 색을 본다
+    const 고른것 = /:root\[data-theme='dark'\]\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    const 설정 = /@media \(prefers-color-scheme: dark\) \{\s*:root:not\(\[data-theme='light'\]\)\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(Object.keys(블록토큰(고른것)).length).toBeGreaterThan(20);
+    expect(블록토큰(설정)).toEqual(블록토큰(고른것));
+    expect(고른것).toMatch(/color-scheme:\s*dark/);
+    expect(설정).toMatch(/color-scheme:\s*dark/);
+  });
+
+  it('어둡게가 밝게의 색 토큰을 하나도 빠뜨리지 않는다', () => {
+    // 빠뜨린 토큰은 어둡게에서 밝게 값이 그대로 앉는다 — 어두운 바탕 위 짙은 글자가 된다
+    const 밝게 = 토큰들();
+    const 어둡게 = 블록토큰(/:root\[data-theme='dark'\]\s*\{([^}]*)\}/.exec(css)?.[1] ?? '');
+    const 색 = Object.keys(밝게).filter((이름) => /^(#|rgba\(|0 )/.test(밝게[이름]!));
+    expect(색.filter((이름) => !(이름 in 어둡게))).toEqual([]);
   });
 });
 
@@ -296,53 +324,60 @@ function 겹친색(rgba: string, 아래: string): string {
  * 토큰은 여전히 사람이 손으로 쟀고, 실제로 시안 값 하나(`#64727c`)가 미달인 채 올 뻔했다.
  * 이제 토큰을 바꾸면 여기가 먼저 빨개진다.
  */
-describe('토큰 명암비 (DESIGN.md)', () => {
+describe.each([
+  ['밝게', 토큰들],
+  ['어둡게', 어둡게토큰들],
+] as const)('토큰 명암비 — %s (DESIGN.md 「두 벌 명암비」)', (_, 벌) => {
   const 본문 = 4.5;
   const 요소 = 3;
+  /** 반투명 바탕(어둡게의 옅은 바탕)은 판 위에 겹친 색으로 잰다 */
+  const 색 = (이름: string): string => {
+    const 표 = 벌();
+    const 값 = 표[이름]!;
+    return 값.startsWith('rgba(') ? 겹친색(값, 표['--panel']!) : 값;
+  };
 
-  // 글자가 실제로 앉는 면마다 잰다. 표에 없는 짝을 새로 만들면 여기에 더한다 (2026-10-07 새 토큰)
+  // 글자가 실제로 앉는 면마다 잰다. 표에 없는 짝을 새로 만들면 여기에 더한다 (2026-10-30 두 벌)
   const 글자 = ['--ink', '--ink-muted', '--ink-faint'];
-  const 면 = ['--bg', '--head', '--panel', '--well', '--rail-active'];
+  const 면 = ['--bg', '--side', '--panel', '--well', '--accent-soft'];
   it.each([
     ...글자.flatMap((앞) => 면.map((뒤) => [앞, 뒤, 본문] as const)),
-    // 메뉴 — 지금 자리가 아닌 줄은 희미한 잉크, 지금 자리는 본문 잉크
+    // 왼쪽 줄 — 지금 칸이 아닌 접두사는 희미한 잉크, 지금 칸은 본문 잉크
     ['--ink-faint', '--rail', 본문],
     ['--ink', '--rail', 본문],
     ['--link', '--panel', 본문],
-    ['--link', '--bg', 본문],
+    ['--link', '--accent-soft', 본문],
     ['--on-accent', '--accent', 본문],
     ['--pass-text', '--panel', 본문],
     ['--fail-text', '--panel', 본문],
     ['--na-text', '--panel', 본문],
-    // 도형 (점 · 막대 · 지금 자리 막대) — UI 요소 기준
-    ['--pass', '--panel', 요소],
-    ['--fail', '--panel', 요소],
-    ['--na', '--panel', 요소],
-    ['--na-chart', '--panel', 요소],
-    ['--accent', '--rail', 요소],
+    ['--pass-text', '--pass-soft', 본문],
+    ['--fail-text', '--fail-soft', 본문],
+    ['--na-text', '--na-soft', 본문],
+    // 토스트는 잉크 바탕 위에 판 색 글자와 고리를 쓴다
+    ['--panel', '--ink', 본문],
+    ['--toast-link', '--ink', 본문],
+    // 도형 (점 · 막대 · 지금 자리 막대) — UI 요소 기준. 막대 빈 자리(--well) 위에도 선다
+    ...['--pass', '--fail', '--na'].flatMap((앞) => [
+      [앞, '--panel', 요소] as const,
+      [앞, '--well', 요소] as const,
+    ]),
+    ['--accent-mark', '--panel', 요소],
+    ['--accent-mark', '--rail', 요소],
+    ['--accent-mark', '--well', 요소],
+    ['--chart-2', '--panel', 요소],
   ] as const)('%s 가 %s 위에서 기준 %s 를 넘는다', (앞, 뒤, 기준) => {
-    const 표 = 토큰들();
-    expect(짝명암비(표[앞]!, 표[뒤]!)).toBeGreaterThanOrEqual(기준);
-  });
-
-  it.each([
-    ['--pass-text', '--pass-soft'],
-    ['--fail-text', '--fail-soft'],
-    ['--na-text', '--na-soft'],
-  ])('판정 배지 %s 가 판 위에 겹친 %s 에서 읽힌다', (앞, 뒤) => {
-    const 표 = 토큰들();
-    expect(짝명암비(표[앞]!, 겹친색(표[뒤]!, 표['--panel']!))).toBeGreaterThanOrEqual(본문);
+    expect(짝명암비(색(앞), 색(뒤))).toBeGreaterThanOrEqual(기준);
   });
 
   it('꽉 찬 실패 배지의 흰 글자가 읽힌다. 흰 글자 반전은 여기 하나뿐이다', () => {
-    // 실패 색(--fail) 위 흰 글자는 3.83 이라 모자란다 — 배지는 한 단계 짙은 --fail-badge 를 쓴다
-    expect(짝명암비('#ffffff', 토큰들()['--fail-badge']!)).toBeGreaterThanOrEqual(본문);
+    // 실패 색(--fail) 위 흰 글자는 모자랄 수 있어 배지는 --fail-badge 를 따로 둔다
+    expect(짝명암비('#ffffff', 색('--fail-badge'))).toBeGreaterThanOrEqual(본문);
   });
 
   it('괘선은 기준 밖이다. 행 구분은 간격과 배치가 이미 하고 있다', () => {
     // DESIGN.md 가 적어 둔 예외다. 그 사실을 여기에도 남겨 다음 사람이 「빠뜨렸나」 묻지 않게 한다
-    const 표 = 토큰들();
-    expect(짝명암비(표['--line']!, 표['--panel']!)).toBeLessThan(요소);
+    expect(짝명암비(색('--line'), 색('--panel'))).toBeLessThan(요소);
   });
 });
 
@@ -709,7 +744,7 @@ describe('움직임 (DESIGN.md 원칙 4, 2026-10-07)', () => {
 
   it('시간 토큰이 상한 안이다 — 요소 0.3초 · 처음 등장 전체 0.5초 · 숫자 올라가기 0.4초', () => {
     const 표 = 토큰들();
-    expect(초(표['--dur']!)).toBeLessThanOrEqual(0.3);
+    for (const 이름 of ['--t1', '--t2', '--t3']) expect(초(표[이름]!), 이름).toBeLessThanOrEqual(0.3);
     expect(초(표['--dur-intro']!)).toBeLessThanOrEqual(0.5);
     expect(초(표['--dur-count']!)).toBeLessThanOrEqual(0.4);
     expect(표['--ease']).toMatch(/^cubic-bezier\(/);
@@ -721,7 +756,7 @@ describe('움직임 (DESIGN.md 원칙 4, 2026-10-07)', () => {
     expect(선언들.length, '움직임이 하나도 없다').toBeGreaterThan(0);
     for (const 선언 of 선언들) {
       for (const 시간 of 선언[1]!.matchAll(/(?<![\w-])(\d*\.?\d+)(ms|s)\b/g)) {
-        expect(초(시간[0]), `${선언[0]} — 0.15초를 넘는 시간은 토큰(--dur …)을 쓴다`).toBeLessThanOrEqual(0.15);
+        expect(초(시간[0]), `${선언[0]} — 0.15초를 넘는 시간은 토큰(--t2 …)을 쓴다`).toBeLessThanOrEqual(0.15);
       }
     }
   });
@@ -753,7 +788,7 @@ describe('움직임 (DESIGN.md 원칙 4, 2026-10-07)', () => {
 describe('대표색 자리 (화면공통 §8 「대표색」, 2026-10-07)', () => {
   it('사이드바의 지금 있는 자리가 대표색 막대를 받는다', () => {
     // `.side-nav a[aria-current]` 만 보면 가로 탭 밑줄 규칙을 잡는다 — 사이드바 막대가 빠져도 통과했다 (2026-10-07 코드 검토)
-    expect(첫규칙(".side .side-nav a[aria-current='page']")).toMatch(/border-left-color:\s*var\(--accent\)/);
+    expect(첫규칙(".side .side-nav a[aria-current='page']")).toMatch(/border-left-color:\s*var\(--accent-mark\)/);
   });
 
   it('주 버튼은 대표색 위 짙은 글자이고, 나머지 버튼은 테두리만 쓴다', () => {
@@ -774,7 +809,7 @@ describe('대표색 자리 (화면공통 §8 「대표색」, 2026-10-07)', () =
   });
 
   it('실행 중 맥박 점은 대표색이다', () => {
-    expect(첫규칙('.pulse')).toMatch(/var\(--accent\)/);
+    expect(첫규칙('.pulse')).toMatch(/var\(--accent-mark\)/);
   });
 });
 
@@ -811,8 +846,8 @@ describe('대시보드 그래프 (DESIGN.md 원칙 1 · 2, 2026-10-07)', () => {
     expect(칸('h1')).toMatch(/var\(--heat-2\)/);
     expect(칸('h2')).toMatch(/var\(--heat-3\)/);
     const 막대 = (이름: string) => 규칙들.find((r) => r.선택자 === `.dash-day rect.${이름}`)?.몸 ?? '';
-    expect(막대('p')).toMatch(/var\(--pass-chart\)/);
-    expect(막대('n')).toMatch(/var\(--na-chart\)/);
+    expect(막대('p')).toMatch(/var\(--pass\)/);
+    expect(막대('n')).toMatch(/var\(--na\)/);
     expect(막대('f')).toMatch(/var\(--fail\)/);
   });
 });

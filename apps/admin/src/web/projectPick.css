@@ -12,7 +12,7 @@
   align-items: center;
   gap: 12px;
   padding: 12px 24px;
-  background: var(--head);
+  background: var(--well);
   border-bottom: 1px solid var(--line);
 }
 
@@ -88,7 +88,7 @@
 
 /* 마지막에 연 프로젝트 — 지금 고른 것이 아니라 다시 열릴 곳이라 대표색 테두리만 쓴다 */
 .pp-card.is-last {
-  border-color: var(--accent);
+  border-color: var(--accent-mark);
 }
 
 .pp-card-h {
@@ -107,7 +107,7 @@
 .pp-chip {
   padding: 2px 8px;
   border-radius: 999px;
-  background: var(--rail-active);
+  background: var(--well);
   color: var(--ink-muted);
   font-size: 12px;
 }

@@ -107,7 +107,7 @@ describe('RunList 줄 (§8.7 「A안」)', () => {
     await screen.findByText('ZRL 실행 4');
 
     const 색 = 줄(container).map((el) => el.querySelector<HTMLElement>('.gutter')?.style.background);
-    expect(색).toEqual(['var(--fail)', 'var(--na)', 'var(--accent)', 'var(--pass)']);
+    expect(색).toEqual(['var(--fail)', 'var(--na)', 'var(--accent-mark)', 'var(--pass)']);
   });
 
   it('작은 글에 RUN 번호 · 시작 방식 · 대상 서버 · 실행자 · 소요가 있다', async () => {

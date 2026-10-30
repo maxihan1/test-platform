@@ -19,7 +19,7 @@
 }
 .trace-tab[aria-selected='true'] {
   color: var(--ink);
-  border-bottom-color: var(--accent);
+  border-bottom-color: var(--accent-mark);
 }
 .trace-tab:focus-visible {
   outline: 2px solid var(--ink);

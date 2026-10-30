@@ -36,6 +36,7 @@ import { route, 갈자리, 돌아갈자리, 주소의서비스, 집 } from './ro
 import { RunList } from './RunList.js';
 import { RunResult } from './RunResult.js';
 import { RunWindow } from './RunWindow.js';
+import { 고른밝기를건다 } from './theme.js';
 import { PerfDevices } from './PerfDevices.js';
 import { PerfPages } from './PerfPages.js';
 import { PerfRun } from './PerfRun.js';
@@ -458,6 +459,7 @@ function 뿌리() {
   );
 }
 
+고른밝기를건다();
 칩움직임을건다();
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

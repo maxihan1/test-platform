@@ -19,6 +19,7 @@ import { Notice } from './Notice.js';
 import { use휴대폰 } from './phone.js';
 import { PhoneShell } from './PhoneShell.js';
 import { 할수있나 } from './role.js';
+import { 밝기단추 } from './theme.js';
 import { ShellHeader } from './ShellHeader.js';
 import { 사이드바머리, 애플리케이션줄 } from './ShellRail.js';
 import { use가입대기수 } from './useSignupWaiting.js';
@@ -146,6 +147,10 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
             ),
           )}
         </nav>
+        {/* 바닥 — 밝게 · 어둡게. 프로젝트 고르개는 위쪽 바를 걷을 때(WEB-F7-04) 이 줄 왼쪽으로 온다 */}
+        <div className="side-foot">
+          <밝기단추 />
+        </div>
         </div>
       </aside>
 

@@ -18,7 +18,7 @@
 .pp-seg label.on {
   background: var(--well);
   color: var(--ink);
-  box-shadow: inset 0 -2px 0 var(--accent);
+  box-shadow: inset 0 -2px 0 var(--accent-mark);
 }
 
 /* 라디오는 눈에 안 보여도 키보드로 닿는다 */
@@ -81,7 +81,7 @@
 .pp-track {
   position: relative;
   height: 12px;
-  background: var(--chart-track);
+  background: var(--well);
   border-radius: 2px;
 }
 

@@ -14,7 +14,7 @@ import { 그중미확정글 } from './unconfirmed.js';
  */
 export function 띠색(run: Pick<RunListRow, 'status' | 'counts'>): string {
   if (run.counts.fail > 0) return 'var(--fail)';
-  if (도는중(run.status)) return 'var(--accent)';
+  if (도는중(run.status)) return 'var(--accent-mark)';
   if (run.counts.na > 0 || run.status === 'ABORTED') return 'var(--na)';
   return 'var(--pass)';
 }

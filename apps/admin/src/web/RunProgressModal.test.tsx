@@ -250,7 +250,7 @@ describe('RunProgressModal (SPEC §8.9)', () => {
       'var(--pass)',
       'var(--fail)',
       'var(--na)',
-      'var(--chart-track)',
+      'var(--well)',
     ]);
     expect(칸들.map((i) => i.style.flexGrow)).toEqual(['11', '1', '0', '22']);
   });
@@ -264,7 +264,7 @@ describe('RunProgressModal (SPEC §8.9)', () => {
       'var(--pass)',
       'var(--fail)',
       'var(--na)',
-      'var(--chart-track)',
+      'var(--well)',
     ]);
     expect(본문()).toContain('그중 미확정 2건');
   });
