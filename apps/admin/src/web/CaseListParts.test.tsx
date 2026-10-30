@@ -278,7 +278,7 @@ describe('빈 목록의 스캔 버튼', () => {
     expect(screen.getByRole('button', { name: '조건 초기화' })).toBeTruthy();
   });
 
-  it('API 애플리케이션 케이스 줄에는 디바이스 이름을 그리지 않는다 — 웹은 그대로 (도메인/API · WEB-F7-18)', () => {
+  it('디바이스를 고를 것이 없는 종류(API · 앱)의 케이스 줄에는 디바이스 이름을 그리지 않는다 — 웹은 그대로 (도메인/API · 시안 11판 · WEB-F7-18)', () => {
     const 줄 = (kind: ServiceRow['kind']) =>
       render(
         <지금앱칸.Provider value={{ kind } as ServiceRow}>
@@ -286,6 +286,8 @@ describe('빈 목록의 스캔 버튼', () => {
         </지금앱칸.Provider>,
       ).container;
     expect(줄('API').querySelector('.device-name')).toBeNull();
+    cleanup();
+    expect(줄('APP').querySelector('.device-name')).toBeNull();
     cleanup();
     expect(줄('SCREEN').querySelector('.device-name')?.textContent).toBe('PC');
   });

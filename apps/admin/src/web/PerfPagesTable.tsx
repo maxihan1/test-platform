@@ -3,14 +3,8 @@
 import { use말 } from './i18n.js';
 import type { Compare, PageRow } from './perfPageApi.js';
 import { 넘음, 로드요약, 목표, 비교값, 숫자칸, 클글자 } from './perfPagesView.js';
-import { use올라가기 } from './dashboardView.js';
+import { 올라가는값 } from './ui.js';
 import { 초글자 } from './perfRunView.js';
-
-/** 숫자 칸 하나의 값 — 0 에서 올라간다 (시안 11판 「움직임」 숫자 · 성능 숫자 칸 · WEB-F7-18). 소수 한 자리를 살리려고 열 배로 올린다 */
-export function 올라가는값({ 수, 글 }: { 수: number | null; 글: (n: number) => string }) {
-  const 지금 = use올라가기(수 === null ? 0 : Math.round(수 * 10));
-  return <b>{수 === null ? '-' : 글(지금 / 10)}</b>;
-}
 
 /** 표 위 숫자 칸 줄 — 측정 하나를 한눈에 (시안 11판 「페이지 성능」 · WEB-F7-16). 칸 이름은 표와 같은 업계 말(LCP · FCP)이다 */
 export function PerfPagesTiles({ 줄들 }: { 줄들: PageRow[] }) {
@@ -76,7 +70,7 @@ export function PerfPagesTable({ 줄들, 비교, 고른, on고름 }: { 줄들: P
                   <td className={넘음.fcp(줄.fcpMs) ? 'r mono perf-err' : 'r mono'}>{초글자(줄.fcpMs, t)}</td>
                   <td className={넘음.cls(줄.cls) ? 'r mono perf-err' : 'r mono'}>{클글자(줄.cls)}</td>
                   <td className="r mono">{초글자(로드.전체로드Ms, t)}</td>
-                  <td className="r mono">{로드.요청수 === 0 ? '-' : 로드.요청수}</td>
+                  <td className="r mono">{로드.요청수 === 0 ? '-' : 로드.요청수 >= 100 ? '100+' : 로드.요청수}</td>
                   <td>
                     {줄.verdict === null ? (
                       '-'

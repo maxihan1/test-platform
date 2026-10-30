@@ -7,7 +7,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-import { api, type EnvRow, type Paged, type RunListRow, type RunTally } from './api.js';
+import { api, type EnvRow, type Paged, type RunListRow, type RunTally, type ServiceRow } from './api.js';
+import { 지금앱칸 } from './Head.js';
 import { use이동 } from './leaveGuard.js';
 import { RunList } from './RunList.js';
 import { 도는중응답 } from './RunResult.fixture.js';
@@ -357,5 +358,20 @@ describe('RunList 결과 칸 권한', () => {
 
     await screen.findByText('결제 회귀');
     expect(screen.queryByText('실행 중단')).toBeNull();
+  });
+
+  it('API 애플리케이션 실행 줄은 대상 서버 이름 뒤에 친 주소를 붙인다 — 웹은 이름만 (시안 11판 「실행 기록」 · WEB-F7-18)', async () => {
+    vi.spyOn(api, 'runs').mockResolvedValue({ ...한쪽, items: [실행(2140, 0)] });
+    const { container } = render(
+      <지금앱칸.Provider value={{ kind: 'API' } as ServiceRow}>
+        <RunList kind="FN" service="ZRL" envs={서버들} 판정하기={() => 운영} />
+      </지금앱칸.Provider>,
+    );
+    await screen.findByText('ZRL 실행 2140');
+    expect(container.querySelector('.run-row small')?.textContent).toContain('qa · https://qa.example.com');
+    cleanup();
+    const 웹 = await 그리기({ ...한쪽, items: [실행(2141, 0)] });
+    await screen.findByText('ZRL 실행 2141');
+    expect(웹.container.querySelector('.run-row small')?.textContent).not.toContain('https://qa.example.com');
   });
 });

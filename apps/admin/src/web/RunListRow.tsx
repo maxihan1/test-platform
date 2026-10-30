@@ -24,8 +24,8 @@ export function 띠색(run: Pick<RunListRow, 'status' | 'counts'>): string {
 export function 실행줄({ run, 고름, on고르기 }: { run: RunListRow; 고름: boolean; on고르기: (runId: number) => void }) {
   const t = use말();
   const 언어 = use언어();
-  // API 는 브라우저 · 폰이 없어 실행 위치가 곧 친 주소다 (시안 11판 「실행 기록」 · WEB-F7-18)
-  const 위치 = 종류키(use지금앱()?.kind) === 'API' && run.baseUrl !== '' ? run.baseUrl : run.env;
+  // API 는 브라우저 · 폰이 없어 실행 위치가 곧 친 주소다 (시안 11판 「실행 기록」 · WEB-F7-18). 서버 둘이 같은 주소일 수 있어 이름은 남긴다
+  const 위치 = 종류키(use지금앱()?.kind) === 'API' && run.baseUrl !== '' ? `${run.env} · ${run.baseUrl}` : run.env;
   const 미확정 = 그중미확정글(run.counts, 언어);
   const { pass, fail, na } = run.counts;
   // 디바이스가 둘 이상이고 실패가 있으면 실패 수를 디바이스별 케이스 수로 나눈다 — 항목 수 하나는 결과 칸 「실패 케이스 N건」과 엇갈려 보였다 (도메인/실행 §8.7 「줄」)

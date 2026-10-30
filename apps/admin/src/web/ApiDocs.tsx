@@ -98,13 +98,13 @@ export function ApiDocs({ service, 할수, 버전, 설정보나 }: { service: Se
         }
         행동={
           <>
-            {/* 바뀐 API 반영은 테스트 작성 「결정 필요」 한 곳에서 한다 (도메인/작성 §3.6 「★ 결정 목록」) — 시안의 주 단추는 그리로 보낸다 (WEB-F7-18) */}
+            {/* 바뀐 API 반영은 테스트 작성 「결정 필요」 한 곳에서 한다 (도메인/작성 §3.6 「★ 결정 목록」) — 시안의 주 단추는 그리로 보낸다. 버전은 내용이 달라야 새로 생기므로 둘 이상일 때만 바뀐 것이 있다 (WEB-F7-18) */}
             {쓰나 ? (
               <a className="btn ghost" href="#/authoring">
                 {t('테스트 작성 요청')}
               </a>
             ) : null}
-            {쓰나 ? (
+            {쓰나 && versions.length >= 2 ? (
               <a className="btn" href="#/authoring?todo=1">
                 {t('바뀐 API 만 다시 작성')}
               </a>
