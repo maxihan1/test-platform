@@ -1,11 +1,11 @@
 // 실패 카드 안의 디바이스 칸 — 머리(변화 · 회차 · 소요 · 흐름 막대)와 사전조건 · 입력 · 절차 본문 (실행 §8.3)
 
-import { api, type FailureDevice, type RunItemDetail, type RunItemSummary, type 항목실패 } from './api.js';
-import { 팜증적 } from './FarmEvidence.js';
+import { type FailureDevice, type RunItemDetail, type RunItemSummary, type 항목실패 } from './api.js';
 import { 원문보기, 실패이유 } from './FailureWhy.js';
 import { 회차요약 } from './group.js';
 import { use말, use언어 } from './i18n.js';
-import { 증거본문 } from './ItemExpand.js';
+import { 사전입력 } from './ItemExpand.js';
+import { 시간축증거 } from './RunEvidence.js';
 import { 다시실행꼬리표, 원래결과보기 } from './RerunTag.js';
 import { PLATFORM_LABEL, seconds, Verdict } from './ui.js';
 import { 판정흐름, 흐름칸수 } from './Summary.js';
@@ -65,8 +65,6 @@ export function RunFailDevice({
   const 언어 = use언어();
   const 대표 = devices[0]!.item;
   const 오류 = 오류줄(대표);
-  // 묶인 칸은 디바이스마다 화면이 다를 수 있다 — 절차는 한 번만 그리고 화면은 이름을 달아 나란히 놓는다
-  const 묶임 = devices.length > 1;
   // 회차가 여럿이면 소요는 그 디바이스 회차의 평균이다 (§8.3 회차 요약). 회차 항목은 실행 응답에서 온다
   const 소요글 = (d: FailureDevice): string => {
     if (d.attempts <= 1) return seconds(d.item.durationMs, 언어);
@@ -106,35 +104,13 @@ export function RunFailDevice({
 
       <원문보기 글={오류} />
 
-      <증거본문 item={대표} 화면숨김={묶임} />
+      <div className="fc-body">
+        <사전입력 item={대표} />
+        {/* 묶인 칸은 절차를 한 번 그리고 화면 · logcat 은 증거 칸에서 디바이스마다 나란히 둔다 (실행 §8.3) */}
+        <시간축증거 devices={devices} />
+      </div>
       {/* 펼친 본문은 다시 돈 항목이다 — 원래 항목은 그 아래 접어 둔다 (도메인/실행 §8.3 「한 건 실행이 붙은 실행」) */}
       {devices.map((d) => (d.rerun == null ? null : <원래결과보기 key={d.platform} runId={runId} rerun={d.rerun} />))}
-
-      {!묶임 ? null : (
-        <div className="fc-shots">
-          {devices.flatMap((d) =>
-            d.item.steps
-              // capture:true 로 찍은 통과 절차 화면을 「실패 시점 화면」이라 부르면 안 된다 — 실패한 절차 것만
-              .filter((step) => step.screenshotPath !== undefined && step.status === 'FAIL')
-              .map((step) => (
-                <figure key={`${d.platform}-${String(step.seq)}`} className="fc-shot">
-                  <figcaption>{PLATFORM_LABEL[d.platform]}</figcaption>
-                  <a href={api.screenshot(d.item.runId, d.item.historyId, step.seq)} target="_blank" rel="noreferrer">
-                    <img
-                      src={api.screenshot(d.item.runId, d.item.historyId, step.seq)}
-                      alt={t('{디바이스} {절차} 실패 시점 화면', { 디바이스: PLATFORM_LABEL[d.platform], 절차: step.title })}
-                      loading="lazy"
-                    />
-                  </a>
-                </figure>
-              )),
-          )}
-        </div>
-      )}
-
-      {devices.map((d) => (
-        <팜증적 key={d.platform} 주소={(name) => api.farmFile(d.item.runId, d.item.historyId, name)} files={d.farm} />
-      ))}
     </div>
   );
 }

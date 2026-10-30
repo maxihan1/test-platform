@@ -96,6 +96,7 @@ function 카드목록({ runId, env, items, platform, 권한 = 권한없음, 유�
       (변화 === null || c.devices.some((d) => d.change === 변화)) &&
       (!안본것만 || c.judgment === null),
   );
+  const 받은카드 = 응답.data.items;
   const 안본수 = 응답.data.items.filter((c) => c.judgment === null).length;
   // 변화 · 판정 거르개는 이 쪽 안에서만 거른다 — 카드 통로에 그 조건이 없다(계약 밖). 유형은 전체 수를 알아 따로 안내한다
   const 이쪽만거름 = (변화 !== null || 안본것만) && (쪽 > 1 || 더있나);
@@ -106,18 +107,41 @@ function 카드목록({ runId, env, items, platform, 권한 = 권한없음, 유�
         {t('실패한 케이스')} <span className="fc-count">{응답.data.total}</span>
       </h2>
 
-      {/* 같은 유형끼리 훑는다 — 수는 카드(케이스) 수다. 앞 판의 「같은 사유로 실패」는 확인 문장마다 한 덩어리였다 (실행 §8.3 「실패 유형으로 묶는다」) */}
-      {/* 유형은 디바이스 차례로 첫 깨진 디바이스 것이라 디바이스를 거른 동안에는 카드 머리 칩과 어긋난다 — 그때는 줄을 안 그린다 */}
+      {/* 같은 원인끼리 훑는다 — 수는 카드(케이스) 수다. 앞 판의 「같은 사유로 실패」는 확인 문장마다 한 덩어리였다 (실행 §8.3 「실패 유형으로 묶는다」 · WEB-F7-13).
+          유형은 디바이스 차례로 첫 깨진 디바이스 것이라 디바이스를 거른 동안에는 카드 머리 칩과 어긋난다 — 그때는 판을 안 그린다 */}
       {유형들.length === 0 || platform !== 'ALL' ? null : (
-        <div className="chip-group fc-types" role="group" aria-label={t('실패 유형')}>
-          <button type="button" className="chip" aria-pressed={유형칸 === null} onClick={() => set고른유형(null)}>
-            {t('전체')} <b className="num">{유형들.reduce((합, u) => 합 + u.count, 0)}</b>
-          </button>
-          {유형들.map((u) => (
-            <button key={u.type} type="button" className="chip" aria-pressed={u.type === 고른유형} onClick={() => set고른유형(u.type)}>
-              {t(실패유형이름[u.type])} <b className="num">{u.count}</b>
-            </button>
-          ))}
+        <div className="fc-causes" role="group" aria-label={t('실패 원인')}>
+          <div className="fc-causes-h">
+            <b>{t('실패 원인')}</b>
+            <span>{t('실패 {건수}건을 원인별로 묶었습니다 · 누르면 그 원인 카드만 보입니다', { 건수: 유형들.reduce((합, u) => 합 + u.count, 0) })}</span>
+          </div>
+          {유형들.map((u) => {
+            // 원인 글은 이 쪽에서 그 유형의 첫 카드 것이다 — 통로가 유형마다 대표 글을 주지 않는다(계약 밖)
+            const 첫카드 = 받은카드.find((c) => u.tcIds.includes(c.tcId));
+            const 글 = 첫카드?.devices[0]?.item.failure?.reason ?? null;
+            return (
+              <button
+                key={u.type}
+                type="button"
+                className={u.type === 'environment' ? 'fc-cause env' : 'fc-cause'}
+                aria-pressed={u.type === 고른유형}
+                // 다시 누르면 푼다 — 「전체」 칸을 따로 두지 않는다
+                onClick={() => set고른유형(u.type === 고른유형 ? null : u.type)}
+              >
+                <b className="fc-cause-n num">{u.count}</b>
+                <span className="fc-cause-type">{t(실패유형이름[u.type])}</span>
+                <span className="fc-cause-what">{글}</span>
+                <span className="fc-cause-tcs">
+                  {u.tcIds.slice(0, 3).map((tc) => (
+                    <span key={tc} className="mono">
+                      {tc}
+                    </span>
+                  ))}
+                  {u.tcIds.length > 3 ? <span>{t('외 {건수}건', { 건수: u.tcIds.length - 3 })}</span> : null}
+                </span>
+              </button>
+            );
+          })}
         </div>
       )}
       {/* 판정한 카드와 아직 안 본 카드를 가른다 — 판정은 카드 맨 아래라 접힌 줄만 봐서는 몰랐다 (점검 2.24) */}

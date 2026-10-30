@@ -10,7 +10,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('실패 카드의 실패 이유 · 실패 유형 칩 줄 (실행 §8.3)', () => {
+describe('실패 카드의 실패 이유 · 실패 원인 판 (실행 §8.3)', () => {
   it('카드 머리에 유형 칩과 서버가 준 한 줄을 적고, 오류 첫 줄은 접힌 「원문 보기」 안에만 둔다', async () => {
     const { container } = 그리기(
       쪽([
@@ -44,10 +44,10 @@ describe('실패 카드의 실패 이유 · 실패 유형 칩 줄 (실행 §8.3)
     expect(screen.getByText('가입 단추를 찾지 못했다').closest('.fc-meta')).not.toBeNull();
   });
 
-  it('「실패 유형」 칩은 유형마다 카드 수를 적고 누르면 그 유형 카드만 남긴다', async () => {
+  it('「실패 원인」 판은 유형마다 카드 수 · 그 유형 첫 카드의 이유 · 케이스 번호를 적고, 누르면 그 원인 카드만 남기고 다시 누르면 푼다', async () => {
     그리기(
       쪽([
-        케이스('ZZI-0001', '회원가입', [장치('desktop', 1)]),
+        케이스('ZZI-0001', '회원가입', [장치('desktop', 1, {}, { failure: { type: 'mismatch', reason: '이메일 칸이 비어 있다' } })]),
         케이스('ZZI-0002', '로그인', [장치('desktop', 2)]),
         케이스('ZZI-0003', '탈퇴', [장치('desktop', 3)]),
       ]),
@@ -60,13 +60,21 @@ describe('실패 카드의 실패 이유 · 실패 유형 칩 줄 (실행 §8.3)
       ],
     );
 
-    const 줄칩 = within(await screen.findByRole('group', { name: '실패 유형' }));
-    expect(줄칩.getAllByRole('button').map((b) => b.textContent)).toEqual(['전체 3', '기대 결과 불일치 2', '타임아웃 1']);
-    fireEvent.click(줄칩.getByRole('button', { name: /타임아웃/ }));
+    const 판 = within(await screen.findByRole('group', { name: '실패 원인' }));
+    expect(판.getAllByRole('button').map((b) => b.textContent)).toEqual([
+      '2기대 결과 불일치이메일 칸이 비어 있다ZZI-0001ZZI-0003',
+      '1타임아웃ZZI-0002',
+    ]);
+    const 타임아웃 = 판.getByRole('button', { name: /타임아웃/ });
+    fireEvent.click(타임아웃);
 
     expect(screen.queryByText('회원가입')).toBeNull();
     expect(screen.getByText('로그인')).toBeTruthy();
-    expect(줄칩.getByRole('button', { name: /타임아웃/ }).getAttribute('aria-pressed')).toBe('true');
+    expect(타임아웃.getAttribute('aria-pressed')).toBe('true');
+
+    fireEvent.click(타임아웃);
+    expect(screen.getByText('회원가입')).toBeTruthy();
+    expect(타임아웃.getAttribute('aria-pressed')).toBe('false');
   });
 
   it('고른 유형의 카드가 다른 쪽에도 있으면 이 쪽 수와 전체 수를 같이 알린다', async () => {
@@ -99,7 +107,7 @@ describe('실패 카드의 실패 이유 · 실패 유형 칩 줄 (실행 §8.3)
     expect(screen.queryByText('실패한 케이스가 없습니다')).toBeNull();
   });
 
-  it('디바이스를 거른 동안에는 「실패 유형」 칩 줄이 없다 — 카드 머리 칩과 어긋난다', async () => {
+  it('디바이스를 거른 동안에는 「실패 원인」 판이 없다 — 카드 머리 칩과 어긋난다', async () => {
     그리기(
       쪽([케이스('ZZI-0001', '회원가입', [장치('mobile', 1)])]),
       [줄(1, 'ZZI-0001', 'mobile', 'FAIL')],
@@ -109,6 +117,6 @@ describe('실패 카드의 실패 이유 · 실패 유형 칩 줄 (실행 §8.3)
     );
 
     await screen.findByText('회원가입');
-    expect(screen.queryByRole('group', { name: '실패 유형' })).toBeNull();
+    expect(screen.queryByRole('group', { name: '실패 원인' })).toBeNull();
   });
 });
