@@ -16,6 +16,7 @@ import { 결과글, 무슨테스트, 시작글, 종류꼬리표 } from './author
 import { 반영보임, 줄보임, 칩글, 할일칩들, type 보임 } from './authoringView.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
+import { 종류, 종류이름 } from './kind.js';
 import { use주소조건, 주소조건 } from './leaveGuard.js';
 import { 다음이있나 } from './paging.js';
 import type { 판정 } from './role.js';
@@ -87,6 +88,7 @@ function 작성줄({ 것, 지금, 운영자 }: { 것: AuthoringListRow; 지금: 
 
 export function Authoring({ service, serviceId, envs = [], 피그마토큰 = true, 앱종류, 할수 }: { service: string; serviceId?: number; envs?: EnvRow[]; 피그마토큰?: boolean; 앱종류?: 앱종류; 할수: 판정 }) {
   const t = use말();
+  const 언어 = use언어();
   // 쪽은 주소에 남는다 — 상세에 갔다 뒤로 와도 그 쪽이다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
   const [page, setPage] = useState(() => Math.max(1, Math.floor(Number(주소조건().get('page')) || 1)));
   // 「결정 필요」 — 목록 자리에 결정 목록이 선다. 주소의 todo=1 은 앞 이름 「조치 필요」 때 것을 그대로 쓴다 (도메인/작성 §3.6 「★ 결정 목록」)
@@ -154,6 +156,8 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
         }
       />
 
+      {/* 목록 옆 판 — 무엇을 넣어야 하는지는 종류가 정한다. 결정 목록을 보는 동안은 새 작성과 상관없어 뺀다 (시안 11판 「종류마다 달라지는 칸」 · WEB-F7-16) */}
+      <div className={할일만 ? 'auth-cols one' : 'auth-cols'}>
       <div className="screen list-screen">
         {할일만 || 줄들.error === null ? null : <Failed error={줄들.error} />}
         <div className="toolbar">
@@ -218,6 +222,19 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
         )}
           </>
         )}
+      </div>
+      {할일만 ? null : (
+        <aside className="screen auth-inputs" aria-labelledby="auth-inputs-title">
+          <h2 id="auth-inputs-title">
+            {t('새 작성에 넣는 자료')} <span>{종류이름(앱종류, 언어)}</span>
+          </h2>
+          <ol>
+            {종류(앱종류).작성자료.map((줄) => (
+              <li key={줄}>{t(줄)}</li>
+            ))}
+          </ol>
+        </aside>
+      )}
       </div>
 
       {서랍 && 할수('작성요청') ? (

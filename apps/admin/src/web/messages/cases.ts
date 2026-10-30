@@ -78,6 +78,9 @@ export const 케이스말: Record<string, string> = {
   '기능 묶음 없음': 'No feature',
   '화면': 'Screen',
   '화면 조각': 'Component',
+  // 게임의 화면 파일은 창이다 (kind.ts 묶음말 · WEB-F7-16)
+  '창': 'Window',
+  '창 조각': 'Window part',
   '실패 {건수}': '{건수} failed',
   'PRD 에 연결되지 않은 케이스': 'Not linked to the PRD',
   '앞 쪽에서 이어짐': 'Continued from the previous page',

@@ -175,6 +175,19 @@ export const 작성말: Record<string, string> = {
     'What was made in {분} min is kept so you can continue writing later.',
   '아직 시작 전이라 바로 취소됩니다.': 'It has not started yet, so it is cancelled right away.',
   '목록에서 사라집니다. 통계와 토큰 기록은 남습니다.': 'It disappears from the list. Stats and token records stay.',
+  // 목록 옆 「새 작성에 넣는 자료」 — 종류마다 줄이 다르다 (kind.ts 작성자료 · WEB-F7-16)
+  '새 작성에 넣는 자료': 'What a new request takes',
+  '기획서(docx · pdf)': 'Spec (docx · pdf)',
+  '피그마 화면': 'Figma screens',
+  '실제 화면과 대조 — 크롤러가 대상 서버를 열어 기획서와 다른 화면을 찾습니다':
+    'Compare with the live screen — the crawler opens the target server and finds screens that differ from the spec',
+  '앱 화면 읽기 — 디바이스 팜에서 폰 하나를 잡아 앱을 깔고 첫 화면부터 눌러 가며 요소를 읽습니다':
+    'Reading app screens — takes one phone from the device farm, installs the app and reads elements from the first screen on',
+  '기획서 · 확률표': 'Spec · probability table',
+  '게임 화면 읽기 — 디바이스 팜에서 폰 하나를 잡아 게임을 깔고 로그인 창부터 창을 하나씩 열어 오브젝트를 읽습니다':
+    'Reading game screens — takes one phone from the device farm, installs the game and opens each window from login to read its objects',
+  'API 문서 버전 — 지난 버전과 달라진 엔드포인트만 다시 작성합니다': 'API doc version — only endpoints changed since the last version are rewritten',
+  '기획서(있으면)': 'Spec (if any)',
   // 역방향 — 기획서와 실제 화면을 대조한다 (도메인/작성 §3.6 「★ 역방향」)
   '실제 화면과 대조': 'Compare with the live screen',
   '화면과 대조': 'Screen compare',
