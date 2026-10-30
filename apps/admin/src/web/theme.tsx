@@ -5,6 +5,7 @@ import { useState } from 'react';
 
 import { use말 } from './i18n.js';
 import { 아이콘 } from './icons.js';
+import { 겹쳐바꾼다 } from './motion.js';
 
 export type 밝기 = 'light' | 'dark';
 
@@ -52,10 +53,12 @@ export function 밝기단추() {
       className="theme-btn"
       aria-label={다음 === 'light' ? t('밝게 보기') : t('어둡게 보기')}
       title={다음 === 'light' ? t('밝게 보기') : t('어둡게 보기')}
-      onClick={() => {
-        밝기를적는다(다음);
-        set지금(다음);
-      }}
+      onClick={() =>
+        겹쳐바꾼다(() => {
+          밝기를적는다(다음);
+          set지금(다음);
+        })
+      }
     >
       <아이콘 이름={다음 === 'light' ? 'sun' : 'moon'} />
     </button>

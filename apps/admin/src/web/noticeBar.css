@@ -164,7 +164,7 @@
   font-weight: 600;
   line-height: 18px;
   text-align: center;
-  animation: nt-pop var(--t2) var(--ease);
+  animation: nt-pop var(--t3) var(--ease);
 }
 
 @keyframes nt-pop {

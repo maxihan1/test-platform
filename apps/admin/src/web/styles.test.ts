@@ -748,6 +748,7 @@ describe('움직임 (DESIGN.md 원칙 4, 2026-10-07)', () => {
     for (const 이름 of ['--t1', '--t2', '--t3']) expect(초(표[이름]!), 이름).toBeLessThanOrEqual(0.3);
     expect(초(표['--dur-intro']!)).toBeLessThanOrEqual(0.5);
     expect(초(표['--dur-count']!)).toBeLessThanOrEqual(0.4);
+    expect(초(표['--stagger']!) * 5 + 초(표['--t2']!), '판 다섯 칸 지연 + 등장 한 번').toBeLessThanOrEqual(초(표['--dur-intro']!));
     expect(표['--ease']).toMatch(/^cubic-bezier\(/);
   });
 

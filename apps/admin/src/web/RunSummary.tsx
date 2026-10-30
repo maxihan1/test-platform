@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 import type { ItemStatus, Platform, RunCounts, RunInsights, RunItemSummary } from './api.js';
-import { 도넛조각 } from './dashboardView.js';
+import { 도넛조각, use올라가기 } from './dashboardView.js';
 import { use말, use언어 } from './i18n.js';
 import { 해결목록 } from './RunInsights.js';
 import { 빠진목록 } from './RunMissing.js';
@@ -55,6 +55,8 @@ export function RunSummary({
   const 언어 = use언어();
   const 전체 = counts.pass + counts.fail + counts.na;
   const 조각들 = 도넛조각({ pass: counts.pass, fail: counts.fail, notRun: counts.na });
+  // 소수 한 자리까지 올라가도록 천분율로 센다 (DESIGN.md 원칙 4 「숫자 · 막대 · 선」)
+  const 천분율 = use올라가기(전체 === 0 ? 0 : Math.round((counts.pass / 전체) * 1000));
   const 미확정 = 그중미확정글(counts, 언어);
   const 앞 = insights?.previous ?? null;
   // 번호 자리만 고리로 만든다. 영어 표에서도 번호 자리가 어디든 맞도록 글을 만든 뒤 그 자리에서 가른다
@@ -102,7 +104,7 @@ export function RunSummary({
                   '—'
                 ) : (
                   <>
-                    {((counts.pass / 전체) * 100).toFixed(1)}
+                    {(천분율 / 10).toFixed(1)}
                     <span className="rs-pct">%</span>
                   </>
                 )}

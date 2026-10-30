@@ -127,6 +127,8 @@
   --dur-intro: 0.5s;
   /* 숫자 올라가기 */
   --dur-count: 0.4s;
+  /* 화면을 열 때 판이 차례로 나오는 간격. 다섯 칸 지연 + --t2 가 --dur-intro 안이다 */
+  --stagger: 0.05s;
   /* 실행 중 맥박 한 번 — 되풀이 움직임은 이것과 아래 뼈대 반짝임 둘뿐이다 */
   --dur-pulse: 1.6s;
   /* 불러오는 중 뼈대 위를 빛이 한 번 훑는 시간 — 불러오는 동안만 되풀이한다 (⑬-7) */
@@ -1468,7 +1470,7 @@ input[type='file']::file-selector-button {
   text-decoration: none;
   display: inline-block;
   /* 마우스를 올렸을 때의 반응이라 움직임 원칙 밖이다 (DESIGN.md 원칙 4) */
-  transition: background-color 0.12s, border-color 0.12s, filter 0.12s;
+  transition: background-color 0.12s, border-color 0.12s, filter 0.12s, transform var(--t1) var(--ease);
 }
 
 /* 앞 판은 --link 로 칠했는데 밝게의 --link 는 짙은 갈색이라 위 글자(--on-accent)가 안 읽힌다.
@@ -4670,8 +4672,26 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   animation: 나타남 var(--t2) var(--ease) backwards;
 }
 
+/* 판은 머리 뒤로 --stagger(50ms) 간격으로 차례로 나온다. 여섯 번째(머리 + 판 다섯) 뒤로는 같이 나온다 — 판이 많은 화면도 0.5초 안에 끝난다.
+   차례는 머리 뒤 형제로 세고 지연은 판(.screen)에만 건다 — 판 옆에 그 자리로 그리는 모달이 뒤늦게 열리면 같은 지연을 받아 늦게 떴다 */
 .head + .screen {
-  animation-delay: 0.08s;
+  animation-delay: var(--stagger);
+}
+
+.head + * + .screen {
+  animation-delay: calc(var(--stagger) * 2);
+}
+
+.head + * + * + .screen {
+  animation-delay: calc(var(--stagger) * 3);
+}
+
+.head + * + * + * + .screen {
+  animation-delay: calc(var(--stagger) * 4);
+}
+
+.head + * + * + * + * ~ .screen {
+  animation-delay: calc(var(--stagger) * 5);
 }
 
 /* 실행 중 맥박 점 — 대표색 자리(화면공통 §8 「실행 중 표시」). 되풀이 움직임은 이것 하나뿐이다 */
@@ -4807,6 +4827,55 @@ details[open]:not(.ph-me)::details-content {
 .chip.chip-arriving {
   background: var(--panel);
   border-color: var(--line-2);
+}
+
+/* 탭 밑줄 · 애플리케이션 막대 — 켜진 칸이 바뀌면 표시가 앞 칸에서 새 칸으로 옮겨 간다(motion.ts). 오는 동안 새 칸은 제 표시를 감춘다 */
+.tab-face,
+.rail-face {
+  position: fixed;
+  z-index: 50;
+  pointer-events: none;
+  background: var(--accent-mark);
+  transform-origin: 0 0;
+}
+
+.rail-face {
+  border-radius: 3px;
+}
+
+:is(.trace-tab, .scn-tab).tab-arriving[aria-selected='true'] {
+  border-bottom-color: transparent;
+}
+
+.rail-app.rail-arriving[aria-current='page']::before {
+  opacity: 0;
+}
+
+/* 누름 — 누르면 0.96배로 살짝 눌린다(원칙 4 「누름 · 기다림」). 글자 단추 · 칩 · 왼쪽 줄 칸만이다 */
+.chip,
+.rail-app,
+.rail-add,
+.rail-tool {
+  transition: transform var(--t1) var(--ease);
+}
+
+:is(.btn, .chip, .rail-app, .rail-add, .rail-tool):active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+/* 휴대폰 깊이 이동 — 목록에서 상세로 들어가면 새 화면 사진이 오른쪽에서 밀려 들어온다(motion.ts 화면을바꾼다). 앞 화면은 그 아래 그대로 있다 */
+:root[data-move='deeper']::view-transition-old(root) {
+  animation: none;
+}
+
+:root[data-move='deeper']::view-transition-new(root) {
+  animation: 밀려옴 var(--t2) var(--ease);
+}
+
+@keyframes 밀려옴 {
+  from {
+    transform: translateX(100%);
+  }
 }
 
 /* 오류 흔들림 — 로그인 · 가입 · 비밀번호 변경 상자에 오류 글이 붙으면 한 번 흔들린다.
@@ -5392,7 +5461,7 @@ details[open]:not(.ph-me)::details-content {
 .dash-seg {
   fill: none;
   stroke-width: 16;
-  animation: 그려짐 var(--t2) var(--ease) backwards;
+  animation: 그려짐 var(--t3) var(--ease) 0.1s backwards;
 }
 
 .dash-seg.p {
@@ -5412,7 +5481,7 @@ details[open]:not(.ph-me)::details-content {
   stroke: var(--pass);
   stroke-opacity: 0.45;
   stroke-width: 6;
-  animation: 그려짐 var(--t2) var(--ease) 0.1s backwards;
+  animation: 그려짐 var(--t3) var(--ease) 0.1s backwards;
 }
 
 @keyframes 그려짐 {
@@ -5595,7 +5664,7 @@ details[open]:not(.ph-me)::details-content {
 .dash-day rect {
   transform-box: fill-box;
   transform-origin: bottom;
-  animation: 자람 var(--t2) var(--ease) backwards;
+  animation: 자람 var(--t3) var(--ease) 0.1s backwards;
 }
 
 .dash-day rect.p {
@@ -5799,7 +5868,7 @@ details[open]:not(.ph-me)::details-content {
 }
 
 .dash-gauge-v {
-  animation: 그려짐 var(--t2) var(--ease) 0.1s backwards;
+  animation: 그려짐 var(--t3) var(--ease) 0.1s backwards;
 }
 
 .dash-tick {
@@ -5918,7 +5987,7 @@ details[open]:not(.ph-me)::details-content {
   height: 100%;
   background: var(--chart-1);
   transform-origin: left;
-  animation: 자람가로 var(--t2) var(--ease) 0.1s backwards;
+  animation: 자람가로 var(--t3) var(--ease) 0.1s backwards;
 }
 
 @keyframes 자람가로 {
@@ -6634,7 +6703,7 @@ details.raw {
 }
 
 .rs-seg {
-  animation: 그려짐 var(--t2) var(--ease) backwards;
+  animation: 그려짐 var(--t3) var(--ease) 0.1s backwards;
 }
 
 .rs-seg.p {
