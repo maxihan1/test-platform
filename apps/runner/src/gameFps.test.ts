@@ -58,7 +58,7 @@ afterEach(() => {
 async function 틱(번: number): Promise<void> {
   for (let i = 0; i < 번; i++) {
     vi.advanceTimersByTime(1_000);
-    await new Promise((r) => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 200));
   }
 }
 
