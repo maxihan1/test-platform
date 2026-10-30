@@ -29,7 +29,6 @@ export function 내메뉴({
   const t = use말();
   const [열림, set열림] = useState(false);
   const [팜토큰창, set팜토큰창] = useState(false);
-  const sso = useSSO();
   const 상자 = useRef<HTMLDivElement>(null);
   const 버튼 = useRef<HTMLButtonElement>(null);
 
@@ -71,44 +70,74 @@ export function 내메뉴({
       </button>
       {열림 ? (
         <div className="rail-me-menu" id="rail-me-menu">
-          <div className="rail-me-who">
-            <b>{user.displayName}</b>
-            {프로젝트 === null ? null : <small>{프로젝트}</small>}
-          </div>
-          <div className="side-lang">
-            <언어고르개 언어={언어} on언어={on언어} />
-          </div>
-          {/* maxihan 계정이면 비밀번호는 Auth_platform 이 가진다 (SPEC §8.6) */}
-          {sso === true ? null : (
-            <a href="#/password" onClick={() => set열림(false)}>
-              {t('비밀번호 변경')}
-            </a>
-          )}
-          {/* 토큰 주인을 통합계정에 묻고 계정에 묶인 사람과 견줘서 SSO 설치에만 있다 (도메인/인증 §8.6) */}
-          {sso === true ? (
-            <button
-              type="button"
-              onClick={() => {
-                set열림(false);
-                set팜토큰창(true);
-              }}
-            >
-              {t('디바이스 팜 토큰')}
-            </button>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => {
-              // 로그아웃이 실패해도 메뉴가 본문 버튼을 가린 채 남지 않게 먼저 닫는다
-              set열림(false);
-              onLogout();
-            }}
-          >
-            {t('로그아웃')}
-          </button>
+          <내메뉴항목 user={user} 프로젝트={프로젝트} 언어={언어} on언어={on언어} onLogout={onLogout} 닫기={() => set열림(false)} 팜토큰열기={() => set팜토큰창(true)} />
         </div>
       ) : null}
       {팜토큰창 ? <FarmToken onClose={() => set팜토큰창(false)} /> : null}
     </div>
+  );
+}
+
+/**
+ * 내 메뉴 안 줄들 — PC 는 동그라미 위로 뜨는 판, 휴대폰은 아래 판(PhoneShell)이 같이 쓴다 (화면공통 §8 「휴대폰 화면」 「내 동그라미」).
+ * 디바이스 팜 토큰 창은 메뉴가 닫혀도 남아야 해서 메뉴 밖이 든다
+ */
+export function 내메뉴항목({
+  user,
+  프로젝트,
+  언어,
+  on언어,
+  onLogout,
+  닫기,
+  팜토큰열기,
+}: {
+  user: User;
+  프로젝트: string | null;
+  언어: 언어;
+  on언어: (고른: 언어) => void;
+  onLogout: () => void;
+  닫기: () => void;
+  팜토큰열기: () => void;
+}) {
+  const t = use말();
+  const sso = useSSO();
+  return (
+    <>
+      <div className="rail-me-who">
+        <b>{user.displayName}</b>
+        {프로젝트 === null ? null : <small>{프로젝트}</small>}
+      </div>
+      <div className="side-lang">
+        <언어고르개 언어={언어} on언어={on언어} />
+      </div>
+      {/* maxihan 계정이면 비밀번호는 Auth_platform 이 가진다 (SPEC §8.6) */}
+      {sso === true ? null : (
+        <a href="#/password" onClick={닫기}>
+          {t('비밀번호 변경')}
+        </a>
+      )}
+      {/* 토큰 주인을 통합계정에 묻고 계정에 묶인 사람과 견줘서 SSO 설치에만 있다 (도메인/인증 §8.6) */}
+      {sso === true ? (
+        <button
+          type="button"
+          onClick={() => {
+            닫기();
+            팜토큰열기();
+          }}
+        >
+          {t('디바이스 팜 토큰')}
+        </button>
+      ) : null}
+      <button
+        type="button"
+        onClick={() => {
+          // 로그아웃이 실패해도 메뉴가 본문 버튼을 가린 채 남지 않게 먼저 닫는다
+          닫기();
+          onLogout();
+        }}
+      >
+        {t('로그아웃')}
+      </button>
+    </>
   );
 }

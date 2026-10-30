@@ -1,4 +1,4 @@
-// 창이 휴대폰 폭인지와 휴대폰에서 여는 자리인지를 가른다 (SPEC 공통/5-화면공통 §8 「휴대폰 화면」)
+// 창이 휴대폰 폭인지 가르고, 휴대폰에서 표를 카드 줄로 읽히게 칸 이름을 붙인다 (SPEC 공통/5-화면공통 §8 「휴대폰 화면」)
 
 import { useSyncExternalStore } from 'react';
 
@@ -25,10 +25,21 @@ export function use휴대폰(): boolean {
 }
 
 /**
- * 휴대폰에서 여는 자리인가. `지금자리()` 가 돌려준 해시로 가른다 — 실행 결과 · 항목 상세는 `#/runs` 다.
- * 성능 「실행 중 · 결과」 한 건(`#/perf/runs/<번호>`)도 연다. 그 자리는 실행 기록 목록과 `지금자리()` 값이 같아서 실제 주소로 가른다 — 목록은 PC 전용이다.
- * 나머지(케이스 · PRD · 작성 · 시나리오 · 설정)는 PC 전용 안내를 그린다
+ * 휴대폰은 표를 카드 줄로 쌓는다 — 칸 이름 줄을 숨기므로 칸마다 그 이름을 `data-label` 로 붙여 둔다(phone.css 가 앞에 적는다).
+ * 화면마다 라벨을 따로 적지 않고 표머리에서 읽는다. 이름이 빈 칸(체크 · ▶ 같은)은 붙이지 않는다 —
+ * 값만으로 뜻이 서는 칸이다 (화면공통 §8 「휴대폰 화면」 「표는 카드 줄이다」 · DESIGN.md 「반응형」)
  */
-export function 휴대폰자리인가(지금: string, 주소 = ''): boolean {
-  return 지금 === '#/dashboard' || 지금 === '#/password' || 지금 === '#/runs' || 지금.startsWith('#/runs/') || /^#\/perf\/runs\/\d+$/.test(주소);
+export function 표에라벨을단다(그릇: ParentNode): void {
+  for (const 표 of 그릇.querySelectorAll('table')) {
+    const 머리 = [...표.querySelectorAll('thead tr:last-child th')].map((칸) => 칸.textContent?.trim() ?? '');
+    if (머리.length === 0) continue;
+    for (const 줄 of 표.querySelectorAll('tbody tr')) {
+      let 자리 = 0;
+      for (const 칸 of 줄.children) {
+        const 이름 = 머리[자리] ?? '';
+        if (이름 !== '' && 칸.getAttribute('data-label') !== 이름) 칸.setAttribute('data-label', 이름);
+        자리 += 칸 instanceof HTMLTableCellElement ? 칸.colSpan : 1;
+      }
+    }
+  }
 }

@@ -244,13 +244,16 @@ describe('화면 토큰 (DESIGN.md)', () => {
     expect(좁은화면).toMatch(/\.gutter\s*\{[^}]*grid-row:\s*1\s*\/\s*-1/);
   });
 
-  it('휴대폰 아래 탭 · 사람 버튼의 손가락 영역이 44px 이상이다', () => {
+  it('휴대폰 아래 탭 · 위 줄 단추의 손가락 영역이 44px 이상이다', () => {
     // SPEC 공통/5 §8 「휴대폰 화면」 — 휴대폰 껍데기의 길목이 44px 을 넘어야 한다.
     // 46 으로 둔다. 브라우저 반올림이 소수점만큼 깎아 목업 실측이 43.9986 이었다
     const 휴대폰 = readFileSync(new URL('./phone.css', import.meta.url), 'utf8');
     expect(Number(/--ph-tabs:\s*(\d+)px/.exec(css)?.[1])).toBeGreaterThanOrEqual(44);
-    expect(휴대폰, '「알림」 탭이 다른 탭과 같은 높이를 쓰지 않는다').toMatch(/\.ph-tabs \.nt-btn\s*\{[^}]*min-height:\s*var\(--ph-tabs\)/);
-    expect(Number(/\.ph-me summary\s*\{[^}]*height:\s*(\d+)px/.exec(휴대폰)?.[1])).toBeGreaterThanOrEqual(44);
+    expect(휴대폰, '「전체」 탭(button)이 다른 탭과 같은 높이를 쓰지 않는다').toMatch(/\.ph-tabs > a,\s*\.ph-tabs > button\s*\{[^}]*min-height:\s*var\(--ph-tabs\)/);
+    for (const 단추 of ['ph-app', 'ph-me', 'ph-bell .nt-btn']) {
+      const 높이 = new RegExp(`\\.${단추}\\s*\\{[^}]*(?:min-)?height:\\s*(\\d+)px`).exec(휴대폰)?.[1];
+      expect(Number(높이), 단추).toBeGreaterThanOrEqual(44);
+    }
   });
 
   it('판정 도형 색(--pass · --fail · --na)을 글자색으로 쓰지 않는다 — 글자는 밝은 판(-text)이다', () => {

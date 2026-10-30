@@ -3,6 +3,9 @@
 
 import { useEffect, useRef } from 'react';
 
+import { use휴대폰 } from './phone.js';
+import { 손잡이, use끌어닫기 } from './Sheet.js';
+
 interface Props {
   제목: string;
   onClose: () => void;
@@ -34,6 +37,10 @@ export function Modal({ 제목, onClose, children, 버튼, 넓게 = false, 바�
   // 닫으면 열기 전 있던 자리로 돌려준다 (DESIGN.md)
   const 열기전 = useRef<Element | null>(null);
   const 나 = useRef(Symbol('modal'));
+  // 휴대폰에서 작은 창은 손잡이로 끌어 닫는 아래 판, 값을 넣는 창(바깥 누르기로 안 닫히는 창)은 전체 화면이다 (DESIGN.md 「휴대폰의 창」)
+  const 휴대폰 = use휴대폰();
+  const 끌기 = use끌어닫기(onClose);
+  const 아래판 = 휴대폰 && 바깥눌러닫기;
 
   useEffect(() => {
     열기전.current = document.activeElement;
@@ -86,12 +93,14 @@ export function Modal({ 제목, onClose, children, 버튼, 넓게 = false, 바�
       }}
     >
       <div
-        className={넓게 ? 'modal wide' : 'modal'}
+        className={['modal', 넓게 ? 'wide' : '', 휴대폰 && !바깥눌러닫기 ? 'full' : ''].filter(Boolean).join(' ')}
         role="dialog"
         aria-modal="true"
         aria-label={제목}
         ref={상자}
+        style={아래판 ? 끌기.판 : undefined}
       >
+        {아래판 ? <손잡이 끌기={끌기} /> : null}
         <div className="modal-title">{제목}</div>
         <div className="modal-body">{children}</div>
         <div className="modal-foot">{버튼}</div>

@@ -36,14 +36,12 @@ interface Props {
   on언어: (고른: 언어) => void;
   onLogout: () => void;
   current: string;
-  /** 실제 주소. `current` 는 성능 실행 목록과 한 건이 같은 자리라, 휴대폰에서 한 건만 열려면 이 주소가 필요하다 */
-  주소?: string;
   children: React.ReactNode;
 }
 
 // 제목과 주 행동은 **화면이 그린다** (Head.tsx). 2026-09-22 까지 여기 `header` 통로가 있었는데
 // 부르는 곳이 하나도 없었다 — 부제와 행동이 동적이라 올려 보내려면 배선이 늘기 때문이다
-export function Shell({ user, service, onService, 언어, on언어, onLogout, current, 주소, children }: Props) {
+export function Shell({ user, service, onService, 언어, on언어, onLogout, current, children }: Props) {
   const t = use말();
 
   // 대시보드는 서비스를 고르지 않는 화면이다 — 숨긴 고르개의 서비스 이름이 탭과 바닥 글에 남으면 그 서비스만 보는 것처럼 읽힌다
@@ -77,7 +75,7 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
   if (휴대폰) {
     return (
       <>
-        <PhoneShell user={user} service={service} onService={onService} 언어={언어} on언어={on언어} onLogout={onLogout} current={current} 주소={주소} 사유={사유}>
+        <PhoneShell user={user} service={service} onService={onService} 언어={언어} on언어={on언어} onLogout={onLogout} current={current} 사유={사유}>
           {본문}
         </PhoneShell>
         {진행알약}
