@@ -3,7 +3,8 @@
 /* 표머리 바로 아래 한 줄. 표머리처럼 스크롤 칸 안에 있어 쪽을 넘기지 않는다 */
 .pick-band {
   padding: 8px 16px;
-  background: var(--accent-soft);
+  /* 대표색 자리(화면공통 §8 「대표색」 목록)가 아니다 — 고르기 바처럼 판정 색도 쓰지 않는다 */
+  background: var(--well);
   border-bottom: 1px solid var(--line);
   text-align: center;
   font-size: 13px;
