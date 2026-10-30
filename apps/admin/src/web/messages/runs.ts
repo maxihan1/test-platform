@@ -108,7 +108,7 @@ export const 실행말: Record<string, string> = {
   'RUN {번호} 결과에 다시 실행으로 붙습니다 · {제목} · {시각}': 'Attaches to RUN {번호} results as a rerun · {제목} · {시각}',
   '다시 실행해서 통과': 'Passed on rerun',
   '다시 실행해서도 실패': 'Failed again on rerun',
-  '원래 결과 보기': 'Show original result',
+  '지난 결과 보기': 'Show previous result',
   '이 케이스 상세의 「실행 이력」에 남았습니다': 'Recorded in this case’s “Run history”',
   'RUN {번호} 결과에 다시 실행으로 붙었습니다': 'Attached to RUN {번호} results as a rerun',
   'RUN {번호} 결과에 다시 실행으로 붙었습니다 · 실패 {앞} → {뒤}': 'Attached to RUN {번호} results as a rerun · failed {앞} → {뒤}',
