@@ -80,13 +80,13 @@ describe.skipIf(연결 === undefined)('게임 항목 결과 저장', () => {
     const 칸 = async (historyId: number) =>
       (await pool.query<{ element_checks: unknown }>('SELECT element_checks FROM run_item WHERE history_id = $1', [historyId])).rows[0]!.element_checks;
     const 대조 = [
-      { key: 'item:potion', serverValue: 10000, same: false },
-      { key: 'item:potion', serverValue: 9000, same: true },
+      { key: 'item:sword_long', serverValue: 10000, same: false },
+      { key: 'item:sword_long', serverValue: 9000, same: true },
     ];
     const 첫 = await 시작();
     await finishItem(첫.historyId, { historyId: 첫.historyId, status: 'FAIL', durationMs: 1, steps: [], elementChecks: 대조 });
     expect(await 칸(첫.historyId)).toEqual(대조);
-    expect((await 요소('item:potion')).server_value).toBe(9000);
+    expect((await 요소('item:sword_long')).server_value).toBe(9000);
 
     const 둘 = await 시작();
     await finishItem(둘.historyId, { historyId: 둘.historyId, status: 'PASS', durationMs: 1, steps: [], elementChecks: [] });
