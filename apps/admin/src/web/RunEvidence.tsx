@@ -15,10 +15,13 @@ import { type Async, Failed, Loading, PLATFORM_LABEL, seconds, useAsync } from '
 export type 증거종류 = 'web' | 'app' | 'api';
 type 탭 = 'shot' | 'obj' | 'net' | 'con' | 'log' | 'video' | 'dev' | 'req' | 'res' | 'diff';
 
-/** 애플리케이션 종류를 따로 받지 않고 항목으로 가른다 — API 케이스만 절차에 요청 · 응답 원문을 남긴다 */
+/**
+ * 애플리케이션 종류를 따로 받지 않고 항목으로 가른다 — API 케이스만 절차에 요청 · 응답 원문을 남긴다.
+ * android 를 먼저 본다 — 게임 데이터 대조 케이스도 단계에서 서버 API 를 불러 요청 원문이 남는다. API 케이스는 늘 desktop 이다(도메인/API K8)
+ */
 export function 증거종류(item: RunItemDetail): 증거종류 {
-  if (item.steps.some((s) => s.httpTrace !== undefined)) return 'api';
-  return item.platform === 'android' ? 'app' : 'web';
+  if (item.platform === 'android') return 'app';
+  return item.steps.some((s) => s.httpTrace !== undefined) ? 'api' : 'web';
 }
 
 /** 처음엔 처음 깨진 단계를 고른다 — 실패 시점 화면 · 기대값 차이가 거기 있다 */

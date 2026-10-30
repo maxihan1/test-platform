@@ -3,7 +3,7 @@
 
 -- migrate:up
 
--- [{ key, serverValue, same }] — 실행 결과 elementChecks 그대로. 대조하지 않은 항목은 NULL 이다
+-- [{ key, serverValue, same }] — 실행 결과 elementChecks 에서 다른 줄을 앞에 둬 상한(execution/runLifecycle.ts 대조상한)까지. 대조하지 않은 항목은 NULL 이다
 ALTER TABLE run_item ADD COLUMN element_checks JSONB CHECK (element_checks IS NULL OR jsonb_typeof(element_checks) = 'array');
 
 -- migrate:down

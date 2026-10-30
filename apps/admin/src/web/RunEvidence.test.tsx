@@ -175,6 +175,17 @@ describe('실패 카드의 시간축 증거 (WEB-F7-13)', () => {
     expect(screen.getByRole('tabpanel').textContent).not.toContain('game-tree.txt');
   });
 
+  it('단계에서 서버 API 를 부른 게임 항목도 앱 탭에 「오브젝트」 탭이 선다', async () => {
+    const 단계들 = [단계(1, '골드를 읽는다', [['골드가 9,000 이다', 'FAIL', 9000, 10000]], { httpTrace: { request: { method: 'GET', url: '/admin/gold' }, response: { status: 200 } } })];
+    그리기(
+      쪽([케이스('ZZI-0001', '물약 사기', [장치('android', 11, { elementChecks: [{ key: 'item:potion', serverValue: 10000, same: false }] }, { steps: 단계들 })])]),
+      [줄(11, 'ZZI-0001', 'android', 'FAIL')],
+    );
+
+    expect(await screen.findByRole('tab', { name: '오브젝트' })).toBeTruthy();
+    expect(screen.queryByRole('tab', { name: '요청' })).toBeNull();
+  });
+
   it('대조도 오브젝트 목록도 없는 앱 항목에는 「오브젝트」 탭이 없다', async () => {
     그리기(쪽([케이스('ZZI-0001', '주소 검색', [장치('android', 11, { elementChecks: [] }, { steps: 화면단계들() })])]), [줄(11, 'ZZI-0001', 'android', 'FAIL')]);
 

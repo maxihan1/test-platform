@@ -212,6 +212,8 @@ export const 실행말: Record<string, string> = {
   '다름': 'Different',
   '실패 순간 오브젝트': 'Objects at the moment of failure',
   '오브젝트 목록을 읽지 못했습니다': 'Could not read the object list',
+  '앞 {글자}자만 보입니다': 'Only the first {글자} characters are shown',
+  '파일로 받기': 'Download as a file',
   '네트워크 요청': 'Network request',
   '실패한 요청': 'Failed request',
   '영상 보기': 'Watch recording',
