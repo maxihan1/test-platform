@@ -63,7 +63,7 @@
 | 16 | **사람 요청의 BTS 이슈 조회는 그 사람 PAT 로 BTS 를 부른다**(2차 R4) | 「QA Hub AI」 열쇠로 대신 읽으면 BTS 에서 그 사람이 못 보는 이슈가 보인다 |
 | 17 | **BTS 로 보낼 것은 DB 「보낼 줄」 표 + 60초 점검으로 다시 보낸다** — 1분 간격 5번(BTS 알림과 같다). 권한 · 요청 오류(4xx)는 바로 멈춘다 | admin 에 재시도 장치가 없고 메모리 타이머는 재기동 때 보낼 것을 잃는다(2차 R6). 틀은 정기 실행(`execution/scheduled.ts`) |
 | 18 | **담당자 변경 · PR 병합은 BTS 규칙 + 웹훅 호출로 받는다** — 고정 헤더에 QA Hub 토큰. BTS 코드는 안 바꾼다 | BTS 바깥 알림은 `issue.created` · `issue.transitioned` 둘뿐이고 웹훅 호출엔 서명이 없다(2차 R5) |
-| 19 | **PRD 초안 · 노트 고치기 · 수정 AI 는 작성 요청 종류 셋(`DRAFT` · `NOTE` · `BUGFIX`)이다. 노트 줄만 애플리케이션 대신 프로젝트를 가리킨다** (내 결정) | 셋 다 작성 에이전트가 집는다. 초안은 QA 화면을 봐야 해 브라우저가 있는 작성 자리가 맞다. 노트는 프로젝트마다 하나라 애플리케이션 칸을 비운다 |
+| 19 | **PRD 초안 · 노트 고치기 · 수정 AI 는 작성 요청 종류 셋(`PRD_DRAFT` · `NOTE` · `BUGFIX`)이다. 노트 줄만 애플리케이션 대신 프로젝트를 가리킨다** (내 결정) | 셋 다 작성 에이전트가 집는다. 초안은 QA 화면을 봐야 해 브라우저가 있는 작성 자리가 맞다. 노트는 프로젝트마다 하나라 애플리케이션 칸을 비운다 |
 | 20 | **자동 AI 의 MCP 열쇠는 작성 요청 줄의 칸 하나다** — 집을 때 새로 나고 그 줄이 `RUNNING` 이 아니면 무효 (내 결정) | 「일 끝나면 무효」를 따로 지우지 않고 줄 상태가 맡는다 |
 | 21 | **롤백 되돌리기는 새 작성 종류 없이 PRD 새 버전(`ROLLBACK`) + 지금 「고친 요구만 다시 작성」으로 돈다** (내 결정) | 바뀐 요구를 다시 쓰는 장치가 이미 있다([작성.md](작성.md) §3.6 「고친 요구만 다시 작성」) |
 
@@ -73,16 +73,20 @@
 2. `deploy.sh` 가 성공했을 때만 마지막 줄에서 BTS 자동화 웹훅 `{ build }` → 규칙이 「배포 대기」 이슈 **전부** 「QA 요청」 + 「QA 서버 N 배포됨」 댓글.
    이어서 QA Hub 프로젝트 배포 신호 한 번(§7 `POST /api/projects/:projectId/deploys`, 열쇠는 「설정 › BTS 연결」에서 받은 프로젝트 배포 열쇠)
 3. QA Hub 는 `bts_deploy` 한 줄을 세우고 목록의 애플리케이션마다 지금 빌드 실행(스모크 → 회귀 — [실행.md](실행.md) §3.11)을 그대로 부른다. 웹 · API 는 빌드 번호만, 앱 · 게임은 그 대상 서버 줄의 최신 빌드를 쓴다
+   - **대상 서버** — 본문 `env` 가 있으면 애플리케이션마다 그 이름의 줄이다. 없으면 애플리케이션마다 실서비스 서버가 아닌 줄이 하나여야 하고, 여럿이면 400 `ENV_REQUIRED` (내 결정 — 고를 줄이 하나뿐인 데모마켓은 env 없이 돈다)
+   - **BTS 연결 프로젝트의 앱 · 게임 APK** 는 지금 `POST /api/builds` 로 올리되 그 문은 빌드만 남기고 실행을 걸지 않는다 — 실행은 배포 신호가 건다 (내 결정 — 같은 빌드를 두 번 돌리지 않게)
 4. **하나라도 스모크가 깨지면** 이슈를 맡지 않고 「QA 요청」 이슈마다 「스모크 실패 — 보류」 댓글 → 배포 줄은 `HELD` 로 끝난다. 이슈가 「QA 요청」에 남아 다음 배포가 다시 잡는다
 5. **다 통과하면** BTS 에서 「QA 요청」이면서 `bts_claim` 에 맡는 중인 줄이 없는 이슈를 찾아 한 묶음으로 맡는다(`bts_claim` 에 배포 · 빌드를 적는다). BTS 규칙이 늦게 끝나 이 묶음에 못 든 이슈는 다음 점검이 따로 작은 초안으로 맡는다(「늦은 이슈」)
-   - task · 스토리 → 애플리케이션마다 PRD 초안 요청(`DRAFT`) 하나. 설명이 모자라면 초안이 그 이슈를 「결정 필요」로 멈춘다
+   - task · 스토리 → 애플리케이션마다 PRD 초안 요청(`PRD_DRAFT`) 하나. 설명이 모자라면 초안이 그 이슈를 「결정 필요」로 멈춘다
    - 버그 → 딸린 케이스(`bts_issue_case`)만 다시 실행 → 통과면 「재검증 통과 — 빌드 N」 댓글 · 닫기(`resolution` `FIXED`). 또 실패면 아래 「수정 AI」 재검증 실패
    - 딸린 케이스가 없는 버그(사람이 BTS 에 직접 올린 것) → 「딸린 테스트 없음 — 사람이 확인」 댓글만 달고 「QA 요청」에 둔다(2차 R8)
 6. 지금 `POST /api/builds` 는 BTS 없는 프로젝트 · APK 올리기용으로 그대로 둔다. 배포 신호는 애플리케이션마다 그 흐름을 안에서 부른다
+7. **서버가 스스로 세우는 일의 「누가」** — 배포 실행 · `PRD_DRAFT` · `NOTE` · `BUGFIX` · 닫기 사유가 세운 작성 · `ROLLBACK` 판 · 되돌림 요청은 모두 BTS 연결을 마지막으로 저장한 admin(`bts_link.updated_by`)으로 적고 이름 스냅샷은 「BTS · <이름>」이다 (내 결정 — CI 토큰의 「실행자는 발급한 사람」과 같은 판단. 그 계정이 꺼지면 연결을 다시 저장해야 돈다)
+8. **열린 작성과 부딪힐 때** — `PRD_DRAFT` · `NOTE` · `BUGFIX` 는 테스트 저장소를 안 고쳐 열린 뿌리가 아니다(`chainSql.ts` `열린뿌리식` 은 그대로 `AUTHOR` · `EDIT`). 초안을 고른 뒤의 진행은 지금 결정 진행이라 서버 막기(`AUTHORING_OPEN`)도 그대로다. 롤백 되돌림 요청(`AUTHOR`)은 서버가 세우는 일이라 409 를 받을 사람이 없다 — 열린 작성이 있으면 `ROLLBACK` 판만 먼저 올리고 되돌림 요청은 열린 작성이 끝난 뒤 60초 점검이 세운다
 
 #### PRD 초안 → 「결정 필요」 → 다시 작성
 
-- 초안 요청(`DRAFT`)은 애플리케이션 하나 · 맡은 이슈 여럿이다. 자식은 MCP 로 이슈 글 · 노트 · 지금 PRD 를 읽고 QA 화면을 훑어 줄마다 `{ op: 'ADD'|'EDIT'|'DEL', reqId?, text, basis, issueKeys, sure }` 를 낸다. `sure: false` 가 「? 확인」이다
+- 초안 요청(`PRD_DRAFT`)은 애플리케이션 하나 · 맡은 이슈 여럿이다. 자식은 MCP 로 이슈 글 · 노트 · 지금 PRD 를 읽고 QA 화면을 훑어 줄마다 `{ op: 'ADD'|'EDIT'|'DEL', reqId?, text, basis, issueKeys, sure }` 를 낸다. `sure: false` 가 「? 확인」이다
 - **같은 요구를 건드리는 이슈끼리는 한 카드로 합친다.** 다른 애플리케이션과 엮이면 노트를 보고 E2E 시나리오를 제안한다(케이스 조합만 — 작성 쪽은 안 바꾼다) → 같은 카드에서 확정
 - 사람이 고른 줄은 지금 결정 진행 흐름으로 PRD 새 버전(`DECISION`)이 되고, 그 줄의 항목에 `fromIssues` 가 붙는다(롤백이 이것만 되돌린다). 「? 확인」을 안 고르면 `확인 필요` 요구가 되고 그 케이스는 미확정이다
 - 고르지 않은 카드는 목록에 남는다 — 지금 결정 목록 규칙 그대로
@@ -93,19 +97,21 @@
 - **같은 테스트가 또 실패하면** 열린 이슈(`bts_issue_case` 의 닫히지 않은 줄)에 댓글만 단다. 아직 보내지 못한 등록이 있으면(보낼 줄의 기다리는 CREATE) 새로 넣지 않는다 — 첫 실패 실행으로 올린다. 그만둔(GAVE_UP) 등록 뒤의 실패는 새로 넣는다. **흔들림으로 판정된 테스트**(닫기 사유 흐름 · 지금 「늘 실패 · 흔들림」 표시)는 등록하지 않는다
 - **보내기는 「보낼 줄」로만** — 실행 끝이 `bts_outbox` 에 줄을 넣고 60초 점검이 보낸다. 1분 간격 5번 · 4xx(권한 · 요청 오류)는 그 자리에서 멈춘다. 그만두면 실행 결과 실패 카드에 「BTS 등록 실패 · <까닭>」 + [다시 보내기](§8.15). 재기동 뒤에도 줄이 남아 이어 보낸다
 - **보내는 열쇠는 「QA Hub AI」 계정 열쇠다** — 등록 · 댓글 · 상태 · 담당자만 열린 BTS 계정(BTS-F2-02)
+- **밖으로 나가는 글은 전부 가린다** — 이슈 본문 · 댓글(기대 vs 실제 · 실패 원인 · 재현 단계 포함)은 첨부와 같은 증적 비밀값 가림 함수를 거친다. 되비친 비밀값이 실패 원인에 실린다([리포팅.md](리포팅.md) 「되비친 비밀값」)
+- **크기 상한** — 본문이 BTS 상한(바이트로 센다 · 코드 상수가 정본)을 넘으면 재현 단계를 앞에서 자르고 「이하 N단계는 QA Hub 실행 결과에서」 + 실행 결과 고리를 남긴다. 첨부는 개수 상한 안에서 캡처 먼저
 
 #### 판정은 BTS 에서 — 결정 필요 ② 빼기 · 닫기 사유 넷
 
 - **BTS 연결 프로젝트는 결정 필요 ② 의 「실패 판정」 항목을 싣지 않는다.** ② 의 나머지 셋(화면 기준 확인 필요 · 기획서 간 불일치 · 그 밖의 확인 필요)은 그대로 QA Hub 에 남는다([작성.md](작성.md) §3.6 「★ 결정 목록」)
-- 실행 결과 실패 카드의 판정 줄은 「BTS DM-12 에서 확인 중」과 그 이슈 고리다(닫혔으면 「BTS DM-12 · 화면이 맞음으로 닫힘」). 「화면이 맞음으로 바꾸기」 단추도 없다 — BTS 에서 닫는다([리포팅.md](리포팅.md) §7 · §8.3 판정 줄)
+- 실행 결과 실패 카드의 판정 줄은 「BTS DM-12 에서 확인 중」과 그 이슈 고리다(닫혔으면 「BTS DM-12 · 화면이 맞음으로 닫힘」). 「화면이 맞음으로 바꾸기」 단추도 없다 — BTS 에서 닫는다([리포팅.md](리포팅.md) 「판정」 줄 · [실행.md](실행.md) §8.3 실패 카드)
 - `run_case_bug` 에 쓰지 않는다 — 판정 기록의 정본이 BTS 다
 - **닫기 사유 → QA Hub 가 할 일** — BTS 알림(`issue.transitioned`)을 받으면 이슈를 다시 읽어 해결 상태를 본다
 
 | 닫기 사유(BTS 해결 상태) | QA Hub 가 할 일 |
 |---|---|
 | 화면이 맞음 | 지금 「화면이 맞음」 다시 작성(그 케이스가 덮는 요구를 화면 기준으로 · PRD 새 버전 · PR 하나 — [리포팅.md](리포팅.md) 「판정」 줄의 뜻 그대로). 사람이 판정했으므로 고친 항목은 `확정` · `byPerson` |
-| 테스트 문제(새 사유 · PRD 그대로) | 테스트만 고치는 작성(케이스 고치기 `EDIT`) + 이슈에 「테스트 고침 PR #N」 댓글 |
-| 흔들림 | 기록만(`bts_issue_case.resolution`) — 그 테스트는 다음 실패부터 등록하지 않는다 |
+| 테스트 문제(새 사유 · PRD 그대로) | 테스트만 다시 쓰는 작성 + 이슈에 「테스트 고침 PR #N」 댓글. 케이스 고치기 `EDIT` 는 지우기 · 기대값 바꾸기만 받아 담을 수 없다 — `AUTHOR` 에 params `{ testFix: { tcIds, issueKey } }`(그 케이스만 · PRD 는 그대로 · 이슈 댓글을 자료로) (내 결정) |
+| 흔들림 | 기록만(`bts_issue_case.resolution`) — 그 테스트는 다음 실패부터 등록하지 않는다. 그 케이스를 고친 작성이 병합되면 풀린다 |
 | 환경 문제 | 기록만 |
 | 중복 | 아무것도 안 한다 |
 | (「개발 요청」으로 옮김 = 버그 맞음) | 아래 「수정 AI」 |
@@ -115,6 +121,7 @@
 - **「개발 요청」 이슈만 맡는다.** QA Hub 에서 온 이슈가 「개발 요청」이 되면 BTS 규칙이 「QA Hub AI」에게 할당하고, 사람이 올린 버그는 사람이 담당자를 「QA Hub AI」로 바꾸면 맡는다. 담당자 변경은 BTS 규칙 웹훅 호출로 받는다(결정 18)
 - 신호를 받으면 그 애플리케이션의 `BUGFIX` 요청을 대기열에 세운다. 고칠 저장소는 애플리케이션 「코드 저장소」 칸(`service.code_repos`)에서 고른다. BTS 화면에서 이 일의 이름은 「BTS 에이전트」다
 - 자식은 저장소 사본에서 파일만 고친다. push · 초안 PR · BTS 「코드 리뷰」 이동 · 담당자 변경은 에이전트 스크립트가 한 번에 한다. 병합은 사람이다
+- **push 전에 비밀값 검사** — 지금 작성 PR 이 push 전에 거치는 비밀값 검사(작성.md §3.6)를 대상 저장소 diff · PR 본문 · BTS 댓글에도 건다. 걸리면 push 하지 않고 원인 분석 댓글로 바꾼다. PR 본문 · 댓글은 위 크기 상한과 같은 규칙으로 줄인다
 - **넘길 사람** — CODEOWNERS → 고친 줄을 마지막으로 바꾼 사람(git 기록) → BTS 구성 요소 리드 → 프로젝트 기본 담당자. Git ↔ BTS 계정은 이메일로 짝짓고 활성 계정이 없으면 다음 차례. PR 리뷰어 = BTS 담당자
 - Git 과 BTS 가 겹치면 리뷰는 Git 이 정본이고 BTS 상태는 PR 을 따라간다. PR 닫힘(거절)은 처음엔 개발자가 BTS 에서 되돌린다(「1차 밖」)
 - **재검증에서 또 실패하면** AI 는 다시 안 맡고 바로 사람에게 넘기며 댓글(어느 PR 을 배포했는데 또 실패 · 실패 이유 · 고친 곳)
@@ -124,17 +131,17 @@
 
 - `deploy.sh` 가 올라간 커밋을 적어 둔다. 새 커밋이 옛 커밋의 조상이면 롤백이다 → 사이 커밋 메시지의 이슈 키를 뽑아 BTS 웹훅과 배포 신호 본문(`rollback: true` · `rollbackKeys`)에 같이 싣는다 → BTS 규칙이 「받은 키 목록 전부」를 「배포 대기」로 되돌린다(BTS-F2-01, 같은 200 상한)
 - QA Hub 는 PRD 와 테스트도 되돌린다 — 다섯 조각
-  1. 되돌릴 요구는 `fromIssues` 가 받은 키와 겹치는 항목만이다
-  2. PRD 새 버전(`ROLLBACK`) — 그 줄 「새로」는 지우고 「바뀜」 · 「지움」은 그 이슈가 오기 앞 판의 항목으로 돌린다. 버전 기록에 「롤백 · 빌드 N · DM-12」
+  1. 되돌릴 요구는 둘이다 — 지금 판에서 `fromIssues` 가 받은 키와 겹치는 항목, 그리고 판 기록(`prd_version.changes` 의 `issueKeys`)에서 받은 키로 지운 번호(지운 항목은 지금 판에 없어 꼬리표가 붙을 자리가 없다)
+  2. PRD 새 버전(`ROLLBACK`) — 「새로」는 지우고 「바뀜」 · 「지움」은 그 이슈를 고른 판 바로 앞 판의 항목으로 돌린다. 버전 기록에 「롤백 · 빌드 N · DM-12」
   3. 되돌리는 PR — 지금 「고친 요구만 다시 작성」 요청 하나(`bts_deploy.revert_request_id`)
   4. 그 PR 병합 전에 다시 배포되면 그 요청을 폐기하고 PR 을 닫는다
-  5. 그 키를 다루던 작성 중 · 확인 대기 초안(`DRAFT` 와 그 카드)은 버린다
+  5. 그 키를 다루던 작성 중 · 확인 대기 초안(`PRD_DRAFT` 와 그 카드)은 버린다
 
 #### 맥락 — 프로젝트 노트
 
 - 프로젝트마다 하나 · DB 에 버전으로(`project_note`). 사람은 보기만(§8.15 「노트 보기」)
 - **여섯 칸** — 한눈에 · 기능별 자리 · 최근 바뀐 것 · 자주 깨지는 곳 · 테스트 요령(가이드 「배운 것」을 가리킴) · 더 볼 곳. 칸마다 길이 상한(상수는 코드가 정본 — BTS-F4-03)
-- 「기능별 자리」의 코드 위치는 수정 AI 용이다. 노트 고치는 AI 도 코드를 읽지 않고 **PR 병합 사건의 바뀐 파일 경로 · PR 제목**만 적는다. 바뀐 파일 경로는 노트 고치기 일이 PR 번호로 GitHub 에서 읽는다
+- 「기능별 자리」의 코드 위치는 수정 AI 용이다. 노트 고치는 AI 도 코드를 읽지 않고 **PR 병합 사건의 바뀐 파일 경로 · PR 제목**만 적는다. 바뀐 파일 경로는 에이전트 스크립트가 PR 번호로 GitHub 에서 읽어 자료로 넘긴다(자식은 GitHub 열쇠가 없다 — 결정 10)
 - **고치는 때** — 배포 · task 끝 · 이슈 열림/닫힘 · PR 병합 · PRD 새 버전 · 작성 끝이 `project_note_event` 에 쌓이고, 열린 노트 고치기가 없으면 대기열에 `NOTE` 하나를 세운다(쌓인 사건을 한 번에). 처음 만들기도 같은 일 하나
 - AI 가 실패하면 앞 버전을 그대로 둔다. 노트 화면에 「마지막 고친 때」
 
@@ -153,7 +160,7 @@
 | 사람 Claude Code → QA Hub MCP | 각자 통합계정 **PAT** | 자기 권한 그대로 · 화면과 같은 출입문. BTS 이슈 조회는 그 사람 PAT 로 BTS 를 부른다(결정 16) |
 | deploy.sh → QA Hub | 프로젝트 배포 열쇠(`pdk_` — 「설정 › BTS 연결」) | 그 프로젝트 배포 신호 하나만 |
 | BTS 규칙 웹훅 호출 → QA Hub | 고정 헤더의 QA Hub 규칙 토큰(`btr_`) | 그 프로젝트 담당자 변경 · PR 병합 받기만 |
-| 자동 AI(작성 · 노트 · 수정) → QA Hub MCP | 일마다 새로 나는 짧은 열쇠(`mcj_`) · 일 끝나면 무효(결정 20) | 그 프로젝트 조회 도구만 |
+| 자동 AI(작성 · 초안 · 노트 · 수정) → QA Hub MCP | 일마다 새로 나는 짧은 열쇠(`mcj_`) · 일 끝나면 무효(결정 20). 받는 줄은 `PRD_DRAFT` · `NOTE` · `BUGFIX` 와 BTS 연결 프로젝트의 `AUTHOR` — 그 `RERUN` 도 같다 | 그 프로젝트 조회 도구만 |
 | QA Hub → BTS | BTS 「QA Hub AI」 계정 열쇠 | 등록 · 댓글 · 상태 · 담당자만 |
 | BTS → QA Hub 알림 | HMAC 서명 `X-BTS-Signature`(BTS 에 이미 있음) | 알림 받기 |
 | 수정 AI → GitHub | 에이전트 스크립트만 듦 · 저장소 하나 | 브랜치 · PR 까지 |
@@ -222,10 +229,10 @@ AI 품질은 따로 시험하지 않고 사람이 고른 결과로 센다 — �
 # 프로젝트 배포 신호 — deploy.sh 가 성공했을 때만 한 번 부른다 (BTS-F5-01)
 #   열쇠: Authorization: Bearer pdk_… (그 프로젝트 배포 신호 하나만 — 다른 통로는 403 AGENT_TOKEN_SCOPE)
 POST /api/projects/:projectId/deploys
-     { build: 'a1b2c3d-202610281530', rollback?: boolean, rollbackKeys?: string[], services?: string[] }   — services 는 애플리케이션 접두사. 없으면 그 프로젝트 전부
+     { build: 'a1b2c3d-202610281530', env?: string, rollback?: boolean, rollbackKeys?: string[], services?: string[] }   — services 는 애플리케이션 접두사. 없으면 그 프로젝트 전부 · env 규칙은 §3.12 「새 기능 바퀴」 3
   → 202 { deployId }   — 스모크 · 맡기는 뒤에서 돈다
   → 200 { deployId }   — 같은 프로젝트 · 같은 build 가 다시 오면 새로 걸지 않고 앞 배포 번호를 준다(deploy.sh 재시도 멱등). 애플리케이션마다의 빌드 줄도 앞 것을 쓴다(BUILD_EXISTS 로 막히지 않는다)
-  → 400 BAD_BUILD(빈 값 · 100자 넘음) · 400 UNKNOWN_SERVICE(다른 프로젝트 접두사) · 409 NOT_LINKED(BTS 연결 없음) · 400 PROD_ENV_BLOCKED(실서비스 서버만 있는 애플리케이션 — 실행.md §3.11)
+  → 400 BAD_BUILD(빈 값 · 100자 넘음) · 400 ENV_REQUIRED · 404 UNKNOWN_ENV(그 이름 줄이 없는 애플리케이션) · 400 UNKNOWN_SERVICE(다른 프로젝트 접두사) · 409 NOT_LINKED(BTS 연결 없음) · 400 PROD_ENV_BLOCKED(실서비스 서버만 있는 애플리케이션 — 실행.md §3.11)
 
 # BTS 알림 받기 — issue.created · issue.transitioned (BTS-F3-02)
 #   열쇠: X-BTS-Signature: sha256=<HMAC(본문, bts_link.webhook_secret)>. 맞지 않거나 없으면 401 BAD_SIGNATURE — 몸을 읽지 않는다
@@ -256,6 +263,10 @@ POST /api/runs/:runId/bts/resend   { tcId, env }
      bts: { issueKey: 'DM-12' | null, url | null, state: 'SENT' | 'SENDING' | 'GAVE_UP', reason: string | null, resolution: string | null }
      — state 는 그 카드(실행 · tcId · 대상 서버)의 CREATE 줄 상태다(PENDING → SENDING). 열린 이슈에 댓글만 단 실패는 그 이슈의 SENT · 댓글 줄 실패는 카드에 안 띄운다
 
+# BTS 연결 프로젝트의 옛 판정 통로 — 「판정은 BTS 에서만」을 비켜 가지 못하게 (BTS-F3-04)
+#   POST /api/runs/:runId/bugs(리포팅.md §7) · 화면이 맞음 요청 통로 → 409 BTS_LINKED. 결정 진행 picks 의 FAIL → 400 BAD_DECISION
+#   사람의 다시 실행 통로는 PRD_DRAFT · NOTE · BUGFIX 줄을 400 BAD_KIND 로 막는다(에이전트 이어하기만). 사람 통로가 params 에 testFix · issueKey · repo · draft 칸을 실으면 400 BAD_EDIT
+
 # 결정 목록(작성.md §7 「결정 목록 통로」) — BTS 연결 프로젝트만 갈라진다 (BTS-F3-04 · F5-04)
 #   items 에 FAIL 이 안 실린다 · 새 항목 종류 PRD_DRAFT { requestId, issueKeys, rows: [{ op, reqId?, text, basis, issueKeys, sure }], e2e?: [...] }
 #   진행 요청 picks 의 PRD_DRAFT 는 { requestId, rows: number[] }(고른 줄 차례 번호)
@@ -268,8 +279,9 @@ GET /api/projects/:projectId/note
      aiQuality: { draft: { picked, written }, fix: { merged, opened } } | null   — 고른 범위에 BTS 연결 프로젝트가 없으면 null
 
 # 작성 에이전트 통로 — 에이전트 토큰 허용 목록(인증.md §7)에 더한다
-#   집기(claim) 응답 kind 에 DRAFT · NOTE · BUGFIX 가 는다. 셋 다 응답에 mcpKey: 'mcj_…'(이 줄이 RUNNING 인 동안만 산다)
-POST /api/authoring/requests/:id/draft    { rows, e2e? }                  — DRAFT 결과 (BTS-F5-03)
+#   집기(claim) 응답 kind 에 PRD_DRAFT · NOTE · BUGFIX 가 는다. 응답 mcpKey: 'mcj_…' 는 BTS.md 「열쇠 표」의 받는 줄에만(이 줄이 RUNNING 인 동안만 산다)
+#   service 가 빈 줄(NOTE)은 문의 서비스 경계(auth/scope.ts 「번호로 그 행의 서비스」)가 project_id 로 배정을 본다 — 그 프로젝트 어느 애플리케이션의 (작성, write) 면 통과
+POST /api/authoring/requests/:id/draft    { rows, e2e? }                  — PRD_DRAFT 결과 (BTS-F5-03)
 POST /api/authoring/requests/:id/note     { sections }                    — NOTE 결과. 길이 상한을 넘으면 400 NOTE_TOO_LONG — 앞 버전이 남는다 (BTS-F4-03)
 POST /api/authoring/requests/:id/bugfix   { prUrl } | { analysis }        — BUGFIX 결과. 서버가 BTS 「코드 리뷰」 · 담당자 변경 · 댓글을 보낼 줄에 넣는다 (BTS-F6-01)
 GET  /api/authoring/requests/:id/bts      — 그 일의 이슈 글 · 댓글 · 첨부 고리. 자식이 BTS 열쇠를 안 갖게 서버가 「QA Hub AI」 열쇠로 대신 읽는다
@@ -283,7 +295,7 @@ POST /mcp
 
 ```
 [계약 변경 필요]
-대상:    Admin API — 프로젝트 배포 신호 · BTS 알림 · BTS 규칙 웹훅 호출 · 설정 › BTS 연결 · 설정 서비스 codeRepos · BTS 다시 보내기 · 실패 카드 bts 칸 · 결정 목록 PRD_DRAFT 와 BTS 연결이면 FAIL 뺌 · 노트 보기 · 대시보드 aiQuality · 작성 에이전트 통로 넷과 집기 mcpKey · /mcp
+대상:    Admin API — 프로젝트 배포 신호 · BTS 알림 · BTS 규칙 웹훅 호출 · 설정 › BTS 연결 · 설정 서비스 codeRepos · BTS 다시 보내기 · 실패 카드 bts 칸 · 결정 목록 PRD_DRAFT 와 BTS 연결이면 FAIL 뺌 · 노트 보기 · 대시보드 aiQuality · 작성 에이전트 통로 넷과 집기 mcpKey · NOTE 줄의 서비스 경계 · 옛 판정 통로 409 · 사람 다시 실행 BAD_KIND · BTS 연결 프로젝트의 POST /api/builds 는 실행을 안 건다 · /mcp
 현재:    BTS 와 주고받는 통로가 없다. 바깥 열쇠는 CI 토큰 하나 · 작성 집기 kind 는 AUTHOR · RERUN · MERGE · EDIT
 제안:    위 §7 꼴
 이유:    도메인/BTS §3.12 (2026-10-28 기획 · BTS-F1-01 시작 질문 승인 2026-10-31)
