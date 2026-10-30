@@ -3,12 +3,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { api, ApiError, 알림바뀜, type NoticeResponse } from './api.js';
+import { api, ApiError, 알림바뀜, type NoticeRecent, type NoticeResponse } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { 아이콘 } from './icons.js';
 import { NoticeDrawer } from './NoticeDrawer.js';
 import { 읽음들, 읽음바뀜, 읽음으로적는다, 읽음정리 } from './noticeRead.js';
-import { 끝난글, 보일줄들, 안읽은수, 읽음열쇠, type 끝난줄, type 도는줄, type 줄 as 줄타입 } from './noticeView.js';
+import { 끝난글, 끝난줄만들기, 보일줄들, 새소식, 안읽은수, 읽음열쇠, type 끝난줄, type 도는줄, type 줄 as 줄타입 } from './noticeView.js';
+import { use지켜봄 } from './runWatchStore.js';
 import { use보는실행 } from './viewedRun.js';
 
 /**
@@ -136,6 +137,37 @@ function 끝난줄그림({ 줄, on읽음, 바꿈 }: { 줄: 끝난줄; on읽음: 
   );
 }
 
+/**
+ * 새로 끝난 실행 · 작성 하나를 아래에서 띄워 3초 뒤 흐려지며 치운다 (DESIGN.md 「창이 아닌 떠 있는 것」 「토스트」 · 원칙 4 「알림 도착」).
+ * 포커스를 가져가지 않는다 — 읽는 사람에게는 `role="status"` 로 한 번 읽힌다
+ */
+function 토스트({ 줄, on닫음, 바꿈 }: { 줄: 끝난줄; on닫음: (값: null) => void; 바꿈: 서비스바꿈 }) {
+  const [나감, set나감] = useState(false);
+  useEffect(() => {
+    const 흐림 = setTimeout(() => set나감(true), 3000);
+    const 치움 = setTimeout(() => on닫음(null), 3200);
+    return () => {
+      clearTimeout(흐림);
+      clearTimeout(치움);
+    };
+  }, [on닫음]);
+  return (
+    <div className={나감 ? 'toast out' : 'toast'} role="status">
+      <span className="toast-text">{끝난글(줄)}</span>
+      <a
+        href={줄.열기}
+        onClick={() => {
+          if (줄.종류 === 'authoring') 바꿈(줄.접두사);
+          읽음으로적는다([줄.열쇠]);
+          on닫음(null);
+        }}
+      >
+        {줄.열기라벨}
+      </a>
+    </div>
+  );
+}
+
 function 한줄({ 줄, 바꿈 }: { 줄: 줄타입; 바꿈: 서비스바꿈 }) {
   return 줄.도는중 ? <도는줄그림 줄={줄} 바꿈={바꿈} /> : <끝난줄그림 줄={줄} on읽음={읽음으로적는다} 바꿈={바꿈} />;
 }
@@ -153,6 +185,17 @@ export function Notice({ 줄숨김, 서비스바꿈, 버튼자리 }: { 줄숨김
   // 결과 화면이 지금 그리는 실행 — 그 실행의 도는 줄을 줄에서 뺀다 (점검 2.23)
   const 보는실행 = use보는실행();
   const 버튼 = useRef<HTMLButtonElement>(null);
+  const 지켜봄 = use지켜봄();
+  const 앞소식 = useRef<NoticeRecent[] | null>(null);
+  const [토스트줄, set토스트줄] = useState<끝난줄 | null>(null);
+
+  // 답이 올 때마다 앞 답과 견줘 새로 끝난 것 하나를 토스트로 — 완료 창(진행 알약)과 결과 화면이 알리는 실행은 겹쳐 띄우지 않는다
+  useEffect(() => {
+    if (답 === null) return;
+    const 새 = 새소식(앞소식.current, 답.recent, 읽음들(), [보는실행, 지켜봄?.runId ?? null]);
+    앞소식.current = 답.recent;
+    if (새 !== null) set토스트줄(끝난줄만들기(새, 언어));
+  }, [답, 보는실행, 지켜봄, 언어]);
 
   // 같은 탭의 실행 결과 화면이 읽음으로 적어도(`runState.ts`), 다른 탭에서 적어도 바로 따라온다
   useEffect(() => {
@@ -216,6 +259,7 @@ export function Notice({ 줄숨김, 서비스바꿈, 버튼자리 }: { 줄숨김
         {/* 자리가 아직 안 붙었으면(첫 그림) 다음 그림에 붙는다 — 그 한 번은 버튼이 없다 */}
         {버튼자리 === undefined ? 알림버튼 : 버튼자리 === null ? null : createPortal(알림버튼, 버튼자리)}
       </div>
+      {토스트줄 === null ? null : <토스트 key={토스트줄.열쇠} 줄={토스트줄} on닫음={set토스트줄} 바꿈={서비스바꿈} />}
       {!열림 || 답 === null ? null : <NoticeDrawer recent={답.recent} 읽음={읽음} 지금={지금} onClose={닫는다} on읽음={읽음으로적는다} 서비스바꿈={서비스바꿈} />}
     </>
   );

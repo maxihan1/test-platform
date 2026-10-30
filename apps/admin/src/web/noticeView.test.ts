@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { 끝난글, 끝난줄만들기, 도는줄만들기, 보일줄들, 상대시각, 서랍목록, 안읽은수, 읽음열쇠, 줄최대, type 끝난줄, type 도는줄 } from './noticeView.js';
+import { 끝난글, 끝난줄만들기, 도는줄만들기, 보일줄들, 상대시각, 새소식, 서랍목록, 안읽은수, 읽음열쇠, 줄최대, type 끝난줄, type 도는줄 } from './noticeView.js';
 import { 끝난실행, 끝난작성, 도는E2E, 도는실행, 도는작성, 전에 } from './notice.fixture.js';
 
 const 지금 = Date.now();
@@ -176,6 +176,23 @@ describe('서랍', () => {
     expect(서랍목록(recent, 없음, 'run').map(읽음열쇠)).toEqual(['run:3', 'run:1']);
     expect(서랍목록(recent, 없음, 'authoring').map(읽음열쇠)).toEqual(['authoring:2']);
     expect(서랍목록(recent, new Set(['run:3']), 'unread').map(읽음열쇠)).toEqual(['authoring:2', 'run:1']);
+  });
+});
+
+describe('토스트로 알릴 새 소식', () => {
+  it('화면을 막 열었으면(앞 답 없음) 없다', () => {
+    expect(새소식(null, [끝난실행(1)], new Set(), [])).toBeNull();
+  });
+
+  it('앞 답에 없던 안 읽은 것 가운데 가장 늦게 끝난 것 하나다', () => {
+    const 새것들 = [끝난실행(2, {}, { finishedAt: 전에(5) }), 끝난작성(3, { finishedAt: 전에(1) })];
+    expect(새소식([끝난실행(1)], [끝난실행(1), ...새것들], new Set(), [])).toEqual(새것들[1]);
+  });
+
+  it('이미 읽었거나 완료 창 · 결과 화면이 알리는 실행은 뺀다', () => {
+    const 앞 = [끝난실행(1)];
+    expect(새소식(앞, [...앞, 끝난실행(2)], new Set(['run:2']), [])).toBeNull();
+    expect(새소식(앞, [...앞, 끝난실행(2)], new Set(), [null, 2])).toBeNull();
   });
 });
 
