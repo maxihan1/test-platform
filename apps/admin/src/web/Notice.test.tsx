@@ -252,6 +252,7 @@ describe('읽음 목록 정리', () => {
 });
 
 describe('토스트', () => {
+  const 토스트 = () => document.querySelector<HTMLElement>('.toast');
   async function 다시묻는다(답: NoticeResponse, 부름: ReturnType<typeof 띄운다>): Promise<void> {
     부름.mockResolvedValue(답);
     await act(async () => {
@@ -263,22 +264,43 @@ describe('토스트', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const 부름 = 띄운다({ running: [], recent: [끝난실행(1)] });
     await act(async () => {});
-    expect(screen.queryByRole('status')).toBeNull();
+    expect(토스트()).toBeNull();
+    expect(screen.getByRole('status').textContent).toBe('');
 
     await 다시묻는다({ running: [], recent: [끝난실행(2), 끝난실행(1)] }, 부름);
-    const 토스트 = screen.getByRole('status');
-    expect(토스트.className).toBe('toast');
-    expect(within(토스트).getByText(/^RUN 2 실행이 끝났습니다/)).toBeTruthy();
-    expect(within(토스트).getByRole('link', { name: '결과 보기' }).getAttribute('href')).toBe('#/runs/2');
+    expect(screen.getByRole('status').textContent).toMatch(/^RUN 2 실행이 끝났습니다/);
+    const 뜬것 = 토스트()!;
+    expect(뜬것.className).toBe('toast');
+    expect(within(뜬것).getByText(/^RUN 2 실행이 끝났습니다/)).toBeTruthy();
+    expect(within(뜬것).getByRole('link', { name: '결과 보기' }).getAttribute('href')).toBe('#/runs/2');
 
     await act(async () => {
       vi.advanceTimersByTime(3000);
     });
-    expect(screen.getByRole('status').className).toBe('toast out');
+    expect(토스트()!.className).toBe('toast out');
     await act(async () => {
       vi.advanceTimersByTime(250);
     });
-    expect(screen.queryByRole('status')).toBeNull();
+    expect(토스트()).toBeNull();
+  });
+
+  it('마우스를 올린 동안은 사라지지 않고 떼면 다시 3초를 센다', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const 부름 = 띄운다({ running: [], recent: [] });
+    await act(async () => {});
+    await 다시묻는다({ running: [], recent: [끝난실행(3)] }, 부름);
+
+    fireEvent.mouseEnter(토스트()!);
+    await act(async () => {
+      vi.advanceTimersByTime(10_000);
+    });
+    expect(토스트()!.className).toBe('toast');
+
+    fireEvent.mouseLeave(토스트()!);
+    await act(async () => {
+      vi.advanceTimersByTime(3250);
+    });
+    expect(토스트()).toBeNull();
   });
 
   it('고리를 누르면 읽음이 되고 토스트가 닫힌다', async () => {
@@ -286,8 +308,8 @@ describe('토스트', () => {
     await act(async () => {});
     await 다시묻는다({ running: [], recent: [끝난실행(7)] }, 부름);
 
-    fireEvent.click(within(screen.getByRole('status')).getByRole('link', { name: '결과 보기' }));
-    expect(screen.queryByRole('status')).toBeNull();
+    fireEvent.click(within(토스트()!).getByRole('link', { name: '결과 보기' }));
+    expect(토스트()).toBeNull();
     expect(읽음들().has('run:7')).toBe(true);
   });
 
@@ -296,7 +318,7 @@ describe('토스트', () => {
     const 부름 = 띄운다({ running: [도는실행(9)], recent: [] });
     await act(async () => {});
     await 다시묻는다({ running: [], recent: [끝난실행(9)] }, 부름);
-    expect(screen.queryByRole('status')).toBeNull();
+    expect(토스트()).toBeNull();
   });
 });
 

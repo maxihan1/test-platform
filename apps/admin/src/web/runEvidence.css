@@ -170,6 +170,9 @@
 .ev-ticks span {
   position: relative;
   min-width: 18px;
+  /* 단계 칸(.ev-seg)과 같은 안쪽 여백 · 테두리 — flex 몫 밖에 붙는 폭이 같아야 칸 경계가 맞는다 */
+  padding: 0 8px;
+  border: 1px solid transparent;
 }
 .ev-ticks i {
   position: absolute;

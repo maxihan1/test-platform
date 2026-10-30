@@ -139,20 +139,29 @@ function 끝난줄그림({ 줄, on읽음, 바꿈 }: { 줄: 끝난줄; on읽음: 
 
 /**
  * 새로 끝난 실행 · 작성 하나를 아래에서 띄워 3초 뒤 흐려지며 치운다 (DESIGN.md 「창이 아닌 떠 있는 것」 「토스트」 · 원칙 4 「알림 도착」).
- * 포커스를 가져가지 않는다 — 읽는 사람에게는 `role="status"` 로 한 번 읽힌다
+ * 포커스를 가져가지 않는다. 마우스를 올리거나 고리에 포커스가 있는 동안은 멈춘다 — 누르려는 사이에 사라지지 않게
  */
 function 토스트({ 줄, on닫음, 바꿈 }: { 줄: 끝난줄; on닫음: (값: null) => void; 바꿈: 서비스바꿈 }) {
   const [나감, set나감] = useState(false);
+  const [멈춤, set멈춤] = useState(false);
   useEffect(() => {
+    if (멈춤) return;
+    set나감(false);
     const 흐림 = setTimeout(() => set나감(true), 3000);
     const 치움 = setTimeout(() => on닫음(null), 3200);
     return () => {
       clearTimeout(흐림);
       clearTimeout(치움);
     };
-  }, [on닫음]);
+  }, [on닫음, 멈춤]);
   return (
-    <div className={나감 ? 'toast out' : 'toast'} role="status">
+    <div
+      className={나감 ? 'toast out' : 'toast'}
+      onMouseEnter={() => set멈춤(true)}
+      onMouseLeave={() => set멈춤(false)}
+      onFocus={() => set멈춤(true)}
+      onBlur={() => set멈춤(false)}
+    >
       <span className="toast-text">{끝난글(줄)}</span>
       <a
         href={줄.열기}
@@ -259,6 +268,10 @@ export function Notice({ 줄숨김, 서비스바꿈, 버튼자리 }: { 줄숨김
         {/* 자리가 아직 안 붙었으면(첫 그림) 다음 그림에 붙는다 — 그 한 번은 버튼이 없다 */}
         {버튼자리 === undefined ? 알림버튼 : 버튼자리 === null ? null : createPortal(알림버튼, 버튼자리)}
       </div>
+      {/* 읽어 주는 자리는 늘 두고 글만 바꾼다 — 글을 품은 채 새로 생긴 자리는 화면 읽기 프로그램이 흔히 안 읽는다 */}
+      <p className="sr-only" role="status">
+        {토스트줄 === null ? '' : 끝난글(토스트줄)}
+      </p>
       {토스트줄 === null ? null : <토스트 key={토스트줄.열쇠} 줄={토스트줄} on닫음={set토스트줄} 바꿈={서비스바꿈} />}
       {!열림 || 답 === null ? null : <NoticeDrawer recent={답.recent} 읽음={읽음} 지금={지금} onClose={닫는다} on읽음={읽음으로적는다} 서비스바꿈={서비스바꿈} />}
     </>

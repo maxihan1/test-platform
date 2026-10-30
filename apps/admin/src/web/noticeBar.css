@@ -236,4 +236,11 @@ body:has(.run-pill) .toast {
   body:has(.run-pill) .toast {
     bottom: calc(var(--ph-tabs) + 60px);
   }
+  /* 「실패 N건 다시 실행」 판(72px)이 있으면 그 위, 알약까지 있으면 알약 위다 (runList.css 의 알약 규칙과 같은 자리) */
+  body:has(.rerun-dock) .toast {
+    bottom: calc(var(--ph-tabs) + 84px);
+  }
+  body:has(.rerun-dock):has(.run-pill) .toast {
+    bottom: calc(var(--ph-tabs) + 132px);
+  }
 }

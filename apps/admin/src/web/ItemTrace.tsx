@@ -11,7 +11,8 @@ import { use말 } from './i18n.js';
 type 탭 = 'network' | 'actions' | 'console';
 type 네트워크 = ItemTrace['network'][number];
 
-const 실패요청 = (n: 네트워크) => n.failure !== null || (n.status !== null && n.status >= 400);
+/** 끊겼거나 4xx · 5xx 인 요청 — 네트워크 표 · 실패만 거르개 · 시간축 눈금이 같이 쓴다 */
+export const 실패요청 = (n: 네트워크) => n.failure !== null || (n.status !== null && n.status >= 400);
 const 실패조작 = (a: ItemTrace['actions'][number]) => a.error !== null;
 // 잡히지 않은 오류는 pageerror 로 온다 (traceParse.ts)
 const 실패콘솔 = (c: ItemTrace['console'][number]) => c.level === 'error' || c.level === 'pageerror';

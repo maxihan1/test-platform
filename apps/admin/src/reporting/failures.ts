@@ -64,11 +64,6 @@ const 실패행들SQL = `
   SELECT i.history_id, i.tc_id, i.tc_name, i.platform, i.attempt, i.status, ${다시실행칸들}
   FROM ${지금항목('o.run_id = $1')} i`;
 
-async function 기기(historyId: number): Promise<DeviceInfo | null> {
-  const { rows } = await (await db()).query<{ device: DeviceInfo | null }>('SELECT device FROM run_item WHERE history_id = $1', [historyId]);
-  return rows[0]?.device ?? null;
-}
-
 export async function 실패카드(runId: number, page: number, platform?: Platform): Promise<FailureCards> {
   const pool = await db();
   const 비교 = await compareWithPrevious(runId);
@@ -116,6 +111,14 @@ export async function 실패카드(runId: number, page: number, platform?: Platf
   const tcIds = 쪽.items.map((c) => c.tcId);
   const [요구표, 판정표] = await Promise.all([카드요구들(runId, tcIds), 판정들(runId, tcIds)]);
 
+  // 폰 · 앱 판은 쪽의 회차를 한 번에 읽는다 — history_id 는 실행을 넘어 하나라 한 건 실행이 덮은 회차도 그대로 찾는다
+  const 회차들 = 쪽.items.flatMap((c) => c.devices.map((d) => d.firstFailedHistoryId));
+  const 기기들 = new Map(
+    (await pool.query<{ history_id: string; device: DeviceInfo | null }>('SELECT history_id, device FROM run_item WHERE history_id = ANY($1)', [회차들])).rows.map(
+      (r) => [Number(r.history_id), r.device],
+    ),
+  );
+
   // ponytail: 쪽 크기만큼 묻는다 — 쪽이 커지면 한 질의로 모은다
   const items = await Promise.all(
     쪽.items.map(async (c): Promise<FailureCase> => ({
@@ -137,7 +140,7 @@ export async function 실패카드(runId: number, page: number, platform?: Platf
             item,
             farm: await 팜증적목록(실행번호, firstFailedHistoryId),
             rerun,
-            device: await 기기(firstFailedHistoryId),
+            device: 기기들.get(firstFailedHistoryId) ?? null,
           };
         }),
       ),
