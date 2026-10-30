@@ -38,7 +38,9 @@ export function 실행줄({ run, 고름, on고르기 }: { run: RunListRow; 고�
   const t = use말();
   const 언어 = use언어();
   // API 는 브라우저 · 폰이 없어 실행 위치가 곧 친 주소다 (시안 11판 「실행 기록」 · WEB-F7-18). 서버 둘이 같은 주소일 수 있어 이름은 남긴다
-  const 위치 = [run.env, ...(종류키(use지금앱()?.kind) === 'API' ? (run.baseUrl === '' ? [] : [run.baseUrl]) : 실행위치(run, t))].join(' · ');
+  const API = 종류키(use지금앱()?.kind) === 'API';
+  const 꼬리 = API ? [run.baseUrl].filter((u) => u !== '') : 실행위치(run, t);
+  const 위치 = [run.env, ...꼬리].join(' · ');
   const 미확정 = 그중미확정글(run.counts, 언어);
   const 해결 = run.change?.fixed ?? 0;
   const { pass, fail, na } = run.counts;
