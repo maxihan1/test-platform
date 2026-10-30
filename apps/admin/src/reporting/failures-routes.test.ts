@@ -100,6 +100,12 @@ describe.skipIf(연결 === undefined)('실패 카드 통로', () => {
     await 항목(끝남, 'XFCR-001', 'mobile', 'FAIL');
     await 항목(끝남, 'XFCR-002', 'mobile', 'FAIL');
     await 항목(끝남, 'XFCR-003', 'desktop', 'PASS');
+    const 앱 = await 실행만들기('앱', 'FINISHED');
+    await 항목(앱, 'XFCR-004', 'android', 'FAIL');
+    await pool.query(`UPDATE run_item SET device = $2 WHERE run_id = $1`, [
+      앱,
+      JSON.stringify({ model: 'SM-S911N', osVersion: '14', appVersion: null, appBuild: '241' }),
+    ]);
     await 실행만들기('도는중', 'RUNNING');
     await 실행만들기('시나리오', 'FINISHED', 시나리오번호);
 
@@ -135,6 +141,14 @@ describe.skipIf(연결 === undefined)('실패 카드 통로', () => {
     expect(Object.keys(body).sort()).toEqual(['items', 'page', 'pageSize', 'total']);
     expect(body).toMatchObject({ total: 2, page: 1, pageSize: 카드쪽크기 });
     expect(body.items.map((c: { tcId: string }) => c.tcId)).toEqual(['XFCR-001', 'XFCR-002']);
+  });
+
+  it('디바이스 칸에 그 회차를 돌린 폰과 앱의 판을 싣고 없으면 null 이다', async () => {
+    const 앱 = (await 라우트앱.inject({ method: 'GET', url: 주소(실행.앱!) })).json();
+    expect(앱.items[0].devices[0].device).toEqual({ model: 'SM-S911N', osVersion: '14', appVersion: null, appBuild: '241' });
+
+    const 웹 = (await 라우트앱.inject({ method: 'GET', url: 주소(실행.끝남!) })).json();
+    expect(웹.items[0].devices[0].device).toBeNull();
   });
 
   it('도는 실행은 409 RUN_NOT_FINISHED 다', async () => {

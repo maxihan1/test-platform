@@ -188,3 +188,59 @@
     width: 100%;
   }
 }
+
+/* 토스트 — 본문 오른쪽 아래(진행 알약이 있으면 그 위), 휴대폰은 아래 탭 위. 뒤집은 색이라 고리는 --toast-link (DESIGN.md 「토스트」) */
+.toast {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 31;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(480px, calc(100vw - 40px));
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--bg);
+  box-shadow: var(--shadow);
+  font-size: 12.5px;
+  animation: 떠오름 var(--t2) var(--ease) backwards;
+  transition: opacity var(--t2), transform var(--t2);
+}
+.toast.out {
+  opacity: 0;
+  transform: translateY(6px);
+}
+.toast-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.toast a {
+  flex: none;
+  color: var(--toast-link);
+  font-weight: 600;
+}
+body:has(.run-pill) .toast {
+  bottom: 68px;
+}
+@media (max-width: 620px) {
+  .toast {
+    right: 12px;
+    left: 12px;
+    bottom: calc(var(--ph-tabs) + 12px);
+    max-width: none;
+  }
+  body:has(.run-pill) .toast {
+    bottom: calc(var(--ph-tabs) + 60px);
+  }
+  /* 「실패 N건 다시 실행」 판(72px)이 있으면 그 위, 알약까지 있으면 알약 위다 (runList.css 의 알약 규칙과 같은 자리) */
+  body:has(.rerun-dock) .toast {
+    bottom: calc(var(--ph-tabs) + 84px);
+  }
+  body:has(.rerun-dock):has(.run-pill) .toast {
+    bottom: calc(var(--ph-tabs) + 132px);
+  }
+}

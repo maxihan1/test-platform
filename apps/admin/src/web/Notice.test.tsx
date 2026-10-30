@@ -251,6 +251,77 @@ describe('읽음 목록 정리', () => {
   });
 });
 
+describe('토스트', () => {
+  const 토스트 = () => document.querySelector<HTMLElement>('.toast');
+  async function 다시묻는다(답: NoticeResponse, 부름: ReturnType<typeof 띄운다>): Promise<void> {
+    부름.mockResolvedValue(답);
+    await act(async () => {
+      window.dispatchEvent(new Event(알림바뀜));
+    });
+  }
+
+  it('화면을 연 뒤 새로 끝난 실행 하나를 아래에 띄우고 3초 뒤 흐려져 사라진다. 열 때 이미 있던 것은 안 띄운다', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const 부름 = 띄운다({ running: [], recent: [끝난실행(1)] });
+    await act(async () => {});
+    expect(토스트()).toBeNull();
+    expect(screen.getByRole('status').textContent).toBe('');
+
+    await 다시묻는다({ running: [], recent: [끝난실행(2), 끝난실행(1)] }, 부름);
+    expect(screen.getByRole('status').textContent).toMatch(/^RUN 2 실행이 끝났습니다/);
+    const 뜬것 = 토스트()!;
+    expect(뜬것.className).toBe('toast');
+    expect(within(뜬것).getByText(/^RUN 2 실행이 끝났습니다/)).toBeTruthy();
+    expect(within(뜬것).getByRole('link', { name: '결과 보기' }).getAttribute('href')).toBe('#/runs/2');
+
+    await act(async () => {
+      vi.advanceTimersByTime(3000);
+    });
+    expect(토스트()!.className).toBe('toast out');
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+    expect(토스트()).toBeNull();
+  });
+
+  it('마우스를 올린 동안은 사라지지 않고 떼면 다시 3초를 센다', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const 부름 = 띄운다({ running: [], recent: [] });
+    await act(async () => {});
+    await 다시묻는다({ running: [], recent: [끝난실행(3)] }, 부름);
+
+    fireEvent.mouseEnter(토스트()!);
+    await act(async () => {
+      vi.advanceTimersByTime(10_000);
+    });
+    expect(토스트()!.className).toBe('toast');
+
+    fireEvent.mouseLeave(토스트()!);
+    await act(async () => {
+      vi.advanceTimersByTime(3250);
+    });
+    expect(토스트()).toBeNull();
+  });
+
+  it('고리를 누르면 읽음이 되고 토스트가 닫힌다', async () => {
+    const 부름 = 띄운다({ running: [], recent: [] });
+    await act(async () => {});
+    await 다시묻는다({ running: [], recent: [끝난실행(7)] }, 부름);
+
+    fireEvent.click(within(토스트()!).getByRole('link', { name: '결과 보기' }));
+    expect(토스트()).toBeNull();
+    expect(읽음들().has('run:7')).toBe(true);
+  });
+
+  it('지금 결과를 보고 있는 실행이 끝나면 토스트를 안 띄운다', async () => {
+    보는실행알림(9);
+    const 부름 = 띄운다({ running: [도는실행(9)], recent: [] });
+    await act(async () => {});
+    await 다시묻는다({ running: [], recent: [끝난실행(9)] }, 부름);
+    expect(토스트()).toBeNull();
+  });
+});
+
 describe('받아 오기', () => {
   it('서버가 403 을 주면(실행 칸을 볼 수 있는 애플리케이션이 없다) 버튼도 줄도 안 그리고 다시 묻지도 않는다', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
