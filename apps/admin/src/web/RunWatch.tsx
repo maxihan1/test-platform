@@ -9,6 +9,7 @@ import { RunAbortModal } from './RunAbortModal.js';
 import { 실행판정, type 판정하기 } from './runJudge.js';
 import { 진행상황 } from './runProgress.js';
 import { RunProgressModal } from './RunProgressModal.js';
+import { use앞실패, 한건갈곳, 한건끝글, 한건인가 } from './RunSingleDone.js';
 import { 도는중, 멈출수있나, 본것으로적는다, 알림본적있나 } from './runState.js';
 import { use지켜봄, 지켜본다, type 지켜봄 } from './runWatchStore.js';
 import { useAsync } from './ui.js';
@@ -31,6 +32,7 @@ function 지켜보는실행({ 봄, 판정하기 }: { 봄: 지켜봄; 판정하�
   const reload = run.reload;
   const { 진행목록, 남은ms } = useRunProgress(running, 봄.runId);
   const 보는실행 = use보는실행();
+  const 앞실패 = use앞실패(data, running);
 
   useEffect(() => {
     if (!running) return;
@@ -57,6 +59,21 @@ function 지켜보는실행({ 봄, 판정하기 }: { 봄: 지켜봄; 판정하�
       본것으로적는다(data.runId);
       지켜본다(null);
     };
+    // 한 건 실행은 결과 화면이 없다 — 붙은 실행의 그 케이스 카드나 케이스 상세로 간다 (도메인/실행 §8.9 「완료 모달」)
+    if (한건인가(data)) {
+      return (
+        <RunProgressModal
+          data={data}
+          진행목록={진행목록}
+          onClose={닫는다}
+          덧붙임={<한건끝글 data={data} 앞실패={앞실패} />}
+          on결과보기={() => {
+            닫는다();
+            window.location.hash = 한건갈곳(data);
+          }}
+        />
+      );
+    }
     return (
       <RunProgressModal
         data={data}

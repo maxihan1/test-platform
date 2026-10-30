@@ -2,6 +2,7 @@
 
 import type { 이력묶음 } from './caseDetailView.js';
 import { use말, use언어 } from './i18n.js';
+import { 지켜본다 } from './runWatchStore.js';
 import { PLATFORM_LABEL, Verdict, when } from './ui.js';
 
 /** 묶음 — undefined 는 받는 중, null 은 받기 실패 */
@@ -27,11 +28,26 @@ export function 실행이력칸({ 묶음 }: { 묶음: 이력묶음[] | null | un
             {묶음.map((줄) => (
               <tr key={줄.runId}>
                 <td>
-                  <a href={`#/runs/${줄.runId}/items/${줄.첫항목}`}>{줄.runTitle}</a>
+                  {/* 도는 한 건은 실행 기록에 줄이 없다 — 새로 고쳐 잃은 진행 창을 여기서 다시 연다 (도메인/실행 §3.2 「저장」) */}
+                  {줄.한건 && 줄.도는중 ? (
+                    <button type="button" className="btn small ghost" onClick={() => 지켜본다({ runId: 줄.runId, 열림: true })}>
+                      {t('진행 보기')}
+                    </button>
+                  ) : (
+                    <a href={`#/runs/${줄.runId}/items/${줄.첫항목}`}>{줄.runTitle}</a>
+                  )}
+                  {!줄.한건 ? null : (
+                    <span className="hint">
+                      {' · '}
+                      {줄.붙은 === null ? t('한 건 실행') : t('RUN {번호}에 다시 실행으로 붙음', { 번호: 줄.붙은 })}
+                    </span>
+                  )}
                 </td>
                 <td>{줄.디바이스들.map((p) => t(PLATFORM_LABEL[p])).join(' · ')}</td>
                 <td className="dhist-n">
-                  {줄.회수 === 1 ? (
+                  {줄.도는중 ? (
+                    t('진행 중')
+                  ) : 줄.회수 === 1 ? (
                     <Verdict status={줄.실패 > 0 ? 'FAIL' : 줄.통과 > 0 ? 'PASS' : 'NA'} />
                   ) : (
                     t('{회수}번 · 실패 {실패} · 통과 {통과}', { 회수: 줄.회수, 실패: 줄.실패, 통과: 줄.통과 })
