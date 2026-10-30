@@ -165,9 +165,12 @@
   font-size: 12px;
 }
 
-/* 좁은 화면 — 서랍은 화면 폭을 다 쓴다 */
+/* 휴대폰 — 아래에서 올라오는 전체 화면 판이다(PC 는 오른쪽). 판올라옴은 phone.css 가 갖는다 (DESIGN.md 「휴대폰의 창」) */
 @media (max-width: 620px) {
   .nt-drawer {
     width: 100%;
+    border-left: 0;
+    animation: 판올라옴 var(--t3) var(--ease);
+    transition: transform var(--t2) var(--ease);
   }
 }
