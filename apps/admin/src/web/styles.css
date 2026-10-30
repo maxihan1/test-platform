@@ -4981,6 +4981,142 @@ details[open]:not(.ph-me)::details-content {
   grid-row: 4;
 }
 
+/* 종류별 칸이 있으면 통과율이 한 줄 높이로 줄고 그 아래에 선다 (DESIGN.md 「대시보드」) */
+.dash-board.has-kind .dash-rate {
+  grid-row: 1;
+}
+
+.dash-kind {
+  grid-column: 8 / 13;
+  grid-row: 2;
+}
+
+.dash-kind-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dash-kind-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid var(--line);
+  font-size: 12.5px;
+}
+
+.dash-kind-list b {
+  text-align: right;
+  font-weight: 500;
+}
+
+.dash-kind-bar {
+  display: block;
+  height: 8px;
+  overflow: hidden;
+  background: var(--well);
+  border-radius: 4px;
+}
+
+.dash-kind-bar i {
+  display: block;
+  height: 100%;
+  background: var(--pass);
+}
+
+/* 낮음 표시는 판정이 아니다 — 미실행 색(--na)을 빌리지 않고 회색 단계로 */
+.dash-kind-bar i.lo {
+  background: var(--line-2);
+}
+
+.dash-meth {
+  padding: 0 5px;
+  border: 1px solid var(--line-2);
+  border-radius: 3px;
+  background: var(--well);
+  font-size: 10.5px;
+}
+
+/* 검토할 것 — 판 하나를 세 칸으로. 수가 있는 칸 전체가 누르는 자리다 */
+.dash-review {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 0;
+  overflow: hidden;
+}
+
+.dash-rv {
+  display: grid;
+  align-content: start;
+  gap: 3px;
+  padding: 14px 16px 12px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  transition: background-color var(--t1) var(--ease);
+}
+
+.dash-rv + .dash-rv {
+  border-left: 1px solid var(--line);
+}
+
+a.dash-rv,
+button.dash-rv {
+  cursor: pointer;
+}
+
+a.dash-rv:hover,
+button.dash-rv:hover {
+  background: var(--well);
+}
+
+a.dash-rv:focus-visible,
+button.dash-rv:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+
+.dash-rv-name {
+  color: var(--ink-muted);
+  font-size: 12.5px;
+}
+
+.dash-rv-num {
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.dash-rv-num small {
+  margin-left: 6px;
+  color: var(--ink-faint);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.dash-rv-note {
+  color: var(--ink-faint);
+  font-size: 12px;
+}
+
+.dash-rv.bad .dash-rv-num {
+  color: var(--fail-text);
+}
+
+.dash-rv.need .dash-rv-num {
+  color: var(--link);
+}
+
+.dash-rv.zero .dash-rv-num {
+  color: var(--ink-faint);
+}
+
 /* 등장 — 칸마다 차례로 나타난다. 차례 지연까지 합쳐 --dur-intro(0.5초) 안이다.
    다시 받을 때는 같은 요소가 그대로 있어 애니메이션이 다시 시작하지 않는다 */
 .dash-slab {
@@ -6074,9 +6210,22 @@ details[open]:not(.ph-me)::details-content {
 /* 좁은 폭 규칙은 대시보드 기본 규칙들 **뒤**에 둔다 — 같은 우선순위는 뒤에 온 규칙이 이긴다.
    앞에 두었더니 `.dash-live` 기본 열(4칸)이 이겨 390 에서 실행 중 줄이 58px 로 눌렸다 (styles.test.ts 가 지킨다) */
 @container (max-width: 900px) {
-  .dash-board > * {
+  .dash-board > *,
+  .dash-board.has-kind > * {
     grid-column: 1 / -1;
     grid-row: auto;
+  }
+
+  .dash-rv {
+    padding: 10px;
+  }
+
+  .dash-rv-num {
+    font-size: 24px;
+  }
+
+  .dash-rv-note {
+    display: none;
   }
 
   .dash-live {

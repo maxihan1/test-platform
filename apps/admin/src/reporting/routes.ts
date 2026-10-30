@@ -7,6 +7,8 @@ import { z } from 'zod';
 
 import { 볼륨파일읽기 } from '../artifactFile.js';
 import { 칸되는서비스, type 기능 } from '../auth/permissions.js';
+import { 부른이로 } from '../authoring/decisionRoutes.js';
+import { 결정재료읽기 } from '../authoring/decisions.js';
 import { 정수 } from '../routeParams.js';
 import { 대시보드, 대시보드실행중, 틀린시간대 } from './dashboardResults.js';
 import { 허용날수 } from './dashboardShape.js';
@@ -43,6 +45,25 @@ function 읽기되는서비스번호(req: FastifyRequest, 어느기능: 기능, 
   const 배정 = (req.user?.services ?? []).filter((s) => 프로젝트 === undefined || s.projectId === 프로젝트);
   const 되는곳 = new Set(칸되는서비스(배정, 어느기능, 'read'));
   return 배정.filter((s) => 되는곳.has(s.prefix)).map((s) => s.id);
+}
+
+// 결정 목록 통로와 같은 함수 · 같은 사람으로 센다 — 고를 수 있는 항목이 사람마다 달라서다 (§8.12 「검토할 것」).
+// 상세(확인 문장 · 실패 까닭)는 수에 안 쓰여 읽지 않는다
+// 한 애플리케이션을 세다 실패하면 그 애플리케이션만 빼고 서버 기록에 남긴다 — 대시보드 전체가 500 으로 멈추지 않게.
+// ponytail: 애플리케이션마다 결정 목록을 통째로 짓는다 — 애플리케이션이 많아 대시보드가 느려지면 수만 세는 질의를 따로 둔다
+async function 결정수들(req: FastifyRequest, 작성서비스: number[], 서비스?: number): Promise<{ serviceId: number; count: number }[]> {
+  const 배정 = (req.user?.services ?? []).filter((s) => 작성서비스.includes(s.id) && (서비스 === undefined || s.id === 서비스));
+  const 수들 = await Promise.all(
+    배정.map(async (s) => {
+      try {
+        return { serviceId: s.id, count: (await 결정재료읽기(s.id, 부른이로(req, s.prefix), false)).목록.count };
+      } catch (err) {
+        req.log.error({ err, serviceId: s.id }, '[dashboard] counting decisions failed; leaving this application out of 결정 필요');
+        return null;
+      }
+    }),
+  );
+  return 수들.filter((x) => x !== null);
 }
 
 export default async function reportingRoutes(app: FastifyInstance): Promise<void> {
@@ -157,7 +178,9 @@ export default async function reportingRoutes(app: FastifyInstance): Promise<voi
     const 실행서비스 = 읽기되는서비스번호(req, 'runs', 프로젝트);
     try {
       if (only === 'running') return await 대시보드실행중(tz, 실행서비스, 서비스);
-      return await 대시보드(tz, 실행서비스, 읽기되는서비스번호(req, 'authoring', 프로젝트), { 서비스, 날수 });
+      const 작성서비스 = 읽기되는서비스번호(req, 'authoring', 프로젝트);
+      const [결과, decisions] = await Promise.all([대시보드(tz, 실행서비스, 작성서비스, { 서비스, 날수 }), 결정수들(req, 작성서비스, 서비스)]);
+      return { ...결과, decisions };
     } catch (err) {
       if (err instanceof 틀린시간대) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: err.받은값 });
       throw err;

@@ -10,11 +10,14 @@ import { 서비스번호 } from './routes.js';
 
 type 질의 = { Querystring: { service?: string } };
 
-function 부른사람(req: FastifyRequest<질의>): 부른이 {
+/** 그 애플리케이션(접두사)에서 부른 사람이 할 수 있는 것. 대시보드 「결정 필요」 수도 같은 것으로 센다 (도메인/리포팅 §8.12) */
+export function 부른이로(req: FastifyRequest, prefix: string): 부른이 {
   const 사람 = req.user ?? { role: 'member' as const, services: [] };
-  const 된다 = (기능: 'authoring' | 'runs', 칸: 'read' | 'write') => 권한이되나(사람, { 기능, 칸 }, [req.query.service ?? '']);
+  const 된다 = (기능: 'authoring' | 'runs', 칸: 'read' | 'write') => 권한이되나(사람, { 기능, 칸 }, [prefix]);
   return { admin: 사람.role === 'admin', 작성쓰기: 된다('authoring', 'write'), 실행읽기: 된다('runs', 'read'), 실행쓰기: 된다('runs', 'write') };
 }
+
+const 부른사람 = (req: FastifyRequest<질의>): 부른이 => 부른이로(req, req.query.service ?? '');
 
 export default async function decisionRoutes(app: FastifyInstance): Promise<void> {
   app.get<질의>('/authoring/decisions', async (req, reply) => {

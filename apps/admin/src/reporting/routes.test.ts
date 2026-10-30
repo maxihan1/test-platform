@@ -306,15 +306,18 @@ describe.skipIf(연결 === undefined)('증적 API', () => {
     }
   });
 
-  it('GET /api/dashboard — 실행 read 인 배정 서비스로 열한 칸을 낸다', async () => {
+  it('GET /api/dashboard — 실행 read 인 배정 서비스로 열세 칸을 낸다', async () => {
     지금사람 = 사람(실행만);
     const res = await app.inject({ method: 'GET', url: '/api/dashboard?tz=Asia%2FSeoul' });
 
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(Object.keys(body).sort()).toEqual(
-      ['window', 'services', 'passRate', 'daily', 'newFailures', 'byService', 'heatmap', 'coverage', 'running', 'unconfirmed', 'failureTypes'].sort(),
+      ['window', 'services', 'passRate', 'daily', 'newFailures', 'byService', 'heatmap', 'coverage', 'running', 'unconfirmed', 'failureTypes', 'decisions', 'byKind'].sort(),
     );
+    // 작성 칸이 없으면 결정 필요 수를 셀 애플리케이션이 없고, 하나를 고르지 않아 종류별 칸도 없다
+    expect(body.decisions).toEqual([]);
+    expect(body.byKind).toBeNull();
     expect(body.window.tz).toBe('Asia/Seoul');
     expect(body.services).toEqual([{ id: 대시보드서비스, name: 'XDR 대시보드' }]);
     expect(body.running.map((r: { runId: number }) => r.runId)).toEqual([도는실행]);
@@ -327,6 +330,7 @@ describe.skipIf(연결 === undefined)('증적 API', () => {
     expect(res.statusCode).toBe(200);
     expect(res.json().services).toEqual([]);
     expect(res.json().running).toEqual([]);
+    expect(res.json().decisions).toEqual([{ serviceId: 대시보드서비스, count: 0 }]);
   });
 
   it('GET /api/dashboard — service · days 가 틀리면 400 이고 받은 값을 돌려준다', async () => {
@@ -364,12 +368,15 @@ describe.skipIf(연결 === undefined)('증적 API', () => {
     expect(내것.statusCode).toBe(200);
     expect(내것.json().services).toEqual([{ id: 대시보드서비스, name: 'XDR 대시보드' }]);
     expect(내것.json().running.map((r: { runId: number }) => r.runId)).toEqual([도는실행]);
+    // 도는 실행뿐이라 끝난 줄이 없다 — 종류는 서비스의 것을 그대로 싣는다
+    expect(내것.json().byKind).toEqual({ kind: 'SCREEN', rows: [] });
 
     const 남의 = await app.inject({ method: 'GET', url: `/api/dashboard?tz=Asia%2FSeoul&service=${String(대시보드서비스 + 999_999)}` });
     expect(남의.statusCode).toBe(200);
     expect(남의.json().running).toEqual([]);
     expect(남의.json().byService).toEqual([]);
     expect(남의.json().coverage).toEqual([]);
+    expect(남의.json().byKind).toBeNull();
 
     const 남의실행중 = await app.inject({
       method: 'GET',

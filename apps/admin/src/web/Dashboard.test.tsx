@@ -85,6 +85,8 @@ function 응답(고침: Partial<대시보드응답> = {}): 대시보드응답 {
     running: [],
     unconfirmed: 0,
     failureTypes: { types: [], stopped: 0 },
+    decisions: [],
+    byKind: null,
     ...고침,
   };
 }
@@ -169,7 +171,7 @@ describe('실행 중 줄', () => {
   it('도는 실행이 없으면 줄 자체가 없다', async () => {
     읽기를(응답());
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
-    await screen.findByText('회귀 실패');
+    await screen.findByText('회귀 실패', { selector: 'h2' });
     expect(screen.queryByText(/^실행 중 /)).toBeNull();
   });
 
@@ -199,7 +201,7 @@ describe('회귀 실패 표', () => {
   it('애플리케이션 · TC ID · 케이스 이름 링크 · 디바이스 · 언제 · 실패 유형이 한 줄에 있다', async () => {
     읽기를(응답());
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
-    const 칸 = (await screen.findByText('회귀 실패')).closest('section')!;
+    const 칸 = (await screen.findByText('회귀 실패', { selector: 'h2' })).closest('section')!;
     const 줄들 = within(칸).getAllByRole('row');
     const 첫줄 = 줄들[1]!;
     expect(within(첫줄).getByText('ZDA-001')).toBeTruthy();
@@ -218,7 +220,7 @@ describe('회귀 실패 표', () => {
   it('머리의 건수는 애플리케이션별로 센 전체와 보이는 줄 가운데 큰 쪽이다', async () => {
     읽기를(응답());
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
-    const 제목 = (await screen.findByText('회귀 실패')).closest('h2')!;
+    const 제목 = (await screen.findByText('회귀 실패', { selector: 'h2' })).closest('h2')!;
     expect(제목.textContent).toBe('회귀 실패 2');
   });
 

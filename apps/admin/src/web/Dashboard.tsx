@@ -11,6 +11,8 @@ import { 서비스별표, 실행중줄, 안내판 } from './DashboardTables.js';
 import { 일별막대, 통과율선 } from './DashboardCharts.js';
 import { 실패히트맵 } from './DashboardHeat.js';
 import { 요구커버리지 } from './DashboardCoverage.js';
+import { 종류칸 } from './DashboardKind.js';
+import { 검토할것 } from './DashboardReview.js';
 import { 통과율칸, 판칸, 합 } from './DashboardRate.js';
 import { 실패유형칸 } from './DashboardTypes.js';
 import { Head } from './Head.js';
@@ -210,16 +212,18 @@ export function Dashboard({
       ) : (
         <div className="dash">
           <실행중줄 목록={읽음.값.running} />
+          <검토할것 값={읽음.값} 이동={이동} 서비스열기={서비스열기} />
           {/* 한 번도 안 돈 서비스에 빈 칸 여섯을 늘어놓지 않는다. 미확정도 통과율 숫자에 들어 있다 */}
           {합(읽음.값.passRate.current) + 합(읽음.값.passRate.previous) === 0 ? (
             <안내판 케이스갈수있나={케이스갈수있나} 설정갈수있나={설정갈수있나} />
           ) : (
             // 순서가 화면 읽기 순서다. 넓은 화면 배치는 CSS 격자가 자리로 옮긴다
-            <div className="dash-board">
+            <div className={읽음.값.byKind === null ? 'dash-board' : 'dash-board has-kind'}>
               <신규실패표 값={읽음.값} 이동={이동} />
               <통과율칸 값={읽음.값}>
                 <통과율선 값={읽음.값} />
               </통과율칸>
+              {읽음.값.byKind === null ? null : <종류칸 칸={읽음.값.byKind} 일={읽음.값.window.days} />}
               <서비스별표 값={읽음.값} 서비스열기={서비스열기} />
               <판칸 클래스="dash-daily" 제목={t('일별 테스트 결과')} 보조={t('막대 위 숫자는 실패 건수')}>
                 <일별막대 값={읽음.값} 설정갈수있나={설정갈수있나} 이동={이동} />
