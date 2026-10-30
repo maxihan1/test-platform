@@ -36,9 +36,10 @@ export function 고르기띠({
   const 실행넘침 = 실행보나 && 담기한계 < 전체;
   const 삭제넘침 = 삭제보나 && 고치기상한 < 전체;
   return (
-    <div className="pick-band" role="status">
+    <div className="pick-band">
       <p>
-        {모두 ? t('조건에 맞는 {전체}건을 모두 골랐습니다', { 전체 }) : t('이 쪽 {수}건을 모두 골랐습니다', { 수: 보일수 })}{' '}
+        {/* 알리는 것은 문장만이다 — 띠 전체를 알림 칸으로 두면 바뀔 때마다 단추 글자까지 다시 읽힌다 */}
+        <span role="status">{모두 ? t('조건에 맞는 {전체}건을 모두 골랐습니다', { 전체 }) : t('이 쪽 {수}건을 모두 골랐습니다', { 수: 보일수 })}</span>{' '}
         <button type="button" className="linklike" onClick={모두 ? on풀기 : on모두}>
           {모두 ? t('고르기 풀기') : t('조건에 맞는 {전체}건 모두 고르기', { 전체 })}
         </button>
@@ -69,7 +70,8 @@ export function 고르기바({
 }) {
   const t = use말();
   const 수 = 뽑기.모두 ? 전체 : 뽑기.고른.size;
-  if (수 === 0) return null;
+  // 고른 것으로 할 일이 하나도 없는 사람에게는 마지막 줄을 가리는 빈 바를 띄우지 않는다
+  if (수 === 0 || (!할수('실행') && !할수('작성요청'))) return null;
   return (
     <div className="pick-bar" role="toolbar" aria-label={t('고른 케이스')}>
       <span>{뽑기.모두 ? t('조건에 맞는 {수}건 모두 고름', { 수 }) : t('{수}건 고름', { 수 })}</span>

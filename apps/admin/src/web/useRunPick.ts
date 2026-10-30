@@ -165,12 +165,17 @@ export function useRunPick(옵션: {
 
   /**
    * 줄 하나를 고르거나 푼다. `사이` 를 주면(Shift) 지난번 누른 줄부터 이 줄까지를 이 줄이 바뀌는 쪽으로 맞춘다.
-   * 지난번 줄이 `사이` 에 없으면(쪽을 넘겼다) 이 줄 하나만 바꾼다. 손으로 바꾸면 「모두」는 풀린다
+   * 지난번 줄이 `사이` 에 없으면(쪽을 넘겼다) 이 줄 하나만 바꾼다.
+   * 모두 고른 채 바꾸면 「모두」가 풀리고 이 쪽(`이쪽`)에서 이 줄을 뺀 것이 남는다 — 모두일 때 줄은 다 고른 것이라 바꾸기는 늘 풀기다
    */
-  function 뒤집기(row: CaseRow, 사이?: readonly CaseRow[]) {
-    set모두조건(null);
+  function 뒤집기(row: CaseRow, 이쪽: readonly CaseRow[], 사이?: readonly CaseRow[]) {
     const 앞 = 기준.current;
     기준.current = row.tcId;
+    if (모두) {
+      set모두조건(null);
+      set고른(new Map(이쪽.filter((r) => r.tcId !== row.tcId).map((r) => [r.tcId, r])));
+      return;
+    }
     const 시작 = 사이 === undefined || 앞 === null ? -1 : 사이.findIndex((r) => r.tcId === 앞);
     const 끝 = 사이 === undefined ? -1 : 사이.findIndex((r) => r.tcId === row.tcId);
     set고른((전) => {
@@ -193,6 +198,7 @@ export function useRunPick(옵션: {
   /** 이 쪽에 보이는 줄을 전부 골랐으면 풀고, 아니면 전부 고른다. 다른 쪽에서 고른 것은 건드리지 않는다 */
   function 모두뒤집기(줄들: CaseRow[]) {
     set모두조건(null);
+    기준.current = null;
     set고른((전) => {
       const 다음 = new Map(전);
       const 전부 = 줄들.length > 0 && 줄들.every((row) => 전.has(row.tcId));
@@ -208,6 +214,7 @@ export function useRunPick(옵션: {
   function 비우기() {
     set고른(new Map());
     set모두조건(null);
+    기준.current = null;
   }
 
   function 닫기() {

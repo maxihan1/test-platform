@@ -117,11 +117,17 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
   // 총건수로 페이지 수를 계산하지 않는다. 그 값은 안내로만 쓴다 (SPEC §8.1)
   const 더있나 = cases.data !== null && 다음이있나(cases.data);
   const 전체 = cases.data?.total ?? 0;
-  const 이쪽다 = 보일것.length > 0 && 보일것.every((row) => 뽑기.고른.has(row.tcId));
+  // 모두 고른 동안은 어느 쪽의 줄이든 고른 것이다 — 고른 표에는 손으로 고른 쪽만 들어 있다
+  const 골랐나 = (row: { tcId: string }) => 뽑기.모두 || 뽑기.고른.has(row.tcId);
+  const 고른줄수 = 보일것.filter(골랐나).length;
+  const 고름상태 = 보일것.length > 0 && 고른줄수 === 보일것.length ? 'all' : 고른줄수 > 0 ? 'some' : 'none';
+  // Shift 사이는 눈에 보이는 줄만이다. 접은 묶음 안의 줄을 말없이 담지 않는다
+  const 펼친줄 = 칸들.flatMap((칸) => ('row' in 칸 && !칸.위.some((k) => 접기.접은.has(k)) ? [칸.row] : []));
   // 바가 사라지면 누른 단추도 사라진다 — 포커스는 주 행동으로 보낸다
   function 풀기() {
     뽑기.비우기();
-    실행단추.current?.focus();
+    // 실행 권한이 없으면 머리 단추가 없다 — 이 쪽 전체 선택으로 보낸다
+    (실행단추.current ?? document.querySelector<HTMLInputElement>('.rowhead .pick input'))?.focus();
   }
 
   return (
@@ -200,11 +206,11 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
       ) : (
         <>
         <표머리
-          고름상태={이쪽다 ? 'all' : 보일것.some((row) => 뽑기.고른.has(row.tcId)) ? 'some' : 'none'}
-          on모두고르기={() => 뽑기.모두뒤집기(보일것)}
+          고름상태={고름상태}
+          on모두고르기={() => (뽑기.모두 ? 풀기() : 뽑기.모두뒤집기(보일것))}
         />
         {/* 이 쪽이 조건에 맞는 전부면 넓힐 것이 없다 */}
-        {!뽑기.모두 && !(이쪽다 && 보일것.length < 전체) ? null : (
+        {!뽑기.모두 && !(고름상태 === 'all' && 보일것.length < 전체) ? null : (
           <고르기띠
             보일수={보일것.length}
             전체={전체}
@@ -239,8 +245,8 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
             요구보나={요구보나}
             요구쓰나={요구쓰나}
             마지막={lastMap}
-            고름={뽑기.고른.has(row.tcId)}
-            뒤집기={(row, 사이) => 뽑기.뒤집기(row, 사이 ? 보일것 : undefined)}
+            고름={골랐나(row)}
+            뒤집기={(row, 사이) => 뽑기.뒤집기(row, 보일것, 사이 ? 펼친줄 : undefined)}
             열림={연줄?.tcId === row.tcId}
             on실행={할수('실행') ? (row) => void 뽑기.하나열기(row) : undefined}
             on열기={열기}

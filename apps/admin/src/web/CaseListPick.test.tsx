@@ -122,6 +122,30 @@ describe('「모두 고르기」 띠', () => {
     expect(바글()).toBe('2건 고름');
   });
 
+  it('모두 고른 채 다음 쪽으로 가면 그 쪽 줄도 고른 모양이고 바는 그대로다', async () => {
+    await 그리기();
+    fireEvent.click(머리칸());
+    fireEvent.click(screen.getByRole('button', { name: '조건에 맞는 3건 모두 고르기' }));
+
+    fireEvent.click(screen.getByRole('button', { name: '다음' }));
+    await screen.findByText('ZPK-003');
+
+    expect(고르기칸().map((칸) => 칸.checked)).toEqual([true]);
+    expect((머리칸() as HTMLInputElement).checked).toBe(true);
+    expect(바글()).toBe('조건에 맞는 3건 모두 고름');
+  });
+
+  it('모두 고른 채 머리 네모를 누르면 전부 풀린다', async () => {
+    await 그리기();
+    fireEvent.click(머리칸());
+    fireEvent.click(screen.getByRole('button', { name: '조건에 맞는 3건 모두 고르기' }));
+
+    fireEvent.click(머리칸());
+
+    expect(screen.queryByRole('toolbar', { name: '고른 케이스' })).toBeNull();
+    expect(고르기칸().some((칸) => 칸.checked)).toBe(false);
+  });
+
   it('띠의 고르기 풀기는 전부 푼다', async () => {
     await 그리기();
     fireEvent.click(머리칸());
@@ -187,6 +211,16 @@ describe('Shift 사이 고르기', () => {
     fireEvent.click(고르기칸()[1]!, { shiftKey: true });
 
     expect(고르기칸().map((칸) => 칸.checked)).toEqual([true, false, false, false]);
+  });
+
+  it('고르기 풀기 뒤의 Shift 는 지난번 줄에서 시작하지 않는다', async () => {
+    await 그리기(() => 네건);
+    fireEvent.click(고르기칸()[0]!);
+    fireEvent.click(within(바()).getByRole('button', { name: '고르기 풀기' }));
+
+    fireEvent.click(고르기칸()[3]!, { shiftKey: true });
+
+    expect(고르기칸().map((칸) => 칸.checked)).toEqual([false, false, false, true]);
   });
 
   it('Shift 없이 고르면 그 줄 하나만 바뀐다', async () => {
