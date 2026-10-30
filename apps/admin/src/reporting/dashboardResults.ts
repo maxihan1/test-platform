@@ -13,7 +13,7 @@ import {
   type 앞판정,
   type 접은줄,
 } from './dashboardShape.js';
-import { 종류칸읽기, type 애플리케이션종류, type 종류칸 } from './dashboardKind.js';
+import { 고른종류칸, type 종류칸 } from './dashboardKind.js';
 import { 접은줄SQL, 앞판정SQL, 실행중SQL, 커버리지SQL } from './dashboardSql.js';
 import { 원인을가른다, type 원인재료, type 실패유형 } from './failureType.js';
 import { db, 가려서자른다 } from './insights.js';
@@ -274,7 +274,10 @@ export async function 대시보드(
     ]),
   ]);
 
-  const byKind = 고른서비스 === undefined || !실행서비스ids.includes(고른서비스) ? null : await 종류칸(pool, 고른서비스, 줄들, 이번시작, 오늘);
+  // 여러 종류가 섞이면 줄 단위가 서로 맞지 않아 하나를 골랐을 때만 짓는다. 세는 줄은 통과율과 같은 이번 창 줄이다
+  const byKind = 고른서비스 === undefined || !실행서비스ids.includes(고른서비스)
+    ? null
+    : await 고른종류칸(pool, 고른서비스, 줄들.filter((줄) => 줄.serviceId === 고른서비스 && 줄.day >= 이번시작 && 줄.day <= 오늘));
   const 서비스목록 = 서비스.rows.map((r) => ({ id: Number(r.id), name: r.name }));
   const 집계 = 대시보드집계(
     줄들,
@@ -319,10 +322,3 @@ export async function 대시보드(
   };
 }
 
-// 여러 종류가 섞이면 줄 단위가 서로 맞지 않아 하나를 골랐을 때만 짓는다. 세는 줄은 통과율과 같은 이번 창 줄이다
-async function 종류칸(pool: Pool, serviceId: number, 줄들: 접은줄[], 이번시작: string, 오늘: string): Promise<종류칸 | null> {
-  const { rows } = await pool.query<{ kind: 애플리케이션종류 }>('SELECT kind FROM service WHERE id = $1', [serviceId]);
-  const kind = rows[0]?.kind;
-  if (kind === undefined) return null;
-  return 종류칸읽기(pool, serviceId, kind, 줄들.filter((줄) => 줄.serviceId === serviceId && 줄.day >= 이번시작 && 줄.day <= 오늘));
-}

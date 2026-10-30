@@ -133,3 +133,10 @@ export async function 종류칸읽기(pool: Pool, serviceId: number, kind: 애�
   const { 케이스, 걸린시간 } = await 엔드포인트들(pool, serviceId, runIds);
   return { kind, rows: 종류줄을센다(줄들, (줄) => 케이스.get(줄.tcId) ?? [], 걸린시간) };
 }
+
+/** 서비스의 종류를 읽어 종류별 칸을 짓는다. 없는 서비스면 null */
+export async function 고른종류칸(pool: Pool, serviceId: number, 줄들: 접은줄[]): Promise<종류칸 | null> {
+  const { rows } = await pool.query<{ kind: 애플리케이션종류 }>('SELECT kind FROM service WHERE id = $1', [serviceId]);
+  const kind = rows[0]?.kind;
+  return kind === undefined ? null : 종류칸읽기(pool, serviceId, kind, 줄들);
+}
