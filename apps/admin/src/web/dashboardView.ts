@@ -84,6 +84,8 @@ export function 짧은시각(iso: string, 언어: 언어): string {
 
 /** 큰 숫자가 올라가는 시간. styles.css 의 `--dur-count` 와 같은 값이다 */
 const 올라가는시간 = 400;
+/** 화면을 연 지 이만큼 뒤에 올라가기 시작한다 — 막대 · 선과 같은 출발이다 (DESIGN.md 원칙 4 「처음 열 때만」) */
+const 늦춤 = 100;
 
 const 움직임줄임 = (): boolean =>
   typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -104,7 +106,7 @@ export function use올라가기(목표: number): number {
     }
     const 시작 = Date.now();
     const 타이머 = setInterval(() => {
-      const 진행 = Math.min(1, (Date.now() - 시작) / 올라가는시간);
+      const 진행 = Math.min(1, Math.max(0, (Date.now() - 시작 - 늦춤) / 올라가는시간));
       set값(Math.round(목표 * (1 - (1 - 진행) ** 3)));
       if (진행 === 1) {
         끝남.current = true;

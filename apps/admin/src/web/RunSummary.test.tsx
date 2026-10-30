@@ -1,11 +1,18 @@
 // @vitest-environment jsdom
 // 결과 화면 요약 띠 검사 — 통과율 도넛 · 실패 수 · 판정별 보기 · 직전 실행 대비 (도메인/실행 §8.3)
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 import { api, type ItemStatus, type RunCounts, type RunInsights, type RunItemSummary } from './api.js';
 import { RunSummary, type 변화칸 } from './RunSummary.js';
+
+beforeEach(() => {
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    value: (질의: string) => ({ matches: 질의.includes('reduce'), media: 질의, addEventListener() {}, removeEventListener() {} }),
+  });
+});
 
 afterEach(cleanup);
 
