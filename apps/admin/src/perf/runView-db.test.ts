@@ -89,7 +89,7 @@ describe.skipIf(연결 === undefined)('성능 결과 보기 칸', { timeout: 60_
   it('목록 수치 — 페이지는 주소마다 마지막 줄의 LCP 평균, 기기는 기기마다 평균의 가장 나쁜 값, 부하는 null', async () => {
     const 실행 = async (kind: 'PAGE' | 'DEVICE') =>
       Number((await f.pool.query<{ id: string }>(
-        `INSERT INTO perf_run (kind, service_id, env, base_url, config, status, origin) VALUES ($1, $2, 'stg', 'http://xpk.test', '{}', 'DONE', 'MANUAL') RETURNING id`,
+        `INSERT INTO perf_run (kind, service_id, env, base_url, config, status, verdict, origin) VALUES ($1, $2, 'stg', 'http://xpk.test', '{}', 'DONE', 'PASS', 'MANUAL') RETURNING id`,
         [kind, f.서비스],
       )).rows[0]?.id);
     const 페이지 = await 실행('PAGE');
