@@ -4,10 +4,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 
-import { api } from './api.js';
+import { api, type User } from './api.js';
 import { 고른서버를적는다, 마지막서버 } from './layout.js';
 import { RunPickModal } from './RunPickModal.js';
-import { 사람, 서비스, 저장값케이스 } from './runPick.fixture.js';
+import { 사람, 서비스, 읽기만, 저장값케이스 } from './runPick.fixture.js';
 
 beforeEach(() => {
   localStorage.clear();
@@ -19,7 +19,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-async function 연다(덮어쓸: { 초기서버?: string } = {}) {
+async function 연다(덮어쓸: { 초기서버?: string; user?: User } = {}) {
   const onClose = vi.fn();
   render(<RunPickModal 케이스들={[저장값케이스]} service={서비스} user={사람} onRun={vi.fn()} onClose={onClose} {...덮어쓸} />);
   await act(async () => {});
@@ -36,8 +36,8 @@ describe('실행 창 — 고친 채 닫기', () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
-  it('값을 고쳤으면 Esc 에 버튼 줄이 묻고, 그때 Esc 는 계속 고치기 · 닫기를 눌러야 닫힌다', async () => {
-    const onClose = await 연다();
+  it('저장 권한 없이 값을 고쳤으면 Esc 에 버튼 줄이 묻고, 그때 Esc 는 계속 고치기 · 닫기를 눌러야 닫힌다', async () => {
+    const onClose = await 연다({ user: 읽기만 });
     fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'user2' } });
 
     Esc();

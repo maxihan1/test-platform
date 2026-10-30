@@ -84,7 +84,7 @@ describe('RunPickModal', () => {
   it('기본값이 무엇인지 칸마다 보인다', () => {
     // 기본값을 안 보여주면 「이 값이 원래 값인가」를 코드를 열어야 안다
     그리기();
-    expect(screen.getByText(/기본값/)).toBeTruthy();
+    expect(document.querySelector('.deflt')?.textContent).toContain('기본값');
   });
 
   it('대상 서버가 둘 이상인데 안 고르면 실행이 안 걸리고 사유가 화면 줄로 뜬다', () => {
@@ -161,7 +161,8 @@ describe('RunPickModal', () => {
     expect((screen.getByLabelText('아이디') as HTMLInputElement).value).toBe('zpm-저장');
     // 칸 안내(저장값 · 코드 기본값)와 한 건 창의 「저장값 · 누가 · 언제」가 둘 다 선다
     expect(screen.getByText(/코드 기본값 zpm-기본/)).toBeTruthy();
-    expect(screen.getByText(/저장값 · qa ·/)).toBeTruthy();
+    // 「저장한 값」 목록과 칸 아래 출처 줄 두 자리다
+    expect(screen.getAllByText(/저장값 · qa ·/)).toHaveLength(2);
   });
 
   it('실행 항목 수는 디바이스 수가 다른 케이스들에서도 합이다', () => {
@@ -238,7 +239,7 @@ describe('RunPickModal', () => {
 
 // 여러 건 「테스트 실행」 — 기록 없이 내 컴퓨터 러너로 한 건씩 차례로 (2026-09-30)
 describe('RunPickModal 테스트 실행', () => {
-  const 테스트버튼 = () => screen.getByRole('button', { name: '▶ 시험해 보기' });
+  const 테스트버튼 = () => screen.getByRole('button', { name: '▶ 테스트 실행' });
   const 주소칸 = () => screen.getByLabelText('열 주소') as HTMLInputElement;
 
   function 서버모킹() {
@@ -312,7 +313,7 @@ describe('RunPickModal 테스트 실행', () => {
     그리기();
     const 고급 = 주소칸().closest('details')!;
     expect(고급.open).toBe(false);
-    expect(고급.querySelector('summary')?.textContent).toBe('고급 · 시험해 보기 설정');
+    expect(고급.querySelector('summary')?.textContent).toBe('고급 · 테스트 실행 설정');
   });
 
   it('주소가 틀려 막히면 접힌 칸이 저절로 펴져 사유가 보인다', () => {
@@ -323,7 +324,7 @@ describe('RunPickModal 테스트 실행', () => {
     expect(주소칸().closest('details')!.open).toBe(true);
   });
 
-  it('시험해 보기에는 기록 · 리포트가 남지 않는다고, 실행 곁에는 기록이 남는다고 화면 글자로 적는다', () => {
+  it('테스트 실행에는 기록 · 리포트가 남지 않는다고, 실행 곁에는 기록이 남는다고 화면 글자로 적는다', () => {
     그리기();
     expect(screen.getByText('기록·리포트가 남지 않습니다')).toBeTruthy();
     expect(screen.getByText('기록이 남습니다')).toBeTruthy();

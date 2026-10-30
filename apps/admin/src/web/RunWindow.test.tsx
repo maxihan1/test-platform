@@ -192,7 +192,7 @@ describe('RunWindow', () => {
 
     expect(await screen.findByText('실행 권한이 있어야 고치고 돌릴 수 있습니다')).toBeTruthy();
     expect(screen.queryByRole('button', { name: '실행' })).toBeNull();
-    expect(screen.queryByRole('button', { name: '▶ 시험해 보기' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '▶ 테스트 실행' })).toBeNull();
   });
 
   it('걸린 뒤에는 on걸림 을 부르고 onClose 는 안 부른다 — 옛 주소에서 닫힘이 실행 결과 대신 목록으로 보냈다', async () => {

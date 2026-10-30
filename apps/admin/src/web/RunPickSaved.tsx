@@ -1,5 +1,6 @@
-// 한 건 실행 창의 「저장한 값」 줄 — 코드 기본값 · 저장값 · 묶음을 한 목록에서 고르고, 고친 값을 저장한다 (도메인/실행 §8.2 · §8.10)
-// 앞 판은 저장값 · 묶음 불러오기 · 묶음 이름 · 묶음 저장 · 코드 기본값으로 · 다음에도 이 값, 여섯 조작이 한 줄에 섞여 있었다
+// 한 건 실행 창의 「저장한 값」 줄 — 코드 기본값 · 저장값 · 묶음을 한 목록에서 고르고, 고친 값을 묶음으로 저장하거나 저장값을 지운다 (도메인/실행 §8.2 · §8.10)
+// 앞 판은 저장값 · 묶음 불러오기 · 묶음 이름 · 묶음 저장 · 코드 기본값으로 · 다음에도 이 값, 여섯 조작이 한 줄에 섞여 있었다.
+// 저장값 저장은 칸 아래 출처 줄(RunPickSource)이 맡는다 — 2026-10-30 WEB-F7-09 전에는 여기서 이름을 비우면 저장값이었다
 
 import { useState } from 'react';
 
@@ -52,6 +53,12 @@ export function 저장한값줄({
   const saved = 케이스.savedInput ?? undefined;
   // 창은 저장값(없으면 코드 기본값)으로 칸을 채워 열린다 — 목록의 처음 선택도 그것이다
   const [고른, set고른] = useState(saved === undefined ? 'code' : 'saved');
+  // 칸 아래 출처 줄에서 저장값을 저장하면 케이스를 다시 읽어 저장 시각이 바뀐다 — 목록도 저장값을 고른 것으로 맞춘다
+  const [본저장, set본저장] = useState(saved?.savedAt);
+  if (saved?.savedAt !== 본저장) {
+    set본저장(saved?.savedAt);
+    if (saved !== undefined) set고른('saved');
+  }
   const [저장칸, set저장칸] = useState(false);
   const [이름, set이름] = useState('');
   const [확인중, set확인중] = useState(false);
@@ -76,21 +83,18 @@ export function 저장한값줄({
   }
 
   async function 저장() {
-    set알림(null);
     const 묶음이름 = 이름.trim();
+    if (묶음이름 === '') {
+      // 버튼을 죽이지 않고 누르면 사유를 적는다 (도메인/실행 §8.2)
+      set알림(t('묶음 이름을 적으세요'));
+      return;
+    }
+    set알림(null);
     setBusy(true);
     try {
-      if (묶음이름 === '') {
-        // 안 고친 칸도 보이는 값 그대로 저장한다. 비워 둔 저장 비밀값은 값에 없어 서버가 앞 저장값을 이어받는다
-        await api.saveInput(케이스.tcId, 값);
-        set고른('saved');
-        set알림(t('저장값으로 저장했습니다.'));
-        on다시읽기();
-      } else {
-        await api.saveParamSet(케이스.tcId, { name: 묶음이름, ...값 });
-        set알림(t('{이름}으로 저장했습니다.', { 이름: `'${묶음이름}'` }));
-        sets.reload();
-      }
+      await api.saveParamSet(케이스.tcId, { name: 묶음이름, ...값 });
+      set알림(t('{이름}으로 저장했습니다.', { 이름: `'${묶음이름}'` }));
+      sets.reload();
       set이름('');
       set저장칸(false);
     } catch (err) {
@@ -137,7 +141,7 @@ export function 저장한값줄({
         {!저장된다 ? null : (
           <>
             <button type="button" className="btn ghost" aria-expanded={저장칸} onClick={() => set저장칸((전) => !전)}>
-              {t('이 값을 저장')}
+              {t('묶음으로 저장')}
             </button>
             {saved === undefined ? null : 확인중 ? (
               <>
@@ -173,10 +177,7 @@ export function 저장한값줄({
           <button type="button" className="btn" onClick={() => void 저장()} disabled={busy}>
             {t('저장')}
           </button>
-          {/* 이름이 없으면 팀이 같이 쓰는 저장값이 바뀐다 — 누르기 전에 알아야 한다 (도메인/실행 §8.2) */}
-          <span className="hint">
-            {이름.trim() === '' ? t('이름을 비우면 저장값으로 저장합니다. 팀 모두와 정기 실행에 쓰입니다') : t('이 이름의 묶음으로 따로 저장합니다')}
-          </span>
+          <span className="hint">{t('이 이름의 묶음으로 따로 저장합니다')}</span>
         </div>
       )}
     </div>

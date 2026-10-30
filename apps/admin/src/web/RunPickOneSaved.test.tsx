@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 실행 창 한 건 모드의 「저장한 값」 줄 — 권한 · 목록 고르기 · 저장 · 저장값 지우기 (도메인/실행 §8.2, 2026-10-19 ⑫ 여섯 조작을 하나로)
+// 실행 창 한 건 모드의 「저장한 값」 줄 — 권한 · 목록 고르기 · 묶음 저장 · 저장값 지우기 (도메인/실행 §8.2, 2026-10-19 ⑫ 여섯 조작을 하나로 · 2026-10-30 저장값 저장은 출처 줄로)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
@@ -17,7 +17,7 @@ const 서버고르기 = (env = 'qa') => fireEvent.change(screen.getByLabelText('
 const 줄 = () => screen.getByRole('status');
 const 목록 = () => screen.getByLabelText('저장한 값') as HTMLSelectElement;
 const 아이디 = () => (screen.getByLabelText('아이디') as HTMLInputElement).value;
-const 저장열기 = () => fireEvent.click(screen.getByRole('button', { name: '이 값을 저장' }));
+const 저장열기 = () => fireEvent.click(screen.getByRole('button', { name: '묶음으로 저장' }));
 const 저장누름 = () => fireEvent.click(screen.getByRole('button', { name: '저장' }));
 
 const 회원묶음: ParamSetRow = {
@@ -30,14 +30,14 @@ const 회원묶음: ParamSetRow = {
 };
 
 describe('한 건 창의 권한 칸', () => {
-  it('케이스 쓰기면 「이 값을 저장」이 보인다', async () => {
+  it('케이스 쓰기면 「묶음으로 저장」이 보인다', async () => {
     await 그린다(값케이스);
-    expect(screen.getByRole('button', { name: '이 값을 저장' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '묶음으로 저장' })).toBeTruthy();
   });
 
   it('케이스 읽기면 저장 단추도 저장값 지우기도 없고 목록은 그대로 쓴다', async () => {
     await 그린다(저장값케이스, 읽기만);
-    expect(screen.queryByRole('button', { name: '이 값을 저장' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '묶음으로 저장' })).toBeNull();
     expect(screen.queryByRole('button', { name: '저장값 지우기' })).toBeNull();
     expect(목록().value).toBe('saved');
   });
@@ -45,7 +45,7 @@ describe('한 건 창의 권한 칸', () => {
   it('입력값이 하나도 없는 케이스는 저장 관련 칸을 아예 그리지 않는다', async () => {
     await 그린다(케이스);
     expect(screen.queryByLabelText('저장한 값')).toBeNull();
-    expect(screen.queryByRole('button', { name: '이 값을 저장' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '묶음으로 저장' })).toBeNull();
     expect(screen.queryByPlaceholderText('묶음 이름')).toBeNull();
     expect(screen.getByText('선언된 입력값이 없습니다. 그대로 실행됩니다')).toBeTruthy();
   });
@@ -97,7 +97,7 @@ describe('저장한 값 목록', () => {
   });
 });
 
-describe('「이 값을 저장」', () => {
+describe('「묶음으로 저장」', () => {
   it('누르기 전에는 묶음 이름 칸이 없고 누르면 한 줄 입력이 나온다', async () => {
     await 그린다(값케이스);
     expect(screen.queryByLabelText('묶음 이름')).toBeNull();
@@ -107,19 +107,17 @@ describe('「이 값을 저장」', () => {
     expect(screen.getByLabelText('묶음 이름')).toBeTruthy();
   });
 
-  it('이름을 비우고 저장하면 저장값으로 저장하고 케이스를 다시 읽게 한다. 비워 둔 저장 비밀값은 안 보낸다', async () => {
-    const { on다시읽기 } = await 그린다(저장값케이스);
-    const 저장 = vi.spyOn(api, 'saveInput').mockResolvedValue(null);
+  it('이름을 비우고 누르면 저장하지 않고 이름을 적으라고 한다', async () => {
+    await 그린다(저장값케이스);
+    const 저장 = vi.spyOn(api, 'saveInput');
     const 묶음저장 = vi.spyOn(api, 'saveParamSet');
 
-    fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'user2' } });
     저장열기();
     저장누름();
 
-    await waitFor(() => expect(on다시읽기).toHaveBeenCalledWith('ZRS-001'));
-    expect(저장).toHaveBeenCalledWith('ZRS-001', { params: { userId: 'user2' }, expected: {} });
+    expect(screen.getByText('묶음 이름을 적으세요')).toBeTruthy();
+    expect(저장).not.toHaveBeenCalled();
     expect(묶음저장).not.toHaveBeenCalled();
-    expect(screen.getByText('저장값으로 저장했습니다.')).toBeTruthy();
   });
 
   it('이름을 적으면 묶음으로 저장하고 저장값은 건드리지 않는다', async () => {
@@ -138,24 +136,21 @@ describe('「이 값을 저장」', () => {
     expect(on다시읽기).not.toHaveBeenCalled();
   });
 
-  it('이름이 비어 있으면 팀 모두가 쓰는 값이 바뀐다고, 이름을 적으면 따로 저장한다고 곁에 적는다', async () => {
+  it('이름 칸 곁에 묶음으로 따로 저장한다고 적는다 — 팀이 같이 쓰는 저장값은 여기서 안 바뀐다', async () => {
     await 그린다(값케이스);
     저장열기();
-    expect(screen.getByText(/팀 모두와 정기 실행에 쓰입니다/)).toBeTruthy();
-
-    fireEvent.change(screen.getByLabelText('묶음 이름'), { target: { value: '회원' } });
-
     expect(screen.getByText('이 이름의 묶음으로 따로 저장합니다')).toBeTruthy();
     expect(screen.queryByText(/팀 모두와 정기 실행에 쓰입니다/)).toBeNull();
   });
 
   it('서버가 400 을 내면 칸 아래에 사유를 붙인다', async () => {
     await 그린다(저장값케이스);
-    vi.spyOn(api, 'saveInput').mockRejectedValue(
+    vi.spyOn(api, 'saveParamSet').mockRejectedValue(
       new ApiError(400, 'INVALID_PARAMS', '아이디가 틀렸다', [{ path: 'userId', message: '아이디가 틀렸다' }]),
     );
 
     저장열기();
+    fireEvent.change(screen.getByLabelText('묶음 이름'), { target: { value: '회원' } });
     저장누름();
 
     expect(await screen.findByText('아이디가 틀렸다')).toBeTruthy();
@@ -189,7 +184,7 @@ describe('「저장값 지우기」', () => {
 
   it('저장값이 없으면 지우기 단추가 없다', async () => {
     await 그린다(값케이스);
-    expect(screen.getByRole('button', { name: '이 값을 저장' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '묶음으로 저장' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: '저장값 지우기' })).toBeNull();
   });
 });

@@ -173,7 +173,7 @@ describe('한 건 창 — 고친 칸 검사', () => {
     서버고르기();
 
     fireEvent.change(screen.getByLabelText('개수'), { target: { value: 'abc' } });
-    fireEvent.click(screen.getByRole('button', { name: '▶ 시험해 보기' }));
+    fireEvent.click(screen.getByRole('button', { name: '▶ 테스트 실행' }));
 
     expect(시작).not.toHaveBeenCalled();
     expect(줄().textContent).toBe('입력값이 명세와 맞지 않습니다.');

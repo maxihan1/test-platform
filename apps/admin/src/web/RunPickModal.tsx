@@ -13,9 +13,10 @@ import { RunLocation } from './RunLocation.js';
 import { use닫기묻기, 건수풀이, 반복과알림, 실행버튼들 } from './RunPickFoot.js';
 import { 한건머리, use한건 } from './RunPickOne.js';
 import { 저장한값줄 } from './RunPickSaved.js';
+import { use입력값저장, 출처줄 } from './RunPickSource.js';
 import { 넘었나, 상한 } from './runPlan.js';
 import { use여러건시험, 열주소칸, 시험배지, 시험절차 } from './RunPickTrial.js';
-import { toValues } from './schema.js';
+import { 케이스서비스, 할수있나 } from './role.js';
 import { message, PLATFORM_LABEL } from './ui.js';
 import { useRunPickValues } from './useRunPickValues.js';
 import { messagesByKey } from './validation.js';
@@ -53,7 +54,7 @@ interface Props {
   onClose: () => void;
   /** 값을 고쳤다. 아까 거절당한 사유는 더 이상 지금 화면의 사실이 아니다 */
   on값고침?: () => void;
-  /** 한 건 창에서 저장값을 바꿨다. 그 케이스를 새로 읽어 「저장값 · 누가 · 언제」를 맞춘다 */
+  /** 저장값을 바꿨다. 그 케이스를 새로 읽어 「저장값 · 누가 · 언제」를 맞춘다 */
   on다시읽기?: (tcId: string) => void;
   onRun: (요청: 실행요청) => void;
 }
@@ -85,7 +86,15 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
   }
 
   const 값 = useRunPickValues(케이스들, 초기글자, 손댐);
-  const 닫기 = use닫기묻기(값.고쳤나, onClose);
+  // 명세에 안 맞아 저장을 안 했다 — 걸기 전 검사와 같은 자리에 사유를 보인다
+  const { 저장중, 저장 } = use입력값저장(값, on다시읽기, 저장실패, (틀린) => {
+    set오류보임(true);
+    set펼친((전) => new Set([...전, ...틀린]));
+    setNotice(t('입력값이 명세와 맞지 않습니다.'));
+  });
+  // 창의 케이스는 한 서비스 것이다 (SPEC §7) — 권한은 맨 앞 케이스의 서비스로 본다
+  const 저장된다 = 할수있나(user ?? null, 케이스서비스(케이스들[0]?.tcId ?? ''), '입력값저장');
+  const 닫기 = use닫기묻기(값.안저장.length > 0, onClose, 저장된다 ? () => void 저장(값.안저장).then((됨) => { if (됨) onClose(); }) : undefined);
   const 한건 = 케이스들.length === 1 ? 케이스들[0]! : null;
   const 하나 = use한건(한건);
   // 한 건이면 사람이 고른 디바이스로 돈다. 여러 건이면 케이스가 선언한 것을 전부 쓴다 (SPEC §8.10)
@@ -97,7 +106,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
   const 너무많나 = 넘었나(건수);
   const android = 안드로이드있나(돌릴것);
   const 주소 = service?.envs.find((it) => it.env === env)?.baseUrl ?? null;
-  // 「▶ 시험해 보기」 — 기록 없이 한 건씩 차례로 (도메인/실행 §8.10)
+  // 「▶ 테스트 실행」 — 기록 없이 한 건씩 차례로 (도메인/실행 §8.10)
   const 시험 = use여러건시험({ 케이스들: 돌릴것, 고친값: 값.고친값, 대상주소: 주소, 알림: setNotice });
   /**
    * 한 줄이 넷을 겸한다 — 방금 누른 것에 대한 답 · 버튼을 죽인 이유 · **걸었다 거절당한 사유** · 건수 안내.
@@ -115,10 +124,12 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
   const 빨갛나 = notice !== null || 너무많나 || 사유 !== undefined;
 
   /** 서버가 칸별 사유를 주면 그 칸 아래에 붙인다. 아니면 창의 한 줄로 (SPEC §8.2) */
-  function 저장실패(err: unknown) {
+  function 저장실패(err: unknown, tcId?: string) {
     if (err instanceof ApiError && err.violations.length > 0) {
       set오류보임(false);
-      값.set서버오류(messagesByKey(err.violations));
+      값.set서버오류(messagesByKey(err.violations), tcId ?? null);
+      // 여러 건 창은 값 칸이 접혀 있다 — 사유가 붙은 케이스를 편다
+      if (tcId !== undefined) set펼친((전) => new Set([...전, tcId]));
       setNotice(t('입력값이 명세와 맞지 않습니다.'));
     } else {
       setNotice(message(err, 언어));
@@ -256,19 +267,17 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
                       onChange={값.고치기(c.tcId, 'expected')}
                     />
                   )}
+                  <출처줄 케이스={c} 상태={값.출처(c.tcId)} 저장된다={저장된다} 저장중={저장중}
+                    on저장={() => void 저장([c.tcId])} on되돌리기={() => 값.되돌리기(c.tcId)} />
                 </div>
               )}
               {한건 === null || !값있나 ? null : (
                 <저장한값줄
                   케이스={한건}
                   user={user ?? null}
-                  // 안 고친 칸도 보이는 값 그대로 저장한다. 고친 것만 싣으면 「이 값으로」가 빈 값을 저장한다
-                  값={{
-                    params: toValues(칸?.params ?? [], 값.글자of(c.tcId, 'params')),
-                    expected: toValues(칸?.expected ?? [], 값.글자of(c.tcId, 'expected')),
-                  }}
+                  값={값.저장할값(c.tcId)}
                   on불러오기={(글자) => 값.불러오기(c.tcId, 글자)}
-                  on다시읽기={() => on다시읽기?.(c.tcId)}
+                  on다시읽기={() => { 값.저장잊기(c.tcId); on다시읽기?.(c.tcId); }}
                   on실패={저장실패}
                 />
               )}

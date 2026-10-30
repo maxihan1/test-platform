@@ -3019,7 +3019,7 @@ input[type='file']::file-selector-button {
   width: 56px;
 }
 
-/* 창 바닥의 시험해 보기 · 실행 — 단추 아래에 기록이 남는지를 글자로 적는다 (2026-10-19) */
+/* 창 바닥의 테스트 실행 · 실행 — 단추 아래에 기록이 남는지를 글자로 적는다 (2026-10-19) */
 .foot-act {
   display: flex;
   flex-direction: column;
@@ -3032,7 +3032,7 @@ input[type='file']::file-selector-button {
   white-space: nowrap;
 }
 
-/* 시험해 보기 열 주소 — 개발자가 아니면 건드릴 일이 없어 접어 둔다 */
+/* 테스트 실행 열 주소 — 개발자가 아니면 건드릴 일이 없어 접어 둔다 */
 .trial-adv > summary {
   cursor: pointer;
   font-size: 12.5px;
@@ -3327,6 +3327,31 @@ input[type='file']::file-selector-button {
   height: 5px;
   background: var(--ink);
   display: block;
+}
+
+/* 입력값 칸 아래 출처 줄 — 저장값 · 코드 기본값, 고치면 「이번 실행에만」과 저장 · 되돌리기 (도메인/실행 §8.10) */
+.prow-src {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.prow-src.changed {
+  color: var(--ink-muted);
+}
+
+/* 결과가 남는 곳 — 반복 줄 바로 위, 「실행」을 누르기 전에 읽는 자리 */
+.mdest {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: baseline;
+  flex: none;
+  font-size: 13px;
 }
 
 /* 값이 없는 케이스는 빈 자리 대신 그 사실을 적는다 */
