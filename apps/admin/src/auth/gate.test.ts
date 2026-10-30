@@ -751,6 +751,7 @@ describe('등급 표', () => {
   // 접두사와 다른 기능에 일부러 묶은 자리. 까닭이 없으면 여기 넣지 않는다
   const 접두사예외: Record<string, { 기능: 기능; 까닭: string }> = {
     'GET /api/cases/:tcId/history': { 기능: 'runs', 까닭: '주소는 케이스 아래지만 내용은 실행 결과 이력이다 (execution/routes.ts)' },
+    'GET /api/cases/:tcId/rerun-target': { 기능: 'runs', 까닭: '주소는 케이스 아래지만 한 건 실행이 붙을 실행을 알려 준다 (execution/routes.ts · 도메인/실행 §7)' },
     'POST /api/cases/:tcId/test-run': { 기능: 'runs', 까닭: '주소는 케이스 아래지만 브라우저를 돌리는 실행이다 (execution/trialRoutes.ts)' },
     'GET /api/cases/:tcId/test-run/:trialId': { 기능: 'runs', 까닭: '테스트 실행 결과 읽기다 (execution/trialRoutes.ts)' },
     'GET /api/dashboard': { 기능: 'runs', 까닭: '주소에 기능 접두사가 없다. 돌려주는 것이 실행 결과 집계다 (reporting/routes.ts)' },

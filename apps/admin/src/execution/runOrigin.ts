@@ -4,7 +4,7 @@ import type { PoolClient } from 'pg';
 
 import type { 케이스종류 } from './runKind.js';
 
-export type 시작방식 = 'MANUAL' | 'SCHEDULED' | 'RERUN' | 'BUILD';
+export type 시작방식 = 'MANUAL' | 'SCHEDULED' | 'RERUN' | 'BUILD' | 'SINGLE';
 
 const 종류말: Record<케이스종류, string> = { UI: 'UI', FN: '기능' };
 
@@ -25,7 +25,8 @@ export function 자동제목(재료: 제목재료): string {
   const n = 재료.케이스들.length;
   if (재료.origin === 'RERUN') return `RUN ${String(재료.rerunOf)}의 실패 ${String(n)}건 다시`;
   const 첫 = 재료.케이스들[0]!;
-  const 몸 = 재료.전체
+  // 한 건은 그 종류 케이스가 하나뿐이어도 「전체 1건」이 아니라 번호 + 이름이다 (도메인/실행 §7 「한 건」 줄)
+  const 몸 = 재료.전체 && 재료.origin !== 'SINGLE'
     ? `${종류말[재료.kind]} 전체 ${String(n)}건`
     : n === 1
       ? `${첫.tcId} ${첫.name}`

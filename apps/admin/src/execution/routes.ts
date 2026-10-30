@@ -15,6 +15,7 @@ import { notifyRun } from './notify.js';
 import { abortRunner, 진행 } from './runner.js';
 import { caseSchemas, createParamSet, deleteParamSet, listParamSets } from './paramSets.js';
 import { caseHistory, lastByCase } from './history.js';
+import { 붙을실행 } from './single.js';
 import { 저장값통로 } from './savedInput.js';
 import { findItem, findRun, listRuns, serviceExists } from './queries.js';
 import { abortRun, createRun, recoverRunning, RunInputError, unfinishedItems } from './store.js';
@@ -81,7 +82,7 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
     const 사람 = req.user ?? null;
 
     try {
-      const { runId, items } = await createRun({
+      const { runId, attachedTo, items } = await createRun({
         ...실행본문,
         origin: 'MANUAL',
         triggeredBy: 사람?.username ?? '알 수 없음',
@@ -91,7 +92,8 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
       void dispatch(runId, items).catch((err: unknown) => {
         app.log.error(`[execution] 실행 ${runId} 분배가 깨졌다: ${err instanceof Error ? err.message : String(err)}`);
       });
-      return { runId };
+      // 한 건이면 붙은 실행 번호, 붙일 곳이 없거나 한 건이 아니면 null (도메인/실행 §7)
+      return { runId, attachedTo };
     } catch (err) {
       if (err instanceof RunInputError) {
         // 배정받지 않은 서비스는 403이다. 404로 감추지 않는다 (SPEC §3.5)
@@ -228,6 +230,12 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
     '/cases/:tcId/history',
     async (req) => caseHistory(req.params.tcId, req.query.platform, page(req.query.page), PAGE_SIZE),
   );
+
+  app.get<{ Params: { tcId: string }; Querystring: { env?: string; platforms?: string } }>('/cases/:tcId/rerun-target', async (req, reply) => {
+    const 답 = await 붙을실행(req.params.tcId, req.query.env ?? '', (req.query.platforms ?? '').split(',').filter((p) => p !== ''));
+    if ('error' in 답) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: 답.error });
+    return 답;
+  });
 
   // 영상 Range 를 받는 sendFile 이 따로 등록돼야 해서 플러그인 하나로 붙인다
   await app.register(팜증적경로);

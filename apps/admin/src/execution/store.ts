@@ -15,6 +15,7 @@ import { DEFAULT_TIMEOUT_MS, 선언밖디바이스 } from './location.js';
 import { 대상서버계정, 저장값을채운다 } from './savedInput.js';
 import { 실행종류 } from './runKind.js';
 import { 다시실행사유, 제목을짓는다 } from './runOrigin.js';
+import { 시작방식정하기 } from './single.js';
 
 // 사람이 읽을 자리에서는 PC·모바일로 쓴다. desktop·mobile은 코드와 러너 사이에서만 쓰는 이름이다
 const PLATFORM_LABEL: Record<Platform, string> = { desktop: 'PC', mobile: '모바일', android: 'Android 앱' };
@@ -136,7 +137,7 @@ const INSERT_ITEM = `
   VALUES ($1, $2, $3, $4, $5, $6, $7, 'NA', $8, $9, $10, $11, $12, $13)
   RETURNING history_id`;
 
-export async function createRun(input: CreateRunInput): Promise<{ runId: number; items: PendingItem[] }> {
+export async function createRun(input: CreateRunInput): Promise<{ runId: number; attachedTo: number | null; items: PendingItem[] }> {
   if (input.items.length === 0) throw new RunInputError('INVALID_REQUEST', '실행할 케이스가 하나도 없다');
 
   // 같은 실행 안에서 케이스×환경은 한 행뿐이다(run_item의 UNIQUE). 조용히 버리면 뒤에 넣은 입력값이 사라진다
@@ -214,16 +215,25 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
     if (밖) throw new RunInputError('INVALID_REQUEST', `${밖.tcId} 는 ${PLATFORM_LABEL[밖.platform]} 환경을 선언하지 않았다`);
 
     const tcIds = [...cases.keys()].sort();
-    const origin = input.rerunOf === undefined ? input.origin : 'RERUN';
     if (input.rerunOf !== undefined) {
       const 사유 = await 다시실행사유(client, input.rerunOf, { serviceId: found서비스.id, kind, tcIds });
       if (사유 !== null) throw new RunInputError('BAD_RERUN', 사유);
     }
+    // 한 건(케이스 하나 · 반복 1)은 새 실행으로 서지 않고 가장 최근 묶음 실행에 붙는다 (도메인/실행 §3.2)
+    const { origin, rerunOf, attachedTo } = await 시작방식정하기(client, {
+      origin: input.origin,
+      ...(input.rerunOf === undefined ? {} : { rerunOf: input.rerunOf }),
+      tcIds,
+      repeat,
+      serviceId: found서비스.id,
+      env: input.env,
+      platforms: input.items[0]!.platforms,
+    });
     // 실행은 끝까지 만들 때의 빌드를 깐다 — 뒤에 새 빌드가 와도 바뀌지 않는다 (도메인/실행 §3.11)
     const 빌드 = await 실행빌드(client, Number(found서비스.id), input.env, input.build?.id);
     const title = await 제목을짓는다(client, {
       origin,
-      ...(input.rerunOf === undefined ? {} : { rerunOf: input.rerunOf }),
+      ...(rerunOf === null ? {} : { rerunOf }),
       ...(input.build === undefined ? {} : { build: { no: input.build.no, stage: input.build.stage } }),
       prefix,
       kind,
@@ -245,10 +255,11 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
         found서비스.name,
         found서비스.tests_repo,
         found서비스.base_url,
-        input.notifySlack ?? false,
+        // 한 건은 실행으로 서지 않아 알림에 걸 실행 화면이 없다 — 끝은 건 사람의 진행 창이 알린다 (도메인/실행 §8.9 Slack 표)
+        origin !== 'SINGLE' && (input.notifySlack ?? false),
         kind,
         origin,
-        input.rerunOf ?? null,
+        rerunOf,
         빌드?.id ?? null,
         빌드?.buildNo ?? null,
         input.build?.stage ?? null,
@@ -301,7 +312,7 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
     }
 
     await client.query('COMMIT');
-    return { runId, items };
+    return { runId, attachedTo, items };
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;

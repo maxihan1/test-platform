@@ -17,6 +17,7 @@ import { 가린다, 항목비밀 } from './trial.js';
 import { runSummary, 거르는조건, 시나리오칸, type 시나리오실행줄, type 실행거르개, type 실행집계 } from './runSummary.js';
 
 import { 종류조건 } from './runKind.js';
+import { 다시실행칸들, 다시실행칸으로, 지금항목, type 다시실행원재료, type 다시실행칸 } from './single.js';
 import { FAIL_CASE_COLUMNS, RUN_COLUMNS, toFailCases, toRun, to시나리오줄, type RawFailCases, type RawRun } from './runRow.js';
 import type { RunItemDetail, RunItemSummary, RunListRow, RunSummary } from './runTypes.js';
 
@@ -71,7 +72,7 @@ export async function listRuns(
   const rows = await pool.query<Parameters<typeof to시나리오줄>[0] & RawFailCases>(
     `SELECT ${RUN_COLUMNS}${시나리오 ? 시나리오칸 : `, ${FAIL_CASE_COLUMNS}`}, count(*) OVER ()::int AS grand_total
        FROM test_run r
-       LEFT JOIN run_item i USING (run_id)
+       LEFT JOIN LATERAL ${지금항목('o.run_id = r.run_id')} i ON true
       WHERE r.service_id = (SELECT id FROM service WHERE prefix = $3) ${조건.where}
       GROUP BY r.run_id
       ${조건.having}
@@ -156,19 +157,20 @@ export interface 폰에깔린앱 {
 
 export async function findRun(
   runId: number,
-): Promise<(RunSummary & RunApiDoc & { items: RunItemSummary[]; evidence: EvidenceSummary[]; installedApps: 폰에깔린앱[] }) | null> {
+): Promise<(RunSummary & RunApiDoc & { items: (RunItemSummary & { rerun: 다시실행칸 | null })[]; evidence: EvidenceSummary[]; installedApps: 폰에깔린앱[] }) | null> {
   const pool = await db();
   // 시나리오 실행은 run_item 이 없어 케이스 모양이 비어 나온다. 번호가 맞아도 없는 실행으로 본다 (도메인/시나리오 §3.7 결정 10)
   const runs = await pool.query<RawRun & { api_doc_version: number | null; api_doc_note: RunApiDoc['apiDocNote'] }>(
-    `SELECT ${RUN_COLUMNS}, r.api_doc_version, r.api_doc_note FROM test_run r LEFT JOIN run_item i USING (run_id)
+    `SELECT ${RUN_COLUMNS}, r.api_doc_version, r.api_doc_note FROM test_run r LEFT JOIN LATERAL ${지금항목('o.run_id = r.run_id')} i ON true
       WHERE r.run_id = $1 AND ${종류조건('case')} GROUP BY r.run_id`,
     [runId],
   );
   const row = runs.rows[0];
   if (row === undefined) return null;
 
-  const items = await pool.query<RawItem>(
-    `SELECT ${ITEM_COLUMNS} FROM run_item WHERE run_id = $1 ORDER BY tc_id, platform`,
+  // 한 건 실행이 덮은 항목은 그 한 건 항목으로 바꿔 끼워 싣는다 — 원래 결과는 rerun.original 로 연다 (도메인/실행 §7)
+  const items = await pool.query<RawItem & 다시실행원재료>(
+    `SELECT ${ITEM_COLUMNS}, ${다시실행칸들} FROM ${지금항목('o.run_id = $1')} i ORDER BY tc_id, platform`,
     [runId],
   );
   // 둘 다 못 읽은 폰은 뺀다 — 견줄 것이 없다. 빌드 번호가 없는 실행은 견줄 상대가 없어 읽지 않는다(도는 동안 화면이 이 통로를 거듭 부른다)
@@ -186,7 +188,7 @@ export async function findRun(
     // API 애플리케이션 실행만 찬다 — 실행 시작 때 견준 문서 판 · 한 줄 (도메인/API §3.8 「실행 시작 때 견주기」)
     apiDocVersion: row.api_doc_version,
     apiDocNote: row.api_doc_note,
-    items: items.rows.map((r) => toItem(r)),
+    items: items.rows.map((r) => ({ ...toItem(r), rerun: 다시실행칸으로(r) })),
     evidence: await 증적목록(runId),
     installedApps: 깔린.rows.map((r) => ({ appVersion: r.app_version, appBuild: r.app_build })),
   };
