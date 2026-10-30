@@ -75,6 +75,9 @@
 .run-verdict .stripe {
   margin: 0;
   border-radius: 3px;
+  /* 화면을 열면 결과 띠가 왼쪽부터 자란다. 줄은 다시 읽어도 같은 요소라 한 번만 돈다 (DESIGN 원칙 4 「숫자 · 막대 · 선」) */
+  transform-origin: left;
+  animation: 자람가로 var(--t3) var(--ease) 0.1s backwards;
 }
 
 .run-verdict .tally {

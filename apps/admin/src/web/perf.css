@@ -245,6 +245,20 @@
   border-radius: 4px;
 }
 
+/* 선이 왼쪽부터 그려진다 — 점선 길이로 그리지 않고 왼쪽부터 오려 보인다. 선이 non-scaling-stroke 라 점선 길이가 화면 폭과 어긋난다.
+   가장자리 4px 는 굵은 선 끝이 잘리지 않게. 실행 중 값이 바뀌어도 같은 요소라 다시 돌지 않는다 (DESIGN 원칙 4 「숫자 · 막대 · 선」) */
+.perf-lines {
+  animation: 선그림 var(--t3) var(--ease) 0.1s backwards;
+}
+@keyframes 선그림 {
+  from {
+    clip-path: inset(-4px 100% -4px -4px);
+  }
+  to {
+    clip-path: inset(-4px -4px -4px -4px);
+  }
+}
+
 .perf-graph polyline {
   fill: none;
   stroke: var(--chart-1);

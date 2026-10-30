@@ -66,9 +66,11 @@ export function PerfChart({
         <div className="perf-chart-plot">
           <svg viewBox={`0 0 ${String(너비)} ${String(높이)}`} preserveAspectRatio="none" className="perf-graph" style={{ height: 높이 }} role="img" aria-label={라벨}>
             {목표y === null ? null : <line x1="0" y1={목표y} x2={너비} y2={목표y} className="perf-goal" vectorEffect="non-scaling-stroke" />}
-            {선들.map((s) => (
-              <polyline key={s.이름} points={선점(s.점들, 최대X, s.최대Y, 너비, 높이)} style={{ stroke: s.색, strokeWidth: s.굵게 === true ? 2.5 : 2 }} vectorEffect="non-scaling-stroke" />
-            ))}
+            <g className="perf-lines">
+              {선들.map((s) => (
+                <polyline key={s.이름} points={선점(s.점들, 최대X, s.최대Y, 너비, 높이)} style={{ stroke: s.색, strokeWidth: s.굵게 === true ? 2.5 : 2 }} vectorEffect="non-scaling-stroke" />
+              ))}
+            </g>
             {세로선 === undefined ? null : (
               <line x1={Math.round((세로선.x / Math.max(1, 최대X)) * 너비)} y1="0" x2={Math.round((세로선.x / Math.max(1, 최대X)) * 너비)} y2={높이} style={{ stroke: 세로선.색 }} vectorEffect="non-scaling-stroke" />
             )}
