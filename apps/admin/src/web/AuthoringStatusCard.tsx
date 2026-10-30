@@ -69,6 +69,7 @@ export function AuthoringStatusCard({
   최신,
   뿌리종류,
   운영자 = false,
+  세로단계 = false,
 }: {
   요청: AuthoringRow;
   지금: number;
@@ -77,6 +78,8 @@ export function AuthoringStatusCard({
   최신?: Pick<AuthoringRow, 'kind' | 'status'>;
   뿌리종류?: AuthoringRow['kind'];
   운영자?: boolean;
+  /** 시작 모달은 좁은 창 · 휴대폰 아래 판이라 단계를 세로로 쌓고 도는 칸에 맥박을 단다 (시안 11판 「새 작성 · 접수」) */
+  세로단계?: boolean;
 }) {
   const t = use말();
   const 언어 = use언어();
@@ -119,13 +122,13 @@ export function AuthoringStatusCard({
       </div>
 
       {자리 === null ? null : (
-        <ol className="status-steps" aria-label={t('단계')}>
+        <ol className={세로단계 ? 'status-steps v' : 'status-steps'} aria-label={t('단계')}>
           {단계이름들.map((이름, i) => {
             const 끝낸 = i < 자리.끝난;
             const 여기 = 자리.지금 === i;
             const 모양 = 여기 ? (자리.멈춤 === 'failed' ? 'fail' : 자리.멈춤 === 'stopped' ? 'halt' : 'now') : 끝낸 ? 'done' : '';
             return (
-              <li key={이름} className={모양} aria-current={여기 ? 'step' : undefined}>
+              <li key={이름} className={모양 === 'now' && 도는중 ? 'now live' : 모양} aria-current={여기 ? 'step' : undefined}>
                 <span className="m" aria-hidden="true">
                   {끝낸 ? '✓' : 모양 === 'fail' ? '!' : 모양 === 'halt' ? '‖' : ''}
                 </span>

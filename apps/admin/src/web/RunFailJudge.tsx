@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import type { FailureCase, FailureJudgment } from './api.js';
 import { decideApi } from './decideApi.js';
 import { use말, use언어 } from './i18n.js';
+import { show } from './ItemSteps.js';
 import { Modal } from './Modal.js';
 import { prdApi } from './prdApi.js';
 import { 케이스서비스, type 판정 } from './role.js';
@@ -34,6 +35,8 @@ export function RunFailJudge({ c, runId, 권한, on남김 }: Props) {
 
   // 덮는 요구 가운데 판에 있는 번호가 없으면 고칠 곳이 없다
   const 바꾸기가능 = 서비스 !== null && 지금?.kind === 'BUG' && 권한('작성요청') && c.reqs.some((r) => r.text !== null);
+  // 무엇을 지금 화면 쪽으로 고치는지 창 안에서 보고 고르게 한다 — 카드의 대표 디바이스가 처음 깨진 확인 하나
+  const 깨진확인 = c.devices[0]?.item.steps.flatMap((s) => s.assertions).find((a) => a.status === 'FAIL') ?? null;
 
   async function 화면이맞음() {
     set묻는중(false);
@@ -93,6 +96,14 @@ export function RunFailJudge({ c, runId, 권한, on남김 }: Props) {
           }
         >
           <p>{t('{번호} 가 덮는 요구를 지금 화면에 맞게 고치는 작성 요청을 바로 만듭니다.', { 번호: c.tcId })}</p>
+          {깨진확인 === null ? null : (
+            <div className="fc-judge-diff">
+              <span>{깨진확인.statement}</span>
+              <span>
+                {t('기대 {값}', { 값: show(깨진확인.expected, 언어) })} · {t('지금 화면')} <b>{show(깨진확인.actual, 언어)}</b>
+              </span>
+            </div>
+          )}
         </Modal>
       )}
       {오류 === null ? null : (

@@ -84,6 +84,17 @@
 .status-steps li.fail { color: var(--fail-text); font-weight: 600; }
 .status-steps li.fail .m { border-color: var(--fail); background: var(--fail-soft); color: var(--fail-text); }
 
+/* 시작 모달 — 세로로 쌓고 도는 칸은 대표색 고리에 맥박 (DESIGN.md 원칙 4 「실행 중 표시」 · 시안 11판 「새 작성 · 접수」) */
+.status-steps.v { grid-auto-flow: row; gap: 8px; }
+.status-steps.v li { display: flex; align-items: center; gap: 8px; text-align: left; font-size: 13px; }
+.status-steps.v li::before { display: none; }
+.status-steps.v .m { width: 18px; height: 18px; font-size: 10px; }
+.status-steps.v li.live .m { border-color: var(--accent-mark); box-shadow: none; animation: 단계맥박 var(--dur-pulse) var(--ease) infinite; }
+@keyframes 단계맥박 {
+  from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-mark) 60%, transparent); }
+  to { box-shadow: 0 0 0 7px transparent; }
+}
+
 .status-row { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 4px 12px; align-items: center; }
 .status-v { display: grid; gap: 4px; min-width: 0; }
 .status-label { font-size: 12px; color: var(--ink-faint); }

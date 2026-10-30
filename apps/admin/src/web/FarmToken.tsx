@@ -23,6 +23,8 @@ export function FarmToken({ onClose }: { onClose: () => void }) {
   const [새것, set새것] = useState('');
   const [오류, set오류] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // 지금 토큰을 버리는 두 일은 창 안 줄로 한 번 묻는다 — 이 창(②) 위에 확인 창을 겹치지 않는다 (DESIGN.md 「휴대폰의 창」)
+  const [묻는것, set묻는것] = useState<'바꾸기' | '지우기' | null>(null);
 
   useEffect(() => {
     api
@@ -36,8 +38,14 @@ export function FarmToken({ onClose }: { onClose: () => void }) {
     return 말 === undefined ? message(err, 언어) : t(말);
   };
 
-  async function 저장(e: React.FormEvent) {
+  function 저장누름(e: React.FormEvent) {
     e.preventDefault();
+    if (typeof 끝넷 === 'string') set묻는것('바꾸기');
+    else void 저장();
+  }
+
+  async function 저장() {
+    set묻는것(null);
     setBusy(true);
     set오류(null);
     try {
@@ -52,6 +60,7 @@ export function FarmToken({ onClose }: { onClose: () => void }) {
   }
 
   async function 지운다() {
+    set묻는것(null);
     setBusy(true);
     set오류(null);
     try {
@@ -80,12 +89,27 @@ export function FarmToken({ onClose }: { onClose: () => void }) {
         {/* 읽기가 실패하면 아래 오류 줄이 까닭을 말한다 — 불러오는 중으로 남겨 두지 않는다 */}
         {끝넷 === undefined ? (오류 === null ? t('불러오는 중입니다') : null) : 끝넷 === null ? t('없음 — 서버 토큰으로 빌립니다') : t('넣음 (…{끝})', { 끝: 끝넷 })}
         {typeof 끝넷 === 'string' ? (
-          <button className="btn ghost" type="button" disabled={busy} onClick={() => void 지운다()}>
+          <button className="btn ghost" type="button" disabled={busy} onClick={() => set묻는것('지우기')}>
             {t('토큰 지우기')}
           </button>
         ) : null}
       </p>
-      <form onSubmit={(e) => void 저장(e)}>
+      {묻는것 === null || typeof 끝넷 !== 'string' ? null : (
+        <div className="farm-ask">
+          <span>
+            {묻는것 === '바꾸기'
+              ? t('지금 토큰(…{끝})을 버리고 새 토큰으로 바꿀까요?', { 끝: 끝넷 })
+              : t('지금 토큰(…{끝})을 지울까요? 지우면 서버 토큰으로 빌립니다', { 끝: 끝넷 })}
+          </span>
+          <button className="btn ghost small" type="button" onClick={() => set묻는것(null)}>
+            {t('아니오')}
+          </button>
+          <button className="btn small" type="button" disabled={busy} onClick={() => void (묻는것 === '바꾸기' ? 저장() : 지운다())}>
+            {묻는것 === '바꾸기' ? t('바꾸기') : t('토큰 지우기')}
+          </button>
+        </div>
+      )}
+      <form onSubmit={저장누름}>
         <div className="field">
           <label htmlFor="farm-token">{t('새 토큰')}</label>
           <input
@@ -95,7 +119,10 @@ export function FarmToken({ onClose }: { onClose: () => void }) {
             placeholder="pat_…"
             maxLength={200}
             value={새것}
-            onChange={(e) => set새것(e.target.value)}
+            onChange={(e) => {
+              set새것(e.target.value);
+              if (묻는것 === '바꾸기') set묻는것(null);
+            }}
             aria-invalid={오류 === null ? undefined : true}
             aria-describedby={오류 === null ? undefined : 'farm-token-err'}
           />

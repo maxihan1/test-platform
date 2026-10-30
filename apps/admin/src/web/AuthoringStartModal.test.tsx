@@ -61,6 +61,25 @@ describe('테스트 작성 시작 모달', () => {
     expect(screen.getByText('작성 순서를 기다리는 중')).toBeTruthy();
   });
 
+  it('단계를 세로로 쌓고 도는 칸에만 맥박을 단다', async () => {
+    답 = 줄({ status: 'RUNNING', stage: '케이스를 만드는 중', startedAt: new Date().toISOString() });
+    render(<AuthoringStartModal service="MKT" id={5872} onClose={() => undefined} />);
+    const 단계들 = await screen.findByRole('list', { name: '단계' });
+    expect(단계들.classList.contains('v')).toBe(true);
+    const 지금칸 = 단계들.querySelector('[aria-current="step"]');
+    expect(지금칸?.textContent).toContain('케이스 작성');
+    expect(지금칸?.classList.contains('live')).toBe(true);
+    expect(단계들.querySelectorAll('.live')).toHaveLength(1);
+  });
+
+  it('반영을 기다리는 끝난 요청은 맥박이 없다', async () => {
+    답 = 줄({ status: 'DONE', startedAt: new Date().toISOString(), finishedAt: new Date().toISOString() });
+    render(<AuthoringStartModal service="MKT" id={5872} onClose={() => undefined} />);
+    const 단계들 = await screen.findByRole('list', { name: '단계' });
+    expect(단계들.querySelector('[aria-current="step"]')).not.toBeNull();
+    expect(단계들.querySelectorAll('.live')).toHaveLength(0);
+  });
+
   it('닫기를 누르면 닫는다', () => {
     const 닫기 = vi.fn();
     render(<AuthoringStartModal service="MKT" id={5872} onClose={닫기} />);

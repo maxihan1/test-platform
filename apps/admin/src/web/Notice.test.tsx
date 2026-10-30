@@ -137,6 +137,20 @@ describe('알림 서랍', () => {
     expect(screen.queryByRole('complementary', { name: '알림' })).toBeNull();
   });
 
+  it('PC 에는 손잡이가 없고, 휴대폰에서는 손잡이를 아래로 끌면 닫힌다', async () => {
+    const 서랍 = await 연다();
+    expect(서랍.querySelector('.sheet-grab')).toBeNull();
+    cleanup();
+
+    vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener() {}, removeEventListener() {} }));
+    const 판 = await 연다();
+    const 손잡이 = 판.querySelector('.sheet-grab') as HTMLElement;
+    fireEvent.pointerDown(손잡이, { clientY: 100 });
+    fireEvent.pointerUp(손잡이, { clientY: 200 });
+    expect(screen.queryByRole('complementary', { name: '알림' })).toBeNull();
+    vi.unstubAllGlobals();
+  });
+
   it('Esc 로 닫으면 포커스가 버튼으로 돌아간다', async () => {
     await 연다();
     fireEvent.keyDown(document, { key: 'Escape' });

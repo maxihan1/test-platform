@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { NoticeRecent } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { 거르개, 끝난줄만들기, 서랍목록, 상대시각, 안읽은수, 읽음열쇠 } from './noticeView.js';
+import { use휴대폰 } from './phone.js';
+import { 손잡이, use끌어닫기 } from './Sheet.js';
 
 interface Props {
   recent: NoticeRecent[];
@@ -21,6 +23,9 @@ export function NoticeDrawer({ recent, 읽음, 지금, onClose, on읽음, 서비
   const 언어 = use언어();
   const [고른거르개, set거르개] = useState<거르개>('all');
   const 닫기 = useRef<HTMLButtonElement>(null);
+  // 휴대폰에서는 아래에서 올라오는 전체 화면 판이라 다른 서랍처럼 손잡이로 끌어 닫는다 (DESIGN.md 「휴대폰의 창」)
+  const 휴대폰 = use휴대폰();
+  const 끌기 = use끌어닫기(onClose);
 
   // 모달이 아니라 포커스를 가두지 않는다. 다만 열면 닫는 버튼으로 들어가야 키보드만 쓰는 사람이 서랍을 찾는다
   useEffect(() => {
@@ -45,7 +50,8 @@ export function NoticeDrawer({ recent, 읽음, 지금, onClose, on읽음, 서비
   ];
 
   return (
-    <aside className="nt-drawer" id="nt-drawer" aria-label={t('알림')}>
+    <aside className="nt-drawer" id="nt-drawer" aria-label={t('알림')} style={휴대폰 ? 끌기.판 : undefined}>
+      {휴대폰 ? <손잡이 끌기={끌기} /> : null}
       <div className="nt-drawer-head">
         <h2>{t('알림')}</h2>
         <button className="btn ghost" onClick={() => on읽음(recent.map(읽음열쇠))} disabled={안읽음 === 0}>
