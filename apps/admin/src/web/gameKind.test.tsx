@@ -2,11 +2,12 @@
 // 애플리케이션 종류 「게임」 화면 검사 — 종류 표 GAME 줄과 대상 서버 줄 어드민 키 칸 (GAME-F1-08)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
 
 import { api, type ServiceRow, type SettingsServiceRow } from './api.js';
 import { AuthoringNew } from './AuthoringNew.js';
-import { 조건칩들 } from './CaseListParts.js';
+import { use검색조건 } from './CaseListFilter.js';
+import { use필터조건들 } from './CaseListFilterBar.js';
 import { 떠나기막기 } from './leaveGuard.js';
 import { RunLocation } from './RunLocation.js';
 import { ServicePanel } from './SettingsService.js';
@@ -117,9 +118,9 @@ describe('게임 종류가 그리는 곳 (도메인/러너 §5.2 종류 표 GAME
     expect(게임아이콘).not.toBe(screen.getByRole('button', { name: '데모마켓 앱 · Android 앱' }).querySelector('svg')?.innerHTML);
   });
 
-  it('케이스 목록에 디바이스 칩 줄이 없고 실행 위치는 늘 보인다', () => {
-    render(<조건칩들 디바이스="ALL" 앱있음 앱종류="GAME" 활성만 결과="ALL" 건수={null} on디바이스={() => {}} on활성만={() => {}} on결과={() => {}} />);
-    expect(screen.queryByText('디바이스')).toBeNull();
+  it('케이스 목록 필터 판에 디바이스 줄이 없고 실행 위치는 늘 보인다', () => {
+    const 줄들 = renderHook(() => use필터조건들(use검색조건('ASH', 'FN', undefined, 'GAME'), { kind: 'FN', 앱있음: true, 앱종류: 'GAME', 서버목록: [] })).result.current;
+    expect(줄들.map((x) => x.이름)).not.toContain('디바이스');
     cleanup();
     render(<RunLocation android={false} 앱종류="GAME" />);
     expect(screen.getByText('실행 위치 · 디바이스 팜')).toBeTruthy();

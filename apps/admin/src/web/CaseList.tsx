@@ -12,12 +12,12 @@ import { CaseDetail } from './CaseDetail.js';
 import { 빈기억 } from './caseDetailView.js';
 import { use엑셀받기 } from './CaseExport.js';
 import { use검색조건 } from './CaseListFilter.js';
-import { 걸린칩들, 묶음머리줄, 서버칩들 } from './CaseListContext.js';
+import { 걸린칩들, 묶음머리줄 } from './CaseListContext.js';
+import { 결과탭들, 고른조건칩들, use필터조건들, 필터판 } from './CaseListFilterBar.js';
 import { Empty, 목록부제 } from './CaseListNotes.js';
 import { 쪽넘기기, 표머리 } from './CaseListHead.js';
-import { 기법고르개, 조건칩들, 종류칩들, 찾기폼, 케이스줄 } from './CaseListParts.js';
+import { 찾기폼, 케이스줄 } from './CaseListParts.js';
 import { use묶음접기, 번호들, 줄과머리 } from './caseGroups.js';
-import { 스모크거르개 } from './CaseSmoke.js';
 import { Head } from './Head.js';
 import { keyOf, type LastMap } from './catalogView.js';
 import { use말, use언어 } from './i18n.js';
@@ -55,6 +55,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
   for (const item of last.data?.items ?? []) lastMap[keyOf(item.tcId, item.platform)] = item;
 
   const 엑셀 = use엑셀받기(조건, cases.data?.total ?? null);
+  const 필터조건들 = use필터조건들(검색, { kind, 앱있음: cases.data?.hasApp ?? false, 앱종류, 서버목록: cases.data?.apiServers ?? [] });
   const 뽑기 = useRunPick({ service, 조건, 알림: setNotice });
 
   // 서비스를 바꾸면 첫 페이지로 돌아간다. 3페이지에서 케이스가 적은 서비스로 옮기면
@@ -140,6 +141,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
                 {scanning ? t('스캔하는 중') : t('다시 스캔')}
               </button>
             )}
+            {엑셀.버튼}
             {/* 고른 것으로 삭제 · 확정 요청 — 작성 쓰기일 때만 (도메인/카탈로그 §8.1 「여러 건 골라」) */}
             {!할수('작성요청') ? null : (
               <고른것고치기 service={service} 고른={뽑기.고른} 다되면={() => { 뽑기.비우기(); 실행단추.current?.focus(); }} />
@@ -163,28 +165,13 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
       {/* 상세 칸은 목록 위에 겹치는 서랍이라(⑬-2) 목록은 늘 전체 폭을 쓴다 */}
       <div className="cases-split">
       <div className="screen list-screen">
-      {/* 찾기와 조건 칩이 한 줄에 선다 (2026-09-22). 두 줄이면 132px 을 먹었다.
-          기능 목록은 설계 기법 고르개로 두 줄이 된다 — 받아들였다 (도메인/카탈로그 §8.1, 2026-10-05 게이트 2) */}
+      {/* 표 위는 한 줄이다 — 결과 탭 · 고른 조건 칩 · 찾기 · 필터 단추. 조건은 필터 판에 접는다 (도메인/카탈로그 §8.1 「검색 조건」 · 2026-10-30 WEB-F7-07) */}
       <div className="toolbar">
+        <결과탭들 결과={결과} 건수={cases.data?.lastCounts} on결과={검색.on결과} />
+        <고른조건칩들 조건들={필터조건들} />
+        <걸린칩들 검색={검색} />
         <찾기폼 typed={검색.typed} 건조건={검색.건조건} onTyped={검색.setTyped} onSearch={() => 검색.search(검색.typed)} onClear={검색.조건지우기} />
-
-        <조건칩들
-          디바이스={검색.디바이스}
-          앱있음={cases.data?.hasApp ?? false} 앱종류={앱종류}
-          활성만={검색.활성만}
-          결과={결과}
-          건수={cases.data?.lastCounts}
-          on디바이스={검색.on디바이스}
-          on활성만={검색.on활성만}
-          on결과={검색.on결과}
-        />
-        {/* 디바이스 · 표시 칩처럼 고른 것은 그대로 둔다 — 다른 쪽에서 고른 것을 말없이 버리지 않는다 (도메인/카탈로그 §8.1 「설계 기법」) */}
-        {kind !== 'FN' ? null : <종류칩들 축={검색.축} on축={검색.on축} />}
-        {kind !== 'FN' ? null : <기법고르개 기법={검색.기법} on기법={검색.on기법} />}
-        <스모크거르개 스모크={검색.스모크} on스모크={검색.on스모크} />
-        <서버칩들 서버={검색.서버} 목록={cases.data?.apiServers ?? []} on서버={검색.on서버} />
-        <걸린칩들 검색={검색} 서버목록={cases.data === null ? undefined : (cases.data.apiServers ?? [])} />
-        {엑셀.버튼}
+        <필터판 조건들={필터조건들} 건수={cases.data?.total ?? null} />
       </div>
       {엑셀.알림}
 

@@ -7,7 +7,7 @@ import { api, type CaseQuery } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { message, 기다림글자, 받을이름, 파일로저장 } from './ui.js';
 
-// 버튼은 검색 줄에, 알림은 목록 위에 선다 — 자리가 둘이라 조각 둘을 돌려준다
+// 버튼은 화면 머리에, 알림은 목록 위에 선다 — 자리가 둘이라 조각 둘을 돌려준다
 export function use엑셀받기(조건: CaseQuery, 건수: number | null): { 버튼: ReactNode; 알림: ReactNode } {
   const t = use말();
   const 언어 = use언어();

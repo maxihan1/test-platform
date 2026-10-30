@@ -1,4 +1,4 @@
-// 케이스 목록의 스모크 표시 — 줄의 칩 하나와 검색 줄의 「스모크만」 거르기 (도메인/카탈로그 §8.1 「스모크」)
+// 케이스 목록의 스모크 표시 — 줄의 칩 하나. 「스모크만」 거르기는 필터 판(CaseListFilterBar.tsx)이다 (도메인/카탈로그 §8.1 「스모크」)
 
 import { useState } from 'react';
 
@@ -45,17 +45,5 @@ export function 스모크칩({ row, on바뀜 }: { row: CaseRow; on바뀜?: () =>
       </button>
       {오류 === null ? null : <span className="smoke-error" role="alert">{오류}</span>}
     </>
-  );
-}
-
-/** 「스모크만」 거르기 — 새 빌드를 올렸을 때 먼저 도는 핵심 경로만 본다 */
-export function 스모크거르개({ 스모크, on스모크 }: { 스모크: boolean; on스모크: (값: boolean) => void }) {
-  const t = use말();
-  return (
-    <span className="filter-group">
-      <span className="filter-label">{t('스모크')}</span>
-      <button className="chip" aria-pressed={!스모크} onClick={() => on스모크(false)}>{t('전체')}</button>
-      <button className="chip" aria-pressed={스모크} onClick={() => on스모크(true)}>{t('스모크만')}</button>
-    </span>
   );
 }

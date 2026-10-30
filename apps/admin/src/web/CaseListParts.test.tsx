@@ -13,7 +13,7 @@ import { TECHNIQUES, type Technique } from '@platform/kit/types';
 import type { CaseRow, JsonSchema } from './api.js';
 import { Empty } from './CaseListNotes.js';
 import { 표머리 } from './CaseListHead.js';
-import { 기법고르개, 케이스줄 } from './CaseListParts.js';
+import { 케이스줄 } from './CaseListParts.js';
 import { 말 } from './messages.js';
 
 afterEach(cleanup);
@@ -256,39 +256,6 @@ describe('설계 기법 (도메인/카탈로그 §8.1 「설계 기법」)', () 
     const { container } = 줄그린다([]);
     expect(container.querySelector('.title small')?.textContent).not.toContain('설계 기법');
     expect(container.querySelector('.tech-tag')).toBeNull();
-  });
-
-  it('고르개는 전체 · kit 기법 차례 · 기법 없음이고 값은 kit 원문이다', () => {
-    render(<기법고르개 기법="ALL" on기법={vi.fn()} />);
-
-    const 고르개 = screen.getByRole('combobox', { name: '설계 기법' });
-    const 값들 = [...고르개.querySelectorAll('option')].map((el) => [el.value, el.textContent]);
-    expect(값들).toEqual([['ALL', '전체'], ...TECHNIQUES.map((값) => [값, 값]), ['none', '기법 없음']]);
-  });
-
-  it('라벨과 고르개는 한 덩어리라 도구 줄이 넘쳐도 갈라지지 않는다', () => {
-    const { container } = render(<기법고르개 기법="ALL" on기법={vi.fn()} />);
-
-    const 덩어리 = container.querySelector('.filter-group');
-    expect(덩어리?.textContent).toContain('설계 기법');
-    expect(덩어리?.contains(screen.getByRole('combobox', { name: '설계 기법' }))).toBe(true);
-  });
-
-  it('고르개 이름은 보이는 라벨 하나에서 온다 — 화면 읽기가 「설계 기법」을 한 번만 읽는다', () => {
-    render(<기법고르개 기법="ALL" on기법={vi.fn()} />);
-
-    const 고르개 = screen.getByRole('combobox', { name: '설계 기법' });
-    expect(고르개.hasAttribute('aria-label')).toBe(false);
-    expect(screen.queryByRole('group')).toBeNull();
-    expect(screen.getByText('설계 기법').tagName).toBe('LABEL');
-  });
-
-  it('고르면 고른 값을 올려 보낸다', () => {
-    const on기법 = vi.fn();
-    render(<기법고르개 기법="ALL" on기법={on기법} />);
-
-    fireEvent.change(screen.getByRole('combobox', { name: '설계 기법' }), { target: { value: '동등 분할' } });
-    expect(on기법).toHaveBeenCalledWith('동등 분할');
   });
 
   // 기법 낱말은 kit 에서 오므로 소스 훑기(messages.test.ts)만으로는 번역이 빠진 것을 못 잡는다

@@ -10,6 +10,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 
 import { api, ApiError, type CasePage, type CaseQuery, type CaseRow, type Platform, type ServiceRow, type User } from './api.js';
 import { CaseList } from './CaseList.js';
+import { 판닫기, 판열기, 판조건, 판칩누르기 } from './CaseListFilterBar.fixture.js';
 import { 언어함 } from './i18n.js';
 import type { 판정 } from './role.js';
 
@@ -117,10 +118,10 @@ describe('CaseList 마지막 결과 칩', () => {
 
   it('실패가 있을 때만 실패 칩에 경고 색 표시가 붙는다', async () => {
     const { unmount } = await 그리기();
-    expect(결과칩('실패').classList.contains('chip-fail')).toBe(true);
+    expect(결과칩('실패').classList.contains('tab-fail')).toBe(true);
     unmount();
     await 그리기(() => Promise.resolve({ ...쪽1, lastCounts: { total: 3, pass: 3, fail: 0, na: 0 } }));
-    expect(결과칩('실패').classList.contains('chip-fail')).toBe(false);
+    expect(결과칩('실패').classList.contains('tab-fail')).toBe(false);
   });
 
   it('lastCounts 가 null 이면(실행 읽기 권한 없음) 마지막 결과 칩 묶음을 안 그린다', async () => {
@@ -262,7 +263,7 @@ describe('스캔 결과가 화면 머리에 있다 (SPEC §8.1, 2026-09-22)', ()
     });
   });
 
-  it('찾기와 조건 칩이 한 줄에 선다', async () => {
+  it('결과 탭 · 찾기 · 필터 단추가 표 위 한 줄에 선다', async () => {
     await 스캔그리기(스캔);
     expect(document.querySelectorAll('.toolbar')).toHaveLength(1);
   });
@@ -946,9 +947,9 @@ describe('CaseList 상세 칸에서 저장값 저장', () => {
   });
 });
 
-// 고르개는 질의에 **kit 원문 값**을 싣는다. 번역 글자가 실리면 영어 화면에서 서버가 400 을 낸다
+// 판의 기법 칩은 질의에 **kit 원문 값**을 싣는다. 번역 글자가 실리면 영어 화면에서 서버가 400 을 낸다
 describe('CaseList 설계 기법 (도메인/카탈로그 §8.1 「설계 기법」)', () => {
-  const 고르개 = () => screen.getByRole('combobox', { name: '설계 기법' }) as HTMLSelectElement;
+  const 기법 = (글: string) => 판칩누르기('설계 기법', 글);
   const 마지막질의 = (스파이: ReturnType<typeof 모킹>) => 스파이.mock.calls.at(-1)?.[0];
 
   it('고르면 kit 원문 값으로 다시 부르고 첫 쪽으로 간다', async () => {
@@ -956,23 +957,23 @@ describe('CaseList 설계 기법 (도메인/카탈로그 §8.1 「설계 기법�
     fireEvent.click(screen.getByRole('button', { name: '다음' }));
     await waitFor(() => expect(마지막질의(스파이)?.page).toBe(2));
 
-    fireEvent.change(고르개(), { target: { value: '경계값 분석' } });
+    기법('경계값 분석');
 
     await waitFor(() => expect(마지막질의(스파이)).toEqual(expect.objectContaining({ technique: '경계값 분석', page: 1 })));
   });
 
   it('기법 없음은 none 으로 묻는다', async () => {
     const { 스파이 } = await 그리기();
-    fireEvent.change(고르개(), { target: { value: 'none' } });
+    기법('기법 없음');
     await waitFor(() => expect(마지막질의(스파이)?.technique).toBe('none'));
   });
 
   it('전체로 돌리면 질의에 기법을 안 싣는다', async () => {
     const { 스파이 } = await 그리기();
-    fireEvent.change(고르개(), { target: { value: '결정 테이블' } });
+    기법('결정 테이블');
     await waitFor(() => expect(마지막질의(스파이)?.technique).toBe('결정 테이블'));
 
-    fireEvent.change(고르개(), { target: { value: 'ALL' } });
+    기법('전체');
     await waitFor(() => expect(마지막질의(스파이)).not.toHaveProperty('technique'));
   });
 
@@ -981,27 +982,29 @@ describe('CaseList 설계 기법 (도메인/카탈로그 §8.1 「설계 기법�
     fireEvent.click(고르기칸()[0]!);
     expect(실행버튼().textContent).toBe('선택한 1건 실행');
 
-    fireEvent.change(고르개(), { target: { value: '상태 전이' } });
+    기법('상태 전이');
     await waitFor(() => expect(마지막질의(스파이)?.technique).toBe('상태 전이'));
     expect(실행버튼().textContent).toBe('선택한 1건 실행');
   });
 
-  it('조건 초기화가 기법도 비운다', async () => {
+  it('찾기 칸의 조건 초기화가 기법도 비운다', async () => {
     const { 스파이 } = await 그리기();
-    fireEvent.change(고르개(), { target: { value: '동등 분할' } });
+    기법('동등 분할');
     await waitFor(() => expect(마지막질의(스파이)?.technique).toBe('동등 분할'));
+    판닫기();
 
     fireEvent.click(screen.getByRole('button', { name: '조건 초기화' }));
 
-    expect(고르개().value).toBe('ALL');
+    expect(within(판조건('설계 기법')).getByRole('button', { name: '전체' }).getAttribute('aria-pressed')).toBe('true');
     await waitFor(() => expect(마지막질의(스파이)).not.toHaveProperty('technique'));
   });
 
   it('전체 실행도 고른 기법으로 모은다', async () => {
     const { 스파이 } = await 그리기();
-    fireEvent.change(고르개(), { target: { value: '경계값 분석' } });
+    기법('경계값 분석');
     await waitFor(() => expect(마지막질의(스파이)?.technique).toBe('경계값 분석'));
     await screen.findByText('ZPK-001');
+    판닫기();
     스파이.mockClear();
 
     fireEvent.click(실행버튼());
@@ -1019,16 +1022,15 @@ describe('CaseList 설계 기법 (도메인/카탈로그 §8.1 「설계 기법�
     );
     await screen.findByText('ZPK-001');
 
-    const 옵션 = screen.getByRole('option', { name: 'Boundary value analysis' }) as HTMLOptionElement;
-    fireEvent.change(screen.getByRole('combobox', { name: 'Design technique' }), { target: { value: 옵션.value } });
+    판칩누르기('Design technique', 'Boundary value analysis');
 
     await waitFor(() => expect(마지막질의(스파이)?.technique).toBe('경계값 분석'));
   });
 
-  it('UI 테스트 목록에는 고르개가 없다', async () => {
+  it('UI 테스트 목록의 필터 판에는 설계 기법 줄이 없다', async () => {
     모킹(쪽주기);
     render(<CaseList kind="UI" service="ZPK" 할수={전부된다} 결과보나 />);
     await screen.findByText('ZPK-001');
-    expect(screen.queryByRole('combobox', { name: '설계 기법' })).toBeNull();
+    expect(within(판열기()).queryByRole('group', { name: '설계 기법' })).toBeNull();
   });
 });

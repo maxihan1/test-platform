@@ -2,10 +2,11 @@
 // 케이스 목록의 스모크 칩 · 「스모크만」 거르기 (도메인/카탈로그 §8.1 「스모크」 · GAME-F1-13b)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 import { api, type CasePage, type CaseRow } from './api.js';
 import { CaseList } from './CaseList.js';
+import { 판조건, 판칩누르기 } from './CaseListFilterBar.fixture.js';
 import type { 판정 } from './role.js';
 
 afterEach(() => {
@@ -95,9 +96,10 @@ describe('스모크 칩', () => {
 describe('「스모크만」 거르기', () => {
   it('누르면 smoke: true 로 다시 읽고 주소에 smoke=1 이 남는다', async () => {
     const 스파이 = await 그리기(전부된다);
-    fireEvent.click(screen.getByRole('button', { name: '스모크만' }));
+    판칩누르기('스모크', '스모크만');
     await waitFor(() => expect(스파이).toHaveBeenLastCalledWith(expect.objectContaining({ smoke: true })));
     expect(window.location.hash).toContain('smoke=1');
-    expect(screen.getByRole('button', { name: '스모크만' }).getAttribute('aria-pressed')).toBe('true');
+    expect(within(판조건('스모크')).getByRole('button', { name: '스모크만' }).getAttribute('aria-pressed')).toBe('true');
+    expect(document.querySelector('.filter-on')?.textContent).toBe('스모크만✕');
   });
 });

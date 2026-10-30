@@ -2,10 +2,11 @@
 // 케이스 목록의 검색 조건 · 쪽이 주소에 남는다 — 상세에 갔다 뒤로 와도 그대로다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 import { api, type CasePage, type CaseQuery, type CaseRow } from './api.js';
 import { CaseList } from './CaseList.js';
+import { 판닫기, 판조건, 판칩누르기 } from './CaseListFilterBar.fixture.js';
 import type { 판정 } from './role.js';
 
 afterEach(() => {
@@ -49,14 +50,15 @@ async function 그리기(주소: string) {
 const 처음조건 = (스파이: { mock: { calls: [CaseQuery][] } }) => 스파이.mock.calls[0]![0];
 
 describe('케이스 목록 조건을 주소에서 읽는다', () => {
-  it('주소의 조건과 쪽으로 처음부터 부르고 찾기 칸 · 칩이 그 조건을 보인다', async () => {
+  it('주소의 조건과 쪽으로 처음부터 부르고 찾기 칸 · 결과 탭 · 고른 조건 칩 · 필터 판이 그 조건을 보인다', async () => {
     const 조건 = new URLSearchParams({ q: '로그인', page: '3', dev: 'mobile', all: '1', last: 'FAIL', tech: '경계값 분석', axis: '경계' });
     const 스파이 = await 그리기(`#/cases/fn?${조건}`);
 
     expect(처음조건(스파이)).toMatchObject({ q: '로그인', page: 3, platform: 'mobile', active: false, technique: '경계값 분석', axis: '경계', last: 'FAIL' });
     expect((screen.getByPlaceholderText('케이스 이름이나 ID로 찾기') as HTMLInputElement).value).toBe('로그인');
-    expect(screen.getByRole('button', { name: '모바일' }).getAttribute('aria-pressed')).toBe('true');
     expect(screen.getByRole('button', { name: '실패 7' }).getAttribute('aria-pressed')).toBe('true');
+    expect([...document.querySelectorAll('.filter-on')].map((el) => el.firstChild?.textContent)).toEqual(['표시 전체', '종류 경계', '설계 기법 경계값 분석', '디바이스 모바일']);
+    expect(within(판조건('디바이스')).getByRole('button', { name: '모바일' }).getAttribute('aria-pressed')).toBe('true');
   });
 
   it('주소의 case= 로 처음부터 오른쪽 상세 칸이 열려 있다', async () => {
@@ -92,12 +94,13 @@ describe('케이스 목록 조건을 주소에 쓴다', () => {
     expect(window.location.hash).toBe('#/cases');
   });
 
-  it('칩 · 쪽을 바꾸면 방문 기록을 쌓지 않고 지금 주소를 고치고, 조건 초기화면 조건이 빠진다', async () => {
+  it('필터 판 · 쪽을 바꾸면 방문 기록을 쌓지 않고 지금 주소를 고치고, 조건 초기화면 조건이 빠진다', async () => {
     await 그리기('#/cases/fn');
     const 길이 = window.history.length;
 
-    fireEvent.click(screen.getByRole('button', { name: '모바일' }));
+    판칩누르기('디바이스', '모바일');
     expect(window.location.hash).toBe('#/cases/fn?dev=mobile');
+    판닫기();
     fireEvent.click(await screen.findByRole('button', { name: '다음' }));
     expect(window.location.hash).toBe('#/cases/fn?page=2&dev=mobile');
     expect(window.history.length).toBe(길이);
@@ -149,7 +152,7 @@ describe('케이스 목록 조건을 주소에 쓴다', () => {
 describe('보고 있는 목록의 메뉴를 다시 누르면', () => {
   it('화면이 든 조건으로 주소를 되돌린다 — 화면과 주소가 갈리지 않는다', async () => {
     await 그리기('#/cases/fn');
-    fireEvent.click(screen.getByRole('button', { name: '모바일' }));
+    판칩누르기('디바이스', '모바일');
     const 도착 = new Promise<void>((끝) => window.addEventListener('hashchange', () => 끝(), { once: true }));
     window.location.hash = '#/cases/fn';
     await 도착;
