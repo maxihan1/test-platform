@@ -108,7 +108,7 @@ describe('종류별 칸', () => {
   it('웹은 「브라우저별 결과」이고 디바이스 이름에 Chromium 을 붙여 통과율을 보인다', () => {
     render(
       <종류칸
-        칸={{ kind: 'SCREEN', rows: [{ label: 'desktop', pass: 47, fail: 3, notRun: 0, p95Ms: null }] }}
+        칸={{ onlyFail: [], fps: null, kind: 'SCREEN', rows: [{ label: 'desktop', pass: 47, fail: 3, notRun: 0, p95Ms: null }] }}
         일={14}
       />,
     );
@@ -118,7 +118,7 @@ describe('종류별 칸', () => {
   });
 
   it('앱은 기기 정보가 없는 줄을 「기기 정보 없음」으로 적는다', () => {
-    render(<종류칸 칸={{ kind: 'APP', rows: [{ label: null, pass: 1, fail: 0, notRun: 0, p95Ms: null }] }} 일={14} />);
+    render(<종류칸 칸={{ onlyFail: [], fps: null, kind: 'APP', rows: [{ label: null, pass: 1, fail: 0, notRun: 0, p95Ms: null }] }} 일={14} />);
     expect(screen.getByRole('heading', { name: '기기별 결과' })).toBeTruthy();
     expect(screen.getByText('기기 정보 없음')).toBeTruthy();
   });
@@ -126,7 +126,7 @@ describe('종류별 칸', () => {
   it('API 는 엔드포인트마다 95% 응답과 통과 / 전체를 표로 보인다', () => {
     render(
       <종류칸
-        칸={{ kind: 'API', rows: [{ label: 'PATCH /notifications/:n/read', pass: 11, fail: 1, notRun: 0, p95Ms: 2100 }] }}
+        칸={{ onlyFail: [], fps: null, kind: 'API', rows: [{ label: 'PATCH /notifications/:n/read', pass: 11, fail: 1, notRun: 0, p95Ms: 2100 }] }}
         일={7}
       />,
     );
@@ -137,9 +137,28 @@ describe('종류별 칸', () => {
   });
 
   it('줄이 없으면 결과가 없다는 한 줄이고, 응답 시간이 없으면 「—」다', () => {
-    render(<종류칸 칸={{ kind: 'GAME', rows: [] }} 일={30} />);
+    render(<종류칸 칸={{ onlyFail: [], fps: null, kind: 'GAME', rows: [] }} 일={30} />);
     expect(screen.getByText('최근 30일 결과가 없습니다')).toBeTruthy();
     expect(응답시간(null)).toBe('—');
     expect(응답시간(182)).toBe('182ms');
+  });
+
+  it('칸 아래 한 줄 — 웹은 모바일에서만, 앱은 기기마다, 게임은 FPS 이고 셀 것이 없으면 없다', () => {
+    const 줄 = { label: 'mobile', pass: 3, fail: 1, notRun: 0, p95Ms: null };
+    const { rerender, container } = render(
+      <종류칸 칸={{ kind: 'SCREEN', rows: [줄], onlyFail: [{ label: 'mobile', count: 7 }], fps: null }} 일={7} />,
+    );
+    expect(screen.getByText('모바일에서만 실패한 케이스 7건')).toBeTruthy();
+    rerender(
+      <종류칸
+        칸={{ kind: 'APP', rows: [줄], onlyFail: [{ label: 'Galaxy A34 · Android 13', count: 9 }, { label: 'Pixel 7 · Android 14', count: 2 }], fps: null }}
+        일={7}
+      />,
+    );
+    expect(screen.getByText('Galaxy A34 · Android 13 에서만 실패한 케이스 9건, Pixel 7 · Android 14 에서만 실패한 케이스 2건')).toBeTruthy();
+    rerender(<종류칸 칸={{ kind: 'GAME', rows: [], onlyFail: [], fps: { runs: 2, avg: 54.3, drops: 3, below: 30 } }} 일={7} />);
+    expect(screen.getByText('게임 성능 측정 2회 · 평균 FPS 54.3 · 30 아래로 떨어짐 3회')).toBeTruthy();
+    rerender(<종류칸 칸={{ kind: 'APP', rows: [줄], onlyFail: [], fps: null }} 일={7} />);
+    expect(container.querySelector('.dash-kind-note')).toBeNull();
   });
 });

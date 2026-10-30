@@ -4,7 +4,7 @@ import type { Pool } from 'pg';
 
 import { 지금항목 } from '../execution/single.js';
 import { API틀 } from '../prd/apiMap.js';
-import type { 접은줄 } from './dashboardShape.js';
+import { 낮은FPS, type 접은줄 } from './dashboardShape.js';
 
 export type 애플리케이션종류 = 'SCREEN' | 'APP' | 'GAME' | 'API';
 
@@ -21,6 +21,54 @@ export interface 종류줄 {
 export interface 종류칸 {
   kind: 애플리케이션종류;
   rows: 종류줄[];
+  /** 그 단위 하나에서만 실패한 케이스 수 — 웹은 모바일만, 앱은 기기마다. 많은 차례이고 0 인 단위는 없다 */
+  onlyFail: { label: string; count: number }[];
+  /** 게임만 — 이번 창 게임 성능 측정의 1초 FPS. below 는 떨어짐을 센 선(`낮은FPS`)이다. 측정이 없으면 null */
+  fps: { runs: number; avg: number; drops: number; below: number } | null;
+}
+
+/**
+ * 실패한 단위가 딱 하나이고 다른 단위에서는 통과한 케이스를 그 단위 몫으로 센다.
+ * 단위를 모르는 줄(null)은 보지 않는다 — 어느 기기인지 모르면 「거기서만」을 말할 수 없다
+ */
+export function 한곳에서만실패(줄들: readonly 접은줄[], 단위: (줄: 접은줄) => string | null): { label: string; count: number }[] {
+  const 케이스 = new Map<string, { 실패: Set<string>; 통과: Set<string> }>();
+  for (const 줄 of 줄들) {
+    const label = 단위(줄);
+    if (label === null || 줄.verdict === 'NA') continue;
+    const 칸 = 케이스.get(줄.tcId) ?? { 실패: new Set<string>(), 통과: new Set<string>() };
+    케이스.set(줄.tcId, 칸);
+    (줄.verdict === 'FAIL' ? 칸.실패 : 칸.통과).add(label);
+  }
+  const 셈 = new Map<string, number>();
+  for (const { 실패, 통과 } of 케이스.values()) {
+    const [하나] = 실패;
+    if (실패.size === 1 && [...통과].some((x) => x !== 하나)) 셈.set(하나!, (셈.get(하나!) ?? 0) + 1);
+  }
+  return [...셈].map(([label, count]) => ({ label, count })).sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+}
+
+export interface 창 {
+  tz: string;
+  from: string;
+  today: string;
+}
+
+// 기능 테스트는 아직 FPS 를 안 남겨 같은 창의 끝난(DONE) 게임 성능 측정 1초 숫자를 쓴다 — 도는 · 멈춘 측정은 반쪽 숫자라 뺀다.
+// 떨어짐은 선 위에서 아래로 넘어간 번수다 — 머문 초를 세면 한 번 끊긴 것도 수십 번이 된다. 빈 FPS 를 거르기 전에 앞 숫자를 읽어 빈 칸을 건너 잇지 않는다
+async function 게임FPS(pool: Pool, serviceId: number, { tz, from, today }: 창): Promise<종류칸['fps']> {
+  const { rows } = await pool.query<{ runs: number; avg: number | null; drops: number }>(
+    `WITH s AS (
+       SELECT m.run_id, m.fps, LAG(m.fps) OVER (PARTITION BY m.run_id, m.serial ORDER BY m.sec) AS prev
+         FROM perf_device_metric m JOIN perf_run r ON r.id = m.run_id
+        WHERE r.service_id = $1 AND r.kind = 'DEVICE' AND r.status = 'DONE'
+          AND (r.started_at AT TIME ZONE $2::text)::date BETWEEN $3::date AND $4::date)
+     SELECT COUNT(DISTINCT run_id)::int AS runs, ROUND(AVG(fps), 1)::float AS avg, COUNT(*) FILTER (WHERE fps < $5 AND prev >= $5)::int AS drops
+       FROM s WHERE fps IS NOT NULL`,
+    [serviceId, tz, from, today, 낮은FPS],
+  );
+  const r = rows[0]!;
+  return r.avg === null ? null : { runs: r.runs, avg: r.avg, drops: r.drops, below: 낮은FPS };
 }
 
 /** 가장 가까운 순위로 고른 95번째 백분위수 */
@@ -120,25 +168,30 @@ async function 엔드포인트들(
 }
 
 /** 이번 창 접은 줄(그 서비스 것만)을 받아 종류별 칸을 짓는다 */
-export async function 종류칸읽기(pool: Pool, serviceId: number, kind: 애플리케이션종류, 줄들: 접은줄[]): Promise<종류칸> {
+export async function 종류칸읽기(pool: Pool, serviceId: number, kind: 애플리케이션종류, 줄들: 접은줄[], 창: 창): Promise<종류칸> {
   const runIds = [...new Set(줄들.map((줄) => 줄.runId))];
-  if (kind === 'SCREEN') return { kind, rows: 종류줄을센다(줄들, (줄) => [줄.platform]) };
+  const 칸 = { kind, onlyFail: [], fps: null };
+  if (kind === 'SCREEN') {
+    // 시안이 묻는 것은 「모바일에서만」이다 — PC 에서만 실패한 쪽은 세지 않는다
+    return { ...칸, rows: 종류줄을센다(줄들, (줄) => [줄.platform]), onlyFail: 한곳에서만실패(줄들, (줄) => 줄.platform).filter((x) => x.label === 'mobile') };
+  }
   if (kind === 'APP') {
     const 기기 = await 기기들(pool, runIds);
-    return { kind, rows: 종류줄을센다(줄들, (줄) => [기기.get(줄키(줄.runId, 줄.tcId, 줄.platform)) ?? null]) };
+    const 이름 = (줄: 접은줄) => 기기.get(줄키(줄.runId, 줄.tcId, 줄.platform)) ?? null;
+    return { ...칸, rows: 종류줄을센다(줄들, (줄) => [이름(줄)]), onlyFail: 한곳에서만실패(줄들, 이름) };
   }
   if (kind === 'GAME') {
-    const 창 = await 창들(pool, [...new Set(줄들.map((줄) => 줄.tcId))]);
-    return { kind, rows: 종류줄을센다(줄들, (줄) => [창.get(줄.tcId) ?? null]) };
+    const [창이름, fps] = await Promise.all([창들(pool, [...new Set(줄들.map((줄) => 줄.tcId))]), 게임FPS(pool, serviceId, 창)]);
+    return { ...칸, rows: 종류줄을센다(줄들, (줄) => [창이름.get(줄.tcId) ?? null]), fps };
   }
   const { 케이스, 걸린시간 } = await 엔드포인트들(pool, serviceId, runIds);
   // 지도에 없는 케이스는 「엔드포인트 정보 없음」 한 줄로 — 빼면 지도를 아직 안 쌓은 애플리케이션이 「결과가 없습니다」로 읽힌다
-  return { kind, rows: 종류줄을센다(줄들, (줄) => 케이스.get(줄.tcId) ?? [null], 걸린시간) };
+  return { ...칸, rows: 종류줄을센다(줄들, (줄) => 케이스.get(줄.tcId) ?? [null], 걸린시간) };
 }
 
 /** 서비스의 종류를 읽어 종류별 칸을 짓는다. 없는 서비스면 null */
-export async function 고른종류칸(pool: Pool, serviceId: number, 줄들: 접은줄[]): Promise<종류칸 | null> {
+export async function 고른종류칸(pool: Pool, serviceId: number, 줄들: 접은줄[], 창: 창): Promise<종류칸 | null> {
   const { rows } = await pool.query<{ kind: 애플리케이션종류 }>('SELECT kind FROM service WHERE id = $1', [serviceId]);
   const kind = rows[0]?.kind;
-  return kind === undefined ? null : 종류칸읽기(pool, serviceId, kind, 줄들);
+  return kind === undefined ? null : 종류칸읽기(pool, serviceId, kind, 줄들, 창);
 }

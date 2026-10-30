@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { 백분위95, 종류줄을센다 } from './dashboardKind.js';
+import { 백분위95, 종류줄을센다, 한곳에서만실패 } from './dashboardKind.js';
 import type { 접은줄 } from './dashboardShape.js';
 
 const 줄 = (tcId: string, platform: 'desktop' | 'mobile', verdict: 접은줄['verdict']): 접은줄 => ({
@@ -49,5 +49,26 @@ describe('종류줄을센다', () => {
       { label: 'GET /a', pass: 0, fail: 1, notRun: 0, p95Ms: 300 },
       { label: 'POST /a', pass: 0, fail: 1, notRun: 0, p95Ms: null },
     ]);
+  });
+});
+
+describe('한곳에서만실패', () => {
+  it('실패한 단위가 하나이고 다른 단위에서 통과한 케이스만 그 단위 몫으로 세고, 많은 차례다', () => {
+    const 줄들 = [
+      줄('A', 'mobile', 'FAIL'), 줄('A', 'desktop', 'PASS'),
+      줄('B', 'mobile', 'FAIL'), 줄('B', 'desktop', 'FAIL'),
+      줄('C', 'mobile', 'FAIL'), 줄('C', 'desktop', 'NA'),
+      줄('D', 'mobile', 'FAIL'), 줄('D', 'mobile', 'PASS'),
+      줄('E', 'desktop', 'FAIL'), 줄('E', 'mobile', 'PASS'),
+      줄('F', 'mobile', 'FAIL'), 줄('F', 'desktop', 'PASS'),
+    ];
+    expect(한곳에서만실패(줄들, (x) => x.platform)).toEqual([
+      { label: 'mobile', count: 2 },
+      { label: 'desktop', count: 1 },
+    ]);
+  });
+
+  it('단위를 모르는 줄은 보지 않는다', () => {
+    expect(한곳에서만실패([줄('A', 'mobile', 'FAIL'), 줄('A', 'desktop', 'PASS')], (x) => (x.platform === 'desktop' ? null : x.platform))).toEqual([]);
   });
 });

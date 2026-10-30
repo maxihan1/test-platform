@@ -133,4 +133,7 @@ export const 대시보드말: Record<string, string> = {
   '최근 {일}일 결과가 없습니다': 'No results in the last {일} days',
   '엔드포인트': 'Endpoint',
   '95% 응답': 'p95 response',
+  '모바일에서만 실패한 케이스 {건}건': '{건} cases failed only on mobile',
+  '{기기} 에서만 실패한 케이스 {건}건': '{건} cases failed only on {기기}',
+  '게임 성능 측정 {회}회 · 평균 FPS {평균} · {선} 아래로 떨어짐 {번}회': '{회} game performance runs · avg FPS {평균} · dropped below {선} {번} times',
 };
