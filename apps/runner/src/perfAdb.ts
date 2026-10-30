@@ -34,6 +34,8 @@ export interface 프레임수 {
   janky: number;
   /** 폰이 덤프를 뜬 시각(ms). 두 읽기 사이에 실제로 흐른 시간을 재는 데 쓴다 */
   uptimeMs: number | null;
+  /** 그리는 데 0.7초 넘게 걸린 프레임 수(프리징). 프레임 시간 막대가 없으면 null */
+  frozen: number | null;
 }
 
 export interface 틱 {
@@ -56,7 +58,11 @@ export function gfxinfo를읽는다(out: string): 프레임수 | null {
   const janky = out.match(/Janky frames:\s*(\d+)/);
   if (total === null || janky === null) return null;
   const uptime = out.match(/^Uptime:\s*(\d+)/m);
-  return { total: Number(total[1]), janky: Number(janky[1]), uptimeMs: uptime === null ? null : Number(uptime[1]) };
+  // 막대 칸 이름이 그 칸의 프레임 시간(ms)이다. 「GPU HISTOGRAM」 줄은 GPU 만 잰 것이라 줄 머리로 거른다.
+  // 0.7초는 Android 가 정지된 프레임(frozen frame)으로 세는 기준이다
+  const 막대 = out.match(/^\s*HISTOGRAM:(.*)$/m);
+  const frozen = 막대 === null ? null : [...막대[1].matchAll(/(\d+)ms=(\d+)/g)].reduce((합, m) => (Number(m[1]) > 700 ? 합 + Number(m[2]) : 합), 0);
+  return { total: Number(total[1]), janky: Number(janky[1]), uptimeMs: uptime === null ? null : Number(uptime[1]), frozen };
 }
 
 /** `dumpsys SurfaceFlinger --list` 에서 그 패키지가 든 SurfaceView 층 이름. 작은따옴표가 든 이름은 셸에 못 넣어 건너뛴다 */

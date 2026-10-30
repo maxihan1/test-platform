@@ -130,9 +130,9 @@ describe('측정 시작 · 조회 · 중지', () => {
 
     const { rows, launchMs } = await 줄수를기다린다(app, recId, 3);
     expect(launchMs).toBe(700);
-    expect(rows[0]).toEqual({ sec: 0, fps: null, jankPct: null, cpu: null, memMb: 100, tempC: 30.5, batteryPct: 80 });
+    expect(rows[0]).toEqual({ sec: 0, fps: null, jankPct: null, freezeCount: null, cpu: null, memMb: 100, tempC: 30.5, batteryPct: 80 });
     // 한 번 읽을 때마다 렌더링 120 · 끊김 6 · 앱 틱 50 · 전체 1000 이 늘고 간격은 2초다
-    expect(rows[1]).toEqual({ sec: 2, fps: 60, jankPct: 5, cpu: 5, memMb: 100, tempC: 30.5, batteryPct: 80 });
+    expect(rows[1]).toEqual({ sec: 2, fps: 60, jankPct: 5, freezeCount: null, cpu: 5, memMb: 100, tempC: 30.5, batteryPct: 80 });
     expect(rows[2]?.sec).toBe(4);
 
     const 이후 = (await app.inject({ method: 'GET', url: `/perf/device/${recId}?since=2` })).json<{ rows: PerfRow[] }>();
