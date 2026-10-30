@@ -1,4 +1,4 @@
-// 사이드바 · 헤더 · 본문 · 푸터 (SPEC §8). 모든 화면이 이 안에 들어간다
+// 왼쪽 줄 · 사이드바 · 본문 · 푸터 (SPEC §8). 모든 화면이 이 안에 들어간다
 // 지금 어느 서비스를 보고 있는지가 늘 보여야 한다 — 엉뚱한 서비스에서 실행을 누르는 사고를 막는 장치가 이것 하나다
 
 import { useEffect, useState } from 'react';
@@ -11,6 +11,7 @@ import {
   사이드바접음을적는다,
   자리목록,
   탭제목,
+  type 자리,
 } from './layout.js';
 import { 지금앱칸 } from './Head.js';
 import { use말, type 언어 } from './i18n.js';
@@ -18,10 +19,11 @@ import { 아이콘 } from './icons.js';
 import { Notice } from './Notice.js';
 import { use휴대폰 } from './phone.js';
 import { PhoneShell } from './PhoneShell.js';
-import { 할수있나 } from './role.js';
+import { 기능보나, 할수있나 } from './role.js';
+import { 찾기칸 } from './ShellFind.js';
+import { 서비스고르개, 프로젝트고르개 } from './ShellPickers.js';
+import { 사이드바머리, 왼쪽줄 } from './ShellRail.js';
 import { 밝기단추 } from './theme.js';
-import { ShellHeader } from './ShellHeader.js';
-import { 사이드바머리, 애플리케이션줄 } from './ShellRail.js';
 import { use가입대기수 } from './useSignupWaiting.js';
 
 interface Props {
@@ -57,7 +59,7 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
 
   // 접은 것은 사람이 되돌릴 수 있는 상태라 저장해 둔다. 새로고침마다 다시 접게 하면 그 기능이 짐이 된다
   const [접음, set접음] = useState(사이드바접었나);
-  // 「알림」 버튼은 맨 위 헤더에 선다. 줄과 서랍은 본문 쪽에 두고 버튼만 이 자리로 옮겨 그린다 (Notice 의 `버튼자리`)
+  // 「알림」 버튼은 왼쪽 줄 아래에 선다. 줄과 서랍은 본문 쪽에 두고 버튼만 이 자리로 옮겨 그린다 (Notice 의 `버튼자리`)
   const [알림자리, set알림자리] = useState<HTMLElement | null>(null);
 
   // 휴대폰은 사이드바 대신 위 줄 · 아래 탭이다 (SPEC 공통/5-화면공통 §8 「휴대폰 화면」). 훅은 모두 위에서 부른 뒤 가른다
@@ -77,14 +79,26 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
     );
   }
 
+  // 설정은 2026-10-30 부터 자리 목록이 아니라 왼쪽 줄의 톱니다 (화면공통 §8 「자리 목록」 「설정」 줄). 누가 여는지는 자리목록이 계속 정한다 — 찾기 창도 그 목록으로 찾는다
+  const 메뉴들 = 자리들.filter((자리) => 자리.해시 !== '#/settings');
   return (
     <div className={접음 ? 'wrap folded' : 'wrap'}>
-      <ShellHeader user={user} service={service} onService={onService} 언어={언어} on언어={on언어} onLogout={onLogout} 알림자리={set알림자리} />
-      {/* 「어느 서비스를 · 누가」는 맨 위 헤더가, 「어디를」은 짙은 세로 막대의 자리 목록이 든다 (2026-10-13 시안 A).
-          2026-09-21 ② 에 옛 이름(`.band`·`.nav`·`.notice`·`.svc-dot`)을 걷어냈다.
-          PR① 이 남겨 둔 것은 그 이름으로 단언하는 검사가 있었기 때문이고, 그 검사를 같이 고쳤다 */}
+      {/* 위쪽 바는 없다 (화면공통 §8 「껍데기」 · 2026-10-30 시안 11판). 로고 · 알림 · 설정 · 내 메뉴는 왼쪽 줄로, 찾기는 사이드바 머리로,
+          프로젝트 고르개는 사이드바 바닥으로 왔다. 2026-09-21 ② 에 옛 이름(`.band`·`.nav`·`.notice`·`.svc-dot`)을 걷어냈다 */}
       <aside className="side">
-        <애플리케이션줄 user={user} service={service} onService={onService} 새로만들기={할수있나(user, service?.prefix ?? null, '설정')} />
+        <왼쪽줄
+          user={user}
+          service={service}
+          onService={onService}
+          새로만들기={할수있나(user, service?.prefix ?? null, '설정')}
+          설정={메뉴들.length !== 자리들.length}
+          가입대기={가입대기}
+          current={current}
+          알림자리={set알림자리}
+          언어={언어}
+          on언어={on언어}
+          onLogout={onLogout}
+        />
         <div className="side-col">
         {/* 접어도 자리 목록을 **지우지 않는다.** display:none 을 쓰면 키보드 탭 대상에서 빠져
             키보드로만 쓰는 사람이 이동을 통째로 잃는다. 폭만 줄이고 글자를 숨긴다 */}
@@ -101,8 +115,9 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
           {접음 ? '»' : '«'}
         </button>
         {service === null ? null : <사이드바머리 service={service} />}
+        <찾기칸 자리들={자리들} prefix={service?.prefix ?? null} 케이스볼수있나={기능보나(user, service?.prefix ?? null, 'cases')} />
         <nav className="side-nav">
-          {자리들.map((자리) =>
+          {메뉴들.map((자리) =>
             자리.바깥 === true ? (
               <a key={자리.해시} href={자리.해시} target="_blank" rel="noreferrer">
                 <아이콘 이름={자리.아이콘} />
@@ -112,43 +127,18 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
               <a key={자리.해시} href={자리.해시} {...(current === 자리.해시 ? { 'aria-current': 'page' as const } : {})}>
                 <아이콘 이름={자리.아이콘} />
                 {자리.이름}
-                {자리.해시 === '#/settings' && 가입대기 > 0 ? (
-                  <span className="side-badge" aria-label={t('가입 신청 {수}건', { 수: 가입대기 })}>
-                    {가입대기}
-                  </span>
-                ) : null}
               </a>
             ) : (
-              // 하위는 늘 펼쳐 둔다. 하위가 지금 자리면 묶음은 펼친 표시(data-open)만 — 밑줄이 둘이 되지 않게 (화면공통 §8 · PR #132)
-              // 묶음 링크는 묶음 자리로 간다 — 케이스 · 실행은 기능 목록, PRD 관리는 요구사항. 종류를 모르는 상세(실행 결과 등)에서 「지금 자리」라고 하면 다른 곳을 가리킨다.
-              // 그래서 묶음은 aria-current 를 안 받고 펼친 표시만 받는다 (2026-10-02 검사 지적)
-              <div key={자리.해시} className="side-group" role="group" aria-labelledby={`side-${자리.해시.slice(2)}`}>
-                <a
-                  id={`side-${자리.해시.slice(2)}`}
-                  href={자리.해시}
-                  // 「PRD 관리 › API 문서」 처럼 하위 주소가 묶음 주소 아래가 아니어도 그 하위가 지금이면 펼친다
-                  {...(current === 자리.해시 || current.startsWith(`${자리.해시}/`) || 자리.하위.some((하위) => 하위.해시 === current) ? { 'data-open': '' } : {})}
-                >
-                  <아이콘 이름={자리.아이콘} />
-                  {자리.이름}
-                </a>
-                {자리.하위.map((하위) => (
-                  <a
-                    key={하위.해시}
-                    className="side-sub"
-                    href={하위.해시}
-                    aria-label={하위.라벨}
-                    {...(current === 하위.해시 ? { 'aria-current': 'page' as const } : {})}
-                  >
-                    {하위.이름}
-                  </a>
-                ))}
-              </div>
+              <메뉴묶음 key={자리.해시} 자리={자리} current={current} />
             ),
           )}
         </nav>
-        {/* 바닥 — 밝게 · 어둡게. 프로젝트 고르개는 위쪽 바를 걷을 때(WEB-F7-04) 이 줄 왼쪽으로 온다 */}
+        {/* 바닥 — 왼쪽이 프로젝트 고르개, 오른쪽 끝이 밝게 · 어둡게. 고른 애플리케이션이 없으면 그 사실을 여기서 말한다 — 왼쪽 줄도 비어 있다 */}
         <div className="side-foot">
+          <div className="side-proj">
+            <아이콘 이름="project" />
+            {service === null ? <서비스고르개 user={user} service={service} onService={onService} /> : <프로젝트고르개 user={user} service={service} onService={onService} 수를붙임 />}
+          </div>
           <밝기단추 />
         </div>
         </div>
@@ -183,6 +173,37 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
             지어내는 대신 확실히 아는 것만 적는다 — 제품 이름과 지금 보고 있는 서비스 */}
         <footer className="foot">{제목}</footer>
       </div>
+    </div>
+  );
+}
+
+/**
+ * 하위가 있는 묶음. **지금 자리가 든 묶음만 펼친다** (화면공통 §8 「자리 목록」 · 2026-10-30 시안 11판) — 앞 판은 늘 펼쳐 둬 사이드바가 목차처럼 길었다.
+ * 접힌 묶음은 꺾쇠(▸)로 알리고, 묶음 링크를 누르면 그 묶음의 첫 하위로 가서 펼쳐진다.
+ * 하위가 지금 자리면 묶음은 펼친 표시(data-open)만 — 밑줄이 둘이 되지 않게 (PR #132).
+ * 묶음 링크는 묶음 자리로 간다 — 종류를 모르는 상세(실행 결과 등)에서 「지금 자리」라고 하면 다른 곳을 가리켜 aria-current 를 안 받는다 (2026-10-02 검사 지적)
+ */
+function 메뉴묶음({ 자리: 묶음, current }: { 자리: 자리; current: string }) {
+  const 하위 = 묶음.하위 ?? [];
+  // 「PRD 관리 › API 문서」 처럼 하위 주소가 묶음 주소 아래가 아니어도 그 하위가 지금이면 펼친다
+  const 펼침 = current === 묶음.해시 || current.startsWith(`${묶음.해시}/`) || 하위.some((it) => it.해시 === current);
+  const id = `side-${묶음.해시.slice(2)}`;
+  return (
+    <div className="side-group" role="group" aria-labelledby={id}>
+      <a id={id} href={묶음.해시} {...(펼침 ? { 'data-open': '' } : {})}>
+        <아이콘 이름={묶음.아이콘} />
+        {묶음.이름}
+        <span className="side-chev">
+          <아이콘 이름="chev" />
+        </span>
+      </a>
+      {!펼침
+        ? null
+        : 하위.map((it) => (
+            <a key={it.해시} className="side-sub" href={it.해시} aria-label={it.라벨} {...(current === it.해시 ? { 'aria-current': 'page' as const } : {})}>
+              {it.이름}
+            </a>
+          ))}
     </div>
   );
 }

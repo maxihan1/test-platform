@@ -40,7 +40,7 @@ describe('SSO 설치의 계정 메뉴', () => {
       </언어함>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 사람.displayName }));
+    fireEvent.click(screen.getByRole('button', { name: `내 메뉴 · ${사람.displayName}` }));
     expect(screen.queryByRole('link', { name: '비밀번호 변경' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: '디바이스 팜 토큰' }));
 

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 맨 위 헤더의 프로젝트 고르개 검사 (SPEC 공통/5-화면공통 §8 「껍데기」 · 2026-10-19 PRJ-F1-03)
+// 사이드바 바닥의 프로젝트 고르개 검사 (SPEC 공통/5-화면공통 §8 「껍데기」 · 2026-10-19 PRJ-F1-03 · 2026-10-30 헤더에서 옮김)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
@@ -42,13 +42,13 @@ function 띄운다(service: ServiceRow, 배정: ServiceRow[], onService: (접두
 }
 
 describe('프로젝트 고르개', () => {
-  it('프로젝트가 둘 이상이면 헤더에 프로젝트 고르개가 서고 애플리케이션 고르개는 없다', () => {
+  it('프로젝트가 둘 이상이면 사이드바 바닥에 프로젝트 고르개가 서고 애플리케이션 고르개는 없다', () => {
     띄운다(결제, [결제, 정산, 포털]);
 
     const 고르개 = screen.getByRole('combobox', { name: '프로젝트 선택' }) as HTMLSelectElement;
     expect(고르개.value).toBe('1');
-    expect([...고르개.options].map((it) => it.textContent)).toEqual(['데모마켓', '사내 포털']);
-    expect(document.querySelector('header.hd')?.contains(고르개)).toBe(true);
+    expect([...고르개.options].map((it) => it.textContent)).toEqual(['데모마켓 · 애플리케이션 2개', '사내 포털 · 애플리케이션 1개']);
+    expect(document.querySelector('.side-foot')?.contains(고르개)).toBe(true);
     expect(screen.queryByRole('combobox', { name: '애플리케이션 선택' })).toBeNull();
   });
 
@@ -73,6 +73,6 @@ describe('프로젝트 고르개', () => {
     띄운다(결제, [결제, 정산]);
 
     expect(screen.queryByRole('combobox', { name: '프로젝트 선택' })).toBeNull();
-    expect(document.querySelector('.hd-svc')?.textContent).toBe('데모마켓');
+    expect(document.querySelector('.side-proj')?.textContent).toBe('데모마켓 · 애플리케이션 2개');
   });
 });

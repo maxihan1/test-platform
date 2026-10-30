@@ -57,7 +57,6 @@ import './styles.css';
 import './authoringStatus.css';
 import './decide.css';
 import './noticeBar.css';
-import './header.css';
 import './projectPick.css';
 import './wizard.css';
 import './scenarioWizard.css';

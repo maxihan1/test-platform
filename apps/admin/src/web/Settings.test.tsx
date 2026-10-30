@@ -141,7 +141,7 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     expect(await screen.findByText('그런 프로젝트가 없습니다')).toBeTruthy();
   });
 
-  it('프로젝트 이름을 바꾸면 프로젝트 · 애플리케이션 · 계정을 다시 읽고 맨 위 헤더 재료도 다시 읽는다', async () => {
+  it('프로젝트 이름을 바꾸면 프로젝트 · 애플리케이션 · 계정을 다시 읽고 껍데기 재료도 다시 읽는다', async () => {
     const 고침 = vi.spyOn(api, 'renameProject').mockResolvedValue({ ok: true });
     const 내재료 = vi.fn();
     vi.spyOn(api, 'settingsServices').mockResolvedValue({ items: [서비스] });

@@ -1,4 +1,4 @@
-// 프로젝트 고르개 · 애플리케이션 고르개 · 언어 고르개 — 헤더(ShellHeader)와 휴대폰 위 줄(PhoneShell)이 같이 쓴다. PC 의 애플리케이션 고르기는 사이드바 줄(ShellRail)이다 (SPEC 공통/5-화면공통 §8)
+// 프로젝트 고르개 · 애플리케이션 고르개 · 언어 고르개 — PC 사이드바 바닥 · 내 메뉴(Shell · ShellMe)와 휴대폰 위 줄(PhoneShell)이 같이 쓴다. PC 의 애플리케이션 고르기는 왼쪽 줄(ShellRail)이다 (SPEC 공통/5-화면공통 §8)
 
 import type { ServiceRow, User } from './api.js';
 import { use말, use언어, type 언어 } from './i18n.js';
@@ -9,11 +9,27 @@ import { 고른서비스를적는다, 배정프로젝트들, 프로젝트서비�
  * 프로젝트 고르개. 프로젝트를 바꾸면 그 안의 첫 애플리케이션으로 연다.
  * 프로젝트가 하나뿐이면 고를 것이 없어 이름만 적는다 (공통/1-제품과-구조 §2 「프로젝트 · 애플리케이션 · API 서버는 다른 층이다」)
  */
-export function 프로젝트고르개({ user, service, onService }: { user: User; service: ServiceRow | null; onService: (prefix: string) => void }) {
+export function 프로젝트고르개({
+  user,
+  service,
+  onService,
+  수를붙임 = false,
+}: {
+  user: User;
+  service: ServiceRow | null;
+  onService: (prefix: string) => void;
+  수를붙임?: boolean;
+}) {
   const t = use말();
   if (service === null) return null;
   const 프로젝트들 = 배정프로젝트들(user.services);
-  if (프로젝트들.length < 2) return <span className="side-svc-name">{service.projectName}</span>;
+  // 사이드바 바닥에서는 「<프로젝트> · 애플리케이션 N개」다 — 왼쪽 줄 칸 수와 같은 수라 무엇이 고른 프로젝트 안인지 읽힌다 (화면공통 §8 「껍데기」 바닥)
+  const 이름 = (it: { id: number; name: string }) => {
+    if (!수를붙임) return it.name;
+    const 수 = t('애플리케이션 {수}개', { 수: 프로젝트서비스들(it.id, user.services).length });
+    return [it.name, 수].join(' · ');
+  };
+  if (프로젝트들.length < 2) return <span className="side-svc-name">{이름({ id: service.projectId, name: service.projectName })}</span>;
   return (
     <select
       className="side-pick"
@@ -28,7 +44,7 @@ export function 프로젝트고르개({ user, service, onService }: { user: User
     >
       {프로젝트들.map((it) => (
         <option key={it.id} value={it.id}>
-          {it.name}
+          {이름(it)}
         </option>
       ))}
     </select>

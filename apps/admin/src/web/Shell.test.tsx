@@ -70,6 +70,10 @@ function 자리nav() {
   return screen.getAllByRole('navigation').find((nav) => nav.className === 'side-nav')!;
 }
 
+function 내메뉴() {
+  return screen.getByRole('button', { name: `내 메뉴 · ${사람.displayName}` });
+}
+
 function 색표시() {
   return document.querySelector('[data-service-color]');
 }
@@ -81,7 +85,7 @@ describe('애플리케이션 색을 걷었다 (SPEC §8, 2026-09-22)', () => {
     띄운다(결제);
     expect(색표시()).toBeNull();
     expect(document.querySelector('.side-dot')).toBeNull();
-    const 띠 = document.querySelector('.hd-svc') as HTMLElement | null;
+    const 띠 = document.querySelector('.side-proj') as HTMLElement | null;
     expect(띠).not.toBeNull();
     expect(띠!.style.background).toBe('');
     expect(띠!.style.getPropertyValue('--svc')).toBe('');
@@ -110,38 +114,54 @@ describe('애플리케이션 색을 걷었다 (SPEC §8, 2026-09-22)', () => {
 });
 
 describe('세로 껍데기 (SPEC §8)', () => {
-  it('맨 위 헤더가 알림 · 언어 · 계정을, 사이드바가 애플리케이션 줄과 자리 전부를 들고 있다', () => {
+  it('위쪽 바가 없고 왼쪽 줄이 알림 · 설정 · 내 메뉴를, 사이드바가 찾기 · 자리 목록 · 프로젝트를 들고 있다 (2026-10-30)', () => {
     띄운다(결제);
-    const 헤더 = document.querySelector('header.hd') as HTMLElement | null;
-    expect(헤더).not.toBeNull();
-    const 위 = within(헤더!);
-    expect(위.queryByRole('combobox', { name: '애플리케이션 선택' })).toBeNull();
-    expect(위.getByLabelText('언어')).toBeTruthy();
-    expect(위.getByRole('button', { name: 사람.displayName })).toBeTruthy();
-    expect(위.getByRole('button', { name: /알림/ })).toBeTruthy();
+    expect(document.querySelector('header.hd')).toBeNull();
+    const 줄 = within(document.querySelector('.rail') as HTMLElement);
+    expect(줄.getByRole('button', { name: /알림/ })).toBeTruthy();
+    expect(줄.getByRole('link', { name: '설정' }).getAttribute('href')).toBe('#/settings');
+    expect(줄.getByRole('button', { name: `내 메뉴 · ${사람.displayName}` })).toBeTruthy();
 
-    const 사이드 = document.querySelector('.side') as HTMLElement | null;
-    expect(사이드).not.toBeNull();
-    const 안 = within(사이드!);
-    // 헤더가 사이드바보다 먼저 온다 — 키보드 탭 순서도 위에서 아래다
-    expect(헤더!.compareDocumentPosition(사이드!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    // 하위 메뉴도 링크다 (PR #132)
-    const 자리들 = 자리목록(사람, 결제.prefix, 'ko');
-    expect(within(자리nav()).getAllByRole('link')).toHaveLength(
-      자리들.length + 자리들.reduce((합, 자리) => 합 + (자리.하위?.length ?? 0), 0),
-    );
-    // 앞 판이 사이드바 바닥에 두던 것은 이제 사이드바에 없다
+    const 안 = within(document.querySelector('.side-col') as HTMLElement);
+    expect(안.getByRole('button', { name: '찾기' })).toBeTruthy();
+    expect(안.getByText('데모마켓 · 애플리케이션 2개')).toBeTruthy();
+    // 설정은 자리 목록에서 빠져 톱니로 갔다. 하위는 지금 자리가 든 묶음(테스트 스크립트)만 펼친다
+    const 메뉴 = 자리목록(사람, 결제.prefix, 'ko').filter((자리) => 자리.해시 !== '#/settings');
+    const 펼친하위 = 메뉴.find((자리) => 자리.해시 === '#/cases')?.하위?.length ?? 0;
+    expect(within(자리nav()).getAllByRole('link')).toHaveLength(메뉴.length + 펼친하위);
+    expect(within(자리nav()).queryByRole('link', { name: '설정' })).toBeNull();
+    // 언어는 내 메뉴 안이다 — 사이드바에 늘 펼쳐 두지 않는다
     expect(안.queryByText(사람.displayName)).toBeNull();
     expect(안.queryByLabelText('언어')).toBeNull();
-    expect(안.queryByRole('combobox')).toBeNull();
   });
 
-  it('헤더 왼쪽에 제품 이름 로고가 있고 집으로 가는 링크다', () => {
+  it('왼쪽 줄 맨 위 로고는 집으로 가는 링크다', () => {
     띄운다(결제);
     const 로고 = screen.getByRole('link', { name: 'QA Hub 홈' });
-    expect(로고.textContent).toBe('QA Hub');
-    expect(로고.closest('header.hd')).not.toBeNull();
+    expect(로고.closest('.rail')).not.toBeNull();
     expect(로고.getAttribute('href')).toMatch(/^#\//);
+  });
+
+  it('설정 화면이면 톱니가 지금 자리 표시를 받는다', () => {
+    띄운다(결제, 'ko', () => {}, '#/settings');
+    expect(screen.getByRole('link', { name: '설정' }).getAttribute('aria-current')).toBe('page');
+  });
+
+  it('운영 계정이 아니면 톱니가 없다 — 흐리게 두지 않고 아예 없다', () => {
+    vi.spyOn(api, 'notifications').mockResolvedValue({ running: [], recent: [] });
+    render(
+      <언어함 value="ko">
+        <Shell user={{ ...사람, role: 'member' }} service={결제} onService={() => {}} 언어="ko" on언어={() => {}} onLogout={() => {}} current="#/cases">
+          <div>본문</div>
+        </Shell>
+      </언어함>,
+    );
+    expect(screen.queryByRole('link', { name: '설정' })).toBeNull();
+  });
+
+  it('바닥 프로젝트 고르개가 프로젝트 이름과 애플리케이션 수를 적는다', () => {
+    띄운다(결제);
+    expect(document.querySelector('.side-proj')?.textContent).toBe('데모마켓 · 애플리케이션 2개');
   });
 
   it('푸터가 제품과 지금 애플리케이션을 적는다', () => {
@@ -192,7 +212,16 @@ describe('사이드바 하위 메뉴 (화면공통 §8 · PR #132)', () => {
     const 묶음 = screen.getByRole('link', { name: '실행 기록' });
     expect(묶음.getAttribute('aria-current')).toBeNull();
     expect(묶음.hasAttribute('data-open')).toBe(true);
-    expect(screen.getByRole('link', { name: '테스트 스크립트 · UI 테스트' }).getAttribute('aria-current')).toBeNull();
+  });
+
+  it('지금 자리가 든 묶음만 펼친다 — 다른 묶음은 접히고 묶음 링크는 그대로 첫 하위로 간다 (2026-10-30)', () => {
+    띄운다(결제, 'ko', () => {}, '#/runs/ui');
+    expect(screen.queryByRole('link', { name: '테스트 스크립트 · UI 테스트' })).toBeNull();
+    expect(screen.queryByRole('link', { name: '테스트 스크립트 · 기능 테스트' })).toBeNull();
+    const 접힌묶음 = screen.getByRole('link', { name: '테스트 스크립트' });
+    expect(접힌묶음.hasAttribute('data-open')).toBe(false);
+    expect(접힌묶음.getAttribute('href')).toBe('#/cases');
+    expect(접힌묶음.querySelector('.side-chev')).not.toBeNull();
   });
 
   it('종류를 모르는 상세(실행 결과)에서는 묶음이 펼친 표시만 받는다 — 묶음 링크는 기능 목록이라 「지금 자리」가 아니다', () => {
@@ -265,15 +294,19 @@ describe('껍데기는 제목을 지어내지 않는다 (2026-09-22)', () => {
 // 고르개 하나가 화면 글자 전부를 바꾼다 (SPEC §8 「다국어」).
 // 「고르개가 있다」만 보면 눌러도 아무 일이 없는 상태가 통과한다 — 바뀌는 것까지 본다
 describe('언어 고르개 (SPEC §8 다국어)', () => {
-  it('헤더에 언어 고르개가 있다', () => {
+  it('내 메뉴 안에 언어 고르개와 고른 프로젝트 이름이 있다', () => {
     띄운다(결제);
-    expect(within(document.querySelector('header.hd') as HTMLElement).getByLabelText('언어')).toBeTruthy();
+    fireEvent.click(내메뉴());
+    const 판 = within(document.querySelector('.rail-me-menu') as HTMLElement);
+    expect(판.getByLabelText('언어')).toBeTruthy();
+    expect(판.getByText('데모마켓')).toBeTruthy();
   });
 
   it('English 를 고르면 그 사실이 위로 올라간다', () => {
     const 고른것: 언어[] = [];
     띄운다(결제, 'ko', (고른) => 고른것.push(고른));
 
+    fireEvent.click(내메뉴());
     fireEvent.change(screen.getByLabelText('언어'), { target: { value: 'en' } });
     expect(고른것).toEqual(['en']);
   });
@@ -283,26 +316,26 @@ describe('언어 고르개 (SPEC §8 다국어)', () => {
     expect(자리nav().textContent).not.toContain('실행 기록');
   });
 
-  it('이름을 누르면 비밀번호 변경이 나온다 — 변경 강제가 아니어도 본인이 바꾼다', () => {
+  it('동그라미를 누르면 비밀번호 변경이 나온다 — 변경 강제가 아니어도 본인이 바꾼다', () => {
     띄운다(결제);
     expect(screen.queryByRole('link', { name: '비밀번호 변경' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 사람.displayName }));
+    fireEvent.click(내메뉴());
     expect(screen.getByRole('link', { name: '비밀번호 변경' }).getAttribute('href')).toBe('#/password');
     // 팜 토큰은 SSO 설치에만 있다 — 통로가 404 다 (ShellFarmToken.test.tsx 가 켜진 쪽을 본다)
     expect(screen.queryByRole('button', { name: '디바이스 팜 토큰' })).toBeNull();
   });
 
-  it('이름을 누르면 로그아웃이 나오고 누르면 위로 올라간다', () => {
+  it('동그라미를 누르면 로그아웃이 나오고 누르면 위로 올라간다', () => {
     const 로그아웃 = vi.fn();
     띄운다(결제, 'ko', () => {}, '#/cases', 로그아웃);
-    fireEvent.click(screen.getByRole('button', { name: 사람.displayName }));
+    fireEvent.click(내메뉴());
     fireEvent.click(screen.getByRole('button', { name: '로그아웃' }));
     expect(로그아웃).toHaveBeenCalledTimes(1);
   });
 
   it('메뉴는 Esc 와 바깥 누르기로 닫힌다 — 안 닫히면 본문 버튼을 가린 채 남는다', () => {
     띄운다(결제);
-    const 이름 = screen.getByRole('button', { name: 사람.displayName });
+    const 이름 = 내메뉴();
     fireEvent.click(이름);
     expect(이름.getAttribute('aria-expanded')).toBe('true');
     fireEvent.keyDown(document, { key: 'Escape' });
@@ -314,10 +347,10 @@ describe('언어 고르개 (SPEC §8 다국어)', () => {
     expect(screen.queryByRole('link', { name: '비밀번호 변경' })).toBeNull();
   });
 
-  it('접어도 헤더의 계정 메뉴에 키보드로 닿는다 — 사이드바와 상관없는 자리다', () => {
+  it('접어도 왼쪽 줄의 내 메뉴에 키보드로 닿는다 — 왼쪽 줄은 접지 않는다', () => {
     사이드바접음을적는다(true);
     띄운다(결제);
-    fireEvent.click(screen.getByRole('button', { name: 사람.displayName }));
+    fireEvent.click(내메뉴());
     expect(screen.getByRole('link', { name: '비밀번호 변경' })).toBeTruthy();
     사이드바접음을적는다(false);
   });
@@ -325,7 +358,8 @@ describe('언어 고르개 (SPEC §8 다국어)', () => {
   it('접어도 고르개가 화면에서 사라지지 않는다. 지우면 키보드 이동에서 빠진다', () => {
     사이드바접음을적는다(true);
     띄운다(결제);
-    expect(screen.getByLabelText('언어')).toBeTruthy();
+    expect(document.querySelector('.side-proj')?.textContent).toBe('데모마켓 · 애플리케이션 2개');
+    expect(screen.getByRole('button', { name: '찾기' })).toBeTruthy();
     사이드바접음을적는다(false);
   });
 });
@@ -371,7 +405,7 @@ describe('대시보드 자리 (화면공통 §8 · 도메인/리포팅 §8.12)',
 });
 
 
-describe('설정 곁 가입 신청 수 (점검 14.5)', () => {
+describe('톱니 곁 가입 신청 수 (점검 14.5)', () => {
   const 대기 = (이름: string, 승인: boolean) => ({
     username: 이름,
     displayName: 이름,
@@ -396,13 +430,13 @@ describe('설정 곁 가입 신청 수 (점검 14.5)', () => {
     vi.spyOn(api, 'notifications').mockResolvedValue({ running: [], recent: [] });
   });
 
-  it('운영 계정이고 기다리는 신청이 둘이면 설정 곁에 2 가 뜬다', async () => {
+  it('운영 계정이고 기다리는 신청이 둘이면 톱니 곁에 2 가 뜬다', async () => {
     const 읽기 = vi.spyOn(api, 'settingsUsers').mockResolvedValue({ items: [대기('a', true), 대기('b', false), 대기('c', false)] });
     render(껍데기(사람));
 
-    const 수 = await screen.findByLabelText('가입 신청 2건');
-    expect(수.textContent).toBe('2');
-    expect(수.closest('a')?.getAttribute('href')).toBe('#/settings');
+    const 톱니 = await screen.findByRole('link', { name: '설정 · 가입 신청 2건' });
+    expect(톱니.querySelector('.rail-badge')?.textContent).toBe('2');
+    expect(톱니.getAttribute('href')).toBe('#/settings');
     expect(읽기).toHaveBeenCalledTimes(1);
   });
 
@@ -411,7 +445,7 @@ describe('설정 곁 가입 신청 수 (점검 14.5)', () => {
     render(껍데기(사람));
 
     await waitFor(() => expect(읽기).toHaveBeenCalled());
-    expect(document.querySelector('.side-badge')).toBeNull();
+    expect(document.querySelector('.rail-badge')).toBeNull();
   });
 
   it('운영 계정이 아니면 읽지도 않는다', () => {
@@ -419,7 +453,7 @@ describe('설정 곁 가입 신청 수 (점검 14.5)', () => {
     render(껍데기({ ...사람, role: 'member' }));
 
     expect(읽기).not.toHaveBeenCalled();
-    expect(document.querySelector('.side-badge')).toBeNull();
+    expect(document.querySelector('.rail-badge')).toBeNull();
   });
 
   it('읽지 못하면 조용히 안 보인다', async () => {
@@ -427,7 +461,7 @@ describe('설정 곁 가입 신청 수 (점검 14.5)', () => {
     render(껍데기(사람));
 
     await waitFor(() => expect(읽기).toHaveBeenCalled());
-    expect(document.querySelector('.side-badge')).toBeNull();
+    expect(document.querySelector('.rail-badge')).toBeNull();
   });
 
   it('자리가 바뀌면 다시 읽는다 — 설정에서 수락하고 나오면 줄어든다', async () => {
@@ -436,11 +470,11 @@ describe('설정 곁 가입 신청 수 (점검 14.5)', () => {
       .mockResolvedValueOnce({ items: [대기('b', false)] })
       .mockResolvedValueOnce({ items: [] });
     const { rerender } = render(껍데기(사람, '#/settings'));
-    expect((await screen.findByLabelText('가입 신청 1건')).textContent).toBe('1');
+    expect((await screen.findByRole('link', { name: '설정 · 가입 신청 1건' })).querySelector('.rail-badge')?.textContent).toBe('1');
 
     rerender(껍데기(사람, '#/cases'));
 
-    await waitFor(() => expect(document.querySelector('.side-badge')).toBeNull());
+    await waitFor(() => expect(document.querySelector('.rail-badge')).toBeNull());
     expect(읽기).toHaveBeenCalledTimes(2);
   });
 });

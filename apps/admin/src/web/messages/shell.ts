@@ -30,11 +30,20 @@ export const 껍데기말: Record<string, string> = {
   '애플리케이션 선택': 'Choose application',
   '프로젝트 선택': 'Choose project',
   '프로젝트를 고르세요': 'Choose a project',
-  '고른 프로젝트의 애플리케이션만 보입니다. 맨 위 헤더에서 언제든 바꿀 수 있습니다.':
-    'Only the applications in the chosen project are shown. You can change it any time in the header.',
+  '고른 프로젝트의 애플리케이션만 보입니다. 사이드바 아래에서 언제든 바꿀 수 있습니다.':
+    'Only the applications in the chosen project are shown. You can change it any time at the bottom of the sidebar.',
   '마지막에 연 프로젝트': 'Last opened project',
   '애플리케이션 없음': 'No application',
-  // 맨 위 헤더 (ShellHeader.tsx)
+  // 사이드바 바닥 프로젝트 고르개 (화면공통 §8 「껍데기」 바닥)
+  '애플리케이션 {수}개': '{수} applications',
+  // 사이드바 찾기 칸 · 찾기 창 (ShellFind.tsx · 화면공통 §8 「껍데기」 찾기 칸)
+  '찾을 말': 'Search term',
+  '메뉴 이름': 'Menu name',
+  'TC ID · 케이스 이름 · 메뉴 이름': 'TC ID · case name · menu name',
+  '찾은 것': 'Results',
+  '찾은 것이 없습니다': 'Nothing found',
+  메뉴: 'Menu',
+  // 왼쪽 줄 · 내 메뉴 (ShellRail.tsx · ShellMe.tsx)
   'QA Hub 홈': 'QA Hub home',
   언어: 'Language',
   로그아웃: 'Sign out',
