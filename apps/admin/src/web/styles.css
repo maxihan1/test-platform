@@ -4843,7 +4843,8 @@ details[open]:not(.ph-me)::details-content {
   border-radius: 3px;
 }
 
-:is(.trace-tab, .scn-tab).tab-arriving[aria-selected='true'] {
+:is(.trace-tab, .scn-tab).tab-arriving[aria-selected='true'],
+.result-tab.tab-arriving[aria-pressed='true'] {
   border-bottom-color: transparent;
 }
 

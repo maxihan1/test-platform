@@ -200,3 +200,166 @@ button.smoke-chip:focus-visible {
   font-size: 11.5px;
   color: var(--fail-text);
 }
+
+/* 표 위 한 줄 — 결과 탭 · 고른 조건 칩 · 찾기 · 필터 단추 (도메인/카탈로그 §8.1 「검색 조건」 · DESIGN.md 「필터 판」 · WEB-F7-07).
+   찾기와 필터 단추는 줄 오른쪽 끝에 붙는다. 칩이 많으면 줄이 넘어가고 찾기가 다음 줄 오른쪽으로 간다 */
+.toolbar .find {
+  flex: 0 1 320px;
+  margin-left: auto;
+}
+
+/* 결과 탭 — 거르는 단추지만 탭 꼴이다. 고른 탭은 대표색 밑줄(움직임은 motion.ts 가 옮긴다) */
+.result-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  align-self: stretch;
+  align-items: end;
+}
+
+.result-tab {
+  font: inherit;
+  font-size: 13px;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--ink-muted);
+  padding: 6px 0;
+  min-height: 36px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.result-tab[aria-pressed='true'] {
+  color: var(--ink);
+  font-weight: 600;
+  border-bottom-color: var(--accent-mark);
+}
+
+.result-tab:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+
+.result-tab .chip-n {
+  margin-left: 2px;
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+
+/* 실패가 있으면 수만 판정 글자색 — 고른 표시는 밑줄이 맡는다 */
+.result-tab.tab-fail .chip-n {
+  color: var(--fail-text);
+}
+
+/* 필터 단추와 판. 판은 단추 오른쪽 모서리에서 열린다 */
+.filter-menu {
+  position: relative;
+}
+
+.filter-btn .filter-n {
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 17px;
+  padding: 0 6px;
+  border-radius: 99px;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.filter-pop {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 20;
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  transform-origin: top right;
+  animation: 열림 var(--t1) var(--ease);
+}
+
+.filter-pop-head {
+  display: grid;
+  gap: 2px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.filter-pop-head span {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.filter-pop-body {
+  display: grid;
+  gap: 16px;
+  padding: 14px 16px;
+  max-height: 440px;
+  overflow-y: auto;
+}
+
+.filter-field {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+
+.filter-field > .filter-label {
+  margin-left: 0;
+}
+
+.filter-help {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.filter-pop-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--line);
+}
+
+/* 휴대폰은 아래 판이다 — 단추는 세로로 쌓고 주 단추(「N건 보기」)가 맨 아래다 (DESIGN.md 「휴대폰의 창」) */
+@keyframes 올라옴 {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@media (max-width: 620px) {
+  .filter-pop {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    width: auto;
+    max-width: none;
+    max-height: 86vh;
+    border-radius: 16px 16px 0 0;
+    animation: 올라옴 var(--t3) var(--ease);
+  }
+
+  .filter-pop-body {
+    max-height: none;
+    flex: 1;
+  }
+
+  .filter-pop-foot {
+    flex-direction: column;
+  }
+
+  .filter-pop-foot .btn {
+    width: 100%;
+    min-height: 46px;
+  }
+}

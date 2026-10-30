@@ -34,6 +34,13 @@ describe('옮긴칸', () => {
     expect(옮긴칸([눌림(a!, 'true'), 눌림(b!, 'false')])).toEqual([]);
   });
 
+  it('케이스 목록 결과 탭은 aria-pressed 지만 밑줄로 옮겨 간다 (WEB-F7-07)', () => {
+    const [a, b] = 묶음(false, true);
+    a!.className = 'result-tab';
+    b!.className = 'result-tab';
+    expect(옮긴칸([눌림(a!, 'true'), 눌림(b!, 'false')])).toEqual([[a, b, 'tab']]);
+  });
+
   it('칩이 아닌 단추는 보지 않는다', () => {
     const [a, b] = 묶음(false, true);
     a!.className = 'btn';

@@ -1,28 +1,16 @@
-// 케이스 목록 화면이 그리는 조각 — 찾기 칸 · 조건 칩 · 케이스 한 줄 (SPEC §8.1). 표머리는 CaseListHead.tsx
+// 케이스 목록 화면이 그리는 조각 — 찾기 칸 · 케이스 한 줄 (SPEC §8.1). 표머리는 CaseListHead.tsx · 조건은 CaseListFilterBar.tsx
 // 고르는 칸이 붙으면서 CaseList 가 300줄을 넘었다. 판단은 CaseList 에 두고 그리는 쪽만 여기로 옮겼다.
 // 빈 목록 안내 · 스캔 결과 줄은 CaseListNotes.tsx 로 갔다 (2026-10-01 — 이 파일도 300줄을 넘었다)
 
-import { useId } from 'react';
-
-import type { CasePage, CaseRow, ItemStatus, Platform, 앱종류, 케이스축 } from './api.js';
-import { use기법말 } from './CaseDetail.js';
+import type { CaseRow, ItemStatus } from './api.js';
 import { 케이스맥락 } from './CaseListContext.js';
-import { 기법고름들, type 기법고름 } from './CaseListFilter.js';
 import { 스모크칩 } from './CaseSmoke.js';
 import { keyOf, type LastMap, 마지막판정 } from './catalogView.js';
 import { use말, use언어 } from './i18n.js';
 import { 아이콘 } from './icons.js';
-import { 종류 } from './kind.js';
 import { 판정흐름 } from './Summary.js';
 import { PLATFORM_LABEL, seconds, STATUS_COLOR, Verdict, when } from './ui.js';
 
-const 결과칩: (ItemStatus | 'ALL')[] = ['ALL', 'PASS', 'FAIL', 'NA'];
-// 「Android 앱」은 앱 케이스가 있는 서비스에만 — 웹만 있는 서비스에서는 늘 빈 목록을 내는 칩이다 (도메인/카탈로그 §8.1)
-// 이미 android 를 고른 채(주소) 들어왔으면 앱 케이스가 없어도 세운다 — 고른 것을 감추면 왜 비었는지 모른다
-const 디바이스칩 = (앱있음: boolean, 고른: Platform | 'ALL'): (Platform | 'ALL')[] =>
-  앱있음 || 고른 === 'android' ? ['ALL', 'desktop', 'mobile', 'android'] : ['ALL', 'desktop', 'mobile'];
-// 종류는 기능 목록에만 — UI 는 넷째 종류라 UI 목록 전부다 (도메인/카탈로그 §8.1 「맥락」)
-const 종류칩: (Exclude<케이스축, 'UI'> | 'ALL')[] = ['ALL', '정상', '경계', '예외'];
 // 빈 목록 안내도 같은 말을 쓴다. 두 벌을 두면 칩과 안내가 서로 다른 이름으로 같은 것을 부른다
 export const 결과라벨: Record<ItemStatus | 'ALL', string> = {
   ALL: '전체',
@@ -70,108 +58,6 @@ export function 찾기폼({
         </button>
       )}
     </form>
-  );
-}
-
-/** 검색 조건 (SPEC §8.1 표가 정본). 서비스는 조건이 아니라 맨 위 띠의 선택이다 */
-export function 조건칩들({
-  디바이스,
-  앱있음,
-  앱종류,
-  활성만,
-  결과,
-  건수,
-  on디바이스,
-  on활성만,
-  on결과,
-}: {
-  디바이스: Platform | 'ALL';
-  앱있음: boolean;
-  /** Android 앱 애플리케이션에는 디바이스 칩 줄이 없다 — 고를 것이 하나다 (도메인/러너 §5.2 종류 표) */
-  앱종류?: 앱종류;
-  활성만: boolean;
-  결과: ItemStatus | 'ALL';
-  /** 서버가 last 를 뺀 조건으로 센 수 — 칩을 걸어도 그대로다. 실행 read 가 없으면 null 이고 칩도 안 그린다 (도메인/카탈로그 §7) */
-  건수: CasePage['lastCounts'];
-  on디바이스: (값: Platform | 'ALL') => void;
-  on활성만: (값: boolean) => void;
-  on결과: (값: ItemStatus | 'ALL') => void;
-}) {
-  const t = use말();
-  const 칩수 = (값: ItemStatus | 'ALL'): number | undefined =>
-    건수 == null ? undefined : 값 === 'ALL' ? 건수.total : 값 === 'PASS' ? 건수.pass : 값 === 'FAIL' ? 건수.fail : 건수.na;
-
-  // 라벨과 칩은 한 덩어리로 같이 다음 줄로 간다 — 라벨만 윗줄 끝에 홀로 남았다 (진행판 WEB-F2-11)
-  return (
-    <>
-      {!종류(앱종류).디바이스칩 ? null : (
-        <span className="filter-group">
-          <span className="filter-label">{t('디바이스')}</span>
-          {디바이스칩(앱있음, 디바이스).map((값) => (
-            <button className="chip" key={값} aria-pressed={디바이스 === 값} onClick={() => on디바이스(값)}>
-              {값 === 'ALL' ? t('전체') : t(PLATFORM_LABEL[값])}
-            </button>
-          ))}
-        </span>
-      )}
-      <span className="filter-group">
-        <span className="filter-label">{t('표시')}</span>
-        {/* 비활성 케이스는 기본으로 감춘다. 코드에서 사라진 케이스는 지우지 않고 남겨 두므로
-            시간이 지날수록 목록이 과거로 채워진다 (SPEC §8.1) */}
-        <button className="chip" aria-pressed={활성만} onClick={() => on활성만(true)}>
-          {t('활성만')}
-        </button>
-        <button className="chip" aria-pressed={!활성만} onClick={() => on활성만(false)}>
-          {t('전체')}
-        </button>
-      </span>
-      {/* 집계 띠를 칩으로 합쳤다 — 띠가 50px 을 먹어 목록이 한두 줄만 보였다(점검 N1). 수는 쪽이 아니라 조건에 맞은 전부다 (⑫ 시안 A) */}
-      {건수 == null ? null : (
-        <span className="filter-group">
-          <span className="filter-label">{t('마지막 결과')}</span>
-          {결과칩.map((값) => (
-            <button className={값 === 'FAIL' && 건수.fail > 0 ? 'chip chip-fail' : 'chip'} key={값} aria-pressed={결과 === 값} onClick={() => on결과(값)}>
-              {t(결과라벨[값])} <span className="chip-n">{칩수(값)}</span>
-            </button>
-          ))}
-        </span>
-      )}
-    </>
-  );
-}
-
-/** 종류 — 기능 테스트 목록에만. 서버가 지도 ① 의 축으로 거른다 (도메인/카탈로그 §7 `?axis=`) */
-export function 종류칩들({ 축, on축 }: { 축: 케이스축 | 'ALL'; on축: (값: 케이스축 | 'ALL') => void }) {
-  const t = use말();
-  return (
-    <span className="filter-group">
-      <span className="filter-label">{t('종류')}</span>
-      {종류칩.map((값) => (
-        <button className="chip" key={값} aria-pressed={축 === 값} onClick={() => on축(값)}>
-          {t(값 === 'ALL' ? '전체' : 값)}
-        </button>
-      ))}
-    </span>
-  );
-}
-
-/** 설계 기법 — 기능 테스트 목록에만. 칩으로 늘어놓으면 도구 줄이 더 길어진다 (도메인/카탈로그 §8.1 「설계 기법」) */
-export function 기법고르개({ 기법, on기법 }: { 기법: 기법고름; on기법: (값: 기법고름) => void }) {
-  const t = use말();
-  const 기법말 = use기법말();
-  const id = useId();
-  // 한 덩어리라 넘쳐도 같이 다음 줄로 간다(2026-10-05 실측). 이름은 보이는 라벨 하나 — 감싸면 고른 값까지 이름에 붙어 for 로 잇는다
-  return (
-    <span className="filter-group">
-      <label className="filter-label" htmlFor={id}>{t('설계 기법')}</label>
-      <select id={id} value={기법} onChange={(e) => on기법(기법고름들.find((값) => 값 === e.target.value) ?? 'ALL')}>
-        {기법고름들.map((값) => (
-          <option key={값} value={값}>
-            {값 === 'ALL' ? t('전체') : 값 === 'none' ? t('기법 없음') : 기법말(값)}
-          </option>
-        ))}
-      </select>
-    </span>
   );
 }
 

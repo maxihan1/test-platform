@@ -6,6 +6,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 
 import { api, type CaseGroup, type CasePage, type CaseRow, type CaseQuery } from './api.js';
 import { CaseList } from './CaseList.js';
+import { 판열기, 판칩누르기 } from './CaseListFilterBar.fixture.js';
 import type { 판정 } from './role.js';
 
 afterEach(() => {
@@ -222,17 +223,17 @@ describe('마지막 결과 칩과 묶음 머리', () => {
 });
 
 describe('종류 칩 · 넘어온 요구 번호', () => {
-  it('기능 목록에는 종류 칩이 있고 고르면 그 축으로 부른다', async () => {
+  it('기능 목록의 필터 판에는 종류 줄이 있고 고르면 그 축으로 부른다', async () => {
     const 스파이 = 그리기();
     await screen.findByText('ZCL-FN-001');
-    fireEvent.click(screen.getByRole('button', { name: '경계' }));
+    판칩누르기('종류', '경계');
     expect(마지막조건(스파이)).toMatchObject({ axis: '경계', page: 1 });
   });
 
-  it('UI 목록에는 종류 칩이 없다', async () => {
+  it('UI 목록의 필터 판에는 종류 줄이 없다', async () => {
     그리기({ kind: 'UI' });
     await screen.findByText('ZCL-FN-001');
-    expect(screen.queryByText('종류')).toBeNull();
+    expect(within(판열기()).queryByRole('group', { name: '종류' })).toBeNull();
   });
 
   it('「PRD 관리」에서 넘어온 요구 번호로 처음부터 거르고 칩으로 보이며 ✕ 로 풀면 주소에서도 빠진다', async () => {

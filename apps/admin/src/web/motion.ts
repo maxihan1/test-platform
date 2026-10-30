@@ -24,6 +24,14 @@ const 표시들: { 속성: string; 맞나: (칸: Element) => boolean; 켜짐: st
     이름: 'tab',
   },
   {
+    // 케이스 목록 결과 탭 — 거르는 단추라 aria-pressed 지만 밑줄은 탭과 같다 (WEB-F7-07)
+    속성: 'aria-pressed',
+    맞나: (칸) => 칸.classList.contains('result-tab'),
+    켜짐: 'true',
+    면: (r) => ({ left: r.left, top: r.top + r.height - 2, width: r.width, height: 2 }),
+    이름: 'tab',
+  },
+  {
     속성: 'aria-current',
     맞나: (칸) => 칸.classList.contains('rail-app'),
     켜짐: 'page',
@@ -38,8 +46,8 @@ export function 옮긴칸(기록들: Pick<MutationRecord, 'target' | 'oldValue' 
   const 켜진: [Element, string][] = [];
   for (const r of 기록들) {
     const 칸 = r.target as Element;
-    const 표시 = 표시들.find((x) => x.속성 === r.attributeName);
-    if (표시 === undefined || !표시.맞나(칸) || 칸.parentElement === null) continue;
+    const 표시 = 표시들.find((x) => x.속성 === r.attributeName && x.맞나(칸));
+    if (표시 === undefined || 칸.parentElement === null) continue;
     const 앞켜짐 = r.oldValue === 표시.켜짐;
     const 지금켜짐 = 칸.getAttribute(표시.속성) === 표시.켜짐;
     if (앞켜짐 && !지금켜짐) 꺼진.set(칸.parentElement, 칸);
@@ -84,7 +92,7 @@ export function 칩움직임을건다(): void {
   }).observe(document.body, {
     subtree: true,
     attributes: true,
-    attributeFilter: 표시들.map((x) => x.속성),
+    attributeFilter: [...new Set(표시들.map((x) => x.속성))],
     attributeOldValue: true,
   });
 }

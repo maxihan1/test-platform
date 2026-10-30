@@ -7,7 +7,7 @@ import { cleanup, render, renderHook, screen } from '@testing-library/react';
 import type { ServiceRow, User } from './api.js';
 import { AuthoringNew } from './AuthoringNew.js';
 import { use검색조건 } from './CaseListFilter.js';
-import { 조건칩들 } from './CaseListParts.js';
+import { use필터조건들 } from './CaseListFilterBar.js';
 import { Empty } from './CaseListNotes.js';
 import { 떠나기막기 } from './leaveGuard.js';
 import { RunLocation } from './RunLocation.js';
@@ -88,15 +88,12 @@ describe('애플리케이션 줄의 종류 아이콘', () => {
 });
 
 describe('케이스 목록', () => {
-  const 칩 = (앱종류?: ServiceRow['kind']) =>
-    render(<조건칩들 디바이스="ALL" 앱있음 앱종류={앱종류} 활성만 결과="ALL" 건수={null} on디바이스={() => {}} on활성만={() => {}} on결과={() => {}} />);
+  const 줄이름들 = (앱종류?: ServiceRow['kind']) =>
+    renderHook(() => use필터조건들(use검색조건('ZAK', 'FN', undefined, 앱종류), { kind: 'FN', 앱있음: true, 앱종류, 서버목록: [] })).result.current.map((x) => x.이름);
 
-  it('Android 앱에는 디바이스 칩 줄이 없고 웹에는 있다', () => {
-    칩('APP');
-    expect(screen.queryByText('디바이스')).toBeNull();
-    cleanup();
-    칩('SCREEN');
-    expect(screen.getByText('디바이스')).toBeTruthy();
+  it('Android 앱의 필터 판에는 디바이스 줄이 없고 웹에는 있다', () => {
+    expect(줄이름들('APP')).not.toContain('디바이스');
+    expect(줄이름들('SCREEN')).toContain('디바이스');
   });
 
   it('Android 앱이 0건이면 작성으로 보내는 안내를 보인다', () => {
