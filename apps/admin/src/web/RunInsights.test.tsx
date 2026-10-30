@@ -15,6 +15,8 @@ import {
 } from './api.js';
 import { 해결목록 } from './RunInsights.js';
 import { RunResult } from './RunResult.js';
+import { RunWatch } from './RunWatch.js';
+import { 지켜본다 } from './runWatchStore.js';
 import type { 판정 } from './role.js';
 
 // 옛 등급 셋의 판정을 그대로 옮긴 것 — 운영은 전부, 실행까지는 머지·설정 빼고, 보기만은 받기뿐
@@ -24,6 +26,7 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   sessionStorage.clear();
+  지켜본다(null);
 });
 
 const RUN_ID = 5011;
@@ -160,11 +163,17 @@ describe('도는 중인 실행 (SPEC §8.3 · §8.9)', () => {
     vi.spyOn(api, 'insights').mockResolvedValue(비교());
     vi.spyOn(api, 'run').mockResolvedValue(도는중응답);
     vi.spyOn(api, 'progress').mockResolvedValue({ items: [], remainingMs: 8 * 60_000 });
-    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
+    // 진행 상자는 바깥 틀(RunWatch)이 든다 — 결과 화면과 같이 그린다
+    render(
+      <>
+        <RunResult runId={RUN_ID} 판정하기={() => 실행까지} />
+        <RunWatch 판정하기={() => 실행까지} />
+      </>,
+    );
 
     const 진행 = await screen.findByRole('button', { name: /0 \/ 2 완료 · 약 8분 남음/ });
     expect(screen.queryByRole('dialog')).toBeNull();
     fireEvent.click(진행);
-    expect(within(screen.getByRole('dialog')).getByText('ZZI-0009 결제 승인')).toBeDefined();
+    expect(within(await screen.findByRole('dialog')).getByText('ZZI-0009 결제 승인')).toBeDefined();
   });
 });
