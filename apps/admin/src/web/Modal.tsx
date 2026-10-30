@@ -37,7 +37,8 @@ export function Modal({ 제목, onClose, children, 버튼, 넓게 = false, 바�
 
   useEffect(() => {
     열기전.current = document.activeElement;
-    상자.current?.querySelector<HTMLElement>(포커스가능)?.focus();
+    // 되돌릴 수 없는 버튼이 앞에 서는 상자는 첫 포커스를 `data-first` 로 옮긴다 — Enter 한 번에 그쪽으로 가지 않게
+    (상자.current?.querySelector<HTMLElement>('[data-first]') ?? 상자.current?.querySelector<HTMLElement>(포커스가능))?.focus();
     const 내표 = 나.current;
     열린상자들.push(내표);
 

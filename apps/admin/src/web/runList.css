@@ -174,3 +174,62 @@
     display: inline-flex;
   }
 }
+
+/* 진행 알약 — 진행 창을 닫은 실행 (DESIGN.md 「창이 아닌 떠 있는 것」). 창(.modal-back 100)보다 아래, 화면 위에 뜬다 */
+.run-pill {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 14px 7px 12px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+  font: inherit;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  animation: 떠오름 var(--t2) var(--ease) backwards;
+}
+
+.run-pill .pulse {
+  margin-right: 0;
+}
+
+.run-pill-bar {
+  width: 70px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--well);
+  overflow: hidden;
+}
+
+.run-pill-bar i {
+  display: block;
+  height: 100%;
+  background: var(--accent-mark);
+  transition: width var(--t2) linear;
+}
+
+/* 휴대폰은 아래 탭 바로 위에 폭을 다 쓰고 선다. 실행 결과의 「실패 N건 다시 실행」 판(72px)이 있으면 그 위다 */
+@media (max-width: 620px) {
+  .run-pill {
+    right: 12px;
+    bottom: calc(var(--ph-tabs) + 12px);
+    left: 12px;
+    border-radius: 12px;
+  }
+
+  .run-pill-bar {
+    flex: 1;
+  }
+
+  body:has(.rerun-dock) .run-pill {
+    bottom: calc(var(--ph-tabs) + 84px);
+  }
+}

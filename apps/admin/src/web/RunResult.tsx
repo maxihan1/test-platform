@@ -22,6 +22,7 @@ import { 끝났다고알릴까, 도는중, 멈출수있나, 본것으로적는�
 import { Failed, Loading, PLATFORM_LABEL, STATUS_LABEL, useAsync, when, 실행디바이스들 } from './ui.js';
 import { 그중미확정글 } from './unconfirmed.js';
 import { useRunProgress } from './useRunProgress.js';
+import { 지켜보는실행, 지켜본다 } from './runWatchStore.js';
 import { use보는실행알림 } from './viewedRun.js';
 
 const STATUSES: (ItemStatus | 'ALL')[] = ['ALL', 'PASS', 'FAIL', 'NA'];
@@ -55,10 +56,6 @@ function 케이스결과({
   const [멈출까, set멈출까] = useState(false);
   const [멈추는중, set멈추는중] = useState(false);
   const [끝났다고알릴까말까, set알릴까] = useState(false);
-  // 「진행 상자를 닫았다」와 「완료를 알았다」는 다른 말이다. 하나로 합치면 도는 중에 상자를 닫은 사람이
-  // 실행이 끝난 것을 영영 못 듣는다 — 맨 위 알림 줄도 `본것들` 을 보므로 그를 못 구한다 (SPEC §8.9).
-  // 진행 상자는 머리의 진행 글을 누를 때만 연다 (2026-10-19 ⑫ — 앞 판은 도는 실행을 열 때마다 저절로 떠 화면을 가렸다)
-  const [진행열림, set진행열림] = useState(false);
   // 갱신 전 상태를 들고 있어야 「도는 중이던 것이 끝났다」를 알 수 있다.
   // 화면에 안 나오는 값이라 `useRef` 로 둔다 — 그리는 값이면 `useState` 여야 한다 (2026-09-21 사고)
   const 앞선상태 = useRef<string | null>(null);
@@ -73,16 +70,15 @@ function 케이스결과({
   useEffect(() => {
     앞선상태.current = null;
     set알릴까(false);
-    set진행열림(false);
   }, [runId]);
 
   // 그 실행 결과 화면을 보고 있는 사람에게만 모달이 뜬다 (SPEC §8.9).
-  // 다른 화면에 있는 사람은 §8 알림 줄이 받는다
+  // 다른 화면에 있는 사람은 §8 알림 줄이 받는다. 진행 창 · 알약으로 지켜보던 실행이면 바깥 틀(RunWatch)이 완료 창을 띄운다 — 둘이 뜨지 않게 비킨다
   useEffect(() => {
     if (data === null) return;
     const 전 = 앞선상태.current;
     앞선상태.current = data.status;
-    if (전 !== null && 끝났다고알릴까({ 전, 후: data.status, runId: data.runId })) set알릴까(true);
+    if (전 !== null && 끝났다고알릴까({ 전, 후: data.status, runId: data.runId }) && 지켜보는실행()?.runId !== data.runId) set알릴까(true);
   }, [data?.status, data?.runId]);
   const reload = run.reload;
 
@@ -170,7 +166,7 @@ function 케이스결과({
               도는 동안에는 요약 띠가 없어 여기 남는다. 판정 숫자를 버튼보다 앞에 둔다 —
               좁은 화면에서 접히면 뒤엣것이 아랫줄로 밀리는데 휴대폰에서 먼저 볼 것은 끝났나다(공통/5 §8 「휴대폰 화면」) */}
           {진행글 === null ? null : (
-            <button type="button" className="btn ghost run-progress" aria-haspopup="dialog" onClick={() => set진행열림(true)}>
+            <button type="button" className="btn ghost run-progress" aria-haspopup="dialog" onClick={() => 지켜본다({ runId: data.runId, 열림: true })}>
               {진행글}
             </button>
           )}
@@ -309,21 +305,16 @@ function 케이스결과({
         />
       )}
 
-      {/* 상자는 하나, 여는 이유는 둘이다 — 머리의 진행 글을 눌렀거나, 보고 있던 실행이 끝났다.
-          열어 둔 채 끝나면 그 한 상자가 내용만 바꾼다 (도메인/실행 §8.9) */}
-      {!진행열림 && !끝났다고알릴까말까 ? null : (
+      {/* 진행 창은 바깥 틀(RunWatch)이 든다 — 닫으면 알약이 되어 화면을 옮겨도 남는다. 여기 남은 것은
+          지켜보지 않던 실행이 보는 동안 끝났을 때의 완료 상자다 (도메인/실행 §8.9) */}
+      {!끝났다고알릴까말까 ? null : (
         <RunProgressModal
           data={data}
           진행목록={진행목록}
-          남은ms={남은ms}
           onClose={() => {
-            set진행열림(false);
-            // 끝난 뒤에 닫은 것만 「알림 봤다」로 적는다 — 새로고침해도 다시 안 뜬다 (SPEC §8.9).
-            // 도는 중에 닫은 것은 아직 안 본 것이라 끝나면 완료 상자를 새로 받아야 한다
-            if (!도는중(data.status)) {
-              본것으로적는다(data.runId);
-              set알릴까(false);
-            }
+            // 닫으면 「알림 봤다」로 적는다 — 새로고침해도 다시 안 뜬다 (SPEC §8.9)
+            본것으로적는다(data.runId);
+            set알릴까(false);
           }}
         />
       )}
