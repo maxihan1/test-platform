@@ -14,11 +14,12 @@ import { use주소조건, 주소조건 } from './leaveGuard.js';
 export const 기법고름들 = ['ALL', ...TECHNIQUES, 'none'] as const;
 export type 기법고름 = (typeof 기법고름들)[number];
 
-/** 묶음 머리 하나의 자리 — 기능 묶음(빈 글자는 묶음 없음) · 화면 파일 · 화면 조각 파일 */
+/** 묶음 머리 하나의 자리 — 기능 묶음(빈 글자는 묶음 없음) · 화면 파일 · 화면 조각 파일 · 엔드포인트(API 애플리케이션) */
 export interface 묶음자리 {
   feature: string;
   screen?: string;
   part?: string;
+  endpoint?: string;
 }
 
 /** 묶음 머리의 「이것만 보기」가 건 조건. 이름은 조건 칩에 적는 글이다 — 파일 경로를 그대로 보이지 않으려고 같이 든다 */
@@ -37,7 +38,8 @@ function 주소묶음(주소: URLSearchParams): 묶음조건 | null {
   if (feature === null || 이름 === null) return null;
   const screen = 주소.get('gs');
   const part = 주소.get('gp');
-  return { feature, 이름, ...(screen === null ? {} : { screen }), ...(part === null ? {} : { part }) };
+  const endpoint = 주소.get('ge');
+  return { feature, 이름, ...(screen === null ? {} : { screen }), ...(part === null ? {} : { part }), ...(endpoint === null ? {} : { endpoint }) };
 }
 
 // 처음요구 — 「PRD 관리」에서 넘어온 주소의 요구 번호(도메인/카탈로그 §8.1 「맥락」). 화면에 따로 고르는 칸은 없다
@@ -77,7 +79,7 @@ export function use검색조건(service: string, kind: 'UI' | 'FN', 처음요구
     ...(축 === 'ALL' ? {} : { axis: 축 }),
     ...(스모크 ? { smoke: '1' } : {}),
     ...(서버 === null ? {} : { api: 서버 }),
-    ...(묶음 === null ? {} : { g: 묶음.feature, gn: 묶음.이름, ...(묶음.screen === undefined ? {} : { gs: 묶음.screen }), ...(묶음.part === undefined ? {} : { gp: 묶음.part }) }),
+    ...(묶음 === null ? {} : { g: 묶음.feature, gn: 묶음.이름, ...(묶음.screen === undefined ? {} : { gs: 묶음.screen }), ...(묶음.part === undefined ? {} : { gp: 묶음.part }), ...(묶음.endpoint === undefined ? {} : { ge: 묶음.endpoint }) }),
     ...(열린 === null ? {} : { case: 열린 }),
   });
 
@@ -92,7 +94,7 @@ export function use검색조건(service: string, kind: 'UI' | 'FN', 처음요구
     ...(축 === 'ALL' ? {} : { axis: 축 }),
     ...(스모크 ? { smoke: true } : {}),
     ...(서버 === null ? {} : { apiServer: 서버 }),
-    ...(묶음 === null ? {} : { feature: 묶음.feature, ...(묶음.screen === undefined ? {} : { screen: 묶음.screen }), ...(묶음.part === undefined ? {} : { part: 묶음.part }) }),
+    ...(묶음 === null ? {} : { feature: 묶음.feature, ...(묶음.screen === undefined ? {} : { screen: 묶음.screen }), ...(묶음.part === undefined ? {} : { part: 묶음.part }), ...(묶음.endpoint === undefined ? {} : { endpoint: 묶음.endpoint }) }),
     ...(요구 === null ? {} : { req: 요구 }),
     ...(결과 === 'ALL' ? {} : { last: 결과 }),
   };

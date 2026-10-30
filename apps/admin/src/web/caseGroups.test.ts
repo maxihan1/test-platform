@@ -61,6 +61,19 @@ describe('줄과머리', () => {
     expect(머리들.map((m) => m.조건)).toEqual([{ feature: '회원가입' }, { feature: '회원가입', screen: '', part: 조각 }]);
   });
 
+  it('API 애플리케이션은 화면 자리에 엔드포인트 머리가 서고 · 「이것만 보기」 조건은 그 엔드포인트다', () => {
+    const 끝점묶음: CaseGroup[] = [
+      { feature: '주문', screen: null, screenUrl: null, part: null, endpoint: null, tcIds: ['A-001'] },
+      { feature: '주문', screen: null, screenUrl: null, part: null, endpoint: 'POST /api/orders', tcIds: ['A-002', 'A-003'] },
+      { feature: '주문', screen: null, screenUrl: null, part: null, endpoint: 'GET /api/orders/:n', tcIds: ['A-004'] },
+    ];
+    const 받은 = ['A-001', 'A-002', 'A-003', 'A-004'];
+    const 칸들 = 줄과머리(받은.map(줄), 끝점묶음, new Set(받은), true);
+    expect(모양(칸들)).toEqual(['# 주문 4', 'A-001', '## POST /api/orders 2', 'A-002', 'A-003', '## GET /api/orders/:n 1', 'A-004']);
+    const 머리들 = 칸들.flatMap((칸) => ('row' in 칸 ? [] : [칸.머리]));
+    expect(머리들[1]!.조건).toEqual({ feature: '주문', endpoint: 'POST /api/orders' });
+  });
+
   it('파일이름은 경로와 꼬리를 뗀다', () => {
     expect([파일이름(화면), 파일이름(조각)]).toEqual(['signup', 'terms']);
   });

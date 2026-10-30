@@ -41,7 +41,7 @@ describe('맥락짓기', () => {
         { reqId: 'XCL-REQ-003', text: '비밀번호는 8자 이상 20자 이하', axis: '경계' },
       ],
     });
-    expect(맥락(표, 'XCL-FN-004')).toEqual({ feature: null, reqs: [{ reqId: 'REQ-COM-006', text: null, axis: '예외' }], screens: [], apiServers: [] });
+    expect(맥락(표, 'XCL-FN-004')).toEqual({ feature: null, reqs: [{ reqId: 'REQ-COM-006', text: null, axis: '예외' }], screens: [], apiServers: [], endpoints: [] });
   });
 
   it('화면은 파일 이름 차례로 다 싣고 · 지도에 없는 케이스는 빈 맥락이다', () => {
@@ -49,7 +49,7 @@ describe('맥락짓기', () => {
       { file: 화면('login'), url: '/login', name: '로그인화면' },
       { file: 화면('signup'), url: '/signup', name: '회원가입화면' },
     ]);
-    expect(맥락(표, 'XCL-FN-099')).toEqual({ feature: null, reqs: [], screens: [], apiServers: [] });
+    expect(맥락(표, 'XCL-FN-099')).toEqual({ feature: null, reqs: [], screens: [], apiServers: [], endpoints: [] });
   });
 });
 
@@ -64,12 +64,12 @@ describe('줄세우기', () => {
 
   it('같은 자리끼리 한 묶음 — 여러 화면이면 파일 이름이 앞선 화면에 · 쪽이 아니라 받은 전부를 묶는다', () => {
     expect(줄세우기(전부, 표).groups).toEqual([
-      { feature: '회원가입', screen: 화면('signup'), screenUrl: '/signup', screenName: '회원가입화면', part: null, partName: null, tcIds: ['XCL-FN-005'] },
-      { feature: '회원가입', screen: 화면('signup'), screenUrl: '/signup', screenName: '회원가입화면', part: 조각('terms'), partName: '약관동의', tcIds: ['XCL-FN-003'] },
-      { feature: '로그인', screen: null, screenUrl: null, screenName: null, part: null, partName: null, tcIds: ['XCL-FN-002'] },
-      { feature: '로그인', screen: 화면('login'), screenUrl: '/login', screenName: '로그인화면', part: null, partName: null, tcIds: ['XCL-FN-001'] },
-      { feature: null, screen: null, screenUrl: null, screenName: null, part: null, partName: null, tcIds: ['XCL-FN-004', 'XCL-FN-099'] },
-      { feature: null, screen: 화면('orders'), screenUrl: null, screenName: null, part: null, partName: null, tcIds: ['XCL-FN-006'] },
+      { feature: '회원가입', screen: 화면('signup'), screenUrl: '/signup', screenName: '회원가입화면', part: null, partName: null, endpoint: null, tcIds: ['XCL-FN-005'] },
+      { feature: '회원가입', screen: 화면('signup'), screenUrl: '/signup', screenName: '회원가입화면', part: 조각('terms'), partName: '약관동의', endpoint: null, tcIds: ['XCL-FN-003'] },
+      { feature: '로그인', screen: null, screenUrl: null, screenName: null, part: null, partName: null, endpoint: null, tcIds: ['XCL-FN-002'] },
+      { feature: '로그인', screen: 화면('login'), screenUrl: '/login', screenName: '로그인화면', part: null, partName: null, endpoint: null, tcIds: ['XCL-FN-001'] },
+      { feature: null, screen: null, screenUrl: null, screenName: null, part: null, partName: null, endpoint: null, tcIds: ['XCL-FN-004', 'XCL-FN-099'] },
+      { feature: null, screen: 화면('orders'), screenUrl: null, screenName: null, part: null, partName: null, endpoint: null, tcIds: ['XCL-FN-006'] },
     ]);
   });
 

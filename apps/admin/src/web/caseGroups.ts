@@ -1,4 +1,4 @@
-// 케이스 목록 줄 사이에 끼울 묶음 머리(기능 묶음 > 화면 > 화면 조각)를 짓는다 (도메인/카탈로그 §8.1 「맥락」)
+// 케이스 목록 줄 사이에 끼울 묶음 머리(기능 묶음 > 화면 · 엔드포인트 > 화면 조각)를 짓는다 (도메인/카탈로그 §8.1 「맥락」)
 // 차례는 서버가 정한다 — 화면은 받은 줄 차례 그대로 이웃끼리 자리가 바뀌는 곳에 머리를 끼울 뿐이다 (§8.1 「목록 화면이 지킬 것 셋」)
 
 import { useState } from 'react';
@@ -9,7 +9,7 @@ import type { 묶음자리 } from './CaseListFilter.js';
 export interface 묶음머리 {
   단: 1 | 2 | 3;
   열쇠: string;
-  /** 1단은 기능 묶음 이름(없으면 null), 2 · 3단은 화면 파일 경로 */
+  /** 1단은 기능 묶음 이름(없으면 null), 2 · 3단은 화면 파일 경로 — API 애플리케이션의 2단은 엔드포인트 `POST /api/orders` */
   값: string | null;
   /** 그 묶음 화면의 주소(2 · 3단) — 이름이 없으면 이것, 이것도 없으면 파일 이름을 보인다 */
   주소: string | null;
@@ -86,7 +86,9 @@ export function 줄과머리(
       continue;
     }
     const f = 묶음보임 ? 열쇠('f', g.feature) : null;
-    const s = g.screen === null ? null : 열쇠('s', g.feature, g.screen);
+    // API 애플리케이션은 화면 자리에 엔드포인트가 선다 — 한 케이스에 둘이 같이 오지 않는다 (도메인/카탈로그 §8.1 「맥락」)
+    const 끝점 = g.endpoint ?? null;
+    const s = g.screen !== null ? 열쇠('s', g.feature, g.screen) : 끝점 === null ? null : 열쇠('e', g.feature, 끝점);
     const p = g.part === null ? null : 열쇠('p', g.feature, g.screen, g.part);
     const 머리 = (단: 1 | 2 | 3, 키: string, 값: string | null, ids: string[], 조건: 묶음자리, 위: string[]): 묶음머리 => ({
       단,
@@ -101,14 +103,15 @@ export function 줄과머리(
       위,
     });
     const 새묶음 = 앞 === undefined || 앞.feature !== g.feature;
-    const 새화면 = 새묶음 || 앞!.screen !== g.screen;
+    const 새화면 = 새묶음 || 앞!.screen !== g.screen || (앞!.endpoint ?? null) !== 끝점;
     const 새조각 = 새화면 || 앞!.part !== g.part;
     const feature = g.feature ?? '';
     const 끼우기 = (m: 묶음머리) => 칸들.push({ 머리: m, 위: m.위 });
     if (f !== null && 새묶음) 끼우기(머리(1, f, g.feature, 모으기((x) => x.feature === g.feature), { feature }, []));
     if (s !== null && 새화면) {
-      const ids = 모으기((x) => x.feature === g.feature && x.screen === g.screen);
-      끼우기(머리(2, s, g.screen, ids, { feature, screen: g.screen! }, f === null ? [] : [f]));
+      const ids = 모으기((x) => x.feature === g.feature && x.screen === g.screen && (x.endpoint ?? null) === 끝점);
+      const 조건 = g.screen === null ? { feature, endpoint: 끝점! } : { feature, screen: g.screen };
+      끼우기(머리(2, s, g.screen ?? 끝점, ids, 조건, f === null ? [] : [f]));
     }
     if (p !== null && 새조각) {
       const ids = 모으기((x) => x.feature === g.feature && x.screen === g.screen && x.part === g.part);
