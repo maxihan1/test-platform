@@ -1,6 +1,6 @@
 // 실행 항목의 결과를 되쓰고 실행 묶음을 닫는다 — 항목 완료 · 중단 · 재기동 복구 (SPEC §3.2 · §7)
 
-import type { ElementCheck, ExecuteResponse, Platform, StepResult } from '@platform/kit';
+import type { ElementCheck, ExecuteResponse, FpsSample, Platform, StepResult } from '@platform/kit';
 
 import type { Pool } from 'pg';
 
@@ -67,6 +67,21 @@ export function 대조칸(checks: unknown): string | null {
   return 고른것.length === 0 ? null : JSON.stringify(고른것);
 }
 
+/** 항목에 남기는 FPS 줄 상한 — 1초에 한 줄이라 30분이다. 제한 시간이 긴 항목도 실패 카드 하나가 무거워지지 않게 앞에서 자른다 */
+export const FPS상한 = 1_800;
+
+/** 꼴이 틀린 줄은 버린다 — 화면이 seq · fps 를 바로 읽는다. 읽은 초가 하나도 없으면 NULL 이다 */
+export function FPS칸(fps: unknown): string | null {
+  if (!Array.isArray(fps)) return null;
+  const 줄들 = fps
+    .filter(
+      (f): f is FpsSample =>
+        typeof f === 'object' && f !== null && Number.isInteger((f as FpsSample).seq) && ((f as FpsSample).fps === null || Number.isFinite((f as FpsSample).fps)),
+    )
+    .slice(0, FPS상한);
+  return 줄들.some((f) => f.fps !== null) ? JSON.stringify(줄들.map(({ seq, fps: 값 }) => ({ seq, fps: 값 }))) : null;
+}
+
 /** 받은 API × 응답 코드. 같은 것을 여러 번 불렀어도 한 줄이다 */
 export function 받은API(steps: readonly StepResult[]): { method: string; path: string; status: number; no_shape: boolean }[] {
   const 줄 = new Map<string, { method: string; path: string; status: number; no_shape: boolean }>();
@@ -85,7 +100,7 @@ export async function finishItem(historyId: number, 받은결과: ExecuteRespons
     // 아래 CLOSE_UNFINISHED와 같은 규칙이다 — 닫는 UPDATE에는 언제나 AND finished_at IS NULL 을 붙인다.
     // 사람이 멈춘 직후에는 그 항목의 러너 호출이 이미 나가 있어 응답이 뒤늦게 도착한다
     const closed = await client.query(
-      'UPDATE run_item SET status = $2, duration_ms = $3, error = $4, device = $5, element_checks = $6, finished_at = now() WHERE history_id = $1 AND finished_at IS NULL',
+      'UPDATE run_item SET status = $2, duration_ms = $3, error = $4, device = $5, element_checks = $6, fps = $7, finished_at = now() WHERE history_id = $1 AND finished_at IS NULL',
       [
         historyId,
         result.status,
@@ -93,6 +108,7 @@ export async function finishItem(historyId: number, 받은결과: ExecuteRespons
         result.error === undefined ? null : JSON.stringify(result.error),
         기기칸(result.device),
         대조칸(result.elementChecks),
+        FPS칸(result.fps),
       ],
     );
     if (closed.rowCount === 0) {

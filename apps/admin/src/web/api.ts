@@ -1,7 +1,7 @@
 // Admin API 호출 한 곳 (SPEC §7). 응답 모양은 WS-A·WS-B가 실제로 내보내는 것을 그대로 옮겼다
 // 목 데이터는 두지 않는다 — 개발 서버도 /api를 진짜 admin으로 프록시한다 (vite.config.ts)
 
-import type { DeviceInfo, ElementCheck, ItemStatus, JsonSchema, Platform, RunningStep, StepResult } from '@platform/kit';
+import type { DeviceInfo, ElementCheck, FpsSample, ItemStatus, JsonSchema, Platform, RunningStep, StepResult } from '@platform/kit';
 import type { Technique } from '@platform/kit/types';
 
 import type { 고칠것 } from '../authoring/edit.js';
@@ -404,6 +404,8 @@ export interface FailureDevice {
   device?: DeviceInfo | null;
   /** 그 회차가 데이터 대조로 읽은 게임 서버 값 — 게임 항목만 찬다. 「오브젝트」 탭이 읽는다 */
   elementChecks?: ElementCheck[];
+  /** 그 회차 동안 러너가 1초마다 읽은 FPS — 게임 정식 실행 항목만 찬다. 시간축 띠 아래 FPS 선이 읽는다 */
+  fps?: FpsSample[];
 }
 
 /** 실패 카드의 「실패 원인」 판정. SCREEN 이 BUG 를 이긴다 */

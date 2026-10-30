@@ -1,6 +1,6 @@
 // 실행 결과 화면의 실패 케이스 카드 질의 — 실패 · 변화 · 최근 흐름 · 처음 실패한 회차의 항목 상세 (도메인/리포팅 §7)
 
-import type { DeviceInfo, ElementCheck, ItemStatus, Platform } from '@platform/kit';
+import type { DeviceInfo, ElementCheck, FpsSample, ItemStatus, Platform } from '@platform/kit';
 
 import { 팜증적목록, type 팜파일 } from '../execution/farmEvidence.js';
 import { findItem } from '../execution/queries.js';
@@ -24,6 +24,8 @@ export interface FailureDevice extends Omit<실패디바이스, 'firstFailedHist
   device: DeviceInfo | null;
   /** 그 회차가 데이터 대조로 읽은 게임 서버 값 — 게임 항목만 차고 나머지는 빈 목록이다. 증거 칸 「오브젝트」 탭이 읽는다 (리포팅 §7) */
   elementChecks: ElementCheck[];
+  /** 그 회차 동안 러너가 1초마다 읽은 FPS — 게임 정식 실행 항목만 차고 나머지는 빈 목록이다. 시간축 띠 아래 FPS 선이 읽는다 (리포팅 §7) */
+  fps: FpsSample[];
 }
 
 export interface FailureCase {
@@ -113,12 +115,12 @@ export async function 실패카드(runId: number, page: number, platform?: Platf
   const tcIds = 쪽.items.map((c) => c.tcId);
   const [요구표, 판정표] = await Promise.all([카드요구들(runId, tcIds), 판정들(runId, tcIds)]);
 
-  // 폰 · 앱 판과 게임 요소 대조는 쪽의 회차를 한 번에 읽는다 — history_id 는 실행을 넘어 하나라 한 건 실행이 덮은 회차도 그대로 찾는다
+  // 폰 · 앱 판과 게임 요소 대조 · FPS 는 쪽의 회차를 한 번에 읽는다 — history_id 는 실행을 넘어 하나라 한 건 실행이 덮은 회차도 그대로 찾는다
   const 회차들 = 쪽.items.flatMap((c) => c.devices.map((d) => d.firstFailedHistoryId));
   const 회차칸 = new Map(
     (
-      await pool.query<{ history_id: string; device: DeviceInfo | null; element_checks: ElementCheck[] | null }>(
-        'SELECT history_id, device, element_checks FROM run_item WHERE history_id = ANY($1)',
+      await pool.query<{ history_id: string; device: DeviceInfo | null; element_checks: ElementCheck[] | null; fps: FpsSample[] | null }>(
+        'SELECT history_id, device, element_checks, fps FROM run_item WHERE history_id = ANY($1)',
         [회차들],
       )
     ).rows.map((r) => [Number(r.history_id), r]),
@@ -147,6 +149,7 @@ export async function 실패카드(runId: number, page: number, platform?: Platf
             rerun,
             device: 회차칸.get(firstFailedHistoryId)?.device ?? null,
             elementChecks: 회차칸.get(firstFailedHistoryId)?.element_checks ?? [],
+            fps: 회차칸.get(firstFailedHistoryId)?.fps ?? [],
           };
         }),
       ),
