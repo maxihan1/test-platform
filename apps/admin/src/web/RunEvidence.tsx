@@ -2,21 +2,26 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import { GAME_TREE_FILE } from '@platform/kit/protocol';
+
 import { api, type FailureDevice, type ItemTrace, type RunItemDetail, type RunItemPage, type StepResult } from './api.js';
 import { 팜영상인가, 팜증적 } from './FarmEvidence.js';
 import { use말, use언어 } from './i18n.js';
 import { show, Step } from './ItemSteps.js';
 import { 기록없음, 네트워크표, 콘솔표 } from './ItemTrace.js';
-import { 기기정보, 네트워크눈금 } from './RunEvidenceParts.js';
+import { 게임오브젝트, 기기정보, 네트워크눈금 } from './RunEvidenceParts.js';
 import { type Async, Failed, Loading, PLATFORM_LABEL, seconds, useAsync } from './ui.js';
 
 export type 증거종류 = 'web' | 'app' | 'api';
-type 탭 = 'shot' | 'net' | 'con' | 'log' | 'video' | 'dev' | 'req' | 'res' | 'diff';
+type 탭 = 'shot' | 'obj' | 'net' | 'con' | 'log' | 'video' | 'dev' | 'req' | 'res' | 'diff';
 
-/** 애플리케이션 종류를 따로 받지 않고 항목으로 가른다 — API 케이스만 절차에 요청 · 응답 원문을 남긴다 */
+/**
+ * 애플리케이션 종류를 따로 받지 않고 항목으로 가른다 — API 케이스만 절차에 요청 · 응답 원문을 남긴다.
+ * android 를 먼저 본다 — 게임 데이터 대조 케이스도 단계에서 서버 API 를 불러 요청 원문이 남는다. API 케이스는 늘 desktop 이다(도메인/API K8)
+ */
 export function 증거종류(item: RunItemDetail): 증거종류 {
-  if (item.steps.some((s) => s.httpTrace !== undefined)) return 'api';
-  return item.platform === 'android' ? 'app' : 'web';
+  if (item.platform === 'android') return 'app';
+  return item.steps.some((s) => s.httpTrace !== undefined) ? 'api' : 'web';
 }
 
 /** 처음엔 처음 깨진 단계를 고른다 — 실패 시점 화면 · 기대값 차이가 거기 있다 */
@@ -109,7 +114,10 @@ function 증거칸({ devices, seq, 상세, 읽기 }: { devices: FailureDevice[];
   const 대표 = devices[0]!.item;
   const 종류 = 증거종류(대표);
   const 묶임 = devices.length > 1;
-  const 팜 = devices.flatMap((d) => d.farm);
+  // 오브젝트 목록 파일은 「오브젝트」 탭이 펼쳐 보여 「받기」 줄에서 뺀다
+  const 받기파일 = (d: FailureDevice) => d.farm.filter((f) => f.name !== GAME_TREE_FILE);
+  const 목록있음 = (d: FailureDevice): boolean => d.farm.some((f) => f.name === GAME_TREE_FILE);
+  const 팜 = devices.flatMap(받기파일);
   const 탭들: { id: 탭; 이름: string }[] =
     종류 === 'api'
       ? [
@@ -120,6 +128,8 @@ function 증거칸({ devices, seq, 상세, 읽기 }: { devices: FailureDevice[];
       : 종류 === 'app'
         ? [
             { id: 'shot', 이름: t('화면') },
+            // 게임 항목만 — 데이터 대조를 했거나 통과 못 해 오브젝트 목록이 남았을 때
+            ...(devices.some((d) => (d.elementChecks?.length ?? 0) > 0 || 목록있음(d)) ? [{ id: 'obj' as const, 이름: t('오브젝트') }] : []),
             // 팜이 받아 둔 것만 탭이 선다 — 팜 기능 전 항목은 화면 하나다
             ...(팜.some((f) => !팜영상인가(f)) ? [{ id: 'log' as const, 이름: 'logcat' }] : []),
             ...(팜.some(팜영상인가) ? [{ id: 'video' as const, 이름: t('화면 영상') }] : []),
@@ -183,8 +193,22 @@ function 증거칸({ devices, seq, 상세, 읽기 }: { devices: FailureDevice[];
         {devices.map((d) => (
           <div key={d.platform}>
             {묶임 ? <b>{PLATFORM_LABEL[d.platform]}</b> : null}
-            <팜증적 주소={(name) => api.farmFile(d.item.runId, d.item.historyId, name)} files={d.farm} 보일={탭} />
+            <팜증적 주소={(name) => api.farmFile(d.item.runId, d.item.historyId, name)} files={받기파일(d)} 보일={탭} />
           </div>
+        ))}
+      </>
+    );
+  } else if (탭 === 'obj') {
+    본문 = (
+      <>
+        <p className="hint">{t('항목 전체의 기록입니다 — 단계를 바꿔도 같습니다')}</p>
+        {devices.map((d) => (
+          <게임오브젝트
+            key={d.platform}
+            대조={d.elementChecks ?? []}
+            목록주소={목록있음(d) ? api.farmFile(d.item.runId, d.item.historyId, GAME_TREE_FILE) : null}
+            이름={묶임 ? PLATFORM_LABEL[d.platform] : null}
+          />
         ))}
       </>
     );

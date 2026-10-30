@@ -76,6 +76,23 @@ describe.skipIf(연결 === undefined)('게임 항목 결과 저장', () => {
     expect((await 요소('item:potion')).server_value).toBeNull();
   });
 
+  it('항목에는 받은 대조 줄을 같은 열쇠까지 그대로 남기고 대조가 없으면 비운다 (WEB-F7-24)', async () => {
+    const 칸 = async (historyId: number) =>
+      (await pool.query<{ element_checks: unknown }>('SELECT element_checks FROM run_item WHERE history_id = $1', [historyId])).rows[0]!.element_checks;
+    const 대조 = [
+      { key: 'item:sword_long', serverValue: 10000, same: false },
+      { key: 'item:sword_long', serverValue: 9000, same: true },
+    ];
+    const 첫 = await 시작();
+    await finishItem(첫.historyId, { historyId: 첫.historyId, status: 'FAIL', durationMs: 1, steps: [], elementChecks: 대조 });
+    expect(await 칸(첫.historyId)).toEqual(대조);
+    expect((await 요소('item:sword_long')).server_value).toBe(9000);
+
+    const 둘 = await 시작();
+    await finishItem(둘.historyId, { historyId: 둘.historyId, status: 'PASS', durationMs: 1, steps: [], elementChecks: [] });
+    expect(await 칸(둘.historyId)).toBeNull();
+  });
+
   it('부른 API 는 서비스 지도의 케이스 줄이 되고 같은 방식 · 주소는 한 줄이다', async () => {
     const { runId, historyId } = await 시작();
     await finishItem(historyId, {

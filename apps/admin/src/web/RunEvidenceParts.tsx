@@ -1,10 +1,13 @@
-// 실패 카드 시간축 증거의 작은 부품 — 네트워크 눈금 줄 · 「기기 정보」 탭 본문 (WEB-F7-19 · DESIGN.md 「시간축 증거」)
+// 실패 카드 시간축 증거의 작은 부품 — 네트워크 눈금 줄 · 「기기 정보」 · 「오브젝트」 탭 본문 (WEB-F7-19 · WEB-F7-24 · DESIGN.md 「시간축 증거」)
 
-import type { DeviceInfo, StepResult } from '@platform/kit';
+import type { DeviceInfo, ElementCheck, StepResult } from '@platform/kit';
+import { GAME_TREE_FILE } from '@platform/kit/protocol';
 
 import type { ItemTrace } from './api.js';
-import { use말 } from './i18n.js';
+import { use말, use언어 } from './i18n.js';
+import { show } from './ItemSteps.js';
 import { 실패요청 } from './ItemTrace.js';
+import { Failed, Loading, useAsync } from './ui.js';
 
 /**
  * 단계 칸 아래에 그 단계에서 보낸 요청마다 눈금 하나. 단계 안 자리는 그 단계의 첫 조작 · 요청부터 잰 시각이다
@@ -56,6 +59,62 @@ export function 기기정보({ device, 이름 }: { device: DeviceInfo | null; �
         <dt>{t('앱 버전')}</dt>
         <dd className="mono">{앱.length === 0 ? 모름 : 앱.join(' · ')}</dd>
       </dl>
+    </>
+  );
+}
+
+// 큰 장면은 목록이 수 MB 라 한 칸에 다 그리면 탭이 멈춘다 — 앞만 보이고 전체는 파일로 받는다
+const TREE_CHAR_LIMIT = 20_000;
+
+/**
+ * 게임 요소 대조와 실패 순간 오브젝트 목록. 지도에는 열쇠마다 마지막 값만 남아 이 항목이 무엇을 읽었는지는 여기서만 본다.
+ * @param 목록주소 kit 이 팜 증적 폴더에 남긴 오브젝트 목록 파일 — 통과 못 한 게임 항목에만 있다
+ */
+export function 게임오브젝트({ 대조, 목록주소, 이름 }: { 대조: ElementCheck[]; 목록주소: string | null; 이름: string | null }) {
+  const t = use말();
+  const 언어 = use언어();
+  const 목록 = useAsync(async () => {
+    if (목록주소 === null) return null;
+    const res = await fetch(목록주소);
+    if (!res.ok) throw new Error(t('오브젝트 목록을 읽지 못했습니다'));
+    return res.text();
+  }, [목록주소]);
+  return (
+    <>
+      {이름 === null ? null : <b>{이름}</b>}
+      {대조.length === 0 ? null : (
+        <>
+          <p className="ev-obj-h">{t('게임 요소 대조')}</p>
+          <table className="trace-table">
+            <thead>
+              <tr>
+                <th>{t('요소')}</th>
+                <th>{t('서버 값')}</th>
+                <th>{t('기획서와')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {대조.map((c, i) => (
+                <tr key={i} className={c.same ? undefined : 'bad'}>
+                  <td className="trace-m">{c.key}</td>
+                  <td className="trace-m">{show(c.serverValue, 언어)}</td>
+                  <td>{t(c.same ? '같음' : '다름')}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+      {목록주소 === null ? null : (
+        <>
+          <p className="ev-obj-h">{t('실패 순간 오브젝트')}</p>
+          {목록.error !== null ? <Failed error={목록.error} /> : 목록.data === null ? <Loading /> : <pre className="ev-json">{목록.data.slice(0, TREE_CHAR_LIMIT)}</pre>}
+          {(목록.data?.length ?? 0) > TREE_CHAR_LIMIT ? <p className="hint">{t('앞 {글자}자만 보입니다', { 글자: TREE_CHAR_LIMIT.toLocaleString() })}</p> : null}
+          <a className="farm-ev-file" href={목록주소} download={GAME_TREE_FILE}>
+            {t('파일로 받기')}
+          </a>
+        </>
+      )}
     </>
   );
 }

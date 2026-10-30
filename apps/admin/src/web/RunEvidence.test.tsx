@@ -149,4 +149,47 @@ describe('실패 카드의 시간축 증거 (WEB-F7-13)', () => {
     expect(읽기).not.toHaveBeenCalled();
     expect(document.querySelector('.ev-ticks')).toBeNull();
   });
+
+  it('게임 항목은 「오브젝트」 탭에 요소 대조와 실패 순간 오브젝트 목록이 보이고 목록 파일은 logcat 받기 줄에서 빠진다 (WEB-F7-24)', async () => {
+    const 받기 = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('# 장면 Shop · 화면 2340×1080 · 1개\n/Canvas/TopBar/GoldText  "10,000"'));
+    const 팜 = [
+      { name: 'game-tree.txt', bytes: 120 },
+      { name: 'logcat.txt', bytes: 2048 },
+    ];
+    const 대조 = [
+      { key: 'item:potion', serverValue: 10000, same: false },
+      { key: 'zone:Town', serverValue: { w: 3 }, same: true },
+    ];
+    그리기(
+      쪽([케이스('ZZI-0001', '물약 사기', [장치('android', 11, { farm: 팜, elementChecks: 대조 }, { steps: 화면단계들() })])]),
+      [줄(11, 'ZZI-0001', 'android', 'FAIL')],
+    );
+
+    fireEvent.click(await screen.findByRole('tab', { name: '오브젝트' }));
+    const 칸 = within(screen.getByRole('tabpanel'));
+    expect(칸.getAllByRole('row').map((r) => r.textContent)).toEqual(['요소서버 값기획서와', 'item:potion10000다름', 'zone:Town{"w":3}같음']);
+    expect(await 칸.findByText(/GoldText/)).toBeTruthy();
+    expect(받기).toHaveBeenCalledWith(`/api/runs/${String(RUN_ID)}/items/11/farm/game-tree.txt`);
+
+    fireEvent.click(screen.getByRole('tab', { name: 'logcat' }));
+    expect(screen.getByRole('tabpanel').textContent).not.toContain('game-tree.txt');
+  });
+
+  it('단계에서 서버 API 를 부른 게임 항목도 앱 탭에 「오브젝트」 탭이 선다', async () => {
+    const 단계들 = [단계(1, '골드를 읽는다', [['골드가 9,000 이다', 'FAIL', 9000, 10000]], { httpTrace: { request: { method: 'GET', url: '/admin/gold' }, response: { status: 200 } } })];
+    그리기(
+      쪽([케이스('ZZI-0001', '물약 사기', [장치('android', 11, { elementChecks: [{ key: 'item:potion', serverValue: 10000, same: false }] }, { steps: 단계들 })])]),
+      [줄(11, 'ZZI-0001', 'android', 'FAIL')],
+    );
+
+    expect(await screen.findByRole('tab', { name: '오브젝트' })).toBeTruthy();
+    expect(screen.queryByRole('tab', { name: '요청' })).toBeNull();
+  });
+
+  it('대조도 오브젝트 목록도 없는 앱 항목에는 「오브젝트」 탭이 없다', async () => {
+    그리기(쪽([케이스('ZZI-0001', '주소 검색', [장치('android', 11, { elementChecks: [] }, { steps: 화면단계들() })])]), [줄(11, 'ZZI-0001', 'android', 'FAIL')]);
+
+    await screen.findAllByRole('group', { name: '단계 고르기' });
+    expect(screen.queryByRole('tab', { name: '오브젝트' })).toBeNull();
+  });
 });

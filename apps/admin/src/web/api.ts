@@ -1,7 +1,7 @@
 // Admin API 호출 한 곳 (SPEC §7). 응답 모양은 WS-A·WS-B가 실제로 내보내는 것을 그대로 옮겼다
 // 목 데이터는 두지 않는다 — 개발 서버도 /api를 진짜 admin으로 프록시한다 (vite.config.ts)
 
-import type { DeviceInfo, ItemStatus, JsonSchema, Platform, RunningStep, StepResult } from '@platform/kit';
+import type { DeviceInfo, ElementCheck, ItemStatus, JsonSchema, Platform, RunningStep, StepResult } from '@platform/kit';
 import type { Technique } from '@platform/kit/types';
 
 import type { 고칠것 } from '../authoring/edit.js';
@@ -402,6 +402,8 @@ export interface FailureDevice {
   rerun?: 다시실행 | null;
   /** 그 회차를 돌린 폰과 앱의 판 — android 만 온다. 선택으로 둔 것은 이 칸을 모르는 기존 가짜 응답을 안 고치려고다 */
   device?: DeviceInfo | null;
+  /** 그 회차가 데이터 대조로 읽은 게임 서버 값 — 게임 항목만 찬다. 「오브젝트」 탭이 읽는다 */
+  elementChecks?: ElementCheck[];
 }
 
 /** 실패 카드의 「실패 원인」 판정. SCREEN 이 BUG 를 이긴다 */

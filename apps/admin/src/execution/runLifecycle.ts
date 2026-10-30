@@ -1,6 +1,6 @@
 // 실행 항목의 결과를 되쓰고 실행 묶음을 닫는다 — 항목 완료 · 중단 · 재기동 복구 (SPEC §3.2 · §7)
 
-import type { ExecuteResponse, Platform, StepResult } from '@platform/kit';
+import type { ElementCheck, ExecuteResponse, Platform, StepResult } from '@platform/kit';
 
 import type { Pool } from 'pg';
 
@@ -51,6 +51,22 @@ const API호출넣기 = `
 export const 기기칸 = (device: unknown): string | null =>
   typeof device === 'object' && device !== null && !Array.isArray(device) ? JSON.stringify(device) : null;
 
+/** 항목에 남기는 게임 요소 대조 상한 — 표 전 줄을 대조하는 케이스는 수천 줄이라 실패 카드마다 다 실으면 무거워진다 */
+export const 대조상한 = 200;
+
+/**
+ * 지도에는 열쇠마다 마지막 것만 남는다 — 항목에는 받은 줄을 남긴다. 다른 줄을 앞에 두고 상한에서 자른다(찾는 것은 다른 줄이다).
+ * 꼴이 틀린 줄은 버린다 — 화면이 key · same 을 바로 읽는다. 비면 NULL 이다
+ */
+export function 대조칸(checks: unknown): string | null {
+  if (!Array.isArray(checks)) return null;
+  const 줄들 = checks.filter(
+    (c): c is ElementCheck => typeof c === 'object' && c !== null && typeof (c as ElementCheck).key === 'string' && typeof (c as ElementCheck).same === 'boolean',
+  );
+  const 고른것 = [...줄들.filter((c) => !c.same), ...줄들.filter((c) => c.same)].slice(0, 대조상한);
+  return 고른것.length === 0 ? null : JSON.stringify(고른것);
+}
+
 /** 받은 API × 응답 코드. 같은 것을 여러 번 불렀어도 한 줄이다 */
 export function 받은API(steps: readonly StepResult[]): { method: string; path: string; status: number; no_shape: boolean }[] {
   const 줄 = new Map<string, { method: string; path: string; status: number; no_shape: boolean }>();
@@ -69,13 +85,14 @@ export async function finishItem(historyId: number, 받은결과: ExecuteRespons
     // 아래 CLOSE_UNFINISHED와 같은 규칙이다 — 닫는 UPDATE에는 언제나 AND finished_at IS NULL 을 붙인다.
     // 사람이 멈춘 직후에는 그 항목의 러너 호출이 이미 나가 있어 응답이 뒤늦게 도착한다
     const closed = await client.query(
-      'UPDATE run_item SET status = $2, duration_ms = $3, error = $4, device = $5, finished_at = now() WHERE history_id = $1 AND finished_at IS NULL',
+      'UPDATE run_item SET status = $2, duration_ms = $3, error = $4, device = $5, element_checks = $6, finished_at = now() WHERE history_id = $1 AND finished_at IS NULL',
       [
         historyId,
         result.status,
         result.durationMs,
         result.error === undefined ? null : JSON.stringify(result.error),
         기기칸(result.device),
+        대조칸(result.elementChecks),
       ],
     );
     if (closed.rowCount === 0) {
