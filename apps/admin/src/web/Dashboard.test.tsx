@@ -85,6 +85,8 @@ function 응답(고침: Partial<대시보드응답> = {}): 대시보드응답 {
     running: [],
     unconfirmed: 0,
     failureTypes: { types: [], stopped: 0 },
+    decisions: [],
+    byKind: null,
     ...고침,
   };
 }

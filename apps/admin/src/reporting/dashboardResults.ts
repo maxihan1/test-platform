@@ -13,6 +13,7 @@ import {
   type 앞판정,
   type 접은줄,
 } from './dashboardShape.js';
+import { 종류칸읽기, type 애플리케이션종류, type 종류칸 } from './dashboardKind.js';
 import { 접은줄SQL, 앞판정SQL, 실행중SQL, 커버리지SQL } from './dashboardSql.js';
 import { 원인을가른다, type 원인재료, type 실패유형 } from './failureType.js';
 import { db, 가려서자른다 } from './insights.js';
@@ -116,6 +117,10 @@ export interface 대시보드응답 {
   unconfirmed: number;
   /** 이번 창 실패 · 미실행 줄을 원인으로 나눈 것. types 는 다섯 유형 전부 · 화면 차례대로, stopped 는 실행이 멈춰 닫힌(ABORTED) 미실행 수 */
   failureTypes: { types: { type: 실패유형; fail: number; notRun: number }[]; stopped: number };
+  /** 작성 read 인 서비스마다 테스트 작성 「결정 필요」 수 — 사람마다 달라 라우트가 센다 (§8.12 「검토할 것」) */
+  decisions: { serviceId: number; count: number }[];
+  /** 서비스 하나를 골랐을 때만 찬다 (§8.12 「종류별 칸」) */
+  byKind: 종류칸 | null;
 }
 
 interface 줄행 {
@@ -248,7 +253,7 @@ export async function 대시보드(
   볼수있는실행ids: number[],
   볼수있는작성ids: number[],
   { 서비스: 고른서비스, 날수 = 창날수 }: { 서비스?: number; 날수?: number } = {},
-): Promise<대시보드응답> {
+): Promise<Omit<대시보드응답, 'decisions'>> {
   const 실행서비스ids = 좁힌다(볼수있는실행ids, 고른서비스);
   const 작성서비스ids = 좁힌다(볼수있는작성ids, 고른서비스);
   const pool = await db();
@@ -269,6 +274,7 @@ export async function 대시보드(
     ]),
   ]);
 
+  const byKind = 고른서비스 === undefined || !실행서비스ids.includes(고른서비스) ? null : await 종류칸(pool, 고른서비스, 줄들, 이번시작, 오늘);
   const 서비스목록 = 서비스.rows.map((r) => ({ id: Number(r.id), name: r.name }));
   const 집계 = 대시보드집계(
     줄들,
@@ -309,5 +315,14 @@ export async function 대시보드(
       types: 집계.실패유형.유형별.map((u) => ({ type: u.type, fail: u.실패, notRun: u.미실행 })),
       stopped: 집계.실패유형.멈춤,
     },
+    byKind,
   };
+}
+
+// 여러 종류가 섞이면 줄 단위가 서로 맞지 않아 하나를 골랐을 때만 짓는다. 세는 줄은 통과율과 같은 이번 창 줄이다
+async function 종류칸(pool: Pool, serviceId: number, 줄들: 접은줄[], 이번시작: string, 오늘: string): Promise<종류칸 | null> {
+  const { rows } = await pool.query<{ kind: 애플리케이션종류 }>('SELECT kind FROM service WHERE id = $1', [serviceId]);
+  const kind = rows[0]?.kind;
+  if (kind === undefined) return null;
+  return 종류칸읽기(pool, serviceId, kind, 줄들.filter((줄) => 줄.serviceId === serviceId && 줄.day >= 이번시작 && 줄.day <= 오늘));
 }
