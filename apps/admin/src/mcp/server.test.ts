@@ -12,7 +12,7 @@ import { save } from '../catalog/store.js';
 import mcpRoutes from './server.js';
 
 const 연결 = process.env.DATABASE_URL;
-const 계정들 = ['xmc-me', 'xmc-off'];
+const 계정들 = ['xmc-me', 'xmc-off', 'xmc-part'];
 const 케이스들 = ['XMC-FN-001', 'XMC-FN-002'];
 
 const spec = (tcId: string, name: string): CaseSpec => ({
@@ -38,6 +38,7 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
   const 묻기 = vi.fn(async (_issuer: string, 토큰: string) => {
     if (토큰 === 'pat_me000001') return { 주인: 'xmc-sub-me' };
     if (토큰 === 'pat_off00001') return { 주인: 'xmc-sub-off' };
+    if (토큰 === 'pat_part0001') return { 주인: 'xmc-sub-part' };
     if (토큰 === 'pat_down0001') return '닿지못함' as const;
     return '틀림' as const;
   });
@@ -63,14 +64,14 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
     await q('DELETE FROM service WHERE id = ANY($1)', [앱들]);
   }
 
-  const 부르기MCP = async (pat: string | null, method: string, params: unknown = {}) =>
+  const 부르기MCP = async (pat: string | null, method: string, params: unknown = {}, 방식 = 'Bearer') =>
     app.inject({
       method: 'POST',
       url: '/mcp',
       headers: {
         'content-type': 'application/json',
         accept: 'application/json, text/event-stream',
-        ...(pat !== null && { authorization: `Bearer ${pat}` }),
+        ...(pat !== null && { authorization: `${방식} ${pat}` }),
       },
       payload: { jsonrpc: '2.0', id: 1, method, params },
     });
@@ -97,14 +98,15 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
     내앱 = await 앱('XMC', 내프로젝트);
     남앱 = await 앱('XMCB', 남프로젝트);
 
-    for (const [이름, sub] of [['xmc-me', 'xmc-sub-me'], ['xmc-off', 'xmc-sub-off']] as const) {
+    for (const [이름, sub] of [['xmc-me', 'xmc-sub-me'], ['xmc-off', 'xmc-sub-off'], ['xmc-part', 'xmc-sub-part']] as const) {
       await q(
         `INSERT INTO app_user (username, display_name, password_hash, role, perm_dashboard, is_approved, must_change_password, auth_sub, is_active)
          VALUES ($1, $1, NULL, 'member', 'none', true, false, $2, $3)`,
-        [이름, sub, 이름 === 'xmc-me'],
+        [이름, sub, 이름 !== 'xmc-off'],
       );
     }
     await q(`INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring) VALUES ('xmc-me', $1, 'read', 'read', 'read')`, [내프로젝트]);
+    await q(`INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring) VALUES ('xmc-part', $1, 'read', 'none', 'none')`, [내프로젝트]);
 
     await save([spec('XMC-FN-001', '다섯 번 틀리면 잠금'), spec('XMC-FN-002', '비밀번호 길이')], false, 'XMC');
     await q(
@@ -117,8 +119,11 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
         ]),
       ],
     );
-    await q(`INSERT INTO req_case (service_id, req_id, tc_id, axis) VALUES ($1, 'XMC-REQ-001', 'XMC-FN-001', '정상')`, [내앱]);
-    await q(`INSERT INTO case_screen (tc_id, file, screen_url, name) VALUES ('XMC-FN-001', 'xmc/pages/login.page.ts', '/login', '로그인')`);
+    await q(`INSERT INTO req_case (service_id, req_id, tc_id, axis) VALUES ($1, 'XMC-REQ-001', 'XMC-FN-001', '정상'), ($1, 'XMC-REQ-001', 'XMC-FN-002', '경계')`, [내앱]);
+    await q(`INSERT INTO case_screen (tc_id, file, screen_url, name, open_urls) VALUES ('XMC-FN-001', 'xmc/pages/login.page.ts', '/login', '로그인', '{/board/:n/edit}')`);
+    await q(`INSERT INTO case_screen (tc_id, file, screen_url, name) VALUES ('XMC-FN-002', 'xmc/pages/login.page.ts', '/login', '로그인')`);
+    // 지운 케이스 — 지도에 줄이 남아 있어도 도구가 보이지 않아야 한다
+    await q(`UPDATE test_case SET is_active = false WHERE tc_id = 'XMC-FN-002'`);
     await q(
       `INSERT INTO bts_link (project_id, base_url, bts_project, bot_key, webhook_secret, status_map, resolution_map, updated_by)
        VALUES ($1, 'https://bts.xmc.test', 'XMQ', 'bot-key', 's', '{}', '{}', 'xmc')`,
@@ -161,10 +166,23 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
     expect(묻기).not.toHaveBeenCalledWith(expect.anything(), 'cit_abc');
   });
 
-  it('맞는 PAT 는 1분 동안 Auth 에 다시 묻지 않는다', async () => {
+  it('열쇠는 몸을 읽기 전에 본다 — 열쇠 없이 깨진 몸을 보내도 400 이 아니라 401', async () => {
+    const res = await app.inject({ method: 'POST', url: '/mcp', headers: { 'content-type': 'application/json' }, payload: '{깨진' });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('맞는 PAT 도 틀린 PAT 도 1분 동안 Auth 에 다시 묻지 않는다 · 방식 이름은 대소문자를 안 가린다', async () => {
     await 부르기MCP('pat_me000001', 'tools/list');
-    await 부르기MCP('pat_me000001', 'tools/list');
-    expect(묻기).toHaveBeenCalledTimes(1);
+    expect((await 부르기MCP('pat_me000001', 'tools/list', {}, 'bearer')).statusCode).toBe(200);
+    await 부르기MCP('pat_wrong001', 'tools/list');
+    await 부르기MCP('pat_wrong001', 'tools/list');
+    expect(묻기).toHaveBeenCalledTimes(2);
+  });
+
+  it('기억에 없는 토큰으로 1분에 30번 넘게 Auth 를 두드리면 429', async () => {
+    for (let i = 0; i < 30; i++) expect((await 부르기MCP(`pat_try${String(i).padStart(5, '0')}`, 'tools/list')).statusCode).toBe(401);
+    expect((await 부르기MCP('pat_try99999', 'tools/list')).statusCode).toBe(429);
+    expect(묻기).toHaveBeenCalledTimes(30);
   });
 
   it('처음 인사와 도구 목록 — 조회 도구 넷', async () => {
@@ -184,16 +202,28 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
     expect(남.글).toContain('FORBIDDEN');
   });
 
-  it('지도 찾기 — 요구 · 케이스 · 화면 주소 어느 쪽으로도 같은 줄, 남의 케이스 번호는 FORBIDDEN', async () => {
-    const 기대 = { cases: [{ tcId: 'XMC-FN-001', reqs: [{ reqId: 'XMC-REQ-001', axis: '정상' }], screens: [{ name: '로그인', url: '/login' }] }] };
+  it('지도 찾기 — 요구 · 케이스 · 화면 주소(파일 안에서 여는 화면도) 어느 쪽으로도 같은 줄, 지운 케이스는 안 보이고 남의 케이스 번호는 FORBIDDEN', async () => {
+    const 기대 = {
+      cases: [{ tcId: 'XMC-FN-001', reqs: [{ reqId: 'XMC-REQ-001', axis: '정상' }], screens: [{ name: '로그인', url: '/login', opens: ['/board/:n/edit'] }] }],
+    };
     expect((await 도구('map_search', { service: 'XMC', reqId: 'XMC-REQ-001' })).json()).toEqual(기대);
     expect((await 도구('map_search', { service: 'XMC', tcId: 'XMC-FN-001' })).json()).toEqual(기대);
     expect((await 도구('map_search', { service: 'XMC', url: 'login' })).json()).toEqual(기대);
+    expect((await 도구('map_search', { service: 'XMC', url: '/edit' })).json()).toEqual(기대);
+    expect((await 도구('map_search', { service: 'XMC', tcId: 'XMC-FN-002' })).글).toContain('NOT_FOUND');
     expect((await 도구('map_search', { service: 'XMC', tcId: 'XMCB-FN-001' })).글).toContain('FORBIDDEN');
   });
 
+  it('배정은 받았어도 칸이 없으면 화면처럼 막힌다 — 케이스 read 만 있는 사람은 지도만 본다', async () => {
+    expect((await 도구('map_search', { service: 'XMC', tcId: 'XMC-FN-001' }, 'pat_part0001')).오류).toBe(false);
+    expect((await 도구('prd_search', { service: 'XMC', query: '' }, 'pat_part0001')).글).toContain('FORBIDDEN — authoring:read');
+    expect((await 도구('run_result', { runId: 내실행 }, 'pat_part0001')).글).toContain('FORBIDDEN — runs:read');
+    expect((await 도구('bts_search', { projectId: 내프로젝트, query: '잠금' }, 'pat_part0001')).글).toContain('FORBIDDEN');
+    expect(BTS받은것).toHaveLength(0);
+  });
+
   it('실행 결과 보기 — 내 애플리케이션 실행은 화면과 같은 몸, 남의 실행은 FORBIDDEN, 없는 번호는 NOT_FOUND', async () => {
-    expect((await 도구('run_result', { runId: 내실행 })).json()).toMatchObject({ runId: 내실행 });
+    expect((await 도구('run_result', { runId: 내실행 })).json()).toMatchObject({ runId: 내실행, items: [], itemsTotal: 0 });
     expect((await 도구('run_result', { runId: 남실행 })).글).toContain('FORBIDDEN');
     expect((await 도구('run_result', { runId: 2_000_000_000 })).글).toContain('NOT_FOUND');
   });

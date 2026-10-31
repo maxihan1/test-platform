@@ -4,7 +4,7 @@
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
 import { PAT사람, type 묻기함수 } from '../auth/pat.js';
@@ -80,19 +80,30 @@ function 서버세우기(사람: 사용자, pat: string, 부르기?: 부르기�
   return 서버;
 }
 
-const 열쇠없음 = (reply: FastifyReply, error: string) =>
-  reply.code(401).header('www-authenticate', 'Bearer').send({ jsonrpc: '2.0', error: { code: -32001, message: error }, id: null });
+const 오류몸 = (code: number, message: string) => ({ jsonrpc: '2.0', error: { code, message }, id: null });
+
+const 열쇠없음 = (reply: FastifyReply) => reply.code(401).header('www-authenticate', 'Bearer').send(오류몸(-32001, 'UNAUTHENTICATED'));
+
+// 인증 방식 이름은 대소문자를 가리지 않는다 (RFC 7235)
+const PAT읽기 = (머리: string | undefined): string => /^bearer\s+(\S+)\s*$/i.exec(머리 ?? '')?.[1] ?? '';
 
 export default async function mcpRoutes(app: FastifyInstance, 설정: MCP설정 = {}): Promise<void> {
-  app.post('/mcp', async (req, reply) => {
-    const 머리 = req.headers.authorization ?? '';
-    const pat = 머리.startsWith('Bearer ') ? 머리.slice('Bearer '.length).trim() : '';
-    if (pat === '') return 열쇠없음(reply, 'UNAUTHENTICATED');
-    const 사람 = await PAT사람(pat, 설정.묻기);
-    if (사람 === '닿지못함') return reply.code(503).send({ jsonrpc: '2.0', error: { code: -32002, message: 'AUTH_UNREACHABLE' }, id: null });
-    if (사람 === null) return 열쇠없음(reply, 'UNAUTHENTICATED');
+  // 열쇠는 몸을 읽기 전에 본다 — 열쇠 없는 사람이 보낸 큰 몸이 메모리에 올라간 뒤에야 401 이 나가지 않게 (auth/gate.ts onRequest · bts/inbound.ts 와 같다)
+  const 열쇠문 = async (req: FastifyRequest, reply: FastifyReply) => {
+    const pat = PAT읽기(req.headers.authorization);
+    if (pat === '') return 열쇠없음(reply);
+    const 사람 = await PAT사람(pat, req.ip, 설정.묻기);
+    if (사람 === '닿지못함') return reply.code(503).send(오류몸(-32002, 'AUTH_UNREACHABLE'));
+    if (사람 === '너무많음') return reply.code(429).send(오류몸(-32003, 'TOO_MANY_REQUESTS'));
+    if (사람 === null) return 열쇠없음(reply);
+    req.user = 사람;
+  };
 
-    const 서버 = 서버세우기(사람, pat, 설정.부르기);
+  app.post('/mcp', { onRequest: 열쇠문 }, async (req, reply) => {
+    // 열쇠문이 사람을 실었다. 없으면 이미 돌려보냈다
+    const 사람 = req.user;
+    if (사람 === null) return 열쇠없음(reply);
+    const 서버 = 서버세우기(사람, PAT읽기(req.headers.authorization), 설정.부르기);
     // 세션 없이 — 요청 하나에 서버 하나. 답은 SSE 가 아니라 JSON 한 덩어리다
     const 전송 = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     reply.raw.on('close', () => {
@@ -101,13 +112,19 @@ export default async function mcpRoutes(app: FastifyInstance, 설정: MCP설정 
     });
     await 서버.connect(전송);
     reply.hijack();
-    await 전송.handleRequest(req.raw, reply.raw, req.body);
+    try {
+      await 전송.handleRequest(req.raw, reply.raw, req.body);
+    } catch (err) {
+      // hijack 뒤라 Fastify 가 대신 답하지 못한다 — 여기서 답하지 않으면 부른 쪽이 제 시간 끝까지 기다린다
+      req.log.error({ err }, '[mcp] 요청을 처리하지 못했다');
+      if (!reply.raw.headersSent) reply.raw.writeHead(500, { 'content-type': 'application/json' });
+      reply.raw.end(JSON.stringify(오류몸(-32603, 'INTERNAL_ERROR')));
+    }
     return reply;
   });
 
   // 세션이 없어 알림 흐름(GET) · 세션 끝내기(DELETE)를 열지 않는다 — 규격대로 405
-  const 안받음 = async (_req: unknown, reply: FastifyReply) =>
-    reply.code(405).header('allow', 'POST').send({ jsonrpc: '2.0', error: { code: -32000, message: 'Method not allowed' }, id: null });
+  const 안받음 = async (_req: FastifyRequest, reply: FastifyReply) => reply.code(405).header('allow', 'POST').send(오류몸(-32000, 'Method not allowed'));
   app.get('/mcp', 안받음);
   app.delete('/mcp', 안받음);
 }
