@@ -1,0 +1,134 @@
+/* 「설정 › 프로젝트 › BTS 연결」 화면 (2026-10-31 시안 B 3판 — 차례 셋 · 상태 매핑 고르개 · 자동 설정 넷). 색은 styles.css :root 토큰만 쓴다 */
+
+.bts-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+.bts-steps li {
+  flex: 1 1 180px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 13px;
+}
+.bts-steps b {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--well);
+  font-size: 12px;
+}
+.bts-steps li.done b {
+  background: var(--pass-soft);
+  color: var(--pass-text);
+}
+
+.bts-load {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.bts-sub {
+  margin: 12px 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-faint);
+}
+.bts-pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 4px 16px;
+}
+
+.bts-repo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.bts-repo:last-child {
+  border-bottom: 0;
+}
+.bts-repo-row {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.bts-checks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 6px;
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+}
+.bts-checks li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 13px;
+}
+.bts-checks small {
+  margin-left: auto;
+  color: var(--ink-faint);
+  font-size: 12px;
+  text-align: right;
+}
+.bts-checks li.ok b {
+  color: var(--pass-text);
+}
+.bts-checks li.no b,
+.bts-checks li.no small {
+  color: var(--fail-text);
+}
+
+.bts-key {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.bts-copy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+}
+.bts-copy pre {
+  flex: 1 1 320px;
+  min-width: 0;
+  margin: 0;
+  padding: 8px 10px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--well);
+  font-size: 12px;
+}
+
+@media (max-width: 760px) {
+  .bts-repo-row {
+    grid-template-columns: 1fr auto;
+  }
+  .bts-repo-row input:first-child {
+    grid-column: 1 / -1;
+  }
+}

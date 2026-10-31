@@ -4,11 +4,13 @@
 import { Fragment, useEffect, useState } from 'react';
 
 import { api, type SettingsProject, type SettingsServiceRow, type User, type UserRow } from './api.js';
+import { BTS이름 } from './btsName.js';
 import { Head } from './Head.js';
 import { 고른서비스를읽는다 } from './layout.js';
 import { 떠나기로했다 } from './leaveGuard.js';
 import { use말 } from './i18n.js';
 import { 할수있나 } from './role.js';
+import { SettingsBts } from './SettingsBts.js';
 import { PendingSection } from './SettingsPending.js';
 import { SettingsPerfAgents } from './SettingsPerfAgents.js';
 import { SettingsPerfDummy } from './SettingsPerfDummy.js';
@@ -73,7 +75,8 @@ export function Settings({ user, onMeChanged, 자리, on서비스번호 }: { use
   // 주소에 자리가 없으면 맨 위에서 고른 서비스로 연다. 그 서비스가 목록에 없으면 첫 서비스다 (점검 N13)
   const 헤더서비스 = 서비스들.find((it) => it.prefix === 고른서비스를읽는다())?.prefix;
   // 프로젝트 자리는 접두사 모양(대문자·숫자)에 안 걸리게 `project-` 로 시작한다 — 대문자로 바꾸기 전에 먼저 가른다
-  const 프로젝트자리 = 자리 !== undefined && /^project-(new|\d+)$/i.test(자리);
+  // `project-<번호>-bts` 는 그 프로젝트의 BTS 연결 화면이다 (도메인/BTS §8.15)
+  const 프로젝트자리 = 자리 !== undefined && /^project-(new|\d+(-bts)?)$/i.test(자리);
   const 고른 =
     자리 === undefined
       ? (헤더서비스 ?? 서비스들[0]?.prefix ?? 'new')
@@ -83,7 +86,8 @@ export function Settings({ user, onMeChanged, 자리, on서비스번호 }: { use
           ? 자리
           : 자리.toUpperCase();
   const 서비스 = 서비스들.find((it) => it.prefix === 고른);
-  const 프로젝트 = 프로젝트들.find((it) => `project-${it.id}` === 고른);
+  const BTS자리 = 고른.endsWith('-bts');
+  const 프로젝트 = 프로젝트들.find((it) => `project-${it.id}` === (BTS자리 ? 고른.slice(0, -'-bts'.length) : 고른));
   const 프로젝트줄 = 프로젝트줄들(프로젝트들, 서비스들);
   const 대기수 = users.data.items.filter((it) => it.isApproved === false).length;
   // 마법사의 「나가기」 — 보던 애플리케이션, 없으면 첫 프로젝트, 그것도 없으면 계정이다
@@ -158,6 +162,8 @@ export function Settings({ user, onMeChanged, 자리, on서비스번호 }: { use
           ) : 프로젝트자리 ? (
             프로젝트 === undefined ? (
               <div className="empty">{t('그런 프로젝트가 없습니다')}</div>
+            ) : BTS자리 ? (
+              <SettingsBts row={프로젝트} services={서비스들} onDone={() => void services.reload()} />
             ) : (
               <ProjectPanel key={`${프로젝트.id}-${판}`} row={프로젝트} projects={프로젝트들} services={서비스들} onDone={() => void 프로젝트다시()} />
             )
@@ -210,6 +216,9 @@ function 설정메뉴({
           </a>
           {/* 묶음 이름을 프로젝트로 달아 화면 읽기에도 어느 프로젝트 것인지 들린다 */}
           <div className="set-nav-tree" role="group" aria-label={it.name}>
+            <a href={`#/settings/project-${it.id}-bts`} {...자리(`project-${it.id}-bts`)}>
+              <span className="set-nav-name">{t('{bts} 연결', { bts: BTS이름 })}</span>
+            </a>
             {서비스들
               .filter((앱) => 앱.projectId === it.id)
               .map((앱) => (

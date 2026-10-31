@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { api, type SettingsServiceRow, type User, type UserRow } from './api.js';
+import { btsApi } from './btsApi.js';
 import { 고른서비스를적는다 } from './layout.js';
 import { 떠나기막기 } from './leaveGuard.js';
 import { Settings } from './Settings.js';
@@ -90,7 +91,7 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     return render(<Settings user={사람('admin')} onMeChanged={() => undefined} 자리={자리} />);
   }
 
-  it('메뉴는 프로젝트마다 그 아래에 그 프로젝트의 애플리케이션이 들여 써 서고, 프로젝트 추가 · 애플리케이션 추가 · 계정이 뒤따른다', async () => {
+  it('메뉴는 프로젝트마다 그 아래에 「BTS 연결」과 그 프로젝트의 애플리케이션이 들여 써 서고, 프로젝트 추가 · 애플리케이션 추가 · 계정이 뒤따른다', async () => {
     vi.spyOn(api, 'settingsProjects').mockResolvedValue({
       items: [
         { id: 1, name: '데모마켓' },
@@ -105,9 +106,11 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     const 링크들 = [...메뉴.querySelectorAll('a')].map((a) => [a.getAttribute('href'), a.closest('[role="group"]')?.getAttribute('aria-label') ?? null]);
     expect(링크들).toEqual([
       ['#/settings/project-1', null],
+      ['#/settings/project-1-bts', '데모마켓'],
       ['#/settings/ZST', '데모마켓'],
       ['#/settings/ZSV', '데모마켓'],
       ['#/settings/project-2', null],
+      ['#/settings/project-2-bts', '사내 포털'],
       ['#/settings/ZSU', '사내 포털'],
       ['#/settings/project-new', null],
       ['#/settings/new', null],
@@ -133,6 +136,16 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     펼친다('project-new');
     expect(await screen.findByRole('dialog', { name: '새 프로젝트' })).toBeTruthy();
     expect(screen.getByRole('link', { name: '+ 프로젝트 추가' }).getAttribute('aria-current')).toBe('page');
+  });
+
+  it('project-<번호>-bts 는 그 프로젝트의 BTS 연결 화면을 연다', async () => {
+    const 읽음 = vi.spyOn(btsApi, 'get').mockResolvedValue({
+      linked: false, baseUrl: null, btsProject: null, botKeyTail: null, statusMap: {}, resolutionMap: {}, deployKey: null, ruleToken: null, publicUrl: null,
+    });
+    펼친다('project-1-bts');
+
+    expect(await screen.findByRole('heading', { name: '데모마켓 › BTS 연결' })).toBeTruthy();
+    expect(읽음).toHaveBeenCalledWith(1);
   });
 
   it('없는 프로젝트 번호면 그 사실을 적는다', async () => {

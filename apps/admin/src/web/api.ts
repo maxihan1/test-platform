@@ -603,6 +603,8 @@ export interface SettingsServiceRow extends Omit<ServiceRow, 'permissions'> {
   /** Swagger 문서를 받을 경로와 기준 서버. API 종류만 쓴다 */
   apiDocPath?: string | null;
   apiDocEnv?: string | null;
+  /** 수정 AI 가 내려받을 코드 저장소 (도메인/BTS §7). 선택으로 둔 것은 hasFigmaToken 과 같은 이유 — 없으면 빈 목록으로 읽는다 */
+  codeRepos?: { name: string; url: string }[];
 }
 
 /** 정기 실행 한 벌 — 시각(HH:MM)은 그 시간대 기준이다 (SPEC 공통/6-인프라 §9.2) */
@@ -1394,6 +1396,8 @@ export const api = {
       /** API 종류만. 안 보내면 그대로 두고 null 이면 비운다 */
       apiDocPath?: string | null;
       apiDocEnv?: string | null;
+      /** 안 보내면 그대로 두고 `[]` 면 비운다 (도메인/BTS §7) */
+      codeRepos?: { name: string; url: string }[];
     },
   ) => call<{ ok: true }>(`/settings/services/${id}`, { ...json(body), method: 'PATCH' }),
 

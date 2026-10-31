@@ -67,6 +67,7 @@ import './phone.css';
 import './prd.css';
 import './apidoc.css';
 import './guide.css';
+import './bts.css';
 import './itemTrace.css';
 import './runEvidence.css';
 import './runList.css';
