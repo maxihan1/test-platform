@@ -124,7 +124,8 @@
 
 ### ⑧ 품질 숫자
 **무엇** AI 품질을 따로 시험하지 않고 사람이 고른 결과로 센다.
-- [ ] `BTS-F8-01` 대시보드 두 숫자 — 초안 AI = 사람이 체크한 줄 ÷ AI 가 쓴 줄 · 수정 AI = 병합된 PR ÷ AI 가 올린 PR
+- [x] `BTS-F8-01` 대시보드 두 숫자 — 초안 AI = 사람이 체크한 줄 ÷ AI 가 쓴 줄 · 수정 AI = 병합된 PR ÷ AI 가 올린 PR
+  - 근거 PR #560 · 2026-11-01 — 서버 `bts/quality.ts`(BTS 이은 프로젝트의 작성 read 범위 · 날 창 없이 누적 · 버리기도 진행 · 세다 깨지면 null) · 수정 PR 상태 통로 둘 `bts/qualityRoutes.ts`(작성 에이전트가 1분마다 `gh pr view` → MERGED · CLOSED 만 `result.bugfix.prState`) · 화면 `web/DashboardReview.tsx` AI품질줄(율 내림 · 「아직 없음」) · BTS 계약 블록 반영 완료 · 남은 한계: 닫았다가 다시 열어 병합한 PR 은 닫힘으로 남는다
 
 ### ⑨ 시험 (사용자가 시작할 때만)
 **무엇** 데모마켓으로 세 바퀴를 끝까지 한 번씩 돌려 본다.
