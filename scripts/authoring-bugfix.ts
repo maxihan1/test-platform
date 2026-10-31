@@ -50,9 +50,7 @@ const 복제깊이 = 200;
 const 파일한도 = 20;
 const 범위한도 = 10;
 
-export function 수정건브랜치(번호: number): string {
-  return `qahub-bugfix-${번호}`;
-}
+export const 수정건브랜치 = (번호: number): string => `qahub-bugfix-${번호}`;
 
 /** 수정 일 한 건을 끝까지 돌린다. 단계는 에이전트 기록에 남는다(사람 작성 목록에는 안 보인다) */
 export async function 수정한건처리(주소기지: string, 토큰: string, 서비스: string, 것: 집은것 & { bugfix: 수정자료 }, 판: 판, 자리번호: number): Promise<void> {
