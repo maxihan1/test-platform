@@ -57,8 +57,8 @@
 | 10 | **수정 AI 는 작성 에이전트 자리에서 돈다** — 작성 요청 종류 `BUGFIX`. 자식은 파일만 고치고 push · PR 은 에이전트 스크립트가 한다 | claude 로그인 · PR 장치 · 구독 안에서 재사용. 자식이 GitHub 열쇠를 안 갖게 |
 | 11 | **재검증에서 또 실패하면 수정 AI 는 다시 안 맡는다** — 바로 사람에게 넘기고 댓글 | 같은 고침을 되풀이하지 않게 |
 | 12 | **롤백이면 PRD 와 테스트도 되돌린다**(1차 D3 — 다섯 조각 전부) | 옛 커밋 화면에 새 기능 테스트가 남으면 늘 실패한다 |
-| 13 | **프로젝트 노트는 AI 가 쓰고 사람은 보기만 한다** — 틀리면 애플리케이션 가이드에 쓴다. 기대값 근거가 아니다 | 노트는 길이 상한으로 다시 쓰는 글이라 사람 글을 덮는다 |
-| 14 | **「테스트 요령」 칸은 가이드 「배운 것」을 가리키기만 한다**(2차 R7 — 기획 결정 뒤집음) | 요약하다 줄이 사라지고 애플리케이션 단위가 섞인다. 합치기는 지금 `scripts/authoring-main-merge.ts` `배운것합치기` 그대로 |
+| 13 | **프로젝트 노트는 AI 가 쓰고 사람은 고치지 않는다** — 틀리면 애플리케이션 가이드에 쓴다. 기대값 근거가 아니다. 화면은 없다 — 사람은 필요하면 자기 Claude Code 에서 MCP `note_read` 로 읽는다(2026-10-31 BTS-F4-03 사용자 「노출 시킬 필요 없고 md 로 관리만」) | 노트는 AI 가 사건마다 다시 쓰는 글이라 사람 글을 덮는다 |
+| 14 | **「테스트 요령」 문서는 가이드 「배운 것」을 가리키기만 한다**(2차 R7 — 기획 결정 뒤집음) | 요약하다 줄이 사라지고 애플리케이션 단위가 섞인다. 합치기는 지금 `scripts/authoring-main-merge.ts` `배운것합치기` 그대로 |
 | 15 | **MCP 는 조회 도구만**, admin 안 `/mcp` 하나 | 지킬 것 3. 도구가 다 짧아 Tasks v2 · Elicitation 이 필요 없다 |
 | 16 | **사람 요청의 BTS 이슈 조회는 그 사람 PAT 로 BTS 를 부른다**(2차 R4) | 「QA Hub AI」 열쇠로 대신 읽으면 BTS 에서 그 사람이 못 보는 이슈가 보인다 |
 | 17 | **BTS 로 보낼 것은 DB 「보낼 줄」 표 + 60초 점검으로 다시 보낸다** — 1분 간격 5번(BTS 알림과 같다). 권한 · 요청 오류(4xx)는 바로 멈춘다 — 408 · 429(BTS 가 잠깐 바쁨)만 다시 보낸다(BTS-F3-02 시작 질문) | admin 에 재시도 장치가 없고 메모리 타이머는 재기동 때 보낼 것을 잃는다(2차 R6). 틀은 정기 실행(`execution/scheduled.ts`) |
@@ -146,17 +146,28 @@
 
 #### 맥락 — 프로젝트 노트
 
-- 프로젝트마다 하나 · DB 에 버전으로(`project_note`). 사람은 보기만(§8.15 「노트 보기」)
-- **여섯 칸** — 한눈에 · 기능별 자리 · 최근 바뀐 것 · 자주 깨지는 곳 · 테스트 요령(가이드 「배운 것」을 가리킴) · 더 볼 곳. 칸마다 길이 상한(상수는 코드가 정본 — BTS-F4-03)
-- 「기능별 자리」의 코드 위치는 수정 AI 용이다. 노트 고치는 AI 도 코드를 읽지 않고 **PR 병합 사건의 바뀐 파일 경로 · PR 제목**만 적는다. 바뀐 파일 경로는 에이전트 스크립트가 PR 번호로 GitHub 에서 읽어 자료로 넘긴다(자식은 GitHub 열쇠가 없다 — 결정 10)
-- **고치는 때** — 배포 · task 끝 · 이슈 열림/닫힘 · PR 병합 · PRD 새 버전 · 작성 끝이 `project_note_event` 에 쌓이고, 열린 노트 고치기가 없으면 대기열에 `NOTE` 하나를 세운다(쌓인 사건을 한 번에). 처음 만들기도 같은 일 하나
-- AI 가 실패하면 앞 버전을 그대로 둔다. 노트 화면에 「마지막 고친 때」
+- 프로젝트마다 하나 · DB 에 판으로(`project_note`). 화면이 없다(결정 13) — 읽는 길은 MCP `note_read` 하나다
+- **목차 + 문서 여럿 · 모두 md 글** (2026-10-31 BTS-F4-03 사용자 「길어졌을 때 인덱싱이나 카테고리별로 나눠서」) — 문서마다 이름 · 한 줄 설명 · 본문. 목차는 이름 · 한 줄 설명으로 선다
+  - 늘 있는 문서 다섯 — 한눈에 · 최근 바뀐 것 · 자주 깨지는 곳 · 테스트 요령(가이드 「배운 것」을 가리킴 — 결정 14) · 더 볼 곳
+  - **기능 문서** — 기능별 코드 자리는 기능 묶음마다 문서 하나로 나눈다(「쿠폰」 · 「결제」). 그 기능의 코드 자리 · 최근 PR · 자주 깨지는 점을 모은다
+  - **지난 기록** — 「최근 바뀐 것」은 최근 30줄만 둔다. 더 오래된 줄은 달마다 「지난 기록 2026-10」 문서로 옮긴다
+  - **문서 하나는 4,000자 · 문서는 40개까지**(상수는 코드가 정본 — `apps/admin/src/projectNote/note.ts`). 넘으면 잘라 버리지 않고 더 잘게 나눈다. 받는 쪽은 넘은 몸을 400 `NOTE_TOO_LONG` 으로 막아 앞 판이 남는다
+  - **말투는 사람 말로** — 기능 이름을 먼저 쓰고 코드 경로는 그 뒤에 · 줄임말 없이 · 번역 말투 없이(`.claude/skills/tpx-cases/references/korean-ai-tells.md`). 노트 고치는 자식 지시문이 정본이다(`scripts/authoring-note-prompt.ts` `노트지시문`)
+- 코드 자리는 수정 AI 용이다. 노트 고치는 AI 도 코드를 읽지 않고 **PR 병합 사건의 바뀐 파일 경로 · PR 제목**만 적는다. 바뀐 파일 경로는 에이전트 스크립트가 PR 번호로 GitHub 에서 읽어 자료로 넘긴다(자식은 GitHub 열쇠가 없다 — 결정 10). 못 읽으면(권한 · 저장소 밖 주소) 제목만 넘긴다
+- **고치는 때** — 배포 · task 끝 · 이슈 열림/닫힘 · PR 병합 · PRD 새 버전 · 작성 끝이 `project_note_event` 에 쌓이고, 열린 노트 고치기가 없으면 대기열에 `NOTE` 하나를 세운다(쌓인 사건을 한 번에). 처음 만들기도 같은 일 하나. 배포 사건은 배포 신호(BTS-F5-01)가 쌓는다
+  - 사건을 쌓는 곳 — BTS 알림 `issue.created`(ISSUE_OPEN) · 「닫힘」 상태로 옮겨진 `issue.transitioned`(버그면 ISSUE_CLOSE, 그 밖은 TASK_DONE) · 규칙 웹훅 `PR_MERGED` · 표준 기획서 새 판(PRD_VERSION) · NOTE 밖 작성 요청이 DONE 으로 끝남(AUTHORING_DONE)
+  - 같은 사건이 두 번 오면 한 번만 쌓는다 — PR_MERGED 는 같은 prUrl, ISSUE_OPEN 은 같은 이슈 키. 닫힘(ISSUE_CLOSE · TASK_DONE)은 다시 열고 닫을 수 있어 또 쌓는다. 사건 쓰기가 깨져도 BTS 알림 처리(닫기 사유)는 되돌리지 않고 서버 기록만 남긴다 — 사건 하나를 잃는 쪽이 닫기를 다시 도는 쪽보다 낫다
+  - 노트 고치기는 **반영 안 된 사건**을 집을 때 한 번에 받는다 — 아직 아무 일도 안 받은 사건과, 받은 일이 실패 · 중단으로 끝난 사건이다. 한 번에 200건까지
+  - NOTE 의 RERUN 을 세우는 길은 지금 없다 — 사람 다시 실행은 BAD_KIND, 에이전트 토큰은 새 요청을 못 만든다. 실패하면 다음 사건이 새 NOTE 를 세운다. 집기 · 열쇠의 「그 RERUN」 갈래는 이어하기 길이 생길 때를 위한 자리다
+  - 노트 고치기가 DONE 으로 끝날 때 아무 일도 안 받은 사건(도는 동안 온 것 · 200건을 넘은 것)이 남았으면 다음 노트 고치기를 바로 세운다. 에이전트가 꺼져 멈춘 것(STOPPED · AGENT_RESTART)도 그 줄이 받은 사건으로 바로 세운다 — AI 탓이 아니다. 그 밖의 실패 · 중단으로 끝나면 세우지 않는다 — 다음 사건이 올 때 다시 받는다(AI 가 계속 실패해도 끝없이 돌지 않게 · `projectNote/events.ts`). 판을 저장한 뒤 실패한 줄의 사건은 반영된 것으로 본다
+- 노트 고치기는 바뀐 문서만 보낸다(지운 문서는 이름만). 서버가 앞 판에 겹쳐 새 판 하나를 만든다 — 안 바뀐 문서를 AI 가 다시 쓰다 흐트러지지 않게
+- AI 가 실패하면 앞 판을 그대로 둔다. `note_read` 목차에 판 번호 · 「마지막 고친 때」
 
 #### 맥락 — MCP 조회 도구
 
 - QA Hub admin 안 `/mcp` 하나(`apps/admin/src/mcp/`) — 쓰임 둘: AI 들이 일할 때 맥락 찾는 창구(본 목적) · 사람이 자기 Claude Code 로 묻는 창구(덤)
-- **도구** — 프로젝트 노트 읽기 · PRD 요구 찾기 · 지도 찾기 · BTS 이슈 · task 찾기 · 실행 결과 보기. 모두 조회만이다. 노트 읽기는 노트 표를 만드는 BTS-F4-03 이 더한다(BTS-F4-01 은 나머지 넷)
-- 권한 검사는 화면 통로와 같은 출입문 하나다(도메인/인증 §7 — 프로젝트 · 기능 칸). 도구마다 화면의 같은 통로가 요구하는 권한으로 문의 판정 함수(`auth/gate.ts` `문판정`)를 부른다 — PRD 요구 찾기는 `GET /api/prd`, 지도 찾기는 `GET /api/catalog/cases`, 실행 결과는 `GET /api/runs/:runId`, BTS 찾기는 그 프로젝트 애플리케이션 하나라도 (작성, read)(노트 보기와 같은 문턱). 배정 밖은 도구 오류 `FORBIDDEN`
+- **도구** — 프로젝트 노트 읽기 · PRD 요구 찾기 · 지도 찾기 · BTS 이슈 · task 찾기 · 실행 결과 보기. 모두 조회만이다. 노트 읽기는 노트 표를 만든 BTS-F4-03 이 더했다(2026-10-31 반영 — `mcp/note.ts`) — 이름 없이 부르면 목차, 문서 이름을 주면 그 문서
+- 권한 검사는 화면 통로와 같은 출입문 하나다(도메인/인증 §7 — 프로젝트 · 기능 칸). 도구마다 화면의 같은 통로가 요구하는 권한으로 문의 판정 함수(`auth/gate.ts` `문판정`)를 부른다 — PRD 요구 찾기는 `GET /api/prd`, 지도 찾기는 `GET /api/catalog/cases`, 실행 결과는 `GET /api/runs/:runId`, BTS 찾기 · 노트 읽기는 그 프로젝트 애플리케이션 하나라도 (작성, read). 배정 밖은 도구 오류 `FORBIDDEN`
 - 작성 자식(`claude -p`)에 `--mcp-config` 로 붙인다 (2026-10-31 BTS-F4-02 반영 — `scripts/authoring-rules.ts` `MCP붙이기`). 집기 응답에 일마다 열쇠(`mcpKey`)가 온 줄만 서버 `qa-hub`(`<admin 주소>/mcp` · `Bearer mcj_…`)와 그 서버 도구 허용(`--allowedTools mcp__qa-hub` — `-p` 는 허용 안 된 도구를 묻지 못하고 거절한다)을 `--disallowedTools` 바로 앞에 끼운다. 기존 깃발은 그대로 둔다. 열쇠는 인자에 싣지 않는다 — 같은 컨테이너의 다른 자리 자식이 `ps` 로 남의 프로젝트 열쇠를 읽는다. 설정은 그 자식 임시 자리의 파일(그 자리 uid 의 0600 · `scripts/authoring-child.ts` `MCP설정쓰기`)에 두고 `--mcp-config` 에는 경로만 준다
 - `mcj_` 요청의 사람은 그 줄을 집은 작성 계정이다 — 권한은 그 계정 것을 쓰고 배정을 그 줄의 프로젝트로 좁힌다(`apps/admin/src/mcp/jobKey.ts`). 집은 계정이 지금의 작성 계정이 아니거나 꺼졌으면 401. BTS 찾기는 PAT 가 없어 그 프로젝트에 저장한 「QA Hub AI」 열쇠로 부른다
 - 새 npm 패키지 `@modelcontextprotocol/sdk` 는 BTS-F4-01 시작 질문에서 승인받았다(2026-10-31 사용자 — 「나중에 기능 추가할 수 있으니」 · 1.32.1). 1차 밖의 브라우저 로그인 · 긴 작업 자리가 패키지에 있다
@@ -203,14 +214,14 @@
 | BTS → QA Hub 알림 | QA Hub 꺼짐 | 배포 신호 뒤 QA Hub 가 「QA 요청」 · 안 맡은 이슈를 BTS 에서 다시 찾음 | 보임(빌드 실행 기록) |
 | QA Hub → BTS 등록 | 권한 오류가 계속 | 즉시 멈춤 · 실패 카드 · [다시 보내기] | 보임 |
 | QA Hub → BTS 등록 | admin 재기동 | 보낼 줄 표가 이어 보냄 | 보임 |
-| 노트 고치기 | AI 실패 | 앞 버전 유지 | 「마지막 고친 때」 |
+| 노트 고치기 | AI 실패 · 상한 넘음 | 앞 판 유지 · 사건은 다음 노트 고치기가 다시 받는다 | `note_read` 목차의 「마지막 고친 때」 · 작성 에이전트 기록 |
 | 수정 AI | 틀린 고침 | 재검증 실패 → 사람에게 + 댓글 | 보임 |
 | 롤백 | 되돌림 PR 병합 전 재배포 | PR 닫기 | 보임 |
 | BTS 이슈 전부 | 잘못 만든 규칙 | 200 상한 · 넘으면 하나도 안 바꿈 | 「상한 넘음」 기록 |
 | 프로젝트 배포 신호 | 애플리케이션 하나 스모크 깨짐 | 이슈 안 맡고 보류 댓글 · 다음 배포가 다시 잡음 | 보임 |
 | BTS 규칙 웹훅 호출 | 토큰 틀림 · QA Hub 꺼짐 | QA Hub 가 거절 기록 · BTS 자동화 실행 기록에 실패 | BTS 실행 기록 |
 
-운영 메모 — 작성 · 노트 · 수정 AI 는 작성 에이전트(author 컨테이너)에서 돈다. 그 자리가 멈추면 셋 다 멈춘다(지금 작성과 같다). MCP 는 admin 안이라 가볍다(조회 · 노트 길이 상한).
+운영 메모 — 작성 · 노트 · 수정 AI 는 작성 에이전트(author 컨테이너)에서 돈다. 그 자리가 멈추면 셋 다 멈춘다(지금 작성과 같다). MCP 는 admin 안이라 가볍다(조회 · 노트 문서 상한 검사).
 
 #### 품질 숫자
 
@@ -306,47 +317,50 @@ POST /api/runs/:runId/bts/resend   { tcId, env }
 # BTS 연결 프로젝트의 옛 판정 통로 — 「판정은 BTS 에서만」을 비켜 가지 못하게 (BTS-F3-04 반영 2026-10-31 · authoring/decisionRun.ts · routes.ts)
 #   결정 진행 picks 에 실패(fail:…)가 있으면 400 BAD_DECISION — 버그 · 화면이 맞음 둘 다. 옛 POST /api/runs/:runId/bugs 는 2026-10-26 WEB-F6-05 에 지웠고 화면이 맞음 요청도 결정 진행 하나라 409 BTS_LINKED 를 낼 통로가 남지 않았다
 #   사람 작성 요청 통로(AUTHOR · RERUN)가 params 에 testFix · issueKey · repo · draft 칸을 실으면 400 BAD_EDIT { detail: 'params.<칸>' }
-#   사람의 다시 실행 통로는 PRD_DRAFT · NOTE · BUGFIX 줄을 400 BAD_KIND 로 막는다(에이전트 이어하기만) — 그 종류를 더하는 줄(F4-03 · F5-03 · F6-01)이 같이 한다
+#   사람의 다시 실행 통로는 PRD_DRAFT · NOTE · BUGFIX 줄을 400 BAD_KIND 로 막는다(에이전트 이어하기만) — 그 종류를 더하는 줄(F4-03 · F5-03 · F6-01)이 같이 한다. NOTE 는 BTS-F4-03 반영 2026-10-31(authoring/routes.ts — 이어서 작성 · 이어 작성 · 머지의 원본으로 줘도 같다. 남의 프로젝트 줄은 지금처럼 403)
 
 # 결정 목록(작성.md §7 「결정 목록 통로」) — BTS 연결 프로젝트만 갈라진다 (BTS-F3-04 · F5-04)
 #   items 에 FAIL 이 안 실리고 failMore 는 0 이다(BTS-F3-04 반영 2026-10-31 · authoring/decisions.ts) · 새 항목 종류 PRD_DRAFT { requestId, issueKeys, rows: [{ op, reqId?, text, basis, issueKeys, sure }], e2e?: [...] }
 #   진행 요청 picks 의 PRD_DRAFT 는 { requestId, rows: number[] }(고른 줄 차례 번호)
-
-# 프로젝트 노트 보기 — (작성, read) 가 있는 애플리케이션이 하나라도 있는 사람 (BTS-F4-03)
-GET /api/projects/:projectId/note
-  → { version: 0 | n, sections: { overview, features, recent, fragile, tips, more }, savedAt | null, events: number }   — 판 0 이면 아직 없다 · events 는 쌓여 아직 안 반영된 사건 수
 
 # 대시보드(리포팅.md §7 dashboard) 응답에 칸 하나 (BTS-F8-01)
      aiQuality: { draft: { picked, written }, fix: { merged, opened } } | null   — 고른 범위에 BTS 연결 프로젝트가 없으면 null
 
 # 작성 에이전트 통로 — 에이전트 토큰 허용 목록(인증.md §7)에 더한다
 #   집기(claim) 응답 kind 에 PRD_DRAFT · NOTE · BUGFIX 가 는다. 응답 mcpKey: 'mcj_…' 는 BTS.md 「열쇠 표」의 받는 줄에만(이 줄이 RUNNING 인 동안만 산다) — mcpKey 는 BTS-F4-02 반영 2026-10-31 · mcp/jobKey.ts · authoring/agentRoutes.ts(AUTHOR · 그 RERUN 만)
-#   service 가 빈 줄(NOTE)은 문의 서비스 경계(auth/scope.ts 「번호로 그 행의 서비스」)가 project_id 로 배정을 본다 — 그 프로젝트 어느 애플리케이션의 (작성, write) 면 통과
+#   service 가 빈 줄(NOTE)은 문의 서비스 경계(auth/scope.ts 「번호로 그 행의 서비스」)가 project_id 로 배정을 본다 — 그 프로젝트 어느 애플리케이션의 (작성, write) 면 통과 (BTS-F4-03 반영 2026-10-31)
+#   NOTE 집기는 그 프로젝트 어느 애플리케이션의 집기(?service=)에서나 집힌다(4-데이터모델 「NOTE 줄을 집는 길」). 응답에 칸 하나 (BTS-F4-03 반영 2026-10-31 · projectNote/claim.ts)
+#     note: { project: { id, name, btsProject }, services: [{ prefix, name, kind }], current: { version, savedAt, docs: [{ name, summary, body }] } | null, events: [{ id, kind, payload, createdAt }] }
+#     — events 는 집을 때 이 줄에 묶은 반영 안 된 사건(도메인 「맥락 — 프로젝트 노트」) · 차례는 오래된 것부터 · 200건까지(넘은 것은 다음 노트 고치기가 받는다)
 POST /api/authoring/requests/:id/draft    { rows, e2e? }                  — PRD_DRAFT 결과 (BTS-F5-03)
-POST /api/authoring/requests/:id/note     { sections }                    — NOTE 결과. 길이 상한을 넘으면 400 NOTE_TOO_LONG — 앞 버전이 남는다 (BTS-F4-03)
+POST /api/authoring/requests/:id/note     { docs: [{ name, summary, body }], remove?: string[] }   — NOTE 결과 (BTS-F4-03 반영 2026-10-31 · projectNote/routes.ts)
+  — 바뀐 문서만 싣는다. 서버가 앞 판에 이름으로 겹치고(remove 는 뺀다) 새 판 하나를 만든다
+  — NOTE 줄이 애플리케이션 전용 에이전트 통로(prd · screens · guide · app-screen · 산출물 등)를 부르면 400 BAD_KIND · 끝내기에 prUrl 을 실으면 400 BAD_PR_URL
+  → 201 { version } · 400 NOTE_TOO_LONG { detail }(문서 본문 · 한 줄 설명 · 이름 길이나 문서 개수가 `projectNote/note.ts` `노트상한` 을 넘음 — 앞 판이 남는다) · 400 BAD_NOTE { detail }(꼴 · 이름 없는 문서 · 같은 이름 둘 · 늘 있는 문서 다섯이 빠지거나 지우려 함 · 「최근 바뀐 것」 목록 줄이 상한을 넘음) · 409 NOT_RUNNING(도는 NOTE 줄이 아님) · 403 NOT_CLAIMER
 POST /api/authoring/requests/:id/bugfix   { prUrl } | { analysis }        — BUGFIX 결과. 서버가 BTS 「코드 리뷰」 · 담당자 변경 · 댓글을 보낼 줄에 넣는다 (BTS-F6-01)
 GET  /api/authoring/requests/:id/bts      — 그 일의 이슈 글 · 댓글 · 첨부 고리. 자식이 BTS 열쇠를 안 갖게 서버가 「QA Hub AI」 열쇠로 대신 읽는다
 
-# MCP — Streamable HTTP 하나 · 세션 없음 · 답은 JSON 한 덩어리 (BTS-F4-01 반영 2026-10-31 · apps/admin/src/mcp/server.ts · tools.ts · auth/pat.ts · mcj_ 는 BTS-F4-02 반영 2026-10-31 · mcp/jobKey.ts — note_read 는 F4-03)
+# MCP — Streamable HTTP 하나 · 세션 없음 · 답은 JSON 한 덩어리 (BTS-F4-01 반영 2026-10-31 · apps/admin/src/mcp/server.ts · tools.ts · auth/pat.ts · mcj_ 는 BTS-F4-02 반영 2026-10-31 · mcp/jobKey.ts — note_read 는 BTS-F4-03 반영 2026-10-31 · mcp/note.ts)
 #   열쇠: Authorization: Bearer <통합계정 PAT> | mcj_…. PAT 는 Auth whoami + 60초 기억. mcj_ 는 그 작성 요청이 RUNNING 이고 그 프로젝트일 때만
 #   열쇠는 몸을 읽기 전에 본다. 없거나 틀리거나 계정이 꺼졌으면 401(WWW-Authenticate: Bearer) · Auth 에 못 닿으면 503 · 기억에 없는 PAT 로 한 곳에서 1분에 30번 넘게 Auth 를 두드리면 429 · GET · DELETE /mcp 는 405
 POST /mcp
-  도구: note_read { projectId } · prd_search { service, query } · map_search { service, reqId? | tcId? | url? } · bts_search { projectId, query? | issueKey? } · run_result { runId }
+  도구: note_read { projectId, name? } · prd_search { service, query } · map_search { service, reqId? | tcId? | url? } · bts_search { projectId, query? | issueKey? } · run_result { runId }
   — 조회만. 권한 검사는 화면 통로와 같은 함수 · 다른 프로젝트는 도구 오류 FORBIDDEN. 한 번에 30줄까지
   — 도구 오류 이름: FORBIDDEN(배정 · 칸 · 남의 키) · NOT_FOUND(없는 실행 · 지운 케이스 · 표준 기획서 없음 · BTS 404) · BAD_INPUT(찾을 칸이 다 빔) · NOT_LINKED · BTS_UNAUTHORIZED · BTS_UNREACHABLE · BTS_ERROR(그 밖의 BTS 답)
   — prd_search: 지금 판에서 요구 번호 · 기능 · 문장에 낱말이 든 요구 + 덮는 케이스 · map_search: 살아 있는 케이스마다 덮는 요구 · 거치는 화면(url 은 주소 일부 — 파일 안에서 여는 화면 open_urls 도 찾는다) · 남의 애플리케이션 케이스 번호는 FORBIDDEN
   — bts_search: PAT 요청이면 그 사람 PAT 로 BTS 를 부른다 — issueKey 는 GET /api/v1/issues/<키>(이은 BTS 프로젝트 키로 시작해야 한다), query 는 POST /api/v1/search/aql { text ~ "<낱말>" }. 이은 BTS 가 없으면 NOT_LINKED · BTS 가 PAT 를 거절하면 BTS_UNAUTHORIZED
   — run_result: 실행 결과 화면의 GET /api/runs/:runId 몸(케이스 실행만) — items 는 실패를 앞에 두고 30줄, itemsTotal 에 전체 수
+  — note_read: 이름 없이 { version, savedAt, docs: [{ name, summary, length }] }(목차 — 문서 차례는 늘 있는 다섯 · 기능 문서 · 지난 기록) · name 을 주면 { version, savedAt, name, summary, body } · 노트가 아직 없거나 그 이름 문서가 없으면 NOT_FOUND · 이은 BTS 가 없으면 NOT_LINKED
 ```
 
 ```
 [계약 변경 필요]
-대상:    Admin API — 프로젝트 배포 신호 · BTS 알림 · BTS 규칙 웹훅 호출 · 설정 › BTS 연결 · 설정 서비스 codeRepos · BTS 다시 보내기 · 실패 카드 bts 칸 · 결정 목록 PRD_DRAFT 와 BTS 연결이면 FAIL 뺌 · 노트 보기 · 대시보드 aiQuality · 작성 에이전트 통로 넷과 집기 mcpKey · NOTE 줄의 서비스 경계 · 옛 판정 통로 409 · 사람 다시 실행 BAD_KIND · BTS 연결 프로젝트의 POST /api/builds 는 실행을 안 건다 · /mcp
+대상:    Admin API — 프로젝트 배포 신호 · BTS 알림 · BTS 규칙 웹훅 호출 · 설정 › BTS 연결 · 설정 서비스 codeRepos · BTS 다시 보내기 · 실패 카드 bts 칸 · 결정 목록 PRD_DRAFT 와 BTS 연결이면 FAIL 뺌 · 대시보드 aiQuality · 작성 에이전트 통로 넷과 집기 mcpKey · NOTE 줄의 서비스 경계 · 옛 판정 통로 409 · 사람 다시 실행 BAD_KIND · BTS 연결 프로젝트의 POST /api/builds 는 실행을 안 건다 · /mcp
 현재:    BTS 와 주고받는 통로가 없다. 바깥 열쇠는 CI 토큰 하나 · 작성 집기 kind 는 AUTHOR · RERUN · MERGE · EDIT
 제안:    위 §7 꼴
 이유:    도메인/BTS §3.12 (2026-10-28 기획 · BTS-F1-01 시작 질문 승인 2026-10-31)
 영향:    WS-B(배포 신호 · 다시 보내기) · WS-F(설정 · 열쇠 · PAT · 문 허용 목록) · WS-작성(결정 목록 · 에이전트 통로) · WS-D(실패 카드 · 대시보드) · WS-E(화면) · 작성 에이전트 · 새 bts/ · mcp/ · projectNote/
-반영:    설정 › BTS 연결 · 설정 서비스 codeRepos (2026-10-31, apps/admin/src/bts/routes.ts — BTS-F3-01) · BTS 알림 · BTS 규칙 웹훅 호출 (2026-10-31, apps/admin/src/bts/inbound.ts — BTS-F3-02) · BTS 다시 보내기 · 실패 카드 bts 칸 (2026-10-31, apps/admin/src/bts/card.ts — BTS-F3-03) · 결정 목록 FAIL 뺌 · 옛 판정 통로(BAD_DECISION · BAD_EDIT) (2026-10-31, authoring/decisions.ts · decisionRun.ts · routes.ts — BTS-F3-04) · 설정 › BTS 연결 publicUrl · 처음 연결의 webhookSecret 선택(SECRETS_REQUIRED 는 botKey 만) · 고를 목록 · 자동 설정 · 규칙 몸 assignee? · prTitle? (2026-10-31, apps/admin/src/bts/routes.ts · link.ts · choices.ts · setup.ts · inbound.ts — BTS-F3-05) · /mcp 의 PAT 열쇠와 도구 넷(note_read 빼고) (2026-10-31, apps/admin/src/mcp/server.ts · tools.ts · auth/pat.ts — BTS-F4-01) · /mcp 의 mcj_ 와 집기 mcpKey(AUTHOR · 그 RERUN 만 — 나머지 받는 줄은 그 종류를 만드는 줄이 더한다) (2026-10-31, apps/admin/src/mcp/jobKey.ts · authoring/agentRoutes.ts — BTS-F4-02). 나머지는 진행판 줄마다
+반영:    설정 › BTS 연결 · 설정 서비스 codeRepos (2026-10-31, apps/admin/src/bts/routes.ts — BTS-F3-01) · BTS 알림 · BTS 규칙 웹훅 호출 (2026-10-31, apps/admin/src/bts/inbound.ts — BTS-F3-02) · BTS 다시 보내기 · 실패 카드 bts 칸 (2026-10-31, apps/admin/src/bts/card.ts — BTS-F3-03) · 결정 목록 FAIL 뺌 · 옛 판정 통로(BAD_DECISION · BAD_EDIT) (2026-10-31, authoring/decisions.ts · decisionRun.ts · routes.ts — BTS-F3-04) · 설정 › BTS 연결 publicUrl · 처음 연결의 webhookSecret 선택(SECRETS_REQUIRED 는 botKey 만) · 고를 목록 · 자동 설정 · 규칙 몸 assignee? · prTitle? (2026-10-31, apps/admin/src/bts/routes.ts · link.ts · choices.ts · setup.ts · inbound.ts — BTS-F3-05) · /mcp 의 PAT 열쇠와 도구 넷(note_read 빼고) (2026-10-31, apps/admin/src/mcp/server.ts · tools.ts · auth/pat.ts — BTS-F4-01) · /mcp 의 mcj_ 와 집기 mcpKey(AUTHOR · 그 RERUN 만 — 나머지 받는 줄은 그 종류를 만드는 줄이 더한다) (2026-10-31, apps/admin/src/mcp/jobKey.ts · authoring/agentRoutes.ts — BTS-F4-02) · 노트 결과 통로 · 집기 note 칸과 NOTE 의 mcpKey · NOTE 줄의 서비스 경계 · NOTE 사람 다시 실행 BAD_KIND · note_read (2026-10-31, apps/admin/src/projectNote/ · mcp/note.ts · auth/scope.ts — BTS-F4-03 · 노트 보기 통로와 화면은 사용자가 뺐다). 나머지는 진행판 줄마다
 상태:    대기
 ```
 
@@ -389,11 +403,6 @@ POST /mcp
 
 - 판정 줄 자리 — BTS 연결 프로젝트는 「BTS DM-12 에서 확인 중」 + 고리. 닫혔으면 사유를 덧붙인다(「BTS DM-12 · 테스트 문제로 닫힘」). 「화면이 맞음으로 바꾸기」가 없다. 보일 등록이 없으면(`bts: null` — 판정으로 안 올림 · 연결 전 실행 · 아직 안 넣음) 판정 줄을 그리지 않는다 — 까닭을 하나로 못 집는다(BTS-F3-04 반영 · `web/RunFailJudge.tsx` — 항목 상세의 판정 줄도 같다)
 - 등록을 그만뒀으면 같은 자리에 실패 색 없이 「BTS 등록 실패 · <까닭>」 + [다시 보내기](`(실행, write)` 가 없으면 단추 없이 글자만). 보내는 중이면 「BTS 에 보내는 중」
-
-#### 노트 보기 (BTS-F4-03)
-
-한 장짜리 읽기 화면이다 — 여섯 칸 차례 · 머리에 「마지막 고친 때」와 판 번호 · 「쌓인 사건 N건 — 다음 노트 고치기에 반영됩니다」. 고치는 단추가 없다(결정 13 — 틀린 곳은 애플리케이션 가이드에 쓴다는 안내 한 줄과 가이드 고리).
-메뉴 자리는 그 줄의 시안에서 고른다
 
 #### 대시보드 두 숫자 (BTS-F8-01)
 

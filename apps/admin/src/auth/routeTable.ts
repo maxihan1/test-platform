@@ -122,6 +122,8 @@ export const 등급표: Record<string, 표값> = {
   'POST /api/authoring/requests/:id/outputs': 작성쓰기,
   // 토큰 사용량 — 작성 에이전트가 부른다 (작성 §7 「토큰 사용량」)
   'POST /api/authoring/requests/:id/usage': 작성쓰기,
+  // 노트 고치기 결과 — 작성 에이전트가 부른다 (도메인/BTS §7)
+  'POST /api/authoring/requests/:id/note': 작성쓰기,
   // 보류 케이스에 사람이 값을 넣거나 제거한다 — 화면이 부른다 (작성 §3.6 「★ 보류 케이스」)
   'PUT /api/authoring/requests/:id/held/:tcId': 작성쓰기,
   'DELETE /api/authoring/requests/:id/held/:tcId': 작성쓰기,
@@ -278,6 +280,7 @@ export const 토큰통로 = new Set([
   'POST /api/authoring/requests/:id/finish',
   'POST /api/authoring/requests/:id/outputs',
   'POST /api/authoring/requests/:id/usage',
+  'POST /api/authoring/requests/:id/note',
   'GET /api/authoring/requests/:id/prd',
   'POST /api/authoring/requests/:id/prd',
   'GET /api/authoring/requests/:id/screens',

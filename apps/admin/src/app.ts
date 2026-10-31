@@ -37,6 +37,7 @@ import apiDocRoutes from './apidoc/routes.js';
 import guideRoutes from './guide/routes.js';
 import prdAgentRoutes from './prd/agentRoutes.js';
 import prdRoutes from './prd/routes.js';
+import projectNoteRoutes from './projectNote/routes.js';
 import reportingRoutes from './reporting/routes.js';
 import scenarioRoutes from './scenario/routes.js';
 import scenarioRunRoutes from './scenario/runRoutes.js';
@@ -69,6 +70,7 @@ export function buildApp(sessionSecret = process.env.SESSION_SECRET ?? '') {
   app.register(notificationRoutes, { prefix: '/api' });
   app.register(prdRoutes, { prefix: '/api' });
   app.register(prdAgentRoutes, { prefix: '/api' });
+  app.register(projectNoteRoutes, { prefix: '/api' });
   app.register(guideRoutes, { prefix: '/api' });
   app.register(apiDocRoutes, { prefix: '/api' });
   app.register(guideAgentRoutes, { prefix: '/api' });

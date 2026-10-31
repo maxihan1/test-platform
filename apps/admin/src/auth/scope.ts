@@ -7,6 +7,8 @@
 // 같은 주소를 다르게 읽는** 자리가 생기고, 그 틈으로 전부 빠져나간다 (2026-09-19 실측).
 // 그래서 등록된 틀(`req.routeOptions.url`)로 종류를 고르고 값은 `req.params` 에서 읽는다.
 
+import { type 고를배정, 프로젝트에서고르기 } from './noteScope.js';
+
 // 서비스를 알아내는 길. 라우트 틀마다 하나씩 정해 둔다
 export type 원천 =
   | { 종류: '안매임' } // 시스템 전체이거나 서비스에 매이지 않는다
@@ -132,6 +134,8 @@ export const 라우트표: Record<string, 원천> = {
   '/api/authoring/requests/:id/guide/files/:fileId': { 종류: '작성요청', 칸: 'id' },
   '/api/authoring/requests/:id/app-screen': { 종류: '작성요청', 칸: 'id' },
   '/api/authoring/requests/:id/game-screen': { 종류: '작성요청', 칸: 'id' },
+  // 노트 고치기 결과 — 서비스 칸이 빈 줄이라 그 프로젝트 배정으로 본다 (projectNote/routes.ts)
+  '/api/authoring/requests/:id/note': { 종류: '작성요청', 칸: 'id' },
 
   // 표준 기획서 (도메인/작성 §7 「표준 기획서 통로」). 라우트가 ?service= 의 서비스 것만 읽고 쓴다
   '/api/prd': { 종류: '질의' },
@@ -257,9 +261,11 @@ const 질의: Record<찾을것['종류'], string> = {
           WHERE d.id = $1`,
   // 입력값 묶음은 서비스 칸이 없다. tc_id 접두사가 곧 서비스다 (SPEC §2)
   입력값묶음: 'SELECT split_part(tc_id, $2, 1) AS prefix FROM param_set WHERE id = $1',
-  // 작성 요청은 service_id 가 NOT NULL 이다. 새 표라 「통합 이전 행」이 없다 (§6)
-  작성요청:
-    'SELECT s.prefix FROM authoring_request a JOIN service s ON s.id = a.service_id WHERE a.id = $1',
+  // 작성 요청은 애플리케이션이 하나다. 노트 고치기 줄(service_id 가 빔)만 그 프로젝트의 애플리케이션 전부가 나온다 — 고르기는 아래 배정이 한다.
+  // 새 표라 「통합 이전 행」이 없다 (§6). 애플리케이션이 하나도 없으면 prefix 가 NULL 이라 막힌다
+  작성요청: `SELECT s.prefix FROM authoring_request a
+               LEFT JOIN service s ON s.id = a.service_id OR (a.service_id IS NULL AND s.project_id = a.project_id)
+              WHERE a.id = $1 ORDER BY s.id`,
   // 시나리오도 service_id 가 NOT NULL 이다
   시나리오: 'SELECT s.prefix FROM scenario sc JOIN service s ON s.id = sc.service_id WHERE sc.id = $1',
   서비스: 'SELECT prefix FROM service WHERE id = $1',
@@ -274,8 +280,9 @@ const 질의: Record<찾을것['종류'], string> = {
  * - 접두사 문자열 — 그 서비스 것이다
  * - `null` — 그런 번호가 없다. 문은 지나보내고 라우트가 404 를 낸다 (SPEC §7)
  * - `서비스없음` — 있긴 한데 서비스에 안 매였다. 어느 배정에도 안 드므로 막는다
+ * `배정` 은 노트 고치기 줄(작성 요청 중 프로젝트를 가리키는 줄)에서만 쓴다 (noteScope.ts)
  */
-export async function 자원의서비스(찾을것: 찾을것): Promise<string | null | typeof 서비스없음> {
+export async function 자원의서비스(찾을것: 찾을것, 배정: 고를배정 = []): Promise<string | null | typeof 서비스없음> {
   // 여기서 불러온다. 맨 위에서 부르면 DATABASE_URL 이 없는 자리(CI)에서 이 파일을
   // import 하는 것만으로 터지고, 위의 순수 함수들까지 같이 못 돌게 된다
   const { pool } = await import('../db/index.js');
@@ -285,7 +292,7 @@ export async function 자원의서비스(찾을것: 찾을것): Promise<string |
   const 줄 = rows.rows[0];
   if (줄 === undefined) return null;
 
-  const prefix = 줄.prefix;
+  const prefix = rows.rows.length > 1 ? 프로젝트에서고르기(rows.rows.map((r) => r.prefix ?? ''), 배정) ?? null : 줄.prefix;
   if (prefix === null || prefix === '') return 서비스없음;
   return prefix;
 }

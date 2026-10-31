@@ -171,6 +171,8 @@ export async function 한쪽(입력: {
   폐기?: boolean;
   // 참이면 todo 가 하나라도 남은 뿌리만
   할일만?: boolean;
+  // 참이면 그 애플리케이션 프로젝트의 노트 고치기 뿌리도 싣는다 — 작성 에이전트만 부른다
+  노트도?: boolean;
   쪽: number;
   크기?: number;
 }): Promise<{ items: 요약[]; total: number; page: number; pageSize: number }> {
@@ -182,8 +184,11 @@ export async function 한쪽(입력: {
     (입력.폐기 === true ? 'discarded_at IS NOT NULL' : 'discarded_at IS NULL') +
     (입력.상태 === undefined ? '' : ' AND status = $2');
   const 값들: unknown[] = 입력.상태 === undefined ? [입력.서비스] : [입력.서비스, 입력.상태];
-  // 뿌리는 원본이 없는 행 — 작성 요청과 케이스 고치기(EDIT). kind 로 고르면 고치기가 목록에서 빠진다
-  const 최신 = `WITH RECURSIVE ${사슬식('service_id = $1 AND source_id IS NULL')},
+  // 뿌리는 원본이 없는 행 — 작성 요청과 케이스 고치기(EDIT). kind 로 고르면 고치기가 목록에서 빠진다.
+  // 노트도 를 따로 부를 때만 같은 프로젝트의 노트 고치기 뿌리도 싣는다 — 켤 때 멈춘 줄 닫기(scripts/authoring-closing.ts)가 이 목록으로 찾는다.
+  // 상태 거르기에 기대면 화면이 그 상태로 거를 때 사람 작성 목록에 노트 고치기가 섞인다 (공통/4-데이터모델 「service_id 를 비우는 까닭」)
+  const 노트도 = 입력.노트도 === true ? ' OR (service_id IS NULL AND project_id = (SELECT project_id FROM service WHERE id = $1))' : '';
+  const 최신 = `WITH RECURSIVE ${사슬식(`(service_id = $1${노트도}) AND source_id IS NULL`)},
     최신 AS (
       SELECT DISTINCT ON (사슬.root_id) 사슬.root_id, count(*) OVER (PARTITION BY 사슬.root_id) AS run_count,
              (SELECT r.continue_from FROM authoring_request r WHERE r.id = 사슬.root_id) AS root_continue_from,

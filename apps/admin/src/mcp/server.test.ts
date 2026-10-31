@@ -185,12 +185,12 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
     expect(묻기).toHaveBeenCalledTimes(30);
   });
 
-  it('처음 인사와 도구 목록 — 조회 도구 넷', async () => {
+  it('처음 인사와 도구 목록 — 조회 도구 다섯', async () => {
     const 인사 = await 부르기MCP('pat_me000001', 'initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'xmc', version: '1' } });
     expect(인사.statusCode).toBe(200);
     expect(인사.json()).toMatchObject({ result: { serverInfo: { name: 'qa-hub' } } });
     const 목록 = (await 부르기MCP('pat_me000001', 'tools/list')).json() as 답몸;
-    expect(목록.result!.tools!.map((t) => t.name).sort()).toEqual(['bts_search', 'map_search', 'prd_search', 'run_result']);
+    expect(목록.result!.tools!.map((t) => t.name).sort()).toEqual(['bts_search', 'map_search', 'note_read', 'prd_search', 'run_result']);
   });
 
   it('PRD 요구 찾기 — 낱말이 든 요구와 덮는 케이스, 배정 밖 애플리케이션은 FORBIDDEN', async () => {

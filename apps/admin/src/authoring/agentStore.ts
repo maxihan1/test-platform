@@ -13,7 +13,7 @@ import { db, 빚기, 칸들, type 요청, type 행 } from './store.js';
  * 둘이 동시에 불러도 하나만 바꾼다. **먼저 읽고 나중에 고치는 두 문장으로 쓰면 둘이 같은 행을 집는다.**
  *
  * **그 서비스 것만 집는다** — 안 거르면 남의 서비스 행을 집어 주고, 그 행에는
- * `spec_text` 가 기획서 본문 통째로 실려 있다 (도메인/작성 §7).
+ * `spec_text` 가 기획서 본문 통째로 실려 있다 (도메인/작성 §7). 같은 프로젝트의 노트 고치기 줄만 더 본다.
  */
 export async function 집기(서비스: number, 집는이: string): Promise<요청 | null> {
   const pool = await db();
@@ -24,11 +24,15 @@ export async function 집기(서비스: number, 집는이: string): Promise<요�
      UPDATE authoring_request
         -- 앞 집기의 MCP 열쇠는 지운다 — 열쇠는 집을 때마다 새로 난다(mcp/jobKey.ts · 도메인/BTS 결정 20)
         SET status = 'RUNNING', claimed_by = $2, started_at = now(), mcp_key_hash = NULL,
-            prd_version = CASE WHEN kind = 'AUTHOR' OR (kind = 'RERUN' AND NOT (params ? 'edits'))
+            -- 노트 고치기 줄(서비스 칸이 빔)은 표준 기획서를 안 읽는다 — 집은 애플리케이션의 판을 적으면 틀린 판이 남는다
+            prd_version = CASE WHEN service_id IS NOT NULL AND (kind = 'AUTHOR' OR (kind = 'RERUN' AND NOT (params ? 'edits')))
                                THEN (SELECT max(version) FROM prd_version WHERE service_id = $1) END
       WHERE id = (
               SELECT id FROM authoring_request 줄
-               WHERE service_id = $1 AND status = 'PENDING'
+               -- 같은 프로젝트의 노트 고치기(그 RERUN 포함)도 번호 차례로 같이 본다 — 프로젝트 안 어느 애플리케이션 집기에서나 한 번만 집힌다
+               -- (공통/4-데이터모델 「NOTE 줄을 집는 길」)
+               WHERE (service_id = $1 OR (service_id IS NULL AND project_id = (SELECT project_id FROM service WHERE id = $1)))
+                 AND status = 'PENDING'
                  -- 이어받는 줄은 보관 폴더가 있는 에이전트만 — 원본을 집었던 쪽이다. 아무도 안 집었으면 폴더가 없어 누구나 (§7 「이어하기」)
                  AND (줄.resume_from IS NULL
                       OR COALESCE((SELECT 멈춘것.claimed_by FROM authoring_request 멈춘것 WHERE 멈춘것.id = 줄.resume_from), $2) = $2)

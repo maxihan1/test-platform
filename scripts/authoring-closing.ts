@@ -7,7 +7,8 @@ import { 보고손만들기, 부른다 } from './authoring-io.js';
 /** 켤 때 내 이름으로 잡힌 채 멈춘 RUNNING 을 닫는다. 에이전트가 꺼져 끊긴 것이라 아무도 안 끝낸다 */
 export async function 멈춘것닫기(주소기지: string, 토큰: string, 서비스들: string[], 나: string): Promise<void> {
   for (const 서비스 of 서비스들) {
-    const 답 = await 부른다(주소기지, 토큰, `/authoring/requests?service=${encodeURIComponent(서비스)}&status=RUNNING`);
+    // withNote=1 — 같은 프로젝트의 노트 고치기 줄도 받는다. 그 줄은 서비스 칸이 비어 이렇게 불러야만 목록에 실린다
+    const 답 = await 부른다(주소기지, 토큰, `/authoring/requests?service=${encodeURIComponent(서비스)}&status=RUNNING&withNote=1`);
     if (답.status !== 200) {
       console.error(`[기다림] ${서비스} 의 RUNNING 목록을 못 읽었다 (${답.status}). 이번엔 건너뛴다.`);
       continue;
