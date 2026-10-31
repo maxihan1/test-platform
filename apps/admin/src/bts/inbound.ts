@@ -134,7 +134,8 @@ export default async function btsInboundRoutes(app: FastifyInstance, opts: { 부
   // 서명은 받은 바이트 그대로에 건다 — 이 플러그인 안에서만 몸을 버퍼로 받는다.
   // BTS 규칙의 웹훅 호출은 Content-Type 을 안 붙여 text/plain 으로 온다 — 어느 종류로 와도 같은 상한으로 받는다
   const 버퍼로 = (_req: FastifyRequest, 몸: Buffer, done: (err: Error | null, body?: Buffer) => void): void => done(null, 몸);
-  app.addContentTypeParser('application/json', { parseAs: 'buffer', bodyLimit: 몸상한 }, 버퍼로);
+  // Fastify 가 이 둘은 따로 읽어 「*」까지 안 온다 — 둘을 직접 덮는다
+  app.addContentTypeParser(['application/json', 'text/plain'], { parseAs: 'buffer', bodyLimit: 몸상한 }, 버퍼로);
   app.addContentTypeParser('*', { parseAs: 'buffer', bodyLimit: 몸상한 }, 버퍼로);
 
   app.post<{ Params: { projectId: string } }>('/bts/events/:projectId', { onRequest: 서명문 }, async (req, reply) => {
