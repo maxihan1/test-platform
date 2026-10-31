@@ -40,12 +40,12 @@ describe.skipIf(연결 === undefined)('BTS 가 부르는 두 문', () => {
   const pool = async () => (await import('../db/index.js')).pool;
   const 알림 = (몸: string, 헤더: Record<string, string> = { 'x-bts-signature': 서명(몸) }, id = 프로젝트) =>
     app.inject({ method: 'POST', url: `/api/bts/events/${String(id)}`, payload: 몸, headers: { 'content-type': 'application/json', ...헤더 } });
-  const 규칙 = (몸: unknown, 토큰: string | undefined = 규칙토큰) =>
+  const 규칙 = (몸: unknown, 토큰: string | null = 규칙토큰) =>
     app.inject({
       method: 'POST',
       url: '/api/bts/rules',
       payload: JSON.stringify(몸),
-      headers: { 'content-type': 'application/json', ...(토큰 !== undefined && { 'x-qahub-token': 토큰 }) },
+      headers: { 'content-type': 'application/json', ...(토큰 !== null && { 'x-qahub-token': 토큰 }) },
     });
 
   beforeAll(async () => {
@@ -110,7 +110,7 @@ describe.skipIf(연결 === undefined)('BTS 가 부르는 두 문', () => {
   });
 
   it('규칙 웹훅 호출 — btr_ 토큰이 맞아야 하고 그 프로젝트 이슈만 받는다', async () => {
-    expect((await 규칙({ event: 'ASSIGNEE', issueKey: 'XBW-3', assignee: 'QA Hub AI' }, undefined)).statusCode).toBe(401);
+    expect((await 규칙({ event: 'ASSIGNEE', issueKey: 'XBW-3', assignee: 'QA Hub AI' }, null)).statusCode).toBe(401);
     expect((await 규칙({ event: 'ASSIGNEE', issueKey: 'XBW-3', assignee: 'QA Hub AI' }, 'btr_wrong')).statusCode).toBe(401);
     expect((await 규칙({ event: 'ASSIGNEE', issueKey: 'XBW-3', assignee: 'QA Hub AI' })).statusCode).toBe(204);
     expect((await 규칙({ event: 'PR_MERGED', issueKey: 'XBW-3', prNumber: '12', prUrl: 'https://github.com/a/b/pull/12', prTitle: '고침' })).statusCode).toBe(204);
