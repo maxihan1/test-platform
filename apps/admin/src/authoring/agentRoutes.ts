@@ -4,6 +4,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import { 작성계정인가 } from '../auth/agentToken.js';
+import { 테스트고침댓글 } from '../bts/close.js';
 import { 집기API칸 } from './apiDoc.js';
 import { 병합뒤훑기 } from '../catalog/scanRun.js';
 import { 자료목록 } from './assetStore.js';
@@ -247,6 +248,10 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
     // 끝난 행에 또 오면 409 다. 안 막으면 판정과 PR 주소가 덮어써진다
     if (!바뀌었나) return reply.code(409).send({ error: 'NOT_RUNNING', detail: 행.status });
     끝냈다고알림(행, 뿌리번호, 멈춤이유, app.log);
+    // BTS 「테스트 문제」로 세운 작성이 PR 을 열었으면 그 이슈에 댓글 — 보낼 줄에 넣기만 하고 기다리지 않는다 (도메인/BTS 「판정은 BTS 에서」)
+    if (status === 'DONE' && typeof prUrl === 'string' && 행.kind !== 'MERGE') {
+      void 테스트고침댓글(행, prUrl).catch((err: unknown) => app.log.error(`[bts] ${String(행.id)}번 테스트 고침 댓글을 못 넣었다: ${String(err)}`));
+    }
     // 병합한 테스트가 「PRD 관리」 · 목록에 바로 보이게 그 서비스를 다시 훑는다 (PRD-F9-03). main 을 못 받아 왔으면 훑어도 옛 파일이다.
     // 기다리지 않는다 — 큰 서비스는 훑기가 에이전트의 30초 제한을 넘겨, 이미 끝난 보고를 다시 보내게 된다
     if (status === 'DONE' && 행.kind === 'MERGE' && 결과칸.pulled === true) void 병합뒤훑기(행.serviceId, app.log);

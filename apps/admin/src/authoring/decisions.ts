@@ -4,6 +4,7 @@ import type { PrdItem } from '@platform/kit';
 
 import { 판비교 } from '../apidoc/doc.js';
 import { 문서설정읽기, 판원문 } from '../apidoc/store.js';
+import { BTS이은서비스인가 } from '../bts/link.js';
 import { findItem } from '../execution/queries.js';
 import { 지도를읽는다 } from '../prd/apiMap.js';
 import { 찾은화면셈 } from '../prd/found.js';
@@ -65,10 +66,14 @@ async function 첫묶음(서비스: number, 누구: 부른이): Promise<결정�
   return [...대기, ...할일];
 }
 
-/** ② 실패 판정 — 지금 판에 있는 요구를 덮는 실패만. 목록에는 최근 20건까지 싣고, 진행이 받을 열쇠(`전부`)는 다 둔다 */
+/**
+ * ② 실패 판정 — 지금 판에 있는 요구를 덮는 실패만. 목록에는 최근 20건까지 싣고, 진행이 받을 열쇠(`전부`)는 다 둔다.
+ * BTS 를 이은 프로젝트는 싣지 않는다 — 판정은 BTS 에서만 한다(도메인/BTS 「판정은 BTS 에서」)
+ */
 async function 실패묶음(서비스: number, 판: PrdItem[], 누구: 부른이, 상세: boolean): Promise<{ items: 결정항목[]; more: number; 전부: Map<string, 결정항목> }> {
   if (!누구.실행읽기) return { items: [], more: 0, 전부: new Map() };
-  const [실패들, 지도] = await Promise.all([판정없는실패들(서비스), 케이스지도(서비스)]);
+  const [실패들, 지도, 이음] = await Promise.all([판정없는실패들(서비스), 케이스지도(서비스), BTS이은서비스인가(서비스)]);
+  if (이음) return { items: [], more: 0, 전부: new Map() };
   const 덮는요구 = new Map<string, Set<string>>();
   for (const [reqId, 케이스들] of Object.entries(지도)) {
     for (const c of 케이스들) 덮는요구.set(c.tcId, (덮는요구.get(c.tcId) ?? new Set<string>()).add(reqId));

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 실패 카드 BTS 등록 줄 — 보내는 중 · 등록 실패 + [다시 보내기] · 권한 없으면 글자만 · BTS 안 이으면 줄 없음 (도메인/BTS §8.15)
+// 실패 카드 BTS 등록 줄 — 보내는 중 · 등록 실패 + [다시 보내기] · 권한 없으면 글자만 · BTS 안 이으면 줄 없음 · 판정 줄은 BTS 이슈 고리 (도메인/BTS §8.15)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
@@ -46,16 +46,44 @@ describe('BTS 등록 줄', () => {
     expect(screen.queryByRole('button', { name: '다시 보내기' })).toBeNull();
   });
 
-  it('보내는 중이면 그 한 줄 · 보냈거나 안 올렸거나 BTS 를 안 이었으면 줄이 없다', async () => {
+  it('보내는 중이면 그 한 줄 · 보냈거나 안 올렸으면 등록 줄은 없고 판정 줄이 맡는다 · BTS 를 안 이었으면 BTS 글자가 없다', async () => {
     열기({ ...그만둠, state: 'SENDING', reason: null });
     await screen.findByText('BTS 에 보내는 중');
+    expect(screen.queryByText(/에서 확인 중/)).toBeNull();
     cleanup();
 
-    for (const bts of [{ ...그만둠, state: 'SENT' as const, issueKey: 'DM-12', reason: null }, null, undefined]) {
+    for (const bts of [{ ...그만둠, state: 'SENT' as const, issueKey: 'DM-12', reason: null }, null]) {
       열기(bts);
       await screen.findByText('회원가입');
-      await waitFor(() => expect(screen.queryByText(/BTS/)).toBeNull());
+      await waitFor(() => expect(screen.queryByText(/BTS 등록 실패|BTS 에 보내는 중/)).toBeNull());
       cleanup();
     }
+    열기(undefined);
+    await screen.findByText('회원가입');
+    await waitFor(() => expect(screen.queryByText(/BTS/)).toBeNull());
+  });
+});
+
+describe('BTS 를 이은 프로젝트의 판정 줄', () => {
+  const 보냄: FailureBts = { issueKey: 'DM-12', url: 'https://bts.example.com/issues/DM-12', state: 'SENT', reason: null, resolution: null };
+
+  it('올린 이슈는 「BTS DM-12 에서 확인 중」 고리 하나 — 결정 목록 고리 · 「화면이 맞음으로 바꾸기」가 없다', async () => {
+    열기(보냄);
+
+    const 고리 = await screen.findByRole('link', { name: 'BTS DM-12 에서 확인 중' });
+    expect(고리.getAttribute('href')).toBe('https://bts.example.com/issues/DM-12');
+    expect(screen.queryByRole('link', { name: '테스트 작성 › 결정 필요에서 판정합니다' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '화면이 맞음으로 바꾸기' })).toBeNull();
+  });
+
+  it('닫혔으면 사유를 덧붙이고, 보일 등록이 없으면(null) 판정 줄도 결정 목록 고리도 없다', async () => {
+    열기({ ...보냄, resolution: 'TEST_PROBLEM' });
+    await screen.findByRole('link', { name: 'BTS DM-12 · 테스트 문제로 닫힘' });
+    cleanup();
+
+    열기(null);
+    await screen.findByText('회원가입');
+    expect(screen.queryByText('판정')).toBeNull();
+    expect(screen.queryByRole('link', { name: '테스트 작성 › 결정 필요에서 판정합니다' })).toBeNull();
   });
 });

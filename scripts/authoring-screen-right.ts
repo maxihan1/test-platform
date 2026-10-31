@@ -14,18 +14,18 @@ import type { 기준결정 } from './authoring-ledger-check.js';
 import { type 기준표, 기준결정만들기 } from './authoring-ledger-io.js';
 import { type 옮긴것, 보낼항목, 옛번호지도, 표준원장 } from './authoring-prd.js';
 import { type 서버, type 앞판, 거절말고, 결과읽기, 지금판읽기, 통로 } from './authoring-prd-io.js';
-import { type 반영입력, 반영뒤줄, 실패trace자리, 화면이맞음읽기, 화면이맞음줄 } from './authoring-apply.js';
+import { type 반영입력, 반영뒤줄, 실패trace자리, 테스트고침읽기, 테스트고침줄, 화면이맞음읽기, 화면이맞음줄 } from './authoring-apply.js';
 
 // authoring-run.ts 가 300줄이라 가져오는 줄을 늘리지 않으려고 여기서 다시 내보낸다
-export { 반영요청인가, 화면이맞음읽기 } from './authoring-apply.js';
+export { 반영요청인가, 테스트고침읽기, 화면이맞음읽기 } from './authoring-apply.js';
 
 /**
- * 자식을 띄우기 전 — 화면이 맞음 건마다 그 실행의 실패 trace 요약(서버가 가린 몇 줄)을 자료 폴더 traces/ 로 받는다. 받은 개수를 돌려준다.
+ * 자식을 띄우기 전 — 화면이 맞음 · 테스트 고침(BTS 테스트 문제) 건마다 그 실행의 실패 trace 요약(서버가 가린 몇 줄)을 자료 폴더 traces/ 로 받는다. 받은 개수를 돌려준다.
  * 가리지 않은 zip 은 받지 않는다 — 자료 폴더는 자식이 셸로 연다. 못 받아도 작성은 간다 — 자식은 그 케이스를 다시 돌려 본다 (§3.6 「관문이 빨개지면」)
  */
 export async function 실패trace받기(서버: 서버, 것: { id: number; params?: unknown }, 자료: string): Promise<number> {
   let 받음 = 0;
-  for (const x of 화면이맞음읽기(것) ?? []) {
+  for (const x of [...(화면이맞음읽기(것) ?? []), ...(테스트고침읽기(것)?.cases ?? [])]) {
     const 길 = `/authoring/requests/${String(것.id)}/trace?runId=${String(x.runId)}&tcId=${encodeURIComponent(x.tcId)}`;
     const 못받음 = (까닭: string) => console.error(`[작성] ${String(것.id)}번 — RUN ${String(x.runId)} ${x.tcId} 의 실패 trace 를 못 받았다: ${까닭}`);
     try {
@@ -83,7 +83,7 @@ export async function 안옮김뒤(
   게임 = false,
 ): Promise<뒤결과> {
   if (원장.반영 === undefined) return { 줄: [], 원장: 원장.원장, 기준: 원장.기준 };
-  const 반영줄 = 반영뒤줄(원장.반영.계획, 자리.트리, 폴더);
+  const 반영줄 = [...반영뒤줄(원장.반영.계획, 자리.트리, 폴더), ...(원장.반영.계획.테스트고침 === undefined ? [] : [테스트고침줄(원장.반영.계획.테스트고침)])];
   const 화면 = 원장.반영.계획.화면이맞음;
   if (화면 === undefined) return { 줄: 반영줄, 원장: 원장.원장, 기준: 원장.기준 };
   const 그대로 = { 줄: [...반영줄, 화면이맞음줄(화면, [])], 원장: 원장.원장, 기준: 원장.기준 };

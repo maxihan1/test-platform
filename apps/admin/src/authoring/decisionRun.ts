@@ -3,6 +3,7 @@
 import type { PoolClient } from 'pg';
 
 import { 다시작성넣기, 다시작성준비하기, type 다시작성준비 } from '../apidoc/rewrite.js';
+import { BTS이은서비스인가 } from '../bts/link.js';
 import { 상한 } from '../prd/rules.js';
 import { 화면목록식, 화면이맞음채우기, type 화면이맞음 } from '../prd/screenRight.js';
 import { 결정판넣기, 잠그고, 지금판, type 저장하는사람 } from '../prd/store.js';
@@ -190,6 +191,8 @@ async function 반영세우기(손: PoolClient, 서비스: number, runId: number
 export async function 결정진행(서비스: number, 누구: 부른이, 사람: 저장하는사람, body: unknown): Promise<진행결과> {
   const 본문 = 본문읽기(body);
   if (본문 === null) return { code: 400, body: { error: 'INVALID_REQUEST' } };
+  // BTS 를 이은 프로젝트는 판정을 BTS 에서만 한다 — 실패를 고르는 진행은 목록에 없다고 낡음으로 돌리지 않고 까닭을 밝힌다(도메인/BTS §7)
+  if (본문.picks.some((p) => p.key.startsWith('fail:')) && (await BTS이은서비스인가(서비스))) return { code: 400, body: { error: 'BAD_DECISION' } };
   const 준 = await 준비하기(서비스, 누구, 본문);
   if ('code' in 준) return 준;
   const 판 = 준.확인.length === 0 ? null : 결정판((await 지금판(서비스))?.items ?? [], 준.확인.map((x) => x.결정));

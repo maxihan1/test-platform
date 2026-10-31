@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 
-import type { FailureCase, FailureJudgment } from './api.js';
+import type { FailureBts, FailureCase, FailureJudgment } from './api.js';
 import { decideApi } from './decideApi.js';
 import { use말, use언어 } from './i18n.js';
 import { show } from './ItemSteps.js';
@@ -12,6 +12,39 @@ import { prdApi } from './prdApi.js';
 import { 케이스서비스, type 판정 } from './role.js';
 import { 결정필요주소 } from './route.js';
 import { message, when } from './ui.js';
+
+// BTS 해결 상태 단계(bts_issue_case.resolution)를 화면 말로. FIXED 는 재검증 통과로 QA Hub 가 닫은 것이다
+// 조사(으로 · 로)가 사유마다 달라 문구 통째로 둔다
+const 닫힌사유: Record<string, string> = {
+  SCREEN_RIGHT: '화면이 맞음으로 닫힘',
+  TEST_PROBLEM: '테스트 문제로 닫힘',
+  FLAKY: '흔들림으로 닫힘',
+  ENV: '환경 문제로 닫힘',
+  DUPLICATE: '중복으로 닫힘',
+  FIXED: '재검증 통과로 닫힘',
+};
+
+/**
+ * 올린 이슈는 「확인 중」 · 닫혔으면 사유. 보내는 중 · 등록 실패는 RunFailBts 가 그린다.
+ * null(보일 등록이 없음 — 판정으로 안 올림 · 연결 전 실행 · 아직 안 넣음)은 까닭을 하나로 못 집어 아무것도 안 그린다
+ */
+function BTS판정({ 칸 }: { 칸: FailureBts | null }) {
+  const t = use말();
+  if (칸 === null || 칸.state !== 'SENT' || 칸.issueKey === null) return null;
+  const 키 = 칸.issueKey;
+  return (
+    <div className="fc-cause">
+      <span className="fc-cause-label">{t('판정')}</span>
+      <p className="fc-judged">
+        <a href={칸.url ?? '#'} target="_blank" rel="noreferrer">
+          {칸.resolution === null
+            ? t('BTS {키} 에서 확인 중', { 키 })
+            : t('BTS {키} · {사유}', { 키, 사유: 닫힌사유[칸.resolution] === undefined ? 칸.resolution : t(닫힌사유[칸.resolution]) })}
+        </a>
+      </p>
+    </div>
+  );
+}
 
 interface Props {
   c: FailureCase;
@@ -37,6 +70,8 @@ export function RunFailJudge({ c, runId, 권한, on남김 }: Props) {
   const 바꾸기가능 = 서비스 !== null && 지금?.kind === 'BUG' && 권한('작성요청') && c.reqs.some((r) => r.text !== null);
   // 무엇을 지금 화면 쪽으로 고치는지 창 안에서 보고 고르게 한다 — 카드의 대표 디바이스가 처음 깨진 확인 하나
   const 깨진확인 = c.devices[0]?.item.steps.flatMap((s) => s.assertions).find((a) => a.status === 'FAIL') ?? null;
+  // BTS 를 이은 프로젝트는 판정을 BTS 에서만 한다 — 판정 줄은 그 이슈 고리이고 「화면이 맞음으로 바꾸기」가 없다 (도메인/BTS §8.15)
+  if (c.bts !== undefined) return <BTS판정 칸={c.bts} />;
 
   async function 화면이맞음() {
     set묻는중(false);

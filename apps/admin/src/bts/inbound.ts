@@ -12,6 +12,7 @@ import { 사용자와해시 } from '../auth/store.js';
 import { 정수 } from '../routeParams.js';
 
 import { 이슈읽기, type BTS이슈, type 부르기함수 } from './client.js';
+import { 닫기처리 } from './close.js';
 
 async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
@@ -60,8 +61,8 @@ export interface 알림연결 {
 
 /**
  * 받은 알림을 처리한다 — 알림 본문을 믿지 않고 이슈를 BTS 에서 다시 읽는다. 처리할 것이 없으면 null.
- * 다시 읽기가 깨지면 그 알림을 잊고 던진다 — 라우트가 503 을 내 BTS 가 같은 알림을 다시 보내게.
- * 읽은 이슈로 무엇을 할지(닫기 사유 · 맡기)는 뒤 줄이 여기에 잇는다
+ * 다시 읽기나 뒤 처리(닫기 사유 — close.ts)가 깨지면 그 알림을 잊고 던진다 — 라우트가 503 을 내 BTS 가 같은 알림을 다시 보내게.
+ * 뒤 처리는 DB 상태로 한 번만 하므로 다시 와도 겹치지 않는다. 맡기(BTS-F5-01)는 뒤 줄이 여기에 잇는다
  */
 export async function BTS알림처리(연결: 알림연결, 몸: unknown, 부르기?: 부르기함수): Promise<BTS이슈 | null> {
   const 꼴 = 알림몸.safeParse(몸);
@@ -71,7 +72,11 @@ export async function BTS알림처리(연결: 알림연결, 몸: unknown, 부르
   const 열쇠 = `${String(연결.projectId)}:${꼴.data.deliveryId}`;
   if (!처음보나(열쇠)) return null;
   try {
-    return await 이슈읽기({ baseUrl: 연결.baseUrl, botKey: 연결.botKey }, 꼴.data.data.issueKey, 부르기);
+    const 이슈 = await 이슈읽기({ baseUrl: 연결.baseUrl, botKey: 연결.botKey }, 꼴.data.data.issueKey, 부르기);
+    const 닫음 = await 닫기처리(연결, 이슈, 부르기);
+    // 닫기만 하고 요청을 못 세운 케이스 — 사람의 판정이 QA Hub 에 닿지 않은 까닭을 남긴다(outbox.ts 처럼 서버 기록으로)
+    for (const 까닭 of 닫음.기록만) console.error(`[bts] ${이슈.key} 를 닫았지만 작성 요청을 못 세웠다: ${까닭}`);
+    return 이슈;
   } catch (err) {
     본알림.delete(열쇠);
     throw err;
@@ -159,7 +164,7 @@ export default async function btsInboundRoutes(app: FastifyInstance, opts: { 부
       );
       if (이슈 !== null) req.log.info(`[bts] 알림 ${이슈.key} — 상태 ${이슈.state} · 해결 ${이슈.resolution ?? '없음'}`);
     } catch (err) {
-      // 다시 읽기가 깨졌다 — 204 를 주면 BTS 가 다시 안 보내 알림을 영영 잃는다
+      // 다시 읽기나 닫기 사유 처리가 깨졌다 — 204 를 주면 BTS 가 다시 안 보내 알림을 영영 잃는다
       req.log.error(`[bts] 알림 처리가 깨졌다: ${err instanceof Error ? err.message : String(err)}`);
       return reply.code(503).send({ error: 'BTS_UNREACHABLE' });
     }

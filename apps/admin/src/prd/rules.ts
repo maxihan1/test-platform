@@ -121,9 +121,13 @@ export function 화면번호들(params: Record<string, unknown>): Map<string, st
   return 표;
 }
 
-/** 그 요청의 「화면이 맞음」 칸에 실린 실행 · 케이스인가 — 에이전트가 받을 수 있는 실패 trace 는 이 짝뿐이다 */
+/**
+ * 그 요청의 「화면이 맞음」 칸 · BTS 「테스트 문제」 칸(testFix.cases)에 실린 실행 · 케이스인가 — 에이전트가 받을 수 있는 실패 trace 는 이 짝뿐이다
+ */
 export function 화면이맞음건인가(params: Record<string, unknown>, runId: number, tcId: string): boolean {
-  return 화면칸들(params).some((칸) => 칸?.runId === runId && 칸?.tcId === tcId);
+  const 고침 = (params.testFix as { cases?: unknown } | undefined)?.cases;
+  const 고침칸 = Array.isArray(고침) ? (고침 as ({ runId?: unknown; tcId?: unknown } | null)[]) : [];
+  return [...화면칸들(params), ...고침칸].some((칸) => 칸?.runId === runId && 칸?.tcId === tcId);
 }
 
 /** 판 통째가 같은가 — 같으면 새 판을 안 만든다(옮기기를 다시 돌릴 때마다 같은 판이 쌓이지 않게) */

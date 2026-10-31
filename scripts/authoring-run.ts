@@ -35,7 +35,7 @@ import { 기준목록이름 } from './authoring-base-list.js';
 import { API떼기, API반영줄, API원장항목, API점검, API환경, 판파일쓰기 } from './authoring-api.js';
 import { 화면지도준비 } from './authoring-covered.js';
 import { 앞결과, 옮기기올리기, 판받기 } from './authoring-prd-io.js';
-import { 반영요청인가, 실패trace받기, 안옮김뒤, 화면이맞음읽기 } from './authoring-screen-right.js';
+import { 반영요청인가, 실패trace받기, 안옮김뒤, 테스트고침읽기, 화면이맞음읽기 } from './authoring-screen-right.js';
 
 /** 켤 때 정해 두고 모든 건이 같이 쓰는 것 */
 export interface 판 {
@@ -204,7 +204,7 @@ async function 사본에서(
   const 옮긴다 = 이어작성원본 === null && !반영요청인가(것) && !(것.api !== undefined && 계획.length === 0); // API 판만 넣었으면 옮길 것이 없다
   // 가린 뒤 뽑는다 — 사본에 계정 원문이 안 남게. 판정은 메모리의 것으로. 기준 표는 트리가 아니라 기준 SHA 에서. 이어받은 폴더면 앞 결과 파일의 임시 번호를 잇는다
   const 깃 = (인자: string[]) => 친다('git', 인자, 자리.트리, undefined, 120_000, { env: 사본환경(자리) });
-  const 원장 = 원장과남은번호({ 계획, 자료폴더: 자리.자료, 깃, 기준, 서비스, 폴더: 케이스자리, 이어작성원본, 지금: 기획서.앞판.items, 옮긴다, 옮긴몸: 옮긴다 ? 앞결과(자리, 기획서.앞판.items, 서비스) : undefined, 반영: 반영요청인가(것) ? { 지금판: 기획서.앞판.version, 기준판: 기획서.기준판, 화면이맞음: 화면이맞음읽기(것) } : undefined, 등록역할: new Set((것.accounts ?? []).map((a) => a.role)), api: 것.api === undefined ? [] : API원장항목(것.api.문서, 것.api.반영?.operations), 게임: 설정.게임 === true });
+  const 원장 = 원장과남은번호({ 계획, 자료폴더: 자리.자료, 깃, 기준, 서비스, 폴더: 케이스자리, 이어작성원본, 지금: 기획서.앞판.items, 옮긴다, 옮긴몸: 옮긴다 ? 앞결과(자리, 기획서.앞판.items, 서비스) : undefined, 반영: 반영요청인가(것) ? { 지금판: 기획서.앞판.version, 기준판: 기획서.기준판, 화면이맞음: 화면이맞음읽기(것), 테스트고침: 테스트고침읽기(것) } : undefined, 등록역할: new Set((것.accounts ?? []).map((a) => a.role)), api: 것.api === undefined ? [] : API원장항목(것.api.문서, 것.api.반영?.operations), 게임: 설정.게임 === true });
   if ('막힘' in 원장) return void (await 손.끝내기({ status: 'FAILED', error: 원장.막힘 }));
   // 자식은 bare git 을 못 읽는다 — 돌려 보기 · 빠른 검사 명령이 기준과의 차이를 셀 수 있게 기준 SHA 의 tests 목록을 둔다 (§3.6 「돌려 보기 명령」)
   const 기준목록 = 깃(['ls-tree', '-r', '-z', 기준, '--', 'tests']);
