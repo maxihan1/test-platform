@@ -155,10 +155,10 @@
 #### 맥락 — MCP 조회 도구
 
 - QA Hub admin 안 `/mcp` 하나(`apps/admin/src/mcp/`) — 쓰임 둘: AI 들이 일할 때 맥락 찾는 창구(본 목적) · 사람이 자기 Claude Code 로 묻는 창구(덤)
-- **도구** — 프로젝트 노트 읽기 · PRD 요구 찾기 · 지도 찾기 · BTS 이슈 · task 찾기 · 실행 결과 보기. 모두 조회만이다
-- 권한 검사는 화면 통로와 같은 출입문 하나다(도메인/인증 §7 — 프로젝트 · 기능 칸). 다른 프로젝트는 403
+- **도구** — 프로젝트 노트 읽기 · PRD 요구 찾기 · 지도 찾기 · BTS 이슈 · task 찾기 · 실행 결과 보기. 모두 조회만이다. 노트 읽기는 노트 표를 만드는 BTS-F4-03 이 더한다(BTS-F4-01 은 나머지 넷)
+- 권한 검사는 화면 통로와 같은 출입문 하나다(도메인/인증 §7 — 프로젝트 · 기능 칸). 도구마다 화면의 같은 통로가 요구하는 권한으로 문의 판정 함수(`auth/gate.ts` `문판정`)를 부른다 — PRD 요구 찾기는 `GET /api/prd`, 지도 찾기는 `GET /api/catalog/cases`, 실행 결과는 `GET /api/runs/:runId`, BTS 찾기는 그 프로젝트 애플리케이션 하나라도 (작성, read)(노트 보기와 같은 문턱). 배정 밖은 도구 오류 `FORBIDDEN`
 - 작성 자식(`claude -p`)에 `--mcp-config` 로 붙인다 — 지금 `scripts/authoring-chain.ts` 는 Playwright MCP 만 넘긴다. 기존 깃발은 그대로 둔다
-- 새 npm 패키지 `@modelcontextprotocol/sdk` 는 BTS-F4-01 시작 질문에서 승인받는다(CLAUDE.md §3)
+- 새 npm 패키지 `@modelcontextprotocol/sdk` 는 BTS-F4-01 시작 질문에서 승인받았다(2026-10-31 사용자 — 「나중에 기능 추가할 수 있으니」 · 1.32.1). 1차 밖의 브라우저 로그인 · 긴 작업 자리가 패키지에 있다
 
 #### 열쇠 표
 
@@ -173,7 +173,7 @@
 | BTS → QA Hub 알림 | HMAC 서명 `X-BTS-Signature`(BTS 에 이미 있음) | 알림 받기 |
 | 수정 AI → GitHub | 에이전트 스크립트만 듦 · 저장소 하나 | 브랜치 · PR 까지 |
 
-- QA Hub 가 Auth PAT 를 받게 고친다(지금 `apps/admin/src/auth/` 에 없다). 확인은 Auth whoami + 짧은 캐시(BTS 와 같은 방식) — BTS-F4-01. 앞 조건은 BTS 가 Auth PAT 를 받는 것(OPS-F5-09 후속)
+- QA Hub 는 Auth PAT 를 **`/mcp` 한 곳에서만** 받는다(2026-10-31 BTS-F4-01 — `auth/pat.ts`). 확인은 Auth whoami + 60초 기억(BTS 와 같은 방식), 계정이 꺼졌는지는 매번 DB 로 본다. `/api` 통로는 PAT 를 안 받는다 — 새면 할 수 있는 일을 조회 도구로 좁힌다(도메인/인증 §7 「인증 적용 범위」). SSO 가 꺼진 설치는 PAT 를 확인할 곳이 없어 `/mcp` 가 401 이다
 - 새 열쇠 셋(`pdk_` · `btr_` · `mcj_`)은 원문을 한 번만 보이고 해시만 둔다(CI 토큰과 같다). `pdk_` · `btr_` 는 발급한 admin 계정에 묶는다 — 그 계정이 꺼지면 열쇠도 못 쓴다([실행.md](실행.md) §3.11 「토큰은 발급한 admin 계정에 묶는다」와 같은 판단)
 
 #### 설정 · 고장 대응
@@ -326,11 +326,15 @@ POST /api/authoring/requests/:id/note     { sections }                    — NO
 POST /api/authoring/requests/:id/bugfix   { prUrl } | { analysis }        — BUGFIX 결과. 서버가 BTS 「코드 리뷰」 · 담당자 변경 · 댓글을 보낼 줄에 넣는다 (BTS-F6-01)
 GET  /api/authoring/requests/:id/bts      — 그 일의 이슈 글 · 댓글 · 첨부 고리. 자식이 BTS 열쇠를 안 갖게 서버가 「QA Hub AI」 열쇠로 대신 읽는다
 
-# MCP — Streamable HTTP 하나 (BTS-F4-01 · F4-02)
-#   열쇠: Authorization: Bearer <통합계정 PAT> | mcj_…. PAT 는 Auth whoami + 짧은 캐시. mcj_ 는 그 작성 요청이 RUNNING 이고 그 프로젝트일 때만
+# MCP — Streamable HTTP 하나 · 세션 없음 · 답은 JSON 한 덩어리 (BTS-F4-01 반영 2026-10-31 · apps/admin/src/mcp/server.ts · tools.ts · auth/pat.ts — mcj_ 는 F4-02 · note_read 는 F4-03)
+#   열쇠: Authorization: Bearer <통합계정 PAT> | mcj_…. PAT 는 Auth whoami + 60초 기억. mcj_ 는 그 작성 요청이 RUNNING 이고 그 프로젝트일 때만
+#   열쇠가 없거나 틀리거나 계정이 꺼졌으면 401(WWW-Authenticate: Bearer) · Auth 에 못 닿으면 503 · GET · DELETE /mcp 는 405
 POST /mcp
   도구: note_read { projectId } · prd_search { service, query } · map_search { service, reqId? | tcId? | url? } · bts_search { projectId, query? | issueKey? } · run_result { runId }
-  — 조회만. 권한 검사는 화면 통로와 같은 함수 · 다른 프로젝트는 도구 오류 FORBIDDEN. bts_search 는 PAT 요청이면 그 사람 PAT 로 BTS 를 부른다
+  — 조회만. 권한 검사는 화면 통로와 같은 함수 · 다른 프로젝트는 도구 오류 FORBIDDEN. 한 번에 30줄까지
+  — prd_search: 지금 판에서 요구 번호 · 기능 · 문장에 낱말이 든 요구 + 덮는 케이스 · map_search: 케이스마다 덮는 요구 · 거치는 화면(url 은 주소 일부) · 남의 애플리케이션 케이스 번호는 FORBIDDEN
+  — bts_search: PAT 요청이면 그 사람 PAT 로 BTS 를 부른다 — issueKey 는 GET /api/v1/issues/<키>(이은 BTS 프로젝트 키로 시작해야 한다), query 는 POST /api/v1/search/aql { text ~ "<낱말>" }. 이은 BTS 가 없으면 NOT_LINKED · BTS 가 PAT 를 거절하면 BTS_UNAUTHORIZED
+  — run_result: 실행 결과 화면의 GET /api/runs/:runId 몸 그대로(케이스 실행만)
 ```
 
 ```
@@ -340,7 +344,7 @@ POST /mcp
 제안:    위 §7 꼴
 이유:    도메인/BTS §3.12 (2026-10-28 기획 · BTS-F1-01 시작 질문 승인 2026-10-31)
 영향:    WS-B(배포 신호 · 다시 보내기) · WS-F(설정 · 열쇠 · PAT · 문 허용 목록) · WS-작성(결정 목록 · 에이전트 통로) · WS-D(실패 카드 · 대시보드) · WS-E(화면) · 작성 에이전트 · 새 bts/ · mcp/ · projectNote/
-반영:    설정 › BTS 연결 · 설정 서비스 codeRepos (2026-10-31, apps/admin/src/bts/routes.ts — BTS-F3-01) · BTS 알림 · BTS 규칙 웹훅 호출 (2026-10-31, apps/admin/src/bts/inbound.ts — BTS-F3-02) · BTS 다시 보내기 · 실패 카드 bts 칸 (2026-10-31, apps/admin/src/bts/card.ts — BTS-F3-03) · 결정 목록 FAIL 뺌 · 옛 판정 통로(BAD_DECISION · BAD_EDIT) (2026-10-31, authoring/decisions.ts · decisionRun.ts · routes.ts — BTS-F3-04) · 설정 › BTS 연결 publicUrl · 처음 연결의 webhookSecret 선택(SECRETS_REQUIRED 는 botKey 만) · 고를 목록 · 자동 설정 · 규칙 몸 assignee? · prTitle? (2026-10-31, apps/admin/src/bts/routes.ts · link.ts · choices.ts · setup.ts · inbound.ts — BTS-F3-05). 나머지는 진행판 줄마다
+반영:    설정 › BTS 연결 · 설정 서비스 codeRepos (2026-10-31, apps/admin/src/bts/routes.ts — BTS-F3-01) · BTS 알림 · BTS 규칙 웹훅 호출 (2026-10-31, apps/admin/src/bts/inbound.ts — BTS-F3-02) · BTS 다시 보내기 · 실패 카드 bts 칸 (2026-10-31, apps/admin/src/bts/card.ts — BTS-F3-03) · /mcp 의 PAT 열쇠와 도구 넷(note_read 빼고) (2026-10-31, apps/admin/src/mcp/server.ts · tools.ts · auth/pat.ts — BTS-F4-01) · 결정 목록 FAIL 뺌 · 옛 판정 통로(BAD_DECISION · BAD_EDIT) (2026-10-31, authoring/decisions.ts · decisionRun.ts · routes.ts — BTS-F3-04) · 설정 › BTS 연결 publicUrl · 처음 연결의 webhookSecret 선택(SECRETS_REQUIRED 는 botKey 만) · 고를 목록 · 자동 설정 · 규칙 몸 assignee? · prTitle? (2026-10-31, apps/admin/src/bts/routes.ts · link.ts · choices.ts · setup.ts · inbound.ts — BTS-F3-05). 나머지는 진행판 줄마다
 상태:    대기
 ```
 
