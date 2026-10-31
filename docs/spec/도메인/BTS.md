@@ -98,7 +98,11 @@
 - **보내기는 「보낼 줄」로만** — 실행 끝이 `bts_outbox` 에 줄을 넣고 60초 점검이 보낸다. 1분 간격 5번 · 4xx(권한 · 요청 오류) · 3xx(주소 넘김) · 이슈 키 없는 만들기 답은 그 자리에서 멈춘다(408 · 429 는 다시 — 결정 17). 같은 이슈의 줄은 앞 줄이 끝나야 뒤 줄을 보낸다. 그만두면 실행 결과 실패 카드에 「BTS 등록 실패 · <까닭>」 + [다시 보내기](§8.15). 재기동 뒤에도 줄이 남아 이어 보낸다
 - **보내는 열쇠는 「QA Hub AI」 계정 열쇠다** — 등록 · 댓글 · 상태 · 담당자만 열린 BTS 계정(BTS-F2-02)
 - **밖으로 나가는 글은 전부 가린다** — 이슈 본문 · 댓글(기대 vs 실제 · 실패 원인 · 재현 단계 포함)은 첨부와 같은 증적 비밀값 가림 함수를 거친다. 되비친 비밀값이 실패 원인에 실린다([리포팅.md](리포팅.md) 「되비친 비밀값」)
-- **크기 상한** — 본문이 BTS 상한(바이트로 센다 · 코드 상수가 정본)을 넘으면 재현 단계를 앞에서 자르고 「이하 N단계는 QA Hub 실행 결과에서」 + 실행 결과 고리를 남긴다. 첨부는 개수 상한 안에서 캡처 먼저
+- **크기 상한** — 본문이 BTS 상한(바이트로 센다 · 코드 상수가 정본 `bts/failBody.ts`)을 넘으면 재현 단계를 뒤에서부터 덜어 내고 「이하 N단계는 QA Hub 실행 결과에서」 + 실행 결과 고리를 남긴다. 첨부는 개수 상한 안에서 캡처 먼저
+- **AI 꼬리표는 규칙으로 붙인다**(BTS-F3-03 시작 질문 2026-10-31 — AI 를 안 불러 구독 한도를 안 쓰고 바로 붙는다). 최근 실행에 통과와 실패가 섞였으면 「흔들림 같음」, 기대와 다름(실패 유형 `mismatch`)이면 「버그 가능성 높음」, 그 밖(요소 못 찾음 · 시간 초과 · 서버에 못 닿음)은 「테스트 문제 같음」. BTS 라벨 `QA Hub` 와 함께 단다
+- **첨부 파일은 실패한 단계의 캡처만 올린다**(같은 시작 질문). 실패 원인 · 실패한 네트워크 요청 · 콘솔 오류는 가린 글로 본문에 넣는다 — 글은 가린 뒤에만 나가야 해서다. 네트워크 · 콘솔은 실행 뒤 따로 풀려(trace 적재) 아직이면 「QA Hub 실행 결과에서 보세요」 한 줄이다
+- **등록이 닿으면** 짝(`bts_issue_case`)을 먼저 적고, 만든 이슈를 「QA 검토」 짝 상태로 옮기고, 캡처를 올린다. 옮기기 · 올리기는 한 번만 해 보고 깨지면 기록만 남긴다 — 이슈는 이미 있어 다시 만들지 않는다
+- 올리는 실행은 BTS 를 이은 프로젝트의 끝난 케이스 실행이다 — 시나리오와 한 건 실행(붙는 실행이 이미 올렸다)은 안 올린다. 흔들림으로 닫힌 테스트를 다시 올리는 때(그 케이스를 고친 작성 병합)는 BTS-F3-04 가 정한다
 
 #### 판정은 BTS 에서 — 결정 필요 ② 빼기 · 닫기 사유 넷
 
@@ -261,12 +265,15 @@ POST   /api/settings/projects/:projectId/bts/keys/:which   — which = deploy | 
 # 애플리케이션 코드 저장소 — 지금 PATCH /api/settings/services/:id 에 칸 하나 · 목록(GET /api/settings/services) 줄에도 실린다 (BTS-F3-01 반영 2026-10-31)
      { …, codeRepos: [{ name: '화면' | '서버' | string, url: 'https://github.com/…' }] }   — 비어도 된다 · 10줄까지 · url 은 https:// 만. 수정 AI 만 쓴다
 
-# BTS 등록 다시 보내기 — 실행 결과 실패 카드 (BTS-F3-03). (실행, write)
+# BTS 등록 다시 보내기 — 실행 결과 실패 카드 (BTS-F3-03 반영 2026-10-31 · apps/admin/src/bts/routes.ts · card.ts). (실행, write)
 POST /api/runs/:runId/bts/resend   { tcId, env }
-  → 202 — 보낼 줄을 처음부터(횟수 0) 다시 세운다 · 404 NOT_FOUND(그 실패 카드가 없음) · 409 NOT_LINKED
-# 실패 카드 응답(리포팅.md §7 실패 카드 통로)에 칸 하나 — BTS 연결 프로젝트만. 없는 프로젝트는 칸이 없다
-     bts: { issueKey: 'DM-12' | null, url | null, state: 'SENT' | 'SENDING' | 'GAVE_UP', reason: string | null, resolution: string | null }
-     — state 는 그 카드(실행 · tcId · 대상 서버)의 CREATE 줄 상태다(PENDING → SENDING). 열린 이슈에 댓글만 단 실패는 그 이슈의 SENT · 댓글 줄 실패는 카드에 안 띄운다
+  → 202 — 그만둔 등록을 처음부터(횟수 0) 다시 세운다. 보내는 중 · 보낸 등록이거나 같은 테스트의 다른 등록이 기다리면 그대로 둔다(그 등록이 올린다)
+    · 400 INVALID_REQUEST · 404 NOT_FOUND(그 실행 · tcId · 대상 서버의 등록 줄이 없음) · 409 NOT_LINKED
+# 실패 카드 응답(리포팅.md §7 실패 카드 통로)에 칸 하나 — BTS 연결 프로젝트만. 없는 프로젝트는 칸이 없다 (BTS-F3-03 반영 2026-10-31 · apps/admin/src/bts/card.ts)
+     bts: { issueKey: 'DM-12' | null, url | null, state: 'SENT' | 'SENDING' | 'GAVE_UP', reason: string | null, resolution: string | null } | null
+     — state 는 그 카드(실행 · tcId · 대상 서버)의 CREATE 줄 상태다(PENDING → SENDING). 열린 이슈에 댓글만 단 실패는 그 이슈의 SENT · 댓글 줄 실패는 카드에 안 띄운다.
+       이 실행이 줄을 안 넣었어도 앞 실행의 기다리는 등록이 있으면 그것을 보인다(SENDING). 줄이 하나도 없으면(흔들림으로 닫혀 안 올림) null.
+       url 은 `<BTS 주소>/issues/<키>` · resolution 은 bts_issue_case.resolution 값(SCREEN_RIGHT …)이다
 
 # BTS 연결 프로젝트의 옛 판정 통로 — 「판정은 BTS 에서만」을 비켜 가지 못하게 (BTS-F3-04)
 #   POST /api/runs/:runId/bugs(리포팅.md §7) · 화면이 맞음 요청 통로 → 409 BTS_LINKED. 결정 진행 picks 의 FAIL → 400 BAD_DECISION
@@ -305,7 +312,7 @@ POST /mcp
 제안:    위 §7 꼴
 이유:    도메인/BTS §3.12 (2026-10-28 기획 · BTS-F1-01 시작 질문 승인 2026-10-31)
 영향:    WS-B(배포 신호 · 다시 보내기) · WS-F(설정 · 열쇠 · PAT · 문 허용 목록) · WS-작성(결정 목록 · 에이전트 통로) · WS-D(실패 카드 · 대시보드) · WS-E(화면) · 작성 에이전트 · 새 bts/ · mcp/ · projectNote/
-반영:    설정 › BTS 연결 · 설정 서비스 codeRepos (2026-10-31, apps/admin/src/bts/routes.ts — BTS-F3-01) · BTS 알림 · BTS 규칙 웹훅 호출 (2026-10-31, apps/admin/src/bts/inbound.ts — BTS-F3-02). 나머지는 진행판 줄마다
+반영:    설정 › BTS 연결 · 설정 서비스 codeRepos (2026-10-31, apps/admin/src/bts/routes.ts — BTS-F3-01) · BTS 알림 · BTS 규칙 웹훅 호출 (2026-10-31, apps/admin/src/bts/inbound.ts — BTS-F3-02) · BTS 다시 보내기 · 실패 카드 bts 칸 (2026-10-31, apps/admin/src/bts/card.ts — BTS-F3-03). 나머지는 진행판 줄마다
 상태:    대기
 ```
 
