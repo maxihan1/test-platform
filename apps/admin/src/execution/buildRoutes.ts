@@ -12,6 +12,7 @@ import type { Pool } from 'pg';
 import { z } from 'zod';
 
 import { 볼륨파일 } from '../artifactFile.js';
+import { BTS이은서비스인가 } from '../bts/link.js';
 import { 올리기거절, 올리기막기, 파일로 } from '../perf/dummy.js';
 
 import { APK인가, 빌드상한, 빌드파일자리, 빌드폴더, 서명맞나, 오래된빌드치우기 } from './buildFile.js';
@@ -130,9 +131,10 @@ export default async function buildRoutes(app: FastifyInstance): Promise<void> {
       }
     }
 
-    let runIds: number[];
+    let runIds: number[] = [];
     try {
-      runIds = await 빌드실행을건다({
+      // BTS 를 이은 프로젝트의 앱 · 게임은 빌드만 남긴다 — 실행은 프로젝트 배포 신호가 그 줄의 최신 빌드로 건다(같은 빌드를 두 번 돌리지 않게 · 도메인/BTS 「새 기능 바퀴」 3)
+      if (!(앱인가 && (await BTS이은서비스인가(주인.serviceId)))) runIds = await 빌드실행을건다({
         id: buildId,
         serviceId: 주인.serviceId,
         prefix: 그줄!.prefix,

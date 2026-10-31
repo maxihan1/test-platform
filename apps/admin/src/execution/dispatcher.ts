@@ -5,6 +5,7 @@
 import type { ExecuteResponse } from '@platform/kit';
 
 import { 실행문서견주기 } from '../apidoc/runCompare.js';
+import { 배포실행뒤 } from '../bts/deployFlow.js';
 import { 실패등록 } from '../bts/failReport.js';
 
 import { 스모크뒤 } from './buildRun.js';
@@ -163,6 +164,13 @@ export async function dispatch(runId: number, items: PendingItem[]): Promise<voi
     await 스모크뒤(runId);
   } catch (err) {
     console.error(`[execution] 실행 ${runId} 뒤 회귀를 걸지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+  }
+
+  // BTS 프로젝트 배포 신호가 건 스모크면 판정하고, 맡은 버그의 딸린 케이스가 다 통과했으면 닫는다 (도메인/BTS 「새 기능 바퀴」)
+  try {
+    await 배포실행뒤(runId);
+  } catch (err) {
+    console.error(`[execution] 실행 ${runId} 뒤 BTS 배포 판정 · 재검증을 못 했다: ${err instanceof Error ? err.message : String(err)}`);
   }
 
   // 알림 전송이 실패해도 실행은 실패가 아니다. 실행은 이미 끝났고 결과는 test_run 에 남아 있다 (SPEC §8.9)

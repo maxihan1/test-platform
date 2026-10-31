@@ -124,16 +124,16 @@ describe.skipIf(연결 === undefined)('BTS 보낼 줄', () => {
 
   it('같은 이슈는 앞 줄이 끝나야 뒤 줄을 보낸다', async () => {
     답 = () => ({ status: 429, json: null });
-    const 앞 = (await 보낼줄넣기({ projectId: 프로젝트, kind: 'TRANSITION', issueKey: 'XBY-5', payload: { toStatusKey: 'a' } }))!;
-    const 뒤 = (await 보낼줄넣기({ projectId: 프로젝트, kind: 'TRANSITION', issueKey: 'XBY-5', payload: { toStatusKey: 'b' } }))!;
+    const 앞 = (await 보낼줄넣기({ projectId: 프로젝트, kind: 'TRANSITION', issueKey: 'XBY-5', payload: { toStatusKey: 'a', expectedVersion: 1 } }))!;
+    const 뒤 = (await 보낼줄넣기({ projectId: 프로젝트, kind: 'TRANSITION', issueKey: 'XBY-5', payload: { toStatusKey: 'b', expectedVersion: 2 } }))!;
     expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 0, 다시: 1, 멈춤: 0 });
-    expect(부른것.map((b) => b.몸)).toEqual([{ toStatusKey: 'a' }]);
+    expect(부른것.map((b) => b.몸)).toEqual([{ toStatusKey: 'a', expectedVersion: 1 }]);
     답 = () => ({ status: 200, json: {} });
     await 때되게();
     expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 1, 다시: 0, 멈춤: 0 });
     await 때되게();
     expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 1, 다시: 0, 멈춤: 0 });
-    expect(부른것.map((b) => b.몸).slice(1)).toEqual([{ toStatusKey: 'a' }, { toStatusKey: 'b' }]);
+    expect(부른것.map((b) => b.몸).slice(1)).toEqual([{ toStatusKey: 'a', expectedVersion: 1 }, { toStatusKey: 'b', expectedVersion: 2 }]);
     expect([(await 줄(앞)).state, (await 줄(뒤)).state]).toEqual(['SENT', 'SENT']);
   });
 

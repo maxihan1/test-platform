@@ -63,7 +63,7 @@ export interface 알림연결 {
 /**
  * 받은 알림을 처리한다 — 알림 본문을 믿지 않고 이슈를 BTS 에서 다시 읽는다. 처리할 것이 없으면 null.
  * 다시 읽기나 뒤 처리(닫기 사유 — close.ts)가 깨지면 그 알림을 잊고 던진다 — 라우트가 503 을 내 BTS 가 같은 알림을 다시 보내게.
- * 뒤 처리는 DB 상태로 한 번만 하므로 다시 와도 겹치지 않는다. 맡기(BTS-F5-01)는 뒤 줄이 여기에 잇는다
+ * 뒤 처리는 DB 상태로 한 번만 하므로 다시 와도 겹치지 않는다
  */
 export async function BTS알림처리(연결: 알림연결, 몸: unknown, 부르기?: 부르기함수): Promise<BTS이슈 | null> {
   const 꼴 = 알림몸.safeParse(몸);
@@ -74,6 +74,8 @@ export async function BTS알림처리(연결: 알림연결, 몸: unknown, 부르
   if (!처음보나(열쇠)) return null;
   try {
     const 이슈 = await 이슈읽기({ baseUrl: 연결.baseUrl, botKey: 연결.botKey }, 꼴.data.data.issueKey, 부르기);
+    // 이슈가 「QA 요청」을 떠나면 맡음을 놓는다 — 다시 「QA 요청」에 오면 다음 배포가 새로 맡는다(결정 4)
+    await 맡음놓기(연결.projectId, 이슈);
     const 닫음 = await 닫기처리(연결, 이슈, 부르기);
     // 닫기만 하고 요청을 못 세운 케이스 — 사람의 판정이 QA Hub 에 닿지 않은 까닭을 남긴다(outbox.ts 처럼 서버 기록으로)
     for (const 까닭 of 닫음.기록만) console.error(`[bts] ${이슈.key} 를 닫았지만 작성 요청을 못 세웠다: ${까닭}`);
@@ -83,6 +85,17 @@ export async function BTS알림처리(연결: 알림연결, 몸: unknown, 부르
     본알림.delete(열쇠);
     throw err;
   }
+}
+
+/** 지금 상태가 「QA 요청」이 아니면 그 이슈의 맡음을 놓는다. 짝이 비었으면 알 수 없어 그대로 둔다 */
+async function 맡음놓기(projectId: number, 이슈: BTS이슈): Promise<void> {
+  await (await db()).query(
+    `UPDATE bts_claim c SET released_at = now()
+       FROM bts_link l
+      WHERE c.project_id = $1 AND c.issue_key = $2 AND c.released_at IS NULL
+        AND l.project_id = c.project_id AND COALESCE(l.status_map->>'QA_REQUEST', '') NOT IN ('', $3)`,
+    [projectId, 이슈.key, 이슈.state],
+  );
 }
 
 /**

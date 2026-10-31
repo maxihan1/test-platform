@@ -97,7 +97,20 @@ async function 하나보내기(줄: 집은줄, 부르기: 부르기함수): Prom
   const 몸 =
     줄.kind === 'CREATE' ? Object.fromEntries(Object.entries(줄.payload as Record<string, unknown>).filter(([k]) => k !== 'attachments')) : 줄.payload;
   try {
-    const r = await 부르기({ baseUrl: 줄.base_url, botKey: 줄.bot_key }, method, 경로, 몸);
+    const 자리 = { baseUrl: 줄.base_url, botKey: 줄.bot_key };
+    let 보낼몸 = 몸;
+    // 판 번호 없이 넣은 옮기기(재검증 통과 닫기 — deployFlow.ts)는 보내기 직전에 이슈의 지금 판을 읽는다 — 넣을 때 읽으면 보낼 때 낡는다
+    if (줄.kind === 'TRANSITION' && (몸 as { expectedVersion?: unknown }).expectedVersion === undefined) {
+      const 읽음 = await 부르기(자리, 'GET', `/api/v1/issues/${encodeURIComponent(줄.issue_key!)}`);
+      const 실패 = 상태로(읽음.status);
+      if (실패 !== null) return 실패;
+      const data = (읽음.json as { data?: { version?: unknown; currentStateKey?: unknown } } | null)?.data;
+      // 이미 그 상태면 옮길 것이 없다 — 사람이 먼저 닫았다
+      if (data?.currentStateKey === (몸 as { toStatusKey?: unknown }).toStatusKey) return { 상태: 'SENT' };
+      if (typeof data?.version !== 'number') return { 상태: 'GAVE_UP', 까닭: `BTS 이슈 판 번호를 못 읽었습니다 (${String(읽음.status)})` };
+      보낼몸 = { ...(몸 as object), expectedVersion: data.version };
+    }
+    const r = await 부르기(자리, method, 경로, 보낼몸);
     const 실패 = 상태로(r.status);
     if (실패 !== null) return 실패;
     if (줄.kind !== 'CREATE') return { 상태: 'SENT' };

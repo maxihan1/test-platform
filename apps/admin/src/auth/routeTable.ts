@@ -264,6 +264,8 @@ export const 등급표: Record<string, 표값> = {
   // BTS 알림은 서명으로만, 규칙 웹훅 호출은 btr_ 토큰으로만 — 문이 권한 판정 앞에서 돌려보낸다 (gate.ts · bts/inbound.ts)
   'POST /api/bts/events/:projectId': 안따짐,
   'POST /api/bts/rules': 안따짐,
+  // 프로젝트 배포 신호는 배포 열쇠(pdk_)로만 — 문이 권한 판정 앞에서 돌려보낸다 (gate.ts · bts/deploy.ts)
+  'POST /api/projects/:projectId/deploys': 안따짐,
 };
 
 /**
