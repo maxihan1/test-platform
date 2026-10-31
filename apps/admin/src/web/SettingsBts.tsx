@@ -149,7 +149,7 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
     <div className="set-panel">
       <h2 className="set-panel-h">
         {t('{프로젝트} › {bts} 연결', { 프로젝트: row.name, bts: BTS이름 })}
-        {지금.linked ? <span className="verdict v-pass">{t('연결됨 · {키}', { 키: 지금.btsProject ?? '' })}</span> : null}
+        {지금.linked ? <span className="tech-tag">{t('연결됨 · {키}', { 키: 지금.btsProject ?? '' })}</span> : null}
       </h2>
       <ol className="bts-steps">
         {차례.map((it, i) => (

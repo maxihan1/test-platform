@@ -1,4 +1,4 @@
-/* 「설정 › 프로젝트 › BTS 연결」 화면 (2026-10-31 시안 B 3판 — 차례 셋 · 상태 매핑 고르개 · 자동 설정 넷). 색은 styles.css :root 토큰만 쓴다 */
+/* 「설정 › 프로젝트 › BTS 연결」 화면 (2026-10-31 시안 B 3판 — 차례 셋 · 상태 매핑 고르개 · 자동 설정 넷). 색은 styles.css :root 토큰만 쓴다 — 판정 색(pass)은 판정에만 쓰고 ✕ 의 fail 글자색은 오류 표시다 (DESIGN 원칙 1) */
 
 .bts-steps {
   display: flex;
@@ -29,8 +29,8 @@
   font-size: 12px;
 }
 .bts-steps li.done b {
-  background: var(--pass-soft);
-  color: var(--pass-text);
+  background: var(--accent-soft);
+  color: var(--link);
 }
 
 .bts-load {
@@ -92,7 +92,7 @@
   text-align: right;
 }
 .bts-checks li.ok b {
-  color: var(--pass-text);
+  color: var(--link);
 }
 .bts-checks li.no b,
 .bts-checks li.no small {

@@ -16,7 +16,7 @@ export const BTS말: Record<string, string> = {
   '「QA Hub AI」 계정 토큰': '"QA Hub AI" account token',
   '넣음 (…{끝}) — 바꿀 때만 넣습니다': 'Set (…{끝}) — enter only to change it',
   'QA Hub 가 실패한 테스트를 {bts} 이슈로 올릴 때 쓰는 통합계정입니다. 사람 계정과 따로 두어야 {bts} 에서 누가 올렸는지 구분됩니다':
-    'The QA Hub account used to file failed tests as {bts} issues. Keep it separate from personal accounts so {bts} shows who filed what',
+    'The unified account used to file failed tests as {bts} issues. Keep it separate from personal accounts so {bts} shows who filed what',
 
   // 상태 매핑
   '상태 매핑': 'Status mapping',
@@ -50,7 +50,7 @@ export const BTS말: Record<string, string> = {
   // 2 · 자동 설정
   '2 · {bts} 자동 설정': '2 · Set up {bts} automatically',
   '내 통합계정 토큰으로 {bts} 에 아래 넷을 만듭니다. 이미 있으면 새로 만들지 않고 고칩니다':
-    'Creates the four items below in {bts} with your QA Hub account token. Existing ones are updated, not duplicated',
+    'Creates the four items below in {bts} with your unified account token. Existing ones are updated, not duplicated',
   '웹훅': 'Webhook',
   '담당자 변경 규칙': 'Assignee change rule',
   'PR 병합 규칙': 'PR merge rule',
@@ -93,7 +93,7 @@ export const BTS말: Record<string, string> = {
   '처음 연결할 때는 「QA Hub AI」 계정 토큰을 넣어야 합니다': 'Enter the "QA Hub AI" account token for the first connection',
   '비어 있는 단계가 있습니다. 모든 단계에 {bts} 상태를 골라 주세요': 'Some stages are empty. Pick a {bts} status for every stage',
   '내 계정에 통합계정 토큰이 없습니다. 왼쪽 아래 내 메뉴 › 통합계정 토큰에 넣은 뒤 다시 눌러 주세요':
-    'Your account has no QA Hub account token. Add one under your menu (bottom left) › QA Hub account token, then press again',
+    'Your account has no unified account token. Add one under your menu (bottom left) › unified account token, then press again',
   '이 서버의 공개 주소(PLATFORM_PUBLIC_URL)가 없어 {bts} 가 QA Hub 를 부를 수 없습니다':
     'This server has no public address (PLATFORM_PUBLIC_URL), so {bts} cannot call QA Hub',
 };

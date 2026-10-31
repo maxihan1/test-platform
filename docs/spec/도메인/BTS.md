@@ -65,8 +65,8 @@
 | 18 | **담당자 변경 · PR 병합은 BTS 규칙 + 웹훅 호출로 받는다** — 고정 헤더에 QA Hub 토큰. BTS 코드는 안 바꾼다 | BTS 바깥 알림은 `issue.created` · `issue.transitioned` 둘뿐이고 웹훅 호출엔 서명이 없다(2차 R5) |
 | 19 | **PRD 초안 · 노트 고치기 · 수정 AI 는 작성 요청 종류 셋(`PRD_DRAFT` · `NOTE` · `BUGFIX`)이다. 노트 줄만 애플리케이션 대신 프로젝트를 가리킨다** (내 결정) | 셋 다 작성 에이전트가 집는다. 초안은 QA 화면을 봐야 해 브라우저가 있는 작성 자리가 맞다. 노트는 프로젝트마다 하나라 애플리케이션 칸을 비운다 |
 | 20 | **자동 AI 의 MCP 열쇠는 작성 요청 줄의 칸 하나다** — 집을 때 새로 나고 그 줄이 `RUNNING` 이 아니면 무효 (내 결정) | 「일 끝나면 무효」를 따로 지우지 않고 줄 상태가 맡는다 |
-| 22 | **BTS 쪽 설정(웹훅 · 규칙 둘 · 보드 칸)은 QA Hub 가 누른 사람의 통합계정 토큰으로 만든다** — 사람이 값을 복사해 BTS 에 붙여 넣지 않는다. 남는 손일은 `deploy.sh` 한 줄 (2026-10-31 BTS-F3-05 사용자 — 첫 시안의 「복사 값」 구획을 거절) | BTS 가 통합계정 PAT 를 받고(`AuthPlatformPatVerifier`) QA Hub 도 사람마다 그 토큰을 둔다. 「QA Hub AI」 열쇠를 관리 권한까지 넓히지 않는다 — 새면 BTS 설정이 바뀐다 |
 | 21 | **롤백 되돌리기는 새 작성 종류 없이 PRD 새 버전(`ROLLBACK`) + 지금 「고친 요구만 다시 작성」으로 돈다** (내 결정) | 바뀐 요구를 다시 쓰는 장치가 이미 있다([작성.md](작성.md) §3.6 「고친 요구만 다시 작성」) |
+| 22 | **QA Hub 를 부르는 BTS 쪽 설정(웹훅 · 규칙 둘 · 보드 칸)은 QA Hub 가 누른 사람의 통합계정 토큰으로 만든다** — 사람이 값을 복사해 BTS 에 붙여 넣지 않는다. 이 화면에서 남는 손일은 `deploy.sh` 한 줄이다. 상태를 바꾸는 BTS 규칙과 GitHub 연결은 자동 설정 밖이다(§3.12 「설정 · 고장 대응」 「자동 설정 밖」) (2026-10-31 BTS-F3-05 사용자 — 첫 시안의 「복사 값」 구획을 거절) | BTS 가 통합계정 PAT 를 받고(`AuthPlatformPatVerifier`) QA Hub 도 사람마다 그 토큰을 둔다. 「QA Hub AI」 열쇠를 관리 권한까지 넓히지 않는다 — 새면 BTS 설정이 바뀐다. 다만 그 사람 토큰은 러너 §5.2 「받아들인 한계」대로 그 사람이 누른 앱 · 게임 케이스와 작성 AI 에도 넘어간다 — BTS 관리자가 넣은 토큰이면 그 관리 권한도 거기 열린다. 「통합계정 토큰」 창이 그 사실을 안 숨긴다(SETUP.md `DEVICE_FARM_TOKEN` 과 같은 판단: 권한이 작은 계정이 낫다) |
 
 #### 새 기능 바퀴 — 배포 신호 → 맡은 이슈 → PRD 초안
 
@@ -166,7 +166,7 @@
 |---|---|---|
 | 사람 Claude Code → QA Hub MCP | 각자 통합계정 **PAT** | 자기 권한 그대로 · 화면과 같은 출입문. BTS 이슈 조회는 그 사람 PAT 로 BTS 를 부른다(결정 16) |
 | deploy.sh → QA Hub | 프로젝트 배포 열쇠(`pdk_` — 「설정 › BTS 연결」) | 그 프로젝트 배포 신호 하나만 |
-| BTS 규칙 웹훅 호출 → QA Hub | 고정 헤더의 QA Hub 규칙 토큰(`btr_`) — BTS 자동 설정이 만들어 규칙 머리에 넣는다. 사람은 원문을 안 본다 | 그 프로젝트 담당자 변경 · PR 병합 받기만 |
+| BTS 규칙 웹훅 호출 → QA Hub | 고정 헤더의 QA Hub 규칙 토큰(`btr_`) — BTS 자동 설정이 만들어 규칙 머리에 넣는다. 화면은 원문을 안 보인다. 통로 `keys/rule` 은 남아 있다 — 부르면 토큰이 바뀌어 자동 설정이 만든 규칙이 멈추므로 다시 자동 설정을 누른다 | 그 프로젝트 담당자 변경 · PR 병합 받기만 |
 | 설정 화면 → BTS 자동 설정 · 고를 목록 | 자동 설정은 **누른 운영 계정의 통합계정 PAT**(내 메뉴 「통합계정 토큰」 — 디바이스 팜과 같은 토큰). 고를 목록은 「QA Hub AI」 계정 토큰 | 웹훅 · 자동화 규칙 · 보드 칸 만들기 · 고치기 / 상태 · 해결 사유 읽기만. 따로 발급받지 않는다(2026-10-31 사용자 「통합계정이잖아」) |
 | 자동 AI(작성 · 초안 · 노트 · 수정) → QA Hub MCP | 일마다 새로 나는 짧은 열쇠(`mcj_`) · 일 끝나면 무효(결정 20). 받는 줄은 `PRD_DRAFT` · `NOTE` · `BUGFIX` 와 BTS 연결 프로젝트의 `AUTHOR` — 그 `RERUN` 도 같다 | 그 프로젝트 조회 도구만 |
 | QA Hub → BTS | BTS 「QA Hub AI」 계정 열쇠 | 등록 · 댓글 · 상태 · 담당자만 |
@@ -181,8 +181,16 @@
 - 처음 설정은 「설정 › BTS 연결」 한 화면(§8.15) — 프로젝트 짝짓기 · 「QA Hub AI」 계정 토큰 · 회사마다 다른 BTS 상태 · 해결 사유 ↔ 단계 짝짓기(BTS 에서 목록을 불러와 고른다) · 애플리케이션별 코드 저장소 · **BTS 자동 설정** · `deploy.sh` 한 줄 복사
 - **BTS 쪽 설정은 QA Hub 가 만든다** (2026-10-31 BTS-F3-05 사용자 「자동으로 설정하면 되잖아」 · 「통합계정이잖아」) — 웹훅 하나(이슈 생성 · 상태 전환 → `POST /api/bts/events/:projectId`, 서명 비밀은 QA Hub 가 만들어 넣는다) · 자동화 규칙 둘(담당자 변경 · PR 병합 → 웹훅 호출, 머리에 `btr_`) · 보드마다 「QA 검토」 상태가 든 칸이 없으면 칸 하나. 누른 운영 계정의 통합계정 토큰으로 부른다(「열쇠 표」). 다시 눌러도 한 벌이다 — 웹훅은 주소, 규칙은 이름(`QA Hub · 담당자 변경` · `QA Hub · PR 병합`)으로 찾아 고친다. 하나가 막혀도 나머지는 만든다
 - 권한 — 웹훅은 BTS 시스템 관리자, 규칙은 그 프로젝트 자동화 관리(기본 프로젝트 관리자 · 멤버여야 한다), 보드 칸은 그 프로젝트 만들기 권한. BTS 는 사설 주소 · localhost 로 가는 웹훅을 거절해 QA Hub 공개 주소(`PLATFORM_PUBLIC_URL`)가 있어야 한다. PR 병합 규칙은 BTS 프로젝트에 GitHub 연결(BTS 「Git 웹훅」)이 있어야 돈다 — 그 연결은 QA Hub 가 만들지 않는다
-- 사람 손이 남는 것은 `deploy.sh` 한 줄뿐이다 — 회사 배포 서버에 있어 QA Hub 가 못 고친다. 거기 들어갈 토큰(`pdk_`)은 프로젝트 전용이다. 사람 토큰을 두면 그 사람이 나갈 때 배포 신호가 끊긴다
-- **짝지을 이름** — 상태 여섯(배포 대기 · QA 요청 · QA 검토 · 개발 요청 · 코드 리뷰 · 닫힘)과 해결 상태 다섯(화면이 맞음 · 테스트 문제 · 흔들림 · 환경 문제 · 중복). 회사의 상태 · 해결 상태 이름을 이 단계에 짝짓는다(`bts_link.status_map` · `resolution_map`). 짝이 빈 단계가 있으면 연결을 저장하지 못한다
+- 이 화면에서 사람 손이 남는 것은 `deploy.sh` 한 줄이다 — 회사 배포 서버에 있어 QA Hub 가 못 고친다. 거기 들어갈 토큰(`pdk_`)은 프로젝트 전용이다. 사람 토큰을 두면 그 사람이 나갈 때 배포 신호가 끊긴다
+- **자동 설정 밖** — 아래는 QA Hub 를 부르지 않고 BTS 안에서 상태만 바꾸는 규칙이라 사람이 BTS 에서 만든다(자동화 동작 「상태 바꾸기」는 BTS-F2-01 이 BTS 에 더한다 · 데모마켓 것은 BTS-F5-02)
+
+  | 무엇 | 어디서 | 누가 |
+  |---|---|---|
+  | PR 병합 → 「배포 대기」 규칙 | BTS 자동화 | 사람(BTS-F2-01 뒤) |
+  | deploy 웹훅 → 「배포 대기」 전부 「QA 요청」 규칙 | BTS 자동화 | 사람(BTS-F2-01 뒤) |
+  | 「개발 요청」 → 「QA Hub AI」 할당 · 롤백 → 「배포 대기」로 되돌림 규칙 | BTS 자동화 | 사람(BTS-F2-01 뒤) |
+  | BTS 프로젝트의 GitHub 연결(PR 병합 규칙이 돌게) | BTS 프로젝트 설정 | 사람 |
+- **짝지을 이름** — 상태 여섯(배포 대기 · QA 요청 · QA 검토 · 개발 요청 · 코드 리뷰 · 닫힘)과 해결 상태 다섯(화면이 맞음 · 테스트 문제 · 흔들림 · 환경 문제 · 중복). 회사의 상태 · 해결 상태를 이 단계에 짝짓는다 — 상태는 BTS 상태 키, 해결 상태는 이름을 둔다(`bts_link.status_map` · `resolution_map` — 옮기기는 `toStatusKey` 로, 닫기 사유는 이슈의 해결 이름으로 견준다). 짝이 빈 단계가 있으면 연결을 저장하지 못한다
 - BTS 가 꺼지면 보낼 줄이 다시 보낸다(결정 17). 구독 한도에 닿으면 작성 에이전트가 지금처럼 멈추고 알리고, 풀리면 이어서 한다(사람이 시킨 일 먼저)
 - BTS 「조건에 맞는 이슈 전부」 · 「받은 키 목록 전부」는 한 번에 200개 — 넘으면 하나도 안 바꾸고 BTS 자동화 실행 기록에 「상한 넘음」
 
@@ -219,7 +227,7 @@ AI 품질은 따로 시험하지 않고 사람이 고른 결과로 센다 — �
 
 - MCP 로 작성 요청 · 실행 걸기 · Tasks v2 · Elicitation
 - 테스트 작성 AI 의 코드 읽기 · 「기대값이 코드에만」 대조 검사
-- 「QA 검토」 숨기기 · QA Hub 의 보드 칸 확인 기능
+- 「QA 검토」 숨기기 · 보드 칸이 지금 어떤지 화면에 보이기(칸이 없으면 만드는 것은 BTS 자동 설정이 한다 — BTS-F3-05)
 - 「버그 심어 시험」 같은 AI 품질 시험
 - PR 닫힘(거절) 신호 — 거절이 잦으면 BTS PR 닫힘 트리거를 더한다
 - 브라우저 로그인으로 MCP 붙이기 — 팀이 쓰기 시작할 때
@@ -273,10 +281,11 @@ POST   /api/settings/projects/:projectId/bts/keys/:which   — which = deploy | 
   → 201 { key }   — 원문은 이 응답 한 번뿐 · 409 NOT_LINKED(연결 없음) · 404 NOT_FOUND(프로젝트 없음)
 POST   /api/settings/projects/:projectId/bts/choices   { baseUrl, botKey? }   — 상태 매핑 고르개에 채울 목록 (BTS-F3-05 · bts/choices.ts)
   → 200 { statuses: [{ key, name }], resolutions: [{ name }] }   — BTS GET /api/v1/statuses · /api/v1/resolutions 를 그 열쇠로 부른다(로그인만 하면 읽힌다)
-  → 400 BOT_KEY_REQUIRED(botKey 가 없는데 저장한 주소와 다르거나 연결 전) · 400 BTS_UNREACHABLE(둘 중 하나라도 200 이 아님 · 닿지 않음)
+  → 400 BOT_KEY_REQUIRED(botKey 가 없는데 저장한 주소와 다르거나 연결 전) · 400 BTS_UNREACHABLE(둘 중 하나라도 200 이 아님 · 닿지 않음) · 400 INVALID_REQUEST(꼴)
+  — 상태는 BTS 전체 목록이다. 그 프로젝트 워크플로 목록은 워크플로 고치기 권한이 들어 「QA Hub AI」 열쇠로 못 읽는다 — 그 프로젝트에 없는 상태를 고르면 보드 칸 · 상태 옮기기가 BTS 에서 깨진다
 POST   /api/settings/projects/:projectId/bts/setup   — BTS 자동 설정 (BTS-F3-05 · bts/setup.ts). 누른 운영 계정의 통합계정 토큰(app_user.farm_token)으로 부른다
-  → 200 { items: [{ what: 'WEBHOOK' | 'RULE_ASSIGNEE' | 'RULE_PR' | 'BOARD', ok, status? }] }   — status 는 BTS 가 준 상태 코드(0 은 닿지 않음). 하나가 막혀도 나머지는 한다
-  → 400 NO_PERSONAL_TOKEN(누른 사람 토큰 없음 · SSO 안 켠 설치) · 400 PUBLIC_URL_REQUIRED(PLATFORM_PUBLIC_URL 없음 — BTS 가 사설 주소를 거절한다) · 409 NOT_LINKED
+  → 200 { items: [{ what: 'WEBHOOK' | 'RULE_ASSIGNEE' | 'RULE_PR' | 'BOARD', ok, status? }] }   — status 는 BTS 가 준 상태 코드(0 은 닿지 않음). 하나가 막혀도 나머지는 한다. 보드가 하나도 없으면 BOARD 는 status 404(화면 「보드 없음」). 그 사이 연결이 끊겨 규칙 토큰을 못 만들면 규칙 둘은 status 409
+  → 400 NO_PERSONAL_TOKEN(누른 사람 토큰 없음 · SSO 안 켠 설치) · 400 PUBLIC_URL_REQUIRED(PLATFORM_PUBLIC_URL 없음 — BTS 가 사설 주소를 거절한다) · 409 NOT_LINKED(연결 없음 — 없는 프로젝트도 같다) · 400 INVALID_REQUEST(프로젝트 번호 꼴)
   — 규칙 토큰(btr_)은 원문을 안 두므로 누를 때마다 새로 만든다(앞 토큰은 끊긴다). 그래서 BTS 규칙 목록을 읽은 뒤에만 만든다 — 권한이 없어 못 고치는데 토큰만 바꾸면 있던 규칙이 멈춘다
   — 웹훅 { name: 'QA Hub · <키>', url: <공개 주소>/api/bts/events/:projectId, eventFilter: ['issue.created', 'issue.transitioned'], secret: bts_link.webhook_secret, projectKey }
   — 규칙 { triggerType: ISSUE_ASSIGNED | PR_MERGED, actions: [CALL_WEBHOOK { url: <공개 주소>/api/bts/rules, headers: { X-QAHub-Token: btr_… } }] } · 보드 칸 { name: 그 상태 이름, stateKeys: [statusMap.QA_REVIEW] }
@@ -331,7 +340,7 @@ POST /mcp
 제안:    위 §7 꼴
 이유:    도메인/BTS §3.12 (2026-10-28 기획 · BTS-F1-01 시작 질문 승인 2026-10-31)
 영향:    WS-B(배포 신호 · 다시 보내기) · WS-F(설정 · 열쇠 · PAT · 문 허용 목록) · WS-작성(결정 목록 · 에이전트 통로) · WS-D(실패 카드 · 대시보드) · WS-E(화면) · 작성 에이전트 · 새 bts/ · mcp/ · projectNote/
-반영:    설정 › BTS 연결 · 설정 서비스 codeRepos (2026-10-31, apps/admin/src/bts/routes.ts — BTS-F3-01) · BTS 알림 · BTS 규칙 웹훅 호출 (2026-10-31, apps/admin/src/bts/inbound.ts — BTS-F3-02) · BTS 다시 보내기 · 실패 카드 bts 칸 (2026-10-31, apps/admin/src/bts/card.ts — BTS-F3-03) · 결정 목록 FAIL 뺌 · 옛 판정 통로(BAD_DECISION · BAD_EDIT) (2026-10-31, authoring/decisions.ts · decisionRun.ts · routes.ts — BTS-F3-04) · 설정 › BTS 연결 publicUrl · 고를 목록 · 자동 설정 · 규칙 몸 assignee? · prTitle? (2026-10-31, apps/admin/src/bts/routes.ts · choices.ts · setup.ts · inbound.ts — BTS-F3-05). 나머지는 진행판 줄마다
+반영:    설정 › BTS 연결 · 설정 서비스 codeRepos (2026-10-31, apps/admin/src/bts/routes.ts — BTS-F3-01) · BTS 알림 · BTS 규칙 웹훅 호출 (2026-10-31, apps/admin/src/bts/inbound.ts — BTS-F3-02) · BTS 다시 보내기 · 실패 카드 bts 칸 (2026-10-31, apps/admin/src/bts/card.ts — BTS-F3-03) · 결정 목록 FAIL 뺌 · 옛 판정 통로(BAD_DECISION · BAD_EDIT) (2026-10-31, authoring/decisions.ts · decisionRun.ts · routes.ts — BTS-F3-04) · 설정 › BTS 연결 publicUrl · 처음 연결의 webhookSecret 선택(SECRETS_REQUIRED 는 botKey 만) · 고를 목록 · 자동 설정 · 규칙 몸 assignee? · prTitle? (2026-10-31, apps/admin/src/bts/routes.ts · link.ts · choices.ts · setup.ts · inbound.ts — BTS-F3-05). 나머지는 진행판 줄마다
 상태:    대기
 ```
 
