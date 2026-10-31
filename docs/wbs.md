@@ -107,7 +107,8 @@
   - 근거 PR #554 · 2026-10-31 — `bts_deploy`(+ run_ids) · `bts_claim` · `POST /api/projects/:projectId/deploys`(`bts/deploy.ts` · 앱 APK 없으면 NO_BUILD · FAILED 배포는 같은 빌드로 다시) · 판정 · 맡기 · 보류 · 재검증 `bts/deployFlow.ts` · 늦은 이슈(맡은 때부터 10분) `bts/deployLate.ts` · BTS 이은 앱 APK 올리기는 실행 안 걸기 · 「QA 요청」을 떠나면 놓기 · 남은 한계: 같은 APK 로 다시 배포하면 앱 회귀가 다시 안 돈다(BTS.md 「새 기능 바퀴」 5)
 - [x] `BTS-F5-02` 데모마켓 `deploy.sh` (demo-market) — 성공했을 때만 BTS 웹훅 { 빌드 } → QA Hub 프로젝트 배포 신호 한 번 · 빌드 번호 커밋 7자 + 배포 시각 · 올라간 커밋 기록 · 롤백 판정과 사이 커밋 이슈 키 뽑기(순수 함수로 떼어 시험) · BTS 규칙 설정은 BTS-F2-01 로 넘김
   - 근거 demo-market PR #7 · PR #555 · 2026-10-31 — `deploy/signal.ts`(두 곳에 같은 몸 `{ build, rollback?, rollbackKeys? }`) · 지난 배포 커밋 서버 `/opt/demo/DEPLOYED_COMMIT` · 공개 주소가 안 열리면 신호 안 보냄 · 신호만 다시 `--signal` · BTS 규칙 설정은 BTS 「상태 바꾸기」가 있어야 해 BTS-F2-01 로 넘김(시작 질문)
-- [ ] `BTS-F5-03` PRD 초안 작성 — 이슈 글 + QA 화면 + 노트 + 지금 PRD 로 요구 단위 「새로 · 바뀜 · 지움」 + 근거 · 화면에서만 본 것은 「? 확인」 · 같은 요구를 건드리는 이슈는 한 카드로 · 다른 애플리케이션과 엮이면 E2E 시나리오 제안 (작성 에이전트 · `tpx-author`)
+- [x] `BTS-F5-03` PRD 초안 작성 — 이슈 글 + QA 화면 + 노트 + 지금 PRD 로 요구 단위 「새로 · 바뀜 · 지움」 + 근거 · 화면에서만 본 것은 「? 확인」 · 같은 요구를 건드리는 이슈는 한 카드로 · 다른 애플리케이션과 엮이면 E2E 시나리오 제안 (작성 에이전트 · `tpx-author`)
+  - 근거 PR #556 · 2026-10-31 — 배포가 새로 맡은 task 로 애플리케이션마다 `PRD_DRAFT`(맡기와 한 트랜잭션 · 대상 서버는 배포 실행의 서버, 없으면 실서비스 아닌 줄 하나) · 집기 `draft` 칸 · 결과 통로 `POST …/:id/draft`(자식이 읽은 판 번호로 견줌 · 같은 요구 번호 두 줄 거절) · 자식은 저장소 없이 작업 폴더 하나(`scripts/authoring-draft.ts` — 웹만 playwright-cli) · 사람 목록 · 알림 · 결정 목록에서 뺌 · 꺼지면 다시 세움 · 실패 · 멈춘 초안을 보이고 다시 세우는 것은 F5-04 카드 몫
 - [ ] `BTS-F5-04` 「PRD 초안」 카드 — 시안 먼저 · 결정 필요에 줄마다 고르기 + [모두 체크](「? 확인」 줄은 안 체크) → 지금 결정 진행 흐름 그대로 PRD 버전 · 다시 작성 · PR 하나
 
 ### ⑥ 버그 바퀴 — 수정 AI
