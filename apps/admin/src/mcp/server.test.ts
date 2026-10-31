@@ -293,6 +293,9 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
     expect((await 부르기MCP(열쇠, 'tools/list')).statusCode).toBe(401);
     vi.stubEnv('AUTHORING_AGENT_USER', 'xmc-agent');
     expect((await 부르기MCP(열쇠, 'tools/list')).statusCode).toBe(200);
+    await q(`UPDATE app_user SET is_active = false WHERE username = 'xmc-agent'`);
+    expect((await 부르기MCP(열쇠, 'tools/list')).statusCode).toBe(401);
+    await q(`UPDATE app_user SET is_active = true WHERE username = 'xmc-agent'`);
     await q(`UPDATE authoring_request SET status = 'DONE' WHERE id = $1`, [줄]);
     expect((await 부르기MCP(열쇠, 'tools/list')).statusCode).toBe(401);
     expect((await 부르기MCP('mcj_wrong', 'tools/list')).statusCode).toBe(401);

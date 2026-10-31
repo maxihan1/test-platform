@@ -320,7 +320,7 @@ GET /api/projects/:projectId/note
      aiQuality: { draft: { picked, written }, fix: { merged, opened } } | null   — 고른 범위에 BTS 연결 프로젝트가 없으면 null
 
 # 작성 에이전트 통로 — 에이전트 토큰 허용 목록(인증.md §7)에 더한다
-#   집기(claim) 응답 kind 에 PRD_DRAFT · NOTE · BUGFIX 가 는다. 응답 mcpKey: 'mcj_…' 는 BTS.md 「열쇠 표」의 받는 줄에만(이 줄이 RUNNING 인 동안만 산다)
+#   집기(claim) 응답 kind 에 PRD_DRAFT · NOTE · BUGFIX 가 는다. 응답 mcpKey: 'mcj_…' 는 BTS.md 「열쇠 표」의 받는 줄에만(이 줄이 RUNNING 인 동안만 산다) — mcpKey 는 BTS-F4-02 반영 2026-10-31 · mcp/jobKey.ts · authoring/agentRoutes.ts(AUTHOR · 그 RERUN 만)
 #   service 가 빈 줄(NOTE)은 문의 서비스 경계(auth/scope.ts 「번호로 그 행의 서비스」)가 project_id 로 배정을 본다 — 그 프로젝트 어느 애플리케이션의 (작성, write) 면 통과
 POST /api/authoring/requests/:id/draft    { rows, e2e? }                  — PRD_DRAFT 결과 (BTS-F5-03)
 POST /api/authoring/requests/:id/note     { sections }                    — NOTE 결과. 길이 상한을 넘으면 400 NOTE_TOO_LONG — 앞 버전이 남는다 (BTS-F4-03)
