@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 
 import { api, type FailureCase } from './api.js';
+import { BTS이름 } from './btsName.js';
 import { use말, use언어 } from './i18n.js';
 import type { 판정 } from './role.js';
 import { message } from './ui.js';
@@ -43,7 +44,7 @@ export function RunFailBts({ c, runId, env, 권한 }: Props) {
   return (
     <div className="fc-cause">
       <p className="fc-judged">
-        {상태 === 'SENDING' ? t('BTS 에 보내는 중') : t('BTS 등록 실패 · {까닭}', { 까닭: 칸.reason ?? '' })}
+        {상태 === 'SENDING' ? t('{bts} 에 보내는 중', { bts: BTS이름 }) : t('{bts} 등록 실패 · {까닭}', { bts: BTS이름, 까닭: 칸.reason ?? '' })}
       </p>
       {상태 !== 'GAVE_UP' || !권한('실행') ? null : (
         <button type="button" className="btn small" disabled={바쁨} onClick={() => void 다시보내기()}>
