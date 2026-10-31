@@ -112,14 +112,42 @@ describe.skipIf(연결 === undefined)('노트 사건이 서는 곳 · note_read'
     ]);
   });
 
-  it('규칙 웹훅 PR 병합은 PR_MERGED, 담당자 변경은 안 쌓는다', async () => {
+  it('같은 이슈의 열림은 다시 와도 한 번만, 다시 닫으면 닫힘은 또 쌓인다', async () => {
+    const 전 = (await 사건들()).length;
+    이슈 = { key: 'XNS-1', currentStateKey: 'open', typeKey: 'bug', summary: '로그인 잠금', resolution: null };
+    await 알림('issue.created', 'XNS-1');
+    이슈 = { ...이슈, currentStateKey: 'closed', resolution: { name: '고침' } };
+    await 알림('issue.transitioned', 'XNS-1');
+    expect((await 사건들()).slice(전)).toEqual([
+      { kind: 'ISSUE_CLOSE', payload: { issueKey: 'XNS-1', type: 'bug', summary: '로그인 잠금', resolution: '고침' } },
+    ]);
+  });
+
+  it('노트 사건을 못 쌓아도 알림은 처리한 것으로 남는다 — 이슈를 돌려주고, 같은 알림은 다시 안 돌고, 까닭을 서버 기록에 남긴다', async () => {
+    const 오류 = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    // jsonb 는 \u0000 을 받지 않는다 — 사건 쓰기만 깨진다
+    이슈 = { key: 'XNS-7', currentStateKey: 'open', typeKey: 'bug', summary: '널\u0000글자', resolution: null };
+    const 몸 = { event: 'issue.created', deliveryId: 'xnr-널-1', data: { issueKey: 'XNS-7' } };
+    try {
+      expect(await BTS알림처리(연결값(), 몸, 부르기)).toMatchObject({ key: 'XNS-7' });
+      expect(오류.mock.calls.some(([글]) => String(글).includes(`프로젝트 ${String(내프로젝트)} XNS-7 ISSUE_OPEN 노트 사건을 못 쌓았다`))).toBe(true);
+      expect(await BTS알림처리(연결값(), 몸, 부르기)).toBeNull();
+      expect((await 사건들()).some((e) => e.payload.issueKey === 'XNS-7')).toBe(false);
+    } finally {
+      오류.mockRestore();
+    }
+  });
+
+  it('규칙 웹훅 PR 병합은 PR_MERGED 로 같은 PR 은 한 번만, 담당자 변경은 안 쌓는다', async () => {
     const 규칙 = (몸: unknown) => 규칙앱.inject({ method: 'POST', url: '/api/bts/rules', payload: JSON.stringify(몸), headers: { 'content-type': 'application/json', 'x-qahub-token': 'btr_xnr-rule' } });
     // 규칙 토큰은 admin 이 만든 것만 산다
     await q(`UPDATE app_user SET role = 'admin' WHERE username = $1`, [작성계정]);
     expect((await 규칙({ event: 'ASSIGNEE', issueKey: 'XNS-1' })).statusCode).toBe(204);
     expect((await 규칙({ event: 'PR_MERGED', issueKey: 'XNS-1', prNumber: 12, prUrl: 'https://github.com/x/y/pull/12' })).statusCode).toBe(204);
+    expect((await 규칙({ event: 'PR_MERGED', issueKey: 'XNS-1', prNumber: 12, prUrl: 'https://github.com/x/y/pull/12' })).statusCode).toBe(204);
     await q(`UPDATE app_user SET role = 'member' WHERE username = $1`, [작성계정]);
-    expect((await 사건들()).at(-1)).toEqual({ kind: 'PR_MERGED', payload: { issueKey: 'XNS-1', prNumber: 12, prUrl: 'https://github.com/x/y/pull/12', prTitle: '' } });
+    const 병합 = (await 사건들()).filter((e) => e.kind === 'PR_MERGED');
+    expect(병합).toEqual([{ kind: 'PR_MERGED', payload: { issueKey: 'XNS-1', prNumber: 12, prUrl: 'https://github.com/x/y/pull/12', prTitle: '' } }]);
   });
 
   it('표준 기획서 새 판은 PRD_VERSION — BTS 안 이은 프로젝트의 판은 안 쌓는다', async () => {

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { 노트상한, 늘있는문서 } from '../apps/admin/src/projectNote/note.js';
 import { 집은것인가 } from './authoring-rules.js';
-import { 노트자식인자 } from './authoring-note.js';
+import { 나눠돌리기, 노트자식인자 } from './authoring-note.js';
 import {
   type 노트자료,
   PR경로상한,
@@ -151,5 +151,60 @@ describe('자식 인자', () => {
 
   it('열쇠 값을 인자에 싣지 않는다', () => {
     expect(노트자식인자(모델, '/w/assets', '/w/tmp', '/w/tmp/qa-hub-mcp.json').join(' ')).not.toContain('mcj_');
+  });
+});
+
+describe('PR 나눠 읽기', () => {
+  const 기다림 = () => {
+    let 풀기: () => void = () => undefined;
+    const 약속 = new Promise<void>((r) => {
+      풀기 = r;
+    });
+    return { 약속, 풀기 };
+  };
+
+  it('네 개씩 동시에 돌리고 다 돌면 참이다', async () => {
+    let 도는 = 0;
+    let 최대 = 0;
+    const 한것: number[] = [];
+    const 다 = await 나눠돌리기(
+      [1, 2, 3, 4, 5, 6, 7, 8, 9],
+      async (n) => {
+        도는 += 1;
+        최대 = Math.max(최대, 도는);
+        await new Promise((r) => setTimeout(r, 5));
+        한것.push(n);
+        도는 -= 1;
+      },
+      () => false,
+    );
+    expect(다).toBe(true);
+    expect(최대).toBe(4);
+    expect([...한것].sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  });
+
+  it('하나 끝났을 때 멈추라 했으면 새 일을 안 잡고, 도는 일을 기다리지 않고 거짓이다', async () => {
+    const 느린 = 기다림();
+    const 잡은: number[] = [];
+    let 멈춤 = false;
+    const 결과 = await 나눠돌리기(
+      [1, 2, 3, 4, 5, 6],
+      async (n) => {
+        잡은.push(n);
+        if (n === 1) {
+          멈춤 = true;
+          return;
+        }
+        await 느린.약속;
+      },
+      () => 멈춤,
+    );
+    expect(결과).toBe(false);
+    expect(잡은).toEqual([1, 2, 3, 4]);
+    느린.풀기();
+  });
+
+  it('일이 없으면 곧바로 참이다', async () => {
+    expect(await 나눠돌리기([], async () => undefined, () => true)).toBe(true);
   });
 });

@@ -28,7 +28,7 @@ function 목록줄수(md: string): number {
   return md.split('\n').filter((줄) => /^\s*([-*]|\d+\.)\s/.test(줄)).length;
 }
 
-/** 늘 있는 다섯 → 기능 문서(들어온 차례) → 지난 기록(오래된 달부터) */
+/** 늘 있는 다섯 → 기능 문서(받은 차례 그대로) → 지난 기록(오래된 달부터) */
 function 차례(docs: 노트문서[]): 노트문서[] {
   const 고정 = 늘있는문서.flatMap((이름) => docs.filter((d) => d.name === 이름));
   const 지난 = docs.filter((d) => 지난기록꼴.test(d.name)).sort((a, b) => a.name.localeCompare(b.name));
@@ -51,10 +51,17 @@ export function 노트겹치기(앞: 노트문서[], 들어온: 노트문서[], 
     if (d.summary.length > 노트상한.설명) return { ok: false, error: 'NOTE_TOO_LONG', detail: `${이름} 한 줄 설명 ${노트상한.설명}자 넘음` };
     if (d.body.length > 노트상한.본문) return { ok: false, error: 'NOTE_TOO_LONG', detail: `${이름} 본문 ${노트상한.본문}자 넘음(${d.body.length}자)` };
   }
-  const 고정지움 = 지울.find((이름) => (늘있는문서 as readonly string[]).includes(이름));
+  const 지울이름 = 지울.map((이름) => 이름.trim());
+  const 고정지움 = 지울이름.find((이름) => (늘있는문서 as readonly string[]).includes(이름));
   if (고정지움 !== undefined) return { ok: false, error: 'BAD_NOTE', detail: `늘 있는 문서는 못 지운다: ${고정지움}` };
-  const 남김 = 앞.filter((d) => !이름들.has(d.name) && !지울.includes(d.name));
-  const 겹침 = 차례([...남김, ...들어온.map((d) => ({ name: d.name.trim(), summary: d.summary, body: d.body }))]);
+  // 없는 이름을 지우라 하거나 쓰면서 지우라 하면 AI 가 무엇을 하려 했는지 모른다 — 말없이 넘기지 않고 이름을 붙여 돌려보낸다
+  const 엇난지움 = 지울이름.find((이름) => !앞.some((d) => d.name === 이름) || 이름들.has(이름));
+  if (엇난지움 !== undefined) return { ok: false, error: 'BAD_NOTE', detail: `지울 수 없는 이름: ${엇난지움}` };
+  const 받은 = new Map(들어온.map((d) => [d.name.trim(), { name: d.name.trim(), summary: d.summary, body: d.body }]));
+  // 바뀐 문서는 앞 판 자리에서 바꿔 끼운다 — 뒤로 보내면 기능 문서 차례가 판마다 흔들린다. 새 이름만 뒤에 붙는다
+  const 제자리 = 앞.filter((d) => !지울이름.includes(d.name)).map((d) => 받은.get(d.name) ?? d);
+  const 새것 = [...받은.values()].filter((d) => !앞.some((a) => a.name === d.name));
+  const 겹침 = 차례([...제자리, ...새것]);
   if (겹침.length > 노트상한.문서) return { ok: false, error: 'NOTE_TOO_LONG', detail: `문서 ${노트상한.문서}개 넘음(${겹침.length}개)` };
   const 빠짐 = 늘있는문서.find((이름) => !겹침.some((d) => d.name === 이름));
   if (빠짐 !== undefined) return { ok: false, error: 'BAD_NOTE', detail: `늘 있는 문서가 빠졌다: ${빠짐}` };

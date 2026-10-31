@@ -87,7 +87,7 @@ async function 원본확인(
     return null;
   }
   // 노트 고치기 줄(과 그 RERUN)은 에이전트만 이어 돌린다 — 그 프로젝트 안이면 400 BAD_KIND, 밖이면 남의 것과 같은 403 (도메인/BTS §7)
-  if (행.projectId !== null && 행.projectId === (await 서비스프로젝트(서비스))) {
+  if (행.projectId !== null && 행.projectId === (await 서비스프로젝트(서비스))?.projectId) {
     await reply.code(400).send({ error: 'BAD_KIND', detail: 행.kind });
     return null;
   }
@@ -242,7 +242,7 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
     },
   );
 
-  app.get<{ Querystring: { service?: string; status?: string; discarded?: string; todo?: string; page?: string } }>(
+  app.get<{ Querystring: { service?: string; status?: string; discarded?: string; todo?: string; withNote?: string; page?: string } }>(
     '/authoring/requests',
     async (req, reply) => {
       const 서비스 = await 서비스번호(req, reply);
@@ -260,6 +260,7 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
         상태,
         폐기: req.query.discarded === '1',
         할일만: req.query.todo === '1',
+        노트도: req.query.withNote === '1',
         쪽: Math.max(1, Number(req.query.page ?? 1) || 1),
       });
     },

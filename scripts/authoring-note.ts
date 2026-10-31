@@ -55,30 +55,55 @@ export function 노트자식인자(모델값: 모델, 자료폴더: string, 임�
   ];
 }
 
-/** 사건 목록의 PR 병합 사건마다 바뀐 파일을 읽는다. 읽기가 안 되면 그 PR 은 null — 제목만 넘기고 계속한다 */
-async function PR경로들읽기(자료: 노트자료, 원천: string, id: number): Promise<Map<number, string[] | null>> {
-  const 결과 = new Map<number, string[] | null>();
-  const 주소별 = new Map<string, string[] | null>();
+/** 동시에 PR 을 몇 개까지 읽나 — 병합 사건이 쌓여도 기다림이 PR 수 ÷ 4 로 줄고, GitHub 에 한꺼번에 몰리지 않는다 */
+const PR동시 = 4;
+
+/**
+ * 일을 `한도` 개씩 동시에 돌린다. 하나 끝날 때마다 `멈췄나` 를 보고, 참이면 새 일을 안 잡고 곧바로 거짓을 낸다 —
+ * 도는 일을 기다리지 않는다(gh 하나가 60초를 다 쓸 수 있다). 다 돌면 참
+ */
+export function 나눠돌리기<T>(일들: readonly T[], 하나: (일: T) => Promise<void>, 멈췄나: () => boolean, 한도 = PR동시): Promise<boolean> {
+  let 다음 = 0;
+  let 멈춤알림: () => void = () => undefined;
+  const 멈춤 = new Promise<boolean>((풀기) => {
+    멈춤알림 = () => 풀기(false);
+  });
+  const 일꾼 = async (): Promise<void> => {
+    while (다음 < 일들.length) {
+      const 일 = 일들[다음];
+      다음 += 1;
+      if (일 !== undefined) await 하나(일);
+      if (멈췄나()) return 멈춤알림();
+    }
+  };
+  const 다돎 = Promise.all(Array.from({ length: Math.min(한도, 일들.length) }, 일꾼)).then(() => true);
+  return Promise.race([다돎, 멈춤]);
+}
+
+/** 사건 목록의 PR 병합 사건마다 바뀐 파일을 읽는다. 읽기가 안 되면 그 PR 은 null — 제목만 넘기고 계속한다. 멈추라 했으면 null */
+async function PR경로들읽기(자료: 노트자료, 원천: string, id: number, 멈췄나: () => boolean): Promise<Map<number, string[] | null> | null> {
+  const 사건주소 = new Map<number, string | null>();
   for (const e of 자료.events) {
     if (e.kind !== 'PR_MERGED') continue;
-    const 주소 = (e.payload as { prUrl?: unknown } | null)?.prUrl;
-    const 풀린 = PR주소풀기(주소);
-    if (풀린 === null) {
-      console.error(`[노트] ${id}번 사건 ${e.id}: PR 주소가 GitHub 풀 리퀘스트 꼴이 아니어서 제목만 넘긴다`);
-      결과.set(e.id, null);
-      continue;
-    }
-    const 정규 = `https://github.com/${풀린.저장소}/pull/${풀린.번호}`;
-    if (!주소별.has(정규)) {
-      // 비동기로 친다 — 병합 사건이 여럿이어도 다른 줄의 집기 · 보고가 안 선다. 자식과 같은 이유로 gh 는 에이전트 환경(GH_TOKEN)에서만 돈다
+    const 풀린 = PR주소풀기((e.payload as { prUrl?: unknown } | null)?.prUrl);
+    if (풀린 === null) console.error(`[노트] ${id}번 사건 ${e.id}: PR 주소가 GitHub 풀 리퀘스트 꼴이 아니어서 제목만 넘긴다`);
+    사건주소.set(e.id, 풀린 === null ? null : `https://github.com/${풀린.저장소}/pull/${풀린.번호}`);
+  }
+  const 주소별 = new Map<string, string[] | null>();
+  const 주소들 = [...new Set([...사건주소.values()].filter((주소) => 주소 !== null))];
+  // 돌린다는 비동기라 읽는 동안 다른 줄의 집기 · 보고가 안 선다. 자식과 같은 이유로 gh 는 에이전트 환경(GH_TOKEN)에서만 돈다
+  const 다읽음 = await 나눠돌리기(
+    주소들,
+    async (정규) => {
       const 답 = await 돌린다('gh', PR경로인자(정규), { cwd: 원천, env: process.env, 제한: 60_000 });
       const 경로들 = 답.코드 === 0 ? PR경로풀기(답.낸것) : null;
       if (경로들 === null) console.error(`[노트] ${id}번 ${정규} 바뀐 파일을 못 읽어 제목만 넘긴다: ${답.시간초과 ? '시간 초과' : (답.오류.trim().split('\n')[0] ?? '읽지 못함')}`);
       주소별.set(정규, 경로들);
-    }
-    결과.set(e.id, 주소별.get(정규) ?? null);
-  }
-  return 결과;
+    },
+    멈췄나,
+  );
+  if (!다읽음) return null;
+  return new Map([...사건주소].map(([사건, 주소]) => [사건, 주소 === null ? null : (주소별.get(주소) ?? null)]));
 }
 
 /** 입력 파일 셋을 작업 폴더에 둔다. 자식이 읽는 것이라 0644 다 — 폴더가 자식 것이라 남은 못 연다 */
@@ -106,8 +131,8 @@ async function 노트건(
 ): Promise<void> {
   const 자료 = 것.note;
   await 손.단계(`노트 고치는 중 — 바뀐 PR 파일을 읽는 중 (사건 ${자료.events.length}건)`);
-  const 경로들 = await PR경로들읽기(자료, 판.원천, 것.id);
-  if (박동.멈추라했다()) return void (await 손.끝내기({ status: 'STOPPED', stopReason: 'USER' }));
+  const 경로들 = await PR경로들읽기(자료, 판.원천, 것.id, 박동.멈추라했다);
+  if (경로들 === null || 박동.멈추라했다()) return void (await 손.끝내기({ status: 'STOPPED', stopReason: 'USER' }));
 
   await 손.단계('노트 고치는 중 — 작업 폴더를 만드는 중');
   const 자리 = 사본자리(것.id, 판.바탕);

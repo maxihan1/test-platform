@@ -87,17 +87,26 @@ export async function BTS알림처리(연결: 알림연결, 몸: unknown, 부르
 
 /**
  * 이슈 열림 · 「닫힘」으로 옮김을 노트 사건으로 쌓는다 (도메인/BTS 「맥락 — 프로젝트 노트」). 다른 상태로 옮긴 알림은 안 쌓는다.
- * 닫힘 상태를 짝짓지 않은 연결은 닫힘을 알 수 없어 안 쌓는다. 버그(BTS 종류 키 bug)면 ISSUE_CLOSE, 그 밖은 task 가 끝난 것이다
+ * 닫힘 상태를 짝짓지 않은 연결은 닫힘을 알 수 없어 안 쌓는다. 버그(BTS 종류 키 bug)면 ISSUE_CLOSE, 그 밖은 task 가 끝난 것이다.
+ * 던지지 않는다 — 던지면 알림을 잊어 BTS 가 다시 보내고 닫기를 또 돈다. 노트 사건 하나를 잃는 쪽이 닫기를 다시 도는 쪽보다 낫다
  */
 async function 이슈노트사건(projectId: number, 사건: string, 이슈: BTS이슈): Promise<void> {
   const 몸 = { issueKey: 이슈.key, type: 이슈.type, summary: 이슈.summary };
-  if (사건 === 'issue.created') {
-    await 노트사건쌓기(projectId, 'ISSUE_OPEN', 몸);
-    return;
+  let 종류: string = 사건;
+  try {
+    if (사건 === 'issue.created') {
+      종류 = 'ISSUE_OPEN';
+      await 노트사건쌓기(projectId, 'ISSUE_OPEN', 몸);
+      return;
+    }
+    const 짝 = (await (await db()).query<{ closed: string | null }>("SELECT status_map->>'CLOSED' AS closed FROM bts_link WHERE project_id = $1", [projectId])).rows[0];
+    if (짝?.closed === undefined || 짝.closed === null || 짝.closed === '' || 이슈.state !== 짝.closed) return;
+    const 끝종류 = 이슈.type === 'bug' ? 'ISSUE_CLOSE' : 'TASK_DONE';
+    종류 = 끝종류;
+    await 노트사건쌓기(projectId, 끝종류, { ...몸, resolution: 이슈.resolution });
+  } catch (err) {
+    console.error(`[bts] 프로젝트 ${String(projectId)} ${이슈.key} ${종류} 노트 사건을 못 쌓았다: ${err instanceof Error ? err.message : String(err)}`);
   }
-  const 짝 = (await (await db()).query<{ closed: string | null }>("SELECT status_map->>'CLOSED' AS closed FROM bts_link WHERE project_id = $1", [projectId])).rows[0];
-  if (짝?.closed === undefined || 짝.closed === null || 짝.closed === '' || 이슈.state !== 짝.closed) return;
-  await 노트사건쌓기(projectId, 이슈.type === 'bug' ? 'ISSUE_CLOSE' : 'TASK_DONE', { ...몸, resolution: 이슈.resolution });
 }
 
 // 담당자 · PR 제목은 없어도 받는다 — BTS 자동 설정(setup.ts)이 만드는 규칙 몸은 둘을 안 싣는다. 담당자 변경 사건에는 새 담당자가 없어 늘 비고,

@@ -266,10 +266,13 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
     });
     // 끝난 행에 또 오면 409 다. 안 막으면 판정과 PR 주소가 덮어써진다
     if (!바뀌었나) return reply.code(409).send({ error: 'NOT_RUNNING', detail: 행.status });
-    // 노트 고치기는 사람에게 알릴 작성이 아니다(작성 목록에 안 보인다). 도는 동안 들어온 사건이 남았으면 다음 노트 고치기를 세운다
+    // 노트 고치기는 사람에게 알릴 작성이 아니다(작성 목록에 안 보인다). 도는 동안 들어온 사건이 남았으면 다음 노트 고치기를 세운다.
+    // 에이전트가 꺼져 멈춘 줄은 AI 탓이 아니라 다시 돌려도 끝없이 돌지 않는다 — 그 줄이 받은 사건으로 바로 다시 세운다.
+    // 실패 · 그 밖의 중단은 같은 사건으로 또 깨질 수 있어 다음 사건이 올 때까지 기다린다
     const 서비스 = 행.serviceId;
     if (서비스 === null) {
-      if (status === 'DONE' && 행.projectId !== null) await 남은사건있으면세우기(행.projectId);
+      if (행.projectId !== null && status === 'DONE') await 남은사건있으면세우기(행.projectId);
+      if (행.projectId !== null && 멈춤이유 === 'AGENT_RESTART') await 남은사건있으면세우기(행.projectId, 행.id);
       return { ok: true };
     }
     끝냈다고알림(행, 뿌리번호, 멈춤이유, app.log);

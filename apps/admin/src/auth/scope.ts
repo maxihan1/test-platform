@@ -7,7 +7,7 @@
 // 같은 주소를 다르게 읽는** 자리가 생기고, 그 틈으로 전부 빠져나간다 (2026-09-19 실측).
 // 그래서 등록된 틀(`req.routeOptions.url`)로 종류를 고르고 값은 `req.params` 에서 읽는다.
 
-import { 칸되는서비스, type 서비스권한 } from './permissions.js';
+import { type 고를배정, 프로젝트에서고르기 } from './noteScope.js';
 
 // 서비스를 알아내는 길. 라우트 틀마다 하나씩 정해 둔다
 export type 원천 =
@@ -275,25 +275,12 @@ const 질의: Record<찾을것['종류'], string> = {
   성능더미클라이언트: 'SELECT s.prefix FROM perf_dummy_client d JOIN service s ON s.id = d.service_id WHERE d.id = $1',
 };
 
-/** 노트 고치기 줄을 그 프로젝트 애플리케이션 중 하나로 고를 때 보는 배정 — 문을 지나는 사람의 것 */
-export type 고를배정 = readonly { prefix: string; permissions: 서비스권한 }[];
-
-/**
- * 노트 고치기 줄은 애플리케이션이 아니라 프로젝트의 일이다. 그 프로젝트 애플리케이션 중 (작성, write) 인 곳 → 배정된 곳 → 첫 곳 차례로 하나를 고른다.
- * 그 프로젝트 어느 애플리케이션의 (작성, write) 면 통과하고, 남의 프로젝트 계정은 고른 곳이 배정 밖이라 막힌다 (도메인/BTS §7 「작성 에이전트 통로」)
- */
-function 프로젝트에서고르기(접두사들: string[], 배정: 고를배정): string | undefined {
-  const 쓰기 = new Set(칸되는서비스(배정, 'authoring', 'write'));
-  const 배정됨 = new Set(배정.map((s) => s.prefix));
-  return 접두사들.find((p) => 쓰기.has(p)) ?? 접두사들.find((p) => 배정됨.has(p)) ?? 접두사들[0];
-}
-
 /**
  * 그 번호가 어느 서비스 것인가.
  * - 접두사 문자열 — 그 서비스 것이다
  * - `null` — 그런 번호가 없다. 문은 지나보내고 라우트가 404 를 낸다 (SPEC §7)
  * - `서비스없음` — 있긴 한데 서비스에 안 매였다. 어느 배정에도 안 드므로 막는다
- * `배정` 은 노트 고치기 줄(작성 요청 중 프로젝트를 가리키는 줄)에서만 쓴다
+ * `배정` 은 노트 고치기 줄(작성 요청 중 프로젝트를 가리키는 줄)에서만 쓴다 (noteScope.ts)
  */
 export async function 자원의서비스(찾을것: 찾을것, 배정: 고를배정 = []): Promise<string | null | typeof 서비스없음> {
   // 여기서 불러온다. 맨 위에서 부르면 DATABASE_URL 이 없는 자리(CI)에서 이 파일을

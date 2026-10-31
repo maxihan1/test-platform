@@ -1,6 +1,6 @@
 // 노트 고치기를 집을 때 싣는 note 칸 — 프로젝트 · 애플리케이션 · 지금 판 · 반영 안 된 사건 (도메인/BTS §7 「작성 에이전트 통로」 집기 note 칸)
 
-import type { Pool } from 'pg';
+import type { Pool, PoolClient } from 'pg';
 
 import type { 노트문서 } from './note.js';
 
@@ -19,9 +19,9 @@ export interface 노트집기칸 {
   events: { id: number; kind: string; payload: unknown; createdAt: string }[];
 }
 
-/** 프로젝트의 지금 판 — 받는 통로가 겹칠 앞 판도 이것이다 */
-export async function 지금노트(projectId: number): Promise<{ version: number; savedAt: string; docs: 노트문서[] } | null> {
-  const r = await (await db()).query<{ version: number; saved_at: Date; docs: 노트문서[] }>(
+/** 프로젝트의 지금 판 — 받는 통로가 겹칠 앞 판도 이것이다. `손` 은 받는 통로의 잠근 트랜잭션이다 */
+export async function 지금노트(projectId: number, 손?: PoolClient): Promise<{ version: number; savedAt: string; docs: 노트문서[] } | null> {
+  const r = await (손 ?? (await db())).query<{ version: number; saved_at: Date; docs: 노트문서[] }>(
     'SELECT version, saved_at, docs FROM project_note WHERE project_id = $1 ORDER BY version DESC LIMIT 1',
     [projectId],
   );
@@ -30,7 +30,8 @@ export async function 지금노트(projectId: number): Promise<{ version: number
 }
 
 /**
- * 반영 안 된 사건을 이 요청 번호로 묶어 돌려준다 — 아무도 안 받은 것 · 받은 일이 실패 · 중단으로 끝난 것 · 이 요청이 앞서 받은 것(집기를 되돌린 뒤 다시 집음).
+ * 반영 안 된 사건을 이 요청 번호로 묶어 돌려준다 — 아무도 안 받은 것 · 받은 일이 판을 못 남기고 실패 · 중단으로 끝난 것 · 이 요청이 앞서 받은 것(집기를 되돌린 뒤 다시 집음).
+ * 판을 남긴 뒤 실패 · 중단한 일의 사건은 그 판에 이미 반영됐다 — 다시 받으면 같은 일을 노트에 두 번 적는다.
  * 오래된 것부터. 집기가 이미 커밋된 뒤라 던지면 집기 통로가 줄로 되돌리고, 다음 집기가 같은 사건을 다시 받는다
  */
 export async function 노트집기칸읽기(요청: { id: number; projectId: number }): Promise<노트집기칸> {
@@ -53,7 +54,8 @@ export async function 노트집기칸읽기(요청: { id: number; projectId: num
          FROM (SELECT x.id FROM project_note_event x
                 WHERE x.project_id = $1
                   AND (x.request_id IS NULL OR x.request_id = $2
-                       OR EXISTS (SELECT 1 FROM authoring_request r WHERE r.id = x.request_id AND r.status IN ('FAILED', 'STOPPED')))
+                       OR (EXISTS (SELECT 1 FROM authoring_request r WHERE r.id = x.request_id AND r.status IN ('FAILED', 'STOPPED'))
+                           AND NOT EXISTS (SELECT 1 FROM project_note n WHERE n.request_id = x.request_id)))
                 ORDER BY x.id LIMIT $3) 고른
         WHERE e.id = 고른.id
       RETURNING e.id, e.kind, e.payload, e.created_at`,

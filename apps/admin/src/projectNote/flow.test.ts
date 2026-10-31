@@ -158,12 +158,12 @@ describe.skipIf(연결 === undefined)('프로젝트 노트 고치기', () => {
     vi.stubEnv('AUTHORING_AGENT_USER', 맥);
   });
 
-  it('도는 동안 RUNNING 목록에 노트 줄이 보여 켤 때 닫기가 찾고, 거르지 않은 목록에는 안 보인다', async () => {
+  it('withNote=1 을 붙인 RUNNING 목록에만 노트 줄이 실려 켤 때 닫기가 찾는다', async () => {
     const id = Number((await 열린노트())[0]!.id);
-    const 도는 = (await 부르기('GET', '/api/authoring/requests?service=XNO&status=RUNNING')).json<{ items: { id: number; claimedBy: string }[] }>();
-    expect(도는.items.find((x) => x.id === id)).toMatchObject({ claimedBy: 맥 });
-    const 전부 = (await 부르기('GET', '/api/authoring/requests?service=XNO')).json<{ items: { id: number }[] }>();
-    expect(전부.items.some((x) => x.id === id)).toBe(false);
+    const 목록 = async (질의: string) => (await 부르기('GET', `/api/authoring/requests?service=XNO${질의}`)).json<{ items: { id: number; claimedBy: string }[] }>().items;
+    expect((await 목록('&status=RUNNING&withNote=1')).find((x) => x.id === id)).toMatchObject({ claimedBy: 맥 });
+    expect((await 목록('&status=RUNNING')).some((x) => x.id === id)).toBe(false);
+    expect((await 목록('')).some((x) => x.id === id)).toBe(false);
   });
 
   it('사람은 노트 줄을 다시 돌리지 못한다 — 400 BAD_KIND', async () => {
@@ -184,15 +184,23 @@ describe.skipIf(연결 === undefined)('프로젝트 노트 고치기', () => {
     expect(다음.note!.events.map((e) => e.kind)).toEqual(['TASK_DONE']);
   });
 
-  it('실패 · 중단으로 끝난 일의 사건은 다음 일이 다시 받고, 되돌린 집기는 같은 사건을 다시 받는다', async () => {
+  it('에이전트가 꺼져 멈추면 받은 사건으로 다음 노트 고치기가 바로 서고, 되돌린 집기는 같은 사건을 다시 받는다', async () => {
     const 앞 = Number((await 열린노트())[0]!.id);
     expect((await 끝내기(앞, { status: 'STOPPED', stopReason: 'AGENT_RESTART' })).statusCode).toBe(200);
+    const 선 = await 열린노트();
+    expect(선).toHaveLength(1);
+    expect(Number(선[0]!.id)).not.toBe(앞);
     await 노트사건쌓기(내프로젝트, 'ISSUE_CLOSE', { issueKey: 'XNQ-1' });
     const 다시 = (await 집기('XNO2'))!;
     expect(다시.note!.events.map((e) => e.kind)).toEqual(['TASK_DONE', 'ISSUE_CLOSE']);
     expect(await 집기되돌리기(다시.id, 맥)).toBe(true);
     expect((await 집기('XNO'))!.note!.events.map((e) => e.kind)).toEqual(['TASK_DONE', 'ISSUE_CLOSE']);
-    expect((await 끝내기(다시.id, { status: 'FAILED', error: '검사 끝' })).statusCode).toBe(200);
+  });
+
+  it('실패로 끝나면 다음 사건이 올 때까지 다음 노트 고치기를 세우지 않는다', async () => {
+    const 앞 = Number((await 열린노트())[0]!.id);
+    expect((await 끝내기(앞, { status: 'FAILED', error: '검사 끝' })).statusCode).toBe(200);
+    expect(await 열린노트()).toHaveLength(0);
   });
 
   it('노트 밖 작성이 DONE 으로 끝나면 AUTHORING_DONE 사건이 쌓인다', async () => {
@@ -204,5 +212,17 @@ describe.skipIf(연결 === undefined)('프로젝트 노트 고치기', () => {
     const 사건 = (await q(`SELECT payload FROM project_note_event WHERE project_id = $1 AND kind = 'AUTHORING_DONE'`, [내프로젝트])).rows;
     expect(사건.map((r: { payload: unknown }) => r.payload)).toEqual([{ requestId: id, service: 'XNO', kind: 'AUTHOR' }]);
     expect(await 열린노트()).toHaveLength(1);
+  });
+
+  it('판을 남긴 뒤 실패한 일의 사건은 반영된 것이라 다음 일이 다시 받지 않는다', async () => {
+    const 집은 = (await 집기('XNO'))!;
+    expect(집은.note!.events.map((e) => e.kind)).toEqual(['TASK_DONE', 'ISSUE_CLOSE', 'AUTHORING_DONE']);
+    expect((await 노트보내기(집은.id, { docs: [{ name: '한눈에', summary: '셋째 판', body: '- 셋째' }] })).statusCode).toBe(201);
+    expect((await 끝내기(집은.id, { status: 'FAILED', error: '판 뒤 실패' })).statusCode).toBe(200);
+    await 노트사건쌓기(내프로젝트, 'ISSUE_OPEN', { issueKey: 'XNQ-9' });
+    const 다음 = (await 집기('XNO'))!;
+    expect(다음.note!.current).toMatchObject({ version: 3 });
+    expect(다음.note!.events.map((e) => e.kind)).toEqual(['ISSUE_OPEN']);
+    expect((await 끝내기(다음.id, { status: 'DONE' })).statusCode).toBe(200);
   });
 });
