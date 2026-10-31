@@ -133,7 +133,7 @@ describe('설정 › BTS 연결', () => {
 
   it('배포 알림 토큰을 발급하면 원문이 deploy.sh 한 줄에 공개 주소와 같이 들어간다', async () => {
     vi.spyOn(btsApi, 'choices').mockResolvedValue(목록);
-    vi.spyOn(btsApi, 'deployKey').mockResolvedValue({ key: 'pdk_raw123' });
+    const 발급 = vi.spyOn(btsApi, 'deployKey').mockResolvedValue({ key: 'pdk_raw123' });
     그리기(이은연결);
 
     const 한줄 = () => document.querySelector('.bts-copy pre')?.textContent ?? '';
@@ -143,6 +143,22 @@ describe('설정 › BTS 연결', () => {
     await screen.findByText('방금 발급했습니다 · 원문은 지금만 보입니다');
     expect(한줄()).toContain('Bearer pdk_raw123');
     expect(한줄()).toContain('https://qahub.example.com/api/projects/3/deploys');
+
+    // 다시 발급은 deploy.sh 의 토큰을 끊으므로 묻는다
+    fireEvent.click(screen.getByRole('button', { name: '다시 발급' }));
+    const 창 = screen.getByRole('dialog');
+    expect(발급).toHaveBeenCalledTimes(1);
+    fireEvent.click(within(창).getByRole('button', { name: '다시 발급' }));
+    await waitFor(() => expect(발급).toHaveBeenCalledTimes(2));
+  });
+
+  it('처음 연결에 토큰 없이 불러오기를 누르면 서버를 안 부르고 토큰을 넣으라고 한다', async () => {
+    const 불러옴 = vi.spyOn(btsApi, 'choices');
+    그리기(빈연결);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'BTS 에서 불러오기' }));
+    expect(await screen.findByText('처음 연결할 때는 「QA Hub AI」 계정 토큰을 넣어야 합니다')).toBeTruthy();
+    expect(불러옴).not.toHaveBeenCalled();
   });
 
   it('연결 해제는 확인 창을 거친다', async () => {
@@ -156,5 +172,6 @@ describe('설정 › BTS 연결', () => {
     const 창 = screen.getByRole('dialog');
     fireEvent.click(within(창).getByRole('button', { name: '연결 해제' }));
     await waitFor(() => expect(끊음).toHaveBeenCalledWith(3));
+    await waitFor(() => expect((screen.getByRole('button', { name: '저장하고 BTS 자동 설정' }) as HTMLButtonElement).disabled).toBe(false));
   });
 });

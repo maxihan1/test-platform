@@ -82,8 +82,11 @@ async function 규칙들(자리: BTS자리, 부르기: 부르기함수, 줄: 연
     console.error(`[bts] 자동 설정 규칙 목록이 깨졌다: ${err instanceof Error ? err.message : String(err)}`);
     return (['RULE_ASSIGNEE', 'RULE_PR'] as const).map((what) => ({ what, ok: false, status: 0 }));
   }
+  // ponytail: 토큰을 바꾼 뒤 규칙 하나만 깨지면 그 규칙은 옛 토큰을 들고 멈춘다 — 화면이 그 줄을 ✕ 로 보이고 다시 누르면 둘 다 새 토큰으로 고친다.
+  // 원문을 안 두는 한 바꾸지 않고 고칠 길이 없다. 잦으면 토큰을 암호화해 두고 고칠 때 같은 것을 다시 넣는다
   const 토큰 = await BTS열쇠만들기(projectId, 'rule', 누가);
-  if (typeof 토큰 === 'string') throw new Error(`규칙 토큰을 못 만들었다: ${토큰}`);
+  // 그 사이 다른 운영자가 연결을 끊었다 — 500 으로 웹훅 · 보드 결과까지 잃지 않게 이 둘만 실패로 돌린다(리뷰)
+  if (typeof 토큰 === 'string') return (['RULE_ASSIGNEE', 'RULE_PR'] as const).map((what) => ({ what, ok: false, status: 409 }));
   return Promise.all(
     (['RULE_ASSIGNEE', 'RULE_PR'] as const).map((what) =>
       해본다(what, async () => {
@@ -115,6 +118,8 @@ async function 보드(자리: BTS자리, 부르기: 부르기함수, 줄: 연결
   const r = await 부르기(자리, 'GET', `/api/v1/boards?projectKey=${encodeURIComponent(줄.bts_project)}`);
   if (r.status !== 200) return r.status;
   const 보드들 = ((r.json as { data?: { boardId: string }[] } | null)?.data ?? []).map((b) => b.boardId);
+  // 보드가 없으면 만든 칸도 없다 — ✓ 로 보이지 않게 404 로 돌린다(화면 「보드 없음」)
+  if (보드들.length === 0) return 404;
   for (const 번호 of 보드들) {
     const 상세 = await 부르기(자리, 'GET', `/api/v1/boards/${encodeURIComponent(번호)}`);
     if (상세.status !== 200) return 상세.status;

@@ -147,7 +147,7 @@ const 항목쓰임: Record<BTS설정결과['what'], string> = {
 export function 자동설정결과({ 결과 }: { 결과: BTS설정결과[] | null }) {
   const t = use말();
   const 까닭 = (r: BTS설정결과) =>
-    r.status === 403 ? t('권한 없음') : r.status === 0 || r.status === undefined ? t('접속하지 못함') : t('실패 ({코드})', { 코드: r.status });
+    r.status === 403 ? t('권한 없음') : r.what === 'BOARD' && r.status === 404 ? t('보드 없음') : r.status === 0 || r.status === undefined ? t('접속하지 못함') : t('실패 ({코드})', { 코드: r.status });
   const 웹훅막힘 = 결과?.some((r) => r.what === 'WEBHOOK' && r.status === 403) ?? false;
   return (
     <>

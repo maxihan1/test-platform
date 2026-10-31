@@ -78,6 +78,10 @@ export const BTS말: Record<string, string> = {
   '발급 전 · 이 프로젝트 전용': 'Not issued · this project only',
   '방금 발급했습니다 · 원문은 지금만 보입니다': 'Just issued · the token is shown only now',
   '발급': 'Issue',
+  '배포 알림 토큰 다시 발급': 'Reissue deploy notification token',
+  '다시 발급하면 deploy.sh 에 넣어 둔 토큰은 바로 쓸 수 없습니다. 새 한 줄로 바꿔 넣어야 배포 알림이 다시 옵니다':
+    'Reissuing stops the token in deploy.sh right away. Replace it with the new line to get deploy notices again',
+  '보드 없음': 'No board',
   '복사': 'Copy',
   '복사했습니다': 'Copied',
   '복사하지 못했습니다. 글을 직접 골라 복사해 주세요': 'Could not copy. Select the text and copy it yourself',

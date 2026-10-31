@@ -47,19 +47,30 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
   const [결과, set결과] = useState<BTS설정결과[] | null>(null);
   const [배포원문, set배포원문] = useState<string | null>(null);
   const [끊기묻기, set끊기묻기] = useState(false);
+  const [다시발급묻기, set다시발급묻기] = useState(false);
+  const [불러오는중, set불러오는중] = useState(false);
 
   const 문장 = (e: unknown) => {
     const 말 = e instanceof ApiError ? 연결오류[e.code] : undefined;
     return 말 === undefined ? 오류문장(e, 언어) : t(말, { bts: BTS이름 });
   };
 
+  // 누르는 동안 막는다 — 겹친 요청의 늦게 온 옛 답이 다른 BTS 의 상태 키로 고르개를 채우지 않게(리뷰)
   async function 불러온다() {
     set목록오류(null);
+    // 처음 연결이면 저장한 토큰이 없다 — 서버의 BOT_KEY_REQUIRED(「주소를 바꾸면 …」)보다 맞는 말로 먼저 막는다
+    if (!지금.linked && botKey.trim() === '') {
+      set목록오류(t(연결오류.SECRETS_REQUIRED!, { bts: BTS이름 }));
+      return;
+    }
+    set불러오는중(true);
     try {
       set목록(await btsApi.choices(row.id, baseUrl.trim(), botKey.trim() === '' ? undefined : botKey.trim()));
     } catch (e) {
       set목록(null);
       set목록오류(문장(e));
+    } finally {
+      set불러오는중(false);
     }
   }
 
@@ -105,6 +116,7 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
   }
 
   async function 배포토큰() {
+    set다시발급묻기(false);
     set오류(null);
     try {
       set배포원문((await btsApi.deployKey(row.id)).key);
@@ -121,13 +133,15 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
       await 다시();
     } catch (e) {
       set오류(문장(e));
+    } finally {
       set바쁨(false);
     }
   }
 
   const 차례 = [
     { 이름: t('연결 정보 입력'), 됨: 지금.linked },
-    { 이름: t('{bts} 자동 설정', { bts: BTS이름 }), 됨: 결과 !== null ? 결과.every((r) => r.ok) : 지금.ruleToken !== null },
+    // 지난 결과는 서버에 안 남는다 — 이번에 눌러 넷이 다 된 것만 ✓ 다(규칙 토큰이 있다고 웹훅 · 보드가 된 것은 아니다)
+    { 이름: t('{bts} 자동 설정', { bts: BTS이름 }), 됨: 결과 !== null && 결과.every((r) => r.ok) },
     { 이름: t('배포 스크립트 한 줄'), 됨: 지금.deployKey !== null || 배포원문 !== null },
   ];
 
@@ -167,7 +181,7 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
         상태={상태}
         해결={해결}
         목록={목록}
-        불러오는중={바쁨}
+        불러오는중={불러오는중}
         목록오류={목록오류}
         불러온다={() => void 불러온다()}
         상태바꿈={(단계, 값) => set상태((전) => ({ ...전, [단계]: 값 }))}
@@ -199,12 +213,32 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
           <div className="bts-key">
             <span>{t('배포 알림 토큰')}</span>
             <span className="set-sub">{배포원문 !== null ? t('방금 발급했습니다 · 원문은 지금만 보입니다') : 지금.deployKey === null ? t('발급 전 · 이 프로젝트 전용') : `••••${지금.deployKey.tail}`}</span>
-            <button type="button" className="btn ghost" onClick={() => void 배포토큰()}>
+            {/* 다시 발급하면 deploy.sh 에 넣어 둔 토큰이 바로 끊긴다 — 처음 발급만 바로 하고 다시 발급은 묻는다(리뷰) */}
+            <button type="button" className="btn ghost" onClick={() => (지금.deployKey === null && 배포원문 === null ? void 배포토큰() : set다시발급묻기(true))}>
               {지금.deployKey === null && 배포원문 === null ? t('발급') : t('다시 발급')}
             </button>
           </div>
           <배포한줄 바탕={지금.publicUrl ?? window.location.origin} projectId={row.id} 원문={배포원문} />
         </구획>
+      ) : null}
+
+      {다시발급묻기 ? (
+        <Modal
+          제목={t('배포 알림 토큰 다시 발급')}
+          onClose={() => set다시발급묻기(false)}
+          버튼={
+            <>
+              <button type="button" className="btn ghost" onClick={() => set다시발급묻기(false)}>
+                {t('취소')}
+              </button>
+              <button type="button" className="btn danger" data-first onClick={() => void 배포토큰()}>
+                {t('다시 발급')}
+              </button>
+            </>
+          }
+        >
+          <p>{t('다시 발급하면 deploy.sh 에 넣어 둔 토큰은 바로 쓸 수 없습니다. 새 한 줄로 바꿔 넣어야 배포 알림이 다시 옵니다')}</p>
+        </Modal>
       ) : null}
 
       {끊기묻기 ? (
