@@ -14,6 +14,7 @@ import authoringAssetRoutes from './authoring/assets.js';
 import authoringEditRoutes from './authoring/edit-routes.js';
 import authoringDecisionRoutes from './authoring/decisionRoutes.js';
 import authoringRoutes from './authoring/routes.js';
+import btsLinkRoutes from './bts/routes.js';
 import { 기본계정만들기 } from './auth/defaultAdmin.js';
 import { 인증등록 } from './auth/gate.js';
 import { 세션등록, 열쇠최소길이 } from './auth/session.js';
@@ -76,6 +77,7 @@ export function buildApp(sessionSecret = process.env.SESSION_SECRET ?? '') {
   app.register(scenarioTrialRoutes, { prefix: '/api' });
   app.register(settingsRoutes, { prefix: '/api' });
   app.register(serviceTokenRoutes, { prefix: '/api' });
+  app.register(btsLinkRoutes, { prefix: '/api' });
   app.register(perfRoutes, { prefix: '/api' });
 
   // 대시보드는 /api 밖이다. 문(auth/grafanaGate.ts)을 지난 요청만 Grafana 로 넘어간다 (SPEC 도메인/인증 §7)

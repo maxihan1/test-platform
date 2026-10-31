@@ -60,6 +60,7 @@ describe('라우트표', () => {
       'apidoc',
       'auth',
       'authoring',
+      'bts',
       'catalog',
       'execution',
       'guide',

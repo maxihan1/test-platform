@@ -3,6 +3,7 @@
 
 import type { Pool, PoolClient } from 'pg';
 
+import type { 코드저장소줄 } from '../bts/link.js';
 import { 종류조건 } from '../execution/runKind.js';
 
 import { type 대상서버, type 대상서버입력, 대상서버넣기, 대상서버칸식 } from './envs.js';
@@ -36,6 +37,8 @@ export interface 서비스행 {
   hasSlackWebhook: boolean;
   hasFigmaToken: boolean;
   crawlExclude: string[];
+  /** 수정 AI 만 쓴다. 비어도 된다 (도메인/BTS §7) */
+  codeRepos: 코드저장소줄[];
   schedule: 정기실행 | null;
   /** 마지막으로 돈 때와 그 뒤 스케줄러가 만든 실행. 꺼도 남는다 */
   lastScheduled: { at: string; runIds: number[] } | null;
@@ -64,7 +67,7 @@ export async function 한묶음<T>(일: (client: PoolClient) => Promise<T>): Pro
 
 // 케이스 수는 test_case 에 서비스 칸이 없어 접두사로 센다. 그 표에는 서비스 칸이 없고 앞으로도 없다 (SPEC §6)
 const 서비스들 = `
-  SELECT s.id, s.prefix, s.name, s.color, s.project_id, p.name AS project_name, s.tests_repo, s.tests_dir, s.is_active, s.crawl_exclude,
+  SELECT s.id, s.prefix, s.name, s.color, s.project_id, p.name AS project_name, s.tests_repo, s.tests_dir, s.is_active, s.crawl_exclude, s.code_repos,
          s.kind, s.api_doc_path, s.api_doc_env,
          to_char(s.schedule_at, 'HH24:MI') AS schedule_at, s.schedule_tz, s.schedule_env, s.schedule_last,
          -- 같은 점검이 만든 UI · 기능 실행이 둘 다 마지막으로 돈 때 뒤에 생긴다 (SPEC 공통/6-인프라 §9.2)
@@ -98,6 +101,7 @@ interface 서비스원행 {
   has_slack_webhook: boolean;
   has_figma_token: boolean;
   crawl_exclude: string[];
+  code_repos: 코드저장소줄[];
   schedule_at: string | null;
   schedule_tz: string | null;
   schedule_env: string | null;
@@ -132,6 +136,7 @@ export async function 서비스목록(): Promise<서비스행[]> {
     // 피그마 토큰도 같다 (2026-09-23, 도메인/인증 §8.8)
     hasFigmaToken: r.has_figma_token,
     crawlExclude: r.crawl_exclude,
+    codeRepos: r.code_repos,
     // 셋은 DB 가 같이 비거나 같이 차게 막는다 (마이그레이션 20261012000001)
     schedule: r.schedule_at === null ? null : { at: r.schedule_at, tz: r.schedule_tz ?? '', env: r.schedule_env ?? '' },
     lastScheduled:
@@ -206,6 +211,7 @@ export interface 서비스수정 {
   slackWebhook?: string;
   figmaToken?: string;
   crawlExclude?: string[];
+  codeRepos?: 코드저장소줄[];
   /** 안 보내면 그대로, null 이면 끈다 */
   schedule?: 정기실행 | null;
   /** 둘 다 안 보내면 그대로, null 이면 비운다 */
@@ -256,7 +262,8 @@ export async function 서비스고치기(id: number, 수정: 서비스수정): P
               schedule_env = CASE WHEN $10 THEN $13 ELSE schedule_env END,
               project_id = COALESCE($14, project_id),
               api_doc_path = CASE WHEN $15 THEN $16 ELSE api_doc_path END,
-              api_doc_env  = CASE WHEN $17 THEN $18 ELSE api_doc_env END
+              api_doc_env  = CASE WHEN $17 THEN $18 ELSE api_doc_env END,
+              code_repos   = COALESCE($19::jsonb, code_repos)
         WHERE id = $1`,
       [
         id,
@@ -277,6 +284,7 @@ export async function 서비스고치기(id: number, 수정: 서비스수정): P
         수정.apiDocPath ?? null,
         수정.apiDocEnv !== undefined,
         수정.apiDocEnv ?? null,
+        수정.codeRepos === undefined ? null : JSON.stringify(수정.codeRepos),
       ],
     );
     if (rows.rowCount === 0) throw new 설정오류('NOT_FOUND');

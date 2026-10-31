@@ -7,6 +7,7 @@ import { z } from 'zod';
 
 import { 에이전트토큰만들기, 에이전트토큰지우기 } from '../auth/agentToken.js';
 import { 아이디모양 } from '../auth/rules.js';
+import { 코드저장소 } from '../bts/link.js';
 import { 화면크기목록 } from '../prd/screens.js';
 import { 정수 } from '../routeParams.js';
 
@@ -100,6 +101,7 @@ const 서비스수정 = z.object({
   figmaToken: z.string().optional(),
   crawlExclude: 훑지않을경로.optional(),
   schedule: 정기실행.nullable().optional(),
+  codeRepos: z.array(코드저장소).max(10).optional(),
   ...API칸,
 });
 
