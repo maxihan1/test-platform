@@ -406,3 +406,28 @@ describe('RunList 결과 칸 권한', () => {
     expect(웹.container.querySelector('.run-row small')?.textContent).not.toContain('https://qa.example.com');
   });
 });
+
+describe('다른 애플리케이션 실행 주소 (2026-10-31 시험 d5)', () => {
+  it('주소의 실행이 다른 애플리케이션 것이면 왼쪽 줄을 그 애플리케이션으로 바꾸고 고른 실행은 남긴다', async () => {
+    window.location.hash = '#/runs/fn?run=20930';
+    vi.spyOn(api, 'run').mockResolvedValue({ ...도는중응답, runId: 20930, items: [{ ...도는중응답.items[0]!, tcId: 'ASH-FN-292' }] } as never);
+    vi.spyOn(api, 'runs').mockResolvedValue(한쪽);
+    const 바꿈 = vi.fn();
+    const { rerender } = render(<RunList kind="FN" service="DMN" envs={서버들} 판정하기={() => 운영} 서비스바꿈={바꿈} />);
+    await waitFor(() => expect(바꿈).toHaveBeenCalledWith('ASH'));
+    rerender(<RunList kind="FN" service="ASH" envs={서버들} 판정하기={() => 운영} 서비스바꿈={바꿈} />);
+    await waitFor(() => expect(window.location.hash).toContain('run=20930'));
+    expect(바꿈).toHaveBeenCalledTimes(1);
+  });
+
+  it('같은 애플리케이션 실행이면 바꾸지 않는다', async () => {
+    window.location.hash = '#/runs/fn?run=2113';
+    vi.spyOn(api, 'run').mockResolvedValue({ ...도는중응답, runId: 2113, items: [{ ...도는중응답.items[0]!, tcId: 'ZRL-001' }] } as never);
+    vi.spyOn(api, 'runs').mockResolvedValue(한쪽);
+    const 바꿈 = vi.fn();
+    render(<RunList kind="FN" service="ZRL" envs={서버들} 판정하기={() => 운영} 서비스바꿈={바꿈} />);
+    await waitFor(() => expect(api.run).toHaveBeenCalled());
+    await act(async () => {});
+    expect(바꿈).not.toHaveBeenCalled();
+  });
+});

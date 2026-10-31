@@ -6683,7 +6683,9 @@ details.raw {
   color: var(--ink-muted);
 }
 
-.fc-dev {
+/* 머리 꼬리표 안으로만 건다 — 이름이 같은 디바이스 칸(RunFailDevice `.fc-dev`)까지 잡아 가운데 맞춤 inline-flex 로 만들어,
+   넓은 그림이 없는 게임 카드는 칸이 156px 로 줄어 단계 이름이 한 글자씩 꺾였다 (2026-10-31 시험 g1) */
+.fc-devs > .fc-dev {
   display: inline-flex;
   align-items: center;
   gap: 4px;

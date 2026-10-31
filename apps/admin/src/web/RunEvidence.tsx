@@ -57,6 +57,12 @@ export function 시간축증거({ devices }: { devices: FailureDevice[] }) {
   const 고르기 = (seq: number): void => {
     set고른(seq);
     set깜박((n) => n + 1);
+    // 칸이 좁아 증거 칸이 단계 목록 아래로 내려가 있으면 그리로 옮긴다 — 화면 밖에서 바뀌면 단계를 눌러도 아무 일 없어 보였다 (2026-10-31 시험 d1)
+    const 목록 = 뿌리.current?.querySelector('.ev-steps');
+    const 증거 = 뿌리.current?.querySelector('.ev-view');
+    if (목록 != null && 증거 != null && 증거.getBoundingClientRect().top >= 목록.getBoundingClientRect().bottom) {
+      증거.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+    }
   };
   // 짧은 단계도 누를 자리는 남긴다 — 눈금 줄도 같은 폭을 받아 단계 칸과 줄이 맞는다
   const 폭 = (s: StepResult): number => Math.max(전체ms === 0 ? 1 : (s.durationMs / 전체ms) * 100, 2);
