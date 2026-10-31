@@ -217,6 +217,8 @@ export const 라우트표: Record<string, 원천> = {
   // 사람 판정 밖 — 올리기는 토큰의 애플리케이션으로, 내려받기는 서명으로 정한다
   '/api/builds': { 종류: '안매임' },
   '/api/builds/:buildId/apk': { 종류: '안매임' },
+  '/api/bts/events/:projectId': { 종류: '안매임' },
+  '/api/bts/rules': { 종류: '안매임' },
 };
 
 // SPEC §2 — 접두사는 자유 형식이고 플랫폼은 모양과 중복만 본다.

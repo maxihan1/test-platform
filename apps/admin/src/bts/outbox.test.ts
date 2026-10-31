@@ -1,0 +1,115 @@
+// 보낼 줄 — 넣기 · 보내기 · 1분 간격 5번 · 4xx 바로 멈춤 · 408/429 다시 · 연결 없으면 멈춤 (도메인/BTS 결정 17). DATABASE_URL 이 있을 때만 돈다
+
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+
+import type { BTS응답, BTS자리 } from './client.js';
+import { 보낼줄넣기, 보낼줄점검, 최대횟수 } from './outbox.js';
+
+const 연결 = process.env.DATABASE_URL;
+const 접두사 = 'XBY';
+
+describe.skipIf(연결 === undefined)('BTS 보낼 줄', () => {
+  let 프로젝트 = 0;
+  let 남의프로젝트 = 0;
+  let 서비스 = 0;
+  let 남의서비스 = 0;
+  const 부른것: { 자리: BTS자리; method: string; 경로: string; 몸: unknown }[] = [];
+  let 답: (경로: string) => BTS응답 | Error = () => ({ status: 201, json: { data: { key: 'XBY-1' } } });
+  const 부르기 = async (자리: BTS자리, method: string, 경로: string, 몸?: unknown): Promise<BTS응답> => {
+    부른것.push({ 자리, method, 경로, 몸 });
+    const r = 답(경로);
+    if (r instanceof Error) throw r;
+    return r;
+  };
+  const pool = async () => (await import('../db/index.js')).pool;
+  const 줄 = async (id: number) =>
+    (await (await pool()).query('SELECT state, tries, issue_key, last_error FROM bts_outbox WHERE id = $1', [id])).rows[0];
+  // 다음 점검을 기다리지 않고 바로 때가 되게
+  const 때되게 = async () => (await pool()).query('UPDATE bts_outbox SET next_at = now() WHERE project_id = ANY($1)', [[프로젝트, 남의프로젝트]]);
+
+  beforeAll(async () => {
+    const p = await pool();
+    const 만들기 = async (이름: string, 접: string): Promise<[number, number]> => {
+      const pid = Number((await p.query<{ id: string }>('INSERT INTO project (name) VALUES ($1) RETURNING id', [이름])).rows[0]!.id);
+      const sid = Number(
+        (
+          await p.query<{ id: string }>(
+            `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, project_id) VALUES ($1, $1, '#112233', '', $2, $3) RETURNING id`,
+            [접, 접.toLowerCase(), pid],
+          )
+        ).rows[0]!.id,
+      );
+      return [pid, sid];
+    };
+    [프로젝트, 서비스] = await 만들기(`${접두사} 프로젝트`, 접두사);
+    [남의프로젝트, 남의서비스] = await 만들기(`${접두사}B 프로젝트`, `${접두사}B`);
+    await p.query(
+      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_key, webhook_secret, status_map, resolution_map, updated_by)
+       VALUES ($1, 'https://bts.example.com', 'XBY', 'pat_xby', 's', '{}', '{}', 'xby')`,
+      [프로젝트],
+    );
+  });
+
+  beforeEach(async () => {
+    부른것.length = 0;
+    // 앞 검사가 남긴 기다리는 줄을 치운다 — 검사마다 자기가 넣은 줄만 보내게
+    await (await pool()).query("UPDATE bts_outbox SET state = 'SENT' WHERE project_id = ANY($1)", [[프로젝트, 남의프로젝트]]);
+  });
+
+  afterAll(async () => {
+    const p = await pool();
+    // bts_outbox · bts_link 는 project 와 같이 지워진다
+    await p.query('DELETE FROM service WHERE id = ANY($1)', [[서비스, 남의서비스]]);
+    await p.query('DELETE FROM project WHERE id = ANY($1)', [[프로젝트, 남의프로젝트]]);
+  });
+
+  it('CREATE 를 보내면 받은 이슈 키를 적는다 · 같은 테스트 · 대상 서버에 기다리는 등록은 하나다', async () => {
+    const id = await 보낼줄넣기({ projectId: 프로젝트, kind: 'CREATE', payload: { summary: '실패' }, serviceId: 서비스, tcId: 'XBY-001', env: 'qa' });
+    expect(id).not.toBeNull();
+    expect(await 보낼줄넣기({ projectId: 프로젝트, kind: 'CREATE', payload: {}, serviceId: 서비스, tcId: 'XBY-001', env: 'qa' })).toBeNull();
+    expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 1, 다시: 0, 멈춤: 0 });
+    expect(부른것).toEqual([{ 자리: { baseUrl: 'https://bts.example.com', botKey: 'pat_xby' }, method: 'POST', 경로: '/api/v1/issues', 몸: { summary: '실패' } }]);
+    expect(await 줄(id!)).toEqual({ state: 'SENT', tries: 1, issue_key: 'XBY-1', last_error: null });
+  });
+
+  it('BTS 가 꺼져 있으면 1분 뒤 다시 · 5번째에 그만둔다', async () => {
+    답 = () => new Error('connect ECONNREFUSED');
+    const id = (await 보낼줄넣기({ projectId: 프로젝트, kind: 'COMMENT', issueKey: 'XBY-1', payload: { body: '또 실패' } }))!;
+    expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 0, 다시: 1, 멈춤: 0 });
+    expect(부른것.at(-1)?.경로).toBe('/api/v1/issues/XBY-1/comments');
+    // 1분이 안 지났으면 안 집는다
+    expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 0, 다시: 0, 멈춤: 0 });
+    for (let i = 2; i < 최대횟수; i++) {
+      await 때되게();
+      expect((await 보낼줄점검(부르기)).다시).toBe(1);
+    }
+    await 때되게();
+    expect((await 보낼줄점검(부르기)).멈춤).toBe(1);
+    const 끝 = await 줄(id);
+    expect([끝.state, 끝.tries]).toEqual(['GAVE_UP', 최대횟수]);
+    expect(끝.last_error).toContain('5번 보내고 그만뒀습니다');
+  });
+
+  it('권한 오류는 바로 멈추고 까닭을 남긴다 · 429 는 다시 보낸다', async () => {
+    답 = () => ({ status: 403, json: null });
+    const 권한 = (await 보낼줄넣기({ projectId: 프로젝트, kind: 'TRANSITION', issueKey: 'XBY-1', payload: { toStatusKey: 'closed' } }))!;
+    expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 0, 다시: 0, 멈춤: 1 });
+    expect(await 줄(권한)).toMatchObject({ state: 'GAVE_UP', tries: 1, last_error: '권한 없음 — QA Hub AI 열쇠를 확인하세요 (403)' });
+
+    답 = () => ({ status: 429, json: null });
+    const 바쁨 = (await 보낼줄넣기({ projectId: 프로젝트, kind: 'ASSIGN', issueKey: 'XBY-1', payload: { assigneeId: 'u' } }))!;
+    expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 0, 다시: 1, 멈춤: 0 });
+    expect(부른것.at(-1)).toMatchObject({ method: 'PATCH', 경로: '/api/v1/issues/XBY-1/assignee' });
+    expect(await 줄(바쁨)).toMatchObject({ state: 'PENDING', tries: 1 });
+    답 = () => ({ status: 200, json: {} });
+    await 때되게();
+    expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 1, 다시: 0, 멈춤: 0 });
+  });
+
+  it('BTS 연결이 없는 프로젝트 줄은 부르지 않고 멈춘다', async () => {
+    const id = (await 보낼줄넣기({ projectId: 남의프로젝트, kind: 'COMMENT', issueKey: 'DM-1', payload: {} }))!;
+    expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 0, 다시: 0, 멈춤: 1 });
+    expect(부른것).toEqual([]);
+    expect(await 줄(id)).toMatchObject({ state: 'GAVE_UP', last_error: 'BTS 연결이 없습니다' });
+  });
+});
