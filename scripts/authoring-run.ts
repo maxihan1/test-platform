@@ -6,7 +6,7 @@
 
 import { join } from 'node:path';
 
-import { type 집은것, 거절인가, 줄프롬프트, 클로드인자 } from './authoring-rules.js';
+import { type 집은것, MCP붙이기, 거절인가, 줄프롬프트, 클로드인자 } from './authoring-rules.js';
 import { type 모델, 한도걸렸나 } from './authoring-model.js';
 import { 결제환경, 크레딧먼저, 크레딧바닥났나, 크레딧키이름 } from './authoring-billing.js';
 import { type 자료, 돌릴수있나, 못읽는자료, 입력만, 자료계획, 자료출처, 화면만인가 } from './authoring-assets.js';
@@ -231,7 +231,7 @@ async function 사본에서(
     ...(설정.게임 === true ? { [게임자료환경]: 자리.자료, ...어드민키환경(것.adminKey) } : {}),
   };
   const 역방향 = 것.target === undefined ? undefined : { 화면만: 화면만인가(것, 자료들), 산출물폴더: join(자리.자료, 'out'), 제외: 설정.제외 };
-  const 인자 = 클로드인자(자리.자료, 판.모델, 자리.임시);
+  const 인자 = MCP붙이기(클로드인자(자리.자료, 판.모델, 자리.임시), 주소기지, 것.mcpKey);
   // 진척 — 케이스는 자식 시작 뒤 새로 생긴 것만, 화면은 역방향만 센다. limitSec 0 — 전체 상한이 없어 화면이 시간 막대를 안 그린다 (작성 §7)
   const 누적 = 진척누적기(0, { 비밀번호들: 비밀번호들(것), figmaToken: 것.figmaToken });
   const 재기 = 진척재기(누적, 자리.트리, 케이스자리, 역방향 === undefined ? undefined : join(자리.자료, 'screens'), 방.옛케이스);
