@@ -238,7 +238,7 @@ async function 앞판정읽기(pool: Pool, runIds: number[]): Promise<Map<number
 }
 
 // 고른 서비스가 볼 수 있는 목록에 없으면 빈 목록이 된다 — 남의 서비스 번호를 줘도 아무것도 안 읽힌다
-const 좁힌다 = (ids: number[], 서비스: number | undefined): number[] => (서비스 === undefined ? ids : ids.filter((id) => id === 서비스));
+export const 좁힌다 = (ids: number[], 서비스: number | undefined): number[] => (서비스 === undefined ? ids : ids.filter((id) => id === 서비스));
 
 /** 화면이 15초마다 부르는 가벼운 쪽 — 집계는 안 돌고 실행 중 줄만 읽는다. tz 는 안 쓰지만 같은 통로라 틀린 이름은 똑같이 거절한다 */
 export async function 대시보드실행중(tz: string, 실행서비스ids: number[], 서비스?: number): Promise<{ running: 실행중[] }> {

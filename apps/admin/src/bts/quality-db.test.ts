@@ -77,6 +77,8 @@ describe.skipIf(연결 === undefined)('AI 품질', () => {
     expect(await AI품질읽기([안이은])).toBeNull();
     expect(await AI품질읽기([])).toBeNull();
     await pool.query('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
+    // 안 이은 쪽의 줄은 이은 쪽 숫자에 섞이지 않는다
+    await 초안넣기(3, [0], 안이은);
     expect(await AI품질읽기([서비스, 안이은])).toEqual({ draft: { picked: 0, written: 0 }, fix: { merged: 0, opened: 0 } });
   });
 

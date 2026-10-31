@@ -11,7 +11,7 @@ import { 부른이로 } from '../authoring/decisionRoutes.js';
 import { 결정재료읽기 } from '../authoring/decisions.js';
 import { AI품질읽기 } from '../bts/quality.js';
 import { 정수 } from '../routeParams.js';
-import { 대시보드, 대시보드실행중, 틀린시간대 } from './dashboardResults.js';
+import { 대시보드, 대시보드실행중, 좁힌다, 틀린시간대 } from './dashboardResults.js';
 import { 허용날수 } from './dashboardShape.js';
 import { 실패카드 } from './failures.js';
 import { generate, 형식표 } from './generate.js';
@@ -186,7 +186,11 @@ export default async function reportingRoutes(app: FastifyInstance): Promise<voi
       const [결과, decisions, aiQuality] = await Promise.all([
         대시보드(tz, 실행서비스, 작성서비스, { 서비스, 날수 }),
         결정수들(req, 작성서비스, 서비스),
-        AI품질읽기(서비스 === undefined ? 작성서비스 : 작성서비스.filter((id) => id === 서비스)),
+        // 결정 필요 수처럼 깨져도 대시보드 전체를 500 으로 멈추지 않는다 — 줄만 안 보이고 서버 기록에 남는다
+        AI품질읽기(좁힌다(작성서비스, 서비스)).catch((err: unknown) => {
+          req.log.error({ err }, '[dashboard] counting AI quality failed; leaving the AI quality line out');
+          return null;
+        }),
       ]);
       return { ...결과, decisions, aiQuality };
     } catch (err) {

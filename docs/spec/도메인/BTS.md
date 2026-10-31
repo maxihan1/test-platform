@@ -283,7 +283,7 @@ AI 품질은 따로 시험하지 않고 사람이 고른 결과로 센다 — �
 - Jira 등 다른 BTS — 연결 자리(`apps/admin/src/bts/`)만 하나로 모아 둔다
 - BTS 바깥 알림 종류 늘리기 · 빌드마다 BTS 버전 만들기 · 「배운 것」을 노트로 옮기기(2차)
 
-#### 계약 — 대기 블록이 있는 곳
+#### 계약 — 블록이 있는 곳 (모두 반영 완료 2026-11-01)
 
 - DB 표 · 칸 — [공통/4-데이터모델.md](../공통/4-데이터모델.md) §6 「BTS 연동 표」(진행판 줄마다 블록 하나)
 - kit `PrdItem.fromIssues` — [공통/3-공유계약.md](../공통/3-공유계약.md) 「표준 기획서 타입」
@@ -370,7 +370,7 @@ POST /api/runs/:runId/bts/resend   { tcId, env }
 
 # 대시보드(리포팅.md §7 dashboard) 응답에 칸 하나 (BTS-F8-01 반영 2026-11-01 · bts/quality.ts AI품질읽기 · reporting/routes.ts)
      aiQuality: { draft: { picked, written }, fix: { merged, opened } } | null   — 고른 범위에 BTS 연결 프로젝트가 없으면 null
-     — 범위는 작성 read 인 애플리케이션(service 로 좁혔으면 그 하나)이고 날 창과 상관없이 지금까지 전부다(도메인 「품질 숫자」)
+     — 범위는 작성 read 인 애플리케이션(service 로 좁혔으면 그 하나) 가운데 BTS 를 이은 프로젝트의 것이고 날 창과 상관없이 지금까지 전부다(도메인 「품질 숫자」). 세다 깨지면 null 로 두고 서버 기록에 남긴다 — 대시보드 전체를 멈추지 않는다
      — draft: result.picked 가 있는 PRD_DRAFT 줄의 picked.rows 수 · draft.rows 수 합. fix: 수정 PR(pr_url)마다 하나 — merged 는 prState MERGED, opened 는 MERGED · CLOSED
 
 # 작성 에이전트 통로 — 에이전트 토큰 허용 목록(인증.md §7)에 더한다
@@ -500,4 +500,4 @@ POST /mcp
 #### 대시보드 두 숫자 (BTS-F8-01)
 
 대시보드(앱 — [리포팅.md](리포팅.md) §8.12) 「검토할 것」 아래 한 줄 칸 「AI 품질」 — 「초안 AI 82% (41/50줄)」 · 「수정 AI 60% (3/5 PR)」. `aiQuality` 가 null 이면 칸이 없다 (BTS-F8-01 반영 2026-11-01 · `web/DashboardReview.tsx` AI품질줄)
-- 분모가 0 인 쪽은 「초안 AI 아직 없음」 · 「수정 AI 아직 없음」. 누르는 곳은 없다 — 숫자만 보인다
+- 율은 내림이다 — 반올림하면 199/200 이 「100%」로 보여 옆 셈과 어긋난다. 분모가 0 인 쪽은 「초안 AI 아직 없음」 · 「수정 AI 아직 없음」. 누르는 곳은 없다 — 숫자만 보인다

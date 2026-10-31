@@ -35,7 +35,7 @@ export async function 수정PR상태적기(id: number, 상태: 'MERGED' | 'CLOSE
 }
 
 /**
- * 고른 범위의 두 숫자 — 범위에 BTS 를 이은 프로젝트가 없으면 null. 날 창과 상관없이 지금까지 전부 센다(건수가 작아 며칠로 자르면 0/0 이 잦다).
+ * 고른 범위의 두 숫자 — 범위에 BTS 를 이은 프로젝트가 없으면 null. 이은 프로젝트의 애플리케이션만 센다. 날 창과 상관없이 지금까지 전부 센다(건수가 작아 며칠로 자르면 0/0 이 잦다).
  * 초안은 카드에서 진행한(버리기 포함) 것만, 수정 PR 은 병합 · 닫힘으로 끝난 것만 분모에 든다
  */
 export async function AI품질읽기(서비스ids: number[]): Promise<AI품질 | null> {
@@ -48,6 +48,8 @@ export async function AI품질읽기(서비스ids: number[]): Promise<AI품질 |
             COUNT(DISTINCT pr_url) FILTER (WHERE kind = 'BUGFIX' AND result->'bugfix'->>'prState' IN ('MERGED', 'CLOSED')) AS opened
        FROM authoring_request
       WHERE service_id = ANY($1::bigint[])
+        -- 연결을 끊은 프로젝트의 옛 줄은 섞지 않는다 — 고른 범위에 따라 숫자가 흔들린다
+        AND service_id IN (SELECT s.id FROM service s JOIN bts_link l ON l.project_id = s.project_id)
         AND ((kind = 'PRD_DRAFT' AND result ? 'picked') OR (kind = 'BUGFIX' AND pr_url IS NOT NULL))`,
     [서비스ids],
   );

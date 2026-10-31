@@ -99,7 +99,8 @@ export function 검토할것({ 값, 이동, 서비스열기 }: { 값: 대시보�
 export function AI품질줄({ 값 }: { 값: 대시보드응답['aiQuality'] }) {
   const t = use말();
   if (값 === null) return null;
-  const 율 = (위: number, 아래: number) => String(Math.round((위 / 아래) * 100));
+  // 내림 — 반올림하면 199/200 이 「100%」로 보여 옆 셈과 어긋난다
+  const 율 = (위: number, 아래: number) => String(Math.floor((위 / 아래) * 100));
   const 초안 = 값.draft.written === 0
     ? t('초안 AI 아직 없음')
     : t('초안 AI {율}% ({고름}/{씀}줄)', { 율: 율(값.draft.picked, 값.draft.written), 고름: 값.draft.picked, 씀: 값.draft.written });

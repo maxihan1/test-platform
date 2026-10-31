@@ -190,6 +190,10 @@ describe('AI 품질줄', () => {
     expect(screen.getByText('초안 AI 82% (41/50줄)')).toBeTruthy();
     expect(screen.getByText('수정 AI 60% (3/5 PR)')).toBeTruthy();
     cleanup();
+    render(<AI품질줄 값={{ draft: { picked: 199, written: 200 }, fix: { merged: 5, opened: 5 } }} />);
+    expect(screen.getByText('초안 AI 99% (199/200줄)')).toBeTruthy();
+    expect(screen.getByText('수정 AI 100% (5/5 PR)')).toBeTruthy();
+    cleanup();
     render(<AI품질줄 값={{ draft: { picked: 0, written: 0 }, fix: { merged: 0, opened: 0 } }} />);
     expect(screen.getByText('초안 AI 아직 없음')).toBeTruthy();
     expect(screen.getByText('수정 AI 아직 없음')).toBeTruthy();
