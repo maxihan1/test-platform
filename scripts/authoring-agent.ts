@@ -30,6 +30,7 @@ import { 수정일인가 } from './authoring-bugfix-prompt.js';
 import { 초안한건처리 } from './authoring-draft.js';
 import { 초안일인가 } from './authoring-draft-prompt.js';
 import { 노트한건처리 } from './authoring-note.js';
+import { 닫을PR처리 } from './authoring-pr-close.js';
 import { 노트일인가 } from './authoring-note-prompt.js';
 import { type 판, 한건처리 } from './authoring-run.js';
 import { 도는일들, 반영줄들, 자리놓을까 } from './authoring-lanes.js';
@@ -291,6 +292,8 @@ async function 돈다(): Promise<number> {
         console.error(`[기다림] ${서비스}: ${글}`);
       }
       if (!자리넘김) 표.놓기(자리번호);
+      // 줄이 비면 거둔 롤백 되돌림 PR 을 닫는다. 깨져도 줄은 돈다 — 거절도 여기서는 에이전트를 세우지 않는다(다음 쉬는 틈에 다시)
+      if (!집었나) await 닫을PR처리(서비스, (길, 옵션) => 부른다(주소, 토큰, 길, 옵션), (인자) => 친다('gh', 인자, 원천)).catch((err: unknown) => console.error(`[작성] ${서비스} 닫을 PR: ${String(err)}`));
       if (!집었나) await 쉬기();
     }
   };
