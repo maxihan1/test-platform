@@ -15,52 +15,75 @@ export interface BTS카드칸 {
   resolution: string | null;
 }
 
+// 시나리오 실행은 카드가 없다 — 없는 실행으로 본다(reporting/routes.ts 실행상태 와 같다)
 const 연결SQL = `
   SELECT r.service_id, r.env, l.base_url
     FROM test_run r JOIN service s ON s.id = r.service_id JOIN bts_link l ON l.project_id = s.project_id
-   WHERE r.run_id = $1`;
+   WHERE r.run_id = $1 AND r.kind <> 'SCENARIO'`;
 
-// 케이스마다 한 줄 — 이 실행의 등록 > 이 실행의 댓글 > 앞 실행이 넣고 아직 기다리는 등록(같은 테스트의 실패는 그 등록으로 올린다)
 const 줄SQL = `
-  SELECT DISTINCT ON (o.tc_id) o.tc_id, o.kind, o.state, o.issue_key, o.last_error, c.resolution
-    FROM bts_outbox o
-    LEFT JOIN bts_issue_case c ON c.service_id = o.service_id AND c.tc_id = o.tc_id AND c.issue_key = o.issue_key
-   WHERE o.service_id = $1 AND o.env = $2 AND o.tc_id = ANY($3)
-     AND ((o.run_id = $4 AND o.kind IN ('CREATE', 'COMMENT')) OR (o.kind = 'CREATE' AND o.state = 'PENDING'))
-   ORDER BY o.tc_id, o.run_id = $4 DESC, o.kind = 'CREATE' DESC, o.id DESC`;
+  SELECT tc_id, kind, state, issue_key, last_error, COALESCE(run_id = $4, false) AS mine
+    FROM bts_outbox
+   WHERE service_id = $1 AND env = $2 AND tc_id = ANY($3) AND kind IN ('CREATE', 'COMMENT')
+     AND (run_id = $4 OR (kind = 'CREATE' AND state = 'PENDING'))
+   ORDER BY id DESC`;
+
+const 짝SQL = `
+  SELECT tc_id, issue_key, resolution, closed_at IS NULL AS open
+    FROM bts_issue_case WHERE service_id = $1 AND env = $2 AND tc_id = ANY($3)`;
+
+interface 줄행 {
+  tc_id: string;
+  kind: 'CREATE' | 'COMMENT';
+  state: 'PENDING' | 'SENT' | 'GAVE_UP';
+  issue_key: string | null;
+  last_error: string | null;
+  mine: boolean;
+}
 
 /**
- * BTS 를 안 이은 프로젝트면 null — 카드에 칸이 아예 없다. 이은 프로젝트에서 보낼 줄이 없는 케이스(흔들림으로 닫혀 안 올린 것)는 null 값.
+ * BTS 를 안 이은 프로젝트면 null — 카드에 칸이 아예 없다. 이은 프로젝트에서 보일 것이 없는 케이스(흔들림으로 닫혀 안 올린 것)는 null 값.
+ * 차례 — 이 실행의 등록(그만둔 것 빼고) · 댓글 > 다른 실행이 넣고 기다리는 등록 > 열린 이슈 > 이 실행의 그만둔 등록.
+ * 그만둔 등록이 맨 뒤인 까닭 — 그사이 다른 실행이 같은 테스트를 올렸으면 그 이슈가 정본이라 [다시 보내기]를 보이면 이슈가 둘 된다.
  * 열린 이슈에 댓글만 단 실패는 그 이슈의 SENT 다 — 댓글 줄이 깨져도 카드에 안 띄운다
  */
 export async function BTS카드칸들(runId: number, tcIds: string[]): Promise<Map<string, BTS카드칸 | null> | null> {
   const pool = await db();
   const 연결 = (await pool.query<{ service_id: string; env: string; base_url: string }>(연결SQL, [runId])).rows[0];
   if (연결 === undefined) return null;
-  const { rows } = await pool.query<{
-    tc_id: string;
-    kind: 'CREATE' | 'COMMENT';
-    state: 'PENDING' | 'SENT' | 'GAVE_UP';
-    issue_key: string | null;
-    last_error: string | null;
-    resolution: string | null;
-  }>(줄SQL, [연결.service_id, 연결.env, tcIds, runId]);
-  const 칸들 = new Map<string, BTS카드칸 | null>(tcIds.map((t) => [t, null]));
-  for (const r of rows) {
-    const state = r.kind === 'COMMENT' || r.state === 'SENT' ? 'SENT' : r.state === 'PENDING' ? 'SENDING' : 'GAVE_UP';
-    칸들.set(r.tc_id, {
-      issueKey: state === 'SENT' ? r.issue_key : null,
-      url: state === 'SENT' && r.issue_key !== null ? `${연결.base_url}/issues/${encodeURIComponent(r.issue_key)}` : null,
-      state,
-      reason: state === 'GAVE_UP' ? r.last_error : null,
-      resolution: state === 'SENT' ? r.resolution : null,
-    });
+  const 인자 = [연결.service_id, 연결.env, tcIds];
+  const [줄들, 짝들] = await Promise.all([
+    pool.query<줄행>(줄SQL, [...인자, runId]),
+    pool.query<{ tc_id: string; issue_key: string; resolution: string | null; open: boolean }>(짝SQL, 인자),
+  ]);
+  const 바탕 = 연결.base_url.replace(/\/+$/, '');
+  const 보냄 = (tcId: string, key: string): BTS카드칸 => ({
+    issueKey: key,
+    url: `${바탕}/issues/${encodeURIComponent(key)}`,
+    state: 'SENT',
+    reason: null,
+    resolution: 짝들.rows.find((p) => p.tc_id === tcId && p.issue_key === key)?.resolution ?? null,
+  });
+  const 기다림: BTS카드칸 = { issueKey: null, url: null, state: 'SENDING', reason: null, resolution: null };
+  const 칸들 = new Map<string, BTS카드칸 | null>();
+  for (const tcId of tcIds) {
+    const 내것 = 줄들.rows.filter((r) => r.tc_id === tcId && r.mine);
+    const 내줄 = 내것.find((r) => r.kind === 'COMMENT' || r.state !== 'GAVE_UP');
+    const 열린 = 짝들.rows.find((p) => p.tc_id === tcId && p.open);
+    const 그만둔 = 내것.find((r) => r.kind === 'CREATE' && r.state === 'GAVE_UP');
+    let 칸: BTS카드칸 | null = null;
+    if (내줄 !== undefined && 내줄.kind === 'CREATE' && 내줄.state === 'PENDING') 칸 = 기다림;
+    else if (내줄 !== undefined && 내줄.issue_key !== null) 칸 = 보냄(tcId, 내줄.issue_key);
+    else if (줄들.rows.some((r) => r.tc_id === tcId && !r.mine)) 칸 = 기다림;
+    else if (열린 !== undefined) 칸 = 보냄(tcId, 열린.issue_key);
+    else if (그만둔 !== undefined) 칸 = { issueKey: null, url: null, state: 'GAVE_UP', reason: 그만둔.last_error, resolution: null };
+    칸들.set(tcId, 칸);
   }
   return 칸들;
 }
 
 /**
- * 그만둔 등록을 처음부터(횟수 0) 다시 세운다. 그사이 같은 테스트의 다른 등록이 기다리고 있으면 그대로 둔다 — 그 등록이 올린다.
+ * 그만둔 등록을 처음부터(횟수 0) 다시 세운다. 그사이 같은 테스트의 다른 등록이 기다리거나 열린 이슈가 생겼으면 그대로 둔다 — 그것이 정본이다.
  * 보내는 중 · 보낸 등록은 할 일이 없어 그대로 202 다
  */
 export async function BTS다시보내기(runId: number, tcId: string, env: string): Promise<'OK' | 'NOT_FOUND' | 'NOT_LINKED'> {
@@ -79,7 +102,9 @@ export async function BTS다시보내기(runId: number, tcId: string, env: strin
       `UPDATE bts_outbox o SET state = 'PENDING', tries = 0, next_at = now(), last_error = NULL
         WHERE o.id = $1
           AND NOT EXISTS (SELECT 1 FROM bts_outbox p WHERE p.kind = 'CREATE' AND p.state = 'PENDING'
-                            AND p.service_id = o.service_id AND p.tc_id = o.tc_id AND p.env = o.env)`,
+                            AND p.service_id = o.service_id AND p.tc_id = o.tc_id AND p.env = o.env)
+          AND NOT EXISTS (SELECT 1 FROM bts_issue_case c WHERE c.closed_at IS NULL
+                            AND c.service_id = o.service_id AND c.tc_id = o.tc_id AND c.env = o.env)`,
       [줄.id],
     );
   }

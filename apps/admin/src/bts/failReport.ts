@@ -20,15 +20,20 @@ interface 실행행 {
   build_no: string | null;
   service_name: string;
   bts_project: string;
+  origin: string;
+  rerun_of: string | null;
 }
 
-// BTS 를 이은 프로젝트의 끝난 케이스 실행만 — 시나리오는 카드가 없고, 한 건 실행은 붙는 실행(부모)이 이미 올렸다
+// BTS 를 이은 프로젝트의 끝난 케이스 실행만 — 시나리오는 카드가 없다
 const 실행SQL = `
-  SELECT r.service_id, s.project_id, r.env, r.build_no, s.name AS service_name, l.bts_project
+  SELECT r.service_id, s.project_id, r.env, r.build_no, s.name AS service_name, l.bts_project, r.origin, r.rerun_of
     FROM test_run r
     JOIN service s ON s.id = r.service_id
     JOIN bts_link l ON l.project_id = s.project_id
-   WHERE r.run_id = $1 AND r.kind <> 'SCENARIO' AND r.origin <> 'SINGLE' AND r.status <> 'RUNNING'`;
+   WHERE r.run_id = $1 AND r.kind <> 'SCENARIO' AND r.status <> 'RUNNING'`;
+
+/** 러너가 run_item_step.screenshot_path 에 남기는 값의 접두사 (reporting/generate.ts 와 같다) */
+const 저장접두 = 'artifacts/';
 
 // 열린 이슈가 먼저, 없으면 가장 늦게 닫힌 것 — 흔들림으로 닫혔는지 본다
 const 짝SQL = `
@@ -80,7 +85,8 @@ async function 재료만들기(pool: Pool, 실행: 실행행, runId: number, c: 
     원인: d.item.failure?.reason ?? null,
     ...기록,
     결과주소: 공개주소 === '' ? null : `${공개주소}/runs/${String(runId)}`,
-    꼬리표: 꼬리표고르기(d.item.failure?.type ?? null, d.recent),
+    // 최근 흐름 맨 앞은 이번 실행이다 — 섞임은 앞 실행들로만 본다(이번 FAIL 을 넣으면 새로 깨진 회귀가 다 흔들림이 된다)
+    꼬리표: 꼬리표고르기(d.item.failure?.type ?? null, d.recent.slice(1)),
   };
   // 항목 상세는 이미 가렸지만 단계 제목 · 요구 문장 · 기록까지 밖으로 나가는 재료 전부를 한 번 더 가린다 — 되비친 비밀값(리포팅 「되비친 비밀값」).
   // 본문을 만들기 전에 가린다 — 만든 뒤 가리면 별표가 글을 늘려 크기 상한을 넘을 수 있다
@@ -91,29 +97,41 @@ async function 재료만들기(pool: Pool, 실행: 실행행, runId: number, c: 
     expected_schema: d.item.expectedSchema,
   });
   const 재료 = 가린다(날재료, 비밀) as 실패재료;
-  // 산출물 폴더 기준 경로. 보낼 때 outbox 가 파일을 읽어 올린다
+  // 산출물 폴더 기준 경로. 보낼 때 outbox 가 파일을 읽어 올린다. 러너가 만든 모양이 아니면 싣지 않는다 — 파일시스템을 읽는 자리다
   const 캡처 = d.item.steps
-    .filter((s) => s.status === 'FAIL' && s.screenshotPath !== undefined)
+    .flatMap((s) => (s.status === 'FAIL' && s.screenshotPath !== undefined ? [s.screenshotPath] : []))
+    .filter((p) => p.startsWith(`${저장접두}runs/`) && !p.includes('..'))
     .slice(0, 첨부상한)
-    .map((s) => `runs/${String(d.item.runId)}/${String(d.item.historyId)}/${String(s.seq)}.png`);
+    .map((p) => p.slice(저장접두.length));
   return { 재료, 캡처 };
 }
 
-/** 넣은 줄 수. BTS 를 안 이은 프로젝트 · 시나리오 · 한 건 실행이면 0 */
+/**
+ * 넣은 줄 수. BTS 를 안 이은 프로젝트 · 시나리오면 0.
+ * 한 건 실행은 붙는 실행(부모)의 카드로 그 한 건만 올린다 — 카드가 부모 자리에 서고, 부모에서 통과했던 케이스가 새로 깨질 수 있다
+ */
+// ponytail: 화면용 실패카드()를 그대로 써 팜 증적 · 판정 같은 BTS 에 안 쓰는 칸도 읽는다. 실행 끝 뒤에 따로 도는 일이라 두었다 — 실패가 수백 건이라 느리면 가벼운 질의로 뗀다
 export async function 실패등록(runId: number): Promise<number> {
   const pool = await db();
   const 실행 = (await pool.query<실행행>(실행SQL, [runId])).rows[0];
   if (실행 === undefined) return 0;
+  const 한건 = 실행.origin === 'SINGLE' && 실행.rerun_of !== null;
+  const 카드실행 = 한건 ? Number(실행.rerun_of) : runId;
+  const 그것만 = 한건
+    ? new Set((await pool.query<{ tc_id: string }>('SELECT DISTINCT tc_id FROM run_item WHERE run_id = $1', [runId])).rows.map((r) => r.tc_id))
+    : null;
   const 서비스 = Number(실행.service_id);
   let 넣음 = 0;
   for (let page = 1; ; page++) {
-    const 쪽 = await 실패카드(runId, page);
+    const 쪽 = await 실패카드(카드실행, page);
     for (const c of 쪽.items) {
+      if (그것만 !== null && !그것만.has(c.tcId)) continue;
       const 짝 = (await pool.query<{ issue_key: string; open: boolean; resolution: string | null }>(짝SQL, [서비스, c.tcId, 실행.env])).rows[0];
       // 흔들림으로 닫힌 테스트는 다음 실패부터 올리지 않는다 — 다시 올리는 때(그 케이스를 고친 작성 병합)는 BTS-F3-04
       if (짝 !== undefined && !짝.open && 짝.resolution === 'FLAKY') continue;
-      const { 재료, 캡처 } = await 재료만들기(pool, 실행, runId, c);
-      const 공통 = { projectId: Number(실행.project_id), serviceId: 서비스, runId, tcId: c.tcId, env: 실행.env };
+      const { 재료, 캡처 } = await 재료만들기(pool, 실행, 카드실행, c);
+      // 줄은 카드가 서는 실행에 단다 — 실패 카드가 그 실행 번호로 bts 칸을 읽는다
+      const 공통 = { projectId: Number(실행.project_id), serviceId: 서비스, runId: 카드실행, tcId: c.tcId, env: 실행.env };
       const id =
         짝 !== undefined && 짝.open
           ? await 보낼줄넣기({ ...공통, kind: 'COMMENT', issueKey: 짝.issue_key, payload: { body: 또실패댓글(재료, runId) } })

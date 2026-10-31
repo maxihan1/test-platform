@@ -19,14 +19,16 @@ describe.skipIf(연결 === undefined)('실패 → BTS 등록', () => {
   let 남의서비스 = 0;
   let 실행차례 = 0;
 
-  async function 실행(service: number, 항목들: { tcId: string; status: 'PASS' | 'FAIL' }[]): Promise<number> {
+  async function 실행(service: number, 항목들: { tcId: string; status: 'PASS' | 'FAIL' }[], 붙는실행?: number): Promise<number> {
     실행차례++;
     const r = await pool.query<{ run_id: string }>(
-      `INSERT INTO test_run (title, triggered_by, env, status, service_id, service_name, tests_repo, base_url, kind, build_no, started_at, finished_at)
+      `INSERT INTO test_run (title, triggered_by, env, status, service_id, service_name, tests_repo, base_url, kind, build_no, started_at, finished_at,
+                             origin, rerun_of)
        VALUES ($1, 'xbf', 'qa', 'FINISHED', $2, 'XBF 마켓', '', '', 'FN', 'abc1234-202610311200',
-               now() - interval '1 day' + $3 * interval '1 minute', now() - interval '1 day' + $3 * interval '1 minute' + interval '30 seconds')
+               now() - interval '1 day' + $3 * interval '1 minute', now() - interval '1 day' + $3 * interval '1 minute' + interval '30 seconds',
+               $4, $5)
        RETURNING run_id`,
-      [`XBF 실행 ${String(실행차례)}`, service, 실행차례],
+      [`XBF 실행 ${String(실행차례)}`, service, 실행차례, 붙는실행 === undefined ? 'MANUAL' : 'SINGLE', 붙는실행 ?? null],
     );
     const runId = Number(r.rows[0]!.run_id);
     for (const 항 of 항목들) {
@@ -51,8 +53,8 @@ describe.skipIf(연결 === undefined)('실패 → BTS 등록', () => {
       if (항.status === 'FAIL') {
         await pool.query(
           `INSERT INTO run_item_step (history_id, seq, title, status, duration_ms, assertions, screenshot_path)
-           VALUES ($1, 2, '비밀번호를 넣는다', 'FAIL', 10, $2, '/shots/x.png')`,
-          [historyId, JSON.stringify([{ statement: 'XBF-PW-77 로 들어가면 오류가 보인다', status: 'FAIL', actual: null, expected: '오류' }])],
+           VALUES ($1, 2, '비밀번호를 넣는다', 'FAIL', 10, $3, $2)`,
+          [historyId, `artifacts/runs/${String(runId)}/${String(historyId)}/2.png`, JSON.stringify([{ statement: 'XBF-PW-77 로 들어가면 오류가 보인다', status: 'FAIL', actual: null, expected: '오류' }])],
         );
       }
     }
@@ -112,6 +114,9 @@ describe.skipIf(연결 === undefined)('실패 → BTS 등록', () => {
       labels: ['QA Hub', '버그 가능성 높음'],
       attachments: [expect.stringMatching(new RegExp(`^runs/${String(runId)}/\\d+/2\\.png$`))],
     });
+    expect(줄!.payload).not.toMatchObject({ attachments: [expect.stringContaining('artifacts/')] });
+    expect(줄!.payload).toMatchObject({
+    });
     const 본문 = 줄!.payload.description as string;
     expect(본문).toContain('2. 비밀번호를 넣는다 ← 여기서 실패');
     expect(본문).toContain('빌드 abc1234-202610311200');
@@ -128,9 +133,11 @@ describe.skipIf(연결 === undefined)('실패 → BTS 등록', () => {
     expect((await 실패카드(runId, 1)).items[0]!.bts?.state).toBe('SENDING');
   });
 
-  it('열린 이슈가 있으면 댓글만 단다 · 카드는 그 이슈의 SENT 와 고리다', async () => {
+  it('열린 이슈가 있으면 댓글만 단다 · 카드는 그 이슈의 SENT 와 고리다 · 앞 등록에 묻힌 실행 카드도 그 이슈를 보인다', async () => {
     await pool.query(`UPDATE bts_outbox SET state = 'SENT', issue_key = 'DM-12' WHERE service_id = $1 AND kind = 'CREATE'`, [서비스]);
     await pool.query(`INSERT INTO bts_issue_case (project_id, issue_key, service_id, tc_id, env) VALUES ($1, 'DM-12', $2, 'XBF-001', 'qa')`, [프로젝트, 서비스]);
+    const 묻힌실행 = Number((await pool.query<{ run_id: string }>(`SELECT run_id FROM test_run WHERE title = 'XBF 실행 2'`)).rows[0]!.run_id);
+    expect((await 실패카드(묻힌실행, 1)).items[0]!.bts).toMatchObject({ state: 'SENT', issueKey: 'DM-12' });
     const runId = await 실행(서비스, [{ tcId: 'XBF-001', status: 'FAIL' }]);
     expect(await 실패등록(runId)).toBe(1);
     const 댓글 = (await 줄들()).at(-1)!;
@@ -173,6 +180,28 @@ describe.skipIf(연결 === undefined)('실패 → BTS 등록', () => {
       await app.close();
     }
     expect((await 줄들()).at(-1)).toMatchObject({ state: 'PENDING', tries: 0 });
+  });
+
+  it('그사이 같은 테스트의 이슈가 열렸으면 [다시 보내기]가 다시 세우지 않고 카드는 그 이슈를 보인다', async () => {
+    const runId = await 실행(서비스, [{ tcId: 'XBF-004', status: 'FAIL' }]);
+    expect(await 실패등록(runId)).toBe(1);
+    await pool.query(`UPDATE bts_outbox SET state = 'GAVE_UP', last_error = '까닭' WHERE run_id = $1`, [runId]);
+    await pool.query(`INSERT INTO bts_issue_case (project_id, issue_key, service_id, tc_id, env) VALUES ($1, 'DM-40', $2, 'XBF-004', 'qa')`, [프로젝트, 서비스]);
+    expect(await BTS다시보내기(runId, 'XBF-004', 'qa')).toBe('OK');
+    expect((await 줄들()).at(-1)).toMatchObject({ state: 'GAVE_UP' });
+    expect((await 실패카드(runId, 1)).items[0]!.bts).toMatchObject({ state: 'SENT', issueKey: 'DM-40' });
+  });
+
+  it('한 건 실행은 붙는 실행의 카드로 그 한 건만 올리고 줄도 붙는 실행에 단다', async () => {
+    const 부모 = await 실행(서비스, [
+      { tcId: 'XBF-005', status: 'PASS' },
+      { tcId: 'XBF-006', status: 'PASS' },
+    ]);
+    expect(await 실패등록(부모)).toBe(0);
+    const 한건 = await 실행(서비스, [{ tcId: 'XBF-005', status: 'FAIL' }], 부모);
+    expect(await 실패등록(한건)).toBe(1);
+    expect((await 줄들()).at(-1)).toMatchObject({ kind: 'CREATE', tc_id: 'XBF-005', run_id: String(부모) });
+    expect((await 실패카드(부모, 1)).items.map((c) => [c.tcId, c.bts?.state])).toEqual([['XBF-005', 'SENDING']]);
   });
 
   it('BTS 를 안 이은 프로젝트는 줄을 안 넣고 카드에 bts 칸이 없다', async () => {

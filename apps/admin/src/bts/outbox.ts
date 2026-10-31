@@ -114,17 +114,11 @@ async function 하나보내기(줄: 집은줄, 부르기: 부르기함수): Prom
 }
 
 /**
- * 등록이 BTS 에 닿은 뒤 — 짝을 적고 「QA 검토」로 옮기고 캡처를 올린다. 짝이 먼저다 — 다음 실패가 이슈를 또 만들지 않게.
+ * 등록이 BTS 에 닿아 짝을 적은 뒤 — 「QA 검토」로 옮기고 캡처를 올린다.
  * 옮기기 · 올리기가 깨져도 이슈는 이미 있어 다시 만들지 않는다 — 까닭을 기록에 남기고 이슈는 처음 상태로 둔다
  */
 // ponytail: 옮기기 · 첨부는 한 번만 해 본다. 잦게 깨지면 보낼 줄 종류(TRANSITION · 첨부)로 넘겨 다시 보내게 한다
-async function 만든뒤(pool: Pool, 줄: 집은줄, key: string, 만든: 만든이슈 | undefined, 부르기: 부르기함수, 올리기: 올리기함수): Promise<void> {
-  if (줄.service_id !== null && 줄.tc_id !== null && 줄.env !== null) {
-    await pool.query(
-      `INSERT INTO bts_issue_case (project_id, issue_key, service_id, tc_id, env, first_run) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING`,
-      [줄.project_id, key, 줄.service_id, 줄.tc_id, 줄.env, 줄.run_id],
-    );
-  }
+async function 만든뒤(줄: 집은줄, key: string, 만든: 만든이슈 | undefined, 부르기: 부르기함수, 올리기: 올리기함수): Promise<void> {
   const 자리 = { baseUrl: 줄.base_url!, botKey: 줄.bot_key! };
   const 검토 = 줄.status_map?.QA_REVIEW ?? '';
   try {
@@ -173,11 +167,28 @@ export async function 보낼줄점검(
     const 끝 = await 하나보내기(줄, 부르기);
     if (끝.상태 === 'SENT') {
       셈.보냄++;
-      await pool.query(
-        `UPDATE bts_outbox SET state = 'SENT', tries = tries + 1, last_error = NULL, issue_key = COALESCE($2, issue_key) WHERE id = $1`,
-        [줄.id, 끝.issueKey ?? null],
-      );
-      if (줄.kind === 'CREATE' && 끝.issueKey) await 만든뒤(pool, 줄, 끝.issueKey, 끝.만든, 부르기, 올리기);
+      // 보냄과 짝은 한 번에 적는다 — 그 사이에 같은 테스트가 또 실패하면 기다리는 등록도 열린 이슈도 없어 이슈가 둘 된다
+      const 연결 = await pool.connect();
+      try {
+        await 연결.query('BEGIN');
+        await 연결.query(
+          `UPDATE bts_outbox SET state = 'SENT', tries = tries + 1, last_error = NULL, issue_key = COALESCE($2, issue_key) WHERE id = $1`,
+          [줄.id, 끝.issueKey ?? null],
+        );
+        if (줄.kind === 'CREATE' && 끝.issueKey && 줄.service_id !== null && 줄.tc_id !== null && 줄.env !== null) {
+          await 연결.query(
+            `INSERT INTO bts_issue_case (project_id, issue_key, service_id, tc_id, env, first_run) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING`,
+            [줄.project_id, 끝.issueKey, 줄.service_id, 줄.tc_id, 줄.env, 줄.run_id],
+          );
+        }
+        await 연결.query('COMMIT');
+      } catch (err) {
+        await 연결.query('ROLLBACK');
+        throw new Error(`보낸 줄 ${줄.id} 을 적지 못했다(이슈 ${끝.issueKey ?? '-'} 는 BTS 에 있다): ${err instanceof Error ? err.message : String(err)}`);
+      } finally {
+        연결.release();
+      }
+      if (줄.kind === 'CREATE' && 끝.issueKey) await 만든뒤(줄, 끝.issueKey, 끝.만든, 부르기, 올리기);
       continue;
     }
     const 그만 = 끝.상태 === 'GAVE_UP' || 줄.tries + 1 >= 최대횟수;
@@ -197,12 +208,19 @@ export async function 보낼줄점검(
 
 /** admin 이 뜰 때 건다(app.ts 기동 경로) — buildApp 을 부르는 검사가 진짜 BTS 를 부르지 않게 */
 export function 보낼줄켜기(app: FastifyInstance): void {
+  // 앞 점검이 아직 돌면 건너뛴다 — 첨부 올리기로 한 번이 5분(집은 줄을 미뤄 둔 시간)을 넘으면 다음 점검이 남은 줄을 또 집어 이슈가 둘 된다
+  let 도는중 = false;
   const 점검 = setInterval(() => {
+    if (도는중) return;
+    도는중 = true;
     void 보낼줄점검()
       .then((셈) => {
         if (셈.보냄 + 셈.다시 + 셈.멈춤 > 0) app.log.info(`[bts] 보낼 줄 — 보냄 ${String(셈.보냄)} · 다시 ${String(셈.다시)} · 멈춤 ${String(셈.멈춤)}`);
       })
-      .catch((err: unknown) => app.log.error(`[bts] 보낼 줄 점검이 깨졌다: ${err instanceof Error ? err.message : String(err)}`));
+      .catch((err: unknown) => app.log.error(`[bts] 보낼 줄 점검이 깨졌다: ${err instanceof Error ? err.message : String(err)}`))
+      .finally(() => {
+        도는중 = false;
+      });
   }, 60_000);
   app.addHook('onClose', async () => clearInterval(점검));
 }
