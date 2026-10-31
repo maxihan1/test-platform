@@ -3071,6 +3071,11 @@ input[type='file']::file-selector-button {
   white-space: nowrap;
 }
 
+/* 설명 글이 붙은 단추 곁의 맨 단추(「취소」)는 위를 맞춘다 — 가운데 맞춤이면 「취소」만 위로 떠 보였다 (2026-10-31 시험 f5) */
+.modal-foot:has(> .foot-act) > .btn {
+  align-self: flex-start;
+}
+
 /* 테스트 실행 열 주소 — 개발자가 아니면 건드릴 일이 없어 접어 둔다 */
 .trial-adv > summary {
   cursor: pointer;

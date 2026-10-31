@@ -91,6 +91,23 @@ describe('진행 알약 (도메인/실행 §8.9)', () => {
     window.removeEventListener('tp:run-done', 듣기);
   });
 
+  it('한 건 실행은 진행 창 제목 · 알약을 RUN 번호가 아니라 케이스로 말한다', async () => {
+    const tcId = 'ZRS-001';
+    const 항목 = {
+      historyId: 7, tcId, tcName: '로그인', platform: 'desktop' as const, attempt: 1, params: {}, paramSchema: {}, status: 'NA' as const,
+      durationMs: 0, error: null, startedAt: '', finishedAt: '', rerun: null,
+    };
+    const 한건 = { ...도는중응답, origin: 'SINGLE' as const, items: [항목] };
+    vi.spyOn(api, 'run').mockResolvedValue(한건);
+    await 그린다(true);
+    expect(상자라벨()).toContain(`${tcId} 실행 중`);
+    expect(상자라벨()).not.toContain('RUN');
+    fireEvent.click(screen.getByRole('button', { name: '닫기' }));
+    const 알약 = screen.getByRole('button', { name: new RegExp(`${tcId} 진행 보기`) });
+    expect(알약.textContent).toContain(tcId);
+    expect(알약.textContent).not.toContain('RUN');
+  });
+
   it('멈출 권한이 없으면 진행 창에 「실행 중단」이 없다', async () => {
     vi.spyOn(api, 'run').mockResolvedValue(도는중응답);
     await 그린다(true, (무엇) => 무엇 !== '멈춤');

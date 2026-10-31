@@ -150,7 +150,7 @@ export function Dashboard({
 }) {
   const t = use말();
   const 시간대 = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
-  const [조건, set조건] = useState(() => 주소에서조건(열린서비스));
+  const [조건, set조건] = useState(주소에서조건(열린서비스));
   // 기본값(전체 서비스 · 14일)은 주소에 적지 않는다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
   // 프로젝트를 바꾸면 고른 애플리케이션은 다른 프로젝트 것이라 비운다. 그리는 중에 맞춰야 옛 번호로 한 번 더 받지 않는다
   const [앞프로젝트, set앞프로젝트] = useState(프로젝트);
