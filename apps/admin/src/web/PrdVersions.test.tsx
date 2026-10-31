@@ -63,7 +63,10 @@ describe('PRD 관리 — 버전 기록', () => {
     const 행 = (version: number, source: PrdVersionRow['source'], 덮을것: Partial<PrdVersionRow> = {}): PrdVersionRow => ({
       version, source, savedByName: '맥시', savedAt: '2026-10-09T08:42:00.000Z', requestId: null, fromDecision: false, changes: null, ...덮을것,
     });
+    const 롤백줄 = { kind: 'DEL' as const, reqId: 'MKT-REQ-003', text: null, asset: null, tcId: null, issueKeys: ['DM-12'] };
     판들.mockResolvedValue([
+      행(18, 'ROLLBACK', { rollbackBuild: 'a1b2c3d-202611011530', changes: [롤백줄, { ...롤백줄, reqId: 'MKT-REQ-004', issueKeys: ['DM-12', 'DM-14'] }] }),
+      행(17, 'ROLLBACK', { rollbackBuild: null, changes: [롤백줄] }),
       행(16, 'REVERT'),
       행(15, 'DECISION'),
       행(14, 'AGENT', { requestId: 20, fromDecision: true }),
@@ -74,7 +77,10 @@ describe('PRD 관리 — 버전 기록', () => {
     fireEvent.click(await screen.findByRole('button', { name: '버전 기록' }));
     const 줄들 = (await screen.findAllByRole('row')).slice(1);
     const 칸 = (n: number) => 줄들[n]!.querySelectorAll('td')[1]!.textContent;
-    expect([0, 1, 2, 3, 4].map(칸)).toEqual(['되돌림', '테스트 작성에서 결정', '테스트 작성에서 결정 · AI #20', 'AI 작성', 'AI 작성 #14681']);
+    expect([0, 1, 2, 3, 4, 5, 6].map(칸)).toEqual([
+      '롤백 · 빌드 a1b2c3d-202611011530 · DM-12 · DM-14', '롤백 · DM-12',
+      '되돌림', '테스트 작성에서 결정', '테스트 작성에서 결정 · AI #20', 'AI 작성', 'AI 작성 #14681',
+    ]);
     expect([...줄들[0]!.closest('table')!.querySelectorAll('th')].map((th) => th.textContent)).toEqual(['버전', '어디서', '바뀐 것', '저장한 사람', '저장 일시', '']);
   });
 
