@@ -9,6 +9,7 @@ import { z } from 'zod';
 
 import { 토큰해시 } from '../auth/agentToken.js';
 import { 사용자와해시 } from '../auth/store.js';
+import { 노트사건쌓기 } from '../projectNote/events.js';
 import { 정수 } from '../routeParams.js';
 
 import { 이슈읽기, type BTS이슈, type 부르기함수 } from './client.js';
@@ -76,11 +77,27 @@ export async function BTS알림처리(연결: 알림연결, 몸: unknown, 부르
     const 닫음 = await 닫기처리(연결, 이슈, 부르기);
     // 닫기만 하고 요청을 못 세운 케이스 — 사람의 판정이 QA Hub 에 닿지 않은 까닭을 남긴다(outbox.ts 처럼 서버 기록으로)
     for (const 까닭 of 닫음.기록만) console.error(`[bts] ${이슈.key} 를 닫았지만 작성 요청을 못 세웠다: ${까닭}`);
+    await 이슈노트사건(연결.projectId, 꼴.data.event, 이슈);
     return 이슈;
   } catch (err) {
     본알림.delete(열쇠);
     throw err;
   }
+}
+
+/**
+ * 이슈 열림 · 「닫힘」으로 옮김을 노트 사건으로 쌓는다 (도메인/BTS 「맥락 — 프로젝트 노트」). 다른 상태로 옮긴 알림은 안 쌓는다.
+ * 닫힘 상태를 짝짓지 않은 연결은 닫힘을 알 수 없어 안 쌓는다. 버그(BTS 종류 키 bug)면 ISSUE_CLOSE, 그 밖은 task 가 끝난 것이다
+ */
+async function 이슈노트사건(projectId: number, 사건: string, 이슈: BTS이슈): Promise<void> {
+  const 몸 = { issueKey: 이슈.key, type: 이슈.type, summary: 이슈.summary };
+  if (사건 === 'issue.created') {
+    await 노트사건쌓기(projectId, 'ISSUE_OPEN', 몸);
+    return;
+  }
+  const 짝 = (await (await db()).query<{ closed: string | null }>("SELECT status_map->>'CLOSED' AS closed FROM bts_link WHERE project_id = $1", [projectId])).rows[0];
+  if (짝?.closed === undefined || 짝.closed === null || 짝.closed === '' || 이슈.state !== 짝.closed) return;
+  await 노트사건쌓기(projectId, 이슈.type === 'bug' ? 'ISSUE_CLOSE' : 'TASK_DONE', { ...몸, resolution: 이슈.resolution });
 }
 
 // 담당자 · PR 제목은 없어도 받는다 — BTS 자동 설정(setup.ts)이 만드는 규칙 몸은 둘을 안 싣는다. 담당자 변경 사건에는 새 담당자가 없어 늘 비고,
@@ -181,8 +198,13 @@ export default async function btsInboundRoutes(app: FastifyInstance, opts: { 부
     if (!꼴.success || !꼴.data.issueKey.startsWith(`${프로젝트.btsProject}-`)) {
       return reply.code(400).send({ error: 'INVALID_REQUEST', detail: 꼴.success ? 꼴.data.issueKey : 꼴.error.message });
     }
-    // 담당자 변경 → 수정 AI(BTS-F6-01) · PR 병합 → 노트 사건(BTS-F4-03) 이 여기에 잇는다
+    // 담당자 변경 → 수정 AI(BTS-F6-01) 가 여기에 잇는다
     req.log.info(`[bts] 규칙 ${꼴.data.event} ${꼴.data.issueKey} (프로젝트 ${String(프로젝트.projectId)})`);
+    // PR 병합은 노트 사건 — 바뀐 파일 경로는 노트 고치기 일이 PR 번호로 읽는다 (도메인/BTS 「맥락 — 프로젝트 노트」)
+    if (꼴.data.event === 'PR_MERGED') {
+      const { issueKey, prNumber, prUrl, prTitle } = 꼴.data;
+      await 노트사건쌓기(프로젝트.projectId, 'PR_MERGED', { issueKey, prNumber, prUrl, prTitle });
+    }
     return reply.code(204).send();
   });
 }

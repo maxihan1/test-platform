@@ -8,6 +8,8 @@ import { 테스트고침댓글 } from '../bts/close.js';
 import { 집기API칸 } from './apiDoc.js';
 import { 병합뒤훑기 } from '../catalog/scanRun.js';
 import { 일열쇠내기 } from '../mcp/jobKey.js';
+import { 노트집기칸읽기 } from '../projectNote/claim.js';
+import { 남은사건있으면세우기, 앱노트사건쌓기 } from '../projectNote/events.js';
 import { 자료목록 } from './assetStore.js';
 import { 끝내기케이스맞나 } from './cases.js';
 import { 끝내기겹침맞나, 집기겹침칸 } from './conflict-routes.js';
@@ -110,6 +112,12 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
       if (집은것 === null) return reply.code(204).send();
       // 집기는 이미 커밋됐다. 아래가 던지면 맥은 번호를 모르므로 줄로 되돌려 다음 폴링이 다시 집게 한다
       try {
+        // 노트 고치기 줄(그 RERUN 포함)은 애플리케이션 칸(자료 · 피그마 · 대상 · API · 겹침 · 보류)이 없다 — note 칸 하나만 싣는다 (도메인/BTS §7)
+        if (집은것.projectId !== null) {
+          const note = await 노트집기칸읽기({ id: 집은것.id, projectId: 집은것.projectId });
+          const mcpKey = await 일열쇠내기(집은것);
+          return { ...집은것, assets: [], note, ...(mcpKey === null ? {} : { mcpKey }) };
+        }
         // RERUN 은 자기 자료가 없다. 원본 행의 자료는 맥이 원본 번호로 따로 읽는다
         const assets = await 자료목록(집은것.id);
         // 토큰은 피그마 자료가 있을 때만 싣는다. 필요 없는 응답에까지 비밀값을 흘리지 않는다.
@@ -206,8 +214,9 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
     // 다른 저장소의 PR 이거나 명령줄에 위험한 글자가 섞여 있으면 여기서 끊는다
     const prUrl = req.body?.prUrl;
     if (prUrl !== undefined) {
-      const 저장소 = await 서비스저장소(행.serviceId);
-      if (!병합주소인가(prUrl, 저장소)) {
+      // 노트 고치기는 PR 을 안 연다 — 비교할 테스트 저장소도 없다
+      const 저장소 = 행.serviceId === null ? null : await 서비스저장소(행.serviceId);
+      if (저장소 === null || !병합주소인가(prUrl, 저장소)) {
         return reply.code(400).send({ error: 'BAD_PR_URL' });
       }
     }
@@ -249,18 +258,28 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
         await 반영뒤저장값(손, 행, 결과칸.pulled);
         await 기획서밖화면세우기(손, 뿌리번호);
       }
+      // 노트 밖 작성이 끝나면 노트 사건 — 같은 트랜잭션이라 끝내기가 롤백되면 사건도 안 남는다 (도메인/BTS 「맥락 — 프로젝트 노트」)
+      if (됨 && status === 'DONE' && 행.serviceId !== null) {
+        await 앱노트사건쌓기(행.serviceId, 'AUTHORING_DONE', (service) => ({ requestId: 행.id, service, kind: 행.kind, ...(typeof prUrl === 'string' && { prUrl }) }), 손);
+      }
       return 됨;
     });
     // 끝난 행에 또 오면 409 다. 안 막으면 판정과 PR 주소가 덮어써진다
     if (!바뀌었나) return reply.code(409).send({ error: 'NOT_RUNNING', detail: 행.status });
+    // 노트 고치기는 사람에게 알릴 작성이 아니다(작성 목록에 안 보인다). 도는 동안 들어온 사건이 남았으면 다음 노트 고치기를 세운다
+    const 서비스 = 행.serviceId;
+    if (서비스 === null) {
+      if (status === 'DONE' && 행.projectId !== null) await 남은사건있으면세우기(행.projectId);
+      return { ok: true };
+    }
     끝냈다고알림(행, 뿌리번호, 멈춤이유, app.log);
     // BTS 「테스트 문제」로 세운 작성이 PR 을 열었으면 그 이슈에 댓글 — 보낼 줄에 넣기만 하고 기다리지 않는다 (도메인/BTS 「판정은 BTS 에서」)
     if (status === 'DONE' && typeof prUrl === 'string' && 행.kind !== 'MERGE') {
-      void 테스트고침댓글(행, prUrl).catch((err: unknown) => app.log.error(`[bts] ${String(행.id)}번 테스트 고침 댓글을 못 넣었다: ${String(err)}`));
+      void 테스트고침댓글({ ...행, serviceId: 서비스 }, prUrl).catch((err: unknown) => app.log.error(`[bts] ${String(행.id)}번 테스트 고침 댓글을 못 넣었다: ${String(err)}`));
     }
     // 병합한 테스트가 「PRD 관리」 · 목록에 바로 보이게 그 서비스를 다시 훑는다 (PRD-F9-03). main 을 못 받아 왔으면 훑어도 옛 파일이다.
     // 기다리지 않는다 — 큰 서비스는 훑기가 에이전트의 30초 제한을 넘겨, 이미 끝난 보고를 다시 보내게 된다
-    if (status === 'DONE' && 행.kind === 'MERGE' && 결과칸.pulled === true) void 병합뒤훑기(행.serviceId, app.log);
+    if (status === 'DONE' && 행.kind === 'MERGE' && 결과칸.pulled === true) void 병합뒤훑기(서비스, app.log);
     return { ok: true };
   });
 

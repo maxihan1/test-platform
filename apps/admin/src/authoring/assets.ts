@@ -11,7 +11,7 @@ import { 집은쪽인가 } from './agentRoutes.js';
 import { 산출물더하기, 자료더하기, 자료목록, 자료지우기, 자료한건 } from './assetStore.js';
 import { 막고제출 } from './openRoots.js';
 import { 번호, 사진뿌리 } from './routes.js';
-import { 한건, type 요청 } from './store.js';
+import { 한건, type 앱요청 } from './store.js';
 
 // 한 파일 상한. 값의 정본은 도메인/작성 §7 「자료」 표다
 export const 파일상한 = 20 * 1024 * 1024;
@@ -86,7 +86,7 @@ export function 내려받기(reply: FastifyReply, 이름: string, 몸: Buffer) {
 }
 
 /** 요청한 사람의 DRAFT 행인가. 아니면 응답을 보내고 null */
-async function 내준비행(req: FastifyRequest, reply: FastifyReply): Promise<요청 | null> {
+async function 내준비행(req: FastifyRequest, reply: FastifyReply): Promise<앱요청 | null> {
   const id = 번호((req.params as { id?: string }).id);
   if (id === null) {
     await reply.code(400).send({ error: 'BAD_ID' });
@@ -103,12 +103,13 @@ async function 내준비행(req: FastifyRequest, reply: FastifyReply): Promise<�
     await reply.code(403).send({ error: 'NOT_REQUESTER' });
     return null;
   }
-  // 폐기한 초안은 더 못 채운다 — 치운 것이 제출로 줄에 되살아난다
-  if (행.status !== 'DRAFT' || 행.discardedAt !== null) {
+  // 폐기한 초안은 더 못 채운다 — 치운 것이 제출로 줄에 되살아난다. 노트 고치기 줄은 초안이 없다(바로 PENDING 으로 선다)
+  const 서비스 = 행.serviceId;
+  if (행.status !== 'DRAFT' || 행.discardedAt !== null || 서비스 === null) {
     await reply.code(409).send({ error: 'NOT_DRAFT', detail: 행.status });
     return null;
   }
-  return 행;
+  return { ...행, serviceId: 서비스 };
 }
 
 export default async function authoringAssetRoutes(app: FastifyInstance): Promise<void> {

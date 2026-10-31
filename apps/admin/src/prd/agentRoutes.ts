@@ -7,7 +7,7 @@ import { 집은쪽인가 } from '../authoring/agentRoutes.js';
 import { 대상줄들읽기, 앱줄고르기 } from '../authoring/reverse.js';
 import { 지도를읽는다 } from './apiMap.js';
 import { 게임서비스인가, 요소검사, 요소넣기, 지도글 } from './gameMap.js';
-import type { 요청 } from '../authoring/store.js';
+import type { 앱요청 } from '../authoring/store.js';
 import { TCID } from '../catalog/rules.js';
 import { 누가, 판번호, 틀린판번호 } from './routes.js';
 import { 본문상한, 항목검사, 화면번호들, 화면이맞음건인가 } from './rules.js';
@@ -23,18 +23,28 @@ const 게임아님 = { error: 'NOT_GAME_SERVICE' } as const;
  * 화면 기록을 둘 대상 서버 줄 — 요청의 것이다. 게임은 대조가 없어 요청에 줄이 없으니 앱 줄(게임 첫 화면을 읽는 줄 — 운영 줄은 건너뛴다)에 둔다.
  * 창 훑기는 그 줄의 앱 파일로 켠 게임을 본 것이다 (도메인/게임 §3.10 「지도」 · GAME-F1-10)
  */
-async function 화면줄(행: 요청): Promise<string | null> {
+async function 화면줄(행: 앱요청): Promise<string | null> {
   if (!(await 게임서비스인가(행.serviceId))) return 행.env;
   return 앱줄고르기(await 대상줄들읽기(행.serviceId), 행.env)?.env ?? null;
 }
 
-/** 맥 계정 · 집은 쪽 · 도는 중. 본문보다 먼저 본다 — 끝난 요청에는 본문 모양과 상관없이 409 다 */
-export async function 도는집은요청(req: FastifyRequest, reply: FastifyReply): Promise<요청 | null> {
+/**
+ * 맥 계정 · 집은 쪽 · 도는 중. 본문보다 먼저 본다 — 끝난 요청에는 본문 모양과 상관없이 409 다.
+ * 노트 고치기 줄(서비스 칸이 빔)은 애플리케이션 자료가 없어 400 BAD_KIND — 그 일은 집기 note 칸만 읽는다
+ */
+export async function 도는집은요청(req: FastifyRequest, reply: FastifyReply): Promise<앱요청 | null> {
   const 행 = await 집은쪽인가(req, reply);
   if (행 === null) return null;
-  if (행.status === 'RUNNING') return 행;
-  await reply.code(409).send({ error: 'NOT_RUNNING', detail: 행.status });
-  return null;
+  if (행.status !== 'RUNNING') {
+    await reply.code(409).send({ error: 'NOT_RUNNING', detail: 행.status });
+    return null;
+  }
+  const 서비스 = 행.serviceId;
+  if (서비스 === null) {
+    await reply.code(400).send({ error: 'BAD_KIND', detail: 행.kind });
+    return null;
+  }
+  return { ...행, serviceId: 서비스 };
 }
 
 export default async function prdAgentRoutes(app: FastifyInstance): Promise<void> {

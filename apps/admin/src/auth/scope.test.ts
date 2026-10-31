@@ -67,6 +67,7 @@ describe('라우트표', () => {
       'notifications',
       'perf',
       'prd',
+      'projectNote',
       'reporting',
       'scenario',
       'settings',

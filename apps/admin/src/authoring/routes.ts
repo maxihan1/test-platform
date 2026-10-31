@@ -24,6 +24,7 @@ import { 상세읽기, 중단통로 } from './stop.js';
 import { 밖화면뿌리읽기 } from './uncovered.js';
 import { 열린작성 } from './openRoots.js';
 import { 도는실행있나, 뿌리, 뿌리잠그고, 실행들, 최신실행, 한쪽 } from './history.js';
+import { 서비스프로젝트 } from '../projectNote/events.js';
 import { 이어받을수있나, 줄세우기, 한건, type 요청, type 상태 } from './store.js';
 
 /**
@@ -83,6 +84,11 @@ async function 원본확인(
   const 행 = await 한건(id);
   if (행 === null) {
     await reply.code(404).send({ error: 'NOT_FOUND' });
+    return null;
+  }
+  // 노트 고치기 줄(과 그 RERUN)은 에이전트만 이어 돌린다 — 그 프로젝트 안이면 400 BAD_KIND, 밖이면 남의 것과 같은 403 (도메인/BTS §7)
+  if (행.projectId !== null && 행.projectId === (await 서비스프로젝트(서비스))) {
+    await reply.code(400).send({ error: 'BAD_KIND', detail: 행.kind });
     return null;
   }
   if (행.serviceId !== 서비스) {
@@ -270,20 +276,23 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       // 서비스 경계는 문이 이미 봤다 — 이 틀은 라우트표에서 「번호로 서비스를 찾는」 갈래다
       if (행 === null) return reply.code(404).send({ error: 'NOT_FOUND' });
       const 뿌리번호 = (await 뿌리(행.id)) ?? 행.id;
+      // 노트 고치기 줄은 애플리케이션 칸(보류 · 겹침 · 셈 · 요약)이 없다 — 에이전트가 작업 폴더를 남길지 묻는 칸까지만
+      const 서비스 = 행.serviceId;
+      if (서비스 === null) return { ...행, assets: [], rootId: 뿌리번호, runs: await 실행들(뿌리번호) };
       return {
         ...행,
         assets: await 자료목록(행.id),
         rootId: 뿌리번호,
         runs: await 실행들(뿌리번호),
-        ...(await 보류상세(행)),
+        ...(await 보류상세({ ...행, serviceId: 서비스 })),
         ...(await 겹침상세(행.id)),
         coverage: 행커버리지(행.result),
         cases: 행케이스(행.result),
         ...(await 이어작성상세(뿌리번호)),
         uncoveredOf: await 밖화면뿌리읽기(뿌리번호),
         // 상세 머리 제목 — 목록 줄과 같은 summary 다 (§7 「목록 줄 summary」)
-        summary: (await 목록요약들(행.serviceId, [뿌리번호])).get(뿌리번호)!,
-        expected: 다섯단계인가(행) ? await 작성예상(행.serviceId) : null,
+        summary: (await 목록요약들(서비스, [뿌리번호])).get(뿌리번호)!,
+        expected: 다섯단계인가(행) ? await 작성예상(서비스) : null,
       };
     },
   );

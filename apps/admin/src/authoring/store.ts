@@ -11,7 +11,8 @@ export async function db(): Promise<Pool> {
   return pool;
 }
 
-export type 종류 = 'AUTHOR' | 'RERUN' | 'MERGE' | 'EDIT';
+// NOTE 는 프로젝트 노트 고치기 — 애플리케이션 대신 프로젝트를 가리킨다 (도메인/BTS 결정 19)
+export type 종류 = 'AUTHOR' | 'RERUN' | 'MERGE' | 'EDIT' | 'NOTE';
 // DRAFT 는 자료를 올리는 중이라 아직 줄에 안 섰다. 줄에 세우기는 assetStore.ts 의 `제출` 이 한다
 export type 상태 = 'DRAFT' | 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED' | 'STOPPED';
 
@@ -36,7 +37,9 @@ export type 상태 = 'DRAFT' | 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED' | 'STOP
 
 export interface 요청 {
   id: number;
-  serviceId: number;
+  // NOTE 와 그 RERUN 만 비고 projectId 가 찬다 — 둘 중 하나만 찬다(authoring_request_scope_check)
+  serviceId: number | null;
+  projectId: number | null;
   kind: 종류;
   sourceId: number | null;
   // 옛 행만 찬다. 2026-09-23 부터 기획서는 자료(authoring_asset)로 온다
@@ -70,9 +73,13 @@ export interface 요청 {
   continueFrom: number | null;
 }
 
+/** 애플리케이션 줄 — 서비스 칸이 찬 줄. 애플리케이션 자료(판 · 가이드 · 화면)를 읽는 통로가 이것만 받는다 */
+export type 앱요청 = 요청 & { serviceId: number };
+
 export interface 행 {
   id: string;
-  service_id: string;
+  service_id: string | null;
+  project_id: string | null;
   kind: 종류;
   source_id: string | null;
   spec_text: string | null;
@@ -105,7 +112,8 @@ export interface 행 {
 export function 빚기(r: 행): 요청 {
   return {
     id: Number(r.id),
-    serviceId: Number(r.service_id),
+    serviceId: r.service_id === null ? null : Number(r.service_id),
+    projectId: r.project_id === null ? null : Number(r.project_id),
     kind: r.kind,
     sourceId: r.source_id === null ? null : Number(r.source_id),
     specText: r.spec_text,
@@ -135,7 +143,7 @@ export function 빚기(r: 행): 요청 {
   };
 }
 
-export const 칸들 = `id, service_id, kind, source_id, spec_text, params, requested_by, requested_by_name,
+export const 칸들 = `id, service_id, project_id, kind, source_id, spec_text, params, requested_by, requested_by_name,
               claimed_by, status, stage, stage_at, result, test_source, screenshot_dir, pr_url,
               error, created_at, started_at, finished_at, compare, env, start_url,
               stop_reason, stop_requested_at, discarded_at, resume_from, continue_from`;

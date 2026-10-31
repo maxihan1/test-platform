@@ -6,6 +6,7 @@ import type { Pool, PoolClient } from 'pg';
 import { 화면변경, type 판변경 } from './changes.js';
 import { 사람판, 옮기기판, 판같나, type 들어온항목, type 앞판, type 판짓기오류 } from './rules.js';
 import type { 덮는케이스 } from './trace.js';
+import { 앱노트사건쌓기 } from '../projectNote/events.js';
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. CI 는 DB 없이 돌아야 하므로 쓸 때 가져온다
 async function db(): Promise<Pool> {
@@ -150,6 +151,8 @@ async function 판넣기(
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
     [서비스, version, JSON.stringify(새.items), 새.lastNo, 출처, 요청, 사람.username, 사람.displayName, changes === null ? null : JSON.stringify(changes)],
   );
+  // 새 판은 노트 사건 — 같은 트랜잭션이라 판이 롤백되면 사건도 안 남는다 (도메인/BTS 「맥락 — 프로젝트 노트」)
+  await 앱노트사건쌓기(서비스, 'PRD_VERSION', (service) => ({ service, version }), 손);
   return version;
 }
 
