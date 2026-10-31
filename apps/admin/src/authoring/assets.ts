@@ -179,6 +179,8 @@ export default async function authoringAssetRoutes(app: FastifyInstance): Promis
       const 행 = await 집은쪽인가(req, reply);
       if (행 === null) return reply;
       if (행.status !== 'RUNNING') return reply.code(409).send({ error: 'NOT_RUNNING', detail: 행.status });
+      // 노트 고치기 줄은 애플리케이션 자료가 없다 — 산출물이 붙으면 아무도 안 읽는 파일이 프로젝트 줄에 남는다 (도메인/BTS §7)
+      if (행.serviceId === null) return reply.code(400).send({ error: 'BAD_KIND', detail: 행.kind });
 
       const { name: 이름, role, source } = req.query;
       if (typeof 이름 !== 'string' || !이름인가(이름)) return reply.code(400).send({ error: 'BAD_NAME' });

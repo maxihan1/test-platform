@@ -38,6 +38,8 @@ export async function 사진통로(app: FastifyInstance): Promise<void> {
       if (행.status !== 'RUNNING') {
         return reply.code(409).send({ error: 'NOT_RUNNING', detail: 행.status });
       }
+      // 노트 고치기 줄은 화면을 안 본다 — 사진 폴더가 애플리케이션 칸 없이 서면 화면 목록이 그 줄을 못 그린다 (도메인/BTS §7)
+      if (행.serviceId === null) return reply.code(400).send({ error: 'BAD_KIND', detail: 행.kind });
 
       const 이름 = req.query.name ?? '';
       // 파일 이름이 폴더를 거슬러 올라가면 뿌리 밖에 쓴다. 모양을 좁혀 그 틈을 없앤다

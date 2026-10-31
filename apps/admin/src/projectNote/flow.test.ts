@@ -10,6 +10,7 @@ import authRoutes from '../auth/routes.js';
 import { 세션등록 } from '../auth/session.js';
 import authoringAgentRoutes from '../authoring/agentRoutes.js';
 import { 집기되돌리기 } from '../authoring/agentStore.js';
+import authoringAssetRoutes from '../authoring/assets.js';
 import authoringRoutes from '../authoring/routes.js';
 import { 노트사건쌓기 } from './events.js';
 import { 늘있는문서, 노트상한 } from './note.js';
@@ -87,6 +88,7 @@ describe.skipIf(연결 === undefined)('프로젝트 노트 고치기', () => {
     await app.register(authoringRoutes, { prefix: '/api' });
     await app.register(authoringAgentRoutes, { prefix: '/api' });
     await app.register(projectNoteRoutes, { prefix: '/api' });
+    await app.register(authoringAssetRoutes, { prefix: '/api' });
     await app.ready();
     const 로그인 = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username: 사람, password: '열려라참깨' } });
     사람쿠키 = (로그인.headers['set-cookie'] as string).split(';')[0]!;
@@ -126,6 +128,24 @@ describe.skipIf(연결 === undefined)('프로젝트 노트 고치기', () => {
     const id = Number((await 열린노트())[0]!.id);
     expect((await 부르기('PATCH', `/api/authoring/requests/${String(id)}/stage?service=XNO2`, { stage: '노트 고치는 중' })).statusCode).toBe(200);
     expect((await 부르기('POST', `/api/authoring/requests/${String(id)}/usage?service=XNO2`, { input: 1, output: 2, cacheRead: 0, cacheWrite: 0, partial: false })).statusCode).toBe(200);
+  });
+
+  it('노트 줄은 애플리케이션 전용 산출물 · 사진 통로를 400 BAD_KIND 로 못 쓴다', async () => {
+    const id = Number((await 열린노트())[0]!.id);
+    const 산출물 = await app.inject({
+      method: 'POST',
+      url: `/api/authoring/requests/${String(id)}/outputs?service=XNO&name=r.docx&role=REVERSE_SPEC`,
+      headers: { authorization: `Bearer ${토큰}`, 'content-type': 'application/octet-stream' },
+      payload: Buffer.from('x'),
+    });
+    expect(산출물.json()).toMatchObject({ error: 'BAD_KIND' });
+    const 사진 = await app.inject({
+      method: 'POST',
+      url: `/api/authoring/requests/${String(id)}/screenshots?service=XNO&name=a.png`,
+      headers: { authorization: `Bearer ${토큰}`, 'content-type': 'application/octet-stream' },
+      payload: Buffer.from('x'),
+    });
+    expect(사진.statusCode).toBeGreaterThanOrEqual(400);
   });
 
   it('결과 통로 — 꼴 · 상한은 400 으로 앞 판을 남기고, 맞으면 앞 판에 겹쳐 새 판을 만든다', async () => {
