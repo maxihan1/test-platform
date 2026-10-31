@@ -1,4 +1,4 @@
-// MCP 조회 도구 넷 — 화면 통로와 같은 판정(문판정)을 거친 뒤 같은 질의를 읽는다 (도메인/BTS §3.12 「맥락 — MCP 조회 도구」 · §7 「MCP」)
+// MCP 조회 도구 넷(노트 읽기는 mcp/note.ts) — 화면 통로와 같은 판정(문판정)을 거친 뒤 같은 질의를 읽는다 (도메인/BTS §3.12 「맥락 — MCP 조회 도구」 · §7 「MCP」)
 
 import { 문판정, type 문막힘 as 문막힘몸 } from '../auth/gate.js';
 import { 필요권한 } from '../auth/routeTable.js';
@@ -123,6 +123,12 @@ export async function 실행보기(사람: 사용자, runId: number): Promise<�
   return { ok: true, data: { ...실행, items, itemsTotal: 실행.items.length } };
 }
 
+/** 프로젝트 단위 도구(BTS 찾기 · 노트 읽기)의 문턱 — 그 프로젝트 애플리케이션 하나라도 (작성, read). 통과면 null */
+export function 프로젝트읽기막힘(사람: 사용자, projectId: number): 도구답 | null {
+  const 앱들 = 사람.services.filter((s) => s.projectId === projectId);
+  return 앱들.some((s) => 문판정(사람, 필요권한('/api/prd', 'GET'), [s.prefix]) === null) ? null : 막힘(`project ${String(projectId)}`);
+}
+
 export type BTS찾을것 = { issueKey?: string; query?: string };
 
 /** BTS AQL 문자열 — 따옴표 · 역슬래시만 푼다 (BTS AqlLexer scanQuotedString) */
@@ -134,8 +140,8 @@ export const aql글 = (글: string): string => `"${글.replace(/[\\"]/g, (c) => 
  * QA Hub 쪽은 그 프로젝트 애플리케이션 하나라도 (작성, read) 여야 한다 — 노트 보기와 같은 문턱 (§7 「프로젝트 노트 보기」)
  */
 export async function BTS찾기(사람: 사용자, pat: string | null, projectId: number, 찾을것: BTS찾을것, 부르기: 부르기함수 = BTS부르기): Promise<도구답> {
-  const 앱들 = 사람.services.filter((s) => s.projectId === projectId);
-  if (!앱들.some((s) => 문판정(사람, 필요권한('/api/prd', 'GET'), [s.prefix]) === null)) return 막힘(`project ${String(projectId)}`);
+  const 문턱 = 프로젝트읽기막힘(사람, projectId);
+  if (문턱 !== null) return 문턱;
 
   const r = await (await db()).query<{ base_url: string; bts_project: string; bot_key: string }>('SELECT base_url, bts_project, bot_key FROM bts_link WHERE project_id = $1', [projectId]);
   const 연결 = r.rows[0];

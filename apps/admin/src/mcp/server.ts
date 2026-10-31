@@ -11,6 +11,7 @@ import { PAT사람, type 묻기함수 } from '../auth/pat.js';
 import type { 사용자 } from '../auth/store.js';
 import type { 부르기함수 } from '../bts/client.js';
 import { 일열쇠사람 } from './jobKey.js';
+import { 노트읽기 } from './note.js';
 import { BTS찾기, prd찾기, 실행보기, 지도찾기, type 도구답 } from './tools.js';
 
 export interface MCP설정 {
@@ -28,6 +29,19 @@ const 이름 = z.string().regex(/^[A-Z][A-Z0-9]{0,11}$/).describe('애플리케�
 function 서버세우기(사람: 사용자, pat: string | null, 부르기?: 부르기함수): McpServer {
   const 서버 = new McpServer({ name: 'qa-hub', version: '1.0.0' });
   const 읽기만 = { readOnlyHint: true, openWorldHint: false } as const;
+
+  서버.registerTool(
+    'note_read',
+    {
+      description: '프로젝트 노트 읽기 — 이름 없이 부르면 목차(문서 이름 · 한 줄 설명 · 길이), 문서 이름을 주면 그 문서 본문(md). 노트는 AI 가 사건마다 고쳐 쓰는 맥락이라 기대값 근거가 아니다',
+      inputSchema: {
+        projectId: z.number().int().positive().describe('QA Hub 프로젝트 번호'),
+        name: z.string().max(40).optional().describe('문서 이름 (예: 한눈에)'),
+      },
+      annotations: 읽기만,
+    },
+    async ({ projectId, name }) => 글답(await 노트읽기(사람, projectId, name)),
+  );
 
   서버.registerTool(
     'prd_search',
