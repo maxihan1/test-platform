@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { PAT사람, type 묻기함수 } from '../auth/pat.js';
 import type { 사용자 } from '../auth/store.js';
 import type { 부르기함수 } from '../bts/client.js';
+import { 일열쇠사람 } from './jobKey.js';
 import { BTS찾기, prd찾기, 실행보기, 지도찾기, type 도구답 } from './tools.js';
 
 export interface MCP설정 {
@@ -24,7 +25,7 @@ const 글답 = (답: 도구답) =>
 
 const 이름 = z.string().regex(/^[A-Z][A-Z0-9]{0,11}$/).describe('애플리케이션 접두사 (예: MKW)');
 
-function 서버세우기(사람: 사용자, pat: string, 부르기?: 부르기함수): McpServer {
+function 서버세우기(사람: 사용자, pat: string | null, 부르기?: 부르기함수): McpServer {
   const 서버 = new McpServer({ name: 'qa-hub', version: '1.0.0' });
   const 읽기만 = { readOnlyHint: true, openWorldHint: false } as const;
 
@@ -56,7 +57,7 @@ function 서버세우기(사람: 사용자, pat: string, 부르기?: 부르기�
   서버.registerTool(
     'bts_search',
     {
-      description: '그 프로젝트가 이은 BTS 에서 이슈 · task 를 찾는다. issueKey(예: DM-12) 하나를 읽거나 query 낱말로 찾는다. 부른 사람의 통합계정 토큰으로 BTS 를 부른다',
+      description: '그 프로젝트가 이은 BTS 에서 이슈 · task 를 찾는다. issueKey(예: DM-12) 하나를 읽거나 query 낱말로 찾는다. 사람은 자기 통합계정 토큰으로, 작성 AI 는 「QA Hub AI」 계정으로 BTS 를 부른다',
       inputSchema: {
         projectId: z.number().int().positive().describe('QA Hub 프로젝트 번호'),
         issueKey: z.string().max(40).optional(),
@@ -85,14 +86,22 @@ const 오류몸 = (code: number, message: string) => ({ jsonrpc: '2.0', error: {
 const 열쇠없음 = (reply: FastifyReply) => reply.code(401).header('www-authenticate', 'Bearer').send(오류몸(-32001, 'UNAUTHENTICATED'));
 
 // 인증 방식 이름은 대소문자를 가리지 않는다 (RFC 7235)
-const PAT읽기 = (머리: string | undefined): string => /^bearer\s+(\S+)\s*$/i.exec(머리 ?? '')?.[1] ?? '';
+const 열쇠읽기 = (머리: string | undefined): string => /^bearer\s+(\S+)\s*$/i.exec(머리 ?? '')?.[1] ?? '';
+// 작성 요청마다 나는 열쇠 — PAT 가 아니라 Auth 에 묻지 않는다 (jobKey.ts)
+const 일열쇠인가 = (열쇠: string) => 열쇠.startsWith('mcj_');
 
 export default async function mcpRoutes(app: FastifyInstance, 설정: MCP설정 = {}): Promise<void> {
   // 열쇠는 몸을 읽기 전에 본다 — 열쇠 없는 사람이 보낸 큰 몸이 메모리에 올라간 뒤에야 401 이 나가지 않게 (auth/gate.ts onRequest · bts/inbound.ts 와 같다)
   const 열쇠문 = async (req: FastifyRequest, reply: FastifyReply) => {
-    const pat = PAT읽기(req.headers.authorization);
-    if (pat === '') return 열쇠없음(reply);
-    const 사람 = await PAT사람(pat, req.ip, 설정.묻기);
+    const 열쇠 = 열쇠읽기(req.headers.authorization);
+    if (열쇠 === '') return 열쇠없음(reply);
+    if (일열쇠인가(열쇠)) {
+      const 사람 = await 일열쇠사람(열쇠);
+      if (사람 === null) return 열쇠없음(reply);
+      req.user = 사람;
+      return;
+    }
+    const 사람 = await PAT사람(열쇠, req.ip, 설정.묻기);
     if (사람 === '닿지못함') return reply.code(503).send(오류몸(-32002, 'AUTH_UNREACHABLE'));
     if (사람 === '너무많음') return reply.code(429).send(오류몸(-32003, 'TOO_MANY_REQUESTS'));
     if (사람 === null) return 열쇠없음(reply);
@@ -103,7 +112,8 @@ export default async function mcpRoutes(app: FastifyInstance, 설정: MCP설정 
     // 열쇠문이 사람을 실었다. 없으면 이미 돌려보냈다
     const 사람 = req.user;
     if (사람 === null) return 열쇠없음(reply);
-    const 서버 = 서버세우기(사람, PAT읽기(req.headers.authorization), 설정.부르기);
+    const 열쇠 = 열쇠읽기(req.headers.authorization);
+    const 서버 = 서버세우기(사람, 일열쇠인가(열쇠) ? null : 열쇠, 설정.부르기);
     // 세션 없이 — 요청 하나에 서버 하나. 답은 SSE 가 아니라 JSON 한 덩어리다
     const 전송 = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     reply.raw.on('close', () => {

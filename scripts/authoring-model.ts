@@ -72,6 +72,9 @@ export function 점검통과(도움말: string): boolean {
     '--tools',
     '--restricted',
     '--strict-mcp-config',
+    // 작성 자식이 QA Hub 조회 도구를 붙이는 깃발 둘 (BTS-F4-02)
+    '--mcp-config',
+    '--allowedTools',
     '--json-schema',
     '--no-session-persistence',
     'dontAsk',

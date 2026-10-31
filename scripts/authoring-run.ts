@@ -6,7 +6,7 @@
 
 import { join } from 'node:path';
 
-import { type 집은것, 거절인가, 줄프롬프트, 클로드인자 } from './authoring-rules.js';
+import { type 집은것, MCP붙이기, MCP설정글, 거절인가, 줄프롬프트, 클로드인자 } from './authoring-rules.js';
 import { type 모델, 한도걸렸나 } from './authoring-model.js';
 import { 결제환경, 크레딧먼저, 크레딧바닥났나, 크레딧키이름 } from './authoring-billing.js';
 import { type 자료, 돌릴수있나, 못읽는자료, 입력만, 자료계획, 자료출처, 화면만인가 } from './authoring-assets.js';
@@ -14,7 +14,7 @@ import { 대상점검, 대상환경, 사유거르기 } from './authoring-reverse
 import { 계정환경, 비밀번호들, 어드민키환경 } from './authoring-accounts.js';
 import { 자식환경 } from './authoring-chain.js';
 import { type 계정, 사본환경 } from './authoring-copy.js';
-import { 사본치우기, 자식거두기, 자식빈환경 } from './authoring-child.js';
+import { MCP설정쓰기, 사본치우기, 자식거두기, 자식빈환경 } from './authoring-child.js';
 import { type 작업방, 도는번호, 보관하기, 작업방준비 } from './authoring-keeping.js';
 import { type 보고손, type 칠때, type 판정기, 거절글, 닫으며, 돌린다, 멈춤, 보고손만들기, 부른다, 친다 } from './authoring-io.js';
 import { 머지행처리 } from './authoring-merge-row.js';
@@ -231,7 +231,7 @@ async function 사본에서(
     ...(설정.게임 === true ? { [게임자료환경]: 자리.자료, ...어드민키환경(것.adminKey) } : {}),
   };
   const 역방향 = 것.target === undefined ? undefined : { 화면만: 화면만인가(것, 자료들), 산출물폴더: join(자리.자료, 'out'), 제외: 설정.제외 };
-  const 인자 = 클로드인자(자리.자료, 판.모델, 자리.임시);
+  const 인자 = MCP붙이기(클로드인자(자리.자료, 판.모델, 자리.임시), MCP설정쓰기(자리.임시, MCP설정글(주소기지, 것.mcpKey), 자식));
   // 진척 — 케이스는 자식 시작 뒤 새로 생긴 것만, 화면은 역방향만 센다. limitSec 0 — 전체 상한이 없어 화면이 시간 막대를 안 그린다 (작성 §7)
   const 누적 = 진척누적기(0, { 비밀번호들: 비밀번호들(것), figmaToken: 것.figmaToken });
   const 재기 = 진척재기(누적, 자리.트리, 케이스자리, 역방향 === undefined ? undefined : join(자리.자료, 'screens'), 방.옛케이스);

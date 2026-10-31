@@ -1,7 +1,7 @@
 // 사본을 만들고 치우고, 자식 claude 를 자리의 uid 로 띄우는 껍데기. 판단은 authoring-copy.ts 의 순수 함수에 있다
 // 자리 uid 로 넘기는 일(chown·kill)은 root 일 때만 한다 — 맥에서는 사람 계정 하나로 돈다
 
-import { chmodSync, existsSync, lstatSync, mkdirSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, chownSync, existsSync, lstatSync, mkdirSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { type 계정, type 사본, type 파일모양, 부품링크, 사본제외, 사본준비, 사본자리 } from './authoring-copy.js';
@@ -148,4 +148,17 @@ export function 사본치우기(자리: 사본): void {
 /** 자식 uid 로 띄울 때의 환경 — 준 것만 넘긴다 */
 export function 자식빈환경(더할것: Record<string, string>): Record<string, string> {
   return { ...빈환경, ...더할것 };
+}
+
+/**
+ * 자식이 붙일 QA Hub MCP 설정 파일을 그 자식의 임시 자리에 쓰고 경로를 낸다. 열쇠가 없으면 undefined (도메인/BTS 「열쇠 표」 · BTS-F4-02).
+ * 인자로 넘기지 않는다 — 같은 컨테이너의 다른 자리 자식이 `ps` 로 남의 프로젝트 열쇠를 읽는다(2026-10-31 검토).
+ * 임시 자리는 그 자리 uid 만 여는 0700 이고, 파일도 그 uid 의 0600 이다
+ */
+export function MCP설정쓰기(임시: string, 설정글: string | undefined, 자식: 계정 | null): string | undefined {
+  if (설정글 === undefined) return undefined;
+  const 파일 = join(임시, 'qa-hub-mcp.json');
+  writeFileSync(파일, 설정글, { mode: 0o600 });
+  if (자식 !== null) chownSync(파일, 자식.uid, 자식.gid);
+  return 파일;
 }

@@ -103,6 +103,26 @@ export function 클로드인자(폴더: string, 모델: 모델, ...더열폴더:
 }
 
 /**
+ * 자식에 QA Hub 조회 도구(`/mcp`)를 붙인다 — 집기 응답에 일마다 열쇠(`mcpKey`)가 왔을 때만 (도메인/BTS 「열쇠 표」 · BTS-F4-02).
+ * 기존 깃발은 그대로 두고 `--disallowedTools` 바로 앞에 끼운다 — 둘 다 가변 인자라 그 자리가 아니면 뒤 것을 삼킨다.
+ * `-p` 는 허용 안 된 도구를 묻지 못하고 거절하므로 그 서버 도구를 같이 연다.
+ * 열쇠는 인자에 싣지 않고 설정 파일(authoring-child `MCP설정쓰기`) 경로만 싣는다 — 다른 자리 자식이 `ps` 로 읽는다
+ */
+export function MCP붙이기(인자: string[], 설정파일: string | undefined): string[] {
+  if (설정파일 === undefined) return 인자;
+  const 자리 = 인자.indexOf('--disallowedTools');
+  // 없으면 끼울 자리를 모른다 — 엉뚱한 자리에 끼우면 가변 인자가 폴더 · 도구 이름을 삼킨다
+  if (자리 < 0) throw new Error('클로드인자에 --disallowedTools 가 없어 MCP 깃발을 끼울 자리가 없다');
+  return [...인자.slice(0, 자리), '--mcp-config', 설정파일, '--allowedTools', 'mcp__qa-hub', ...인자.slice(자리)];
+}
+
+/** 그 설정 파일의 글 — 열쇠가 없으면 undefined */
+export function MCP설정글(admin주소: string, 열쇠: string | undefined): string | undefined {
+  if (열쇠 === undefined) return undefined;
+  return JSON.stringify({ mcpServers: { 'qa-hub': { type: 'http', url: `${admin주소}/mcp`, headers: { Authorization: `Bearer ${열쇠}` } } } });
+}
+
+/**
  * `claude` 를 부르기 전에 봐야 할 것 전부. **순서가 계약이다** — 돈이 가장 앞이다.
  *
  * 순수 함수로 뽑아 둔 이유는 **순서를 검사가 붙잡게** 하기 위해서다.
@@ -165,6 +185,8 @@ export interface 집은것 {
   held?: unknown;
   /** 행의 params 그대로 — 반영 요청(`prdApply`)인지 본다. 재실행 · 이어서 작성 행에는 서버가 원본 것을 물려 둔다 (§7 「표준 기획서 통로」) */
   params?: unknown;
+  /** BTS 이은 프로젝트의 작성 · 그 재실행에만 온다 — 자식이 QA Hub 조회 도구를 쓰는 일마다 열쇠(mcj_). 자식 인자에만 싣고 어디에도 안 찍는다 */
+  mcpKey?: string;
   /** 반영 행에만 온다 — 원본의 겹침 결정 전부. 모양은 authoring-conflicts-io 의 `결정들` 이 본다 (§3.6 「★ 반영 때 겹침 검사」) */
   conflicts?: unknown;
   /**

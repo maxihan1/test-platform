@@ -22,7 +22,8 @@ export async function 집기(서비스: number, 집는이: string): Promise<요�
     // 표준 기획서가 없으면 비운다 (도메인/작성 §7 「표준 기획서 통로」)
     `WITH RECURSIVE ${열린반영식('$1')}
      UPDATE authoring_request
-        SET status = 'RUNNING', claimed_by = $2, started_at = now(),
+        -- 앞 집기의 MCP 열쇠는 지운다 — 열쇠는 집을 때마다 새로 난다(mcp/jobKey.ts · 도메인/BTS 결정 20)
+        SET status = 'RUNNING', claimed_by = $2, started_at = now(), mcp_key_hash = NULL,
             prd_version = CASE WHEN kind = 'AUTHOR' OR (kind = 'RERUN' AND NOT (params ? 'edits'))
                                THEN (SELECT max(version) FROM prd_version WHERE service_id = $1) END
       WHERE id = (
@@ -59,7 +60,7 @@ export async function 집기되돌리기(id: number, 집는이: string): Promise
   const pool = await db();
   const r = await pool.query(
     `UPDATE authoring_request
-        SET status = 'PENDING', claimed_by = NULL, started_at = NULL
+        SET status = 'PENDING', claimed_by = NULL, started_at = NULL, mcp_key_hash = NULL
       WHERE id = $1 AND status = 'RUNNING' AND claimed_by = $2`,
     [id, 집는이],
   );
