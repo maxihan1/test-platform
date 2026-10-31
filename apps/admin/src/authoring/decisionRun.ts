@@ -1,12 +1,15 @@
 // 결정 진행 — 고른 것을 한 번에 받아 버그 → 기획서 새 버전 → 반영 → 고치기 · 다시 만들기 → 보완 차례로 한 트랜잭션에서 세운다 (작성 §3.6 「★ 결정 목록」 진행 · §7 「결정 목록 통로」 POST)
 
 import type { PoolClient } from 'pg';
+import type { PrdItem } from '@platform/kit';
 
 import { 다시작성넣기, 다시작성준비하기, type 다시작성준비 } from '../apidoc/rewrite.js';
+import { 초안고름남기기, 초안다시만들기, 초안버리기, 초안적용, type 초안카드 } from '../bts/draftDecide.js';
 import { BTS이은서비스인가 } from '../bts/link.js';
+import type { 판변경 } from '../prd/changes.js';
 import { 상한 } from '../prd/rules.js';
 import { 화면목록식, 화면이맞음채우기, type 화면이맞음 } from '../prd/screenRight.js';
-import { 결정판넣기, 잠그고, 지금판, type 저장하는사람 } from '../prd/store.js';
+import { 결정판넣기, 서비스접두사, 잠그고, 지금판, type 저장하는사람 } from '../prd/store.js';
 import { 버그남기기 } from '../reporting/failReqs.js';
 import { 결정판, 요구문장, type 결정항목, type 확인결정 } from './decisionItems.js';
 import { 최근대조 } from './decisionReads.js';
@@ -17,7 +20,8 @@ import { 역방향칸판정 } from './reverse.js';
 import { 줄세우기, 한건 } from './store.js';
 
 export interface 진행단계 {
-  step: 1 | 2 | 3 | 4 | 5;
+  /** 6 은 「PRD 초안」 카드의 버리기 · 다시 만들기 — 다시 만들기만 requestId 가 찬다 */
+  step: 1 | 2 | 3 | 4 | 5 | 6;
   key: string | null;
   requestId: number | null;
   version: number | null;
@@ -42,6 +46,7 @@ interface 받은것 {
   text?: unknown;
   option?: unknown;
   env?: unknown;
+  rows?: unknown;
 }
 
 function 본문읽기(body: unknown): { prdVersion: number; picks: 받은것[] } | null {
@@ -54,7 +59,7 @@ function 본문읽기(body: unknown): { prdVersion: number; picks: 받은것[] }
     if (typeof p !== 'object' || p === null) return null;
     const x = p as Record<string, unknown>;
     if (typeof x.key !== 'string' || typeof x.pick !== 'string') return null;
-    읽음.push({ key: x.key, pick: x.pick, text: x.text, option: x.option, env: x.env });
+    읽음.push({ key: x.key, pick: x.pick, text: x.text, option: x.option, env: x.env, rows: x.rows });
   }
   return { prdVersion, picks: 읽음 };
 }
@@ -87,6 +92,9 @@ interface 준비 {
   요구다시: string | null;
   API: { key: string; 준비: 다시작성준비 } | null;
   보완: { key: string; env: string; startUrl: string | null } | null;
+  초안: { key: string; card: 초안카드; rows: number[] }[];
+  /** 버리기 · 다시 만들기 — 끝난 초안 버리기는 고른 줄 없이 진행으로 남기고, 실패 · 멈춘 초안 버리기는 폐기로 찍는다 */
+  초안끝: { key: string; requestId: number; pick: 'DROP' | 'RETRY'; done: boolean }[];
   /** 고를 때 본 열린 작성 — 잠금 안에서 다시 견준다 */
   열린: number[];
 }
@@ -96,7 +104,7 @@ async function 준비하기(서비스: number, 누구: 부른이, 본문: { prdV
   const 재료 = await 결정재료읽기(서비스, 누구, false);
   if (본문.prdVersion !== 재료.목록.prdVersion) return 낡음;
   const 항목들 = new Map(재료.목록.items.map((x) => [x.key, x]));
-  const 준: 준비 = { 버그: [], 확인: [], 반영: [], 화면: [], 요구다시: null, API: null, 보완: null, 열린: 재료.목록.open };
+  const 준: 준비 = { 버그: [], 확인: [], 반영: [], 화면: [], 요구다시: null, API: null, 보완: null, 초안: [], 초안끝: [], 열린: 재료.목록.open };
   const 본열쇠 = new Set<string>();
   for (const p of 본문.picks) {
     if (본열쇠.has(p.key)) return 틀림(p.key);
@@ -169,6 +177,19 @@ async function 하나준비(서비스: number, 항목: 결정항목, p: 받은�
       준.보완 = { key: p.key, env, startUrl: 이음?.env === env ? 이음.startUrl : null };
       return null;
     }
+    case 'PRD_DRAFT': {
+      if (p.pick === 'DROP' || p.pick === 'RETRY') {
+        준.초안끝.push({ key: p.key, requestId: 항목.requestId, pick: p.pick, done: 항목.state === 'DONE' });
+        return null;
+      }
+      if (p.pick !== 'TAKE') return 틀림(p.key);
+      // 고른 줄 차례 번호 — 겹침 · 범위 밖 · 그 사이 지워진 요구를 고친 줄은 거절한다(사람이 못 고르게 화면이 막는 줄이다)
+      const rows = p.rows;
+      if (!Array.isArray(rows) || rows.length === 0 || new Set(rows).size !== rows.length) return 틀림(p.key);
+      if (!rows.every((i) => Number.isInteger(i) && 항목.rows[i as number]?.gone === false)) return 틀림(p.key);
+      준.초안.push({ key: p.key, card: 항목, rows: rows as number[] });
+      return null;
+    }
     default:
       return 틀림(p.key);
   }
@@ -195,8 +216,18 @@ export async function 결정진행(서비스: number, 누구: 부른이, 사람:
   if (본문.picks.some((p) => p.key.startsWith('fail:')) && (await BTS이은서비스인가(서비스))) return { code: 400, body: { error: 'BAD_DECISION' } };
   const 준 = await 준비하기(서비스, 누구, 본문);
   if ('code' in 준) return 준;
-  const 판 = 준.확인.length === 0 ? null : 결정판((await 지금판(서비스))?.items ?? [], 준.확인.map((x) => x.결정));
-  if (준.확인.length > 0 && 판 === null) return 낡음;
+  const 지금것 = 준.확인.length + 준.초안.length === 0 ? null : await 지금판(서비스);
+  const 확인판 = 준.확인.length === 0 ? null : 결정판(지금것?.items ?? [], 준.확인.map((x) => x.결정));
+  if (준.확인.length > 0 && 확인판 === null) return 낡음;
+  // PRD 초안의 고른 줄은 확인 필요 결정과 한 버전에 담는다 — 두 버전으로 나누면 다시 작성이 앞 버전을 기준으로 잡는다
+  let 판: { items: PrdItem[]; changes: 판변경[]; 문장바뀜: boolean; lastNo?: number } | null = 확인판;
+  if (준.초안.length > 0) {
+    const 적용 = 초안적용(확인판?.items ?? 지금것?.items ?? [], 지금것?.lastNo ?? 0, await 서비스접두사(서비스), 준.초안.map((x) => ({ key: x.key, card: x.card, picked: new Set(x.rows) })), new Date().toISOString());
+    if ('error' in 적용) return 틀림(적용.detail);
+    판 = { items: 적용.items, changes: [...(확인판?.changes ?? []), ...적용.changes], 문장바뀜: (확인판?.문장바뀜 ?? false) || 적용.바뀜, lastNo: 적용.lastNo };
+  }
+  // TAKE 는 체크한 줄이 하나 이상이라 늘 판을 바꾼다(추가 · 수정 · 삭제)
+  const 초안바뀜 = 준.초안.length > 0;
   const count = 본문.picks.length;
   try {
     return await 잠그고(서비스, async (손) => {
@@ -216,10 +247,9 @@ export async function 결정진행(서비스: number, 누구: 부른이, 사람:
         if ((await 버그남기기(b.runId, b.tcId, 사람, 손)) === 'NOT_FAILED') throw new 되돌림(틀림(b.key));
         steps.push({ step: 1, key: b.key, requestId: null, version: null });
       }
-      if (판 !== null) {
-        const version = await 결정판넣기(손, 서비스, 판.items, 사람, 판.changes);
-        for (const x of 준.확인) steps.push({ step: 2, key: x.key, requestId: null, version });
-      }
+      const version = 판 !== null && (준.확인.length > 0 || 초안바뀜) ? await 결정판넣기(손, 서비스, 판.items, 사람, 판.changes, 판.lastNo) : null;
+      for (const x of [...준.확인, ...준.초안]) steps.push({ step: 2, key: x.key, requestId: null, version });
+      for (const x of 준.초안) if (!(await 초안고름남기기(손, x.card.requestId, x.rows, 사람.username, version))) throw new 되돌림(낡음);
       for (const x of 준.반영) steps.push({ step: 3, key: x.key, requestId: await 반영세우기(손, 서비스, x.runId, 사람, x.key), version: null });
       // 뒤 요청은 그때 열린 작성 전부와 이번에 앞서 세운 요청 전부를 기다린다 — 한 번에 하나씩 돈다
       const 앞것 = [...열린];
@@ -233,7 +263,7 @@ export async function 결정진행(서비스: number, 누구: 부른이, 사람:
           손,
         );
         앞것.push(id);
-        const 열쇠들 = [...(준.요구다시 === null ? [] : [준.요구다시]), ...준.화면.map((x) => x.key)];
+        const 열쇠들 = [...(준.요구다시 === null ? [] : [준.요구다시]), ...준.화면.map((x) => x.key), ...(초안바뀜 ? 준.초안.map((x) => x.key) : [])];
         for (const key of 열쇠들.length > 0 ? 열쇠들 : [null]) steps.push({ step: 4, key, requestId: id, version: null });
       }
       if (준.API !== null) {
@@ -248,6 +278,16 @@ export async function 결정진행(서비스: number, 누구: 부른이, 사람:
           손,
         );
         steps.push({ step: 5, key: 준.보완.key, requestId: id, version: null });
+      }
+      for (const x of 준.초안끝) {
+        if (x.pick === 'RETRY') {
+          const id = await 초안다시만들기(손, x.requestId);
+          if (id === null) throw new 되돌림(낡음);
+          steps.push({ step: 6, key: x.key, requestId: id, version: null });
+          continue;
+        }
+        if (!(x.done ? await 초안고름남기기(손, x.requestId, [], 사람.username, null) : await 초안버리기(손, x.requestId))) throw new 되돌림(낡음);
+        steps.push({ step: 6, key: x.key, requestId: null, version: null });
       }
       return { code: 201 as const, body: { steps } };
     });

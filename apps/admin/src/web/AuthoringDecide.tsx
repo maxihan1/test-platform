@@ -4,15 +4,27 @@
 import { useEffect, useState } from 'react';
 
 import { api, ApiError, type AuthoringRow, type EnvRow } from './api.js';
+import { 초안카드 } from './AuthoringDecideDraft.js';
 import { 문구고르기, 반영대기, 상세할일, 실패판정, 의도확인 } from './AuthoringDecideItems.js';
 import { 새로만들기 } from './AuthoringDecideNew.js';
 import { decideApi, type 결정목록, type 결정항목, type 진행단계 } from './decideApi.js';
-import { 고름바꾼표, 보낼것, 줄요청, 차례, 켜졌나, type 고른값, type 차례줄 } from './decideView.js';
+import { 고름바꾼표, 보낼것, 줄요청, 차례, 켜졌나, type 고른값, type 차례줄, type 초안셈 } from './decideView.js';
 import { use말, use언어 } from './i18n.js';
 import { message, 기다림글자 } from './ui.js';
 
 type 항목of<K extends 결정항목['kind']> = Extract<결정항목, { kind: K }>;
 type 말 = ReturnType<typeof use말>;
+
+/** 초안에서 담는 줄 셈 — 「초안 추가 1 · 수정 1 · 삭제 1 · 확인 필요 1」. 0 인 칸은 뺀다 */
+function 초안글(셈: 초안셈, t: 말): string {
+  const 칸 = [
+    ...(셈.추가 > 0 ? [t('추가 {수}', { 수: 셈.추가 })] : []),
+    ...(셈.수정 > 0 ? [t('수정 {수}', { 수: 셈.수정 })] : []),
+    ...(셈.삭제 > 0 ? [t('삭제 {수}', { 수: 셈.삭제 })] : []),
+    ...(셈.확인 > 0 ? [t('확인 필요 {수}', { 수: 셈.확인 })] : []),
+  ];
+  return t('초안 {내용}', { 내용: 칸.join(' · ') });
+}
 
 const 묶음제목 = ['AI 가 만든 테스트를 올릴까요?', '무엇이 맞는지 골라 주세요', '테스트를 새로 만들까요?'] as const;
 
@@ -22,14 +34,20 @@ function 차례글(줄: 차례줄, t: 말): string {
       return t('{번호} 실패를 버그로 기록합니다', { 번호: 줄.tcId });
     case 'prd': {
       const 이름 = { EDIT: t('문장 변경'), PICK: t('문구 선택'), CONFIRM: t('확정') };
-      return t('기획서를 새 버전으로 저장합니다(버전 {버전}) — {바뀜}', { 버전: 줄.version, 바뀜: 줄.바뀜.map((b) => `${b.reqId} ${이름[b.kind]}`).join(' · ') });
+      const 바뀜 = [...줄.바뀜.map((b) => `${b.reqId} ${이름[b.kind]}`), ...(줄.초안 === null ? [] : [초안글(줄.초안, t)])];
+      return t('기획서를 새 버전으로 저장합니다(버전 {버전}) — {바뀜}', { 버전: 줄.version, 바뀜: 바뀜.join(' · ') });
     }
+    case 'draftDrop':
+      return t('{키들} 초안을 버립니다', { 키들: 줄.이슈.join(', ') });
+    case 'draftRetry':
+      return t('{키들} 기획서 초안을 다시 만듭니다', { 키들: 줄.이슈.join(', ') });
     case 'apply':
       return t('#{번호} 테스트를 케이스 목록에 올립니다', { 번호: 줄.rootId });
     case 'fix': {
       const 조각 = [
         ...(줄.화면 > 0 ? [t('화면이 맞음 {수}건', { 수: 줄.화면 })] : []),
         ...(줄.문장 > 0 ? [t('문장이 바뀐 요구 {수}건', { 수: 줄.문장 })] : []),
+        ...(줄.초안 > 0 ? [t('기획서 초안 {수}줄', { 수: 줄.초안 })] : []),
         ...(줄.바뀐요구 ? [줄.바뀐요구수 === null ? t('바뀐 요구') : t('바뀐 요구 {수}건', { 수: 줄.바뀐요구수 })] : []),
       ];
       const 글 = t('{대상}의 테스트를 고치고 다시 만듭니다', { 대상: 조각.join(' · ') });
@@ -82,7 +100,7 @@ function 진행중({ service, 줄들, steps, on돌아가기 }: { service: string
           return (
             <li key={`${줄.종류}-${String(i)}`}>
               {차례글(줄, t)} <span className="hint">· {상태글(번호)}</span>
-              {번호 === null ? null : (
+              {번호 === null || 줄.종류 === 'draftRetry' ? null : (
                 <>
                   {' '}
                   <a href={`#/authoring/${String(줄.종류 === 'apply' ? 줄.rootId : 번호)}`}>{t('#{번호} 요청 보기', { 번호: 줄.종류 === 'apply' ? 줄.rootId : 번호 })}</a>
@@ -151,6 +169,8 @@ export function AuthoringDecide({ service, 목록, envs, 다시읽기 }: { servi
         return <상세할일 key={x.key} x={x} />;
       case 'FAIL':
         return <실패판정 key={x.key} x={x} 고른={값} on고름={on고름} />;
+      case 'PRD_DRAFT':
+        return <초안카드 key={x.key} x={x} 고른={값} on고름={on고름} />;
       case 'CHECK':
         return x.basis === 'DOCS' ? <문구고르기 key={x.key} x={x} 고른={값} on고름={on고름} /> : null;
       default:
@@ -180,6 +200,7 @@ export function AuthoringDecide({ service, 목록, envs, 다시읽기 }: { servi
             ) : (
               // 명세 표 차례 — 실패 → 화면 기준 → 기획서 간 불일치 → 그 밖의 확인 필요
               <>
+                {묶음(g).filter((x) => x.kind === 'PRD_DRAFT').map(항목그림)}
                 {묶음(g).filter((x) => x.kind === 'FAIL').map(항목그림)}
                 {목록.failMore === 0 ? null : (
                   <p className="decide-item hint">{t('실패 {수}건이 더 있습니다. 위의 것을 정하면 이어서 보입니다', { 수: 목록.failMore })}</p>

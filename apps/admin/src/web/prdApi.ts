@@ -32,11 +32,13 @@ export interface 성능칸 {
 
 /** 버전 기록의 「바뀐 것」 한 줄 — 결정 진행 · 화면이 맞음이 올린 버전만 서버가 적는다 (prd/changes.ts) */
 export interface PrdVersionChange {
-  kind: 'EDIT' | 'PICK' | 'CONFIRM';
+  kind: 'EDIT' | 'PICK' | 'CONFIRM' | 'ADD' | 'DEL' | 'CHECK';
   reqId: string;
   text: string | null;
   asset: string | null;
   tcId: string | null;
+  /** PRD 초안 줄에서 온 고침만 */
+  issueKeys?: string[];
 }
 
 export interface PrdVersionRow {

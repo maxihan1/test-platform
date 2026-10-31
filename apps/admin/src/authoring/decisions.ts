@@ -4,6 +4,7 @@ import type { PrdItem } from '@platform/kit';
 
 import { 판비교 } from '../apidoc/doc.js';
 import { 문서설정읽기, 판원문 } from '../apidoc/store.js';
+import { 초안카드들 } from '../bts/draftDecide.js';
 import { BTS이은서비스인가 } from '../bts/link.js';
 import { findItem } from '../execution/queries.js';
 import { 지도를읽는다 } from '../prd/apiMap.js';
@@ -100,6 +101,13 @@ async function 실패묶음(서비스: number, 판: PrdItem[], 누구: 부른이
   );
   const 전부 = new Map(든것.map((f, i) => [`fail:${String(f.runId)}:${f.tcId}`, items[i] ?? 줄(f, null, null)]));
   return { items, more: Math.max(0, 든것.length - 실패상한), 전부 };
+}
+
+/** ② 의 맨 앞 「PRD 초안」 카드 — 끝난 초안은 고르기 · 버리기, 실패 · 멈춘 초안은 다시 만들기 · 버리기 (도메인/BTS 「PRD 초안 → 결정 필요」) */
+async function 초안묶음(서비스: number, 판: PrdItem[], 누구: 부른이): Promise<결정항목[]> {
+  return (await 초안카드들(서비스, 판)).map((c) => ({
+    key: `draft:${String(c.requestId)}`, group: 2, kind: 'PRD_DRAFT', ...고름(누구.작성쓰기, c.state === 'DONE' ? ['TAKE', 'DROP'] : ['RETRY', 'DROP'], 'NO_WRITE'), ...c,
+  }));
 }
 
 /** ② 확인 필요 — 화면 기준 · 불일치 · 그 밖 차례, 그 안에서 오래 기다린 것부터 */
@@ -200,7 +208,11 @@ export async function 결정재료읽기(서비스: number, 누구: 부른이, �
   const items = 판?.items ?? [];
   const 첫 = await 첫묶음(서비스, 누구);
   const 대기뿌리 = new Set(첫.flatMap((x) => (x.kind === 'APPLY' ? [x.rootId] : [])));
-  const [실패, 셋째] = await Promise.all([실패묶음(서비스, items, 누구, 상세), 셋째묶음(서비스, { version: 판?.version ?? 0, items }, 열린, 대기뿌리, 누구)]);
-  const 모두 = [...첫, ...실패.items, ...확인묶음(items, 누구), ...셋째];
+  const [초안, 실패, 셋째] = await Promise.all([
+    초안묶음(서비스, items, 누구),
+    실패묶음(서비스, items, 누구, 상세),
+    셋째묶음(서비스, { version: 판?.version ?? 0, items }, 열린, 대기뿌리, 누구),
+  ]);
+  const 모두 = [...첫, ...초안, ...실패.items, ...확인묶음(items, 누구), ...셋째];
   return { 목록: { prdVersion: 판?.version ?? 0, count: 결정수세기(모두, 실패.more), open: 열린, items: 모두, failMore: 실패.more }, 실패: 실패.전부 };
 }

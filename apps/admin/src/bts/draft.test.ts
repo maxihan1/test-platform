@@ -2,6 +2,8 @@
 
 import { describe, expect, it } from 'vitest';
 
+import { 상한 } from '../prd/rules.js';
+
 import { 맡은키들, 초안검사, 초안상한, 초안있나 } from './draft.js';
 
 const 키 = new Set(['DM-12', 'DM-13']);
@@ -51,6 +53,8 @@ describe('초안검사', () => {
     expect(검사({ rows: [줄({ sure: 'yes' })] })).toMatchObject({ detail: 'rows.0.sure' });
     expect(검사({ rows: [줄({ op: 'MOVE' })] })).toMatchObject({ detail: 'rows.0.op' });
     expect(검사({ rows: [줄({ text: 'x'.repeat(초안상한.글 + 1) })] })).toMatchObject({ detail: 'rows.0.text' });
+    expect(검사({ rows: [줄({ text: 'x'.repeat(상한.요구문장 + 1) })] })).toMatchObject({ detail: 'rows.0.text' });
+    expect(검사({ rows: [줄({ text: 'x'.repeat(상한.요구문장) })] }).ok).toBe(true);
   });
 
   it('몸 꼴이 틀리면 거절한다', () => {

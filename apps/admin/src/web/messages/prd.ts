@@ -123,6 +123,8 @@ export const 기획서말: Record<string, string> = {
   // 바뀐 것은 서버가 적어 준 줄(changes)을 그대로 쓰고, 없으면 앞 버전과 견줘 화면이 계산한다
   '문장 변경': 'Wording changed',
   '문구 선택': 'Wording picked',
+  '확인 필요로 바꿈': 'Marked as needs checking',
+  '{키들} 에서 옴': 'from {키들}',
   '화면이 맞음({번호})': 'Screen is right ({번호})',
   '{자료} 쪽': 'from {자료}',
   '바뀐 것 보기': 'Show changes',

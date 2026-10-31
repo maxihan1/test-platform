@@ -14,6 +14,7 @@ export interface 보낼고름 {
   text?: string;
   option?: number;
   env?: string;
+  rows?: number[];
 }
 
 const 꼬리 = (service: string) => `?service=${encodeURIComponent(service)}`;

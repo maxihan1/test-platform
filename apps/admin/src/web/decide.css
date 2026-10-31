@@ -115,6 +115,39 @@
   display: grid;
   gap: 10px;
 }
+.decide-issues {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+.decide-draft-row {
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: start;
+  cursor: pointer;
+}
+.decide-op {
+  display: inline-block;
+  font-size: 12px;
+  padding: 0 8px;
+  margin-right: 4px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: var(--well);
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+.decide-op.add {
+  background: var(--pass-soft);
+  color: var(--pass-text);
+}
+.decide-op.del {
+  background: var(--fail-soft);
+  color: var(--fail-text);
+}
+.decide-op.unsure {
+  margin-left: 8px;
+  border-style: dashed;
+}
 .decide-plan {
   margin: 0;
   padding-left: 20px;

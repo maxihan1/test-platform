@@ -34,6 +34,19 @@ const 바뀐요구: 결정항목 = {
   changed: [{ reqId: 'DMW-REQ-012', text: '비밀번호는 10자 이상이다', oldText: '비밀번호는 8자 이상이다' }], added: [], removed: [], scenarios: [{ id: 3, name: '회원가입 흐름' }],
 };
 
+const 초안: 결정항목 = {
+  key: 'draft:77', group: 2, kind: 'PRD_DRAFT', picks: ['TAKE', 'DROP'], blockedBy: null, requestId: 77, state: 'DONE', reason: null, buildNo: 'a1b2c3d', finishedAt: null,
+  issues: [{ key: 'DM-12', title: '쿠폰 중복 적용 막기', url: 'https://bts.test/issues/DM-12' }, { key: 'DM-14', title: null, url: null }],
+  rows: [
+    { op: 'ADD', text: '쿠폰은 한 번만 쓴다', basis: '이슈 DM-12', issueKeys: ['DM-12'], sure: true, oldText: null, gone: false },
+    { op: 'EDIT', reqId: 'DMW-REQ-031', text: '최근 3개월 것을 보여 준다', basis: '이슈 DM-14', issueKeys: ['DM-14'], sure: true, oldText: '최근 1개월 것을 보여 준다', gone: false },
+    { op: 'DEL', reqId: 'DMW-REQ-033', text: '기간 버튼이 있다', basis: '이슈 DM-14', issueKeys: ['DM-14'], sure: false, oldText: '기간 버튼이 있다', gone: false },
+    { op: 'ADD', text: '쿠폰을 바꾸면 알림이 뜬다', basis: '화면', issueKeys: ['DM-12'], sure: false, oldText: null, gone: false },
+    { op: 'EDIT', reqId: 'DMW-REQ-090', text: '없어진 요구', basis: '이슈 DM-14', issueKeys: ['DM-14'], sure: true, oldText: null, gone: true },
+  ],
+  e2e: [{ title: '쿠폰 주문이 앱에도 보인다', services: ['DMW', 'DMA'], steps: ['주문'], issueKeys: ['DM-12'] }],
+};
+
 function 목록(items: 결정항목[], 덮을것: Partial<결정목록> = {}): 결정목록 {
   return { prdVersion: 3, count: items.filter((x) => x.picks.length > 0).length, open: [], items, failMore: 0, ...덮을것 };
 }
@@ -167,5 +180,21 @@ describe('결정 목록', () => {
     expect(await screen.findByText('그 사이 바뀐 것이 있어 다시 불러왔습니다')).toBeTruthy();
     expect(다시읽기).toHaveBeenCalled();
     expect(screen.getByRole('button', { name: '올린다 (반영)' }).getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('PRD 초안 카드의 「모두 체크」는 확실한 줄만 체크하고, 지금 기획서에 없는 줄은 체크 칸이 꺼져 있다', () => {
+    render(<AuthoringDecide service="DMW" 목록={목록([초안])} envs={[]} 다시읽기={() => {}} />);
+    expect(screen.getByText('배포된 기능 2건으로 기획서를 고칠까요?')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'DM-12 쿠폰 중복 적용 막기' }).getAttribute('href')).toBe('https://bts.test/issues/DM-12');
+    const 칸 = () => screen.getAllByRole('checkbox') as HTMLInputElement[];
+    expect(칸().map((c) => c.disabled)).toEqual([false, false, false, false, true]);
+    fireEvent.click(screen.getByRole('button', { name: '이슈에 적힌 2줄 모두 체크' }));
+    expect(칸().map((c) => c.checked)).toEqual([true, true, false, false, false]);
+    expect(screen.getByText('지금 기획서에 없는 요구라 고를 수 없어요', { exact: false })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '초안 버리기' }));
+    expect(칸().every((c) => c.disabled)).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: '초안 버리기' }));
+    fireEvent.click(칸()[0]!);
+    expect(칸().map((c) => c.checked)).toEqual([true, false, false, false, false]);
   });
 });

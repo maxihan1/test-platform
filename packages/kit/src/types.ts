@@ -251,6 +251,7 @@ export interface PrdItem {
   status: PrdStatus;
   checkSince?: string;                             // 확인 필요가 된 때(ISO). 확인 필요인 동안 물려받고 확정이면 키가 없다
   byPerson?: true;                                 // 사람이 마지막으로 고친 항목 — 옮기기가 덮지 않는다
+  fromIssues?: string[];                           // BTS 이슈 키('DM-12'). PRD 초안에서 온 항목만 · 다음 초안이 같은 항목을 고치면 키를 더한다
 }
 
 // 서비스 가이드 — 서버 · 화면 · 작성 에이전트가 같은 모양을 쓴다. 무엇이고 왜인지는 SPEC 도메인/작성 §3.6 「★ 서비스 가이드」
