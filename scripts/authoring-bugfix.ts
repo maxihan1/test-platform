@@ -17,7 +17,6 @@ import { 진척누적기, 끝낼상태, 자식제한 } from './authoring-progres
 import { 값가리기 } from './authoring-draft-prompt.js';
 import { 계정섞였나, 글모두, 사유거르기 } from './authoring-reverse.js';
 import { type 집은것, MCP설정글 } from './authoring-rules.js';
-import { 바뀐파일들 } from './authoring-status.js';
 import { 글자자르기, 사용량보고 } from './authoring-usage.js';
 import type { 판 } from './authoring-run.js';
 import {
@@ -36,6 +35,10 @@ import {
   출력읽기,
   코드주인풀기,
   파일주인,
+  상태파일들,
+  수정커밋제목인가,
+  원격머리풀기,
+  푸시인자,
   상한,
 } from './authoring-bugfix-prompt.js';
 
@@ -142,13 +145,14 @@ async function 수정건(주소기지: string, 토큰: string, 서비스: string
     await 손.단계('버그 고치는 중 — 고친 내용을 검사하는 중');
     const 깃 = 사본환경(자리);
     const 트리에서 = (명령: string, 인자2: string[]) => 친다(명령, 인자2, 자리.트리, undefined, 120_000, { env: 깃 });
-    const 상태 = 저장소있음 ? 트리에서('git', ['-c', 'core.quotePath=false', 'status', '--porcelain', '-uall']) : null;
+    // -z 로 읽는다 — 공백 · 따옴표가 든 이름이 따옴표로 싸여 와 깨지지 않게
+    const 상태 = 저장소있음 ? 트리에서('git', ['status', '--porcelain', '-z', '-uall']) : null;
     if (상태 !== null && !상태.ok) return void (await 손.끝내기({ status: 'FAILED', error: `바뀐 파일을 못 읽었다: ${상태.까닭}` }));
-    const 파일들 = 상태 === null ? [] : 바뀐파일들(상태.낸것);
+    const 파일들 = 상태 === null ? [] : 상태파일들(상태.낸것);
     const 주인들 = 파일들.length === 0 ? [] : 넘길사람(자리, 파일들);
 
     const 분석 = (앞말: string, 본문넣기 = true) =>
-      분석보내기(주소기지, 토큰, 것.id, 손, 비밀들, 주인들, 본문넣기 ? [앞말, 몸.analysis, 몸.fixed ? 몸.summary : ''].filter((x) => x.trim() !== '').join('\n\n') : 앞말, 본문넣기);
+      분석보내기(주소기지, 토큰, 것.id, 손, 비밀들, 주인들, 본문넣기 ? [앞말, 몸.analysis, 몸.fixed ? 몸.summary : ''].filter((x) => x.trim() !== '').join('\n\n') : 앞말);
     if (!저장소있음) return await 분석(자료.repo === null ? '코드 저장소가 없어 원인 분석만 했어요.' : '코드 저장소 주소를 받을 수 없어 원인 분석만 했어요.');
     if (!몸.fixed) return await 분석(파일들.length === 0 ? '' : '자식이 파일을 바꿨지만 고치지 못했다고 해서 올리지 않았어요.');
     if (파일들.length === 0) return await 분석('고쳤다고 했지만 바뀐 파일이 없어요.');
@@ -172,8 +176,19 @@ async function 수정건(주소기지: string, 토큰: string, 서비스: string
     const 커밋 = 트리에서('git', ['commit', '-m', 커밋글]);
     if (!커밋.ok) return void (await 손.끝내기({ status: 'FAILED', error: 사유거르기(`커밋이 실패했다: ${커밋.까닭}`, 비밀들) }));
     const 브랜치 = 수정건브랜치(것.id);
+    // 덮어쓰기는 원격 머리가 이 스크립트가 올린 커밋일 때만이다(CLAUDE.md §5) — 사람 커밋이 있으면 push 하지 않는다
     const 올림 = await 다시하며('push', () => {
-      const r = 트리에서('git', ['push', '--force', 'origin', `HEAD:refs/heads/${브랜치}`]);
+      const 묻기 = 트리에서('git', ['ls-remote', 'origin', `refs/heads/${브랜치}`]);
+      if (!묻기.ok) return { 까닭: `원격 ${브랜치} 를 못 읽었다: ${묻기.까닭}` };
+      const 머리 = 원격머리풀기(묻기.낸것);
+      if ('까닭' in 머리) return { 까닭: 머리.까닭, 그만: true };
+      if (머리.머리 !== null) {
+        if (!트리에서('git', ['fetch', '--quiet', 'origin', 머리.머리]).ok) return { 까닭: `원격 ${브랜치} 머리를 못 받았다` };
+        const 머리제목 = 트리에서('git', ['log', '-1', '--format=%s', 머리.머리]);
+        if (!머리제목.ok) return { 까닭: `원격 ${브랜치} 머리 커밋을 못 읽었다: ${머리제목.까닭}` };
+        if (!수정커밋제목인가(머리제목.낸것, 자료.issueKey)) return { 까닭: `${브랜치} 에 사람 커밋이 있어 덮어쓰지 않는다`, 그만: true };
+      }
+      const r = 트리에서('git', 푸시인자(브랜치, 머리.머리));
       return r.ok ? { 값: true } : { 까닭: r.까닭 || r.오류.trim().split('\n').pop() || 'push 가 실패했다' };
     });
     if ('까닭' in 올림) return void (await 손.끝내기({ status: 'FAILED', error: 사유거르기(`push 가 실패했다: ${올림.까닭}`, 비밀들) }));
@@ -209,17 +224,21 @@ async function 수정건(주소기지: string, 토큰: string, 서비스: string
   }
 }
 
-/** 결과 통로 답을 보고 끝낸다 — 201 이면 DONE, 409 는 이미 끝난 것이라 기록만, 400 · 그 밖은 FAILED */
+/**
+ * 결과 통로 답을 보고 끝낸다 — 201 이면 DONE. 409 는 응답을 잃고 다시 보낸 것일 수 있어(서버는 이미 저장했다) 똑같이 끝낸다 —
+ * 서버가 이미 끝낸 줄이면 끝내기도 409 라 해가 없다. 400 · 그 밖은 FAILED. 201 응답 몸은 비어 있어 읽지 않는다
+ */
 async function 보고뒤(답: { status: number; 몸: unknown }, 손: 보고손, id: number, 성공: Record<string, unknown>, 앞말: string): Promise<void> {
-  if (답.status === 201) return void (await 손.끝내기(성공));
-  if (답.status === 409) return void console.error(`[수정] ${id}번 이미 끝난 요청이라 결과를 올리지 못했다`);
+  if (답.status === 409) console.error(`[수정] ${id}번 결과 통로가 409 를 냈다 — 이미 저장된 것으로 보고 끝낸다`);
+  if (답.status === 201 || 답.status === 409) return void (await 손.끝내기(성공));
   const 까닭 = (답.몸 as { error?: unknown; detail?: unknown } | null) ?? {};
   await 손.끝내기({ status: 'FAILED', error: `${앞말}. 결과를 저장하지 못했습니다 — ${typeof 까닭.detail === 'string' ? `${String(까닭.error)} ${까닭.detail}` : `서버가 ${답.status} 를 냈다`}` });
 }
 
 /** 원인 분석만 보낸다 — 못 고쳤거나 저장소가 없거나 올리지 못한 경우. 글은 비밀을 가리고 상한에 맞춘다 */
-async function 분석보내기(주소기지: string, 토큰: string, id: number, 손: 보고손, 비밀들: readonly string[], 주인들: 사람[], 글: string, 거르기: boolean): Promise<void> {
-  const 분석 = 글자자르기(거르기 ? 사유거르기(글, 비밀들) : 글, 상한.글);
+async function 분석보내기(주소기지: string, 토큰: string, id: number, 손: 보고손, 비밀들: readonly string[], 주인들: 사람[], 글: string): Promise<void> {
+  // 자식이 지은 파일 이름에도 비밀이 들 수 있어 어느 길이든 거른다
+  const 분석 = 글자자르기(사유거르기(글, 비밀들), 상한.글);
   const 답 = await 부른다(주소기지, 토큰, `/authoring/requests/${id}/bugfix`, { method: 'POST', body: { analysis: 분석 === '' ? '원인을 찾지 못했어요.' : 분석, owners: 주인들 } });
   await 보고뒤(답, 손, id, { status: 'DONE' }, '원인 분석');
 }
@@ -257,7 +276,7 @@ function 넘길사람(자리: 사본, 파일들: string[]): 사람[] {
     }
     return 넘길사람모으기(코드주인, 바꾼이);
   } catch (err) {
-    // 후보를 못 찾아도 PR 은 올린다 — 담당자는 서버가 BTS 구성 요소 리드 · 프로젝트 기본 담당자로 이어 간다
+    // 후보를 못 찾아도 PR 은 올린다 — 담당자는 서버가 BTS 구성 요소 리드 · 프로젝트 리드로 이어 간다
     console.error(`[수정] 넘길 사람을 못 찾았다: ${한줄(err)}`);
     return [];
   }

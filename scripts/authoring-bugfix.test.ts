@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { 수정건브랜치 } from './authoring-bugfix.js';
 import {
   PR본문,
+  PR본문상한,
   blame풀기,
   넘길사람모으기,
   수정일인가,
@@ -17,6 +18,10 @@ import {
   출력읽기,
   코드주인풀기,
   파일주인,
+  상태파일들,
+  수정커밋제목인가,
+  원격머리풀기,
+  푸시인자,
   type 수정자료,
 } from './authoring-bugfix-prompt.js';
 
@@ -54,6 +59,12 @@ describe('수정지시문', () => {
     expect(글).not.toContain('설명\n댓글');
     expect(글).toContain('테스트 코드');
     expect(글).toContain('git 명령과 셸을 못 쓴다');
+  });
+
+  it('주소가 github https 꼴이 아니면 스크립트가 clone 을 건너뛰므로 저장소 없음과 같은 지시문이다', () => {
+    const 글 = 수정지시문({ 자료: { ...자료, repo: { name: 'x', url: 'git@github.com:acme/x.git' } }, 폴더: '/w/assets', 서비스: 'MKW' });
+    expect(글).toContain('코드 저장소가 없다');
+    expect(글).not.toContain('코드 저장소 사본이다');
   });
 
   it('저장소가 없으면 코드 없이 분석만 하게 한다', () => {
@@ -119,6 +130,20 @@ describe('CODEOWNERS', () => {
     expect(파일주인(규칙, 'src/pay/charge.ts').map((p) => p.email)).toEqual(['pay@acme.com']);
     expect(파일주인(규칙, 'src/pay/deep/charge.ts').map((p) => p.email)).toEqual(['lead@acme.com']);
     expect(파일주인(규칙, 'lib/src/coupon/a.ts').map((p) => p.email)).toEqual(['lead@acme.com']);
+  });
+
+  it('앞 **/ 는 뿌리를 포함한 어느 깊이든 맞는다', () => {
+    const 규칙 = 코드주인풀기('**/migrations/ db@acme.com');
+    expect(파일주인(규칙, 'migrations/001.sql').map((p) => p.email)).toEqual(['db@acme.com']);
+    expect(파일주인(규칙, 'a/b/migrations/001.sql').map((p) => p.email)).toEqual(['db@acme.com']);
+    expect(파일주인(규칙, 'a/migrations2/x.sql')).toEqual([]);
+  });
+
+  it('가운데 /**/ 는 폴더 0개 이상이다', () => {
+    const 규칙 = 코드주인풀기('a/**/z.ts k@acme.com');
+    expect(파일주인(규칙, 'a/z.ts')).toHaveLength(1);
+    expect(파일주인(규칙, 'a/b/c/z.ts')).toHaveLength(1);
+    expect(파일주인(규칙, 'b/z.ts')).toHaveLength(0);
   });
 
   it('** 는 깊이 상관없이 맞는다', () => {
@@ -206,7 +231,46 @@ describe('올릴수없는파일', () => {
   });
 });
 
+describe('상태파일들', () => {
+  it('-z 글에서 공백 · 따옴표가 든 이름을 그대로 읽는다', () => {
+    expect(상태파일들(' M src/a b.ts\0?? "q".txt\0 D gone.ts\0')).toEqual(['src/a b.ts', '"q".txt', 'gone.ts']);
+  });
+
+  it('이름 바꾸기는 새 이름 뒤의 옛 이름까지 낸다', () => {
+    expect(상태파일들('R  new name.ts\0old name.ts\0 M x.ts\0')).toEqual(['new name.ts', 'old name.ts', 'x.ts']);
+    expect(상태파일들('')).toEqual([]);
+  });
+});
+
+describe('덮어쓰기 판정', () => {
+  it('원격 머리를 읽는다 — 없으면 null, 꼴이 틀리면 까닭', () => {
+    const 해시 = 'a'.repeat(40);
+    expect(원격머리풀기('')).toEqual({ 머리: null });
+    expect(원격머리풀기(`${해시}\trefs/heads/qahub-bugfix-1\n`)).toEqual({ 머리: 해시 });
+    expect(원격머리풀기('--upload-pack=x\trefs/heads/b')).toEqual({ 까닭: '원격 머리가 커밋 번호 모양이 아니다' });
+  });
+
+  it('이 스크립트의 커밋 제목 꼴일 때만 덮어써도 된다', () => {
+    expect(수정커밋제목인가('[QA Hub] DM-12 수정 — 쿠폰', 'DM-12')).toBe(true);
+    expect(수정커밋제목인가('[QA Hub] DM-13 수정 — 쿠폰', 'DM-12')).toBe(false);
+    expect(수정커밋제목인가('쿠폰 고침', 'DM-12')).toBe(false);
+  });
+
+  it('푸시 인자는 --force 없이, 머리가 있을 때만 그 머리에 건 --force-with-lease 를 쓴다', () => {
+    expect(푸시인자('qahub-bugfix-7', null)).toEqual(['push', 'origin', 'HEAD:refs/heads/qahub-bugfix-7']);
+    const 인자 = 푸시인자('qahub-bugfix-7', 'b'.repeat(40));
+    expect(인자).toEqual(['push', `--force-with-lease=qahub-bugfix-7:${'b'.repeat(40)}`, 'origin', 'HEAD:refs/heads/qahub-bugfix-7']);
+    expect(인자).not.toContain('--force');
+  });
+});
+
 describe('PR본문', () => {
+  it('요약이 아주 길어도 본문 전체가 상한 안이고 맺음말이 남는다', () => {
+    const 글 = PR본문({ issueKey: 'DM-1', title: 't', summary: '가'.repeat(100_000), files: ['a.ts'] });
+    expect(글.length).toBeLessThanOrEqual(PR본문상한);
+    expect(글).toContain('병합은 사람이 해요');
+  });
+
   it('이슈 · 고친 내용 · 바뀐 파일 · 사람이 병합한다는 말을 해요체로 담는다', () => {
     const 글 = PR본문({ issueKey: 'DM-12', title: '쿠폰이  두 번 적용돼요', summary: '중복 검사를 더했어요', files: ['src/coupon.ts'] });
     expect(글).toContain('DM-12 — 쿠폰이 두 번 적용돼요');

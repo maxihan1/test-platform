@@ -64,7 +64,8 @@ export function 수정자식인자(모델인자: string[], 자료폴더: string,
  */
 export function 수정지시문(입력: { 자료: 수정자료; 폴더: string; 서비스: string }): string {
   const { 자료, 폴더, 서비스 } = 입력;
-  const 저장소 = 자료.repo !== null;
+  // 스크립트는 github https 꼴이 아니면 clone 을 건너뛴다 — 지시문도 같은 판단이라야 한다
+  const 저장소 = 자료.repo !== null && 저장소이름(자료.repo.url) !== null;
   return [
     `너는 QA Hub 의 「수정 AI」다. ${서비스} 애플리케이션의 BTS 이슈 ${자료.issueKey} 버그를 고친다.`,
     저장소
@@ -139,13 +140,18 @@ export interface 주인규칙 {
 /** CODEOWNERS 한 줄의 패턴(gitignore 꼴)을 정규식으로 — `*` · `**` · 앞 `/` · 끝 `/` 만 푼다 */
 function 패턴정규식(패턴: string): RegExp {
   const 폴더만 = 패턴.endsWith('/');
-  const 몸 = 패턴.replace(/^\//, '').replace(/\/$/, '');
+  // 앞 `**/` 는 뿌리를 포함한 어느 깊이든이라 떼고 「어느 깊이」로 센다
+  const 깊이무관 = 패턴.startsWith('**/');
+  const 몸 = (깊이무관 ? 패턴.slice(3) : 패턴).replace(/^\//, '').replace(/\/$/, '');
   // 앞에 / 가 있거나 가운데 / 가 있으면 저장소 뿌리에서 시작하고, 아니면 어느 깊이의 이름에도 맞는다
-  const 뿌리부터 = 패턴.startsWith('/') || 몸.includes('/');
-  const 식 = 몸
-    .split('**')
-    .map((조각) => 조각.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^/]*').replace(/\?/g, '[^/]'))
-    .join('.*');
+  const 뿌리부터 = !깊이무관 && (패턴.startsWith('/') || 몸.includes('/'));
+  const 조각식 = (글: string) =>
+    글
+      .split('**')
+      .map((조각) => 조각.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^/]*').replace(/\?/g, '[^/]'))
+      .join('.*');
+  // 가운데 `/**/` 는 폴더 0개 이상이다
+  const 식 = 몸.split('/**/').map(조각식).join('/(?:.*/)?');
   // 끝이 단일 * 이면 그 폴더 바로 아래만, 그 밖에는 폴더 이름도 안쪽 파일에 맞는다
   const 끝 = 폴더만 ? '/.*' : 몸.endsWith('*') && !몸.endsWith('**') ? '' : '(?:/.*)?';
   return new RegExp(`^${뿌리부터 ? '' : '(?:.*/)?'}${식}${끝}$`);
@@ -226,21 +232,61 @@ export function 올릴수없는파일(파일들: readonly string[]): string | nu
   return 나쁜.length === 0 ? null : `자동화 · 소유자 설정(${나쁜.slice(0, 5).join(' · ')})을 건드려 올리지 않았어요`;
 }
 
-/** PR 본문 — 해요체. 병합은 사람이 한다 */
+/** GitHub PR 본문 상한은 65536자다 — 여유를 두고 이 안으로 자른다 */
+export const PR본문상한 = 60000;
+
+/** PR 본문 — 해요체. 병합은 사람이 한다. 넘으면 고친 내용(summary)을 잘라 맺음말이 남게 한다 */
 export function PR본문(입력: { issueKey: string; title: string; summary: string; files: readonly string[] }): string {
-  const 보일 = 입력.files.slice(0, 50).map((f) => `- \`${f}\``);
+  const 보일 = 입력.files.slice(0, 50).map((f) => `- \`${글자자르기(f, 상한.파일길이)}\``);
   if (입력.files.length > 50) 보일.push(`- 외 ${입력.files.length - 50}개`);
-  return [
-    '## 이슈',
-    `${입력.issueKey} — ${입력.title.replace(/\s+/g, ' ')}`,
-    `BTS 이슈 ${입력.issueKey} 를 QA Hub 가 맡아 고쳤어요.`,
-    '',
-    '## 고친 내용',
-    입력.summary.trim() === '' ? '고친 내용 설명이 비어 있어요. 바뀐 파일을 직접 봐 주세요.' : 입력.summary.trim(),
-    '',
-    '## 바뀐 파일',
-    ...보일,
-    '',
-    'QA Hub 수정 AI 가 만든 초안 PR 이에요. 병합은 사람이 해요.',
-  ].join('\n');
+  const 만들기 = (요약: string) =>
+    [
+      '## 이슈',
+      `${입력.issueKey} — ${입력.title.replace(/\s+/g, ' ')}`,
+      `BTS 이슈 ${입력.issueKey} 를 QA Hub 가 맡아 고쳤어요.`,
+      '',
+      '## 고친 내용',
+      요약.trim() === '' ? '고친 내용 설명이 비어 있어요. 바뀐 파일을 직접 봐 주세요.' : 요약.trim(),
+      '',
+      '## 바뀐 파일',
+      ...보일,
+      '',
+      'QA Hub 수정 AI 가 만든 초안 PR 이에요. 병합은 사람이 해요.',
+    ].join('\n');
+  const 틀 = 만들기('').length;
+  return 만들기(글자자르기(입력.summary, Math.max(0, PR본문상한 - 틀)));
+}
+
+/** 이 스크립트가 올린 커밋 제목인가 — 다시 실행해 같은 브랜치를 덮어써도 되는 머리는 이것뿐이다(사람 커밋은 덮어쓰지 않는다) */
+export function 수정커밋제목인가(제목: string, issueKey: string): boolean {
+  return 제목.trim().startsWith(`[QA Hub] ${issueKey} 수정 — `);
+}
+
+/** `ls-remote` 글에서 원격 머리. 없으면 null, 커밋 번호 꼴이 아니면 까닭 — 인자로 넘기기 전에 모양을 본다 */
+export function 원격머리풀기(글: string): { 머리: string | null } | { 까닭: string } {
+  const 머리 = 글.split('\t')[0]?.trim() ?? '';
+  if (머리 === '') return { 머리: null };
+  return /^[0-9a-f]{40}$/.test(머리) ? { 머리 } : { 까닭: '원격 머리가 커밋 번호 모양이 아니다' };
+}
+
+/** 푸시 인자 — 원격에 브랜치가 없으면 그냥, 있으면 본 머리가 그대로일 때만 덮어쓴다(`--force` 는 쓰지 않는다) */
+export function 푸시인자(브랜치: string, 원격머리: string | null): string[] {
+  return ['push', ...(원격머리 === null ? [] : [`--force-with-lease=${브랜치}:${원격머리}`]), 'origin', `HEAD:refs/heads/${브랜치}`];
+}
+
+/** 상태 글(`status --porcelain -z`)에서 바뀐 파일. 이름 바꾸기(R)·복사(C)는 새 이름 뒤에 옛 이름이 따로 오고, 둘 다 낸다 */
+export function 상태파일들(z글: string): string[] {
+  const 항목들 = z글.split('\0');
+  const 파일들: string[] = [];
+  for (let k = 0; k < 항목들.length; k += 1) {
+    const 항목 = 항목들[k]!;
+    if (항목.length <= 3) continue;
+    파일들.push(항목.slice(3));
+    const 옛이름 = 항목들[k + 1];
+    if (/[RC]/.test(항목.slice(0, 2)) && 옛이름 !== undefined && 옛이름 !== '') {
+      파일들.push(옛이름);
+      k += 1;
+    }
+  }
+  return 파일들;
 }
