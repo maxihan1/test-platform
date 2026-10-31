@@ -88,7 +88,7 @@
    - 딸린 케이스가 없는 버그(사람이 BTS 에 직접 올린 것) → 「딸린 테스트 없음 — 사람이 확인」 댓글만 달고 「QA 요청」에 둔다(2차 R8)
 6. 지금 `POST /api/builds` 는 BTS 없는 프로젝트 · APK 올리기용으로 그대로 둔다. 배포 신호는 애플리케이션마다 그 흐름을 안에서 부른다
 7. **서버가 스스로 세우는 일의 「누가」** — 배포 실행 · `PRD_DRAFT` · `NOTE` · `BUGFIX` · 닫기 사유가 세운 작성 · `ROLLBACK` 판 · 되돌림 요청은 모두 BTS 연결을 마지막으로 저장한 admin(`bts_link.updated_by`)으로 적고 이름 스냅샷은 「BTS · <이름>」이다 (내 결정 — CI 토큰의 「실행자는 발급한 사람」과 같은 판단. 그 계정이 꺼지면 연결을 다시 저장해야 돈다)
-8. **열린 작성과 부딪힐 때** — `PRD_DRAFT` · `NOTE` · `BUGFIX` 는 테스트 저장소를 안 고쳐 열린 뿌리가 아니다(`chainSql.ts` `열린뿌리식` 은 그대로 `AUTHOR` · `EDIT`). 초안을 고른 뒤의 진행은 지금 결정 진행이라 서버 막기(`AUTHORING_OPEN`)도 그대로다. 롤백 되돌림 요청(`AUTHOR`)은 서버가 세우는 일이라 409 를 받을 사람이 없다 — 열린 작성이 있으면 `ROLLBACK` 판만 먼저 올리고 되돌림 요청은 열린 작성이 끝난 뒤 60초 점검이 세운다
+8. **열린 작성과 부딪힐 때** — `PRD_DRAFT` · `NOTE` · `BUGFIX` 는 테스트 저장소를 안 고쳐 열린 뿌리가 아니다(`chainSql.ts` `열린뿌리식` 은 그대로 `AUTHOR` · `EDIT`). 초안을 고른 뒤의 진행은 지금 결정 진행이라 서버 막기(`AUTHORING_OPEN`)도 그대로다. 롤백 되돌림 요청(`AUTHOR`)은 서버가 세우는 일이라 409 를 받을 사람이 없다 — `ROLLBACK` 판을 올리고 되돌림 요청은 곧바로 세우되, 닫기 사유가 세우는 요청처럼 그때 열린 작성을 `decision.after` 로 기다린다(집기가 그 작성이 닫힐 때까지 안 집는다 · BTS-F7-01 반영 2026-11-01 — 기획의 「60초 점검이 나중에 세운다」를 바꿨다. 기다리는 길이 이미 있어 점검을 따로 두지 않는다)
 
 #### PRD 초안 → 「결정 필요」 → 다시 작성
 
@@ -106,7 +106,7 @@
   - 이슈 제목은 배포가 이슈를 맡을 때 BTS 검색 답의 `summary` 를 `params.titles` 에 적어 둔다(`bts/deployFlow.ts`) — 카드를 열 때마다 BTS 를 부르지 않게
   - E2E 제안은 카드 아래 읽기만 하는 줄이다 — 테스트가 다시 만들어진 뒤에야 케이스를 엮을 수 있어 만들기는 E2E 메뉴에서 한다
 - **한 초안 안에서 같은 요구를 건드리는 이슈끼리는 한 줄 · 한 카드로 합친다** — 카드는 초안 요청마다 하나라 다른 배포의 초안은 따로 선다(위 「사람에게 보이는 자리」). 다른 애플리케이션과 엮이면 노트를 보고 E2E 시나리오를 제안한다(케이스 조합만 — 작성 쪽은 안 바꾼다) → 같은 카드 아래 읽기만 하는 줄로 보인다(위 「고르는 규칙」)
-- 사람이 고른 줄은 지금 결정 진행 흐름으로 PRD 새 버전(`DECISION`)이 되고, 그 줄의 항목에 `fromIssues` 가 붙는다(롤백이 이것만 되돌린다). 「? 확인」을 안 고르면 `확인 필요` 요구가 되고 그 케이스는 미확정이다(위 「고르는 규칙」)
+- 사람이 고른 줄은 지금 결정 진행 흐름으로 PRD 새 버전(`DECISION`)이 되고, 그 줄의 항목에 `fromIssues` 가 붙는다(롤백이 이것과 판 기록에서 그 키로 지운 번호를 되돌린다 — 아래 「롤백 바퀴」 1). 「? 확인」을 안 고르면 `확인 필요` 요구가 되고 그 케이스는 미확정이다(위 「고르는 규칙」)
 - 고르지 않은 카드는 목록에 남는다 — 지금 결정 목록 규칙 그대로
 
 #### 버그 바퀴 — 실패 → BTS 「QA 검토」
@@ -169,9 +169,13 @@ BTS-F6-01 반영 2026-10-31 — 서버 `apps/admin/src/bts/bugfix.ts` · `bugfix
 - QA Hub 는 PRD 와 테스트도 되돌린다 — 다섯 조각
   1. 되돌릴 요구는 둘이다 — 지금 판에서 `fromIssues` 가 받은 키와 겹치는 항목, 그리고 판 기록(`prd_version.changes` 의 `issueKeys`)에서 받은 키로 지운 번호(지운 항목은 지금 판에 없어 꼬리표가 붙을 자리가 없다)
   2. PRD 새 버전(`ROLLBACK`) — 「새로」는 지우고 「바뀜」 · 「지움」은 그 이슈를 고른 판 바로 앞 판의 항목으로 돌린다. 버전 기록에 「롤백 · 빌드 N · DM-12」
-  3. 되돌리는 PR — 지금 「고친 요구만 다시 작성」 요청 하나(`bts_deploy.revert_request_id`)
-  4. 그 PR 병합 전에 다시 배포되면 그 요청을 폐기하고 PR 을 닫는다
-  5. 그 키를 다루던 작성 중 · 확인 대기 초안(`PRD_DRAFT` 와 그 카드)은 버린다
+     — 「그 이슈를 고른 판」은 받은 키가 처음 닿은 판이다(항목의 `fromIssues` 에 처음 보인 판 · 그 키로 지운 줄이 든 판). 그 뒤 다른 이슈가 같은 요구를 또 고쳤으면 그 고침도 같이 사라진다(BTS-F7-01 시작 질문 4 — 드물어 그대로 둔다 · `bts/rollback.ts` `롤백판`)
+     — 판은 애플리케이션마다다. 롤백 배포가 오면 그 프로젝트의 애플리케이션을 다 보고 되돌릴 것이 있는 곳에만 판이 선다. 같은 키가 다시 와도(실패한 롤백 배포를 다시 보냄) 되돌릴 것이 없어 판이 안 선다. 판의 `deploy_id` 가 그 배포를 가리켜 버전 기록이 빌드 번호를 읽는다 — 판을 세운 사람은 위 「누가」(7) 다
+  3. 되돌리는 PR — 그 애플리케이션의 「고친 요구만 다시 작성」 요청 하나. params 에 `{ prdApply: true, rollbackDeploy: <배포 번호>, rollbackBuild: <빌드>, decision: { after, count: 1 } }` 를 단다 — 배포 한 줄에 요청 칸 하나로는 애플리케이션 둘을 못 담아 요청 쪽이 배포를 가리킨다(BTS-F7-01 시작 질문 1 · `bts_deploy.revert_request_id` 는 지웠다). 열린 작성과 부딪히면 위 「새 기능 바퀴」 8
+  4. 그 PR 병합 전에 다시 배포되면 그 요청을 폐기하고 PR 을 닫는다 — 「다시 배포」는 그 프로젝트의 뒤 배포 아무것이나다(롤백이든 아니든). 같은 빌드를 다시 보낸 것(실패한 배포 다시 보내기)은 아니다. 사슬(재실행 · 반영 포함) 전부를 폐기하되 대기 줄은 멈춤으로 닫고(멈춘 사람 `bts`) 도는 줄은 멈춤을 건다. 뿌리 params 에 `redeployed: true` 를 단다 — 사람이 손으로 폐기한 되돌림 요청의 PR 은 지금처럼 남긴다(작성.md §7 discard). 병합했거나 병합 중이면 그대로 둔다. 사람이 만드는 작성 요청은 `rollbackDeploy` · `rollbackBuild` · `redeployed` 를 실을 수 없다(400 `BAD_EDIT`). PRD 롤백 판은 그대로 둔다 — 다시 맡은 이슈로 새 PRD 초안이 서서 사람이 다시 고른다(시작 질문 3)
+     — **PR 은 작성 에이전트가 닫는다**(서버는 GitHub 열쇠가 없다 — 결정 10). 애플리케이션마다 1분에 한 번(줄이 바빠도) §7 「닫을 PR」을 묻고 `gh pr close`(댓글 「롤백 뒤 다시 배포되어 …」 · 브랜치는 남긴다 — 작성.md §7 discard)한 뒤 닫음을 적는다. 이미 닫혔거나 병합된 PR 도 닫음으로 적고, 상태를 못 읽으면 1분 뒤 다시 본다(`scripts/authoring-pr-close.ts`)
+  5. 그 키를 다루던 작성 중 · 확인 대기 초안(`PRD_DRAFT` 와 그 카드)은 버린다 — 대기 · 도는 · 끝났고 안 고른 · 실패 · 멈춘 초안 모두다. 초안이 롤백되지 않은 키도 담았으면 그 키만으로 초안을 새로 세운다(맡음이 남아 버리기만 하면 그 이슈의 초안이 사라진다). 고른 초안은 이미 판에 들어가 위 2 가 되돌린다
+     — 롤백은 배포 신호가 받는 그 자리에서 실행을 걸기 전에 한다. 깨지면 배포를 `FAILED` 로 두고 503 `ROLLBACK_FAILED` — 같은 빌드로 신호만 다시 보내면 처음부터 다시 돈다(되돌린 애플리케이션은 되돌릴 것이 없어 겹치지 않는다 · `bts/deploy.ts`)
 
 #### 맥락 — 프로젝트 노트
 
@@ -294,7 +298,7 @@ POST /api/projects/:projectId/deploys
      { build: 'a1b2c3d-202610281530', env?: string, rollback?: boolean, rollbackKeys?: string[], services?: string[] }   — services 는 애플리케이션 접두사. 없으면 그 프로젝트 전부 · env 규칙은 §3.12 「새 기능 바퀴」 3
   → 202 { deployId }   — 스모크 · 맡기는 뒤에서 돈다
   → 200 { deployId }   — 같은 프로젝트 · 같은 build 가 다시 오면 새로 걸지 않고 앞 배포 번호를 준다(deploy.sh 재시도 멱등). 앞 배포가 FAILED 면 지우고 새로 건다(202). 애플리케이션마다의 빌드 줄도 앞 것을 쓴다(BUILD_EXISTS 로 막히지 않는다) — CI 가 그 웹 · API 빌드로 이미 실행을 걸었으면 그 실행을 이 배포의 실행으로 센다
-  → 400 BAD_BUILD(빈 값 · 100자 넘음 · 영문 · 숫자 · . _ + - 밖 — 빌드 줄 번호와 같은 꼴) · 400 NO_BUILD(그 줄에 APK 가 없는 앱 · 게임) · 400 INVALID_REQUEST(그 밖의 몸 꼴) · 400 ENV_REQUIRED · 404 UNKNOWN_ENV(그 이름 줄이 없는 애플리케이션) · 400 UNKNOWN_SERVICE(다른 프로젝트 접두사) · 409 NOT_LINKED(연결을 저장한 admin 이 꺼짐 — 연결이 없으면 열쇠도 없어 문에서 401) · 400 PROD_ENV_BLOCKED(실서비스 서버만 있는 애플리케이션 — 실행.md §3.11)
+  → 400 BAD_BUILD(빈 값 · 100자 넘음 · 영문 · 숫자 · . _ + - 밖 — 빌드 줄 번호와 같은 꼴) · 400 NO_BUILD(그 줄에 APK 가 없는 앱 · 게임) · 400 INVALID_REQUEST(그 밖의 몸 꼴) · 400 ENV_REQUIRED · 404 UNKNOWN_ENV(그 이름 줄이 없는 애플리케이션) · 400 UNKNOWN_SERVICE(다른 프로젝트 접두사) · 409 NOT_LINKED(연결을 저장한 admin 이 꺼짐 — 연결이 없으면 열쇠도 없어 문에서 401) · 400 PROD_ENV_BLOCKED(실서비스 서버만 있는 애플리케이션 — 실행.md §3.11) · 503 ROLLBACK_FAILED(롤백 되돌리기가 깨짐 — 배포는 FAILED, 같은 빌드로 다시 보낸다 · BTS-F7-01)
 
 # BTS 알림 받기 — issue.created · issue.transitioned (BTS-F3-02 반영 2026-10-31 · apps/admin/src/bts/inbound.ts)
 #   열쇠: X-BTS-Signature: sha256=<HMAC(본문, bts_link.webhook_secret)>. 맞지 않거나 없으면 401 BAD_SIGNATURE — 헤더가 없거나 꼴이 틀리면 몸을 읽기 전에 돌려보낸다. 몸은 64KB 까지(넘으면 413)
@@ -395,6 +399,13 @@ POST /api/authoring/requests/:id/bugfix   — BUGFIX 결과 (BTS-F6-01 반영 20
   — 상한은 `bts/bugfixRoutes.ts` `수정상한`(글 8000자 · 파일 200개 · 사람 20명). 한 일에 한 번만 받는다(두 번째는 409)
   → 201 {} · 400 BAD_BUGFIX { detail: '<칸 경로>' | 'prUrl'(그 일의 저장소 PR 이 아님) } · 400 BAD_KIND(BUGFIX 줄이 아님) · 409 NOT_RUNNING · 403 NOT_CLAIMER
 
+# 닫을 PR — 다시 배포로 거둔 롤백 되돌림 요청의 PR (BTS-F7-01 반영 2026-11-01 · bts/rollbackRoutes.ts · rollback.ts)
+#   작성 에이전트가 애플리케이션마다 1분에 한 번 부른다. 맥 계정(작성 에이전트 토큰)만 — 아니면 403 NOT_AUTHORING_AGENT. 두 통로 다 토큰 허용 목록에 든다
+GET  /api/authoring/requests/closing?service=
+  → 200 { prs: [{ id, prUrl }] }   — 다시 배포로 거둔 롤백 되돌림 사슬(뿌리 params.rollbackDeploy · redeployed)의 실행 행 가운데 pr_url 이 있고 아직 닫음을 안 적은 것. PR 하나에 가장 늦은 행 하나
+POST /api/authoring/requests/:id/closed
+  → 204   — 그 행의 애플리케이션에서 같은 pr_url 을 가리키는 행 전부의 result 에 prClosed: true 를 더한다 · 404 NOT_FOUND(폐기 안 된 행 · PR 없음)
+
 # MCP — Streamable HTTP 하나 · 세션 없음 · 답은 JSON 한 덩어리 (BTS-F4-01 반영 2026-10-31 · apps/admin/src/mcp/server.ts · tools.ts · auth/pat.ts · mcj_ 는 BTS-F4-02 반영 2026-10-31 · mcp/jobKey.ts — note_read 는 BTS-F4-03 반영 2026-10-31 · mcp/note.ts)
 #   열쇠: Authorization: Bearer <통합계정 PAT> | mcj_…. PAT 는 Auth whoami + 60초 기억. mcj_ 는 그 작성 요청이 RUNNING 이고 그 프로젝트일 때만
 #   열쇠는 몸을 읽기 전에 본다. 없거나 틀리거나 계정이 꺼졌으면 401(WWW-Authenticate: Bearer) · Auth 에 못 닿으면 503 · 기억에 없는 PAT 로 한 곳에서 1분에 30번 넘게 Auth 를 두드리면 429 · GET · DELETE /mcp 는 405
@@ -410,12 +421,12 @@ POST /mcp
 
 ```
 [계약 변경 필요]
-대상:    Admin API — 프로젝트 배포 신호 · BTS 알림 · BTS 규칙 웹훅 호출 · 설정 › BTS 연결 · 설정 서비스 codeRepos · BTS 다시 보내기 · 실패 카드 bts 칸 · 결정 목록 PRD_DRAFT 와 BTS 연결이면 FAIL 뺌 · 대시보드 aiQuality · 작성 에이전트 통로 넷과 집기 mcpKey · NOTE 줄의 서비스 경계 · 옛 판정 통로 409 · 사람 다시 실행 BAD_KIND · BTS 연결 프로젝트의 POST /api/builds 는 실행을 안 건다 · /mcp
+대상:    Admin API — 프로젝트 배포 신호 · BTS 알림 · BTS 규칙 웹훅 호출 · 설정 › BTS 연결 · 설정 서비스 codeRepos · BTS 다시 보내기 · 실패 카드 bts 칸 · 결정 목록 PRD_DRAFT 와 BTS 연결이면 FAIL 뺌 · 대시보드 aiQuality · 작성 에이전트 통로 넷과 집기 mcpKey · NOTE 줄의 서비스 경계 · 옛 판정 통로 409 · 사람 다시 실행 BAD_KIND · BTS 연결 프로젝트의 POST /api/builds 는 실행을 안 건다 · /mcp · 닫을 PR 두 통로(BTS-F7-01 시작 질문 2 승인 2026-11-01)
 현재:    BTS 와 주고받는 통로가 없다. 바깥 열쇠는 CI 토큰 하나 · 작성 집기 kind 는 AUTHOR · RERUN · MERGE · EDIT
 제안:    위 §7 꼴
 이유:    도메인/BTS §3.12 (2026-10-28 기획 · BTS-F1-01 시작 질문 승인 2026-10-31)
 영향:    WS-B(배포 신호 · 다시 보내기) · WS-F(설정 · 열쇠 · PAT · 문 허용 목록) · WS-작성(결정 목록 · 에이전트 통로) · WS-D(실패 카드 · 대시보드) · WS-E(화면) · 작성 에이전트 · 새 bts/ · mcp/ · projectNote/
-반영:    설정 › BTS 연결 · 설정 서비스 codeRepos (2026-10-31, apps/admin/src/bts/routes.ts — BTS-F3-01) · BTS 알림 · BTS 규칙 웹훅 호출 (2026-10-31, apps/admin/src/bts/inbound.ts — BTS-F3-02) · BTS 다시 보내기 · 실패 카드 bts 칸 (2026-10-31, apps/admin/src/bts/card.ts — BTS-F3-03) · 결정 목록 FAIL 뺌 · 옛 판정 통로(BAD_DECISION · BAD_EDIT) (2026-10-31, authoring/decisions.ts · decisionRun.ts · routes.ts — BTS-F3-04) · 설정 › BTS 연결 publicUrl · 처음 연결의 webhookSecret 선택(SECRETS_REQUIRED 는 botKey 만) · 고를 목록 · 자동 설정 · 규칙 몸 assignee? · prTitle? (2026-10-31, apps/admin/src/bts/routes.ts · link.ts · choices.ts · setup.ts · inbound.ts — BTS-F3-05) · /mcp 의 PAT 열쇠와 도구 넷(note_read 빼고) (2026-10-31, apps/admin/src/mcp/server.ts · tools.ts · auth/pat.ts — BTS-F4-01) · /mcp 의 mcj_ 와 집기 mcpKey(AUTHOR · 그 RERUN 만 — 나머지 받는 줄은 그 종류를 만드는 줄이 더한다) (2026-10-31, apps/admin/src/mcp/jobKey.ts · authoring/agentRoutes.ts — BTS-F4-02) · 노트 결과 통로 · 집기 note 칸과 NOTE 의 mcpKey · NOTE 줄의 서비스 경계 · NOTE 사람 다시 실행 BAD_KIND · note_read (2026-10-31, apps/admin/src/projectNote/ · mcp/note.ts · auth/scope.ts — BTS-F4-03 · 노트 보기 통로와 화면은 사용자가 뺐다) · 프로젝트 배포 신호(400 NO_BUILD · INVALID_REQUEST 더함) · BTS 연결 프로젝트의 앱 · 게임 POST /api/builds 는 실행을 안 건다(runIds 빈 목록) (2026-10-31, apps/admin/src/bts/deploy.ts · deployFlow.ts · execution/buildRoutes.ts — BTS-F5-01) · PRD 초안 결과 통로 · 집기 draft 칸과 PRD_DRAFT 의 mcpKey · PRD_DRAFT 사람 다시 실행 BAD_KIND · 초안 없는 끝내기 BAD_DRAFT (2026-10-31, apps/admin/src/bts/draft.ts · draftRoutes.ts · authoring/agentRoutes.ts · routes.ts · mcp/jobKey.ts — BTS-F5-03) · 결정 목록 PRD_DRAFT 항목 · 진행 picks TAKE · DROP · RETRY 와 step 6 · 초안 결과 통로 text 의 요구 문장 상한 (2026-10-31, apps/admin/src/bts/draftDecide.ts · authoring/decisions.ts · decisionRun.ts · bts/draft.ts — BTS-F5-04) · 수정 AI 결과 통로 · 집기 bugfix 칸과 BUGFIX 의 mcpKey · BUGFIX 사람 다시 실행 BAD_KIND · 결과 없는 끝내기 BAD_BUGFIX · 규칙 웹훅 ASSIGNEE 503 · 이슈 글 읽기 통로(GET …/:id/bts)는 두지 않음 (2026-10-31, apps/admin/src/bts/bugfix.ts · bugfixRoutes.ts · inbound.ts · authoring/agentRoutes.ts · routes.ts · mcp/jobKey.ts — BTS-F6-01). 나머지는 진행판 줄마다
+반영:    설정 › BTS 연결 · 설정 서비스 codeRepos (2026-10-31, apps/admin/src/bts/routes.ts — BTS-F3-01) · BTS 알림 · BTS 규칙 웹훅 호출 (2026-10-31, apps/admin/src/bts/inbound.ts — BTS-F3-02) · BTS 다시 보내기 · 실패 카드 bts 칸 (2026-10-31, apps/admin/src/bts/card.ts — BTS-F3-03) · 결정 목록 FAIL 뺌 · 옛 판정 통로(BAD_DECISION · BAD_EDIT) (2026-10-31, authoring/decisions.ts · decisionRun.ts · routes.ts — BTS-F3-04) · 설정 › BTS 연결 publicUrl · 처음 연결의 webhookSecret 선택(SECRETS_REQUIRED 는 botKey 만) · 고를 목록 · 자동 설정 · 규칙 몸 assignee? · prTitle? (2026-10-31, apps/admin/src/bts/routes.ts · link.ts · choices.ts · setup.ts · inbound.ts — BTS-F3-05) · /mcp 의 PAT 열쇠와 도구 넷(note_read 빼고) (2026-10-31, apps/admin/src/mcp/server.ts · tools.ts · auth/pat.ts — BTS-F4-01) · /mcp 의 mcj_ 와 집기 mcpKey(AUTHOR · 그 RERUN 만 — 나머지 받는 줄은 그 종류를 만드는 줄이 더한다) (2026-10-31, apps/admin/src/mcp/jobKey.ts · authoring/agentRoutes.ts — BTS-F4-02) · 노트 결과 통로 · 집기 note 칸과 NOTE 의 mcpKey · NOTE 줄의 서비스 경계 · NOTE 사람 다시 실행 BAD_KIND · note_read (2026-10-31, apps/admin/src/projectNote/ · mcp/note.ts · auth/scope.ts — BTS-F4-03 · 노트 보기 통로와 화면은 사용자가 뺐다) · 프로젝트 배포 신호(400 NO_BUILD · INVALID_REQUEST 더함) · BTS 연결 프로젝트의 앱 · 게임 POST /api/builds 는 실행을 안 건다(runIds 빈 목록) (2026-10-31, apps/admin/src/bts/deploy.ts · deployFlow.ts · execution/buildRoutes.ts — BTS-F5-01) · PRD 초안 결과 통로 · 집기 draft 칸과 PRD_DRAFT 의 mcpKey · PRD_DRAFT 사람 다시 실행 BAD_KIND · 초안 없는 끝내기 BAD_DRAFT (2026-10-31, apps/admin/src/bts/draft.ts · draftRoutes.ts · authoring/agentRoutes.ts · routes.ts · mcp/jobKey.ts — BTS-F5-03) · 결정 목록 PRD_DRAFT 항목 · 진행 picks TAKE · DROP · RETRY 와 step 6 · 초안 결과 통로 text 의 요구 문장 상한 (2026-10-31, apps/admin/src/bts/draftDecide.ts · authoring/decisions.ts · decisionRun.ts · bts/draft.ts — BTS-F5-04) · 수정 AI 결과 통로 · 집기 bugfix 칸과 BUGFIX 의 mcpKey · BUGFIX 사람 다시 실행 BAD_KIND · 결과 없는 끝내기 BAD_BUGFIX · 규칙 웹훅 ASSIGNEE 503 · 이슈 글 읽기 통로(GET …/:id/bts)는 두지 않음 (2026-10-31, apps/admin/src/bts/bugfix.ts · bugfixRoutes.ts · inbound.ts · authoring/agentRoutes.ts · routes.ts · mcp/jobKey.ts — BTS-F6-01) · 닫을 PR 두 통로 · 롤백 배포의 PRD 되돌림 · GET /api/prd/versions 줄의 rollbackBuild (2026-11-01, apps/admin/src/bts/rollback.ts · rollbackRoutes.ts · deploy.ts · prd/store.ts — BTS-F7-01). 나머지는 진행판 줄마다(대시보드 aiQuality — BTS-F8-01)
 상태:    대기
 ```
 

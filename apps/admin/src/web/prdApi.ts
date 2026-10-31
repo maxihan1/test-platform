@@ -43,8 +43,10 @@ export interface PrdVersionChange {
 
 export interface PrdVersionRow {
   version: number;
-  source: 'AGENT' | 'PERSON' | 'REVERT' | 'DECISION';
+  source: 'AGENT' | 'PERSON' | 'REVERT' | 'DECISION' | 'ROLLBACK';
   savedByName: string;
+  /** 롤백 판을 세운 배포의 빌드 번호 — 롤백 판만 찬다 */
+  rollbackBuild?: string | null;
   savedAt: string;
   requestId: number | null;
   /** 그 AI 작성이 테스트 작성 「결정 필요」에서 세운 것인가 */

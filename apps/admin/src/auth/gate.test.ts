@@ -678,6 +678,8 @@ describe('등급 표', () => {
     ['GET /api/authoring/requests/:id/guide/files/:fileId', 'operator'],
     ['GET /api/authoring/requests/:id/app-screen', 'operator'],
     ['GET /api/authoring/requests/:id/game-screen', 'operator'],
+    // 닫을 PR 목록도 작성 에이전트의 일이다 (도메인/BTS §7 「닫을 PR」)
+    ['GET /api/authoring/requests/closing', 'operator'],
     ['GET /api/authoring/requests/:id/game-map', 'operator'],
     // 성능 에이전트를 붙이고 고치고 지우는 일은 admin 이다 (도메인/성능 §3.9 결정 15)
     ['POST /api/perf/agents', 'admin'],

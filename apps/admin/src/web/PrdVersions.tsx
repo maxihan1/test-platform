@@ -145,6 +145,11 @@ export function PrdVersions({ service, 지금판, 쓰나, 짓기 }: { service: s
       if (v.fromDecision) return v.requestId === null ? t('테스트 작성에서 결정 · AI') : t('테스트 작성에서 결정 · AI #{번호}', { 번호: v.requestId });
       return v.requestId === null ? t('AI 작성') : t('AI 작성 #{번호}', { 번호: v.requestId });
     }
+    if (v.source === 'ROLLBACK') {
+      // 되돌린 이슈 키는 바뀐 것 줄에 실려 온다 — 판에 따로 적지 않았다
+      const 키 = [...new Set((v.changes ?? []).flatMap((c) => c.issueKeys ?? []))].join(' · ');
+      return v.rollbackBuild ? t('롤백 · 빌드 {빌드} · {키}', { 빌드: v.rollbackBuild, 키 }) : t('롤백 · {키}', { 키 });
+    }
     return { PERSON: t('직접 수정'), REVERT: t('되돌림'), DECISION: t('테스트 작성에서 결정') }[v.source];
   };
 

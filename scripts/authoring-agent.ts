@@ -30,6 +30,7 @@ import { 수정일인가 } from './authoring-bugfix-prompt.js';
 import { 초안한건처리 } from './authoring-draft.js';
 import { 초안일인가 } from './authoring-draft-prompt.js';
 import { 노트한건처리 } from './authoring-note.js';
+import { 닫을PR처리 } from './authoring-pr-close.js';
 import { 노트일인가 } from './authoring-note-prompt.js';
 import { type 판, 한건처리 } from './authoring-run.js';
 import { 도는일들, 반영줄들, 자리놓을까 } from './authoring-lanes.js';
@@ -186,6 +187,7 @@ async function 돈다(): Promise<number> {
   let 마지막최신화: number | null = 자동최신화 ? Date.now() : null;
   const 표 = 자리들(켜기.상한);
   const 쉬기 = () => new Promise((resolve) => setTimeout(resolve, 쉬는시간));
+  const 닫기본때 = new Map<string, number>();
 
   const 일들 = 도는일들((err) => {
     const 글 = err instanceof Error ? err.message : String(err);
@@ -291,6 +293,11 @@ async function 돈다(): Promise<number> {
         console.error(`[기다림] ${서비스}: ${글}`);
       }
       if (!자리넘김) 표.놓기(자리번호);
+      // 거둔 롤백 되돌림 PR 을 1분에 한 번 닫는다 — 줄이 늘 바빠도 닫히게, 쉴 때마다 묻지는 않게. 깨져도 줄은 돈다(거절도 에이전트를 세우지 않는다)
+      if (Date.now() - (닫기본때.get(서비스) ?? 0) >= 60_000) {
+        닫기본때.set(서비스, Date.now());
+        await 닫을PR처리(서비스, (길, 옵션) => 부른다(주소, 토큰, 길, 옵션), (인자) => 친다('gh', 인자, 원천)).catch((err: unknown) => console.error(`[작성] ${서비스} 닫을 PR: ${String(err)}`));
+      }
       if (!집었나) await 쉬기();
     }
   };

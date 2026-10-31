@@ -111,6 +111,8 @@ export const 기획서말: Record<string, string> = {
   '직접 수정': 'Edited by hand',
   'AI 작성 #{번호}': 'AI #{번호}',
   되돌림: 'Reverted',
+  '롤백 · 빌드 {빌드} · {키}': 'Rollback · build {빌드} · {키}',
+  '롤백 · {키}': 'Rollback · {키}',
   '테스트 작성에서 결정': 'Decided in test authoring',
   '테스트 작성에서 결정 · AI': 'Decided in test authoring · AI',
   '테스트 작성에서 결정 · AI #{번호}': 'Decided in test authoring · AI #{번호}',

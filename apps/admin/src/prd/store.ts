@@ -19,7 +19,7 @@ export interface 저장하는사람 {
   displayName: string;
 }
 
-type 출처 = 'AGENT' | 'PERSON' | 'REVERT' | 'DECISION';
+type 출처 = 'AGENT' | 'PERSON' | 'REVERT' | 'DECISION' | 'ROLLBACK';
 export type 저장결과 = { version: number } | { error: 'PRD_STALE'; latest: number } | 판짓기오류;
 
 interface 판행 {
@@ -77,14 +77,16 @@ export interface 판줄 {
   /** 그 요청이 결정 진행이 세운 것(params.decision — 재실행 · 이어하기도 물려받는다)인가. 화면이 「테스트 작성에서 결정 · AI #N」으로 적는다 */
   fromDecision: boolean;
   changes: 판변경[] | null;
+  /** ROLLBACK 판을 세운 배포의 빌드 번호. 그 배포 줄이 지워졌거나 롤백 판이 아니면 null */
+  rollbackBuild: string | null;
 }
 
 export async function 판목록(서비스: number): Promise<판줄[]> {
   const r = await (await db()).query<{
-    version: number; source: 출처; saved_by_name: string; saved_at: Date; request_id: string | null; from_decision: boolean; changes: 판변경[] | null;
+    version: number; source: 출처; saved_by_name: string; saved_at: Date; request_id: string | null; from_decision: boolean; changes: 판변경[] | null; build_no: string | null;
   }>(
-    `SELECT v.version, v.source, v.saved_by_name, v.saved_at, v.request_id, v.changes, COALESCE(a.params ? 'decision', false) AS from_decision
-       FROM prd_version v LEFT JOIN authoring_request a ON a.id = v.request_id
+    `SELECT v.version, v.source, v.saved_by_name, v.saved_at, v.request_id, v.changes, COALESCE(a.params ? 'decision', false) AS from_decision, d.build_no
+       FROM prd_version v LEFT JOIN authoring_request a ON a.id = v.request_id LEFT JOIN bts_deploy d ON d.id = v.deploy_id
       WHERE v.service_id = $1 ORDER BY v.version DESC`,
     [서비스],
   );
@@ -96,6 +98,7 @@ export async function 판목록(서비스: number): Promise<판줄[]> {
     requestId: x.request_id === null ? null : Number(x.request_id),
     fromDecision: x.from_decision,
     changes: x.changes,
+    rollbackBuild: x.build_no,
   }));
 }
 
@@ -143,13 +146,14 @@ async function 판넣기(
   사람: 저장하는사람,
   요청: number | null = null,
   changes: 판변경[] | null = null,
+  배포: number | null = null,
 ): Promise<number> {
   if (앞 === null ? 새.items.length === 0 : 새.lastNo === 앞.lastNo && 판같나(새.items, 앞.items)) return 앞?.version ?? 0;
   const version = (앞?.version ?? 0) + 1;
   await 손.query(
-    `INSERT INTO prd_version (service_id, version, items, last_no, source, request_id, saved_by, saved_by_name, changes)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-    [서비스, version, JSON.stringify(새.items), 새.lastNo, 출처, 요청, 사람.username, 사람.displayName, changes === null ? null : JSON.stringify(changes)],
+    `INSERT INTO prd_version (service_id, version, items, last_no, source, request_id, saved_by, saved_by_name, changes, deploy_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+    [서비스, version, JSON.stringify(새.items), 새.lastNo, 출처, 요청, 사람.username, 사람.displayName, changes === null ? null : JSON.stringify(changes), 배포],
   );
   // 새 판은 노트 사건 — 같은 트랜잭션이라 판이 롤백되면 사건도 안 남는다 (도메인/BTS 「맥락 — 프로젝트 노트」)
   await 앱노트사건쌓기(서비스, 'PRD_VERSION', (service) => ({ service, version }), 손);
@@ -164,6 +168,12 @@ export async function 결정판넣기(손: PoolClient, 서비스: number, items:
   const 앞 = await 지금판읽기(손, 서비스);
   // PRD 초안의 추가 줄은 새 번호를 받아 lastNo 가 는다 — 그 밖의 결정은 번호를 안 쓴다
   return 판넣기(손, 서비스, 앞, { items, lastNo: lastNo ?? 앞?.lastNo ?? 0 }, 'DECISION', 사람, null, changes);
+}
+
+/** 롤백 배포가 짓는 버전(bts/rollback.ts) — 서비스 잠금을 쥔 트랜잭션 안에서 부른다. 지운 번호는 다시 안 주므로 lastNo 는 그대로다 */
+export async function 롤백판넣기(손: PoolClient, 서비스: number, items: PrdItem[], 사람: 저장하는사람, changes: 판변경[], 배포: number): Promise<number> {
+  const 앞 = await 지금판읽기(손, 서비스);
+  return 판넣기(손, 서비스, 앞, { items, lastNo: 앞?.lastNo ?? 0 }, 'ROLLBACK', 사람, null, changes, 배포);
 }
 
 const 낡음 = (앞: 앞판 | null) => ({ error: 'PRD_STALE' as const, latest: 앞?.version ?? 0 });
