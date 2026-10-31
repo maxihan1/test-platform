@@ -31,6 +31,7 @@ describe.skipIf(연결 === undefined)('프로젝트 배포 신호', { timeout: 6
   let pool: Pool;
   let 프로젝트 = 0;
   const 서비스: Record<string, number> = {};
+  const 옛환경 = { ...process.env };
   // 가짜 BTS — 「QA 요청」 검색은 이 목록을 준다. 부른 것을 적어 둔다
   let QA요청: { key: string; typeKey: string }[] = [];
   const 부른것: { method: string; 경로: string; 몸: unknown }[] = [];
@@ -87,10 +88,13 @@ describe.skipIf(연결 === undefined)('프로젝트 배포 신호', { timeout: 6
 
   beforeAll(async () => {
     pool = (await import('../db/index.js')).pool;
-    process.env.SESSION_SECRET ??= 'xbn-검사용-세션-열쇠-32바이트를-넉넉히-넘긴다';
-    process.env.DEVICE_FARM_URL ??= 'http://farm.xbn.test';
+    Object.assign(process.env, {
+      SESSION_SECRET: 'xbn-검사용-세션-열쇠-32바이트를-넉넉히-넘긴다',
+      // 앱 케이스를 빌드 실행에서 빼지 않게 — 분배가 가짜라 닿지는 않는다
+      DEVICE_FARM_URL: 'http://farm.xbn.test',
+    });
     app = Fastify();
-    세션등록(app, process.env.SESSION_SECRET);
+    세션등록(app, process.env.SESSION_SECRET!);
     인증등록(app);
     await app.register(authRoutes, { prefix: '/api' });
     await app.register(btsDeployRoutes, { prefix: '/api', 부르기 });
@@ -129,6 +133,11 @@ describe.skipIf(연결 === undefined)('프로젝트 배포 신호', { timeout: 6
   afterAll(async () => {
     await 치운다();
     await app.close();
+    // 같은 프로세스에서 도는 다음 DB 검사 파일이 팜 없음(FARM_OFF)을 보게 되돌린다
+    for (const k of ['SESSION_SECRET', 'DEVICE_FARM_URL'] as const) {
+      if (옛환경[k] === undefined) delete process.env[k];
+      else process.env[k] = 옛환경[k];
+    }
   });
 
   it('배포 열쇠만 받는다 — 없거나 틀리면 401, 다른 프로젝트 · 사람 통로는 403', async () => {
