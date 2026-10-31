@@ -122,10 +122,27 @@ export function 초안있나(result: unknown): boolean {
   return Array.isArray(d?.rows);
 }
 
-/** 집기 응답의 draft 칸 — 프로젝트 번호 · 맡은 이슈 · 배포 빌드 */
-export async function 초안집기칸(서비스: number, params: Record<string, unknown>): Promise<{ projectId: number; issueKeys: string[]; buildNo: string }> {
-  const r = await (await db()).query<{ project_id: string }>('SELECT project_id FROM service WHERE id = $1', [서비스]);
-  return { projectId: Number(r.rows[0]!.project_id), issueKeys: 맡은키들(params), buildNo: typeof params.buildNo === 'string' ? params.buildNo : '' };
+export interface 초안집기 {
+  projectId: number;
+  /** 같은 프로젝트의 애플리케이션 — 자식이 E2E 제안에 접두사를 고른다 */
+  services: { prefix: string; name: string; kind: string }[];
+  issueKeys: string[];
+  buildNo: string;
+}
+
+/** 집기 응답의 draft 칸 — 프로젝트 번호 · 그 프로젝트 애플리케이션 · 맡은 이슈 · 배포 빌드 */
+export async function 초안집기칸(서비스: number, params: Record<string, unknown>): Promise<초안집기> {
+  const r = await (await db()).query<{ project_id: string; prefix: string; name: string; kind: string }>(
+    `SELECT s.project_id, s.prefix, s.name, s.kind FROM service s
+      WHERE s.project_id = (SELECT project_id FROM service WHERE id = $1) ORDER BY s.prefix`,
+    [서비스],
+  );
+  return {
+    projectId: Number(r.rows[0]!.project_id),
+    services: r.rows.map(({ prefix, name, kind }) => ({ prefix, name, kind })),
+    issueKeys: 맡은키들(params),
+    buildNo: typeof params.buildNo === 'string' ? params.buildNo : '',
+  };
 }
 
 /** params 의 맡은 이슈 키 — 서버가 세운 칸이라 꼴이 늘 맞지만 옛 줄 · 손댄 줄은 빈 목록으로 */

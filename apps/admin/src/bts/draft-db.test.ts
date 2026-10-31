@@ -22,7 +22,7 @@ const 사람 = 'xpt-person';
 const 계정들 = [맥, 사람];
 const 접두사들 = ['XPT', 'XPT2', 'XPTB'];
 
-type 집은몸 = { id: number; kind: string; env: string; draft?: { projectId: number; issueKeys: string[]; buildNo: string }; target?: { env: string; baseUrl: string }; mcpKey?: string };
+type 집은몸 = { id: number; kind: string; env: string; draft?: { projectId: number; services: { prefix: string; kind: string }[]; issueKeys: string[]; buildNo: string }; target?: { env: string; baseUrl: string }; mcpKey?: string };
 
 describe.skipIf(연결 === undefined)('PRD 초안 한 바퀴', () => {
   let app: FastifyInstance;
@@ -137,6 +137,7 @@ describe.skipIf(연결 === undefined)('PRD 초안 한 바퀴', () => {
   it('집기는 draft 칸 · 대상 서버 · MCP 열쇠를 싣는다', async () => {
     const 집은 = (await 집기('XPT'))!;
     expect(집은).toMatchObject({ kind: 'PRD_DRAFT', env: 'qa', draft: { projectId: 프로젝트, issueKeys: ['XPQ-1', 'XPQ-2'], buildNo: 'abc1234-202610311200' } });
+    expect(집은.draft!.services.map((s) => s.prefix)).toEqual(['XPT', 'XPT2']);
     expect(집은.target).toMatchObject({ env: 'qa', baseUrl: 'https://qa.xpt.test' });
     expect(집은.mcpKey).toMatch(/^mcj_/);
   });
