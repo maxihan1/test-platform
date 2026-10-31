@@ -25,6 +25,8 @@ import { 도는자식, 멈춤, 보고손만들기, 부른다, 자리들, 친다,
 import { 모델설정, 버전뽑기, 업데이트인자, 업데이트할까, 점검통과 } from './authoring-model.js';
 import { 멈춘것닫기 } from './authoring-closing.js';
 import { 성능일돌기 } from './authoring-perf.js';
+import { 노트한건처리 } from './authoring-note.js';
+import { 노트일인가 } from './authoring-note-prompt.js';
 import { type 판, 한건처리 } from './authoring-run.js';
 import { 도는일들, 반영줄들, 자리놓을까 } from './authoring-lanes.js';
 import { type 서비스설정, 건설정, 나풀기, 새줄보기, 토큰고르기, 토큰모양인가, 토큰묻기, 토큰읽기, 토큰자리, 토큰저장 } from './authoring-token.js';
@@ -225,6 +227,12 @@ async function 돈다(): Promise<number> {
           const 놓나 = 자리놓을까(것);
           console.log(`[작성] ${서비스} 의 ${것.id}번을 집었다 (${것.kind}${놓나 ? '' : ` · 자리 ${자리번호}`}).`);
           const 처리 = async (쓸자리: number) => {
+            // 노트 고치기는 테스트 저장소도 PR 도 없다 — 서비스 설정도 안 읽는다
+            if (노트일인가(것)) {
+              await 노트한건처리(주소, 토큰, 서비스, 것, 판, 쓸자리);
+              console.log(`[작성] ${것.id}번을 끝냈다.`);
+              return;
+            }
             // 훑지 않을 경로는 건마다 me 를 다시 읽는다 — 설정을 바꾸면 다음 건부터 먹는다. 못 읽으면 켤 때 것 (도메인/인증 §7 · #153)
             await 한건처리(주소, 토큰, 서비스, 것, 판, 쓸자리, 건설정(await 부른다(주소, 토큰, '/auth/me').then((답) => 답.몸, () => null), 서비스, 설정표[서비스]));
             console.log(`[작성] ${것.id}번을 끝냈다.`);

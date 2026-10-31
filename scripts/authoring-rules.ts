@@ -157,7 +157,7 @@ export function 선행검사(입력: {
 /** 줄에서 집어 온 한 건. 화면이 넣고 서버가 돌려주는 것 중 맥이 쓰는 칸만 */
 export interface 집은것 {
   id: number;
-  kind: 'AUTHOR' | 'RERUN' | 'MERGE' | 'EDIT';
+  kind: 'AUTHOR' | 'RERUN' | 'MERGE' | 'EDIT' | 'NOTE';
   sourceId?: number | null;
   /** 고치기 실행(EDIT · 원본이 EDIT 인 재실행)에만 온다 — 행의 params.edits 그대로. 모양은 authoring-edit 의 `편집들` 이 본다 (§3.6 「★ 케이스 고치기」) */
   edits?: unknown;
@@ -187,6 +187,8 @@ export interface 집은것 {
   params?: unknown;
   /** BTS 이은 프로젝트의 작성 · 그 재실행에만 온다 — 자식이 QA Hub 조회 도구를 쓰는 일마다 열쇠(mcj_). 자식 인자에만 싣고 어디에도 안 찍는다 */
   mcpKey?: string;
+  /** 프로젝트 노트 일(NOTE · 원본이 NOTE 인 재실행)에만 온다 — 모양은 authoring-note-prompt 의 `노트일인가` 가 본다 (도메인/BTS 「맥락 — 프로젝트 노트」) */
+  note?: unknown;
   /** 반영 행에만 온다 — 원본의 겹침 결정 전부. 모양은 authoring-conflicts-io 의 `결정들` 이 본다 (§3.6 「★ 반영 때 겹침 검사」) */
   conflicts?: unknown;
   /**
