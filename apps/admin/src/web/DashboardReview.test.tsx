@@ -117,10 +117,25 @@ describe('종류별 칸', () => {
     expect(screen.getByText('94%')).toBeTruthy();
   });
 
-  it('앱은 기기 정보가 없는 줄을 「기기 정보 없음」으로 적는다', () => {
-    render(<종류칸 칸={{ onlyFail: [], fps: null, kind: 'APP', rows: [{ label: null, pass: 1, fail: 0, notRun: 0, p95Ms: null }] }} 일={14} />);
+  it('앱은 기기 정보가 없는 결과를 막대로 세우지 않고 칸 아래 한 줄로 센다 — 실제 기기와 섞이지 않는다', () => {
+    const { container } = render(
+      <종류칸
+        칸={{
+          onlyFail: [],
+          fps: null,
+          kind: 'APP',
+          rows: [
+            { label: 'SM-G996N · Android 15', pass: 3, fail: 1, notRun: 0, p95Ms: null },
+            { label: null, pass: 1, fail: 0, notRun: 1, p95Ms: null },
+          ],
+        }}
+        일={14}
+      />,
+    );
     expect(screen.getByRole('heading', { name: '기기별 결과' })).toBeTruthy();
-    expect(screen.getByText('기기 정보 없음')).toBeTruthy();
+    expect(container.querySelectorAll('.dash-kind-list li')).toHaveLength(1);
+    expect(screen.queryByText('기기 정보 없음')).toBeNull();
+    expect(screen.getByText('기기 정보 없는 결과 2건')).toBeTruthy();
   });
 
   it('API 는 엔드포인트마다 95% 응답과 통과 / 전체를 표로 보인다', () => {

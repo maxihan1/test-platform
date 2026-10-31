@@ -12,6 +12,7 @@ import { api, ApiError, type CasePage, type CaseQuery, type CaseRow, type Platfo
 import { CaseList } from './CaseList.js';
 import { 판닫기, 판열기, 판조건, 판칩누르기 } from './CaseListFilterBar.fixture.js';
 import { 언어함 } from './i18n.js';
+import { 끝났다고알린다 } from './runWatchStore.js';
 import type { 판정 } from './role.js';
 
 const 전부된다: 판정 = () => true;
@@ -1058,5 +1059,17 @@ describe('CaseList 설계 기법 (도메인/카탈로그 §8.1 「설계 기법�
     render(<CaseList kind="UI" service="ZPK" 할수={전부된다} 결과보나 />);
     await screen.findByText('ZPK-001');
     expect(within(판열기()).queryByRole('group', { name: '설계 기법' })).toBeNull();
+  });
+});
+
+describe('한 건 실행이 끝나면 (2026-10-31 시험 f17)', () => {
+  it('새로고침 없이 케이스 줄 결과 · 최근 5회를 다시 읽는다', async () => {
+    const { 스파이 } = await 그리기();
+    const 마지막 = vi.mocked(api.lastByCase);
+    const 앞목록 = 스파이.mock.calls.length;
+    const 앞결과 = 마지막.mock.calls.length;
+    끝났다고알린다(20978);
+    await waitFor(() => expect(스파이.mock.calls.length).toBeGreaterThan(앞목록));
+    expect(마지막.mock.calls.length).toBeGreaterThan(앞결과);
   });
 });

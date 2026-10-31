@@ -133,6 +133,30 @@ async function 창들(pool: Pool, tcIds: string[]): Promise<Map<string, string>>
   return 결과;
 }
 
+/**
+ * 「GET /v1/devices/dev_dmn_none_x」 꼴 이름을 지도에 이미 있는 틀(「GET /v1/devices/:n」)로 접는다 — 방식 · 마디 수가 같고 틀이 `:` 칸인 자리만 다르면 그 틀이다.
+ * 지도 규칙(`API틀`)이 영문 섞인 id 를 번호로 못 알아봐 실제 id 줄이 열 개 넘게 따로 섰다 (2026-10-31 시험 f7). 맞는 틀이 없으면 그대로 둔다
+ */
+// ponytail: 숫자나 밑줄이 든 8자 이상 마디만 id 로 본다 — `me` · `search` 같은 이름 경로는 옆 `:id` 틀에 안 접힌다. 이름에 밑줄 · 숫자가 든 경로가 나오면 규칙을 좁힌다
+const id꼴 = (마디: string): boolean => !마디.startsWith(':') && 마디.length >= 8 && /[\d_]/.test(마디);
+
+export function 틀로접는다(이름들: readonly string[]): Map<string, string> {
+  const 쪼갬 = (이름: string) => {
+    const [method = '', ...경로] = 이름.split(' ');
+    return { method, 마디: 경로.join(' ').split('/') };
+  };
+  const 틀들 = 이름들.map(쪼갬).filter((x) => x.마디.some((m) => m.startsWith(':')));
+  const 결과 = new Map<string, string>();
+  for (const 이름 of 이름들) {
+    const { method, 마디 } = 쪼갬(이름);
+    const 틀 = 틀들.find(
+      (x) => x.method === method && x.마디.length === 마디.length && x.마디.every((m, i) => m === 마디[i] || (m.startsWith(':') && id꼴(마디[i]!))),
+    );
+    결과.set(이름, 틀 === undefined ? 이름 : `${틀.method} ${틀.마디.join('/')}`);
+  }
+  return 결과;
+}
+
 // 서비스 지도의 엔드포인트 틀마다 거친 케이스와, 이번 창 요청 기록을 같은 틀로 접은 걸린 시간
 async function 엔드포인트들(
   pool: Pool,
@@ -147,8 +171,9 @@ async function 엔드포인트들(
   );
   const 케이스 = new Map<string, string[]>();
   const 틀이름 = new Map<string, string>();
+  const 접기 = 틀로접는다([...new Set(지도.rows.map((r) => `${r.method} ${r.path}`))]);
   for (const r of 지도.rows) {
-    const 이름 = `${r.method} ${r.path}`;
+    const 이름 = 접기.get(`${r.method} ${r.path}`)!;
     틀이름.set(`${r.method}\u0000${r.host}\u0000${r.path}`, 이름);
     if (r.tc_id !== null) 케이스.set(r.tc_id, [...(케이스.get(r.tc_id) ?? []), 이름]);
   }

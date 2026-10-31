@@ -108,12 +108,13 @@ describe('성능 실행 기록 표', () => {
     await waitFor(() => expect(부르기).toHaveBeenLastCalledWith(7, 6));
   });
 
-  it('페이지 측정 줄은 종류 꼬리표가 「페이지 성능」이고 「측정 결과」를 누르면 페이지 성능 화면의 그 실행으로 간다', async () => {
+  it('페이지 측정 줄은 종류 꼬리표가 「페이지 성능」이고 번호를 누르면 페이지 성능 화면의 그 실행으로 간다 — 시나리오 · 테스트 유형 칸에 빈 「-」를 안 늘어놓는다', async () => {
     await 그리기([줄({ id: 30, kind: 'PAGE', title: '', testType: null, degraded: null, summary: { peakVus: null, maxTps: null, p95Ms: null, errorRate: null }, measures: { lcpAvgMs: 1870 } }), 줄({ id: 12 })]);
     const 페이지줄 = screen.getByRole('link', { name: 'PRF-0030' }).closest('tr')!;
     expect(screen.getByRole('link', { name: 'PRF-0030' }).getAttribute('href')).toBe('#/perf/pages?run=30');
     expect(within(페이지줄).getByText('페이지 성능', { selector: '.perf-tag' })).toBeTruthy();
-    expect(within(페이지줄).getByRole('link', { name: '측정 결과' }).getAttribute('href')).toBe('#/perf/pages?run=30');
+    expect(within(페이지줄).getAllByRole('link')).toHaveLength(1);
+    expect(페이지줄.textContent).not.toContain('- ·');
     expect(페이지줄.textContent).toContain('LCP 평균 1.9초');
     expect(페이지줄.textContent).not.toContain('명');
     expect(screen.getByRole('link', { name: 'PRF-0012' }).getAttribute('href')).toBe('#/perf/runs/12');
@@ -122,12 +123,14 @@ describe('성능 실행 기록 표', () => {
 
   const 기기수치 = { avgCpu: 31.04, maxMemMb: 412, avgFps: 54.26, jankPct: 3.1 };
 
-  it('기기 측정 줄은 종류 꼬리표가 「앱 성능」이고 「측정 결과」를 누르면 기기 성능 화면의 그 실행으로 간다', async () => {
+  it('기기 측정 줄은 종류 꼬리표가 「앱 성능」이고 번호를 누르면 기기 성능 화면의 그 실행으로 간다 — 측정 줄만이면 칸 머리가 「핵심 수치」 하나다', async () => {
     await 그리기([줄({ id: 40, kind: 'DEVICE', title: '', testType: null, degraded: null, summary: { peakVus: null, maxTps: null, p95Ms: null, errorRate: null }, measures: 기기수치 })]);
     const 기기줄 = screen.getByRole('link', { name: 'PRF-0040' }).closest('tr')!;
     expect(screen.getByRole('link', { name: 'PRF-0040' }).getAttribute('href')).toBe('#/perf/devices?run=40');
     expect(within(기기줄).getByText('앱 성능', { selector: '.perf-tag' })).toBeTruthy();
-    expect(within(기기줄).getByRole('link', { name: '측정 결과' }).getAttribute('href')).toBe('#/perf/devices?run=40');
+    expect(within(기기줄).getAllByRole('link')).toHaveLength(1);
+    expect(screen.getByRole('columnheader', { name: '핵심 수치' })).toBeTruthy();
+    expect(screen.queryByRole('columnheader', { name: '최대 동시 사용자' })).toBeNull();
     expect(기기줄.textContent).toContain('CPU 평균 31% · 메모리 최대 412MB');
     expect(기기줄.textContent).not.toContain('FPS');
   });
@@ -146,5 +149,6 @@ describe('성능 실행 기록 표', () => {
     vi.spyOn(perfApi, 'runs').mockResolvedValue({ runs: [] });
     render(<PerfRunList serviceId={7} />);
     expect(await screen.findByText('아직 성능 테스트 실행이 없습니다')).toBeTruthy();
+    expect(screen.queryByText(/번호를 누르면/)).toBeNull();
   });
 });

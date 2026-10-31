@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { 백분위95, 종류줄을센다, 한곳에서만실패 } from './dashboardKind.js';
+import { 백분위95, 종류줄을센다, 틀로접는다, 한곳에서만실패 } from './dashboardKind.js';
 import type { 접은줄 } from './dashboardShape.js';
 
 const 줄 = (tcId: string, platform: 'desktop' | 'mobile', verdict: 접은줄['verdict']): 접은줄 => ({
@@ -70,5 +70,26 @@ describe('한곳에서만실패', () => {
 
   it('단위를 모르는 줄은 보지 않는다', () => {
     expect(한곳에서만실패([줄('A', 'mobile', 'FAIL'), 줄('A', 'desktop', 'PASS')], (x) => (x.platform === 'desktop' ? null : x.platform))).toEqual([]);
+  });
+});
+
+describe('틀로접는다', () => {
+  it('지도에 있는 틀과 방식 · 마디 수가 같고 틀의 `:` 칸만 다른 이름은 그 틀로 접고, 맞는 틀이 없으면 그대로 둔다', () => {
+    const 접기 = 틀로접는다([
+      'GET /v1/devices/:n',
+      'GET /v1/devices/dev_dmn_none_mvrurusc',
+      'GET /v1/devices/dev_dmn_none_mvrurusc/logs',
+      'DELETE /v1/devices/dev_dmn_x',
+      'GET /v1/devices',
+      'GET /v1/devices/search',
+      'GET /v1/devices/me_2',
+    ]);
+    expect(접기.get('GET /v1/devices/dev_dmn_none_mvrurusc')).toBe('GET /v1/devices/:n');
+    expect(접기.get('GET /v1/devices/:n')).toBe('GET /v1/devices/:n');
+    expect(접기.get('GET /v1/devices/dev_dmn_none_mvrurusc/logs')).toBe('GET /v1/devices/dev_dmn_none_mvrurusc/logs');
+    expect(접기.get('DELETE /v1/devices/dev_dmn_x')).toBe('DELETE /v1/devices/dev_dmn_x');
+    expect(접기.get('GET /v1/devices')).toBe('GET /v1/devices');
+    expect(접기.get('GET /v1/devices/search')).toBe('GET /v1/devices/search');
+    expect(접기.get('GET /v1/devices/me_2')).toBe('GET /v1/devices/me_2');
   });
 });

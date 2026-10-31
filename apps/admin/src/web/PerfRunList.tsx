@@ -45,6 +45,7 @@ export function PerfRunList({ serviceId }: { serviceId: number }) {
   const 목록 = useAsync(() => perfApi.runs(serviceId, 시나리오), [serviceId, 시나리오]);
 
   const 줄들 = (목록.data?.runs ?? []).filter((줄) => 판정 === '' || 판정종류(줄) === 판정);
+  const 부하있음 = 줄들.some((줄) => 측정자리(줄.kind) === null);
 
   return (
     <>
@@ -97,9 +98,16 @@ export function PerfRunList({ serviceId }: { serviceId: number }) {
                     <th>{t('시작')}</th>
                     <th className="r">{t('걸린 시간')}</th>
                     <th>{t('판정')}</th>
-                    <th className="r">{t('최대 동시 사용자')}</th>
-                    <th className="r">{t('95% 응답시간')}</th>
-                    <th className="r">{t('에러율')}</th>
+                    {/* 측정 줄만 있으면 부하 테스트 칸 머리 셋 아래에 측정 수치가 걸린다 — 한 칸 「핵심 수치」로 (2026-10-31 시험 f19) */}
+                    {부하있음 ? (
+                      <>
+                        <th className="r">{t('최대 동시 사용자')}</th>
+                        <th className="r">{t('95% 응답시간')}</th>
+                        <th className="r">{t('에러율')}</th>
+                      </>
+                    ) : (
+                      <th colSpan={3}>{t('핵심 수치')}</th>
+                    )}
                     <th>{t('이전 실행 대비')}</th>
                   </tr>
                 </thead>
@@ -120,9 +128,10 @@ export function PerfRunList({ serviceId }: { serviceId: number }) {
                           <span className="perf-tag">{t(자리 === null ? '부하 테스트' : 자리 === '#/perf/pages' ? '페이지 성능' : 기기성능)}</span>
                         </td>
                         <td>
-                          {자리 === null ? 줄.title : <a href={주소}>{t('측정 결과')}</a>} {줄.origin === 'SCHEDULED' ? <span className="perf-tag">{t('정기')}</span> : null}
+                          {/* 측정에는 시나리오가 없다 — 「측정 결과」 고리는 번호 고리와 같은 곳이라 뺀다 (f19) */}
+                          {자리 === null ? 줄.title : <span className="perf-faint">-</span>} {줄.origin === 'SCHEDULED' ? <span className="perf-tag">{t('정기')}</span> : null}
                         </td>
-                        <td>{줄.testType === null ? '-' : t(유형글자[줄.testType].이름)} · {줄.env}</td>
+                        <td>{줄.testType === null ? 줄.env : `${t(유형글자[줄.testType].이름)} · ${줄.env}`}</td>
                         <td className="perf-faint">{시각글(줄.startedAt, 언어)}</td>
                         <td className="r mono">{줄.durationSec === null ? '-' : 분초(줄.durationSec)}</td>
                         <td>
@@ -146,7 +155,7 @@ export function PerfRunList({ serviceId }: { serviceId: number }) {
                           </>
                         ) : (
                           // 측정 실행에는 동시 사용자 · 응답시간이 없다 — 세 칸을 합쳐 그 측정의 핵심 수치를 적는다
-                          <td colSpan={3} className="r mono">
+                          <td colSpan={3} className="mono">
                             {수치글(줄.kind, 앱종류 === 'GAME', 줄.measures, t)}
                           </td>
                         )}
@@ -157,9 +166,10 @@ export function PerfRunList({ serviceId }: { serviceId: number }) {
                 </tbody>
               </table>
             </div>
+            {/* 판 안 표 아래에 둔다 — 판 밖이면 아래 테두리 위에 붙었고, 기록이 0건일 때는 누를 번호가 없어 안 띄운다 (2026-10-31 시험 f11) */}
+            <p className="perf-faint">{t('번호를 누르면 실행 중이면 실행 중 화면, 끝났으면 결과 화면이 열립니다')}</p>
           </div>
         )}
-        <p className="perf-faint">{t('번호를 누르면 실행 중이면 실행 중 화면, 끝났으면 결과 화면이 열립니다')}</p>
       </div>
     </>
   );

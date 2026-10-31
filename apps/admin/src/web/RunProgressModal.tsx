@@ -235,11 +235,22 @@ function 완료내용({ data, onClose }: { data: RunDetail; onClose: () => void 
 }
 
 function 제목(data: RunDetail, 언어: 언어): string {
+  // 한 건 실행은 실행 기록에 줄이 없어 RUN 번호로는 찾을 데가 없다 — 케이스로 말한다. 묶음 실행은 지금대로 RUN 번호다 (2026-10-31 시험 d7)
+  const 케이스 = 한건이름(data);
+  if (케이스 !== null) {
+    if (도는중(data.status)) return t('{케이스} 실행 중', 언어, { 케이스 });
+    return data.status === 'ABORTED' ? t('{케이스} 실행이 멈췄습니다', 언어, { 케이스 }) : t('{케이스} 실행이 끝났습니다', 언어, { 케이스 });
+  }
   if (도는중(data.status)) return t('RUN {번호} 실행 중', 언어, { 번호: data.runId });
   // 사람이 끊어서 끝난 것과 끝까지 돌아서 끝난 것은 같은 말로 알리지 않는다 (SPEC §3.2)
   return data.status === 'ABORTED'
     ? t('RUN {번호} 실행이 멈췄습니다', 언어, { 번호: data.runId })
     : t('RUN {번호} 실행이 끝났습니다', 언어, { 번호: data.runId });
+}
+
+/** 한 건 실행이면 그 케이스 번호, 아니면 null */
+export function 한건이름(data: RunDetail): string | null {
+  return data.origin === 'SINGLE' ? (data.items[0]?.tcId ?? null) : null;
 }
 
 export function RunProgressModal({

@@ -8,10 +8,10 @@ import { use말 } from './i18n.js';
 import { RunAbortModal } from './RunAbortModal.js';
 import { 실행판정, type 판정하기 } from './runJudge.js';
 import { 진행상황 } from './runProgress.js';
-import { RunProgressModal } from './RunProgressModal.js';
+import { RunProgressModal, 한건이름 } from './RunProgressModal.js';
 import { use앞실패, 한건갈곳, 한건끝글, 한건인가 } from './RunSingleDone.js';
 import { 도는중, 멈출수있나, 본것으로적는다, 알림본적있나 } from './runState.js';
-import { use지켜봄, 지켜본다, type 지켜봄 } from './runWatchStore.js';
+import { use지켜봄, 끝났다고알린다, 지켜본다, type 지켜봄 } from './runWatchStore.js';
 import { useAsync } from './ui.js';
 import { useRunProgress } from './useRunProgress.js';
 import { use보는실행 } from './viewedRun.js';
@@ -45,7 +45,9 @@ function 지켜보는실행({ 봄, 판정하기 }: { 봄: 지켜봄; 판정하�
   // 도는 중의 읽기 실패는 앞 값을 쥔 채 2초 뒤 다시 묻는다(useAsync)
   const 끝 = data !== null && !running;
   useEffect(() => {
-    if (끝 && 알림본적있나(봄.runId)) 지켜본다(null);
+    if (!끝) return;
+    끝났다고알린다(봄.runId);
+    if (알림본적있나(봄.runId)) 지켜본다(null);
   }, [끝, 봄.runId]);
   useEffect(() => {
     if (run.error !== null && data === null) 지켜본다(null);
@@ -92,6 +94,7 @@ function 지켜보는실행({ 봄, 판정하기 }: { 봄: 지켜봄; 판정하�
   }
 
   const { 끝난수, 전체수 } = 진행상황(data, 진행목록);
+  const 한건 = 한건이름(data);
   return (
     <>
       {봄.열림 ? (
@@ -107,11 +110,15 @@ function 지켜보는실행({ 봄, 판정하기 }: { 봄: 지켜봄; 판정하�
           type="button"
           className="run-pill"
           aria-haspopup="dialog"
-          aria-label={t('RUN {번호} 진행 보기 · {끝난} / {전체} 완료', { 번호: data.runId, 끝난: 끝난수, 전체: 전체수 })}
+          aria-label={
+            한건 === null
+              ? t('RUN {번호} 진행 보기 · {끝난} / {전체} 완료', { 번호: data.runId, 끝난: 끝난수, 전체: 전체수 })
+              : t('{케이스} 진행 보기 · {끝난} / {전체} 완료', { 케이스: 한건, 끝난: 끝난수, 전체: 전체수 })
+          }
           onClick={() => 지켜본다({ runId: 봄.runId, 열림: true })}
         >
           <span className="pulse" />
-          <b>RUN {data.runId}</b>
+          <b>{한건 ?? `RUN ${String(data.runId)}`}</b>
           <span className="run-pill-bar">
             <i style={{ width: `${String(전체수 === 0 ? 0 : (끝난수 / 전체수) * 100)}%` }} />
           </span>

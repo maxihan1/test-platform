@@ -352,7 +352,8 @@
   overflow-x: auto;
 }
 
-@container (max-width: 640px) {
+/* 단계 목록이 220px 를 못 받을 때만 증거 칸이 아래로 간다 — 640px 이면 실행 기록 오른쪽 칸(PC 1440)에서도 늘 아래로 내려가 단계 옆 340px 칸(시안 11판)이 안 섰다 (2026-10-31 시험 d1) */
+@container (max-width: 560px) {
   .ev-grid {
     grid-template-columns: minmax(0, 1fr);
   }

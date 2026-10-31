@@ -1,7 +1,7 @@
 // 맨 위 띠 · 자리 목록이 쓰는 규칙 (SPEC §8). 화면 조각은 Shell.tsx, 판단은 여기
 // 한 번에 한 서비스만 본다 — 여러 서비스가 한 목록에 섞이면 엉뚱한 쪽에서 실행을 누르는 사고가 난다
 
-import type { ServiceRow, User } from './api.js';
+import type { ServiceRow, User, 앱종류 } from './api.js';
 import { 기본언어, t, type 언어 } from './i18n.js';
 import type { 아이콘이름 } from './icons.js';
 import { 종류, 종류키 } from './kind.js';
@@ -204,7 +204,7 @@ export function 배정서비스접두사(serviceId: number, 배정: ServiceRow[]
 export function 대시보드재료(
   user: User,
   prefix: string | null,
-): { 케이스갈수있나: boolean; 설정갈수있나: boolean; 작성서비스: { id: number; name: string }[]; 프로젝트: number | null } {
+): { 케이스갈수있나: boolean; 설정갈수있나: boolean; 작성서비스: { id: number; name: string; kind?: 앱종류 }[]; 프로젝트: number | null } {
   // 대시보드는 헤더에서 고른 프로젝트 안만 모은다 (도메인/리포팅 §8.12). 고른 애플리케이션이 없으면 프로젝트를 안 가린다
   const 프로젝트 = user.services.find((서비스) => 서비스.prefix === prefix)?.projectId ?? null;
   return {
@@ -212,7 +212,7 @@ export function 대시보드재료(
     설정갈수있나: 할수있나(user, prefix, '설정'),
     작성서비스: user.services
       .filter((서비스) => 서비스.permissions.authoring !== 'none' && (프로젝트 === null || 서비스.projectId === 프로젝트))
-      .map(({ id, name }) => ({ id, name })),
+      .map(({ id, name, kind }) => ({ id, name, kind })),
     프로젝트,
   };
 }

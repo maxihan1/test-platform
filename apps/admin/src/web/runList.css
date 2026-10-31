@@ -178,6 +178,20 @@
   }
 }
 
+/* 휴대폰에서는 판정 칸(156px)을 제목 아래로 내린다 — 세 칸 그대로면 제목이 왼쪽 절반 폭만 써 대여섯 글자씩 꺾였다 (2026-10-31 시험 f9).
+   styles.css 의 620px `.row` 두 칸 규칙을 이 파일의 `.run-row` 세 칸이 같은 특정도로 덮어서 여기서 되돌린다 */
+@media (max-width: 620px) {
+  .run-row {
+    grid-template-columns: 4px minmax(0, 1fr);
+  }
+
+  .run-verdict {
+    grid-row: 3;
+    grid-column: 2;
+    padding: 0 0 12px;
+  }
+}
+
 /* 진행 알약 — 진행 창을 닫은 실행 (DESIGN.md 「창이 아닌 떠 있는 것」). 창(.modal-back 100)보다 아래, 화면 위에 뜬다 */
 .run-pill {
   position: fixed;
@@ -217,6 +231,11 @@
   height: 100%;
   background: var(--accent-mark);
   transition: width var(--t2) linear;
+}
+
+/* 알약이 떠 있으면 본문 아래에 그 높이만큼 자리를 둔다 — 목록 판 오른쪽 아래 「이전 · 1 / 7쪽 · 다음」을 가렸다 (2026-10-31 시험 f18) */
+.wrap:has(.run-pill) > .main {
+  padding-bottom: 64px;
 }
 
 /* 휴대폰은 아래 탭 바로 위에 폭을 다 쓰고 선다. 실행 결과의 「실패 N건 다시 실행」 판(72px)이 있으면 그 위다 */

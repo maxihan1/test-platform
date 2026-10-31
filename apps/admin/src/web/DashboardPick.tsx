@@ -16,20 +16,23 @@ export interface 대시보드조건 {
   일: 기간;
 }
 
-/** 주소의 조건을 읽는다. 알아볼 수 없는 값은 기본값(전체 서비스 · 14일)으로 둔다 */
-export function 주소에서조건(): 대시보드조건 {
+/**
+ * 주소의 조건을 읽는다. 알아볼 수 없는 값은 기본값이다.
+ * 기본 애플리케이션은 왼쪽 애플리케이션 줄에서 고른 것이다 — 대시보드 고르개와 왼쪽 줄은 하나다(2026-10-31 시험 d4). 「전체 애플리케이션」은 `service=all` 이다
+ */
+export function 주소에서조건(기본서비스: number | null = null): 대시보드조건 {
   const 주소 = 주소조건();
   const 서비스글 = 주소.get('service');
   return {
-    서비스: 서비스글 !== null && /^[1-9]\d{0,9}$/.test(서비스글) ? Number(서비스글) : null,
+    서비스: 서비스글 === 'all' ? null : 서비스글 !== null && /^[1-9]\d{0,9}$/.test(서비스글) ? Number(서비스글) : 기본서비스,
     일: 기간들.find((일) => String(일) === 주소.get('days')) ?? 기본기간,
   };
 }
 
 /** 주소에 적을 조건. 기본값은 적지 않는다 */
-export function 조건을주소로(조건: 대시보드조건): Record<string, string> {
+export function 조건을주소로(조건: 대시보드조건, 기본서비스: number | null = null): Record<string, string> {
   return {
-    ...(조건.서비스 === null ? {} : { service: String(조건.서비스) }),
+    ...(조건.서비스 === 기본서비스 ? {} : { service: 조건.서비스 === null ? 'all' : String(조건.서비스) }),
     ...(조건.일 === 기본기간 ? {} : { days: String(조건.일) }),
   };
 }

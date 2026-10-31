@@ -3,7 +3,7 @@
 // **거르는 일은 서버가 한다.** 목록이 쪽으로 나뉘어 오므로 받은 쪽만 거르면 뒤쪽이 조용히 빠진다.
 // **고른 실행과 거르개는 주소에 남긴다** — 항목 상세에 갔다 돌아오기 · 새로고침 · 뒤로 가기에 풀리지 않는다(점검 2.9).
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { api, type EnvRow, type RunListRow, type RunQuery } from './api.js';
 import { Head } from './Head.js';
@@ -12,6 +12,7 @@ import { use주소조건, 주소조건 } from './leaveGuard.js';
 import { 다음이있나 } from './paging.js';
 import { RunResult } from './RunResult.js';
 import { 실행줄 } from './RunListRow.js';
+import { 케이스서비스 } from './role.js';
 import { 도는중 } from './runState.js';
 import type { 판정하기 } from './runJudge.js';
 import { Failed, Loading, useAsync } from './ui.js';
@@ -29,7 +30,23 @@ function 번호(글: string | null): number | null {
 }
 
 // 판정하기 — 결과 칸이 그 실행의 서비스로 버튼을 가른다. 주소의 `?run=` 은 띠와 다른 서비스 실행일 수 있다 (화면공통 §8)
-export function RunList({ service, envs, 판정하기, kind }: { service: string; envs: EnvRow[]; 판정하기: 판정하기; kind: 'UI' | 'FN' }) {
+/**
+ * @param 서비스바꿈 주소의 `?run=` 이 다른 애플리케이션 실행이면 왼쪽 줄 · 목록을 그 애플리케이션으로 바꾸는 길 —
+ * 안 바꾸면 사이드바 · 목록은 API 인데 오른쪽은 게임 결과로 섞였다 (2026-10-31 시험 d5)
+ */
+export function RunList({
+  service,
+  envs,
+  판정하기,
+  kind,
+  서비스바꿈,
+}: {
+  service: string;
+  envs: EnvRow[];
+  판정하기: 판정하기;
+  kind: 'UI' | 'FN';
+  서비스바꿈?: (접두사: string) => void;
+}) {
   const t = use말();
   const [처음] = useState(주소조건);
   const [page, setPage] = useState(() => 번호(처음.get('page')) ?? 1);
@@ -46,6 +63,8 @@ export function RunList({ service, envs, 판정하기, kind }: { service: string
   const 열카드 = 처음.get('tc') ?? undefined;
   // 서비스를 바꾸면 건 조건 · 고른 실행을 버린다 — 남기면 다른 서비스에서 「없다」를 보여주고 왜인지 말하지 않는다
   const [본서비스, set본서비스] = useState(service);
+  // 주소의 실행을 따라 애플리케이션을 바꿨으면 그 실행은 버리지 않는다
+  const 따라간실행 = useRef<number | null>(null);
   if (본서비스 !== service) {
     set본서비스(service);
     setPage(1);
@@ -55,8 +74,29 @@ export function RunList({ service, envs, 판정하기, kind }: { service: string
     setEnv('');
     setOrigin(undefined);
     setDays(undefined);
-    set고른(null);
+    // 한 번만 남긴다 — 그 뒤 사람이 애플리케이션을 바꾸면 고른 실행을 버린다
+    const 남길것 = 따라간실행.current;
+    따라간실행.current = null;
+    set고른((앞) => (앞 !== null && 앞 === 남길것 ? 앞 : null));
   }
+  useEffect(() => {
+    if (처음실행 === null || 서비스바꿈 === undefined) return undefined;
+    let 살아있음 = true;
+    // 못 읽으면 그대로 둔다 — 결과 칸이 읽기 실패를 스스로 말한다
+    // ponytail: 결과 칸도 같은 실행을 읽어 주소로 열 때 두 번 부른다. 큰 실행에서 느리면 결과 칸이 읽은 값으로 따라간다
+    api.run(처음실행).then(
+      (r) => {
+        const 접두사 = 케이스서비스(r.items[0]?.tcId ?? '');
+        if (!살아있음 || 접두사 === null || 접두사 === service) return;
+        따라간실행.current = 처음실행;
+        서비스바꿈(접두사);
+      },
+      () => undefined,
+    );
+    return () => {
+      살아있음 = false;
+    };
+  }, []);
 
   // 기본값인 조건은 적지 않는다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
   use주소조건(`#/runs/${kind === 'UI' ? 'ui' : 'fn'}`, {

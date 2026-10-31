@@ -20,7 +20,7 @@ test(spec, async ({ admin, request }) => {
     });
     await test.step('어드민 키가 있는지 확인한다', async () => {
       const 설정 = await 설정읽기(admin);
-      await verify('어드민 키가 있다', typeof 설정.enhance, 'object', { blocker: true });
+      await verify('어드민 키가 있다', typeof 설정.enhance === 'object' && 설정.enhance !== null, true, { blocker: true });
     });
     await test.step('봇을 다시 시드한 뒤 봇 성향을 센다', async () => {
       await 월드초기화(admin);

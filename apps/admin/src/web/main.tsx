@@ -103,7 +103,7 @@ function Screen({
 
   switch (current.name) {
     case 'dashboard':
-      return <Dashboard 서비스열기={on서비스번호} {...대시보드재료(user, service?.prefix ?? null)} />;
+      return <Dashboard 서비스열기={on서비스번호} {...대시보드재료(user, service?.prefix ?? null)} 열린서비스={service?.id ?? null} />;
     case 'cases':
       // 종류마다 새로 그린다 — 고른 것 · 쪽 · 검색어가 남으면 UI 와 기능을 섞어 골라 실행이 MIXED_KIND 로 거절된다 (PR #132)
       return (
@@ -151,7 +151,19 @@ function Screen({
       // E2E 는 시나리오 실행만 모으는 별도 화면이다 — 줄 모양과 거르개가 UI · 기능 목록과 다르다
       // 결과 칸은 `?run=` 의 실행 서비스로 버튼을 가른다 — 주소의 실행이 띠와 다른 서비스일 수 있다(항목 상세의 「실행 결과」 고리)
       if (current.kind === 'E2E') return <ScenarioRunList key="E2E" service={prefix} 판정하기={(접두사) => 판정을만든다(user, 접두사)} />;
-      return <RunList key={current.kind} kind={current.kind} service={prefix} envs={service?.envs ?? []} 판정하기={(접두사) => 판정을만든다(user, 접두사)} />;
+      return (
+        <RunList
+          key={current.kind}
+          kind={current.kind}
+          service={prefix}
+          envs={service?.envs ?? []}
+          판정하기={(접두사) => 판정을만든다(user, 접두사)}
+          서비스바꿈={(접두사) => {
+            const 번호 = user.services.find((서비스) => 서비스.prefix === 접두사)?.id;
+            if (번호 !== undefined) on서비스번호(번호);
+          }}
+        />
+      );
     case 'scenarios':
       // 서비스를 바꾸면 새로 그린다 — 고른 대상 서버와 앞 서비스의 실행 안내가 남으면 다른 서비스에 쏜다
       return <ScenarioList key={prefix} service={prefix} kind={service?.kind} envs={service?.envs ?? []} 할수={할수} />;
