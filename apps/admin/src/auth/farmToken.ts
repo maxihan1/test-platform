@@ -16,6 +16,9 @@ async function db(): Promise<Pool> {
 
 export type 주인답 = { 주인: string } | '틀림' | '닿지못함';
 
+/** 통합계정 PAT 꼴인가 — 팜 토큰 넣기와 /mcp 가 같이 쓴다. 다른 열쇠(작성 에이전트 토큰 · cit_ · pga_)와 머리로 가른다 */
+export const PAT꼴 = (토큰: string): boolean => 토큰.startsWith('pat_') && 토큰.length <= 최대길이 && !/\s/.test(토큰);
+
 /** 팜이 토큰을 확인하는 그 문(whoami)에 묻는다. 401 은 폐기 · 기간 끝 · 틀린 값이다 */
 export async function 토큰주인묻기(issuer: string, 토큰: string, 부르기: typeof fetch = fetch): Promise<주인답> {
   let res: Response;
@@ -63,7 +66,7 @@ export default async function farmTokenRoutes(app: FastifyInstance, { sso }: { s
     const user = await 확인(req);
     if (user === null) return reply.code(401).send({ error: 'UNAUTHENTICATED' });
     const 토큰 = typeof req.body?.token === 'string' ? req.body.token.trim() : '';
-    if (!토큰.startsWith('pat_') || 토큰.length > 최대길이 || /\s/.test(토큰)) return reply.code(400).send({ error: 'FARM_TOKEN_SHAPE' });
+    if (!PAT꼴(토큰)) return reply.code(400).send({ error: 'FARM_TOKEN_SHAPE' });
 
     const 답 = await 토큰주인묻기(sso.issuer, 토큰);
     if (답 === '틀림') return reply.code(400).send({ error: 'FARM_TOKEN_INVALID' });
