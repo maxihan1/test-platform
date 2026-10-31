@@ -50,6 +50,8 @@ export const 라우트표: Record<string, 원천> = {
   '/api/settings/projects/:id/api-servers': { 종류: '안매임' },
   '/api/settings/projects/:projectId/bts': { 종류: '안매임' },
   '/api/settings/projects/:projectId/bts/keys/:which': { 종류: '안매임' },
+  '/api/settings/projects/:projectId/bts/choices': { 종류: '안매임' },
+  '/api/settings/projects/:projectId/bts/setup': { 종류: '안매임' },
   '/api/settings/services': { 종류: '안매임' },
   '/api/settings/services/:id': { 종류: '안매임' },
   '/api/settings/services/:id/viewport': { 종류: '안매임' },
