@@ -38,6 +38,7 @@ export const 성능실행말: Record<string, string> = {
   'PDF로 내려받기': 'Download PDF',
   '다시 실행': 'Run again',
   '최대 동시 사용자': 'Max concurrent users',
+  '핵심 수치': 'Key metrics',
   '이전 실행 {값}': 'Previous run {값}',
   'AI 분석': 'AI analysis',
   'AI 분석을 만드는 중입니다': 'AI is building the analysis',
@@ -77,5 +78,4 @@ export const 성능실행말: Record<string, string> = {
   // PRD 추적표
   '성능 목표 {수}개': '{수} performance targets',
   // 성능 실행 기록 — 페이지 · 기기 측정 줄의 고리 (종류는 꼬리표가 말한다, WEB-F7-18)
-  '측정 결과': 'Measurement result',
 };
