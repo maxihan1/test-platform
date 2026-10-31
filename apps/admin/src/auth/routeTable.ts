@@ -192,6 +192,7 @@ export const 등급표: Record<string, 표값> = {
   'PUT /api/settings/projects/:projectId/bts': 'admin',
   'DELETE /api/settings/projects/:projectId/bts': 'admin',
   'POST /api/settings/projects/:projectId/bts/keys/:which': 'admin',
+  'POST /api/settings/projects/:projectId/bts/choices': 'admin',
   'GET /api/settings/services': 'admin',
   'POST /api/settings/services': 'admin',
   'PATCH /api/settings/services/:id': 'admin',

@@ -53,6 +53,8 @@ describe.skipIf(연결 === undefined)('설정 API — BTS 연결', () => {
   let 서비스 = 0;
   const 확인한것: [string, string, string][] = [];
   let 확인결과 = true;
+  const 부른것: [string, string][] = [];
+  let 목록답 = 200;
 
   const pool = async () => (await import('../db/index.js')).pool;
   const 주소 = () => `/api/settings/projects/${프로젝트}/bts`;
@@ -74,6 +76,11 @@ describe.skipIf(연결 === undefined)('설정 API — BTS 연결', () => {
       확인: async (baseUrl, btsProject, botKey) => {
         확인한것.push([baseUrl, btsProject, botKey]);
         return 확인결과;
+      },
+      부르기: async (자리, _method, 경로) => {
+        부른것.push([자리.botKey, 경로]);
+        const data = 경로 === '/api/v1/statuses' ? [{ id: 1, key: 'qa-review', name: 'QA Review' }, { key: 7 }] : [{ id: 2, key: 'wontfix', name: "Won't Fix" }];
+        return { status: 목록답, json: { data } };
       },
     });
     await app.ready();
@@ -99,14 +106,14 @@ describe.skipIf(연결 === undefined)('설정 API — BTS 연결', () => {
 
   it('연결 전에는 linked: false 이고 없는 프로젝트는 404 다', async () => {
     expect(await 읽기()).toEqual({
-      linked: false, baseUrl: null, btsProject: null, botKeyTail: null, statusMap: {}, resolutionMap: {}, deployKey: null, ruleToken: null,
+      linked: false, baseUrl: null, btsProject: null, botKeyTail: null, statusMap: {}, resolutionMap: {}, deployKey: null, ruleToken: null, publicUrl: null,
     });
     const 없음 = await app.inject({ method: 'GET', url: '/api/settings/projects/999999999/bts' });
     expect(없음.statusCode).toBe(404);
   });
 
-  it('처음 연결은 열쇠 둘을 꼭 받는다 · 짝이 빈 단계가 있으면 MAP_INCOMPLETE', async () => {
-    const 열쇠없음 = await 저장(본문({ botKey: 'pat_abcd1234' }));
+  it('처음 연결은 「QA Hub AI」 열쇠를 꼭 받는다 · 짝이 빈 단계가 있으면 MAP_INCOMPLETE', async () => {
+    const 열쇠없음 = await 저장(본문({ webhookSecret: 'sec' }));
     expect([열쇠없음.statusCode, 열쇠없음.json().error]).toEqual([400, 'SECRETS_REQUIRED']);
     const 빈짝 = await 저장(본문({ botKey: 'pat_abcd1234', webhookSecret: 'sec', statusMap: { ...상태, QA_REVIEW: ' ' } }));
     expect([빈짝.statusCode, 빈짝.json().error]).toEqual([400, 'MAP_INCOMPLETE']);
@@ -115,6 +122,20 @@ describe.skipIf(연결 === undefined)('설정 API — BTS 연결', () => {
     expect([단계빠짐.statusCode, 단계빠짐.json().error]).toEqual([400, 'MAP_INCOMPLETE']);
     const 모르는단계 = await 저장(본문({ botKey: 'pat_abcd1234', webhookSecret: 'sec', statusMap: { ...상태, OTHER: 'x' } }));
     expect([모르는단계.statusCode, 모르는단계.json().error]).toEqual([400, 'INVALID_REQUEST']);
+  });
+
+  it('고를 목록 — 적은 열쇠로 BTS 상태 키 · 이름과 해결 사유 이름을 읽는다 · 꼴이 틀린 줄은 뺀다', async () => {
+    const 목록 = (payload: Record<string, unknown>) => app.inject({ method: 'POST', url: `${주소()}/choices`, payload });
+    const res = await 목록({ baseUrl: 'https://bts.example.com/', botKey: 'pat_try1' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ statuses: [{ key: 'qa-review', name: 'QA Review' }], resolutions: [{ name: "Won't Fix" }] });
+    expect(부른것.slice(-2).map(([열쇠]) => 열쇠)).toEqual(['pat_try1', 'pat_try1']);
+    const 열쇠없음 = await 목록({ baseUrl: 'https://bts.example.com' });
+    expect([열쇠없음.statusCode, 열쇠없음.json().error]).toEqual([400, 'BOT_KEY_REQUIRED']);
+    목록답 = 403;
+    const 거절 = await 목록({ baseUrl: 'https://bts.example.com', botKey: 'pat_try1' });
+    목록답 = 200;
+    expect([거절.statusCode, 거절.json().error]).toEqual([400, 'BTS_UNREACHABLE']);
   });
 
   it('BTS 확인이 실패하면 저장하지 않는다', async () => {
@@ -136,6 +157,12 @@ describe.skipIf(연결 === undefined)('설정 API — BTS 연결', () => {
     const p = await pool();
     const 행 = (await p.query('SELECT bot_key, webhook_secret FROM bts_link WHERE project_id = $1', [프로젝트])).rows[0];
     expect(행).toEqual({ bot_key: 'pat_abcd1234', webhook_secret: 'sec' });
+
+    // 열쇠를 다시 안 적으면 같은 주소에 저장한 열쇠로 고를 목록을 읽는다 — 다른 주소면 열쇠를 다시 받는다
+    expect((await app.inject({ method: 'POST', url: `${주소()}/choices`, payload: { baseUrl: 'https://bts.example.com' } })).statusCode).toBe(200);
+    expect(부른것.at(-1)?.[0]).toBe('pat_abcd1234');
+    const 딴주소 = await app.inject({ method: 'POST', url: `${주소()}/choices`, payload: { baseUrl: 'https://other.example.com' } });
+    expect(딴주소.json().error).toBe('BOT_KEY_REQUIRED');
   });
 
   it('끝 「/」 · 대문자 호스트만 다른 주소는 같은 주소로 친다 · 물음표 붙은 주소는 받지 않는다', async () => {
@@ -202,5 +229,12 @@ describe.skipIf(연결 === undefined)('설정 API — BTS 연결', () => {
     expect(await 목록()).toEqual(줄);
     expect((await 고치기([])).statusCode).toBe(200);
     expect(await 목록()).toEqual([]);
+  });
+
+  it('처음 연결에 알림 서명 비밀을 안 주면 QA Hub 가 만들어 둔다', async () => {
+    expect((await 저장(본문({ botKey: 'pat_abcd1234' }))).statusCode).toBe(200);
+    const p = await pool();
+    const 비밀 = (await p.query<{ webhook_secret: string }>('SELECT webhook_secret FROM bts_link WHERE project_id = $1', [프로젝트])).rows[0]!.webhook_secret;
+    expect(비밀).toMatch(/^[A-Za-z0-9_-]{43}$/);
   });
 });
