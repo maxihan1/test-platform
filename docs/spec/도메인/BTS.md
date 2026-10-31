@@ -260,8 +260,10 @@ BTS-F6-01 반영 2026-10-31 — 서버 `apps/admin/src/bts/bugfix.ts` · `bugfix
 #### 품질 숫자
 
 AI 품질은 따로 시험하지 않고 사람이 고른 결과로 센다 — 대시보드(§8.15 「대시보드 두 숫자」).
-- 초안 AI = 사람이 체크한 줄 ÷ AI 가 쓴 줄(PRD 초안 카드에서 진행한 것만 분모에 든다)
+- 초안 AI = 사람이 체크한 줄 ÷ AI 가 쓴 줄(PRD 초안 카드에서 진행한 것만 분모에 든다 — [초안 버리기]도 진행이라 쓴 줄이 다 분모에 든다)
 - 수정 AI = 병합된 PR ÷ AI 가 올린 PR(닫히지도 병합되지도 않은 PR 은 분모에서 뺀다)
+- 날 창(7 · 14 · 30일)과 상관없이 지금까지 전부 센다 — 건수가 작아 며칠로 자르면 0/0 이 잦다 (BTS-F8-01 시작 질문 2026-11-01)
+- PR 이 병합됐는지 닫혔는지는 작성 에이전트가 애플리케이션마다 1분에 한 번 `gh pr view` 로 읽어 적는다(§7 「수정 PR 상태」 · `scripts/authoring-pr-close.ts`) — 서버는 GitHub 열쇠가 없고(결정 10) BTS 「PR 병합」 규칙으로는 닫힘을 모른다. 열린 PR · 못 읽은 PR 은 1분 뒤 다시 본다 (BTS-F8-01 시작 질문 2026-11-01)
 
 #### 다른 저장소가 할 것
 
@@ -366,8 +368,10 @@ POST /api/runs/:runId/bts/resend   { tcId, env }
 #     — TAKE 는 step 2(확인 필요 결정과 같은 버전 하나) · 판이 바뀌었으면 step 4(고친 요구 다시 작성 — key 목록에 든다). 고른 수정 · 삭제 번호가 앞 초안이나 사람 손에 지워졌으면 400 BAD_PICK
 #     — DROP · RETRY 는 step 6(RETRY 만 requestId = 새 PRD_DRAFT 줄). 그 사이 누가 먼저 진행 · 다시 세웠으면 409 DECISIONS_STALE
 
-# 대시보드(리포팅.md §7 dashboard) 응답에 칸 하나 (BTS-F8-01)
+# 대시보드(리포팅.md §7 dashboard) 응답에 칸 하나 (BTS-F8-01 반영 2026-11-01 · bts/quality.ts AI품질읽기 · reporting/routes.ts)
      aiQuality: { draft: { picked, written }, fix: { merged, opened } } | null   — 고른 범위에 BTS 연결 프로젝트가 없으면 null
+     — 범위는 작성 read 인 애플리케이션(service 로 좁혔으면 그 하나)이고 날 창과 상관없이 지금까지 전부다(도메인 「품질 숫자」)
+     — draft: result.picked 가 있는 PRD_DRAFT 줄의 picked.rows 수 · draft.rows 수 합. fix: 수정 PR(pr_url)마다 하나 — merged 는 prState MERGED, opened 는 MERGED · CLOSED
 
 # 작성 에이전트 통로 — 에이전트 토큰 허용 목록(인증.md §7)에 더한다
 #   집기(claim) 응답 kind 에 PRD_DRAFT · NOTE · BUGFIX 가 는다. 응답 mcpKey: 'mcj_…' 는 BTS.md 「열쇠 표」의 받는 줄에만(이 줄이 RUNNING 인 동안만 산다) — mcpKey 는 BTS-F4-02 반영 2026-10-31 · mcp/jobKey.ts · authoring/agentRoutes.ts(받는 줄은 「열쇠 표」 — AUTHOR · NOTE · PRD_DRAFT · BUGFIX 와 그 RERUN — BUGFIX 는 BTS-F6-01 반영 2026-10-31)
@@ -395,7 +399,7 @@ POST /api/authoring/requests/:id/note     { docs: [{ name, summary, body }], rem
 POST /api/authoring/requests/:id/bugfix   — BUGFIX 결과 (BTS-F6-01 반영 2026-10-31 · bts/bugfixRoutes.ts)
      { prUrl, summary, files: string[], owners: [{ email, name }] } | { analysis, files?: string[], owners: [{ email, name }] }
   — owners 는 에이전트가 CODEOWNERS · git 기록에서 모은 차례대로의 후보다. 서버가 BTS 사람으로 짝짓고 없으면 구성 요소 리드 → 프로젝트 리드(도메인 「수정 AI」 넘길 사람)
-  — 서버가 result 를 { bugfix: { prUrl?, summary?, analysis?, files, owner, handedBack? } } 로 두고(prUrl 은 pr_url 칸에도) 답한 뒤 뒤에서 owner 를 채우고 보낼 줄에 넣는다 — PR 은 COMMENT → TRANSITION(「코드 리뷰」 짝) → ASSIGN, 분석은 COMMENT → ASSIGN. 담당자를 못 찾으면 ASSIGN 대신 「넘길 사람을 찾지 못했어요」 댓글. 보낼 줄의 ASSIGN · TRANSITION 은 판 번호 없이 넣고 보내기 직전에 읽는다
+  — 서버가 result 를 { bugfix: { prUrl?, summary?, analysis?, files, owner, handedBack?, prState? } } 로 두고(prState 는 아래 「수정 PR 상태」가 적는다)(prUrl 은 pr_url 칸에도) 답한 뒤 뒤에서 owner 를 채우고 보낼 줄에 넣는다 — PR 은 COMMENT → TRANSITION(「코드 리뷰」 짝) → ASSIGN, 분석은 COMMENT → ASSIGN. 담당자를 못 찾으면 ASSIGN 대신 「넘길 사람을 찾지 못했어요」 댓글. 보낼 줄의 ASSIGN · TRANSITION 은 판 번호 없이 넣고 보내기 직전에 읽는다
   — 상한은 `bts/bugfixRoutes.ts` `수정상한`(글 8000자 · 파일 200개 · 사람 20명). 한 일에 한 번만 받는다(두 번째는 409)
   → 201 {} · 400 BAD_BUGFIX { detail: '<칸 경로>' | 'prUrl'(그 일의 저장소 PR 이 아님) } · 400 BAD_KIND(BUGFIX 줄이 아님) · 409 NOT_RUNNING · 403 NOT_CLAIMER
 
@@ -405,6 +409,14 @@ GET  /api/authoring/requests/closing?service=
   → 200 { prs: [{ id, prUrl }] }   — 다시 배포로 거둔 롤백 되돌림 사슬(뿌리 params.rollbackDeploy · redeployed)의 실행 행 가운데 pr_url 이 있고 아직 닫음을 안 적은 것. PR 하나에 가장 늦은 행 하나
 POST /api/authoring/requests/:id/closed
   → 204   — 그 행의 애플리케이션에서 같은 pr_url 을 가리키는 행 전부의 result 에 prClosed: true 를 더한다 · 404 NOT_FOUND(폐기 안 된 행 · PR 없음)
+
+# 수정 PR 상태 — 수정 AI 가 연 PR 의 병합 · 닫힘 (BTS-F8-01 반영 2026-11-01 · bts/qualityRoutes.ts · quality.ts — 대시보드 「수정 AI」 셈)
+#   작성 에이전트가 애플리케이션마다 1분에 한 번(닫을 PR 과 같은 때) 부른다. 맥 계정(작성 에이전트 토큰)만 — 아니면 403 NOT_AUTHORING_AGENT. 두 통로 다 토큰 허용 목록에 든다
+GET  /api/authoring/requests/bugfix-prs?service=
+  → 200 { prs: [{ id, prUrl }] }   — 그 애플리케이션의 BUGFIX 줄 가운데 pr_url 이 있고 result.bugfix.prState 가 아직 없는 것. PR 하나에 가장 늦은 행 하나
+POST /api/authoring/requests/:id/pr-state    { state: 'MERGED' | 'CLOSED' }
+  → 204   — 그 행의 애플리케이션에서 같은 pr_url 을 가리키는 BUGFIX 행 전부의 result.bugfix.prState 에 적는다 · 400 INVALID_REQUEST { detail: 'state' } · 404 NOT_FOUND(BUGFIX 행이 아님 · PR 없음)
+  — 에이전트는 `gh pr view <주소> --json state` 가 MERGED · CLOSED 일 때만 부른다. 열려 있거나 못 읽으면 안 부르고 1분 뒤 다시 본다
 
 # MCP — Streamable HTTP 하나 · 세션 없음 · 답은 JSON 한 덩어리 (BTS-F4-01 반영 2026-10-31 · apps/admin/src/mcp/server.ts · tools.ts · auth/pat.ts · mcj_ 는 BTS-F4-02 반영 2026-10-31 · mcp/jobKey.ts — note_read 는 BTS-F4-03 반영 2026-10-31 · mcp/note.ts)
 #   열쇠: Authorization: Bearer <통합계정 PAT> | mcj_…. PAT 는 Auth whoami + 60초 기억. mcj_ 는 그 작성 요청이 RUNNING 이고 그 프로젝트일 때만
@@ -421,13 +433,13 @@ POST /mcp
 
 ```
 [계약 변경 필요]
-대상:    Admin API — 프로젝트 배포 신호 · BTS 알림 · BTS 규칙 웹훅 호출 · 설정 › BTS 연결 · 설정 서비스 codeRepos · BTS 다시 보내기 · 실패 카드 bts 칸 · 결정 목록 PRD_DRAFT 와 BTS 연결이면 FAIL 뺌 · 대시보드 aiQuality · 작성 에이전트 통로 넷과 집기 mcpKey · NOTE 줄의 서비스 경계 · 옛 판정 통로 409 · 사람 다시 실행 BAD_KIND · BTS 연결 프로젝트의 POST /api/builds 는 실행을 안 건다 · /mcp · 닫을 PR 두 통로(BTS-F7-01 시작 질문 2 승인 2026-11-01)
+대상:    Admin API — 프로젝트 배포 신호 · BTS 알림 · BTS 규칙 웹훅 호출 · 설정 › BTS 연결 · 설정 서비스 codeRepos · BTS 다시 보내기 · 실패 카드 bts 칸 · 결정 목록 PRD_DRAFT 와 BTS 연결이면 FAIL 뺌 · 대시보드 aiQuality · 작성 에이전트 통로 넷과 집기 mcpKey · NOTE 줄의 서비스 경계 · 옛 판정 통로 409 · 사람 다시 실행 BAD_KIND · BTS 연결 프로젝트의 POST /api/builds 는 실행을 안 건다 · /mcp · 닫을 PR 두 통로(BTS-F7-01 시작 질문 2 승인 2026-11-01) · 수정 PR 상태 두 통로(BTS-F8-01 시작 질문 승인 2026-11-01)
 현재:    BTS 와 주고받는 통로가 없다. 바깥 열쇠는 CI 토큰 하나 · 작성 집기 kind 는 AUTHOR · RERUN · MERGE · EDIT
 제안:    위 §7 꼴
 이유:    도메인/BTS §3.12 (2026-10-28 기획 · BTS-F1-01 시작 질문 승인 2026-10-31)
 영향:    WS-B(배포 신호 · 다시 보내기) · WS-F(설정 · 열쇠 · PAT · 문 허용 목록) · WS-작성(결정 목록 · 에이전트 통로) · WS-D(실패 카드 · 대시보드) · WS-E(화면) · 작성 에이전트 · 새 bts/ · mcp/ · projectNote/
-반영:    설정 › BTS 연결 · 설정 서비스 codeRepos (2026-10-31, apps/admin/src/bts/routes.ts — BTS-F3-01) · BTS 알림 · BTS 규칙 웹훅 호출 (2026-10-31, apps/admin/src/bts/inbound.ts — BTS-F3-02) · BTS 다시 보내기 · 실패 카드 bts 칸 (2026-10-31, apps/admin/src/bts/card.ts — BTS-F3-03) · 결정 목록 FAIL 뺌 · 옛 판정 통로(BAD_DECISION · BAD_EDIT) (2026-10-31, authoring/decisions.ts · decisionRun.ts · routes.ts — BTS-F3-04) · 설정 › BTS 연결 publicUrl · 처음 연결의 webhookSecret 선택(SECRETS_REQUIRED 는 botKey 만) · 고를 목록 · 자동 설정 · 규칙 몸 assignee? · prTitle? (2026-10-31, apps/admin/src/bts/routes.ts · link.ts · choices.ts · setup.ts · inbound.ts — BTS-F3-05) · /mcp 의 PAT 열쇠와 도구 넷(note_read 빼고) (2026-10-31, apps/admin/src/mcp/server.ts · tools.ts · auth/pat.ts — BTS-F4-01) · /mcp 의 mcj_ 와 집기 mcpKey(AUTHOR · 그 RERUN 만 — 나머지 받는 줄은 그 종류를 만드는 줄이 더한다) (2026-10-31, apps/admin/src/mcp/jobKey.ts · authoring/agentRoutes.ts — BTS-F4-02) · 노트 결과 통로 · 집기 note 칸과 NOTE 의 mcpKey · NOTE 줄의 서비스 경계 · NOTE 사람 다시 실행 BAD_KIND · note_read (2026-10-31, apps/admin/src/projectNote/ · mcp/note.ts · auth/scope.ts — BTS-F4-03 · 노트 보기 통로와 화면은 사용자가 뺐다) · 프로젝트 배포 신호(400 NO_BUILD · INVALID_REQUEST 더함) · BTS 연결 프로젝트의 앱 · 게임 POST /api/builds 는 실행을 안 건다(runIds 빈 목록) (2026-10-31, apps/admin/src/bts/deploy.ts · deployFlow.ts · execution/buildRoutes.ts — BTS-F5-01) · PRD 초안 결과 통로 · 집기 draft 칸과 PRD_DRAFT 의 mcpKey · PRD_DRAFT 사람 다시 실행 BAD_KIND · 초안 없는 끝내기 BAD_DRAFT (2026-10-31, apps/admin/src/bts/draft.ts · draftRoutes.ts · authoring/agentRoutes.ts · routes.ts · mcp/jobKey.ts — BTS-F5-03) · 결정 목록 PRD_DRAFT 항목 · 진행 picks TAKE · DROP · RETRY 와 step 6 · 초안 결과 통로 text 의 요구 문장 상한 (2026-10-31, apps/admin/src/bts/draftDecide.ts · authoring/decisions.ts · decisionRun.ts · bts/draft.ts — BTS-F5-04) · 수정 AI 결과 통로 · 집기 bugfix 칸과 BUGFIX 의 mcpKey · BUGFIX 사람 다시 실행 BAD_KIND · 결과 없는 끝내기 BAD_BUGFIX · 규칙 웹훅 ASSIGNEE 503 · 이슈 글 읽기 통로(GET …/:id/bts)는 두지 않음 (2026-10-31, apps/admin/src/bts/bugfix.ts · bugfixRoutes.ts · inbound.ts · authoring/agentRoutes.ts · routes.ts · mcp/jobKey.ts — BTS-F6-01) · 닫을 PR 두 통로 · 롤백 배포의 PRD 되돌림 · GET /api/prd/versions 줄의 rollbackBuild (2026-11-01, apps/admin/src/bts/rollback.ts · rollbackRoutes.ts · deploy.ts · prd/store.ts — BTS-F7-01). 나머지는 진행판 줄마다(대시보드 aiQuality — BTS-F8-01)
-상태:    대기
+반영:    설정 › BTS 연결 · 설정 서비스 codeRepos (2026-10-31, apps/admin/src/bts/routes.ts — BTS-F3-01) · BTS 알림 · BTS 규칙 웹훅 호출 (2026-10-31, apps/admin/src/bts/inbound.ts — BTS-F3-02) · BTS 다시 보내기 · 실패 카드 bts 칸 (2026-10-31, apps/admin/src/bts/card.ts — BTS-F3-03) · 결정 목록 FAIL 뺌 · 옛 판정 통로(BAD_DECISION · BAD_EDIT) (2026-10-31, authoring/decisions.ts · decisionRun.ts · routes.ts — BTS-F3-04) · 설정 › BTS 연결 publicUrl · 처음 연결의 webhookSecret 선택(SECRETS_REQUIRED 는 botKey 만) · 고를 목록 · 자동 설정 · 규칙 몸 assignee? · prTitle? (2026-10-31, apps/admin/src/bts/routes.ts · link.ts · choices.ts · setup.ts · inbound.ts — BTS-F3-05) · /mcp 의 PAT 열쇠와 도구 넷(note_read 빼고) (2026-10-31, apps/admin/src/mcp/server.ts · tools.ts · auth/pat.ts — BTS-F4-01) · /mcp 의 mcj_ 와 집기 mcpKey(AUTHOR · 그 RERUN 만 — 나머지 받는 줄은 그 종류를 만드는 줄이 더한다) (2026-10-31, apps/admin/src/mcp/jobKey.ts · authoring/agentRoutes.ts — BTS-F4-02) · 노트 결과 통로 · 집기 note 칸과 NOTE 의 mcpKey · NOTE 줄의 서비스 경계 · NOTE 사람 다시 실행 BAD_KIND · note_read (2026-10-31, apps/admin/src/projectNote/ · mcp/note.ts · auth/scope.ts — BTS-F4-03 · 노트 보기 통로와 화면은 사용자가 뺐다) · 프로젝트 배포 신호(400 NO_BUILD · INVALID_REQUEST 더함) · BTS 연결 프로젝트의 앱 · 게임 POST /api/builds 는 실행을 안 건다(runIds 빈 목록) (2026-10-31, apps/admin/src/bts/deploy.ts · deployFlow.ts · execution/buildRoutes.ts — BTS-F5-01) · PRD 초안 결과 통로 · 집기 draft 칸과 PRD_DRAFT 의 mcpKey · PRD_DRAFT 사람 다시 실행 BAD_KIND · 초안 없는 끝내기 BAD_DRAFT (2026-10-31, apps/admin/src/bts/draft.ts · draftRoutes.ts · authoring/agentRoutes.ts · routes.ts · mcp/jobKey.ts — BTS-F5-03) · 결정 목록 PRD_DRAFT 항목 · 진행 picks TAKE · DROP · RETRY 와 step 6 · 초안 결과 통로 text 의 요구 문장 상한 (2026-10-31, apps/admin/src/bts/draftDecide.ts · authoring/decisions.ts · decisionRun.ts · bts/draft.ts — BTS-F5-04) · 수정 AI 결과 통로 · 집기 bugfix 칸과 BUGFIX 의 mcpKey · BUGFIX 사람 다시 실행 BAD_KIND · 결과 없는 끝내기 BAD_BUGFIX · 규칙 웹훅 ASSIGNEE 503 · 이슈 글 읽기 통로(GET …/:id/bts)는 두지 않음 (2026-10-31, apps/admin/src/bts/bugfix.ts · bugfixRoutes.ts · inbound.ts · authoring/agentRoutes.ts · routes.ts · mcp/jobKey.ts — BTS-F6-01) · 닫을 PR 두 통로 · 롤백 배포의 PRD 되돌림 · GET /api/prd/versions 줄의 rollbackBuild (2026-11-01, apps/admin/src/bts/rollback.ts · rollbackRoutes.ts · deploy.ts · prd/store.ts — BTS-F7-01) · 대시보드 aiQuality · 수정 PR 상태 두 통로 (2026-11-01, apps/admin/src/bts/quality.ts · qualityRoutes.ts · reporting/routes.ts — BTS-F8-01)
+상태:    반영 완료 (2026-11-01, docs/spec/도메인/BTS.md §7 — BTS-F1-01 ~ F8-01 줄마다)
 ```
 
 ---
@@ -487,4 +499,5 @@ POST /mcp
 
 #### 대시보드 두 숫자 (BTS-F8-01)
 
-대시보드(앱 — [리포팅.md](리포팅.md) §8.12) 「검토할 것」 아래 한 줄 칸 「AI 품질」 — 「초안 AI 82% (41/50줄)」 · 「수정 AI 60% (3/5 PR)」. `aiQuality` 가 null 이면 칸이 없다
+대시보드(앱 — [리포팅.md](리포팅.md) §8.12) 「검토할 것」 아래 한 줄 칸 「AI 품질」 — 「초안 AI 82% (41/50줄)」 · 「수정 AI 60% (3/5 PR)」. `aiQuality` 가 null 이면 칸이 없다 (BTS-F8-01 반영 2026-11-01 · `web/DashboardReview.tsx` AI품질줄)
+- 분모가 0 인 쪽은 「초안 AI 아직 없음」 · 「수정 AI 아직 없음」. 누르는 곳은 없다 — 숫자만 보인다
