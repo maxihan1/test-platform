@@ -18,7 +18,7 @@ import { 안전히읽기, 옛줄들 } from './authoring-old-table.js';
 export { 옛줄들, 옛표줄들 } from './authoring-old-table.js';
 import { type 이어작성입력, 남은번호, 이어작성막힘, 이어작성사본이름 } from './authoring-continue.js';
 import { 옛번호지도, 옮긴것읽기, 임시꼴, 판합치기, 표준원장 } from './authoring-prd.js';
-import { type 반영입력, type 화면이맞음요청, 반영계획만들기, 반영막힘, 반영사본이름 } from './authoring-apply.js';
+import { type 반영입력, type 테스트고침요청, type 화면이맞음요청, 반영계획만들기, 반영막힘, 반영사본이름 } from './authoring-apply.js';
 import type { 원장입력 } from './authoring-prompt.js';
 
 export const 원장사본이름 = 'ledger.json';
@@ -199,8 +199,8 @@ export function 원장과남은번호(입력: {
   옮긴몸?: unknown;
   /** 이번 집기 accounts 의 역할 이름 — 이 역할의 「계정 미등록」 번호가 남은 번호에 든다 */
   등록역할?: Set<string>;
-  /** 반영 요청이면 지금 판 번호와 기준 판 · (화면이 맞음이면) 요청의 screenRight */
-  반영?: { 지금판: number; 기준판: { version: number; items: PrdItem[] } | null; 화면이맞음?: 화면이맞음요청[] | null };
+  /** 반영 요청이면 지금 판 번호와 기준 판 · (화면이 맞음이면) 요청의 screenRight · (BTS 테스트 문제면) 요청의 testFix */
+  반영?: { 지금판: number; 기준판: { version: number; items: PrdItem[] } | null; 화면이맞음?: 화면이맞음요청[] | null; 테스트고침?: 테스트고침요청 | null };
   /** API 애플리케이션 판의 API 줄 (도메인/API §3.8 「작성」 「원장」) */
   api?: readonly 원장항목[];
   /** 종류 「게임」 — 설계에 게임 관점 칸을 더한다(도메인/게임 §3.10 「설계 칸」) */
@@ -241,8 +241,9 @@ export function 원장과남은번호(입력: {
     게임: 입력.게임 === true,
   };
   if (입력.이어작성원본 === null && 입력.반영 !== undefined && 기준값 !== null) {
-    const 계획 = 반영계획만들기({ version: 입력.반영.지금판, items: 입력.지금 }, 입력.반영.기준판, 기준값.표글, 입력.서비스, 입력.반영.화면이맞음 ?? undefined, 입력.게임 === true);
-    const 막힘 = 입력.반영.화면이맞음 === null ? '화면이 맞음 칸(params.screenRight) 모양이 틀렸다 — 이 요청은 폐기하고 실행 결과에서 다시 누른다' : 반영막힘(계획);
+    const 계획 = 반영계획만들기({ version: 입력.반영.지금판, items: 입력.지금 }, 입력.반영.기준판, 기준값.표글, 입력.서비스, 입력.반영.화면이맞음 ?? undefined, 입력.게임 === true, 입력.반영.테스트고침 ?? undefined);
+    const 막힘 = 입력.반영.화면이맞음 === null ? '화면이 맞음 칸(params.screenRight) 모양이 틀렸다 — 이 요청은 폐기하고 실행 결과에서 다시 누른다'
+      : 입력.반영.테스트고침 === null ? '테스트 고침 칸(params.testFix) 모양이 틀렸다 — 이 요청은 폐기한다' : 반영막힘(계획);
     if (막힘 !== null) return { 막힘 };
     const 반영자리 = join(입력.자료폴더, 반영사본이름);
     if (!새로쓰기(반영자리, JSON.stringify(계획, null, 2))) return { 막힘: '반영 계획 사본을 자료 폴더에 못 썼다' };
