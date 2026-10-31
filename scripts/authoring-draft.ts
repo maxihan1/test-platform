@@ -8,6 +8,7 @@ import { 비밀번호들, 계정환경 } from './authoring-accounts.js';
 import { 자식환경 } from './authoring-chain.js';
 import { type 계정, 사본자리, 파일거부사유 } from './authoring-copy.js';
 import { MCP설정쓰기, 모양보기, 사본치우기, 새집, 자식거두기 } from './authoring-child.js';
+import { 초안몸상한 } from '../apps/admin/src/bts/draft.js';
 import { 결제환경 } from './authoring-billing.js';
 import { 초안파일, 초안지시문, 값가리기, 비밀섞였나, 요청글, 출력읽기, 화면보나, type 초안자료 } from './authoring-draft-prompt.js';
 import { type 보고손, 닫으며, 멈춤, 보고손만들기, 부른다, 돌린다, 친다 } from './authoring-io.js';
@@ -21,8 +22,8 @@ import type { 서비스설정 } from './authoring-token.js';
 import { 사용량보고 } from './authoring-usage.js';
 import type { 판 } from './authoring-run.js';
 
-/** 출력 파일 크기 상한 — 줄 200개 × 글 2,000자 × 둘(한글 3바이트)보다 넉넉하다. 이 위는 자식이 잘못 쓴 것으로 본다 */
-const 출력상한 = 8 * 1024 * 1024;
+/** 출력 파일 크기 상한 — 서버 결과 통로 몸 상한과 같다. 이 위는 자식이 잘못 쓴 것으로 본다 */
+const 출력상한 = 초안몸상한;
 
 /**
  * 자식 인자. 도구는 작업 폴더의 파일 읽기 · 쓰기와 QA Hub MCP, 웹이면 playwright-cli 뿐이다 —
@@ -79,6 +80,8 @@ async function 초안건(
   const prd = await 부른다(주소기지, 토큰, `/authoring/requests/${것.id}/prd`);
   if (prd.status !== 200) return void (await 손.끝내기({ status: 'FAILED', error: `지금 PRD 를 못 받았다 (${prd.status})` }));
   const 판몸 = prd.몸 as { version?: unknown; items?: unknown } | null;
+  // 서버가 이 판으로 요구 번호를 견준다 — 도는 사이 새 판이 저장돼도 자식이 본 판과 맞춘다
+  const 판번호 = typeof 판몸?.version === 'number' ? 판몸.version : 0;
 
   await 손.단계('PRD 초안 쓰는 중 — 작업 폴더를 만드는 중');
   const 자리 = 사본자리(것.id, 판.바탕);
@@ -90,7 +93,7 @@ async function 초안건(
     새집(자리);
     // 자식이 읽는 것이라 0644 다 — 폴더가 자식 것이라 남은 못 연다. PRD 에 계정 값이 적혀 있을 수 있어 가린다
     writeFileSync(join(자리.자료, 초안파일.요청), 요청글({ 자료: 것.draft, 서비스, 종류: 설정?.종류, env: 것.target?.env ?? '', 화면 }));
-    writeFileSync(join(자리.자료, 초안파일.PRD), JSON.stringify(값가리기({ version: 판몸?.version ?? 0, items: 판몸?.items ?? [] }, 비밀들), null, 2));
+    writeFileSync(join(자리.자료, 초안파일.PRD), JSON.stringify(값가리기({ version: 판번호, items: 판몸?.items ?? [] }, 비밀들), null, 2));
     const 설정파일 = MCP설정쓰기(자리.임시, 설정글, 자식)!;
     if (자식 !== null) {
       for (const 폴더 of [자리.자료, 자리.집, 자리.임시, 자리.gh]) {
@@ -154,7 +157,13 @@ async function 초안건(
     if (비밀섞였나(몸, 비밀들)) return void (await 손.끝내기({ status: 'FAILED', error: '초안에 테스트 계정 비밀번호가 들어 있다 — 올리지 않는다' }));
 
     await 손.단계('PRD 초안 쓰는 중 — 초안을 저장하는 중');
-    const 답 = await 부른다(주소기지, 토큰, `/authoring/requests/${것.id}/draft`, { method: 'POST', body: 몸 });
+    const 보내기 = (실을것: object) => 부른다(주소기지, 토큰, `/authoring/requests/${것.id}/draft`, { method: 'POST', body: { ...실을것, prdVersion: 판번호 } });
+    let 답 = await 보내기(몸);
+    // E2E 제안만 틀렸으면 그것만 빼고 다시 — 맞는 PRD 줄까지 버리지 않는다
+    if (E2E만틀림(답) && 몸.e2e !== undefined) {
+      console.error(`[초안] ${것.id}번 E2E 제안이 거절돼(${String((답.몸 as { detail?: unknown }).detail)}) 빼고 다시 보낸다`);
+      답 = await 보내기({ rows: 몸.rows });
+    }
     if (답.status === 201) return void (await 손.끝내기({ status: 'DONE' }));
     // 409 NOT_RUNNING 은 누가 이미 행을 닫았다 — 끝내기도 받아 주지 않는다
     if (답.status === 409) return void console.error(`[초안] ${것.id}번 이미 끝난 요청이라 초안을 올리지 못했다`);
@@ -164,6 +173,12 @@ async function 초안건(
     if (await 자식거두기(자식)) 사본치우기(자리);
     도는번호.delete(것.id);
   }
+}
+
+/** 서버가 E2E 제안 칸만 거절했나(400 BAD_DRAFT · detail 'e2e…') */
+export function E2E만틀림(답: { status: number; 몸: unknown }): boolean {
+  const 몸 = 답.몸 as { error?: unknown; detail?: unknown } | null;
+  return 답.status === 400 && 몸?.error === 'BAD_DRAFT' && typeof 몸.detail === 'string' && 몸.detail.startsWith('e2e');
 }
 
 /** 자식이 쓴 출력 파일을 읽는다 — 일반 파일이고 작업 폴더 안일 때만(링크로 서버 파일을 읽게 하는 것을 막는다) */

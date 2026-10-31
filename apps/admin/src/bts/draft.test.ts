@@ -46,6 +46,7 @@ describe('초안검사', () => {
   it('맡지 않은 이슈 키 · 빈 근거 · 참거짓이 아닌 sure · 모르는 종류는 거절한다', () => {
     expect(검사({ rows: [줄({ issueKeys: ['DM-99'] })] })).toMatchObject({ detail: 'rows.0.issueKeys' });
     expect(검사({ rows: [줄({ issueKeys: [] })] })).toMatchObject({ detail: 'rows.0.issueKeys' });
+    expect(검사({ rows: [줄({ issueKeys: ['DM-12', 'DM-12'] })] })).toMatchObject({ detail: 'rows.0.issueKeys' });
     expect(검사({ rows: [줄({ basis: ' ' })] })).toMatchObject({ detail: 'rows.0.basis' });
     expect(검사({ rows: [줄({ sure: 'yes' })] })).toMatchObject({ detail: 'rows.0.sure' });
     expect(검사({ rows: [줄({ op: 'MOVE' })] })).toMatchObject({ detail: 'rows.0.op' });

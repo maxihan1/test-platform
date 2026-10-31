@@ -241,6 +241,8 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
     if (!끝내기케이스맞나(행.kind, status, 행.params, 결과칸.cases, req.query.service)) return reply.code(400).send({ error: 'BAD_CASES' });
     // PRD 초안은 결과 통로(bts/draftRoutes.ts)로 초안을 먼저 올려야 끝난다 — 빈 DONE 이면 카드가 설 자리가 없다
     if (행.kind === 'PRD_DRAFT' && status === 'DONE' && !초안있나(행.result)) return reply.code(400).send({ error: 'BAD_DRAFT', detail: 'draft' });
+    // 끝내기의 result 는 저장된 result 를 덮는다 — 초안 줄은 결과 통로로만 싣는다
+    if (행.kind === 'PRD_DRAFT' && req.body?.result !== undefined) return reply.code(400).send({ error: 'BAD_DRAFT', detail: 'result' });
     const error = req.body?.error;
     // 입력 옮기기와 끝내기를 뿌리 잠금 안의 한 UPDATE 로 — 사이에 들어온 PUT 을 덮거나, 옮기다 실패해 DONE 만 남지 않게.
     // 고치기 반영의 저장값 지우기도 같은 트랜잭션 — 지우다 실패하면 DONE 도 안 남아 에이전트가 다시 알린다

@@ -91,7 +91,8 @@ describe.skipIf(연결 === undefined)('PRD 초안 한 바퀴', () => {
         `INSERT INTO test_run (title, triggered_by, status, env, service_id, service_name, tests_repo, base_url) VALUES ($1, 'xpt', 'FINISHED', 'qa', $2, $1, '', 'https://qa.xpt.test') RETURNING run_id`,
         [prefix, 앱[prefix]],
       )).rows[0].run_id);
-    const 실행들 = [await 실행('XPT'), await 실행('XPT2')];
+    // XPT2 는 활성 케이스가 없어 실행이 안 걸렸다 — 실서비스 아닌 줄 하나(qa)로 고른다
+    const 실행들 = [await 실행('XPT')];
     배포 = Number((await q(
       `INSERT INTO bts_deploy (project_id, build_no, service_ids, run_ids, state) VALUES ($1, 'abc1234-202610311200', $2, $3, 'CLAIMED') RETURNING id`,
       [프로젝트, [앱.XPT, 앱.XPT2], 실행들],
@@ -121,6 +122,7 @@ describe.skipIf(연결 === undefined)('PRD 초안 한 바퀴', () => {
     const 번호들 = await 초안세우기(배포, ['XPQ-1', 'XPQ-2']);
     expect(번호들).toHaveLength(2);
     const 첫 = await 줄(번호들[0]!);
+    expect((await 줄(번호들[1]!)).env).toBe('qa');
     expect(첫).toMatchObject({
       kind: 'PRD_DRAFT', status: 'PENDING', env: 'qa', compare: false, result: null,
       params: { issueKeys: ['XPQ-1', 'XPQ-2'], deployId: 배포, buildNo: 'abc1234-202610311200' },
@@ -145,17 +147,22 @@ describe.skipIf(연결 === undefined)('PRD 초안 한 바퀴', () => {
   it('초안 없이 끝내면 400 BAD_DRAFT, 틀린 초안은 400 이고 맞는 초안은 result.draft 에 지금 판 번호와 같이 남는다', async () => {
     const id = Number((await q(`SELECT id FROM authoring_request WHERE service_id = $1 AND status = 'RUNNING'`, [앱.XPT])).rows[0].id);
     expect((await 끝내기(id, 'XPT', { status: 'DONE' })).json()).toEqual({ error: 'BAD_DRAFT', detail: 'draft' });
-    const 틀림 = await 초안보내기(id, { rows: [{ op: 'EDIT', reqId: 'XPT-FN-999', text: '2만 원', basis: 'XPQ-1', issueKeys: ['XPQ-1'], sure: true }] });
+    expect((await 끝내기(id, 'XPT', { status: 'FAILED', error: 'x', result: { draft: { rows: [] } } })).json()).toEqual({ error: 'BAD_DRAFT', detail: 'result' });
+    const 틀림 = await 초안보내기(id, { prdVersion: 1, rows: [{ op: 'EDIT', reqId: 'XPT-FN-999', text: '2만 원', basis: 'XPQ-1', issueKeys: ['XPQ-1'], sure: true }] });
     expect(틀림.statusCode).toBe(400);
     expect(틀림.json()).toEqual({ error: 'BAD_DRAFT', detail: 'rows.0.reqId' });
+    expect((await 초안보내기(id, { rows: [] })).json()).toEqual({ error: 'BAD_DRAFT', detail: 'prdVersion' });
+    expect((await 초안보내기(id, { prdVersion: 9, rows: [] })).json()).toEqual({ error: 'BAD_DRAFT', detail: 'prdVersion' });
+    // 자식이 도는 사이 사람이 그 요구를 지운 새 판을 저장해도 자식이 본 판(1)으로 견준다
+    await q(`INSERT INTO prd_version (service_id, version, items, last_no, source, saved_by, saved_by_name) VALUES ($1, 2, '[]', 1, 'PERSON', 'xpt', 'xpt')`, [앱.XPT]);
     const 초안 = { rows: [{ op: 'EDIT', reqId: 'XPT-FN-001', text: '최소 주문 금액은 2만 원이다', basis: 'XPQ-1 본문', issueKeys: ['XPQ-1'], sure: true }] };
-    const 받음 = await 초안보내기(id, 초안);
+    const 받음 = await 초안보내기(id, { ...초안, prdVersion: 1 });
     expect(받음.statusCode).toBe(201);
     expect(받음.json()).toEqual({ rows: 1 });
     expect((await 끝내기(id, 'XPT', { status: 'DONE' })).statusCode).toBe(200);
     expect(await 줄(id)).toMatchObject({ status: 'DONE', result: { draft: 초안, prdVersion: 1 } });
     // 끝난 줄에는 초안을 더 못 붙인다
-    expect((await 초안보내기(id, 초안)).statusCode).toBe(409);
+    expect((await 초안보내기(id, { ...초안, prdVersion: 1 })).statusCode).toBe(409);
   });
 
   it('사람은 초안 줄을 다시 돌리지 못한다', async () => {
@@ -169,6 +176,8 @@ describe.skipIf(연결 === undefined)('PRD 초안 한 바퀴', () => {
     expect((await 끝내기(집은.id, 'XPT2', { status: 'STOPPED', stopReason: 'AGENT_RESTART' })).statusCode).toBe(200);
     const 새 = (await q(`SELECT id FROM authoring_request WHERE service_id = $1 AND status = 'PENDING'`, [앱.XPT2])).rows as { id: string }[];
     expect(새).toHaveLength(1);
+    // 멈춘 줄은 폐기로 찍혀 같은 이슈 키의 살아 있는 초안이 하나만 남는다
+    expect((await q('SELECT discarded_at IS NOT NULL AS d FROM authoring_request WHERE id = $1', [집은.id])).rows[0].d).toBe(true);
     expect(await 줄(Number(새[0]!.id))).toMatchObject({ kind: 'PRD_DRAFT', env: 'qa', params: { issueKeys: ['XPQ-1', 'XPQ-2'], deployId: 배포 } });
   });
 
@@ -177,7 +186,7 @@ describe.skipIf(연결 === undefined)('PRD 초안 한 바퀴', () => {
       `INSERT INTO authoring_request (service_id, kind, params, requested_by, requested_by_name, status, claimed_by) VALUES ($1, 'AUTHOR', '{}', $2, $2, 'RUNNING', $3) RETURNING id`,
       [앱.XPT, 사람, 맥],
     )).rows[0].id);
-    expect((await 초안보내기(id, { rows: [] })).json()).toEqual({ error: 'BAD_KIND', detail: 'AUTHOR' });
+    expect((await 초안보내기(id, { prdVersion: 0, rows: [] })).json()).toEqual({ error: 'BAD_KIND', detail: 'AUTHOR' });
   });
 
   it('대상 서버 없는 초안 줄 · 시작 주소가 있는 초안 줄은 DB 가 막는다', async () => {

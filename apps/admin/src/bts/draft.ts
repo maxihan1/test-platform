@@ -9,7 +9,8 @@ async function db(): Promise<Pool> {
 
 /**
  * 그 배포의 애플리케이션마다 PRD_DRAFT 하나 — 대상 서버는 그 배포가 그 애플리케이션에 건 실행의 서버다(스모크가 돈 서버).
- * 실행이 없는 애플리케이션(걸다 깨진 배포)은 건너뛴다. 「누가」는 BTS 연결을 마지막으로 저장한 admin(새 기능 바퀴 7).
+ * 실행이 없는 애플리케이션(활성 케이스가 아직 없는 새 애플리케이션)은 배포 신호가 env 없이 고르는 규칙대로 실서비스 아닌 줄이 하나면 그 줄이다.
+ * 그마저 못 고르면 건너뛰고 기록을 남긴다 — 그 애플리케이션 초안은 다음 배포 · 사람이 정한다. 「누가」는 BTS 연결을 마지막으로 저장한 admin(새 기능 바퀴 7).
  * bts_claim.request_id 는 채우지 않는다 — 애플리케이션마다 줄이 서서 한 칸에 못 담는다. 초안은 params.issueKeys 로 찾는다(BTS-F5-03 시작 질문 7)
  */
 export async function 초안세우기(deployId: number, 키들: string[], 손?: PoolClient): Promise<number[]> {
@@ -21,25 +22,32 @@ export async function 초안세우기(deployId: number, 키들: string[], 손?: 
        FROM bts_deploy d
        JOIN bts_link l ON l.project_id = d.project_id
        JOIN service s ON s.id = ANY(d.service_ids)
-       JOIN LATERAL (SELECT t.env FROM test_run t WHERE t.run_id = ANY(d.run_ids) AND t.service_id = s.id ORDER BY t.run_id LIMIT 1) 실행 ON true
+       JOIN LATERAL (SELECT COALESCE(
+              (SELECT t.env FROM test_run t WHERE t.run_id = ANY(d.run_ids) AND t.service_id = s.id ORDER BY t.run_id LIMIT 1),
+              (SELECT min(e.env) FROM service_env e WHERE e.service_id = s.id AND NOT e.is_prod HAVING count(*) = 1)) AS env) 실행 ON 실행.env IS NOT NULL
        LEFT JOIN app_user u ON u.username = l.updated_by
       WHERE d.id = $1
       ORDER BY s.id
      RETURNING id`,
     [deployId, 키들],
   );
-  return r.rows.map((x) => Number(x.id));
+  const 번호들 = r.rows.map((x) => Number(x.id));
+  if (번호들.length === 0) console.error(`[bts] 배포 ${String(deployId)} 의 PRD 초안을 세울 애플리케이션이 없다 — 대상 서버를 못 골랐다 (${키들.join(', ')})`);
+  return 번호들;
 }
 
 /**
  * 에이전트가 꺼져 멈춘 초안은 같은 칸으로 새로 세운다 — AI 탓이 아니라 끝없이 돌지 않는다(노트 고치기와 같은 판단).
- * 이어하기(RERUN)로 잇지 않는다 — 초안은 작업 폴더에 남길 것이 없다
+ * 이어하기(RERUN)로 잇지 않는다 — 초안은 작업 폴더에 남길 것이 없다. 멈춘 줄은 폐기로 찍는다 — 같은 이슈 키의 살아 있는 초안이 하나만 남게
  */
 export async function 초안다시세우기(id: number): Promise<number | null> {
   const r = await (await db()).query<{ id: string }>(
-    `INSERT INTO authoring_request (service_id, kind, params, env, requested_by, requested_by_name, status)
-     SELECT service_id, kind, params, env, requested_by, requested_by_name, 'PENDING'
-       FROM authoring_request WHERE id = $1 AND kind = 'PRD_DRAFT' AND discarded_at IS NULL
+    `WITH 옛 AS (
+       UPDATE authoring_request SET discarded_at = now() WHERE id = $1 AND kind = 'PRD_DRAFT' AND discarded_at IS NULL
+       RETURNING service_id, kind, params, env, requested_by, requested_by_name
+     )
+     INSERT INTO authoring_request (service_id, kind, params, env, requested_by, requested_by_name, status)
+     SELECT service_id, kind, params, env, requested_by, requested_by_name, 'PENDING' FROM 옛
      RETURNING id`,
     [id],
   );
@@ -48,6 +56,8 @@ export async function 초안다시세우기(id: number): Promise<number | null> 
 
 // 줄 · 글 상한 — 이 위는 AI 가 잘못 쓴 것으로 본다. 카드 하나가 사람이 줄마다 고를 만한 크기여야 한다
 export const 초안상한 = { 줄: 200, 글: 2000, e2e: 20, 단계: 30 } as const;
+/** 결과 통로 몸 상한(바이트) — 위 상한을 다 채운 초안보다 넉넉하다. 에이전트 출력 파일 상한과 같다 */
+export const 초안몸상한 = 4 * 1024 * 1024;
 
 export interface 초안줄 {
   op: 'ADD' | 'EDIT' | 'DEL';
@@ -83,7 +93,7 @@ export function 초안검사(몸: unknown, 맡은키: ReadonlySet<string>, 요�
   if (b === null || typeof b !== 'object' || !Array.isArray(b.rows)) return 틀림('rows');
   if (Object.keys(b).some((k) => k !== 'rows' && k !== 'e2e')) return 틀림('body');
   if (b.rows.length > 초안상한.줄) return 틀림('rows.length');
-  const 키맞나 = (x: unknown): x is string[] => 글목록인가(x, 맡은키.size) && x.every((k) => 맡은키.has(k));
+  const 키맞나 = (x: unknown): x is string[] => 글목록인가(x, 맡은키.size) && new Set(x).size === x.length && x.every((k) => 맡은키.has(k));
   const rows: 초안줄[] = [];
   const 본번호 = new Set<string>();
   for (const [i, raw] of (b.rows as unknown[]).entries()) {

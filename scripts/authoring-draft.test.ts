@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { 초안자식인자 } from './authoring-draft.js';
+import { E2E만틀림, 초안자식인자 } from './authoring-draft.js';
 import { 값가리기, 비밀섞였나, 요청글, 초안일인가, 초안지시문, 출력읽기, 화면보나, type 초안자료 } from './authoring-draft-prompt.js';
 import { 가림표 } from './authoring-reverse.js';
 
@@ -94,5 +94,13 @@ describe('초안자식인자', () => {
     expect(앱).toContain('Read,Write,Edit,Glob,Grep');
     expect(앱.slice(앱.indexOf('--allowedTools') + 1)).toEqual(['mcp__qa-hub']);
     expect(앱).not.toContain('--bare');
+  });
+});
+
+describe('E2E만틀림', () => {
+  it('E2E 칸 거절만 골라 그 칸을 빼고 다시 보내게 한다', () => {
+    expect(E2E만틀림({ status: 400, 몸: { error: 'BAD_DRAFT', detail: 'e2e.0.services' } })).toBe(true);
+    expect(E2E만틀림({ status: 400, 몸: { error: 'BAD_DRAFT', detail: 'rows.0.reqId' } })).toBe(false);
+    expect(E2E만틀림({ status: 409, 몸: { error: 'NOT_RUNNING' } })).toBe(false);
   });
 });
