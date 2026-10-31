@@ -106,6 +106,32 @@ describe('PRD 관리 — 버전 기록', () => {
     expect(한판).not.toHaveBeenCalled();
   });
 
+  it('PRD 초안에서 온 추가 · 삭제 · 확인 필요 줄은 종류와 이슈 키를 적는다', async () => {
+    판들.mockResolvedValue([
+      {
+        version: 13,
+        source: 'DECISION',
+        savedByName: '맥시',
+        savedAt: '2026-10-31T06:20:00.000Z',
+        requestId: null,
+        fromDecision: false,
+        changes: [
+          { kind: 'ADD', reqId: 'MKT-REQ-401', text: '쿠폰은 한 번만 쓴다', asset: null, tcId: null, issueKeys: ['DM-12'] },
+          { kind: 'DEL', reqId: 'MKT-REQ-033', text: null, asset: null, tcId: null, issueKeys: ['DM-14', 'DM-15'] },
+          { kind: 'CHECK', reqId: 'MKT-REQ-034', text: null, asset: null, tcId: null },
+        ],
+      },
+    ]);
+    render(<Prd service="MKT" 할수={쓰는사람} />);
+    fireEvent.click(await screen.findByRole('button', { name: '버전 기록' }));
+    const 줄 = (await screen.findAllByRole('row'))[1]!;
+    expect(within(줄).getAllByRole('listitem').map((x) => x.textContent)).toEqual([
+      '추가MKT-REQ-401쿠폰은 한 번만 쓴다 · DM-12 에서 옴',
+      '삭제MKT-REQ-033DM-14, DM-15 에서 옴',
+      '확인 필요로 바꿈MKT-REQ-034',
+    ]);
+  });
+
   it('버전마다 앞 버전과 견준 바뀐 것을 한 줄로 보이고, 누르면 바뀐 요구가 펼쳐진다 (점검 8.8)', async () => {
     한판.mockImplementation((_s, version) =>
       Promise.resolve({ version, items: version === 11 ? [아이디, 아이디칸] : [아이디, { ...아이디칸, text: '아이디 칸에는 12자까지만 들어간다(고침)' }, 잠금] }),

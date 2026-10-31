@@ -16,6 +16,18 @@ const 문구: 결정항목 = {
 };
 const 바뀐요구: 결정항목 = { key: 'prd:1:2', group: 3, kind: 'PRD_CHANGED', picks: ['REDO'], blockedBy: null, needsApply: true, changed: null, added: null, removed: null, scenarios: [] };
 const 바뀐API: 결정항목 = { key: 'api:1:2', group: 3, kind: 'API_CHANGED', picks: ['REDO'], blockedBy: null, fromVersion: 1, toVersion: 2, operations: [{ method: 'GET', path: '/a', change: 'CHANGED', breaking: false }, { method: 'GET', path: '/b', change: 'REMOVED', breaking: true }] };
+const 초안: 결정항목 = {
+  key: 'draft:77', group: 2, kind: 'PRD_DRAFT', picks: ['TAKE', 'DROP'], blockedBy: null, requestId: 77, state: 'DONE', reason: null, buildNo: 'a1b2c3d', finishedAt: null,
+  issues: [{ key: 'DM-12', title: '쿠폰 중복 적용 막기', url: 'https://bts.test/issues/DM-12' }, { key: 'DM-14', title: null, url: null }],
+  rows: [
+    { op: 'ADD', text: '쿠폰은 한 번만 쓴다', basis: '이슈 DM-12', issueKeys: ['DM-12'], sure: true, oldText: null, gone: false },
+    { op: 'EDIT', reqId: 'DMW-REQ-031', text: '최근 3개월 것을 보여 준다', basis: '이슈 DM-14', issueKeys: ['DM-14'], sure: true, oldText: '최근 1개월 것을 보여 준다', gone: false },
+    { op: 'DEL', reqId: 'DMW-REQ-033', text: '기간 버튼이 있다', basis: '이슈 DM-14', issueKeys: ['DM-14'], sure: false, oldText: '기간 버튼이 있다', gone: false },
+    { op: 'ADD', text: '쿠폰을 바꾸면 알림이 뜬다', basis: '화면', issueKeys: ['DM-12'], sure: false, oldText: null, gone: false },
+    { op: 'EDIT', reqId: 'DMW-REQ-090', text: '없어진 요구', basis: '이슈 DM-14', issueKeys: ['DM-14'], sure: true, oldText: null, gone: true },
+  ],
+  e2e: [{ title: '쿠폰 주문이 앱에도 보인다', services: ['DMW', 'DMA'], steps: ['주문'], issueKeys: ['DM-12'] }],
+};
 const items = [반영, 실패, 화면확인, 문구, 바뀐요구, 바뀐API];
 const 표 = (줄: [string, 고른값][]) => new Map(줄);
 
@@ -105,5 +117,33 @@ describe('줄요청', () => {
       { step: 4, key: null, requestId: 502, version: null },
     ];
     expect(줄.map((x) => 줄요청(x, steps))).toEqual([null, 501, 502]);
+  });
+});
+
+describe('PRD 초안 카드', () => {
+  it('체크한 줄이 없으면 TAKE 를 보내지 않고, 버리기 · 다시 만들기는 고른 줄 없이 보낸다', () => {
+    expect(보낼것([초안], 표([[초안.key, { pick: 'TAKE', rows: [] }]]))).toEqual([]);
+    expect(보낼것([초안], 표([[초안.key, { pick: 'TAKE', rows: [0, 1] }]]))).toEqual([{ key: 초안.key, pick: 'TAKE', rows: [0, 1] }]);
+    expect(보낼것([초안], 표([[초안.key, { pick: 'DROP' }]]))).toEqual([{ key: 초안.key, pick: 'DROP' }]);
+    const 실패초안: 결정항목 = { ...초안, state: 'FAILED', picks: ['RETRY', 'DROP'] } as 결정항목;
+    expect(보낼것([실패초안], 표([[초안.key, { pick: 'RETRY' }]]))).toEqual([{ key: 초안.key, pick: 'RETRY' }]);
+  });
+
+  it('TAKE 는 기획서 새 버전 줄에 초안 셈을 더하고 고쳐 다시 만드는 줄을 세운다 — 확인 필요는 체크 안 한 화면 기준 줄이다', () => {
+    const 줄 = 차례([...items, 초안], 표([[초안.key, { pick: 'TAKE', rows: [0, 1] }], [화면확인.key, { pick: 'SAME' }]]), 3);
+    expect(줄.map((x) => x.종류)).toEqual(['prd', 'fix']);
+    expect(줄[0]).toMatchObject({ version: 4, keys: [화면확인.key, 초안.key], 초안: { 추가: 1, 수정: 1, 삭제: 0, 확인: 2 } });
+    expect(줄[1]).toMatchObject({ 초안: 2, keys: [초안.key] });
+  });
+
+  it('DROP · RETRY 는 따로 줄이 서고 이슈 키를 단다', () => {
+    const 실패초안 = { ...초안, key: 'draft:78', state: 'FAILED', picks: ['RETRY', 'DROP'], issues: [{ key: 'DM-15', title: null, url: null }] } as 결정항목;
+    const 줄 = 차례([초안, 실패초안], 표([[초안.key, { pick: 'DROP' }], [실패초안.key, { pick: 'RETRY' }]]), 3);
+    expect(줄).toEqual([
+      { 곳: 'PRD', 종류: 'draftDrop', keys: [초안.key], 이슈: ['DM-12', 'DM-14'] },
+      { 곳: 'PRD', 종류: 'draftRetry', keys: [실패초안.key], 이슈: ['DM-15'] },
+    ]);
+    const steps = [{ step: 6, key: 실패초안.key, requestId: 900, version: null }];
+    expect(줄.map((x) => 줄요청(x, steps))).toEqual([null, 900]);
   });
 });

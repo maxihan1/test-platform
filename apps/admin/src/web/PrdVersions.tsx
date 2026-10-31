@@ -58,11 +58,11 @@ function 차이줄글({ 줄 }: { 줄: 차이줄 }) {
 /** 서버가 적어 준 「바뀐 것」 — 앞 버전과 견주지 않고 그대로 줄마다 적는다 */
 function 적힌바뀐것({ changes }: { changes: PrdVersionChange[] }) {
   const t = use말();
-  const 종류글: Record<PrdVersionChange['kind'], string> = { EDIT: t('문장 변경'), PICK: t('문구 선택'), CONFIRM: t('확정') };
+  const 종류글: Record<PrdVersionChange['kind'], string> = { EDIT: t('문장 변경'), PICK: t('문구 선택'), CONFIRM: t('확정'), ADD: t('추가'), DEL: t('삭제'), CHECK: t('확인 필요로 바꿈') };
   return (
     <ul className="prd-diff">
       {changes.map((c) => {
-        const 까닭 = [c.tcId === null ? null : t('화면이 맞음({번호})', { 번호: c.tcId }), c.asset === null ? null : t('{자료} 쪽', { 자료: c.asset })].filter((x) => x !== null);
+        const 까닭 = [c.tcId === null ? null : t('화면이 맞음({번호})', { 번호: c.tcId }), c.asset === null ? null : t('{자료} 쪽', { 자료: c.asset }), c.issueKeys === undefined || c.issueKeys.length === 0 ? null : t('{키들} 에서 옴', { 키들: c.issueKeys.join(', ') })].filter((x) => x !== null);
         return (
           <li key={`${c.kind}\n${c.reqId}`}>
             <span className="prd-kind">{종류글[c.kind]}</span>
