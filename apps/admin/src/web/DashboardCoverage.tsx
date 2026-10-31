@@ -1,6 +1,7 @@
 // 앱 대시보드의 요구사항 커버리지 — 기능 · UI 반원 게이지 둘과 서비스 줄 (DESIGN.md 「대시보드」). 회색 단계만 쓴다
 
 import type { 대시보드응답 } from '../reporting/dashboardResults.js';
+import type { 앱종류 } from './api.js';
 import { use올라가기 } from './dashboardView.js';
 import { 서비스를열며 } from './DashboardPick.js';
 import { use말, use언어, type 언어 } from './i18n.js';
@@ -73,7 +74,7 @@ export function 요구커버리지({
 }: {
   값: 자료;
   서비스열기: (serviceId: number) => void;
-  작성서비스: { id: number; name: string }[];
+  작성서비스: { id: number; name: string; kind?: 앱종류 }[];
 }) {
   const t = use말();
   const 언어 = use언어();
@@ -82,12 +83,14 @@ export function 요구커버리지({
   const 뺀것 = 값.coverage.filter((줄) => 줄.total > 0 && !갈래있나(줄)).length;
   const 전체 = 센것.reduce((수, 줄) => 수 + 줄.total, 0);
   // 줄은 작성 칸이 none 이 아닌 배정 서비스로 만든다. 실행 칸 기준의 services 에는 작성을 못 보는 서비스가 섞여 거기에 「작성 기록이 없습니다」가 떴다
-  const 서비스들 = 작성서비스.map((서비스) => ({ id: 서비스.id, 이름: 서비스.name }));
+  const 서비스들 = 작성서비스.map((서비스) => ({ id: 서비스.id, 이름: 서비스.name, api: 서비스.kind === 'API' }));
+  // API 애플리케이션은 UI 테스트가 없다 — 모두 API 면 UI 게이지를 안 세운다. 섞여 있으면 세우되 API 줄에는 UI 막대를 안 그린다 (2026-10-31 시험 f8)
+  const 게이지갈래 = 서비스들.length > 0 && 서비스들.every((서비스) => 서비스.api) ? 갈래들.filter((갈래) => 갈래.짧은 !== 'UI') : 갈래들;
 
   return (
     <>
       <div className="dash-gauges">
-        {갈래들.map((갈래) => (
+        {게이지갈래.map((갈래) => (
           <게이지
             key={갈래.이름}
             이름={갈래.이름}
@@ -129,7 +132,7 @@ export function 요구커버리지({
               ) : null}
             </span>
             <span className="dash-cov-pairs">
-              {(갈래있나(줄) ? 갈래들 : 전체만).map((갈래) => {
+              {(갈래있나(줄) ? (서비스.api ? 갈래들.filter((갈래) => 갈래.짧은 !== 'UI') : 갈래들) : 전체만).map((갈래) => {
                 const 덮음 = 갈래.덮음(줄);
                 const 몫 = 줄.total === 0 || 덮음 === null ? null : 내림퍼센트(덮음, 줄.total);
                 return (

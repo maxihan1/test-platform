@@ -202,10 +202,48 @@ button.smoke-chip:focus-visible {
 }
 
 /* 표 위 한 줄 — 결과 탭 · 고른 조건 칩 · 찾기 · 필터 단추 (도메인/카탈로그 §8.1 「검색 조건」 · DESIGN.md 「필터 판」 · WEB-F7-07).
-   찾기와 필터 단추는 줄 오른쪽 끝에 붙는다. 칩이 많으면 줄이 넘어가고 찾기가 다음 줄 오른쪽으로 간다 */
+   찾기와 필터 단추는 줄 오른쪽 끝에 붙는다. 칩이 많으면 줄이 넘어가고 찾기가 다음 줄 오른쪽으로 간다.
+   찾기 칸은 260px 아래로 줄지 않고 단추 글자는 꺾지 않는다 — 칩이 붙으면 칸이 눌려 「찾 / 기」 · 「조건 / 초기화」로 꺾였다 (2026-10-31 시험 f6) */
 .toolbar .find {
   flex: 0 1 320px;
+  min-width: 260px;
   margin-left: auto;
+}
+
+.toolbar .btn,
+.toolbar .find .chip {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* 휴대폰 — 머리 단추는 옆으로 미는 한 줄, 「필터」는 찾기 줄 안으로. 첫 케이스가 첫 화면 절반 안에 오게 한다
+   (2026-10-31 시험 d2 — 단추 넷이 두 줄 · 필터가 혼자 한 줄을 먹어 첫 케이스가 화면 아래 끝에 섰다) */
+@media (max-width: 620px) {
+  .case-head .head-acts {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .case-head .head-acts .btn {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .toolbar .result-tabs {
+    flex-basis: 100%;
+  }
+
+  .toolbar .find {
+    flex: 1 1 0;
+    min-width: 0;
+    margin-left: 0;
+  }
+
+  .toolbar .find input[type='text'] {
+    min-width: 0;
+  }
 }
 
 /* 결과 탭 — 거르는 단추지만 탭 꼴이다. 고른 탭은 대표색 밑줄(움직임은 motion.ts 가 옮긴다) */
@@ -344,6 +382,8 @@ button.smoke-chip:focus-visible {
     max-height: 86vh;
     border-radius: 16px 16px 0 0;
     animation: 올라옴 var(--t3) var(--ease);
+    /* 아래 탭(.ph-tabs 30)보다 위 — 아래면 맨 아래 주 단추 「N건 보기」가 탭 밑에 깔려 「조건 초기화」만 보였다 (2026-10-31 시험 d3) */
+    z-index: 35;
   }
 
   .filter-pop-body {

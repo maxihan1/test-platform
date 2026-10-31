@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { 대시보드응답 } from '../reporting/dashboardResults.js';
-import { api, ApiError } from './api.js';
+import { api, ApiError, type 앱종류 } from './api.js';
 import { 날짜글자 } from './dashboardView.js';
 import { 고르개, 조건을요청으로, 조건을주소로, 주소에서조건, type 대시보드조건, type 이동재료 } from './DashboardPick.js';
 import { 신규실패표 } from './DashboardFail.js';
@@ -136,30 +136,43 @@ export function Dashboard({
   설정갈수있나,
   작성서비스,
   프로젝트,
+  열린서비스 = null,
 }: {
   서비스열기: (serviceId: number) => void;
   케이스갈수있나: boolean;
   /** 정기 실행을 켜는 설정 자리에 갈 수 있나 — 안내 줄에 링크를 단다 (리포팅 §8.12 빈 상태) */
   설정갈수있나: boolean;
-  작성서비스: { id: number; name: string }[];
+  작성서비스: { id: number; name: string; kind?: 앱종류 }[];
   /** 헤더에서 고른 프로젝트 번호. 그 안의 애플리케이션만 모은다 (리포팅 §8.12) */
   프로젝트: number | null;
+  /** 왼쪽 애플리케이션 줄에서 고른 애플리케이션 번호. 대시보드는 이것으로 열리고 따라간다 (2026-10-31 시험 d4) */
+  열린서비스?: number | null;
 }) {
   const t = use말();
   const 시간대 = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
-  const [조건, set조건] = useState(주소에서조건);
+  const [조건, set조건] = useState(() => 주소에서조건(열린서비스));
   // 기본값(전체 서비스 · 14일)은 주소에 적지 않는다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
   // 프로젝트를 바꾸면 고른 애플리케이션은 다른 프로젝트 것이라 비운다. 그리는 중에 맞춰야 옛 번호로 한 번 더 받지 않는다
   const [앞프로젝트, set앞프로젝트] = useState(프로젝트);
   // 서비스 고르개의 재료는 서버가 준 「그 프로젝트 안에서 볼 수 있는 서비스 전부」다(고른 서비스로는 안 좁힌다). 읽는 동안에는 앞에서 받은 목록을 쓴다
   const 앞서비스들 = useRef<자료['services']>([]);
-  if (앞프로젝트 !== 프로젝트) {
-    set앞프로젝트(프로젝트);
-    set조건((앞) => (앞.서비스 === null ? 앞 : { ...앞, 서비스: null }));
-    // 앞 프로젝트의 목록을 남기면 읽는 동안 고르개에 다른 프로젝트 서비스가 떠서 고를 수 있다
-    앞서비스들.current = [];
+  // 왼쪽 줄에서 애플리케이션을 바꾸면 대시보드도 그것을 본다. 고르개에서 「전체」를 골라 둔 것은 왼쪽 줄이 안 바뀌는 한 그대로다
+  const [앞열린, set앞열린] = useState(열린서비스);
+  if (앞프로젝트 !== 프로젝트 || 앞열린 !== 열린서비스) {
+    set앞열린(열린서비스);
+    set조건((앞) => (앞.서비스 === 열린서비스 ? 앞 : { ...앞, 서비스: 열린서비스 }));
+    if (앞프로젝트 !== 프로젝트) {
+      set앞프로젝트(프로젝트);
+      // 앞 프로젝트의 목록을 남기면 읽는 동안 고르개에 다른 프로젝트 서비스가 떠서 고를 수 있다
+      앞서비스들.current = [];
+    }
   }
-  use주소조건('#/dashboard', 조건을주소로(조건));
+  use주소조건('#/dashboard', 조건을주소로(조건, 열린서비스));
+  // 고르개에서 애플리케이션 하나를 고르면 왼쪽 줄도 그것으로 바꾼다 — 둘이 다르면 사이드바는 웹인데 대시보드는 앱인 화면이 됐다
+  const 고름 = (새: 대시보드조건): void => {
+    set조건(새);
+    if (새.서비스 !== null && 새.서비스 !== 조건.서비스) 서비스열기(새.서비스);
+  };
   const 읽음 = use대시보드(시간대, 조건, 프로젝트);
 
   const 값 = 읽음.종류 === 'data' ? 읽음.값 : null;
@@ -194,7 +207,7 @@ export function Dashboard({
 
   return (
     <>
-      <Head 제목={t('대시보드')} 부제={부제} 행동={<고르개 조건={조건} 서비스들={서비스들} on바뀜={set조건} />} />
+      <Head 제목={t('대시보드')} 부제={부제} 행동={<고르개 조건={조건} 서비스들={서비스들} on바뀜={고름} />} />
       {읽음.종류 === 'loading' ? (
         <div className="screen">
           <Loading />
@@ -219,12 +232,19 @@ export function Dashboard({
           ) : (
             // 순서가 화면 읽기 순서다. 넓은 화면 배치는 CSS 격자가 자리로 옮긴다
             <div className={읽음.값.byKind === null ? 'dash-board' : 'dash-board has-kind'}>
-              <신규실패표 값={읽음.값} 이동={이동} />
-              <통과율칸 값={읽음.값}>
-                <통과율선 값={읽음.값} />
-              </통과율칸>
-              {읽음.값.byKind === null ? null : <종류칸 칸={읽음.값.byKind} 일={읽음.값.window.days} />}
-              <서비스별표 값={읽음.값} 서비스열기={서비스열기} />
+              {/* 위 두 칸은 왼쪽 · 오른쪽 기둥이 따로 쌓인다 — 한 격자 줄에 두면 짧은 쪽(회귀 0건)이 긴 쪽 높이만큼 비었다 (2026-10-31 시험 d6) */}
+              <div className="dash-top">
+                <div className="dash-col">
+                  <신규실패표 값={읽음.값} 이동={이동} />
+                  <서비스별표 값={읽음.값} 서비스열기={서비스열기} />
+                </div>
+                <div className="dash-col">
+                  <통과율칸 값={읽음.값}>
+                    <통과율선 값={읽음.값} />
+                  </통과율칸>
+                  {읽음.값.byKind === null ? null : <종류칸 칸={읽음.값.byKind} 일={읽음.값.window.days} />}
+                </div>
+              </div>
               <판칸 클래스="dash-daily" 제목={t('일별 테스트 결과')} 보조={t('막대 위 숫자는 실패 건수')}>
                 <일별막대 값={읽음.값} 설정갈수있나={설정갈수있나} 이동={이동} />
               </판칸>

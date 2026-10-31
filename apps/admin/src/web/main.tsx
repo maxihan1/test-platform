@@ -103,7 +103,7 @@ function Screen({
 
   switch (current.name) {
     case 'dashboard':
-      return <Dashboard 서비스열기={on서비스번호} {...대시보드재료(user, service?.prefix ?? null)} />;
+      return <Dashboard 서비스열기={on서비스번호} {...대시보드재료(user, service?.prefix ?? null)} 열린서비스={service?.id ?? null} />;
     case 'cases':
       // 종류마다 새로 그린다 — 고른 것 · 쪽 · 검색어가 남으면 UI 와 기능을 섞어 골라 실행이 MIXED_KIND 로 거절된다 (PR #132)
       return (

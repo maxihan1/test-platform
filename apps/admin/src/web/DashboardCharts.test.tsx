@@ -230,6 +230,30 @@ describe('요구사항 커버리지', () => {
     expect(게이지들[0]!.querySelectorAll('.dash-gauge path.dash-gauge-v').length).toBeGreaterThan(0);
   });
 
+  it('API 애플리케이션만이면 UI 게이지를 안 세우고, 섞이면 API 줄에만 UI 막대가 없다 — API 는 UI 테스트가 없다', async () => {
+    읽기를(응답());
+    const API만 = render(<Dashboard 서비스열기={서비스열기} {...기본재료} 작성서비스={[{ id: 1, name: 'ZDA 결제', kind: 'API' }]} />);
+    await screen.findByText('일별 테스트 결과');
+    expect([...API만.container.querySelectorAll('.dash-gauge-kind')].map((g) => g.textContent)).toEqual(['기능 테스트']);
+    API만.unmount();
+
+    읽기를(응답());
+    const 섞임 = render(
+      <Dashboard
+        서비스열기={서비스열기}
+        {...기본재료}
+        작성서비스={[
+          { id: 1, name: 'ZDA 결제', kind: 'API' },
+          { id: 2, name: 'ZDA 회원', kind: 'SCREEN' },
+        ]}
+      />,
+    );
+    await screen.findByText('일별 테스트 결과');
+    expect([...섞임.container.querySelectorAll('.dash-gauge-kind')].map((g) => g.textContent)).toEqual(['기능 테스트', 'UI 테스트']);
+    const 줄들 = 섞임.container.querySelectorAll('.dash-cov-row');
+    expect(줄들[0]!.querySelectorAll('.dash-cov-pair')).toHaveLength(1);
+  });
+
   it('퍼센트는 올리지 않고 내린다 — 하나라도 덮지 못했으면 100 이 되지 않는다', async () => {
     const 거의 = 응답({
       coverage: [

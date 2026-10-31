@@ -120,6 +120,31 @@ describe('애플리케이션 · 기간 고르기', () => {
     expect(window.location.hash).not.toContain('service=');
   });
 
+  it('왼쪽 줄에서 고른 애플리케이션으로 열고, 고르개로 바꾸면 왼쪽 줄도 바꾸며, 왼쪽 줄을 바꾸면 따라간다 — 「전체」는 service=all 이다', async () => {
+    const 읽기 = vi.spyOn(api, 'dashboard').mockResolvedValue(응답() as never);
+    const 서비스열기 = vi.fn();
+    const { rerender } = render(<Dashboard 서비스열기={서비스열기} {...기본재료} 열린서비스={1} />);
+    await screen.findByText(/ZDA 결제 · 최근 14일/);
+    expect(읽기).toHaveBeenLastCalledWith(시간대, undefined, { service: 1 });
+    expect(window.location.hash).not.toContain('service=');
+
+    fireEvent.change(screen.getByRole('combobox', { name: '애플리케이션' }), { target: { value: '2' } });
+    expect(서비스열기).toHaveBeenLastCalledWith(2);
+    rerender(<Dashboard 서비스열기={서비스열기} {...기본재료} 열린서비스={2} />);
+    await screen.findByText(/ZDA 회원 · 최근 14일/);
+    expect(window.location.hash).not.toContain('service=');
+
+    fireEvent.change(screen.getByRole('combobox', { name: '애플리케이션' }), { target: { value: '' } });
+    await screen.findByText(/애플리케이션 2개/);
+    expect(읽기).toHaveBeenLastCalledWith(시간대, undefined, {});
+    expect(window.location.hash).toBe('#/dashboard?service=all');
+    expect(서비스열기).toHaveBeenCalledTimes(1);
+
+    rerender(<Dashboard 서비스열기={서비스열기} {...기본재료} 열린서비스={1} />);
+    await screen.findByText(/ZDA 결제 · 최근 14일/);
+    expect(읽기).toHaveBeenLastCalledWith(시간대, undefined, { service: 1 });
+  });
+
   it('기간을 고르면 그 길이로 읽고 글자의 날 수도 따라간다 — 기본값 14 는 주소에서 빠진다', async () => {
     const 읽기 = vi
       .spyOn(api, 'dashboard')

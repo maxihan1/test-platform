@@ -140,7 +140,9 @@
      적으면 한쪽만 바뀌었을 때 사이드바가 창보다 짧거나 길어져 스크롤이 도로 새어 나간다.
      위는 0 이다 — 맨 위 헤더(10-13)가 생긴 뒤로 24px 이 헤더 위에 빈 띠로 남아 화면이 떠 보였다 (2026-10-20 사용자) */
   --body-pad-top: 0px;
-  --body-pad-bottom: 24px;
+  --body-pad-bottom: 0px;
+  /* body 좌우 여백 — PC 는 0 이라 왼쪽 줄이 창 끝에 붙는다(시안 11판 · 2026-10-31 WEB-F7-17 시험 f12 「창 둘레 회색 띠」). 휴대폰은 16px 로 되돌린다 */
+  --body-pad-x: 0px;
 
   /* 휴대폰 아래 탭 높이(phone.css). 탭과 그 위에 붙는 「실패 N건 다시 실행」이 같이 쓴다 — 따로 적으면 둘이 겹친다 */
   --ph-tabs: 56px;
@@ -279,7 +281,7 @@ body {
   overflow-wrap: anywhere;
   /* 2026-09-21 에 28px 방안지 격자를 걷어냈다. 완성된 제품이 아니라 아직 안 그린 와이어프레임으로
      읽히던 가장 큰 원인이었다. 되돌아오면 styles.test.ts 가 막는다 */
-  padding: var(--body-pad-top) 16px var(--body-pad-bottom);
+  padding: var(--body-pad-top) var(--body-pad-x) var(--body-pad-bottom);
 }
 
 /* 본문 링크는 대표색 자리다 (화면공통 §8). 규칙이 없으면 브라우저 기본 파랑이 어두운 바탕에 앉아 안 읽힌다.
@@ -359,7 +361,8 @@ a {
 
 .main {
   min-width: 0;
-  padding-left: 20px;
+  /* body 좌우 · 아래 여백이 0 이라 오른쪽 · 아래 여백은 본문 칸이 든다 */
+  padding: 0 20px 16px;
   height: 100%;
   min-height: 0;
   display: flex;
@@ -506,6 +509,8 @@ a {
   min-height: 32px;
   padding: 16px 0 0;
   margin-bottom: 14px;
+  /* .main 이 세로 flex 라 본문이 길면 머리도 줄어든다 — 그러면 고르개 · 단추가 머리 밖으로 넘쳐 아래 판 위 테두리를 덮었다 (2026-10-31 시험 f1) */
+  flex-shrink: 0;
 }
 
 .head-title {
@@ -1324,13 +1329,28 @@ input[type='file']::file-selector-button {
 }
 
 .assert {
-  display: grid;
-  /* 기대 · 실제 값이 길면 문장 칸이 한 글자 폭으로 접혔다 — 문장 칸에 바닥 폭을 두고 값 칸은 줄어들며 줄을 바꾼다 (점검 2.7) */
-  grid-template-columns: 18px minmax(min(12em, 100%), 1fr) minmax(0, auto) minmax(0, auto);
+  /* 기대 · 실제 값이 길면 문장 칸이 한 글자 폭으로 접혔다 — 문장 칸에 바닥 폭을 둔다 (점검 2.7).
+     flex 로 줄을 넘긴다 — 격자 네 칸이면 좁은 서랍에서 값 칸이 바닥 폭(76px)을 지키다 오른쪽 끝 밖으로 밀려 「실제」 값이 잘렸다 (2026-10-31 시험 f10).
+     자리가 모자라면 기대 · 실제가 문장 아래 줄 오른쪽으로 내려간다 */
+  display: flex;
+  flex-wrap: wrap;
   gap: 0 12px;
   align-items: baseline;
   font-size: 13px;
   padding: 5px 0 5px 28px;
+}
+
+.assert > .mark {
+  flex: 0 0 18px;
+}
+
+.assert > :nth-child(2) {
+  flex: 1 1 12em;
+  min-width: 0;
+}
+
+.assert > .exp {
+  margin-left: auto;
 }
 
 .assert.bad {
@@ -1632,6 +1652,7 @@ input[type='file']::file-selector-button {
      숫자를 두 곳에 두면 한쪽만 바뀌는 날 사이드바가 창보다 길어진다 (`:root` 주석) */
   :root {
     --body-pad-bottom: calc(var(--ph-tabs) + 24px);
+    --body-pad-x: 16px;
   }
 
   /* 집계띠도 되돌린다. 눕힌 것은 PC 에서 세로를 아끼려던 것이고,
@@ -1685,8 +1706,9 @@ input[type='file']::file-selector-button {
 
   /* 휴대폰 껍데기(phone.css)에는 사이드바가 없다. 창 높이에 맞추는 것을 되돌려 페이지 전체가 스크롤한다 —
      아래 탭이 바닥에 붙어 있어 본문만 움직인다 */
+  /* 위 여백은 0 이다 — 애플리케이션 막대(.ph-top) 아래 12px 에 머리 위 여백이 더해져 40px 빈 줄이 됐다 (2026-10-31 시험 f13) */
   .main {
-    padding: 16px 0 0;
+    padding: 0;
     height: auto;
     display: block;
     overflow-y: visible;
@@ -1781,14 +1803,14 @@ input[type='file']::file-selector-button {
   }
 
   .assert {
-    grid-template-columns: 18px 1fr;
     padding-left: 20px;
   }
 
-  .exp,
-  .act {
+  .assert > .exp,
+  .assert > .act {
+    flex-basis: calc(100% - 30px);
+    margin-left: 30px;
     text-align: left;
-    grid-column: 2;
   }
 
   .after-assert {
@@ -4987,51 +5009,44 @@ details[open]:not(.ph-me)::details-content {
   gap: 24px 16px;
 }
 
-.dash-fail {
-  grid-column: 1 / 8;
+/* 위 두 기둥 — 왼쪽(회귀 실패 · 애플리케이션별)과 오른쪽(통과율 · 종류별)이 따로 쌓인다.
+   한 격자 줄에 두면 짧은 쪽이 긴 쪽 높이만큼 비었다 — 회귀 0건이면 왼쪽 400px 빈칸(d6), 「전체」에서는 통과율 선이 늘어났다(f4) (2026-10-31 시험) */
+.dash-top {
+  grid-column: 1 / -1;
   grid-row: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: 16px;
+  align-items: start;
 }
 
-.dash-rate {
-  grid-column: 8 / 13;
-  grid-row: 1 / 3;
-}
-
-.dash-svc {
-  grid-column: 1 / 8;
-  grid-row: 2;
+.dash-col {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
 }
 
 .dash-daily {
   grid-column: 1 / 9;
-  grid-row: 3;
+  grid-row: 2;
 }
 
 .dash-cov {
   grid-column: 9 / 13;
-  grid-row: 3;
+  grid-row: 2;
 }
 
 /* 옆 실패 유형(선)이 더 길다 — 늘리면 판 아래가 비어 판이 내용 높이에서 끝난다 */
 .dash-heat {
   grid-column: 1 / 9;
-  grid-row: 4;
+  grid-row: 3;
   align-self: start;
 }
 
 .dash-types {
   grid-column: 9 / 13;
-  grid-row: 4;
-}
-
-/* 종류별 칸이 있으면 통과율이 한 줄 높이로 줄고 그 아래에 선다 (DESIGN.md 「대시보드」) */
-.dash-board.has-kind .dash-rate {
-  grid-row: 1;
-}
-
-.dash-kind {
-  grid-column: 8 / 13;
-  grid-row: 2;
+  grid-row: 3;
 }
 
 .dash-kind-list {
@@ -5721,6 +5736,11 @@ button.dash-rv:focus-visible {
   grid-template-columns: 12px minmax(0, 1fr) auto;
 }
 
+/* 이름은 꺾지 않는다 — 칸이 좁으면 「미실 / 행」으로 갈렸다 (2026-10-31 시험 f4) */
+.dash-lines li > span:first-of-type {
+  white-space: nowrap;
+}
+
 .dash-lines li:first-child {
   border-top: 0;
 }
@@ -5885,23 +5905,16 @@ button.dash-rv:focus-visible {
 }
 
 .dash-note {
-  position: absolute;
-  top: 45%;
-  left: 50%;
-  max-width: 360px;
-  padding: 4px 12px;
-  border-radius: 4px;
-  background: var(--panel);
-  font-size: 13px;
+  margin-top: 10px;
+  font-size: 12.5px;
   line-height: 1.6;
   text-align: center;
   color: var(--ink-muted);
-  transform: translate(-50%, -50%);
 }
 
-/* 일별 칸 안내 줄에서는 링크가 다음 줄로 선다. 빈 안내판에서는 글 뒤에 이어 붙는다 */
+/* 일별 칸 안내 줄에서는 링크가 글 뒤에 이어 붙는다. 빈 안내판도 같다 */
 .dash-note .dash-sched {
-  display: block;
+  margin-left: 6px;
 }
 
 .dash-empty .dash-sched {
@@ -6057,6 +6070,8 @@ button.dash-rv:focus-visible {
 .dash-tick {
   position: absolute;
   transform: translateX(-50%);
+  /* 오른쪽 끝(left 90%)에 서면 남은 폭이 10% 라 body 의 overflow-wrap: anywhere 가 「100」을 「10 / 0」으로 꺾어 아래 글과 겹쳤다 (2026-10-31 시험 f2) */
+  white-space: nowrap;
 }
 
 .dash-tick.l {
@@ -6091,7 +6106,9 @@ button.dash-rv:focus-visible {
 /* 요구사항 커버리지는 기능 · UI 게이지 둘을 나란히 둔다 — 칸이 4열이라 한 개는 작게 */
 .dash-gauges {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* 게이지 수만큼 칸을 나눈다 — API 애플리케이션은 기능 게이지 하나다 */
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   gap: 8px;
 }
 
@@ -6216,8 +6233,9 @@ button.dash-rv:focus-visible {
 
 .dash-trend-plot {
   position: relative;
-  flex: 1 1 auto;
-  min-height: 56px;
+  /* 높이를 못 박는다 — 칸을 따라 늘리면 「전체 애플리케이션」에서 옆 회귀 목록 길이만큼 선이 세로로 늘어 칸 아래로 떨어져 보였다 (2026-10-31 시험 f4) */
+  flex: none;
+  height: 120px;
 }
 
 /* 칸 높이는 위 flex · min-height 가 정한다. svg 가 흐름에 있으면 칸이 안 늘어난 좁은 화면에서 100% 가 auto 로 풀려
@@ -6257,10 +6275,24 @@ button.dash-rv:focus-visible {
 /* 좁은 폭 규칙은 대시보드 기본 규칙들 **뒤**에 둔다 — 같은 우선순위는 뒤에 온 규칙이 이긴다.
    앞에 두었더니 `.dash-live` 기본 열(4칸)이 이겨 390 에서 실행 중 줄이 58px 로 눌렸다 (styles.test.ts 가 지킨다) */
 @container (max-width: 900px) {
-  .dash-board > *,
-  .dash-board.has-kind > * {
+  .dash-board > * {
     grid-column: 1 / -1;
     grid-row: auto;
+  }
+
+  /* 좁으면 기둥을 풀어 한 줄로 쌓는다 — 읽는 차례는 회귀 실패 → 통과율 → 종류별 → 애플리케이션별 */
+  .dash-top {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .dash-col {
+    display: contents;
+  }
+
+  .dash-top .dash-svc {
+    order: 1;
   }
 
   .dash-rv {
