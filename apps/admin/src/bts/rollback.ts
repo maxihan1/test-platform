@@ -108,10 +108,19 @@ export async function 롤백되돌리기(deployId: number, projectId: number, bu
     });
     if (id !== null) 요청들.push(id);
   }
+  // 초안 하나는 그 배포가 맡은 이슈 여럿을 담는다 — 롤백되지 않은 키가 남으면 그 키만으로 새로 세운다(맡음은 남아 있어 버리기만 하면 그 이슈의 초안이 사라진다).
+  // 에이전트가 꺼져 멈춘 초안을 다시 세우는 길(draft.ts 초안다시세우기)과 같은 칸이다
   await pool.query(
-    `UPDATE authoring_request SET ${멈추고버리기}
-      WHERE kind = 'PRD_DRAFT' AND discarded_at IS NULL AND service_id = ANY($1::bigint[])
-        AND params->'issueKeys' ?| $2::text[] AND NOT (status = 'DONE' AND COALESCE(result ? 'picked', false))`,
+    `WITH 버림 AS (
+       UPDATE authoring_request SET ${멈추고버리기}
+        WHERE kind = 'PRD_DRAFT' AND discarded_at IS NULL AND service_id = ANY($1::bigint[])
+          AND params->'issueKeys' ?| $2::text[] AND NOT (status = 'DONE' AND COALESCE(result ? 'picked', false))
+       RETURNING service_id, kind, params, env, requested_by, requested_by_name
+     )
+     INSERT INTO authoring_request (service_id, kind, params, env, requested_by, requested_by_name, status)
+     SELECT service_id, kind, jsonb_set(params, '{issueKeys}', to_jsonb(남은.키들)), env, requested_by, requested_by_name, 'PENDING'
+       FROM 버림, LATERAL (SELECT array_agg(k) AS 키들 FROM jsonb_array_elements_text(버림.params->'issueKeys') k WHERE k <> ALL($2::text[])) 남은
+      WHERE 남은.키들 IS NOT NULL`,
     [앱들, 키들],
   );
   return 요청들;
@@ -129,7 +138,9 @@ export async function 되돌림거두기(projectId: number, deployId: number, bu
        AND service_id IN (SELECT id FROM service WHERE project_id = $1)`,
     )},
      병합 AS (SELECT 사슬.root_id FROM 사슬 JOIN authoring_request m ON m.id = 사슬.id WHERE m.kind = 'MERGE' AND m.status IN ('RUNNING', 'DONE'))
-     UPDATE authoring_request SET ${멈추고버리기}
+     UPDATE authoring_request SET ${멈추고버리기},
+            -- 다시 배포로 거둔 뿌리만 PR 을 닫는다 — 사람이 손으로 폐기한 되돌림 요청의 PR 은 지금처럼 남긴다(작성 §7 discard)
+            params = CASE WHEN authoring_request.id = 사슬.root_id THEN authoring_request.params || '{"redeployed": true}'::jsonb ELSE authoring_request.params END
        FROM 사슬 WHERE authoring_request.id = 사슬.id AND authoring_request.discarded_at IS NULL AND 사슬.root_id NOT IN (SELECT root_id FROM 병합)
      RETURNING authoring_request.id`,
     [projectId, deployId, buildNo],
@@ -137,10 +148,10 @@ export async function 되돌림거두기(projectId: number, deployId: number, bu
   return r.rows.map((x) => Number(x.id));
 }
 
-/** 거둔 되돌림 요청이 연 PR 가운데 아직 안 닫은 것 — PR 하나에 가장 늦은 실행 번호 하나 */
+/** 다시 배포로 거둔 되돌림 요청이 연 PR 가운데 아직 안 닫은 것 — PR 하나에 가장 늦은 실행 번호 하나 */
 export async function 닫을PR(서비스: number): Promise<{ id: number; prUrl: string }[]> {
   const r = await (await db()).query<{ id: string; pr_url: string }>(
-    `WITH RECURSIVE ${사슬식(`service_id = $1 AND kind = 'AUTHOR' AND params ? 'rollbackDeploy' AND discarded_at IS NOT NULL`)}
+    `WITH RECURSIVE ${사슬식(`service_id = $1 AND kind = 'AUTHOR' AND params ? 'rollbackDeploy' AND params ? 'redeployed' AND discarded_at IS NOT NULL`)}
      SELECT DISTINCT ON (a.pr_url) a.id, a.pr_url FROM 사슬 JOIN authoring_request a ON a.id = 사슬.id
       WHERE a.kind <> 'MERGE' AND a.pr_url IS NOT NULL AND NOT COALESCE(a.result ? 'prClosed', false)
       ORDER BY a.pr_url, a.id DESC`,

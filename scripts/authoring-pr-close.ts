@@ -1,4 +1,4 @@
-// 다시 배포로 거둔 롤백 되돌림 요청의 PR 을 닫는다 — 줄이 비어 쉬는 틈에 부른다. 서버는 GitHub 열쇠가 없다 (도메인/BTS §7 「닫을 PR」 · BTS-F7-01)
+// 다시 배포로 거둔 롤백 되돌림 요청의 PR 을 닫는다 — 작성 에이전트가 서비스마다 1분에 한 번 부른다. 서버는 GitHub 열쇠가 없다 (도메인/BTS §7 「닫을 PR」 · BTS-F7-01)
 
 type 부르기 = (길: string, 옵션?: { method: string }) => Promise<{ status: number; 몸: unknown }>;
 type 치기 = (인자: string[]) => { ok: boolean; 낸것: string; 까닭: string };
@@ -10,7 +10,7 @@ export const PR닫기인자 = (prUrl: string): string[] => ['pr', 'close', prUrl
 
 /**
  * 닫을 PR 을 묻고 닫는다. 이미 닫혔거나 병합된 PR 도 닫음으로 적는다 — 안 적으면 목록에서 영영 안 빠진다.
- * 상태를 못 읽으면 적지 않고 다음 쉬는 틈에 다시 본다. 닫은 수를 준다
+ * 상태를 못 읽으면 적지 않고 1분 뒤 다시 본다. 닫은 수를 준다
  */
 export async function 닫을PR처리(서비스: string, 부른다: 부르기, gh: 치기): Promise<number> {
   const 답 = await 부른다(`/authoring/requests/closing?service=${encodeURIComponent(서비스)}`);
@@ -26,7 +26,11 @@ export async function 닫을PR처리(서비스: string, 부른다: 부르기, gh
         continue;
       }
     }
-    await 부른다(`/authoring/requests/${String(id)}/closed`, { method: 'POST' });
+    const 적음 = await 부른다(`/authoring/requests/${String(id)}/closed`, { method: 'POST' });
+    if (적음.status !== 204) {
+      console.error(`[작성] ${서비스} 되돌림 PR ${prUrl} 은 닫았는데 서버에 못 적었다(${String(적음.status)}) — 다음에 다시 적는다`);
+      continue;
+    }
     닫음++;
   }
   return 닫음;

@@ -336,6 +336,14 @@ describe.skipIf(연결 === undefined)('케이스 고치기 통로', () => {
       expect([재실행.statusCode, 재실행.json()]).toEqual([400, { error: 'BAD_EDIT', detail: 'params.edits' }]);
     });
 
+    // 롤백 배포만 싣는 칸 — 사람이 실으면 다음 배포가 그 작성을 거두고 PR 을 닫는다 (도메인/BTS 「롤백 바퀴」 4)
+    it('작성 요청 본문에 롤백 칸을 실으면 400 BAD_EDIT', async () => {
+      for (const 칸 of ['rollbackDeploy', 'rollbackBuild', 'redeployed']) {
+        const 작성 = await 부르기(`/api/authoring/requests?service=${접두사}`, { kind: 'AUTHOR', figma: [], params: { [칸]: 1 } });
+        expect([작성.statusCode, 작성.json()]).toEqual([400, { error: 'BAD_EDIT', detail: `params.${칸}` }]);
+      }
+    });
+
     it('병합 전 끝난 고치기는 폐기된다 — canDiscard 참', async () => {
       const id = await 세운번호({ edits });
       await 바꾸기(id, 끝난);

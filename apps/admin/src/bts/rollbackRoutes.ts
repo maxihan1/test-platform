@@ -1,4 +1,4 @@
-// 닫을 PR 통로 — 다시 배포로 거둔 롤백 되돌림 요청의 PR 을 작성 에이전트가 쉬는 틈에 묻고 닫는다. 서버는 GitHub 열쇠가 없다 (도메인/BTS §7 · BTS-F7-01 시작 질문 2)
+// 닫을 PR 통로 — 다시 배포로 거둔 롤백 되돌림 요청의 PR 을 작성 에이전트가 1분에 한 번 묻고 닫는다. 서버는 GitHub 열쇠가 없다 (도메인/BTS §7 · BTS-F7-01 시작 질문 2)
 
 import type { FastifyInstance } from 'fastify';
 

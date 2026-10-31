@@ -102,6 +102,11 @@ describe.skipIf(연결 === undefined)('롤백 되돌리기', () => {
     expect((await 행(대기초안)).status).toBe('STOPPED');
     expect((await 행(대기초안)).discarded_at).not.toBeNull();
     expect((await 행(다른키)).discarded_at).toBeNull();
+    // 롤백되지 않은 키(DM-14)는 그 키만으로 초안이 다시 선다
+    const 다시 = (await pool.query<{ params: { issueKeys: string[] } }>(
+      "SELECT params FROM authoring_request WHERE service_id = $1 AND kind = 'PRD_DRAFT' AND status = 'PENDING' AND discarded_at IS NULL AND id > $2", [서비스, 다른키],
+    )).rows;
+    expect(다시.map((x) => x.params.issueKeys)).toEqual([['DM-14']]);
     // 같은 롤백이 다시 와도 되돌릴 것이 없다
     expect(await 롤백되돌리기(배포, 프로젝트, 'old-1', ['DM-12'], 사람)).toEqual([]);
   });
@@ -114,6 +119,9 @@ describe.skipIf(연결 === undefined)('롤백 되돌리기', () => {
     const 재실행 = await 요청넣기('RERUN', 'DONE', {}, { source: 끝남, pr: 'https://github.com/o/r/pull/7' });
     const 병합됨 = await 요청넣기('AUTHOR', 'DONE', 롤백표시, { pr: 'https://github.com/o/r/pull/8' });
     await 요청넣기('MERGE', 'DONE', {}, { source: 병합됨, pr: 'https://github.com/o/r/pull/8' });
+    // 사람이 손으로 폐기한 되돌림 요청의 PR 은 닫지 않는다
+    const 손폐기 = await 요청넣기('AUTHOR', 'DONE', 롤백표시, { pr: 'https://github.com/o/r/pull/9' });
+    await pool.query('UPDATE authoring_request SET discarded_at = now() WHERE id = $1', [손폐기]);
 
     expect(await 되돌림거두기(프로젝트, await 배포넣기('old-1-again'), 'old-1')).toEqual([]);
     expect(await 닫을목록()).toEqual([]);
@@ -121,6 +129,7 @@ describe.skipIf(연결 === undefined)('롤백 되돌리기', () => {
     const 거둠 = await 되돌림거두기(프로젝트, await 배포넣기('new-2'), 'new-2');
     expect(거둠.sort()).toEqual([대기, 끝남, 재실행].sort());
     expect((await 행(대기)).status).toBe('STOPPED');
+    expect((await 행(대기)).params.redeployed).toBe(true);
     expect((await 행(병합됨)).discarded_at).toBeNull();
     expect(await 닫을목록()).toEqual([{ id: 재실행, prUrl: 'https://github.com/o/r/pull/7' }]);
 
