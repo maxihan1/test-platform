@@ -36,6 +36,23 @@ export const BTS부르기: 부르기함수 = async (자리, method, 경로, 몸)
   return { status: res.status, json };
 };
 
+export type 올리기함수 = (자리: BTS자리, issueKey: string, 이름: string, 파일: Buffer) => Promise<number>;
+
+/** 이슈 첨부 한 개를 올리고 상태 코드를 돌려준다 (BTS IssueAttachmentController — multipart 칸 file) */
+export const BTS올리기: 올리기함수 = async (자리, issueKey, 이름, 파일) => {
+  const 몸 = new FormData();
+  몸.append('file', new Blob([new Uint8Array(파일)], { type: 'image/png' }), 이름);
+  const res = await fetch(`${자리.baseUrl.replace(/\/+$/, '')}/api/v1/issues/${encodeURIComponent(issueKey)}/attachments`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${자리.botKey}`, accept: 'application/json' },
+    body: 몸,
+    signal: AbortSignal.timeout(30_000),
+    redirect: 'manual',
+  });
+  await res.arrayBuffer();
+  return res.status;
+};
+
 /** BTS 이슈에서 QA Hub 가 보는 칸만 — 상태 · 해결 상태 이름을 단계에 짝짓는 일은 받는 쪽이 bts_link 짝으로 한다 */
 export interface BTS이슈 {
   key: string;

@@ -1,10 +1,11 @@
-// 설정 › BTS 연결 통로 (도메인/BTS §7). /api/settings 아래라 운영(admin) 계정만 닿는다 — 막는 것은 문이다 (auth/gate.ts)
+// 설정 › BTS 연결 통로 · 실패 카드 [다시 보내기] (도메인/BTS §7). 설정은 /api/settings 아래라 운영(admin) 계정만 닿는다 — 막는 것은 문이다 (auth/gate.ts)
 
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
 import { 정수 } from '../routeParams.js';
 
+import { BTS다시보내기 } from './card.js';
 import { BTS연결끊기, BTS연결읽기, BTS연결저장, BTS열쇠만들기, BTS확인, 상태짝틀, 해결짝틀, type 확인함수 } from './link.js';
 
 const 연결본문 = z.object({
@@ -25,6 +26,8 @@ const 연결본문 = z.object({
   statusMap: 상태짝틀,
   resolutionMap: 해결짝틀,
 });
+
+const 다시보내기본문 = z.object({ tcId: z.string().min(1), env: z.string().min(1) });
 
 const 짝이빈가 = (m: Record<string, string>): boolean => Object.values(m).some((v) => v === '');
 
@@ -72,5 +75,18 @@ export default async function btsLinkRoutes(app: FastifyInstance, opts: { 확인
     if (결과 === 'NOT_FOUND') return reply.code(404).send({ error: 결과 });
     if (결과 === 'NOT_LINKED') return reply.code(409).send({ error: 결과 });
     return reply.code(201).send({ key: 결과.열쇠 });
+  });
+
+  // 실행 결과 실패 카드의 [다시 보내기] — (실행, write) 와 그 실행의 서비스는 문이 본다 (auth/routeTable.ts · scope.ts)
+  app.post<{ Params: { runId: string } }>('/runs/:runId/bts/resend', async (req, reply) => {
+    const runId = 정수(req.params.runId);
+    const parsed = 다시보내기본문.safeParse(req.body);
+    if (runId === null || !parsed.success) {
+      return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.success ? req.params.runId : parsed.error.message });
+    }
+    const 결과 = await BTS다시보내기(runId, parsed.data.tcId, parsed.data.env);
+    if (결과 === 'NOT_LINKED') return reply.code(409).send({ error: 결과 });
+    if (결과 === 'NOT_FOUND') return reply.code(404).send({ error: 결과 });
+    return reply.code(202).send();
   });
 }

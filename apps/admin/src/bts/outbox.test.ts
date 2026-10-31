@@ -1,5 +1,9 @@
 // 보낼 줄 — 넣기 · 보내기 · 1분 간격 5번 · 4xx 바로 멈춤 · 408/429 다시 · 연결 없으면 멈춤 (도메인/BTS 결정 17). DATABASE_URL 이 있을 때만 돈다
 
+import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import type { BTS응답, BTS자리 } from './client.js';
@@ -131,6 +135,49 @@ describe.skipIf(연결 === undefined)('BTS 보낼 줄', () => {
     expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 1, 다시: 0, 멈춤: 0 });
     expect(부른것.map((b) => b.몸).slice(1)).toEqual([{ toStatusKey: 'a' }, { toStatusKey: 'b' }]);
     expect([(await 줄(앞)).state, (await 줄(뒤)).state]).toEqual(['SENT', 'SENT']);
+  });
+
+  it('등록이 닿으면 짝을 적고 「QA 검토」로 옮기고 캡처를 올린다 · 첨부 목록은 BTS 몸에 안 싣는다', async () => {
+    const p = await pool();
+    const 폴더 = await realpath(await mkdtemp(join(tmpdir(), 'xby-')));
+    const 앞폴더 = process.env.PLATFORM_ARTIFACTS_DIR;
+    process.env.PLATFORM_ARTIFACTS_DIR = 폴더;
+    await mkdir(join(폴더, 'runs', '7', '8'), { recursive: true });
+    await writeFile(join(폴더, 'runs', '7', '8', '2.png'), 'png');
+    await p.query(`UPDATE bts_link SET status_map = '{"QA_REVIEW": "qa_review"}' WHERE project_id = $1`, [프로젝트]);
+    const 올린것: { key: string; 이름: string; 글: string }[] = [];
+    try {
+      답 = (경로) =>
+        경로 === '/api/v1/issues'
+          ? { status: 201, json: { data: { key: 'XBY-9', version: 3, currentStateKey: 'open' } } }
+          : { status: 200, json: {} };
+      const id = (await 보낼줄넣기({
+        projectId: 프로젝트,
+        kind: 'CREATE',
+        payload: { summary: '실패', attachments: ['runs/7/8/2.png'] },
+        serviceId: 서비스,
+        tcId: 'XBY-010',
+        env: 'qa',
+      }))!;
+      const 올리기 = async (_자리: BTS자리, key: string, 이름: string, 파일: Buffer) => {
+        올린것.push({ key, 이름, 글: 파일.toString() });
+        return 201;
+      };
+      expect(await 보낼줄점검(부르기, 올리기)).toEqual({ 보냄: 1, 다시: 0, 멈춤: 0 });
+      expect(부른것.map((b) => [b.경로, b.몸])).toEqual([
+        ['/api/v1/issues', { summary: '실패' }],
+        ['/api/v1/issues/XBY-9/transition', { toStatusKey: 'qa_review', expectedVersion: 3 }],
+      ]);
+      expect(올린것).toEqual([{ key: 'XBY-9', 이름: 'runs-7-8-2.png', 글: 'png' }]);
+      expect((await 줄(id)).state).toBe('SENT');
+      const 짝 = await p.query('SELECT issue_key, env, closed_at FROM bts_issue_case WHERE service_id = $1 AND tc_id = $2', [서비스, 'XBY-010']);
+      expect(짝.rows).toEqual([{ issue_key: 'XBY-9', env: 'qa', closed_at: null }]);
+    } finally {
+      await p.query(`UPDATE bts_link SET status_map = '{}' WHERE project_id = $1`, [프로젝트]);
+      process.env.PLATFORM_ARTIFACTS_DIR = 앞폴더;
+      if (앞폴더 === undefined) delete process.env.PLATFORM_ARTIFACTS_DIR;
+      await rm(폴더, { recursive: true, force: true });
+    }
   });
 
   it('BTS 연결이 없는 프로젝트 줄은 부르지 않고 멈춘다', async () => {
