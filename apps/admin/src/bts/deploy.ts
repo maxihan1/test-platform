@@ -12,6 +12,7 @@ import { 노트사건쌓기 } from '../projectNote/events.js';
 
 import type { 부르기함수 } from './client.js';
 import { 배포실행걸기, type 배포할앱 } from './deployFlow.js';
+import { 되돌림거두기, 롤백되돌리기 } from './rollback.js';
 
 async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
@@ -156,8 +157,17 @@ export default async function btsDeployRoutes(app: FastifyInstance, opts: { 부�
     await 노트사건쌓기(projectId, 'DEPLOY', { build: buildNo, rollback: 몸.data.rollback, rollbackKeys: 몸.data.rollbackKeys, services: 고름.map((a) => a.prefix) }).catch(
       (err: unknown) => req.log.error(`[bts] 배포 ${String(deployId)} 노트 사건을 못 쌓았다: ${err instanceof Error ? err.message : String(err)}`),
     );
+    const 사람 = { username: 연결.updated_by, displayName: `BTS · ${주인.user.displayName}` };
+    // 롤백 뒤 다시 배포면 앞 롤백의 되돌림 요청을 거두고, 이번이 롤백이면 PRD · 테스트를 되돌린다(도메인/BTS 「롤백 바퀴」).
+    // 깨져도 배포는 돈다 — 노트 사건과 같은 판단. 실행을 걸기 전에 끝내 둔다(DB 일이라 짧다)
+    try {
+      await 되돌림거두기(projectId, deployId, buildNo);
+      if (몸.data.rollback && 몸.data.rollbackKeys.length > 0) await 롤백되돌리기(deployId, projectId, buildNo, 몸.data.rollbackKeys, 사람);
+    } catch (err) {
+      req.log.error(`[bts] 배포 ${String(deployId)} 롤백 되돌리기가 깨졌다: ${err instanceof Error ? err.message : String(err)}`);
+    }
     // 스모크 · 맡기는 뒤에서 돈다(202). 깨지면 잡을 곳이 없어 서버 기록으로만 남긴다 — 배포 줄은 FAILED 로 남는다
-    void 배포실행걸기(deployId, 고름, { username: 연결.updated_by, displayName: `BTS · ${주인.user.displayName}` }, opts.부르기).catch((err: unknown) =>
+    void 배포실행걸기(deployId, 고름, 사람, opts.부르기).catch((err: unknown) =>
       req.log.error(`[bts] ${err instanceof Error ? err.message : String(err)}`),
     );
     return reply.code(202).send({ deployId });

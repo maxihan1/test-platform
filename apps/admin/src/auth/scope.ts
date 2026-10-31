@@ -140,6 +140,9 @@ export const 라우트표: Record<string, 원천> = {
   '/api/authoring/requests/:id/draft': { 종류: '작성요청', 칸: 'id' },
   // 수정 AI 결과 — 애플리케이션 줄이라 그 애플리케이션 배정으로 본다 (bts/bugfixRoutes.ts)
   '/api/authoring/requests/:id/bugfix': { 종류: '작성요청', 칸: 'id' },
+  // 닫을 PR — 목록은 ?service= 로, 닫음 적기는 그 행의 애플리케이션 배정으로 본다 (bts/rollbackRoutes.ts)
+  '/api/authoring/requests/closing': { 종류: '질의' },
+  '/api/authoring/requests/:id/closed': { 종류: '작성요청', 칸: 'id' },
 
   // 표준 기획서 (도메인/작성 §7 「표준 기획서 통로」). 라우트가 ?service= 의 서비스 것만 읽고 쓴다
   '/api/prd': { 종류: '질의' },

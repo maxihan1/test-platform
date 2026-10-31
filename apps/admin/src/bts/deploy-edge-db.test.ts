@@ -53,6 +53,7 @@ describe.skipIf(연결 === undefined)('프로젝트 배포 신호 가장자리',
     await pool.query('DELETE FROM test_case WHERE tc_id = ANY($1)', [케이스들]);
     await pool.query(`DELETE FROM authoring_request WHERE project_id IN (SELECT id FROM project WHERE name = 'XBM 프로젝트')`);
     await pool.query(`DELETE FROM authoring_request WHERE service_id IN ${ids}`, [접두사들]);
+    await pool.query(`DELETE FROM prd_version WHERE service_id IN ${ids}`, [접두사들]);
     await pool.query(`DELETE FROM service_env WHERE service_id IN ${ids}`, [접두사들]);
     // bts_link · bts_deploy · bts_claim · bts_outbox · bts_issue_case · 노트 사건은 service · project 와 같이 지워진다
     await pool.query('DELETE FROM service WHERE prefix = ANY($1)', [접두사들]);
@@ -133,5 +134,23 @@ describe.skipIf(연결 === undefined)('프로젝트 배포 신호 가장자리',
     const 앱 = await 한건실행('XBMB-FN-001');
     await 끝낸다(앱, 'PASS');
     expect(await 버그재검증(앱)).toEqual(['XBM-7']);
+  });
+
+  it('롤백 신호는 받은 키로 바뀐 요구를 되돌린 판과 되돌림 요청을 세운다', async () => {
+    await pool.query(
+      `INSERT INTO prd_version (service_id, version, items, last_no, source, saved_by, saved_by_name)
+       VALUES ($1, 1, '[]', 0, 'PERSON', 'xbm-admin', 'xbm'), ($1, 2, $2, 1, 'DECISION', 'xbm-admin', 'xbm')`,
+      [서비스.XBM, JSON.stringify([{ reqId: 'XBM-REQ-001', feature: '쿠폰', text: '한 장만', basis: [{ from: 'XBM-9', quote: '한 장' }], status: 'CONFIRMED', byPerson: true, fromIssues: ['XBM-9'] }])],
+    );
+    const 답 = await app.inject({
+      method: 'POST', url: `/api/projects/${String(프로젝트)}/deploys`, headers: { authorization: `Bearer ${열쇠}` },
+      payload: { build: 'old-1', rollback: true, rollbackKeys: ['XBM-9'] },
+    });
+    expect(답.statusCode).toBe(202);
+    const 판 = (await pool.query<{ source: string; deploy_id: string; items: unknown[] }>(
+      'SELECT source, deploy_id, items FROM prd_version WHERE service_id = $1 ORDER BY version DESC LIMIT 1', [서비스.XBM],
+    )).rows[0]!;
+    expect([판.source, Number(판.deploy_id), 판.items]).toEqual(['ROLLBACK', 답.json<{ deployId: number }>().deployId, []]);
+    expect((await pool.query("SELECT 1 FROM authoring_request WHERE service_id = $1 AND params ? 'rollbackDeploy'", [서비스.XBM])).rowCount).toBe(1);
   });
 });
