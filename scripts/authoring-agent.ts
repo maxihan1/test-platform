@@ -25,6 +25,8 @@ import { 도는자식, 멈춤, 보고손만들기, 부른다, 자리들, 친다,
 import { 모델설정, 버전뽑기, 업데이트인자, 업데이트할까, 점검통과 } from './authoring-model.js';
 import { 멈춘것닫기 } from './authoring-closing.js';
 import { 성능일돌기 } from './authoring-perf.js';
+import { 초안한건처리 } from './authoring-draft.js';
+import { 초안일인가 } from './authoring-draft-prompt.js';
 import { 노트한건처리 } from './authoring-note.js';
 import { 노트일인가 } from './authoring-note-prompt.js';
 import { type 판, 한건처리 } from './authoring-run.js';
@@ -230,6 +232,12 @@ async function 돈다(): Promise<number> {
             // 노트 고치기는 테스트 저장소도 PR 도 없다 — 서비스 설정도 안 읽는다
             if (노트일인가(것)) {
               await 노트한건처리(주소, 토큰, 서비스, 것, 판, 쓸자리);
+              console.log(`[작성] ${것.id}번을 끝냈다.`);
+              return;
+            }
+            // PRD 초안도 테스트 저장소 · PR 이 없다 — 애플리케이션 종류만 보고 웹이면 화면을 연다 (도메인/BTS 「PRD 초안 → 결정 필요」)
+            if (초안일인가(것)) {
+              await 초안한건처리(주소, 토큰, 서비스, 것, 판, 쓸자리, 설정표[서비스]);
               console.log(`[작성] ${것.id}번을 끝냈다.`);
               return;
             }

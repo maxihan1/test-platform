@@ -30,7 +30,8 @@ export async function 손남은뿌리들(서비스: number): Promise<손남은�
   const r = await (await db()).query<{
     root_id: string; id: string; kind: string; status: string; pr_url: string | null; finished_at: Date | null; root_by: string; result: unknown;
   }>(
-    `WITH RECURSIVE ${사슬식('service_id = $1 AND source_id IS NULL AND discarded_at IS NULL')}
+    // PRD 초안은 「PRD 초안」 카드가 따로 싣는다(BTS-F5-04) — 끝난 초안이 반영 대기로 잡히지 않게 뺀다
+    `WITH RECURSIVE ${사슬식("service_id = $1 AND source_id IS NULL AND discarded_at IS NULL AND kind <> 'PRD_DRAFT'")}
      SELECT DISTINCT ON (사슬.root_id) 사슬.root_id, a.id, a.kind, a.status, a.pr_url, a.finished_at, a.result,
             (SELECT r.requested_by_name FROM authoring_request r WHERE r.id = 사슬.root_id) AS root_by
        FROM 사슬 JOIN authoring_request a ON a.id = 사슬.id

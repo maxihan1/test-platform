@@ -7,6 +7,7 @@ import { 오래된빌드치우기 } from '../execution/buildFile.js';
 
 import { aql글 } from './aql.js';
 import { BTS부르기, type 부르기함수 } from './client.js';
+import { 초안세우기 } from './draft.js';
 import { 보낼줄넣기 } from './outbox.js';
 
 async function db(): Promise<Pool> {
@@ -128,22 +129,41 @@ export async function 맡기(deployId: number, late: boolean, 부르기: 부르�
     ]);
   }
   const 맡음: string[] = [];
-  for (const 하나 of 이슈) {
-    const r = await pool.query(
-      `INSERT INTO bts_claim (project_id, issue_key, deploy_id, issue_type, late) VALUES ($1, $2, $3, $4, $5)
-       ON CONFLICT (project_id, issue_key) WHERE released_at IS NULL DO NOTHING`,
-      [배포.project_id, 하나.key, deployId, 하나.bug ? 'BUG' : 'TASK', late],
-    );
-    if (r.rowCount !== 1) continue;
-    맡음.push(하나.key);
-    if (!하나.bug) continue;
-    // 사람이 BTS 에 직접 올린 버그는 QA Hub 테스트가 없다 — 「QA 요청」에 두고 사람에게 알린다(2차 R8). 맡음이 남아 다음 배포가 또 달지 않는다
-    // 닫힌 짝도 본다 — 재검증 통과로 짝을 닫았는데 BTS 옮기기가 그만둬 이슈가 「QA 요청」에 남았을 때 틀린 「딸린 테스트 없음」을 달지 않게.
-    // ponytail: 그 이슈는 맡은 채 남고 다시 닫지 않는다 — 보낼 줄의 그만둔 옮기기(last_error)를 사람이 보고 BTS 에서 닫는다. 잦으면 맡을 때 FIXED 짝의 옮기기를 다시 넣는다
-    const 딸린 = await pool.query('SELECT 1 FROM bts_issue_case WHERE project_id = $1 AND issue_key = $2 LIMIT 1', [배포.project_id, 하나.key]);
-    if ((딸린.rowCount ?? 0) === 0) {
-      await 보낼줄넣기({ projectId: Number(배포.project_id), kind: 'COMMENT', issueKey: 하나.key, payload: { body: '딸린 테스트 없음 — 사람이 확인해 주세요\nQA Hub 에 이 버그를 확인하는 테스트가 없습니다' } });
+  // 새로 맡은 task · 스토리 — 애플리케이션마다 PRD 초안 하나로 묶는다. 늦은 이슈는 따로 작은 초안이 된다(새 기능 바퀴 5)
+  const 새일: string[] = [];
+  const 댓글감: string[] = [];
+  // 맡음과 초안을 한 트랜잭션으로 — 사이에 꺼지면 초안 없는 맡음이 남아 그 이슈를 다시 안 잡는다. 댓글은 커밋 뒤에 넣는다
+  const 손 = await pool.connect();
+  try {
+    await 손.query('BEGIN');
+    for (const 하나 of 이슈) {
+      const r = await 손.query(
+        `INSERT INTO bts_claim (project_id, issue_key, deploy_id, issue_type, late) VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (project_id, issue_key) WHERE released_at IS NULL DO NOTHING`,
+        [배포.project_id, 하나.key, deployId, 하나.bug ? 'BUG' : 'TASK', late],
+      );
+      if (r.rowCount !== 1) continue;
+      맡음.push(하나.key);
+      if (!하나.bug) {
+        새일.push(하나.key);
+        continue;
+      }
+      // 사람이 BTS 에 직접 올린 버그는 QA Hub 테스트가 없다 — 「QA 요청」에 두고 사람에게 알린다(2차 R8). 맡음이 남아 다음 배포가 또 달지 않는다
+      // 닫힌 짝도 본다 — 재검증 통과로 짝을 닫았는데 BTS 옮기기가 그만둬 이슈가 「QA 요청」에 남았을 때 틀린 「딸린 테스트 없음」을 달지 않게.
+      // ponytail: 그 이슈는 맡은 채 남고 다시 닫지 않는다 — 보낼 줄의 그만둔 옮기기(last_error)를 사람이 보고 BTS 에서 닫는다. 잦으면 맡을 때 FIXED 짝의 옮기기를 다시 넣는다
+      const 딸린 = await 손.query('SELECT 1 FROM bts_issue_case WHERE project_id = $1 AND issue_key = $2 LIMIT 1', [배포.project_id, 하나.key]);
+      if ((딸린.rowCount ?? 0) === 0) 댓글감.push(하나.key);
     }
+    await 초안세우기(deployId, 새일, 손);
+    await 손.query('COMMIT');
+  } catch (err) {
+    await 손.query('ROLLBACK');
+    throw new Error(`배포 ${String(deployId)} 의 맡기 · PRD 초안을 적지 못했다: ${글(err)}`);
+  } finally {
+    손.release();
+  }
+  for (const key of 댓글감) {
+    await 보낼줄넣기({ projectId: Number(배포.project_id), kind: 'COMMENT', issueKey: key, payload: { body: '딸린 테스트 없음 — 사람이 확인해 주세요\nQA Hub 에 이 버그를 확인하는 테스트가 없습니다' } });
   }
   return 맡음;
 }

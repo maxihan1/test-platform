@@ -67,6 +67,11 @@ describe.skipIf(연결 === undefined)('프로젝트 배포 신호', { timeout: 6
       'SELECT issue_key, payload FROM bts_outbox WHERE project_id = $1 AND kind = $2 ORDER BY id',
       [프로젝트, kind],
     )).rows;
+  const 초안들 = async () =>
+    (await pool.query<{ service_id: string; keys: string[] }>(
+      `SELECT service_id, params->'issueKeys' AS keys FROM authoring_request WHERE kind = 'PRD_DRAFT' AND service_id = ANY($1) ORDER BY id`,
+      [Object.values(서비스)],
+    )).rows;
   const 맡음 = async () =>
     (await pool.query<{ issue_key: string; issue_type: string; late: boolean; released: boolean }>(
       'SELECT issue_key, issue_type, late, released_at IS NOT NULL AS released FROM bts_claim WHERE project_id = $1 ORDER BY id',
@@ -80,6 +85,7 @@ describe.skipIf(연결 === undefined)('프로젝트 배포 신호', { timeout: 6
     await pool.query(`DELETE FROM app_build WHERE service_id IN ${ids}`, [접두사들]);
     await pool.query('DELETE FROM test_case WHERE tc_id = ANY($1)', [케이스들]);
     await pool.query(`DELETE FROM authoring_request WHERE project_id IN (SELECT id FROM project WHERE name = 'XBN 프로젝트')`);
+    await pool.query(`DELETE FROM authoring_request WHERE service_id IN ${ids}`, [접두사들]);
     await pool.query(`DELETE FROM service_env WHERE service_id IN ${ids}`, [접두사들]);
     // bts_link · bts_deploy · bts_claim · bts_outbox · bts_issue_case · service_token · 노트 사건은 service · project 와 같이 지워진다
     await pool.query('DELETE FROM service WHERE prefix = ANY($1)', [접두사들]);
@@ -219,6 +225,11 @@ describe.skipIf(연결 === undefined)('프로젝트 배포 신호', { timeout: 6
     const 검색 = 부른것.find((b) => b.경로 === '/api/v1/search/aql');
     expect(검색?.몸).toEqual({ projectKey: 'XBN', query: 'status = "qa-req"', page: 0, size: 100 });
     expect((await 보낸줄('COMMENT')).map((c) => [c.issue_key, c.payload.body?.split('\n')[0]])).toEqual([['XBN-3', '딸린 테스트 없음 — 사람이 확인해 주세요']]);
+    // 새로 맡은 task 는 애플리케이션마다 PRD 초안 하나 — 버그는 초안이 없다 (새 기능 바퀴 5)
+    expect(await 초안들()).toEqual([
+      { service_id: String(서비스.XBN), keys: ['XBN-1'] },
+      { service_id: String(서비스.XBNA), keys: ['XBN-1'] },
+    ]);
   });
 
   it('늦게 「QA 요청」에 온 이슈는 다음 점검이 늦은 이슈로 맡는다', async () => {
@@ -226,6 +237,8 @@ describe.skipIf(연결 === undefined)('프로젝트 배포 신호', { timeout: 6
     expect(await 늦은이슈점검(부르기)).toBe(1);
     expect((await 맡음()).at(-1)).toEqual({ issue_key: 'XBN-4', issue_type: 'TASK', late: true, released: false });
     expect(await 늦은이슈점검(부르기)).toBe(0);
+    // 늦은 이슈는 따로 작은 초안이 된다
+    expect((await 초안들()).slice(2).map((x) => x.keys)).toEqual([['XBN-4'], ['XBN-4']]);
   });
 
   it('맡은 버그의 딸린 케이스가 다 통과하면 「재검증 통과」로 닫는다 — 한 번만 · 보낼 때 판 번호를 읽는다', async () => {

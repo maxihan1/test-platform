@@ -136,6 +136,8 @@ export const 라우트표: Record<string, 원천> = {
   '/api/authoring/requests/:id/game-screen': { 종류: '작성요청', 칸: 'id' },
   // 노트 고치기 결과 — 서비스 칸이 빈 줄이라 그 프로젝트 배정으로 본다 (projectNote/routes.ts)
   '/api/authoring/requests/:id/note': { 종류: '작성요청', 칸: 'id' },
+  // PRD 초안 결과 — 애플리케이션 줄이라 그 애플리케이션 배정으로 본다 (bts/draftRoutes.ts)
+  '/api/authoring/requests/:id/draft': { 종류: '작성요청', 칸: 'id' },
 
   // 표준 기획서 (도메인/작성 §7 「표준 기획서 통로」). 라우트가 ?service= 의 서비스 것만 읽고 쓴다
   '/api/prd': { 종류: '질의' },

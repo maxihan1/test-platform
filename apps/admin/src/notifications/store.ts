@@ -140,14 +140,14 @@ const 끝난상태 = `status IN ('DONE', 'FAILED', 'STOPPED') AND finished_at >=
 const 알림대상 = `(${도는상태} OR (${끝난상태}))`;
 
 /**
- * 뿌리마다 가장 최근 실행 한 줄 — 작성 목록(authoring/history.ts 한쪽)이 줄로 삼는 것과 같다. 폐기한 요청은 뺀다.
+ * 뿌리마다 가장 최근 실행 한 줄 — 작성 목록(authoring/history.ts 한쪽)이 줄로 삼는 것과 같다. 폐기한 요청 · PRD 초안은 뺀다.
  * 지금 도는 것과 최근 7일 안에 끝난 것만 볼 뿐이라 거기서 출발해 위로 뿌리를 찾고, 그 뿌리의 사슬만 따라 내려온다 —
  * 서비스의 모든 뿌리를 훑지 않는다. 가장 최근 행이 대상이 아니면 그 뿌리의 어떤 행도 대상이 아니라 놓치는 줄이 없다
  */
 async function 작성들(서비스들: 보이는서비스[]): Promise<작성행[]> {
   const r = await (await db()).query<작성행>(
     `WITH RECURSIVE 위(id, source_id) AS (
-       SELECT id, source_id FROM authoring_request WHERE service_id = ANY($1) AND ${알림대상}
+       SELECT id, source_id FROM authoring_request WHERE service_id = ANY($1) AND kind <> 'PRD_DRAFT' AND ${알림대상}
        UNION
        SELECT a.id, a.source_id FROM authoring_request a JOIN 위 ON a.id = 위.source_id
      ), ${사슬식('id IN (SELECT id FROM 위 WHERE source_id IS NULL)')},

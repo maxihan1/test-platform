@@ -52,6 +52,7 @@ describe.skipIf(연결 === undefined)('프로젝트 배포 신호 가장자리',
     await pool.query(`DELETE FROM app_build WHERE service_id IN ${ids}`, [접두사들]);
     await pool.query('DELETE FROM test_case WHERE tc_id = ANY($1)', [케이스들]);
     await pool.query(`DELETE FROM authoring_request WHERE project_id IN (SELECT id FROM project WHERE name = 'XBM 프로젝트')`);
+    await pool.query(`DELETE FROM authoring_request WHERE service_id IN ${ids}`, [접두사들]);
     await pool.query(`DELETE FROM service_env WHERE service_id IN ${ids}`, [접두사들]);
     // bts_link · bts_deploy · bts_claim · bts_outbox · bts_issue_case · 노트 사건은 service · project 와 같이 지워진다
     await pool.query('DELETE FROM service WHERE prefix = ANY($1)', [접두사들]);
