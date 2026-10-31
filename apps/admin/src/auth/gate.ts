@@ -299,18 +299,23 @@ export function 인증등록(app: FastifyInstance): void {
       return reply.code(403).send({ error: 'SERVICE_FORBIDDEN', detail: path });
     }
 
-    const 배정 = new Set(user.services.map((s) => s.prefix));
-    for (const prefix of 닿는것) {
-      if (!배정.has(prefix)) {
-        return reply.code(403).send({ error: 'SERVICE_FORBIDDEN', detail: prefix });
-      }
-    }
-
-    const 필요 = 필요권한(path, req.method);
-    if (!권한이되나(user, 필요, 닿는것)) {
-      // 404로 감추지 않는다. 화면이 그 자리를 아예 안 보여주므로 여기까지 닿은 요청은
-      // 화면의 버그이거나 직접 찌른 것이고, 둘 다 감추는 편이 더 나쁘다 (SPEC §7)
-      return reply.code(403).send({ error: 'FORBIDDEN', need: 필요 === 'admin' ? 필요 : `${필요.기능}:${필요.칸}` });
-    }
+    // 404로 감추지 않는다. 화면이 그 자리를 아예 안 보여주므로 여기까지 닿은 요청은
+    // 화면의 버그이거나 직접 찌른 것이고, 둘 다 감추는 편이 더 나쁘다 (SPEC §7)
+    const 막힘 = 문판정(user, 필요권한(path, req.method), 닿는것);
+    if (막힘 !== null) return reply.code(403).send(막힘);
   });
+}
+
+export type 문막힘 = { error: 'SERVICE_FORBIDDEN'; detail: string } | { error: 'FORBIDDEN'; need: string };
+
+/**
+ * 서비스를 뽑은 뒤의 판정 — 「배정받은 서비스인가」 다음 「칸이 되는가」. 막히면 403 몸, 통과면 null.
+ * MCP 도구도 이 함수를 부른다 — 화면에서 못 보는 것은 MCP 로도 못 본다 (도메인/BTS §3.12 「맥락 — MCP 조회 도구」)
+ */
+export function 문판정(user: 사용자, 필요: 권한값, 닿는것: readonly string[]): 문막힘 | null {
+  const 배정 = new Set(user.services.map((s) => s.prefix));
+  const 밖 = 닿는것.find((p) => !배정.has(p));
+  if (밖 !== undefined) return { error: 'SERVICE_FORBIDDEN', detail: 밖 };
+  if (!권한이되나(user, 필요, 닿는것)) return { error: 'FORBIDDEN', need: 필요 === 'admin' ? 필요 : `${필요.기능}:${필요.칸}` };
+  return null;
 }
