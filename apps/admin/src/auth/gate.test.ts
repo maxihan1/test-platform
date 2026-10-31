@@ -697,6 +697,9 @@ describe('등급 표', () => {
     // 빌드 올리기 · APK 내려받기는 사람 판정 밖이다 — 문이 CI 토큰 · 서명으로 돌려보낸다 (도메인/실행 §3.11)
     ['POST /api/builds', 'admin'],
     ['GET /api/builds/:buildId/apk', 'admin'],
+    // BTS 알림 · 규칙 웹훅 호출도 사람 판정 밖이다 — 서명 · btr_ 토큰이 문이다 (도메인/BTS §7)
+    ['POST /api/bts/events/:projectId', 'admin'],
+    ['POST /api/bts/rules', 'admin'],
   ]);
   const 옛높이 = { viewer: 0, operator: 1, admin: 2 } as const;
   type 옛등급 = keyof typeof 옛높이;

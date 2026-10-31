@@ -256,6 +256,9 @@ export const 등급표: Record<string, 표값> = {
   // 빌드 올리기는 CI 토큰으로만, APK 내려받기는 서명으로만 — 문이 권한 판정 앞에서 돌려보낸다 (gate.ts · settings/serviceTokens.ts)
   'POST /api/builds': 안따짐,
   'GET /api/builds/:buildId/apk': 안따짐,
+  // BTS 알림은 서명으로만, 규칙 웹훅 호출은 btr_ 토큰으로만 — 문이 권한 판정 앞에서 돌려보낸다 (gate.ts · bts/inbound.ts)
+  'POST /api/bts/events/:projectId': 안따짐,
+  'POST /api/bts/rules': 안따짐,
 };
 
 /**
