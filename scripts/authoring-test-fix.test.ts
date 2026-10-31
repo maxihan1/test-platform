@@ -32,7 +32,7 @@ describe('테스트 고침 반영 계획', () => {
     const 계획 = 반영계획만들기(판, 판, '', 'X', undefined, false, 고침);
     const 글 = 반영절({ 계획, 사본: '/자료/apply.json' }, [{ env: 'stage' }]).join('\n');
     expect(글).toContain('BTS DM-12');
-    expect(글).toContain('요구(결과 파일 prd.json)는 고치지 말고');
+    expect(글).toContain('요구(결과 파일 prd.json)를 고치지 말고 아래 케이스만 고친다 — 위 다시 씀');
     expect(글).toContain('X-FN-001 — 실행 RUN 42');
     expect(글).toContain('/자료/traces/RUN42-X-FN-001.txt');
     expect(글).toContain('⚠️ 위 대상 서버 목록에 qa 가 없다');

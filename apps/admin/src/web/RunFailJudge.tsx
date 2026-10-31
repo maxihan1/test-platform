@@ -24,24 +24,23 @@ const 닫힌사유: Record<string, string> = {
   FIXED: '재검증 통과로 닫힘',
 };
 
-/** 올린 이슈는 「확인 중」 · 닫혔으면 사유. 보내는 중 · 등록 실패는 RunFailBts 가 그린다. null 은 흔들림으로 닫혀 올리지 않은 테스트다 */
+/**
+ * 올린 이슈는 「확인 중」 · 닫혔으면 사유. 보내는 중 · 등록 실패는 RunFailBts 가 그린다.
+ * null(보일 등록이 없음 — 판정으로 안 올림 · 연결 전 실행 · 아직 안 넣음)은 까닭을 하나로 못 집어 아무것도 안 그린다
+ */
 function BTS판정({ 칸 }: { 칸: FailureBts | null }) {
   const t = use말();
-  if (칸 !== null && (칸.state !== 'SENT' || 칸.issueKey === null)) return null;
-  const 키 = 칸?.issueKey ?? '';
+  if (칸 === null || 칸.state !== 'SENT' || 칸.issueKey === null) return null;
+  const 키 = 칸.issueKey;
   return (
     <div className="fc-cause">
       <span className="fc-cause-label">{t('판정')}</span>
       <p className="fc-judged">
-        {칸 === null ? (
-          t('흔들림으로 닫힌 테스트라 BTS 에 올리지 않았습니다')
-        ) : (
-          <a href={칸.url ?? '#'} target="_blank" rel="noreferrer">
-            {칸.resolution === null
-              ? t('BTS {키} 에서 확인 중', { 키 })
-              : t('BTS {키} · {사유}', { 키, 사유: 닫힌사유[칸.resolution] === undefined ? 칸.resolution : t(닫힌사유[칸.resolution]) })}
-          </a>
-        )}
+        <a href={칸.url ?? '#'} target="_blank" rel="noreferrer">
+          {칸.resolution === null
+            ? t('BTS {키} 에서 확인 중', { 키 })
+            : t('BTS {키} · {사유}', { 키, 사유: 닫힌사유[칸.resolution] === undefined ? 칸.resolution : t(닫힌사유[칸.resolution]) })}
+        </a>
       </p>
     </div>
   );

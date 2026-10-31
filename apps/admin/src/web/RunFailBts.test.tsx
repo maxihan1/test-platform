@@ -76,13 +76,14 @@ describe('BTS 를 이은 프로젝트의 판정 줄', () => {
     expect(screen.queryByRole('button', { name: '화면이 맞음으로 바꾸기' })).toBeNull();
   });
 
-  it('닫혔으면 사유를 덧붙이고, 흔들림으로 닫혀 안 올린 테스트는 그 사실을 적는다', async () => {
+  it('닫혔으면 사유를 덧붙이고, 보일 등록이 없으면(null) 판정 줄도 결정 목록 고리도 없다', async () => {
     열기({ ...보냄, resolution: 'TEST_PROBLEM' });
     await screen.findByRole('link', { name: 'BTS DM-12 · 테스트 문제로 닫힘' });
     cleanup();
 
     열기(null);
-    await screen.findByText('흔들림으로 닫힌 테스트라 BTS 에 올리지 않았습니다');
+    await screen.findByText('회원가입');
+    expect(screen.queryByText('판정')).toBeNull();
     expect(screen.queryByRole('link', { name: '테스트 작성 › 결정 필요에서 판정합니다' })).toBeNull();
   });
 });

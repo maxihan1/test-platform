@@ -72,11 +72,13 @@ async function 원행(pool: Pool, projectId: number): Promise<연결원행 | und
   return r.rows[0];
 }
 
-/** 그 애플리케이션의 프로젝트가 BTS 를 이었나 — 이으면 「버그야, 아니야?」를 BTS 에서만 판정한다 (도메인/BTS 「지킬 것」 4) */
-export async function BTS이은서비스인가(서비스: number): Promise<boolean> {
-  const r = await (await db()).query('SELECT 1 FROM service s JOIN bts_link l ON l.project_id = s.project_id WHERE s.id = $1', [서비스]);
-  return r.rowCount === 1;
+/** 그 애플리케이션의 프로젝트가 BTS 를 이었으면 그 프로젝트 번호, 아니면 null — 이으면 「버그야, 아니야?」를 BTS 에서만 판정한다 (도메인/BTS 「지킬 것」 4) */
+export async function BTS이은프로젝트(서비스: number): Promise<number | null> {
+  const r = await (await db()).query<{ project_id: string }>('SELECT l.project_id FROM service s JOIN bts_link l ON l.project_id = s.project_id WHERE s.id = $1', [서비스]);
+  return r.rows[0] === undefined ? null : Number(r.rows[0].project_id);
 }
+
+export const BTS이은서비스인가 = async (서비스: number): Promise<boolean> => (await BTS이은프로젝트(서비스)) !== null;
 
 /** 프로젝트가 없으면 null — 라우트가 404 를 낸다. 연결이 없으면 linked: false 와 빈 칸 */
 export async function BTS연결읽기(projectId: number): Promise<BTS연결보기 | null> {

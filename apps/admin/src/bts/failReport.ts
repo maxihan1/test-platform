@@ -49,6 +49,8 @@ const 짝SQL = `
 
 const 기록상한 = 5;
 
+const 안올릴사유 = new Set(['FLAKY', 'TEST_PROBLEM', 'SCREEN_RIGHT']);
+
 /** trace 를 다 풀었을 때만 실패한 요청 · 콘솔 오류를 준다. 값은 적재 때 이미 가렸다(execution/traceIngest.ts) */
 async function 기록읽기(pool: Pool, historyId: number): Promise<{ 네트워크: string[] | null; 콘솔: string[] | null }> {
   const 상태 = await pool.query<{ status: string }>('SELECT status FROM run_trace WHERE history_id = $1', [historyId]);
@@ -131,8 +133,9 @@ export async function 실패등록(runId: number): Promise<number> {
     for (const c of 쪽.items) {
       if (그것만 !== null && !그것만.has(c.tcId)) continue;
       const 짝 = (await pool.query<{ issue_key: string; open: boolean; resolution: string | null; released: boolean }>(짝SQL, [서비스, c.tcId, 실행.env])).rows[0];
-      // 흔들림으로 닫힌 테스트는 다음 실패부터 올리지 않는다 — 그 케이스를 고친 작성이 병합되면 다시 올린다
-      if (짝 !== undefined && !짝.open && 짝.resolution === 'FLAKY' && !짝.released) continue;
+      // 흔들림 · 테스트 문제 · 화면이 맞음으로 닫힌 테스트는 다음 실패부터 올리지 않는다 — 사람이 판정했고 테스트를 고칠 일만 남았다.
+      // 그 케이스를 고친 작성이 병합되면 다시 올린다(도메인/BTS 「판정은 BTS 에서」)
+      if (짝 !== undefined && !짝.open && 안올릴사유.has(짝.resolution ?? '') && !짝.released) continue;
       const { 재료, 캡처 } = await 재료만들기(pool, 실행, 카드실행, c);
       // 줄은 카드가 서는 실행에 단다 — 실패 카드가 그 실행 번호로 bts 칸을 읽는다
       const 공통 = { projectId: Number(실행.project_id), serviceId: 서비스, runId: 카드실행, tcId: c.tcId, env: 실행.env };

@@ -385,7 +385,6 @@ export const 실행말: Record<string, string> = {
   '다시 보내기': 'Send again',
   'BTS {키} 에서 확인 중': 'Under review in BTS {키}',
   'BTS {키} · {사유}': 'BTS {키} · {사유}',
-  '흔들림으로 닫힌 테스트라 BTS 에 올리지 않았습니다': 'Not filed in BTS — this test was closed as flaky',
   '화면이 맞음으로 닫힘': 'Closed: screen is right',
   '테스트 문제로 닫힘': 'Closed: test problem',
   '흔들림으로 닫힘': 'Closed: flaky',

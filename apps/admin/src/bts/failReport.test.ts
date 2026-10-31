@@ -228,6 +228,16 @@ describe.skipIf(연결 === undefined)('실패 → BTS 등록', () => {
     expect((await 실패카드(부모, 1)).items.map((c) => [c.tcId, c.bts?.state])).toEqual([['XBF-005', 'SENDING']]);
   });
 
+  it('테스트 문제 · 화면이 맞음으로 닫힌 테스트도 고친 작성이 병합될 때까지 올리지 않는다 — 환경 문제는 다시 올린다', async () => {
+    for (const [tcId, 사유, 넣음] of [['XBF-007', 'TEST_PROBLEM', 0], ['XBF-008', 'SCREEN_RIGHT', 0], ['XBF-010', 'ENV', 1]] as const) {
+      await pool.query(
+        `INSERT INTO bts_issue_case (project_id, issue_key, service_id, tc_id, env, closed_at, resolution) VALUES ($1, $2, $3, $4, 'qa', now(), $5)`,
+        [프로젝트, `DM-${tcId}`, 서비스, tcId, 사유],
+      );
+      expect(await 실패등록(await 실행(서비스, [{ tcId, status: 'FAIL' }]))).toBe(넣음);
+    }
+  });
+
   it('BTS 를 안 이은 프로젝트는 줄을 안 넣고 카드에 bts 칸이 없다', async () => {
     const runId = await 실행(남의서비스, [{ tcId: 'XBFN-001', status: 'FAIL' }]);
     expect(await 실패등록(runId)).toBe(0);

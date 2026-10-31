@@ -73,7 +73,9 @@ export async function BTS알림처리(연결: 알림연결, 몸: unknown, 부르
   if (!처음보나(열쇠)) return null;
   try {
     const 이슈 = await 이슈읽기({ baseUrl: 연결.baseUrl, botKey: 연결.botKey }, 꼴.data.data.issueKey, 부르기);
-    await 닫기처리(연결, 이슈, 부르기);
+    const 닫음 = await 닫기처리(연결, 이슈, 부르기);
+    // 닫기만 하고 요청을 못 세운 케이스 — 사람의 판정이 QA Hub 에 닿지 않은 까닭을 남긴다(outbox.ts 처럼 서버 기록으로)
+    for (const 까닭 of 닫음.기록만) console.error(`[bts] ${이슈.key} 를 닫았지만 작성 요청을 못 세웠다: ${까닭}`);
     return 이슈;
   } catch (err) {
     본알림.delete(열쇠);
