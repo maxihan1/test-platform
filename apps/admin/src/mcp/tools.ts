@@ -137,7 +137,7 @@ export const aql글 = (글: string): string => `"${글.replace(/[\\"]/g, (c) => 
 /**
  * BTS 이슈 · task 찾기 — 사람 요청은 그 사람의 PAT 로 BTS 를 부른다(결정 16). BTS 가 자기 권한을 한 번 더 본다.
  * 자동 AI(mcj_)는 PAT 가 없어 `pat` 이 null 이고, 그 프로젝트에 저장한 「QA Hub AI」 열쇠로 부른다 (§3.12 「열쇠 표」)
- * QA Hub 쪽은 그 프로젝트 애플리케이션 하나라도 (작성, read) 여야 한다 — 노트 보기와 같은 문턱 (§7 「프로젝트 노트 보기」)
+ * QA Hub 쪽은 그 프로젝트 애플리케이션 하나라도 (작성, read) 여야 한다 — note_read 와 같은 문턱 (§3.12 「맥락 — MCP 조회 도구」)
  */
 export async function BTS찾기(사람: 사용자, pat: string | null, projectId: number, 찾을것: BTS찾을것, 부르기: 부르기함수 = BTS부르기): Promise<도구답> {
   const 문턱 = 프로젝트읽기막힘(사람, projectId);
