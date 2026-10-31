@@ -129,17 +129,18 @@ export type BTS찾을것 = { issueKey?: string; query?: string };
 export const aql글 = (글: string): string => `"${글.replace(/[\\"]/g, (c) => `\\${c}`)}"`;
 
 /**
- * BTS 이슈 · task 찾기 — 그 사람의 PAT 로 BTS 를 부른다(결정 16). BTS 가 자기 권한을 한 번 더 본다.
+ * BTS 이슈 · task 찾기 — 사람 요청은 그 사람의 PAT 로 BTS 를 부른다(결정 16). BTS 가 자기 권한을 한 번 더 본다.
+ * 자동 AI(mcj_)는 PAT 가 없어 `pat` 이 null 이고, 그 프로젝트에 저장한 「QA Hub AI」 열쇠로 부른다 (§3.12 「열쇠 표」)
  * QA Hub 쪽은 그 프로젝트 애플리케이션 하나라도 (작성, read) 여야 한다 — 노트 보기와 같은 문턱 (§7 「프로젝트 노트 보기」)
  */
-export async function BTS찾기(사람: 사용자, pat: string, projectId: number, 찾을것: BTS찾을것, 부르기: 부르기함수 = BTS부르기): Promise<도구답> {
+export async function BTS찾기(사람: 사용자, pat: string | null, projectId: number, 찾을것: BTS찾을것, 부르기: 부르기함수 = BTS부르기): Promise<도구답> {
   const 앱들 = 사람.services.filter((s) => s.projectId === projectId);
   if (!앱들.some((s) => 문판정(사람, 필요권한('/api/prd', 'GET'), [s.prefix]) === null)) return 막힘(`project ${String(projectId)}`);
 
-  const r = await (await db()).query<{ base_url: string; bts_project: string }>('SELECT base_url, bts_project FROM bts_link WHERE project_id = $1', [projectId]);
+  const r = await (await db()).query<{ base_url: string; bts_project: string; bot_key: string }>('SELECT base_url, bts_project, bot_key FROM bts_link WHERE project_id = $1', [projectId]);
   const 연결 = r.rows[0];
   if (연결 === undefined) return { ok: false, error: 'NOT_LINKED', detail: `project ${String(projectId)} 은 BTS 를 잇지 않았다` };
-  const 자리 = { baseUrl: 연결.base_url, botKey: pat };
+  const 자리 = { baseUrl: 연결.base_url, botKey: pat ?? 연결.bot_key };
 
   let 부를것: Parameters<부르기함수>;
   if (찾을것.issueKey !== undefined) {
