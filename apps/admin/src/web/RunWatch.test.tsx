@@ -76,6 +76,21 @@ describe('진행 알약 (도메인/실행 §8.9)', () => {
     expect(상자라벨()).toContain('실행 중');
   });
 
+  it('지켜보던 실행이 끝나면 끝났다고 알린다 — 케이스 목록이 줄 결과를 다시 읽는다', async () => {
+    const 받음: number[] = [];
+    const 듣기 = (e: Event) => 받음.push((e as CustomEvent<number>).detail);
+    window.addEventListener('tp:run-done', 듣기);
+    vi.spyOn(api, 'run').mockResolvedValue(도는중응답);
+    await 그린다(false);
+    expect(받음).toEqual([]);
+    vi.spyOn(api, 'run').mockResolvedValue(끝난응답);
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 2100));
+    });
+    expect(받음).toContain(RUN_ID);
+    window.removeEventListener('tp:run-done', 듣기);
+  });
+
   it('멈출 권한이 없으면 진행 창에 「실행 중단」이 없다', async () => {
     vi.spyOn(api, 'run').mockResolvedValue(도는중응답);
     await 그린다(true, (무엇) => 무엇 !== '멈춤');

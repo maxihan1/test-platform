@@ -25,6 +25,7 @@ import type { 글자표 } from './pickRun.js';
 import type { 판정 } from './role.js';
 import { 다음이있나 } from './paging.js';
 import { RunPickModal } from './RunPickModal.js';
+import { use실행끝남 } from './runWatchStore.js';
 import { Failed, Loading, message, useAsync } from './ui.js';
 import { useRunPick, 쪽상한 } from './useRunPick.js';
 
@@ -50,6 +51,11 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
   const 요구쓰나 = cases.data?.hasFeatures ?? false;
   const 접기 = use묶음접기(cases.data?.groups, 요구쓰나);
   const last = useAsync(() => (결과보나 ? api.lastByCase() : Promise.resolve({ items: [] })), [결과보나]);
+  // 한 건 실행이 끝나면 줄의 결과 · 최근 5회를 다시 읽는다 — 진행 창 · 알약은 바깥 틀(RunWatch)에 있어 이 목록이 끝을 모른다
+  use실행끝남(() => {
+    void cases.reload();
+    void last.reload();
+  });
 
   const lastMap: LastMap = {};
   for (const item of last.data?.items ?? []) lastMap[keyOf(item.tcId, item.platform)] = item;
