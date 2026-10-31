@@ -4,6 +4,7 @@
 import type { Pool } from 'pg';
 
 import { 뿌리 } from '../authoring/history.js';
+import type { AI품질 } from '../bts/quality.js';
 import {
   창날수,
   커버리지날수,
@@ -121,6 +122,8 @@ export interface 대시보드응답 {
   decisions: { serviceId: number; count: number }[];
   /** 서비스 하나를 골랐을 때만 찬다 (§8.12 「종류별 칸」) */
   byKind: 종류칸 | null;
+  /** 작성 read 인 범위에 BTS 를 이은 프로젝트가 있을 때만 찬다 — 라우트가 센다 (도메인/BTS 「품질 숫자」) */
+  aiQuality: AI품질 | null;
 }
 
 interface 줄행 {
@@ -235,7 +238,7 @@ async function 앞판정읽기(pool: Pool, runIds: number[]): Promise<Map<number
 }
 
 // 고른 서비스가 볼 수 있는 목록에 없으면 빈 목록이 된다 — 남의 서비스 번호를 줘도 아무것도 안 읽힌다
-const 좁힌다 = (ids: number[], 서비스: number | undefined): number[] => (서비스 === undefined ? ids : ids.filter((id) => id === 서비스));
+export const 좁힌다 = (ids: number[], 서비스: number | undefined): number[] => (서비스 === undefined ? ids : ids.filter((id) => id === 서비스));
 
 /** 화면이 15초마다 부르는 가벼운 쪽 — 집계는 안 돌고 실행 중 줄만 읽는다. tz 는 안 쓰지만 같은 통로라 틀린 이름은 똑같이 거절한다 */
 export async function 대시보드실행중(tz: string, 실행서비스ids: number[], 서비스?: number): Promise<{ running: 실행중[] }> {
@@ -253,7 +256,7 @@ export async function 대시보드(
   볼수있는실행ids: number[],
   볼수있는작성ids: number[],
   { 서비스: 고른서비스, 날수 = 창날수 }: { 서비스?: number; 날수?: number } = {},
-): Promise<Omit<대시보드응답, 'decisions'>> {
+): Promise<Omit<대시보드응답, 'decisions' | 'aiQuality'>> {
   const 실행서비스ids = 좁힌다(볼수있는실행ids, 고른서비스);
   const 작성서비스ids = 좁힌다(볼수있는작성ids, 고른서비스);
   const pool = await db();

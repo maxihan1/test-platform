@@ -313,11 +313,12 @@ describe.skipIf(연결 === undefined)('증적 API', () => {
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(Object.keys(body).sort()).toEqual(
-      ['window', 'services', 'passRate', 'daily', 'newFailures', 'byService', 'heatmap', 'coverage', 'running', 'unconfirmed', 'failureTypes', 'decisions', 'byKind'].sort(),
+      ['window', 'services', 'passRate', 'daily', 'newFailures', 'byService', 'heatmap', 'coverage', 'running', 'unconfirmed', 'failureTypes', 'decisions', 'byKind', 'aiQuality'].sort(),
     );
-    // 작성 칸이 없으면 결정 필요 수를 셀 애플리케이션이 없고, 하나를 고르지 않아 종류별 칸도 없다
+    // 작성 칸이 없으면 결정 필요 수 · AI 품질을 셀 애플리케이션이 없고, 하나를 고르지 않아 종류별 칸도 없다
     expect(body.decisions).toEqual([]);
     expect(body.byKind).toBeNull();
+    expect(body.aiQuality).toBeNull();
     expect(body.window.tz).toBe('Asia/Seoul');
     expect(body.services).toEqual([{ id: 대시보드서비스, name: 'XDR 대시보드' }]);
     expect(body.running.map((r: { runId: number }) => r.runId)).toEqual([도는실행]);

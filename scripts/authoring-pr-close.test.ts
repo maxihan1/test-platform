@@ -1,8 +1,8 @@
-// 닫을 PR 처리 — 닫은 · 이미 닫힌 PR 만 서버에 적고, 못 닫았고 열려 있거나 상태를 못 읽으면 다음에 다시 본다
+// 닫을 PR 처리 — 닫은 · 이미 닫힌 PR 만 서버에 적고, 못 닫았고 열려 있거나 상태를 못 읽으면 다음에 다시 본다 · 수정 PR 상태 적기
 
 import { describe, expect, it } from 'vitest';
 
-import { PR닫기인자, 닫을PR처리 } from './authoring-pr-close.js';
+import { PR닫기인자, 닫을PR처리, 수정PR상태처리 } from './authoring-pr-close.js';
 
 describe('닫을PR처리', () => {
   it('닫은 PR · 이미 병합된 PR 은 적고 · 열린 채 남은 PR 은 안 적고 · 서버가 적기를 거절하면 안 센다', async () => {
@@ -24,5 +24,26 @@ describe('닫을PR처리', () => {
 
   it('브랜치는 안 지우고 닫는 까닭 댓글을 단다', () => {
     expect(PR닫기인자('u/1')).toEqual(['pr', 'close', 'u/1', '--comment', expect.stringContaining('롤백')]);
+  });
+});
+
+describe('수정PR상태처리', () => {
+  it('병합 · 닫힘만 그 상태로 적고 · 열린 PR · 못 읽은 PR 은 안 적고 · 서버가 거절하면 안 센다', async () => {
+    const 부른것: unknown[] = [];
+    const 부른다 = async (길: string, 옵션?: { method: string; body?: unknown }) => {
+      부른것.push(옵션 === undefined ? 길 : [길, 옵션.body]);
+      return 길.startsWith('/authoring/requests/bugfix-prs')
+        ? { status: 200, 몸: { prs: [{ id: 1, prUrl: 'u/1' }, { id: 2, prUrl: 'u/2' }, { id: 3, prUrl: 'u/3' }, { id: 4, prUrl: 'u/4' }, { id: 5, prUrl: 'u/5' }] } }
+        : { status: 길 === '/authoring/requests/5/pr-state' ? 404 : 204, 몸: null };
+    };
+    const 상태 = { 'u/1': 'MERGED\n', 'u/2': 'CLOSED\n', 'u/3': 'OPEN\n', 'u/5': 'MERGED\n' } as Record<string, string>;
+    const gh = (인자: string[]) => ({ ok: 인자[2]! in 상태, 낸것: 상태[인자[2]!] ?? '', 까닭: '' });
+    expect(await 수정PR상태처리('MKW', 부른다, gh)).toBe(2);
+    expect(부른것).toEqual([
+      '/authoring/requests/bugfix-prs?service=MKW',
+      ['/authoring/requests/1/pr-state', { state: 'MERGED' }],
+      ['/authoring/requests/2/pr-state', { state: 'CLOSED' }],
+      ['/authoring/requests/5/pr-state', { state: 'MERGED' }],
+    ]);
   });
 });

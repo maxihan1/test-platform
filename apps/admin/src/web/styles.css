@@ -5107,6 +5107,21 @@ details[open]:not(.ph-me)::details-content {
   font-size: 10.5px;
 }
 
+/* AI 품질 — 검토할 것 아래 한 줄. 누르는 곳 없이 숫자만 (도메인/BTS §8.15) */
+.dash-ai {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 12.5px;
+}
+
+.dash-ai-name {
+  color: var(--ink-faint);
+}
+
 /* 검토할 것 — 판 하나를 세 칸으로. 수가 있는 칸 전체가 누르는 자리다 */
 .dash-review {
   display: grid;
