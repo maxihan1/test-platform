@@ -80,7 +80,7 @@
    - 배포가 건 첫 실행(스모크, 스모크 케이스가 없으면 회귀) 번호를 `bts_deploy.run_ids` 에 한 번에 적는다 — 앱 · 게임은 배포 빌드 번호가 아닌 최신 APK 로 돌아 빌드 번호로는 그 배포의 스모크를 못 찾는다(시작 질문 1). 판정은 그 가운데 스모크만 본다. 스모크가 다 끝나기 전에 새 배포가 오면 앞 배포는 말없이 `HELD` 로 닫는다(새 배포가 맡는다 — 새 배포가 `FAILED` 면 앞 배포가 그대로 판정한다)
 4. **하나라도 스모크가 깨지면** 이슈를 맡지 않고 「QA 요청」 이슈마다 「스모크 실패 — 보류」 댓글 → 배포 줄은 `HELD` 로 끝난다. 이슈가 「QA 요청」에 남아 다음 배포가 다시 잡는다
 5. **다 통과하면** BTS 에서 「QA 요청」이면서 `bts_claim` 에 맡는 중인 줄이 없는 이슈를 찾아 한 묶음으로 맡는다(`bts_claim` 에 배포 · 빌드를 적는다). BTS 규칙이 늦게 끝나 이 묶음에 못 든 이슈는 다음 점검이 따로 작은 초안으로 맡는다(「늦은 이슈」 — 맡은 때(마지막 스모크가 끝난 때, 스모크가 없으면 배포 신호 때)부터 10분 동안 1분마다 다시 찾는다. 가장 새 배포가 맡은 배포일 때만이다(실패한 배포는 건너뛴다). 끝없이 BTS 를 두드리지 않게 · 상수는 `bts/deployLate.ts` `늦은이슈기한분` · BTS-F5-01 시작 질문). 찾은 「QA 요청」 목록에 없는 맡는 중 줄은 놓는다 — QA Hub 가 꺼져 「QA 요청」을 떠난 알림을 놓쳐도 다음 배포가 다시 맡게
-   - task · 스토리 → 애플리케이션마다 PRD 초안 요청(`PRD_DRAFT`) 하나. 설명이 모자라면 초안이 그 이슈를 「결정 필요」로 멈춘다
+   - task · 스토리 → 애플리케이션마다 PRD 초안 요청(`PRD_DRAFT`) 하나. 설명이 모자라면 초안이 그 이슈를 「? 확인」 줄 하나로 내 「결정 필요」에서 사람이 정한다(아래 「PRD 초안 → 결정 필요」)
    - 버그 → 맡은 배포 뒤에 선 실행에서 딸린 케이스(`bts_issue_case` — 깨진 대상 서버와 같은 서버)가 다 통과하면 「재검증 통과 — 빌드 N」을 담아 「닫힘」으로 옮긴다(`resolution` `FIXED` · 맡음을 놓는다). 또 실패면 지금처럼 열린 이슈에 댓글이 달리고, 수정 AI 로 넘기는 것은 아래 「수정 AI」 재검증 실패(BTS-F6-01)
      딸린 케이스가 여러 애플리케이션 · 대상 서버에 걸치면 케이스마다 맡은 배포 뒤 그 케이스를 돌린 마지막 실행을 본다
      **따로 실행을 세우지 않는다** — 스모크 뒤 회귀가 활성 케이스 전부라 딸린 케이스도 돈다. 같은 빌드를 두 번 돌리지 않는다(2026-10-31 BTS-F5-01 시작 질문 5 — 기획의 「딸린 케이스만 다시 실행」을 바꿨다. 판단 기준 「통과해야 닫는다」는 그대로다). 「닫힘」 옮기기는 보낼 줄 TRANSITION 이고 이슈 판 번호는 보내기 직전에 읽는다(`bts/outbox.ts` — 그사이 판이 바뀌어 409 면 다시 보내고, 이미 닫혔으면 실은 글을 댓글로만 단다)
@@ -93,6 +93,10 @@
 #### PRD 초안 → 「결정 필요」 → 다시 작성
 
 - 초안 요청(`PRD_DRAFT`)은 애플리케이션 하나 · 맡은 이슈 여럿이다. 자식은 MCP 로 이슈 글 · 노트 · 지금 PRD 를 읽고 QA 화면을 훑어 줄마다 `{ op: 'ADD'|'EDIT'|'DEL', reqId?, text, basis, issueKeys, sure }` 를 낸다. `sure: false` 가 「? 확인」이다
+- **언제 서나** — 배포가 이슈를 맡을 때(묶음 · 늦은 이슈 둘 다) 새로 맡은 task · 스토리가 있으면 그 배포의 애플리케이션마다 하나다. 늦은 이슈는 따로 작은 초안이 된다. 대상 서버는 그 배포가 그 애플리케이션에 건 실행의 서버다(스모크가 돈 서버). 초안을 못 세우면 그때 맡은 줄을 놓아 늦은 이슈 점검 · 다음 배포가 다시 맡게 한다(`bts/deployFlow.ts` 맡기). `bts_claim.request_id` 는 채우지 않는다 — 애플리케이션마다 초안이 서서 한 칸에 못 담는다. 초안은 요청의 `params.issueKeys` 로 찾는다 (BTS-F5-03 시작 질문 1 · 7)
+- **자식** — 테스트 저장소 · 코드 없이 작업 폴더 하나로 돈다(노트 고치기와 같은 틀 · `scripts/authoring-draft.ts`). 도구는 파일 읽기 · 쓰기 · MCP 조회, 웹 애플리케이션이면 `playwright-cli` 하나다(앱 · 게임 · API 는 화면을 안 연다). 지금 판은 에이전트가 받아 계정 비밀번호를 가려 넘기고, 대상 서버 · 계정은 환경 변수로만 간다. 화면은 이슈가 말한 기능만 연다 — 앱 전체를 훑지 않는다 (BTS-F5-03 시작 질문 2)
+- **줄 규칙** — 확정 후보(`sure: true`)는 이슈 글에 적힌 것만이다. 화면에서만 본 것은 `sure: false` 에 근거 「화면에서만 봄」. 이슈 설명이 모자라 무엇이 바뀌는지 모르면 그 이슈는 `sure: false` 줄 하나로 내고 근거에 「이슈 설명이 모자람」을 적는다(응답 꼴을 늘리지 않으려고 — BTS-F5-03 시작 질문 4). 같은 요구 번호를 두 줄이 건드리면 서버가 거절한다 — 아래 「한 카드로」가 줄 단위에서도 선다(시작 질문 3). 그 애플리케이션과 상관없는 이슈는 줄이 없고, 하나도 없으면 빈 초안이다
+- **사람에게 보이는 자리** — 「PRD 초안」 카드(BTS-F5-04) 하나다. 초안 요청은 작성 목록 · 작성 완료 알림 · 결정 목록 「반영 대기」에 안 싣고 사람이 다시 돌리지 못한다(400 `BAD_KIND`). 에이전트가 꺼져 멈춘 초안(`AGENT_RESTART`)은 같은 칸으로 새로 선다 — 이어하기로 잇지 않는다(남길 작업 폴더가 없다). 실패한 초안을 사람이 보는 자리는 카드 줄(BTS-F5-04)이 정한다 (시작 질문 6)
 - **같은 요구를 건드리는 이슈끼리는 한 카드로 합친다.** 다른 애플리케이션과 엮이면 노트를 보고 E2E 시나리오를 제안한다(케이스 조합만 — 작성 쪽은 안 바꾼다) → 같은 카드에서 확정
 - 사람이 고른 줄은 지금 결정 진행 흐름으로 PRD 새 버전(`DECISION`)이 되고, 그 줄의 항목에 `fromIssues` 가 붙는다(롤백이 이것만 되돌린다). 「? 확인」을 안 고르면 `확인 필요` 요구가 되고 그 케이스는 미확정이다
 - 고르지 않은 카드는 목록에 남는다 — 지금 결정 목록 규칙 그대로
@@ -324,7 +328,7 @@ POST /api/runs/:runId/bts/resend   { tcId, env }
 # BTS 연결 프로젝트의 옛 판정 통로 — 「판정은 BTS 에서만」을 비켜 가지 못하게 (BTS-F3-04 반영 2026-10-31 · authoring/decisionRun.ts · routes.ts)
 #   결정 진행 picks 에 실패(fail:…)가 있으면 400 BAD_DECISION — 버그 · 화면이 맞음 둘 다. 옛 POST /api/runs/:runId/bugs 는 2026-10-26 WEB-F6-05 에 지웠고 화면이 맞음 요청도 결정 진행 하나라 409 BTS_LINKED 를 낼 통로가 남지 않았다
 #   사람 작성 요청 통로(AUTHOR · RERUN)가 params 에 testFix · issueKey · repo · draft 칸을 실으면 400 BAD_EDIT { detail: 'params.<칸>' }
-#   사람의 다시 실행 통로는 PRD_DRAFT · NOTE · BUGFIX 줄을 400 BAD_KIND 로 막는다(에이전트 이어하기만) — 그 종류를 더하는 줄(F4-03 · F5-03 · F6-01)이 같이 한다. NOTE 는 BTS-F4-03 반영 2026-10-31(authoring/routes.ts — 이어서 작성 · 이어 작성 · 머지의 원본으로 줘도 같다. 남의 프로젝트 줄은 지금처럼 403)
+#   사람의 다시 실행 통로는 PRD_DRAFT · NOTE · BUGFIX 줄을 400 BAD_KIND 로 막는다(에이전트 이어하기만) — 그 종류를 더하는 줄(F4-03 · F5-03 · F6-01)이 같이 한다. NOTE 는 BTS-F4-03 반영 2026-10-31(authoring/routes.ts — 이어서 작성 · 이어 작성 · 머지의 원본으로 줘도 같다. 남의 프로젝트 줄은 지금처럼 403) · PRD_DRAFT 는 BTS-F5-03 반영 2026-10-31(같은 자리 — 남의 애플리케이션 줄은 지금처럼 403 SERVICE_FORBIDDEN)
 
 # 결정 목록(작성.md §7 「결정 목록 통로」) — BTS 연결 프로젝트만 갈라진다 (BTS-F3-04 · F5-04)
 #   items 에 FAIL 이 안 실리고 failMore 는 0 이다(BTS-F3-04 반영 2026-10-31 · authoring/decisions.ts) · 새 항목 종류 PRD_DRAFT { requestId, issueKeys, rows: [{ op, reqId?, text, basis, issueKeys, sure }], e2e?: [...] }
@@ -339,7 +343,13 @@ POST /api/runs/:runId/bts/resend   { tcId, env }
 #   NOTE 집기는 그 프로젝트 어느 애플리케이션의 집기(?service=)에서나 집힌다(4-데이터모델 「NOTE 줄을 집는 길」). 응답에 칸 하나 (BTS-F4-03 반영 2026-10-31 · projectNote/claim.ts)
 #     note: { project: { id, name, btsProject }, services: [{ prefix, name, kind }], current: { version, savedAt, docs: [{ name, summary, body }] } | null, events: [{ id, kind, payload, createdAt }] }
 #     — events 는 집을 때 이 줄에 묶은 반영 안 된 사건(도메인 「맥락 — 프로젝트 노트」) · 차례는 오래된 것부터 · 200건까지(넘은 것은 다음 노트 고치기가 받는다)
-POST /api/authoring/requests/:id/draft    { rows, e2e? }                  — PRD_DRAFT 결과 (BTS-F5-03)
+#   PRD_DRAFT 집기는 애플리케이션 줄이다 — target · accounts 는 대조처럼 그 줄의 대상 서버로 싣고 mcpKey 도 싣는다. 응답에 칸 하나 (BTS-F5-03 반영 2026-10-31 · bts/draft.ts 초안집기칸)
+#     draft: { projectId, services: [{ prefix, name, kind }], issueKeys, buildNo }   — services 는 같은 프로젝트의 애플리케이션(E2E 제안의 접두사)
+POST /api/authoring/requests/:id/draft    { rows: [{ op, reqId?, text, basis, issueKeys, sure }], e2e?: [{ title, services, steps, issueKeys }] }   — PRD_DRAFT 결과 (BTS-F5-03 반영 2026-10-31 · bts/draftRoutes.ts · draft.ts)
+  — 서버가 그 줄의 result 를 { draft: { rows, e2e? }, prdVersion } 로 둔다(prdVersion 은 초안이 본 지금 판). 끝내기 DONE 은 그 뒤에만 받는다 — 초안 없는 DONE 은 400 BAD_DRAFT { detail: 'draft' }
+  — 줄: EDIT · DEL 의 reqId 는 지금 판에 있어야 하고 ADD 는 reqId 가 없다 · 같은 reqId 두 줄은 거절 · issueKeys 는 그 줄이 맡은 키만 · 글 · 줄 개수 상한은 `bts/draft.ts` `초안상한` · rows 가 빈 목록이면 그 애플리케이션에 바뀐 것이 없다
+  — e2e: services 는 같은 프로젝트 애플리케이션 접두사 둘 이상 · steps 는 글 목록
+  → 201 { rows: 받은 줄 수 } · 400 BAD_DRAFT { detail: '<칸 경로>' } · 400 BAD_KIND(PRD_DRAFT 줄이 아님) · 409 NOT_RUNNING · 403 NOT_CLAIMER
 POST /api/authoring/requests/:id/note     { docs: [{ name, summary, body }], remove?: string[] }   — NOTE 결과 (BTS-F4-03 반영 2026-10-31 · projectNote/routes.ts)
   — 바뀐 문서만 싣는다. 서버가 앞 판에 이름으로 겹치고(remove 는 뺀다) 새 판 하나를 만든다
   — NOTE 줄이 애플리케이션 전용 에이전트 통로(prd · screens · guide · app-screen · 산출물 등)를 부르면 400 BAD_KIND · 끝내기에 prUrl 을 실으면 400 BAD_PR_URL
@@ -367,7 +377,7 @@ POST /mcp
 제안:    위 §7 꼴
 이유:    도메인/BTS §3.12 (2026-10-28 기획 · BTS-F1-01 시작 질문 승인 2026-10-31)
 영향:    WS-B(배포 신호 · 다시 보내기) · WS-F(설정 · 열쇠 · PAT · 문 허용 목록) · WS-작성(결정 목록 · 에이전트 통로) · WS-D(실패 카드 · 대시보드) · WS-E(화면) · 작성 에이전트 · 새 bts/ · mcp/ · projectNote/
-반영:    설정 › BTS 연결 · 설정 서비스 codeRepos (2026-10-31, apps/admin/src/bts/routes.ts — BTS-F3-01) · BTS 알림 · BTS 규칙 웹훅 호출 (2026-10-31, apps/admin/src/bts/inbound.ts — BTS-F3-02) · BTS 다시 보내기 · 실패 카드 bts 칸 (2026-10-31, apps/admin/src/bts/card.ts — BTS-F3-03) · 결정 목록 FAIL 뺌 · 옛 판정 통로(BAD_DECISION · BAD_EDIT) (2026-10-31, authoring/decisions.ts · decisionRun.ts · routes.ts — BTS-F3-04) · 설정 › BTS 연결 publicUrl · 처음 연결의 webhookSecret 선택(SECRETS_REQUIRED 는 botKey 만) · 고를 목록 · 자동 설정 · 규칙 몸 assignee? · prTitle? (2026-10-31, apps/admin/src/bts/routes.ts · link.ts · choices.ts · setup.ts · inbound.ts — BTS-F3-05) · /mcp 의 PAT 열쇠와 도구 넷(note_read 빼고) (2026-10-31, apps/admin/src/mcp/server.ts · tools.ts · auth/pat.ts — BTS-F4-01) · /mcp 의 mcj_ 와 집기 mcpKey(AUTHOR · 그 RERUN 만 — 나머지 받는 줄은 그 종류를 만드는 줄이 더한다) (2026-10-31, apps/admin/src/mcp/jobKey.ts · authoring/agentRoutes.ts — BTS-F4-02) · 노트 결과 통로 · 집기 note 칸과 NOTE 의 mcpKey · NOTE 줄의 서비스 경계 · NOTE 사람 다시 실행 BAD_KIND · note_read (2026-10-31, apps/admin/src/projectNote/ · mcp/note.ts · auth/scope.ts — BTS-F4-03 · 노트 보기 통로와 화면은 사용자가 뺐다) · 프로젝트 배포 신호(400 NO_BUILD · INVALID_REQUEST 더함) · BTS 연결 프로젝트의 앱 · 게임 POST /api/builds 는 실행을 안 건다(runIds 빈 목록) (2026-10-31, apps/admin/src/bts/deploy.ts · deployFlow.ts · execution/buildRoutes.ts — BTS-F5-01). 나머지는 진행판 줄마다
+반영:    설정 › BTS 연결 · 설정 서비스 codeRepos (2026-10-31, apps/admin/src/bts/routes.ts — BTS-F3-01) · BTS 알림 · BTS 규칙 웹훅 호출 (2026-10-31, apps/admin/src/bts/inbound.ts — BTS-F3-02) · BTS 다시 보내기 · 실패 카드 bts 칸 (2026-10-31, apps/admin/src/bts/card.ts — BTS-F3-03) · 결정 목록 FAIL 뺌 · 옛 판정 통로(BAD_DECISION · BAD_EDIT) (2026-10-31, authoring/decisions.ts · decisionRun.ts · routes.ts — BTS-F3-04) · 설정 › BTS 연결 publicUrl · 처음 연결의 webhookSecret 선택(SECRETS_REQUIRED 는 botKey 만) · 고를 목록 · 자동 설정 · 규칙 몸 assignee? · prTitle? (2026-10-31, apps/admin/src/bts/routes.ts · link.ts · choices.ts · setup.ts · inbound.ts — BTS-F3-05) · /mcp 의 PAT 열쇠와 도구 넷(note_read 빼고) (2026-10-31, apps/admin/src/mcp/server.ts · tools.ts · auth/pat.ts — BTS-F4-01) · /mcp 의 mcj_ 와 집기 mcpKey(AUTHOR · 그 RERUN 만 — 나머지 받는 줄은 그 종류를 만드는 줄이 더한다) (2026-10-31, apps/admin/src/mcp/jobKey.ts · authoring/agentRoutes.ts — BTS-F4-02) · 노트 결과 통로 · 집기 note 칸과 NOTE 의 mcpKey · NOTE 줄의 서비스 경계 · NOTE 사람 다시 실행 BAD_KIND · note_read (2026-10-31, apps/admin/src/projectNote/ · mcp/note.ts · auth/scope.ts — BTS-F4-03 · 노트 보기 통로와 화면은 사용자가 뺐다) · 프로젝트 배포 신호(400 NO_BUILD · INVALID_REQUEST 더함) · BTS 연결 프로젝트의 앱 · 게임 POST /api/builds 는 실행을 안 건다(runIds 빈 목록) (2026-10-31, apps/admin/src/bts/deploy.ts · deployFlow.ts · execution/buildRoutes.ts — BTS-F5-01) · PRD 초안 결과 통로 · 집기 draft 칸과 PRD_DRAFT 의 mcpKey · PRD_DRAFT 사람 다시 실행 BAD_KIND · 초안 없는 끝내기 BAD_DRAFT (2026-10-31, apps/admin/src/bts/draft.ts · draftRoutes.ts · authoring/agentRoutes.ts · routes.ts · mcp/jobKey.ts — BTS-F5-03). 나머지는 진행판 줄마다
 상태:    대기
 ```
 
