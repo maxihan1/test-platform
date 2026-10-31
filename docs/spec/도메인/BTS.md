@@ -156,7 +156,8 @@
 - 코드 자리는 수정 AI 용이다. 노트 고치는 AI 도 코드를 읽지 않고 **PR 병합 사건의 바뀐 파일 경로 · PR 제목**만 적는다. 바뀐 파일 경로는 에이전트 스크립트가 PR 번호로 GitHub 에서 읽어 자료로 넘긴다(자식은 GitHub 열쇠가 없다 — 결정 10). 못 읽으면(권한 · 저장소 밖 주소) 제목만 넘긴다
 - **고치는 때** — 배포 · task 끝 · 이슈 열림/닫힘 · PR 병합 · PRD 새 버전 · 작성 끝이 `project_note_event` 에 쌓이고, 열린 노트 고치기가 없으면 대기열에 `NOTE` 하나를 세운다(쌓인 사건을 한 번에). 처음 만들기도 같은 일 하나. 배포 사건은 배포 신호(BTS-F5-01)가 쌓는다
   - 사건을 쌓는 곳 — BTS 알림 `issue.created`(ISSUE_OPEN) · 「닫힘」 상태로 옮겨진 `issue.transitioned`(버그면 ISSUE_CLOSE, 그 밖은 TASK_DONE) · 규칙 웹훅 `PR_MERGED` · 표준 기획서 새 판(PRD_VERSION) · NOTE 밖 작성 요청이 DONE 으로 끝남(AUTHORING_DONE)
-  - 노트 고치기는 **반영 안 된 사건**을 집을 때 한 번에 받는다 — 아직 아무 일도 안 받은 사건과, 받은 일이 실패 · 중단으로 끝난 사건이다
+  - 노트 고치기는 **반영 안 된 사건**을 집을 때 한 번에 받는다 — 아직 아무 일도 안 받은 사건과, 받은 일이 실패 · 중단으로 끝난 사건이다. 한 번에 200건까지
+  - 노트 고치기가 DONE 으로 끝날 때 아무 일도 안 받은 사건(도는 동안 온 것 · 200건을 넘은 것)이 남았으면 다음 노트 고치기를 바로 세운다. 실패 · 중단으로 끝나면 세우지 않는다 — 다음 사건이 올 때 다시 받는다(AI 가 계속 실패해도 끝없이 돌지 않게 · `projectNote/events.ts`)
 - 노트 고치기는 바뀐 문서만 보낸다(지운 문서는 이름만). 서버가 앞 판에 겹쳐 새 판 하나를 만든다 — 안 바뀐 문서를 AI 가 다시 쓰다 흐트러지지 않게
 - AI 가 실패하면 앞 판을 그대로 둔다. `note_read` 목차에 판 번호 · 「마지막 고친 때」
 
@@ -314,7 +315,7 @@ POST /api/runs/:runId/bts/resend   { tcId, env }
 # BTS 연결 프로젝트의 옛 판정 통로 — 「판정은 BTS 에서만」을 비켜 가지 못하게 (BTS-F3-04 반영 2026-10-31 · authoring/decisionRun.ts · routes.ts)
 #   결정 진행 picks 에 실패(fail:…)가 있으면 400 BAD_DECISION — 버그 · 화면이 맞음 둘 다. 옛 POST /api/runs/:runId/bugs 는 2026-10-26 WEB-F6-05 에 지웠고 화면이 맞음 요청도 결정 진행 하나라 409 BTS_LINKED 를 낼 통로가 남지 않았다
 #   사람 작성 요청 통로(AUTHOR · RERUN)가 params 에 testFix · issueKey · repo · draft 칸을 실으면 400 BAD_EDIT { detail: 'params.<칸>' }
-#   사람의 다시 실행 통로는 PRD_DRAFT · NOTE · BUGFIX 줄을 400 BAD_KIND 로 막는다(에이전트 이어하기만) — 그 종류를 더하는 줄(F4-03 · F5-03 · F6-01)이 같이 한다
+#   사람의 다시 실행 통로는 PRD_DRAFT · NOTE · BUGFIX 줄을 400 BAD_KIND 로 막는다(에이전트 이어하기만) — 그 종류를 더하는 줄(F4-03 · F5-03 · F6-01)이 같이 한다. NOTE 는 BTS-F4-03 반영 2026-10-31(authoring/routes.ts — 이어서 작성 · 이어 작성 · 머지의 원본으로 줘도 같다. 남의 프로젝트 줄은 지금처럼 403)
 
 # 결정 목록(작성.md §7 「결정 목록 통로」) — BTS 연결 프로젝트만 갈라진다 (BTS-F3-04 · F5-04)
 #   items 에 FAIL 이 안 실리고 failMore 는 0 이다(BTS-F3-04 반영 2026-10-31 · authoring/decisions.ts) · 새 항목 종류 PRD_DRAFT { requestId, issueKeys, rows: [{ op, reqId?, text, basis, issueKeys, sure }], e2e?: [...] }
@@ -332,6 +333,7 @@ POST /api/runs/:runId/bts/resend   { tcId, env }
 POST /api/authoring/requests/:id/draft    { rows, e2e? }                  — PRD_DRAFT 결과 (BTS-F5-03)
 POST /api/authoring/requests/:id/note     { docs: [{ name, summary, body }], remove?: string[] }   — NOTE 결과 (BTS-F4-03 반영 2026-10-31 · projectNote/routes.ts)
   — 바뀐 문서만 싣는다. 서버가 앞 판에 이름으로 겹치고(remove 는 뺀다) 새 판 하나를 만든다
+  — NOTE 줄이 애플리케이션 전용 에이전트 통로(prd · screens · guide · app-screen · 산출물 등)를 부르면 400 BAD_KIND · 끝내기에 prUrl 을 실으면 400 BAD_PR_URL
   → 201 { version } · 400 NOTE_TOO_LONG { detail }(문서 본문 4,000자 · 한 줄 설명 120자 · 이름 40자 · 문서 40개를 넘음 — 앞 판이 남는다) · 400 BAD_NOTE { detail }(꼴 · 늘 있는 문서 다섯이 빠짐 · 같은 이름 둘 · 「최근 바뀐 것」 30줄 넘음) · 409 NOT_RUNNING(도는 NOTE 줄이 아님) · 403 NOT_CLAIMER
 POST /api/authoring/requests/:id/bugfix   { prUrl } | { analysis }        — BUGFIX 결과. 서버가 BTS 「코드 리뷰」 · 담당자 변경 · 댓글을 보낼 줄에 넣는다 (BTS-F6-01)
 GET  /api/authoring/requests/:id/bts      — 그 일의 이슈 글 · 댓글 · 첨부 고리. 자식이 BTS 열쇠를 안 갖게 서버가 「QA Hub AI」 열쇠로 대신 읽는다
