@@ -61,6 +61,8 @@ export interface BTS이슈 {
   assigneeId: string | null;
   type: string;
   summary: string;
+  /** 구성 요소 번호 — 수정 AI 가 애플리케이션 · 넘길 사람(구성 요소 리드)을 고를 때 쓴다 */
+  componentIds: string[];
 }
 
 interface 이슈몸 {
@@ -71,6 +73,7 @@ interface 이슈몸 {
     assigneeId?: string | null;
     typeKey?: string;
     summary?: string;
+    componentIds?: string[] | null;
   };
 }
 
@@ -90,5 +93,6 @@ export async function 이슈읽기(자리: BTS자리, issueKey: string, 부르�
     assigneeId: d.assigneeId ?? null,
     type: d.typeKey ?? '',
     summary: d.summary ?? '',
+    componentIds: d.componentIds ?? [],
   };
 }

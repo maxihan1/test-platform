@@ -103,7 +103,7 @@ describe.skipIf(연결 === undefined)('BTS 가 부르는 두 문', () => {
   it('이슈를 「QA Hub AI」 열쇠로 다시 읽는다 · 같은 알림은 한 번만 · 다른 프로젝트 키 · 모르는 종류는 안 읽는다', async () => {
     const 몸 = { event: 'issue.transitioned', deliveryId: 'd1', data: { issueKey: 'XBW-7', toState: '거짓말' } };
     expect(await BTS알림처리(연결값(), 몸, 부르기)).toEqual({
-      key: 'XBW-7', state: 'closed', resolution: '흔들림', assigneeId: null, type: 'bug', summary: '요약',
+      key: 'XBW-7', state: 'closed', resolution: '흔들림', assigneeId: null, type: 'bug', summary: '요약', componentIds: [],
     });
     expect(부른것.at(-1)).toBe('pat_xbw GET /api/v1/issues/XBW-7');
     const 앞 = 부른것.length;

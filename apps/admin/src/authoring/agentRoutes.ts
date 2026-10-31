@@ -5,6 +5,8 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import { 작성계정인가 } from '../auth/agentToken.js';
 import { 테스트고침댓글 } from '../bts/close.js';
+import { 수정PR주소인가, 수정집기칸 } from '../bts/bugfix.js';
+import { 수정끝내기틀림, 수정끝냄 } from '../bts/bugfixRoutes.js';
 import { 초안다시세우기, 초안집기칸, 초안있나 } from '../bts/draft.js';
 import { 집기API칸 } from './apiDoc.js';
 import { 병합뒤훑기 } from '../catalog/scanRun.js';
@@ -139,6 +141,8 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
         const 겹침칸 = await 집기겹침칸(집은것);
         // PRD 초안은 자식이 MCP 로 노트 · 이슈를 찾을 프로젝트 번호와 맡은 이슈를 싣는다 (도메인/BTS §7 집기)
         const 초안칸 = 집은것.kind === 'PRD_DRAFT' ? { draft: await 초안집기칸(서비스, 집은것.params) } : {};
+        // 수정 AI 는 맡을 때 서버가 읽어 둔 이슈 글과 대상 저장소를 싣는다 — 자식은 BTS 열쇠를 안 갖는다 (도메인/BTS 「수정 AI」)
+        const 수정칸 = 집은것.kind === 'BUGFIX' ? { bugfix: 수정집기칸(집은것.params) } : {};
         // BTS 이은 프로젝트의 작성 · 그 재실행만 받는다. 자식이 일하는 동안 QA Hub 조회 도구를 쓰는 열쇠다 (도메인/BTS 「열쇠 표」).
         // 던질 수 있는 것을 다 지난 뒤에 낸다 — 앞에서 던지면 안 보낸 열쇠가 줄에 남는다
         const mcpKey = await 일열쇠내기(집은것);
@@ -152,6 +156,7 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
           ...겹침칸,
           ...(edits === null ? {} : { edits }),
           ...초안칸,
+          ...수정칸,
           ...(mcpKey === null ? {} : { mcpKey }),
         };
       } catch (e) {
@@ -219,8 +224,10 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
     const prUrl = req.body?.prUrl;
     if (prUrl !== undefined) {
       // 노트 고치기는 PR 을 안 연다 — 비교할 테스트 저장소도 없다
-      const 저장소 = 행.serviceId === null ? null : await 서비스저장소(행.serviceId);
-      if (저장소 === null || !병합주소인가(prUrl, 저장소)) {
+      // 수정 AI 의 PR 은 테스트 저장소가 아니라 그 일의 대상 코드 저장소 것이다
+      const 저장소 = 행.serviceId === null || 행.kind === 'BUGFIX' ? null : await 서비스저장소(행.serviceId);
+      const 맞나 = 행.kind === 'BUGFIX' ? 수정PR주소인가(prUrl, 행.params) : 저장소 !== null && 병합주소인가(prUrl, 저장소);
+      if (!맞나) {
         return reply.code(400).send({ error: 'BAD_PR_URL' });
       }
     }
@@ -243,6 +250,8 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
     if (행.kind === 'PRD_DRAFT' && status === 'DONE' && !초안있나(행.result)) return reply.code(400).send({ error: 'BAD_DRAFT', detail: 'draft' });
     // 끝내기의 result 는 저장된 result 를 덮는다 — 초안 줄은 결과 통로로만 싣는다
     if (행.kind === 'PRD_DRAFT' && req.body?.result !== undefined) return reply.code(400).send({ error: 'BAD_DRAFT', detail: 'result' });
+    const 수정틀림 = 행.kind === 'BUGFIX' ? 수정끝내기틀림(행.result, status, req.body?.result) : null;
+    if (수정틀림 !== null) return reply.code(400).send({ error: 'BAD_BUGFIX', detail: 수정틀림 });
     const error = req.body?.error;
     // 입력 옮기기와 끝내기를 뿌리 잠금 안의 한 UPDATE 로 — 사이에 들어온 PUT 을 덮거나, 옮기다 실패해 DONE 만 남지 않게.
     // 고치기 반영의 저장값 지우기도 같은 트랜잭션 — 지우다 실패하면 DONE 도 안 남아 에이전트가 다시 알린다
@@ -288,6 +297,8 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
       if (멈춤이유 === 'AGENT_RESTART') await 초안다시세우기(행.id);
       return { ok: true };
     }
+    // 수정 AI 도 사람 작성 목록 · 알림 밖이다 — BTS 이슈에서 본다
+    if (행.kind === 'BUGFIX') return 수정끝냄({ ...행, serviceId: 서비스 }, 멈춤이유, error, app.log);
     끝냈다고알림(행, 뿌리번호, 멈춤이유, app.log);
     // BTS 「테스트 문제」로 세운 작성이 PR 을 열었으면 그 이슈에 댓글 — 보낼 줄에 넣기만 하고 기다리지 않는다 (도메인/BTS 「판정은 BTS 에서」)
     if (status === 'DONE' && typeof prUrl === 'string' && 행.kind !== 'MERGE') {

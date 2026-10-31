@@ -95,8 +95,8 @@ async function 원본확인(
     await reply.code(403).send({ error: 'SERVICE_FORBIDDEN', detail: String(id) });
     return null;
   }
-  // PRD 초안은 서버가 세우고 에이전트만 돌린다 — 사람이 다시 돌리면 같은 이슈로 카드가 둘 선다 (도메인/BTS §7)
-  if (행.kind === 'PRD_DRAFT') {
+  // PRD 초안 · 수정 AI 는 서버가 세우고 에이전트만 돌린다 — 사람이 다시 돌리면 같은 이슈로 카드 · PR 이 둘 선다 (도메인/BTS §7)
+  if (행.kind === 'PRD_DRAFT' || 행.kind === 'BUGFIX') {
     await reply.code(400).send({ error: 'BAD_KIND', detail: 행.kind });
     return null;
   }

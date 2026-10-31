@@ -6,6 +6,7 @@ import type { Pool } from 'pg';
 import { 가린다, 항목비밀 } from '../execution/trial.js';
 import { 실패카드, type FailureCase } from '../reporting/failures.js';
 import { 꼬리표고르기, 또실패댓글, 이슈본문, 이슈제목, 첨부상한, type 실패재료 } from './failBody.js';
+import { 재검증실패넘기기 } from './bugfix.js';
 import { 보낼줄넣기 } from './outbox.js';
 
 async function db(): Promise<Pool> {
@@ -155,6 +156,8 @@ export async function 실패등록(runId: number): Promise<number> {
               },
             });
       if (id !== null) 넣음++;
+      // 수정 PR 을 배포한 뒤 또 실패 — 수정 AI 는 다시 안 맡고 넘겼던 사람에게 돌린다(도메인/BTS 「수정 AI」). 댓글 뒤에 줄을 넣어 BTS 에도 그 차례로 닿는다
+      if (짝 !== undefined && 짝.open) await 재검증실패넘기기(Number(실행.project_id), 짝.issue_key, 재료.원인 ?? '', runId);
     }
     if (page * 쪽.pageSize >= 쪽.total) break;
   }

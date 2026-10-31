@@ -147,7 +147,7 @@ const 알림대상 = `(${도는상태} OR (${끝난상태}))`;
 async function 작성들(서비스들: 보이는서비스[]): Promise<작성행[]> {
   const r = await (await db()).query<작성행>(
     `WITH RECURSIVE 위(id, source_id) AS (
-       SELECT id, source_id FROM authoring_request WHERE service_id = ANY($1) AND kind <> 'PRD_DRAFT' AND ${알림대상}
+       SELECT id, source_id FROM authoring_request WHERE service_id = ANY($1) AND kind NOT IN ('PRD_DRAFT', 'BUGFIX') AND ${알림대상}
        UNION
        SELECT a.id, a.source_id FROM authoring_request a JOIN 위 ON a.id = 위.source_id
      ), ${사슬식('id IN (SELECT id FROM 위 WHERE source_id IS NULL)')},
