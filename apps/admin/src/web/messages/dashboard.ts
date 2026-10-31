@@ -120,6 +120,13 @@ export const 대시보드말: Record<string, string> = {
   '테스트 작성에서 고를 것': 'Waiting for your pick in test authoring',
   '서버 · 테스트 실행기에 닿지 못함': 'Could not reach the server or test runner',
 
+  // AI 품질 (2026-11-01 BTS-F8-01)
+  'AI 품질': 'AI quality',
+  '초안 AI 아직 없음': 'Draft AI: nothing yet',
+  '초안 AI {율}% ({고름}/{씀}줄)': 'Draft AI {율}% ({고름}/{씀} rows)',
+  '수정 AI 아직 없음': 'Fix AI: nothing yet',
+  '수정 AI {율}% ({병합}/{끝남} PR)': 'Fix AI {율}% ({병합}/{끝남} PRs)',
+
   // 종류별 칸
   '브라우저별 결과': 'Results by browser',
   '기기별 결과': 'Results by device',

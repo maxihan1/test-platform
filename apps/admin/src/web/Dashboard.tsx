@@ -12,7 +12,7 @@ import { 일별막대, 통과율선 } from './DashboardCharts.js';
 import { 실패히트맵 } from './DashboardHeat.js';
 import { 요구커버리지 } from './DashboardCoverage.js';
 import { 종류칸 } from './DashboardKind.js';
-import { 검토할것 } from './DashboardReview.js';
+import { AI품질줄, 검토할것 } from './DashboardReview.js';
 import { 통과율칸, 판칸, 합 } from './DashboardRate.js';
 import { 실패유형칸 } from './DashboardTypes.js';
 import { Head } from './Head.js';
@@ -238,6 +238,7 @@ export function Dashboard({
         <div className="dash">
           <실행중줄 목록={읽음.값.running} />
           <검토할것 값={읽음.값} 이동={이동} 서비스열기={고리로열기} />
+          <AI품질줄 값={읽음.값.aiQuality} />
           {/* 한 번도 안 돈 서비스에 빈 칸 여섯을 늘어놓지 않는다. 미확정도 통과율 숫자에 들어 있다 */}
           {합(읽음.값.passRate.current) + 합(읽음.값.passRate.previous) === 0 ? (
             <안내판 케이스갈수있나={케이스갈수있나} 설정갈수있나={설정갈수있나} />

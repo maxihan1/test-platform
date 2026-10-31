@@ -43,6 +43,7 @@ import projectNoteRoutes from './projectNote/routes.js';
 import btsBugfixRoutes from './bts/bugfixRoutes.js';
 import btsDraftRoutes from './bts/draftRoutes.js';
 import btsRollbackRoutes from './bts/rollbackRoutes.js';
+import btsQualityRoutes from './bts/qualityRoutes.js';
 import reportingRoutes from './reporting/routes.js';
 import scenarioRoutes from './scenario/routes.js';
 import scenarioRunRoutes from './scenario/runRoutes.js';
@@ -79,6 +80,7 @@ export function buildApp(sessionSecret = process.env.SESSION_SECRET ?? '') {
   app.register(btsDraftRoutes, { prefix: '/api' });
   app.register(btsBugfixRoutes, { prefix: '/api' });
   app.register(btsRollbackRoutes, { prefix: '/api' });
+  app.register(btsQualityRoutes, { prefix: '/api' });
   app.register(guideRoutes, { prefix: '/api' });
   app.register(apiDocRoutes, { prefix: '/api' });
   app.register(guideAgentRoutes, { prefix: '/api' });

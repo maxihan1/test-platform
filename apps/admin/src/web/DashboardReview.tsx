@@ -1,4 +1,4 @@
-// 대시보드 맨 위 「검토할 것」 세 칸 — 회귀 실패 · 결정 필요 · 환경 오류를 숫자 하나씩, 누르면 그 목록 (도메인/리포팅 §8.12 「검토할 것」 · DESIGN.md 「대시보드」)
+// 대시보드 맨 위 「검토할 것」 세 칸 — 회귀 실패 · 결정 필요 · 환경 오류를 숫자 하나씩, 누르면 그 목록 (도메인/리포팅 §8.12 「검토할 것」 · DESIGN.md 「대시보드」) · 그 아래 「AI 품질」 한 줄 (도메인/BTS §8.15)
 
 import type { ReactNode } from 'react';
 
@@ -92,5 +92,26 @@ export function 검토할것({ 값, 이동, 서비스열기 }: { 값: 대시보�
         }
       />
     </section>
+  );
+}
+
+/** 「검토할 것」 아래 한 줄 — BTS 를 이은 프로젝트가 범위에 있을 때만. 누르는 곳 없이 숫자만 (도메인/BTS §8.15 「대시보드 두 숫자」) */
+export function AI품질줄({ 값 }: { 값: 대시보드응답['aiQuality'] }) {
+  const t = use말();
+  if (값 === null) return null;
+  const 율 = (위: number, 아래: number) => String(Math.round((위 / 아래) * 100));
+  const 초안 = 값.draft.written === 0
+    ? t('초안 AI 아직 없음')
+    : t('초안 AI {율}% ({고름}/{씀}줄)', { 율: 율(값.draft.picked, 값.draft.written), 고름: 값.draft.picked, 씀: 값.draft.written });
+  const 수정 = 값.fix.opened === 0
+    ? t('수정 AI 아직 없음')
+    : t('수정 AI {율}% ({병합}/{끝남} PR)', { 율: 율(값.fix.merged, 값.fix.opened), 병합: 값.fix.merged, 끝남: 값.fix.opened });
+  return (
+    <p className="dash-ai">
+      <span className="dash-ai-name">{t('AI 품질')}</span>
+      <span className="num">{초안}</span>
+      <span aria-hidden="true">·</span>
+      <span className="num">{수정}</span>
+    </p>
   );
 }

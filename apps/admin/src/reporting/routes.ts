@@ -9,6 +9,7 @@ import { 볼륨파일읽기 } from '../artifactFile.js';
 import { 칸되는서비스, type 기능 } from '../auth/permissions.js';
 import { 부른이로 } from '../authoring/decisionRoutes.js';
 import { 결정재료읽기 } from '../authoring/decisions.js';
+import { AI품질읽기 } from '../bts/quality.js';
 import { 정수 } from '../routeParams.js';
 import { 대시보드, 대시보드실행중, 틀린시간대 } from './dashboardResults.js';
 import { 허용날수 } from './dashboardShape.js';
@@ -182,8 +183,12 @@ export default async function reportingRoutes(app: FastifyInstance): Promise<voi
     try {
       if (only === 'running') return await 대시보드실행중(tz, 실행서비스, 서비스);
       const 작성서비스 = 읽기되는서비스번호(req, 'authoring', 프로젝트);
-      const [결과, decisions] = await Promise.all([대시보드(tz, 실행서비스, 작성서비스, { 서비스, 날수 }), 결정수들(req, 작성서비스, 서비스)]);
-      return { ...결과, decisions };
+      const [결과, decisions, aiQuality] = await Promise.all([
+        대시보드(tz, 실행서비스, 작성서비스, { 서비스, 날수 }),
+        결정수들(req, 작성서비스, 서비스),
+        AI품질읽기(서비스 === undefined ? 작성서비스 : 작성서비스.filter((id) => id === 서비스)),
+      ]);
+      return { ...결과, decisions, aiQuality };
     } catch (err) {
       if (err instanceof 틀린시간대) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: err.받은값 });
       throw err;

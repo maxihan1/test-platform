@@ -1,12 +1,12 @@
 // @vitest-environment jsdom
-// 대시보드 「검토할 것」 세 칸 · 종류별 칸 (도메인/리포팅 §8.12 「검토할 것」 · 「종류별 칸」)
+// 대시보드 「검토할 것」 세 칸 · AI 품질 줄 · 종류별 칸 (도메인/리포팅 §8.12 「검토할 것」 · 「종류별 칸」 · 도메인/BTS §8.15)
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 
 import type { 대시보드응답 } from '../reporting/dashboardResults.js';
 import { 종류칸, 응답시간 } from './DashboardKind.js';
-import { 검토할것, 결정갈곳 } from './DashboardReview.js';
+import { AI품질줄, 검토할것, 결정갈곳 } from './DashboardReview.js';
 
 const 빈건 = { pass: 0, fail: 0, notRun: 0 };
 
@@ -46,6 +46,7 @@ function 값(고침: Partial<대시보드응답> = {}): 대시보드응답 {
       { serviceId: 2, count: 4 },
     ],
     byKind: null,
+    aiQuality: null,
     ...고침,
   };
 }
@@ -175,5 +176,22 @@ describe('종류별 칸', () => {
     expect(screen.getByText('게임 성능 측정 2회 · 평균 FPS 54.3 · 30 아래로 떨어짐 3회')).toBeTruthy();
     rerender(<종류칸 칸={{ kind: 'APP', rows: [줄], onlyFail: [], fps: null }} 일={7} />);
     expect(container.querySelector('.dash-kind-note')).toBeNull();
+  });
+});
+
+describe('AI 품질줄', () => {
+  it('BTS 를 안 이은 범위면 줄이 없다', () => {
+    const { container } = render(<AI품질줄 값={null} />);
+    expect(container.innerHTML).toBe('');
+  });
+
+  it('두 숫자를 율과 셈으로 · 셀 것이 없는 쪽은 「아직 없음」', () => {
+    render(<AI품질줄 값={{ draft: { picked: 41, written: 50 }, fix: { merged: 3, opened: 5 } }} />);
+    expect(screen.getByText('초안 AI 82% (41/50줄)')).toBeTruthy();
+    expect(screen.getByText('수정 AI 60% (3/5 PR)')).toBeTruthy();
+    cleanup();
+    render(<AI품질줄 값={{ draft: { picked: 0, written: 0 }, fix: { merged: 0, opened: 0 } }} />);
+    expect(screen.getByText('초안 AI 아직 없음')).toBeTruthy();
+    expect(screen.getByText('수정 AI 아직 없음')).toBeTruthy();
   });
 });
