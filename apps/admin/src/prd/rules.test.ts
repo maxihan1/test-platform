@@ -3,7 +3,7 @@
 import type { PrdItem } from '@platform/kit';
 import { describe, expect, it } from 'vitest';
 
-import { 반영안됨, 사람판, 옮기기판, 확인필요, 화면번호들, 항목검사, type 들어온항목 } from './rules.js';
+import { 반영안됨, 사람판, 옮기기판, 확인필요, 화면번호들, 화면이맞음건인가, 항목검사, type 들어온항목 } from './rules.js';
 
 const 근거 = [{ from: '기획서.docx', ref: 'REQ-1', quote: '비밀번호는 8자 이상' }];
 const 항목 = (reqId: string, 덧: Partial<PrdItem> = {}): PrdItem => ({
@@ -193,5 +193,18 @@ describe('반영안됨 · 확인필요', () => {
     ];
     expect(확인필요(items)).toEqual({ count: 2, oldestSince: '2026-10-02T00:00:00.000Z' });
     expect(확인필요([])).toEqual({ count: 0, oldestSince: null });
+  });
+});
+
+describe('화면이맞음건인가', () => {
+  it('화면이 맞음 칸 · BTS 테스트 고침 칸에 실린 실행 · 케이스만 — 실패 trace 를 받을 수 있는 짝', () => {
+    const params = {
+      screenRight: [{ runId: 1, tcId: 'MKT-FN-001', env: 'qa', reqIds: [] }],
+      testFix: { issueKey: 'DM-1', cases: [{ runId: 2, tcId: 'MKT-FN-002', env: 'qa' }], note: '' },
+    };
+    expect(화면이맞음건인가(params, 1, 'MKT-FN-001')).toBe(true);
+    expect(화면이맞음건인가(params, 2, 'MKT-FN-002')).toBe(true);
+    expect(화면이맞음건인가(params, 2, 'MKT-FN-001')).toBe(false);
+    expect(화면이맞음건인가({ testFix: 'DM-1' }, 2, 'MKT-FN-002')).toBe(false);
   });
 });

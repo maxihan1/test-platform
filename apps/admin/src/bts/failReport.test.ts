@@ -96,6 +96,7 @@ describe.skipIf(연결 === undefined)('실패 → BTS 등록', () => {
     // bts_outbox · bts_issue_case 는 service 와, bts_link 는 project 와 같이 지워진다. 남은 애플리케이션이 없는 project 는 트리거가 지운다
     await pool.query('DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = ANY($1))', [[서비스, 남의서비스]]);
     await pool.query('DELETE FROM test_run WHERE service_id = ANY($1)', [[서비스, 남의서비스]]);
+    await pool.query('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
     await pool.query('DELETE FROM service WHERE id = ANY($1)', [[서비스, 남의서비스]]);
     await pool.end();
   });
@@ -159,6 +160,29 @@ describe.skipIf(연결 === undefined)('실패 → BTS 등록', () => {
     expect(await 실패등록(runId)).toBe(0);
     expect((await 줄들()).length).toBe(앞);
     expect((await 실패카드(runId, 1)).items[0]!.bts).toBeNull();
+  });
+
+  it('흔들림으로 닫힌 뒤 그 케이스를 쓴 작성이 병합되면 다음 실패부터 다시 올린다 — 닫히기 전 병합 · 다른 케이스 병합은 안 푼다', async () => {
+    const 병합 = async (tcId: string, 언제: string): Promise<void> => {
+      const 작성 = await pool.query<{ id: string }>(
+        `INSERT INTO authoring_request (service_id, kind, params, requested_by, requested_by_name, status, result, finished_at)
+         VALUES ($1, 'AUTHOR', '{}', 'xbf', 'xbf', 'DONE', $2, now()) RETURNING id`,
+        [서비스, JSON.stringify({ cases: [{ tcId }] })],
+      );
+      await pool.query(
+        `INSERT INTO authoring_request (service_id, kind, source_id, params, requested_by, requested_by_name, status, finished_at)
+         VALUES ($1, 'MERGE', $2, '{}', 'xbf', 'xbf', 'DONE', now() + $3::interval)`,
+        [서비스, 작성.rows[0]!.id, 언제],
+      );
+    };
+    await 병합('XBF-001', '-1 hour');
+    await 병합('XBF-009', '1 minute');
+    const 앞실행 = await 실행(서비스, [{ tcId: 'XBF-001', status: 'FAIL' }]);
+    expect(await 실패등록(앞실행)).toBe(0);
+    await 병합('XBF-001', '1 minute');
+    const runId = await 실행(서비스, [{ tcId: 'XBF-001', status: 'FAIL' }]);
+    expect(await 실패등록(runId)).toBe(1);
+    expect((await 줄들()).at(-1)).toMatchObject({ kind: 'CREATE', tc_id: 'XBF-001', run_id: String(runId) });
   });
 
   it('그만둔 등록은 카드에 까닭이 뜨고 [다시 보내기]가 횟수 0 으로 다시 세운다', async () => {
