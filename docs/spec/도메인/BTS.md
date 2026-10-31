@@ -25,7 +25,7 @@
           deploy.sh 성공 ─→ BTS 웹훅 { 빌드 } ─BTS 규칙→ 「배포 대기」 전부 「QA 요청」
                         └─→ QA Hub 프로젝트 배포 신호 한 번 → 애플리케이션마다 스모크 → 다 통과면 「QA 요청」 · 안 맡은 이슈 맡기
                               task · 스토리 → PRD 초안 → 「결정 필요」 → PRD 새 버전 · 다시 작성 · PR
-                              버그          → 딸린 케이스 다시 실행 → 통과면 댓글 · 닫기
+                              버그          → 회귀가 딸린 케이스도 돌림 → 다 통과면 댓글 · 닫기
 
 버그      실행 실패 → BTS 「QA 검토」 등록(AI 꼬리표) → 사람이 BTS 에서 판정
               버그 맞음 → 「개발 요청」 → 수정 AI → 초안 PR + 「코드 리뷰」 + 담당자 → 사람 병합 → 배포 → 재검증
@@ -76,10 +76,13 @@
 3. QA Hub 는 `bts_deploy` 한 줄을 세우고 목록의 애플리케이션마다 지금 빌드 실행(스모크 → 회귀 — [실행.md](실행.md) §3.11)을 그대로 부른다. 웹 · API 는 빌드 번호만, 앱 · 게임은 그 대상 서버 줄의 최신 빌드를 쓴다
    - **대상 서버** — 본문 `env` 가 있으면 애플리케이션마다 그 이름의 줄이다. 없으면 애플리케이션마다 실서비스 서버가 아닌 줄이 하나여야 하고, 여럿이면 400 `ENV_REQUIRED` (내 결정 — 고를 줄이 하나뿐인 데모마켓은 env 없이 돈다)
    - **BTS 연결 프로젝트의 앱 · 게임 APK** 는 지금 `POST /api/builds` 로 올리되 그 문은 빌드만 남기고 실행을 걸지 않는다 — 실행은 배포 신호가 건다 (내 결정 — 같은 빌드를 두 번 돌리지 않게)
+   - **앱 · 게임 APK 가 그 줄에 하나도 없으면** 아무것도 걸지 않고 400 `NO_BUILD` 다 — deploy.sh 가 실패로 끝나야 사람이 바로 안다(2026-10-31 BTS-F5-01 시작 질문 2)
+   - 배포가 건 첫 실행(스모크, 스모크 케이스가 없으면 회귀) 번호를 `bts_deploy.run_ids` 에 한 번에 적는다 — 앱 · 게임은 배포 빌드 번호가 아닌 최신 APK 로 돌아 빌드 번호로는 그 배포의 스모크를 못 찾는다(시작 질문 1). 판정은 그 가운데 스모크만 본다. 스모크가 다 끝나기 전에 새 배포가 오면 앞 배포는 말없이 `HELD` 로 닫는다(새 배포가 맡는다)
 4. **하나라도 스모크가 깨지면** 이슈를 맡지 않고 「QA 요청」 이슈마다 「스모크 실패 — 보류」 댓글 → 배포 줄은 `HELD` 로 끝난다. 이슈가 「QA 요청」에 남아 다음 배포가 다시 잡는다
-5. **다 통과하면** BTS 에서 「QA 요청」이면서 `bts_claim` 에 맡는 중인 줄이 없는 이슈를 찾아 한 묶음으로 맡는다(`bts_claim` 에 배포 · 빌드를 적는다). BTS 규칙이 늦게 끝나 이 묶음에 못 든 이슈는 다음 점검이 따로 작은 초안으로 맡는다(「늦은 이슈」)
+5. **다 통과하면** BTS 에서 「QA 요청」이면서 `bts_claim` 에 맡는 중인 줄이 없는 이슈를 찾아 한 묶음으로 맡는다(`bts_claim` 에 배포 · 빌드를 적는다). BTS 규칙이 늦게 끝나 이 묶음에 못 든 이슈는 다음 점검이 따로 작은 초안으로 맡는다(「늦은 이슈」 — 맡은 배포 뒤 10분 동안 1분마다 다시 찾는다. 끝없이 BTS 를 두드리지 않게 · 상수는 `bts/deployFlow.ts` `늦은이슈기한분` · BTS-F5-01 시작 질문). 찾은 「QA 요청」 목록에 없는 맡는 중 줄은 놓는다 — QA Hub 가 꺼져 「QA 요청」을 떠난 알림을 놓쳐도 다음 배포가 다시 맡게
    - task · 스토리 → 애플리케이션마다 PRD 초안 요청(`PRD_DRAFT`) 하나. 설명이 모자라면 초안이 그 이슈를 「결정 필요」로 멈춘다
-   - 버그 → 딸린 케이스(`bts_issue_case`)만 다시 실행 → 통과면 「재검증 통과 — 빌드 N」 댓글 · 닫기(`resolution` `FIXED`). 또 실패면 아래 「수정 AI」 재검증 실패
+   - 버그 → 맡은 배포 뒤에 선 실행에서 딸린 케이스(`bts_issue_case` — 깨진 대상 서버와 같은 서버)가 다 통과하면 「재검증 통과 — 빌드 N」을 담아 「닫힘」으로 옮긴다(`resolution` `FIXED` · 맡음을 놓는다). 또 실패면 지금처럼 열린 이슈에 댓글이 달리고, 수정 AI 로 넘기는 것은 아래 「수정 AI」 재검증 실패(BTS-F6-01)
+     **따로 실행을 세우지 않는다** — 스모크 뒤 회귀가 활성 케이스 전부라 딸린 케이스도 돈다. 같은 빌드를 두 번 돌리지 않는다(2026-10-31 BTS-F5-01 시작 질문 5 — 기획의 「딸린 케이스만 다시 실행」을 바꿨다. 판단 기준 「통과해야 닫는다」는 그대로다). 「닫힘」 옮기기는 보낼 줄 TRANSITION 이고 이슈 판 번호는 보내기 직전에 읽는다(`bts/outbox.ts`)
    - 딸린 케이스가 없는 버그(사람이 BTS 에 직접 올린 것) → 「딸린 테스트 없음 — 사람이 확인」 댓글만 달고 「QA 요청」에 둔다(2차 R8)
 6. 지금 `POST /api/builds` 는 BTS 없는 프로젝트 · APK 올리기용으로 그대로 둔다. 배포 신호는 애플리케이션마다 그 흐름을 안에서 부른다
 7. **서버가 스스로 세우는 일의 「누가」** — 배포 실행 · `PRD_DRAFT` · `NOTE` · `BUGFIX` · 닫기 사유가 세운 작성 · `ROLLBACK` 판 · 되돌림 요청은 모두 BTS 연결을 마지막으로 저장한 admin(`bts_link.updated_by`)으로 적고 이름 스냅샷은 「BTS · <이름>」이다 (내 결정 — CI 토큰의 「실행자는 발급한 사람」과 같은 판단. 그 계정이 꺼지면 연결을 다시 저장해야 돈다)
@@ -257,13 +260,13 @@ AI 품질은 따로 시험하지 않고 사람이 고른 결과로 센다 — �
 ## 7. BTS 통로 (2026-10-31 · BTS-F1-01 — 꼴은 각 진행판 줄이 고친다)
 
 ```
-# 프로젝트 배포 신호 — deploy.sh 가 성공했을 때만 한 번 부른다 (BTS-F5-01)
+# 프로젝트 배포 신호 — deploy.sh 가 성공했을 때만 한 번 부른다 (BTS-F5-01 반영 2026-10-31 · apps/admin/src/bts/deploy.ts · deployFlow.ts)
 #   열쇠: Authorization: Bearer pdk_… (그 프로젝트 배포 신호 하나만 — 다른 통로는 403 AGENT_TOKEN_SCOPE)
 POST /api/projects/:projectId/deploys
      { build: 'a1b2c3d-202610281530', env?: string, rollback?: boolean, rollbackKeys?: string[], services?: string[] }   — services 는 애플리케이션 접두사. 없으면 그 프로젝트 전부 · env 규칙은 §3.12 「새 기능 바퀴」 3
   → 202 { deployId }   — 스모크 · 맡기는 뒤에서 돈다
   → 200 { deployId }   — 같은 프로젝트 · 같은 build 가 다시 오면 새로 걸지 않고 앞 배포 번호를 준다(deploy.sh 재시도 멱등). 애플리케이션마다의 빌드 줄도 앞 것을 쓴다(BUILD_EXISTS 로 막히지 않는다)
-  → 400 BAD_BUILD(빈 값 · 100자 넘음) · 400 ENV_REQUIRED · 404 UNKNOWN_ENV(그 이름 줄이 없는 애플리케이션) · 400 UNKNOWN_SERVICE(다른 프로젝트 접두사) · 409 NOT_LINKED(BTS 연결 없음) · 400 PROD_ENV_BLOCKED(실서비스 서버만 있는 애플리케이션 — 실행.md §3.11)
+  → 400 BAD_BUILD(빈 값 · 100자 넘음 · 영문 · 숫자 · . _ + - 밖 — 빌드 줄 번호와 같은 꼴) · 400 NO_BUILD(그 줄에 APK 가 없는 앱 · 게임) · 400 INVALID_REQUEST(그 밖의 몸 꼴) · 400 ENV_REQUIRED · 404 UNKNOWN_ENV(그 이름 줄이 없는 애플리케이션) · 400 UNKNOWN_SERVICE(다른 프로젝트 접두사) · 409 NOT_LINKED(BTS 연결 없음) · 400 PROD_ENV_BLOCKED(실서비스 서버만 있는 애플리케이션 — 실행.md §3.11)
 
 # BTS 알림 받기 — issue.created · issue.transitioned (BTS-F3-02 반영 2026-10-31 · apps/admin/src/bts/inbound.ts)
 #   열쇠: X-BTS-Signature: sha256=<HMAC(본문, bts_link.webhook_secret)>. 맞지 않거나 없으면 401 BAD_SIGNATURE — 헤더가 없거나 꼴이 틀리면 몸을 읽기 전에 돌려보낸다. 몸은 64KB 까지(넘으면 413)
@@ -360,7 +363,7 @@ POST /mcp
 제안:    위 §7 꼴
 이유:    도메인/BTS §3.12 (2026-10-28 기획 · BTS-F1-01 시작 질문 승인 2026-10-31)
 영향:    WS-B(배포 신호 · 다시 보내기) · WS-F(설정 · 열쇠 · PAT · 문 허용 목록) · WS-작성(결정 목록 · 에이전트 통로) · WS-D(실패 카드 · 대시보드) · WS-E(화면) · 작성 에이전트 · 새 bts/ · mcp/ · projectNote/
-반영:    설정 › BTS 연결 · 설정 서비스 codeRepos (2026-10-31, apps/admin/src/bts/routes.ts — BTS-F3-01) · BTS 알림 · BTS 규칙 웹훅 호출 (2026-10-31, apps/admin/src/bts/inbound.ts — BTS-F3-02) · BTS 다시 보내기 · 실패 카드 bts 칸 (2026-10-31, apps/admin/src/bts/card.ts — BTS-F3-03) · 결정 목록 FAIL 뺌 · 옛 판정 통로(BAD_DECISION · BAD_EDIT) (2026-10-31, authoring/decisions.ts · decisionRun.ts · routes.ts — BTS-F3-04) · 설정 › BTS 연결 publicUrl · 처음 연결의 webhookSecret 선택(SECRETS_REQUIRED 는 botKey 만) · 고를 목록 · 자동 설정 · 규칙 몸 assignee? · prTitle? (2026-10-31, apps/admin/src/bts/routes.ts · link.ts · choices.ts · setup.ts · inbound.ts — BTS-F3-05) · /mcp 의 PAT 열쇠와 도구 넷(note_read 빼고) (2026-10-31, apps/admin/src/mcp/server.ts · tools.ts · auth/pat.ts — BTS-F4-01) · /mcp 의 mcj_ 와 집기 mcpKey(AUTHOR · 그 RERUN 만 — 나머지 받는 줄은 그 종류를 만드는 줄이 더한다) (2026-10-31, apps/admin/src/mcp/jobKey.ts · authoring/agentRoutes.ts — BTS-F4-02) · 노트 결과 통로 · 집기 note 칸과 NOTE 의 mcpKey · NOTE 줄의 서비스 경계 · NOTE 사람 다시 실행 BAD_KIND · note_read (2026-10-31, apps/admin/src/projectNote/ · mcp/note.ts · auth/scope.ts — BTS-F4-03 · 노트 보기 통로와 화면은 사용자가 뺐다). 나머지는 진행판 줄마다
+반영:    설정 › BTS 연결 · 설정 서비스 codeRepos (2026-10-31, apps/admin/src/bts/routes.ts — BTS-F3-01) · BTS 알림 · BTS 규칙 웹훅 호출 (2026-10-31, apps/admin/src/bts/inbound.ts — BTS-F3-02) · BTS 다시 보내기 · 실패 카드 bts 칸 (2026-10-31, apps/admin/src/bts/card.ts — BTS-F3-03) · 결정 목록 FAIL 뺌 · 옛 판정 통로(BAD_DECISION · BAD_EDIT) (2026-10-31, authoring/decisions.ts · decisionRun.ts · routes.ts — BTS-F3-04) · 설정 › BTS 연결 publicUrl · 처음 연결의 webhookSecret 선택(SECRETS_REQUIRED 는 botKey 만) · 고를 목록 · 자동 설정 · 규칙 몸 assignee? · prTitle? (2026-10-31, apps/admin/src/bts/routes.ts · link.ts · choices.ts · setup.ts · inbound.ts — BTS-F3-05) · /mcp 의 PAT 열쇠와 도구 넷(note_read 빼고) (2026-10-31, apps/admin/src/mcp/server.ts · tools.ts · auth/pat.ts — BTS-F4-01) · /mcp 의 mcj_ 와 집기 mcpKey(AUTHOR · 그 RERUN 만 — 나머지 받는 줄은 그 종류를 만드는 줄이 더한다) (2026-10-31, apps/admin/src/mcp/jobKey.ts · authoring/agentRoutes.ts — BTS-F4-02) · 노트 결과 통로 · 집기 note 칸과 NOTE 의 mcpKey · NOTE 줄의 서비스 경계 · NOTE 사람 다시 실행 BAD_KIND · note_read (2026-10-31, apps/admin/src/projectNote/ · mcp/note.ts · auth/scope.ts — BTS-F4-03 · 노트 보기 통로와 화면은 사용자가 뺐다) · 프로젝트 배포 신호(400 NO_BUILD · INVALID_REQUEST 더함) · BTS 연결 프로젝트의 앱 · 게임 POST /api/builds 는 실행을 안 건다(runIds 빈 목록) (2026-10-31, apps/admin/src/bts/deploy.ts · deployFlow.ts · execution/buildRoutes.ts — BTS-F5-01). 나머지는 진행판 줄마다
 상태:    대기
 ```
 
