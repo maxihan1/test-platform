@@ -160,9 +160,10 @@ async function 판넣기(
  * 결정 진행(진행 2)이 짓는 버전 — 결정 진행이 이미 서비스 잠금(`잠그고`)을 쥔 트랜잭션 안에서 부른다. 고른 항목만 바꾼 지금 판이라 번호는 늘지 않는다.
  * 저장 규칙(같은 판이면 안 만듦)은 사람 저장과 같다 (작성 §7 「결정 목록 통로」)
  */
-export async function 결정판넣기(손: PoolClient, 서비스: number, items: PrdItem[], 사람: 저장하는사람, changes: 판변경[]): Promise<number> {
+export async function 결정판넣기(손: PoolClient, 서비스: number, items: PrdItem[], 사람: 저장하는사람, changes: 판변경[], lastNo?: number): Promise<number> {
   const 앞 = await 지금판읽기(손, 서비스);
-  return 판넣기(손, 서비스, 앞, { items, lastNo: 앞?.lastNo ?? 0 }, 'DECISION', 사람, null, changes);
+  // PRD 초안의 추가 줄은 새 번호를 받아 lastNo 가 는다 — 그 밖의 결정은 번호를 안 쓴다
+  return 판넣기(손, 서비스, 앞, { items, lastNo: lastNo ?? 앞?.lastNo ?? 0 }, 'DECISION', 사람, null, changes);
 }
 
 const 낡음 = (앞: 앞판 | null) => ({ error: 'PRD_STALE' as const, latest: 앞?.version ?? 0 });

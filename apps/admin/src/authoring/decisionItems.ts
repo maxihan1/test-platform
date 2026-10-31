@@ -5,10 +5,12 @@ import { createHash } from 'node:crypto';
 import type { PrdItem } from '@platform/kit';
 
 import { 상한, 화면에서 } from '../prd/rules.js';
+import type { 초안카드 } from '../bts/draftDecide.js';
 import type { 판변경 } from '../prd/changes.js';
 import type { 목록요약 } from './listSummary.js';
 
-export type 고르기 = 'APPLY' | 'SCREEN' | 'BUG' | 'SAME' | 'EDIT' | 'PICK' | 'OWN' | 'REDO' | 'FIX';
+// TAKE · DROP · RETRY 는 「PRD 초안」 카드 — 고른 줄로 기획서 고치기 · 초안 버리기 · 실패한 초안 다시 만들기 (도메인/BTS 「PRD 초안 → 결정 필요」)
+export type 고르기 = 'APPLY' | 'SCREEN' | 'BUG' | 'SAME' | 'EDIT' | 'PICK' | 'OWN' | 'REDO' | 'FIX' | 'TAKE' | 'DROP' | 'RETRY';
 export type 막힘 = 'ADMIN_ONLY' | 'NO_WRITE' | 'NO_RUN_WRITE' | 'AUTHORING_OPEN';
 
 interface 머리 {
@@ -36,6 +38,7 @@ export type 결정항목 = 머리 &
     | { kind: 'API_CHANGED'; fromVersion: number; toVersion: number; operations: { method: string; path: string; change: 'NEW' | 'CHANGED' | 'REMOVED'; breaking: boolean }[] | null }
     | { kind: 'SCREENS'; screens: { state: string; url: string; name: string }[] | null; env: string | null }
     | { kind: 'APIS'; apis: { method: string; path: string; name: string | null }[] | null }
+    | ({ kind: 'PRD_DRAFT' } & 초안카드)
   );
 
 export interface 결정목록 {

@@ -34,7 +34,7 @@ describe.skipIf(연결 === undefined)('프로젝트 배포 신호', { timeout: 6
   const 서비스: Record<string, number> = {};
   const 옛환경 = { ...process.env };
   // 가짜 BTS — 「QA 요청」 검색은 이 목록을 준다. 부른 것을 적어 둔다
-  let QA요청: { key: string; typeKey: string }[] = [];
+  let QA요청: { key: string; typeKey: string; summary?: string }[] = [];
   const 부른것: { method: string; 경로: string; 몸: unknown }[] = [];
   const 부르기 = async (_자리: BTS자리, method: string, 경로: string, 몸?: unknown) => {
     부른것.push({ method, 경로, 몸 });
@@ -207,7 +207,7 @@ describe.skipIf(연결 === undefined)('프로젝트 배포 신호', { timeout: 6
     // 맡기 전 — 맡는 중인 옛 줄 XBN-9 는 「QA 요청」을 떠났다(알림을 놓쳤다). XBN-2 는 딸린 테스트가 있는 버그, XBN-3 은 사람이 올린 버그
     await pool.query("INSERT INTO bts_claim (project_id, issue_key, deploy_id, issue_type) VALUES ($1, 'XBN-9', $2, 'TASK')", [프로젝트, 첫배포]);
     await pool.query("INSERT INTO bts_issue_case (project_id, issue_key, service_id, tc_id, env) VALUES ($1, 'XBN-2', $2, 'XBN-FN-002', 'qa')", [프로젝트, 서비스.XBN]);
-    QA요청 = [{ key: 'XBN-1', typeKey: 'task' }, { key: 'XBN-2', typeKey: 'bug' }, { key: 'XBN-3', typeKey: 'bug' }];
+    QA요청 = [{ key: 'XBN-1', typeKey: 'task', summary: '쿠폰 한 장만' }, { key: 'XBN-2', typeKey: 'bug' }, { key: 'XBN-3', typeKey: 'bug' }];
 
     await 끝낸다(runIds.slice(0, 1), () => 'PASS');
     await 배포판정(첫배포, 부르기);
@@ -230,6 +230,9 @@ describe.skipIf(연결 === undefined)('프로젝트 배포 신호', { timeout: 6
       { service_id: String(서비스.XBN), keys: ['XBN-1'] },
       { service_id: String(서비스.XBNA), keys: ['XBN-1'] },
     ]);
+    // 이슈 제목은 「PRD 초안」 카드 머리와 새 요구의 기능 이름이 된다 (BTS-F5-04)
+    const 제목 = await pool.query<{ titles: unknown }>(`SELECT params->'titles' AS titles FROM authoring_request WHERE kind = 'PRD_DRAFT' AND service_id = $1`, [서비스.XBN]);
+    expect(제목.rows[0]?.titles).toEqual({ 'XBN-1': '쿠폰 한 장만' });
   });
 
   it('늦게 「QA 요청」에 온 이슈는 다음 점검이 늦은 이슈로 맡는다', async () => {

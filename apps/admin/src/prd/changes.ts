@@ -6,11 +6,14 @@ import { 요구같나, type 앞판 } from './rules.js';
 
 /** 「바뀐 것」 한 줄 */
 export interface 판변경 {
-  kind: 'EDIT' | 'PICK' | 'CONFIRM';
+  /** CHECK 는 PRD 초안의 안 고른 삭제 줄 — 요구는 두고 확인 필요로 돌렸다 */
+  kind: 'EDIT' | 'PICK' | 'CONFIRM' | 'ADD' | 'DEL' | 'CHECK';
   reqId: string;
   text: string | null;
   asset: string | null;
   tcId: string | null;
+  /** PRD 초안 줄에서 온 고침만 — 롤백이 지운 번호를 여기서 찾는다(도메인/BTS 「롤백 바퀴」 1) */
+  issueKeys?: string[];
 }
 
 /**

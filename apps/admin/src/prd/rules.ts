@@ -136,7 +136,7 @@ export function 판같나(a: PrdItem[], b: PrdItem[]): boolean {
     a.length === b.length &&
     a.every((x, i) => {
       const y = b[i]!;
-      return x.reqId === y.reqId && 내용같나(x, y) && x.checkSince === y.checkSince && x.byPerson === y.byPerson;
+      return x.reqId === y.reqId && 내용같나(x, y) && x.checkSince === y.checkSince && x.byPerson === y.byPerson && (x.fromIssues ?? []).join() === (y.fromIssues ?? []).join();
     })
   );
 }
@@ -158,6 +158,8 @@ function 표시달기(항목: 들어온항목 & { reqId: string }, 앞것: PrdIt
   }
   // 옮기기 항목은 사람 것을 앞에서 걸러 내 여기 오지 않는다 — 옮기기가 만든 항목에는 byPerson 을 안 단다
   if (사람 && (앞것 === undefined || !내용같나(항목, 앞것) || 앞것.byPerson === true)) 결과.byPerson = true;
+  // 어느 BTS 이슈에서 왔는지는 사람이 저장해도 남긴다 — 롤백이 이 꼬리표로 되돌릴 항목을 찾는다(도메인/BTS 「롤백 바퀴」)
+  if (앞것?.fromIssues !== undefined) 결과.fromIssues = 앞것.fromIssues;
   return 결과;
 }
 

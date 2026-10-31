@@ -90,10 +90,10 @@ const 쪽크기 = 100;
 const 최대쪽 = 2;
 
 /** 「QA 요청」 이슈 목록. 다 = 끝까지 읽었나(200 을 넘으면 거짓) — 거짓이면 목록 밖 맡음을 놓지 않는다 */
-export async function QA요청이슈(연결: 연결행, 부르기: 부르기함수 = BTS부르기): Promise<{ 이슈: { key: string; bug: boolean }[]; 다: boolean }> {
+export async function QA요청이슈(연결: 연결행, 부르기: 부르기함수 = BTS부르기): Promise<{ 이슈: { key: string; bug: boolean; title: string }[]; 다: boolean }> {
   const 상태 = 연결.status_map.QA_REQUEST ?? '';
   if (상태 === '') throw new Error('「QA 요청」 상태를 짝짓지 않았다');
-  const 이슈: { key: string; bug: boolean }[] = [];
+  const 이슈: { key: string; bug: boolean; title: string }[] = [];
   for (let page = 0; page < 최대쪽; page++) {
     const r = await 부르기({ baseUrl: 연결.base_url, botKey: 연결.bot_key }, 'POST', '/api/v1/search/aql', {
       projectKey: 연결.bts_project,
@@ -103,8 +103,10 @@ export async function QA요청이슈(연결: 연결행, 부르기: 부르기함�
     });
     const 줄 = (r.json as { data?: unknown } | null)?.data;
     if (r.status !== 200 || !Array.isArray(줄)) throw new Error(`BTS 에서 「QA 요청」 이슈를 못 찾았다 (${String(r.status)})`);
-    for (const d of 줄 as { key?: unknown; typeKey?: unknown }[]) {
-      if (typeof d.key === 'string' && d.key.startsWith(`${연결.bts_project}-`)) 이슈.push({ key: d.key, bug: d.typeKey === 'bug' });
+    for (const d of 줄 as { key?: unknown; typeKey?: unknown; summary?: unknown }[]) {
+      if (typeof d.key === 'string' && d.key.startsWith(`${연결.bts_project}-`)) {
+        이슈.push({ key: d.key, bug: d.typeKey === 'bug', title: typeof d.summary === 'string' ? d.summary : '' });
+      }
     }
     if (줄.length < 쪽크기) return { 이슈, 다: true };
   }
@@ -154,7 +156,8 @@ export async function 맡기(deployId: number, late: boolean, 부르기: 부르�
       const 딸린 = await 손.query('SELECT 1 FROM bts_issue_case WHERE project_id = $1 AND issue_key = $2 LIMIT 1', [배포.project_id, 하나.key]);
       if ((딸린.rowCount ?? 0) === 0) 댓글감.push(하나.key);
     }
-    await 초안세우기(deployId, 새일, 손);
+    // 이슈 제목은 「PRD 초안」 카드 머리와 새 요구의 기능 이름으로 쓴다(BTS-F5-04)
+    await 초안세우기(deployId, 새일, 손, Object.fromEntries(이슈.filter((i) => i.title !== '').map((i) => [i.key, i.title])));
     await 손.query('COMMIT');
   } catch (err) {
     await 손.query('ROLLBACK');

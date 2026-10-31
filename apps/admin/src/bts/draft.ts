@@ -2,6 +2,8 @@
 
 import type { Pool, PoolClient } from 'pg';
 
+import { 상한 } from '../prd/rules.js';
+
 async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
   return pool;
@@ -13,11 +15,11 @@ async function db(): Promise<Pool> {
  * 그마저 못 고르면 건너뛰고 기록을 남긴다 — 그 애플리케이션 초안은 다음 배포 · 사람이 정한다. 「누가」는 BTS 연결을 마지막으로 저장한 admin(새 기능 바퀴 7).
  * bts_claim.request_id 는 채우지 않는다 — 애플리케이션마다 줄이 서서 한 칸에 못 담는다. 초안은 params.issueKeys 로 찾는다(BTS-F5-03 시작 질문 7)
  */
-export async function 초안세우기(deployId: number, 키들: string[], 손?: PoolClient): Promise<number[]> {
+export async function 초안세우기(deployId: number, 키들: string[], 손?: PoolClient, 제목들: Record<string, string> = {}): Promise<number[]> {
   if (키들.length === 0) return [];
   const r = await (손 ?? (await db())).query<{ id: string }>(
     `INSERT INTO authoring_request (service_id, kind, params, env, requested_by, requested_by_name, status)
-     SELECT s.id, 'PRD_DRAFT', jsonb_build_object('issueKeys', to_jsonb($2::text[]), 'deployId', d.id, 'buildNo', d.build_no), 실행.env,
+     SELECT s.id, 'PRD_DRAFT', jsonb_build_object('issueKeys', to_jsonb($2::text[]), 'deployId', d.id, 'buildNo', d.build_no, 'titles', $3::jsonb), 실행.env,
             l.updated_by, 'BTS · ' || COALESCE(u.display_name, l.updated_by), 'PENDING'
        FROM bts_deploy d
        JOIN bts_link l ON l.project_id = d.project_id
@@ -29,7 +31,7 @@ export async function 초안세우기(deployId: number, 키들: string[], 손?: 
       WHERE d.id = $1
       ORDER BY s.id
      RETURNING id`,
-    [deployId, 키들],
+    [deployId, 키들, JSON.stringify(Object.fromEntries(키들.flatMap((k) => (제목들[k] === undefined ? [] : [[k, 제목들[k]]]))))],
   );
   const 번호들 = r.rows.map((x) => Number(x.id));
   if (번호들.length === 0) console.error(`[bts] 배포 ${String(deployId)} 의 PRD 초안을 세울 애플리케이션이 없다 — 대상 서버를 못 골랐다 (${키들.join(', ')})`);
@@ -40,16 +42,17 @@ export async function 초안세우기(deployId: number, 키들: string[], 손?: 
  * 에이전트가 꺼져 멈춘 초안은 같은 칸으로 새로 세운다 — AI 탓이 아니라 끝없이 돌지 않는다(노트 고치기와 같은 판단).
  * 이어하기(RERUN)로 잇지 않는다 — 초안은 작업 폴더에 남길 것이 없다. 멈춘 줄은 폐기로 찍는다 — 같은 이슈 키의 살아 있는 초안이 하나만 남게
  */
-export async function 초안다시세우기(id: number): Promise<number | null> {
-  const r = await (await db()).query<{ id: string }>(
+export async function 초안다시세우기(id: number, 손?: PoolClient, 상태들?: string[]): Promise<number | null> {
+  // 카드의 [다시 만들기]는 실패 · 멈춘 줄만 받는다 — 그 사이 다시 세워 도는 줄을 또 세우지 않게(BTS-F5-04)
+  const r = await (손 ?? (await db())).query<{ id: string }>(
     `WITH 옛 AS (
-       UPDATE authoring_request SET discarded_at = now() WHERE id = $1 AND kind = 'PRD_DRAFT' AND discarded_at IS NULL
+       UPDATE authoring_request SET discarded_at = now() WHERE id = $1 AND kind = 'PRD_DRAFT' AND discarded_at IS NULL AND ($2::text[] IS NULL OR status = ANY($2))
        RETURNING service_id, kind, params, env, requested_by, requested_by_name
      )
      INSERT INTO authoring_request (service_id, kind, params, env, requested_by, requested_by_name, status)
      SELECT service_id, kind, params, env, requested_by, requested_by_name, 'PENDING' FROM 옛
      RETURNING id`,
-    [id],
+    [id, 상태들 ?? null],
   );
   return r.rows[0] === undefined ? null : Number(r.rows[0].id);
 }
@@ -105,7 +108,8 @@ export function 초안검사(몸: unknown, 맡은키: ReadonlySet<string>, 요�
       if (본번호.has(r.reqId)) return 틀림(`rows.${i}.reqId 겹침`);
       본번호.add(r.reqId);
     }
-    if (!글인가(r.text)) return 틀림(`rows.${i}.text`);
+    // 문장은 골라서 그대로 기획서 요구 문장이 된다 — PRD 요구 문장 상한을 넘으면 카드에서 못 고른다(BTS-F5-04)
+    if (!글인가(r.text) || r.text.length > 상한.요구문장) return 틀림(`rows.${i}.text`);
     if (!글인가(r.basis)) return 틀림(`rows.${i}.basis`);
     if (!키맞나(r.issueKeys)) return 틀림(`rows.${i}.issueKeys`);
     if (typeof r.sure !== 'boolean') return 틀림(`rows.${i}.sure`);
