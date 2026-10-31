@@ -1,11 +1,11 @@
 // 배포 신호 뒤에서 도는 일 — 애플리케이션마다 빌드 실행 · 스모크 판정 · 「QA 요청」 이슈 맡기 · 보류 댓글 · 늦은 이슈 · 버그 재검증 (도메인/BTS §3.12 「새 기능 바퀴」)
 
-import type { FastifyInstance } from 'fastify';
 import type { Pool, PoolClient } from 'pg';
 
 import { 빌드실행을건다 } from '../execution/buildRun.js';
 import { 오래된빌드치우기 } from '../execution/buildFile.js';
 
+import { aql글 } from './aql.js';
 import { BTS부르기, type 부르기함수 } from './client.js';
 import { 보낼줄넣기 } from './outbox.js';
 
@@ -47,6 +47,16 @@ export async function 배포실행걸기(deployId: number, 앱들: 배포할앱[
           [앱.serviceId, 앱.env, 앱.buildNo, 사람.username],
         );
         buildId = Number(r.rows[0]!.id);
+        // CI 가 그 빌드로 이미 실행을 걸었으면 그 첫 실행(스모크, 없으면 회귀)을 이 배포의 실행으로 센다 — 같은 빌드를 두 번 돌리지 않게
+        const 걸린 = await pool.query<{ run_id: string }>(
+          `SELECT run_id FROM test_run WHERE build_id = $1 AND origin = 'BUILD'
+              AND build_stage = (SELECT CASE WHEN bool_or(build_stage = 'SMOKE') THEN 'SMOKE' ELSE 'FULL' END FROM test_run WHERE build_id = $1 AND origin = 'BUILD')`,
+          [buildId],
+        );
+        if (걸린.rows.length > 0) {
+          runIds.push(...걸린.rows.map((x) => Number(x.run_id)));
+          continue;
+        }
       }
       runIds.push(...(await 빌드실행을건다({ id: buildId, serviceId: 앱.serviceId, prefix: 앱.prefix, env: 앱.env, buildNo: 앱.buildNo, ...사람 })));
       await 오래된빌드치우기(앱.serviceId, 앱.env).catch((err: unknown) => console.error(`[bts] ${앱.prefix} ${앱.env} 의 오래된 빌드를 못 치웠다: ${글(err)}`));
@@ -59,9 +69,6 @@ export async function 배포실행걸기(deployId: number, 앱들: 배포할앱[
   await pool.query('UPDATE bts_deploy SET run_ids = $2 WHERE id = $1', [deployId, runIds]);
   await 배포판정(deployId, 부르기);
 }
-
-// mcp/tools.ts aql글 과 같은 따옴표 — 그 파일은 MCP 서버 쪽 모듈을 끌고 와 여기서 부르지 않는다
-const aql글 = (값: string): string => `"${값.replace(/[\\"]/g, (c) => `\\${c}`)}"`;
 
 const 글 = (err: unknown): string => (err instanceof Error ? err.message : String(err));
 
@@ -131,7 +138,9 @@ export async function 맡기(deployId: number, late: boolean, 부르기: 부르�
     맡음.push(하나.key);
     if (!하나.bug) continue;
     // 사람이 BTS 에 직접 올린 버그는 QA Hub 테스트가 없다 — 「QA 요청」에 두고 사람에게 알린다(2차 R8). 맡음이 남아 다음 배포가 또 달지 않는다
-    const 딸린 = await pool.query('SELECT 1 FROM bts_issue_case WHERE project_id = $1 AND issue_key = $2 AND closed_at IS NULL LIMIT 1', [배포.project_id, 하나.key]);
+    // 닫힌 짝도 본다 — 재검증 통과로 짝을 닫았는데 BTS 옮기기가 그만둬 이슈가 「QA 요청」에 남았을 때 틀린 「딸린 테스트 없음」을 달지 않게.
+    // ponytail: 그 이슈는 맡은 채 남고 다시 닫지 않는다 — 보낼 줄의 그만둔 옮기기(last_error)를 사람이 보고 BTS 에서 닫는다. 잦으면 맡을 때 FIXED 짝의 옮기기를 다시 넣는다
+    const 딸린 = await pool.query('SELECT 1 FROM bts_issue_case WHERE project_id = $1 AND issue_key = $2 LIMIT 1', [배포.project_id, 하나.key]);
     if ((딸린.rowCount ?? 0) === 0) {
       await 보낼줄넣기({ projectId: Number(배포.project_id), kind: 'COMMENT', issueKey: 하나.key, payload: { body: '딸린 테스트 없음 — 사람이 확인해 주세요\nQA Hub 에 이 버그를 확인하는 테스트가 없습니다' } });
     }
@@ -150,13 +159,13 @@ async function 보류댓글(projectId: number, buildNo: string, 깨진앱: strin
 
 /**
  * 이 배포의 스모크가 다 끝났으면 판정한다 — 다 통과면 맡고, 하나라도 깨지면 보류 댓글.
- * 상태를 먼저 SMOKE 에서 옮긴 쪽만 일한다 — 스모크 둘이 같이 끝나 두 번 맡지 않게. 새 배포가 와 있으면 말없이 보류로 닫는다(새 배포가 맡는다)
+ * 상태를 먼저 SMOKE 에서 옮긴 쪽만 일한다 — 스모크 둘이 같이 끝나 두 번 맡지 않게. 새 배포가 와 있으면 말없이 보류로 닫는다(새 배포가 맡는다 — 새 배포가 FAILED 면 이 배포가 판정한다)
  */
 export async function 배포판정(deployId: number, 부르기: 부르기함수 = BTS부르기): Promise<void> {
   const pool = await db();
   const 배포 = (await pool.query<{ project_id: string; build_no: string; run_ids: string[]; state: string; 새배포: boolean }>(
     `SELECT d.project_id, d.build_no, d.run_ids, d.state,
-            EXISTS (SELECT 1 FROM bts_deploy n WHERE n.project_id = d.project_id AND n.id > d.id) AS "새배포"
+            EXISTS (SELECT 1 FROM bts_deploy n WHERE n.project_id = d.project_id AND n.id > d.id AND n.state <> 'FAILED') AS "새배포"
        FROM bts_deploy d WHERE d.id = $1`,
     [deployId],
   )).rows[0];
@@ -186,7 +195,8 @@ export async function 배포판정(deployId: number, 부르기: 부르기함수 
 /**
  * 맡은 버그의 딸린 케이스가 이번 실행에서 다 통과했으면 「재검증 통과」 댓글과 함께 닫는다(새 기능 바퀴 5).
  * 따로 실행을 세우지 않는다 — 스모크 뒤 회귀가 활성 케이스 전부라 딸린 케이스도 돈다(같은 빌드를 두 번 돌리지 않게 · BTS-F5-01 시작 질문 5).
- * 맡은 배포 뒤에 선 실행 · 깨진 대상 서버와 같은 서버만 센다 — qa 에서 깨진 것은 qa 에서 다시 통과해야 고친 것이다
+ * 맡은 배포 뒤에 선 실행 · 깨진 대상 서버와 같은 서버만 센다 — qa 에서 깨진 것은 qa 에서 다시 통과해야 고친 것이다.
+ * 딸린 케이스가 여러 애플리케이션에 걸치면 케이스마다 그 마지막 실행을 본다 — 실행 하나는 애플리케이션 하나라 이번 실행만 보면 영영 못 닫는다
  */
 export async function 버그재검증(runId: number): Promise<string[]> {
   const pool = await db();
@@ -198,13 +208,23 @@ export async function 버그재검증(runId: number): Promise<string[]> {
        JOIN bts_claim c ON c.project_id = s.project_id AND c.released_at IS NULL AND c.issue_type = 'BUG'
        JOIN bts_deploy d ON d.id = c.deploy_id AND t.started_at >= d.created_at
       WHERE t.run_id = $1 AND t.status = 'FINISHED'
-        AND EXISTS (SELECT 1 FROM bts_issue_case k WHERE k.project_id = c.project_id AND k.issue_key = c.issue_key AND k.closed_at IS NULL)
+        -- 이번 실행이 그 버그의 딸린 케이스를 하나라도 돌렸다
+        AND EXISTS (
+          SELECT 1 FROM bts_issue_case k
+           WHERE k.project_id = c.project_id AND k.issue_key = c.issue_key AND k.closed_at IS NULL AND k.service_id = t.service_id AND k.env = t.env
+             AND EXISTS (SELECT 1 FROM run_item i WHERE i.run_id = t.run_id AND i.tc_id = k.tc_id))
+        -- 딸린 케이스마다(다른 애플리케이션 · 대상 서버 것도) 맡은 배포 뒤 그 케이스를 돌린 마지막 실행에서 다 통과했다
         AND NOT EXISTS (
           SELECT 1 FROM bts_issue_case k
            WHERE k.project_id = c.project_id AND k.issue_key = c.issue_key AND k.closed_at IS NULL
-             AND (k.service_id <> t.service_id OR k.env <> t.env
-                  OR NOT EXISTS (SELECT 1 FROM run_item i WHERE i.run_id = t.run_id AND i.tc_id = k.tc_id)
-                  OR EXISTS (SELECT 1 FROM run_item i WHERE i.run_id = t.run_id AND i.tc_id = k.tc_id AND i.status <> 'PASS')))`,
+             AND NOT EXISTS (
+               SELECT 1 FROM (
+                 SELECT r.run_id FROM test_run r
+                  WHERE r.service_id = k.service_id AND r.env = k.env AND r.status = 'FINISHED' AND r.started_at >= d.created_at
+                    AND EXISTS (SELECT 1 FROM run_item i WHERE i.run_id = r.run_id AND i.tc_id = k.tc_id)
+                  ORDER BY r.finished_at DESC NULLS LAST, r.run_id DESC LIMIT 1
+               ) 마지막
+                WHERE NOT EXISTS (SELECT 1 FROM run_item i WHERE i.run_id = 마지막.run_id AND i.tc_id = k.tc_id AND i.status <> 'PASS')))`,
     [runId],
   );
   const 닫음: string[] = [];
@@ -242,47 +262,7 @@ async function 닫기적기(손: PoolClient, 줄: { claim_id: string; project_id
 
 /** 실행이 끝날 때마다 부른다(dispatcher) — 이 실행이 든 배포의 스모크 판정, 그리고 맡은 버그의 재검증 */
 export async function 배포실행뒤(runId: number): Promise<void> {
-  const 배포들 = await (await db()).query<{ id: string }>("SELECT id FROM bts_deploy WHERE $1 = ANY(run_ids) AND state = 'SMOKE'", [runId]);
+  const 배포들 = await (await db()).query<{ id: string }>("SELECT id FROM bts_deploy WHERE run_ids @> ARRAY[$1]::bigint[] AND state = 'SMOKE'", [runId]);
   for (const { id } of 배포들.rows) await 배포판정(Number(id));
   await 버그재검증(runId);
-}
-
-// 늦은 이슈 — BTS 규칙이 늦게 끝나 맡기 묶음에 못 든 이슈. 배포 뒤 이만큼만 1분마다 다시 찾는다 — 끝없이 BTS 를 두드리지 않게(BTS-F5-01 시작 질문 4)
-export const 늦은이슈기한분 = 10;
-
-/** 기한 안의 맡은 배포(프로젝트마다 가장 새 것)마다 늦은 이슈를 맡는다 */
-export async function 늦은이슈점검(부르기: 부르기함수 = BTS부르기): Promise<number> {
-  const r = await (await db()).query<{ id: string }>(
-    `SELECT d.id FROM bts_deploy d
-      WHERE d.state = 'CLAIMED' AND d.created_at > now() - make_interval(mins => $1)
-        AND NOT EXISTS (SELECT 1 FROM bts_deploy n WHERE n.project_id = d.project_id AND n.id > d.id)`,
-    [늦은이슈기한분],
-  );
-  let 셈 = 0;
-  for (const { id } of r.rows) {
-    try {
-      셈 += (await 맡기(Number(id), true, 부르기)).length;
-    } catch (err) {
-      console.error(`[bts] 배포 ${id} 의 늦은 이슈를 못 찾았다: ${글(err)}`);
-    }
-  }
-  return 셈;
-}
-
-/** admin 이 뜰 때 건다(app.ts 기동 경로) — 보낼줄켜기 와 같은 틀 */
-export function 늦은이슈켜기(app: FastifyInstance): void {
-  let 도는중 = false;
-  const 점검 = setInterval(() => {
-    if (도는중) return;
-    도는중 = true;
-    void 늦은이슈점검()
-      .then((셈) => {
-        if (셈 > 0) app.log.info(`[bts] 늦은 이슈 ${String(셈)}건을 맡았다`);
-      })
-      .catch((err: unknown) => app.log.error(`[bts] 늦은 이슈 점검이 깨졌다: ${글(err)}`))
-      .finally(() => {
-        도는중 = false;
-      });
-  }, 60_000);
-  app.addHook('onClose', async () => clearInterval(점검));
 }

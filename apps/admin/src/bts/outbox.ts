@@ -100,17 +100,25 @@ async function 하나보내기(줄: 집은줄, 부르기: 부르기함수): Prom
     const 자리 = { baseUrl: 줄.base_url, botKey: 줄.bot_key };
     let 보낼몸 = 몸;
     // 판 번호 없이 넣은 옮기기(재검증 통과 닫기 — deployFlow.ts)는 보내기 직전에 이슈의 지금 판을 읽는다 — 넣을 때 읽으면 보낼 때 낡는다
-    if (줄.kind === 'TRANSITION' && (몸 as { expectedVersion?: unknown }).expectedVersion === undefined) {
+    const 판읽음 = 줄.kind === 'TRANSITION' && (몸 as { expectedVersion?: unknown }).expectedVersion === undefined;
+    if (판읽음) {
       const 읽음 = await 부르기(자리, 'GET', `/api/v1/issues/${encodeURIComponent(줄.issue_key!)}`);
       const 실패 = 상태로(읽음.status);
       if (실패 !== null) return 실패;
       const data = (읽음.json as { data?: { version?: unknown; currentStateKey?: unknown } } | null)?.data;
-      // 이미 그 상태면 옮길 것이 없다 — 사람이 먼저 닫았다
-      if (data?.currentStateKey === (몸 as { toStatusKey?: unknown }).toStatusKey) return { 상태: 'SENT' };
+      const { toStatusKey, comment } = 몸 as { toStatusKey?: unknown; comment?: unknown };
+      // 이미 그 상태면 옮길 것이 없다(사람이 먼저 닫았다). 실어 둔 댓글은 댓글로만 남긴다 — 재검증 통과 기록이 BTS 에 남게
+      if (data?.currentStateKey === toStatusKey) {
+        if (typeof comment !== 'string') return { 상태: 'SENT' };
+        const 댓글 = await 부르기(자리, 'POST', 갈곳.COMMENT(줄.issue_key!)[1], { body: comment });
+        return 상태로(댓글.status) ?? { 상태: 'SENT' };
+      }
       if (typeof data?.version !== 'number') return { 상태: 'GAVE_UP', 까닭: `BTS 이슈 판 번호를 못 읽었습니다 (${String(읽음.status)})` };
       보낼몸 = { ...(몸 as object), expectedVersion: data.version };
     }
     const r = await 부르기(자리, method, 경로, 보낼몸);
+    // 읽은 판과 보낸 사이에 누가 이슈를 고쳤다 — 다음 점검이 새 판을 읽어 다시 보낸다
+    if (판읽음 && r.status === 409) return { 상태: 'RETRY', 까닭: 'BTS 이슈 판이 그사이 바뀌었습니다 (409)' };
     const 실패 = 상태로(r.status);
     if (실패 !== null) return 실패;
     if (줄.kind !== 'CREATE') return { 상태: 'SENT' };

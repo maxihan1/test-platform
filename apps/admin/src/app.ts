@@ -15,7 +15,7 @@ import authoringEditRoutes from './authoring/edit-routes.js';
 import authoringDecisionRoutes from './authoring/decisionRoutes.js';
 import authoringRoutes from './authoring/routes.js';
 import btsDeployRoutes from './bts/deploy.js';
-import { 늦은이슈켜기 } from './bts/deployFlow.js';
+import { 늦은이슈켜기 } from './bts/deployLate.js';
 import btsInboundRoutes from './bts/inbound.js';
 import { 보낼줄켜기 } from './bts/outbox.js';
 import btsLinkRoutes from './bts/routes.js';

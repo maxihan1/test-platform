@@ -126,9 +126,10 @@ export default async function btsDeployRoutes(app: FastifyInstance, opts: { 부�
     const 주인 = await 사용자와해시(연결.updated_by);
     if (주인?.user.role !== 'admin') return 보냄(거절(409, 'NOT_LINKED', 'BTS 연결을 저장한 계정이 꺼져 있습니다 — 설정 › BTS 연결을 다시 저장합니다'));
 
-    // deploy.sh 가 같은 빌드로 다시 불러도 새로 걸지 않는다
-    const 앞 = (await pool.query<{ id: string }>('SELECT id FROM bts_deploy WHERE project_id = $1 AND build_no = $2', [projectId, buildNo])).rows[0];
-    if (앞 !== undefined) return reply.code(200).send({ deployId: Number(앞.id) });
+    // deploy.sh 가 같은 빌드로 다시 불러도 새로 걸지 않는다. 앞 배포가 실패(FAILED — 실행을 다 못 걸었거나 BTS 에 못 닿았다)로 끝났으면 지우고 새로 건다 —
+    // 남기면 같은 번호로는 영영 다시 못 돈다(buildRoutes.ts 가 실행을 못 걸면 빌드를 지우는 것과 같다)
+    const 앞 = (await pool.query<{ id: string; state: string }>('SELECT id, state FROM bts_deploy WHERE project_id = $1 AND build_no = $2', [projectId, buildNo])).rows[0];
+    if (앞 !== undefined && 앞.state !== 'FAILED') return reply.code(200).send({ deployId: Number(앞.id) });
 
     const 다 = (await pool.query<앱행>('SELECT id, prefix, kind FROM service WHERE project_id = $1 AND is_active ORDER BY id', [projectId])).rows;
     const 이름들 = 몸.data.services;
@@ -139,6 +140,7 @@ export default async function btsDeployRoutes(app: FastifyInstance, opts: { 부�
     const 고름 = await 앱고르기(pool, 앱들, 몸.data.env, buildNo);
     if (!Array.isArray(고름)) return 보냄(고름);
 
+    if (앞 !== undefined) await pool.query("DELETE FROM bts_deploy WHERE id = $1 AND state = 'FAILED'", [앞.id]);
     const 넣음 = await pool.query<{ id: string }>(
       `INSERT INTO bts_deploy (project_id, build_no, rollback, rollback_keys, service_ids) VALUES ($1, $2, $3, $4, $5)
        ON CONFLICT (project_id, build_no) DO NOTHING RETURNING id`,

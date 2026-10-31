@@ -4,6 +4,7 @@ import { 문판정, type 문막힘 as 문막힘몸 } from '../auth/gate.js';
 import { 필요권한 } from '../auth/routeTable.js';
 import { 서비스없음, 자원의서비스, 케이스의서비스 } from '../auth/scope.js';
 import type { 사용자 } from '../auth/store.js';
+import { aql글 } from '../bts/aql.js';
 import { BTS부르기, type BTS응답, type 부르기함수 } from '../bts/client.js';
 import { findRun } from '../execution/queries.js';
 import { 지금판, 케이스지도 } from '../prd/store.js';
@@ -131,8 +132,8 @@ export function 프로젝트읽기막힘(사람: 사용자, projectId: number): 
 
 export type BTS찾을것 = { issueKey?: string; query?: string };
 
-/** BTS AQL 문자열 — 따옴표 · 역슬래시만 푼다 (BTS AqlLexer scanQuotedString) */
-export const aql글 = (글: string): string => `"${글.replace(/[\\"]/g, (c) => `\\${c}`)}"`;
+/** BTS AQL 문자열 — 따옴표 · 역슬래시만 푼다 (BTS AqlLexer scanQuotedString). 정본은 bts/aql.ts */
+export { aql글 };
 
 /**
  * BTS 이슈 · task 찾기 — 사람 요청은 그 사람의 PAT 로 BTS 를 부른다(결정 16). BTS 가 자기 권한을 한 번 더 본다.

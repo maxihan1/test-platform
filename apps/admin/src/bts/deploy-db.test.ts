@@ -14,7 +14,8 @@ import { createRun } from '../execution/store.js';
 
 import type { BTS자리 } from './client.js';
 import btsDeployRoutes from './deploy.js';
-import { 늦은이슈점검, 배포판정, 버그재검증 } from './deployFlow.js';
+import { 배포판정, 버그재검증 } from './deployFlow.js';
+import { 늦은이슈점검 } from './deployLate.js';
 import { BTS알림처리 } from './inbound.js';
 import { 보낼줄점검 } from './outbox.js';
 
