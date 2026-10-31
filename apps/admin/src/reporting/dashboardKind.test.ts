@@ -81,11 +81,15 @@ describe('틀로접는다', () => {
       'GET /v1/devices/dev_dmn_none_mvrurusc/logs',
       'DELETE /v1/devices/dev_dmn_x',
       'GET /v1/devices',
+      'GET /v1/devices/search',
+      'GET /v1/devices/me_2',
     ]);
     expect(접기.get('GET /v1/devices/dev_dmn_none_mvrurusc')).toBe('GET /v1/devices/:n');
     expect(접기.get('GET /v1/devices/:n')).toBe('GET /v1/devices/:n');
     expect(접기.get('GET /v1/devices/dev_dmn_none_mvrurusc/logs')).toBe('GET /v1/devices/dev_dmn_none_mvrurusc/logs');
     expect(접기.get('DELETE /v1/devices/dev_dmn_x')).toBe('DELETE /v1/devices/dev_dmn_x');
     expect(접기.get('GET /v1/devices')).toBe('GET /v1/devices');
+    expect(접기.get('GET /v1/devices/search')).toBe('GET /v1/devices/search');
+    expect(접기.get('GET /v1/devices/me_2')).toBe('GET /v1/devices/me_2');
   });
 });

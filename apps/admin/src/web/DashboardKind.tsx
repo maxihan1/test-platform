@@ -14,7 +14,6 @@ const 제목: Record<종류칸['kind'], string> = {
 
 // 러너 브라우저가 Chromium 하나라 디바이스 이름 뒤에 붙인다
 const 웹이름: Record<string, string> = { desktop: 'PC · Chromium', mobile: '모바일 · Chromium' };
-const 모름: Record<종류칸['kind'], string> = { SCREEN: '디바이스 정보 없음', APP: '기기 정보 없음', GAME: '창 정보 없음', API: '엔드포인트 정보 없음' };
 // 막대 칸에서는 단위를 모르는 줄을 막대로 안 세우고 칸 아래 한 줄로 센다 — 실제 기기 · 창과 같은 막대로 서면 「기기 정보 없음 0%」가 기기 하나처럼 읽혔다 (2026-10-31 시험 f14)
 const 모름줄: Record<Exclude<종류칸['kind'], 'API'>, string> = {
   SCREEN: '디바이스 정보 없는 결과 {건}건',
@@ -33,7 +32,7 @@ export function 응답시간(ms: number | null): string {
 export function 종류칸({ 칸, 일 }: { 칸: 종류칸; 일: number }) {
   const t = use말();
   const 이름 = (label: string | null): string =>
-    label === null ? t(모름[칸.kind]) : 칸.kind === 'SCREEN' ? t(웹이름[label] ?? label) : label;
+    label === null ? t('엔드포인트 정보 없음') : 칸.kind === 'SCREEN' ? t(웹이름[label] ?? label) : label;
   // 칸 아래 한 줄 — 셀 것이 없으면 안 띄운다 (§8.12 「종류별 칸」)
   const 모바일 = 칸.onlyFail.find((x) => x.label === 'mobile');
   const 아래줄 =
@@ -53,7 +52,7 @@ export function 종류칸({ 칸, 일 }: { 칸: 종류칸; 일: number }) {
           : 칸.onlyFail.map((x) => t('{기기} 에서만 실패한 케이스 {건}건', { 기기: x.label, 건: x.count })).join(', ');
 
   const 막대줄 = 칸.rows.filter((줄) => 줄.label !== null);
-  const 모른줄 = 칸.kind === 'API' ? undefined : 칸.rows.find((줄) => 줄.label === null);
+  const 모른줄 = 칸.rows.find((줄) => 줄.label === null);
 
   return (
     <section className="dash-flat dash-kind">
@@ -96,7 +95,7 @@ export function 종류칸({ 칸, 일 }: { 칸: 종류칸; 일: number }) {
           </tbody>
         </table>
       ) : (
-        <ul className="dash-kind-list">
+        막대줄.length === 0 ? null : <ul className="dash-kind-list">
           {막대줄.map((줄) => {
             const 퍼센트 = Math.round((줄.pass / 전체(줄)) * 100);
             return (
@@ -111,7 +110,8 @@ export function 종류칸({ 칸, 일 }: { 칸: 종류칸; 일: number }) {
           })}
         </ul>
       )}
-      {모른줄 === undefined || 칸.kind === 'API' ? null : (
+      {/* API 는 표 안 「엔드포인트 정보 없음」 줄로 센다 */}
+      {칸.kind === 'API' || 모른줄 === undefined ? null : (
         <p className="dash-calm dash-kind-note">{t(모름줄[칸.kind], { 건: 전체(모른줄) })}</p>
       )}
       {아래줄 === null ? null : <p className="dash-calm dash-kind-note">{아래줄}</p>}

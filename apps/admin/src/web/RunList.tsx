@@ -74,12 +74,16 @@ export function RunList({
     setEnv('');
     setOrigin(undefined);
     setDays(undefined);
-    set고른((앞) => (앞 !== null && 앞 === 따라간실행.current ? 앞 : null));
+    // 한 번만 남긴다 — 그 뒤 사람이 애플리케이션을 바꾸면 고른 실행을 버린다
+    const 남길것 = 따라간실행.current;
+    따라간실행.current = null;
+    set고른((앞) => (앞 !== null && 앞 === 남길것 ? 앞 : null));
   }
   useEffect(() => {
     if (처음실행 === null || 서비스바꿈 === undefined) return undefined;
     let 살아있음 = true;
     // 못 읽으면 그대로 둔다 — 결과 칸이 읽기 실패를 스스로 말한다
+    // ponytail: 결과 칸도 같은 실행을 읽어 주소로 열 때 두 번 부른다. 큰 실행에서 느리면 결과 칸이 읽은 값으로 따라간다
     api.run(처음실행).then(
       (r) => {
         const 접두사 = 케이스서비스(r.items[0]?.tcId ?? '');

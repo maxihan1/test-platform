@@ -145,6 +145,22 @@ describe('애플리케이션 · 기간 고르기', () => {
     expect(읽기).toHaveBeenLastCalledWith(시간대, undefined, { service: 1 });
   });
 
+  it('칸의 고리가 왼쪽 줄을 바꿔도 「전체」로 보던 대시보드는 좁히지 않는다 — 가운데 단추로 새 탭에 열 때도 그 탭이 바뀌었다', async () => {
+    vi.spyOn(api, 'dashboard').mockResolvedValue(응답() as never);
+    const 서비스열기 = vi.fn();
+    const { rerender } = render(<Dashboard 서비스열기={서비스열기} {...기본재료} 열린서비스={1} />);
+    await screen.findByText(/ZDA 결제 · 최근 14일/);
+    fireEvent.change(screen.getByRole('combobox', { name: '애플리케이션' }), { target: { value: '' } });
+    await screen.findByText(/애플리케이션 2개/);
+    const 칸 = screen.getByText('회귀 실패', { selector: 'h2' }).closest('section')!;
+    fireEvent.click(within(칸).getByRole('link', { name: 'ZDA-UI-014 이름' }));
+    fireEvent.click(within(document.getElementById('fail-drawer')!).getByRole('link', { name: '실행 기록에서 보기' }));
+    expect(서비스열기).toHaveBeenLastCalledWith(2);
+    rerender(<Dashboard 서비스열기={서비스열기} {...기본재료} 열린서비스={2} />);
+    await act(async () => {});
+    expect((screen.getByRole('combobox', { name: '애플리케이션' }) as HTMLSelectElement).value).toBe('');
+  });
+
   it('기간을 고르면 그 길이로 읽고 글자의 날 수도 따라간다 — 기본값 14 는 주소에서 빠진다', async () => {
     const 읽기 = vi
       .spyOn(api, 'dashboard')
