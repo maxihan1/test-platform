@@ -1,0 +1,65 @@
+// 설정 › BTS 연결 통로 (도메인/BTS §7). /api/settings 아래라 운영(admin) 계정만 닿는다 — 막는 것은 문이다 (auth/gate.ts)
+
+import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
+
+import { 정수 } from '../routeParams.js';
+
+import { BTS연결끊기, BTS연결읽기, BTS연결저장, BTS열쇠만들기, BTS확인, 상태짝틀, 해결짝틀, type 확인함수 } from './link.js';
+
+const 연결본문 = z.object({
+  baseUrl: z.string().trim().url().refine((u) => /^https?:\/\//.test(u), 'baseUrl 은 http(s) 주소여야 합니다'),
+  btsProject: z.string().trim().min(1).max(50),
+  botKey: z.string().trim().min(1).optional(),
+  webhookSecret: z.string().trim().min(1).optional(),
+  statusMap: 상태짝틀,
+  resolutionMap: 해결짝틀,
+});
+
+const 짝이빈가 = (m: Record<string, string>): boolean => Object.values(m).some((v) => v === '');
+
+const 저장코드 = {
+  NOT_FOUND: 404,
+  SECRETS_REQUIRED: 400,
+  BOT_KEY_REQUIRED: 400,
+  BTS_UNREACHABLE: 400,
+} as const;
+
+export default async function btsLinkRoutes(app: FastifyInstance, opts: { 확인?: 확인함수 }): Promise<void> {
+  const 확인 = opts.확인 ?? BTS확인;
+
+  app.get<{ Params: { projectId: string } }>('/settings/projects/:projectId/bts', async (req, reply) => {
+    const id = 정수(req.params.projectId);
+    if (id === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.params.projectId });
+    return (await BTS연결읽기(id)) ?? reply.code(404).send({ error: 'NOT_FOUND' });
+  });
+
+  app.put<{ Params: { projectId: string } }>('/settings/projects/:projectId/bts', async (req, reply) => {
+    const id = 정수(req.params.projectId);
+    const parsed = 연결본문.safeParse(req.body);
+    if (id === null || !parsed.success) {
+      return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.success ? req.params.projectId : parsed.error.message });
+    }
+    if (짝이빈가(parsed.data.statusMap) || 짝이빈가(parsed.data.resolutionMap)) return reply.code(400).send({ error: 'MAP_INCOMPLETE' });
+    const 결과 = await BTS연결저장(id, parsed.data, req.user?.username ?? '', 확인);
+    if (결과 === 'OK') return { ok: true };
+    return reply.code(저장코드[결과]).send({ error: 결과 });
+  });
+
+  app.delete<{ Params: { projectId: string } }>('/settings/projects/:projectId/bts', async (req, reply) => {
+    const id = 정수(req.params.projectId);
+    if (id === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.params.projectId });
+    await BTS연결끊기(id);
+    return reply.code(204).send();
+  });
+
+  // 원문은 이 응답이 유일하다 — DB 에는 해시와 끝 4자리만 둔다 (CI 토큰과 같다)
+  app.post<{ Params: { projectId: string; which: string } }>('/settings/projects/:projectId/bts/keys/:which', async (req, reply) => {
+    const id = 정수(req.params.projectId);
+    const which = req.params.which;
+    if (id === null || (which !== 'deploy' && which !== 'rule')) return reply.code(400).send({ error: 'INVALID_REQUEST' });
+    const key = await BTS열쇠만들기(id, which, req.user?.username ?? '');
+    if (key === null) return reply.code(409).send({ error: 'NOT_LINKED' });
+    return reply.code(201).send({ key });
+  });
+}

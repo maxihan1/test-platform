@@ -245,16 +245,19 @@ POST /api/bts/rules
      { event: 'ASSIGNEE', issueKey, assignee } | { event: 'PR_MERGED', issueKey, prNumber, prUrl, prTitle }
   → 204
 
-# 설정 › BTS 연결 — 운영(admin) 계정만 (BTS-F3-01)
+# 설정 › BTS 연결 — 운영(admin) 계정만 (BTS-F3-01 반영 2026-10-31 · apps/admin/src/bts/linkRoutes.ts)
 GET    /api/settings/projects/:projectId/bts
   → { linked, baseUrl, btsProject, botKeyTail, statusMap, resolutionMap, deployKey: { tail, createdAt } | null, ruleToken: { tail, createdAt } | null }   — 열쇠는 끝 4자리만
+  → 연결이 없으면 linked: false · 나머지 null · 짝은 {} · 404 NOT_FOUND(프로젝트 없음)
 PUT    /api/settings/projects/:projectId/bts   { baseUrl, btsProject, botKey?, webhookSecret?, statusMap, resolutionMap }
-  → 200 · 400 MAP_INCOMPLETE(짝이 빈 단계) · 400 BTS_UNREACHABLE(저장 전에 BTS 를 한 번 불러 본다 — 「QA Hub AI」 열쇠 · 프로젝트 키 확인)
+  → 200 · 400 MAP_INCOMPLETE(짝이 빈 단계 · 빠진 단계) · 400 BTS_UNREACHABLE(저장 전에 BTS 를 한 번 불러 본다 — 「QA Hub AI」 열쇠로 GET <baseUrl>/api/v1/projects/<btsProject> 가 200 인지)
+  → 400 SECRETS_REQUIRED(처음 연결인데 botKey · webhookSecret 이 빠짐 — 고칠 때 빼면 저장한 원문을 그대로 쓴다)
+  → 400 BOT_KEY_REQUIRED(baseUrl 을 바꾸면서 botKey 를 빼면 — 끝 4자리만 본 사람이 원문을 다른 주소로 못 보내게. settings/envs.ts 토큰 주소와 같은 판단) · 404 NOT_FOUND
 DELETE /api/settings/projects/:projectId/bts   → 204 — 연결을 끊으면 그 프로젝트는 다시 지금처럼 돈다(맡은 이슈 · 짝 기록은 남긴다)
 POST   /api/settings/projects/:projectId/bts/keys/:which   — which = deploy | rule. 새로 만들면 앞 열쇠는 끊긴다
-  → 201 { key }   — 원문은 이 응답 한 번뿐
-# 애플리케이션 코드 저장소 — 지금 PUT /api/settings/services/:id 에 칸 하나 (BTS-F3-01)
-     { …, codeRepos: [{ name: '화면' | '서버' | string, url: 'https://github.com/…' }] }   — 비어도 된다. 수정 AI 만 쓴다
+  → 201 { key }   — 원문은 이 응답 한 번뿐 · 409 NOT_LINKED(연결 없음)
+# 애플리케이션 코드 저장소 — 지금 PATCH /api/settings/services/:id 에 칸 하나 · 목록(GET /api/settings/services) 줄에도 실린다 (BTS-F3-01 반영 2026-10-31)
+     { …, codeRepos: [{ name: '화면' | '서버' | string, url: 'https://github.com/…' }] }   — 비어도 된다 · 10줄까지 · url 은 https:// 만. 수정 AI 만 쓴다
 
 # BTS 등록 다시 보내기 — 실행 결과 실패 카드 (BTS-F3-03). (실행, write)
 POST /api/runs/:runId/bts/resend   { tcId, env }
