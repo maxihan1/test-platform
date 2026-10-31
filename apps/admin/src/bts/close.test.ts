@@ -63,7 +63,7 @@ describe.skipIf(연결 === undefined)('BTS 닫기 사유 처리', () => {
         )
       ).rows[0]!.run_id,
     );
-    for (const tcId of ['XBC-FN-001', 'XBC-FN-002']) {
+    for (const tcId of ['XBC-FN-001', 'XBC-FN-002', 'XBC-FN-003']) {
       await pool.query(
         `INSERT INTO run_item (run_id, tc_id, platform, tc_name, params, expected, status, duration_ms, finished_at, file_path, param_schema, expected_schema, timeout_ms)
          VALUES ($1, $2, 'desktop', '검사', '{}', '{}', 'FAIL', 100, now(), 'tests/xbc/a.spec.ts', '{}', '{}', 300000)`,
@@ -130,7 +130,7 @@ describe.skipIf(연결 === undefined)('BTS 닫기 사유 처리', () => {
       prdApply: true,
       screenRight: [{ runId: 실행, tcId: 'XBC-FN-002', env: 'qa', reqIds: ['XBC-REQ-001'], byName: 'BTS DM-4' }],
     });
-    await 짝넣기('DM-5', 'XBC-FN-001');
+    await 짝넣기('DM-5', 'XBC-FN-003');
     expect(await 닫기처리({ projectId: 프로젝트, ...자리 }, 이슈('DM-5', 'Works as designed'))).toEqual([]);
     expect(await 짝('DM-5')).toEqual({ open: false, resolution: 'SCREEN_RIGHT' });
   });
