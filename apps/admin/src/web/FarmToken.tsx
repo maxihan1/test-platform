@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import { api, ApiError } from './api.js';
+import { BTS이름 } from './btsName.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import { message } from './ui.js';
@@ -75,7 +76,7 @@ export function FarmToken({ onClose }: { onClose: () => void }) {
 
   return (
     <Modal
-      제목={t('디바이스 팜 토큰')}
+      제목={t('통합계정 토큰')}
       onClose={onClose}
       버튼={
         <button className="btn ghost" type="button" onClick={onClose}>
@@ -83,7 +84,7 @@ export function FarmToken({ onClose }: { onClose: () => void }) {
         </button>
       }
     >
-      <p>{t('내가 누른 실행은 이 토큰으로 디바이스 팜의 폰을 빌립니다')}</p>
+      <p>{t('내가 누른 실행이 디바이스 팜의 폰을 빌릴 때와 {bts} 자동 설정을 할 때 이 토큰을 씁니다', { bts: BTS이름 })}</p>
       <p className="hint">{t('통합계정 「내 계정」 화면에서 개인 액세스 토큰을 발급해 붙여 넣습니다')}</p>
       <p>
         {/* 읽기가 실패하면 아래 오류 줄이 까닭을 말한다 — 불러오는 중으로 남겨 두지 않는다 */}

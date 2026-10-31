@@ -183,7 +183,7 @@ export async function callRunner(
   try {
     토큰 = await 실행팜토큰(runId);
   } catch (err) {
-    return na(item, '누른 사람의 디바이스 팜 토큰을 읽지 못했습니다', err instanceof Error ? err.message : String(err));
+    return na(item, '누른 사람의 통합계정 토큰을 읽지 못했습니다', err instanceof Error ? err.message : String(err));
   }
   return 팜폰으로(팜, (udid) => 보낸다폰(udid, 토큰), (까닭) => na(item, 까닭), undefined, undefined, undefined, 토큰);
 }

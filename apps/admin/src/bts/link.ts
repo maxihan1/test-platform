@@ -80,6 +80,15 @@ export async function BTS이은프로젝트(서비스: number): Promise<number |
 
 export const BTS이은서비스인가 = async (서비스: number): Promise<boolean> => (await BTS이은프로젝트(서비스)) !== null;
 
+/**
+ * 화면이 「QA Hub AI」 열쇠를 다시 안 적었을 때 쓸 저장한 열쇠. 저장한 주소와 같은 주소일 때만 준다 —
+ * 끝 4자리만 본 사람이 원문을 다른 주소로 보내게 하지 않는다(BTS연결저장 의 BOT_KEY_REQUIRED 와 같은 판단)
+ */
+export async function 저장한열쇠(projectId: number, baseUrl: string): Promise<string | undefined> {
+  const 행 = await 원행(await db(), projectId);
+  return 행?.base_url === baseUrl ? 행.bot_key : undefined;
+}
+
 /** 프로젝트가 없으면 null — 라우트가 404 를 낸다. 연결이 없으면 linked: false 와 빈 칸 */
 export async function BTS연결읽기(projectId: number): Promise<BTS연결보기 | null> {
   const pool = await db();
@@ -132,17 +141,18 @@ export const BTS확인: 확인함수 = async (baseUrl, btsProject, botKey) => {
 export type 저장결과 = 'OK' | 'NOT_FOUND' | 'SECRETS_REQUIRED' | 'BOT_KEY_REQUIRED' | 'BTS_UNREACHABLE';
 
 /**
- * 처음 연결이면 열쇠 둘을 꼭 받는다. 고칠 때 비우면 저장한 원문을 그대로 쓴다 —
+ * 처음 연결이면 「QA Hub AI」 열쇠를 꼭 받는다. 고칠 때 비우면 저장한 원문을 그대로 쓴다 —
  * 다만 주소가 바뀌면 「QA Hub AI」 열쇠를 다시 받는다. 이으면 끝 4자리만 본 사람이 원문을 아무 주소로나 보내게 할 수 있다(settings/envs.ts 토큰 주소와 같은 판단)
  */
 export async function BTS연결저장(projectId: number, 입력: BTS연결입력, 누가: string, 확인: 확인함수 = BTS확인): Promise<저장결과> {
   const pool = await db();
   if (!(await 프로젝트있나(pool, projectId))) return 'NOT_FOUND';
   const 지금 = await 원행(pool, projectId);
-  if (지금 === undefined && (입력.botKey === undefined || 입력.webhookSecret === undefined)) return 'SECRETS_REQUIRED';
+  if (지금 === undefined && 입력.botKey === undefined) return 'SECRETS_REQUIRED';
   if (지금 !== undefined && 입력.botKey === undefined && 지금.base_url !== 입력.baseUrl) return 'BOT_KEY_REQUIRED';
   const botKey = 입력.botKey ?? 지금!.bot_key;
-  const webhookSecret = 입력.webhookSecret ?? 지금!.webhook_secret;
+  // 알림 서명 비밀은 사람이 옮겨 적지 않는다 — QA Hub 가 만들어 두고 BTS 자동 설정이 BTS 웹훅에 넣는다(BTS-F3-05)
+  const webhookSecret = 입력.webhookSecret ?? 지금?.webhook_secret ?? randomBytes(32).toString('base64url');
   if (!(await 확인(입력.baseUrl, 입력.btsProject, botKey))) return 'BTS_UNREACHABLE';
   await pool.query(
     `INSERT INTO bts_link (project_id, base_url, bts_project, bot_key, webhook_secret, status_map, resolution_map, updated_by)

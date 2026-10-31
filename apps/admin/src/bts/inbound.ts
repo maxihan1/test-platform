@@ -83,14 +83,16 @@ export async function BTS알림처리(연결: 알림연결, 몸: unknown, 부르
   }
 }
 
+// 담당자 · PR 제목은 없어도 받는다 — BTS 자동 설정(setup.ts)이 만드는 규칙 몸은 둘을 안 싣는다. 담당자 변경 사건에는 새 담당자가 없어 늘 비고,
+// 템플릿이 따옴표를 그대로 끼워 PR 제목에 「"」가 들면 몸이 JSON 으로 깨진다. 담당자는 받는 쪽이 이슈를 다시 읽어 본다(BTS-F3-05)
 const 규칙몸 = z.discriminatedUnion('event', [
-  z.object({ event: z.literal('ASSIGNEE'), issueKey: z.string().min(1).max(100), assignee: z.string().max(200) }),
+  z.object({ event: z.literal('ASSIGNEE'), issueKey: z.string().min(1).max(100), assignee: z.string().max(200).default('') }),
   z.object({
     event: z.literal('PR_MERGED'),
     issueKey: z.string().min(1).max(100),
     prNumber: z.coerce.number().int().positive(),
     prUrl: z.string().url().max(500),
-    prTitle: z.string().max(500),
+    prTitle: z.string().max(500).default(''),
   }),
 ]);
 

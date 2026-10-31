@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 
 import type { FailureBts, FailureCase, FailureJudgment } from './api.js';
+import { BTS이름 } from './btsName.js';
 import { decideApi } from './decideApi.js';
 import { use말, use언어 } from './i18n.js';
 import { show } from './ItemSteps.js';
@@ -38,8 +39,8 @@ function BTS판정({ 칸 }: { 칸: FailureBts | null }) {
       <p className="fc-judged">
         <a href={칸.url ?? '#'} target="_blank" rel="noreferrer">
           {칸.resolution === null
-            ? t('BTS {키} 에서 확인 중', { 키 })
-            : t('BTS {키} · {사유}', { 키, 사유: 닫힌사유[칸.resolution] === undefined ? 칸.resolution : t(닫힌사유[칸.resolution]) })}
+            ? t('{bts} {키} 에서 확인 중', { bts: BTS이름, 키 })
+            : t('{bts} {키} · {사유}', { bts: BTS이름, 키, 사유: 닫힌사유[칸.resolution] === undefined ? 칸.resolution : t(닫힌사유[칸.resolution]) })}
         </a>
       </p>
     </div>

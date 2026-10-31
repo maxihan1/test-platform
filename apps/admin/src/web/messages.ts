@@ -9,6 +9,7 @@ import { 작성할일말 } from './messages/authoringTodo.js';
 import { 결정말 } from './messages/decide.js';
 import { 빌드말 } from './messages/build.js';
 import { 케이스말 } from './messages/cases.js';
+import { BTS말 } from './messages/bts.js';
 import { CI토큰말 } from './messages/ciToken.js';
 import { 대시보드말 } from './messages/dashboard.js';
 import { 고치기말 } from './messages/edit.js';
@@ -51,6 +52,7 @@ export const 표들: Record<string, string>[] = [
   마법사말,
   빌드말,
   CI토큰말,
+  BTS말,
 ];
 
 export const 말: Record<string, string> = Object.assign({}, ...표들);

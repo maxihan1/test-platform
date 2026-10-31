@@ -27,7 +27,7 @@ async function 빈폰을고른다(팜: string, 부르기: typeof fetch, 쉬기: 
   for (;;) {
     const 목록 = await 부르기(`${팜}/api/devices`, { headers: 팜머리(process.env, 토큰), signal: AbortSignal.timeout(팜_제한_ms) });
     // 인증 켠 팜은 토큰이 없거나 틀리면 401 이다 — 주소나 팜을 의심하기 전에 토큰을 보게 한다. 누른 사람 토큰이면 Auth 에서 폐기했거나 기간이 끝났다
-    const 볼곳 = 토큰 === undefined ? 'DEVICE_FARM_TOKEN 을' : '계정 메뉴의 디바이스 팜 토큰을';
+    const 볼곳 = 토큰 === undefined ? 'DEVICE_FARM_TOKEN 을' : '내 메뉴의 통합계정 토큰을';
     if (!목록.ok) return { reason: `디바이스 팜이 기기 목록을 주지 않았습니다 (HTTP ${목록.status})${목록.status === 401 ? ` — ${볼곳} 확인하세요` : ''}` };
     // 주소가 틀려 다른 쪽이 200 으로 HTML 을 주면 「닿지 못했다」가 아니라 이 말이어야 주소를 다시 본다
     const 몸 = (await 목록.json().catch(() => null)) as { value?: { devices?: 기기[] } } | null;

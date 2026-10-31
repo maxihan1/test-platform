@@ -102,7 +102,7 @@ async function 게임실행(runId: number, 항목들: PendingItem[]): Promise<vo
       토큰 = await 실행팜토큰(runId);
     } catch (err) {
       const 까닭 = err instanceof Error ? err.message : String(err);
-      for (const item of 항목들) if (!멈춘실행.has(runId)) await 저장한다(item, na(item, '누른 사람의 디바이스 팜 토큰을 읽지 못했습니다', 까닭));
+      for (const item of 항목들) if (!멈춘실행.has(runId)) await 저장한다(item, na(item, '누른 사람의 통합계정 토큰을 읽지 못했습니다', 까닭));
       return;
     }
     await 팜폰으로(

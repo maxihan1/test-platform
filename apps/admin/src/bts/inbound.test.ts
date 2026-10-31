@@ -143,6 +143,9 @@ describe.skipIf(연결 === undefined)('BTS 가 부르는 두 문', () => {
     expect((await 규칙({ event: 'ASSIGNEE', issueKey: 'XBW-3', assignee: 'QA Hub AI' })).statusCode).toBe(204);
     expect((await 규칙({ event: 'PR_MERGED', issueKey: 'XBW-3', prNumber: '12', prUrl: 'https://github.com/a/b/pull/12', prTitle: '고침' })).statusCode).toBe(204);
     expect((await 규칙({ event: 'PR_MERGED', issueKey: 'XBW-3' })).statusCode).toBe(400);
+    // BTS 자동 설정이 만드는 규칙 몸 — 담당자 · PR 제목이 없다
+    expect((await 규칙({ event: 'ASSIGNEE', issueKey: 'XBW-3' })).statusCode).toBe(204);
+    expect((await 규칙({ event: 'PR_MERGED', issueKey: 'XBW-3', prNumber: '12', prUrl: 'https://github.com/a/b/pull/12' })).statusCode).toBe(204);
     expect((await 규칙({ event: 'ASSIGNEE', issueKey: 'DM-3', assignee: 'x' })).statusCode).toBe(400);
   });
 
