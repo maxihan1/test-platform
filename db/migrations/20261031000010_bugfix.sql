@@ -9,8 +9,9 @@ ALTER TABLE authoring_request ADD CONSTRAINT authoring_request_kind_check
 ALTER TABLE authoring_request DROP CONSTRAINT authoring_request_source_pair_check;
 ALTER TABLE authoring_request ADD CONSTRAINT authoring_request_source_pair_check
   CHECK ((kind IN ('AUTHOR', 'EDIT', 'NOTE', 'PRD_DRAFT', 'BUGFIX')) = (source_id IS NULL));
--- 같은 이슈를 두 번 맡지 않게 — 기다리거나 도는 수정 일은 이슈마다 하나
-CREATE UNIQUE INDEX authoring_request_bugfix_open ON authoring_request ((params->>'issueKey'))
+-- 같은 이슈를 두 번 맡지 않게 — 기다리거나 도는 수정 일은 애플리케이션 · 이슈마다 하나.
+-- 이슈 키만 걸면 같은 BTS 키(SHOP-12)를 쓰는 다른 회사 프로젝트의 일이 조용히 안 선다
+CREATE UNIQUE INDEX authoring_request_bugfix_open ON authoring_request (service_id, (params->>'issueKey'))
   WHERE kind = 'BUGFIX' AND status IN ('PENDING', 'RUNNING') AND discarded_at IS NULL;
 
 -- migrate:down

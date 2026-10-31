@@ -78,10 +78,14 @@ export async function 넘길사람찾기(
   }
 }
 
-/** 「QA Hub AI」 열쇠의 BTS 사람 번호 — 이슈 담당자가 자기인지 본다. whoami 는 감싸지 않은 꼴이다 */
-export async function 내번호(자리: BTS자리, 부르기: 부르기함수 = BTS부르기): Promise<string | null> {
+/**
+ * 「QA Hub AI」 열쇠의 BTS 사람 번호 — 이슈 담당자가 자기인지 본다. whoami 는 감싸지 않은 꼴이다.
+ * 못 읽으면 던진다 — 조용히 「내 것이 아님」으로 치면 BTS 가 잠깐 아플 때 담당 신호를 영영 놓친다(규칙 문이 503)
+ */
+export async function 내번호(자리: BTS자리, 부르기: 부르기함수 = BTS부르기): Promise<string> {
   const r = await 부르기(자리, 'GET', '/api/v1/users/me/whoami');
   const 몸 = r.json as { userId?: unknown; data?: { userId?: unknown } } | null;
   const id = 몸?.userId ?? 몸?.data?.userId;
-  return r.status === 200 && typeof id === 'string' ? id : null;
+  if (r.status !== 200 || typeof id !== 'string') throw new Error(`BTS whoami 를 못 읽었다 (${String(r.status)})`);
+  return id;
 }

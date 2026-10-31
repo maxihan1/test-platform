@@ -158,9 +158,11 @@ describe.skipIf(연결 === undefined)('수정 AI 한 바퀴', () => {
     expect((await 결과(id, { prUrl: 'https://github.com/demo/other/pull/3', summary: 's', files: ['a.ts'], owners: [] })).json()).toEqual({ error: 'BAD_BUGFIX', detail: 'prUrl' });
     const 답 = await 결과(id, { prUrl: 'https://github.com/demo/shop/pull/8', summary: '할인율 계산을 고쳤어요', files: ['src/coupon.ts'], owners: [{ email: 'nobody@demo.test', name: '없는사람' }, { email: 'dev@demo.test', name: '김개발' }] });
     expect(답.statusCode).toBe(201);
-    expect(답.json()).toEqual({ owner: 개발자 });
+    expect((await 수정줄('XBQ-3'))[0]!.pr_url).toBe('https://github.com/demo/shop/pull/8');
     expect((await 결과(id, { analysis: '두 번' })).statusCode).toBe(409);
     expect((await 끝내기(id, 'XBG', { status: 'DONE', prUrl: 'https://github.com/demo/shop/pull/8' })).json()).toEqual({ ok: true });
+    await vi.waitFor(async () => expect((await 보낸줄('XBQ-3')).length).toBe(3));
+    expect(((await 수정줄('XBQ-3'))[0]!.result as { bugfix: { owner: string } }).bugfix.owner).toBe(개발자);
     const 줄들 = await 보낸줄('XBQ-3');
     expect(줄들.map((x) => x.kind)).toEqual(['COMMENT', 'TRANSITION', 'ASSIGN']);
     expect(String(줄들[0]!.payload.body)).toContain('https://github.com/demo/shop/pull/8');
@@ -191,6 +193,20 @@ describe.skipIf(연결 === undefined)('수정 AI 한 바퀴', () => {
     expect(await 수정줄('XBQ-3')).toHaveLength(1);
   });
 
+  it('PR 을 냈어도 재검증 실패로 넘기기 전이면 사람이 다시 넘길 때 새로 맡는다 · whoami 를 못 읽으면 던진다', async () => {
+    이슈들['XBQ-7'] = { state: 'dev', assigneeId: 봇, componentIds: [] };
+    await q(`INSERT INTO bts_issue_case (project_id, issue_key, service_id, tc_id, env) VALUES ($1, 'XBQ-7', $2, 'XBG-FN-003', 'qa')`, [프로젝트, 앱.XBG]);
+    await q(
+      `INSERT INTO authoring_request (service_id, kind, params, requested_by, requested_by_name, status, pr_url, result) VALUES ($1, 'BUGFIX', $2, 'x', 'x', 'DONE', 'https://github.com/demo/shop/pull/9', '{"bugfix":{"prUrl":"https://github.com/demo/shop/pull/9","files":[],"owner":null}}')`,
+      [앱.XBG, JSON.stringify({ issueKey: 'XBQ-7' })],
+    );
+    expect(await 수정맡기(프로젝트, 'XBQ-7', 가짜BTS)).toBe('TAKEN');
+    expect((await 수정줄('XBQ-7')).map((x) => x.status)).toEqual(['DONE', 'PENDING']);
+    const 아픈BTS: typeof 가짜BTS = async (자리, method, 경로) => (경로.endsWith('/whoami') ? { status: 503, json: null } : 가짜BTS(자리, method, 경로));
+    await expect(수정맡기(프로젝트, 'XBQ-7', 아픈BTS)).rejects.toThrow('whoami');
+    await q("DELETE FROM authoring_request WHERE kind = 'BUGFIX' AND params->>'issueKey' = 'XBQ-7'");
+  });
+
   it('사람이 올린 버그는 구성 요소 이름으로 애플리케이션을 고르고, 저장소가 없으면 「코드 없음」 분석과 구성 요소 리드에게 넘긴다', async () => {
     이슈들['XBQ-4'] = { state: 'dev', assigneeId: 봇, componentIds: ['c1', 'c2'] };
     expect(await 수정맡기(프로젝트, 'XBQ-4', 가짜BTS)).toBe('TAKEN');
@@ -201,6 +217,7 @@ describe.skipIf(연결 === undefined)('수정 AI 한 바퀴', () => {
     expect(집은).toMatchObject({ kind: 'BUGFIX' });
     expect(집은?.bugfix?.repo).toBeNull();
     expect((await 결과(집은!.id, { analysis: '할인율 상수가 0.01 이에요', owners: [] })).statusCode).toBe(201);
+    await vi.waitFor(async () => expect((await 보낸줄('XBQ-4')).length).toBe(2));
     const 줄들 = await 보낸줄('XBQ-4');
     expect(줄들.map((x) => x.kind)).toEqual(['COMMENT', 'ASSIGN']);
     expect(String(줄들[0]!.payload.body)).toMatch(/^코드 없음 — 원인 분석만/);

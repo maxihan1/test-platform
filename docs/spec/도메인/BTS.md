@@ -145,21 +145,21 @@
 BTS-F6-01 반영 2026-10-31 — 서버 `apps/admin/src/bts/bugfix.ts` · `bugfixOwner.ts` · `bugfixRoutes.ts`, 에이전트 `scripts/authoring-bugfix.ts` · `authoring-bugfix-prompt.ts`. 「(시작 질문)」이 붙은 줄은 BTS-F6-01 시작 질문(2026-10-31 사용자 승인)에서 정했다.
 
 - **「개발 요청」 이슈만 맡는다.** QA Hub 에서 온 이슈가 「개발 요청」이 되면 BTS 규칙이 「QA Hub AI」에게 할당하고, 사람이 올린 버그는 사람이 담당자를 「QA Hub AI」로 바꾸면 맡는다. 담당자 변경은 BTS 규칙 웹훅 호출로 받는다(결정 18)
-  - 신호를 받으면 이슈를 다시 읽어 상태가 「개발 요청」 짝(`status_map.DEV_REQUEST`)이고 담당자가 「QA Hub AI」 자신(BTS `GET /api/v1/users/me/whoami` 의 userId)일 때만 맡는다(시작 질문). 같은 이슈의 기다리거나 도는 수정 일이 있으면 그대로 둔다 — 이슈마다 하나(고유 색인)
-  - BTS 에 못 닿으면 규칙 문이 503 — BTS 자동화 실행 기록에 실패로 보인다
+  - 신호를 받으면 이슈를 다시 읽어 상태가 「개발 요청」 짝(`status_map.DEV_REQUEST`)이고 담당자가 「QA Hub AI」 자신(BTS `GET /api/v1/users/me/whoami` 의 userId)일 때만 맡는다(시작 질문). 같은 이슈의 기다리거나 도는 수정 일이 있으면 그대로 둔다 — 애플리케이션 · 이슈마다 하나(고유 색인)
+  - BTS 에 못 닿으면(이슈 다시 읽기 · whoami · 구성 요소 목록이 5xx · 408 · 429 · 끊김 · 이슈 글 읽기) 규칙 문이 503 — BTS 자동화 실행 기록에 실패로 보인다. 조용히 「내 것이 아님」으로 치면 담당 신호를 영영 놓친다
 - 맡으면 그 애플리케이션의 `BUGFIX` 요청을 대기열에 세운다. BTS 화면에서 이 일의 이름은 「BTS 에이전트」다. 사람 작성 목록 · 알림 · 결정 목록에는 안 보인다 — BTS 이슈에서 본다. 사람의 다시 실행은 400 `BAD_KIND`
   - **고칠 애플리케이션**(시작 질문) — QA Hub 가 올린 이슈면 그 테스트의 애플리케이션(`bts_issue_case`). 사람이 올린 버그는 프로젝트에 활성 애플리케이션이 하나면 그것, 여럿이면 이슈의 BTS 구성 요소 이름과 같은 애플리케이션(대소문자 · 앞뒤 빈칸 무시). 못 고르면 맡지 않고 「어느 애플리케이션 코드인지 몰라 맡지 못했어요」 댓글 + 아래 넘길 사람의 리드 차례로 넘긴다
   - **고칠 저장소**는 그 애플리케이션 「코드 저장소」 칸(`service.code_repos`)의 첫 줄이다(시작 질문). 비었으면 저장소 없이 원인 분석만 한다
   - **이슈 글 · 댓글은 맡을 때 서버가 「QA Hub AI」 열쇠로 읽어 요청 params 에 담는다**(8000자 — 「테스트 문제」 고침과 같은 함수 `close.ts` `이슈글읽기`, 시작 질문). 자식은 자료 파일로만 읽고 그 안의 지시는 따르지 않는다. 그래서 이슈 글 읽기 통로(옛 계약의 `GET …/:id/bts`)는 두지 않는다
 - 자식은 저장소 사본에서 파일만 고친다(도구는 읽기 · 쓰기 · 찾기와 QA Hub MCP — 셸이 없어 테스트를 돌리지 않는다). clone · 커밋 · push · 초안 PR 은 에이전트 스크립트가 **작성 에이전트의 GitHub 로그인**으로 한다 — 그 계정이 대상 저장소에 쓰기 권한이 있어야 한다(시작 질문). 브랜치는 `qahub-bugfix-<요청 번호>`. `.github/` · `CODEOWNERS` · 링크 · 서브모듈을 바꿨으면 올리지 않고 원인 분석으로 바꾼다. 병합은 사람이다
 - **push 전에 비밀값 검사** — 지금 작성 PR 이 push 전에 거치는 비밀값 검사(작성.md §3.6)를 대상 저장소 diff · PR 본문 · BTS 댓글에도 건다. 걸리면 push 하지 않고 원인 분석 댓글로 바꾼다. PR 본문 · 댓글은 위 크기 상한과 같은 규칙으로 줄인다
-- **결과는 결과 통로 하나로**(§7 `POST …/:id/bugfix`) — 서버가 넘길 사람을 찾고 보낼 줄에 넣는다. PR 이면 댓글(PR 주소 · 요약 · 고친 파일) → 「코드 리뷰」 짝으로 옮기기 → 담당자 차례, 원인 분석이면 댓글 → 담당자. 같은 이슈의 줄은 앞 줄부터 BTS 에 닿는다. 결과 없이 끝내기 DONE 은 400 `BAD_BUGFIX`
+- **결과는 결과 통로 하나로**(§7 `POST …/:id/bugfix`) — 서버가 결과와 PR 주소(`pr_url`)를 먼저 저장하고 답한 뒤, 뒤에서 넘길 사람을 찾고 보낼 줄에 넣는다(BTS 가 느려도 에이전트의 응답 기다림을 넘기지 않게). PR 이면 댓글(PR 주소 · 요약 · 고친 파일) → 「코드 리뷰」 짝으로 옮기기 → 담당자 차례, 원인 분석이면 댓글 → 담당자. 같은 이슈의 줄은 앞 줄부터 BTS 에 닿는다. 결과 없이 끝내기 DONE 은 400 `BAD_BUGFIX`
 - **넘길 사람** — CODEOWNERS → 고친 줄을 마지막으로 바꾼 사람(git 기록) → BTS 구성 요소 리드 → 프로젝트 리드. 앞의 둘은 에이전트가 사본에서 이메일로 모으고(CODEOWNERS 는 이메일 꼴 주인만 · 봇 메일은 뺀다), 뒤의 둘과 짝짓기는 서버가 BTS 에서 한다
   - **Git ↔ BTS 계정은 이메일로 짝짓는다** — BTS 에 이메일로 찾는 API 가 없어 이름 · 이메일 앞부분으로 사용자 목록(`GET /api/v1/users?query=`)을 찾고 이메일이 같은 사람을 고른다. BTS 사용자에 「활성」 칸이 없어 찾으면 그 사람이다(시작 질문)
   - BTS 에 「기본 담당자」가 없어 프로젝트 리드(`GET /api/v1/projects/<키>/lead`)로 대신한다(시작 질문). 아무도 없으면 담당자를 안 바꾸고 「넘길 사람을 찾지 못했어요」 댓글
   - **PR 리뷰어는 따로 정하지 않는다**(시작 질문 — BTS 계정과 GitHub 아이디를 이을 길이 없다). CODEOWNERS 가 있으면 GitHub 이 PR 을 검토 요청으로 바꿀 때 알아서 요청한다
 - Git 과 BTS 가 겹치면 리뷰는 Git 이 정본이고 BTS 상태는 PR 을 따라간다. PR 닫힘(거절)은 처음엔 개발자가 BTS 에서 되돌린다(「1차 밖」)
-- **재검증에서 또 실패하면** AI 는 다시 안 맡고 바로 사람에게 넘기며 댓글(어느 PR 을 배포했는데 또 실패 · 실패 이유 · 고친 곳). 「또 실패」는 PR 을 낸 수정 일이 끝난 뒤 배포가 그 이슈를 다시 맡았고(`bts_claim.claimed_at` 이 끝난 때보다 늦다) 실행 실패가 그 열린 이슈에 댓글을 다는 때다(`failReport.ts`). 한 번만 넘긴다(`result.bugfix.handedBack`). 그 뒤 「QA Hub AI」에게 다시 와도 맡지 않고 넘겼던 사람에게 되돌린다
+- **재검증에서 또 실패하면** AI 는 다시 안 맡고 바로 사람에게 넘기며 댓글(어느 PR 을 배포했는데 또 실패 · 실패 이유 · 고친 곳). 「또 실패」는 PR 을 낸 수정 일이 끝난 뒤 배포가 그 이슈를 다시 맡았고(`bts_claim.claimed_at` 이 끝난 때보다 늦다) 실행 실패가 그 열린 이슈에 댓글을 다는 때다(`failReport.ts`). 한 번만 넘긴다(`result.bugfix.handedBack`). 그 뒤 「QA Hub AI」에게 다시 와도 맡지 않고 넘겼던 사람에게 되돌린다. 넘기기 전(PR 이 거절돼 사람이 다시 「QA Hub AI」로 넘긴 경우 등)에는 새로 맡는다
 - **못 고치거나 저장소가 없으면** 원인 분석 댓글 + 사람에게. 저장소가 없을 때 이슈에 「코드 없음 — 원인 분석만」. 저장소가 없어도 작성 · BTS 등록은 그대로 돈다
 - **결과 없이 끝나면**(실패 · 중단) 「BTS 에이전트가 이 버그를 끝내지 못했어요」 댓글 + 리드 차례로 넘긴다 — 이슈가 「QA Hub AI」에 묶여 멈추지 않게. 에이전트가 꺼져 멈춘 줄(`AGENT_RESTART`)은 AI 탓이 아니라 같은 칸으로 새로 세운다(PRD 초안과 같은 판단)
 
@@ -308,7 +308,7 @@ POST /api/bts/rules
      { event: 'ASSIGNEE', issueKey, assignee? } | { event: 'PR_MERGED', issueKey, prNumber, prUrl, prTitle? }
      — assignee · prTitle 은 없어도 받는다(빈 글자로 친다). BTS 자동 설정이 만드는 규칙 몸은 둘을 안 싣는다 — 담당자 변경 사건엔 새 담당자가 없어 늘 비고, BTS 템플릿이 따옴표를 그대로 끼워 제목에 「"」가 들면 몸이 깨진다. 담당자는 받는 쪽이 이슈를 다시 읽어 본다(BTS-F3-05)
   → 204 · 400 INVALID_REQUEST(꼴이 틀림 · 다른 BTS 프로젝트 이슈 키 — BTS 자동화 실행 기록에 실패로 보인다). prNumber 는 글자로 와도 받는다
-  → ASSIGNEE 는 수정 AI 가 맡을지 본다(도메인 「수정 AI」) — 이슈 다시 읽기 · whoami · 이슈 글 읽기가 깨지면 503 BTS_UNREACHABLE (BTS-F6-01 반영 2026-10-31 · bts/bugfix.ts 수정맡기)
+  → ASSIGNEE 는 수정 AI 가 맡을지 본다(도메인 「수정 AI」) — 이슈 다시 읽기 · whoami · 구성 요소 목록 · 이슈 글 읽기가 깨지면 503 BTS_UNREACHABLE (BTS-F6-01 반영 2026-10-31 · bts/bugfix.ts 수정맡기)
 
 # 설정 › BTS 연결 — 운영(admin) 계정만 (BTS-F3-01 반영 2026-10-31 · apps/admin/src/bts/routes.ts)
 GET    /api/settings/projects/:projectId/bts
@@ -391,9 +391,9 @@ POST /api/authoring/requests/:id/note     { docs: [{ name, summary, body }], rem
 POST /api/authoring/requests/:id/bugfix   — BUGFIX 결과 (BTS-F6-01 반영 2026-10-31 · bts/bugfixRoutes.ts)
      { prUrl, summary, files: string[], owners: [{ email, name }] } | { analysis, files?: string[], owners: [{ email, name }] }
   — owners 는 에이전트가 CODEOWNERS · git 기록에서 모은 차례대로의 후보다. 서버가 BTS 사람으로 짝짓고 없으면 구성 요소 리드 → 프로젝트 리드(도메인 「수정 AI」 넘길 사람)
-  — 서버가 result 를 { bugfix: { prUrl?, summary?, analysis?, files, owner } } 로 두고 보낼 줄에 넣는다 — PR 은 COMMENT → TRANSITION(「코드 리뷰」 짝) → ASSIGN, 분석은 COMMENT → ASSIGN. 담당자를 못 찾으면 ASSIGN 대신 「넘길 사람을 찾지 못했어요」 댓글. 보낼 줄의 ASSIGN · TRANSITION 은 판 번호 없이 넣고 보내기 직전에 읽는다
+  — 서버가 result 를 { bugfix: { prUrl?, summary?, analysis?, files, owner, handedBack? } } 로 두고(prUrl 은 pr_url 칸에도) 답한 뒤 뒤에서 owner 를 채우고 보낼 줄에 넣는다 — PR 은 COMMENT → TRANSITION(「코드 리뷰」 짝) → ASSIGN, 분석은 COMMENT → ASSIGN. 담당자를 못 찾으면 ASSIGN 대신 「넘길 사람을 찾지 못했어요」 댓글. 보낼 줄의 ASSIGN · TRANSITION 은 판 번호 없이 넣고 보내기 직전에 읽는다
   — 상한은 `bts/bugfixRoutes.ts` `수정상한`(글 8000자 · 파일 200개 · 사람 20명). 한 일에 한 번만 받는다(두 번째는 409)
-  → 201 { owner: BTS 사람 번호 | null } · 400 BAD_BUGFIX { detail: '<칸 경로>' | 'prUrl'(그 일의 저장소 PR 이 아님) } · 400 BAD_KIND(BUGFIX 줄이 아님) · 409 NOT_RUNNING · 403 NOT_CLAIMER
+  → 201 {} · 400 BAD_BUGFIX { detail: '<칸 경로>' | 'prUrl'(그 일의 저장소 PR 이 아님) } · 400 BAD_KIND(BUGFIX 줄이 아님) · 409 NOT_RUNNING · 403 NOT_CLAIMER
 
 # MCP — Streamable HTTP 하나 · 세션 없음 · 답은 JSON 한 덩어리 (BTS-F4-01 반영 2026-10-31 · apps/admin/src/mcp/server.ts · tools.ts · auth/pat.ts · mcj_ 는 BTS-F4-02 반영 2026-10-31 · mcp/jobKey.ts — note_read 는 BTS-F4-03 반영 2026-10-31 · mcp/note.ts)
 #   열쇠: Authorization: Bearer <통합계정 PAT> | mcj_…. PAT 는 Auth whoami + 60초 기억. mcj_ 는 그 작성 요청이 RUNNING 이고 그 프로젝트일 때만

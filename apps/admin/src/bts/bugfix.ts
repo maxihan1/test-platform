@@ -33,13 +33,10 @@ export async function 연결읽기(projectId: number): Promise<연결줄 | null>
 
 export const 자리로 = (l: 연결줄): BTS자리 => ({ baseUrl: l.base_url, botKey: l.bot_key });
 
-/** BTS 로 나가는 글은 본문 상한(바이트) 안으로 자른다 — 넘으면 BTS 가 400 으로 거절해 보낼 줄이 그만둔다 */
+/** BTS 로 나가는 글은 본문 상한(바이트) 안으로 자른다 — 넘으면 BTS 가 400 으로 거절해 보낼 줄이 그만둔다. 자르는 꼴은 failBody.ts 이슈본문과 같다 */
 export function 글자르기(글: string): string {
-  const 꼬리 = '\n…(이하 생략)';
   if (Buffer.byteLength(글) <= 본문상한) return 글;
-  let 끝 = 본문상한 - Buffer.byteLength(꼬리);
-  while (Buffer.byteLength(글.slice(0, 끝)) > 본문상한 - Buffer.byteLength(꼬리)) 끝 -= 100;
-  return `${글.slice(0, 끝)}${꼬리}`;
+  return Buffer.from(글, 'utf8').subarray(0, 본문상한 - 3).toString('utf8').replace(/\uFFFD$/, '') + '…';
 }
 
 /** 넘기며 단 댓글과 담당자 — 담당자를 못 찾았으면 댓글로 사람을 부른다 */
@@ -53,6 +50,7 @@ interface 앞수정 {
   status: string;
   pr_url: string | null;
   owner: string | null;
+  handed_back: boolean;
 }
 
 /**
@@ -67,6 +65,8 @@ async function 애플리케이션고르기(l: 연결줄, projectId: number, issu
   if (앱들.length === 1) return Number(앱들[0]!.id);
   if (componentIds.length === 0 || 앱들.length === 0) return null;
   const r = await 부르기(자리로(l), 'GET', `/api/v1/projects/${encodeURIComponent(l.bts_project)}/components`);
+  // BTS 가 잠깐 바쁘면 던진다 — 「어느 애플리케이션인지 몰라」로 손을 놓지 않고 규칙 문이 503 을 낸다
+  if (r.status >= 500 || r.status === 408 || r.status === 429) throw new Error(`BTS 구성 요소 목록을 못 읽었다 (${String(r.status)})`);
   if (r.status !== 200) return null;
   const 이름들 = ((r.json as { data?: { id?: unknown; name?: unknown }[] } | null)?.data ?? [])
     .filter((c) => typeof c.id === 'string' && componentIds.includes(c.id) && typeof c.name === 'string')
@@ -92,16 +92,17 @@ export async function 수정맡기(projectId: number, issueKey: string, 부르�
   const pool = await db();
   const 앞 = (
     await pool.query<앞수정>(
-      `SELECT r.status, r.pr_url, r.result->'bugfix'->>'owner' AS owner FROM authoring_request r JOIN service s ON s.id = r.service_id
+      `SELECT r.status, r.pr_url, r.result->'bugfix'->>'owner' AS owner, COALESCE((r.result->'bugfix'->>'handedBack')::boolean, false) AS handed_back FROM authoring_request r JOIN service s ON s.id = r.service_id
         WHERE r.kind = 'BUGFIX' AND r.params->>'issueKey' = $1 AND s.project_id = $2 AND r.discarded_at IS NULL ORDER BY r.id DESC`,
       [issueKey, projectId],
     )
   ).rows;
   if (앞.some((x) => x.status === 'PENDING' || x.status === 'RUNNING')) return 'RUNNING';
-  const 올린 = 앞.find((x) => x.pr_url !== null);
+  // 재검증에서 또 실패해 사람에게 넘긴 이슈만 다시 안 맡는다(시작 질문 6) — PR 이 거절돼 사람이 다시 넘긴 이슈는 새로 맡는다
+  const 올린 = 앞.find((x) => x.handed_back);
   if (올린 !== undefined) {
     const 사람 = 올린.owner ?? (await 넘길사람찾기(자리, l.bts_project, [], 이슈.componentIds, 부르기));
-    await 넘기기(projectId, issueKey, `BTS 에이전트가 이미 수정 PR 을 올렸던 이슈라 다시 맡지 않아요 — ${올린.pr_url ?? ''}\n같은 고침을 되풀이하지 않게 사람에게 넘겨요`, 사람);
+    await 넘기기(projectId, issueKey, `BTS 에이전트의 수정 PR 을 배포했는데 재검증에서 또 실패했던 이슈라 다시 맡지 않아요 — ${올린.pr_url ?? ''}\n같은 고침을 되풀이하지 않게 사람에게 넘겨요`, 사람);
     return 'HANDED_BACK';
   }
   const 앱 = await 애플리케이션고르기(l, projectId, issueKey, 이슈.componentIds, 부르기);
@@ -113,12 +114,12 @@ export async function 수정맡기(projectId: number, issueKey: string, 부르�
   const 저장소 = (await pool.query<{ repo: { name: string; url: string } | null }>("SELECT code_repos->0 AS repo FROM service WHERE id = $1", [앱])).rows[0]?.repo ?? null;
   const 글 = await 이슈글읽기(자리, issueKey, 부르기);
   // 같은 이슈의 기다리거나 도는 수정 일은 하나 — 신호 둘이 엇갈려도 고유 색인이 하나만 남긴다
-  await pool.query(
+  const 넣음 = await pool.query(
     `INSERT INTO authoring_request (service_id, kind, params, requested_by, requested_by_name, status)
      VALUES ($1, 'BUGFIX', $2, $3, $4, 'PENDING') ON CONFLICT DO NOTHING`,
     [앱, JSON.stringify({ issueKey, title: 이슈.summary, note: 글, repo: 저장소 }), l.updated_by, `BTS · ${l.display_name ?? l.updated_by}`],
   );
-  return 'TAKEN';
+  return 넣음.rowCount === 1 ? 'TAKEN' : 'RUNNING';
 }
 
 /** 집기 응답의 bugfix 칸 — 서버가 맡을 때 담아 둔 params 그대로 */
@@ -151,9 +152,10 @@ export async function 재검증실패넘기기(projectId: number, issueKey: stri
     `UPDATE authoring_request r SET result = jsonb_set(r.result, '{bugfix,handedBack}', 'true'::jsonb)
        FROM service s
       WHERE s.id = r.service_id AND s.project_id = $1 AND r.kind = 'BUGFIX' AND r.params->>'issueKey' = $2
-        AND r.status = 'DONE' AND r.pr_url IS NOT NULL AND r.discarded_at IS NULL
+        AND r.pr_url IS NOT NULL AND r.discarded_at IS NULL
         AND NOT COALESCE((r.result->'bugfix'->>'handedBack')::boolean, false)
-        AND EXISTS (SELECT 1 FROM bts_claim c WHERE c.project_id = $1 AND c.issue_key = $2 AND c.claimed_at > r.finished_at)
+        -- 끝내기가 닿지 않은 줄도 본다 — PR 은 결과 통로가 적는다(pr_url)
+        AND EXISTS (SELECT 1 FROM bts_claim c WHERE c.project_id = $1 AND c.issue_key = $2 AND c.claimed_at > COALESCE(r.finished_at, r.started_at, r.created_at))
       RETURNING r.pr_url, r.result->'bugfix'->>'owner' AS owner, ARRAY(SELECT jsonb_array_elements_text(COALESCE(r.result->'bugfix'->'files', '[]'::jsonb))) AS files`,
     [projectId, issueKey],
   );

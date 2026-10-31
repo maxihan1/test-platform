@@ -6,7 +6,7 @@ import { z } from 'zod';
 
 import { 집은쪽인가 } from '../authoring/agentRoutes.js';
 
-import { 연결읽기, 넘기기, 수정PR주소인가, 수정있나, 자리로 } from './bugfix.js';
+import { 글자르기, 연결읽기, 넘기기, 수정PR주소인가, 수정있나, 자리로 } from './bugfix.js';
 import { 넘길사람찾기 } from './bugfixOwner.js';
 import { BTS부르기, 이슈읽기, type 부르기함수 } from './client.js';
 import { 보낼줄넣기 } from './outbox.js';
@@ -38,37 +38,48 @@ export default async function btsBugfixRoutes(app: FastifyInstance, opts: { 부�
     const 몸 = 꼴.data;
     const params = 행.params as Record<string, unknown>;
     if ('prUrl' in 몸 && !수정PR주소인가(몸.prUrl, params)) return reply.code(400).send({ error: 'BAD_BUGFIX', detail: 'prUrl' });
-    const issueKey = String(params.issueKey ?? '');
     const pool = await db();
-    const projectId = Number((await pool.query<{ project_id: string }>('SELECT project_id FROM service WHERE id = $1', [행.serviceId])).rows[0]?.project_id);
-    const l = await 연결읽기(projectId);
-    // 연결을 끊었으면 BTS 에 알릴 길이 없다 — 결과만 남긴다(맡은 이슈 · 짝 기록처럼)
-    let 사람: string | null = null;
-    if (l !== null) {
-      const 구성요소 = await 이슈읽기(자리로(l), issueKey, 부르기).then((x) => x.componentIds, () => []);
-      사람 = await 넘길사람찾기(자리로(l), l.bts_project, 몸.owners, 구성요소, 부르기);
-    }
-    // 같은 일이 결과를 두 번 내면 BTS 댓글도 두 번 간다 — 처음 한 번만 받는다
+    // 저장부터 한다 — BTS 사람 찾기가 느려 에이전트의 응답 기다림(30초)을 넘기면 PR 이 기록되지 않는다.
+    // 같은 일이 결과를 두 번 내면 BTS 댓글도 두 번 간다 — 처음 한 번만 받는다. PR 주소는 끝내기가 닿지 않아도 남게 pr_url 에도 적는다
     const r = await pool.query(
-      `UPDATE authoring_request SET result = jsonb_build_object('bugfix', $2::jsonb) WHERE id = $1 AND status = 'RUNNING' AND NOT (COALESCE(result, '{}'::jsonb) ? 'bugfix')`,
-      [행.id, JSON.stringify({ ...('prUrl' in 몸 ? { prUrl: 몸.prUrl, summary: 몸.summary } : { analysis: 몸.analysis }), files: 몸.files, owner: 사람 })],
+      `UPDATE authoring_request SET result = jsonb_build_object('bugfix', $2::jsonb), pr_url = COALESCE($3, pr_url)
+        WHERE id = $1 AND status = 'RUNNING' AND NOT (COALESCE(result, '{}'::jsonb) ? 'bugfix')`,
+      [행.id, JSON.stringify({ ...('prUrl' in 몸 ? { prUrl: 몸.prUrl, summary: 몸.summary } : { analysis: 몸.analysis }), files: 몸.files, owner: null }), 'prUrl' in 몸 ? 몸.prUrl : null],
     );
     if (r.rowCount !== 1) return reply.code(409).send({ error: 'NOT_RUNNING', detail: '' });
-    if (l === null) return reply.code(201).send({ owner: null });
-    const 파일 = 몸.files.length === 0 ? [] : ['', '고친 파일', ...몸.files.map((f) => `- ${f}`)];
-    if ('prUrl' in 몸) {
-      // 차례가 곧 BTS 에 닿는 차례다(보낼 줄은 같은 이슈를 앞 줄부터) — 댓글 → 「코드 리뷰」 → 담당자
-      const 코드리뷰 = l.status_map.CODE_REVIEW ?? '';
-      await 보낼줄넣기({ projectId, kind: 'COMMENT', issueKey, payload: { body: [`BTS 에이전트가 수정 PR 을 올렸어요 — ${몸.prUrl}`, '', 몸.summary, ...파일, '', '초안 PR 이에요. 검토하고 병합은 사람이 해요'].join('\n') } });
-      if (코드리뷰 !== '') await 보낼줄넣기({ projectId, kind: 'TRANSITION', issueKey, payload: { toStatusKey: 코드리뷰 } });
-      if (사람 !== null) await 보낼줄넣기({ projectId, kind: 'ASSIGN', issueKey, payload: { assigneeId: 사람 } });
-      else await 보낼줄넣기({ projectId, kind: 'COMMENT', issueKey, payload: { body: '넘길 사람을 찾지 못했어요 — 담당자를 정해 주세요' } });
-    } else {
-      const 머리 = params.repo === null || params.repo === undefined ? '코드 없음 — 원인 분석만' : 'BTS 에이전트가 고치지 못해 원인 분석을 남겨요';
-      await 넘기기(projectId, issueKey, [머리, '', 몸.analysis, ...파일].join('\n'), 사람);
-    }
-    return reply.code(201).send({ owner: 사람 });
+    void BTS에알리기(행.id, 행.serviceId, params, 몸, 부르기).catch((err: unknown) =>
+      req.log.error(`[bts] ${String(행.id)}번 수정 결과를 BTS 보낼 줄에 넣지 못했다: ${err instanceof Error ? err.message : String(err)}`),
+    );
+    return reply.code(201).send({});
   });
+}
+
+type 결과몸 = z.infer<typeof 결과틀>;
+
+/** 넘길 사람을 찾아 적고 BTS 로 보낼 줄을 넣는다. 연결을 끊었으면 알릴 길이 없어 결과만 남는다(맡은 이슈 · 짝 기록처럼) */
+export async function BTS에알리기(id: number, serviceId: number, params: Record<string, unknown>, 몸: 결과몸, 부르기: 부르기함수 = BTS부르기): Promise<void> {
+  const pool = await db();
+  const issueKey = String(params.issueKey ?? '');
+  const projectId = Number((await pool.query<{ project_id: string }>('SELECT project_id FROM service WHERE id = $1', [serviceId])).rows[0]?.project_id);
+  const l = await 연결읽기(projectId);
+  if (l === null) return;
+  const 구성요소 = await 이슈읽기(자리로(l), issueKey, 부르기).then((x) => x.componentIds, () => []);
+  const 사람 = await 넘길사람찾기(자리로(l), l.bts_project, 몸.owners, 구성요소, 부르기);
+  // 재검증 또 실패 넘기기 · 다시 맡기 거절이 이 사람에게 돌린다
+  await pool.query(`UPDATE authoring_request SET result = jsonb_set(result, '{bugfix,owner}', COALESCE(to_jsonb($2::text), 'null'::jsonb)) WHERE id = $1`, [id, 사람]);
+  const 파일 = 몸.files.length === 0 ? [] : ['', '고친 파일', ...몸.files.map((f) => `- ${f}`)];
+  if ('prUrl' in 몸) {
+    // 차례가 곧 BTS 에 닿는 차례다(보낼 줄은 같은 이슈를 앞 줄부터) — 댓글 → 「코드 리뷰」 → 담당자
+    const 코드리뷰 = l.status_map.CODE_REVIEW ?? '';
+    const 댓글 = [`BTS 에이전트가 수정 PR 을 올렸어요 — ${몸.prUrl}`, '', 몸.summary, ...파일, '', '초안 PR 이에요. 검토하고 병합은 사람이 해요'].join('\n');
+    await 보낼줄넣기({ projectId, kind: 'COMMENT', issueKey, payload: { body: 글자르기(댓글) } });
+    if (코드리뷰 !== '') await 보낼줄넣기({ projectId, kind: 'TRANSITION', issueKey, payload: { toStatusKey: 코드리뷰 } });
+    if (사람 !== null) await 보낼줄넣기({ projectId, kind: 'ASSIGN', issueKey, payload: { assigneeId: 사람 } });
+    else await 보낼줄넣기({ projectId, kind: 'COMMENT', issueKey, payload: { body: '넘길 사람을 찾지 못했어요 — 담당자를 정해 주세요' } });
+    return;
+  }
+  const 머리 = params.repo === null || params.repo === undefined ? '코드 없음 — 원인 분석만' : 'BTS 에이전트가 고치지 못해 원인 분석을 남겨요';
+  await 넘기기(projectId, issueKey, [머리, '', 몸.analysis, ...파일].join('\n'), 사람);
 }
 
 /**
