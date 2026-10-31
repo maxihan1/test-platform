@@ -13,6 +13,7 @@ import { 노트사건쌓기 } from '../projectNote/events.js';
 import { 정수 } from '../routeParams.js';
 
 import { 이슈읽기, type BTS이슈, type 부르기함수 } from './client.js';
+import { 수정맡기 } from './bugfix.js';
 import { 닫기처리 } from './close.js';
 
 async function db(): Promise<Pool> {
@@ -220,8 +221,17 @@ export default async function btsInboundRoutes(app: FastifyInstance, opts: { 부
     if (!꼴.success || !꼴.data.issueKey.startsWith(`${프로젝트.btsProject}-`)) {
       return reply.code(400).send({ error: 'INVALID_REQUEST', detail: 꼴.success ? 꼴.data.issueKey : 꼴.error.message });
     }
-    // 담당자 변경 → 수정 AI(BTS-F6-01) 가 여기에 잇는다
     req.log.info(`[bts] 규칙 ${꼴.data.event} ${꼴.data.issueKey} (프로젝트 ${String(프로젝트.projectId)})`);
+    // 담당자 변경 → 수정 AI 가 맡을지 본다(도메인/BTS 「수정 AI」). BTS 에 못 닿으면 503 — BTS 자동화 실행 기록에 실패로 보인다
+    if (꼴.data.event === 'ASSIGNEE') {
+      try {
+        const 결과 = await 수정맡기(프로젝트.projectId, 꼴.data.issueKey, opts.부르기);
+        req.log.info(`[bts] 수정 AI ${꼴.data.issueKey} — ${결과}`);
+      } catch (err) {
+        req.log.error(`[bts] 수정 AI 가 ${꼴.data.issueKey} 를 보지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+        return reply.code(503).send({ error: 'BTS_UNREACHABLE' });
+      }
+    }
     // PR 병합은 노트 사건 — 바뀐 파일 경로는 노트 고치기 일이 PR 번호로 읽는다 (도메인/BTS 「맥락 — 프로젝트 노트」)
     if (꼴.data.event === 'PR_MERGED') {
       const { issueKey, prNumber, prUrl, prTitle } = 꼴.data;

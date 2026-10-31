@@ -101,7 +101,7 @@ describe.skipIf(연결 === undefined)('BTS 보낼 줄', () => {
     expect(await 줄(권한)).toMatchObject({ state: 'GAVE_UP', tries: 1, last_error: '권한 없음 — QA Hub AI 열쇠를 확인하세요 (403)' });
 
     답 = () => ({ status: 429, json: null });
-    const 바쁨 = (await 보낼줄넣기({ projectId: 프로젝트, kind: 'ASSIGN', issueKey: 'XBY-1', payload: { assigneeId: 'u' } }))!;
+    const 바쁨 = (await 보낼줄넣기({ projectId: 프로젝트, kind: 'ASSIGN', issueKey: 'XBY-1', payload: { assigneeId: 'u', expectedVersion: 1 } }))!;
     expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 0, 다시: 1, 멈춤: 0 });
     expect(부른것.at(-1)).toMatchObject({ method: 'PATCH', 경로: '/api/v1/issues/XBY-1/assignee' });
     expect(await 줄(바쁨)).toMatchObject({ state: 'PENDING', tries: 1 });
@@ -160,6 +160,23 @@ describe.skipIf(연결 === undefined)('BTS 보낼 줄', () => {
       ['GET', '/api/v1/issues/XBY-9', undefined],
       ['POST', '/api/v1/issues/XBY-9/comments', { body: '재검증 통과' }],
     ]);
+  });
+
+  it('판 번호 없는 담당자 바꾸기 — 보내기 직전에 판을 읽고, 이미 그 사람이면 보내지 않는다', async () => {
+    부른것.length = 0;
+    let 담당 = 'old';
+    답 = (경로) => (경로.endsWith('/assignee') ? { status: 200, json: {} } : { status: 200, json: { data: { version: 7, currentStateKey: 'dev', assigneeId: 담당 } } });
+    await 보낼줄넣기({ projectId: 프로젝트, kind: 'ASSIGN', issueKey: 'XBY-10', payload: { assigneeId: 'new' } });
+    expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 1, 다시: 0, 멈춤: 0 });
+    expect(부른것.map((b) => [b.method, b.경로, b.몸])).toEqual([
+      ['GET', '/api/v1/issues/XBY-10', undefined],
+      ['PATCH', '/api/v1/issues/XBY-10/assignee', { assigneeId: 'new', expectedVersion: 7 }],
+    ]);
+    부른것.length = 0;
+    담당 = 'new';
+    await 보낼줄넣기({ projectId: 프로젝트, kind: 'ASSIGN', issueKey: 'XBY-11', payload: { assigneeId: 'new' } });
+    expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 1, 다시: 0, 멈춤: 0 });
+    expect(부른것.map((b) => b.method)).toEqual(['GET']);
   });
 
   it('등록이 닿으면 짝을 적고 「QA 검토」로 옮기고 캡처를 올린다 · 첨부 목록은 BTS 몸에 안 싣는다', async () => {

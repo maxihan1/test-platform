@@ -29,7 +29,7 @@ describe.skipIf(연결 === undefined)('BTS 닫기 사유 처리', () => {
   const 자리 = { baseUrl: 'https://bts.example.com', botKey: 'pat_xbc' };
 
   const 없음 = { 요청들: [], 기록만: [] };
-  const 이슈 = (key: string, resolution: string | null): BTS이슈 => ({ key, state: 'closed', resolution, assigneeId: null, type: 'bug', summary: '' });
+  const 이슈 = (key: string, resolution: string | null): BTS이슈 => ({ key, state: 'closed', resolution, assigneeId: null, type: 'bug', summary: '', componentIds: [] });
   const 짝넣기 = (key: string, tcId: string) =>
     pool.query(`INSERT INTO bts_issue_case (project_id, issue_key, service_id, tc_id, env, first_run) VALUES ($1, $2, $3, $4, 'qa', $5)`, [프로젝트, key, 서비스, tcId, 실행]);
   const 짝 = async (key: string) =>

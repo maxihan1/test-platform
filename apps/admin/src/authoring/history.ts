@@ -188,8 +188,8 @@ export async function 한쪽(입력: {
   // 노트도 를 따로 부를 때만 같은 프로젝트의 노트 고치기 뿌리도 싣는다 — 켤 때 멈춘 줄 닫기(scripts/authoring-closing.ts)가 이 목록으로 찾는다.
   // 상태 거르기에 기대면 화면이 그 상태로 거를 때 사람 작성 목록에 노트 고치기가 섞인다 (공통/4-데이터모델 「service_id 를 비우는 까닭」)
   const 노트도 = 입력.노트도 === true ? ' OR (service_id IS NULL AND project_id = (SELECT project_id FROM service WHERE id = $1))' : '';
-  // PRD 초안은 사람 작성 목록에 안 싣는다 — 사람은 결정 필요 「PRD 초안」 카드에서 본다. 멈춘 줄 닫기는 노트도 로 부르므로 같이 본다 (도메인/BTS §7)
-  const 초안빼기 = 입력.노트도 === true ? '' : " AND kind <> 'PRD_DRAFT'";
+  // PRD 초안 · 수정 AI 는 사람 작성 목록에 안 싣는다 — 사람은 결정 필요 「PRD 초안」 카드 · BTS 이슈에서 본다. 멈춘 줄 닫기는 노트도 로 부르므로 같이 본다 (도메인/BTS §7)
+  const 초안빼기 = 입력.노트도 === true ? '' : " AND kind NOT IN ('PRD_DRAFT', 'BUGFIX')";
   const 최신 = `WITH RECURSIVE ${사슬식(`(service_id = $1${노트도}) AND source_id IS NULL${초안빼기}`)},
     최신 AS (
       SELECT DISTINCT ON (사슬.root_id) 사슬.root_id, count(*) OVER (PARTITION BY 사슬.root_id) AS run_count,

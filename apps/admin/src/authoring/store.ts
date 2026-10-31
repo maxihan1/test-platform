@@ -11,8 +11,8 @@ export async function db(): Promise<Pool> {
   return pool;
 }
 
-// NOTE 는 프로젝트 노트 고치기 — 애플리케이션 대신 프로젝트를 가리킨다 · PRD_DRAFT 는 배포가 맡은 이슈로 쓰는 PRD 초안 (도메인/BTS 결정 19)
-export type 종류 = 'AUTHOR' | 'RERUN' | 'MERGE' | 'EDIT' | 'NOTE' | 'PRD_DRAFT';
+// NOTE 는 프로젝트 노트 고치기 — 애플리케이션 대신 프로젝트를 가리킨다 · PRD_DRAFT 는 배포가 맡은 이슈로 쓰는 PRD 초안 · BUGFIX 는 「개발 요청」 이슈를 고치는 수정 AI (도메인/BTS 결정 19)
+export type 종류 = 'AUTHOR' | 'RERUN' | 'MERGE' | 'EDIT' | 'NOTE' | 'PRD_DRAFT' | 'BUGFIX';
 // DRAFT 는 자료를 올리는 중이라 아직 줄에 안 섰다. 줄에 세우기는 assetStore.ts 의 `제출` 이 한다
 export type 상태 = 'DRAFT' | 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED' | 'STOPPED';
 

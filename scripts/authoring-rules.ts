@@ -157,7 +157,7 @@ export function 선행검사(입력: {
 /** 줄에서 집어 온 한 건. 화면이 넣고 서버가 돌려주는 것 중 맥이 쓰는 칸만 */
 export interface 집은것 {
   id: number;
-  kind: 'AUTHOR' | 'RERUN' | 'MERGE' | 'EDIT' | 'NOTE' | 'PRD_DRAFT';
+  kind: 'AUTHOR' | 'RERUN' | 'MERGE' | 'EDIT' | 'NOTE' | 'PRD_DRAFT' | 'BUGFIX';
   sourceId?: number | null;
   /** 고치기 실행(EDIT · 원본이 EDIT 인 재실행)에만 온다 — 행의 params.edits 그대로. 모양은 authoring-edit 의 `편집들` 이 본다 (§3.6 「★ 케이스 고치기」) */
   edits?: unknown;
@@ -191,6 +191,8 @@ export interface 집은것 {
   note?: unknown;
   /** PRD 초안 일(PRD_DRAFT)에만 온다 — 모양은 authoring-draft-prompt 의 `초안일인가` 가 본다 (도메인/BTS 「PRD 초안 → 결정 필요」) */
   draft?: unknown;
+  /** 수정 AI 일(BUGFIX)에만 온다 — 모양은 authoring-bugfix-prompt 의 `수정일인가` 가 본다 (도메인/BTS 「수정 AI」) */
+  bugfix?: unknown;
   /** 반영 행에만 온다 — 원본의 겹침 결정 전부. 모양은 authoring-conflicts-io 의 `결정들` 이 본다 (§3.6 「★ 반영 때 겹침 검사」) */
   conflicts?: unknown;
   /**
