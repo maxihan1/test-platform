@@ -234,6 +234,30 @@ describe.skipIf(연결 === undefined)('결정 목록 · 결정 진행', () => {
     expect([또.statusCode, 또.json()]).toEqual([409, { error: 'DECISIONS_STALE' }]);
   });
 
+  it('BTS 를 이은 프로젝트는 실패 판정을 싣지 않고 실패를 고른 진행은 400 BAD_DECISION — 연결을 끊으면 다시 뜬다', async () => {
+    await 케이스넣기();
+    const runId = await 실행넣기();
+    const key = `fail:${String(runId)}:${케이스}`;
+    await q(
+      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_key, webhook_secret, status_map, resolution_map, updated_by)
+       SELECT project_id, 'https://bts.example.com', 'DM', 'pat', 's', '{}', '{}', 'xwx' FROM service WHERE id = $1`,
+      [서비스],
+    );
+    try {
+      const 지금 = await 목록();
+      expect(지금.items.some((x) => x.kind === 'FAIL')).toBe(false);
+      expect(지금.failMore).toBe(0);
+      for (const pick of ['BUG', 'SCREEN']) {
+        const r = await 진행({ prdVersion: 1, picks: [{ key, pick }] });
+        expect([r.statusCode, r.json()]).toEqual([400, { error: 'BAD_DECISION' }]);
+      }
+      expect(await 요청수()).toBe(0);
+    } finally {
+      await q('DELETE FROM bts_link WHERE project_id = (SELECT project_id FROM service WHERE id = $1)', [서비스]);
+    }
+    expect((await 목록()).items.some((x) => x.key === key)).toBe(true);
+  });
+
   it('반영 안 됨이 0 이면 ③ 에 바뀐 요구가 없고, 화면이 맞음은 그래도 서서 누른 사람 · 때를 달고 열린 작성이 끝날 때까지 안 집힌다', async () => {
     await 케이스넣기();
     const 병합된 = await 넣기({ status: 'DONE' });
@@ -284,6 +308,12 @@ describe.skipIf(연결 === undefined)('결정 목록 · 결정 진행', () => {
       method: 'POST', url: `/api/authoring/requests?service=${접두사}`, payload: { kind: 'AUTHOR', params: { decision: { after: [1], count: 1 } } },
     });
     expect([만들기.statusCode, 만들기.json()]).toEqual([400, { error: 'BAD_DECISION' }]);
+    // BTS 가 세우는 칸도 사람 통로로는 못 싣는다 — 판정 없이 테스트 고침 요청이 서고 남의 이슈에 댓글이 간다
+    for (const 칸 of ['testFix', 'issueKey', 'repo', 'draft']) {
+      const r = await app.inject({ method: 'POST', url: `/api/authoring/requests?service=${접두사}`, payload: { kind: 'AUTHOR', params: { [칸]: { issueKey: 'DM-1' } } } });
+      expect([r.statusCode, r.json()]).toEqual([400, { error: 'BAD_EDIT', detail: `params.${칸}` }]);
+    }
+    expect(await 요청수()).toBe(1);
   });
 
   it('PR 없이 끝난 작성은 ① 에 싣지 않고 열린 작성으로만 남는다', async () => {

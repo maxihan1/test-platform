@@ -112,6 +112,10 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       const 값 = typeof params === 'object' && params !== null ? (params as Record<string, unknown>) : {};
       // edits 는 케이스 고치기 통로만 싣는다 — 여기로 실으면 서버 검사(비밀값 · 비밀번호 · 겹침)를 건너뛴 고침이 줄에 선다
       if (Object.hasOwn(값, 'edits')) return reply.code(400).send({ error: 'BAD_EDIT', detail: 'params.edits' });
+      // BTS 가 세우는 칸 — testFix 는 BTS 「테스트 문제」 닫기만 싣는다. 사람이 실으면 판정 없이 테스트 고침 요청이 서고 남의 이슈에 댓글이 간다 (도메인/BTS §7)
+      for (const 칸 of ['testFix', 'issueKey', 'repo', 'draft']) {
+        if (Object.hasOwn(값, 칸)) return reply.code(400).send({ error: 'BAD_EDIT', detail: `params.${칸}` });
+      }
       // prdApply · screenRight 는 결정 진행(POST /api/authoring/decisions/run)만 싣는다 — 여기로 실으면 실행 검사 없이 반영 · 화면이 맞음 요청이 선다
       if (Object.hasOwn(값, 'prdApply') || Object.hasOwn(값, 'screenRight')) return reply.code(400).send({ error: 'BAD_PRD_APPLY' });
       // apiApply 는 「바뀐 API 만 다시 작성」 통로만 싣는다 — 맡길 케이스 목록을 서버가 채운다 (도메인/API §7)
