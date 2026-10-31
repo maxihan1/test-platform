@@ -239,7 +239,7 @@ AI 품질은 따로 시험하지 않고 사람이 고른 결과로 센다 — �
 
 - **BTS**(BTS-F2-01 · 02) — 자동화 동작 「상태 바꾸기」(지금 다섯 동작에 없다 — `automation/domain/ActionType.kt`) · 웹훅 규칙이 「조건에 맞는 이슈 전부」 · 「받은 키 목록 전부」에 걸리는 실행(지금은 이슈 하나 — `ActionExecutor.kt:57`) · 해결 상태 넷 · 「QA Hub AI」 계정. 담당자 변경 · PR 병합 신호는 코드 없이 규칙 설정으로
 - **데모마켓**(BTS-F5-02) — `deploy/deploy.sh` 끝에 BTS 웹훅 · 배포 신호 · 빌드 번호 · 올라간 커밋 기록 · 롤백 판정과 이슈 키 뽑기(순수 함수로 떼어 시험)
-  — 반영 2026-10-31(demo-market PR #7 · `deploy/signal.ts`). 두 곳에 같은 몸 `{ build, rollback?, rollbackKeys? }` 이라 BTS 롤백 규칙은 `rollbackKeys` 를 읽는다 · 빌드 번호는 커밋 7자-배포 시각(KST 분) · 지난 배포 커밋은 서버 `/opt/demo/DEPLOYED_COMMIT`(신호가 다 간 뒤 적는다) · 이슈 키는 BTS 프로젝트 키로만 뽑는다
+  — 반영 2026-10-31(demo-market PR #7 · `deploy/signal.ts`). 두 곳에 같은 몸 `{ build, rollback?, rollbackKeys? }` 이라 BTS 롤백 규칙은 `rollbackKeys` 를 읽는다 · 빌드 번호는 커밋 7자-배포 시각(KST 분) · 지난 배포 커밋은 서버 `/opt/demo/DEPLOYED_COMMIT`(서버 기동 확인 직후 · 신호 전에 적는다) · 이슈 키는 BTS 프로젝트 키로만 뽑는다 · 공개 주소가 안 열리면 신호를 안 보낸다 · 신호가 깨지면 `deploy/deploy.sh --signal '<몸>'` 으로 신호만 다시(같은 빌드라 QA Hub 멱등)
 - **Auth** — 없다(PAT · whoami 가 이미 있다)
 
 #### 1차 밖 · 나중
