@@ -9,6 +9,7 @@ import { 회차요약 } from './group.js';
 import { use말, use언어 } from './i18n.js';
 import { ItemExpand } from './ItemExpand.js';
 import type { 판정 } from './role.js';
+import { RunFailBts } from './RunFailBts.js';
 import { RunFailJudge } from './RunFailJudge.js';
 import { 다시실행꼬리표, 항목실행번호 } from './RerunTag.js';
 import { 관련요구줄 } from './RunFailedReqs.js';
@@ -269,6 +270,7 @@ export function 실패카드({
           ))}
 
           <RunFailJudge c={c} runId={runId} 권한={권한} on남김={on남김} />
+          <RunFailBts c={c} runId={runId} env={env} 권한={권한} />
         </div>
       </details>
     </article>

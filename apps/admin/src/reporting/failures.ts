@@ -2,6 +2,7 @@
 
 import type { DeviceInfo, ElementCheck, FpsSample, ItemStatus, Platform } from '@platform/kit';
 
+import { BTS카드칸들, type BTS카드칸 } from '../bts/card.js';
 import { 팜증적목록, type 팜파일 } from '../execution/farmEvidence.js';
 import { findItem } from '../execution/queries.js';
 import { 최근몇건 } from '../execution/history.js';
@@ -35,6 +36,8 @@ export interface FailureCase {
   /** 지도 ① 로 덮는 요구 — 지금 판 기준이라 실행 때 박제하지 않는다 */
   reqs: 카드요구[];
   judgment: 판정;
+  /** BTS 를 이은 프로젝트만 칸이 있다. 보낼 줄이 없는 케이스(흔들림으로 닫혀 안 올림)는 null (도메인/BTS §7) */
+  bts?: BTS카드칸 | null;
 }
 
 export interface FailureCards {
@@ -113,7 +116,7 @@ export async function 실패카드(runId: number, page: number, platform?: Platf
   }
 
   const tcIds = 쪽.items.map((c) => c.tcId);
-  const [요구표, 판정표] = await Promise.all([카드요구들(runId, tcIds), 판정들(runId, tcIds)]);
+  const [요구표, 판정표, bts표] = await Promise.all([카드요구들(runId, tcIds), 판정들(runId, tcIds), BTS카드칸들(runId, tcIds)]);
 
   // 폰 · 앱 판과 게임 요소 대조 · FPS 는 쪽의 회차를 한 번에 읽는다 — history_id 는 실행을 넘어 하나라 한 건 실행이 덮은 회차도 그대로 찾는다
   const 회차들 = 쪽.items.flatMap((c) => c.devices.map((d) => d.firstFailedHistoryId));
@@ -133,6 +136,7 @@ export async function 실패카드(runId: number, page: number, platform?: Platf
       tcName: c.tcName,
       reqs: 요구표.get(c.tcId) ?? [],
       judgment: 판정표.get(c.tcId) ?? null,
+      ...(bts표 !== null && { bts: bts표.get(c.tcId) ?? null }),
       devices: await Promise.all(
         c.devices.map(async ({ firstFailedHistoryId, ...나머지 }): Promise<FailureDevice> => {
           const rerun = 다시실행들.get(firstFailedHistoryId) ?? null;

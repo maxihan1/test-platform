@@ -5,6 +5,7 @@
 import type { ExecuteResponse } from '@platform/kit';
 
 import { 실행문서견주기 } from '../apidoc/runCompare.js';
+import { 실패등록 } from '../bts/failReport.js';
 
 import { 스모크뒤 } from './buildRun.js';
 import { 잡기를늘린다, 팜주소, 팜폰으로 } from './farm.js';
@@ -169,5 +170,12 @@ export async function dispatch(runId: number, items: PendingItem[]): Promise<voi
     await notifyRun(runId);
   } catch (err) {
     console.error(`[execution] 실행 ${runId}의 Slack 알림을 보내지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+  }
+
+  // BTS 를 이은 프로젝트면 실패를 보낼 줄에 넣는다. 보내기는 60초 점검이 한다 — 넣다 깨져도 실행은 이미 끝났다 (도메인/BTS 「버그 바퀴」)
+  try {
+    await 실패등록(runId);
+  } catch (err) {
+    console.error(`[execution] 실행 ${runId}의 실패를 BTS 보낼 줄에 넣지 못했다: ${err instanceof Error ? err.message : String(err)}`);
   }
 }

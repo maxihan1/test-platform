@@ -380,4 +380,7 @@ export const 실행말: Record<string, string> = {
   '이 단계는 API 를 부르지 않았습니다': 'This step made no API call',
   '이 단계는 기대값과 다른 곳이 없습니다': 'Nothing in this step differs from the expected values',
   '기대': 'Expected',
+  'BTS 에 보내는 중': 'Sending to BTS',
+  'BTS 등록 실패 · {까닭}': 'Could not file in BTS · {까닭}',
+  '다시 보내기': 'Send again',
 };
