@@ -125,7 +125,7 @@ export function 내메뉴항목({
             팜토큰열기();
           }}
         >
-          {t('디바이스 팜 토큰')}
+          {t('통합계정 토큰')}
         </button>
       ) : null}
       <button

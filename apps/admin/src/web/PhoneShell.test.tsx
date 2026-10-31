@@ -222,12 +222,12 @@ describe('내 메뉴 판', () => {
   });
 
   // useSSO 가 답을 기억하므로 맨 끝에 둔다 — 앞 검사들은 비밀번호 로그인 설치로 본다
-  it('maxihan 계정 설치는 내 메뉴에 비밀번호 변경 대신 디바이스 팜 토큰이 있다', async () => {
+  it('maxihan 계정 설치는 내 메뉴에 비밀번호 변경 대신 통합계정 토큰이 있다', async () => {
     vi.spyOn(api, 'methods').mockResolvedValue({ sso: true });
     띄운다('#/runs/fn');
     fireEvent.click(screen.getByRole('button', { name: '내 메뉴 · 김수민' }));
     const 판 = screen.getByRole('dialog', { name: '내 메뉴' });
-    expect(await within(판).findByRole('button', { name: '디바이스 팜 토큰' })).toBeTruthy();
+    expect(await within(판).findByRole('button', { name: '통합계정 토큰' })).toBeTruthy();
     expect(within(판).queryByRole('link', { name: '비밀번호 변경' })).toBeNull();
   });
 });

@@ -29,7 +29,7 @@ const 결제: ServiceRow = {
 const 사람: User = { username: 'zsf1', displayName: '김수민', role: 'member', dashboard: 'none', mustChangePassword: false, services: [결제] };
 
 describe('SSO 설치의 계정 메뉴', () => {
-  it('비밀번호 변경은 없고 디바이스 팜 토큰을 누르면 창이 뜬다', async () => {
+  it('비밀번호 변경은 없고 통합계정 토큰을 누르면 창이 뜬다', async () => {
     vi.spyOn(api, 'notifications').mockResolvedValue({ running: [], recent: [] });
     vi.spyOn(api, 'farmToken').mockResolvedValue({ farmToken: null });
     render(
@@ -42,7 +42,7 @@ describe('SSO 설치의 계정 메뉴', () => {
 
     fireEvent.click(screen.getByRole('button', { name: `내 메뉴 · ${사람.displayName}` }));
     expect(screen.queryByRole('link', { name: '비밀번호 변경' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: '디바이스 팜 토큰' }));
+    fireEvent.click(screen.getByRole('button', { name: '통합계정 토큰' }));
 
     expect(await screen.findByText('없음 — 서버 토큰으로 빌립니다')).toBeTruthy();
     expect(screen.getByRole('dialog')).toBeTruthy();

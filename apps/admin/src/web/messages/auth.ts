@@ -55,8 +55,9 @@ export const 계정말: Record<string, string> = {
   '다른 운영자가 먼저 처리했습니다': 'Another admin already handled this',
 
   // 계정 메뉴 「디바이스 팜 토큰」 창 (§8.6 · 2026-10-29 APP-F1-13)
-  '디바이스 팜 토큰': 'Device farm token',
-  '내가 누른 실행은 이 토큰으로 디바이스 팜의 폰을 빌립니다': 'Runs you start borrow device farm phones with this token',
+  '통합계정 토큰': 'QA Hub account token',
+  '내가 누른 실행이 디바이스 팜의 폰을 빌릴 때와 {bts} 자동 설정을 할 때 이 토큰을 씁니다':
+    'Used when runs you start borrow device farm phones and when you set up {bts} automatically',
   '통합계정 「내 계정」 화면에서 개인 액세스 토큰을 발급해 붙여 넣습니다':
     'Issue a personal access token on the QA Hub account "My account" page and paste it here',
   '없음 — 서버 토큰으로 빌립니다': 'None — phones are borrowed with the server token',
