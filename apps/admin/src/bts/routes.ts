@@ -8,7 +8,17 @@ import { 정수 } from '../routeParams.js';
 import { BTS연결끊기, BTS연결읽기, BTS연결저장, BTS열쇠만들기, BTS확인, 상태짝틀, 해결짝틀, type 확인함수 } from './link.js';
 
 const 연결본문 = z.object({
-  baseUrl: z.string().trim().url().refine((u) => /^https?:\/\//.test(u), 'baseUrl 은 http(s) 주소여야 합니다'),
+  // 같은 주소를 끝 「/」 · 대문자 호스트로 달리 적어도 한 주소로 친다 — 주소가 바뀌면 열쇠를 다시 받으므로(BOT_KEY_REQUIRED) 글자 차이로 막히지 않게.
+  // 물음표 · # 은 받지 않는다 — 뒤에 /api/v1/… 를 붙여 부른다
+  baseUrl: z
+    .string()
+    .trim()
+    .url()
+    .refine((u) => /^https?:\/\//.test(u) && !/[?#]/.test(u), 'baseUrl 은 물음표 · # 없는 http(s) 주소여야 합니다')
+    .transform((u) => {
+      const 주소 = new URL(u);
+      return `${주소.origin}${주소.pathname}`.replace(/\/+$/, '');
+    }),
   btsProject: z.string().trim().min(1).max(50),
   botKey: z.string().trim().min(1).optional(),
   webhookSecret: z.string().trim().min(1).optional(),
@@ -49,7 +59,7 @@ export default async function btsLinkRoutes(app: FastifyInstance, opts: { 확인
   app.delete<{ Params: { projectId: string } }>('/settings/projects/:projectId/bts', async (req, reply) => {
     const id = 정수(req.params.projectId);
     if (id === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.params.projectId });
-    await BTS연결끊기(id);
+    if (!(await BTS연결끊기(id))) return reply.code(404).send({ error: 'NOT_FOUND' });
     return reply.code(204).send();
   });
 
@@ -58,8 +68,9 @@ export default async function btsLinkRoutes(app: FastifyInstance, opts: { 확인
     const id = 정수(req.params.projectId);
     const which = req.params.which;
     if (id === null || (which !== 'deploy' && which !== 'rule')) return reply.code(400).send({ error: 'INVALID_REQUEST' });
-    const key = await BTS열쇠만들기(id, which, req.user?.username ?? '');
-    if (key === null) return reply.code(409).send({ error: 'NOT_LINKED' });
-    return reply.code(201).send({ key });
+    const 결과 = await BTS열쇠만들기(id, which, req.user?.username ?? '');
+    if (결과 === 'NOT_FOUND') return reply.code(404).send({ error: 결과 });
+    if (결과 === 'NOT_LINKED') return reply.code(409).send({ error: 결과 });
+    return reply.code(201).send({ key: 결과.열쇠 });
   });
 }

@@ -148,10 +148,12 @@ export async function BTS연결저장(projectId: number, 입력: BTS연결입력
   return 'OK';
 }
 
-/** 연결 행만 지운다 — 맡은 이슈 · 짝 기록은 남긴다(도메인/BTS §7). 그 프로젝트는 다시 지금처럼 돈다 */
-export async function BTS연결끊기(projectId: number): Promise<void> {
+/** 연결 행만 지운다 — 맡은 이슈 · 짝 기록은 남긴다(도메인/BTS §7). 그 프로젝트는 다시 지금처럼 돈다. 프로젝트가 없으면 false */
+export async function BTS연결끊기(projectId: number): Promise<boolean> {
   const pool = await db();
+  if (!(await 프로젝트있나(pool, projectId))) return false;
   await pool.query('DELETE FROM bts_link WHERE project_id = $1', [projectId]);
+  return true;
 }
 
 const 열쇠칸 = {
@@ -161,15 +163,16 @@ const 열쇠칸 = {
 
 export type 열쇠종류 = keyof typeof 열쇠칸;
 
-/** 새로 만들면 앞 열쇠는 끊긴다(해시를 덮는다). 원문은 이 반환값 한 번뿐이다. 연결이 없으면 null */
-export async function BTS열쇠만들기(projectId: number, 종류: 열쇠종류, 누가: string): Promise<string | null> {
+/** 새로 만들면 앞 열쇠는 끊긴다(해시를 덮는다). 원문은 이 반환값 한 번뿐이다 */
+export async function BTS열쇠만들기(projectId: number, 종류: 열쇠종류, 누가: string): Promise<{ 열쇠: string } | 'NOT_FOUND' | 'NOT_LINKED'> {
   const { 머리, 칸 } = 열쇠칸[종류];
   const 원문 = `${머리}${randomBytes(32).toString('base64url')}`;
   const pool = await db();
+  if (!(await 프로젝트있나(pool, projectId))) return 'NOT_FOUND';
   // 칸 이름은 위 표의 상수뿐이라 글자로 끼워도 된다
   const r = await pool.query(
     `UPDATE bts_link SET ${칸}_hash = $2, ${칸}_tail = $3, ${칸}_by = $4, ${칸}_at = now() WHERE project_id = $1`,
     [projectId, 토큰해시(원문), 원문.slice(-4), 누가],
   );
-  return r.rowCount === 1 ? 원문 : null;
+  return r.rowCount === 1 ? { 열쇠: 원문 } : 'NOT_LINKED';
 }

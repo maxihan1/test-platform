@@ -10,7 +10,7 @@ import { 토큰해시 } from '../auth/agentToken.js';
 import settingsRoutes from '../settings/routes.js';
 
 import { BTS확인 } from './link.js';
-import btsLinkRoutes from './linkRoutes.js';
+import btsLinkRoutes from './routes.js';
 
 const 연결 = process.env.DATABASE_URL;
 const 접두사 = 'XBL';
@@ -138,6 +138,12 @@ describe.skipIf(연결 === undefined)('설정 API — BTS 연결', () => {
     expect(행).toEqual({ bot_key: 'pat_abcd1234', webhook_secret: 'sec' });
   });
 
+  it('끝 「/」 · 대문자 호스트만 다른 주소는 같은 주소로 친다 · 물음표 붙은 주소는 받지 않는다', async () => {
+    expect((await 저장(본문({ baseUrl: 'https://BTS.example.com/', btsProject: 'DM2' }))).statusCode).toBe(200);
+    expect((await 읽기()).baseUrl).toBe('https://bts.example.com');
+    expect((await 저장(본문({ baseUrl: 'https://bts.example.com/?x=1', botKey: 'pat_abcd1234' }))).statusCode).toBe(400);
+  });
+
   it('주소를 바꾸면 「QA Hub AI」 열쇠를 다시 받는다', async () => {
     const res = await 저장(본문({ baseUrl: 'https://other.example.com' }));
     expect([res.statusCode, res.json().error]).toEqual([400, 'BOT_KEY_REQUIRED']);
@@ -168,7 +174,10 @@ describe.skipIf(연결 === undefined)('설정 API — BTS 연결', () => {
     expect(틀린종류.statusCode).toBe(400);
   });
 
-  it('끊으면 다시 linked: false 이고 열쇠 만들기는 409 NOT_LINKED 다', async () => {
+  it('끊으면 다시 linked: false 이고 열쇠 만들기는 409 NOT_LINKED 다 · 없는 프로젝트는 둘 다 404', async () => {
+    const 없는 = '/api/settings/projects/999999999/bts';
+    expect((await app.inject({ method: 'DELETE', url: 없는 })).statusCode).toBe(404);
+    expect((await app.inject({ method: 'POST', url: `${없는}/keys/deploy` })).statusCode).toBe(404);
     expect((await app.inject({ method: 'DELETE', url: 주소() })).statusCode).toBe(204);
     expect((await 읽기()).linked).toBe(false);
     const res = await app.inject({ method: 'POST', url: `${주소()}/keys/deploy` });

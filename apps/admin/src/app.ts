@@ -14,7 +14,7 @@ import authoringAssetRoutes from './authoring/assets.js';
 import authoringEditRoutes from './authoring/edit-routes.js';
 import authoringDecisionRoutes from './authoring/decisionRoutes.js';
 import authoringRoutes from './authoring/routes.js';
-import btsLinkRoutes from './bts/linkRoutes.js';
+import btsLinkRoutes from './bts/routes.js';
 import { 기본계정만들기 } from './auth/defaultAdmin.js';
 import { 인증등록 } from './auth/gate.js';
 import { 세션등록, 열쇠최소길이 } from './auth/session.js';
