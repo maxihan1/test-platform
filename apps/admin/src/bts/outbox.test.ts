@@ -106,6 +106,33 @@ describe.skipIf(연결 === undefined)('BTS 보낼 줄', () => {
     expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 1, 다시: 0, 멈춤: 0 });
   });
 
+  it('이슈 키 없는 만들기 답 · 주소 넘김(3xx)은 바로 멈춘다 · CREATE 는 테스트 · 대상 서버 칸이 꼭 있다', async () => {
+    답 = () => ({ status: 201, json: {} });
+    const 키없음 = (await 보낼줄넣기({ projectId: 프로젝트, kind: 'CREATE', payload: {}, serviceId: 서비스, tcId: 'XBY-002', env: 'qa' }))!;
+    expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 0, 다시: 0, 멈춤: 1 });
+    expect(await 줄(키없음)).toMatchObject({ state: 'GAVE_UP', last_error: 'BTS 응답에 이슈 키가 없습니다 (201)' });
+    답 = () => ({ status: 301, json: null });
+    const 넘김 = (await 보낼줄넣기({ projectId: 프로젝트, kind: 'COMMENT', issueKey: 'XBY-1', payload: {} }))!;
+    expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 0, 다시: 0, 멈춤: 1 });
+    expect((await 줄(넘김)).last_error).toContain('BTS 주소');
+    await expect(보낼줄넣기({ projectId: 프로젝트, kind: 'CREATE', payload: {}, serviceId: 서비스, tcId: 'XBY-003' })).rejects.toThrow();
+  });
+
+  it('같은 이슈는 앞 줄이 끝나야 뒤 줄을 보낸다', async () => {
+    답 = () => ({ status: 429, json: null });
+    const 앞 = (await 보낼줄넣기({ projectId: 프로젝트, kind: 'TRANSITION', issueKey: 'XBY-5', payload: { toStatusKey: 'a' } }))!;
+    const 뒤 = (await 보낼줄넣기({ projectId: 프로젝트, kind: 'TRANSITION', issueKey: 'XBY-5', payload: { toStatusKey: 'b' } }))!;
+    expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 0, 다시: 1, 멈춤: 0 });
+    expect(부른것.map((b) => b.몸)).toEqual([{ toStatusKey: 'a' }]);
+    답 = () => ({ status: 200, json: {} });
+    await 때되게();
+    expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 1, 다시: 0, 멈춤: 0 });
+    await 때되게();
+    expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 1, 다시: 0, 멈춤: 0 });
+    expect(부른것.map((b) => b.몸).slice(1)).toEqual([{ toStatusKey: 'a' }, { toStatusKey: 'b' }]);
+    expect([(await 줄(앞)).state, (await 줄(뒤)).state]).toEqual(['SENT', 'SENT']);
+  });
+
   it('BTS 연결이 없는 프로젝트 줄은 부르지 않고 멈춘다', async () => {
     const id = (await 보낼줄넣기({ projectId: 남의프로젝트, kind: 'COMMENT', issueKey: 'DM-1', payload: {} }))!;
     expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 0, 다시: 0, 멈춤: 1 });

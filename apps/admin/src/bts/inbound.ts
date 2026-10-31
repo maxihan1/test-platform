@@ -51,22 +51,31 @@ function 처음보나(열쇠: string): boolean {
   return true;
 }
 
+export interface 알림연결 {
+  projectId: number;
+  baseUrl: string;
+  botKey: string;
+  btsProject: string;
+}
+
 /**
  * 받은 알림을 처리한다 — 알림 본문을 믿지 않고 이슈를 BTS 에서 다시 읽는다. 처리할 것이 없으면 null.
+ * 다시 읽기가 깨지면 그 알림을 잊고 던진다 — 라우트가 503 을 내 BTS 가 같은 알림을 다시 보내게.
  * 읽은 이슈로 무엇을 할지(닫기 사유 · 맡기)는 뒤 줄이 여기에 잇는다
  */
-export async function BTS알림처리(projectId: number, 몸: unknown, 부르기?: 부르기함수): Promise<BTS이슈 | null> {
+export async function BTS알림처리(연결: 알림연결, 몸: unknown, 부르기?: 부르기함수): Promise<BTS이슈 | null> {
   const 꼴 = 알림몸.safeParse(몸);
   if (!꼴.success || !받는알림.has(꼴.data.event)) return null;
-  if (!처음보나(`${String(projectId)}:${꼴.data.deliveryId}`)) return null;
-  const pool = await db();
-  const 연결 = (await pool.query<{ base_url: string; bot_key: string; bts_project: string }>(
-    'SELECT base_url, bot_key, bts_project FROM bts_link WHERE project_id = $1',
-    [projectId],
-  )).rows[0];
   // 다른 BTS 프로젝트 이슈는 이 프로젝트 일이 아니다
-  if (연결 === undefined || !꼴.data.data.issueKey.startsWith(`${연결.bts_project}-`)) return null;
-  return 이슈읽기({ baseUrl: 연결.base_url, botKey: 연결.bot_key }, 꼴.data.data.issueKey, 부르기);
+  if (!꼴.data.data.issueKey.startsWith(`${연결.btsProject}-`)) return null;
+  const 열쇠 = `${String(연결.projectId)}:${꼴.data.deliveryId}`;
+  if (!처음보나(열쇠)) return null;
+  try {
+    return await 이슈읽기({ baseUrl: 연결.baseUrl, botKey: 연결.botKey }, 꼴.data.data.issueKey, 부르기);
+  } catch (err) {
+    본알림.delete(열쇠);
+    throw err;
+  }
 }
 
 const 규칙몸 = z.discriminatedUnion('event', [
@@ -112,8 +121,9 @@ async function 규칙문(req: FastifyRequest, reply: FastifyReply): Promise<void
 }
 
 function json읽기(몸: unknown): unknown {
+  if (!Buffer.isBuffer(몸)) return undefined;
   try {
-    return JSON.parse((몸 as Buffer).toString('utf8'));
+    return JSON.parse(몸.toString('utf8'));
   } catch {
     return undefined;
   }
@@ -121,25 +131,37 @@ function json읽기(몸: unknown): unknown {
 
 export default async function btsInboundRoutes(app: FastifyInstance, opts: { 부르기?: 부르기함수 }): Promise<void> {
   app.decorateRequest('btsRuleProject', null);
-  // 서명은 받은 바이트 그대로에 건다 — 이 플러그인 안에서만 JSON 을 버퍼로 받는다
-  app.addContentTypeParser('application/json', { parseAs: 'buffer', bodyLimit: 몸상한 }, (_req, 몸, done) => done(null, 몸));
+  // 서명은 받은 바이트 그대로에 건다 — 이 플러그인 안에서만 몸을 버퍼로 받는다.
+  // BTS 규칙의 웹훅 호출은 Content-Type 을 안 붙여 text/plain 으로 온다 — 어느 종류로 와도 같은 상한으로 받는다
+  const 버퍼로 = (_req: FastifyRequest, 몸: Buffer, done: (err: Error | null, body?: Buffer) => void): void => done(null, 몸);
+  app.addContentTypeParser('application/json', { parseAs: 'buffer', bodyLimit: 몸상한 }, 버퍼로);
+  app.addContentTypeParser('*', { parseAs: 'buffer', bodyLimit: 몸상한 }, 버퍼로);
 
   app.post<{ Params: { projectId: string } }>('/bts/events/:projectId', { onRequest: 서명문 }, async (req, reply) => {
     const id = 정수(req.params.projectId);
     if (id === null) return reply.code(400).send({ error: 'INVALID_REQUEST' });
-    const 비밀 = (await (await db()).query<{ webhook_secret: string }>('SELECT webhook_secret FROM bts_link WHERE project_id = $1', [id]))
-      .rows[0]?.webhook_secret;
-    if (비밀 === undefined) return reply.code(404).send({ error: 'NOT_LINKED' });
-    if (!Buffer.isBuffer(req.body) || !서명맞나(비밀, req.body, String(req.headers['x-bts-signature']))) {
+    const 행 = (
+      await (await db()).query<{ base_url: string; bot_key: string; bts_project: string; webhook_secret: string }>(
+        'SELECT base_url, bot_key, bts_project, webhook_secret FROM bts_link WHERE project_id = $1',
+        [id],
+      )
+    ).rows[0];
+    // 연결이 없는 프로젝트도 서명이 틀린 것과 같은 답 — 어느 프로젝트가 BTS 에 이어졌는지 밖에 알리지 않는다
+    if (행 === undefined || !Buffer.isBuffer(req.body) || !서명맞나(행.webhook_secret, req.body, String(req.headers['x-bts-signature']))) {
       return reply.code(401).send({ error: 'BAD_SIGNATURE' });
     }
-    const 몸 = json읽기(req.body);
-    // 받은 것은 바로 204 — 다시 읽기는 뒤에서 돈다. BTS 가 늦은 응답을 실패로 보고 또 보내지 않게
-    void BTS알림처리(id, 몸, opts.부르기)
-      .then((이슈) => {
-        if (이슈 !== null) req.log.info(`[bts] 알림 ${이슈.key} — 상태 ${이슈.state} · 해결 ${이슈.resolution ?? '없음'}`);
-      })
-      .catch((err: unknown) => req.log.error(`[bts] 알림 처리가 깨졌다: ${err instanceof Error ? err.message : String(err)}`));
+    try {
+      const 이슈 = await BTS알림처리(
+        { projectId: id, baseUrl: 행.base_url, botKey: 행.bot_key, btsProject: 행.bts_project },
+        json읽기(req.body),
+        opts.부르기,
+      );
+      if (이슈 !== null) req.log.info(`[bts] 알림 ${이슈.key} — 상태 ${이슈.state} · 해결 ${이슈.resolution ?? '없음'}`);
+    } catch (err) {
+      // 다시 읽기가 깨졌다 — 204 를 주면 BTS 가 다시 안 보내 알림을 영영 잃는다
+      req.log.error(`[bts] 알림 처리가 깨졌다: ${err instanceof Error ? err.message : String(err)}`);
+      return reply.code(503).send({ error: 'BTS_UNREACHABLE' });
+    }
     return reply.code(204).send();
   });
 

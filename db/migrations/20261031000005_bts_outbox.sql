@@ -19,7 +19,9 @@ CREATE TABLE bts_outbox (
   tries       INTEGER     NOT NULL DEFAULT 0,
   next_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
   last_error  TEXT,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  -- 실패 등록은 테스트 · 대상 서버가 꼭 있다 — 하나라도 비면 아래 고유 인덱스가 NULL 끼리 다르다고 봐 등록이 겹친다
+  CHECK (kind <> 'CREATE' OR (service_id IS NOT NULL AND tc_id IS NOT NULL AND env IS NOT NULL))
 );
 CREATE INDEX ON bts_outbox (state, next_at);
 -- 한 테스트 · 한 대상 서버에 기다리는 등록은 하나 — 보내기 전에 또 실패하면 새로 안 넣는다(첫 실패 실행으로 올린다)

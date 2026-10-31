@@ -64,6 +64,8 @@ const 다시보낼4xx = new Set([408, 429]);
 
 function 상태로(status: number): 결과 | null {
   if (status >= 200 && status < 300) return null;
+  // 넘겨주기(redirect)를 따라가지 않는다 — 열쇠를 다른 주소로 보내지 않게. 주소가 틀린 것이라 다시 보내도 같다
+  if (status >= 300 && status < 400) return { 상태: 'GAVE_UP', 까닭: `BTS 주소가 다른 곳으로 넘깁니다 — 설정의 BTS 주소를 확인하세요 (${String(status)})` };
   if (status === 401 || status === 403) return { 상태: 'GAVE_UP', 까닭: `권한 없음 — QA Hub AI 열쇠를 확인하세요 (${String(status)})` };
   if (status >= 400 && status < 500 && !다시보낼4xx.has(status)) return { 상태: 'GAVE_UP', 까닭: `BTS 가 요청을 거절했습니다 (${String(status)})` };
   return { 상태: 'RETRY', 까닭: `BTS 가 답하지 못했습니다 (${String(status)})` };
@@ -78,10 +80,14 @@ async function 하나보내기(줄: 집은줄, 부르기: 부르기함수): Prom
     const r = await 부르기({ baseUrl: 줄.base_url, botKey: 줄.bot_key }, method, 경로, 줄.payload);
     const 실패 = 상태로(r.status);
     if (실패 !== null) return 실패;
-    return 줄.kind === 'CREATE'
-      ? { 상태: 'SENT', issueKey: (r.json as { data?: { key?: string } } | null)?.data?.key ?? null }
-      : { 상태: 'SENT' };
+    if (줄.kind !== 'CREATE') return { 상태: 'SENT' };
+    const key = (r.json as { data?: { key?: unknown } } | null)?.data?.key;
+    // 키가 없으면 짝(bts_issue_case)을 못 지어 다음 실패가 이슈를 또 만든다 — 보낸 것으로 치지 않고 사람에게 보인다
+    return typeof key === 'string' && key !== ''
+      ? { 상태: 'SENT', issueKey: key }
+      : { 상태: 'GAVE_UP', 까닭: `BTS 응답에 이슈 키가 없습니다 (${String(r.status)})` };
   } catch (err) {
+    // ponytail: BTS 이슈 만들기에 멱등 열쇠가 없어, 만들어졌는데 답이 10초를 넘기면 다시 보낼 때 이슈가 둘 생긴다. 잦으면 다시 보내기 전에 꼬리표로 찾는다
     return { 상태: 'RETRY', 까닭: `BTS 에 닿지 않습니다 — ${err instanceof Error ? err.message : String(err)}` };
   }
 }
@@ -94,7 +100,11 @@ export async function 보낼줄점검(부르기: 부르기함수 = BTS부르기)
   const pool = await db();
   const 집음 = await pool.query<집은줄>(
     `WITH 때된 AS (
-       SELECT id FROM bts_outbox WHERE state = 'PENDING' AND next_at <= now() ORDER BY id LIMIT 20 FOR UPDATE SKIP LOCKED
+       -- 같은 이슈의 앞 줄이 아직 기다리면 뒤 줄은 집지 않는다 — 다시 보낸 앞 줄이 뒤 줄보다 늦게 닿아 상태를 되돌리지 않게
+       SELECT id FROM bts_outbox o
+        WHERE state = 'PENDING' AND next_at <= now()
+          AND NOT EXISTS (SELECT 1 FROM bts_outbox p WHERE p.state = 'PENDING' AND p.issue_key = o.issue_key AND p.id < o.id)
+        ORDER BY id LIMIT 20 FOR UPDATE SKIP LOCKED
      ), 집은 AS (
        UPDATE bts_outbox o SET next_at = now() + interval '5 minutes' FROM 때된 WHERE o.id = 때된.id
        RETURNING o.id, o.project_id, o.kind, o.issue_key, o.payload, o.tries
@@ -117,7 +127,9 @@ export async function 보낼줄점검(부르기: 부르기함수 = BTS부르기)
     else 셈.다시++;
     await pool.query(
       `UPDATE bts_outbox
-          SET tries = tries + 1, last_error = $2, state = CASE WHEN $3 THEN 'GAVE_UP' ELSE 'PENDING' END, next_at = now() + interval '1 minute'
+          SET tries = tries + 1, last_error = $2, state = CASE WHEN $3 THEN 'GAVE_UP' ELSE 'PENDING' END,
+              -- 1분보다 조금 짧게 — 60초 점검이 보낸 직후 적은 시각이라 꼭 1분이면 다음 점검이 몇 ms 차로 놓쳐 2분 간격이 된다
+              next_at = now() + interval '50 seconds'
         WHERE id = $1`,
       [줄.id, 끝.상태 === 'RETRY' && 그만 ? `${끝.까닭} — ${String(최대횟수)}번 보내고 그만뒀습니다` : 끝.까닭, 그만],
     );

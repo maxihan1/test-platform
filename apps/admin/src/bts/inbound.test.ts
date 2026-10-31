@@ -33,8 +33,10 @@ describe.skipIf(연결 === undefined)('BTS 가 부르는 두 문', () => {
   let 서비스 = 0;
   const 규칙토큰 = 'btr_xbw-rule-token';
   const 부른것: string[] = [];
+  let 깨짐 = false;
   const 부르기 = async (자리: BTS자리, method: string, 경로: string) => {
     부른것.push(`${자리.botKey} ${method} ${경로}`);
+    if (깨짐) return { status: 502, json: null };
     return { status: 200, json: { data: { key: 'XBW-7', currentStateKey: 'closed', resolution: { name: '흔들림' }, typeKey: 'bug', summary: '요약' } } };
   };
   const pool = async () => (await import('../db/index.js')).pool;
@@ -82,12 +84,14 @@ describe.skipIf(연결 === undefined)('BTS 가 부르는 두 문', () => {
     await app.close();
   });
 
-  it('서명이 없거나 틀리면 401 BAD_SIGNATURE · 연결 없는 프로젝트는 404', async () => {
+  const 연결값 = () => ({ projectId: 프로젝트, baseUrl: 'https://bts.example.com', botKey: 'pat_xbw', btsProject: 'XBW' });
+
+  it('서명이 없거나 틀리면 401 BAD_SIGNATURE · 연결 없는 프로젝트도 같은 401', async () => {
     const 몸 = JSON.stringify({ event: 'issue.created', deliveryId: 'd0', data: { issueKey: 'XBW-1' } });
     expect((await 알림(몸, {})).json()).toEqual({ error: 'BAD_SIGNATURE' });
     const 틀림 = await 알림(몸, { 'x-bts-signature': 서명(몸, 'other') });
     expect([틀림.statusCode, 틀림.json().error]).toEqual([401, 'BAD_SIGNATURE']);
-    expect((await 알림(몸, { 'x-bts-signature': 서명(몸) }, 999999999)).statusCode).toBe(404);
+    expect((await 알림(몸, { 'x-bts-signature': 서명(몸) }, 999999999)).json()).toEqual({ error: 'BAD_SIGNATURE' });
     expect((await 알림(몸)).statusCode).toBe(204);
   });
 
@@ -98,15 +102,39 @@ describe.skipIf(연결 === undefined)('BTS 가 부르는 두 문', () => {
 
   it('이슈를 「QA Hub AI」 열쇠로 다시 읽는다 · 같은 알림은 한 번만 · 다른 프로젝트 키 · 모르는 종류는 안 읽는다', async () => {
     const 몸 = { event: 'issue.transitioned', deliveryId: 'd1', data: { issueKey: 'XBW-7', toState: '거짓말' } };
-    expect(await BTS알림처리(프로젝트, 몸, 부르기)).toEqual({
+    expect(await BTS알림처리(연결값(), 몸, 부르기)).toEqual({
       key: 'XBW-7', state: 'closed', resolution: '흔들림', assigneeId: null, type: 'bug', summary: '요약',
     });
     expect(부른것.at(-1)).toBe('pat_xbw GET /api/v1/issues/XBW-7');
     const 앞 = 부른것.length;
-    expect(await BTS알림처리(프로젝트, 몸, 부르기)).toBeNull();
-    expect(await BTS알림처리(프로젝트, { ...몸, deliveryId: 'd2', data: { issueKey: 'DM-7' } }, 부르기)).toBeNull();
-    expect(await BTS알림처리(프로젝트, { ...몸, deliveryId: 'd3', event: 'comment.created' }, 부르기)).toBeNull();
+    expect(await BTS알림처리(연결값(), 몸, 부르기)).toBeNull();
+    expect(await BTS알림처리(연결값(), { ...몸, deliveryId: 'd2', data: { issueKey: 'DM-7' } }, 부르기)).toBeNull();
+    expect(await BTS알림처리(연결값(), { ...몸, deliveryId: 'd3', event: 'comment.created' }, 부르기)).toBeNull();
     expect(부른것.length).toBe(앞);
+  });
+
+  it('다시 읽기가 깨지면 503 으로 다시 보내게 하고 그 알림을 잊는다 — 다시 오면 처리한다', async () => {
+    const 몸 = JSON.stringify({ event: 'issue.transitioned', deliveryId: 'retry', data: { issueKey: 'XBW-7' } });
+    깨짐 = true;
+    try {
+      const 첫 = await 알림(몸);
+      expect([첫.statusCode, 첫.json().error]).toEqual([503, 'BTS_UNREACHABLE']);
+    } finally {
+      깨짐 = false;
+    }
+    const 앞 = 부른것.length;
+    expect((await 알림(몸)).statusCode).toBe(204);
+    expect(부른것.length).toBe(앞 + 1);
+  });
+
+  it('규칙 웹훅 호출 — Content-Type 없이 글로 와도 받는다(BTS 웹훅 호출은 text/plain)', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/bts/rules',
+      payload: JSON.stringify({ event: 'ASSIGNEE', issueKey: 'XBW-3', assignee: 'QA Hub AI' }),
+      headers: { 'content-type': 'text/plain;charset=UTF-8', 'x-qahub-token': 규칙토큰 },
+    });
+    expect(res.statusCode).toBe(204);
   });
 
   it('규칙 웹훅 호출 — btr_ 토큰이 맞아야 하고 그 프로젝트 이슈만 받는다', async () => {
