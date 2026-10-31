@@ -172,10 +172,11 @@ export interface 집기어드민키 extends 어드민키 {
  */
 export async function 집기대상칸(
   서비스: number,
-  행: { compare: boolean; env: string | null; startUrl: string | null; params: Record<string, unknown> },
+  행: { kind: string; compare: boolean; env: string | null; startUrl: string | null; params: Record<string, unknown> },
   머지env: string | null | undefined,
 ): Promise<{ target?: 대상; accounts?: 집기계정[]; adminKey?: 집기어드민키 }> {
-  const 대조env = 행.compare ? 행.env : null;
+  // PRD 초안도 대조처럼 그 줄의 화면을 훑는다 — 대상 서버 · 계정을 같은 길로 싣는다 (도메인/BTS 「PRD 초안 → 결정 필요」)
+  const 대조env = 행.compare || 행.kind === 'PRD_DRAFT' ? 행.env : null;
   const 원줄 = 대조env !== null ? await 대상줄읽기(서비스, 대조env) : null;
   const target = 대조env !== null ? 집기대상(대조env, 원줄, 행.startUrl) : undefined;
   const 줄 = 작성에실을줄(원줄);

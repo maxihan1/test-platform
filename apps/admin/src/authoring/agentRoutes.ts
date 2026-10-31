@@ -5,6 +5,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import { 작성계정인가 } from '../auth/agentToken.js';
 import { 테스트고침댓글 } from '../bts/close.js';
+import { 초안다시세우기, 초안집기칸, 초안있나 } from '../bts/draft.js';
 import { 집기API칸 } from './apiDoc.js';
 import { 병합뒤훑기 } from '../catalog/scanRun.js';
 import { 일열쇠내기 } from '../mcp/jobKey.js';
@@ -136,6 +137,8 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
         const 고치기 = 집은것.kind === 'EDIT' || (집은것.kind === 'RERUN' && 집은것.sourceId !== null && (await 한건(집은것.sourceId))?.kind === 'EDIT');
         const edits = 고치기 ? 행의고칠것(집은것.params) : null;
         const 겹침칸 = await 집기겹침칸(집은것);
+        // PRD 초안은 자식이 MCP 로 노트 · 이슈를 찾을 프로젝트 번호와 맡은 이슈를 싣는다 (도메인/BTS §7 집기)
+        const 초안칸 = 집은것.kind === 'PRD_DRAFT' ? { draft: await 초안집기칸(서비스, 집은것.params) } : {};
         // BTS 이은 프로젝트의 작성 · 그 재실행만 받는다. 자식이 일하는 동안 QA Hub 조회 도구를 쓰는 열쇠다 (도메인/BTS 「열쇠 표」).
         // 던질 수 있는 것을 다 지난 뒤에 낸다 — 앞에서 던지면 안 보낸 열쇠가 줄에 남는다
         const mcpKey = await 일열쇠내기(집은것);
@@ -148,6 +151,7 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
           ...보류칸,
           ...겹침칸,
           ...(edits === null ? {} : { edits }),
+          ...초안칸,
           ...(mcpKey === null ? {} : { mcpKey }),
         };
       } catch (e) {
@@ -235,6 +239,8 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
     if (결과칸.coverage !== undefined && 셈 === null) return reply.code(400).send({ error: 'BAD_COVERAGE' });
     if (!끝내기겹침맞나(행.kind, status, 결과칸.conflicts)) return reply.code(400).send({ error: 'BAD_CONFLICTS' });
     if (!끝내기케이스맞나(행.kind, status, 행.params, 결과칸.cases, req.query.service)) return reply.code(400).send({ error: 'BAD_CASES' });
+    // PRD 초안은 결과 통로(bts/draftRoutes.ts)로 초안을 먼저 올려야 끝난다 — 빈 DONE 이면 카드가 설 자리가 없다
+    if (행.kind === 'PRD_DRAFT' && status === 'DONE' && !초안있나(행.result)) return reply.code(400).send({ error: 'BAD_DRAFT', detail: 'draft' });
     const error = req.body?.error;
     // 입력 옮기기와 끝내기를 뿌리 잠금 안의 한 UPDATE 로 — 사이에 들어온 PUT 을 덮거나, 옮기다 실패해 DONE 만 남지 않게.
     // 고치기 반영의 저장값 지우기도 같은 트랜잭션 — 지우다 실패하면 DONE 도 안 남아 에이전트가 다시 알린다
@@ -259,7 +265,7 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
         await 기획서밖화면세우기(손, 뿌리번호);
       }
       // 노트 밖 작성이 끝나면 노트 사건 — 같은 트랜잭션이라 끝내기가 롤백되면 사건도 안 남는다 (도메인/BTS 「맥락 — 프로젝트 노트」)
-      if (됨 && status === 'DONE' && 행.serviceId !== null) {
+      if (됨 && status === 'DONE' && 행.serviceId !== null && 행.kind !== 'PRD_DRAFT') {
         await 앱노트사건쌓기(행.serviceId, 'AUTHORING_DONE', (service) => ({ requestId: 행.id, service, kind: 행.kind, ...(typeof prUrl === 'string' && { prUrl }) }), 손);
       }
       return 됨;
@@ -273,6 +279,11 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
     if (서비스 === null) {
       if (행.projectId !== null && status === 'DONE') await 남은사건있으면세우기(행.projectId);
       if (행.projectId !== null && 멈춤이유 === 'AGENT_RESTART') await 남은사건있으면세우기(행.projectId, 행.id);
+      return { ok: true };
+    }
+    // PRD 초안도 사람에게 알릴 작성이 아니다 — 사람은 결정 필요 「PRD 초안」 카드에서 본다(BTS-F5-04). 에이전트가 꺼져 멈췄으면 새로 세운다
+    if (행.kind === 'PRD_DRAFT') {
+      if (멈춤이유 === 'AGENT_RESTART') await 초안다시세우기(행.id);
       return { ok: true };
     }
     끝냈다고알림(행, 뿌리번호, 멈춤이유, app.log);
