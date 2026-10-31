@@ -157,7 +157,7 @@
 - QA Hub admin 안 `/mcp` 하나(`apps/admin/src/mcp/`) — 쓰임 둘: AI 들이 일할 때 맥락 찾는 창구(본 목적) · 사람이 자기 Claude Code 로 묻는 창구(덤)
 - **도구** — 프로젝트 노트 읽기 · PRD 요구 찾기 · 지도 찾기 · BTS 이슈 · task 찾기 · 실행 결과 보기. 모두 조회만이다. 노트 읽기는 노트 표를 만드는 BTS-F4-03 이 더한다(BTS-F4-01 은 나머지 넷)
 - 권한 검사는 화면 통로와 같은 출입문 하나다(도메인/인증 §7 — 프로젝트 · 기능 칸). 도구마다 화면의 같은 통로가 요구하는 권한으로 문의 판정 함수(`auth/gate.ts` `문판정`)를 부른다 — PRD 요구 찾기는 `GET /api/prd`, 지도 찾기는 `GET /api/catalog/cases`, 실행 결과는 `GET /api/runs/:runId`, BTS 찾기는 그 프로젝트 애플리케이션 하나라도 (작성, read)(노트 보기와 같은 문턱). 배정 밖은 도구 오류 `FORBIDDEN`
-- 작성 자식(`claude -p`)에 `--mcp-config` 로 붙인다 (2026-10-31 BTS-F4-02 반영 — `scripts/authoring-rules.ts` `MCP붙이기`). 집기 응답에 일마다 열쇠(`mcpKey`)가 온 줄만 서버 `qa-hub`(`<admin 주소>/mcp` · `Bearer mcj_…`)와 그 서버 도구 허용(`--allowedTools mcp__qa-hub` — `-p` 는 허용 안 된 도구를 묻지 못하고 거절한다)을 `--disallowedTools` 바로 앞에 끼운다. 기존 깃발은 그대로 둔다
+- 작성 자식(`claude -p`)에 `--mcp-config` 로 붙인다 (2026-10-31 BTS-F4-02 반영 — `scripts/authoring-rules.ts` `MCP붙이기`). 집기 응답에 일마다 열쇠(`mcpKey`)가 온 줄만 서버 `qa-hub`(`<admin 주소>/mcp` · `Bearer mcj_…`)와 그 서버 도구 허용(`--allowedTools mcp__qa-hub` — `-p` 는 허용 안 된 도구를 묻지 못하고 거절한다)을 `--disallowedTools` 바로 앞에 끼운다. 기존 깃발은 그대로 둔다. 열쇠는 인자에 싣지 않는다 — 같은 컨테이너의 다른 자리 자식이 `ps` 로 남의 프로젝트 열쇠를 읽는다. 설정은 그 자식 임시 자리의 파일(그 자리 uid 의 0600 · `scripts/authoring-child.ts` `MCP설정쓰기`)에 두고 `--mcp-config` 에는 경로만 준다
 - `mcj_` 요청의 사람은 그 줄을 집은 작성 계정이다 — 권한은 그 계정 것을 쓰고 배정을 그 줄의 프로젝트로 좁힌다(`apps/admin/src/mcp/jobKey.ts`). 집은 계정이 지금의 작성 계정이 아니거나 꺼졌으면 401. BTS 찾기는 PAT 가 없어 그 프로젝트에 저장한 「QA Hub AI」 열쇠로 부른다
 - 새 npm 패키지 `@modelcontextprotocol/sdk` 는 BTS-F4-01 시작 질문에서 승인받았다(2026-10-31 사용자 — 「나중에 기능 추가할 수 있으니」 · 1.32.1). 1차 밖의 브라우저 로그인 · 긴 작업 자리가 패키지에 있다
 

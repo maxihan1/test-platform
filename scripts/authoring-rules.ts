@@ -106,13 +106,20 @@ export function 클로드인자(폴더: string, 모델: 모델, ...더열폴더:
  * 자식에 QA Hub 조회 도구(`/mcp`)를 붙인다 — 집기 응답에 일마다 열쇠(`mcpKey`)가 왔을 때만 (도메인/BTS 「열쇠 표」 · BTS-F4-02).
  * 기존 깃발은 그대로 두고 `--disallowedTools` 바로 앞에 끼운다 — 둘 다 가변 인자라 그 자리가 아니면 뒤 것을 삼킨다.
  * `-p` 는 허용 안 된 도구를 묻지 못하고 거절하므로 그 서버 도구를 같이 연다.
- * 열쇠는 인자에 실린다 — 같은 컨테이너의 자식만 보고, 그 줄이 RUNNING 인 동안만 그 프로젝트 조회를 연다
+ * 열쇠는 인자에 싣지 않고 설정 파일(authoring-child `MCP설정쓰기`) 경로만 싣는다 — 다른 자리 자식이 `ps` 로 읽는다
  */
-export function MCP붙이기(인자: string[], admin주소: string, 열쇠: string | undefined): string[] {
-  if (열쇠 === undefined) return 인자;
-  const 설정 = JSON.stringify({ mcpServers: { 'qa-hub': { type: 'http', url: `${admin주소}/mcp`, headers: { Authorization: `Bearer ${열쇠}` } } } });
+export function MCP붙이기(인자: string[], 설정파일: string | undefined): string[] {
+  if (설정파일 === undefined) return 인자;
   const 자리 = 인자.indexOf('--disallowedTools');
-  return [...인자.slice(0, 자리), '--mcp-config', 설정, '--allowedTools', 'mcp__qa-hub', ...인자.slice(자리)];
+  // 없으면 끼울 자리를 모른다 — 엉뚱한 자리에 끼우면 가변 인자가 폴더 · 도구 이름을 삼킨다
+  if (자리 < 0) throw new Error('클로드인자에 --disallowedTools 가 없어 MCP 깃발을 끼울 자리가 없다');
+  return [...인자.slice(0, 자리), '--mcp-config', 설정파일, '--allowedTools', 'mcp__qa-hub', ...인자.slice(자리)];
+}
+
+/** 그 설정 파일의 글 — 열쇠가 없으면 undefined */
+export function MCP설정글(admin주소: string, 열쇠: string | undefined): string | undefined {
+  if (열쇠 === undefined) return undefined;
+  return JSON.stringify({ mcpServers: { 'qa-hub': { type: 'http', url: `${admin주소}/mcp`, headers: { Authorization: `Bearer ${열쇠}` } } } });
 }
 
 /**

@@ -127,7 +127,9 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
         // 고치기 행이나 그 다시 적용만 — params.edits 가 실린 작성 행은 서버 검사를 안 거친 고침이라 경로를 안 바꾼다
         const 고치기 = 집은것.kind === 'EDIT' || (집은것.kind === 'RERUN' && 집은것.sourceId !== null && (await 한건(집은것.sourceId))?.kind === 'EDIT');
         const edits = 고치기 ? 행의고칠것(집은것.params) : null;
-        // BTS 이은 프로젝트의 작성 · 그 재실행만 받는다. 자식이 일하는 동안 QA Hub 조회 도구를 쓰는 열쇠다 (도메인/BTS 「열쇠 표」)
+        const 겹침칸 = await 집기겹침칸(집은것);
+        // BTS 이은 프로젝트의 작성 · 그 재실행만 받는다. 자식이 일하는 동안 QA Hub 조회 도구를 쓰는 열쇠다 (도메인/BTS 「열쇠 표」).
+        // 던질 수 있는 것을 다 지난 뒤에 낸다 — 앞에서 던지면 안 보낸 열쇠가 줄에 남는다
         const mcpKey = await 일열쇠내기(집은것);
         return {
           ...집은것,
@@ -136,7 +138,7 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
           ...대상칸,
           ...api칸,
           ...보류칸,
-          ...(await 집기겹침칸(집은것)),
+          ...겹침칸,
           ...(edits === null ? {} : { edits }),
           ...(mcpKey === null ? {} : { mcpKey }),
         };

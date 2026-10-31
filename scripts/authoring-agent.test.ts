@@ -7,6 +7,7 @@ import {
   과금위험,
   기다렸다다시인가,
   MCP붙이기,
+  MCP설정글,
   보고간격,
   집은것인가,
   머지할수있나,
@@ -249,20 +250,29 @@ describe('클로드인자', () => {
 });
 
 describe('MCP붙이기 — 일마다 열쇠가 온 작성만 QA Hub 조회 도구를 붙인다', () => {
-  it('열쇠가 없으면 인자가 그대로다', () => {
-    expect(MCP붙이기(클로드인자('/t', 기본모델, '/임시'), 'http://admin:3000', undefined)).toEqual(클로드인자('/t', 기본모델, '/임시'));
+  it('설정 파일이 없으면 인자가 그대로다', () => {
+    expect(MCP붙이기(클로드인자('/t', 기본모델, '/임시'), undefined)).toEqual(클로드인자('/t', 기본모델, '/임시'));
+    expect(MCP설정글('http://admin:3000', undefined)).toBeUndefined();
   });
 
-  it('열쇠가 오면 기존 깃발은 그대로 두고 --disallowedTools 앞에 MCP 설정과 그 서버 도구 허용을 끼운다', () => {
+  it('기존 깃발은 그대로 두고 --disallowedTools 앞에 설정 파일 경로와 그 서버 도구 허용을 끼운다 — 열쇠 원문은 인자에 없다', () => {
     const 앞 = 클로드인자('/t', 기본모델, '/임시');
-    const 인자 = MCP붙이기(앞, 'http://admin:3000', 'mcj_열쇠');
+    const 인자 = MCP붙이기(앞, '/임시/qa-hub-mcp.json');
     const 자리 = 인자.indexOf('--mcp-config');
     expect(인자.slice(0, 자리)).toEqual(앞.slice(0, 앞.indexOf('--disallowedTools')));
-    expect(JSON.parse(인자[자리 + 1]!)).toEqual({
+    expect(인자.slice(자리, 자리 + 4)).toEqual(['--mcp-config', '/임시/qa-hub-mcp.json', '--allowedTools', 'mcp__qa-hub']);
+    expect(인자.slice(인자.indexOf('--disallowedTools') + 1)).toEqual(['AskUserQuestion', 'Bash(git:*)', 'Bash(gh:*)']);
+    expect(인자.join(' ')).not.toContain('mcj_');
+  });
+
+  it('--disallowedTools 가 없으면 끼우지 않고 던진다 — 엉뚱한 자리면 가변 인자가 폴더를 삼킨다', () => {
+    expect(() => MCP붙이기(['-p', '--add-dir', '/t'], '/임시/qa-hub-mcp.json')).toThrow('--disallowedTools');
+  });
+
+  it('설정 글 — admin 의 /mcp 를 일마다 열쇠로 부른다', () => {
+    expect(JSON.parse(MCP설정글('http://admin:3000', 'mcj_열쇠')!)).toEqual({
       mcpServers: { 'qa-hub': { type: 'http', url: 'http://admin:3000/mcp', headers: { Authorization: 'Bearer mcj_열쇠' } } },
     });
-    expect(인자.slice(자리 + 2, 자리 + 4)).toEqual(['--allowedTools', 'mcp__qa-hub']);
-    expect(인자.slice(인자.indexOf('--disallowedTools') + 1)).toEqual(['AskUserQuestion', 'Bash(git:*)', 'Bash(gh:*)']);
   });
 });
 

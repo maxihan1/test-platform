@@ -9,11 +9,10 @@ import { PAT기억비우기 } from '../auth/pat.js';
 import { 세션등록 } from '../auth/session.js';
 import type { 부르기함수 } from '../bts/client.js';
 import { save } from '../catalog/store.js';
-import { 일열쇠내기 } from './jobKey.js';
 import mcpRoutes from './server.js';
 
 const 연결 = process.env.DATABASE_URL;
-const 계정들 = ['xmc-me', 'xmc-off', 'xmc-part', 'xmc-agent'];
+const 계정들 = ['xmc-me', 'xmc-off', 'xmc-part'];
 const 케이스들 = ['XMC-FN-001', 'XMC-FN-002'];
 
 const spec = (tcId: string, name: string): CaseSpec => ({
@@ -58,7 +57,6 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
     await q('DELETE FROM req_case WHERE service_id = ANY($1)', [앱들]);
     await q('DELETE FROM prd_version WHERE service_id = ANY($1)', [앱들]);
     await q('DELETE FROM test_run WHERE service_id = ANY($1)', [앱들]);
-    await q('DELETE FROM authoring_request WHERE service_id = ANY($1)', [앱들]);
     await q('DELETE FROM test_case WHERE tc_id = ANY($1)', [케이스들]);
     await q('DELETE FROM user_project WHERE username = ANY($1)', [계정들]);
     await q('DELETE FROM app_user WHERE username = ANY($1)', [계정들]);
@@ -91,7 +89,6 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
     vi.stubEnv('AUTH_CLIENT_ID', 'test-platform');
     vi.stubEnv('AUTH_CLIENT_SECRET', 'xmc-secret');
     vi.stubEnv('PLATFORM_PUBLIC_URL', 'http://localhost:3000/');
-    vi.stubEnv('AUTHORING_AGENT_USER', 'xmc-agent');
     await 치우기();
 
     내프로젝트 = Number((await q(`INSERT INTO project (name) VALUES ('XMC 프로젝트') RETURNING id`)).rows[0].id);
@@ -101,7 +98,7 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
     내앱 = await 앱('XMC', 내프로젝트);
     남앱 = await 앱('XMCB', 남프로젝트);
 
-    for (const [이름, sub] of [['xmc-me', 'xmc-sub-me'], ['xmc-off', 'xmc-sub-off'], ['xmc-part', 'xmc-sub-part'], ['xmc-agent', 'xmc-sub-agent']] as const) {
+    for (const [이름, sub] of [['xmc-me', 'xmc-sub-me'], ['xmc-off', 'xmc-sub-off'], ['xmc-part', 'xmc-sub-part']] as const) {
       await q(
         `INSERT INTO app_user (username, display_name, password_hash, role, perm_dashboard, is_approved, must_change_password, auth_sub, is_active)
          VALUES ($1, $1, NULL, 'member', 'none', true, false, $2, $3)`,
@@ -110,8 +107,6 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
     }
     await q(`INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring) VALUES ('xmc-me', $1, 'read', 'read', 'read')`, [내프로젝트]);
     await q(`INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring) VALUES ('xmc-part', $1, 'read', 'none', 'none')`, [내프로젝트]);
-    // 작성 계정은 두 프로젝트에 다 배정돼 있다 — 열쇠가 그 줄의 프로젝트로 좁히는지 본다
-    await q(`INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring) VALUES ('xmc-agent', $1, 'write', 'write', 'write'), ('xmc-agent', $2, 'write', 'write', 'write')`, [내프로젝트, 남프로젝트]);
 
     await save([spec('XMC-FN-001', '다섯 번 틀리면 잠금'), spec('XMC-FN-002', '비밀번호 길이')], false, 'XMC');
     await q(
@@ -245,60 +240,6 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
     expect((await 도구('bts_search', { projectId: 내프로젝트, issueKey: 'OTHER-1' })).글).toContain('FORBIDDEN');
     expect((await 도구('bts_search', { projectId: 남프로젝트, query: '잠금' })).글).toContain('FORBIDDEN');
     expect(BTS받은것).toHaveLength(3);
-  });
-
-  const 작성줄 = async (앱번호: number, kind: string, sourceId: number | null = null, status = 'RUNNING') =>
-    Number(
-      (
-        await q(
-          `INSERT INTO authoring_request (service_id, kind, source_id, requested_by, requested_by_name, status, claimed_by)
-           VALUES ($1, $2, $3, 'xmc-me', 'xmc-me', $4, 'xmc-agent') RETURNING id`,
-          [앱번호, kind, sourceId, status],
-        )
-      ).rows[0].id,
-    );
-  const 열쇠내기 = async (id: number) => {
-    const r = (await q('SELECT kind, source_id FROM authoring_request WHERE id = $1', [id])).rows[0] as { kind: string; source_id: string | null };
-    return 일열쇠내기({ id, kind: r.kind, sourceId: r.source_id === null ? null : Number(r.source_id) });
-  };
-
-  it('일마다 열쇠는 BTS 이은 프로젝트의 작성과 그 재실행만 받는다', async () => {
-    const 작성 = await 작성줄(내앱, 'AUTHOR');
-    expect(await 열쇠내기(작성)).toMatch(/^mcj_[A-Za-z0-9_-]{43}$/);
-    expect(await 열쇠내기(await 작성줄(내앱, 'RERUN', 작성))).toMatch(/^mcj_/);
-    expect(await 열쇠내기(await 작성줄(내앱, 'MERGE', 작성))).toBeNull();
-    // BTS 를 잇지 않은 프로젝트
-    expect(await 열쇠내기(await 작성줄(남앱, 'AUTHOR'))).toBeNull();
-    // 도는 줄이 아니면 열쇠를 두지 않는다
-    expect(await 열쇠내기(await 작성줄(내앱, 'AUTHOR', null, 'PENDING'))).toBeNull();
-  });
-
-  it('일마다 열쇠는 그 프로젝트 조회만 연다 — Auth 에 묻지 않고, BTS 는 「QA Hub AI」 열쇠로 부른다', async () => {
-    const 열쇠 = (await 열쇠내기(await 작성줄(내앱, 'AUTHOR')))!;
-    expect((await 부르기MCP(열쇠, 'tools/list')).statusCode).toBe(200);
-    expect((await 도구('prd_search', { service: 'XMC', query: '잠근다' }, 열쇠)).json()).toMatchObject({ total: 1 });
-    // 작성 계정은 남의 프로젝트에도 배정돼 있지만 열쇠는 그 줄의 프로젝트만 본다
-    expect((await 도구('prd_search', { service: 'XMCB', query: '' }, 열쇠)).글).toContain('FORBIDDEN');
-    expect((await 도구('run_result', { runId: 남실행 }, 열쇠)).글).toContain('FORBIDDEN');
-    expect((await 도구('bts_search', { projectId: 남프로젝트, query: '잠금' }, 열쇠)).글).toContain('FORBIDDEN');
-    await 도구('bts_search', { projectId: 내프로젝트, issueKey: 'XMQ-12' }, 열쇠);
-    expect(BTS받은것).toEqual([expect.objectContaining({ 열쇠: 'bot-key', 경로: '/api/v1/issues/XMQ-12' })]);
-    expect(묻기).not.toHaveBeenCalled();
-  });
-
-  it('일이 끝나면(RUNNING 이 아니면) · 틀린 열쇠 · 작성 계정이 바뀌면 401', async () => {
-    const 줄 = await 작성줄(내앱, 'AUTHOR');
-    const 열쇠 = (await 열쇠내기(줄))!;
-    vi.stubEnv('AUTHORING_AGENT_USER', 'xmc-other');
-    expect((await 부르기MCP(열쇠, 'tools/list')).statusCode).toBe(401);
-    vi.stubEnv('AUTHORING_AGENT_USER', 'xmc-agent');
-    expect((await 부르기MCP(열쇠, 'tools/list')).statusCode).toBe(200);
-    await q(`UPDATE app_user SET is_active = false WHERE username = 'xmc-agent'`);
-    expect((await 부르기MCP(열쇠, 'tools/list')).statusCode).toBe(401);
-    await q(`UPDATE app_user SET is_active = true WHERE username = 'xmc-agent'`);
-    await q(`UPDATE authoring_request SET status = 'DONE' WHERE id = $1`, [줄]);
-    expect((await 부르기MCP(열쇠, 'tools/list')).statusCode).toBe(401);
-    expect((await 부르기MCP('mcj_wrong', 'tools/list')).statusCode).toBe(401);
   });
 
   it('세션 없는 창구라 GET · DELETE 는 405', async () => {
