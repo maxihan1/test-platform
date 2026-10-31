@@ -145,7 +145,7 @@ export function 판같나(a: PrdItem[], b: PrdItem[]): boolean {
  * 앞 판에 견줘 서버가 매기는 표시를 단다.
  * checkSince — 확인 필요로 바뀌면 이번 시각, 계속 확인 필요면 앞 판 값. byPerson — 사람이 바꿨으면 true, 안 바꿨으면 앞 판 값
  */
-function 표시달기(항목: 들어온항목 & { reqId: string }, 앞것: PrdItem | undefined, 지금: string, 사람: boolean): PrdItem {
+function 표시달기(항목: 들어온항목 & { reqId: string }, 앞것: PrdItem | undefined, 지금: string, 사람: boolean, 되돌림 = false): PrdItem {
   const 결과: PrdItem = {
     reqId: 항목.reqId,
     feature: 항목.feature,
@@ -158,9 +158,16 @@ function 표시달기(항목: 들어온항목 & { reqId: string }, 앞것: PrdIt
   }
   // 옮기기 항목은 사람 것을 앞에서 걸러 내 여기 오지 않는다 — 옮기기가 만든 항목에는 byPerson 을 안 단다
   if (사람 && (앞것 === undefined || !내용같나(항목, 앞것) || 앞것.byPerson === true)) 결과.byPerson = true;
-  // 어느 BTS 이슈에서 왔는지는 사람이 저장해도 남긴다 — 롤백이 이 꼬리표로 되돌릴 항목을 찾는다(도메인/BTS 「롤백 바퀴」)
-  if (앞것?.fromIssues !== undefined) 결과.fromIssues = 앞것.fromIssues;
+  // 어느 BTS 이슈에서 왔는지는 사람이 저장해도 남긴다 — 롤백이 이 꼬리표로 되돌릴 항목을 찾는다(도메인/BTS 「롤백 바퀴」).
+  // 되돌리기는 되돌리는 판의 꼬리표를 쓴다 — 초안 전 판으로 되돌린 항목에 지금 판의 꼬리표가 남으면 롤백이 그 항목을 초안 것으로 본다
+  const 꼬리 = 되돌림 ? 항목.fromIssues : 앞것?.fromIssues;
+  if (꼬리 !== undefined) 결과.fromIssues = 꼬리;
   return 결과;
+}
+
+/** n 번째 요구 번호. 999 를 넘는 번호는 주지 않는다 — 사람이 정한다(tcId 상한과 같다). PRD 초안 카드도 이것으로 매긴다 */
+export function 새번호(접두사: string, n: number): string | null {
+  return n > 상한.항목 ? null : `${접두사}-REQ-${String(n).padStart(3, '0')}`;
 }
 
 function 새번호주기(
@@ -176,9 +183,9 @@ function 새번호주기(
       continue;
     }
     마지막 += 1;
-    // 999 를 넘는 번호는 주지 않는다 — 사람이 정한다(tcId 상한과 같다)
-    if (마지막 > 상한.항목) return { error: 'PRD_FULL', detail: String(마지막) };
-    결과.push({ ...항목, reqId: `${접두사}-REQ-${String(마지막).padStart(3, '0')}` });
+    const reqId = 새번호(접두사, 마지막);
+    if (reqId === null) return { error: 'PRD_FULL', detail: String(마지막) };
+    결과.push({ ...항목, reqId });
   }
   return { items: 결과, lastNo: 마지막 };
 }
@@ -195,6 +202,7 @@ export function 사람판(
   접두사: string,
   지금: string,
   옛번호: ReadonlySet<string> = new Set(),
+  되돌림 = false,
 ): { items: PrdItem[]; lastNo: number } | 판짓기오류 {
   const 앞것들 = new Map((앞?.items ?? []).map((x) => [x.reqId, x]));
   for (const 항목 of 보낸것) {
@@ -204,7 +212,7 @@ export function 사람판(
   }
   const 매김 = 새번호주기(보낸것, 앞?.lastNo ?? 0, 접두사);
   if ('error' in 매김) return 매김;
-  const items = 매김.items.map((x) => 표시달기(x, 앞것들.get(x.reqId), 지금, true)).sort(번호차례);
+  const items = 매김.items.map((x) => 표시달기(x, 앞것들.get(x.reqId), 지금, true, 되돌림)).sort(번호차례);
   return { items, lastNo: 매김.lastNo };
 }
 

@@ -4,7 +4,7 @@ import type { PoolClient } from 'pg';
 import type { PrdItem } from '@platform/kit';
 
 import type { 판변경 } from '../prd/changes.js';
-import { 상한 } from '../prd/rules.js';
+import { 상한, 새번호 } from '../prd/rules.js';
 import { 초안다시세우기, type 초안E2E, type 초안줄 } from './draft.js';
 
 /** 카드의 줄 하나 — 초안 줄에 지금 판의 문장을 붙인다. 수정 · 삭제 줄의 번호가 지금 판에 없으면 gone(그 사이 사람이 지웠다) */
@@ -87,7 +87,7 @@ const 합친키 = (앞: string[] | undefined, 뒤: string[]) => [...new Set([...
 
 /**
  * 고른 초안들을 판에 차례로 넣는다. 체크한 줄은 확정으로 들어가고(추가 · 수정 · 삭제),
- * 체크 안 한 「화면만 보고 적음」(sure: false) 줄은 버리지 않고 확인 필요로 남긴다 — 삭제 줄이면 요구는 그대로 두고 확인 필요만 단다.
+ * 체크 안 한 「화면만 보고 적음」(sure: false) 줄은 버리지 않고 확인 필요로 남긴다 — 추가는 그 문장으로, 수정 · 삭제는 요구 문장을 그대로 두고 확인 필요만 단다.
  * 체크 안 한 확정 후보는 버린다. 체크한 수정 · 삭제 줄의 번호가 없으면(앞 초안이나 사람이 지웠다) BAD_PICK
  */
 export function 초안적용(지금: PrdItem[], lastNo: number, 접두사: string, 초안들: 고른초안[], 시각: string): 적용결과 {
@@ -99,14 +99,14 @@ export function 초안적용(지금: PrdItem[], lastNo: number, 접두사: strin
     for (const [i, 줄] of card.rows.entries()) {
       const 고름 = picked.has(i);
       if (!고름 && 줄.sure) continue;
-      const 근거 = { from: 줄.issueKeys.join(' · '), quote: 줄.basis.slice(0, 상한.근거문장) };
+      const 근거 = { from: 줄.issueKeys.join(' · ').slice(0, 상한.근거자리), quote: 줄.basis.slice(0, 상한.근거문장) };
       const 바뀜 = (kind: 판변경['kind'], reqId: string, text: string | null) => changes.push({ kind, reqId, text, asset: null, tcId: null, issueKeys: 줄.issueKeys });
       if (줄.op === 'ADD') {
         마지막 += 1;
-        if (마지막 > 상한.항목) return { error: 'BAD_PICK', detail: key };
-        const reqId = `${접두사}-REQ-${String(마지막).padStart(3, '0')}`;
-        // 기능 이름은 이슈 제목 — 사람이 PRD 관리에서 고친다(시작 질문)
-        const feature = (제목.get(줄.issueKeys[0]!) ?? 줄.issueKeys[0]!).slice(0, 상한.근거자리);
+        const reqId = 새번호(접두사, 마지막);
+        if (reqId === null) return { error: 'BAD_PICK', detail: key };
+        // 기능 이름은 이슈 제목 — 사람이 PRD 관리에서 고친다(시작 질문). PRD 의 기능 이름 상한에 맞춰 자른다
+        const feature = (제목.get(줄.issueKeys[0]!) ?? 줄.issueKeys[0]!).slice(0, 상한.기능묶음);
         판.set(reqId, { reqId, feature, text: 줄.text, basis: [근거], status: 고름 ? 'CONFIRMED' : 'NEEDS_CHECK', ...(고름 ? {} : { checkSince: 시각 }), byPerson: true, fromIssues: 줄.issueKeys });
         바뀜('ADD', reqId, 줄.text);
         continue;
@@ -119,18 +119,20 @@ export function 초안적용(지금: PrdItem[], lastNo: number, 접두사: strin
       const { checkSince: 앞때, ...나머지 } = 앞것;
       const 꼬리표 = { byPerson: true as const, fromIssues: 합친키(앞것.fromIssues, 줄.issueKeys) };
       const 확인 = { status: 'NEEDS_CHECK' as const, checkSince: 앞것.status === 'NEEDS_CHECK' && 앞때 !== undefined ? 앞때 : 시각 };
-      if (줄.op === 'DEL') {
-        if (고름) {
-          판.delete(줄.reqId!);
-          바뀜('DEL', 줄.reqId!, null);
-        } else {
-          판.set(줄.reqId!, { ...나머지, ...확인, ...꼬리표 });
-          바뀜('CHECK', 줄.reqId!, null);
-        }
+      if (!고름) {
+        // 안 고른 수정 · 삭제는 사람이 확정한 문장을 덮지 않는다 — 화면에서만 본 값이 기대값이 되면 안 된다(BTS.md 결정 6).
+        // 확인 필요만 달고, 수정 줄이 제안한 문장은 근거 맨 앞에 남겨 사람이 확인 필요 카드에서 본다
+        const 제안 = 줄.op === 'EDIT' ? [{ from: 근거.from, quote: 줄.text.slice(0, 상한.근거문장) }] : [];
+        판.set(줄.reqId!, { ...나머지, basis: [...제안, ...앞것.basis].slice(0, 상한.근거), ...확인, ...꼬리표 });
+        바뀜('CHECK', 줄.reqId!, null);
         continue;
       }
-      const basis = [근거, ...앞것.basis].slice(0, 상한.근거);
-      판.set(줄.reqId!, 고름 ? { ...나머지, text: 줄.text, basis, status: 'CONFIRMED', ...꼬리표 } : { ...나머지, text: 줄.text, basis, ...확인, ...꼬리표 });
+      if (줄.op === 'DEL') {
+        판.delete(줄.reqId!);
+        바뀜('DEL', 줄.reqId!, null);
+        continue;
+      }
+      판.set(줄.reqId!, { ...나머지, text: 줄.text, basis: [근거, ...앞것.basis].slice(0, 상한.근거), status: 'CONFIRMED', ...꼬리표 });
       바뀜('EDIT', 줄.reqId!, 줄.text);
     }
   }

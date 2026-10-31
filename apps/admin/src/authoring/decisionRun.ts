@@ -178,10 +178,11 @@ async function 하나준비(서비스: number, 항목: 결정항목, p: 받은�
       return null;
     }
     case 'PRD_DRAFT': {
-      if (p.pick !== 'TAKE') {
-        준.초안끝.push({ key: p.key, requestId: 항목.requestId, pick: p.pick as 'DROP' | 'RETRY', done: 항목.state === 'DONE' });
+      if (p.pick === 'DROP' || p.pick === 'RETRY') {
+        준.초안끝.push({ key: p.key, requestId: 항목.requestId, pick: p.pick, done: 항목.state === 'DONE' });
         return null;
       }
+      if (p.pick !== 'TAKE') return 틀림(p.key);
       // 고른 줄 차례 번호 — 겹침 · 범위 밖 · 그 사이 지워진 요구를 고친 줄은 거절한다(사람이 못 고르게 화면이 막는 줄이다)
       const rows = p.rows;
       if (!Array.isArray(rows) || rows.length === 0 || new Set(rows).size !== rows.length) return 틀림(p.key);
@@ -225,7 +226,8 @@ export async function 결정진행(서비스: number, 누구: 부른이, 사람:
     if ('error' in 적용) return 틀림(적용.detail);
     판 = { items: 적용.items, changes: [...(확인판?.changes ?? []), ...적용.changes], 문장바뀜: (확인판?.문장바뀜 ?? false) || 적용.바뀜, lastNo: 적용.lastNo };
   }
-  const 초안바뀜 = 준.초안.length > 0 && 판 !== null && 판.changes.some((c) => c.issueKeys !== undefined);
+  // TAKE 는 체크한 줄이 하나 이상이라 늘 판을 바꾼다(추가 · 수정 · 삭제)
+  const 초안바뀜 = 준.초안.length > 0;
   const count = 본문.picks.length;
   try {
     return await 잠그고(서비스, async (손) => {

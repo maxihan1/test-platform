@@ -198,7 +198,7 @@ export async function 되돌리기(
     if (baseVersion !== (앞?.version ?? 0)) return 낡음(앞);
     const 옛판 = await 판읽기(손, 서비스, toVersion);
     if (옛판 === null) return null;
-    const 새 = 사람판(앞, 옛판.items, 접두사, new Date().toISOString(), new Set(옛판.items.map((x) => x.reqId)));
+    const 새 = 사람판(앞, 옛판.items, 접두사, new Date().toISOString(), new Set(옛판.items.map((x) => x.reqId)), true);
     if ('error' in 새) return 새;
     return { version: await 판넣기(손, 서비스, 앞, 새, 'REVERT', 사람) };
   });

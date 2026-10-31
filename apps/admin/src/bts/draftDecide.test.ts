@@ -3,6 +3,8 @@
 import type { PrdItem } from '@platform/kit';
 import { describe, expect, it } from 'vitest';
 
+import { 상한 } from '../prd/rules.js';
+
 import { 초안적용, type 초안카드, type 초안카드줄 } from './draftDecide.js';
 
 const 시각 = '2026-10-31T12:00:00.000Z';
@@ -29,6 +31,17 @@ describe('초안적용', () => {
     expect(r.changes).toEqual([{ kind: 'ADD', reqId: 'MKW-REQ-003', text: '쿠폰은 주문 한 건에 하나만 쓸 수 있다', asset: null, tcId: null, issueKeys: ['DM-12'] }]);
   });
 
+  it('긴 이슈 제목 · 많은 이슈 키는 PRD 상한(기능 이름 · 근거 자리)에 맞춰 자른다 — 다음 사람 저장이 막히지 않게', () => {
+    const 긴카드 = { ...카드([줄({})]), issues: [{ key: 'DM-12', title: '가'.repeat(150), url: null }] };
+    const 키들 = Array.from({ length: 30 }, (_, i) => `PROJ-${String(1000 + i)}`);
+    const r = 초안적용(지금, 2, 'MKW', [{ key: 'draft:7', card: 긴카드, picked: new Set([0]) }], 시각);
+    if ('error' in r) throw new Error(r.detail);
+    expect(r.items.find((x) => x.reqId === 'MKW-REQ-003')!.feature).toHaveLength(상한.기능묶음);
+    const r2 = 적용([줄({ issueKeys: 키들 })], [0]);
+    if ('error' in r2) throw new Error(r2.detail);
+    expect(r2.items.find((x) => x.reqId === 'MKW-REQ-003')!.basis[0]!.from.length).toBeLessThanOrEqual(상한.근거자리);
+  });
+
   it('제목이 없는 이슈의 추가 줄은 이슈 키가 기능 이름이다', () => {
     const r = 적용([줄({ issueKeys: ['DM-14'] })], [0]);
     if ('error' in r) throw new Error(r.detail);
@@ -52,7 +65,7 @@ describe('초안적용', () => {
     expect(r.lastNo).toBe(2);
   });
 
-  it('안 고른 「화면만 보고 적음」 줄은 확인 필요로 남고, 삭제 줄이면 요구는 두고 확인 필요만 단다', () => {
+  it('안 고른 「화면만 보고 적음」 줄은 확인 필요로 남는다 — 수정 · 삭제 줄은 사람이 확정한 문장을 덮지 않는다', () => {
     const r = 적용(
       [
         줄({ sure: false, text: '쿠폰을 바꾸면 알림이 뜬다' }),
@@ -63,9 +76,10 @@ describe('초안적용', () => {
     );
     if ('error' in r) throw new Error(r.detail);
     expect(r.items.find((x) => x.reqId === 'MKW-REQ-003')).toMatchObject({ status: 'NEEDS_CHECK', checkSince: 시각, text: '쿠폰을 바꾸면 알림이 뜬다' });
-    expect(r.items.find((x) => x.reqId === 'MKW-REQ-001')).toMatchObject({ status: 'NEEDS_CHECK', checkSince: 시각, text: '3개월' });
+    expect(r.items.find((x) => x.reqId === 'MKW-REQ-001')).toMatchObject({ status: 'NEEDS_CHECK', checkSince: 시각, text: '주문 내역은 최근 1개월 것을 보여 준다' });
+    expect(r.items.find((x) => x.reqId === 'MKW-REQ-001')!.basis[0]).toEqual({ from: 'DM-12', quote: '3개월' });
     expect(r.items.find((x) => x.reqId === 'MKW-REQ-002')).toMatchObject({ status: 'NEEDS_CHECK', text: '「1개월」 기간 버튼이 있다', fromIssues: ['DM-3', 'DM-12'] });
-    expect(r.changes.map((c) => c.kind)).toEqual(['ADD', 'EDIT', 'CHECK']);
+    expect(r.changes.map((c) => c.kind)).toEqual(['ADD', 'CHECK', 'CHECK']);
   });
 
   it('안 고른 확정 후보는 버린다 — 바뀐 것이 없다', () => {

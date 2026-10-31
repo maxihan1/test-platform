@@ -62,6 +62,13 @@ describe('사람판', () => {
     expect(사람판(꼬리, [항목('MKT-REQ-001', { text: '고친 문장' })], 'MKT', 시각)).toMatchObject({ items: [{ reqId: 'MKT-REQ-001', text: '고친 문장', fromIssues: ['DM-12'] }] });
   });
 
+  it('되돌리기는 되돌리는 판의 꼬리표를 쓴다 — 초안 전 판으로 되돌린 항목에 지금 꼬리표가 남지 않는다', () => {
+    const 꼬리 = { version: 3, lastNo: 5, items: [항목('MKT-REQ-001', { fromIssues: ['DM-12'] })] };
+    const r = 사람판(꼬리, [항목('MKT-REQ-001'), 항목('MKT-REQ-002', { fromIssues: ['DM-3'] })], 'MKT', 시각, new Set(['MKT-REQ-001', 'MKT-REQ-002']), true);
+    if ('error' in r) throw new Error(r.detail);
+    expect(r.items.map((x) => [x.reqId, x.fromIssues ?? null])).toEqual([['MKT-REQ-001', null], ['MKT-REQ-002', ['DM-3']]]);
+  });
+
   it('지금 판에 없는 번호는 PRD_REUSED — 되돌리기의 옛 번호만 받는다', () => {
     expect(사람판(앞, [항목('MKT-REQ-002')], 'MKT', 시각)).toEqual({ error: 'PRD_REUSED', detail: 'MKT-REQ-002' });
     expect(사람판(앞, [항목('MKT-REQ-002')], 'MKT', 시각, new Set(['MKT-REQ-002']))).toMatchObject({
