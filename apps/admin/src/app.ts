@@ -14,6 +14,8 @@ import authoringAssetRoutes from './authoring/assets.js';
 import authoringEditRoutes from './authoring/edit-routes.js';
 import authoringDecisionRoutes from './authoring/decisionRoutes.js';
 import authoringRoutes from './authoring/routes.js';
+import btsDeployRoutes from './bts/deploy.js';
+import { 늦은이슈켜기 } from './bts/deployLate.js';
 import btsInboundRoutes from './bts/inbound.js';
 import { 보낼줄켜기 } from './bts/outbox.js';
 import btsLinkRoutes from './bts/routes.js';
@@ -84,6 +86,7 @@ export function buildApp(sessionSecret = process.env.SESSION_SECRET ?? '') {
   app.register(serviceTokenRoutes, { prefix: '/api' });
   app.register(btsLinkRoutes, { prefix: '/api' });
   app.register(btsInboundRoutes, { prefix: '/api' });
+  app.register(btsDeployRoutes, { prefix: '/api' });
   app.register(perfRoutes, { prefix: '/api' });
 
   // 대시보드는 /api 밖이다. 문(auth/grafanaGate.ts)을 지난 요청만 Grafana 로 넘어간다 (SPEC 도메인/인증 §7)
@@ -127,6 +130,8 @@ if (열쇠바이트 < 열쇠최소길이) {
     성능엔진켜기(app);
     // BTS 로 보낼 줄을 1분마다 보낸다. 같은 까닭으로 기동 경로에만 둔다 (도메인/BTS 결정 17)
     보낼줄켜기(app);
+    // 배포 뒤 늦게 「QA 요청」에 온 이슈를 1분마다 찾는다. 같은 까닭으로 기동 경로에만 둔다 (도메인/BTS 「새 기능 바퀴」 5)
+    늦은이슈켜기(app);
     return app.listen({ port, host: '0.0.0.0' });
   })
   .catch((err: unknown) => {

@@ -124,17 +124,42 @@ describe.skipIf(연결 === undefined)('BTS 보낼 줄', () => {
 
   it('같은 이슈는 앞 줄이 끝나야 뒤 줄을 보낸다', async () => {
     답 = () => ({ status: 429, json: null });
-    const 앞 = (await 보낼줄넣기({ projectId: 프로젝트, kind: 'TRANSITION', issueKey: 'XBY-5', payload: { toStatusKey: 'a' } }))!;
-    const 뒤 = (await 보낼줄넣기({ projectId: 프로젝트, kind: 'TRANSITION', issueKey: 'XBY-5', payload: { toStatusKey: 'b' } }))!;
+    const 앞 = (await 보낼줄넣기({ projectId: 프로젝트, kind: 'TRANSITION', issueKey: 'XBY-5', payload: { toStatusKey: 'a', expectedVersion: 1 } }))!;
+    const 뒤 = (await 보낼줄넣기({ projectId: 프로젝트, kind: 'TRANSITION', issueKey: 'XBY-5', payload: { toStatusKey: 'b', expectedVersion: 2 } }))!;
     expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 0, 다시: 1, 멈춤: 0 });
-    expect(부른것.map((b) => b.몸)).toEqual([{ toStatusKey: 'a' }]);
+    expect(부른것.map((b) => b.몸)).toEqual([{ toStatusKey: 'a', expectedVersion: 1 }]);
     답 = () => ({ status: 200, json: {} });
     await 때되게();
     expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 1, 다시: 0, 멈춤: 0 });
     await 때되게();
     expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 1, 다시: 0, 멈춤: 0 });
-    expect(부른것.map((b) => b.몸).slice(1)).toEqual([{ toStatusKey: 'a' }, { toStatusKey: 'b' }]);
+    expect(부른것.map((b) => b.몸).slice(1)).toEqual([{ toStatusKey: 'a', expectedVersion: 1 }, { toStatusKey: 'b', expectedVersion: 2 }]);
     expect([(await 줄(앞)).state, (await 줄(뒤)).state]).toEqual(['SENT', 'SENT']);
+  });
+
+  it('판 번호 없는 옮기기 — 보내기 직전에 판을 읽고, 그사이 판이 바뀌면(409) 다시 보내고, 이미 그 상태면 실은 댓글만 단다', async () => {
+    let 판 = 3;
+    let 상태 = 'qa-req';
+    답 = (경로) => (경로.endsWith('/transition') ? { status: 판 === 3 ? 409 : 200, json: {} } : { status: 200, json: { data: { version: 판, currentStateKey: 상태 } } });
+    const 닫기 = (await 보낼줄넣기({ projectId: 프로젝트, kind: 'TRANSITION', issueKey: 'XBY-8', payload: { toStatusKey: 'closed', comment: '재검증 통과' } }))!;
+    expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 0, 다시: 1, 멈춤: 0 });
+    판 = 4;
+    await 때되게();
+    expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 1, 다시: 0, 멈춤: 0 });
+    expect(부른것.filter((b) => b.경로.endsWith('/transition')).map((b) => b.몸)).toEqual([
+      { toStatusKey: 'closed', comment: '재검증 통과', expectedVersion: 3 },
+      { toStatusKey: 'closed', comment: '재검증 통과', expectedVersion: 4 },
+    ]);
+    expect((await 줄(닫기)).state).toBe('SENT');
+
+    부른것.length = 0;
+    상태 = 'closed';
+    await 보낼줄넣기({ projectId: 프로젝트, kind: 'TRANSITION', issueKey: 'XBY-9', payload: { toStatusKey: 'closed', comment: '재검증 통과' } });
+    expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 1, 다시: 0, 멈춤: 0 });
+    expect(부른것.map((b) => [b.method, b.경로, b.몸])).toEqual([
+      ['GET', '/api/v1/issues/XBY-9', undefined],
+      ['POST', '/api/v1/issues/XBY-9/comments', { body: '재검증 통과' }],
+    ]);
   });
 
   it('등록이 닿으면 짝을 적고 「QA 검토」로 옮기고 캡처를 올린다 · 첨부 목록은 BTS 몸에 안 싣는다', async () => {

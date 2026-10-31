@@ -5,6 +5,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import { 시나리오시험 } from '../execution/trial.js';
 import { 성능토큰인가, 성능토큰주인, 성능헤더토큰 } from '../perf/agentToken.js';
+import { 배포열쇠문, 배포열쇠인가, 배포틀 } from '../bts/deploy.js';
 import { BTS규칙틀, BTS알림틀 } from '../bts/inbound.js';
 import { CI토큰문, CI토큰인가, 빌드내려받기틀, 빌드올리기틀 } from '../settings/serviceTokens.js';
 
@@ -230,6 +231,7 @@ export function 인증등록(app: FastifyInstance): void {
   app.decorateRequest('user', null);
   app.decorateRequest('perfAgent', null);
   app.decorateRequest('ciToken', null);
+  app.decorateRequest('btsDeployKey', null);
 
   /**
    * **로그인 검사는 본문을 읽기 전에 한다.**
@@ -252,10 +254,12 @@ export function 인증등록(app: FastifyInstance): void {
     // 바깥에서 실행을 거는 유일한 문 — CI 토큰만 받는다. 내려받기는 서명이 문이라 라우트가 본다 (도메인/인증 §7 「인증 적용 범위」)
     if (path === 빌드올리기틀 && req.method === 'POST') return CI토큰문(req, reply);
     if (path === 빌드내려받기틀) return;
+    // 프로젝트 배포 신호는 배포 열쇠(pdk_)만 받는다 (도메인/BTS §7)
+    if (path === 배포틀 && req.method === 'POST') return 배포열쇠문(req, reply);
     // BTS 알림 · 규칙 웹훅 호출은 서명 · btr_ 토큰이 문이다 — 몸을 읽기 전에 라우트의 onRequest 가 본다 (도메인/BTS §7)
     if (path === BTS알림틀 || path === BTS규칙틀) return;
-    // pga_ · cit_ 는 사람 계정이 아닌 열쇠라 사람 통로에 쓰이면 안 된다. 세션으로 넘어가지 않게 여기서 막는다
-    if (성능토큰인가(req.headers.authorization) || CI토큰인가(req.headers.authorization)) return reply.code(403).send({ error: 'AGENT_TOKEN_SCOPE' });
+    // pga_ · cit_ · pdk_ 는 사람 계정이 아닌 열쇠라 사람 통로에 쓰이면 안 된다. 세션으로 넘어가지 않게 여기서 막는다
+    if (성능토큰인가(req.headers.authorization) || CI토큰인가(req.headers.authorization) || 배포열쇠인가(req.headers.authorization)) return reply.code(403).send({ error: 'AGENT_TOKEN_SCOPE' });
 
     // 로그인·가입 자체는 로그인을 요구할 수 없다 (SPEC §7).
     // 2026-09-17 에 POST /api/runs 예외가 삭제됐다 — 정기 실행은 HTTP 를 쓰지 않는다 (§9.2)
@@ -281,7 +285,7 @@ export function 인증등록(app: FastifyInstance): void {
     // 라우트가 안 잡힌 요청은 지킬 자원이 없다. 라우터가 404 를 내게 둔다
     const path = 라우트틀(req);
     if (path === undefined || !path.startsWith('/api/')) return;
-    if (로그인없이통과.has(path) || path.startsWith(성능에이전트통로) || path === 빌드올리기틀 || path === 빌드내려받기틀 || path === BTS알림틀 || path === BTS규칙틀) return;
+    if (로그인없이통과.has(path) || path.startsWith(성능에이전트통로) || path === 빌드올리기틀 || path === 빌드내려받기틀 || path === BTS알림틀 || path === BTS규칙틀 || path === 배포틀) return;
 
     // 위 onRequest 가 이미 401 을 냈다. 여기 닿았으면 사람이 실려 있다
     const user = req.user;

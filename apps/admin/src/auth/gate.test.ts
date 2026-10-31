@@ -700,6 +700,8 @@ describe('등급 표', () => {
     // BTS 알림 · 규칙 웹훅 호출도 사람 판정 밖이다 — 서명 · btr_ 토큰이 문이다 (도메인/BTS §7)
     ['POST /api/bts/events/:projectId', 'admin'],
     ['POST /api/bts/rules', 'admin'],
+    // 프로젝트 배포 신호도 사람 판정 밖이다 — 배포 열쇠(pdk_)가 문이다 (도메인/BTS §7)
+    ['POST /api/projects/:projectId/deploys', 'admin'],
   ]);
   const 옛높이 = { viewer: 0, operator: 1, admin: 2 } as const;
   type 옛등급 = keyof typeof 옛높이;
