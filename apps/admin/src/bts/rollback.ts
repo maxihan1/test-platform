@@ -67,12 +67,15 @@ export function 롤백판(기록: readonly 판기록[], 키들: readonly string[
   return { items: [...판.values()].sort((a, b) => a.reqId.localeCompare(b.reqId)), changes };
 }
 
-// 대기는 멈추고 도는 것은 멈춤을 건 채 버린다 — 집기는 폐기를 안 보므로 대기 줄은 STOPPED 로 닫아야 다시 안 집힌다
+// 대기는 멈추고 도는 것은 멈춤을 건 채 버린다 — 집기는 폐기를 안 보므로 대기 줄은 STOPPED 로 닫아야 다시 안 집힌다.
+// 멈춘 사람은 「bts」다(닫기 사유가 세우는 요청의 요청자와 같다 — close.ts). 중단이면 이유와 누가가 반드시 찬다(stopped_pair_check)
 const 멈추고버리기 = `discarded_at = now(),
   status = CASE WHEN status = 'PENDING' THEN 'STOPPED' ELSE status END,
   stop_reason = CASE WHEN status = 'PENDING' THEN 'USER' ELSE stop_reason END,
+  stopped_by = CASE WHEN status = 'PENDING' THEN 'bts' ELSE stopped_by END,
   finished_at = CASE WHEN status = 'PENDING' THEN now() ELSE finished_at END,
-  stop_requested_at = CASE WHEN status = 'RUNNING' THEN COALESCE(stop_requested_at, now()) ELSE stop_requested_at END`;
+  stop_requested_at = CASE WHEN status = 'RUNNING' THEN COALESCE(stop_requested_at, now()) ELSE stop_requested_at END,
+  stop_requested_by = CASE WHEN status = 'RUNNING' THEN COALESCE(stop_requested_by, 'bts') ELSE stop_requested_by END`;
 
 /**
  * 롤백 배포가 받은 키로 애플리케이션마다 ROLLBACK 판을 짓고, 바뀌었으면 「고친 요구만 다시 작성」 요청을 세운다.
