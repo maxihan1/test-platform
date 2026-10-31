@@ -421,6 +421,17 @@ export interface FailureCase {
   /** 그 케이스가 지도 ① 로 덮는 요구. text 가 null 이면 표준 기획서 지금 판에 없는 번호 */
   reqs: { reqId: string; text: string | null }[];
   judgment: FailureJudgment;
+  /** BTS 를 이은 프로젝트만 칸이 있다. null 이면 올리지 않은 케이스(흔들림으로 닫힘) (도메인/BTS §7) */
+  bts?: FailureBts | null;
+}
+
+/** 실패 카드의 BTS 등록 상태 — state 는 그 카드의 등록 줄 상태다 */
+export interface FailureBts {
+  issueKey: string | null;
+  url: string | null;
+  state: 'SENT' | 'SENDING' | 'GAVE_UP';
+  reason: string | null;
+  resolution: string | null;
 }
 
 /** 케이스 한 건의 실행 이력 한 줄 (SPEC §7 `GET /api/cases/:tcId/history`) */
@@ -1179,6 +1190,8 @@ export const api = {
   /** 끝난 실행의 확정 실패를 케이스 카드로 쪽 단위로 준다. 디바이스 거르기는 서버가 한다 (SPEC §7) */
   failures: (runId: number, page: number, platform?: Platform) =>
     call<Paged<FailureCase>>(`/runs/${runId}/failures?page=${page}${platform === undefined ? '' : `&platform=${platform}`}`),
+  /** 그만둔 BTS 등록을 처음부터 다시 보낸다 (도메인/BTS §7) */
+  resendBts: (runId: number, tcId: string, env: string) => call<void>(`/runs/${runId}/bts/resend`, json({ tcId, env })),
 
   createRun: (body: {
     /** 대상 서버 키. **기본값을 두지 않는다** — 안 고르면 빈 칸이 아니라 틀린 값이 증적에 남는다 (SPEC §8.2) */
