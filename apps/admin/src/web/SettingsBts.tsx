@@ -93,6 +93,8 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
       }
       setBotKey('');
       onDone();
+      // 자동 설정이 막혀도 연결은 저장됐다 — 먼저 다시 읽어 「연결됨」 · 배포 구획이 서게 한다. 칸은 프로젝트 번호로만 다시 그려 지금 값이 남는다
+      await 다시();
       set결과((await btsApi.setup(row.id)).items);
       await 다시();
     } catch (e) {
