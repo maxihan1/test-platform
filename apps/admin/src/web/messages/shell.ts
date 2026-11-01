@@ -30,11 +30,11 @@ export const 껍데기말: Record<string, string> = {
   '애플리케이션 선택': 'Choose application',
   '프로젝트 선택': 'Choose project',
   '프로젝트를 고르세요': 'Choose a project',
-  '고른 프로젝트의 애플리케이션만 보입니다. 사이드바 아래에서 언제든 바꿀 수 있습니다.':
-    'Only the applications in the chosen project are shown. You can change it any time at the bottom of the sidebar.',
+  '고른 프로젝트의 애플리케이션만 보입니다. 사이드바 맨 위에서 언제든 바꿀 수 있습니다.':
+    'Only the applications in the chosen project are shown. You can change it any time at the top of the sidebar.',
   '마지막에 연 프로젝트': 'Last opened project',
   '애플리케이션 없음': 'No application',
-  // 사이드바 바닥 프로젝트 고르개 (화면공통 §8 「껍데기」 바닥)
+  // 사이드바 맨 위 프로젝트 고르개 (화면공통 §8 「껍데기」 맨 위 줄)
   '애플리케이션 {수}개': '{수} applications',
   // 사이드바 찾기 칸 · 찾기 창 (ShellFind.tsx · 화면공통 §8 「껍데기」 찾기 칸)
   '찾을 말': 'Search term',

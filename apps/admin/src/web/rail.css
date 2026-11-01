@@ -1,4 +1,4 @@
-/* 사이드바 왼쪽 줄 · 사이드바 머리 · 찾기 칸 · 바닥 프로젝트 고르개 · 찾기 창 (SPEC 공통/5-화면공통 §8 「껍데기」 · DESIGN.md 「PC 껍데기」 · 2026-10-30). 색은 토큰만 쓴다.
+/* 사이드바 왼쪽 줄 · 사이드바 머리 · 찾기 칸 · 맨 위 프로젝트 고르개 · 찾기 창 (SPEC 공통/5-화면공통 §8 「껍데기」 · DESIGN.md 「PC 껍데기」 · 2026-10-30). 색은 토큰만 쓴다.
    줄은 `.side` 안의 첫 칸이다. 사이드바를 접어도 줄은 그대로 남는다 — 폭은 styles.css 의 `.wrap` 격자가 줄 몫(60px)을 더해 잡는다 */
 
 .rail {
@@ -420,7 +420,6 @@
 }
 
 .side-top .side-fold {
-  align-self: center;
   margin-bottom: 0;
 }
 
@@ -450,9 +449,10 @@
   padding: 0 22px 0 8px;
   background-color: transparent;
   border: 0;
-  color: var(--ink);
-  font-size: 13px;
-  font-weight: 600;
+  /* 바로 아래 애플리케이션 이름(14px / 600 --ink)보다 한 단 낮춰 두 줄이 같은 급 제목으로 읽히지 않게 한다 */
+  color: var(--ink-muted);
+  font-size: 12.5px;
+  font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

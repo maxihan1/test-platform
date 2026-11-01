@@ -159,7 +159,7 @@ describe('세로 껍데기 (SPEC §8)', () => {
     expect(screen.queryByRole('link', { name: '설정' })).toBeNull();
   });
 
-  it('바닥 프로젝트 고르개가 프로젝트 이름과 애플리케이션 수를 적는다', () => {
+  it('맨 위 프로젝트 고르개가 프로젝트 이름과 애플리케이션 수를 적는다', () => {
     띄운다(결제);
     expect(document.querySelector('.side-proj')?.textContent).toBe('데모마켓 · 애플리케이션 2개');
   });
