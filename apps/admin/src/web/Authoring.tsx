@@ -187,7 +187,10 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
           ) : 결정판 === null ? (
             <Loading />
           ) : (
-            <AuthoringDecide key={service} service={service} 목록={결정판} envs={envs} 다시읽기={결정.reload} />
+            // 판(.screen)이 넘친 아래를 숨긴다 — 줄 목록처럼 스크롤 칸에 넣어야 창보다 긴 결정 목록의 아래 항목 · 진행 버튼에 닿는다
+            <div className="rows-scroll">
+              <AuthoringDecide key={service} service={service} 목록={결정판} envs={envs} 다시읽기={결정.reload} />
+            </div>
           )
         ) : 목록 === null ? null : (
           <>

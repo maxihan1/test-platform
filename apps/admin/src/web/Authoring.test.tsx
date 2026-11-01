@@ -270,6 +270,13 @@ describe('작성 목록 줄 할 일 (⑫ 점검 11.2 · N2) — 줄 내용은 Au
     expect(screen.queryByText('목록을 못 읽었다')).toBeNull();
   });
 
+  it('결정 목록은 스크롤 칸 안에 선다 — 판이 넘친 아래를 숨겨 창보다 길면 아래 항목과 진행 버튼에 못 닿는다', async () => {
+    window.history.replaceState(null, '', '#/authoring?todo=1');
+    render(<Authoring service="PAY" 할수={() => true} />);
+    const 제목 = await screen.findByText('결정이 필요한 일이 없습니다');
+    expect(제목.closest('.rows-scroll')).not.toBeNull();
+  });
+
   it('결정이 하나도 없으면 「결정이 필요한 일이 없습니다」', async () => {
     window.history.replaceState(null, '', '#/authoring?todo=1');
     render(<Authoring service="PAY" 할수={() => true} />);
