@@ -115,6 +115,12 @@
   display: grid;
   gap: 10px;
 }
+/* 목록이 길어도 「진행」 버튼은 스크롤 칸 아래에 붙어 늘 보인다 — 줄 목록의 표머리가 위에 붙는 것과 같다 */
+.rows-scroll .decide > footer {
+  position: sticky;
+  bottom: 0;
+  background: var(--panel);
+}
 .decide-issues {
   display: flex;
   flex-wrap: wrap;
