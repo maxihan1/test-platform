@@ -88,7 +88,7 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
   return (
     <div className={접음 ? 'wrap folded' : 'wrap'}>
       {/* 위쪽 바는 없다 (화면공통 §8 「껍데기」 · 2026-10-30 시안 11판). 로고 · 알림 · 설정 · 내 메뉴는 왼쪽 줄로, 찾기는 사이드바 머리로,
-          프로젝트 고르개는 사이드바 바닥으로 왔다. 2026-09-21 ② 에 옛 이름(`.band`·`.nav`·`.notice`·`.svc-dot`)을 걷어냈다 */}
+          프로젝트 고르개는 사이드바 바닥으로 왔다가 2026-11-02 맨 위로 올라갔다. 2026-09-21 ② 에 옛 이름(`.band`·`.nav`·`.notice`·`.svc-dot`)을 걷어냈다 */}
       <aside className="side">
         <왼쪽줄
           user={user}
@@ -104,6 +104,13 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
           onLogout={onLogout}
         />
         <div className="side-col">
+        {/* 맨 위 — 왼쪽이 프로젝트 고르개, 오른쪽 끝이 접기 단추. 프로젝트가 가장 위 층이라 애플리케이션 머리 · 메뉴보다 먼저 읽힌다
+            (2026-11-02 사용자 — 바닥에 두니 「말도 안 된다」). 고른 애플리케이션이 없으면 그 사실을 여기서 말한다 — 왼쪽 줄도 비어 있다 */}
+        <div className="side-top">
+          <div className="side-proj">
+            <아이콘 이름="project" />
+            {service === null ? <서비스고르개 user={user} service={service} onService={onService} /> : <프로젝트고르개 user={user} service={service} onService={onService} 수를붙임 />}
+          </div>
         {/* 접어도 자리 목록을 **지우지 않는다.** display:none 을 쓰면 키보드 탭 대상에서 빠져
             키보드로만 쓰는 사람이 이동을 통째로 잃는다. 폭만 줄이고 글자를 숨긴다 */}
         <button
@@ -118,6 +125,7 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
         >
           {접음 ? '»' : '«'}
         </button>
+        </div>
         {service === null ? null : <사이드바머리 service={service} />}
         <찾기칸 자리들={자리들} prefix={service?.prefix ?? null} 케이스볼수있나={기능보나(user, service?.prefix ?? null, 'cases')} />
         <nav className="side-nav">
@@ -137,12 +145,8 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
             ),
           )}
         </nav>
-        {/* 바닥 — 왼쪽이 프로젝트 고르개, 오른쪽 끝이 밝게 · 어둡게. 고른 애플리케이션이 없으면 그 사실을 여기서 말한다 — 왼쪽 줄도 비어 있다 */}
+        {/* 바닥 — 오른쪽 끝에 밝게 · 어둡게 하나 */}
         <div className="side-foot">
-          <div className="side-proj">
-            <아이콘 이름="project" />
-            {service === null ? <서비스고르개 user={user} service={service} onService={onService} /> : <프로젝트고르개 user={user} service={service} onService={onService} 수를붙임 />}
-          </div>
           <밝기단추 />
         </div>
         </div>

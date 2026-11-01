@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 사이드바 바닥의 프로젝트 고르개 검사 (SPEC 공통/5-화면공통 §8 「껍데기」 · 2026-10-19 PRJ-F1-03 · 2026-10-30 헤더에서 옮김)
+// 사이드바 맨 위의 프로젝트 고르개 검사 (SPEC 공통/5-화면공통 §8 「껍데기」 · 2026-10-19 PRJ-F1-03 · 2026-10-30 헤더에서 옮김 · 2026-11-02 바닥에서 위로)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
@@ -42,13 +42,16 @@ function 띄운다(service: ServiceRow, 배정: ServiceRow[], onService: (접두
 }
 
 describe('프로젝트 고르개', () => {
-  it('프로젝트가 둘 이상이면 사이드바 바닥에 프로젝트 고르개가 서고 애플리케이션 고르개는 없다', () => {
+  it('프로젝트가 둘 이상이면 사이드바 맨 위 · 애플리케이션 머리 앞에 프로젝트 고르개가 서고 애플리케이션 고르개는 없다', () => {
     띄운다(결제, [결제, 정산, 포털]);
 
     const 고르개 = screen.getByRole('combobox', { name: '프로젝트 선택' }) as HTMLSelectElement;
     expect(고르개.value).toBe('1');
     expect([...고르개.options].map((it) => it.textContent)).toEqual(['데모마켓 · 애플리케이션 2개', '사내 포털 · 애플리케이션 1개']);
-    expect(document.querySelector('.side-foot')?.contains(고르개)).toBe(true);
+    expect(document.querySelector('.side-top')?.contains(고르개)).toBe(true);
+    expect(document.querySelector('.side-foot')?.contains(고르개)).toBe(false);
+    const 머리 = document.querySelector('.side-app')!;
+    expect(고르개.compareDocumentPosition(머리) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.queryByRole('combobox', { name: '애플리케이션 선택' })).toBeNull();
   });
 

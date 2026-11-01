@@ -409,7 +409,22 @@
   display: none;
 }
 
-/* ── 바닥 프로젝트 고르개 — 11.5px `--ink-faint` 글자 하나처럼 보이게 테두리를 벗는다 ── */
+/* ── 맨 위 프로젝트 고르개 — 가장 위 층이라 사이드바 첫 줄이다. 오른쪽 끝에 접기 단추가 같이 선다 (2026-11-02 바닥에서 옮김) ── */
+.side-top {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.side-top .side-fold {
+  align-self: center;
+  margin-bottom: 0;
+}
+
+/* 테두리를 벗어 글자 하나처럼 보인다 */
 .side-proj {
   position: relative;
   flex: 1;
@@ -430,14 +445,14 @@
 .side-proj .side-svc-name {
   width: 100%;
   min-width: 0;
-  /* 기본 고르개는 손가락 기준 46px 이다. PC 바닥은 밝기 단추(40px)와 줄을 맞춘다 */
+  /* 기본 고르개는 손가락 기준 46px 이다. PC 사이드바는 접기 단추와 줄을 맞춘다 */
   min-height: 32px;
   padding: 0 22px 0 8px;
   background-color: transparent;
   border: 0;
-  color: var(--ink-faint);
-  font-size: 11.5px;
-  font-weight: 400;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -533,7 +548,7 @@
 }
 
 /* 접으면 프로젝트 아이콘만 남는다. 고르개는 지우지 않고 아이콘 위에 투명하게 덮어 — 누르면 펼쳐지고 키보드도 닿는다 */
-.folded .side-foot {
+.folded .side-top {
   flex-direction: column;
 }
 

@@ -409,14 +409,14 @@ a {
   outline-offset: -1px;
 }
 
-/* 사이드바 바닥 — 위 경계선 아래 한 줄. 왼쪽이 프로젝트 고르개, 오른쪽 끝이 밝게 · 어둡게 단추 (화면공통 §8 「껍데기」 바닥).
-   접으면 프로젝트 글자는 숨기고 단추만 남는다 */
+/* 사이드바 바닥 — 위 경계선 아래 한 줄. 오른쪽 끝에 밝게 · 어둡게 단추 (화면공통 §8 「껍데기」 바닥) */
 .side-foot {
   margin-top: auto;
   padding-top: 8px;
   border-top: 1px solid var(--line);
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 4px;
 }
 
