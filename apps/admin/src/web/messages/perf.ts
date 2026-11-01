@@ -107,7 +107,7 @@ export const 성능말: Record<string, string> = {
   '평균 체류 (분)': 'Average stay (min)',
   '일 방문자 × 피크 집중률 × 평균 체류 ÷ {분}분': 'Daily visitors × peak share × average stay ÷ {분} min',
   '피크 동시 사용자 약 {수}명': 'Peak concurrent users about {수}',
-  '임계점 확인을 위해 피크의 5배인 {수}명까지 램프업': 'Ramp up to {수}, 5× the peak, to find the breaking point',
+  '임계점을 확인하려고 피크의 5배인 {수}명까지 램프업': 'Ramp up to {수}, 5× the peak, to find the breaking point',
   적용: 'Apply',
   '다시 산정': 'Estimate again',
 

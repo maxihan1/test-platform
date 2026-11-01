@@ -87,7 +87,7 @@ describe('Status 카드 — PRD 요구사항 집계 한 줄', () => {
   it('보류를 모르면 끝난 실행에서만 보류 여부 확인 불가라고 적는다 — 보류는 끝났을 때만 센다', () => {
     const 셈 = { ...예시셈, held: null };
     render(<AuthoringStatusCard 요청={줄({ coverage: 셈 })} 지금={지금} />);
-    expect(셈줄().textContent).toContain('입력 필요 여부 확인 불가');
+    expect(셈줄().textContent).toContain('입력이 필요한지 확인할 수 없음');
     cleanup();
     render(<AuthoringStatusCard 요청={줄({ status: 'STOPPED', stopReason: 'REJECTED', coverage: 셈 })} 지금={지금} />);
     expect(셈줄().textContent).not.toContain('입력 필요');

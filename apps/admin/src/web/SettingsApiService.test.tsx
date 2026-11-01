@@ -70,7 +70,7 @@ describe('API 애플리케이션 설정 (도메인/인증 §8.8 「종류」 · 
     render(<ServicePanel row={API앱} onDone={() => {}} />);
 
     expect(screen.queryByRole('group', { name: '종류' })).toBeNull();
-    expect(screen.getByText('생성 후에는 바꿀 수 없습니다')).toBeTruthy();
+    expect(screen.getByText('만든 뒤에는 바꿀 수 없습니다')).toBeTruthy();
     expect(구획제목들()).toContain('API 문서');
     expect((screen.getByLabelText('대상 서버 1 API 인증 1 비밀값') as HTMLInputElement).placeholder).toBe('•••• abcd');
 

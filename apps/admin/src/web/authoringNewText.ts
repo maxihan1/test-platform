@@ -28,7 +28,7 @@ export function 거절사유(파일: File, 가이드 = false): string | null {
     return '파일 이름에 쓸 수 없는 글자(따옴표 · 빗금 · ..)가 있습니다';
   }
   if (파일.size === 0) return '빈 파일은 올릴 수 없습니다';
-  if (파일.size > 파일상한) return '파일 크기가 한 파일 상한을 넘었습니다';
+  if (파일.size > 파일상한) return '파일 하나가 크기 상한을 넘었습니다';
   return null;
 }
 

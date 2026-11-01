@@ -15,7 +15,7 @@ export function 종류칸({ 값 }: { 값: 앱종류 }) {
       <span className="field-label">{t('종류')}</span>
       <div>
         <span>{종류이름(값, 언어)}</span>
-        <div className="hint">{t('생성 후에는 바꿀 수 없습니다')}</div>
+        <div className="hint">{t('만든 뒤에는 바꿀 수 없습니다')}</div>
       </div>
     </div>
   );

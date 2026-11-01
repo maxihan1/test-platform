@@ -124,7 +124,7 @@ export const 작성할일말: Record<string, string> = {
   '입력이 필요한 케이스 {수}건이 남아 있어 아직 반영할 수 없습니다.': '{수} cases still need input, so this cannot be applied yet.',
   '중복 케이스로 가기': 'Go to duplicate cases',
   '중복 케이스 {수}건을 아직 선택하지 않아 반영할 수 없습니다.': '{수} duplicate cases are not chosen yet, so this cannot be applied.',
-  '입력 필요 여부 확인 불가': 'Cannot tell whether input is needed',
+  '입력이 필요한지 확인할 수 없음': 'Cannot tell whether input is needed',
   '입력이 필요한 케이스로만 {수}': 'Only cases needing input {수}',
   '빠진 요구': 'Missing requirements',
   '만든 {덮음}개 중 기능 테스트가 덮은 것 {기능} · UI 테스트가 덮은 것 {UI} — 둘 다 덮은 요구는 양쪽에 셉니다': 'Of {덮음} covered, functional tests cover {기능} · UI tests cover {UI} — a requirement covered by both counts on each side',

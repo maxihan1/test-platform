@@ -35,7 +35,7 @@ function 커버리지글(c: AuthoringCoverage, 상태: AuthoringRow['status'], t
   const 제외 = Object.values(c.excluded).reduce((합, 수) => 합 + 수, 0);
   const 원장밖 = c.unread?.length ?? 0;
   // 보류는 DONE 때만 센다 — 중단된 실행의 null 은 「모름」이 아니라 「안 셈」이라 빼 둔다
-  const 보류 = c.held === null ? (상태 === 'DONE' ? t('입력 필요 여부 확인 불가') : null) : c.held > 0 ? t('입력이 필요한 케이스로만 {수}', { 수: c.held }) : null;
+  const 보류 = c.held === null ? (상태 === 'DONE' ? t('입력이 필요한지 확인할 수 없음') : null) : c.held > 0 ? t('입력이 필요한 케이스로만 {수}', { 수: c.held }) : null;
   const 칸 = [
     c.total > 0
       ? t('요구 {총}개 중 케이스로 만듦 {덮음}개 ({퍼센트}%)', { 총: c.total, 덮음: c.cased, 퍼센트: Math.round((c.cased / c.total) * 100) })

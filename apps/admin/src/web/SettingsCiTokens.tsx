@@ -190,7 +190,7 @@ export function CI토큰구획({ row }: { row: SettingsServiceRow }) {
               {파일 ? (
                 <>
                   <p className="hint">{t('APK 경로는 CI 가 만든 파일로 바꿉니다. 회사 저장소에 올려 둔 APK 라면 파일 대신 JSON 으로 apkUrl 을 보내도 됩니다')}</p>
-                  <p className="hint">{t('앱의 versionCode 를 빌드 번호와 같게 두면 폰에 다른 빌드가 깔렸을 때 실행 결과가 알려 줍니다')}</p>
+                  <p className="hint">{t('앱의 versionCode 를 빌드 번호와 같게 두면 폰에 다른 빌드가 깔렸을 때 실행 결과에서 알 수 있습니다')}</p>
                 </>
               ) : (
                 <p className="hint">{t('배포를 끝낸 뒤에 부릅니다')}</p>

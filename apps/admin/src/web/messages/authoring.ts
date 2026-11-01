@@ -36,7 +36,7 @@ export const 작성말: Record<string, string> = {
   '지원하지 않는 파일입니다. PDF · 워드 · md · txt 만 올릴 수 있습니다': 'File type not accepted. Only PDF · Word · md · txt',
   '이 요청은 대기열에 들어가지 못했습니다. 새 요청으로 다시 넣으세요': 'This request was not queued. Submit a new request',
   '이 요청은 대기열에 들어가지 못했습니다. 폐기하고 새 요청으로 다시 넣으세요': 'This request was not queued. Discard it and submit a new request',
-  '파일 크기가 한 파일 상한을 넘었습니다': 'The file is larger than the per-file limit',
+  '파일 하나가 크기 상한을 넘었습니다': 'The file is larger than the per-file limit',
   '빈 파일은 올릴 수 없습니다': 'Empty files cannot be uploaded',
   '피그마 주소 형식이 맞지 않습니다. 피그마 디자인 파일의 링크를 넣으세요 (FigJam은 받지 않습니다)':
     'Not a Figma link we accept. Paste a Figma design file link (FigJam is not accepted)',

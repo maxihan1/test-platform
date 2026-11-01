@@ -125,7 +125,7 @@ export function PerfStepRun({
             <label>
               <input type="checkbox" checked={값.pageCheck} disabled={!쓰나} onChange={(e) => 고침({ ...값, pageCheck: e.target.checked })} /> {t('부하 중 페이지 로딩 측정')}
             </label>
-            <span className="perf-faint">{t('가장 최근 페이지 성능 측정의 페이지를 브라우저 2개가 30초마다 엽니다')}</span>
+            <span className="perf-faint">{t('가장 최근 페이지 성능 측정에서 쓴 페이지를 브라우저 2개가 30초마다 엽니다')}</span>
           </div>
         ) : null}
       </section>

@@ -59,7 +59,7 @@ export function 비밀칸(p: {
           </div>
         )}
         <div className="hint">
-          {p.값 === '' ? p.비울때 : t('보안을 위해 저장한 값은 다시 표시하지 않습니다')}
+          {p.값 === '' ? p.비울때 : t('저장한 값은 보안상 다시 표시하지 않습니다')}
         </div>
         {p.children}
       </div>
@@ -89,7 +89,7 @@ export function 접두사칸({ 값 }: { 값: string }) {
       <label htmlFor="sf-prefix">{t('접두사')}</label>
       <div>
         <input id="sf-prefix" type="text" value={값} disabled />
-        <div className="hint">{t('생성 후에는 바꿀 수 없습니다. 케이스 번호에 이미 사용 중입니다')}</div>
+        <div className="hint">{t('만든 뒤에는 바꿀 수 없습니다. 케이스 번호에 이미 쓰고 있습니다')}</div>
       </div>
     </div>
   );

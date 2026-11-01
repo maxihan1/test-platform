@@ -91,7 +91,7 @@ export const 껍데기말: Record<string, string> = {
   '안 읽음 {수}': 'Unread {수}',
   '볼 수 있는 애플리케이션 전체 · 최근 7일': 'All applications you can see · last 7 days',
   '최근 7일 동안 끝난 실행과 작성이 없습니다': 'No runs or authoring finished in the last 7 days',
-  '해당하는 알림이 없습니다': 'No matching notifications',
+  '조건에 맞는 알림이 없습니다': 'No matching notifications',
   방금: 'Just now',
   '{분}분 전': '{분}m ago',
   '{시간}시간 전': '{시간}h ago',
