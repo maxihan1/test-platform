@@ -255,7 +255,7 @@ export async function 메모달기(
     끼울것.push({ 자리: 시작자리(문서, p.여는끝), 글: `<w:commentRangeStart w:id="${id}"/>` });
     끼울것.push({ 자리: p.닫는시작, 글: `<w:commentRangeEnd w:id="${id}"/><w:r><w:commentReference w:id="${id}"/></w:r>` });
     새메모.push(
-      `<w:comment w:id="${id}" w:author="${작성자}" w:date="${날짜}" w:initials="QH"><w:p><w:r><w:t xml:space="preserve">${싼글(메모.글)}</w:t></w:r></w:p></w:comment>`,
+      `<w:comment w:id="${id}" w:author="${작성자}" w:date="${날짜}" w:initials="TC"><w:p><w:r><w:t xml:space="preserve">${싼글(메모.글)}</w:t></w:r></w:p></w:comment>`,
     );
     return true;
   });

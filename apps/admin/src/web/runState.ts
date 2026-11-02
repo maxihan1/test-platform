@@ -60,9 +60,10 @@ export function 미실행사유(error: { message: string } | null, 언어: 언�
   if (error.message === 사람이멈춤) return t('사용자가 멈춤', 언어);
   if (error.message === 시간초과) return t('제한 시간 초과', 언어);
   // 한국어 문장이면 서버가 사람이 읽으라고 넣은 것이다. 영문·기호로 시작하면 원문 오류다.
+  // 제품 이름(2026-11-02 — Device VISION · Issue Bunker · Test Commander)으로 시작하는 서버 문장도 사람이 읽을 글이다 — 막으면 「빈 폰이 없다」가 실행기 장애로 보인다
   // 서버가 준 문장은 그대로 낸다 — 화면이 지어낸 글자가 아니라 옮길 표에 없다
   // 서버가 이미 저장해 둔 글에는 옛 낱말(러너)이 남아 있다 — 화면 낱말 표(공통/5-화면공통 §8)대로 보인다
-  return /^[가-힣]/.test(error.message) ? t(error.message.replaceAll('러너', '테스트 실행기'), 언어) : t('테스트 실행기에 닿지 못했습니다', 언어);
+  return /^([가-힣]|Device VISION|Issue Bunker|Test Commander)/.test(error.message) ? t(error.message.replaceAll('러너', '테스트 실행기'), 언어) : t('테스트 실행기에 닿지 못했습니다', 언어);
 }
 
 /**

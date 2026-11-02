@@ -215,7 +215,7 @@ function 테스트고침절(고침: 테스트고침요청, 자료폴더: string,
 
 /** PR 본문 머리의 테스트 고침 줄 — BTS 이슈와 고친 케이스. 요구는 그대로다 */
 export function 테스트고침줄(고침: 테스트고침요청): string {
-  return `테스트 고침: BTS ${고침.issueKey} · ${고침.cases.map((x) => `RUN ${String(x.runId)} · ${x.tcId}`).join(', ')} · 요구는 그대로`;
+  return `테스트 고침: Issue Bunker ${고침.issueKey} · ${고침.cases.map((x) => `RUN ${String(x.runId)} · ${x.tcId}`).join(', ')} · 요구는 그대로`;
 }
 
 /** PR 본문 머리의 화면이 맞음 줄. 고친 번호가 없으면 요구는 맞고 케이스만 고친 PR 이다 */
