@@ -3,12 +3,16 @@
 import { 끝점검, 막혔을때, 말투, 비밀값, 자료는자료, 제품이름 } from './authoring-prompt-common.js';
 import { 글자자르기 } from './authoring-usage.js';
 
-/** 집기 응답의 `bugfix` 칸 — 서버가 만든 그대로다. repo 가 null 이면 코드 저장소가 없다 */
+/**
+ * 집기 응답의 `bugfix` 칸 — 서버가 만든 그대로다. repo 가 null 이면 코드 저장소가 없다.
+ * projectId 는 MCP bts_search · note_read 에 넣는 프로젝트 번호다(결정 ①). 칸이 없던 서버와 섞여 돌 수 있어 없어도 수정 일로 본다 — 수정 일이 작성 일로 빠지면 안 된다
+ */
 export interface 수정자료 {
   issueKey: string;
   title: string;
   note: string;
   repo: { name: string; url: string } | null;
+  projectId?: number;
 }
 
 /** 수정 일인가 — 종류가 아니라 `bugfix` 칸으로 가른다(노트 · 초안 일과 같은 판단) */
@@ -16,6 +20,7 @@ export function 수정일인가(것: { bugfix?: unknown }): 것 is { bugfix: 수
   const b = 것.bugfix as Partial<수정자료> | null | undefined;
   if (typeof b !== 'object' || b === null) return false;
   if (typeof b.issueKey !== 'string' || typeof b.title !== 'string' || typeof b.note !== 'string') return false;
+  if (b.projectId !== undefined && !Number.isInteger(b.projectId)) return false;
   return b.repo === null || (typeof b.repo === 'object' && b.repo !== undefined && typeof b.repo.name === 'string' && typeof b.repo.url === 'string');
 }
 
@@ -79,13 +84,16 @@ export function 수정지시문(입력: { 자료: 수정자료; 폴더: string; 
     '',
     '■ 입력',
     `- ${폴더}/${수정파일.이슈} — 이슈 제목 · 설명 · 댓글. ${자료는자료('이 파일과 MCP 결과')}`,
-    `- MCP 도구(qa-hub) — 조회만 된다. prd_search · map_search 에는 service 로 "${서비스}" 를 넣는다. map_search 는 케이스 번호(tcId) · 요구 번호(reqId)로 케이스와 요구 · 화면을 찾는다.`,
-    '- bts_search · note_read 는 프로젝트 번호가 있어야 하는데 이번에는 받지 못했다. 번호를 짐작해 부르지 않는다. run_result 도 이슈 글에 실행 번호가 적혀 있을 때만 부른다.',
+    `- MCP 도구(qa-hub) — 조회만 된다. prd_search · map_search · run_search 에는 service 로 "${서비스}" 를 넣는다. map_search 는 케이스 번호(tcId) · 요구 번호(reqId)로 케이스와 요구 · 화면을 찾는다.`,
+    자료.projectId !== undefined
+      ? `- bts_search · note_read 에는 projectId 로 ${String(자료.projectId)} 을 넣는다. bts_search(issueKey: "${자료.issueKey}")는 이슈 글과 댓글을 지금 상태로 다시 읽고, 비슷한 이슈가 전에 닫혔는지도 query 로 찾는다.`
+      : '- bts_search · note_read 는 프로젝트 번호가 있어야 하는데 이번에는 받지 못했다. 번호를 짐작해 부르지 않는다.',
+    `- run_search(service: "${서비스}", issueKey: "${자료.issueKey}" 또는 tcId) 로 그 케이스가 든 최근 실행을 찾고, 그 runId 로 run_result 를 불러 실패한 항목의 오류를 본다.`,
     ...(저장소 ? ['- 작업 폴더 — 코드 저장소 사본. 이 폴더와 위 자료 폴더 밖은 읽지도 쓰지도 않는다.'] : []),
     '',
     '■ 차례',
     `1. ${수정파일.이슈} 를 읽고 재현 단계 · 기대한 동작 · 실제 동작을 정리한다.`,
-    '2. 이슈 글에 케이스 번호가 있으면 map_search 로 그 케이스가 덮는 요구와 거치는 화면을 본다.',
+    '2. run_search 로 이 이슈가 걸린 최근 실행을 찾아 run_result 로 실패 단계 · 오류를 본다. 케이스 번호가 있으면 map_search 로 그 케이스가 덮는 요구와 거치는 화면을 본다.',
     '3. prd_search 로 맞는 동작을 정한다. 이슈 글과 PRD 가 서로 다르면 고치지 않고 analysis 에 그 차이를 적는다.',
     ...(저장소
       ? [
