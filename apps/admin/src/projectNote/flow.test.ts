@@ -14,7 +14,7 @@ import authoringAssetRoutes from '../authoring/assets.js';
 import authoringRoutes from '../authoring/routes.js';
 import { 노트사건쌓기 } from './events.js';
 import { 늘있는문서, 노트상한 } from './note.js';
-import projectNoteRoutes from './routes.js';
+import projectNoteRoutes, { 오래된것지우기 } from './routes.js';
 
 const 연결 = process.env.DATABASE_URL;
 const 맥 = 'xno-agent';
@@ -244,5 +244,17 @@ describe.skipIf(연결 === undefined)('프로젝트 노트 고치기', () => {
     expect(다음.note!.current).toMatchObject({ version: 3 });
     expect(다음.note!.events.map((e) => e.kind)).toEqual(['ISSUE_OPEN']);
     expect((await 끝내기(다음.id, { status: 'DONE' })).statusCode).toBe(200);
+  });
+
+  it('보관 — 최근 10판 밖이면서 90일 지난 판, 반영이 끝나고 90일 지난 사건만 지운다', async () => {
+    await q(`INSERT INTO project_note (project_id, version, docs) SELECT $1, v, '[]' FROM generate_series(4, 12) v`, [내프로젝트]);
+    await q(`UPDATE project_note SET saved_at = now() - interval '100 days' WHERE project_id = $1 AND version <= 3`, [내프로젝트]);
+    await q(`UPDATE project_note_event SET created_at = now() - interval '100 days' WHERE project_id = $1 AND payload->>'issueKey' IS DISTINCT FROM 'XNQ-9'`, [내프로젝트]);
+    const 안받은 = Number((await q(`INSERT INTO project_note_event (project_id, kind, payload, created_at) VALUES ($1, 'DEPLOY', '{}', now() - interval '100 days') RETURNING id`, [내프로젝트])).rows[0].id);
+    await 오래된것지우기((await import('../db/index.js')).pool, 내프로젝트, 12);
+    const 판들 = (await q('SELECT version FROM project_note WHERE project_id = $1 ORDER BY version', [내프로젝트])).rows.map((r: { version: number }) => r.version);
+    expect(판들).toEqual([3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    const 사건들 = (await q('SELECT id, payload FROM project_note_event WHERE project_id = $1 ORDER BY id', [내프로젝트])).rows;
+    expect(사건들.map((r: { id: string; payload: { issueKey?: string } }) => r.payload.issueKey ?? Number(r.id))).toEqual(['XNQ-9', 안받은]);
   });
 });

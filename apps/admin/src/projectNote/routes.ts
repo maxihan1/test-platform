@@ -1,12 +1,12 @@
 // 노트 고치기 결과를 받는 통로 — 바뀐 문서만 받아 앞 판에 겹치고 새 판 하나를 만든다 (도메인/BTS §7 「POST /api/authoring/requests/:id/note」)
 
 import type { FastifyInstance } from 'fastify';
-import type { Pool } from 'pg';
+import type { Pool, PoolClient } from 'pg';
 import { z } from 'zod';
 
 import { 집은쪽인가 } from '../authoring/agentRoutes.js';
 import { 지금노트 } from './claim.js';
-import { 노트겹치기 } from './note.js';
+import { 노트겹치기, 노트보관 } from './note.js';
 
 async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
@@ -18,6 +18,26 @@ const 몸꼴 = z.object({
   docs: z.array(z.object({ name: z.string(), summary: z.string(), body: z.string() }).strict()),
   remove: z.array(z.string()).optional(),
 }).strict();
+
+/**
+ * 보관 — 반영이 끝난 사건(받은 일이 DONE 이거나 판을 남김) 중 날수가 지난 것, 그다음 최근 남길판 밖이면서 날수가 지난 판을 지운다.
+ * 사건이 먼저다 — 실패한 일의 사건은 「그 일의 판이 있다」로 반영을 안다(claim.ts). 판만 먼저 지우면 그 사건을 다시 받아 노트에 두 번 적는다.
+ * 판은 자기가 받은 사건보다 늦게 저장되므로, 판이 날수를 넘겼으면 그 사건도 이미 넘겨 여기서 같이 지워진다
+ */
+export async function 오래된것지우기(손: Pick<PoolClient, 'query'>, projectId: number, 지금판: number): Promise<void> {
+  await 손.query(
+    `DELETE FROM project_note_event e
+      WHERE e.project_id = $1 AND e.created_at < now() - make_interval(days => $2)
+        AND EXISTS (SELECT 1 FROM authoring_request r WHERE r.id = e.request_id
+                     AND (r.status = 'DONE' OR EXISTS (SELECT 1 FROM project_note n WHERE n.request_id = r.id)))`,
+    [projectId, 노트보관.날수],
+  );
+  await 손.query('DELETE FROM project_note WHERE project_id = $1 AND version <= $2 AND saved_at < now() - make_interval(days => $3)', [
+    projectId,
+    지금판 - 노트보관.남길판,
+    노트보관.날수,
+  ]);
+}
 
 export default async function projectNoteRoutes(app: FastifyInstance): Promise<void> {
   app.post<{ Params: { id: string }; Body: unknown }>('/authoring/requests/:id/note', async (req, reply) => {
@@ -54,6 +74,7 @@ export default async function projectNoteRoutes(app: FastifyInstance): Promise<v
         JSON.stringify(겹침.docs),
         행.id,
       ]);
+      await 오래된것지우기(손, projectId, version);
       await 손.query('COMMIT');
       return reply.code(201).send({ version });
     } catch (err) {
