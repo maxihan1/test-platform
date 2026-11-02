@@ -57,7 +57,7 @@ export function Settings({ user, onMeChanged, 자리, on서비스번호 }: { use
       <div className="screen">
         <div className="empty">
           {t('설정은 운영 계정만 볼 수 있습니다')}
-          <small>{t('권한이 필요하면 운영 계정을 가진 사람에게 요청해 주세요')}</small>
+          <small>{t('권한이 필요하면 관리자에게 요청해 주세요')}</small>
         </div>
       </div>
     );

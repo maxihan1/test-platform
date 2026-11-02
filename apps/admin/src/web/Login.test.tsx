@@ -79,7 +79,7 @@ describe('로그인 화면', () => {
   it('승인 대기면 검토 중이라고 안내한다 — 오류 모양이 아니다', async () => {
     await 틀리게친다(403, 'PENDING_APPROVAL');
 
-    const 안내 = await screen.findByText('가입 신청을 검토하고 있습니다. 운영자가 수락하면 로그인할 수 있습니다');
+    const 안내 = await screen.findByText('가입 신청을 검토하고 있습니다. 관리자가 수락하면 로그인할 수 있습니다');
     expect(안내.className).not.toContain('err');
     expect(screen.queryByText(/아이디 또는 비밀번호/)).toBeNull();
   });

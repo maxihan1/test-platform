@@ -71,7 +71,7 @@ describe('통합계정 로그인 — 알림이 있을 때만 화면', () => {
   it('승인 대기로 돌아오면 다시 보내지 않고 기다림 안내와 버튼을 보인다', async () => {
     const 떠난다 = 그리기('/?sso=pending');
 
-    const 안내 = await screen.findByText(/운영자가 수락하면 로그인할 수 있습니다/);
+    const 안내 = await screen.findByText(/관리자가 수락하면 로그인할 수 있습니다/);
     expect(안내.className).toBe('login-info');
     expect(screen.getByRole('button', { name: 'QA Hub 통합계정으로 로그인' })).toBeTruthy();
     expect(떠난다).not.toHaveBeenCalled();

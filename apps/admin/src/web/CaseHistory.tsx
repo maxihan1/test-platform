@@ -12,7 +12,7 @@ export function 실행이력칸({ 묶음 }: { 묶음: 이력묶음[] | null | un
   return (
     <div className="dsec">
       <div className="dlabel">
-        {t('실행 이력')}
+        {t('실행 기록')}
         {/* 이력은 최근 한 쪽만 받는다 — 전부라고 말하지 않는다 */}
         {묶음 == null ? null : <span className="dfrom">{t('최근 실행 {건수}번', { 건수: 묶음.length })}</span>}
       </div>

@@ -87,12 +87,12 @@ export const 기획서말: Record<string, string> = {
   '원본 번호': 'Source ID',
   '원본 번호 · 화면 주소': 'Source ID or screen URL',
   '원본 문장': 'Source sentence',
-  '출처 더하기': 'Add source',
+  '출처 추가': 'Add source',
   '출처는 「직접 작성」으로 자동으로 달립니다. 저장한 뒤 요구 줄의 고치기에서 더할 수 있습니다':
     'The source is set to “직접 작성” (direct entry) automatically. After saving, add more from Edit on the requirement',
-  '이 요구 지우기': 'Delete this requirement',
+  '이 요구 삭제': 'Delete this requirement',
   // 「지우기 확인」은 입력값 지우기(Confirm clear)에 이미 쓰인다 — 여기는 요구를 지운다
-  '지우기 확인§요구': 'Confirm delete',
+  '삭제 확인§요구': 'Confirm delete',
   '지우지 않기': 'Keep it',
   '기능 묶음을 적습니다': 'Enter a feature',
   '요구 문장을 적습니다': 'Enter the requirement',

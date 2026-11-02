@@ -232,7 +232,7 @@ export const 시나리오말: Record<string, string> = {
   '웹 단계는 PC 화면으로 돕니다. PC 에서 도는 케이스만 보입니다': 'Web steps run in a PC window. Only cases that run on PC are shown',
   '시나리오 하나 동안 빈 폰을 한 번 잡고 다 돌면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 실행에 남습니다':
     'Takes one free phone for the whole scenario and releases it at the end. Screen recordings and logcat are kept for runs that did not pass',
-  '시험 실행은 내 컴퓨터 러너가 켜져 있으면 거기 꽂은 폰에서, 꺼져 있으면 디바이스 팜에서 돕니다':
+  '시험 실행은 내 컴퓨터 테스트 실행기가 켜져 있으면 거기 꽂은 폰에서, 꺼져 있으면 디바이스 팜에서 돕니다':
     'Test runs use the phone plugged into your computer runner when it is on, and the device farm when it is off',
   '폰': 'Phone',
   '디바이스 팜 기록': 'Device farm records',

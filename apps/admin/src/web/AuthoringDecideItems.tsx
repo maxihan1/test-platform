@@ -40,7 +40,7 @@ export function 막힘줄({ 까닭, open }: { 까닭: 막힘 | null; open: reado
     );
   }
   const 글: Record<Exclude<막힘, 'AUTHORING_OPEN'>, string> = {
-    ADMIN_ONLY: t('반영은 운영자가 합니다'),
+    ADMIN_ONLY: t('반영은 관리자가 합니다'),
     NO_WRITE: t('작성 쓰기 권한이 있는 사람이 고릅니다'),
     NO_RUN_WRITE: t('버그 판정은 실행 쓰기 권한이 있는 사람이 합니다'),
   };

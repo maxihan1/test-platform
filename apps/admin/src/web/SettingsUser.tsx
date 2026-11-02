@@ -64,7 +64,7 @@ export function UserSection({
         <button
           type="button"
           className="btn ghost icon"
-          aria-label={t('더하기')}
+          aria-label={t('추가')}
           onClick={() => 열기(null, true)}
         >
           +

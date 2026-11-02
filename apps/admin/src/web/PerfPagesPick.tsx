@@ -66,7 +66,7 @@ export function PerfPagesPick({ 목록, 적용, 닫기 }: { 목록: 측정페이
           <input value={이름} onChange={(e) => set이름(e.target.value)} />
         </label>
         <button type="button" className="btn ghost" onClick={더하기}>
-          {t('더하기')}
+          {t('추가')}
         </button>
       </div>
       {오류 === null ? null : (

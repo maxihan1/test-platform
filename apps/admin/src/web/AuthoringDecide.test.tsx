@@ -110,7 +110,7 @@ describe('결정 목록', () => {
   it('고를 권한이 없으면 버튼 자리에 누구에게 부탁할지 한 줄', () => {
     render(<AuthoringDecide service="DMW" 목록={목록([{ ...반영, picks: [], blockedBy: 'ADMIN_ONLY' }])} envs={[]} 다시읽기={() => {}} />);
     expect(screen.queryByRole('button', { name: '올린다 (반영)' })).toBeNull();
-    expect(screen.getByText('반영은 운영자가 합니다')).toBeTruthy();
+    expect(screen.getByText('반영은 관리자가 합니다')).toBeTruthy();
   });
 
   it('③ 이 열린 작성을 기다리면 버튼 없이 「#N 이 반영된 뒤에 셉니다」', () => {
@@ -191,9 +191,9 @@ describe('결정 목록', () => {
     fireEvent.click(screen.getByRole('button', { name: '이슈에 적힌 2줄 모두 체크' }));
     expect(칸().map((c) => c.checked)).toEqual([true, true, false, false, false]);
     expect(screen.getByText('지금 기획서에 없는 요구라 고를 수 없어요', { exact: false })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: '초안 버리기' }));
+    fireEvent.click(screen.getByRole('button', { name: '초안 삭제' }));
     expect(칸().every((c) => c.disabled)).toBe(true);
-    fireEvent.click(screen.getByRole('button', { name: '초안 버리기' }));
+    fireEvent.click(screen.getByRole('button', { name: '초안 삭제' }));
     fireEvent.click(칸()[0]!);
     expect(칸().map((c) => c.checked)).toEqual([true, false, false, false, false]);
   });

@@ -95,7 +95,7 @@ export const 케이스말: Record<string, string> = {
 
   // 케이스 한 줄
   '{아이디} {이름} 고르기': 'Select {아이디} {이름}',
-  '실행 이력 없음': 'No runs yet',
+  '실행 기록 없음': 'No runs yet',
   '상세': 'Details',
   '실행': 'Run',
 
@@ -137,7 +137,7 @@ export const 케이스말: Record<string, string> = {
     'Never run. Run it once and the steps will show up here.',
   '절차를 불러오지 못했습니다': 'Could not load the steps',
   '절차를 불러오는 중입니다': 'Loading the steps…',
-  '실행 이력': 'Run history',
+  '실행 기록': 'Run history',
   '아직 기록이 없습니다§이력': 'No history yet',
 
   // 입력 칸 (Form)

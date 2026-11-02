@@ -58,7 +58,7 @@ export function Signup() {
       <div className="login">
         <div className="login-box">
           <div className="login-title">QA Hub</div>
-          <p className="login-info">{t('가입 신청을 보냈습니다. 운영자가 수락하면 로그인할 수 있습니다')}</p>
+          <p className="login-info">{t('가입 신청을 보냈습니다. 관리자가 수락하면 로그인할 수 있습니다')}</p>
           {로그인으로}
         </div>
       </div>
@@ -97,7 +97,7 @@ export function Signup() {
       <form className="login-box" onSubmit={(e) => void submit(e)} noValidate>
         <div className="login-title">QA Hub</div>
         <h1 className="login-greet">{t('계정을 신청합니다')}</h1>
-        <p className="login-sub">{t('운영자가 수락하면 로그인할 수 있습니다.')}</p>
+        <p className="login-sub">{t('관리자가 수락하면 로그인할 수 있습니다.')}</p>
 
         {칸하나('username', t('아이디'), 'text', 'username', 32)}
         {칸하나('displayName', t('이름'), 'text', 'name', 이름최대)}

@@ -51,7 +51,7 @@ export const 껍데기말: Record<string, string> = {
   한국어: '한국어',
 
   // 기능 칸이 넷 다 none 인 사람 (화면공통 §8)
-  '권한을 받지 않았습니다. 운영자에게 요청하세요': 'You have no permissions yet. Ask an admin.',
+  '권한을 받지 않았습니다. 관리자에게 요청하세요': 'You have no permissions yet. Ask an admin.',
   // 배정이 없는 사람
   '아직 배정받은 애플리케이션이 없습니다': 'No application assigned yet',
   '설정에서 자기 자신을 프로젝트에 배정하세요': 'Assign yourself to a project in Settings',

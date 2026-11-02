@@ -126,7 +126,7 @@ export function PerfScenarioList({ serviceId, 할수 }: { serviceId: number; 할
             </>
           }
         >
-          <p>{t('「{이름}」을 지웁니다. 실행 기록은 남습니다', { 이름: 지울것.name })}</p>
+          <p>{t('「{이름}」을 삭제합니다. 실행 기록은 남습니다', { 이름: 지울것.name })}</p>
           {오류 === null ? null : <p className="perf-err">{오류}</p>}
         </Modal>
       )}

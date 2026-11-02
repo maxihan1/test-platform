@@ -47,7 +47,7 @@ export const 시나리오마법사말: Record<string, string> = {
   '비워 둔 입력 칸은 그 케이스에 저장해 둔 값으로 실행합니다': 'Empty input fields run with the values saved on that case',
   '이 시나리오에서만 쓰는 값입니다': 'These values are used only in this scenario',
   '저장하기 전에 한 번 돌려 봅니다': 'Run it once before saving',
-  '내 컴퓨터 러너가 켜져 있으면 브라우저가 움직이는 모습을 볼 수 있습니다': 'If the runner on your computer is on, you can watch the browser move',
+  '내 컴퓨터 테스트 실행기가 켜져 있으면 브라우저가 움직이는 모습을 볼 수 있습니다': 'If the runner on your computer is on, you can watch the browser move',
   '멈추면 어느 단계에서 왜 멈췄는지 보여 주고 고칠 곳으로 데려갑니다': 'If it stops, it shows which step stopped and why, and takes you to fix it',
   '값 연결이 실제로 쓰였는지도 함께 알려 줍니다': 'It also tells you whether each value link was actually used',
   '건너뛰어도 저장할 수 있습니다': 'You can save without it',

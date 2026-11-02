@@ -64,7 +64,7 @@ export function 끝났나(status: AuthoringRow['status']): boolean {
 /** 종류를 사람 말로. 화면은 `AUTHOR` 같은 글자를 보여 주지 않는다 */
 export function 종류라벨(kind: AuthoringRow['kind'], 언어: 언어): string {
   if (kind === 'MERGE') return t('반영', 언어);
-  if (kind === 'RERUN') return t('재실행', 언어);
+  if (kind === 'RERUN') return t('다시 실행', 언어);
   if (kind === 'EDIT') return t('케이스 고치기', 언어);
   return t('작성', 언어);
 }

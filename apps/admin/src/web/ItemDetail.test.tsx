@@ -169,7 +169,7 @@ describe('값 바꿔 재실행 (도메인/실행 §8.10)', () => {
       return (무엇) => 무엇 === '실행';
     });
 
-    expect(await screen.findByRole('button', { name: '값 바꿔 재실행' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: '입력 값 수정 후 다시 실행' })).toBeTruthy();
     expect(물은것).toContain('ZID');
   });
 
@@ -184,15 +184,15 @@ describe('값 바꿔 재실행 (도메인/실행 §8.10)', () => {
     그린다({}, () => () => false);
 
     await screen.findByText('실행 결과');
-    expect(screen.queryByRole('button', { name: '값 바꿔 재실행' })).toBeNull();
-    expect(screen.queryByRole('link', { name: '값 바꿔 재실행' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '입력 값 수정 후 다시 실행' })).toBeNull();
+    expect(screen.queryByRole('link', { name: '입력 값 수정 후 다시 실행' })).toBeNull();
   });
 
   it('누르면 그 항목에서 쓴 값으로 채운 실행 창이 열리고 비밀값 칸은 비어 있다', async () => {
     창모킹();
     그린다(값있는항목);
 
-    fireEvent.click(await screen.findByRole('button', { name: '값 바꿔 재실행' }));
+    fireEvent.click(await screen.findByRole('button', { name: '입력 값 수정 후 다시 실행' }));
 
     const 창 = within(await screen.findByRole('dialog', { name: '실행할 케이스 1건' }));
     expect(((await 창.findByLabelText(/^아이디/)) as HTMLInputElement).value).toBe('u-지난');
@@ -202,7 +202,7 @@ describe('값 바꿔 재실행 (도메인/실행 §8.10)', () => {
   it('창의 취소를 누르면 창이 닫힌다', async () => {
     창모킹();
     그린다(값있는항목);
-    fireEvent.click(await screen.findByRole('button', { name: '값 바꿔 재실행' }));
+    fireEvent.click(await screen.findByRole('button', { name: '입력 값 수정 후 다시 실행' }));
     await screen.findByRole('dialog');
 
     fireEvent.click(screen.getByRole('button', { name: '취소' }));

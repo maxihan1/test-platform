@@ -141,10 +141,10 @@ describe('측정할 페이지', () => {
     const 창 = within(screen.getByRole('dialog'));
     fireEvent.click(창.getByRole('button', { name: '메인 빼기' }));
     fireEvent.change(창.getByLabelText('경로'), { target: { value: 'cart' } });
-    fireEvent.click(창.getByRole('button', { name: '더하기' }));
+    fireEvent.click(창.getByRole('button', { name: '추가' }));
     expect((await 창.findByRole('alert')).textContent).toBe('경로는 /로 시작해야 합니다');
     fireEvent.change(창.getByLabelText('경로'), { target: { value: '/cart' } });
-    fireEvent.click(창.getByRole('button', { name: '더하기' }));
+    fireEvent.click(창.getByRole('button', { name: '추가' }));
     fireEvent.click(창.getByRole('button', { name: '적용' }));
 
     expect(screen.getByText('측정 대상: 페이지 3개')).toBeTruthy();

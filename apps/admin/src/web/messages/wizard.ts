@@ -119,14 +119,14 @@ export const 마법사말: Record<string, string> = {
   '프로젝트와 애플리케이션이 함께 만들어집니다': 'The project and the application are created together',
   '프로젝트는 이미 만들었습니다. 애플리케이션만 만듭니다': 'The project already exists. Only the application will be created',
   '고른 프로젝트에 애플리케이션이 만들어집니다': 'The application is created in the chosen project',
-  '다음은 테스트 작성입니다. 기획서나 화면을 넣으면 AI 가 테스트 케이스를 만들어 줍니다': 'Next comes test writing. Add a spec or screens and AI writes the test cases',
+  '다음은 테스트 작성입니다. 기획서나 화면을 넣으면 AI 가 케이스를 만들어 줍니다': 'Next comes test writing. Add a spec or screens and AI writes the test cases',
   '접두사와 종류 말고는 나중에 설정에서 언제든 고칠 수 있습니다': 'Everything except the prefix and type can be changed later in settings',
   '「고치기」로 돌아갈 수 있습니다': 'Use “Edit” to go back',
 
   // 끝 화면
   '{이름} 애플리케이션을 만들었습니다': 'Created the {이름} application',
   '「{프로젝트}」 프로젝트도 함께 만들었습니다': 'Also created the “{프로젝트}” project',
-  '이제 테스트를 만들 차례입니다. 기획서나 화면을 넣으면 AI 가 테스트 케이스를 만들어 줍니다': 'Next, create tests. Add a spec or screens and AI writes the test cases',
+  '이제 테스트를 만들 차례입니다. 기획서나 화면을 넣으면 AI 가 케이스를 만들어 줍니다': 'Next, create tests. Add a spec or screens and AI writes the test cases',
   '맨 위 고르개에서 고르려면 「계정」에서 이 프로젝트를 나에게 배정합니다': 'To pick it in the top picker, assign this project to yourself under “Accounts”',
   '설정 열기': 'Open settings',
 

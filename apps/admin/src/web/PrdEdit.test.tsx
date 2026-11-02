@@ -119,8 +119,8 @@ describe('PRD 관리 — 고치기', () => {
     expect(screen.queryByRole('link', { name: /테스트를 다시 만들 수 있어요/ })).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: '고치기' }));
-    fireEvent.click(screen.getByRole('button', { name: '이 요구 지우기' }));
-    fireEvent.click(screen.getByRole('button', { name: '지우기 확인' }));
+    fireEvent.click(screen.getByRole('button', { name: '이 요구 삭제' }));
+    fireEvent.click(screen.getByRole('button', { name: '삭제 확인' }));
     await vi.waitFor(() => expect(저장).toHaveBeenCalledTimes(2));
     expect(screen.queryByRole('link', { name: /테스트를 다시 만들 수 있어요/ })).toBeNull();
   });
@@ -160,7 +160,7 @@ describe('PRD 관리 — 고치기', () => {
 
   it('출처를 더하고 빼며, 비운 원본 번호는 키째 빼고 보낸다', async () => {
     await 펴서고치기(/로그인/, /MKT-REQ-041/);
-    fireEvent.click(screen.getByRole('button', { name: '출처 더하기' }));
+    fireEvent.click(screen.getByRole('button', { name: '출처 추가' }));
     const 이름칸 = screen.getAllByLabelText('자료 이름');
     expect(이름칸).toHaveLength(2);
     fireEvent.change(이름칸[1]!, { target: { value: '화면' } });
@@ -172,9 +172,9 @@ describe('PRD 관리 — 고치기', () => {
 
   it('지우기는 그 자리에서 한 번 더 묻고, 확인하면 그 요구를 뺀 판을 보낸다', async () => {
     await 펴서고치기(/로그인/, /MKT-REQ-040/);
-    fireEvent.click(screen.getByRole('button', { name: '이 요구 지우기' }));
+    fireEvent.click(screen.getByRole('button', { name: '이 요구 삭제' }));
     expect(저장).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: '지우기 확인' }));
+    fireEvent.click(screen.getByRole('button', { name: '삭제 확인' }));
     await vi.waitFor(() => expect(저장).toHaveBeenCalledTimes(1));
     expect(저장.mock.calls[0]![2].map((x) => x.reqId)).toEqual([아이디.reqId, 아이디칸.reqId, 잠금.reqId]);
   });
@@ -204,7 +204,7 @@ describe('PRD 관리 — 고치기', () => {
     fireEvent.click(await screen.findByRole('button', { name: '요구사항 추가' }));
     const 칸 = screen.getByRole('heading', { name: '새 요구' }).parentElement!;
     expect(within(칸).queryByLabelText('자료 이름')).toBeNull();
-    expect(within(칸).queryByRole('button', { name: '출처 더하기' })).toBeNull();
+    expect(within(칸).queryByRole('button', { name: '출처 추가' })).toBeNull();
     expect((within(칸).getByLabelText('상태') as HTMLSelectElement).value).toBe('CONFIRMED');
     fireEvent.change(within(칸).getByLabelText('기능 묶음'), { target: { value: '로그인' } });
     fireEvent.change(within(칸).getByLabelText('요구 문장'), { target: { value: '로그아웃하면 로그인 화면으로 간다' } });

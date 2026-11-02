@@ -87,7 +87,7 @@ describe('한 건 실행 진행 창 (도메인/실행 §8.9 「완료 모달」)
   it('붙은 곳이 없으면 케이스 상세 「실행 이력」에 남았다고 적고 「결과 보기」는 케이스 상세로 간다', async () => {
     vi.spyOn(api, 'run').mockResolvedValue({ ...끝난응답, ...한건, rerunOf: null });
     await 그린다();
-    expect(screen.getByText('이 케이스 상세의 「실행 이력」에 남았습니다')).toBeTruthy();
+    expect(screen.getByText('이 케이스 상세의 「실행 기록」에 남았습니다')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '결과 보기' }));
     expect(window.location.hash).toBe('#/cases/fn?q=ZRS-001&case=ZRS-001');
   });

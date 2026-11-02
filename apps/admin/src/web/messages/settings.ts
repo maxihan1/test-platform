@@ -16,12 +16,12 @@ export const 설정말: Record<string, string> = {
   '설정': 'Settings',
   '운영 계정만 볼 수 있는 화면입니다': 'Admins only',
   '설정은 운영 계정만 볼 수 있습니다': 'Only admins can open Settings',
-  '권한이 필요하면 운영 계정을 가진 사람에게 요청해 주세요': 'Ask an admin user for access if you need it',
+  '권한이 필요하면 관리자에게 요청해 주세요': 'Ask an admin user for access if you need it',
 
   // 구획 머리와 목록 줄
   '애플리케이션': 'Applications',
   '계정': 'Accounts',
-  '더하기': 'Add',
+  '추가': 'Add',
   '닫기': 'Close',
   '편집': 'Edit',
   '새 계정': 'New account',

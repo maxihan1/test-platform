@@ -110,7 +110,7 @@ export function PerfTxDetail({ tx, 설명, 쓰나, 고침 }: { tx: Transaction; 
               disabled={!쓰나}
               onChange={(e) => 고침({ check: { ...tx.check, contains: e.target.value === '' ? undefined : e.target.value } })}
             />
-            <span className="perf-faint">{t('비워 두면 연결만 되면 성공입니다. 적으면 10초 안에 그 글자가 든 메시지가 와야 성공입니다')}</span>
+            <span className="perf-faint">{t('비워 두면 연결만 되면 통과입니다. 적으면 10초 안에 그 글자가 든 메시지가 와야 통과입니다')}</span>
           </label>
         </>
       ) : null}

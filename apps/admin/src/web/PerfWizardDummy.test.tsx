@@ -107,7 +107,7 @@ describe('트랜잭션 종류', () => {
     fireEvent.change(screen.getByLabelText('주소'), { target: { value: 'wss://game.example.com/ws' } });
     fireEvent.change(screen.getByLabelText(/^보낼 메시지/), { target: { value: 'hello\nping' } });
     fireEvent.change(screen.getByLabelText(/^기다릴 글자/), { target: { value: 'welcome' } });
-    expect(screen.getByText(/10초 안에 그 글자가 든 메시지가 와야 성공/)).toBeTruthy();
+    expect(screen.getByText(/10초 안에 그 글자가 든 메시지가 와야 통과/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '임시 저장' }));
     await waitFor(() => expect(만들기).toHaveBeenCalled());
     expect(만들기.mock.calls[0]![2].transactions).toEqual([

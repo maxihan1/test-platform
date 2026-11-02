@@ -46,7 +46,7 @@ export function 한건끝글({ data, 앞실패 }: { data: RunDetail; 앞실패: 
   const t = use말();
   const 붙은 = data.rerunOf ?? null;
   const 뒤 = useAsync(() => (붙은 === null ? Promise.resolve(null) : api.run(붙은)), [붙은]);
-  if (붙은 === null) return <p>{t('이 케이스 상세의 「실행 이력」에 남았습니다')}</p>;
+  if (붙은 === null) return <p>{t('이 케이스 상세의 「실행 기록」에 남았습니다')}</p>;
   const 뒤실패 = 뒤.data?.counts.fail ?? null;
   return (
     <p>
