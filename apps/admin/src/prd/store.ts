@@ -244,13 +244,14 @@ export async function 옮기기(
 }
 
 /** 지도 ① — 번호마다 덮는 활성 케이스. 표준 기획서에 없는 번호도 싣는다(화면이 「PRD 에 없음」으로 보인다) */
-export async function 케이스지도(서비스: number): Promise<Record<string, 덮는케이스[]>> {
+// 요구들 — 주면 그 요구의 연결만 읽는다. MCP prd_search 가 서비스 전체를 읽고 30줄만 쓰지 않게
+export async function 케이스지도(서비스: number, 요구들?: string[]): Promise<Record<string, 덮는케이스[]>> {
   const r = await (await db()).query<{ req_id: string; tc_id: string; axis: string; techniques: string[]; platforms: Platform[] }>(
     `SELECT r.req_id, r.tc_id, r.axis, t.techniques, t.platforms
        FROM req_case r JOIN test_case t ON t.tc_id = r.tc_id AND t.is_active
-      WHERE r.service_id = $1
+      WHERE r.service_id = $1 AND ($2::text[] IS NULL OR r.req_id = ANY($2))
       ORDER BY r.req_id, r.tc_id, r.axis`,
-    [서비스],
+    [서비스, 요구들 ?? null],
   );
   const 지도: Record<string, 덮는케이스[]> = {};
   for (const x of r.rows) (지도[x.req_id] ??= []).push({ tcId: x.tc_id, axis: x.axis, techniques: x.techniques, platforms: x.platforms });
