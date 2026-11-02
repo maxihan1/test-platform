@@ -136,7 +136,7 @@ export const 성능말: Record<string, string> = {
   '실행 설정': 'Run settings',
   '실서비스 서버로는 부하를 걸 수 없습니다': 'Production servers cannot be load tested',
   '부하 발생 에이전트': 'Load generators',
-  '붙은 부하 발생 에이전트가 없습니다. 운영 계정이 설정 › 성능 에이전트에서 붙입니다': 'No load generator yet. An admin adds one in Settings › Performance agents',
+  '붙은 부하 발생 에이전트가 없습니다. 관리자가 설정 › 성능 에이전트에서 붙입니다': 'No load generator yet. An admin adds one in Settings › Performance agents',
   '고른 에이전트가 감당하는 가상 사용자는 {수}명입니다. 에이전트를 더 고르거나 부하를 줄여 주세요': 'The selected agents handle {수} virtual users. Pick more agents or lower the load',
   '테스트 계정': 'Test accounts',
   '없음 — 모든 가상 사용자가 같은 계정을 씁니다': 'None — every virtual user shares one account',

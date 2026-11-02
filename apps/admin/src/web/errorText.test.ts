@@ -8,7 +8,7 @@ describe('서버가 준 오류 코드를 사람 말로', () => {
   it('배정 안 받은 애플리케이션은 무슨 일인지와 빠져나갈 길을 적는다', () => {
     const 글 = 요청오류문장('SERVICE_FORBIDDEN', 'ko', 'XFS3B');
     expect(글).toContain('배정');
-    expect(글).toContain('운영 계정');
+    expect(글).toContain('관리자');
     expect(글).not.toBe('XFS3B');
   });
 
@@ -24,8 +24,8 @@ describe('서버가 준 오류 코드를 사람 말로', () => {
     expect(요청오류문장('FORBIDDEN', 'en', 'runs:write')).not.toContain('애플리케이션');
   });
 
-  it('운영 계정이 필요한 자리는 그렇게 적는다', () => {
-    expect(요청오류문장('FORBIDDEN', 'ko', 'admin')).toContain('「운영」');
+  it('관리자가 필요한 자리는 그렇게 적는다', () => {
+    expect(요청오류문장('FORBIDDEN', 'ko', 'admin')).toContain('「관리자」');
   });
 
   it('모르는 값이 오면 지어내지 않는다', () => {
@@ -84,7 +84,7 @@ describe('서버가 준 오류 코드를 사람 말로', () => {
   // 설정 화면이 저장 실패에 쓰던 코드들이 같은 표에 있어야 한 화면에서 말투가 안 갈린다
   it('설정 화면이 쓰던 코드도 같은 표에 있다', () => {
     expect(요청오류문장('PREFIX_TAKEN', 'ko')).toContain('이미 다른 애플리케이션이');
-    expect(요청오류문장('LAST_ADMIN', 'ko')).toContain('마지막 운영 계정');
+    expect(요청오류문장('LAST_ADMIN', 'ko')).toContain('마지막 관리자');
     expect(요청오류문장('PROJECT_NOT_FOUND', 'ko')).toContain('그 프로젝트를 찾지 못했습니다');
   });
 

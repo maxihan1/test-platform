@@ -129,7 +129,7 @@ export const 작성말: Record<string, string> = {
   '테스트 반영하기': 'Merge the tests',
   '검토가 끝나면 PR 을 반영해 케이스 목록에 올립니다.': 'After review, apply the PR to add the cases to the list.',
   '반영하는 중': 'Merging…',
-  '반영은 운영 권한이 있는 사람만 할 수 있습니다.': 'Someone with admin rights merges it.',
+  '반영은 관리자만 할 수 있습니다.': 'Someone with admin rights merges it.',
   '같은 자료로 다시 작성': 'Write again with the same inputs',
   '원인을 먼저 고친 뒤 누르세요. 넣었던 자료 그대로 같은 요청에서 처음부터 다시 돌립니다.':
     'Fix the cause first. This runs the same request again from the start with the same inputs.',

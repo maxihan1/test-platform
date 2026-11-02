@@ -241,7 +241,7 @@ describe('반영 실패 안내', () => {
     expect(screen.getByRole('button', { name: '다시 반영' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: '같은 자료로 다시 작성' })).toBeNull();
     rerender(<AuthoringMergeFailed service="PAY" 실행={실행} 원본={7} 권한 반영권한={false} 운영자={false} 겹침수={2} reload={reload} />);
-    expect(screen.getByText('반영은 운영 권한이 있는 사람만 할 수 있습니다.')).toBeTruthy();
+    expect(screen.getByText('반영은 관리자만 할 수 있습니다.')).toBeTruthy();
   });
 
   it('부딪혀 실패했으면 같은 자료로 다시 작성을 낸다', () => {

@@ -94,7 +94,7 @@ export function PerfStepRun({
         <span className="perf-faint">{t('실서비스 서버로는 부하를 걸 수 없습니다')}</span>
         <div className="perf-field">
           {t('부하 발생 에이전트')}
-          {부하.length === 0 ? <span className="perf-faint">{t('붙은 부하 발생 에이전트가 없습니다. 운영 계정이 설정 › 성능 에이전트에서 붙입니다')}</span> : 고르개(부하, 값.agentIds, 'agentIds')}
+          {부하.length === 0 ? <span className="perf-faint">{t('붙은 부하 발생 에이전트가 없습니다. 관리자가 설정 › 성능 에이전트에서 붙입니다')}</span> : 고르개(부하, 값.agentIds, 'agentIds')}
           {값.agentIds.length > 0 && 감당 < 최대목표 ? (
             <span className="perf-err">{t('고른 에이전트가 감당하는 가상 사용자는 {수}명입니다. 에이전트를 더 고르거나 부하를 줄여 주세요', { 수: 감당.toLocaleString() })}</span>
           ) : null}
