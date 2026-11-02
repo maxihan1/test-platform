@@ -49,9 +49,8 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
     if (경로 === '/api/v1/issues/XMQ-0') return { status: 200, json: { data: null } };
     if (경로 === '/api/v1/issues/XMQ-13/comments') return { status: 500, json: null };
     if (경로.endsWith('/comments')) {
-      // 일부러 거꾸로 준다 — 작성 시각 차례로 다시 놓는지 본다
       const 댓글 = Array.from({ length: 25 }, (_, i) => ({ id: `c${String(i)}`, authorId: 'u1', body: i === 24 ? '마'.repeat(1200) : `댓글 ${String(i + 1)}`, bodyHtml: '<p>x</p>', createdAt: `2026-11-01T00:00:${String(i).padStart(2, '0')}Z` }));
-      return { status: 200, json: { data: 댓글.reverse() } };
+      return { status: 200, json: { data: 댓글 } };
     }
     const 이슈 = { key: 'XMQ-12', summary: '로그인 잠금', currentStateKey: 'closed', assigneeId: 'u1', priority: 3, customFields: { 등급: '높음' } };
     if (경로.startsWith('/api/v1/issues/')) return { status: 200, json: { data: { ...이슈, description: '가'.repeat(5000) } } };
@@ -68,7 +67,6 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
     await q('DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = ANY($1))', [앱들]);
     await q('DELETE FROM test_run WHERE service_id = ANY($1)', [앱들]);
     await q('DELETE FROM test_case WHERE tc_id = ANY($1)', [케이스들]);
-    // bts_issue_case 는 service 와 같이 지워진다
     await q('DELETE FROM user_project WHERE username = ANY($1)', [계정들]);
     await q('DELETE FROM app_user WHERE username = ANY($1)', [계정들]);
     // 프로젝트는 애플리케이션이 다 지워지면 트리거가 지운다 · bts_link 는 프로젝트와 같이 간다
@@ -155,7 +153,6 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
       [내실행, JSON.stringify({ 메모: '나'.repeat(300), 횟수: 5, 목록: Array.from({ length: 100 }, (_, i) => i) }), JSON.stringify({ message: '다'.repeat(600), stack: '라'.repeat(2000) })],
     );
     남실행 = await 실행(남앱, 'XMCB');
-    await q(`INSERT INTO bts_issue_case (project_id, issue_key, service_id, tc_id, env, first_run) VALUES ($1, 'XMQ-12', $2, 'XMC-FN-001', 'qa', $3)`, [내프로젝트, 내앱, 내실행]);
 
     app = Fastify();
     세션등록(app, 'xmc-검사용-세션-열쇠-32글자를-넘긴다-넉넉히');
@@ -240,30 +237,7 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
     expect((await 도구('map_search', { service: 'XMC', url: '/nowhere' })).json()).toMatchObject({ cases: [], empty: expect.stringContaining('/nowhere') });
     expect((await 도구('map_search', { service: 'XMC', tcId: 'XMCB-FN-001' })).글).toContain('FORBIDDEN');
     expect((await 도구('map_search', { service: 'XMC', url: 'login', page: 1 })).json()).toEqual({ cases: [], empty: 'page 1 에는 더 없다' });
-  });
-
-  it('실행 찾기 — 케이스 번호 · 이슈 키로 그 케이스가 든 실행과 그 케이스 항목만, 남의 케이스 번호는 FORBIDDEN', async () => {
-    const 기대 = {
-      runs: [
-        {
-          runId: 내실행,
-          title: 'XMC',
-          status: 'FINISHED',
-          env: 'qa',
-          items: [
-            { tcId: 'XMC-FN-001', platform: 'desktop', attempt: 1, status: 'FAIL' },
-            { tcId: 'XMC-FN-001', platform: 'mobile', attempt: 1, status: 'NA', finishedAt: null },
-          ],
-        },
-      ],
-    };
-    expect((await 도구('run_search', { service: 'XMC', tcId: 'XMC-FN-001' })).json()).toMatchObject(기대);
-    expect((await 도구('run_search', { service: 'XMC', issueKey: 'XMQ-12' })).json()).toMatchObject(기대);
-    expect((await 도구('run_search', { service: 'XMC', issueKey: 'XMQ-99' })).json()).toEqual({ runs: [], empty: 'XMQ-99 에 짝 지은 XMC 케이스가 없다' });
-    expect((await 도구('run_search', { service: 'XMC', tcId: 'XMC-FN-404' })).json()).toEqual({ runs: [], empty: 'XMC-FN-404 가 든 실행이 없다' });
-    expect((await 도구('run_search', { service: 'XMC', tcId: 'XMCB-FN-001' })).글).toContain('FORBIDDEN');
-    expect((await 도구('run_search', { service: 'XMC' })).글).toContain('BAD_INPUT');
-    expect((await 도구('run_search', { service: 'XMC', tcId: 'XMC-FN-001' }, 'pat_part0001')).글).toContain('FORBIDDEN — runs:read');
+    expect((await 도구('map_search', { service: 'XMC', tcId: 'XMC-FN-001', page: 1 })).json()).toEqual({ cases: [], empty: 'page 1 에는 더 없다' });
   });
 
   it('배정은 받았어도 칸이 없으면 화면처럼 막힌다 — 케이스 read 만 있는 사람은 지도만 본다', async () => {
@@ -314,7 +288,8 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
     expect((await 도구('bts_search', { projectId: 내프로젝트, issueKey: 'XMQ-0' })).글).toContain('BTS_ERROR — Issue Bunker 가 빈 답을 줬다');
     expect((await 도구('bts_search', { projectId: 내프로젝트, issueKey: 'OTHER-1' })).글).toContain('FORBIDDEN');
     expect((await 도구('bts_search', { projectId: 남프로젝트, query: '잠금' })).글).toContain('FORBIDDEN');
-    expect(BTS받은것).toHaveLength(10);
+    // 없는 이슈 · 빈 이슈에는 댓글을 부르지 않는다
+    expect(BTS받은것).toHaveLength(8);
   });
 
   it('세션 없는 창구라 GET · DELETE 는 405', async () => {

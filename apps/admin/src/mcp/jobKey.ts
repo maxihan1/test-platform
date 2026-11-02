@@ -12,7 +12,7 @@ async function db() {
 
 /**
  * 받는 줄이면 새 열쇠를 내고 해시를 그 줄에 둔다. 받는 줄이 아니면 null.
- * 받는 줄은 AUTHOR(BTS 연결과 상관없이 — 결정 ④: PRD · 지도 · 실행 조회는 연결 없이도 돈다)와 BTS 를 이은 프로젝트의 NOTE · PRD_DRAFT · BUGFIX, 원본이 그 넷인 RERUN 이다.
+ * 받는 줄은 AUTHOR(BTS 연결과 상관없이 — 2026-11-02 사용자: PRD · 지도 · 실행 조회는 연결 없이도 돈다)와 BTS 를 이은 프로젝트의 NOTE · PRD_DRAFT · BUGFIX, 원본이 그 넷인 RERUN 이다.
  * 연결 없는 프로젝트의 열쇠로 부른 BTS 찾기 · 노트 읽기는 도구가 NOT_LINKED 로 막는다
  * 프로젝트는 애플리케이션 줄이면 그 애플리케이션의 것, 노트 고치기 줄(서비스 칸이 빔)이면 그 줄의 project_id 다.
  * 앞 집기의 해시는 집기(agentStore.ts)가 지운다 — 여기서 null 을 내도 옛 열쇠가 살아 있지 않다

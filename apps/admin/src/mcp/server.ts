@@ -125,7 +125,7 @@ function 서버세우기(사람: 사용자, pat: string | null, 부르기?: 부�
   서버.registerTool(
     'run_search',
     {
-      description: '실행 찾기 — 케이스 번호(tcId) 나 Issue Bunker 이슈 키(issueKey) 하나로 그 케이스가 든 최근 케이스 실행 10개(늦은 것부터)를 찾는다. 실행마다 runId · 제목 · 상태 · 대상 서버 · 시각과 찾는 케이스의 항목(10개까지)을 준다. 이슈 키는 실패를 Issue Bunker 에 올릴 때 남긴 짝 기록으로 케이스를 찾는다. 비면 empty 에 까닭이 온다. runId 를 run_result 에 넣는다',
+      description: '실행 찾기 — 케이스 번호(tcId) 나 Issue Bunker 이슈 키(issueKey) 하나로 그 케이스가 든 최근 케이스 실행 10개(늦은 것부터)를 찾는다. 실행마다 runId · 제목 · 상태 · 대상 서버 · 시각과 찾는 케이스의 항목(10개까지)을 준다. 이슈 키는 실패를 Issue Bunker 에 올릴 때 남긴 짝 기록으로 케이스를 찾는다. 10개를 넘으면 truncated — page 가 없으니 더 오래된 실행은 실행 기록 화면에서 본다. 비면 empty 에 까닭이 온다. runId 를 run_result 에 넣는다',
       inputSchema: {
         service: 이름,
         tcId: z.string().max(60).optional(),

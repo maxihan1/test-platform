@@ -78,6 +78,8 @@ export async function 지도찾기(사람: 사용자, service: string, 찾을것
     if (케이스의서비스(찾을것.tcId) !== service) return 막힘(찾을것.tcId);
     const r = await pool.query('SELECT 1 FROM test_case WHERE tc_id = $1 AND is_active', [찾을것.tcId]);
     if (r.rowCount === 0) return 없음(찾을것.tcId);
+    // 케이스 하나라 다음 쪽이 없다 — 같은 줄을 다시 주면 AI 가 두 번 센다
+    if (page > 0) return { ok: true, data: { cases: [], empty: `page ${String(page)} 에는 더 없다` } };
     케이스들 = [찾을것.tcId];
   } else if (찾을것.reqId !== undefined) {
     // 판을 먼저 본다 — PRD 에서 지운 요구도 req_case 연결이 남을 수 있어, 연결만 보면 지난 요구를 지금 요구로 믿게 된다
@@ -171,7 +173,7 @@ export async function BTS찾기(사람: 사용자, pat: string | null, projectId
   const 자리 = { baseUrl: 연결.base_url, botKey: pat ?? 연결.bot_key };
 
   let 부를것: Parameters<부르기함수>;
-  // 이슈 하나를 읽을 때만 댓글도 같이 부른다 — 댓글에서 바뀐 규칙을 PRD 초안 · 수정 AI 가 놓치지 않게 (결정 ②)
+  // 이슈 하나를 읽을 때만 댓글도 부른다 — 댓글에서 바뀐 규칙을 PRD 초안 · 수정 AI 가 놓치지 않게 (2026-11-02 사용자)
   let 댓글부를것: Parameters<부르기함수> | null = null;
   const page = 찾을것.page ?? 0;
   if (찾을것.issueKey !== undefined) {
@@ -187,13 +189,8 @@ export async function BTS찾기(사람: 사용자, pat: string | null, projectId
   }
 
   let 답: BTS응답;
-  let 댓글답: BTS응답 | string | null = null;
   try {
-    // 댓글만 못 읽은 것은 이슈까지 버리지 않는다 — 까닭 글로 바꿔 이슈 답에 싣는다
-    [답, 댓글답] = await Promise.all([
-      부르기(...부를것),
-      댓글부를것 === null ? null : 부르기(...댓글부를것).catch((err: unknown) => `Issue Bunker 에 닿지 못했다: ${err instanceof Error ? err.message : String(err)}`),
-    ]);
+    답 = await 부르기(...부를것);
   } catch (err) {
     console.error(`[mcp] Issue Bunker(${연결.base_url}) 에 닿지 못했다: ${err instanceof Error ? err.message : String(err)}`);
     return { ok: false, error: 'BTS_UNREACHABLE' };
@@ -205,6 +202,14 @@ export async function BTS찾기(사람: 사용자, pat: string | null, projectId
     if (찾을것.issueKey === undefined) return { ok: true, data: 찾은줄(data, 몸?.meta?.page?.totalElements, page) };
     // 빈 이슈를 진짜 이슈처럼 넘기면 AI 가 내용 없는 이슈로 믿고 일한다
     if (data === null || typeof data !== 'object') return { ok: false, error: 'BTS_ERROR', detail: 'Issue Bunker 가 빈 답을 줬다' };
+    // 이슈를 읽은 뒤에만 부른다 — 없는 이슈 · 거절된 열쇠에 BTS 를 두 번 두드리지 않는다.
+    // 댓글만 못 읽은 것은 이슈까지 버리지 않는다. 닿지 못한 까닭 원문은 내부 주소가 섞여 로그에만 남긴다
+    let 댓글답: BTS응답 | null = null;
+    try {
+      if (댓글부를것 !== null) 댓글답 = await 부르기(...댓글부를것);
+    } catch (err) {
+      console.error(`[mcp] Issue Bunker(${연결.base_url}) 댓글에 닿지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+    }
     return { ok: true, data: { ...이슈하나(data as 이슈원본), ...댓글칸(댓글답) } };
   }
   if (답.status === 404) return 없음(찾을것.issueKey ?? '');
@@ -220,22 +225,21 @@ const 글 = (v: unknown): string => (typeof v === 'string' ? v : '');
 // 닫힌 이슈도 빼지 않는다 — 수정 AI 가 같은 버그가 전에 닫혔는지 상태로 본다
 const 이슈하나 = (d: 이슈원본) => ({ key: 글(d.key), title: 글(d.summary), status: 글(d.currentStateKey), body: 자르기(글(d.description), 글상한.이슈본문) });
 
-/** 찾기 답 — BTS 가 센 전체 수가 이 쪽 끝을 넘으면 잘린 것. 전체 수가 없는 답이면 받은 줄이 30줄을 넘었는지로 본다 */
+/** 찾기 답 — BTS 가 센 전체 수가 이 쪽 끝을 넘으면 잘린 것. 전체 수가 없는 답이면 30줄을 꽉 채웠을 때 잘렸다고 본다 — 다 받은 것으로 믿는 쪽보다 한 번 더 찾게 하는 쪽이 낫다 */
 function 찾은줄(data: unknown, 전체: unknown, page: number): unknown {
   const 줄 = Array.isArray(data) ? (data as 이슈원본[]) : [];
-  const 잘림 = typeof 전체 === 'number' ? 전체 > (page + 1) * 최대줄 : 줄.length > 최대줄;
+  const 잘림 = typeof 전체 === 'number' ? 전체 > (page + 1) * 최대줄 : 줄.length >= 최대줄;
   return { items: 줄.slice(0, 최대줄).map((d) => ({ key: 글(d.key), title: 글(d.summary), status: 글(d.currentStateKey) })), ...(잘림 && { truncated: true }) };
 }
 
-/** 댓글 — 작성 시각 차례로 최근 20개만, 하나에 1,000자. 못 읽었으면 빈 목록과 까닭 */
-function 댓글칸(답: BTS응답 | string | null): { comments: { body: string; createdAt: string }[]; moreComments?: number; commentsError?: string } {
-  if (답 === null) return { comments: [], commentsError: '댓글을 부르지 않았다' };
-  if (typeof 답 === 'string') return { comments: [], commentsError: 답 };
+/** 댓글 — 최근 20개만, 하나에 1,000자. BTS 가 작성 시각 오름차순으로 준다(CommentController). 못 읽었으면 빈 목록과 까닭 */
+function 댓글칸(답: BTS응답 | null): { comments: { body: string; createdAt: string }[]; moreComments?: number; commentsError?: string } {
+  if (답 === null) return { comments: [], commentsError: 'Issue Bunker 에 닿지 못했다' };
   if (답.status !== 200) return { comments: [], commentsError: `HTTP ${String(답.status)}` };
   const 원본 = (답.json as { data?: unknown } | null)?.data;
-  const 줄 = (Array.isArray(원본) ? (원본 as { body?: unknown; createdAt?: unknown }[]) : [])
-    .flatMap((c) => (typeof c.body === 'string' ? [{ body: c.body, createdAt: 글(c.createdAt) }] : []))
-    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const 줄 = (Array.isArray(원본) ? (원본 as { body?: unknown; createdAt?: unknown }[]) : []).flatMap((c) =>
+    typeof c.body === 'string' ? [{ body: c.body, createdAt: 글(c.createdAt) }] : [],
+  );
   return {
     comments: 줄.slice(-최대댓글).map((c) => ({ body: 자르기(c.body, 글상한.댓글), createdAt: c.createdAt })),
     ...(줄.length > 최대댓글 && { moreComments: 줄.length - 최대댓글 }),
