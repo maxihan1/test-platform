@@ -137,7 +137,7 @@ describe('세로 껍데기 (SPEC §8)', () => {
 
   it('왼쪽 줄 맨 위 로고는 집으로 가는 링크다', () => {
     띄운다(결제);
-    const 로고 = screen.getByRole('link', { name: 'QA Hub 홈' });
+    const 로고 = screen.getByRole('link', { name: 'Test Commander 홈' });
     expect(로고.closest('.rail')).not.toBeNull();
     expect(로고.getAttribute('href')).toMatch(/^#\//);
   });
@@ -382,14 +382,14 @@ describe('대시보드 자리 (화면공통 §8 · 도메인/리포팅 §8.12)',
 
   it('탭 제목과 바닥 글에는 애플리케이션 이름이 안 걸린다 — 선택 칸은 있어도 대시보드는 애플리케이션 하나가 아니다', () => {
     const { container } = 띄운다(결제, 'ko', () => {}, '#/dashboard');
-    expect(document.title).toBe('QA Hub');
-    expect(container.querySelector('.foot')!.textContent).toBe('QA Hub');
+    expect(document.title).toBe('Test Commander');
+    expect(container.querySelector('.foot')!.textContent).toBe('Test Commander');
   });
 
   it('다른 자리에서는 탭 제목과 바닥 글에 애플리케이션 이름이 있다', () => {
     const { container } = 띄운다(결제, 'ko', () => {}, '#/cases');
-    expect(document.title).toBe('결제 애플리케이션 · QA Hub');
-    expect(container.querySelector('.foot')!.textContent).toBe('결제 애플리케이션 · QA Hub');
+    expect(document.title).toBe('결제 애플리케이션 · Test Commander');
+    expect(container.querySelector('.foot')!.textContent).toBe('결제 애플리케이션 · Test Commander');
   });
 
   it('다른 자리에서도 애플리케이션 줄이 그대로 있다', () => {

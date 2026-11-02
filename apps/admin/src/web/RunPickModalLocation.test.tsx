@@ -55,7 +55,7 @@ describe('RunPickModal 실행 위치 (SPEC §8.10)', () => {
     const { onRun } = 그리기([값없는케이스, 안드로이드케이스]);
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
 
-    expect(screen.getByText('실행 위치 · 디바이스 팜')).toBeTruthy();
+    expect(screen.getByText('실행 위치 · Device VISION')).toBeTruthy();
     expect((실행버튼() as HTMLButtonElement).disabled).toBe(false);
     fireEvent.click(실행버튼());
 

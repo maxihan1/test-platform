@@ -32,9 +32,9 @@ describe('BTS 등록 줄', () => {
     const 보냄 = vi.spyOn(api, 'resendBts').mockResolvedValue(undefined);
     열기(그만둠);
 
-    await screen.findByText('BTS 등록 실패 · 권한 없음 — QA Hub AI 열쇠를 확인하세요 (403)');
+    await screen.findByText('Issue Bunker 등록 실패 · 권한 없음 — QA Hub AI 열쇠를 확인하세요 (403)');
     fireEvent.click(screen.getByRole('button', { name: '다시 보내기' }));
-    await screen.findByText('BTS 에 보내는 중');
+    await screen.findByText('Issue Bunker 에 보내는 중');
     expect(보냄).toHaveBeenCalledWith(RUN_ID, 'ZZI-0001', 'qa');
     expect(screen.queryByRole('button', { name: '다시 보내기' })).toBeNull();
   });
@@ -42,25 +42,25 @@ describe('BTS 등록 줄', () => {
   it('실행 쓰기 권한이 없으면 단추 없이 글자만 보인다', async () => {
     열기(그만둠, 읽기만);
 
-    await screen.findByText('BTS 등록 실패 · 권한 없음 — QA Hub AI 열쇠를 확인하세요 (403)');
+    await screen.findByText('Issue Bunker 등록 실패 · 권한 없음 — QA Hub AI 열쇠를 확인하세요 (403)');
     expect(screen.queryByRole('button', { name: '다시 보내기' })).toBeNull();
   });
 
   it('보내는 중이면 그 한 줄 · 보냈거나 안 올렸으면 등록 줄은 없고 판정 줄이 맡는다 · BTS 를 안 이었으면 BTS 글자가 없다', async () => {
     열기({ ...그만둠, state: 'SENDING', reason: null });
-    await screen.findByText('BTS 에 보내는 중');
+    await screen.findByText('Issue Bunker 에 보내는 중');
     expect(screen.queryByText(/에서 확인 중/)).toBeNull();
     cleanup();
 
     for (const bts of [{ ...그만둠, state: 'SENT' as const, issueKey: 'DM-12', reason: null }, null]) {
       열기(bts);
       await screen.findByText('회원가입');
-      await waitFor(() => expect(screen.queryByText(/BTS 등록 실패|BTS 에 보내는 중/)).toBeNull());
+      await waitFor(() => expect(screen.queryByText(/Issue Bunker 등록 실패|Issue Bunker 에 보내는 중/)).toBeNull());
       cleanup();
     }
     열기(undefined);
     await screen.findByText('회원가입');
-    await waitFor(() => expect(screen.queryByText(/BTS/)).toBeNull());
+    await waitFor(() => expect(screen.queryByText(/Issue Bunker/)).toBeNull());
   });
 });
 
@@ -70,7 +70,7 @@ describe('BTS 를 이은 프로젝트의 판정 줄', () => {
   it('올린 이슈는 「BTS DM-12 에서 확인 중」 고리 하나 — 결정 목록 고리 · 「화면이 맞음으로 바꾸기」가 없다', async () => {
     열기(보냄);
 
-    const 고리 = await screen.findByRole('link', { name: 'BTS DM-12 에서 확인 중' });
+    const 고리 = await screen.findByRole('link', { name: 'Issue Bunker DM-12 에서 확인 중' });
     expect(고리.getAttribute('href')).toBe('https://bts.example.com/issues/DM-12');
     expect(screen.queryByRole('link', { name: '테스트 작성 › 결정 필요에서 판정합니다' })).toBeNull();
     expect(screen.queryByRole('button', { name: '화면이 맞음으로 바꾸기' })).toBeNull();
@@ -78,7 +78,7 @@ describe('BTS 를 이은 프로젝트의 판정 줄', () => {
 
   it('닫혔으면 사유를 덧붙이고, 보일 등록이 없으면(null) 판정 줄도 결정 목록 고리도 없다', async () => {
     열기({ ...보냄, resolution: 'TEST_PROBLEM' });
-    await screen.findByRole('link', { name: 'BTS DM-12 · 테스트 문제로 닫힘' });
+    await screen.findByRole('link', { name: 'Issue Bunker DM-12 · 테스트 문제로 닫힘' });
     cleanup();
 
     열기(null);

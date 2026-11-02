@@ -14,7 +14,7 @@ import { 케이스서비스, type 판정 } from './role.js';
 import { 결정필요주소 } from './route.js';
 import { message, when } from './ui.js';
 
-// BTS 해결 상태 단계(bts_issue_case.resolution)를 화면 말로. FIXED 는 재검증 통과로 QA Hub 가 닫은 것이다
+// BTS 해결 상태 단계(bts_issue_case.resolution)를 화면 말로. FIXED 는 재검증 통과로 Test Commander 가 닫은 것이다
 // 조사(으로 · 로)가 사유마다 달라 문구 통째로 둔다
 const 닫힌사유: Record<string, string> = {
   SCREEN_RIGHT: '화면이 맞음으로 닫힘',

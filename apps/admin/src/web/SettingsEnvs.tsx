@@ -194,7 +194,7 @@ export function EnvEditor(p: { envs: 줄[]; onChange: (next: 줄[]) => void; 접
         ) : (
           <>
             <div className="hint">{t('테스트 계정은 실행과 테스트 작성에서 로그인할 때 사용합니다. 실서비스 서버로 체크하면 테스트 작성과 화면 탐색 대상에서 제외됩니다')}</div>
-            <div className="hint">{t('앱 파일 경로는 Android 앱 · 게임 케이스를 돌릴 때 설치할 apk 입니다. 디바이스 팜 PC 의 파일 경로나 http(s) 주소를 적고, 비우면 테스트 실행기를 켤 때 준 PLATFORM_APP 을 씁니다')}</div>
+            <div className="hint">{t('앱 파일 경로는 Android 앱 · 게임 케이스를 돌릴 때 설치할 apk 입니다. Device VISION 이 도는 PC 의 파일 경로나 http(s) 주소를 적고, 비우면 테스트 실행기를 켤 때 준 PLATFORM_APP 을 씁니다')}</div>
             {게임 ? (
               <div className="hint">{t('어드민 키는 게임 서버 어드민 API 에 머리로 실어 보냅니다. 케이스가 재화 지급 같은 상태를 만들 때 씁니다. 값은 끝 4자리만 보이고, 두 칸을 비우고 저장하면 지워집니다')}</div>
             ) : null}

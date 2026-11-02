@@ -144,7 +144,7 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     });
     펼친다('project-1-bts');
 
-    expect(await screen.findByRole('heading', { name: '데모마켓 › BTS 연결' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: '데모마켓 › Issue Bunker 연결' })).toBeTruthy();
     expect(읽음).toHaveBeenCalledWith(1);
   });
 

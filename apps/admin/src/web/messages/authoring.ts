@@ -180,11 +180,11 @@ export const 작성말: Record<string, string> = {
   '피그마 화면': 'Figma screens',
   '실제 화면과 대조 — 크롤러가 대상 서버를 열어 기획서와 다른 화면을 찾습니다':
     'Compare with the live screen — the crawler opens the target server and finds screens that differ from the spec',
-  '앱 화면 읽기 — 디바이스 팜에서 폰 하나를 잡아 앱을 깔고 첫 화면부터 눌러 가며 요소를 읽습니다':
-    'Reading app screens — takes one phone from the device farm, installs the app and reads elements from the first screen on',
+  '앱 화면 읽기 — Device VISION 에서 폰 하나를 잡아 앱을 깔고 첫 화면부터 눌러 가며 요소를 읽습니다':
+    'Reading app screens — takes one phone from Device VISION, installs the app and reads elements from the first screen on',
   '기획서 · 확률표': 'Spec · probability table',
-  '게임 화면 읽기 — 디바이스 팜에서 폰 하나를 잡아 게임을 깔고 로그인 창부터 창을 하나씩 열어 오브젝트를 읽습니다':
-    'Reading game screens — takes one phone from the device farm, installs the game and opens each window from login to read its objects',
+  '게임 화면 읽기 — Device VISION 에서 폰 하나를 잡아 게임을 깔고 로그인 창부터 창을 하나씩 열어 오브젝트를 읽습니다':
+    'Reading game screens — takes one phone from Device VISION, installs the game and opens each window from login to read its objects',
   'API 문서 버전 — 지난 버전과 달라진 엔드포인트만 다시 작성합니다': 'API doc version — only endpoints changed since the last version are rewritten',
   '기획서(있으면)': 'Spec (if any)',
   // 역방향 — 기획서와 실제 화면을 대조한다 (도메인/작성 §3.6 「★ 역방향」)
@@ -270,11 +270,11 @@ export const 작성말: Record<string, string> = {
 
   // 새 요청 — Android 앱 애플리케이션 (도메인/러너 §5.2 종류 표)
   '앱 화면 읽기': 'Reading app screens',
-  '대상 서버에 앱 파일 경로가 있으면 디바이스 팜에서 빈 폰 하나를 잡아 앱을 설치하고, 첫 화면부터 눌러 가며 요소 주소를 읽습니다. 끝나면 폰을 놓습니다':
-    'If the target server has an app file path, takes a free phone from the device farm, installs the app, and taps through from the first screen to read element locators. The phone is released when done',
+  '대상 서버에 앱 파일 경로가 있으면 Device VISION 에서 빈 폰 하나를 잡아 앱을 설치하고, 첫 화면부터 눌러 가며 요소 주소를 읽습니다. 끝나면 폰을 놓습니다':
+    'If the target server has an app file path, takes a free phone from Device VISION, installs the app, and taps through from the first screen to read element locators. The phone is released when done',
   '앱 케이스는 끝 검사에서 폰으로 돌려 보지 않습니다. 반영 뒤 「테스트 스크립트」에서 실행해 확인합니다':
     'App cases are not run on a phone during the final check. Run them from “Test scripts” after the merge',
   '게임 화면 읽기': 'Reading game screens',
-  '디바이스 팜에서 빈 폰 하나를 잡아 게임을 설치하고, 로그인 창부터 창을 하나씩 열어 오브젝트 목록을 읽습니다. 끝나면 폰을 놓습니다':
-    'Takes a free phone from the device farm, installs the game, and opens each window from the login window on to read its object list. The phone is released when done',
+  'Device VISION 에서 빈 폰 하나를 잡아 게임을 설치하고, 로그인 창부터 창을 하나씩 열어 오브젝트 목록을 읽습니다. 끝나면 폰을 놓습니다':
+    'Takes a free phone from Device VISION, installs the game, and opens each window from the login window on to read its object list. The phone is released when done',
 };

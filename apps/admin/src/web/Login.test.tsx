@@ -35,7 +35,7 @@ describe('로그인 화면', () => {
   it('제품 이름과 맞이 문장이 있다', () => {
     그리기();
 
-    expect(screen.getByText('QA Hub')).toBeTruthy();
+    expect(screen.getByText('Test Commander')).toBeTruthy();
     // 들어가는 자리임을 분명히 한다. 빈 상자 하나만 두면 무엇을 하는 화면인지 안 읽힌다
     expect(screen.getByText(/맡은 애플리케이션이 열립니다/)).toBeTruthy();
   });

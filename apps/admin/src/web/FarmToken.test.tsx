@@ -17,7 +17,7 @@ const 붙여넣고저장 = (값: string) => {
   fireEvent.click(screen.getByRole('button', { name: '저장' }));
 };
 
-describe('디바이스 팜 토큰 창', () => {
+describe('Device VISION 토큰 창', () => {
   it('안 넣었으면 서버 토큰으로 빌린다고 알리고, 저장하면 끝 4자를 보이며 칸을 비운다', async () => {
     vi.spyOn(api, 'farmToken').mockResolvedValue({ farmToken: null });
     const 저장 = vi.spyOn(api, 'setFarmToken').mockResolvedValue({ farmToken: { last4: '1234' } });

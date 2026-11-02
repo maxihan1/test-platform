@@ -69,12 +69,12 @@ describe('설정 › BTS 연결', () => {
     const 저장소 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
     그리기(빈연결);
 
-    fireEvent.change(await screen.findByLabelText('BTS 주소'), { target: { value: 'https://bts.example.com' } });
-    fireEvent.change(screen.getByLabelText('BTS 프로젝트 키'), { target: { value: 'DM' } });
+    fireEvent.change(await screen.findByLabelText('Issue Bunker 주소'), { target: { value: 'https://bts.example.com' } });
+    fireEvent.change(screen.getByLabelText('Issue Bunker 프로젝트 키'), { target: { value: 'DM' } });
     fireEvent.change(screen.getByLabelText('「QA Hub AI」 계정 토큰'), { target: { value: 'pat_bot1' } });
     expect(불러옴).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'BTS 에서 불러오기' }));
-    await screen.findByText('BTS 에서 상태 6개 · 해결 사유 5개를 불러왔습니다');
+    fireEvent.click(screen.getByRole('button', { name: 'Issue Bunker 에서 불러오기' }));
+    await screen.findByText('Issue Bunker 에서 상태 6개 · 해결 사유 5개를 불러왔습니다');
     expect(불러옴).toHaveBeenCalledWith(3, 'https://bts.example.com', 'pat_bot1');
 
     const 검토칸 = screen.getByLabelText('QA 검토');
@@ -89,7 +89,7 @@ describe('설정 › BTS 연결', () => {
     fireEvent.change(screen.getByLabelText('웹 저장소 1 이름'), { target: { value: '화면' } });
     fireEvent.change(screen.getByLabelText('웹 저장소 1 주소'), { target: { value: 'https://github.com/acme/web' } });
 
-    fireEvent.click(screen.getByRole('button', { name: '저장하고 BTS 자동 설정' }));
+    fireEvent.click(screen.getByRole('button', { name: '저장하고 Issue Bunker 자동 설정' }));
     await waitFor(() => expect(설정).toHaveBeenCalledWith(3));
     expect(저장).toHaveBeenCalledWith(3, { baseUrl: 'https://bts.example.com', btsProject: 'DM', botKey: 'pat_bot1', statusMap: 상태, resolutionMap: 해결 });
     expect(저장소).toHaveBeenCalledWith(11, { codeRepos: [{ name: '화면', url: 'https://github.com/acme/web' }] });
@@ -104,8 +104,8 @@ describe('설정 › BTS 연결', () => {
     await waitFor(() => expect(불러옴).toHaveBeenCalledWith(3, 'https://bts.example.com', undefined));
     expect(await screen.findByText('연결됨 · DM')).toBeTruthy();
     fireEvent.change(screen.getByLabelText('QA 검토'), { target: { value: '' } });
-    fireEvent.click(screen.getByRole('button', { name: '저장하고 BTS 자동 설정' }));
-    expect(await screen.findByText('비어 있는 단계가 있습니다. 모든 단계에 BTS 상태를 골라 주세요')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '저장하고 Issue Bunker 자동 설정' }));
+    expect(await screen.findByText('비어 있는 단계가 있습니다. 모든 단계에 Issue Bunker 상태를 골라 주세요')).toBeTruthy();
     expect(저장).not.toHaveBeenCalled();
   });
 
@@ -115,8 +115,8 @@ describe('설정 › BTS 연결', () => {
     vi.spyOn(btsApi, 'setup').mockResolvedValue({ items: [{ what: 'WEBHOOK', ok: false, status: 403 }, ...다됨.slice(1)] });
     그리기(이은연결);
 
-    fireEvent.click(await screen.findByRole('button', { name: '저장하고 BTS 자동 설정' }));
-    expect(await screen.findByText('웹훅은 BTS 시스템 관리자만 만들 수 있습니다. 관리자에게 이 화면에서 다시 눌러 달라고 요청해 주세요')).toBeTruthy();
+    fireEvent.click(await screen.findByRole('button', { name: '저장하고 Issue Bunker 자동 설정' }));
+    expect(await screen.findByText('웹훅은 Issue Bunker 시스템 관리자만 만들 수 있습니다. 관리자에게 이 화면에서 다시 눌러 달라고 요청해 주세요')).toBeTruthy();
     expect(document.querySelectorAll('.bts-checks li.no')).toHaveLength(1);
     expect(screen.getByText('권한 없음')).toBeTruthy();
   });
@@ -127,7 +127,7 @@ describe('설정 › BTS 연결', () => {
     vi.spyOn(btsApi, 'setup').mockRejectedValue(new ApiError(400, 'NO_PERSONAL_TOKEN', '', []));
     그리기(이은연결);
 
-    fireEvent.click(await screen.findByRole('button', { name: '저장하고 BTS 자동 설정' }));
+    fireEvent.click(await screen.findByRole('button', { name: '저장하고 Issue Bunker 자동 설정' }));
     expect(await screen.findByText('내 계정에 통합계정 토큰이 없습니다. 왼쪽 아래 내 메뉴 › 통합계정 토큰에 넣은 뒤 다시 눌러 주세요')).toBeTruthy();
   });
 
@@ -156,7 +156,7 @@ describe('설정 › BTS 연결', () => {
     const 불러옴 = vi.spyOn(btsApi, 'choices');
     그리기(빈연결);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'BTS 에서 불러오기' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Issue Bunker 에서 불러오기' }));
     expect(await screen.findByText('처음 연결할 때는 「QA Hub AI」 계정 토큰을 넣어야 합니다')).toBeTruthy();
     expect(불러옴).not.toHaveBeenCalled();
   });
@@ -167,11 +167,11 @@ describe('설정 › BTS 연결', () => {
     그리기(이은연결);
 
     fireEvent.click(await screen.findByRole('button', { name: '연결 해제' }));
-    expect(screen.getByText('연결을 해제하면 이 프로젝트의 실패 판정은 QA Hub 에서 합니다')).toBeTruthy();
+    expect(screen.getByText('연결을 해제하면 이 프로젝트의 실패 판정은 Test Commander 에서 합니다')).toBeTruthy();
     expect(끊음).not.toHaveBeenCalled();
     const 창 = screen.getByRole('dialog');
     fireEvent.click(within(창).getByRole('button', { name: '연결 해제' }));
     await waitFor(() => expect(끊음).toHaveBeenCalledWith(3));
-    await waitFor(() => expect((screen.getByRole('button', { name: '저장하고 BTS 자동 설정' }) as HTMLButtonElement).disabled).toBe(false));
+    await waitFor(() => expect((screen.getByRole('button', { name: '저장하고 Issue Bunker 자동 설정' }) as HTMLButtonElement).disabled).toBe(false));
   });
 });

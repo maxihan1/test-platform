@@ -44,10 +44,10 @@ export function 왼쪽줄({
   const t = use말();
   return (
     <div className="rail">
-      <a className="rail-logo" href={집(user, service?.prefix ?? null)} aria-label={t("QA Hub 홈")} title="QA Hub">
+      <a className="rail-logo" href={집(user, service?.prefix ?? null)} aria-label={t("Test Commander 홈")} title="Test Commander">
         <svg width="32" height="32" viewBox="0 0 28 28" aria-hidden="true">
           <rect width="28" height="28" rx="8" fill="var(--accent)" />
-          <path d="M8 14.5l4 4 8-9" fill="none" stroke="var(--on-accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+          <path className="rail-check" pathLength={1} d="M8 14.5l4 4 8-9" fill="none" stroke="var(--on-accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </a>
       <애플리케이션줄 user={user} service={service} onService={onService} 새로만들기={새로만들기} />

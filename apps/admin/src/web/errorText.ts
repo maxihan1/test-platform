@@ -64,7 +64,7 @@ export const 오류말: Record<string, string> = {
   MERGE_ACTIVE: '반영이 대기 중이거나 진행 중이라 지금은 고를 수 없습니다',
 
   // Android 앱 실행 (도메인/실행 §8.2 · §8.10). 케이스 테스트 실행 · 실행 만들기가 같이 만난다
-  FARM_OFF: '이 서버에는 Android 앱을 돌릴 디바이스 팜이 연결되어 있지 않습니다',
+  FARM_OFF: '이 서버에는 Android 앱을 돌릴 Device VISION 이 연결되어 있지 않습니다',
   DEVICE_BUSY: '디바이스가 다른 실행에 쓰이고 있습니다',
 
   // E2E 시나리오 (도메인/시나리오 §7). TRIAL_BUSY · TRIAL_NOT_FOUND 는 시험 실행 화면이 따로 다룬다

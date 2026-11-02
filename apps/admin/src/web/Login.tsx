@@ -75,7 +75,7 @@ function SSO로그인({ on언어, 떠난다 }: { on언어: (고른: 언어) => v
           </svg>
         </div>
         <div className="login-head">
-          <p className="login-app">QA Hub</p>
+          <p className="login-app">Test Commander</p>
           <h1 className="login-greet">{t('로그인')}</h1>
           <p className="login-sub">{t('로그인하면 맡은 애플리케이션이 열립니다.')}</p>
         </div>
@@ -201,7 +201,7 @@ export function Login({
   return (
     <div className="login">
       <form className="login-box" onSubmit={(e) => void submit(e)}>
-        <div className="login-title">QA Hub</div>
+        <div className="login-title">Test Commander</div>
         <h1 className="login-greet">{t('로그인')}</h1>
         {/* 빈 상자 하나만 두면 무엇을 하는 화면인지 안 읽힌다. 짙은 바탕 위 밝은 상자로
             들어가는 자리임을 분명히 한다 (docs/design-mockup.html) */}

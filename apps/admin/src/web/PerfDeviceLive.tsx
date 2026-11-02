@@ -140,7 +140,7 @@ export function PerfDeviceLive({ run, 다시읽기, 쓰나 }: { run: 실행상�
               <section key={d.serial} className={나쁨 ? 'pd-tile bad' : 'pd-tile'} aria-label={d.model}>
                 <div className="pd-kv">
                   <b>{d.model}</b>
-                  <span className="perf-tag">{d.where === 'FARM' ? t('디바이스 팜') : t('내 컴퓨터')}</span>
+                  <span className="perf-tag">{d.where === 'FARM' ? t('Device VISION') : t('내 컴퓨터')}</span>
                 </div>
                 <div>
                   <span className={벗어남.has('AVG_FPS') || 벗어남.has('LOW1_FPS') ? 'perf-big perf-err' : 'perf-big'}>{글(최근?.fps, (n) => String(Math.round(n)))}</span> <span className="perf-faint">FPS</span>

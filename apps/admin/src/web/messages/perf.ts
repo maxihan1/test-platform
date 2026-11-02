@@ -155,7 +155,7 @@ export const 성능말: Record<string, string> = {
   // 설정 › 성능 에이전트
   '성능 에이전트': 'Performance agents',
   '등록된 에이전트': 'Registered agents',
-  'QA Hub 가 보낸 테스트만 실행하고 대상 서버로 등록된 주소에만 부하를 보냅니다': 'Agents run only tests sent by QA Hub and load only registered target servers',
+  'Test Commander 가 보낸 테스트만 실행하고 대상 서버로 등록된 주소에만 부하를 보냅니다': 'Agents run only tests sent by Test Commander and load only registered target servers',
   '아직 붙은 에이전트가 없습니다': 'No agents yet',
   역할: 'Role',
   호스트: 'Host',

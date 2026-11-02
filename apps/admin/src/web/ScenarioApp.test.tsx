@@ -103,10 +103,10 @@ describe('목록의 실행 위치', () => {
     render(<ScenarioList service="ZAA" {...(앱종류 === undefined ? {} : { kind: 앱종류 })} envs={[{ env: 'qa', baseUrl: 'https://qa.example.com' }]} 할수={() => true} />);
   };
 
-  it('앱 · 게임 애플리케이션은 실행 위치 · 디바이스 팜을 늘 알린다', async () => {
+  it('앱 · 게임 애플리케이션은 실행 위치 · Device VISION 을 늘 알린다', async () => {
     그리기('GAME');
     expect(await screen.findByText(실행위치)).toBeTruthy();
-    expect(screen.getByText('실행 위치 · 디바이스 팜', { exact: false })).toBeTruthy();
+    expect(screen.getByText('실행 위치 · Device VISION', { exact: false })).toBeTruthy();
     expect(screen.queryByText(/시험 실행은 내 컴퓨터 테스트 실행기가/u)).toBeNull();
   });
 
@@ -117,7 +117,7 @@ describe('목록의 실행 위치', () => {
   });
 });
 
-describe('결과 화면 — 폰 줄과 디바이스 팜 기록', () => {
+describe('결과 화면 — 폰 줄과 Device VISION 기록', () => {
   it('폰 연결이 열린 실행은 정보 칸에 폰 한 줄, 맨 아래에 영상 · 로그 · 게임 실패 파일을 둔다', async () => {
     연다(
       결과({
@@ -133,7 +133,7 @@ describe('결과 화면 — 폰 줄과 디바이스 팜 기록', () => {
     const 폰 = await screen.findByText('SM-S921N · Android 14');
     expect(폰.previousElementSibling?.textContent).toBe('폰');
 
-    const 칸 = screen.getByRole('region', { name: '디바이스 팜 기록' });
+    const 칸 = screen.getByRole('region', { name: 'Device VISION 기록' });
     expect(칸.querySelector('video')?.getAttribute('src')).toBe('/api/runs/77/scenario/farm/screen-1.mp4');
     const 받기 = [...칸.querySelectorAll('a')].map((a) => [a.textContent, a.getAttribute('href')]);
     expect(받기).toEqual([
@@ -146,7 +146,7 @@ describe('결과 화면 — 폰 줄과 디바이스 팜 기록', () => {
     연다(결과());
     await screen.findByText('단계별 결과');
     expect(screen.queryByText('폰')).toBeNull();
-    expect(screen.queryByRole('region', { name: '디바이스 팜 기록' })).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Device VISION 기록' })).toBeNull();
   });
 });
 
@@ -171,7 +171,7 @@ describe('조립 화면 — 디바이스 고르개와 실행 위치', () => {
     render(<ScenarioBuild id={12} 띠서비스={앱서비스()} user={앱사람()} />);
 
     expect(await screen.findByText(실행위치)).toBeTruthy();
-    expect(screen.getByText('시험 실행은 내 컴퓨터 테스트 실행기가 켜져 있으면 거기 꽂은 폰에서, 꺼져 있으면 디바이스 팜에서 돕니다')).toBeTruthy();
+    expect(screen.getByText('시험 실행은 내 컴퓨터 테스트 실행기가 켜져 있으면 거기 꽂은 폰에서, 꺼져 있으면 Device VISION 에서 돕니다')).toBeTruthy();
   });
 
   it('PC 로 저장된 옛 Android 앱 시나리오는 그 값도 보이고 바꾸라고 알린다', async () => {

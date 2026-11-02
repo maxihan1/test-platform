@@ -17,7 +17,7 @@ export function ProjectPick({ user, 마지막, onPick, onLogout }: Props) {
   return (
     <div className="pp">
       <header className="pp-top">
-        <span className="pp-logo">QA Hub</span>
+        <span className="pp-logo">Test Commander</span>
         <span className="pp-gap" />
         <span className="pp-user">{user.displayName}</span>
         <button type="button" className="btn ghost" onClick={onLogout}>

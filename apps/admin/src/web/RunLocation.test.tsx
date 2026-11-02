@@ -16,10 +16,10 @@ describe('RunLocation', () => {
     expect(container.innerHTML).toBe('');
   });
 
-  it('Android 앱이 있으면 「실행 위치 · 디바이스 팜」 한 줄이다', () => {
+  it('Android 앱이 있으면 「실행 위치 · Device VISION」 한 줄이다', () => {
     render(<RunLocation android />);
 
-    expect(screen.getByText('실행 위치 · 디바이스 팜')).toBeTruthy();
+    expect(screen.getByText('실행 위치 · Device VISION')).toBeTruthy();
   });
 
   it('고르개가 아니다 — 라디오가 없고 「로컬」도 「준비 중」도 없다', () => {

@@ -1,4 +1,4 @@
-/* 사이드바 왼쪽 줄 · 사이드바 머리 · 찾기 칸 · 맨 위 프로젝트 고르개 · 찾기 창 (SPEC 공통/5-화면공통 §8 「껍데기」 · DESIGN.md 「PC 껍데기」 · 2026-10-30). 색은 토큰만 쓴다.
+/* 사이드바 왼쪽 줄 · 사이드바 머리 · 찾기 칸 · 로고 · 프로젝트 고르개 · 찾기 창 (SPEC 공통/5-화면공통 §8 「껍데기」 · DESIGN.md 「PC 껍데기」 · 2026-10-30). 색은 토큰만 쓴다.
    줄은 `.side` 안의 첫 칸이다. 사이드바를 접어도 줄은 그대로 남는다 — 폭은 styles.css 의 `.wrap` 격자가 줄 몫(60px)을 더해 잡는다 */
 
 .rail {
@@ -409,7 +409,7 @@
   display: none;
 }
 
-/* ── 맨 위 프로젝트 고르개 — 가장 위 층이라 사이드바 첫 줄이다. 오른쪽 끝에 접기 단추가 같이 선다 (2026-11-02 바닥에서 옮김) ── */
+/* ── 맨 위 줄 — 제품 로고와 접기 단추. 그 아래 줄이 프로젝트 고르개다 (2026-11-02) ── */
 .side-top {
   display: flex;
   align-items: center;
@@ -423,10 +423,82 @@
   margin-bottom: 0;
 }
 
-/* 테두리를 벗어 글자 하나처럼 보인다 */
+/* 제품 로고 — 「Test Commander」 (2026-11-02 시안 1). 처음 그려질 때 한 번만 움직인다 — 왼쪽 줄 마크의 체크가 그어지고(.rail-check),
+   이어서 「Commander」가 옆에서 밀려 나오며 오렌지 밑줄이 그어졌다 사라진다 (최종 2판 ㄱ). 합 1.5초 — DESIGN 원칙 4 의 예외(사용자가 고른 로고) */
+.side-logo {
+  flex: 1;
+  min-width: 0;
+  padding: 0 4px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.side-logo b {
+  display: inline-block;
+  position: relative;
+  font-weight: inherit;
+  color: var(--accent-mark);
+  animation: logo-slide 0.4s 0.3s var(--ease) both;
+}
+
+.side-logo b::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 2px;
+  background: var(--accent-mark);
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: logo-line 0.9s 0.6s var(--ease) both;
+}
+
+.rail-check {
+  /* 선 길이를 1 로 맞춰(pathLength) 그리는 시간이 실제 길이와 어긋나지 않게 한다 */
+  stroke-dasharray: 1;
+  animation: logo-check 0.35s 0.05s var(--ease) both;
+}
+
+@keyframes logo-check {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes logo-slide {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes logo-line {
+  0% { transform: scaleX(0); opacity: 1; }
+  45% { transform: scaleX(1); opacity: 1; }
+  100% { transform: scaleX(1); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .side-logo b,
+  .side-logo b::after,
+  .rail-check {
+    animation: none;
+  }
+}
+
+.folded .side-logo {
+  /* display:none 이면 펼 때 다시 그려져 움직임이 또 돈다 — 폭만 없앤다 */
+  flex: 0 0 0;
+  width: 0;
+  padding: 0;
+  visibility: hidden;
+}
+
+/* 로고 아래 프로젝트 고르개 — 테두리를 벗어 글자 하나처럼 보인다 */
 .side-proj {
   position: relative;
-  flex: 1;
   min-width: 0;
   display: flex;
   align-items: center;
@@ -549,11 +621,12 @@
 
 /* 접으면 프로젝트 아이콘만 남는다. 고르개는 지우지 않고 아이콘 위에 투명하게 덮어 — 누르면 펼쳐지고 키보드도 닿는다 */
 .folded .side-top {
-  flex-direction: column;
+  justify-content: center;
 }
 
 .folded .side-proj {
   flex: none;
+  align-self: center;
   width: 40px;
   height: 40px;
   justify-content: center;

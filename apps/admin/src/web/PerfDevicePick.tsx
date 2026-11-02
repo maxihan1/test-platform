@@ -53,7 +53,7 @@ export function PerfDevicePick({
           ) : (
             <>
               <span className={일.오류 === null ? 'perf-faint' : 'perf-err'}>
-                {일.도나 ? t('AI 가 디바이스 팜 기기 목록에서 사양별로 고르는 중입니다') : (일.오류 ?? t('디바이스 팜 기기 목록에서 고사양 · 중사양 · 저사양 대표 기기를 고릅니다'))}
+                {일.도나 ? t('AI 가 Device VISION 기기 목록에서 사양별로 고르는 중입니다') : (일.오류 ?? t('Device VISION 기기 목록에서 고사양 · 중사양 · 저사양 대표 기기를 고릅니다'))}
               </span>
               <button type="button" className="btn ghost small" disabled={일.도나} onClick={() => void 일.맡기기(() => perfApi.suggestDevices(serviceId))}>
                 {t('추천 받기')}
@@ -65,7 +65,7 @@ export function PerfDevicePick({
       {기기들 === null ? (
         <span className="perf-faint">{t('기기 목록을 읽는 중입니다')}</span>
       ) : 기기들.length === 0 ? (
-        <span className="perf-faint">{t('고를 수 있는 기기가 없습니다. 디바이스 팜이나 내 컴퓨터 테스트 실행기가 켜져 있는지 확인해 주세요')}</span>
+        <span className="perf-faint">{t('고를 수 있는 기기가 없습니다. Device VISION 이나 내 컴퓨터 테스트 실행기가 켜져 있는지 확인해 주세요')}</span>
       ) : (
         <div className="perf-table-box">
           <table className="perf-table" aria-label={t('측정 기기')}>
@@ -97,9 +97,9 @@ export function PerfDevicePick({
                     <td>
                       {d.model} <span className="mono perf-faint">{d.serial}</span>
                     </td>
-                    <td>{d.where === 'FARM' ? t('디바이스 팜') : t('내 컴퓨터')}</td>
+                    <td>{d.where === 'FARM' ? t('Device VISION') : t('내 컴퓨터')}</td>
                     <td className="mono">{d.os}</td>
-                    <td>{d.status === 'BUSY' ? t('다른 실행에서 사용 중') : 팜만 && d.where === 'LOCAL' ? t('케이스로 잴 때는 디바이스 팜 폰만') : t('사용 가능')}</td>
+                    <td>{d.status === 'BUSY' ? t('다른 실행에서 사용 중') : 팜만 && d.where === 'LOCAL' ? t('케이스로 잴 때는 Device VISION 폰만') : t('사용 가능')}</td>
                   </tr>
                 );
               })}

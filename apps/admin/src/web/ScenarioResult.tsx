@@ -169,8 +169,8 @@ export function ScenarioResult({
           ))}
         </ol>
         {팜.length === 0 ? null : (
-          <section aria-label={t('디바이스 팜 기록')}>
-            <h2 className="scn-heading">{t('디바이스 팜 기록')}</h2>
+          <section aria-label={t('Device VISION 기록')}>
+            <h2 className="scn-heading">{t('Device VISION 기록')}</h2>
             <팜증적 주소={(name) => scenarioApi.runFarm(runId, name)} files={팜} />
           </section>
         )}
