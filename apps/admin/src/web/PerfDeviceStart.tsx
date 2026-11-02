@@ -150,7 +150,7 @@ export function PerfDeviceStart({
             {게임
               ? 조작칸('GAME', '게임 케이스', '고른 게임 케이스를 기기마다 반복해 돌리며 측정합니다. Device VISION 폰만 됩니다')
               : 조작칸('APPIUM', 'Appium 케이스', '고른 Android 앱 케이스를 기기마다 반복해 돌리며 측정합니다. Device VISION 폰만 됩니다')}
-            {조작칸('MANUAL', '직접 플레이', 'Device VISION PC 에 꽂힌 폰을 손에 들고 플레이하는 동안 기록합니다')}
+            {조작칸('MANUAL', '직접 플레이', 'Device VISION 에 꽂힌 폰을 손에 들고 플레이하는 동안 기록합니다')}
           </div>
         </section>
 

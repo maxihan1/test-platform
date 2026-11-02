@@ -173,7 +173,7 @@ export function 자동설정결과({ 결과 }: { 결과: BTS설정결과[] | nul
   );
 }
 
-/** deploy.sh 에 넣을 한 줄. 배포 서버는 회사 것이라 QA Hub 가 못 고친다 — 사람 손이 남는 유일한 자리다 */
+/** deploy.sh 에 넣을 한 줄. 배포 서버는 회사 것이라 Test Commander 가 못 고친다 — 사람 손이 남는 유일한 자리다 */
 export function 배포한줄({ 바탕, projectId, 원문 }: { 바탕: string; projectId: number; 원문: string | null }) {
   const t = use말();
   const [복사, set복사] = useState<'ok' | 'no' | null>(null);

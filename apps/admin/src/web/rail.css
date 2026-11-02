@@ -424,7 +424,7 @@
 }
 
 /* 제품 로고 — 「Test Commander」 (2026-11-02 시안 1). 처음 그려질 때 한 번만 움직인다 — 왼쪽 줄 마크의 체크가 그어지고(.rail-check),
-   이어서 「Commander」가 옆에서 밀려 나오며 오렌지 밑줄이 그어졌다 사라진다 (최종 2판 ㄱ) */
+   이어서 「Commander」가 옆에서 밀려 나오며 오렌지 밑줄이 그어졌다 사라진다 (최종 2판 ㄱ). 합 1.5초 — DESIGN 원칙 4 의 예외(사용자가 고른 로고) */
 .side-logo {
   flex: 1;
   min-width: 0;
@@ -442,7 +442,7 @@
   position: relative;
   font-weight: inherit;
   color: var(--accent-mark);
-  animation: logo-slide 0.5s 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation: logo-slide 0.4s 0.3s var(--ease) both;
 }
 
 .side-logo b::after {
@@ -455,16 +455,17 @@
   background: var(--accent-mark);
   transform: scaleX(0);
   transform-origin: left;
-  animation: logo-line 1.4s 0.7s ease both;
+  animation: logo-line 0.9s 0.6s var(--ease) both;
 }
 
 .rail-check {
-  stroke-dasharray: 22;
-  animation: logo-check 0.45s 0.05s ease-out both;
+  /* 선 길이를 1 로 맞춰(pathLength) 그리는 시간이 실제 길이와 어긋나지 않게 한다 */
+  stroke-dasharray: 1;
+  animation: logo-check 0.35s 0.05s var(--ease) both;
 }
 
 @keyframes logo-check {
-  from { stroke-dashoffset: 22; }
+  from { stroke-dashoffset: 1; }
   to { stroke-dashoffset: 0; }
 }
 
@@ -488,7 +489,11 @@
 }
 
 .folded .side-logo {
-  display: none;
+  /* display:none 이면 펼 때 다시 그려져 움직임이 또 돈다 — 폭만 없앤다 */
+  flex: 0 0 0;
+  width: 0;
+  padding: 0;
+  visibility: hidden;
 }
 
 /* 로고 아래 프로젝트 고르개 — 테두리를 벗어 글자 하나처럼 보인다 */
@@ -621,6 +626,7 @@
 
 .folded .side-proj {
   flex: none;
+  align-self: center;
   width: 40px;
   height: 40px;
   justify-content: center;
