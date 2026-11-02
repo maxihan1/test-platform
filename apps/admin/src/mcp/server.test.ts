@@ -46,7 +46,9 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
   const 부르기: 부르기함수 = async (자리, method, 경로, 몸) => {
     BTS받은것.push({ 열쇠: 자리.botKey, method, 경로, 몸 });
     if (경로 === '/api/v1/issues/XMQ-404') return { status: 404, json: null };
-    return { status: 200, json: { data: 경로.startsWith('/api/v1/issues/') ? { key: 'XMQ-12', summary: '로그인 잠금' } : [{ key: 'XMQ-12' }] } };
+    const 이슈 = { key: 'XMQ-12', summary: '로그인 잠금', currentStateKey: 'closed', assigneeId: 'u1', priority: 3, customFields: { 등급: '높음' } };
+    if (경로.startsWith('/api/v1/issues/')) return { status: 200, json: { data: { ...이슈, description: '가'.repeat(5000) } } };
+    return { status: 200, json: { data: Array.from({ length: 31 }, (_, i) => ({ ...이슈, key: `XMQ-${String(i + 1)}` })) } };
   };
 
   const q = async (sql: string, 값: unknown[] = []) => (await import('../db/index.js')).pool.query(sql, 값);
@@ -56,6 +58,7 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
     const 앱들 = (await q(`SELECT id FROM service WHERE prefix IN ('XMC', 'XMCB')`)).rows.map((r: { id: string }) => Number(r.id));
     await q('DELETE FROM req_case WHERE service_id = ANY($1)', [앱들]);
     await q('DELETE FROM prd_version WHERE service_id = ANY($1)', [앱들]);
+    await q('DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = ANY($1))', [앱들]);
     await q('DELETE FROM test_run WHERE service_id = ANY($1)', [앱들]);
     await q('DELETE FROM test_case WHERE tc_id = ANY($1)', [케이스들]);
     await q('DELETE FROM user_project WHERE username = ANY($1)', [계정들]);
@@ -135,6 +138,13 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
           .rows[0].run_id,
       );
     내실행 = await 실행(내앱, 'XMC');
+    await q(
+      `INSERT INTO run_item (run_id, tc_id, platform, attempt, tc_name, file_path, timeout_ms, precondition, params, expected, param_schema, expected_schema, status, duration_ms, finished_at, error)
+       VALUES ($1, 'XMC-FN-001', 'desktop', 1, '다섯 번 틀리면 잠금', 'xmc/a.spec.ts', 300000, '[]', $2, '{}', '{"type":"object"}', '{}', 'FAIL', 10, now(), $3),
+              ($1, 'XMC-FN-002', 'desktop', 1, '비밀번호 길이', 'xmc/b.spec.ts', 300000, '[]', '{}', '{}', '{}', '{}', 'PASS', 10, now(), NULL),
+              ($1, 'XMC-FN-002', 'mobile', 1, '비밀번호 길이', 'xmc/b.spec.ts', 300000, '[]', '{}', '{}', '{}', '{}', 'NA', 10, now(), NULL)`,
+      [내실행, JSON.stringify({ 메모: '나'.repeat(300), 횟수: 5 }), JSON.stringify({ message: '다'.repeat(600), stack: '라'.repeat(2000) })],
+    );
     남실행 = await 실행(남앱, 'XMCB');
 
     app = Fastify();
@@ -188,7 +198,7 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
   it('처음 인사와 도구 목록 — 조회 도구 다섯', async () => {
     const 인사 = await 부르기MCP('pat_me000001', 'initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'xmc', version: '1' } });
     expect(인사.statusCode).toBe(200);
-    expect(인사.json()).toMatchObject({ result: { serverInfo: { name: 'qa-hub' } } });
+    expect(인사.json()).toMatchObject({ result: { serverInfo: { name: 'qa-hub' }, instructions: expect.stringContaining('기대값의 근거는 사람이 확정한 PRD 요구 문장뿐이다') } });
     const 목록 = (await 부르기MCP('pat_me000001', 'tools/list')).json() as 답몸;
     expect(목록.result!.tools!.map((t) => t.name).sort()).toEqual(['bts_search', 'map_search', 'note_read', 'prd_search', 'run_result']);
   });
@@ -211,6 +221,9 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
     expect((await 도구('map_search', { service: 'XMC', url: 'login' })).json()).toEqual(기대);
     expect((await 도구('map_search', { service: 'XMC', url: '/edit' })).json()).toEqual(기대);
     expect((await 도구('map_search', { service: 'XMC', tcId: 'XMC-FN-002' })).글).toContain('NOT_FOUND');
+    expect((await 도구('map_search', { service: 'XMC', reqId: 'XMC-REQ-002' })).json()).toEqual({ cases: [], empty: 'XMC-REQ-002 를 덮는 살아 있는 케이스가 아직 없다' });
+    expect((await 도구('map_search', { service: 'XMC', reqId: 'XMC-REQ-999' })).글).toContain('NOT_FOUND — XMC-REQ-999 는 지금 PRD 판에 없는 요구다');
+    expect((await 도구('map_search', { service: 'XMC', url: '/nowhere' })).json()).toMatchObject({ cases: [], empty: expect.stringContaining('/nowhere') });
     expect((await 도구('map_search', { service: 'XMC', tcId: 'XMCB-FN-001' })).글).toContain('FORBIDDEN');
   });
 
@@ -222,19 +235,29 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
     expect(BTS받은것).toHaveLength(0);
   });
 
-  it('실행 결과 보기 — 내 애플리케이션 실행은 화면과 같은 몸, 남의 실행은 FORBIDDEN, 없는 번호는 NOT_FOUND', async () => {
-    expect((await 도구('run_result', { runId: 내실행 })).json()).toMatchObject({ runId: 내실행, items: [], itemsTotal: 0 });
+  it('실행 결과 보기 — 통과는 수로만, 실패 · 미실행만 줄로 잘라서 싣고, 남의 실행은 FORBIDDEN, 없는 번호는 NOT_FOUND', async () => {
+    const 몸 = (await 도구('run_result', { runId: 내실행 })).json();
+    expect(몸).toMatchObject({ runId: 내실행, triggeredBy: 'xmc', counts: { total: 3, pass: 1, fail: 1, na: 1 }, evidence: [] });
+    for (const 뺀칸 of ['itemsTotal', 'installedApps', 'triggeredByName', 'truncated']) expect(몸).not.toHaveProperty(뺀칸);
+    const 줄 = 몸.items as Record<string, unknown>[];
+    expect(줄.map((i) => [i.tcId, i.status])).toEqual([['XMC-FN-001', 'FAIL'], ['XMC-FN-002', 'NA']]);
+    expect(Object.keys(줄[0]!).sort()).toEqual(['attempt', 'durationMs', 'error', 'params', 'platform', 'status', 'tcId', 'tcName', 'unconfirmed']);
+    expect(줄[0]!.error).toEqual({ message: `${'다'.repeat(500)}…(이하 생략)`, stack: `${'라'.repeat(1000)}…(이하 생략)` });
+    expect(줄[0]!.params).toEqual({ 메모: `${'나'.repeat(200)}…(이하 생략)`, 횟수: 5 });
     expect((await 도구('run_result', { runId: 남실행 })).글).toContain('FORBIDDEN');
     expect((await 도구('run_result', { runId: 2_000_000_000 })).글).toContain('NOT_FOUND');
   });
 
   it('BTS 찾기 — 부른 사람의 PAT 로 BTS 를 부르고, 이은 BTS 프로젝트 밖 키 · 배정 밖 프로젝트는 막는다', async () => {
     const 하나 = await 도구('bts_search', { projectId: 내프로젝트, issueKey: 'XMQ-12' });
-    expect(하나.json()).toEqual({ key: 'XMQ-12', summary: '로그인 잠금' });
+    expect(하나.json()).toEqual({ key: 'XMQ-12', title: '로그인 잠금', status: 'closed', body: `${'가'.repeat(4000)}…(이하 생략)` });
     expect(BTS받은것[0]).toMatchObject({ 열쇠: 'pat_me000001', method: 'GET', 경로: '/api/v1/issues/XMQ-12' });
 
-    await 도구('bts_search', { projectId: 내프로젝트, query: '잠금 "따옴표"' });
-    expect(BTS받은것[1]).toMatchObject({ 열쇠: 'pat_me000001', method: 'POST', 경로: '/api/v1/search/aql', 몸: { projectKey: 'XMQ', query: 'text ~ "잠금 \\"따옴표\\""' } });
+    const 찾음 = (await 도구('bts_search', { projectId: 내프로젝트, query: '잠금 "따옴표"' })).json() as { items: unknown[]; truncated?: boolean };
+    expect(BTS받은것[1]).toMatchObject({ 열쇠: 'pat_me000001', method: 'POST', 경로: '/api/v1/search/aql', 몸: { projectKey: 'XMQ', query: 'text ~ "잠금 \\"따옴표\\""', size: 31 } });
+    expect(찾음.items).toHaveLength(30);
+    expect(찾음.items[0]).toEqual({ key: 'XMQ-1', title: '로그인 잠금', status: 'closed' });
+    expect(찾음.truncated).toBe(true);
 
     expect((await 도구('bts_search', { projectId: 내프로젝트, issueKey: 'XMQ-404' })).글).toContain('NOT_FOUND');
     expect((await 도구('bts_search', { projectId: 내프로젝트, issueKey: 'OTHER-1' })).글).toContain('FORBIDDEN');

@@ -18,6 +18,13 @@ const 없음 = (detail: string): 도구답 => ({ ok: false, error: 'NOT_FOUND', 
 
 // 한 번에 돌려줄 줄 수. AI 의 맥락 창을 한 도구가 다 먹지 않게 한다
 const 최대줄 = 30;
+// 줄 하나 안의 목록(케이스의 요구 · 화면) 상한 — 30줄 × 긴 목록이 다시 맥락 창을 채우지 않게
+const 안목록 = 10;
+// 긴 글 상한 — 판단에 필요한 머리만 싣는다 (도메인/BTS §7 「MCP」)
+export const 글상한 = { 오류: 500, stack: 1000, 입력값: 200, 이슈본문: 4000 } as const;
+
+/** 상한을 넘으면 자르고 잘렸다고 끝에 적는다 — 말없이 자르면 AI 가 그게 전부인 줄 안다 */
+export const 자르기 = (글: string, 상한: number): string => (글.length > 상한 ? `${글.slice(0, 상한)}…(이하 생략)` : 글);
 
 async function db() {
   const { pool } = await import('../db/index.js');
@@ -35,16 +42,18 @@ function 열기(사람: 사용자, 통로: string, service: string): number | �
 export async function prd찾기(사람: 사용자, service: string, query: string): Promise<도구답> {
   const 번호 = 열기(사람, '/api/prd', service);
   if (typeof 번호 !== 'number') return 번호;
-  const [판, 지도] = await Promise.all([지금판(번호), 케이스지도(번호)]);
+  const 판 = await 지금판(번호);
   if (판 === null) return 없음(`${service} 표준 기획서가 아직 없다`);
   const 낱말 = query.trim().toLowerCase();
   const 맞음 = 판.items.filter((i) => 낱말 === '' || [i.reqId, i.feature, i.text].some((글) => 글.toLowerCase().includes(낱말)));
+  const 실을것 = 맞음.slice(0, 최대줄);
+  const 지도 = await 케이스지도(번호, 실을것.map((i) => i.reqId));
   return {
     ok: true,
     data: {
       version: 판.version,
       total: 맞음.length,
-      items: 맞음.slice(0, 최대줄).map((i) => ({ reqId: i.reqId, feature: i.feature, text: i.text, status: i.status, cases: (지도[i.reqId] ?? []).map((c) => c.tcId) })),
+      items: 실을것.map((i) => ({ reqId: i.reqId, feature: i.feature, text: i.text, status: i.status, cases: (지도[i.reqId] ?? []).map((c) => c.tcId) })),
     },
   };
 }
@@ -58,6 +67,8 @@ export async function 지도찾기(사람: 사용자, service: string, 찾을것
   const pool = await db();
   // 지운(is_active 아닌) 케이스는 빼고 센다 — 케이스지도(prd_search)와 같은 기준. 상한은 살아 있는 케이스에 건다
   let 케이스들: string[];
+  // 빈 결과의 까닭 — 없는 것과 아직 덮는 케이스가 없는 것을 AI 가 가려 다음 일을 고르게 한다
+  let 빈까닭 = '';
   if (찾을것.tcId !== undefined) {
     // 다른 애플리케이션 케이스 번호를 이 애플리케이션 권한으로 읽지 못하게 머리를 맞춘다
     if (케이스의서비스(찾을것.tcId) !== service) return 막힘(찾을것.tcId);
@@ -68,22 +79,31 @@ export async function 지도찾기(사람: 사용자, service: string, 찾을것
     const r = await pool.query<{ tc_id: string }>(
       `SELECT DISTINCT r.tc_id FROM req_case r JOIN test_case t ON t.tc_id = r.tc_id AND t.is_active
         WHERE r.service_id = $1 AND r.req_id = $2 ORDER BY r.tc_id LIMIT $3`,
-      [번호, 찾을것.reqId, 최대줄],
+      [번호, 찾을것.reqId, 최대줄 + 1],
     );
     케이스들 = r.rows.map((x) => x.tc_id);
+    if (케이스들.length === 0) {
+      const 판 = await 지금판(번호);
+      if (!(판?.items ?? []).some((i) => i.reqId === 찾을것.reqId)) return 없음(`${찾을것.reqId} 는 지금 PRD 판에 없는 요구다`);
+      빈까닭 = `${찾을것.reqId} 를 덮는 살아 있는 케이스가 아직 없다`;
+    }
   } else if (찾을것.url !== undefined) {
     // 파일 안에서 열리는 화면(open_urls — 「/board/:n/edit」 같은)도 찾는다
     const r = await pool.query<{ tc_id: string }>(
       `SELECT DISTINCT c.tc_id FROM case_screen c JOIN test_case t ON t.tc_id = c.tc_id AND t.is_active
         WHERE c.tc_id LIKE $1 AND (strpos(c.screen_url, $2) > 0 OR EXISTS (SELECT 1 FROM unnest(c.open_urls) u WHERE strpos(u, $2) > 0))
         ORDER BY c.tc_id LIMIT $3`,
-      [`${service}-%`, 찾을것.url, 최대줄],
+      [`${service}-%`, 찾을것.url, 최대줄 + 1],
     );
     케이스들 = r.rows.map((x) => x.tc_id);
+    if (케이스들.length === 0) 빈까닭 = `「${찾을것.url}」 를 거치는 살아 있는 케이스가 없다`;
   } else {
     return { ok: false, error: 'BAD_INPUT', detail: 'reqId · tcId · url 중 하나' };
   }
 
+  // 하나 더 읽어 넘쳤는지 안다
+  const 잘림 = 케이스들.length > 최대줄;
+  케이스들 = 케이스들.slice(0, 최대줄);
   const [요구, 화면] = await Promise.all([
     pool.query<{ tc_id: string; req_id: string; axis: string }>(
       `SELECT r.tc_id, r.req_id, r.axis FROM req_case r JOIN test_case t ON t.tc_id = r.tc_id AND t.is_active
@@ -99,16 +119,24 @@ export async function 지도찾기(사람: 사용자, service: string, 찾을것
   return {
     ok: true,
     data: {
-      cases: 케이스들.map((tcId) => ({
-        tcId,
-        reqs: 요구.rows.filter((x) => x.tc_id === tcId).map((x) => ({ reqId: x.req_id, axis: x.axis })),
-        screens: 화면.rows.filter((x) => x.tc_id === tcId).map((x) => ({ name: x.name, url: x.screen_url, ...(x.open_urls.length > 0 && { opens: x.open_urls }) })),
-      })),
+      cases: 케이스들.map((tcId) => {
+        const reqs = 요구.rows.filter((x) => x.tc_id === tcId);
+        const screens = 화면.rows.filter((x) => x.tc_id === tcId);
+        return {
+          tcId,
+          reqs: reqs.slice(0, 안목록).map((x) => ({ reqId: x.req_id, axis: x.axis })),
+          screens: screens.slice(0, 안목록).map((x) => ({ name: x.name, url: x.screen_url, ...(x.open_urls.length > 0 && { opens: x.open_urls.slice(0, 안목록) }) })),
+          ...(reqs.length > 안목록 && { moreReqs: reqs.length - 안목록 }),
+          ...(screens.length > 안목록 && { moreScreens: screens.length - 안목록 }),
+        };
+      }),
+      ...(잘림 && { truncated: true }),
+      ...(빈까닭 !== '' && { empty: 빈까닭 }),
     },
   };
 }
 
-/** 실행 결과 보기 — 실행 결과 화면이 읽는 것 그대로 (GET /api/runs/:runId 와 같은 권한) */
+/** 실행 결과 보기 — 판단에 쓰는 칸만. 통과는 숫자로, 실패 · 미실행만 줄로 (GET /api/runs/:runId 와 같은 권한 · 도메인/BTS §7 「MCP」 run_result) */
 export async function 실행보기(사람: 사용자, runId: number): Promise<도구답> {
   const 서비스 = await 자원의서비스({ 종류: '실행', 번호: runId });
   if (서비스 === 서비스없음) return 막힘(String(runId));
@@ -118,10 +146,35 @@ export async function 실행보기(사람: 사용자, runId: number): Promise<�
   const 실행 = await findRun(runId);
   // 시나리오 실행은 케이스 실행 모양이 아니다 — 1차는 케이스 실행만
   if (실행 === null) return 없음(String(runId));
-  // 회귀 실행은 항목이 수천 줄이다 — 실패를 앞에 두고 최대줄 만 싣는다. 다 보려면 화면을 연다
-  const 차례 = (s: string) => (s === 'FAIL' ? 0 : s === 'NA' ? 1 : 2);
-  const items = [...실행.items].sort((a, b) => 차례(a.status) - 차례(b.status)).slice(0, 최대줄);
-  return { ok: true, data: { ...실행, items, itemsTotal: 실행.items.length } };
+  // 회귀 실행은 항목이 수천 줄이다 — 통과는 counts 숫자로 충분하고, AI 가 볼 것은 실패 · 미실행이다. 다 보려면 화면을 연다
+  // 빼는 칸 — 입력 칸 모양 · 기록 번호 · 원래 결과 · 깔린 앱 · 서버 안 증적 경로는 판단에 안 쓰고, itemsTotal 은 counts.total 과 같다
+  const { items: 전부, evidence, installedApps: _깔린, triggeredBy, triggeredByName, ...머리 } = 실행;
+  const 못통과 = 전부.filter((i) => i.status !== 'PASS').sort((a, b) => (a.status === b.status ? 0 : a.status === 'FAIL' ? -1 : 1));
+  const items = 못통과.slice(0, 최대줄).map((i) => ({
+    tcId: i.tcId,
+    tcName: i.tcName,
+    platform: i.platform,
+    status: i.status,
+    attempt: i.attempt,
+    durationMs: i.durationMs,
+    error:
+      i.error === null
+        ? null
+        : { message: 자르기(i.error.message, 글상한.오류), ...(i.error.stack !== undefined && { stack: 자르기(i.error.stack, 글상한.stack) }) },
+    params: Object.fromEntries(Object.entries(i.params).map(([k, v]) => [k, typeof v === 'string' ? 자르기(v, 글상한.입력값) : v])),
+    unconfirmed: i.unconfirmed,
+    ...(i.rerun !== null && { rerunRunId: i.rerun.runId }),
+  }));
+  return {
+    ok: true,
+    data: {
+      ...머리,
+      triggeredBy: triggeredByName ?? triggeredBy,
+      items,
+      ...(못통과.length > 최대줄 && { truncated: true }),
+      evidence: evidence.map((e) => ({ id: e.id, format: e.format, status: e.status, error: e.error, generatedAt: e.generatedAt })),
+    },
+  };
 }
 
 /** 프로젝트 단위 도구(BTS 찾기 · 노트 읽기)의 문턱 — 그 프로젝트 애플리케이션 하나라도 (작성, read). 통과면 null */
@@ -138,7 +191,7 @@ export { aql글 };
 /**
  * BTS 이슈 · task 찾기 — 사람 요청은 그 사람의 PAT 로 BTS 를 부른다(결정 16). BTS 가 자기 권한을 한 번 더 본다.
  * 자동 AI(mcj_)는 PAT 가 없어 `pat` 이 null 이고, 그 프로젝트에 저장한 「QA Hub AI」 열쇠로 부른다 (§3.12 「열쇠 표」)
- * QA Hub 쪽은 그 프로젝트 애플리케이션 하나라도 (작성, read) 여야 한다 — note_read 와 같은 문턱 (§3.12 「맥락 — MCP 조회 도구」)
+ * Test Commander 쪽은 그 프로젝트 애플리케이션 하나라도 (작성, read) 여야 한다 — note_read 와 같은 문턱 (§3.12 「맥락 — MCP 조회 도구」)
  */
 export async function BTS찾기(사람: 사용자, pat: string | null, projectId: number, 찾을것: BTS찾을것, 부르기: 부르기함수 = BTS부르기): Promise<도구답> {
   const 문턱 = 프로젝트읽기막힘(사람, projectId);
@@ -151,11 +204,11 @@ export async function BTS찾기(사람: 사용자, pat: string | null, projectId
 
   let 부를것: Parameters<부르기함수>;
   if (찾을것.issueKey !== undefined) {
-    // 이은 BTS 프로젝트 밖 이슈는 이 창구로 읽지 않는다 — 그 사람이 BTS 에서 볼 수 있어도 QA Hub 프로젝트 권한이 그 이슈를 덮지 않는다
+    // 이은 BTS 프로젝트 밖 이슈는 이 창구로 읽지 않는다 — 그 사람이 BTS 에서 볼 수 있어도 Test Commander 프로젝트 권한이 그 이슈를 덮지 않는다
     if (!찾을것.issueKey.startsWith(`${연결.bts_project}-`)) return 막힘(찾을것.issueKey);
     부를것 = [자리, 'GET', `/api/v1/issues/${encodeURIComponent(찾을것.issueKey)}`];
   } else if (찾을것.query !== undefined && 찾을것.query.trim() !== '') {
-    부를것 = [자리, 'POST', '/api/v1/search/aql', { projectKey: 연결.bts_project, query: `text ~ ${aql글(찾을것.query.trim())}`, page: 0, size: 최대줄 }];
+    부를것 = [자리, 'POST', '/api/v1/search/aql', { projectKey: 연결.bts_project, query: `text ~ ${aql글(찾을것.query.trim())}`, page: 0, size: 최대줄 + 1 }];
   } else {
     return { ok: false, error: 'BAD_INPUT', detail: 'issueKey · query 중 하나' };
   }
@@ -168,9 +221,28 @@ export async function BTS찾기(사람: 사용자, pat: string | null, projectId
     return { ok: false, error: 'BTS_UNREACHABLE' };
   }
 
-  if (답.status === 200) return { ok: true, data: (답.json as { data?: unknown } | null)?.data ?? null };
+  if (답.status === 200) return { ok: true, data: 이슈칸만((답.json as { data?: unknown } | null)?.data, 찾을것.issueKey !== undefined) };
   if (답.status === 404) return 없음(찾을것.issueKey ?? '');
   if (답.status === 401) return { ok: false, error: 'BTS_UNAUTHORIZED', detail: pat === null ? 'Issue Bunker 가 「QA Hub AI」 계정 토큰을 받지 않았다 — 설정 › Issue Bunker 연결에서 다시 넣는다' : 'Issue Bunker 가 이 통합계정 토큰을 받지 않았다' };
   if (답.status === 403) return 막힘('Issue Bunker 권한 없음');
   return { ok: false, error: 'BTS_ERROR', detail: `HTTP ${String(답.status)}` };
+}
+
+type 이슈원본 = { key?: unknown; summary?: unknown; currentStateKey?: unknown; description?: unknown };
+const 글 = (v: unknown): string => (typeof v === 'string' ? v : '');
+
+/**
+ * Issue Bunker 답에서 쓸 칸만 — 키 · 제목 · 상태 · 본문. 담당자 · 우선순위 · 사용자 지정 칸 같은 나머지는 AI 판단에 안 쓰고 맥락 창만 먹는다.
+ * 닫힌 이슈도 빼지 않는다 — 수정 AI 가 같은 버그가 전에 닫혔는지 상태로 본다
+ */
+function 이슈칸만(data: unknown, 하나: boolean): unknown {
+  if (하나) {
+    const d = (data ?? {}) as 이슈원본;
+    return { key: 글(d.key), title: 글(d.summary), status: 글(d.currentStateKey), body: 자르기(글(d.description), 글상한.이슈본문) };
+  }
+  const 줄 = Array.isArray(data) ? (data as 이슈원본[]) : [];
+  return {
+    items: 줄.slice(0, 최대줄).map((d) => ({ key: 글(d.key), title: 글(d.summary), status: 글(d.currentStateKey) })),
+    ...(줄.length > 최대줄 && { truncated: true }),
+  };
 }
