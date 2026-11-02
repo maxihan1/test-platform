@@ -8,8 +8,11 @@ const 본보기 = '.claude/skills/tpx-cases/references/example.md';
 const 가리키는곳 = [
   '.claude/skills/tpx-cases/SKILL.md',
   '.claude/skills/tpx-cases/references/5-writing.md',
+  '.claude/skills/tpx-author/SKILL.md',
   '.claude/skills/tpx-author/references/fanout.md',
 ];
+// 지워졌거나 규칙을 어긴 옛 본보기 — tests/demo 의 DEMO-NNN 과 tests/todo 케이스
+const 옛본보기 = /tests\/demo\/DEMO-\d{3}\.spec\.ts|tests\/todo\/TODO-\d{3}\.spec\.ts/;
 
 const 블록들 = (글) => [...글.matchAll(/```ts\n([\s\S]*?)```/g)].map((m) => m[1]);
 
@@ -25,6 +28,11 @@ test('본보기 케이스는 locator 를 직접 쓰지 않고 Page Object 를 �
   assert.doesNotMatch(케이스, /page\.(getBy[A-Za-z]+|locator)\(/, '케이스 블록에서 page 로 요소를 바로 찾는다');
 });
 
+test('본보기의 화면 케이스 블록은 정상 줄이라 techniques 를 달지 않는다', () => {
+  const [케이스] = 블록들(readFileSync(본보기, 'utf8'));
+  assert.doesNotMatch(케이스, /techniques:/);
+});
+
 test('본보기에 Page Object · Component 블록이 있다', () => {
   const 블록 = 블록들(readFileSync(본보기, 'utf8'));
   assert.ok(블록.some((b) => /static readonly 주소 = '\//.test(b)), 'Page Object 블록이 없다');
@@ -35,6 +43,6 @@ test('스킬은 본보기 파일을 가리키고 옛 본보기를 가리키지 �
   for (const 파일 of 가리키는곳) {
     const 글 = readFileSync(파일, 'utf8');
     assert.match(글, /references\/example\.md/, `${파일} 이 본보기를 가리키지 않는다`);
-    assert.doesNotMatch(글, /DEMO-011/, `${파일} 이 지워진 옛 본보기를 가리킨다`);
+    assert.doesNotMatch(글, 옛본보기, `${파일} 이 지워졌거나 규칙을 어긴 옛 본보기를 가리킨다`);
   }
 });

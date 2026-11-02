@@ -238,14 +238,14 @@ UI Test 와 Functional Test 는 `tests/<폴더>/pages/<화면>.page.ts` 의 Page
 
 ### 화면 없는 요구 — API 케이스 (2026-09-30)
 
-**「화면 케이스가 아니다」는 제외 사유가 아니다.** 플랫폼은 API 케이스를 이미 돈다 — `tests/demo/DEMO-003.spec.ts` 가
-`request` fixture 로 요청을 보내고 응답을 `verify` 한다. 요청 · 응답은 그 절차 결과에 `httpTrace` 로 남는다
+**「화면 케이스가 아니다」는 제외 사유가 아니다.** 플랫폼은 API 케이스를 이미 돈다 — `request` fixture 로 요청을 보내고 응답을 `verify` 한다
+(꼴은 `references/example.md` §5). 요청 · 응답은 그 절차 결과에 `httpTrace` 로 남는다
 (`packages/kit/src/runtime/http.ts` · 선언 모양은 `docs/spec/공통/2-명세선언.md`).
 
 - **API 케이스는 Functional Test 다** (R17) — Page Object 를 쓰지 않는다.
 - **API 요구는 대상 서버로 요청하는 케이스로 쓴다.** 주소는 화면 케이스처럼 `/api/…` 상대 경로다 — 러너가 대상 주소를 넘긴다.
   로그인한 세션이 필요하면 `page.request` 로 화면 로그인 쿠키를 같이 쓴다 — 한 절차에서 화면으로 로그인하고 로그인 뒤에만 보이는 요소를 기다린 다음
-  `await page.request.get('/api/…')` 로 부른다(쿠키가 따라간다). 로그인 없는 요청은 `request` fixture 를 쓴다(`tests/demo/DEMO-004.spec.ts`)
+  `await page.request.get('/api/…')` 로 부른다(쿠키가 따라간다). 로그인 없는 요청은 `request` fixture 를 쓴다(`references/example.md` §5)
 - **다른 계정으로 쓸 새 창 묶음(`browser.newContext()`)에는 주소를 넣지 않는다** — 테스트 안에서 만든 창 묶음에도 설정의 대상 주소가 저절로 붙는다.
   `new URL(page.url()).origin` 을 넣으면 화면을 열기 전엔 `about:blank` 라 출처가 `null` 이 되어, 그 창의 `/api/…` 요청이 「Invalid URL」로 깨진다
   (14670 공용 도우미 · 두 묶음 36줄 · PRD-F14-12)

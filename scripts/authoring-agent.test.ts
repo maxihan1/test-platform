@@ -323,11 +323,11 @@ describe('줄프롬프트 — 자식에게 못박는 경계', () => {
     expect(글()).toMatch(/Agent 도구도 백그라운드로 띄우지 마라/);
   });
 
-  it('역할을 첫머리에 준다 — 기대값은 표준 기획서에서만 · Page Object 꼴 (2026-11-02)', () => {
-    const 줄들 = 글().split('\n');
-    expect(줄들[1]).toMatch(/^너는 기획서로 회귀 테스트를 설계하는 QA 엔지니어다\./);
-    expect(줄들[1]).toMatch(/기대값은 표준 기획서 문장에서만/);
-    expect(줄들[1]).toMatch(/Page Object · Component 꼴/);
+  it('역할을 준다 — 기대값은 기획서 문장 · 화면 값은 미확정만 · Page Object 꼴 (2026-11-02)', () => {
+    const 역할 = 글().split('\n').find((줄) => 줄.startsWith('너는 기획서로 회귀 테스트를 설계하는 QA 엔지니어다.'));
+    expect(역할).toBeDefined();
+    expect(역할).toMatch(/기대값은 사람이 적은 기획서 문장에서 가져오고\(화면 값은 미확정 케이스에만 쓴다\)/);
+    expect(역할).toMatch(/Page Object · Component 꼴/);
   });
 
   it('결과 요약은 마지막 답 글로 쓰고 뒤에 말을 붙이지 말라고 한다 — 에이전트가 result 의 끝 40줄만 싣는다 (2026-11-02)', () => {
