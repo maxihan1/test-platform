@@ -133,7 +133,7 @@ export function 수정집기칸(params: Record<string, unknown>): { issueKey: st
   };
 }
 
-/** 집기 응답에 싣는 bugfix 칸 — 맡을 때 담아 둔 params 에 그 애플리케이션의 프로젝트 번호를 더한다. 자식이 MCP bts_search · note_read 에 넣는다 (결정 ①) */
+/** 집기 응답에 싣는 bugfix 칸 — 맡을 때 담아 둔 params 에 그 애플리케이션의 프로젝트 번호를 더한다. 자식이 MCP bts_search · note_read 에 넣는다 (2026-11-02 사용자) */
 export async function 수정집기칸읽기(서비스: number, params: Record<string, unknown>): Promise<ReturnType<typeof 수정집기칸> & { projectId: number }> {
   const r = await (await db()).query<{ project_id: string }>('SELECT project_id FROM service WHERE id = $1', [서비스]);
   return { ...수정집기칸(params), projectId: Number(r.rows[0]!.project_id) };

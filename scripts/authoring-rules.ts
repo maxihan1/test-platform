@@ -185,7 +185,7 @@ export interface 집은것 {
   held?: unknown;
   /** 행의 params 그대로 — 반영 요청(`prdApply`)인지 본다. 재실행 · 이어서 작성 행에는 서버가 원본 것을 물려 둔다 (§7 「표준 기획서 통로」) */
   params?: unknown;
-  /** BTS 이은 프로젝트의 작성 · 그 재실행에만 온다 — 자식이 QA Hub 조회 도구를 쓰는 일마다 열쇠(mcj_). 자식 인자에만 싣고 어디에도 안 찍는다 */
+  /** 받는 줄은 도메인/BTS 「열쇠 표」 — 작성 · 그 재실행은 늘, 초안 · 노트 · 수정은 BTS 이은 프로젝트만. 자식이 Test Commander 조회 도구를 쓰는 일마다 열쇠(mcj_). 자식 인자에만 싣고 어디에도 안 찍는다 */
   mcpKey?: string;
   /** 프로젝트 노트 일(NOTE · 원본이 NOTE 인 재실행)에만 온다 — 모양은 authoring-note-prompt 의 `노트일인가` 가 본다 (도메인/BTS 「맥락 — 프로젝트 노트」) */
   note?: unknown;

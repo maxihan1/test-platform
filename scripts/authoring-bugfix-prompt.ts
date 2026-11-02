@@ -5,7 +5,7 @@ import { 글자자르기 } from './authoring-usage.js';
 
 /**
  * 집기 응답의 `bugfix` 칸 — 서버가 만든 그대로다. repo 가 null 이면 코드 저장소가 없다.
- * projectId 는 MCP bts_search · note_read 에 넣는 프로젝트 번호다(결정 ①). 칸이 없던 서버와 섞여 돌 수 있어 없어도 수정 일로 본다 — 수정 일이 작성 일로 빠지면 안 된다
+ * projectId 는 MCP bts_search · note_read 에 넣는 프로젝트 번호다(2026-11-02 사용자). 칸이 없던 서버와 섞여 돌 수 있어 없어도 수정 일로 본다 — 수정 일이 작성 일로 빠지면 안 된다
  */
 export interface 수정자료 {
   issueKey: string;
