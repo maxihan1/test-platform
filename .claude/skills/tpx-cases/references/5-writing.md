@@ -3,8 +3,8 @@
 **쓰기 전에 `korean-ai-tells.md` 와 `wording.md`(문구 틀) 를 읽는다** — 코드 안의 한글(`name` · `precondition` · `test.step` 제목 · `verify` · `.describe()` · `held` 사유)도
 그 규칙대로 쓴다. 표에서 옮기는 글자는 표를 쓸 때 이미 지켰다. 코드에서 새로 짓는 절차 제목 · 칸 설명이 여기서 걸린다. **기다리기 · 데이터 고르기 · 날짜 값은 `5-stable.md` 도 읽는다.** **사람이 바꿔 볼 만한 입력(글자 · 검색어 · 수량 · 날짜 · 상품 번호)은 `5-inputs.md` 대로 입력값 칸으로 연다.**
 
-본보기는 `tests/demo/DEMO-011.spec.ts`. 대상 주소는 데모 케이스와 같이 **직접 적는다**
-(데모 8건이 전부 그렇다). 실제 서비스는 러너가 실행마다 `PLATFORM_BASE_URL` 로 넘긴다.
+본보기는 `references/example.md` 다 — 이 꼴대로 쓴다. 대상 주소는 Page Object 의 `static readonly 주소` 에 **상대 경로로** 둔다.
+앞부분은 러너가 실행마다 `PLATFORM_BASE_URL` 로 채운다(`playwright.config.ts` 의 `baseURL`).
 
 | 표 칸 | 코드 자리 | 증적 문서 |
 |---|---|---|
@@ -238,14 +238,14 @@ UI Test 와 Functional Test 는 `tests/<폴더>/pages/<화면>.page.ts` 의 Page
 
 ### 화면 없는 요구 — API 케이스 (2026-09-30)
 
-**「화면 케이스가 아니다」는 제외 사유가 아니다.** 플랫폼은 API 케이스를 이미 돈다 — `tests/demo/DEMO-003.spec.ts` 가
-`request` fixture 로 요청을 보내고 응답을 `verify` 한다. 요청 · 응답은 그 절차 결과에 `httpTrace` 로 남는다
+**「화면 케이스가 아니다」는 제외 사유가 아니다.** 플랫폼은 API 케이스를 이미 돈다 — `request` fixture 로 요청을 보내고 응답을 `verify` 한다
+(꼴은 `references/example.md` §5). 요청 · 응답은 그 절차 결과에 `httpTrace` 로 남는다
 (`packages/kit/src/runtime/http.ts` · 선언 모양은 `docs/spec/공통/2-명세선언.md`).
 
 - **API 케이스는 Functional Test 다** (R17) — Page Object 를 쓰지 않는다.
 - **API 요구는 대상 서버로 요청하는 케이스로 쓴다.** 주소는 화면 케이스처럼 `/api/…` 상대 경로다 — 러너가 대상 주소를 넘긴다.
   로그인한 세션이 필요하면 `page.request` 로 화면 로그인 쿠키를 같이 쓴다 — 한 절차에서 화면으로 로그인하고 로그인 뒤에만 보이는 요소를 기다린 다음
-  `await page.request.get('/api/…')` 로 부른다(쿠키가 따라간다). 로그인 없는 요청은 `request` fixture 를 쓴다(`tests/demo/DEMO-004.spec.ts`)
+  `await page.request.get('/api/…')` 로 부른다(쿠키가 따라간다). 로그인 없는 요청은 `request` fixture 를 쓴다(`references/example.md` §5)
 - **다른 계정으로 쓸 새 창 묶음(`browser.newContext()`)에는 주소를 넣지 않는다** — 테스트 안에서 만든 창 묶음에도 설정의 대상 주소가 저절로 붙는다.
   `new URL(page.url()).origin` 을 넣으면 화면을 열기 전엔 `about:blank` 라 출처가 `null` 이 되어, 그 창의 `/api/…` 요청이 「Invalid URL」로 깨진다
   (14670 공용 도우미 · 두 묶음 36줄 · PRD-F14-12)
