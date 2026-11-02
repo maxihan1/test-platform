@@ -58,9 +58,10 @@ description: 작성 에이전트(scripts/authoring-agent.ts — 서버 author �
 - **앱 화면 절**(`--- 앱 화면 ---`)은 **`references/app.md`**, **게임 화면 절**(`--- 게임 화면 ---`)은 **`references/game.md`** 를 Read 로 열고 그대로 따른다.
   폰에서 켠 직후 첫 화면 하나, 또는 읽지 못한 까닭이다. 팜이 붙었으면 앱은 `appium-cli`(`app.md` §5), 게임은 `control-cli` 로 눌러 가며 읽고 창을 훑는다 — 잡은 폰은 꼭 놓는다. 게임은 게임 지도도 쓴다(`game.md` §5). 게임 케이스는 **`tpx-cases` 의 `references/game.md`** 대로 쓴다. 주소를 고르는 데만 쓴다. **기대값의 근거가 아니다** (2026-10-19 · 2026-10-20 · 게임 2026-10-23). 앱 케이스는 잡은 폰이 서버에 닿는지 먼저 보고 다 쓴 뒤 그 폰에서 1번씩 돌린다(`app.md` §4 · 2026-10-26)
 
-- **QA Hub 조회 도구**(`mcp__qa-hub__*`) — 도구 목록에 있을 때만 쓴다(에이전트가 일마다 열쇠를 줄 때 붙는다).
-  `prd_search`(`service` 에 tcId 접두사) · `map_search`(`service` 와 `reqId` · `tcId` · `url` 중 하나)로 요구 · 그 요구를 덮는 케이스 · 케이스가 거치는 화면을 찾는다.
-  이미 있는 케이스 · 화면 연결을 확인하는 데만 쓰고 **기대값의 근거로 쓰지 않는다.** `note_read` · `bts_search` 는 프로젝트 번호, `run_result` 는 실행 번호가 있어야 하는데 지금은 받지 않는다 — 번호를 짐작해 부르지 않는다.
+- **Test Commander 조회 도구**(`mcp__qa-hub__*`) — 도구 목록에 있을 때만 쓴다(에이전트가 작성 일마다 열쇠를 준다 — Issue Bunker 연결과 상관없다).
+  `prd_search`(`service` 에 tcId 접두사 · 낱말은 띄어 쓰면 모두 든 요구) · `map_search`(`service` 와 `reqId` · `tcId` · `url` 중 하나)로 요구 · 그 요구를 덮는 케이스 · 케이스가 거치는 화면을 찾는다.
+  고치는 케이스가 왜 실패했는지 봐야 하면 `run_search`(`service` · `tcId`)로 최근 실행 번호를 찾아 `run_result` 로 실패 항목을 본다.
+  이미 있는 케이스 · 화면 연결 · 지난 실패를 확인하는 데만 쓰고 **기대값의 근거로 쓰지 않는다.** `note_read` · `bts_search` 는 프로젝트 번호가 있어야 하는데 작성 일은 받지 않는다 — 번호를 짐작해 부르지 않는다.
   도구가 오류(`FORBIDDEN` · `NOT_FOUND` · `NOT_LINKED`)를 내면 다시 부르지 않고 그 자료 없이 간다
 
 ## 선행 읽기

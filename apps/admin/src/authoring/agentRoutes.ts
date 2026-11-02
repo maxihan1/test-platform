@@ -5,7 +5,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import { 작성계정인가 } from '../auth/agentToken.js';
 import { 테스트고침댓글 } from '../bts/close.js';
-import { 수정PR주소인가, 수정집기칸 } from '../bts/bugfix.js';
+import { 수정PR주소인가, 수정집기칸읽기 } from '../bts/bugfix.js';
 import { 수정끝내기틀림, 수정끝냄 } from '../bts/bugfixRoutes.js';
 import { 초안다시세우기, 초안집기칸, 초안있나 } from '../bts/draft.js';
 import { 집기API칸 } from './apiDoc.js';
@@ -141,9 +141,10 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
         const 겹침칸 = await 집기겹침칸(집은것);
         // PRD 초안은 자식이 MCP 로 노트 · 이슈를 찾을 프로젝트 번호와 맡은 이슈를 싣는다 (도메인/BTS §7 집기)
         const 초안칸 = 집은것.kind === 'PRD_DRAFT' ? { draft: await 초안집기칸(서비스, 집은것.params) } : {};
-        // 수정 AI 는 맡을 때 서버가 읽어 둔 이슈 글과 대상 저장소를 싣는다 — 자식은 BTS 열쇠를 안 갖는다 (도메인/BTS 「수정 AI」)
-        const 수정칸 = 집은것.kind === 'BUGFIX' ? { bugfix: 수정집기칸(집은것.params) } : {};
-        // BTS 이은 프로젝트의 작성 · 그 재실행만 받는다. 자식이 일하는 동안 QA Hub 조회 도구를 쓰는 열쇠다 (도메인/BTS 「열쇠 표」).
+        // 수정 AI 는 맡을 때 서버가 읽어 둔 이슈 글과 대상 저장소를 싣는다 — 자식은 BTS 열쇠를 안 갖는다 (도메인/BTS 「수정 AI」).
+        // 프로젝트 번호는 자식이 MCP bts_search · note_read 에 넣는다 (2026-11-02 사용자)
+        const 수정칸 = 집은것.kind === 'BUGFIX' ? { bugfix: await 수정집기칸읽기(서비스, 집은것.params) } : {};
+        // 작성 · 그 재실행은 늘, 초안 · 수정은 BTS 이은 프로젝트만 받는다. 자식이 일하는 동안 Test Commander 조회 도구를 쓰는 열쇠다 (도메인/BTS 「열쇠 표」).
         // 던질 수 있는 것을 다 지난 뒤에 낸다 — 앞에서 던지면 안 보낸 열쇠가 줄에 남는다
         const mcpKey = await 일열쇠내기(집은것);
         return {

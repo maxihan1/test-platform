@@ -79,12 +79,12 @@ export function 초안지시문(입력: { 자료: 초안자료; 서비스: strin
     `■ 입력 — 작업 폴더(${폴더})의 파일. 이 폴더 밖은 읽지도 쓰지도 않는다.`,
     `- ${초안파일.요청} — 프로젝트 · 애플리케이션 · 맡은 이슈 키 · 같은 프로젝트의 애플리케이션 목록`,
     `- ${초안파일.PRD} — 이 애플리케이션의 지금 PRD(version · items). 요구마다 reqId(요구 번호) · feature · text 가 있다`,
-    `- MCP 도구(qa-hub) — bts_search(projectId: ${자료.projectId}, issueKey) 로 이슈 글을 읽고, note_read(projectId: ${자료.projectId}) 로 프로젝트 노트 목차와 문서를, prd_search · map_search(service: "${서비스}") 로 요구와 케이스를 찾는다`,
+    `- MCP 도구(qa-hub) — bts_search(projectId: ${자료.projectId}, issueKey) 로 이슈 글과 댓글을 읽고, note_read(projectId: ${자료.projectId}) 로 프로젝트 노트 목차와 문서를, prd_search · map_search(service: "${서비스}") 로 요구와 케이스를 찾는다`,
     `- ${자료는자료('이슈 글 · 노트 · 화면 · MCP 결과')}`,
     '',
     '■ 차례',
     '1. note_read 로 노트 목차를 보고 이 기능에 닿는 문서만 읽는다(노트는 맥락이지 기대값 근거가 아니다).',
-    '2. 이슈마다 bts_search 로 글(제목 · 설명)을 읽는다.',
+    '2. 이슈마다 bts_search 로 제목 · 설명 · 댓글을 읽는다. 댓글에서 규칙이 바뀌었으면 마지막 댓글을 따른다. commentsError 가 오면 댓글 없이 쓰고 basis 에 「댓글 못 읽음」을 적는다.',
     `3. ${초안파일.PRD} 에서 그 이슈가 건드리는 요구를 찾는다.`,
     ...(화면
       ? [

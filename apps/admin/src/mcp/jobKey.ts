@@ -12,7 +12,8 @@ async function db() {
 
 /**
  * 받는 줄이면 새 열쇠를 내고 해시를 그 줄에 둔다. 받는 줄이 아니면 null.
- * 받는 줄은 BTS 를 이은 프로젝트의 AUTHOR · NOTE · PRD_DRAFT · BUGFIX 와 원본이 그 넷인 RERUN 이다.
+ * 받는 줄은 AUTHOR(BTS 연결과 상관없이 — 2026-11-02 사용자: PRD · 지도 · 실행 조회는 연결 없이도 돈다)와 BTS 를 이은 프로젝트의 NOTE · PRD_DRAFT · BUGFIX, 원본이 그 넷인 RERUN 이다.
+ * 연결 없는 프로젝트의 열쇠로 부른 BTS 찾기 · 노트 읽기는 도구가 NOT_LINKED 로 막는다
  * 프로젝트는 애플리케이션 줄이면 그 애플리케이션의 것, 노트 고치기 줄(서비스 칸이 빔)이면 그 줄의 project_id 다.
  * 앞 집기의 해시는 집기(agentStore.ts)가 지운다 — 여기서 null 을 내도 옛 열쇠가 살아 있지 않다
  */
@@ -24,10 +25,13 @@ export async function 일열쇠내기(요청: { id: number; kind: string; source
   // 집기가 방금 RUNNING 으로 바꾼 줄이다
   const 넣음 = await pool.query(
     `UPDATE authoring_request 줄 SET mcp_key_hash = $2
-      WHERE 줄.id = $1 AND 줄.status = 'RUNNING'
-        AND EXISTS (SELECT 1 FROM bts_link l
-                     WHERE l.project_id = COALESCE(줄.project_id, (SELECT s.project_id FROM service s WHERE s.id = 줄.service_id)))
-        AND (줄.kind IN ('AUTHOR', 'NOTE', 'PRD_DRAFT', 'BUGFIX') OR (SELECT 원본.kind FROM authoring_request 원본 WHERE 원본.id = 줄.source_id) IN ('AUTHOR', 'NOTE', 'PRD_DRAFT', 'BUGFIX'))`,
+       FROM (SELECT r.id,
+                    CASE WHEN r.kind = 'RERUN' THEN (SELECT 원본.kind FROM authoring_request 원본 WHERE 원본.id = r.source_id) ELSE r.kind END AS 종류,
+                    COALESCE(r.project_id, (SELECT s.project_id FROM service s WHERE s.id = r.service_id)) AS 프로젝트
+               FROM authoring_request r WHERE r.id = $1) 본
+      WHERE 줄.id = 본.id AND 줄.status = 'RUNNING'
+        AND 본.종류 IN ('AUTHOR', 'NOTE', 'PRD_DRAFT', 'BUGFIX')
+        AND (본.종류 = 'AUTHOR' OR EXISTS (SELECT 1 FROM bts_link l WHERE l.project_id = 본.프로젝트))`,
     [요청.id, 토큰해시(열쇠)],
   );
   return 넣음.rowCount === 1 ? 열쇠 : null;

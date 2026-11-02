@@ -30,6 +30,8 @@ describe('수정일인가', () => {
     expect(수정일인가({ bugfix: null })).toBe(false);
     expect(수정일인가({ bugfix: { issueKey: 'DM-12' } })).toBe(false);
     expect(수정일인가({ bugfix: { ...자료, repo: { name: 'x' } } })).toBe(false);
+    expect(수정일인가({ bugfix: { ...자료, projectId: 7 } })).toBe(true);
+    expect(수정일인가({ bugfix: { ...자료, projectId: '7' } })).toBe(false);
   });
 });
 
@@ -79,11 +81,18 @@ describe('수정지시문', () => {
     expect(글).not.toMatch(/QA Hub 의|BTS 이슈/);
   });
 
-  it('프로젝트 번호를 받지 못했으니 번호가 필요한 도구는 짐작해 부르지 말라고 한다', () => {
+  it('프로젝트 번호를 받으면 bts_search · note_read 에 넣게 하고, 실행은 run_search 로 찾게 한다', () => {
+    const 글 = 수정지시문({ 자료: { ...자료, projectId: 7 }, 폴더: '/w/assets', 서비스: 'MKW' });
+    expect(글).toContain('projectId 로 7 을 넣는다');
+    expect(글).toContain('bts_search(issueKey: "DM-12")');
+    expect(글).toContain('run_search(service: "MKW", issueKey: "DM-12"');
+    expect(글).not.toContain('번호를 짐작해 부르지 않는다');
+  });
+
+  it('프로젝트 번호가 없는 집기(칸이 없던 서버)면 번호가 필요한 도구는 짐작해 부르지 말라고 한다', () => {
     const 글 = 수정지시문({ 자료, 폴더: '/w/assets', 서비스: 'MKW' });
     expect(글).toContain('번호를 짐작해 부르지 않는다');
     expect(글).toContain('service 로 "MKW"');
-    expect(글).not.toContain('bts_search(projectId');
   });
 });
 
