@@ -3,7 +3,6 @@
 
 export const 작성말: Record<string, string> = {
   // 줄의 종류와 상태
-  재실행: 'Rerun',
   '자료 올리는 중': 'Uploading files',
   '대기 중': 'Queued',
   '작성 중': 'Writing',
@@ -36,7 +35,7 @@ export const 작성말: Record<string, string> = {
   '지원하지 않는 파일입니다. PDF · 워드 · md · txt 만 올릴 수 있습니다': 'File type not accepted. Only PDF · Word · md · txt',
   '이 요청은 대기열에 들어가지 못했습니다. 새 요청으로 다시 넣으세요': 'This request was not queued. Submit a new request',
   '이 요청은 대기열에 들어가지 못했습니다. 폐기하고 새 요청으로 다시 넣으세요': 'This request was not queued. Discard it and submit a new request',
-  '파일 크기가 한 파일 상한을 넘었습니다': 'The file is larger than the per-file limit',
+  '파일 하나가 크기 상한을 넘었습니다': 'The file is larger than the per-file limit',
   '빈 파일은 올릴 수 없습니다': 'Empty files cannot be uploaded',
   '피그마 주소 형식이 맞지 않습니다. 피그마 디자인 파일의 링크를 넣으세요 (FigJam은 받지 않습니다)':
     'Not a Figma link we accept. Paste a Figma design file link (FigJam is not accepted)',
@@ -47,10 +46,10 @@ export const 작성말: Record<string, string> = {
   // 피그마를 미리 열어 보기 (도메인/작성 §7 「자료」 「미리 열어 보기」)
   '이 애플리케이션에는 피그마 토큰이 없어 피그마 주소를 받을 수 없습니다.': 'This application has no Figma token, so Figma links cannot be accepted.',
   '설정 > 애플리케이션에서 피그마 토큰을 넣으세요': 'Add a Figma token in Settings > Applications',
-  '운영자에게 피그마 토큰을 넣어 달라고 요청하세요': 'Ask an operator to add a Figma token',
+  '관리자에게 피그마 토큰을 넣어 달라고 요청하세요': 'Ask an admin to add a Figma token',
   '피그마가 이 애플리케이션의 토큰을 받아 주지 않습니다. 토큰이 틀렸거나 만료됐거나 읽기 권한이 모자랍니다.': 'Figma does not accept this application’s token. It is wrong, has expired, or lacks read permission.',
   '설정 > 애플리케이션에서 새 피그마 토큰을 넣으세요': 'Add a new Figma token in Settings > Applications',
-  '운영자에게 새 피그마 토큰을 넣어 달라고 요청하세요': 'Ask an operator to add a new Figma token',
+  '관리자에게 새 피그마 토큰을 넣어 달라고 요청하세요': 'Ask an admin to add a new Figma token',
   '피그마 파일을 열지 못했습니다. 파일이 없거나 이 토큰으로 볼 권한이 없습니다 ({주소})':
     'Could not open the Figma file. It does not exist or this token cannot view it ({주소})',
 
@@ -149,7 +148,7 @@ export const 작성말: Record<string, string> = {
   '이미 이어서 작성했습니다. 아래 실행 기록을 보세요.': 'Already continued. See the run history below.',
   '보관 기간이 지나 작성 결과를 지웠습니다. 처음부터 다시 작성하세요.':
     'The keep period is over and what was made was deleted. Write again from the start.',
-  '목록에서 사라집니다. 보관한 작업물도 지웁니다. 통계와 토큰 기록은 남습니다.':
+  '목록에서 사라집니다. 보관한 작업물도 삭제합니다. 통계와 토큰 기록은 남습니다.':
     'It disappears from the list and the kept work is deleted. Stats and token records stay.',
 
   // 진척 · 중단 · 폐기 (도메인/작성 §7 「중단 · 폐기 · 진척」). 상태 라벨 「중단」은 실행과 같은 키(runs)를 쓴다
@@ -273,7 +272,7 @@ export const 작성말: Record<string, string> = {
   '앱 화면 읽기': 'Reading app screens',
   '대상 서버에 앱 파일 경로가 있으면 디바이스 팜에서 빈 폰 하나를 잡아 앱을 설치하고, 첫 화면부터 눌러 가며 요소 주소를 읽습니다. 끝나면 폰을 놓습니다':
     'If the target server has an app file path, takes a free phone from the device farm, installs the app, and taps through from the first screen to read element locators. The phone is released when done',
-  '앱 케이스는 끝 검사에서 폰으로 돌려 보지 않습니다. 병합 뒤 「테스트 스크립트」에서 실행해 확인합니다':
+  '앱 케이스는 끝 검사에서 폰으로 돌려 보지 않습니다. 반영 뒤 「테스트 스크립트」에서 실행해 확인합니다':
     'App cases are not run on a phone during the final check. Run them from “Test scripts” after the merge',
   '게임 화면 읽기': 'Reading game screens',
   '디바이스 팜에서 빈 폰 하나를 잡아 게임을 설치하고, 로그인 창부터 창을 하나씩 열어 오브젝트 목록을 읽습니다. 끝나면 폰을 놓습니다':

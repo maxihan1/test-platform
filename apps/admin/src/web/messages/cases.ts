@@ -95,7 +95,7 @@ export const 케이스말: Record<string, string> = {
 
   // 케이스 한 줄
   '{아이디} {이름} 고르기': 'Select {아이디} {이름}',
-  '실행 이력 없음': 'No runs yet',
+  '실행 기록 없음': 'No runs yet',
   '상세': 'Details',
   '실행': 'Run',
 
@@ -106,7 +106,7 @@ export const 케이스말: Record<string, string> = {
 
   // 빈 목록 세 갈래
   '아직 케이스를 불러오지 않았습니다': 'No cases loaded yet',
-  '케이스 파일을 훑어 실행할 수 있는 케이스 목록을 만듭니다. 목록은 코드를 기준으로 그때마다 새로 만듭니다':
+  '케이스 파일을 훑어 실행할 수 있는 케이스 목록을 만듭니다. 목록은 그때마다 코드에서 새로 만듭니다':
     'Scanning the case files builds the list of runnable cases. The code is the source of truth, so the list is rebuilt every time.',
   '케이스 불러오기': 'Load cases',
   '조건에 맞는 케이스가 없습니다': 'No cases match the filters',
@@ -137,7 +137,7 @@ export const 케이스말: Record<string, string> = {
     'Never run. Run it once and the steps will show up here.',
   '절차를 불러오지 못했습니다': 'Could not load the steps',
   '절차를 불러오는 중입니다': 'Loading the steps…',
-  '실행 이력': 'Run history',
+  '실행 기록': 'Run history',
   '아직 기록이 없습니다§이력': 'No history yet',
 
   // 입력 칸 (Form)

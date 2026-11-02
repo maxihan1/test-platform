@@ -3,13 +3,13 @@
 export const 계정말: Record<string, string> = {
   // 로그인 화면에 더한 것 (§8.6)
   회원가입: 'Sign up',
-  '가입 신청을 검토하고 있습니다. 운영자가 수락하면 로그인할 수 있습니다':
+  '가입 신청을 검토하고 있습니다. 관리자가 수락하면 로그인할 수 있습니다':
     'Your sign-up is under review. You can sign in once an admin accepts it.',
 
   // maxihan 계정(SSO)이 켜진 설치의 로그인 화면 (§8.6)
   'QA Hub 통합계정으로 로그인': 'Sign in with QA Hub account',
   '로그인하면 맡은 애플리케이션이 열립니다.': 'Sign in to open your applications.',
-  '이 플랫폼에서 쓸 수 없는 아이디입니다. 운영자가 확인해야 합니다': 'This ID cannot be used here. An admin needs to check it.',
+  '이 플랫폼에서 쓸 수 없는 아이디입니다. 관리자가 확인해야 합니다': 'This ID cannot be used here. An admin needs to check it.',
   '로그인하지 못했습니다. 버튼을 다시 누르면 됩니다': 'Sign-in failed. Press the button again.',
   로그아웃했습니다: 'Signed out',
   '이 계정으로 로그인': 'Sign in with this account',
@@ -18,11 +18,11 @@ export const 계정말: Record<string, string> = {
   // 회원가입 화면
   '가입 신청': 'Request access',
   '계정을 신청합니다': 'Request an account',
-  '운영자가 수락하면 로그인할 수 있습니다.': 'You can sign in once an admin accepts it.',
+  '관리자가 수락하면 로그인할 수 있습니다.': 'You can sign in once an admin accepts it.',
   이름: 'Name',
   '비밀번호 확인': 'Confirm password',
   '보내는 중': 'Sending',
-  '가입 신청을 보냈습니다. 운영자가 수락하면 로그인할 수 있습니다':
+  '가입 신청을 보냈습니다. 관리자가 수락하면 로그인할 수 있습니다':
     'Sign-up sent. You can sign in once an admin accepts it.',
   '로그인 화면으로': 'Back to sign in',
   '이미 쓰는 아이디입니다': 'That ID is already taken',
@@ -50,9 +50,9 @@ export const 계정말: Record<string, string> = {
   수락: 'Accept',
   거절: 'Decline',
   수락한다: 'Accept now',
-  '가입 신청을 지웁니다. 되돌릴 수 없습니다': 'This deletes the sign-up request. It cannot be undone',
-  지운다: 'Delete now',
-  '다른 운영자가 먼저 처리했습니다': 'Another admin already handled this',
+  '가입 신청을 삭제합니다. 되돌릴 수 없습니다': 'This deletes the sign-up request. It cannot be undone',
+  삭제한다: 'Delete now',
+  '다른 관리자가 먼저 처리했습니다': 'Another admin already handled this',
 
   // 계정 메뉴 「디바이스 팜 토큰」 창 (§8.6 · 2026-10-29 APP-F1-13)
   '통합계정 토큰': 'Unified account token',

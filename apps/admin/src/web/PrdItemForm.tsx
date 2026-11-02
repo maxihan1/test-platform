@@ -124,7 +124,7 @@ export function PrdItemForm({
           ))}
           {x.basis.length >= 상한.근거 ? null : (
             <button type="button" className="btn ghost small" onClick={() => setX({ ...x, basis: [...x.basis, 빈근거()] })}>
-              {t('출처 더하기')}
+              {t('출처 추가')}
             </button>
           )}
         </fieldset>
@@ -147,15 +147,15 @@ export function PrdItemForm({
         {on지우기 === undefined ? null : 지우기확인 ? (
           <>
             <button type="button" className="btn ghost small set-warn" disabled={busy} onClick={() => void 한다(() => on지우기(set저장오류))}>
-              {t('지우기 확인§요구')}
+              {t('삭제 확인§요구')}
             </button>
             <button type="button" className="btn ghost small" onClick={() => set지우기확인(false)}>
-              {t('지우지 않기')}
+              {t('삭제 안 함')}
             </button>
           </>
         ) : (
           <button type="button" className="btn ghost small set-warn" onClick={() => set지우기확인(true)}>
-            {t('이 요구 지우기')}
+            {t('이 요구 삭제')}
           </button>
         )}
         <span className="prd-sp" />

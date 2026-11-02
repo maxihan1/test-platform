@@ -1,5 +1,5 @@
 // 한 건 실행이 끝났을 때 진행 창이 적는 「어디에 붙었나」 한 줄과 「결과 보기」가 갈 곳 (도메인/실행 §8.9 「완료 모달」 · §3.2)
-// 한 건 실행은 결과 화면이 없다 — 붙은 실행의 그 케이스 카드로, 붙은 곳이 없으면 케이스 상세 「실행 이력」으로 간다
+// 한 건 실행은 결과 화면이 없다 — 붙은 실행의 그 케이스 카드로, 붙은 곳이 없으면 케이스 상세 「실행 기록」으로 간다
 
 import { useEffect, useState } from 'react';
 
@@ -46,7 +46,7 @@ export function 한건끝글({ data, 앞실패 }: { data: RunDetail; 앞실패: 
   const t = use말();
   const 붙은 = data.rerunOf ?? null;
   const 뒤 = useAsync(() => (붙은 === null ? Promise.resolve(null) : api.run(붙은)), [붙은]);
-  if (붙은 === null) return <p>{t('이 케이스 상세의 「실행 이력」에 남았습니다')}</p>;
+  if (붙은 === null) return <p>{t('이 케이스 상세의 「실행 기록」에 남았습니다')}</p>;
   const 뒤실패 = 뒤.data?.counts.fail ?? null;
   return (
     <p>

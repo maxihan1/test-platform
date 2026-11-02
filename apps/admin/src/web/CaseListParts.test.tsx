@@ -177,7 +177,7 @@ describe('케이스 줄의 판정 흐름', () => {
 describe('아직 안 돌린 케이스 (SPEC §8.1)', () => {
   it('마지막 결과가 없으면 무엇이 없는지 말한다', () => {
     const { container } = 그린다({});
-    expect(container.querySelector('.device-none')?.textContent).toBe('실행 이력 없음');
+    expect(container.querySelector('.device-none')?.textContent).toBe('실행 기록 없음');
   });
 });
 

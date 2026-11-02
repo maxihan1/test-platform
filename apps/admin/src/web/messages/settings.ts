@@ -16,12 +16,12 @@ export const 설정말: Record<string, string> = {
   '설정': 'Settings',
   '운영 계정만 볼 수 있는 화면입니다': 'Admins only',
   '설정은 운영 계정만 볼 수 있습니다': 'Only admins can open Settings',
-  '권한이 필요하면 운영 계정 사용자에게 요청해 주세요': 'Ask an admin user for access if you need it',
+  '권한이 필요하면 관리자에게 요청해 주세요': 'Ask an admin user for access if you need it',
 
   // 구획 머리와 목록 줄
   '애플리케이션': 'Applications',
   '계정': 'Accounts',
-  '더하기': 'Add',
+  '추가': 'Add',
   '닫기': 'Close',
   '편집': 'Edit',
   '새 계정': 'New account',
@@ -38,7 +38,7 @@ export const 설정말: Record<string, string> = {
 
   // 서비스 편집기
   '접두사': 'Prefix',
-  '생성 후에는 바꿀 수 없습니다. 케이스 번호에 이미 사용 중입니다':
+  '만든 뒤에는 바꿀 수 없습니다. 케이스 번호에 이미 쓰고 있습니다':
     'Cannot be changed after creation. It is already baked into the case IDs',
   '대문자로 시작하는 영문·숫자 12자 이내로 적습니다. 예: PAY · MEM2':
     'Up to 12 letters and digits, starting with a capital. e.g. PAY · MEM2',
@@ -101,7 +101,7 @@ export const 설정말: Record<string, string> = {
   '없음': 'None',
   '이대로 저장하면 알림이 꺼집니다. 유지하려면 「변경 취소」를 누릅니다':
     'Saving like this turns notifications off. Press Cancel change to keep them on',
-  '보안을 위해 저장한 값은 다시 표시하지 않습니다': 'For security, a saved value is never shown again',
+  '저장한 값은 보안상 다시 표시하지 않습니다': 'For security, a saved value is never shown again',
 
   // 대상 서버 편집기
   '대상 서버§목록': 'Target servers',
@@ -119,7 +119,7 @@ export const 설정말: Record<string, string> = {
   '접두사를 입력해 주세요': 'Enter the prefix',
   '이름을 입력해 주세요': 'Enter the name',
   '테스트 폴더를 입력해 주세요': 'Enter the tests folder',
-  '대상 서버에 비어 있는 항목이 있습니다. 입력하거나 해당 서버를 삭제해 주세요':
+  '대상 서버에 비어 있는 항목이 있습니다. 입력하거나 그 서버를 삭제해 주세요':
     'A target server has an empty field. Fill it in or delete that server',
   '같은 키의 대상 서버가 둘 있습니다. 키를 다르게 적어 주세요': 'Two target servers have the same key. Give each a different key',
   '「{줄}」 — / 로 시작하고 글자·숫자·. _ ~ % - 만 쓸 수 있습니다':
@@ -231,7 +231,7 @@ export const 설정말: Record<string, string> = {
   '새 애플리케이션': 'New application',
   '저장했습니다': 'Saved',
   '기본 정보': 'Basics',
-  '케이스 번호, 애플리케이션 선택 목록, 스크립트 폴더에 사용되는 정보입니다':
+  '케이스 번호, 애플리케이션 선택 목록, 스크립트 폴더에 쓰는 정보입니다':
     'Used for case IDs, the application picker and the scripts folder',
   '테스트를 실행할 서버 목록입니다. 하나 이상 등록해야 실행할 수 있습니다':
     'The servers tests run against. Register at least one to run',
@@ -249,12 +249,12 @@ export const 설정말: Record<string, string> = {
 
   // 정기 실행 구획 (§8.8 · 공통/6-인프라 §9.2)
   '정기 실행': 'Scheduled runs',
-  '매일 정한 시각에 이 애플리케이션의 스크립트를 자동으로 한 번 실행합니다. 대시보드의 통과율과 일별 결과는 이 실행을 바탕으로 집계됩니다':
+  '매일 정한 시각에 이 애플리케이션의 스크립트를 자동으로 한 번 실행합니다. 대시보드의 통과율과 일별 결과는 이 실행으로 집계됩니다':
     'Runs this application\'s scripts automatically once a day at the set time. The dashboard pass rate and daily results are based on these runs',
   '매일 돌리기': 'Run daily',
   '시각': 'Time',
   '{시간대} 기준': '{시간대} time',
-  '정한 시각부터 1시간 안에 사용 중인 스크립트를 UI·기능 테스트로 한 번씩 실행하고, Slack 웹훅이 있으면 결과를 알립니다. 그 시간에 서버가 꺼져 있으면 그날은 건너뜁니다':
+  '정한 시각부터 1시간 안에 사용 중인 스크립트를 UI·기능 테스트로 한 번씩 실행하고 Slack 웹훅이 있으면 결과를 알립니다. 그 시간에 서버가 꺼져 있으면 그날은 건너뜁니다':
     'Within an hour of the set time, active scripts run once as a UI test and a functional test, and results go to Slack if a webhook is set. If the server is down during that hour, the day is skipped',
   '마지막 정기 실행': 'Last scheduled run',
   '아직 실행한 적이 없습니다': 'Has not run yet',

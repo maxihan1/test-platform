@@ -107,7 +107,7 @@ describe('목록의 실행 위치', () => {
     그리기('GAME');
     expect(await screen.findByText(실행위치)).toBeTruthy();
     expect(screen.getByText('실행 위치 · 디바이스 팜', { exact: false })).toBeTruthy();
-    expect(screen.queryByText(/시험 실행은 내 컴퓨터 러너가/u)).toBeNull();
+    expect(screen.queryByText(/시험 실행은 내 컴퓨터 테스트 실행기가/u)).toBeNull();
   });
 
   it('웹 애플리케이션에는 안 뜬다', async () => {
@@ -171,7 +171,7 @@ describe('조립 화면 — 디바이스 고르개와 실행 위치', () => {
     render(<ScenarioBuild id={12} 띠서비스={앱서비스()} user={앱사람()} />);
 
     expect(await screen.findByText(실행위치)).toBeTruthy();
-    expect(screen.getByText('시험 실행은 내 컴퓨터 러너가 켜져 있으면 거기 꽂은 폰에서, 꺼져 있으면 디바이스 팜에서 돕니다')).toBeTruthy();
+    expect(screen.getByText('시험 실행은 내 컴퓨터 테스트 실행기가 켜져 있으면 거기 꽂은 폰에서, 꺼져 있으면 디바이스 팜에서 돕니다')).toBeTruthy();
   });
 
   it('PC 로 저장된 옛 Android 앱 시나리오는 그 값도 보이고 바꾸라고 알린다', async () => {
@@ -202,6 +202,6 @@ describe('마법사 시험 실행 — 실행 위치', () => {
     fireEvent.click(await screen.findByRole('button', { name: '다음' }));
 
     expect(await screen.findByText(실행위치)).toBeTruthy();
-    expect(screen.getByText(/시험 실행은 내 컴퓨터 러너가/u)).toBeTruthy();
+    expect(screen.getByText(/시험 실행은 내 컴퓨터 테스트 실행기가/u)).toBeTruthy();
   });
 });

@@ -117,7 +117,7 @@ function 녹화칸({ service, 맡기기 }: { service: ServiceRow; 맡기기: 맡
           {t('녹화 시작')}
         </button>
       </div>
-      <span className="perf-faint">{t('서버 러너가 시나리오를 한 번 돌리며 오간 요청을 남깁니다. 이 실행은 실행 기록에 남지 않습니다')}</span>
+      <span className="perf-faint">{t('서버 테스트 실행기가 시나리오를 한 번 돌리며 오간 요청을 남깁니다. 이 실행은 실행 기록에 남지 않습니다')}</span>
       {까닭 === null ? null : <p className="perf-err">{까닭}</p>}
     </div>
   );

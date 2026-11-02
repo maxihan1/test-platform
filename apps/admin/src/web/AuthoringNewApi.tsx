@@ -94,7 +94,7 @@ export function ApiDocFields({
           <span className="error-text">
             {운영자
               ? t('이 애플리케이션에는 대상 서버가 없습니다. 설정 > 애플리케이션에서 먼저 넣으세요')
-              : t('이 애플리케이션에는 대상 서버가 없습니다. 운영자에게 대상 서버를 넣어 달라고 요청하세요')}
+              : t('이 애플리케이션에는 대상 서버가 없습니다. 관리자에게 대상 서버를 넣어 달라고 요청하세요')}
           </span>
         ) : (
           <select aria-label={t('대상 서버')} value={서버 ?? ''} disabled={disabled} onChange={(e) => on서버(e.target.value)}>

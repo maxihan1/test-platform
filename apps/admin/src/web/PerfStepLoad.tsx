@@ -210,7 +210,7 @@ function AI산정({ serviceId, 스트레스, 적용 }: { serviceId: number; 스�
       {피크 === null ? null : (
         <span>
           {t('피크 동시 사용자 약 {수}명', { 수: 피크.toLocaleString() })}
-          {스트레스 ? <span className="perf-faint"> · {t('임계점 확인을 위해 피크의 5배인 {수}명까지 램프업', { 수: (피크 * 5).toLocaleString() })}</span> : null}
+          {스트레스 ? <span className="perf-faint"> · {t('임계점을 확인하려고 피크의 5배인 {수}명까지 램프업', { 수: (피크 * 5).toLocaleString() })}</span> : null}
         </span>
       )}
       <div className="perf-row">

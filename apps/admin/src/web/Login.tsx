@@ -12,8 +12,8 @@ import { useSSO, 기억한계정을읽는다, 기억한계정을지운다, 로�
 
 /** 돌아온 결과(`/?sso=…`, 서버 auth/sso.ts)마다 보일 문장. 승인 대기는 잘못이 아니라 기다림이라 오류 모양으로 안 그린다 */
 const SSO안내: Record<string, { 문장: string; 오류: boolean }> = {
-  pending: { 문장: '가입 신청을 검토하고 있습니다. 운영자가 수락하면 로그인할 수 있습니다', 오류: false },
-  username: { 문장: '이 플랫폼에서 쓸 수 없는 아이디입니다. 운영자가 확인해야 합니다', 오류: true },
+  pending: { 문장: '가입 신청을 검토하고 있습니다. 관리자가 수락하면 로그인할 수 있습니다', 오류: false },
+  username: { 문장: '이 플랫폼에서 쓸 수 없는 아이디입니다. 관리자가 확인해야 합니다', 오류: true },
   failed: { 문장: '로그인하지 못했습니다. 버튼을 다시 누르면 됩니다', 오류: true },
   // 서버가 아니라 화면이 단다 — 로그아웃 (main.tsx 나간다 · 브라우저의 로그아웃 표시)
   out: { 문장: '로그아웃했습니다', 오류: false },
@@ -237,7 +237,7 @@ export function Login({
 
         {failed === null ? null : <div className="err login-err">{failed}</div>}
         {기다림 ? (
-          <p className="login-info">{t('가입 신청을 검토하고 있습니다. 운영자가 수락하면 로그인할 수 있습니다')}</p>
+          <p className="login-info">{t('가입 신청을 검토하고 있습니다. 관리자가 수락하면 로그인할 수 있습니다')}</p>
         ) : null}
 
         {/* 누르는 동안 잠근다. 두 번 누르면 두 번 간다 */}

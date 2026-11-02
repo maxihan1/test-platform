@@ -54,7 +54,7 @@ export function API인증못보내는이유(
 ): string | null {
   const 줄들 = envs.flatMap((e) => e.API인증들.map((r) => ({ r, 바뀜: e.원래키 !== null && e.env !== e.원래키, 주소: 서버주소바뀜(e) })));
   if (줄들.some(({ r }) => r.name.trim() === '' || r.tokenUrl === '' || r.clientId === '')) {
-    return 말('API 인증에 비어 있는 칸이 있습니다. 입력하거나 해당 인증을 삭제해 주세요', 언어);
+    return 말('API 인증에 비어 있는 칸이 있습니다. 입력하거나 그 인증을 삭제해 주세요', 언어);
   }
   if (줄들.some(({ r, 바뀜, 주소 }) => 비밀값필요(r, 바뀜, 주소))) return 말('API 인증 비밀값을 입력해 주세요', 언어);
   // 아래는 서버 settings/apiService.ts `API인증틀림` 과 같은 규칙이다 — 서버는 BAD_API_AUTH 하나로만 답해 어느 칸인지 모른다
@@ -156,7 +156,7 @@ export function API인증칸들({
         >
           {t('+ API 인증 추가')}
         </button>
-        <div className="hint">{t('보안을 위해 저장한 값은 다시 표시하지 않습니다 · 비밀값은 끝 4자리만 보입니다')}</div>
+        <div className="hint">{t('저장한 값은 보안상 다시 표시하지 않습니다 · 비밀값은 끝 4자리만 보입니다')}</div>
       </div>
     </>
   );

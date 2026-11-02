@@ -190,7 +190,7 @@ describe('부하 중 페이지 로딩 측정', () => {
   it('웹이면 체크 칸이 있고, 켜면 실행 요청에 pageCheck: true 가 간다', async () => {
     const 실행 = vi.spyOn(perfApi, 'run').mockResolvedValue({ runId: 12 });
     await 네번째까지(사람());
-    expect(screen.getByText('가장 최근 페이지 성능 측정의 페이지를 브라우저 2개가 30초마다 엽니다')).toBeTruthy();
+    expect(screen.getByText('가장 최근 페이지 성능 측정에서 쓴 페이지를 브라우저 2개가 30초마다 엽니다')).toBeTruthy();
     fireEvent.click(screen.getByLabelText('부하 중 페이지 로딩 측정'));
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
     await waitFor(() => expect(실행).toHaveBeenCalled());

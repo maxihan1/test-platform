@@ -4,7 +4,6 @@ export const 설정API말: Record<string, string> = {
   // 기본 정보 「종류」
   웹: 'Web',
   게임: 'Game',
-  '생성 후에는 바꿀 수 없습니다': 'Cannot be changed after creation',
 
   // 「API 문서」 구획
   'API 문서': 'API document',
@@ -29,11 +28,11 @@ export const 설정API말: Record<string, string> = {
   '대상 서버 {번호} API 인증 {순번} 삭제': 'Delete target server {번호} API auth {순번}',
   '대상 서버 {번호} API 인증 추가': 'Add API auth to target server {번호}',
   '+ API 인증 추가': '+ Add API auth',
-  '보안을 위해 저장한 값은 다시 표시하지 않습니다 · 비밀값은 끝 4자리만 보입니다':
+  '저장한 값은 보안상 다시 표시하지 않습니다 · 비밀값은 끝 4자리만 보입니다':
     'Saved values are not shown again for security · Only the last 4 characters of a secret are shown',
   '비밀값을 입력해 주세요. 새 인증이거나 이름 · 토큰 주소 · 서버 주소를 바꾸면 다시 넣어야 합니다':
     'Enter the secret. A new auth, or one with a changed name, token URL or server URL, needs it again',
-  'API 인증에 비어 있는 칸이 있습니다. 입력하거나 해당 인증을 삭제해 주세요':
+  'API 인증에 비어 있는 칸이 있습니다. 입력하거나 그 인증을 삭제해 주세요':
     'An API auth has an empty field. Fill it in or delete that auth',
   'API 인증 비밀값을 입력해 주세요': 'Enter the API auth secret',
   'API 인증 이름은 20자까지이고 한 대상 서버 안에서 겹치지 않아야 합니다 (서버마다 10개까지)':

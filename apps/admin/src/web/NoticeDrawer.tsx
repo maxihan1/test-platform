@@ -71,7 +71,7 @@ export function NoticeDrawer({ recent, 읽음, 지금, onClose, on읽음, 서비
       </div>
 
       {목록.length === 0 ? (
-        <p className="nt-empty">{recent.length === 0 ? t('최근 7일 동안 끝난 실행과 작성이 없습니다') : t('해당하는 알림이 없습니다')}</p>
+        <p className="nt-empty">{recent.length === 0 ? t('최근 7일 동안 끝난 실행과 작성이 없습니다') : t('조건에 맞는 알림이 없습니다')}</p>
       ) : (
         <ul className="nt-list">
           {목록.map((n) => {

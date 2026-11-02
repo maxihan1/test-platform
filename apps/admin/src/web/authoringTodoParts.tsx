@@ -35,7 +35,7 @@ export function 확인글(
   if (열린 === 'discard') {
     if (고치기 || (요청.status === 'DONE' && 요청.prUrl !== null)) return t('목록에서 사라집니다. GitHub 의 PR 은 남으니 GitHub 에서 닫으세요.');
     return 요청.status === 'STOPPED'
-      ? t('목록에서 사라집니다. 보관한 작업물도 지웁니다. 통계와 토큰 기록은 남습니다.')
+      ? t('목록에서 사라집니다. 보관한 작업물도 삭제합니다. 통계와 토큰 기록은 남습니다.')
       : t('목록에서 사라집니다. 통계와 토큰 기록은 남습니다.');
   }
   if (요청.status === 'PENDING') return t('아직 시작 전이라 바로 취소됩니다.');

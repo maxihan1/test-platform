@@ -35,7 +35,7 @@ export function AuthoringNew({
   serviceId?: number;
   /** 띠의 서비스가 가진 대상 서버. 계정 여부는 모른다 — `/auth/me` 에는 안 온다 (도메인/인증 §7) */
   envs?: EnvRow[];
-  /** 설정 메뉴를 볼 수 있는 사람(admin). 아니면 「운영자에게 요청하세요」로 안내한다 */
+  /** 설정 메뉴를 볼 수 있는 사람(admin). 아니면 「관리자에게 요청하세요」로 안내한다 */
   운영자?: boolean;
   /** 서비스에 피그마 토큰이 있나. 없는데 주소를 적으면 알리고 보내기를 막는다 — 보내도 서버가 거절한다. 모르면(옛 응답) 막지 않는다 (도메인/인증 §7) */
   피그마토큰?: boolean;
@@ -91,7 +91,7 @@ export function AuthoringNew({
     문서.대기 || 거절.size > 0 || 너무많다 || 토큰없는주소 || (api모드 ? 판 === null || 서버 === null : 빈것 || 서버없음);
 
   function 사유(err: unknown): string {
-    if (err instanceof ApiError && err.status === 413) return t('파일 크기가 한 파일 상한을 넘었습니다');
+    if (err instanceof ApiError && err.status === 413) return t('파일 하나가 크기 상한을 넘었습니다');
     // 까닭이 세 꼴이 아니면(프록시가 본문을 지운 경우 등) 빈 주소를 단 파일 문장을 지어내지 않고 공통 번역으로 넘긴다
     if (err instanceof ApiError && err.code === 'FIGMA_DENIED' && /^(NO_TOKEN|TOKEN|FILE:.+)$/.test(err.message)) {
       return 피그마거절말(err.message, 운영자, t);
@@ -249,7 +249,7 @@ export function AuthoringNew({
                 <span className="error-text">
                   {운영자
                     ? t('이 애플리케이션에는 대상 서버가 없습니다. 설정 > 애플리케이션에서 먼저 넣으세요')
-                    : t('이 애플리케이션에는 대상 서버가 없습니다. 운영자에게 대상 서버를 넣어 달라고 요청하세요')}
+                    : t('이 애플리케이션에는 대상 서버가 없습니다. 관리자에게 대상 서버를 넣어 달라고 요청하세요')}
                 </span>
               ) : null}
               {대조 && envs.length > 0 ? (

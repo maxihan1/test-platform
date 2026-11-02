@@ -179,11 +179,11 @@ describe('새 요청 — 실제 화면과 대조', () => {
     폼(서버들, false);
     대조를켠다();
     fireEvent.click(보내기());
-    expect(await screen.findByText('이 대상 서버에는 테스트 계정이 없거나 실서비스 서버로 체크돼 있습니다. 운영자에게 확인을 요청하세요')).toBeTruthy();
+    expect(await screen.findByText('이 대상 서버에는 테스트 계정이 없거나 실서비스 서버로 체크돼 있습니다. 관리자에게 확인을 요청하세요')).toBeTruthy();
     cleanup();
     폼([], false);
     대조를켠다();
-    expect(screen.getByText('이 애플리케이션에는 대상 서버가 없습니다. 운영자에게 대상 서버를 넣어 달라고 요청하세요')).toBeTruthy();
+    expect(screen.getByText('이 애플리케이션에는 대상 서버가 없습니다. 관리자에게 대상 서버를 넣어 달라고 요청하세요')).toBeTruthy();
   });
 
   it('시작 주소가 서버와 다르면 서버 거절을 사람 말로 보인다', async () => {

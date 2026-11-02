@@ -44,7 +44,7 @@ function 끝난초안({ x, 고른, on고름 }: { x: 초안항목; 고른: 고른
   };
   const 버리기 = (
     <button className="chip" type="button" aria-pressed={버림} onClick={() => on고름(x.key, 버림 ? null : { pick: 'DROP' })}>
-      {x.rows.length === 0 ? t('확인§초안') : t('초안 버리기')}
+      {x.rows.length === 0 ? t('확인§초안') : t('초안 삭제')}
     </button>
   );
   return (
@@ -118,7 +118,7 @@ function 못만든초안({ x, 고른, on고름 }: { x: 초안항목; 고른: 고
   const 까닭 = x.state === 'FAILED' ? (x.reason ?? '').split('\n')[0]! : 중단이유라벨(x.reason, 언어);
   const 글들: ['RETRY' | 'DROP', string][] = [
     ['RETRY', t('다시 만들기')],
-    ['DROP', t('버리기')],
+    ['DROP', t('삭제')],
   ];
   return (
     <div className="decide-item">

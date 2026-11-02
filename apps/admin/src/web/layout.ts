@@ -325,7 +325,7 @@ export function 빈띠사유(user: User, prefix: string | null, 언어: 언어, 
   if (지금자리 === '#/password') return null;
   // 넷 다 none 이면 서비스 0건보다 이것이 먼저다 — 배정을 받아도 칸이 없으면 볼 것이 없다 (화면공통 §8)
   if (자리목록(user, prefix, 언어).length === 0) {
-    return { 무엇: t('권한을 받지 않았습니다. 운영자에게 요청하세요', 언어), 다음: '' };
+    return { 무엇: t('권한을 받지 않았습니다. 관리자에게 요청하세요', 언어), 다음: '' };
   }
   if (user.services.length > 0) return null;
 

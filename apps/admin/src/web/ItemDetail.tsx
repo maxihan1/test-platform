@@ -18,7 +18,7 @@ import type { 판정하기 } from './runJudge.js';
 import { RunWindow } from './RunWindow.js';
 import { Failed, Loading, PLATFORM_LABEL, useAsync, Verdict, when } from './ui.js';
 
-/** @param 판정하기 그 항목의 서비스 칸으로 「값 바꿔 재실행」을 가른다 — 띠와 다른 서비스의 항목일 수 있다 */
+/** @param 판정하기 그 항목의 서비스 칸으로 「입력 값 수정 후 다시 실행」을 가른다 — 띠와 다른 서비스의 항목일 수 있다 */
 export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; historyId: number; 판정하기: 판정하기 }) {
   const t말 = use말();
   const 언어 = use언어();
@@ -103,7 +103,7 @@ export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; 
         {/* 이 항목에서 쓴 값으로 실행 창을 연다. 비밀값 칸은 응답이 가려 주므로 비워서 연다 (도메인/실행 §8.10) */}
         {!판정하기(케이스서비스(item.tcId))('실행') ? null : (
           <button className="btn" onClick={() => set다시(true)}>
-            {t말('값 바꿔 재실행')}
+            {t말('입력 값 수정 후 다시 실행')}
           </button>
         )}
       </div>

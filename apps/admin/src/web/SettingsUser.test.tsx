@@ -62,7 +62,7 @@ function 그리기(rows: UserRow[] = 계정들, projects: 프로젝트줄[] = []
 
 function 새계정열기() {
   그리기(계정들, 프로젝트들);
-  fireEvent.click(screen.getByLabelText('더하기'));
+  fireEvent.click(screen.getByLabelText('추가'));
 }
 
 const 프로젝트칸 = (이름: RegExp) => screen.getByRole('checkbox', { name: 이름 });
@@ -126,7 +126,7 @@ describe('UserSection', () => {
   it('계정 더하기도 + 아이콘 버튼이다 (2026-09-22, 애플리케이션 더하기와 같은 규칙)', () => {
     그리기();
 
-    const 버튼 = screen.getByLabelText('더하기');
+    const 버튼 = screen.getByLabelText('추가');
     expect(버튼.textContent).toBe('+');
   });
 });
@@ -149,7 +149,7 @@ describe('프로젝트와 권한 고르개 (도메인/인증 §8.8 · 시안 B)'
 
   it('프로젝트가 하나도 없으면 먼저 만들라고 알린다', () => {
     그리기(계정들, []);
-    fireEvent.click(screen.getByLabelText('더하기'));
+    fireEvent.click(screen.getByLabelText('추가'));
 
     expect(screen.getByText('먼저 프로젝트를 만듭니다')).toBeTruthy();
   });

@@ -49,11 +49,11 @@ export const 오류영어: Record<string, string> = {
     'Usernames are 2 to 32 lowercase letters, digits, dots, underscores or hyphens',
   '비밀번호를 먼저 바꿔야 합니다. 비밀번호 변경 화면에서 바꿉니다':
     'You must change your password first. Use the password change screen.',
-  '아직 승인 대기 중인 계정입니다. 운영자가 수락하면 로그인할 수 있습니다':
+  '아직 승인 대기 중인 계정입니다. 관리자가 수락하면 로그인할 수 있습니다':
     'This account is waiting for approval. You can sign in once an admin approves it.',
   '승인 대기 계정은 고칠 수 없습니다. 먼저 수락하거나 거절합니다':
     'A pending account cannot be edited. Approve or reject it first.',
-  '이미 수락된 계정입니다. 다른 운영자가 먼저 처리했습니다':
+  '이미 수락된 계정입니다. 다른 관리자가 먼저 처리했습니다':
     'This account is already approved. Another admin handled it first.',
   '이미 승인된 계정이라 거절할 수 없습니다': 'This account is already approved and cannot be rejected',
   '마지막 운영 계정입니다. 먼저 다른 사람을 운영으로 올립니다':
@@ -113,7 +113,7 @@ export const 오류영어: Record<string, string> = {
     'Someone else saved first. Reloading will discard your current edits',
   '다른 사람이 먼저 PRD 를 바꿨습니다. 최신 버전을 불러왔으니 확인하고 다시 합니다':
     'Someone else changed the PRD first. The latest version is loaded. Check it and try again',
-  '요구 번호가 999 까지 찼습니다. 더 넣으려면 운영자와 정합니다':
+  '요구 번호가 999 까지 찼습니다. 더 넣으려면 관리자와 정합니다':
     'Requirement IDs are used up to 999. Talk to an admin before adding more',
   '다른 사람이 먼저 가이드를 바꿨습니다. 최신 버전을 불러왔으니 확인하고 다시 합니다':
     'Someone else changed the guide first. The latest version is loaded. Check it and try again',

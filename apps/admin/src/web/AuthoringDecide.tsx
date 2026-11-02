@@ -38,7 +38,7 @@ function 차례글(줄: 차례줄, t: 말): string {
       return t('기획서를 새 버전으로 저장합니다(버전 {버전}) — {바뀜}', { 버전: 줄.version, 바뀜: 바뀜.join(' · ') });
     }
     case 'draftDrop':
-      return t('{키들} 초안을 버립니다', { 키들: 줄.이슈.join(', ') });
+      return t('{키들} 초안을 삭제합니다', { 키들: 줄.이슈.join(', ') });
     case 'draftRetry':
       return t('{키들} 기획서 초안을 다시 만듭니다', { 키들: 줄.이슈.join(', ') });
     case 'apply':

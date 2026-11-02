@@ -13,10 +13,10 @@ export const 작성할일말: Record<string, string> = {
   '화면에서 읽은 기획서': 'Spec read from the screens',
   '차이를 표시한 기획서': 'Spec with differences marked',
   '다시 작성은 작성 쓰기 권한이 있는 사람만 할 수 있습니다.': 'Only someone with authoring write rights can write it again.',
-  '이 대상 서버에는 테스트 계정이 없거나 실서비스 서버로 체크돼 있습니다. 운영자에게 확인을 요청하세요':
-    'This target server has no test account or is marked as production. Ask an operator to check it',
-  '이 애플리케이션에는 대상 서버가 없습니다. 운영자에게 대상 서버를 넣어 달라고 요청하세요':
-    'This application has no target server. Ask an operator to add one',
+  '이 대상 서버에는 테스트 계정이 없거나 실서비스 서버로 체크돼 있습니다. 관리자에게 확인을 요청하세요':
+    'This target server has no test account or is marked as production. Ask an admin to check it',
+  '이 애플리케이션에는 대상 서버가 없습니다. 관리자에게 대상 서버를 넣어 달라고 요청하세요':
+    'This application has no target server. Ask an admin to add one',
   '목록에 남은 그 줄은 폐기하세요': 'Discard the row left in the list.',
   // 에이전트 실패 글을 옮긴 것 (authoringFailText.ts). 에이전트 글의 정본은 scripts/authoring-*.ts 의 끝내기 error
   '작성 도구가 끝나지 않아 결과를 올리지 않았습니다. 같은 자료로 다시 작성하세요':
@@ -30,18 +30,18 @@ export const 작성할일말: Record<string, string> = {
   '이미 있는 케이스와 중복되는 케이스가 {1}건입니다. 아래 표에서 고른 뒤 다시 반영하세요':
     '{1} cases duplicate existing ones. Choose in the table below, then apply again',
   '검사 결과를 읽지 못해 반영을 멈췄습니다. 다시 반영하세요': 'Could not read the check results, so applying stopped. Apply again',
-  '피그마 토큰이 없어 피그마 자료를 읽지 못했습니다. 운영자에게 피그마 토큰을 넣어 달라고 요청하세요':
-    'No Figma token, so the Figma files could not be read. Ask an operator to add a Figma token',
+  '피그마 토큰이 없어 피그마 자료를 읽지 못했습니다. 관리자에게 피그마 토큰을 넣어 달라고 요청하세요':
+    'No Figma token, so the Figma files could not be read. Ask an admin to add a Figma token',
   '피그마 토큰이 없어 피그마 자료를 읽지 못했습니다. 설정 > 애플리케이션에서 피그마 토큰을 넣으세요':
     'No Figma token, so the Figma files could not be read. Add one in Settings > Applications',
   '대상 서버 「{1}」은 실서비스 서버라 작성하지 않습니다. 다른 대상 서버로 새 요청을 넣으세요':
     'Target server "{1}" is production, so nothing is written. Send a new request with another target server',
-  '대상 서버 「{1}」에 테스트 계정이 없습니다. 운영자에게 테스트 계정을 넣어 달라고 요청하세요':
-    'Target server "{1}" has no test account. Ask an operator to add one',
+  '대상 서버 「{1}」에 테스트 계정이 없습니다. 관리자에게 테스트 계정을 넣어 달라고 요청하세요':
+    'Target server "{1}" has no test account. Ask an admin to add one',
   '대상 서버 「{1}」에 테스트 계정이 없습니다. 설정 > 애플리케이션에서 넣은 뒤 새 요청을 넣으세요':
     'Target server "{1}" has no test account. Add one in Settings > Applications, then send a new request',
-  '대상 서버 「{1}」을 찾을 수 없거나 주소가 맞지 않습니다. 운영자에게 확인을 요청하세요':
-    'Target server "{1}" is missing or its address is invalid. Ask an operator to check it',
+  '대상 서버 「{1}」을 찾을 수 없거나 주소가 맞지 않습니다. 관리자에게 확인을 요청하세요':
+    'Target server "{1}" is missing or its address is invalid. Ask an admin to check it',
   '대상 서버 「{1}」을 찾을 수 없거나 주소가 맞지 않습니다. 설정 > 애플리케이션을 확인한 뒤 새 요청을 넣으세요':
     'Target server "{1}" is missing or its address is invalid. Check Settings > Applications, then send a new request',
   '시작 주소가 대상 서버와 다릅니다. 새 요청으로 넣으세요': 'The start address does not match the target server. Send a new request',
@@ -63,8 +63,8 @@ export const 작성할일말: Record<string, string> = {
   '역할 계정이 없어 테스트를 못 쓴 요구입니다. 계정을 넣으면 이 요구만 이어 작성합니다': 'No test was written for these because a role account is missing. Add the account to continue just these requirements',
   '{역할} 계정이 없어 테스트를 못 썼습니다. 계정을 넣으면 이 요구만 이어 작성합니다': 'No {역할} account, so no test was written. Add the account to continue just these requirements',
   '설정에서 {역할} 계정 등록': 'Add the {역할} account in Settings',
-  '운영자에게 계정 등록을 요청하세요': 'Ask an operator to add the account',
-  '운영자에게 {역할} 계정 등록을 요청하세요': 'Ask an operator to add the {역할} account',
+  '관리자에게 계정 등록을 요청하세요': 'Ask an admin to add the account',
+  '관리자에게 {역할} 계정 등록을 요청하세요': 'Ask an admin to add the {역할} account',
   '만든 케이스': 'Cases written',
   '이 요청은 만든 케이스 목록을 남기지 않았습니다': 'This request did not record its case list',
   'PR 에서 보기': 'See it in the PR',
@@ -124,7 +124,7 @@ export const 작성할일말: Record<string, string> = {
   '입력이 필요한 케이스 {수}건이 남아 있어 아직 반영할 수 없습니다.': '{수} cases still need input, so this cannot be applied yet.',
   '중복 케이스로 가기': 'Go to duplicate cases',
   '중복 케이스 {수}건을 아직 선택하지 않아 반영할 수 없습니다.': '{수} duplicate cases are not chosen yet, so this cannot be applied.',
-  '입력 필요 여부 확인 불가': 'Cannot tell whether input is needed',
+  '입력이 필요한지 확인할 수 없음': 'Cannot tell whether input is needed',
   '입력이 필요한 케이스로만 {수}': 'Only cases needing input {수}',
   '빠진 요구': 'Missing requirements',
   '만든 {덮음}개 중 기능 테스트가 덮은 것 {기능} · UI 테스트가 덮은 것 {UI} — 둘 다 덮은 요구는 양쪽에 셉니다': 'Of {덮음} covered, functional tests cover {기능} · UI tests cover {UI} — a requirement covered by both counts on each side',
@@ -154,7 +154,7 @@ export const 작성할일말: Record<string, string> = {
   '요구 {수}건 테스트 다시 작성': 'Rewrite tests for {수} requirements',
   '{조각} 테스트 고치기': 'Fix tests for {조각}',
   '기대값 고치기': 'expected values changed',
-  '지우기': 'deleted',
+  '삭제§목록 줄': 'deleted',
   '고치기§목록 줄': 'changed',
   '{번호} 외 {수}건 {무엇}': '{번호} and {수} more {무엇}',
   '고치는 중에 멈춤': 'Stopped while changing',

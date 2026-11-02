@@ -8,7 +8,7 @@ export const 성능말: Record<string, string> = {
   'E2E 녹화 · Swagger · JMeter 파일에서 가져오면 AI 가 트랜잭션 목록을 만듭니다': 'Import from an E2E recording, Swagger or a JMeter file and AI builds the transaction list',
   '고친 시각': 'Updated',
   '시나리오를 지울까요?': 'Delete this scenario?',
-  '「{이름}」을 지웁니다. 실행 기록은 남습니다': 'Deletes "{이름}". Run history stays',
+  '「{이름}」을 삭제합니다. 실행 기록은 남습니다': 'Deletes "{이름}". Run history stays',
   '스모크 테스트': 'Smoke test',
 
   // 마법사 머리 · 단계
@@ -38,7 +38,7 @@ export const 성능말: Record<string, string> = {
   'E2E 시나리오와 대상 서버를 골라 주세요': 'Pick an E2E scenario and a target server',
   고르기: 'Select',
   '녹화 시작': 'Start recording',
-  '서버 러너가 시나리오를 한 번 돌리며 오간 요청을 남깁니다. 이 실행은 실행 기록에 남지 않습니다': 'The server runner runs the scenario once and keeps the requests. This run is not kept in run history',
+  '서버 테스트 실행기가 시나리오를 한 번 돌리며 오간 요청을 남깁니다. 이 실행은 실행 기록에 남지 않습니다': 'The server runner runs the scenario once and keeps the requests. This run is not kept in run history',
   '이 애플리케이션에 올린 API 문서가 없습니다. PRD 관리 › API 문서에서 먼저 올려 주세요': 'This application has no API document. Upload one in PRD › API docs first',
   'API 를 하나 이상 골라 주세요': 'Pick at least one API',
   'API 문서 버전 {번호} · 고른 차례대로 트랜잭션이 됩니다 (50개까지)': 'API doc version {번호} · Transactions follow the order you pick (up to 50)',
@@ -107,7 +107,7 @@ export const 성능말: Record<string, string> = {
   '평균 체류 (분)': 'Average stay (min)',
   '일 방문자 × 피크 집중률 × 평균 체류 ÷ {분}분': 'Daily visitors × peak share × average stay ÷ {분} min',
   '피크 동시 사용자 약 {수}명': 'Peak concurrent users about {수}',
-  '임계점 확인을 위해 피크의 5배인 {수}명까지 램프업': 'Ramp up to {수}, 5× the peak, to find the breaking point',
+  '임계점을 확인하려고 피크의 5배인 {수}명까지 램프업': 'Ramp up to {수}, 5× the peak, to find the breaking point',
   적용: 'Apply',
   '다시 산정': 'Estimate again',
 
@@ -212,5 +212,5 @@ export const 성능말: Record<string, string> = {
   '보낼 메시지': 'Messages to send',
   '한 줄에 메시지 하나입니다. 연결한 뒤 차례로 보냅니다': 'One message per line. Sent in order after connecting',
   '기다릴 글자': 'Text to wait for',
-  '비워 두면 연결만 되면 성공입니다. 적으면 10초 안에 그 글자가 든 메시지가 와야 성공입니다': 'If empty, connecting is enough. Otherwise a message containing this text must arrive within 10 seconds',
+  '비워 두면 연결만 되면 통과입니다. 적으면 10초 안에 그 글자가 든 메시지가 와야 통과입니다': 'If empty, connecting is enough. Otherwise a message containing this text must arrive within 10 seconds',
 };

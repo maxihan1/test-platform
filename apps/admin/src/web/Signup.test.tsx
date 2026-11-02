@@ -79,7 +79,7 @@ describe('회원가입 화면', () => {
     const 보냄 = vi.spyOn(api, 'signup').mockResolvedValue({ status: 'PENDING' });
     채운다({});
 
-    expect(await screen.findByText('가입 신청을 보냈습니다. 운영자가 수락하면 로그인할 수 있습니다')).toBeTruthy();
+    expect(await screen.findByText('가입 신청을 보냈습니다. 관리자가 수락하면 로그인할 수 있습니다')).toBeTruthy();
     expect(보냄).toHaveBeenCalledWith({ username: 'minsu', displayName: '이민수', password: 'longpass1' });
     expect(screen.getByRole('link', { name: '로그인 화면으로' }).getAttribute('href')).toBe('#/login');
   });

@@ -62,5 +62,5 @@ export const 성능페이지말: Record<string, string> = {
   '목표 2.5초 초과': 'Over the 2.5s target',
   '단독 측정 {값}': 'Alone: {값}',
   '부하 중 페이지 로딩 측정': 'Measure page loading under load',
-  '가장 최근 페이지 성능 측정의 페이지를 브라우저 2개가 30초마다 엽니다': 'Two browsers open the pages from the latest page speed measurement every 30 seconds',
+  '가장 최근 페이지 성능 측정에서 쓴 페이지를 브라우저 2개가 30초마다 엽니다': 'Two browsers open the pages from the latest page speed measurement every 30 seconds',
 };

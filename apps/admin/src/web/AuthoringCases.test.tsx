@@ -199,7 +199,7 @@ describe('계정 없음 단계', () => {
   it('설정 메뉴가 없는 사람에게는 설정 고리 대신 운영자에게 요청하라고 한다', async () => {
     지금([{ role: '판매자', count: 1, registered: false }], { 'FR-021': ['판매자'] });
     render(<AuthoringTodo service="PAY" 요청={반영줄()} 커버리지={계정셈} 할수={설정없음} 차이수={0} reload={reload} />);
-    expect(await screen.findByText('운영자에게 판매자 계정 등록을 요청하세요')).toBeTruthy();
+    expect(await screen.findByText('관리자에게 판매자 계정 등록을 요청하세요')).toBeTruthy();
     expect(screen.queryByRole('link', { name: /설정에서/ })).toBeNull();
   });
 

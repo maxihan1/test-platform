@@ -72,7 +72,7 @@ describe('계정 서랍', () => {
   it('아이디가 new 인 계정이 있어도 「+」는 새 계정 폼을 연다', () => {
     그리기([계정('kim'), 계정('new')]);
 
-    fireEvent.click(screen.getByLabelText('더하기'));
+    fireEvent.click(screen.getByLabelText('추가'));
 
     expect(within(서랍()).getByText('새 계정')).toBeTruthy();
     expect(within(서랍()).getByText('계정 추가')).toBeTruthy();

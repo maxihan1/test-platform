@@ -671,7 +671,7 @@ describe('사이드바의 select 를 OS 가 그리지 않는다 (LEARNINGS 2026-
 });
 
 describe('판정 묶음 · 화면 머리 (2026-09-30)', () => {
-  it('판정 칸이 고정 폭이라 「실행 이력 없음」이 폭을 못 민다', () => {
+  it('판정 칸이 고정 폭이라 「실행 기록 없음」이 폭을 못 민다', () => {
     expect(규칙('.device')).toMatch(/(?:^|\s)width:\s*\d+px/);
     expect(규칙('.device')).toMatch(/flex:\s*none/);
     expect(규칙('.device-none')).not.toMatch(/white-space:\s*nowrap/);
