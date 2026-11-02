@@ -44,6 +44,12 @@ describe('성능프롬프트', () => {
     expect(글).not.toContain('비운다(전체)');
   });
 
+  it('끝내기 전 점검이 null 칸을 빼라고 하거나 추천 값을 지우라고 하지 않는다', () => {
+    const 글 = 성능프롬프트('SUGGEST_LOAD', 재료)!;
+    expect(글).toContain('`|null` 인 칸은 빼지 말고 null 로 둔다');
+    expect(글).toContain('추천 · 예시 값은 규칙이 허락한 자리에만');
+  });
+
   it('초안 종류만 트랜잭션 모양을 적는다', () => {
     expect(성능프롬프트('DRAFT_RECORD', 재료)).toContain('Transaction = {');
     expect(성능프롬프트('SUGGEST_LOAD', 재료)).not.toContain('Transaction = {');

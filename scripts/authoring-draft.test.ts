@@ -86,6 +86,12 @@ describe('초안지시문', () => {
     expect(글).toContain('DEL 은 요구 문장이 아니라 지우는 까닭이다');
     expect(글).not.toContain('PLATFORM_ACCOUNTS');
   });
+
+  it('이슈를 못 읽으면 기능을 짐작하지 않고 못 읽었다는 확신 없음 줄을 낸다', () => {
+    const 글 = 초안지시문({ 자료, 서비스: 'MKW', 폴더: '/w', 화면: false });
+    expect(글).toContain('이슈를 읽지 못해 바뀌는 요구를 정하지 못했다');
+    expect(글).not.toContain('이슈 제목에서 읽히는');
+  });
 });
 
 describe('출력읽기', () => {
