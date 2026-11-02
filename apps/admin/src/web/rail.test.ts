@@ -11,10 +11,14 @@ function 블록(머리: string): string {
   return rail.slice(i, rail.indexOf('}', i));
 }
 
-function 밑줄움직임(): string {
+/** logo-line 움직임의 장면들 — [자리(%), 속성 글] */
+function 밑줄장면들(): [number, string][] {
   const i = rail.indexOf('@keyframes logo-line');
   expect(i).toBeGreaterThanOrEqual(0);
-  return rail.slice(i, rail.indexOf('\n}', i));
+  const 몸 = rail.slice(i, rail.indexOf('\n}', i));
+  const 장면 = [...몸.matchAll(/(\d+)%\s*\{([^}]*)\}/g)].map((m) => [Number(m[1]), m[2]!] as [number, string]);
+  expect(장면.length).toBeGreaterThan(1);
+  return 장면;
 }
 
 describe('사이드바 로고 밑줄', () => {
@@ -22,12 +26,14 @@ describe('사이드바 로고 밑줄', () => {
     expect(블록('.side-logo')).not.toMatch(/overflow\s*:\s*hidden/);
   });
 
-  it('움직이는 동안 밑줄이 끝까지 그어진 채 보이는 때가 있다', () => {
-    expect(밑줄움직임()).toMatch(/transform:\s*scaleX\(1\);\s*opacity:\s*1/);
+  it('움직이는 도중에 밑줄이 끝까지 그어진 채 또렷하게 보이는 장면이 있다', () => {
+    const 보임 = 밑줄장면들().some(([자리, 글]) => 자리 > 0 && 자리 < 100 && /scaleX\(1\)/.test(글) && /opacity\s*:\s*1\s*;/.test(글));
+    expect(보임).toBe(true);
   });
 
-  it('밑줄은 남지 않는다 — 움직임은 흐려지며 끝나고 멈춘 모습에는 밑줄이 없다', () => {
-    expect(밑줄움직임()).toMatch(/100%\s*\{[^}]*opacity:\s*0/);
+  it('밑줄은 남지 않는다 — 마지막 장면은 완전히 투명하고, 멈춘 모습(움직임 줄이기 포함)에는 밑줄이 없다', () => {
+    const 끝 = 밑줄장면들().find(([자리]) => 자리 === 100);
+    expect(끝?.[1]).toMatch(/opacity\s*:\s*0\s*;/);
     expect(블록('.side-logo b::after')).toMatch(/transform\s*:\s*scaleX\(0\)/);
   });
 });

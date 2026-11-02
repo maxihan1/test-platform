@@ -456,10 +456,11 @@
   height: 2px;
   border-radius: 1px;
   background: var(--accent-mark);
-  /* 멈춘 모습은 밑줄이 없는 상태다 — 움직이는 동안만 그어졌다 사라진다 */
+  /* 멈춘 모습은 밑줄이 없는 상태다 — 움직이는 동안만 그어졌다 사라진다. 움직임 줄이기(animation: none)일 때 이 줄이 밑줄을 숨긴다 — 빼면 그 사람들에게만 밑줄이 남는다.
+     밑줄은 고른 속도(linear)다 — 곡선을 걸면 머물기 · 흐려지기 구간마다 곡선이 따로 걸려 끝에 갑자기 꺼진다 */
   transform: scaleX(0);
   transform-origin: left;
-  animation: logo-line 1.2s 0.8s var(--ease) both;
+  animation: logo-line 1.2s 0.8s linear both;
 }
 
 .rail-check {

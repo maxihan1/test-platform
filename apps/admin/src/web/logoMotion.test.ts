@@ -34,6 +34,14 @@ describe('로고움직임다시', () => {
     expect(체크.cancel).not.toHaveBeenCalled();
   });
 
+  it('밑줄만 흐려지는 중이면 막지 않고 다시 돌린다 — 글자가 자리 잡은 뒤의 마우스 올림이 먹힌다', () => {
+    const 밑줄 = 움직임('logo-line', 'running');
+    const 글자 = 움직임('logo-slide');
+    로고움직임다시(문서([글자, 밑줄]));
+    expect(글자.play).toHaveBeenCalledOnce();
+    expect(밑줄.play).toHaveBeenCalledOnce();
+  });
+
   it('브라우저가 움직임 목록을 못 주면 아무것도 하지 않는다', () => {
     const 빈것 = { querySelectorAll: () => [{}] } as unknown as Pick<Document, 'querySelectorAll'>;
     expect(() => 로고움직임다시(빈것)).not.toThrow();
