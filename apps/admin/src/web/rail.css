@@ -490,10 +490,11 @@
 }
 
 .folded .side-logo {
-  /* display:none 이면 펼 때 다시 그려져 움직임이 또 돈다 — 폭만 없앤다 */
+  /* display:none 이면 펼 때 다시 그려져 움직임이 또 돈다 — 폭만 없앤다. 접혔을 때만 넘침을 숨겨 글자가 접기 단추 위로 번지지 않게 한다 */
   flex: 0 0 0;
   width: 0;
   padding: 0;
+  overflow: hidden;
   visibility: hidden;
 }
 
