@@ -76,17 +76,17 @@ export async function 지도찾기(사람: 사용자, service: string, 찾을것
     if (r.rowCount === 0) return 없음(찾을것.tcId);
     케이스들 = [찾을것.tcId];
   } else if (찾을것.reqId !== undefined) {
+    // 판을 먼저 본다 — PRD 에서 지운 요구도 req_case 연결이 남을 수 있어, 연결만 보면 지난 요구를 지금 요구로 믿게 된다
+    const 판 = await 지금판(번호);
+    if (판 === null) return 없음(`${service} 표준 기획서가 아직 없다`);
+    if (!판.items.some((i) => i.reqId === 찾을것.reqId)) return 없음(`${찾을것.reqId} 는 지금 PRD 판에 없는 요구다`);
     const r = await pool.query<{ tc_id: string }>(
       `SELECT DISTINCT r.tc_id FROM req_case r JOIN test_case t ON t.tc_id = r.tc_id AND t.is_active
         WHERE r.service_id = $1 AND r.req_id = $2 ORDER BY r.tc_id LIMIT $3`,
       [번호, 찾을것.reqId, 최대줄 + 1],
     );
     케이스들 = r.rows.map((x) => x.tc_id);
-    if (케이스들.length === 0) {
-      const 판 = await 지금판(번호);
-      if (!(판?.items ?? []).some((i) => i.reqId === 찾을것.reqId)) return 없음(`${찾을것.reqId} 는 지금 PRD 판에 없는 요구다`);
-      빈까닭 = `${찾을것.reqId} 를 덮는 살아 있는 케이스가 아직 없다`;
-    }
+    if (케이스들.length === 0) 빈까닭 = `${찾을것.reqId} 를 덮는 살아 있는 케이스가 아직 없다`;
   } else if (찾을것.url !== undefined) {
     // 파일 안에서 열리는 화면(open_urls — 「/board/:n/edit」 같은)도 찾는다
     const r = await pool.query<{ tc_id: string }>(
@@ -125,7 +125,12 @@ export async function 지도찾기(사람: 사용자, service: string, 찾을것
         return {
           tcId,
           reqs: reqs.slice(0, 안목록).map((x) => ({ reqId: x.req_id, axis: x.axis })),
-          screens: screens.slice(0, 안목록).map((x) => ({ name: x.name, url: x.screen_url, ...(x.open_urls.length > 0 && { opens: x.open_urls.slice(0, 안목록) }) })),
+          screens: screens.slice(0, 안목록).map((x) => ({
+            name: x.name,
+            url: x.screen_url,
+            ...(x.open_urls.length > 0 && { opens: x.open_urls.slice(0, 안목록) }),
+            ...(x.open_urls.length > 안목록 && { moreOpens: x.open_urls.length - 안목록 }),
+          })),
           ...(reqs.length > 안목록 && { moreReqs: reqs.length - 안목록 }),
           ...(screens.length > 안목록 && { moreScreens: screens.length - 안목록 }),
         };
@@ -137,6 +142,13 @@ export async function 지도찾기(사람: 사용자, service: string, 찾을것
 }
 
 /** 실행 결과 보기 — 판단에 쓰는 칸만. 통과는 숫자로, 실패 · 미실행만 줄로 (GET /api/runs/:runId 와 같은 권한 · 도메인/BTS §7 「MCP」 run_result) */
+/** 입력값 하나 — 글은 그대로 재고, 목록 · 묶음은 JSON 글로 재서 넘으면 잘린 JSON 글로 바꾼다 */
+function 값자르기(v: unknown): unknown {
+  if (typeof v === 'string') return 자르기(v, 글상한.입력값);
+  const 글 = JSON.stringify(v) ?? '';
+  return 글.length > 글상한.입력값 ? 자르기(글, 글상한.입력값) : v;
+}
+
 export async function 실행보기(사람: 사용자, runId: number): Promise<도구답> {
   const 서비스 = await 자원의서비스({ 종류: '실행', 번호: runId });
   if (서비스 === 서비스없음) return 막힘(String(runId));
@@ -149,7 +161,8 @@ export async function 실행보기(사람: 사용자, runId: number): Promise<�
   // 회귀 실행은 항목이 수천 줄이다 — 통과는 counts 숫자로 충분하고, AI 가 볼 것은 실패 · 미실행이다. 다 보려면 화면을 연다
   // 빼는 칸 — 입력 칸 모양 · 기록 번호 · 원래 결과 · 깔린 앱 · 서버 안 증적 경로는 판단에 안 쓰고, itemsTotal 은 counts.total 과 같다
   const { items: 전부, evidence, installedApps: _깔린, triggeredBy, triggeredByName, ...머리 } = 실행;
-  const 못통과 = 전부.filter((i) => i.status !== 'PASS').sort((a, b) => (a.status === b.status ? 0 : a.status === 'FAIL' ? -1 : 1));
+  // 도는 중인 항목(NA · 끝난 때 없음)은 미실행이 아니다 — counts.running 으로만 센다
+  const 못통과 = 전부.filter((i) => i.status !== 'PASS' && i.finishedAt !== null).sort((a, b) => (a.status === b.status ? 0 : a.status === 'FAIL' ? -1 : 1));
   const items = 못통과.slice(0, 최대줄).map((i) => ({
     tcId: i.tcId,
     tcName: i.tcName,
@@ -161,7 +174,7 @@ export async function 실행보기(사람: 사용자, runId: number): Promise<�
       i.error === null
         ? null
         : { message: 자르기(i.error.message, 글상한.오류), ...(i.error.stack !== undefined && { stack: 자르기(i.error.stack, 글상한.stack) }) },
-    params: Object.fromEntries(Object.entries(i.params).map(([k, v]) => [k, typeof v === 'string' ? 자르기(v, 글상한.입력값) : v])),
+    params: Object.fromEntries(Object.entries(i.params).map(([k, v]) => [k, 값자르기(v)])),
     unconfirmed: i.unconfirmed,
     ...(i.rerun !== null && { rerunRunId: i.rerun.runId }),
   }));
@@ -172,7 +185,7 @@ export async function 실행보기(사람: 사용자, runId: number): Promise<�
       triggeredBy: triggeredByName ?? triggeredBy,
       items,
       ...(못통과.length > 최대줄 && { truncated: true }),
-      evidence: evidence.map((e) => ({ id: e.id, format: e.format, status: e.status, error: e.error, generatedAt: e.generatedAt })),
+      evidence: evidence.map((e) => ({ id: e.id, format: e.format, status: e.status, error: e.error === null ? null : 자르기(e.error, 글상한.오류), generatedAt: e.generatedAt })),
     },
   };
 }
@@ -221,7 +234,12 @@ export async function BTS찾기(사람: 사용자, pat: string | null, projectId
     return { ok: false, error: 'BTS_UNREACHABLE' };
   }
 
-  if (답.status === 200) return { ok: true, data: 이슈칸만((답.json as { data?: unknown } | null)?.data, 찾을것.issueKey !== undefined) };
+  if (답.status === 200) {
+    const data = (답.json as { data?: unknown } | null)?.data;
+    // 빈 이슈를 진짜 이슈처럼 넘기면 AI 가 내용 없는 이슈로 믿고 일한다
+    if (찾을것.issueKey !== undefined && (data === null || typeof data !== 'object')) return { ok: false, error: 'BTS_ERROR', detail: 'Issue Bunker 가 빈 답을 줬다' };
+    return { ok: true, data: 이슈칸만(data, 찾을것.issueKey !== undefined) };
+  }
   if (답.status === 404) return 없음(찾을것.issueKey ?? '');
   if (답.status === 401) return { ok: false, error: 'BTS_UNAUTHORIZED', detail: pat === null ? 'Issue Bunker 가 「QA Hub AI」 계정 토큰을 받지 않았다 — 설정 › Issue Bunker 연결에서 다시 넣는다' : 'Issue Bunker 가 이 통합계정 토큰을 받지 않았다' };
   if (답.status === 403) return 막힘('Issue Bunker 권한 없음');

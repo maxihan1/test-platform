@@ -46,6 +46,7 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
   const 부르기: 부르기함수 = async (자리, method, 경로, 몸) => {
     BTS받은것.push({ 열쇠: 자리.botKey, method, 경로, 몸 });
     if (경로 === '/api/v1/issues/XMQ-404') return { status: 404, json: null };
+    if (경로 === '/api/v1/issues/XMQ-0') return { status: 200, json: { data: null } };
     const 이슈 = { key: 'XMQ-12', summary: '로그인 잠금', currentStateKey: 'closed', assigneeId: 'u1', priority: 3, customFields: { 등급: '높음' } };
     if (경로.startsWith('/api/v1/issues/')) return { status: 200, json: { data: { ...이슈, description: '가'.repeat(5000) } } };
     return { status: 200, json: { data: Array.from({ length: 31 }, (_, i) => ({ ...이슈, key: `XMQ-${String(i + 1)}` })) } };
@@ -142,8 +143,9 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
       `INSERT INTO run_item (run_id, tc_id, platform, attempt, tc_name, file_path, timeout_ms, precondition, params, expected, param_schema, expected_schema, status, duration_ms, finished_at, error)
        VALUES ($1, 'XMC-FN-001', 'desktop', 1, '다섯 번 틀리면 잠금', 'xmc/a.spec.ts', 300000, '[]', $2, '{}', '{"type":"object"}', '{}', 'FAIL', 10, now(), $3),
               ($1, 'XMC-FN-002', 'desktop', 1, '비밀번호 길이', 'xmc/b.spec.ts', 300000, '[]', '{}', '{}', '{}', '{}', 'PASS', 10, now(), NULL),
-              ($1, 'XMC-FN-002', 'mobile', 1, '비밀번호 길이', 'xmc/b.spec.ts', 300000, '[]', '{}', '{}', '{}', '{}', 'NA', 10, now(), NULL)`,
-      [내실행, JSON.stringify({ 메모: '나'.repeat(300), 횟수: 5 }), JSON.stringify({ message: '다'.repeat(600), stack: '라'.repeat(2000) })],
+              ($1, 'XMC-FN-002', 'mobile', 1, '비밀번호 길이', 'xmc/b.spec.ts', 300000, '[]', '{}', '{}', '{}', '{}', 'NA', 10, now(), NULL),
+              ($1, 'XMC-FN-001', 'mobile', 1, '다섯 번 틀리면 잠금', 'xmc/a.spec.ts', 300000, '[]', '{}', '{}', '{}', '{}', 'NA', NULL, NULL, NULL)`,
+      [내실행, JSON.stringify({ 메모: '나'.repeat(300), 횟수: 5, 목록: Array.from({ length: 100 }, (_, i) => i) }), JSON.stringify({ message: '다'.repeat(600), stack: '라'.repeat(2000) })],
     );
     남실행 = await 실행(남앱, 'XMCB');
 
@@ -237,13 +239,13 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
 
   it('실행 결과 보기 — 통과는 수로만, 실패 · 미실행만 줄로 잘라서 싣고, 남의 실행은 FORBIDDEN, 없는 번호는 NOT_FOUND', async () => {
     const 몸 = (await 도구('run_result', { runId: 내실행 })).json();
-    expect(몸).toMatchObject({ runId: 내실행, triggeredBy: 'xmc', counts: { total: 3, pass: 1, fail: 1, na: 1 }, evidence: [] });
+    expect(몸).toMatchObject({ runId: 내실행, triggeredBy: 'xmc', counts: { total: 4, pass: 1, fail: 1, running: 1 }, evidence: [] });
     for (const 뺀칸 of ['itemsTotal', 'installedApps', 'triggeredByName', 'truncated']) expect(몸).not.toHaveProperty(뺀칸);
     const 줄 = 몸.items as Record<string, unknown>[];
     expect(줄.map((i) => [i.tcId, i.status])).toEqual([['XMC-FN-001', 'FAIL'], ['XMC-FN-002', 'NA']]);
     expect(Object.keys(줄[0]!).sort()).toEqual(['attempt', 'durationMs', 'error', 'params', 'platform', 'status', 'tcId', 'tcName', 'unconfirmed']);
     expect(줄[0]!.error).toEqual({ message: `${'다'.repeat(500)}…(이하 생략)`, stack: `${'라'.repeat(1000)}…(이하 생략)` });
-    expect(줄[0]!.params).toEqual({ 메모: `${'나'.repeat(200)}…(이하 생략)`, 횟수: 5 });
+    expect(줄[0]!.params).toEqual({ 메모: `${'나'.repeat(200)}…(이하 생략)`, 횟수: 5, 목록: `${JSON.stringify(Array.from({ length: 100 }, (_, i) => i)).slice(0, 200)}…(이하 생략)` });
     expect((await 도구('run_result', { runId: 남실행 })).글).toContain('FORBIDDEN');
     expect((await 도구('run_result', { runId: 2_000_000_000 })).글).toContain('NOT_FOUND');
   });
@@ -260,9 +262,10 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
     expect(찾음.truncated).toBe(true);
 
     expect((await 도구('bts_search', { projectId: 내프로젝트, issueKey: 'XMQ-404' })).글).toContain('NOT_FOUND');
+    expect((await 도구('bts_search', { projectId: 내프로젝트, issueKey: 'XMQ-0' })).글).toContain('BTS_ERROR — Issue Bunker 가 빈 답을 줬다');
     expect((await 도구('bts_search', { projectId: 내프로젝트, issueKey: 'OTHER-1' })).글).toContain('FORBIDDEN');
     expect((await 도구('bts_search', { projectId: 남프로젝트, query: '잠금' })).글).toContain('FORBIDDEN');
-    expect(BTS받은것).toHaveLength(3);
+    expect(BTS받은것).toHaveLength(4);
   });
 
   it('세션 없는 창구라 GET · DELETE 는 405', async () => {
