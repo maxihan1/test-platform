@@ -22,6 +22,7 @@ import { PhoneShell } from './PhoneShell.js';
 import { 기능보나, 판정을만든다, 할수있나 } from './role.js';
 import { RunWatch } from './RunWatch.js';
 import { 찾기칸 } from './ShellFind.js';
+import { 로고움직임다시 } from './logoMotion.js';
 import { 서비스고르개, 프로젝트고르개 } from './ShellPickers.js';
 import { 사이드바머리, 왼쪽줄 } from './ShellRail.js';
 import { 밝기단추 } from './theme.js';
@@ -105,8 +106,8 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
         />
         <div className="side-col">
         {/* 맨 위 — 왼쪽이 제품 로고, 오른쪽 끝이 접기 단추 (2026-11-02 사용자 — 이 자리는 로고 자리다 · 시안 1 + 움직임 「최종 2판 ㄱ」).
-            처음 열 때 왼쪽 줄 마크의 체크가 그어진 뒤 「Commander」가 밀려 나오고 밑줄이 그어졌다 사라진다(rail.css) */}
-        <div className="side-top">
+            처음 열 때 왼쪽 줄 마크의 체크가 그어진 뒤 「Commander」가 밀려 나오고 밑줄이 그어졌다 사라진다(rail.css). 마우스를 올리면 처음부터 다시 돈다 */}
+        <div className="side-top" onMouseEnter={() => 로고움직임다시()}>
           <span className="side-logo">
             Test <b>Commander</b>
           </span>
