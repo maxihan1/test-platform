@@ -19,22 +19,17 @@ import { 계정섞였나, 글모두, 사유거르기 } from './authoring-reverse
 import { type 집은것, MCP설정글 } from './authoring-rules.js';
 import { 글자자르기, 사용량보고 } from './authoring-usage.js';
 import type { 판 } from './authoring-run.js';
+import { type 사람, blame풀기, 넘길사람모으기, 옛범위풀기, 코드주인풀기, 파일주인 } from './authoring-bugfix-owners.js';
 import {
-  type 사람,
   type 수정자료,
   PR본문,
-  blame풀기,
-  넘길사람모으기,
   수정자식인자,
   수정지시문,
   수정파일,
   올릴수없는파일,
-  옛범위풀기,
   이슈글,
   저장소이름,
   출력읽기,
-  코드주인풀기,
-  파일주인,
   상태파일들,
   수정커밋제목인가,
   원격머리풀기,
