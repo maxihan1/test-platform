@@ -133,6 +133,12 @@ export function 수정집기칸(params: Record<string, unknown>): { issueKey: st
   };
 }
 
+/** 집기 응답에 싣는 bugfix 칸 — 맡을 때 담아 둔 params 에 그 애플리케이션의 프로젝트 번호를 더한다. 자식이 MCP bts_search · note_read 에 넣는다 (결정 ①) */
+export async function 수정집기칸읽기(서비스: number, params: Record<string, unknown>): Promise<ReturnType<typeof 수정집기칸> & { projectId: number }> {
+  const r = await (await db()).query<{ project_id: string }>('SELECT project_id FROM service WHERE id = $1', [서비스]);
+  return { ...수정집기칸(params), projectId: Number(r.rows[0]!.project_id) };
+}
+
 /** PR 주소가 그 일의 대상 저장소 것인가 — 테스트 저장소 견주기(병합주소인가) 대신 이것을 본다 */
 export function 수정PR주소인가(prUrl: unknown, params: Record<string, unknown>): boolean {
   const 저장소 = 수정집기칸(params).repo?.url.replace(/\/+$/, '').replace(/\.git$/, '');

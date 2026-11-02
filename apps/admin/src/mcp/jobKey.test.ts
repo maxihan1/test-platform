@@ -135,12 +135,25 @@ describe.skipIf(연결 === undefined)('MCP 일마다 열쇠 mcj_', () => {
     vi.unstubAllEnvs();
   });
 
-  it('집기 응답 mcpKey 는 BTS 이은 프로젝트의 작성 · 그 재실행에만 실린다', async () => {
+  it('집기 응답 mcpKey 는 작성 · 그 재실행에 실리고, 작성 밖 종류는 BTS 이은 프로젝트에만 실린다', async () => {
     const 작성 = await 세우고집기(내앱, 'XMJ');
     expect(작성.몸.mcpKey).toMatch(/^mcj_[A-Za-z0-9_-]{43}$/);
     expect((await 세우고집기(내앱, 'XMJ', 'RERUN', 작성.id)).몸.mcpKey).toMatch(/^mcj_/);
-    expect('mcpKey' in (await 세우고집기(남앱, 'XMJB')).몸).toBe(false);
+    const 남작성 = await 세우고집기(남앱, 'XMJB');
+    expect(남작성.몸.mcpKey).toMatch(/^mcj_/);
+    expect((await 세우고집기(남앱, 'XMJB', 'RERUN', 남작성.id)).몸.mcpKey).toMatch(/^mcj_/);
+    expect('mcpKey' in (await 세우고집기(남앱, 'XMJB', 'PRD_DRAFT')).몸).toBe(false);
     expect(await 일열쇠내기({ id: 작성.id, kind: 'MERGE', sourceId: 작성.id })).toBeNull();
+  });
+
+  it('BTS 안 이은 프로젝트의 작성 열쇠는 PRD · 실행 조회는 열고, BTS 찾기 · 노트 읽기는 NOT_LINKED', async () => {
+    const 열쇠 = (await 세우고집기(남앱, 'XMJB')).몸.mcpKey!;
+    expect(await 도구(열쇠, 'run_result', { runId: 남실행 })).toContain(`"runId":${String(남실행)}`);
+    expect(await 도구(열쇠, 'run_search', { service: 'XMJB', tcId: 'XMJB-FN-001' })).toContain('"runs":[]');
+    expect(await 도구(열쇠, 'bts_search', { projectId: 남프로젝트, query: '잠금' })).toContain('NOT_LINKED');
+    expect(await 도구(열쇠, 'note_read', { projectId: 남프로젝트 })).toContain('NOT_LINKED');
+    expect(await 도구(열쇠, 'prd_search', { service: 'XMJ', query: '' })).toContain('FORBIDDEN');
+    expect(BTS받은것).toHaveLength(0);
   });
 
   it('그 프로젝트 조회만 연다 — 작성 계정이 남의 프로젝트에 배정돼 있어도 막고, BTS 는 「QA Hub AI」 열쇠로 부른다', async () => {
@@ -150,7 +163,10 @@ describe.skipIf(연결 === undefined)('MCP 일마다 열쇠 mcj_', () => {
     expect(await 도구(열쇠, 'run_result', { runId: 남실행 })).toContain('FORBIDDEN');
     expect(await 도구(열쇠, 'bts_search', { projectId: 남프로젝트, query: '잠금' })).toContain('FORBIDDEN');
     await 도구(열쇠, 'bts_search', { projectId: 내프로젝트, issueKey: 'XMJQ-1' });
-    expect(BTS받은것).toEqual([{ 열쇠: 'xmj-bot-key', 경로: '/api/v1/issues/XMJQ-1' }]);
+    expect(BTS받은것).toEqual([
+      { 열쇠: 'xmj-bot-key', 경로: '/api/v1/issues/XMJQ-1' },
+      { 열쇠: 'xmj-bot-key', 경로: '/api/v1/issues/XMJQ-1/comments' },
+    ]);
     expect(await 도구(열쇠, 'bts_search', { projectId: 내프로젝트, issueKey: 'XMJQ-401' })).toContain('「QA Hub AI」 계정 토큰');
   });
 

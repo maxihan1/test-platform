@@ -71,7 +71,7 @@ describe.skipIf(연결 === undefined)('수정 AI 한 바퀴', () => {
     app.inject({ method, url, headers: { authorization: `Bearer ${토큰}` }, ...(payload !== undefined && { payload }) });
   const 집기 = async (prefix: string) => {
     const res = await 부르기('POST', `/api/authoring/requests/claim?service=${prefix}`);
-    return res.statusCode === 204 ? null : res.json<{ id: number; kind: string; bugfix?: { issueKey: string; title: string; note: string; repo: { url: string } | null }; mcpKey?: string }>();
+    return res.statusCode === 204 ? null : res.json<{ id: number; kind: string; bugfix?: { issueKey: string; title: string; note: string; repo: { url: string } | null; projectId: number }; mcpKey?: string }>();
   };
   const 결과 = (id: number, 몸: object) => 부르기('POST', `/api/authoring/requests/${String(id)}/bugfix`, 몸);
   const 끝내기 = (id: number, prefix: string, 몸: object) => 부르기('POST', `/api/authoring/requests/${String(id)}/finish?service=${prefix}`, 몸);
@@ -148,6 +148,7 @@ describe.skipIf(연결 === undefined)('수정 AI 한 바퀴', () => {
     expect(집은?.kind).toBe('BUGFIX');
     expect(집은?.bugfix?.issueKey).toBe('XBQ-3');
     expect(집은?.bugfix?.note).toContain('재현됨');
+    expect(집은?.bugfix?.projectId).toBe(프로젝트);
     expect(집은?.mcpKey).toMatch(/^mcj_/);
   });
 
