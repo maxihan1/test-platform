@@ -56,14 +56,14 @@ describe('이슈 본문', () => {
   });
 
   it('trace 를 아직 안 풀었으면 네트워크 · 콘솔 자리에 실행 결과를 보라고 적는다', () => {
-    expect(이슈본문(재료({ 네트워크: null, 콘솔: null }))).toContain('네트워크 · 콘솔 기록은 QA Hub 실행 결과에서 보세요');
+    expect(이슈본문(재료({ 네트워크: null, 콘솔: null }))).toContain('네트워크 · 콘솔 기록은 Test Commander 실행 결과에서 보세요');
   });
 
   it('바이트 상한을 넘으면 재현 단계를 뒤에서부터 덜고 남은 수를 적는다 · 기대와 고리는 남는다', () => {
     const steps = Array.from({ length: 400 }, (_, i) => ({ title: `${String(i)}번째 단계 ${'가'.repeat(30)}`, status: 'PASS' as const }));
     const 글 = 이슈본문(재료({ steps }));
     expect(Buffer.byteLength(글, 'utf8')).toBeLessThanOrEqual(본문상한);
-    expect(글).toMatch(/이하 \d+단계는 QA Hub 실행 결과에서/);
+    expect(글).toMatch(/이하 \d+단계는 Test Commander 실행 결과에서/);
     expect(글).toContain('MKW-REQ-012');
     expect(글).toContain('https://qahub.example.com/runs/812');
   });
@@ -81,6 +81,6 @@ it('제목은 [애플리케이션] 케이스 이름이고 BTS 상한을 넘지 �
 
 it('또 실패 댓글은 실행 번호 · 실패 원인 · 고리를 단다', () => {
   expect(또실패댓글(재료(), 813)).toBe(
-    'QA Hub 실행 #813 에서 또 실패했습니다 — 대상 서버 qa · 빌드 a1b2c3d-202610311530\n실패 원인: 기대 결과와 다릅니다\n꼬리표: 버그 가능성 높음\nhttps://qahub.example.com/runs/812',
+    'Test Commander 실행 #813 에서 또 실패했습니다 — 대상 서버 qa · 빌드 a1b2c3d-202610311530\n실패 원인: 기대 결과와 다릅니다\n꼬리표: 버그 가능성 높음\nhttps://qahub.example.com/runs/812',
   );
 });

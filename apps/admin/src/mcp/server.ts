@@ -35,7 +35,7 @@ function 서버세우기(사람: 사용자, pat: string | null, 부르기?: 부�
     {
       description: '프로젝트 노트 읽기 — 이름 없이 부르면 목차(문서 이름 · 한 줄 설명 · 길이), 문서 이름을 주면 그 문서 본문(md). 노트는 AI 가 사건마다 고쳐 쓰는 맥락이라 기대값 근거가 아니다',
       inputSchema: {
-        projectId: z.number().int().positive().describe('QA Hub 프로젝트 번호'),
+        projectId: z.number().int().positive().describe('Test Commander 프로젝트 번호'),
         name: z.string().max(40).optional().describe('문서 이름 (예: 한눈에)'),
       },
       annotations: 읽기만,
@@ -71,9 +71,9 @@ function 서버세우기(사람: 사용자, pat: string | null, 부르기?: 부�
   서버.registerTool(
     'bts_search',
     {
-      description: '그 프로젝트가 이은 BTS 에서 이슈 · task 를 찾는다. issueKey(예: DM-12) 하나를 읽거나 query 낱말로 찾는다. 사람은 자기 통합계정 토큰으로, 작성 AI 는 「QA Hub AI」 계정으로 BTS 를 부른다',
+      description: '그 프로젝트가 이은 Issue Bunker 에서 이슈 · task 를 찾는다. issueKey(예: DM-12) 하나를 읽거나 query 낱말로 찾는다. 사람은 자기 통합계정 토큰으로, 작성 AI 는 「QA Hub AI」 계정으로 Issue Bunker 를 부른다',
       inputSchema: {
-        projectId: z.number().int().positive().describe('QA Hub 프로젝트 번호'),
+        projectId: z.number().int().positive().describe('Test Commander 프로젝트 번호'),
         issueKey: z.string().max(40).optional(),
         query: z.string().max(200).optional(),
       },

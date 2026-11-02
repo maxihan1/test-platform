@@ -48,7 +48,7 @@ export async function gameLink(env: Env): Promise<Link> {
   if (env.PLATFORM_GAME_LINK === 'farm') {
     const serial = env.PLATFORM_DEVICE_UDID;
     const appium = env.PLATFORM_APPIUM_URL;
-    if (!serial || !appium) throw new Error('디바이스 팜 게임 명령을 보내려면 PLATFORM_APPIUM_URL 과 PLATFORM_DEVICE_UDID 가 필요하다');
+    if (!serial || !appium) throw new Error('Device VISION 게임 명령을 보내려면 PLATFORM_APPIUM_URL 과 PLATFORM_DEVICE_UDID 가 필요하다');
     const { base, headers } = 팜원점(appium, env.PLATFORM_APPIUM_TOKEN);
     return farmLink(base, headers, serial);
   }

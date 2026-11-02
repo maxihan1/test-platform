@@ -243,7 +243,7 @@ export function PR본문(입력: { issueKey: string; title: string; summary: str
     [
       '## 이슈',
       `${입력.issueKey} — ${입력.title.replace(/\s+/g, ' ')}`,
-      `BTS 이슈 ${입력.issueKey} 를 QA Hub 가 맡아 고쳤어요.`,
+      `Issue Bunker 이슈 ${입력.issueKey} 를 Test Commander 가 맡아 고쳤어요.`,
       '',
       '## 고친 내용',
       요약.trim() === '' ? '고친 내용 설명이 비어 있어요. 바뀐 파일을 직접 봐 주세요.' : 요약.trim(),
@@ -251,7 +251,7 @@ export function PR본문(입력: { issueKey: string; title: string; summary: str
       '## 바뀐 파일',
       ...보일,
       '',
-      'QA Hub 수정 AI 가 만든 초안 PR 이에요. 병합은 사람이 해요.',
+      'Test Commander 수정 AI 가 만든 초안 PR 이에요. 병합은 사람이 해요.',
     ].join('\n');
   const 틀 = 만들기('').length;
   return 만들기(글자자르기(입력.summary, Math.max(0, PR본문상한 - 틀)));
@@ -259,7 +259,9 @@ export function PR본문(입력: { issueKey: string; title: string; summary: str
 
 /** 이 스크립트가 올린 커밋 제목인가 — 다시 실행해 같은 브랜치를 덮어써도 되는 머리는 이것뿐이다(사람 커밋은 덮어쓰지 않는다) */
 export function 수정커밋제목인가(제목: string, issueKey: string): boolean {
-  return 제목.trim().startsWith(`[QA Hub] ${issueKey} 수정 — `);
+  // 2026-11-02 머리를 [Test Commander] 로 바꿨다 — 그 전에 만든 수정 커밋도 알아본다
+  const t = 제목.trim();
+  return t.startsWith(`[Test Commander] ${issueKey} 수정 — `) || t.startsWith(`[QA Hub] ${issueKey} 수정 — `);
 }
 
 /** `ls-remote` 글에서 원격 머리. 없으면 null, 커밋 번호 꼴이 아니면 까닭 — 인자로 넘기기 전에 모양을 본다 */

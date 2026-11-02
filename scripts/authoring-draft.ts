@@ -72,7 +72,7 @@ async function 초안건(
 ): Promise<void> {
   // 이슈 글은 MCP 로만 읽는다 — 열쇠가 없으면 근거 없이 쓰게 된다. BTS 를 이은 프로젝트의 초안이면 늘 온다(mcp/jobKey.ts)
   const 설정글 = MCP설정글(주소기지, 것.mcpKey);
-  if (설정글 === undefined) return void (await 손.끝내기({ status: 'FAILED', error: 'MCP 열쇠가 없어 이슈 글을 못 읽는다 — BTS 연결을 확인해라' }));
+  if (설정글 === undefined) return void (await 손.끝내기({ status: 'FAILED', error: 'MCP 열쇠가 없어 이슈 글을 못 읽는다 — Issue Bunker 연결을 확인해라' }));
   const 비밀들 = 비밀번호들(것);
   const 화면 = 화면보나(설정?.종류, 것.target?.baseUrl ?? undefined);
 

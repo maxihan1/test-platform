@@ -66,7 +66,7 @@ describe('팜폰으로', () => {
   it('빈 폰이 없으면 잡지도 놓지도 않고 까닭을 넘긴다 — 사람이 잡은 폰은 기다리지 않는다', async () => {
     const { 받음, 부르기 } = 가짜팜({ 목록: [남이씀] });
 
-    expect(await 팜폰으로(팜, async () => '돌림', (까닭) => 까닭, 부르기, 안쉼)).toBe('디바이스 팜에 빈 폰이 없습니다');
+    expect(await 팜폰으로(팜, async () => '돌림', (까닭) => 까닭, 부르기, 안쉼)).toBe('Device VISION 에 빈 폰이 없습니다');
     expect(받음).toEqual(['GET /api/devices']);
   });
 
@@ -81,7 +81,7 @@ describe('팜폰으로', () => {
     const { 받음, 부르기 } = 가짜팜({ 목록: [빈폰하나], 잡기: 'throw' });
 
     expect(await 팜폰으로(팜, async () => '돌림', (까닭) => 까닭, 부르기, 안쉼)).toBe(
-      '디바이스 팜에 닿지 못했습니다: The operation was aborted due to timeout',
+      'Device VISION 에 닿지 못했습니다: The operation was aborted due to timeout',
     );
     expect(받음.at(-1)).toBe('DELETE /api/devices/R3CR10TCVCD/hold');
   });
@@ -90,7 +90,7 @@ describe('팜폰으로', () => {
     const { 부르기 } = 가짜팜({ 목록: [{ status: 200, body: '<html>다른 곳</html>' }] });
 
     expect(await 팜폰으로(팜, async () => '돌림', (까닭) => 까닭, 부르기, 안쉼)).toBe(
-      '디바이스 팜의 기기 목록을 읽지 못했습니다 — DEVICE_FARM_URL 을 확인하세요',
+      'Device VISION 의 기기 목록을 읽지 못했습니다 — DEVICE_FARM_URL 을 확인하세요',
     );
   });
 
@@ -98,7 +98,7 @@ describe('팜폰으로', () => {
     const { 받음, 부르기 } = 가짜팜({ 목록: [빈폰하나], 잡기: { status: 409, body: { refused: '다른 사용자(maxi)가 쓰는 중' } } });
 
     expect(await 팜폰으로(팜, async () => '돌림', (까닭) => 까닭, 부르기, 안쉼)).toBe(
-      '디바이스 팜이 폰을 내주지 않았습니다: 다른 사용자(maxi)가 쓰는 중',
+      'Device VISION 이 폰을 내주지 않았습니다: 다른 사용자(maxi)가 쓰는 중',
     );
     expect(받음.some((줄) => 줄.startsWith('DELETE'))).toBe(false);
   });
@@ -106,7 +106,7 @@ describe('팜폰으로', () => {
   it('팜에 닿지 못하면 던지지 않고 까닭을 넘긴다', async () => {
     const 부르기 = (async () => { throw new Error('connect ECONNREFUSED'); }) as typeof fetch;
 
-    expect(await 팜폰으로(팜, async () => '돌림', (까닭) => 까닭, 부르기, 안쉼)).toBe('디바이스 팜에 닿지 못했습니다: connect ECONNREFUSED');
+    expect(await 팜폰으로(팜, async () => '돌림', (까닭) => 까닭, 부르기, 안쉼)).toBe('Device VISION 에 닿지 못했습니다: connect ECONNREFUSED');
   });
 
   it('놓기가 실패해도 일의 결과를 그대로 돌려준다', async () => {
@@ -176,7 +176,7 @@ describe('팜머리', () => {
     const { 부르기 } = 가짜팜({ 목록: [{ status: 401, body: {} }] });
 
     expect(await 팜폰으로(팜, async () => '돌림', (까닭) => 까닭, 부르기, 안쉼)).toBe(
-      '디바이스 팜이 기기 목록을 주지 않았습니다 (HTTP 401) — DEVICE_FARM_TOKEN 을 확인하세요',
+      'Device VISION 이 기기 목록을 주지 않았습니다 (HTTP 401) — DEVICE_FARM_TOKEN 을 확인하세요',
     );
   });
 });

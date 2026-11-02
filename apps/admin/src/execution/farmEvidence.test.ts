@@ -275,13 +275,13 @@ describe('GET /api/runs/:runId/items/:historyId/farm-video', () => {
   });
 
   it.each([
-    ['번호 파일이 없으면', () => rmSync(join(runDir('3', '9'), APPIUM_SESSION_ID_FILE)), { status: 200 }, '이 항목은 디바이스 팜 영상 기록이 없습니다'],
-    ['팜 주소가 없으면', () => delete process.env.DEVICE_FARM_URL, { status: 200 }, '이 서버에는 디바이스 팜이 연결되어 있지 않습니다'],
-    ['팜이 연결을 모르면', () => undefined, { status: 404 }, '디바이스 팜에 이 영상이 없습니다 — 30일이 지났을 수 있습니다'],
-    ['팜 목록이 500 이면', () => undefined, { status: 500 }, '디바이스 팜에 닿지 못했습니다'],
-    ['아직 준비 중이면', () => undefined, { status: 200, body: { value: { ready: false, files: [] } } }, '디바이스 팜에 이 항목의 화면 영상이 없습니다'],
-    ['mp4 가 없으면', () => undefined, { status: 200, body: 파일들('logcat.txt') }, '디바이스 팜에 이 항목의 화면 영상이 없습니다'],
-    ['영상을 받을 때 팜에 못 닿으면', () => undefined, { status: 200, body: 파일들('video-1.mp4') }, '디바이스 팜에 닿지 못했습니다'],
+    ['번호 파일이 없으면', () => rmSync(join(runDir('3', '9'), APPIUM_SESSION_ID_FILE)), { status: 200 }, '이 항목은 Device VISION 영상 기록이 없습니다'],
+    ['팜 주소가 없으면', () => delete process.env.DEVICE_FARM_URL, { status: 200 }, '이 서버에는 Device VISION 이 연결되어 있지 않습니다'],
+    ['팜이 연결을 모르면', () => undefined, { status: 404 }, 'Device VISION 에 이 영상이 없습니다 — 30일이 지났을 수 있습니다'],
+    ['팜 목록이 500 이면', () => undefined, { status: 500 }, 'Device VISION 에 닿지 못했습니다'],
+    ['아직 준비 중이면', () => undefined, { status: 200, body: { value: { ready: false, files: [] } } }, 'Device VISION 에 이 항목의 화면 영상이 없습니다'],
+    ['mp4 가 없으면', () => undefined, { status: 200, body: 파일들('logcat.txt') }, 'Device VISION 에 이 항목의 화면 영상이 없습니다'],
+    ['영상을 받을 때 팜에 못 닿으면', () => undefined, { status: 200, body: 파일들('video-1.mp4') }, 'Device VISION 에 닿지 못했습니다'],
   ])('%s 404 GONE 과 사람이 읽는 한 줄을 준다', async (_이름, 준비, 목록, 글) => {
     가짜팜(목록);
     준비();

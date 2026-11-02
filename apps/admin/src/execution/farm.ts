@@ -28,14 +28,14 @@ async function 빈폰을고른다(팜: string, 부르기: typeof fetch, 쉬기: 
     const 목록 = await 부르기(`${팜}/api/devices`, { headers: 팜머리(process.env, 토큰), signal: AbortSignal.timeout(팜_제한_ms) });
     // 인증 켠 팜은 토큰이 없거나 틀리면 401 이다 — 주소나 팜을 의심하기 전에 토큰을 보게 한다. 누른 사람 토큰이면 Auth 에서 폐기했거나 기간이 끝났다
     const 볼곳 = 토큰 === undefined ? 'DEVICE_FARM_TOKEN 을' : '내 메뉴의 통합계정 토큰을';
-    if (!목록.ok) return { reason: `디바이스 팜이 기기 목록을 주지 않았습니다 (HTTP ${목록.status})${목록.status === 401 ? ` — ${볼곳} 확인하세요` : ''}` };
+    if (!목록.ok) return { reason: `Device VISION 이 기기 목록을 주지 않았습니다 (HTTP ${목록.status})${목록.status === 401 ? ` — ${볼곳} 확인하세요` : ''}` };
     // 주소가 틀려 다른 쪽이 200 으로 HTML 을 주면 「닿지 못했다」가 아니라 이 말이어야 주소를 다시 본다
     const 몸 = (await 목록.json().catch(() => null)) as { value?: { devices?: 기기[] } } | null;
-    if (몸 === null) return { reason: '디바이스 팜의 기기 목록을 읽지 못했습니다 — DEVICE_FARM_URL 을 확인하세요' };
+    if (몸 === null) return { reason: 'Device VISION 의 기기 목록을 읽지 못했습니다 — DEVICE_FARM_URL 을 확인하세요' };
     const 기기들 = 몸.value?.devices ?? [];
     const 빈폰 = 기기들.find((d) => d.state === 'IDLE' && typeof d.serial === 'string' && d.serial !== '');
     if (빈폰 !== undefined) return { serial: 빈폰.serial as string };
-    if (!기기들.some((d) => d.detail === 'cleaning') || Date.now() >= 끝) return { reason: '디바이스 팜에 빈 폰이 없습니다' };
+    if (!기기들.some((d) => d.detail === 'cleaning') || Date.now() >= 끝) return { reason: 'Device VISION 에 빈 폰이 없습니다' };
     await 쉬기(다시_볼_ms);
   }
 }
@@ -51,7 +51,7 @@ async function 잡는다(팜: string, serial: string, 부르기: typeof fetch, �
   if (잡기.ok) return null;
   // 목록을 본 사이에 남이 잡았을 때가 흔하다. 팜의 거절 문장이 까닭을 다 말한다
   const 거절 = ((await 잡기.json().catch(() => null)) as { refused?: unknown } | null)?.refused;
-  return `디바이스 팜이 폰을 내주지 않았습니다: ${typeof 거절 === 'string' ? 거절 : `HTTP ${잡기.status}`}`;
+  return `Device VISION 이 폰을 내주지 않았습니다: ${typeof 거절 === 'string' ? 거절 : `HTTP ${잡기.status}`}`;
 }
 
 // 놓아야 팜이 깐 앱 · 앱 데이터를 정리한다. 실패해도 던지지 않는다 — 이미 난 판정을 덮지 않고, 잡기는 30분 뒤 팜이 스스로 푼다
@@ -85,7 +85,7 @@ export async function 잡기를늘린다(팜: string, serial: string, 부르기:
   }
 }
 
-const 닿지못함 = (err: unknown): string => `디바이스 팜에 닿지 못했습니다: ${err instanceof Error ? err.message : String(err)}`;
+const 닿지못함 = (err: unknown): string => `Device VISION 에 닿지 못했습니다: ${err instanceof Error ? err.message : String(err)}`;
 
 /**
  * 빈 폰 하나를 잡아 그 번호로 일을 맡기고, 일이 어떻게 끝나든 놓는다. 못 잡으면 까닭을 넘긴다 — 던지지 않는다. 분은 팜이 받는 30 · 60 · 120.

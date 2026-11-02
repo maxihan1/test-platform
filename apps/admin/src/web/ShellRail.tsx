@@ -5,6 +5,7 @@ import { use말, use언어, type 언어 } from "./i18n.js";
 import { 아이콘 } from "./icons.js";
 import { 종류, 종류이름, 종류차례, 종류키 } from "./kind.js";
 import { 고른서비스를적는다, 프로젝트서비스들 } from "./layout.js";
+import { 로고움직임다시 } from "./logoMotion.js";
 import { 집 } from "./route.js";
 import { 내메뉴 } from "./ShellMe.js";
 
@@ -44,7 +45,7 @@ export function 왼쪽줄({
   const t = use말();
   return (
     <div className="rail">
-      <a className="rail-logo" href={집(user, service?.prefix ?? null)} aria-label={t("Test Commander 홈")} title="Test Commander">
+      <a className="rail-logo" href={집(user, service?.prefix ?? null)} aria-label={t("Test Commander 홈")} title="Test Commander" onMouseEnter={() => 로고움직임다시()}>
         <svg width="32" height="32" viewBox="0 0 28 28" aria-hidden="true">
           <rect width="28" height="28" rx="8" fill="var(--accent)" />
           <path className="rail-check" pathLength={1} d="M8 14.5l4 4 8-9" fill="none" stroke="var(--on-accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />

@@ -16,7 +16,7 @@ export async function 노트읽기(사람: 사용자, projectId: number, name?: 
   const 막힘 = 프로젝트읽기막힘(사람, projectId);
   if (막힘 !== null) return 막힘;
   const 연결 = await (await db()).query('SELECT 1 FROM bts_link WHERE project_id = $1', [projectId]);
-  if (연결.rowCount === 0) return { ok: false, error: 'NOT_LINKED', detail: `project ${String(projectId)} 은 BTS 를 잇지 않았다` };
+  if (연결.rowCount === 0) return { ok: false, error: 'NOT_LINKED', detail: `project ${String(projectId)} 은 Issue Bunker 를 잇지 않았다` };
   const 판 = await 지금노트(projectId);
   if (판 === null) return { ok: false, error: 'NOT_FOUND', detail: '노트가 아직 없다' };
   if (name === undefined) {

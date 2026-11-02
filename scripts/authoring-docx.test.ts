@@ -62,7 +62,7 @@ describe('메모달기 — 워드 원본에 메모를 단 사본', () => {
     const { 문서, 메모 } = await 풀기(결과.바이트);
     expect(문서).toContain('<w:pStyle w:val="FirstParagraph" /></w:pPr><w:commentRangeStart w:id="0"/>');
     expect(문서).toMatch(/주문이 저장된다<\/w:t><\/w:r><w:r><w:t>\.<\/w:t><\/w:r><w:commentRangeEnd w:id="0"\/><w:r><w:commentReference w:id="0"\/><\/w:r><\/w:p>/);
-    expect(메모).toContain('w:author="QA Hub"');
+    expect(메모).toContain('w:author="Test Commander"');
     expect(메모).toContain('[D1] 화면과 다름 — 화면: 확인');
   });
 

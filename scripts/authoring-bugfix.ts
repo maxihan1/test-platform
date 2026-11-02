@@ -62,7 +62,7 @@ async function 수정건(주소기지: string, 토큰: string, 서비스: string
   const 자료 = 것.bugfix;
   // 이슈 글은 note 에 이미 있다. MCP 는 맥락을 더 찾는 용도지만 BTS 를 이은 프로젝트면 늘 열쇠가 온다(mcp/jobKey.ts)
   const 설정글 = MCP설정글(주소기지, 것.mcpKey);
-  if (설정글 === undefined) return void (await 손.끝내기({ status: 'FAILED', error: 'MCP 열쇠가 없어 맥락을 못 읽는다 — BTS 연결을 확인해라' }));
+  if (설정글 === undefined) return void (await 손.끝내기({ status: 'FAILED', error: 'MCP 열쇠가 없어 맥락을 못 읽는다 — Issue Bunker 연결을 확인해라' }));
   const 계정비밀 = 비밀번호들(것);
   // 피그마 · 팜 토큰도 자식 환경에 있을 수 있다 — 저장소는 공개일 수 있어 올라가면 그대로 공개된다
   const 비밀들 = [...계정비밀, ...[것.figmaToken, process.env.PLATFORM_APPIUM_TOKEN].filter((v): v is string => typeof v === 'string' && v !== '')];
@@ -164,7 +164,7 @@ async function 수정건(주소기지: string, 토큰: string, 서비스: string
     if (!차이.ok) return void (await 손.끝내기({ status: 'FAILED', error: `바뀐 내용을 읽지 못했다: ${차이.까닭}` }));
     const 제목 = 자료.title.replace(/\s+/g, ' ').trim();
     const 본문 = PR본문({ issueKey: 자료.issueKey, title: 제목, summary: 몸.summary, files: 파일들 });
-    const 커밋글 = `[QA Hub] ${자료.issueKey} 수정 — ${제목}`;
+    const 커밋글 = `[Test Commander] ${자료.issueKey} 수정 — ${제목}`;
     // diff · 본문 · 커밋 글 · 요약 · 분석 어디든 비밀이 섞였으면 push 하지 않는다
     if (계정섞였나([차이.낸것, 본문, 커밋글, ...글모두(몸)], 비밀들)) {
       return await 분석(`고친 내용에 비밀값이 섞여 올리지 않았어요. 바뀐 파일은 ${파일들.slice(0, 20).join(' · ')} 이에요.`, false);
@@ -199,7 +199,7 @@ async function 수정건(주소기지: string, 토큰: string, 서비스: string
         if (!트리에서('gh', PR본문고치기인자(있는것, 본문)).ok) console.error(`[수정] ${것.id}번 PR 본문을 못 고쳤다 — 옛 본문이 남는다`);
         return { 값: 있는것 };
       }
-      const r = 트리에서('gh', ['pr', 'create', '--draft', '--repo', 이름, '--base', 기본브랜치, '--head', 브랜치, '--title', `[QA Hub] ${자료.issueKey} ${제목}`, '--body', 본문]);
+      const r = 트리에서('gh', ['pr', 'create', '--draft', '--repo', 이름, '--base', 기본브랜치, '--head', 브랜치, '--title', `[Test Commander] ${자료.issueKey} ${제목}`, '--body', 본문]);
       const 주소 = r.낸것.trim().split('\n').pop() ?? '';
       return r.ok && 주소.startsWith('https://') ? { 값: 주소 } : { 까닭: r.까닭 || 'PR 주소가 안 찍혔다' };
     });

@@ -142,7 +142,7 @@ describe.skipIf(연결 === undefined)('수정 AI 한 바퀴', () => {
     expect(await 수정맡기(프로젝트, 'XBQ-3', 가짜BTS)).toBe('TAKEN');
     expect(await 수정맡기(프로젝트, 'XBQ-3', 가짜BTS)).toBe('RUNNING');
     const [줄] = await 수정줄('XBQ-3');
-    expect(줄!.requested_by_name).toBe('BTS · 연결 담당');
+    expect(줄!.requested_by_name).toBe('Issue Bunker · 연결 담당');
     expect(줄!.params.repo).toEqual({ name: '서버', url: 'https://github.com/demo/shop' });
     const 집은 = await 집기('XBG');
     expect(집은?.kind).toBe('BUGFIX');

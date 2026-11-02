@@ -20,7 +20,7 @@ export async function 초안세우기(deployId: number, 키들: string[], 손?: 
   const r = await (손 ?? (await db())).query<{ id: string }>(
     `INSERT INTO authoring_request (service_id, kind, params, env, requested_by, requested_by_name, status)
      SELECT s.id, 'PRD_DRAFT', jsonb_build_object('issueKeys', to_jsonb($2::text[]), 'deployId', d.id, 'buildNo', d.build_no, 'titles', $3::jsonb), 실행.env,
-            l.updated_by, 'BTS · ' || COALESCE(u.display_name, l.updated_by), 'PENDING'
+            l.updated_by, 'Issue Bunker · ' || COALESCE(u.display_name, l.updated_by), 'PENDING'
        FROM bts_deploy d
        JOIN bts_link l ON l.project_id = d.project_id
        JOIN service s ON s.id = ANY(d.service_ids)

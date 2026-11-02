@@ -155,7 +155,7 @@ export function 가리기<T>(값: T, 표: Map<string, string>): T {
 /** 남겨 둘 가린 녹화 — 정적 리소스는 본문을 버려 파일을 줄인다 */
 export function 남길녹화(줄: readonly HAR줄[]): { log: { version: string; creator: { name: string; version: string }; entries: HAR줄[] } } {
   const entries = 줄.map((e) => (정적인가(e) ? { ...e, response: { ...e.response, content: { mimeType: e.response.content.mimeType, size: e.response.content.size } } } : e));
-  return { log: { version: '1.2', creator: { name: 'QA Hub', version: '1' }, entries } };
+  return { log: { version: '1.2', creator: { name: 'Test Commander', version: '1' }, entries } };
 }
 
 const 자르기 = (글: string, 상한: number) => (글.length > 상한 ? `${글.slice(0, 상한)}…(${글.length}자 중 ${상한}자)` : 글);

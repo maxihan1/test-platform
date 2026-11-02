@@ -21,7 +21,7 @@ describe('닫기 사유 이름 짝', () => {
 
 const 연결 = process.env.DATABASE_URL;
 
-describe.skipIf(연결 === undefined)('BTS 닫기 사유 처리', () => {
+describe.skipIf(연결 === undefined)('Issue Bunker 닫기 사유 처리', () => {
   let pool: Pool;
   let 프로젝트 = 0;
   let 서비스 = 0;
@@ -106,7 +106,7 @@ describe.skipIf(연결 === undefined)('BTS 닫기 사유 처리', () => {
     await 짝넣기('DM-2', 'XBC-FN-001');
     const { 요청들: [id] } = await 닫기처리({ projectId: 프로젝트, ...자리 }, 이슈('DM-2', 'Test issue'), 이슈글);
     const 행 = await 요청(id!);
-    expect(행).toMatchObject({ kind: 'AUTHOR', requested_by: 'bts', requested_by_name: 'BTS DM-2' });
+    expect(행).toMatchObject({ kind: 'AUTHOR', requested_by: 'bts', requested_by_name: 'Issue Bunker DM-2' });
     expect(행.params).toMatchObject({
       prdApply: true,
       testFix: { issueKey: 'DM-2', cases: [{ runId: 실행, tcId: 'XBC-FN-001', env: 'qa' }] },
@@ -135,7 +135,7 @@ describe.skipIf(연결 === undefined)('BTS 닫기 사유 처리', () => {
     const { 요청들: [id] } = await 닫기처리({ projectId: 프로젝트, ...자리 }, 이슈('DM-4', 'Works as designed'));
     expect((await 요청(id!)).params).toMatchObject({
       prdApply: true,
-      screenRight: [{ runId: 실행, tcId: 'XBC-FN-002', env: 'qa', reqIds: ['XBC-REQ-001'], byName: 'BTS DM-4' }],
+      screenRight: [{ runId: 실행, tcId: 'XBC-FN-002', env: 'qa', reqIds: ['XBC-REQ-001'], byName: 'Issue Bunker DM-4' }],
     });
     await 짝넣기('DM-5', 'XBC-FN-003');
     expect(await 닫기처리({ projectId: 프로젝트, ...자리 }, 이슈('DM-5', 'Works as designed'))).toEqual({ 요청들: [], 기록만: ['XBC-FN-003 — NO_PRD_REQ'] });

@@ -126,7 +126,7 @@ describe.skipIf(연결 === undefined)('PRD 초안 한 바퀴', () => {
     expect(첫).toMatchObject({
       kind: 'PRD_DRAFT', status: 'PENDING', env: 'qa', compare: false, result: null,
       params: { issueKeys: ['XPQ-1', 'XPQ-2'], deployId: 배포, buildNo: 'abc1234-202610311200' },
-      requested_by: 사람, requested_by_name: 'BTS · 배포 담당',
+      requested_by: 사람, requested_by_name: 'Issue Bunker · 배포 담당',
     });
   });
 

@@ -82,15 +82,15 @@ const 다시보낼4xx = new Set([408, 429]);
 function 상태로(status: number): 결과 | null {
   if (status >= 200 && status < 300) return null;
   // 넘겨주기(redirect)를 따라가지 않는다 — 열쇠를 다른 주소로 보내지 않게. 주소가 틀린 것이라 다시 보내도 같다
-  if (status >= 300 && status < 400) return { 상태: 'GAVE_UP', 까닭: `BTS 주소가 다른 곳으로 넘깁니다 — 설정의 BTS 주소를 확인하세요 (${String(status)})` };
+  if (status >= 300 && status < 400) return { 상태: 'GAVE_UP', 까닭: `Issue Bunker 주소가 다른 곳으로 넘깁니다 — 설정의 Issue Bunker 주소를 확인하세요 (${String(status)})` };
   if (status === 401 || status === 403) return { 상태: 'GAVE_UP', 까닭: `권한 없음 — QA Hub AI 열쇠를 확인하세요 (${String(status)})` };
-  if (status >= 400 && status < 500 && !다시보낼4xx.has(status)) return { 상태: 'GAVE_UP', 까닭: `BTS 가 요청을 거절했습니다 (${String(status)})` };
-  return { 상태: 'RETRY', 까닭: `BTS 가 답하지 못했습니다 (${String(status)})` };
+  if (status >= 400 && status < 500 && !다시보낼4xx.has(status)) return { 상태: 'GAVE_UP', 까닭: `Issue Bunker 가 요청을 거절했습니다 (${String(status)})` };
+  return { 상태: 'RETRY', 까닭: `Issue Bunker 가 답하지 못했습니다 (${String(status)})` };
 }
 
 async function 하나보내기(줄: 집은줄, 부르기: 부르기함수): Promise<결과> {
   // 연결을 끊었으면 보낼 곳이 없다 — 줄은 남기고 멈춘다(맡은 이슈 · 짝 기록처럼)
-  if (줄.base_url === null || 줄.bot_key === null) return { 상태: 'GAVE_UP', 까닭: 'BTS 연결이 없습니다' };
+  if (줄.base_url === null || 줄.bot_key === null) return { 상태: 'GAVE_UP', 까닭: 'Issue Bunker 연결이 없습니다' };
   if (줄.kind !== 'CREATE' && 줄.issue_key === null) return { 상태: 'GAVE_UP', 까닭: '보낼 이슈 키가 없습니다' };
   const [method, 경로] = 갈곳[줄.kind](줄.issue_key ?? '');
   // 첨부 목록은 QA Hub 몫이라 BTS 몸에서 뺀다 — 만든 뒤 따로 올린다
@@ -115,12 +115,12 @@ async function 하나보내기(줄: 집은줄, 부르기: 부르기함수): Prom
         const 댓글 = await 부르기(자리, 'POST', 갈곳.COMMENT(줄.issue_key!)[1], { body: comment });
         return 상태로(댓글.status) ?? { 상태: 'SENT' };
       }
-      if (typeof data?.version !== 'number') return { 상태: 'GAVE_UP', 까닭: `BTS 이슈 판 번호를 못 읽었습니다 (${String(읽음.status)})` };
+      if (typeof data?.version !== 'number') return { 상태: 'GAVE_UP', 까닭: `Issue Bunker 이슈 판 번호를 못 읽었습니다 (${String(읽음.status)})` };
       보낼몸 = { ...(몸 as object), expectedVersion: data.version };
     }
     const r = await 부르기(자리, method, 경로, 보낼몸);
     // 읽은 판과 보낸 사이에 누가 이슈를 고쳤다 — 다음 점검이 새 판을 읽어 다시 보낸다
-    if (판읽음 && r.status === 409) return { 상태: 'RETRY', 까닭: 'BTS 이슈 판이 그사이 바뀌었습니다 (409)' };
+    if (판읽음 && r.status === 409) return { 상태: 'RETRY', 까닭: 'Issue Bunker 이슈 판이 그사이 바뀌었습니다 (409)' };
     const 실패 = 상태로(r.status);
     if (실패 !== null) return 실패;
     if (줄.kind !== 'CREATE') return { 상태: 'SENT' };
@@ -129,10 +129,10 @@ async function 하나보내기(줄: 집은줄, 부르기: 부르기함수): Prom
     // 키가 없으면 짝(bts_issue_case)을 못 지어 다음 실패가 이슈를 또 만든다 — 보낸 것으로 치지 않고 사람에게 보인다
     return typeof key === 'string' && key !== ''
       ? { 상태: 'SENT', issueKey: key, 만든: { version: data?.version, currentStateKey: data?.currentStateKey } }
-      : { 상태: 'GAVE_UP', 까닭: `BTS 응답에 이슈 키가 없습니다 (${String(r.status)})` };
+      : { 상태: 'GAVE_UP', 까닭: `Issue Bunker 응답에 이슈 키가 없습니다 (${String(r.status)})` };
   } catch (err) {
     // ponytail: BTS 이슈 만들기에 멱등 열쇠가 없어, 만들어졌는데 답이 10초를 넘기면 다시 보낼 때 이슈가 둘 생긴다. 잦으면 다시 보내기 전에 꼬리표로 찾는다
-    return { 상태: 'RETRY', 까닭: `BTS 에 닿지 않습니다 — ${err instanceof Error ? err.message : String(err)}` };
+    return { 상태: 'RETRY', 까닭: `Issue Bunker 에 닿지 않습니다 — ${err instanceof Error ? err.message : String(err)}` };
   }
 }
 
@@ -207,7 +207,7 @@ export async function 보낼줄점검(
         await 연결.query('COMMIT');
       } catch (err) {
         await 연결.query('ROLLBACK');
-        throw new Error(`보낸 줄 ${줄.id} 을 적지 못했다(이슈 ${끝.issueKey ?? '-'} 는 BTS 에 있다): ${err instanceof Error ? err.message : String(err)}`);
+        throw new Error(`보낸 줄 ${줄.id} 을 적지 못했다(이슈 ${끝.issueKey ?? '-'} 는 Issue Bunker 에 있다): ${err instanceof Error ? err.message : String(err)}`);
       } finally {
         연결.release();
       }

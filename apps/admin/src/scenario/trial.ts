@@ -138,7 +138,7 @@ export async function 시험시작(사람: { username: string }, 본문: 시험�
   const { 앱들, baseUrl, parts, 부품재료, 비밀, 폰 } = await 시험재료(본문);
   // 앱 · 게임 단계가 있으면 내 컴퓨터 러너에 꽂은 폰, 꺼져 있으면 서버 러너 + 팜이다 (결정 16 「시험 실행은 지금 규칙 그대로다」)
   if (폰 !== null && 팜주소() === undefined && (await 켜진내컴퓨터러너()) === undefined) {
-    throw new 시험시작오류('FARM_OFF', '내 컴퓨터 러너가 꺼져 있고 이 서버에는 디바이스 팜(DEVICE_FARM_URL)도 없다');
+    throw new 시험시작오류('FARM_OFF', '내 컴퓨터 러너가 꺼져 있고 이 서버에는 Device VISION(DEVICE_FARM_URL)도 없다');
   }
   // 다른 검사를 다 지난 뒤, 동시성 자리보다 먼저 디바이스 줄을 본다 — 케이스 테스트 실행처럼 기다리지 않는다
   if (폰 !== null && !폰을바로잡는다()) throw new 시험시작오류('DEVICE_BUSY', '디바이스가 다른 실행에 쓰이는 중이다');

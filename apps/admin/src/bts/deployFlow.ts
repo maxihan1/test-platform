@@ -102,7 +102,7 @@ export async function QA요청이슈(연결: 연결행, 부르기: 부르기함�
       size: 쪽크기,
     });
     const 줄 = (r.json as { data?: unknown } | null)?.data;
-    if (r.status !== 200 || !Array.isArray(줄)) throw new Error(`BTS 에서 「QA 요청」 이슈를 못 찾았다 (${String(r.status)})`);
+    if (r.status !== 200 || !Array.isArray(줄)) throw new Error(`Issue Bunker 에서 「QA 요청」 이슈를 못 찾았다 (${String(r.status)})`);
     for (const d of 줄 as { key?: unknown; typeKey?: unknown; summary?: unknown }[]) {
       if (typeof d.key === 'string' && d.key.startsWith(`${연결.bts_project}-`)) {
         이슈.push({ key: d.key, bug: d.typeKey === 'bug', title: typeof d.summary === 'string' ? d.summary : '' });
@@ -166,7 +166,7 @@ export async function 맡기(deployId: number, late: boolean, 부르기: 부르�
     손.release();
   }
   for (const key of 댓글감) {
-    await 보낼줄넣기({ projectId: Number(배포.project_id), kind: 'COMMENT', issueKey: key, payload: { body: '딸린 테스트 없음 — 사람이 확인해 주세요\nQA Hub 에 이 버그를 확인하는 테스트가 없습니다' } });
+    await 보낼줄넣기({ projectId: Number(배포.project_id), kind: 'COMMENT', issueKey: key, payload: { body: '딸린 테스트 없음 — 사람이 확인해 주세요\nTest Commander 에 이 버그를 확인하는 테스트가 없습니다' } });
   }
   return 맡음;
 }
@@ -278,7 +278,7 @@ async function 닫기적기(손: PoolClient, 줄: { claim_id: string; project_id
   ]);
   await 손.query(
     `INSERT INTO bts_outbox (project_id, kind, issue_key, run_id, payload) VALUES ($1, 'TRANSITION', $2, $3, $4)`,
-    [줄.project_id, 줄.issue_key, runId, JSON.stringify({ toStatusKey: 줄.closed, comment: `재검증 통과 — 빌드 ${줄.build_no}\nQA Hub 실행 ${String(runId)} 에서 딸린 테스트가 모두 통과했습니다` })],
+    [줄.project_id, 줄.issue_key, runId, JSON.stringify({ toStatusKey: 줄.closed, comment: `재검증 통과 — 빌드 ${줄.build_no}\nTest Commander 실행 ${String(runId)} 에서 딸린 테스트가 모두 통과했습니다` })],
   );
   return true;
 }

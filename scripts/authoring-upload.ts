@@ -201,7 +201,7 @@ export async function 올리기(
   // 사유에 토큰을 싣지 않는다 — 사유는 화면과 서버 기록에 남는다
   // 팜 토큰도 자식 환경에 있다(PLATFORM_APPIUM_TOKEN — 러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」). 저장소가 공개라 올라가면 그대로 공개된다
   const 올릴글 = [본문글, ...전체.map(읽기)];
-  const 섞인것 = 비밀섞였나(올릴글, 것.figmaToken) ? '피그마 토큰' : 비밀섞였나(올릴글, process.env.PLATFORM_APPIUM_TOKEN) ? '디바이스 팜 토큰' : null;
+  const 섞인것 = 비밀섞였나(올릴글, 것.figmaToken) ? '피그마 토큰' : 비밀섞였나(올릴글, process.env.PLATFORM_APPIUM_TOKEN) ? 'Device VISION 토큰' : null;
   if (섞인것 !== null) {
     await 손.끝내기(거절(`올릴 파일이나 PR 본문에 ${섞인것}이 들어 있다 — 올리지 않는다`));
     return;

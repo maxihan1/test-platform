@@ -84,7 +84,7 @@ export async function 이슈읽기(자리: BTS자리, issueKey: string, 부르�
   const r = await 부르기(자리, 'GET', `/api/v1/issues/${encodeURIComponent(issueKey)}`);
   const d = (r.json as 이슈몸 | null)?.data;
   if (r.status !== 200 || d?.key === undefined || d.currentStateKey === undefined) {
-    throw new BTS읽기오류(`BTS 이슈 ${issueKey} 를 못 읽었다 (${String(r.status)})`);
+    throw new BTS읽기오류(`Issue Bunker 이슈 ${issueKey} 를 못 읽었다 (${String(r.status)})`);
   }
   return {
     key: d.key,

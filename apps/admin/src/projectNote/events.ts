@@ -24,7 +24,7 @@ const 겹침열쇠: Partial<Record<노트사건종류, string>> = { PR_MERGED: '
 export async function 노트고치기세우기(projectId: number, 손?: PoolClient): Promise<void> {
   await (손 ?? (await db())).query(
     `INSERT INTO authoring_request (project_id, kind, params, requested_by, requested_by_name, status)
-     SELECT l.project_id, 'NOTE', '{}'::jsonb, l.updated_by, 'BTS · ' || COALESCE(u.display_name, l.updated_by), 'PENDING'
+     SELECT l.project_id, 'NOTE', '{}'::jsonb, l.updated_by, 'Issue Bunker · ' || COALESCE(u.display_name, l.updated_by), 'PENDING'
        FROM bts_link l LEFT JOIN app_user u ON u.username = l.updated_by
       WHERE l.project_id = $1
      ON CONFLICT (project_id) WHERE project_id IS NOT NULL AND status IN ('PENDING', 'RUNNING') DO NOTHING`,
