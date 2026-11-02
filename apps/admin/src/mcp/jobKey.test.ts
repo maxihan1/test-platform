@@ -142,7 +142,7 @@ describe.skipIf(연결 === undefined)('MCP 일마다 열쇠 mcj_', () => {
     const 남작성 = await 세우고집기(남앱, 'XMJB');
     expect(남작성.몸.mcpKey).toMatch(/^mcj_/);
     expect((await 세우고집기(남앱, 'XMJB', 'RERUN', 남작성.id)).몸.mcpKey).toMatch(/^mcj_/);
-    expect('mcpKey' in (await 세우고집기(남앱, 'XMJB', 'PRD_DRAFT')).몸).toBe(false);
+    expect('mcpKey' in (await 세우고집기(남앱, 'XMJB', 'BUGFIX')).몸).toBe(false);
     expect(await 일열쇠내기({ id: 작성.id, kind: 'MERGE', sourceId: 작성.id })).toBeNull();
   });
 
