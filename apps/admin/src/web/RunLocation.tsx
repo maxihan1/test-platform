@@ -16,7 +16,7 @@ export function RunLocation({ android, 앱종류 }: { android: boolean; 앱종�
 
   return (
     <div className="hint">
-      {t('실행 위치 · 디바이스 팜')}
+      {t('실행 위치 · Device VISION')}
       {늘 === null ? null : <div>{t(늘)}</div>}
     </div>
   );

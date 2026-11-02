@@ -20,7 +20,7 @@ const 연결오류: Record<string, string> = {
   SECRETS_REQUIRED: '처음 연결할 때는 「QA Hub AI」 계정 토큰을 넣어야 합니다',
   MAP_INCOMPLETE: '비어 있는 단계가 있습니다. 모든 단계에 {bts} 상태를 골라 주세요',
   NO_PERSONAL_TOKEN: '내 계정에 통합계정 토큰이 없습니다. 왼쪽 아래 내 메뉴 › 통합계정 토큰에 넣은 뒤 다시 눌러 주세요',
-  PUBLIC_URL_REQUIRED: '이 서버의 공개 주소(PLATFORM_PUBLIC_URL)가 없어 {bts} 가 QA Hub 를 부를 수 없습니다',
+  PUBLIC_URL_REQUIRED: '이 서버의 공개 주소(PLATFORM_PUBLIC_URL)가 없어 {bts} 가 Test Commander 를 부를 수 없습니다',
 };
 
 export function SettingsBts({ row, services, onDone }: { row: SettingsProject; services: SettingsServiceRow[]; onDone: () => void }) {
@@ -174,7 +174,7 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
           <input id="bts-bot" type="password" autoComplete="off" value={botKey} placeholder={지금.botKeyTail === null ? 'pat_…' : t('넣음 (…{끝}) — 바꿀 때만 넣습니다', { 끝: 지금.botKeyTail })}
             onChange={(e) => setBotKey(e.target.value)} />
         </div>
-        <p className="hint">{t('QA Hub 가 실패한 테스트를 {bts} 이슈로 올릴 때 쓰는 통합계정입니다. 사람 계정과 따로 두어야 {bts} 에서 누가 올렸는지 구분됩니다', { bts: BTS이름 })}</p>
+        <p className="hint">{t('Test Commander 가 실패한 테스트를 {bts} 이슈로 올릴 때 쓰는 통합계정입니다. 사람 계정과 따로 두어야 {bts} 에서 누가 올렸는지 구분됩니다', { bts: BTS이름 })}</p>
       </구획>
 
       <상태매핑구획
@@ -209,7 +209,7 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
       </div>
 
       {지금.linked ? (
-        <구획 제목={t('3 · 배포 스크립트 한 줄')} 쓰임={t('deploy.sh 는 회사 배포 서버에 있어 QA Hub 가 고칠 수 없습니다. 아래 한 줄을 deploy.sh 마지막에 넣어 주세요')}>
+        <구획 제목={t('3 · 배포 스크립트 한 줄')} 쓰임={t('deploy.sh 는 회사 배포 서버에 있어 Test Commander 가 고칠 수 없습니다. 아래 한 줄을 deploy.sh 마지막에 넣어 주세요')}>
           <div className="bts-key">
             <span>{t('배포 알림 토큰')}</span>
             <span className="set-sub">{배포원문 !== null ? t('방금 발급했습니다 · 원문은 지금만 보입니다') : 지금.deployKey === null ? t('발급 전 · 이 프로젝트 전용') : `••••${지금.deployKey.tail}`}</span>
@@ -256,7 +256,7 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
             </>
           }
         >
-          <p>{t('연결을 해제하면 이 프로젝트의 실패 판정은 QA Hub 에서 합니다')}</p>
+          <p>{t('연결을 해제하면 이 프로젝트의 실패 판정은 Test Commander 에서 합니다')}</p>
         </Modal>
       ) : null}
     </div>

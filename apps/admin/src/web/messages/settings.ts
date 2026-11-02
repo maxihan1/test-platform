@@ -83,8 +83,8 @@ export const 설정말: Record<string, string> = {
   '대상 서버 {번호} 실서비스 서버': 'Target server {번호} is a live service server',
   '대상 서버 {번호} 앱 파일 경로': 'Target server {번호} app file path',
   '앱 파일 경로 (Android 앱 · 게임)': 'App file path (Android apps · games)',
-  '앱 파일 경로는 Android 앱 · 게임 케이스를 돌릴 때 설치할 apk 입니다. 디바이스 팜 PC 의 파일 경로나 http(s) 주소를 적고, 비우면 테스트 실행기를 켤 때 준 PLATFORM_APP 을 씁니다':
-    'The app file path is the apk installed when Android app cases run. Enter a file path on the device farm PC or an http(s) URL. Leave it empty to use PLATFORM_APP given when the runner started',
+  '앱 파일 경로는 Android 앱 · 게임 케이스를 돌릴 때 설치할 apk 입니다. Device VISION PC 의 파일 경로나 http(s) 주소를 적고, 비우면 테스트 실행기를 켤 때 준 PLATFORM_APP 을 씁니다':
+    'The app file path is the apk installed when Android app cases run. Enter a file path on Device VISION PC or an http(s) URL. Leave it empty to use PLATFORM_APP given when the runner started',
   '역할 이름': 'Role name',
   '+ 역할 추가': '+ Add role',
   '대상 서버 {번호} 역할 추가': 'Add a role to target server {번호}',

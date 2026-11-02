@@ -71,11 +71,11 @@ describe('로그인 직후 프로젝트 묻기', () => {
 
 describe('탭 제목', () => {
   it('브라우저 탭에도 애플리케이션 이름이 들어간다. 탭이 여럿일 때는 탭 글자만 보인다', () => {
-    expect(탭제목(결제)).toBe('결제 애플리케이션 · QA Hub');
+    expect(탭제목(결제)).toBe('결제 애플리케이션 · Test Commander');
   });
 
   it('고른 애플리케이션이 없으면 제품 이름만 쓴다', () => {
-    expect(탭제목(null)).toBe('QA Hub');
+    expect(탭제목(null)).toBe('Test Commander');
   });
 });
 

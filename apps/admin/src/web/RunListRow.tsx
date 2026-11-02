@@ -30,7 +30,7 @@ export function 띠색(run: Pick<RunListRow, 'status' | 'counts'>): string {
 export function 실행위치(run: Pick<RunListRow, 'platforms' | 'devices'>, t: ReturnType<typeof use말>): string[] {
   const [첫폰, ...남은폰] = run.devices ?? [];
   const 폰글 = 첫폰 === undefined ? [] : [남은폰.length === 0 ? 첫폰 : t('{모델} 외 {수}대', { 모델: 첫폰, 수: 남은폰.length })];
-  const 글: Record<Platform, string[]> = { desktop: ['PC Chrome'], mobile: [t('모바일 Safari')], android: [t('디바이스 팜'), ...폰글] };
+  const 글: Record<Platform, string[]> = { desktop: ['PC Chrome'], mobile: [t('모바일 Safari')], android: [t('Device VISION'), ...폰글] };
   return 디바이스순서.filter((p) => run.platforms?.includes(p) === true).flatMap((p) => 글[p]);
 }
 

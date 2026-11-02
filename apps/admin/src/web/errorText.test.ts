@@ -153,7 +153,7 @@ describe('서버가 준 오류 코드를 사람 말로', () => {
   });
 
   it.each([
-    ['FARM_OFF', '이 서버에는 Android 앱을 돌릴 디바이스 팜이 연결되어 있지 않습니다'],
+    ['FARM_OFF', '이 서버에는 Android 앱을 돌릴 Device VISION 이 연결되어 있지 않습니다'],
     ['DEVICE_BUSY', '디바이스가 다른 실행에 쓰이고 있습니다'],
   ])('Android 앱 실행의 %s 도 사람 말로 적고 영어로 옮긴다', (code, 문장) => {
     expect(요청오류문장(code, 'ko')).toBe(문장);

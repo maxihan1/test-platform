@@ -57,7 +57,7 @@ export function 상태매핑구획(p: {
   const 상태목록 = p.목록?.statuses.map((it) => ({ 값: it.key, 이름: it.name })) ?? null;
   const 해결목록 = p.목록?.resolutions.map((it) => ({ 값: it.name, 이름: it.name })) ?? null;
   return (
-    <구획 제목={t('상태 매핑')} 쓰임={t('QA Hub 단계마다 {bts} 상태를 하나씩 고릅니다. 비어 있는 단계가 있으면 저장할 수 없습니다', { bts: BTS이름 })}>
+    <구획 제목={t('상태 매핑')} 쓰임={t('Test Commander 단계마다 {bts} 상태를 하나씩 고릅니다. 비어 있는 단계가 있으면 저장할 수 없습니다', { bts: BTS이름 })}>
       <div className="bts-load">
         <button type="button" className="btn ghost" disabled={p.불러오는중} onClick={p.불러온다}>
           {p.목록 === null ? t('{bts} 에서 불러오기', { bts: BTS이름 }) : t('다시 불러오기')}
@@ -137,9 +137,9 @@ const 항목이름: Record<BTS설정결과['what'], string> = {
 };
 
 const 항목쓰임: Record<BTS설정결과['what'], string> = {
-  WEBHOOK: '이슈 생성 · 상태 변경을 QA Hub 로 보냅니다',
-  RULE_ASSIGNEE: '담당자가 바뀌면 QA Hub 를 부릅니다',
-  RULE_PR: 'PR 이 병합되면 QA Hub 를 부릅니다',
+  WEBHOOK: '이슈 생성 · 상태 변경을 Test Commander 로 보냅니다',
+  RULE_ASSIGNEE: '담당자가 바뀌면 Test Commander 를 부릅니다',
+  RULE_PR: 'PR 이 병합되면 Test Commander 를 부릅니다',
   BOARD: '실패로 올린 이슈가 이 칸에 섭니다',
 };
 

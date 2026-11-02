@@ -94,7 +94,7 @@ export function PasswordChange({ 강제, onDone, onLogout, onCancel }: Props) {
   return (
     <div className="login">
       <form className="login-box" onSubmit={(e) => void submit(e)} noValidate>
-        <div className="login-title">QA Hub</div>
+        <div className="login-title">Test Commander</div>
         <h1 className="login-greet">{t('비밀번호 변경')}</h1>
         {강제 ? <p className="login-sub">{t('처음 받은 비밀번호를 바꿔야 계속할 수 있습니다')}</p> : null}
 

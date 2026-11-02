@@ -77,7 +77,7 @@ export function Empty({
     return (
       <div className="empty">
         {t('아직 Android 앱 케이스가 없습니다')}
-        <small>{t('테스트 작성에서 앱 기획서를 넣으면 AI 가 디바이스 팜 폰으로 앱 화면을 읽고 케이스를 만듭니다')}</small>
+        <small>{t('테스트 작성에서 앱 기획서를 넣으면 AI 가 Device VISION 폰으로 앱 화면을 읽고 케이스를 만듭니다')}</small>
         {!작성보나 ? null : (
           <a className="btn" style={{ marginTop: '14px' }} href="#/authoring">
             {t('테스트 작성으로')}

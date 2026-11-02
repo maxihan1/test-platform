@@ -32,9 +32,9 @@ export function 폰실행위치({ 시험 = true }: { 시험?: boolean }) {
   const t = use말();
   return (
     <div className="hint">
-      {t('실행 위치 · 디바이스 팜')}
+      {t('실행 위치 · Device VISION')}
       <div>{t('시나리오 하나 동안 빈 폰을 한 번 잡고 다 돌면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 실행에 남습니다')}</div>
-      {시험 ? <div>{t('시험 실행은 내 컴퓨터 테스트 실행기가 켜져 있으면 거기 꽂은 폰에서, 꺼져 있으면 디바이스 팜에서 돕니다')}</div> : null}
+      {시험 ? <div>{t('시험 실행은 내 컴퓨터 테스트 실행기가 켜져 있으면 거기 꽂은 폰에서, 꺼져 있으면 Device VISION 에서 돕니다')}</div> : null}
     </div>
   );
 }

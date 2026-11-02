@@ -56,7 +56,7 @@ describe('측정 시작', () => {
     expect(screen.getByLabelText<HTMLInputElement>('Pixel 7 선택').disabled).toBe(true);
 
     fireEvent.click(screen.getByLabelText(/직접 플레이/));
-    expect(screen.getByText('디바이스 팜 PC 에 꽂힌 폰을 손에 들고 플레이하는 동안 기록합니다')).toBeTruthy();
+    expect(screen.getByText('Device VISION PC 에 꽂힌 폰을 손에 들고 플레이하는 동안 기록합니다')).toBeTruthy();
     fireEvent.click(screen.getByLabelText('Pixel 7 선택'));
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.change(screen.getByLabelText('앱 패키지 이름'), { target: { value: 'com.demo.game' } });

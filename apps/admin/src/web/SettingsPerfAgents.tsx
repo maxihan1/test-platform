@@ -46,7 +46,7 @@ export function SettingsPerfAgents({ projects, 아래 }: { projects: { id: numbe
       <div className="set-card">
         <div className="set-card-h">
           <h3>{t('등록된 에이전트')}</h3>
-          <p>{t('QA Hub 가 보낸 테스트만 실행하고 대상 서버로 등록된 주소에만 부하를 보냅니다')}</p>
+          <p>{t('Test Commander 가 보낸 테스트만 실행하고 대상 서버로 등록된 주소에만 부하를 보냅니다')}</p>
         </div>
         {오류 === null ? null : <p className="perf-err" role="alert">{오류}</p>}
         {줄들.length === 0 ? (

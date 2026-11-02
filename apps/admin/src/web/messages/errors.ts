@@ -102,7 +102,7 @@ export const 오류영어: Record<string, string> = {
   '반영이 대기 중이거나 진행 중이라 지금은 고를 수 없습니다': 'A merge is queued or running, so you cannot decide now',
 
   // Android 앱 실행
-  '이 서버에는 Android 앱을 돌릴 디바이스 팜이 연결되어 있지 않습니다': 'This server has no device farm for Android apps',
+  '이 서버에는 Android 앱을 돌릴 Device VISION 이 연결되어 있지 않습니다': 'This server has no Device VISION for Android apps',
   '디바이스가 다른 실행에 쓰이고 있습니다': 'The device is being used by another run',
 
   // E2E 시나리오

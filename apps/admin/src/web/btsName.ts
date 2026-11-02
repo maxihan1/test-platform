@@ -1,3 +1,3 @@
 // 화면에 보이는 BTS 제품 이름 한 곳 — 이름이 바뀌면 여기 한 줄만 고친다 (2026-10-31 사용자 「BTS 네이밍 변경할 건데 하드코딩 아니지?」)
 
-export const BTS이름 = 'BTS';
+export const BTS이름 = 'Issue Bunker';

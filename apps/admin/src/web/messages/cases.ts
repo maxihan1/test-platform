@@ -157,7 +157,7 @@ export const 케이스말: Record<string, string> = {
 
   // Android 앱 애플리케이션의 빈 목록 (도메인/카탈로그 §8.1 「디바이스」)
   '아직 Android 앱 케이스가 없습니다': 'No Android app cases yet',
-  '테스트 작성에서 앱 기획서를 넣으면 AI 가 디바이스 팜 폰으로 앱 화면을 읽고 케이스를 만듭니다':
-    'Add an app PRD in Authoring and AI reads the app screens on a device farm phone to write cases',
+  '테스트 작성에서 앱 기획서를 넣으면 AI 가 Device VISION 폰으로 앱 화면을 읽고 케이스를 만듭니다':
+    'Add an app PRD in Authoring and AI reads the app screens on a Device VISION phone to write cases',
   '테스트 작성으로': 'Go to Authoring',
 };

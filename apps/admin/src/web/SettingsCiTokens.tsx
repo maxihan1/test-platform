@@ -47,7 +47,7 @@ export function CI토큰구획({ row }: { row: SettingsServiceRow }) {
   const 파일 = 종류 === 'APP' || 종류 === 'GAME';
   // 브라우저를 연 주소는 localhost 일 수 있어 CI 가 닿지 않는다 — 서버의 공개 주소가 있으면 그것을 쓴다 (GAME-F2-17)
   const 바탕 = list.data?.publicUrl ?? window.location.origin;
-  const 예시 = 예시글(종류, 탭, 고른env, 파일 ? t('QA Hub 에 빌드 올리기') : t('QA Hub 에 빌드 알리기'), 바탕);
+  const 예시 = 예시글(종류, 탭, 고른env, 파일 ? t('Test Commander 에 빌드 올리기') : t('Test Commander 에 빌드 알리기'), 바탕);
 
   async function 일하기(일: () => Promise<void>) {
     set오류(null);

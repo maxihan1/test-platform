@@ -44,7 +44,7 @@ export const 껍데기말: Record<string, string> = {
   '찾은 것이 없습니다': 'Nothing found',
   메뉴: 'Menu',
   // 왼쪽 줄 · 내 메뉴 (ShellRail.tsx · ShellMe.tsx)
-  'QA Hub 홈': 'QA Hub home',
+  'Test Commander 홈': 'Test Commander home',
   언어: 'Language',
   로그아웃: 'Sign out',
   // 언어 이름은 그 언어로 적는 것이 관례다. 영어로 봐도 「한국어」여야 고를 수 있다

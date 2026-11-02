@@ -230,7 +230,7 @@ export function AuthoringNew({
             />
           </label>
           {토큰없는주소 ? <span className="error-text">{피그마거절말('NO_TOKEN', 운영자, t)}</span> : null}
-          {/* 디바이스 팜은 메뉴가 아니라 작성 · 실행이 지나가는 통로라 그 일을 하는 자리에서 보인다 (도메인/러너 §5.2 결정 4) */}
+          {/* Device VISION 은 메뉴가 아니라 작성 · 실행이 지나가는 통로라 그 일을 하는 자리에서 보인다 (도메인/러너 §5.2 결정 4) */}
           {줄.화면읽기 === null ? null : (
             <div className="authoring-field authoring-compare">
               <strong>{t(줄.화면읽기.제목)}</strong>

@@ -123,7 +123,7 @@ describe('게임 종류가 그리는 곳 (도메인/러너 §5.2 종류 표 GAME
     expect(줄들.map((x) => x.이름)).not.toContain('디바이스');
     cleanup();
     render(<RunLocation android={false} 앱종류="GAME" />);
-    expect(screen.getByText('실행 위치 · 디바이스 팜')).toBeTruthy();
+    expect(screen.getByText('실행 위치 · Device VISION')).toBeTruthy();
   });
 
   it('작성 새 요청은 「실제 화면과 대조」 없이 「게임 화면 읽기」 안내가 선다', () => {
