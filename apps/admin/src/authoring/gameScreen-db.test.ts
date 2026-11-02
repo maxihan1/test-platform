@@ -82,7 +82,7 @@ describe.skipIf(연결 === undefined)('게임 첫 화면 · 게임 화면 기록
     await 줄들([['dev', null, false], ['qa', 'https://builds/qa.apk', false]]);
     const id = await 요청넣기();
 
-    expect(await 받기(id, 'game-screen')).toEqual({ screen: null, reason: '디바이스 팜(DEVICE_FARM_URL)이 연결되어 있지 않다', game: null });
+    expect(await 받기(id, 'game-screen')).toEqual({ screen: null, reason: 'Device VISION(DEVICE_FARM_URL)이 연결되어 있지 않다', game: null });
     expect(await 받기(id, 'app-screen')).toEqual({ screen: null, reason: null, appium: null });
   });
 
@@ -99,7 +99,7 @@ describe.skipIf(연결 === undefined)('게임 첫 화면 · 게임 화면 기록
     const id = await 요청넣기();
 
     expect(await 받기(id, 'game-screen')).toEqual({ screen: null, reason: null, game: null });
-    expect(await 받기(id, 'app-screen')).toEqual({ screen: null, reason: '디바이스 팜(DEVICE_FARM_URL)이 연결되어 있지 않다', appium: null });
+    expect(await 받기(id, 'app-screen')).toEqual({ screen: null, reason: 'Device VISION(DEVICE_FARM_URL)이 연결되어 있지 않다', appium: null });
   });
 
   it('대상 서버가 없는 게임 요청의 창 기록은 앱 줄에 두고 그 줄에서 읽는다', async () => {

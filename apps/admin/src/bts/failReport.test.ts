@@ -12,7 +12,7 @@ import btsLinkRoutes from './routes.js';
 
 const 연결 = process.env.DATABASE_URL;
 
-describe.skipIf(연결 === undefined)('실패 → BTS 등록', () => {
+describe.skipIf(연결 === undefined)('실패 → Issue Bunker 등록', () => {
   let pool: Pool;
   let 프로젝트 = 0;
   let 서비스 = 0;
@@ -143,7 +143,7 @@ describe.skipIf(연결 === undefined)('실패 → BTS 등록', () => {
     expect(await 실패등록(runId)).toBe(1);
     const 댓글 = (await 줄들()).at(-1)!;
     expect(댓글).toMatchObject({ kind: 'COMMENT', issue_key: 'DM-12' });
-    expect(댓글.payload.body as string).toContain(`QA Hub 실행 #${String(runId)} 에서 또 실패했습니다`);
+    expect(댓글.payload.body as string).toContain(`Test Commander 실행 #${String(runId)} 에서 또 실패했습니다`);
     expect((await 실패카드(runId, 1)).items[0]!.bts).toEqual({
       issueKey: 'DM-12',
       url: 'https://bts.example.com/issues/DM-12',

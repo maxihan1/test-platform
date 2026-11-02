@@ -108,7 +108,7 @@ describe.skipIf(연결 === undefined)('프로젝트 노트 고치기', () => {
     const 열린 = await 열린노트();
     expect(열린).toHaveLength(1);
     const 줄 = (await q('SELECT kind, service_id, requested_by, requested_by_name FROM authoring_request WHERE id = $1', [열린[0]!.id])).rows[0];
-    expect(줄).toEqual({ kind: 'NOTE', service_id: null, requested_by: 사람, requested_by_name: `BTS · ${사람}` });
+    expect(줄).toEqual({ kind: 'NOTE', service_id: null, requested_by: 사람, requested_by_name: `Issue Bunker · ${사람}` });
   });
 
   it('프로젝트 안 어느 애플리케이션 집기에서나 한 번만 집히고, 반영 안 된 사건을 묶어 note 칸에 싣는다', async () => {

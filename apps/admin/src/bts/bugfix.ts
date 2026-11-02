@@ -108,7 +108,7 @@ export async function 수정맡기(projectId: number, issueKey: string, 부르�
   const 앱 = await 애플리케이션고르기(l, projectId, issueKey, 이슈.componentIds, 부르기);
   if (앱 === null) {
     const 사람 = await 넘길사람찾기(자리, l.bts_project, [], 이슈.componentIds, 부르기);
-    await 넘기기(projectId, issueKey, 'Issue Bunker 에이전트가 어느 애플리케이션 코드인지 몰라 맡지 못했어요\nBTS 구성 요소를 Test Commander 애플리케이션 이름과 같게 달면 다음부터 맡아요', 사람);
+    await 넘기기(projectId, issueKey, 'Issue Bunker 에이전트가 어느 애플리케이션 코드인지 몰라 맡지 못했어요\nIssue Bunker 구성 요소를 Test Commander 애플리케이션 이름과 같게 달면 다음부터 맡아요', 사람);
     return 'NO_APP';
   }
   const 저장소 = (await pool.query<{ repo: { name: string; url: string } | null }>("SELECT code_repos->0 AS repo FROM service WHERE id = $1", [앱])).rows[0]?.repo ?? null;

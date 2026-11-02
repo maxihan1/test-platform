@@ -197,8 +197,8 @@ describe.skipIf(연결 === undefined)('프로젝트 배포 신호', { timeout: 6
     )).rows;
     // 웹은 배포 빌드 번호로 빌드 줄을 세우고, 앱은 CI 가 올린 최신 APK(41)로 돈다
     expect(실행들).toEqual([
-      { prefix: 'XBN', build_stage: 'SMOKE', build_no: 'a1b2c3d-202610311530', triggered_by_name: 'BTS · 배포 관리자' },
-      { prefix: 'XBNA', build_stage: 'SMOKE', build_no: '41', triggered_by_name: 'BTS · 배포 관리자' },
+      { prefix: 'XBN', build_stage: 'SMOKE', build_no: 'a1b2c3d-202610311530', triggered_by_name: 'Issue Bunker · 배포 관리자' },
+      { prefix: 'XBNA', build_stage: 'SMOKE', build_no: '41', triggered_by_name: 'Issue Bunker · 배포 관리자' },
     ]);
     const 다시 = await 신호({ build: 'a1b2c3d-202610311530' });
     expect([다시.statusCode, 다시.json<{ deployId: number }>().deployId]).toEqual([200, 첫배포]);

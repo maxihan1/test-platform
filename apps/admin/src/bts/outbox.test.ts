@@ -12,7 +12,7 @@ import { 보낼줄넣기, 보낼줄점검, 최대횟수 } from './outbox.js';
 const 연결 = process.env.DATABASE_URL;
 const 접두사 = 'XBY';
 
-describe.skipIf(연결 === undefined)('BTS 보낼 줄', () => {
+describe.skipIf(연결 === undefined)('Issue Bunker 보낼 줄', () => {
   let 프로젝트 = 0;
   let 남의프로젝트 = 0;
   let 서비스 = 0;
@@ -114,11 +114,11 @@ describe.skipIf(연결 === undefined)('BTS 보낼 줄', () => {
     답 = () => ({ status: 201, json: {} });
     const 키없음 = (await 보낼줄넣기({ projectId: 프로젝트, kind: 'CREATE', payload: {}, serviceId: 서비스, tcId: 'XBY-002', env: 'qa' }))!;
     expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 0, 다시: 0, 멈춤: 1 });
-    expect(await 줄(키없음)).toMatchObject({ state: 'GAVE_UP', last_error: 'BTS 응답에 이슈 키가 없습니다 (201)' });
+    expect(await 줄(키없음)).toMatchObject({ state: 'GAVE_UP', last_error: 'Issue Bunker 응답에 이슈 키가 없습니다 (201)' });
     답 = () => ({ status: 301, json: null });
     const 넘김 = (await 보낼줄넣기({ projectId: 프로젝트, kind: 'COMMENT', issueKey: 'XBY-1', payload: {} }))!;
     expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 0, 다시: 0, 멈춤: 1 });
-    expect((await 줄(넘김)).last_error).toContain('BTS 주소');
+    expect((await 줄(넘김)).last_error).toContain('Issue Bunker 주소');
     await expect(보낼줄넣기({ projectId: 프로젝트, kind: 'CREATE', payload: {}, serviceId: 서비스, tcId: 'XBY-003' })).rejects.toThrow();
   });
 
@@ -226,6 +226,6 @@ describe.skipIf(연결 === undefined)('BTS 보낼 줄', () => {
     const id = (await 보낼줄넣기({ projectId: 남의프로젝트, kind: 'COMMENT', issueKey: 'DM-1', payload: {} }))!;
     expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 0, 다시: 0, 멈춤: 1 });
     expect(부른것).toEqual([]);
-    expect(await 줄(id)).toMatchObject({ state: 'GAVE_UP', last_error: 'BTS 연결이 없습니다' });
+    expect(await 줄(id)).toMatchObject({ state: 'GAVE_UP', last_error: 'Issue Bunker 연결이 없습니다' });
   });
 });
