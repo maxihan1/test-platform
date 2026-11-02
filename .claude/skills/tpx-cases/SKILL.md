@@ -12,8 +12,9 @@ description: 기획서(요구사항 문서)를 받아 이 저장소 형식의 �
 
 ## 선행 읽기
 
-**없음.** `/tpx` 가 이미 실었다. 추가로 여는 것은 **본보기 케이스 한 건**뿐이다
-(`tests/demo/DEMO-011.spec.ts` — `params`·`expected`·비밀값·`getByTestId` 가 한 파일에 다 있다).
+**없음.** `/tpx` 가 이미 실었다. 추가로 여는 것은 **본보기 한 벌**뿐이다
+(`references/example.md` — 케이스 · Page Object · Component · 도우미가 한 파일에 있다. `params` · `expected` · 비밀값 칸도 다 있다).
+`tests/` 아래 케이스는 본보기로 삼지 않는다 — 작성 요청이 고치거나 지울 수 있고 규칙을 어긴 것도 섞여 있다 (2026-11-02).
 
 ---
 
