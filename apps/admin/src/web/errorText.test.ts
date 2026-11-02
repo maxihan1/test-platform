@@ -24,7 +24,7 @@ describe('서버가 준 오류 코드를 사람 말로', () => {
     expect(요청오류문장('FORBIDDEN', 'en', 'runs:write')).not.toContain('애플리케이션');
   });
 
-  it('운영 계정이 필요한 자리는 그렇게 적는다', () => {
+  it('관리자가 필요한 자리는 그렇게 적는다', () => {
     expect(요청오류문장('FORBIDDEN', 'ko', 'admin')).toContain('「관리자」');
   });
 

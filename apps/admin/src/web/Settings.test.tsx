@@ -72,7 +72,7 @@ describe('설정 화면의 틀', () => {
     expect(container.querySelector('.head')?.textContent).toContain('관리자만');
   });
 
-  it('운영 계정이 아니면 이유를 말하고 머리를 그리지 않는다', () => {
+  it('관리자가 아니면 이유를 말하고 머리를 그리지 않는다', () => {
     const { container } = 그리기('member');
 
     // 서버 gate.ts 가 이미 막지만 주소를 직접 친 사람에게 403 대신 이유를 보여준다 (SPEC §8.8)

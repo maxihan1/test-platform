@@ -143,7 +143,7 @@ export const 설정말: Record<string, string> = {
     'You have no projects assigned to yourself yet. Assign them from Edit on your own row below',
   '김철수': 'Jane Doe',
   '관리자': 'Admin',
-  '마지막 관리자라 관리자 권한을 끌 수 없습니다. 먼저 다른 사람을 관리자로 올립니다':
+  '마지막 관리자라 끌 수 없습니다. 먼저 다른 사람을 관리자로 올립니다':
     'The last admin cannot be turned off. Make someone else an admin first',
   '관리자 (배정된 프로젝트 전부 + 설정 · 반영)': 'Admin (all assigned projects + Settings · apply)',
   '관리자는 배정된 프로젝트에서 모든 기능을 씁니다. 켜 둘 프로젝트만 고르세요.':

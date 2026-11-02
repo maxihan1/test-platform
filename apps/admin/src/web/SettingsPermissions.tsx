@@ -66,7 +66,7 @@ export function PermissionPicker({
         <span className="field-label">{t('관리자')}</span>
         <div>
           {마지막운영 ? (
-            <div className="hint">{t('마지막 관리자라 관리자 권한을 끌 수 없습니다. 먼저 다른 사람을 관리자로 올립니다')}</div>
+            <div className="hint">{t('마지막 관리자라 끌 수 없습니다. 먼저 다른 사람을 관리자로 올립니다')}</div>
           ) : (
             <label className="set-pick">
               <input
