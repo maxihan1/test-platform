@@ -934,3 +934,26 @@ describe('대시보드 좁은 화면 · 표 · 포커스 (PR #173 독립 검사)
     expect(글).not.toMatch(/\.dash-live-more:focus-visible/);
   });
 });
+
+describe('사이드바 로고 밑줄 (2026-11-02 사용자 「밑줄은 어디갔어」)', () => {
+  const rail = readFileSync(new URL('./rail.css', import.meta.url), 'utf8');
+  const 블록 = (머리: string) => {
+    const i = rail.indexOf(`${머리} {`);
+    return i < 0 ? '' : rail.slice(i, rail.indexOf('}', i));
+  };
+
+  it('로고 칸은 넘침을 숨기지 않는다 — 숨기면 글자 아래 밑줄이 칸 밖이라 잘린다', () => {
+    expect(블록('.side-logo')).not.toMatch(/overflow\s*:\s*hidden/);
+  });
+
+  it('밑줄 움직임은 그어진 채 끝난다 — 투명해지며 사라지지 않는다', () => {
+    const i = rail.indexOf('@keyframes logo-line');
+    const 움직임 = rail.slice(i, rail.indexOf('\n}', i));
+    expect(움직임).toMatch(/to\s*\{\s*transform:\s*scaleX\(1\)/);
+    expect(움직임).not.toMatch(/opacity/);
+  });
+
+  it('밑줄의 멈춘 모습은 그어진 상태다 — 움직임 줄이기를 켜도 보인다', () => {
+    expect(블록('.side-logo b::after')).not.toMatch(/transform\s*:\s*scaleX\(0\)/);
+  });
+});

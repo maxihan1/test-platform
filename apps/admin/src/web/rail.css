@@ -424,7 +424,7 @@
 }
 
 /* 제품 로고 — 「Test Commander」 (2026-11-02 시안 1). 처음 그려질 때와 마우스를 올릴 때 움직인다 — 왼쪽 줄 마크의 체크가 그어지고(.rail-check),
-   이어서 「Commander」가 옆에서 밀려 나오며 오렌지 밑줄이 그어졌다 사라진다 (최종 2판 ㄱ). 합 1.7초 — DESIGN 원칙 4 의 예외(사용자가 고른 로고).
+   이어서 「Commander」가 옆에서 밀려 나오며 오렌지 밑줄이 그어지고 **밑줄은 그대로 남는다** (최종 2판 ㄱ · 2026-11-02 사용자 「밑줄은 어디갔어」 — 앞 판은 사라졌고 넘침 숨기기에 잘려 아예 안 보였다). 합 1.3초 — DESIGN 원칙 4 의 예외(사용자가 고른 로고).
    마우스를 올리면 logoMotion.ts 가 처음부터 다시 돌린다. 체크는 화면이 그려지는 동안 지나가 안 보여서 0.15초 늦게 0.6초 동안 긋는다 (2026-11-02 사용자) */
 .side-logo {
   flex: 1;
@@ -435,7 +435,7 @@
   letter-spacing: -0.015em;
   color: var(--ink);
   white-space: nowrap;
-  overflow: hidden;
+  /* 넘침을 숨기지 않는다 — 숨기면 글자 아래 밑줄이 칸 밖이라 잘린다 */
 }
 
 .side-logo b {
@@ -451,12 +451,13 @@
   position: absolute;
   left: 0;
   right: 0;
-  bottom: -2px;
+  bottom: -3px;
   height: 2px;
+  border-radius: 1px;
   background: var(--accent-mark);
-  transform: scaleX(0);
+  /* 멈춘 모습이 밑줄이 그어진 상태다 — 움직임 줄이기를 켜도 밑줄은 보인다. 움직임은 0 에서 시작해 여기서 멈춘다 */
   transform-origin: left;
-  animation: logo-line 0.9s 0.8s var(--ease) both;
+  animation: logo-line 0.5s 0.8s var(--ease) both;
 }
 
 .rail-check {
@@ -476,9 +477,8 @@
 }
 
 @keyframes logo-line {
-  0% { transform: scaleX(0); opacity: 1; }
-  45% { transform: scaleX(1); opacity: 1; }
-  100% { transform: scaleX(1); opacity: 0; }
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
 }
 
 @media (prefers-reduced-motion: reduce) {
