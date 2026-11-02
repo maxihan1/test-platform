@@ -122,7 +122,7 @@ export async function 녹화하기(jobId: number, 줄: 대상줄, 대상: 녹화
     const API비밀 = 줄.apiAuths.flatMap((a) => [a.clientId, a.clientSecret]);
     const 표 = 가림표([...돈것.비밀, ...API비밀, ...비밀값모으기(줄들)].filter((v) => v.length >= 4), 계정들);
     const 가린 = 가리기(줄들, 표);
-    await writeFile(join(artifactsDir(), 'perf-record', 녹화파일(jobId)), JSON.stringify({ log: { version: '1.2', creator: { name: 'QA Hub', version: '1' }, entries: 가린 } }));
+    await writeFile(join(artifactsDir(), 'perf-record', 녹화파일(jobId)), JSON.stringify({ log: { version: '1.2', creator: { name: 'Test Commander', version: '1' }, entries: 가린 } }));
     const ai = AI재료(가린);
     if (ai.entries.length === 0) throw new Error(`녹화된 요청 ${ai.total}건이 모두 정적 리소스입니다`);
     await 녹화끝(jobId, { input: { ...재료, ...ai, recording: 녹화파일(jobId) } });

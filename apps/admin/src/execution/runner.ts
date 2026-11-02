@@ -170,14 +170,14 @@ export async function callRunner(
     if (item.buildId === undefined) return 보낸다(item, 폰body);
     // 올린 APK 는 폰을 잡은 뒤 서명 주소를 만든다 — 저장하지 않고 이 설치 한 번에만 쓴다 (도메인/실행 §3.11)
     const app = 서명주소(item.buildId);
-    if (app === null) return na(item, 'PLATFORM_PUBLIC_URL 이 비어 있어 디바이스 팜이 빌드를 받을 주소를 만들지 못했습니다');
+    if (app === null) return na(item, 'PLATFORM_PUBLIC_URL 이 비어 있어 Device VISION 이 빌드를 받을 주소를 만들지 못했습니다');
     return 보낸다(item, { ...폰body, app });
   };
   if (잡은폰 !== undefined) return 보낸다폰(잡은폰.udid, 잡은폰.토큰);
   // 앱 항목은 서버 러너가 팜에 붙어 돈다. 폰은 항목마다 잡고 놓는다 — 놓을 때 팜이 깐 앱을 지워 다음 항목이 깨끗한 폰에서 연다 (러너 §5.2 「디바이스 팜 접속 방식」).
   // 팜 주소가 없는데 여기까지 왔다면 요청을 받은 뒤 서버를 다시 띄우며 값을 지웠을 때뿐이다 — 실행 요청 통로가 FARM_OFF 로 거절한다
   const 팜 = 팜주소();
-  if (팜 === undefined) return na(item, '이 서버에는 디바이스 팜(DEVICE_FARM_URL)이 연결되어 있지 않습니다');
+  if (팜 === undefined) return na(item, '이 서버에는 Device VISION(DEVICE_FARM_URL)이 연결되어 있지 않습니다');
   // 누른 사람 토큰으로 잡는다 — 팜 화면에 그 사람이 쓰는 중으로 뜬다 (러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」)
   let 토큰: string | undefined;
   try {

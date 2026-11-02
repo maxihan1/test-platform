@@ -66,7 +66,7 @@ function 앞뒤(재료: 실패재료): { 앞: string[]; 뒤: string[] } {
   const 앞 = [
     `**케이스** — ${재료.tcId}`,
     환경줄(재료),
-    `**꼬리표** — ${재료.꼬리표} (QA Hub 규칙으로 붙였습니다)`,
+    `**꼬리표** — ${재료.꼬리표} (Test Commander 규칙으로 붙였습니다)`,
     '',
     '### 재현 단계',
   ];
@@ -78,7 +78,7 @@ function 앞뒤(재료: 실패재료): { 앞: string[]; 뒤: string[] } {
   ];
   const 기록 =
     재료.네트워크 === null || 재료.콘솔 === null
-      ? ['네트워크 · 콘솔 기록은 QA Hub 실행 결과에서 보세요']
+      ? ['네트워크 · 콘솔 기록은 Test Commander 실행 결과에서 보세요']
       : [
           ...(재료.네트워크.length === 0 ? ['- 실패한 네트워크 요청 없음'] : 재료.네트워크.map((n) => `- 요청: ${n}`)),
           ...(재료.콘솔.length === 0 ? ['- 콘솔 오류 없음'] : 재료.콘솔.map((c) => `- 콘솔: ${c}`)),
@@ -93,7 +93,7 @@ function 앞뒤(재료: 실패재료): { 앞: string[]; 뒤: string[] } {
     '',
     '### 네트워크 · 콘솔',
     ...기록,
-    ...(재료.결과주소 === null ? [] : ['', `QA Hub 실행 결과 — ${재료.결과주소}`]),
+    ...(재료.결과주소 === null ? [] : ['', `Test Commander 실행 결과 — ${재료.결과주소}`]),
   ];
   return { 앞, 뒤 };
 }
@@ -104,18 +104,18 @@ export function 이슈본문(재료: 실패재료): string {
   const 단계 = 재료.steps.map((s, i) => `${String(i + 1)}. ${s.title}${s.status === 'FAIL' ? ' ← 여기서 실패' : ''}`);
   for (let 남길 = 단계.length; 남길 >= 0; 남길--) {
     const 뺀수 = 단계.length - 남길;
-    const 글 = [...앞, ...단계.slice(0, 남길), ...(뺀수 > 0 ? [`이하 ${String(뺀수)}단계는 QA Hub 실행 결과에서`] : []), ...뒤].join('\n');
+    const 글 = [...앞, ...단계.slice(0, 남길), ...(뺀수 > 0 ? [`이하 ${String(뺀수)}단계는 Test Commander 실행 결과에서`] : []), ...뒤].join('\n');
     if (바이트(글) <= 본문상한) return 글;
   }
   // 단계를 다 빼도 넘으면 끝을 자른다 — 요구 문장 · 기록이 유난히 긴 경우뿐이다
-  const 글 = [...앞, `이하 ${String(단계.length)}단계는 QA Hub 실행 결과에서`, ...뒤].join('\n');
+  const 글 = [...앞, `이하 ${String(단계.length)}단계는 Test Commander 실행 결과에서`, ...뒤].join('\n');
   return Buffer.from(글, 'utf8').subarray(0, 본문상한 - 3).toString('utf8').replace(/�$/, '') + '…';
 }
 
 /** 열린 이슈에 다는 「또 실패」 댓글 */
 export function 또실패댓글(재료: Pick<실패재료, 'env' | 'build' | '원인' | '결과주소' | '꼬리표'>, runId: number): string {
   return [
-    `QA Hub 실행 #${String(runId)} 에서 또 실패했습니다 — 대상 서버 ${재료.env}${재료.build === null ? '' : ` · 빌드 ${재료.build}`}`,
+    `Test Commander 실행 #${String(runId)} 에서 또 실패했습니다 — 대상 서버 ${재료.env}${재료.build === null ? '' : ` · 빌드 ${재료.build}`}`,
     ...(재료.원인 === null ? [] : [`실패 원인: ${재료.원인}`]),
     `꼬리표: ${재료.꼬리표}`,
     ...(재료.결과주소 === null ? [] : [재료.결과주소]),

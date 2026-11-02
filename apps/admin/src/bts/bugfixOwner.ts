@@ -73,7 +73,7 @@ export async function 넘길사람찾기(
     }
     return (await 구성요소리드(자리, btsProject, componentIds, 부르기)) ?? (await 프로젝트리드(자리, btsProject, 부르기));
   } catch (err) {
-    console.error(`[bts] 넘길 사람을 찾다 BTS 에 닿지 않았다: ${err instanceof Error ? err.message : String(err)}`);
+    console.error(`[bts] 넘길 사람을 찾다 Issue Bunker 에 닿지 않았다: ${err instanceof Error ? err.message : String(err)}`);
     return null;
   }
 }
@@ -86,6 +86,6 @@ export async function 내번호(자리: BTS자리, 부르기: 부르기함수 = 
   const r = await 부르기(자리, 'GET', '/api/v1/users/me/whoami');
   const 몸 = r.json as { userId?: unknown; data?: { userId?: unknown } } | null;
   const id = 몸?.userId ?? 몸?.data?.userId;
-  if (r.status !== 200 || typeof id !== 'string') throw new Error(`BTS whoami 를 못 읽었다 (${String(r.status)})`);
+  if (r.status !== 200 || typeof id !== 'string') throw new Error(`Issue Bunker whoami 를 못 읽었다 (${String(r.status)})`);
   return id;
 }

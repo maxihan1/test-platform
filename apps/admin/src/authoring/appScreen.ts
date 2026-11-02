@@ -39,7 +39,7 @@ const 짧게 = (글: string): string => (글.length > 까닭_상한 ? `${글.sli
  */
 export async function 앱화면읽기(appPath: string | null, 러너: string, 잡기: 폰잡기 | undefined, 부르기: typeof fetch = fetch, 곳: 읽을곳 = 앱길): Promise<앱화면답> {
   if (appPath === null) return { screen: null, reason: null };
-  if (잡기 === undefined) return { screen: null, reason: '디바이스 팜(DEVICE_FARM_URL)이 연결되어 있지 않다' };
+  if (잡기 === undefined) return { screen: null, reason: 'Device VISION(DEVICE_FARM_URL)이 연결되어 있지 않다' };
   if (!폰을바로잡는다()) return { screen: null, reason: '폰이 다른 실행에 쓰이는 중이다' };
   try {
     return await 잡기((udid) => 러너에묻는다(appPath, udid, 러너, 부르기, 곳), (까닭) => ({ screen: null, reason: 까닭 }));

@@ -251,7 +251,9 @@ describe('덮어쓰기 판정', () => {
   });
 
   it('이 스크립트의 커밋 제목 꼴일 때만 덮어써도 된다', () => {
+    expect(수정커밋제목인가('[Test Commander] DM-12 수정 — 쿠폰', 'DM-12')).toBe(true);
     expect(수정커밋제목인가('[QA Hub] DM-12 수정 — 쿠폰', 'DM-12')).toBe(true);
+    expect(수정커밋제목인가('[Test Commander] DM-13 수정 — 쿠폰', 'DM-12')).toBe(false);
     expect(수정커밋제목인가('[QA Hub] DM-13 수정 — 쿠폰', 'DM-12')).toBe(false);
     expect(수정커밋제목인가('쿠폰 고침', 'DM-12')).toBe(false);
   });
@@ -274,7 +276,7 @@ describe('PR본문', () => {
   it('이슈 · 고친 내용 · 바뀐 파일 · 사람이 병합한다는 말을 해요체로 담는다', () => {
     const 글 = PR본문({ issueKey: 'DM-12', title: '쿠폰이  두 번 적용돼요', summary: '중복 검사를 더했어요', files: ['src/coupon.ts'] });
     expect(글).toContain('DM-12 — 쿠폰이 두 번 적용돼요');
-    expect(글).toContain('QA Hub 가 맡아 고쳤어요');
+    expect(글).toContain('Test Commander 가 맡아 고쳤어요');
     expect(글).toContain('중복 검사를 더했어요');
     expect(글).toContain('- `src/coupon.ts`');
     expect(글).toContain('병합은 사람이 해요');

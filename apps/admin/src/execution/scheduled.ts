@@ -59,7 +59,7 @@ export async function 정기실행을만든다(prefix: string, env: string, 로�
 
   // 팜이 없으면 앱 케이스를 돌릴 곳이 없다 (§9.2)
   const { 남은, 뺀수 } = 앱케이스를뺀다(목록.items, process.env);
-  if (뺀수 > 0) 로그.info(`${꼬리} ${prefix} android 케이스 ${String(뺀수)}건은 뺐다 — 디바이스 팜(DEVICE_FARM_URL)이 연결되어 있지 않다`);
+  if (뺀수 > 0) 로그.info(`${꼬리} ${prefix} android 케이스 ${String(뺀수)}건은 뺐다 — Device VISION(DEVICE_FARM_URL)이 연결되어 있지 않다`);
   if (남은.length === 0) {
     로그.info(`${꼬리} ${prefix} 서비스에 돌릴 케이스가 없어 실행을 만들지 않았다`);
     return { runIds: [], 실패: false, 끝: Promise.resolve() };

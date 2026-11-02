@@ -74,7 +74,7 @@ async function 거절문장(res: Response): Promise<string> {
 export function 팜기록기(serial: string, 부르기: typeof fetch = fetch): 기록기 {
   const 주소 = () => {
     const 팜 = 팜주소();
-    if (팜 === undefined) throw new Error('디바이스 팜(DEVICE_FARM_URL)이 연결되어 있지 않습니다');
+    if (팜 === undefined) throw new Error('Device VISION(DEVICE_FARM_URL)이 연결되어 있지 않습니다');
     return `${팜}/api/devices/${encodeURIComponent(serial)}`;
   };
   let 시도함 = false;
@@ -108,12 +108,12 @@ export function 팜기록기(serial: string, 부르기: typeof fetch = fetch): �
       }
       // 거절이면 남이 잡은 폰이다. 그 폰에 놓기를 보내면 쓰던 사람이 쫓겨난다
       if (res.ok) 시도함 = true;
-      if (!res.ok) throw new Error(`디바이스 팜이 폰을 내주지 않았습니다: ${await 거절문장(res)}`);
+      if (!res.ok) throw new Error(`Device VISION 이 폰을 내주지 않았습니다: ${await 거절문장(res)}`);
       잡음읽기(await res.json().catch(() => null));
     },
     async 새줄(since) {
       const res = await 부르기(`${주소()}/perf?since=${since}`, { headers: 팜머리(), signal: AbortSignal.timeout(팜제한ms) });
-      if (!res.ok) throw new Error(`디바이스 팜이 측정값을 주지 않았습니다 (${await 거절문장(res)})`);
+      if (!res.ok) throw new Error(`Device VISION 이 측정값을 주지 않았습니다 (${await 거절문장(res)})`);
       const 몸 = (await res.json()) as Partial<읽음>;
       return { rows: 몸.rows ?? [], launchMs: typeof 몸.launchMs === 'number' ? 몸.launchMs : null };
     },
@@ -121,14 +121,14 @@ export function 팜기록기(serial: string, 부르기: typeof fetch = fetch): �
       const res = await 부르기(`${주소()}/hold/extend`, {
         method: 'POST', headers: { 'content-type': 'application/json', ...팜머리() }, body: JSON.stringify({ minutes: 분 }), signal: AbortSignal.timeout(팜제한ms),
       });
-      if (!res.ok) throw new Error(`디바이스 팜이 잡기를 늘려 주지 않았습니다: ${await 거절문장(res)}`);
+      if (!res.ok) throw new Error(`Device VISION 이 잡기를 늘려 주지 않았습니다: ${await 거절문장(res)}`);
       const 몸 = await res.json().catch(() => null);
       if ((몸 as { held?: unknown } | null)?.held !== undefined) 잡음읽기(몸);
       else 끝 = (끝 ?? Date.now()) + 분 * 60_000;
     },
     async 파일받기(폴더, 오프셋) {
       const 목록 = await 부르기(`${주소()}/perf/files`, { headers: 팜머리(), signal: AbortSignal.timeout(팜제한ms) });
-      if (!목록.ok) throw new Error(`디바이스 팜이 녹화 목록을 주지 않았습니다 (${await 거절문장(목록)})`);
+      if (!목록.ok) throw new Error(`Device VISION 이 녹화 목록을 주지 않았습니다 (${await 거절문장(목록)})`);
       const 이름들 = ((await 목록.json()) as { files?: { name?: unknown }[] }).files?.flatMap((f) => (typeof f.name === 'string' ? [f.name] : [])) ?? [];
       await mkdir(폴더, { recursive: true });
       // 팜이 준 이름으로 경로를 짓기 전에 꼴을 본다 — 폴더 밖으로 못 나가게

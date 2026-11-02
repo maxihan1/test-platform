@@ -162,7 +162,7 @@ describe('callRunner — 어느 러너로 가는가', () => {
     expect(불렸다).toEqual([]);
     expect(res.status).toBe('NA');
     expect(res.historyId).toBe(42);
-    expect(res.error?.message).toBe('이 서버에는 디바이스 팜(DEVICE_FARM_URL)이 연결되어 있지 않습니다');
+    expect(res.error?.message).toBe('이 서버에는 Device VISION(DEVICE_FARM_URL)이 연결되어 있지 않습니다');
   });
 });
 

@@ -46,6 +46,12 @@ describe('원인을가른다', () => {
     expect(미실행('디바이스 팜이 기기 목록을 주지 않았습니다 (HTTP 502)')).toBe('environment');
   });
 
+  it('이름이 Device VISION 으로 바뀐 뒤의 문장도 환경 오류다 — 옛 문장(위)과 같이 가른다', () => {
+    expect(미실행('이 서버에는 Device VISION(DEVICE_FARM_URL)이 연결되어 있지 않습니다')).toBe('environment');
+    expect(미실행('Device VISION 에 빈 폰이 없습니다')).toBe('environment');
+    expect(미실행('Device VISION 이 폰을 내주지 않았습니다: 다른 사용자(maxi)가 쓰는 중')).toBe('environment');
+  });
+
   it('기다리던 요소 이름에 「러너」가 들어 있어도 러너 고장이 아니라 요소 미검출이다', () => {
     expect(
       미실행('Test timeout of 30000ms exceeded.', "locator.click: Test timeout of 30000ms exceeded.\nCall log:\n  - waiting for getByText('러너 상태')"),
@@ -81,6 +87,7 @@ describe('원인을가른다', () => {
     expect(실패('게임이 답 없이 연결을 닫았습니다 — 폰에서 QA 빌드가 켜져 있고 포트 13100 를 여나요?')).toBe('environment');
     expect(실패('디바이스 팜이 게임 명령을 HTTP 409 로 거절했습니다: 잡은 사람이 아닙니다')).toBe('environment');
     expect(미실행('디바이스 팜이 게임 명령을 HTTP 502 로 거절했습니다')).toBe('environment');
+    expect(미실행('Device VISION 이 게임 명령을 HTTP 502 로 거절했습니다')).toBe('environment');
   });
 
   it('켜지기를 기다리다 못 붙은 것은 시간 초과보다 먼저 환경 오류다 — 연결 끊김을 먼저 본다 (GAME-F1-09)', () => {

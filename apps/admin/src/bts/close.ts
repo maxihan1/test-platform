@@ -26,7 +26,7 @@ export function 사유찾기(짝: Partial<해결짝>, 이름: string | null): �
 }
 
 /** 작성 요청에 남길 BTS 쪽 이름 — 이 요청을 사람 대신 BTS 의 판정이 세웠다 */
-const BTS요청자 = (issueKey: string) => ({ 누가: 'bts', 이름: `BTS ${issueKey}` });
+const BTS요청자 = (issueKey: string) => ({ 누가: 'bts', 이름: `Issue Bunker ${issueKey}` });
 
 // 자식이 읽을 이슈 글 상한 — 프롬프트가 아니라 자료 파일로 가지만 params 에 실리므로 크게 두지 않는다
 const 글상한 = 8000;
@@ -39,12 +39,12 @@ export async function 이슈글읽기(자리: BTS자리, issueKey: string, 부�
   const 키 = encodeURIComponent(issueKey);
   const [이슈, 댓글] = await Promise.all([부르기(자리, 'GET', `/api/v1/issues/${키}`), 부르기(자리, 'GET', `/api/v1/issues/${키}/comments`)]);
   const 다시받을 = (s: number) => s >= 500 || s === 408 || s === 429;
-  if (다시받을(이슈.status) || 다시받을(댓글.status)) throw new Error(`BTS 이슈 ${issueKey} 글을 못 읽었다 (${String(이슈.status)} · ${String(댓글.status)})`);
-  if (이슈.status !== 200 || 댓글.status !== 200) return `# ${issueKey}\n\n(BTS 에서 이슈 글을 못 읽었다 — ${String(이슈.status)} · ${String(댓글.status)}. BTS ${issueKey} 에서 보세요)`;
+  if (다시받을(이슈.status) || 다시받을(댓글.status)) throw new Error(`Issue Bunker 이슈 ${issueKey} 글을 못 읽었다 (${String(이슈.status)} · ${String(댓글.status)})`);
+  if (이슈.status !== 200 || 댓글.status !== 200) return `# ${issueKey}\n\n(Issue Bunker 에서 이슈 글을 못 읽었다 — ${String(이슈.status)} · ${String(댓글.status)}. Issue Bunker ${issueKey} 에서 보세요)`;
   const 본문 = (이슈.json as { data?: { summary?: string; description?: string | null } } | null)?.data;
   const 댓글들 = ((댓글.json as { data?: { body?: string }[] } | null)?.data ?? []).flatMap((c) => (typeof c.body === 'string' ? [c.body] : []));
   const 글 = [`# ${issueKey} ${본문?.summary ?? ''}`, '', 본문?.description ?? '', ...댓글들.flatMap((b, i) => ['', `## 댓글 ${String(i + 1)}`, b])].join('\n');
-  return 글.length > 글상한 ? `${글.slice(0, 글상한)}\n…(이하 생략 — BTS ${issueKey} 에서 보세요)` : 글;
+  return 글.length > 글상한 ? `${글.slice(0, 글상한)}\n…(이하 생략 — Issue Bunker ${issueKey} 에서 보세요)` : 글;
 }
 
 interface 닫은줄 {
@@ -173,7 +173,7 @@ export async function 테스트고침댓글(요청: { serviceId: number; params:
     projectId: 프로젝트,
     kind: 'COMMENT',
     issueKey: 고침.issueKey,
-    payload: { body: `테스트 고침 PR ${번호 === undefined ? '' : `#${번호} `}— ${prUrl}\nQA Hub 가 테스트만 고친 초안 PR 을 열었습니다. 병합은 사람이 합니다` },
+    payload: { body: `테스트 고침 PR ${번호 === undefined ? '' : `#${번호} `}— ${prUrl}\nTest Commander 가 테스트만 고친 초안 PR 을 열었습니다. 병합은 사람이 합니다` },
   });
   return true;
 }

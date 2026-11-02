@@ -66,7 +66,7 @@ async function 애플리케이션고르기(l: 연결줄, projectId: number, issu
   if (componentIds.length === 0 || 앱들.length === 0) return null;
   const r = await 부르기(자리로(l), 'GET', `/api/v1/projects/${encodeURIComponent(l.bts_project)}/components`);
   // BTS 가 잠깐 바쁘면 던진다 — 「어느 애플리케이션인지 몰라」로 손을 놓지 않고 규칙 문이 503 을 낸다
-  if (r.status >= 500 || r.status === 408 || r.status === 429) throw new Error(`BTS 구성 요소 목록을 못 읽었다 (${String(r.status)})`);
+  if (r.status >= 500 || r.status === 408 || r.status === 429) throw new Error(`Issue Bunker 구성 요소 목록을 못 읽었다 (${String(r.status)})`);
   if (r.status !== 200) return null;
   const 이름들 = ((r.json as { data?: { id?: unknown; name?: unknown }[] } | null)?.data ?? [])
     .filter((c) => typeof c.id === 'string' && componentIds.includes(c.id) && typeof c.name === 'string')
@@ -102,13 +102,13 @@ export async function 수정맡기(projectId: number, issueKey: string, 부르�
   const 올린 = 앞.find((x) => x.handed_back);
   if (올린 !== undefined) {
     const 사람 = 올린.owner ?? (await 넘길사람찾기(자리, l.bts_project, [], 이슈.componentIds, 부르기));
-    await 넘기기(projectId, issueKey, `BTS 에이전트의 수정 PR 을 배포했는데 재검증에서 또 실패했던 이슈라 다시 맡지 않아요 — ${올린.pr_url ?? ''}\n같은 고침을 되풀이하지 않게 사람에게 넘겨요`, 사람);
+    await 넘기기(projectId, issueKey, `Issue Bunker 에이전트의 수정 PR 을 배포했는데 재검증에서 또 실패했던 이슈라 다시 맡지 않아요 — ${올린.pr_url ?? ''}\n같은 고침을 되풀이하지 않게 사람에게 넘겨요`, 사람);
     return 'HANDED_BACK';
   }
   const 앱 = await 애플리케이션고르기(l, projectId, issueKey, 이슈.componentIds, 부르기);
   if (앱 === null) {
     const 사람 = await 넘길사람찾기(자리, l.bts_project, [], 이슈.componentIds, 부르기);
-    await 넘기기(projectId, issueKey, 'BTS 에이전트가 어느 애플리케이션 코드인지 몰라 맡지 못했어요\nBTS 구성 요소를 QA Hub 애플리케이션 이름과 같게 달면 다음부터 맡아요', 사람);
+    await 넘기기(projectId, issueKey, 'Issue Bunker 에이전트가 어느 애플리케이션 코드인지 몰라 맡지 못했어요\nBTS 구성 요소를 Test Commander 애플리케이션 이름과 같게 달면 다음부터 맡아요', 사람);
     return 'NO_APP';
   }
   const 저장소 = (await pool.query<{ repo: { name: string; url: string } | null }>("SELECT code_repos->0 AS repo FROM service WHERE id = $1", [앱])).rows[0]?.repo ?? null;
@@ -117,7 +117,7 @@ export async function 수정맡기(projectId: number, issueKey: string, 부르�
   const 넣음 = await pool.query(
     `INSERT INTO authoring_request (service_id, kind, params, requested_by, requested_by_name, status)
      VALUES ($1, 'BUGFIX', $2, $3, $4, 'PENDING') ON CONFLICT DO NOTHING`,
-    [앱, JSON.stringify({ issueKey, title: 이슈.summary, note: 글, repo: 저장소 }), l.updated_by, `BTS · ${l.display_name ?? l.updated_by}`],
+    [앱, JSON.stringify({ issueKey, title: 이슈.summary, note: 글, repo: 저장소 }), l.updated_by, `Issue Bunker · ${l.display_name ?? l.updated_by}`],
   );
   return 넣음.rowCount === 1 ? 'TAKEN' : 'RUNNING';
 }
@@ -170,7 +170,7 @@ export async function 재검증실패넘기기(projectId: number, issueKey: stri
   await 넘기기(
     projectId,
     issueKey,
-    [`수정 PR ${줄.pr_url} 을 배포했는데 재검증에서 또 실패했어요 — BTS 에이전트는 다시 맡지 않고 사람에게 넘겨요`, '', `실패 이유: ${까닭}`, `QA Hub 실행 ${String(runId)}`, ...(파일.length === 0 ? [] : ['', '고친 파일', ...파일])].join('\n'),
+    [`수정 PR ${줄.pr_url} 을 배포했는데 재검증에서 또 실패했어요 — Issue Bunker 에이전트는 다시 맡지 않고 사람에게 넘겨요`, '', `실패 이유: ${까닭}`, `Test Commander 실행 ${String(runId)}`, ...(파일.length === 0 ? [] : ['', '고친 파일', ...파일])].join('\n'),
     사람,
   );
   return true;

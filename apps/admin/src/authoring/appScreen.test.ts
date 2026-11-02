@@ -85,7 +85,7 @@ describe('앱화면읽기', () => {
   it('디바이스 팜이 없으면 까닭을 적는다', async () => {
     expect(await 앱화면읽기('/apk/a.apk', 러너, undefined, 답({}))).toEqual({
       screen: null,
-      reason: '디바이스 팜(DEVICE_FARM_URL)이 연결되어 있지 않다',
+      reason: 'Device VISION(DEVICE_FARM_URL)이 연결되어 있지 않다',
     });
   });
 
@@ -130,9 +130,9 @@ describe('앱화면읽기', () => {
 
   it('팜이 폰을 못 내주면 그 까닭을 적고 러너를 부르지 않는다', async () => {
     const 부르기 = 답({ screen: '화면' });
-    const 못잡는팜: 폰잡기 = async (_일, 못잡음) => 못잡음('디바이스 팜에 빈 폰이 없습니다');
+    const 못잡는팜: 폰잡기 = async (_일, 못잡음) => 못잡음('Device VISION 에 빈 폰이 없습니다');
 
-    expect(await 앱화면읽기('/a.apk', 러너, 못잡는팜, 부르기)).toEqual({ screen: null, reason: '디바이스 팜에 빈 폰이 없습니다' });
+    expect(await 앱화면읽기('/a.apk', 러너, 못잡는팜, 부르기)).toEqual({ screen: null, reason: 'Device VISION 에 빈 폰이 없습니다' });
     expect(부르기).not.toHaveBeenCalled();
   });
 

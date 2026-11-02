@@ -79,7 +79,7 @@ export async function 팜폰으로돌린다(
 ): Promise<ScenarioExecuteResponse> {
   const 팜 = 팜주소();
   // 요청을 받은 뒤 서버를 다시 띄우며 값을 지웠을 때뿐이다 — 실행 통로가 FARM_OFF 로 먼저 거절한다
-  if (팜 === undefined) return 못돌린응답(요청.parts.length, '이 서버에는 디바이스 팜(DEVICE_FARM_URL)이 연결되어 있지 않습니다');
+  if (팜 === undefined) return 못돌린응답(요청.parts.length, '이 서버에는 Device VISION(DEVICE_FARM_URL)이 연결되어 있지 않습니다');
   let 토큰: string | undefined;
   try {
     토큰 = await 토큰찾기();

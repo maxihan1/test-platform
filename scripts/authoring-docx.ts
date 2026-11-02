@@ -8,7 +8,7 @@ import JSZip from 'jszip';
 import { 가림표 } from './authoring-reverse.js';
 
 /** 메모 작성자 — 기계가 단 메모라는 것이 보이게 고정한다(요청자 이름이면 사람이 직접 단 것처럼 보인다 — 2026-09-26 게이트 1) */
-const 작성자 = 'QA Hub';
+const 작성자 = 'Test Commander';
 /** 다루는 XML 파트 하나의 상한 · 파일 전체를 풀었을 때의 상한 · 다시 묶은 결과의 상한(서버 한 파일 상한) */
 const 파트상한 = 10 * 1024 * 1024;
 const 합계상한 = 60 * 1024 * 1024;

@@ -170,7 +170,7 @@ export async function dispatch(runId: number, items: PendingItem[]): Promise<voi
   try {
     await 배포실행뒤(runId);
   } catch (err) {
-    console.error(`[execution] 실행 ${runId} 뒤 BTS 배포 판정 · 재검증을 못 했다: ${err instanceof Error ? err.message : String(err)}`);
+    console.error(`[execution] 실행 ${runId} 뒤 Issue Bunker 배포 판정 · 재검증을 못 했다: ${err instanceof Error ? err.message : String(err)}`);
   }
 
   // 알림 전송이 실패해도 실행은 실패가 아니다. 실행은 이미 끝났고 결과는 test_run 에 남아 있다 (SPEC §8.9)
@@ -184,6 +184,6 @@ export async function dispatch(runId: number, items: PendingItem[]): Promise<voi
   try {
     await 실패등록(runId);
   } catch (err) {
-    console.error(`[execution] 실행 ${runId}의 실패를 BTS 보낼 줄에 넣지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+    console.error(`[execution] 실행 ${runId}의 실패를 Issue Bunker 보낼 줄에 넣지 못했다: ${err instanceof Error ? err.message : String(err)}`);
   }
 }

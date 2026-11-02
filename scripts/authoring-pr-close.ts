@@ -3,7 +3,7 @@
 type 부르기 = (길: string, 옵션?: { method: string; body?: unknown }) => Promise<{ status: number; 몸: unknown }>;
 type 치기 = (인자: string[]) => { ok: boolean; 낸것: string; 까닭: string };
 
-const 닫는글 = '롤백 뒤 다시 배포되어 이 되돌림 PR 은 쓰지 않습니다 (QA Hub)';
+const 닫는글 = '롤백 뒤 다시 배포되어 이 되돌림 PR 은 쓰지 않습니다 (Test Commander)';
 
 /** 브랜치는 지우지 않는다 — 폐기한 작성의 author-<번호> 브랜치는 남긴다(작성 §7 discard) */
 export const PR닫기인자 = (prUrl: string): string[] => ['pr', 'close', prUrl, '--comment', 닫는글];

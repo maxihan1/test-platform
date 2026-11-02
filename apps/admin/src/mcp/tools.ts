@@ -146,7 +146,7 @@ export async function BTS찾기(사람: 사용자, pat: string | null, projectId
 
   const r = await (await db()).query<{ base_url: string; bts_project: string; bot_key: string }>('SELECT base_url, bts_project, bot_key FROM bts_link WHERE project_id = $1', [projectId]);
   const 연결 = r.rows[0];
-  if (연결 === undefined) return { ok: false, error: 'NOT_LINKED', detail: `project ${String(projectId)} 은 BTS 를 잇지 않았다` };
+  if (연결 === undefined) return { ok: false, error: 'NOT_LINKED', detail: `project ${String(projectId)} 은 Issue Bunker 를 잇지 않았다` };
   const 자리 = { baseUrl: 연결.base_url, botKey: pat ?? 연결.bot_key };
 
   let 부를것: Parameters<부르기함수>;
@@ -164,13 +164,13 @@ export async function BTS찾기(사람: 사용자, pat: string | null, projectId
   try {
     답 = await 부르기(...부를것);
   } catch (err) {
-    console.error(`[mcp] BTS(${연결.base_url}) 에 닿지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+    console.error(`[mcp] Issue Bunker(${연결.base_url}) 에 닿지 못했다: ${err instanceof Error ? err.message : String(err)}`);
     return { ok: false, error: 'BTS_UNREACHABLE' };
   }
 
   if (답.status === 200) return { ok: true, data: (답.json as { data?: unknown } | null)?.data ?? null };
   if (답.status === 404) return 없음(찾을것.issueKey ?? '');
-  if (답.status === 401) return { ok: false, error: 'BTS_UNAUTHORIZED', detail: pat === null ? 'BTS 가 「QA Hub AI」 계정 토큰을 받지 않았다 — 설정 › BTS 연결에서 다시 넣는다' : 'BTS 가 이 통합계정 토큰을 받지 않았다' };
-  if (답.status === 403) return 막힘('BTS 권한 없음');
+  if (답.status === 401) return { ok: false, error: 'BTS_UNAUTHORIZED', detail: pat === null ? 'Issue Bunker 가 「QA Hub AI」 계정 토큰을 받지 않았다 — 설정 › Issue Bunker 연결에서 다시 넣는다' : 'Issue Bunker 가 이 통합계정 토큰을 받지 않았다' };
+  if (답.status === 403) return 막힘('Issue Bunker 권한 없음');
   return { ok: false, error: 'BTS_ERROR', detail: `HTTP ${String(답.status)}` };
 }

@@ -125,7 +125,7 @@ export default async function btsDeployRoutes(app: FastifyInstance, opts: { 부�
     if (연결 === undefined) return 보냄(거절(409, 'NOT_LINKED'));
     // 서버가 세우는 일의 「누가」는 연결을 마지막으로 저장한 admin 이다 — 그 계정이 꺼지면 연결을 다시 저장해야 돈다(§3.12 「새 기능 바퀴」 7)
     const 주인 = await 사용자와해시(연결.updated_by);
-    if (주인?.user.role !== 'admin') return 보냄(거절(409, 'NOT_LINKED', 'BTS 연결을 저장한 계정이 꺼져 있습니다 — 설정 › BTS 연결을 다시 저장합니다'));
+    if (주인?.user.role !== 'admin') return 보냄(거절(409, 'NOT_LINKED', 'Issue Bunker 연결을 저장한 계정이 꺼져 있습니다 — 설정 › Issue Bunker 연결을 다시 저장합니다'));
 
     // deploy.sh 가 같은 빌드로 다시 불러도 새로 걸지 않는다. 앞 배포가 실패(FAILED — 실행을 다 못 걸었거나 BTS 에 못 닿았다)로 끝났으면 지우고 새로 건다 —
     // 남기면 같은 번호로는 영영 다시 못 돈다(buildRoutes.ts 가 실행을 못 걸면 빌드를 지우는 것과 같다)
@@ -157,7 +157,7 @@ export default async function btsDeployRoutes(app: FastifyInstance, opts: { 부�
     await 노트사건쌓기(projectId, 'DEPLOY', { build: buildNo, rollback: 몸.data.rollback, rollbackKeys: 몸.data.rollbackKeys, services: 고름.map((a) => a.prefix) }).catch(
       (err: unknown) => req.log.error(`[bts] 배포 ${String(deployId)} 노트 사건을 못 쌓았다: ${err instanceof Error ? err.message : String(err)}`),
     );
-    const 사람 = { username: 연결.updated_by, displayName: `BTS · ${주인.user.displayName}` };
+    const 사람 = { username: 연결.updated_by, displayName: `Issue Bunker · ${주인.user.displayName}` };
     // 롤백 뒤 다시 배포면 앞 롤백의 되돌림 요청을 거두고, 이번이 롤백이면 PRD · 테스트를 되돌린다(도메인/BTS 「롤백 바퀴」). 실행을 걸기 전에 끝내 둔다(DB 일이라 짧다).
     // 깨지면 배포를 FAILED 로 두고 503 — deploy.sh 가 실패로 끝나 같은 빌드로 신호만 다시 보내면 처음부터 다시 돈다(둘 다 같은 키로 다시 돌아도 겹치지 않는다).
     // 서버 기록만 남기고 넘어가면 같은 빌드가 200 으로 막혀 반쯤 되돌린 채 다시 안 돈다

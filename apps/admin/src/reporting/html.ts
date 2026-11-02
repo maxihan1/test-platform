@@ -201,7 +201,7 @@ function E2E요약절(줄들: E2E요약줄[]): string[] {
     `<p class="axis">이 요약은 문서를 만든 때 기준이다</p>`,
     ...줄들.map((z) => {
       const 이름 = `<span class="tc-id">SC-${z.scenarioId}</span><span class="tc-name">${안전(z.name)}</span>`;
-      if (z.startedAt === null || z.verdict === null) return `<div class="fold fold-line">${이름}<span class="devs">실행 이력 없음</span></div>`;
+      if (z.startedAt === null || z.verdict === null) return `<div class="fold fold-line">${이름}<span class="devs">실행 기록 없음</span></div>`;
       // 단계 행 없이 멈춘 실행은 판정 없음인데 멈춘 단계도 없다 — 「모두 통과」는 통과에만 붙인다
       const 멈춘곳 = z.stoppedAt !== null ? ` · ${z.stoppedAt}번에서 멈춤` : z.verdict === 'PASS' ? ' · 모두 통과' : '';
       const 미확정 = z.unconfirmed ? `<span class="badge">미확정</span>` : '';
