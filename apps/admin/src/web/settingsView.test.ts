@@ -244,7 +244,7 @@ describe('서버가 낸 오류를 사람 말로 (SPEC §8.8)', () => {
   });
 
   it('마지막 운영 계정을 내리려 하면 왜 막혔는지 말한다', () => {
-    expect(설정오류문장('LAST_ADMIN', 'ko')).toContain('운영');
+    expect(설정오류문장('LAST_ADMIN', 'ko')).toContain('관리자');
   });
 
   it('아이디가 겹치면 그것을 말한다', () => {

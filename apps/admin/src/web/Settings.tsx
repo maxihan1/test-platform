@@ -56,7 +56,7 @@ export function Settings({ user, onMeChanged, 자리, on서비스번호 }: { use
     return (
       <div className="screen">
         <div className="empty">
-          {t('설정은 운영 계정만 볼 수 있습니다')}
+          {t('설정은 관리자만 볼 수 있습니다')}
           <small>{t('권한이 필요하면 관리자에게 요청해 주세요')}</small>
         </div>
       </div>
@@ -122,7 +122,7 @@ export function Settings({ user, onMeChanged, 자리, on서비스번호 }: { use
 
   return (
     <>
-      <Head 제목={t('설정')} 부제={t('운영 계정만 볼 수 있는 화면입니다')} />
+      <Head 제목={t('설정')} 부제={t('관리자만 볼 수 있는 화면입니다')} />
 
       <div className="screen set-layout">
         <설정메뉴 프로젝트들={프로젝트줄} 서비스들={서비스들} 고른={고른} 계정수={users.data.items.length - 대기수} 대기수={대기수} />

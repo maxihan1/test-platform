@@ -63,10 +63,10 @@ export function PermissionPicker({
   return (
     <>
       <div className="field">
-        <span className="field-label">{t('운영')}</span>
+        <span className="field-label">{t('관리자')}</span>
         <div>
           {마지막운영 ? (
-            <div className="hint">{t('마지막 운영 계정이라 운영을 끌 수 없습니다. 먼저 다른 사람을 운영으로 올립니다')}</div>
+            <div className="hint">{t('마지막 관리자라 관리자 권한을 끌 수 없습니다. 먼저 다른 사람을 관리자로 올립니다')}</div>
           ) : (
             <label className="set-pick">
               <input
@@ -74,11 +74,11 @@ export function PermissionPicker({
                 checked={운영}
                 onChange={(e) => onRole(e.target.checked ? 'admin' : 'member')}
               />
-              {t('운영 (배정된 프로젝트 전부 + 설정 · 반영)')}
+              {t('관리자 (배정된 프로젝트 전부 + 설정 · 반영)')}
             </label>
           )}
           {운영 ? (
-            <div className="hint">{t('운영 계정은 배정된 프로젝트에서 모든 기능을 씁니다. 켜 둘 프로젝트만 고르세요.')}</div>
+            <div className="hint">{t('관리자는 배정된 프로젝트에서 모든 기능을 씁니다. 켜 둘 프로젝트만 고르세요.')}</div>
           ) : null}
         </div>
       </div>
@@ -172,7 +172,7 @@ export function 배정이틀렸나(배정들: 배정[]): boolean {
 export function PermissionSummary({ row, projects }: { row: UserRow; projects: 프로젝트줄[] }) {
   const t = use말();
   const 요약 = 계정요약(row, projects);
-  if (요약.운영) return <span className="set-sub">{t('운영')}</span>;
+  if (요약.운영) return <span className="set-sub">{t('관리자')}</span>;
   return (
     <div className="set-sum">
       {요약.프로젝트.length === 0 ? <span className="set-sub">{t('배정 없음')}</span> : null}

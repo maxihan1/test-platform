@@ -109,7 +109,7 @@ export function AuthoringMergeFailed({ service, 실행, 원본, 권한, 반영�
               </button>
             </div>
           ) : (
-            <p className="hint">{t('반영은 운영 권한이 있는 사람만 할 수 있습니다.')}</p>
+            <p className="hint">{t('반영은 관리자만 할 수 있습니다.')}</p>
           )}
         </>
       ) : (

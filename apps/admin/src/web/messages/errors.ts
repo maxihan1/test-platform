@@ -3,7 +3,7 @@
 
 export const 오류영어: Record<string, string> = {
   // 배정과 세션
-  '이 애플리케이션에 배정받지 않았습니다. 운영 계정인 사람에게 배정을 요청합니다':
+  '이 애플리케이션에 배정받지 않았습니다. 관리자에게 배정을 요청합니다':
     'You are not assigned to this application. Ask an admin to assign you.',
   '로그인이 풀렸습니다. 다시 로그인합니다': 'Your session ended. Please sign in again.',
   '어느 애플리케이션인지 고르지 않았습니다. 맨 위 띠에서 애플리케이션을 고릅니다':
@@ -56,7 +56,7 @@ export const 오류영어: Record<string, string> = {
   '이미 수락된 계정입니다. 다른 관리자가 먼저 처리했습니다':
     'This account is already approved. Another admin handled it first.',
   '이미 승인된 계정이라 거절할 수 없습니다': 'This account is already approved and cannot be rejected',
-  '마지막 운영 계정입니다. 먼저 다른 사람을 운영으로 올립니다':
+  '마지막 관리자입니다. 먼저 다른 사람을 관리자로 올립니다':
     'This is the last admin. Promote someone else first.',
   '입력한 값 중에 형식이 맞지 않는 것이 있습니다': 'Some values are not in the right shape',
 

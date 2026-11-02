@@ -168,12 +168,12 @@ describe('프로젝트와 권한 고르개 (도메인/인증 §8.8 · 시안 B)'
   it('운영을 켜면 권한 칸과 그래프(Grafana)를 숨기고 프로젝트 켜기만 남긴다', () => {
     새계정열기();
     fireEvent.click(프로젝트칸(/데모마켓/));
-    fireEvent.click(screen.getByRole('checkbox', { name: /^운영/ }));
+    fireEvent.click(screen.getByRole('checkbox', { name: /^관리자/ }));
 
     expect(칸묶음('데모마켓 케이스')).toBeNull();
     expect(칸묶음('그래프(Grafana)')).toBeNull();
     expect(프로젝트칸(/데모마켓/)).toBeTruthy();
-    expect(screen.getByText('운영 계정은 배정된 프로젝트에서 모든 기능을 씁니다. 켜 둘 프로젝트만 고르세요.')).toBeTruthy();
+    expect(screen.getByText('관리자는 배정된 프로젝트에서 모든 기능을 씁니다. 켜 둘 프로젝트만 고르세요.')).toBeTruthy();
   });
 
   it('실행 쓰기에 케이스 안 씀이면 알리되 저장은 막지 않는다', () => {
@@ -251,7 +251,7 @@ describe('프로젝트와 권한 고르개 (도메인/인증 §8.8 · 시안 B)'
   it('운영을 켜면 권한 묶음도 숨긴다', () => {
     새계정열기();
     fireEvent.click(프로젝트칸(/데모마켓/));
-    fireEvent.click(screen.getByRole('checkbox', { name: /^운영/ }));
+    fireEvent.click(screen.getByRole('checkbox', { name: /^관리자/ }));
 
     expect(칸묶음('데모마켓 권한 묶음')).toBeNull();
   });
@@ -295,7 +295,7 @@ describe('프로젝트와 권한 고르개 (도메인/인증 §8.8 · 시안 B)'
     fireEvent.click(screen.getAllByText('편집')[2]!);
     expect(칸묶음('데모마켓 케이스')).toBeNull();
     fireEvent.click(프로젝트칸(/사내 포털/));
-    fireEvent.click(screen.getByRole('checkbox', { name: /^운영/ }));
+    fireEvent.click(screen.getByRole('checkbox', { name: /^관리자/ }));
 
     expect(눌림('데모마켓 케이스')).toBe('쓰기');
     expect(눌림('데모마켓 작성')).toBe('안 씀');
@@ -306,7 +306,7 @@ describe('프로젝트와 권한 고르개 (도메인/인증 §8.8 · 시안 B)'
     그리기([계정들[0]!, 계정들[1]!], 프로젝트들);
     fireEvent.click(screen.getAllByText('편집')[0]!);
 
-    expect(screen.queryByRole('checkbox', { name: /^운영/ })).toBeNull();
-    expect(screen.getByText(/마지막 운영 계정이라 운영을 끌 수 없습니다/)).toBeTruthy();
+    expect(screen.queryByRole('checkbox', { name: /^관리자/ })).toBeNull();
+    expect(screen.getByText(/마지막 관리자라 관리자 권한을 끌 수 없습니다/)).toBeTruthy();
   });
 });

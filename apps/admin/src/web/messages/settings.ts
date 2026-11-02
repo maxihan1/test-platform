@@ -14,8 +14,8 @@ export const 설정말: Record<string, string> = {
 
   // 설정 화면의 틀 (§8.8)
   '설정': 'Settings',
-  '운영 계정만 볼 수 있는 화면입니다': 'Admins only',
-  '설정은 운영 계정만 볼 수 있습니다': 'Only admins can open Settings',
+  '관리자만 볼 수 있는 화면입니다': 'Admins only',
+  '설정은 관리자만 볼 수 있습니다': 'Only admins can open Settings',
   '권한이 필요하면 관리자에게 요청해 주세요': 'Ask an admin user for access if you need it',
 
   // 구획 머리와 목록 줄
@@ -142,11 +142,11 @@ export const 설정말: Record<string, string> = {
   '아직 자기 자신에게 배정한 프로젝트가 없습니다. 아래 자기 줄의 「편집」에서 배정합니다':
     'You have no projects assigned to yourself yet. Assign them from Edit on your own row below',
   '김철수': 'Jane Doe',
-  '운영': 'Admin',
-  '마지막 운영 계정이라 운영을 끌 수 없습니다. 먼저 다른 사람을 운영으로 올립니다':
+  '관리자': 'Admin',
+  '마지막 관리자라 관리자 권한을 끌 수 없습니다. 먼저 다른 사람을 관리자로 올립니다':
     'The last admin cannot be turned off. Make someone else an admin first',
-  '운영 (배정된 프로젝트 전부 + 설정 · 반영)': 'Admin (all assigned projects + Settings · apply)',
-  '운영 계정은 배정된 프로젝트에서 모든 기능을 씁니다. 켜 둘 프로젝트만 고르세요.':
+  '관리자 (배정된 프로젝트 전부 + 설정 · 반영)': 'Admin (all assigned projects + Settings · apply)',
+  '관리자는 배정된 프로젝트에서 모든 기능을 씁니다. 켜 둘 프로젝트만 고르세요.':
     'Admins use every feature in their assigned projects. Pick only the projects to turn on.',
   '프로젝트와 권한': 'Projects and permissions',
   '케이스§권한': 'Cases',

@@ -94,7 +94,7 @@ describe('작성 한 건 상세', () => {
     render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
     await screen.findByText('테스터');
     expect(screen.queryByRole('button', { name: '테스트 반영하기' })).toBeNull();
-    expect(screen.getByText('반영은 운영 권한이 있는 사람만 할 수 있습니다.')).toBeTruthy();
+    expect(screen.getByText('반영은 관리자만 할 수 있습니다.')).toBeTruthy();
   });
 
   it('아직 안 끝난 요청에는 반영 버튼이 없고 할 일이 없다고 말한다', async () => {
