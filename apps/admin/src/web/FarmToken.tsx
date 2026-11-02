@@ -25,7 +25,7 @@ export function FarmToken({ onClose }: { onClose: () => void }) {
   const [오류, set오류] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   // 지금 토큰을 버리는 두 일은 창 안 줄로 한 번 묻는다 — 이 창(②) 위에 확인 창을 겹치지 않는다 (DESIGN.md 「휴대폰의 창」)
-  const [묻는것, set묻는것] = useState<'바꾸기' | '지우기' | null>(null);
+  const [묻는것, set묻는것] = useState<'바꾸기' | '삭제' | null>(null);
 
   useEffect(() => {
     api
@@ -90,7 +90,7 @@ export function FarmToken({ onClose }: { onClose: () => void }) {
         {/* 읽기가 실패하면 아래 오류 줄이 까닭을 말한다 — 불러오는 중으로 남겨 두지 않는다 */}
         {끝넷 === undefined ? (오류 === null ? t('불러오는 중입니다') : null) : 끝넷 === null ? t('없음 — 서버 토큰으로 빌립니다') : t('넣음 (…{끝})', { 끝: 끝넷 })}
         {typeof 끝넷 === 'string' ? (
-          <button className="btn ghost" type="button" disabled={busy} onClick={() => set묻는것('지우기')}>
+          <button className="btn ghost" type="button" disabled={busy} onClick={() => set묻는것('삭제')}>
             {t('토큰 지우기')}
           </button>
         ) : null}

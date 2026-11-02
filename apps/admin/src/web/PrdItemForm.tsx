@@ -150,7 +150,7 @@ export function PrdItemForm({
               {t('삭제 확인§요구')}
             </button>
             <button type="button" className="btn ghost small" onClick={() => set지우기확인(false)}>
-              {t('지우지 않기')}
+              {t('삭제 안 함')}
             </button>
           </>
         ) : (

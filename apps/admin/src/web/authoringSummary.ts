@@ -54,7 +54,7 @@ export function 무슨테스트(s: 목록요약, 언어: 언어): string {
     return t('{조각} 테스트 고치기', 언어, { 조각: 조각.join(' · ') });
   }
   if (s.kind === 'EDIT' && w.tcIds.length > 0) {
-    const 무엇 = t(w.fix === 'EXPECTED' ? '기대값 고치기' : w.fix === 'DELETE' ? '지우기' : '고치기§목록 줄', 언어);
+    const 무엇 = t(w.fix === 'EXPECTED' ? '기대값 고치기' : w.fix === 'DELETE' ? '삭제§목록 줄' : '고치기§목록 줄', 언어);
     const 나머지 = w.tcIds.length - 1 + w.tcMore;
     return 나머지 > 0 ? t('{번호} 외 {수}건 {무엇}', 언어, { 번호: w.tcIds[0]!, 수: 나머지, 무엇 }) : [w.tcIds[0]!, 무엇].join(' ');
   }

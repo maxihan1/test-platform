@@ -269,7 +269,7 @@ describe('작성 목록의 케이스 고치기 줄', () => {
 
     expect(await screen.findByRole('link', { name: 'PAY-001 외 1건 기대값 고치기' })).toBeTruthy();
     expect(screen.getByText('케이스 2건 고침')).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'PAY-003 지우기' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'PAY-003 삭제' })).toBeTruthy();
     expect(screen.getAllByText('케이스 고치기')).toHaveLength(2);
     expect(screen.getAllByText(/^케이스 목록에서 시작 · /)).toHaveLength(2);
     expect(screen.getByText('고치는 중')).toBeTruthy();

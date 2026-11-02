@@ -18,7 +18,7 @@ import type { 판정하기 } from './runJudge.js';
 import { RunWindow } from './RunWindow.js';
 import { Failed, Loading, PLATFORM_LABEL, useAsync, Verdict, when } from './ui.js';
 
-/** @param 판정하기 그 항목의 서비스 칸으로 「값 바꿔 재실행」을 가른다 — 띠와 다른 서비스의 항목일 수 있다 */
+/** @param 판정하기 그 항목의 서비스 칸으로 「입력 값 수정 후 다시 실행」을 가른다 — 띠와 다른 서비스의 항목일 수 있다 */
 export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; historyId: number; 판정하기: 판정하기 }) {
   const t말 = use말();
   const 언어 = use언어();

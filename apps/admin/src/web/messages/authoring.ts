@@ -46,10 +46,10 @@ export const 작성말: Record<string, string> = {
   // 피그마를 미리 열어 보기 (도메인/작성 §7 「자료」 「미리 열어 보기」)
   '이 애플리케이션에는 피그마 토큰이 없어 피그마 주소를 받을 수 없습니다.': 'This application has no Figma token, so Figma links cannot be accepted.',
   '설정 > 애플리케이션에서 피그마 토큰을 넣으세요': 'Add a Figma token in Settings > Applications',
-  '관리자에게 피그마 토큰을 넣어 달라고 요청하세요': 'Ask an operator to add a Figma token',
+  '관리자에게 피그마 토큰을 넣어 달라고 요청하세요': 'Ask an admin to add a Figma token',
   '피그마가 이 애플리케이션의 토큰을 받아 주지 않습니다. 토큰이 틀렸거나 만료됐거나 읽기 권한이 모자랍니다.': 'Figma does not accept this application’s token. It is wrong, has expired, or lacks read permission.',
   '설정 > 애플리케이션에서 새 피그마 토큰을 넣으세요': 'Add a new Figma token in Settings > Applications',
-  '관리자에게 새 피그마 토큰을 넣어 달라고 요청하세요': 'Ask an operator to add a new Figma token',
+  '관리자에게 새 피그마 토큰을 넣어 달라고 요청하세요': 'Ask an admin to add a new Figma token',
   '피그마 파일을 열지 못했습니다. 파일이 없거나 이 토큰으로 볼 권한이 없습니다 ({주소})':
     'Could not open the Figma file. It does not exist or this token cannot view it ({주소})',
 

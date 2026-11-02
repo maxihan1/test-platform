@@ -93,7 +93,7 @@ export const 기획서말: Record<string, string> = {
   '이 요구 삭제': 'Delete this requirement',
   // 「지우기 확인」은 입력값 지우기(Confirm clear)에 이미 쓰인다 — 여기는 요구를 지운다
   '삭제 확인§요구': 'Confirm delete',
-  '지우지 않기': 'Keep it',
+  '삭제 안 함': 'Keep it',
   '기능 묶음을 적습니다': 'Enter a feature',
   '요구 문장을 적습니다': 'Enter the requirement',
   '출처를 하나 이상 적습니다': 'Add at least one source',

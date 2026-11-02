@@ -16,7 +16,7 @@ describe('무슨 테스트', () => {
 
   it('케이스 고치기는 첫 번호와 나머지 수 · 고친 것', () => {
     expect(무슨테스트(요약({ kind: 'EDIT', what: { tcIds: ['DMW-FN-120', 'DMW-FN-121', 'DMW-FN-122'], tcMore: 0, fix: 'EXPECTED' } }), 'ko')).toBe('DMW-FN-120 외 2건 기대값 고치기');
-    expect(무슨테스트(요약({ kind: 'EDIT', what: { tcIds: ['DMW-FN-009'], fix: 'DELETE' } }), 'ko')).toBe('DMW-FN-009 지우기');
+    expect(무슨테스트(요약({ kind: 'EDIT', what: { tcIds: ['DMW-FN-009'], fix: 'DELETE' } }), 'ko')).toBe('DMW-FN-009 삭제');
     expect(무슨테스트(요약({ kind: 'EDIT', what: { tcIds: ['A-FN-001', 'A-FN-002', 'A-FN-003'], tcMore: 4 } }), 'ko')).toBe('A-FN-001 외 6건 고치기');
   });
 
