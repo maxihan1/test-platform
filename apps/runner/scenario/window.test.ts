@@ -155,7 +155,7 @@ describe('창 하나 — 공용 창 · 단계 열기 · 단계 닫기 (SPEC 도�
 
   it('창 · 탭은 시작에 한 번만 연다 — 단계마다 새로 만드는 것은 창 쿠키를 든 단계 request 뿐이다', async () => {
     const { 창, 열기, 요청열기, 감싸기 } = 판();
-    창.storageState.mockResolvedValue({ cookies: [쿠키('sid')], origins: [] });
+    창.cookies.mockResolvedValue([쿠키('sid')]);
     const 공용 = await 감싸기.newWindow(new Map());
 
     const 첫 = await 공용.단계(새부품(1, []), true);
@@ -173,7 +173,7 @@ describe('창 하나 — 공용 창 · 단계 열기 · 단계 닫기 (SPEC 도�
 
   it('단계를 닫으면 단계 request 쿠키 가운데 창에 없는 것만 창에 더하고, 이어 주기 · 창 request 를 원래대로 돌린다', async () => {
     const { 창, 단계요청, 감싸기 } = 판();
-    창.storageState.mockResolvedValue({ cookies: [쿠키('sid', 'qa.example.com', '창')], origins: [] });
+    창.cookies.mockResolvedValue([쿠키('sid', 'qa.example.com', '창')]);
     단계요청.storageState.mockResolvedValue({ cookies: [쿠키('sid', 'qa.example.com', '요청'), 쿠키('api')], origins: [] });
     const 원래request = 창.request;
     const 공용 = await 감싸기.newWindow(new Map());
@@ -189,7 +189,7 @@ describe('창 하나 — 공용 창 · 단계 열기 · 단계 닫기 (SPEC 도�
     expect(창.request).toBe(원래request);
   });
 
-  it('넘겨받기를 끈 단계는 같은 창에서 쿠키 · localStorage 를 비우고 지금 탭의 sessionStorage 를 지운다', async () => {
+  it('넘겨받기를 끈 단계는 같은 창에서 쿠키 · localStorage 를 비우고 지금 탭의 sessionStorage 를 지운 뒤 빈 화면에서 시작한다', async () => {
     const { 창, 탭, 감싸기 } = 판();
     const 공용 = await 감싸기.newWindow(new Map());
 
@@ -199,6 +199,8 @@ describe('창 하나 — 공용 창 · 단계 열기 · 단계 닫기 (SPEC 도�
 
     expect(창.setStorageState).toHaveBeenCalledWith({ cookies: [], origins: [] });
     expect(탭.evaluate).toHaveBeenCalledTimes(1);
+    // 앞 화면이 메모리에 쥔 로그인으로 돌지 않게 빈 화면에서 시작한다
+    expect(탭.goto).toHaveBeenCalledWith('about:blank');
   });
 
   it('한도에 걸려 끊음으로 닫으면 쿠키를 안 더하고 창째 닫는다', async () => {

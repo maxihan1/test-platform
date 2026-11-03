@@ -2,7 +2,8 @@
 
 import type { APIRequestContext, BrowserContext, Page, Route } from '@playwright/test';
 
-import { 가르기, 적기, type 부품상태, type 상태, type 이음 } from './links.js';
+import { 가르기, 적기, type 부품상태, type 이음 } from './links.js';
+import { 쿠키열쇠 } from './parts.js';
 import { 읽어둠 } from './tool.js';
 
 export type 떼기 = { dispose(): Promise<void> };
@@ -42,11 +43,11 @@ export function 응답듣기(context: BrowserContext, 이음값: 이음, 부품:
   };
 }
 
-// 단계 request 의 쿠키를 창에 더한다. 같은 쿠키가 둘에 있으면 창 쪽 — 앞 판의 「합친 상태」와 같은 규칙이다 (SPEC 도메인/시나리오 §3.7 결정 3)
+// 단계 request 의 쿠키를 창에 더한다. 같은 쿠키가 둘에 있으면 창 쪽 — 합친상태와 같은 규칙이다 (SPEC 도메인/시나리오 §3.7 결정 3).
+// 창은 쿠키만 읽는다 — storageState 는 모든 출처의 localStorage 까지 떠서 단계마다 부르기에 무겁다
 export async function 쿠키더하기(context: BrowserContext, 요청: APIRequestContext): Promise<void> {
-  const 열쇠 = (c: 상태['cookies'][number]) => `${c.name}\t${c.domain}\t${c.path}`;
-  const 있음 = new Set((await context.storageState()).cookies.map(열쇠));
-  const 더할 = (await 요청.storageState()).cookies.filter((c) => !있음.has(열쇠(c)));
+  const 있음 = new Set((await context.cookies()).map(쿠키열쇠));
+  const 더할 = (await 요청.storageState()).cookies.filter((c) => !있음.has(쿠키열쇠(c)));
   if (더할.length > 0) await context.addCookies(더할);
 }
 

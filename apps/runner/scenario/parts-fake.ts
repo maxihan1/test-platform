@@ -65,8 +65,8 @@ export const 쿠키 = (name: string, domain = 'qa.example.com', value = 'v'): �
 // window.ts 검사용 가짜 Playwright 창 — 공용 창 열기 · 단계 열기 · 단계 닫기가 부르는 것만 갖춘다 (window.test.ts · apps-mix.test.ts)
 export function 가짜플창(baseURL?: string) {
   const 탭 = {
-    viewportSize: () => ({ width: 1280, height: 720 }), once: vi.fn(), isClosed: () => false,
-    evaluate: vi.fn(async () => {}), close: vi.fn(async () => {}), waitForTimeout: vi.fn(async () => {}),
+    viewportSize: () => ({ width: 1280, height: 720 }), once: vi.fn(), isClosed: () => false, url: () => 'https://qa.example.com/',
+    evaluate: vi.fn(async () => {}), goto: vi.fn(async () => null), close: vi.fn(async () => {}), waitForTimeout: vi.fn(async () => {}),
   };
   const 창 = {
     _options: { baseURL },
@@ -77,7 +77,9 @@ export function 가짜플창(baseURL?: string) {
     newPage: vi.fn(async () => 탭),
     pages: () => [탭],
     storageState: vi.fn(async (): Promise<상태> => ({ cookies: [], origins: [] })),
+    cookies: vi.fn(async (): Promise<상태['cookies']> => []),
     setStorageState: vi.fn(async () => {}),
+    unrouteAll: vi.fn(async () => {}),
     addCookies: vi.fn(async () => {}),
     clock: {},
     close: vi.fn(async () => {}),

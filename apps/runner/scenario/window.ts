@@ -207,18 +207,27 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
           if (!넘겨받기) {
             // 같은 창에서 로그인 상태를 비운다 — 쿠키와 이 창이 연 출처의 localStorage. sessionStorage 는 탭에 붙어 지금 출처 것만 지운다 (SPEC 도메인/시나리오 §3.7 결정 12 「넘겨받기 끔」)
             await context.setStorageState(빈상태);
-            await 지금탭.evaluate(() => sessionStorage.clear()).catch(남김('지금 탭의 sessionStorage 를 못 비웠다'));
+            if (지금탭.url() !== 'about:blank') await 지금탭.evaluate(() => sessionStorage.clear()).catch(남김('지금 탭의 sessionStorage 를 못 비웠다'));
+            // 빈 화면에서 시작한다 — 앞 화면이 메모리에 쥔 로그인으로 돌지 않게. 단독 실행도 빈 탭에서 시작한다
+            await 지금탭.goto('about:blank');
           }
           const 단계주소 = 이음값.부품주소.get(부품.seq);
           if (단계주소 !== undefined) 기준바꾸기(context, 단계주소);
           const 이번: 지금부품 = { 부품, 직접만든: [], 닫힘: false };
           // 단계마다 새로 만드는 것은 이것뿐이다. 창의 쿠키를 들고 시작한다 — 로그인 준비를 건너뛰어도 API 요청이 로그인한 사람으로 간다
-          const 부품요청 = await 원래요청(주소채움({ storageState: await context.storageState() }, 이음값, 부품));
+          const 부품요청 = await 원래요청(주소채움({ storageState: { cookies: await context.cookies(), origins: [] } }, 이음값, 부품));
           // 창의 request 를 바꿔 끼우면 단계 안에서 연 탭 · 팝업의 page.request 도 감싼 것이다 — Page 생성자가 창의 request 를 그대로 받는다
           (context as { request: APIRequestContext }).request = 감싼도구(창request, 이음값, 묶음(부품, () => context.storageState()));
           const 뗄것 = await 이어주기걸기(context, 이음값, 부품);
           const 듣기끔 = 응답듣기(context, 이음값, 부품);
-          const 감시 = 단계감시(지금탭, context, 처음, 단계주소);
+          const 감시 = 단계감시(지금탭, context, 처음, {
+            ...(단계주소 !== undefined && { 기준: 단계주소 }),
+            // 케이스가 창의 가로채기를 지웠다(unrouteAll · unroute) — 모킹은 시나리오 끝까지 가야 하니 걸린 것을 차례대로 다시 건다. 남은 가로채기는 이때 모킹뿐이다
+            모킹다시걸기: async () => {
+              await context.unrouteAll();
+              for (const [무늬, handler] of 걸린) await context.route(무늬, handler);
+            },
+          });
           let 끝 = false;
           return {
             runCase: (part: CasePart, seq, phase, params) => 케이스돌리기(part, 이번, 부품요청, async () => ({ page: 감시.page, platform: 설정.platform }), seq, phase, params),

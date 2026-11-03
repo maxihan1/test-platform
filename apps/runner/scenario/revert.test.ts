@@ -3,9 +3,9 @@
 import type { BrowserContext, Page } from '@playwright/test';
 import { describe, expect, it, vi } from 'vitest';
 
-import { 단계감시, type 창처음값 } from './revert.js';
+import { 단계감시, type 단계덧, type 창처음값 } from './revert.js';
 
-function 판(처음: 창처음값 = {}, 기준?: string) {
+function 판(처음: 창처음값 = {}, 덧: 단계덧 = {}) {
   const 차례: string[] = [];
   const 떼기 = (이름: string) => vi.fn(async () => ({ dispose: vi.fn(async () => { 차례.push(`뗌 ${이름}`); }) }));
   const 시계 = { setFixedTime: vi.fn(async () => {}), setSystemTime: vi.fn(async () => {}), resume: vi.fn(async () => {}) };
@@ -18,13 +18,14 @@ function 판(처음: 창처음값 = {}, 기준?: string) {
     goto: vi.fn(async () => null), title: vi.fn(async () => '제목'), isClosed: () => false,
   };
   const 창 = {
-    addInitScript: 떼기('창 스크립트'), route: 떼기('창 가로채기'), on: vi.fn(), once: vi.fn(), off: vi.fn(),
+    addInitScript: 떼기('창 스크립트'), route: 떼기('창 가로채기'), unroute: vi.fn(async () => {}), unrouteAll: vi.fn(async () => {}),
+    on: vi.fn(), once: vi.fn(), off: vi.fn(),
     setExtraHTTPHeaders: vi.fn(async () => {}), setOffline: vi.fn(async () => {}), setGeolocation: vi.fn(async () => {}),
     grantPermissions: vi.fn(async () => {}), clearPermissions: vi.fn(async () => {}),
     setDefaultTimeout: vi.fn(), setDefaultNavigationTimeout: vi.fn(),
     pages: () => [탭], request: { 이름: '단계 request' }, clock: 시계,
   };
-  const 감시 = 단계감시(탭 as unknown as Page, 창 as unknown as BrowserContext, 처음, 기준);
+  const 감시 = 단계감시(탭 as unknown as Page, 창 as unknown as BrowserContext, 처음, 덧);
   return { 탭, 창, 시계, 차례, 감시, page: 감시.page };
 }
 
@@ -110,7 +111,7 @@ describe('단계감시 — 단계 끝 되돌리기 표 (Playwright 1.63)', () =>
   });
 
   it('page.request 는 창의 request(그 단계 것)를 준다 · 기준이 있으면 상대 주소 goto 를 그 주소로 풀고 절대 주소는 그대로 둔다', async () => {
-    const 섞임 = 판({}, 'https://adm.example.com/');
+    const 섞임 = 판({}, { 기준: 'https://adm.example.com/' });
     const 홑 = 판();
 
     await 섞임.page.goto('/orders?x=1');
@@ -120,6 +121,20 @@ describe('단계감시 — 단계 끝 되돌리기 표 (Playwright 1.63)', () =>
     expect(섞임.page.request).toBe(섞임.창.request);
     expect(섞임.탭.goto.mock.calls.map((c) => (c as unknown[])[0])).toEqual(['https://adm.example.com/orders?x=1', 'https://shop.example.com/']);
     expect(홑.탭.goto.mock.calls.map((c) => (c as unknown[])[0])).toEqual(['/orders']);
+  });
+
+  it('단계가 창의 가로채기를 지웠으면 시나리오 모킹을 다시 건다 — 안 지웠으면 그대로 둔다', async () => {
+    const 다시 = vi.fn(async () => {});
+    const 지움 = 판({}, { 모킹다시걸기: 다시 });
+    const 안지움 = 판({}, { 모킹다시걸기: 다시 });
+
+    await 지움.page.context().unrouteAll({ behavior: 'ignoreErrors' });
+    await 지움.감시.되돌리기();
+    await 안지움.page.route('**/a', () => {});
+    await 안지움.감시.되돌리기();
+
+    expect(지움.창.unrouteAll).toHaveBeenCalledWith({ behavior: 'ignoreErrors' });
+    expect(다시).toHaveBeenCalledTimes(1);
   });
 
   it('되돌리다 하나가 실패해도 나머지를 되돌린다', async () => {

@@ -13,7 +13,7 @@ export type 창처음값 = Partial<Pick<PlaywrightTestOptions,
 >> & { viewport?: ViewportSize | null };
 
 type 함수 = (...args: unknown[]) => unknown;
-type 칸 = '창머리' | '탭머리' | '망' | '위치' | '권한' | '화면' | '미디어' | '한도' | '시계';
+type 칸 = '창머리' | '탭머리' | '망' | '위치' | '권한' | '화면' | '미디어' | '한도' | '시계' | '모킹';
 
 // 떼기(Disposable)를 돌려준다 — Playwright 1.63. routeWebSocket · routeFromHAR 는 안 돌려줘 표 밖이다
 const 떼기있음 = new Set(['addInitScript', 'exposeFunction', 'exposeBinding', 'route']);
@@ -22,6 +22,8 @@ const 듣기 = new Set(['on', 'once', 'addListener', 'prependListener', 'prepend
 const 탭설정: Record<string, 칸> = { setExtraHTTPHeaders: '탭머리', setViewportSize: '화면', emulateMedia: '미디어', setDefaultTimeout: '한도', setDefaultNavigationTimeout: '한도' };
 const 창설정: Record<string, 칸> = {
   setExtraHTTPHeaders: '창머리', setOffline: '망', setGeolocation: '위치', grantPermissions: '권한', clearPermissions: '권한', setDefaultTimeout: '한도', setDefaultNavigationTimeout: '한도',
+  // 창의 가로채기를 지우면 시나리오 모킹(결정 6)도 같이 빠진다
+  unroute: '모킹', unrouteAll: '모킹',
 };
 
 export interface 단계감시 {
@@ -31,11 +33,16 @@ export interface 단계감시 {
   되돌리기(): Promise<void>;
 }
 
-/**
- * 기준 — 섞인 시나리오(결정 13)의 다른 애플리케이션 단계 주소. 창의 기준 주소는 만들 때 정해져 바꾸는 공개 API 가 없어
- * page.goto 의 상대 주소를 여기서 풀어 넘긴다 (SPEC 도메인/러너 §5.2 「창 하나로 끝까지」)
- */
-export function 단계감시(page: Page, context: BrowserContext, 처음: 창처음값, 기준?: string): 단계감시 {
+export interface 단계덧 {
+  // 섞인 시나리오(결정 13)의 다른 애플리케이션 단계 주소. 창의 기준 주소는 만들 때 정해져 바꾸는 공개 API 가 없어
+  // page.goto 의 상대 주소를 여기서 풀어 넘긴다 (SPEC 도메인/러너 §5.2 「창 하나로 끝까지」)
+  기준?: string;
+  // 단계가 창의 가로채기를 지웠을 때 시나리오 모킹을 다시 거는 일 — 모킹 목록은 창을 연 쪽(window.ts)이 쥔다
+  모킹다시걸기?: () => Promise<void>;
+}
+
+export function 단계감시(page: Page, context: BrowserContext, 처음: 창처음값, 덧: 단계덧 = {}): 단계감시 {
+  const { 기준 } = 덧;
   const 되돌릴: Array<() => Promise<unknown>> = [];
   const 건드림 = new Set<칸>();
 
@@ -149,6 +156,7 @@ export function 단계감시(page: Page, context: BrowserContext, 처음: 창처
               쪽.setDefaultNavigationTimeout(처음.navigationTimeout || 0);
             }
             break;
+          case '모킹': if (덧.모킹다시걸기) await 한다('모킹 다시 걸기', 덧.모킹다시걸기); break;
           case '시계':
             // 떼는 길이 없다(1.63 에 uninstall 없음). 지금 시각에 흐르게 돌린다 — setSystemTime 이 고정을 풀고 resume 이 진짜 시간으로 흐르게 한다
             await 한다('시계', async () => {

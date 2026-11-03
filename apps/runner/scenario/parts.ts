@@ -69,11 +69,13 @@ const 늦은절차유예 = 5000;
 // 부품 한도가 0(없음)일 때 미룬 삭제 하나를 기다리는 상한 — 대상 서버가 안 답해도 다 통과한 시나리오가 판정 없음이 되지 않게 (SPEC 도메인/러너 §5.2 「미룬 삭제」)
 const 뒷정리상한 = 30_000;
 
+// 같은 쿠키인지 — (이름 · 도메인 · 경로). 합친상태와 단계 끝 쿠키 더하기(browser.ts)가 같은 열쇠를 쓴다
+export const 쿠키열쇠 = (c: 상태['cookies'][number]) => `${c.name}\t${c.domain}\t${c.path}`;
+
 // 창의 쿠키 · localStorage 와 단계 request 의 쿠키를 합친다. 같은 쿠키가 둘에 있으면 창 쪽 (SPEC 도메인/시나리오 §3.7 결정 3)
 export function 합친상태(창쪽: 상태, 요청쪽: 상태): 상태 {
-  const 열쇠 = (c: 상태['cookies'][number]) => `${c.name}\t${c.domain}\t${c.path}`;
-  const 쿠키 = new Map(요청쪽.cookies.map((c) => [열쇠(c), c]));
-  for (const c of 창쪽.cookies) 쿠키.set(열쇠(c), c);
+  const 쿠키 = new Map(요청쪽.cookies.map((c) => [쿠키열쇠(c), c]));
+  for (const c of 창쪽.cookies) 쿠키.set(쿠키열쇠(c), c);
   return { cookies: [...쿠키.values()], origins: 창쪽.origins };
 }
 
