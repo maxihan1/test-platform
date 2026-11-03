@@ -237,10 +237,10 @@ describe('RunPickModal', () => {
   });
 });
 
-// 여러 건 「테스트 실행」 — 기록 없이 내 컴퓨터 러너로 한 건씩 차례로 (2026-09-30)
+// 여러 건 「테스트 실행」 — 기록 없이 서버 러너로 한 건씩 차례로 (2026-09-30 · 2026-11-03 TMO 에 열 주소 칸을 걷었다)
 describe('RunPickModal 테스트 실행', () => {
   const 테스트버튼 = () => screen.getByRole('button', { name: '▶ 테스트 실행' });
-  const 주소칸 = () => screen.getByLabelText('열 주소') as HTMLInputElement;
+  const 서버고르기 = () => fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
 
   function 서버모킹() {
     const 시작 = vi.spyOn(api, 'startTrial').mockImplementation((tcId) => Promise.resolve({ trialId: `t-${tcId}` }));
@@ -254,37 +254,36 @@ describe('RunPickModal 테스트 실행', () => {
     expect(실행버튼()).toBeTruthy();
   });
 
-  it('열 주소를 적고 누르면 고른 케이스를 차례로 돌리고 줄마다 결과가 붙는다', async () => {
+  it('대상 서버를 고르고 누르면 그 이름으로 고른 케이스를 차례로 돌리고 줄마다 결과가 붙는다', async () => {
     const 시작 = 서버모킹();
     그리기();
 
-    fireEvent.change(주소칸(), { target: { value: 'http://localhost:3002' } });
+    서버고르기();
     fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'zpm-tester' } });
     fireEvent.click(테스트버튼());
 
     await waitFor(() => expect(screen.getAllByText('통과')).toHaveLength(2), { timeout: 5000 });
     expect(시작.mock.calls.map(([id]) => id)).toEqual(['ZPM-001', 'ZPM-002']);
-    expect(시작).toHaveBeenCalledWith(
-      'ZPM-002',
-      expect.objectContaining({ platform: 'desktop', baseUrl: 'http://localhost:3002', params: { userId: 'zpm-tester' } }),
-    );
+    expect(시작).toHaveBeenCalledWith('ZPM-002', expect.objectContaining({ platform: 'desktop', env: 'qa', params: { userId: 'zpm-tester' } }));
   });
 
-  it('열 주소가 http(s) 가 아니면 안 돌리고 사유를 칸 아래에 적는다', () => {
+  it('대상 서버가 둘 이상인데 안 고르고 누르면 안 돌리고 사유를 보인다', () => {
     const 시작 = 서버모킹();
-    그리기();
+    // 앞 검사가 고른 대상 서버가 브라우저에 남아 이 창을 미리 고르지 않게 한다
+    localStorage.clear();
+    const envs = [...서비스.envs, { env: 'stage', baseUrl: 'https://stage.example.com' }];
+    render(<RunPickModal 케이스들={[값없는케이스, 값있는케이스]} service={{ ...서비스, envs }} onRun={vi.fn()} onClose={vi.fn()} />);
 
-    fireEvent.change(주소칸(), { target: { value: 'file:///etc/passwd' } });
     fireEvent.click(테스트버튼());
 
     expect(시작).not.toHaveBeenCalled();
-    expect(screen.getByText('열 주소는 http:// 또는 https:// 로 시작해야 합니다')).toBeTruthy();
+    expect(줄().textContent).toBe('테스트 실행할 대상 서버를 고르세요.');
   });
 
-  it('대상 서버를 고르면 열 주소 기본값이 그 주소가 된다', () => {
+  it('열 주소 칸이 없다 — 서버가 대상 서버로 주소를 찾는다', () => {
     그리기();
-    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
-    expect(주소칸().value).toBe('https://qa.example.com');
+    expect(screen.queryByLabelText('열 주소')).toBeNull();
+    expect(screen.queryByText('고급 · 테스트 실행 설정')).toBeNull();
   });
 
   it('도는 중에 또 누르면 안내하고 큐가 끝나면 그 안내를 걷는다', async () => {
@@ -295,33 +294,13 @@ describe('RunPickModal 테스트 실행', () => {
     );
     그리기([값없는케이스]);
 
-    fireEvent.change(주소칸(), { target: { value: 'http://localhost:3002' } });
+    서버고르기();
     fireEvent.click(테스트버튼());
     fireEvent.click(테스트버튼());
     await waitFor(() => expect(줄().textContent).toContain('이미 테스트 실행이 돌고 있습니다'));
 
     풀기();
     await waitFor(() => expect(줄().textContent).not.toContain('이미 테스트 실행이 돌고 있습니다'));
-  });
-
-  it('기록에 남지 않는다는 안내가 보인다', () => {
-    그리기();
-    expect(screen.getByText('실행 기록에 남지 않습니다 · 24시간 뒤 사라집니다')).toBeTruthy();
-  });
-
-  it('열 주소 칸은 접힌 「고급」 안에 있고 처음엔 접혀 있다', () => {
-    그리기();
-    const 고급 = 주소칸().closest('details')!;
-    expect(고급.open).toBe(false);
-    expect(고급.querySelector('summary')?.textContent).toBe('고급 · 테스트 실행 설정');
-  });
-
-  it('주소가 틀려 막히면 접힌 칸이 저절로 펴져 사유가 보인다', () => {
-    서버모킹();
-    그리기();
-    fireEvent.change(주소칸(), { target: { value: 'file:///etc/passwd' } });
-    fireEvent.click(테스트버튼());
-    expect(주소칸().closest('details')!.open).toBe(true);
   });
 
   it('테스트 실행에는 기록 · 리포트가 남지 않는다고, 실행 곁에는 기록이 남는다고 화면 글자로 적는다', () => {

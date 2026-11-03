@@ -12,7 +12,7 @@ import { enqueue } from '../execution/dispatcher.js';
 import { 팜주소 } from '../execution/farm.js';
 import { 사람팜토큰 } from '../execution/farmToken.js';
 import { 폰을바로잡는다, 폰을놓는다 } from '../execution/phone.js';
-import { callScenarioRunner, 켜진내컴퓨터러너 } from '../execution/runner.js';
+import { callScenarioRunner } from '../execution/runner.js';
 import { artifactsDir } from '../execution/routes.js';
 import { 가린다, 긴것부터, 비밀글자들, 시나리오시험, type 시나리오시험결과 } from '../execution/trial.js';
 import { 가린값들 } from '../web/mask.js';
@@ -20,7 +20,7 @@ import { 가린값들 } from '../web/mask.js';
 import { 같은프로젝트접두사, 계정없음, 단계인증, 단계주소, 삭제코드합치기, 쓰는앱읽기, 앱종류들, 앱종류읽기 } from './apps.js';
 import { 앱단계인가, 케이스접두사, 쓰는접두사 } from './mixed.js';
 import { type 케이스부품재료, 케이스재료 } from './parts.js';
-import { 꽂은폰으로, 팜폰으로돌린다, 폰값 } from './phone.js';
+import { 팜폰으로돌린다, 폰값 } from './phone.js';
 import { 부품채우기 } from './runStore.js';
 import { 꽂은값비밀, 실패부품trace, 시나리오trace경로, trace를지운다 } from './runTrace.js';
 import { 시나리오제한시간, 제한시간크기사유, 조립검사 } from './validate.js';
@@ -51,9 +51,12 @@ const 하루 = 24 * 60 * 60 * 1000;
 // randomUUID 가 만드는 모양만 지운다. trial/ 안에 다른 것이 생겨도 건드리지 않는다
 export const uuid모양 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
-/** 24시간 지난 `runs/trial/<uuid>` 를 지운다 (§7). 링크는 따라가지 않고 링크만 지운다 */
-export async function 옛시험치우기(뿌리: string, 지금: number): Promise<void> {
-  const 폴더 = join(뿌리, 'runs', 'trial');
+/**
+ * 24시간 지난 `runs/trial/<uuid>` 를 지운다 (§7). 링크는 따라가지 않고 링크만 지운다.
+ * 케이스 테스트 실행은 같은 규칙으로 `runs/0/<historyId>` 를 넘긴다 — 서버 러너가 남긴 사진이 볼륨에 쌓이지 않게 (도메인/실행 §3.2 「테스트 모드」)
+ */
+export async function 옛시험치우기(뿌리: string, 지금: number, 갈래: { 폴더: string; 모양: RegExp } = { 폴더: 'trial', 모양: uuid모양 }): Promise<void> {
+  const 폴더 = join(뿌리, 'runs', 갈래.폴더);
   let 이름들: string[];
   try {
     이름들 = await readdir(폴더);
@@ -61,7 +64,7 @@ export async function 옛시험치우기(뿌리: string, 지금: number): Promis
     return;
   }
   for (const 이름 of 이름들) {
-    if (!uuid모양.test(이름)) continue;
+    if (!갈래.모양.test(이름)) continue;
     const 자리 = join(폴더, 이름);
     let 정보;
     try {
@@ -136,9 +139,9 @@ export async function 시험재료(본문: 시험본문) {
 /** 조립을 검사하고 줄에 세운다. 기다리지 않고 trialId 를 돌려준다. 바쁘면 TrialBusyError 를 그대로 던진다 */
 export async function 시험시작(사람: { username: string }, 본문: 시험본문): Promise<string> {
   const { 앱들, baseUrl, parts, 부품재료, 비밀, 폰 } = await 시험재료(본문);
-  // 앱 · 게임 단계가 있으면 내 컴퓨터 러너에 꽂은 폰, 꺼져 있으면 서버 러너 + 팜이다 (결정 16 「시험 실행은 지금 규칙 그대로다」)
-  if (폰 !== null && 팜주소() === undefined && (await 켜진내컴퓨터러너()) === undefined) {
-    throw new 시험시작오류('FARM_OFF', '내 컴퓨터 러너가 꺼져 있고 이 서버에는 Device VISION(DEVICE_FARM_URL)도 없다');
+  // 앱 · 게임 단계는 늘 서버 러너 + 팜 폰이다 — 내 컴퓨터 러너에 꽂은 폰 길은 2026-11-03 TMO 에 걷었다 (도메인/실행 §3.2 「테스트 모드」)
+  if (폰 !== null && 팜주소() === undefined) {
+    throw new 시험시작오류('FARM_OFF', '이 서버에는 Device VISION(DEVICE_FARM_URL)이 연결되어 있지 않다');
   }
   // 다른 검사를 다 지난 뒤, 동시성 자리보다 먼저 디바이스 줄을 본다 — 케이스 테스트 실행처럼 기다리지 않는다
   if (폰 !== null && !폰을바로잡는다()) throw new 시험시작오류('DEVICE_BUSY', '디바이스가 다른 실행에 쓰이는 중이다');
@@ -151,7 +154,7 @@ export async function 시험시작(사람: { username: string }, 본문: 시험�
       사람.username,
       본문.service,
       // 케이스 실행 · 진짜 시나리오 실행과 같은 줄에 한 자리를 쓴다 (§3.7 「동시성 · 시간」). 폰 잠금은 일이 어떻게 끝나든 놓는다
-      (id) => enqueue(() => 시험돌기(id, 사람.username, 본문, { 앱들, baseUrl, parts, 부품재료, 비밀, 폰 })).finally(놓기),
+      (id, 폰화면) => enqueue(() => 시험돌기(id, 사람.username, 본문, { 앱들, baseUrl, parts, 부품재료, 비밀, 폰 }, 폰화면)).finally(놓기),
       비밀,
     );
   } catch (err) {
@@ -169,12 +172,11 @@ export async function 시험시작(사람: { username: string }, 본문: 시험�
 
 type 시험재료결과 = Awaited<ReturnType<typeof 시험재료>>;
 
-async function 시험돌기(id: string, 누구: string, 본문: 시험본문, 재료: 시험재료결과): Promise<시나리오시험결과> {
+async function 시험돌기(id: string, 누구: string, 본문: 시험본문, 재료: 시험재료결과, 폰화면: (url: string | undefined) => void): Promise<시나리오시험결과> {
   const { 앱들, baseUrl, parts, 부품재료, 비밀, 폰 } = 재료;
   const 시작 = Date.now();
   // 줄 한 자리를 최대 60분 쥔다. 누가 쥐었는지 운영자가 로그로 알 수 있게 한다
   console.info(`[scenario-trial] 시작 ${id} · ${누구} · ${본문.service}`);
-  const 내러너 = await 켜진내컴퓨터러너();
   const 요청: ScenarioExecuteRequest = {
     runId: null,
     trialId: id,
@@ -185,15 +187,14 @@ async function 시험돌기(id: string, 누구: string, 본문: 시험본문, �
     timeoutMs: 시나리오제한시간(본문.parts),
     // 줄에서 기다리는 사이 trace 적재가 코드를 바꿀 수 있어 돌기 직전에 읽는다
     deleteStatuses: await 삭제코드합치기(앱들),
+    // 테스트 모드 장면 열쇠는 이 시험 번호다. 러너가 앱 · 게임 단계 동안은 장면을 끈다 (도메인/실행 §3.2 「테스트 모드」)
+    live: id,
   };
-  // 앱 · 게임 단계는 내 컴퓨터 러너에 꽂은 폰, 꺼졌으면 서버 러너 + 팜에서 잡은 폰이다 (결정 16)
-  const 응답 =
-    폰 === null
-      ? await callScenarioRunner(요청, 내러너)
-      : 내러너 === undefined
-        ? await 팜폰으로돌린다(요청, 폰.폰, () => 사람팜토큰(누구))
-        : await 꽂은폰으로(요청, 폰.폰, 내러너);
-  console.info(`[scenario-trial] 끝 ${id} · ${내러너 === undefined ? '서버 러너' : '내 컴퓨터 러너'} · ${누구} · ${본문.service} · ${응답.status} · ${Date.now() - 시작}ms`);
+  // 앱 · 게임 단계는 서버 러너 + 팜에서 잡은 폰이다 (결정 16)
+  const 응답 = 폰 === null ? await callScenarioRunner(요청) : await 팜폰으로돌린다(요청, 폰.폰, () => 사람팜토큰(누구), 폰화면);
+  // 폰을 놓았다 — 아래 trace · 가림 처리 동안 닫힌 링크를 내지 않는다 (§3.7 결정 16 「시험 실행」)
+  폰화면(undefined);
+  console.info(`[scenario-trial] 끝 ${id} · ${누구} · ${본문.service} · ${응답.status} · ${Date.now() - 시작}ms`);
   // 기록은 DB 없이 결과에 싣는다. 꽂은 값의 비밀도 자르기 전에 넣는다 — 본문을 2000자로 자른 뒤에 가리면 경계에 걸친 조각이 남는다 (§7 「실패 기록」)
   const 꽂은 = 응답.parts.flatMap((r) => {
     const p = 본문.parts[r.seq - 1];

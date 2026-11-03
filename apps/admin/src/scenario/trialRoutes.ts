@@ -7,6 +7,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
 import { artifactsDir, 볼륨파일읽기 } from '../artifactFile.js';
+import { 장면을건넨다 } from '../execution/live.js';
 import { 시나리오시험, TrialBusyError } from '../execution/trial.js';
 import { 정수 } from '../routeParams.js';
 
@@ -46,6 +47,13 @@ export default async function scenarioTrialRoutes(app: FastifyInstance): Promise
   app.get<{ Params: { trialId: string } }>('/scenario-trials/:trialId', async (req, reply) => {
     const 읽음 = 시나리오시험.읽는다(누구(req), req.params.trialId);
     return 읽음 ?? 없음(reply, req.params.trialId);
+  });
+
+  // 도는 시험의 장면 한 장. 끝난 시험도 404 다 — 러너가 장면을 버렸다 (도메인/실행 §3.2 「테스트 모드」)
+  app.get<{ Params: { trialId: string } }>('/scenario-trials/:trialId/live', async (req, reply) => {
+    const { trialId } = req.params;
+    if (시나리오시험.읽는다(누구(req), trialId)?.status !== 'RUNNING') return 없음(reply, trialId);
+    return 장면을건넨다(reply, trialId);
   });
 
   app.get<{ Params: { trialId: string; seq: string } }>('/scenario-trials/:trialId/screenshots/:seq', async (req, reply) => {

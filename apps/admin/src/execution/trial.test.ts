@@ -40,7 +40,18 @@ describe('테스트 실행 메모리 저장소', () => {
     expect(읽는다('kim', id)).toEqual({ status: 'DONE', result: 결과({ durationMs: 77 }) });
   });
 
-  it('러너에 못 닿으면 NA 와 안내 문장이고 원문은 stack 에 있다', async () => {
+  it('도는 중에 폰을 잡으면 그 폰 화면 링크를 싣고 끝나면 안 싣는다', async () => {
+    const 러너 = 미룬것();
+    const id = 시작한다('kim', (_id, 폰화면) => {
+      폰화면('https://vision.example.com/#phone=s1&view=k');
+      return 러너.promise;
+    }, 명세);
+    expect(읽는다('kim', id)).toEqual({ status: 'RUNNING', vision: { url: 'https://vision.example.com/#phone=s1&view=k' } });
+    러너.끝냄(결과());
+    await vi.waitFor(() => expect(읽는다('kim', id)).toEqual({ status: 'DONE', result: 결과() }));
+  });
+
+  it('실행이 던지면 NA 와 안내 문장이고 원문은 stack 에 있다', async () => {
     const id = 시작한다('kim', () => Promise.reject(new Error('connect ECONNREFUSED 127.0.0.1:4001')), 명세);
     await vi.waitFor(() => expect(읽는다('kim', id)?.status).toBe('DONE'));
     const 읽음 = 읽는다('kim', id);
@@ -50,7 +61,7 @@ describe('테스트 실행 메모리 저장소', () => {
         status: 'NA',
         steps: [],
         error: {
-          message: '내 컴퓨터 러너에 닿지 못했습니다. 맥에서 npm run runner:local 을 켜 두었는지 보세요',
+          message: '테스트 실행을 끝내지 못했습니다',
           stack: 'connect ECONNREFUSED 127.0.0.1:4001',
         },
       },

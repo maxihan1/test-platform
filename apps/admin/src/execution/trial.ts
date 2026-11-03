@@ -9,7 +9,9 @@ import type { 부품기록 } from '../scenario/runTrace.js';
 
 import { 가린값들 } from '../web/mask.js';
 
-export type 시험읽기 = { status: 'RUNNING' } | { status: 'DONE'; result: ExecuteResponse };
+/** 도는 중에는 폰을 잡았으면 그 폰 화면 보기 링크가 붙는다 (도메인/실행 §3.2 「테스트 모드」 「VISION 링크」) */
+export type 도는중 = { status: 'RUNNING'; vision?: { url: string } };
+export type 시험읽기 = 도는중 | { status: 'DONE'; result: ExecuteResponse };
 
 export interface 시험명세 {
   paramSchema: unknown;
@@ -27,6 +29,8 @@ interface 항목<R> {
   서비스: string;
   시작: number;
   결과: R | null;
+  // 잡은 폰의 VISION 화면 링크. 폰을 놓거나 끝나면 안 낸다 — 놓은 폰의 링크는 닫혀 있다
+  폰화면?: string | undefined;
 }
 
 interface 보관소설정<R, S extends string> {
@@ -107,8 +111,11 @@ export function 시험보관소<R, S extends string>(설정: 보관소설정<R, 
   }
 
   return {
-    /** 실행은 밖에서 넣는다. 번호를 실행에도 넘긴다(시나리오 사진 폴더 이름). 돌려주는 번호로 시작한 사람만 읽는다 */
-    시작한다(사람: string, 서비스: string, 실행: (id: string) => Promise<R>, 비밀: string[]): string {
+    /**
+     * 실행은 밖에서 넣는다. 번호를 실행에도 넘긴다(시나리오 사진 폴더 이름 · 장면 열쇠). 폰을 잡으면 실행이 화면 링크를 단다.
+     * 돌려주는 번호로 시작한 사람만 읽는다
+     */
+    시작한다(사람: string, 서비스: string, 실행: (id: string, 폰화면: (url: string | undefined) => void) => Promise<R>, 비밀: string[]): string {
       const 지금 = Date.now();
       치운다(지금);
       if ([...저장소.values()].some((항) => 항.사람 === 사람 && 항.결과 === null)) {
@@ -123,7 +130,9 @@ export function 시험보관소<R, S extends string>(설정: 보관소설정<R, 
       // 부품 여럿에서 모은 비밀은 이어 붙인 순서라 여기서 다시 줄 세운다
       const 가릴것 = 긴것부터(비밀);
 
-      void 실행(id)
+      void 실행(id, (url) => {
+        이것.폰화면 = url;
+      })
         .then((r) => {
           이것.결과 = 가린다(r, 가릴것) as R;
         })
@@ -134,10 +143,11 @@ export function 시험보관소<R, S extends string>(설정: 보관소설정<R, 
       return id;
     },
 
-    읽는다(사람: string, id: string): { status: 'RUNNING' } | { status: S; result: R } | null {
+    읽는다(사람: string, id: string): 도는중 | { status: S; result: R } | null {
       const 항 = 내것(사람, id);
       if (항 === null) return null;
-      return 항.결과 === null ? { status: 'RUNNING' } : { status: 설정.끝글자, result: 항.결과 };
+      if (항.결과 !== null) return { status: 설정.끝글자, result: 항.결과 };
+      return 항.폰화면 === undefined ? { status: 'RUNNING' } : { status: 'RUNNING', vision: { url: 항.폰화면 } };
     },
 
     /** 문(auth/gate.ts)이 배정을 볼 서비스. 남의 번호면 null 이라 문이 지나보내고 라우트가 404 를 낸다 */
@@ -159,16 +169,23 @@ const 케이스시험 = 시험보관소<ExecuteResponse, 'DONE'>({
     status: 'NA',
     durationMs: 걸린ms,
     steps: [],
-    error: { message: '내 컴퓨터 러너에 닿지 못했습니다. 맥에서 npm run runner:local 을 켜 두었는지 보세요', stack: 사유 },
+    error: { message: '테스트 실행을 끝내지 못했습니다', stack: 사유 },
   }),
 });
 
-/** 케이스 「테스트 실행」 — 내 컴퓨터 러너. 케이스에는 서비스 칸을 안 쓴다(문이 tcId 로 본다) */
-export function 시작한다(사람: string, 실행: () => Promise<ExecuteResponse>, 명세: 시험명세): string {
-  return 케이스시험.시작한다(사람, '', 실행, 비밀글자들(명세));
+/** 케이스 「테스트 실행」 — 서버 러너. 서비스 칸에 그 케이스 번호를 둔다 — 읽을 때 주소의 tcId 와 견준다 */
+export function 시작한다(
+  사람: string,
+  실행: (id: string, 폰화면: (url: string | undefined) => void) => Promise<ExecuteResponse>,
+  명세: 시험명세,
+  tcId = '',
+): string {
+  return 케이스시험.시작한다(사람, tcId, 실행, 비밀글자들(명세));
 }
 
-export function 읽는다(사람: string, id: string): 시험읽기 | null {
+/** tcId 를 넘기면 그 케이스의 시험만 읽는다 — 문은 주소의 tcId 로 권한을 보니 다른 케이스 주소로 남의 애플리케이션 시험을 못 읽게 */
+export function 읽는다(사람: string, id: string, tcId?: string): 시험읽기 | null {
+  if (tcId !== undefined && 케이스시험.서비스(사람, id) !== tcId) return null;
   return 케이스시험.읽는다(사람, id);
 }
 

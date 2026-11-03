@@ -65,6 +65,20 @@ describe('24시간 지난 시험 사진 폴더 치우기', () => {
   it('trial 폴더가 아직 없으면 조용히 끝난다', async () => {
     await expect(옛시험치우기(join(밖, '없는곳'), 지금)).resolves.toBeUndefined();
   });
+
+  it('케이스 테스트 실행 갈래는 runs/0 의 24시간 지난 숫자 폴더만 지운다', async () => {
+    const 영 = join(뿌리, 'runs', '0');
+    for (const 이름 of ['1730000000000', '1730000000001', '모양아님']) await mkdir(join(영, 이름), { recursive: true });
+    await utimes(join(영, '1730000000000'), 이틀전, 이틀전);
+    await utimes(join(영, '모양아님'), 이틀전, 이틀전);
+    await utimes(join(영, '1730000000001'), new Date(지금), new Date(지금));
+
+    await 옛시험치우기(뿌리, 지금, { 폴더: '0', 모양: /^\d+$/ });
+
+    expect(await 있나(join(영, '1730000000000'))).toBe(false);
+    expect(await 있나(join(영, '1730000000001'))).toBe(true);
+    expect(await 있나(join(영, '모양아님'))).toBe(true);
+  });
 });
 
 const 연결 = process.env.DATABASE_URL;
@@ -135,7 +149,6 @@ describe.skipIf(연결 === undefined)('시험 실행 시작', () => {
     사진뿌리 = await mkdtemp(join(tmpdir(), 'xst-art-'));
     process.env.PLATFORM_TESTS_DIR = 뿌리;
     process.env.PLATFORM_ARTIFACTS_DIR = 사진뿌리;
-    vi.stubEnv('LOCAL_RUNNER_URL', '');
     await mkdir(join(뿌리, 'xst'));
     await writeFile(join(뿌리, 'xst', 'a.spec.ts'), 소스);
 
@@ -217,7 +230,7 @@ describe.skipIf(연결 === undefined)('시험 실행 시작', () => {
     await expect(시험시작(사람, 본문({ env: 'nope' }))).rejects.toMatchObject({ code: 'ENV_NOT_FOUND' });
   });
 
-  it('runId 없이 trialId · 케이스 파일 · 제한 시간을 실어 러너에 보내고 결과의 비밀값을 가린다', async () => {
+  it('runId 없이 trialId · 장면 열쇠 · 케이스 파일 · 제한 시간을 실어 러너에 보내고 결과의 비밀값을 가린다', async () => {
     const trialId = await 시험시작(사람, 본문());
     expect(trialId).toMatch(/^[0-9a-f-]{36}$/);
     await vi.waitFor(() => expect(시나리오시험.읽는다('xst-a', trialId)?.status).toBe('FINISHED'));
@@ -225,6 +238,7 @@ describe.skipIf(연결 === undefined)('시험 실행 시작', () => {
     expect(받은요청).toMatchObject({
       runId: null,
       trialId,
+      live: trialId,
       platform: 'desktop',
       baseUrl: 'http://xst.example',
       timeoutMs: 300010,

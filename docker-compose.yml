@@ -90,7 +90,7 @@ services:
       AUTHORING_AGENT_USER: "${AUTHORING_AGENT_USER:-}"
       # /grafana/ 아래 요청을 넘겨줄 곳. grafana 는 바깥 포트가 없어 dashboard 망 안의 이름으로 닿는다 (SPEC §9.2)
       GRAFANA_URL: "${GRAFANA_URL:-http://grafana:3000}"
-      # 케이스 「테스트 실행」이 브라우저 창을 띄울 러너 주소. 비면 테스트 실행이 꺼진다 — 켜는 법은 docs/SETUP.md 「내 컴퓨터 러너」
+      # 기기 성능 직접 플레이의 내 PC 폰 측정이 쓰는 러너 주소. 비면 그 측정만 꺼진다 — 켜는 법은 docs/SETUP.md 「내 컴퓨터 러너」
       LOCAL_RUNNER_URL: "${LOCAL_RUNNER_URL:-}"
       # Android 앱 정식 실행 · 작성의 앱 첫 화면이 폰을 잡고 놓는 디바이스 팜. 비면 앱 정식 실행이 409 FARM_OFF 다 (SPEC 도메인/러너 §5.2 「디바이스 팜 접속 방식」)
       DEVICE_FARM_URL: "${DEVICE_FARM_URL:-}"
@@ -103,7 +103,7 @@ services:
     volumes:
       - ./tests:/tests:ro      # 스캔과 실패 지점 코드 발췌가 소스를 읽는다
       - ./docs/cases:/cases:ro # 스캔이 요구사항 표 출처 칸에서 지도 ①(요구 ↔ 케이스)을 채운다 (SPEC 도메인/카탈로그 §3.1 「지도」)
-      # 스크린샷 서빙, 증적 문서 저장. 기본은 이름 붙은 볼륨이다 — 로컬 러너로 Android 앱 테스트 실행을 하는 맥은 ./artifacts 를 적어
+      # 스크린샷 서빙, 증적 문서 저장. 기본은 이름 붙은 볼륨이다 — 내 컴퓨터 러너로 기기 성능 직접 플레이를 하는 맥은 ./artifacts 를 적어
       # 그 러너가 쓰는 폴더를 같이 본다. 안 그러면 앱 스크린샷이 오류 없이 404 다 (SPEC 공통/6-인프라 §9.2)
       - ${PLATFORM_ARTIFACTS_VOLUME:-artifacts}:/artifacts
       - perf_dummy:/perf-dummy # admin 만 붙인다. 이미 올린 zip 을 옮기는 법은 docs/SETUP.md §19

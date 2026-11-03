@@ -27,7 +27,7 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
     const { result } = renderHook(() => useTrialQueue(1));
 
     await act(async () => {
-      await result.current.시작([항목('X-1'), 항목('X-2')], 'http://localhost:3002');
+      await result.current.시작([항목('X-1'), 항목('X-2')], 'qa');
     });
 
     expect(시작.mock.calls.map(([id]) => id)).toEqual(['X-1', 'X-2']);
@@ -36,15 +36,15 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
     expect(result.current.도는중).toBe(false);
   });
 
-  it('디바이스는 첫째 하나만 보내고 열 주소와 입력값을 그대로 싣는다', async () => {
+  it('디바이스는 첫째 하나만 보내고 대상 서버 이름과 입력값을 그대로 싣는다', async () => {
     const { 시작 } = 서버({});
     const { result } = renderHook(() => useTrialQueue(1));
 
     await act(async () => {
-      await result.current.시작([항목('X-1')], 'http://localhost:3002');
+      await result.current.시작([항목('X-1')], 'qa');
     });
 
-    expect(시작).toHaveBeenCalledWith('X-1', { platform: 'desktop', baseUrl: 'http://localhost:3002', params: { a: 1 }, expected: {} });
+    expect(시작).toHaveBeenCalledWith('X-1', { platform: 'desktop', env: 'qa', params: { a: 1 }, expected: {} });
   });
 
   it('돌기 전 줄은 대기이고 도는 줄은 실행 중이다', async () => {
@@ -57,7 +57,7 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
 
     let 끝: Promise<void>;
     act(() => {
-      끝 = result.current.시작([항목('X-1'), 항목('X-2')], 'http://localhost:3002');
+      끝 = result.current.시작([항목('X-1'), 항목('X-2')], 'qa');
     });
     await waitFor(() => expect(result.current.줄들['X-1']).toEqual({ 종류: 'run' }));
     expect(result.current.줄들['X-2']).toEqual({ 종류: 'wait' });
@@ -69,27 +69,14 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
     });
   });
 
-  it('꺼진 서버(TRIAL_OFF)면 남은 줄까지 안내하고 멈춘다', async () => {
-    const 시작 = vi.spyOn(api, 'startTrial').mockRejectedValue(new ApiError(409, 'TRIAL_OFF', '꺼짐', []));
-    const { result } = renderHook(() => useTrialQueue(1));
-
-    await act(async () => {
-      await result.current.시작([항목('X-1'), 항목('X-2')], 'http://localhost:3002');
-    });
-
-    expect(시작).toHaveBeenCalledTimes(1);
-    expect(result.current.줄들['X-1']).toMatchObject({ 종류: 'notice' });
-    expect(result.current.줄들['X-2']).toMatchObject({ 종류: 'notice' });
-  });
-
   it('두 번 눌러도 큐가 하나만 돈다', async () => {
     const { 시작 } = 서버({});
     const { result } = renderHook(() => useTrialQueue(1));
 
     await act(async () => {
       await Promise.all([
-        result.current.시작([항목('X-1'), 항목('X-2')], 'http://localhost:3002'),
-        result.current.시작([항목('X-1'), 항목('X-2')], 'http://localhost:3002'),
+        result.current.시작([항목('X-1'), 항목('X-2')], 'qa'),
+        result.current.시작([항목('X-1'), 항목('X-2')], 'qa'),
       ]);
     });
 
@@ -101,7 +88,7 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
     const { result } = renderHook(() => useTrialQueue(1));
 
     await act(async () => {
-      await result.current.시작([항목('X-1'), 항목('X-2')], 'http://localhost:3002');
+      await result.current.시작([항목('X-1'), 항목('X-2')], 'qa');
     });
 
     expect(시작).toHaveBeenCalledTimes(1);
@@ -113,7 +100,7 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
     const { result } = renderHook(() => useTrialQueue(1));
 
     await act(async () => {
-      await result.current.시작([항목('X-1'), 항목('X-2')], 'http://localhost:3002');
+      await result.current.시작([항목('X-1'), 항목('X-2')], 'qa');
     });
 
     expect(result.current.줄들['X-1']).toMatchObject({ 종류: 'notice' });
@@ -130,7 +117,7 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
     const { result } = renderHook(() => useTrialQueue(1));
 
     await act(async () => {
-      await result.current.시작([항목('X-1'), 항목('X-2')], 'http://localhost:3002');
+      await result.current.시작([항목('X-1'), 항목('X-2')], 'qa');
     });
 
     expect(result.current.줄들['X-1']).toMatchObject({ 종류: 'notice' });
@@ -145,10 +132,25 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
     const { result } = renderHook(() => useTrialQueue(1));
 
     await act(async () => {
-      await result.current.시작([항목('X-1'), 항목('X-2')], 'http://localhost:3002');
+      await result.current.시작([항목('X-1'), 항목('X-2')], 'qa');
     });
 
     expect(result.current.줄들['X-1']).toEqual({ 종류: 'notice', 글: '디바이스가 다른 실행에 쓰이고 있습니다' });
+    expect(result.current.줄들['X-2']).toMatchObject({ 종류: 'done' });
+  });
+
+  it('이 서버에 디바이스 팜이 없는 앱 줄(FARM_OFF)도 그 줄만 안내하고 다음 브라우저 줄을 이어 돈다', async () => {
+    vi.spyOn(api, 'startTrial').mockImplementation((tcId) =>
+      tcId === 'X-1' ? Promise.reject(new ApiError(409, 'FARM_OFF', '', [])) : Promise.resolve({ trialId: 't2' }),
+    );
+    vi.spyOn(api, 'getTrial').mockResolvedValue({ status: 'DONE', result: 통과 });
+    const { result } = renderHook(() => useTrialQueue(1));
+
+    await act(async () => {
+      await result.current.시작([항목('X-1'), 항목('X-2')], 'qa');
+    });
+
+    expect(result.current.줄들['X-1']).toEqual({ 종류: 'notice', 글: '이 서버에는 Android 앱을 돌릴 Device VISION 이 연결되어 있지 않습니다' });
     expect(result.current.줄들['X-2']).toMatchObject({ 종류: 'done' });
   });
 
@@ -162,7 +164,7 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
 
     let 끝: Promise<void>;
     act(() => {
-      끝 = result.current.시작([항목('X-1'), 항목('X-2')], 'http://localhost:3002');
+      끝 = result.current.시작([항목('X-1'), 항목('X-2')], 'qa');
     });
     await waitFor(() => expect(시작).toHaveBeenCalledTimes(1));
     unmount();

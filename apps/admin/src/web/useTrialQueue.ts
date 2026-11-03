@@ -39,13 +39,13 @@ export function useTrialQueue(간격: number = 기본간격) {
   };
 
   /** 이어 돌면 null, 멈추면 남은 줄에 붙일 글 */
-  async function 한건(항목: RunRequestItem, 열주소: string): Promise<string | null> {
+  async function 한건(항목: RunRequestItem, env: string): Promise<string | null> {
     쓴다(항목.tcId, { 종류: 'run' });
     try {
       // 디바이스는 첫째 하나만 돈다 — 한 건 창은 사람이 고른 것 중 첫째다 (도메인/실행 §8.2)
       const { trialId } = await api.startTrial(항목.tcId, {
         platform: 항목.platforms[0]!,
-        baseUrl: 열주소,
+        env,
         params: 항목.params,
         expected: 항목.expected,
       });
@@ -60,18 +60,13 @@ export function useTrialQueue(간격: number = 기본간격) {
         if (멈춤.current) return '';
       }
     } catch (err) {
-      if (err instanceof ApiError && err.code === 'TRIAL_OFF') {
-        const 글 = t('이 서버에는 테스트 실행이 켜져 있지 않습니다. 켜는 법은 SETUP');
-        쓴다(항목.tcId, { 종류: 'notice', 글 });
-        return 글;
-      }
       if (err instanceof ApiError && err.code === 'TRIAL_BUSY') {
         const 글 = t('이미 테스트 실행이 돌고 있습니다');
         쓴다(항목.tcId, { 종류: 'notice', 글 });
         return 글;
       }
-      if (err instanceof ApiError && err.code === 'DEVICE_BUSY') {
-        // 디바이스 하나가 바쁜 것이라 그 줄만 안내하고 다음 줄은 이어 돈다
+      if (err instanceof ApiError && (err.code === 'DEVICE_BUSY' || err.code === 'FARM_OFF')) {
+        // 디바이스 하나가 바쁘거나 이 서버에 디바이스 팜이 없을 뿐이라 그 줄만 안내하고 다음 줄은 이어 돈다 — 브라우저 케이스는 돌 수 있다
         쓴다(항목.tcId, { 종류: 'notice', 글: message(err, 언어) });
         return null;
       }
@@ -85,7 +80,7 @@ export function useTrialQueue(간격: number = 기본간격) {
     }
   }
 
-  async function 시작(항목들: RunRequestItem[], 열주소: string): Promise<void> {
+  async function 시작(항목들: RunRequestItem[], env: string): Promise<void> {
     // 두 번 눌러도 큐가 둘 생기지 않게 막는다
     if (도는.current) return;
     도는.current = true;
@@ -94,7 +89,7 @@ export function useTrialQueue(간격: number = 기본간격) {
     try {
       for (let i = 0; i < 항목들.length; i += 1) {
         if (멈춤.current) return;
-        const 멈춘글 = await 한건(항목들[i]!, 열주소);
+        const 멈춘글 = await 한건(항목들[i]!, env);
         if (멈춘글 === null) continue;
         // 서버 전체에 걸린 사정이나 러너 고장이면 남은 줄도 돌릴 수 없다. 대기로 두면 영영 기다리는 것처럼 보인다
         for (const 남은 of 항목들.slice(i + 1)) 쓴다(남은.tcId, { 종류: 'notice', 글: 멈춘글 });
