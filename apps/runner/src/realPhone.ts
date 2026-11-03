@@ -28,8 +28,23 @@ export function 팜주소(cdpUrl: string): string {
   return `${u.protocol === 'wss:' ? 'https:' : 'http:'}//${u.host}${자리 < 0 ? '' : u.pathname.slice(0, 자리)}`;
 }
 
+/**
+ * 요청이 토큰을 안 실었으면 러너 몫 토큰을 쓰되, cdpUrl 이 러너가 아는 팜(PLATFORM_APPIUM_URL)과 같은 곳일 때만이다 —
+ * 잘못 실린 주소 하나로 러너 토큰(BTS 도 열린다)이 남의 서버로 새지 않게. admin 은 폰을 잡은 토큰을 늘 farmToken 으로 싣는다
+ */
+export function 폰토큰(req: 폰요청): string | undefined {
+  if (req.farmToken !== undefined) return req.farmToken;
+  const 팜 = process.env.PLATFORM_APPIUM_URL;
+  if (!팜 || req.cdpUrl === undefined) return undefined;
+  try {
+    return new URL(팜).host === new URL(req.cdpUrl).host ? process.env.PLATFORM_APPIUM_TOKEN : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 const 머리 = (req: 폰요청): Record<string, string> => {
-  const 토큰 = req.farmToken ?? process.env.PLATFORM_APPIUM_TOKEN;
+  const 토큰 = 폰토큰(req);
   return 토큰 ? { Authorization: `Bearer ${토큰}` } : {};
 };
 
@@ -41,7 +56,7 @@ export function 실제폰환경(req: 폰요청, 폴더: string, 증적: boolean)
   if (!실제폰인가(req)) return { PLATFORM_CDP_URL: '', PLATFORM_PHONE_VIDEO: '' };
   return {
     PLATFORM_CDP_URL: req.cdpUrl,
-    PLATFORM_APPIUM_TOKEN: req.farmToken ?? process.env.PLATFORM_APPIUM_TOKEN,
+    PLATFORM_APPIUM_TOKEN: 폰토큰(req),
     PLATFORM_PHONE_VIDEO: 증적 ? join(폴더, 폰영상) : '',
     PLATFORM_LIVE_FILE: '',
   };
@@ -49,18 +64,24 @@ export function 실제폰환경(req: 폰요청, 폴더: string, 증적: boolean)
 
 const 글자 = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? v : null);
 
-/** 모델 · Android 판은 VISION 기기 목록의 그 폰 줄에서, Chrome 판은 자식이 붙은 브라우저에서 온다. 못 읽은 칸은 null — 판정과 상관없다 */
-export async function 폰기기(req: 폰요청 & { cdpUrl: string; udid: string }, 받은: DeviceInfo | undefined): Promise<DeviceInfo> {
-  let 줄: { model?: unknown; osVersion?: unknown } | undefined;
-  try {
+/**
+ * 모델 · Android 판은 VISION 기기 목록의 그 폰 줄에서, Chrome 판은 자식이 붙은 브라우저에서 온다. 못 읽은 칸은 null — 판정과 상관없다.
+ * 자식을 띄울 때 묻기 시작하고 끝에 Chrome 판을 더한다 — 끝난 뒤에 물으면 VISION 이 느릴 때 그만큼 admin 이 폰을 늦게 놓는다
+ */
+export function 폰기기를묻는다(req: 폰요청 & { cdpUrl: string; udid: string }): (받은: DeviceInfo | undefined) => Promise<DeviceInfo> {
+  const 줄 = (async () => {
     const res = await fetch(`${팜주소(req.cdpUrl)}/api/devices`, { headers: 머리(req), signal: AbortSignal.timeout(VISION_제한_ms) });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const 값 = (await res.json()) as { value?: { devices?: Array<{ serial?: unknown; model?: unknown; osVersion?: unknown }> } };
-    줄 = 값.value?.devices?.find((d) => d.serial === req.udid);
-  } catch (err) {
+    return 값.value?.devices?.find((d) => d.serial === req.udid);
+  })().catch((err: unknown) => {
     알림('VISION 에서 폰 모델을 못 읽었다', err);
-  }
-  return { model: 글자(줄?.model), osVersion: 글자(줄?.osVersion), appVersion: null, browser: 받은?.browser ?? null };
+    return undefined;
+  });
+  return async (받은) => {
+    const 찾은 = await 줄;
+    return { model: 글자(찾은?.model), osVersion: 글자(찾은?.osVersion), appVersion: null, browser: 받은?.browser ?? null };
+  };
 }
 
 interface 로그줄 {
@@ -97,8 +118,10 @@ export function 폰로그를받는다(req: 폰요청 & { cdpUrl: string; udid: s
     if (!res.ok || res.body === null) throw new Error(`HTTP ${res.status}`);
     await mkdir(dirname(파일), { recursive: true });
     const 쓰기 = createWriteStream(파일);
+    // 듣는 곳이 없으면 디스크가 찼을 때 쓰기 오류가 러너 프로세스째 죽인다
+    쓰기.on('error', (err) => 알림('폰 logcat 을 파일에 못 썼다', err));
+    let 남은 = '';
     try {
-      let 남은 = '';
       const 읽개 = res.body.pipeThrough(new TextDecoderStream()).getReader();
       for (let 조각 = await 읽개.read(); !조각.done; 조각 = await 읽개.read()) {
         const 줄들 = (남은 + 조각.value).split('\n');
@@ -106,7 +129,12 @@ export function 폰로그를받는다(req: 폰요청 & { cdpUrl: string; udid: s
         for (const 줄 of 줄들) if (줄 !== '') 쓰기.write(`${로그한줄(줄)}\n`);
       }
     } finally {
-      await new Promise<void>((끝) => 쓰기.end(끝));
+      // 닫는 순간 줄바꿈 없이 걸린 마지막 줄도 적는다 — 실패 바로 그때의 줄일 수 있다
+      if (남은 !== '') 쓰기.write(`${로그한줄(남은)}\n`);
+      await new Promise<void>((끝) => {
+        쓰기.once('close', 끝);
+        쓰기.end();
+      });
     }
   })().catch((err: unknown) => {
     if (!끊기.signal.aborted) 알림('VISION 에서 폰 logcat 을 못 받았다', err);

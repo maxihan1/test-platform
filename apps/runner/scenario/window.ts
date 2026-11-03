@@ -208,7 +208,7 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
       const 창닫기 = async () => {
         if (닫음) return;
         닫음 = true;
-        await (폰창 ? 폰창.영상끝() : context.close()).catch(남김('시나리오 창을 못 닫았다'));
+        await (폰창 ? 폰창.닫기() : context.close()).catch(남김('시나리오 창을 못 닫았다'));
       };
 
       return {

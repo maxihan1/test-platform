@@ -15,7 +15,7 @@ import { appRoot, gameEnv, tail } from './execute.js';
 import { killTree } from './kill.js';
 import { 장면환경 } from './live.js';
 import { 산출물폴더, 출력폴더를지운다, 출력폴더이름 } from './outputDir.js';
-import { 실제폰인가, 실제폰환경, 폰기기, 폰로그, 폰로그를받는다, 폰증적을둔다 } from './realPhone.js';
+import { 실제폰인가, 실제폰환경, 폰기기를묻는다, 폰로그, 폰로그를받는다, 폰증적을둔다 } from './realPhone.js';
 import { 녹화폴더 } from './recordHar.js';
 
 const scenarioConfig = resolve(appRoot, 'apps/runner/scenario/playwright.config.ts');
@@ -227,6 +227,7 @@ export async function executeScenario(req: ScenarioExecuteRequest): Promise<Scen
   const 폰폴더 = runDir(...시나리오폴더(req));
   const 폰증적 = 실제폰 !== undefined && req.runId !== null;
   const 로그끝 = 실제폰 !== undefined && 폰증적 ? 폰로그를받는다(실제폰, join(폰폴더, 폰로그)) : undefined;
+  const 폰기기 = 실제폰 === undefined ? undefined : 폰기기를묻는다(실제폰);
 
   const child = spawn(
     'npx',
@@ -277,9 +278,9 @@ export async function executeScenario(req: ScenarioExecuteRequest): Promise<Scen
   const 결과 = finishScenario(
     parseParts(stdout), req.parts.length, killed, Date.now() - startedAt, tail(stderr) || tail(stdout), parseCleanup(stdout),
   );
-  if (실제폰 !== undefined) {
+  if (폰기기 !== undefined) {
     if (폰증적) await 폰증적을둔다(폰폴더, 결과.status);
-    return { ...결과, device: await 폰기기(실제폰, parseDevice(stdout)) };
+    return { ...결과, device: await 폰기기(parseDevice(stdout)) };
   }
   const device = 폰 ? parseDevice(stdout) : undefined;
   return device === undefined ? 결과 : { ...결과, device };

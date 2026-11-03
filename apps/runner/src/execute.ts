@@ -17,7 +17,7 @@ import { 장면환경 } from './live.js';
 import { 산출물폴더, 출력폴더를지운다, 출력폴더이름 } from './outputDir.js';
 import { 녹화폴더, 다음HAR경로 } from './recordHar.js';
 import { createProgressCollector } from './progress.js';
-import { 실제폰인가, 실제폰환경, 폰기기, 폰로그, 폰로그를받는다, 폰증적을둔다 } from './realPhone.js';
+import { 실제폰인가, 실제폰환경, 폰기기를묻는다, 폰로그, 폰로그를받는다, 폰증적을둔다 } from './realPhone.js';
 import { parseResult, type RunnerResult } from './result.js';
 
 // playwright.config.ts가 있는 곳. 여기서 자식 프로세스를 띄워야 projects 정의가 잡힌다
@@ -163,6 +163,7 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
   const 폰폴더 = runDir(String(req.runId), String(req.historyId));
   const 폰증적 = 폰 !== undefined && req.runId > 0;
   const 로그끝 = 폰 !== undefined && 폰증적 ? 폰로그를받는다(폰, join(폰폴더, 폰로그)) : undefined;
+  const 폰기기 = 폰 === undefined ? undefined : 폰기기를묻는다(폰);
 
   const child = spawn(
     'npx',
@@ -254,9 +255,9 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
   const fps칸 = fps.some((f) => f.fps !== null) ? { fps } : {};
 
   const 응답 = 응답을만든다(req, entry, code, startedAt, stdout, stderr, fps칸);
-  if (폰 === undefined) return 응답;
+  if (폰기기 === undefined) return 응답;
   if (폰증적) await 폰증적을둔다(폰폴더, 응답.status);
-  return { ...응답, device: await 폰기기(폰, 응답.device) };
+  return { ...응답, device: await 폰기기(응답.device) };
 }
 
 function 응답을만든다(

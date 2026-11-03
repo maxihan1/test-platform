@@ -11,6 +11,11 @@ import { DEVICE_ATTACHMENT, 창하나글 } from './protocol.js';
 
 const 글 = (err: unknown): string => (err instanceof Error ? err.message : String(err));
 
+// 팜 토큰은 케이스 코드가 환경값으로 못 읽게 kit 이 올라올 때 떼어 둔다 — 케이스 파일이 kit 을 먼저 불러서 케이스 맨 위 코드보다 앞선다.
+// 작업 프로세스에서만 뗀다 — 목록을 만드는 본 프로세스에서 지우면 뒤에 뜨는 작업 프로세스가 지워진 환경을 물려받는다(러너 고정 spec 과 같은 까닭)
+const 폰토큰 = process.env.PLATFORM_CDP_URL ? process.env.PLATFORM_APPIUM_TOKEN : undefined;
+if (폰토큰 !== undefined && process.env.TEST_WORKER_INDEX !== undefined) delete process.env.PLATFORM_APPIUM_TOKEN;
+
 /** 토큰은 머리글로만 싣는다 — 주소에 넣으면 VISION 기록에 남는다. 늦추기는 launchOptions 가 안 먹어 연결 옵션으로 준다 */
 export async function 폰Chrome에붙는다(chromium: BrowserType, env: Record<string, string | undefined>): Promise<Browser> {
   const 토큰 = env.PLATFORM_APPIUM_TOKEN;
@@ -84,9 +89,7 @@ export function 실제폰테스트() {
   return base.extend({
     browser: [
       async ({ playwright }, use) => {
-        const browser = await 폰Chrome에붙는다(playwright.chromium, process.env);
-        // 붙은 뒤로는 토큰을 안 쓴다 — 케이스 코드가 환경값으로 못 읽게 지운다
-        delete process.env.PLATFORM_APPIUM_TOKEN;
+        const browser = await 폰Chrome에붙는다(playwright.chromium, { ...process.env, PLATFORM_APPIUM_TOKEN: 폰토큰 });
         await use(browser);
         // 연결만 끊는다. Chrome 데이터는 VISION 이 폰을 놓을 때 지운다
         await browser.close().catch((err: unknown) => console.warn(`[kit] 폰 Chrome 연결을 못 끊었다: ${글(err)}`));
