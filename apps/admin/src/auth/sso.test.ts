@@ -335,13 +335,15 @@ describe.skipIf(연결 === undefined)('maxihan 계정(SSO) 로그인', () => {
     expect(await 나(쿠키(남을것))).toBe(200);
   });
 
-  it('back-channel — sid 없이 sub 만 오면 그 사람이 iat 전에 구운 출입증을 다 끊고, 늦게 온 옛 알림은 시각을 되돌리지 않는다', async () => {
+  it('back-channel — sid 없이 sub 만 오면 그 사람이 iat + 1초 전에 구운 출입증을 다 끊고, 늦게 온 옛 알림은 시각을 되돌리지 않는다', async () => {
     const iat = Math.floor(Date.now() / 1000) - 20;
     const 출입증 = (초: number) => 구운출입증({ username: 'xso-linked', method: 'sso', idToken: 'id.x', authSid: 'xso-sid-live', loginAt: 초 * 1000 });
     expect(await 나(출입증(iat - 5))).toBe(200);
 
     expect((await 토큰알리기(await 로그아웃토큰({ sub: 'xso-sub-linked', iat }))).statusCode).toBe(200);
     expect(await 나(출입증(iat - 5))).toBe(401);
+    expect(await 나(출입증(iat + 0.5))).toBe(401);
+    expect(await 나(출입증(iat + 1))).toBe(200);
     expect(await 나(출입증(iat + 5))).toBe(200);
 
     expect((await 토큰알리기(await 로그아웃토큰({ sub: 'xso-sub-linked', iat: iat - 10 }))).statusCode).toBe(200);

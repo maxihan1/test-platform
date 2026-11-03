@@ -79,10 +79,11 @@ async function 로그아웃적기(알림: 로그아웃알림): Promise<void> {
     await pool.query('INSERT INTO auth_revoked_sid (sid) VALUES ($1) ON CONFLICT DO NOTHING', [알림.sid]);
     return;
   }
+  // iat 는 초로 내린 값이다 — 1초를 더해야 알림과 같은 초에 먼저 구운 출입증도 끊긴다 (Auth_platform S24 plan §1).
   // 늦게 온 옛 알림이 시각을 되돌리면 그 사이에 끊긴 출입증이 되살아난다 — 큰 쪽을 남긴다(GREATEST 는 NULL 을 건너뛴다)
   await pool.query('UPDATE app_user SET sessions_valid_after = GREATEST(sessions_valid_after, to_timestamp($2)) WHERE auth_sub = $1', [
     알림.sub,
-    알림.iat,
+    알림.iat + 1,
   ]);
 }
 
