@@ -3,6 +3,7 @@
 
 import type { Pool } from 'pg';
 
+import { trace줄끝 } from '../execution/traceIngest.js';
 import { 가린다, 항목비밀 } from '../execution/trial.js';
 import { 실패카드, type FailureCase } from '../reporting/failures.js';
 import { 꼬리표고르기, 또실패댓글, 이슈본문, 이슈제목, 첨부상한, type 실패재료 } from './failBody.js';
@@ -123,6 +124,8 @@ export async function 실패등록(runId: number): Promise<number> {
   const pool = await db();
   const 실행 = (await pool.query<실행행>(실행SQL, [runId])).rows[0];
   if (실행 === undefined) return 0;
+  // trace 는 실행과 따로 한 줄로 푼다. 실행이 막 끝나면 마지막 항목들이 아직 줄에 있어 이슈에 네트워크 · 콘솔이 빠진다 — 지금 줄 끝까지 기다린다
+  await trace줄끝();
   const 한건 = 실행.origin === 'SINGLE' && 실행.rerun_of !== null;
   const 카드실행 = 한건 ? Number(실행.rerun_of) : runId;
   const 그것만 = 한건

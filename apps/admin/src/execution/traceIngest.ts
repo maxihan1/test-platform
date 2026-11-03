@@ -221,6 +221,11 @@ export function trace적재를맡긴다(historyId: number): Promise<void> {
   return 일;
 }
 
+/** 지금까지 맡긴 풀기가 다 끝나면 풀린다. 뒤에 맡기는 것은 안 기다린다 — 실행 끝의 실패 등록이 마지막 항목의 기록을 읽기 전에 쓴다 */
+export function trace줄끝(): Promise<void> {
+  return 줄.then(() => undefined);
+}
+
 /**
  * 서버가 다시 켜지면 상태 줄이 없는 zip 을 다시 푼다. 풀기 전에 꺼졌거나 줄에 남아 있던 것이다.
  * 통과 zip 은 풀자마자 지우고 실패 zip 은 상태 줄이 있으니, 상태 줄 없는 zip 이 곧 못 푼 것이다
