@@ -29,8 +29,8 @@ interface 항목<R> {
   서비스: string;
   시작: number;
   결과: R | null;
-  // 잡은 폰의 VISION 화면 링크. 끝나면 안 낸다 — 놓은 폰의 링크는 닫혀 있다
-  폰화면?: string;
+  // 잡은 폰의 VISION 화면 링크. 폰을 놓거나 끝나면 안 낸다 — 놓은 폰의 링크는 닫혀 있다
+  폰화면?: string | undefined;
 }
 
 interface 보관소설정<R, S extends string> {
@@ -115,7 +115,7 @@ export function 시험보관소<R, S extends string>(설정: 보관소설정<R, 
      * 실행은 밖에서 넣는다. 번호를 실행에도 넘긴다(시나리오 사진 폴더 이름 · 장면 열쇠). 폰을 잡으면 실행이 화면 링크를 단다.
      * 돌려주는 번호로 시작한 사람만 읽는다
      */
-    시작한다(사람: string, 서비스: string, 실행: (id: string, 폰화면: (url: string) => void) => Promise<R>, 비밀: string[]): string {
+    시작한다(사람: string, 서비스: string, 실행: (id: string, 폰화면: (url: string | undefined) => void) => Promise<R>, 비밀: string[]): string {
       const 지금 = Date.now();
       치운다(지금);
       if ([...저장소.values()].some((항) => 항.사람 === 사람 && 항.결과 === null)) {
@@ -176,7 +176,7 @@ const 케이스시험 = 시험보관소<ExecuteResponse, 'DONE'>({
 /** 케이스 「테스트 실행」 — 서버 러너. 서비스 칸에 그 케이스 번호를 둔다 — 읽을 때 주소의 tcId 와 견준다 */
 export function 시작한다(
   사람: string,
-  실행: (id: string, 폰화면: (url: string) => void) => Promise<ExecuteResponse>,
+  실행: (id: string, 폰화면: (url: string | undefined) => void) => Promise<ExecuteResponse>,
   명세: 시험명세,
   tcId = '',
 ): string {

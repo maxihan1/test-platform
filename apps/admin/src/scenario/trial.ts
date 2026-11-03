@@ -172,7 +172,7 @@ export async function 시험시작(사람: { username: string }, 본문: 시험�
 
 type 시험재료결과 = Awaited<ReturnType<typeof 시험재료>>;
 
-async function 시험돌기(id: string, 누구: string, 본문: 시험본문, 재료: 시험재료결과, 폰화면: (url: string) => void): Promise<시나리오시험결과> {
+async function 시험돌기(id: string, 누구: string, 본문: 시험본문, 재료: 시험재료결과, 폰화면: (url: string | undefined) => void): Promise<시나리오시험결과> {
   const { 앱들, baseUrl, parts, 부품재료, 비밀, 폰 } = 재료;
   const 시작 = Date.now();
   // 줄 한 자리를 최대 60분 쥔다. 누가 쥐었는지 운영자가 로그로 알 수 있게 한다
@@ -192,6 +192,8 @@ async function 시험돌기(id: string, 누구: string, 본문: 시험본문, �
   };
   // 앱 · 게임 단계는 서버 러너 + 팜에서 잡은 폰이다 (결정 16)
   const 응답 = 폰 === null ? await callScenarioRunner(요청) : await 팜폰으로돌린다(요청, 폰.폰, () => 사람팜토큰(누구), 폰화면);
+  // 폰을 놓았다 — 아래 trace · 가림 처리 동안 닫힌 링크를 내지 않는다 (§3.7 결정 16 「시험 실행」)
+  폰화면(undefined);
   console.info(`[scenario-trial] 끝 ${id} · ${누구} · ${본문.service} · ${응답.status} · ${Date.now() - 시작}ms`);
   // 기록은 DB 없이 결과에 싣는다. 꽂은 값의 비밀도 자르기 전에 넣는다 — 본문을 2000자로 자른 뒤에 가리면 경계에 걸친 조각이 남는다 (§7 「실패 기록」)
   const 꽂은 = 응답.parts.flatMap((r) => {

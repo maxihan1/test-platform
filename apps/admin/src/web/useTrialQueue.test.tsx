@@ -139,6 +139,21 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
     expect(result.current.줄들['X-2']).toMatchObject({ 종류: 'done' });
   });
 
+  it('이 서버에 디바이스 팜이 없는 앱 줄(FARM_OFF)도 그 줄만 안내하고 다음 브라우저 줄을 이어 돈다', async () => {
+    vi.spyOn(api, 'startTrial').mockImplementation((tcId) =>
+      tcId === 'X-1' ? Promise.reject(new ApiError(409, 'FARM_OFF', '', [])) : Promise.resolve({ trialId: 't2' }),
+    );
+    vi.spyOn(api, 'getTrial').mockResolvedValue({ status: 'DONE', result: 통과 });
+    const { result } = renderHook(() => useTrialQueue(1));
+
+    await act(async () => {
+      await result.current.시작([항목('X-1'), 항목('X-2')], 'qa');
+    });
+
+    expect(result.current.줄들['X-1']).toEqual({ 종류: 'notice', 글: '이 서버에는 Android 앱을 돌릴 Device VISION 이 연결되어 있지 않습니다' });
+    expect(result.current.줄들['X-2']).toMatchObject({ 종류: 'done' });
+  });
+
   it('화면을 떠나면 남은 줄을 시작하지 않는다', async () => {
     const { 시작 } = 서버({});
     let 풀기!: () => void;

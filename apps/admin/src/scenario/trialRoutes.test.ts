@@ -42,6 +42,8 @@ describe.skipIf(연결 === undefined)('시나리오 시험 실행 통로', () =>
   const 받은요청: ScenarioExecuteRequest[] = [];
   const 매달린것: http.ServerResponse[] = [];
   let 매단다 = false;
+  // 러너가 쥔 장면 — 열쇠마다 마지막 한 장. 없는 열쇠는 러너처럼 404 다
+  const 장면 = new Map<string, Buffer>();
   let 뿌리 = '';
   let 사진뿌리 = '';
   const 원래 = {
@@ -91,6 +93,11 @@ describe.skipIf(연결 === undefined)('시나리오 시험 실행 통로', () =>
 
   beforeAll(async () => {
     러너 = http.createServer((req, res) => {
+      const 장면열쇠 = /^\/live\/(.+)$/.exec(req.url ?? '')?.[1];
+      if (req.method === 'GET' && 장면열쇠 !== undefined) {
+        const 장 = 장면.get(장면열쇠);
+        return void (장 === undefined ? res.writeHead(404).end('{}') : res.writeHead(200, { 'content-type': 'image/jpeg' }).end(장));
+      }
       if (req.method === 'GET') return void res.writeHead(req.url === '/health' ? 200 : 404).end('{}');
       const 조각: Buffer[] = [];
       req.on('data', (c: Buffer) => 조각.push(c));
@@ -149,6 +156,7 @@ describe.skipIf(연결 === undefined)('시나리오 시험 실행 통로', () =>
   beforeEach(() => {
     풀어준다();
     매단다 = false;
+    장면.clear();
     시나리오시험.전부비운다();
   });
 
@@ -181,6 +189,25 @@ describe.skipIf(연결 === undefined)('시나리오 시험 실행 통로', () =>
       expect((await 부른다('xstr-a', 'GET', `/api/scenario-trials/${trialId}`)).json()).toEqual({ status: 'FINISHED', result: 답 }),
     );
     expect(받은요청.at(-1)).toMatchObject({ runId: null, trialId });
+  });
+
+  it('장면은 도는 동안 시작한 사람에게만 한 장씩 주고 끝나면 404 다', async () => {
+    매단다 = true;
+    const { trialId } = (await 부른다('xstr-a', 'POST', '/api/scenario-trials', 본문())).json<{ trialId: string }>();
+    const 장면주소 = `/api/scenario-trials/${trialId}/live`;
+    await vi.waitFor(() => expect(받은요청.at(-1)).toMatchObject({ trialId, live: trialId }));
+    expect((await 부른다('xstr-a', 'GET', 장면주소)).statusCode).toBe(204);
+
+    장면.set(trialId, Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
+    const 한장 = await 부른다('xstr-a', 'GET', 장면주소);
+    expect(한장.statusCode).toBe(200);
+    expect(한장.headers['content-type']).toBe('image/jpeg');
+    expect(한장.headers['cache-control']).toBe('no-store');
+    expect((await 부른다('xstr-b', 'GET', 장면주소)).statusCode).toBe(404);
+
+    풀어준다();
+    await vi.waitFor(async () => expect((await 부른다('xstr-a', 'GET', `/api/scenario-trials/${trialId}`)).json<{ status: string }>().status).toBe('FINISHED'));
+    expect((await 부른다('xstr-a', 'GET', 장면주소)).json()).toEqual({ error: 'TRIAL_NOT_FOUND', detail: trialId });
   });
 
   it('돌고 있는 동안은 RUNNING 이고 같은 사람이 또 시작하면 409 TRIAL_BUSY 다', async () => {

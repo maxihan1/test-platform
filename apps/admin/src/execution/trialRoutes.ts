@@ -85,7 +85,7 @@ async function 팜폰에서돌린다(
   요청: ExecuteRequest,
   사람: string,
   앱재료: { serviceId: number; env: string; appPath: string | null },
-  폰화면: (url: string) => void,
+  폰화면: (url: string | undefined) => void,
 ): Promise<ExecuteResponse> {
   const 팜 = 팜주소();
   // 받은 뒤 서버를 다시 띄우며 값을 지웠을 때뿐이다 — 통로가 FARM_OFF 로 먼저 거절한다
@@ -96,7 +96,7 @@ async function 팜폰에서돌린다(
   } catch (err) {
     return na(요청, '누른 사람의 통합계정 토큰을 읽지 못했습니다', err instanceof Error ? err.message : String(err));
   }
-  return 팜폰으로(
+  const 결과 = await 팜폰으로(
     팜,
     async (udid, 화면) => {
       if (화면 !== undefined) 폰화면(화면);
@@ -114,6 +114,9 @@ async function 팜폰에서돌린다(
     undefined,
     토큰,
   );
+  // 팜폰으로 가 폰을 놓고 돌아왔다 — 결과를 적기 전 틈에 닫힌 링크를 내지 않는다
+  폰화면(undefined);
+  return 결과;
 }
 
 export default async function trialRoutes(app: FastifyInstance): Promise<void> {
@@ -173,7 +176,7 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
     }
     const 사람 = req.user?.username ?? '알 수 없음';
     try {
-      const 일 = async (id: string, 폰화면: (url: string) => void): Promise<ExecuteResponse> => {
+      const 일 = async (id: string, 폰화면: (url: string | undefined) => void): Promise<ExecuteResponse> => {
         try {
           // 정식 실행과 같은 규칙 — 판이 없으면 러너에 안 보내고 미실행으로 닫는다 (도메인/API §3.8 「응답 모양 확인」)
           const 판 = await 케이스판(tcId);
