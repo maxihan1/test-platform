@@ -20,7 +20,7 @@ describe.skipIf(연결 === undefined)('실패 → Issue Bunker 등록', () => {
   let 실행차례 = 0;
   const 앞공개주소 = process.env.PLATFORM_PUBLIC_URL;
 
-  const 회차 = async (runId: number, tcId: string): Promise<number> =>
+  const 항목번호 = async (runId: number, tcId: string): Promise<number> =>
     Number((await pool.query<{ history_id: string }>('SELECT history_id FROM run_item WHERE run_id = $1 AND tc_id = $2', [runId, tcId])).rows[0]!.history_id);
 
   async function 실행(service: number, 항목들: { tcId: string; status: 'PASS' | 'FAIL' }[], 붙는실행?: number): Promise<number> {
@@ -128,7 +128,7 @@ describe.skipIf(연결 === undefined)('실패 → Issue Bunker 등록', () => {
     const 본문 = 줄!.payload.description as string;
     expect(본문).toContain('2. 비밀번호를 넣는다 ← 여기서 실패');
     expect(본문).toContain('빌드 abc1234-202610311200');
-    expect(본문).toContain(`Test Commander 실행 결과 — https://qa.example.com/#/runs/${String(runId)}/items/${String(await 회차(runId, 'XBF-001'))}`);
+    expect(본문).toContain(`Test Commander 실행 결과 — https://qa.example.com/#/runs/${String(runId)}/items/${String(await 항목번호(runId, 'XBF-001'))}`);
     expect(JSON.stringify(줄!.payload)).not.toContain('XBF-PW-77');
 
     const 카드 = await 실패카드(runId, 1);
@@ -234,7 +234,7 @@ describe.skipIf(연결 === undefined)('실패 → Issue Bunker 등록', () => {
     expect(await 실패등록(한건)).toBe(1);
     const 줄 = (await 줄들()).at(-1)!;
     expect(줄).toMatchObject({ kind: 'CREATE', tc_id: 'XBF-005', run_id: String(부모) });
-    expect(줄.payload.description as string).toContain(`https://qa.example.com/#/runs/${String(한건)}/items/${String(await 회차(한건, 'XBF-005'))}`);
+    expect(줄.payload.description as string).toContain(`https://qa.example.com/#/runs/${String(한건)}/items/${String(await 항목번호(한건, 'XBF-005'))}`);
     expect((await 실패카드(부모, 1)).items.map((c) => [c.tcId, c.bts?.state])).toEqual([['XBF-005', 'SENDING']]);
   });
 

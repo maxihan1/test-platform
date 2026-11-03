@@ -125,14 +125,14 @@ async function 재료만들기(pool: Pool, 실행: 실행행, c: FailureCase) {
  * 한 건 실행은 붙는 실행(부모)의 카드로 그 한 건만 올린다 — 카드가 부모 자리에 서고, 부모에서 통과했던 케이스가 새로 깨질 수 있다
  */
 // ponytail: 화면용 실패카드()를 그대로 써 팜 증적 · 판정 같은 BTS 에 안 쓰는 칸도 읽는다. 실행 끝 뒤에 따로 도는 일이라 두었다 — 실패가 수백 건이라 느리면 가벼운 질의로 뗀다
-export async function 실패등록(runId: number): Promise<number> {
+export async function 실패등록(runId: number, 기다림상한ms = trace기다림상한ms): Promise<number> {
   const pool = await db();
   const 실행 = (await pool.query<실행행>(실행SQL, [runId])).rows[0];
   if (실행 === undefined) return 0;
   // trace 는 실행과 따로 한 줄로 푼다. 실행이 막 끝나면 마지막 항목들이 아직 줄에 있어 이슈에 네트워크 · 콘솔이 빠진다 — 지금 줄 끝까지 기다린다.
   // ponytail: 줄 끝이라 다른 실행 · 재기동 때 밀린 풀기도 같이 기다린다. 상한을 넘기는 일이 잦으면 이 실행의 항목만 기다린다
-  const 늦음 = await Promise.race([trace줄끝().then(() => false), 잠깐(trace기다림상한ms, true, { ref: false })]);
-  if (늦음) console.warn(`[bts] 실행 ${String(runId)} — trace 풀기가 ${String(trace기다림상한ms / 60_000)}분 안에 안 끝나 기다리지 않고 올린다`);
+  const 늦음 = await Promise.race([trace줄끝().then(() => false), 잠깐(기다림상한ms, true, { ref: false })]);
+  if (늦음) console.warn(`[bts] 실행 ${String(runId)} — trace 풀기가 ${String(기다림상한ms / 1000)}초 안에 안 끝나 기다리지 않고 올린다`);
   const 한건 = 실행.origin === 'SINGLE' && 실행.rerun_of !== null;
   const 카드실행 = 한건 ? Number(실행.rerun_of) : runId;
   const 그것만 = 한건
