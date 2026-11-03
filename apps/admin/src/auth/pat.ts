@@ -1,11 +1,45 @@
-// 통합계정 PAT 로 온 요청의 사람을 찾는다 — /mcp 한 곳만 쓴다 (도메인/BTS §3.12 「열쇠 표」 · BTS-F4-01)
+// 통합계정 PAT 로 온 요청의 사람을 찾는다 — /mcp 한 곳만 쓴다 (도메인/BTS §3.12 「열쇠 표」 · BTS-F4-01 · 대신 PAT 거절은 S25)
 
 import { createHash } from 'node:crypto';
 
 import { 작성계정인가 } from './agentToken.js';
-import { PAT꼴, 토큰주인묻기, type 주인답 } from './farmToken.js';
 import { SSO설정읽기 } from './oidc.js';
 import { 사용자와해시, type 사용자 } from './store.js';
+
+const 최대길이 = 200;
+const 묻기제한ms = 10_000;
+
+export type 주인답 = { 주인: string } | '틀림' | '닿지못함';
+
+/** 통합계정 PAT 꼴인가 — 다른 열쇠(작성 에이전트 토큰 · cit_ · pga_ · mcj_)와 머리로 가른다 */
+export const PAT꼴 = (토큰: string): boolean => 토큰.startsWith('pat_') && 토큰.length <= 최대길이 && !/\s/.test(토큰);
+
+/**
+ * Auth whoami 에 그 PAT 의 주인을 묻는다. 401 · 403 은 폐기 · 기간 끝 · 틀린 값이다.
+ * **scopes 에 * 나 commander 가 없으면 틀린 것으로 친다** — Commander 가 받아 VISION · Bunker 에 싣는 대신 PAT(scopes [bunker, vision])가
+ * Commander 로 돌아오지 못하게 (도메인/인증 §7 「대신 PAT」). scopes 칸이 없는 답은 S25 전 Auth 라 대신 PAT 가 없다 — 사람 PAT 로 친다
+ */
+export async function 토큰주인묻기(issuer: string, 토큰: string, 부르기: typeof fetch = fetch): Promise<주인답> {
+  let res: Response;
+  try {
+    // whoami 는 Auth_platform 맨 앞 자리에 있다 — issuer 에 경로가 붙어도 그 아래가 아니다
+    res = await 부르기(new URL('/api/v1/users/me/whoami', issuer), {
+      headers: { authorization: `Bearer ${토큰}` },
+      signal: AbortSignal.timeout(묻기제한ms),
+    });
+  } catch (err) {
+    console.error(`[pat] Auth_platform 에 닿지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+    return '닿지못함';
+  }
+  if (res.status === 401 || res.status === 403) return '틀림';
+  const 몸 = res.ok ? ((await res.json().catch(() => null)) as { userId?: unknown; authMethod?: unknown; scopes?: unknown } | null) : null;
+  if (typeof 몸?.userId !== 'string' || 몸.authMethod !== 'pat') {
+    console.error(`[pat] Auth_platform whoami 답을 읽지 못했다: HTTP ${res.status}`);
+    return '닿지못함';
+  }
+  if (몸.scopes !== undefined && !(Array.isArray(몸.scopes) && (몸.scopes.includes('*') || 몸.scopes.includes('commander')))) return '틀림';
+  return { 주인: 몸.userId };
+}
 
 // BTS 와 같은 방식 — Auth whoami 답을 잠깐 기억한다. 폐기한 토큰이 이만큼은 더 산다. 틀린 답도 기억해 같은 토큰으로 Auth 를 두드리지 못하게 한다
 const 기억ms = 60_000;

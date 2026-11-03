@@ -11,7 +11,7 @@ export function 팜주소(env: Record<string, string | undefined> = process.env)
   return env.DEVICE_FARM_URL?.replace(/\/+$/, '') || undefined;
 }
 
-// 인증 켠 팜은 모든 요청에 토큰을 받는다. 누른 사람 토큰을 받았으면 그것, 아니면 서버 몫이다 (도메인/러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」)
+// 인증 켠 팜은 모든 요청에 토큰을 받는다. 고른 대신 PAT(farmToken.ts)를 받았으면 그것, 아니면 DEVICE_FARM_TOKEN — SSO 를 끈 설치다 (도메인/러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」)
 export function 팜머리(env: Record<string, string | undefined> = process.env, 사람토큰?: string): Record<string, string> {
   const 토큰 = 사람토큰 ?? env.DEVICE_FARM_TOKEN ?? '';
   return 토큰 === '' ? {} : { authorization: `Bearer ${토큰}` };
@@ -26,9 +26,9 @@ async function 빈폰을고른다(팜: string, 부르기: typeof fetch, 쉬기: 
   const 끝 = Date.now() + 정리_기다림_ms;
   for (;;) {
     const 목록 = await 부르기(`${팜}/api/devices`, { headers: 팜머리(process.env, 토큰), signal: AbortSignal.timeout(팜_제한_ms) });
-    // 인증 켠 팜은 토큰이 없거나 틀리면 401 이다 — 주소나 팜을 의심하기 전에 토큰을 보게 한다. 누른 사람 토큰이면 Auth 에서 폐기했거나 기간이 끝났다
-    const 볼곳 = 토큰 === undefined ? 'DEVICE_FARM_TOKEN 을' : '내 메뉴의 통합계정 토큰을';
-    if (!목록.ok) return { reason: `Device VISION 이 기기 목록을 주지 않았습니다 (HTTP ${목록.status})${목록.status === 401 ? ` — ${볼곳} 확인하세요` : ''}` };
+    // 인증 켠 팜은 토큰이 없거나 틀리면 401 이다 — 주소나 팜을 의심하기 전에 토큰을 보게 한다
+    const 볼곳 = 토큰 === undefined ? 'DEVICE_FARM_TOKEN 을 확인하세요' : 'Auth 의 대신 PAT 를 Device VISION 이 받지 않았습니다';
+    if (!목록.ok) return { reason: `Device VISION 이 기기 목록을 주지 않았습니다 (HTTP ${목록.status})${목록.status === 401 ? ` — ${볼곳}` : ''}` };
     // 주소가 틀려 다른 쪽이 200 으로 HTML 을 주면 「닿지 못했다」가 아니라 이 말이어야 주소를 다시 본다
     const 몸 = (await 목록.json().catch(() => null)) as { value?: { devices?: 기기[] } } | null;
     if (몸 === null) return { reason: 'Device VISION 의 기기 목록을 읽지 못했습니다 — DEVICE_FARM_URL 을 확인하세요' };
@@ -100,7 +100,7 @@ const 닿지못함 = (err: unknown): string => `Device VISION 에 닿지 못했�
 
 /**
  * 빈 폰 하나를 잡아 그 번호로 일을 맡기고, 일이 어떻게 끝나든 놓는다. 못 잡으면 까닭을 넘긴다 — 던지지 않는다. 분은 팜이 받는 30 · 60 · 120.
- * 토큰은 누른 사람 것이다. 없으면 서버 몫 — 고르기 · 잡기 · 놓기가 같은 토큰이어야 팜이 받는다.
+ * 토큰은 고른 대신 PAT 다(farmToken.ts). 없으면 DEVICE_FARM_TOKEN — 고르기 · 잡기 · 놓기가 같은 주인이어야 팜이 받는다.
  * 일에 그 폰 화면 보기 링크도 넘긴다 — 테스트 모드가 누른 사람에게 새 탭으로 건넨다 (도메인/실행 §3.2 「테스트 모드」 「VISION 링크」)
  */
 export async function 팜폰으로<T>(
