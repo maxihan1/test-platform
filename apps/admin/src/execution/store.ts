@@ -91,7 +91,7 @@ export interface PendingItem {
   buildId?: number;
   // 그 대상 서버 줄의 API 인증. 설정이 API 애플리케이션에만 넣게 하므로 있으면 API 케이스다 (도메인/API §3.8)
   apiAuths?: ApiAuth[];
-  // 게임 애플리케이션의 android 항목만 (도메인/게임 §3.10 결정 6) — adminKey 는 그 대상 서버 줄의 어드민 키 원문
+  // engine 은 게임 애플리케이션의 android 항목만 (도메인/게임 §3.10 결정 6). adminKey 는 게임 · API 항목에 그 대상 서버 줄의 어드민 키 원문
   engine?: 'GAME';
   adminKey?: 어드민키;
 }

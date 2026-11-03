@@ -3,7 +3,7 @@
 
 import type { ReactNode } from 'react';
 
-import { 운영이름인가 } from '../settings/roles.js';
+import { 어드민키종류인가, 운영이름인가 } from '../settings/roles.js';
 
 import type { SettingsProject, SettingsServiceRow, 앱종류 } from './api.js';
 import { 아이콘 } from './icons.js';
@@ -173,7 +173,7 @@ export function 단계칸(p: {
       );
     }
     case 'envs':
-      return <EnvEditor envs={값.envs} onChange={(envs) => 고친다({ envs })} api={값.kind === 'API'} 게임={값.kind === 'GAME'} />;
+      return <EnvEditor envs={값.envs} onChange={(envs) => 고친다({ envs })} api={값.kind === 'API'} 어드민키={어드민키종류인가(값.kind)} />;
     case 'apidoc':
       return (
         <>

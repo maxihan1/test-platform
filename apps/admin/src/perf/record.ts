@@ -57,6 +57,8 @@ async function 케이스돌리기(jobId: number, 줄: 대상줄, 케이스: Extr
       expected,
       timeoutMs: 케이스제한ms,
       ...(줄.apiAuths.length > 0 && { apiAuths: 줄.apiAuths }),
+      // 설정이 게임 · API 줄에만 키를 받는다 — 녹화 케이스가 서버 어드민 API 를 admin 으로 부를 수 있게 정식 실행처럼 싣는다
+      ...(줄.adminKey !== null && { adminKey: 줄.adminKey }),
       ...('apiDoc' in 판 && 판.apiDoc !== undefined && { apiDoc: 판.apiDoc }),
       recordHar: { jobId },
     };
@@ -119,7 +121,7 @@ export async function 녹화하기(jobId: number, 줄: 대상줄, 대상: 녹화
     const 줄들 = 남길녹화(줄잇기(await HAR읽기(폴더))).log.entries;
     if (줄들.length === 0) throw new Error('녹화 파일이 없습니다 — 러너가 브라우저를 열지 못했습니다');
     const 계정들: 녹화계정[] = [{ loginId: 줄.loginId, loginPassword: 줄.loginPassword }, ...줄.계정들, ...돈것.계정들];
-    const API비밀 = 줄.apiAuths.flatMap((a) => [a.clientId, a.clientSecret]);
+    const API비밀 = [...줄.apiAuths.flatMap((a) => [a.clientId, a.clientSecret]), ...(줄.adminKey === null ? [] : [줄.adminKey.value])];
     const 표 = 가림표([...돈것.비밀, ...API비밀, ...비밀값모으기(줄들)].filter((v) => v.length >= 4), 계정들);
     const 가린 = 가리기(줄들, 표);
     await writeFile(join(artifactsDir(), 'perf-record', 녹화파일(jobId)), JSON.stringify({ log: { version: '1.2', creator: { name: 'Test Commander', version: '1' }, entries: 가린 } }));

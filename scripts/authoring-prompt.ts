@@ -78,7 +78,7 @@ export function 줄프롬프트(
     ...(반영 === undefined ? [] : 반영절(반영, 대상?.서버들)),
     ...(가이드 === undefined ? [] : 가이드절(가이드, 서비스)),
     ...(앱화면 === undefined ? [] : 앱화면.게임 === true ? 게임화면절(앱화면, 자료폴더) : 앱화면절(앱화면)),
-    ...(것.api === undefined || 자료폴더 === undefined ? [] : API절(것.api, 자료폴더)),
+    ...(것.api === undefined || 자료폴더 === undefined ? [] : API절(것.api, 자료폴더, 것.adminKey !== undefined)),
     // 에이전트가 자식 앞에 받아 둔다 — 받기 전에 앞 파일을 지우므로 비었거나 못 받았으면 파일이 없다 (§3.6 「서비스 지도」 · PRD-F14-05)
     ...(자료폴더 !== undefined && existsSync(지도자리(자료폴더)) ? 지도절(지도자리(자료폴더)) : []),
   ].join('\n');

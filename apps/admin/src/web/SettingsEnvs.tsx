@@ -1,6 +1,8 @@
 // 설정 화면의 대상 서버 편집기 (SPEC §8.8 · §6 service_env)
 // 여러 줄이다 — 환경변수 한 줄로는 서비스가 셋만 되어도 안 들어간다
 
+import { 어드민키역할 } from '@platform/kit/accounts';
+
 import { 운영이름인가 } from '../settings/roles.js';
 
 import type { EnvInput, EnvRow } from './api.js';
@@ -32,7 +34,7 @@ export interface 줄 extends EnvRow {
   역할들: 역할줄[];
   /** API 인증 편집 상태. API 종류 애플리케이션만 그리고 보낸다 (도메인/API §3.8) */
   API인증들: API인증줄[];
-  /** 어드민 키 편집 상태. 게임 종류 애플리케이션만 그리고 보낸다 (도메인/게임 §3.10) */
+  /** 어드민 키 편집 상태. 게임 · API 종류 애플리케이션만 그리고 보낸다 (도메인/게임 §3.10 · 도메인/API §3.8) */
   어드민?: 어드민키편집;
 }
 
@@ -51,9 +53,9 @@ export const 줄로 = (envs: EnvRow[]): 줄[] =>
  * 안 실으면 서버가 지금 것을 유지한다 (도메인/인증 §7).
  * **새로 더한 줄은 빈 칸을 null 로 명시한다.** 같은 이름의 줄을 빼고 다시 더해 한 번에 저장하면
  * 키가 없는 칸을 서버가 옛 값으로 되살린다 — 화면은 빈 칸인데 저장은 옛 계정이 된다.
- * **API 인증은 API 종류일 때만, 어드민 키는 게임 종류일 때만 싣는다** — 다른 종류가 보내면 서버가 400 NOT_API_SERVICE · NOT_GAME_SERVICE 를 낸다
+ * **API 인증은 API 종류일 때만, 어드민 키는 게임 · API 종류일 때만 싣는다** — 다른 종류가 보내면 서버가 400 NOT_API_SERVICE · NOT_GAME_SERVICE 를 낸다
  */
-export const 보낼모양 = (줄들: 줄[], api = false, 게임 = false): EnvInput[] =>
+export const 보낼모양 = (줄들: 줄[], api = false, 어드민키 = false): EnvInput[] =>
   줄들.map((줄) => {
     const { env, baseUrl, loginId, 새비밀번호, 원래키, 비밀번호지움, isProd, accounts, 역할들, appPath, API인증들 } = 줄;
     const 새줄 = 원래키 === null;
@@ -68,7 +70,7 @@ export const 보낼모양 = (줄들: 줄[], api = false, 게임 = false): EnvInp
       ...(새줄 || accounts !== undefined || 역할들.length > 0 ? { accounts: 역할들.map(역할보낼모양) } : {}),
       ...(appPath !== undefined ? { appPath } : 새줄 ? { appPath: null } : {}),
       ...(api ? { apiAuths: API인증들.map(API인증보낼모양) } : {}),
-      ...(게임 ? { adminKey: 어드민키보낼모양(줄) } : {}),
+      ...(어드민키 ? { adminKey: 어드민키보낼모양(줄) } : {}),
     };
   });
 
@@ -84,8 +86,8 @@ const 이름바꿈 = (it: 줄): boolean => {
 
 /** 대상 서버는 여러 줄이다. 환경변수 한 줄로는 서비스가 셋만 되어도 안 들어간다 (SPEC §8.8) */
 /** 「대상 서버」 구획 안에 선다 — 구획 제목이 칸 이름을 이미 말해 라벨 열 없이 한 줄을 다 쓴다 (도메인/인증 §8.8) */
-export function EnvEditor(p: { envs: 줄[]; onChange: (next: 줄[]) => void; 접두사?: string; api?: boolean; 게임?: boolean }) {
-  const { envs, onChange, 접두사, api = false, 게임 = false } = p;
+export function EnvEditor(p: { envs: 줄[]; onChange: (next: 줄[]) => void; 접두사?: string; api?: boolean; 어드민키?: boolean }) {
+  const { envs, onChange, 접두사, api = false, 어드민키 = false } = p;
   const t = use말();
   // PRD 가 기다리는 역할은 역할 이름 칸의 제안이다. 새 서비스 · 권한 없음 · PRD 없음은 제안이 없을 뿐 오류가 아니라 조용히 비운다 —
   // 제안은 덤이고 직접 쳐서 넣는 길이 그대로 있다 (점검 14.2)
@@ -99,8 +101,10 @@ export function EnvEditor(p: { envs: 줄[]; onChange: (next: 줄[]) => void; 접
             .catch(() => []),
     [접두사],
   ).data ?? [];
-  const PRD역할 = PRD역할들.map((r) => r.role);
-  const 기다림 = PRD역할들.filter((r) => !r.registered).map((r) => r.role);
+  // 「어드민 키」 보류는 계정이 아니라 어드민 키 칸이 푼다 — 역할 이름 후보로 내밀지 않는다
+  const 계정역할들 = PRD역할들.filter((r) => r.role !== 어드민키역할);
+  const PRD역할 = 계정역할들.map((r) => r.role);
+  const 기다림 = 계정역할들.filter((r) => !r.registered).map((r) => r.role);
   return (
     <div className="field field-wide">
       <div className="set-envs" role="group" aria-label={t('대상 서버 목록')}>
@@ -169,7 +173,7 @@ export function EnvEditor(p: { envs: 줄[]; onChange: (next: 줄[]) => void; 접
               }}
               고친다={(역할들) => onChange(envs.map((v, k) => (k === i ? { ...v, 역할들 } : v)))}
             />
-            {게임 ? <어드민키칸 줄={it} 번호={i + 1} 고친다={(어드민) => onChange(envs.map((v, k) => (k === i ? { ...v, 어드민 } : v)))} /> : null}
+            {어드민키 ? <어드민키칸 줄={it} 번호={i + 1} 고친다={(어드민) => onChange(envs.map((v, k) => (k === i ? { ...v, 어드민 } : v)))} /> : null}
             {api ? (
               <API인증칸들
                 인증들={it.API인증들}
@@ -195,8 +199,8 @@ export function EnvEditor(p: { envs: 줄[]; onChange: (next: 줄[]) => void; 접
           <>
             <div className="hint">{t('테스트 계정은 실행과 테스트 작성에서 로그인할 때 사용합니다. 실서비스 서버로 체크하면 테스트 작성과 화면 탐색 대상에서 제외됩니다')}</div>
             <div className="hint">{t('앱 파일 경로는 Android 앱 · 게임 케이스를 돌릴 때 설치할 apk 입니다. Device VISION 이 도는 PC 의 파일 경로나 http(s) 주소를 적고, 비우면 테스트 실행기를 켤 때 준 PLATFORM_APP 을 씁니다')}</div>
-            {게임 ? (
-              <div className="hint">{t('어드민 키는 게임 서버 어드민 API 에 머리로 실어 보냅니다. 케이스가 재화 지급 같은 상태를 만들 때 씁니다. 값은 끝 4자리만 보이고, 두 칸을 비우고 저장하면 지워집니다')}</div>
+            {어드민키 ? (
+              <div className="hint">{t('어드민 키는 서버 어드민 API 에 머리로 실어 보냅니다. 케이스가 재화 지급 같은 상태를 만들 때 씁니다. 값은 끝 4자리만 보이고, 두 칸을 비우고 저장하면 지워집니다')}</div>
             ) : null}
           </>
         )}

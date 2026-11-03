@@ -15,7 +15,7 @@ afterEach(() => {
 });
 
 describe('종류마다 다른 칸', () => {
-  it('API 를 고르면 API 문서 단계가 끼고 문서 경로 · 기준 서버 · 비밀값이 든 API 인증을 보낸다', async () => {
+  it('API 를 고르면 API 문서 단계가 끼고 문서 경로 · 기준 서버 · 비밀값이 든 API 인증 · 어드민 키를 보낸다', async () => {
     const 만듦 = vi.spyOn(api, 'createService').mockResolvedValue({ id: 9 });
     그린다();
     다음();
@@ -31,6 +31,8 @@ describe('종류마다 다른 칸', () => {
     fireEvent.change(칸('토큰 주소'), { target: { value: '/oauth/token' } });
     fireEvent.change(칸('클라이언트 ID'), { target: { value: 'client-a' } });
     fireEvent.change(칸('비밀값'), { target: { value: 'secret-123456789' } });
+    fireEvent.change(screen.getByLabelText('대상 서버 1 어드민 키 머리 이름'), { target: { value: 'X-Admin-Key' } });
+    fireEvent.change(screen.getByLabelText('대상 서버 1 어드민 키 값'), { target: { value: 'secret-admin-0002' } });
     다음();
     fireEvent.change(screen.getByLabelText('문서 경로'), { target: { value: '/openapi.json' } });
     fireEvent.change(screen.getByLabelText('기준 서버'), { target: { value: 'qa' } });
@@ -43,6 +45,7 @@ describe('종류마다 다른 칸', () => {
     const 본문 = 만듦.mock.calls[0]?.[0];
     expect(본문).toMatchObject({ kind: 'API', apiDocPath: '/openapi.json', apiDocEnv: 'qa' });
     expect(본문?.envs[0]?.apiAuths).toEqual([{ name: '고객사 A', tokenUrl: '/oauth/token', clientId: 'client-a', clientSecret: 'secret-123456789' }]);
+    expect(본문?.envs[0]?.adminKey).toEqual({ header: 'X-Admin-Key', value: 'secret-admin-0002' });
   });
 
   it('게임을 고르면 대상 서버 줄에 어드민 키 칸이 서고 adminKey 를 보낸다', async () => {

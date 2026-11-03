@@ -1,7 +1,7 @@
 // 역할별 계정의 에이전트 쪽 판정 검사 — 가릴 비밀번호 목록 · 길이 점검 · 자식 환경 PLATFORM_ACCOUNTS (도메인/작성 §3.6 「★ 역할별 계정」)
 import { describe, expect, it } from 'vitest';
 
-import { type 계정줄, 계정점검, 계정환경, 비밀번호들, 어드민키환경, 환경비밀번호들 } from './authoring-accounts.js';
+import { type 계정줄, 계정점검, 계정환경, 등록역할들, 비밀번호들, 어드민키환경, 환경비밀번호들 } from './authoring-accounts.js';
 
 const 회원: 계정줄 = { env: 'qa', baseUrl: 'https://qa.test', role: '일반 회원', loginId: 'user01', loginPassword: 'member-pw' };
 const 관리자: 계정줄 = { env: 'qa', baseUrl: 'https://qa.test', role: '관리자', loginId: 'admin01', loginPassword: 'admin-pw-long' };
@@ -27,6 +27,14 @@ describe('비밀번호들 — 가릴 비밀번호 전부', () => {
 
   it('긴 것부터 준다 — 짧은 것이 긴 것의 일부여도 긴 것을 먼저 가린다', () => {
     expect(비밀번호들({ target: { loginPassword: 'pass1234' }, accounts: [{ loginPassword: 'pass12345' }] })).toEqual(['pass12345', 'pass1234']);
+  });
+});
+
+describe('등록역할들 — 이어 작성 남은 번호를 맡을 역할', () => {
+  it('accounts 의 역할에 어드민 키가 실렸으면 「어드민 키」를 더한다', () => {
+    expect([...등록역할들({ accounts: [회원, 관리자] })]).toEqual(['일반 회원', '관리자']);
+    expect([...등록역할들({ accounts: [회원], adminKey: 어드민키 })]).toEqual(['일반 회원', '어드민 키']);
+    expect([...등록역할들({})]).toEqual([]);
   });
 });
 
