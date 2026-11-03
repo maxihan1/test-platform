@@ -37,9 +37,10 @@ export function 장면쓰개(파일: string, 간격ms = 쓰기간격ms): 장면�
         await new Promise((끝) => setTimeout(끝, 간격ms));
       }
     } catch (err) {
-      // 장면은 보는 것일 뿐 판정과 상관없다. 다음 장면이 다시 써 본다 — 디스크가 차면 장면마다 찍히지 않게 한 번만 알린다
+      // 장면은 보는 것일 뿐 판정과 상관없다. 다음 장면이 다시 써 본다 — 디스크가 차면 장면마다 찍히지 않게 한 번만 알리고, 쉬었다가 다시 받는다
       if (!알림) console.warn(`[kit] 테스트 모드 장면을 못 썼다 (${파일}): ${글(err)}`);
       알림 = true;
+      await new Promise((끝) => setTimeout(끝, 간격ms));
     } finally {
       도는 = undefined;
     }

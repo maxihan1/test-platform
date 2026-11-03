@@ -143,6 +143,18 @@ describe('장면 열쇠 입구 검사', () => {
     expect(executeScenario).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['/execute', () => 케이스요청({ runId: 12, historyId: 34 })],
+    ['/execute-scenario', () => 시나리오요청({ runId: 12, trialId: undefined })],
+  ] as const)('%s 정식 실행에 열쇠가 오면 400 이다 — 정식 실행은 늦추지도 그리지도 않는다', async (길, 요청) => {
+    const res = await 서버().inject({ method: 'POST', url: 길, payload: 요청() });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().detail).toContain('장면 열쇠');
+    expect(execute).not.toHaveBeenCalled();
+    expect(executeScenario).not.toHaveBeenCalled();
+  });
+
   it('열쇠를 버리지 않고 실행에 넘긴다', async () => {
     vi.mocked(execute).mockResolvedValue({ status: 'PASS', durationMs: 0 } as ExecuteResponse);
 
