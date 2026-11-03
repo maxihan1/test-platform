@@ -11,6 +11,8 @@ import { PLATFORM_LABEL } from './ui.js';
 export interface 모바일고르개 {
   값: 모바일위치;
   on바꿈: (값: 모바일위치) => void;
+  /** 실제 폰을 골랐을 때 덧붙이는 글. 없으면 케이스 글 — 시나리오는 폰을 시나리오에 한 번 잡아 글이 다르다 */
+  덧붙임?: string;
 }
 
 /**
@@ -46,7 +48,7 @@ export function RunLocation({ android, 앱종류, 모바일 }: { android: boolea
               </label>
             </div>
             {/* 실제 폰도 Android 앱처럼 항목마다 빈 폰을 잡고 놓는다 — 같은 글이다 */}
-            {모바일.값 === 'vision' ? <span className="hint">{t('케이스마다 빈 폰을 하나씩 잡고 끝나면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 항목에 남습니다')}</span> : null}
+            {모바일.값 === 'vision' ? <span className="hint">{t(모바일.덧붙임 ?? '케이스마다 빈 폰을 하나씩 잡고 끝나면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 항목에 남습니다')}</span> : null}
           </div>
         </>
       )}

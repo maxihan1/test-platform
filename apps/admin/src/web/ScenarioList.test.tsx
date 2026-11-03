@@ -230,9 +230,14 @@ describe('ScenarioList 실행', () => {
 
     expect((screen.getByRole('radio', { name: '서버 (iPhone 14 흉내)' }) as HTMLInputElement).checked).toBe(true);
     fireEvent.click(screen.getByRole('radio', { name: 'Device VISION (실제 폰 Chrome)' }));
+    // 시나리오는 폰을 한 번 잡는다 — 케이스 글(「케이스마다 …」)이 아니다
+    expect(screen.getByText('시나리오 하나 동안 빈 폰을 한 번 잡고 다 돌면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 실행에 남습니다')).toBeTruthy();
+    expect(screen.queryByText(/케이스마다 빈 폰을/)).toBeNull();
     fireEvent.click(within(행(container, 1)).getByRole('button', { name: '실행' }));
 
     await waitFor(() => expect(실행).toHaveBeenCalledWith(2, 'qa', 'vision'));
+    fireEvent.click(within(행(container, 0)).getByRole('button', { name: '실행' }));
+    await waitFor(() => expect(실행).toHaveBeenLastCalledWith(1, 'qa', 'server'));
   });
 
   it('서버가 거절하면 그 문장을 그 줄 아래에 보인다', async () => {

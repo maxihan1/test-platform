@@ -48,7 +48,8 @@ describe('RunLocation', () => {
     );
 
     const 묶음 = screen.getAllByRole('radiogroup', { name: '모바일 웹' });
-    expect(묶음.map((g) => g.querySelector('input:checked')?.getAttribute('name'))).toHaveLength(2);
+    const 고른것 = (g: HTMLElement) => g.querySelector<HTMLInputElement>('input:checked')?.parentElement?.textContent;
+    expect(묶음.map(고른것)).toEqual(['서버 (iPhone 14 흉내)', 'Device VISION (실제 폰 Chrome)']);
     expect(new Set(묶음.map((g) => g.querySelector('input')?.getAttribute('name'))).size).toBe(2);
   });
 });

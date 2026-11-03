@@ -10,12 +10,11 @@ import { use말, use언어 } from './i18n.js';
 import { 종류 } from './kind.js';
 import { 고른서버를적는다, 마지막서버 } from './layout.js';
 import { Modal } from './Modal.js';
-import { RunLocation } from './RunLocation.js';
 import type { 판정 } from './role.js';
 import { scenarioApi, type ScenarioRow } from './scenarioApi.js';
 import { ScenarioWhy } from './ScenarioListWhy.js';
 import { 결과주소 } from './ScenarioResultNext.js';
-import { 폰실행위치 } from './ScenarioTrial.js';
+import { 모바일실행위치, 폰실행위치 } from './ScenarioTrial.js';
 import { Failed, Loading, message, useAsync, Verdict, when } from './ui.js';
 
 type 마지막 = NonNullable<ScenarioRow['lastRun']>;
@@ -99,7 +98,7 @@ export function ScenarioList({ service, kind, envs, 할수 }: { service: string;
             )}
             {/* 앱 · 게임 애플리케이션의 시나리오는 늘 폰 단계로 시작한다 — 목록의 실행은 정식 실행이라 시험 실행 줄은 뺀다 (§3.7 결정 16) */}
             {종류(kind).시나리오디바이스.includes('android') ? <폰실행위치 시험={false} /> : null}
-            {줄들.some((it) => it.platform === 'mobile') ? <RunLocation android={false} 모바일={{ 값: mobileOn, on바꿈: setMobileOn }} /> : null}
+            {줄들.some((it) => it.platform === 'mobile') ? <모바일실행위치 값={mobileOn} on바꿈={setMobileOn} /> : null}
           </div>
         )}
 
