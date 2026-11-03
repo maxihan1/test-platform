@@ -3,6 +3,8 @@
 
 import { useState } from 'react';
 
+import { 어드민키종류인가 } from '../settings/roles.js';
+
 import { api, ApiError, type ScheduleSetting, type SettingsServiceRow } from './api.js';
 import { use말, use언어, type 언어 } from './i18n.js';
 import { 떠나기상자 } from './leaveGuard.js';
@@ -41,8 +43,7 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
   const [apiDocPath, setApiDocPath] = useState(row.apiDocPath ?? '');
   const [apiDocEnv, setApiDocEnv] = useState(row.apiDocEnv ?? '');
   const API종류 = kind === 'API';
-  // 어드민 키 칸은 게임 · API 종류만 — 서버 어드민 API 를 부르는 케이스가 쓴다
-  const 어드민키종류 = kind === 'GAME' || kind === 'API';
+  const 어드민키종류 = 어드민키종류인가(kind);
   const [제외, set제외] = useState((row.crawlExclude ?? []).join('\n'));
   // 빈 글자와 「안 건드림」은 다르다. null 이면 서버에 아예 안 보낸다 (지금 것을 그대로 둔다)
   const [webhook, setWebhook] = useState<string | null>(null);

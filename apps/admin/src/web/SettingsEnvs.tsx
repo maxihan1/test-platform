@@ -1,6 +1,8 @@
 // 설정 화면의 대상 서버 편집기 (SPEC §8.8 · §6 service_env)
 // 여러 줄이다 — 환경변수 한 줄로는 서비스가 셋만 되어도 안 들어간다
 
+import { 어드민키역할 } from '@platform/kit/accounts';
+
 import { 운영이름인가 } from '../settings/roles.js';
 
 import type { EnvInput, EnvRow } from './api.js';
@@ -99,8 +101,10 @@ export function EnvEditor(p: { envs: 줄[]; onChange: (next: 줄[]) => void; 접
             .catch(() => []),
     [접두사],
   ).data ?? [];
-  const PRD역할 = PRD역할들.map((r) => r.role);
-  const 기다림 = PRD역할들.filter((r) => !r.registered).map((r) => r.role);
+  // 「어드민 키」 보류는 계정이 아니라 어드민 키 칸이 푼다 — 역할 이름 후보로 내밀지 않는다
+  const 계정역할들 = PRD역할들.filter((r) => r.role !== 어드민키역할);
+  const PRD역할 = 계정역할들.map((r) => r.role);
+  const 기다림 = 계정역할들.filter((r) => !r.registered).map((r) => r.role);
   return (
     <div className="field field-wide">
       <div className="set-envs" role="group" aria-label={t('대상 서버 목록')}>

@@ -4,7 +4,7 @@
 import { 기본역할 } from '@platform/kit/accounts';
 
 import { 계정줄env, 막는까닭, 보류재료읽기, 이어작성상태읽기 } from '../authoring/continue.js';
-import { 폰앱종류 } from '../authoring/reverse.js';
+import { 줄로작성종류 } from '../authoring/reverse.js';
 import { db } from '../authoring/store.js';
 import { type 보류재료, 어디든등록, 줄에등록된보류있나 } from './heldQuery.js';
 
@@ -29,7 +29,7 @@ async function 이어갈뿌리(서비스: number, 재료: 보류재료): Promise
       WHERE a.service_id = $1 AND a.kind = 'AUTHOR' AND (a.compare OR s.kind = ANY($2::text[])) AND a.discarded_at IS NULL
         AND NOT (a.params ? 'prdApply') AND NOT (a.params ? 'edits')
       ORDER BY a.id DESC LIMIT ${String(후보상한)}`,
-    [서비스, [...폰앱종류, 'API']],
+    [서비스, 줄로작성종류],
   );
   for (const 행 of r.rows) {
     const env = await 계정줄env(서비스, { 대조env: 행.compare ? 행.env : null, 뿌리env: 행.env }, 행.kind);

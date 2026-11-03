@@ -13,7 +13,7 @@ import { 행커버리지 } from './coverage.js';
 import { 사슬식, 뿌리잠그고, 최신식 } from './history.js';
 import { 막고제출, 열린작성 } from './openRoots.js';
 import { 재실행API } from './apiDoc.js';
-import { 대상줄들읽기, 앱줄고르기, 역방향칸판정, 폰앱인가 } from './reverse.js';
+import { 대상줄들읽기, 앱줄고르기, 역방향칸판정, 줄로작성하나 } from './reverse.js';
 import { db, type 요청 } from './store.js';
 
 /**
@@ -100,7 +100,7 @@ export async function 계정줄env(
   손?: PoolClient,
 ): Promise<string | null> {
   if (뿌리.대조env !== null) return 뿌리.대조env;
-  if (!폰앱인가(종류) && !(종류 === 'API' && 뿌리.뿌리env !== null)) return null;
+  if (!줄로작성하나(종류, 뿌리.뿌리env)) return null;
   return 앱줄고르기(await 대상줄들읽기(서비스, 손), 뿌리.뿌리env)?.env ?? null;
 }
 

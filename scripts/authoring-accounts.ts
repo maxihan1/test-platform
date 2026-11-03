@@ -1,6 +1,8 @@
 // 집기 응답의 역할별 계정 — 가릴 비밀번호 목록 · 길이 점검 · 자식에게 넘길 PLATFORM_ACCOUNTS (도메인/작성 §3.6 「★ 역할별 계정」)
 // 비밀번호를 받는 자리는 모두 `비밀번호들` 하나로 목록을 만든다 — 한 자리라도 target 것만 받으면 그 역할 비밀번호가 PR · 로그에 실린다
 
+import { 어드민키역할 } from '@platform/kit/accounts';
+
 import { type 대상, 비밀최소 } from './authoring-reverse.js';
 
 /** 집기 응답의 `accounts` 한 줄 (도메인/작성 §7 claim). 대조 · 값을 채운 보류 머지 · 반영 행에만 온다 */
@@ -104,6 +106,12 @@ export function 계정환경(계정들: readonly 계정줄[] | undefined, 알림
   if (넘길것.length === 0) return {};
   return { PLATFORM_ACCOUNTS: JSON.stringify(넘길것.map(({ baseUrl, role, loginId, loginPassword }) => ({ baseUrl, role, loginId, loginPassword }))) };
 }
+
+/**
+ * 이어 작성 남은 번호를 맡을 등록 역할 — 집기 accounts 의 역할에, 어드민 키가 실렸으면 고정 이름 「어드민 키」를 더한다 (도메인/작성 §3.6 「★ 역할별 계정」 「계정 미등록」)
+ */
+export const 등록역할들 = (것: { accounts?: readonly Pick<계정줄, 'role'>[]; adminKey?: 어드민키줄 }): Set<string> =>
+  new Set([...(것.accounts ?? []).map((a) => a.role), ...(것.adminKey === undefined ? [] : [어드민키역할])]);
 
 /**
  * 게임 · API 자식 · 돌려 보기에 넘길 어드민 키 — 정식 실행과 같은 이름(`PLATFORM_ADMIN_KEY` — 러너 execute.ts `gameEnv`)이라 kit 이 몸통 admin 을 그대로 만든다.

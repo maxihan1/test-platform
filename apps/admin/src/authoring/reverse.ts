@@ -6,6 +6,7 @@ import type { PoolClient } from 'pg';
 
 import { 문서설정읽기 } from '../apidoc/store.js';
 import { API인증읽기, type API인증, type 어드민키, 어드민키읽기, 역할계정읽기 } from '../settings/envs.js';
+import { 어드민키종류인가 } from '../settings/roles.js';
 
 /**
  * 시작 주소를 받을 수 있으면 **다시 조립한 href** 를, 아니면 null 을 준다.
@@ -121,6 +122,13 @@ export function 앱줄고르기<T extends { env: string; appPath: string | null;
 export const 폰앱종류 = ['APP', 'GAME'];
 export const 폰앱인가 = (kind: string | null | undefined): boolean => 폰앱종류.includes(kind ?? '');
 
+/**
+ * 대조 없이 대상 서버 줄 하나의 계정 · 어드민 키로 작성하는 종류 — 앱 · 게임은 앱 줄, API 는 요청 env 줄(env 가 있어야 한다).
+ * 집기(집기대상칸) · 이어 작성(계정줄env) · 「PRD 관리」 이어 작성 뿌리(held.ts)가 같이 본다 — 어긋나면 화면은 열리는데 서버가 막는다
+ */
+export const 줄로작성종류 = [...폰앱종류, 'API'];
+export const 줄로작성하나 = (kind: string | null | undefined, env: string | null): boolean => 폰앱인가(kind) || (kind === 'API' && env !== null);
+
 /** 집기 응답 target 한 벌 — 운영 줄이면 계정이 비고 isProd 가 붙는다 */
 export function 집기대상(env: string, 원줄: 대상줄 | null, startUrl: string | null): 대상 {
   const 줄 = 작성에실을줄(원줄);
@@ -188,11 +196,11 @@ export async function 집기대상칸(
   // Android 앱 · API 는 대조가 없어(역방향칸판정 · API칸판정 BAD_ENV) 이 길이 아니면 AI 가 로그인할 계정을 받을 곳이 없다 (2026-10-22 · 2026-11-03 사용자).
   // 앞줄(앱은 앱 줄, API 는 작성 행의 대상 서버 줄)을 맨 앞에 둔다 — 자식은 첫 「일반 회원」으로 로그인하는데 반영 · 머지 행은 다른 줄도 싣는다
   const 종류 = (await 문서설정읽기(서비스))?.kind;
-  const 앞줄 = 폰앱인가(종류) || (종류 === 'API' && 행.env !== null) ? 앱줄고르기(await 대상줄들읽기(서비스), 행.env) : undefined;
+  const 앞줄 = 줄로작성하나(종류, 행.env) ? 앱줄고르기(await 대상줄들읽기(서비스), 행.env) : undefined;
   const 줄들 = 앞줄 === undefined ? 그밖 : [앞줄, ...그밖.filter((z) => z.env !== 앞줄.env)];
   const accounts = 실을계정(줄들);
   // 앞줄만 — 계정 · 게임 첫 화면과 같은 서버라야 도우미가 AI 가 로그인한 그 캐릭터를 바꾼다. 앞줄은 「실서비스 서버」가 아니다(앱줄고르기)
-  const 키 = 종류 === 'GAME' || 종류 === 'API' ? 앞줄?.adminKey : undefined;
+  const 키 = 어드민키종류인가(종류) ? 앞줄?.adminKey : undefined;
   const adminKey = 앞줄 === undefined || 키 === undefined || 키 === null ? undefined : { env: 앞줄.env, baseUrl: 앞줄.baseUrl, ...키 };
   return { ...(target === undefined ? {} : { target }), ...(accounts.length === 0 ? {} : { accounts }), ...(adminKey === undefined ? {} : { adminKey }) };
 }

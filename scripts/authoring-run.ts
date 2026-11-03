@@ -11,8 +11,7 @@ import { type 모델, 한도걸렸나 } from './authoring-model.js';
 import { 결제환경, 크레딧먼저, 크레딧바닥났나, 크레딧키이름 } from './authoring-billing.js';
 import { type 자료, 돌릴수있나, 못읽는자료, 입력만, 자료계획, 자료출처, 화면만인가 } from './authoring-assets.js';
 import { 대상점검, 대상환경, 사유거르기 } from './authoring-reverse.js';
-import { 어드민키역할 } from '@platform/kit/accounts';
-import { 계정환경, 비밀번호들, 어드민키환경 } from './authoring-accounts.js';
+import { 계정환경, 등록역할들, 비밀번호들, 어드민키환경 } from './authoring-accounts.js';
 import { 자식환경 } from './authoring-chain.js';
 import { type 계정, 사본환경 } from './authoring-copy.js';
 import { MCP설정쓰기, 사본치우기, 자식거두기, 자식빈환경 } from './authoring-child.js';
@@ -205,7 +204,7 @@ async function 사본에서(
   const 옮긴다 = 이어작성원본 === null && !반영요청인가(것) && !(것.api !== undefined && 계획.length === 0); // API 판만 넣었으면 옮길 것이 없다
   // 가린 뒤 뽑는다 — 사본에 계정 원문이 안 남게. 판정은 메모리의 것으로. 기준 표는 트리가 아니라 기준 SHA 에서. 이어받은 폴더면 앞 결과 파일의 임시 번호를 잇는다
   const 깃 = (인자: string[]) => 친다('git', 인자, 자리.트리, undefined, 120_000, { env: 사본환경(자리) });
-  const 원장 = 원장과남은번호({ 계획, 자료폴더: 자리.자료, 깃, 기준, 서비스, 폴더: 케이스자리, 이어작성원본, 지금: 기획서.앞판.items, 옮긴다, 옮긴몸: 옮긴다 ? 앞결과(자리, 기획서.앞판.items, 서비스) : undefined, 반영: 반영요청인가(것) ? { 지금판: 기획서.앞판.version, 기준판: 기획서.기준판, 화면이맞음: 화면이맞음읽기(것), 테스트고침: 테스트고침읽기(것) } : undefined, 등록역할: new Set([...(것.accounts ?? []).map((a) => a.role), ...(것.adminKey === undefined ? [] : [어드민키역할])]), api: 것.api === undefined ? [] : API원장항목(것.api.문서, 것.api.반영?.operations), 게임: 설정.게임 === true });
+  const 원장 = 원장과남은번호({ 계획, 자료폴더: 자리.자료, 깃, 기준, 서비스, 폴더: 케이스자리, 이어작성원본, 지금: 기획서.앞판.items, 옮긴다, 옮긴몸: 옮긴다 ? 앞결과(자리, 기획서.앞판.items, 서비스) : undefined, 반영: 반영요청인가(것) ? { 지금판: 기획서.앞판.version, 기준판: 기획서.기준판, 화면이맞음: 화면이맞음읽기(것), 테스트고침: 테스트고침읽기(것) } : undefined, 등록역할: 등록역할들(것), api: 것.api === undefined ? [] : API원장항목(것.api.문서, 것.api.반영?.operations), 게임: 설정.게임 === true });
   if ('막힘' in 원장) return void (await 손.끝내기({ status: 'FAILED', error: 원장.막힘 }));
   // 자식은 bare git 을 못 읽는다 — 돌려 보기 · 빠른 검사 명령이 기준과의 차이를 셀 수 있게 기준 SHA 의 tests 목록을 둔다 (§3.6 「돌려 보기 명령」)
   const 기준목록 = 깃(['ls-tree', '-r', '-z', 기준, '--', 'tests']);
@@ -221,6 +220,7 @@ async function 사본에서(
   // 집을 바꾸는 것은 자리 uid 로 돌 때만 — 맥에서 바꾸면 Playwright 가 ~/Library/Caches 의 브라우저를 못 찾는다 (2026-09-24 코드 검토)
   const 환경 = {
     ...자식환경(process.env, 자리.gh, 것.figmaToken),
+    ...어드민키환경(것.adminKey), // 게임 · API 행만 · 앞에 둔다 — 그 줄 주소(PLATFORM_BASE_URL)보다 아래 대조 · API 대상 서버가 이긴다 (도메인/게임 §3.10 「작성 — 한 바퀴」 6 · 도메인/API §3.8)
     // 맥은 둘 다 그대로 — 긴 임시 경로는 유닉스 소켓 104자 한도에 닿을 수 있다
     // 돌려 본 기록 자리는 에이전트가 정한다 — 맥은 TMPDIR 이 시스템 것이라 거기 쓰면 못 찾는다. 임시는 실행마다 새것이다(이어하기만 앞 기록을 옮긴다)
     // 기준 SHA 의 tests 목록 — 돌려 보기 명령이 에이전트 끝 검사와 같은 기준(기준과의 차이)으로 닿은 케이스를 고른다 (§3.6 「돌려 보기 명령」)
@@ -228,10 +228,7 @@ async function 사본에서(
     // 역방향 — 대상 서버·테스트 계정은 환경 변수로만. 프롬프트·인자에는 값을 안 싣는다 (§7 ★)
     ...(것.target === undefined ? {} : 대상환경(것.target)), ...계정환경(것.accounts, (글) => console.log(`[작성] ${것.id}번 ${글}`)), ...탐색환경(앱화면),
     ...(것.api === undefined ? {} : API환경(것.api, 자리.자료)), // API 대상 서버 · 인증 · 판 파일도 환경 변수로만 (도메인/API §3.8 「API 인증」)
-    // 빠른 검사가 게임 지도(game-map.txt · game-elements.json)로 케이스 요소를 본다 (도메인/게임 §3.10 「작성 — 한 바퀴」 4)
-    ...(설정.게임 === true ? { [게임자료환경]: 자리.자료 } : {}),
-    // 상태 도우미 · 돌려 보기가 그 줄 어드민 키로 몸통 admin 을 쓴다 — 서버가 게임 · API 행에만 싣는다 (도메인/게임 §3.10 「작성 — 한 바퀴」 6 · 도메인/API §3.8)
-    ...어드민키환경(것.adminKey),
+    ...(설정.게임 === true ? { [게임자료환경]: 자리.자료 } : {}), // 빠른 검사가 게임 지도(game-map.txt · game-elements.json)로 케이스 요소를 본다 (도메인/게임 §3.10 「작성 — 한 바퀴」 4)
   };
   const 역방향 = 것.target === undefined ? undefined : { 화면만: 화면만인가(것, 자료들), 산출물폴더: join(자리.자료, 'out'), 제외: 설정.제외 };
   const 인자 = MCP붙이기(클로드인자(자리.자료, 판.모델, 자리.임시), MCP설정쓰기(자리.임시, MCP설정글(주소기지, 것.mcpKey), 자식));
