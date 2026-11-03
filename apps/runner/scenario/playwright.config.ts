@@ -24,10 +24,11 @@ export default defineConfig({
   timeout: 0,
   // 케이스 부품 하나는 단독 실행과 같은 시험 한도로 돈다. 루트에 timeout 을 넣는 날 둘이 갈리지 않게 거기서 읽는다 — 없으면 Playwright 기본 30초 (SPEC 도메인/시나리오 §3.7 「동시성 · 시간」)
   // 천천히 도는 시험은 다섯 배로 늘린다 — 늦춘 시간이 한도를 먹어 멀쩡한 부품이 끊긴다. 끄면 틀린 건너뛰기가 빨강 대신 전체 제한 시간에 걸린다
-  // 앱 · 게임 단계는 android project 한도로 돈다 — 단독 앱 실행과 같다 (도메인/시나리오 §3.7 결정 16)
+  // 앱 · 게임 단계는 android project 한도로 돈다 — 단독 앱 실행과 같다 (도메인/시나리오 §3.7 결정 16). Appium 은 늦추지 않으니 늘리지 않는다 —
+  // 늘리면 2분 × 5 가 러너의 부품 몫 벽(5분)을 넘어 그 단계 실패 대신 시나리오 전체가 TIMEOUT 이 된다 (2026-11-03 TMO-F3-01)
   metadata: {
     partTimeoutMs: (root.timeout ?? 30_000) * 늦춤,
-    appPartTimeoutMs: (root.projects?.find((p) => p.name === 'android')?.timeout ?? 120_000) * 늦춤,
+    appPartTimeoutMs: root.projects?.find((p) => p.name === 'android')?.timeout ?? 120_000,
   },
   reporter: [[resolve(here, 'reporter.ts')]],
   // 루트 use 를 그대로 받는다 — 회사 서버의 기본 인증 · 사설 인증서 · 창 띄우기가 단독 실행과 같아야 한다

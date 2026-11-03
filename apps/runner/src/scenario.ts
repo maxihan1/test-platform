@@ -13,6 +13,7 @@ import { 판쓰기, 판지우기 } from './apiDoc.js';
 import { 앱연결을닫는다 } from './appSession.js';
 import { appRoot, gameEnv, tail } from './execute.js';
 import { killTree } from './kill.js';
+import { 장면환경 } from './live.js';
 import { 산출물폴더, 출력폴더를지운다, 출력폴더이름 } from './outputDir.js';
 import { 녹화폴더 } from './recordHar.js';
 
@@ -50,11 +51,9 @@ export function 폰환경(req: ScenarioExecuteRequest): Record<string, string | 
 // 스크린샷 폴더를 kit 을 안 고치고 가른다 — 실제 실행 runs/<runId>/scenario/, 시험 실행 runs/trial/<trialId>/ (SPEC 도메인/러너 §5.2)
 export function scenarioEnv(req: ScenarioExecuteRequest, parts: readonly unknown[] = req.parts): Record<string, string> {
   const 시험 = req.runId === null;
-  // 창을 띄운 시험 실행만 사람이 눈으로 따라간다. 동작마다 1초 쉬게 한다 (SPEC 도메인/시나리오 §7 「시험 실행 규칙」)
-  const 천천히 = 시험 && process.env.PLATFORM_HEADED === '1';
   return {
-    // 늘 적는다 — 러너를 켠 셸에 이 값이 있으면 자식이 물려받아 진짜 실행까지 늦춘다
-    PLATFORM_SLOW_MO: 천천히 ? '1000' : '',
+    // 테스트 모드(장면 열쇠가 온 시험 실행)만 동작마다 1초 쉬고 첫 탭의 장면을 쓴다. 창이 뜨는지는 안 본다 (SPEC 도메인/러너 §5.2 「테스트 모드 — 실시간 장면」)
+    ...장면환경(req.live),
     PLATFORM_SCENARIO_MODE: '1',
     PLATFORM_SCENARIO: JSON.stringify(parts),
     PLATFORM_BASE_URL: req.baseUrl,

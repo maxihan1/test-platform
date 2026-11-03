@@ -37,6 +37,11 @@ const recordHar = z.object({ jobId: z.number().int().positive() }).optional();
 // 게임 · API 애플리케이션 항목만. 원문이 지나간다 — 머리는 kit 이 admin 요청에 넣는다 (공통/3-공유계약 「게임 테스트 타입」)
 const adminKey = z.object({ header: z.string().min(1), value: z.string().min(1) }).optional();
 
+// 테스트 모드의 장면 열쇠. 장면 파일 이름(live/<열쇠>.jpg)에 그대로 들어가 UUID 가 아니면 ../ 로 빠져나갈 수 있다 (SPEC 도메인/러너 §5.2 「테스트 모드 — 실시간 장면」)
+const live = z.string().uuid().optional();
+// 정식 실행은 늦추지도 그리지도 않는다 — 잘못 실린 열쇠 하나로 정식 실행이 다섯 배 느려지지 않게 입구에서 막는다 (SPEC 도메인/실행 §3.2 「테스트 모드」)
+const 장면은시험만 = '장면 열쇠(live)는 테스트 실행 · 시험 실행에만 온다';
+
 export const executeRequest = z.object({
   runId: z.number(),
   historyId: z.number(),
@@ -57,7 +62,8 @@ export const executeRequest = z.object({
   apiAuths,
   apiDoc,
   recordHar,
-});
+  live,
+}).refine((r) => r.live === undefined || r.runId === 0, 장면은시험만);
 
 export const appScreenRequest = z.object({ app: 앱파일경로.optional(), udid: z.string().min(1).optional() });
 
@@ -175,8 +181,10 @@ export const scenarioRequest = z
       .max(1000)
       .optional(),
     recordHar,
+    live,
   })
   .refine((r) => r.runId !== null || r.trialId !== undefined, '시험 실행에는 trialId 가 있어야 한다')
+  .refine((r) => r.live === undefined || r.runId === null, 장면은시험만)
   .superRefine((r, ctx) => {
     const 까닭 = 앱단계에못거는것(r.parts);
     if (까닭 !== undefined) ctx.addIssue({ code: 'custom', message: 까닭 });

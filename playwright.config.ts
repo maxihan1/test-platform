@@ -8,7 +8,7 @@ const artifactsDir = process.env.PLATFORM_ARTIFACTS_DIR ?? './artifacts';
 const outputDir = `${artifactsDir}/playwright/${process.env.PLATFORM_OUTPUT_ID ?? 'local'}`;
 // 러너가 정식 실행에만 켠다. 단계 스크린샷이 이미 있어 화면 녹화 · 소스는 뺀다 (도메인/실행 §3.2 「trace」)
 const trace = process.env.PLATFORM_TRACE === '1' ? { trace: { mode: 'on', snapshots: true, screenshots: false, sources: false } as const } : {};
-// 러너가 창을 띄운 E2E 시험 실행에만 준다. 사람이 눈으로 따라가게 동작마다 쉰다 (도메인/시나리오 §7 「시험 실행 규칙」)
+// 러너가 테스트 모드(장면 열쇠가 온 케이스 테스트 실행 · E2E 시험 실행)에만 준다. 창이 뜨는지는 안 본다 — 장면을 웹에서 보며 따라가게 동작마다 쉰다 (도메인/러너 §5.2 「테스트 모드 — 실시간 장면」)
 const slowMoMs = Number(process.env.PLATFORM_SLOW_MO);
 const 늦추기 = slowMoMs > 0 ? { slowMo: slowMoMs } : {};
 const slowMo = slowMoMs > 0 ? { launchOptions: 늦추기 } : {};

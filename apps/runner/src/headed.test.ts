@@ -6,7 +6,7 @@ async function 설정읽기(): Promise<{ use?: { headless?: boolean; launchOptio
   return (await import('../../../playwright.config.js')).default;
 }
 
-async function 시나리오설정읽기(): Promise<{ metadata?: { partTimeoutMs?: number } }> {
+async function 시나리오설정읽기(): Promise<{ metadata?: { partTimeoutMs?: number; appPartTimeoutMs?: number } }> {
   vi.resetModules();
   return (await import('../scenario/playwright.config.js')).default;
 }
@@ -65,6 +65,11 @@ describe('PLATFORM_SLOW_MO', () => {
   it('시나리오 부품 한도를 다섯 배로 늘린다 — 늦춘 시간이 30초 한도를 먹는다', async () => {
     vi.stubEnv('PLATFORM_SLOW_MO', '1000');
     expect((await 시나리오설정읽기()).metadata?.partTimeoutMs).toBe(150_000);
+  });
+
+  it('앱 · 게임 단계 한도는 늘리지 않는다 — Appium 은 안 늦추고, 늘리면 러너의 부품 몫 벽(5분)을 넘는다', async () => {
+    vi.stubEnv('PLATFORM_SLOW_MO', '1000');
+    expect((await 시나리오설정읽기()).metadata?.appPartTimeoutMs).toBe(120_000);
   });
 
   it('0 이나 숫자가 아닌 값은 늦추지도 한도를 늘리지도 않는다', async () => {

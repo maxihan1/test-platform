@@ -93,6 +93,21 @@ describe('test', () => {
     expect(body).not.toHaveBeenCalled();
   });
 
+  it('동작마다 쉬는 테스트 모드는 웹 케이스의 시험 한도를 다섯 배로 늘린다 — 정식 실행은 그대로다', async () => {
+    const spec = defineCase({ tcId: 'DEMO-H02', name: '보류 케이스', precondition: [], params: null, expected: null, held: '보류' });
+    test(spec, vi.fn());
+    try {
+      for (const [늦춤, 불림] of [['1000', [[150_000]]], ['', []]] as const) {
+        vi.stubEnv('PLATFORM_SLOW_MO', 늦춤);
+        const setTimeout = vi.fn();
+        await expect(pw.registered[0]({ page: {}, request: {} }, { project: { name: 'desktop' }, timeout: 30_000, setTimeout })).rejects.toThrow('skipped');
+        expect(setTimeout.mock.calls).toEqual(불림);
+      }
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it('android 케이스는 extend 로 만든 test 에 page 없이 등록된다', () => {
     test(androidSpec(), vi.fn());
 
