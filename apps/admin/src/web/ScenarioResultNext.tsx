@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { 실패유형이름 } from './DashboardTypes.js';
 import { use말, use언어 } from './i18n.js';
+import type { 모바일위치 } from './api.js';
 import { scenarioApi, type ScenarioRunPart } from './scenarioApi.js';
 import { message } from './ui.js';
 
@@ -22,8 +23,11 @@ export function 멈춘단계<P extends Pick<ScenarioRunPart, 'status'> & { error
   return parts.find((p) => p.status === 'FAIL') ?? parts.find(그단계탓) ?? null;
 }
 
-/** `on새실행` 을 주면 주소를 옮기지 않고 넘긴다 — 실행 기록 결과 칸은 목록을 떠나지 않고 새 실행을 연다 */
-export function useRerun(scenarioId: number, env: string, 어디서: 들어온곳, on새실행?: (runId: number) => void) {
+/**
+ * `on새실행` 을 주면 주소를 옮기지 않고 넘긴다 — 실행 기록 결과 칸은 목록을 떠나지 않고 새 실행을 연다.
+ * `mobileOn` 은 원래 실행이 돈 모바일 실행 위치다 — 같은 서버로 다시 돌리는 것처럼 같은 곳에서 다시 돈다
+ */
+export function useRerun(scenarioId: number, env: string, 어디서: 들어온곳, on새실행?: (runId: number) => void, mobileOn: 모바일위치 = 'server') {
   const 언어 = use언어();
   const [도는중, set도는중] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
@@ -31,7 +35,7 @@ export function useRerun(scenarioId: number, env: string, 어디서: 들어온�
     set도는중(true);
     set오류(null);
     try {
-      const { runId } = await scenarioApi.run(scenarioId, env);
+      const { runId } = await scenarioApi.run(scenarioId, env, mobileOn);
       if (on새실행 === undefined) window.location.hash = 결과주소(runId, 어디서);
       else on새실행(runId);
     } catch (err) {

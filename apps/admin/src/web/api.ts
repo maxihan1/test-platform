@@ -179,7 +179,12 @@ export type RunListRow = RunSummary & {
   /** 그 실행에 든 디바이스와 앱 · 게임 항목을 돌린 폰 모델(글자 차례) — 줄의 실행 위치 (도메인/실행 §8.7 「줄」) */
   platforms?: Platform[];
   devices?: string[];
+  /** 실제 폰 Chrome 에서 돈 모바일 항목의 폰 모델 — 비면 그 실행의 모바일은 서버 흉내다 (도메인/실행 §3.2 「모바일 웹 실행 위치」) */
+  mobileDevices?: string[];
 };
+
+/** 모바일 웹 실행 위치 — 서버 러너의 iPhone 14 흉내 · Device VISION 실제 폰 Chrome (도메인/실행 §3.2 「모바일 웹 실행 위치」) */
+export type 모바일위치 = 'server' | 'vision';
 
 /**
  * 실행 집계 (도메인/실행 §7). pass·fail·na·running 은 미확정까지 모든 항목이고, `unconfirmed` 는 그중 미확정 항목 수 하나다 (§3.2).
@@ -1178,7 +1183,7 @@ export const api = {
   },
 
   run: (runId: number) =>
-    call<RunSummary & { items: RunItemSummary[]; evidence: EvidenceRow[]; apiDocVersion?: number | null; apiDocNote?: 'DIFFERS' | 'FETCH_FAILED' | null; installedApps?: 폰에깔린앱[] }>(
+    call<RunSummary & { items: RunItemSummary[]; evidence: EvidenceRow[]; apiDocVersion?: number | null; apiDocNote?: 'DIFFERS' | 'FETCH_FAILED' | null; installedApps?: 폰에깔린앱[]; mobileDevices?: string[] }>(
       `/runs/${runId}`,
     ),
 
@@ -1221,9 +1226,9 @@ export const api = {
   }) => call<{ runId: number; attachedTo?: number | null }>('/runs', json(body)),
 
   /** 지금 이 케이스 한 건을 걸면 붙을 실행 — 실행 창 「결과가 남는 곳」 (도메인/실행 §7 `rerun-target`) */
-  rerunTarget: (tcId: string, env: string, platforms: Platform[]) =>
+  rerunTarget: (tcId: string, env: string, platforms: Platform[], mobileOn: 모바일위치 = 'server') =>
     call<{ target: { runId: number; title: string; startedAt: string } | null }>(
-      `/cases/${encodeURIComponent(tcId)}/rerun-target?${new URLSearchParams({ env, platforms: platforms.join(',') }).toString()}`,
+      `/cases/${encodeURIComponent(tcId)}/rerun-target?${new URLSearchParams({ env, platforms: platforms.join(','), mobileOn }).toString()}`,
     ),
 
   /** 대기 중인 것과 돌고 있는 것을 둘 다 끊는다 (SPEC §8.3) */

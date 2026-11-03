@@ -111,6 +111,7 @@ export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; 
         <RunWindow
           tcIds={[item.tcId]}
           지난값={{ [item.tcId]: { params: item.params, expected: item.expected } }}
+          위치실행={item.runId}
           onClose={() => set다시(false)}
         />
       )}

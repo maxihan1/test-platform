@@ -1,6 +1,6 @@
 // 목록에서 고른 케이스를 실행 요청 항목으로 바꾸는 계산 (SPEC §8.2). 화면 조각은 없다
 
-import type { CaseRow, RunRequestItem } from './api.js';
+import type { CaseRow, RunRequestItem, 모바일위치 } from './api.js';
 import { 항목수 } from './runPlan.js';
 import type { Field } from './schema.js';
 
@@ -10,6 +10,8 @@ export interface 실행요청 {
   repeat: number;
   notifySlack: boolean;
   items: RunRequestItem[];
+  /** 고른 케이스에 모바일이 있을 때만 싣는다. 없으면 서버가 서버 흉내로 돈다 (도메인/실행 §7 `POST /api/runs`) */
+  mobileOn?: 모바일위치;
 }
 
 /** 모달에서 케이스마다 고쳐 넣은 값. 안 고친 케이스는 아예 없다 */
@@ -80,6 +82,11 @@ export function 지난값글자(fields: Field[], 값들: Record<string, unknown>
 /** 실행 위치 안내 줄을 보일지 가른다 (SPEC §8.10) */
 export function 안드로이드있나(케이스들: CaseRow[]): boolean {
   return 케이스들.some((c) => c.platforms.includes('android'));
+}
+
+/** 모바일 웹 실행 위치 줄을 세우고 요청에 mobileOn 을 실을지 가른다 (도메인/실행 §8.2) */
+export function 모바일있나(케이스들: CaseRow[]): boolean {
+  return 케이스들.some((c) => c.platforms.includes('mobile'));
 }
 
 /**

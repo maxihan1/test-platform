@@ -34,8 +34,25 @@ describe('ScenarioBuild 정식 실행', () => {
     서버고르기();
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
     await waitFor(() => expect(window.location.hash).toBe('#/runs/501?from=scenario'));
-    expect(run).toHaveBeenCalledWith(12, 'qa');
+    expect(run).toHaveBeenCalledWith(12, 'qa', 'server');
     expect(update).not.toHaveBeenCalled();
+  });
+
+  it('모바일 시나리오는 머리 아래에서 모바일 웹 실행 위치를 고르고 그 값으로 실행을 건다 — 기본은 서버 흉내 (도메인/실행 §3.2 「모바일 웹 실행 위치」)', async () => {
+    await 기존그리기({ platform: 'mobile' }, 서버있는사람());
+    const run = vi.spyOn(scenarioApi, 'run').mockResolvedValue({ runId: 503 });
+    서버고르기();
+
+    expect((screen.getByRole('radio', { name: '서버 (iPhone 14 흉내)' }) as HTMLInputElement).checked).toBe(true);
+    fireEvent.click(screen.getByRole('radio', { name: 'Device VISION (실제 폰 Chrome)' }));
+    fireEvent.click(screen.getByRole('button', { name: '실행' }));
+
+    await waitFor(() => expect(run).toHaveBeenCalledWith(12, 'qa', 'vision'));
+  });
+
+  it('PC 시나리오에는 모바일 웹 실행 위치가 없다', async () => {
+    await 기존그리기({}, 서버있는사람());
+    expect(screen.queryByRole('radiogroup', { name: '모바일 웹' })).toBeNull();
   });
 
   it('고친 게 있으면 「저장하고 실행」이 저장한 뒤 실행한다', async () => {
@@ -86,7 +103,7 @@ describe('ScenarioBuild 정식 실행', () => {
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'stg' } });
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
 
-    await waitFor(() => expect(run).toHaveBeenCalledWith(12, 'stg'));
+    await waitFor(() => expect(run).toHaveBeenCalledWith(12, 'stg', 'server'));
   });
 
   it('이미 고른 서버가 섞인 단계 때문에 막히면 고르지 않은 것으로 돌아가 고르라는 문장이 뜬다', async () => {

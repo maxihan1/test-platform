@@ -63,8 +63,8 @@ export const 오류말: Record<string, string> = {
   BAD_CONFLICT: '이 반영의 중복 목록에 없는 케이스입니다. 새로 고쳐 보세요',
   MERGE_ACTIVE: '반영이 대기 중이거나 진행 중이라 지금은 고를 수 없습니다',
 
-  // Android 앱 실행 (도메인/실행 §8.2 · §8.10). 케이스 테스트 실행 · 실행 만들기가 같이 만난다
-  FARM_OFF: '이 서버에는 Android 앱을 돌릴 Device VISION 이 연결되어 있지 않습니다',
+  // Android 앱 · 실제 폰 모바일 웹 실행 (도메인/실행 §8.2 · §8.10). 케이스 테스트 실행 · 실행 만들기가 같이 만난다 — 앱만의 글이면 실제 폰을 고른 모바일 웹에 틀린다(2026-11-04 TMO-F4-04)
+  FARM_OFF: '이 서버에는 폰에서 돌릴 Device VISION 이 연결되어 있지 않습니다',
   DEVICE_BUSY: '디바이스가 다른 실행에 쓰이고 있습니다',
 
   // E2E 시나리오 (도메인/시나리오 §7). TRIAL_BUSY · TRIAL_NOT_FOUND 는 시험 실행 화면이 따로 다룬다

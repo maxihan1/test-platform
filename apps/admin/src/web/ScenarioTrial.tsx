@@ -8,6 +8,7 @@ import { scenarioApi, type TrialResult } from './scenarioApi.js';
 import { PartTrace } from './ScenarioResultPart.js';
 import { 멈춘사유글자 } from './scenarioResultView.js';
 import { 가리킴빈곳, 종류글, 카드요약, type 재료들 } from './scenarioView.js';
+import { RunLocation, type 모바일고르개 } from './RunLocation.js';
 import { 장면칸 } from './TrialLive.js';
 import { seconds, Verdict } from './ui.js';
 import type { 시험상태 } from './useScenarioTrial.js';
@@ -42,11 +43,20 @@ export function 폰실행위치({ 시험 = true }: { 시험?: boolean }) {
 }
 
 /**
+ * 모바일 시나리오의 정식 실행 위치 덩이 — 실행 창과 같은 줄이다 (도메인/실행 §8.2 「모바일 웹 「실행 위치」 고르개」).
+ * 실제 폰은 시나리오에 한 번 잡아 덧붙임 글이 앱 · 게임 시나리오 안내와 같다 (도메인/시나리오 §3.7 「모바일 시나리오를 실제 폰에서 돌릴 때」)
+ */
+export function 모바일실행위치(고르개: 모바일고르개) {
+  return <RunLocation android={false} 모바일={{ ...고르개, 덧붙임: '시나리오 하나 동안 빈 폰을 한 번 잡고 다 돌면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 실행에 남습니다' }} />;
+}
+
+/**
  * 시작한 시험의 오른쪽 실시간 칸. 시작 응답이 오기 전에도 누르자마자 칸을 연다.
  * 단계를 바꿔 결과를 비운 시험(idle)은 장면도 안 보인다.
- * Android 시나리오도 장면을 묻는다 — PC 로 도는 웹 단계가 낄 수 있고, 앱 단계뿐이면 장면 없이 VISION 링크만 선다
+ * Android 시나리오도 장면을 묻는다 — PC 로 도는 웹 단계가 낄 수 있고, 앱 단계뿐이면 장면 없이 VISION 링크만 선다.
+ * 모바일 시나리오는 폰을 잡으면 실제 폰 Chrome 이라 장면이 없다 — 링크 칸이다 (도메인/실행 §3.2 「테스트 모드」)
  */
-export function 시험장면({ 시험 }: { 시험: 시험상태 }) {
+export function 시험장면({ 시험, 모바일 = false }: { 시험: 시험상태; 모바일?: boolean }) {
   if (시험.단계 === 'idle' || (시험.trialId === null && 시험.단계 !== 'running')) return null;
   return (
     <장면칸
@@ -54,6 +64,7 @@ export function 시험장면({ 시험 }: { 시험: 시험상태 }) {
       주소={시험.trialId === null ? null : scenarioApi.trialLive(시험.trialId)}
       도는중={시험.단계 === 'running'}
       vision={시험.vision}
+      모바일웹={모바일}
     />
   );
 }

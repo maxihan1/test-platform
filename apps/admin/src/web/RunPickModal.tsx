@@ -3,11 +3,11 @@
 
 import { useState } from 'react';
 
-import { ApiError, type CaseRow, type ServiceRow, type User } from './api.js';
+import { ApiError, type CaseRow, type ServiceRow, type User, type 모바일위치 } from './api.js';
 import { Form } from './Form.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
-import { type 글자표, type 실행요청, 건수재료, 몇건, 실행항목, 안드로이드있나 } from './pickRun.js';
+import { type 글자표, type 실행요청, 건수재료, 몇건, 실행항목, 안드로이드있나, 모바일있나 } from './pickRun.js';
 import { 고른서버를적는다, 마지막서버 } from './layout.js';
 import { RunLocation } from './RunLocation.js';
 import { use닫기묻기, 건수풀이, 반복과알림, 실행버튼들 } from './RunPickFoot.js';
@@ -52,9 +52,11 @@ interface Props {
   onRun: (요청: 실행요청) => void;
   /** 「실패 1건 다시 실행」의 원래 실행 — 「결과가 남는 곳」이 그 실행에 붙는지 읽는다 */
   원래실행?: number;
+  /** 미리 고를 모바일 실행 위치. 다시 실행은 원래 실행이 돈 곳이고 그 밖은 서버 흉내다 (도메인/실행 §3.2 「모바일 웹 실행 위치」) */
+  초기모바일?: 모바일위치;
 }
 
-export function RunPickModal({ 케이스들, service, 초기글자, 초기서버, user, 사유, 안내, 거는중, onClose, on값고침, on다시읽기, onRun, 원래실행 }: Props) {
+export function RunPickModal({ 케이스들, service, 초기글자, 초기서버, user, 사유, 안내, 거는중, onClose, on값고침, on다시읽기, onRun, 원래실행, 초기모바일 }: Props) {
   const t = use말();
   const 언어 = use언어();
   // **기본값을 두지 않는다.** 안 고르면 빈 칸이 아니라 틀린 값이 증적에 남는다 (SPEC §8.2).
@@ -66,6 +68,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
       : service === null ? '' : 마지막서버(service.prefix, service.envs),
   );
   const [repeat, setRepeat] = useState('1');
+  const [mobileOn, setMobileOn] = useState<모바일위치>(초기모바일 ?? 'server');
   const [notifySlack, setNotifySlack] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   // 칸 아래 사유를 언제 보일까. 치는 동안 빨간 글이 따라다니면 다 적기도 전에 틀렸다고 말한다
@@ -99,7 +102,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
   const 반복수 = Math.max(1, Math.floor(Number(repeat) || 1));
   const 건수 = 몇건(돌릴것, 반복수);
   const 너무많나 = 넘었나(건수);
-  const android = 안드로이드있나(돌릴것);
+  const [android, 모바일] = [안드로이드있나(돌릴것), 모바일있나(돌릴것)];
   const 주소 = service?.envs.find((it) => it.env === env)?.baseUrl ?? null;
   // 「▶ 테스트 실행」 — 기록 없이 한 건씩 차례로 (도메인/실행 §8.10)
   const 시험 = use여러건시험({ 케이스들: 돌릴것, 고친값: 값.고친값, env, 알림: setNotice });
@@ -157,6 +160,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
       repeat: 반복수,
       notifySlack,
       items: 실행항목(돌릴것, 값.고친값),
+      ...(모바일 ? { mobileOn } : {}),
     });
   }
 
@@ -204,7 +208,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
           <span className="err">{t('이 애플리케이션에 등록된 대상 서버가 없습니다. 설정에서 추가해야 실행할 수 있습니다')}</span>
         ) : null}
       </div>
-      <RunLocation android={android} 앱종류={service?.kind} />
+      <RunLocation android={android} 앱종류={service?.kind} 모바일={모바일 ? { 값: mobileOn, on바꿈: (값) => { 손댐(); setMobileOn(값); } } : undefined} />
       {한건 === null ? null : (
         <한건머리
           케이스={한건}
@@ -286,7 +290,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
         repeat={repeat}
         on반복={(값) => { 손댐(); setRepeat(값); }}
         slack칸={service?.hasSlackWebhook === true}
-        남는곳={{ tcId: 한건?.tcId ?? null, 디바이스: 하나.디바이스, env, 반복수, 원래실행 }}
+        남는곳={{ tcId: 한건?.tcId ?? null, 디바이스: 하나.디바이스, env, 반복수, 원래실행, mobileOn }}
         notifySlack={notifySlack}
         onSlack={setNotifySlack}
       />

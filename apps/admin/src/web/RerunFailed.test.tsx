@@ -1,12 +1,19 @@
 // @vitest-environment jsdom
 // 실행 결과 머리의 「실패 N건 다시 실행」 (도메인/실행 §8.3 · §8.10)
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { api, type CaseRow, type ItemStatus, type Platform, type RunItemSummary } from './api.js';
 import { 실패다시실행, 실패디바이스, 실패케이스들 } from './RerunFailed.js';
 import { 사람 } from './runPick.fixture.js';
+
+const 원래실행 = (mobileDevices: string[]) =>
+  ({ runId: 20914, env: 'stage', items: [], mobileDevices }) as unknown as Awaited<ReturnType<typeof api.run>>;
+
+beforeEach(() => {
+  vi.spyOn(api, 'run').mockResolvedValue(원래실행([]));
+});
 
 afterEach(() => {
   cleanup();
@@ -159,6 +166,23 @@ describe('실패다시실행', () => {
       ['ZRS-001', ['mobile']],
       ['ZRS-002', ['desktop', 'mobile']],
     ]);
+  });
+
+  it('원래 실행의 모바일이 실제 폰에서 돌았으면 실제 폰을 미리 골라 걸 때 mobileOn vision 을 싣는다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)', async () => {
+    vi.spyOn(api, 'run').mockResolvedValue(원래실행(['SM-G996N']));
+    vi.spyOn(api, 'caseOf').mockImplementation((tcId) => Promise.resolve({ ...케이스(tcId), platforms: ['mobile'] }));
+    vi.spyOn(api, 'me').mockResolvedValue({ user: 사람 });
+    vi.spyOn(api, 'paramSets').mockResolvedValue({ items: [] });
+    const 만들기 = vi.spyOn(api, 'createRun').mockResolvedValue({ runId: 20915 });
+    render(<실패다시실행 runId={20914} items={[항목('ZRS-001', 'FAIL', 'mobile')]} env="stage" 된다 on걸었다={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: '실패 1건 다시 실행' }));
+    await screen.findByRole('dialog');
+
+    expect((screen.getByRole('radio', { name: 'Device VISION (실제 폰 Chrome)' }) as HTMLInputElement).checked).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: '실행' }));
+
+    await waitFor(() => expect(만들기).toHaveBeenCalled());
+    expect(만들기.mock.calls[0]?.[0]).toMatchObject({ rerunOf: 20914, mobileOn: 'vision' });
   });
 
   it('그 실행이 시작된 뒤 저장값이 바뀐 케이스는 창 위에 알린다', async () => {

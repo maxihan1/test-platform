@@ -143,7 +143,7 @@ describe('RunList 줄 (§8.7 「A안」)', () => {
     expect(둘?.querySelector('.fc-fixed')?.textContent).toBe('해결 2');
   });
 
-  it('실행 위치 — 웹은 디바이스마다 브라우저, 앱 · 게임은 Device VISION 과 폰 모델', async () => {
+  it('실행 위치 — 웹은 디바이스마다 브라우저, 앱 · 게임 · 실제 폰 모바일은 Device VISION 과 폰 모델', async () => {
     const { container } = await 그리기({
       ...한쪽,
       items: [
@@ -151,6 +151,8 @@ describe('RunList 줄 (§8.7 「A안」)', () => {
         실행(2137, 0, { platforms: ['android'], devices: ['SM-S911N'] }),
         실행(2138, 0, { platforms: ['android'], devices: ['Pixel 7', 'SM-S911N'] }),
         실행(2139, 0, { platforms: ['android'], devices: [] }),
+        실행(2140, 0, { platforms: ['desktop', 'mobile'], mobileDevices: ['SM-G996N'] }),
+        실행(2141, 0, { platforms: ['mobile'], mobileDevices: ['Pixel 7', 'SM-G996N'], devices: [] }),
       ],
     });
     await screen.findByText('ZRL 실행 2136');
@@ -160,6 +162,8 @@ describe('RunList 줄 (§8.7 「A안」)', () => {
     expect(글[1]).toContain('qa · Device VISION · SM-S911N · 김검사');
     expect(글[2]).toContain('qa · Device VISION · Pixel 7 외 1대 · 김검사');
     expect(글[3]).toContain('qa · Device VISION · 김검사');
+    expect(글[4]).toContain('qa · PC Chrome · Device VISION · SM-G996N · 김검사');
+    expect(글[5]).toContain('qa · Device VISION · Pixel 7 외 1대 · 김검사');
   });
 
   it('미확정은 「그중 미확정 N건」 한 줄이고 없으면 쓰지 않는다', async () => {

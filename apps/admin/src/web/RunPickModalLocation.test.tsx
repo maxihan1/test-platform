@@ -39,10 +39,10 @@ const 서비스: ServiceRow = {
   permissions: { cases: 'write', runs: 'write', authoring: 'write' },
 };
 
-function 그리기(케이스들: CaseRow[] = [값없는케이스]) {
+function 그리기(케이스들: CaseRow[] = [값없는케이스], 초기모바일?: 'server' | 'vision') {
   const onRun = vi.fn();
   const onClose = vi.fn();
-  render(<RunPickModal 케이스들={케이스들} service={서비스} onRun={onRun} onClose={onClose} />);
+  render(<RunPickModal 케이스들={케이스들} service={서비스} onRun={onRun} onClose={onClose} 초기모바일={초기모바일} />);
   return { onRun, onClose };
 }
 
@@ -55,7 +55,7 @@ describe('RunPickModal 실행 위치 (SPEC §8.10)', () => {
     const { onRun } = 그리기([값없는케이스, 안드로이드케이스]);
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
 
-    expect(screen.getByText('실행 위치 · Device VISION')).toBeTruthy();
+    expect(screen.getByText('Device VISION')).toBeTruthy();
     expect((실행버튼() as HTMLButtonElement).disabled).toBe(false);
     fireEvent.click(실행버튼());
 
@@ -63,13 +63,36 @@ describe('RunPickModal 실행 위치 (SPEC §8.10)', () => {
     expect(onRun.mock.calls[0]?.[0]).not.toHaveProperty('location');
   });
 
-  it('브라우저만이면 안내가 없고 location 을 싣지 않는다', () => {
-    const { onRun } = 그리기();
+  it('PC 만이면 실행 위치 덩이가 없고 location · mobileOn 을 싣지 않는다', () => {
+    const { onRun } = 그리기([케이스('ZPM-004', ['desktop'], 빈스키마)]);
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
 
     fireEvent.click(실행버튼());
 
-    expect(screen.queryByText(/실행 위치/)).toBeNull();
+    expect(screen.queryByRole('radiogroup')).toBeNull();
     expect(onRun.mock.calls[0]?.[0]).not.toHaveProperty('location');
+    expect(onRun.mock.calls[0]?.[0]).not.toHaveProperty('mobileOn');
+  });
+
+  it('모바일이 있으면 서버 흉내로 열려 mobileOn server 를 싣고, 실제 폰을 고르면 vision 을 싣는다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)', () => {
+    const { onRun } = 그리기();
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
+
+    expect((screen.getByRole('radio', { name: '서버 (iPhone 14 흉내)' }) as HTMLInputElement).checked).toBe(true);
+    fireEvent.click(실행버튼());
+    expect(onRun.mock.calls[0]?.[0].mobileOn).toBe('server');
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Device VISION (실제 폰 Chrome)' }));
+    fireEvent.click(실행버튼());
+    expect(onRun.mock.calls[1]?.[0].mobileOn).toBe('vision');
+  });
+
+  it('여는 쪽이 실제 폰을 미리 고르면 그것으로 열린다 — 다시 실행은 원래 실행이 돈 곳이다', () => {
+    const { onRun } = 그리기([값없는케이스], 'vision');
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
+
+    expect((screen.getByRole('radio', { name: 'Device VISION (실제 폰 Chrome)' }) as HTMLInputElement).checked).toBe(true);
+    fireEvent.click(실행버튼());
+    expect(onRun.mock.calls[0]?.[0].mobileOn).toBe('vision');
   });
 });

@@ -79,6 +79,7 @@ export function 시험나눔({
             vision={지금.vision}
             부제={부제}
             폰만={지금.platform === 'android'}
+            모바일웹={지금.platform === 'mobile'}
           />
         )}
       </div>

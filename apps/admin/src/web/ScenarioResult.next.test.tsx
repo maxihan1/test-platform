@@ -43,7 +43,14 @@ describe('실패 안내 줄', () => {
     expect(단추들).toHaveLength(1);
     fireEvent.click(단추들[0]!);
     await waitFor(() => expect(window.location.hash).toBe('#/runs/88'));
-    expect(run).toHaveBeenCalledWith(12, 'qa');
+    expect(run).toHaveBeenCalledWith(12, 'qa', 'server');
+  });
+
+  it('실제 폰에서 돈 모바일 시나리오는 다시 실행도 실제 폰으로 건다 — 흉내는 기기 칸이 비어 서버 흉내다', async () => {
+    연다(결과({ platform: 'mobile', device: { model: 'SM-G996N', osVersion: '15', appVersion: null, browser: '156.0.7339.51' } }));
+    const run = vi.spyOn(scenarioApi, 'run').mockResolvedValue({ runId: 89 });
+    fireEvent.click(await screen.findByRole('button', { name: 'qa에서 다시 실행' }));
+    await waitFor(() => expect(run).toHaveBeenCalledWith(12, 'qa', 'vision'));
   });
 
   it('실행 기록 결과 칸에서 다시 실행하면 주소를 옮기지 않고 새 실행 번호를 넘긴다', async () => {

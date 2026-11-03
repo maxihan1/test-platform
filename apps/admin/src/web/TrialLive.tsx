@@ -85,11 +85,18 @@ interface Props {
    * 시나리오에는 안 쓴다 — Android 시나리오에도 PC 로 도는 웹 단계가 낄 수 있다
    */
   폰만?: boolean;
+  /**
+   * 모바일 웹 케이스 · 시나리오. VISION 이 폰을 잡으면 실제 폰 Chrome 에서 도는 것이라 장면이 오지 않는다(러너 §5.2 「모바일 웹 — 실제 폰 Chrome」) —
+   * 그때부터 폰만처럼 링크 칸이다. 폰을 잡기 전에는 팜 없는 서버의 흉내일 수도 있어 장면을 기다린다
+   */
+  모바일웹?: boolean;
 }
 
 /** 시작한 테스트 모드 하나의 칸. 끝나도 마지막 장면을 그대로 둔다. 장면 없이 끝났으면 칸을 그리지 않는다 */
-export function 장면칸({ 주소, 도는중, vision, 부제, 폰만 = false }: Props) {
+export function 장면칸({ 주소, 도는중, vision, 부제, 폰만: 앱폰 = false, 모바일웹 = false }: Props) {
   const t = use말();
+  const 실제폰웹 = 모바일웹 && vision !== null;
+  const 폰만 = 앱폰 || 실제폰웹;
   const { 그림, 비었나, 못닿음 } = use장면(폰만 ? null : 주소, 도는중);
   if (!도는중 && 그림 === null) return null;
   // 섞인 E2E 의 앱 단계 — 마지막 웹 장면을 흐리게 두고 폰으로 보낸다. E2E 는 창 하나라 웹 장면이 한 번 온 뒤의 「장면 없음」은 폰 단계뿐이다.
@@ -101,7 +108,7 @@ export function 장면칸({ 주소, 도는중, vision, 부제, 폰만 = false }:
       <div className="live-head">
         {도는중 ? <span className="pulse" aria-hidden="true" /> : null}
         <b>{폰만 ? t('폰 화면') : 도는중 ? t('실시간 화면') : t('마지막 화면')}</b>
-        <span className="live-sub">{부제 ?? t('서버 브라우저')}</span>
+        <span className="live-sub">{부제 ?? (실제폰웹 ? t('실제 폰 Chrome') : t('서버 브라우저'))}</span>
         {vision === null ? null : (
           <a className="btn small ghost live-vision" href={vision} target="_blank" rel="noreferrer">
             {t('Device VISION 에서 보기 ↗')}
@@ -110,7 +117,11 @@ export function 장면칸({ 주소, 도는중, vision, 부제, 폰만 = false }:
       </div>
       {폰만 ? (
         <p className="live-wait">
-          {vision === null ? t('빈 폰을 잡고 있습니다') : t('이 케이스는 Device VISION 폰에서 실행됩니다. 폰 화면은 새 탭에서 봅니다')}
+          {vision === null
+            ? t('빈 폰을 잡고 있습니다')
+            : 실제폰웹
+              ? t('모바일 웹은 Device VISION 실제 폰 Chrome 에서 실행됩니다. 폰 화면은 새 탭에서 봅니다')
+              : t('이 케이스는 Device VISION 폰에서 실행됩니다. 폰 화면은 새 탭에서 봅니다')}
         </p>
       ) : 그림 === null ? (
         <p className="live-wait">
@@ -128,6 +139,9 @@ export function 장면칸({ 주소, 도는중, vision, 부제, 폰만 = false }:
         <p className="live-note bad">{t('테스트 실행기에 닿지 않아 화면을 받지 못했습니다. 다시 받아 봅니다')}</p>
       ) : 도는중 && !폰만 ? (
         <p className="live-note">{t('누른 곳을 표시하며 동작마다 1초씩 쉬어 갑니다')}</p>
+      ) : 도는중 && 실제폰웹 ? (
+        // 실제 폰도 늦춘다. 누른 곳 표시는 장면에 그리는 것이라 폰 화면에는 없다 (러너 §5.2)
+        <p className="live-note">{t('동작마다 1초씩 쉬어 갑니다')}</p>
       ) : null}
     </section>
   );

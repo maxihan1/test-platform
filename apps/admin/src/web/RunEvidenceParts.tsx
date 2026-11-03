@@ -1,4 +1,4 @@
-// 실패 카드 시간축 증거의 작은 부품 — 네트워크 눈금 줄 · FPS 선 · 「기기 정보」 · 「오브젝트」 탭 본문 (WEB-F7-19 · WEB-F7-24 · WEB-F7-25 · DESIGN.md 「시간축 증거」)
+// 실패 카드 시간축 증거의 작은 부품 — 네트워크 눈금 줄 · FPS 선 · 「기기 정보」 · 「오브젝트」 · API 요청 · 응답 · 기대값 차이 탭 본문 (WEB-F7-19 · WEB-F7-24 · WEB-F7-25 · DESIGN.md 「시간축 증거」)
 
 import type { DeviceInfo, ElementCheck, FpsSample, StepResult } from '@platform/kit';
 import { GAME_TREE_FILE } from '@platform/kit/protocol';
@@ -94,11 +94,15 @@ export function FPS선({ steps, fps, 폭 }: { steps: StepResult[]; fps: FpsSampl
   );
 }
 
-/** 못 읽은 칸은 「모름」 — 지어내지 않는다. 판은 실행 전체라 단계를 바꿔도 같다 */
+/**
+ * 못 읽은 칸은 「모름」 — 지어내지 않는다. 판은 실행 전체라 단계를 바꿔도 같다.
+ * 실제 폰 모바일 항목은 앱이 아니라 Chrome 에서 돌아 앱 버전 자리에 Chrome 판이 선다 — 러너가 그 항목에만 browser 칸을 싣는다 (kit DeviceInfo · 도메인/실행 §3.2 「모바일 웹 실행 위치」)
+ */
 export function 기기정보({ device, 이름 }: { device: DeviceInfo | null; 이름: string | null }) {
   const t = use말();
   const 모름 = t('모름');
   const 앱 = [device?.appVersion ?? null, device?.appBuild == null ? null : t('빌드 {번호}', { 번호: device.appBuild })].filter((x) => x !== null);
+  const 크롬 = device?.browser !== undefined;
   return (
     <>
       {이름 === null ? null : <b>{이름}</b>}
@@ -107,8 +111,8 @@ export function 기기정보({ device, 이름 }: { device: DeviceInfo | null; �
         <dd className="mono">{device?.model ?? 모름}</dd>
         <dt>Android</dt>
         <dd className="mono">{device?.osVersion ?? 모름}</dd>
-        <dt>{t('앱 버전')}</dt>
-        <dd className="mono">{앱.length === 0 ? 모름 : 앱.join(' · ')}</dd>
+        <dt>{크롬 ? 'Chrome' : t('앱 버전')}</dt>
+        <dd className="mono">{크롬 ? (device?.browser ?? 모름) : 앱.length === 0 ? 모름 : 앱.join(' · ')}</dd>
       </dl>
     </>
   );
@@ -167,5 +171,37 @@ export function 게임오브젝트({ 대조, 목록주소, 이름 }: { 대조: E
         </>
       )}
     </>
+  );
+}
+
+/** API 케이스의 요청 · 응답 원문과 기대값 차이 — 고른 단계 것만 (RunEvidence.tsx 가 300줄을 넘어 옮겼다) */
+export function API증거({ step, 탭 }: { step: StepResult | undefined; 탭: 'req' | 'res' | 'diff' }) {
+  const t = use말();
+  const 언어 = use언어();
+  if (탭 !== 'diff') {
+    const 원문 = step?.httpTrace === undefined ? undefined : 탭 === 'req' ? step.httpTrace.request : step.httpTrace.response;
+    return 원문 === undefined ? <p className="fc-faint">{t('이 단계는 API 를 부르지 않았습니다')}</p> : <pre className="ev-json">{JSON.stringify(원문, null, 2)}</pre>;
+  }
+  const 다른것 = step?.assertions.filter((a) => a.status === 'FAIL') ?? [];
+  if (다른것.length === 0) return <p className="fc-faint">{t('이 단계는 기대값과 다른 곳이 없습니다')}</p>;
+  return (
+    <table className="trace-table">
+      <thead>
+        <tr>
+          <th>{t('확인')}</th>
+          <th>{t('기대')}</th>
+          <th>{t('실제')}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {다른것.map((a, i) => (
+          <tr key={i} className="bad">
+            <td>{a.statement}</td>
+            <td className="trace-m">{show(a.expected, 언어)}</td>
+            <td className="trace-m">{show(a.actual, 언어)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
