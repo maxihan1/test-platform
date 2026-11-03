@@ -32,6 +32,9 @@ export const 열쇠최소길이 = 32;
 /** 출입증이 사는 시간(초). 구운 뒤로 칸을 고치지 않으면 이 시간 뒤 저절로 끊긴다. back-channel 로 끊긴 sid 를 이보다 조금 더 기억한다 (auth/sso.ts) */
 export const 출입증수명 = 24 * 60 * 60;
 
+/** SSO 로그인이 굽는 칸. 비밀번호 로그인 · 새 SSO 로그인이 다 지운다 — 남으면 다른 출입증이 SSO 출입증 행세를 한다 (routes.ts · sso.ts) */
+export const SSO칸들 = ['method', 'idToken', 'authSid', 'loginAt'] as const;
+
 /** 바깥 주소가 https 인 설치(운영)만 secure 를 단다. http 로 여는 맥 · 로컬 설치에 달면 브라우저가 출입증을 안 받아 아무도 못 들어온다 */
 export function 쿠키설정(publicUrl = process.env.PLATFORM_PUBLIC_URL ?? '') {
   // httpOnly — 화면 스크립트가 출입증을 읽지 못하게 한다

@@ -6,6 +6,7 @@ import type { FastifyInstance } from 'fastify';
 import { 작성계정인가 } from './agentToken.js';
 import { 교환, 로그아웃토큰확인, 시작, type SSO설정, type 로그아웃알림, type 받은사람, type 시작갈래 } from './oidc.js';
 import { 아이디모양, 이름최대 } from './rules.js';
+import { SSO칸들 } from './session.js';
 import { 사용자와해시 } from './store.js';
 
 /** 첫 화면이 읽는 칸. `ok` 는 막 들어왔다는 표시(web/main.tsx), 나머지는 로그인 화면의 문장 하나씩이다 (web/Login.tsx) */
@@ -69,7 +70,7 @@ export async function 계정찾기(sub: string, username: string, displayName: s
 
 /**
  * Auth 가 알린 로그아웃을 적는다. 끊는 판정은 확인 함수가 출입증마다 한다 (identify.ts).
- * sid 면 그 Auth 세션 하나, sub 만이면 그 사람이 iat 전에 구운 출입증 전부다 (도메인/인증 §7 「back-channel 로그아웃」)
+ * sid 면 그 Auth 세션 하나, sub 만이면 그 사람이 iat + 1초 전에 구운 출입증 전부다 (도메인/인증 §7 「back-channel 로그아웃」)
  */
 async function 로그아웃적기(알림: 로그아웃알림): Promise<void> {
   const { pool } = await import('../db/index.js');
@@ -117,7 +118,7 @@ export default async function ssoRoutes(app: FastifyInstance, opts: { sso: SSO�
     }
     // 한 번 쓴 왕복 값은 바로 지운다 — 같은 code 로 두 번 들어오지 못하게.
     // 앞사람 출입증도 여기서 지운다 — 남겨 두면 승인 대기 · 실패로 돌아온 사람이 앞사람 화면을 본다
-    for (const 칸 of ['sso', 'username', 'method', 'stamp', 'idToken', 'authSid', 'loginAt'] as const) req.session.set(칸, undefined);
+    for (const 칸 of ['sso', 'username', 'stamp', ...SSO칸들] as const) req.session.set(칸, undefined);
 
     let 사람: 받은사람;
     let 계정;

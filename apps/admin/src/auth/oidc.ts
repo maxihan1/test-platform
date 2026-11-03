@@ -108,7 +108,7 @@ export async function 로그아웃주소(s: SSO설정, idToken: string): Promise
   return oidc.buildEndSessionUrl(config, { id_token_hint: idToken, post_logout_redirect_uri: s.publicUrl + '/' }).href;
 }
 
-/** 확인한 logout_token — sid 가 있으면 그 Auth 세션 하나, 없으면 그 사람(sub)이 iat 전에 시작한 세션 전부 (도메인/인증 §7 「back-channel 로그아웃」) */
+/** 확인한 logout_token — sid 가 있으면 그 Auth 세션 하나, 없으면 그 사람(sub)이 iat + 1초 전에 시작한 세션 전부 (도메인/인증 §7 「back-channel 로그아웃」) */
 export type 로그아웃알림 = { sid: string } | { sub: string; iat: number };
 
 const 로그아웃사건 = 'http://schemas.openid.net/event/backchannel-logout';

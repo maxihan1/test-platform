@@ -8,7 +8,7 @@ CREATE TABLE auth_revoked_sid (
   revoked_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- sid 없는 알림(그 사람의 세션 전부)의 iat. 이 시각 전에 구운 SSO 출입증은 끊긴다 (auth/identify.ts)
+-- sid 없는 알림(그 사람의 세션 전부)의 iat + 1초. 이 시각 전에 구운 SSO 출입증은 끊긴다 (auth/identify.ts)
 ALTER TABLE app_user ADD COLUMN sessions_valid_after TIMESTAMPTZ;
 
 -- migrate:down
