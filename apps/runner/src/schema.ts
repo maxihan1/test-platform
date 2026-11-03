@@ -34,7 +34,7 @@ export const 판상한 = { bodyLimit: 16 * 1024 * 1024 };
 // 성능 시나리오 녹화 — 오면 HAR 를 artifacts/perf-record/<jobId>/ 에 남긴다 (공통/3-공유계약 「성능 테스트 타입」)
 const recordHar = z.object({ jobId: z.number().int().positive() }).optional();
 
-// 게임 애플리케이션 항목만. 원문이 지나간다 — 머리는 kit 이 admin 요청에 넣는다 (공통/3-공유계약 「게임 테스트 타입」)
+// 게임 · API 애플리케이션 항목만. 원문이 지나간다 — 머리는 kit 이 admin 요청에 넣는다 (공통/3-공유계약 「게임 테스트 타입」)
 const adminKey = z.object({ header: z.string().min(1), value: z.string().min(1) }).optional();
 
 export const executeRequest = z.object({
