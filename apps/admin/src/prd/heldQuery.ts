@@ -1,7 +1,7 @@
 // 계정 보류 읽기 — req_hold 가운데 지금 판에 있고 활성 케이스가 없는 번호, 그리고 계정을 이미 넣은 역할 (도메인/작성 §3.6 「★ 역할별 계정」)
 // 이어 작성 판정(authoring/continue.ts)과 GET /api/prd 의 held(prd/held.ts)가 같은 질의를 쓴다 — 둘이 다르면 화면은 켜지는데 서버가 막는다
 
-import { 기본역할 } from '@platform/kit/accounts';
+import { 기본역할, 어드민키역할 } from '@platform/kit/accounts';
 import type { Pool, PoolClient } from 'pg';
 
 async function db(): Promise<Pool> {
@@ -37,7 +37,8 @@ export async function 보류줄들(서비스: number, 손?: Pool | PoolClient): 
 
 /**
  * 대상 서버 줄(env)마다 아이디 · 비밀번호가 둘 다 있는 역할 — 「운영 서버」 줄은 뺀다.
- * 일반 회원은 옛 칸(login_id · login_password), 그 밖은 role_accounts 원소. 비밀번호 원문은 읽지 않는다.
+ * 일반 회원은 옛 칸(login_id · login_password), 그 밖은 role_accounts 원소. 어드민 키가 있는 줄은 `어드민키역할` 도 선다 — 집기가 그 줄 키를 싣는다.
+ * 비밀번호 · 키 원문은 읽지 않는다.
  * 이어 작성은 뿌리의 대상 서버 줄 계정만 받으므로 줄마다 나눠 둔다 — 서비스 어디에나 있으면 등록으로 보면 버튼은 열리는데 에이전트가 남은 번호를 못 센다
  */
 export async function 등록역할표(서비스: number, 손?: Pool | PoolClient): Promise<Map<string, Set<string>>> {
@@ -48,8 +49,12 @@ export async function 등록역할표(서비스: number, 손?: Pool | PoolClient
       UNION
      SELECT e.env, btrim(a->>'role')
        FROM service_env e, jsonb_array_elements(e.role_accounts) a
-      WHERE e.service_id = $1 AND NOT e.is_prod AND COALESCE(a->>'loginId', '') <> '' AND COALESCE(a->>'loginPassword', '') <> ''`,
-    [서비스, 기본역할],
+      WHERE e.service_id = $1 AND NOT e.is_prod AND COALESCE(a->>'loginId', '') <> '' AND COALESCE(a->>'loginPassword', '') <> ''
+      UNION
+     SELECT env, $3::text
+       FROM service_env
+      WHERE service_id = $1 AND NOT is_prod AND COALESCE(admin_key->>'header', '') <> '' AND COALESCE(admin_key->>'value', '') <> ''`,
+    [서비스, 기본역할, 어드민키역할],
   );
   const 표 = new Map<string, Set<string>>();
   for (const { env, role } of r.rows) 표.set(env, (표.get(env) ?? new Set<string>()).add(role));
@@ -65,7 +70,7 @@ export interface 보류재료 {
   표: Map<string, Set<string>>;
 }
 
-/** 그 대상 서버 줄에 계정을 넣은 역할의 보류 번호가 있나. 줄이 없으면(웹 정방향 뿌리) 없다 — 자식이 계정을 못 받는다. Android 앱은 부르는 쪽이 앱 줄을 준다(`계정줄env`) */
+/** 그 대상 서버 줄에 계정을 넣은 역할의 보류 번호가 있나. 줄이 없으면(웹 정방향 뿌리) 없다 — 자식이 계정을 못 받는다. Android 앱 · API 는 부르는 쪽이 그 줄을 준다(`계정줄env`) */
 export function 줄에등록된보류있나(재료: 보류재료, env: string | null): boolean {
   const 역할 = env === null ? undefined : 재료.표.get(env);
   return 역할 !== undefined && 재료.보류.some((x) => 역할.has(x.role));

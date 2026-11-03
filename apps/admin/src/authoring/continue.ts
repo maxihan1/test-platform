@@ -90,8 +90,8 @@ export async function 이어작성상태읽기(뿌리번호: number, 손?: PoolC
 }
 
 /**
- * 이어 작성 요청이 집기에서 계정을 받을 줄 — 대조 뿌리는 그 줄, Android 앱은 앱 줄(집기 accounts 맨 앞과 같다). 웹 정방향은 없다.
- * 앱은 대조가 막혀 이 길이 아니면 계정을 나중에 넣은 보류를 이어 쓸 수 없다 (§3.6 「★ 역할별 계정」 표 「이어 작성」 · 2026-10-22 사용자)
+ * 이어 작성 요청이 집기에서 계정을 받을 줄 — 대조 뿌리는 그 줄, Android 앱 · 게임은 앱 줄, API 는 뿌리의 대상 서버 줄(집기 accounts 맨 앞과 같다). 웹 정방향은 없다.
+ * 앱 · API 는 대조가 막혀 이 길이 아니면 계정을 나중에 넣은 보류를 이어 쓸 수 없다 (§3.6 「★ 역할별 계정」 표 「이어 작성」 · 2026-10-22 · 2026-11-03 사용자)
  */
 export async function 계정줄env(
   서비스: number,
@@ -99,7 +99,8 @@ export async function 계정줄env(
   종류: string,
   손?: PoolClient,
 ): Promise<string | null> {
-  if (뿌리.대조env !== null || !폰앱인가(종류)) return 뿌리.대조env;
+  if (뿌리.대조env !== null) return 뿌리.대조env;
+  if (!폰앱인가(종류) && !(종류 === 'API' && 뿌리.뿌리env !== null)) return null;
   return 앱줄고르기(await 대상줄들읽기(서비스, 손), 뿌리.뿌리env)?.env ?? null;
 }
 

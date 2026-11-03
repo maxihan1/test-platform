@@ -94,6 +94,17 @@ describe.skipIf(연결 === undefined)('설정 API 의 API 애플리케이션 칸
     expect(로그.join('\n')).not.toContain(비밀값A);
   });
 
+  it('API 애플리케이션도 대상 서버 줄에 어드민 키를 받고 끝 4자리만 돌려준다 — 서버 어드민 API 를 부르는 케이스가 쓴다', async () => {
+    const 키값 = 'xak-admin-key-raw-4417';
+    const res = await 고친다({ envs: [{ ...처음envs[0], adminKey: { header: 'X-Admin-Key', value: 키값 } }] });
+    expect(res.statusCode).toBe(200);
+    const 목록 = await app.inject({ method: 'GET', url: '/api/settings/services' });
+    expect(목록.body).not.toContain(키값);
+    const 줄 = 목록.json<{ items: { prefix: string; envs: { adminKey: unknown }[] }[] }>().items.find((s) => s.prefix === 접두사)?.envs[0];
+    expect(줄?.adminKey).toEqual({ header: 'X-Admin-Key', valueLast4: 키값.slice(-4) });
+    expect((await 고친다({ envs: [{ ...처음envs[0], adminKey: null }] })).statusCode).toBe(200);
+  });
+
   it('kind 를 안 보내면 화면 애플리케이션이고, 화면 애플리케이션은 API 칸을 못 받는다', async () => {
     expect((await 만든다({ prefix: 화면접두사, envs: [] })).statusCode).toBe(201);
     expect((await 읽는다(화면접두사))?.kind).toBe('SCREEN');

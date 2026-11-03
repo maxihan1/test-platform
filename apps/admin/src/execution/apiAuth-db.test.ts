@@ -1,4 +1,4 @@
-// 정식 실행이 그 대상 서버 줄의 API 인증을 항목에 싣는지 본다 (도메인/API §3.8 「API 인증」 · API-F1-04 — DATABASE_URL 이 있을 때만)
+// 정식 실행이 그 대상 서버 줄의 API 인증 · 어드민 키를 항목에 싣는지 본다 (도메인/API §3.8 「API 인증」 · API-F1-04 — DATABASE_URL 이 있을 때만)
 
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -57,6 +57,19 @@ describe.skipIf(연결 === undefined)('정식 실행의 API 인증', () => {
   it('그 대상 서버 줄의 인증을 비밀값 원문 그대로 싣는다 — 러너 · kit 이 토큰을 받는다', async () => {
     const { items } = await 실행();
     expect(items[0]?.apiAuths).toEqual(인증);
+  });
+
+  it('그 대상 서버 줄의 어드민 키를 엔진 없이 싣는다 — 케이스가 서버 어드민 API 를 admin 으로 부른다', async () => {
+    const 키 = { header: 'X-Admin-Key', value: 'xau-admin-key-raw-5531' };
+    await pool.query(`UPDATE service_env SET admin_key = $1 WHERE service_id = ${서비스번호}`, [JSON.stringify(키)]);
+    try {
+      const { items } = await 실행();
+      expect(items[0]?.adminKey).toEqual(키);
+      expect(items[0]).not.toHaveProperty('engine');
+    } finally {
+      await pool.query(`UPDATE service_env SET admin_key = NULL WHERE service_id = ${서비스번호}`);
+    }
+    expect((await 실행()).items[0]).not.toHaveProperty('adminKey');
   });
 
   it('인증이 없는 줄이면 키를 싣지 않는다', async () => {
