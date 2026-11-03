@@ -14,6 +14,9 @@ RUN npm ci
 # Node는 파일 위치에서 루트까지 올라가며 node_modules를 찾는다. /tests에서 시작하면 /app을 못 지나므로
 # 루트에 링크를 걸어야 @playwright/test·@platform/kit·zod가 resolve 된다 (SPEC §9)
 RUN ln -s /app/node_modules /node_modules
+# 같은 까닭으로 /tests 위에 package.json 이 없으면 Playwright 가 케이스를 CommonJS 로 읽고, kit 의 import.meta 에서 깨져
+# 모든 항목이 「No tests found」가 된다(2026-11-03 실행 20980). 저장소 루트처럼 ESM 으로 둔다
+RUN echo '{"type":"module"}' > /package.json
 
 COPY tsconfig.json playwright.config.ts ./
 COPY packages ./packages
