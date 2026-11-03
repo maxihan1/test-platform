@@ -159,9 +159,13 @@ export const 설정말: Record<string, string> = {
   '읽기 전용': 'Read only',
   '작성자': 'Author',
   '실행자§권한': 'Runner',
+  '체험': 'Trial',
   '안 씀': 'Off',
   '읽기': 'Read',
+  '테스트만': 'Test only',
   '쓰기': 'Write',
+  '「테스트만」은 결과를 보고 테스트 실행 · 시험 실행만 합니다. 기록이 남는 실행은 못 합니다':
+    'Test only sees results and starts test runs and trial runs only. It cannot start runs that are recorded',
   '이대로면 실행 설정에서 고를 케이스가 보이지 않습니다.': 'No cases will show up to pick in run setup.',
   '세 칸이 모두 「안 씀」이면 저장되지 않습니다. 배정을 풀려면 프로젝트를 끄세요.':
     'All three set to Off cannot be saved. To unassign, turn the project off.',

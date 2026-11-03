@@ -7,7 +7,13 @@ import { 계정요약, 권한경고, 기능순서, type 프로젝트줄 } from '
 
 // 값이 곧 번역 키다. `실행` · `케이스` · `실행자` 는 다른 화면에서 영어가 달라(Run · Case · Run by) 꼬리를 달아 따로 옮긴다
 const 기능이름: Record<기능, string> = { cases: '케이스§권한', runs: '실행§권한', authoring: '작성' };
-const 칸이름: Record<칸, string> = { none: '안 씀', read: '읽기', write: '쓰기' };
+const 칸이름: Record<칸, string> = { none: '안 씀', read: '읽기', trial: '테스트만', write: '쓰기' };
+// `trial` 은 실행 칸에만 있다 — 보기 + 테스트 모드 (도메인/인증 §3.5 「테스트 모드」)
+const 칸값들: Record<기능, 칸[]> = {
+  cases: ['none', 'read', 'write'],
+  runs: ['none', 'read', 'trial', 'write'],
+  authoring: ['none', 'read', 'write'],
+};
 // 켜자마자 쓰기를 주면 사람이 모르고 넘긴다. 처음은 읽기다 (§8.8)
 const 처음칸 = { cases: 'read', runs: 'read', authoring: 'read' } as const;
 // 칸 셋을 하나씩 고르는 길은 그대로 두고, 자주 쓰는 조합을 한 번에 고르는 단추다 (점검 14.6)
@@ -15,6 +21,8 @@ const 권한묶음: { 이름: string; 칸들: Record<기능, 칸> }[] = [
   { 이름: '읽기 전용', 칸들: { cases: 'read', runs: 'read', authoring: 'read' } },
   { 이름: '작성자', 칸들: { cases: 'read', runs: 'read', authoring: 'write' } },
   { 이름: '실행자§권한', 칸들: { cases: 'read', runs: 'write', authoring: 'read' } },
+  // 체험 계정 — 보고 테스트 모드만 돌린다 (2026-11-03 사용자 결정 8 · TMO-F5-02)
+  { 이름: '체험', 칸들: { cases: 'read', runs: 'trial', authoring: 'read' } },
 ];
 
 function 칸고르개<T extends 칸>({ 이름, 값, 값들, on }: { 이름: string; 값: T; 값들: T[]; on: (v: T) => void }) {
@@ -130,11 +138,14 @@ export function PermissionPicker({
                         <칸고르개
                           이름={`${s.name} ${t(기능이름[f])}`}
                           값={내것.permissions[f]}
-                          값들={['none', 'read', 'write']}
+                          값들={칸값들[f]}
                           on={(v) => 칸바꾸기(s.id, f, v)}
                         />
                       </div>
                     ))}
+                    {내것.permissions.runs !== 'trial' ? null : (
+                      <div className="hint">{t('「테스트만」은 결과를 보고 테스트 실행 · 시험 실행만 합니다. 기록이 남는 실행은 못 합니다')}</div>
+                    )}
                   </>
                 )}
                 {/* allOff 는 운영이어도 서버가 거절한다. 칸이 숨어 있어도 이유는 보여야 한다 */}

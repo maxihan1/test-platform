@@ -213,7 +213,8 @@ export function 계정요약(row: UserRow, projects: 프로젝트줄[]): 계정�
  */
 export function 권한경고(p: 권한칸): 'noCases' | 'allOff' | null {
   if (p.cases === 'none' && p.runs === 'none' && p.authoring === 'none') return 'allOff';
-  if (p.runs === 'write' && p.cases === 'none') return 'noCases';
+  // 테스트 실행도 케이스를 골라 돌린다
+  if ((p.runs === 'write' || p.runs === 'trial') && p.cases === 'none') return 'noCases';
   return null;
 }
 
