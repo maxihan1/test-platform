@@ -42,6 +42,13 @@ describe('기기글', () => {
       '모델 모름 · Android 판 모름 · 앱 판 모름',
     ]);
   });
+
+  it('실제 폰 Chrome 에서 돈 모바일 항목은 앱 판 자리에 Chrome 판을 적는다', () => {
+    expect([
+      기기글({ model: 'SM-G996N', osVersion: '15', appVersion: null, browser: '156.0.7339.51' }),
+      기기글({ model: 'SM-G996N', osVersion: '15', appVersion: null, browser: null }),
+    ]).toEqual(['SM-G996N · Android 15 · Chrome 156.0.7339.51', 'SM-G996N · Android 15 · Chrome 판 모름']);
+  });
 });
 
 describe('증적 머리말의 「기기」 줄', () => {

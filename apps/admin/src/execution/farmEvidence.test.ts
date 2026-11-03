@@ -154,6 +154,14 @@ describe('팜기록글', () => {
   it('받은 것이 없으면 null 이다', async () => {
     expect(await 팜기록글(3, 10)).toBeNull();
   });
+
+  it('실제 폰 Chrome 항목의 .webm 도 화면 영상으로 센다', async () => {
+    const 곳 = join(runDir('3', '11'), FARM_EVIDENCE_DIR);
+    mkdirSync(곳, { recursive: true });
+    writeFileSync(join(곳, 'video-1.webm'), 'webm');
+    writeFileSync(join(곳, 'logcat.txt'), 'I/chromium: 열림');
+    expect(await 팜기록글(3, 11)).toBe('화면 영상 1개 · logcat.txt — 실행 화면의 이 항목에서 받는다');
+  });
 });
 
 describe('GET /api/runs/:runId/items/:historyId/farm-video', () => {

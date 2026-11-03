@@ -51,6 +51,8 @@ export type RunListRow = RunSummary & {
   failCases: Partial<Record<Platform, number>>;
   /** 앱 · 게임 항목을 돌린 폰 모델(device.model), 글자 차례. 폰 연결이 안 열렸거나 웹뿐이면 빈 배열 (실행 §8.7 「줄」 실행 위치) */
   devices: string[];
+  /** 실제 폰 Chrome 에서 돈 모바일 항목의 폰 모델, 글자 차례. 서버 흉내뿐이면 빈 배열 (실행 §3.2 「모바일 웹 실행 위치」) */
+  mobileDevices: string[];
 };
 
 export interface RunItemSummary {
