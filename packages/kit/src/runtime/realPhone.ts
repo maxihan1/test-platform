@@ -1,5 +1,5 @@
 // 실제 폰 Chrome — 모바일 웹 케이스를 VISION 이 켜 준 폰 Chrome 의 창 하나 · 탭 하나에 붙여 돌린다 (SPEC 도메인/러너 §5.2 「모바일 웹 — 실제 폰 Chrome」)
-// 러너 고정 spec 도 같은 연결을 한다(apps/runner/scenario/realPhone.ts) — 고정 spec 은 kit 을 값으로 못 불러 옮겨 적었다. 거기 검사가 글자가 같은지 지킨다
+// 러너 고정 spec 도 같은 연결을 한다(apps/runner/scenario/realPhone.ts) — 고정 spec 은 kit 을 값으로 못 불러 옮겨 적었다. 실패 글은 wire.test.ts 가 견주고, 연결은 real-phone.test.ts 가 두 길 다 실측한다
 
 import { mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';

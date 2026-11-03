@@ -122,6 +122,7 @@ describe('실제 폰 Chrome 실측 (브라우저)', () => {
       runId: 95, platform: 'mobile', baseUrl: 주소, timeoutMs: 60_000,
       parts: [단계('XRP-001'), 단계('XRP-001'), 단계('XRP-002')], ...폰칸(),
     });
+    expect(받은토큰.at(-1)).toBe(`Bearer ${토큰}`);
 
     expect(결과.parts.map((p) => p.status)).toEqual(['PASS', 'PASS', 'FAIL']);
     expect(결과.parts[2]?.error?.message ?? JSON.stringify(결과.parts[2]?.steps)).toContain(창하나글);

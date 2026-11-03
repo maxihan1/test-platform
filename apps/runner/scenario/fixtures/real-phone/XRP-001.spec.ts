@@ -21,6 +21,11 @@ test(spec, async ({ page }) => {
     await verify('제목이 보인다', await page.locator('#t').innerText(), '폰 화면');
   });
 
+  await test.step('상대 주소로 지금 주소를 맞춘다', async () => {
+    await page.waitForURL('/', { timeout: 5_000 });
+    await verify('지금 주소가 화면 주소다', new URL(page.url()).pathname, '/');
+  });
+
   await test.step('팜 토큰이 케이스에 안 보인다', async () => {
     await verify('케이스 맨 위에서 읽은 토큰이 없다', 읽은토큰, '없음');
   });
