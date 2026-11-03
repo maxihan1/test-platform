@@ -12,7 +12,7 @@ import { 같은프로젝트접두사, 계정없음, 단계인증, 단계주소, 
 import { 점검 } from './checks.js';
 import { 앱단계인가, 케이스접두사, 쓰는접두사 } from './mixed.js';
 import { 케이스재료 } from './parts.js';
-import { type 폰앱, 폰값 } from './phone.js';
+import { type 시나리오폰, 폰값 } from './phone.js';
 import type { 저장하는사람 } from './store.js';
 import { 시나리오제한시간, 제한시간크기사유, type 카탈로그 } from './validate.js';
 
@@ -64,15 +64,15 @@ interface 판정 {
   카탈로그: 카탈로그;
 }
 
-// 폰은 앱 · 게임 단계가 있을 때만 — 분배가 팜에서 폰을 잡고 앱 파일을 정한다 (결정 16)
-type 실행 = { runId: number; 요청: ScenarioExecuteRequest; 폰?: 폰앱 };
+// 폰은 앱 · 게임 단계가 있거나 실제 폰을 고른 모바일 시나리오일 때만 — 분배가 팜에서 폰을 잡는다 (결정 16 · 「모바일 시나리오를 실제 폰에서 돌릴 때」)
+type 실행 = { runId: number; 요청: ScenarioExecuteRequest; 폰?: 시나리오폰 };
 
-export async function 실행만들기(id: number, env: string, 사람: 저장하는사람): Promise<실행> {
+export async function 실행만들기(id: number, env: string, 사람: 저장하는사람, mobileOn: 'server' | 'vision' = 'server'): Promise<실행> {
   // 판정(케이스 파일 읽기 · pool 연결)은 트랜잭션 밖에서 먼저 한다. 연결 하나를 쥔 채 pool 에서 또 꺼내면
   // 동시 요청이 풀 크기만큼 올 때 교착한다. 그 사이 새 버전이 저장됐으면 새 버전으로 처음부터 다시 한다
   // 누가 쉬지 않고 저장하면 끝나지 않으므로 세 번에서 멈춘다 — 사람이 다시 누르면 된다
   for (let 번 = 0; 번 < 3; 번 += 1) {
-    const 결과 = await 잠그고만들기(id, env, 사람, await 미리판정(id));
+    const 결과 = await 잠그고만들기(id, env, 사람, mobileOn, await 미리판정(id));
     if (결과 !== null) return 결과;
   }
   throw new 시나리오실행오류('NOT_RUNNABLE', '실행하는 사이 시나리오가 계속 새로 저장됐다. 다시 눌러 달라');
@@ -98,7 +98,7 @@ async function 미리판정(id: number): Promise<판정 | undefined> {
 }
 
 // 판정한 버전이 잠근 뒤의 최신과 다르면 null — 부른 쪽이 다시 판정한다
-async function 잠그고만들기(id: number, env: string, 사람: 저장하는사람, 판정: 판정 | undefined): Promise<실행 | null> {
+async function 잠그고만들기(id: number, env: string, 사람: 저장하는사람, mobileOn: 'server' | 'vision', 판정: 판정 | undefined): Promise<실행 | null> {
   const c = await (await db()).connect();
   try {
     await c.query('BEGIN');
@@ -132,8 +132,10 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
       throw new 시나리오실행오류('NOT_RUNNABLE', `실행할 수 없는 시나리오다: 앱 · 게임 애플리케이션은 한 시나리오에 하나다: ${[...앱접두사].join(' · ')}`);
     }
     const 폰 = 폰값(행.parts, 앱들, env);
+    // 실제 폰은 모바일 시나리오에서 고른 것만이고, 앱 · 게임 단계가 섞이면 웹 단계를 흉내로 돈다 (「모바일 시나리오를 실제 폰에서 돌릴 때」)
+    const 폰Chrome = mobileOn === 'vision' && 행.platform === 'mobile' && 폰 === null;
     // 정식 실행은 늘 디바이스 팜이다. 실행 행을 세우기 전에 거절한다 (결정 16)
-    if (폰 !== null && 팜주소() === undefined) throw new 시나리오실행오류('FARM_OFF', 'DEVICE_FARM_URL 이 비어 있다');
+    if ((폰 !== null || 폰Chrome) && 팜주소() === undefined) throw new 시나리오실행오류('FARM_OFF', 'DEVICE_FARM_URL 이 비어 있다');
 
     if (판정 === undefined || 판정.version !== 행.version) {
       await c.query('ROLLBACK');
@@ -220,7 +222,7 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
     return {
       runId,
       요청: { runId, platform: 행.platform, ...폰?.칸, baseUrl, parts: 요청부품, timeoutMs: 시나리오제한시간(parts), deleteStatuses },
-      ...(폰 !== null && { 폰: 폰.폰 }),
+      ...(폰 !== null ? { 폰: 폰.폰 } : 폰Chrome ? { 폰: 'chrome' as const } : {}),
     };
   } catch (err) {
     await c.query('ROLLBACK');

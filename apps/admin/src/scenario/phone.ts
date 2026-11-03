@@ -1,10 +1,10 @@
-// 앱 · 게임 단계가 있는 시나리오의 폰 — 싣는 값 · 팜에서 한 번 잡고 놓기 · 못 잡았을 때 닫는 응답 (SPEC 도메인/시나리오 §3.7 결정 16)
+// 앱 · 게임 단계가 있는 시나리오 · 실제 폰 모바일 시나리오의 폰 — 싣는 값 · 팜에서 한 번 잡고 놓기 · 못 잡았을 때 닫는 응답 (SPEC 도메인/시나리오 §3.7 결정 16 · 「모바일 시나리오를 실제 폰에서 돌릴 때」)
 
 import type { ScenarioExecuteRequest, ScenarioExecuteResponse, ScenarioPart } from '@platform/kit';
 
 import { 깔앱파일 } from '../execution/buildFile.js';
 import { 엔진칸 } from '../execution/engineField.js';
-import { 팜주소, 팜폰으로 } from '../execution/farm.js';
+import { 팜주소, 팜폰으로, 폰Chrome으로 } from '../execution/farm.js';
 import { callScenarioRunner } from '../execution/runner.js';
 
 import { type 쓰는앱, 앱종류들 } from './apps.js';
@@ -16,6 +16,12 @@ export interface 폰앱 {
   env: string;
   appPath: string | null;
 }
+
+/**
+ * 시나리오가 잡을 폰 — 앱 · 게임 단계면 앱 재료, 'chrome' 이면 앱 · 게임 단계 없는 모바일 시나리오를 그 폰 Chrome 에서 돈다.
+ * 한 폰에 Appium 연결과 Chrome 연결을 같이 못 열어 둘이 섞이지 않는다 (§3.7 「모바일 시나리오를 실제 폰에서 돌릴 때」)
+ */
+export type 시나리오폰 = 폰앱 | 'chrome';
 
 /**
  * 앱 · 게임 단계가 있으면 그 애플리케이션의 폰 재료와 요청에 한 벌 싣는 게임 칸. 없으면 null.
@@ -63,13 +69,13 @@ async function 앱실기(요청: ScenarioExecuteRequest, 폰: 폰앱): Promise<S
 }
 
 /**
- * 서버 러너 — 팜에서 빈 폰 하나를 시나리오 동안 잡고, 러너가 답하면(통과 · 실패 · 러너 고장 모두) 놓는다.
+ * 서버 러너 — 팜에서 빈 폰 하나를 시나리오 동안 잡고, 러너가 답하면(통과 · 실패 · 러너 고장 모두) 놓는다. 'chrome' 이면 그 폰 Chrome 을 켜 연결 칸을 싣는다.
  * 토큰찾기는 누른 사람 토큰을 준다(없으면 undefined — 서버 몫). 잡은 토큰을 러너에도 실어야 팜이 연결을 받는다 (러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」).
  * 폰화면은 시험 실행만 준다 — 잡은 폰의 VISION 화면 링크를 누른 사람에게 건넨다 (도메인/실행 §3.2 「테스트 모드」)
  */
 export async function 팜폰으로돌린다(
   요청: ScenarioExecuteRequest,
-  폰: 폰앱,
+  폰: 시나리오폰,
   토큰찾기: () => Promise<string | undefined>,
   폰화면?: (url: string) => void,
 ): Promise<ScenarioExecuteResponse> {
@@ -82,14 +88,27 @@ export async function 팜폰으로돌린다(
   } catch (err) {
     return 못돌린응답(요청.parts.length, `누른 사람의 통합계정 토큰을 읽지 못했습니다: ${err instanceof Error ? err.message : String(err)}`);
   }
+  const 못잡음 = (까닭: string) => 못돌린응답(요청.parts.length, 까닭);
+  if (폰 === 'chrome') {
+    return 폰Chrome으로(
+      팜,
+      async (칸, 화면) => {
+        if (화면 !== undefined) 폰화면?.(화면);
+        return callScenarioRunner({ ...요청, ...칸 });
+      },
+      못잡음,
+      토큰,
+      잡는분(요청.timeoutMs),
+    );
+  }
   return 팜폰으로(
     팜,
     async (udid, 화면) => {
       if (화면 !== undefined) 폰화면?.(화면);
       const 실은 = await 앱실기({ ...요청, udid, ...(토큰 !== undefined && { farmToken: 토큰 }) }, 폰);
-      return typeof 실은 === 'string' ? 못돌린응답(요청.parts.length, 실은) : callScenarioRunner(실은);
+      return typeof 실은 === 'string' ? 못잡음(실은) : callScenarioRunner(실은);
     },
-    (까닭) => 못돌린응답(요청.parts.length, 까닭),
+    못잡음,
     undefined,
     undefined,
     잡는분(요청.timeoutMs),

@@ -21,8 +21,9 @@ import { 시나리오분배 } from './runResult.js';
 import { 실행만들기, 시나리오실행오류 } from './runStore.js';
 import { type 부품기록, 부품비밀 } from './runTrace.js';
 
-// 대상 서버 키. 주소는 요청이 싣지 않는다 — runStore 가 그 서비스의 service_env 에서 찾는다
-const 실행본문 = z.object({ env: z.string().min(1) });
+// 대상 서버 키. 주소는 요청이 싣지 않는다 — runStore 가 그 서비스의 service_env 에서 찾는다.
+// 모바일 실행 위치는 케이스 실행 요청과 같다 — 기본은 서버 흉내 (도메인/실행 §3.2 「모바일 웹 실행 위치」)
+const 실행본문 = z.object({ env: z.string().min(1), mobileOn: z.enum(['server', 'vision']).default('server') });
 
 const 오류응답: Record<시나리오실행오류['code'], [number, string]> = {
   NOT_FOUND: [404, 'SCENARIO_NOT_FOUND'],
@@ -217,7 +218,7 @@ export default async function scenarioRunRoutes(app: FastifyInstance): Promise<v
     // 문 없이 라우트만 띄우는 검사에서만 사람이 빈다 (scenario/routes.ts 의 누가 와 같다)
     const 사람 = { username: req.user?.username ?? '알 수 없음', displayName: req.user?.displayName ?? '알 수 없음' };
     try {
-      const { runId, 요청, 폰 } = await 실행만들기(id, parsed.data.env, 사람);
+      const { runId, 요청, 폰 } = await 실행만들기(id, parsed.data.env, 사람, parsed.data.mobileOn);
       // 기다리지 않는다. 시나리오 하나가 수십 분이면 응답이 그동안 열려 있게 된다 (§7)
       void 시나리오분배(runId, 요청, 폰).catch((err: unknown) => {
         app.log.error(`[scenario] 실행 ${runId} 분배가 깨졌다: ${err instanceof Error ? err.message : String(err)}`);
