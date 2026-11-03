@@ -54,8 +54,8 @@ export function 장면쓰개(파일: string, 간격ms = 쓰기간격ms): 장면�
     async 닫기() {
       닫힘 = true;
       await 도는;
-      await rm(임시, { force: true });
-      await rm(파일, { force: true });
+      // 못 지워도 단계는 그대로 간다 — 남은 파일은 실행이 끝날 때 러너가 한 번 더 지운다
+      for (const 하나 of [임시, 파일]) await rm(하나, { force: true }).catch((err: unknown) => console.warn(`[kit] 테스트 모드 장면을 못 지웠다 (${하나}): ${글(err)}`));
     },
   };
 }
