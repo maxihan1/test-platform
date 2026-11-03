@@ -18,7 +18,7 @@ import scenarioTrialRoutes from './trialRoutes.js';
 const 연결 = process.env.DATABASE_URL;
 const 열쇠 = 'xstr-검사용-세션-열쇠-32글자를-넘긴다-넉넉히-됩니다';
 const 번호들 = ['XSTR-001', 'XSTR-UI-001'];
-const 계정들 = ['xstr-a', 'xstr-b', 'xstr-c'];
+const 계정들 = ['xstr-a', 'xstr-b', 'xstr-c', 'xstr-d'];
 
 const 소스 = `import { defineCase, test, verify } from '@platform/kit';
 
@@ -75,7 +75,7 @@ describe.skipIf(연결 === undefined)('시나리오 시험 실행 통로', () =>
     }
   };
 
-  async function 계정(username: string, prefix: string): Promise<void> {
+  async function 계정(username: string, prefix: string, runs = 'write'): Promise<void> {
     await q(
       `INSERT INTO app_user (username, display_name, password_hash, role, perm_dashboard, is_approved, must_change_password)
             VALUES ($1, $1, $2, 'member', 'none', true, false)
@@ -84,8 +84,8 @@ describe.skipIf(연결 === undefined)('시나리오 시험 실행 통로', () =>
     );
     await q('DELETE FROM user_project WHERE username = $1', [username]);
     await q(
-      `INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring) SELECT $1, project_id, 'read', 'write', 'none' FROM service WHERE id = $2`,
-      [username, 서비스id[prefix]],
+      `INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring) SELECT $1, project_id, 'read', $3, 'none' FROM service WHERE id = $2`,
+      [username, 서비스id[prefix], runs],
     );
     const res = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username, password: '열려라참깨' } });
     출입증.set(username, res.cookies[0]!.value);
@@ -151,6 +151,7 @@ describe.skipIf(연결 === undefined)('시나리오 시험 실행 통로', () =>
     await 계정('xstr-a', 'XSTR');
     await 계정('xstr-b', 'XSTR');
     await 계정('xstr-c', 'XSTR2');
+    await 계정('xstr-d', 'XSTR', 'trial');
   });
 
   beforeEach(() => {
@@ -241,6 +242,15 @@ describe.skipIf(연결 === undefined)('시나리오 시험 실행 통로', () =>
     expect((await 부른다('xstr-a', 'POST', '/api/scenario-trials', 본문({ env: 'nope' }))).json()).toMatchObject({
       error: 'ENV_NOT_FOUND',
     });
+  });
+
+  it('실행 trial 은 케이스 조립을 시험 실행하고 저장된 시나리오에 없는 모킹은 403 이다 — write 는 안 거른다', async () => {
+    expect((await 부른다('xstr-d', 'POST', '/api/scenario-trials', 본문())).statusCode).toBe(202);
+    const 모킹 = { kind: 'mock', urlPattern: '**/x', status: 200, contentType: 'text/html', body: '<p>x</p>' };
+    const 막힘 = await 부른다('xstr-d', 'POST', '/api/scenario-trials', 본문({ parts: [모킹, 케이스('XSTR-001')] }));
+    expect(막힘.statusCode).toBe(403);
+    expect(막힘.json()).toEqual({ error: 'FORBIDDEN', need: 'runs:write', detail: '1번 단계(모킹)는 저장된 시나리오에 있는 것만 시험 실행할 수 있습니다' });
+    expect((await 부른다('xstr-a', 'POST', '/api/scenario-trials', 본문({ parts: [모킹, 케이스('XSTR-001')] }))).statusCode).toBe(202);
   });
 
   it('사진은 시작한 사람에게만 png 다 — 없는 사진 404 · 번호 모양 아님 404 · seq 숫자 아님 400', async () => {
