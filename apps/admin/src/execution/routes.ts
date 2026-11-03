@@ -74,7 +74,7 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
     }
 
     const 실행본문 = parsed.data;
-    const 거절 = 팜을본다(실행본문.items, process.env);
+    const 거절 = 팜을본다(실행본문.items, process.env, 실행본문.mobileOn);
     if (거절) return reply.code(거절.status).send({ error: 거절.error, detail: 거절.detail });
 
     // 문(auth/gate.ts)이 모든 /api 앞에 서므로 여기 닿았으면 사람이 있다.
@@ -231,8 +231,9 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
     async (req) => caseHistory(req.params.tcId, req.query.platform, page(req.query.page), PAGE_SIZE),
   );
 
-  app.get<{ Params: { tcId: string }; Querystring: { env?: string; platforms?: string } }>('/cases/:tcId/rerun-target', async (req, reply) => {
-    const 답 = await 붙을실행(req.params.tcId, req.query.env ?? '', (req.query.platforms ?? '').split(',').filter((p) => p !== ''));
+  app.get<{ Params: { tcId: string }; Querystring: { env?: string; platforms?: string; mobileOn?: string } }>('/cases/:tcId/rerun-target', async (req, reply) => {
+    // 한 건은 같은 모바일 실행 위치 묶음에만 붙는다 — 실행을 걸 때와 같은 값을 받는다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)
+    const 답 = await 붙을실행(req.params.tcId, req.query.env ?? '', (req.query.platforms ?? '').split(',').filter((p) => p !== ''), req.query.mobileOn === 'vision');
     if ('error' in 답) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: 답.error });
     return 답;
   });

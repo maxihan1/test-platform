@@ -12,7 +12,7 @@ import { 대상줄들읽기, type 대상줄 } from '../authoring/reverse.js';
 import { 옛시험치우기 } from '../scenario/trial.js';
 import { 깔앱파일 } from './buildFile.js';
 import { enqueue } from './dispatcher.js';
-import { 팜주소, 팜폰으로 } from './farm.js';
+import { 팜주소, 팜폰으로, 폰Chrome으로 } from './farm.js';
 import { 사람팜토큰 } from './farmToken.js';
 import { 장면을건넨다 } from './live.js';
 import { caseSchemas } from './paramSets.js';
@@ -79,12 +79,13 @@ async function 저장값으로채운다(
 
 /**
  * Android 앱 · 게임 — 정식 실행과 같은 길로 누른 사람 토큰으로 팜 빈 폰을 잡고 놓는다(러너 §5.2 「디바이스 팜 접속 방식」).
- * 앱 파일은 폰을 잡은 뒤 정한다 — 올린 빌드의 서명 주소에 기한이 있다 (도메인/실행 §3.11)
+ * 앱 파일은 폰을 잡은 뒤 정한다 — 올린 빌드의 서명 주소에 기한이 있다 (도메인/실행 §3.11).
+ * 앱재료가 null 이면 모바일 웹이라 그 폰 Chrome 에서 돈다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)
  */
 async function 팜폰에서돌린다(
   요청: ExecuteRequest,
   사람: string,
-  앱재료: { serviceId: number; env: string; appPath: string | null },
+  앱재료: { serviceId: number; env: string; appPath: string | null } | null,
   폰화면: (url: string | undefined) => void,
 ): Promise<ExecuteResponse> {
   const 팜 = 팜주소();
@@ -96,24 +97,36 @@ async function 팜폰에서돌린다(
   } catch (err) {
     return na(요청, '누른 사람의 통합계정 토큰을 읽지 못했습니다', err instanceof Error ? err.message : String(err));
   }
-  const 결과 = await 팜폰으로(
-    팜,
-    async (udid, 화면) => {
-      if (화면 !== undefined) 폰화면(화면);
-      let app: string | null;
-      try {
-        app = await 깔앱파일(앱재료.serviceId, 앱재료.env, 앱재료.appPath);
-      } catch (err) {
-        return na(요청, err instanceof Error ? err.message : String(err));
-      }
-      return 보낸다(요청, { ...요청, udid, ...(토큰 !== undefined && { farmToken: 토큰 }), ...(app !== null && { app }) });
-    },
-    (까닭) => na(요청, 까닭),
-    undefined,
-    undefined,
-    undefined,
-    토큰,
-  );
+  const 못잡음 = (까닭: string) => na(요청, 까닭);
+  const 결과 =
+    앱재료 === null
+      ? await 폰Chrome으로(
+          팜,
+          async (칸, 화면) => {
+            if (화면 !== undefined) 폰화면(화면);
+            return 보낸다(요청, { ...요청, ...칸 });
+          },
+          못잡음,
+          토큰,
+        )
+      : await 팜폰으로(
+          팜,
+          async (udid, 화면) => {
+            if (화면 !== undefined) 폰화면(화면);
+            let app: string | null;
+            try {
+              app = await 깔앱파일(앱재료.serviceId, 앱재료.env, 앱재료.appPath);
+            } catch (err) {
+              return na(요청, err instanceof Error ? err.message : String(err));
+            }
+            return 보낸다(요청, { ...요청, udid, ...(토큰 !== undefined && { farmToken: 토큰 }), ...(app !== null && { app }) });
+          },
+          못잡음,
+          undefined,
+          undefined,
+          undefined,
+          토큰,
+        );
   // 팜폰으로 가 폰을 놓고 돌아왔다 — 결과를 적기 전 틈에 닫힌 링크를 내지 않는다
   폰화면(undefined);
   return 결과;
@@ -166,6 +179,8 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
       ...(줄.apiAuths.length > 0 && { apiAuths: 줄.apiAuths }),
     };
     const 폰씀 = platform === 'android';
+    // 테스트 모드의 모바일 웹은 늘 실제 폰이다 — 팜이 없는 서버만 서버 흉내로 돈다 (도메인/실행 §3.2 「테스트 모드」)
+    const 폰Chrome = platform === 'mobile' && 팜주소() !== undefined;
     if (폰씀 && 팜주소() === undefined) {
       return reply.code(409).send({ error: 'FARM_OFF', detail: '이 서버에는 Device VISION(DEVICE_FARM_URL)이 연결되어 있지 않습니다' });
     }
@@ -183,6 +198,8 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
           if ('사유' in 판) return na(요청, 판.사유);
           // 앱 · 게임은 정식 실행처럼 전역 상한 밖의 디바이스 줄이고 Appium 이라 장면 열쇠를 안 싣는다 (도메인/실행 §3.2 「테스트 모드」)
           if (폰씀) return await 팜폰에서돌린다({ ...요청, ...판 }, 사람, { serviceId, env: 줄.env, appPath: 줄.appPath }, 폰화면);
+          // 실제 폰은 디바이스 줄 없이 브라우저처럼 한 자리를 쓴다. 장면은 안 만들지만 열쇠가 늦추기를 켠다 (러너 §5.2 「모바일 웹 — 실제 폰 Chrome」)
+          if (폰Chrome) return await enqueue(() => 팜폰에서돌린다({ ...요청, ...판, live: id }, 사람, null, 폰화면));
           // 브라우저는 정식 실행과 같은 줄에 한 자리를 쓴다. 장면 열쇠는 이 시험 번호다
           return await enqueue(() => 보낸다(요청, { ...요청, ...판, live: id }));
         } finally {

@@ -29,12 +29,13 @@ describe.skipIf(연결 === undefined)('한 건 실행은 묶음 실행에 붙는
 
   const 건다 = (
     tcIds: string[],
-    덧: { env?: string; rerunOf?: number; repeat?: number; platforms?: ('desktop' | 'mobile')[] } = {},
+    덧: { env?: string; rerunOf?: number; repeat?: number; platforms?: ('desktop' | 'mobile')[]; mobileOn?: 'server' | 'vision' } = {},
   ) =>
     createRun({
       origin: 'MANUAL',
       ...(덧.rerunOf === undefined ? {} : { rerunOf: 덧.rerunOf }),
       ...(덧.repeat === undefined ? {} : { repeat: 덧.repeat }),
+      ...(덧.mobileOn === undefined ? {} : { mobileOn: 덧.mobileOn }),
       triggeredBy: 'xja',
       triggeredByName: '한건 실행자',
       notifySlack: true,
@@ -60,8 +61,8 @@ describe.skipIf(연결 === undefined)('한 건 실행은 묶음 실행에 붙는
       [runId],
     )).rows[0]!;
 
-  const 붙을 = async (tcId: string, env: string, platforms: string[]) => {
-    const 답 = await 붙을실행(tcId, env, platforms);
+  const 붙을 = async (tcId: string, env: string, platforms: string[], 실제폰 = false) => {
+    const 답 = await 붙을실행(tcId, env, platforms, 실제폰);
     return 'target' in 답 ? 답.target : 답;
   };
 
@@ -198,6 +199,25 @@ describe.skipIf(연결 === undefined)('한 건 실행은 묶음 실행에 붙는
     const 반복다시 = await 건다(['XJA-001'], { rerunOf: 반복.runId });
     expect(반복다시.attachedTo).toBeNull();
     expect(await 줄(반복다시.runId)).toMatchObject({ origin: 'RERUN', rerun_of: String(반복.runId) });
+  });
+
+  it('한 건은 같은 모바일 실행 위치 묶음에만 붙는다 — 흉내 실행의 판정이 실제 폰 결과로 덮이지 않는다', async () => {
+    const 흉내 = await 어젯밤();
+    const 실제 = await 건다(케이스들, { mobileOn: 'vision' });
+    expect(실제.items.filter((i) => i.실제폰 === true).map((i) => i.platform)).toEqual(['mobile', 'mobile', 'mobile']);
+    // 실제 폰으로 돈 mobile 항목만 기기 칸이 찬다
+    await pool.query(
+      `UPDATE run_item SET device = '{"model":"SM-G996N","osVersion":"15","appVersion":null,"browser":"156.0.7339.51"}' WHERE run_id = $1 AND platform = 'mobile'`,
+      [실제.runId],
+    );
+    await 닫는다(실제.runId);
+
+    expect(await 붙을('XJA-001', 'qa', ['mobile'])).toMatchObject({ runId: 흉내 });
+    expect(await 붙을('XJA-001', 'qa', ['mobile'], true)).toMatchObject({ runId: 실제.runId });
+    expect(await 붙을('XJA-001', 'qa', ['desktop'])).toMatchObject({ runId: 실제.runId });
+    // 흉내 실행의 실패를 실제 폰으로 다시 돌리면 그 실행을 고치지 않고 실제 폰 실행에 붙는다
+    expect((await 건다(['XJA-001'], { rerunOf: 흉내, mobileOn: 'vision', platforms: ['mobile'] })).attachedTo).toBe(실제.runId);
+    expect((await 건다(['XJA-001'], { rerunOf: 흉내, platforms: ['mobile'] })).attachedTo).toBe(흉내);
   });
 
   it('케이스 이력은 바꿔 끼우지 않고 줄마다 시작 방식과 붙은 실행을 싣는다', async () => {

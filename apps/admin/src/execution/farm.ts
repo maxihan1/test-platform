@@ -1,4 +1,4 @@
-// 디바이스 팜에서 빈 폰을 잡아 일을 맡기고 놓는다 — Android 앱 정식 실행과 작성 에이전트의 앱 화면 읽기가 쓴다 (도메인/러너 §5.2 「디바이스 팜 접속 방식」)
+// 디바이스 팜에서 빈 폰을 잡아 일을 맡기고 놓는다 — Android 앱 정식 실행 · 실제 폰 모바일 웹 · 작성 에이전트의 앱 화면 읽기가 쓴다 (도메인/러너 §5.2 「디바이스 팜 접속 방식」)
 
 // 팜이 받는 가장 짧은 잡기다. 항목 하나의 상한(5분 · DEFAULT_TIMEOUT_MS)보다 넉넉해서 앱 항목은 늘리기(/extend)가 필요 없다
 const 잡는_분 = 30;
@@ -135,4 +135,61 @@ export async function 팜폰으로<T>(
   } finally {
     await 폰을돌려준다(팜, serial, 부르기, 토큰);
   }
+}
+
+// VISION 이 Chrome 데이터를 지우고 켠 뒤 DevTools 가 열릴 때까지 15초를 기다린다 — 그보다 넉넉히
+const Chrome_제한_ms = 40_000;
+
+/** 러너가 실제 폰 Chrome 에 붙을 칸 (러너 §5.2 「모바일 웹 — 실제 폰 Chrome」) */
+export interface 폰Chrome칸 {
+  udid: string;
+  cdpUrl: string;
+  farmToken?: string;
+}
+
+// 잡은 폰의 Chrome 을 깨끗이 켜고 DevTools 연결 주소를 받는다. 거절 · 못 닿음은 까닭 문장이다 (VISION 안내서 13절)
+async function Chrome을켠다(팜: string, serial: string, 부르기: typeof fetch, 토큰: string | undefined): Promise<{ cdpUrl: string } | { 까닭: string }> {
+  try {
+    const res = await 부르기(`${팜}/api/devices/${encodeURIComponent(serial)}/chrome`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...팜머리(process.env, 토큰) },
+      body: '{}',
+      signal: AbortSignal.timeout(Chrome_제한_ms),
+    });
+    const 값 = ((await res.json().catch(() => null)) as { value?: { cdpUrl?: unknown; message?: unknown } } | null)?.value;
+    if (!res.ok) return { 까닭: `Device VISION 이 폰 Chrome 을 켜지 못했습니다: ${typeof 값?.message === 'string' ? 값.message : `HTTP ${res.status}`}` };
+    // 러너 입구도 ws(s) 만 받는다 — 여기서 걸러야 까닭이 VISION 쪽으로 남는다
+    if (typeof 값?.cdpUrl !== 'string' || !/^wss?:\/\//.test(값.cdpUrl)) return { 까닭: 'Device VISION 이 폰 Chrome 연결 주소를 주지 않았습니다' };
+    return { cdpUrl: 값.cdpUrl };
+  } catch (err) {
+    return { 까닭: 닿지못함(err) };
+  }
+}
+
+/**
+ * 모바일 웹을 실제 폰 Chrome 에서 — 빈 폰을 잡아 그 폰 Chrome 을 켜고 러너가 붙을 칸을 일에 넘긴 뒤 놓는다.
+ * 디바이스 줄은 안 쓴다 — 폰 다툼은 팜의 잡기가 가른다 (도메인/실행 §3.2 「모바일 웹 실행 위치」).
+ * 잡은 토큰은 서버 몫이어도 늘 farmToken 으로 싣는다 — 러너는 자기 토큰을 같은 팜 호스트에만 싣는다 (러너 §5.2)
+ */
+export function 폰Chrome으로<T>(
+  팜: string,
+  일: (칸: 폰Chrome칸, 화면: string | undefined) => Promise<T>,
+  못잡음: (까닭: string) => T,
+  토큰?: string,
+  분?: number,
+  부르기: typeof fetch = fetch,
+): Promise<T> {
+  const farmToken = 토큰 ?? (process.env.DEVICE_FARM_TOKEN || undefined);
+  return 팜폰으로(
+    팜,
+    async (udid, 화면) => {
+      const 켬 = await Chrome을켠다(팜, udid, 부르기, 토큰);
+      return '까닭' in 켬 ? 못잡음(켬.까닭) : 일({ udid, cdpUrl: 켬.cdpUrl, ...(farmToken !== undefined && { farmToken }) }, 화면);
+    },
+    못잡음,
+    부르기,
+    undefined,
+    분,
+    토큰,
+  );
 }

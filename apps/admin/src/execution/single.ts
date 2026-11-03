@@ -85,6 +85,17 @@ export async function 반복실행인가(client: 질의, runId: number): Promise
   return (r.rowCount ?? 0) > 0;
 }
 
+/**
+ * 그 실행이 실제 폰으로 돈 실행인가와 견주는 조건 — 한 건은 같은 모바일 실행 위치 묶음에만 붙는다. 흉내 결과와 실제 폰 결과를 가르려고 둘을 고르게 했다
+ * (도메인/실행 §3.2 「모바일 웹 실행 위치」 · 2026-11-04 사용자 TMO-F4-03 시작 질문). 값이 NULL 이면(한 건에 mobile 이 없다) 보지 않는다.
+ * 실제 폰으로 돈 mobile 항목만 기기 칸이 찬다
+ */
+// ponytail: 실제 폰을 골랐지만 mobile 항목이 다 폰을 못 잡아 미실행이면 흉내 실행으로 읽힌다. 드물어 칸을 두지 않았다 — 어긋나면 test_run 에 실행 위치 칸
+const 같은위치 = (실행: string, 자리: number): string =>
+  `($${자리}::boolean IS NULL OR EXISTS (SELECT 1 FROM run_item v WHERE v.run_id = ${실행} AND v.platform = 'mobile' AND v.device IS NOT NULL) = $${자리})`;
+
+const 위치값 = (platforms: string[], 실제폰: boolean): boolean | null => (platforms.includes('mobile') ? 실제폰 : null);
+
 export interface 붙을곳 {
   runId: number;
   title: string;
@@ -98,7 +109,7 @@ export interface 붙을곳 {
  */
 export async function 붙을곳고르기(
   client: 질의,
-  재료: { serviceId: string; env: string; tcId: string; platforms: string[] },
+  재료: { serviceId: string; env: string; tcId: string; platforms: string[]; 실제폰: boolean },
 ): Promise<붙을곳 | null> {
   const r = await client.query<{ run_id: string; title: string; started_at: Date }>(
     `SELECT r.run_id, r.title, r.started_at
@@ -106,9 +117,10 @@ export async function 붙을곳고르기(
       WHERE r.service_id = $1 AND r.env = $2 AND r.status IN ('FINISHED', 'ABORTED')
         AND r.origin <> 'SINGLE' AND r.build_stage IS DISTINCT FROM 'SMOKE'
         AND EXISTS (SELECT 1 FROM run_item i WHERE i.run_id = r.run_id AND i.tc_id = $3 AND i.platform = ANY($4::text[]))
+        AND ${같은위치('r.run_id', 5)}
       ORDER BY r.started_at DESC, r.run_id DESC
       LIMIT 1`,
-    [재료.serviceId, 재료.env, 재료.tcId, 재료.platforms],
+    [재료.serviceId, 재료.env, 재료.tcId, 재료.platforms, 위치값(재료.platforms, 재료.실제폰)],
   );
   const 것 = r.rows[0];
   if (것 === undefined || (await 반복실행인가(client, Number(것.run_id)))) return null;
@@ -121,7 +133,7 @@ export async function 붙을곳고르기(
  */
 export async function 시작방식정하기<기본 extends string>(
   client: 질의,
-  재료: { origin: 기본; rerunOf?: number; tcIds: string[]; repeat: number; serviceId: string; env: string; platforms: string[] },
+  재료: { origin: 기본; rerunOf?: number; tcIds: string[]; repeat: number; serviceId: string; env: string; platforms: string[]; 실제폰: boolean },
 ): Promise<{ origin: 기본 | 'RERUN' | 'SINGLE'; rerunOf: number | null; attachedTo: number | null }> {
   const 다시 = 재료.rerunOf;
   // 정기 실행 · 빌드 실행은 서버 안에서 만들어 이 규칙 밖이다 — 사람이 실행 창에서 건 것만 한 건이다
@@ -130,15 +142,15 @@ export async function 시작방식정하기<기본 extends string>(
   }
   if (다시 !== undefined) {
     if (await 반복실행인가(client, 다시)) return { origin: 'RERUN', rerunOf: 다시, attachedTo: null };
-    // 대상 서버를 바꿔 다시 돌렸거나 스모크면 그 실행을 고치지 않는다 — qa 에서 깨진 것은 qa 에서 다시 통과해야 고친 것이다.
-    // 그때는 rerunOf 가 없을 때처럼 이번 대상 서버에서 붙을 곳을 고른다
+    // 대상 서버 · 모바일 실행 위치를 바꿔 다시 돌렸거나 스모크면 그 실행을 고치지 않는다 — qa 에서 깨진 것은 qa 에서 다시 통과해야 고친 것이다.
+    // 그때는 rerunOf 가 없을 때처럼 이번 대상 서버 · 실행 위치에서 붙을 곳을 고른다
     const r = await client.query(
-      "SELECT 1 FROM test_run WHERE run_id = $1 AND env = $2 AND build_stage IS DISTINCT FROM 'SMOKE'",
-      [다시, 재료.env],
+      `SELECT 1 FROM test_run WHERE run_id = $1 AND env = $2 AND build_stage IS DISTINCT FROM 'SMOKE' AND ${같은위치('$1', 3)}`,
+      [다시, 재료.env, 위치값(재료.platforms, 재료.실제폰)],
     );
     if ((r.rowCount ?? 0) > 0) return { origin: 'SINGLE', rerunOf: 다시, attachedTo: 다시 };
   }
-  const 곳 = await 붙을곳고르기(client, { serviceId: 재료.serviceId, env: 재료.env, tcId: 재료.tcIds[0]!, platforms: 재료.platforms });
+  const 곳 = await 붙을곳고르기(client, { serviceId: 재료.serviceId, env: 재료.env, tcId: 재료.tcIds[0]!, platforms: 재료.platforms, 실제폰: 재료.실제폰 });
   return { origin: 'SINGLE', rerunOf: 곳?.runId ?? null, attachedTo: 곳?.runId ?? null };
 }
 
@@ -146,7 +158,7 @@ export async function 시작방식정하기<기본 extends string>(
  * 실행 창의 「결과가 남는 곳」 — 지금 이 케이스 한 건을 걸면 붙을 실행 (도메인/실행 §7 `rerun-target`).
  * 모르는 대상 서버 · 선언 밖 디바이스는 실행을 걸 때처럼 거절한다 — 걸지 못할 실행의 붙을 곳을 말하지 않는다
  */
-export async function 붙을실행(tcId: string, env: string, platforms: string[]): Promise<{ target: 붙을곳 | null } | { error: string }> {
+export async function 붙을실행(tcId: string, env: string, platforms: string[], 실제폰 = false): Promise<{ target: 붙을곳 | null } | { error: string }> {
   const pool = await db();
   const r = await pool.query<{ service_id: string; platforms: string[]; env: string | null }>(
     `SELECT s.id AS service_id, c.platforms, e.env
@@ -160,5 +172,5 @@ export async function 붙을실행(tcId: string, env: string, platforms: string[
   if (것 === undefined) return { error: `카탈로그에 없는 케이스다: ${tcId}` };
   if (것.env === null) return { error: `대상 서버 ${env} 가 없다` };
   if (platforms.length === 0 || platforms.some((p) => !것.platforms.includes(p))) return { error: `${tcId} 가 선언하지 않은 디바이스가 있다` };
-  return { target: await 붙을곳고르기(pool, { serviceId: 것.service_id, env, tcId, platforms }) };
+  return { target: await 붙을곳고르기(pool, { serviceId: 것.service_id, env, tcId, platforms, 실제폰 }) };
 }

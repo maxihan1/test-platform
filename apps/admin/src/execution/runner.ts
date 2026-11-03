@@ -15,7 +15,7 @@ import type {
 import { 케이스판 } from '../apidoc/caseDoc.js';
 
 import { 서명주소 } from './buildFile.js';
-import { 팜주소, 팜폰으로 } from './farm.js';
+import { 팜주소, 팜폰으로, 폰Chrome으로 } from './farm.js';
 import { 실행팜토큰 } from './farmToken.js';
 import { runnerUrl, 답하나, 러너들, 러너머리 } from './runnerAddr.js';
 import type { PendingItem } from './store.js';
@@ -161,7 +161,9 @@ export async function callRunner(
     ...판,
   };
 
-  if (item.platform !== 'android') return 보낸다(item, body);
+  // 모바일 웹은 실행 창 「실행 위치」로 고른 항목만 실제 폰이다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)
+  const 폰Chrome = item.platform === 'mobile' && item.실제폰 === true;
+  if (item.platform !== 'android' && !폰Chrome) return 보낸다(item, body);
   // 항목은 abortRun 이 이미 닫았다 — 이 NA 는 finishItem 이 덮지 않는다(finished_at IS NULL)
   // 폰을 잡은 토큰을 러너도 써야 팜이 연결을 받는다. 서버 몫이면 안 싣는다 — 러너가 자기 환경값으로 같은 값을 든다
   const 보낸다폰 = async (udid: string, 토큰: string | undefined): Promise<ExecuteResponse> => {
@@ -174,7 +176,7 @@ export async function callRunner(
     return 보낸다(item, { ...폰body, app });
   };
   if (잡은폰 !== undefined) return 보낸다폰(잡은폰.udid, 잡은폰.토큰);
-  // 앱 항목은 서버 러너가 팜에 붙어 돈다. 폰은 항목마다 잡고 놓는다 — 놓을 때 팜이 깐 앱을 지워 다음 항목이 깨끗한 폰에서 연다 (러너 §5.2 「디바이스 팜 접속 방식」).
+  // 앱 항목 · 실제 폰 모바일 항목은 서버 러너가 팜에 붙어 돈다. 폰은 항목마다 잡고 놓는다 — 놓을 때 팜이 깐 앱 · Chrome 데이터를 지워 다음 항목이 깨끗한 폰에서 연다 (러너 §5.2 「디바이스 팜 접속 방식」).
   // 팜 주소가 없는데 여기까지 왔다면 요청을 받은 뒤 서버를 다시 띄우며 값을 지웠을 때뿐이다 — 실행 요청 통로가 FARM_OFF 로 거절한다
   const 팜 = 팜주소();
   if (팜 === undefined) return na(item, '이 서버에는 Device VISION(DEVICE_FARM_URL)이 연결되어 있지 않습니다');
@@ -184,6 +186,14 @@ export async function callRunner(
     토큰 = await 실행팜토큰(runId);
   } catch (err) {
     return na(item, '누른 사람의 통합계정 토큰을 읽지 못했습니다', err instanceof Error ? err.message : String(err));
+  }
+  if (폰Chrome) {
+    return 폰Chrome으로(
+      팜,
+      async (칸) => (멈췄나() ? na(item, '멈춘 실행이라 러너에 보내지 않았습니다') : 보낸다(item, { ...body, ...칸 })),
+      (까닭) => na(item, 까닭),
+      토큰,
+    );
   }
   return 팜폰으로(팜, (udid) => 보낸다폰(udid, 토큰), (까닭) => na(item, 까닭), undefined, undefined, undefined, 토큰);
 }
