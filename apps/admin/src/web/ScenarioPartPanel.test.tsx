@@ -41,7 +41,7 @@ describe('ScenarioPartPanel 로그인 이어받기', () => {
 
     expect(스위치.getAttribute('aria-checked')).toBe('true');
     const 설명 = document.getElementById(스위치.getAttribute('aria-describedby') ?? '');
-    expect(설명?.textContent).toBe('앞 단계의 로그인 상태를 그대로 사용합니다. 끄면 새 창에서 단독으로 실행합니다');
+    expect(설명?.textContent).toBe('앞 단계의 로그인 상태를 그대로 사용합니다. 끄면 로그인 상태를 비우고 단독으로 실행합니다');
     expect(screen.queryByText('로그인 이어받기를 끄면 사전 단계 건너뛰기와 값 연결을 쓸 수 없습니다')).toBeNull();
   });
 
