@@ -41,11 +41,19 @@ export function 쿠키설정(publicUrl = process.env.PLATFORM_PUBLIC_URL ?? '') 
   return { path: '/', httpOnly: true, sameSite: 'lax' as const, secure: publicUrl.startsWith('https://') };
 }
 
+/**
+ * 출입증 쿠키 이름. https 설치만 `__Host-` 를 붙인다(secure 와 같은 조건 — 브라우저는 Secure · Path=/ · Domain 없음이어야 이 이름을 받는다).
+ * 붙이면 형제 서브도메인(demo. · game.)이 같은 이름 쿠키를 덮어써 남의 출입증을 심지 못한다 (SPEC 도메인/인증 §3.5 · 2026-11-03 S26)
+ */
+export function 쿠키이름(publicUrl = process.env.PLATFORM_PUBLIC_URL ?? ''): string {
+  return 쿠키설정(publicUrl).secure ? '__Host-platform_session' : 'platform_session';
+}
+
 export function 세션등록(app: FastifyInstance, secret: string): void {
   app.register(secureSession, {
     secret,
     salt: 소금,
-    cookieName: 'platform_session',
+    cookieName: 쿠키이름(),
     expiry: 출입증수명,
     cookie: 쿠키설정(),
   });
