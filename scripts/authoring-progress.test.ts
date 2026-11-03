@@ -79,6 +79,14 @@ describe('진척누적기 — 흐름 줄을 먹여 토큰·마지막 동작을 �
     expect(동작).toContain('***');
   });
 
+  it('lastAction 에 팜 토큰(대신 PAT) 원문을 싣지 않는다', () => {
+    const 누적 = 진척누적기(60, { 팜토큰: 'pat_farmsecret123' });
+    누적.먹기(턴('a', 1, 1, [{ type: 'text', text: 'Bearer pat_farmsecret123 으로 잡는다' }]));
+    const 동작 = 누적.스냅샷({ elapsedSec: 0, caseFiles: 0 }).lastAction ?? '';
+    expect(동작).not.toContain('pat_farmsecret123');
+    expect(동작).toContain('***');
+  });
+
   it('이모지로 가득해도 서버 상한(160, UTF-16) 안이고 짝 없는 서로게이트가 없다', () => {
     const 누적 = 진척누적기(60);
     누적.먹기(턴('a', 1, 1, [{ type: 'tool_use', name: `x${'😀'.repeat(200)}` }]));

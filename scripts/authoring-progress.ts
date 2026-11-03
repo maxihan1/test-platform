@@ -33,12 +33,13 @@ const 수 = (n: number | undefined) => (typeof n === 'number' && Number.isFinite
 export interface 가릴것 {
   비밀번호들?: readonly string[];
   figmaToken?: string;
+  /** 자식 환경의 팜 토큰(PLATFORM_APPIUM_TOKEN — 서버가 넘긴 대신 PAT 나 컨테이너 값). 화면의 lastAction 에 실린다 */
+  팜토큰?: string;
 }
 
 function 가리기(글: string, 비밀: 가릴것): string {
-  const 토큰 = 비밀.figmaToken;
   // 짧은 값은 아무 글에나 걸린다 — 올릴 것 검사(비밀섞였나)와 같은 8자 하한
-  const 토큰뺀 = 토큰 !== undefined && 토큰.length >= 8 ? 글.split(토큰).join('***') : 글;
+  const 토큰뺀 = [비밀.figmaToken, 비밀.팜토큰].reduce<string>((g, 토큰) => (토큰 !== undefined && 토큰.length >= 8 ? g.split(토큰).join('***') : g), 글);
   return 사유거르기(토큰뺀, 비밀.비밀번호들 ?? []);
 }
 

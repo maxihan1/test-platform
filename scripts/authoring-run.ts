@@ -233,7 +233,7 @@ async function 사본에서(
   const 역방향 = 것.target === undefined ? undefined : { 화면만: 화면만인가(것, 자료들), 산출물폴더: join(자리.자료, 'out'), 제외: 설정.제외 };
   const 인자 = MCP붙이기(클로드인자(자리.자료, 판.모델, 자리.임시), MCP설정쓰기(자리.임시, MCP설정글(주소기지, 것.mcpKey), 자식));
   // 진척 — 케이스는 자식 시작 뒤 새로 생긴 것만, 화면은 역방향만 센다. limitSec 0 — 전체 상한이 없어 화면이 시간 막대를 안 그린다 (작성 §7)
-  const 누적 = 진척누적기(0, { 비밀번호들: 비밀번호들(것), figmaToken: 것.figmaToken });
+  const 누적 = 진척누적기(0, { 비밀번호들: 비밀번호들(것), figmaToken: 것.figmaToken, 팜토큰: 앱화면?.탐색?.token ?? process.env.PLATFORM_APPIUM_TOKEN });
   const 재기 = 진척재기(누적, 자리.트리, 케이스자리, 역방향 === undefined ? undefined : join(자리.자료, 'screens'), 방.옛케이스);
   const 띄운다 = (키: string | undefined, 이어하기 = 방.이어하기) => 박동.자식동안(재기, (신호) =>
     돌린다(자식 === null ? 'claude' : 'sh', 자식 === null ? 인자 : ['-c', 'umask 077 && exec claude "$@"', 'sh', ...인자], {
