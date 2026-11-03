@@ -457,6 +457,20 @@ describe('실행 단추 — 고친 값을 실은 실행 창을 연다', () => {
     expect(on실행).toHaveBeenCalledTimes(1);
   });
 
+  it('실행 칸이 테스트만이면 글자가 「이 값으로 테스트 실행」 · 「테스트 실행」이다', () => {
+    통로를막는다();
+    const on실행 = vi.fn();
+    const { unmount } = 그린다({ on실행, 테스트만: true });
+
+    expect(screen.queryByRole('button', { name: '이 값으로 실행' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '이 값으로 테스트 실행' }));
+    expect(on실행).toHaveBeenCalledWith(케이스);
+    unmount();
+
+    그린다({ row: 값없는케이스, on실행, 테스트만: true });
+    expect(screen.getByRole('button', { name: '테스트 실행' })).toBeTruthy();
+  });
+
   it('실행 쓰기가 없으면(on실행 없음) 단추가 없다', () => {
     통로를막는다();
 

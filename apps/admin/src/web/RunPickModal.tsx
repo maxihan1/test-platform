@@ -54,9 +54,11 @@ interface Props {
   원래실행?: number;
   /** 미리 고를 모바일 실행 위치. 다시 실행은 원래 실행이 돈 곳이고 그 밖은 서버 흉내다 (도메인/실행 §3.2 「모바일 웹 실행 위치」) */
   초기모바일?: 모바일위치;
+  /** 실행 칸이 `trial` 이면 거짓 — 테스트 실행만 하고 반복 · 알림 · 모바일 실행 위치 · 건수 풀이는 기록이 남는 실행 몫이라 안 그린다 (도메인/인증 §3.5 「테스트 모드」) */
+  정식?: boolean;
 }
 
-export function RunPickModal({ 케이스들, service, 초기글자, 초기서버, user, 사유, 안내, 거는중, onClose, on값고침, on다시읽기, onRun, 원래실행, 초기모바일 }: Props) {
+export function RunPickModal({ 케이스들, service, 초기글자, 초기서버, user, 사유, 안내, 거는중, onClose, on값고침, on다시읽기, onRun, 원래실행, 초기모바일, 정식 = true }: Props) {
   const t = use말();
   const 언어 = use언어();
   // **기본값을 두지 않는다.** 안 고르면 빈 칸이 아니라 틀린 값이 증적에 남는다 (SPEC §8.2).
@@ -114,12 +116,8 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
    * 대신 위 둘까지 덮지는 않는다 — 옛 사유가 버튼이 죽은 이유를 가리면
    * 「왜 안 눌리는지」를 읽을 자리가 사라진다 (DESIGN.md 접근성 기준).
    */
-  const 줄 =
-    notice ??
-    (너무많나
-      ? t('한 번에 {상한}건까지 만들 수 있습니다 (지금 {지금}건)', { 상한, 지금: 건수 })
-      : (사유 ?? 건수풀이(t, 건수재료(돌릴것), 반복수, 건수)));
-  const 빨갛나 = notice !== null || 너무많나 || 사유 !== undefined;
+  const 줄 = notice ?? (!정식 ? null : 너무많나 ? t('한 번에 {상한}건까지 만들 수 있습니다 (지금 {지금}건)', { 상한, 지금: 건수 }) : (사유 ?? 건수풀이(t, 건수재료(돌릴것), 반복수, 건수)));
+  const 빨갛나 = notice !== null || (정식 && (너무많나 || 사유 !== undefined));
 
   /** 서버가 칸별 사유를 주면 그 칸 아래에 붙인다. 아니면 창의 한 줄로 (SPEC §8.2) */
   function 저장실패(err: unknown, tcId?: string) {
@@ -166,7 +164,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
 
   return (
     <Modal
-      제목={t('실행할 케이스 {건수}건', { 건수: 케이스들.length })}
+      제목={정식 ? t('실행할 케이스 {건수}건', { 건수: 케이스들.length }) : t('테스트 실행할 케이스 {건수}건', { 건수: 케이스들.length })}
       onClose={닫기.요청}
       넓게
       바깥눌러닫기={false}
@@ -185,6 +183,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
             on실행={실행}
             실행막힘={너무많나}
             거는중={거는중 === true}
+            정식={정식}
           />
         </>
         )
@@ -208,7 +207,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
           <span className="err">{t('이 애플리케이션에 등록된 대상 서버가 없습니다. 설정에서 추가해야 실행할 수 있습니다')}</span>
         ) : null}
       </div>
-      <RunLocation android={android} 앱종류={service?.kind} 모바일={모바일 ? { 값: mobileOn, on바꿈: (값) => { 손댐(); setMobileOn(값); } } : undefined} />
+      <RunLocation android={android} 앱종류={service?.kind} 모바일={모바일 && 정식 ? { 값: mobileOn, on바꿈: (값) => { 손댐(); setMobileOn(값); } } : undefined} />
       {한건 === null ? null : (
         <한건머리
           케이스={한건}
@@ -286,14 +285,15 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
         })}
       </div>
 
-      <반복과알림
-        repeat={repeat}
-        on반복={(값) => { 손댐(); setRepeat(값); }}
-        slack칸={service?.hasSlackWebhook === true}
-        남는곳={{ tcId: 한건?.tcId ?? null, 디바이스: 하나.디바이스, env, 반복수, 원래실행, mobileOn }}
-        notifySlack={notifySlack}
-        onSlack={setNotifySlack}
-      />
+      {!정식 ? null : (
+        <반복과알림
+          repeat={repeat}
+          on반복={(값) => { 손댐(); setRepeat(값); }}
+          slack칸={service?.hasSlackWebhook === true}
+          남는곳={{ tcId: 한건?.tcId ?? null, 디바이스: 하나.디바이스, env, 반복수, 원래실행, mobileOn }}
+          notifySlack={notifySlack} onSlack={setNotifySlack}
+        />
+      )}
       </시험나눔>
     </Modal>
   );

@@ -130,11 +130,14 @@ export function 실행버튼들({
   on실행,
   실행막힘,
   거는중,
+  정식,
 }: {
   on시험: () => void;
   on실행: () => void;
   실행막힘: boolean;
   거는중: boolean;
+  /** 실행 칸이 `write` 다. `trial` 이면 기록이 남는 「실행」을 안 그린다 (도메인/인증 §3.5 「테스트 모드」) */
+  정식: boolean;
 }) {
   const t = use말();
   return (
@@ -147,12 +150,14 @@ export function 실행버튼들({
       </span>
       {/* 상한은 서버도 같은 것을 본다. 화면만 막으면 직접 찌르는 요청을 못 막는다 (SPEC §8.2) */}
       {/* 도는 동안 글자가 바뀌고 눌리지 않는다. 안 그러면 두 번째 누름이 조용히 무시된다 */}
-      <span className="foot-act">
-        <button className="btn" onClick={on실행} disabled={실행막힘 || 거는중}>
-          {거는중 ? t('실행을 시작하는 중') : t('실행')}
-        </button>
-        <span className="hint">{t('기록이 남습니다')}</span>
-      </span>
+      {!정식 ? null : (
+        <span className="foot-act">
+          <button className="btn" onClick={on실행} disabled={실행막힘 || 거는중}>
+            {거는중 ? t('실행을 시작하는 중') : t('실행')}
+          </button>
+          <span className="hint">{t('기록이 남습니다')}</span>
+        </span>
+      )}
     </>
   );
 }

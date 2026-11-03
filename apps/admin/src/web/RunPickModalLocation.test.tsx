@@ -96,3 +96,18 @@ describe('RunPickModal 실행 위치 (SPEC §8.10)', () => {
     expect(onRun.mock.calls[0]?.[0].mobileOn).toBe('vision');
   });
 });
+
+describe('실행 칸이 테스트만인 사람의 실행 창 (도메인/인증 §3.5 「테스트 모드」)', () => {
+  it('「▶ 테스트 실행」만 있고 기록이 남는 실행 · 반복 · Slack 알림 · 모바일 실행 위치 · 건수 풀이는 안 그린다', () => {
+    render(<RunPickModal 케이스들={[값없는케이스]} service={서비스} onRun={vi.fn()} onClose={vi.fn()} 정식={false} />);
+
+    expect(screen.getByText('테스트 실행할 케이스 1건')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '▶ 테스트 실행' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '실행' })).toBeNull();
+    expect(screen.queryByText('기록이 남습니다')).toBeNull();
+    expect(screen.queryByLabelText('반복')).toBeNull();
+    expect(screen.queryByText('끝나면 Slack 으로 알리기')).toBeNull();
+    expect(screen.queryByRole('radio', { name: '서버 (iPhone 14 흉내)' })).toBeNull();
+    expect(screen.getByRole('status').textContent).toBe('');
+  });
+});

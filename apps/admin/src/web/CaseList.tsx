@@ -34,6 +34,8 @@ import { useRunPick, 쪽상한 } from './useRunPick.js';
 export function CaseList({ service, 할수, 결과보나, 요구보나 = false, kind, 요구, 앱종류 }: { service: string; 할수: 판정; 결과보나: boolean; 요구보나?: boolean; kind: 'UI' | 'FN'; 요구?: string; 앱종류?: 앱종류 }) {
   const t = use말();
   const 언어 = use언어();
+  // 실행 칸이 trial 이면 실행 자리가 모두 기록 없는 테스트 실행이다 (도메인/인증 §3.5 「테스트 모드」)
+  const 테스트만 = !할수('실행');
   const 검색 = use검색조건(service, kind, 요구, 앱종류);
   const { 조건, 결과, page } = 검색;
   const [본서비스, set본서비스] = useState(service);
@@ -168,10 +170,12 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
               </button>
             )}
             {/* 머리는 늘 조건 기준이다. 고른 것의 실행은 고르기 바에만 있다 (도메인/카탈로그 §8.1 · 2026-10-30 WEB-F7-08) */}
-            {!할수('실행') ? null : (
+            {!할수('테스트실행') ? null : (
               <button className="btn" ref={실행단추} onClick={() => void 뽑기.조건모으기()} disabled={뽑기.모으는중}>
                 {/* 「전체」가 아니라 조건에 맞는 것만 건다 — 이름이 그렇게 말해야 한다(점검 7.8) */}
-                {t('조건에 맞는 {건수}건 실행', { 건수: cases.data?.total ?? 0 })}
+                {테스트만
+                  ? t('조건에 맞는 {건수}건 테스트 실행', { 건수: cases.data?.total ?? 0 })
+                  : t('조건에 맞는 {건수}건 실행', { 건수: cases.data?.total ?? 0 })}
               </button>
             )}
           </>
@@ -223,7 +227,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
             전체={전체}
             모두={뽑기.모두}
             담기한계={쪽상한 * cases.data.pageSize}
-            실행보나={할수('실행')}
+            실행보나={할수('테스트실행')}
             삭제보나={할수('작성요청')}
             on모두={뽑기.모두고르기}
             on풀기={풀기}
@@ -256,7 +260,8 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
             고름={골랐나(row)}
             뒤집기={(row, 사이) => 뽑기.뒤집기(row, 보일것, 사이 ? 펼친줄 : undefined)}
             열림={연줄?.tcId === row.tcId}
-            on실행={할수('실행') ? (row) => void 뽑기.하나열기(row) : undefined}
+            on실행={할수('테스트실행') ? (row) => void 뽑기.하나열기(row) : undefined}
+            테스트만={테스트만}
             on열기={열기}
             on스모크={할수('스모크고치기') ? cases.reload : undefined}
           />
@@ -282,6 +287,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
           on값고침={뽑기.사유지우기}
           on다시읽기={(tcId) => { void 뽑기.다시읽기(tcId); cases.reload(); }}
           onRun={(요청) => void 뽑기.실행걸기(요청)}
+          정식={!테스트만}
         />
       )}
       </div>
@@ -297,7 +303,8 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
           고칠서비스={할수('작성요청') ? service : undefined}
           요구보나={요구보나}
           저장된다={할수('입력값저장')}
-          on실행={할수('실행') ? (row) => void 뽑기.하나열기(row) : undefined}
+          on실행={할수('테스트실행') ? (row) => void 뽑기.하나열기(row) : undefined}
+          테스트만={테스트만}
           onClose={닫기}
           on값={(어디, key, value) => 값고침(연줄.tcId, 어디, key, value)}
           on저장됨={async () => {

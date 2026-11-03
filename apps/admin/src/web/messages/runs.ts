@@ -126,6 +126,9 @@ export const 실행말: Record<string, string> = {
   '팀 모두와 정기 실행에 쓰입니다': 'Used by the whole team and scheduled runs',
   '실행': 'Run',
   '{케이스} 실행': 'Run {케이스}',
+  // 실행 칸이 테스트만인 사람의 실행 자리 (도메인/인증 §3.5 「테스트 모드」)
+  '테스트 실행': 'Test run',
+  '{케이스} 테스트 실행': 'Test run {케이스}',
   '실행할 디바이스를 하나 이상 고르세요.': 'Pick at least one device to run.',
   // 실행 창을 여는 다른 자리 — 실행 결과 · 항목 상세 (도메인/실행 §8.10)
   '실패 {건수}건 다시 실행': 'Rerun {건수} failed',
@@ -143,6 +146,7 @@ export const 실행말: Record<string, string> = {
 
   // 여러 건 실행 모달 (§8.10)
   '실행할 케이스 {건수}건': '{건수} cases to run',
+  '테스트 실행할 케이스 {건수}건': '{건수} cases to test run',
   // 휴대폰 실행 창에서 접힌 값 칸을 펴는 버튼 (도메인/실행 §8.10)
   값: 'Values',
   '선언된 입력값이 없습니다. 그대로 실행됩니다': 'No inputs declared. It runs as is',
