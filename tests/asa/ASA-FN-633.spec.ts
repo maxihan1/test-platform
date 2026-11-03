@@ -1,0 +1,85 @@
+import { defineCase, test, verify } from '@platform/kit';
+
+import { 오류코드, 토큰없이부르기 } from './helpers/api.helper.js';
+
+export const spec = defineCase({
+  tcId: 'ASA-FN-633',
+  name: '토큰 없이 POST /combat/pk-attack 요청을 보내면 401 「UNAUTHORIZED」로 막힌다',
+  apiDoc: 1,
+  techniques: ['동등 분할'],
+  precondition: ['토큰이 없다'],
+  params: null,
+  expected: null,
+});
+
+test(spec, async ({ request }) => {
+  await test.step('토큰 없이 POST /combat/pk-attack 요청을 보낸다', async () => {
+    const 응답 = await 토큰없이부르기(request, 'POST', '/combat/pk-attack');
+    const 코드 = await verify('POST /combat/pk-attack 응답 코드가 401 이다', 응답.status(), 401);
+    const 오류 = await verify('POST /combat/pk-attack 오류 코드가 「UNAUTHORIZED」다', await 오류코드(응답), 'UNAUTHORIZED');
+    await verify('토큰 없이 POST /combat/pk-attack 요청을 보내면 401 「UNAUTHORIZED」로 막힌다', 코드 && 오류, true);
+  });
+
+  await test.step('토큰 없이 GET /world/ground-items 요청을 보낸다', async () => {
+    const 응답 = await 토큰없이부르기(request, 'GET', '/world/ground-items');
+    const 코드 = await verify('GET /world/ground-items 응답 코드가 401 이다', 응답.status(), 401);
+    const 오류 = await verify('GET /world/ground-items 오류 코드가 「UNAUTHORIZED」다', await 오류코드(응답), 'UNAUTHORIZED');
+    await verify('토큰 없이 GET /world/ground-items 요청을 보내면 401 「UNAUTHORIZED」로 막힌다', 코드 && 오류, true);
+  });
+
+  await test.step('토큰 없이 POST /combat/monster-kill 요청을 보낸다', async () => {
+    const 응답 = await 토큰없이부르기(request, 'POST', '/combat/monster-kill');
+    const 코드 = await verify('POST /combat/monster-kill 응답 코드가 401 이다', 응답.status(), 401);
+    const 오류 = await verify('POST /combat/monster-kill 오류 코드가 「UNAUTHORIZED」다', await 오류코드(응답), 'UNAUTHORIZED');
+    await verify('토큰 없이 POST /combat/monster-kill 요청을 보내면 401 「UNAUTHORIZED」로 막힌다', 코드 && 오류, true);
+  });
+
+  await test.step('토큰 없이 POST /combat/player-death 요청을 보낸다', async () => {
+    const 응답 = await 토큰없이부르기(request, 'POST', '/combat/player-death');
+    const 코드 = await verify('POST /combat/player-death 응답 코드가 401 이다', 응답.status(), 401);
+    const 오류 = await verify('POST /combat/player-death 오류 코드가 「UNAUTHORIZED」다', await 오류코드(응답), 'UNAUTHORIZED');
+    await verify('토큰 없이 POST /combat/player-death 요청을 보내면 401 「UNAUTHORIZED」로 막힌다', 코드 && 오류, true);
+  });
+
+  await test.step('토큰 없이 POST /characters/1/equip 요청을 보낸다', async () => {
+    const 응답 = await 토큰없이부르기(request, 'POST', '/characters/1/equip');
+    const 코드 = await verify('POST /characters/1/equip 응답 코드가 401 이다', 응답.status(), 401);
+    const 오류 = await verify('POST /characters/1/equip 오류 코드가 「UNAUTHORIZED」다', await 오류코드(응답), 'UNAUTHORIZED');
+    await verify('토큰 없이 POST /characters/1/equip 요청을 보내면 401 「UNAUTHORIZED」로 막힌다', 코드 && 오류, true);
+  });
+
+  await test.step('토큰 없이 POST /characters/1/unequip 요청을 보낸다', async () => {
+    const 응답 = await 토큰없이부르기(request, 'POST', '/characters/1/unequip');
+    const 코드 = await verify('POST /characters/1/unequip 응답 코드가 401 이다', 응답.status(), 401);
+    const 오류 = await verify('POST /characters/1/unequip 오류 코드가 「UNAUTHORIZED」다', await 오류코드(응답), 'UNAUTHORIZED');
+    await verify('토큰 없이 POST /characters/1/unequip 요청을 보내면 401 「UNAUTHORIZED」로 막힌다', 코드 && 오류, true);
+  });
+
+  await test.step('토큰 없이 PUT /characters/1/position 요청을 보낸다', async () => {
+    const 응답 = await 토큰없이부르기(request, 'PUT', '/characters/1/position');
+    const 코드 = await verify('PUT /characters/1/position 응답 코드가 401 이다', 응답.status(), 401);
+    const 오류 = await verify('PUT /characters/1/position 오류 코드가 「UNAUTHORIZED」다', await 오류코드(응답), 'UNAUTHORIZED');
+    await verify('토큰 없이 PUT /characters/1/position 요청을 보내면 401 「UNAUTHORIZED」로 막힌다', 코드 && 오류, true);
+  });
+
+  await test.step('토큰 없이 POST /characters/1/use-item 요청을 보낸다', async () => {
+    const 응답 = await 토큰없이부르기(request, 'POST', '/characters/1/use-item');
+    const 코드 = await verify('POST /characters/1/use-item 응답 코드가 401 이다', 응답.status(), 401);
+    const 오류 = await verify('POST /characters/1/use-item 오류 코드가 「UNAUTHORIZED」다', await 오류코드(응답), 'UNAUTHORIZED');
+    await verify('토큰 없이 POST /characters/1/use-item 요청을 보내면 401 「UNAUTHORIZED」로 막힌다', 코드 && 오류, true);
+  });
+
+  await test.step('토큰 없이 GET /characters/1/inventory 요청을 보낸다', async () => {
+    const 응답 = await 토큰없이부르기(request, 'GET', '/characters/1/inventory');
+    const 코드 = await verify('GET /characters/1/inventory 응답 코드가 401 이다', 응답.status(), 401);
+    const 오류 = await verify('GET /characters/1/inventory 오류 코드가 「UNAUTHORIZED」다', await 오류코드(응답), 'UNAUTHORIZED');
+    await verify('토큰 없이 GET /characters/1/inventory 요청을 보내면 401 「UNAUTHORIZED」로 막힌다', 코드 && 오류, true);
+  });
+
+  await test.step('토큰 없이 GET /characters/1/pk-history 요청을 보낸다', async () => {
+    const 응답 = await 토큰없이부르기(request, 'GET', '/characters/1/pk-history');
+    const 코드 = await verify('GET /characters/1/pk-history 응답 코드가 401 이다', 응답.status(), 401);
+    const 오류 = await verify('GET /characters/1/pk-history 오류 코드가 「UNAUTHORIZED」다', await 오류코드(응답), 'UNAUTHORIZED');
+    await verify('토큰 없이 GET /characters/1/pk-history 요청을 보내면 401 「UNAUTHORIZED」로 막힌다', 코드 && 오류, true);
+  });
+});
