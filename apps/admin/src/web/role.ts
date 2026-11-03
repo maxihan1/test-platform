@@ -5,11 +5,13 @@ import type { User } from './api.js';
 
 export type 등급 = 'member' | 'admin';
 export type 기능 = 'cases' | 'runs' | 'authoring';
-export type 칸 = 'none' | 'read' | 'write';
+// `trial` 은 실행 칸에만 온다 — 보기 + 테스트 모드(케이스 「테스트 실행」 · E2E 「시험 실행」). 케이스 · 작성 칸은 세 값이다 (도메인/인증 §3.5 「테스트 모드」)
+export type 칸 = 'none' | 'read' | 'trial' | 'write';
 export type 권한칸 = Record<기능, 칸>;
 
 export type 할일 =
   | '실행'
+  | '테스트실행'
   | '멈춤'
   | '증적만들기'
   | '증적받기'
@@ -24,12 +26,14 @@ export type 할일 =
 /** 화면 조각이 받는 판정. 사람과 고른 서비스를 이미 물고 있다 */
 export type 판정 = (무엇: 할일) => boolean;
 
-const 높이: Record<칸, number> = { none: 0, read: 1, write: 2 };
+const 높이: Record<칸, number> = { none: 0, read: 1, trial: 2, write: 3 };
 
 // 받는 것은 읽기이고 만드는 것은 서버에 파일을 남기는 쓰기다 (도메인/인증 §3.5 · §8.4)
-const 필요: Record<할일, { 기능: 기능; 칸: 'read' | 'write' } | 'admin'> = {
+const 필요: Record<할일, { 기능: 기능; 칸: Exclude<칸, 'none'> } | 'admin'> = {
   증적받기: { 기능: 'runs', 칸: 'read' },
   실행: { 기능: 'runs', 칸: 'write' },
+  // 테스트 모드는 기록이 안 남아 정식 실행보다 한 칸 낮다. 서버 문의 (실행, trial) 과 같다 (도메인/인증 §7)
+  테스트실행: { 기능: 'runs', 칸: 'trial' },
   멈춤: { 기능: 'runs', 칸: 'write' },
   증적만들기: { 기능: 'runs', 칸: 'write' },
   입력값저장: { 기능: 'cases', 칸: 'write' },
