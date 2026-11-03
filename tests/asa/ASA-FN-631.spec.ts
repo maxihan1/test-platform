@@ -7,11 +7,10 @@ export const spec = defineCase({
   tcId: 'ASA-FN-631',
   name: '새 아이디로 가입하면 응답 코드가 기대값과 같다',
   apiDoc: 1,
-  held: '판정 불가 — 자료 어긋남: 기획서 201 · 문서 200',
   precondition: ['가입하지 않은 새 아이디다'],
   params: null,
   expected: z.object({
-    가입응답코드: z.number().int().describe('가입이 됐을 때의 응답 코드 — 기획서는 201 · API 문서 판 1 은 200'),
+    가입응답코드: z.number().int().describe('가입이 됐을 때의 응답 코드 — 기획서는 201 · API 문서 판 1 은 200').default(201),
   }),
 });
 
