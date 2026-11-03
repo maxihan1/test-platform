@@ -74,7 +74,7 @@ async function 기록읽기(pool: Pool, historyId: number): Promise<{ 네트워�
 }
 
 /** 카드의 첫 디바이스(화면 차례)로 쓴다 — 한 테스트 · 한 대상 서버에 이슈는 하나다 */
-async function 재료만들기(pool: Pool, 실행: 실행행, runId: number, c: FailureCase) {
+async function 재료만들기(pool: Pool, 실행: 실행행, c: FailureCase) {
   const d = c.devices[0]!;
   const 기록 = await 기록읽기(pool, d.item.historyId);
   const 확인 = d.item.steps.flatMap((s) => s.assertions).find((a) => a.status === 'FAIL') ?? null;
@@ -91,7 +91,8 @@ async function 재료만들기(pool: Pool, 실행: 실행행, runId: number, c: 
     확인: 확인 === null ? null : { statement: 확인.statement, expected: 확인.expected, actual: 확인.actual },
     원인: d.item.failure?.reason ?? null,
     ...기록,
-    결과주소: 공개주소 === '' ? null : `${공개주소}/runs/${String(runId)}`,
+    // 화면은 hash 주소다. 항목 상세는 실행 번호가 맞아야 찾아(execution/queries.ts findItem) 한 건 실행이 덮은 항목은 그 한 건 실행 번호로 간다
+    결과주소: 공개주소 === '' ? null : `${공개주소}/#/runs/${String(d.item.runId)}/items/${String(d.item.historyId)}`,
     // 최근 흐름 맨 앞은 이번 실행이다 — 섞임은 앞 실행들로만 본다(이번 FAIL 을 넣으면 새로 깨진 회귀가 다 흔들림이 된다)
     꼬리표: 꼬리표고르기(d.item.failure?.type ?? null, d.recent.slice(1)),
   };
@@ -137,7 +138,7 @@ export async function 실패등록(runId: number): Promise<number> {
       // 흔들림 · 테스트 문제 · 화면이 맞음으로 닫힌 테스트는 다음 실패부터 올리지 않는다 — 사람이 판정했고 테스트를 고칠 일만 남았다.
       // 그 케이스를 고친 작성이 병합되면 다시 올린다(도메인/BTS 「판정은 BTS 에서」)
       if (짝 !== undefined && !짝.open && 안올릴사유.has(짝.resolution ?? '') && !짝.released) continue;
-      const { 재료, 캡처 } = await 재료만들기(pool, 실행, 카드실행, c);
+      const { 재료, 캡처 } = await 재료만들기(pool, 실행, c);
       // 줄은 카드가 서는 실행에 단다 — 실패 카드가 그 실행 번호로 bts 칸을 읽는다
       const 공통 = { projectId: Number(실행.project_id), serviceId: 서비스, runId: 카드실행, tcId: c.tcId, env: 실행.env };
       const id =

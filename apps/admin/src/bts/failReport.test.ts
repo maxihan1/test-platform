@@ -18,6 +18,10 @@ describe.skipIf(연결 === undefined)('실패 → Issue Bunker 등록', () => {
   let 서비스 = 0;
   let 남의서비스 = 0;
   let 실행차례 = 0;
+  const 앞공개주소 = process.env.PLATFORM_PUBLIC_URL;
+
+  const 회차 = async (runId: number, tcId: string): Promise<number> =>
+    Number((await pool.query<{ history_id: string }>('SELECT history_id FROM run_item WHERE run_id = $1 AND tc_id = $2', [runId, tcId])).rows[0]!.history_id);
 
   async function 실행(service: number, 항목들: { tcId: string; status: 'PASS' | 'FAIL' }[], 붙는실행?: number): Promise<number> {
     실행차례++;
@@ -71,6 +75,7 @@ describe.skipIf(연결 === undefined)('실패 → Issue Bunker 등록', () => {
 
   beforeAll(async () => {
     pool = new Pool({ connectionString: 연결 });
+    process.env.PLATFORM_PUBLIC_URL = 'https://qa.example.com/';
     const 만들기 = async (이름: string, 접: string): Promise<[number, number]> => {
       const pid = Number((await pool.query<{ id: string }>('INSERT INTO project (name) VALUES ($1) RETURNING id', [이름])).rows[0]!.id);
       const sid = Number(
@@ -99,6 +104,8 @@ describe.skipIf(연결 === undefined)('실패 → Issue Bunker 등록', () => {
     await pool.query('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
     await pool.query('DELETE FROM service WHERE id = ANY($1)', [[서비스, 남의서비스]]);
     await pool.end();
+    if (앞공개주소 === undefined) delete process.env.PLATFORM_PUBLIC_URL;
+    else process.env.PLATFORM_PUBLIC_URL = 앞공개주소;
   });
 
   it('첫 실패는 등록 줄 하나 — 제목 · 본문 · 꼬리표 · 실패 단계 캡처 · 비밀값은 가림 · 통과는 안 올린다', async () => {
@@ -121,6 +128,7 @@ describe.skipIf(연결 === undefined)('실패 → Issue Bunker 등록', () => {
     const 본문 = 줄!.payload.description as string;
     expect(본문).toContain('2. 비밀번호를 넣는다 ← 여기서 실패');
     expect(본문).toContain('빌드 abc1234-202610311200');
+    expect(본문).toContain(`Test Commander 실행 결과 — https://qa.example.com/#/runs/${String(runId)}/items/${String(await 회차(runId, 'XBF-001'))}`);
     expect(JSON.stringify(줄!.payload)).not.toContain('XBF-PW-77');
 
     const 카드 = await 실패카드(runId, 1);
@@ -216,7 +224,7 @@ describe.skipIf(연결 === undefined)('실패 → Issue Bunker 등록', () => {
     expect((await 실패카드(runId, 1)).items[0]!.bts).toMatchObject({ state: 'SENT', issueKey: 'DM-40' });
   });
 
-  it('한 건 실행은 붙는 실행의 카드로 그 한 건만 올리고 줄도 붙는 실행에 단다', async () => {
+  it('한 건 실행은 붙는 실행의 카드로 그 한 건만 올리고 줄도 붙는 실행에 단다 · 결과 고리는 한 건 실행의 항목 상세다', async () => {
     const 부모 = await 실행(서비스, [
       { tcId: 'XBF-005', status: 'PASS' },
       { tcId: 'XBF-006', status: 'PASS' },
@@ -224,7 +232,9 @@ describe.skipIf(연결 === undefined)('실패 → Issue Bunker 등록', () => {
     expect(await 실패등록(부모)).toBe(0);
     const 한건 = await 실행(서비스, [{ tcId: 'XBF-005', status: 'FAIL' }], 부모);
     expect(await 실패등록(한건)).toBe(1);
-    expect((await 줄들()).at(-1)).toMatchObject({ kind: 'CREATE', tc_id: 'XBF-005', run_id: String(부모) });
+    const 줄 = (await 줄들()).at(-1)!;
+    expect(줄).toMatchObject({ kind: 'CREATE', tc_id: 'XBF-005', run_id: String(부모) });
+    expect(줄.payload.description as string).toContain(`https://qa.example.com/#/runs/${String(한건)}/items/${String(await 회차(한건, 'XBF-005'))}`);
     expect((await 실패카드(부모, 1)).items.map((c) => [c.tcId, c.bts?.state])).toEqual([['XBF-005', 'SENDING']]);
   });
 
