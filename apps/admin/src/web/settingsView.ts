@@ -7,7 +7,7 @@ import { 제외경로정리, 제외경로최대개수, 제외경로최대글자 
 import type { EnvRow, SettingsServiceRow, UserRow } from './api.js';
 import { 요청오류문장 } from './errorText.js';
 import { t, type 언어 } from './i18n.js';
-import type { 권한칸, 기능, 칸 } from './role.js';
+import type { 권한칸, 기능, 실행칸 } from './role.js';
 
 // SPEC §2 의 접두사 모양. 서버 settings/routes.ts 의 `접두사모양` 과 같은 것을 화면이 복사해 둔 자리다
 // (CLAUDE.md §2.7 ⑤ — §2 를 고치면 두 곳이 같이 움직인다).
@@ -178,7 +178,7 @@ export const 기능순서: 기능[] = ['cases', 'runs', 'authoring'];
 
 export type 계정요약값 =
   | { 운영: true }
-  | { 운영: false; 프로젝트: { 이름: string; 칸들: [기능, 칸][] }[]; 대시보드: 'none' | 'read' };
+  | { 운영: false; 프로젝트: { 이름: string; 칸들: [기능, 실행칸][] }[]; 대시보드: 'none' | 'read' };
 
 /** 권한 폼과 계정 목록이 쓰는 프로젝트 한 줄. `앱수` 는 그 프로젝트 안의 애플리케이션 수다 */
 export interface 프로젝트줄 {
@@ -200,7 +200,7 @@ export function 계정요약(row: UserRow, projects: 프로젝트줄[]): 계정�
     프로젝트: (row.projects ?? []).map((it) => ({
       // 비어 지워진 프로젝트의 줄은 서버가 같이 지운다. 그래도 이름을 못 찾으면 번호로라도 보여준다
       이름: projects.find((p) => p.id === it.projectId)?.name ?? `#${it.projectId}`,
-      칸들: 기능순서.map((f): [기능, 칸] => [f, it.permissions[f]]),
+      칸들: 기능순서.map((f): [기능, 실행칸] => [f, it.permissions[f]]),
     })),
     대시보드: row.dashboard,
   };

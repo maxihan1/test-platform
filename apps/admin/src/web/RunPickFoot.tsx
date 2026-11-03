@@ -5,6 +5,25 @@ import { useState, type ComponentProps } from 'react';
 
 import { use말 } from './i18n.js';
 import { 결과남는곳 } from './RunPickDest.js';
+import { 상한 } from './runPlan.js';
+
+/**
+ * 창 바닥의 한 줄. 넷을 겸한다 — 방금 누른 것에 대한 답 · 버튼을 죽인 이유 · **걸었다 거절당한 사유** · 건수 안내.
+ *
+ * 사유는 안내를 이긴다. 실패한 직후에는 `notice` 가 비어 있고 상한도 안 넘은 상태라
+ * (안 그랬으면 애초에 안 걸렸다) **거절당한 그 순간 사유가 늘 보인다.**
+ * 대신 위 둘까지 덮지는 않는다 — 옛 사유가 버튼이 죽은 이유를 가리면
+ * 「왜 안 눌리는지」를 읽을 자리가 사라진다 (DESIGN.md 접근성 기준).
+ *
+ * 테스트 실행만 하는 창(`정식` 거짓 — 실행 칸 trial)은 방금 누른 것에 대한 답만 적는다 — 상한 · 거절 사유 · 건수 풀이는 기록이 남는 실행 몫이다 (도메인/인증 §3.5 「테스트 모드」)
+ */
+export function 바닥한줄(
+  t: (키: string, 값?: Record<string, string | number>) => string,
+  { notice, 정식, 너무많나, 건수, 사유, 풀이 }: { notice: string | null; 정식: boolean; 너무많나: boolean; 건수: number; 사유?: string; 풀이: () => string },
+): { 줄: string | null; 빨갛나: boolean } {
+  const 정식줄 = 너무많나 ? t('한 번에 {상한}건까지 만들 수 있습니다 (지금 {지금}건)', { 상한, 지금: 건수 }) : (사유 ?? 풀이());
+  return { 줄: notice ?? (정식 ? 정식줄 : null), 빨갛나: notice !== null || (정식 && (너무많나 || 사유 !== undefined)) };
+}
 
 /**
  * 값을 고친 채 Esc · 취소로 닫으려 하면 버튼 줄이 한 번 묻는다. 상자 안에 상자를 겹쳐 열지 않는다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」).

@@ -184,6 +184,23 @@ describe('상한을 띠가 미리 알린다', () => {
     expect(띠()?.textContent).not.toContain('실행은 앞');
   });
 
+  it('실행 칸이 테스트만이면 바 단추가 「테스트 실행」이고 담는 한계 안내도 테스트 실행 글자다', async () => {
+    await 그리기(큰쪽(81), (무엇) => 무엇 !== '실행');
+    fireEvent.click(머리칸());
+
+    expect(within(바()).getByRole('button', { name: '테스트 실행' })).toBeTruthy();
+    expect(within(바()).queryByRole('button', { name: '실행' })).toBeNull();
+    expect(띠()?.textContent).toContain('테스트 실행은 앞 80건까지만 담습니다');
+  });
+
+  it('실행 읽기면 바에 실행도 테스트 실행도 없다', async () => {
+    await 그리기(() => 쪽1, (무엇) => 무엇 !== '실행' && 무엇 !== '테스트실행');
+    fireEvent.click(고르기칸()[0]!);
+
+    expect(within(바()).queryByRole('button', { name: '실행' })).toBeNull();
+    expect(within(바()).queryByRole('button', { name: '테스트 실행' })).toBeNull();
+  });
+
   it('작성 쓰기가 없으면 삭제 안내도 바의 삭제 요청도 없다', async () => {
     await 그리기(큰쪽(60), (무엇) => 무엇 !== '작성요청');
     fireEvent.click(머리칸());

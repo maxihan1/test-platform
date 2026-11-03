@@ -22,7 +22,7 @@ import { Head } from './Head.js';
 import { keyOf, type LastMap } from './catalogView.js';
 import { use말, use언어 } from './i18n.js';
 import type { 글자표 } from './pickRun.js';
-import type { 판정 } from './role.js';
+import { 테스트만인가, type 판정 } from './role.js';
 import { 다음이있나 } from './paging.js';
 import { RunPickModal } from './RunPickModal.js';
 import { use실행끝남 } from './runWatchStore.js';
@@ -34,8 +34,7 @@ import { useRunPick, 쪽상한 } from './useRunPick.js';
 export function CaseList({ service, 할수, 결과보나, 요구보나 = false, kind, 요구, 앱종류 }: { service: string; 할수: 판정; 결과보나: boolean; 요구보나?: boolean; kind: 'UI' | 'FN'; 요구?: string; 앱종류?: 앱종류 }) {
   const t = use말();
   const 언어 = use언어();
-  // 실행 칸이 trial 이면 실행 자리가 모두 기록 없는 테스트 실행이다 (도메인/인증 §3.5 「테스트 모드」)
-  const 테스트만 = !할수('실행');
+  const 테스트만 = 테스트만인가(할수);
   const 검색 = use검색조건(service, kind, 요구, 앱종류);
   const { 조건, 결과, page } = 검색;
   const [본서비스, set본서비스] = useState(service);
@@ -228,6 +227,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
             모두={뽑기.모두}
             담기한계={쪽상한 * cases.data.pageSize}
             실행보나={할수('테스트실행')}
+            테스트만={테스트만}
             삭제보나={할수('작성요청')}
             on모두={뽑기.모두고르기}
             on풀기={풀기}

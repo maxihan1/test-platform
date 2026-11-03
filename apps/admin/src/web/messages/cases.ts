@@ -130,6 +130,7 @@ export const 케이스말: Record<string, string> = {
   '조건에 맞는 {전체}건을 모두 골랐습니다': 'All {전체} matching are selected',
   '고르기 풀기': 'Clear selection',
   '실행은 앞 {한계}건까지만 담습니다': 'A run takes only the first {한계}',
+  '테스트 실행은 앞 {한계}건까지만 담습니다': 'A test run takes only the first {한계}',
   '모두 고르면 삭제 요청은 보낼 수 없습니다(한 번에 {상한}건까지)': 'With all selected you cannot request deletion (up to {상한} at a time)',
   '고른 케이스': 'Selected cases',
   '조건에 맞는 {수}건 모두 고름': 'All {수} matching selected',

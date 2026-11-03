@@ -10,11 +10,11 @@ import { Modal } from './Modal.js';
 import { type 글자표, type 실행요청, 건수재료, 몇건, 실행항목, 안드로이드있나, 모바일있나 } from './pickRun.js';
 import { 고른서버를적는다, 마지막서버 } from './layout.js';
 import { RunLocation } from './RunLocation.js';
-import { use닫기묻기, 건수풀이, 반복과알림, 실행버튼들 } from './RunPickFoot.js';
+import { use닫기묻기, 건수풀이, 바닥한줄, 반복과알림, 실행버튼들 } from './RunPickFoot.js';
 import { 한건머리, use한건 } from './RunPickOne.js';
 import { 저장한값줄 } from './RunPickSaved.js';
 import { use입력값저장, 출처줄 } from './RunPickSource.js';
-import { 넘었나, 상한 } from './runPlan.js';
+import { 넘었나 } from './runPlan.js';
 import { use여러건시험, 시험나눔, 시험배지, 시험절차 } from './RunPickTrial.js';
 import { 케이스서비스, 할수있나 } from './role.js';
 import { message, PLATFORM_LABEL } from './ui.js';
@@ -108,16 +108,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
   const 주소 = service?.envs.find((it) => it.env === env)?.baseUrl ?? null;
   // 「▶ 테스트 실행」 — 기록 없이 한 건씩 차례로 (도메인/실행 §8.10)
   const 시험 = use여러건시험({ 케이스들: 돌릴것, 고친값: 값.고친값, env, 알림: setNotice });
-  /**
-   * 한 줄이 넷을 겸한다 — 방금 누른 것에 대한 답 · 버튼을 죽인 이유 · **걸었다 거절당한 사유** · 건수 안내.
-   *
-   * 사유는 안내를 이긴다. 실패한 직후에는 `notice` 가 비어 있고 상한도 안 넘은 상태라
-   * (안 그랬으면 애초에 안 걸렸다) **거절당한 그 순간 사유가 늘 보인다.**
-   * 대신 위 둘까지 덮지는 않는다 — 옛 사유가 버튼이 죽은 이유를 가리면
-   * 「왜 안 눌리는지」를 읽을 자리가 사라진다 (DESIGN.md 접근성 기준).
-   */
-  const 줄 = notice ?? (!정식 ? null : 너무많나 ? t('한 번에 {상한}건까지 만들 수 있습니다 (지금 {지금}건)', { 상한, 지금: 건수 }) : (사유 ?? 건수풀이(t, 건수재료(돌릴것), 반복수, 건수)));
-  const 빨갛나 = notice !== null || (정식 && (너무많나 || 사유 !== undefined));
+  const { 줄, 빨갛나 } = 바닥한줄(t, { notice, 정식, 너무많나, 건수, 사유, 풀이: () => 건수풀이(t, 건수재료(돌릴것), 반복수, 건수) });
 
   /** 서버가 칸별 사유를 주면 그 칸 아래에 붙인다. 아니면 창의 한 줄로 (SPEC §8.2) */
   function 저장실패(err: unknown, tcId?: string) {
