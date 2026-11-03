@@ -73,7 +73,7 @@ describe('장면칸', () => {
     expect(container.textContent).toBe('');
   });
 
-  it('테스트 실행기에 못 닿으면 한 줄로 알리고 계속 물어 장면이 오면 걷는다', async () => {
+  it('테스트 실행기에 못 닿으면 한 줄로 알리고 2초 뒤 다시 물어 장면이 오면 걷는다', async () => {
     const 받기 = vi
       .spyOn(장면통로, '받기')
       .mockResolvedValueOnce({ 종류: 'unreachable' })
@@ -85,6 +85,8 @@ describe('장면칸', () => {
     expect(screen.getByText(못닿음)).toBeTruthy();
 
     await 흘리기(250);
+    expect(받기).toHaveBeenCalledTimes(1);
+    await 흘리기(1750);
     expect(받기).toHaveBeenCalledTimes(2);
     expect(screen.queryByText(못닿음)).toBeNull();
     expect(장면()).toBe('blob:1');
@@ -130,6 +132,15 @@ describe('장면칸', () => {
     expect(screen.getByText('지금은 앱 단계라 폰에서 실행 중입니다')).toBeTruthy();
   });
 
+  it('폰을 잡았어도 웹 장면이 오기 전에는 앱 단계라고 단정하지 않는다 — 폰은 시나리오 내내 잡혀 있다', async () => {
+    vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'empty' });
+    render(<장면칸 주소={주소} 도는중 vision="https://vision.example/#phone=R3C&view=k1" />);
+    await 흘리기();
+
+    expect(screen.getByText('앱 단계 화면은 Device VISION 에서 봅니다. 웹 단계가 시작되면 여기에 화면이 뜹니다')).toBeTruthy();
+    expect(screen.queryByText('지금은 앱 단계라 폰에서 실행 중입니다')).toBeNull();
+  });
+
   it('Android 앱 · 게임은 장면을 묻지 않고 폰 화면 안내만 띄운다', async () => {
     const 받기 = vi.spyOn(장면통로, '받기');
     const { rerender } = render(<장면칸 주소={주소} 도는중 vision={null} 폰만 />);
@@ -155,7 +166,9 @@ describe('장면통로.받기', () => {
     expect(await 답(new Response(new Uint8Array([0xff, 0xd8]), { status: 200 }))).toBe('frame');
     expect(await 답(new Response(null, { status: 204 }))).toBe('empty');
     expect(await 답(new Response('{}', { status: 502 }))).toBe('unreachable');
+    expect(await 답(new Response('{}', { status: 500 }))).toBe('unreachable');
     expect(await 답(new Response('{}', { status: 404 }))).toBe('gone');
+    expect(await 답(new Response('{}', { status: 401 }))).toBe('gone');
     expect(await 답(new TypeError('network'))).toBe('unreachable');
     vi.unstubAllGlobals();
   });

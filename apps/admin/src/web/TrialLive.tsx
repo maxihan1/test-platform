@@ -14,10 +14,10 @@ export const 장면통로 = {
       if (res.status === 200) return { 종류: 'frame', 그림: await res.blob() };
       // 자리를 기다리는 중이거나 폰 단계라 아직 장면이 없다
       if (res.status === 204) return { 종류: 'empty' };
-      // admin 이 러너에 못 닿았다. 기다림으로 가리지 않고 알리되 다시 묻는다 (도메인/실행 §7 「테스트 모드 통로」)
-      if (res.status === 502) return { 종류: 'unreachable' };
-      // 404 는 끝난 시험이라 러너가 장면을 버렸다. 그 밖의 거절도 다시 물어 봐야 같은 답이다
-      return { 종류: 'gone' };
+      // 404 는 끝난 시험이라 러너가 장면을 버렸다. 401 · 403 은 다시 물어도 같은 답이고, 로그인으로 보내는 일은 같이 도는 결과 묻기(call)가 한다
+      if (res.status === 404 || res.status === 401 || res.status === 403) return { 종류: 'gone' };
+      // 502(admin 이 러너에 못 닿음)와 그 밖의 서버 오류는 한때일 수 있다. 기다림으로 가리지 않고 알리되 다시 묻는다 (도메인/실행 §7 「테스트 모드 통로」)
+      return { 종류: 'unreachable' };
     } catch {
       return { 종류: 'unreachable' };
     }
@@ -25,6 +25,8 @@ export const 장면통로 = {
 };
 
 const 묻는간격 = 250;
+// 못 닿는 동안은 천천히 묻는다 — 꺼진 러너에 칸마다 1초에 네 번씩 두드리지 않게
+const 못닿을때간격 = 2000;
 
 function use장면(주소: string | null, 도는중: boolean) {
   const [그림, set그림] = useState<string | null>(null);
@@ -58,7 +60,7 @@ function use장면(주소: string | null, 도는중: boolean) {
         set그림(새);
       }
       if (답.종류 !== 'unreachable') set비었나(답.종류 === 'empty');
-      타이머 = setTimeout(() => void 받기(), 묻는간격);
+      타이머 = setTimeout(() => void 받기(), 답.종류 === 'unreachable' ? 못닿을때간격 : 묻는간격);
     };
     void 받기();
     return () => {
@@ -78,7 +80,10 @@ interface Props {
   vision: string | null;
   /** 칸 머리 둘째 글. 없으면 「서버 브라우저」 — 실행 창은 몇째 케이스인지 적는다 */
   부제?: string;
-  /** Android 앱 · 게임 — 장면이 오지 않고 폰 화면은 VISION 이 보인다 */
+  /**
+   * Android 앱 · 게임 케이스 — 장면이 오지 않고 폰 화면은 VISION 이 보인다.
+   * 시나리오에는 안 쓴다 — Android 시나리오에도 PC 로 도는 웹 단계가 낄 수 있다
+   */
   폰만?: boolean;
 }
 
@@ -87,8 +92,9 @@ export function 장면칸({ 주소, 도는중, vision, 부제, 폰만 = false }:
   const t = use말();
   const { 그림, 비었나, 못닿음 } = use장면(폰만 ? null : 주소, 도는중);
   if (!도는중 && 그림 === null) return null;
-  // 섞인 E2E 의 앱 단계 — 마지막 웹 장면을 흐리게 두고 폰으로 보낸다
-  const 폰단계 = 도는중 && 비었나 && vision !== null;
+  // 섞인 E2E 의 앱 단계 — 마지막 웹 장면을 흐리게 두고 폰으로 보낸다. E2E 는 창 하나라 웹 장면이 한 번 온 뒤의 「장면 없음」은 폰 단계뿐이다.
+  // 폰은 시나리오 내내 잡혀 있어 장면이 오기 전에는 폰 단계인지 첫 웹 단계를 기다리는 중인지 모른다
+  const 폰단계 = 도는중 && 비었나 && vision !== null && 그림 !== null;
 
   return (
     <section className="trial-live" aria-label={t('실시간 화면')}>
@@ -108,7 +114,9 @@ export function 장면칸({ 주소, 도는중, vision, 부제, 폰만 = false }:
         </p>
       ) : 그림 === null ? (
         <p className="live-wait">
-          {폰단계 ? t('지금은 앱 단계라 폰에서 실행 중입니다') : t('브라우저 화면을 기다리고 있습니다. 앞 실행이 끝나야 시작할 때도 있습니다')}
+          {vision !== null
+            ? t('앱 단계 화면은 Device VISION 에서 봅니다. 웹 단계가 시작되면 여기에 화면이 뜹니다')
+            : t('브라우저 화면을 기다리고 있습니다. 앞 실행이 끝나야 시작할 때도 있습니다')}
         </p>
       ) : (
         <div className={폰단계 ? 'live-shot dim' : 'live-shot'}>

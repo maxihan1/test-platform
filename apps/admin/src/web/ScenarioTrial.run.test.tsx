@@ -87,6 +87,26 @@ describe('시험 실행 돌리기', () => {
     expect(screen.queryByRole('link', { name: 'Device VISION 에서 보기 ↗' })).toBeNull();
   });
 
+  it('다른 탭에 다녀와도 끝난 시험의 마지막 장면이 남는다', async () => {
+    const { container } = await 기존그리기();
+    vi.spyOn(scenarioApi, 'startTrial').mockResolvedValue({ trialId: 't-1' });
+    vi.spyOn(scenarioApi, 'trial').mockResolvedValue({ status: 'FINISHED', result: 통과결과 });
+    vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'frame', 그림: new Blob(['jpeg']) });
+    Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: vi.fn(() => 'blob:1') });
+    Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: vi.fn() });
+    vi.useFakeTimers();
+    서버고르기('stg');
+
+    await 시험누르기();
+    await 흘리기(2000);
+    fireEvent.click(screen.getByRole('tab', { name: '단계 추가' }));
+    fireEvent.click(screen.getByRole('tab', { name: '시험 결과' }));
+
+    expect(탭(container)).toBe('trial');
+    expect(screen.getByText('마지막 화면')).toBeTruthy();
+    expect(screen.getByRole('img', { name: '끝난 순간의 화면' }).getAttribute('src')).toBe('blob:1');
+  });
+
   it('sessionStorage 에 시험 번호가 있으면 화면이 열릴 때 이어 묻고 결과를 받는다', async () => {
     sessionStorage.setItem('scn-trial:12', JSON.stringify({ trialId: 't-9', env: 'stg' }));
     const trial = vi.spyOn(scenarioApi, 'trial').mockResolvedValue({ status: 'FINISHED', result: 실패결과 });

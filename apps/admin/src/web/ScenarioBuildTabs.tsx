@@ -39,6 +39,9 @@ export function ScenarioBuildTabs(props: Props) {
   // 찾기 글자가 지워진다. 한 번도 안 열었으면 안 그린다 — 설정만 보는 사람이 목록을 20쪽씩 받을 까닭이 없다
   const [열었나, set열었나] = useState(탭 === 'add');
   if (탭 === 'add' && !열었나) set열었나(true);
+  // 시험 결과 탭도 한 번 연 뒤로는 가리기만 한다 — 내리면 실시간 칸의 마지막 장면이 사라진다 (도메인/실행 §8.10 「실시간 칸」)
+  const [시험열었나, set시험열었나] = useState(탭 === 'trial');
+  if (탭 === 'trial' && !시험열었나) set시험열었나(true);
   // 설정 탭을 처음 열 때 한 번만 받는다. 설정 탭을 오가도 다시 받지 않는다. 다른 애플리케이션 단계는 그 애플리케이션의 지도다
   const 고른 = 고른번호 === null ? undefined : 초안.단계들[고른번호 - 1];
   const 지도 = useServiceApis((고른 === undefined ? null : 단계앱(고른, 초안.서비스)) ?? 초안.서비스, 탭 === 'settings');
@@ -59,7 +62,8 @@ export function ScenarioBuildTabs(props: Props) {
           />
         </div>
       )}
-      {탭 === 'add' ? null : <TabBody {...props} 지도={지도} />}
+      {!쓰나 || !시험열었나 ? null : <div hidden={탭 !== 'trial'}>{props.시험}</div>}
+      {탭 === 'add' || 탭 === 'trial' ? null : <TabBody {...props} 지도={지도} />}
     </>
   );
 }
@@ -76,9 +80,7 @@ function TabBody({
   on바꿈,
   on되돌림,
   on칸오류,
-  시험,
 }: Props & { 지도: 지도API[] | null }) {
-  if (탭 === 'trial' && 쓰나) return <>{시험}</>;
   if (탭 === 'history' && id !== null) {
     return (
       <ScenarioVersions

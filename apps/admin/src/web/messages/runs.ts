@@ -396,6 +396,7 @@ export const 실행말: Record<string, string> = {
   '빈 폰을 잡고 있습니다': 'Taking a free phone',
   '이 케이스는 Device VISION 폰에서 실행됩니다. 폰 화면은 새 탭에서 봅니다': 'This case runs on a Device VISION phone. Watch the phone screen in a new tab',
   '지금은 앱 단계라 폰에서 실행 중입니다': 'An app step is running on the phone now',
+  '앱 단계 화면은 Device VISION 에서 봅니다. 웹 단계가 시작되면 여기에 화면이 뜹니다': 'Watch app steps in Device VISION. Web steps show here once they start',
   '브라우저 화면을 기다리고 있습니다. 앞 실행이 끝나야 시작할 때도 있습니다': 'Waiting for the browser. It may start after the run ahead of it finishes',
   '서버 브라우저의 지금 화면': 'Current screen of the server browser',
   '끝난 순간의 화면': 'Screen at the moment it ended',

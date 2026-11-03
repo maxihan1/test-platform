@@ -103,6 +103,21 @@ describe('실행 창 오른쪽 실시간 칸', () => {
     expect(받기).toHaveBeenCalledWith('/api/cases/ZRS-001/test-run/t1/live');
   });
 
+  it('결과를 못 받고 멈추면 놓였을 폰의 VISION 링크를 걷는다', async () => {
+    vi.spyOn(api, 'startTrial').mockResolvedValue({ trialId: 't1' });
+    vi.spyOn(api, 'getTrial')
+      .mockResolvedValueOnce({ status: 'RUNNING', vision: { url: 'https://vision.example/#phone=R3C&view=k1' } })
+      .mockRejectedValue(new Error('서버가 답하지 않습니다'));
+    vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'empty' });
+    await 그린다();
+
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
+    fireEvent.click(screen.getByRole('button', { name: '▶ 테스트 실행' }));
+
+    expect(await screen.findByRole('link', { name: 'Device VISION 에서 보기 ↗' })).toBeTruthy();
+    await waitFor(() => expect(screen.queryByRole('link', { name: 'Device VISION 에서 보기 ↗' })).toBeNull(), { timeout: 5000 });
+  });
+
   it('여러 건이면 몇째 케이스인지 칸 머리에 적는다', async () => {
     vi.spyOn(api, 'paramSets').mockResolvedValue({ items: [] });
     vi.spyOn(api, 'startTrial').mockResolvedValue({ trialId: 't1' });
