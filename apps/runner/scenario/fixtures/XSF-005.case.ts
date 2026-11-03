@@ -1,4 +1,4 @@
-// 시나리오 실측용 가짜 케이스 — 꽂아 받은 글 번호를 로그인한 채 request 로 읽고, 앞 부품의 주입 스크립트가 안 샜는지 · 새 창이 디바이스 설정으로 열렸는지 본다 (apps/runner/scenario/e2e.test.ts)
+// 시나리오 실측용 가짜 케이스 — 꽂아 받은 글 번호를 로그인한 채 request 로 읽고, 앞 부품의 주입 스크립트가 안 샜는지 · 창이 디바이스 설정으로 열렸는지 본다 (apps/runner/scenario/e2e.test.ts)
 
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
