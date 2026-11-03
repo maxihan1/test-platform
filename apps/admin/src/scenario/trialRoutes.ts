@@ -7,7 +7,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
 import { artifactsDir, 볼륨파일읽기 } from '../artifactFile.js';
-import { 칸이되나 } from '../auth/permissions.js';
+import { 권한이되나 } from '../auth/gate.js';
 import { 장면을건넨다 } from '../execution/live.js';
 import { 시나리오시험, TrialBusyError } from '../execution/trial.js';
 import { 정수 } from '../routeParams.js';
@@ -34,9 +34,8 @@ export default async function scenarioTrialRoutes(app: FastifyInstance): Promise
   app.post('/scenario-trials', async (req, reply) => {
     const parsed = 시작본문.safeParse(req.body);
     if (!parsed.success) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
-    // 문이 실행 trial 이상을 봤다. write 로 확인되지 않으면 조립을 더 거른다 — admin 은 배정 줄이 write 로 채워져 온다 (SPEC 도메인/인증 §3.5 「테스트 모드」)
-    const 배정 = req.user?.services.find((s) => s.prefix === parsed.data.service);
-    if (!(배정 !== undefined && 칸이되나(배정.permissions.runs, 'write'))) {
+    // 문이 실행 trial 이상을 봤다. 문과 같은 판정으로 write 가 확인되지 않으면 조립을 더 거른다 (SPEC 도메인/인증 §3.5 「테스트 모드」)
+    if (!req.user || !권한이되나(req.user, { 기능: 'runs', 칸: 'write' }, [parsed.data.service])) {
       const { pool } = await import('../db/index.js');
       const 사유 = await 저장안된단계(pool, parsed.data.service, parsed.data.parts);
       if (사유 !== null) return reply.code(403).send({ error: 'FORBIDDEN', need: 'runs:write', detail: 사유 });

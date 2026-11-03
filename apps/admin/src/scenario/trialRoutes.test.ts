@@ -168,6 +168,8 @@ describe.skipIf(연결 === undefined)('시나리오 시험 실행 통로', () =>
     await q('DELETE FROM user_project WHERE username = ANY($1)', [계정들]);
     await q('DELETE FROM app_user WHERE username = ANY($1)', [계정들]);
     await q('DELETE FROM service_env WHERE service_id = $1', [서비스id.XSTR]);
+    await q('DELETE FROM scenario_version WHERE scenario_id IN (SELECT id FROM scenario WHERE service_id = $1)', [서비스id.XSTR]);
+    await q('DELETE FROM scenario WHERE service_id = $1', [서비스id.XSTR]);
     await q('DELETE FROM test_case WHERE tc_id = ANY($1)', [번호들]);
     await q('DELETE FROM service WHERE id = ANY($1)', [Object.values(서비스id)]);
     await rm(뿌리, { recursive: true, force: true });
@@ -244,13 +246,21 @@ describe.skipIf(연결 === undefined)('시나리오 시험 실행 통로', () =>
     });
   });
 
-  it('실행 trial 은 케이스 조립을 시험 실행하고 저장된 시나리오에 없는 모킹은 403 이다 — write 는 안 거른다', async () => {
+  it('실행 trial 은 케이스 조립을 시험 실행하고 저장된 시나리오에 없는 모킹은 403 · 저장된 뒤에는 202 다 — write 는 안 거른다', async () => {
     expect((await 부른다('xstr-d', 'POST', '/api/scenario-trials', 본문())).statusCode).toBe(202);
     const 모킹 = { kind: 'mock', urlPattern: '**/x', status: 200, contentType: 'text/html', body: '<p>x</p>' };
     const 막힘 = await 부른다('xstr-d', 'POST', '/api/scenario-trials', 본문({ parts: [모킹, 케이스('XSTR-001')] }));
     expect(막힘.statusCode).toBe(403);
     expect(막힘.json()).toEqual({ error: 'FORBIDDEN', need: 'runs:write', detail: '1번 단계(모킹)는 저장된 시나리오에 있는 것만 시험 실행할 수 있습니다' });
     expect((await 부른다('xstr-a', 'POST', '/api/scenario-trials', 본문({ parts: [모킹, 케이스('XSTR-001')] }))).statusCode).toBe(202);
+
+    const 저장 = await q(`INSERT INTO scenario (service_id, name, created_by) VALUES ($1, 'xstr', 'xstr-a') RETURNING id`, [서비스id.XSTR]);
+    await q(`INSERT INTO scenario_version (scenario_id, version, parts, saved_by, saved_by_name) VALUES ($1, 1, $2, 'xstr-a', 'xstr-a')`, [
+      (저장.rows[0] as { id: string }).id,
+      JSON.stringify([모킹, 케이스('XSTR-001')]),
+    ]);
+    시나리오시험.전부비운다();
+    expect((await 부른다('xstr-d', 'POST', '/api/scenario-trials', 본문({ parts: [모킹, 케이스('XSTR-001')] }))).statusCode).toBe(202);
   });
 
   it('사진은 시작한 사람에게만 png 다 — 없는 사진 404 · 번호 모양 아님 404 · seq 숫자 아님 400', async () => {

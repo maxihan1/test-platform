@@ -4,7 +4,8 @@ import type { 기능, 필요칸 } from './permissions.js';
 
 /** 등급을 안 따지는 자리. 문이 그 앞에서 이미 돌려보낸다 */
 export const 안따짐 = '안따짐';
-export type 권한값 = { 기능: 기능; 칸: 필요칸 } | 'admin';
+// trial 은 실행 칸에만 있다 — 다른 기능에 적으면 타입이 막는다
+export type 권한값 = { 기능: 'runs'; 칸: 필요칸 } | { 기능: Exclude<기능, 'runs'>; 칸: 'read' | 'write' } | 'admin';
 export type 표값 = 권한값 | typeof 안따짐;
 
 const 케이스읽기 = { 기능: 'cases', 칸: 'read' } as const;
