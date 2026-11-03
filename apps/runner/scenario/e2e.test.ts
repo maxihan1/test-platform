@@ -2,7 +2,7 @@
 // 워커 stdout 되돌려 쓰기 · kit 인스턴스 · 전용 설정의 testMatch · 창 바꿔 끼우기는 단위 검사로 원리상 안 보여 여기서만 잡힌다 (LEARNINGS 2026-09-21 [WS-C])
 // desktop 만 돈다 — CI 는 chromium 만 받는다. 모바일(iPhone 은 webkit) 디바이스 판정은 kit scenario.test.ts 가 브라우저 없이 본다
 
-import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -200,6 +200,25 @@ describe('시나리오 실측 (브라우저)', () => {
     } finally {
       await 쇼핑몰.닫기();
       await 어드민.닫기();
+    }
+  }, 90_000);
+
+  // 고정 spec 이 kit 의 장면걸기를 진짜 탭에 거는지 — 단위 검사의 가짜 탭으로는 Playwright 작업자 안에서 장면이 오는지 못 본다 (러너 §5.2 「테스트 모드 — 실시간 장면」)
+  it('테스트 모드(live)는 첫 탭의 장면을 live/<열쇠>.jpg 에 쓰며 돈다', async () => {
+    const 서버 = await 서버열기();
+    const 파일 = join(산출물, 'live', `${trialId}.jpg`);
+    let 봤다 = false;
+    const 지켜봄 = setInterval(() => {
+      봤다 ||= existsSync(파일);
+    }, 50);
+    try {
+      const 결과 = await executeScenario({ ...요청([케이스('XSF-001')], 서버.url), live: trialId });
+      expect(결과.status).toBe('PASS');
+      expect(봤다).toBe(true);
+    } finally {
+      clearInterval(지켜봄);
+      rmSync(join(산출물, 'live'), { recursive: true, force: true });
+      await 서버.닫기();
     }
   }, 90_000);
 

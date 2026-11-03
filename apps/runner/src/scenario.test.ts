@@ -174,25 +174,25 @@ describe('scenarioEnv', () => {
   });
 
   describe('천천히', () => {
-    const 시험 = { ...기본, runId: null, trialId: '5f0c1a2b-3c4d-4e5f-8a9b-0c1d2e3f4a5b' };
+    const trialId = '5f0c1a2b-3c4d-4e5f-8a9b-0c1d2e3f4a5b';
+    const 시험 = { ...기본, runId: null, trialId };
 
     afterEach(() => {
       vi.unstubAllEnvs();
     });
 
-    it('창을 띄우는 러너의 시험 실행은 동작마다 늦춘다', () => {
-      vi.stubEnv('PLATFORM_HEADED', '1');
-      expect(scenarioEnv(시험).PLATFORM_SLOW_MO).toBe('1000');
-    });
-
-    it('창을 띄우는 러너라도 진짜 실행은 늦추지 않는다', () => {
-      vi.stubEnv('PLATFORM_HEADED', '1');
-      expect(scenarioEnv(기본).PLATFORM_SLOW_MO).toBe('');
-    });
-
-    it('창이 없는 러너의 시험 실행은 늦추지 않는다 — 볼 사람이 없다', () => {
+    it('장면 열쇠가 온 시험 실행(테스트 모드)은 창이 없는 서버 러너라도 동작마다 늦추고 장면 파일을 준다', () => {
       vi.stubEnv('PLATFORM_HEADED', '');
-      expect(scenarioEnv(시험).PLATFORM_SLOW_MO).toBe('');
+      const 환경 = scenarioEnv({ ...시험, live: trialId });
+      expect(환경.PLATFORM_SLOW_MO).toBe('1000');
+      expect(환경.PLATFORM_LIVE_FILE).toMatch(new RegExp(`/live/${trialId}\\.jpg$`));
+    });
+
+    it('장면 열쇠가 없으면 창을 띄우는 러너의 시험 실행이라도 늦추지 않는다 — 셸에 남은 값도 비운다', () => {
+      vi.stubEnv('PLATFORM_HEADED', '1');
+      vi.stubEnv('PLATFORM_SLOW_MO', '1000');
+      expect(scenarioEnv(시험)).toMatchObject({ PLATFORM_SLOW_MO: '', PLATFORM_LIVE_FILE: '' });
+      expect(scenarioEnv(기본)).toMatchObject({ PLATFORM_SLOW_MO: '', PLATFORM_LIVE_FILE: '' });
     });
   });
 

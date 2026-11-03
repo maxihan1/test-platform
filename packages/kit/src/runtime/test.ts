@@ -14,6 +14,7 @@ import { 게임증적을남긴다, isGame, type GameDriver } from './game.js';
 import { 앱을지켜본다, 웹사진, 웹을지켜본다 } from './highlight.js';
 import { traced } from './http.js';
 import { injectedInputs, resolveInputs } from './inputs.js';
+import { 장면걸기 } from './live.js';
 import { GAME_ATTACHMENT, STEP_ATTACHMENT } from './protocol.js';
 import { registerScenarioCase, registerScenarioPhone, type ScenarioCaseRunner } from './scenario.js';
 import { 느린망 } from './slowApi.js';
@@ -258,7 +259,10 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
   }
 
   base(spec.name, async ({ page, request }, testInfo) => {
+    // 테스트 모드는 동작마다 쉬니 시험 한도를 다섯 배로 늘린다 — 안 늘리면 동작이 많은 케이스가 테스트 모드에서만 시간 초과로 빨개진다 (SPEC 도메인/러너 §5.2 「테스트 모드」)
+    if (Number(process.env.PLATFORM_SLOW_MO) > 0) testInfo.setTimeout(testInfo.timeout * 5);
     const inputs = prepare(testInfo);
+    await 장면걸기(page);
     await 느린망(page);
     await execute(testInfo, request, { page }, (seq, 요소) => capture(page, seq, 요소), inputs);
   });

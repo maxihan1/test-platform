@@ -7,7 +7,7 @@ import { basename } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import type { APIRequest, APIRequestContext, Browser, Page } from '@playwright/test';
-import type { ScenarioCaseInput } from '@platform/kit/scenario';
+import { 장면걸기, type ScenarioCaseInput, type 장면 } from '@platform/kit/scenario';
 
 import { 기준바꾸기, 기준읽기, 쿠키더하기, 응답듣기, 이어주기걸기 } from './browser.js';
 import { 주소의, type CasePart, type 미룬삭제, type 부품상태, type 상태, type 이음 } from './links.js';
@@ -75,6 +75,20 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
   const 원래요청 = 요청도구.newContext.bind(요청도구);
   let 지금: 지금부품 | undefined;
   let 걸린: ReadonlyMap<string, RouteHandler> = new Map();
+  // 테스트 모드 장면 — 웹 단계의 탭에 걸고 앱 · 게임 단계 동안은 꺼서 비운다(러너가 204 를 낸다). 탭이 바뀌면 새 탭에 다시 건다 (SPEC 도메인/러너 §5.2 「테스트 모드 — 실시간 장면」)
+  let 장면탭: Page | undefined;
+  let 지금장면: 장면 | undefined;
+  const 장면끄기 = async () => {
+    await 지금장면?.끄기();
+    지금장면 = undefined;
+    장면탭 = undefined;
+  };
+  const 장면켜기 = async (탭: Page) => {
+    if (장면탭 === 탭) return;
+    await 장면끄기();
+    지금장면 = await 장면걸기(탭);
+    장면탭 = 탭;
+  };
 
   const 묶음 = (부품: 부품상태 | undefined, 상태읽기: () => Promise<상태>, options?: 연결옵션): 도구묶음 => ({
     부품, 상태읽기, 기준: options?.baseURL ?? (부품 === undefined ? 설정.baseUrl : 주소의(이음값, 부품.seq)), 만들때: 만들때값(options, 설정),
@@ -143,6 +157,7 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
     // 앱 · 게임 단계 자리 — 창을 안 연다. 폰은 설정의 연결 하나를 같이 쓰고, 단계마다 새로 만드는 것은 그 단계 request 뿐이다 (SPEC 도메인/시나리오 §3.7 결정 16)
     async appWindow(부품: 부품상태, state: 상태): Promise<단계창> {
       const 이번: 지금부품 = { 부품, 직접만든: [], 닫힘: false };
+      await 장면끄기();
       const 부품요청 = await 원래요청(주소채움({ storageState: state }, 이음값, 부품));
       let 닫음 = false;
       const 폰쪽: 단계쪽 = async () => {
@@ -204,6 +219,7 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
         // 웹 단계 하나 — 같은 창 · 같은 탭에 그 단계 request · 이어 주기를 걸고, 닫을 때 단계가 건 것을 되돌린다 (SPEC 도메인/러너 §5.2 「창 하나로 끝까지」)
         async 단계(부품: 부품상태, 넘겨받기: boolean): Promise<단계창> {
           const 지금탭 = await 살아있는탭();
+          await 장면켜기(지금탭);
           if (!넘겨받기) {
             // 같은 창에서 로그인 상태를 비운다 — 쿠키와 이 창이 연 출처의 localStorage. sessionStorage 는 탭에 붙어 지금 출처 것만 지운다 (SPEC 도메인/시나리오 §3.7 결정 12 「넘겨받기 끔」)
             await context.setStorageState(빈상태);

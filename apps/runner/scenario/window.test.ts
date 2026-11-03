@@ -216,6 +216,32 @@ describe('창 하나 — 공용 창 · 단계 열기 · 단계 닫기 (SPEC 도�
     expect(창.close).toHaveBeenCalledTimes(1);
   });
 
+  it('테스트 모드는 웹 단계 탭에 장면을 걸고 앱 · 게임 단계 동안은 꺼서 비운다 — 다음 웹 단계에서 다시 건다 (러너 §5.2 「테스트 모드 — 실시간 장면」)', async () => {
+    const 폴더 = mkdtempSync(join(tmpdir(), 'scn-live-'));
+    vi.stubEnv('PLATFORM_LIVE_FILE', join(폴더, 'live', '0b7e2c1a-0000-4000-8000-000000000005.jpg'));
+    try {
+      const { 탭, 감싸기 } = 판();
+      const 장면 = { start: vi.fn(async () => ({})), showActions: vi.fn(async () => ({})), stop: vi.fn(async () => {}) };
+      Object.assign(탭, { screencast: 장면 });
+      const 공용 = await 감싸기.newWindow(new Map());
+      expect(장면.start).not.toHaveBeenCalled();
+
+      await (await 공용.단계(새부품(1, []), true)).close();
+      await (await 공용.단계(새부품(2, []), true)).close();
+      expect(장면.start).toHaveBeenCalledTimes(1);
+      expect(장면.showActions).toHaveBeenCalledTimes(1);
+
+      await (await 감싸기.appWindow(새부품(3, []), { cookies: [], origins: [] })).close();
+      expect(장면.stop).toHaveBeenCalledTimes(1);
+
+      await 공용.단계(새부품(4, []), true);
+      expect(장면.start).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.unstubAllEnvs();
+      rmSync(폴더, { recursive: true, force: true });
+    }
+  });
+
   it('첫 탭이 닫혔으면 다음 단계 전에 새 탭을 첫 탭으로 연다', async () => {
     const { 창, 탭, 감싸기 } = 판();
     const 공용 = await 감싸기.newWindow(new Map());

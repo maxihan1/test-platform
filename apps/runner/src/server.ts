@@ -3,11 +3,15 @@
 
 import Fastify from 'fastify';
 
+import { 장면폴더를비운다 } from './live.js';
 import { registerRoutes } from './routes.js';
 
 const app = Fastify({ logger: true });
 
 registerRoutes(app);
+
+// 앞서 뜬 러너가 남긴 테스트 모드 장면 — 도는 열쇠는 메모리에만 있어 이제 아무도 못 읽는다 (SPEC 도메인/러너 §5.2 「테스트 모드 — 실시간 장면」)
+await 장면폴더를비운다().catch((err: unknown) => console.warn(`[runner] 남은 장면 폴더를 못 지웠다: ${err instanceof Error ? err.message : String(err)}`));
 
 const port = Number(process.env.PORT ?? 4000);
 
