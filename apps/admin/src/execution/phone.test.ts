@@ -73,3 +73,28 @@ describe('폰차례', () => {
     expect(폰.폰을바로잡는다()).toBe(true);
   });
 });
+
+describe('Chrome차례', () => {
+  it('디바이스 줄과 따로 선다 — 게임이 디바이스 줄을 쥐어도 실제 폰 모바일 웹은 돈다', async () => {
+    expect(폰.폰을바로잡는다()).toBe(true);
+    expect(await 폰.Chrome차례(async () => '돌았다')).toBe('돌았다');
+    폰.폰을놓는다();
+  });
+
+  it('실제 폰 항목끼리는 하나씩 돈다 — 같은 서버의 항목이 서로 빈 폰을 빼앗지 않게', async () => {
+    const 돈것: string[] = [];
+    let 첫끝: () => void = () => undefined;
+    const 첫 = 폰.Chrome차례(async () => {
+      돈것.push('첫 시작');
+      await new Promise<void>((끝) => (첫끝 = 끝));
+      돈것.push('첫 끝');
+    });
+    const 둘 = 폰.Chrome차례(async () => { 돈것.push('둘'); });
+    await 한턴();
+    expect(돈것).toEqual(['첫 시작']);
+
+    첫끝();
+    await Promise.all([첫, 둘]);
+    expect(돈것).toEqual(['첫 시작', '첫 끝', '둘']);
+  });
+});

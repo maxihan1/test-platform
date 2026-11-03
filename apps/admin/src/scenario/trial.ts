@@ -11,7 +11,7 @@ import { findService } from '../catalog/store.js';
 import { enqueue } from '../execution/dispatcher.js';
 import { 팜주소 } from '../execution/farm.js';
 import { 사람팜토큰 } from '../execution/farmToken.js';
-import { 폰을바로잡는다, 폰을놓는다 } from '../execution/phone.js';
+import { Chrome차례, 폰을바로잡는다, 폰을놓는다 } from '../execution/phone.js';
 import { callScenarioRunner } from '../execution/runner.js';
 import { artifactsDir } from '../execution/routes.js';
 import { 가린다, 긴것부터, 비밀글자들, 시나리오시험, type 시나리오시험결과 } from '../execution/trial.js';
@@ -156,7 +156,11 @@ export async function 시험시작(사람: { username: string }, 본문: 시험�
       사람.username,
       본문.service,
       // 케이스 실행 · 진짜 시나리오 실행과 같은 줄에 한 자리를 쓴다 (§3.7 「동시성 · 시간」). 폰 잠금은 일이 어떻게 끝나든 놓는다
-      (id, 폰화면) => enqueue(() => 시험돌기(id, 사람.username, 본문, { 앱들, baseUrl, parts, 부품재료, 비밀, 폰 }, 돌폰, 폰화면)).finally(놓기),
+      (id, 폰화면) => {
+        const 돌기 = () => enqueue(() => 시험돌기(id, 사람.username, 본문, { 앱들, baseUrl, parts, 부품재료, 비밀, 폰 }, 돌폰, 폰화면));
+        // 실제 폰 Chrome 은 Chrome 줄 → 동시성 자리 차례다. 디바이스 줄은 위에서 바로 잡았다
+        return (돌폰 === 'chrome' ? Chrome차례(돌기) : 돌기()).finally(놓기);
+      },
       비밀,
     );
   } catch (err) {

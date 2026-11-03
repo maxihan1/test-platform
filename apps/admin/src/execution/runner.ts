@@ -164,10 +164,12 @@ export async function callRunner(
   // 모바일 웹은 실행 창 「실행 위치」로 고른 항목만 실제 폰이다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)
   const 폰Chrome = item.platform === 'mobile' && item.실제폰 === true;
   if (item.platform !== 'android' && !폰Chrome) return 보낸다(item, body);
-  // 항목은 abortRun 이 이미 닫았다 — 이 NA 는 finishItem 이 덮지 않는다(finished_at IS NULL)
+  // 항목은 abortRun 이 이미 닫았다 — 이 NA 는 finishItem 이 덮지 않는다(finished_at IS NULL). 폰을 잡는 몇 초 사이에 멈췄는지 잡은 뒤 본다
+  const 멈춤 = (): ExecuteResponse | null => (멈췄나() ? na(item, '멈춘 실행이라 러너에 보내지 않았습니다') : null);
   // 폰을 잡은 토큰을 러너도 써야 팜이 연결을 받는다. 서버 몫이면 안 싣는다 — 러너가 자기 환경값으로 같은 값을 든다
   const 보낸다폰 = async (udid: string, 토큰: string | undefined): Promise<ExecuteResponse> => {
-    if (멈췄나()) return na(item, '멈춘 실행이라 러너에 보내지 않았습니다');
+    const 멈춘 = 멈춤();
+    if (멈춘 !== null) return 멈춘;
     const 폰body: ExecuteRequest = { ...body, udid, ...(토큰 !== undefined && { farmToken: 토큰 }) };
     if (item.buildId === undefined) return 보낸다(item, 폰body);
     // 올린 APK 는 폰을 잡은 뒤 서명 주소를 만든다 — 저장하지 않고 이 설치 한 번에만 쓴다 (도메인/실행 §3.11)
@@ -190,7 +192,7 @@ export async function callRunner(
   if (폰Chrome) {
     return 폰Chrome으로(
       팜,
-      async (칸) => (멈췄나() ? na(item, '멈춘 실행이라 러너에 보내지 않았습니다') : 보낸다(item, { ...body, ...칸 })),
+      async (칸) => 멈춤() ?? 보낸다(item, { ...body, ...칸 }),
       (까닭) => na(item, 까닭),
       토큰,
     );

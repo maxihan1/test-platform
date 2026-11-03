@@ -16,7 +16,7 @@ import { 팜주소, 팜폰으로, 폰Chrome으로 } from './farm.js';
 import { 사람팜토큰 } from './farmToken.js';
 import { 장면을건넨다 } from './live.js';
 import { caseSchemas } from './paramSets.js';
-import { 폰을놓는다, 폰을바로잡는다 } from './phone.js';
+import { Chrome차례, 폰을놓는다, 폰을바로잡는다 } from './phone.js';
 import { na, 보낸다 } from './runner.js';
 import { 저장값을채운다 } from './savedInput.js';
 import { 엔진칸 } from './engineField.js';
@@ -80,12 +80,12 @@ async function 저장값으로채운다(
 /**
  * Android 앱 · 게임 — 정식 실행과 같은 길로 누른 사람 토큰으로 팜 빈 폰을 잡고 놓는다(러너 §5.2 「디바이스 팜 접속 방식」).
  * 앱 파일은 폰을 잡은 뒤 정한다 — 올린 빌드의 서명 주소에 기한이 있다 (도메인/실행 §3.11).
- * 앱재료가 null 이면 모바일 웹이라 그 폰 Chrome 에서 돈다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)
+ * 'chrome' 이면 모바일 웹이라 그 폰 Chrome 에서 돈다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)
  */
 async function 팜폰에서돌린다(
   요청: ExecuteRequest,
   사람: string,
-  앱재료: { serviceId: number; env: string; appPath: string | null } | null,
+  앱재료: { serviceId: number; env: string; appPath: string | null } | 'chrome',
   폰화면: (url: string | undefined) => void,
 ): Promise<ExecuteResponse> {
   const 팜 = 팜주소();
@@ -99,7 +99,7 @@ async function 팜폰에서돌린다(
   }
   const 못잡음 = (까닭: string) => na(요청, 까닭);
   const 결과 =
-    앱재료 === null
+    앱재료 === 'chrome'
       ? await 폰Chrome으로(
           팜,
           async (칸, 화면) => {
@@ -198,8 +198,8 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
           if ('사유' in 판) return na(요청, 판.사유);
           // 앱 · 게임은 정식 실행처럼 전역 상한 밖의 디바이스 줄이고 Appium 이라 장면 열쇠를 안 싣는다 (도메인/실행 §3.2 「테스트 모드」)
           if (폰씀) return await 팜폰에서돌린다({ ...요청, ...판 }, 사람, { serviceId, env: 줄.env, appPath: 줄.appPath }, 폰화면);
-          // 실제 폰은 디바이스 줄 없이 브라우저처럼 한 자리를 쓴다. 장면은 안 만들지만 열쇠가 늦추기를 켠다 (러너 §5.2 「모바일 웹 — 실제 폰 Chrome」)
-          if (폰Chrome) return await enqueue(() => 팜폰에서돌린다({ ...요청, ...판, live: id }, 사람, null, 폰화면));
+          // 실제 폰은 디바이스 줄 대신 Chrome 줄 → 브라우저처럼 한 자리 차례다. 장면은 안 만들지만 열쇠가 늦추기를 켠다 (러너 §5.2 「모바일 웹 — 실제 폰 Chrome」)
+          if (폰Chrome) return await Chrome차례(() => enqueue(() => 팜폰에서돌린다({ ...요청, ...판, live: id }, 사람, 'chrome', 폰화면)));
           // 브라우저는 정식 실행과 같은 줄에 한 자리를 쓴다. 장면 열쇠는 이 시험 번호다
           return await enqueue(() => 보낸다(요청, { ...요청, ...판, live: id }));
         } finally {
