@@ -32,14 +32,14 @@ const 앱: SettingsServiceRow = {
 };
 
 const 빈연결: BTS연결 = {
-  linked: false, baseUrl: null, btsProject: null, botKeyTail: null, statusMap: {}, resolutionMap: {}, deployKey: null, ruleToken: null, publicUrl: 'https://qahub.example.com',
+  linked: false, baseUrl: null, btsProject: null, botUsername: null, statusMap: {}, resolutionMap: {}, deployKey: null, ruleToken: null, publicUrl: 'https://qahub.example.com',
 };
 
 const 상태 = { DEPLOY_WAIT: 'ready', QA_REQUEST: 'qa-req', QA_REVIEW: 'qa-review', DEV_REQUEST: 'todo', CODE_REVIEW: 'review', CLOSED: 'done' };
 const 해결 = { SCREEN_RIGHT: "Won't Fix", TEST_PROBLEM: 'Test Issue', FLAKY: 'Flaky', ENV: 'Environment', DUPLICATE: 'Duplicate' };
 
 const 이은연결: BTS연결 = {
-  ...빈연결, linked: true, baseUrl: 'https://bts.example.com', btsProject: 'DM', botKeyTail: 'a1b2', statusMap: 상태, resolutionMap: 해결,
+  ...빈연결, linked: true, baseUrl: 'https://bts.example.com', btsProject: 'DM', botUsername: 'qahub-ai', statusMap: 상태, resolutionMap: 해결,
 };
 
 const 목록 = {
@@ -62,7 +62,7 @@ function 그리기(연결: BTS연결) {
 }
 
 describe('설정 › BTS 연결', () => {
-  it('처음 연결 — 적은 토큰으로 상태를 불러와 고르고, 저장하면 자동 설정까지 하고 넷이 ✓ 로 선다', async () => {
+  it('처음 연결 — 적은 「QA Hub AI」 계정 이름으로 상태를 불러와 고르고, 저장하면 자동 설정까지 하고 넷이 ✓ 로 선다', async () => {
     const 불러옴 = vi.spyOn(btsApi, 'choices').mockResolvedValue(목록);
     const 저장 = vi.spyOn(btsApi, 'save').mockResolvedValue({ ok: true });
     const 설정 = vi.spyOn(btsApi, 'setup').mockResolvedValue({ items: 다됨 });
@@ -71,11 +71,13 @@ describe('설정 › BTS 연결', () => {
 
     fireEvent.change(await screen.findByLabelText('Issue Bunker 주소'), { target: { value: 'https://bts.example.com' } });
     fireEvent.change(screen.getByLabelText('Issue Bunker 프로젝트 키'), { target: { value: 'DM' } });
-    fireEvent.change(screen.getByLabelText('「QA Hub AI」 계정 토큰'), { target: { value: 'pat_bot1' } });
+    const 이름칸 = screen.getByLabelText('「QA Hub AI」 계정 이름') as HTMLInputElement;
+    expect([이름칸.type, 이름칸.placeholder, 이름칸.value]).toEqual(['text', 'qahub-ai', '']);
+    fireEvent.change(이름칸, { target: { value: ' qahub-bot ' } });
     expect(불러옴).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Issue Bunker 에서 불러오기' }));
     await screen.findByText('Issue Bunker 에서 상태 6개 · 해결 사유 5개를 불러왔습니다');
-    expect(불러옴).toHaveBeenCalledWith(3, 'https://bts.example.com', 'pat_bot1');
+    expect(불러옴).toHaveBeenCalledWith(3, 'https://bts.example.com', 'qahub-bot');
 
     const 검토칸 = screen.getByLabelText('QA 검토');
     expect(within(검토칸).getByRole('option', { name: 'QA Review' })).toBeTruthy();
@@ -91,18 +93,19 @@ describe('설정 › BTS 연결', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '저장하고 Issue Bunker 자동 설정' }));
     await waitFor(() => expect(설정).toHaveBeenCalledWith(3));
-    expect(저장).toHaveBeenCalledWith(3, { baseUrl: 'https://bts.example.com', btsProject: 'DM', botKey: 'pat_bot1', statusMap: 상태, resolutionMap: 해결 });
+    expect(저장).toHaveBeenCalledWith(3, { baseUrl: 'https://bts.example.com', btsProject: 'DM', botUsername: 'qahub-bot', statusMap: 상태, resolutionMap: 해결 });
     expect(저장소).toHaveBeenCalledWith(11, { codeRepos: [{ name: '화면', url: 'https://github.com/acme/web' }] });
     await waitFor(() => expect(document.querySelectorAll('.bts-checks li.ok')).toHaveLength(4));
   });
 
-  it('이은 프로젝트는 열 때 저장한 토큰으로 불러온다 · 비운 단계가 있으면 저장하지 않는다', async () => {
+  it('이은 프로젝트는 저장한 계정 이름을 칸에 그대로 보이고 그 이름으로 바로 불러온다 · 비운 단계가 있으면 저장하지 않는다', async () => {
     const 불러옴 = vi.spyOn(btsApi, 'choices').mockResolvedValue(목록);
     const 저장 = vi.spyOn(btsApi, 'save');
     그리기(이은연결);
 
-    await waitFor(() => expect(불러옴).toHaveBeenCalledWith(3, 'https://bts.example.com', undefined));
+    await waitFor(() => expect(불러옴).toHaveBeenCalledWith(3, 'https://bts.example.com', 'qahub-ai'));
     expect(await screen.findByText('연결됨 · DM')).toBeTruthy();
+    expect((screen.getByLabelText('「QA Hub AI」 계정 이름') as HTMLInputElement).value).toBe('qahub-ai');
     fireEvent.change(screen.getByLabelText('QA 검토'), { target: { value: '' } });
     fireEvent.click(screen.getByRole('button', { name: '저장하고 Issue Bunker 자동 설정' }));
     expect(await screen.findByText('비어 있는 단계가 있습니다. 모든 단계에 Issue Bunker 상태를 골라 주세요')).toBeTruthy();
@@ -121,14 +124,19 @@ describe('설정 › BTS 연결', () => {
     expect(screen.getByText('권한 없음')).toBeTruthy();
   });
 
-  it('내 통합계정 토큰이 없으면 넣는 곳을 알려 준다', async () => {
+  it('누른 계정이 Auth 에 안 묶였으면 자동 설정을 못 한다고 알린다 · SSO 를 끈 설치는 이을 수 없다고 알린다', async () => {
     vi.spyOn(btsApi, 'choices').mockResolvedValue(목록);
-    vi.spyOn(btsApi, 'save').mockResolvedValue({ ok: true });
+    const 저장 = vi.spyOn(btsApi, 'save').mockResolvedValue({ ok: true });
     vi.spyOn(btsApi, 'setup').mockRejectedValue(new ApiError(400, 'NO_PERSONAL_TOKEN', '', []));
     그리기(이은연결);
 
-    fireEvent.click(await screen.findByRole('button', { name: '저장하고 Issue Bunker 자동 설정' }));
-    expect(await screen.findByText('내 계정에 통합계정 토큰이 없습니다. 왼쪽 아래 내 메뉴 › 통합계정 토큰에 넣은 뒤 다시 눌러 주세요')).toBeTruthy();
+    const 버튼 = await screen.findByRole('button', { name: '저장하고 Issue Bunker 자동 설정' });
+    fireEvent.click(버튼);
+    expect(await screen.findByText('Auth 계정으로 로그인한 운영 계정이어야 Issue Bunker 자동 설정을 할 수 있습니다')).toBeTruthy();
+
+    저장.mockRejectedValue(new ApiError(400, 'SSO_REQUIRED', '', []));
+    fireEvent.click(버튼);
+    expect(await screen.findByText('Auth 로그인을 켠 설치에서만 Issue Bunker 를 이을 수 있습니다')).toBeTruthy();
   });
 
   it('배포 알림 토큰을 발급하면 원문이 deploy.sh 한 줄에 공개 주소와 같이 들어간다', async () => {
@@ -152,13 +160,25 @@ describe('설정 › BTS 연결', () => {
     await waitFor(() => expect(발급).toHaveBeenCalledTimes(2));
   });
 
-  it('처음 연결에 토큰 없이 불러오기를 누르면 서버를 안 부르고 토큰을 넣으라고 한다', async () => {
+  it('계정 이름 없이 불러오기를 누르면 서버를 안 부르고 이름을 적으라고 한다', async () => {
     const 불러옴 = vi.spyOn(btsApi, 'choices');
     그리기(빈연결);
 
     fireEvent.click(await screen.findByRole('button', { name: 'Issue Bunker 에서 불러오기' }));
-    expect(await screen.findByText('처음 연결할 때는 「QA Hub AI」 계정 토큰을 넣어야 합니다')).toBeTruthy();
+    expect(await screen.findByText('「QA Hub AI」 계정 이름을 적어야 합니다')).toBeTruthy();
     expect(불러옴).not.toHaveBeenCalled();
+  });
+
+  it('계정 이름이 빈 채로 이은 연결(S25 전)은 열 때 안 불러오고 · 이름을 적기 전에는 저장하지 않는다', async () => {
+    const 불러옴 = vi.spyOn(btsApi, 'choices');
+    const 저장 = vi.spyOn(btsApi, 'save');
+    그리기({ ...이은연결, botUsername: null });
+
+    expect(await screen.findByText('「QA Hub AI」 계정 이름을 적어야 합니다')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '저장하고 Issue Bunker 자동 설정' }));
+    await waitFor(() => expect(screen.getAllByText('「QA Hub AI」 계정 이름을 적어야 합니다')).toHaveLength(2));
+    expect(불러옴).not.toHaveBeenCalled();
+    expect(저장).not.toHaveBeenCalled();
   });
 
   it('연결 해제는 확인 창을 거친다', async () => {

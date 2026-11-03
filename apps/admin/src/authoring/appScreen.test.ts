@@ -53,6 +53,11 @@ describe('앱탐색주소', () => {
     expect(앱탐색주소('/apk/qa.apk', 'http://host.docker.internal:4723/wd/hub')?.url).toBe('http://host.docker.internal:4723/wd/hub');
   });
 
+  it('폰을 잡은 팜 토큰이 있으면 token 으로 같이 준다 — 에이전트가 AI 에게 넘긴다', () => {
+    expect(앱탐색주소('/apk/qa.apk', 'http://farm/wd/hub', 'pat_dlg')).toEqual({ url: 'http://farm/wd/hub', app: '/apk/qa.apk', token: 'pat_dlg' });
+    expect(앱탐색주소('/apk/qa.apk', 'http://farm/wd/hub')).not.toHaveProperty('token');
+  });
+
   it('앱이 없거나 팜이 없으면 null — AI 가 붙을 폰이 없다', () => {
     expect(앱탐색주소(null, 'http://farm:4723')).toBeNull();
     expect(앱탐색주소('/apk/qa.apk', undefined)).toBeNull();
@@ -115,6 +120,19 @@ describe('앱화면읽기', () => {
     expect(url).toBe('http://runner:4000/app-screen');
     expect(JSON.parse(init.body as string)).toEqual({ app: '/apk/a.apk', udid: 'R3CR10TCVCD' });
     expect(기록).toEqual({ 잡음: 1, 놓음: 1 });
+  });
+
+  it('폰을 잡은 팜 토큰을 러너에 farmToken 으로 싣는다 — 없으면 칸을 안 싣는다', async () => {
+    const 부르기 = 답({ screen: '화면' });
+
+    await 앱화면읽기('/apk/a.apk', 러너, 가짜잡기().잡기, 부르기, 게임길, 'pat_dlg');
+    await 앱화면읽기('/apk/a.apk', 러너, 가짜잡기().잡기, 부르기, 게임길);
+
+    const 몸들 = (부르기 as unknown as ReturnType<typeof vi.fn>).mock.calls.map((c) => JSON.parse((c[1] as RequestInit).body as string) as unknown);
+    expect(몸들).toEqual([
+      { app: '/apk/a.apk', udid: 'R3CR10TCVCD', farmToken: 'pat_dlg' },
+      { app: '/apk/a.apk', udid: 'R3CR10TCVCD' },
+    ]);
   });
 
   it('게임은 같은 잠금 · 같은 팜 잡기로 러너 /game-screen 을 부른다', async () => {

@@ -5,7 +5,7 @@ import { 필요권한 } from '../auth/routeTable.js';
 import { 케이스의서비스 } from '../auth/scope.js';
 import type { 사용자 } from '../auth/store.js';
 import { aql글 } from '../bts/aql.js';
-import { BTS부르기, type BTS응답, type 부르기함수 } from '../bts/client.js';
+import { BTS부르기, type BTS응답, type BTS자리, type 부르기함수 } from '../bts/client.js';
 import { 지금판, 케이스지도 } from '../prd/store.js';
 
 /** 도구 답 — 성공은 JSON 글, 실패는 오류 이름 한 줄(FORBIDDEN · NOT_FOUND · …) */
@@ -160,17 +160,17 @@ export { aql글 };
 
 /**
  * BTS 이슈 · task 찾기 — 사람 요청은 그 사람의 PAT 로 BTS 를 부른다(결정 16). BTS 가 자기 권한을 한 번 더 본다.
- * 자동 AI(mcj_)는 PAT 가 없어 `pat` 이 null 이고, 그 프로젝트에 저장한 「QA Hub AI」 열쇠로 부른다 (§3.12 「열쇠 표」)
+ * 자동 AI(mcj_)는 PAT 가 없어 `pat` 이 null 이고, 그 프로젝트에 적은 「QA Hub AI」 계정의 대신 PAT 로 부른다 (§3.12 「열쇠 표」)
  * Test Commander 쪽은 그 프로젝트 애플리케이션 하나라도 (작성, read) 여야 한다 — note_read 와 같은 문턱 (§3.12 「맥락 — MCP 조회 도구」)
  */
 export async function BTS찾기(사람: 사용자, pat: string | null, projectId: number, 찾을것: BTS찾을것, 부르기: 부르기함수 = BTS부르기): Promise<도구답> {
   const 문턱 = 프로젝트읽기막힘(사람, projectId);
   if (문턱 !== null) return 문턱;
 
-  const r = await (await db()).query<{ base_url: string; bts_project: string; bot_key: string }>('SELECT base_url, bts_project, bot_key FROM bts_link WHERE project_id = $1', [projectId]);
+  const r = await (await db()).query<{ base_url: string; bts_project: string; bot_username: string | null }>('SELECT base_url, bts_project, bot_username FROM bts_link WHERE project_id = $1', [projectId]);
   const 연결 = r.rows[0];
   if (연결 === undefined) return { ok: false, error: 'NOT_LINKED', detail: `project ${String(projectId)} 은 Issue Bunker 를 잇지 않았다` };
-  const 자리 = { baseUrl: 연결.base_url, botKey: pat ?? 연결.bot_key };
+  const 자리: BTS자리 = pat !== null ? { baseUrl: 연결.base_url, pat } : { baseUrl: 연결.base_url, 봇: 연결.bot_username ?? '' };
 
   let 부를것: Parameters<부르기함수>;
   // 이슈 하나를 읽을 때만 댓글도 부른다 — 댓글에서 바뀐 규칙을 PRD 초안 · 수정 AI 가 놓치지 않게 (2026-11-02 사용자)
@@ -213,7 +213,7 @@ export async function BTS찾기(사람: 사용자, pat: string | null, projectId
     return { ok: true, data: { ...이슈하나(data as 이슈원본), ...댓글칸(댓글답) } };
   }
   if (답.status === 404) return 없음(찾을것.issueKey ?? '');
-  if (답.status === 401) return { ok: false, error: 'BTS_UNAUTHORIZED', detail: pat === null ? 'Issue Bunker 가 「QA Hub AI」 계정 토큰을 받지 않았다 — 설정 › Issue Bunker 연결에서 다시 넣는다' : 'Issue Bunker 가 이 통합계정 토큰을 받지 않았다' };
+  if (답.status === 401) return { ok: false, error: 'BTS_UNAUTHORIZED', detail: pat === null ? 'Issue Bunker 가 「QA Hub AI」 계정의 대신 PAT 를 받지 않았다 — 설정 › Issue Bunker 연결의 계정 이름을 확인한다' : 'Issue Bunker 가 이 통합계정 토큰을 받지 않았다' };
   if (답.status === 403) return 막힘('Issue Bunker 권한 없음');
   return { ok: false, error: 'BTS_ERROR', detail: `HTTP ${String(답.status)}` };
 }

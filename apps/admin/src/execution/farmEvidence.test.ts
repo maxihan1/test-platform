@@ -10,9 +10,9 @@ import Fastify from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { 팜기록글, 팜영상경로, 팜증적경로, 팜증적목록 } from './farmEvidence.js';
-import { 실행팜토큰 } from './farmToken.js';
+import { 서버팜토큰, 실행팜토큰 } from './farmToken.js';
 
-vi.mock('./farmToken.js', () => ({ 실행팜토큰: vi.fn(async () => undefined) }));
+vi.mock('./farmToken.js', () => ({ 실행팜토큰: vi.fn(async () => undefined), 서버팜토큰: vi.fn(async () => undefined) }));
 
 let 임시: string;
 const 팜폴더 = () => join(runDir('3', '9'), FARM_EVIDENCE_DIR);
@@ -200,6 +200,7 @@ describe('GET /api/runs/:runId/items/:historyId/farm-video', () => {
     delete process.env.DEVICE_FARM_TOKEN;
     받음.length = 0;
     vi.mocked(실행팜토큰).mockResolvedValue(undefined);
+    vi.mocked(서버팜토큰).mockResolvedValue(undefined);
   });
 
   function 주인만주는팜(주인: string): void {
@@ -247,6 +248,24 @@ describe('GET /api/runs/:runId/items/:historyId/farm-video', () => {
 
     expect((await 불러온다()).statusCode).toBe(200);
     expect(받음.map((r) => r.인증)).toEqual(['Bearer pat_old', 'Bearer pat_server', 'Bearer pat_server']);
+  });
+
+  it('서버 몫이 대신 PAT(DEVICE_FARM_RUN_AS)면 누른 사람 것으로 못 받을 때 그것으로 한 번 더 묻는다', async () => {
+    vi.mocked(서버팜토큰).mockResolvedValue('pat_runas');
+    vi.mocked(실행팜토큰).mockResolvedValue('pat_kim');
+    주인만주는팜('pat_runas');
+
+    expect((await 불러온다()).statusCode).toBe(200);
+    expect(받음.map((r) => r.인증)).toEqual(['Bearer pat_kim', 'Bearer pat_runas', 'Bearer pat_runas']);
+  });
+
+  it('정기 실행처럼 누른 사람이 곧 서버 몫이면 다시 묻지 않는다', async () => {
+    vi.mocked(서버팜토큰).mockResolvedValue('pat_runas');
+    vi.mocked(실행팜토큰).mockResolvedValue('pat_runas');
+    주인만주는팜('pat_other');
+
+    expect((await 불러온다()).statusCode).toBe(404);
+    expect(받음.map((r) => r.인증)).toEqual(['Bearer pat_runas']);
   });
 
   it('DEVICE_FARM_TOKEN 이 있으면 목록 · 영상 둘 다 Bearer 로 받는다', async () => {

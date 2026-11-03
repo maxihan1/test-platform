@@ -59,7 +59,7 @@ export interface ExecuteRequest {
   timeoutMs: number;            // 기본 300000
   app?: string;                 // android 만. 그 대상 서버의 앱 파일 경로나 http(s) 주소(받는 쪽은 Appium 이 도는 PC). 없으면 러너 환경값 PLATFORM_APP (§5.2 · APP-F1-03)
   udid?: string;                // android · 실제 폰 mobile(cdpUrl 이 올 때 꼭 같이). admin 이 디바이스 팜에서 잡은 폰. android 는 없으면 러너 환경값 PLATFORM_DEVICE_UDID (§5.2 · APP-F1-10 · TMO-F4-02)
-  farmToken?: string;           // android · 실제 폰 mobile. 그 폰을 잡은 누른 사람의 팜 토큰. 없으면 러너 환경값 PLATFORM_APPIUM_TOKEN(실제 폰 mobile 은 cdpUrl 이 러너 팜과 같은 호스트일 때만 — 도메인/러너 §5.2 「모바일 웹 — 실제 폰 Chrome」). 기록 · 로그에 안 넣는다 (§5.2 「팜 토큰은 누른 사람 것이 먼저다」 · APP-F1-13)
+  farmToken?: string;           // android · 실제 폰 mobile. 그 폰을 잡은 팜 토큰 — 누른 사람이나 서버 몫의 Auth 대신 PAT(2026-11-04 S25). 없으면 러너 환경값 PLATFORM_APPIUM_TOKEN(실제 폰 mobile 은 cdpUrl 이 러너 팜과 같은 호스트일 때만 — 도메인/러너 §5.2 「모바일 웹 — 실제 폰 Chrome」). 기록 · 로그에 안 넣는다 (§5.2 「팜 토큰은 누른 사람 것이 먼저다」 · APP-F1-13)
   cdpUrl?: string;              // mobile 만. VISION 이 깨끗이 켜 준 그 폰 Chrome 의 DevTools 연결 주소(ws · wss). 오면 서버 흉내 대신 그 폰 Chrome 에서 돈다 (§5.2 「모바일 웹 — 실제 폰 Chrome」 · TMO-F4-02)
   engine?: 'GAME';              // 게임 애플리케이션의 android 항목만. admin 이 애플리케이션 종류를 보고 싣는다. 없으면 platform 으로 엔진을 고른다(android → Appium) (도메인/게임 §3.10 결정 6 · GAME-F1-07)
   adminKey?: { header: string; value: string };  // 게임 · API 애플리케이션 항목만. 그 대상 서버 줄의 어드민 키 원문 — kit 이 몸통 admin 요청에 머리로 넣고 기록에서 가린다 (도메인/게임 §3.10 「케이스 꼴」 · GAME-F1-09 · API 는 도메인/API §3.8 「어드민 키」)

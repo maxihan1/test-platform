@@ -88,6 +88,15 @@ describe('앱화면을읽는다', () => {
     for (const [, init] of 부름) expect(new Headers(init.headers).get('authorization')).toBe('Bearer pat_abc');
   });
 
+  it('요청의 farmToken 이 PLATFORM_APPIUM_TOKEN 보다 앞선다 — 열기 · 읽기 · 닫기 모두 그 토큰이다', async () => {
+    process.env.PLATFORM_APPIUM_TOKEN = 'pat_env';
+
+    await 앱화면을읽는다({ farmToken: 'pat_dlg' });
+
+    const 부름 = fetchMock.mock.calls as [string, RequestInit][];
+    expect(부름.map(([, init]) => new Headers(init.headers).get('authorization'))).toEqual(Array(3).fill('Bearer pat_dlg'));
+  });
+
   it('연결을 열고 · 화면을 읽고 · 닫는다 — 계정은 머리로 옮기고 설정은 케이스와 같다', async () => {
     process.env.PLATFORM_DEVICE_UDID = 'R5CT';
 
@@ -199,6 +208,26 @@ describe('POST /app-screen', () => {
     const res = await 보냄({});
 
     expect(res.statusCode).not.toBe(409);
+  });
+
+  it('farmToken 을 받아 그 토큰으로 읽는다 — 공백이 든 값은 머리를 깨니 400 이다', async () => {
+    expect((await 보냄({ farmToken: 'pat_dlg' })).statusCode).toBe(200);
+    expect(new Headers((fetchMock.mock.calls[0] as [string, RequestInit])[1].headers).get('authorization')).toBe('Bearer pat_dlg');
+
+    fetchMock.mockClear();
+    expect((await 보냄({ farmToken: 'pat_a\r\nX-Evil: 1' })).statusCode).toBe(400);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('오류 까닭에 섞인 팜 토큰은 지우고 싣는다', async () => {
+    process.env.PLATFORM_APPIUM_TOKEN = 'pat_env';
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValueOnce(답({ value: { message: 'Bearer pat_dlg 거절 · 서버 pat_env' } }, 401));
+
+    const res = await 보냄({ farmToken: 'pat_dlg' });
+
+    expect(res.statusCode).toBe(500);
+    expect(res.json()).toEqual({ error: 'RUNNER_ERROR', detail: 'Appium 이 HTTP 401 로 답했다: Bearer ******** 거절 · 서버 ********' });
   });
 
   it('Appium 설정이 없으면 500 RUNNER_ERROR 에 까닭을 싣는다', async () => {

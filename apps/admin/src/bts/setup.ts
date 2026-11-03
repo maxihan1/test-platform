@@ -1,7 +1,10 @@
-// 설정 › BTS 연결의 [저장하고 BTS 자동 설정] — 누른 사람의 통합계정 토큰으로 BTS 에 웹훅 · 자동화 규칙 둘 · 보드 「QA 검토」 칸을 만든다 (도메인/BTS §7 「BTS 자동 설정」 · BTS-F3-05)
+// 설정 › BTS 연결의 [저장하고 BTS 자동 설정] — 누른 사람의 대신 PAT 로 BTS 에 웹훅 · 자동화 규칙 둘 · 보드 「QA 검토」 칸을 만든다 (도메인/BTS §7 「BTS 자동 설정」 · BTS-F3-05)
 // 사람이 값을 옮겨 적지 않게 한다(2026-10-31 사용자 「자동으로 설정하면 되잖아」 · 「통합계정이잖아」). 다시 눌러도 두 벌 만들지 않는다 — 웹훅은 주소, 규칙은 이름으로 찾아 고친다
 
 import type { Pool } from 'pg';
+
+import { SSO설정읽기 } from '../auth/oidc.js';
+import { 계정대신PAT } from '../execution/farmToken.js';
 
 import { BTS고를목록 } from './choices.js';
 import { BTS부르기, type BTS자리, type 부르기함수 } from './client.js';
@@ -134,7 +137,22 @@ async function 보드(자리: BTS자리, 부르기: 부르기함수, 줄: 연결
 }
 
 /**
- * @param 사람토큰 누른 사람의 통합계정 토큰(app_user.farm_token). 웹훅은 BTS 시스템 관리자, 규칙은 그 프로젝트 자동화 관리, 보드 칸은 만들기 권한이 든다
+ * 누른 운영 계정의 대신 PAT — 그 계정 auth_sub 로 Auth 에서 받는다(2026-11-04 S25 · 도메인/BTS 「열쇠 표」).
+ * Auth 에 안 묶인 계정 · 못 받음은 undefined(화면 NO_PERSONAL_TOKEN). 서버 몫 계정으로 물러서지 않는다 —
+ * 그 계정 권한을 빌리면 BTS 관리자가 아닌 운영 계정도 웹훅 · 규칙을 만든다
+ */
+export async function 누른사람PAT(username: string): Promise<string | undefined> {
+  if (SSO설정읽기() === null) return undefined;
+  try {
+    return (await 계정대신PAT(username)) ?? undefined;
+  } catch (err) {
+    console.error(`[bts] ${username} 의 대신 PAT 를 못 받아 자동 설정을 못 한다: ${err instanceof Error ? err.message : String(err)}`);
+    return undefined;
+  }
+}
+
+/**
+ * @param 사람토큰 누른 사람의 대신 PAT(누른사람PAT). 웹훅은 BTS 시스템 관리자, 규칙은 그 프로젝트 자동화 관리, 보드 칸은 만들기 권한이 든다
  * @param 바탕 BTS 가 부를 QA Hub 공개 주소 — BTS 는 사설 주소 · localhost 를 거절한다
  */
 export async function BTS자동설정(
@@ -146,7 +164,7 @@ export async function BTS자동설정(
 ): Promise<설정결과[] | 'NOT_LINKED'> {
   const 줄 = (await (await db()).query<연결>('SELECT bts_project, base_url, webhook_secret, status_map FROM bts_link WHERE project_id = $1', [projectId])).rows[0];
   if (줄 === undefined) return 'NOT_LINKED';
-  const 자리 = { baseUrl: 줄.base_url, botKey: 사람토큰 };
+  const 자리: BTS자리 = { baseUrl: 줄.base_url, pat: 사람토큰 };
   const [웹훅결과, 규칙결과, 보드결과] = await Promise.all([
     해본다('WEBHOOK', () => 웹훅(자리, 부르기, 줄, `${바탕}/api/bts/events/${projectId}`)),
     규칙들(자리, 부르기, 줄, projectId, 누가, 바탕),

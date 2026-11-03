@@ -86,7 +86,7 @@ export async function 팜폰으로돌린다(
   try {
     토큰 = await 토큰찾기();
   } catch (err) {
-    return 못돌린응답(요청.parts.length, `누른 사람의 통합계정 토큰을 읽지 못했습니다: ${err instanceof Error ? err.message : String(err)}`);
+    return 못돌린응답(요청.parts.length, `누른 사람의 팜 토큰을 고르지 못했습니다: ${err instanceof Error ? err.message : String(err)}`);
   }
   const 못잡음 = (까닭: string) => 못돌린응답(요청.parts.length, 까닭);
   if (폰 === 'chrome') {

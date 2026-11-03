@@ -5,6 +5,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import { 깔앱파일 } from '../execution/buildFile.js';
 import { 팜주소, 팜폰으로 } from '../execution/farm.js';
+import { 서버팜토큰 } from '../execution/farmToken.js';
 import { 폰을놓는다, 폰을바로잡는다 } from '../execution/phone.js';
 import { runnerUrl, 러너머리 } from '../execution/runnerAddr.js';
 import { 도는집은요청 } from '../prd/agentRoutes.js';
@@ -13,8 +14,11 @@ import { 게임서비스인가 } from '../prd/gameMap.js';
 import { 대상줄들읽기, 앱줄고르기 } from './reverse.js';
 
 export type 앱화면답 = { screen: string | null; reason: string | null };
-/** 작성 AI 가 appium-cli 로 폰을 눌러 가며 읽을 때 붙을 팜 Appium 주소와 앱 파일 — 첫 화면을 못 읽었어도 준다 (§3.6 「앱 화면」 「눌러 가며 읽기」) */
-export type 앱탐색 = { url: string; app: string };
+/**
+ * 작성 AI 가 appium-cli 로 폰을 눌러 가며 읽을 때 붙을 팜 Appium 주소와 앱 파일 — 첫 화면을 못 읽었어도 준다 (§3.6 「앱 화면」 「눌러 가며 읽기」).
+ * token 은 첫 화면의 폰을 잡은 서버 몫 대신 PAT 다. 에이전트가 자식의 PLATFORM_APPIUM_TOKEN 으로 넘긴다 (§7 「앱 화면 통로」 appium.token)
+ */
+export type 앱탐색 = { url: string; app: string; token?: string };
 
 /** 팜에서 폰을 잡아 그 번호로 일을 맡기고 놓는다 — 라우트는 팜폰으로, 검사는 가짜를 넘긴다 */
 export type 폰잡기 = (일: (udid: string) => Promise<앱화면답>, 못잡음: (까닭: string) => 앱화면답) => Promise<앱화면답>;
@@ -35,25 +39,33 @@ const 짧게 = (글: string): string => (글.length > 까닭_상한 ? `${글.sli
  * 러너에 화면을 부탁한다. 읽지 못하면 까닭을 돌려줄 뿐 던지지 않는다 — 작성은 화면 없이도 간다.
  * 앱 파일 경로가 없으면 앱이 없는 서비스다 — 까닭도 없이 비운다.
  * admin 의 폰 잠금(정식 실행의 디바이스 줄)을 쥐고 읽는다 — 안 쥐면 도는 android 실행의 연결을 가로챈다. 기다리지 않고 바쁘면 까닭만 돌려준다.
- * 팜 폰은 잠금 안에서 잡고 놓는다 — 정식 실행과 같은 길이다 (러너 §5.2 「디바이스 팜 접속 방식」)
+ * 팜 폰은 잠금 안에서 잡고 놓는다 — 정식 실행과 같은 길이다 (러너 §5.2 「디바이스 팜 접속 방식」).
+ * 토큰은 폰을 잡은 팜 토큰이다. 러너가 연결을 열고 닫을 때 같은 주인이어야 팜이 받는다 (러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」)
  */
-export async function 앱화면읽기(appPath: string | null, 러너: string, 잡기: 폰잡기 | undefined, 부르기: typeof fetch = fetch, 곳: 읽을곳 = 앱길): Promise<앱화면답> {
+export async function 앱화면읽기(
+  appPath: string | null,
+  러너: string,
+  잡기: 폰잡기 | undefined,
+  부르기: typeof fetch = fetch,
+  곳: 읽을곳 = 앱길,
+  토큰?: string,
+): Promise<앱화면답> {
   if (appPath === null) return { screen: null, reason: null };
   if (잡기 === undefined) return { screen: null, reason: 'Device VISION(DEVICE_FARM_URL)이 연결되어 있지 않다' };
   if (!폰을바로잡는다()) return { screen: null, reason: '폰이 다른 실행에 쓰이는 중이다' };
   try {
-    return await 잡기((udid) => 러너에묻는다(appPath, udid, 러너, 부르기, 곳), (까닭) => ({ screen: null, reason: 까닭 }));
+    return await 잡기((udid) => 러너에묻는다(appPath, udid, 러너, 부르기, 곳, 토큰), (까닭) => ({ screen: null, reason: 까닭 }));
   } finally {
     폰을놓는다();
   }
 }
 
-async function 러너에묻는다(appPath: string, udid: string, 러너: string, 부르기: typeof fetch, 곳: 읽을곳): Promise<앱화면답> {
+async function 러너에묻는다(appPath: string, udid: string, 러너: string, 부르기: typeof fetch, 곳: 읽을곳, 토큰: string | undefined): Promise<앱화면답> {
   try {
     const res = await 부르기(`${러너}${곳.길}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', ...러너머리() },
-      body: JSON.stringify({ app: appPath, udid }),
+      body: JSON.stringify({ app: appPath, udid, ...(토큰 !== undefined && { farmToken: 토큰 }) }),
       signal: AbortSignal.timeout(곳.기다림_ms),
     });
     const 몸 = (await res.json().catch(() => null)) as { screen?: unknown; error?: unknown; detail?: unknown } | null;
@@ -70,8 +82,8 @@ async function 러너에묻는다(appPath: string, udid: string, 러너: string,
  * 앱이 있고 팜이 붙었을 때만. 팜 주소는 admin 이 보는 주소 그대로다 — 작성 컨테이너도 같은 이름으로 닿는다(docker-compose author extra_hosts).
  * DEVICE_FARM_URL 은 `/wd/hub` 가 붙은 꼴로 안내한다(SETUP 「디바이스 팜」) — 붙었든 안 붙었든 한 번만 붙인다
  */
-export function 앱탐색주소(appPath: string | null, 팜: string | undefined): 앱탐색 | null {
-  return appPath === null || 팜 === undefined ? null : { url: `${팜.replace(/\/wd\/hub$/, '')}/wd/hub`, app: appPath };
+export function 앱탐색주소(appPath: string | null, 팜: string | undefined, 토큰?: string): 앱탐색 | null {
+  return appPath === null || 팜 === undefined ? null : { url: `${팜.replace(/\/wd\/hub$/, '')}/wd/hub`, app: appPath, ...(토큰 !== undefined && { token: 토큰 }) };
 }
 
 
@@ -89,8 +101,11 @@ export default async function appScreenAgentRoutes(app: FastifyInstance): Promis
     // 게임은 앱 파일이 없으면 켤 게임이 없다 — 앱처럼 「앱 없는 서비스」로 비우면 AI 가 까닭을 모른다
     if (게임만 && appPath === null) return { screen: null, reason: '대상 서버 줄에 게임 앱 파일 경로가 없다', game: null };
     const 팜 = 팜주소();
-    const 답 = await 앱화면읽기(appPath, runnerUrl(), 팜 === undefined ? undefined : (일, 못잡음) => 팜폰으로(팜, 일, 못잡음), fetch, 곳);
-    return { ...답, [칸]: 앱탐색주소(appPath, 팜) };
+    // 작성 AI 는 서버 몫이다. 한 번 고른 토큰으로 폰을 잡고 러너가 붙고, AI 가 눌러 가며 읽을 때도 같은 주인으로 붙게 넘긴다 (러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」)
+    const 토큰 = 팜 === undefined || appPath === null ? undefined : await 서버팜토큰();
+    const 잡기: 폰잡기 | undefined = 팜 === undefined ? undefined : (일, 못잡음) => 팜폰으로(팜, 일, 못잡음, fetch, undefined, undefined, 토큰);
+    const 답 = await 앱화면읽기(appPath, runnerUrl(), 잡기, fetch, 곳, 토큰);
+    return { ...답, [칸]: 앱탐색주소(appPath, 팜, 토큰) };
   };
   app.get('/authoring/requests/:id/app-screen', 읽어준다(false, 앱길, 'appium'));
   app.get('/authoring/requests/:id/game-screen', 읽어준다(true, 게임길, 'game'));

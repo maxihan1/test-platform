@@ -95,7 +95,7 @@ export interface 닫기결과 {
 export interface 닫기연결 {
   projectId: number;
   baseUrl: string;
-  botKey: string;
+  봇: string;
 }
 
 /**
@@ -126,7 +126,7 @@ export async function 닫기처리(연결: 닫기연결, 이슈: BTS이슈, 부�
     return 없음;
   }
   // 글은 잠금 밖에서 읽는다 — BTS 를 기다리는 동안 그 애플리케이션의 기획서 잠금을 쥐지 않게
-  const 글 = 사유 === 'TEST_PROBLEM' ? await 이슈글읽기({ baseUrl: 연결.baseUrl, botKey: 연결.botKey }, 이슈.key, 부르기) : '';
+  const 글 = 사유 === 'TEST_PROBLEM' ? await 이슈글읽기({ baseUrl: 연결.baseUrl, 봇: 연결.봇 }, 이슈.key, 부르기) : '';
   const 결과: 닫기결과 = { 요청들: [], 기록만: [] };
   for (const 서비스 of 서비스들) {
     const 번호 = await 잠그고(서비스, async (손) => {

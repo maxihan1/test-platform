@@ -110,7 +110,7 @@ function 서버세우기(사람: 사용자, pat: string | null, 부르기?: 부�
   서버.registerTool(
     'bts_search',
     {
-      description: '그 프로젝트가 이은 Issue Bunker 에서 이슈 · task 를 찾는다. issueKey(예: DM-12)로 하나를 읽으면 키 · 제목 · 상태 · 본문(4,000자까지)과 최근 댓글 20개(하나에 1,000자 · 오래된 것부터 · 넘으면 moreComments · 못 읽으면 commentsError), query 로 찾으면 키 · 제목 · 상태만 30줄씩(다음이 있으면 truncated — page 를 올린다) 준다. 닫힌 이슈도 상태로 보인다. 사람은 자기 통합계정 토큰으로, 자동 AI 는 프로젝트에 저장한 「QA Hub AI」 계정 토큰으로 Issue Bunker 를 부른다',
+      description: '그 프로젝트가 이은 Issue Bunker 에서 이슈 · task 를 찾는다. issueKey(예: DM-12)로 하나를 읽으면 키 · 제목 · 상태 · 본문(4,000자까지)과 최근 댓글 20개(하나에 1,000자 · 오래된 것부터 · 넘으면 moreComments · 못 읽으면 commentsError), query 로 찾으면 키 · 제목 · 상태만 30줄씩(다음이 있으면 truncated — page 를 올린다) 준다. 닫힌 이슈도 상태로 보인다. 사람은 자기 통합계정 토큰으로, 자동 AI 는 프로젝트에 적은 「QA Hub AI」 계정의 대신 PAT 로 Issue Bunker 를 부른다',
       inputSchema: {
         projectId: z.number().int().positive().describe('Test Commander 프로젝트 번호'),
         issueKey: z.string().max(40).optional(),

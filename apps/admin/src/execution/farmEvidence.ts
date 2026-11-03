@@ -12,7 +12,7 @@ import { 정수 } from '../routeParams.js';
 import { 볼륨목록, 볼륨파일, 볼륨파일읽기 } from '../artifactFile.js';
 
 import { 팜머리, 팜주소 } from './farm.js';
-import { 실행팜토큰 } from './farmToken.js';
+import { 서버팜토큰, 실행팜토큰 } from './farmToken.js';
 
 export interface 팜파일 {
   name: string;
@@ -90,23 +90,25 @@ export async function 팜영상경로(app: FastifyInstance): Promise<void> {
     if (sessionId === null) return 없음('기록없음');
     const 팜 = 팜주소();
     if (팜 === undefined) return 없음('팜없음');
+    // 팜은 연결을 연 사람에게만 영상을 준다(남의 것은 404). 그 실행을 누른 사람 이름으로 먼저 묻고, 없다면 서버 몫으로 한 번 더 묻는다 —
+    // Auth 에 안 묶인 사람 · 앞 판에 토큰을 안 넣은 사람의 실행은 서버 몫이 주인이다 (러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」).
+    // 둘 다 Auth 를 부를 수 있어 아래 영상 제한(타이머)을 걸기 전에 고른다 — 기억이 있으면 Auth 를 안 부른다
+    const 서버 = await 서버팜토큰();
+    const 사람 = await 실행팜토큰(runId).catch((err: unknown) => {
+      // 사람을 못 골랐다고 영상을 버리지 않는다 — 서버 몫으로 묻고, 까닭을 남긴다
+      console.error(`[farm] 실행 ${runId} 를 누른 사람 이름을 고르지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+      return 서버;
+    });
     // 머리가 올 때까지만 제한을 건다 — 몸통을 흘려보내는 동안 끊기면 긴 영상이 잘린다. 보는 사람이 닫으면 팜 쪽도 끊는다
     const 끊기 = new AbortController();
     const 타이머 = setTimeout(() => 끊기.abort(), 팜_제한_ms);
     reply.raw.on('close', () => 끊기.abort());
     try {
-      // 팜은 연결을 연 사람에게만 영상을 준다(남의 것은 404). 그 실행을 누른 사람의 지금 토큰으로 먼저 묻고, 없다면 서버 몫으로 한 번 더 묻는다 —
-      // 토큰을 넣기 전에 돈 실행은 서버 몫이 주인이다 (러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」)
-      const 사람 = await 실행팜토큰(runId).catch((err: unknown) => {
-        // 토큰을 못 읽었다고 영상을 버리지 않는다 — 서버 몫으로 묻고, 까닭은 팜이 아니라 DB 라고 남긴다
-        console.error(`[farm] 실행 ${runId} 를 누른 사람의 팜 토큰을 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`);
-        return undefined;
-      });
       let 토큰 = 사람;
       let 주소 = await 첫영상주소(팜, sessionId, 토큰);
-      // 404 만이 아니다 — 그 사람 토큰을 Auth 에서 폐기했거나 기간이 끝나면 401 이다
-      if (typeof 주소 === 'string' && 사람 !== undefined) {
-        토큰 = undefined;
+      // 404 만이 아니다 — 그 사람을 Auth 에서 껐으면 401 이다
+      if (typeof 주소 === 'string' && 사람 !== 서버) {
+        토큰 = 서버;
         주소 = await 첫영상주소(팜, sessionId, 토큰);
       }
       if (typeof 주소 === 'string') return 없음(주소);

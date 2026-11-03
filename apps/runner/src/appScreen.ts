@@ -16,6 +16,8 @@ export const 화면을읽는중인가 = (): boolean => 읽는중;
 export interface 앱화면요청 {
   app?: string;
   udid?: string;
+  /** 폰을 잡은 팜 토큰. 없으면 러너의 PLATFORM_APPIUM_TOKEN 이다 */
+  farmToken?: string;
 }
 
 const 글자뜻: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
@@ -112,7 +114,7 @@ export async function 앱을켜서읽는다(
   const app = req.app ?? env.PLATFORM_APP;
   if (app === undefined || app === '') throw new Error('Android 앱 화면을 읽으려면 PLATFORM_APP 이 필요하다');
   const udid = req.udid ?? env.PLATFORM_DEVICE_UDID;
-  const { base, headers } = appium주소(raw, env.PLATFORM_APPIUM_TOKEN);
+  const { base, headers } = appium주소(raw, req.farmToken ?? env.PLATFORM_APPIUM_TOKEN);
   const json = { ...headers, 'Content-Type': 'application/json' };
 
   읽는중 = true;

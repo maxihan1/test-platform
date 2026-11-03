@@ -76,13 +76,13 @@ const 글 = (err: unknown): string => (err instanceof Error ? err.message : Stri
 interface 연결행 {
   project_id: string;
   base_url: string;
-  bot_key: string;
+  bot_username: string | null;
   bts_project: string;
   status_map: Record<string, string>;
 }
 
 async function 연결읽기(projectId: number): Promise<연결행 | undefined> {
-  return (await (await db()).query<연결행>('SELECT project_id, base_url, bot_key, bts_project, status_map FROM bts_link WHERE project_id = $1', [projectId])).rows[0];
+  return (await (await db()).query<연결행>('SELECT project_id, base_url, bot_username, bts_project, status_map FROM bts_link WHERE project_id = $1', [projectId])).rows[0];
 }
 
 // BTS 검색은 한 쪽에 100줄까지다. 규칙 상한(200)과 같게 두 쪽까지 본다
@@ -95,7 +95,7 @@ export async function QA요청이슈(연결: 연결행, 부르기: 부르기함�
   if (상태 === '') throw new Error('「QA 요청」 상태를 짝짓지 않았다');
   const 이슈: { key: string; bug: boolean; title: string }[] = [];
   for (let page = 0; page < 최대쪽; page++) {
-    const r = await 부르기({ baseUrl: 연결.base_url, botKey: 연결.bot_key }, 'POST', '/api/v1/search/aql', {
+    const r = await 부르기({ baseUrl: 연결.base_url, 봇: 연결.bot_username ?? '' }, 'POST', '/api/v1/search/aql', {
       projectKey: 연결.bts_project,
       query: `status = ${aql글(상태)}`,
       page,

@@ -53,23 +53,4 @@ export const 계정말: Record<string, string> = {
   '가입 신청을 삭제합니다. 되돌릴 수 없습니다': 'This deletes the sign-up request. It cannot be undone',
   삭제한다: 'Delete now',
   '다른 관리자가 먼저 처리했습니다': 'Another admin already handled this',
-
-  // 계정 메뉴 「디바이스 팜 토큰」 창 (§8.6 · 2026-10-29 APP-F1-13)
-  '통합계정 토큰': 'Unified account token',
-  '내가 누른 실행이 Device VISION 의 폰을 빌릴 때와 {bts} 자동 설정을 할 때 이 토큰을 씁니다':
-    'Used when runs you start borrow Device VISION phones and when you set up {bts} automatically',
-  '통합계정 「내 계정」 화면에서 개인 액세스 토큰을 발급해 붙여 넣습니다':
-    'Issue a personal access token on the QA Hub account "My account" page and paste it here',
-  '없음 — 서버 토큰으로 빌립니다': 'None — phones are borrowed with the server token',
-  '넣음 (…{끝})': 'Set (…{끝})',
-  '토큰 지우기': 'Remove token',
-  '새 토큰': 'New token',
-  '지금 토큰(…{끝})을 버리고 새 토큰으로 바꿀까요?': 'Replace the current token (…{끝}) with the new one?',
-  '지금 토큰(…{끝})을 지울까요? 지우면 서버 토큰으로 빌립니다': 'Remove the current token (…{끝})? Phones will be borrowed with the server token',
-  'pat_ 로 시작하는 토큰이 아닙니다': 'This is not a token starting with pat_',
-  '통합계정이 받지 않는 토큰입니다 — 폐기했거나 기간이 끝났을 수 있습니다':
-    'The QA Hub account does not accept this token — it may be revoked or expired',
-  '다른 사람의 토큰입니다 — 내 계정에서 발급한 토큰만 넣을 수 있습니다': "This is someone else's token — only tokens issued from your own account work",
-  '통합계정에 닿지 못해 토큰을 확인하지 못했습니다 — 잠시 뒤 저장을 다시 눌러 주세요':
-    'Could not reach the QA Hub account to check the token — save again in a moment',
 };

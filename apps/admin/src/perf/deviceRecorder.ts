@@ -9,6 +9,7 @@ import type { ReadableStream as WebReadableStream } from 'node:stream/web';
 
 import { 볼륨파일 } from '../artifactFile.js';
 import { 팜머리, 팜주소 } from '../execution/farm.js';
+import { 서버팜토큰 } from '../execution/farmToken.js';
 import { 러너머리 } from '../execution/runnerAddr.js';
 
 export interface 기기줄원본 {
@@ -80,6 +81,13 @@ export function 팜기록기(serial: string, 부르기: typeof fetch = fetch): �
   let 시도함 = false;
   let 끝: number | null = null;
   let 분 = 120;
+  // 주인은 늘 서버 몫(DEVICE_FARM_RUN_AS)이다 — 팜은 잡은 사람과 측정값 · 녹화 · 놓기를 부르는 사람이 같아야 받는다 (러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」).
+  // 부를 때마다 다시 고른다 — 대신 PAT 는 3시간이라 늘려 가며 긴 측정은 켤 때 토큰이 도중에 끝난다. 못 받으면 앞 토큰을 쓴다
+  let 토큰: string | undefined;
+  const 머리 = async (): Promise<Record<string, string>> => {
+    토큰 = (await 서버팜토큰()) ?? 토큰;
+    return 팜머리(process.env, 토큰);
+  };
 
   function 잡음읽기(몸: unknown): void {
     const held = (몸 as { held?: { until?: unknown; now?: unknown } } | null)?.held;
@@ -97,7 +105,7 @@ export function 팜기록기(serial: string, 부르기: typeof fetch = fetch): �
       let res: Response;
       try {
         res = await 부르기(`${주소()}/hold`, {
-          method: 'POST', headers: { 'content-type': 'application/json', ...팜머리() },
+          method: 'POST', headers: { 'content-type': 'application/json', ...(await 머리()) },
           body: JSON.stringify({ minutes: o.holdMinutes, perf: { package: o.package, intervalSec: o.intervalSec, record: o.record } }),
           signal: AbortSignal.timeout(팜제한ms),
         });
@@ -112,14 +120,14 @@ export function 팜기록기(serial: string, 부르기: typeof fetch = fetch): �
       잡음읽기(await res.json().catch(() => null));
     },
     async 새줄(since) {
-      const res = await 부르기(`${주소()}/perf?since=${since}`, { headers: 팜머리(), signal: AbortSignal.timeout(팜제한ms) });
+      const res = await 부르기(`${주소()}/perf?since=${since}`, { headers: await 머리(), signal: AbortSignal.timeout(팜제한ms) });
       if (!res.ok) throw new Error(`Device VISION 이 측정값을 주지 않았습니다 (${await 거절문장(res)})`);
       const 몸 = (await res.json()) as Partial<읽음>;
       return { rows: 몸.rows ?? [], launchMs: typeof 몸.launchMs === 'number' ? 몸.launchMs : null };
     },
     async 늘리기() {
       const res = await 부르기(`${주소()}/hold/extend`, {
-        method: 'POST', headers: { 'content-type': 'application/json', ...팜머리() }, body: JSON.stringify({ minutes: 분 }), signal: AbortSignal.timeout(팜제한ms),
+        method: 'POST', headers: { 'content-type': 'application/json', ...(await 머리()) }, body: JSON.stringify({ minutes: 분 }), signal: AbortSignal.timeout(팜제한ms),
       });
       if (!res.ok) throw new Error(`Device VISION 이 잡기를 늘려 주지 않았습니다: ${await 거절문장(res)}`);
       const 몸 = await res.json().catch(() => null);
@@ -127,13 +135,13 @@ export function 팜기록기(serial: string, 부르기: typeof fetch = fetch): �
       else 끝 = (끝 ?? Date.now()) + 분 * 60_000;
     },
     async 파일받기(폴더, 오프셋) {
-      const 목록 = await 부르기(`${주소()}/perf/files`, { headers: 팜머리(), signal: AbortSignal.timeout(팜제한ms) });
+      const 목록 = await 부르기(`${주소()}/perf/files`, { headers: await 머리(), signal: AbortSignal.timeout(팜제한ms) });
       if (!목록.ok) throw new Error(`Device VISION 이 녹화 목록을 주지 않았습니다 (${await 거절문장(목록)})`);
       const 이름들 = ((await 목록.json()) as { files?: { name?: unknown }[] }).files?.flatMap((f) => (typeof f.name === 'string' ? [f.name] : [])) ?? [];
       await mkdir(폴더, { recursive: true });
       // 팜이 준 이름으로 경로를 짓기 전에 꼴을 본다 — 폴더 밖으로 못 나가게
       for (const 이름 of 이름들.filter((n) => 녹화이름.test(n))) {
-        const res = await 부르기(`${주소()}/perf/files/${encodeURIComponent(이름)}`, { headers: 팜머리(), signal: AbortSignal.timeout(파일제한ms) });
+        const res = await 부르기(`${주소()}/perf/files/${encodeURIComponent(이름)}`, { headers: await 머리(), signal: AbortSignal.timeout(파일제한ms) });
         if (!res.ok) throw new Error(`녹화 ${이름} 를 받지 못했습니다 (${await 거절문장(res)})`);
         // 조각 하나가 수십 MB 라 통째로 메모리에 올리지 않고 흘려 쓴다
         if (res.body === null) throw new Error(`녹화 ${이름} 가 비어 있습니다`);
@@ -143,7 +151,7 @@ export function 팜기록기(serial: string, 부르기: typeof fetch = fetch): �
     async 놓기() {
       if (!시도함) return;
       시도함 = false;
-      const res = await 부르기(`${주소()}/hold`, { method: 'DELETE', headers: 팜머리(), signal: AbortSignal.timeout(팜제한ms) });
+      const res = await 부르기(`${주소()}/hold`, { method: 'DELETE', headers: await 머리(), signal: AbortSignal.timeout(팜제한ms) });
       if (!res.ok) throw new Error(`폰 ${serial} 을 놓지 못했습니다 (${await 거절문장(res)})`);
     },
   };

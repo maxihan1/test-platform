@@ -74,8 +74,8 @@ export async function 올리기(
   자식출력: string,
   원손: 보고손,
   역: 역방향올리기 | undefined,
-  /** 게임은 끝 검사가 앱 경고 대신 폰 돌려 보기 줄을 싣는다 (도메인/게임 §3.10 「작성 — 한 바퀴」 6) */
-  원장재료: { 값: 원장 | { 없음: string }; 폴더: string; 자식: 계정 | null; 기준: 기준결정; 게임?: boolean },
+  /** 게임은 끝 검사가 앱 경고 대신 폰 돌려 보기 줄을 싣는다 (도메인/게임 §3.10 「작성 — 한 바퀴」 6). 팜토큰은 서버가 앱 화면 응답으로 넘겨 자식 환경에 든 것이다 */
+  원장재료: { 값: 원장 | { 없음: string }; 폴더: string; 자식: 계정 | null; 기준: 기준결정; 게임?: boolean; 팜토큰?: string },
   단계표 = '',
   /** 표준 기획서 옮기기의 판 · 대조 줄 — 껍데기가 PR 을 만들기 전에 올리고 넘긴다 (§3.6 「★ 표준 기획서」 「옮기기」) */
   옮긴줄: string[] = [],
@@ -199,9 +199,9 @@ export async function 올리기(
     단계: 단계표,
   });
   // 사유에 토큰을 싣지 않는다 — 사유는 화면과 서버 기록에 남는다
-  // 팜 토큰도 자식 환경에 있다(PLATFORM_APPIUM_TOKEN — 러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」). 저장소가 공개라 올라가면 그대로 공개된다
+  // 팜 토큰도 자식 환경에 있다(PLATFORM_APPIUM_TOKEN — 서버가 준 대신 PAT, 없으면 이 컨테이너 것 · 러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」). 저장소가 공개라 올라가면 그대로 공개된다
   const 올릴글 = [본문글, ...전체.map(읽기)];
-  const 섞인것 = 비밀섞였나(올릴글, 것.figmaToken) ? '피그마 토큰' : 비밀섞였나(올릴글, process.env.PLATFORM_APPIUM_TOKEN) ? 'Device VISION 토큰' : null;
+  const 섞인것 = 비밀섞였나(올릴글, 것.figmaToken) ? '피그마 토큰' : [원장재료.팜토큰, process.env.PLATFORM_APPIUM_TOKEN].some((t) => 비밀섞였나(올릴글, t)) ? 'Device VISION 토큰' : null;
   if (섞인것 !== null) {
     await 손.끝내기(거절(`올릴 파일이나 PR 본문에 ${섞인것}이 들어 있다 — 올리지 않는다`));
     return;

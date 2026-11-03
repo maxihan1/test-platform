@@ -26,7 +26,7 @@ describe.skipIf(연결 === undefined)('Issue Bunker 닫기 사유 처리', () =>
   let 프로젝트 = 0;
   let 서비스 = 0;
   let 실행 = 0;
-  const 자리 = { baseUrl: 'https://bts.example.com', botKey: 'pat_xbc' };
+  const 자리 = { baseUrl: 'https://bts.example.com', 봇: 'qahub-xbc' };
 
   const 없음 = { 요청들: [], 기록만: [] };
   const 이슈 = (key: string, resolution: string | null): BTS이슈 => ({ key, state: 'closed', resolution, assigneeId: null, type: 'bug', summary: '', componentIds: [] });
@@ -51,9 +51,9 @@ describe.skipIf(연결 === undefined)('Issue Bunker 닫기 사유 처리', () =>
         .rows[0]!.id,
     );
     await pool.query(
-      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_key, webhook_secret, status_map, resolution_map, updated_by)
+      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_username, webhook_secret, status_map, resolution_map, updated_by)
        VALUES ($1, $2, 'DM', $3, 's', '{}', $4, 'xbc')`,
-      [프로젝트, 자리.baseUrl, 자리.botKey, JSON.stringify(해결짝)],
+      [프로젝트, 자리.baseUrl, 자리.봇, JSON.stringify(해결짝)],
     );
     실행 = Number(
       (

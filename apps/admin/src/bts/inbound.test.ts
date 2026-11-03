@@ -35,7 +35,7 @@ describe.skipIf(연결 === undefined)('BTS 가 부르는 두 문', () => {
   const 부른것: string[] = [];
   let 깨짐 = false;
   const 부르기 = async (자리: BTS자리, method: string, 경로: string) => {
-    부른것.push(`${자리.botKey} ${method} ${경로}`);
+    부른것.push(`${'pat' in 자리 ? 자리.pat : 자리.봇} ${method} ${경로}`);
     if (깨짐) return { status: 502, json: null };
     return { status: 200, json: { data: { key: 'XBW-7', currentStateKey: 'closed', resolution: { name: '흔들림' }, typeKey: 'bug', summary: '요약' } } };
   };
@@ -68,9 +68,9 @@ describe.skipIf(연결 === undefined)('BTS 가 부르는 두 문', () => {
       ).rows[0]!.id,
     );
     await p.query(
-      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_key, webhook_secret, status_map, resolution_map, updated_by,
+      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_username, webhook_secret, status_map, resolution_map, updated_by,
                              rule_token_hash, rule_token_tail, rule_token_by, rule_token_at)
-       VALUES ($1, 'https://bts.example.com', 'XBW', 'pat_xbw', $2, '{}', '{}', 'xbw-admin', $3, 'oken', 'xbw-admin', now())`,
+       VALUES ($1, 'https://bts.example.com', 'XBW', 'qahub-xbw', $2, '{}', '{}', 'xbw-admin', $3, 'oken', 'xbw-admin', now())`,
       [프로젝트, 비밀, 토큰해시(규칙토큰)],
     );
   });
@@ -84,7 +84,7 @@ describe.skipIf(연결 === undefined)('BTS 가 부르는 두 문', () => {
     await app.close();
   });
 
-  const 연결값 = () => ({ projectId: 프로젝트, baseUrl: 'https://bts.example.com', botKey: 'pat_xbw', btsProject: 'XBW' });
+  const 연결값 = () => ({ projectId: 프로젝트, baseUrl: 'https://bts.example.com', 봇: 'qahub-xbw', btsProject: 'XBW' });
 
   it('서명이 없거나 틀리면 401 BAD_SIGNATURE · 연결 없는 프로젝트도 같은 401', async () => {
     const 몸 = JSON.stringify({ event: 'issue.created', deliveryId: 'd0', data: { issueKey: 'XBW-1' } });
@@ -105,7 +105,7 @@ describe.skipIf(연결 === undefined)('BTS 가 부르는 두 문', () => {
     expect(await BTS알림처리(연결값(), 몸, 부르기)).toEqual({
       key: 'XBW-7', state: 'closed', resolution: '흔들림', assigneeId: null, type: 'bug', summary: '요약', componentIds: [],
     });
-    expect(부른것.at(-1)).toBe('pat_xbw GET /api/v1/issues/XBW-7');
+    expect(부른것.at(-1)).toBe('qahub-xbw GET /api/v1/issues/XBW-7');
     const 앞 = 부른것.length;
     expect(await BTS알림처리(연결값(), 몸, 부르기)).toBeNull();
     expect(await BTS알림처리(연결값(), { ...몸, deliveryId: 'd2', data: { issueKey: 'DM-7' } }, 부르기)).toBeNull();

@@ -7,6 +7,8 @@ import type { Pool } from 'pg';
 import { z } from 'zod';
 
 import { 토큰해시 } from '../auth/agentToken.js';
+import { SSO설정읽기 } from '../auth/oidc.js';
+import { BTS주소허용, 봇열쇠, 봇이름허용 } from './client.js';
 
 async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
@@ -40,7 +42,8 @@ export interface BTS연결보기 {
   linked: boolean;
   baseUrl: string | null;
   btsProject: string | null;
-  botKeyTail: string | null;
+  /** 「QA Hub AI」 Auth 계정 이름 — 비밀이 아니라 그대로 보인다. S25 전에 이은 연결은 null */
+  botUsername: string | null;
   statusMap: Partial<상태짝>;
   resolutionMap: Partial<해결짝>;
   deployKey: 열쇠정보 | null;
@@ -50,7 +53,7 @@ export interface BTS연결보기 {
 interface 연결원행 {
   base_url: string;
   bts_project: string;
-  bot_key: string;
+  bot_username: string | null;
   webhook_secret: string;
   deploy_key_tail: string | null;
   deploy_key_at: Date | null;
@@ -80,29 +83,19 @@ export async function BTS이은프로젝트(서비스: number): Promise<number |
 
 export const BTS이은서비스인가 = async (서비스: number): Promise<boolean> => (await BTS이은프로젝트(서비스)) !== null;
 
-/**
- * 화면이 「QA Hub AI」 열쇠를 다시 안 적었을 때 쓸 저장한 열쇠. 저장한 주소와 같은 주소일 때만 준다 —
- * 끝 4자리만 본 사람이 원문을 다른 주소로 보내게 하지 않는다(BTS연결저장 의 BOT_KEY_REQUIRED 와 같은 판단)
- */
-export async function 저장한열쇠(projectId: number, baseUrl: string): Promise<string | undefined> {
-  const 행 = await 원행(await db(), projectId);
-  return 행?.base_url === baseUrl ? 행.bot_key : undefined;
-}
-
 /** 프로젝트가 없으면 null — 라우트가 404 를 낸다. 연결이 없으면 linked: false 와 빈 칸 */
 export async function BTS연결읽기(projectId: number): Promise<BTS연결보기 | null> {
   const pool = await db();
   if (!(await 프로젝트있나(pool, projectId))) return null;
   const 행 = await 원행(pool, projectId);
   if (행 === undefined) {
-    return { linked: false, baseUrl: null, btsProject: null, botKeyTail: null, statusMap: {}, resolutionMap: {}, deployKey: null, ruleToken: null };
+    return { linked: false, baseUrl: null, btsProject: null, botUsername: null, statusMap: {}, resolutionMap: {}, deployKey: null, ruleToken: null };
   }
   return {
     linked: true,
     baseUrl: 행.base_url,
     btsProject: 행.bts_project,
-    // 원문은 BTS 를 부를 때만 쓴다. 응답에는 끝 4자리만 (service_env.admin_key 와 같다)
-    botKeyTail: 행.bot_key.slice(-4),
+    botUsername: 행.bot_username,
     statusMap: 행.status_map,
     resolutionMap: 행.resolution_map,
     deployKey: 열쇠(행.deploy_key_tail, 행.deploy_key_at),
@@ -113,22 +106,24 @@ export async function BTS연결읽기(projectId: number): Promise<BTS연결보�
 export interface BTS연결입력 {
   baseUrl: string;
   btsProject: string;
-  botKey?: string;
+  botUsername: string;
   webhookSecret?: string;
   statusMap: 상태짝;
   resolutionMap: 해결짝;
 }
 
-export type 확인함수 = (baseUrl: string, btsProject: string, botKey: string) => Promise<boolean>;
+export type 확인함수 = (baseUrl: string, btsProject: string, botUsername: string) => Promise<boolean>;
 
 /**
- * BTS 를 한 번 불러 「QA Hub AI」 열쇠로 그 프로젝트를 읽을 수 있는지 본다. 열쇠 · 프로젝트 키 · 주소 중 하나라도 틀리면 false.
- * BTS 는 PAT 를 `Authorization: Bearer` 로 받는다(BTS SecurityConfig). 5초 안에 답이 없으면 닿지 않은 것으로 친다
+ * BTS 를 한 번 불러 「QA Hub AI」 계정으로 그 프로젝트를 읽을 수 있는지 본다. 계정 이름 · 프로젝트 키 · 주소 중 하나라도 틀리거나
+ * 그 이름의 대신 PAT 를 못 받으면 false. BTS 는 PAT 를 `Authorization: Bearer` 로 받는다(BTS SecurityConfig). 5초 안에 답이 없으면 닿지 않은 것으로 친다
  */
-export const BTS확인: 확인함수 = async (baseUrl, btsProject, botKey) => {
+export const BTS확인: 확인함수 = async (baseUrl, btsProject, botUsername) => {
+  if (!BTS주소허용(baseUrl)) return false;
   try {
+    const 열쇠 = await 봇열쇠(botUsername);
     const res = await fetch(`${baseUrl.replace(/\/+$/, '')}/api/v1/projects/${encodeURIComponent(btsProject)}`, {
-      headers: { authorization: `Bearer ${botKey}`, accept: 'application/json' },
+      headers: { authorization: `Bearer ${열쇠}`, accept: 'application/json' },
       signal: AbortSignal.timeout(5000),
       redirect: 'manual',
     });
@@ -138,30 +133,31 @@ export const BTS확인: 확인함수 = async (baseUrl, btsProject, botKey) => {
   }
 };
 
-export type 저장결과 = 'OK' | 'NOT_FOUND' | 'SECRETS_REQUIRED' | 'BOT_KEY_REQUIRED' | 'BTS_UNREACHABLE';
+export type 저장결과 = 'OK' | 'NOT_FOUND' | 'SSO_REQUIRED' | 'BOT_NOT_ALLOWED' | 'BTS_URL_NOT_ALLOWED' | 'BTS_UNREACHABLE';
 
 /**
- * 처음 연결이면 「QA Hub AI」 열쇠를 꼭 받는다. 고칠 때 비우면 저장한 원문을 그대로 쓴다 —
- * 다만 주소가 바뀌면 「QA Hub AI」 열쇠를 다시 받는다. 이으면 끝 4자리만 본 사람이 원문을 아무 주소로나 보내게 할 수 있다(settings/envs.ts 토큰 주소와 같은 판단)
+ * 「QA Hub AI」 는 계정 이름만 둔다 — 저장한 비밀이 없어 주소를 바꿔도 다시 받을 것이 없다(2026-11-04 S25).
+ * SSO 를 끈 설치는 대신 PAT 를 받을 Auth 가 없어 BTS 를 부를 길이 없다 — 먼저 알린다
  */
 export async function BTS연결저장(projectId: number, 입력: BTS연결입력, 누가: string, 확인: 확인함수 = BTS확인): Promise<저장결과> {
   const pool = await db();
   if (!(await 프로젝트있나(pool, projectId))) return 'NOT_FOUND';
+  if (SSO설정읽기() === null) return 'SSO_REQUIRED';
+  // 확인(BTS확인)도 그 이름의 대신 PAT 를 적힌 주소로 보낸다 — 부르기 전에 막는다
+  if (!봇이름허용(입력.botUsername)) return 'BOT_NOT_ALLOWED';
+  if (!BTS주소허용(입력.baseUrl)) return 'BTS_URL_NOT_ALLOWED';
   const 지금 = await 원행(pool, projectId);
-  if (지금 === undefined && 입력.botKey === undefined) return 'SECRETS_REQUIRED';
-  if (지금 !== undefined && 입력.botKey === undefined && 지금.base_url !== 입력.baseUrl) return 'BOT_KEY_REQUIRED';
-  const botKey = 입력.botKey ?? 지금!.bot_key;
   // 알림 서명 비밀은 사람이 옮겨 적지 않는다 — QA Hub 가 만들어 두고 BTS 자동 설정이 BTS 웹훅에 넣는다(BTS-F3-05)
   const webhookSecret = 입력.webhookSecret ?? 지금?.webhook_secret ?? randomBytes(32).toString('base64url');
-  if (!(await 확인(입력.baseUrl, 입력.btsProject, botKey))) return 'BTS_UNREACHABLE';
+  if (!(await 확인(입력.baseUrl, 입력.btsProject, 입력.botUsername))) return 'BTS_UNREACHABLE';
   await pool.query(
-    `INSERT INTO bts_link (project_id, base_url, bts_project, bot_key, webhook_secret, status_map, resolution_map, updated_by)
+    `INSERT INTO bts_link (project_id, base_url, bts_project, bot_username, webhook_secret, status_map, resolution_map, updated_by)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      ON CONFLICT (project_id) DO UPDATE
-        SET base_url = EXCLUDED.base_url, bts_project = EXCLUDED.bts_project, bot_key = EXCLUDED.bot_key,
+        SET base_url = EXCLUDED.base_url, bts_project = EXCLUDED.bts_project, bot_username = EXCLUDED.bot_username,
             webhook_secret = EXCLUDED.webhook_secret, status_map = EXCLUDED.status_map, resolution_map = EXCLUDED.resolution_map,
             updated_by = EXCLUDED.updated_by, updated_at = now()`,
-    [projectId, 입력.baseUrl, 입력.btsProject, botKey, webhookSecret, 입력.statusMap, 입력.resolutionMap, 누가],
+    [projectId, 입력.baseUrl, 입력.btsProject, 입력.botUsername, webhookSecret, 입력.statusMap, 입력.resolutionMap, 누가],
   );
   return 'OK';
 }

@@ -44,7 +44,7 @@ describe.skipIf(연결 === undefined)('AI 품질', () => {
     서비스 = await 서비스만들기(접두사, 'XAQ 프로젝트');
     안이은 = await 서비스만들기('XAQN', 'XAQN 프로젝트');
     await pool.query(
-      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_key, webhook_secret, status_map, resolution_map, updated_by)
+      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_username, webhook_secret, status_map, resolution_map, updated_by)
        SELECT project_id, 'https://bts.xaq.test/', 'DM', 'k', 's', '{}', '{}', 'xaq' FROM service WHERE id = $1`,
       [서비스],
     );

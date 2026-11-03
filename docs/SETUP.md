@@ -837,7 +837,7 @@ Android 앱 케이스의 「실행」(결과가 실행 기록 · 증적에 남�
 - 항목이 「디바이스 팜에 빈 폰이 없습니다」로 끝나면 팜 화면에서 폰을 누가 잡았는지 본다. 사람이 「쓰기」로 잡은 폰은 건드리지 않는다 — 놓을 때까지 기다린다.
 - 「디바이스 팜이 폰을 내주지 않았습니다: …」 뒤의 문장은 팜이 준 거절 사유다. 뜻은 팜 안내서 7절 표에 있다.
 - 증적의 앱 판이 「판 모름」이면 먼저 팜이 옛 판인지 본다 — 폰에 앱 판을 묻는 옵션(`adb_shell`)은 팜 저장소가 연다(2026-10-22 결정). 팜 저장소를 받아 팜을 `kill -INT` 로 끈 뒤 다시 켠다. 그래도 그러면 SPEC 러너 §5.2 「앱 실행」 「기기 정보」의 다른 까닭을 본다.
-- 「▶ 테스트 실행」도 2026-11-03 TMO-F3-02 부터 정식 실행처럼 팜이다 — 누른 사람의 통합계정 토큰으로 빈 폰을 잡고 끝나면 놓는다. 쓰이는 중이면 409 `DEVICE_BUSY`, 팜이 없으면 409 `FARM_OFF` 다. 러너를 직접 불러 돌릴 때(§15)만 같은 맥이면 팜 화면에서 폰을 「쓰기」로 먼저 잡는다.
+- 「▶ 테스트 실행」도 2026-11-03 TMO-F3-02 부터 정식 실행처럼 팜이다 — 누른 사람 이름(Auth 대신 PAT)으로 빈 폰을 잡고 끝나면 놓는다. 쓰이는 중이면 409 `DEVICE_BUSY`, 팜이 없으면 409 `FARM_OFF` 다. 러너를 직접 불러 돌릴 때(§15)만 같은 맥이면 팜 화면에서 폰을 「쓰기」로 먼저 잡는다.
   팜이 인증을 켰으면 그때 러너를 `PLATFORM_APPIUM_TOKEN=<폰을 잡은 사람의 Auth_platform 개인 액세스 토큰> npm run runner:local` 로 켠다 — 폰을 잡은 사람과 연결을 여는 토큰이 같아야 팜이 받는다.
 
 **끄기** — `.env` 의 `DEVICE_FARM_URL` 을 비우고 3번을 다시 한다. 팜 자체를 끄는 법은 팜 안내서에 있다 — `kill -9` 로 끄면 잡은 폰의 정리를 건너뛴다.
@@ -951,14 +951,16 @@ docker run -d --init --restart unless-stopped --network host --name qahub-monito
    GRAFANA_RO_PASSWORD=<새 값>
    PLATFORM_PUBLIC_URL=https://qahub.maxihan.com
    DEVICE_FARM_URL=https://farm.maxihan.com/wd/hub
-   DEVICE_FARM_TOKEN=pat_<Auth_platform 에서 발급한 개인 액세스 토큰>
+   DEVICE_FARM_RUN_AS=maxi
+   BTS_BOT_USERNAMES=qahub-ai
+   BTS_URLS=<설정 › BTS 연결에 적는 Issue Bunker 주소>
    AUTHORING_AGENT_USER=<맥 .env 와 같은 아이디>
    ```
-   - **`DEVICE_FARM_TOKEN` 이 없으면 서버 몫으로 도는 Android 앱 · 게임 실행이 미실행이다** — 정기 · 빌드 실행 · 작성, 그리고 내 메뉴 「통합계정 토큰」(앞 이름 「디바이스 팜 토큰」)을 안 넣은 사람이 누른 실행이다(넣은 사람의 실행은 그 토큰으로 돈다). 이 팜 주소는 인증 켠 팜만 열려 토큰 없는 요청을 401 로 거절한다. admin · runner 가 팜에 가는 모든 요청에 `Authorization: Bearer` 로 싣는다(SPEC 도메인/러너 §5.2 「디바이스 팜 접속 방식」 「팜 토큰은 누른 사람 것이 먼저다」)
-   - **토큰은 Auth_platform 에서 발급한다(지금은 `maxi` 계정)** — 팜이 토큰 주인을 Auth_platform 에 묻는다(OPS-F3-05 부터). 러너에서 도는 Android 앱 · 게임 케이스(AI 가 쓴 코드)와 작성 AI 자식 세션이 이 값을 읽을 수 있다.
-     새면 팜(폰 잡기 · 놓기 · 앱 설치 · adb 명령)을 그 계정 이름으로 쓸 수 있고, BTS API 도 그 계정 권한으로 열린다(Auth_platform S20 부터 BTS 가 같은 토큰을 받는다 — SPEC 도메인/러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」). 그래서 BTS 권한이 작은 팜 전용 Auth 계정에서 발급하는 쪽이 낫다. 사람이 누른 실행은 그 사람이 내 메뉴 「통합계정 토큰」에 넣은 토큰이 먼저다(같은 토큰을 설정 › BTS 연결의 「BTS 자동 설정」도 쓴다). 발급할 때 기간을 길게 고른다 — 끝나면 서버 몫으로 도는 앱 · 게임 실행이 모두 「DEVICE_FARM_TOKEN 을 확인하세요」로 미실행이 된다
-   - 이 값은 **서버** `.env` 에 넣는다(root 만 읽는 파일에 평문으로 남는다). 맥에서 넘길 때는 토큰을 맥 `~/.config/farm-pat`(`chmod 600`)에 두고 파일에서 읽어 ssh 표준 입력으로 보낸다 — 대화 · 명령줄에 값이 안 남게.
-     맥 author 도 같은 값이 필요하다 — 아래 「맥 정리」 1번
+   - **`DEVICE_FARM_RUN_AS` 는 정기 · 빌드 실행 · 작성 AI · 기기 성능이 팜에 보일 Auth 계정 이름(username)이다** (2026-11-04 S25 — 지금은 `maxi`). admin 이 그 이름의 「대신 PAT」(3시간)를 Auth 에서 받아 팜에 싣는다. 사람이 누른 실행은 누른 사람 이름이다 — 아무도 토큰을 붙여 넣지 않는다(SPEC 도메인/러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」 · 도메인/인증 §7 「대신 PAT」)
+   - 대신 PAT 는 로그인과 같은 `AUTH_ISSUER` · `AUTH_CLIENT_ID` · `AUTH_CLIENT_SECRET` 로 받는다. Auth 운영 설정의 `auth.delegated-pats.clients` 에 `AUTH_CLIENT_ID`(`test-platform`)가 있어야 한다 — 없으면 403 이라 서버 몫 · 사람 실행이 모두 `DEVICE_FARM_TOKEN` 으로 물러선다
+   - **`BTS_BOT_USERNAMES` 는 설정 › BTS 연결의 「QA Hub AI 계정 이름」으로 받을 Auth 계정 이름, `BTS_URLS` 는 열쇠를 보낼 Issue Bunker 주소다**(둘 다 쉼표로 여럿) — 밖의 이름 · 주소는 저장 · 불러오기 · 부르기를 거절한다. 비면 Issue Bunker 를 못 잇는다(SPEC 도메인/BTS 「열쇠 표」)
+   - **`DEVICE_FARM_TOKEN` 은 SSO 를 끈 설치에만 적는다** — SSO 설치에서는 비워 둔다. 앞 판(2026-10-27 ~ 11-03)은 여기에 `maxi` 의 PAT 를 넣었다. 지웠으면 그 PAT 는 Auth 「내 계정」에서 폐기한다
+   - 새면 3시간 동안 팜과 Issue Bunker 를 그 계정 이름으로 쓸 수 있다(대신 PAT 의 scopes `[bunker, vision]`). 러너의 Android 앱 · 게임 케이스(AI 가 쓴 코드)와 작성 AI 자식 세션이 이 값을 읽을 수 있다. 그래서 `DEVICE_FARM_RUN_AS` 는 Bunker 권한이 작은 계정인 쪽이 낫다
    - `COMPOSE_FILE` 이 서버용 덧붙임 파일을 늘 같이 읽게 한다 — 서버에서 그냥 `docker compose up -d` 를 쳐도 perf-agent 가 안 뜨고 CPU · 메모리 상한이 걸린다
    - **`ADMIN_PORT` 앞의 `127.0.0.1` 을 빼지 않는다** — 빼면 Docker 가 서버 방화벽(firewalld)을 건너뛰고 13000 을 바깥에 연다. 바깥에서는 Caddy(https)로만 들어온다
    - 작성 토큰 셋(`AUTHORING_AGENT_TOKEN` · `CLAUDE_CODE_OAUTH_TOKEN` · `GH_TOKEN`) · `PERF_AGENT_TOKEN` 은 서버에 두지 않는다 — author · perf-agent 는 맥에 뜬다
@@ -1042,7 +1044,7 @@ ssh qahub 'cd /opt/qahub && git pull --ff-only origin main && docker compose up 
 
 서버가 위 6번 확인을 통과한 뒤에 한다.
 
-1. 맥 `.env` 를 고친다 — `PLATFORM_PUBLIC_URL=https://qahub.maxihan.com`(맥 author · perf-agent 가 붙을 주소. 맥용 덧붙임 파일이 이 칸을 읽는다) · `PERF_AGENT_TOKEN=pga_…`(설정 › 성능 에이전트에서 발급한 값 — 옮긴 DB 에 맥 에이전트가 없으면 「에이전트 추가」에서 역할 「부하 발생」으로 새로 만든다. 「복사」는 설치 명령 통째라 그 안의 `pga_…` 만 옮기고 설치 명령은 돌리지 않는다 — 아래 3번의 perf-agent 가 대신 붙는다) · `DEVICE_FARM_TOKEN=<서버와 같은 값>`(작성 AI 가 서버가 넘겨준 팜 주소로 폰을 잡고 누른다 — 없으면 앱 「눌러 가며 읽기」가 401 이다). 작성 토큰 셋은 그대로 둔다
+1. 맥 `.env` 를 고친다 — `PLATFORM_PUBLIC_URL=https://qahub.maxihan.com`(맥 author · perf-agent 가 붙을 주소. 맥용 덧붙임 파일이 이 칸을 읽는다) · `PERF_AGENT_TOKEN=pga_…`(설정 › 성능 에이전트에서 발급한 값 — 옮긴 DB 에 맥 에이전트가 없으면 「에이전트 추가」에서 역할 「부하 발생」으로 새로 만든다. 「복사」는 설치 명령 통째라 그 안의 `pga_…` 만 옮기고 설치 명령은 돌리지 않는다 — 아래 3번의 perf-agent 가 대신 붙는다) · `DEVICE_FARM_TOKEN` 은 비운다(2026-11-04 S25 — 작성 AI 는 서버가 앱 화면 응답으로 넘긴 대신 PAT 로 폰을 잡고 누른다. 앞 판은 서버와 같은 값을 적었다). 작성 토큰 셋은 그대로 둔다
 2. 맥 QA Hub 를 내린다 — 컨테이너만 지우고 볼륨은 남긴다. **postgres 는 남긴다** — 맥 pre-push 가 그 안에 임시 DB 를 만들어서(아래 「맥 pre-push 는 맥 postgres 를 쓴다」) `down` 하면 서버 · DB 코드 push 가 「개발 DB 에 못 붙었다」로 막힌다. `--profile authoring` 을 빼면 author 컨테이너가 남는다
    ```bash
    docker compose -p test_platform --profile authoring rm -sf admin runner grafana migrate author perf-agent

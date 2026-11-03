@@ -69,7 +69,8 @@ export function registerRoutes(app: FastifyInstance): void {
       try {
         return { screen: await 읽기(parsed.data) };
       } catch (err) {
-        const detail = err instanceof Error ? err.message : String(err);
+        // Appium · 팜 · 게임 SDK 의 오류 글이 그대로 실린다. 받은 토큰이 섞여 admin 을 거쳐 남지 않게 지운다
+        const detail = 팜토큰을지운다(err instanceof Error ? err.message : String(err), [parsed.data.farmToken, process.env.PLATFORM_APPIUM_TOKEN]);
         return reply.code(500).send({ error: 'RUNNER_ERROR', detail });
       }
     });

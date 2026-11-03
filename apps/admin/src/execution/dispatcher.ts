@@ -97,22 +97,26 @@ async function 게임실행(runId: number, 항목들: PendingItem[]): Promise<vo
       for (const item of 항목들) await runOne(runId, item);
       return;
     }
-    // 실행 하나에 한 번 고른다 — 도중에 사람이 토큰을 바꿔도 잡은 폰은 잡을 때 토큰으로 늘리고 붙고 놓는다
+    // 실행 하나의 주인은 처음 고른 사람이다. 대신 PAT 는 3시간이라 항목마다 · 놓을 때 다시 받는다 — 기억이 남은 시간 2시간 밑이면 같은 주인의 새 토큰을 준다.
+    // 다시 받기가 실패하면 처음 토큰을 그대로 쓴다 (러너 §5.2 「기억 · 수명」)
     let 토큰: string | undefined;
     try {
       토큰 = await 실행팜토큰(runId);
     } catch (err) {
       const 까닭 = err instanceof Error ? err.message : String(err);
-      for (const item of 항목들) if (!멈춘실행.has(runId)) await 저장한다(item, na(item, '누른 사람의 통합계정 토큰을 읽지 못했습니다', 까닭));
+      for (const item of 항목들) if (!멈춘실행.has(runId)) await 저장한다(item, na(item, '누른 사람의 팜 토큰을 고르지 못했습니다', 까닭));
       return;
     }
+    const 처음토큰 = 토큰;
+    const 다시받기 = (): Promise<string | undefined> => 실행팜토큰(runId).catch(() => 처음토큰);
     await 팜폰으로(
       팜,
       async (udid) => {
         for (const item of 항목들) {
           if (멈춘실행.has(runId)) return;
-          await 잡기를늘린다(팜, udid, fetch, 토큰);
-          await runOne(runId, item, { udid, 토큰 });
+          const 지금 = await 다시받기();
+          await 잡기를늘린다(팜, udid, fetch, 지금);
+          await runOne(runId, item, { udid, 토큰: 지금 });
         }
       },
       async (까닭) => {
@@ -121,7 +125,7 @@ async function 게임실행(runId: number, 항목들: PendingItem[]): Promise<vo
       undefined,
       undefined,
       게임잡는_분,
-      토큰,
+      다시받기,
     );
   });
 }
