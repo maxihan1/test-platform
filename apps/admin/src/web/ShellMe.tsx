@@ -1,9 +1,8 @@
-// 왼쪽 줄 맨 아래 내 동그라미와 내 메뉴 — 언어 · 비밀번호 변경(SSO 면 디바이스 팜 토큰) · 로그아웃 (SPEC 공통/5-화면공통 §8 「껍데기」 · 2026-10-30)
+// 왼쪽 줄 맨 아래 내 동그라미와 내 메뉴 — 언어 · 비밀번호 변경(SSO 면 없다) · 로그아웃 (SPEC 공통/5-화면공통 §8 「껍데기」 · 2026-10-30)
 
 import { useEffect, useRef, useState } from 'react';
 
 import type { User } from './api.js';
-import { FarmToken } from './FarmToken.js';
 import { use말, type 언어 } from './i18n.js';
 import { 언어고르개 } from './ShellPickers.js';
 import { useSSO } from './useSSO.js';
@@ -28,7 +27,6 @@ export function 내메뉴({
 }) {
   const t = use말();
   const [열림, set열림] = useState(false);
-  const [팜토큰창, set팜토큰창] = useState(false);
   const 상자 = useRef<HTMLDivElement>(null);
   const 버튼 = useRef<HTMLButtonElement>(null);
 
@@ -70,17 +68,15 @@ export function 내메뉴({
       </button>
       {열림 ? (
         <div className="rail-me-menu" id="rail-me-menu">
-          <내메뉴항목 user={user} 프로젝트={프로젝트} 언어={언어} on언어={on언어} onLogout={onLogout} 닫기={() => set열림(false)} 팜토큰열기={() => set팜토큰창(true)} />
+          <내메뉴항목 user={user} 프로젝트={프로젝트} 언어={언어} on언어={on언어} onLogout={onLogout} 닫기={() => set열림(false)} />
         </div>
       ) : null}
-      {팜토큰창 ? <FarmToken onClose={() => set팜토큰창(false)} /> : null}
     </div>
   );
 }
 
 /**
- * 내 메뉴 안 줄들 — PC 는 동그라미 위로 뜨는 판, 휴대폰은 아래 판(PhoneShell)이 같이 쓴다 (화면공통 §8 「휴대폰 화면」 「내 동그라미」).
- * 디바이스 팜 토큰 창은 메뉴가 닫혀도 남아야 해서 메뉴 밖이 든다
+ * 내 메뉴 안 줄들 — PC 는 동그라미 위로 뜨는 판, 휴대폰은 아래 판(PhoneShell)이 같이 쓴다 (화면공통 §8 「휴대폰 화면」 「내 동그라미」)
  */
 export function 내메뉴항목({
   user,
@@ -89,7 +85,6 @@ export function 내메뉴항목({
   on언어,
   onLogout,
   닫기,
-  팜토큰열기,
 }: {
   user: User;
   프로젝트: string | null;
@@ -97,7 +92,6 @@ export function 내메뉴항목({
   on언어: (고른: 언어) => void;
   onLogout: () => void;
   닫기: () => void;
-  팜토큰열기: () => void;
 }) {
   const t = use말();
   const sso = useSSO();
@@ -116,18 +110,6 @@ export function 내메뉴항목({
           {t('비밀번호 변경')}
         </a>
       )}
-      {/* 토큰 주인을 통합계정에 묻고 계정에 묶인 사람과 견줘서 SSO 설치에만 있다 (도메인/인증 §8.6) */}
-      {sso === true ? (
-        <button
-          type="button"
-          onClick={() => {
-            닫기();
-            팜토큰열기();
-          }}
-        >
-          {t('통합계정 토큰')}
-        </button>
-      ) : null}
       <button
         type="button"
         onClick={() => {

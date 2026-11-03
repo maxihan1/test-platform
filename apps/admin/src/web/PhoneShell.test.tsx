@@ -2,7 +2,7 @@
 // 휴대폰 껍데기 검사 — 위 줄 · 아래 탭 다섯 · 전체 메뉴판 · 애플리케이션 고르기 판 · 내 메뉴 판 · 표 카드 줄 라벨 (SPEC 공통/5-화면공통 §8 「휴대폰 화면」)
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 import { api, type ServiceRow, type User } from './api.js';
 import { decideApi, type 결정목록 } from './decideApi.js';
@@ -222,13 +222,13 @@ describe('내 메뉴 판', () => {
   });
 
   // useSSO 가 답을 기억하므로 맨 끝에 둔다 — 앞 검사들은 비밀번호 로그인 설치로 본다
-  it('maxihan 계정 설치는 내 메뉴에 비밀번호 변경 대신 통합계정 토큰이 있다', async () => {
+  it('maxihan 계정 설치는 내 메뉴에 비밀번호 변경이 없다', async () => {
     vi.spyOn(api, 'methods').mockResolvedValue({ sso: true });
     띄운다('#/runs/fn');
     fireEvent.click(screen.getByRole('button', { name: '내 메뉴 · 김수민' }));
     const 판 = screen.getByRole('dialog', { name: '내 메뉴' });
-    expect(await within(판).findByRole('button', { name: '통합계정 토큰' })).toBeTruthy();
-    expect(within(판).queryByRole('link', { name: '비밀번호 변경' })).toBeNull();
+    await waitFor(() => expect(within(판).queryByRole('link', { name: '비밀번호 변경' })).toBeNull());
+    expect(within(판).getByRole('button', { name: '로그아웃' })).toBeTruthy();
   });
 });
 

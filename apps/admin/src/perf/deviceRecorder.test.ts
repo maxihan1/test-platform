@@ -7,7 +7,10 @@ import { join } from 'node:path';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { 서버팜토큰 } from '../execution/farmToken.js';
 import { 로컬기록기, 이름밀기, 팜기록기 } from './deviceRecorder.js';
+
+vi.mock('../execution/farmToken.js', () => ({ 서버팜토큰: vi.fn(async () => undefined) }));
 
 let 뿌리: string;
 let 가짜러너: FastifyInstance | null = null;
@@ -18,6 +21,7 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
+  vi.mocked(서버팜토큰).mockReset().mockResolvedValue(undefined);
   await 가짜러너?.close();
   가짜러너 = null;
   vi.unstubAllEnvs();
@@ -33,9 +37,7 @@ function 부르기(멈춤답: unknown): typeof fetch {
 }
 
 describe('팜기록기 · 토큰', () => {
-  it('DEVICE_FARM_TOKEN 이 있으면 잡기 · 새 줄 · 늘리기 · 녹화 목록 · 놓기 모두 Bearer 로 부른다', async () => {
-    vi.stubEnv('DEVICE_FARM_URL', 'http://farm.test/wd/hub');
-    vi.stubEnv('DEVICE_FARM_TOKEN', 'pat_abc');
+  async function 한바퀴(): Promise<(string | null)[]> {
     const 머리들: (string | null)[] = [];
     const 가짜 = vi.fn(async (url: string | URL | Request, 설정?: RequestInit) => {
       머리들.push(new Headers(설정?.headers).get('authorization'));
@@ -50,7 +52,21 @@ describe('팜기록기 · 토큰', () => {
     await rec.늘리기();
     await rec.파일받기(join(뿌리, 'farm'), 0);
     await rec.놓기();
-    expect(머리들).toEqual(Array(5).fill('Bearer pat_abc'));
+    return 머리들;
+  }
+
+  it('서버 몫 대신 PAT 가 없으면 DEVICE_FARM_TOKEN 으로 잡기 · 새 줄 · 늘리기 · 녹화 목록 · 놓기를 부른다', async () => {
+    vi.stubEnv('DEVICE_FARM_URL', 'http://farm.test/wd/hub');
+    vi.stubEnv('DEVICE_FARM_TOKEN', 'pat_abc');
+    expect(await 한바퀴()).toEqual(Array(5).fill('Bearer pat_abc'));
+  });
+
+  it('서버 몫 대신 PAT 는 켤 때 한 번 고르고 놓을 때까지 같은 것을 싣는다', async () => {
+    vi.stubEnv('DEVICE_FARM_URL', 'http://farm.test/wd/hub');
+    vi.stubEnv('DEVICE_FARM_TOKEN', 'pat_abc');
+    vi.mocked(서버팜토큰).mockResolvedValueOnce('pat_dlg1').mockResolvedValue('pat_dlg2');
+    expect(await 한바퀴()).toEqual(Array(5).fill('Bearer pat_dlg1'));
+    expect(서버팜토큰).toHaveBeenCalledOnce();
   });
 });
 

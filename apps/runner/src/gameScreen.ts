@@ -20,6 +20,8 @@ export async function 게임화면을읽는다(req: 앱화면요청, env: NodeJS
         ...env,
         PLATFORM_DEVICE_UDID: req.udid ?? env.PLATFORM_DEVICE_UDID,
         PLATFORM_GAME_LINK: req.udid === undefined ? 'usb' : 'farm',
+        // 팜의 게임 명령도 폰을 잡은 주인이어야 받는다 — 연결과 같은 토큰이다
+        PLATFORM_APPIUM_TOKEN: req.farmToken ?? env.PLATFORM_APPIUM_TOKEN,
       });
       const { snapshot } = await import('control-cli');
       return snapshot(await game.tree()).text;

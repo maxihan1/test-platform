@@ -39,6 +39,7 @@ afterEach(() => {
   delete process.env.PLATFORM_APPIUM_URL;
   delete process.env.PLATFORM_APP;
   delete process.env.PLATFORM_DEVICE_UDID;
+  delete process.env.PLATFORM_APPIUM_TOKEN;
 });
 
 describe('게임화면을읽는다', () => {
@@ -63,6 +64,20 @@ describe('게임화면을읽는다', () => {
     expect(caps['appium:enforceAppInstall']).toBe(true);
     expect(caps['appium:forceAppLaunch']).toBe(true);
     expect(caps['appium:shouldTerminateApp']).toBe(true);
+  });
+
+  it('요청의 farmToken 으로 Appium 연결과 팜의 게임 명령을 다 부른다 — 없으면 러너의 PLATFORM_APPIUM_TOKEN 이다', async () => {
+    process.env.PLATFORM_APPIUM_TOKEN = 'pat_env';
+
+    await 게임화면을읽는다({ udid: 'R5CT', farmToken: 'pat_dlg' });
+
+    const 부름 = fetchMock.mock.calls as [string, RequestInit][];
+    expect(부름.map(([, init]) => new Headers(init.headers).get('authorization'))).toEqual(['Bearer pat_dlg', 'Bearer pat_dlg']);
+    expect(openGame.mock.calls[0]![0]).toMatchObject({ PLATFORM_APPIUM_TOKEN: 'pat_dlg' });
+
+    fetchMock.mockResolvedValueOnce(답({ value: { sessionId: 's-10', capabilities: {} } }));
+    await 게임화면을읽는다({ udid: 'R5CT' });
+    expect(openGame.mock.calls[1]![0]).toMatchObject({ PLATFORM_APPIUM_TOKEN: 'pat_env' });
   });
 
   it('폰 번호를 안 받았으면 이 컴퓨터의 USB 폰으로 닿는다', async () => {
@@ -112,5 +127,13 @@ describe('POST /game-screen', () => {
 
     expect(res.statusCode).toBe(500);
     expect(res.json()).toEqual({ error: 'RUNNER_ERROR', detail: '게임이 120초 안에 답하지 않았습니다' });
+  });
+
+  it('게임 오류 까닭에 섞인 받은 팜 토큰은 지우고 싣는다', async () => {
+    openGame.mockRejectedValue(new Error('팜이 pat_dlg 를 거절했습니다'));
+
+    const res = await 보냄({ udid: 'R5CT', farmToken: 'pat_dlg' });
+
+    expect(res.json()).toEqual({ error: 'RUNNER_ERROR', detail: '팜이 ******** 를 거절했습니다' });
   });
 });

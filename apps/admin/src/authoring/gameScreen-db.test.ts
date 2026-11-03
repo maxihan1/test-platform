@@ -1,11 +1,14 @@
 // 게임 첫 화면 통로와 게임 요청의 화면 기록 줄 — 게임만 game-screen · 게임은 app-screen 을 안 탄다 · 앱 파일이 없으면 까닭 · 창 기록은 앱 줄에 (도메인/게임 §7 · §3.10 「지도」)
 
 import Fastify, { type FastifyInstance } from 'fastify';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { 서버팜토큰 } from '../execution/farmToken.js';
 import prdAgentRoutes from '../prd/agentRoutes.js';
 
 import appScreenAgentRoutes from './appScreen.js';
+
+vi.mock('../execution/farmToken.js', () => ({ 서버팜토큰: vi.fn(async () => undefined) }));
 
 const 연결 = process.env.DATABASE_URL;
 const 접두사 = 'XGS';
@@ -84,6 +87,48 @@ describe.skipIf(연결 === undefined)('게임 첫 화면 · 게임 화면 기록
 
     expect(await 받기(id, 'game-screen')).toEqual({ screen: null, reason: 'Device VISION(DEVICE_FARM_URL)이 연결되어 있지 않다', game: null });
     expect(await 받기(id, 'app-screen')).toEqual({ screen: null, reason: null, appium: null });
+  });
+
+  it('서버 몫 대신 PAT 하나로 팜 폰을 잡고 러너 farmToken 에 싣고 응답 appium.token 으로도 준다', async () => {
+    await 종류('APP');
+    await 줄들([['qa', 'https://builds/qa.apk', false]]);
+    const id = await 요청넣기();
+    vi.mocked(서버팜토큰).mockResolvedValueOnce('pat_xgs');
+    // 팜과 러너를 한 가짜 서버로 — 팜은 빈 폰 하나를 내주고 러너는 받은 몸을 남긴다
+    const 팜머리들: (string | undefined)[] = [];
+    const 러너몸들: unknown[] = [];
+    const 가짜 = Fastify();
+    가짜.get('/api/devices', async (req) => {
+      팜머리들.push(req.headers.authorization);
+      return { value: { devices: [{ serial: 'XGS1', state: 'IDLE' }] } };
+    });
+    가짜.route({ method: ['POST', 'DELETE'], url: '/api/devices/XGS1/hold', handler: async (req) => {
+      팜머리들.push(req.headers.authorization);
+      return { held: {} };
+    } });
+    가짜.post('/app-screen', async (req) => {
+      러너몸들.push(req.body);
+      return { screen: '화면 · 요소 1개' };
+    });
+    const 주소 = await 가짜.listen({ port: 0, host: '127.0.0.1' });
+    const 원래러너 = process.env.RUNNER_URL;
+    process.env.DEVICE_FARM_URL = 주소;
+    process.env.RUNNER_URL = 주소;
+    try {
+      expect(await 받기(id, 'app-screen')).toEqual({
+        screen: '화면 · 요소 1개',
+        reason: null,
+        appium: { url: `${주소}/wd/hub`, app: 'https://builds/qa.apk', token: 'pat_xgs' },
+      });
+    } finally {
+      delete process.env.DEVICE_FARM_URL;
+      if (원래러너 === undefined) delete process.env.RUNNER_URL;
+      else process.env.RUNNER_URL = 원래러너;
+      await 가짜.close();
+    }
+    expect(러너몸들).toEqual([{ app: 'https://builds/qa.apk', udid: 'XGS1', farmToken: 'pat_xgs' }]);
+    expect(팜머리들).toEqual(['Bearer pat_xgs', 'Bearer pat_xgs', 'Bearer pat_xgs']);
+    expect(서버팜토큰).toHaveBeenCalledOnce();
   });
 
   it('게임인데 운영 아닌 줄에 앱 파일이 없으면 까닭을 적는다 — 켤 게임이 없다', async () => {

@@ -103,6 +103,18 @@ describe('눌러 가며 읽기 — 탐색 주소 · 폰 놓기 (도메인/작성
     expect(탐색환경({ 글: 'x', 탐색 })).toEqual({ PLATFORM_APPIUM_URL: 탐색.url, PLATFORM_APP: 탐색.app });
   });
 
+  it('서버가 준 팜 토큰을 탐색에 담아 자식의 PLATFORM_APPIUM_TOKEN 으로 넘긴다 — 빈 값은 안 담는다', async () => {
+    서버가({ screen: null, reason: '디바이스 팜에 빈 폰이 없습니다', game: { ...탐색, token: 'pat_dlg' } });
+    const 게임 = await 게임화면받기(서버, 7, 자료);
+    서버가({ screen: null, reason: '디바이스 팜에 빈 폰이 없습니다', appium: { ...탐색, token: '' } });
+    const 빈것 = await 앱화면받기(서버, 7, 자료);
+
+    expect(게임).toEqual({ 못읽음: '디바이스 팜에 빈 폰이 없습니다', 탐색: { ...탐색, token: 'pat_dlg' }, 게임: true });
+    expect(탐색환경(게임)).toEqual({ PLATFORM_APPIUM_URL: 탐색.url, PLATFORM_APP: 탐색.app, PLATFORM_APPIUM_TOKEN: 'pat_dlg' });
+    expect(빈것).toEqual({ 못읽음: '디바이스 팜에 빈 폰이 없습니다', 탐색 });
+    expect(탐색환경(빈것)).not.toHaveProperty('PLATFORM_APPIUM_TOKEN');
+  });
+
   it('AI 가 잡은 폰이 작업 폴더에 남아 있으면 팜에서 놓는다', async () => {
     mkdirSync(join(자료, '.appium-cli'));
     writeFileSync(join(자료, '.appium-cli', 'held'), 'R3CR10TCVCD\n');
@@ -125,6 +137,18 @@ describe('눌러 가며 읽기 — 탐색 주소 · 폰 놓기 (도메인/작성
     vi.unstubAllEnvs();
 
     expect(new Headers(부름.mock.calls[0]?.[1].headers).get('authorization')).toBe('Bearer pat_abc');
+  });
+
+  it('서버가 준 팜 토큰이 있으면 컨테이너 것 대신 그것으로 놓는다 — AI 가 그 토큰으로 잡았다', async () => {
+    mkdirSync(join(자료, '.control-cli'));
+    writeFileSync(join(자료, '.control-cli', 'held'), 'R3CR10TCVCD\n');
+    const 부름 = vi.fn(async (_주소: string, _설정: RequestInit) => new Response('{"released":true}', { status: 200 }));
+    vi.stubEnv('PLATFORM_APPIUM_TOKEN', 'pat_abc');
+
+    await 잡은폰놓기(자료, { 글: 'x', 탐색: { ...탐색, token: 'pat_dlg' }, 게임: true }, 7, 부름 as unknown as typeof fetch);
+    vi.unstubAllEnvs();
+
+    expect(new Headers(부름.mock.calls[0]?.[1].headers).get('authorization')).toBe('Bearer pat_dlg');
   });
 
   it('놓은 뒤 기록을 지운다 — 이어하기가 같은 폴더로 다시 끝나도 두 번 놓지 않는다', async () => {

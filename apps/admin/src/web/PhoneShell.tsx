@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { ServiceRow, User } from './api.js';
 import { decideApi } from './decideApi.js';
-import { FarmToken } from './FarmToken.js';
 import { use말, use언어, type 언어 } from './i18n.js';
 import { 아이콘 } from './icons.js';
 import { 종류, 종류이름, 종류차례, 종류키 } from './kind.js';
@@ -40,7 +39,6 @@ export function PhoneShell({ user, service, onService, 언어, on언어, onLogou
   // 알림 종은 위 줄에 선다. 줄 · 서랍과 열림 상태를 같이 쓰도록 Notice 가 이 자리에 버튼을 그린다
   const [알림자리, set알림자리] = useState<HTMLElement | null>(null);
   const [열린판, set열린판] = useState<판 | null>(null);
-  const [팜토큰창, set팜토큰창] = useState(false);
   const 본문 = useRef<HTMLDivElement>(null);
   const 닫기 = () => set열린판(null);
 
@@ -214,12 +212,10 @@ export function PhoneShell({ user, service, onService, 언어, on언어, onLogou
               on언어={on언어}
               onLogout={onLogout}
               닫기={닫기}
-              팜토큰열기={() => set팜토큰창(true)}
             />
           </div>
         </아래판>
       ) : null}
-      {팜토큰창 ? <FarmToken onClose={() => set팜토큰창(false)} /> : null}
     </div>
   );
 }

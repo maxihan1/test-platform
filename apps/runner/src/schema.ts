@@ -8,7 +8,7 @@ import { 앱단계에못거는것 } from './scenarioGate.js';
 
 // 주소는 http(s) 만 받는다 — 규칙은 admin 설정과 같은 kit 의 것이다 (러너 §5.2 「대상 서버마다 다른 앱 파일」)
 const 앱파일경로 = z.string().min(1).refine(앱파일값인가, 'app 은 파일 경로나 http(s) 주소여야 한다');
-// 자식 환경변수와 HTTP 머리로 간다 — 줄바꿈 · 공백이 섞이면 머리가 깨지고 다른 머리를 끼워 넣을 수 있다. admin 이 pat_ 200자 이하만 받는다(auth/farmToken.ts)
+// 자식 환경변수와 HTTP 머리로 간다 — 줄바꿈 · 공백이 섞이면 머리가 깨지고 다른 머리를 끼워 넣을 수 있다. admin 은 Auth 가 준 공백 없는 pat_ 만 싣는다(auth/delegatedPat.ts)
 const 팜토큰 = z.string().min(1).max(200).regex(/^\S+$/);
 
 // 비밀값 원문이 지나간다. 모양만 보고 그대로 kit 에 넘긴다 — 토큰 받기는 kit 몫이다 (SPEC 도메인/러너 §5.2 「API 케이스 실행」)
@@ -72,7 +72,8 @@ export const executeRequest = z.object({
   cdpUrl,
 }).refine((r) => r.live === undefined || r.runId === 0, 장면은시험만).refine(실제폰은모바일만, 실제폰은모바일만글);
 
-export const appScreenRequest = z.object({ app: 앱파일경로.optional(), udid: z.string().min(1).optional() });
+// farmToken 은 admin 이 그 폰을 잡은 팜 토큰이다 — 연결 열기 · 닫기 · 게임 명령이 같은 주인이어야 팜이 받는다 (러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」)
+export const appScreenRequest = z.object({ app: 앱파일경로.optional(), udid: z.string().min(1).optional(), farmToken: 팜토큰.optional() });
 
 // `//host` 는 / 로 시작해도 다른 호스트로 풀린다. 대상 주소 밖으로 못 나가게 여기서 막는다
 const 대상경로 = z.string().startsWith('/').refine((p) => !p.startsWith('//'), '경로가 // 로 시작한다');

@@ -187,7 +187,7 @@ export async function callRunner(
   try {
     토큰 = await 실행팜토큰(runId);
   } catch (err) {
-    return na(item, '누른 사람의 통합계정 토큰을 읽지 못했습니다', err instanceof Error ? err.message : String(err));
+    return na(item, '누른 사람의 팜 토큰을 고르지 못했습니다', err instanceof Error ? err.message : String(err));
   }
   if (폰Chrome) {
     return 폰Chrome으로(

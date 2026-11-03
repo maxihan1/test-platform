@@ -321,8 +321,6 @@ describe('언어 고르개 (SPEC §8 다국어)', () => {
     expect(screen.queryByRole('link', { name: '비밀번호 변경' })).toBeNull();
     fireEvent.click(내메뉴());
     expect(screen.getByRole('link', { name: '비밀번호 변경' }).getAttribute('href')).toBe('#/password');
-    // 팜 토큰은 SSO 설치에만 있다 — 통로가 404 다 (ShellFarmToken.test.tsx 가 켜진 쪽을 본다)
-    expect(screen.queryByRole('button', { name: '통합계정 토큰' })).toBeNull();
   });
 
   it('동그라미를 누르면 로그아웃이 나오고 누르면 위로 올라간다', () => {

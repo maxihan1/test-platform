@@ -7,8 +7,11 @@ import { join } from 'node:path';
 import { 인증헤더 } from './authoring-io.js';
 import { 비밀번호꼴가리기 } from './authoring-prd.js';
 
-/** 탐색 — 작성 AI 가 appium-cli 로 팜 폰을 눌러 가며 읽을 주소 (§3.6 「앱 화면」 「눌러 가며 읽기」). 첫 화면을 못 읽었어도 붙는다 */
-export type 앱탐색 = { url: string; app: string };
+/**
+ * 탐색 — 작성 AI 가 appium-cli 로 팜 폰을 눌러 가며 읽을 주소 (§3.6 「앱 화면」 「눌러 가며 읽기」). 첫 화면을 못 읽었어도 붙는다.
+ * token 은 서버가 첫 화면의 폰을 잡은 서버 몫 대신 PAT 다 — SSO 를 끈 설치 · 옛 서버는 없다 (§7 「앱 화면 통로」 appium.token)
+ */
+export type 앱탐색 = { url: string; app: string; token?: string };
 /** 게임 — 게임 첫 화면 통로에서 왔다. 프롬프트 절 · 놓을 폰 기록 자리(control-cli)가 다르다 */
 export type 앱화면 = ({ 글: string } | { 못읽음: string }) & { 탐색?: 앱탐색; 게임?: true };
 
@@ -63,13 +66,19 @@ async function 화면받기(서버: { 주소기지: string; 토큰: string }, �
 
 // 옛 서버는 칸이 없다 — 탐색 없이 첫 화면만 쓴다
 function 탐색읽기(v: unknown): { 탐색?: 앱탐색 } {
-  const a = v as { url?: unknown; app?: unknown } | null | undefined;
-  return typeof a?.url === 'string' && typeof a.app === 'string' ? { 탐색: { url: a.url, app: a.app } } : {};
+  const a = v as { url?: unknown; app?: unknown; token?: unknown } | null | undefined;
+  if (typeof a?.url !== 'string' || typeof a.app !== 'string') return {};
+  return { 탐색: { url: a.url, app: a.app, ...(typeof a.token === 'string' && a.token !== '' && { token: a.token }) } };
 }
 
-/** 자식 환경값 — appium-cli · control-cli 가 읽는 이름 그대로. 폰 번호는 안 준다(AI 가 hold 로 빈 폰을 잡는다) */
+/**
+ * 자식 환경값 — appium-cli · control-cli 가 읽는 이름 그대로. 폰 번호는 안 준다(AI 가 hold 로 빈 폰을 잡는다).
+ * 서버가 준 토큰은 이 컨테이너의 PLATFORM_APPIUM_TOKEN 을 덮는다 — AI 가 서버와 같은 주인으로 잡아야 팜이 받는다 (러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」)
+ */
 export function 탐색환경(앱: 앱화면 | undefined): Record<string, string> {
-  return 앱?.탐색 === undefined ? {} : { PLATFORM_APPIUM_URL: 앱.탐색.url, PLATFORM_APP: 앱.탐색.app };
+  if (앱?.탐색 === undefined) return {};
+  const { url, app, token } = 앱.탐색;
+  return { PLATFORM_APPIUM_URL: url, PLATFORM_APP: app, ...(token !== undefined && { PLATFORM_APPIUM_TOKEN: token }) };
 }
 
 // 지침이 잡는 시간으로 정한 30분(references/app.md §5 · game.md 「폰 잡기」). 그보다 오래된 기록의 잡기는 팜이 이미 풀었다 —
@@ -101,8 +110,8 @@ export async function 잡은폰놓기(트리: string, 앱: 앱화면 | undefined
   if (!폰번호꼴.test(serial)) return void console.error(`[작성] ${번호}번 — 잡은 폰 기록이 폰 번호 꼴이 아니라 놓지 않는다`);
   const 팜 = 앱.탐색.url.replace(/\/wd\/hub\/?$/, '');
   try {
-    // AI 는 이 컨테이너의 팜 토큰(PLATFORM_APPIUM_TOKEN — 자식 환경에 그대로 간다)으로 잡았다. 잡은 사람과 같은 토큰이라야 팜이 놓아 준다
-    const 토큰 = process.env.PLATFORM_APPIUM_TOKEN;
+    // AI 는 자식 환경의 PLATFORM_APPIUM_TOKEN(서버가 준 토큰 — 없으면 이 컨테이너 것)으로 잡았다. 잡은 사람과 같은 토큰이라야 팜이 놓아 준다
+    const 토큰 = 앱.탐색.token ?? process.env.PLATFORM_APPIUM_TOKEN;
     const res = await 부르기(`${팜}/api/devices/${encodeURIComponent(serial)}/hold`, {
       method: 'DELETE',
       headers: 토큰 ? { authorization: `Bearer ${토큰}` } : {},
