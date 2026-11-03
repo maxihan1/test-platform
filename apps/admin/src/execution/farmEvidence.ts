@@ -37,8 +37,10 @@ export async function 팜증적목록(runId: number, historyId: number | 'scenar
 export async function 팜기록글(runId: number, historyId: number): Promise<string | null> {
   const 파일들 = await 팜증적목록(runId, historyId);
   if (파일들.length === 0) return null;
-  const 영상 = 파일들.filter((f) => f.name.endsWith('.mp4')).length;
-  const 그밖 = 파일들.filter((f) => !f.name.endsWith('.mp4')).map((f) => f.name);
+  // 실제 폰 Chrome 항목의 영상은 Playwright 가 찍은 .webm 이다 (러너 §5.2 「모바일 웹 — 실제 폰 Chrome」 「증적」)
+  const 영상인가 = (f: 팜파일): boolean => f.name.endsWith('.mp4') || f.name.endsWith('.webm');
+  const 영상 = 파일들.filter(영상인가).length;
+  const 그밖 = 파일들.filter((f) => !영상인가(f)).map((f) => f.name);
   const 조각 = [...(영상 === 0 ? [] : [`화면 영상 ${String(영상)}개`]), ...그밖];
   return `${조각.join(' · ')} — 실행 화면의 이 항목에서 받는다`;
 }

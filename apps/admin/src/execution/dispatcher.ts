@@ -12,7 +12,7 @@ import { 스모크뒤 } from './buildRun.js';
 import { 잡기를늘린다, 팜주소, 팜폰으로 } from './farm.js';
 import { 실행팜토큰 } from './farmToken.js';
 import { notifyRun } from './notify.js';
-import { 폰차례 } from './phone.js';
+import { Chrome차례, 폰차례 } from './phone.js';
 import { callRunner, na, type 잡은폰 } from './runner.js';
 import { finishItem, finishRun, type PendingItem } from './store.js';
 import { trace적재를맡긴다 } from './traceIngest.js';
@@ -148,7 +148,9 @@ export async function dispatch(runId: number, items: PendingItem[]): Promise<voi
   await Promise.all([
     ...[...케이스줄.values()].map(async (줄) => {
       for (const item of 줄) {
-        await (item.platform === 'android' ? 폰차례(() => runOne(runId, item)) : enqueue(() => runOne(runId, item)));
+        // 실제 폰 모바일 항목은 Chrome 줄 → 동시성 자리 차례다 — 줄에서 기다리는 동안 웹 실행 자리를 묶지 않게 (도메인/실행 §3.2 「모바일 웹 실행 위치」)
+        const 돌기 = () => enqueue(() => runOne(runId, item));
+        await (item.platform === 'android' ? 폰차례(() => runOne(runId, item)) : item.실제폰 === true ? Chrome차례(돌기) : 돌기());
       }
     }),
     ...(게임들.length > 0 ? [게임실행(runId, 게임들)] : []),

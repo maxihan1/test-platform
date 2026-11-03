@@ -22,6 +22,8 @@ export const runBody = z.object({
   // 기본은 꺼짐. 자기 확인용까지 팀 채널에 흘리면 채널이 소음이 된다 (SPEC §8.2 · §8.9)
   notifySlack: z.boolean().default(false),
   // 실행 위치(location)는 받지 않는다 — android 정식 실행은 늘 디바이스 팜이다(2026-10-20 APP-F1-10). 옛 화면이 실어 보내면 zod 가 버린다
+  // 모바일 웹 실행 위치 — 서버 흉내 · Device VISION 실제 폰 Chrome. 기본은 흉내다 — 폰이 적다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)
+  mobileOn: z.enum(['server', 'vision']).default('server'),
   items: z
     .array(
       z.object({
@@ -40,9 +42,14 @@ export const runBody = z.object({
 // 같은 말을 실으면 화면에 두 번 뜬다(2026-10-07 실기기 확인)
 export type 거절 = { status: 409; error: 'FARM_OFF'; detail: string };
 
-// 실행을 만들기 전에 부른다 — 거절되면 test_run 이 생기지 않는다
-export function 팜을본다(items: { platforms: string[] }[], env: Record<string, string | undefined>): 거절 | null {
-  if (!items.some((i) => i.platforms.includes('android'))) return null;
+// 실행을 만들기 전에 부른다 — 거절되면 test_run 이 생기지 않는다. 모바일은 실제 폰을 골랐을 때만 팜을 쓴다
+export function 팜을본다(
+  items: { platforms: string[] }[],
+  env: Record<string, string | undefined>,
+  mobileOn: 'server' | 'vision' = 'server',
+): 거절 | null {
+  const 폰디바이스 = mobileOn === 'vision' ? ['android', 'mobile'] : ['android'];
+  if (!items.some((i) => i.platforms.some((p) => 폰디바이스.includes(p)))) return null;
   // 운영자가 고칠 자리(환경값 이름)만 싣는다
   if (팜주소(env) === undefined) return { status: 409, error: 'FARM_OFF', detail: 'DEVICE_FARM_URL 이 비어 있다' };
   return null;

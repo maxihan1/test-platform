@@ -24,6 +24,13 @@ describe('팜을본다', () => {
   it('브라우저 항목만 있으면 팜을 보지 않는다', () => {
     expect(팜을본다([{ platforms: ['desktop', 'mobile'] }], {})).toBeNull();
   });
+
+  it('모바일 실행 위치로 실제 폰을 골랐으면 mobile 항목도 팜을 본다 — 흉내면 안 본다', () => {
+    expect(팜을본다([{ platforms: ['desktop', 'mobile'] }], {}, 'vision')).toMatchObject({ error: 'FARM_OFF' });
+    expect(팜을본다([{ platforms: ['desktop'] }], {}, 'vision')).toBeNull();
+    expect(팜을본다([{ platforms: ['mobile'] }], 팜있음, 'vision')).toBeNull();
+    expect(팜을본다([{ platforms: ['mobile'] }], {}, 'server')).toBeNull();
+  });
 });
 
 describe('앱케이스를뺀다', () => {
@@ -95,6 +102,13 @@ describe('runBody', () => {
     expect(runBody.safeParse(시간(300001)).success).toBe(false);
     expect(runBody.safeParse(시간(300000)).success).toBe(true);
     expect(runBody.safeParse(기본).success).toBe(true);
+  });
+
+  it('모바일 실행 위치는 server · vision 만 받고 빠지면 서버 흉내다', () => {
+    const 고름 = (mobileOn?: string) => runBody.safeParse({ ...기본, ...(mobileOn !== undefined && { mobileOn }) });
+    expect(고름().data?.mobileOn).toBe('server');
+    expect(고름('vision').data?.mobileOn).toBe('vision');
+    expect(고름('local').success).toBe(false);
   });
 
   it('기본 timeoutMs 가 곧 상한이다 — 300000 하나', () => {

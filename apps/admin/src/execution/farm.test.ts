@@ -2,7 +2,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { 잡기를늘린다, 팜머리, 팜주소, 팜폰으로 } from './farm.js';
+import { 잡기를늘린다, 팜머리, 팜주소, 팜폰으로, 폰Chrome으로 } from './farm.js';
 
 const 팜 = 'http://farm.test/wd/hub';
 
@@ -202,5 +202,76 @@ describe('팜주소', () => {
     expect(팜주소({})).toBeUndefined();
     expect(팜주소({ DEVICE_FARM_URL: '' })).toBeUndefined();
     expect(팜주소({ DEVICE_FARM_URL: 'http://127.0.0.1:4723/wd/hub/' })).toBe('http://127.0.0.1:4723/wd/hub');
+  });
+});
+
+describe('폰Chrome으로', () => {
+  // 목록 · 잡기 · 놓기는 늘 받고, Chrome 켜기 답만 고른다. 받은 요청과 그 토큰 머리를 적는다
+  function Chrome팜(켜기: 답 | 'throw') {
+    const 받음: string[] = [];
+    const 부르기 = (async (주소: string | URL | Request, 설정?: RequestInit) => {
+      const 경로 = String(주소).replace(팜, '');
+      받음.push(`${설정?.method ?? 'GET'} ${경로} ${new Headers(설정?.headers).get('authorization') ?? '-'}`);
+      if (경로.endsWith('/chrome')) {
+        if (켜기 === 'throw') throw new Error('The operation was aborted due to timeout');
+        return new Response(JSON.stringify(켜기.body), { status: 켜기.status });
+      }
+      return new Response(JSON.stringify(경로 === '/api/devices' ? 빈폰하나.body : { held: { screen: 'https://farm.test/#phone=R3CR10TCVCD&view=k1' } }), { status: 200 });
+    }) as typeof fetch;
+    return { 받음, 부르기 };
+  }
+  const 켬 = { status: 200, body: { value: { cdpUrl: 'wss://farm.test/wd/hub/api/devices/R3CR10TCVCD/chrome/cdp', screen: 'x' } } };
+
+  it('잡은 폰의 Chrome 을 켜고 udid · cdpUrl · 잡은 토큰을 일에 넘긴 뒤 놓는다', async () => {
+    const { 받음, 부르기 } = Chrome팜(켬);
+
+    const 결과 = await 폰Chrome으로<unknown>(팜, async (칸, 화면) => ({ 칸, 화면 }), (까닭) => 까닭, 'pat_me', undefined, 부르기);
+
+    expect(결과).toEqual({
+      칸: { udid: 'R3CR10TCVCD', cdpUrl: 'wss://farm.test/wd/hub/api/devices/R3CR10TCVCD/chrome/cdp', farmToken: 'pat_me' },
+      화면: 'https://farm.test/#phone=R3CR10TCVCD&view=k1',
+    });
+    expect(받음).toEqual([
+      'GET /api/devices Bearer pat_me',
+      'POST /api/devices/R3CR10TCVCD/hold Bearer pat_me',
+      'POST /api/devices/R3CR10TCVCD/chrome Bearer pat_me',
+      'DELETE /api/devices/R3CR10TCVCD/hold Bearer pat_me',
+    ]);
+  });
+
+  it('서버 몫 토큰으로 잡아도 farmToken 에 싣는다 — 러너는 자기 토큰을 같은 팜 호스트에만 싣는다', async () => {
+    const { 부르기 } = Chrome팜(켬);
+    vi.stubEnv('DEVICE_FARM_TOKEN', 'pat_server');
+    try {
+      expect(await 폰Chrome으로(팜, async (칸) => 칸.farmToken, () => '못 잡음', undefined, undefined, 부르기)).toBe('pat_server');
+      vi.stubEnv('DEVICE_FARM_TOKEN', '');
+      expect(await 폰Chrome으로<unknown>(팜, async (칸) => 'farmToken' in 칸, () => '못 잡음', undefined, undefined, 부르기)).toBe(false);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('Chrome 을 못 켜면 VISION 문장을 까닭으로 넘기고 폰을 놓는다', async () => {
+    const 거절 = Chrome팜({ status: 409, body: { value: { error: 'unknown error', message: '내 자동 테스트가 도는 중 — 끝나면 다시' } } });
+    expect(await 폰Chrome으로(팜, async () => '돌림', (까닭) => 까닭, undefined, undefined, 거절.부르기)).toBe(
+      'Device VISION 이 폰 Chrome 을 켜지 못했습니다: 내 자동 테스트가 도는 중 — 끝나면 다시',
+    );
+    expect(거절.받음.at(-1)).toMatch(/^DELETE \/api\/devices\/R3CR10TCVCD\/hold/);
+
+    const 옛팜 = Chrome팜({ status: 404, body: 'Not Found' });
+    expect(await 폰Chrome으로(팜, async () => '돌림', (까닭) => 까닭, undefined, undefined, 옛팜.부르기)).toBe('Device VISION 이 폰 Chrome 을 켜지 못했습니다: HTTP 404');
+
+    const 늦음 = Chrome팜('throw');
+    expect(await 폰Chrome으로(팜, async () => '돌림', (까닭) => 까닭, undefined, undefined, 늦음.부르기)).toBe(
+      'Device VISION 에 닿지 못했습니다: The operation was aborted due to timeout',
+    );
+    expect(늦음.받음.at(-1)).toMatch(/^DELETE /);
+  });
+
+  it('연결 주소가 ws(s) 가 아니면 러너에 안 넘긴다', async () => {
+    for (const cdpUrl of ['http://farm.test/x', undefined]) {
+      const { 부르기 } = Chrome팜({ status: 200, body: { value: { cdpUrl } } });
+      expect(await 폰Chrome으로(팜, async () => '돌림', (까닭) => 까닭, undefined, undefined, 부르기)).toBe('Device VISION 이 폰 Chrome 연결 주소를 주지 않았습니다');
+    }
   });
 });

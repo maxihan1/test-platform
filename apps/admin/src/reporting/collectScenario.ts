@@ -135,7 +135,7 @@ export function E2E모양(runId: number, 결과: 결과, 머리: { serviceName: 
         결과.triggeredByName === null || 결과.triggeredByName === '' ? '실행자 미상 (인증 도입 이전)' : 결과.triggeredByName,
       env: 결과.env === '' ? 기록없음 : 결과.env,
       baseUrl: 결과.baseUrl === '' ? 기록없음 : 결과.baseUrl,
-      // 앱 · 게임 단계가 있는 시나리오만 — 폰 연결이 하나라 실행에 박제된 한 벌(test_run.device)이다 (도메인/리포팅 §8.4 「증적 문서 머리말」)
+      // 앱 · 게임 단계가 있거나 실제 폰에서 돈 모바일 시나리오만 — 폰 연결이 하나라 실행에 박제된 한 벌(test_run.device)이다 (도메인/리포팅 §8.4 「증적 문서 머리말」)
       ...(결과.device == null ? {} : { devices: [기기글(결과.device)] }),
     },
     scenarioId: 결과.scenarioId,

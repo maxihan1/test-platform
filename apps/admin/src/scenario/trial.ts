@@ -11,7 +11,7 @@ import { findService } from '../catalog/store.js';
 import { enqueue } from '../execution/dispatcher.js';
 import { 팜주소 } from '../execution/farm.js';
 import { 사람팜토큰 } from '../execution/farmToken.js';
-import { 폰을바로잡는다, 폰을놓는다 } from '../execution/phone.js';
+import { Chrome차례, 폰을바로잡는다, 폰을놓는다 } from '../execution/phone.js';
 import { callScenarioRunner } from '../execution/runner.js';
 import { artifactsDir } from '../execution/routes.js';
 import { 가린다, 긴것부터, 비밀글자들, 시나리오시험, type 시나리오시험결과 } from '../execution/trial.js';
@@ -20,7 +20,7 @@ import { 가린값들 } from '../web/mask.js';
 import { 같은프로젝트접두사, 계정없음, 단계인증, 단계주소, 삭제코드합치기, 쓰는앱읽기, 앱종류들, 앱종류읽기 } from './apps.js';
 import { 앱단계인가, 케이스접두사, 쓰는접두사 } from './mixed.js';
 import { type 케이스부품재료, 케이스재료 } from './parts.js';
-import { 팜폰으로돌린다, 폰값 } from './phone.js';
+import { type 시나리오폰, 팜폰으로돌린다, 폰값 } from './phone.js';
 import { 부품채우기 } from './runStore.js';
 import { 꽂은값비밀, 실패부품trace, 시나리오trace경로, trace를지운다 } from './runTrace.js';
 import { 시나리오제한시간, 제한시간크기사유, 조립검사 } from './validate.js';
@@ -145,6 +145,8 @@ export async function 시험시작(사람: { username: string }, 본문: 시험�
   }
   // 다른 검사를 다 지난 뒤, 동시성 자리보다 먼저 디바이스 줄을 본다 — 케이스 테스트 실행처럼 기다리지 않는다
   if (폰 !== null && !폰을바로잡는다()) throw new 시험시작오류('DEVICE_BUSY', '디바이스가 다른 실행에 쓰이는 중이다');
+  // 테스트 모드의 모바일 시나리오는 팜이 있으면 늘 실제 폰이다 — 앱 · 게임 단계가 섞이면 흉내, 디바이스 줄은 안 쓴다 (도메인/실행 §3.2 「테스트 모드」)
+  const 돌폰: 시나리오폰 | null = 폰?.폰 ?? (본문.platform === 'mobile' && 팜주소() !== undefined ? 'chrome' : null);
   const 놓기 = () => {
     if (폰 !== null) 폰을놓는다();
   };
@@ -154,7 +156,11 @@ export async function 시험시작(사람: { username: string }, 본문: 시험�
       사람.username,
       본문.service,
       // 케이스 실행 · 진짜 시나리오 실행과 같은 줄에 한 자리를 쓴다 (§3.7 「동시성 · 시간」). 폰 잠금은 일이 어떻게 끝나든 놓는다
-      (id, 폰화면) => enqueue(() => 시험돌기(id, 사람.username, 본문, { 앱들, baseUrl, parts, 부품재료, 비밀, 폰 }, 폰화면)).finally(놓기),
+      (id, 폰화면) => {
+        const 돌기 = () => enqueue(() => 시험돌기(id, 사람.username, 본문, { 앱들, baseUrl, parts, 부품재료, 비밀, 폰 }, 돌폰, 폰화면));
+        // 실제 폰 Chrome 은 Chrome 줄 → 동시성 자리 차례다. 디바이스 줄은 위에서 바로 잡았다
+        return (돌폰 === 'chrome' ? Chrome차례(돌기) : 돌기()).finally(놓기);
+      },
       비밀,
     );
   } catch (err) {
@@ -172,7 +178,14 @@ export async function 시험시작(사람: { username: string }, 본문: 시험�
 
 type 시험재료결과 = Awaited<ReturnType<typeof 시험재료>>;
 
-async function 시험돌기(id: string, 누구: string, 본문: 시험본문, 재료: 시험재료결과, 폰화면: (url: string | undefined) => void): Promise<시나리오시험결과> {
+async function 시험돌기(
+  id: string,
+  누구: string,
+  본문: 시험본문,
+  재료: 시험재료결과,
+  돌폰: 시나리오폰 | null,
+  폰화면: (url: string | undefined) => void,
+): Promise<시나리오시험결과> {
   const { 앱들, baseUrl, parts, 부품재료, 비밀, 폰 } = 재료;
   const 시작 = Date.now();
   // 줄 한 자리를 최대 60분 쥔다. 누가 쥐었는지 운영자가 로그로 알 수 있게 한다
@@ -190,8 +203,8 @@ async function 시험돌기(id: string, 누구: string, 본문: 시험본문, �
     // 테스트 모드 장면 열쇠는 이 시험 번호다. 러너가 앱 · 게임 단계 동안은 장면을 끈다 (도메인/실행 §3.2 「테스트 모드」)
     live: id,
   };
-  // 앱 · 게임 단계는 서버 러너 + 팜에서 잡은 폰이다 (결정 16)
-  const 응답 = 폰 === null ? await callScenarioRunner(요청) : await 팜폰으로돌린다(요청, 폰.폰, () => 사람팜토큰(누구), 폰화면);
+  // 앱 · 게임 단계 · 실제 폰 모바일 시나리오는 서버 러너 + 팜에서 잡은 폰이다 (결정 16)
+  const 응답 = 돌폰 === null ? await callScenarioRunner(요청) : await 팜폰으로돌린다(요청, 돌폰, () => 사람팜토큰(누구), 폰화면);
   // 폰을 놓았다 — 아래 trace · 가림 처리 동안 닫힌 링크를 내지 않는다 (§3.7 결정 16 「시험 실행」)
   폰화면(undefined);
   console.info(`[scenario-trial] 끝 ${id} · ${누구} · ${본문.service} · ${응답.status} · ${Date.now() - 시작}ms`);

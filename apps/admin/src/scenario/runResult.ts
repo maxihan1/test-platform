@@ -5,12 +5,12 @@ import type { Pool, PoolClient } from 'pg';
 
 import { enqueue } from '../execution/dispatcher.js';
 import { 실행팜토큰 } from '../execution/farmToken.js';
-import { 폰차례 } from '../execution/phone.js';
+import { Chrome차례, 폰차례 } from '../execution/phone.js';
 import { callScenarioRunner } from '../execution/runner.js';
 import { 기기칸 } from '../execution/runLifecycle.js';
 import { jsonb에맞춘다 } from '../jsonbText.js';
 
-import { type 폰앱, 팜폰으로돌린다 } from './phone.js';
+import { type 시나리오폰, 팜폰으로돌린다 } from './phone.js';
 import { type 부품기록, 부품비밀, 실패부품trace, 시나리오trace경로, trace를지운다 } from './runTrace.js';
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. CI 는 DB 없이 돌아야 하므로 쓸 때 가져온다
@@ -21,13 +21,14 @@ async function db(): Promise<Pool> {
 
 // 케이스 분배와 같은 대기줄을 탄다 — 동시 상한을 나눠 써야 대상 서버가 버틴다 (SPEC §9).
 // finishRun 을 안 쓴다: run_item 이 0건이라 부르는 즉시 FINISHED 가 된다.
-// 앱 · 게임 단계가 있으면 디바이스 줄 → 동시성 자리 → 팜 폰 차례로 잡는다 — 줄에서 기다리는 동안 웹 실행 자리를 묶지 않게 (§3.7 결정 16)
-export function 시나리오분배(runId: number, 요청: ScenarioExecuteRequest, 폰?: 폰앱): Promise<void> {
+// 앱 · 게임 단계가 있으면 디바이스 줄 → 동시성 자리 → 팜 폰 차례로 잡는다 — 줄에서 기다리는 동안 웹 실행 자리를 묶지 않게 (§3.7 결정 16).
+// 실제 폰 모바일 시나리오는 디바이스 줄 대신 Chrome 줄 → 동시성 자리 → 팜 폰이다 — 게임 실행이 쥔 디바이스 줄에 막히지 않게 (§3.7 「모바일 시나리오를 실제 폰에서 돌릴 때」)
+export function 시나리오분배(runId: number, 요청: ScenarioExecuteRequest, 폰?: 시나리오폰): Promise<void> {
   const 돌기 = () =>
     enqueue(async () => {
       await 결과저장(runId, 폰 === undefined ? await callScenarioRunner(요청) : await 팜폰으로돌린다(요청, 폰, () => 실행팜토큰(runId)));
     });
-  return 폰 === undefined ? 돌기() : 폰차례(돌기);
+  return 폰 === undefined ? 돌기() : 폰 === 'chrome' ? Chrome차례(돌기) : 폰차례(돌기);
 }
 
 const 빠진부품 = '러너가 이 단계 결과를 돌려주지 않았다';

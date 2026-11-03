@@ -150,9 +150,13 @@ interface RawStep {
 /** 박제 이전 행의 빈 칸. 지어내지 말고 모른다고 적는다 (SPEC §6) */
 const 기록없음 = '기록 없음';
 
-/** 폰 · 앱 판 한 줄. 못 읽은 칸은 그렇다고 적는다 — 빈칸이면 「없는 판」으로 읽힌다 (도메인/리포팅 §8.4 · APP-F1-05) */
+/**
+ * 폰 · 앱 판 한 줄. 못 읽은 칸은 그렇다고 적는다 — 빈칸이면 「없는 판」으로 읽힌다 (도메인/리포팅 §8.4 · APP-F1-05).
+ * 실제 폰 Chrome 에서 돈 모바일 항목은 앱 판 자리에 Chrome 판이다 — 그 항목만 browser 칸이 있다 (TMO-F4-03)
+ */
 export function 기기글(d: DeviceInfo): string {
-  return `${d.model ?? '모델 모름'} · Android ${d.osVersion ?? '판 모름'} · 앱 ${d.appVersion ?? '판 모름'}`;
+  const 끝 = d.browser === undefined ? `앱 ${d.appVersion ?? '판 모름'}` : `Chrome ${d.browser ?? '판 모름'}`;
+  return `${d.model ?? '모델 모름'} · Android ${d.osVersion ?? '판 모름'} · ${끝}`;
 }
 /** 비밀값은 화면과 문서에서만 가린다. DB 에는 평문 그대로다 (SPEC §4.1) */
 const 가림 = '********';
@@ -325,7 +329,8 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
       tcName: row.tc_name,
       platform: row.platform,
       device: row.device === null ? null : 기기글(row.device),
-      farm: row.platform === 'android' ? await 팜기록글(돈실행, Number(row.history_id)) : null,
+      // 실제 폰에서 돈 모바일 항목도 러너가 폰 영상 · logcat 을 받아 둔다 — 기기 칸이 찬 것이 그 표시다
+      farm: row.platform === 'android' || row.device !== null ? await 팜기록글(돈실행, Number(row.history_id)) : null,
       attempt: row.attempt,
       status: 못돈사유 === null ? row.status : ('NOT_RUN' as const),
       // 중단 처리가 박아 넣은 duration_ms 0 은 「0밀리초 걸렸다」가 아니라 「안 돌았다」다

@@ -31,8 +31,11 @@ export const FAIL_CASE_COLUMNS = 디바이스차례
 
 export type RawFailCases = Record<`fail_${Platform}`, number>;
 
-// 실행 위치 「디바이스 팜 · 모델」 — 앱 · 게임 항목이 남긴 device 에서 읽는다. 웹 항목 · 연결이 안 열린 항목은 NULL 이라 빠진다 (실행 §8.7 「줄」)
-export const DEVICE_COLUMN = `COALESCE(array_agg(DISTINCT i.device->>'model' ORDER BY i.device->>'model') FILTER (WHERE i.device->>'model' <> ''), '{}') AS devices`;
+// 실행 위치 「디바이스 팜 · 모델」 — 앱 · 게임 항목(devices)과 실제 폰에서 돈 모바일 항목(mobile_devices)이 남긴 device 에서 따로 읽는다.
+// 한 실행에 둘이 섞이면 화면이 가를 수 없어서다. 흉내로 돈 모바일 · PC 항목 · 연결이 안 열린 항목은 NULL 이라 빠진다 (실행 §8.7 「줄」)
+const 폰모델들 = (platform: 'android' | 'mobile', 칸: string): string =>
+  `COALESCE(array_agg(DISTINCT i.device->>'model' ORDER BY i.device->>'model') FILTER (WHERE i.platform = '${platform}' AND i.device->>'model' <> ''), '{}') AS ${칸}`;
+export const DEVICE_COLUMN = `${폰모델들('android', 'devices')}, ${폰모델들('mobile', 'mobile_devices')}`;
 
 /** 그 실행에 든 디바이스만 키로 싣는다. 실패가 없으면 0 이다 (SPEC 실행 §7 `GET /api/runs`) */
 export function toFailCases(row: Pick<RawRun, 'platforms'> & RawFailCases): Partial<Record<Platform, number>> {
