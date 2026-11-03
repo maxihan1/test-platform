@@ -15,7 +15,7 @@ import { 판정을만든다 } from './role.js';
 import { ScenarioCards } from './ScenarioCards.js';
 import { ScenarioBuildTabs } from './ScenarioBuildTabs.js';
 import { ScenarioTabs, type 조립탭 } from './ScenarioTabs.js';
-import { 시험막는글, 시험장면, TrialControls, TrialSummary, TrialTab, 폰실행위치 } from './ScenarioTrial.js';
+import { 모바일실행위치, 시험막는글, 시험장면, TrialControls, TrialSummary, TrialTab, 폰실행위치 } from './ScenarioTrial.js';
 import { 끄기기본, 빈칸있는단계, 서버선택지, 시나리오칩들, 케이스바꾸기, 폰단계있나 } from './scenarioView.js';
 import { useScenarioDraft } from './useScenarioDraft.js';
 import { useScenarioRun, 넘겨받은실행글 } from './useScenarioRun.js';
@@ -234,7 +234,7 @@ export function ScenarioBuild({
       <Head 클래스="scn-head" 제목={id === null ? t('새 시나리오') : `SC-${id}`} 부제={부제} 행동={행동} />
 
       <div className="screen scn-screen">
-        {폰단계있나(앱들, 초안.단계들) ? <폰실행위치 /> : null}
+        {폰단계있나(앱들, 초안.단계들) ? <폰실행위치 /> : 초안.디바이스 === 'mobile' ? <모바일실행위치 {...정식.위치} /> : null}
         {/* 그 애플리케이션 칩에 없는 디바이스로 저장된 옛 시나리오 — 서버가 저장 · 실행을 거절하니 미리 알린다 (§3.7 결정 16) */}
         {칩들.includes(초안.디바이스) ? null : (
           <p className="scn-note">{t('이 애플리케이션은 디바이스 「{디바이스}」로만 돌립니다. 디바이스를 바꿔 저장합니다', { 디바이스: 칩들.map((p) => t(PLATFORM_LABEL[p])).join(' · ') })}</p>

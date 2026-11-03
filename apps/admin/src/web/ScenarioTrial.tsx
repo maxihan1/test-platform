@@ -8,6 +8,7 @@ import { scenarioApi, type TrialResult } from './scenarioApi.js';
 import { PartTrace } from './ScenarioResultPart.js';
 import { 멈춘사유글자 } from './scenarioResultView.js';
 import { 가리킴빈곳, 종류글, 카드요약, type 재료들 } from './scenarioView.js';
+import { RunLocation, type 모바일고르개 } from './RunLocation.js';
 import { 장면칸 } from './TrialLive.js';
 import { seconds, Verdict } from './ui.js';
 import type { 시험상태 } from './useScenarioTrial.js';
@@ -39,6 +40,11 @@ export function 폰실행위치({ 시험 = true }: { 시험?: boolean }) {
       {시험 ? <div>{t('시험 실행도 Device VISION 폰에서 실행됩니다. 폰 화면은 「Device VISION 에서 보기 ↗」를 눌러 새 탭에서 봅니다')}</div> : null}
     </div>
   );
+}
+
+/** 모바일 시나리오의 정식 실행 위치 덩이 — 실행 창 · 목록과 같은 줄이다 (도메인/실행 §8.2 「모바일 웹 「실행 위치」 고르개」) */
+export function 모바일실행위치(고르개: 모바일고르개) {
+  return <RunLocation android={false} 모바일={고르개} />;
 }
 
 /**

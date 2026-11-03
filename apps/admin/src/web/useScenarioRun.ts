@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 
+import type { 모바일위치 } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { 떠나기막기 } from './leaveGuard.js';
 import { scenarioApi } from './scenarioApi.js';
@@ -34,6 +35,8 @@ export function useScenarioRun({
   const t = use말();
   const 언어 = use언어();
   const [실행중, set실행중] = useState(false);
+  // 모바일 시나리오의 정식 실행 위치 — 조립 화면 머리의 덩이가 고른다. 마법사는 고르개가 없어 서버 흉내다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)
+  const [mobileOn, setMobileOn] = useState<모바일위치>('server');
 
   // 실행은 저장한 최신 버전으로만 돈다. 이름 · 단계는 저장이 보고 여기서는 잘못 적은 칸과 서버를 본다
   // 서버 · 초안은 불러온 뒤에야 알아 누를 때 받는다 — 훅은 이른 반환보다 먼저 불려야 한다
@@ -59,7 +62,7 @@ export function useScenarioRun({
         if (id === null) 새번호 = 결과.id;
       }
       if (번호 === null) return;
-      const { runId } = await scenarioApi.run(번호, 서버);
+      const { runId } = await scenarioApi.run(번호, 서버, mobileOn);
       // 자기 이동에 떠나기 상자를 띄우지 않는다 — 방금 저장해 잃을 것이 없다
       떠나기막기(null);
       window.location.hash = 결과주소(runId, 어디서);
@@ -79,5 +82,5 @@ export function useScenarioRun({
     }
   }
 
-  return { 실행중, 실행 };
+  return { 실행중, 실행, 위치: { 값: mobileOn, on바꿈: setMobileOn } };
 }
