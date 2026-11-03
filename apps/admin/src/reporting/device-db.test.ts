@@ -1,7 +1,12 @@
 // 러너가 준 폰 · 앱 판을 항목에 저장하고 증적 머리 · 항목에 싣는지 본다 (도메인/리포팅 §8.4 · APP-F1-05 — DATABASE_URL 이 있을 때만)
 
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+import { FARM_EVIDENCE_DIR, runDir } from '@platform/kit';
 import { Pool } from 'pg';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { findRun } from '../execution/queries.js';
 import { finishItem } from '../execution/store.js';
@@ -87,5 +92,35 @@ describe.skipIf(연결 === undefined)('증적의 기기 정보', () => {
     const 빌드없이 = (await findRun(실행))?.installedApps;
     await pool.query("UPDATE test_run SET build_no = '124' WHERE run_id = $1", [실행]);
     expect([빌드없이, (await findRun(실행))?.installedApps]).toEqual([[], [{ appVersion: '1.4.2', appBuild: '123' }]]);
+  });
+
+  it('실제 폰 Chrome 에서 돈 모바일 항목은 기기 줄에 Chrome 판을 적고 러너가 받은 .webm 을 팜 기록 줄로 센다 — 흉내 모바일 항목은 둘 다 없다', async () => {
+    const 폴더 = mkdtempSync(join(tmpdir(), 'xdm-'));
+    vi.stubEnv('PLATFORM_ARTIFACTS_DIR', 폴더);
+    try {
+      const 실제 = await 항목('XDM-021', 'mobile');
+      const 흉내 = await 항목('XDM-022', 'mobile');
+      await finishItem(실제, {
+        historyId: 실제,
+        status: 'FAIL',
+        durationMs: 5,
+        steps: [],
+        device: { model: 'SM-G996N', osVersion: '15', appVersion: null, browser: '156.0.7339.51' },
+      });
+      await finishItem(흉내, { historyId: 흉내, status: 'FAIL', durationMs: 5, steps: [] });
+      const 팜 = join(runDir(String(실행), String(실제)), FARM_EVIDENCE_DIR);
+      mkdirSync(팜, { recursive: true });
+      writeFileSync(join(팜, 'video-1.webm'), 'webm');
+      writeFileSync(join(팜, 'logcat.txt'), 'I/chromium: 열림');
+
+      const 항목들 = (await collectRun(실행))?.items.filter((i) => i.tcId === 'XDM-021' || i.tcId === 'XDM-022');
+      expect(항목들?.map((i) => [i.tcId, i.device, i.farm])).toEqual([
+        ['XDM-021', 'SM-G996N · Android 15 · Chrome 156.0.7339.51', '화면 영상 1개 · logcat.txt — 실행 화면의 이 항목에서 받는다'],
+        ['XDM-022', null, null],
+      ]);
+    } finally {
+      vi.unstubAllEnvs();
+      rmSync(폴더, { recursive: true, force: true });
+    }
   });
 });

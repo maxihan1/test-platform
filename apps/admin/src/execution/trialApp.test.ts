@@ -83,6 +83,16 @@ describe('케이스 테스트 실행 — 대상 서버 줄 · 앱 파일 · 장�
     await vi.waitFor(async () => expect((await app.inject({ method: 'GET', url: `/api/cases/XAP-001/test-run/${trialId}` })).json()).toMatchObject({ status: 'DONE' }));
   });
 
+  it('mobile 실제 폰을 못 잡으면 409 로 막지 않고 그 까닭의 미실행으로 끝난다 — 러너에 안 보낸다', async () => {
+    vi.mocked(farm.폰Chrome으로).mockImplementationOnce(((_팜: string, _일: unknown, 못잡음: (까닭: string) => unknown) =>
+      Promise.resolve(못잡음('Device VISION 에 빈 폰이 없습니다'))) as never);
+    const res = await 시작({ platform: 'mobile', env: 'qa' });
+    expect(res.statusCode).toBe(202);
+    const 읽기 = () => app.inject({ method: 'GET', url: `/api/cases/XAP-001/test-run/${res.json<{ trialId: string }>().trialId}` });
+    await vi.waitFor(async () => expect((await 읽기()).json()).toMatchObject({ status: 'DONE', result: { status: 'NA', error: { message: 'Device VISION 에 빈 폰이 없습니다' } } }));
+    expect(보냄).not.toHaveBeenCalled();
+  });
+
   it('팜이 없는 서버의 mobile 은 서버 흉내다 — 폰 칸 없이 보낸다', async () => {
     delete process.env.DEVICE_FARM_URL;
     const { 몸 } = await 보낸요청({ platform: 'mobile', env: 'qa' });
