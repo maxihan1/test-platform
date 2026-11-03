@@ -11,6 +11,7 @@ import { CI토큰문, CI토큰인가, 빌드내려받기틀, 빌드올리기틀 
 
 import { 그라파나문, 그라파나틀인가 } from './grafanaGate.js';
 import { 토큰으로왔나, 확인 } from './identify.js';
+import { 다른출처인가 } from './origin.js';
 import { 칸되는서비스, type 서비스권한 } from './permissions.js';
 import { 필요권한, 토큰통로, type 권한값 } from './routeTable.js';
 import { 케이스의서비스, 라우트표, 번호로, 서비스없음, 자원의서비스, 접두사모양 } from './scope.js';
@@ -247,6 +248,8 @@ export function 인증등록(app: FastifyInstance): void {
    * 이 단계에서는 값이 아직 없다. 그래서 둘로 나눈다. 이 단계는 **누구인가**만 본다.
    */
   app.addHook('onRequest', async (req, reply) => {
+    // 경로를 보기 전에 한다 — /api · /grafana · /mcp 가 다 거친다
+    if (다른출처인가(req.method, req.headers.origin, req.headers.host)) return reply.code(403).send({ error: 'CROSS_ORIGIN' });
     const path = 라우트틀(req);
     if (path === undefined) return;
     // /api 밖이지만 같은 확인·변경 강제를 건다. 권한은 대시보드 한 칸뿐이라 아래 표를 안 탄다 (SPEC 도메인/인증 §7)
