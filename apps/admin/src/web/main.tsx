@@ -50,7 +50,7 @@ import { ScenarioRunList } from './ScenarioRunList.js';
 import { Settings } from './Settings.js';
 import { Shell } from './Shell.js';
 import { Signup } from './Signup.js';
-import { sso알림을단다, useSSO, 계정을기억한다, 로그아웃표시를단다, 로그아웃표시를뗀다, 막로그인표시를뗀다 } from './useSSO.js';
+import { SSO로그아웃뒤, sso알림을단다, useSSO, 계정을기억한다, 로그아웃표시를뗀다, 막로그인표시를뗀다 } from './useSSO.js';
 import { 칩움직임을건다 } from './motion.js';
 import { Loading } from './ui.js';
 import './styles.css';
@@ -341,22 +341,19 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
   }
 
   const 나간다 = () => {
-    const 정리 = () => {
-      // 로그인 화면으로 가는 길을 저장 안 한 조립이 막으면 안 된다
+    const 정리 = (답?: { redirect?: string }) => {
+      // 로그인 화면 · Auth_platform 로그아웃으로 가는 길을 저장 안 한 조립이 막으면 안 된다
       떠나기막기(null);
+      // SSO 로그아웃은 Auth_platform 세션까지 끊는다(도메인/인증 §8.6). 그 주소로 떠나면 화면을 더 바꾸지 않는다 — 해시를 바꾸면 떠나는 이동이 끊긴다.
+      // 표시는 돌아왔을 때 · 새 탭 · 북마크 몫이고, 못 떠났으면 이 탭에 알림을 달아 남은 세션이 곧장 다시 들여보내지 않게 한다
+      if (sso === true && SSO로그아웃뒤(답?.redirect)) return;
       set상태({ 어디: '밖' });
       set프로젝트묻기(false);
       // 알림이 뜬 채 나가면 줄이 사라져 끄는 길(onGone)이 안 불린다. 남겨 두면 다음 로그인에 옛 알림이 뜬다
       set비밀번호바꿈(false);
-      // SSO 로그아웃은 Auth_platform 세션을 남긴다(도메인/인증 §8.6). 표시 없이 두면 로그인 화면이 바로 보내고 그 세션이 곧장 다시 들여보낸다.
-      // 주소의 알림은 이 탭, 브라우저의 표시는 새 탭 · 북마크 몫이다
-      if (sso === true) {
-        로그아웃표시를단다();
-        sso알림을단다('out');
-      }
       window.location.hash = '#/login';
     };
-    void api.logout().then(정리, 정리);
+    void api.logout().then(정리, () => 정리());
   };
 
   // 바뀐 나를 받아 강제면 집으로, 스스로면 직전 자리로 (도메인/인증 §8.6). 세션은 그대로다

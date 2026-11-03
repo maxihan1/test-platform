@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 // maxihan 계정 왕복 뒤 주소의 ?sso=ok 표시 떼기 검사 (도메인/인증 §8.6)
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  SSO로그아웃뒤,
   sso알림을단다,
   계정을기억한다,
   기억한계정을읽는다,
@@ -65,6 +66,28 @@ describe('로그아웃 표시', () => {
     expect(로그아웃했나()).toBe(true);
     로그아웃표시를뗀다();
     expect(로그아웃했나()).toBe(false);
+  });
+});
+
+describe('SSO로그아웃뒤 (2026-11-03 S24)', () => {
+  it('Auth_platform 로그아웃 주소가 오면 표시를 달고 그리로 떠난다 — 이 탭 주소는 건드리지 않는다', () => {
+    window.history.replaceState(null, '', '/#/runs');
+    const 떠난다 = vi.fn();
+
+    expect(SSO로그아웃뒤('https://auth.example/connect/logout?id_token_hint=x', 떠난다)).toBe(true);
+    expect(떠난다).toHaveBeenCalledWith('https://auth.example/connect/logout?id_token_hint=x');
+    expect(로그아웃했나()).toBe(true);
+    expect(window.location.search).toBe('');
+  });
+
+  it('주소가 없으면(옛 출입증 · Auth 에 못 닿음 · 요청 실패) 표시와 이 탭의 out 알림을 달고 떠나지 않는다', () => {
+    window.history.replaceState(null, '', '/#/runs');
+    const 떠난다 = vi.fn();
+
+    expect(SSO로그아웃뒤(undefined, 떠난다)).toBe(false);
+    expect(떠난다).not.toHaveBeenCalled();
+    expect(로그아웃했나()).toBe(true);
+    expect(window.location.search).toBe('?sso=out');
   });
 });
 
