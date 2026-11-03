@@ -1,6 +1,8 @@
 // 실행이 끝나면 실패 케이스마다 BTS 「QA 검토」 등록 · 또 실패면 열린 이슈에 댓글을 보낼 줄에 넣는다 (도메인/BTS 「버그 바퀴」)
 // 보내기는 60초 점검(outbox.ts)이 한다. 여기는 넣기만 — BTS 가 꺼져 있어도 실행 끝을 늦추지 않는다
 
+import { setTimeout as 잠깐 } from 'node:timers/promises';
+
 import type { Pool } from 'pg';
 
 import { trace줄끝 } from '../execution/traceIngest.js';
@@ -50,6 +52,9 @@ const 짝SQL = `
    LIMIT 1`;
 
 const 기록상한 = 5;
+
+// 풀기가 멈추면(볼륨 읽기가 안 돌아오는 것 같은) 줄 끝이 안 온다 — 그때도 등록은 나가야 한다
+const trace기다림상한ms = 5 * 60_000;
 
 const 안올릴사유 = new Set(['FLAKY', 'TEST_PROBLEM', 'SCREEN_RIGHT']);
 
@@ -124,8 +129,10 @@ export async function 실패등록(runId: number): Promise<number> {
   const pool = await db();
   const 실행 = (await pool.query<실행행>(실행SQL, [runId])).rows[0];
   if (실행 === undefined) return 0;
-  // trace 는 실행과 따로 한 줄로 푼다. 실행이 막 끝나면 마지막 항목들이 아직 줄에 있어 이슈에 네트워크 · 콘솔이 빠진다 — 지금 줄 끝까지 기다린다
-  await trace줄끝();
+  // trace 는 실행과 따로 한 줄로 푼다. 실행이 막 끝나면 마지막 항목들이 아직 줄에 있어 이슈에 네트워크 · 콘솔이 빠진다 — 지금 줄 끝까지 기다린다.
+  // ponytail: 줄 끝이라 다른 실행 · 재기동 때 밀린 풀기도 같이 기다린다. 상한을 넘기는 일이 잦으면 이 실행의 항목만 기다린다
+  const 늦음 = await Promise.race([trace줄끝().then(() => false), 잠깐(trace기다림상한ms, true, { ref: false })]);
+  if (늦음) console.warn(`[bts] 실행 ${String(runId)} — trace 풀기가 ${String(trace기다림상한ms / 60_000)}분 안에 안 끝나 기다리지 않고 올린다`);
   const 한건 = 실행.origin === 'SINGLE' && 실행.rerun_of !== null;
   const 카드실행 = 한건 ? Number(실행.rerun_of) : runId;
   const 그것만 = 한건
