@@ -147,6 +147,43 @@ describe.skipIf(연결 === undefined)('PRD 보류 칸', () => {
     }
   });
 
+  it('API 애플리케이션은 대조가 아닌 뿌리도 그 대상 서버 줄 계정으로 이어 작성이 열린다 — 일반 회원 계정이 없는 줄이어도', async () => {
+    const { 뿌리 } = await 판.원본({ coverage: 다덮은셈 });
+    await q(`UPDATE authoring_request SET env = 'qa' WHERE id = $1`, [뿌리]);
+    await 보류넣기([['XHC-REQ-001', '관리자']]);
+    expect((await 판.상세(뿌리)).canContinue).toBe(false);
+    await q(`UPDATE service SET kind = 'API' WHERE id = $1`, [판.서비스]);
+    await q(`UPDATE service_env SET login_id = NULL, login_password = NULL WHERE service_id = $1`, [판.서비스]);
+    try {
+      expect((await 판.상세(뿌리)).canContinue).toBe(true);
+      expect((await 보류읽기(판.서비스)).continueFrom).toBe(뿌리);
+    } finally {
+      await q(`UPDATE service_env SET login_id = 'tester', login_password = $2 WHERE service_id = $1`, [판.서비스, 일반비밀번호]);
+      await q(`UPDATE service SET kind = 'SCREEN' WHERE id = $1`, [판.서비스]);
+    }
+  });
+
+  it('「어드민 키」 보류는 뿌리 줄에 어드민 키를 넣으면 등록으로 센다 — 실서비스 서버 줄 키는 안 센다', async () => {
+    await 계정넣기([]);
+    const { 뿌리 } = await 판.원본({ coverage: 다덮은셈 });
+    await q(`UPDATE authoring_request SET env = 'qa' WHERE id = $1`, [뿌리]);
+    await q(`UPDATE service SET kind = 'API' WHERE id = $1`, [판.서비스]);
+    await 보류넣기([['XHC-REQ-001', '어드민 키']]);
+    try {
+      expect((await 보류읽기(판.서비스)).roles).toEqual([{ role: '어드민 키', count: 1, registered: false }]);
+      await q(`UPDATE service_env SET admin_key = jsonb_build_object('header', 'X-Admin-Key', 'value', 'xhc-admin-key-raw-0091'), is_prod = true WHERE service_id = $1`, [판.서비스]);
+      expect((await 보류읽기(판.서비스)).roles).toEqual([{ role: '어드민 키', count: 1, registered: false }]);
+      await q(`UPDATE service_env SET is_prod = false WHERE service_id = $1`, [판.서비스]);
+      const 응답 = await 보류읽기(판.서비스);
+      expect(응답.roles).toEqual([{ role: '어드민 키', count: 1, registered: true }]);
+      expect(응답.continueFrom).toBe(뿌리);
+      expect((await 판.상세(뿌리)).canContinue).toBe(true);
+    } finally {
+      await q(`UPDATE service_env SET admin_key = NULL, is_prod = false WHERE service_id = $1`, [판.서비스]);
+      await q(`UPDATE service SET kind = 'SCREEN' WHERE id = $1`, [판.서비스]);
+    }
+  });
+
   it('응답에 비밀번호 원문이 없다', async () => {
     await 보류넣기([['XHC-REQ-001', '관리자'], ['XHC-REQ-003', '일반 회원']]);
     const r = await app.inject({ method: 'GET', url: '/api/prd?service=XHC' });

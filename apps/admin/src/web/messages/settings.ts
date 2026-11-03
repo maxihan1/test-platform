@@ -131,6 +131,7 @@ export const 설정말: Record<string, string> = {
   '아이디를 입력해 주세요': 'Enter the ID',
   '역할 이름을 입력해 주세요': 'Enter the role name',
   '「일반 회원」은 역할 이름으로 쓸 수 없습니다': '"Regular user" cannot be used as a role name',
+  '「어드민 키」는 역할 이름으로 쓸 수 없습니다. 어드민 키 칸에 넣어 주세요': '"Admin key" cannot be used as a role name. Enter it in the admin key fields',
   '역할 이름은 {글자}자까지 적을 수 있습니다': 'A role name can be up to {글자} characters long',
   '한 대상 서버 줄 안에서 역할 이름이 겹칩니다': 'Role names repeat within one target server row',
   '역할 이름은 1~40자이고 「일반 회원」이 아니며 한 대상 서버 줄 안에서 겹치지 않아야 합니다. 한 줄에 20개까지 넣을 수 있습니다':

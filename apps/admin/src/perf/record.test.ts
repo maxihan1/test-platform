@@ -85,6 +85,19 @@ describe('녹화하기', () => {
     expect(결과.input.entries[0]?.reqBody).toBe(JSON.stringify({ id: '${username}', password: '${password}' }));
   });
 
+  it('대상 서버 줄의 어드민 키를 케이스 요청에 싣고 녹화에서 그 값을 가린다 — API 케이스가 admin 으로 부른다', async () => {
+    const 키 = { header: 'X-Admin-Key', value: 'xrd-admin-key-raw-7712' };
+    const 키든HAR = structuredClone(로그인HAR);
+    키든HAR.log.entries[0]!.request.postData = { text: JSON.stringify({ note: 키.value }) };
+    가짜.러너에보낸다.mockImplementation(async () => {
+      await writeFile(join(뿌리, 'perf-record', '14', '1.har'), JSON.stringify(키든HAR));
+      return { status: 200, json: { status: 'PASS' } };
+    });
+    await 녹화하기(14, { ...줄, adminKey: 키 }, 케이스, 재료);
+    expect(가짜.러너에보낸다.mock.calls[0]?.[1]).toMatchObject({ adminKey: 키 });
+    expect(await readFile(join(뿌리, 'perf-record', '14.har'), 'utf8')).not.toContain(키.value);
+  });
+
   it('판정을 못 낸 케이스는 반쪽 녹화라 일을 실패로 닫고 원본 폴더도 지운다', async () => {
     가짜.러너에보낸다.mockImplementation(러너가쓴다(12, { status: 200, json: { status: 'NA' } }));
     await 녹화하기(12, 줄, 케이스, 재료);

@@ -34,7 +34,7 @@ export const 판상한 = { bodyLimit: 16 * 1024 * 1024 };
 // 성능 시나리오 녹화 — 오면 HAR 를 artifacts/perf-record/<jobId>/ 에 남긴다 (공통/3-공유계약 「성능 테스트 타입」)
 const recordHar = z.object({ jobId: z.number().int().positive() }).optional();
 
-// 게임 애플리케이션 항목만. 원문이 지나간다 — 머리는 kit 이 admin 요청에 넣는다 (공통/3-공유계약 「게임 테스트 타입」)
+// 게임 · API 애플리케이션 항목만. 원문이 지나간다 — 머리는 kit 이 admin 요청에 넣는다 (공통/3-공유계약 「게임 테스트 타입」)
 const adminKey = z.object({ header: z.string().min(1), value: z.string().min(1) }).optional();
 
 // 테스트 모드의 장면 열쇠. 장면 파일 이름(live/<열쇠>.jpg)에 그대로 들어가 UUID 가 아니면 ../ 로 빠져나갈 수 있다 (SPEC 도메인/러너 §5.2 「테스트 모드 — 실시간 장면」)

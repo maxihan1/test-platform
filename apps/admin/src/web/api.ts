@@ -508,7 +508,7 @@ export interface EnvRow {
   appPath?: string | null;
   /** API 인증 (도메인/API §3.8). 비밀값은 끝 4자리만 온다. API 종류 애플리케이션만 담긴다 — 설정 화면만 받는다 (API-F1-03) */
   apiAuths?: { name: string; tokenUrl: string; clientId: string; clientSecretLast4: string }[];
-  /** 게임 서버 어드민 API 머리 (도메인/게임 §3.10). 값은 끝 4자리만 온다. 게임 종류 애플리케이션만 담긴다 — 설정 화면만 받는다 (GAME-F1-07) */
+  /** 서버 어드민 API 머리 (도메인/게임 §3.10 · 도메인/API §3.8). 값은 끝 4자리만 온다. 게임 · API 종류 애플리케이션만 담긴다 — 설정 화면만 받는다 (GAME-F1-07) */
   adminKey?: { header: string; valueLast4: string } | null;
 }
 

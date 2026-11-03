@@ -3,6 +3,8 @@
 
 import { useState } from 'react';
 
+import { 어드민키종류인가 } from '../settings/roles.js';
+
 import { api, ApiError, type ScheduleSetting, type SettingsServiceRow } from './api.js';
 import { use말, use언어, type 언어 } from './i18n.js';
 import { 떠나기상자 } from './leaveGuard.js';
@@ -41,7 +43,7 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
   const [apiDocPath, setApiDocPath] = useState(row.apiDocPath ?? '');
   const [apiDocEnv, setApiDocEnv] = useState(row.apiDocEnv ?? '');
   const API종류 = kind === 'API';
-  const 게임종류 = kind === 'GAME';
+  const 어드민키종류 = 어드민키종류인가(kind);
   const [제외, set제외] = useState((row.crawlExclude ?? []).join('\n'));
   // 빈 글자와 「안 건드림」은 다르다. null 이면 서버에 아예 안 보낸다 (지금 것을 그대로 둔다)
   const [webhook, setWebhook] = useState<string | null>(null);
@@ -60,7 +62,7 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
   const 못보내는이유 =
     서비스못보내는이유({ 새것: false, prefix: row.prefix, name, testsDir, envs, 제외, 정기실행: schedule }, 언어) ??
     (API종류 ? (API문서못보내는이유({ 경로: apiDocPath, 기준: apiDocEnv, 서버들 }, 언어) ?? API인증못보내는이유(envs, 언어)) : null) ??
-    (게임종류 ? 어드민키못보내는이유(envs, 언어) : null);
+    (어드민키종류 ? 어드민키못보내는이유(envs, 언어) : null);
 
   async function 보낸다() {
     if (못보내는이유 !== null) return;
@@ -76,7 +78,7 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
         name,
         testsRepo,
         testsDir,
-        envs: 보낼모양(envs, API종류, 게임종류),
+        envs: 보낼모양(envs, API종류, 어드민키종류),
         crawlExclude: 제외경로값(제외),
         ...API칸,
         ...(webhook === null ? {} : { slackWebhook: webhook }),
@@ -162,7 +164,7 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
       </구획>
 
       <구획 제목={t('대상 서버§목록')} 쓰임={t('테스트를 실행할 서버 목록입니다. 하나 이상 등록해야 실행할 수 있습니다')}>
-        <EnvEditor envs={envs} onChange={setEnvs} 접두사={row.prefix} api={API종류} 게임={게임종류} />
+        <EnvEditor envs={envs} onChange={setEnvs} 접두사={row.prefix} api={API종류} 어드민키={어드민키종류} />
       </구획>
 
       {API종류 ? <API문서구획 경로={apiDocPath} 바꾼경로={setApiDocPath} 기준={apiDocEnv} 바꾼기준={setApiDocEnv} 서버들={서버들} /> : null}
