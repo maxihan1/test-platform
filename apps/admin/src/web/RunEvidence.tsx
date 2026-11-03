@@ -7,9 +7,9 @@ import { GAME_TREE_FILE } from '@platform/kit/protocol';
 import { api, type FailureDevice, type ItemTrace, type RunItemDetail, type RunItemPage, type StepResult } from './api.js';
 import { 팜영상인가, 팜증적 } from './FarmEvidence.js';
 import { use말, use언어 } from './i18n.js';
-import { show, Step } from './ItemSteps.js';
+import { Step } from './ItemSteps.js';
 import { 기록없음, 네트워크표, 콘솔표 } from './ItemTrace.js';
-import { FPS선, 게임오브젝트, 기기정보, 네트워크눈금 } from './RunEvidenceParts.js';
+import { API증거, FPS선, 게임오브젝트, 기기정보, 네트워크눈금 } from './RunEvidenceParts.js';
 import { type Async, Failed, Loading, PLATFORM_LABEL, seconds, useAsync } from './ui.js';
 
 export type 증거종류 = 'web' | 'app' | 'api';
@@ -126,6 +126,13 @@ function 증거칸({ devices, seq, 상세, 읽기 }: { devices: FailureDevice[];
   const 받기파일 = (d: FailureDevice) => d.farm.filter((f) => f.name !== GAME_TREE_FILE);
   const 목록있음 = (d: FailureDevice): boolean => d.farm.some((f) => f.name === GAME_TREE_FILE);
   const 팜 = devices.flatMap(받기파일);
+  // 받아 둔 것만 탭이 선다 — 앱 항목은 팜이, 실제 폰 모바일 항목은 러너가 받는다(도메인/러너 §5.2 「모바일 웹 — 실제 폰 Chrome」). 그 밖의 웹 항목 · 팜 기능 전 항목에는 없다.
+  // 기기 정보는 폰 연결이 열려 판을 읽은 항목만 — 이 칸 전 기록에는 없다
+  const 폰탭들: { id: 탭; 이름: string }[] = [
+    ...(팜.some((f) => !팜영상인가(f)) ? [{ id: 'log' as const, 이름: 'logcat' }] : []),
+    ...(팜.some(팜영상인가) ? [{ id: 'video' as const, 이름: t('화면 영상') }] : []),
+    ...(devices.some((d) => d.device != null) ? [{ id: 'dev' as const, 이름: t('기기 정보') }] : []),
+  ];
   const 탭들: { id: 탭; 이름: string }[] =
     종류 === 'api'
       ? [
@@ -138,17 +145,9 @@ function 증거칸({ devices, seq, 상세, 읽기 }: { devices: FailureDevice[];
             { id: 'shot', 이름: t('화면') },
             // 게임 항목만 — 데이터 대조를 했거나 통과 못 해 오브젝트 목록이 남았을 때
             ...(devices.some((d) => (d.elementChecks?.length ?? 0) > 0 || 목록있음(d)) ? [{ id: 'obj' as const, 이름: t('오브젝트') }] : []),
-            // 팜이 받아 둔 것만 탭이 선다 — 팜 기능 전 항목은 화면 하나다
-            ...(팜.some((f) => !팜영상인가(f)) ? [{ id: 'log' as const, 이름: 'logcat' }] : []),
-            ...(팜.some(팜영상인가) ? [{ id: 'video' as const, 이름: t('화면 영상') }] : []),
-            // 폰 연결이 열려 판을 읽은 항목만 — 이 칸 전 기록에는 없다
-            ...(devices.some((d) => d.device != null) ? [{ id: 'dev' as const, 이름: t('기기 정보') }] : []),
+            ...폰탭들,
           ]
-        : [
-            { id: 'shot', 이름: t('화면') },
-            { id: 'net', 이름: t('네트워크') },
-            { id: 'con', 이름: t('콘솔') },
-          ];
+        : [{ id: 'shot', 이름: t('화면') }, { id: 'net', 이름: t('네트워크') }, { id: 'con', 이름: t('콘솔') }, ...폰탭들];
   const [탭, set탭] = useState<탭>(탭들[0]!.id);
   const 단계 = (d: FailureDevice): StepResult | undefined => d.item.steps.find((s) => s.seq === seq);
 
@@ -269,36 +268,5 @@ function 단계기록({ trace, seq, 탭, 앞말 }: { trace: ItemTrace | null; se
         <콘솔표 줄들={trace.console.filter((c) => c.seq === seq)} />
       )}
     </>
-  );
-}
-
-function API증거({ step, 탭 }: { step: StepResult | undefined; 탭: 'req' | 'res' | 'diff' }) {
-  const t = use말();
-  const 언어 = use언어();
-  if (탭 !== 'diff') {
-    const 원문 = step?.httpTrace === undefined ? undefined : 탭 === 'req' ? step.httpTrace.request : step.httpTrace.response;
-    return 원문 === undefined ? <p className="fc-faint">{t('이 단계는 API 를 부르지 않았습니다')}</p> : <pre className="ev-json">{JSON.stringify(원문, null, 2)}</pre>;
-  }
-  const 다른것 = step?.assertions.filter((a) => a.status === 'FAIL') ?? [];
-  if (다른것.length === 0) return <p className="fc-faint">{t('이 단계는 기대값과 다른 곳이 없습니다')}</p>;
-  return (
-    <table className="trace-table">
-      <thead>
-        <tr>
-          <th>{t('확인')}</th>
-          <th>{t('기대')}</th>
-          <th>{t('실제')}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {다른것.map((a, i) => (
-          <tr key={i} className="bad">
-            <td>{a.statement}</td>
-            <td className="trace-m">{show(a.expected, 언어)}</td>
-            <td className="trace-m">{show(a.actual, 언어)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
   );
 }

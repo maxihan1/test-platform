@@ -2943,6 +2943,44 @@ input[type='file']::file-selector-button {
   color: var(--ink-faint);
 }
 
+/* 실행 위치 덩이 — 왼쪽에 디바이스, 오른쪽에 어디서 도는지. 모바일 웹 줄만 고른다 (도메인/실행 §8.2 · 시안 A) */
+.run-loc {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 14px;
+  align-items: start;
+  flex: none;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--well);
+  font-size: 13px;
+}
+
+.run-loc-k {
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.run-loc-v {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.run-loc-radios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+.run-loc-radios label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 /* 「테스트 실행」의 케이스 줄마다 붙는 결과 (2026-09-30). 기록이 아니라 임시 결과라 판정 배지만 쓰고 색은 판정에서만 온다 */
 .trial-badge {
   display: inline-flex;

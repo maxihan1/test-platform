@@ -160,6 +160,7 @@ describe('값 바꿔 재실행 (도메인/실행 §8.10)', () => {
     });
     vi.spyOn(api, 'me').mockResolvedValue({ user: { ...사람, services: [{ ...사람.services[0]!, prefix: 'ZID' }] } });
     vi.spyOn(api, 'paramSets').mockResolvedValue({ items: [] });
+    vi.spyOn(api, 'run').mockResolvedValue({ runId: RUN_ID, env: 'qa', status: 'FINISHED', items: [], evidence: [], mobileDevices: [] } as unknown as Awaited<ReturnType<typeof api.run>>);
   }
 
   it('그 항목 애플리케이션에서 실행할 수 있으면 버튼이 선다', async () => {
@@ -197,6 +198,8 @@ describe('값 바꿔 재실행 (도메인/실행 §8.10)', () => {
     const 창 = within(await screen.findByRole('dialog', { name: '실행할 케이스 1건' }));
     expect(((await 창.findByLabelText(/^아이디/)) as HTMLInputElement).value).toBe('u-지난');
     expect((창.getByLabelText('비밀번호') as HTMLInputElement).value).toBe('');
+    // 모바일 실행 위치는 그 항목이 든 실행이 돈 곳으로 미리 고른다 (도메인/실행 §8.10)
+    expect(api.run).toHaveBeenCalledWith(RUN_ID);
   });
 
   it('창의 취소를 누르면 창이 닫힌다', async () => {

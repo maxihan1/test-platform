@@ -41,13 +41,17 @@ function 케이스(tcId: string, 덮어쓸: Partial<CaseRow> = {}): CaseRow {
   };
 }
 
-function 읽기모킹(케이스들: CaseRow[]) {
+const 원래실행 = (mobileDevices: string[]) =>
+  ({ runId: 20914, title: '기능 전체', env: 'qa', status: 'FINISHED', startedAt: '2026-11-04T01:00:00.000Z', items: [], evidence: [], mobileDevices }) as unknown as Awaited<ReturnType<typeof api.run>>;
+
+function 읽기모킹(케이스들: CaseRow[], 실제폰: string[] = []) {
   vi.spyOn(api, 'caseOf').mockImplementation((tcId) => {
     const 찾은 = 케이스들.find((c) => c.tcId === tcId);
     return 찾은 === undefined ? Promise.reject(new Error('케이스가 없습니다')) : Promise.resolve(찾은);
   });
   vi.spyOn(api, 'me').mockResolvedValue({ user: 사람 });
   vi.spyOn(api, 'paramSets').mockResolvedValue({ items: [] });
+  vi.spyOn(api, 'run').mockResolvedValue(원래실행(실제폰));
 }
 
 const 서버고르기 = () => fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
@@ -236,5 +240,30 @@ describe('RunWindow', () => {
     await waitFor(() => expect(on걸었다).toHaveBeenCalledWith(45));
     expect(만들기.mock.calls[0]?.[0]).toMatchObject({ rerunOf: 20914 });
     expect(window.location.hash).toBe('#/cases');
+  });
+
+  it('원래 실행의 모바일이 실제 폰에서 돌았으면 실제 폰을, 아니면 서버 흉내를 미리 고른다 — 다시 실행은 원래 실행이 돈 곳이다', async () => {
+    const 고른것 = () => (screen.getByRole('radio', { name: 'Device VISION (실제 폰 Chrome)' }) as HTMLInputElement).checked;
+    읽기모킹([케이스('ZRS-001', { platforms: ['desktop', 'mobile'] })], ['SM-G996N']);
+    render(<RunWindow tcIds={['ZRS-001']} rerunOf={20914} onClose={vi.fn()} />);
+    await screen.findByRole('dialog');
+    expect(api.run).toHaveBeenCalledWith(20914);
+    expect(고른것()).toBe(true);
+    cleanup();
+    vi.restoreAllMocks();
+
+    읽기모킹([케이스('ZRS-001', { platforms: ['desktop', 'mobile'] })], []);
+    render(<RunWindow tcIds={['ZRS-001']} 위치실행={20914} onClose={vi.fn()} />);
+    await screen.findByRole('dialog');
+    expect(고른것()).toBe(false);
+  });
+
+  it('원래 실행이 없으면 실행을 읽지 않고 서버 흉내로 연다', async () => {
+    읽기모킹([케이스('ZRS-001', { platforms: ['mobile'] })]);
+    render(<RunWindow tcIds={['ZRS-001']} onClose={vi.fn()} />);
+    await screen.findByRole('dialog');
+
+    expect(api.run).not.toHaveBeenCalled();
+    expect((screen.getByRole('radio', { name: '서버 (iPhone 14 흉내)' }) as HTMLInputElement).checked).toBe(true);
   });
 });

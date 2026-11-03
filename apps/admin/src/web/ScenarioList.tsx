@@ -4,12 +4,13 @@
 
 import { Fragment, useState } from 'react';
 
-import { ApiError, type EnvRow, type 앱종류 } from './api.js';
+import { ApiError, type EnvRow, type 앱종류, type 모바일위치 } from './api.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { 종류 } from './kind.js';
 import { 고른서버를적는다, 마지막서버 } from './layout.js';
 import { Modal } from './Modal.js';
+import { RunLocation } from './RunLocation.js';
 import type { 판정 } from './role.js';
 import { scenarioApi, type ScenarioRow } from './scenarioApi.js';
 import { ScenarioWhy } from './ScenarioListWhy.js';
@@ -30,6 +31,8 @@ export function ScenarioList({ service, kind, envs, 할수 }: { service: string;
   // 안내는 한 번에 한 줄 아래에만 둔다 — 앞 줄의 안내를 남기면 어느 줄 이야기인지 흐려진다
   const [안내, set안내] = useState<{ id: number; 글: string } | null>(null);
   const [돌리는중, set돌리는중] = useState<number | null>(null);
+  // 모바일 시나리오의 정식 실행 위치. 기본은 서버 흉내다 — 실행 창과 같다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)
+  const [mobileOn, setMobileOn] = useState<모바일위치>('server');
   const [치울것, set치울것] = useState<ScenarioRow | null>(null);
   // 삭제한 줄은 다시 받지 않고 화면에서 뺀다 — 다시 받기가 실패하면 목록 전체가 오류 화면으로 바뀐다
   const [치운, set치운] = useState<number[]>([]);
@@ -55,7 +58,7 @@ export function ScenarioList({ service, kind, envs, 할수 }: { service: string;
     set안내(null);
     set돌리는중(id);
     try {
-      const { runId } = await scenarioApi.run(id, env);
+      const { runId } = await scenarioApi.run(id, env, mobileOn);
       window.location.hash = 결과주소(runId, 'scenarios');
     } catch (err) {
       set안내({ id, 글: message(err, 언어) });
@@ -95,6 +98,7 @@ export function ScenarioList({ service, kind, envs, 할수 }: { service: string;
             )}
             {/* 앱 · 게임 애플리케이션의 시나리오는 늘 폰 단계로 시작한다 — 목록의 실행은 정식 실행이라 시험 실행 줄은 뺀다 (§3.7 결정 16) */}
             {종류(kind).시나리오디바이스.includes('android') ? <폰실행위치 시험={false} /> : null}
+            {줄들.some((it) => it.platform === 'mobile') ? <RunLocation android={false} 모바일={{ 값: mobileOn, on바꿈: setMobileOn }} /> : null}
           </div>
         )}
 

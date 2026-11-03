@@ -34,6 +34,13 @@ export const 실행말: Record<string, string> = {
   '판정': 'Verdict',
   '디바이스': 'Device',
   '실행 위치 · Device VISION': 'Run location · Device VISION',
+  '모바일 웹': 'Mobile web',
+  '서버 (iPhone 14 흉내)': 'Server (iPhone 14 emulation)',
+  'Device VISION (실제 폰 Chrome)': 'Device VISION (Chrome on a real phone)',
+  '모바일 웹은 Device VISION 실제 폰 Chrome 에서 실행됩니다. 폰 화면은 새 탭에서 봅니다':
+    'Mobile web runs in Chrome on a real Device VISION phone. Watch the phone screen in a new tab',
+  '동작마다 1초씩 쉬어 갑니다': 'Pauses 1 second after each action',
+  '실제 폰 Chrome': 'Chrome on a real phone',
   '케이스마다 빈 폰을 하나씩 잡고 끝나면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 항목에 남습니다':
     'Each case takes a free phone and releases it when done. Screen video and logcat are kept for items that did not pass',
   '실행 하나 동안 빈 폰을 한 번 잡고 다 돌면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 항목에 남습니다':

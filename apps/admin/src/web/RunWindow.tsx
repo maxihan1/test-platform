@@ -3,7 +3,7 @@
 
 import { useMemo, useState } from 'react';
 
-import { api, ApiError, type CaseRow, type Platform, type ServiceRow, type User } from './api.js';
+import { api, ApiError, type CaseRow, type Platform, type ServiceRow, type User, type 모바일위치 } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import { type 글자표, 지난값글자 } from './pickRun.js';
@@ -23,6 +23,7 @@ interface 연것 {
   초기글자: 글자표;
   /** 기준시각 뒤에 저장값이 바뀐 케이스 */
   바뀐저장값: string[];
+  모바일: 모바일위치;
 }
 
 /** 케이스가 선언한 디바이스 가운데 `돌릴` 것만 남긴다. 겹치는 게 없으면 선언 그대로 둔다 — 빈 디바이스로 걸 수는 없다 */
@@ -41,6 +42,8 @@ function 디바이스칸(c: CaseRow, 돌릴?: Platform[]): CaseRow {
  * @param on걸었다 useRunStart 의 그것 — 실행 기록 결과 칸에서 열었으면 주소를 옮기지 않고 새 실행을 고른다
  * @param 디바이스 케이스마다 돌릴 디바이스. 있으면 그 케이스가 선언한 것 가운데 이것만 담는다 — 실패 다시 실행이 실패한 디바이스만 돌리게
  * @param 기준시각 이 시각 뒤에 저장값이 바뀐 케이스를 창 위에 알린다 — 원래 실행과 다른 값으로 돌 수 있어서다
+ * @param 위치실행 모바일 실행 위치를 이 실행이 돈 곳으로 미리 고른다 — 없으면 rerunOf, 둘 다 없으면 서버 흉내다.
+ *   깨진 곳에서 다시 통과해야 고친 것이라 대상 서버처럼 원래 실행을 따른다. 실제 폰 모바일 항목이 있나(mobileDevices)로 읽는다 — 서버가 한 건을 붙일 곳을 가르는 규칙과 같다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)
  */
 export function RunWindow({
   tcIds,
@@ -52,6 +55,7 @@ export function RunWindow({
   디바이스,
   기준시각,
   on걸었다,
+  위치실행 = rerunOf,
 }: {
   tcIds: string[];
   지난값?: Record<string, { params: 값들; expected: 값들 }>;
@@ -62,6 +66,7 @@ export function RunWindow({
   디바이스?: Record<string, Platform[]>;
   기준시각?: string;
   on걸었다?: (runId: number) => void;
+  위치실행?: number;
 }) {
   const t = use말();
   const 언어 = use언어();
@@ -73,7 +78,7 @@ export function RunWindow({
     // ponytail: 케이스마다 한 번씩 읽는다(같이 보낸다). 실패가 수백 건인 실행이 생기면 목록 통로에 tcId 거르개를 연다
     // 카탈로그에 없는 번호(404)는 비활성처럼 빼고 알린다 — 작성 반영 때 중복으로 뺀 새 케이스는 파일째 지워져 카탈로그에 안 든다
     const 읽기 = (tcId: string) => api.caseOf(tcId).catch((err: unknown) => (err instanceof ApiError && err.status === 404 ? tcId : Promise.reject(err)));
-    const [받은, { user }] = await Promise.all([Promise.all(tcIds.map(읽기)), api.me()]);
+    const [받은, { user }, 원래] = await Promise.all([Promise.all(tcIds.map(읽기)), api.me(), 위치실행 === undefined ? null : api.run(위치실행)]);
     const 읽은 = 받은.filter((c): c is CaseRow => typeof c !== 'string');
     const 없는 = 받은.filter((c): c is string => typeof c === 'string');
     // 띠가 아니라 tcId 접두사가 서비스를 말한다 — 알림 주소로 와서 띠가 다른 서비스여도 그 실행의 서버를 고른다
@@ -104,8 +109,9 @@ export function RunWindow({
       user,
       service: user.services.find((it) => it.prefix === 접두사) ?? null,
       초기글자,
+      모바일: (원래?.mobileDevices ?? []).length > 0 ? 'vision' : 'server',
     };
-  }, [tcIds.join(',')]);
+  }, [tcIds.join(','), 위치실행]);
 
   // 저장값을 바꾼 케이스만 새로 읽은 것으로 갈아 낀다. 그릴 때마다 새 배열이면 창의 칸 계산이 매번 다시 돈다
   const 케이스들 = useMemo(
@@ -155,6 +161,7 @@ export function RunWindow({
       거는중={걸기.거는중}
       onClose={onClose}
       원래실행={rerunOf}
+      초기모바일={연.모바일}
       on값고침={걸기.사유지우기}
       on다시읽기={(tcId) => {
         // 저장은 이미 됐다. 다시 읽기만 실패하면 「저장값 · 누가 · 언제」가 옛것이라는 사실을 창에 적는다

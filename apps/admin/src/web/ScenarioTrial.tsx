@@ -44,9 +44,10 @@ export function 폰실행위치({ 시험 = true }: { 시험?: boolean }) {
 /**
  * 시작한 시험의 오른쪽 실시간 칸. 시작 응답이 오기 전에도 누르자마자 칸을 연다.
  * 단계를 바꿔 결과를 비운 시험(idle)은 장면도 안 보인다.
- * Android 시나리오도 장면을 묻는다 — PC 로 도는 웹 단계가 낄 수 있고, 앱 단계뿐이면 장면 없이 VISION 링크만 선다
+ * Android 시나리오도 장면을 묻는다 — PC 로 도는 웹 단계가 낄 수 있고, 앱 단계뿐이면 장면 없이 VISION 링크만 선다.
+ * 모바일 시나리오는 폰을 잡으면 실제 폰 Chrome 이라 장면이 없다 — 링크 칸이다 (도메인/실행 §3.2 「테스트 모드」)
  */
-export function 시험장면({ 시험 }: { 시험: 시험상태 }) {
+export function 시험장면({ 시험, 모바일 = false }: { 시험: 시험상태; 모바일?: boolean }) {
   if (시험.단계 === 'idle' || (시험.trialId === null && 시험.단계 !== 'running')) return null;
   return (
     <장면칸
@@ -54,6 +55,7 @@ export function 시험장면({ 시험 }: { 시험: 시험상태 }) {
       주소={시험.trialId === null ? null : scenarioApi.trialLive(시험.trialId)}
       도는중={시험.단계 === 'running'}
       vision={시험.vision}
+      모바일웹={모바일}
     />
   );
 }

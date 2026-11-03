@@ -9,6 +9,7 @@ import {
   type ItemStatus,
   type ItemTrace,
   type 항목실패,
+  type 모바일위치,
   type JsonSchema,
   type Paged,
   type Platform,
@@ -208,7 +209,8 @@ export const scenarioApi = {
 
   flowJob: (jobId: number) => call<FlowJob>(`/scenarios/flow-suggestions/${jobId}`),
 
-  run: (id: number, env: string) => call<{ runId: number }>(`/scenarios/${id}/runs`, json({ env })),
+  /** mobileOn 은 모바일 시나리오만 읽는다 — 그 밖은 서버가 버린다 (도메인/실행 §3.2 「모바일 웹 실행 위치」) */
+  run: (id: number, env: string, mobileOn: 모바일위치 = 'server') => call<{ runId: number }>(`/scenarios/${id}/runs`, json({ env, mobileOn })),
 
   result: (runId: number) => call<ScenarioRunResult>(`/runs/${runId}/scenario`),
 

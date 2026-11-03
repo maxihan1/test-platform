@@ -21,17 +21,17 @@ afterEach(() => {
 
 const 슬랙서비스: ServiceRow = { ...서비스, hasSlackWebhook: true };
 
-async function 연다(케이스들: CaseRow[], 덮어쓸: { 원래실행?: number; 초기서버?: string } = {}) {
+async function 연다(케이스들: CaseRow[], 덮어쓸: { 원래실행?: number; 초기서버?: string; 초기모바일?: 'server' | 'vision' } = {}) {
   render(<RunPickModal 케이스들={케이스들} service={슬랙서비스} user={사람} onRun={vi.fn()} onClose={vi.fn()} 초기서버="qa" {...덮어쓸} />);
   await act(async () => {});
 }
 
 const 줄글 = () => document.querySelector('.mdest')?.textContent;
 
-function 원래실행(attempt: number, env = 'qa'): RunDetail & { evidence: [] } {
+function 원래실행(attempt: number, env = 'qa', 실제폰: string[] = []): RunDetail & { evidence: []; mobileDevices: string[] } {
   return {
     runId: 40, title: '기능 전체 실행', triggeredBy: 'zrs1', triggeredByName: '김실행', env, baseUrl: '', serviceName: '', status: 'FINISHED',
-    startedAt: '2026-10-29T01:00:00.000Z', finishedAt: '2026-10-29T02:00:00.000Z', counts: { total: 1, pass: 0, fail: 1, na: 0, running: 0 }, evidence: [],
+    startedAt: '2026-10-29T01:00:00.000Z', finishedAt: '2026-10-29T02:00:00.000Z', counts: { total: 1, pass: 0, fail: 1, na: 0, running: 0 }, evidence: [], mobileDevices: 실제폰,
     items: [{ historyId: 1, tcId: 'ZRS-001', tcName: '', platform: 'desktop', attempt, params: {}, paramSchema: {}, status: 'FAIL', durationMs: 1, error: null, startedAt: '', finishedAt: '' }],
   };
 }
@@ -40,7 +40,7 @@ describe('결과가 남는 곳', () => {
   it('한 건이면 붙을 실행을 고른 서버 · 디바이스로 물어 RUN 번호와 제목을 적는다', async () => {
     const 물음 = vi.spyOn(api, 'rerunTarget').mockResolvedValue({ target: { runId: 38, title: '밤 전체 테스트', startedAt: '2026-10-29T01:00:00.000Z' } });
     await 연다([케이스]);
-    expect(물음).toHaveBeenCalledWith('ZRS-001', 'qa', ['desktop']);
+    expect(물음).toHaveBeenCalledWith('ZRS-001', 'qa', ['desktop'], 'server');
     expect(줄글()).toMatch(/^결과가 남는 곳RUN 38 결과에 다시 실행으로 붙습니다 · 밤 전체 테스트 · /);
   });
 
@@ -55,7 +55,7 @@ describe('결과가 남는 곳', () => {
     await 연다([케이스]);
     fireEvent.change(document.getElementById('pick-env')!, { target: { value: 'stage' } });
     await act(async () => {});
-    expect(물음).toHaveBeenLastCalledWith('ZRS-001', 'stage', ['desktop']);
+    expect(물음).toHaveBeenLastCalledWith('ZRS-001', 'stage', ['desktop'], 'server');
   });
 
   it('한 건 · 반복 1 이면 Slack 칸을 숨기고, 반복을 올리면 새 RUN 이라 적고 다시 보인다', async () => {
@@ -95,7 +95,20 @@ describe('결과가 남는 곳', () => {
     const 물음 = vi.spyOn(api, 'rerunTarget').mockResolvedValue({ target: null });
     vi.spyOn(api, 'run').mockResolvedValue(원래실행(1, 'stage'));
     await 연다([케이스], { 원래실행: 40 });
-    expect(물음).toHaveBeenCalledWith('ZRS-001', 'qa', ['desktop']);
+    expect(물음).toHaveBeenCalledWith('ZRS-001', 'qa', ['desktop'], 'server');
+    expect(줄글()).toBe('결과가 남는 곳아직 전체 테스트에 들어간 적이 없어 이 케이스 상세에만 남습니다');
+  });
+
+  it('모바일이 든 한 건은 원래 실행과 실행 위치가 같아야 붙고, 바꾸면 그 위치로 다시 묻는다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)', async () => {
+    const 물음 = vi.spyOn(api, 'rerunTarget').mockResolvedValue({ target: null });
+    vi.spyOn(api, 'run').mockResolvedValue(원래실행(1, 'qa', ['SM-G996N']));
+    await 연다([{ ...케이스, platforms: ['mobile'] }], { 원래실행: 40, 초기모바일: 'vision' });
+    expect(줄글()).toMatch(/^결과가 남는 곳RUN 40 결과에 다시 실행으로 붙습니다 · /);
+    expect(물음).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('radio', { name: '서버 (iPhone 14 흉내)' }));
+    await act(async () => {});
+    expect(물음).toHaveBeenCalledWith('ZRS-001', 'qa', ['mobile'], 'server');
     expect(줄글()).toBe('결과가 남는 곳아직 전체 테스트에 들어간 적이 없어 이 케이스 상세에만 남습니다');
   });
 });

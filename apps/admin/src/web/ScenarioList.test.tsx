@@ -218,7 +218,21 @@ describe('ScenarioList 실행', () => {
     fireEvent.click(within(행(container, 1)).getByRole('button', { name: '실행' }));
 
     await waitFor(() => expect(window.location.hash).toBe('#/runs/55?from=scenarios'));
-    expect(실행).toHaveBeenCalledWith(2, 'stg');
+    expect(실행).toHaveBeenCalledWith(2, 'stg', 'server');
+    expect(screen.queryByRole('radiogroup', { name: '모바일 웹' })).toBeNull();
+  });
+
+  it('모바일 시나리오가 있으면 모바일 웹 실행 위치를 고르고, 기본은 서버 흉내다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)', async () => {
+    const 실행 = vi.spyOn(scenarioApi, 'run').mockResolvedValue({ runId: 56 });
+    const { container } = await 그리기([줄(1), 줄(2, { platform: 'mobile' })]);
+    await screen.findByText(/ZSM 시나리오 1/);
+    fireEvent.change(screen.getByRole('combobox', { name: '대상 서버' }), { target: { value: 'qa' } });
+
+    expect((screen.getByRole('radio', { name: '서버 (iPhone 14 흉내)' }) as HTMLInputElement).checked).toBe(true);
+    fireEvent.click(screen.getByRole('radio', { name: 'Device VISION (실제 폰 Chrome)' }));
+    fireEvent.click(within(행(container, 1)).getByRole('button', { name: '실행' }));
+
+    await waitFor(() => expect(실행).toHaveBeenCalledWith(2, 'qa', 'vision'));
   });
 
   it('서버가 거절하면 그 문장을 그 줄 아래에 보인다', async () => {

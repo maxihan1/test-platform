@@ -140,7 +140,7 @@ describe('실행 창 실행 위치', () => {
   it('Android 앱 애플리케이션은 고른 케이스에 앱이 없어도 늘 보이고 팜이 하는 일을 덧붙인다', () => {
     render(<RunLocation android={false} 앱종류="APP" />);
 
-    expect(screen.getByText('실행 위치 · Device VISION')).toBeTruthy();
+    expect([screen.getByText('Android 앱'), screen.getByText('Device VISION')].every(Boolean)).toBe(true);
     expect(screen.getByText('케이스마다 빈 폰을 하나씩 잡고 끝나면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 항목에 남습니다')).toBeTruthy();
   });
 
@@ -154,7 +154,7 @@ describe('실행 창 실행 위치', () => {
   it('웹 애플리케이션은 지금처럼 앱 케이스가 있을 때 한 줄만이다', () => {
     render(<RunLocation android 앱종류="SCREEN" />);
 
-    expect(screen.getByText('실행 위치 · Device VISION')).toBeTruthy();
+    expect(screen.getByText('Device VISION')).toBeTruthy();
     expect(screen.queryByText(/빈 폰을 하나씩/)).toBeNull();
   });
 });

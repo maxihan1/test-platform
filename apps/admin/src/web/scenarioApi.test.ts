@@ -71,7 +71,7 @@ describe('시나리오 서버 호출 모음', () => {
         { name: '결제', platform: 'desktop', parts: 부품, baseVersion: 3 },
       ],
       [() => scenarioApi.restore(12, 2), '/api/scenarios/12/restore', 'POST', { version: 2 }],
-      [() => scenarioApi.run(12, 'stage'), '/api/scenarios/12/runs', 'POST', { env: 'stage' }],
+      [() => scenarioApi.run(12, 'stage', 'vision'), '/api/scenarios/12/runs', 'POST', { env: 'stage', mobileOn: 'vision' }],
       [
         () => scenarioApi.startTrial({ service: 'PAY', env: 'stage', platform: 'desktop', parts: 부품 }),
         '/api/scenario-trials',

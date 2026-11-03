@@ -25,12 +25,18 @@ export function 띠색(run: Pick<RunListRow, 'status' | 'counts'>): string {
 
 /**
  * 실행 위치 — 웹은 디바이스마다 브라우저, 앱 · 게임은 디바이스 팜과 폰 모델 (도메인/실행 §8.7 「줄」 · 시안 11판).
- * 모바일은 iPhone 14 화면의 WebKit 으로 돌아서(playwright.config.ts) 시안의 「모바일 Chrome」 대신 「모바일 Safari」다 (2026-10-30 사용자)
+ * 서버 흉내 모바일은 iPhone 14 화면의 WebKit 으로 돌아서(playwright.config.ts) 시안의 「모바일 Chrome」 대신 「모바일 Safari」다 (2026-10-30 사용자).
+ * 실제 폰 Chrome 에서 돈 모바일은 앱처럼 「Device VISION · 폰 모델」이다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)
  */
-export function 실행위치(run: Pick<RunListRow, 'platforms' | 'devices'>, t: ReturnType<typeof use말>): string[] {
-  const [첫폰, ...남은폰] = run.devices ?? [];
-  const 폰글 = 첫폰 === undefined ? [] : [남은폰.length === 0 ? 첫폰 : t('{모델} 외 {수}대', { 모델: 첫폰, 수: 남은폰.length })];
-  const 글: Record<Platform, string[]> = { desktop: ['PC Chrome'], mobile: [t('모바일 Safari')], android: [t('Device VISION'), ...폰글] };
+export function 실행위치(run: Pick<RunListRow, 'platforms' | 'devices' | 'mobileDevices'>, t: ReturnType<typeof use말>): string[] {
+  const 폰글 = ([첫폰, ...남은폰]: string[]): string[] =>
+    첫폰 === undefined ? [] : [남은폰.length === 0 ? 첫폰 : t('{모델} 외 {수}대', { 모델: 첫폰, 수: 남은폰.length })];
+  const 실제폰 = run.mobileDevices ?? [];
+  const 글: Record<Platform, string[]> = {
+    desktop: ['PC Chrome'],
+    mobile: 실제폰.length === 0 ? [t('모바일 Safari')] : [t('Device VISION'), ...폰글(실제폰)],
+    android: [t('Device VISION'), ...폰글(run.devices ?? [])],
+  };
   return 디바이스순서.filter((p) => run.platforms?.includes(p) === true).flatMap((p) => 글[p]);
 }
 

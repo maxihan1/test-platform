@@ -136,7 +136,7 @@ describe('한 건 창 — 디바이스 · 실행 위치', () => {
     const { onRun } = await 그린다({ ...케이스, platforms: ['android'] });
     서버고르기();
 
-    expect(screen.getByText('실행 위치 · Device VISION')).toBeTruthy();
+    expect(screen.getByText('Device VISION')).toBeTruthy();
     fireEvent.click(실행버튼());
 
     expect(onRun.mock.calls[0]?.[0]).not.toHaveProperty('location');
@@ -150,6 +150,18 @@ describe('한 건 창 — 디바이스 · 실행 위치', () => {
 
     expect(screen.queryByText(/실행 위치/)).toBeNull();
     expect(onRun.mock.calls[0]?.[0]).not.toHaveProperty('location');
+  });
+
+  it('모바일을 끄면 모바일 웹 실행 위치 줄이 사라지고 mobileOn 을 싣지 않는다', async () => {
+    const { onRun } = await 그린다(둘다);
+    서버고르기();
+    expect(screen.getByRole('radiogroup', { name: '모바일 웹' })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('checkbox', { name: '모바일' }));
+    fireEvent.click(실행버튼());
+
+    expect(screen.queryByRole('radiogroup', { name: '모바일 웹' })).toBeNull();
+    expect(onRun.mock.calls[0]?.[0]).not.toHaveProperty('mobileOn');
   });
 });
 

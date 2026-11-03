@@ -154,6 +154,28 @@ describe('장면칸', () => {
     expect(screen.getByText('이 케이스는 Device VISION 폰에서 실행됩니다. 폰 화면은 새 탭에서 봅니다')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Device VISION 에서 보기 ↗' })).toBeTruthy();
   });
+
+  it('모바일 웹은 폰을 잡기 전에는 장면을 기다리고, 잡으면 실제 폰 Chrome 이라 장면을 그만 묻고 VISION 으로 보낸다 — 앱 단계라고 하지 않는다', async () => {
+    const 받기 = vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'empty' });
+    const { rerender } = render(<장면칸 주소={주소} 도는중 vision={null} 모바일웹 />);
+    await 흘리기();
+
+    expect(받기).toHaveBeenCalled();
+    expect(screen.getByText('브라우저 화면을 기다리고 있습니다. 앞 실행이 끝나야 시작할 때도 있습니다')).toBeTruthy();
+
+    rerender(<장면칸 주소={주소} 도는중 vision="https://vision.example/#phone=R3C&view=k1" 모바일웹 />);
+    await 흘리기();
+    받기.mockClear();
+    await 흘리기(1000);
+
+    expect(받기).not.toHaveBeenCalled();
+    expect(screen.getByText('폰 화면')).toBeTruthy();
+    expect(screen.getByText('실제 폰 Chrome')).toBeTruthy();
+    expect(screen.getByText('모바일 웹은 Device VISION 실제 폰 Chrome 에서 실행됩니다. 폰 화면은 새 탭에서 봅니다')).toBeTruthy();
+    expect(screen.getByText('동작마다 1초씩 쉬어 갑니다')).toBeTruthy();
+    expect(screen.queryByText(/앱 단계/)).toBeNull();
+    expect(screen.getByRole('link', { name: 'Device VISION 에서 보기 ↗' })).toBeTruthy();
+  });
 });
 
 describe('장면통로.받기', () => {
