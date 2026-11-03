@@ -1045,6 +1045,7 @@ describe('Origin 검사', () => {
   it('같은 host 에서 온 POST 는 지나간다 — 기본 포트 · 대소문자 차이는 같은 host 다', async () => {
     expect((await 보내기('POST', '/api/auth/login', { origin: `https://${여기}` })).statusCode).toBe(200);
     expect((await 보내기('POST', '/api/auth/login', { origin: `https://${여기}:443`, host: 'Commander.maxihan.com' })).statusCode).toBe(200);
+    expect((await 보내기('POST', '/api/auth/login', { origin: `https://${여기}`, host: `${여기}:443` })).statusCode).toBe(200);
     expect((await 보내기('POST', '/api/auth/login', { origin: 'http://localhost:5173', host: 'localhost:5173' })).statusCode).toBe(200);
   });
 

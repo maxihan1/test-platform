@@ -4,13 +4,14 @@
 import httpProxy from '@fastify/http-proxy';
 import type { FastifyInstance } from 'fastify';
 
+import { 쿠키이름들 } from '../auth/session.js';
+
 // 플랫폼 출입증만 뺀다. grafana_session 같은 Grafana 자기 쿠키는 그대로 넘겨야 화면이 돈다
-// 두 이름을 다 뺀다 — https 설치가 __Host- 이름으로 바꾼 뒤에도 브라우저에 옛 이름이 남아 있다 (auth/session.ts 쿠키이름)
 function 플랫폼쿠키뺌(cookie: string): string {
   return cookie
     .split(';')
     .map((조각) => 조각.trim())
-    .filter((조각) => 조각 !== '' && !조각.startsWith('platform_session=') && !조각.startsWith('__Host-platform_session='))
+    .filter((조각) => 조각 !== '' && !쿠키이름들.some((이름) => 조각.startsWith(`${이름}=`)))
     .join('; ');
 }
 
