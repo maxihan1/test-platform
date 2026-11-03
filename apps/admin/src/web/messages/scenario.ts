@@ -67,6 +67,7 @@ export const 시나리오말: Record<string, string> = {
   '저장하는 중': 'Saving',
   '저장했습니다 · v{버전}': 'Saved · v{버전}',
   '실행 권한이 있어야 고치고 돌릴 수 있습니다': 'You need run permission to edit and run this',
+  '테스트만 하는 권한이라 저장된 시나리오를 그대로 시험 실행합니다': 'With test-only permission, trial runs use the saved scenario as is',
   '삭제한 시나리오라 보기만 할 수 있습니다': 'This scenario was deleted, so it is view-only',
   '{서비스} 애플리케이션의 시나리오입니다': 'This scenario belongs to the {서비스} application',
   '시나리오 이름을 적어야 저장할 수 있습니다': 'Enter a scenario name to save',

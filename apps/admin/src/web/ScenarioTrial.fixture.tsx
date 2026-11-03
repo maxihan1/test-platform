@@ -7,7 +7,7 @@ import { type ServiceRow, type User } from './api.js';
 import { scenarioApi, type CasePartMaterial, type ScenarioDetail } from './scenarioApi.js';
 import { ScenarioBuild } from './ScenarioBuild.js';
 
-export const 서비스 = (prefix: string, runs: 'read' | 'write' = 'write'): ServiceRow => ({
+export const 서비스 = (prefix: string, runs: 'read' | 'trial' | 'write' = 'write'): ServiceRow => ({
   id: 1,
   prefix,
   name: `${prefix} 애플리케이션`,
@@ -16,7 +16,7 @@ export const 서비스 = (prefix: string, runs: 'read' | 'write' = 'write'): Ser
   hasSlackWebhook: false,
   permissions: { cases: 'read', runs, authoring: 'read' },
 });
-export const 사람 = (runs: 'read' | 'write' = 'write'): User => ({
+export const 사람 = (runs: 'read' | 'trial' | 'write' = 'write'): User => ({
   username: 'zsb',
   displayName: '조립자',
   role: 'member',

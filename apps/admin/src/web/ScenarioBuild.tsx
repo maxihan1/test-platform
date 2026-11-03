@@ -39,6 +39,8 @@ export function ScenarioBuild({
   const 초안 = useScenarioDraft(id, 띠서비스?.prefix ?? null, 종류(띠서비스?.kind).시나리오디바이스[0]);
   const 판정 = 판정을만든다(user, 초안.서비스);
   const 쓰나 = 판정('실행') && 초안.살아있나;
+  // 실행 칸이 trial 이면 저장된 시나리오를 고치지 않고 그대로 시험 실행만 한다 (도메인/인증 §3.5 「테스트 모드」 · TMO-F5-02 시안 C)
+  const 시험하나 = 판정('테스트실행') && 초안.살아있나;
   const 시험 = useScenarioTrial(시험열쇠(id));
   // 대상 서버는 기본값을 두지 않는다 — 실수로 운영 서버에 시험 실행을 보내지 않게 사람이 고른다.
   // 아직 안 골랐으면 이 서비스에서 마지막에 고른 서버(하나뿐이면 그 서버)를 쓴다(공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」). 서비스는 불러온 뒤에야 알아 상태로 두지 않는다
@@ -199,7 +201,7 @@ export function ScenarioBuild({
           </option>
         ))}
       </select>
-      {!쓰나 ? null : (
+      {!시험하나 ? null : (
         <TrialControls
           서버들={서버들}
           서버={서버}
@@ -234,7 +236,7 @@ export function ScenarioBuild({
       <Head 클래스="scn-head" 제목={id === null ? t('새 시나리오') : `SC-${id}`} 부제={부제} 행동={행동} />
 
       <div className="screen scn-screen">
-        {폰단계있나(앱들, 초안.단계들) ? <폰실행위치 /> : 초안.디바이스 === 'mobile' ? <모바일실행위치 {...정식.위치} /> : null}
+        {폰단계있나(앱들, 초안.단계들) ? <폰실행위치 /> : 초안.디바이스 === 'mobile' && 판정('실행') ? <모바일실행위치 {...정식.위치} /> : null}
         {/* 그 애플리케이션 칩에 없는 디바이스로 저장된 옛 시나리오 — 서버가 저장 · 실행을 거절하니 미리 알린다 (§3.7 결정 16) */}
         {칩들.includes(초안.디바이스) ? null : (
           <p className="scn-note">{t('이 애플리케이션은 디바이스 「{디바이스}」로만 돌립니다. 디바이스를 바꿔 저장합니다', { 디바이스: 칩들.map((p) => t(PLATFORM_LABEL[p])).join(' · ') })}</p>
@@ -249,7 +251,7 @@ export function ScenarioBuild({
             {시험알림}
           </p>
         )}
-        {판정('실행') ? null : <p className="scn-note">{t('실행 권한이 있어야 고치고 돌릴 수 있습니다')}</p>}
+        {판정('실행') ? null : <p className="scn-note">{시험하나 ? t('테스트만 하는 권한이라 저장된 시나리오를 그대로 시험 실행합니다') : t('실행 권한이 있어야 고치고 돌릴 수 있습니다')}</p>}
         {초안.살아있나 ? null : <p className="scn-note">{t('삭제한 시나리오라 보기만 할 수 있습니다')}</p>}
         {띠서비스 === null || 띠서비스.prefix === 초안.서비스 ? null : (
           <p className="scn-note">{t('{서비스} 애플리케이션의 시나리오입니다', { 서비스: 서비스이름 })}</p>
@@ -268,15 +270,16 @@ export function ScenarioBuild({
               고른번호={고른번호}
               on고르기={카드고름}
               on탭={탭옮김}
-              시험요약={쓰나 ? <TrialSummary 시험={시험} on자세히={() => 탭옮김('trial')} /> : undefined}
+              시험요약={시험하나 ? <TrialSummary 시험={시험} on자세히={() => 탭옮김('trial')} /> : undefined}
             />
           </section>
           <section className="scn-build-panel" aria-label={t('단계 추가 · 설정')}>
-            <ScenarioTabs 탭={탭} on탭={탭옮김} 고른번호={고른번호} 쓰나={쓰나} 이력있나={id !== null}>
+            <ScenarioTabs 탭={탭} on탭={탭옮김} 고른번호={고른번호} 쓰나={쓰나} 시험하나={시험하나} 이력있나={id !== null}>
               <ScenarioBuildTabs
                 id={id}
                 탭={탭}
                 쓰나={쓰나}
+                시험하나={시험하나}
                 초안={초안}
                 앱들={앱들}
                 고른번호={고른번호}

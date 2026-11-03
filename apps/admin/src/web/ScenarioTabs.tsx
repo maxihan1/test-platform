@@ -15,6 +15,7 @@ export function ScenarioTabs({
   on탭,
   고른번호,
   쓰나,
+  시험하나 = 쓰나,
   이력있나,
   children,
 }: {
@@ -22,13 +23,16 @@ export function ScenarioTabs({
   on탭: (탭: 조립탭) => void;
   고른번호: number | null;
   쓰나: boolean;
+  /** 시험 실행을 하나 — 실행 칸 trial 은 고치지 못하고(단계 추가 없음) 시험 결과만 본다. 안 주면 쓰나와 같다 */
+  시험하나?: boolean;
   이력있나: boolean;
   children?: ReactNode;
 }) {
   const t = use말();
   const 보이는: { 값: 조립탭; 글: string }[] = [
     ...(고른번호 === null ? [] : [{ 값: 'settings' as const, 글: t('{번호}번 설정', { 번호: 고른번호 })}]),
-    ...(쓰나 ? [{ 값: 'add' as const, 글: t('단계 추가') }, { 값: 'trial' as const, 글: t('시험 결과') }] : []),
+    ...(쓰나 ? [{ 값: 'add' as const, 글: t('단계 추가') }] : []),
+    ...(시험하나 ? [{ 값: 'trial' as const, 글: t('시험 결과') }] : []),
     ...(이력있나 ? [{ 값: 'history' as const, 글: t('변경 이력') }] : []),
   ];
   // 고른 카드를 빼는 것처럼 지금 탭이 사라져도 빈 칸을 그리지 않는다
