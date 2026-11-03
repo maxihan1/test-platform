@@ -70,6 +70,7 @@ export function 케이스줄({
   뒤집기,
   열림 = false,
   on실행,
+  테스트만 = false,
   on열기,
   on스모크,
   요구보나 = false,
@@ -84,6 +85,8 @@ export function 케이스줄({
   열림?: boolean;
   /** 줄의 ▶ — 그 한 건으로 실행 창을 연다. 고른 서비스에서 실행 쓰기가 아니면 오지 않고 버튼도 없다 (화면공통 §8) */
   on실행?: (row: CaseRow) => void;
+  /** 실행 칸이 `trial` 이다 — ▶ 가 기록 없는 테스트 실행 창을 연다 (도메인/인증 §3.5 「테스트 모드」) */
+  테스트만?: boolean;
   on열기: (tcId: string) => void;
   /** 스모크 칩을 고칠 수 있을 때만 온다(cases write) — 없으면 켜진 칩만 글자로 보인다 */
   on스모크?: () => Promise<unknown>;
@@ -162,8 +165,8 @@ export function 케이스줄({
           <button
             type="button"
             className="btn ghost icon"
-            aria-label={t('{케이스} 실행', { 케이스: row.tcId })}
-            title={t('실행')}
+            aria-label={테스트만 ? t('{케이스} 테스트 실행', { 케이스: row.tcId }) : t('{케이스} 실행', { 케이스: row.tcId })}
+            title={테스트만 ? t('테스트 실행') : t('실행')}
             onClick={() => on실행(row)}
           >
             <아이콘 이름="run" />

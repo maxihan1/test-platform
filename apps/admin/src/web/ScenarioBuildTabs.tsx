@@ -18,6 +18,8 @@ interface Props {
   id: number | null;
   탭: 조립탭;
   쓰나: boolean;
+  /** 시험 결과 탭을 그리나 — 실행 칸 trial 은 고치지 못해도 시험 실행은 한다 (도메인/인증 §3.5 「테스트 모드」) */
+  시험하나: boolean;
   초안: ReturnType<typeof useScenarioDraft>;
   /** 시나리오 서비스와 같은 프로젝트의 애플리케이션 (도메인/시나리오 §8.11) */
   앱들: readonly 앱줄[];
@@ -34,7 +36,7 @@ interface Props {
 }
 
 export function ScenarioBuildTabs(props: Props) {
-  const { 탭, 쓰나, 초안, 앱들, 고른번호, 바꿀번호, on케이스, on다른단계, on바꾸기취소 } = props;
+  const { 탭, 쓰나, 시험하나, 초안, 앱들, 고른번호, 바꿀번호, on케이스, on다른단계, on바꾸기취소 } = props;
   // 팔레트는 단계 추가 탭을 한 번 연 뒤로는 그려 두고 가리기만 한다. 내리면 단계를 넣을 때마다 케이스 목록을 처음부터 다시 받고
   // 찾기 글자가 지워진다. 한 번도 안 열었으면 안 그린다 — 설정만 보는 사람이 목록을 20쪽씩 받을 까닭이 없다
   const [열었나, set열었나] = useState(탭 === 'add');
@@ -62,7 +64,7 @@ export function ScenarioBuildTabs(props: Props) {
           />
         </div>
       )}
-      {!쓰나 || !시험열었나 ? null : <div hidden={탭 !== 'trial'}>{props.시험}</div>}
+      {!시험하나 || !시험열었나 ? null : <div hidden={탭 !== 'trial'}>{props.시험}</div>}
       {탭 === 'add' || 탭 === 'trial' ? null : <TabBody {...props} 지도={지도} />}
     </>
   );

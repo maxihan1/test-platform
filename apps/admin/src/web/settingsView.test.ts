@@ -305,6 +305,7 @@ describe('프로젝트줄들 — 프로젝트마다 그 안의 애플리케이�
 describe('권한 묶음 경고 (도메인/인증 §3.5 · §8.8)', () => {
   it('실행 쓰기에 케이스 안 씀이면 케이스가 안 보인다고 알린다. 막지는 않는다', () => {
     expect(권한경고({ cases: 'none', runs: 'write', authoring: 'read' })).toBe('noCases');
+    expect(권한경고({ cases: 'none', runs: 'trial', authoring: 'read' })).toBe('noCases');
   });
 
   it('셋 다 안 씀이면 저장할 수 없다', () => {
