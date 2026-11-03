@@ -977,7 +977,15 @@ export function 돌아갈자리를꺼낸다(): string | null {
  *
  * 화면 다섯 곳에 각각 넣지 않는다. call() 이 모든 요청의 길목이다.
  */
+// 로그아웃 중에는 다른 요청(목록 새로 읽기 등)의 401 을 가로채지 않는다 — 출입증을 지운 뒤라 401 이 정상이다.
+// 가로채면 로그아웃 답이 오기 전엔 로그인 화면이 Auth_platform 으로 다시 보내고, 온 뒤엔 해시를 바꿔 Auth 로그아웃으로 떠나는 이동이 끊긴다 (도메인/인증 §8.6)
+let 나가는중 = false;
+export function 나가는중이다(값: boolean): void {
+  나가는중 = 값;
+}
+
 function 로그인으로보낸다(): void {
+  if (나가는중) return;
   try {
     // 화면 하나가 요청 셋을 동시에 보낸다 (케이스 목록이 cases·scan·last-by-case).
     // 먼저 온 401 이 이미 자리를 적었으면 덮어쓰지 않는다 —
@@ -1092,7 +1100,8 @@ export const api = {
   login: (username: string, password: string) =>
     call<{ user: User }>('/auth/login', json({ username, password })),
 
-  logout: () => call<undefined>('/auth/logout', { method: 'POST' }),
+  /** maxihan 계정(SSO) 출입증이면 Auth_platform 세션까지 끊을 주소가 온다. 비밀번호 로그인 · 옛 출입증은 빈 답(204)이다 (도메인/인증 §7) */
+  logout: () => call<{ redirect?: string } | undefined>('/auth/logout', { method: 'POST' }),
 
   /** 로그인 화면이 그릴 모양 — maxihan 계정 버튼인가, 아이디 · 비밀번호 칸인가 (도메인/인증 §8.6) */
   methods: () => call<{ sso: boolean }>('/auth/methods'),

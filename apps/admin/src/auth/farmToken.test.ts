@@ -68,7 +68,7 @@ describe.skipIf(연결 === undefined)('디바이스 팜 토큰 통로', () => {
       url: 'http://127.0.0.1:9/oauth2/authorize?client_id=test-platform',
       왕복: { state: 'xft-state', nonce: 'xft-nonce', verifier: 'xft-verifier' },
     });
-    vi.mocked(교환).mockResolvedValue({ sub: 'xft-sub-me', username: 'xft-me', displayName: '팜 토큰 사람' });
+    vi.mocked(교환).mockResolvedValue({ sub: 'xft-sub-me', username: 'xft-me', displayName: '팜 토큰 사람', idToken: 'id.xft-sub-me' });
     const 굽기 = (res: LightMyRequestResponse): Record<string, string> => {
       const 값 = res.cookies.find((c) => c.name === 'platform_session')?.value;
       return 값 === undefined ? {} : { platform_session: 값 };

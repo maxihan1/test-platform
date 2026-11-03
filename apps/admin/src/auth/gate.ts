@@ -209,6 +209,8 @@ const 로그인없이통과 = new Set([
   '/api/auth/methods',
   '/api/auth/sso/start',
   '/api/auth/sso/callback',
+  // Auth_platform 서버가 부른다 — 사람 출입증이 없다. logout_token 의 서명을 라우트가 본다 (auth/sso.ts)
+  '/api/auth/backchannel-logout',
 ]);
 
 // 비밀번호 변경 강제 중인 계정이 부를 수 있는 셋 (SPEC 도메인/인증 §7). `METHOD 틀` 모양이고 HEAD 는 GET 으로 본다

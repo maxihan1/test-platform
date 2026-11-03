@@ -45,6 +45,7 @@ export const 라우트표: Record<string, 원천> = {
   '/api/auth/methods': { 종류: '안매임' },
   '/api/auth/sso/start': { 종류: '안매임' },
   '/api/auth/sso/callback': { 종류: '안매임' },
+  '/api/auth/backchannel-logout': { 종류: '안매임' },
 
   // 설정은 시스템 전체다. admin 등급이면 열린다 (SPEC §3.5)
   '/api/settings/projects': { 종류: '안매임' },

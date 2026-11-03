@@ -41,10 +41,25 @@ export function 막로그인표시를뗀다(): boolean {
 /**
  * 로그인 화면이 Auth_platform 으로 바로 보내지 않고 카드를 그리게 알림을 단다 (도메인/인증 §8.6).
  * `failed` — 막 돌아왔는데(`?sso=ok`) 로그인 확인이 실패했다. 안 달면 다시 보내 둘이 끝없이 오간다.
- * `out` — 로그아웃했다. 로그아웃은 Auth_platform 세션을 남기므로 안 달면 그 세션이 곧장 다시 들여보낸다
+ * `out` — 로그아웃했다. Auth_platform 세션이 남은 채라면 안 달면 그 세션이 곧장 다시 들여보낸다
  */
 export function sso알림을단다(값: 'failed' | 'out'): void {
   window.history.replaceState(window.history.state, '', `${window.location.pathname}?sso=${값}${window.location.hash}`);
+}
+
+/**
+ * SSO 로그아웃 요청이 끝난 뒤 (도메인/인증 §8.6 「내 메뉴」). 브라우저에 로그아웃 표시를 두고, 서버가 Auth_platform 로그아웃 주소를 줬으면 그리로 떠난다 — 떠났으면 참.
+ * 돌아오면 이 표시로 카드를 그린다. 지금 자리를 기록에서 바꿔 끼워 뒤로 가기가 로그인된 화면으로 가지 않게 한다.
+ * 주소가 없으면(옛 출입증 · Auth 에 못 닿음 · 요청 실패) 이 탭에 out 알림을 달고 거짓이다 — 부른 쪽이 카드를 그린다
+ */
+export function SSO로그아웃뒤(redirect: string | undefined, 떠난다 = (주소: string) => window.location.replace(주소)): boolean {
+  로그아웃표시를단다();
+  if (redirect !== undefined) {
+    떠난다(redirect);
+    return true;
+  }
+  sso알림을단다('out');
+  return false;
 }
 
 // 브라우저가 저장을 막아도 로그인 화면은 떠야 한다 — 읽기는 빈 값, 쓰기는 조용히 넘어간다.

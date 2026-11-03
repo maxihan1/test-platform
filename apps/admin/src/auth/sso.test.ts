@@ -1,4 +1,5 @@
 // maxihan 계정(SSO) 로그인 왕복을 문과 함께 실제 DB 로 본다. Auth_platform 쪽(oidc.ts)은 가짜로 끼운다. DATABASE_URL이 있을 때만 돈다
+// 로그아웃 · back-channel 로그아웃은 singleLogout.test.ts 가 본다
 
 import Fastify, { type FastifyInstance, type LightMyRequestResponse } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -79,7 +80,7 @@ describe.skipIf(연결 === undefined)('maxihan 계정(SSO) 로그인', () => {
     return { start, back };
   }
 
-  const 사람 = (sub: string, username: string): 받은사람 => ({ sub, username, displayName: `${username} 이름` });
+  const 사람 = (sub: string, username: string): 받은사람 => ({ sub, username, displayName: `${username} 이름`, idToken: `id.${sub}` });
 
   async function 행(username: string) {
     const { pool } = await import('../db/index.js');
@@ -244,15 +245,6 @@ describe.skipIf(연결 === undefined)('maxihan 계정(SSO) 로그인', () => {
     const back = await app.inject({ method: 'GET', url: '/api/auth/sso/callback?code=x&state=y' });
     expect(back.headers.location).toBe('/?sso=failed');
     expect(교환).not.toHaveBeenCalled();
-  });
-
-  it('로그아웃은 이 앱 출입증만 지우고 Auth_platform 으로 보낼 주소를 주지 않는다', async () => {
-    const { back } = await 왕복(사람('xso-sub-new', 'xso-new'));
-    const out = await app.inject({ method: 'POST', url: '/api/auth/logout', cookies: 쿠키(back) });
-    expect(out.statusCode).toBe(204);
-    expect(out.body).toBe('');
-    const me = await app.inject({ method: 'GET', url: '/api/auth/me', cookies: 쿠키(out) });
-    expect(me.statusCode).toBe(401);
   });
 
   it('비밀번호 길(로그인 · 가입 · 비밀번호 바꾸기)은 404 이고 methods 는 sso 를 알린다', async () => {

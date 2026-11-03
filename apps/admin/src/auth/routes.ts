@@ -4,9 +4,10 @@ import type { FastifyInstance } from 'fastify';
 
 import farmTokenRoutes from './farmToken.js';
 import { 확인 } from './identify.js';
-import { SSO설정읽기 } from './oidc.js';
+import { SSO설정읽기, 로그아웃주소 } from './oidc.js';
 import { 검증, 해시 } from './password.js';
 import { 비밀번호최대, 비밀번호최소 } from './rules.js';
+import { SSO칸들 } from './session.js';
 import signupRoutes from './signup.js';
 import ssoRoutes from './sso.js';
 import { 로그인조회, 비밀번호도장, 비밀번호바꾸기, 사용자와해시 } from './store.js';
@@ -28,11 +29,19 @@ export default async function authRoutes(app: FastifyInstance): Promise<void> {
   // 로그인 화면이 어느 모양을 그릴지 묻는다. 로그인 전에 부르므로 문이 그냥 통과시킨다 (gate.ts)
   app.get('/auth/methods', async () => ({ sso: sso !== null }));
 
-  // 이 앱의 출입증만 지운다. Auth_platform 세션은 남긴다 — 로그인 카드의 「이 계정으로 로그인」이 비밀번호 없이 들어오는 길이다.
-  // 그 세션까지 끊는 것은 Auth_platform 「내 계정」의 로그아웃이다 (도메인/인증 §8.6, 2026-10-29 사용자)
+  // SSO 출입증이면 Auth_platform 세션까지 끊을 주소를 준다 — 화면이 그리로 옮겨 가고, Auth 가 다른 앱에도 알려 다 같이 로그아웃된다
+  // (도메인/인증 §7, 2026-11-03 S24 사용자). id token 이 없는 옛 출입증과 discovery 를 못 할 때(재시작 뒤 Auth 가 꺼져 있음)는 이 앱 출입증만 지운다.
+  // discovery 는 받아 둔 것을 쓰므로 그 뒤에 Auth 가 꺼졌으면 주소는 나가고 브라우저가 Auth 오류 화면을 본다 — 이 앱 출입증은 이미 지워졌다
   app.post('/auth/logout', async (req, reply) => {
+    const idToken = req.session.get('idToken');
     req.session.delete();
-    return reply.code(204).send();
+    if (sso === null || idToken === undefined) return reply.code(204).send();
+    try {
+      return { redirect: await 로그아웃주소(sso, idToken) };
+    } catch (err) {
+      req.log.warn({ err }, '[SSO] Auth_platform 에 닿지 못해 이 앱 출입증만 지웠다');
+      return reply.code(204).send();
+    }
   });
 
   app.get('/auth/me', async (req, reply) => {
@@ -67,7 +76,7 @@ export default async function authRoutes(app: FastifyInstance): Promise<void> {
     req.session.set('username', username);
     req.session.set('stamp', 비밀번호도장(찾은것.passwordHash));
     // 앞서 SSO 로 구운 칸이 남아 있으면 SSO 를 다시 켰을 때 이 출입증이 SSO 출입증 행세를 한다
-    req.session.set('method', undefined);
+    for (const 칸 of SSO칸들) req.session.set(칸, undefined);
     return { user: 찾은것.user };
   });
 

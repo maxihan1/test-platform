@@ -1,11 +1,12 @@
-// maxihan 계정(SSO) 로그인 왕복 — 시작 · 돌아오기 · sub 로 계정 찾기 (SPEC 도메인/인증 §3.5 「maxihan 계정」 · §7 Auth)
+// maxihan 계정(SSO) 로그인 왕복 — 시작 · 돌아오기 · sub 로 계정 찾기 · Auth 가 알린 로그아웃 받기 (SPEC 도메인/인증 §3.5 「maxihan 계정」 · §7 Auth)
 // SSO 가 켜진 설치에서만 routes.ts 가 붙인다
 
 import type { FastifyInstance } from 'fastify';
 
 import { 작성계정인가 } from './agentToken.js';
-import { 교환, 시작, type SSO설정, type 시작갈래 } from './oidc.js';
+import { 교환, 로그아웃토큰확인, 시작, type SSO설정, type 로그아웃알림, type 받은사람, type 시작갈래 } from './oidc.js';
 import { 아이디모양, 이름최대 } from './rules.js';
+import { SSO칸들 } from './session.js';
 import { 사용자와해시 } from './store.js';
 
 /** 첫 화면이 읽는 칸. `ok` 는 막 들어왔다는 표시(web/main.tsx), 나머지는 로그인 화면의 문장 하나씩이다 (web/Login.tsx) */
@@ -67,6 +68,29 @@ export async function 계정찾기(sub: string, username: string, displayName: s
   return 새것.rows[0] ?? 'username';
 }
 
+/**
+ * Auth 가 알린 로그아웃을 적는다. 끊는 판정은 확인 함수가 출입증마다 한다 (identify.ts).
+ * sid 면 그 Auth 세션 하나, sub 만이면 그 사람이 iat + 1초 전에 구운 출입증 전부다 (도메인/인증 §7 「back-channel 로그아웃」)
+ */
+async function 로그아웃적기(알림: 로그아웃알림): Promise<void> {
+  const { pool } = await import('../db/index.js');
+  if ('sid' in 알림) {
+    // 출입증은 24시간이면 저절로 끊긴다(session.ts 출입증수명) — 그보다 오래된 행은 지킬 출입증이 없다
+    await pool.query("DELETE FROM auth_revoked_sid WHERE revoked_at < now() - interval '25 hours'");
+    await pool.query('INSERT INTO auth_revoked_sid (sid) VALUES ($1) ON CONFLICT DO NOTHING', [알림.sid]);
+    return;
+  }
+  // iat 는 초로 내린 값이다 — 1초를 더해야 알림과 같은 초에 먼저 구운 출입증도 끊긴다 (Auth_platform S24 plan §1).
+  // 늦게 온 옛 알림이 시각을 되돌리면 그 사이에 끊긴 출입증이 되살아난다 — 큰 쪽을 남긴다(GREATEST 는 NULL 을 건너뛴다)
+  await pool.query('UPDATE app_user SET sessions_valid_after = GREATEST(sessions_valid_after, to_timestamp($2)) WHERE auth_sub = $1', [
+    알림.sub,
+    알림.iat + 1,
+  ]);
+}
+
+// logout_token 하나(1KB 남짓)만 실려 온다
+const 폼상한 = 16 * 1024;
+
 export default async function ssoRoutes(app: FastifyInstance, opts: { sso: SSO설정 }): Promise<void> {
   const { sso } = opts;
   const 첫화면 = (결과: SSO결과) => `/?sso=${결과}`;
@@ -94,11 +118,12 @@ export default async function ssoRoutes(app: FastifyInstance, opts: { sso: SSO�
     }
     // 한 번 쓴 왕복 값은 바로 지운다 — 같은 code 로 두 번 들어오지 못하게.
     // 앞사람 출입증도 여기서 지운다 — 남겨 두면 승인 대기 · 실패로 돌아온 사람이 앞사람 화면을 본다
-    for (const 칸 of ['sso', 'username', 'method', 'stamp'] as const) req.session.set(칸, undefined);
+    for (const 칸 of ['sso', 'username', 'stamp', ...SSO칸들] as const) req.session.set(칸, undefined);
 
+    let 사람: 받은사람;
     let 계정;
     try {
-      const 사람 = await 교환(sso, new URL(sso.publicUrl + req.url), 왕복);
+      사람 = await 교환(sso, new URL(sso.publicUrl + req.url), 왕복);
       계정 = await 계정찾기(사람.sub, 사람.username, 사람.displayName);
     } catch (err) {
       // 사람에게는 「다시 누르기」만 보인다. 원인(state 불일치 · Auth_platform 다운 · 서명 오류 · DB)은 로그에 남긴다
@@ -111,8 +136,33 @@ export default async function ssoRoutes(app: FastifyInstance, opts: { sso: SSO�
 
     req.session.set('username', 계정.username);
     req.session.set('method', 'sso');
+    // 로그아웃 때 Auth_platform 에 내밀 id token, Auth 가 로그아웃을 알릴 때 견줄 Auth 세션과 구운 시각 (§7 Auth)
+    req.session.set('idToken', 사람.idToken);
+    if (사람.sid !== undefined) req.session.set('authSid', 사람.sid);
+    req.session.set('loginAt', Date.now());
     // Grafana 에서 왔으면 그리로 돌려보낸다. 대시보드 칸이 없는 사람을 보내면 403 JSON 만 보고 멈춰서 앱 첫 화면으로 보낸다
     if (왕복.next !== undefined && (await 사용자와해시(계정.username))?.user.dashboard === 'read') return reply.redirect(왕복.next);
     return reply.redirect(첫화면('ok'));
+  });
+
+  // back-channel 로그아웃은 폼 본문으로 온다(OIDC Back-Channel Logout 1.0). 이 플러그인 안에서만 받는다 — 다른 통로는 폼을 받을 일이 없다
+  app.addContentTypeParser('application/x-www-form-urlencoded', { parseAs: 'string', bodyLimit: 폼상한 }, (_req, 몸, done) => {
+    done(null, Object.fromEntries(new URLSearchParams(String(몸))));
+  });
+
+  // Auth_platform 서버가 Auth 세션이 끝날 때 부른다. 사람 출입증이 없어 문이 그냥 통과시키고(gate.ts) logout_token 의 서명이 문이다
+  app.post<{ Body: { logout_token?: unknown } | undefined }>('/auth/backchannel-logout', async (req, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    const token = req.body?.logout_token;
+    let 알림;
+    try {
+      if (typeof token !== 'string') throw new Error('logout_token 이 없다');
+      알림 = await 로그아웃토큰확인(sso, token);
+    } catch (err) {
+      req.log.warn({ err }, '[SSO] back-channel 로그아웃 token 을 받지 않았다');
+      return reply.code(400).send({ error: 'INVALID_LOGOUT_TOKEN' });
+    }
+    await 로그아웃적기(알림);
+    return reply.code(200).send();
   });
 }
