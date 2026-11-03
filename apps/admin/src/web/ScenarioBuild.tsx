@@ -15,7 +15,7 @@ import { 판정을만든다 } from './role.js';
 import { ScenarioCards } from './ScenarioCards.js';
 import { ScenarioBuildTabs } from './ScenarioBuildTabs.js';
 import { ScenarioTabs, type 조립탭 } from './ScenarioTabs.js';
-import { 시험막는글, TrialControls, TrialSummary, TrialTab, 폰실행위치 } from './ScenarioTrial.js';
+import { 시험막는글, 시험장면, TrialControls, TrialSummary, TrialTab, 폰실행위치 } from './ScenarioTrial.js';
 import { 끄기기본, 빈칸있는단계, 서버선택지, 시나리오칩들, 케이스바꾸기, 폰단계있나 } from './scenarioView.js';
 import { useScenarioDraft } from './useScenarioDraft.js';
 import { useScenarioRun, 넘겨받은실행글 } from './useScenarioRun.js';
@@ -291,7 +291,7 @@ export function ScenarioBuild({
                 on바꿈={고른단계바꿈}
                 on되돌림={되돌림끝}
                 on칸오류={(번호, 있나) => set칸오류번호((앞) => (있나 ? 번호 : 앞 === 번호 ? null : 앞))}
-                시험={<TrialTab 시험={시험} 단계들={초안.단계들} 재료={초안.재료} />}
+                시험={<TrialTab 시험={시험} 단계들={초안.단계들} 재료={초안.재료} 장면={<시험장면 시험={시험} />} />}
               />
             </ScenarioTabs>
           </section>

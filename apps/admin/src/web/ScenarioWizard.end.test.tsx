@@ -10,6 +10,7 @@ import { scenarioApi, type CasePartMaterial, type LinkSuggestion } from './scena
 import { 결과주소 } from './ScenarioResultNext.js';
 import { 사람, 서비스, 흘리기 } from './ScenarioTrial.fixture.js';
 import { ScenarioWizard } from './ScenarioWizard.js';
+import { 장면통로 } from './TrialLive.js';
 
 const 줄 = (tcId: string): CaseRow => ({
   tcId,
@@ -137,6 +138,21 @@ describe('ScenarioWizard 시험 실행 · 저장', () => {
     await 경로채우고시험으로({ ...기본, services: 기본.services.map((s) => ({ ...s, envs: s.envs.slice(0, 1) })) });
     expect((screen.getByLabelText('대상 서버') as HTMLSelectElement).value).toBe('stg');
     expect(screen.queryByText('지난번에 고른 서버를 미리 골라 두었습니다')).toBeNull();
+  });
+
+  it('시험 실행을 누르면 본문 오른쪽에 실시간 칸이 선다', async () => {
+    localStorage.setItem('대상서버:ZSB', 'stg');
+    await 경로채우고시험으로();
+    vi.spyOn(scenarioApi, 'startTrial').mockResolvedValue({ trialId: 't-3' });
+    vi.spyOn(scenarioApi, 'trial').mockResolvedValue({ status: 'RUNNING' });
+    const 받기 = vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'empty' });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
+    });
+
+    expect(document.querySelector('.scw-trial-wrap > .trial-live')).not.toBeNull();
+    expect(받기).toHaveBeenCalledWith('/api/scenario-trials/t-3/live');
   });
 
   it('지난번 서버로 돌려 값 연결이 쓰였는지 알리고, 같은 단계로 저장한다', async () => {

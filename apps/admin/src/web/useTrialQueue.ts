@@ -5,7 +5,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { api, ApiError, type RunRequestItem, type TrialResult } from './api.js';
+import { api, ApiError, type Platform, type RunRequestItem, type TrialResult } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { message } from './ui.js';
 
@@ -15,6 +15,18 @@ export type 시험줄 =
   | { 종류: 'done'; 결과: TrialResult }
   | { 종류: 'notice'; 글: string };
 
+/** 오른쪽 실시간 칸이 그릴 시험 — 마지막으로 시작한 것. 끝나도 남아 마지막 장면을 보인다 */
+export interface 지금시험 {
+  tcId: string;
+  trialId: string;
+  platform: Platform;
+  /** VISION 이 폰을 잡은 동안 그 폰 화면 주소 */
+  vision: string | null;
+  /** 몇째 케이스인지 · 모두 몇 건인지 (1부터) */
+  차례: number;
+  전체: number;
+}
+
 const 기본간격 = 1500;
 
 /** @param 간격 결과를 다시 묻는 주기(ms). 검사에서만 줄인다 */
@@ -23,6 +35,7 @@ export function useTrialQueue(간격: number = 기본간격) {
   const 언어 = use언어();
   const [줄들, set줄들] = useState<Record<string, 시험줄>>({});
   const [도는중, set도는중] = useState(false);
+  const [지금, set지금] = useState<지금시험 | null>(null);
   // 화면을 떠나면 남은 줄을 시작하지 않는다. 안 멈추면 없는 화면에 상태를 쓰며 서버를 계속 두드린다
   const 멈춤 = useRef(false);
   const 도는 = useRef(false);
@@ -39,27 +52,32 @@ export function useTrialQueue(간격: number = 기본간격) {
   };
 
   /** 이어 돌면 null, 멈추면 남은 줄에 붙일 글 */
-  async function 한건(항목: RunRequestItem, env: string): Promise<string | null> {
+  async function 한건(항목: RunRequestItem, env: string, 차례: number, 전체: number): Promise<string | null> {
     쓴다(항목.tcId, { 종류: 'run' });
+    // 디바이스는 첫째 하나만 돈다 — 한 건 창은 사람이 고른 것 중 첫째다 (도메인/실행 §8.2)
+    const platform = 항목.platforms[0]!;
     try {
-      // 디바이스는 첫째 하나만 돈다 — 한 건 창은 사람이 고른 것 중 첫째다 (도메인/실행 §8.2)
-      const { trialId } = await api.startTrial(항목.tcId, {
-        platform: 항목.platforms[0]!,
-        env,
-        params: 항목.params,
-        expected: 항목.expected,
-      });
+      const { trialId } = await api.startTrial(항목.tcId, { platform, env, params: 항목.params, expected: 항목.expected });
+      if (!멈춤.current) set지금({ tcId: 항목.tcId, trialId, platform, vision: null, 차례, 전체 });
+      // 이 시험의 칸일 때만 링크를 바꾼다
+      const 링크 = (vision: string | null) => {
+        if (!멈춤.current) set지금((앞) => (앞 === null || 앞.trialId !== trialId || 앞.vision === vision ? 앞 : { ...앞, vision }));
+      };
       for (;;) {
         const 답 = await api.getTrial(항목.tcId, trialId);
         if (멈춤.current) return '';
         if (답.status === 'DONE') {
+          링크(null);
           쓴다(항목.tcId, { 종류: 'done', 결과: 답.result });
           return null;
         }
+        링크(답.vision?.url ?? null);
         await new Promise((ok) => setTimeout(ok, 간격));
         if (멈춤.current) return '';
       }
     } catch (err) {
+      // 결과를 못 받고 끝났다. 서버가 놓았을 폰의 링크를 남기지 않는다 — 시작 전에 막혔으면 앞 시험 것이라 이미 비었다
+      if (!멈춤.current) set지금((앞) => (앞 === null || 앞.vision === null ? 앞 : { ...앞, vision: null }));
       if (err instanceof ApiError && err.code === 'TRIAL_BUSY') {
         const 글 = t('이미 테스트 실행이 돌고 있습니다');
         쓴다(항목.tcId, { 종류: 'notice', 글 });
@@ -86,10 +104,12 @@ export function useTrialQueue(간격: number = 기본간격) {
     도는.current = true;
     set도는중(true);
     set줄들(Object.fromEntries(항목들.map((it) => [it.tcId, { 종류: 'wait' } as 시험줄])));
+    // 지난번 장면은 걷는다 — 새 큐의 첫 장면이 오기 전까지 옛 케이스 화면이 남으면 지금 것으로 읽힌다
+    set지금(null);
     try {
       for (let i = 0; i < 항목들.length; i += 1) {
         if (멈춤.current) return;
-        const 멈춘글 = await 한건(항목들[i]!, env);
+        const 멈춘글 = await 한건(항목들[i]!, env, i + 1, 항목들.length);
         if (멈춘글 === null) continue;
         // 서버 전체에 걸린 사정이나 러너 고장이면 남은 줄도 돌릴 수 없다. 대기로 두면 영영 기다리는 것처럼 보인다
         for (const 남은 of 항목들.slice(i + 1)) 쓴다(남은.tcId, { 종류: 'notice', 글: 멈춘글 });
@@ -101,5 +121,5 @@ export function useTrialQueue(간격: number = 기본간격) {
     }
   }
 
-  return { 줄들, 도는중, 시작 };
+  return { 줄들, 도는중, 지금, 시작 };
 }

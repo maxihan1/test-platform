@@ -10,6 +10,7 @@ import { scenarioApi } from './scenarioApi.js';
 import { ScenarioBuild } from './ScenarioBuild.js';
 import { 서비스, 사람, 케이스단계, 단계셋, 상세, 재료, 실패결과, 통과결과, 기존그리기, 흘리기, 서버고르기, 시험누르기, 탭 } from './ScenarioTrial.fixture.js';
 import { 케이스목록막기, 케이스더하기 } from './ScenarioBuild.fixture.js';
+import { 장면통로 } from './TrialLive.js';
 
 
 afterEach(() => {
@@ -63,6 +64,47 @@ describe('시험 실행 돌리기', () => {
     await 시험누르기();
 
     expect(탭(container)).toBe('trial');
+  });
+
+  it('시험 결과 탭 맨 위에 실시간 칸이 열리고, 폰을 잡으면 VISION 링크를 달았다가 끝나면 걷는다', async () => {
+    const { container } = await 기존그리기();
+    vi.spyOn(scenarioApi, 'startTrial').mockResolvedValue({ trialId: 't-1' });
+    vi.spyOn(scenarioApi, 'trial')
+      .mockResolvedValueOnce({ status: 'RUNNING', vision: { url: 'https://vision.example/#phone=R3C&view=k1' } })
+      .mockResolvedValue({ status: 'FINISHED', result: 통과결과 });
+    const 받기 = vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'empty' });
+    vi.useFakeTimers();
+    서버고르기('stg');
+
+    await 시험누르기();
+    expect(container.querySelector('.scn-trial > .trial-live')).not.toBeNull();
+    expect(받기).toHaveBeenCalledWith('/api/scenario-trials/t-1/live');
+
+    await 흘리기(2000);
+    expect(screen.getByRole('link', { name: 'Device VISION 에서 보기 ↗' }).getAttribute('href')).toBe('https://vision.example/#phone=R3C&view=k1');
+
+    await 흘리기(2000);
+    expect(screen.queryByRole('link', { name: 'Device VISION 에서 보기 ↗' })).toBeNull();
+  });
+
+  it('다른 탭에 다녀와도 끝난 시험의 마지막 장면이 남는다', async () => {
+    const { container } = await 기존그리기();
+    vi.spyOn(scenarioApi, 'startTrial').mockResolvedValue({ trialId: 't-1' });
+    vi.spyOn(scenarioApi, 'trial').mockResolvedValue({ status: 'FINISHED', result: 통과결과 });
+    vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'frame', 그림: new Blob(['jpeg']) });
+    Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: vi.fn(() => 'blob:1') });
+    Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: vi.fn() });
+    vi.useFakeTimers();
+    서버고르기('stg');
+
+    await 시험누르기();
+    await 흘리기(2000);
+    fireEvent.click(screen.getByRole('tab', { name: '단계 추가' }));
+    fireEvent.click(screen.getByRole('tab', { name: '시험 결과' }));
+
+    expect(탭(container)).toBe('trial');
+    expect(screen.getByText('마지막 화면')).toBeTruthy();
+    expect(screen.getByRole('img', { name: '끝난 순간의 화면' }).getAttribute('src')).toBe('blob:1');
   });
 
   it('sessionStorage 에 시험 번호가 있으면 화면이 열릴 때 이어 묻고 결과를 받는다', async () => {

@@ -1,4 +1,4 @@
-// E2E 마법사 본문 「시험 실행」 — 대상 서버 · 시험 실행 단추 · 끝까지 이어졌는지 · 멈춘 곳과 고칠 곳 · 값 연결이 쓰였는지 · 단계 줄 (도메인/시나리오 §8.11 「마법사」)
+// E2E 마법사 본문 「시험 실행」 — 대상 서버 · 시험 실행 단추 · 끝까지 이어졌는지 · 멈춘 곳과 고칠 곳 · 값 연결이 쓰였는지 · 단계 줄 · 오른쪽 실시간 칸 (도메인/시나리오 §8.11 「마법사」)
 
 import type { ScenarioPart } from '@platform/kit';
 
@@ -7,7 +7,7 @@ import { 실패이유 } from './FailureWhy.js';
 import { use말, use언어 } from './i18n.js';
 import { 멈춘사유글자 } from './scenarioResultView.js';
 import { 멈춘단계 } from './ScenarioResultNext.js';
-import { TrialControls, TrialTab, 폰실행위치 } from './ScenarioTrial.js';
+import { 시험장면, TrialControls, TrialTab, 폰실행위치 } from './ScenarioTrial.js';
 import type { 재료들 } from './scenarioView.js';
 import { 종류이름 } from './ScenarioWizardValues.js';
 import { 가져올번호, 멈춘까닭, 연결들, 쓰였나 } from './scenarioWizardView.js';
@@ -66,6 +66,7 @@ export function 시험칸(p: Props) {
   );
 
   return (
+    <div className="scw-trial-wrap">
     <div className="scw-trial">
       <div className="scw-row">
         <TrialControls 서버들={p.서버들} 서버={p.서버} on서버={p.on서버} 도는중={p.시험.단계 === 'running'} on시작={p.on시작} 다시={결과 !== null} />
@@ -107,6 +108,8 @@ export function 시험칸(p: Props) {
         </div>
       )}
       <TrialTab 시험={p.시험} 단계들={p.단계들} 재료={p.재료} />
+    </div>
+    <시험장면 시험={p.시험} />
     </div>
   );
 }

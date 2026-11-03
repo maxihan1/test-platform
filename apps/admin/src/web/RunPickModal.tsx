@@ -15,7 +15,7 @@ import { 한건머리, use한건 } from './RunPickOne.js';
 import { 저장한값줄 } from './RunPickSaved.js';
 import { use입력값저장, 출처줄 } from './RunPickSource.js';
 import { 넘었나, 상한 } from './runPlan.js';
-import { use여러건시험, 시험배지, 시험절차 } from './RunPickTrial.js';
+import { use여러건시험, 시험나눔, 시험배지, 시험절차 } from './RunPickTrial.js';
 import { 케이스서비스, 할수있나 } from './role.js';
 import { message, PLATFORM_LABEL } from './ui.js';
 import { useRunPickValues } from './useRunPickValues.js';
@@ -186,6 +186,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
         )
       }
     >
+      <시험나눔 시험={시험} 케이스들={돌릴것}>
       <div className="mhead">
         <label htmlFor="pick-env">{t('대상 서버')}</label>
         <select id="pick-env" value={env} onChange={(e) => { 손댐(); setEnv(e.target.value); if (service !== null) 고른서버를적는다(service.prefix, e.target.value); }}>
@@ -289,6 +290,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
         notifySlack={notifySlack}
         onSlack={setNotifySlack}
       />
+      </시험나눔>
     </Modal>
   );
 }

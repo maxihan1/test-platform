@@ -16,6 +16,8 @@ export interface 시험상태 {
   오류문장: string | null;
   /** 돌린 때의 단계. 결과에는 번호만 있어 실행 뒤 초안을 고치면 줄 이름이 다른 단계로 붙는다. null 은 모른다 */
   단계들: ScenarioPart[] | null;
+  /** VISION 이 폰을 잡은 동안 그 폰 화면 주소. 폰을 놓으면 서버가 안 싣는다 */
+  vision: string | null;
 }
 
 export interface 시험본문 {
@@ -26,7 +28,7 @@ export interface 시험본문 {
 }
 
 const 묻는간격 = 2000;
-const 비어있다: 시험상태 = { 단계: 'idle', trialId: null, env: '', 결과: null, 오류문장: null, 단계들: null };
+const 비어있다: 시험상태 = { 단계: 'idle', trialId: null, env: '', 결과: null, 오류문장: null, 단계들: null, vision: null };
 
 interface 저장값 {
   trialId: string;
@@ -98,12 +100,14 @@ export function useScenarioTrial(열쇠: string) {
       const 답 = await scenarioApi.trial(trialId);
       if (이줄.끝남) return;
       if (답.status === 'RUNNING') {
+        const vision = 답.vision?.url ?? null;
+        set상태((앞) => (앞.vision === vision ? 앞 : { ...앞, vision }));
         타이머.current = setTimeout(() => void 묻기(trialId, 이줄), 묻는간격);
         return;
       }
       // 끝난 시험은 화면 상태에만 둔다. 열쇠를 남기면 서버가 잊은 뒤 그 시나리오를 열 때 엉뚱한 「찾지 못했습니다」가 뜬다
       쓰기(옮긴곳.get(열쇠쪽.current) ?? 열쇠쪽.current, null);
-      set상태((앞) => ({ ...앞, 단계: 'done', 결과: 답.result }));
+      set상태((앞) => ({ ...앞, 단계: 'done', 결과: 답.result, vision: null }));
     } catch (err) {
       if (이줄.끝남) return;
       const 없다 = err instanceof ApiError && err.code === 'TRIAL_NOT_FOUND';
@@ -111,6 +115,7 @@ export function useScenarioTrial(열쇠: string) {
       set상태((앞) => ({
         ...앞,
         단계: 'failed',
+        vision: null,
         오류문장: 없다
           ? 글.current('시험 결과를 찾지 못했습니다. 시간이 지났거나 서버가 다시 켜졌을 수 있습니다')
           : message(err, 말투.current),
