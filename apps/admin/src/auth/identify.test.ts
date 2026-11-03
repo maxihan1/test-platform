@@ -3,7 +3,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { 에이전트토큰만들기 } from './agentToken.js';
-import { 확인 } from './identify.js';
+import { 확인, type 인증요청 } from './identify.js';
 import { 해시 } from './password.js';
 import { 비밀번호도장, 사용자와해시 } from './store.js';
 
@@ -17,8 +17,12 @@ async function 가짜요청(username: string | undefined, 도장?: string | null
     const rows = await pool.query<{ password_hash: string }>('SELECT password_hash FROM app_user WHERE username = $1', [username]);
     찍을것 = rows.rows[0] === undefined ? undefined : 비밀번호도장(rows.rows[0].password_hash);
   }
-  const 칸 = { username, stamp: 찍을것 };
-  return { session: { get: (key: 'username' | 'stamp') => 칸[key] } };
+  return 출입증({ username, stamp: 찍을것 });
+}
+
+// 세션 칸마다 값 종류가 달라(loginAt 은 숫자) 진짜 세션의 get 모양으로 맞춰 준다
+function 출입증(칸: Record<string, string | number | undefined>): 인증요청 {
+  return { session: { get: ((key: string) => 칸[key]) as 인증요청['session']['get'] } };
 }
 
 describe.skipIf(연결 === undefined)('확인 함수', () => {
@@ -283,8 +287,7 @@ describe.skipIf(연결 === undefined)('확인 함수', () => {
   });
 
   describe('maxihan 계정(SSO)이 켜진 설치', () => {
-    const SSO칸: Record<string, string> = { username: 'xfu1-live', method: 'sso' };
-    const SSO출입증 = { session: { get: (key: string) => SSO칸[key] } };
+    const SSO출입증 = 출입증({ username: 'xfu1-live', method: 'sso' });
     afterEach(() => vi.unstubAllEnvs());
     const 켜기 = () => {
       vi.stubEnv('AUTH_ISSUER', 'http://127.0.0.1:9');
@@ -312,6 +315,50 @@ describe.skipIf(연결 === undefined)('확인 함수', () => {
 
     it('SSO 를 끄면 SSO 출입증은 아무도 아니다', async () => {
       expect(await 확인(SSO출입증)).toBeNull();
+    });
+
+    describe('Auth_platform 이 back-channel 로 알린 로그아웃', () => {
+      const SSO = (authSid: string, loginAt?: number) =>
+        출입증({ username: 'xfu1-live', method: 'sso', authSid, ...(loginAt === undefined ? {} : { loginAt }) });
+
+      afterEach(async () => {
+        const { pool } = await import('../db/index.js');
+        await pool.query('DELETE FROM auth_revoked_sid WHERE sid = ANY($1)', [['xfu1-sid-gone']]);
+        await pool.query("UPDATE app_user SET sessions_valid_after = NULL WHERE username = 'xfu1-live'");
+      });
+
+      it('끝났다고 알린 Auth 세션의 출입증만 아무도 아니다', async () => {
+        const { pool } = await import('../db/index.js');
+        await pool.query("INSERT INTO auth_revoked_sid (sid) VALUES ('xfu1-sid-gone')");
+        켜기();
+        expect(await 확인(SSO('xfu1-sid-gone', Date.now()))).toBeNull();
+        expect((await 확인(SSO('xfu1-sid-live', Date.now())))?.username).toBe('xfu1-live');
+      });
+
+      it('그 사람의 세션이 다 끊긴 시각보다 앞에 구운 출입증 · 구운 시각이 없는 옛 출입증은 아무도 아니다', async () => {
+        const { pool } = await import('../db/index.js');
+        await pool.query("UPDATE app_user SET sessions_valid_after = now() - interval '1 minute' WHERE username = 'xfu1-live'");
+        켜기();
+        expect(await 확인(SSO('xfu1-sid-live', Date.now() - 2 * 60 * 1000))).toBeNull();
+        expect(await 확인(SSO('xfu1-sid-live'))).toBeNull();
+        expect((await 확인(SSO('xfu1-sid-live', Date.now())))?.username).toBe('xfu1-live');
+      });
+
+      it('끊긴 시각이 없으면 구운 시각이 없는 옛 출입증도 그 사람이다', async () => {
+        켜기();
+        expect((await 확인(SSO('xfu1-sid-live')))?.username).toBe('xfu1-live');
+      });
+
+      it('구운 지 24시간이 지난 출입증은 아무도 아니다', async () => {
+        켜기();
+        expect(await 확인(SSO('xfu1-sid-live', Date.now() - 24 * 60 * 60 * 1000 - 1000))).toBeNull();
+      });
+
+      it('SSO 가 꺼진 설치의 비밀번호 출입증은 끊긴 시각을 보지 않는다', async () => {
+        const { pool } = await import('../db/index.js');
+        await pool.query("UPDATE app_user SET sessions_valid_after = now() WHERE username = 'xfu1-live'");
+        expect((await 확인(await 가짜요청('xfu1-live')))?.username).toBe('xfu1-live');
+      });
     });
   });
 });

@@ -45,6 +45,8 @@ export const 등급표: Record<string, 표값> = {
   'GET /api/auth/methods': 안따짐,
   'GET /api/auth/sso/start': 안따짐,
   'GET /api/auth/sso/callback': 안따짐,
+  // Auth_platform 서버가 부른다. logout_token 의 서명이 문이다 (auth/sso.ts — 도메인/인증 §7 「back-channel 로그아웃」)
+  'POST /api/auth/backchannel-logout': 안따짐,
 
   'GET /api/catalog/cases': 케이스읽기,
   'GET /api/catalog/export': 케이스읽기,

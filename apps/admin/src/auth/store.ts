@@ -76,6 +76,8 @@ const 한사람 = `
      GROUP BY service_id
   )
   SELECT u.display_name, u.role, u.password_hash, u.perm_dashboard, u.must_change_password, u.is_approved,
+         -- Auth 가 알린 로그아웃 (도메인/인증 §7 「back-channel 로그아웃」). 출입증의 sid 가 없으면 $3 이 NULL 이라 false 다
+         u.sessions_valid_after, EXISTS (SELECT 1 FROM auth_revoked_sid WHERE sid = $3) AS sid_revoked,
          COALESCE(
            json_agg(json_build_object(
              'id', s.id, 'prefix', s.prefix, 'name', s.name, 'color', s.color,
@@ -99,7 +101,7 @@ const 한사람 = `
     LEFT JOIN project p ON p.id = s.project_id
     LEFT JOIN 서버 e ON e.service_id = s.id
    WHERE u.username = $1 AND u.is_active AND (u.is_approved OR $2)
-   GROUP BY u.username, u.display_name, u.role, u.password_hash, u.perm_dashboard, u.must_change_password, u.is_approved`;
+   GROUP BY u.username, u.display_name, u.role, u.password_hash, u.perm_dashboard, u.must_change_password, u.is_approved, u.sessions_valid_after`;
 
 interface 한사람행 {
   display_name: string;
@@ -109,6 +111,8 @@ interface 한사람행 {
   perm_dashboard: 대시보드칸;
   must_change_password: boolean;
   is_approved: boolean;
+  sessions_valid_after: Date | null;
+  sid_revoked: boolean;
   services: 배정서비스[];
 }
 
@@ -121,17 +125,22 @@ export function 비밀번호도장(passwordHash: string): string {
 }
 
 // 승인 대기 계정은 세션·토큰 확인에서 없는 것으로 친다. 로그인만 비밀번호를 맞춘 뒤 403 으로 갈라 줘야 해서 읽는다
-async function 읽기(username: string, 대기도: boolean): Promise<한사람행 | null> {
+async function 읽기(username: string, 대기도: boolean, authSid?: string): Promise<한사람행 | null> {
   const pool = await db();
-  const rows = await pool.query<한사람행>(한사람, [username, 대기도]);
+  const rows = await pool.query<한사람행>(한사람, [username, 대기도, authSid ?? null]);
   return rows.rows[0] ?? null;
 }
 
+/**
+ * `authSid` 는 SSO 출입증의 Auth 세션이다. 주면 Auth 가 그 세션을 끝냈다고 알렸는지(`sidRevoked`)도 같은 쿼리로 본다.
+ * `sessionsValidAfter` 는 그 사람의 세션이 다 끊긴 시각이다 — 판정은 확인 함수가 한다 (identify.ts)
+ */
 export async function 사용자와해시(
   username: string,
-): Promise<{ user: 사용자; passwordHash: string | null } | null> {
-  const row = await 읽기(username, false);
-  return row === null ? null : 모양(username, row);
+  authSid?: string,
+): Promise<{ user: 사용자; passwordHash: string | null; sessionsValidAfter: Date | null; sidRevoked: boolean } | null> {
+  const row = await 읽기(username, false, authSid);
+  return row === null ? null : { ...모양(username, row), sessionsValidAfter: row.sessions_valid_after, sidRevoked: row.sid_revoked };
 }
 
 /** 로그인 전용. 승인 대기 계정도 돌려주고 `isApproved` 로 가른다 — 비밀번호가 맞을 때만 403 을 내기 위해서다 */

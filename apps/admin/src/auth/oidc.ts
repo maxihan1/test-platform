@@ -1,12 +1,13 @@
-// maxihan 계정(Auth_platform, OIDC Provider)과 주고받는 곳. openid-client 는 이 파일만 안다 (SPEC 도메인/인증 §3.5 「maxihan 계정」)
+// maxihan 계정(Auth_platform, OIDC Provider)과 주고받는 곳. openid-client · jose 는 이 파일만 안다 (SPEC 도메인/인증 §3.5 「maxihan 계정」)
 
+import { createRemoteJWKSet, jwtVerify } from 'jose';
 import * as oidc from 'openid-client';
 
 export interface SSO설정 {
   issuer: string;
   clientId: string;
   clientSecret: string;
-  /** 이 플랫폼이 바깥에서 열리는 주소. 돌아올 주소(redirect URI)가 이 위에 붙는다 */
+  /** 이 플랫폼이 바깥에서 열리는 주소. 돌아올 주소(redirect URI)와 로그아웃 뒤 돌아올 주소가 이 위에 붙는다 */
   publicUrl: string;
 }
 
@@ -76,6 +77,10 @@ export interface 받은사람 {
   sub: string;
   username: string;
   displayName: string;
+  /** 로그아웃 때 Auth_platform 에 다시 내민다 (routes.ts 로그아웃) */
+  idToken: string;
+  /** Auth 세션 id 해시. Auth 가 이 세션이 끝났다고 알리면 그 출입증을 끊는다 (sso.ts back-channel). S23 전 Auth 는 안 싣는다 */
+  sid?: string;
 }
 
 /** 돌아온 주소의 code 를 token 으로 바꾸고 id token 을 검증한다 (서명 · iss · aud · nonce · state 는 라이브러리가 본다) */
@@ -93,5 +98,49 @@ export async function 교환(s: SSO설정, 돌아온주소: URL, 왕복: 왕복�
     throw new Error('id token 에 sub · preferred_username 이 없다');
   }
   const 이름 = typeof claims.name === 'string' && claims.name.trim() !== '' ? claims.name.trim() : username;
-  return { sub: claims.sub, username, displayName: 이름 };
+  const sid = typeof claims.sid === 'string' && claims.sid !== '' ? { sid: claims.sid } : {};
+  return { sub: claims.sub, username, displayName: 이름, idToken: tokens.id_token, ...sid };
+}
+
+/** Auth_platform 세션까지 끊는 주소 (RP-initiated logout). 끝나면 이 플랫폼 첫 화면으로 돌아온다 — Auth 에 이 주소가 등록돼 있어야 한다 */
+export async function 로그아웃주소(s: SSO설정, idToken: string): Promise<string> {
+  const config = await 발견(s);
+  return oidc.buildEndSessionUrl(config, { id_token_hint: idToken, post_logout_redirect_uri: s.publicUrl + '/' }).href;
+}
+
+/** 확인한 logout_token — sid 가 있으면 그 Auth 세션 하나, 없으면 그 사람(sub)이 iat 전에 시작한 세션 전부 (도메인/인증 §7 「back-channel 로그아웃」) */
+export type 로그아웃알림 = { sid: string } | { sub: string; iat: number };
+
+const 로그아웃사건 = 'http://schemas.openid.net/event/backchannel-logout';
+
+// 열쇠 묶음은 issuer 마다 하나다 — jose 가 받아 둔 열쇠를 쓰다가 모르는 kid 가 오면 다시 받는다
+const 열쇠묶음 = new Map<string, ReturnType<typeof createRemoteJWKSet>>();
+
+/**
+ * Auth_platform 이 back-channel 로 보낸 logout_token 을 확인한다 (OIDC Back-Channel Logout 1.0 · Auth_platform S24 plan §1). 틀리면 던진다.
+ * typ 을 `logout+jwt` 로 못박아야 id token · access token 을 logout_token 으로 돌려쓰지 못한다
+ */
+export async function 로그아웃토큰확인(s: SSO설정, token: string): Promise<로그아웃알림> {
+  const 주소 = `${s.issuer}/oauth2/jwks`;
+  let 열쇠 = 열쇠묶음.get(주소);
+  if (열쇠 === undefined) {
+    열쇠 = createRemoteJWKSet(new URL(주소));
+    열쇠묶음.set(주소, 열쇠);
+  }
+  const { payload } = await jwtVerify(token, 열쇠, {
+    issuer: s.issuer,
+    audience: s.clientId,
+    typ: 'logout+jwt',
+    algorithms: ['RS256'],
+    requiredClaims: ['iat', 'exp'],
+    maxTokenAge: '5m',
+    // 두 서버 시계가 조금 어긋나도 iat 가 「앞날」로 보여 버리지 않게 봐준다
+    clockTolerance: 30,
+  });
+  const 사건 = payload.events;
+  if (typeof 사건 !== 'object' || 사건 === null || !Object.hasOwn(사건, 로그아웃사건)) throw new Error('logout_token 의 events 에 back-channel 로그아웃이 없다');
+  if (payload.nonce !== undefined) throw new Error('logout_token 에 nonce 가 있다');
+  if (typeof payload.sid === 'string' && payload.sid !== '') return { sid: payload.sid };
+  if (typeof payload.sub === 'string' && payload.sub !== '' && payload.iat !== undefined) return { sub: payload.sub, iat: payload.iat };
+  throw new Error('logout_token 에 sid · sub 가 둘 다 없다');
 }
