@@ -31,23 +31,24 @@ function 앱자리들(runCase?: 단계창['runCase']) {
 }
 
 describe('앱 · 게임 단계', () => {
-  it('창을 안 열고 폰 자리로 돈다 — 다음 웹 단계는 앞 웹 창의 로그인을 이어받고 순번은 이어진다', async () => {
+  it('웹 단계를 안 열고 폰 자리로 돈다 — 다음 웹 단계는 같은 창에서 이어 돌고 순번은 이어진다', async () => {
     const parts = [케이스('XWB-001'), 케이스('XAP-001', true), 케이스('XAP-002', true), 케이스('XWB-002')];
-    const { deps, 받은, 줄 } = 창들(parts);
+    const { deps, 창, 받은, 줄 } = 창들(parts);
     const { appWindow, 연 } = 앱자리들();
 
     await runParts(parts, { ...deps, appWindow, appPartTimeoutMs: 120_000 });
 
     expect(줄.map((r) => [r.seq, r.status])).toEqual([[1, 'PASS'], [2, 'PASS'], [3, 'PASS'], [4, 'PASS']]);
     expect(줄.map((r) => r.steps[0]?.seq)).toEqual([1, 2, 3, 4]);
-    // 빈 창 · 웹 1 · 웹 2 — 앱 단계는 창을 안 연다
-    expect(받은).toHaveLength(3);
-    expect(받은[2]!.state?.cookies).toEqual([쿠키('창1')]);
+    // 웹 1 · 웹 2 — 앱 단계는 웹 단계를 안 연다. 창은 하나다
+    expect(받은.map((w) => [w.부품.seq, w.넘겨받기])).toEqual([[1, true], [4, true]]);
+    expect(deps.newWindow).toHaveBeenCalledTimes(1);
     expect(appWindow).toHaveBeenCalledTimes(2);
-    // 앱 단계의 request 도 앞 웹 창의 로그인으로 부른다
-    expect(appWindow).toHaveBeenNthCalledWith(1, expect.anything(), { cookies: [쿠키('창1')], origins: [] });
+    // 앱 단계의 request 도 웹 창의 로그인으로 부른다
+    expect(appWindow).toHaveBeenNthCalledWith(1, expect.anything(), { cookies: [쿠키('창')], origins: [] });
     expect(연.map((자리) => vi.mocked(자리.close).mock.calls.length)).toEqual([1, 1]);
-    expect(받은[1]!.창.close).toHaveBeenCalledTimes(1);
+    expect(받은[0]!.단계.close).toHaveBeenCalledTimes(1);
+    expect(창.close).toHaveBeenCalledTimes(1);
   });
 
   it('앱 단계 한도는 android project 한도다 — 넘으면 그 값으로 실패를 적는다', async () => {

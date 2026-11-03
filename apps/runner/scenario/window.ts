@@ -1,48 +1,24 @@
-// 시나리오 부품 창 — Playwright 창 · request 를 만들고 케이스가 쓰는 도구를 감싸 이어 주기 · 뒷정리 미루기를 건다. 판단은 links.ts 가 한다 (SPEC 도메인/러너 §5.2)
-// 감싸는 자리는 여기 한 곳이다 — 부품 request · page.request · 케이스가 직접 만든 창과 연결 (2026-10-06 게이트 0 사용자)
+// 시나리오 창 — Playwright 창 · request 를 만들고 케이스가 쓰는 도구를 감싸 이어 주기 · 뒷정리 미루기를 건다. 판단은 links.ts 가 한다 (SPEC 도메인/러너 §5.2)
+// 감싸는 자리는 여기 한 곳이다 — 단계 request · page.request · 케이스가 직접 만든 창과 연결 (2026-10-06 게이트 0 사용자)
+// 웹 단계는 창 하나 · 탭 하나를 시나리오 끝까지 같이 쓴다. 단계가 건 것은 revert.ts 가 단계 끝에 되돌린다 (2026-11-03 TMO · 시나리오 §3.7 결정 3)
 
 import { readFileSync } from 'node:fs';
 import { basename } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import type { APIRequest, APIRequestContext, Browser, BrowserContext, Route } from '@playwright/test';
+import type { APIRequest, APIRequestContext, Browser, Page } from '@playwright/test';
 import type { ScenarioCaseInput } from '@platform/kit/scenario';
 
-import { 가르기, 적기, 주소의, type CasePart, type 미룬삭제, type 부품상태, type 상태, type 이음 } from './links.js';
+import { 기준바꾸기, 기준읽기, 쿠키더하기, 응답듣기, 이어주기걸기 } from './browser.js';
+import { 주소의, type CasePart, type 미룬삭제, type 부품상태, type 상태, type 이음 } from './links.js';
 import { 다음HAR경로 } from '../src/recordHar.js';
 import { 남김, 합친상태, type RouteHandler, type 단계창, type 창 } from './parts.js';
 import type { 폰자리 } from './phone.js';
-import { 감싼도구, 빈상태, 읽어둠, type 도구묶음 } from './tool.js';
+import { 단계감시, type 창처음값 } from './revert.js';
+import { 감싼도구, 빈상태, type 도구묶음 } from './tool.js';
 import { 꺼냄 } from './wire.js';
 
 type 연결옵션 = Parameters<APIRequest['newContext']>[0];
-
-// 창의 브라우저 요청에 이어 주기를 건다. 모킹보다 나중에 걸어야 먼저 돈다(Playwright 는 나중 route 가 먼저). 손 안 대면 fallback —
-// continue 는 먼저 건 모킹을 건너뛰고 진짜 서버로 간다. 오류면 abort — 그냥 보내면 막으려던 준비가 서버를 바꾼다.
-// route 가 이미 맞춘 무늬를 가르기에 넘긴다 — 손으로 옮긴 무늬 맞추기가 갈라 조용히 안 걸리지 않게 (SPEC 도메인/러너 §5.2 「이어 주기를 건다」)
-async function 이어주기걸기(context: BrowserContext, 이음값: 이음, 부품: 부품상태): Promise<void> {
-  // 거꾸로 건다 — Playwright 는 나중 route 를 먼저 돌리므로, 한 주소에 두 무늬가 맞을 때 API 쪽처럼 앞 링크가 이긴다
-  const 무늬들 = [...new Set(부품.links.flatMap((link) => (link.kind === 'bind' ? [] : [link.urlPattern])))].reverse();
-  for (const 무늬 of 무늬들) {
-    await context.route(무늬, async (route: Route) => {
-      const req = route.request();
-      const 가름 = await 가르기(이음값, 부품, 'browser', req.method(), req.url(), 무늬);
-      if (가름.kind === 'fulfill') await route.fulfill({ status: 가름.응답.status, contentType: 가름.응답.contentType, body: 가름.응답.body });
-      else if (가름.kind === 'fail') await route.abort();
-      else if (가름.kind === 'send' && 가름.url !== undefined) await route.fallback({ url: 가름.url, ...(가름.method === undefined ? {} : { method: 가름.method }) });
-      else await route.fallback();
-    });
-  }
-}
-
-// 가리킨 부품이면 창의 응답을 적는다. 자리는 오는 순간 잡는다. 3xx 는 본문을 못 읽어 자리만 차지하므로 건너뛴다 (SPEC 도메인/시나리오 §3.7 결정 12 「요청 고르기」)
-export function 응답듣기(context: BrowserContext, 이음값: 이음, 부품: 부품상태): void {
-  if (!이음값.가리킴.some((g) => g.fromSeq === 부품.seq)) return;
-  context.on('response', (res) => {
-    if (res.status() >= 300 && res.status() < 400) return;
-    적기(이음값, 부품.seq, res.request().method(), res.url(), () => 읽어둠(res));
-  });
-}
 
 interface 지금부품 {
   부품: 부품상태;
@@ -61,6 +37,8 @@ export interface 감싸기설정 {
   // 앱 · 게임 단계가 같이 쓰는 폰 연결과 게임 단계에 넘길 어드민 키. 앱 단계가 없는 시나리오는 안 연다 (SPEC 도메인/시나리오 §3.7 결정 16)
   폰?: 폰자리;
   adminKey?: { header: string; value: string };
+  // 단계가 머리글 · 망 · 흉내를 바꿨을 때 되돌릴 프로젝트 use 값 (SPEC 도메인/시나리오 §3.7 결정 3 「단계 끝 되돌리기」)
+  처음?: 창처음값;
 }
 
 // 단계 쪽 — 웹 단계는 그 창의 page, 앱 · 게임 단계는 폰 연결. 케이스 파일을 import 한 뒤에 부른다(폰 여는 함수가 그때 오른다)
@@ -185,47 +163,98 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
       };
     },
 
-    async newWindow(state: 상태 | undefined, mocks: ReadonlyMap<string, RouteHandler>, 부품?: 부품상태): Promise<창> {
+    // 시나리오를 시작할 때 한 번 연다. 모킹은 mock 부품이 이 창에 걸고 시나리오 끝까지 둔다 — mocks 는 케이스가 직접 만드는 창에 다시 걸 목록이다
+    async newWindow(mocks: ReadonlyMap<string, RouteHandler>): Promise<창> {
       걸린 = mocks;
       // 디바이스(화면 크기 · 사용자 에이전트) · baseURL 은 Playwright 가 프로젝트 use 로 채운다 (playwright/lib/index.js runBeforeCreateBrowserContext)
-      const 열기옵션 = 주소채움(state === undefined ? {} : { storageState: state }, 이음값, 부품);
-      const context = await 원래창(열기옵션);
+      const context = await 원래창({});
       const 창request = context.request;
-      const 이번: 지금부품 | undefined = 부품 === undefined ? undefined : { 부품, 직접만든: [], 닫힘: false };
-      const 부품요청 = 부품 === undefined ? undefined : await 원래요청(열기옵션);
-      if (부품 !== undefined) {
-        // 창을 만든 뒤 request 를 바꿔 끼우면 그 뒤 newPage 의 page.request 도 감싼 것이다 — Page 생성자가 창의 request 를 그대로 받는다
-        (context as { request: APIRequestContext }).request = 감싼도구(창request, 이음값, 묶음(부품, () => context.storageState()));
-      }
-      for (const [무늬, handler] of mocks) await context.route(무늬, handler);
-      if (부품 !== undefined) {
-        await 이어주기걸기(context, 이음값, 부품);
-        응답듣기(context, 이음값, 부품);
-      }
-      const page = await context.newPage();
+      let 탭 = await context.newPage();
+      let 탭죽음 = false;
+      const 지켜보기 = (p: Page) => p.once('crash', () => {
+        탭죽음 = true;
+      });
+      지켜보기(탭);
+      const 처음: 창처음값 = { ...설정.처음, viewport: 탭.viewportSize() };
+      const 처음기준 = 기준읽기(context);
+      // 단계가 첫 탭을 닫았거나 탭이 죽었으면 새 탭을 첫 탭으로 삼는다. 로그인 상태는 창에 있어 그대로다(sessionStorage 는 잃는다) (SPEC 도메인/시나리오 §3.7 결정 3 표)
+      const 살아있는탭 = async (): Promise<Page> => {
+        if (!탭.isClosed() && !탭죽음) return 탭;
+        await 탭.close().catch(남김('죽은 탭을 못 닫았다'));
+        탭 = await context.newPage();
+        탭죽음 = false;
+        지켜보기(탭);
+        return 탭;
+      };
       let 닫음 = false;
+      const 창닫기 = async () => {
+        if (닫음) return;
+        닫음 = true;
+        await context.close().catch(남김('시나리오 창을 못 닫았다'));
+      };
 
       return {
         route: async (url, handler) => {
           await context.route(url, handler);
         },
         unroute: (url, handler) => context.unroute(url, handler),
-        waitForTimeout: (ms) => page.waitForTimeout(ms),
+        waitForTimeout: async (ms) => (await 살아있는탭()).waitForTimeout(ms),
         // API 부품은 감싸지 않은 창의 request — 진짜 서버에 상태를 심는 뒷문이라 모킹 · 이어 주기를 안 거친다 (SPEC 도메인/시나리오 §3.7 결정 6)
         fetch: (url, options) => 창request.fetch(url, options),
-        async runCase(part: CasePart, seq, phase, params) {
-          if (이번 === undefined || 부품요청 === undefined) throw new Error('단계 없이 연 창에서 케이스를 돌리려 했다');
-          return 케이스돌리기(part, 이번, 부품요청, async () => ({ page, platform: 설정.platform }), seq, phase, params);
+        // 웹 단계 하나 — 같은 창 · 같은 탭에 그 단계 request · 이어 주기를 걸고, 닫을 때 단계가 건 것을 되돌린다 (SPEC 도메인/러너 §5.2 「창 하나로 끝까지」)
+        async 단계(부품: 부품상태, 넘겨받기: boolean): Promise<단계창> {
+          const 지금탭 = await 살아있는탭();
+          if (!넘겨받기) {
+            // 같은 창에서 로그인 상태를 비운다 — 쿠키와 이 창이 연 출처의 localStorage. sessionStorage 는 탭에 붙어 지금 출처 것만 지운다 (SPEC 도메인/시나리오 §3.7 결정 12 「넘겨받기 끔」)
+            await context.setStorageState(빈상태);
+            if (지금탭.url() !== 'about:blank') await 지금탭.evaluate(() => sessionStorage.clear()).catch(남김('지금 탭의 sessionStorage 를 못 비웠다'));
+            // 빈 화면에서 시작한다 — 앞 화면이 메모리에 쥔 로그인으로 돌지 않게. 단독 실행도 빈 탭에서 시작한다
+            await 지금탭.goto('about:blank');
+          }
+          const 단계주소 = 이음값.부품주소.get(부품.seq);
+          if (단계주소 !== undefined) 기준바꾸기(context, 단계주소);
+          const 이번: 지금부품 = { 부품, 직접만든: [], 닫힘: false };
+          // 단계마다 새로 만드는 것은 이것뿐이다. 창의 쿠키를 들고 시작한다 — 로그인 준비를 건너뛰어도 API 요청이 로그인한 사람으로 간다
+          const 부품요청 = await 원래요청(주소채움({ storageState: { cookies: await context.cookies(), origins: [] } }, 이음값, 부품));
+          // 창의 request 를 바꿔 끼우면 단계 안에서 연 탭 · 팝업의 page.request 도 감싼 것이다 — Page 생성자가 창의 request 를 그대로 받는다
+          (context as { request: APIRequestContext }).request = 감싼도구(창request, 이음값, 묶음(부품, () => context.storageState()));
+          const 뗄것 = await 이어주기걸기(context, 이음값, 부품);
+          const 듣기끔 = 응답듣기(context, 이음값, 부품);
+          const 감시 = 단계감시(지금탭, context, 처음, {
+            ...(단계주소 !== undefined && { 기준: 단계주소 }),
+            // 케이스가 창의 가로채기를 지웠다(unrouteAll · unroute) — 모킹은 시나리오 끝까지 가야 하니 걸린 것을 차례대로 다시 건다. 남은 가로채기는 이때 모킹뿐이다
+            모킹다시걸기: async () => {
+              await context.unrouteAll();
+              for (const [무늬, handler] of 걸린) await context.route(무늬, handler);
+            },
+          });
+          let 끝 = false;
+          return {
+            runCase: (part: CasePart, seq, phase, params) => 케이스돌리기(part, 이번, 부품요청, async () => ({ page: 감시.page, platform: 설정.platform }), seq, phase, params),
+            state: async () => 합친상태(await context.storageState(), await 부품요청.storageState()),
+            async close(끊음 = false) {
+              if (끝) return;
+              끝 = true;
+              이번.닫힘 = true;
+              for (const 닫기 of 이번.직접만든) await 닫기().catch(남김('케이스가 직접 만든 창 · 연결을 못 닫았다'));
+              // 한도에 걸렸다 — 케이스가 아직 이 탭을 쥐고 돈다. 창째 닫아 멈춘다. 시나리오는 여기서 멈추니 다음 단계가 쓸 창이 없어도 된다
+              if (끊음) {
+                await 부품요청.dispose().catch(남김('단계 request 를 못 닫았다'));
+                await 창닫기();
+                return;
+              }
+              await 쿠키더하기(context, 부품요청).catch(남김('단계 request 의 쿠키를 창에 못 더했다'));
+              await 부품요청.dispose().catch(남김('단계 request 를 못 닫았다'));
+              듣기끔();
+              for (const 하나 of 뗄것) await 하나.dispose().catch(남김('이어 주기를 못 뗐다'));
+              (context as { request: APIRequestContext }).request = 창request;
+              await 감시.되돌리기();
+              if (단계주소 !== undefined) 기준바꾸기(context, 처음기준);
+            },
+          };
         },
-        state: async () => 합친상태(await context.storageState(), 부품요청 === undefined ? 빈상태 : await 부품요청.storageState()),
-        async close() {
-          if (닫음) return;
-          닫음 = true;
-          if (이번 !== undefined) 이번.닫힘 = true;
-          for (const 닫기 of 이번?.직접만든 ?? []) await 닫기().catch(남김('케이스가 직접 만든 창 · 연결을 못 닫았다'));
-          await 부품요청?.dispose().catch(남김('부품 request 를 못 닫았다'));
-          await context.close().catch(남김('부품 창을 못 닫았다'));
-        },
+        state: () => context.storageState(),
+        close: 창닫기,
       };
     },
 

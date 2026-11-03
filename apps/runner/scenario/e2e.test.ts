@@ -1,4 +1,4 @@
-// 시나리오 실측 — 러너가 진짜 Playwright 자식을 띄워 가짜 케이스를 부품마다 새 창으로 잇는다. 인터넷 없이 돈다(로컬 실측 서버 · 모킹)
+// 시나리오 실측 — 러너가 진짜 Playwright 자식을 띄워 가짜 케이스를 창 하나로 잇는다. 인터넷 없이 돈다(로컬 실측 서버 · 모킹)
 // 워커 stdout 되돌려 쓰기 · kit 인스턴스 · 전용 설정의 testMatch · 창 바꿔 끼우기는 단위 검사로 원리상 안 보여 여기서만 잡힌다 (LEARNINGS 2026-09-21 [WS-C])
 // desktop 만 돈다 — CI 는 chromium 만 받는다. 모바일(iPhone 은 webkit) 디바이스 판정은 kit scenario.test.ts 가 브라우저 없이 본다
 
@@ -19,7 +19,7 @@ import { 무늬맞음 } from './links.js';
 type Part = ScenarioExecuteRequest['parts'][number];
 
 const fixtures = resolve(dirname(fileURLToPath(import.meta.url)), 'fixtures');
-const 케이스 = (tcId: string, skipSteps: string[] = [], links?: ScenarioLink[]): Part => ({
+const 케이스 = (tcId: string, skipSteps: string[] = [], links?: ScenarioLink[]): Extract<Part, { kind: 'case' }> => ({
   kind: 'case', tcId, params: {}, expected: {}, skipSteps, filePath: join(fixtures, `${tcId}.case.ts`),
   ...(links === undefined ? {} : { links }),
 });
@@ -47,9 +47,9 @@ afterAll(() => {
 });
 
 describe('시나리오 실측 (브라우저)', () => {
-  // 2026-10-06 결정 3 이 「한 창에서 이어 돈다」를 「부품마다 새 창 · 로그인 상태만 옮긴다」로 바꿨다.
-  // 그래서 이어받는 값을 화면 글자에서 localStorage 로 옮겼다. 건너뛰면 앞 부품 것이 남는다는 단언은 그대로다
-  it('두 케이스를 부품마다 새 창으로 잇는다 — 「만들기」를 건너뛰면 앞 부품이 담은 것이 남아 있다', async () => {
+  // 2026-11-03 TMO 에 결정 3 이 다시 「창 하나 · 탭 하나로 끝까지」다(2026-10-06 판은 부품마다 새 창).
+  // 이어받는 값은 localStorage 에 둔 그대로다. 건너뛰면 앞 부품 것이 남는다는 단언도 그대로다
+  it('두 케이스를 같은 창으로 잇는다 — 「만들기」를 건너뛰면 앞 부품이 담은 것이 남아 있다', async () => {
     const 서버 = await 서버열기();
     try {
       const 돌림 = executeScenario(요청([케이스('XSF-001'), 케이스('XSF-002', ['장바구니 화면을 세운다'])], 서버.url));
@@ -93,7 +93,7 @@ describe('시나리오 실측 (브라우저)', () => {
     expect(결과.parts[1]!.mocks).toEqual(['https://xsf.invalid/**']);
   }, 90_000);
 
-  it('새 창 · 로그인 상태 · 값 꽂기 · 뒷정리 미루기 — finally 의 page.request 상대 주소 삭제가 시나리오 끝에 로그인한 채 나간다', async () => {
+  it('로그인 상태 · 값 꽂기 · 뒷정리 미루기 — finally 의 page.request 상대 주소 삭제가 시나리오 끝에 로그인한 채 나간다', async () => {
     const 서버 = await 서버열기();
     try {
       const 결과 = await executeScenario(요청([
@@ -160,6 +160,46 @@ describe('시나리오 실측 (브라우저)', () => {
       expect(배움.parts[0]).toMatchObject({ status: 'FAIL', error: { message: expect.stringContaining('글 지우기 실패: 200') as unknown } });
     } finally {
       await 서버.닫기();
+    }
+  }, 90_000);
+
+  // 창 하나로 끝까지 돈다 — 앞 단계 화면에서 이어 시작하고, 앞 단계가 건 시계 · 주입 스크립트 · 가로채기 · 새 탭은 단계 끝에 되돌린다 (시나리오 §3.7 결정 3 「단계 끝 되돌리기」)
+  it('다음 단계는 같은 탭에서 이어 시작하고, 앞 단계가 건 것은 되돌려져 있고 로그인 상태는 이어진다', async () => {
+    const 서버 = await 서버열기();
+    try {
+      const 결과 = await executeScenario(요청([케이스('XSF-012'), 케이스('XSF-013')], 서버.url));
+
+      expect(결과.parts.map((p) => [p.seq, p.status, p.error?.message])).toEqual([[1, 'PASS', undefined], [2, 'PASS', undefined]]);
+      expect(결과.parts[1]!.steps.map((s) => s.status)).toEqual(['PASS', 'PASS', 'PASS', 'PASS']);
+    } finally {
+      await 서버.닫기();
+    }
+  }, 90_000);
+
+  it('넘겨받기를 끈 단계는 같은 창에서 쿠키 · localStorage · 지금 탭 sessionStorage 를 비우고 시작한다', async () => {
+    const 서버 = await 서버열기();
+    try {
+      const 결과 = await executeScenario(요청([케이스('XSF-012'), { ...케이스('XSF-014'), carryOver: false }], 서버.url));
+
+      expect(결과.parts.map((p) => [p.seq, p.status, p.error?.message])).toEqual([[1, 'PASS', undefined], [2, 'PASS', undefined]]);
+    } finally {
+      await 서버.닫기();
+    }
+  }, 90_000);
+
+  // 창의 기준 주소는 시작 애플리케이션으로 굳는다 — 러너가 goto · 주소 맞추기 칸 · page.request 를 그 단계 주소로 푼다. 내부 칸이라 판을 올리면 여기서 깨진다 (러너 §5.2 「창 하나로 끝까지」)
+  it('섞인 시나리오의 다른 애플리케이션 단계는 상대 주소 열기 · 기다리기 · page.request 가 그 애플리케이션으로 간다', async () => {
+    const 쇼핑몰 = await 서버열기();
+    const 어드민 = await 서버열기();
+    try {
+      const 결과 = await executeScenario(요청([케이스('XSF-001'), { ...케이스('XSF-015'), baseUrl: 어드민.url }], 쇼핑몰.url));
+
+      expect(결과.parts.map((p) => [p.seq, p.status, p.error?.message])).toEqual([[1, 'PASS', undefined], [2, 'PASS', undefined]]);
+      expect(어드민.기록.map((r) => `${r.method} ${r.path}`)).toEqual(['GET /?step=2', 'GET /api/xsf-mix']);
+      expect(쇼핑몰.기록.map((r) => `${r.method} ${r.path}`)).toEqual(['GET /']);
+    } finally {
+      await 쇼핑몰.닫기();
+      await 어드민.닫기();
     }
   }, 90_000);
 

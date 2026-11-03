@@ -102,8 +102,8 @@ export const 시나리오말: Record<string, string> = {
   '미확정 케이스입니다. 이 단계가 들어간 실행에는 「미확정」 표시가 붙습니다':
     'This case is unconfirmed. Runs that include this step carry the "Unconfirmed" tag',
   '로그인 이어받기': 'Keep login from earlier step',
-  '앞 단계의 로그인 상태를 그대로 사용합니다. 끄면 새 창에서 단독으로 실행합니다':
-    'Uses the login state left by the earlier step. When off, this step runs alone in a new window',
+  '앞 단계의 로그인 상태를 그대로 사용합니다. 끄면 로그인 상태를 비우고 단독으로 실행합니다':
+    'Uses the login state left by the earlier step. When off, this step clears the login state and runs alone',
   '로그인 이어받기를 끄면 사전 단계 건너뛰기와 값 연결을 쓸 수 없습니다':
     'With login carry-over off, you cannot skip setup or link values',
   '사전 단계 — 체크한 것만 실행': 'Setup — only checked items run',

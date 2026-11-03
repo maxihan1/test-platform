@@ -23,7 +23,7 @@ if (process.env.TEST_WORKER_INDEX !== undefined) {
   delete process.env.PLATFORM_ADMIN_KEY;
 }
 
-// 부품마다 새 창을 직접 연다 — page · request fixture 는 테스트 하나에 하나뿐이다 (SPEC 도메인/시나리오 §3.7 결정 3)
+// 창 하나 · 탭 하나를 직접 열어 끝까지 쓴다. 단계 request 와 단계 끝 되돌리기를 러너가 쥐어야 해서 page · request fixture 를 안 쓴다 (SPEC 도메인/시나리오 §3.7 결정 3)
 test('E2E 시나리오', async ({ browser }, testInfo) => {
   const baseUrl = process.env.PLATFORM_BASE_URL ?? '';
   const 이음 = 새이음(목록, baseUrl, 삭제코드);
@@ -34,11 +34,17 @@ test('E2E 시나리오', async ({ browser }, testInfo) => {
   const 폰 = 새폰자리(폰꺼냄, 폰열기환경, (device) => {
     process.stdout.write(기기줄(device));
   });
+  const { use } = testInfo.project;
   const 감싸기 = 감싸기걸기(browser, request, 이음, {
     baseUrl,
     platform: testInfo.project.name,
-    기본머리: testInfo.project.use.extraHTTPHeaders,
-    기본인증: testInfo.project.use.httpCredentials,
+    기본머리: use.extraHTTPHeaders,
+    기본인증: use.httpCredentials,
+    처음: {
+      extraHTTPHeaders: use.extraHTTPHeaders, offline: use.offline, geolocation: use.geolocation, permissions: use.permissions,
+      colorScheme: use.colorScheme, reducedMotion: use.reducedMotion, forcedColors: use.forcedColors, contrast: use.contrast,
+      actionTimeout: use.actionTimeout, navigationTimeout: use.navigationTimeout,
+    },
     폰,
     ...(어드민키 && { adminKey: 어드민키 }),
   });

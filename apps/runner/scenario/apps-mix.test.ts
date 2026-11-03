@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { 가르기, 새부품, 새이음, 적기, 주소의, type 받은응답 } from './links.js';
 import { runParts } from './parts.js';
+import { 가짜플창 } from './parts-fake.js';
 import { 감싸기걸기, 주소채움 } from './window.js';
 
 type Part = ScenarioExecuteRequest['parts'][number];
@@ -76,43 +77,40 @@ describe('값 연결이 애플리케이션을 건넌다', () => {
 
 describe('창 · 연결을 여는 주소', () => {
   function 가짜() {
-    const 창 = {
-      request: {},
-      route: vi.fn(async () => {}),
-      on: vi.fn(),
-      newPage: vi.fn(async () => ({})),
-      storageState: vi.fn(async () => ({ cookies: [], origins: [] })),
-      close: vi.fn(async () => {}),
-    };
+    const { 창 } = 가짜플창(쇼핑몰);
     const 연결 = { storageState: vi.fn(async () => ({ cookies: [], origins: [] })), dispose: vi.fn(async () => {}) };
     const 열기 = vi.fn(async (_options?: object) => 창);
     const 요청열기 = vi.fn(async (_options?: object) => 연결);
     const 브라우저 = { newContext: 열기 } as unknown as Browser;
     const 요청도구 = { newContext: 요청열기 } as unknown as APIRequest;
-    return { 열기, 요청열기, 브라우저, 요청도구 };
+    return { 창, 열기, 요청열기, 브라우저, 요청도구 };
   }
   const 설정 = { baseUrl: 쇼핑몰, platform: 'desktop' };
+  const 빈 = { cookies: [], origins: [] };
 
-  it('다른 애플리케이션 부품의 창과 부품 request 는 baseURL 을 그 주소로 연다', async () => {
-    const { 열기, 요청열기, 브라우저, 요청도구 } = 가짜();
-    const 이음 = 새이음([케이스('MKT-FN-001'), 케이스('ADM-FN-001', 어드민)], 쇼핑몰);
-    const 감싸기 = 감싸기걸기(브라우저, 요청도구, 이음, 설정);
+  it('창은 baseURL 을 안 주고 한 번 연다 — Playwright 프로젝트 기본값(시작 애플리케이션)이 채운다', async () => {
+    const { 열기, 브라우저, 요청도구 } = 가짜();
+    const 감싸기 = 감싸기걸기(브라우저, 요청도구, 새이음([케이스('MKT-FN-001'), 케이스('ADM-FN-001', 어드민)], 쇼핑몰), 설정);
 
-    await 감싸기.newWindow(undefined, new Map(), 새부품(2, []));
+    await 감싸기.newWindow(new Map());
 
-    expect(열기).toHaveBeenCalledWith({ baseURL: 어드민 });
-    expect(요청열기).toHaveBeenCalledWith({ baseURL: 어드민 });
+    expect(열기.mock.calls).toEqual([[{}]]);
   });
 
-  it('자기 주소가 없는 부품과 부품 없는 첫 창은 baseURL 을 안 준다 — Playwright 프로젝트 기본값이 채운다', async () => {
-    const { 열기, 브라우저, 요청도구 } = 가짜();
-    const 이음 = 새이음([케이스('MKT-FN-001'), 케이스('ADM-FN-001', 어드민)], 쇼핑몰);
-    const 감싸기 = 감싸기걸기(브라우저, 요청도구, 이음, 설정);
+  it('다른 애플리케이션 단계는 단계 request 를 그 주소로 열고, 주소 맞추기 칸을 단계 동안만 그 주소로 바꾼다 — 자기 애플리케이션 단계는 안 건드린다', async () => {
+    const { 창, 요청열기, 브라우저, 요청도구 } = 가짜();
+    const 감싸기 = 감싸기걸기(브라우저, 요청도구, 새이음([케이스('MKT-FN-001'), 케이스('ADM-FN-001', 어드민)], 쇼핑몰), 설정);
+    const 공용 = await 감싸기.newWindow(new Map());
 
-    await 감싸기.newWindow(undefined, new Map());
-    await 감싸기.newWindow(undefined, new Map(), 새부품(1, []));
+    const 첫 = await 공용.단계(새부품(1, []), true);
+    expect(창._options.baseURL).toBe(쇼핑몰);
+    await 첫.close();
+    const 둘 = await 공용.단계(새부품(2, []), true);
+    expect(창._options.baseURL).toBe(어드민);
+    await 둘.close();
 
-    expect(열기.mock.calls).toEqual([[{}], [{}]]);
+    expect(요청열기.mock.calls).toEqual([[{ storageState: 빈 }], [{ storageState: 빈, baseURL: 어드민 }]]);
+    expect(창._options.baseURL).toBe(쇼핑몰);
   });
 
   it('케이스가 직접 만드는 창 · 연결의 옵션에는 그 부품의 주소를 기본으로 채우고, 케이스가 준 baseURL 이 이긴다', () => {
@@ -132,7 +130,7 @@ describe('API 부품의 호출 주소', () => {
     const 창 = {
       route: async () => {}, unroute: async () => {}, waitForTimeout: async () => {},
       fetch: vi.fn(async (url: string) => { 호출.push(url); return { status: () => 200, text: async () => "", headers: () => ({}) }; }),
-      runCase: async () => { throw new Error('안 돈다'); }, state: async () => ({ cookies: [], origins: [] }), close: async () => {},
+      단계: async () => { throw new Error('안 돈다'); }, state: async () => ({ cookies: [], origins: [] }), close: async () => {},
     };
     const parts: Part[] = [
       { kind: 'api', method: 'GET', path: '/a', expectStatus: 200 },

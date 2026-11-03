@@ -4,19 +4,15 @@ import type { ScenarioExecuteRequest, ScenarioPartResult } from '@platform/kit';
 import { describe, expect, it, vi } from 'vitest';
 
 import { 새이음, 주소, type 상태 } from './links.js';
-import { runParts, 합친상태, type PartDeps, type 창 } from './parts.js';
+import { runParts, 합친상태, type PartDeps, type 단계창, type 창 } from './parts.js';
 
 type Part = ScenarioExecuteRequest['parts'][number];
 
-function 가짜(칸: Partial<창> & { baseUrl?: string } = {}) {
+function 가짜(칸: Partial<Omit<창, '단계'>> & Pick<Partial<단계창>, 'runCase'> & { baseUrl?: string } = {}) {
   const 줄: ScenarioPartResult[] = [];
-  const { baseUrl = 'https://qa.example.com', ...창칸 } = 칸;
-  const 지금창: 창 = {
-    route: vi.fn(async () => {}),
-    unroute: vi.fn(async () => {}),
-    waitForTimeout: vi.fn(async () => {}),
-    fetch: vi.fn(async () => ({ status: () => 200, text: async () => "", headers: () => ({}) })),
-    runCase: vi.fn(async (_part, seq: number) => ({
+  const { baseUrl = 'https://qa.example.com', runCase, ...창칸 } = 칸;
+  const 단계자리: 단계창 = {
+    runCase: runCase ?? vi.fn(async (_part, seq: number) => ({
       seq: seq + 2,
       steps: [
         { seq: seq + 1, title: '가', status: 'PASS' as const, durationMs: 1, assertions: [] },
@@ -24,6 +20,15 @@ function 가짜(칸: Partial<창> & { baseUrl?: string } = {}) {
       ],
       failed: false,
     })),
+    state: vi.fn(async () => ({ cookies: [], origins: [] })),
+    close: vi.fn(async () => {}),
+  };
+  const 지금창: 창 = {
+    route: vi.fn(async () => {}),
+    unroute: vi.fn(async () => {}),
+    waitForTimeout: vi.fn(async () => {}),
+    fetch: vi.fn(async () => ({ status: () => 200, text: async () => "", headers: () => ({}) })),
+    단계: vi.fn(async () => 단계자리),
     state: vi.fn(async () => ({ cookies: [], origins: [] })),
     close: vi.fn(async () => {}),
     ...창칸,
@@ -39,25 +44,37 @@ function 가짜(칸: Partial<창> & { baseUrl?: string } = {}) {
     },
     writeCleanup: () => {},
   };
-  return { deps, 지금창, 줄 };
+  return { deps, 지금창, 단계자리, 줄 };
 }
 
-const 케이스 = (tcId = 'XRS-001', skipSteps: string[] = []): Part => ({
+const 케이스 = (tcId = 'XRS-001', skipSteps: string[] = []): Extract<Part, { kind: 'case' }> => ({
   kind: 'case', tcId, params: {}, expected: {}, skipSteps, filePath: `/tests/${tcId}.spec.ts`,
 });
 
 describe('runParts', () => {
   it('부품마다 결과 줄 한 줄을 흘리고 케이스 절차 순번은 시나리오 전체에서 이어진다', async () => {
-    const { deps, 지금창, 줄 } = 가짜();
+    const { deps, 지금창, 단계자리, 줄 } = 가짜();
 
     await runParts([케이스('XRS-001', ['가']), { kind: 'wait', ms: 5 }, 케이스('XRS-002')], deps);
 
     expect(줄.map((r) => [r.seq, r.status])).toEqual([[1, 'PASS'], [2, 'PASS'], [3, 'PASS']]);
     expect(줄[2]!.steps.map((s) => s.seq)).toEqual([3, 4]);
     const 표시판 = expect.objectContaining({ started: false, inStep: 0, judged: false });
-    expect(지금창.runCase).toHaveBeenNthCalledWith(1, expect.objectContaining({ tcId: 'XRS-001', skipSteps: ['가'] }), 0, 표시판, {});
-    expect(지금창.runCase).toHaveBeenNthCalledWith(2, expect.objectContaining({ tcId: 'XRS-002' }), 2, 표시판, {});
+    expect(단계자리.runCase).toHaveBeenNthCalledWith(1, expect.objectContaining({ tcId: 'XRS-001', skipSteps: ['가'] }), 0, 표시판, {});
+    expect(단계자리.runCase).toHaveBeenNthCalledWith(2, expect.objectContaining({ tcId: 'XRS-002' }), 2, 표시판, {});
     expect(지금창.waitForTimeout).toHaveBeenCalledWith(5);
+  });
+
+  it('창은 시작에 한 번 열고 끝에 닫는다 — 웹 단계는 같은 창에서 열고 단계마다 닫아(되돌려) 다음 단계로 간다 (SPEC 도메인/시나리오 §3.7 결정 3)', async () => {
+    const { deps, 지금창, 단계자리 } = 가짜();
+
+    await runParts([케이스('XRS-001'), { ...케이스('XRS-002'), carryOver: false }], deps);
+
+    expect(deps.newWindow).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(지금창.단계).mock.calls.map(([부품, 넘겨받기]) => [부품.seq, 넘겨받기])).toEqual([[1, true], [2, false]]);
+    expect(단계자리.close).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(단계자리.close).mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(지금창.단계).mock.invocationCallOrder[1]!);
+    expect(지금창.close).toHaveBeenCalledTimes(1);
   });
 
   it('모킹은 context 에 걸고 끄기 전까지 뒤 부품의 mocks 에 실린다', async () => {
