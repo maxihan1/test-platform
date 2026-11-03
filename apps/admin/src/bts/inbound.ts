@@ -57,7 +57,8 @@ function 처음보나(열쇠: string): boolean {
 export interface 알림연결 {
   projectId: number;
   baseUrl: string;
-  botKey: string;
+  /** 「QA Hub AI」 Auth 계정 이름(bts_link.bot_username) — 빈 글자면 BTS 를 부를 때 던진다 */
+  봇: string;
   btsProject: string;
 }
 
@@ -74,7 +75,7 @@ export async function BTS알림처리(연결: 알림연결, 몸: unknown, 부르
   const 열쇠 = `${String(연결.projectId)}:${꼴.data.deliveryId}`;
   if (!처음보나(열쇠)) return null;
   try {
-    const 이슈 = await 이슈읽기({ baseUrl: 연결.baseUrl, botKey: 연결.botKey }, 꼴.data.data.issueKey, 부르기);
+    const 이슈 = await 이슈읽기({ baseUrl: 연결.baseUrl, 봇: 연결.봇 }, 꼴.data.data.issueKey, 부르기);
     // 이슈가 「QA 요청」을 떠나면 맡음을 놓는다 — 다시 「QA 요청」에 오면 다음 배포가 새로 맡는다(결정 4)
     await 맡음놓기(연결.projectId, 이슈);
     const 닫음 = await 닫기처리(연결, 이슈, 부르기);
@@ -189,8 +190,8 @@ export default async function btsInboundRoutes(app: FastifyInstance, opts: { 부
     const id = 정수(req.params.projectId);
     if (id === null) return reply.code(400).send({ error: 'INVALID_REQUEST' });
     const 행 = (
-      await (await db()).query<{ base_url: string; bot_key: string; bts_project: string; webhook_secret: string }>(
-        'SELECT base_url, bot_key, bts_project, webhook_secret FROM bts_link WHERE project_id = $1',
+      await (await db()).query<{ base_url: string; bot_username: string | null; bts_project: string; webhook_secret: string }>(
+        'SELECT base_url, bot_username, bts_project, webhook_secret FROM bts_link WHERE project_id = $1',
         [id],
       )
     ).rows[0];
@@ -200,7 +201,7 @@ export default async function btsInboundRoutes(app: FastifyInstance, opts: { 부
     }
     try {
       const 이슈 = await BTS알림처리(
-        { projectId: id, baseUrl: 행.base_url, botKey: 행.bot_key, btsProject: 행.bts_project },
+        { projectId: id, baseUrl: 행.base_url, 봇: 행.bot_username ?? '', btsProject: 행.bts_project },
         json읽기(req.body),
         opts.부르기,
       );

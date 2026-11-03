@@ -1,10 +1,20 @@
-// BTS 를 「QA Hub AI」 열쇠로 부른다 — 이슈 다시 읽기 · 보낼 줄 보내기가 같은 자리를 쓴다 (도메인/BTS §3.12 「열쇠 표」)
+// BTS 를 「QA Hub AI」 계정의 대신 PAT 로 부른다 — 이슈 다시 읽기 · 보낼 줄 보내기가 같은 자리를 쓴다 (도메인/BTS §3.12 「열쇠 표」)
 
-/** 부를 BTS 와 열쇠. bts_link 한 줄에서 온다 */
-export interface BTS자리 {
-  baseUrl: string;
-  botKey: string;
+import { 대신PAT } from '../auth/delegatedPat.js';
+
+/**
+ * 부를 BTS 와 누구로 부를지. 봇은 「QA Hub AI」 Auth 계정 이름(bts_link.bot_username) — 부를 때마다 대신 PAT 로 바꾼다.
+ * pat 은 이미 받은 토큰(자동 설정은 누른 사람의 대신 PAT · MCP 는 부른 사람의 PAT)
+ */
+export type BTS자리 = { baseUrl: string } & ({ 봇: string } | { pat: string });
+
+/** 이름이 비면(S25 전에 이은 연결) 던진다 — 부르는 쪽은 닿지 않은 것과 같이 다룬다 */
+export async function 봇열쇠(이름: string): Promise<string> {
+  if (이름 === '') throw new Error('「QA Hub AI」 계정 이름이 없습니다 — 설정 › Issue Bunker 연결에 적어 주세요');
+  return 대신PAT({ username: 이름 });
 }
+
+const 열쇠고르기 = async (자리: BTS자리): Promise<string> => ('pat' in 자리 ? 자리.pat : 봇열쇠(자리.봇));
 
 export interface BTS응답 {
   status: number;
@@ -13,12 +23,13 @@ export interface BTS응답 {
 
 export type 부르기함수 = (자리: BTS자리, method: string, 경로: string, 몸?: unknown) => Promise<BTS응답>;
 
-/** 닿지 않으면 던진다 — 보낼 줄이 「다시 보낼 것」으로 친다. BTS 는 PAT 를 `Authorization: Bearer` 로 받는다 */
+/** 닿지 않거나 대신 PAT 를 못 받으면 던진다 — 보낼 줄이 「다시 보낼 것」으로 친다. BTS 는 PAT 를 `Authorization: Bearer` 로 받는다 */
 export const BTS부르기: 부르기함수 = async (자리, method, 경로, 몸) => {
+  const 열쇠 = await 열쇠고르기(자리);
   const res = await fetch(`${자리.baseUrl.replace(/\/+$/, '')}${경로}`, {
     method,
     headers: {
-      authorization: `Bearer ${자리.botKey}`,
+      authorization: `Bearer ${열쇠}`,
       accept: 'application/json',
       ...(몸 !== undefined && { 'content-type': 'application/json' }),
     },
@@ -42,9 +53,10 @@ export type 올리기함수 = (자리: BTS자리, issueKey: string, 이름: stri
 export const BTS올리기: 올리기함수 = async (자리, issueKey, 이름, 파일) => {
   const 몸 = new FormData();
   몸.append('file', new Blob([new Uint8Array(파일)], { type: 'image/png' }), 이름);
+  const 열쇠 = await 열쇠고르기(자리);
   const res = await fetch(`${자리.baseUrl.replace(/\/+$/, '')}/api/v1/issues/${encodeURIComponent(issueKey)}/attachments`, {
     method: 'POST',
-    headers: { authorization: `Bearer ${자리.botKey}`, accept: 'application/json' },
+    headers: { authorization: `Bearer ${열쇠}`, accept: 'application/json' },
     body: 몸,
     signal: AbortSignal.timeout(30_000),
     redirect: 'manual',

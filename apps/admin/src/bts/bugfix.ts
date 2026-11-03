@@ -15,7 +15,7 @@ async function db(): Promise<Pool> {
 
 interface 연결줄 {
   base_url: string;
-  bot_key: string;
+  bot_username: string | null;
   bts_project: string;
   status_map: Record<string, string>;
   updated_by: string;
@@ -24,14 +24,14 @@ interface 연결줄 {
 
 export async function 연결읽기(projectId: number): Promise<연결줄 | null> {
   const r = await (await db()).query<연결줄>(
-    `SELECT l.base_url, l.bot_key, l.bts_project, l.status_map, l.updated_by, u.display_name
+    `SELECT l.base_url, l.bot_username, l.bts_project, l.status_map, l.updated_by, u.display_name
        FROM bts_link l LEFT JOIN app_user u ON u.username = l.updated_by WHERE l.project_id = $1`,
     [projectId],
   );
   return r.rows[0] ?? null;
 }
 
-export const 자리로 = (l: 연결줄): BTS자리 => ({ baseUrl: l.base_url, botKey: l.bot_key });
+export const 자리로 = (l: 연결줄): BTS자리 => ({ baseUrl: l.base_url, 봇: l.bot_username ?? '' });
 
 /** BTS 로 나가는 글은 본문 상한(바이트) 안으로 자른다 — 넘으면 BTS 가 400 으로 거절해 보낼 줄이 그만둔다. 자르는 꼴은 failBody.ts 이슈본문과 같다 */
 export function 글자르기(글: string): string {

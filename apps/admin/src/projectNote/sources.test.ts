@@ -28,7 +28,7 @@ describe.skipIf(연결 === undefined)('노트 사건이 서는 곳 · note_read'
   let 이슈 = { key: 'XNS-1', currentStateKey: 'open', typeKey: 'bug', summary: '로그인 잠금', resolution: null as { name: string } | null };
   const 부르기 = async (_자리: BTS자리, _method: string, 경로: string) => ({ status: 200, json: { data: { ...이슈, key: 경로.split('/').pop() } } });
   const q = async (sql: string, 값: unknown[] = []) => (await import('../db/index.js')).pool.query(sql, 값);
-  const 연결값 = () => ({ projectId: 내프로젝트, baseUrl: 'https://bts.xnr.test', botKey: 'k', btsProject: 'XNS' });
+  const 연결값 = () => ({ projectId: 내프로젝트, baseUrl: 'https://bts.xnr.test', 봇: 'k', btsProject: 'XNS' });
   const 알림 = (event: string, issueKey: string) => BTS알림처리(연결값(), { event, deliveryId: `${event}-${issueKey}-${String(Math.random())}`, data: { issueKey } }, 부르기);
   const 사건들 = async () =>
     (await q('SELECT kind, payload FROM project_note_event WHERE project_id = $1 ORDER BY id', [내프로젝트])).rows as { kind: string; payload: Record<string, unknown> }[];
@@ -66,7 +66,7 @@ describe.skipIf(연결 === undefined)('노트 사건이 서는 곳 · note_read'
     await q(`INSERT INTO app_user (username, display_name, password_hash, role, perm_dashboard, is_approved, must_change_password) VALUES ($1, $1, NULL, 'member', 'none', true, false)`, [작성계정]);
     await q(`INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring) VALUES ($1, $2, 'write', 'write', 'write'), ($1, $3, 'write', 'write', 'write')`, [작성계정, 내프로젝트, 남프로젝트]);
     await q(
-      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_key, webhook_secret, status_map, resolution_map, updated_by, rule_token_hash, rule_token_tail, rule_token_by, rule_token_at)
+      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_username, webhook_secret, status_map, resolution_map, updated_by, rule_token_hash, rule_token_tail, rule_token_by, rule_token_at)
        VALUES ($1, 'https://bts.xnr.test', 'XNS', 'k', 's', '{"CLOSED": "closed"}', '{}', 'xnr', $2, 'rule', $3, now())`,
       [내프로젝트, 토큰해시('btr_xnr-rule'), 작성계정],
     );

@@ -239,8 +239,8 @@ describe.skipIf(연결 === undefined)('결정 목록 · 결정 진행', () => {
     const runId = await 실행넣기();
     const key = `fail:${String(runId)}:${케이스}`;
     await q(
-      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_key, webhook_secret, status_map, resolution_map, updated_by)
-       SELECT project_id, 'https://bts.example.com', 'DM', 'pat', 's', '{}', '{}', 'xwx' FROM service WHERE id = $1`,
+      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_username, webhook_secret, status_map, resolution_map, updated_by)
+       SELECT project_id, 'https://bts.example.com', 'DM', 'qahub-ai', 's', '{}', '{}', 'xwx' FROM service WHERE id = $1`,
       [서비스],
     );
     try {

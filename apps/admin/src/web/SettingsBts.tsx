@@ -1,5 +1,5 @@
 // 설정 › 프로젝트 › BTS 연결 화면 (SPEC 도메인/BTS §8.15 · 시안 B 3판 2026-10-31). 연결 정보 → BTS 자동 설정 → 배포 스크립트 한 줄
-// BTS 쪽(웹훅 · 규칙 둘 · 보드 칸)은 누른 사람의 통합계정 토큰으로 서버가 만든다 — 사람이 값을 옮겨 적지 않는다(2026-10-31 사용자 「자동으로 설정하면 되잖아」)
+// BTS 쪽(웹훅 · 규칙 둘 · 보드 칸)은 누른 사람의 대신 PAT 로 서버가 만든다 — 사람이 값을 옮겨 적지 않는다(2026-10-31 사용자 「자동으로 설정하면 되잖아」)
 
 import { useEffect, useState } from 'react';
 
@@ -15,13 +15,14 @@ import { Failed, Loading, useAsync } from './ui.js';
 
 // 이 화면에서만 나는 코드 — 서버 bts/routes.ts. 나머지는 설정 화면 공통 문장으로 간다
 const 연결오류: Record<string, string> = {
-  BTS_UNREACHABLE: '{bts} 에 접속하지 못했습니다. 주소 · 프로젝트 키 · 「QA Hub AI」 계정 토큰을 확인해 주세요',
-  BOT_KEY_REQUIRED: '주소를 바꾸면 「QA Hub AI」 계정 토큰을 다시 넣어야 합니다',
-  SECRETS_REQUIRED: '처음 연결할 때는 「QA Hub AI」 계정 토큰을 넣어야 합니다',
+  BTS_UNREACHABLE: '{bts} 에 접속하지 못했습니다. 주소 · 프로젝트 키 · 「QA Hub AI」 계정 이름을 확인해 주세요',
+  SSO_REQUIRED: 'Auth 로그인을 켠 설치에서만 {bts} 를 이을 수 있습니다',
   MAP_INCOMPLETE: '비어 있는 단계가 있습니다. 모든 단계에 {bts} 상태를 골라 주세요',
-  NO_PERSONAL_TOKEN: '내 계정에 통합계정 토큰이 없습니다. 왼쪽 아래 내 메뉴 › 통합계정 토큰에 넣은 뒤 다시 눌러 주세요',
+  NO_PERSONAL_TOKEN: 'Auth 계정으로 로그인한 운영 계정이어야 {bts} 자동 설정을 할 수 있습니다',
   PUBLIC_URL_REQUIRED: '이 서버의 공개 주소(PLATFORM_PUBLIC_URL)가 없어 {bts} 가 Test Commander 를 부를 수 없습니다',
 };
+// 서버도 빈 이름을 INVALID_REQUEST 로 막지만 그 말로는 어느 칸인지 모른다 — 부르기 전에 먼저 막는다
+const 이름없음 = '「QA Hub AI」 계정 이름을 적어야 합니다';
 
 export function SettingsBts({ row, services, onDone }: { row: SettingsProject; services: SettingsServiceRow[]; onDone: () => void }) {
   const 연결 = useAsync(() => btsApi.get(row.id), [row.id]);
@@ -35,8 +36,7 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
   const 언어 = use언어();
   const [baseUrl, setBaseUrl] = useState(지금.baseUrl ?? '');
   const [btsProject, setBtsProject] = useState(지금.btsProject ?? '');
-  // 빈 칸이면 저장한 토큰을 그대로 쓴다 — 원문은 화면에 안 내려온다
-  const [botKey, setBotKey] = useState('');
+  const [botUsername, setBotUsername] = useState(지금.botUsername ?? '');
   const [상태, set상태] = useState(지금.statusMap);
   const [해결, set해결] = useState(지금.resolutionMap);
   const [저장소, set저장소] = useState<저장소들>(() => Object.fromEntries(앱들.map((앱) => [앱.id, 앱.codeRepos ?? []])));
@@ -58,14 +58,13 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
   // 누르는 동안 막는다 — 겹친 요청의 늦게 온 옛 답이 다른 BTS 의 상태 키로 고르개를 채우지 않게(리뷰)
   async function 불러온다() {
     set목록오류(null);
-    // 처음 연결이면 저장한 토큰이 없다 — 서버의 BOT_KEY_REQUIRED(「주소를 바꾸면 …」)보다 맞는 말로 먼저 막는다
-    if (!지금.linked && botKey.trim() === '') {
-      set목록오류(t(연결오류.SECRETS_REQUIRED!, { bts: BTS이름 }));
+    if (botUsername.trim() === '') {
+      set목록오류(t(이름없음));
       return;
     }
     set불러오는중(true);
     try {
-      set목록(await btsApi.choices(row.id, baseUrl.trim(), botKey.trim() === '' ? undefined : botKey.trim()));
+      set목록(await btsApi.choices(row.id, baseUrl.trim(), botUsername.trim()));
     } catch (e) {
       set목록(null);
       set목록오류(문장(e));
@@ -74,7 +73,7 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
     }
   }
 
-  // 이미 이은 프로젝트는 열 때 바로 불러온다 — 저장한 토큰으로 부른다. 처음 한 번만이다 — 칸을 고칠 때마다 BTS 를 부르지 않는다
+  // 이미 이은 프로젝트는 열 때 바로 불러온다 — 저장한 계정 이름으로 부른다. 처음 한 번만이다 — 칸을 고칠 때마다 BTS 를 부르지 않는다
   useEffect(() => {
     if (지금.linked) void 불러온다();
   }, []);
@@ -86,6 +85,10 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
       set오류(t(연결오류.MAP_INCOMPLETE!, { bts: BTS이름 }));
       return;
     }
+    if (botUsername.trim() === '') {
+      set오류(t(이름없음));
+      return;
+    }
     set바쁨(true);
     set오류(null);
     set결과(null);
@@ -93,7 +96,7 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
       await btsApi.save(row.id, {
         baseUrl: baseUrl.trim(),
         btsProject: btsProject.trim(),
-        ...(botKey.trim() === '' ? {} : { botKey: botKey.trim() }),
+        botUsername: botUsername.trim(),
         statusMap: 상태 as Record<상태단계, string>,
         resolutionMap: 해결 as Record<해결단계, string>,
       });
@@ -102,7 +105,6 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
         const 줄들 = (저장소[앱.id] ?? []).filter((it) => it.name.trim() !== '' || it.url.trim() !== '');
         if (JSON.stringify(줄들) !== JSON.stringify(앱.codeRepos ?? [])) await api.updateService(앱.id, { codeRepos: 줄들 });
       }
-      setBotKey('');
       onDone();
       // 자동 설정이 막혀도 연결은 저장됐다 — 먼저 다시 읽어 「연결됨」 · 배포 구획이 서게 한다. 칸은 프로젝트 번호로만 다시 그려 지금 값이 남는다
       await 다시();
@@ -170,9 +172,8 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
           <input id="bts-key" type="text" value={btsProject} maxLength={50} placeholder="DM" onChange={(e) => setBtsProject(e.target.value)} />
         </div>
         <div className="field">
-          <label htmlFor="bts-bot">{t('「QA Hub AI」 계정 토큰')}</label>
-          <input id="bts-bot" type="password" autoComplete="off" value={botKey} placeholder={지금.botKeyTail === null ? 'pat_…' : t('넣음 (…{끝}) — 바꿀 때만 넣습니다', { 끝: 지금.botKeyTail })}
-            onChange={(e) => setBotKey(e.target.value)} />
+          <label htmlFor="bts-bot">{t('「QA Hub AI」 계정 이름')}</label>
+          <input id="bts-bot" type="text" autoComplete="off" value={botUsername} maxLength={100} placeholder="qahub-ai" onChange={(e) => setBotUsername(e.target.value)} />
         </div>
         <p className="hint">{t('Test Commander 가 실패한 테스트를 {bts} 이슈로 올릴 때 쓰는 통합계정입니다. 사람 계정과 따로 두어야 {bts} 에서 누가 올렸는지 구분됩니다', { bts: BTS이름 })}</p>
       </구획>
@@ -189,7 +190,7 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
       />
       <코드저장소구획 앱들={앱들} 저장소={저장소} 바꾼다={(앱, 줄) => set저장소((전) => ({ ...전, [앱]: 줄 }))} />
 
-      <구획 제목={t('2 · {bts} 자동 설정', { bts: BTS이름 })} 쓰임={t('내 통합계정 토큰으로 {bts} 에 아래 넷을 만듭니다. 이미 있으면 새로 만들지 않고 고칩니다', { bts: BTS이름 })}>
+      <구획 제목={t('2 · {bts} 자동 설정', { bts: BTS이름 })} 쓰임={t('내 통합계정 권한으로 {bts} 에 아래 넷을 만듭니다. 이미 있으면 새로 만들지 않고 고칩니다', { bts: BTS이름 })}>
         <자동설정결과 결과={결과} />
       </구획>
       {오류 === null ? null : (

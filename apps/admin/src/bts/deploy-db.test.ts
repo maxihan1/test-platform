@@ -129,9 +129,9 @@ describe.skipIf(연결 === undefined)('프로젝트 배포 신호', { timeout: 6
       );
     }
     await pool.query(
-      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_key, webhook_secret, status_map, resolution_map, updated_by,
+      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_username, webhook_secret, status_map, resolution_map, updated_by,
                              deploy_key_hash, deploy_key_tail, deploy_key_by, deploy_key_at)
-       VALUES ($1, 'https://bts.xbn.test', 'XBN', 'pat_xbn', 'whsec', $2, '{}', 'xbn-admin', $3, '-key', 'xbn-admin', now())`,
+       VALUES ($1, 'https://bts.xbn.test', 'XBN', 'qahub-xbn', 'whsec', $2, '{}', 'xbn-admin', $3, '-key', 'xbn-admin', now())`,
       [프로젝트, { DEPLOY_WAIT: 'wait', QA_REQUEST: 'qa-req', QA_REVIEW: 'review', DEV_REQUEST: 'dev', CODE_REVIEW: 'cr', CLOSED: 'closed' }, 토큰해시(열쇠)],
     );
     await pool.query("INSERT INTO service_token (service_id, name, token_hash, created_by) VALUES ($1, 'XBNA CI', $2, 'xbn-admin')", [서비스.XBNA, 토큰해시(CI열쇠)]);
@@ -279,7 +279,7 @@ describe.skipIf(연결 === undefined)('프로젝트 배포 신호', { timeout: 6
     const 이슈상태 = async (_자리: BTS자리, _m: string, 경로: string) =>
       ({ status: 200, json: { data: { key: 경로.split('/').pop(), currentStateKey: 'wait', typeKey: 'task', summary: '' } } });
     await BTS알림처리(
-      { projectId: 프로젝트, baseUrl: 'https://bts.xbn.test', botKey: 'pat_xbn', btsProject: 'XBN' },
+      { projectId: 프로젝트, baseUrl: 'https://bts.xbn.test', 봇: 'qahub-xbn', btsProject: 'XBN' },
       { event: 'issue.transitioned', deliveryId: 'xbn-d1', data: { issueKey: 'XBN-1' } },
       이슈상태,
     );

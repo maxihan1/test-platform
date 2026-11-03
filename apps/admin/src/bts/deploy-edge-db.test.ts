@@ -87,9 +87,9 @@ describe.skipIf(연결 === undefined)('프로젝트 배포 신호 가장자리',
       );
     }
     await pool.query(
-      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_key, webhook_secret, status_map, resolution_map, updated_by,
+      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_username, webhook_secret, status_map, resolution_map, updated_by,
                              deploy_key_hash, deploy_key_tail, deploy_key_by, deploy_key_at)
-       VALUES ($1, 'https://bts.xbm.test', 'XBM', 'pat_xbm', 'whsec', $2, '{}', 'xbm-admin', $3, '-key', 'xbm-admin', now())`,
+       VALUES ($1, 'https://bts.xbm.test', 'XBM', 'qahub-xbm', 'whsec', $2, '{}', 'xbm-admin', $3, '-key', 'xbm-admin', now())`,
       [프로젝트, { DEPLOY_WAIT: 'wait', QA_REQUEST: 'qa-req', QA_REVIEW: 'review', DEV_REQUEST: 'dev', CODE_REVIEW: 'cr', CLOSED: 'closed' }, 토큰해시(열쇠)],
     );
   });

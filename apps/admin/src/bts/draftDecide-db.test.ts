@@ -40,7 +40,7 @@ describe.skipIf(연결 === undefined)('결정 필요 「PRD 초안」 카드', (
       [접두사],
     )).rows[0].id);
     await q(
-      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_key, webhook_secret, status_map, resolution_map, updated_by)
+      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_username, webhook_secret, status_map, resolution_map, updated_by)
        SELECT project_id, 'https://bts.xpu.test/', 'DM', 'k', 's', '{}', '{}', 'xpu' FROM service WHERE id = $1 ON CONFLICT DO NOTHING`,
       [서비스],
     );

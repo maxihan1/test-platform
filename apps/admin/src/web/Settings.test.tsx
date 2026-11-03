@@ -140,7 +140,7 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
 
   it('project-<번호>-bts 는 그 프로젝트의 BTS 연결 화면을 연다', async () => {
     const 읽음 = vi.spyOn(btsApi, 'get').mockResolvedValue({
-      linked: false, baseUrl: null, btsProject: null, botKeyTail: null, statusMap: {}, resolutionMap: {}, deployKey: null, ruleToken: null, publicUrl: null,
+      linked: false, baseUrl: null, btsProject: null, botUsername: null, statusMap: {}, resolutionMap: {}, deployKey: null, ruleToken: null, publicUrl: null,
     });
     펼친다('project-1-bts');
 

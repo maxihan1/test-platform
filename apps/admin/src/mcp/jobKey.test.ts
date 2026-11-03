@@ -26,7 +26,7 @@ describe.skipIf(연결 === undefined)('MCP 일마다 열쇠 mcj_', () => {
   let 남실행 = 0;
   const BTS받은것: { 열쇠: string; 경로: string }[] = [];
   const 부르기: 부르기함수 = async (자리, _method, 경로) => {
-    BTS받은것.push({ 열쇠: 자리.botKey, 경로 });
+    BTS받은것.push({ 열쇠: 'pat' in 자리 ? 자리.pat : `봇:${자리.봇}`, 경로 });
     if (경로 === '/api/v1/issues/XMJQ-401') return { status: 401, json: null };
     return { status: 200, json: { data: { key: 'XMJQ-1' } } };
   };
@@ -99,8 +99,8 @@ describe.skipIf(연결 === undefined)('MCP 일마다 열쇠 mcj_', () => {
       [내앱, JSON.stringify([{ reqId: 'XMJ-REQ-001', feature: '로그인', text: '다섯 번 틀리면 잠근다', basis: [], status: 'CONFIRMED' }])],
     );
     await q(
-      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_key, webhook_secret, status_map, resolution_map, updated_by)
-       VALUES ($1, 'https://bts.xmj.test', 'XMJQ', 'xmj-bot-key', 's', '{}', '{}', 'xmj')`,
+      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_username, webhook_secret, status_map, resolution_map, updated_by)
+       VALUES ($1, 'https://bts.xmj.test', 'XMJQ', 'xmj-bot', 's', '{}', '{}', 'xmj')`,
       [내프로젝트],
     );
     남실행 = Number(
@@ -164,10 +164,10 @@ describe.skipIf(연결 === undefined)('MCP 일마다 열쇠 mcj_', () => {
     expect(await 도구(열쇠, 'bts_search', { projectId: 남프로젝트, query: '잠금' })).toContain('FORBIDDEN');
     await 도구(열쇠, 'bts_search', { projectId: 내프로젝트, issueKey: 'XMJQ-1' });
     expect(BTS받은것).toEqual([
-      { 열쇠: 'xmj-bot-key', 경로: '/api/v1/issues/XMJQ-1' },
-      { 열쇠: 'xmj-bot-key', 경로: '/api/v1/issues/XMJQ-1/comments' },
+      { 열쇠: '봇:xmj-bot', 경로: '/api/v1/issues/XMJQ-1' },
+      { 열쇠: '봇:xmj-bot', 경로: '/api/v1/issues/XMJQ-1/comments' },
     ]);
-    expect(await 도구(열쇠, 'bts_search', { projectId: 내프로젝트, issueKey: 'XMJQ-401' })).toContain('「QA Hub AI」 계정 토큰');
+    expect(await 도구(열쇠, 'bts_search', { projectId: 내프로젝트, issueKey: 'XMJQ-401' })).toContain('「QA Hub AI」 계정의 대신 PAT');
   });
 
   it('일이 끝나면 · 작성 계정이 바뀌거나 꺼지면 · 틀린 열쇠면 401', async () => {

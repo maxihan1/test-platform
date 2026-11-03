@@ -82,7 +82,7 @@ describe.skipIf(연결 === undefined)('PRD 초안 한 바퀴', () => {
     }
     await q(`INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring) VALUES ($1, $2, 'none', 'none', 'write'), ($3, $2, 'write', 'write', 'write')`, [맥, 프로젝트, 사람]);
     await q(
-      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_key, webhook_secret, status_map, resolution_map, updated_by) VALUES ($1, 'https://bts.xpt.test', 'XPQ', 'k', 's', '{}', '{}', $2)`,
+      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_username, webhook_secret, status_map, resolution_map, updated_by) VALUES ($1, 'https://bts.xpt.test', 'XPQ', 'k', 's', '{}', '{}', $2)`,
       [프로젝트, 사람],
     );
     // 배포가 웹 둘에 실행을 걸었다 — 초안의 대상 서버는 그 실행의 서버다

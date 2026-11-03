@@ -13,8 +13,7 @@ export const BTS말: Record<string, string> = {
   '저장하기 전에 {bts} 에 한 번 접속해 프로젝트 키가 맞는지 확인합니다': 'Before saving, Test Commander connects to {bts} once to check the project key',
   '{bts} 주소': '{bts} address',
   '{bts} 프로젝트 키': '{bts} project key',
-  '「QA Hub AI」 계정 토큰': '"QA Hub AI" account token',
-  '넣음 (…{끝}) — 바꿀 때만 넣습니다': 'Set (…{끝}) — enter only to change it',
+  '「QA Hub AI」 계정 이름': '"QA Hub AI" account name',
   'Test Commander 가 실패한 테스트를 {bts} 이슈로 올릴 때 쓰는 통합계정입니다. 사람 계정과 따로 두어야 {bts} 에서 누가 올렸는지 구분됩니다':
     'The unified account used to file failed tests as {bts} issues. Keep it separate from personal accounts so {bts} shows who filed what',
 
@@ -49,8 +48,8 @@ export const BTS말: Record<string, string> = {
 
   // 2 · 자동 설정
   '2 · {bts} 자동 설정': '2 · Set up {bts} automatically',
-  '내 통합계정 토큰으로 {bts} 에 아래 넷을 만듭니다. 이미 있으면 새로 만들지 않고 고칩니다':
-    'Creates the four items below in {bts} with your unified account token. Existing ones are updated, not duplicated',
+  '내 통합계정 권한으로 {bts} 에 아래 넷을 만듭니다. 이미 있으면 새로 만들지 않고 고칩니다':
+    'Creates the four items below in {bts} with your unified account permissions. Existing ones are updated, not duplicated',
   '웹훅': 'Webhook',
   '담당자 변경 규칙': 'Assignee change rule',
   'PR 병합 규칙': 'PR merge rule',
@@ -87,13 +86,13 @@ export const BTS말: Record<string, string> = {
   '복사하지 못했습니다. 글을 직접 골라 복사해 주세요': 'Could not copy. Select the text and copy it yourself',
 
   // 이 화면의 오류 (SettingsBts.tsx 연결오류)
-  '{bts} 에 접속하지 못했습니다. 주소 · 프로젝트 키 · 「QA Hub AI」 계정 토큰을 확인해 주세요':
-    'Could not connect to {bts}. Check the address · project key · "QA Hub AI" account token',
-  '주소를 바꾸면 「QA Hub AI」 계정 토큰을 다시 넣어야 합니다': 'If you change the address, enter the "QA Hub AI" account token again',
-  '처음 연결할 때는 「QA Hub AI」 계정 토큰을 넣어야 합니다': 'Enter the "QA Hub AI" account token for the first connection',
+  '{bts} 에 접속하지 못했습니다. 주소 · 프로젝트 키 · 「QA Hub AI」 계정 이름을 확인해 주세요':
+    'Could not connect to {bts}. Check the address · project key · "QA Hub AI" account name',
+  'Auth 로그인을 켠 설치에서만 {bts} 를 이을 수 있습니다': '{bts} can be connected only on installations with Auth sign-in turned on',
+  '「QA Hub AI」 계정 이름을 적어야 합니다': 'Enter the "QA Hub AI" account name',
   '비어 있는 단계가 있습니다. 모든 단계에 {bts} 상태를 골라 주세요': 'Some stages are empty. Pick a {bts} status for every stage',
-  '내 계정에 통합계정 토큰이 없습니다. 왼쪽 아래 내 메뉴 › 통합계정 토큰에 넣은 뒤 다시 눌러 주세요':
-    'Your account has no unified account token. Add one under your menu (bottom left) › unified account token, then press again',
+  'Auth 계정으로 로그인한 운영 계정이어야 {bts} 자동 설정을 할 수 있습니다':
+    'Only an admin account signed in with Auth can set up {bts} automatically',
   '이 서버의 공개 주소(PLATFORM_PUBLIC_URL)가 없어 {bts} 가 Test Commander 를 부를 수 없습니다':
     'This server has no public address (PLATFORM_PUBLIC_URL), so {bts} cannot call Test Commander',
 };

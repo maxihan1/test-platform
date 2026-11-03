@@ -86,8 +86,8 @@ describe.skipIf(연결 === undefined)('실패 → Issue Bunker 등록', () => {
     [프로젝트, 서비스] = await 만들기('XBF 프로젝트', 'XBF');
     [, 남의서비스] = await 만들기('XBFN 프로젝트', 'XBFN');
     await pool.query(
-      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_key, webhook_secret, status_map, resolution_map, updated_by)
-       VALUES ($1, 'https://bts.example.com', 'DM', 'pat_xbf', 's', '{}', '{}', 'xbf')`,
+      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_username, webhook_secret, status_map, resolution_map, updated_by)
+       VALUES ($1, 'https://bts.example.com', 'DM', 'qahub-xbf', 's', '{}', '{}', 'xbf')`,
       [프로젝트],
     );
   });

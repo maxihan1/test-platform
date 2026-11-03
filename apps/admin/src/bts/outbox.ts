@@ -62,7 +62,7 @@ interface 집은줄 {
   tc_id: string | null;
   env: string | null;
   base_url: string | null;
-  bot_key: string | null;
+  bot_username: string | null;
   status_map: Record<string, string> | null;
 }
 
@@ -83,21 +83,21 @@ function 상태로(status: number): 결과 | null {
   if (status >= 200 && status < 300) return null;
   // 넘겨주기(redirect)를 따라가지 않는다 — 열쇠를 다른 주소로 보내지 않게. 주소가 틀린 것이라 다시 보내도 같다
   if (status >= 300 && status < 400) return { 상태: 'GAVE_UP', 까닭: `Issue Bunker 주소가 다른 곳으로 넘깁니다 — 설정의 Issue Bunker 주소를 확인하세요 (${String(status)})` };
-  if (status === 401 || status === 403) return { 상태: 'GAVE_UP', 까닭: `권한 없음 — QA Hub AI 열쇠를 확인하세요 (${String(status)})` };
+  if (status === 401 || status === 403) return { 상태: 'GAVE_UP', 까닭: `권한 없음 — QA Hub AI 계정 권한을 확인하세요 (${String(status)})` };
   if (status >= 400 && status < 500 && !다시보낼4xx.has(status)) return { 상태: 'GAVE_UP', 까닭: `Issue Bunker 가 요청을 거절했습니다 (${String(status)})` };
   return { 상태: 'RETRY', 까닭: `Issue Bunker 가 답하지 못했습니다 (${String(status)})` };
 }
 
 async function 하나보내기(줄: 집은줄, 부르기: 부르기함수): Promise<결과> {
   // 연결을 끊었으면 보낼 곳이 없다 — 줄은 남기고 멈춘다(맡은 이슈 · 짝 기록처럼)
-  if (줄.base_url === null || 줄.bot_key === null) return { 상태: 'GAVE_UP', 까닭: 'Issue Bunker 연결이 없습니다' };
+  if (줄.base_url === null) return { 상태: 'GAVE_UP', 까닭: 'Issue Bunker 연결이 없습니다' };
   if (줄.kind !== 'CREATE' && 줄.issue_key === null) return { 상태: 'GAVE_UP', 까닭: '보낼 이슈 키가 없습니다' };
   const [method, 경로] = 갈곳[줄.kind](줄.issue_key ?? '');
   // 첨부 목록은 QA Hub 몫이라 BTS 몸에서 뺀다 — 만든 뒤 따로 올린다
   const 몸 =
     줄.kind === 'CREATE' ? Object.fromEntries(Object.entries(줄.payload as Record<string, unknown>).filter(([k]) => k !== 'attachments')) : 줄.payload;
   try {
-    const 자리 = { baseUrl: 줄.base_url, botKey: 줄.bot_key };
+    const 자리 = { baseUrl: 줄.base_url, 봇: 줄.bot_username ?? '' };
     let 보낼몸 = 몸;
     // 판 번호 없이 넣은 옮기기(재검증 통과 닫기 — deployFlow.ts) · 담당자 바꾸기(수정 AI — bugfix.ts)는 보내기 직전에 이슈의 지금 판을 읽는다 — 넣을 때 읽으면 보낼 때 낡는다
     const 판읽음 = (줄.kind === 'TRANSITION' || 줄.kind === 'ASSIGN') && (몸 as { expectedVersion?: unknown }).expectedVersion === undefined;
@@ -142,7 +142,7 @@ async function 하나보내기(줄: 집은줄, 부르기: 부르기함수): Prom
  */
 // ponytail: 옮기기 · 첨부는 한 번만 해 본다. 잦게 깨지면 보낼 줄 종류(TRANSITION · 첨부)로 넘겨 다시 보내게 한다
 async function 만든뒤(줄: 집은줄, key: string, 만든: 만든이슈 | undefined, 부르기: 부르기함수, 올리기: 올리기함수): Promise<void> {
-  const 자리 = { baseUrl: 줄.base_url!, botKey: 줄.bot_key! };
+  const 자리 = { baseUrl: 줄.base_url!, 봇: 줄.bot_username ?? '' };
   const 검토 = 줄.status_map?.QA_REVIEW ?? '';
   try {
     if (검토 !== '' && typeof 만든?.version === 'number' && 만든.currentStateKey !== 검토) {
@@ -183,7 +183,7 @@ export async function 보낼줄점검(
        UPDATE bts_outbox o SET next_at = now() + interval '5 minutes' FROM 때된 WHERE o.id = 때된.id
        RETURNING o.id, o.project_id, o.kind, o.issue_key, o.payload, o.tries, o.service_id, o.run_id, o.tc_id, o.env
      )
-     SELECT 집은.*, l.base_url, l.bot_key, l.status_map FROM 집은 LEFT JOIN bts_link l ON l.project_id = 집은.project_id ORDER BY 집은.id`,
+     SELECT 집은.*, l.base_url, l.bot_username, l.status_map FROM 집은 LEFT JOIN bts_link l ON l.project_id = 집은.project_id ORDER BY 집은.id`,
   );
   const 셈 = { 보냄: 0, 다시: 0, 멈춤: 0 };
   for (const 줄 of 집음.rows) {

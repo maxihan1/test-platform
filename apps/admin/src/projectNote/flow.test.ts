@@ -73,7 +73,7 @@ describe.skipIf(연결 === undefined)('프로젝트 노트 고치기', () => {
     }
     await q(`INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring) VALUES ($1, $2, 'none', 'none', 'write'), ($3, $4, 'none', 'none', 'write'), ($5, $2, 'write', 'write', 'write')`, [맥, 내프로젝트, 남맥, 남프로젝트, 사람]);
     await q(
-      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_key, webhook_secret, status_map, resolution_map, updated_by) VALUES ($1, 'https://bts.xno.test', 'XNQ', 'k', 's', '{}', '{}', $2)`,
+      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_username, webhook_secret, status_map, resolution_map, updated_by) VALUES ($1, 'https://bts.xno.test', 'XNQ', 'k', 's', '{}', '{}', $2)`,
       [내프로젝트, 사람],
     );
     토큰 = (await 에이전트토큰만들기(맥) as { 토큰: string }).토큰;

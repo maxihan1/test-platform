@@ -9,7 +9,8 @@ export interface BTS연결 {
   linked: boolean;
   baseUrl: string | null;
   btsProject: string | null;
-  botKeyTail: string | null;
+  /** 「QA Hub AI」 Auth 계정 이름 — 비밀이 아니다. S25 전에 이은 연결은 null */
+  botUsername: string | null;
   /** 상태 단계 → BTS 상태 키 */
   statusMap: Partial<Record<상태단계, string>>;
   /** 해결 단계 → BTS 해결 사유 이름 */
@@ -38,13 +39,12 @@ const 바탕 = (projectId: number) => `/settings/projects/${projectId}/bts`;
 
 export const btsApi = {
   get: (projectId: number) => call<BTS연결>(바탕(projectId)),
-  /** botKey 를 빼면 저장한 열쇠를 그대로 쓴다 */
   save: (
     projectId: number,
-    body: { baseUrl: string; btsProject: string; botKey?: string; statusMap: Record<상태단계, string>; resolutionMap: Record<해결단계, string> },
+    body: { baseUrl: string; btsProject: string; botUsername: string; statusMap: Record<상태단계, string>; resolutionMap: Record<해결단계, string> },
   ) => call<{ ok: true }>(바탕(projectId), { ...json(body), method: 'PUT' }),
   remove: (projectId: number) => call<void>(바탕(projectId), { method: 'DELETE' }),
-  choices: (projectId: number, baseUrl: string, botKey?: string) => call<BTS고를목록>(`${바탕(projectId)}/choices`, json({ baseUrl, botKey })),
+  choices: (projectId: number, baseUrl: string, botUsername: string) => call<BTS고를목록>(`${바탕(projectId)}/choices`, json({ baseUrl, botUsername })),
   setup: (projectId: number) => call<{ items: BTS설정결과[] }>(`${바탕(projectId)}/setup`, json({})),
   /** 원문은 이 응답 한 번뿐이다 */
   deployKey: (projectId: number) => call<{ key: string }>(`${바탕(projectId)}/keys/deploy`, json({})),

@@ -44,7 +44,7 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
   });
   const BTS받은것: { 열쇠: string; method: string; 경로: string; 몸?: unknown }[] = [];
   const 부르기: 부르기함수 = async (자리, method, 경로, 몸) => {
-    BTS받은것.push({ 열쇠: 자리.botKey, method, 경로, 몸 });
+    BTS받은것.push({ 열쇠: 'pat' in 자리 ? 자리.pat : `봇:${자리.봇}`, method, 경로, 몸 });
     if (경로 === '/api/v1/issues/XMQ-404') return { status: 404, json: null };
     if (경로 === '/api/v1/issues/XMQ-0') return { status: 200, json: { data: null } };
     if (경로 === '/api/v1/issues/XMQ-13/comments') return { status: 500, json: null };
@@ -134,8 +134,8 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
     // 지운 케이스 — 지도에 줄이 남아 있어도 도구가 보이지 않아야 한다
     await q(`UPDATE test_case SET is_active = false WHERE tc_id = 'XMC-FN-002'`);
     await q(
-      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_key, webhook_secret, status_map, resolution_map, updated_by)
-       VALUES ($1, 'https://bts.xmc.test', 'XMQ', 'bot-key', 's', '{}', '{}', 'xmc')`,
+      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_username, webhook_secret, status_map, resolution_map, updated_by)
+       VALUES ($1, 'https://bts.xmc.test', 'XMQ', 'xmc-bot', 's', '{}', '{}', 'xmc')`,
       [내프로젝트],
     );
     const 실행 = async (앱번호: number, 이름: string) =>

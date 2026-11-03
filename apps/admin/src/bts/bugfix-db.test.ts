@@ -15,6 +15,10 @@ import { 수정맡기, 재검증실패넘기기 } from './bugfix.js';
 import btsBugfixRoutes from './bugfixRoutes.js';
 import type { 부르기함수 } from './client.js';
 
+vi.mock('../auth/delegatedPat.js', () => ({
+  대신PAT: async (누구: { userId: string } | { username: string }) => `pat_${'username' in 누구 ? 누구.username : 누구.userId}`,
+}));
+
 const 연결 = process.env.DATABASE_URL;
 const 맥 = 'xbg-agent';
 const 사람 = 'xbg-person';
@@ -100,8 +104,8 @@ describe.skipIf(연결 === undefined)('수정 AI 한 바퀴', () => {
     }
     await q(`INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring) VALUES ($1, $2, 'none', 'none', 'write'), ($3, $2, 'write', 'write', 'write')`, [맥, 프로젝트, 사람]);
     await q(
-      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_key, webhook_secret, status_map, resolution_map, updated_by)
-       VALUES ($1, 'https://bts.xbg.test', 'XBQ', 'k', 's', $2, '{}', $3)`,
+      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_username, webhook_secret, status_map, resolution_map, updated_by)
+       VALUES ($1, 'https://bts.xbg.test', 'XBQ', 'qahub-xbg', 's', $2, '{}', $3)`,
       [프로젝트, JSON.stringify({ DEV_REQUEST: 'dev', CODE_REVIEW: 'review', QA_REQUEST: 'qa' }), 사람],
     );
     토큰 = (await 에이전트토큰만들기(맥) as { 토큰: string }).토큰;
@@ -239,12 +243,16 @@ describe.skipIf(연결 === undefined)('수정 AI 한 바퀴', () => {
     expect((await 끝내기(하나!.id, 'XBG', { status: 'STOPPED', stopReason: 'AGENT_RESTART' })).json()).toEqual({ ok: true });
     await vi.waitFor(async () => expect((await 수정줄('XBQ-6')).map((x) => x.status)).toEqual(['STOPPED', 'PENDING']));
     const 둘 = await 집기('XBG');
-    vi.stubGlobal('fetch', async (url: string, init?: { method?: string }) => {
-      const 답 = await 가짜BTS({ baseUrl: '', botKey: '' }, init?.method ?? 'GET', url.replace('https://bts.xbg.test', ''));
+    const 받은머리: string[] = [];
+    vi.stubGlobal('fetch', async (url: string, init?: { method?: string; headers?: Record<string, string> }) => {
+      받은머리.push(init?.headers?.authorization ?? '');
+      const 답 = await 가짜BTS({ baseUrl: '', 봇: '' }, init?.method ?? 'GET', url.replace('https://bts.xbg.test', ''));
       return new Response(JSON.stringify(답.json), { status: 답.status });
     });
     expect((await 끝내기(둘!.id, 'XBG', { status: 'FAILED', error: 'claude 를 못 띄웠다' })).json()).toEqual({ ok: true });
     await vi.waitFor(async () => expect((await 보낸줄('XBQ-6')).map((x) => x.kind)).toEqual(['COMMENT', 'ASSIGN']));
+    expect(받은머리.length).toBeGreaterThan(0);
+    expect(new Set(받은머리)).toEqual(new Set(['Bearer pat_qahub-xbg']));
     expect(String((await 보낸줄('XBQ-6'))[0]!.payload.body)).toContain('claude 를 못 띄웠다');
     expect((await 보낸줄('XBQ-6'))[1]!.payload).toEqual({ assigneeId: 리드 });
     vi.unstubAllGlobals();

@@ -6,7 +6,7 @@ import { join } from 'node:path';
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import type { BTS응답, BTS자리 } from './client.js';
+import { BTS부르기, type BTS응답, type BTS자리 } from './client.js';
 import { 보낼줄넣기, 보낼줄점검, 최대횟수 } from './outbox.js';
 
 const 연결 = process.env.DATABASE_URL;
@@ -48,8 +48,8 @@ describe.skipIf(연결 === undefined)('Issue Bunker 보낼 줄', () => {
     [프로젝트, 서비스] = await 만들기(`${접두사} 프로젝트`, 접두사);
     [남의프로젝트, 남의서비스] = await 만들기(`${접두사}B 프로젝트`, `${접두사}B`);
     await p.query(
-      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_key, webhook_secret, status_map, resolution_map, updated_by)
-       VALUES ($1, 'https://bts.example.com', 'XBY', 'pat_xby', 's', '{}', '{}', 'xby')`,
+      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_username, webhook_secret, status_map, resolution_map, updated_by)
+       VALUES ($1, 'https://bts.example.com', 'XBY', 'qahub-xby', 's', '{}', '{}', 'xby')`,
       [프로젝트],
     );
   });
@@ -72,7 +72,7 @@ describe.skipIf(연결 === undefined)('Issue Bunker 보낼 줄', () => {
     expect(id).not.toBeNull();
     expect(await 보낼줄넣기({ projectId: 프로젝트, kind: 'CREATE', payload: {}, serviceId: 서비스, tcId: 'XBY-001', env: 'qa' })).toBeNull();
     expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 1, 다시: 0, 멈춤: 0 });
-    expect(부른것).toEqual([{ 자리: { baseUrl: 'https://bts.example.com', botKey: 'pat_xby' }, method: 'POST', 경로: '/api/v1/issues', 몸: { summary: '실패' } }]);
+    expect(부른것).toEqual([{ 자리: { baseUrl: 'https://bts.example.com', 봇: 'qahub-xby' }, method: 'POST', 경로: '/api/v1/issues', 몸: { summary: '실패' } }]);
     expect(await 줄(id!)).toEqual({ state: 'SENT', tries: 1, issue_key: 'XBY-1', last_error: null });
   });
 
@@ -98,7 +98,7 @@ describe.skipIf(연결 === undefined)('Issue Bunker 보낼 줄', () => {
     답 = () => ({ status: 403, json: null });
     const 권한 = (await 보낼줄넣기({ projectId: 프로젝트, kind: 'TRANSITION', issueKey: 'XBY-1', payload: { toStatusKey: 'closed' } }))!;
     expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 0, 다시: 0, 멈춤: 1 });
-    expect(await 줄(권한)).toMatchObject({ state: 'GAVE_UP', tries: 1, last_error: '권한 없음 — QA Hub AI 열쇠를 확인하세요 (403)' });
+    expect(await 줄(권한)).toMatchObject({ state: 'GAVE_UP', tries: 1, last_error: '권한 없음 — QA Hub AI 계정 권한을 확인하세요 (403)' });
 
     답 = () => ({ status: 429, json: null });
     const 바쁨 = (await 보낼줄넣기({ projectId: 프로젝트, kind: 'ASSIGN', issueKey: 'XBY-1', payload: { assigneeId: 'u', expectedVersion: 1 } }))!;
@@ -219,6 +219,23 @@ describe.skipIf(연결 === undefined)('Issue Bunker 보낼 줄', () => {
       process.env.PLATFORM_ARTIFACTS_DIR = 앞폴더;
       if (앞폴더 === undefined) delete process.env.PLATFORM_ARTIFACTS_DIR;
       await rm(폴더, { recursive: true, force: true });
+    }
+  });
+
+  it('「QA Hub AI」 계정 이름이 빈 연결(S25 전)은 닿지 않은 것처럼 다시 보낼 줄로 남는다', async () => {
+    const p = await pool();
+    await p.query('UPDATE bts_link SET bot_username = NULL WHERE project_id = $1', [프로젝트]);
+    try {
+      const id = (await 보낼줄넣기({ projectId: 프로젝트, kind: 'COMMENT', issueKey: 'XBY-1', payload: { body: '또 실패' } }))!;
+      // 빈 이름만 진짜 BTS부르기로 — 이름을 열쇠로 바꾸다 던지므로 밖으로 나가지 않는다
+      const 빈이름만진짜 = (자리: BTS자리, method: string, 경로: string, 몸?: unknown) =>
+        '봇' in 자리 && 자리.봇 === '' ? BTS부르기(자리, method, 경로, 몸) : 부르기(자리, method, 경로, 몸);
+      expect(await 보낼줄점검(빈이름만진짜)).toEqual({ 보냄: 0, 다시: 1, 멈춤: 0 });
+      expect(부른것).toEqual([]);
+      expect(await 줄(id)).toMatchObject({ state: 'PENDING', tries: 1 });
+      expect((await 줄(id)).last_error).toContain('「QA Hub AI」 계정 이름이 없습니다');
+    } finally {
+      await p.query("UPDATE bts_link SET bot_username = 'qahub-xby' WHERE project_id = $1", [프로젝트]);
     }
   });
 
