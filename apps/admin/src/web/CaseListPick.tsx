@@ -5,7 +5,7 @@ import { 고치기상한 } from '../authoring/edit.js';
 import { 고른것고치기 } from './CaseBulkEdit.js';
 import { use말 } from './i18n.js';
 import { use휴대폰 } from './phone.js';
-import type { 판정 } from './role.js';
+import { 테스트만인가, type 판정 } from './role.js';
 import type { useRunPick } from './useRunPick.js';
 
 /**
@@ -18,6 +18,7 @@ export function 고르기띠({
   모두,
   담기한계,
   실행보나,
+  테스트만 = false,
   삭제보나,
   on모두,
   on풀기,
@@ -28,6 +29,8 @@ export function 고르기띠({
   /** 실행이 쪽을 돌며 담는 한계(useRunPick `쪽상한` × 쪽 크기) */
   담기한계: number;
   실행보나: boolean;
+  /** 실행 칸이 trial 이다 — 담는 한계 안내가 테스트 실행 글자다 */
+  테스트만?: boolean;
   삭제보나: boolean;
   on모두: () => void;
   on풀기: () => void;
@@ -45,7 +48,7 @@ export function 고르기띠({
           {모두 ? t('고르기 풀기') : t('조건에 맞는 {전체}건 모두 고르기', { 전체 })}
         </button>
       </p>
-      {!실행넘침 ? null : <p className="hint">{t('실행은 앞 {한계}건까지만 담습니다', { 한계: 담기한계 })}</p>}
+      {!실행넘침 ? null : <p className="hint">{t(테스트만 ? '테스트 실행은 앞 {한계}건까지만 담습니다' : '실행은 앞 {한계}건까지만 담습니다', { 한계: 담기한계 })}</p>}
       {!삭제넘침 ? null : <p className="hint">{t('모두 고르면 삭제 요청은 보낼 수 없습니다(한 번에 {상한}건까지)', { 상한: 고치기상한 })}</p>}
     </div>
   );
@@ -74,13 +77,14 @@ export function 고르기바({
   // 휴대폰 바는 아래 탭 자리를 덮고 단추가 같은 폭으로 나란하다 — 긴 글은 단추를 밀어내 「모두 N건」으로 줄인다 (DESIGN.md 「고르기 바」)
   const 휴대폰 = use휴대폰();
   // 고른 것으로 할 일이 하나도 없는 사람에게는 마지막 줄을 가리는 빈 바를 띄우지 않는다
-  if (수 === 0 || (!할수('실행') && !할수('작성요청'))) return null;
+  if (수 === 0 || (!할수('테스트실행') && !할수('작성요청'))) return null;
   return (
     <div className="pick-bar" role="toolbar" aria-label={t('고른 케이스')}>
       <span>{뽑기.모두 ? (휴대폰 ? t('모두 {수}건', { 수 }) : t('조건에 맞는 {수}건 모두 고름', { 수 })) : t('{수}건 고름', { 수 })}</span>
-      {!할수('실행') ? null : (
+      {/* 실행 칸이 trial 이면 같은 창이 테스트 실행만 연다 (도메인/인증 §3.5 「테스트 모드」) */}
+      {!할수('테스트실행') ? null : (
         <button type="button" className="btn" onClick={() => void 뽑기.고른모으기()} disabled={뽑기.모으는중}>
-          {t('실행')}
+          {테스트만인가(할수) ? t('테스트 실행') : t('실행')}
         </button>
       )}
       {/* 삭제 요청은 작성 쓰기일 때만 (도메인/작성 §3.6 「★ 케이스 고치기」) */}

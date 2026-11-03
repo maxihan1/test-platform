@@ -74,6 +74,21 @@ describe('애플리케이션별 권한', () => {
     expect(서비스권한(null, 'PAY')).toBe(null);
   });
 
+  it('실행 칸이 trial 이면 실행 자리를 보고 테스트 실행만 한다. 정식 실행 · 멈춤 · 증적 만들기는 못 한다', () => {
+    const 체험 = 사람('member', [서비스('MKW', { cases: 'read', runs: 'trial', authoring: 'read' })]);
+    expect(기능보나(체험, 'MKW', 'runs')).toBe(true);
+    expect(할수있나(체험, 'MKW', '증적받기')).toBe(true);
+    expect(할수있나(체험, 'MKW', '테스트실행')).toBe(true);
+    expect(할수있나(체험, 'MKW', '실행')).toBe(false);
+    expect(할수있나(체험, 'MKW', '멈춤')).toBe(false);
+    expect(할수있나(체험, 'MKW', '증적만들기')).toBe(false);
+  });
+
+  it('테스트 실행은 실행 쓰기면 되고 실행 읽기로는 안 된다', () => {
+    expect(할수있나(김, 'PAY', '테스트실행')).toBe(true);
+    expect(할수있나(김, 'MEM', '테스트실행')).toBe(false);
+  });
+
   it('기능이 none 이면 그 기능을 못 본다', () => {
     expect(기능보나(김, 'PAY', 'authoring')).toBe(false);
     expect(기능보나(김, 'MEM', 'authoring')).toBe(true);

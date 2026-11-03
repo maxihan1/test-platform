@@ -6,10 +6,13 @@ import type { User } from './api.js';
 export type 등급 = 'member' | 'admin';
 export type 기능 = 'cases' | 'runs' | 'authoring';
 export type 칸 = 'none' | 'read' | 'write';
-export type 권한칸 = Record<기능, 칸>;
+// `trial` 은 실행 칸에만 온다 — 보기 + 테스트 모드(케이스 「테스트 실행」 · E2E 「시험 실행」). 서버 auth/permissions.ts 의 실행칸과 같다 (도메인/인증 §3.5 「테스트 모드」)
+export type 실행칸 = 칸 | 'trial';
+export type 권한칸 = { cases: 칸; runs: 실행칸; authoring: 칸 };
 
 export type 할일 =
   | '실행'
+  | '테스트실행'
   | '멈춤'
   | '증적만들기'
   | '증적받기'
@@ -24,12 +27,14 @@ export type 할일 =
 /** 화면 조각이 받는 판정. 사람과 고른 서비스를 이미 물고 있다 */
 export type 판정 = (무엇: 할일) => boolean;
 
-const 높이: Record<칸, number> = { none: 0, read: 1, write: 2 };
+const 높이: Record<실행칸, number> = { none: 0, read: 1, trial: 2, write: 3 };
 
 // 받는 것은 읽기이고 만드는 것은 서버에 파일을 남기는 쓰기다 (도메인/인증 §3.5 · §8.4)
-const 필요: Record<할일, { 기능: 기능; 칸: 'read' | 'write' } | 'admin'> = {
+const 필요: Record<할일, { 기능: 'runs'; 칸: Exclude<실행칸, 'none'> } | { 기능: 기능; 칸: 'read' | 'write' } | 'admin'> = {
   증적받기: { 기능: 'runs', 칸: 'read' },
   실행: { 기능: 'runs', 칸: 'write' },
+  // 테스트 모드는 기록이 안 남아 정식 실행보다 한 칸 낮다. 서버 문의 (실행, trial) 과 같다 (도메인/인증 §7)
+  테스트실행: { 기능: 'runs', 칸: 'trial' },
   멈춤: { 기능: 'runs', 칸: 'write' },
   증적만들기: { 기능: 'runs', 칸: 'write' },
   입력값저장: { 기능: 'cases', 칸: 'write' },
@@ -58,7 +63,7 @@ export function 서비스권한(user: User | null, prefix: string | null): 권�
 
 // admin 은 배정된 서비스에서 전부 쓴다 — 서버가 이미 채워 보내지만, 서비스 0건인 첫 운영자도
 // 자리를 봐야 설정으로 가서 자기를 배정할 수 있어 칸을 보지 않는다
-function 칸이되나(user: User | null, prefix: string | null, 어느: 기능, 최소: 칸): boolean {
+function 칸이되나(user: User | null, prefix: string | null, 어느: 기능, 최소: 실행칸): boolean {
   if (user === null) return false;
   if (user.role === 'admin') return true;
   const 권한 = 서비스권한(user, prefix);
@@ -78,4 +83,9 @@ export function 기능보나(user: User | null, prefix: string | null, 어느: �
 
 export function 판정을만든다(user: User | null, prefix: string | null): 판정 {
   return (무엇) => 할수있나(user, prefix, 무엇);
+}
+
+/** 실행 칸이 `trial` 이라 실행 자리가 모두 기록 없는 테스트 실행이다 — 읽기만 하는 사람은 아니다 (도메인/인증 §3.5 「테스트 모드」) */
+export function 테스트만인가(할수: 판정): boolean {
+  return 할수('테스트실행') && !할수('실행');
 }

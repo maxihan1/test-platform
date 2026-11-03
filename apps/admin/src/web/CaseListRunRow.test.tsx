@@ -94,9 +94,22 @@ describe('케이스 줄의 ▶ 실행', () => {
   });
 
   it('실행 읽기면 줄마다의 버튼이 없다', async () => {
-    await 그리기((무엇) => 무엇 !== '실행');
+    await 그리기((무엇) => 무엇 !== '실행' && 무엇 !== '테스트실행');
 
     expect(screen.queryByRole('button', { name: 'ZPK-001 실행' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'ZPK-002 실행' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /조건에 맞는/ })).toBeNull();
+  });
+
+  it('실행 테스트만이면 줄 · 머리 단추가 테스트 실행이고 창에는 「▶ 테스트 실행」만 있다', async () => {
+    await 그리기((무엇) => 무엇 !== '실행');
+
+    expect(screen.queryByRole('button', { name: 'ZPK-001 실행' })).toBeNull();
+    expect(screen.getByRole('button', { name: '조건에 맞는 2건 테스트 실행' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'ZPK-001 테스트 실행' }));
+
+    const 창 = within(await screen.findByRole('dialog', { name: '테스트 실행할 케이스 1건' }));
+    expect(창.getByRole('button', { name: '▶ 테스트 실행' })).toBeTruthy();
+    expect(창.queryByRole('button', { name: '실행' })).toBeNull();
   });
 });

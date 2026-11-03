@@ -197,6 +197,26 @@ describe('프로젝트와 권한 고르개 (도메인/인증 §8.8 · 시안 B)'
     expect((screen.getByText('계정 추가') as HTMLButtonElement).disabled).toBe(true);
   });
 
+  it('실행 칸만 넷째 값 「테스트만」이 있고 고르면 무엇을 하는지 알린다', () => {
+    새계정열기();
+    fireEvent.click(프로젝트칸(/데모마켓/));
+
+    expect(within(칸묶음('데모마켓 실행')!).getAllByRole('button').map((b) => b.textContent)).toEqual(['안 씀', '읽기', '테스트만', '쓰기']);
+    expect(within(칸묶음('데모마켓 케이스')!).getAllByRole('button').map((b) => b.textContent)).toEqual(['안 씀', '읽기', '쓰기']);
+    expect(within(칸묶음('데모마켓 작성')!).getAllByRole('button').map((b) => b.textContent)).toEqual(['안 씀', '읽기', '쓰기']);
+    고른다('데모마켓 실행', '테스트만');
+    expect(screen.getByText('「테스트만」은 결과를 보고 테스트 실행 · 시험 실행만 합니다. 기록이 남는 실행은 못 합니다')).toBeTruthy();
+  });
+
+  it('실행 테스트만에 케이스 안 씀이어도 케이스가 안 보인다고 알린다', () => {
+    새계정열기();
+    fireEvent.click(프로젝트칸(/데모마켓/));
+    고른다('데모마켓 실행', '테스트만');
+    고른다('데모마켓 케이스', '안 씀');
+
+    expect(screen.getByRole('status').textContent).toContain('이대로면 실행 설정에서 고를 케이스가 보이지 않습니다.');
+  });
+
   it('그래프(Grafana)에는 쓰기가 없다', () => {
     새계정열기();
     const 버튼들 = within(칸묶음('그래프(Grafana)')!).getAllByRole('button').map((b) => b.textContent);
@@ -208,7 +228,7 @@ describe('프로젝트와 권한 고르개 (도메인/인증 §8.8 · 시안 B)'
     expect(칸묶음('데모마켓 권한 묶음')).toBeNull();
     fireEvent.click(프로젝트칸(/데모마켓/));
 
-    expect(within(칸묶음('데모마켓 권한 묶음')!).getAllByRole('button').map((b) => b.textContent)).toEqual(['읽기 전용', '작성자', '실행자']);
+    expect(within(칸묶음('데모마켓 권한 묶음')!).getAllByRole('button').map((b) => b.textContent)).toEqual(['읽기 전용', '작성자', '실행자', '체험']);
     expect(눌림('데모마켓 권한 묶음')).toBe('읽기 전용');
   });
 
@@ -216,6 +236,7 @@ describe('프로젝트와 권한 고르개 (도메인/인증 §8.8 · 시안 B)'
     ['작성자', { 케이스: '읽기', 실행: '읽기', 작성: '쓰기' }],
     ['실행자', { 케이스: '읽기', 실행: '쓰기', 작성: '읽기' }],
     ['읽기 전용', { 케이스: '읽기', 실행: '읽기', 작성: '읽기' }],
+    ['체험', { 케이스: '읽기', 실행: '테스트만', 작성: '읽기' }],
   ])('「%s」 묶음을 누르면 세 칸이 한 번에 바뀌고 그 묶음이 눌린다', (묶음, 칸들) => {
     새계정열기();
     fireEvent.click(프로젝트칸(/데모마켓/));

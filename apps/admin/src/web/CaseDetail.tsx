@@ -61,6 +61,7 @@ export function CaseDetail({
   요구보나 = false,
   저장된다 = false,
   on실행,
+  테스트만 = false,
   onClose,
   on값,
   on저장됨,
@@ -76,8 +77,9 @@ export function CaseDetail({
   요구보나?: boolean;
   /** 케이스 쓰기인가. 아니면 고쳐도 「모두에게 저장」이 없다 (화면공통 §8) */
   저장된다?: boolean;
-  /** 실행 쓰기일 때만 온다 — 고친 값을 실은 실행 창을 연다 */
+  /** 실행 쓰기 · 테스트만(`테스트만` — 기록 없는 테스트 실행 창, 도메인/인증 §3.5 「테스트 모드」)일 때만 온다 — 고친 값을 실은 실행 창을 연다 */
   on실행?: (row: CaseRow) => void;
+  테스트만?: boolean;
   onClose: () => void;
   on값: (어디: 'params' | 'expected', key: string, value: string) => void;
   on저장됨: () => void;
@@ -280,7 +282,7 @@ export function CaseDetail({
         )}
         {on실행 === undefined || !row.isActive ? null : (
           <button type="button" className="btn" onClick={() => on실행(row)}>
-            {입력값.length === 0 && 기대결과.length === 0 ? t('실행') : t('이 값으로 실행')}
+            {t(입력값.length === 0 && 기대결과.length === 0 ? (테스트만 ? '테스트 실행' : '실행') : 테스트만 ? '이 값으로 테스트 실행' : '이 값으로 실행')}
           </button>
         )}
       </div>

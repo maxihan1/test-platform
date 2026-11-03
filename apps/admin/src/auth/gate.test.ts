@@ -540,11 +540,11 @@ describe.skipIf(연결 === undefined)('인증 미들웨어', () => {
     expect(res.json()).toEqual({ error: 'FORBIDDEN', need: 'runs:read' });
   });
 
-  it('실행 read 만 있는 서비스에서 테스트 실행 시작은 need runs:write 이고 결과 읽기는 지난다', async () => {
+  it('실행 read 만 있는 서비스에서 테스트 실행 시작은 need runs:trial 이고 결과 읽기는 지난다', async () => {
     const 쿠키 = { platform_session: await 출입증('xfu3-mixed') };
     const 시작 = await app.inject({ method: 'POST', url: '/api/cases/XFS3B-001/test-run', cookies: 쿠키, payload: {} });
     expect(시작.statusCode).toBe(403);
-    expect(시작.json()).toEqual({ error: 'FORBIDDEN', need: 'runs:write' });
+    expect(시작.json()).toEqual({ error: 'FORBIDDEN', need: 'runs:trial' });
     const 읽기 = await app.inject({ method: 'GET', url: '/api/cases/XFS3B-001/test-run/abc', cookies: 쿠키 });
     expect(읽기.statusCode).toBe(200);
     const 장면 = await app.inject({ method: 'GET', url: '/api/cases/XFS3B-001/test-run/abc/live', cookies: 쿠키 });
@@ -974,13 +974,13 @@ describe.skipIf(연결 === undefined)('시나리오 문', () => {
     }
   });
 
-  it('시험 실행 시작은 (실행, write) 이고 본문 service 가 배정 밖이면 403 이다', async () => {
+  it('시험 실행 시작은 (실행, trial) 이고 본문 service 가 배정 밖이면 403 이다', async () => {
     const 읽기 = await 출입증('xsa-reader');
     const 쓰기 = await 출입증('xsa-writer');
     const 시작 = (cookies: Record<string, string>, payload: Record<string, unknown>) =>
       app.inject({ method: 'POST', url: '/api/scenario-trials', cookies, payload });
 
-    expect((await 시작(읽기, { service: 'XSA' })).json()).toEqual({ error: 'FORBIDDEN', need: 'runs:write' });
+    expect((await 시작(읽기, { service: 'XSA' })).json()).toEqual({ error: 'FORBIDDEN', need: 'runs:trial' });
     expect((await 시작(쓰기, { service: 'XSA' })).statusCode).toBe(200);
     expect((await 시작(쓰기, { service: 'XSA2' })).json()).toEqual({ error: 'SERVICE_FORBIDDEN', detail: 'XSA2' });
     expect((await 시작(쓰기, {})).statusCode).toBe(403);

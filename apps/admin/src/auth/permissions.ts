@@ -2,13 +2,21 @@
 
 export type 기능 = 'cases' | 'runs' | 'authoring';
 export type 칸 = 'none' | 'read' | 'write';
-export type 서비스권한 = Record<기능, 칸>;
+/** 실행 칸에만 넷째 값 trial(보기 + 테스트 모드)이 있다 (SPEC 도메인/인증 §3.5 「테스트 모드」) */
+export type 실행칸 = 칸 | 'trial';
+export interface 서비스권한 {
+  cases: 칸;
+  runs: 실행칸;
+  authoring: 칸;
+}
 export type 대시보드칸 = 'none' | 'read';
+/** 통로가 요구하는 칸. trial 은 실행 칸 통로에만 쓴다 (auth/routeTable.ts) */
+export type 필요칸 = 'read' | 'trial' | 'write';
 
-// 쓰기는 읽기를 품는다 — 높이로 비교해야 판정이 칸마다 갈라지지 않는다
-export const 칸높이: Record<칸, number> = { none: 0, read: 1, write: 2 };
+// 쓰기는 테스트 모드를, 테스트 모드는 읽기를 품는다 — 높이로 비교해야 판정이 칸마다 갈라지지 않는다
+export const 칸높이: Record<실행칸, number> = { none: 0, read: 1, trial: 2, write: 3 };
 
-export function 칸이되나(가진: 칸, 필요: 'read' | 'write'): boolean {
+export function 칸이되나(가진: 실행칸, 필요: 필요칸): boolean {
   return 칸높이[가진] >= 칸높이[필요];
 }
 
@@ -20,7 +28,7 @@ export const 관리자대시보드: 대시보드칸 = 'read';
 export function 칸되는서비스(
   services: readonly { prefix: string; permissions: 서비스권한 }[],
   기능: 기능,
-  필요: 'read' | 'write',
+  필요: 필요칸,
 ): string[] {
   return services.filter((s) => 칸이되나(s.permissions[기능], 필요)).map((s) => s.prefix);
 }
