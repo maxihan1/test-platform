@@ -4,6 +4,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { 어드민키역할 } from '@platform/kit/accounts';
+
 import type { API반영, API반영작업 } from '../apps/admin/src/apidoc/rewrite.js';
 import type { 원장항목 } from './authoring-ledger.js';
 import { 새로쓰기 } from './authoring-ledger-io.js';
@@ -137,7 +139,7 @@ export function API환경(api: API작성, 자료폴더: string): Record<string, 
 }
 
 /** 줄 프롬프트의 API 절. 인증 이름만 싣고 비밀값은 환경 변수에만 둔다. 절차의 정본은 `tpx-cases` `references/api.md` 다 */
-export function API절(api: API작성, 자료폴더: string): string[] {
+export function API절(api: API작성, 자료폴더: string, 어드민키있음 = false): string[] {
   const 이름들 = api.인증들.map((a) => `「${a.name}」`).join(' · ');
   return [
     '',
@@ -148,6 +150,10 @@ export function API절(api: API작성, 자료폴더: string): string[] {
     이름들 === ''
       ? '- 이 대상 서버에 API 인증이 없다. 토큰이 필요한 API 는 「인증 없이」 401 케이스만 쓰고, 나머지는 결과 요약에 「API 인증 없음」으로 적어라'
       : `- API 인증 이름: ${이름들} — 케이스는 \`api('<이름>')\` 로만 부른다. 값은 환경 변수에만 있다. 출력 · 인자 · 파일에 쓰지 마라`,
+    // 키 값 · 머리 이름은 싣지 않는다 — 환경 변수 PLATFORM_ADMIN_KEY 에만 있다 (도메인/API §3.8 「케이스 꼴」)
+    어드민키있음
+      ? `- 이 대상 서버 줄에 어드민 키가 있다(환경 변수 PLATFORM_ADMIN_KEY) — 서버 어드민 API 는 몸통 \`admin\` 으로 부른다. 키 값 · 머리 이름을 케이스 · 출력 · 파일에 쓰지 마라`
+      : `- 이 대상 서버 줄에 어드민 키가 없다. 어드민 키가 있어야 부를 수 있는 요구는 케이스를 쓰지 말고 「제외」에 \`계정 미등록\`(사유 칸 \`${어드민키역할}\`)으로 적어라`,
     `- 요구 목록 사본에 \`API <메서드> <경로> <코드>\` 줄이 있다${api.반영 == null ? '' : '(바뀐 API 만 다시 작성이라 고른 API 의 줄만)'} — 표준 기획서 번호와 같이 케이스 줄의 출처나 「제외」로 덮는다`,
     ...(api.반영 == null ? [] : API반영절(api.반영, 자료폴더)),
   ];

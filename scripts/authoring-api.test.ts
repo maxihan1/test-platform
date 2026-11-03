@@ -73,6 +73,15 @@ describe('자식에게 넘기는 것', () => {
     expect(글).not.toContain(인증.clientSecret);
   });
 
+  it('어드민 키가 있으면 admin 으로 부르라고, 없으면 그 요구를 「계정 미등록」 사유 「어드민 키」로 빼라고 한다 — 키 글자는 안 싣는다', () => {
+    const 있음 = API절(api, 폴더, true).join('\n');
+    expect(있음).toContain('몸통 `admin` 으로 부른다');
+    expect(있음).not.toContain('X-Admin-Key');
+    const 없음 = API절(api, 폴더).join('\n');
+    expect(없음).toContain('`계정 미등록`(사유 칸 `어드민 키`)');
+    expect(없음).not.toContain('몸통 `admin`');
+  });
+
   it('인증 비밀값은 에이전트 · 자식 양쪽 가림 목록에 든다', () => {
     expect(비밀번호들(API떼기(집은()))).toEqual([인증.clientSecret]);
     expect(환경비밀번호들(API환경(api, 폴더))).toEqual([인증.clientSecret]);
