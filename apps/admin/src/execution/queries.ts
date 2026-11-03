@@ -166,11 +166,12 @@ export interface 폰에깔린앱 {
 
 export async function findRun(
   runId: number,
-): Promise<(RunSummary & RunApiDoc & { items: (RunItemSummary & { rerun: 다시실행칸 | null })[]; evidence: EvidenceSummary[]; installedApps: 폰에깔린앱[] }) | null> {
+): Promise<(RunSummary & RunApiDoc & { items: (RunItemSummary & { rerun: 다시실행칸 | null })[]; evidence: EvidenceSummary[]; installedApps: 폰에깔린앱[]; mobileDevices: string[] }) | null> {
   const pool = await db();
   // 시나리오 실행은 run_item 이 없어 케이스 모양이 비어 나온다. 번호가 맞아도 없는 실행으로 본다 (도메인/시나리오 §3.7 결정 10)
-  const runs = await pool.query<RawRun & { api_doc_version: number | null; api_doc_note: RunApiDoc['apiDocNote'] }>(
-    `SELECT ${RUN_COLUMNS}, r.api_doc_version, r.api_doc_note FROM test_run r LEFT JOIN LATERAL ${지금항목('o.run_id = r.run_id')} i ON true
+  // 폰 모델은 목록 줄과 같은 칸이다 — 화면이 「실패 다시 실행」 창에 그 실행의 모바일 실행 위치를 미리 고른다 (도메인/실행 §8.10)
+  const runs = await pool.query<RawRun & { api_doc_version: number | null; api_doc_note: RunApiDoc['apiDocNote']; mobile_devices: string[] }>(
+    `SELECT ${RUN_COLUMNS}, r.api_doc_version, r.api_doc_note, ${DEVICE_COLUMN} FROM test_run r LEFT JOIN LATERAL ${지금항목('o.run_id = r.run_id')} i ON true
       WHERE r.run_id = $1 AND ${종류조건('case')} GROUP BY r.run_id`,
     [runId],
   );
@@ -200,6 +201,7 @@ export async function findRun(
     items: items.rows.map((r) => ({ ...toItem(r), rerun: 다시실행칸으로(r) })),
     evidence: await 증적목록(runId),
     installedApps: 깔린.rows.map((r) => ({ appVersion: r.app_version, appBuild: r.app_build })),
+    mobileDevices: row.mobile_devices,
   };
 }
 

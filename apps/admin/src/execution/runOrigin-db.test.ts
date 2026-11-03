@@ -3,7 +3,7 @@
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { listRuns } from './queries.js';
+import { findRun, listRuns } from './queries.js';
 import { createRun, RunInputError } from './store.js';
 
 const 연결 = process.env.DATABASE_URL;
@@ -171,7 +171,7 @@ describe.skipIf(연결 === undefined)('실행 시작 방식', () => {
     expect(한줄?.failCases).toEqual({ desktop: 0, mobile: 2 });
   });
 
-  it('목록 줄은 폰 모델을 앱 항목(devices)과 실제 폰 모바일 항목(mobileDevices)으로 갈라 겹치지 않게 글자 차례로 싣는다 — 기기가 없으면 빈 배열', async () => {
+  it('목록 줄은 폰 모델을 앱 항목(devices)과 실제 폰 모바일 항목(mobileDevices)으로 갈라 겹치지 않게 글자 차례로 싣는다 — 기기가 없으면 빈 배열 · 실행 하나도 mobileDevices 를 같게 싣는다', async () => {
     const 실행 = await 건다(['XBO-001', 'XBO-002', 'XBO-003']);
     const 기기 = (tcId: string, platform: string, model: string) =>
       pool.query('UPDATE run_item SET device = $4 WHERE run_id = $1 AND tc_id = $2 AND platform = $3', [
@@ -195,6 +195,7 @@ describe.skipIf(연결 === undefined)('실행 시작 방식', () => {
     expect([줄?.devices, 줄?.mobileDevices]).toEqual([['SM-G996N'], ['Pixel 7', 'SM-S911N']]);
     const 빈줄 = 목록.items.find((r) => r.runId === 빈);
     expect([빈줄?.devices, 빈줄?.mobileDevices]).toEqual([[], []]);
+    expect([(await findRun(실행))?.mobileDevices, (await findRun(빈))?.mobileDevices]).toEqual([['Pixel 7', 'SM-S911N'], []]);
   });
 
   it('직전 대비는 같은 대상 서버의 앞 실행과 견준 케이스 수다 — 디바이스를 접고, 앞이 없거나 도는 중이면 null', async () => {
