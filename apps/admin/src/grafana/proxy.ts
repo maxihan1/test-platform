@@ -4,12 +4,14 @@
 import httpProxy from '@fastify/http-proxy';
 import type { FastifyInstance } from 'fastify';
 
+import { 쿠키이름들 } from '../auth/session.js';
+
 // 플랫폼 출입증만 뺀다. grafana_session 같은 Grafana 자기 쿠키는 그대로 넘겨야 화면이 돈다
 function 플랫폼쿠키뺌(cookie: string): string {
   return cookie
     .split(';')
     .map((조각) => 조각.trim())
-    .filter((조각) => 조각 !== '' && !조각.startsWith('platform_session='))
+    .filter((조각) => 조각 !== '' && !쿠키이름들.some((이름) => 조각.startsWith(`${이름}=`)))
     .join('; ');
 }
 

@@ -429,6 +429,7 @@ POST /api/authoring/requests/:id/pr-state    { state: 'MERGED' | 'CLOSED' }
 # MCP — Streamable HTTP 하나 · 세션 없음 · 답은 JSON 한 덩어리 (BTS-F4-01 반영 2026-10-31 · apps/admin/src/mcp/server.ts · tools.ts · auth/pat.ts · mcj_ 는 BTS-F4-02 반영 2026-10-31 · mcp/jobKey.ts — note_read 는 BTS-F4-03 반영 2026-10-31 · mcp/note.ts)
 #   열쇠: Authorization: Bearer <통합계정 PAT> | mcj_…. PAT 는 Auth whoami + 60초 기억. mcj_ 는 그 작성 요청이 RUNNING 이고 그 프로젝트일 때만
 #   열쇠는 몸을 읽기 전에 본다. 없거나 틀리거나 계정이 꺼졌으면 401(WWW-Authenticate: Bearer) · Auth 에 못 닿으면 503 · 기억에 없는 PAT 로 한 곳에서 1분에 30번 넘게 Auth 를 두드리면 429 · GET · DELETE /mcp 는 405
+#   열쇠보다 먼저 — 다른 주소 페이지의 POST(브라우저가 Origin 을 실은 것)는 403 CROSS_ORIGIN (인증.md §7 「인증 적용 범위」 · 2026-11-03 S26)
 POST /mcp
   도구: note_read { projectId, name? } · prd_search { service, query, page? } · map_search { service, reqId? | tcId? | url?, page? } · bts_search { projectId, query? | issueKey?, page? } · run_search { service, tcId? | issueKey? } · run_result { runId, page? }
   — page 는 0 부터 1000 까지(없으면 0 · 넘으면 MCP 입력 검증 오류) — page × 30 줄을 건너뛰고 다음 30줄을 준다. map_search 의 tcId 는 케이스 하나라 page 가 0 이 아니면 cases: [] 와 empty (2026-11-02 PR 4 시작 질문)

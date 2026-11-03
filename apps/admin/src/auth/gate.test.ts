@@ -1004,3 +1004,57 @@ describe.skipIf(연결 === undefined)('시나리오 문', () => {
     시나리오시험.전부비운다();
   });
 });
+
+// 바꾸는 요청의 Origin 검사 — 형제 서브도메인은 같은 site 라 SameSite=Lax 가 못 막는다 (SPEC 도메인/인증 §7 · 2026-11-03 S26)
+// 로그인 없이 지나가는 틀 · /api 밖 틀에도 걸리는지 봐야 문 맨 위에 있다는 것이 증명된다
+describe('Origin 검사', () => {
+  let app: FastifyInstance;
+  const 여기 = 'commander.maxihan.com';
+
+  beforeAll(async () => {
+    app = Fastify();
+    인증등록(app);
+    app.post('/api/auth/login', async () => ({ ok: true }));
+    app.get('/api/auth/methods', async () => ({ ok: true }));
+    app.post('/mcp', async () => ({ ok: true }));
+    app.post('/grafana/*', async () => ({ ok: true }));
+    await app.ready();
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  const 보내기 = (method: 'GET' | 'POST', url: string, headers: Record<string, string>) =>
+    app.inject({ method, url, headers: { host: 여기, ...headers }, payload: method === 'POST' ? {} : undefined });
+
+  it('다른 주소의 POST 는 /api · /mcp · /grafana 모두 403 이다', async () => {
+    for (const url of ['/api/auth/login', '/mcp', '/grafana/api/dashboards/db']) {
+      const res = await 보내기('POST', url, { origin: 'https://demo.maxihan.com' });
+      expect(res.statusCode, url).toBe(403);
+      expect(res.json(), url).toEqual({ error: 'CROSS_ORIGIN' });
+    }
+  });
+
+  it('Origin: null 인 POST 는 403 이다', async () => {
+    const res = await 보내기('POST', '/api/auth/login', { origin: 'null' });
+    expect(res.statusCode).toBe(403);
+    expect(res.json()).toEqual({ error: 'CROSS_ORIGIN' });
+  });
+
+  it('같은 host 에서 온 POST 는 지나간다 — 기본 포트 · 대소문자 차이는 같은 host 다', async () => {
+    expect((await 보내기('POST', '/api/auth/login', { origin: `https://${여기}` })).statusCode).toBe(200);
+    expect((await 보내기('POST', '/api/auth/login', { origin: `https://${여기}:443`, host: 'Commander.maxihan.com' })).statusCode).toBe(200);
+    expect((await 보내기('POST', '/api/auth/login', { origin: `https://${여기}`, host: `${여기}:443` })).statusCode).toBe(200);
+    expect((await 보내기('POST', '/api/auth/login', { origin: 'http://localhost:5173', host: 'localhost:5173' })).statusCode).toBe(200);
+  });
+
+  it('Origin 이 없는 POST(기계 호출)는 지나간다', async () => {
+    expect((await 보내기('POST', '/api/auth/login', {})).statusCode).toBe(200);
+    expect((await 보내기('POST', '/mcp', {})).statusCode).toBe(200);
+  });
+
+  it('GET 은 다른 주소의 Origin 이어도 지나간다', async () => {
+    expect((await 보내기('GET', '/api/auth/methods', { origin: 'https://demo.maxihan.com' })).statusCode).toBe(200);
+  });
+});
