@@ -6,7 +6,7 @@ import type { 어드민키 } from '../settings/envs.js';
 
 /**
  * 게임 애플리케이션의 android 항목만 엔진을 싣고, 그 대상 서버 줄에 어드민 키가 있으면 같이 싣는다.
- * API 애플리케이션 항목은 엔진 없이 어드민 키만 — 케이스가 서버 어드민 API 를 몸통 admin 으로 부른다 (도메인/API §3.8 「케이스 꼴」)
+ * API 애플리케이션 항목은 엔진 없이 어드민 키만 — 케이스가 서버 어드민 API 를 몸통 admin 으로 부른다 (도메인/API §3.8 「API 인증」 「어드민 키」)
  */
 export const 엔진칸 = (
   kind: string | null | undefined,
