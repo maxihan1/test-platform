@@ -113,6 +113,15 @@ describe.skipIf(연결 === undefined)('프로젝트 권한 표', () => {
       );
     });
 
+    it('trial 은 실행 칸에만 들어간다', async () => {
+      const { pool } = await import('../db/index.js');
+      await 계정넣기('xup-trial');
+      await pool.query(`INSERT INTO user_project (username, project_id, perm_runs) VALUES ('xup-trial', $1, 'trial')`, [프로젝트[0]]);
+      await expect(
+        pool.query(`INSERT INTO user_project (username, project_id, perm_cases) VALUES ('xup-trial', $1, 'trial')`, [프로젝트[1]]),
+      ).rejects.toThrow('user_project_perm_cases_check');
+    });
+
     it('프로젝트가 지워지면 그 프로젝트의 권한 줄도 같이 지워진다', async () => {
       const { pool } = await import('../db/index.js');
       await 계정넣기('xup-cascade');

@@ -7,11 +7,13 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
 import { artifactsDir, 볼륨파일읽기 } from '../artifactFile.js';
+import { 권한이되나 } from '../auth/gate.js';
 import { 장면을건넨다 } from '../execution/live.js';
 import { 시나리오시험, TrialBusyError } from '../execution/trial.js';
 import { 정수 } from '../routeParams.js';
 
 import { 시험시작, 시험시작오류, uuid모양 } from './trial.js';
+import { 저장안된단계 } from './trialGuard.js';
 import { 부품들모양 } from './validate.js';
 
 // 문이 본문 service 를 접두사 모양으로 이미 봤다
@@ -32,6 +34,12 @@ export default async function scenarioTrialRoutes(app: FastifyInstance): Promise
   app.post('/scenario-trials', async (req, reply) => {
     const parsed = 시작본문.safeParse(req.body);
     if (!parsed.success) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
+    // 문이 실행 trial 이상을 봤다. 문과 같은 판정으로 write 가 확인되지 않으면 조립을 더 거른다 (SPEC 도메인/인증 §3.5 「테스트 모드」)
+    if (!req.user || !권한이되나(req.user, { 기능: 'runs', 칸: 'write' }, [parsed.data.service])) {
+      const { pool } = await import('../db/index.js');
+      const 사유 = await 저장안된단계(pool, parsed.data.service, parsed.data.parts);
+      if (사유 !== null) return reply.code(403).send({ error: 'FORBIDDEN', need: 'runs:write', detail: 사유 });
+    }
     try {
       const trialId = await 시험시작({ username: 누구(req) }, parsed.data);
       return reply.code(202).send({ trialId });
