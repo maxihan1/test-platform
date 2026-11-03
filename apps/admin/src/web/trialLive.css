@@ -1,0 +1,172 @@
+/* 테스트 모드 오른쪽 실시간 칸과 그 칸을 끼우는 세 자리 — 조립 화면 시험 결과 탭 · 마법사 시험 실행 · 실행 창 (도메인/실행 §3.2 「테스트 모드」 · 시안 A 나란히).
+   색은 토큰만 쓴다 — DESIGN.md 원칙 1. 맥박 점은 styles.css 의 .pulse 를 그대로 쓴다 */
+
+.trial-live {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  background: var(--well);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.live-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 13px;
+}
+
+.live-head .pulse {
+  margin-right: 0;
+}
+
+.live-sub {
+  min-width: 0;
+  font-size: 12px;
+  color: var(--ink-faint);
+  overflow-wrap: anywhere;
+}
+
+.live-vision {
+  margin-left: auto;
+}
+
+/* 장면은 대상 화면을 찍은 그림이라 밝게 · 어둡게와 상관없이 제 색이다. 세로 장면(모바일 흉내)이 칸을 끝없이 늘이지 않게 높이를 묶고 가운데 세운다 */
+.live-shot {
+  position: relative;
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--panel);
+}
+
+.live-shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 60vh;
+  object-fit: contain;
+}
+
+.live-shot.dim img {
+  opacity: 0.35;
+}
+
+.live-over {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  margin: 0;
+  padding: 12px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.live-wait {
+  display: grid;
+  place-content: center;
+  aspect-ratio: 16 / 10;
+  max-width: 100%;
+  margin: 0;
+  padding: 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-muted);
+  border: 1px dashed var(--line-2);
+  border-radius: 6px;
+}
+
+.live-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.live-note.bad {
+  color: var(--fail-text);
+}
+
+/* 조립 화면 — 시험 결과 탭 맨 위. 탭 글줄과 같은 옆 여백을 쓴다 */
+.scn-trial > .trial-live {
+  margin: 12px 24px 0;
+}
+
+/* 마법사 시험 실행 — 왼쪽 결과 · 오른쪽 장면. 장면이 있을 때만 둘로 가르고 본문 폭을 넓힌다 */
+.scw-trial-wrap {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.scw-trial-wrap:has(> .trial-live) {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+}
+
+/* 결과가 길어 내려도 장면이 따라온다 */
+.scw-trial-wrap > .trial-live {
+  position: sticky;
+  top: 0;
+}
+
+.wz-step:has(.scw-trial-wrap > .trial-live) {
+  max-width: 1200px;
+}
+
+/* 실행 창 — 테스트 실행을 누르면 오른쪽에 장면 칸. 왼쪽은 지금 창 그대로이고 케이스 목록(.picked)만 구른다 */
+.pick-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: 16px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.pick-split:has(> .pick-live > .trial-live) {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.pick-main {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.pick-live {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* 칸이 없으면 자리도 없다 — 빈 칸이 격자 둘째 줄과 틈을 만들지 않게 */
+.pick-live:empty {
+  display: none;
+}
+
+/* 좁은 화면 — 장면을 결과 위로 올린다 */
+@media (max-width: 760px) {
+  .scw-trial-wrap:has(> .trial-live),
+  .pick-split:has(> .pick-live > .trial-live) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .scw-trial-wrap > .trial-live,
+  .pick-live {
+    order: -1;
+    position: static;
+  }
+
+  .scn-trial > .trial-live {
+    margin: 12px 16px 0;
+  }
+}

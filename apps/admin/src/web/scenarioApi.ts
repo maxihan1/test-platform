@@ -116,7 +116,8 @@ export interface ScenarioRunResult {
 /** 시험 실행 결과 — 실패한 case 부품에만 trace 가 붙는다 */
 export type TrialResult = Omit<ScenarioExecuteResponse, 'parts'> & { parts: (ScenarioPartResult & { trace?: ItemTrace })[] };
 
-export type TrialState = { status: 'RUNNING' } | { status: 'FINISHED'; result: TrialResult };
+/** 폰을 잡은 동안 도는 중 응답에 그 폰 화면 주소가 실린다 (도메인/실행 §7 「테스트 모드 통로」) */
+export type TrialState = { status: 'RUNNING'; vision?: { url: string } } | { status: 'FINISHED'; result: TrialResult };
 
 export type ScenarioRunRow = Omit<RunSummary, 'counts'> & {
   scenarioId: number;
@@ -220,6 +221,9 @@ export const scenarioApi = {
   runFarm: (runId: number, name: string) => `/api/runs/${runId}/scenario/farm/${encodeURIComponent(name)}`,
 
   trialShot: (trialId: string, seq: number) => `/api/scenario-trials/${encodeURIComponent(trialId)}/screenshots/${seq}`,
+
+  // 장면은 오른쪽 실시간 칸이 0.25초마다 직접 받는다
+  trialLive: (trialId: string) => `/api/scenario-trials/${encodeURIComponent(trialId)}/live`,
 
   runs: (service: string, page: number, 조건: { q?: string; state?: 'running' | 'failed' } = {}) => {
     const params = new URLSearchParams({ service, page: String(page), kind: 'scenario' });

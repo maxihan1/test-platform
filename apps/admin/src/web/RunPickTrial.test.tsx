@@ -1,12 +1,14 @@
 // @vitest-environment jsdom
-// 실행 창의 「▶ 테스트 실행」 조각 — 결과 배지 · 한 건 창의 절차 목록 (도메인/실행 §8.10)
+// 실행 창의 「▶ 테스트 실행」 조각 — 결과 배지 · 한 건 창의 절차 목록 · 오른쪽 실시간 칸 (도메인/실행 §8.10)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { api, type TrialResult } from './api.js';
-import { 그린다, 케이스 } from './runPick.fixture.js';
+import { 그린다, 서비스, 케이스 } from './runPick.fixture.js';
+import { RunPickModal } from './RunPickModal.js';
 import { 시험배지 } from './RunPickTrial.js';
+import { 장면통로 } from './TrialLive.js';
 
 afterEach(() => {
   cleanup();
@@ -75,5 +77,43 @@ describe('한 건 창의 테스트 실행', () => {
 
     await waitFor(() => expect(시작).toHaveBeenCalledTimes(1));
     expect(시작.mock.calls[0]?.[1]).toMatchObject({ platform: 'mobile' });
+  });
+});
+
+describe('실행 창 오른쪽 실시간 칸', () => {
+  it('테스트 실행을 누르기 전에는 칸이 없다', async () => {
+    await 그린다();
+
+    expect(document.querySelector('.pick-live')?.childElementCount).toBe(0);
+  });
+
+  it('누르면 오른쪽에 그 케이스의 장면 칸이 열리고, VISION 이 폰을 잡으면 링크를 단다', async () => {
+    vi.spyOn(api, 'startTrial').mockResolvedValue({ trialId: 't1' });
+    vi.spyOn(api, 'getTrial').mockResolvedValue({ status: 'RUNNING', vision: { url: 'https://vision.example/#phone=R3C&view=k1' } });
+    const 받기 = vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'empty' });
+    await 그린다();
+
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
+    fireEvent.click(screen.getByRole('button', { name: '▶ 테스트 실행' }));
+
+    const 링크 = await screen.findByRole('link', { name: 'Device VISION 에서 보기 ↗' });
+    expect(링크.getAttribute('href')).toBe('https://vision.example/#phone=R3C&view=k1');
+    expect(document.querySelector('.pick-live .trial-live')).not.toBeNull();
+    expect(screen.getByText('ZRS-001 실행 설정 케이스')).toBeTruthy();
+    expect(받기).toHaveBeenCalledWith('/api/cases/ZRS-001/test-run/t1/live');
+  });
+
+  it('여러 건이면 몇째 케이스인지 칸 머리에 적는다', async () => {
+    vi.spyOn(api, 'paramSets').mockResolvedValue({ items: [] });
+    vi.spyOn(api, 'startTrial').mockResolvedValue({ trialId: 't1' });
+    vi.spyOn(api, 'getTrial').mockResolvedValue({ status: 'RUNNING' });
+    vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'empty' });
+    const 둘째 = { ...케이스, tcId: 'ZRS-002', name: '둘째 케이스' };
+    render(<RunPickModal 케이스들={[케이스, 둘째]} service={서비스} onRun={vi.fn()} onClose={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
+    fireEvent.click(screen.getByRole('button', { name: '▶ 테스트 실행' }));
+
+    expect(await screen.findByText('1 / 2 · ZRS-001 실행 설정 케이스')).toBeTruthy();
   });
 });

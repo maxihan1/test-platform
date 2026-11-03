@@ -1,13 +1,14 @@
-// 실행 창의 「테스트 실행」 조각 — 케이스 줄마다 붙는 결과 배지 (도메인/실행 §8.10)
+// 실행 창의 「테스트 실행」 조각 — 케이스 줄마다 붙는 결과 배지 · 오른쪽 실시간 칸 (도메인/실행 §8.10)
 // 한 건 · 여러 건이 같은 큐(useTrialQueue)로 돈다. 한 건짜리 화면의 따로 된 조각(TestRun)은 2026-10-09 에 합쳤다
 
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 
-import type { CaseRow, TrialResult } from './api.js';
+import { api, type CaseRow, type TrialResult } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { type 고친값표, 실행항목 } from './pickRun.js';
+import { 장면칸 } from './TrialLive.js';
 import { seconds, Verdict } from './ui.js';
-import { type 시험줄, useTrialQueue } from './useTrialQueue.js';
+import { type 시험줄, type 지금시험, useTrialQueue } from './useTrialQueue.js';
 
 /**
  * 실행 창의 「▶ 테스트 실행」 상태와 동작을 한 벌로 든다. 위에서 고른 대상 서버로 서버 러너에서 돈다 —
@@ -31,6 +32,8 @@ export function use여러건시험(옵션: {
 
   return {
     줄들: 큐.줄들,
+    도는중: 큐.도는중,
+    지금: 큐.지금,
     누름: () => {
       // 버튼은 죽이지 않는다. 도는 중에 또 누르면 사유를 말한다 (DESIGN.md)
       if (큐.도는중) return 알림(() => 바쁨글);
@@ -40,6 +43,47 @@ export function use여러건시험(옵션: {
       void 큐.시작(실행항목(케이스들, 고친값), env);
     },
   };
+}
+
+/**
+ * 창 본문을 왼쪽(지금 창 그대로)과 오른쪽 실시간 칸으로 가른다 — 시안 A 나란히 (도메인/실행 §8.10 「실시간 칸」).
+ * 칸이 그려질 때만 둘로 갈린다(trialLive.css 의 :has). 테스트 실행을 안 누른 창은 지금과 같다.
+ * 감싸는 틀은 늘 같다 — 누를 때 틀이 바뀌면 값 칸이 새로 그려져 쓰던 글자를 잃는다
+ */
+export function 시험나눔({
+  시험,
+  케이스들,
+  children,
+}: {
+  시험: { 줄들: Record<string, 시험줄>; 도는중: boolean; 지금: 지금시험 | null };
+  케이스들: CaseRow[];
+  children: ReactNode;
+}) {
+  const { 줄들, 도는중, 지금 } = 시험;
+  // 여러 건이면 몇째인지 앞에 단다 — 「2 / 3 · MKW-FN-014 장바구니 담기」
+  const 이름 = 지금 === null ? '' : (케이스들.find((c) => c.tcId === 지금.tcId)?.name ?? '');
+  const 차례 = 지금 !== null && 지금.전체 > 1 ? [`${지금.차례} / ${지금.전체}`] : [];
+  const 부제 = 지금 === null ? '' : [...차례, [지금.tcId, 이름].filter((글) => 글 !== '').join(' ')].join(' · ');
+  return (
+    <div className="pick-split">
+      <div className="pick-main">{children}</div>
+      <div className="pick-live">
+        {지금 === null ? (
+          // 누른 뒤 첫 시험이 시작되기 전 — 칸을 먼저 열어 기다린다고 알린다
+          도는중 ? <장면칸 key="시작" 주소={null} 도는중 vision={null} /> : null
+        ) : (
+          <장면칸
+            key={지금.trialId}
+            주소={api.trialLive(지금.tcId, 지금.trialId)}
+            도는중={줄들[지금.tcId]?.종류 === 'run'}
+            vision={지금.vision}
+            부제={부제}
+            폰만={지금.platform === 'android'}
+          />
+        )}
+      </div>
+    </div>
+  );
 }
 
 /** 케이스 줄 오른쪽 끝의 한 칸. 아직 안 돌렸으면 아무것도 안 그린다 */

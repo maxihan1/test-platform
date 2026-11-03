@@ -1,0 +1,126 @@
+// 테스트 모드의 오른쪽 실시간 칸 — 서버 브라우저 장면을 0.25초마다 받아 그리고, 폰을 잡으면 Device VISION 링크를 띄운다 (도메인/실행 §3.2 「테스트 모드」 · 시안 A)
+
+import { useEffect, useRef, useState } from 'react';
+
+import { use말 } from './i18n.js';
+
+export type 장면답 = { 종류: 'frame'; 그림: Blob } | { 종류: 'empty' } | { 종류: 'gone' } | { 종류: 'unreachable' };
+
+/** 검사가 바꿔 끼우게 객체에 둔다 */
+export const 장면통로 = {
+  async 받기(주소: string): Promise<장면답> {
+    try {
+      const res = await fetch(주소, { cache: 'no-store', credentials: 'same-origin' });
+      if (res.status === 200) return { 종류: 'frame', 그림: await res.blob() };
+      // 자리를 기다리는 중이거나 폰 단계라 아직 장면이 없다
+      if (res.status === 204) return { 종류: 'empty' };
+      // admin 이 러너에 못 닿았다. 기다림으로 가리지 않고 알리되 다시 묻는다 (도메인/실행 §7 「테스트 모드 통로」)
+      if (res.status === 502) return { 종류: 'unreachable' };
+      // 404 는 끝난 시험이라 러너가 장면을 버렸다. 그 밖의 거절도 다시 물어 봐야 같은 답이다
+      return { 종류: 'gone' };
+    } catch {
+      return { 종류: 'unreachable' };
+    }
+  },
+};
+
+const 묻는간격 = 250;
+
+function use장면(주소: string | null, 도는중: boolean) {
+  const [그림, set그림] = useState<string | null>(null);
+  // 마지막 답이 「장면 없음」이었나 — E2E 는 앱 · 게임 단계 동안 장면을 끈다
+  const [비었나, set비었나] = useState(false);
+  const [못닿음, set못닿음] = useState(false);
+  const 지금그림 = useRef<string | null>(null);
+
+  // 칸이 내려가면 마지막 그림을 놓는다. 안 놓으면 장면마다 쌓인다
+  useEffect(
+    () => () => {
+      if (지금그림.current !== null) URL.revokeObjectURL(지금그림.current);
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (주소 === null || !도는중) return;
+    let 멈춤 = false;
+    let 타이머: ReturnType<typeof setTimeout> | undefined;
+    // 앞 물음이 끝나야 다음을 묻는다 — 느린 망에서 물음이 겹쳐 쌓이지 않게
+    const 받기 = async () => {
+      const 답 = await 장면통로.받기(주소);
+      if (멈춤) return;
+      set못닿음(답.종류 === 'unreachable');
+      if (답.종류 === 'gone') return;
+      if (답.종류 === 'frame') {
+        const 새 = URL.createObjectURL(답.그림);
+        if (지금그림.current !== null) URL.revokeObjectURL(지금그림.current);
+        지금그림.current = 새;
+        set그림(새);
+      }
+      if (답.종류 !== 'unreachable') set비었나(답.종류 === 'empty');
+      타이머 = setTimeout(() => void 받기(), 묻는간격);
+    };
+    void 받기();
+    return () => {
+      멈춤 = true;
+      clearTimeout(타이머);
+    };
+  }, [주소, 도는중]);
+
+  return { 그림, 비었나, 못닿음: 못닿음 && 도는중 };
+}
+
+interface Props {
+  /** 장면 통로 주소. 시작 응답 전이면 null */
+  주소: string | null;
+  도는중: boolean;
+  /** VISION 이 폰을 잡은 동안 그 폰 화면 주소. 서버가 http(s) 만 싣는다 */
+  vision: string | null;
+  /** 칸 머리 둘째 글. 없으면 「서버 브라우저」 — 실행 창은 몇째 케이스인지 적는다 */
+  부제?: string;
+  /** Android 앱 · 게임 — 장면이 오지 않고 폰 화면은 VISION 이 보인다 */
+  폰만?: boolean;
+}
+
+/** 시작한 테스트 모드 하나의 칸. 끝나도 마지막 장면을 그대로 둔다. 장면 없이 끝났으면 칸을 그리지 않는다 */
+export function 장면칸({ 주소, 도는중, vision, 부제, 폰만 = false }: Props) {
+  const t = use말();
+  const { 그림, 비었나, 못닿음 } = use장면(폰만 ? null : 주소, 도는중);
+  if (!도는중 && 그림 === null) return null;
+  // 섞인 E2E 의 앱 단계 — 마지막 웹 장면을 흐리게 두고 폰으로 보낸다
+  const 폰단계 = 도는중 && 비었나 && vision !== null;
+
+  return (
+    <section className="trial-live" aria-label={t('실시간 화면')}>
+      <div className="live-head">
+        {도는중 ? <span className="pulse" aria-hidden="true" /> : null}
+        <b>{폰만 ? t('폰 화면') : 도는중 ? t('실시간 화면') : t('마지막 화면')}</b>
+        <span className="live-sub">{부제 ?? t('서버 브라우저')}</span>
+        {vision === null ? null : (
+          <a className="btn small ghost live-vision" href={vision} target="_blank" rel="noreferrer">
+            {t('Device VISION 에서 보기 ↗')}
+          </a>
+        )}
+      </div>
+      {폰만 ? (
+        <p className="live-wait">
+          {vision === null ? t('빈 폰을 잡고 있습니다') : t('이 케이스는 Device VISION 폰에서 실행됩니다. 폰 화면은 새 탭에서 봅니다')}
+        </p>
+      ) : 그림 === null ? (
+        <p className="live-wait">
+          {폰단계 ? t('지금은 앱 단계라 폰에서 실행 중입니다') : t('브라우저 화면을 기다리고 있습니다. 앞 실행이 끝나야 시작할 때도 있습니다')}
+        </p>
+      ) : (
+        <div className={폰단계 ? 'live-shot dim' : 'live-shot'}>
+          <img src={그림} alt={도는중 ? t('서버 브라우저의 지금 화면') : t('끝난 순간의 화면')} />
+          {폰단계 ? <p className="live-over">{t('지금은 앱 단계라 폰에서 실행 중입니다')}</p> : null}
+        </div>
+      )}
+      {못닿음 ? (
+        <p className="live-note bad">{t('테스트 실행기에 닿지 않아 화면을 받지 못했습니다. 다시 받아 봅니다')}</p>
+      ) : 도는중 && !폰만 ? (
+        <p className="live-note">{t('누른 곳을 표시하며 동작마다 1초씩 쉬어 갑니다')}</p>
+      ) : null}
+    </section>
+  );
+}

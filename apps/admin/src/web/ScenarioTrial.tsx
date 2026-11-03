@@ -1,12 +1,15 @@
 // E2E 시나리오 시험 실행의 화면 조각 — 머리의 대상 서버 · 버튼, 왼쪽 요약, 오른쪽 시험 결과 탭 (도메인/시나리오 §8.11)
 
 import type { ScenarioExecuteResponse, ScenarioPart } from '@platform/kit';
+import type { ReactNode } from 'react';
 
+import type { Platform } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { scenarioApi, type TrialResult } from './scenarioApi.js';
 import { PartTrace } from './ScenarioResultPart.js';
 import { 멈춘사유글자 } from './scenarioResultView.js';
 import { 가리킴빈곳, 종류글, 카드요약, type 재료들 } from './scenarioView.js';
+import { 장면칸 } from './TrialLive.js';
 import { seconds, Verdict } from './ui.js';
 import type { 시험상태 } from './useScenarioTrial.js';
 
@@ -26,7 +29,7 @@ export function 시험막는글(
 
 /**
  * 앱 · 게임 단계가 있는 시나리오의 실행 위치 안내. 정식 실행은 늘 디바이스 팜이라 고를 것이 없어 안내 한 줄이다.
- * 시험 실행은 내 컴퓨터 러너가 켜져 있으면 거기 꽂은 폰에서 돈다 (도메인/시나리오 §3.7 결정 16)
+ * 시험 실행도 같은 VISION 폰에서 돌고 그 화면은 새 탭에서 본다 (도메인/시나리오 §3.7 결정 16 · 도메인/실행 §3.2 「테스트 모드」)
  */
 export function 폰실행위치({ 시험 = true }: { 시험?: boolean }) {
   const t = use말();
@@ -34,8 +37,25 @@ export function 폰실행위치({ 시험 = true }: { 시험?: boolean }) {
     <div className="hint">
       {t('실행 위치 · Device VISION')}
       <div>{t('시나리오 하나 동안 빈 폰을 한 번 잡고 다 돌면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 실행에 남습니다')}</div>
-      {시험 ? <div>{t('시험 실행은 내 컴퓨터 테스트 실행기가 켜져 있으면 거기 꽂은 폰에서, 꺼져 있으면 Device VISION 에서 돕니다')}</div> : null}
+      {시험 ? <div>{t('시험 실행도 Device VISION 폰에서 실행됩니다. 폰 화면은 「Device VISION 에서 보기 ↗」를 눌러 새 탭에서 봅니다')}</div> : null}
     </div>
+  );
+}
+
+/**
+ * 시작한 시험의 오른쪽 실시간 칸. 시작 응답이 오기 전에도 누르자마자 칸을 연다.
+ * 단계를 바꿔 결과를 비운 시험(idle)은 장면도 안 보인다
+ */
+export function 시험장면({ 시험, 디바이스 }: { 시험: 시험상태; 디바이스: Platform }) {
+  if (시험.단계 === 'idle' || (시험.trialId === null && 시험.단계 !== 'running')) return null;
+  return (
+    <장면칸
+      key={시험.trialId ?? '시작'}
+      주소={시험.trialId === null ? null : scenarioApi.trialLive(시험.trialId)}
+      도는중={시험.단계 === 'running'}
+      vision={시험.vision}
+      폰만={디바이스 === 'android'}
+    />
   );
 }
 
@@ -108,13 +128,15 @@ export function TrialSummary({ 시험, on자세히 }: { 시험: 시험상태; on
   );
 }
 
-export function TrialTab({ 시험, 단계들, 재료 }: { 시험: 시험상태; 단계들: ScenarioPart[]; 재료: 재료들 }) {
+/** @param 장면 조립 화면은 탭 맨 위에 실시간 칸을 둔다. 마법사는 칸을 본문 오른쪽에 따로 둬서 안 넘긴다 */
+export function TrialTab({ 시험, 단계들, 재료, 장면 }: { 시험: 시험상태; 단계들: ScenarioPart[]; 재료: 재료들; 장면?: ReactNode }) {
   const t = use말();
   const 언어 = use언어();
   const 결과 = 시험.결과;
   const 돌린단계 = 시험.단계들 ?? 단계들;
   return (
     <div className="scn-trial">
+      {장면}
       <p className="scn-trial-intro">
         {t('시험 실행은 기록에 남지 않고 리포트도 만들지 않습니다. 저장하지 않은 변경 내용으로도 실행해 볼 수 있습니다')}
       </p>
