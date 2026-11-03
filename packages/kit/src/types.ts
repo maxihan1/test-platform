@@ -58,8 +58,9 @@ export interface ExecuteRequest {
   expected: Record<string, unknown>;
   timeoutMs: number;            // 기본 300000
   app?: string;                 // android 만. 그 대상 서버의 앱 파일 경로나 http(s) 주소(받는 쪽은 Appium 이 도는 PC). 없으면 러너 환경값 PLATFORM_APP (§5.2 · APP-F1-03)
-  udid?: string;                // android 만. admin 이 디바이스 팜에서 잡은 폰. 없으면 러너 환경값 PLATFORM_DEVICE_UDID (§5.2 · APP-F1-10)
-  farmToken?: string;           // android 만. 그 폰을 잡은 누른 사람의 팜 토큰. 없으면 러너 환경값 PLATFORM_APPIUM_TOKEN. 기록 · 로그에 안 넣는다 (§5.2 「팜 토큰은 누른 사람 것이 먼저다」 · APP-F1-13)
+  udid?: string;                // android · 실제 폰 mobile(cdpUrl 이 올 때 꼭 같이). admin 이 디바이스 팜에서 잡은 폰. android 는 없으면 러너 환경값 PLATFORM_DEVICE_UDID (§5.2 · APP-F1-10 · TMO-F4-02)
+  farmToken?: string;           // android · 실제 폰 mobile. 그 폰을 잡은 누른 사람의 팜 토큰. 없으면 러너 환경값 PLATFORM_APPIUM_TOKEN. 기록 · 로그에 안 넣는다 (§5.2 「팜 토큰은 누른 사람 것이 먼저다」 · APP-F1-13)
+  cdpUrl?: string;              // mobile 만. VISION 이 깨끗이 켜 준 그 폰 Chrome 의 DevTools 연결 주소(ws · wss). 오면 서버 흉내 대신 그 폰 Chrome 에서 돈다 (§5.2 「모바일 웹 — 실제 폰 Chrome」 · TMO-F4-02)
   engine?: 'GAME';              // 게임 애플리케이션의 android 항목만. admin 이 애플리케이션 종류를 보고 싣는다. 없으면 platform 으로 엔진을 고른다(android → Appium) (도메인/게임 §3.10 결정 6 · GAME-F1-07)
   adminKey?: { header: string; value: string };  // 게임 · API 애플리케이션 항목만. 그 대상 서버 줄의 어드민 키 원문 — kit 이 몸통 admin 요청에 머리로 넣고 기록에서 가린다 (도메인/게임 §3.10 「케이스 꼴」 · GAME-F1-09 · API 는 도메인/API §3.8 「어드민 키」)
   apiAuths?: ApiAuth[];         // 그 대상 서버 줄의 API 인증 전부. API 종류 애플리케이션 케이스만 (도메인/API §3.8 · API-F1-04)
@@ -124,6 +125,7 @@ export interface DeviceInfo {
   appVersion: string | null;    // 앱 versionName. Appium 을 adb_shell 허용으로 켰을 때만 읽힌다
   // 앱 versionCode — 빌드마다 바뀌어 실행의 빌드 번호와 견준다(versionName 은 빌드마다 안 바뀌는 일이 많다). 이 칸 전 기록에는 없다 (도메인/실행 §3.11)
   appBuild?: string | null;
+  browser?: string | null;      // 실제 폰 mobile 항목의 Chrome 판 (예: 156.0.7339.51). 앱 항목에는 없다 (도메인/러너 §5.2 「모바일 웹 — 실제 폰 Chrome」 · TMO-F4-02)
 }
 
 // kit이 절차를 시작할 때 stdout으로 흘리는 것. 아직 흐른 시간이 없어 칸을 만들지 않는다
@@ -186,9 +188,11 @@ export interface ScenarioExecuteRequest {          // POST /execute-scenario (�
   trialId?: string;                                // 시험 실행일 때만. admin 이 만든 UUID
   platform: Platform;                              // android 는 Android 앱 · 게임이 시작 애플리케이션일 때. 웹 단계는 그때 PC 창으로 돈다 (도메인/시나리오 §3.7 결정 16)
   // 아래 다섯은 앱 · 게임 단계가 있을 때만 — 폰 연결이 시나리오에 하나라 요청에 한 벌이다. 뜻은 ExecuteRequest 의 같은 이름 칸과 같다 (결정 16)
+  // udid · farmToken 은 실제 폰 모바일 시나리오(cdpUrl)에도 온다. 그 시나리오에는 앱 · 게임 단계가 못 낀다 — 한 폰을 Appium 과 Chrome 연결이 같이 못 쓴다
   app?: string;
   udid?: string;
   farmToken?: string;
+  cdpUrl?: string;                                 // mobile 시나리오만 — ExecuteRequest.cdpUrl 과 같다. 웹 단계가 그 폰 Chrome 의 창 하나 · 탭 하나로 끝까지 돈다 (결정 3)
   engine?: 'GAME';
   adminKey?: { header: string; value: string };   // 게임 단계 케이스에만 넘긴다. 부품 기록 · 결과에 안 넣는다
   baseUrl: string;
@@ -224,7 +228,7 @@ export interface ScenarioExecuteResponse {
   durationMs: number;
   parts: ScenarioPartResult[];
   cleanup?: ScenarioCleanup[];                     // 시나리오 끝에 보낸 미룬 삭제, 보낸 순서대로. 제한 시간에 끊기면 없다 (결정 12)
-  device?: DeviceInfo;                             // 앱 · 게임 단계가 있고 폰 연결이 열렸을 때. 연결이 하나라 시나리오에 한 벌이다 (결정 16)
+  device?: DeviceInfo;                             // 앱 · 게임 단계가 있고 폰 연결이 열렸을 때 · 실제 폰 모바일 시나리오. 연결이 하나라 시나리오에 한 벌이다 (결정 16)
   error?: { message: string; stack?: string };     // TIMEOUT · 러너 고장
 }
 

@@ -4,9 +4,9 @@
 
 import { spawn } from 'node:child_process';
 import { copyFile, mkdir, readdir, rename, unlink } from 'node:fs/promises';
-import { basename, dirname, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 
-import type { DeviceInfo, ScenarioCleanup, ScenarioExecuteRequest, ScenarioExecuteResponse, ScenarioPartResult } from '@platform/kit';
+import { runDir, type DeviceInfo, type ScenarioCleanup, type ScenarioExecuteRequest, type ScenarioExecuteResponse, type ScenarioPartResult } from '@platform/kit';
 import { SCENARIO_CLEANUP_MARKER, SCENARIO_DEVICE_MARKER, SCENARIO_PART_MARKER } from '@platform/kit/scenario';
 
 import { 판쓰기, 판지우기 } from './apiDoc.js';
@@ -15,6 +15,7 @@ import { appRoot, gameEnv, tail } from './execute.js';
 import { killTree } from './kill.js';
 import { 장면환경 } from './live.js';
 import { 산출물폴더, 출력폴더를지운다, 출력폴더이름 } from './outputDir.js';
+import { 실제폰인가, 실제폰환경, 폰기기, 폰로그, 폰로그를받는다, 폰증적을둔다 } from './realPhone.js';
 import { 녹화폴더 } from './recordHar.js';
 
 const scenarioConfig = resolve(appRoot, 'apps/runner/scenario/playwright.config.ts');
@@ -221,13 +222,18 @@ export async function executeScenario(req: ScenarioExecuteRequest): Promise<Scen
 
   const 폰 = 폰단계가있나(req);
   if (폰) 폰시나리오++;
+  // 실제 폰 모바일 시나리오 — 앱 · 게임 단계와 같이 못 온다(입구가 막는다). 증적은 통과 못 한 정식 실행에 한 벌이다 (SPEC 도메인/러너 §5.2 「모바일 웹 — 실제 폰 Chrome」)
+  const 실제폰 = 실제폰인가(req) ? req : undefined;
+  const 폰폴더 = runDir(...시나리오폴더(req));
+  const 폰증적 = 실제폰 !== undefined && req.runId !== null;
+  const 로그끝 = 실제폰 !== undefined && 폰증적 ? 폰로그를받는다(실제폰, join(폰폴더, 폰로그)) : undefined;
 
   const child = spawn(
     'npx',
     ['playwright', 'test', '--config', scenarioConfig, '--project', 시나리오project(req)],
     {
       cwd: appRoot,
-      env: { ...process.env, ...폰환경(req), ...scenarioEnv(req, 판.parts), PLATFORM_OUTPUT_ID: 출력 },
+      env: { ...process.env, ...폰환경(req), ...scenarioEnv(req, 판.parts), ...실제폰환경(req, 폰폴더, 폰증적), PLATFORM_OUTPUT_ID: 출력 },
       stdio: ['ignore', 'pipe', 'pipe'],
       // 제한 시간에 브라우저까지 한 번에 끊으려면 자식이 자기 프로세스 그룹의 장이어야 한다 (kill.ts)
       detached: true,
@@ -255,6 +261,7 @@ export async function executeScenario(req: ScenarioExecuteRequest): Promise<Scen
   }).finally(async () => {
     clearTimeout(timer);
     await 판지우기(판.파일들);
+    await 로그끝?.();
     // 죽였든 끝났든 kit 이 못 닫은 연결이 남아 있으면 닫는다 — 답하기 전에 끝내야 admin 이 폰을 놓을 때 팜 연결이 이미 풀려 있다 (execute.ts 와 같다)
     if (폰) {
       await 앱연결을닫는다(...시나리오폴더(req), req.farmToken);
@@ -270,6 +277,10 @@ export async function executeScenario(req: ScenarioExecuteRequest): Promise<Scen
   const 결과 = finishScenario(
     parseParts(stdout), req.parts.length, killed, Date.now() - startedAt, tail(stderr) || tail(stdout), parseCleanup(stdout),
   );
+  if (실제폰 !== undefined) {
+    if (폰증적) await 폰증적을둔다(폰폴더, 결과.status);
+    return { ...결과, device: await 폰기기(실제폰, parseDevice(stdout)) };
+  }
   const device = 폰 ? parseDevice(stdout) : undefined;
   return device === undefined ? 결과 : { ...결과, device };
 }

@@ -4,7 +4,10 @@ import {
   SCENARIO_CLEANUP_MARKER as kit뒷정리표시자, SCENARIO_DEVICE_MARKER as kit기기표시자, SCENARIO_PART_MARKER as kit표시자,
   SCENARIO_PHONE_KEY as kit폰열쇠, SCENARIO_REGISTRY_KEY as kit열쇠, registerScenarioCase, registerScenarioPhone,
 } from '@platform/kit/scenario';
+import { 창하나글 as kit창하나글 } from '@platform/kit/protocol';
 import { describe, expect, it } from 'vitest';
+
+import { 창하나글 } from './realPhone.js';
 
 import {
   SCENARIO_CLEANUP_MARKER, SCENARIO_DEVICE_MARKER, SCENARIO_PART_MARKER, SCENARIO_PHONE_KEY, SCENARIO_REGISTRY_KEY, 꺼냄, 기기줄, 뒷정리줄, 부품줄, 폰꺼냄,
@@ -17,6 +20,10 @@ describe('고정 spec 과 kit 의 약속', () => {
     expect(SCENARIO_CLEANUP_MARKER).toBe(kit뒷정리표시자);
     expect(SCENARIO_DEVICE_MARKER).toBe(kit기기표시자);
     expect(SCENARIO_PHONE_KEY).toBe(kit폰열쇠);
+  });
+
+  it('폰 Chrome 이 창을 새로 못 만들 때의 실패 글이 kit 과 같다 — 케이스 단독과 시나리오의 사유가 갈리지 않게', () => {
+    expect(창하나글).toBe(kit창하나글);
   });
 
   it('kit 이 올린 폰 여는 함수를 kit 없이 꺼낸다', () => {
