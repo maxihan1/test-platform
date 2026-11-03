@@ -160,8 +160,10 @@
 
 ### ④ 모바일 웹을 실제 폰 Chrome 에서
 **무엇** 모바일 웹 테스트 모드는 늘 Device VISION 실제 폰 Chrome, 정식 실행은 실행 창 「실행 위치」로 고른다(기본은 서버 iPhone 14 흉내). 결과에 폰 영상 · logcat(실행 §3.2 「모바일 웹 실행 위치」).
-- [ ] `TMO-F4-01` Device VISION — 폰 Chrome 연결 열기 · 닫기 통로(Chrome 을 깨끗이 켜고 DevTools 연결을 토큰 걸어 내준다) · 그 폰 화면을 새 탭으로 여는 주소 꼴 · 체험 계정은 보기만 (VISION 저장소 `~/Projects/Devicefarm` — 명세 병합 때 따로 띄운다 · 이어 달리기가 건너뛴다)
-- [ ] `TMO-F4-02` kit + 러너 — `mobile` 항목에 `udid` 가 오면 VISION 폰 Chrome 에 CDP 로 붙어 돈다(창 하나) · 케이스 단독 · 시나리오 둘 다 · 폰 영상 · logcat · 기기 칸(모델 · Android 판 · Chrome 판)
+- [x] `TMO-F4-01` Device VISION — 폰 Chrome 연결 열기 · 닫기 통로(Chrome 을 깨끗이 켜고 DevTools 연결을 토큰 걸어 내준다) · 그 폰 화면을 새 탭으로 여는 주소 꼴 · 체험 계정은 보기만 (VISION 저장소 `~/Projects/Devicefarm` — 명세 병합 때 따로 띄운다 · 이어 달리기가 건너뛴다)
+  - 근거 VISION PR #94 · #95 · 2026-11-03 — `POST /api/devices/{serial}/chrome` → `cdpUrl` · `screen`(ADR-056). Chrome 연결에는 영상 · logcat 이 안 남는다(러너가 받는다 — TMO-F4-02). 러너 명세의 VISION 약속 블록은 TMO-F4-02 PR #587 이 반영 완료로 닫았다
+- [x] `TMO-F4-02` kit + 러너 — `mobile` 항목에 `cdpUrl`(+ `udid`)이 오면 VISION 폰 Chrome 에 CDP 로 붙어 돈다(창 하나) · 케이스 단독 · 시나리오 둘 다 · 폰 영상 · logcat · 기기 칸(모델 · Android 판 · Chrome 판)
+  - 근거 PR #587 · 2026-11-03 — 증적은 러너가 직접 받는다(시작 질문 「나」 — VISION 이 Chrome 연결엔 안 남겨서 Playwright 페이지 영상 `farm/video-1.webm` · VISION 실시간 로그 `farm/logcat.txt`, 통과 못 한 정식 실행만 · 통과 항목 영상은 없다) · 입구는 `cdpUrl` 에 `udid` 를 꼭 같이 받고 앱 · 게임 단계 시나리오는 400 · admin 은 폰을 잡은 토큰을 늘 `farmToken` 으로 싣는다(러너 몫 토큰은 같은 팜 호스트에만) · 창 새로 만들기는 「실제 폰 Chrome 은 창을 하나만 쓴다」 실패 · 팝업 탭의 상대 주소 `goto` 는 안 풀린다 · 실측은 이 맥 Chromium 을 폰으로 세운 것(실기기는 TMO-F4-03 뒤)
 - [ ] `TMO-F4-03` 서버 — 정식 실행 `mobileOn`(케이스 · E2E) · 폰 잡기 · 놓기를 `mobile` 항목에도(디바이스 줄 없이 · 상한 한 자리) · 테스트 모드 모바일 웹은 늘 실제 폰(팜 없는 서버는 흉내) · 실행 기록 줄 실행 위치 글자(`mobileDevices`) · 모바일 시나리오 실제 폰(폰 한 번 잡기 · 못 잡으면 NA) · 증적 머리말 · 실패 카드 · 엑셀 「기기」 줄 · 한 건 실행이 다른 실행 위치 묶음에 붙나(시작 질문)
 - [ ] `TMO-F4-04` 화면 — **시안 먼저**. 실행 창 모바일 「실행 위치」 · 결과의 폰 영상 · logcat · 실행 기록 줄 글자
 

@@ -42,6 +42,12 @@ const live = z.string().uuid().optional();
 // 정식 실행은 늦추지도 그리지도 않는다 — 잘못 실린 열쇠 하나로 정식 실행이 다섯 배 느려지지 않게 입구에서 막는다 (SPEC 도메인/실행 §3.2 「테스트 모드」)
 const 장면은시험만 = '장면 열쇠(live)는 테스트 실행 · 시험 실행에만 온다';
 
+// VISION 이 켜 준 폰 Chrome 의 DevTools 연결 주소. 자식 환경값으로 간다 — 공백이 섞이면 다른 값을 끼워 넣을 수 있다 (SPEC 도메인/러너 §5.2 「모바일 웹 — 실제 폰 Chrome」)
+const cdpUrl = z.string().max(2000).regex(/^wss?:\/\/\S+$/, 'cdpUrl 은 ws(s) 주소여야 한다').optional();
+// 기기 칸 · logcat 을 그 폰 번호로 VISION 에서 받는다
+const 실제폰은모바일만 = (r: { cdpUrl?: string; platform: string; udid?: string }): boolean => r.cdpUrl === undefined || (r.platform === 'mobile' && r.udid !== undefined);
+const 실제폰은모바일만글 = '폰 Chrome 주소(cdpUrl)는 mobile 항목에 그 폰 번호(udid)와 같이 온다';
+
 export const executeRequest = z.object({
   runId: z.number(),
   historyId: z.number(),
@@ -63,7 +69,8 @@ export const executeRequest = z.object({
   apiDoc,
   recordHar,
   live,
-}).refine((r) => r.live === undefined || r.runId === 0, 장면은시험만);
+  cdpUrl,
+}).refine((r) => r.live === undefined || r.runId === 0, 장면은시험만).refine(실제폰은모바일만, 실제폰은모바일만글);
 
 export const appScreenRequest = z.object({ app: 앱파일경로.optional(), udid: z.string().min(1).optional() });
 
@@ -182,9 +189,13 @@ export const scenarioRequest = z
       .optional(),
     recordHar,
     live,
+    cdpUrl,
   })
   .refine((r) => r.runId !== null || r.trialId !== undefined, '시험 실행에는 trialId 가 있어야 한다')
   .refine((r) => r.live === undefined || r.runId === null, 장면은시험만)
+  .refine(실제폰은모바일만, 실제폰은모바일만글)
+  // 앱 단계의 Appium 연결과 폰 Chrome 연결이 한 폰을 같이 못 쓴다 — VISION 이 둘 중 하나를 거절한다
+  .refine((r) => r.cdpUrl === undefined || !r.parts.some((p) => p.kind === 'case' && p.appStep === true), '폰 Chrome 시나리오(cdpUrl)에는 앱 · 게임 단계를 넣지 못한다')
   .superRefine((r, ctx) => {
     const 까닭 = 앱단계에못거는것(r.parts);
     if (까닭 !== undefined) ctx.addIssue({ code: 'custom', message: 까닭 });

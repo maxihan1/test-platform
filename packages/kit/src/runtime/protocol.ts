@@ -45,3 +45,7 @@ export function 앱파일값인가(값: string): boolean {
 
 // E2E API 호출 단계 값 주입 이름 — 러너 입구 · 서버 조립 검사 · 조립 화면이 같은 규칙을 봐야 저장만 되고 못 도는 시나리오가 안 생긴다 (SPEC 도메인/시나리오 §3.7 결정 14)
 export const 값주입이름 = /^[A-Za-z0-9_가-힣]{1,20}$/;
+
+// 폰 Chrome 은 창(브라우저 컨텍스트)을 새로 못 만든다. 폰이 내는 오류는 Chrome 판마다 달라 미리 같은 글로 막는다 (SPEC 도메인/실행 §3.2 「실제 폰에서 안 되는 것」).
+// 러너 고정 spec(apps/runner/scenario/realPhone.ts)이 옮겨 적는다
+export const 창하나글 = '실제 폰 Chrome 은 창을 하나만 쓴다 — 케이스가 창을 새로 만들었다(browser.newContext)';

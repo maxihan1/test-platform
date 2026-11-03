@@ -16,6 +16,7 @@ import { traced } from './http.js';
 import { injectedInputs, resolveInputs } from './inputs.js';
 import { 장면걸기 } from './live.js';
 import { GAME_ATTACHMENT, STEP_ATTACHMENT } from './protocol.js';
+import { 실제폰테스트 } from './realPhone.js';
 import { registerScenarioCase, registerScenarioPhone, type ScenarioCaseRunner } from './scenario.js';
 import { 느린망 } from './slowApi.js';
 import { step, StopTest } from './step.js';
@@ -185,6 +186,8 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
 
   // 케이스를 건너뛸지는 본문에서 가른다. fixture 는 그보다 먼저 돌아서 거기서 열면 보류 케이스도 Appium 에 붙는다
   const appTest = isApp ? 앱테스트() : undefined;
+  // 러너가 VISION 폰 Chrome 주소를 준 모바일 항목은 그 폰 Chrome 의 창 · 탭으로 돈다 (SPEC 도메인/러너 §5.2 「모바일 웹 — 실제 폰 Chrome」)
+  const webTest = process.env.PLATFORM_CDP_URL ? 실제폰테스트() : base;
 
   const prepare = (testInfo: TestInfo) => {
     // 보류 케이스는 사람이 채울 칸에 기본값이 없어 입력 검증부터 깨진다. 채워 held 를 지우면 그대로 돈다
@@ -258,7 +261,7 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
     return;
   }
 
-  base(spec.name, async ({ page, request }, testInfo) => {
+  webTest(spec.name, async ({ page, request }, testInfo) => {
     // 테스트 모드는 동작마다 쉬니 시험 한도를 다섯 배로 늘린다 — 안 늘리면 동작이 많은 케이스가 테스트 모드에서만 시간 초과로 빨개진다 (SPEC 도메인/러너 §5.2 「테스트 모드」)
     if (Number(process.env.PLATFORM_SLOW_MO) > 0) testInfo.setTimeout(testInfo.timeout * 5);
     const inputs = prepare(testInfo);

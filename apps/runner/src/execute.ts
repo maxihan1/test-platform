@@ -2,12 +2,12 @@
 // 판정은 커스텀 리포터가 stdout에 뱉은 한 줄에서 온다. exit code는 그 줄이 없을 때의 대비책이다 (SPEC §5.2)
 
 import { spawn, type ChildProcess } from 'node:child_process';
-import { dirname, resolve, sep } from 'node:path';
+import { dirname, join, resolve, sep } from 'node:path';
 import type { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import { stripVTControlCharacters } from 'node:util';
 
-import type { ExecuteRequest, ExecuteResponse, FpsSample, ItemStatus, StepProgress } from '@platform/kit';
+import { runDir, type ExecuteRequest, type ExecuteResponse, type FpsSample, type ItemStatus, type StepProgress } from '@platform/kit';
 
 import { 판쓰기, 판지우기 } from './apiDoc.js';
 import { 앱연결을닫는다 } from './appSession.js';
@@ -17,6 +17,7 @@ import { 장면환경 } from './live.js';
 import { 산출물폴더, 출력폴더를지운다, 출력폴더이름 } from './outputDir.js';
 import { 녹화폴더, 다음HAR경로 } from './recordHar.js';
 import { createProgressCollector } from './progress.js';
+import { 실제폰인가, 실제폰환경, 폰기기를묻는다, 폰로그, 폰로그를받는다, 폰증적을둔다 } from './realPhone.js';
 import { parseResult, type RunnerResult } from './result.js';
 
 // playwright.config.ts가 있는 곳. 여기서 자식 프로세스를 띄워야 projects 정의가 잡힌다
@@ -157,6 +158,12 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
     req.apiDoc === undefined
       ? undefined
       : await 판쓰기(resolve(산출물폴더(), 'runs', String(req.runId), String(req.historyId), `api-doc-${출력}.json`), req.apiDoc.doc);
+  // 실제 폰 Chrome 항목 — 통과 못 한 정식 실행 항목에 남길 폰 영상 · logcat 을 도는 내내 받는다 (SPEC 도메인/러너 §5.2 「모바일 웹 — 실제 폰 Chrome」)
+  const 폰 = 실제폰인가(req) ? req : undefined;
+  const 폰폴더 = runDir(String(req.runId), String(req.historyId));
+  const 폰증적 = 폰 !== undefined && req.runId > 0;
+  const 로그끝 = 폰 !== undefined && 폰증적 ? 폰로그를받는다(폰, join(폰폴더, 폰로그)) : undefined;
+  const 폰기기 = 폰 === undefined ? undefined : 폰기기를묻는다(폰);
 
   const child = spawn(
     'npx',
@@ -196,6 +203,8 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
         PLATFORM_RECORD_HAR: req.recordHar === undefined ? '' : 다음HAR경로(녹화폴더(req.recordHar.jobId)),
         // 테스트 모드 — 동작마다 1초 쉬고 page 의 장면을 이 파일에 쓴다. 정식 실행은 둘 다 빈 값이다 (도메인/러너 §5.2 「테스트 모드 — 실시간 장면」)
         ...장면환경(req.live),
+        // 위의 팜 토큰 · 장면 파일보다 뒤에 둔다 — 실제 폰은 그 둘을 바꾼다
+        ...실제폰환경(req, 폰폴더, 폰증적),
       },
       stdio: ['ignore', 'pipe', 'pipe'],
       // 타임아웃 때 브라우저까지 한 번에 끊으려면 자식이 자기 프로세스 그룹의 장이어야 한다 (kill.ts)
@@ -234,6 +243,7 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
     running.delete(req.historyId);
     fps = (await 측정?.멈춘다()) ?? [];
     if (판파일 !== undefined) await 판지우기([판파일]);
+    await 로그끝?.();
   });
   await 출력폴더를지운다(출력);
 
@@ -244,6 +254,15 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
   // 하나도 못 읽었으면 칸을 안 싣는다 — 화면이 빈 선을 그리지 않는다
   const fps칸 = fps.some((f) => f.fps !== null) ? { fps } : {};
 
+  const 응답 = 응답을만든다(req, entry, code, startedAt, stdout, stderr, fps칸);
+  if (폰기기 === undefined) return 응답;
+  if (폰증적) await 폰증적을둔다(폰폴더, 응답.status);
+  return { ...응답, device: await 폰기기(응답.device) };
+}
+
+function 응답을만든다(
+  req: ExecuteRequest, entry: Running, code: number | null, startedAt: number, stdout: string, stderr: string, fps칸: Pick<ExecuteResponse, 'fps'>,
+): ExecuteResponse {
   if (entry.killedBy !== null) {
     return { ...killedResponse(req.historyId, entry.killedBy, Date.now() - startedAt, stdout), ...fps칸 };
   }

@@ -14,6 +14,7 @@ import { 주소의, type CasePart, type 미룬삭제, type 부품상태, type �
 import { 다음HAR경로 } from '../src/recordHar.js';
 import { 남김, 합친상태, type RouteHandler, type 단계창, type 창 } from './parts.js';
 import type { 폰자리 } from './phone.js';
+import { 폰창을연다 } from './realPhone.js';
 import { 단계감시, type 창처음값 } from './revert.js';
 import { 감싼도구, 빈상태, type 도구묶음 } from './tool.js';
 import { 꺼냄 } from './wire.js';
@@ -39,6 +40,7 @@ export interface 감싸기설정 {
   adminKey?: { header: string; value: string };
   // 단계가 머리글 · 망 · 흉내를 바꿨을 때 되돌릴 프로젝트 use 값 (SPEC 도메인/시나리오 §3.7 결정 3 「단계 끝 되돌리기」)
   처음?: 창처음값;
+  실제폰?: { 영상: string };                     // 폰 Chrome 의 기본 창 · 탭을 쓴다. 영상은 남길 폰 화면 경로(아니면 빈 값) (realPhone.ts 폰창을연다)
 }
 
 // 단계 쪽 — 웹 단계는 그 창의 page, 앱 · 게임 단계는 폰 연결. 케이스 파일을 import 한 뒤에 부른다(폰 여는 함수가 그때 오른다)
@@ -181,10 +183,11 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
     // 시나리오를 시작할 때 한 번 연다. 모킹은 mock 부품이 이 창에 걸고 시나리오 끝까지 둔다 — mocks 는 케이스가 직접 만드는 창에 다시 걸 목록이다
     async newWindow(mocks: ReadonlyMap<string, RouteHandler>): Promise<창> {
       걸린 = mocks;
-      // 디바이스(화면 크기 · 사용자 에이전트) · baseURL 은 Playwright 가 프로젝트 use 로 채운다 (playwright/lib/index.js runBeforeCreateBrowserContext)
-      const context = await 원래창({});
+      // 디바이스(화면 크기 · 사용자 에이전트) · baseURL 은 Playwright 가 프로젝트 use 로 채운다 (playwright/lib/index.js runBeforeCreateBrowserContext). 폰 Chrome 은 기본 창을 쓴다
+      const 폰창 = 설정.실제폰 && (await 폰창을연다(browser, 설정.baseUrl, 설정.실제폰.영상));
+      const context = 폰창?.context ?? (await 원래창({}));
       const 창request = context.request;
-      let 탭 = await context.newPage();
+      let 탭 = 폰창?.탭 ?? (await context.newPage());
       let 탭죽음 = false;
       const 지켜보기 = (p: Page) => p.once('crash', () => {
         탭죽음 = true;
@@ -205,7 +208,7 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
       const 창닫기 = async () => {
         if (닫음) return;
         닫음 = true;
-        await context.close().catch(남김('시나리오 창을 못 닫았다'));
+        await (폰창 ? 폰창.닫기() : context.close()).catch(남김('시나리오 창을 못 닫았다'));
       };
 
       return {
@@ -237,7 +240,7 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
           const 뗄것 = await 이어주기걸기(context, 이음값, 부품);
           const 듣기끔 = 응답듣기(context, 이음값, 부품);
           const 감시 = 단계감시(지금탭, context, 처음, {
-            ...(단계주소 !== undefined && { 기준: 단계주소 }),
+            ...((단계주소 ?? 폰창) && { 기준: 단계주소 ?? 설정.baseUrl }),
             // 케이스가 창의 가로채기를 지웠다(unrouteAll · unroute) — 모킹은 시나리오 끝까지 가야 하니 걸린 것을 차례대로 다시 건다. 남은 가로채기는 이때 모킹뿐이다
             모킹다시걸기: async () => {
               await context.unrouteAll();
