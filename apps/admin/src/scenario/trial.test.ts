@@ -135,7 +135,6 @@ describe.skipIf(연결 === undefined)('시험 실행 시작', () => {
     사진뿌리 = await mkdtemp(join(tmpdir(), 'xst-art-'));
     process.env.PLATFORM_TESTS_DIR = 뿌리;
     process.env.PLATFORM_ARTIFACTS_DIR = 사진뿌리;
-    vi.stubEnv('LOCAL_RUNNER_URL', '');
     await mkdir(join(뿌리, 'xst'));
     await writeFile(join(뿌리, 'xst', 'a.spec.ts'), 소스);
 
@@ -217,7 +216,7 @@ describe.skipIf(연결 === undefined)('시험 실행 시작', () => {
     await expect(시험시작(사람, 본문({ env: 'nope' }))).rejects.toMatchObject({ code: 'ENV_NOT_FOUND' });
   });
 
-  it('runId 없이 trialId · 케이스 파일 · 제한 시간을 실어 러너에 보내고 결과의 비밀값을 가린다', async () => {
+  it('runId 없이 trialId · 장면 열쇠 · 케이스 파일 · 제한 시간을 실어 러너에 보내고 결과의 비밀값을 가린다', async () => {
     const trialId = await 시험시작(사람, 본문());
     expect(trialId).toMatch(/^[0-9a-f-]{36}$/);
     await vi.waitFor(() => expect(시나리오시험.읽는다('xst-a', trialId)?.status).toBe('FINISHED'));
@@ -225,6 +224,7 @@ describe.skipIf(연결 === undefined)('시험 실행 시작', () => {
     expect(받은요청).toMatchObject({
       runId: null,
       trialId,
+      live: trialId,
       platform: 'desktop',
       baseUrl: 'http://xst.example',
       timeoutMs: 300010,

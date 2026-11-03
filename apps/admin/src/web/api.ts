@@ -900,7 +900,8 @@ export interface RunRequestItem {
 
 export interface TrialRequest {
   platform: Platform;
-  baseUrl: string;
+  /** 대상 서버 이름. 주소는 서버가 찾는다 — 서버 러너가 아무 주소나 열지 않게 (도메인/실행 §7 「케이스 테스트 실행」) */
+  env: string;
   params: Record<string, unknown>;
   expected: Record<string, unknown>;
 }
@@ -1227,7 +1228,7 @@ export const api = {
   /** 대기 중인 것과 돌고 있는 것을 둘 다 끊는다 (SPEC §8.3) */
   abortRun: (runId: number) => call<{ aborted: number }>(`/runs/${runId}/abort`, { method: 'POST' }),
 
-  /** 실행 기록에 남기지 않는 테스트 실행. 이 서버가 꺼 두면 409 TRIAL_OFF, 이미 하나 돌면 409 TRIAL_BUSY */
+  /** 실행 기록에 남기지 않는 테스트 실행. 서버 러너에서 돈다. 이미 하나 돌면 409 TRIAL_BUSY */
   startTrial: (tcId: string, body: TrialRequest) =>
     call<{ trialId: string }>(`/cases/${encodeURIComponent(tcId)}/test-run`, json(body)),
 

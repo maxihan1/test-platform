@@ -8,7 +8,7 @@ import type { ExecuteRequest, ScenarioExecuteRequest } from '@platform/kit';
 
 import { 케이스판 } from '../apidoc/caseDoc.js';
 
-import { callRunner, callScenarioRunner, httpTimeoutMs, 러너에보낸다, 진행, 켜진내컴퓨터러너 } from './runner.js';
+import { callRunner, callScenarioRunner, httpTimeoutMs, 러너에보낸다, 진행 } from './runner.js';
 import type { PendingItem } from './store.js';
 
 // 화면 애플리케이션 케이스로 둔다 — API 케이스 검사가 저마다 바꿔 낀다
@@ -301,51 +301,5 @@ describe('진행', () => {
     process.env.RUNNER_URL = 'http://127.0.0.1:9';
 
     expect(await 진행()).toEqual([]);
-  });
-});
-
-describe('켜진내컴퓨터러너', () => {
-  let 내러너: FastifyInstance | null = null;
-
-  afterEach(async () => {
-    await 내러너?.close();
-    내러너 = null;
-    vi.unstubAllEnvs();
-  });
-
-  async function 내러너를띄운다(): Promise<string> {
-    내러너 = Fastify();
-    내러너.get('/health', async () => ({ ok: true }));
-    내러너.post('/execute-scenario', async () => ({ status: 'PASS', durationMs: 1, parts: [] }));
-    await 내러너.listen({ port: 0, host: '127.0.0.1' });
-    const addr = 내러너.server.address();
-    return `http://127.0.0.1:${typeof addr === 'object' && addr !== null ? addr.port : 0}`;
-  }
-
-  it('켜져 있으면 그 주소를 주고, 시나리오가 그 러너로 간다', async () => {
-    const 주소 = await 내러너를띄운다();
-    vi.stubEnv('LOCAL_RUNNER_URL', 주소);
-    vi.stubEnv('RUNNER_URL', 'http://127.0.0.1:9');
-
-    expect(await 켜진내컴퓨터러너()).toBe(주소);
-    const 요청: ScenarioExecuteRequest = { runId: null, trialId: 't', platform: 'desktop', baseUrl: 'https://x', parts: [], timeoutMs: 1000 };
-    expect((await callScenarioRunner(요청, 주소)).status).toBe('PASS');
-  });
-
-  it('비어 있으면 없다', async () => {
-    vi.stubEnv('LOCAL_RUNNER_URL', '');
-    expect(await 켜진내컴퓨터러너()).toBeUndefined();
-  });
-
-  it('답이 없으면 없다 — 시험은 서버 러너로 간다', async () => {
-    vi.stubEnv('LOCAL_RUNNER_URL', 'http://127.0.0.1:9');
-    expect(await 켜진내컴퓨터러너()).toBeUndefined();
-  });
-
-  it('서버 러너와 같은 주소면 없다 — 창이 안 뜬다', async () => {
-    const 주소 = await 내러너를띄운다();
-    vi.stubEnv('LOCAL_RUNNER_URL', 주소);
-    vi.stubEnv('RUNNER_URL', 주소);
-    expect(await 켜진내컴퓨터러너()).toBeUndefined();
   });
 });

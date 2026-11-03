@@ -67,6 +67,8 @@ export const 등급표: Record<string, 표값> = {
   // 메모리에만 남는 시험 실행. 결과는 시작한 사람만 읽는다(execution/trial.ts)
   'POST /api/cases/:tcId/test-run': 실행쓰기,
   'GET /api/cases/:tcId/test-run/:trialId': 실행읽기,
+  // 도는 테스트 모드의 장면 한 장 — 결과 읽기와 같다 (도메인/실행 §3.2 「테스트 모드」)
+  'GET /api/cases/:tcId/test-run/:trialId/live': 실행읽기,
   'GET /api/evidence/:id': 실행읽기,
   'GET /api/runs': 실행읽기,
   'GET /api/runs/last-by-case': 실행읽기,
@@ -107,6 +109,7 @@ export const 등급표: Record<string, 표값> = {
   'POST /api/scenario-trials': 실행쓰기,
   'GET /api/scenario-trials/:trialId': 실행읽기,
   'GET /api/scenario-trials/:trialId/screenshots/:seq': 실행읽기,
+  'GET /api/scenario-trials/:trialId/live': 실행읽기,
 
   'GET /api/authoring/requests': 작성읽기,
   'GET /api/authoring/requests/:id': 작성읽기,

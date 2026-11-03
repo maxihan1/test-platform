@@ -46,6 +46,15 @@ describe('팜폰으로', () => {
     ]);
   });
 
+  it('잡기 답의 그 폰 화면 보기 링크를 일에 넘긴다 — 옛 팜처럼 없으면 undefined 다', async () => {
+    const 화면 = 'https://farm.test/#phone=R3CR10TCVCD&view=k1';
+    const 새팜 = 가짜팜({ 목록: [빈폰하나], 잡기: { status: 200, body: { held: { until: 1, now: 0, screen: 화면 } } } });
+    expect(await 팜폰으로(팜, async (_udid, 받은화면) => 받은화면, () => '못 잡음', 새팜.부르기, 안쉼)).toBe(화면);
+
+    const 옛팜 = 가짜팜({ 목록: [빈폰하나] });
+    expect(await 팜폰으로(팜, async (_udid, 받은화면) => 받은화면 ?? '없음', () => '못 잡음', 옛팜.부르기, 안쉼)).toBe('없음');
+  });
+
   it('잡는 분을 넘기면 그 값으로 잡는다 — 게임 실행은 120분', async () => {
     const { 받음, 부르기 } = 가짜팜({ 목록: [빈폰하나] });
 

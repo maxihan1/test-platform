@@ -9,6 +9,7 @@ import { 인증등록 } from '../auth/gate.js';
 import { 해시 } from '../auth/password.js';
 import authRoutes from '../auth/routes.js';
 import { 세션등록 } from '../auth/session.js';
+import { enqueue } from './dispatcher.js';
 import { 전부비운다 } from './trial.js';
 import trialRoutes from './trialRoutes.js';
 
@@ -40,6 +41,18 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
   let 러너응답: () => unknown = () => ({});
   const 멈춤 = Symbol('멈춤');
   const 매달린것: http.ServerResponse[] = [];
+  // 러너가 쥔 장면 — 열쇠마다 마지막 한 장. 없는 열쇠는 러너처럼 404 다
+  const 장면 = new Map<string, Buffer>();
+  const 폰화면 = 'https://vision.example.com/#phone=s1&view=xtr-view';
+  const 옛환경 = {
+    RUNNER_URL: process.env.RUNNER_URL,
+    DEVICE_FARM_URL: process.env.DEVICE_FARM_URL,
+    EXECUTION_CONCURRENCY: process.env.EXECUTION_CONCURRENCY,
+    LOCAL_RUNNER_URL: process.env.LOCAL_RUNNER_URL,
+  };
+  const 끝낸다 = (답: unknown = { historyId: 1, status: 'PASS', durationMs: 5, steps: [] }) => {
+    for (const res of 매달린것.splice(0)) res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(답));
+  };
   const q = async (sql: string, 값: unknown[] = []) => {
     const { pool } = await import('../db/index.js');
     return pool.query(sql, 값);
@@ -64,7 +77,22 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
   }
 
   beforeAll(async () => {
+    // 한 서버가 서버 러너와 Device VISION 둘 다 흉내 낸다
     러너 = http.createServer((req, res) => {
+      const 장면열쇠 = /^\/live\/(.+)$/.exec(req.url ?? '')?.[1];
+      if (req.method === 'GET' && 장면열쇠 !== undefined) {
+        const 장 = 장면.get(장면열쇠);
+        return void (장 === undefined ? res.writeHead(404).end('{}') : res.writeHead(200, { 'content-type': 'image/jpeg' }).end(장));
+      }
+      if (req.method === 'GET' && req.url === '/api/devices') {
+        const 목록 = { value: { devices: [{ serial: 's1', state: 'IDLE' }] } };
+        return void res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(목록));
+      }
+      if (req.url === '/api/devices/s1/hold') {
+        req.resume();
+        const 답 = req.method === 'POST' ? JSON.stringify({ held: { until: 0, now: 0, screen: 폰화면 } }) : '{}';
+        return void res.writeHead(200, { 'content-type': 'application/json' }).end(답);
+      }
       if (req.method === 'GET') return void res.writeHead(req.url === '/health' ? 200 : 404).end('{}');
       const 조각: Buffer[] = [];
       req.on('data', (c: Buffer) => 조각.push(c));
@@ -89,6 +117,8 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
       [접두사],
     );
     서비스 = Number((r.rows[0] as { id: string }).id);
+    await q(`DELETE FROM service_env WHERE service_id = $1`, [서비스]);
+    await q(`INSERT INTO service_env (service_id, env, base_url) VALUES ($1, 'qa', 'https://qa.example.com')`, [서비스]);
     for (const [id, 플랫폼들] of [
       [케이스, '["desktop","mobile","android"]'],
       [데스크톱만, '["desktop"]'],
@@ -121,15 +151,22 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
     await q('DELETE FROM service_env WHERE service_id = $1', [서비스]);
     await q('DELETE FROM service WHERE id = $1', [서비스]);
     await app.close();
-    for (const res of 매달린것) res.end('{}');
+    끝낸다();
     await new Promise((ok) => 러너.close(ok));
-    delete process.env.LOCAL_RUNNER_URL;
+    for (const [이름, 값] of Object.entries(옛환경)) {
+      if (값 === undefined) delete process.env[이름];
+      else process.env[이름] = 값;
+    }
   });
 
   beforeEach(() => {
+    끝낸다();
     전부비운다();
     받은요청.length = 0;
-    process.env.LOCAL_RUNNER_URL = 러너주소;
+    장면.clear();
+    process.env.RUNNER_URL = 러너주소;
+    delete process.env.DEVICE_FARM_URL;
+    delete process.env.EXECUTION_CONCURRENCY;
     러너응답 = () => ({ historyId: 1, status: 'PASS', durationMs: 5, steps: [] });
   });
 
@@ -142,7 +179,13 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
     });
   const 읽기 = (trialId: string, 누구 = 'xtr-writer', tcId = 케이스) =>
     app.inject({ method: 'GET', url: `/api/cases/${tcId}/test-run/${trialId}`, cookies: { platform_session: 출입증.get(누구)! } });
-  const 정상 = { platform: 'desktop', baseUrl: 'https://qa.example.com', params: { loginId: 'u', password: 'p4ss!' }, expected: {} };
+  const 장면읽기 = (trialId: string, 누구 = 'xtr-writer') =>
+    app.inject({ method: 'GET', url: `/api/cases/${케이스}/test-run/${trialId}/live`, cookies: { platform_session: 출입증.get(누구)! } });
+  const 정상 = { platform: 'desktop', env: 'qa', params: { loginId: 'u', password: 'p4ss!' }, expected: {} };
+  const 러너에닿을때까지 = async (건수: number) => {
+    for (let i = 0; i < 100 && 받은요청.length < 건수; i += 1) await new Promise((ok) => setTimeout(ok, 20));
+    expect(받은요청).toHaveLength(건수);
+  };
 
   async function 끝날때까지(trialId: string, 누구 = 'xtr-writer'): Promise<Record<string, unknown>> {
     for (let i = 0; i < 100; i += 1) {
@@ -153,20 +196,19 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
     throw new Error('끝나지 않았다');
   }
 
-  it('LOCAL_RUNNER_URL 이 없으면 409 TRIAL_OFF 다 — 기본값이 없다', async () => {
+  it('LOCAL_RUNNER_URL 이 없어도 서버 러너로 돈다 — TRIAL_OFF 는 없다', async () => {
     delete process.env.LOCAL_RUNNER_URL;
     const res = await 시작(정상);
-    expect(res.statusCode).toBe(409);
-    expect(res.json<{ error: string; detail: string }>()).toEqual({
-      error: 'TRIAL_OFF',
-      detail: '이 서버에는 테스트 실행이 켜져 있지 않습니다. 켜는 법은 docs/SETUP.md 의 「내 컴퓨터 러너」를 보세요',
-    });
+    expect(res.statusCode).toBe(202);
+    expect(await 끝날때까지(res.json<{ trialId: string }>().trialId)).toMatchObject({ status: 'DONE', result: { status: 'PASS' } });
+    expect(받은요청).toHaveLength(1);
   });
 
-  it('http·https 가 아닌 주소는 400 이다', async () => {
-    for (const baseUrl of ['file:///etc/passwd', 'javascript:alert(1)', '그냥글자', 'ftp://x.example.com']) {
-      const res = await 시작({ ...정상, baseUrl });
-      expect(res.statusCode, baseUrl).toBe(400);
+  it('대상 서버 이름이 없거나 그 애플리케이션에 없는 이름이면 400 ENV_NOT_FOUND 다', async () => {
+    for (const body of [{ ...정상, env: undefined, baseUrl: 'https://qa.example.com' }, { ...정상, env: 'prod' }]) {
+      const res = await 시작(body);
+      expect(res.statusCode).toBe(400);
+      expect(res.json<{ error: string }>().error).toBe('ENV_NOT_FOUND');
     }
     expect(받은요청).toEqual([]);
   });
@@ -203,26 +245,24 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
     }
   });
 
-  it('그래도 빈 계정 칸은 보낸 주소와 출처가 같은 대상 서버 줄의 계정으로 채우고 결과에는 비밀번호가 없다', async () => {
-    await q(
-      `INSERT INTO service_env (service_id, env, base_url, login_password) VALUES
-         ($1, 'qa', 'https://qa.example.com/app', 'xtr-qa-비번'), ($1, 'stg', 'https://stg.example.com', 'xtr-stg-비번')`,
-      [서비스],
-    );
+  it('그래도 빈 계정 칸은 고른 대상 서버 줄의 계정으로 채우고 결과에는 비밀번호가 없다', async () => {
+    await q(`INSERT INTO service_env (service_id, env, base_url, login_password) VALUES ($1, 'stg', 'https://stg.example.com', 'xtr-stg-비번')`, [서비스]);
+    await q(`UPDATE service_env SET login_password = 'xtr-qa-비번' WHERE service_id = $1 AND env = 'qa'`, [서비스]);
     try {
-      const 끝 = await 끝날때까지((await 시작({ ...정상, baseUrl: 'https://qa.example.com/login', params: { loginId: 'u' } })).json<{ trialId: string }>().trialId);
+      const 끝 = await 끝날때까지((await 시작({ ...정상, params: { loginId: 'u' } })).json<{ trialId: string }>().trialId);
       expect(받은요청[0]!.params).toEqual({ loginId: 'u', password: 'xtr-qa-비번' });
       expect(JSON.stringify(끝)).not.toContain('xtr-qa-비번');
 
-      await 끝날때까지((await 시작({ ...정상, baseUrl: 'https://other.example.com', params: { loginId: 'u' } })).json<{ trialId: string }>().trialId);
-      expect(받은요청[1]!.params).toEqual({ loginId: 'u' });
+      await 끝날때까지((await 시작({ ...정상, env: 'stg', params: { loginId: 'u' } })).json<{ trialId: string }>().trialId);
+      expect(받은요청[1]).toMatchObject({ baseUrl: 'https://stg.example.com', params: { loginId: 'u', password: 'xtr-stg-비번' } });
     } finally {
-      await q('DELETE FROM service_env WHERE service_id = $1', [서비스]);
+      await q(`DELETE FROM service_env WHERE service_id = $1 AND env = 'stg'`, [서비스]);
+      await q(`UPDATE service_env SET login_password = NULL WHERE service_id = $1 AND env = 'qa'`, [서비스]);
     }
   });
 
-  it('통과하면 202 와 trialId 를 주고 러너에 케이스 1건을 보낸다', async () => {
-    const res = await 시작(정상);
+  it('통과하면 202 와 trialId 를 주고 서버 러너에 케이스 1건을 장면 열쇠와 함께 보낸다', async () => {
+    const res = await 시작({ ...정상, baseUrl: 'http://169.254.169.254' });
     expect(res.statusCode).toBe(202);
     const { trialId } = res.json<{ trialId: string }>();
     expect(trialId).toMatch(/^[0-9a-f-]{36}$/);
@@ -235,19 +275,83 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
       tcId: 케이스,
       platform: 'desktop',
       filePath: 'xtr/a.spec.ts',
+      // 본문에 실은 주소는 안 본다 — 고른 대상 서버 줄의 주소다
       baseUrl: 'https://qa.example.com',
       params: { loginId: 'u', password: 'p4ss!' },
       timeoutMs: 300000,
+      live: trialId,
     });
     expect(받은요청[0]!.historyId).toBeGreaterThan(0);
   });
 
+  it('브라우저 테스트 실행은 동시 실행 자리를 기다린다 — 자리가 나면 그때 러너에 간다', async () => {
+    process.env.EXECUTION_CONCURRENCY = '1';
+    let 비운다: () => void = () => undefined;
+    const 앞일 = enqueue(() => new Promise<void>((ok) => (비운다 = ok)));
+    try {
+      const { trialId } = (await 시작(정상)).json<{ trialId: string }>();
+      await new Promise((ok) => setTimeout(ok, 100));
+      expect(받은요청).toEqual([]);
+      expect((await 읽기(trialId)).json()).toEqual({ status: 'RUNNING' });
+      // 러너가 아직 이 열쇠를 모른다 — 장면이 없을 뿐이다
+      expect((await 장면읽기(trialId)).statusCode).toBe(204);
+      비운다();
+      await 앞일;
+      await 끝날때까지(trialId);
+      expect(받은요청).toHaveLength(1);
+    } finally {
+      비운다();
+    }
+  });
+
+  it('장면은 도는 동안 시작한 사람에게만 한 장씩 주고 끝나면 404 다', async () => {
+    러너응답 = () => 멈춤;
+    const { trialId } = (await 시작(정상)).json<{ trialId: string }>();
+    await 러너에닿을때까지(1);
+    expect((await 장면읽기(trialId)).statusCode).toBe(204);
+
+    장면.set(trialId, Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
+    const 한장 = await 장면읽기(trialId);
+    expect(한장.statusCode).toBe(200);
+    expect(한장.headers['content-type']).toBe('image/jpeg');
+    expect(한장.headers['cache-control']).toBe('no-store');
+    expect([...한장.rawPayload]).toEqual([0xff, 0xd8, 0xff, 0xd9]);
+    expect((await 장면읽기(trialId, 'xtr-other')).statusCode).toBe(404);
+    expect((await 장면읽기('44444444-4444-4444-8444-444444444444')).statusCode).toBe(404);
+
+    끝낸다();
+    await 끝날때까지(trialId);
+    expect((await 장면읽기(trialId)).json()).toEqual({ error: 'TRIAL_NOT_FOUND', detail: trialId });
+  });
+
+  it('Android 앱 테스트 실행은 팜 빈 폰을 잡고 도는 동안 그 폰 화면 링크를 싣는다 — 장면 열쇠는 없다', async () => {
+    process.env.DEVICE_FARM_URL = 러너주소;
+    러너응답 = () => 멈춤;
+    const 폰 = await 시작({ ...정상, platform: 'android' });
+    expect(폰.statusCode).toBe(202);
+    const { trialId } = 폰.json<{ trialId: string }>();
+    await 러너에닿을때까지(1);
+    expect(받은요청[0]).toMatchObject({ platform: 'android', udid: 's1', baseUrl: 'https://qa.example.com' });
+    expect('live' in 받은요청[0]!).toBe(false);
+    expect((await 읽기(trialId)).json()).toEqual({ status: 'RUNNING', vision: { url: 폰화면 } });
+    expect((await 장면읽기(trialId)).statusCode).toBe(204);
+
+    끝낸다();
+    const 끝 = await 끝날때까지(trialId);
+    expect('vision' in 끝).toBe(false);
+  });
+
+  it('이 서버에 Device VISION 이 없으면 Android 앱 테스트 실행은 409 FARM_OFF 다', async () => {
+    const res = await 시작({ ...정상, platform: 'android' });
+    expect(res.statusCode).toBe(409);
+    expect(res.json<{ error: string }>().error).toBe('FARM_OFF');
+    expect(받은요청).toEqual([]);
+  });
+
   it('게임 애플리케이션의 android 테스트 실행은 엔진 GAME 과 그 줄의 어드민 키를 싣고, 다른 환경은 안 싣는다', async () => {
+    process.env.DEVICE_FARM_URL = 러너주소;
     await q(`UPDATE service SET kind = 'GAME' WHERE id = $1`, [서비스]);
-    await q(
-      `INSERT INTO service_env (service_id, env, base_url, admin_key) VALUES ($1, 'qa', 'https://qa.example.com', $2)`,
-      [서비스, JSON.stringify({ header: 'X-Admin-Key', value: 'xtr-key' })],
-    );
+    await q(`UPDATE service_env SET admin_key = $2 WHERE service_id = $1 AND env = 'qa'`, [서비스, JSON.stringify({ header: 'X-Admin-Key', value: 'xtr-key' })]);
     try {
       const 폰 = await 시작({ ...정상, platform: 'android' });
       expect(폰.statusCode).toBe(202);
@@ -259,7 +363,7 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
         ['desktop', undefined, undefined],
       ]);
     } finally {
-      await q('DELETE FROM service_env WHERE service_id = $1', [서비스]);
+      await q(`UPDATE service_env SET admin_key = NULL WHERE service_id = $1 AND env = 'qa'`, [서비스]);
       await q(`UPDATE service SET kind = 'SCREEN' WHERE id = $1`, [서비스]);
     }
   });
@@ -272,21 +376,17 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
   });
 
   it('시작한 사람만 읽는다 — 남이 읽으면 404 다', async () => {
-    러너응답 = () => ({ historyId: 1, status: 'PASS', durationMs: 5, steps: [] });
     const { trialId } = (await 시작(정상)).json<{ trialId: string }>();
     expect((await 읽기(trialId, 'xtr-other')).statusCode).toBe(404);
     expect((await 읽기('없는-번호')).statusCode).toBe(404);
     expect((await 읽기(trialId)).statusCode).toBe(200);
   });
 
-  it('러너에 못 닿으면 DONE 과 NA 안내 문장이다', async () => {
-    process.env.LOCAL_RUNNER_URL = 'http://127.0.0.1:1';
+  it('서버 러너에 못 닿으면 DONE 과 NA 안내 문장이다', async () => {
+    process.env.RUNNER_URL = 'http://127.0.0.1:1';
     const { trialId } = (await 시작(정상)).json<{ trialId: string }>();
     const 끝 = await 끝날때까지(trialId);
-    expect(끝).toMatchObject({
-      status: 'DONE',
-      result: { status: 'NA', error: { message: '내 컴퓨터 러너에 닿지 못했습니다. 맥에서 npm run runner:local 을 켜 두었는지 보세요' } },
-    });
+    expect(끝).toMatchObject({ status: 'DONE', result: { status: 'NA', error: { message: '러너에 닿지 못했습니다' } } });
   });
 
   it('응답 어디에도 비밀번호 원문이 없다', async () => {

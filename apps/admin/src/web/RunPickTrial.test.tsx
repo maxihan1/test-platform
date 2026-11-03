@@ -1,42 +1,24 @@
 // @vitest-environment jsdom
-// 실행 창의 「▶ 테스트 실행」 조각 — 열 주소 기본값 · 결과 배지 · 한 건 창의 절차 목록 (도메인/실행 §8.10)
+// 실행 창의 「▶ 테스트 실행」 조각 — 결과 배지 · 한 건 창의 절차 목록 (도메인/실행 §8.10)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { api, type TrialResult } from './api.js';
 import { 그린다, 케이스 } from './runPick.fixture.js';
-import { 시험배지, 열주소기본값 } from './RunPickTrial.js';
+import { 시험배지 } from './RunPickTrial.js';
 
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
 });
 
-describe('열주소기본값', () => {
-  it('점 없는 Docker 안 이름은 localhost 로 바꾼다', () => {
-    expect(열주소기본값('http://demo:3002')).toBe('http://localhost:3002');
-    expect(열주소기본값('http://demo:3002/app?x=1')).toBe('http://localhost:3002/app?x=1');
-  });
-
-  it('점이 있는 호스트·localhost·IP 는 그대로다', () => {
-    expect(열주소기본값('https://qa.example.com')).toBe('https://qa.example.com');
-    expect(열주소기본값('http://localhost:3000')).toBe('http://localhost:3000');
-    expect(열주소기본값('http://127.0.0.1:3000')).toBe('http://127.0.0.1:3000');
-    expect(열주소기본값('http://[::1]:3000')).toBe('http://[::1]:3000');
-  });
-
-  it('주소가 없으면 빈 글자다', () => {
-    expect(열주소기본값(null)).toBe('');
-  });
-});
-
 describe('시험배지', () => {
   it('러너에 못 닿아 NA 로 끝나면 서버가 준 문장을 그대로 보인다', () => {
-    const 결과: TrialResult = { status: 'NA', durationMs: 10, steps: [], error: { message: '내 컴퓨터 러너를 켜세요: npm run runner:local' } };
+    const 결과: TrialResult = { status: 'NA', durationMs: 10, steps: [], error: { message: '러너에 닿지 못했습니다' } };
     render(<시험배지 줄={{ 종류: 'done', 결과 }} />);
 
-    expect(screen.getByText('내 컴퓨터 러너를 켜세요: npm run runner:local')).toBeTruthy();
+    expect(screen.getByText('러너에 닿지 못했습니다')).toBeTruthy();
   });
 
   it('아직 안 돌렸으면 아무것도 그리지 않는다', () => {
@@ -61,7 +43,7 @@ describe('한 건 창의 테스트 실행', () => {
     vi.spyOn(api, 'getTrial').mockResolvedValue({ status: 'DONE', result: 끝 });
     await 그린다();
 
-    fireEvent.change(screen.getByLabelText('열 주소'), { target: { value: 'http://localhost:3002' } });
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.click(screen.getByRole('button', { name: '▶ 테스트 실행' }));
 
     await waitFor(() => expect(document.querySelector('.trial-steps')).not.toBeNull(), { timeout: 5000 });
@@ -88,7 +70,7 @@ describe('한 건 창의 테스트 실행', () => {
     await 그린다({ ...케이스, platforms: ['desktop', 'mobile'] });
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'PC' }));
-    fireEvent.change(screen.getByLabelText('열 주소'), { target: { value: 'http://localhost:3002' } });
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.click(screen.getByRole('button', { name: '▶ 테스트 실행' }));
 
     await waitFor(() => expect(시작).toHaveBeenCalledTimes(1));

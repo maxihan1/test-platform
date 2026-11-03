@@ -9,6 +9,7 @@ import type { ScenarioExecuteRequest, ScenarioExecuteResponse, ScenarioPart } fr
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { 폰을놓는다, 폰을바로잡는다 } from '../execution/phone.js';
+import { 시나리오시험 } from '../execution/trial.js';
 
 import { 시나리오분배 } from './runResult.js';
 import { 시나리오결과 } from './runRoutes.js';
@@ -24,21 +25,23 @@ const 가짜 = vi.hoisted(() => ({
   팜: 'http://farm.xae' as string | undefined,
   잡은분: [] as number[],
   못잡음: null as string | null,
+  폰화면: undefined as string | undefined,
+  멈춤: null as Promise<void> | null,
 }));
 vi.mock('../execution/runner.js', async (원래) => ({
   ...(await 원래<typeof import('../execution/runner.js')>()),
   callScenarioRunner: async (요청: ScenarioExecuteRequest) => {
     가짜.요청.push(요청);
+    await 가짜.멈춤;
     return 가짜.응답 ?? { status: 'PASS', durationMs: 1, parts: [] };
   },
-  켜진내컴퓨터러너: async () => undefined,
 }));
 vi.mock('../execution/farm.js', async (원래) => ({
   ...(await 원래<typeof import('../execution/farm.js')>()),
   팜주소: () => 가짜.팜,
-  팜폰으로: async <T,>(_팜: string, 일: (udid: string) => Promise<T>, 못잡음: (까닭: string) => T, _f?: unknown, _s?: unknown, 분?: number) => {
+  팜폰으로: async <T,>(_팜: string, 일: (udid: string, 화면: string | undefined) => Promise<T>, 못잡음: (까닭: string) => T, _f?: unknown, _s?: unknown, 분?: number) => {
     가짜.잡은분.push(분 ?? 0);
-    return 가짜.못잡음 === null ? 일('UDID-XAE') : 못잡음(가짜.못잡음);
+    return 가짜.못잡음 === null ? 일('UDID-XAE', 가짜.폰화면) : 못잡음(가짜.못잡음);
   },
 }));
 
@@ -120,6 +123,9 @@ describe.skipIf(연결 === undefined)('앱 · 게임 단계가 있는 시나리�
     가짜.응답 = null;
     가짜.팜 = 'http://farm.xae';
     가짜.못잡음 = null;
+    가짜.폰화면 = undefined;
+    가짜.멈춤 = null;
+    vi.unstubAllEnvs();
   });
 
   afterAll(async () => {
@@ -223,7 +229,8 @@ describe.skipIf(연결 === undefined)('앱 · 게임 단계가 있는 시나리�
     expect((await 시나리오결과(runId))?.device).toBeNull();
   });
 
-  it('시험 실행은 내 컴퓨터 러너도 팜도 없으면 FARM_OFF, 폰이 쓰이는 중이면 DEVICE_BUSY 다', async () => {
+  it('시험 실행은 팜이 없으면 FARM_OFF, 폰이 쓰이는 중이면 DEVICE_BUSY 다 — LOCAL_RUNNER_URL 이 있어도 꽂은 폰으로 안 간다', async () => {
+    vi.stubEnv('LOCAL_RUNNER_URL', 'http://127.0.0.1:1');
     const 본문 = { service: 'XAE', env: 'stg', platform: 'android' as const, parts: 조립 };
 
     가짜.팜 = undefined;
@@ -238,5 +245,20 @@ describe.skipIf(연결 === undefined)('앱 · 게임 단계가 있는 시나리�
     } finally {
       폰을놓는다();
     }
+  });
+
+  it('시험 실행은 도는 동안 잡은 폰의 VISION 화면 링크를 싣고 장면 열쇠도 싣는다', async () => {
+    가짜.폰화면 = 'https://vision.xae/#phone=UDID-XAE&view=k';
+    let 풀기: () => void = () => undefined;
+    가짜.멈춤 = new Promise<void>((ok) => (풀기 = ok));
+    const trialId = await 시험시작(사람, { service: 'XAE', env: 'stg', platform: 'android', parts: 조립 });
+    try {
+      await vi.waitFor(() => expect(가짜.요청).toHaveLength(1));
+      expect(가짜.요청[0]).toMatchObject({ udid: 'UDID-XAE', live: trialId });
+      expect(시나리오시험.읽는다(사람.username, trialId)).toEqual({ status: 'RUNNING', vision: { url: 가짜.폰화면 } });
+    } finally {
+      풀기();
+    }
+    await vi.waitFor(() => expect(시나리오시험.읽는다(사람.username, trialId)?.status).toBe('FINISHED'));
   });
 });

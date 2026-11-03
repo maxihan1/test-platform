@@ -88,6 +88,7 @@ export const 라우트표: Record<string, 원천> = {
   '/api/cases/:tcId/smoke': { 종류: '케이스', 칸: 'tcId' },
   '/api/cases/:tcId/test-run': { 종류: '케이스', 칸: 'tcId' },
   '/api/cases/:tcId/test-run/:trialId': { 종류: '케이스', 칸: 'tcId' },
+  '/api/cases/:tcId/test-run/:trialId/live': { 종류: '케이스', 칸: 'tcId' },
 
   '/api/runs/:runId': { 종류: '실행', 칸: 'runId' },
   '/api/runs/:runId/abort': { 종류: '실행', 칸: 'runId' },
@@ -195,6 +196,7 @@ export const 라우트표: Record<string, 원천> = {
   '/api/scenario-trials': { 종류: '질의' },
   '/api/scenario-trials/:trialId': { 종류: '시험', 칸: 'trialId' },
   '/api/scenario-trials/:trialId/screenshots/:seq': { 종류: '시험', 칸: 'trialId' },
+  '/api/scenario-trials/:trialId/live': { 종류: '시험', 칸: 'trialId' },
 
   // 성능 테스트 (도메인/성능 §7). POST 의 본문 serviceId · scenarioId 는 gate.ts 의 본문 갈래가 같이 본다
   '/api/perf/scenarios': { 종류: '질의번호', 칸: 'serviceId' },

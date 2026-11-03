@@ -2943,13 +2943,7 @@ input[type='file']::file-selector-button {
   color: var(--ink-faint);
 }
 
-/* 「테스트 실행」의 열 주소 칸과 케이스 줄마다 붙는 결과 (2026-09-30). 기록이 아니라 임시 결과라 판정 배지만 쓰고 색은 판정에서만 온다 */
-.trialurl input {
-  flex: 1;
-  min-width: 160px;
-  max-width: 360px;
-}
-
+/* 「테스트 실행」의 케이스 줄마다 붙는 결과 (2026-09-30). 기록이 아니라 임시 결과라 판정 배지만 쓰고 색은 판정에서만 온다 */
 .trial-badge {
   display: inline-flex;
   align-items: center;
@@ -3074,13 +3068,6 @@ input[type='file']::file-selector-button {
 /* 설명 글이 붙은 단추 곁의 맨 단추(「취소」)는 위를 맞춘다 — 가운데 맞춤이면 「취소」만 위로 떠 보였다 (2026-10-31 시험 f5) */
 .modal-foot:has(> .foot-act) > .btn {
   align-self: flex-start;
-}
-
-/* 테스트 실행 열 주소 — 개발자가 아니면 건드릴 일이 없어 접어 둔다 */
-.trial-adv > summary {
-  cursor: pointer;
-  font-size: 12.5px;
-  color: var(--ink-muted);
 }
 
 /* 한 건 창 (2026-10-09 UI 개편 묶음 4) — 한 건짜리 실행 설정 화면이 하던 칸이 창 안에 선다.

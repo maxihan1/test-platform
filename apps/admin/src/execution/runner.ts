@@ -80,9 +80,9 @@ function 거절사유(status: number, json: unknown): string {
 
 // fetch(undici) 는 응답 머리를 300초까지만 기다린다(headersTimeout). 러너는 판이 끝나야 머리를 보내므로
 // 5분 넘는 케이스·시나리오가 그 벽에 끊긴다. 그래서 긴 호출은 node:http 로 보내고 제한은 요청 전체에 한 번만 건다
-// 주소를 넘기면 그 러너로 간다 — 테스트 실행이 내 컴퓨터 러너(LOCAL_RUNNER_URL)를 부른다.
-// 잠든 맥 러너에 매달리지 않게 2초 안에 답하는지 먼저 본다 — 못 닿은 것과 같은 길로 접힌다 (SPEC 도메인/러너 §5.2 「러너 토큰 · 파일 내주기」)
-export async function 러너에보낸다(경로: string, 본문: unknown, 제한ms: number, 주소: string = runnerUrl()): Promise<{ status: number; json: unknown }> {
+// 터널로 이은 맥 러너가 잠들었을 때 매달리지 않게 2초 안에 답하는지 먼저 본다 — 못 닿은 것과 같은 길로 접힌다 (SPEC 도메인/러너 §5.2 「러너 토큰 · 파일 내주기」)
+export async function 러너에보낸다(경로: string, 본문: unknown, 제한ms: number): Promise<{ status: number; json: unknown }> {
+  const 주소 = runnerUrl();
   if (!(await 답하나(주소))) throw new Error(`러너가 2초 안에 /health 에 답하지 않았다 — 꺼졌거나 잠들었을 수 있다 (${주소})`);
   const url = new URL(`${주소}${경로}`);
   const data = JSON.stringify(본문);
@@ -188,7 +188,8 @@ export async function callRunner(
   return 팜폰으로(팜, (udid) => 보낸다폰(udid, 토큰), (까닭) => na(item, 까닭), undefined, undefined, undefined, 토큰);
 }
 
-async function 보낸다(item: PendingItem, body: ExecuteRequest): Promise<ExecuteResponse> {
+// 러너가 거절하거나 못 닿으면 그 항목만 NA 로 접는다 — 케이스 테스트 실행도 같은 문장으로 접는다 (execution/trialRoutes.ts)
+export async function 보낸다(item: Pick<PendingItem, 'historyId' | 'timeoutMs'>, body: ExecuteRequest): Promise<ExecuteResponse> {
   const startedAt = Date.now();
   try {
     const res = await 러너에보낸다('/execute', body, httpTimeoutMs(item.timeoutMs));
@@ -206,23 +207,9 @@ async function 보낸다(item: PendingItem, body: ExecuteRequest): Promise<Execu
   }
 }
 
-// E2E 시험 실행은 내 컴퓨터 러너가 켜져 있으면 거기서 창을 띄워 돈다. 꺼져 있어도 시험이 막히면 안 돼서
-// 못 닿으면 조용히 서버 러너로 돌린다 — 실패를 삼키는 것이 아니라 고르는 것이다 (도메인/시나리오 §7 「시험 실행 규칙」)
-export async function 켜진내컴퓨터러너(): Promise<string | undefined> {
-  const 주소 = process.env.LOCAL_RUNNER_URL;
-  // 서버 러너와 같은 주소면 창이 안 뜬다 — 로그가 「내 컴퓨터 러너」라고 거짓말하지 않게 서버 러너로 친다
-  if (!주소 || 주소 === runnerUrl()) return undefined;
-  try {
-    const res = await fetch(`${주소}/health`, { signal: AbortSignal.timeout(2000) });
-    return res.ok ? 주소 : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 // 시나리오 한 판을 러너에 맡긴다 (도메인/러너 「시나리오 실행」). 케이스 호출과 같은 문장으로 접는다 (도메인/시나리오 §7).
 // 거절·끊김이면 부품을 비워 돌려준다 — 부품마다 NA 를 채우는 것은 짝 없는 행을 닫는 저장 쪽 규칙이 한다
-export async function callScenarioRunner(요청: ScenarioExecuteRequest, 주소: string = runnerUrl()): Promise<ScenarioExecuteResponse> {
+export async function callScenarioRunner(요청: ScenarioExecuteRequest): Promise<ScenarioExecuteResponse> {
   const startedAt = Date.now();
   const 접는다 = (message: string, stack?: string): ScenarioExecuteResponse => ({
     status: 'NA',
@@ -231,7 +218,7 @@ export async function callScenarioRunner(요청: ScenarioExecuteRequest, 주소:
     error: { message, stack },
   });
   try {
-    const res = await 러너에보낸다('/execute-scenario', 요청, httpTimeoutMs(요청.timeoutMs), 주소);
+    const res = await 러너에보낸다('/execute-scenario', 요청, httpTimeoutMs(요청.timeoutMs));
     if (res.status < 200 || res.status >= 300) return 접는다(거절사유(res.status, res.json));
     return res.json as ScenarioExecuteResponse;
   } catch (err) {

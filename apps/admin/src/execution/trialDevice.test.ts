@@ -1,8 +1,10 @@
-// 케이스 테스트 실행이 android 케이스에서 디바이스 잠금을 잡고 놓는지 본다. DB 는 가짜로 바꿔 DB 없이 돈다
+// 케이스 테스트 실행이 android 케이스에서 디바이스 잠금을 잡고 놓는지 본다. DB · 팜은 가짜로 바꿔 DB 없이 돈다
 
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import * as farm from './farm.js';
+import * as farmToken from './farmToken.js';
 import { 폰을놓는다, 폰을바로잡는다 } from './phone.js';
 import * as runner from './runner.js';
 import { 전부비운다 } from './trial.js';
@@ -20,7 +22,7 @@ describe('케이스 테스트 실행 통로 — android 디바이스 잠금', ()
     return 잡았다;
   };
   const 보낸다 = (tcId: string, body: object) => app.inject({ method: 'POST', url: `/api/cases/${tcId}/test-run`, payload: body });
-  const 안드로이드 = { platform: 'android', baseUrl: 'https://qa.example.com', params: { loginId: 'u' }, expected: {} };
+  const 안드로이드 = { platform: 'android', env: 'qa', params: { loginId: 'u' }, expected: {} };
 
   beforeAll(async () => {
     const 질의 = async (sql: string, 값: string[]) => {
@@ -29,10 +31,17 @@ describe('케이스 테스트 실행 통로 — android 디바이스 잠금', ()
         const 스키마 = { param_schema: 바른스키마, expected_schema: { type: 'object', properties: {} } };
         return { rows: [{ platforms: ['android', 'desktop'], file_path: 'xtr/a.spec.ts', ...스키마 }] };
       }
+      if (sql.includes('FROM service WHERE prefix')) return { rows: [{ id: '7', kind: 'SCREEN' }] };
+      if (sql.includes('FROM service_env WHERE service_id')) {
+        return { rows: [{ env: 'qa', base_url: 'https://qa.example.com', login_id: null, login_password: null, is_prod: false, role_accounts: [], app_path: null }] };
+      }
       return { rows: [] };
     };
     vi.doMock('../db/index.js', () => ({ pool: { query: 질의, connect: async () => ({ query: 질의, release: () => undefined }) } }));
-    vi.spyOn(runner, '러너에보낸다').mockImplementation(((...인자: unknown[]) => 보냄(...인자)) as never);
+    vi.spyOn(runner, '보낸다').mockImplementation(((...인자: unknown[]) => 보냄(...인자)) as never);
+    // 빈 폰은 늘 잡힌다 — 팜 잡기 · 놓기는 farm.test.ts 가 본다
+    vi.spyOn(farm, '팜폰으로').mockImplementation(((_팜: string, 일: (udid: string, 화면: undefined) => Promise<unknown>) => 일('s1', undefined)) as never);
+    vi.spyOn(farmToken, '사람팜토큰').mockResolvedValue(undefined);
     app = Fastify();
     await app.register(trialRoutes, { prefix: '/api' });
     await app.ready();
@@ -42,13 +51,13 @@ describe('케이스 테스트 실행 통로 — android 디바이스 잠금', ()
     vi.restoreAllMocks();
     vi.doUnmock('../db/index.js');
     await app.close();
-    delete process.env.LOCAL_RUNNER_URL;
+    delete process.env.DEVICE_FARM_URL;
   });
 
   beforeEach(() => {
     while (!풀렸나()) 폰을놓는다();
     전부비운다();
-    process.env.LOCAL_RUNNER_URL = 'http://127.0.0.1:1';
+    process.env.DEVICE_FARM_URL = 'http://127.0.0.1:1';
     보냄.mockReset();
     보냄.mockImplementation(
       () =>
@@ -59,7 +68,7 @@ describe('케이스 테스트 실행 통로 — android 디바이스 잠금', ()
     );
   });
 
-  const 결과 = { status: 200, json: { historyId: 1, status: 'PASS', durationMs: 5, steps: [] } };
+  const 결과 = { historyId: 1, status: 'PASS', durationMs: 5, steps: [] };
 
   it('android 케이스는 202 이고 도는 동안 디바이스를 잡았다가 끝나면 놓는다', async () => {
     const res = await 보낸다('XTR-AND', 안드로이드);
@@ -98,6 +107,15 @@ describe('케이스 테스트 실행 통로 — android 디바이스 잠금', ()
     expect((await 보낸다('XTR-AND', { ...안드로이드, params: {} })).statusCode).toBe(400);
     expect(풀렸나()).toBe(true);
     expect((await 보낸다('XTR-999', 안드로이드)).statusCode).toBe(404);
+    expect(풀렸나()).toBe(true);
+    expect(보냄).not.toHaveBeenCalled();
+  });
+
+  it('이 서버에 Device VISION 이 없으면 409 FARM_OFF 이고 디바이스를 잡지 않는다', async () => {
+    delete process.env.DEVICE_FARM_URL;
+    const res = await 보낸다('XTR-AND', 안드로이드);
+    expect(res.statusCode).toBe(409);
+    expect(res.json<{ error: string }>().error).toBe('FARM_OFF');
     expect(풀렸나()).toBe(true);
     expect(보냄).not.toHaveBeenCalled();
   });

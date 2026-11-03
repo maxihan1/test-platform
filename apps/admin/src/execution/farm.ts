@@ -40,18 +40,18 @@ async function 빈폰을고른다(팜: string, 부르기: typeof fetch, 쉬기: 
   }
 }
 
-// 거절이면 그 문장, 잡았으면 null. 닿지 못하면 던진다
-async function 잡는다(팜: string, serial: string, 부르기: typeof fetch, 분: number, 토큰: string | undefined): Promise<string | null> {
+// 거절이면 그 문장, 잡았으면 그 폰 화면 보기 링크(held.screen — 옛 팜은 없다). 닿지 못하면 던진다
+async function 잡는다(팜: string, serial: string, 부르기: typeof fetch, 분: number, 토큰: string | undefined): Promise<{ 거절: string } | { 화면: string | undefined }> {
   const 잡기 = await 부르기(`${팜}/api/devices/${encodeURIComponent(serial)}/hold`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...팜머리(process.env, 토큰) },
     body: JSON.stringify({ minutes: 분 }),
     signal: AbortSignal.timeout(팜_제한_ms),
   });
-  if (잡기.ok) return null;
+  const 몸 = (await 잡기.json().catch(() => null)) as { refused?: unknown; held?: { screen?: unknown } } | null;
+  if (잡기.ok) return { 화면: typeof 몸?.held?.screen === 'string' && 몸.held.screen !== '' ? 몸.held.screen : undefined };
   // 목록을 본 사이에 남이 잡았을 때가 흔하다. 팜의 거절 문장이 까닭을 다 말한다
-  const 거절 = ((await 잡기.json().catch(() => null)) as { refused?: unknown } | null)?.refused;
-  return `Device VISION 이 폰을 내주지 않았습니다: ${typeof 거절 === 'string' ? 거절 : `HTTP ${잡기.status}`}`;
+  return { 거절: `Device VISION 이 폰을 내주지 않았습니다: ${typeof 몸?.refused === 'string' ? 몸.refused : `HTTP ${잡기.status}`}` };
 }
 
 // 놓아야 팜이 깐 앱 · 앱 데이터를 정리한다. 실패해도 던지지 않는다 — 이미 난 판정을 덮지 않고, 잡기는 30분 뒤 팜이 스스로 푼다
@@ -89,11 +89,12 @@ const 닿지못함 = (err: unknown): string => `Device VISION 에 닿지 못했�
 
 /**
  * 빈 폰 하나를 잡아 그 번호로 일을 맡기고, 일이 어떻게 끝나든 놓는다. 못 잡으면 까닭을 넘긴다 — 던지지 않는다. 분은 팜이 받는 30 · 60 · 120.
- * 토큰은 누른 사람 것이다. 없으면 서버 몫 — 고르기 · 잡기 · 놓기가 같은 토큰이어야 팜이 받는다
+ * 토큰은 누른 사람 것이다. 없으면 서버 몫 — 고르기 · 잡기 · 놓기가 같은 토큰이어야 팜이 받는다.
+ * 일에 그 폰 화면 보기 링크도 넘긴다 — 테스트 모드가 누른 사람에게 새 탭으로 건넨다 (도메인/실행 §3.2 「테스트 모드」 「VISION 링크」)
  */
 export async function 팜폰으로<T>(
   팜: string,
-  일: (udid: string) => Promise<T>,
+  일: (udid: string, 화면: string | undefined) => Promise<T>,
   못잡음: (까닭: string) => T,
   부르기: typeof fetch = fetch,
   쉬기: (ms: number) => Promise<void> = (ms) => new Promise((깨운다) => setTimeout(깨운다, ms)),
@@ -108,16 +109,18 @@ export async function 팜폰으로<T>(
   } catch (err) {
     return 못잡음(닿지못함(err));
   }
+  let 화면: string | undefined;
   try {
-    const 거절 = await 잡는다(팜, serial, 부르기, 분, 토큰);
-    if (거절 !== null) return 못잡음(거절);
+    const 잡음 = await 잡는다(팜, serial, 부르기, 분, 토큰);
+    if ('거절' in 잡음) return 못잡음(잡음.거절);
+    화면 = 잡음.화면;
   } catch (err) {
     // 답이 늦게 왔을 뿐 팜은 잡았을 수 있다. 안 놓으면 그 폰이 30분 동안 빈 폰이 아니다
     await 폰을돌려준다(팜, serial, 부르기, 토큰);
     return 못잡음(닿지못함(err));
   }
   try {
-    return await 일(serial);
+    return await 일(serial, 화면);
   } finally {
     await 폰을돌려준다(팜, serial, 부르기, 토큰);
   }

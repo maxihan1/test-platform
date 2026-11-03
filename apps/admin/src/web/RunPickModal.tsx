@@ -15,7 +15,7 @@ import { 한건머리, use한건 } from './RunPickOne.js';
 import { 저장한값줄 } from './RunPickSaved.js';
 import { use입력값저장, 출처줄 } from './RunPickSource.js';
 import { 넘었나, 상한 } from './runPlan.js';
-import { use여러건시험, 열주소칸, 시험배지, 시험절차 } from './RunPickTrial.js';
+import { use여러건시험, 시험배지, 시험절차 } from './RunPickTrial.js';
 import { 케이스서비스, 할수있나 } from './role.js';
 import { message, PLATFORM_LABEL } from './ui.js';
 import { useRunPickValues } from './useRunPickValues.js';
@@ -102,7 +102,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
   const android = 안드로이드있나(돌릴것);
   const 주소 = service?.envs.find((it) => it.env === env)?.baseUrl ?? null;
   // 「▶ 테스트 실행」 — 기록 없이 한 건씩 차례로 (도메인/실행 §8.10)
-  const 시험 = use여러건시험({ 케이스들: 돌릴것, 고친값: 값.고친값, 대상주소: 주소, 알림: setNotice });
+  const 시험 = use여러건시험({ 케이스들: 돌릴것, 고친값: 값.고친값, env, 알림: setNotice });
   /**
    * 한 줄이 넷을 겸한다 — 방금 누른 것에 대한 답 · 버튼을 죽인 이유 · **걸었다 거절당한 사유** · 건수 안내.
    *
@@ -289,7 +289,6 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
         notifySlack={notifySlack}
         onSlack={setNotifySlack}
       />
-      <열주소칸 값={시험.열주소} 오류={시험.주소오류} onChange={시험.바꾸기} />
     </Modal>
   );
 }

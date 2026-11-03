@@ -26,7 +26,6 @@ vi.mock('../execution/runner.js', async (원래) => ({
     러너.요청.push(요청);
     return { status: 'PASS', durationMs: 1, parts: [] };
   },
-  켜진내컴퓨터러너: async () => undefined,
 }));
 
 const 소스 = `import { defineCase, test, verify } from '@platform/kit';
