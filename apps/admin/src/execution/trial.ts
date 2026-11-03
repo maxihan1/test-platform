@@ -173,12 +173,19 @@ const 케이스시험 = 시험보관소<ExecuteResponse, 'DONE'>({
   }),
 });
 
-/** 케이스 「테스트 실행」 — 서버 러너. 케이스에는 서비스 칸을 안 쓴다(문이 tcId 로 본다) */
-export function 시작한다(사람: string, 실행: (id: string, 폰화면: (url: string) => void) => Promise<ExecuteResponse>, 명세: 시험명세): string {
-  return 케이스시험.시작한다(사람, '', 실행, 비밀글자들(명세));
+/** 케이스 「테스트 실행」 — 서버 러너. 서비스 칸에 그 케이스 번호를 둔다 — 읽을 때 주소의 tcId 와 견준다 */
+export function 시작한다(
+  사람: string,
+  실행: (id: string, 폰화면: (url: string) => void) => Promise<ExecuteResponse>,
+  명세: 시험명세,
+  tcId = '',
+): string {
+  return 케이스시험.시작한다(사람, tcId, 실행, 비밀글자들(명세));
 }
 
-export function 읽는다(사람: string, id: string): 시험읽기 | null {
+/** tcId 를 넘기면 그 케이스의 시험만 읽는다 — 문은 주소의 tcId 로 권한을 보니 다른 케이스 주소로 남의 애플리케이션 시험을 못 읽게 */
+export function 읽는다(사람: string, id: string, tcId?: string): 시험읽기 | null {
+  if (tcId !== undefined && 케이스시험.서비스(사람, id) !== tcId) return null;
   return 케이스시험.읽는다(사람, id);
 }
 

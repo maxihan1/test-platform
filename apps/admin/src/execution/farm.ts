@@ -40,6 +40,17 @@ async function 빈폰을고른다(팜: string, 부르기: typeof fetch, 쉬기: 
   }
 }
 
+// 화면이 새 탭으로 여는 링크다 — javascript: · file: 같은 주소는 안 넘긴다
+function 웹주소(값: unknown): string | undefined {
+  if (typeof 값 !== 'string') return undefined;
+  try {
+    const { protocol } = new URL(값);
+    return protocol === 'http:' || protocol === 'https:' ? 값 : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 // 거절이면 그 문장, 잡았으면 그 폰 화면 보기 링크(held.screen — 옛 팜은 없다). 닿지 못하면 던진다
 async function 잡는다(팜: string, serial: string, 부르기: typeof fetch, 분: number, 토큰: string | undefined): Promise<{ 거절: string } | { 화면: string | undefined }> {
   const 잡기 = await 부르기(`${팜}/api/devices/${encodeURIComponent(serial)}/hold`, {
@@ -49,7 +60,7 @@ async function 잡는다(팜: string, serial: string, 부르기: typeof fetch, �
     signal: AbortSignal.timeout(팜_제한_ms),
   });
   const 몸 = (await 잡기.json().catch(() => null)) as { refused?: unknown; held?: { screen?: unknown } } | null;
-  if (잡기.ok) return { 화면: typeof 몸?.held?.screen === 'string' && 몸.held.screen !== '' ? 몸.held.screen : undefined };
+  if (잡기.ok) return { 화면: 웹주소(몸?.held?.screen) };
   // 목록을 본 사이에 남이 잡았을 때가 흔하다. 팜의 거절 문장이 까닭을 다 말한다
   return { 거절: `Device VISION 이 폰을 내주지 않았습니다: ${typeof 몸?.refused === 'string' ? 몸.refused : `HTTP ${잡기.status}`}` };
 }

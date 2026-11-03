@@ -7,7 +7,9 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
 import { 케이스판 } from '../apidoc/caseDoc.js';
+import { artifactsDir } from '../artifactFile.js';
 import { 대상줄들읽기, type 대상줄 } from '../authoring/reverse.js';
+import { 옛시험치우기 } from '../scenario/trial.js';
 import { 깔앱파일 } from './buildFile.js';
 import { enqueue } from './dispatcher.js';
 import { 팜주소, 팜폰으로 } from './farm.js';
@@ -23,6 +25,11 @@ import { 시작한다, 읽는다, TrialBusyError } from './trial.js';
 import { validate } from './validate.js';
 
 const 제한ms = 300_000;
+
+// 서버 러너를 여러 사람의 테스트 실행이 같이 쓴다 — 같은 밀리초에 눌러도 산출물 폴더(runs/0/<historyId>)가 겹치지 않게 늘 커지게 낸다.
+// ponytail: 성능 녹화(perf/record.ts)도 runs/0 에 Date.now() 를 쓴다 — 같은 밀리초면 겹칠 수 있다. 겹침이 보이면 번호 하나를 같이 쓴다
+let 앞번호 = 0;
+const 새번호 = (): number => (앞번호 = Math.max(앞번호 + 1, Date.now()));
 
 const body = z.object({
   platform: z.enum(['desktop', 'mobile', 'android']),
@@ -123,7 +130,10 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
       return reply.code(400).send({ error: 'INVALID_REQUEST', detail: `${tcId} 는 ${platform} 환경을 지원하지 않습니다` });
     }
     const 대상 = await 대상줄찾기(tcId, env);
-    if (대상 === null) return reply.code(400).send({ error: 'ENV_NOT_FOUND', detail: `${prefixOf(tcId)} 에 ${env} 대상 서버가 없습니다` });
+    if (대상 === null) {
+      const detail = env === '' ? '대상 서버를 고르지 않았습니다' : `${prefixOf(tcId)} 에 ${env} 대상 서버가 없습니다`;
+      return reply.code(400).send({ error: 'ENV_NOT_FOUND', detail });
+    }
     const { 줄, 종류, serviceId } = 대상;
 
     // 진짜 실행과 같은 길로 요청에 없는 칸을 저장값 · 대상 서버 계정으로 채운다 — 저장된 비밀번호는 화면이 모른다(「입력됨」)
@@ -139,7 +149,7 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
 
     const 요청: ExecuteRequest = {
       runId: 0,
-      historyId: Date.now(),
+      historyId: 새번호(),
       tcId,
       platform,
       filePath: 행.file_path,
@@ -176,11 +186,15 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
           if (폰씀) 폰을놓는다();
         }
       };
-      const trialId = 시작한다(사람, 일, {
-        paramSchema: schemas.paramSchema,
-        expectedSchema: schemas.expectedSchema,
-        params,
-        expected,
+      const trialId = 시작한다(
+        사람,
+        일,
+        { paramSchema: schemas.paramSchema, expectedSchema: schemas.expectedSchema, params, expected },
+        tcId,
+      );
+      // 치우기가 깨져도 시험은 돈다. 응답도 기다리게 하지 않는다 — E2E 시험 실행과 같다
+      void 옛시험치우기(artifactsDir(), Date.now(), { 폴더: '0', 모양: /^\d+$/ }).catch((err: unknown) => {
+        console.error('[test-run] 옛 테스트 실행 사진 폴더를 치우지 못했다', err);
       });
       return reply.code(202).send({ trialId });
     } catch (err) {
@@ -192,14 +206,16 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
   });
 
   app.get<{ Params: { tcId: string; trialId: string } }>('/cases/:tcId/test-run/:trialId', async (req, reply) => {
-    const 읽음 = 읽는다(req.user?.username ?? '알 수 없음', req.params.trialId);
+    // 그 케이스의 시험만 읽는다 — 문은 주소의 tcId 로 권한을 봤다
+    const 읽음 = 읽는다(req.user?.username ?? '알 수 없음', req.params.trialId, req.params.tcId);
     if (읽음 === null) return reply.code(404).send({ error: 'TRIAL_NOT_FOUND', detail: req.params.trialId });
     return 읽음;
   });
 
   // 끝난 시험도 404 다 — 러너가 장면을 버렸고, 화면은 마지막으로 받은 장면을 그대로 둔다
   app.get<{ Params: { tcId: string; trialId: string } }>('/cases/:tcId/test-run/:trialId/live', async (req, reply) => {
-    const 읽음 = 읽는다(req.user?.username ?? '알 수 없음', req.params.trialId);
+    // 그 케이스의 시험만 읽는다 — 문은 주소의 tcId 로 권한을 봤다
+    const 읽음 = 읽는다(req.user?.username ?? '알 수 없음', req.params.trialId, req.params.tcId);
     if (읽음?.status !== 'RUNNING') return reply.code(404).send({ error: 'TRIAL_NOT_FOUND', detail: req.params.trialId });
     return 장면을건넨다(reply, req.params.trialId);
   });

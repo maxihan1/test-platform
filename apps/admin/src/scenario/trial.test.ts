@@ -65,6 +65,20 @@ describe('24시간 지난 시험 사진 폴더 치우기', () => {
   it('trial 폴더가 아직 없으면 조용히 끝난다', async () => {
     await expect(옛시험치우기(join(밖, '없는곳'), 지금)).resolves.toBeUndefined();
   });
+
+  it('케이스 테스트 실행 갈래는 runs/0 의 24시간 지난 숫자 폴더만 지운다', async () => {
+    const 영 = join(뿌리, 'runs', '0');
+    for (const 이름 of ['1730000000000', '1730000000001', '모양아님']) await mkdir(join(영, 이름), { recursive: true });
+    await utimes(join(영, '1730000000000'), 이틀전, 이틀전);
+    await utimes(join(영, '모양아님'), 이틀전, 이틀전);
+    await utimes(join(영, '1730000000001'), new Date(지금), new Date(지금));
+
+    await 옛시험치우기(뿌리, 지금, { 폴더: '0', 모양: /^\d+$/ });
+
+    expect(await 있나(join(영, '1730000000000'))).toBe(false);
+    expect(await 있나(join(영, '1730000000001'))).toBe(true);
+    expect(await 있나(join(영, '모양아님'))).toBe(true);
+  });
 });
 
 const 연결 = process.env.DATABASE_URL;

@@ -205,11 +205,12 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
   });
 
   it('대상 서버 이름이 없거나 그 애플리케이션에 없는 이름이면 400 ENV_NOT_FOUND 다', async () => {
-    for (const body of [{ ...정상, env: undefined, baseUrl: 'https://qa.example.com' }, { ...정상, env: 'prod' }]) {
-      const res = await 시작(body);
-      expect(res.statusCode).toBe(400);
-      expect(res.json<{ error: string }>().error).toBe('ENV_NOT_FOUND');
-    }
+    const 빈이름 = await 시작({ ...정상, env: undefined, baseUrl: 'https://qa.example.com' });
+    expect(빈이름.statusCode).toBe(400);
+    expect(빈이름.json()).toEqual({ error: 'ENV_NOT_FOUND', detail: '대상 서버를 고르지 않았습니다' });
+    const 모르는이름 = await 시작({ ...정상, env: 'prod' });
+    expect(모르는이름.statusCode).toBe(400);
+    expect(모르는이름.json()).toEqual({ error: 'ENV_NOT_FOUND', detail: 'XTR 에 prod 대상 서버가 없습니다' });
     expect(받은요청).toEqual([]);
   });
 
@@ -319,6 +320,13 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
     expect((await 장면읽기(trialId, 'xtr-other')).statusCode).toBe(404);
     expect((await 장면읽기('44444444-4444-4444-8444-444444444444')).statusCode).toBe(404);
 
+    // 서버 러너가 잠들었으면 기다림으로 가리지 않고 502 다
+    process.env.RUNNER_URL = 'http://127.0.0.1:1';
+    const 못닿음 = await 장면읽기(trialId);
+    expect(못닿음.statusCode).toBe(502);
+    expect(못닿음.json<{ error: string }>().error).toBe('RUNNER_UNREACHABLE');
+    process.env.RUNNER_URL = 러너주소;
+
     끝낸다();
     await 끝날때까지(trialId);
     expect((await 장면읽기(trialId)).json()).toEqual({ error: 'TRIAL_NOT_FOUND', detail: trialId });
@@ -380,6 +388,28 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
     expect((await 읽기(trialId, 'xtr-other')).statusCode).toBe(404);
     expect((await 읽기('없는-번호')).statusCode).toBe(404);
     expect((await 읽기(trialId)).statusCode).toBe(200);
+  });
+
+  it('그 케이스 주소로만 읽는다 — 문은 주소의 tcId 로 권한을 봐서 다른 케이스 주소로는 404 다', async () => {
+    러너응답 = () => 멈춤;
+    const { trialId } = (await 시작(정상)).json<{ trialId: string }>();
+    await 러너에닿을때까지(1);
+    expect((await 읽기(trialId, 'xtr-writer', 데스크톱만)).statusCode).toBe(404);
+    const 다른주소장면 = await app.inject({
+      method: 'GET',
+      url: `/api/cases/${데스크톱만}/test-run/${trialId}/live`,
+      cookies: { platform_session: 출입증.get('xtr-writer')! },
+    });
+    expect(다른주소장면.statusCode).toBe(404);
+    expect((await 읽기(trialId)).statusCode).toBe(200);
+  });
+
+  it('같은 밀리초에 눌러도 러너에 가는 번호(historyId)가 겹치지 않는다', async () => {
+    const 하나 = (await 시작(정상)).json<{ trialId: string }>().trialId;
+    const 둘 = (await 시작(정상, 'xtr-other')).json<{ trialId: string }>().trialId;
+    await 끝날때까지(하나);
+    await 끝날때까지(둘, 'xtr-other');
+    expect(new Set(받은요청.map((r) => r.historyId)).size).toBe(2);
   });
 
   it('서버 러너에 못 닿으면 DONE 과 NA 안내 문장이다', async () => {

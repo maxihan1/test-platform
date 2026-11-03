@@ -51,9 +51,12 @@ const 하루 = 24 * 60 * 60 * 1000;
 // randomUUID 가 만드는 모양만 지운다. trial/ 안에 다른 것이 생겨도 건드리지 않는다
 export const uuid모양 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
-/** 24시간 지난 `runs/trial/<uuid>` 를 지운다 (§7). 링크는 따라가지 않고 링크만 지운다 */
-export async function 옛시험치우기(뿌리: string, 지금: number): Promise<void> {
-  const 폴더 = join(뿌리, 'runs', 'trial');
+/**
+ * 24시간 지난 `runs/trial/<uuid>` 를 지운다 (§7). 링크는 따라가지 않고 링크만 지운다.
+ * 케이스 테스트 실행은 같은 규칙으로 `runs/0/<historyId>` 를 넘긴다 — 서버 러너가 남긴 사진이 볼륨에 쌓이지 않게 (도메인/실행 §3.2 「테스트 모드」)
+ */
+export async function 옛시험치우기(뿌리: string, 지금: number, 갈래: { 폴더: string; 모양: RegExp } = { 폴더: 'trial', 모양: uuid모양 }): Promise<void> {
+  const 폴더 = join(뿌리, 'runs', 갈래.폴더);
   let 이름들: string[];
   try {
     이름들 = await readdir(폴더);
@@ -61,7 +64,7 @@ export async function 옛시험치우기(뿌리: string, 지금: number): Promis
     return;
   }
   for (const 이름 of 이름들) {
-    if (!uuid모양.test(이름)) continue;
+    if (!갈래.모양.test(이름)) continue;
     const 자리 = join(폴더, 이름);
     let 정보;
     try {

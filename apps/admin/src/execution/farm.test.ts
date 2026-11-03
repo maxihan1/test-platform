@@ -55,6 +55,13 @@ describe('팜폰으로', () => {
     expect(await 팜폰으로(팜, async (_udid, 받은화면) => 받은화면 ?? '없음', () => '못 잡음', 옛팜.부르기, 안쉼)).toBe('없음');
   });
 
+  it('화면 링크가 http(s) 가 아니면 넘기지 않는다 — 화면이 새 탭으로 연다', async () => {
+    for (const screen of ['javascript:alert(1)', 'file:///etc/passwd', '그냥 글자']) {
+      const 팜답 = 가짜팜({ 목록: [빈폰하나], 잡기: { status: 200, body: { held: { screen } } } });
+      expect(await 팜폰으로(팜, async (_udid, 받은화면) => 받은화면 ?? '없음', () => '못 잡음', 팜답.부르기, 안쉼), screen).toBe('없음');
+    }
+  });
+
   it('잡는 분을 넘기면 그 값으로 잡는다 — 게임 실행은 120분', async () => {
     const { 받음, 부르기 } = 가짜팜({ 목록: [빈폰하나] });
 
