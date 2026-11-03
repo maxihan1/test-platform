@@ -1,8 +1,11 @@
 // 실행이 끝나면 실패 케이스마다 BTS 「QA 검토」 등록 · 또 실패면 열린 이슈에 댓글을 보낼 줄에 넣는다 (도메인/BTS 「버그 바퀴」)
 // 보내기는 60초 점검(outbox.ts)이 한다. 여기는 넣기만 — BTS 가 꺼져 있어도 실행 끝을 늦추지 않는다
 
+import { setTimeout as 잠깐 } from 'node:timers/promises';
+
 import type { Pool } from 'pg';
 
+import { trace줄끝 } from '../execution/traceIngest.js';
 import { 가린다, 항목비밀 } from '../execution/trial.js';
 import { 실패카드, type FailureCase } from '../reporting/failures.js';
 import { 꼬리표고르기, 또실패댓글, 이슈본문, 이슈제목, 첨부상한, type 실패재료 } from './failBody.js';
@@ -50,6 +53,9 @@ const 짝SQL = `
 
 const 기록상한 = 5;
 
+// 풀기가 멈추면(볼륨 읽기가 안 돌아오는 것 같은) 줄 끝이 안 온다 — 그때도 등록은 나가야 한다
+const trace기다림상한ms = 5 * 60_000;
+
 const 안올릴사유 = new Set(['FLAKY', 'TEST_PROBLEM', 'SCREEN_RIGHT']);
 
 /** trace 를 다 풀었을 때만 실패한 요청 · 콘솔 오류를 준다. 값은 적재 때 이미 가렸다(execution/traceIngest.ts) */
@@ -74,7 +80,7 @@ async function 기록읽기(pool: Pool, historyId: number): Promise<{ 네트워�
 }
 
 /** 카드의 첫 디바이스(화면 차례)로 쓴다 — 한 테스트 · 한 대상 서버에 이슈는 하나다 */
-async function 재료만들기(pool: Pool, 실행: 실행행, runId: number, c: FailureCase) {
+async function 재료만들기(pool: Pool, 실행: 실행행, c: FailureCase) {
   const d = c.devices[0]!;
   const 기록 = await 기록읽기(pool, d.item.historyId);
   const 확인 = d.item.steps.flatMap((s) => s.assertions).find((a) => a.status === 'FAIL') ?? null;
@@ -91,7 +97,8 @@ async function 재료만들기(pool: Pool, 실행: 실행행, runId: number, c: 
     확인: 확인 === null ? null : { statement: 확인.statement, expected: 확인.expected, actual: 확인.actual },
     원인: d.item.failure?.reason ?? null,
     ...기록,
-    결과주소: 공개주소 === '' ? null : `${공개주소}/runs/${String(runId)}`,
+    // 화면은 hash 주소다. 항목 상세는 실행 번호가 맞아야 찾아(execution/queries.ts findItem) 한 건 실행이 덮은 항목은 그 한 건 실행 번호로 간다
+    결과주소: 공개주소 === '' ? null : `${공개주소}/#/runs/${String(d.item.runId)}/items/${String(d.item.historyId)}`,
     // 최근 흐름 맨 앞은 이번 실행이다 — 섞임은 앞 실행들로만 본다(이번 FAIL 을 넣으면 새로 깨진 회귀가 다 흔들림이 된다)
     꼬리표: 꼬리표고르기(d.item.failure?.type ?? null, d.recent.slice(1)),
   };
@@ -118,10 +125,14 @@ async function 재료만들기(pool: Pool, 실행: 실행행, runId: number, c: 
  * 한 건 실행은 붙는 실행(부모)의 카드로 그 한 건만 올린다 — 카드가 부모 자리에 서고, 부모에서 통과했던 케이스가 새로 깨질 수 있다
  */
 // ponytail: 화면용 실패카드()를 그대로 써 팜 증적 · 판정 같은 BTS 에 안 쓰는 칸도 읽는다. 실행 끝 뒤에 따로 도는 일이라 두었다 — 실패가 수백 건이라 느리면 가벼운 질의로 뗀다
-export async function 실패등록(runId: number): Promise<number> {
+export async function 실패등록(runId: number, 기다림상한ms = trace기다림상한ms): Promise<number> {
   const pool = await db();
   const 실행 = (await pool.query<실행행>(실행SQL, [runId])).rows[0];
   if (실행 === undefined) return 0;
+  // trace 는 실행과 따로 한 줄로 푼다. 실행이 막 끝나면 마지막 항목들이 아직 줄에 있어 이슈에 네트워크 · 콘솔이 빠진다 — 지금 줄 끝까지 기다린다.
+  // ponytail: 줄 끝이라 다른 실행 · 재기동 때 밀린 풀기도 같이 기다린다. 상한을 넘기는 일이 잦으면 이 실행의 항목만 기다린다
+  const 늦음 = await Promise.race([trace줄끝().then(() => false), 잠깐(기다림상한ms, true, { ref: false })]);
+  if (늦음) console.warn(`[bts] 실행 ${String(runId)} — trace 풀기가 ${String(기다림상한ms / 1000)}초 안에 안 끝나 기다리지 않고 올린다`);
   const 한건 = 실행.origin === 'SINGLE' && 실행.rerun_of !== null;
   const 카드실행 = 한건 ? Number(실행.rerun_of) : runId;
   const 그것만 = 한건
@@ -137,7 +148,7 @@ export async function 실패등록(runId: number): Promise<number> {
       // 흔들림 · 테스트 문제 · 화면이 맞음으로 닫힌 테스트는 다음 실패부터 올리지 않는다 — 사람이 판정했고 테스트를 고칠 일만 남았다.
       // 그 케이스를 고친 작성이 병합되면 다시 올린다(도메인/BTS 「판정은 BTS 에서」)
       if (짝 !== undefined && !짝.open && 안올릴사유.has(짝.resolution ?? '') && !짝.released) continue;
-      const { 재료, 캡처 } = await 재료만들기(pool, 실행, 카드실행, c);
+      const { 재료, 캡처 } = await 재료만들기(pool, 실행, c);
       // 줄은 카드가 서는 실행에 단다 — 실패 카드가 그 실행 번호로 bts 칸을 읽는다
       const 공통 = { projectId: Number(실행.project_id), serviceId: 서비스, runId: 카드실행, tcId: c.tcId, env: 실행.env };
       const id =
