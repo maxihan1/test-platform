@@ -110,11 +110,14 @@ export async function 팜폰으로<T>(
   부르기: typeof fetch = fetch,
   쉬기: (ms: number) => Promise<void> = (ms) => new Promise((깨운다) => setTimeout(깨운다, ms)),
   분: number = 잡는_분,
-  토큰?: string,
+  토큰?: string | (() => Promise<string | undefined>),
 ): Promise<T> {
+  // 함수면 놓을 때 다시 고른다 — 몇 시간 도는 게임 실행은 잡을 때 받은 대신 PAT 가 놓을 때 끝났을 수 있다(주인은 같다, 러너 §5.2 「기억 · 수명」)
+  const 지금토큰 = typeof 토큰 === 'function' ? 토큰 : async () => 토큰;
+  const 처음 = await 지금토큰();
   let serial: string;
   try {
-    const 고른것 = await 빈폰을고른다(팜, 부르기, 쉬기, 토큰);
+    const 고른것 = await 빈폰을고른다(팜, 부르기, 쉬기, 처음);
     if ('reason' in 고른것) return 못잡음(고른것.reason);
     serial = 고른것.serial;
   } catch (err) {
@@ -122,18 +125,18 @@ export async function 팜폰으로<T>(
   }
   let 화면: string | undefined;
   try {
-    const 잡음 = await 잡는다(팜, serial, 부르기, 분, 토큰);
+    const 잡음 = await 잡는다(팜, serial, 부르기, 분, 처음);
     if ('거절' in 잡음) return 못잡음(잡음.거절);
     화면 = 잡음.화면;
   } catch (err) {
     // 답이 늦게 왔을 뿐 팜은 잡았을 수 있다. 안 놓으면 그 폰이 30분 동안 빈 폰이 아니다
-    await 폰을돌려준다(팜, serial, 부르기, 토큰);
+    await 폰을돌려준다(팜, serial, 부르기, 처음);
     return 못잡음(닿지못함(err));
   }
   try {
     return await 일(serial, 화면);
   } finally {
-    await 폰을돌려준다(팜, serial, 부르기, 토큰);
+    await 폰을돌려준다(팜, serial, 부르기, await 지금토큰().catch(() => 처음));
   }
 }
 

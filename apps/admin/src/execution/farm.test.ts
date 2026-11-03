@@ -188,6 +188,27 @@ describe('팜머리', () => {
     expect(머리들).toEqual(['Bearer pat_abc', 'Bearer pat_abc', 'Bearer pat_abc', 'Bearer pat_abc']);
   });
 
+  it('토큰을 함수로 주면 잡을 때 고른 것으로 고르고 · 잡고, 놓을 때는 다시 고른 것으로 놓는다 — 몇 시간 도는 게임 실행', async () => {
+    const 머리들: (string | null)[] = [];
+    const 부르기 = (async (주소: string | URL | Request, 설정?: RequestInit) => {
+      머리들.push(new Headers(설정?.headers).get('authorization'));
+      return String(주소).endsWith('/api/devices')
+        ? new Response(JSON.stringify(빈폰하나.body), { status: 200 })
+        : new Response(JSON.stringify({ held: {} }), { status: 200 });
+    }) as typeof fetch;
+    const 토큰들 = ['pat_a', 'pat_b'];
+    await 팜폰으로(팜, async () => '돌림', (까닭) => 까닭, 부르기, 안쉼, 120, async () => 토큰들.shift());
+    expect(머리들).toEqual(['Bearer pat_a', 'Bearer pat_a', 'Bearer pat_b']);
+  });
+
+  it('대신 PAT 로 기기 목록이 401 이면 Auth 의 대신 PAT 를 VISION 이 받지 않았다고 말한다', async () => {
+    const { 부르기 } = 가짜팜({ 목록: [{ status: 401, body: {} }] });
+
+    expect(await 팜폰으로(팜, async () => '돌림', (까닭) => 까닭, 부르기, 안쉼, 30, 'pat_dlg')).toBe(
+      'Device VISION 이 기기 목록을 주지 않았습니다 (HTTP 401) — Auth 의 대신 PAT 를 Device VISION 이 받지 않았습니다',
+    );
+  });
+
   it('기기 목록이 401 이면 토큰을 보라고 말한다', async () => {
     const { 부르기 } = 가짜팜({ 목록: [{ status: 401, body: {} }] });
 

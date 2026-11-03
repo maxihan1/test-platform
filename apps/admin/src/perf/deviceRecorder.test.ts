@@ -61,12 +61,12 @@ describe('팜기록기 · 토큰', () => {
     expect(await 한바퀴()).toEqual(Array(5).fill('Bearer pat_abc'));
   });
 
-  it('서버 몫 대신 PAT 는 켤 때 한 번 고르고 놓을 때까지 같은 것을 싣는다', async () => {
+  it('서버 몫 대신 PAT 는 부를 때마다 다시 고른다 — 긴 측정에서 새 토큰을 싣고, 못 받으면 앞 토큰을 쓴다', async () => {
     vi.stubEnv('DEVICE_FARM_URL', 'http://farm.test/wd/hub');
     vi.stubEnv('DEVICE_FARM_TOKEN', 'pat_abc');
-    vi.mocked(서버팜토큰).mockResolvedValueOnce('pat_dlg1').mockResolvedValue('pat_dlg2');
-    expect(await 한바퀴()).toEqual(Array(5).fill('Bearer pat_dlg1'));
-    expect(서버팜토큰).toHaveBeenCalledOnce();
+    vi.mocked(서버팜토큰).mockResolvedValueOnce('pat_dlg1').mockResolvedValueOnce('pat_dlg1').mockResolvedValueOnce(undefined).mockResolvedValue('pat_dlg2');
+    expect(await 한바퀴()).toEqual(['Bearer pat_dlg1', 'Bearer pat_dlg1', 'Bearer pat_dlg1', 'Bearer pat_dlg2', 'Bearer pat_dlg2']);
+    expect(서버팜토큰).toHaveBeenCalledTimes(5);
   });
 });
 

@@ -73,10 +73,31 @@ describe('대신PAT', () => {
     답들 = [줌('pat_a'), 상태(503), 상태(429), () => { throw new TypeError('fetch failed'); }];
     expect(await 받기({ userId: 'sub-1' })).toBe('pat_a');
     지금 += 1.5 * 시;
-    expect(await 받기({ userId: 'sub-1' })).toBe('pat_a');
-    expect(await 받기({ userId: 'sub-1' })).toBe('pat_a');
-    expect(await 받기({ userId: 'sub-1' })).toBe('pat_a');
+    for (let i = 0; i < 3; i++) {
+      expect(await 받기({ userId: 'sub-1' })).toBe('pat_a');
+      지금 += 61_000;
+    }
     expect(받은요청).toHaveLength(4);
+  });
+
+  it('실패한 뒤 1분은 Auth 에 다시 묻지 않는다 — 429 를 받은 Auth 를 또 두드리지 않게', async () => {
+    답들 = [줌('pat_a'), 상태(429), 줌('pat_b')];
+    await 받기({ username: 'maxi' });
+    지금 += 1.5 * 시;
+    expect(await 받기({ username: 'maxi' })).toBe('pat_a');
+    지금 += 30_000;
+    expect(await 받기({ username: 'maxi' })).toBe('pat_a');
+    expect(받은요청).toHaveLength(2);
+    지금 += 31_000;
+    expect(await 받기({ username: 'maxi' })).toBe('pat_b');
+    expect(받은요청).toHaveLength(3);
+  });
+
+  it('살아 있는 것이 없을 때 실패하면 1분 동안 Auth 를 안 부르고 같은 오류를 던진다', async () => {
+    답들 = [상태(503)];
+    await expect(받기({ userId: 'sub-9' })).rejects.toThrow('HTTP 503');
+    await expect(받기({ userId: 'sub-9' })).rejects.toThrow('HTTP 503');
+    expect(받은요청).toHaveLength(1);
   });
 
   it('남은 것이 거의 다 됐거나 없으면 던진다 — 상태만 말하고 토큰은 안 싣는다', async () => {

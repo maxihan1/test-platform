@@ -8,7 +8,7 @@ import { 정수 } from '../routeParams.js';
 
 import { BTS다시보내기 } from './card.js';
 import { BTS고를목록 } from './choices.js';
-import { BTS부르기, 봇이름허용, type 부르기함수 } from './client.js';
+import { BTS부르기, BTS주소허용, 봇이름허용, type 부르기함수 } from './client.js';
 import { BTS연결끊기, BTS연결읽기, BTS연결저장, BTS열쇠만들기, BTS확인, 상태짝틀, 해결짝틀, type 확인함수 } from './link.js';
 import { BTS자동설정, 누른사람PAT } from './setup.js';
 
@@ -48,6 +48,7 @@ const 저장코드 = {
   NOT_FOUND: 404,
   SSO_REQUIRED: 400,
   BOT_NOT_ALLOWED: 400,
+  BTS_URL_NOT_ALLOWED: 400,
   BTS_UNREACHABLE: 400,
 } as const;
 
@@ -75,6 +76,7 @@ export default async function btsLinkRoutes(
     }
     if (SSO설정읽기() === null) return reply.code(400).send({ error: 'SSO_REQUIRED' });
     if (!봇이름허용(parsed.data.botUsername)) return reply.code(400).send({ error: 'BOT_NOT_ALLOWED' });
+    if (!BTS주소허용(parsed.data.baseUrl)) return reply.code(400).send({ error: 'BTS_URL_NOT_ALLOWED' });
     const 목록 = await BTS고를목록({ baseUrl: parsed.data.baseUrl, 봇: parsed.data.botUsername }, 부르기);
     return 목록 ?? reply.code(400).send({ error: 'BTS_UNREACHABLE' });
   });

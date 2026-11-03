@@ -87,6 +87,7 @@ describe.skipIf(연결 === undefined)('BTS 자동 설정', () => {
     vi.stubEnv('AUTH_CLIENT_ID', 'test-platform');
     vi.stubEnv('AUTH_CLIENT_SECRET', 's');
     vi.stubEnv('BTS_BOT_USERNAMES', 'qahub-ai');
+    vi.stubEnv('BTS_URLS', 'https://bts.example.com');
     app = Fastify();
     app.decorateRequest('user', null);
     app.addHook('preHandler', async (req) => {

@@ -12,11 +12,14 @@ const 새로받을ms = 2 * 60 * 60_000;
 // 새로 받기가 실패했을 때 이보다 많이 남았으면 그대로 쓴다 — 부르는 도중에 끝나지 않을 만큼
 const 그대로쓸ms = 60_000;
 const 묻기제한ms = 10_000;
+// 새로 받기가 실패하면 이만큼은 다시 묻지 않는다 — 429 를 받은 Auth 를 부르는 곳마다 또 두드리지 않게
+const 쉬는ms = 60_000;
 
 type 기억값 = { token: string; 까지: number };
 const 기억 = new Map<string, 기억값>();
 // 같은 사람을 동시에 여러 곳이 물어도 한 번만 받는다 — Auth 는 살아 있는 대신 PAT 가 10개면 429 를 준다
 const 받는중 = new Map<string, Promise<기억값>>();
+const 실패 = new Map<string, { 까지: number; 오류: unknown }>();
 
 const 열쇠 = (누구: 대신누구): string => ('userId' in 누구 ? `id:${누구.userId}` : `name:${누구.username}`);
 const 이름 = (누구: 대신누구): string => ('userId' in 누구 ? `userId ${누구.userId}` : `username ${누구.username}`);
@@ -49,7 +52,7 @@ async function 받기(sso: SSO설정, 누구: 대신누구, 부르기: typeof fe
 
 /**
  * 그 사람의 대신 PAT. 기억한 것이 2시간 넘게 남았으면 그것, 아니면 새로 받는다.
- * 새로 받기가 실패하면(Auth 가 잠깐 안 됨 · 429) 아직 살아 있는 것을 그대로 쓰고, 그것도 없으면 던진다. SSO 를 끈 설치도 던진다.
+ * 새로 받기가 실패하면(Auth 가 잠깐 안 됨 · 429) 아직 살아 있는 것을 그대로 쓰고, 그것도 없으면 던진다. 실패한 뒤 1분은 다시 묻지 않는다. SSO 를 끈 설치도 던진다.
  * ponytail: 기억은 admin 메모리 하나다 — 다시 켜면 비어 새로 받는다. 받은 뒤 2시간 넘게 쓰는 일은 도중에 401 이다(러너 §5.2 「기억 · 수명」)
  */
 export async function 대신PAT(누구: 대신누구, 부르기: typeof fetch = fetch, 지금: () => number = Date.now): Promise<string> {
@@ -59,6 +62,14 @@ export async function 대신PAT(누구: 대신누구, 부르기: typeof fetch = 
   const 있던것 = 기억.get(k);
   if (있던것 !== undefined && 있던것.까지 - 지금() > 새로받을ms) return 있던것.token;
 
+  const 쉼 = 실패.get(k);
+  const 남은것을쓰거나 = (err: unknown): string => {
+    const 남은것 = 기억.get(k);
+    if (남은것 !== undefined && 남은것.까지 - 지금() > 그대로쓸ms) return 남은것.token;
+    throw err;
+  };
+  if (쉼 !== undefined && 쉼.까지 > 지금()) return 남은것을쓰거나(쉼.오류);
+
   let 받음 = 받는중.get(k);
   if (받음 === undefined) {
     받음 = 받기(sso, 누구, 부르기).finally(() => 받는중.delete(k));
@@ -67,14 +78,13 @@ export async function 대신PAT(누구: 대신누구, 부르기: typeof fetch = 
   try {
     const 새것 = await 받음;
     기억.set(k, 새것);
+    실패.delete(k);
     return 새것.token;
   } catch (err) {
-    const 남은것 = 기억.get(k);
-    if (남은것 !== undefined && 남은것.까지 - 지금() > 그대로쓸ms) {
-      console.error(`[delegated-pat] ${err instanceof Error ? err.message : String(err)} — 아직 살아 있는 것을 쓴다`);
-      return 남은것.token;
-    }
-    throw err;
+    실패.set(k, { 까지: 지금() + 쉬는ms, 오류: err });
+    const 토큰 = 남은것을쓰거나(err);
+    console.error(`[delegated-pat] ${err instanceof Error ? err.message : String(err)} — 아직 살아 있는 것을 쓴다`);
+    return 토큰;
   }
 }
 
@@ -82,4 +92,5 @@ export async function 대신PAT(누구: 대신누구, 부르기: typeof fetch = 
 export function 대신PAT기억비우기(): void {
   기억.clear();
   받는중.clear();
+  실패.clear();
 }

@@ -29,6 +29,7 @@ const SSO켜기 = (켬: boolean) => {
   vi.stubEnv('AUTH_CLIENT_SECRET', 켬 ? 's' : '');
   vi.stubEnv('PLATFORM_PUBLIC_URL', 'https://qahub.example.com');
   vi.stubEnv('BTS_BOT_USERNAMES', 'qahub-ai, qahub-bot');
+  vi.stubEnv('BTS_URLS', 'https://bts.example.com, https://other.example.com/');
 };
 
 const 상태 = { DEPLOY_WAIT: '배포 대기', QA_REQUEST: 'QA 요청', QA_REVIEW: 'QA 검토', DEV_REQUEST: '개발 요청', CODE_REVIEW: '코드 리뷰', CLOSED: '닫힘' };
@@ -48,6 +49,7 @@ describe('BTS 확인 — 가짜 BTS', () => {
     });
     await new Promise<void>((r) => 서버.listen(0, '127.0.0.1', r));
     주소 = `http://127.0.0.1:${(서버.address() as AddressInfo).port}`;
+    vi.stubEnv('BTS_URLS', 주소);
   });
 
   afterAll(() => {
@@ -177,6 +179,20 @@ describe.skipIf(연결 === undefined)('설정 API — BTS 연결', () => {
     expect([목록답.statusCode, 목록답.json().error]).toEqual([400, 'SSO_REQUIRED']);
     expect([확인한것.length, 부른것.length]).toEqual(앞);
     expect((await 읽기()).linked).toBe(false);
+  });
+
+  it('서버 BTS_URLS 밖의 주소는 저장 · 고를 목록이 BTS_URL_NOT_ALLOWED 다 — 허용한 이름이어도 그 주소로 대신 PAT 를 안 보낸다', async () => {
+    const 앞 = [확인한것.length, 부른것.length];
+    const 저장답 = await 저장(본문({ baseUrl: 'https://evil.example.com', botUsername: 'qahub-ai', webhookSecret: 'sec' }));
+    const 목록답 = await app.inject({ method: 'POST', url: `${주소()}/choices`, payload: { baseUrl: 'https://evil.example.com', botUsername: 'qahub-ai' } });
+    expect([저장답.statusCode, 저장답.json().error]).toEqual([400, 'BTS_URL_NOT_ALLOWED']);
+    expect([목록답.statusCode, 목록답.json().error]).toEqual([400, 'BTS_URL_NOT_ALLOWED']);
+    expect([확인한것.length, 부른것.length]).toEqual(앞);
+  });
+
+  it('없는 프로젝트는 다른 검사보다 먼저 404 NOT_FOUND 다', async () => {
+    const res = await app.inject({ method: 'PUT', url: '/api/settings/projects/999999999/bts', payload: 본문({ botUsername: 'maxi', webhookSecret: 'sec' }) });
+    expect([res.statusCode, res.json().error]).toEqual([404, 'NOT_FOUND']);
   });
 
   it('서버 BTS_BOT_USERNAMES 밖의 계정 이름은 저장 · 고를 목록이 BOT_NOT_ALLOWED 다 — BTS 도 안 부른다', async () => {

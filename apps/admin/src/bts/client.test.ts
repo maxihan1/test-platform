@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { 대신PAT, 대신PAT오류 } from '../auth/delegatedPat.js';
 
-import { BTS부르기, BTS올리기, 봇열쇠, 봇이름허용 } from './client.js';
+import { BTS부르기, BTS올리기, BTS주소허용, 봇열쇠, 봇이름허용 } from './client.js';
 
 vi.mock('../auth/delegatedPat.js', () => ({
   대신PAT오류: class extends Error {},
@@ -17,6 +17,7 @@ describe('BTS 를 부를 열쇠 고르기', () => {
   beforeEach(() => {
     받은머리.length = 0;
     vi.stubEnv('BTS_BOT_USERNAMES', 'qahub-ai');
+    vi.stubEnv('BTS_URLS', 'https://bts.example.com');
     vi.mocked(대신PAT).mockReset();
     vi.mocked(대신PAT).mockImplementation(async (누구) => `pat_${'username' in 누구 ? 누구.username : 누구.userId}`);
     vi.stubGlobal('fetch', async (_url: string, init?: { headers?: Record<string, string> }) => {
@@ -51,8 +52,19 @@ describe('BTS 를 부를 열쇠 고르기', () => {
     expect(받은머리).toEqual([]);
   });
 
+  it('서버 BTS_URLS 밖의 주소에는 봇 · 사람 토큰 모두 보내지 않고 던진다 — 대신 PAT 도 받지 않는다', async () => {
+    await expect(BTS부르기({ baseUrl: 'https://evil.example.com', 봇: 'qahub-ai' }, 'GET', '/x')).rejects.toThrow('BTS_URLS 에 없습니다');
+    await expect(BTS부르기({ baseUrl: 'https://evil.example.com', pat: 'pat_person' }, 'GET', '/x')).rejects.toThrow('BTS_URLS 에 없습니다');
+    expect(BTS주소허용('https://bts.example.com/sub/path', { BTS_URLS: 'https://bts.example.com/' })).toBe(true);
+    expect(BTS주소허용('https://bts.example.com.evil.io', { BTS_URLS: 'https://bts.example.com' })).toBe(false);
+    expect(BTS주소허용('http://bts.example.com', { BTS_URLS: 'https://bts.example.com' })).toBe(false);
+    expect(BTS주소허용('https://bts.example.com', {})).toBe(false);
+    expect(대신PAT).not.toHaveBeenCalled();
+    expect(받은머리).toEqual([]);
+  });
+
   it('서버 BTS_BOT_USERNAMES 밖의 이름은 Auth 에 묻지도 않고 던진다 — 설정 칸에 남의 이름을 적어 그 사람 대신 PAT 를 받아 가지 못하게', async () => {
-    await expect(BTS부르기({ baseUrl: 'https://evil.example.com', 봇: 'maxi' }, 'GET', '/x')).rejects.toThrow('BTS_BOT_USERNAMES 에 없습니다');
+    await expect(BTS부르기({ baseUrl: 'https://bts.example.com', 봇: 'maxi' }, 'GET', '/x')).rejects.toThrow('BTS_BOT_USERNAMES 에 없습니다');
     vi.stubEnv('BTS_BOT_USERNAMES', '');
     await expect(봇열쇠('qahub-ai')).rejects.toThrow('BTS_BOT_USERNAMES 에 없습니다');
     expect(봇이름허용('qahub-ai', { BTS_BOT_USERNAMES: ' qahub-ai , qa-bot2 ' })).toBe(true);

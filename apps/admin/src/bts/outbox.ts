@@ -178,6 +178,8 @@ export async function 보낼줄점검(
        SELECT id FROM bts_outbox o
         WHERE state = 'PENDING' AND next_at <= now()
           AND NOT EXISTS (SELECT 1 FROM bts_outbox p WHERE p.state = 'PENDING' AND p.issue_key = o.issue_key AND p.id < o.id)
+          -- 「QA Hub AI」 계정 이름을 아직 안 적은 연결(S25 전에 이은 것)은 집지 않는다 — 다섯 번 실패해 그만두지 않고 이름을 적을 때까지 기다린다
+          AND NOT EXISTS (SELECT 1 FROM bts_link l WHERE l.project_id = o.project_id AND COALESCE(l.bot_username, '') = '')
         ORDER BY id LIMIT 20 FOR UPDATE SKIP LOCKED
      ), 집은 AS (
        UPDATE bts_outbox o SET next_at = now() + interval '5 minutes' FROM 때된 WHERE o.id = 때된.id

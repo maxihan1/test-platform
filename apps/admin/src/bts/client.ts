@@ -15,6 +15,23 @@ export type BTS자리 = { baseUrl: string } & ({ 봇: string } | { pat: string }
 export const 봇이름허용 = (이름: string, env: NodeJS.ProcessEnv = process.env): boolean =>
   (env.BTS_BOT_USERNAMES ?? '').split(',').map((n) => n.trim()).filter((n) => n !== '').includes(이름);
 
+const 출처 = (주소: string): string | null => {
+  try {
+    return new URL(주소).origin;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * 서버 env BTS_URLS(쉼표로 여럿)와 출처가 같은 주소로만 열쇠를 보낸다. 이름을 묶어도 주소 칸을 자기 서버로 바꾸면
+ * 「QA Hub AI」 · 누른 사람의 대신 PAT 가 그리로 간다 (2026-11-04 S25 사용자 「막고 배포」 · 도메인/BTS 「열쇠 표」)
+ */
+export const BTS주소허용 = (baseUrl: string, env: NodeJS.ProcessEnv = process.env): boolean => {
+  const 여기 = 출처(baseUrl);
+  return 여기 !== null && (env.BTS_URLS ?? '').split(',').some((n) => n.trim() !== '' && 출처(n.trim()) === 여기);
+};
+
 /** 이름이 비었거나(S25 전에 이은 연결) 허용 목록 밖이면 던진다 — 부르는 쪽은 닿지 않은 것과 같이 다룬다 */
 export async function 봇열쇠(이름: string): Promise<string> {
   if (이름 === '') throw new Error('「QA Hub AI」 계정 이름이 없습니다 — 설정 › Issue Bunker 연결에 적어 주세요');
@@ -22,7 +39,10 @@ export async function 봇열쇠(이름: string): Promise<string> {
   return 대신PAT({ username: 이름 });
 }
 
-const 열쇠고르기 = async (자리: BTS자리): Promise<string> => ('pat' in 자리 ? 자리.pat : 봇열쇠(자리.봇));
+const 열쇠고르기 = async (자리: BTS자리): Promise<string> => {
+  if (!BTS주소허용(자리.baseUrl)) throw new Error(`Issue Bunker 주소 ${출처(자리.baseUrl) ?? '(꼴이 틀림)'} 은 서버 BTS_URLS 에 없습니다`);
+  return 'pat' in 자리 ? 자리.pat : 봇열쇠(자리.봇);
+};
 
 export interface BTS응답 {
   status: number;

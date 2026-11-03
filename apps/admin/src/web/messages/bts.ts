@@ -89,6 +89,7 @@ export const BTS말: Record<string, string> = {
   '{bts} 에 접속하지 못했습니다. 주소 · 프로젝트 키 · 「QA Hub AI」 계정 이름을 확인해 주세요':
     'Could not connect to {bts}. Check the address · project key · "QA Hub AI" account name',
   'Auth 로그인을 켠 설치에서만 {bts} 를 이을 수 있습니다': '{bts} can be connected only on installations with Auth sign-in turned on',
+  '서버가 허용한 {bts} 주소가 아닙니다. 서버 .env 의 BTS_URLS 를 확인해 주세요': 'This is not a {bts} address the server allows. Check BTS_URLS in the server .env',
   '서버가 허용한 「QA Hub AI」 계정 이름이 아닙니다. 서버 .env 의 BTS_BOT_USERNAMES 를 확인해 주세요': 'This is not a "QA Hub AI" account name the server allows. Check BTS_BOT_USERNAMES in the server .env',
   '「QA Hub AI」 계정 이름을 적어야 합니다': 'Enter the "QA Hub AI" account name',
   '비어 있는 단계가 있습니다. 모든 단계에 {bts} 상태를 골라 주세요': 'Some stages are empty. Pick a {bts} status for every stage',

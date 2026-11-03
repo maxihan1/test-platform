@@ -8,7 +8,7 @@ import { z } from 'zod';
 
 import { 토큰해시 } from '../auth/agentToken.js';
 import { SSO설정읽기 } from '../auth/oidc.js';
-import { 봇열쇠, 봇이름허용 } from './client.js';
+import { BTS주소허용, 봇열쇠, 봇이름허용 } from './client.js';
 
 async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
@@ -119,6 +119,7 @@ export type 확인함수 = (baseUrl: string, btsProject: string, botUsername: st
  * 그 이름의 대신 PAT 를 못 받으면 false. BTS 는 PAT 를 `Authorization: Bearer` 로 받는다(BTS SecurityConfig). 5초 안에 답이 없으면 닿지 않은 것으로 친다
  */
 export const BTS확인: 확인함수 = async (baseUrl, btsProject, botUsername) => {
+  if (!BTS주소허용(baseUrl)) return false;
   try {
     const 열쇠 = await 봇열쇠(botUsername);
     const res = await fetch(`${baseUrl.replace(/\/+$/, '')}/api/v1/projects/${encodeURIComponent(btsProject)}`, {
@@ -132,18 +133,19 @@ export const BTS확인: 확인함수 = async (baseUrl, btsProject, botUsername) 
   }
 };
 
-export type 저장결과 = 'OK' | 'NOT_FOUND' | 'SSO_REQUIRED' | 'BOT_NOT_ALLOWED' | 'BTS_UNREACHABLE';
+export type 저장결과 = 'OK' | 'NOT_FOUND' | 'SSO_REQUIRED' | 'BOT_NOT_ALLOWED' | 'BTS_URL_NOT_ALLOWED' | 'BTS_UNREACHABLE';
 
 /**
  * 「QA Hub AI」 는 계정 이름만 둔다 — 저장한 비밀이 없어 주소를 바꿔도 다시 받을 것이 없다(2026-11-04 S25).
  * SSO 를 끈 설치는 대신 PAT 를 받을 Auth 가 없어 BTS 를 부를 길이 없다 — 먼저 알린다
  */
 export async function BTS연결저장(projectId: number, 입력: BTS연결입력, 누가: string, 확인: 확인함수 = BTS확인): Promise<저장결과> {
+  const pool = await db();
+  if (!(await 프로젝트있나(pool, projectId))) return 'NOT_FOUND';
   if (SSO설정읽기() === null) return 'SSO_REQUIRED';
   // 확인(BTS확인)도 그 이름의 대신 PAT 를 적힌 주소로 보낸다 — 부르기 전에 막는다
   if (!봇이름허용(입력.botUsername)) return 'BOT_NOT_ALLOWED';
-  const pool = await db();
-  if (!(await 프로젝트있나(pool, projectId))) return 'NOT_FOUND';
+  if (!BTS주소허용(입력.baseUrl)) return 'BTS_URL_NOT_ALLOWED';
   const 지금 = await 원행(pool, projectId);
   // 알림 서명 비밀은 사람이 옮겨 적지 않는다 — QA Hub 가 만들어 두고 BTS 자동 설정이 BTS 웹훅에 넣는다(BTS-F3-05)
   const webhookSecret = 입력.webhookSecret ?? 지금?.webhook_secret ?? randomBytes(32).toString('base64url');

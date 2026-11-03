@@ -85,12 +85,14 @@ describe.skipIf(연결 === undefined)('실행팜토큰 · 사람팜토큰 · 서
     expect(await 사람팜토큰('xftr-local')).toBe('pat_name_maxi');
   });
 
-  it('그 사람 것을 못 받으면 서버 몫, 그것도 못 받으면 undefined(DEVICE_FARM_TOKEN 으로 물러선다)', async () => {
+  it('그 사람 것을 못 받으면 던진다 — Auth 가 끈 사람이 서버 이름으로 폰을 잡지 않게. 서버 몫을 못 받으면 undefined(DEVICE_FARM_TOKEN)', async () => {
     SSO켠다();
     vi.mocked(대신PAT).mockRejectedValueOnce(new Error('HTTP 404'));
-    expect(await 실행팜토큰(실행.MANUAL)).toBe('pat_name_maxi');
-    vi.mocked(대신PAT).mockRejectedValueOnce(new Error('HTTP 404')).mockRejectedValueOnce(new Error('HTTP 503'));
-    expect(await 사람팜토큰('xftr-on')).toBeUndefined();
+    await expect(실행팜토큰(실행.MANUAL)).rejects.toThrow('HTTP 404');
+    vi.mocked(대신PAT).mockRejectedValueOnce(new Error('HTTP 404'));
+    await expect(사람팜토큰('xftr-on')).rejects.toThrow('HTTP 404');
+    vi.mocked(대신PAT).mockRejectedValueOnce(new Error('HTTP 503'));
+    expect(await 실행팜토큰(실행.SCHEDULED)).toBeUndefined();
   });
 
   it('DEVICE_FARM_RUN_AS 가 비면 서버 몫은 undefined 다 — Auth 를 부르지 않는다', async () => {

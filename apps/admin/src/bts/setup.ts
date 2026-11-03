@@ -3,7 +3,8 @@
 
 import type { Pool } from 'pg';
 
-import { 대신PAT } from '../auth/delegatedPat.js';
+import { SSO설정읽기 } from '../auth/oidc.js';
+import { 계정대신PAT } from '../execution/farmToken.js';
 
 import { BTS고를목록 } from './choices.js';
 import { BTS부르기, type BTS자리, type 부르기함수 } from './client.js';
@@ -141,10 +142,9 @@ async function 보드(자리: BTS자리, 부르기: 부르기함수, 줄: 연결
  * 그 계정 권한을 빌리면 BTS 관리자가 아닌 운영 계정도 웹훅 · 규칙을 만든다
  */
 export async function 누른사람PAT(username: string): Promise<string | undefined> {
-  const 행 = (await (await db()).query<{ auth_sub: string | null }>('SELECT auth_sub FROM app_user WHERE username = $1 AND is_active', [username])).rows[0];
-  if (!행?.auth_sub) return undefined;
+  if (SSO설정읽기() === null) return undefined;
   try {
-    return await 대신PAT({ userId: 행.auth_sub });
+    return (await 계정대신PAT(username)) ?? undefined;
   } catch (err) {
     console.error(`[bts] ${username} 의 대신 PAT 를 못 받아 자동 설정을 못 한다: ${err instanceof Error ? err.message : String(err)}`);
     return undefined;

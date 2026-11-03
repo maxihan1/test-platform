@@ -17,7 +17,7 @@ export const PAT꼴 = (토큰: string): boolean => 토큰.startsWith('pat_') && 
 /**
  * Auth whoami 에 그 PAT 의 주인을 묻는다. 401 · 403 은 폐기 · 기간 끝 · 틀린 값이다.
  * **scopes 에 * 나 commander 가 없으면 틀린 것으로 친다** — Commander 가 받아 VISION · Bunker 에 싣는 대신 PAT(scopes [bunker, vision])가
- * Commander 로 돌아오지 못하게 (도메인/인증 §7 「대신 PAT」). scopes 칸이 없는 답은 S25 전 Auth 라 대신 PAT 가 없다 — 사람 PAT 로 친다
+ * Commander 로 돌아오지 못하게 (도메인/인증 §7 「대신 PAT」). scopes 칸이 없거나 null 인 답은 S25 전 Auth 라 대신 PAT 가 없다 — 사람 PAT 로 친다
  */
 export async function 토큰주인묻기(issuer: string, 토큰: string, 부르기: typeof fetch = fetch): Promise<주인답> {
   let res: Response;
@@ -37,7 +37,7 @@ export async function 토큰주인묻기(issuer: string, 토큰: string, 부르�
     console.error(`[pat] Auth_platform whoami 답을 읽지 못했다: HTTP ${res.status}`);
     return '닿지못함';
   }
-  if (몸.scopes !== undefined && !(Array.isArray(몸.scopes) && (몸.scopes.includes('*') || 몸.scopes.includes('commander')))) return '틀림';
+  if (몸.scopes !== undefined && 몸.scopes !== null && !(Array.isArray(몸.scopes) && (몸.scopes.includes('*') || 몸.scopes.includes('commander')))) return '틀림';
   return { 주인: 몸.userId };
 }
 

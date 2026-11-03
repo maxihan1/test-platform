@@ -6,7 +6,7 @@ import { join } from 'node:path';
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { BTS부르기, type BTS응답, type BTS자리 } from './client.js';
+import { type BTS응답, type BTS자리 } from './client.js';
 import { 보낼줄넣기, 보낼줄점검, 최대횟수 } from './outbox.js';
 
 const 연결 = process.env.DATABASE_URL;
@@ -222,21 +222,19 @@ describe.skipIf(연결 === undefined)('Issue Bunker 보낼 줄', () => {
     }
   });
 
-  it('「QA Hub AI」 계정 이름이 빈 연결(S25 전)은 닿지 않은 것처럼 다시 보낼 줄로 남는다', async () => {
+  it('「QA Hub AI」 계정 이름이 빈 연결(S25 전)의 줄은 집지 않고 기다린다 — 다섯 번 실패해 그만두지 않게, 이름을 적으면 보낸다', async () => {
     const p = await pool();
     await p.query('UPDATE bts_link SET bot_username = NULL WHERE project_id = $1', [프로젝트]);
+    let id = 0;
     try {
-      const id = (await 보낼줄넣기({ projectId: 프로젝트, kind: 'COMMENT', issueKey: 'XBY-1', payload: { body: '또 실패' } }))!;
-      // 빈 이름만 진짜 BTS부르기로 — 이름을 열쇠로 바꾸다 던지므로 밖으로 나가지 않는다
-      const 빈이름만진짜 = (자리: BTS자리, method: string, 경로: string, 몸?: unknown) =>
-        '봇' in 자리 && 자리.봇 === '' ? BTS부르기(자리, method, 경로, 몸) : 부르기(자리, method, 경로, 몸);
-      expect(await 보낼줄점검(빈이름만진짜)).toEqual({ 보냄: 0, 다시: 1, 멈춤: 0 });
+      id = (await 보낼줄넣기({ projectId: 프로젝트, kind: 'COMMENT', issueKey: 'XBY-1', payload: { body: '또 실패' } }))!;
+      expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 0, 다시: 0, 멈춤: 0 });
       expect(부른것).toEqual([]);
-      expect(await 줄(id)).toMatchObject({ state: 'PENDING', tries: 1 });
-      expect((await 줄(id)).last_error).toContain('「QA Hub AI」 계정 이름이 없습니다');
+      expect(await 줄(id)).toMatchObject({ state: 'PENDING', tries: 0 });
     } finally {
       await p.query("UPDATE bts_link SET bot_username = 'qahub-xby' WHERE project_id = $1", [프로젝트]);
     }
+    expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 1, 다시: 0, 멈춤: 0 });
   });
 
   it('BTS 연결이 없는 프로젝트 줄은 부르지 않고 멈춘다', async () => {
