@@ -66,7 +66,7 @@
 | 19 | **PRD 초안 · 노트 고치기 · 수정 AI 는 작성 요청 종류 셋(`PRD_DRAFT` · `NOTE` · `BUGFIX`)이다. 노트 줄만 애플리케이션 대신 프로젝트를 가리킨다** (내 결정) | 셋 다 작성 에이전트가 집는다. 초안은 QA 화면을 봐야 해 브라우저가 있는 작성 자리가 맞다. 노트는 프로젝트마다 하나라 애플리케이션 칸을 비운다 |
 | 20 | **자동 AI 의 MCP 열쇠는 작성 요청 줄의 칸 하나다** — 집을 때 새로 나고 그 줄이 `RUNNING` 이 아니면 무효 (내 결정) | 「일 끝나면 무효」를 따로 지우지 않고 줄 상태가 맡는다 |
 | 21 | **롤백 되돌리기는 새 작성 종류 없이 PRD 새 버전(`ROLLBACK`) + 지금 「고친 요구만 다시 작성」으로 돈다** (내 결정) | 바뀐 요구를 다시 쓰는 장치가 이미 있다([작성.md](작성.md) §3.6 「고친 요구만 다시 작성」) |
-| 22 | **QA Hub 를 부르는 BTS 쪽 설정(웹훅 · 규칙 둘 · 보드 칸)은 QA Hub 가 누른 사람의 이름(2026-11-04 S25 부터 Auth 대신 PAT — 앞 판은 그 사람이 넣은 통합계정 토큰)으로 만든다** — 사람이 값을 복사해 BTS 에 붙여 넣지 않는다. 이 화면에서 남는 손일은 `deploy.sh` 한 줄이다. 상태를 바꾸는 BTS 규칙과 GitHub 연결은 자동 설정 밖이다(§3.12 「설정 · 고장 대응」 「자동 설정 밖」) (2026-10-31 BTS-F3-05 사용자 — 첫 시안의 「복사 값」 구획을 거절) | BTS 가 통합계정 PAT 를 받고(`AuthPlatformPatVerifier`) QA Hub 도 사람마다 그 토큰을 둔다. 「QA Hub AI」 열쇠를 관리 권한까지 넓히지 않는다 — 새면 BTS 설정이 바뀐다. 다만 그 사람 토큰은 러너 §5.2 「받아들인 한계」대로 그 사람이 누른 앱 · 게임 케이스와 작성 AI 에도 넘어간다 — BTS 관리자가 넣은 토큰이면 그 관리 권한도 거기 열린다. 「통합계정 토큰」 창이 그 사실을 안 숨긴다(SETUP.md `DEVICE_FARM_TOKEN` 과 같은 판단: 권한이 작은 계정이 낫다) |
+| 22 | **QA Hub 를 부르는 BTS 쪽 설정(웹훅 · 규칙 둘 · 보드 칸)은 QA Hub 가 누른 사람의 이름(2026-11-04 S25 부터 Auth 대신 PAT — 앞 판은 그 사람이 넣은 통합계정 토큰)으로 만든다** — 사람이 값을 복사해 BTS 에 붙여 넣지 않는다. 이 화면에서 남는 손일은 `deploy.sh` 한 줄이다. 상태를 바꾸는 BTS 규칙과 GitHub 연결은 자동 설정 밖이다(§3.12 「설정 · 고장 대응」 「자동 설정 밖」) (2026-10-31 BTS-F3-05 사용자 — 첫 시안의 「복사 값」 구획을 거절) | BTS 가 통합계정 PAT 를 받고(`AuthPlatformPatVerifier`) QA Hub 가 누른 사람의 대신 PAT 를 Auth 에서 받는다(2026-11-04 S25 — 앞 판은 사람마다 넣은 토큰). 「QA Hub AI」 열쇠를 관리 권한까지 넓히지 않는다 — 새면 BTS 설정이 바뀐다. 다만 그 사람의 대신 PAT 는 러너 §5.2 「받아들인 한계」대로 3시간 동안 그 사람이 누른 앱 · 게임 케이스에도 넘어간다 — BTS 관리자면 그 관리 권한도 거기 열린다 |
 
 #### 새 기능 바퀴 — 배포 신호 → 맡은 이슈 → PRD 초안
 
@@ -209,7 +209,7 @@ BTS-F6-01 반영 2026-10-31 — 서버 `apps/admin/src/bts/bugfix.ts` · `bugfix
 - **실행 찾기**(2026-11-02 사용자 — PR 4 시작 질문) — 자동 AI 는 실행 결과 보기에 넣을 실행 번호를 얻을 길이 없었다. 케이스 번호나 이슈 키로 그 케이스가 든 최근 실행을 찾는다. 이슈 키는 실패를 BTS 에 올릴 때 남긴 짝 기록(`bts_issue_case`)으로 케이스를 찾는다. 실행 결과 보기에 인자를 더하지 않고 도구를 따로 둔다 — 답 모양이 둘로 갈리면 AI 가 헷갈린다
 - 권한 검사는 화면 통로와 같은 출입문 하나다(도메인/인증 §7 — 프로젝트 · 기능 칸). 도구마다 화면의 같은 통로가 요구하는 권한으로 문의 판정 함수(`auth/gate.ts` `문판정`)를 부른다 — PRD 요구 찾기는 `GET /api/prd`, 지도 찾기는 `GET /api/catalog/cases`, 실행 찾기는 `GET /api/runs`, 실행 결과는 `GET /api/runs/:runId`, BTS 찾기 · 노트 읽기는 그 프로젝트 애플리케이션 하나라도 (작성, read). 배정 밖은 도구 오류 `FORBIDDEN`
 - 작성 자식(`claude -p`)에 `--mcp-config` 로 붙인다 (2026-10-31 BTS-F4-02 반영 — `scripts/authoring-rules.ts` `MCP붙이기`). 집기 응답에 일마다 열쇠(`mcpKey`)가 온 줄만 서버 `qa-hub`(`<admin 주소>/mcp` · `Bearer mcj_…`)와 그 서버 도구 허용(`--allowedTools mcp__qa-hub` — `-p` 는 허용 안 된 도구를 묻지 못하고 거절한다)을 `--disallowedTools` 바로 앞에 끼운다. 기존 깃발은 그대로 둔다. 열쇠는 인자에 싣지 않는다 — 같은 컨테이너의 다른 자리 자식이 `ps` 로 남의 프로젝트 열쇠를 읽는다. 설정은 그 자식 임시 자리의 파일(그 자리 uid 의 0600 · `scripts/authoring-child.ts` `MCP설정쓰기`)에 두고 `--mcp-config` 에는 경로만 준다
-- `mcj_` 요청의 사람은 그 줄을 집은 작성 계정이다 — 권한은 그 계정 것을 쓰고 배정을 그 줄의 프로젝트로 좁힌다(`apps/admin/src/mcp/jobKey.ts`). 집은 계정이 지금의 작성 계정이 아니거나 꺼졌으면 401. BTS 찾기는 PAT 가 없어 그 프로젝트에 저장한 「QA Hub AI」 열쇠로 부른다
+- `mcj_` 요청의 사람은 그 줄을 집은 작성 계정이다 — 권한은 그 계정 것을 쓰고 배정을 그 줄의 프로젝트로 좁힌다(`apps/admin/src/mcp/jobKey.ts`). 집은 계정이 지금의 작성 계정이 아니거나 꺼졌으면 401. BTS 찾기는 PAT 가 없어 그 프로젝트에 적은 「QA Hub AI」 계정 이름의 대신 PAT 로 부른다(2026-11-04 S25)
 - 새 npm 패키지 `@modelcontextprotocol/sdk` 는 BTS-F4-01 시작 질문에서 승인받았다(2026-10-31 사용자 — 「나중에 기능 추가할 수 있으니」 · 1.32.1). 1차 밖의 브라우저 로그인 · 긴 작업 자리가 패키지에 있다
 
 #### 열쇠 표
@@ -221,7 +221,7 @@ BTS-F6-01 반영 2026-10-31 — 서버 `apps/admin/src/bts/bugfix.ts` · `bugfix
 | BTS 규칙 웹훅 호출 → QA Hub | 고정 헤더의 QA Hub 규칙 토큰(`btr_`) — BTS 자동 설정이 만들어 규칙 머리에 넣는다. 화면은 원문을 안 보인다. 통로 `keys/rule` 은 남아 있다 — 부르면 토큰이 바뀌어 자동 설정이 만든 규칙이 멈추므로 다시 자동 설정을 누른다 | 그 프로젝트 담당자 변경 · PR 병합 받기만 |
 | 설정 화면 → BTS 자동 설정 · 고를 목록 | 자동 설정은 **누른 운영 계정의 대신 PAT**(2026-11-04 S25 — admin 이 그 계정 `auth_sub` 로 Auth 에서 받는다, [인증.md](인증.md) §7 「대신 PAT」 · 앞 판은 내 메뉴 「통합계정 토큰」). 고를 목록은 「QA Hub AI」 계정의 대신 PAT | 웹훅 · 자동화 규칙 · 보드 칸 만들기 · 고치기 / 상태 · 해결 사유 읽기만. 따로 발급받지 않는다(2026-10-31 사용자 「통합계정이잖아」) |
 | 자동 AI(작성 · 초안 · 노트 · 수정) → QA Hub MCP | 일마다 새로 나는 짧은 열쇠(`mcj_`) · 일 끝나면 무효(결정 20). 받는 줄은 `AUTHOR`(BTS 연결과 상관없이 — 2026-11-02 사용자 · PR 4: PRD 찾기 · 지도 · 실행은 연결 없이도 돈다) 와 BTS 연결 프로젝트의 `PRD_DRAFT` · `NOTE` · `BUGFIX` — 그 `RERUN` 도 같다. 연결이 없는 프로젝트의 열쇠로 부른 BTS 찾기 · 노트 읽기는 `NOT_LINKED` | 그 프로젝트 조회 도구만 |
-| QA Hub → BTS | 「QA Hub AI」 계정의 **대신 PAT** — 설정 › BTS 연결의 「QA Hub AI 계정 이름」(`bts_link.bot_username`, 비밀 아님)으로 admin 이 부를 때마다 Auth 에서 받는다(2026-11-04 S25 · 기억 · 수명은 [인증.md](인증.md) §7 「대신 PAT」. 앞 판은 붙여 넣은 PAT `bot_key`). **서버 `.env` 의 `BTS_BOT_USERNAMES`(쉼표로 여럿 · 운영 `qahub-ai`)에 든 이름만 받는다** — 설정 칸에 남의 이름과 자기 서버 주소를 적어 그 사람 대신 PAT 를 받아 가지 못하게(2026-11-04 사용자 「막고 배포」). 비면 아무 이름도 못 쓴다 | 등록 · 댓글 · 상태 · 담당자만 |
+| QA Hub → BTS | 「QA Hub AI」 계정의 **대신 PAT** — 설정 › BTS 연결의 「QA Hub AI 계정 이름」(`bts_link.bot_username`, 비밀 아님)으로 admin 이 부를 때마다 Auth 에서 받는다(2026-11-04 S25 · 기억 · 수명은 [인증.md](인증.md) §7 「대신 PAT」. 앞 판은 붙여 넣은 PAT `bot_key`). **서버 `.env` 의 `BTS_BOT_USERNAMES`(쉼표로 여럿 · 운영 `qahub-ai`)에 든 이름만 받고, 열쇠는 `BTS_URLS`(쉼표로 여럿)와 출처가 같은 주소로만 보낸다** — 설정 칸에 남의 이름이나 자기 서버 주소를 적어 그 사람 · 「QA Hub AI」 대신 PAT 를 받아 가지 못하게(2026-11-04 사용자 「막고 배포」). 주소 묶음은 자동 설정 · MCP 의 사람 토큰에도 걸린다. 둘 다 비면 Issue Bunker 를 못 부른다 | 등록 · 댓글 · 상태 · 담당자만 |
 | BTS → QA Hub 알림 | HMAC 서명 `X-BTS-Signature`(BTS 에 이미 있음) | 알림 받기 |
 | 수정 AI → GitHub | 작성 에이전트의 GitHub 로그인 — 에이전트 스크립트만 든다(자식 환경에서는 지운다). 그 계정이 대상 저장소에 쓰기 권한이 있어야 한다(BTS-F6-01 시작 질문) | 브랜치 · PR 까지 |
 
@@ -230,7 +230,7 @@ BTS-F6-01 반영 2026-10-31 — 서버 `apps/admin/src/bts/bugfix.ts` · `bugfix
 
 #### 설정 · 고장 대응
 
-- 처음 설정은 「설정 › Issue Bunker 연결」 한 화면(§8.15) — 프로젝트 짝짓기 · 「QA Hub AI」 계정 토큰 · 회사마다 다른 BTS 상태 · 해결 사유 ↔ 단계 짝짓기(BTS 에서 목록을 불러와 고른다) · 애플리케이션별 코드 저장소 · **BTS 자동 설정** · `deploy.sh` 한 줄 복사
+- 처음 설정은 「설정 › Issue Bunker 연결」 한 화면(§8.15) — 프로젝트 짝짓기 · 「QA Hub AI」 계정 이름 · 회사마다 다른 BTS 상태 · 해결 사유 ↔ 단계 짝짓기(BTS 에서 목록을 불러와 고른다) · 애플리케이션별 코드 저장소 · **BTS 자동 설정** · `deploy.sh` 한 줄 복사
 - **BTS 쪽 설정은 QA Hub 가 만든다** (2026-10-31 BTS-F3-05 사용자 「자동으로 설정하면 되잖아」 · 「통합계정이잖아」) — 웹훅 하나(이슈 생성 · 상태 전환 → `POST /api/bts/events/:projectId`, 서명 비밀은 QA Hub 가 만들어 넣는다) · 자동화 규칙 둘(담당자 변경 · PR 병합 → 웹훅 호출, 머리에 `btr_`) · 보드마다 「QA 검토」 상태가 든 칸이 없으면 칸 하나. 누른 운영 계정의 대신 PAT 로 부른다(2026-11-04 S25)(「열쇠 표」). 다시 눌러도 한 벌이다 — 웹훅은 주소, 규칙은 이름(`QA Hub · 담당자 변경` · `QA Hub · PR 병합`)으로 찾아 고친다. 하나가 막혀도 나머지는 만든다
 - 권한 — 웹훅은 BTS 시스템 관리자, 규칙은 그 프로젝트 자동화 관리(기본 프로젝트 관리자 · 멤버여야 한다), 보드 칸은 그 프로젝트 만들기 권한. BTS 는 사설 주소 · localhost 로 가는 웹훅을 거절해 QA Hub 공개 주소(`PLATFORM_PUBLIC_URL`)가 있어야 한다. PR 병합 규칙은 BTS 프로젝트에 GitHub 연결(BTS 「Git 웹훅」)이 있어야 돈다 — 그 연결은 QA Hub 가 만들지 않는다
 - 이 화면에서 사람 손이 남는 것은 `deploy.sh` 한 줄이다 — 회사 배포 서버에 있어 QA Hub 가 못 고친다. 거기 들어갈 토큰(`pdk_`)은 프로젝트 전용이다. 사람 토큰을 두면 그 사람이 나갈 때 배포 신호가 끊긴다
@@ -330,7 +330,7 @@ GET    /api/settings/projects/:projectId/bts
   → 연결이 없으면 linked: false · 나머지 null · 짝은 {} · 404 NOT_FOUND(프로젝트 없음)
 PUT    /api/settings/projects/:projectId/bts   { baseUrl, btsProject, botUsername, webhookSecret?, statusMap, resolutionMap }
   → 200 · 400 MAP_INCOMPLETE(짝이 빈 단계 · 빠진 단계) · 400 BTS_UNREACHABLE(저장 전에 BTS 를 한 번 불러 본다 — 그 이름의 대신 PAT 로 GET <baseUrl>/api/v1/projects/<btsProject> 가 200 인지 — 대신 PAT 를 못 받아도 이것이다)
-  → 400 SSO_REQUIRED(SSO 를 끈 설치 — 대신 PAT 를 받을 Auth 가 없다) · 400 BOT_NOT_ALLOWED(botUsername 이 서버 BTS_BOT_USERNAMES 밖 — BTS 를 부르기 전에 막는다, 「열쇠 표」) · 404 NOT_FOUND. webhookSecret 은 처음 연결에 없으면 QA Hub 가 만든다 — BTS 자동 설정이 BTS 웹훅에 넣는다(BTS-F3-05)
+  → 404 NOT_FOUND(프로젝트 없음 — 다른 검사보다 먼저) · 400 SSO_REQUIRED(SSO 를 끈 설치 — 대신 PAT 를 받을 Auth 가 없다) · 400 BOT_NOT_ALLOWED(botUsername 이 서버 BTS_BOT_USERNAMES 밖) · 400 BTS_URL_NOT_ALLOWED(baseUrl 이 BTS_URLS 밖 — 둘 다 BTS 를 부르기 전에 막는다, 「열쇠 표」). webhookSecret 은 처음 연결에 없으면 QA Hub 가 만든다 — BTS 자동 설정이 BTS 웹훅에 넣는다(BTS-F3-05)
   — botUsername 은 1~100자 · 공백 없음(꼴이 틀리면 400 INVALID_REQUEST). 앞 판의 botKey · SECRETS_REQUIRED · BOT_KEY_REQUIRED 는 2026-11-04 S25 에 걷었다 — 저장해 둔 비밀이 없다
   — baseUrl 은 끝 「/」를 떼고 호스트를 소문자로 맞춰 저장한다 · 물음표 · # 이 든 주소는 400 INVALID_REQUEST
 DELETE /api/settings/projects/:projectId/bts   → 204 · 404 NOT_FOUND(프로젝트 없음) — 연결을 끊으면 그 프로젝트는 다시 지금처럼 돈다(맡은 이슈 · 짝 기록은 남긴다)
@@ -338,7 +338,7 @@ POST   /api/settings/projects/:projectId/bts/keys/:which   — which = deploy | 
   → 201 { key }   — 원문은 이 응답 한 번뿐 · 409 NOT_LINKED(연결 없음) · 404 NOT_FOUND(프로젝트 없음)
 POST   /api/settings/projects/:projectId/bts/choices   { baseUrl, botUsername }   — 상태 매핑 고르개에 채울 목록 (BTS-F3-05 · bts/choices.ts)
   → 200 { statuses: [{ key, name }], resolutions: [{ name }] }   — BTS GET /api/v1/statuses · /api/v1/resolutions 를 그 이름의 대신 PAT 로 부른다(로그인만 하면 읽힌다)
-  → 400 SSO_REQUIRED(SSO 를 끈 설치) · 400 BOT_NOT_ALLOWED(BTS_BOT_USERNAMES 밖 이름) · 400 BTS_UNREACHABLE(둘 중 하나라도 200 이 아님 · 닿지 않음 · 대신 PAT 를 못 받음) · 400 INVALID_REQUEST(꼴)
+  → 400 SSO_REQUIRED(SSO 를 끈 설치) · 400 BOT_NOT_ALLOWED(BTS_BOT_USERNAMES 밖 이름) · 400 BTS_URL_NOT_ALLOWED(BTS_URLS 밖 주소) · 400 BTS_UNREACHABLE(둘 중 하나라도 200 이 아님 · 닿지 않음 · 대신 PAT 를 못 받음) · 400 INVALID_REQUEST(꼴)
   — 상태는 BTS 전체 목록이다. 그 프로젝트 워크플로 목록은 워크플로 고치기 권한이 들어 「QA Hub AI」 열쇠로 못 읽는다 — 그 프로젝트에 없는 상태를 고르면 보드 칸 · 상태 옮기기가 BTS 에서 깨진다
 POST   /api/settings/projects/:projectId/bts/setup   — BTS 자동 설정 (BTS-F3-05 · bts/setup.ts). 누른 운영 계정의 대신 PAT(그 계정 auth_sub 로 Auth 에서 받는다 — 2026-11-04 S25)로 부른다
   → 200 { items: [{ what: 'WEBHOOK' | 'RULE_ASSIGNEE' | 'RULE_PR' | 'BOARD', ok, status? }] }   — status 는 BTS 가 준 상태 코드(0 은 닿지 않음). 하나가 막혀도 나머지는 한다. 보드가 하나도 없으면 BOARD 는 status 404(화면 「보드 없음」). 그 사이 연결이 끊겨 규칙 토큰을 못 만들면 규칙 둘은 status 409
@@ -467,10 +467,10 @@ POST /mcp
 현재:    「QA Hub AI」 계정 PAT 원문을 bts_link.bot_key 에 두고(화면은 끝 4자리), 자동 설정은 누른 사람이 넣은 app_user.farm_token 으로 부른다
 제안:    bot_key 를 지우고 bot_username(Auth username · 비밀 아님)을 둔다. 부를 때마다 그 이름의 대신 PAT 를 Auth 에서 받는다. 자동 설정은 누른 계정 auth_sub 의 대신 PAT.
          GET 은 botKeyTail 대신 botUsername · PUT · choices 는 botKey? 대신 botUsername · SECRETS_REQUIRED · BOT_KEY_REQUIRED 를 걷고 SSO_REQUIRED · BOT_NOT_ALLOWED.
-         이름은 서버 .env BTS_BOT_USERNAMES 에 든 것만 받는다
+         이름은 서버 .env BTS_BOT_USERNAMES 에 든 것만, 주소는 BTS_URLS 와 출처가 같은 것만 받는다
 이유:    2026-11-04 S25 사용자 — 「벙커 qaai 에도 PAT 넣잖아」 · 「커맨더에 PAT 넣는 곳도 없어도 되겠네」
 영향:    admin(bts/* · mcp/tools · web/SettingsBts · btsApi) · DB · 운영(이은 연결마다 계정 이름을 한 번 적는다)
-상태:    대기
+상태:    반영 완료 (2026-11-04, apps/admin/src/bts/link.ts · apps/admin/src/bts/client.ts · apps/admin/src/web/SettingsBts.tsx — S25)
 ```
 
 ---

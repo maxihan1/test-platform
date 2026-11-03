@@ -98,6 +98,8 @@ services:
       DEVICE_FARM_RUN_AS: "${DEVICE_FARM_RUN_AS:-}"
       # 설정 › BTS 연결의 「QA Hub AI 계정 이름」으로 받을 Auth username(쉼표로 여럿 · 운영 qahub-ai). 밖의 이름은 거절한다 — 남의 이름을 적어 그 사람 대신 PAT 를 받아 가지 못하게 (SPEC 도메인/BTS 「열쇠 표」)
       BTS_BOT_USERNAMES: "${BTS_BOT_USERNAMES:-}"
+      # 열쇠(대신 PAT)를 보낼 Issue Bunker 주소(쉼표로 여럿 · 출처로 견준다). 밖의 주소는 거절한다 — 주소 칸을 자기 서버로 바꿔 대신 PAT 를 받아 가지 못하게
+      BTS_URLS: "${BTS_URLS:-}"
       # SSO 를 끈 설치 · RUN_AS 를 못 받을 때만 싣는 Bearer 토큰. 비면 머리를 안 싣는다 — SSO 설치는 비워 둔다(admin 이 요청마다 대신 PAT 를 넘긴다)
       DEVICE_FARM_TOKEN: "${DEVICE_FARM_TOKEN:-}"
     # 컨테이너에서 호스트(내 컴퓨터)의 러너에 닿는 이름. 맥 Docker Desktop 에서만 127.0.0.1 전용 러너에 닿는 것을 확인했다 —

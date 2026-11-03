@@ -953,11 +953,12 @@ docker run -d --init --restart unless-stopped --network host --name qahub-monito
    DEVICE_FARM_URL=https://farm.maxihan.com/wd/hub
    DEVICE_FARM_RUN_AS=maxi
    BTS_BOT_USERNAMES=qahub-ai
+   BTS_URLS=<설정 › BTS 연결에 적는 Issue Bunker 주소>
    AUTHORING_AGENT_USER=<맥 .env 와 같은 아이디>
    ```
    - **`DEVICE_FARM_RUN_AS` 는 정기 · 빌드 실행 · 작성 AI · 기기 성능이 팜에 보일 Auth 계정 이름(username)이다** (2026-11-04 S25 — 지금은 `maxi`). admin 이 그 이름의 「대신 PAT」(3시간)를 Auth 에서 받아 팜에 싣는다. 사람이 누른 실행은 누른 사람 이름이다 — 아무도 토큰을 붙여 넣지 않는다(SPEC 도메인/러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」 · 도메인/인증 §7 「대신 PAT」)
    - 대신 PAT 는 로그인과 같은 `AUTH_ISSUER` · `AUTH_CLIENT_ID` · `AUTH_CLIENT_SECRET` 로 받는다. Auth 운영 설정의 `auth.delegated-pats.clients` 에 `AUTH_CLIENT_ID`(`test-platform`)가 있어야 한다 — 없으면 403 이라 서버 몫 · 사람 실행이 모두 `DEVICE_FARM_TOKEN` 으로 물러선다
-   - **`BTS_BOT_USERNAMES` 는 설정 › BTS 연결의 「QA Hub AI 계정 이름」으로 받을 Auth 계정 이름이다**(쉼표로 여럿) — 밖의 이름은 저장 · 불러오기 · 부르기를 거절한다. 비면 Issue Bunker 를 못 잇는다(SPEC 도메인/BTS 「열쇠 표」)
+   - **`BTS_BOT_USERNAMES` 는 설정 › BTS 연결의 「QA Hub AI 계정 이름」으로 받을 Auth 계정 이름, `BTS_URLS` 는 열쇠를 보낼 Issue Bunker 주소다**(둘 다 쉼표로 여럿) — 밖의 이름 · 주소는 저장 · 불러오기 · 부르기를 거절한다. 비면 Issue Bunker 를 못 잇는다(SPEC 도메인/BTS 「열쇠 표」)
    - **`DEVICE_FARM_TOKEN` 은 SSO 를 끈 설치에만 적는다** — SSO 설치에서는 비워 둔다. 앞 판(2026-10-27 ~ 11-03)은 여기에 `maxi` 의 PAT 를 넣었다. 지웠으면 그 PAT 는 Auth 「내 계정」에서 폐기한다
    - 새면 3시간 동안 팜과 Issue Bunker 를 그 계정 이름으로 쓸 수 있다(대신 PAT 의 scopes `[bunker, vision]`). 러너의 Android 앱 · 게임 케이스(AI 가 쓴 코드)와 작성 AI 자식 세션이 이 값을 읽을 수 있다. 그래서 `DEVICE_FARM_RUN_AS` 는 Bunker 권한이 작은 계정인 쪽이 낫다
    - `COMPOSE_FILE` 이 서버용 덧붙임 파일을 늘 같이 읽게 한다 — 서버에서 그냥 `docker compose up -d` 를 쳐도 perf-agent 가 안 뜨고 CPU · 메모리 상한이 걸린다
