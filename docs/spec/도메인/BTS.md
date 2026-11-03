@@ -221,7 +221,7 @@ BTS-F6-01 반영 2026-10-31 — 서버 `apps/admin/src/bts/bugfix.ts` · `bugfix
 | BTS 규칙 웹훅 호출 → QA Hub | 고정 헤더의 QA Hub 규칙 토큰(`btr_`) — BTS 자동 설정이 만들어 규칙 머리에 넣는다. 화면은 원문을 안 보인다. 통로 `keys/rule` 은 남아 있다 — 부르면 토큰이 바뀌어 자동 설정이 만든 규칙이 멈추므로 다시 자동 설정을 누른다 | 그 프로젝트 담당자 변경 · PR 병합 받기만 |
 | 설정 화면 → BTS 자동 설정 · 고를 목록 | 자동 설정은 **누른 운영 계정의 대신 PAT**(2026-11-04 S25 — admin 이 그 계정 `auth_sub` 로 Auth 에서 받는다, [인증.md](인증.md) §7 「대신 PAT」 · 앞 판은 내 메뉴 「통합계정 토큰」). 고를 목록은 「QA Hub AI」 계정의 대신 PAT | 웹훅 · 자동화 규칙 · 보드 칸 만들기 · 고치기 / 상태 · 해결 사유 읽기만. 따로 발급받지 않는다(2026-10-31 사용자 「통합계정이잖아」) |
 | 자동 AI(작성 · 초안 · 노트 · 수정) → QA Hub MCP | 일마다 새로 나는 짧은 열쇠(`mcj_`) · 일 끝나면 무효(결정 20). 받는 줄은 `AUTHOR`(BTS 연결과 상관없이 — 2026-11-02 사용자 · PR 4: PRD 찾기 · 지도 · 실행은 연결 없이도 돈다) 와 BTS 연결 프로젝트의 `PRD_DRAFT` · `NOTE` · `BUGFIX` — 그 `RERUN` 도 같다. 연결이 없는 프로젝트의 열쇠로 부른 BTS 찾기 · 노트 읽기는 `NOT_LINKED` | 그 프로젝트 조회 도구만 |
-| QA Hub → BTS | 「QA Hub AI」 계정의 **대신 PAT** — 설정 › BTS 연결의 「QA Hub AI 계정 이름」(`bts_link.bot_username`, 비밀 아님)으로 admin 이 부를 때마다 Auth 에서 받는다(2026-11-04 S25 · 기억 · 수명은 [인증.md](인증.md) §7 「대신 PAT」. 앞 판은 붙여 넣은 PAT `bot_key`) | 등록 · 댓글 · 상태 · 담당자만 |
+| QA Hub → BTS | 「QA Hub AI」 계정의 **대신 PAT** — 설정 › BTS 연결의 「QA Hub AI 계정 이름」(`bts_link.bot_username`, 비밀 아님)으로 admin 이 부를 때마다 Auth 에서 받는다(2026-11-04 S25 · 기억 · 수명은 [인증.md](인증.md) §7 「대신 PAT」. 앞 판은 붙여 넣은 PAT `bot_key`). **서버 `.env` 의 `BTS_BOT_USERNAMES`(쉼표로 여럿 · 운영 `qahub-ai`)에 든 이름만 받는다** — 설정 칸에 남의 이름과 자기 서버 주소를 적어 그 사람 대신 PAT 를 받아 가지 못하게(2026-11-04 사용자 「막고 배포」). 비면 아무 이름도 못 쓴다 | 등록 · 댓글 · 상태 · 담당자만 |
 | BTS → QA Hub 알림 | HMAC 서명 `X-BTS-Signature`(BTS 에 이미 있음) | 알림 받기 |
 | 수정 AI → GitHub | 작성 에이전트의 GitHub 로그인 — 에이전트 스크립트만 든다(자식 환경에서는 지운다). 그 계정이 대상 저장소에 쓰기 권한이 있어야 한다(BTS-F6-01 시작 질문) | 브랜치 · PR 까지 |
 
@@ -330,7 +330,7 @@ GET    /api/settings/projects/:projectId/bts
   → 연결이 없으면 linked: false · 나머지 null · 짝은 {} · 404 NOT_FOUND(프로젝트 없음)
 PUT    /api/settings/projects/:projectId/bts   { baseUrl, btsProject, botUsername, webhookSecret?, statusMap, resolutionMap }
   → 200 · 400 MAP_INCOMPLETE(짝이 빈 단계 · 빠진 단계) · 400 BTS_UNREACHABLE(저장 전에 BTS 를 한 번 불러 본다 — 그 이름의 대신 PAT 로 GET <baseUrl>/api/v1/projects/<btsProject> 가 200 인지 — 대신 PAT 를 못 받아도 이것이다)
-  → 400 SSO_REQUIRED(SSO 를 끈 설치 — 대신 PAT 를 받을 Auth 가 없다) · 404 NOT_FOUND. webhookSecret 은 처음 연결에 없으면 QA Hub 가 만든다 — BTS 자동 설정이 BTS 웹훅에 넣는다(BTS-F3-05)
+  → 400 SSO_REQUIRED(SSO 를 끈 설치 — 대신 PAT 를 받을 Auth 가 없다) · 400 BOT_NOT_ALLOWED(botUsername 이 서버 BTS_BOT_USERNAMES 밖 — BTS 를 부르기 전에 막는다, 「열쇠 표」) · 404 NOT_FOUND. webhookSecret 은 처음 연결에 없으면 QA Hub 가 만든다 — BTS 자동 설정이 BTS 웹훅에 넣는다(BTS-F3-05)
   — botUsername 은 1~100자 · 공백 없음(꼴이 틀리면 400 INVALID_REQUEST). 앞 판의 botKey · SECRETS_REQUIRED · BOT_KEY_REQUIRED 는 2026-11-04 S25 에 걷었다 — 저장해 둔 비밀이 없다
   — baseUrl 은 끝 「/」를 떼고 호스트를 소문자로 맞춰 저장한다 · 물음표 · # 이 든 주소는 400 INVALID_REQUEST
 DELETE /api/settings/projects/:projectId/bts   → 204 · 404 NOT_FOUND(프로젝트 없음) — 연결을 끊으면 그 프로젝트는 다시 지금처럼 돈다(맡은 이슈 · 짝 기록은 남긴다)
@@ -338,7 +338,7 @@ POST   /api/settings/projects/:projectId/bts/keys/:which   — which = deploy | 
   → 201 { key }   — 원문은 이 응답 한 번뿐 · 409 NOT_LINKED(연결 없음) · 404 NOT_FOUND(프로젝트 없음)
 POST   /api/settings/projects/:projectId/bts/choices   { baseUrl, botUsername }   — 상태 매핑 고르개에 채울 목록 (BTS-F3-05 · bts/choices.ts)
   → 200 { statuses: [{ key, name }], resolutions: [{ name }] }   — BTS GET /api/v1/statuses · /api/v1/resolutions 를 그 이름의 대신 PAT 로 부른다(로그인만 하면 읽힌다)
-  → 400 SSO_REQUIRED(SSO 를 끈 설치) · 400 BTS_UNREACHABLE(둘 중 하나라도 200 이 아님 · 닿지 않음 · 대신 PAT 를 못 받음) · 400 INVALID_REQUEST(꼴)
+  → 400 SSO_REQUIRED(SSO 를 끈 설치) · 400 BOT_NOT_ALLOWED(BTS_BOT_USERNAMES 밖 이름) · 400 BTS_UNREACHABLE(둘 중 하나라도 200 이 아님 · 닿지 않음 · 대신 PAT 를 못 받음) · 400 INVALID_REQUEST(꼴)
   — 상태는 BTS 전체 목록이다. 그 프로젝트 워크플로 목록은 워크플로 고치기 권한이 들어 「QA Hub AI」 열쇠로 못 읽는다 — 그 프로젝트에 없는 상태를 고르면 보드 칸 · 상태 옮기기가 BTS 에서 깨진다
 POST   /api/settings/projects/:projectId/bts/setup   — BTS 자동 설정 (BTS-F3-05 · bts/setup.ts). 누른 운영 계정의 대신 PAT(그 계정 auth_sub 로 Auth 에서 받는다 — 2026-11-04 S25)로 부른다
   → 200 { items: [{ what: 'WEBHOOK' | 'RULE_ASSIGNEE' | 'RULE_PR' | 'BOARD', ok, status? }] }   — status 는 BTS 가 준 상태 코드(0 은 닿지 않음). 하나가 막혀도 나머지는 한다. 보드가 하나도 없으면 BOARD 는 status 404(화면 「보드 없음」). 그 사이 연결이 끊겨 규칙 토큰을 못 만들면 규칙 둘은 status 409
@@ -466,7 +466,8 @@ POST /mcp
 대상:    DB bts_link.bot_key → bot_username · Admin API GET · PUT /api/settings/projects/:projectId/bts · POST …/bts/choices · …/bts/setup 의 열쇠
 현재:    「QA Hub AI」 계정 PAT 원문을 bts_link.bot_key 에 두고(화면은 끝 4자리), 자동 설정은 누른 사람이 넣은 app_user.farm_token 으로 부른다
 제안:    bot_key 를 지우고 bot_username(Auth username · 비밀 아님)을 둔다. 부를 때마다 그 이름의 대신 PAT 를 Auth 에서 받는다. 자동 설정은 누른 계정 auth_sub 의 대신 PAT.
-         GET 은 botKeyTail 대신 botUsername · PUT · choices 는 botKey? 대신 botUsername · SECRETS_REQUIRED · BOT_KEY_REQUIRED 를 걷고 SSO_REQUIRED
+         GET 은 botKeyTail 대신 botUsername · PUT · choices 는 botKey? 대신 botUsername · SECRETS_REQUIRED · BOT_KEY_REQUIRED 를 걷고 SSO_REQUIRED · BOT_NOT_ALLOWED.
+         이름은 서버 .env BTS_BOT_USERNAMES 에 든 것만 받는다
 이유:    2026-11-04 S25 사용자 — 「벙커 qaai 에도 PAT 넣잖아」 · 「커맨더에 PAT 넣는 곳도 없어도 되겠네」
 영향:    admin(bts/* · mcp/tools · web/SettingsBts · btsApi) · DB · 운영(이은 연결마다 계정 이름을 한 번 적는다)
 상태:    대기

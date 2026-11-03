@@ -17,6 +17,7 @@ import { Failed, Loading, useAsync } from './ui.js';
 const 연결오류: Record<string, string> = {
   BTS_UNREACHABLE: '{bts} 에 접속하지 못했습니다. 주소 · 프로젝트 키 · 「QA Hub AI」 계정 이름을 확인해 주세요',
   SSO_REQUIRED: 'Auth 로그인을 켠 설치에서만 {bts} 를 이을 수 있습니다',
+  BOT_NOT_ALLOWED: '서버가 허용한 「QA Hub AI」 계정 이름이 아닙니다. 서버 .env 의 BTS_BOT_USERNAMES 를 확인해 주세요',
   MAP_INCOMPLETE: '비어 있는 단계가 있습니다. 모든 단계에 {bts} 상태를 골라 주세요',
   NO_PERSONAL_TOKEN: 'Auth 계정으로 로그인한 운영 계정이어야 {bts} 자동 설정을 할 수 있습니다',
   PUBLIC_URL_REQUIRED: '이 서버의 공개 주소(PLATFORM_PUBLIC_URL)가 없어 {bts} 가 Test Commander 를 부를 수 없습니다',

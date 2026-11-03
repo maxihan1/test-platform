@@ -28,6 +28,7 @@ const SSO켜기 = (켬: boolean) => {
   vi.stubEnv('AUTH_CLIENT_ID', 켬 ? 'test-platform' : '');
   vi.stubEnv('AUTH_CLIENT_SECRET', 켬 ? 's' : '');
   vi.stubEnv('PLATFORM_PUBLIC_URL', 'https://qahub.example.com');
+  vi.stubEnv('BTS_BOT_USERNAMES', 'qahub-ai, qahub-bot');
 };
 
 const 상태 = { DEPLOY_WAIT: '배포 대기', QA_REQUEST: 'QA 요청', QA_REVIEW: 'QA 검토', DEV_REQUEST: '개발 요청', CODE_REVIEW: '코드 리뷰', CLOSED: '닫힘' };
@@ -39,6 +40,7 @@ describe('BTS 확인 — 가짜 BTS', () => {
   const 받은것: { url?: string; auth?: string }[] = [];
 
   beforeAll(async () => {
+    vi.stubEnv('BTS_BOT_USERNAMES', 'good,bad,auth-down');
     서버 = createServer((req, res) => {
       받은것.push({ url: req.url, auth: req.headers.authorization });
       res.statusCode = req.headers.authorization === 'Bearer pat_good' && req.url === '/api/v1/projects/DM' ? 200 : 404;
@@ -48,7 +50,10 @@ describe('BTS 확인 — 가짜 BTS', () => {
     주소 = `http://127.0.0.1:${(서버.address() as AddressInfo).port}`;
   });
 
-  afterAll(() => new Promise<void>((r) => 서버.close(() => r())));
+  afterAll(() => {
+    vi.unstubAllEnvs();
+    return new Promise<void>((r) => 서버.close(() => r()));
+  });
 
   it('그 계정 이름의 대신 PAT 로 그 프로젝트를 읽을 수 있을 때만 true 다', async () => {
     expect(await BTS확인(`${주소}/`, 'DM', 'good')).toBe(true);
@@ -170,6 +175,16 @@ describe.skipIf(연결 === undefined)('설정 API — BTS 연결', () => {
     SSO켜기(true);
     expect([저장답.statusCode, 저장답.json().error]).toEqual([400, 'SSO_REQUIRED']);
     expect([목록답.statusCode, 목록답.json().error]).toEqual([400, 'SSO_REQUIRED']);
+    expect([확인한것.length, 부른것.length]).toEqual(앞);
+    expect((await 읽기()).linked).toBe(false);
+  });
+
+  it('서버 BTS_BOT_USERNAMES 밖의 계정 이름은 저장 · 고를 목록이 BOT_NOT_ALLOWED 다 — BTS 도 안 부른다', async () => {
+    const 앞 = [확인한것.length, 부른것.length];
+    const 저장답 = await 저장(본문({ baseUrl: 'https://evil.example.com', botUsername: 'maxi', webhookSecret: 'sec' }));
+    const 목록답 = await app.inject({ method: 'POST', url: `${주소()}/choices`, payload: { baseUrl: 'https://evil.example.com', botUsername: 'maxi' } });
+    expect([저장답.statusCode, 저장답.json().error]).toEqual([400, 'BOT_NOT_ALLOWED']);
+    expect([목록답.statusCode, 목록답.json().error]).toEqual([400, 'BOT_NOT_ALLOWED']);
     expect([확인한것.length, 부른것.length]).toEqual(앞);
     expect((await 읽기()).linked).toBe(false);
   });

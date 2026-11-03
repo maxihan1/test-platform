@@ -8,7 +8,7 @@ import { z } from 'zod';
 
 import { 토큰해시 } from '../auth/agentToken.js';
 import { SSO설정읽기 } from '../auth/oidc.js';
-import { 봇열쇠 } from './client.js';
+import { 봇열쇠, 봇이름허용 } from './client.js';
 
 async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
@@ -132,7 +132,7 @@ export const BTS확인: 확인함수 = async (baseUrl, btsProject, botUsername) 
   }
 };
 
-export type 저장결과 = 'OK' | 'NOT_FOUND' | 'SSO_REQUIRED' | 'BTS_UNREACHABLE';
+export type 저장결과 = 'OK' | 'NOT_FOUND' | 'SSO_REQUIRED' | 'BOT_NOT_ALLOWED' | 'BTS_UNREACHABLE';
 
 /**
  * 「QA Hub AI」 는 계정 이름만 둔다 — 저장한 비밀이 없어 주소를 바꿔도 다시 받을 것이 없다(2026-11-04 S25).
@@ -140,6 +140,8 @@ export type 저장결과 = 'OK' | 'NOT_FOUND' | 'SSO_REQUIRED' | 'BTS_UNREACHABL
  */
 export async function BTS연결저장(projectId: number, 입력: BTS연결입력, 누가: string, 확인: 확인함수 = BTS확인): Promise<저장결과> {
   if (SSO설정읽기() === null) return 'SSO_REQUIRED';
+  // 확인(BTS확인)도 그 이름의 대신 PAT 를 적힌 주소로 보낸다 — 부르기 전에 막는다
+  if (!봇이름허용(입력.botUsername)) return 'BOT_NOT_ALLOWED';
   const pool = await db();
   if (!(await 프로젝트있나(pool, projectId))) return 'NOT_FOUND';
   const 지금 = await 원행(pool, projectId);

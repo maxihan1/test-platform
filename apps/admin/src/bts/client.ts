@@ -8,9 +8,17 @@ import { 대신PAT } from '../auth/delegatedPat.js';
  */
 export type BTS자리 = { baseUrl: string } & ({ 봇: string } | { pat: string });
 
-/** 이름이 비면(S25 전에 이은 연결) 던진다 — 부르는 쪽은 닿지 않은 것과 같이 다룬다 */
+/**
+ * 서버 env BTS_BOT_USERNAMES(쉼표로 여럿)에 든 이름만 「QA Hub AI」 로 쓴다. 설정 칸은 운영 계정이 아무 이름이나 적을 수 있어,
+ * 묶지 않으면 남의 이름과 자기 서버 주소를 적어 그 사람 대신 PAT 를 받아 갈 수 있다 (2026-11-04 S25 사용자 「막고 배포」 · 도메인/BTS 「열쇠 표」)
+ */
+export const 봇이름허용 = (이름: string, env: NodeJS.ProcessEnv = process.env): boolean =>
+  (env.BTS_BOT_USERNAMES ?? '').split(',').map((n) => n.trim()).filter((n) => n !== '').includes(이름);
+
+/** 이름이 비었거나(S25 전에 이은 연결) 허용 목록 밖이면 던진다 — 부르는 쪽은 닿지 않은 것과 같이 다룬다 */
 export async function 봇열쇠(이름: string): Promise<string> {
   if (이름 === '') throw new Error('「QA Hub AI」 계정 이름이 없습니다 — 설정 › Issue Bunker 연결에 적어 주세요');
+  if (!봇이름허용(이름)) throw new Error(`「QA Hub AI」 계정 이름 ${이름} 은 서버 BTS_BOT_USERNAMES 에 없습니다`);
   return 대신PAT({ username: 이름 });
 }
 

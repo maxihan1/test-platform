@@ -88,6 +88,7 @@ describe.skipIf(연결 === undefined)('수정 AI 한 바퀴', () => {
 
   beforeAll(async () => {
     vi.stubEnv('AUTHORING_AGENT_USER', 맥);
+    vi.stubEnv('BTS_BOT_USERNAMES', 'qahub-xbg');
     await 치우기();
     프로젝트 = Number((await q(`INSERT INTO project (name) VALUES ('XBG 프로젝트') RETURNING id`)).rows[0].id);
     for (const [prefix, 저장소] of [['XBG', [{ name: '서버', url: 'https://github.com/demo/shop' }, { name: '화면', url: 'https://github.com/demo/web' }]], ['XBG2', []]] as const) {
