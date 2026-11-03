@@ -41,6 +41,8 @@ export const 실행말: Record<string, string> = {
     'Mobile web runs in Chrome on a real Device VISION phone. Watch the phone screen in a new tab',
   '동작마다 1초씩 쉬어 갑니다': 'Pauses 1 second after each action',
   '실제 폰 Chrome': 'Chrome on a real phone',
+  '원래 실행을 읽지 못해 모바일 실행 위치를 서버 흉내로 골라 두었습니다 ({까닭})':
+    'Could not read the original run, so the mobile run location is set to server emulation ({까닭})',
   '케이스마다 빈 폰을 하나씩 잡고 끝나면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 항목에 남습니다':
     'Each case takes a free phone and releases it when done. Screen video and logcat are kept for items that did not pass',
   '실행 하나 동안 빈 폰을 한 번 잡고 다 돌면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 항목에 남습니다':

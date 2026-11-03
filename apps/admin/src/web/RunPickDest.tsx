@@ -10,7 +10,8 @@ type 곳 = { 붙음: { runId: number; title: string; startedAt: string } | null 
  * 서버가 실행을 만들 때 고르는 규칙(execution/single.ts 시작방식정하기)을 따라 읽는다.
  * 「실패 1건 다시 실행」(원래실행)은 통로를 부르지 않고 그 실행을 읽는다 — 반복 실행이면 서버가 붙이지 않고 새 RUN(RERUN)을 만든다.
  * 대상 서버를 바꿨으면 그 실행에 안 붙고 이번 서버에서 고르므로 통로로 넘어간다. 모바일이 든 한 건은 모바일 실행 위치를 바꿨을 때도 같다 —
- * 그 실행의 위치는 서버처럼 실제 폰 모바일 항목이 있나(mobileDevices)로 읽는다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)
+ * 그 실행의 위치는 실제 폰 모바일 항목이 남긴 폰 모델(mobileDevices)로 읽는다 (도메인/실행 §3.2 「모바일 웹 실행 위치」).
+ * ponytail: 서버는 기기 칸이 찼나로 가른다 — 폰 모델을 못 읽은 실제 폰 항목만 있는 실행은 여기서 흉내로 읽혀 이 글이 서버와 갈린다. 실행 응답에 위치 칸을 따로 실으면 그것으로 바꾼다
  */
 async function 붙을곳읽기(tcId: string, env: string, 디바이스: Platform[], 원래실행: number | undefined, mobileOn: 모바일위치): Promise<곳> {
   if (원래실행 !== undefined) {

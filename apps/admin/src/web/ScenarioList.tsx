@@ -49,7 +49,7 @@ export function ScenarioList({ service, kind, envs, 할수 }: { service: string;
     </a>
   ) : null;
 
-  async function 실행(id: number) {
+  async function 실행(id: number, 모바일: boolean) {
     if (env === '') {
       // 버튼을 잠그지 않고 누르면 사유를 보여준다 (SPEC §8.2)
       set안내({ id, 글: t('대상 서버를 고르세요. 리포트에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.') });
@@ -58,7 +58,8 @@ export function ScenarioList({ service, kind, envs, 할수 }: { service: string;
     set안내(null);
     set돌리는중(id);
     try {
-      const { runId } = await scenarioApi.run(id, env, mobileOn);
+      // 고른 실행 위치는 모바일 시나리오에만 싣는다 — PC 시나리오에 남은 값이 따라가지 않게
+      const { runId } = await scenarioApi.run(id, env, 모바일 ? mobileOn : 'server');
       window.location.hash = 결과주소(runId, 'scenarios');
     } catch (err) {
       set안내({ id, 글: message(err, 언어) });
@@ -118,7 +119,7 @@ export function ScenarioList({ service, kind, envs, 할수 }: { service: string;
                     줄={it}
                     쓰나={쓰나}
                     돌리는중={돌리는중 === it.id}
-                    on실행={() => void 실행(it.id)}
+                    on실행={() => void 실행(it.id, it.platform === 'mobile')}
                     on치우기={() => set치울것(it)}
                   />
                   {안내?.id !== it.id ? null : (

@@ -197,7 +197,8 @@ function 증거칸({ devices, seq, 상세, 읽기 }: { devices: FailureDevice[];
     본문 = (
       <>
         <p className="hint">{t('실행 전체의 기록입니다 — 단계를 바꿔도 같습니다')}</p>
-        {devices.map((d) => (
+        {/* 받아 둔 것이 있는 디바이스만 — 웹 묶음의 PC 칸은 늘 비어 이름만 덩그러니 선다 */}
+        {devices.filter((d) => 받기파일(d).length > 0).map((d) => (
           <div key={d.platform}>
             {묶임 ? <b>{PLATFORM_LABEL[d.platform]}</b> : null}
             <팜증적 주소={(name) => api.farmFile(d.item.runId, d.item.historyId, name)} files={받기파일(d)} 보일={탭} />
@@ -220,7 +221,8 @@ function 증거칸({ devices, seq, 상세, 읽기 }: { devices: FailureDevice[];
       </>
     );
   } else if (탭 === 'dev') {
-    본문 = devices.map((d) => <기기정보 key={d.platform} device={d.device ?? null} 이름={묶임 ? PLATFORM_LABEL[d.platform] : null} />);
+    // 판을 읽은 디바이스만 — 웹 묶음의 PC 칸은 폰이 없어 「모름」만 늘어선다
+    본문 = devices.filter((d) => d.device != null).map((d) => <기기정보 key={d.platform} device={d.device ?? null} 이름={묶임 ? PLATFORM_LABEL[d.platform] : null} />);
   } else {
     본문 = <API증거 step={단계(devices[0]!)} 탭={탭} />;
   }

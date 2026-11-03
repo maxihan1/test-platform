@@ -24,6 +24,8 @@ interface 연것 {
   /** 기준시각 뒤에 저장값이 바뀐 케이스 */
   바뀐저장값: string[];
   모바일: 모바일위치;
+  /** 원래 실행을 못 읽어 모바일 실행 위치를 서버 흉내로 골라 둔 까닭. 창은 그대로 연다 — 미리 고르기는 편의라서다 */
+  위치못읽음: string | null;
 }
 
 /** 케이스가 선언한 디바이스 가운데 `돌릴` 것만 남긴다. 겹치는 게 없으면 선언 그대로 둔다 — 빈 디바이스로 걸 수는 없다 */
@@ -43,7 +45,8 @@ function 디바이스칸(c: CaseRow, 돌릴?: Platform[]): CaseRow {
  * @param 디바이스 케이스마다 돌릴 디바이스. 있으면 그 케이스가 선언한 것 가운데 이것만 담는다 — 실패 다시 실행이 실패한 디바이스만 돌리게
  * @param 기준시각 이 시각 뒤에 저장값이 바뀐 케이스를 창 위에 알린다 — 원래 실행과 다른 값으로 돌 수 있어서다
  * @param 위치실행 모바일 실행 위치를 이 실행이 돈 곳으로 미리 고른다 — 없으면 rerunOf, 둘 다 없으면 서버 흉내다.
- *   깨진 곳에서 다시 통과해야 고친 것이라 대상 서버처럼 원래 실행을 따른다. 실제 폰 모바일 항목이 있나(mobileDevices)로 읽는다 — 서버가 한 건을 붙일 곳을 가르는 규칙과 같다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)
+ *   깨진 곳에서 다시 통과해야 고친 것이라 대상 서버처럼 원래 실행을 따른다. 실제 폰 모바일 항목이 남긴 폰 모델(mobileDevices)로 읽는다 —
+ *   폰을 하나도 못 잡은 실행은 흉내로 읽혀 서버 흉내로 연다(도메인/실행 §3.2 「모바일 웹 실행 위치」 「알고 고른 한계」 · RunPickDest.tsx 붙을곳읽기와 같은 한계)
  */
 export function RunWindow({
   tcIds,
@@ -78,7 +81,9 @@ export function RunWindow({
     // ponytail: 케이스마다 한 번씩 읽는다(같이 보낸다). 실패가 수백 건인 실행이 생기면 목록 통로에 tcId 거르개를 연다
     // 카탈로그에 없는 번호(404)는 비활성처럼 빼고 알린다 — 작성 반영 때 중복으로 뺀 새 케이스는 파일째 지워져 카탈로그에 안 든다
     const 읽기 = (tcId: string) => api.caseOf(tcId).catch((err: unknown) => (err instanceof ApiError && err.status === 404 ? tcId : Promise.reject(err)));
-    const [받은, { user }, 원래] = await Promise.all([Promise.all(tcIds.map(읽기)), api.me(), 위치실행 === undefined ? null : api.run(위치실행)]);
+    // 못 읽으면 까닭 글자가 온다
+    const 원래읽기 = (runId: number) => api.run(runId).catch((err: unknown) => message(err, 언어));
+    const [받은, { user }, 원래] = await Promise.all([Promise.all(tcIds.map(읽기)), api.me(), 위치실행 === undefined ? null : 원래읽기(위치실행)]);
     const 읽은 = 받은.filter((c): c is CaseRow => typeof c !== 'string');
     const 없는 = 받은.filter((c): c is string => typeof c === 'string');
     // 띠가 아니라 tcId 접두사가 서비스를 말한다 — 알림 주소로 와서 띠가 다른 서비스여도 그 실행의 서버를 고른다
@@ -109,7 +114,8 @@ export function RunWindow({
       user,
       service: user.services.find((it) => it.prefix === 접두사) ?? null,
       초기글자,
-      모바일: (원래?.mobileDevices ?? []).length > 0 ? 'vision' : 'server',
+      모바일: 원래 !== null && typeof 원래 !== 'string' && (원래.mobileDevices ?? []).length > 0 ? 'vision' : 'server',
+      위치못읽음: typeof 원래 === 'string' ? 원래 : null,
     };
   }, [tcIds.join(','), 위치실행]);
 
@@ -146,6 +152,9 @@ export function RunWindow({
     읽기오류,
     연.빠진.length === 0 ? undefined : t('비활성이거나 없어 뺀 케이스 {목록}', { 목록: 연.빠진.join(', ') }),
     연.바뀐저장값.length === 0 ? undefined : t('실행 뒤에 저장값이 바뀐 케이스 {목록} — 실패 때와 다른 값으로 돕니다', { 목록: 연.바뀐저장값.join(', ') }),
+    연.위치못읽음 === null || !케이스들.some((c) => c.platforms.includes('mobile'))
+      ? undefined
+      : t('원래 실행을 읽지 못해 모바일 실행 위치를 서버 흉내로 골라 두었습니다 ({까닭})', { 까닭: 연.위치못읽음 }),
   ].filter((글): 글 is string => 글 !== undefined);
   const 안내글 = 안내들.length === 0 ? undefined : 안내들.join(' · ');
 

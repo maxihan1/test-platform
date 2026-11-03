@@ -258,6 +258,16 @@ describe('RunWindow', () => {
     expect(고른것()).toBe(false);
   });
 
+  it('원래 실행을 못 읽어도 창은 열고, 서버 흉내로 골라 둔 까닭을 창에 적는다', async () => {
+    읽기모킹([케이스('ZRS-001', { platforms: ['mobile'] })]);
+    vi.spyOn(api, 'run').mockRejectedValue(new ApiError(500, 'INTERNAL', ''));
+    render(<RunWindow tcIds={['ZRS-001']} rerunOf={20914} onClose={vi.fn()} />);
+    await screen.findByRole('dialog', { name: '실행할 케이스 1건' });
+
+    expect((screen.getByRole('radio', { name: '서버 (iPhone 14 흉내)' }) as HTMLInputElement).checked).toBe(true);
+    expect(screen.getByText(/^원래 실행을 읽지 못해 모바일 실행 위치를 서버 흉내로 골라 두었습니다/)).toBeTruthy();
+  });
+
   it('원래 실행이 없으면 실행을 읽지 않고 서버 흉내로 연다', async () => {
     읽기모킹([케이스('ZRS-001', { platforms: ['mobile'] })]);
     render(<RunWindow tcIds={['ZRS-001']} onClose={vi.fn()} />);
