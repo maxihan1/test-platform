@@ -100,6 +100,13 @@ describe('게임 애플리케이션 설정 — 어드민 키 (도메인/인증 �
     expect(screen.queryByLabelText('대상 서버 1 어드민 키 머리 이름')).toBeNull();
     expect((await 고친본문())?.envs?.[0]).not.toHaveProperty('adminKey');
   });
+
+  it('API 애플리케이션에도 칸이 서고 저장된 키는 값 없이 머리만 보낸다 — 서버 어드민 API 를 부르는 케이스가 쓴다', async () => {
+    render(<ServicePanel row={{ ...게임앱([키있는줄]), kind: 'API' }} onDone={() => {}} />);
+
+    expect((머리칸() as HTMLInputElement).value).toBe('X-Admin-Key');
+    expect((await 고친본문())?.envs?.[0]?.adminKey).toEqual({ header: 'X-Admin-Key' });
+  });
 });
 
 describe('게임 종류가 그리는 곳 (도메인/러너 §5.2 종류 표 GAME 줄)', () => {

@@ -173,7 +173,7 @@ export function 단계칸(p: {
       );
     }
     case 'envs':
-      return <EnvEditor envs={값.envs} onChange={(envs) => 고친다({ envs })} api={값.kind === 'API'} 게임={값.kind === 'GAME'} />;
+      return <EnvEditor envs={값.envs} onChange={(envs) => 고친다({ envs })} api={값.kind === 'API'} 어드민키={값.kind === 'GAME' || 값.kind === 'API'} />;
     case 'apidoc':
       return (
         <>

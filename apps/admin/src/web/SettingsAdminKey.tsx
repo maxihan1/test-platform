@@ -1,4 +1,4 @@
-// 대상 서버 한 줄의 「어드민 키」 칸 — 게임 서버 어드민 API 머리 이름과 값 (도메인/게임 §3.10 「케이스 꼴」 · 도메인/인증 §7 adminKey)
+// 대상 서버 한 줄의 「어드민 키」 칸 — 게임 · API 서버 어드민 API 머리 이름과 값 (도메인/게임 §3.10 「케이스 꼴」 · 도메인/인증 §7 adminKey)
 // SettingsEnvs.tsx 가 300줄에 닿지 않게 뗐다. API 인증 칸(SettingsApiAuths.tsx)과 같은 규칙이고 줄마다 하나라 「추가」가 없다 (2026-10-23 시안 A)
 
 import type { EnvInput, EnvRow } from './api.js';

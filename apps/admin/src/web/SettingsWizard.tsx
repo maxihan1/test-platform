@@ -45,7 +45,7 @@ export function 막는이유(st: 단계, v: 마법사값, 새프로젝트: boole
       return (
         서비스못보내는이유({ 새것: false, prefix: v.prefix, name: v.name, testsDir: v.testsDir, envs: v.envs, 제외: '' }, 언어) ??
         (v.kind === 'API' ? API인증못보내는이유(v.envs, 언어) : null) ??
-        (v.kind === 'GAME' ? 어드민키못보내는이유(v.envs, 언어) : null)
+        (v.kind === 'GAME' || v.kind === 'API' ? 어드민키못보내는이유(v.envs, 언어) : null)
       );
     case 'apidoc':
       return API문서못보내는이유({ 경로: v.apiDocPath, 기준: v.apiDocEnv, 서버들: 서버들(v) }, 언어);
@@ -157,7 +157,7 @@ export function SettingsWizard(p: Props) {
         name: 값.name,
         testsRepo: 값.testsRepo,
         testsDir: 값.testsDir,
-        envs: 보낼모양(값.envs, API종류, 값.kind === 'GAME'),
+        envs: 보낼모양(값.envs, API종류, 값.kind === 'GAME' || 값.kind === 'API'),
         crawlExclude: 제외경로값(쓰는제외(값)),
         // API 칸은 API 종류만 보낸다 — 다른 종류가 보내면 서버가 400 NOT_API_SERVICE 를 낸다
         ...(API종류 ? { apiDocPath: 값.apiDocPath === '' ? null : 값.apiDocPath, apiDocEnv: 값.apiDocEnv === '' ? null : 값.apiDocEnv } : {}),

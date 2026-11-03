@@ -98,6 +98,7 @@ export const 마법사말: Record<string, string> = {
     'Use accounts made just for testing. Treat them as visible to everyone who writes tests in this project',
   '앱 파일 경로에는 설치할 apk 파일 위치를 적습니다. 비워 두면 기본 앱을 씁니다': 'The app file path is where the apk to install lives. Leave it empty to use the default app',
   '어드민 키는 테스트가 「골드 1000 지급」처럼 게임 상태를 미리 만들 때 쓰는 열쇠입니다': 'The admin key lets tests set up game state first, like “grant 1000 gold”',
+  '어드민 키는 테스트가 관리자 전용 API 를 부를 때 쓰는 열쇠입니다. 그런 API 가 없으면 비워 둡니다': 'The admin key lets tests call admin-only APIs. Leave it empty if there are none',
   'API 인증에는 토큰을 받아 오는 방법을 적습니다. 서버마다 같은 이름으로 넣어 두면 서버를 바꿔도 테스트가 그대로 돕니다':
     'API auth describes how to get a token. Use the same name on every server and tests keep working when you switch servers',
   '지금 없으면 나중에 넣어도 됩니다': 'You can add these later',
