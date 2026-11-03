@@ -4,7 +4,7 @@
 import { StrictMode, useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
-import { api, type ServiceRow, type User, 돌아갈자리를꺼낸다, 세션끊김을받는다 } from './api.js';
+import { api, type ServiceRow, type User, 나가는중이다, 돌아갈자리를꺼낸다, 세션끊김을받는다 } from './api.js';
 import { Authoring } from './Authoring.js';
 import { API안내, ApiDocs } from './ApiDocs.js';
 import { AuthoringDetail } from './AuthoringDetail.js';
@@ -341,12 +341,14 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
   }
 
   const 나간다 = () => {
+    나가는중이다(true);
     const 정리 = (답?: { redirect?: string }) => {
       // 로그인 화면 · Auth_platform 로그아웃으로 가는 길을 저장 안 한 조립이 막으면 안 된다
       떠나기막기(null);
       // SSO 로그아웃은 Auth_platform 세션까지 끊는다(도메인/인증 §8.6). 그 주소로 떠나면 화면을 더 바꾸지 않는다 — 해시를 바꾸면 떠나는 이동이 끊긴다.
       // 표시는 돌아왔을 때 · 새 탭 · 북마크 몫이고, 못 떠났으면 이 탭에 알림을 달아 남은 세션이 곧장 다시 들여보내지 않게 한다
       if (sso === true && SSO로그아웃뒤(답?.redirect)) return;
+      나가는중이다(false);
       set상태({ 어디: '밖' });
       set프로젝트묻기(false);
       // 알림이 뜬 채 나가면 줄이 사라져 끄는 길(onGone)이 안 불린다. 남겨 두면 다음 로그인에 옛 알림이 뜬다

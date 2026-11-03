@@ -6,7 +6,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { api, ApiError, 세션끊김을받는다 } from './api.js';
+import { api, ApiError, 나가는중이다, 세션끊김을받는다 } from './api.js';
 
 interface 부른것 {
   url: string;
@@ -121,6 +121,27 @@ describe('세션이 끊기면 로그인 화면으로 보낸다', () => {
 
     await expect(api.run(123)).rejects.toThrow(ApiError);
     expect(알림받음).toBe(1);
+  });
+
+  it('로그아웃 중에는 다른 요청의 401 을 가로채지 않는다 — 해시를 바꾸면 Auth_platform 로그아웃으로 떠나는 이동이 끊긴다', async () => {
+    let 알림받음 = 0;
+    세션끊김을받는다(() => {
+      알림받음 += 1;
+    });
+    답 = { status: 401, body: { error: 'UNAUTHENTICATED' } };
+
+    나가는중이다(true);
+    try {
+      await expect(api.run(123)).rejects.toThrow(ApiError);
+    } finally {
+      나가는중이다(false);
+    }
+    expect(해시).toBe('#/runs/123');
+    expect(보관['돌아갈자리']).toBeUndefined();
+    expect(알림받음).toBe(0);
+
+    await expect(api.run(123)).rejects.toThrow(ApiError);
+    expect(해시).toBe('#/login');
   });
 });
 
