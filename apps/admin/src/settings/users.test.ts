@@ -121,6 +121,16 @@ describe.skipIf(연결 === undefined)('설정 API — 계정', () => {
     expect(await 계정('xfu9-perm')).toMatchObject({ dashboard: 'none', projects: 줄들 });
   });
 
+  it('실행 칸에만 trial 이 들어간다 — 케이스 · 작성 칸의 trial 은 400 PERMISSIONS_SHAPE 다', async () => {
+    const 체험 = { projectId: 프로젝트['XFS9A']!, permissions: { cases: 'read', runs: 'trial', authoring: 'none' } };
+    expect((await 계정만들기('xfu9-trial', 'member', [체험])).statusCode).toBe(201);
+    expect(await 계정('xfu9-trial')).toMatchObject({ projects: [체험] });
+    for (const 칸 of ['cases', 'authoring']) {
+      const res = await 계정만들기(`xfu9-trial-${칸}`, 'member', [{ ...체험, permissions: { ...체험.permissions, [칸]: 'trial' } }]);
+      expect(res.json(), 칸).toEqual({ error: 'PERMISSIONS_SHAPE' });
+    }
+  });
+
   it('권한 칸이 빠지거나 셋 다 none 이거나 대시보드가 write 면 400 PERMISSIONS_SHAPE 다', async () => {
     const 빠짐 = { projectId: 프로젝트['XFS9A'], permissions: { cases: 'read', runs: 'read' } };
     const 다없음 = { projectId: 프로젝트['XFS9A'], permissions: { cases: 'none', runs: 'none', authoring: 'none' } };

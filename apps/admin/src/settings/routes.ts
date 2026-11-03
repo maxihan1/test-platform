@@ -107,13 +107,15 @@ const 서비스수정 = z.object({
 
 const 등급 = z.enum(['member', 'admin']);
 const 권한 = z.enum(['none', 'read', 'write']);
+// 실행 칸에만 trial(보기 + 테스트 모드)이 있다 (SPEC 도메인/인증 §3.5 「테스트 모드」)
+const 실행권한 = z.enum(['none', 'read', 'trial', 'write']);
 const 대시보드 = z.enum(['none', 'read']);
 
 // 셋 다 none 인 줄은 받지 않는다 — 배정을 풀려면 줄을 뺀다 (SPEC 도메인/인증 §7 「projects[] 한 줄」)
 const 프로젝트줄 = z.object({
   projectId: 프로젝트번호,
   permissions: z
-    .object({ cases: 권한, runs: 권한, authoring: 권한 })
+    .object({ cases: 권한, runs: 실행권한, authoring: 권한 })
     .refine((p) => p.cases !== 'none' || p.runs !== 'none' || p.authoring !== 'none'),
 });
 // 같은 프로젝트가 두 번이면 저장이 ON CONFLICT DO NOTHING 으로 뒤엣것을 조용히 버린다. 어느 쪽을 뜻했는지 모르니 받지 않는다

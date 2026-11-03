@@ -1,16 +1,18 @@
 // 경로(틀 + 메서드)마다 필요한 권한 표와 에이전트 토큰 통로. 문(gate.ts)이 읽는다 (SPEC 도메인/인증 §7)
 
-import type { 기능 } from './permissions.js';
+import type { 기능, 필요칸 } from './permissions.js';
 
 /** 등급을 안 따지는 자리. 문이 그 앞에서 이미 돌려보낸다 */
 export const 안따짐 = '안따짐';
-export type 권한값 = { 기능: 기능; 칸: 'read' | 'write' } | 'admin';
+export type 권한값 = { 기능: 기능; 칸: 필요칸 } | 'admin';
 export type 표값 = 권한값 | typeof 안따짐;
 
 const 케이스읽기 = { 기능: 'cases', 칸: 'read' } as const;
 const 케이스쓰기 = { 기능: 'cases', 칸: 'write' } as const;
 const 실행읽기 = { 기능: 'runs', 칸: 'read' } as const;
 const 실행쓰기 = { 기능: 'runs', 칸: 'write' } as const;
+// 테스트 모드 시작 — 기록이 안 남는 실행이라 보기 + 테스트 모드인 trial 도 연다 (SPEC 도메인/인증 §3.5 「테스트 모드」)
+const 테스트모드 = { 기능: 'runs', 칸: 'trial' } as const;
 const 작성읽기 = { 기능: 'authoring', 칸: 'read' } as const;
 const 작성쓰기 = { 기능: 'authoring', 칸: 'write' } as const;
 
@@ -65,7 +67,7 @@ export const 등급표: Record<string, 표값> = {
   'GET /api/cases/:tcId/history': 실행읽기,
   'GET /api/cases/:tcId/rerun-target': 실행읽기,
   // 메모리에만 남는 시험 실행. 결과는 시작한 사람만 읽는다(execution/trial.ts)
-  'POST /api/cases/:tcId/test-run': 실행쓰기,
+  'POST /api/cases/:tcId/test-run': 테스트모드,
   'GET /api/cases/:tcId/test-run/:trialId': 실행읽기,
   // 도는 테스트 모드의 장면 한 장 — 결과 읽기와 같다 (도메인/실행 §3.2 「테스트 모드」)
   'GET /api/cases/:tcId/test-run/:trialId/live': 실행읽기,
@@ -106,7 +108,8 @@ export const 등급표: Record<string, 표값> = {
   'GET /api/runs/:runId/scenario': 실행읽기,
   'GET /api/runs/:runId/scenario/screenshots/:seq': 실행읽기,
   'GET /api/runs/:runId/scenario/farm/:name': 실행읽기,
-  'POST /api/scenario-trials': 실행쓰기,
+  // trial 이 쓸 수 있는 조립은 라우트가 더 거른다 — API 호출 · 모킹 단계는 저장된 시나리오에 있는 것만 (scenario/trialGuard.ts)
+  'POST /api/scenario-trials': 테스트모드,
   'GET /api/scenario-trials/:trialId': 실행읽기,
   'GET /api/scenario-trials/:trialId/screenshots/:seq': 실행읽기,
   'GET /api/scenario-trials/:trialId/live': 실행읽기,

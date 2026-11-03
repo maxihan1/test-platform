@@ -169,6 +169,21 @@ describe.skipIf(연결 === undefined)('Auth API', () => {
     expect(서비스?.testsDir).toBe('xfs2');
   });
 
+  it('실행 칸이 trial 이면 나를 물을 때 runs 가 trial 로 온다', async () => {
+    const { pool } = await import('../db/index.js');
+    await pool.query(`UPDATE user_project SET perm_runs = 'trial' WHERE username = 'xfu2-live'`);
+    try {
+      const 들어옴 = await 로그인('xfu2-live', '열려라참깨');
+      const res = await app.inject({ method: 'GET', url: '/api/auth/me', cookies: { platform_session: 들어옴.cookies[0]!.value } });
+      const 서비스 = res
+        .json<{ user: { services: { prefix: string; permissions: { runs: string } }[] } }>()
+        .user.services.find((s) => s.prefix === 'XFS2');
+      expect(서비스?.permissions.runs).toBe('trial');
+    } finally {
+      await pool.query(`UPDATE user_project SET perm_runs = 'write' WHERE username = 'xfu2-live'`);
+    }
+  });
+
   it('나를 물으면 배정 서비스마다 훑지 않을 경로(crawlExclude)가 온다', async () => {
     const { pool } = await import('../db/index.js');
     const 들어옴 = await 로그인('xfu2-live', '열려라참깨');
