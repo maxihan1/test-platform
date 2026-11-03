@@ -15,7 +15,17 @@ export type RouteHandler = (route: {
   fulfill(response: { status: number; contentType: string; body: string }): Promise<void>;
 }) => Promise<void>;
 
-// 브라우저 컨텍스트 하나와 그에 딸린 것. 러너가 열고 러너가 닫는다
+// 케이스 단계 하나가 도는 자리. 웹 단계는 공용 창 위에, 앱 · 게임 단계는 폰 연결 위에 연다
+export interface 단계창 {
+  runCase(part: CasePart, seq: number, phase: ScenarioPhase, params: Record<string, unknown>): Promise<ScenarioCaseOutcome>;
+  // 창 쿠키 · localStorage 에 그 단계 request 의 쿠키를 합친 것 — 한도에 걸린 단계의 늦은 미룬 삭제가 이것으로 나간다
+  state(): Promise<상태>;
+  // 단계 끝 — 단계 request · 그 단계가 직접 만든 창과 연결을 닫고, 웹 단계는 단계가 건 것을 되돌린다(시나리오 §3.7 결정 3 「단계 끝 되돌리기」).
+  // 끊음은 한도에 걸렸을 때다 — 웹 단계는 케이스가 아직 탭을 쥐고 돌아 공용 창째 닫는다. 두 번 불러도 된다
+  close(끊음?: boolean): Promise<void>;
+}
+
+// 시나리오 끝까지 쓰는 브라우저 창 하나 · 탭 하나. 러너가 열고 러너가 닫는다 (SPEC 도메인/시나리오 §3.7 결정 3)
 export interface 창 {
   // 컨텍스트에 건다 — page.route() 는 팝업·새 탭에서 풀린다 (SPEC 도메인/시나리오 §3.7 결정 6)
   route(url: string, handler: RouteHandler): Promise<void>;
@@ -27,23 +37,21 @@ export interface 창 {
     url: string,
     options: { method: string; data?: unknown; form?: Record<string, string>; headers?: Record<string, string> },
   ): Promise<{ status(): number; text(): Promise<string>; headers(): Record<string, string> }>;
-  runCase(part: CasePart, seq: number, phase: ScenarioPhase, params: Record<string, unknown>): Promise<ScenarioCaseOutcome>;
-  // 쿠키 · localStorage. 다음 창이 이것만 이어받는다 (SPEC 도메인/시나리오 §3.7 결정 3)
+  // 웹 단계 하나를 이 창 · 이 탭에서 연다. 넘겨받기를 끈 단계면 먼저 로그인 상태를 비운다 (SPEC 도메인/시나리오 §3.7 결정 12 「넘겨받기 끔」)
+  단계(부품: 부품상태, 넘겨받기: boolean): Promise<단계창>;
+  // 쿠키 · localStorage — 앱 · 게임 단계의 request 가 이것으로 로그인한다
   state(): Promise<상태>;
-  // 창 · 부품 request · 그 부품이 직접 만든 연결까지. 두 번 불러도 된다
+  // 두 번 불러도 된다
   close(): Promise<void>;
 }
-
-// 앱 · 게임 단계가 쓰는 자리 — 창 없이 케이스 실행과 그 단계 request 의 로그인 상태 · 닫기만 있다 (SPEC 도메인/시나리오 §3.7 결정 16)
-export type 단계창 = Pick<창, 'runCase' | 'state' | 'close'>;
 
 export interface PartDeps {
   baseUrl: string;
   // 0 이면 한도 없음 — 루트 설정 timeout 0(무제한)에 모든 부품이 0ms 에 죽지 않게 (SPEC 도메인/시나리오 §3.7 「동시성 · 시간」)
   partTimeoutMs: number;
   이음: 이음;
-  // 부품이 있으면 그 부품의 이어 주기를 그 창 · 그 창의 도구에 건다
-  newWindow(state: 상태 | undefined, mocks: ReadonlyMap<string, RouteHandler>, 부품?: 부품상태): Promise<창>;
+  // 시나리오를 시작할 때 한 번 부른다. mocks 는 걸린 모킹 목록 — 케이스가 직접 만드는 창에도 다시 건다
+  newWindow(mocks: ReadonlyMap<string, RouteHandler>): Promise<창>;
   // 앱 · 게임 단계 자리. 폰 연결은 그 안에서 하나를 같이 쓴다. 없으면 앱 단계가 실패한다
   // state 는 앞 웹 창의 로그인 상태 — 앱 단계 케이스 코드의 request · api 도 그 로그인으로 부른다(웹 단계처럼)
   appWindow?(부품: 부품상태, state: 상태): Promise<단계창>;
@@ -61,7 +69,7 @@ const 늦은절차유예 = 5000;
 // 부품 한도가 0(없음)일 때 미룬 삭제 하나를 기다리는 상한 — 대상 서버가 안 답해도 다 통과한 시나리오가 판정 없음이 되지 않게 (SPEC 도메인/러너 §5.2 「미룬 삭제」)
 const 뒷정리상한 = 30_000;
 
-// 앞 창의 쿠키 · localStorage 와 앞 부품 request 의 쿠키를 합친다. 같은 쿠키가 둘에 있으면 창 쪽 (SPEC 도메인/시나리오 §3.7 결정 3)
+// 창의 쿠키 · localStorage 와 단계 request 의 쿠키를 합친다. 같은 쿠키가 둘에 있으면 창 쪽 (SPEC 도메인/시나리오 §3.7 결정 3)
 export function 합친상태(창쪽: 상태, 요청쪽: 상태): 상태 {
   const 열쇠 = (c: 상태['cookies'][number]) => `${c.name}\t${c.domain}\t${c.path}`;
   const 쿠키 = new Map(요청쪽.cookies.map((c) => [열쇠(c), c]));
@@ -112,7 +120,7 @@ async function 한도안에(
 
   // 닫힌 도구로 늦게 온 미룬 삭제가 이 상태로 나간다 (SPEC 도메인/러너 §5.2 「미룬 삭제」)
   부품.찍은상태 = await 늦어도(지금.state(), 늦은절차유예).catch(남김(`${part.tcId} 한도에 걸린 창 상태를 못 읽었다`));
-  await 지금.close().catch(남김(`${part.tcId} 한도에 걸린 창을 못 닫았다`));
+  await 지금.close(true).catch(남김(`${part.tcId} 한도에 걸린 창을 못 닫았다`));
   const 늦음 = await 늦어도(달림.catch(() => undefined), 늦은절차유예);
   return { outcome: 늦음, 넘었다: true };
 }
@@ -124,8 +132,8 @@ export async function runParts(parts: readonly Part[], deps: PartDeps): Promise<
   const { 이음 } = deps;
   const 토큰들: 토큰모음 = new Map();
 
-  // 맨 앞이 API 부품이어도 쿠키를 쌓을 자리가 있게 빈 창 하나로 시작한다. 창은 연 쪽(러너)이 닫는다 — 실패로 멈춰도
-  let 지금창 = await deps.newWindow(undefined, 걸린);
+  // 창 하나 · 탭 하나로 시나리오 끝까지 간다. 맨 앞이 API 부품이어도 쿠키를 쌓을 자리가 있다. 창은 연 쪽(러너)이 닫는다 — 실패로 멈춰도
+  const 지금창 = await deps.newWindow(걸린);
 
   try {
     for (const [i, part] of parts.entries()) {
@@ -157,13 +165,8 @@ export async function runParts(parts: readonly Part[], deps: PartDeps): Promise<
               단계 = await deps.appWindow(부품, await 지금창.state());
               한도 = deps.appPartTimeoutMs ?? 한도;
             } else {
-              // 부품마다 새 창 — 앞 케이스의 시계 고정 · 주입 스크립트가 뒤로 새지 않게 로그인 상태만 넘긴다 (SPEC 도메인/시나리오 §3.7 결정 3)
-              const 넘김 = part.carryOver === false ? undefined : await 지금창.state();
-              const 앞창 = 지금창;
-              // 앞 창을 닫다가 던져도 새 창이 지금 창이어야 끝에 닫힌다
-              지금창 = await deps.newWindow(넘김, 걸린, 부품);
-              await 앞창.close();
-              단계 = 지금창;
+              // 같은 창 · 같은 탭에서 돈다. 앞 단계의 시계 고정 · 주입 스크립트는 그 단계 끝에 되돌렸다 (SPEC 도메인/시나리오 §3.7 결정 3)
+              단계 = await 지금창.단계(부품, part.carryOver !== false);
             }
 
             돈부품 = 부품;
@@ -182,8 +185,8 @@ export async function runParts(parts: readonly Part[], deps: PartDeps): Promise<
                 error = { message: `단계 제한 시간 ${한도}ms 를 넘었다` };
               }
             } finally {
-              // 앱 단계 자리는 그 단계의 request 만 쥔다. 폰 연결은 시나리오 끝까지 남는다
-              if (단계 !== 지금창) await 단계.close().catch(남김(`${part.tcId} 앱 단계 자리를 못 닫았다`));
+              // 웹 단계는 단계가 건 것을 되돌리고 창은 남긴다. 앱 단계 자리는 그 단계의 request 만 쥔다 — 폰 연결은 시나리오 끝까지 남는다
+              await 단계.close().catch(남김(`${part.tcId} 단계를 못 닫았다`));
             }
             break;
           }
@@ -202,7 +205,7 @@ export async function runParts(parts: readonly Part[], deps: PartDeps): Promise<
             const { status: 코드, contentType, body } = part;
             const handler: RouteHandler = (route) => route.fulfill({ status: 코드, contentType, body });
             await 지금창.route(part.urlPattern, handler);
-            // 다시 걸면 맨 뒤로 — 새 창에 다시 걸 때도 나중 것이 이긴다
+            // 다시 걸면 맨 뒤로 — 케이스가 직접 만든 창에 다시 걸 때도 나중 것이 이긴다
             걸린.delete(part.urlPattern);
             걸린.set(part.urlPattern, handler);
             // 케이스의 API 요청도 같은 모킹을 거친다. 다시 걸면 맨 뒤로 — 브라우저 route 처럼 나중 것이 이긴다 (SPEC 도메인/시나리오 §3.7 결정 6)

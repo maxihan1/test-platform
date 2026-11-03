@@ -31,7 +31,7 @@ describe('PLATFORM_HEADED', () => {
     expect((await 설정읽기()).use).not.toHaveProperty('headless');
   });
 
-  it('창을 띄우면 PC 창은 늘 같은 자리 · 크기로 열고, 늦추기도 그대로 싣는다 — E2E 단계마다 새 창이 같은 자리에 뜬다', async () => {
+  it('창을 띄우면 PC 창은 늘 같은 자리 · 크기로 열고, 늦추기도 그대로 싣는다 — 케이스가 직접 만든 창도 같은 자리에 뜬다', async () => {
     vi.stubEnv('PLATFORM_HEADED', '1');
     vi.stubEnv('PLATFORM_SLOW_MO', '1000');
     const 설정 = await 설정읽기();

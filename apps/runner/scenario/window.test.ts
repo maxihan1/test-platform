@@ -7,8 +7,10 @@ import { join } from 'node:path';
 import type { APIRequest, APIRequestContext, Browser, BrowserContext } from '@playwright/test';
 import { describe, expect, it, vi } from 'vitest';
 
+import { 응답듣기 } from './browser.js';
 import { 새부품, 새이음, type 미룬삭제 } from './links.js';
-import { 감싸기걸기, 만들때값, 응답듣기 } from './window.js';
+import { 가짜플창, 쿠키 } from './parts-fake.js';
+import { 감싸기걸기, 만들때값 } from './window.js';
 
 const 설정 = { baseUrl: 'https://qa.example.com', platform: 'desktop', 기본머리: { 'x-tenant': 'qa' }, 기본인증: { username: 'qa', password: 'pw' } };
 
@@ -61,19 +63,16 @@ describe('sendDelete', () => {
     const 부품 = 새부품(1, []);
     부품.phase.started = true;
     const 빈 = { cookies: [], origins: [] };
-    const 원래도구 = { delete: vi.fn(), fetch: vi.fn() };
-    const 창 = {
-      request: 원래도구,
-      newPage: vi.fn(async () => ({})),
-      storageState: vi.fn(async () => 빈),
-    };
+    const { 창 } = 가짜플창(설정.baseUrl);
+    const 원래도구 = 창.request;
     const 연결 = { fetch: vi.fn(async () => ({ status: () => 204 })), dispose: vi.fn(async () => {}), storageState: vi.fn(async () => 빈) };
     const 감싸기 = 감싸기걸기(
       { newContext: vi.fn(async () => 창) } as unknown as Browser,
       { newContext: vi.fn(async () => 연결) } as unknown as APIRequest,
       이음, 설정,
     );
-    await 감싸기.newWindow(undefined, new Map(), 부품);
+    const 공용 = await 감싸기.newWindow(new Map());
+    await 공용.단계(부품, true);
 
     const 도구 = 창.request as unknown as APIRequestContext;
     await 도구.delete('/api/cart?old=1', { params: 'itemId=7' });
@@ -126,17 +125,102 @@ describe('응답듣기', () => {
       { kind: 'case', tcId: 'A-002', params: {}, expected: {}, skipSteps: [], links: [{ kind: 'bind', param: 'x', value: { fromSeq: 1, method: 'POST', urlPattern: '**/api/posts', jsonPath: 'id' } }] },
     ], 설정.baseUrl);
     let 들음: ((res: unknown) => void) | undefined;
-    const 창 = { on: (_이름: string, f: (res: unknown) => void) => { 들음 = f; } } as unknown as BrowserContext;
+    const 끔 = vi.fn();
+    const 창 = { on: (_이름: string, f: (res: unknown) => void) => { 들음 = f; }, off: 끔 } as unknown as BrowserContext;
     const 응답 = (status: number) => ({
       status: () => status, url: () => 'https://qa.example.com/api/posts', headers: () => ({ 'content-type': 'application/json' }),
       text: async () => '{"id":812}', request: () => ({ method: () => 'POST' }),
     });
 
-    응답듣기(창, 이음, 새부품(1, []));
+    const 듣기끔 = 응답듣기(창, 이음, 새부품(1, []));
     들음!(응답(302));
     expect(이음.응답.size).toBe(0);
     들음!(응답(201));
 
     await expect(이음.응답.get('1 POST **/api/posts')).resolves.toEqual({ status: 201, contentType: 'application/json', body: '{"id":812}' });
+    // 창을 다음 단계가 이어 쓰므로 단계 끝에 뗀다 — 안 떼면 다음 단계 응답이 이 단계 자리에 적힌다
+    듣기끔();
+    expect(끔).toHaveBeenCalledWith('response', 들음);
+  });
+});
+
+describe('창 하나 — 공용 창 · 단계 열기 · 단계 닫기 (SPEC 도메인/시나리오 §3.7 결정 3 · 러너 §5.2 「창 하나로 끝까지」)', () => {
+  const 판 = (빈창 = 가짜플창(설정.baseUrl)) => {
+    const 단계요청 = { storageState: vi.fn(async () => ({ cookies: [쿠키('api')], origins: [] })), dispose: vi.fn(async () => {}) };
+    const 열기 = vi.fn(async (_options?: object) => 빈창.창);
+    const 요청열기 = vi.fn(async (_options?: object) => 단계요청);
+    const 감싸기 = 감싸기걸기({ newContext: 열기 } as unknown as Browser, { newContext: 요청열기 } as unknown as APIRequest, 새이음([], 설정.baseUrl), 설정);
+    return { ...빈창, 단계요청, 열기, 요청열기, 감싸기 };
+  };
+
+  it('창 · 탭은 시작에 한 번만 연다 — 단계마다 새로 만드는 것은 창 쿠키를 든 단계 request 뿐이다', async () => {
+    const { 창, 열기, 요청열기, 감싸기 } = 판();
+    창.storageState.mockResolvedValue({ cookies: [쿠키('sid')], origins: [] });
+    const 공용 = await 감싸기.newWindow(new Map());
+
+    const 첫 = await 공용.단계(새부품(1, []), true);
+    await 첫.close();
+    const 둘 = await 공용.단계(새부품(2, []), true);
+    await 둘.close();
+
+    expect(열기).toHaveBeenCalledTimes(1);
+    expect(창.newPage).toHaveBeenCalledTimes(1);
+    expect(요청열기.mock.calls).toEqual([[{ storageState: { cookies: [쿠키('sid')], origins: [] } }], [{ storageState: { cookies: [쿠키('sid')], origins: [] } }]]);
+    expect(창.close).not.toHaveBeenCalled();
+    await 공용.close();
+    expect(창.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('단계를 닫으면 단계 request 쿠키 가운데 창에 없는 것만 창에 더하고, 이어 주기 · 창 request 를 원래대로 돌린다', async () => {
+    const { 창, 단계요청, 감싸기 } = 판();
+    창.storageState.mockResolvedValue({ cookies: [쿠키('sid', 'qa.example.com', '창')], origins: [] });
+    단계요청.storageState.mockResolvedValue({ cookies: [쿠키('sid', 'qa.example.com', '요청'), 쿠키('api')], origins: [] });
+    const 원래request = 창.request;
+    const 공용 = await 감싸기.newWindow(new Map());
+
+    const 단계 = await 공용.단계(새부품(1, [{ kind: 'block', method: 'DELETE', urlPattern: '**/api/cart' }]), true);
+    expect(창.request).not.toBe(원래request);
+    const 뗄것 = await 창.route.mock.results[0]!.value as { dispose: () => Promise<void> };
+    await 단계.close();
+
+    expect(창.addCookies).toHaveBeenCalledWith([쿠키('api')]);
+    expect(단계요청.dispose).toHaveBeenCalled();
+    expect(뗄것.dispose).toHaveBeenCalled();
+    expect(창.request).toBe(원래request);
+  });
+
+  it('넘겨받기를 끈 단계는 같은 창에서 쿠키 · localStorage 를 비우고 지금 탭의 sessionStorage 를 지운다', async () => {
+    const { 창, 탭, 감싸기 } = 판();
+    const 공용 = await 감싸기.newWindow(new Map());
+
+    await 공용.단계(새부품(1, []), true);
+    expect(창.setStorageState).not.toHaveBeenCalled();
+    await 공용.단계(새부품(2, []), false);
+
+    expect(창.setStorageState).toHaveBeenCalledWith({ cookies: [], origins: [] });
+    expect(탭.evaluate).toHaveBeenCalledTimes(1);
+  });
+
+  it('한도에 걸려 끊음으로 닫으면 쿠키를 안 더하고 창째 닫는다', async () => {
+    const { 창, 단계요청, 감싸기 } = 판();
+    const 공용 = await 감싸기.newWindow(new Map());
+
+    const 단계 = await 공용.단계(새부품(1, []), true);
+    await 단계.close(true);
+    await 단계.close();
+
+    expect(창.addCookies).not.toHaveBeenCalled();
+    expect(단계요청.dispose).toHaveBeenCalledTimes(1);
+    expect(창.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('첫 탭이 닫혔으면 다음 단계 전에 새 탭을 첫 탭으로 연다', async () => {
+    const { 창, 탭, 감싸기 } = 판();
+    const 공용 = await 감싸기.newWindow(new Map());
+    탭.isClosed = () => true;
+
+    await 공용.단계(새부품(1, []), true);
+
+    expect(창.newPage).toHaveBeenCalledTimes(2);
   });
 });
