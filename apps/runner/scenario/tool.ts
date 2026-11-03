@@ -5,6 +5,16 @@ import type { APIRequestContext, APIResponse } from '@playwright/test';
 import { 가르기, 미룬응답, 요청주소, 적기, type 미룬삭제, type 받은응답, type 부품상태, type 상태, type 이음 } from './links.js';
 
 export const 빈상태: 상태 = { cookies: [], origins: [] };
+
+// Playwright 의 상대 주소 풀이와 같다 — new URL(주소, 기준) 이 못 풀면 그대로 (playwright-core constructURLBasedOnBaseURL).
+// 창이 하나라 창 · page.request 의 기준 주소는 시작 애플리케이션으로 굳는다. 섞인 시나리오의 다른 애플리케이션 단계는 러너가 먼저 풀어 넘긴다 (SPEC 도메인/러너 §5.2 「창 하나로 끝까지」)
+export function 기준풀기(기준: string, 주소: string): string {
+  try {
+    return new URL(주소, 기준).toString();
+  } catch {
+    return 주소;
+  }
+}
 const API = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'fetch']);
 
 export interface 도구묶음 {
@@ -67,9 +77,11 @@ export function 감싼도구(api: APIRequestContext, 이음값: 이음, 묶음: 
           이음값.미룸.push({ fromSeq: 부품.seq, url, headers, state, httpCredentials: 묶음.만들때.httpCredentials, 본문: { data: 떠둠(data), form: 떠둠(form), multipart } });
           return 가짜응답(미룬응답(이음값, url), url);
         }
+        // 상대 주소는 이 도구의 기준(그 단계 주소)으로 풀어 보낸다. 섞인 시나리오에서 page.request 의 처음 기준이 시작 애플리케이션이라서다 —
+        // 기준이 같은 도구에서는 Playwright 가 풀어도 같은 주소다 (SPEC 도메인/러너 §5.2 「창 하나로 끝까지」)
         const 응답 = (가름.kind === 'send' && 가름.url !== undefined
           ? await target.fetch(가름.url, { ...options, params: undefined, method: 가름.method })
-          : await call(주소, options)) as APIResponse;
+          : await call(묶음.기준 === undefined ? 주소 : 기준풀기(묶음.기준, 주소), options)) as APIResponse;
         if (부품 !== undefined) 적기(이음값, 부품.seq, method, url, () => 읽어둠(응답));
         return 응답;
       };

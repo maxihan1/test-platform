@@ -27,7 +27,7 @@ describe('부품 시험 한도', () => {
     const parts: Part[] = [케이스('XRS-001'), 케이스('XRS-002')];
     const { deps, 받은, 줄 } = 창들(parts, {
       partTimeoutMs: 1000,
-      창마다: (n) => (n !== 1 ? {} : {
+      단계마다: (n) => (n !== 0 ? {} : {
         runCase: vi.fn(async (_part, seq: number) => {
           await 닫힐때;
           return { seq: seq + 1, steps: [{ seq: seq + 1, title: '기다림', status: 'FAIL' as const, durationMs: 1, assertions: [] }], failed: true, error: { message: 'Target closed' } };
@@ -46,8 +46,10 @@ describe('부품 시험 한도', () => {
     expect(줄).toHaveLength(1);
     expect(줄[0]).toMatchObject({ seq: 1, status: 'FAIL', error: { message: '단계 제한 시간 1000ms 를 넘었다' } });
     expect(줄[0]!.steps.map((s) => s.title)).toEqual(['기다림']);
-    expect(받은[1]!.부품?.찍은상태).toEqual({ cookies: [쿠키('찍음')], origins: [] });
-    expect(받은).toHaveLength(2);
+    expect(받은[0]!.부품.찍은상태).toEqual({ cookies: [쿠키('찍음')], origins: [] });
+    // 웹 단계는 케이스가 아직 탭을 쥐고 돌아 끊음으로 닫는다 — 공용 창째 닫힌다 (SPEC 도메인/러너 §5.2 「창 하나로 끝까지」)
+    expect(받은[0]!.단계.close).toHaveBeenNthCalledWith(1, true);
+    expect(받은).toHaveLength(1);
   });
 
   it('5초 안에 절차가 안 오면 절차 없이 FAIL 이다', async () => {
@@ -55,7 +57,7 @@ describe('부품 시험 한도', () => {
     const parts: Part[] = [케이스('XRS-001')];
     const { deps, 줄 } = 창들(parts, {
       partTimeoutMs: 1000,
-      창마다: (n) => (n !== 1 ? {} : { runCase: vi.fn(() => new Promise<never>(() => {})) }),
+      단계마다: (n) => (n !== 0 ? {} : { runCase: vi.fn(() => new Promise<never>(() => {})) }),
     });
 
     const 돌림 = runParts(parts, deps);
@@ -70,7 +72,7 @@ describe('부품 시험 한도', () => {
     const parts: Part[] = [케이스('XRS-001')];
     const { deps, 줄 } = 창들(parts, {
       partTimeoutMs: 0,
-      창마다: (n) => (n !== 1 ? {} : {
+      단계마다: (n) => (n !== 0 ? {} : {
         runCase: vi.fn(async (_part, seq: number) => {
           await new Promise((done) => setTimeout(done, 60_000));
           return { seq: seq + 1, steps: [], failed: false };
@@ -93,10 +95,10 @@ describe('예외로 끝난 부품 · 창 닫기', () => {
       { kind: 'block', method: 'DELETE', urlPattern: '**/api/cart' },
     ] }];
     const { deps, 줄 } = 창들(parts, {
-      창마다: (n, 부품) => (n !== 1 ? {} : {
+      단계마다: (n, 부품) => (n !== 0 ? {} : {
         runCase: vi.fn(async () => {
-          부품!.걸림.add(0);
-          부품!.오류 ??= '1번 단계에 맞는 응답이 없다';
+          부품.걸림.add(0);
+          부품.오류 ??= '1번 단계에 맞는 응답이 없다';
           throw new Error('파일이 XRS-001 을 등록하지 않았다');
         }),
       }),
@@ -110,10 +112,22 @@ describe('예외로 끝난 부품 · 창 닫기', () => {
     });
   });
 
-  it('앞 창을 닫다가 던져도 새 창은 끝에 닫힌다 — 새 창이 새지 않는다', async () => {
-    const parts: Part[] = [케이스('XRS-001')];
-    const { deps, 받은, 줄 } = 창들(parts, {
-      창마다: (n) => (n !== 0 ? {} : {
+  it('단계를 열다가 던지면 그 부품이 FAIL 로 멈추고 창은 끝에 닫힌다 — 창이 새지 않는다', async () => {
+    const parts: Part[] = [케이스('XRS-001'), { kind: 'wait', ms: 1 }];
+    const { deps, 창, 줄 } = 창들(parts);
+    vi.mocked(창.단계).mockRejectedValueOnce(new Error('로그인 상태를 못 비웠다'));
+
+    await runParts(parts, deps);
+
+    expect(줄).toEqual([expect.objectContaining({ status: 'FAIL', error: expect.objectContaining({ message: '로그인 상태를 못 비웠다' }) as unknown })]);
+    expect(창.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('단계를 닫다가 던져도 결과를 바꾸지 않고 다음 부품으로 간다 — 되돌리기 실패는 흔적만 남긴다', async () => {
+    const parts: Part[] = [케이스('XRS-001'), { kind: 'wait', ms: 1 }];
+    const 남김 = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { deps, 줄 } = 창들(parts, {
+      단계마다: () => ({
         close: vi.fn(async () => {
           throw new Error('이미 닫혔다');
         }),
@@ -122,20 +136,9 @@ describe('예외로 끝난 부품 · 창 닫기', () => {
 
     await runParts(parts, deps);
 
-    expect(줄[0]).toMatchObject({ status: 'FAIL', error: { message: '이미 닫혔다' } });
-    expect(받은[1]!.창.close).toHaveBeenCalledTimes(1);
-  });
-
-  it('앞 창 상태를 읽고 → 새 창을 열고 → 앞 창을 닫는다', async () => {
-    const parts: Part[] = [케이스('XRS-001')];
-    const { deps, 받은 } = 창들(parts);
-
-    await runParts(parts, deps);
-
-    const 차례 = (f: unknown, n = 0) => vi.mocked(f as () => void).mock.invocationCallOrder[n]!;
-    const 앞 = 받은[0]!.창;
-    expect(차례(앞.state)).toBeLessThan(차례(deps.newWindow, 1));
-    expect(차례(deps.newWindow, 1)).toBeLessThan(차례(앞.close));
+    expect(줄.map((r) => r.status)).toEqual(['PASS', 'PASS']);
+    expect(남김).toHaveBeenCalledWith(expect.stringContaining('이미 닫혔다'));
+    남김.mockRestore();
   });
 });
 
@@ -188,7 +191,7 @@ describe('기다림에 상한 (2026-10-06 게이트 2)', () => {
     const parts: Part[] = [케이스('XRS-001')];
     const { deps, 받은, 줄 } = 창들(parts, {
       partTimeoutMs: 1000,
-      창마다: (n) => (n !== 1 ? {} : {
+      단계마다: (n) => (n !== 0 ? {} : {
         runCase: vi.fn(() => new Promise<never>(() => {})),
         state: vi.fn(() => new Promise<never>(() => {})),
       }),
@@ -199,6 +202,6 @@ describe('기다림에 상한 (2026-10-06 게이트 2)', () => {
     await 돌림;
 
     expect(줄).toEqual([expect.objectContaining({ status: 'FAIL', error: { message: '단계 제한 시간 1000ms 를 넘었다' } })]);
-    expect(받은[1]!.창.close).toHaveBeenCalled();
+    expect(받은[0]!.단계.close).toHaveBeenCalled();
   });
 });
