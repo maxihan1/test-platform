@@ -764,7 +764,7 @@ Android 앱을 조작하는 케이스(`platforms: ['android']`)를 **맥에 USB 
    curl -X POST http://127.0.0.1:4001/execute -H 'Content-Type: application/json' -d '{"runId":999,"historyId":1,"tcId":"MDA-FN-001","platform":"android","filePath":"mda/MDA-FN-001.spec.ts","baseUrl":"http://example.invalid","params":{},"expected":{},"timeoutMs":120000}'
    ```
 
-4. **스크린샷을 컨테이너가 바로 읽게 하기 (선택)** — 2026-11-03 TMO-F3-02 부터 관리 화면의 「▶ 테스트 실행」은 이 러너를 쓰지 않는다(서버 러너 + 디바이스 팜 → §16). 아래 1~3 은 이 러너가 만든 파일을 컨테이너가 바로 읽게 하는 절차로만 남는다. `PLATFORM_APP` 은 아래 4번처럼 대상 서버 줄에 경로를 적었으면 안 줘도 된다.
+4. **스크린샷을 컨테이너가 바로 읽게 하기 (선택)** — 2026-11-03 TMO-F3-02 부터 관리 화면의 「▶ 테스트 실행」은 이 러너를 쓰지 않는다(서버 러너 + 디바이스 팜 → §16). 아래 1~3 은 이 러너가 만든 파일을 컨테이너가 바로 읽게 하는 절차로만 남는다. 이 러너를 직접 부를 때는 늘 `PLATFORM_APP` 을 준다 — 대상 서버 줄의 「앱 파일 경로」(아래 4번)는 관리 화면이 부르는 실행에만 실린다.
    1. `.env` 에 **두 줄을 한 묶음으로** 적는다. 2026-10-27 부터는 첫 줄만 적어도 admin 이 스크린샷을 러너에서 받아 와 보인다 — 둘째 줄을 같이 적으면 받지 않고 바로 읽는다.
       ```
       LOCAL_RUNNER_URL=http://host.docker.internal:4001
@@ -776,7 +776,7 @@ Android 앱을 조작하는 케이스(`platforms: ['android']`)를 **맥에 USB 
       docker run --rm -v <볼륨이름>:/from -v "$PWD/artifacts":/to alpine cp -a /from/. /to/
       ```
    3. `docker compose up -d admin runner` 로 다시 띄운다.
-   4. 대상 서버마다 apk 가 다르면 설정 › 서비스 › 대상 서버 줄의 「앱 파일 경로」에 그 apk 경로(Appium 이 도는 PC 기준)나 http(s) 주소를 적는다. 그러면 러너를 켤 때 `PLATFORM_APP` 을 안 줘도 되고, 적은 줄이 러너의 값보다 앞선다. 비운 줄은 러너의 `PLATFORM_APP` 을 쓴다.
+   4. 대상 서버마다 apk 가 다르면 설정 › 서비스 › 대상 서버 줄의 「앱 파일 경로」에 그 apk 경로(디바이스 팜 PC 기준)나 http(s) 주소를 적는다. 관리 화면의 정식 실행 · 「▶ 테스트 실행」(서버 러너 + 디바이스 팜)이 이 값을 싣고, 서버 러너의 `PLATFORM_APP` 보다 앞선다. 비운 줄은 서버 러너의 `PLATFORM_APP` 을 쓴다. 위 3번처럼 이 러너를 직접 부를 때는 이 값이 안 간다(2026-11-03 TMO-F3-02).
 
 **확인** — 직접 실행은 폰 화면에서 앱이 열려 장바구니에 담기고 터미널에 `1 passed` 가 뜨면 정상이다(갤럭시 S21+ · Android 14 에서 12.5초 걸렸다).
 러너 호출은 응답에 `"status":"PASS"` 가 있고 둘째 절차에 `screenshotPath: artifacts/runs/999/1/2.png` 가 붙으면 정상이다.
