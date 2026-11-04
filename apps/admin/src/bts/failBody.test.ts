@@ -114,11 +114,20 @@ describe('logcat 오류 줄', () => {
     expect(logcat오류줄([앱시작, ...많음].join('\n'))).toEqual({ 줄: 많음.slice(-폰로그상한), 더: 5 });
   });
 
-  it('앱이 뜬 줄이 없으면 누구 것이든 F 수준 · FATAL 줄만 고르고, 줄은 500자에서 자른다', () => {
-    const 글 = [줄(3110, 'E', 'adbd', 'failed'), 줄(77, 'F', 'libc', 'Fatal signal 11'), 줄(88, 'E', 'AndroidRuntime', `FATAL EXCEPTION: ${'x'.repeat(600)}`)].join('\n');
-    const 결과 = logcat오류줄(글);
-    expect(결과.줄[0]).toBe(줄(88, 'E', 'AndroidRuntime', `FATAL EXCEPTION: ${'x'.repeat(600)}`).slice(0, 500) + '…');
-    expect(결과.더).toBe(1);
+  it('앱이 뜬 줄이 없으면 누구 것이든 F 수준 · FATAL 줄만 고른다 — 줄은 자르지 않는다(가린 뒤에 본문이 자른다)', () => {
+    const 긴줄 = 줄(88, 'E', 'AndroidRuntime', `FATAL EXCEPTION: ${'x'.repeat(600)}`);
+    const 결과 = logcat오류줄([줄(3110, 'E', 'adbd', 'failed'), 줄(77, 'F', 'libc', 'Fatal signal 11'), 긴줄].join('\n'));
+    expect(결과).toEqual({ 줄: [긴줄], 더: 1 });
+  });
+
+  it('Android 9 까지의 「for activity」 도 앱으로 보고, 패키지 이름이 앞부분만 같은 남의 앱 줄은 잡지 않는다', () => {
+    const 글 = [
+      '11-04 10:00:00.100  1459  1568 I ActivityManager: Start proc 4321:com.demo.app/u0a352 for activity com.demo.app/.Main',
+      줄(4321, 'E', 'DemoApp', '주문 저장 실패'),
+      줄(1459, 'E', 'ActivityManager', 'ANR in com.demo.app.ops'),
+      줄(1459, 'E', 'ActivityManager', 'Process com.demo.app (pid 4321) has died'),
+    ].join('\n');
+    expect(logcat오류줄(글).줄).toEqual([줄(4321, 'E', 'DemoApp', '주문 저장 실패'), 줄(1459, 'E', 'ActivityManager', 'Process com.demo.app (pid 4321) has died')]);
   });
 });
 
@@ -128,6 +137,12 @@ describe('이슈 본문 — 앱 · 게임 항목', () => {
     expect(글).toContain('### 폰 로그(logcat)\n```\n11-04 E DemoApp: 주문 저장 실패\n```');
     expect(글).toContain('나머지 오류 줄 3개는 Test Commander 실행 결과의 logcat 에서 보세요');
     expect(글).not.toContain('네트워크 · 콘솔');
+  });
+
+  it('줄은 500자에서 자르고 줄 안의 ``` 는 바꿔 코드 블록이 안 닫히게 한다', () => {
+    const 글 = 이슈본문(재료({ 폰로그: { 줄: ['E App: 본문 ```json {}```', `E App: ${'y'.repeat(600)}`], 더: 0 } }));
+    expect(글).toContain("E App: 본문 '''json {}'''");
+    expect(글).toContain(`E App: ${'y'.repeat(493)}…\n\`\`\``);
   });
 
   it('오류 줄이 없으면 「앱 오류 줄 없음」, 받아 둔 logcat 이 없으면 없다고 적는다', () => {

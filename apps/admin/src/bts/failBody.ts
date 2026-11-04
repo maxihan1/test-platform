@@ -49,6 +49,7 @@ export const 폰로그상한 = 10;
 const 폰줄글자상한 = 500;
 
 export interface 폰오류줄 {
+  /** 자르지 않은 줄 — 가린 뒤에 본문이 자른다. 자른 뒤 가리면 잘린 자리에 걸친 비밀값 앞부분이 그대로 나간다 */
   줄: string[];
   /** 상한에 걸려 못 실은 오류 줄 수 */
   더: number;
@@ -56,12 +57,12 @@ export interface 폰오류줄 {
 
 // threadtime 꼴 `11-04 10:00:03.000  4321  4321 E 태그: 글` — 수준 E · F 만
 const 오류줄꼴 = /^\d\d-\d\d \d\d:\d\d:\d\d\.\d+\s+(\d+)\s+\d+\s+([EF])\s/;
-// Appium 연결이 띄운 앱. 프로세스 이름은 `패키지` 나 `패키지:하위` 다
+// Appium 연결이 띄운 앱 — `for top-activity` · `for next-top-activity` 이고 Android 9 까지는 `for activity` 다. 프로세스 이름은 `패키지` 나 `패키지:하위` 다
 const 프로세스시작 = /Start proc (\d+):([^/\s]+)\/\S+ for (\S+)/;
 const 활동관리 = /\sActivity(?:Task)?Manager\s*:/;
 
 /**
- * 팜 logcat 은 폰 전체 기록이라 남의 앱 오류가 훨씬 많다(adbd · keystore …). 앱이 뜬 줄(top-activity 로 시작한 프로세스)에서
+ * 팜 logcat 은 폰 전체 기록이라 남의 앱 오류가 훨씬 많다(adbd · keystore …). 앱이 뜬 줄(화면을 띄우려고 시작한 프로세스)에서
  * 앱 PID 를 찾아 그 PID 의 E · F 줄과 시스템이 앱을 두고 남긴 오류 줄(ANR · 네이티브 크래시)만 고른다.
  * 죽은 자리가 가장 쓸모 있어 FATAL 이 있으면 거기서부터, 없으면 실패 순간에 가까운 끝에서부터 싣는다
  */
@@ -69,10 +70,12 @@ export function logcat오류줄(글: string): 폰오류줄 {
   const 줄들 = 글.split('\n');
   const 시작들 = 줄들.flatMap((l) => {
     const m = 프로세스시작.exec(l);
-    return m === null ? [] : [{ pid: m[1]!, 패키지: m[2]!.split(':')[0]!, 앱: m[3]!.endsWith('top-activity') }];
+    return m === null ? [] : [{ pid: m[1]!, 패키지: m[2]!.split(':')[0]!, 앱: m[3]!.endsWith('activity') }];
   });
   const 앱 = new Set(시작들.filter((s) => s.앱).map((s) => s.패키지));
   const 앱pid = new Set(시작들.filter((s) => 앱.has(s.패키지)).map((s) => s.pid));
+  // 패키지 이름 뒤가 끊겨야 한다 — com.demo.market 이 com.demo.market.ops 줄을 잡지 않게
+  const 앱이름 = new RegExp(`(?:${[...앱].map((p) => p.replaceAll('.', '\\.')).join('|')})(?![\\w.])`);
   const 고른 = 줄들.filter((l) => {
     const m = 오류줄꼴.exec(l);
     if (m === null) return false;
@@ -80,11 +83,11 @@ export function logcat오류줄(글: string): 폰오류줄 {
     if (앱.size === 0) return m[2] === 'F' || l.includes('FATAL');
     if (앱pid.has(m[1]!)) return true;
     // 남이 남긴 앱 줄은 ANR · 프로세스 죽음(ActivityManager)과 네이티브 크래시 머리(F)만 — 화면 합성(SurfaceFlinger · WindowManager)도 패키지를 달지만 오류가 아니다
-    return (m[2] === 'F' || 활동관리.test(l)) && [...앱].some((p) => l.includes(p));
+    return (m[2] === 'F' || 활동관리.test(l)) && 앱이름.test(l);
   });
   const 첫 = 고른.findIndex((l) => l.includes('FATAL'));
   const 실을 = 첫 === -1 ? 고른.slice(-폰로그상한) : 고른.slice(첫, 첫 + 폰로그상한);
-  return { 줄: 실을.map((l) => 짧게(l.trimEnd(), 폰줄글자상한)), 더: 고른.length - 실을.length };
+  return { 줄: 실을.map((l) => l.trimEnd()), 더: 고른.length - 실을.length };
 }
 
 const 바이트 = (글: string): number => Buffer.byteLength(글, 'utf8');
@@ -127,7 +130,12 @@ function 앞뒤(재료: 실패재료): { 앞: string[]; 뒤: string[] } {
     폰 !== null
       ? [
           '### 폰 로그(logcat)',
-          ...(폰 === '없음' ? ['이 항목은 받아 둔 폰 로그가 없습니다'] : 폰.줄.length === 0 ? ['- 앱 오류 줄 없음'] : ['```', ...폰.줄, '```']),
+          ...(폰 === '없음'
+            ? ['이 항목은 받아 둔 폰 로그가 없습니다']
+            : 폰.줄.length === 0
+              ? ['- 앱 오류 줄 없음']
+              : // 줄 안의 ``` 가 코드 블록을 닫으면 뒤 본문(실행 결과 고리)이 깨진다
+                ['```', ...폰.줄.map((l) => 짧게(l, 폰줄글자상한).replaceAll('```', "'''")), '```']),
           ...(폰 !== '없음' && 폰.더 > 0 ? [`나머지 오류 줄 ${String(폰.더)}개는 Test Commander 실행 결과의 logcat 에서 보세요`] : []),
         ]
       : [
