@@ -1,10 +1,11 @@
 // 성능 테스트 › 실행 기록 — 표 하나. 번호를 누르면 도는 중이면 실행 중 화면, 끝났으면 결과 화면이 열린다 (도메인/성능 §8.14 · 시안 A)
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Head, use지금앱 } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { 기기성능이름 } from './kind.js';
+import { use주소조건, 주소조건 } from './leaveGuard.js';
 import { perfApi, type 측정수치 } from './perfApi.js';
 import { 메모리글자, 한자리 } from './perfDeviceView.js';
 import { 실행상태글자 } from './PerfScenarioList.js';
@@ -39,9 +40,21 @@ export function PerfRunList({ serviceId }: { serviceId: number }) {
   const 언어 = use언어();
   const 앱종류 = use지금앱()?.kind;
   const 기기성능 = 기기성능이름(앱종류);
-  const [시나리오, set시나리오] = useState<number | undefined>(undefined);
-  const [판정, set판정] = useState<판정종류 | ''>('');
+  // 고른 거르개는 주소에 남는다 — 실행 한 건을 열었다 뒤로 오면 같은 조건의 목록이다 (화면공통 §8)
+  const [시나리오, set시나리오] = useState<number | undefined>(() => {
+    const 번호 = Number(주소조건().get('scenario'));
+    return Number.isInteger(번호) && 번호 > 0 ? 번호 : undefined;
+  });
+  const [판정, set판정] = useState<판정종류 | ''>(() => {
+    const 값 = 주소조건().get('verdict');
+    return 거르개들.some((g) => g.값 === 값 && 값 !== '') ? (값 as 판정종류) : '';
+  });
+  use주소조건('#/perf/runs', { ...(시나리오 === undefined ? {} : { scenario: String(시나리오) }), ...(판정 === '' ? {} : { verdict: 판정 }) });
   const 시나리오들 = useAsync(() => perfApi.scenarios(serviceId), [serviceId]);
+  // 애플리케이션을 바꾸면 앞 애플리케이션의 시나리오 번호가 주소에 남는다 — 목록에 없으면 전체로 본다
+  useEffect(() => {
+    if (시나리오 !== undefined && 시나리오들.data !== null && !시나리오들.data.scenarios.some((s) => s.id === 시나리오)) set시나리오(undefined);
+  }, [시나리오, 시나리오들.data]);
   const 목록 = useAsync(() => perfApi.runs(serviceId, 시나리오), [serviceId, 시나리오]);
 
   const 줄들 = (목록.data?.runs ?? []).filter((줄) => 판정 === '' || 판정종류(줄) === 판정);

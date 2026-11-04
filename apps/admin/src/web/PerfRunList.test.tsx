@@ -37,6 +37,7 @@ const 줄들: 실행줄[] = [
 
 afterEach(() => {
   cleanup();
+  window.location.hash = '';
   vi.restoreAllMocks();
 });
 
@@ -150,5 +151,37 @@ describe('성능 실행 기록 표', () => {
     render(<PerfRunList serviceId={7} />);
     expect(await screen.findByText('아직 성능 테스트 실행이 없습니다')).toBeTruthy();
     expect(screen.queryByText(/번호를 누르면/)).toBeNull();
+  });
+
+  describe('거르개는 주소에 남는다', () => {
+    it('주소의 시나리오 · 판정으로 부르고 고르개가 그 값이다', async () => {
+      window.location.hash = '#/perf/runs?scenario=6&verdict=FAIL';
+      const { 부르기 } = await 그리기();
+      expect(부르기).toHaveBeenLastCalledWith(7, 6);
+      await waitFor(() => expect((screen.getByLabelText('시나리오') as HTMLSelectElement).value).toBe('6'));
+      expect((screen.getByLabelText('판정') as HTMLSelectElement).value).toBe('FAIL');
+      expect(screen.getAllByRole('link')).toHaveLength(1);
+    });
+
+    it('고르개를 바꾸면 주소가 바뀌고 방문 기록은 쌓이지 않는다', async () => {
+      window.location.hash = '#/perf/runs';
+      await 그리기();
+      const 쌓임 = window.history.length;
+      fireEvent.change(screen.getByLabelText('판정'), { target: { value: 'STOP' } });
+      await waitFor(() => expect(window.location.hash).toBe('#/perf/runs?verdict=STOP'));
+      fireEvent.change(screen.getByLabelText('시나리오'), { target: { value: '5' } });
+      await waitFor(() => expect(window.location.hash).toBe('#/perf/runs?scenario=5&verdict=STOP'));
+      fireEvent.change(screen.getByLabelText('판정'), { target: { value: '' } });
+      await waitFor(() => expect(window.location.hash).toBe('#/perf/runs?scenario=5'));
+      expect(window.history.length).toBe(쌓임);
+    });
+
+    it('목록에 없는 시나리오 번호면 전체로 보고 주소도 고친다', async () => {
+      window.location.hash = '#/perf/runs?scenario=99&verdict=PASS';
+      const { 부르기 } = await 그리기();
+      await waitFor(() => expect(부르기).toHaveBeenLastCalledWith(7, undefined));
+      expect((screen.getByLabelText('시나리오') as HTMLSelectElement).value).toBe('');
+      await waitFor(() => expect(window.location.hash).toBe('#/perf/runs?verdict=PASS'));
+    });
   });
 });
