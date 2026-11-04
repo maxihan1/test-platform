@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import { 토스트 } from './components/toast.component.js';
 import { 로그인하기 } from './helpers/login.helper.js';
-import { 상품상세열기 } from './helpers/cart.helper.js';
+import { 살수있는옵션상품, 상품상세열기 } from './helpers/cart.helper.js';
 import { 상품목록화면 } from './pages/product-list.page.js';
 import { 상품상세화면 } from './pages/product-detail.page.js';
 
@@ -32,7 +32,7 @@ test(spec, async ({ driver, params }) => {
   });
 
   await test.step('옵션 있는 상품 상세 화면을 연다', async () => {
-    await 상품상세열기(driver, params.productName);
+    await 상품상세열기(driver, await 살수있는옵션상품(driver, params.productName));
     await verify('상품 상세에 옵션이 있다', await 상세.옵션있나(), true, { blocker: true });
   });
 

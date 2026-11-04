@@ -1,4 +1,4 @@
-import { type 앱, type 요소, 금액, 월일글, 일요일아닌첫날, 켜졌나, 칸에적기 } from '../helpers/app.helper.js';
+import { type 앱, type 요소, 금액, 월일글, 일요일아닌첫날, 켜졌나, 칸에적기, 키보드내리기 } from '../helpers/app.helper.js';
 import { 주소검색창 } from './address-search.page.js';
 
 export type 결제수단 = '신용카드' | '계좌이체' | '무통장입금';
@@ -58,12 +58,12 @@ export class 주문하기화면 {
   }
 
   async 아래로밀기(): Promise<void> {
-    await this.driver.hideKeyboard().catch(() => undefined);
+    await 키보드내리기(this.driver);
     await this.driver.swipe({ direction: 'up', scrollableElement: await this.스크롤.getElement(), percent: 0.7 });
   }
 
   async 위로밀기(): Promise<void> {
-    await this.driver.hideKeyboard().catch(() => undefined);
+    await 키보드내리기(this.driver);
     await this.driver.swipe({ direction: 'down', scrollableElement: await this.스크롤.getElement(), percent: 0.9 });
   }
 
@@ -120,8 +120,9 @@ export class 주문하기화면 {
     return [...(await this.driver.$$('id=delivery_date'))];
   }
 
-  async 날짜칩글(칩: 요소): Promise<string> {
-    return 칩.$('android.widget.TextView').getText();
+  async 날짜칩글(칩: 요소): Promise<string | undefined> {
+    const 글칸 = 칩.$('android.widget.TextView');
+    return (await 글칸.isExisting()) ? 글칸.getText() : undefined;
   }
 
   async 날짜칩골라졌나(칩: 요소): Promise<boolean> {
@@ -140,7 +141,7 @@ export class 주문하기화면 {
       const 앞수 = 모음.length;
       for (const 칩 of await this.보이는날짜칩들()) {
         const 글 = await this.날짜칩글(칩);
-        if (!모음.includes(글)) 모음.push(글);
+        if (글 !== undefined && !모음.includes(글)) 모음.push(글);
       }
       그대로 = 모음.length === 앞수 ? 그대로 + 1 : 0;
       await this.driver.swipe({ direction: 'left', scrollableElement: await this.날짜줄.getElement(), percent: 0.6 });

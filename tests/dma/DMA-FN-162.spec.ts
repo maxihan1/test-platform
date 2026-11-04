@@ -2,7 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 토스트 } from './components/toast.component.js';
-import { 목록으로돌아가기, 상품상세열기 } from './helpers/cart.helper.js';
+import { 목록으로돌아가기, 살수있는옵션상품, 상품상세열기 } from './helpers/cart.helper.js';
 import { 장바구니숫자읽기 } from './helpers/product-flow.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 주문하기화면 } from './pages/checkout.page.js';
@@ -32,6 +32,7 @@ test(spec, async ({ driver, params }) => {
   const 상세 = new 상품상세화면(driver);
   const 토스트상자 = new 토스트(driver);
   let 앞수 = 0;
+  let 상품이름 = params.optionProduct;
 
   await test.step('일반 회원 계정으로 로그인해 상품 목록을 연다', async () => {
     await 로그인하기(driver, params.loginId, params.loginPassword);
@@ -40,7 +41,8 @@ test(spec, async ({ driver, params }) => {
 
   await test.step('상품 목록에서 옵션 있는 상품 상세를 연다', async () => {
     앞수 = await 장바구니숫자읽기(driver);
-    await 상품상세열기(driver, params.optionProduct);
+    상품이름 = await 살수있는옵션상품(driver, params.optionProduct);
+    await 상품상세열기(driver, 상품이름);
     await verify('옵션 있는 상품 상세 화면이 보인다', await 상세.옵션있나(), true, { blocker: true });
   });
 
@@ -56,7 +58,7 @@ test(spec, async ({ driver, params }) => {
   });
 
   await test.step('색상만 고르고 「바로 구매」를 누른다', async () => {
-    await 상품상세열기(driver, params.optionProduct);
+    await 상품상세열기(driver, 상품이름);
     await 상세.칩누르기('색상');
     await 상세.바로구매();
     await verify('사이즈를 고르지 않고 「바로 구매」를 누르면 토스트 「옵션을 선택하세요」가 보인다', await 토스트글읽기(driver), '옵션을 선택하세요');

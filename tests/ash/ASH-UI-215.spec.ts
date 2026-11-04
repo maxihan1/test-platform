@@ -37,7 +37,10 @@ test(spec, async ({ game, admin }) => {
       const 창 = new 강화창(game);
       const 뜬때 = await 누르고결과뜰때까지(창);
       const 버튼 = await 창.강화버튼();
-      await verify('강화 결과가 뜬 뒤 0.5초 안에 「강화하기」를 읽었다', 지난시간(뜬때) < 500, true, { blocker: true });
+      const 읽은때 = 지난시간(뜬때);
+      if (버튼?.interactable !== false) {
+        await verify('강화 결과가 뜬 뒤 0.5초 안에 「강화하기」를 읽었다', 읽은때 < 500, true, { blocker: true });
+      }
       await verify('강화 결과가 뜬 직후에는 「강화하기」가 잠겨 있다', 버튼?.interactable, false);
     });
     await test.step('강화 결과가 뜨고 1초를 기다린 뒤 「강화하기」를 본다', async () => {

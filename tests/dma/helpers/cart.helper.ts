@@ -24,6 +24,22 @@ export async function 상품상세열기(driver: 앱, 상품이름: string): Pro
   return 상세;
 }
 
+export async function 살수있는옵션상품(driver: 앱, 처음이름: string): Promise<string> {
+  if (await 옵션있고살수있나(driver, 처음이름)) return 처음이름;
+  const 목록 = new 상품목록화면(driver);
+  await 목록.분류고르기('패션');
+  const 후보 = (await 목록.보이는상품이름들()).filter((이름) => 이름 !== 처음이름);
+  for (const 이름 of 후보) if (await 옵션있고살수있나(driver, 이름)) return 이름;
+  throw new Error(`옵션 있고 품절 아닌 상품을 찾지 못했다 — 본 상품: ${[처음이름, ...후보].join(', ')}`);
+}
+
+async function 옵션있고살수있나(driver: 앱, 이름: string): Promise<boolean> {
+  const 상세 = await 상품상세열기(driver, 이름);
+  const 된다 = (await 상세.옵션있나()) && (await 상세.바로구매보이나());
+  await 목록으로돌아가기(driver);
+  return 된다;
+}
+
 export async function 상품담기(driver: 앱, 상품이름: string): Promise<void> {
   const 상세 = await 상품상세열기(driver, 상품이름);
   await 상세.옵션다고르기();
