@@ -89,7 +89,7 @@ describe('설정이 여는 마법사', () => {
   });
 
   it('애플리케이션이 하나도 없으면 마법사를 열고 주소도 마법사로 바꿔 둔다 — 다 만든 뒤 목록을 다시 읽어도 끝 화면이 남게', async () => {
-    window.history.replaceState(null, '', '#/settings');
+    window.history.replaceState({ navIndex: 3 }, '', '#/settings');
     vi.spyOn(api, 'settingsServices').mockResolvedValue({ items: [] });
     vi.spyOn(api, 'settingsUsers').mockResolvedValue({ items: [계정] });
     render(<Settings user={사람('admin')} onMeChanged={() => undefined} />);
@@ -97,6 +97,7 @@ describe('설정이 여는 마법사', () => {
     expect(await screen.findByRole('dialog', { name: '새 애플리케이션' })).toBeTruthy();
     expect(screen.getByRole('link', { name: '+ 애플리케이션 추가' }).getAttribute('aria-current')).toBe('page');
     await waitFor(() => expect(window.location.hash).toBe('#/settings/new'));
+    expect(window.history.state).toEqual({ navIndex: 3 });
   });
 
   it('마법사 끝 화면의 「설정 열기」는 목록을 다시 읽은 뒤에 새 애플리케이션 주소로 옮긴다', async () => {

@@ -110,30 +110,34 @@ const 조건글 = (주소: string) => (주소.includes('?') ? 주소.slice(주�
  * 목록이 선 채로 같은 화면의 조건 없는 주소가 오면(메뉴를 다시 누름) 화면이 든 조건으로 되돌린다 — 화면과 주소가 갈리면 새로고침이 조건을 잃는다.
  * 뒤로 · 앞으로 가기로 온 조건 없는 주소는 되돌리지 않는다 — 되돌리면 한 번에 못 떠난다. 그때는 앱 뿌리가 화면을 새로 그려 주소를 따른다
  * @param 쌓는칸 이 칸이 바뀌면 기록을 쌓는다(「여는」 일). 나머지 칸만 바뀌면 지금 칸을 고친다
+ * @param 딸린칸 연 것에 딸린 칸(고른 실행의 결과 칸 거르개 · 쪽). 쌓는 칸과 같이 바뀌어도 쌓는다 — 다른 실행을 고르면 앞 실행의 거르개가 풀리는 것이 당연해서다
+ * @param 스스로 켜 두면 다음 한 번은 쌓지 않고 지금 칸을 고친다 — 화면이 스스로 연 것을 비울 때(애플리케이션을 바꿔 고른 실행을 버림). 쓰고 나면 끈다
  * @param 듣기 주소의 조건이 사람 손 없이 바뀌면(뒤로 가기 · 링크) 불린다. 주면 앱 뿌리가 이 화면을 다시 그리지 않는다 — 쓰던 값을 지키려고 상태를 이쪽에서 고친다
  */
 export function use주소조건(
   경로: string,
   조건: Record<string, string>,
-  { 쌓는칸 = [], 듣기 }: { 쌓는칸?: readonly string[]; 듣기?: (조건: URLSearchParams) => void } = {},
+  { 쌓는칸 = [], 딸린칸 = [], 스스로, 듣기 }: { 쌓는칸?: readonly string[]; 딸린칸?: readonly string[]; 스스로?: { current: boolean }; 듣기?: (조건: URLSearchParams) => void } = {},
 ): void {
   const 주소 = 조건붙인주소(경로, 조건);
-  const 최신 = useRef({ 쌓는칸, 듣기 });
-  최신.current = { 쌓는칸, 듣기 };
+  const 최신 = useRef({ 쌓는칸, 딸린칸, 스스로, 듣기 });
+  최신.current = { 쌓는칸, 딸린칸, 스스로, 듣기 };
   const 처음 = useRef(true);
   const 듣나 = 듣기 !== undefined;
   useEffect(() => (듣나 ? 스스로듣기(최신.current.쌓는칸) : undefined), [듣나]);
   useEffect(() => {
     // 처음 그릴 때는 쌓지 않는다 — 막 열린 화면이 주소를 정리하는 것이지 사람이 연 것이 아니다
-    let 쌓아도됨 = !처음.current;
+    let 쌓아도됨 = !처음.current && 최신.current.스스로?.current !== true;
     처음.current = false;
+    if (최신.current.스스로 !== undefined) 최신.current.스스로.current = false;
     const 맞춘다 = () => {
       const 지금 = window.location.hash;
       if (route(지금).name !== route(경로).name) return;
       if (JSON.stringify(route(지금)) === JSON.stringify(route(주소)) && 조건글(지금) === 조건글(주소)) return;
       // 쌓는 칸만 바뀔 때만 쌓는다 — 다른 칸(쪽 · 거르개 · 애플리케이션을 바꿔 비운 것)이 같이 바뀌면 사람이 연 것이 아니다
       const 바뀐 = 바뀐칸들(지금, 주소);
-      const 열었다 = 바뀐.some((칸) => 최신.current.쌓는칸.includes(칸)) && 바뀐.every((칸) => 최신.current.쌓는칸.includes(칸));
+      const { 쌓는칸: 쌓는, 딸린칸: 딸린 } = 최신.current;
+      const 열었다 = 바뀐.some((칸) => 쌓는.includes(칸)) && 바뀐.every((칸) => 쌓는.includes(칸) || 딸린.includes(칸));
       (쌓아도됨 && 열었다 ? 주소쌓기 : 주소고치기)(주소);
     };
     맞춘다();

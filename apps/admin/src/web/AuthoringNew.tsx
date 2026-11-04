@@ -15,6 +15,7 @@ import { 거절사유, 받는종류, 자료상한, 작성오류말, 피그마거
 import { 크기글 } from './GuideSection.js';
 import { use말, use언어 } from './i18n.js';
 import { 종류 } from './kind.js';
+import { 떠나기상자 } from './leaveGuard.js';
 import { message, 기다림글자 } from './ui.js';
 
 export { 가이드받는종류, 거절사유, 받는종류 } from './authoringNewText.js';
@@ -295,6 +296,7 @@ export function AuthoringNew({
       ))}
       {너무많다 ? <span className="error-text">{t('한 요청에 넣을 수 있는 자료 개수를 넘었습니다')}</span> : null}
       {오류 === null ? null : <span className="error-text">{오류}</span>}
+      <떠나기상자 막나={파일들.length > 0 || 피그마.trim() !== '' || 시작주소.trim() !== ''} />
     </form>
   );
 }

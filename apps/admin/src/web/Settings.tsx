@@ -7,7 +7,7 @@ import { api, type SettingsProject, type SettingsServiceRow, type User, type Use
 import { BTS이름 } from './btsName.js';
 import { Head } from './Head.js';
 import { 고른서비스를읽는다 } from './layout.js';
-import { 떠나기로했다 } from './leaveGuard.js';
+import { 떠나기로했다, 주소덮기 } from './leaveGuard.js';
 import { use말 } from './i18n.js';
 import { 할수있나 } from './role.js';
 import { SettingsBts } from './SettingsBts.js';
@@ -48,7 +48,7 @@ export function Settings({ user, onMeChanged, 자리, on서비스번호 }: { use
   // 프로젝트도 없을 때 프로젝트부터 만드는 것은 마법사가 정한다(아래 새프로젝트)
   const 비었다 = 자리 === undefined && services.data?.items.length === 0;
   useEffect(() => {
-    if (비었다) window.location.replace('#/settings/new');
+    if (비었다) 주소덮기('#/settings/new');
   }, [비었다]);
 
   // 서버 gate.ts 가 이미 막지만, 주소를 직접 친 사람에게 403 대신 이유를 보여준다

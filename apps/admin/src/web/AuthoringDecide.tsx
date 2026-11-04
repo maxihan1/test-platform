@@ -13,6 +13,7 @@ import { 진행중, 차례글 } from './AuthoringDecideRun.js';
 import { decideApi, type 결정목록, type 결정항목, type 진행단계 } from './decideApi.js';
 import { 고름바꾼표, 보낼것, 차례, 탭of, type 고른값, type 차례줄, type 탭 } from './decideView.js';
 import { use말, use언어 } from './i18n.js';
+import { 떠나기상자 } from './leaveGuard.js';
 import { message, 기다림글자 } from './ui.js';
 
 type 항목of<K extends 결정항목['kind']> = Extract<결정항목, { kind: K }>;
@@ -67,6 +68,11 @@ export function AuthoringDecide({ service, 목록, envs, 다시읽기, 탭: 주�
   const 탭고른 = new Map([...고른].filter(([key]) => 열쇠들.has(key)));
   const 보냄 = 보낼것(items, 탭고른);
   const 줄들 = 차례(items, 탭고른, 목록.prdVersion);
+  // 수정 칸을 열기만 하면 원래 글이 들어간다 — 원래 글과 같은 칸은 고친 것이 아니다
+  const 고침 = [...편집].some(([key, 글]) => {
+    const x = items.find((y) => y.key === key);
+    return 글 !== (고른.get(key)?.text ?? (x?.kind === 'CHECK' && x.basis !== 'DOCS' ? x.text : undefined));
+  });
   const 안저장 = [...편집.keys()].filter((key) => 열쇠들.has(key)).length;
 
   function 키누름(e: KeyboardEvent, 자리: number) {
@@ -126,6 +132,7 @@ export function AuthoringDecide({ service, 목록, envs, 다시읽기, 탭: 주�
 
   return (
     <section className="decide" aria-labelledby="decide-title">
+      <떠나기상자 막나={고른.size > 0 || 고침} />
       <header>
         <h2 id="decide-title">{t('결정이 필요한 일 {수}건', { 수: 목록.count })}</h2>
         <small className="hint">{t('탭마다 고른 뒤 맨 아래 「적용」을 누릅니다')}</small>

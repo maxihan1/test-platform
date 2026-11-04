@@ -385,6 +385,14 @@ describe('페이지 측정 실행', () => {
     expect(screen.queryByRole('button', { name: 'PDF로 내려받기' })).toBeNull();
   });
 
+  it('보내면서 방문 기록 칸 번호를 지우지 않는다 — 떠나기 막기가 한 칸 어긋나지 않게', async () => {
+    window.history.replaceState({ navIndex: 3 }, '');
+    vi.spyOn(perfApi, 'runOf').mockResolvedValue(끝난상세({ id: 30, kind: 'PAGE' }));
+    render(<PerfRun runId={30} 판정하기={된다} />);
+    await waitFor(() => expect(window.location.hash).toBe('#/perf/pages?run=30'));
+    expect(window.history.state).toEqual({ navIndex: 3 });
+  });
+
   it('기기 측정 실행도 기기 성능 화면의 그 실행으로 보낸다', async () => {
     vi.spyOn(perfApi, 'runOf').mockResolvedValue(끝난상세({ id: 40, kind: 'DEVICE' }));
     render(<PerfRun runId={40} 판정하기={된다} />);

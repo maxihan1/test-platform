@@ -1,14 +1,16 @@
 // 실행 결과 목록 (SPEC §8.3). 케이스 1건 = 1행이고 디바이스별 판정을 판정 칸에 나란히 묶는다
 // POST /api/runs는 끝나기 전에 돌아온다. status가 FINISHED가 될 때까지 화면이 다시 묻는다 (SPEC §7.1)
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 
 import { api, ApiError, type ItemStatus, type Platform, type RunInsights as 비교 } from './api.js';
 import { filterGroups, groupByCase } from './group.js';
 import { Head } from './Head.js';
 import { use증적, 증적만들기버튼들, 증적알림과목록 } from './EvidenceSection.js';
 import { use말, use언어 } from './i18n.js';
+import { use주소조건, 주소조건 } from './leaveGuard.js';
 import { 실행판정, type 판정하기 } from './runJudge.js';
+import { type 결과보기, type 보기바꿈, 디바이스고른보기, 바꾼보기, 보기읽기, 보기조건, 판정고른보기 } from './runResultView.js';
 import { 진행상황 } from './runProgress.js';
 import { 시간글자, 실행남은글 } from './remainText.js';
 import { RunAbortModal } from './RunAbortModal.js';
@@ -27,15 +29,7 @@ import { use보는실행알림 } from './viewedRun.js';
 
 const STATUSES: (ItemStatus | 'ALL')[] = ['ALL', 'PASS', 'FAIL', 'NA'];
 
-function 케이스결과({
-  runId,
-  판정하기,
-  칸안 = false,
-  on새실행,
-  on시나리오,
-  열카드,
-}: {
-  on시나리오?: () => void;
+interface 결과바깥 {
   /** 이 케이스의 실패 카드를 펼친 채 연다 — 대시보드 · 항목 상세에서 곧장 내려온 주소(`&tc=`) */
   열카드?: string;
   runId: number;
@@ -47,12 +41,30 @@ function 케이스결과({
   칸안?: boolean;
   /** 결과 칸에서 건 「실패 다시」 — 주소를 옮기지 않고 목록이 새 실행을 고른다 */
   on새실행?: (runId: number) => void;
-}) {
+}
+
+/** 거르개 · 쪽 · 펼친 카드. 주소에 담는 쪽(실행 기록 · 결과 화면 감싸개)이 든다 */
+interface 결과상태 {
+  보기: 결과보기;
+  on보기: Dispatch<SetStateAction<결과보기>>;
+}
+
+function 케이스결과({
+  runId,
+  판정하기,
+  칸안 = false,
+  on새실행,
+  on시나리오,
+  열카드,
+  보기,
+  on보기,
+}: 결과바깥 & 결과상태 & { on시나리오?: () => void }) {
   const t = use말();
   const 언어 = use언어();
-  const [status, setStatus] = useState<ItemStatus | 'ALL'>('ALL');
-  const [device, setDevice] = useState<Platform | 'ALL'>('ALL');
-  const [page, setPage] = useState(1);
+  const { 판정: status, device, 쪽: page } = 보기;
+  function 바꾸기(바꿀: 보기바꿈) {
+    on보기((앞) => 바꾼보기(앞, 바꿀));
+  }
   const [멈출까, set멈출까] = useState(false);
   const [멈추는중, set멈추는중] = useState(false);
   const [끝났다고알릴까말까, set알릴까] = useState(false);
@@ -131,12 +143,9 @@ function 케이스결과({
     data.finishedAt === null
       ? null
       : 시간글자(Math.max(0, new Date(data.finishedAt).getTime() - new Date(data.startedAt).getTime()), 언어);
-  function choose<T>(setter: (value: T) => void) {
-    return (value: T) => {
-      setter(value);
-      setPage(1);
-    };
-  }
+  const 판정고름 = (값: ItemStatus | 'ALL') => 바꾸기(판정고른보기(값));
+  const 디바이스고름 = (값: Platform | 'ALL') => 바꾸기(디바이스고른보기(값));
+  const 쪽고름 = (쪽: number) => 바꾸기({ 쪽 });
 
   // 실행 정보는 이 한 줄이 전부다 — 앞 판은 같은 값을 옆 칸에 또 적었고 좁은 창에서 그 칸이 맨 아래로 묻혔다 (도메인/실행 §8.3 · 점검 2.2)
   const 부제 = (
@@ -273,13 +282,13 @@ function 케이스결과({
                   className="chip"
                   key={value}
                   aria-pressed={status === value}
-                  onClick={() => choose(setStatus)(value)}
+                  onClick={() => 판정고름(value)}
                 >
                   {value === 'ALL' ? t('전체') : STATUS_LABEL[value]}
                 </button>
               ))}
             </div>
-            <디바이스칩 디바이스들={디바이스들} device={device} on디바이스={choose(setDevice)} />
+            <디바이스칩 디바이스들={디바이스들} device={device} on디바이스={디바이스고름} />
           </div>
 
           {/* 깨진 줄은 위로 올라와 있다. 카드는 끝나야 생기니 이유는 줄을 펼쳐 본다 (점검 2.21) */}
@@ -295,12 +304,8 @@ function 케이스결과({
           판정하기={판정하기}
           견줌오류={견줌.error}
           칸안={칸안}
-          판정={status}
-          on판정={choose(setStatus)}
-          device={device}
-          on디바이스={choose(setDevice)}
-          page={page}
-          on쪽={setPage}
+          보기={보기}
+          바꾸기={바꾸기}
           열카드={열카드}
         />
       )}
@@ -332,12 +337,28 @@ function 케이스결과({
         />
       )}
 
-      {running ? <쪽넘김 쪽={shownPage} 전체쪽={totalPages} on쪽={setPage} /> : null}
+      {running ? <쪽넘김 쪽={shownPage} 전체쪽={totalPages} on쪽={쪽고름} /> : null}
     </>
   );
 }
 
-export function RunResult(props: Parameters<typeof 케이스결과>[0]) {
+type 결과props = 결과바깥 & Partial<결과상태>;
+
+/** 실행 기록의 결과 칸은 `보기` 를 주소와 함께 넘긴다. 안 주면(결과 화면 `#/runs/번호`) 감싸개가 그 주소에 담는다 */
+export function RunResult(props: 결과props) {
+  const { 보기, on보기 } = props;
+  if (보기 === undefined || on보기 === undefined) return <주소로보는결과 key={props.runId} {...props} />;
+  return <결과갈래 {...props} 보기={보기} on보기={on보기} />;
+}
+
+// 번호마다 새로 선다(위 key) — 「직전 실행 RUN N」으로 옮기면 앞 실행의 거르개가 남지 않고 그 주소의 조건을 읽는다
+function 주소로보는결과(props: 결과props) {
+  const [보기, set보기] = useState(() => 보기읽기(주소조건()));
+  use주소조건(`#/runs/${String(props.runId)}`, 보기조건(보기));
+  return <결과갈래 {...props} 보기={보기} on보기={set보기} />;
+}
+
+function 결과갈래(props: 결과바깥 & 결과상태) {
   const [시나리오, set시나리오] = useState<number | null>(null); // 시나리오 실행 번호는 404 SCENARIO_RUN 으로 알려 준다 — 갈래를 바깥에 둬 훅 순서를 지킨다
   // 머리가 진행을 적으니 알림 줄은 이 실행의 도는 줄을 뺀다 (공통/5-화면공통 §8 「알림」)
   use보는실행알림(props.runId);

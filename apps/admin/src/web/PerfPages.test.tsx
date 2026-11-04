@@ -106,6 +106,17 @@ describe('가장 최근 측정', () => {
   });
 });
 
+describe('다른 종류의 실행 번호', () => {
+  it('페이지 실행이 아닌 번호면 실행 한 건 화면으로 보낸다 — 방문 기록 칸 번호는 지우지 않는다', async () => {
+    window.history.replaceState({ navIndex: 3 }, '');
+    vi.spyOn(perfApi, 'runOf').mockResolvedValue(상세({ id: 12, kind: 'LOAD' }));
+    vi.spyOn(perfApi, 'pages').mockResolvedValue(결과);
+    render(<PerfPages service={앱} run={12} 쓰나 />);
+    await waitFor(() => expect(window.location.hash).toBe('#/perf/runs/12'));
+    expect(window.history.state).toEqual({ navIndex: 3 });
+  });
+});
+
 describe('측정할 페이지', () => {
   it('측정이 하나도 없으면 AI 추천을 받아 그 개수를 AI 줄에 보인다', async () => {
     vi.spyOn(perfApi, 'pagesRuns').mockResolvedValue({ runs: [] });
