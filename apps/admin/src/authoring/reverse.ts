@@ -258,7 +258,7 @@ export async function 역방향칸판정(본문: Record<string, unknown>, 서비
   }
   if (typeof env !== 'string' || env === '') return { error: 'BAD_ENV' };
   const 줄 = await 대상줄읽기(서비스, env);
-  // 앱 · 게임은 계정이 없어도 로그아웃 판만 훑는다. 대신 폰에서 켤 앱(최신 빌드 · 앱 파일 경로)이 있어야 한다 — 앱 화면 통로(appScreen.ts)와 같은 판정
+  // 앱 · 게임은 계정이 없어도 로그아웃 판만 훑는다. 대신 폰에서 켤 앱(최신 빌드 · 앱 파일 경로)이 있어야 한다 — 앱 화면 통로(appScreen.ts)와 같은 판정에 게임은 패키지 이름을 더 거른다
   if (폰앱인가(종류)) return 줄 !== null && !줄.isProd && (await 켤앱있나(서비스, 줄, 종류 === 'GAME')) ? { compare: true, env, startUrl: null } : { error: 'BAD_ENV' };
   if (!계정있는줄(줄)) return { error: 'BAD_ENV' };
   if (!주소있음) return { compare: true, env, startUrl: null };
