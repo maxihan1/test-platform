@@ -29,11 +29,13 @@ interface 실행행 {
   bts_project: string;
   origin: string;
   rerun_of: string | null;
+  /** 애플리케이션 종류 — 화면 줄은 웹(SCREEN)만 적는다 */
+  kind: string;
 }
 
 // BTS 를 이은 프로젝트의 끝난 케이스 실행만 — 시나리오는 카드가 없다
 const 실행SQL = `
-  SELECT r.service_id, s.project_id, r.env, r.build_no, s.name AS service_name, l.bts_project, r.origin, r.rerun_of
+  SELECT r.service_id, s.project_id, r.env, r.build_no, s.name AS service_name, l.bts_project, r.origin, r.rerun_of, s.kind
     FROM test_run r
     JOIN service s ON s.id = r.service_id
     JOIN bts_link l ON l.project_id = s.project_id
@@ -98,12 +100,13 @@ const 통과화면SQL = `SELECT DISTINCT i.platform FROM ${지금항목('o.run_i
 
 /**
  * 첫 화면(화면 차례) 것을 바탕으로 쓴다 — 한 테스트 · 한 대상 서버에 이슈는 하나다(2026-11-04 사용자 「웹이랑 모바일 둘 다 발생한 버그는 1개로」).
- * 웹은 깨진 화면 · 통과한 화면을 적고, 둘째 화면이 다른 곳에서 깨졌으면 그 화면 것도 싣는다. Android 앱 · 게임은 화면이 하나다
+ * 웹은 깨진 화면 · 통과한 화면을 적고, 둘째 화면이 다른 곳에서 깨졌으면 그 화면 것도 싣는다. Android 앱 · 게임 · API 는 화면 줄이 없다
  */
 async function 재료만들기(pool: Pool, 실행: 실행행, 카드실행: number, c: FailureCase) {
   const d = c.devices[0]!;
   const 깨짐 = c.devices.flatMap((x) => (x.platform === 'android' ? [] : [x.platform]));
-  const 웹 = 깨짐.length > 0;
+  // API 애플리케이션 케이스도 디바이스가 desktop 이지만 브라우저를 열지 않아 화면이 없다(도메인/API 「디바이스는 desktop 하나다」)
+  const 웹 = 실행.kind === 'SCREEN' && 깨짐.length > 0;
   const 둘 = 웹 ? c.devices[1] : undefined;
   const 첫재료 = await 화면재료로(pool, d);
   const 둘재료 = 둘 === undefined ? null : await 화면재료로(pool, 둘);
