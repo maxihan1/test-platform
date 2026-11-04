@@ -105,7 +105,7 @@ describe.skipIf(연결 === undefined)('설정 API — BTS 연결', () => {
         return 확인결과;
       },
       부르기: async (자리, _method, 경로) => {
-        부른것.push(['pat' in 자리 ? `pat:${자리.pat}` : 자리.봇, 경로]);
+        부른것.push(['pat' in 자리 ? `pat:${자리.pat}` : '봇' in 자리 ? 자리.봇 : 자리.userId, 경로]);
         const data = 경로 === '/api/v1/statuses' ? [{ id: 1, key: 'qa-review', name: 'QA Review' }, { key: 7 }] : [{ id: 2, key: 'wontfix', name: "Won't Fix" }];
         return { status: 목록답, json: { data } };
       },

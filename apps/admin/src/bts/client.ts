@@ -3,10 +3,10 @@
 import { 대신PAT } from '../auth/delegatedPat.js';
 
 /**
- * 부를 BTS 와 누구로 부를지. 봇은 「QA Hub AI」 Auth 계정 이름(bts_link.bot_username) — 부를 때마다 대신 PAT 로 바꾼다.
- * pat 은 이미 받은 토큰(자동 설정은 누른 사람의 대신 PAT · MCP 는 부른 사람의 PAT)
+ * 부를 BTS 와 누구로 부를지. 봇은 「QA Hub AI」 Auth 계정 이름(bts_link.bot_username), userId 는 사람의 Auth id(MCP 로 부른 사람) —
+ * 둘 다 주소를 확인한 뒤 부를 때마다 대신 PAT 로 바꾼다. pat 은 이미 받은 토큰(자동 설정은 누른 사람의 대신 PAT)
  */
-export type BTS자리 = { baseUrl: string } & ({ 봇: string } | { pat: string });
+export type BTS자리 = { baseUrl: string } & ({ 봇: string } | { userId: string } | { pat: string });
 
 /**
  * 서버 env BTS_BOT_USERNAMES(쉼표로 여럿)에 든 이름만 「QA Hub AI」 로 쓴다. 설정 칸은 운영 계정이 아무 이름이나 적을 수 있어,
@@ -41,7 +41,8 @@ export async function 봇열쇠(이름: string): Promise<string> {
 
 const 열쇠고르기 = async (자리: BTS자리): Promise<string> => {
   if (!BTS주소허용(자리.baseUrl)) throw new Error(`Issue Bunker 주소 ${출처(자리.baseUrl) ?? '(꼴이 틀림)'} 은 서버 BTS_URLS 에 없습니다`);
-  return 'pat' in 자리 ? 자리.pat : 봇열쇠(자리.봇);
+  if ('pat' in 자리) return 자리.pat;
+  return 'userId' in 자리 ? 대신PAT({ userId: 자리.userId }) : 봇열쇠(자리.봇);
 };
 
 export interface BTS응답 {

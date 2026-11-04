@@ -1,5 +1,6 @@
 // MCP 조회 도구 셋(노트 읽기는 mcp/note.ts · 실행 둘은 mcp/runs.ts) — 화면 통로와 같은 판정(문판정)을 거친 뒤 같은 질의를 읽는다 (도메인/BTS §3.12 「맥락 — MCP 조회 도구」 · §7 「MCP」)
 
+import { 대신PAT오류 } from '../auth/delegatedPat.js';
 import { 문판정, type 문막힘 as 문막힘몸 } from '../auth/gate.js';
 import { 필요권한 } from '../auth/routeTable.js';
 import { 케이스의서비스 } from '../auth/scope.js';
@@ -159,18 +160,20 @@ export type BTS찾을것 = { issueKey?: string; query?: string; page?: number };
 export { aql글 };
 
 /**
- * BTS 이슈 · task 찾기 — 사람 요청은 그 사람의 PAT 로 BTS 를 부른다(결정 16). BTS 가 자기 권한을 한 번 더 본다.
- * 자동 AI(mcj_)는 PAT 가 없어 `pat` 이 null 이고, 그 프로젝트에 적은 「QA Hub AI」 계정의 대신 PAT 로 부른다 (§3.12 「열쇠 표」)
+ * BTS 이슈 · task 찾기 — 사람 요청은 그 사람(Auth id `authSub`)의 대신 PAT 로 BTS 를 부른다(결정 16 · S28). BTS 가 자기 권한을 한 번 더 본다.
+ * /mcp 가 받은 access token 은 BTS 로 넘기지 않는다 — 그 토큰의 aud 는 /mcp 다 (MCP 인가 「Token Passthrough」)
+ * 자동 AI(mcj_)는 `authSub` 이 null 이고, 그 프로젝트에 적은 「QA Hub AI」 계정의 대신 PAT 로 부른다 (§3.12 「열쇠 표」)
  * Test Commander 쪽은 그 프로젝트 애플리케이션 하나라도 (작성, read) 여야 한다 — note_read 와 같은 문턱 (§3.12 「맥락 — MCP 조회 도구」)
  */
-export async function BTS찾기(사람: 사용자, pat: string | null, projectId: number, 찾을것: BTS찾을것, 부르기: 부르기함수 = BTS부르기): Promise<도구답> {
+export async function BTS찾기(사람: 사용자, authSub: string | null, projectId: number, 찾을것: BTS찾을것, 부르기: 부르기함수 = BTS부르기): Promise<도구답> {
   const 문턱 = 프로젝트읽기막힘(사람, projectId);
   if (문턱 !== null) return 문턱;
 
   const r = await (await db()).query<{ base_url: string; bts_project: string; bot_username: string | null }>('SELECT base_url, bts_project, bot_username FROM bts_link WHERE project_id = $1', [projectId]);
   const 연결 = r.rows[0];
   if (연결 === undefined) return { ok: false, error: 'NOT_LINKED', detail: `project ${String(projectId)} 은 Issue Bunker 를 잇지 않았다` };
-  const 자리: BTS자리 = pat !== null ? { baseUrl: 연결.base_url, pat } : { baseUrl: 연결.base_url, 봇: 연결.bot_username ?? '' };
+  // 대신 PAT 는 BTS부르기가 주소를 확인한 뒤에 받는다 — 막힐 입력 · 허용 밖 주소로 Auth 에 PAT 를 만들게 하지 않는다
+  const 자리: BTS자리 = authSub !== null ? { baseUrl: 연결.base_url, userId: authSub } : { baseUrl: 연결.base_url, 봇: 연결.bot_username ?? '' };
 
   let 부를것: Parameters<부르기함수>;
   // 이슈 하나를 읽을 때만 댓글도 부른다 — 댓글에서 바뀐 규칙을 PRD 초안 · 수정 AI 가 놓치지 않게 (2026-11-02 사용자)
@@ -193,7 +196,8 @@ export async function BTS찾기(사람: 사용자, pat: string | null, projectId
     답 = await 부르기(...부를것);
   } catch (err) {
     console.error(`[mcp] Issue Bunker(${연결.base_url}) 에 닿지 못했다: ${err instanceof Error ? err.message : String(err)}`);
-    return { ok: false, error: 'BTS_UNREACHABLE' };
+    // Bunker 는 멀쩡한데 Auth 가 대신 PAT 를 안 준 때(403 · 429)는 Bunker 주소를 의심하지 않게 갈라 준다. 까닭 원문은 로그에만
+    return { ok: false, error: 'BTS_UNREACHABLE', ...(err instanceof 대신PAT오류 && { detail: 'Auth 에서 Issue Bunker 를 부를 대신 PAT 를 못 받았다' }) };
   }
 
   if (답.status === 200) {
@@ -213,7 +217,7 @@ export async function BTS찾기(사람: 사용자, pat: string | null, projectId
     return { ok: true, data: { ...이슈하나(data as 이슈원본), ...댓글칸(댓글답) } };
   }
   if (답.status === 404) return 없음(찾을것.issueKey ?? '');
-  if (답.status === 401) return { ok: false, error: 'BTS_UNAUTHORIZED', detail: pat === null ? 'Issue Bunker 가 「QA Hub AI」 계정의 대신 PAT 를 받지 않았다 — 설정 › Issue Bunker 연결의 계정 이름을 확인한다' : 'Issue Bunker 가 이 통합계정 토큰을 받지 않았다' };
+  if (답.status === 401) return { ok: false, error: 'BTS_UNAUTHORIZED', detail: authSub === null ? 'Issue Bunker 가 「QA Hub AI」 계정의 대신 PAT 를 받지 않았다 — 설정 › Issue Bunker 연결의 계정 이름을 확인한다' : 'Issue Bunker 가 이 사람의 대신 PAT 를 받지 않았다' };
   if (답.status === 403) return 막힘('Issue Bunker 권한 없음');
   return { ok: false, error: 'BTS_ERROR', detail: `HTTP ${String(답.status)}` };
 }

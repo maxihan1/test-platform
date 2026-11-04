@@ -33,7 +33,7 @@ async function 빈폰을고른다(팜: string, 부르기: typeof fetch, 쉬기: 
   for (;;) {
     const 목록 = await 부르기(주소, { headers: 팜머리(process.env, 토큰), signal: AbortSignal.timeout(팜_제한_ms) });
     // 인증 켠 팜은 토큰이 없거나 틀리면 401 이다 — 주소나 팜을 의심하기 전에 토큰을 보게 한다
-    const 볼곳 = 토큰 === undefined ? 'DEVICE_FARM_TOKEN 을 확인하세요' : 'Auth 의 대신 PAT 를 Device VISION 이 받지 않았습니다';
+    const 볼곳 = 토큰 === undefined ? 'DEVICE_FARM_RUN_AS · Auth delegated-pats clients 를 확인하세요' : 'Auth 의 대신 PAT 를 Device VISION 이 받지 않았습니다';
     if (!목록.ok) return { reason: `Device VISION 이 기기 목록을 주지 않았습니다 (HTTP ${목록.status})${목록.status === 401 ? ` — ${볼곳}` : ''}` };
     // 주소가 틀려 다른 쪽이 200 으로 HTML 을 주면 「닿지 못했다」가 아니라 이 말이어야 주소를 다시 본다
     const 몸 = (await 목록.json().catch(() => null)) as { value?: { devices?: 기기[] } } | null;
