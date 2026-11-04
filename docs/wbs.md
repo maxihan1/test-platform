@@ -1301,7 +1301,8 @@
   - 근거 PR #606 · 2026-11-04
 - [x] `APP-F2-02` Device VISION — 「남길 앱」 표시(놓을 때 지우지 않음 · 데이터는 지움 · 팜을 다시 켜도 남음) · 기기 목록을 패키지로 거르기 (Devicefarm 저장소 · 그 저장소 ADR-028 「기준 목록을 바꾸는 때」)
   - 근거 Devicefarm PR #97 · test_platform PR #607 · 2026-11-04 (그쪽 `CTL-F10-09` · ADR-057 — 거르는 꼴은 `GET /api/devices?app=<패키지>`(놓을 때 남는 앱 = 처음 등록 때 있던 앱 ∪ 남길 앱 · `status` 와 같이 줌 · 목록이 비면 「깔린 폰 없음」, 있는데 `IDLE` 이 없으면 「빈 폰 없음」) · 표시는 원격 화면 상세 칸 「남길 앱」(`PUT /api/devices/{serial}/kept-apps` — 그 폰을 잡은 사람 · 관리자만 넣음) · 남길 앱 데이터는 놓을 때마다 지움 · 시스템 앱(Chrome 등)은 `?app=` 밖 · 정본은 그 저장소 `docs/guides/test-platform.md` 11절 「스토어 앱」 · 실기기 미검증 — APP-F2-07 시험에서)
-- [ ] `APP-F2-03` appium-cli — `PLATFORM_APP` · `--app` 이 패키지 이름이면 `appium:appPackage` 로 열기 · `hold` 가 그 패키지가 깔린 빈 폰을 고르기 · 새 태그 (Appium_cli 저장소 + 이 저장소 의존 올리기)
+- [x] `APP-F2-03` appium-cli — `PLATFORM_APP` · `--app` 이 패키지 이름이면 `appium:appPackage` 로 열기 · `hold` 가 그 패키지가 깔린 빈 폰을 고르기 · 새 태그 (Appium_cli 저장소 + 이 저장소 의존 올리기)
+  - 근거 Appium_cli PR #1 · 태그 v0.4.0 · test_platform PR #609 · 2026-11-04 (그쪽 `CLI-F7-01` — `hold` 는 `GET /api/devices?app=<패키지>` 한 번으로 받아 `IDLE` 인 폰을 잡는다 · 목록이 비면 「팜에 <패키지> 이 깔린 폰이 없다」 · 다 바쁘면 「<패키지> 이 깔린 빈 폰이 없다」 · `--udid` 를 주면 거르지 않는다 · 명세의 손으로 적은 appium-cli 판 번호는 빼고 루트 `package.json` 을 가리킨다 · 실기기 미검증 — APP-F2-07 시험에서)
 - [ ] `APP-F2-04` kit · 러너 · admin — `앱파일값인가` 가 패키지 이름을 가름 · kit `appPackage` 로 열기 · 게임 줄은 패키지 이름 400 · 폰 잡기에 패키지 거르기(정식 · 테스트 실행 · E2E · 기기 성능) · 깔린 폰 없음 NA 문장 · 설정 칸 이름 · 안내 · `types.ts` `ExecuteRequest.app` 주석 · `docs/SETUP.md` 「앱 파일을 알려 준다」
 - [ ] `APP-F2-05` 앱 역기획서 — 서버(APP `compare` 받기 · 화면 기록 앱 줄) · 에이전트(appium-cli `crawl` 명령 절 · `app:` 열쇠 저장본 · 같은 틀 계산) · 앱 화면 파일 `주소` 가 `app:` 열쇠 · 스캐너 지도 ② · 작성 창 대조 칸(`kind.ts`) · 지침(`reverse.md` · `app.md` crawl 허용 · `tpx-cases` 앱 화면 파일)
 - [ ] `APP-F2-06` 게임 역기획서 — 서버(GAME `compare` 받기) · 에이전트(창 훑기 기록 → 표준 기획서 게임 절 · 전부 `확인 필요`) · 지침(`reverse.md` · `game.md`)
