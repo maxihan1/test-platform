@@ -283,7 +283,7 @@ AI 품질은 따로 시험하지 않고 사람이 고른 결과로 센다 — �
 - **BTS**(BTS-F2-01 · 02) — 자동화 동작 「상태 바꾸기」(지금 다섯 동작에 없다 — `automation/domain/ActionType.kt`) · 웹훅 규칙이 「조건에 맞는 이슈 전부」 · 「받은 키 목록 전부」에 걸리는 실행(지금은 이슈 하나 — `ActionExecutor.kt:57`) · 해결 상태 넷 · 「QA Hub AI」 계정. 담당자 변경 · PR 병합 신호는 코드 없이 규칙 설정으로
 - **데모마켓**(BTS-F5-02) — `deploy/deploy.sh` 끝에 BTS 웹훅 · 배포 신호 · 빌드 번호 · 올라간 커밋 기록 · 롤백 판정과 이슈 키 뽑기(순수 함수로 떼어 시험)
   — 반영 2026-10-31(demo-market PR #7 · `deploy/signal.ts`). 두 곳에 같은 몸 `{ build, rollback?, rollbackKeys? }` 이라 BTS 롤백 규칙은 `rollbackKeys` 를 읽는다 · 빌드 번호는 커밋 7자-배포 시각(KST 분) · 지난 배포 커밋은 서버 `/opt/demo/DEPLOYED_COMMIT`(서버 기동 확인 직후 · 신호 전에 적는다) · 이슈 키는 BTS 프로젝트 키로만 뽑는다 · 공개 주소가 안 열리면 신호를 안 보낸다 · 신호가 깨지면 `deploy/deploy.sh --signal '<몸>'` 으로 신호만 다시(같은 빌드라 QA Hub 멱등)
-- **Auth** — 없다(PAT · whoami 가 이미 있다)
+- **Auth** — 처음에는 없었다(PAT · whoami 가 이미 있었다). 2026-11-05 S28 에 `/mcp` 브라우저 로그인의 인가 서버 몫(Claude client 둘 · `auth.mcp.resource` · refresh)을 더했다 — Auth_platform PR #49
 
 #### 1차 밖 · 나중
 
@@ -292,7 +292,6 @@ AI 품질은 따로 시험하지 않고 사람이 고른 결과로 센다 — �
 - 「QA 검토」 숨기기 · 보드 칸이 지금 어떤지 화면에 보이기(칸이 없으면 만드는 것은 BTS 자동 설정이 한다 — BTS-F3-05)
 - 「버그 심어 시험」 같은 AI 품질 시험
 - PR 닫힘(거절) 신호 — 거절이 잦으면 BTS PR 닫힘 트리거를 더한다
-- 브라우저 로그인으로 MCP 붙이기 — 팀이 쓰기 시작할 때
 - Jira 등 다른 BTS — 연결 자리(`apps/admin/src/bts/`)만 하나로 모아 둔다
 - BTS 바깥 알림 종류 늘리기 · 빌드마다 BTS 버전 만들기 · 「배운 것」을 노트로 옮기기(2차)
 
@@ -434,9 +433,9 @@ POST /api/authoring/requests/:id/pr-state    { state: 'MERGED' | 'CLOSED' }
   — 에이전트는 `gh pr view <주소> --json state` 가 MERGED · CLOSED 일 때만 부른다. 열려 있거나 못 읽으면 안 부르고 1분 뒤 다시 본다
 
 # MCP — Streamable HTTP 하나 · 세션 없음 · 답은 JSON 한 덩어리 (BTS-F4-01 반영 2026-10-31 · apps/admin/src/mcp/server.ts · tools.ts · 브라우저 로그인은 S28 반영 2026-11-05 · auth/oidc.ts · mcj_ 는 BTS-F4-02 반영 2026-10-31 · mcp/jobKey.ts — note_read 는 BTS-F4-03 반영 2026-10-31 · mcp/note.ts)
-#   열쇠: Authorization: Bearer <access token> | mcj_…. access token 은 브라우저 로그인으로 Claude 가 Auth 에서 받은 JWT — Auth 열쇠 묶음으로 서명 · iss · aud(<PLATFORM_PUBLIC_URL>/mcp) · exp 를 보고 sub 를 app_user.auth_sub 로 찾는다(인증.md §7 「인증 적용 범위」). mcj_ 는 그 작성 요청이 RUNNING 이고 그 프로젝트일 때만
+#   열쇠: Authorization: Bearer <access token> | mcj_…. access token 은 브라우저 로그인으로 Claude 가 Auth 에서 받은 JWT — Auth 열쇠 묶음으로 서명 · iss · aud(<PLATFORM_PUBLIC_URL>/mcp) · exp 를 보고 sub 를 app_user.auth_sub 로 찾는다. Auth 가 back-channel 로 끝낸 로그인(sid · sessions_valid_after)도 401 (인증.md §7 「인증 적용 범위」). mcj_ 는 그 작성 요청이 RUNNING 이고 그 프로젝트일 때만
 #   열쇠는 몸을 읽기 전에 본다. 없거나 틀리거나 계정이 꺼졌으면 401 · Auth 열쇠 묶음을 못 받으면 503 · GET · DELETE /mcp 는 405 (2026-11-05 S28 — 앞 판의 PAT 429 는 없어졌다)
-#   401 머리: WWW-Authenticate: Bearer resource_metadata="<PLATFORM_PUBLIC_URL>/.well-known/oauth-protected-resource/mcp", scope="commander" — 토큰을 냈는데 틀렸으면 앞에 error="invalid_token", SSO 를 끈 설치는 Bearer 하나
+#   401 머리: WWW-Authenticate: Bearer resource_metadata="<PLATFORM_PUBLIC_URL>/.well-known/oauth-protected-resource/mcp", scope="commander" — 토큰을 냈는데 틀렸으면 앞에 error="invalid_token", SSO 를 끈 설치는 resource_metadata · scope 를 뺀다(열쇠가 없으면 Bearer, 냈으면 Bearer error="invalid_token")
 #   열쇠보다 먼저 — 다른 주소 페이지의 POST(브라우저가 Origin 을 실은 것)는 403 CROSS_ORIGIN (인증.md §7 「인증 적용 범위」 · 2026-11-03 S26)
 GET /.well-known/oauth-protected-resource/mcp · GET /.well-known/oauth-protected-resource   (자원 정보 · RFC 9728 · 열쇠 없이 연다 · S28 반영 2026-11-05)
   → 200 { resource: "<PLATFORM_PUBLIC_URL>/mcp", authorization_servers: ["<AUTH_ISSUER>"], scopes_supported: ["commander"], bearer_methods_supported: ["header"] } · SSO 를 끈 설치는 404
