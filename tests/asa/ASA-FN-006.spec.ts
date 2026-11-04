@@ -5,7 +5,7 @@ import { 가입, 무작위글자, 새비밀번호, 오류코드 } from './helper
 export const spec = defineCase({
   tcId: 'ASA-FN-006',
   name: '아이디에 영문 대문자를 넣어 가입하면 400 「VALIDATION_FAILED」로 막힌다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['가입하지 않은 새 아이디다'],
   params: null,
   expected: null,

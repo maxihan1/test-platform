@@ -5,7 +5,7 @@ import { 계정만들기, 오류코드읽기, 캐릭터만들기, 캐릭터읽�
 export const spec = defineCase({
   tcId: 'ASA-FN-090',
   name: '이미 있는 캐릭터 이름으로 만들면 409 「NAME_TAKEN」으로 막힌다',
-  apiDoc: 1,
+  apiDoc: 2,
   techniques: ['동등 분할'],
   precondition: ['다른 계정에 캐릭터가 하나 있다'],
   params: null,

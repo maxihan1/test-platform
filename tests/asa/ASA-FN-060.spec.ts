@@ -6,7 +6,7 @@ import { 부르기, 사냥터좌표, 오류코드읽기, 플레이어만들기, 
 export const spec = defineCase({
   tcId: 'ASA-FN-060',
   name: '없는 캐릭터 번호로 캐릭터를 부르면 404 「NOT_FOUND」다',
-  apiDoc: 1,
+  apiDoc: 2,
   techniques: ['동등 분할'],
   precondition: ['로그인한 캐릭터가 있다'],
   params: null,

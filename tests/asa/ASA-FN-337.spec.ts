@@ -8,7 +8,7 @@ import { 플레이어만들기, type 봇, type 플레이어 } from './helpers/ga
 export const spec = defineCase({
   tcId: 'ASA-FN-337',
   name: '봇을 처치하면 「respawnAt」이 60초 뒤다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['캐릭터와 살아 있는 봇이 있다'],
   params: z.object({
     오차초: z.number().min(2).max(30).describe('부활 시각이 60초에서 벌어져도 괜찮은 폭(초) — 2 이상 30 이하').default(5),

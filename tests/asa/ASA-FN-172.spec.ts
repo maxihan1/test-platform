@@ -18,7 +18,7 @@ import {
 export const spec = defineCase({
   tcId: 'ASA-FN-172',
   name: '상점 목록의 가죽 투구 · 철 투구 · 가죽 갑옷 · 사슬 갑옷 · 가죽 장갑 · 철 장갑 · 가죽 장화 · 철 장화 값이 150 · 600 · 250 · 1000 · 100 · 500 · 100 · 500 이다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['로그인한 캐릭터가 있다', '방어구를 해제한 1레벨 전사가 있다'],
   params: null,
   expected: null,

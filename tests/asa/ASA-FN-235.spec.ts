@@ -6,7 +6,7 @@ import { 가방읽기, GM아이템, 강화, 값읽기, 템플릿찾기, 플레�
 export const spec = defineCase({
   tcId: 'ASA-FN-235',
   name: '강화가 성공하면 강화 수치가 1 오른다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['무기 강화 주문서를 가진 캐릭터가 있다'],
   params: null,
   expected: null,

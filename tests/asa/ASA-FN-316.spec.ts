@@ -7,7 +7,7 @@ import { GM성향, 가방읽기, 사냥터좌표, 캐릭터읽기, 플레이어�
 export const spec = defineCase({
   tcId: 'ASA-FN-316',
   name: '물약 묶음만 가진 캐릭터가 죽어 아이템을 떨어뜨리면 물약 10개 묶음 전체가 떨어진다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['빨간 물약 묶음만 가진 성향치 −650 캐릭터가 있다'],
   params: null,
   expected: null,

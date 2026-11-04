@@ -6,7 +6,7 @@ import { 가방읽기, GM골드, GM아이템, 강화, 오류코드읽기, 템플
 export const spec = defineCase({
   tcId: 'ASA-FN-233',
   name: '+9 장비를 강화하면 「MAX_ENHANCE」로 막히지 않는다',
-  apiDoc: 1,
+  apiDoc: 2,
   techniques: ['경계값 분석'],
   precondition: ['+9 짧은 검과 무기 강화 주문서를 가진 캐릭터가 있다', '+10 짧은 검과 무기 강화 주문서를 가진 캐릭터가 있다'],
   params: null,

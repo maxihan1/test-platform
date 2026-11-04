@@ -5,7 +5,7 @@ import { 오류코드, 토큰없이부르기 } from './helpers/api.helper.js';
 export const spec = defineCase({
   tcId: 'ASA-FN-051',
   name: '토큰 없이 GET /bots 요청을 보내면 401 「UNAUTHORIZED」로 막힌다',
-  apiDoc: 1,
+  apiDoc: 2,
   techniques: ['동등 분할'],
   precondition: ['토큰이 없다'],
   params: null,

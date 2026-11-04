@@ -6,7 +6,7 @@ import { 오류코드읽기, 플레이어만들기, type 플레이어 } from './
 export const spec = defineCase({
   tcId: 'ASA-FN-057',
   name: '남의 캐릭터 번호로 재화 원장을 부르면 403 「FORBIDDEN」으로 막힌다',
-  apiDoc: 1,
+  apiDoc: 2,
   techniques: ['동등 분할'],
   precondition: ['다른 계정의 캐릭터가 있다'],
   params: null,

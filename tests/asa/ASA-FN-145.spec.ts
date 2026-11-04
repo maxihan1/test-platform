@@ -6,7 +6,7 @@ import { 값읽기, 플레이어만들기, type 스폰, type 플레이어 } from
 export const spec = defineCase({
   tcId: 'ASA-FN-145',
   name: '임프를 처치하면 얻는 골드가 8~15 안이다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['캐릭터가 있다'],
   params: null,
   expected: null,

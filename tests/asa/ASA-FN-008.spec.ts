@@ -6,7 +6,7 @@ import { 가입, 본문, 새비밀번호, 새아이디, 오류코드 } from './h
 export const spec = defineCase({
   tcId: 'ASA-FN-008',
   name: '비밀번호를 5자로 적어 가입하면 400 「VALIDATION_FAILED」로 막힌다',
-  apiDoc: 1,
+  apiDoc: 2,
   techniques: ['경계값 분석'],
   precondition: ['가입하지 않은 새 아이디다'],
   params: z.object({

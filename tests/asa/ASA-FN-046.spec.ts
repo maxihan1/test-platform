@@ -5,7 +5,7 @@ import { 값읽기, 부르기, 플레이어만들기, type 캐릭터, type 플�
 export const spec = defineCase({
   tcId: 'ASA-FN-046',
   name: '캐릭터 목록을 불러오면 「classType」이 「Warrior」 같은 글자로 온다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['캐릭터가 하나 있다'],
   params: null,
   expected: null,

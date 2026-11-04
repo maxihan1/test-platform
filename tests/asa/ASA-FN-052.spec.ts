@@ -5,7 +5,7 @@ import { GM골드, 캐릭터읽기, 플레이어만들기, type 플레이어 } f
 export const spec = defineCase({
   tcId: 'ASA-FN-052',
   name: '첫 캐릭터 번호를 「X-Character-Id」에 넣어 골드를 주면 첫 캐릭터 골드가 100 늘어난다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['한 계정에 캐릭터가 둘 있다'],
   params: null,
   expected: null,

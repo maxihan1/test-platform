@@ -5,7 +5,7 @@ import { GM성향, 캐릭터읽기, 플레이어만들기, type 플레이어 } f
 export const spec = defineCase({
   tcId: 'ASA-FN-277',
   name: '성향치를 −1 로 바꾸면 상태가 「Chaotic」이다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['캐릭터가 있다'],
   params: null,
   expected: null,

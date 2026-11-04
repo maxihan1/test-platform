@@ -6,7 +6,7 @@ import { 가입, 갱신, 글칸, 로그인, 본문, 새비밀번호, 새아이�
 export const spec = defineCase({
   tcId: 'ASA-FN-022',
   name: '리프레시 토큰으로 갱신하면 200 과 새 「refreshToken」이 돌아온다',
-  apiDoc: 1,
+  apiDoc: 2,
   smoke: true,
   precondition: ['로그인해 받은 리프레시 토큰이 있다'],
   params: null,

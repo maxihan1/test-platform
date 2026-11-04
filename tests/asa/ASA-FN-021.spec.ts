@@ -6,7 +6,7 @@ import { 가입, 로그인, 본문, 새비밀번호, 새아이디, 오류코드 
 export const spec = defineCase({
   tcId: 'ASA-FN-021',
   name: '가입하지 않은 아이디로 로그인하면 401 「INVALID_CREDENTIALS」로 막힌다',
-  apiDoc: 1,
+  apiDoc: 2,
   techniques: ['동등 분할'],
   precondition: ['가입하지 않은 아이디다', '가입한 아이디가 하나 있다'],
   params: null,

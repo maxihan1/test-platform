@@ -3,7 +3,7 @@ import { defineCase, test, verify } from '@platform/kit';
 export const spec = defineCase({
   tcId: 'ASA-FN-076',
   name: 'GET /backoffice 를 열면 200 과 HTML 화면이 돌아온다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['대상 서버에 접근할 수 있다'],
   params: null,
   expected: null,

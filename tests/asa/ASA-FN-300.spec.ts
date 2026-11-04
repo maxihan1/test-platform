@@ -6,7 +6,7 @@ import { 마을좌표, 오류코드읽기, 플레이어만들기, type 봇, type
 export const spec = defineCase({
   tcId: 'ASA-FN-300',
   name: '마을 좌표로 PK 공격을 알리면 「SAFE_ZONE」으로 막힌다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['초록 들판에 선량한 봇이 있다'],
   params: null,
   expected: null,

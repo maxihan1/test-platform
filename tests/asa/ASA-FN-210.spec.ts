@@ -5,7 +5,7 @@ import { 가방읽기, 오류코드읽기, 팔기, 플레이어만들기, type �
 export const spec = defineCase({
   tcId: 'ASA-FN-210',
   name: '장착 중인 아이템을 팔면 「ITEM_EQUIPPED」로 막힌다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['짧은 검을 장착한 전사가 있다'],
   params: null,
   expected: null,

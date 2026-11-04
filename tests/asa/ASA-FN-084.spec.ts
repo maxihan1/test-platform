@@ -6,7 +6,7 @@ import { 계정만들기, 오류코드읽기, 캐릭터만들기 } from './helpe
 export const spec = defineCase({
   tcId: 'ASA-FN-084',
   name: '캐릭터 이름에 「!」를 넣어 만들면 400 「VALIDATION_FAILED」로 막힌다',
-  apiDoc: 1,
+  apiDoc: 2,
   techniques: ['동등 분할'],
   precondition: ['로그인한 계정이 있다'],
   params: null,

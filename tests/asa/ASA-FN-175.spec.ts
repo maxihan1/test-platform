@@ -6,7 +6,7 @@ import { GM아이템, 값읽기, 플레이어만들기, type 가방, type 플레
 export const spec = defineCase({
   tcId: 'ASA-FN-175',
   name: '+1 숏 보우의 판매가가 157 이다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['로그인한 캐릭터가 있다'],
   params: null,
   expected: null,

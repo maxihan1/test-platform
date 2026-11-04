@@ -6,7 +6,7 @@ import { GM강화확률, GM설정, 값읽기, 플레이어만들기, type 플레
 export const spec = defineCase({
   tcId: 'ASA-FN-403',
   name: '「reset」을 보내면 목표 +10 강화 확률이 성공 10% · 실패 50% · 파괴 40% 로 돌아온다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['GM 으로 목표 +10 강화 확률을 바꾼 캐릭터가 있다'],
   params: null,
   expected: null,

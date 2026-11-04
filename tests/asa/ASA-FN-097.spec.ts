@@ -5,7 +5,7 @@ import { 캐릭터만들기, 캐릭터번호읽기, 캐릭터읽기, 캐릭터�
 export const spec = defineCase({
   tcId: 'ASA-FN-097',
   name: '캐릭터를 지운 뒤 같은 이름으로 다시 만들면 새 캐릭터 「id」가 돌아온다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['캐릭터가 하나 있다'],
   params: null,
   expected: null,

@@ -6,7 +6,7 @@ import { 플레이어만들기, type 플레이어 } from './helpers/game.helper.
 export const spec = defineCase({
   tcId: 'ASA-FN-310',
   name: 'GM 설정의 성향치 −300 ~ −599 사망 드랍이 확률 50% · 장착 장비 포함이다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['로그인한 캐릭터가 있다'],
   params: null,
   expected: null,

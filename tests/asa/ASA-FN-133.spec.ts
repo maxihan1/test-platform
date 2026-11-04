@@ -6,7 +6,7 @@ import { 값읽기, 캐릭터읽기, 플레이어만들기, type 스폰, type �
 export const spec = defineCase({
   tcId: 'ASA-FN-133',
   name: '경험치 20 인 1레벨 캐릭터가 죽으면 경험치를 10 잃는다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['1레벨 캐릭터가 있다'],
   params: null,
   expected: null,

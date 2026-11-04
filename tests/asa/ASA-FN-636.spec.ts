@@ -5,7 +5,7 @@ import { 오류코드, 틀린어드민키로부르기 } from './helpers/api.help
 export const spec = defineCase({
   tcId: 'ASA-FN-636',
   name: '틀린 「X-Admin-Key」로 GET /admin/characters/1/ledger 요청을 보내면 401 「UNAUTHORIZED」로 막힌다',
-  apiDoc: 1,
+  apiDoc: 2,
   techniques: ['동등 분할'],
   precondition: ['「X-Admin-Key」가 틀렸다'],
   params: null,

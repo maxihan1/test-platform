@@ -6,7 +6,7 @@ import { 오류코드읽기, 플레이어만들기, type 스폰, type 플레이�
 export const spec = defineCase({
   tcId: 'ASA-FN-162',
   name: '리쉬 반경 25m + 15m 보다 먼 60m 좌표로 처치를 알리면 「OUT_OF_RANGE」로 막힌다',
-  apiDoc: 1,
+  apiDoc: 2,
   techniques: ['동등 분할'],
   precondition: ['캐릭터가 있다'],
   params: null,
