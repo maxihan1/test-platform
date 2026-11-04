@@ -125,9 +125,9 @@ describe('logcat 오류 줄', () => {
       '11-04 10:00:00.100  1459  1568 I ActivityManager: Start proc 4321:com.demo.app/u0a352 for activity com.demo.app/.Main',
       줄(4321, 'E', 'DemoApp', '주문 저장 실패'),
       줄(1459, 'E', 'ActivityManager', 'ANR in com.demo.app.ops'),
-      줄(1459, 'E', 'ActivityManager', 'Process com.demo.app (pid 4321) has died'),
+      줄(1459, 'E', 'ActivityManager', 'ANR in com.demo.app'),
     ].join('\n');
-    expect(logcat오류줄(글).줄).toEqual([줄(4321, 'E', 'DemoApp', '주문 저장 실패'), 줄(1459, 'E', 'ActivityManager', 'Process com.demo.app (pid 4321) has died')]);
+    expect(logcat오류줄(글).줄).toEqual([줄(4321, 'E', 'DemoApp', '주문 저장 실패'), 줄(1459, 'E', 'ActivityManager', 'ANR in com.demo.app')]);
   });
 });
 

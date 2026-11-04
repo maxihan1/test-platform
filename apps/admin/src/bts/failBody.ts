@@ -82,7 +82,7 @@ export function logcat오류줄(글: string): 폰오류줄 {
     // 앱이 뜬 줄이 없으면(연결 전에 이미 떠 있었다) 누구 것이든 죽은 줄만 — 남은 E 줄은 거의 다 남의 것이다
     if (앱.size === 0) return m[2] === 'F' || l.includes('FATAL');
     if (앱pid.has(m[1]!)) return true;
-    // 남이 남긴 앱 줄은 ANR · 프로세스 죽음(ActivityManager)과 네이티브 크래시 머리(F)만 — 화면 합성(SurfaceFlinger · WindowManager)도 패키지를 달지만 오류가 아니다
+    // 남이 남긴 앱 줄은 ANR(ActivityManager)과 네이티브 크래시 머리(F)만 — 화면 합성(SurfaceFlinger · WindowManager)도 패키지를 달지만 오류가 아니다
     return (m[2] === 'F' || 활동관리.test(l)) && 앱이름.test(l);
   });
   const 첫 = 고른.findIndex((l) => l.includes('FATAL'));
