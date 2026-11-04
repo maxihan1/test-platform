@@ -97,11 +97,12 @@ describe.skipIf(연결 === undefined)('Android 앱 대조 요청', () => {
     expect(await 역방향칸판정({ compare: true, env: 'dev' }, 서비스)).toEqual({ compare: true, env: 'dev', startUrl: null });
   });
 
-  it('게임 애플리케이션도 같은 규칙으로 대조를 받는다 — 테스트 계정 없는 APK 줄도 되고 시작 주소 · 실서비스 · 켤 앱 없는 줄은 막는다', async () => {
+  it('게임 애플리케이션도 같은 규칙으로 대조를 받는다 — 테스트 계정 없는 APK 줄도 되고 시작 주소 · 실서비스 · 켤 앱 없는 줄 · 패키지 이름뿐인 줄은 막는다', async () => {
     await q(`UPDATE service SET kind = 'GAME' WHERE id = $1`, [서비스]);
     for (const env of ['qa', 'apk']) expect(await 역방향칸판정({ compare: true, env }, 서비스)).toEqual({ compare: true, env, startUrl: null });
     expect(await 역방향칸판정({ compare: true, env: 'qa', startUrl: 'http://qa.xax.test/' }, 서비스)).toEqual({ error: 'BAD_ENV' });
-    for (const env of ['live', 'dev', 'gone']) expect(await 역방향칸판정({ compare: true, env }, 서비스)).toEqual({ error: 'BAD_ENV' });
+    // noacc 는 스토어 패키지 이름뿐이다 — 게임은 SDK 를 넣은 QA 빌드라야 해서 켤 앱이 없는 줄로 본다
+    for (const env of ['live', 'dev', 'gone', 'noacc']) expect(await 역방향칸판정({ compare: true, env }, 서비스)).toEqual({ error: 'BAD_ENV' });
     expect(await 역방향칸판정({}, 서비스)).toEqual({ compare: false });
     const 답 = await 만들기({ compare: true, env: 'apk' });
     expect(답.statusCode).toBe(201);

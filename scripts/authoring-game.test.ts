@@ -243,6 +243,16 @@ describe('화면만다덮음 · 바뀐틀읽기 — 게임', () => {
     expect(화면만다덮음(자료, false)).toBe(1);
   });
 
+  it('장소 기록은 덮은 목록에 오르지 않아 안 센다 — 창이 다 덮였으면 그 장수다', () => {
+    const 폴더 = join(자료, 'game-crawl', 'zone-Town');
+    mkdirSync(폴더, { recursive: true });
+    const 목록글 = JSON.stringify(목록.slice(0, 1));
+    writeFileSync(join(폴더, 'list.json'), 목록글);
+    writeFileSync(join(폴더, 'game.json'), JSON.stringify({ 상태: '로그인:일반 회원', 구역: 'Town', 목록: 목록지문(목록글), 창: [] }));
+    차리기(['game:World', 'game:World/Canvas/InventoryPanel']);
+    expect(화면만다덮음(자료, true)).toBe(2);
+  });
+
   it('바뀐 창은 견주기 명령이 바뀜으로 찍은 열쇠다 — 견주기를 마친 폴더가 없으면 null', () => {
     expect(바뀐틀읽기(자료, true)).toBeNull();
     차리기([], true, ['game:World/Canvas/InventoryPanel']);
