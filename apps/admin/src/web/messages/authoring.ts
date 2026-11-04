@@ -199,6 +199,10 @@ export const 작성말: Record<string, string> = {
     'This application has no target servers. Add one in Settings > Applications first',
   '이 대상 서버에는 테스트 계정이 없거나 실서비스 서버로 체크돼 있습니다. 설정 > 애플리케이션에서 확인하세요':
     'This target server has no test account or is marked as production. Check Settings > Applications',
+  '이 대상 서버에는 폰에서 켤 앱(앱 파일 경로나 올린 빌드)이 없거나 실서비스 서버로 체크돼 있습니다. 설정 > 애플리케이션에서 확인하세요':
+    'This target server has no app to launch on the phone (app file path or uploaded build) or is marked as production. Check Settings > Applications',
+  '이 대상 서버에는 폰에서 켤 앱(앱 파일 경로나 올린 빌드)이 없거나 실서비스 서버로 체크돼 있습니다. 관리자에게 확인을 요청하세요':
+    'This target server has no app to launch on the phone (app file path or uploaded build) or is marked as production. Ask an admin to check',
   '시작 주소는 고른 대상 서버와 같은 주소(도메인 · 포트)여야 합니다':
     'The start URL must be on the same address (domain · port) as the chosen target server',
   '대상 서버 주소에서 시작': 'Starts from the target server address',

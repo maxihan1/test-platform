@@ -11,7 +11,7 @@ import { useRef, useState } from 'react';
 
 import { api, ApiError, type EnvRow, type 앱종류 } from './api.js';
 import { ApiDocFields, useApiDocs } from './AuthoringNewApi.js';
-import { 거절사유, 받는종류, 운영자작성오류, 자료상한, 작성오류, 피그마거절말 } from './authoringNewText.js';
+import { 거절사유, 받는종류, 자료상한, 작성오류말, 피그마거절말 } from './authoringNewText.js';
 import { 크기글 } from './GuideSection.js';
 import { use말, use언어 } from './i18n.js';
 import { 종류 } from './kind.js';
@@ -96,7 +96,7 @@ export function AuthoringNew({
     if (err instanceof ApiError && err.code === 'FIGMA_DENIED' && /^(NO_TOKEN|TOKEN|FILE:.+)$/.test(err.message)) {
       return 피그마거절말(err.message, 운영자, t);
     }
-    const 말 = err instanceof ApiError ? ((운영자 ? 운영자작성오류[err.code] : undefined) ?? 작성오류[err.code]) : undefined;
+    const 말 = err instanceof ApiError ? 작성오류말(err.code, 운영자, 줄.대조 === 'app') : undefined;
     return 말 === undefined ? message(err, 언어) : t(말);
   }
 

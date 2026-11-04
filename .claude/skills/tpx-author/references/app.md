@@ -83,7 +83,7 @@ npx appium-cli release                           # 반드시 — 놓아야 팜�
 프롬프트 `--- 역방향 ---` 절에 「Android 앱」이 있으면 `reverse.md` §2~§3.5(웹 크롤러 · 탐침 · 훑기 보조 · 바뀐 화면 케이스) 대신 이것을 따른다. 차이마다 처리 · `diffs.json` · 화면만 · 결과 요약은 `reverse.md` §4~§7 그대로다. 정본은 명세 `작성.md` §3.6 「★ 역방향」 「앱 · 게임 역방향」이다.
 
 1. **폰을 잡고 서버부터 본다** — §5 의 `hold` → §4 의 1(`앱서버`) → `open`. 못 닿으면(`EXIT=1`) 훑지 않고 §4 의 1 대로 끝낸다.
-2. **로그인 스크립트** — 계정이 있을 때만(`[ -n "${TARGET_LOGIN_ID:-}" ] && echo 있음`). 첫 화면에서 로그인 화면까지 가는 버튼과 아이디 · 비밀번호 칸 · 로그인 버튼의 선택자(`~desc` · `id=`)를 `find` · `tap` 으로 찾는다. **칸에 값을 넣거나 로그인을 누르지 않는다** — 다 찾으면 `npx appium-cli -s=probe app restart` 로 첫 화면에 돌아온다. 값은 명령에 글자로 적지 말고 node 가 환경값을 읽어 파일에 쓰게 한다.
+2. **로그인 스크립트** — 아이디 · 비밀번호가 둘 다 있을 때만(`[ -n "${TARGET_LOGIN_ID:-}" ] && [ -n "${TARGET_LOGIN_PASSWORD:-}" ] && echo 있음` — 하나만 있으면 계정이 없는 것으로 본다). 첫 화면에서 로그인 화면까지 가는 버튼과 아이디 · 비밀번호 칸 · 로그인 버튼의 선택자(`~desc` · `id=`)를 `find` · `tap` 으로 찾는다. **칸에 값을 넣거나 로그인을 누르지 않는다** — 다 찾으면 `npx appium-cli -s=probe app restart` 로 첫 화면에 돌아온다. 값은 명령에 글자로 적지 말고 node 가 환경값을 읽어 파일에 쓰게 한다.
    ```bash
    node -e 'const e = process.env; require("fs").writeFileSync(`${e.TMPDIR}/app-login.txt`, [`tap "~로그인 열기"`, `fill "~아이디" "${e.TARGET_LOGIN_ID}"`, `fill "~비밀번호" "${e.TARGET_LOGIN_PASSWORD}"`, `tap "~로그인"`].join("\n"), { mode: 0o600 })'
    ```
