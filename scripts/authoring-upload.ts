@@ -25,9 +25,9 @@ import { 바뀐파일들, 지운말, 치울새파일들 } from './authoring-stat
 import { 끝검사 } from './authoring-gate3.js';
 import { 폰끝검사 } from './authoring-run3-game.js';
 import { type 계정, type 사본, 사본환경, 파일거부사유 } from './authoring-copy.js';
-import { 산출물읽기 } from './authoring-upload-reverse.js';
-import { 크롤모두덮음, 크롤목록, 저장본올리기 } from './authoring-screens-keep-io.js';
-import { 기준화면지도, 다덮음사유, 바뀐틀들, 바뀐화면줄 } from './authoring-covered.js';
+import { 바뀐틀읽기, 산출물읽기, 화면만다덮음 } from './authoring-upload-reverse.js';
+import { 저장본올리기 } from './authoring-screens-keep-io.js';
+import { 기준화면지도, 다덮음사유, 바뀐화면줄 } from './authoring-covered.js';
 import type { 원장 } from './authoring-ledger.js';
 import { type 기준결정, tcId들 } from './authoring-ledger-check.js';
 import { tcId별글, 원장판정 } from './authoring-ledger-verdict.js';
@@ -114,9 +114,9 @@ export async function 올리기(
   const 알림 = 지운말(지운것);
   const 지운줄 = 알림 === null ? [] : [사유거르기(알림, 비밀)];
   if (지운줄.length > 0) console.log(`[작성] ${것.id}번 — ${지운줄[0]}`);
-  // 역방향이면 이번에 본 화면 기록을 서버 저장본(DB · 저장소 밖)에 올린다 — 다음 작성은 바뀐 화면만 훑는다 (§3.6 「★ 역방향」 · PRD-F6-01).
+  // 역방향이면 이번에 본 화면 기록을 서버 저장본(DB · 저장소 밖)에 올린다 — 다음 작성은 바뀐 화면만 훑는다 (§3.6 「★ 역방향」 · PRD-F6-01). 게임은 창 기록을 게임올리기가 따로 올린다 (도메인/게임 §3.10 「창 훑기」).
   // 재사용 수 · 가장 오래된 날은 PR 본문 머리에도 싣는다 — 자식이 옮겨 적기를 빠뜨려도 사람이 본다
-  const 저장 = 역 === undefined ? null : await 저장본올리기({ 주소기지: 역.주소기지, 토큰: 역.토큰, 번호: 것.id }, 자리.자료, 비밀);
+  const 저장 = 역 === undefined || 원장재료.게임 === true ? null : await 저장본올리기({ 주소기지: 역.주소기지, 토큰: 역.토큰, 번호: 것.id }, 자리.자료, 비밀);
   if (저장 !== null && '거절' in 저장) {
     await 손.끝내기(거절(저장.거절));
     return;
@@ -134,7 +134,7 @@ export async function 올리기(
   const 거부 = 푸시거부사유(테스트만(파일들), 파일들);
   if (거부 !== null) {
     // 화면만인데 크롤러가 찾은 화면이 모두 PRD 에 있으면 올릴 것이 없는 게 맞다 — 올리기 거절(중단)이 아니라 이어서 작성할 것이 없는 실패다 (PRD-F6-03)
-    const 다덮음 = 파일들.length === 0 && 역 !== undefined && 화면만인가(것, 역.입력자료) ? 크롤모두덮음(자리.자료) : null;
+    const 다덮음 = 파일들.length === 0 && 역 !== undefined && 화면만인가(것, 역.입력자료) ? 화면만다덮음(자리.자료, 원장재료.게임 === true) : null;
     await 손.끝내기(다덮음 === null ? 거절(거부) : { status: 'FAILED', error: 다덮음사유(다덮음) });
     return;
   }
@@ -176,8 +176,7 @@ export async function 올리기(
   const 읽기 = (f: string) => (모양보기(자리.트리, f).종류 === '파일' ? readFileSync(join(자리.트리, f), 'utf8') : '');
   // 저장본이 바뀐 화면을 쓰는 기준 케이스와 그중 이번에 고친 것 — 자식 요약이 아니라 에이전트가 기준 SHA 로 센다 (§3.6 「바뀐 화면 — 닿는 케이스만 다시 본다」)
   // 바뀐 화면이 없으면 지도를 다시 세지 않는다. 못 셌으면 줄로 알린다 — 「바뀐 화면 없음」과 갈리게
-  const 목록글 = 역 === undefined ? null : 크롤목록(자리.자료);
-  const 바뀐틀 = 목록글 === null ? null : 바뀐틀들(목록글);
+  const 바뀐틀 = 역 === undefined ? null : 바뀐틀읽기(자리.자료, 원장재료.게임 === true);
   const 화면지도 = 바뀐틀 === null || 바뀐틀.size === 0 ? null : 기준화면지도({ 깃: (인자) => 트리에서('git', 인자), 기준, 서비스, 폴더: 원장재료.폴더 });
   const 바뀐줄 = 화면지도 === null || 바뀐틀 === null ? null : '까닭' in 화면지도 ? `⚠️ 바뀐 화면 케이스를 못 셌다 — ${화면지도.까닭}` : 바뀐화면줄(바뀐틀, 화면지도.케이스, new Set(전체));
   const 바뀜표 = 트리에서('git', 변경상태인자(기준));

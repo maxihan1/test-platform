@@ -1,4 +1,4 @@
-// Android 앱 「실제 화면과 대조」 요청 검사 — 만들기 · 재실행 판정 · 집기 target (SPEC 도메인/작성 §3.6 「★ 역방향」 「앱 · 게임 역방향」 · §7 AUTHOR)
+// Android 앱 · 게임 「실제 화면과 대조」 요청 검사 — 만들기 · 재실행 판정 · 집기 target (SPEC 도메인/작성 §3.6 「★ 역방향」 「앱 · 게임 역방향」 · §7 AUTHOR)
 
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -32,11 +32,12 @@ describe.skipIf(연결 === undefined)('Android 앱 대조 요청', () => {
       [접두사],
     );
     서비스 = Number(s.rows[0]!.id);
-    // qa 는 앱 파일 · 계정이 있고, noacc 는 스토어 앱 패키지 이름만, dev 는 켤 앱이 없고, live 는 실서비스 서버다
+    // qa 는 앱 파일 · 계정이 있고, noacc 는 스토어 앱 패키지 이름만, apk 는 계정 없이 앱 파일만(게임은 패키지 이름을 안 받는다), dev 는 켤 앱이 없고, live 는 실서비스 서버다
     await q(
       `INSERT INTO service_env (service_id, env, base_url, login_id, login_password, is_prod, app_path) VALUES
          ($1, 'qa', 'http://qa.xax.test', 'tester', $2, false, '/apk/qa.apk'),
          ($1, 'noacc', 'http://noacc.xax.test', NULL, NULL, false, 'com.xax.shop'),
+         ($1, 'apk', 'http://apk.xax.test', NULL, NULL, false, '/apk/apk.apk'),
          ($1, 'dev', 'http://dev.xax.test', 'tester', $2, false, NULL),
          ($1, 'live', 'http://live.xax.test', 'tester', $2, true, '/apk/live.apk')`,
       [서비스, 비밀],
@@ -53,9 +54,10 @@ describe.skipIf(연결 === undefined)('Android 앱 대조 요청', () => {
     await app.ready();
   });
 
-  // 앞 검사가 세운 요청이 열려 있으면 다음 요청이 AUTHORING_OPEN 으로 막힌다
+  // 앞 검사가 세운 요청이 열려 있으면 다음 요청이 AUTHORING_OPEN 으로 막힌다. 앞 검사가 올린 빌드가 남으면 켤 앱이 없던 줄에 앱이 생긴다
   beforeEach(async () => {
     await q('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
+    await q('DELETE FROM app_build WHERE service_id = $1', [서비스]);
     await q(`UPDATE service SET kind = 'APP' WHERE id = $1`, [서비스]);
   });
 
@@ -95,10 +97,16 @@ describe.skipIf(연결 === undefined)('Android 앱 대조 요청', () => {
     expect(await 역방향칸판정({ compare: true, env: 'dev' }, 서비스)).toEqual({ compare: true, env: 'dev', startUrl: null });
   });
 
-  it('게임 애플리케이션 대조는 아직 400 BAD_ENV 다 (APP-F2-06 전)', async () => {
+  it('게임 애플리케이션도 같은 규칙으로 대조를 받는다 — 테스트 계정 없는 APK 줄도 되고 시작 주소 · 실서비스 · 켤 앱 없는 줄 · 패키지 이름뿐인 줄은 막는다', async () => {
     await q(`UPDATE service SET kind = 'GAME' WHERE id = $1`, [서비스]);
-    expect(await 역방향칸판정({ compare: true, env: 'qa' }, 서비스)).toEqual({ error: 'BAD_ENV' });
+    for (const env of ['qa', 'apk']) expect(await 역방향칸판정({ compare: true, env }, 서비스)).toEqual({ compare: true, env, startUrl: null });
+    expect(await 역방향칸판정({ compare: true, env: 'qa', startUrl: 'http://qa.xax.test/' }, 서비스)).toEqual({ error: 'BAD_ENV' });
+    // noacc 는 스토어 패키지 이름뿐이다 — 게임은 SDK 를 넣은 QA 빌드라야 해서 켤 앱이 없는 줄로 본다
+    for (const env of ['live', 'dev', 'gone', 'noacc']) expect(await 역방향칸판정({ compare: true, env }, 서비스)).toEqual({ error: 'BAD_ENV' });
     expect(await 역방향칸판정({}, 서비스)).toEqual({ compare: false });
+    const 답 = await 만들기({ compare: true, env: 'apk' });
+    expect(답.statusCode).toBe(201);
+    expect(await 행(답.json<{ id: number }>().id)).toEqual({ compare: true, env: 'apk', start_url: null });
   });
 
   it('집기 target 은 시작 주소 없이 그 줄의 서버 · 계정이고 accounts 도 그 줄이 맨 앞이다', async () => {

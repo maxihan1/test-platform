@@ -252,9 +252,9 @@ function 자료(id: number, 덮을것: Partial<NonNullable<AuthoringRow['assets'
   return { id, position: id, kind: 'FILE' as const, name: `f${id}`, figmaUrl: null, size: 1, role: 'INPUT' as const, sourceAssetId: null, ...덮을것 };
 }
 
-async function 상세를연다(행: AuthoringRow) {
+async function 상세를연다(행: AuthoringRow, 앱종류?: 'APP' | 'GAME') {
   상세답 = 행;
-  render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
+  render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} 앱종류={앱종류} />);
   await screen.findByText('요청 정보');
 }
 
@@ -268,6 +268,14 @@ describe('상세 — 대조 설정 · 산출물 · 차이 목록', () => {
   it('시작 주소가 없으면 기획서가 말하는 화면에서 시작한다고 적는다', async () => {
     await 상세를연다(줄({ compare: true, env: 'qa', startUrl: null, assets: [자료(1, { name: '기획서.docx' })] }));
     expect(screen.getByText('qa · 대상 서버 주소에서 시작')).toBeTruthy();
+  });
+
+  it('Android 앱 · 게임 대조는 폰에서 켠 첫 화면에서 시작한다고 적는다 (APP-F2-05 · 06)', async () => {
+    await 상세를연다(줄({ compare: true, env: 'qa', startUrl: null, assets: [자료(1, { name: '기획서.docx' })] }), 'GAME');
+    expect(screen.getByText('qa · 게임 첫 화면에서 시작')).toBeTruthy();
+    cleanup();
+    await 상세를연다(줄({ compare: true, env: 'qa', startUrl: null, assets: [자료(1, { name: '기획서.docx' })] }), 'APP');
+    expect(screen.getByText('qa · 앱 첫 화면에서 시작')).toBeTruthy();
   });
 
   it('입력 자료가 없는 대조 요청은 화면만이라고 적는다', async () => {

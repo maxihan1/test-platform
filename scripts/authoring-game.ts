@@ -4,9 +4,10 @@ import { mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 
 import { 지도열쇠들, 케이스요소들 } from './authoring-check-game.js';
+import { 덮은틀읽기, 덮음인가 } from './authoring-crawl-rules.js';
 import { type 저장한창, type 창, 구역꼴, 목록지문, 창목록 } from './authoring-game-crawl.js';
 import { 부른다 } from './authoring-io.js';
-import { 계정섞였나 } from './authoring-reverse.js';
+import { 계정섞였나, 덮은파일이름 } from './authoring-reverse.js';
 import { type 상태, 상태인가 } from './authoring-screens-keep.js';
 import { type 화면통로, 새로쓰기, 안전히읽기, 폴더인가 } from './authoring-screens-keep-io.js';
 
@@ -92,7 +93,7 @@ export function 안다룬요소줄(자료: string, 케이스폴더: string, 비�
   }
 }
 
-type 훑은폴더 = { 상태: 상태; 폴더: string; 창들: 창[]; 같음: Set<string> };
+type 훑은폴더 = { 상태: 상태; 폴더: string; 창들: 창[]; 같음: Set<string>; 바뀜: Set<string> };
 
 /**
  * 훑기 폴더 하나 — control-cli 의 list.json 과 자식이 견주기 명령으로 남긴 game.json(상태 · 목록 지문 · 창마다 같음 표시).
@@ -104,13 +105,37 @@ function 폴더읽기(폴더: string): 훑은폴더 | null {
     const 목록 = 안전히읽기(폴더, 'list.json', 2_000_000);
     const 표시 = JSON.parse(안전히읽기(폴더, 'game.json', 기록상한 * 10) ?? 'null') as { 상태?: unknown; 구역?: unknown; 목록?: unknown; 창?: unknown } | null;
     if (목록 === null || !상태인가(표시?.상태) || 표시.목록 !== 목록지문(목록)) return null;
-    const 같음 = (Array.isArray(표시.창) ? (표시.창 as { 키?: unknown; 저장본?: unknown }[]) : []).flatMap((c) => (c?.저장본 === '같음' && typeof c.키 === 'string' ? [c.키] : []));
+    const 표시된 = (값: string) => new Set((Array.isArray(표시.창) ? (표시.창 as { 키?: unknown; 저장본?: unknown }[]) : []).flatMap((c) => (c?.저장본 === 값 && typeof c.키 === 'string' ? [c.키] : [])));
     // 장소 훑기(상태 도우미로 순간이동한 자리)면 시작 화면이 `game:<장면>/zone:<구역>` 이다 — 꼴이 틀린 구역은 장소가 아닌 것으로 본다
     const 구역 = typeof 표시.구역 === 'string' && 구역꼴.test(표시.구역) ? 표시.구역 : undefined;
-    return { 상태: 표시.상태, 폴더, 창들: 창목록(JSON.parse(목록), 구역), 같음: new Set(같음) };
+    return { 상태: 표시.상태, 폴더, 창들: 창목록(JSON.parse(목록), 구역), 같음: 표시된('같음'), 바뀜: 표시된('바뀜') };
   } catch {
     return null;
   }
+}
+
+/** 자료 폴더의 훑기 폴더(`game-crawl/<이름>/`) 수와 그 가운데 견주기를 마친 것 */
+function 훑은폴더들(자료: string): { 폴더수: number; 묶음: 훑은폴더[] } {
+  const 훑기 = join(자료, 게임자리.훑기);
+  const 폴더들 = 폴더인가(훑기) ? readdirSync(훑기).filter((이름) => /^[\w.-]+$/.test(이름) && 폴더인가(join(훑기, 이름))) : [];
+  return { 폴더수: 폴더들.length, 묶음: 폴더들.flatMap((이름) => 폴더읽기(join(훑기, 이름)) ?? []) };
+}
+
+/** 대조 · 화면만 — 견주기 명령이 저장본과 달라졌다고 찍은 창 열쇠. 견주기를 마친 폴더가 없으면 null(웹 크롤 목록이 없을 때와 같다) — PR 머리 「바뀐 화면」 줄의 재료 (작성 §3.6 「앱 · 게임 역방향」 11) */
+export function 게임바뀐창(자료: string): Set<string> | null {
+  const { 묶음 } = 훑은폴더들(자료);
+  return 묶음.length === 0 ? null : new Set(묶음.flatMap((x) => [...x.바뀜]));
+}
+
+/**
+ * 화면만 — 견주기를 마친 훑기 폴더의 창이 하나 이상이고 전부 테스트가 이미 확인한 창(에이전트가 넣은 covered.json 열쇠)이면 그 장수, 아니면 null.
+ * 웹 · 앱의 크롤모두덮음과 같은 셈이다 — 자식이 「PRD 에 없는 화면 0」으로 아무것도 안 썼을 때 올리기 거절 대신 실패로 닫는다 (작성 §3.6 「앱 · 게임 역방향」 12 · APP-F2-06).
+ * 장소 기록(`…/zone:<구역>`)은 안 센다 — 장소에는 화면 객체가 없어 덮은 목록에 오르지 않는다. 자식은 표준 기획서에 그 장소 항목이 이미 있으면 안 쓴다(game.md §7)
+ */
+export function 게임모두덮음(자료: string): number | null {
+  const 덮은틀 = 덮은틀읽기(안전히읽기(자료, 덮은파일이름, 2_000_000) ?? 'null');
+  const 키들 = new Set(훑은폴더들(자료).묶음.flatMap((x) => x.창들.map((c) => c.키)).filter((키) => !키.includes('/zone:')));
+  return 키들.size > 0 && [...키들].every((키) => 덮음인가(키, 덮은틀)) ? 키들.size : null;
 }
 
 /**
@@ -120,10 +145,8 @@ function 폴더읽기(폴더: string): 훑은폴더 | null {
  * 테스트 계정 비밀번호가 든 기록은 하나도 올리지 않는다
  */
 async function 창올리기(통로: 화면통로, 자료: string, 비밀: readonly string[], 지금: Date): Promise<string> {
-  const 훑기 = join(자료, 게임자리.훑기);
-  const 폴더들 = 폴더인가(훑기) ? readdirSync(훑기).filter((이름) => /^[\w.-]+$/.test(이름) && 폴더인가(join(훑기, 이름))) : [];
-  const 묶음 = 폴더들.flatMap((이름) => 폴더읽기(join(훑기, 이름)) ?? []);
-  if (묶음.length === 0) return `게임 창 기록 저장: 견주기를 마친 훑기 폴더가 없어 건너뜀(폴더 ${폴더들.length}개)`;
+  const { 폴더수, 묶음 } = 훑은폴더들(자료);
+  if (묶음.length === 0) return `게임 창 기록 저장: 견주기를 마친 훑기 폴더가 없어 건너뜀(폴더 ${폴더수}개)`;
   const 길 = `/authoring/requests/${통로.번호}/screens`;
   try {
     const 받음 = await 부른다(통로.주소기지, 통로.토큰, 길);

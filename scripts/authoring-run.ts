@@ -89,7 +89,7 @@ async function 한건(
   // 케이스 고치기는 자식 없이 main 사본에서 고친다 (§3.6 「★ 케이스 고치기」)
   if (고치기실행인가(것)) return 편집처리(손, 것, 서비스, 판, 판.계정?.자식[자리번호] ?? null, 설정.폴더.폴더);
   // 역방향 — 집을 때 다시 대조한다. 만든 뒤 설정이 바뀌었을 수 있다 (도메인/작성 §7 집기 ★)
-  const 대상사유 = 것.api === undefined ? 대상점검(것.target, 설정.종류 === 'APP') : API점검(것.api);
+  const 대상사유 = 것.api === undefined ? 대상점검(것.target, 설정.종류 === 'APP' || 설정.게임 === true) : API점검(것.api);
   if (대상사유 !== null) {
     await 손.끝내기({ status: 'FAILED', error: 대상사유 });
     return;
@@ -230,7 +230,7 @@ async function 사본에서(
     ...(것.api === undefined ? {} : API환경(것.api, 자리.자료)), // API 대상 서버 · 인증 · 판 파일도 환경 변수로만 (도메인/API §3.8 「API 인증」)
     ...(설정.게임 === true ? { [게임자료환경]: 자리.자료 } : {}), // 빠른 검사가 게임 지도(game-map.txt · game-elements.json)로 케이스 요소를 본다 (도메인/게임 §3.10 「작성 — 한 바퀴」 4)
   };
-  const 역방향 = 것.target === undefined ? undefined : { 화면만: 화면만인가(것, 자료들), 산출물폴더: join(자리.자료, 'out'), 제외: 설정.제외, 앱: 설정.종류 === 'APP' };
+  const 역방향 = 것.target === undefined ? undefined : { 화면만: 화면만인가(것, 자료들), 산출물폴더: join(자리.자료, 'out'), 제외: 설정.제외, 앱: 설정.종류 === 'APP', 게임: 설정.게임 === true };
   const 인자 = MCP붙이기(클로드인자(자리.자료, 판.모델, 자리.임시), MCP설정쓰기(자리.임시, MCP설정글(주소기지, 것.mcpKey), 자식));
   // 진척 — 케이스는 자식 시작 뒤 새로 생긴 것만, 화면은 역방향만 센다. limitSec 0 — 전체 상한이 없어 화면이 시간 막대를 안 그린다 (작성 §7)
   const 누적 = 진척누적기(0, { 비밀번호들: 비밀번호들(것), figmaToken: 것.figmaToken, 팜토큰: 앱화면?.탐색?.token ?? process.env.PLATFORM_APPIUM_TOKEN });

@@ -1,4 +1,4 @@
-// 게임 작성의 앞뒤 — 창 기록 저장본 · 게임 지도 받기, 훑은 창 중 바뀐 것만 올리기 · 못 본 창은 안 지우기 · 비밀번호 든 기록 막기, 게임 지도 요소 올리기
+// 게임 작성의 앞뒤 — 창 기록 저장본 · 게임 지도 받기, 훑은 창 중 바뀐 것만 올리기 · 못 본 창은 안 지우기 · 비밀번호 든 기록 막기, 게임 지도 요소 올리기, 화면만이 찾은 창이 다 덮였나 · 바뀐 창
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { 게임올리기, 게임준비, 안다룬요소줄 } from './authoring-game.js';
 import { 목록지문 } from './authoring-game-crawl.js';
+import { 바뀐틀읽기, 화면만다덮음 } from './authoring-upload-reverse.js';
 
 const 통로 = { 주소기지: 'http://admin:3000', 토큰: 't', 번호: 7 };
 const 저장된창 = { state: '로그아웃', url: 'game:Login', name: 'Login', textFp: 'bb01', structFp: 'aa01', record: '# scene:Login\n- Button LoginButton\n## 정리\n로그인 창', crawledAt: '2026-10-20T01:00:00Z' };
@@ -208,5 +209,54 @@ describe('안다룬요소줄', () => {
   it('열쇠에 계정 비밀번호가 섞였으면 열쇠를 적지 않는다', () => {
     const 폴더 = 차리기({});
     expect(안다룬요소줄(자료, 폴더, ['sword_long'])).toEqual(['게임 지도: 아직 안 다룬 요소 2개 / 2개 — 열쇠에 테스트 계정 비밀번호가 들어 있어 안 적음']);
+  });
+});
+
+describe('화면만다덮음 · 바뀐틀읽기 — 게임', () => {
+  const 목록 = [
+    { 주소: 'scene:World', 이름: 'World', 틀: 'scene:World', 파일: '001.yml', 지문: 'aa01', 글자지문: 'bb01', 연곳: null },
+    { 주소: '/Canvas/InventoryPanel', 이름: '가방', 틀: '/Canvas/InventoryPanel', 파일: '002.yml', 지문: 'aa02', 글자지문: 'bb02', 연곳: { 창: 'scene:World', 버튼: 'BagButton', 글자: '가방' } },
+  ];
+  const 차리기 = (덮은: string[], 견주기 = true, 바뀐: string[] = []) => {
+    const 폴더 = join(자료, 'game-crawl', 'login');
+    mkdirSync(폴더, { recursive: true });
+    const 목록글 = JSON.stringify(목록);
+    writeFileSync(join(폴더, 'list.json'), 목록글);
+    if (견주기) writeFileSync(join(폴더, 'game.json'), JSON.stringify({ 상태: '로그인:일반 회원', 목록: 목록지문(목록글), 창: 바뀐.map((키) => ({ 키, 저장본: '바뀜' })) }));
+    writeFileSync(join(자료, 'covered.json'), JSON.stringify(덮은));
+  };
+
+  it('훑은 창이 전부 테스트가 이미 확인한 창이면 그 장수다', () => {
+    차리기(['game:World', 'game:World/Canvas/InventoryPanel']);
+    expect(화면만다덮음(자료, true)).toBe(2);
+  });
+
+  it('덮지 않은 창이 있거나 견주기를 마친 폴더가 없으면 null — 웹 크롤 목록은 게임에서 안 본다', () => {
+    차리기(['game:World']);
+    expect(화면만다덮음(자료, true)).toBeNull();
+    rmSync(join(자료, 'game-crawl'), { recursive: true });
+    차리기(['game:World', 'game:World/Canvas/InventoryPanel'], false);
+    expect(화면만다덮음(자료, true)).toBeNull();
+    mkdirSync(join(자료, 'crawl'));
+    writeFileSync(join(자료, 'crawl', 'list.json'), JSON.stringify([{ 주소: 'http://x/a', 틀: '/a', 덮음: true }]));
+    expect(화면만다덮음(자료, true)).toBeNull();
+    expect(화면만다덮음(자료, false)).toBe(1);
+  });
+
+  it('장소 기록은 덮은 목록에 오르지 않아 안 센다 — 창이 다 덮였으면 그 장수다', () => {
+    const 폴더 = join(자료, 'game-crawl', 'zone-Town');
+    mkdirSync(폴더, { recursive: true });
+    const 목록글 = JSON.stringify(목록.slice(0, 1));
+    writeFileSync(join(폴더, 'list.json'), 목록글);
+    writeFileSync(join(폴더, 'game.json'), JSON.stringify({ 상태: '로그인:일반 회원', 구역: 'Town', 목록: 목록지문(목록글), 창: [] }));
+    차리기(['game:World', 'game:World/Canvas/InventoryPanel']);
+    expect(화면만다덮음(자료, true)).toBe(2);
+  });
+
+  it('바뀐 창은 견주기 명령이 바뀜으로 찍은 열쇠다 — 견주기를 마친 폴더가 없으면 null', () => {
+    expect(바뀐틀읽기(자료, true)).toBeNull();
+    차리기([], true, ['game:World/Canvas/InventoryPanel']);
+    expect(바뀐틀읽기(자료, true)).toEqual(new Set(['game:World/Canvas/InventoryPanel']));
+    expect(바뀐틀읽기(자료, false)).toBeNull();
   });
 });

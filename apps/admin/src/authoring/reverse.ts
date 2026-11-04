@@ -1,6 +1,7 @@
 // 역방향 작성 요청의 대상 서버·시작 주소 판정과 대상 서버 줄 읽기 (SPEC 도메인/작성 §3.6 「★ 역방향」 · 「★ 역할별 계정」 · §7)
 
 import { 기본역할, type 역할계정 } from '@platform/kit/accounts';
+import { 패키지이름인가 } from '@platform/kit/protocol';
 
 import type { PoolClient } from 'pg';
 
@@ -128,8 +129,10 @@ export function 앱줄고르기<T extends { env: string; appPath: string | null;
  * 그 줄에 폰에서 켤 앱이 있나 — 최신 빌드(올린 APK · 회사 저장소 주소)나 앱 파일 경로(패키지 이름 포함). 앱 화면 통로(깔앱파일)가 「앱 없는 서비스」로 보는 줄이 아니다.
  * 판정은 실행과 같은 `앱칸` 이다 — 파일도 주소도 없는 빌드 행(배포 신호만 남긴 것)은 앱이 아니다
  */
-async function 켤앱있나(서비스: number, 줄: 대상줄): Promise<boolean> {
-  return Object.keys(앱칸(await 최신빌드(await 풀(), 서비스, 줄.env), 줄.appPath)).length > 0;
+async function 켤앱있나(서비스: number, 줄: 대상줄, 게임: boolean): Promise<boolean> {
+  const 칸 = 앱칸(await 최신빌드(await 풀(), 서비스, 줄.env), 줄.appPath);
+  // 게임은 SDK 를 넣은 QA 빌드라야 한다 — 스토어 패키지 이름은 안 받는다(설정도 400 · 러너 §5.2 「플레이스토어 앱」). 앱에서 게임으로 종류를 바꾼 줄에 남을 수 있다
+  return Object.keys(칸).length > 0 && !(게임 && 칸.app !== undefined && 패키지이름인가(칸.app));
 }
 
 /** 폰에서 도는 애플리케이션 — 웹 크롤러가 못 읽어 앱 줄 계정으로 작성한다. 대조는 appium-cli · 창 훑기가 훑는다 (도메인/게임 §3.10 「작성 — 한 바퀴」 · 작성 §3.6 「앱 · 게임 역방향」) */
@@ -243,11 +246,11 @@ export async function 역방향칸판정(본문: Record<string, unknown>, 서비
   const { compare, env, startUrl } = 본문;
   const 주소있음 = startUrl !== undefined && startUrl !== null;
   if (compare !== undefined && typeof compare !== 'boolean') return { error: 'BAD_ENV' };
-  // 앱 · 게임은 주소가 없어 앱을 켠 첫 화면에서 시작한다. 게임 대조는 아직 막는다(APP-F2-06). 만들기 · 재실행 · 이어 작성이 모두 여기를 지난다 —
+  // 앱 · 게임은 주소가 없어 앱을 켠 첫 화면에서 시작한다. 만들기 · 재실행 · 이어 작성이 모두 여기를 지난다 —
   // 종류가 바뀌기 전에 세운 대조 원본을 물려받아도 그 종류의 규칙을 탄다 (§3.6 「★ 역방향」 「앱 · 게임 역방향」 1)
   // 대조 · 시작 주소가 없으면 종류를 볼 일이 없다 — 정방향 만들기 · 재실행 · 이어 작성마다 설정을 읽지 않는다
   const 종류 = compare === true || 주소있음 ? (await 문서설정읽기(서비스))?.kind : undefined;
-  if (폰앱인가(종류) && (주소있음 || (compare === true && 종류 !== 'APP'))) return { error: 'BAD_ENV' };
+  if (폰앱인가(종류) && 주소있음) return { error: 'BAD_ENV' };
   if (compare !== true) {
     if (주소있음) return { error: 'BAD_START_URL' };
     if (env !== undefined && env !== null) return { error: 'BAD_ENV' };
@@ -255,8 +258,8 @@ export async function 역방향칸판정(본문: Record<string, unknown>, 서비
   }
   if (typeof env !== 'string' || env === '') return { error: 'BAD_ENV' };
   const 줄 = await 대상줄읽기(서비스, env);
-  // 앱은 계정이 없어도 로그아웃 판만 훑는다. 대신 폰에서 켤 앱(최신 빌드 · 앱 파일 경로)이 있어야 한다 — 앱 화면 통로(appScreen.ts)와 같은 판정
-  if (종류 === 'APP') return 줄 !== null && !줄.isProd && (await 켤앱있나(서비스, 줄)) ? { compare: true, env, startUrl: null } : { error: 'BAD_ENV' };
+  // 앱 · 게임은 계정이 없어도 로그아웃 판만 훑는다. 대신 폰에서 켤 앱(최신 빌드 · 앱 파일 경로)이 있어야 한다 — 앱 화면 통로(appScreen.ts)와 같은 판정에 게임은 패키지 이름을 더 거른다
+  if (폰앱인가(종류)) return 줄 !== null && !줄.isProd && (await 켤앱있나(서비스, 줄, 종류 === 'GAME')) ? { compare: true, env, startUrl: null } : { error: 'BAD_ENV' };
   if (!계정있는줄(줄)) return { error: 'BAD_ENV' };
   if (!주소있음) return { compare: true, env, startUrl: null };
   const 정규 = 시작주소(startUrl, 줄.baseUrl);
