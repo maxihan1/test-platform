@@ -5,7 +5,7 @@ import { 기본역할, type 역할계정 } from '@platform/kit/accounts';
 import type { PoolClient } from 'pg';
 
 import { 문서설정읽기 } from '../apidoc/store.js';
-import { 최신빌드 } from '../execution/buildFile.js';
+import { 앱칸, 최신빌드 } from '../execution/buildFile.js';
 import { API인증읽기, type API인증, type 어드민키, 어드민키읽기, 역할계정읽기 } from '../settings/envs.js';
 import { 어드민키종류인가 } from '../settings/roles.js';
 
@@ -124,9 +124,12 @@ export function 앱줄고르기<T extends { env: string; appPath: string | null;
   return 줄들.filter((j) => !j.isProd).find((j) => (env === null ? j.appPath !== null : j.env === env));
 }
 
-/** 그 줄에 폰에서 켤 앱이 있나 — 최신 빌드(올린 APK · 회사 저장소 주소)나 앱 파일 경로(패키지 이름 포함). 앱 화면 통로가 「앱 없는 서비스」로 보는 줄이 아니다 */
+/**
+ * 그 줄에 폰에서 켤 앱이 있나 — 최신 빌드(올린 APK · 회사 저장소 주소)나 앱 파일 경로(패키지 이름 포함). 앱 화면 통로(깔앱파일)가 「앱 없는 서비스」로 보는 줄이 아니다.
+ * 판정은 실행과 같은 `앱칸` 이다 — 파일도 주소도 없는 빌드 행(배포 신호만 남긴 것)은 앱이 아니다
+ */
 async function 켤앱있나(서비스: number, 줄: 대상줄): Promise<boolean> {
-  return 줄.appPath !== null || (await 최신빌드(await 풀(), 서비스, 줄.env)) !== null;
+  return Object.keys(앱칸(await 최신빌드(await 풀(), 서비스, 줄.env), 줄.appPath)).length > 0;
 }
 
 /** 폰에서 도는 애플리케이션 — 웹 크롤러가 못 읽어 앱 줄 계정으로 작성한다. 대조는 appium-cli · 창 훑기가 훑는다 (도메인/게임 §3.10 「작성 — 한 바퀴」 · 작성 §3.6 「앱 · 게임 역방향」) */
@@ -242,7 +245,8 @@ export async function 역방향칸판정(본문: Record<string, unknown>, 서비
   if (compare !== undefined && typeof compare !== 'boolean') return { error: 'BAD_ENV' };
   // 앱 · 게임은 주소가 없어 앱을 켠 첫 화면에서 시작한다. 게임 대조는 아직 막는다(APP-F2-06). 만들기 · 재실행 · 이어 작성이 모두 여기를 지난다 —
   // 종류가 바뀌기 전에 세운 대조 원본을 물려받아도 그 종류의 규칙을 탄다 (§3.6 「★ 역방향」 「앱 · 게임 역방향」 1)
-  const 종류 = (await 문서설정읽기(서비스))?.kind;
+  // 대조 · 시작 주소가 없으면 종류를 볼 일이 없다 — 정방향 만들기 · 재실행 · 이어 작성마다 설정을 읽지 않는다
+  const 종류 = compare === true || 주소있음 ? (await 문서설정읽기(서비스))?.kind : undefined;
   if (폰앱인가(종류) && (주소있음 || (compare === true && 종류 !== 'APP'))) return { error: 'BAD_ENV' };
   if (compare !== true) {
     if (주소있음) return { error: 'BAD_START_URL' };

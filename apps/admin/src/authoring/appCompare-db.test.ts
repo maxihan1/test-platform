@@ -88,6 +88,9 @@ describe.skipIf(연결 === undefined)('Android 앱 대조 요청', () => {
 
   it('앱 파일 경로가 없어도 그 줄에 올린 빌드가 있으면 켤 앱이 있다', async () => {
     expect(await 역방향칸판정({ compare: true, env: 'dev' }, 서비스)).toEqual({ error: 'BAD_ENV' });
+    // 배포 신호만 남긴 빌드 행(파일도 주소도 없다)은 켤 앱이 아니다 — 앱 화면 통로도 그 줄을 「앱 없는 서비스」로 본다
+    await q(`INSERT INTO app_build (service_id, env, build_no, uploaded_by, uploaded_at) VALUES ($1, 'dev', 'xax-0', 'xax', now() - interval '1 hour')`, [서비스]);
+    expect(await 역방향칸판정({ compare: true, env: 'dev' }, 서비스)).toEqual({ error: 'BAD_ENV' });
     await q(`INSERT INTO app_build (service_id, env, build_no, app_url, uploaded_by) VALUES ($1, 'dev', 'xax-1', 'https://builds.xax.test/1.apk', 'xax')`, [서비스]);
     expect(await 역방향칸판정({ compare: true, env: 'dev' }, 서비스)).toEqual({ compare: true, env: 'dev', startUrl: null });
   });
