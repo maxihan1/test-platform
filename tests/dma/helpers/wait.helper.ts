@@ -2,9 +2,7 @@ import { 토스트 } from '../components/toast.component.js';
 import type { 앱, 요소 } from './app.helper.js';
 
 export async function 토스트글읽기(driver: 앱): Promise<string> {
-  const 상자 = new 토스트(driver);
-  await 상자.뜰때까지().catch(() => undefined);
-  return (await 상자.보이나()) ? 상자.글() : '';
+  return new 토스트(driver).글();
 }
 
 export async function 토스트비우기(driver: 앱): Promise<void> {

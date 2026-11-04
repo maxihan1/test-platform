@@ -1,4 +1,4 @@
-import { type 앱, type 요소, 금액, 월일글, 일요일아닌첫날, 켜졌나, 칸에적기 } from '../helpers/app.helper.js';
+import { type 앱, type 요소, 금액, 월일글, 일요일아닌첫날, 켜졌나, 칸에적기, 두번누르기 } from '../helpers/app.helper.js';
 import { 주소검색창 } from './address-search.page.js';
 
 export type 결제수단 = '신용카드' | '계좌이체' | '무통장입금';
@@ -278,8 +278,7 @@ export class 주문하기화면 {
 
   async 결제두번누르기(): Promise<void> {
     await this.동의칸보이게();
-    const 버튼 = await this.결제버튼.getElement();
-    await Promise.all([버튼.click(), 버튼.click()]);
+    await 두번누르기(await this.결제버튼.getElement());
   }
 
   async 다채우기(값: 주문서값, 오늘: Date, 뺄칸?: 주문칸): Promise<void> {
