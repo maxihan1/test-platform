@@ -94,13 +94,13 @@ services:
       LOCAL_RUNNER_URL: "${LOCAL_RUNNER_URL:-}"
       # Android 앱 정식 실행 · 작성의 앱 첫 화면이 폰을 잡고 놓는 디바이스 팜. 비면 앱 정식 실행이 409 FARM_OFF 다 (SPEC 도메인/러너 §5.2 「디바이스 팜 접속 방식」)
       DEVICE_FARM_URL: "${DEVICE_FARM_URL:-}"
-      # 정기 · 빌드 실행 · 작성 AI · 기기 성능이 팜에 보일 Auth username(운영 maxi). admin 이 그 사람의 Auth 대신 PAT 를 받아 싣는다 (SPEC 도메인/러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」)
+      # 정기 · 빌드 실행 · 작성 AI · 기기 성능 · 기기 목록이 팜에 보일 전용 Auth username(운영 qahub-runner — 개인 계정 아님). admin 이 그 계정의 Auth 대신 PAT 를 받아 싣는다 (SPEC 도메인/러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」)
       DEVICE_FARM_RUN_AS: "${DEVICE_FARM_RUN_AS:-}"
       # 설정 › BTS 연결의 「QA Hub AI 계정 이름」으로 받을 Auth username(쉼표로 여럿 · 운영 qahub-ai). 밖의 이름은 거절한다 — 남의 이름을 적어 그 사람 대신 PAT 를 받아 가지 못하게 (SPEC 도메인/BTS 「열쇠 표」)
       BTS_BOT_USERNAMES: "${BTS_BOT_USERNAMES:-}"
       # 열쇠(대신 PAT)를 보낼 Issue Bunker 주소(쉼표로 여럿 · 출처로 견준다). 밖의 주소는 거절한다 — 주소 칸을 자기 서버로 바꿔 대신 PAT 를 받아 가지 못하게
       BTS_URLS: "${BTS_URLS:-}"
-      # SSO 를 끈 설치 · RUN_AS 를 못 받을 때만 싣는 Bearer 토큰. 비면 머리를 안 싣는다 — SSO 설치는 비워 둔다(admin 이 요청마다 대신 PAT 를 넘긴다)
+      # 비워 둔다 — 사람 PAT 를 넣지 않는다(Auth_platform docs/token-policy.md §2). 코드가 아직 읽는 옛 칸이라 적으면 RUN_AS 를 못 받을 때 Bearer 로 싣는다. 비면 머리를 안 싣는다(admin 이 요청마다 대신 PAT 를 넘긴다)
       DEVICE_FARM_TOKEN: "${DEVICE_FARM_TOKEN:-}"
     # 컨테이너에서 호스트(내 컴퓨터)의 러너에 닿는 이름. 맥 Docker Desktop 에서만 127.0.0.1 전용 러너에 닿는 것을 확인했다 —
     # 리눅스는 이 줄로 이름은 풀려도 브리지 주소라 안 닿을 수 있다 (docs/SETUP.md 「내 컴퓨터 러너」)
@@ -134,7 +134,7 @@ services:
       RUNNER_TOKEN: "${RUNNER_TOKEN:-}"
       # 앱 항목이 붙는 Appium 주소 — admin 이 폰을 잡는 팜과 같은 값이다
       PLATFORM_APPIUM_URL: "${DEVICE_FARM_URL:-}"
-      # SSO 를 끈 설치의 팜 토큰 — admin 과 같은 값이다. SSO 설치는 비어 있고 admin 이 폰을 잡은 토큰을 요청마다 farmToken 으로 넘긴다. 이름은 appium-cli 와 같다
+      # admin 의 DEVICE_FARM_TOKEN 과 같은 값이라 비어 있다(사람 PAT 를 넣지 않는다) — admin 이 폰을 잡은 대신 PAT 를 요청마다 farmToken 으로 넘긴다. 이름은 appium-cli 와 같다
       PLATFORM_APPIUM_TOKEN: "${DEVICE_FARM_TOKEN:-}"
     volumes:
       - ./tests:/tests:ro      # 테스트 소스 읽기 전용 마운트
@@ -181,8 +181,8 @@ services:
       # PR 열기·병합 권한. 자식 세션에는 가짜 값으로 덮어 넘긴다
       GH_TOKEN: "${GH_TOKEN:-}"
       DISABLE_AUTOUPDATER: "1"   # claude 가 스스로 올리지 않는다 — 올리는 것은 에이전트다(점검·되돌리기)
-      # SSO 를 끈 설치에서 작성 AI 의 appium-cli 가 인증 켠 팜 폰을 잡고 누를 때 싣는 토큰. SSO 설치는 비어 있고 서버가 앱 화면 응답(appium.token)으로 넘긴 대신 PAT 를 쓴다.
-      # 어느 쪽이든 자식 세션 환경에 그대로 가서 AI 가 읽을 수 있다 — 새면 팜과 Issue Bunker 를 토큰 주인 이름으로 쓸 수 있다 (docs/SETUP.md §20)
+      # 작성 AI 의 appium-cli 가 인증 켠 팜 폰을 잡고 누를 때 싣는 토큰. DEVICE_FARM_TOKEN 이 비어 있어(사람 PAT 를 넣지 않는다) 서버가 앱 화면 응답(appium.token)으로 넘긴 대신 PAT 를 쓴다.
+      # 그 토큰은 자식 세션 환경에 그대로 가서 AI 가 읽을 수 있다 — 새면 팜과 Issue Bunker 를 토큰 주인 이름으로 쓸 수 있다 (docs/SETUP.md §20)
       PLATFORM_APPIUM_TOKEN: "${DEVICE_FARM_TOKEN:-}"
     volumes:
       - ./:/repo                              # 사본의 원천 · 병합 뒤 당기기(admin 의 /tests 가 바로 본다). 자식은 여기 못 쓴다(다른 uid)
