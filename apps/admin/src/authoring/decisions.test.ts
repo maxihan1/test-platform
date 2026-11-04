@@ -73,6 +73,9 @@ describe.skipIf(연결 === undefined)('결정 목록 · 결정 진행', () => {
     await q('DELETE FROM prd_version WHERE service_id = $1', [서비스]);
     await q('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
     await q('DELETE FROM test_case WHERE tc_id = $1', [케이스]);
+    await q('DELETE FROM screen_found WHERE service_id = $1', [서비스]);
+    await q('DELETE FROM service_env WHERE service_id = $1', [서비스]);
+    await q(`UPDATE service SET skip_screens = '{}' WHERE id = $1`, [서비스]);
   };
 
   beforeAll(async () => {
@@ -166,6 +169,39 @@ describe.skipIf(연결 === undefined)('결정 목록 · 결정 진행', () => {
     expect(await 집기(서비스, 'xwx-agent')).toBeNull();
     await q(`UPDATE authoring_request SET status = 'DONE', finished_at = now() WHERE id = $1`, [머지]);
     expect((await 집기(서비스, 'xwx-agent'))?.id).toBe(다시);
+  });
+
+  it('테스트가 확인하지 않은 화면 — [제외]하면 셈에서 빠지고 되돌리기 목록에 서며, 고른 화면만 요청하면 안 고른 것을 AI 가 건너뛴다', async () => {
+    await q(`INSERT INTO service_env (service_id, env, base_url, login_id, login_password) VALUES ($1, 'qa', 'https://qa.xwx.test', 'tester', 'pw-7731')`, [서비스]);
+    await q(
+      `INSERT INTO screen_found (service_id, env, state, url, name)
+       VALUES ($1, 'qa', '로그아웃', '/orders', '주문 내역'), ($1, 'qa', '로그아웃', '/coupons', '쿠폰함'), ($1, 'qa', '로그아웃', '/reviews/new', '리뷰 쓰기')`,
+      [서비스],
+    );
+    const 화면 = async () => (await 목록()).items.find((x) => x.kind === 'SCREENS')!;
+    expect((await 화면()).screens).toHaveLength(3);
+    const 빼기 = (payload: object) => app.inject({ method: 'POST', url: `/api/authoring/decisions/skip-screen?service=${접두사}`, payload });
+
+    expect((await 빼기({ url: '/reviews/new', skip: true })).json()).toEqual({ ok: true });
+    expect((await 빼기({ url: '/reviews/new', skip: true })).json()).toEqual({ ok: true });
+    const [없음, 틀림] = [await 빼기({ url: '/nope', skip: true }), await 빼기({ url: '/orders' })];
+    expect([없음.statusCode, 없음.json(), 틀림.statusCode]).toEqual([400, { error: 'BAD_SCREEN' }, 400]);
+    const 뺀뒤 = await 화면();
+    expect((뺀뒤.screens as { url: string }[]).map((x) => x.url)).toEqual(['/coupons', '/orders']);
+    expect(뺀뒤.skipped).toEqual([{ url: '/reviews/new', name: '리뷰 쓰기' }]);
+
+    const 보냄 = (screens: unknown) => 진행({ prdVersion: 0, picks: [{ key: 뺀뒤.key, pick: 'FIX', env: 'qa', screens }] });
+    for (const 틀린 of [[], ['/reviews/new'], ['/coupons', '/coupons'], [3]]) expect((await 보냄(틀린)).statusCode).toBe(400);
+    const r = await 보냄(['/coupons']);
+    expect(r.statusCode).toBe(201);
+    const id = (r.json() as { steps: { requestId: number }[] }).steps[0]!.requestId;
+    expect(await params(id)).toMatchObject({ skipScreens: ['/orders'] });
+    const { 집기대상칸 } = await import('./reverse.js');
+    const 칸 = await 집기대상칸(서비스, { kind: 'AUTHOR', compare: true, env: 'qa', startUrl: null, params: await params(id) }, undefined);
+    expect(칸.target?.skipScreens).toEqual(['/reviews/new', '/orders']);
+
+    expect((await 빼기({ url: '/reviews/new', skip: false })).json()).toEqual({ ok: true });
+    expect((await q<{ s: string[] }>('SELECT skip_screens AS s FROM service WHERE id = $1', [서비스])).rows[0]!.s).toEqual([]);
   });
 
   it('반려는 그 작성을 폐기해 ① 에서 빼고 열린 작성도 풀린다 · 관리자가 아니면 403 이고 아무것도 안 한다', async () => {

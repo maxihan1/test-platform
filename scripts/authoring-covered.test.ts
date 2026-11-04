@@ -147,6 +147,14 @@ describe('화면지도준비 — 자료 폴더 screen-cases.json · covered.json
     expect(읽기('screen-cases.json')).toEqual({ '/board/:n': ['MKT-FN-001'], '/cart': ['MKT-FN-002'] });
   });
 
+  it('화면만이면 건너뛸 화면(제외 · 안 고른 것)도 덮은 틀에 더한다 — 글자가 아닌 것은 버린다', () => {
+    폴더 = mkdtempSync(join(tmpdir(), 'covered-'));
+    expect(화면지도준비({ ...입력(가짜깃(기본파일)), 자료폴더: 폴더, 화면만: true, 건너뛸: ['/reviews/new', '/cart', 3, ''] })).toEqual({ 경고: null });
+    expect(읽기('covered.json')).toEqual(['/board/:n', '/cart', '/reviews/new']);
+    expect(화면지도준비({ ...입력(가짜깃(기본파일)), 자료폴더: 폴더, 화면만: true, 건너뛸: '/x' })).toEqual({ 경고: null });
+    expect(읽기('covered.json')).toEqual(['/board/:n', '/cart']);
+  });
+
   it('대조는 화면 지도만 쓴다', () => {
     폴더 = mkdtempSync(join(tmpdir(), 'covered-'));
     expect(화면지도준비({ ...입력(가짜깃(기본파일)), 자료폴더: 폴더, 화면만: false })).toEqual({ 경고: null });

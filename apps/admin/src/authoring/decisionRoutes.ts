@@ -3,6 +3,7 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 
 import { 권한이되나 } from '../auth/gate.js';
+import { 화면제외바꾸기 } from '../prd/found.js';
 import { 누가 } from '../prd/routes.js';
 import { 결정진행 } from './decisionRun.js';
 import { 결정목록읽기, type 부른이 } from './decisions.js';
@@ -31,5 +32,16 @@ export default async function decisionRoutes(app: FastifyInstance): Promise<void
     if (서비스 === null) return reply;
     const 결과 = await 결정진행(서비스, 부른사람(req), 누가(req), req.body);
     return reply.code(결과.code).send(결과.body);
+  });
+
+  // [제외] · [되돌리기] — 문이 작성 write 를 본다(테스트 추가와 같다). 결정 진행을 안 거치고 곧바로 바뀐다(확인 창이 한 번 묻는다)
+  app.post<질의 & { Body: unknown }>('/authoring/decisions/skip-screen', async (req, reply) => {
+    const 서비스 = await 서비스번호(req, reply);
+    if (서비스 === null) return reply;
+    const { url, skip } = (req.body ?? {}) as { url?: unknown; skip?: unknown };
+    if (typeof url !== 'string' || url === '' || url.length > 2000 || typeof skip !== 'boolean') return reply.code(400).send({ error: 'INVALID_REQUEST' });
+    const 결과 = await 화면제외바꾸기(서비스, url, skip);
+    if (결과 !== 'OK') return reply.code(400).send({ error: 결과 });
+    return { ok: true };
   });
 }

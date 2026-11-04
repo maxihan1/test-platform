@@ -8,6 +8,7 @@ import { 의도확인, 문구고르기 } from './AuthoringDecideCheck.js';
 import { 초안카드 } from './AuthoringDecideDraft.js';
 import { 반영대기, 상세할일, 실패판정 } from './AuthoringDecideItems.js';
 import { 새로만들기 } from './AuthoringDecideNew.js';
+import { 화면고르기 } from './AuthoringDecideScreens.js';
 import { 진행중, 차례글 } from './AuthoringDecideRun.js';
 import { decideApi, type 결정목록, type 결정항목, type 진행단계 } from './decideApi.js';
 import { 고름바꾼표, 보낼것, 차례, 탭of, type 고른값, type 차례줄, type 탭 } from './decideView.js';
@@ -110,6 +111,8 @@ export function AuthoringDecide({ service, 목록, envs, 다시읽기 }: { servi
         return <실패판정 key={x.key} x={x} 고른={값} on고름={on고름} />;
       case 'PRD_DRAFT':
         return <초안카드 key={x.key} x={x} 고른={값} on고름={on고름} />;
+      case 'SCREENS':
+        return <화면고르기 key={x.key} service={service} x={x} 고른={값} on고름={on고름} open={목록.open} envs={envs} on바뀜={다시읽기} />;
       case 'CHECK':
         return x.basis === 'DOCS' ? <문구고르기 key={x.key} x={x} 고른표={고른} on고름={on고름} 편집={편집} on편집={on편집} /> : null;
       default:

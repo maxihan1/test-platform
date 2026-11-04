@@ -48,6 +48,8 @@ interface 받은것 {
   option?: unknown;
   env?: unknown;
   rows?: unknown;
+  /** SCREENS 에서 고른 화면 주소(틀) — 없으면 모두 */
+  screens?: unknown;
 }
 
 function 본문읽기(body: unknown): { prdVersion: number; picks: 받은것[] } | null {
@@ -60,7 +62,7 @@ function 본문읽기(body: unknown): { prdVersion: number; picks: 받은것[] }
     if (typeof p !== 'object' || p === null) return null;
     const x = p as Record<string, unknown>;
     if (typeof x.key !== 'string' || typeof x.pick !== 'string') return null;
-    읽음.push({ key: x.key, pick: x.pick, text: x.text, option: x.option, env: x.env, rows: x.rows });
+    읽음.push({ key: x.key, pick: x.pick, text: x.text, option: x.option, env: x.env, rows: x.rows, screens: x.screens });
   }
   return { prdVersion, picks: 읽음 };
 }
@@ -74,7 +76,8 @@ interface 준비 {
   화면: { key: string; 칸: 화면이맞음 }[];
   요구다시: string | null;
   API: { key: string; 준비: 다시작성준비 } | null;
-  보완: { key: string; env: string; startUrl: string | null } | null;
+  /** skip — 이번 화면에서 고르지 않은 틀. AI 가 확인한 화면으로 보고 건너뛴다(params.skipScreens) */
+  보완: { key: string; env: string; startUrl: string | null; skip: string[] } | null;
   초안: { key: string; card: 초안카드; rows: number[] }[];
   /** 버리기 · 다시 만들기 — 끝난 초안 버리기는 고른 줄 없이 진행으로 남기고, 실패 · 멈춘 초안 버리기는 폐기로 찍는다 */
   초안끝: { key: string; requestId: number; pick: 'DROP' | 'RETRY'; done: boolean }[];
@@ -157,7 +160,12 @@ async function 하나준비(서비스: number, 항목: 결정항목, p: 받은�
         if ('error' in 판정) return 틀림(p.key);
       }
       if (typeof env !== 'string') return 틀림(p.key);
-      준.보완 = { key: p.key, env, startUrl: 이음?.env === env ? 이음.startUrl : null };
+      // 고른 화면은 목록에 있는 틀이고 하나 이상 · 겹침 없음. 안 보내면 모두다(앞 판 화면과 같다)
+      const 틀들 = [...new Set((항목.screens ?? []).map((x) => x.url))];
+      const 고른 = p.screens;
+      if (고른 !== undefined && (!Array.isArray(고른) || 고른.length === 0 || new Set(고른).size !== 고른.length || !고른.every((u) => typeof u === 'string' && 틀들.includes(u)))) return 틀림(p.key);
+      const skip = 고른 === undefined ? [] : 틀들.filter((u) => !(고른 as string[]).includes(u));
+      준.보완 = { key: p.key, env, startUrl: 이음?.env === env ? 이음.startUrl : null, skip };
       return null;
     }
     case 'PRD_DRAFT': {
@@ -263,7 +271,7 @@ export async function 결정진행(서비스: number, 누구: 부른이, 사람:
       }
       if (준.보완 !== null) {
         const id = await 줄세우기(
-          { 서비스, kind: 'AUTHOR', 기획서: null, 값: 결정(), 누가: 사람.username, 이름: 사람.displayName, 대조: { env: 준.보완.env, startUrl: 준.보완.startUrl } },
+          { 서비스, kind: 'AUTHOR', 기획서: null, 값: { ...결정(), ...(준.보완.skip.length > 0 ? { skipScreens: 준.보완.skip } : {}) }, 누가: 사람.username, 이름: 사람.displayName, 대조: { env: 준.보완.env, startUrl: 준.보완.startUrl } },
           손,
         );
         steps.push({ step: 5, key: 준.보완.key, requestId: id, version: null });

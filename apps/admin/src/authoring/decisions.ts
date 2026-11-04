@@ -166,10 +166,12 @@ async function 셋째묶음(서비스: number, 지금: { version: number; items:
     }
   }
 
-  if (화면셈.uncoveredScreens.length > 0) {
+  // 제외한 화면만 남아도 항목을 싣는다 — 되돌리기 목록이 이 항목 아래에 있어서다. 고를 화면이 없으면 picks 는 비고 셈에 안 든다
+  if (화면셈.uncoveredScreens.length > 0 || 화면셈.skippedScreens.length > 0) {
+    const 고를것 = 화면셈.uncoveredScreens.length > 0;
     items.push({
-      key: `screens:${화면지문(화면셈.uncoveredScreens)}`, group: 3, kind: 'SCREENS', ...셋째고름(누구, 열린, 대기뿌리, ['FIX']),
-      screens: 닫힘 ? null : 화면셈.uncoveredScreens, env: (await 최근대조(서비스))?.env ?? null,
+      key: `screens:${화면지문(화면셈.uncoveredScreens)}`, group: 3, kind: 'SCREENS', ...(고를것 ? 셋째고름(누구, 열린, 대기뿌리, ['FIX']) : { picks: [], blockedBy: 누구.작성쓰기 ? null : ('NO_WRITE' as const) }),
+      screens: 닫힘 ? null : 화면셈.uncoveredScreens, env: (await 최근대조(서비스))?.env ?? null, skipped: 화면셈.skippedScreens,
     });
   }
 

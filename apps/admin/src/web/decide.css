@@ -221,3 +221,19 @@
   justify-content: space-between;
   gap: 12px;
 }
+/* 테스트가 확인하지 않은 화면 한 줄 — 체크 · 이름과 주소 · [제외] (2026-11-04) */
+.decide-screen-row {
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+}
+.decide-skipped {
+  width: 100%;
+  font-size: 13px;
+}
+.decide-skipped summary {
+  cursor: pointer;
+  color: var(--ink-muted);
+}
+.decide-skipped .decide-saved {
+  padding: 6px 0 0 16px;
+}

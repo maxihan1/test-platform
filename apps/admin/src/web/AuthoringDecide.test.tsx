@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // 결정 목록 화면 검사 — 탭 · 고르기 · 권한 없는 버튼 · ③ 기다림 · 저장 · 탭마다 적용 · 낡은 목록 (도메인/작성 §3.6 「★ 결정 목록」)
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from './api.js';
@@ -11,11 +11,17 @@ import type { 결정목록, 결정항목, 보낼고름 } from './decideApi.js';
 const 보낸: { prdVersion: number; picks: 보낼고름[] }[] = [];
 const 진행답: { 값: Promise<{ steps: { step: 1 | 2 | 3 | 4 | 5; key: string | null; requestId: number | null; version: number | null }[] }> | null } = { 값: null };
 
+const 제외한: [string, boolean][] = [];
+
 vi.mock('./decideApi.js', () => ({
   decideApi: {
     run: (_service: string, prdVersion: number, picks: 보낼고름[]) => {
       보낸.push({ prdVersion, picks });
       return 진행답.값 ?? Promise.resolve({ steps: [] });
+    },
+    skipScreen: (_service: string, url: string, skip: boolean) => {
+      제외한.push([url, skip]);
+      return Promise.resolve({ ok: true });
     },
   },
 }));
@@ -59,6 +65,7 @@ const 적용 = () => screen.getByRole('button', { name: /^\d+건 적용$/ }) as 
 
 beforeEach(() => {
   보낸.length = 0;
+  제외한.length = 0;
   진행답.값 = null;
 });
 afterEach(cleanup);
@@ -227,6 +234,36 @@ describe('결정 목록', () => {
     expect(screen.getByRole('option', { name: '서버 선택' })).toBeTruthy();
     expect(screen.getByText('대상 서버를 고르면 진행에 들어갑니다')).toBeTruthy();
     expect(screen.getByText('아직 고른 것이 없습니다')).toBeTruthy();
+  });
+
+  it('테스트가 확인하지 않은 화면은 체크한 것만 보내고, [제외]는 확인 창을 거쳐 곧바로 빼고, 제외한 화면은 [되돌리기]로 돌린다', async () => {
+    진행답.값 = Promise.resolve({ steps: [{ step: 5, key: 'screens:ab', requestId: 9, version: null }] });
+    const 다시읽기 = vi.fn();
+    const 화면: 결정항목 = {
+      key: 'screens:ab', group: 3, kind: 'SCREENS', picks: ['FIX'], blockedBy: null, env: null,
+      screens: [{ state: '로그아웃', url: '/orders', name: '주문 내역' }, { state: '로그인:일반 회원', url: '/coupons', name: '쿠폰함' }],
+      skipped: [{ url: '/reviews/new', name: '리뷰 쓰기' }],
+    };
+    render(<AuthoringDecide service="DMW" 목록={목록([화면])} envs={[{ env: 'stg', baseUrl: 'https://stg.test' }]} 다시읽기={다시읽기} />);
+    expect(screen.getByText('테스트가 확인하지 않은 화면 2개입니다. 테스트를 만들 화면을 체크해 주세요')).toBeTruthy();
+    fireEvent.click(screen.getByRole('checkbox', { name: '쿠폰함 테스트 추가' }));
+    expect(screen.getByText('테스트가 확인하지 않은 화면 1개의 테스트를 만듭니다')).toBeTruthy();
+
+    fireEvent.click(screen.getAllByRole('button', { name: '제외' })[0]!);
+    expect(screen.getByText('주문 내역 · /orders 화면을 제외합니다')).toBeTruthy();
+    expect(screen.getByText('AI 가 이 화면 테스트를 만들지 않습니다')).toBeTruthy();
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: '제외' }));
+    await waitFor(() => expect(다시읽기).toHaveBeenCalled());
+    expect(제외한).toEqual([['/orders', true]]);
+    expect(screen.queryByRole('dialog')).toBeNull();
+
+    fireEvent.click(screen.getByText('제외한 화면 1개'));
+    fireEvent.click(screen.getByRole('button', { name: '되돌리기' }));
+    await waitFor(() => expect(제외한).toEqual([['/orders', true], ['/reviews/new', false]]));
+
+    fireEvent.click(적용());
+    await screen.findByText('적용을 시작했습니다');
+    expect(보낸).toEqual([{ prdVersion: 3, picks: [{ key: 'screens:ab', pick: 'FIX', screens: ['/coupons'], env: 'stg' }] }]);
   });
 
   it('요구사항 확인은 명세 표 차례 — 화면 기준 → 기획서 간 불일치', () => {
