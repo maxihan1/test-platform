@@ -25,9 +25,9 @@ import { 바뀐파일들, 지운말, 치울새파일들 } from './authoring-stat
 import { 끝검사 } from './authoring-gate3.js';
 import { 폰끝검사 } from './authoring-run3-game.js';
 import { type 계정, type 사본, 사본환경, 파일거부사유 } from './authoring-copy.js';
-import { 산출물읽기, 화면만다덮음 } from './authoring-upload-reverse.js';
-import { 크롤목록, 저장본올리기 } from './authoring-screens-keep-io.js';
-import { 기준화면지도, 다덮음사유, 바뀐틀들, 바뀐화면줄 } from './authoring-covered.js';
+import { 바뀐틀읽기, 산출물읽기, 화면만다덮음 } from './authoring-upload-reverse.js';
+import { 저장본올리기 } from './authoring-screens-keep-io.js';
+import { 기준화면지도, 다덮음사유, 바뀐화면줄 } from './authoring-covered.js';
 import type { 원장 } from './authoring-ledger.js';
 import { type 기준결정, tcId들 } from './authoring-ledger-check.js';
 import { tcId별글, 원장판정 } from './authoring-ledger-verdict.js';
@@ -176,8 +176,7 @@ export async function 올리기(
   const 읽기 = (f: string) => (모양보기(자리.트리, f).종류 === '파일' ? readFileSync(join(자리.트리, f), 'utf8') : '');
   // 저장본이 바뀐 화면을 쓰는 기준 케이스와 그중 이번에 고친 것 — 자식 요약이 아니라 에이전트가 기준 SHA 로 센다 (§3.6 「바뀐 화면 — 닿는 케이스만 다시 본다」)
   // 바뀐 화면이 없으면 지도를 다시 세지 않는다. 못 셌으면 줄로 알린다 — 「바뀐 화면 없음」과 갈리게
-  const 목록글 = 역 === undefined ? null : 크롤목록(자리.자료);
-  const 바뀐틀 = 목록글 === null ? null : 바뀐틀들(목록글);
+  const 바뀐틀 = 역 === undefined ? null : 바뀐틀읽기(자리.자료, 원장재료.게임 === true);
   const 화면지도 = 바뀐틀 === null || 바뀐틀.size === 0 ? null : 기준화면지도({ 깃: (인자) => 트리에서('git', 인자), 기준, 서비스, 폴더: 원장재료.폴더 });
   const 바뀐줄 = 화면지도 === null || 바뀐틀 === null ? null : '까닭' in 화면지도 ? `⚠️ 바뀐 화면 케이스를 못 셌다 — ${화면지도.까닭}` : 바뀐화면줄(바뀐틀, 화면지도.케이스, new Set(전체));
   const 바뀜표 = 트리에서('git', 변경상태인자(기준));
