@@ -20,11 +20,12 @@
 }
 
 /* ── 펼친 줄 (화면공통 §8 「왼쪽 줄」 「펼치기」 · 2026-11-05) — 넓어진 만큼 오른쪽 여백을 빼 자리는 60px 그대로다. 사이드바를 밀지 않고 덮는다.
+   폭은 사이드바 칸(60 + 212)과 같다 — 시안의 256 은 오른쪽 16px 에 카드 · 찾기 칸 가장자리가 삐져나왔다.
    칸마다 왼쪽 48px(.rail-blk)은 접힌 칸 그대로라 아이콘이 제자리에 있고, 이름은 모두 줄 왼쪽에서 62px 에서 시작한다 ── */
 .rail.open {
   z-index: 30;
-  width: 256px;
-  margin-right: -196px;
+  width: 272px;
+  margin-right: -212px;
   align-items: stretch;
   box-shadow: var(--shadow);
 }

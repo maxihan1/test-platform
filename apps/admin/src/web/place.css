@@ -314,7 +314,8 @@
   background: var(--well);
 }
 
-.folded :is(.place-proj, .place-app-text, .place-caret) {
+/* 카드 안만 숨긴다 — 판도 사이드바 안에 있어서 넓게 걸면 판의 애플리케이션 이름까지 사라진다 (2026-11-05 그려 보고 찾음) */
+.folded .place-card :is(.place-proj, .place-app-text, .place-caret) {
   display: none;
 }
 
