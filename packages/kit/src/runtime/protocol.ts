@@ -43,6 +43,12 @@ export function 앱파일값인가(값: string): boolean {
   return !값.includes('://') || /^https?:\/\/[^/]/i.test(값);
 }
 
+// 같은 칸에 적은 스토어 앱의 패키지 이름(com.shop.app)인가 — APK 가 없어 깔지 않고 폰에 깔린 앱을 켠다.
+// kit 은 appium:appPackage 로 열고 admin 은 그 앱이 깔린 폰만 잡아서 둘이 같은 규칙을 봐야 한다. 끝 마디가 앱 파일 확장자면 파일이다 (러너 §5.2 「플레이스토어 앱 — 패키지 이름」)
+export function 패키지이름인가(값: string): boolean {
+  return /^[A-Za-z]\w*(\.[A-Za-z]\w*)+$/.test(값) && !/\.(apk|apks|aab|xapk|zip)$/i.test(값);
+}
+
 // E2E API 호출 단계 값 주입 이름 — 러너 입구 · 서버 조립 검사 · 조립 화면이 같은 규칙을 봐야 저장만 되고 못 도는 시나리오가 안 생긴다 (SPEC 도메인/시나리오 §3.7 결정 14)
 export const 값주입이름 = /^[A-Za-z0-9_가-힣]{1,20}$/;
 

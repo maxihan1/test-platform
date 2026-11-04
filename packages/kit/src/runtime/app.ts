@@ -9,7 +9,7 @@ import type { DeviceInfo } from '../types.js';
 
 import { runDir, saveShot } from './artifacts.js';
 import { 앱사진 } from './highlight.js';
-import { APPIUM_SESSION_FILE, APPIUM_SESSION_ID_FILE } from './protocol.js';
+import { APPIUM_SESSION_FILE, APPIUM_SESSION_ID_FILE, 패키지이름인가 } from './protocol.js';
 
 export type AppDriver = Browser;
 
@@ -29,8 +29,10 @@ export function appCapabilities(env: Env): Record<string, string | boolean | num
     'appium:automationName': 'UiAutomator2',
     // 꾸러미 이름 없는 resource-id 를 쓰는 앱도 id= 로 찾게 한다. 긴 꼴(com.shop:id/x)은 그대로 찾는다 (§5.2 「앱 실행」)
     'appium:disableIdLocatorAutocompletion': true,
-    'appium:app': required(env, 'PLATFORM_APP'),
   };
+  const app = required(env, 'PLATFORM_APP');
+  // 스토어로 깐 앱은 APK 가 없어 깔지 않고 켠다. noReset 을 안 줘 연결 때 앱 데이터를 지운다 — APK 를 새로 깔 때처럼 로그아웃 상태로 시작한다 (§5.2 「플레이스토어 앱 — 패키지 이름」)
+  caps[패키지이름인가(app) ? 'appium:appPackage' : 'appium:app'] = app;
   // UDID 가 없으면 Appium 이 연결된 한 대를 고른다
   if (env.PLATFORM_DEVICE_UDID) caps['appium:udid'] = env.PLATFORM_DEVICE_UDID;
   // 게임은 실행 하나 동안 폰을 쥐고 한 번만 깐다 — 항목마다 데이터는 두고 앱만 다시 켠다. 상태는 케이스가 어드민 API 로 맞춘다 (도메인/게임 §3.10 「게임 연결」).
