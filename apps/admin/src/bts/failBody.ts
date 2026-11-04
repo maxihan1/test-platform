@@ -38,8 +38,53 @@ export interface 실패재료 {
   /** trace 를 아직 안 풀었으면 null — 실행 뒤 따로 푼다(execution/traceIngest.ts) */
   네트워크: string[] | null;
   콘솔: string[] | null;
+  /** 앱 · 게임 항목만 — 있으면 네트워크 · 콘솔 절 대신 이 절이 나간다. 웹 항목은 null, 받아 둔 logcat 이 없으면 '없음' */
+  폰로그: 폰오류줄 | '없음' | null;
   결과주소: string | null;
   꼬리표: 꼬리표;
+}
+
+/** 이슈에 싣는 logcat 줄 수 · 줄마다 글자 수 */
+export const 폰로그상한 = 10;
+const 폰줄글자상한 = 500;
+
+export interface 폰오류줄 {
+  줄: string[];
+  /** 상한에 걸려 못 실은 오류 줄 수 */
+  더: number;
+}
+
+// threadtime 꼴 `11-04 10:00:03.000  4321  4321 E 태그: 글` — 수준 E · F 만
+const 오류줄꼴 = /^\d\d-\d\d \d\d:\d\d:\d\d\.\d+\s+(\d+)\s+\d+\s+([EF])\s/;
+// Appium 연결이 띄운 앱. 프로세스 이름은 `패키지` 나 `패키지:하위` 다
+const 프로세스시작 = /Start proc (\d+):([^/\s]+)\/\S+ for (\S+)/;
+const 활동관리 = /\sActivity(?:Task)?Manager\s*:/;
+
+/**
+ * 팜 logcat 은 폰 전체 기록이라 남의 앱 오류가 훨씬 많다(adbd · keystore …). 앱이 뜬 줄(top-activity 로 시작한 프로세스)에서
+ * 앱 PID 를 찾아 그 PID 의 E · F 줄과 시스템이 앱을 두고 남긴 오류 줄(ANR · 네이티브 크래시)만 고른다.
+ * 죽은 자리가 가장 쓸모 있어 FATAL 이 있으면 거기서부터, 없으면 실패 순간에 가까운 끝에서부터 싣는다
+ */
+export function logcat오류줄(글: string): 폰오류줄 {
+  const 줄들 = 글.split('\n');
+  const 시작들 = 줄들.flatMap((l) => {
+    const m = 프로세스시작.exec(l);
+    return m === null ? [] : [{ pid: m[1]!, 패키지: m[2]!.split(':')[0]!, 앱: m[3]!.endsWith('top-activity') }];
+  });
+  const 앱 = new Set(시작들.filter((s) => s.앱).map((s) => s.패키지));
+  const 앱pid = new Set(시작들.filter((s) => 앱.has(s.패키지)).map((s) => s.pid));
+  const 고른 = 줄들.filter((l) => {
+    const m = 오류줄꼴.exec(l);
+    if (m === null) return false;
+    // 앱이 뜬 줄이 없으면(연결 전에 이미 떠 있었다) 누구 것이든 죽은 줄만 — 남은 E 줄은 거의 다 남의 것이다
+    if (앱.size === 0) return m[2] === 'F' || l.includes('FATAL');
+    if (앱pid.has(m[1]!)) return true;
+    // 남이 남긴 앱 줄은 ANR · 프로세스 죽음(ActivityManager)과 네이티브 크래시 머리(F)만 — 화면 합성(SurfaceFlinger · WindowManager)도 패키지를 달지만 오류가 아니다
+    return (m[2] === 'F' || 활동관리.test(l)) && [...앱].some((p) => l.includes(p));
+  });
+  const 첫 = 고른.findIndex((l) => l.includes('FATAL'));
+  const 실을 = 첫 === -1 ? 고른.slice(-폰로그상한) : 고른.slice(첫, 첫 + 폰로그상한);
+  return { 줄: 실을.map((l) => 짧게(l.trimEnd(), 폰줄글자상한)), 더: 고른.length - 실을.length };
 }
 
 const 바이트 = (글: string): number => Buffer.byteLength(글, 'utf8');
@@ -76,12 +121,23 @@ function 앞뒤(재료: 실패재료): { 앞: string[]; 뒤: string[] } {
       : [`- 실패한 확인: ${재료.확인.statement}`, `  - 기대 값: ${짧게(재료.확인.expected)}`, `  - 실제 값: ${짧게(재료.확인.actual)}`]),
     ...(재료.원인 === null ? [] : [`- 실패 원인: ${재료.원인}`]),
   ];
+  const 폰 = 재료.폰로그;
+  // 앱 · 게임 항목은 브라우저 trace 가 없다 — 네트워크 · 콘솔 대신 폰 logcat 오류 줄이다
   const 기록 =
-    재료.네트워크 === null || 재료.콘솔 === null
-      ? ['네트워크 · 콘솔 기록은 Test Commander 실행 결과에서 보세요']
+    폰 !== null
+      ? [
+          '### 폰 로그(logcat)',
+          ...(폰 === '없음' ? ['이 항목은 받아 둔 폰 로그가 없습니다'] : 폰.줄.length === 0 ? ['- 앱 오류 줄 없음'] : ['```', ...폰.줄, '```']),
+          ...(폰 !== '없음' && 폰.더 > 0 ? [`나머지 오류 줄 ${String(폰.더)}개는 Test Commander 실행 결과의 logcat 에서 보세요`] : []),
+        ]
       : [
-          ...(재료.네트워크.length === 0 ? ['- 실패한 네트워크 요청 없음'] : 재료.네트워크.map((n) => `- 요청: ${n}`)),
-          ...(재료.콘솔.length === 0 ? ['- 콘솔 오류 없음'] : 재료.콘솔.map((c) => `- 콘솔: ${c}`)),
+          '### 네트워크 · 콘솔',
+          ...(재료.네트워크 === null || 재료.콘솔 === null
+            ? ['네트워크 · 콘솔 기록은 Test Commander 실행 결과에서 보세요']
+            : [
+                ...(재료.네트워크.length === 0 ? ['- 실패한 네트워크 요청 없음'] : 재료.네트워크.map((n) => `- 요청: ${n}`)),
+                ...(재료.콘솔.length === 0 ? ['- 콘솔 오류 없음'] : 재료.콘솔.map((c) => `- 콘솔: ${c}`)),
+              ]),
         ];
   const 뒤 = [
     '',
@@ -91,7 +147,6 @@ function 앞뒤(재료: 실패재료): { 앞: string[]; 뒤: string[] } {
     '### 실제',
     ...(실제.length === 0 ? ['- 실패 원인을 가르지 못했습니다'] : 실제),
     '',
-    '### 네트워크 · 콘솔',
     ...기록,
     ...(재료.결과주소 === null ? [] : ['', `Test Commander 실행 결과 — ${재료.결과주소}`]),
   ];

@@ -5,10 +5,11 @@ import { setTimeout as 잠깐 } from 'node:timers/promises';
 
 import type { Pool } from 'pg';
 
+import { 팜logcat읽기, 팜증적받는중 } from '../execution/farmEvidence.js';
 import { trace줄끝 } from '../execution/traceIngest.js';
 import { 가린다, 항목비밀 } from '../execution/trial.js';
 import { 실패카드, type FailureCase } from '../reporting/failures.js';
-import { 꼬리표고르기, 또실패댓글, 이슈본문, 이슈제목, 첨부상한, type 실패재료 } from './failBody.js';
+import { logcat오류줄, 꼬리표고르기, 또실패댓글, 이슈본문, 이슈제목, 첨부상한, type 실패재료 } from './failBody.js';
 import { 재검증실패넘기기 } from './bugfix.js';
 import { 보낼줄넣기 } from './outbox.js';
 
@@ -79,8 +80,26 @@ async function 기록읽기(pool: Pool, historyId: number): Promise<{ 네트워�
   };
 }
 
+/**
+ * 앱 · 게임 항목의 logcat 오류 줄. 러너는 항목에 답한 뒤 팜 증적을 받아 실행이 막 끝나면 마지막 항목들 것이 아직 없다 — 받는 동안은 마감까지 기다린다.
+ * 받는 중인지 먼저 본다 — 러너는 logcat 을 옮긴 뒤에 번호 파일을 지워, 거꾸로 보면 그 틈에 옮긴 logcat 을 없다고 친다
+ */
+async function 폰로그읽기(runId: number, historyId: number, 마감: number): Promise<실패재료['폰로그']> {
+  for (;;) {
+    const 받는중 = await 팜증적받는중(runId, historyId);
+    const 글 = await 팜logcat읽기(runId, historyId);
+    if (글 !== null) return logcat오류줄(글);
+    if (!받는중) return '없음';
+    if (Date.now() >= 마감) {
+      console.warn(`[bts] 항목 ${String(historyId)} — 팜 증적을 기다림 상한 안에 다 받지 못해 폰 로그 없이 올린다`);
+      return '없음';
+    }
+    await 잠깐(1000);
+  }
+}
+
 /** 카드의 첫 디바이스(화면 차례)로 쓴다 — 한 테스트 · 한 대상 서버에 이슈는 하나다 */
-async function 재료만들기(pool: Pool, 실행: 실행행, c: FailureCase) {
+async function 재료만들기(pool: Pool, 실행: 실행행, c: FailureCase, 마감: number) {
   const d = c.devices[0]!;
   const 기록 = await 기록읽기(pool, d.item.historyId);
   const 확인 = d.item.steps.flatMap((s) => s.assertions).find((a) => a.status === 'FAIL') ?? null;
@@ -97,20 +116,24 @@ async function 재료만들기(pool: Pool, 실행: 실행행, c: FailureCase) {
     확인: 확인 === null ? null : { statement: 확인.statement, expected: 확인.expected, actual: 확인.actual },
     원인: d.item.failure?.reason ?? null,
     ...기록,
+    // 웹 항목(실제 폰 Chrome 포함)은 지금 그대로 네트워크 · 콘솔이다
+    폰로그: d.platform === 'android' ? await 폰로그읽기(d.item.runId, d.item.historyId, 마감) : null,
     // 화면은 hash 주소다. 항목 상세는 실행 번호가 맞아야 찾아(execution/queries.ts findItem) 한 건 실행이 덮은 항목은 그 한 건 실행 번호로 간다
     결과주소: 공개주소 === '' ? null : `${공개주소}/#/runs/${String(d.item.runId)}/items/${String(d.item.historyId)}`,
     // 최근 흐름 맨 앞은 이번 실행이다 — 섞임은 앞 실행들로만 본다(이번 FAIL 을 넣으면 새로 깨진 회귀가 다 흔들림이 된다)
     꼬리표: 꼬리표고르기(d.item.failure?.type ?? null, d.recent.slice(1)),
   };
   // 항목 상세는 이미 가렸지만 단계 제목 · 요구 문장 · 기록까지 밖으로 나가는 재료 전부를 한 번 더 가린다 — 되비친 비밀값(리포팅 「되비친 비밀값」).
-  // 본문을 만들기 전에 가린다 — 만든 뒤 가리면 별표가 글을 늘려 크기 상한을 넘을 수 있다
-  const 비밀 = 항목비밀({
-    params: d.item.params,
-    expected: d.item.expected,
-    param_schema: d.item.paramSchema,
-    expected_schema: d.item.expectedSchema,
-  });
-  const 재료 = 가린다(날재료, 비밀) as 실패재료;
+  // 본문을 만들기 전에 가린다 — 만든 뒤 가리면 별표가 글을 늘려 크기 상한을 넘을 수 있다.
+  // 비밀 글자는 run_item 원본에서 읽는다 — 항목 상세의 값은 이미 별표라 거기서 고르면 빈 목록이 되고, 원문인 logcat 이 그대로 나간다
+  const 원본 = (
+    await pool.query<{ params: unknown; expected: unknown; param_schema: unknown; expected_schema: unknown }>(
+      'SELECT params, expected, param_schema, expected_schema FROM run_item WHERE history_id = $1',
+      [d.item.historyId],
+    )
+  ).rows[0];
+  if (원본 === undefined) throw new Error(`실패 등록 중 항목 ${String(d.item.historyId)} 이 사라졌다`);
+  const 재료 = 가린다(날재료, 항목비밀(원본)) as 실패재료;
   // 산출물 폴더 기준 경로. 보낼 때 outbox 가 파일을 읽어 올린다. 러너가 만든 모양이 아니면 싣지 않는다 — 파일시스템을 읽는 자리다
   const 캡처 = d.item.steps
     .flatMap((s) => (s.status === 'FAIL' && s.screenshotPath !== undefined ? [s.screenshotPath] : []))
@@ -129,6 +152,8 @@ export async function 실패등록(runId: number, 기다림상한ms = trace기�
   const pool = await db();
   const 실행 = (await pool.query<실행행>(실행SQL, [runId])).rows[0];
   if (실행 === undefined) return 0;
+  // trace 풀기 · 팜 증적 받기를 기다리는 마감은 하나다 — 실행 끝에서 길어야 상한만큼 늦는다
+  const 마감 = Date.now() + 기다림상한ms;
   // trace 는 실행과 따로 한 줄로 푼다. 실행이 막 끝나면 마지막 항목들이 아직 줄에 있어 이슈에 네트워크 · 콘솔이 빠진다 — 지금 줄 끝까지 기다린다.
   // ponytail: 줄 끝이라 다른 실행 · 재기동 때 밀린 풀기도 같이 기다린다. 상한을 넘기는 일이 잦으면 이 실행의 항목만 기다린다
   const 늦음 = await Promise.race([trace줄끝().then(() => false), 잠깐(기다림상한ms, true, { ref: false })]);
@@ -148,7 +173,7 @@ export async function 실패등록(runId: number, 기다림상한ms = trace기�
       // 흔들림 · 테스트 문제 · 화면이 맞음으로 닫힌 테스트는 다음 실패부터 올리지 않는다 — 사람이 판정했고 테스트를 고칠 일만 남았다.
       // 그 케이스를 고친 작성이 병합되면 다시 올린다(도메인/BTS 「판정은 BTS 에서」)
       if (짝 !== undefined && !짝.open && 안올릴사유.has(짝.resolution ?? '') && !짝.released) continue;
-      const { 재료, 캡처 } = await 재료만들기(pool, 실행, c);
+      const { 재료, 캡처 } = await 재료만들기(pool, 실행, c, 마감);
       // 줄은 카드가 서는 실행에 단다 — 실패 카드가 그 실행 번호로 bts 칸을 읽는다
       const 공통 = { projectId: Number(실행.project_id), serviceId: 서비스, runId: 카드실행, tcId: c.tcId, env: 실행.env };
       const id =
