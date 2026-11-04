@@ -109,7 +109,7 @@ describe('ScenarioRunList 호출 · 거르개', () => {
 
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'failed' } });
     await waitFor(() => expect(스파이).toHaveBeenLastCalledWith('ZSL', 1, { state: 'failed' }));
-    expect(window.location.hash).toBe('#/runs/e2e?state=failed');
+    expect(window.location.hash).toBe('#/runs/e2e?state=failed&service=ZSL');
   });
 });
 
@@ -256,7 +256,7 @@ describe('ScenarioRunList 오른쪽 결과 칸 (실행 §8.7 「A안」)', () =>
     expect(결과).toHaveBeenCalledWith(11);
     expect(줄들(container)[0]?.getAttribute('aria-current')).toBe('true');
     expect(container.querySelector('.runs-split.picked')).toBeNull();
-    expect(window.location.hash).toBe('#/runs/e2e');
+    expect(window.location.hash).toBe('#/runs/e2e?service=ZSL');
   });
 
   it('줄을 누르면 화면을 떠나지 않고 결과 칸이 그 실행으로 바뀌며 주소에 남는다 — 상자도 「결과 보기」도 없다', async () => {
@@ -267,7 +267,7 @@ describe('ScenarioRunList 오른쪽 결과 칸 (실행 §8.7 「A안」)', () =>
     fireEvent.click(줄들(container)[1]!);
 
     await waitFor(() => expect(결과).toHaveBeenCalledWith(12));
-    expect(window.location.hash).toBe('#/runs/e2e?run=12');
+    expect(window.location.hash).toBe('#/runs/e2e?run=12&service=ZSL');
     expect(줄들(container)[1]?.getAttribute('aria-current')).toBe('true');
     expect(container.querySelector('.runs-split.picked')).not.toBeNull();
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -301,7 +301,7 @@ describe('ScenarioRunList 오른쪽 결과 칸 (실행 §8.7 「A안」)', () =>
     fireEvent.click(await screen.findByRole('button', { name: 'qa에서 다시 실행' }));
 
     await waitFor(() => expect(스파이).toHaveBeenLastCalledWith('ZSL', 1, {}));
-    expect(window.location.hash).toBe('#/runs/e2e?run=99');
+    expect(window.location.hash).toBe('#/runs/e2e?run=99&service=ZSL');
   });
 
   it('「목록으로」를 누르면 고른 실행을 풀어 좁은 창에서 목록이 다시 보인다', async () => {
@@ -312,7 +312,7 @@ describe('ScenarioRunList 오른쪽 결과 칸 (실행 §8.7 「A안」)', () =>
     fireEvent.click(screen.getByRole('button', { name: '목록으로' }));
 
     expect(container.querySelector('.runs-split.picked')).toBeNull();
-    expect(window.location.hash).toBe('#/runs/e2e');
+    expect(window.location.hash).toBe('#/runs/e2e?service=ZSL');
   });
 });
 

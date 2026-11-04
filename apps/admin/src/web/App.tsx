@@ -11,7 +11,7 @@ import { CaseList } from './CaseList.js';
 import { Dashboard } from './Dashboard.js';
 import { 언어함, use말, type 언어 } from './i18n.js';
 import { ItemDetail } from './ItemDetail.js';
-import { use이동, 떠나기막기, 버리기전, 주소덮기 } from './leaveGuard.js';
+import { use이동, 떠나기막기, 버리기전, 주소고치기, 주소덮기 } from './leaveGuard.js';
 import {
   고른서비스,
   대시보드재료,
@@ -31,7 +31,7 @@ import { ProjectPick } from './ProjectPick.js';
 import { Guide } from './Guide.js';
 import { Prd } from './Prd.js';
 import { 기능보나, 판정을만든다 } from './role.js';
-import { route, 갈자리, 돌아갈자리, 주소의서비스, 집 } from './route.js';
+import { route, 갈자리, 돌아갈자리, 링크를못보나, 서비스바꾼주소, 주소의서비스, 집 } from './route.js';
 import { RunList } from './RunList.js';
 import { RunResult } from './RunResult.js';
 import { RunWindow } from './RunWindow.js';
@@ -212,6 +212,10 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
   // 스스로 바꾼 직후에만 돌아간 자리에서 확인 한 줄을 보인다. 강제로 바꾼 사람은 집으로 가며 그 줄이 없다
   const [비밀번호바꿈, set비밀번호바꿈] = useState(false);
   const 알림끄기 = useCallback(() => set비밀번호바꿈(false), []);
+  // 링크가 가리킨 애플리케이션을 못 봐서 지금 것 그대로 연 때 한 줄 알린다 (공통/5-화면공통 §8 「링크에 애플리케이션이 담긴다」)
+  const [링크못봄, set링크못봄] = useState(false);
+  const 링크알림끄기 = useCallback(() => set링크못봄(false), []);
+  const t = use말();
   const sso = useSSO();
   useEffect(() => {
     if (!['password', 'login', 'signup'].includes(route(hash).name)) 직전.current = hash;
@@ -228,7 +232,7 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
     const 돌아감 = 돌아갈자리를꺼낸다();
     const 목적지 = 돌아감 ?? window.location.hash;
     // 요구 번호 주소는 그 번호의 서비스로 연다(아래 띠 맞추기) — 권한도 그 서비스로 봐야 앞 띠의 칸으로 집에 돌려보내지 않는다
-    const 고른 = 주소의서비스(목적지, user.services) ?? 고른서비스(prefix, user.services)?.prefix ?? null;
+    const 고른 = 주소의서비스(목적지, user) ?? 고른서비스(prefix, user.services)?.prefix ?? null;
     set프로젝트묻기(프로젝트물을까(돌아감, user.services));
     // 로그인 화면(또는 링크 주소)을 기록에 남기지 않고 그 칸을 갈 곳으로 바꿔 끼운다 — 뒤로 가기가 로그인 화면으로 돌아오지 않게
     주소덮기(돌아갈자리(목적지, user, 고른));
@@ -271,13 +275,14 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
     });
   }, []);
 
-  // 요구 번호 주소(`#/prd/MKT-REQ-001`) · 결정 필요 주소(`#/authoring?todo=1&service=MKT`)로 오면 띠를 그 서비스로 맞춘다 — 그리기 전에 바꿔야 아래 집으로 보내기가 앞 띠 서비스의 칸으로 가르지 않는다.
+  // 요구 번호 주소(`#/prd/MKT-REQ-001`) · `service=` 칸이 든 주소(`#/cases/fn?case=MKT-FN-001&service=MKT`)로 오면 띠를 그 서비스로 맞춘다 — 그리기 전에 바꿔야 아래 집으로 보내기가 앞 띠 서비스의 칸으로 가르지 않는다.
   // 주소가 바뀔 때 한 번만 맞춘다. 그 주소에 머문 채 띠 고르개로 고른 서비스를 되돌리지 않는다
   const [맞춘주소, set맞춘주소] = useState<string | null>(null);
   if (상태.어디 === '안' && 맞춘주소 !== hash) {
     set맞춘주소(hash);
-    const 주소것 = 주소의서비스(hash, 상태.user.services);
+    const 주소것 = 주소의서비스(hash, 상태.user);
     if (주소것 !== null && 주소것 !== prefix) setPrefix(주소것);
+    if (링크를못보나(hash, 상태.user, 고른서비스(prefix, 상태.user.services)?.prefix ?? null)) set링크못봄(true);
   }
 
   // 저장된 서비스가 배정에서 빠졌거나 주소가 서비스를 골랐으면 실제로 연 것을 적어 둔다.
@@ -380,9 +385,12 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
         버리기전(() => {
           고른서비스를적는다(접두사);
           setPrefix(접두사);
-          // 다른 서비스의 요구 번호가 주소에 남으면 새로고침 · 뒤로 가기가 그 서비스로 띠를 되돌린다 — 번호를 떼고 목록 자리로 바꿔 둔다
-          const 주소것 = 주소의서비스(window.location.hash, 상태.user.services);
-          if (주소것 !== null && 주소것 !== 접두사) window.location.replace('#/prd');
+          // 다른 서비스의 요구 번호가 주소에 남으면 새로고침 · 뒤로 가기가 그 서비스로 띠를 되돌린다 — 번호를 떼고 목록 자리로 바꿔 둔다.
+          // `service=` 칸은 새 서비스로 고친다 — 목록은 다시 그리며 스스로 고치지만, 그 칸을 들고 온 다른 화면은 안 고친다
+          const 지금 = route(window.location.hash);
+          const 주소것 = 주소의서비스(window.location.hash, 상태.user);
+          if (지금.name === 'prd' && 지금.reqId !== undefined && 주소것 !== null && 주소것 !== 접두사) window.location.replace('#/prd');
+          else 주소고치기(서비스바꾼주소(window.location.hash, 접두사));
         });
       }}
       언어={언어}
@@ -394,6 +402,7 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
       })()}
     >
       {비밀번호바꿈 ? <PasswordNotice onGone={알림끄기} /> : null}
+      {링크못봄 ? <PasswordNotice 글={t('링크의 애플리케이션은 볼 권한이 없어 지금 고른 애플리케이션으로 엽니다')} onGone={링크알림끄기} /> : null}
       <Screen
         // 조건 붙은 주소로 오면 새로 그린다 — 목록은 조건을 그릴 때 한 번만 읽어 「RUN N에서 통과」 고리를 눌러도 앞 실행에 남았다
         key={조건번}

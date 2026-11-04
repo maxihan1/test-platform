@@ -592,7 +592,7 @@ describe('CaseList 여러 건 실행 걸기', () => {
     await waitFor(() =>
       expect(within(모달).getByRole('status').textContent).toContain('카탈로그에 없는 케이스다: ZPK-003'),
     );
-    expect(window.location.hash).toBe('#/cases');
+    expect(window.location.hash).toBe('#/cases/fn?service=ZPK');
   });
 
   it('한 번 거절당해도 실행을 다시 누를 수 있다', async () => {

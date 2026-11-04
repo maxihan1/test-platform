@@ -2,7 +2,7 @@
 // app.ts의 정적 서빙은 Phase 0가 고정한 공용 골격이라 history API용 되돌림 규칙을 넣을 수 없다
 
 import type { ServiceRow, User } from './api.js';
-import { 기능보나, type 기능 } from './role.js';
+import { 기능보나, 케이스서비스, type 기능 } from './role.js';
 
 // 사이드바 하위 메뉴(UI 테스트 · 기능 테스트). 종류 없는 옛 주소는 기능이다 — 지금 케이스가 전부 기능이라서 (화면공통 §8 · PR #132)
 export type 케이스종류 = 'UI' | 'FN';
@@ -62,34 +62,67 @@ export function 실행기록주소(tcId: string, runId: number, 카드열기 = f
 
 /**
  * 케이스 목록에서 그 케이스 상세를 편 주소 (CaseListFilter 의 `case` 조건).
- * 그 번호로 찾아(`q`) 연다 — 목록은 받은 쪽 안에서만 연 줄을 찾아 첫 쪽(50건) 밖 케이스는 칸이 안 열렸다
+ * 그 번호로 찾아(`q`) 연다 — 목록은 받은 쪽 안에서만 연 줄을 찾아 첫 쪽(50건) 밖 케이스는 칸이 안 열렸다.
+ * 번호의 접두사를 `service=` 로 단다 — 다른 애플리케이션을 고른 사람이 열어도 그 케이스의 애플리케이션으로 연다 (공통/5-화면공통 §8 「링크에 애플리케이션이 담긴다」)
  */
 export const 케이스주소 = (tcId: string) => {
   const 번호 = encodeURIComponent(tcId);
-  return `#/cases/${UI케이스인가(tcId) ? 'ui' : 'fn'}?q=${번호}&case=${번호}`;
+  const 접두사 = 케이스서비스(tcId);
+  const 앱 = 접두사 === null ? '' : '&service=' + encodeURIComponent(접두사);
+  return `#/cases/${UI케이스인가(tcId) ? 'ui' : 'fn'}?q=${번호}&case=${번호}${앱}`;
 };
 
 /** 「PRD 관리」의 그 항목 주소. 거기서 묶음을 펴고 그 줄로 간다 (도메인/카탈로그 §8.1 「맥락」) */
 export const PRD항목주소 = (reqId: string) => `#/prd/${encodeURIComponent(reqId)}`;
 
-/**
- * 요구 번호 주소(`#/prd/<접두사>-REQ-<3자리>`)가 가리키는 배정 서비스. 그 밖의 주소 · 배정에 없는 접두사는 null — 띠를 그대로 둔다.
- * 실패 카드는 다른 서비스 실행에서도 요구 고리를 건다. 띠로 열면 PRD 관리가 띠 서비스의 판에서 그 번호를 찾는다
- */
-export function 주소의서비스(주소: string, 배정: ServiceRow[]): string | null {
+// 주소가 가리키는 애플리케이션 글자 — 요구 번호의 접두사 · `service=` 칸. 대시보드의 「전체」(`all`)는 아무것도 가리키지 않는다
+function 가리킨글(주소: string): string | null {
   const 지금 = route(주소);
-  const 접두사 =
-    지금.name === 'prd' && 지금.reqId !== undefined
-      ? 지금.reqId.slice(0, 지금.reqId.indexOf('-REQ-'))
-      : 지금.name === 'authoring'
-        ? new URLSearchParams(주소.split('?')[1] ?? '').get('service')
-        : null;
-  return 접두사 !== null && 배정.some((service) => service.prefix === 접두사) ? 접두사 : null;
+  if (지금.name === 'prd' && 지금.reqId !== undefined) return 지금.reqId.slice(0, 지금.reqId.indexOf('-REQ-'));
+  const 칸 = new URLSearchParams(주소.split('?')[1] ?? '').get('service');
+  return 칸 === 'all' ? null : 칸;
+}
+
+// 가리킨 글자의 배정 애플리케이션. 대시보드가 써 온 번호 꼴(`service=12`)도 받는다 — 붙여 둔 고리가 썩으면 안 된다
+function 가리킨배정(주소: string, user: User): ServiceRow | null {
+  const 글 = 가리킨글(주소);
+  if (글 === null) return null;
+  const 번호 = /^[1-9]\d{0,9}$/.test(글) ? Number(글) : null;
+  return user.services.find((service) => service.prefix === 글 || service.id === 번호) ?? null;
+}
+
+/**
+ * 주소가 가리키는 애플리케이션(요구 번호 · `service=` 칸) 가운데 연 사람이 그 화면을 볼 수 있는 것. 못 보거나 안 가리키면 null — 띠를 그대로 둔다.
+ * 실패 카드는 다른 서비스 실행에서도 요구 · 결정 필요 고리를 걸고, 받은 링크는 받은 사람이 고른 것과 다를 수 있다 (공통/5-화면공통 §8 「링크에 애플리케이션이 담긴다」)
+ */
+export function 주소의서비스(주소: string, user: User): string | null {
+  const 배정 = 가리킨배정(주소, user);
+  if (배정 === null) return null;
+  const 어느 = 기능자리[route(주소).name];
+  return 어느 === undefined || 기능보나(user, 배정.prefix, 어느) ? 배정.prefix : null;
+}
+
+/** 주소가 지금 것과 다른 애플리케이션을 가리켰는데 연 사람이 거기서 그 화면을 못 보나. 띠를 그대로 두고 안내 한 줄을 띄운다 */
+export function 링크를못보나(주소: string, user: User, 지금: string | null): boolean {
+  return 가리킨글(주소) !== null && 가리킨배정(주소, user)?.prefix !== 지금 && 주소의서비스(주소, user) === null;
+}
+
+/**
+ * 애플리케이션을 바꿀 때 주소의 `service=` 칸을 새 것으로 고친 주소. 안 고치면 새로고침 · 뒤로 가기가 띠를 앞 애플리케이션으로 되돌린다.
+ * 대시보드는 자기 고르개가 그 칸을 번호로 고친다
+ */
+export function 서비스바꾼주소(주소: string, 접두사: string): string {
+  const 자리 = 주소.indexOf('?');
+  if (자리 === -1 || route(주소).name === 'dashboard') return 주소;
+  const 조건 = new URLSearchParams(주소.slice(자리 + 1));
+  if (!조건.has('service')) return 주소;
+  조건.set('service', 접두사);
+  return `${주소.slice(0, 자리)}?${조건.toString()}`;
 }
 
 /**
  * 그 애플리케이션의 「결정 필요」 주소. 실패 카드는 다른 애플리케이션 실행에서도 판정하러 보낸다 — 띠로 열면 띠 애플리케이션의 결정 목록이라 그 실패가 없다.
- * 띠는 위 주소의서비스 가 맞추고, 목록은 열자마자 주소 조건을 todo 만 남겨 다시 쓴다
+ * 띠는 위 주소의서비스 가 맞추고, 목록은 그 칸을 지금 애플리케이션으로 남긴다
  */
 export const 결정필요주소 = (접두사: string) => `#/authoring?todo=1&service=${encodeURIComponent(접두사)}`;
 

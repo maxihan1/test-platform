@@ -7,7 +7,7 @@ import { api, type SettingsProject, type SettingsServiceRow, type User, type Use
 import { BTS이름 } from './btsName.js';
 import { Head } from './Head.js';
 import { 고른서비스를읽는다 } from './layout.js';
-import { 떠나기로했다 } from './leaveGuard.js';
+import { 떠나기로했다, 주소고치기 } from './leaveGuard.js';
 import { use말 } from './i18n.js';
 import { 할수있나 } from './role.js';
 import { SettingsBts } from './SettingsBts.js';
@@ -50,6 +50,12 @@ export function Settings({ user, onMeChanged, 자리, on서비스번호 }: { use
   useEffect(() => {
     if (비었다) window.location.replace('#/settings/new');
   }, [비었다]);
+  // 주소에 자리가 없으면 연 애플리케이션(아래 헤더서비스 · 첫 서비스)을 적어 둔다 — 그 주소를 보내면 받은 사람도 같은 애플리케이션 설정을 연다 (공통/5-화면공통 §8 「링크에 애플리케이션이 담긴다」).
+  // 기록은 쌓지 않는다 — 메뉴로 들어온 칸이라 뒤로 가기 한 번에 떠나야 한다
+  const 연자리 = 자리 === undefined ? (services.data?.items.find((it) => it.prefix === 고른서비스를읽는다()) ?? services.data?.items[0])?.prefix : undefined;
+  useEffect(() => {
+    if (연자리 !== undefined) 주소고치기(`#/settings/${encodeURIComponent(연자리)}`);
+  }, [연자리]);
 
   // 서버 gate.ts 가 이미 막지만, 주소를 직접 친 사람에게 403 대신 이유를 보여준다
   if (!할수있나(user, null, '설정')) {

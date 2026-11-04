@@ -172,7 +172,7 @@ describe('작성 목록 쪽은 주소에 남는다 (점검 11.4)', () => {
     render(<Authoring service="PAY" 할수={() => true} />);
     await screen.findByText('아직 작성을 요청한 기록이 없습니다');
     expect(부른쪽[0]).toBe(3);
-    expect(window.location.hash).toBe('#/authoring?page=3');
+    expect(window.location.hash).toBe('#/authoring?page=3&service=PAY');
   });
 
   it('건수가 50의 배수라 「다음」으로 간 빈 쪽에서도 쪽 넘기기가 남고 「기록이 없다」고 하지 않는다 (리뷰 L18)', async () => {
@@ -259,7 +259,7 @@ describe('작성 목록 줄 할 일 (⑫ 점검 11.2 · N2) — 줄 내용은 Au
     expect(await screen.findByText('결정이 필요한 일 1건')).toBeTruthy();
     expect(screen.getByText('테스트를 승인할까요?')).toBeTruthy();
     expect(screen.queryByRole('button', { name: '다음' })).toBeNull();
-    expect(window.location.hash).toBe('#/authoring?todo=1');
+    expect(window.location.hash).toBe('#/authoring?todo=1&service=PAY');
   });
 
   it('결정 필요 탭을 옮기면 decide= 가 붙고 기록이 쌓인다 — 뒤로 가기를 하면 앞 탭이다 (WEB-F8-01)', async () => {
@@ -280,13 +280,13 @@ describe('작성 목록 줄 할 일 (⑫ 점검 11.2 · N2) — 줄 내용은 Au
     const 길이 = window.history.length;
 
     fireEvent.click(screen.getByRole('tab', { name: /^요구사항 확인/ }));
-    expect(window.location.hash).toBe('#/authoring?todo=1&decide=check');
+    expect(window.location.hash).toBe('#/authoring?todo=1&decide=check&service=PAY');
     expect(window.history.length).toBe(길이 + 1);
     expect(screen.getByRole('tab', { name: /^요구사항 확인/ }).getAttribute('aria-selected')).toBe('true');
 
     window.history.back();
     await waitFor(() => expect(screen.getByRole('tab', { name: /^승인 대기/ }).getAttribute('aria-selected')).toBe('true'));
-    expect(window.location.hash).toBe('#/authoring?todo=1');
+    expect(window.location.hash).toBe('#/authoring?todo=1&service=PAY');
   });
 
   it('결정 탭을 고른 뒤 「전체」 칩을 눌러도 기록을 쌓지 않고 주소만 고친다 (WEB-F8-01 검토 11)', async () => {
@@ -302,7 +302,7 @@ describe('작성 목록 줄 할 일 (⑫ 점검 11.2 · N2) — 줄 내용은 Au
     await screen.findByRole('tab', { name: /^요구사항 확인/ });
     const 길이 = window.history.length;
     fireEvent.click(screen.getByRole('button', { name: '전체' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/authoring'));
+    await waitFor(() => expect(window.location.hash).toBe('#/authoring?service=PAY'));
     expect(window.history.length).toBe(길이);
   });
 

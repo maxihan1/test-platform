@@ -227,6 +227,17 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     expect(screen.getByRole('link', { name: /ZST 애플리케이션/ }).getAttribute('aria-current')).toBeNull();
   });
 
+  it('주소에 자리가 없으면 연 애플리케이션을 기록을 쌓지 않고 주소에 단다 — 그 주소를 보내면 받은 사람도 같은 설정을 연다 (WEB-F8-02)', async () => {
+    window.history.replaceState(null, '', '#/settings');
+    const 길이 = window.history.length;
+    고른서비스를적는다('ZSU');
+    펼친다();
+
+    await screen.findByRole('heading', { name: /ZSU 애플리케이션/ });
+    expect(window.location.hash).toBe('#/settings/ZSU');
+    expect(window.history.length).toBe(길이);
+  });
+
   it('맨 위에서 고른 애플리케이션이 설정 목록에 없으면 첫 애플리케이션으로 연다', async () => {
     고른서비스를적는다('GONE');
     펼친다();

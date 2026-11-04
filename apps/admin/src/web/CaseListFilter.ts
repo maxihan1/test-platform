@@ -81,6 +81,8 @@ export function use검색조건(service: string, kind: 'UI' | 'FN', 처음요구
     ...(서버 === null ? {} : { api: 서버 }),
     ...(묶음 === null ? {} : { g: 묶음.feature, gn: 묶음.이름, ...(묶음.screen === undefined ? {} : { gs: 묶음.screen }), ...(묶음.part === undefined ? {} : { gp: 묶음.part }), ...(묶음.endpoint === undefined ? {} : { ge: 묶음.endpoint }) }),
     ...(열린 === null ? {} : { case: 열린 }),
+    // 링크를 받은 사람도 이 애플리케이션으로 연다 (공통/5-화면공통 §8 「링크에 애플리케이션이 담긴다」)
+    ...(service === '' ? {} : { service }),
   }, { 쌓는칸: ['case'], 듣기: (조건) => set열린(조건.get('case')) });
 
   const 조건: CaseQuery = {
