@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect } from 'react';
 
-import { api, type AuthoringRow } from './api.js';
+import { api, type AuthoringRow, type 앱종류 } from './api.js';
 import { 산출물설명, 자료고리 } from './AuthoringAssetParts.js';
 import { 고칠내용 } from './AuthoringEditParts.js';
 import { AuthoringCases } from './AuthoringCases.js';
@@ -16,6 +16,7 @@ import { 무슨테스트 } from './authoringSummary.js';
 import { 고칠것목록, 끝났나, 반영번호, 종류라벨, 차이목록 } from './authoringView.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
+import { 종류 } from './kind.js';
 import type { 판정 } from './role.js';
 import { Failed, Loading, useAsync, when } from './ui.js';
 
@@ -26,10 +27,13 @@ export function AuthoringDetail({
   서비스번호,
   배정번호들 = [],
   on서비스번호,
+  앱종류,
 }: {
   service: string;
   id: number;
   할수: 판정;
+  /** 띠에서 고른 애플리케이션 종류 — Android 앱 대조는 시작 주소 없이 앱 첫 화면에서 시작한다 (§3.6 「앱 · 게임 역방향」 1) */
+  앱종류?: 앱종류;
   /** 띠에서 고른 서비스의 번호 — 요청의 서비스와 다르면 띠를 그 서비스로 옮긴다 (점검 12.14) */
   서비스번호?: number;
   /** 띠를 옮길 수 있는(배정된) 서비스 번호들. 배정 밖 서비스의 요청은 옮기지 못해 그대로 그린다 */
@@ -222,7 +226,7 @@ export function AuthoringDetail({
               <>
                 <dt>{t('대조할 화면')}</dt>
                 <dd>
-                  {data.env ?? t('기록 없음')} · {data.startUrl ?? t('대상 서버 주소에서 시작')}
+                  {data.env ?? t('기록 없음')} · {data.startUrl ?? t(종류(앱종류).대조 === 'app' ? '앱 첫 화면에서 시작' : '대상 서버 주소에서 시작')}
                   {/* 재실행은 입력이 원본 요청에 있다 — 자기 입력이 비어도 화면만이 아니다 */}
                   {data.kind === 'RERUN' ? (
                     <small>{t('원본 요청 #{번호}의 입력을 그대로 씁니다', { 번호: data.sourceId ?? '—' })}</small>
