@@ -105,6 +105,17 @@ describe('결과 화면 #/runs/번호', () => {
   });
 });
 
+describe('풀 길이 없는 거르개', () => {
+  it('직전 실행이 없는 실행에 주소로 「회귀 실패」가 걸려 와도 카드를 거르지 않는다', async () => {
+    window.location.hash = `#/runs/${String(RUN_ID)}?change=new`;
+    쪽마다한장();
+    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
+
+    await 카드가선다('ZRR-001');
+    expect(screen.queryByRole('button', { name: /^회귀 실패/ })).toBeNull();
+  });
+});
+
 describe('실행 기록의 결과 칸', () => {
   const 빈집계: RunTally = { runs: 0, allPass: 0, hasFail: 0, durationOf: 0, avgDurationMs: 0, maxDurationMs: 0 };
   function 실행줄(runId: number): RunListRow {
@@ -181,6 +192,22 @@ describe('실행 기록의 결과 칸', () => {
 
     await waitFor(() => expect(api.failures).toHaveBeenCalledWith(2111, 1, undefined));
     expect(window.location.hash).toBe('#/runs/fn?state=failed');
+  });
+
+  it('애플리케이션을 바꿔 고른 실행을 버리면 기록을 쌓지 않고 지금 칸을 고친다', async () => {
+    window.location.hash = '#/runs/fn?run=2112&device=desktop';
+    vi.spyOn(api, 'runs').mockImplementation((서비스) =>
+      Promise.resolve({ items: [실행줄(서비스 === 'ZRR' ? 2112 : 3001)], total: 1, page: 1, pageSize: 20, summary: 빈집계 }),
+    );
+    쪽마다한장();
+    const { rerender } = render(<RunList kind="FN" service="ZRR" envs={[]} 판정하기={() => 실행까지} />);
+    await waitFor(() => expect(api.failures).toHaveBeenCalledWith(2112, 1, 'desktop'));
+    const 칸수 = window.history.length;
+
+    rerender(<RunList kind="FN" service="ZRX" envs={[]} 판정하기={() => 실행까지} />);
+
+    await waitFor(() => expect(window.location.hash).toBe('#/runs/fn'));
+    expect(window.history.length).toBe(칸수);
   });
 
   it('보이는 맨 위 줄을 눌러 고르면 걸어 둔 거르개가 그대로다', async () => {

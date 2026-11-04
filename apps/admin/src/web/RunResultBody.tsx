@@ -10,7 +10,7 @@ import { 실패케이스들 } from './RerunFailed.js';
 import { 실행판정, type 판정하기 } from './runJudge.js';
 import { 결과줄 } from './RunResultRow.js';
 import { type 결과보기, type 보기바꿈, 디바이스고른보기, 판정고른보기 } from './runResultView.js';
-import { RunSummary } from './RunSummary.js';
+import { RunSummary, 칸수 } from './RunSummary.js';
 import { PLATFORM_LABEL, 돈디바이스들, 실행디바이스들 } from './ui.js';
 import { use다시돌린결과 } from './useRerunResults.js';
 import { 케이스서비스 } from './role.js';
@@ -90,7 +90,9 @@ interface Props {
 
 export function 끝난결과(props: Props) {
   const { data, insights, 판정하기, 견줌오류, 칸안, 보기, 바꾸기, 열카드 } = props;
-  const { 판정, device, 쪽: page, 변화 } = 보기;
+  const { 판정, device, 쪽: page } = 보기;
+  // 주소로 온 직전 대비 거르개는 풀 단추가 있을 때만 건다 — 직전 실행이 없거나 그 건수가 0이면 단추가 없거나 꺼져 카드가 다 사라진 채 풀 길이 없다
+  const 변화 = 보기.변화 !== null && insights !== null && insights.previous !== null && 칸수(insights, 보기.변화) > 0 ? 보기.변화 : null;
   const on판정 = (값: ItemStatus | 'ALL') => 바꾸기(판정고른보기(값));
   const on디바이스 = (값: Platform | 'ALL') => 바꾸기(디바이스고른보기(값));
   const t = use말();

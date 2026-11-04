@@ -11,7 +11,7 @@ import { PLATFORM_LABEL } from './ui.js';
 import { 그중미확정글 } from './unconfirmed.js';
 
 // 큰 숫자는 케이스 수로 맞춘다 — 「실패 N건」 · 실패 카드 수 · 「실패 N건 다시 실행」과 같은 단위다. 디바이스로 갈라 세면 한 화면에 단위가 셋이 됐다 (점검 2.15)
-const 칸수 = (insights: RunInsights, 판정: '새로깨짐' | '계속깨짐' | '고쳐짐'): number =>
+export const 칸수 = (insights: RunInsights, 판정: '새로깨짐' | '계속깨짐' | '고쳐짐'): number =>
   new Set(insights.케이스들.filter((c) => c.판정 === 판정).map((c) => c.tcId)).size;
 
 /**

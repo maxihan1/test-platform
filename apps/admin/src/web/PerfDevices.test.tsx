@@ -243,9 +243,11 @@ describe('결과', () => {
     expect(만들기.mock.calls[0]![0].devices).toEqual([{ serial: 'S24', where: 'FARM' }]);
   });
 
-  it('기기 실행이 아닌 번호면 실행 한 건 화면으로 보낸다', async () => {
+  it('기기 실행이 아닌 번호면 실행 한 건 화면으로 보낸다 — 방문 기록 칸 번호는 지우지 않는다', async () => {
+    window.history.replaceState({ navIndex: 3 }, '');
     vi.spyOn(perfApi, 'runOf').mockResolvedValue(상세({ kind: 'LOAD' }));
     render(<PerfDevices service={앱} run={12} 쓰나 />);
     await waitFor(() => expect(window.location.hash).toBe('#/perf/runs/12'));
+    expect(window.history.state).toEqual({ navIndex: 3 });
   });
 });

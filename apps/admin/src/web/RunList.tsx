@@ -66,6 +66,8 @@ export function RunList({
   const [본서비스, set본서비스] = useState(service);
   // 주소의 실행을 따라 애플리케이션을 바꿨으면 그 실행은 버리지 않는다
   const 따라간실행 = useRef<number | null>(null);
+  // 애플리케이션을 바꿔 고른 실행을 버리는 것은 사람이 연 것이 아니다 — 기록을 쌓지 않는다 (공통/5-화면공통 §8)
+  const 스스로비움 = useRef(false);
   if (본서비스 !== service) {
     set본서비스(service);
     setPage(1);
@@ -78,6 +80,7 @@ export function RunList({
     // 한 번만 남긴다 — 그 뒤 사람이 애플리케이션을 바꾸면 고른 실행을 버린다
     const 남길것 = 따라간실행.current;
     따라간실행.current = null;
+    if (고른 !== null && 고른 !== 남길것) 스스로비움.current = true;
     set고른((앞) => (앞 !== null && 앞 === 남길것 ? 앞 : null));
   }
   useEffect(() => {
@@ -147,7 +150,7 @@ export function RunList({
     ...(days === undefined ? {} : { days: String(days) }),
     ...(page === 1 ? {} : { page: String(page) }),
     ...보기조건(보기),
-  }, { 쌓는칸: ['run'], 딸린칸: 결과칸들 });
+  }, { 쌓는칸: ['run'], 딸린칸: 결과칸들, 스스로: 스스로비움 });
 
   if (runs.error !== null) return <Failed error={runs.error} />;
   if (runs.data === null) return <Loading />;
