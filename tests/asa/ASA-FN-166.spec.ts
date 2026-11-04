@@ -6,7 +6,7 @@ import { 가방읽기, GM아이템, 값읽기, 상점목록, 아이템쓰기, �
 export const spec = defineCase({
   tcId: 'ASA-FN-166',
   name: '상점 목록의 빨간 물약 · 진한 빨간 물약 · 파란 물약 · 무기 강화 주문서 · 방어구 강화 주문서 값이 30 · 120 · 40 · 500 · 400 이다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['로그인한 캐릭터가 있다', '빨간 물약을 가진 캐릭터가 있다', '진한 빨간 물약을 가진 캐릭터가 있다', '파란 물약을 가진 캐릭터가 있다'],
   params: null,
   expected: null,

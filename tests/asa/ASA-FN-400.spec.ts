@@ -6,7 +6,7 @@ import { GM강화확률, GM설정, 값읽기, 플레이어만들기, type 플레
 export const spec = defineCase({
   tcId: 'ASA-FN-400',
   name: 'GM 으로 강화 확률표를 바꾸면 GM 설정에 바꾼 값이 보인다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['로그인한 캐릭터가 있다'],
   params: null,
   expected: null,

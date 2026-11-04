@@ -6,7 +6,7 @@ import { 가방읽기, GM골드, GM아이템, 강화, 값읽기, 템플릿찾기
 export const spec = defineCase({
   tcId: 'ASA-FN-247',
   name: '+0 장비를 +3 까지 강화하면 세 번 모두 「Success」다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['무기 강화 주문서 3장을 가진 캐릭터가 있다'],
   params: null,
   expected: null,

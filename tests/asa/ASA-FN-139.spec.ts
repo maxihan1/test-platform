@@ -6,7 +6,7 @@ import { 값읽기, 사냥터좌표, 위치옮기기, 캐릭터읽기, 플레이
 export const spec = defineCase({
   tcId: 'ASA-FN-139',
   name: '캐릭터가 죽으면 위치가 마을 부활 지점 (200, 30) 이다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['초록 들판에 선 캐릭터가 있다'],
   params: null,
   expected: null,

@@ -5,7 +5,7 @@ import { GM성향, 캐릭터읽기, 플레이어만들기, type 플레이어 } f
 export const spec = defineCase({
   tcId: 'ASA-FN-271',
   name: 'GM 으로 성향치를 −1000 으로 바꾸면 성향치가 −1000 이다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['캐릭터가 있다'],
   params: null,
   expected: null,

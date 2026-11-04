@@ -6,7 +6,7 @@ import { 계정만들기, 캐릭터만들기, 캐릭터번호읽기 } from './he
 export const spec = defineCase({
   tcId: 'ASA-FN-637',
   name: '새 이름으로 캐릭터를 만들면 응답 코드가 기대값과 같다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['로그인한 계정이 있다'],
   params: null,
   expected: z.object({

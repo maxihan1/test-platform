@@ -5,7 +5,7 @@ import { GM골드, 캐릭터읽기, 플레이어만들기, type 플레이어 } f
 export const spec = defineCase({
   tcId: 'ASA-FN-397',
   name: 'GM 골드로 500 보다 많이 빼려 하면 골드가 0 아래로 내려가지 않는다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['골드 500 인 캐릭터가 있다'],
   params: null,
   expected: null,

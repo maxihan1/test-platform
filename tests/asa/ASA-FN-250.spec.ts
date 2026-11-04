@@ -6,7 +6,7 @@ import { 플레이어만들기, type 플레이어 } from './helpers/game.helper.
 export const spec = defineCase({
   tcId: 'ASA-FN-250',
   name: 'GM 설정의 목표 +4 강화 확률이 성공 70% · 실패 20% · 파괴 10% 다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['로그인한 캐릭터가 있다'],
   params: null,
   expected: null,

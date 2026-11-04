@@ -7,7 +7,7 @@ import { 가방읽기, 플레이어만들기, type 플레이어 } from './helper
 export const spec = defineCase({
   tcId: 'ASA-FN-241',
   name: '강화가 파괴되면 그 아이템이 가방에서 사라진다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['+9 짧은 검과 무기 강화 주문서를 가진 캐릭터가 있다'],
   params: z.object({
     시도상한: z.number().int().describe('「Destroy」가 나올 때까지 강화를 시도하는 최대 횟수 — 10~30회').default(25),

@@ -6,7 +6,7 @@ import { 값읽기, 캐릭터읽기, 플레이어만들기, type 스폰, type �
 export const spec = defineCase({
   tcId: 'ASA-FN-295',
   name: '몬스터를 처치하면 성향치가 10 오른다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['성향치 0 인 캐릭터가 있다'],
   params: null,
   expected: null,

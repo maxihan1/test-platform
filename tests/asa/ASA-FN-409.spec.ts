@@ -5,7 +5,7 @@ import { 캐릭터읽기, 위치옮기기, 플레이어만들기, type 플레이
 export const spec = defineCase({
   tcId: 'ASA-FN-409',
   name: '위치를 저장하면 다시 불러온 캐릭터 위치가 저장한 좌표다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['로그인한 캐릭터가 있다'],
   params: null,
   expected: null,

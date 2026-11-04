@@ -6,7 +6,7 @@ import { 값읽기, 캐릭터읽기, 플레이어만들기, type 스폰, type �
 export const spec = defineCase({
   tcId: 'ASA-FN-373',
   name: '사망을 알리면 응답의 경험치와 위치가 다시 불러온 캐릭터와 같다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['경험치가 있는 캐릭터가 있다'],
   params: null,
   expected: null,

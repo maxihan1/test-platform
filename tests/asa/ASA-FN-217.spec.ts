@@ -5,7 +5,7 @@ import { 가방읽기, GM성향, 값읽기, 캐릭터읽기, 템플릿찾기, �
 export const spec = defineCase({
   tcId: 'ASA-FN-217',
   name: '악명 캐릭터가 빨간 물약 하나를 팔면 골드가 10 는다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['성향치가 0 보다 작은 캐릭터가 있다'],
   params: null,
   expected: null,

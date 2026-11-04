@@ -6,7 +6,7 @@ import { 값읽기, 사냥터좌표, 위치옮기기, 캐릭터읽기, 플레이
 export const spec = defineCase({
   tcId: 'ASA-FN-280',
   name: '성향치 0 인 캐릭터가 선량한 봇을 먼저 공격하면 상태가 「Purple」이다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['초록 들판에 선 성향치 0 캐릭터와 선량한 봇이 있다'],
   params: null,
   expected: null,

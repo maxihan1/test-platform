@@ -7,7 +7,7 @@ import { 막힐때까지캐릭터만들기 } from './helpers/character.helper.js
 export const spec = defineCase({
   tcId: 'ASA-FN-093',
   name: '캐릭터 수가 한도를 넘게 만들면 409 「CHARACTER_LIMIT」으로 막힌다',
-  apiDoc: 1,
+  apiDoc: 2,
   techniques: ['동등 분할'],
   precondition: ['로그인한 계정이 있다'],
   params: z.object({

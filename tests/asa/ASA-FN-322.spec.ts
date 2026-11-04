@@ -7,7 +7,7 @@ import { 가방읽기, 플레이어만들기, type 바닥아이템, type 플레�
 export const spec = defineCase({
   tcId: 'ASA-FN-322',
   name: '다른 캐릭터가 떨어뜨린 아이템을 주우면 내 가방에 들어온다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['다른 캐릭터가 죽어 떨어뜨린 바닥 아이템이 있다'],
   params: null,
   expected: null,

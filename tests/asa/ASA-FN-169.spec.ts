@@ -18,7 +18,7 @@ import {
 export const spec = defineCase({
   tcId: 'ASA-FN-169',
   name: '상점 목록의 짧은 검 · 롱 소드 · 숏 보우 · 롱 보우 · 참나무 지팡이 값이 300 · 1200 · 320 · 1300 · 320 이다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['로그인한 캐릭터가 있다', '무기를 해제한 1레벨 전사가 있다'],
   params: null,
   expected: null,

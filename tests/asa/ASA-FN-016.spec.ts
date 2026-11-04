@@ -6,7 +6,7 @@ import { 가입, 글칸, 로그인, 본문, 새비밀번호, 새아이디 } from
 export const spec = defineCase({
   tcId: 'ASA-FN-016',
   name: '맞는 아이디와 비밀번호로 로그인하면 200 과 「accessToken」이 돌아온다',
-  apiDoc: 1,
+  apiDoc: 2,
   smoke: true,
   precondition: ['가입한 아이디가 하나 있다'],
   params: null,

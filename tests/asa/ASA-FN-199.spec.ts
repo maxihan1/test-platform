@@ -5,7 +5,7 @@ import { 가방읽기, GM아이템, 값읽기, 플레이어만들기, type 가�
 export const spec = defineCase({
   tcId: 'ASA-FN-199',
   name: '빨간 물약 10개에 995개를 더 받으면 넘친 6개가 새 칸에 들어간다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['빨간 물약 10개를 가진 캐릭터가 있다'],
   params: null,
   expected: null,

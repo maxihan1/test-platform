@@ -7,7 +7,7 @@ import { 오류코드읽기, 플레이어만들기, type 스폰, type 플레이�
 export const spec = defineCase({
   tcId: 'ASA-FN-159',
   name: '스폰 표에 없는 스폰 번호로 처치를 알리면 「INVALID_SPAWN」으로 막힌다',
-  apiDoc: 1,
+  apiDoc: 2,
   techniques: ['동등 분할'],
   precondition: ['캐릭터가 있다'],
   params: null,

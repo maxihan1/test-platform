@@ -6,7 +6,7 @@ import { 값읽기, 가방읽기, 사기, 템플릿찾기, 팔기, 플레이어�
 export const spec = defineCase({
   tcId: 'ASA-FN-388',
   name: '재화 원장을 부르면 「createdAt」이 최신순이다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['상점에서 물약을 사고 판 캐릭터가 있다'],
   params: null,
   expected: null,

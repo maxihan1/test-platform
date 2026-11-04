@@ -8,7 +8,7 @@ import { GM성향, 캐릭터읽기, 플레이어만들기, type 플레이어 } f
 export const spec = defineCase({
   tcId: 'ASA-FN-319',
   name: '죽어 떨어뜨린 아이템의 「expiresAt」이 180초 뒤다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['성향치 −650 캐릭터가 있다'],
   params: z.object({
     오차초: z.number().min(2).max(30).describe('만료 시각이 180초에서 벌어져도 괜찮은 폭(초) — 2 이상 30 이하').default(5),

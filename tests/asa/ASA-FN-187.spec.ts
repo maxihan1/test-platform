@@ -5,7 +5,7 @@ import { 가방읽기, 플레이어만들기, type 플레이어 } from './helper
 export const spec = defineCase({
   tcId: 'ASA-FN-187',
   name: '새 캐릭터 가방의 「capacity」가 40 이다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['새 캐릭터가 있다'],
   params: null,
   expected: null,

@@ -7,7 +7,7 @@ import { 값읽기, 플레이어만들기, type 바닥아이템, type 봇, type 
 export const spec = defineCase({
   tcId: 'ASA-FN-382',
   name: '「botId」를 넣어 주우면 「pickedByKind」가 「Bot」이다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['바닥 아이템과 살아 있는 봇이 있다'],
   params: null,
   expected: null,

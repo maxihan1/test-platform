@@ -7,7 +7,7 @@ import { 가방읽기, 플레이어만들기, type 플레이어 } from './helper
 export const spec = defineCase({
   tcId: 'ASA-FN-240',
   name: '강화가 실패하면 강화 수치가 9 그대로다',
-  apiDoc: 1,
+  apiDoc: 2,
   techniques: ['동등 분할'],
   precondition: ['+9 짧은 검과 무기 강화 주문서를 가진 캐릭터가 있다'],
   params: z.object({

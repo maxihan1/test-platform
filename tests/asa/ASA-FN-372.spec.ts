@@ -6,7 +6,7 @@ import { 사냥터좌표, 위치옮기기, 캐릭터읽기, 플레이어만들�
 export const spec = defineCase({
   tcId: 'ASA-FN-372',
   name: '공격자도 대상도 내 캐릭터가 아닌 PK 공격을 알리면 받아들여지지 않는다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['초록 들판에 선 캐릭터와 봇이 있다'],
   params: null,
   expected: null,

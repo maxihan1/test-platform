@@ -5,7 +5,7 @@ import { 가방읽기, GM아이템, 값읽기, 플레이어만들기, type 가�
 export const spec = defineCase({
   tcId: 'ASA-FN-190',
   name: '짧은 검 둘을 받으면 가방의 「used」가 2 늘어난다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['새 캐릭터가 있다'],
   params: null,
   expected: null,

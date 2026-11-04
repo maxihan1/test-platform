@@ -5,7 +5,7 @@ import { 가방읽기, GM골드, 사기, 오류코드읽기, 플레이어만들�
 export const spec = defineCase({
   tcId: 'ASA-FN-222',
   name: '골드가 0 인 캐릭터가 빨간 물약을 사면 「INSUFFICIENT_GOLD」로 막힌다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['골드가 0 인 캐릭터가 있다'],
   params: null,
   expected: null,

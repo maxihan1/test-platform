@@ -7,7 +7,7 @@ import { 값읽기, 플레이어만들기, type 바닥아이템, type 플레이�
 export const spec = defineCase({
   tcId: 'ASA-FN-379',
   name: '바닥 아이템 목록의 「expiresAt」이 모두 지금보다 뒤다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['로그인한 캐릭터가 있다'],
   params: null,
   expected: null,

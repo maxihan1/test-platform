@@ -5,7 +5,7 @@ import { 값읽기, GM설정, 플레이어만들기, type 플레이어 } from '.
 export const spec = defineCase({
   tcId: 'ASA-FN-328',
   name: 'GM 설정의 악명 봇 전리품 확률이 80% 다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['로그인한 캐릭터가 있다'],
   params: null,
   expected: null,

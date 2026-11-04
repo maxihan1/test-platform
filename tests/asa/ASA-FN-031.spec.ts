@@ -6,7 +6,7 @@ import { 가입, 로그인, 본문, 새비밀번호, 새아이디 } from './help
 export const spec = defineCase({
   tcId: 'ASA-FN-031',
   name: '로그인하면 「expiresInSeconds」가 1800(30분)이다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['가입한 아이디가 하나 있다'],
   params: null,
   expected: null,

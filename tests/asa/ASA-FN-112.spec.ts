@@ -5,7 +5,7 @@ import { 캐릭터읽기, 위치옮기기, 플레이어만들기, type 플레이
 export const spec = defineCase({
   tcId: 'ASA-FN-112',
   name: '마을이면서 Z 가 200 보다 작은 (200, 50) 으로 옮기면 구역이 「Town」이다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['로그인한 캐릭터가 있다'],
   params: null,
   expected: null,
