@@ -11,6 +11,8 @@ export interface 고른값 {
   env?: string;
   /** PRD 초안 카드에서 체크한 줄의 차례 번호 */
   rows?: number[];
+  /** 테스트가 확인하지 않은 화면에서 체크한 틀 */
+  screens?: string[];
 }
 
 export type 고른표 = ReadonlyMap<string, 고른값>;
@@ -67,8 +69,11 @@ export function 보낼것(items: readonly 결정항목[], 고른: 고른표): �
       if (새문장 === null) return [];
       return [값.pick === 'PICK' ? { key: x.key, pick: 'PICK', option: 값.option! } : { key: x.key, pick: 값.pick, text: 새문장 }];
     }
-    if (x.kind === 'API_CHANGED' || (x.kind === 'SCREENS' && x.env === null)) {
-      return (값.env ?? '') === '' ? [] : [{ key: x.key, pick: 값.pick, env: 값.env! }];
+    if (x.kind === 'API_CHANGED') return (값.env ?? '') === '' ? [] : [{ key: x.key, pick: 값.pick, env: 값.env! }];
+    if (x.kind === 'SCREENS') {
+      // 체크한 화면이 없으면 안 보낸다. 물려받을 대조가 없으면 대상 서버도 골라야 한다
+      if ((값.screens ?? []).length === 0 || (x.env === null && (값.env ?? '') === '')) return [];
+      return [{ key: x.key, pick: 값.pick, screens: 값.screens!, ...(x.env === null ? { env: 값.env! } : {}) }];
     }
     return [{ key: x.key, pick: 값.pick }];
   });
@@ -163,7 +168,7 @@ export function 차례(items: readonly 결정항목[], 고른: 고른표, prdVer
   const API = 고른항목.find((x): x is 항목of<'API_CHANGED'> => x.kind === 'API_CHANGED');
   if (API !== undefined) 줄.push({ 곳: 'TEST', 종류: 'api', keys: [API.key], 수: 다시쓸API(API)?.length ?? null });
   const 화면 = 고른항목.find((x): x is 항목of<'SCREENS'> => x.kind === 'SCREENS');
-  if (화면 !== undefined) 줄.push({ 곳: 'TEST', 종류: 'screens', keys: [화면.key], 수: 화면.screens === null ? null : new Set(화면.screens.map((s) => s.url)).size });
+  if (화면 !== undefined) 줄.push({ 곳: 'TEST', 종류: 'screens', keys: [화면.key], 수: 보냄.get(화면.key)!.screens?.length ?? null });
   for (const 종류 of ['draftDrop', 'draftRetry'] as const) {
     const 대상 = 고른항목.filter((x): x is 초안항목 => x.kind === 'PRD_DRAFT' && 보냄.get(x.key)!.pick === (종류 === 'draftDrop' ? 'DROP' : 'RETRY'));
     if (대상.length > 0) 줄.push({ 곳: 'PRD', 종류, keys: 대상.map((x) => x.key), 이슈: 대상.flatMap((x) => x.issues.map((i) => i.key)) });

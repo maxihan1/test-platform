@@ -1,9 +1,8 @@
-// 결정 목록 「테스트 업데이트」 탭 항목 — 바뀐 요구 · 바뀐 API · 미검증 화면 · 미검증 API (도메인/작성 §3.6 「★ 결정 목록」 항목 표 · 「③ 은 열린 작성이 없을 때만」)
+// 결정 목록 「테스트 업데이트」 탭 항목 — 바뀐 요구 · 바뀐 API · 미검증 API(미검증 화면은 AuthoringDecideScreens.tsx) (도메인/작성 §3.6 「★ 결정 목록」 항목 표 · 「③ 은 열린 작성이 없을 때만」)
 // AuthoringDecideItems.tsx 가 300줄을 넘어 뗐다
 
 import { Fragment, type ReactNode } from 'react';
 
-import { 로그인역할 } from '../prd/rules.js';
 import type { EnvRow } from './api.js';
 import { 고르개, 막힘줄, type 고름하기 } from './AuthoringDecideItems.js';
 import type { 결정항목 } from './decideApi.js';
@@ -12,12 +11,6 @@ import { use말 } from './i18n.js';
 import { 고른서버를적는다, 마지막서버 } from './layout.js';
 
 type 항목of<K extends 결정항목['kind']> = Extract<결정항목, { kind: K }>;
-
-/** 크롤러가 적은 로그인 상태 「로그인:일반 회원」은 「일반 회원 로그인」으로 읽는다. 그 밖(「로그아웃」 등)은 그대로 */
-function 상태글(state: string, t: ReturnType<typeof use말>): string {
-  const 역할 = 로그인역할(state);
-  return 역할 === null ? state : t('{역할} 로그인', { 역할 });
-}
 
 /** ③ 묶음 한 항목의 머리 — 질문 · 볼 것 · 고르개 · 기다림 · 대상 서버 */
 export function 새로만들기({
@@ -29,7 +22,7 @@ export function 새로만들기({
   envs,
 }: {
   service: string;
-  x: 항목of<'PRD_CHANGED' | 'API_CHANGED' | 'SCREENS' | 'APIS'>;
+  x: 항목of<'PRD_CHANGED' | 'API_CHANGED' | 'APIS'>;
   고른: 고른값 | undefined;
   on고름: 고름하기;
   open: readonly number[];
@@ -59,25 +52,6 @@ export function 새로만들기({
           ))}
         </ul>
       );
-  } else if (x.kind === 'SCREENS') {
-    질문 = x.screens === null ? t('테스트가 확인하지 않은 화면의 테스트를 만들까요?') : t('테스트가 확인하지 않은 화면 {수}개의 테스트를 만들까요?', { 수: new Set(x.screens.map((s) => s.url)).size });
-    // 같은 화면은 한 줄, 로그인 상태는 그 아래 (2026-10-26 시작 질문)
-    const 화면별 = new Map<string, { name: string; states: string[] }>();
-    for (const s of x.screens ?? []) {
-      const 줄 = 화면별.get(s.url) ?? { name: '', states: [] };
-      화면별.set(s.url, { name: 줄.name === '' ? s.name : 줄.name, states: [...줄.states, s.state] });
-    }
-    볼것 = (
-      <ul className="decide-list">
-        {[...화면별].map(([url, 줄]) => (
-          <li key={url}>
-            {줄.name === '' ? null : <>{줄.name} · </>}
-            <span className="prd-id">{url}</span>
-            <small className="hint decide-states">{줄.states.map((s) => 상태글(s, t)).join(' · ')}</small>
-          </li>
-        ))}
-      </ul>
-    );
   } else {
     질문 = x.apis === null ? t('테스트가 호출하지 않은 API') : t('테스트가 호출하지 않은 API {수}개', { 수: x.apis.length });
     볼것 = (
@@ -88,10 +62,10 @@ export function 새로만들기({
       </ul>
     );
   }
-  // 대상 서버는 API 다시 작성 · 물려받을 대조가 없는 보완만 고른다. 실서비스 서버는 서버가 BAD_PICK 으로 막는다
+  // 대상 서버는 API 다시 작성만 고른다(미검증 화면은 AuthoringDecideScreens.tsx). 실서비스 서버는 서버가 BAD_PICK 으로 막는다
   // 열린 작성이 있으면 서버가 셈을 null 로 준다 — 반영 대기만 남았으면 고를 수 있지만 숫자는 반영 뒤에 센다
-  const 셈모름 = x.kind === 'PRD_CHANGED' ? 바뀐요구수(x) === null : x.kind === 'API_CHANGED' ? x.operations === null : x.kind === 'SCREENS' ? x.screens === null : x.apis === null;
-  const 서버필요 = x.kind === 'API_CHANGED' || (x.kind === 'SCREENS' && x.env === null);
+  const 셈모름 = x.kind === 'PRD_CHANGED' ? 바뀐요구수(x) === null : x.kind === 'API_CHANGED' ? x.operations === null : x.apis === null;
+  const 서버필요 = x.kind === 'API_CHANGED';
   const 서버고름 = 서버필요 && 고른 !== undefined;
   const 켜짐 = 켜졌나(x);
   return (
@@ -105,7 +79,6 @@ export function 새로만들기({
         on고름={on고름}
         글들={[
           ['REDO', t('재작성')],
-          ['FIX', t('테스트 추가')],
         ]}
         꺼짐={!켜짐}
         // 대상 서버는 마지막에 고른 것을 미리 고른다 — 다른 실행 창과 같다(⑫-2). 안 고른 채면 진행에 안 들어간다

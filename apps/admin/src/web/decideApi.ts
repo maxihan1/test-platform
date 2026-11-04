@@ -15,6 +15,8 @@ export interface 보낼고름 {
   option?: number;
   env?: string;
   rows?: number[];
+  /** SCREENS 에서 체크한 화면 주소(틀) */
+  screens?: string[];
 }
 
 const 꼬리 = (service: string) => `?service=${encodeURIComponent(service)}`;
@@ -23,4 +25,6 @@ export const decideApi = {
   list: (service: string) => call<결정목록>(`/authoring/decisions${꼬리(service)}`),
   run: (service: string, prdVersion: number, picks: 보낼고름[]) =>
     call<{ steps: 진행단계[] }>(`/authoring/decisions/run${꼬리(service)}`, json({ prdVersion, picks })),
+  /** [제외](skip true) · [되돌리기](false) — 적용 버튼을 안 기다린다 */
+  skipScreen: (service: string, url: string, skip: boolean) => call<{ ok: true }>(`/authoring/decisions/skip-screen${꼬리(service)}`, json({ url, skip })),
 };

@@ -33,8 +33,6 @@ export const 결정말: Record<string, string> = {
     'The API document changed from version {앞} to {뒤}. Rewrite the tests for the changed APIs?',
   'API 문서가 버전 {앞} 에서 {뒤} 로 바뀌었습니다. 바뀐 API {수}건의 테스트를 다시 만들까요?':
     'The API document changed from version {앞} to {뒤}. Rewrite the tests for {수} changed APIs?',
-  '테스트가 확인하지 않은 화면의 테스트를 만들까요?': 'Write tests for the screens no test checks?',
-  '테스트가 확인하지 않은 화면 {수}개의 테스트를 만들까요?': 'Write tests for {수} screens no test checks?',
   '{역할} 로그인': 'Signed in as {역할}',
   '테스트가 호출하지 않은 API': 'APIs no test calls',
   '테스트가 호출하지 않은 API {수}개': '{수} APIs no test calls',
@@ -132,4 +130,16 @@ export const 결정말: Record<string, string> = {
   'PRD 초안 {수}줄': '{수} PRD draft rows',
   '적용을 시작했습니다': 'Started',
   '위에서부터 차례로 적용합니다. 바뀐 내용은 PRD 관리 › 버전 기록에서 볼 수 있습니다': 'Applies top to bottom. See what changed in PRD › Version history',
+
+  // 테스트가 확인하지 않은 화면 — 골라서 추가 · 제외 (2026-11-04)
+  '테스트가 확인하지 않은 화면이 있습니다': 'There are screens no test checks',
+  '테스트가 확인하지 않은 화면이 없습니다': 'Every screen is checked by a test',
+  '테스트가 확인하지 않은 화면 {수}개입니다. 테스트를 만들 화면을 체크해 주세요': '{수} screens have no test. Check the screens to write tests for',
+  제외: 'Exclude',
+  '제외한 화면 {수}개': '{수} excluded screens',
+  '화면 제외': 'Exclude screen',
+  '{화면} 화면을 제외합니다': 'Exclude the {화면} screen',
+  '앞으로 테스트 업데이트에 나오지 않습니다': 'It will no longer appear in Test update',
+  'AI 가 이 화면 테스트를 만들지 않습니다': 'The AI will not write tests for this screen',
+  '아래 「제외한 화면」에서 되돌릴 수 있습니다': 'You can restore it under "Excluded screens" below',
 };
