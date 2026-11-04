@@ -1,5 +1,6 @@
 // 러너가 받아 둔 팜 증적(화면 영상 · logcat)을 찾아 목록과 파일로 내준다 (SPEC 도메인/러너 §5.2 「디바이스 팜 접속 방식」)
 
+import { access } from 'node:fs/promises';
 import { Readable } from 'node:stream';
 import type { ReadableStream as 웹스트림 } from 'node:stream/web';
 import { basename, dirname, join, resolve } from 'node:path';
@@ -43,6 +44,31 @@ export async function 팜기록글(runId: number, historyId: number): Promise<st
   const 그밖 = 파일들.filter((f) => !영상인가(f)).map((f) => f.name);
   const 조각 = [...(영상 === 0 ? [] : [`화면 영상 ${String(영상)}개`]), ...그밖];
   return `${조각.join(' · ')} — 실행 화면의 이 항목에서 받는다`;
+}
+
+// ponytail: 통째로 읽는다 — 1분 연결이 2MB 안팎이다. 수백 MB 가 되면 줄 단위로 흘려 읽는다
+/** 러너가 받아 둔 폰 logcat. 없으면 null — 통과 항목 · 팜이 아닌 Appium · 받기 실패 · 아직 받는 중 */
+export async function 팜logcat읽기(runId: number, historyId: number): Promise<string | null> {
+  try {
+    return (await 볼륨파일읽기(join(폴더(runId, historyId), 'logcat.txt'))).toString('utf8');
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return null;
+    throw new Error(`폰 logcat 을 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+/**
+ * 러너가 이 항목의 팜 증적을 아직 받는 중인가. 통과 못 한 항목은 받기를 끝내면(못 받았어도) 연결 번호 파일을 지운다(러너 farmEvidence.ts).
+ * 이 볼륨만 본다 — 볼륨파일로 물으면 맥 러너의 번호 파일을 받아 와 이 볼륨에 남아 늘 받는 중이 된다
+ */
+export async function 팜증적받는중(runId: number, historyId: number): Promise<boolean> {
+  try {
+    await access(join(runDir(String(runId), String(historyId)), APPIUM_SESSION_ID_FILE));
+    return true;
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return false;
+    throw new Error(`팜 연결 번호 파일을 보지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+  }
 }
 
 const 팜_제한_ms = 10_000;
