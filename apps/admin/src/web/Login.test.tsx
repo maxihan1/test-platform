@@ -50,6 +50,29 @@ describe('로그인 화면 — 링크로 열렸을 때 (WEB-F8-01)', () => {
   });
 });
 
+describe('로그인 화면 — 떠 있는 동안 주소가 바뀌면 (WEB-F8-01 검토 8)', () => {
+  afterEach(() => {
+    sessionStorage.clear();
+    window.history.replaceState(null, '', '/');
+  });
+
+  it('새 링크를 열면 그 주소로 고쳐 적고, 로그인 · 가입 · 비밀번호 주소로 가면 앞에 적은 것을 둔다', async () => {
+    window.history.replaceState(null, '', '/#/runs/1');
+    그리기();
+    expect(sessionStorage.getItem('돌아갈자리')).toBe('#/runs/1');
+
+    const 바꾼다 = async (해시: string) => {
+      const 도착 = new Promise<void>((끝) => window.addEventListener('hashchange', () => 끝(), { once: true }));
+      window.location.hash = 해시;
+      await 도착;
+    };
+    await 바꾼다('#/cases/ui');
+    expect(sessionStorage.getItem('돌아갈자리')).toBe('#/cases/ui');
+    await 바꾼다('#/signup');
+    expect(sessionStorage.getItem('돌아갈자리')).toBe('#/cases/ui');
+  });
+});
+
 describe('로그인 화면', () => {
   it('제품 이름과 맞이 문장이 있다', () => {
     그리기();

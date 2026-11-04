@@ -6,7 +6,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { api, ApiError, 나가는중이다, 돌아갈자리를꺼낸다, 돌아갈자리를적는다, 돌아갈자리를지운다, 세션끊김을받는다 } from './api.js';
+import { api, ApiError, 나가는중이다, 돌아갈자리를꺼낸다, 돌아갈자리를적는다, 돌아갈자리를지운다, 로그인으로가는길을정한다, 세션끊김을받는다 } from './api.js';
 
 interface 부른것 {
   url: string;
@@ -108,6 +108,31 @@ describe('돌아갈 자리 (WEB-F8-01)', () => {
     돌아갈자리를적는다('#/runs/9');
     돌아갈자리를지운다();
     expect(돌아갈자리를꺼낸다()).toBeNull();
+  });
+
+  it('세션이 끊길 때는 먼저 적힌 것이 이긴다 — 로그인 화면이 고쳐 적는 것은 덮는다 (WEB-F8-01 검토 9)', async () => {
+    보관['돌아갈자리'] = '#/prd/MKT-REQ-001';
+    답 = { status: 401, body: { error: 'UNAUTHENTICATED' } };
+    await expect(api.run(123)).rejects.toThrow(ApiError);
+    expect(보관['돌아갈자리']).toBe('#/prd/MKT-REQ-001');
+
+    돌아갈자리를적는다('#/runs/9');
+    expect(보관['돌아갈자리']).toBe('#/runs/9');
+  });
+
+  it('로그인 화면으로 가는 길을 갈아 끼울 수 있다 — 앱 뿌리가 칸을 바꿔 끼운다 (WEB-F8-01 검토 12)', async () => {
+    const 이동 = vi.fn();
+    로그인으로가는길을정한다(이동);
+    try {
+      답 = { status: 401, body: { error: 'UNAUTHENTICATED' } };
+      await expect(api.run(123)).rejects.toThrow(ApiError);
+      expect(이동).toHaveBeenCalledExactlyOnceWith('#/login');
+      expect(해시).toBe('#/runs/123');
+    } finally {
+      로그인으로가는길을정한다((주소) => {
+        location.hash = 주소;
+      });
+    }
   });
 
   it('저장소가 막혀도 던지지 않는다', () => {
