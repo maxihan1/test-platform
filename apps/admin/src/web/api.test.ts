@@ -6,7 +6,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { api, ApiError, 나가는중이다, 세션끊김을받는다 } from './api.js';
+import { api, ApiError, 나가는중이다, 돌아갈자리를꺼낸다, 돌아갈자리를적는다, 돌아갈자리를지운다, 세션끊김을받는다 } from './api.js';
 
 interface 부른것 {
   url: string;
@@ -78,6 +78,53 @@ describe('로그인 세 함수', () => {
     await api.logout();
     expect(부름[0]?.url).toBe('/api/auth/logout');
     expect(부름[0]?.init?.method).toBe('POST');
+  });
+});
+
+describe('돌아갈 자리 (WEB-F8-01)', () => {
+  it('해시 주소만 적고, 로그인 · 가입 · 비밀번호 화면과 빈 주소는 적지 않는다', () => {
+    for (const 주소 of ['#/login', '#/signup', '#/password', '#/login?x=1', '', '#', 'https://evil.example', 'javascript:alert(1)']) {
+      돌아갈자리를적는다(주소);
+      expect(보관['돌아갈자리']).toBeUndefined();
+    }
+    돌아갈자리를적는다('#/runs/fn?run=7');
+    expect(보관['돌아갈자리']).toBe('#/runs/fn?run=7');
+    돌아갈자리를적는다('#/loginx');
+    expect(보관['돌아갈자리']).toBe('#/loginx');
+  });
+
+  it('꺼낼 때 해시 주소가 아닌 값은 받지 않고 지운다 — 저장소는 믿을 수 없다', () => {
+    보관['돌아갈자리'] = 'https://evil.example/#/runs/1';
+    expect(돌아갈자리를꺼낸다()).toBeNull();
+    expect(보관['돌아갈자리']).toBeUndefined();
+    보관['돌아갈자리'] = '#/login';
+    expect(돌아갈자리를꺼낸다()).toBeNull();
+    보관['돌아갈자리'] = '#/prd/MKT-REQ-001';
+    expect(돌아갈자리를꺼낸다()).toBe('#/prd/MKT-REQ-001');
+    expect(돌아갈자리를꺼낸다()).toBeNull();
+  });
+
+  it('지우면 다음 로그인이 이 자리를 쓰지 않는다 — 로그아웃이 부른다', () => {
+    돌아갈자리를적는다('#/runs/9');
+    돌아갈자리를지운다();
+    expect(돌아갈자리를꺼낸다()).toBeNull();
+  });
+
+  it('저장소가 막혀도 던지지 않는다', () => {
+    vi.stubGlobal('sessionStorage', {
+      getItem: () => {
+        throw new Error('막힘');
+      },
+      setItem: () => {
+        throw new Error('막힘');
+      },
+      removeItem: () => {
+        throw new Error('막힘');
+      },
+    });
+    expect(() => 돌아갈자리를적는다('#/runs/9')).not.toThrow();
+    expect(() => 돌아갈자리를지운다()).not.toThrow();
+    expect(돌아갈자리를꺼낸다()).toBeNull();
   });
 });
 

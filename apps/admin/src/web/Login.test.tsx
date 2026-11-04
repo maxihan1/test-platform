@@ -31,6 +31,25 @@ async function 틀리게친다(status: number, code = 'UNAUTHORIZED') {
   return 것;
 }
 
+describe('로그인 화면 — 링크로 열렸을 때 (WEB-F8-01)', () => {
+  afterEach(() => {
+    sessionStorage.clear();
+    window.history.replaceState(null, '', '/');
+  });
+
+  it('링크로 연 주소를 이 탭에 적어 둔다 — 로그인 화면 주소는 적지 않는다', () => {
+    window.history.replaceState(null, '', '/#/prd/MKT-REQ-001');
+    그리기();
+    expect(sessionStorage.getItem('돌아갈자리')).toBe('#/prd/MKT-REQ-001');
+    cleanup();
+
+    sessionStorage.clear();
+    window.history.replaceState(null, '', '/#/login');
+    그리기();
+    expect(sessionStorage.getItem('돌아갈자리')).toBeNull();
+  });
+});
+
 describe('로그인 화면', () => {
   it('제품 이름과 맞이 문장이 있다', () => {
     그리기();

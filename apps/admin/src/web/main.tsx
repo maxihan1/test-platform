@@ -4,7 +4,7 @@
 import { StrictMode, useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
-import { api, type ServiceRow, type User, 나가는중이다, 돌아갈자리를꺼낸다, 세션끊김을받는다 } from './api.js';
+import { api, type ServiceRow, type User, 나가는중이다, 돌아갈자리를꺼낸다, 돌아갈자리를지운다, 세션끊김을받는다 } from './api.js';
 import { Authoring } from './Authoring.js';
 import { API안내, ApiDocs } from './ApiDocs.js';
 import { AuthoringDetail } from './AuthoringDetail.js';
@@ -258,7 +258,8 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
     // 요구 번호 주소는 그 번호의 서비스로 연다(아래 띠 맞추기) — 권한도 그 서비스로 봐야 앞 띠의 칸으로 집에 돌려보내지 않는다
     const 고른 = 주소의서비스(목적지, user.services) ?? 고른서비스(prefix, user.services)?.prefix ?? null;
     set프로젝트묻기(프로젝트물을까(돌아감, user.services));
-    window.location.hash = 돌아갈자리(목적지, user, 고른);
+    // 로그인 화면(또는 링크 주소)을 기록에 남기지 않고 그 칸을 갈 곳으로 바꿔 끼운다 — 뒤로 가기가 로그인 화면으로 돌아오지 않게
+    주소덮기(돌아갈자리(목적지, user, 고른));
   };
 
   useEffect(() => {
@@ -343,6 +344,8 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
 
   const 나간다 = () => {
     나가는중이다(true);
+    // 다른 사람이 이 탭에서 다음에 로그인하면 이 사람이 보던 화면으로 가면 안 된다
+    돌아갈자리를지운다();
     const 정리 = (답?: { redirect?: string }) => {
       // 로그인 화면 · Auth_platform 로그아웃으로 가는 길을 저장 안 한 조립이 막으면 안 된다
       떠나기막기(null);
