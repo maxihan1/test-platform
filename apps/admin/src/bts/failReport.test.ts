@@ -17,13 +17,18 @@ describe.skipIf(연결 === undefined)('실패 → Issue Bunker 등록', () => {
   let 프로젝트 = 0;
   let 서비스 = 0;
   let 남의서비스 = 0;
+  let API서비스 = 0;
   let 실행차례 = 0;
   const 앞공개주소 = process.env.PLATFORM_PUBLIC_URL;
 
   const 항목번호 = async (runId: number, tcId: string): Promise<number> =>
     Number((await pool.query<{ history_id: string }>('SELECT history_id FROM run_item WHERE run_id = $1 AND tc_id = $2', [runId, tcId])).rows[0]!.history_id);
 
-  async function 실행(service: number, 항목들: { tcId: string; status: 'PASS' | 'FAIL' }[], 붙는실행?: number): Promise<number> {
+  async function 실행(
+    service: number,
+    항목들: { tcId: string; status: 'PASS' | 'FAIL'; platform?: 'desktop' | 'mobile'; 확인?: string; 사진?: number }[],
+    붙는실행?: number,
+  ): Promise<number> {
     실행차례++;
     const r = await pool.query<{ run_id: string }>(
       `INSERT INTO test_run (title, triggered_by, env, status, service_id, service_name, tests_repo, base_url, kind, build_no, started_at, finished_at,
@@ -39,7 +44,7 @@ describe.skipIf(연결 === undefined)('실패 → Issue Bunker 등록', () => {
       const h = await pool.query<{ history_id: string }>(
         `INSERT INTO run_item (run_id, tc_id, platform, attempt, tc_name, file_path, timeout_ms, precondition, params, expected,
                                param_schema, expected_schema, status, duration_ms, finished_at)
-         VALUES ($1, $2, 'desktop', 1, $3, 'xbf/a.spec.ts', 300000, '[]', $4, '{}', $5, '{}', $6, 100, now()) RETURNING history_id`,
+         VALUES ($1, $2, $7, 1, $3, 'xbf/a.spec.ts', 300000, '[]', $4, '{}', $5, '{}', $6, 100, now()) RETURNING history_id`,
         [
           runId,
           항.tcId,
@@ -47,6 +52,7 @@ describe.skipIf(연결 === undefined)('실패 → Issue Bunker 등록', () => {
           JSON.stringify({ password: 'XBF-PW-77' }),
           JSON.stringify({ properties: { password: { type: 'string', secret: true } } }),
           항.status,
+          항.platform ?? 'desktop',
         ],
       );
       const historyId = Number(h.rows[0]!.history_id);
@@ -54,22 +60,27 @@ describe.skipIf(연결 === undefined)('실패 → Issue Bunker 등록', () => {
         `INSERT INTO run_item_step (history_id, seq, title, status, duration_ms, assertions) VALUES ($1, 1, '가입 화면을 연다', 'PASS', 10, '[]')`,
         [historyId],
       );
-      if (항.status === 'FAIL') {
+      for (let seq = 2; 항.status === 'FAIL' && seq < 2 + (항.사진 ?? 1); seq++) {
         await pool.query(
           `INSERT INTO run_item_step (history_id, seq, title, status, duration_ms, assertions, screenshot_path)
-           VALUES ($1, 2, '비밀번호를 넣는다', 'FAIL', 10, $3, $2)`,
-          [historyId, `artifacts/runs/${String(runId)}/${String(historyId)}/2.png`, JSON.stringify([{ statement: 'XBF-PW-77 로 들어가면 오류가 보인다', status: 'FAIL', actual: null, expected: '오류' }])],
+           VALUES ($1, $4, '비밀번호를 넣는다', 'FAIL', 10, $3, $2)`,
+          [
+            historyId,
+            `artifacts/runs/${String(runId)}/${String(historyId)}/${String(seq)}.png`,
+            JSON.stringify([{ statement: 항.확인 ?? 'XBF-PW-77 로 들어가면 오류가 보인다', status: 'FAIL', actual: null, expected: '오류' }]),
+            seq,
+          ],
         );
       }
     }
     return runId;
   }
 
-  const 줄들 = async () =>
+  const 줄들 = async (service = 서비스) =>
     (
       await pool.query<{ kind: string; tc_id: string; issue_key: string | null; state: string; tries: number; run_id: string; payload: Record<string, unknown> }>(
         'SELECT kind, tc_id, issue_key, state, tries, run_id, payload FROM bts_outbox WHERE service_id = $1 ORDER BY id',
-        [서비스],
+        [service],
       )
     ).rows;
 
@@ -90,6 +101,14 @@ describe.skipIf(연결 === undefined)('실패 → Issue Bunker 등록', () => {
     };
     [프로젝트, 서비스] = await 만들기('XBF 프로젝트', 'XBF');
     [, 남의서비스] = await 만들기('XBFN 프로젝트', 'XBFN');
+    API서비스 = Number(
+      (
+        await pool.query<{ id: string }>(
+          `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, project_id, kind) VALUES ('XBFA', 'XBF API', '#112233', '', 'xbfa', $1, 'API') RETURNING id`,
+          [프로젝트],
+        )
+      ).rows[0]!.id,
+    );
     await pool.query(
       `INSERT INTO bts_link (project_id, base_url, bts_project, bot_username, webhook_secret, status_map, resolution_map, updated_by)
        VALUES ($1, 'https://bts.example.com', 'DM', 'qahub-xbf', 's', '{}', '{}', 'xbf')`,
@@ -99,10 +118,10 @@ describe.skipIf(연결 === undefined)('실패 → Issue Bunker 등록', () => {
 
   afterAll(async () => {
     // bts_outbox · bts_issue_case 는 service 와, bts_link 는 project 와 같이 지워진다. 남은 애플리케이션이 없는 project 는 트리거가 지운다
-    await pool.query('DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = ANY($1))', [[서비스, 남의서비스]]);
-    await pool.query('DELETE FROM test_run WHERE service_id = ANY($1)', [[서비스, 남의서비스]]);
+    await pool.query('DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = ANY($1))', [[서비스, 남의서비스, API서비스]]);
+    await pool.query('DELETE FROM test_run WHERE service_id = ANY($1)', [[서비스, 남의서비스, API서비스]]);
     await pool.query('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
-    await pool.query('DELETE FROM service WHERE id = ANY($1)', [[서비스, 남의서비스]]);
+    await pool.query('DELETE FROM service WHERE id = ANY($1)', [[서비스, 남의서비스, API서비스]]);
     await pool.end();
     if (앞공개주소 === undefined) delete process.env.PLATFORM_PUBLIC_URL;
     else process.env.PLATFORM_PUBLIC_URL = 앞공개주소;
@@ -246,6 +265,54 @@ describe.skipIf(연결 === undefined)('실패 → Issue Bunker 등록', () => {
       );
       expect(await 실패등록(await 실행(서비스, [{ tcId, status: 'FAIL' }]))).toBe(넣음);
     }
+  });
+
+  it('웹은 깨진 화면 · 통과한 화면을 적고, 다른 확인에서 깨졌으면 두 화면 것을 다 싣고 사진도 화면마다 올린다', async () => {
+    const runId = await 실행(서비스, [
+      { tcId: 'XBF-011', status: 'FAIL', platform: 'desktop' },
+      { tcId: 'XBF-011', status: 'FAIL', platform: 'mobile', 확인: '모바일 메뉴가 열린다' },
+      { tcId: 'XBF-012', status: 'PASS', platform: 'desktop' },
+      { tcId: 'XBF-012', status: 'FAIL', platform: 'mobile' },
+    ]);
+    expect(await 실패등록(runId)).toBe(2);
+    const 줄 = async (tcId: string) => (await 줄들()).find((r) => r.run_id === String(runId) && r.tc_id === tcId)!;
+
+    const 둘다 = (await 줄('XBF-011')).payload;
+    expect(둘다.description as string).toContain('**화면** — PC · 모바일 둘 다');
+    expect(둘다.description as string).toContain('### 실제 — PC\n- 실패한 확인: ******** 로 들어가면 오류가 보인다');
+    expect(둘다.description as string).toContain('### 실제 — 모바일\n- 실패한 확인: 모바일 메뉴가 열린다');
+    expect((둘다.attachments as string[]).map((p) => p.split('/')[2])).toEqual(
+      (await pool.query<{ history_id: string }>('SELECT history_id FROM run_item WHERE run_id = $1 AND tc_id = $2 ORDER BY platform', [runId, 'XBF-011'])).rows.map(
+        (r) => r.history_id,
+      ),
+    );
+
+    const 모바일만 = (await 줄('XBF-012')).payload;
+    expect(모바일만.description as string).toContain('**화면** — 모바일만(PC 는 통과)');
+    expect(모바일만.description as string).not.toContain('### 실제 —');
+  });
+
+  it('사진은 화면마다 첫 장을 먼저 고르고 남는 자리를 차례로 채운다', async () => {
+    const runId = await 실행(서비스, [
+      { tcId: 'XBF-013', status: 'FAIL', platform: 'desktop', 사진: 3 },
+      { tcId: 'XBF-013', status: 'FAIL', platform: 'mobile', 사진: 3 },
+    ]);
+    expect(await 실패등록(runId)).toBe(1);
+    const [pc, 모바일] = (
+      await pool.query<{ history_id: string }>('SELECT history_id FROM run_item WHERE run_id = $1 ORDER BY platform', [runId])
+    ).rows.map((r) => `runs/${String(runId)}/${r.history_id}`);
+    expect((await 줄들()).find((r) => r.run_id === String(runId))!.payload.attachments).toEqual([
+      `${pc!}/2.png`,
+      `${모바일!}/2.png`,
+      `${pc!}/3.png`,
+      `${모바일!}/3.png`,
+      `${pc!}/4.png`,
+    ]);
+  });
+
+  it('API 애플리케이션은 디바이스가 desktop 이어도 화면 줄을 달지 않는다', async () => {
+    expect(await 실패등록(await 실행(API서비스, [{ tcId: 'XBFA-001', status: 'FAIL' }]))).toBe(1);
+    expect((await 줄들(API서비스))[0]!.payload.description as string).not.toContain('**화면**');
   });
 
   it('BTS 를 안 이은 프로젝트는 줄을 안 넣고 카드에 bts 칸이 없다', async () => {

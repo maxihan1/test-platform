@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { logcat오류줄, 꼬리표고르기, 또실패댓글, 본문상한, 이슈본문, 이슈제목, 제목상한, 폰로그상한, type 실패재료 } from './failBody.js';
+import { logcat오류줄, 같은곳에서깨짐, 꼬리표고르기, 또실패댓글, 본문상한, 이슈본문, 이슈제목, 제목상한, 폰로그상한, type 실패재료 } from './failBody.js';
 
 const 재료 = (덮어쓰기: Partial<실패재료> = {}): 실패재료 => ({
   애플리케이션: '데모마켓 웹',
@@ -23,8 +23,21 @@ const 재료 = (덮어쓰기: Partial<실패재료> = {}): 실패재료 => ({
   폰로그: null,
   결과주소: 'https://qahub.example.com/runs/812',
   꼬리표: '버그 가능성 높음',
+  화면: null,
+  둘째: null,
   ...덮어쓰기,
 });
+
+const 모바일재료 = {
+  steps: [
+    { title: '가입 화면을 연다', status: 'PASS' as const },
+    { title: '메뉴를 펼친다', status: 'FAIL' as const },
+  ],
+  확인: { statement: '메뉴가 열린다', expected: '열림', actual: '닫힘' },
+  원인: '기대 결과와 다릅니다',
+  네트워크: [],
+  콘솔: ['[error] menu is undefined'],
+};
 
 describe('꼬리표', () => {
   it('앞 실행들에서 통과와 실패가 섞였으면 실패 유형과 상관없이 흔들림 같음이다', () => {
@@ -69,9 +82,69 @@ describe('이슈 본문', () => {
     expect(글).toContain('https://qahub.example.com/runs/812');
   });
 
-  it('단계를 다 빼도 넘으면 끝을 잘라 상한 안에 든다', () => {
+  it('단계를 다 빼도 넘으면 끝을 잘라 상한 안에 들고 실행 결과 고리는 남긴다', () => {
     const reqs = Array.from({ length: 50 }, (_, i) => ({ reqId: `R-${String(i)}`, text: '나'.repeat(300) }));
-    expect(Buffer.byteLength(이슈본문(재료({ reqs })), 'utf8')).toBeLessThanOrEqual(본문상한);
+    const 글 = 이슈본문(재료({ reqs }));
+    expect(Buffer.byteLength(글, 'utf8')).toBeLessThanOrEqual(본문상한);
+    expect(글.endsWith('…\n\nTest Commander 실행 결과 — https://qahub.example.com/runs/812')).toBe(true);
+  });
+});
+
+describe('웹 화면', () => {
+  it('두 화면 다 깨졌으면 환경 아래에 둘 다라고 적는다', () => {
+    const 글 = 이슈본문(재료({ 화면: { 깨짐: ['desktop', 'mobile'], 통과: [] } }));
+    expect(글).toMatch(/\*\*환경\*\* — [^\n]+\n\*\*화면\*\* — PC · 모바일 둘 다\n/);
+  });
+
+  it('한 화면만 깨졌으면 통과한 화면도 적는다', () => {
+    expect(이슈본문(재료({ 화면: { 깨짐: ['mobile'], 통과: ['desktop'] } }))).toContain('**화면** — 모바일만(PC 는 통과)');
+    expect(이슈본문(재료({ 화면: { 깨짐: ['desktop'], 통과: ['mobile'] } }))).toContain('**화면** — PC 만(모바일은 통과)');
+  });
+
+  it('한 화면만 돌았으면 그 화면만 적는다', () => {
+    expect(이슈본문(재료({ 화면: { 깨짐: ['mobile'], 통과: [] } }))).toContain('**화면** — 모바일\n');
+  });
+
+  it('Android 앱 · 게임은 화면 줄이 없다', () => {
+    expect(이슈본문(재료())).not.toContain('**화면**');
+  });
+
+  it('두 화면이 다른 곳에서 깨졌으면 재현 단계 · 실제 · 네트워크 · 콘솔을 화면마다 싣는다', () => {
+    const 글 = 이슈본문(재료({ 화면: { 깨짐: ['desktop', 'mobile'], 통과: [] }, 둘째: 모바일재료 }));
+    expect(글).toContain('### 재현 단계 — PC\n1. 가입 화면을 연다\n2. 비밀번호에 9자를 넣는다 ← 여기서 실패');
+    expect(글).toContain('### 재현 단계 — 모바일\n1. 가입 화면을 연다\n2. 메뉴를 펼친다 ← 여기서 실패');
+    expect(글).toContain('### 실제 — PC\n- 실패한 확인: 오류 문구가 보인다');
+    expect(글).toContain('### 실제 — 모바일\n- 실패한 확인: 메뉴가 열린다');
+    expect(글).toContain('### 네트워크 · 콘솔 — PC\n- 요청: POST /api/signup → 500');
+    expect(글).toContain('### 네트워크 · 콘솔 — 모바일\n- 실패한 네트워크 요청 없음\n- 콘솔: [error] menu is undefined');
+  });
+
+  it('같은 곳에서 깨졌으면 한 번만 싣는다', () => {
+    const 글 = 이슈본문(재료({ 화면: { 깨짐: ['desktop', 'mobile'], 통과: [] } }));
+    expect(글).toContain('### 재현 단계\n');
+    expect(글).not.toContain('### 재현 단계 —');
+    expect(글).not.toContain('### 실제 —');
+  });
+
+  it('두 화면 단계가 길면 두 화면 다 뒤에서부터 덜어 상한 안에 든다', () => {
+    const steps = Array.from({ length: 300 }, (_, i) => ({ title: `${String(i)}번째 단계 ${'가'.repeat(30)}`, status: 'PASS' as const }));
+    const 글 = 이슈본문(재료({ steps, 화면: { 깨짐: ['desktop', 'mobile'], 통과: [] }, 둘째: { ...모바일재료, steps } }));
+    expect(Buffer.byteLength(글, 'utf8')).toBeLessThanOrEqual(본문상한);
+    expect(글.match(/이하 \d+단계는 Test Commander 실행 결과에서/g)).toHaveLength(2);
+    expect(글).toContain('### 실제 — 모바일');
+  });
+
+  it('실패한 단계와 확인 문장이 같으면 실제 값이 달라도 같은 곳에서 깨진 것이다', () => {
+    const 첫 = 재료();
+    expect(같은곳에서깨짐(첫, { ...첫, 확인: { ...첫.확인!, actual: '375px' }, 네트워크: [] })).toBe(true);
+    expect(같은곳에서깨짐(첫, { ...첫, 확인: { ...첫.확인!, statement: '다른 확인' } })).toBe(false);
+    expect(같은곳에서깨짐(첫, 모바일재료)).toBe(false);
+  });
+
+  it('또 실패 댓글도 깨진 화면을 적는다', () => {
+    expect(또실패댓글(재료({ 화면: { 깨짐: ['mobile'], 통과: ['desktop'] } }), 813).split('\n')[0]).toBe(
+      'Test Commander 실행 #813 에서 또 실패했습니다 — 대상 서버 qa · 빌드 a1b2c3d-202610311530 · 화면 모바일만(PC 는 통과)',
+    );
   });
 });
 

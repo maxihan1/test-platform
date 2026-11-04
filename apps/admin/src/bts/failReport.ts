@@ -3,13 +3,16 @@
 
 import { setTimeout as 잠깐 } from 'node:timers/promises';
 
+import type { BrowserPlatform } from '@platform/kit';
 import type { Pool } from 'pg';
 
 import { 팜logcat읽기, 팜증적받는중 } from '../execution/farmEvidence.js';
 import { trace줄끝 } from '../execution/traceIngest.js';
-import { 가린다, 항목비밀 } from '../execution/trial.js';
-import { 실패카드, type FailureCase } from '../reporting/failures.js';
-import { logcat오류줄, 꼬리표고르기, 또실패댓글, 이슈본문, 이슈제목, 첨부상한, type 실패재료 } from './failBody.js';
+import { 지금항목 } from '../execution/single.js';
+import { 가린다, 긴것부터, 항목비밀 } from '../execution/trial.js';
+import { 실패카드, type FailureCase, type FailureDevice } from '../reporting/failures.js';
+import { 디바이스순서 } from '../reporting/failuresShape.js';
+import { logcat오류줄, 같은곳에서깨짐, 꼬리표고르기, 또실패댓글, 이슈본문, 이슈제목, 첨부상한, type 실패재료, type 화면재료 } from './failBody.js';
 import { 재검증실패넘기기 } from './bugfix.js';
 import { 보낼줄넣기 } from './outbox.js';
 
@@ -27,11 +30,13 @@ interface 실행행 {
   bts_project: string;
   origin: string;
   rerun_of: string | null;
+  /** 애플리케이션 종류 — 화면 줄은 웹(SCREEN)만 적는다 */
+  kind: string;
 }
 
 // BTS 를 이은 프로젝트의 끝난 케이스 실행만 — 시나리오는 카드가 없다
 const 실행SQL = `
-  SELECT r.service_id, s.project_id, r.env, r.build_no, s.name AS service_name, l.bts_project, r.origin, r.rerun_of
+  SELECT r.service_id, s.project_id, r.env, r.build_no, s.name AS service_name, l.bts_project, r.origin, r.rerun_of, s.kind
     FROM test_run r
     JOIN service s ON s.id = r.service_id
     JOIN bts_link l ON l.project_id = s.project_id
@@ -104,14 +109,39 @@ async function 폰로그읽기(runId: number, historyId: number, 마감: number)
   }
 }
 
+/** 한 화면의 재현 단계 · 실패한 확인 · 원인 · 기록 */
+async function 화면재료로(pool: Pool, d: FailureDevice): Promise<화면재료> {
+  const 확인 = d.item.steps.flatMap((s) => s.assertions).find((a) => a.status === 'FAIL') ?? null;
+  return {
+    steps: d.item.steps.map((s) => ({ title: s.title, status: s.status })),
+    확인: 확인 === null ? null : { statement: 확인.statement, expected: 확인.expected, actual: 확인.actual },
+    원인: d.item.failure?.reason ?? null,
+    ...(await 기록읽기(pool, d.item.historyId)),
+  };
+}
+
+// 카드는 깨진 화면만 든다. 이번 실행 지금 결과에서 통과한 화면을 따로 읽는다(한 건 실행이 덮은 결과 포함)
+const 통과화면SQL = `SELECT DISTINCT i.platform FROM ${지금항목('o.run_id = $1 AND o.tc_id = $2')} i WHERE i.status = 'PASS'`;
+
 /**
- * 카드의 첫 디바이스(화면 차례)로 쓴다 — 한 테스트 · 한 대상 서버에 이슈는 하나다.
+ * 첫 화면(화면 차례) 것을 바탕으로 쓴다 — 한 테스트 · 한 대상 서버에 이슈는 하나다(2026-11-04 사용자 「웹이랑 모바일 둘 다 발생한 버그는 1개로」).
+ * 웹은 깨진 화면 · 통과한 화면을 적고, 둘째 화면이 다른 곳에서 깨졌으면 그 화면 것도 싣는다. Android 앱 · 게임 · API 는 화면 줄이 없다.
  * 마감이 null 이면 폰 로그를 안 읽는다 — 「또 실패」 댓글은 폰 로그를 안 실어 기다릴 까닭이 없다
  */
-async function 재료만들기(pool: Pool, 실행: 실행행, c: FailureCase, 마감: number | null) {
+async function 재료만들기(pool: Pool, 실행: 실행행, 카드실행: number, c: FailureCase, 마감: number | null) {
   const d = c.devices[0]!;
-  const 기록 = await 기록읽기(pool, d.item.historyId);
-  const 확인 = d.item.steps.flatMap((s) => s.assertions).find((a) => a.status === 'FAIL') ?? null;
+  const 깨짐 = c.devices.flatMap((x) => (x.platform === 'android' ? [] : [x.platform]));
+  // API 애플리케이션 케이스도 디바이스가 desktop 이지만 브라우저를 열지 않아 화면이 없다(도메인/API 「디바이스는 desktop 하나다」)
+  const 웹 = 실행.kind === 'SCREEN' && 깨짐.length > 0;
+  const 둘 = 웹 ? c.devices[1] : undefined;
+  const 첫재료 = await 화면재료로(pool, d);
+  const 둘재료 = 둘 === undefined ? null : await 화면재료로(pool, 둘);
+  const 통과 = 웹
+    ? (await pool.query<{ platform: BrowserPlatform }>(통과화면SQL, [카드실행, c.tcId])).rows
+        .map((r) => r.platform)
+        .filter((p) => !깨짐.includes(p))
+        .sort((x, y) => 디바이스순서.indexOf(x) - 디바이스순서.indexOf(y))
+    : [];
   const 공개주소 = (process.env.PLATFORM_PUBLIC_URL ?? '').replace(/\/+$/, '');
   const 날재료: 실패재료 = {
     애플리케이션: 실행.service_name,
@@ -120,35 +150,47 @@ async function 재료만들기(pool: Pool, 실행: 실행행, c: FailureCase, �
     env: 실행.env,
     build: 실행.build_no,
     device: d.device,
-    steps: d.item.steps.map((s) => ({ title: s.title, status: s.status })),
     reqs: c.reqs,
-    확인: 확인 === null ? null : { statement: 확인.statement, expected: 확인.expected, actual: 확인.actual },
-    원인: d.item.failure?.reason ?? null,
-    ...기록,
+    ...첫재료,
     // 웹 항목(실제 폰 Chrome 포함)은 지금 그대로 네트워크 · 콘솔이다
     폰로그: d.platform === 'android' && 마감 !== null ? await 폰로그읽기(d.item.runId, d.item.historyId, 마감) : null,
     // 화면은 hash 주소다. 항목 상세는 실행 번호가 맞아야 찾아(execution/queries.ts findItem) 한 건 실행이 덮은 항목은 그 한 건 실행 번호로 간다
     결과주소: 공개주소 === '' ? null : `${공개주소}/#/runs/${String(d.item.runId)}/items/${String(d.item.historyId)}`,
     // 최근 흐름 맨 앞은 이번 실행이다 — 섞임은 앞 실행들로만 본다(이번 FAIL 을 넣으면 새로 깨진 회귀가 다 흔들림이 된다)
     꼬리표: 꼬리표고르기(d.item.failure?.type ?? null, d.recent.slice(1)),
+    화면: null,
+    둘째: 둘재료 !== null && !같은곳에서깨짐(첫재료, 둘재료) ? 둘재료 : null,
   };
   // 항목 상세는 이미 가렸지만 단계 제목 · 요구 문장 · 기록까지 밖으로 나가는 재료 전부를 한 번 더 가린다 — 되비친 비밀값(리포팅 「되비친 비밀값」).
   // 본문을 만들기 전에 가린다 — 만든 뒤 가리면 별표가 글을 늘려 크기 상한을 넘을 수 있다.
-  // 비밀 글자는 run_item 원본에서 읽는다 — 항목 상세의 값은 이미 별표라 거기서 고르면 빈 목록이 되고, 원문인 logcat 이 그대로 나간다
-  const 원본 = (
+  // 비밀 글자는 run_item 원본에서 읽는다 — 항목 상세의 값은 이미 별표라 거기서 고르면 빈 목록이 되고, 원문인 logcat 이 그대로 나간다. 둘째 화면 항목 것도 같이 읽는다
+  const 번호들 = [d, 둘].flatMap((x) => (x === undefined ? [] : [x.item.historyId]));
+  const 원본들 = (
     await pool.query<{ params: unknown; expected: unknown; param_schema: unknown; expected_schema: unknown }>(
-      'SELECT params, expected, param_schema, expected_schema FROM run_item WHERE history_id = $1',
-      [d.item.historyId],
+      'SELECT params, expected, param_schema, expected_schema FROM run_item WHERE history_id = ANY($1)',
+      [번호들],
     )
-  ).rows[0];
-  if (원본 === undefined) throw new Error(`실패 등록 중 항목 ${String(d.item.historyId)} 이 사라졌다`);
-  const 재료 = 가린다(날재료, 항목비밀(원본)) as 실패재료;
-  // 산출물 폴더 기준 경로. 보낼 때 outbox 가 파일을 읽어 올린다. 러너가 만든 모양이 아니면 싣지 않는다 — 파일시스템을 읽는 자리다
-  const 캡처 = d.item.steps
-    .flatMap((s) => (s.status === 'FAIL' && s.screenshotPath !== undefined ? [s.screenshotPath] : []))
-    .filter((p) => p.startsWith(`${저장접두}runs/`) && !p.includes('..'))
+  ).rows;
+  if (원본들.length !== 번호들.length) throw new Error(`실패 등록 중 항목 ${번호들.join(' · ')} 가운데 사라진 것이 있다`);
+  // 화면 이름은 가린 뒤에 붙인다 — 짧은 비밀값이 desktop · mobile 안에 들면 이름이 별표로 깨져 본문을 못 만든다
+  const 재료: 실패재료 = {
+    ...(가린다(날재료, 긴것부터(원본들.flatMap((r) => 항목비밀(r)))) as 실패재료),
+    화면: 웹 ? { 깨짐, 통과 } : null,
+  };
+  // 산출물 폴더 기준 경로. 보낼 때 outbox 가 파일을 읽어 올린다. 러너가 만든 모양이 아니면 싣지 않는다 — 파일시스템을 읽는 자리다.
+  // 화면마다 첫 장을 먼저 고르고 남는 자리를 차례로 채운다 — 한 화면 사진이 상한을 다 쓰면 다른 화면 사진이 빠진다
+  const 캡처 = [d, 둘]
+    .flatMap((x) =>
+      x === undefined
+        ? []
+        : x.item.steps
+            .flatMap((s) => (s.status === 'FAIL' && s.screenshotPath !== undefined ? [s.screenshotPath] : []))
+            .filter((p) => p.startsWith(`${저장접두}runs/`) && !p.includes('..'))
+            .map((p, 차례) => ({ p, 차례 })),
+    )
+    .sort((x, y) => x.차례 - y.차례)
     .slice(0, 첨부상한)
-    .map((p) => p.slice(저장접두.length));
+    .map(({ p }) => p.slice(저장접두.length));
   return { 재료, 캡처 };
 }
 
@@ -183,7 +225,7 @@ export async function 실패등록(runId: number, 기다림상한ms = trace기�
       // 그 케이스를 고친 작성이 병합되면 다시 올린다(도메인/BTS 「판정은 BTS 에서」)
       if (짝 !== undefined && !짝.open && 안올릴사유.has(짝.resolution ?? '') && !짝.released) continue;
       const 댓글 = 짝 !== undefined && 짝.open;
-      const { 재료, 캡처 } = await 재료만들기(pool, 실행, c, 댓글 ? null : 마감);
+      const { 재료, 캡처 } = await 재료만들기(pool, 실행, 카드실행, c, 댓글 ? null : 마감);
       // 줄은 카드가 서는 실행에 단다 — 실패 카드가 그 실행 번호로 bts 칸을 읽는다
       const 공통 = { projectId: Number(실행.project_id), serviceId: 서비스, runId: 카드실행, tcId: c.tcId, env: 실행.env };
       const id =
