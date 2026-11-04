@@ -84,11 +84,17 @@ export function 틀키(주소: string): string {
   return `${마디정리(u.pathname)}${인자.length === 0 ? '' : `?${인자.join('&')}`}${해시}`;
 }
 
+/** 앱 · 게임 훑기 도구가 지은 화면 열쇠인가(`app:…` · `game:…`) — 웹 주소 규칙(인자 · 숫자 마디)을 안 탄다 */
+const 화면열쇠인가 = (글: string): boolean => /^(?:app|game):\S/.test(글);
+
 /**
  * 화면 파일의 화면 주소 값(`/board/1` · 절대 주소)을 크롤러의 같은 틀로 — 찾은 화면 · 화면 기록의 url 과 맞춰 「PRD 에 없는 화면」을 가른다
- * (도메인/작성 §3.6 「기획서에 없는 화면 — 두 번째 작성」). 주소로 못 읽으면 null
+ * (도메인/작성 §3.6 「기획서에 없는 화면 — 두 번째 작성」). 주소로 못 읽으면 null.
+ * 앱 · 게임 화면 열쇠(`app:<activity>/<이름표>` · `game:<장면>/<창 경로>`)는 훑기 도구가 이미 같은 틀로 지은 것이라 그대로다 —
+ * URL 로 읽으면 앞머리가 떨어지고 글자가 퍼센트로 바뀌어 화면 기록의 열쇠와 안 맞는다 (§3.6 「앱 · 게임 역방향」 3)
  */
 export function 주소틀(주소: string): string | null {
+  if (화면열쇠인가(주소)) return 주소;
   try {
     return 틀키(new URL(주소, 'http://x.invalid').href);
   } catch {
@@ -130,6 +136,8 @@ const 인자입구 = (경로: string): boolean => /^\/#?!?\/?$/.test(경로) || 
  */
 export function 틀닿나(틀: string, 파일틀: ReadonlySet<string>): boolean {
   if (파일틀.has(틀)) return true;
+  // 앱 화면 이름표에는 물음표가 들 수 있다(「탈퇴하시겠어요?」) — 인자 꼬리로 읽어 다른 화면에 닿게 하지 않는다
+  if (화면열쇠인가(틀)) return false;
   const 경로 = 틀.replace(인자꼬리, '');
   return 경로 !== 틀 && !구조다름.test(틀) && !인자입구(경로) && 파일틀.has(경로);
 }

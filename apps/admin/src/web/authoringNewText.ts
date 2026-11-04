@@ -48,6 +48,17 @@ export const 작성오류: Record<string, string> = {
 export const 운영자작성오류: Record<string, string> = {
   BAD_ENV: '이 대상 서버에는 테스트 계정이 없거나 실서비스 서버로 체크돼 있습니다. 설정 > 애플리케이션에서 확인하세요',
 };
+// Android 앱 대조는 계정 없이도 간다 — 막는 까닭은 폰에서 켤 앱이 없거나 실서비스 서버인 것이다 (도메인/작성 §3.6 「앱 · 게임 역방향」 1)
+const 앱작성오류: Record<string, string> = {
+  BAD_ENV: '이 대상 서버에는 폰에서 켤 앱(앱 파일 경로나 올린 빌드)이 없거나 실서비스 서버로 체크돼 있습니다. 관리자에게 확인을 요청하세요',
+};
+const 운영자앱작성오류: Record<string, string> = {
+  BAD_ENV: '이 대상 서버에는 폰에서 켤 앱(앱 파일 경로나 올린 빌드)이 없거나 실서비스 서버로 체크돼 있습니다. 설정 > 애플리케이션에서 확인하세요',
+};
+
+/** 새 요청 폼의 서버 코드 → 안내. 앱 표 · 운영자 표가 먼저고 없으면 공통 작성 표다. 모르면 undefined(공통 번역으로 넘긴다) */
+export const 작성오류말 = (code: string, 운영자: boolean, 앱: boolean): string | undefined =>
+  (앱 ? (운영자 ? 운영자앱작성오류 : 앱작성오류)[code] : undefined) ?? (운영자 ? 운영자작성오류[code] : undefined) ?? 작성오류[code];
 
 // 피그마 토큰이 없을 때(폼 잠금 안내와 서버 거절 NO_TOKEN) · 피그마가 토큰을 안 받을 때(TOKEN)의 안내.
 // 고칠 곳이 설정이라 설정 메뉴를 볼 수 있는 사람(운영자)과 그 밖이 갈린다. 뒷말이 [운영자, 그 밖] 순이다

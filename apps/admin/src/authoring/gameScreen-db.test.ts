@@ -1,4 +1,4 @@
-// 게임 첫 화면 통로와 게임 요청의 화면 기록 줄 — 게임만 game-screen · 게임은 app-screen 을 안 탄다 · 앱 파일이 없으면 까닭 · 창 기록은 앱 줄에 (도메인/게임 §7 · §3.10 「지도」)
+// 게임 첫 화면 통로와 앱 · 게임 요청의 화면 기록 줄 — 게임만 game-screen · 게임은 app-screen 을 안 탄다 · 앱 파일이 없으면 까닭 · 창 · 화면 기록은 앱 줄에 (도메인/게임 §7 · §3.10 「지도」 · 작성 §3.6 「앱 · 게임 역방향」 4)
 
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -207,8 +207,22 @@ describe.skipIf(연결 === undefined)('게임 첫 화면 · 게임 화면 기록
     expect([r.statusCode, r.json()]).toEqual([400, { error: 'BAD_SCREEN', detail: 'env' }]);
   });
 
-  it('게임이 아닌 요청은 대상 서버가 없으면 지금처럼 올리지 못한다', async () => {
+  it('Android 앱 요청의 화면 기록도 앱 줄에 둔다 — 대조 요청은 그 대상 서버 줄, 대상 서버가 없으면 앱 파일이 있는 첫 줄 (APP-F2-05)', async () => {
     await 종류('APP');
+    await 줄들([['dev', 'com.shop.app', false], ['qa', 'https://builds/qa.apk', false]]);
+    const 화면 = { state: '로그아웃', url: 'app:.Main/홈', name: '홈', textFp: 'ab12', structFp: 'cd34', record: '# app:.Main/홈\n- Button 로그인', crawledAt: '2026-11-04T00:00:00Z', links: [] };
+
+    for (const env of ['qa', null]) {
+      const id = await 요청넣기(env);
+      expect((await app.inject({ method: 'PUT', url: `/api/authoring/requests/${id}/screens`, payload: 화면 })).statusCode).toBe(204);
+      expect((await 받기(id, 'screens')).screens.map((s: { url: string }) => s.url)).toEqual(['app:.Main/홈']);
+    }
+    const 줄 = await q<{ env: string }>('SELECT env FROM screen_record WHERE service_id = $1 ORDER BY env', [서비스]);
+    expect(줄.rows.map((r) => r.env)).toEqual(['dev', 'qa']);
+  });
+
+  it('웹 요청은 대상 서버가 없으면 지금처럼 올리지 못한다', async () => {
+    await 종류('SCREEN');
     await 줄들([['qa', 'https://builds/qa.apk', false]]);
     const id = await 요청넣기();
 

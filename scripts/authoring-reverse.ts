@@ -40,18 +40,20 @@ function 주소(글: unknown): URL | null {
 
 /**
  * 집을 때 다시 대조한다 — 만든 뒤 설정이 바뀔 수 있다 (§7 집기 ★). 막으면 사유, 아니면 null.
- * **사유에 계정 값을 싣지 않는다** — 사유는 화면과 서버 기록에 남는다
+ * **사유에 계정 값을 싣지 않는다** — 사유는 화면과 서버 기록에 남는다.
+ * Android 앱(`앱`)은 계정이 없어도 된다 — 로그아웃 판만 훑는다 (§3.6 「앱 · 게임 역방향」 1). 계정이 있으면 비밀번호 길이는 웹과 같이 본다
  */
-export function 대상점검(t: 대상 | undefined): string | null {
+export function 대상점검(t: 대상 | undefined, 앱 = false): string | null {
   if (t === undefined) return null;
   // 계정이 빠졌다고 적으면 사람이 운영 줄에 계정을 다시 넣는다 — 까닭을 먼저 말한다
   if (t.isProd === true) return `대상 서버 「${t.env}」 가 「운영 서버」로 체크돼 작성이 가지 않는다 — 다른 대상 서버로 새 요청을 넣어라`;
   const 서버 = 주소(t.baseUrl);
   if (서버 === null) return `대상 서버 「${t.env}」 줄이 없어졌거나 주소가 http·https 가 아니다 — 설정을 확인하고 새 요청으로 넣어라`;
-  if ((t.loginId ?? '') === '' || (t.loginPassword ?? '') === '') {
+  const 계정없음 = (t.loginId ?? '') === '' || (t.loginPassword ?? '') === '';
+  if (계정없음 && !앱) {
     return `대상 서버 「${t.env}」 에 테스트 계정이 빠졌다 — 설정 > 서비스에서 넣고 새 요청으로 넣어라`;
   }
-  if ((t.loginPassword ?? '').length < 비밀최소) {
+  if (!계정없음 && (t.loginPassword ?? '').length < 비밀최소) {
     return `테스트 계정 비밀번호가 ${비밀최소}자보다 짧아 올리는 글에 새는지 검사할 수 없다 — 더 긴 비밀번호로 바꿔라`;
   }
   if (t.startUrl !== null && t.startUrl !== undefined && 주소(t.startUrl)?.origin !== 서버.origin) {

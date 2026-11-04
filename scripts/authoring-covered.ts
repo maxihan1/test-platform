@@ -8,7 +8,7 @@ import { rmSync } from 'node:fs';
 import { join, posix } from 'node:path';
 
 import { 가져온화면파일, 여는주소들, 화면주소 } from '../apps/admin/src/catalog/screenMap.js';
-import { 주소틀, 틀닿나 } from './authoring-crawl-rules.js';
+import { 덮음인가, 주소틀, 틀닿나 } from './authoring-crawl-rules.js';
 import { 케이스tcId } from './authoring-held-apply.js';
 import { type 깃손, 새로쓰기 } from './authoring-ledger-io.js';
 import { 덮은파일이름, 화면케이스파일이름 } from './authoring-reverse.js';
@@ -142,11 +142,15 @@ export function 바뀐화면줄(바뀐틀: ReadonlySet<string>, 케이스: reado
   return `바뀐 화면: ${화면수}장 · 그 화면을 쓰는 케이스 ${닿는.length}건 · 그 케이스 · 화면 파일 가운데 이번에 고친 파일 ${고친.length}개${고친.length > 0 ? ` — ${앞}` : ''}`;
 }
 
-/** 크롤 목록(list.json 글)이 하나 이상이고 전부 테스트가 이미 확인한 화면이면 그 장수, 아니면 null */
-export function 모두덮음(목록글: string): number | null {
+/**
+ * 크롤 목록(list.json 글)이 하나 이상이고 전부 테스트가 이미 확인한 화면이면 그 장수, 아니면 null.
+ * 덮음 칸이 없는 줄은 덮은 틀(covered.json)로 크롤러와 같은 규칙(덮음인가)을 다시 본다 — Android 앱 크롤(appium-cli)은 그 칸을 안 단다 (APP-F2-05)
+ */
+export function 모두덮음(목록글: string, 덮은틀: ReadonlySet<string> | null = null): number | null {
   try {
     const 목록: unknown = JSON.parse(목록글);
-    return Array.isArray(목록) && 목록.length > 0 && 목록.every((x) => (x as { 덮음?: unknown } | null)?.덮음 === true) ? 목록.length : null;
+    const 덮였나 = (x: { 덮음?: unknown; 틀?: unknown } | null): boolean => x?.덮음 === true || (typeof x?.틀 === 'string' && 덮음인가(x.틀, 덮은틀));
+    return Array.isArray(목록) && 목록.length > 0 && 목록.every(덮였나) ? 목록.length : null;
   } catch {
     return null;
   }

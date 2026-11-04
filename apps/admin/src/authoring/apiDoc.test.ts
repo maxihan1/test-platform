@@ -50,7 +50,7 @@ describe.skipIf(연결 === undefined)('API 애플리케이션 작성 요청', { 
       [앱접두사],
     );
     앱서비스 = Number(a.rows[0]!.id);
-    // 계정을 넣은 줄이라 웹 애플리케이션이면 대조가 통과한다 — 거절은 종류 때문이어야 한다
+    // 계정을 넣었지만 앱 파일이 없는 줄이다 — 웹이면 통과하는 대조가 앱이면 켤 앱이 없어 막힌다 (APP-F2-05 · 켤 앱이 있는 줄은 appCompare-db.test.ts)
     await q(`INSERT INTO service_env (service_id, env, base_url, login_id, login_password) VALUES ($1, 'stg', 'http://127.0.0.1:3000', 'tester', 'xawa-비밀')`, [앱서비스]);
     await q(
       `INSERT INTO service_env (service_id, env, base_url, api_auths, is_prod) VALUES
@@ -89,7 +89,7 @@ describe.skipIf(연결 === undefined)('API 애플리케이션 작성 요청', { 
     expect((await q('SELECT 1 FROM authoring_request WHERE service_id = ANY($1)', [[서비스, 화면서비스]])).rowCount).toBe(0);
   });
 
-  it('Android 앱 애플리케이션은 대조 · 시작 주소를 BAD_ENV, 판을 NOT_API_SERVICE 로 거절하고 DRAFT 도 안 남는다', async () => {
+  it('Android 앱 애플리케이션은 켤 앱이 없는 줄의 대조 · 시작 주소를 BAD_ENV, 판을 NOT_API_SERVICE 로 거절하고 DRAFT 도 안 남는다', async () => {
     const 거절 = async (몸: Record<string, unknown>) => (await 만들기(몸, 앱접두사)).json<{ error: string }>().error;
     expect(await 거절({ compare: true, env: 'stg' })).toBe('BAD_ENV');
     expect(await 거절({ startUrl: 'http://127.0.0.1:3000/' })).toBe('BAD_ENV');
@@ -97,7 +97,7 @@ describe.skipIf(연결 === undefined)('API 애플리케이션 작성 요청', { 
     expect((await q('SELECT 1 FROM authoring_request WHERE service_id = $1', [앱서비스])).rowCount).toBe(0);
   });
 
-  it('재실행 · 이어 작성이 대조 원본을 물려받아도 Android 앱이면 BAD_ENV 이고, 대조가 아니면 통과한다', async () => {
+  it('재실행 · 이어 작성이 물려받은 대조 원본의 줄에 켤 앱이 없으면 Android 앱은 BAD_ENV 이고, 대조가 아니면 통과한다', async () => {
     expect(await 역방향칸판정({ compare: true, env: 'stg', startUrl: null }, 앱서비스)).toEqual({ error: 'BAD_ENV' });
     expect(await 역방향칸판정({ compare: false }, 앱서비스)).toEqual({ compare: false });
     expect(await 역방향칸판정({}, 앱서비스)).toEqual({ compare: false });

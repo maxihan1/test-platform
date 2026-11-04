@@ -106,6 +106,16 @@ describe('새 요청 — 실제 화면과 대조', () => {
     expect(부름[0]?.값).toEqual({ service: 'PAY', body: { kind: 'AUTHOR', figma: [], compare: true, env: 'qa' } });
   });
 
+  it('Android 앱은 대상 서버만 고르고 시작 주소 칸 없이 대조를 보낸다 — 앱을 켠 첫 화면에서 시작한다 (APP-F2-05)', async () => {
+    render(<AuthoringNew service="MKA" envs={서버들} 운영자 앱종류="APP" on넣었다={() => {}} />);
+    대조를켠다();
+    expect(screen.getByLabelText('대상 서버')).toBeTruthy();
+    expect(screen.queryByLabelText('시작 주소')).toBeNull();
+    fireEvent.click(보내기());
+    await waitFor(() => expect(부름.map((b) => b.무엇)).toEqual(['만들기', '세우기']));
+    expect(부름[0]?.값).toEqual({ service: 'MKA', body: { kind: 'AUTHOR', figma: [], compare: true, env: 'qa' } });
+  });
+
   it('대조 칸 설명이 기획서 화면을 먼저 쓰고 없는 화면이 이어진다고 알린다', () => {
     폼();
     대조를켠다();
@@ -172,6 +182,18 @@ describe('새 요청 — 실제 화면과 대조', () => {
     시작주소를적는다('https://example.com/');
     fireEvent.click(보내기());
     expect(await screen.findByText('이 대상 서버에는 테스트 계정이 없거나 실서비스 서버로 체크돼 있습니다. 설정 > 애플리케이션에서 확인하세요')).toBeTruthy();
+  });
+
+  it('Android 앱이면 계정이 아니라 켤 앱이 없다고 알린다 — 앱 대조는 계정 없이도 간다 (APP-F2-05 리뷰)', async () => {
+    for (const 운영자 of [true, false]) {
+      만들기답 = Promise.reject(new ApiError(400, 'BAD_ENV', ''));
+      render(<AuthoringNew service="MKA" envs={서버들} 운영자={운영자} 앱종류="APP" on넣었다={() => {}} />);
+      대조를켠다();
+      fireEvent.click(보내기());
+      const 뒤 = 운영자 ? '설정 > 애플리케이션에서 확인하세요' : '관리자에게 확인을 요청하세요';
+      expect(await screen.findByText(`이 대상 서버에는 폰에서 켤 앱(앱 파일 경로나 올린 빌드)이 없거나 실서비스 서버로 체크돼 있습니다. ${뒤}`)).toBeTruthy();
+      cleanup();
+    }
   });
 
   it('설정 메뉴가 없는 사람에게는 설정 대신 운영자에게 요청하라고 한다 (⑫ 점검 11.3)', async () => {

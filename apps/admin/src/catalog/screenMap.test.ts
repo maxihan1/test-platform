@@ -34,6 +34,10 @@ describe('화면주소', () => {
     expect(화면주소('export class A {\n  static readonly 주소 = `/a`;\n}')).toBe('/a');
   });
 
+  it('앱 화면 파일의 app: 열쇠도 그대로 읽는다 — 지도 ② 가 역기획서로 쓴 앱 화면에 닿는다 (APP-F2-05)', () => {
+    expect(화면주소("export class 로그인화면 {\n  static readonly 주소 = 'app:.Main/login screen';\n  constructor(private driver: Browser) {}\n}")).toBe('app:.Main/login screen');
+  });
+
   it('값이 없거나 계산식이거나 static 이 아니면 모른다', () => {
     expect(화면주소('export class SiteHeader {\n  constructor(private page: Page) {}\n}')).toBeNull();
     expect(화면주소("const 뿌리 = '/x';\nexport class A {\n  static readonly 주소 = 뿌리 + '/a';\n}")).toBeNull();

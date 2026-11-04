@@ -13,6 +13,17 @@ describe('주소틀 — 화면 파일의 화면 주소를 크롤러 같은 틀�
   it('주소로 못 읽으면 null', () => {
     expect(주소틀('http://')).toBeNull();
   });
+  it('앱 · 게임 화면 열쇠는 글자 그대로다 — 앞머리 · 한글 · 띄어쓰기가 안 바뀌어 화면 기록 열쇠와 닿는다 (APP-F2-05)', () => {
+    expect(주소틀('app:.Main/login screen')).toBe('app:.Main/login screen');
+    expect(주소틀('app:com.shop.MainActivity/홈')).toBe('app:com.shop.MainActivity/홈');
+    expect(주소틀('game:Main/Canvas/Btn')).toBe('game:Main/Canvas/Btn');
+    expect(틀닿나('app:.Main/홈', new Set([주소틀('app:.Main/홈')!]))).toBe(true);
+  });
+  it('앱 · 게임 열쇠는 글자가 같을 때만 닿는다 — 이름표의 물음표를 인자로 읽지 않는다 (APP-F2-05 리뷰)', () => {
+    expect(틀닿나('app:.Main/탈퇴하시겠어요?', new Set(['app:.Main/탈퇴하시겠어요']))).toBe(false);
+    expect(틀케이스('app:.Main/탈퇴하시겠어요?', new Map([['app:.Main/탈퇴하시겠어요', ['SHOP-001']]]))).toBeUndefined();
+    expect(틀닿나('/shop?category=outer', new Set(['/shop']))).toBe(true);
+  });
   it('화면 파일의 이름 마디(`:id`)도 크롤러처럼 `:n` 이다 (PRD-F9-04)', () => {
     expect(주소틀('/board/:id')).toBe('/board/:n');
     expect(주소틀('/my/orders/:orderId/items')).toBe('/my/orders/:n/items');

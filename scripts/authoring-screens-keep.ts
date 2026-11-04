@@ -69,10 +69,13 @@ export function 저장이름(상태: 상태, 틀: string): string {
   return `${상태 === '로그아웃' ? 'out' : 'in'}-${createHash('sha1').update(`${상태} ${틀}`).digest('hex').slice(0, 12)}.md`;
 }
 
-/** 기록 첫 줄 `# <크롤 주소>` — 이름이 아니라 이것으로 목록과 맞춘다(이어하기에서 크롤 번호가 바뀌어도 안 섞인다) */
+/**
+ * 기록 첫 줄 `# <크롤 주소>` — 이름이 아니라 이것으로 목록과 맞춘다(이어하기에서 크롤 번호가 바뀌어도 안 섞인다).
+ * Android 앱은 appium-cli crawl 의 화면 열쇠(`app:<activity>/<이름표>` — 이름표에 띄어쓰기가 든다)가 주소 자리다 (§3.6 「앱 · 게임 역방향」 4)
+ */
 export function 기록주소(글: string): string | null {
   const 첫줄 = 글.split('\n', 1)[0] ?? '';
-  const m = /^#\s+(https?:\/\/\S+)\s*$/.exec(첫줄);
+  const m = /^#\s+(https?:\/\/\S+|app:\S(?:.*\S)?)\s*$/.exec(첫줄);
   return m === null ? null : m[1]!;
 }
 

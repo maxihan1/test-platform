@@ -40,6 +40,13 @@ describe('기록주소 — 기록 첫 줄 `# <크롤 주소>`', () => {
   it('없거나 주소가 아니면 null', () => {
     expect(기록주소('## 요소')).toBeNull();
     expect(기록주소('# 내 정보')).toBeNull();
+    expect(기록주소('# scene:Login')).toBeNull();
+  });
+
+  it('Android 앱 화면 열쇠도 주소 자리다 — 이름표의 띄어쓰기 · 한글까지, 끝 공백은 뺀다 (APP-F2-05)', () => {
+    expect(기록주소('# app:.Main/login screen \n## 요소')).toBe('app:.Main/login screen');
+    expect(기록주소('# app:com.shop.MainActivity/홈')).toBe('app:com.shop.MainActivity/홈');
+    expect(기록주소('# app:')).toBeNull();
   });
 });
 
@@ -110,6 +117,14 @@ describe('받은저장본 — 서버 화면 기록을 kept/ 저장본으로', ()
     const r = 받은저장본({ screens: [행()], links: [] });
     expect(r.저장.항목).toEqual([항목({ 키: '로그인:일반 회원 /board/:n', 틀: '/board/:n', 주소: 'https://s.test/board/7', 기록: 저장이름('로그인:일반 회원', '/board/:n') })]);
     expect(r.기록들.get(저장이름('로그인:일반 회원', '/board/:n'))).toBe('# https://s.test/board/7\n본문');
+  });
+
+  it('Android 앱 화면 기록은 열쇠가 틀 · 주소 둘 다다 — 이번 크롤 목록의 같은 줄과 맞는다 (APP-F2-05)', () => {
+    const 열쇠 = 'app:.Main/login screen';
+    const r = 받은저장본({ screens: [행({ state: '로그아웃', url: 열쇠, record: `# ${열쇠}\n로그인 화면` })] });
+    expect(r.저장.항목.map((x) => [x.키, x.틀, x.주소])).toEqual([[`로그아웃 ${열쇠}`, 열쇠, 열쇠]]);
+    const 목록 = [{ 주소: 열쇠, 상태: '로그아웃' as const, 틀: 열쇠, 지문: 'a', 글자지문: 'g', 파일: '로그아웃/003.yml' }];
+    expect(이번것들(목록, [{ 이름: 'out-003.md', 글: `# ${열쇠}\n로그인 화면` }], '2026-11-04').map((x) => x.키)).toEqual([`로그아웃 ${열쇠}`]);
   });
 
   it('첫 줄이 주소가 아니거나 모양이 틀린 행은 뺀다 · 몸이 틀리면 빈 저장본', () => {

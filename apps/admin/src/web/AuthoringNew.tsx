@@ -11,7 +11,7 @@ import { useRef, useState } from 'react';
 
 import { api, ApiError, type EnvRow, type 앱종류 } from './api.js';
 import { ApiDocFields, useApiDocs } from './AuthoringNewApi.js';
-import { 거절사유, 받는종류, 운영자작성오류, 자료상한, 작성오류, 피그마거절말 } from './authoringNewText.js';
+import { 거절사유, 받는종류, 자료상한, 작성오류말, 피그마거절말 } from './authoringNewText.js';
 import { 크기글 } from './GuideSection.js';
 import { use말, use언어 } from './i18n.js';
 import { 종류 } from './kind.js';
@@ -66,8 +66,8 @@ export function AuthoringNew({
   const 기본서버 = api모드 && 문서.기준서버 !== null && envs.some((it) => it.env === 문서.기준서버) ? 문서.기준서버 : (후보[0]?.env ?? null);
   const 판 = 문서.버전들?.some((v) => v.version === 고른판) === true ? 고른판 : (문서.버전들?.[0]?.version ?? null);
   const 줄 = 종류(앱종류);
-  // 크롤러는 웹만 읽는다 — 앱이 compare 를 보내면 서버가 400 BAD_ENV 로 막는다 (도메인/작성 §7 AUTHOR)
-  const 대조칸 = !api모드 && 줄.대조;
+  // 웹은 크롤러, Android 앱은 appium-cli 가 훑는다 — 게임이 compare 를 보내면 서버가 400 BAD_ENV 로 막는다 (도메인/작성 §7 AUTHOR · §3.6 「앱 · 게임 역방향」)
+  const 대조칸 = !api모드 && 줄.대조 !== null;
   const 대조 = 대조칸 && 대조켜짐;
   const 서버 = 후보.some((it) => it.env === 고른서버) ? 고른서버 : 기본서버;
   const 주소 = 시작주소.trim();
@@ -96,7 +96,7 @@ export function AuthoringNew({
     if (err instanceof ApiError && err.code === 'FIGMA_DENIED' && /^(NO_TOKEN|TOKEN|FILE:.+)$/.test(err.message)) {
       return 피그마거절말(err.message, 운영자, t);
     }
-    const 말 = err instanceof ApiError ? ((운영자 ? 운영자작성오류[err.code] : undefined) ?? 작성오류[err.code]) : undefined;
+    const 말 = err instanceof ApiError ? 작성오류말(err.code, 운영자, 줄.대조 === 'app') : undefined;
     return 말 === undefined ? message(err, 언어) : t(말);
   }
 
@@ -265,7 +265,8 @@ export function AuthoringNew({
                       ))}
                     </select>
                   </div>
-                  <label className="authoring-sub">
+                  {/* 앱은 주소가 없어 앱을 켠 첫 화면에서 시작한다 — 시작 주소를 보내면 서버가 400 BAD_ENV */}
+                  {줄.대조 === 'web' && <label className="authoring-sub">
                     <span>{t('시작 주소')}</span>
                     <input
                       className="mono"
@@ -276,7 +277,7 @@ export function AuthoringNew({
                       placeholder={envs.find((it) => it.env === 서버)?.baseUrl ?? ''}
                       onChange={(e) => set시작주소(e.target.value)}
                     />
-                  </label>
+                  </label>}
                   <small>{t('기획서가 있으면 기획서 화면을 먼저 작성하고, 반영되면 기획서에 없는 화면을 이어서 작성합니다. 기획서 없이 보내면 PRD 에 아직 없는 화면만 작성합니다')}</small>
                 </>
               ) : null}
