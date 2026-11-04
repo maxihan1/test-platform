@@ -5,6 +5,7 @@ import { 기본역할, type 역할계정 } from '@platform/kit/accounts';
 import type { PoolClient } from 'pg';
 
 import { 문서설정읽기 } from '../apidoc/store.js';
+import { 최신빌드 } from '../execution/buildFile.js';
 import { API인증읽기, type API인증, type 어드민키, 어드민키읽기, 역할계정읽기 } from '../settings/envs.js';
 import { 어드민키종류인가 } from '../settings/roles.js';
 
@@ -123,7 +124,12 @@ export function 앱줄고르기<T extends { env: string; appPath: string | null;
   return 줄들.filter((j) => !j.isProd).find((j) => (env === null ? j.appPath !== null : j.env === env));
 }
 
-/** 폰에서 도는 애플리케이션 — Android 앱과 게임은 크롤러가 못 읽어 대조가 없고 앱 줄 계정으로 작성한다 (도메인/게임 §3.10 「작성 — 한 바퀴」) */
+/** 그 줄에 폰에서 켤 앱이 있나 — 최신 빌드(올린 APK · 회사 저장소 주소)나 앱 파일 경로(패키지 이름 포함). 앱 화면 통로가 「앱 없는 서비스」로 보는 줄이 아니다 */
+async function 켤앱있나(서비스: number, 줄: 대상줄): Promise<boolean> {
+  return 줄.appPath !== null || (await 최신빌드(await 풀(), 서비스, 줄.env)) !== null;
+}
+
+/** 폰에서 도는 애플리케이션 — 웹 크롤러가 못 읽어 앱 줄 계정으로 작성한다. 대조는 appium-cli · 창 훑기가 훑는다 (도메인/게임 §3.10 「작성 — 한 바퀴」 · 작성 §3.6 「앱 · 게임 역방향」) */
 export const 폰앱종류 = ['APP', 'GAME'];
 export const 폰앱인가 = (kind: string | null | undefined): boolean => 폰앱종류.includes(kind ?? '');
 
@@ -206,7 +212,8 @@ export async function 집기대상칸(
     행.params.prdApply === true
       ? (await 대상줄들읽기(서비스)).filter((z) => !z.isProd)
       : [줄, 머지줄].filter((z): z is 대상줄 => z !== null);
-  // Android 앱 · API 는 대조가 없어(역방향칸판정 · API칸판정 BAD_ENV) 이 길이 아니면 AI 가 로그인할 계정을 받을 곳이 없다 (2026-10-22 · 2026-11-03 사용자).
+  // 정방향 Android 앱 · 게임 · API 는 대조 줄이 없어 이 길이 아니면 AI 가 로그인할 계정을 받을 곳이 없다 (2026-10-22 · 2026-11-03 사용자).
+  // 앱 대조는 요청 env 가 곧 앱 줄이라(앱줄고르기가 그 줄을 먼저 고른다) 같은 줄이 한 번만 실린다 (§3.6 「앱 · 게임 역방향」 8)
   // 앞줄(앱은 앱 줄, API 는 작성 행의 대상 서버 줄)을 맨 앞에 둔다 — 자식은 첫 「일반 회원」으로 로그인하는데 반영 · 머지 행은 다른 줄도 싣는다
   const 종류 = (await 문서설정읽기(서비스))?.kind;
   const 앞줄 = 줄로작성하나(종류, 행.env) ? 앱줄고르기(await 대상줄들읽기(서비스), 행.env) : undefined;
@@ -233,9 +240,10 @@ export async function 역방향칸판정(본문: Record<string, unknown>, 서비
   const { compare, env, startUrl } = 본문;
   const 주소있음 = startUrl !== undefined && startUrl !== null;
   if (compare !== undefined && typeof compare !== 'boolean') return { error: 'BAD_ENV' };
-  // Android 앱은 크롤러가 못 읽어 대조가 없다 (§3.6 「앱 화면」). 만들기 · 재실행 · 이어 작성이 모두 여기를 지난다 —
-  // 종류가 바뀌기 전에 세운 대조 원본을 물려받아도 막힌다
-  if ((compare === true || 주소있음) && 폰앱인가((await 문서설정읽기(서비스))?.kind)) return { error: 'BAD_ENV' };
+  // 앱 · 게임은 주소가 없어 앱을 켠 첫 화면에서 시작한다. 게임 대조는 아직 막는다(APP-F2-06). 만들기 · 재실행 · 이어 작성이 모두 여기를 지난다 —
+  // 종류가 바뀌기 전에 세운 대조 원본을 물려받아도 그 종류의 규칙을 탄다 (§3.6 「★ 역방향」 「앱 · 게임 역방향」 1)
+  const 종류 = (await 문서설정읽기(서비스))?.kind;
+  if (폰앱인가(종류) && (주소있음 || (compare === true && 종류 !== 'APP'))) return { error: 'BAD_ENV' };
   if (compare !== true) {
     if (주소있음) return { error: 'BAD_START_URL' };
     if (env !== undefined && env !== null) return { error: 'BAD_ENV' };
@@ -243,6 +251,8 @@ export async function 역방향칸판정(본문: Record<string, unknown>, 서비
   }
   if (typeof env !== 'string' || env === '') return { error: 'BAD_ENV' };
   const 줄 = await 대상줄읽기(서비스, env);
+  // 앱은 계정이 없어도 로그아웃 판만 훑는다. 대신 폰에서 켤 앱(최신 빌드 · 앱 파일 경로)이 있어야 한다 — 앱 화면 통로(appScreen.ts)와 같은 판정
+  if (종류 === 'APP') return 줄 !== null && !줄.isProd && (await 켤앱있나(서비스, 줄)) ? { compare: true, env, startUrl: null } : { error: 'BAD_ENV' };
   if (!계정있는줄(줄)) return { error: 'BAD_ENV' };
   if (!주소있음) return { compare: true, env, startUrl: null };
   const 정규 = 시작주소(startUrl, 줄.baseUrl);

@@ -4,7 +4,8 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import { 집은쪽인가 } from '../authoring/agentRoutes.js';
-import { 대상줄들읽기, 앱줄고르기 } from '../authoring/reverse.js';
+import { 문서설정읽기 } from '../apidoc/store.js';
+import { 대상줄들읽기, 앱줄고르기, 폰앱인가 } from '../authoring/reverse.js';
 import { 지도를읽는다 } from './apiMap.js';
 import { 게임서비스인가, 요소검사, 요소넣기, 지도글 } from './gameMap.js';
 import type { 앱요청 } from '../authoring/store.js';
@@ -20,11 +21,11 @@ const 서버없음 = { error: 'BAD_SCREEN', detail: 'env' } as const;
 const 게임아님 = { error: 'NOT_GAME_SERVICE' } as const;
 
 /**
- * 화면 기록을 둘 대상 서버 줄 — 요청의 것이다. 게임은 대조가 없어 요청에 줄이 없으니 앱 줄(게임 첫 화면을 읽는 줄 — 운영 줄은 건너뛴다)에 둔다.
- * 창 훑기는 그 줄의 앱 파일로 켠 게임을 본 것이다 (도메인/게임 §3.10 「지도」 · GAME-F1-10)
+ * 화면 기록을 둘 대상 서버 줄 — 요청의 것이다. Android 앱 · 게임은 앱 줄(앱 · 게임 첫 화면을 읽는 줄 — 요청 env 가 먼저고 운영 줄은 건너뛴다)에 둔다.
+ * 게임 정방향은 요청에 줄이 없고, 훑기는 그 줄의 앱 파일로 켠 앱을 본 것이다 (도메인/게임 §3.10 「지도」 · GAME-F1-10 · 작성 §3.6 「앱 · 게임 역방향」 4)
  */
 async function 화면줄(행: 앱요청): Promise<string | null> {
-  if (!(await 게임서비스인가(행.serviceId))) return 행.env;
+  if (!폰앱인가((await 문서설정읽기(행.serviceId))?.kind)) return 행.env;
   return 앱줄고르기(await 대상줄들읽기(행.serviceId), 행.env)?.env ?? null;
 }
 
