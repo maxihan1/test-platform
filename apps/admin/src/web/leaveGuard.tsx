@@ -1,7 +1,7 @@
 // 해시 주소 이동 · 서비스 바꾸기를 저장 안 한 화면이 막을 수 있게 하는 useHash 와 창 닫기 막기 · 목록 조건을 주소에 남기기 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
 // 모듈 상태인 이유 — 해시 이동은 React 바깥 이벤트라, 화면이 내려가기 전에 막으려면 훅 밖에서 막는 쪽을 알아야 한다
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { use말 } from './i18n.js';
 import { Modal } from './Modal.js';
@@ -19,6 +19,18 @@ const 막는것들: 막는것[] = [];
 let 한번통과 = false;
 // 지금 그린 주소. 막혔을 때 되돌아갈 곳이고, 주소고치기가 바꾼 조건도 여기 든다 — 안 그러면 막힌 뒤 조건이 주소에서 빠진다
 let 이전 = window.location.hash;
+// 방문 기록에서 지금 선 칸. 쌓을 때 다음 번호를 주려고 모듈이 든다
+let 지금칸 = 0;
+// 주소의 조건 바뀜을 스스로 듣는 화면(마법사 · 결정 탭)이 몇 개 섰나. 같은 화면 안 이동이면 앱 뿌리가 다시 그리지도, 떠나기를 묻지도 않는다 —
+// 다시 그리면 쓰던 값을 잃고, 단계를 옮기는 것은 떠나는 일이 아니다
+let 스스로듣는 = 0;
+
+export function 스스로듣기(): () => void {
+  스스로듣는++;
+  return () => {
+    스스로듣는--;
+  };
+}
 
 /** null 이면 다 푼다 — 로그아웃 · 세션 끊김 · 저장 뒤 자기 이동은 무엇도 막으면 안 된다 */
 export function 떠나기막기(쪽: ((갈곳: string) => void) | null): void {
@@ -50,6 +62,27 @@ export function 주소고치기(새주소: string): void {
   이전 = 새주소;
 }
 
+/**
+ * 하나를 「여는」 일(실행 하나 · 케이스 상세 · 마법사 단계)은 방문 기록을 쌓는다 — 뒤로 가기가 연 것을 닫고 앞 주소로 간다.
+ * 칸 번호를 이어 적는다. 안 적으면 떠나기 막기가 이 칸을 새 칸으로 오해해 두 칸을 간다
+ */
+export function 주소쌓기(새주소: string): void {
+  if (새주소 === window.location.hash) return;
+  지금칸 = (칸번호() ?? 지금칸) + 1;
+  window.history.pushState({ navIndex: 지금칸 }, '', window.location.pathname + window.location.search + 새주소);
+  이전 = 새주소;
+}
+
+/**
+ * 화면이 스스로 주소를 옮긴다(권한 없는 자리 · 옛 번호 → 지금 번호). 쌓으면 뒤로 가기가 옮기기 전 주소로 가서 다시 옮겨져 갇히니 그 칸을 덮는다.
+ * `location.replace` 는 칸 번호를 지워 기록이 어긋나서, 칸을 그대로 두고 주소만 바꾼 뒤 hashchange 를 직접 낸다
+ */
+export function 주소덮기(새주소: string): void {
+  if (새주소 === window.location.hash) return;
+  window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search + 새주소);
+  window.dispatchEvent(new HashChangeEvent('hashchange'));
+}
+
 /** 지금 주소의 `?` 뒤 조건. 목록이 처음 그릴 때 읽는다 */
 export function 주소조건(): URLSearchParams {
   const 자리 = window.location.hash.indexOf('?');
@@ -67,22 +100,47 @@ const 조건글 = (주소: string) => (주소.includes('?') ? 주소.slice(주�
 /**
  * 목록이 조건을 바꿀 때마다 주소를 고친다. 그사이 다른 화면으로 떠났으면 그 주소를 덮지 않는다.
  * 같은 화면 · 같은 조건이면 그대로 둔다 — `#/cases` 로 들어온 사람의 주소를 `#/cases/fn` 으로 괜히 바꾸지 않는다.
- * 목록이 선 채로 같은 화면의 조건 없는 주소가 오면(메뉴를 다시 누름) 화면이 든 조건으로 되돌린다 — 화면과 주소가 갈리면 새로고침이 조건을 잃는다
+ * 목록이 선 채로 같은 화면의 조건 없는 주소가 오면(메뉴를 다시 누름) 화면이 든 조건으로 되돌린다 — 화면과 주소가 갈리면 새로고침이 조건을 잃는다.
+ * 뒤로 · 앞으로 가기로 온 조건 없는 주소는 되돌리지 않는다 — 되돌리면 한 번에 못 떠난다. 그때는 앱 뿌리가 화면을 새로 그려 주소를 따른다
+ * @param 쌓는칸 이 칸이 바뀌면 기록을 쌓는다(「여는」 일). 나머지 칸만 바뀌면 지금 칸을 고친다
+ * @param 듣기 주소의 조건이 사람 손 없이 바뀌면(뒤로 가기 · 링크) 불린다. 주면 앱 뿌리가 이 화면을 다시 그리지 않는다 — 쓰던 값을 지키려고 상태를 이쪽에서 고친다
  */
-export function use주소조건(경로: string, 조건: Record<string, string>): void {
+export function use주소조건(
+  경로: string,
+  조건: Record<string, string>,
+  { 쌓는칸 = [], 듣기 }: { 쌓는칸?: readonly string[]; 듣기?: (조건: URLSearchParams) => void } = {},
+): void {
   const 주소 = 조건붙인주소(경로, 조건);
+  const 최신 = useRef({ 쌓는칸, 듣기 });
+  최신.current = { 쌓는칸, 듣기 };
+  const 처음 = useRef(true);
+  const 듣나 = 듣기 !== undefined;
+  useEffect(() => (듣나 ? 스스로듣기() : undefined), [듣나]);
   useEffect(() => {
+    // 처음 그릴 때는 쌓지 않는다 — 막 열린 화면이 주소를 정리하는 것이지 사람이 연 것이 아니다
+    let 쌓아도됨 = !처음.current;
+    처음.current = false;
     const 맞춘다 = () => {
       const 지금 = window.location.hash;
       if (route(지금).name !== route(경로).name) return;
       if (JSON.stringify(route(지금)) === JSON.stringify(route(주소)) && 조건글(지금) === 조건글(주소)) return;
-      주소고치기(주소);
+      const 앞 = new URLSearchParams(조건글(지금).slice(1));
+      const 뒤 = new URLSearchParams(조건글(주소).slice(1));
+      const 열었다 = 최신.current.쌓는칸.some((칸) => 앞.get(칸) !== 뒤.get(칸));
+      (쌓아도됨 && 열었다 ? 주소쌓기 : 주소고치기)(주소);
     };
     맞춘다();
-    // 조건 붙은 주소는 되돌리지 않는다 — 고리를 눌러 온 것(「RUN N에서 통과」)이라 그 조건을 따르고, 화면은 앱 뿌리가 새로 그린다(use이동 의 조건번)
+    쌓아도됨 = false;
     const 들음 = () => {
       const 지금 = window.location.hash;
-      if (조건글(지금) === '' && JSON.stringify(route(지금)) === JSON.stringify(route(주소))) 맞춘다();
+      if (route(지금).name !== route(경로).name) return;
+      // 조건 붙은 주소 · 뒤로 가기는 되돌리지 않는다 — 고리를 눌러 온 것(「RUN N에서 통과」)이거나 기록의 한 칸이라 그 주소를 따른다.
+      // 화면은 앱 뿌리가 새로 그리거나(use이동 의 조건번) `듣기` 가 고친다
+      if (칸번호() !== null || 조건글(지금) !== '') {
+        최신.current.듣기?.(주소조건());
+        return;
+      }
+      if (JSON.stringify(route(지금)) === JSON.stringify(route(주소))) 맞춘다();
     };
     window.addEventListener('hashchange', 들음);
     return () => window.removeEventListener('hashchange', 들음);
@@ -110,18 +168,23 @@ export function use이동(): { hash: string; 조건번: number } {
   const [보는, set보는] = useState({ hash: window.location.hash, 조건번: 0 });
   useEffect(() => {
     이전 = window.location.hash;
-    let 지금칸 = 칸번호() ?? 0;
+    지금칸 = 칸번호() ?? 0;
     칸적기(지금칸);
     const onChange = () => {
       const 새것 = window.location.hash;
       if (새것 === 이전) return;
       const 온칸 = 칸번호();
+      // 단계 · 탭을 스스로 듣는 화면 안에서 옮기는 것은 떠나는 일이 아니다 — 막지도, 다시 그리지도 않는다
+      const 안에서 = 스스로듣는 > 0 && JSON.stringify(route(새것)) === JSON.stringify(route(이전));
       const 묻는것 = 막는것들.at(-1);
-      if ((막는쪽 !== null || 묻는것 !== undefined) && !한번통과) {
+      if ((막는쪽 !== null || 묻는것 !== undefined) && !한번통과 && !안에서) {
         if (온칸 === null) {
           // 새 칸이 쌓였다. 그 칸을 이전 주소로 덮고 한 칸 물러난다 — 같은 주소끼리 옮겨 hashchange 가 다시 나지 않는다
           window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search + 이전);
           window.history.back();
+        } else if (온칸 === 지금칸) {
+          // 주소덮기가 같은 칸의 주소를 바꿨다. 되돌아갈 다른 칸이 없으니 이 칸의 주소만 되돌린다
+          window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search + 이전);
         } else {
           // 옛 칸으로 왔다. 그 칸은 두고 원래 칸으로 되돌아간다 — 돌아올 때의 hashchange 는 위의 같은 주소 검사가 거른다
           window.history.go(지금칸 - 온칸);
@@ -139,7 +202,9 @@ export function use이동(): { hash: string; 조건번: number } {
       한번통과 = false;
       const 앞 = 이전;
       이전 = 새것;
-      화면을바꾼다(앞, 새것, () => set보는((전) => ({ hash: 새것, 조건번: 조건글(새것) === '' ? 전.조건번 : 전.조건번 + 1 })));
+      // 뒤로 · 앞으로 가기로 온 주소는 조건이 없어도 새로 그린다 — 화면이 든 상태(고른 실행 · 열린 케이스)를 그 칸의 주소로 되돌려야 한다
+      const 새로 = !안에서 && (조건글(새것) !== '' || 온칸 !== null);
+      화면을바꾼다(앞, 새것, () => set보는((전) => ({ hash: 새것, 조건번: 새로 ? 전.조건번 + 1 : 전.조건번 })));
     };
     window.addEventListener('hashchange', onChange);
     return () => window.removeEventListener('hashchange', onChange);
