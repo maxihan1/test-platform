@@ -6,7 +6,7 @@ import { GM골드, 값읽기, 가방읽기, 강화, 사기, 템플릿찾기, 팔
 export const spec = defineCase({
   tcId: 'ASA-FN-391',
   name: '재화 원장의 「reason」이 모두 정해 둔 여덟 가운데 하나다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['상점 · 강화 · GM 골드 · 몬스터 처치를 한 캐릭터가 있다'],
   params: null,
   expected: null,

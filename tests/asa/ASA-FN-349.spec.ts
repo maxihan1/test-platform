@@ -7,7 +7,7 @@ import { 플레이어만들기, type 플레이어 } from './helpers/game.helper.
 export const spec = defineCase({
   tcId: 'ASA-FN-349',
   name: '봇 성향 비율이 평화형 40% · 반격형 40% · 선공형 20% 와 허용 오차 안에서 같다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['로그인한 캐릭터가 있다'],
   params: z.object({
     허용오차: z

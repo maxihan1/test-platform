@@ -6,7 +6,7 @@ import { GM레벨, 가방읽기, 계정만들기, 장비다해제, 캐릭터읽�
 export const spec = defineCase({
   tcId: 'ASA-FN-115',
   name: '1레벨 전사가 장비를 다 해제하면 최대 HP 120 · 최대 MP 30 · 공격력 12 · 방어력 6 이다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: [
     '장비를 다 해제한 1레벨 전사가 있다',
     '장비를 다 해제한 1레벨 궁수가 있다',

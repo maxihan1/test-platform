@@ -5,7 +5,7 @@ import { GM아이템, 가방읽기, 장착, 템플릿찾기, 플레이어만들�
 export const spec = defineCase({
   tcId: 'ASA-FN-100',
   name: '같은 부위 장비를 장착하면 앞 장비의 「equippedSlot」이 비워진다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['짧은 검을 장착한 전사가 있다'],
   params: null,
   expected: null,

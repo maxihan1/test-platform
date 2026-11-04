@@ -6,7 +6,7 @@ import { 가입, 갱신, 글칸, 로그인, 본문, 새비밀번호, 새아이�
 export const spec = defineCase({
   tcId: 'ASA-FN-025',
   name: '이미 쓴 리프레시 토큰으로 다시 갱신하면 401 「INVALID_REFRESH_TOKEN」으로 막힌다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['한 번 갱신해 쓴 리프레시 토큰이 있다'],
   params: null,
   expected: null,

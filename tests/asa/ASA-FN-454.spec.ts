@@ -3,7 +3,7 @@ import { defineCase, test, verify } from '@platform/kit';
 export const spec = defineCase({
   tcId: 'ASA-FN-454',
   name: 'GET /health 요청을 보내면 200 이 돌아온다',
-  apiDoc: 1,
+  apiDoc: 2,
   smoke: true,
   precondition: ['대상 서버에 접근할 수 있다'],
   params: null,

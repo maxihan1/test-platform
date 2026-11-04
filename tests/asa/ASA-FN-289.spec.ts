@@ -6,7 +6,7 @@ import { 값읽기, 캐릭터읽기, 플레이어만들기, type 봇, type 성�
 export const spec = defineCase({
   tcId: 'ASA-FN-289',
   name: '선량한 봇을 처치하면 성향치가 300 내려간다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['성향치 0 인 캐릭터와 선량한 봇이 있다'],
   params: null,
   expected: null,

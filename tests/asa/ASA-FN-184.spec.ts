@@ -6,7 +6,7 @@ import { 가방읽기, 계정만들기, 템플릿찾기, 플레이어만들기, 
 export const spec = defineCase({
   tcId: 'ASA-FN-184',
   name: '새 전사를 만들면 짧은 검 「sword_short」과 가죽 갑옷 「armor_leather」를 장착하고 있다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['새 전사가 있다', '새 궁수가 있다', '새 마법사가 있다'],
   params: null,
   expected: null,

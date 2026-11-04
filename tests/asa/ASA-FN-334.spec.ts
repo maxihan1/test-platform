@@ -8,7 +8,7 @@ import { 가방읽기, 플레이어만들기, type 플레이어 } from './helper
 export const spec = defineCase({
   tcId: 'ASA-FN-334',
   name: '봇 처치에서 전리품이 나오면 그 아이템이 내 가방에 있다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['캐릭터와 소지품이 있는 봇이 있다'],
   params: z.object({
     시도상한: z.number().int().min(6).max(12).describe('전리품이 나올 때까지 봇을 처치해 볼 최대 횟수 — 6 이상 12 이하').default(6),

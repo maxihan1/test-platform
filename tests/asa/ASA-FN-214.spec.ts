@@ -6,7 +6,7 @@ import { 가방읽기, GM성향, 값읽기, 사기, 상점목록, 캐릭터읽�
 export const spec = defineCase({
   tcId: 'ASA-FN-214',
   name: '악명 캐릭터가 상점 목록을 부르면 「priceMultiplier」가 1.2 다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['성향치가 0 보다 작은 캐릭터가 있다'],
   params: null,
   expected: null,

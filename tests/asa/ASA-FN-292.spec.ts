@@ -6,7 +6,7 @@ import { 값읽기, 사냥터좌표, 위치옮기기, 플레이어만들기, typ
 export const spec = defineCase({
   tcId: 'ASA-FN-292',
   name: '보라 이름 봇을 처치하면 「alignmentDelta」가 0 이다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['내 캐릭터를 먼저 공격해 보라 이름이 된 봇이 있다'],
   params: null,
   expected: null,

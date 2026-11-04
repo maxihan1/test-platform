@@ -6,7 +6,7 @@ import { 오류코드읽기, 플레이어만들기, type 스폰, type 플레이�
 export const spec = defineCase({
   tcId: 'ASA-FN-165',
   name: '같은 스폰을 리젠 시간 − 2초 안에 다시 처치하면 「COOLDOWN」으로 막힌다',
-  apiDoc: 1,
+  apiDoc: 2,
   techniques: ['동등 분할'],
   precondition: ['임프 하나를 막 처치한 캐릭터가 있다'],
   params: null,

@@ -5,7 +5,7 @@ import { PK기록, 값읽기, 플레이어만들기, type 성향, type 플레이
 export const spec = defineCase({
   tcId: 'ASA-FN-274',
   name: '새 캐릭터의 PK 기록을 부르면 성향치가 0 이다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['새 캐릭터가 있다'],
   params: null,
   expected: null,

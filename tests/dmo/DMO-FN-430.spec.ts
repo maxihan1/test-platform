@@ -2,7 +2,6 @@ import type { Page } from '@playwright/test';
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
-import { 토스트 } from './components/toast.component.js';
 import { 관리자로그인, 회원가입, 회원창 } from './helpers/account.helper.js';
 import type { 일회용회원 } from './helpers/account.helper.js';
 import { 관리자세션인가, 브라우저, 요청수집, 운영지급쿠폰수 } from './helpers/notify-flow.helper.js';
@@ -25,7 +24,6 @@ export const spec = defineCase({
 
 test(spec, async ({ page, request, params }) => {
   const 화면 = new 알림쿠폰화면(page);
-  const 알림 = new 토스트(page);
   const 열린창: Page[] = [];
 
   try {
@@ -49,8 +47,7 @@ test(spec, async ({ page, request, params }) => {
     await test.step('쿠폰 「주기」를 빠르게 두 번 누른다', async () => {
       const 수집 = 요청수집(page, '/api/ops/coupons');
       await 화면.쿠폰두번주기(회원.loginId, params.할인금액, 0);
-      await 알림.글자('쿠폰을 줬습니다').first().waitFor();
-      await 수집.끝날때까지();
+      await 수집.성공수();
       await verify('쿠폰 「주기」를 빠르게 두 번 누르면 그 회원 쿠폰이 한 장만 생긴다', await 운영지급쿠폰수(회원쪽), 1);
     });
   } finally {

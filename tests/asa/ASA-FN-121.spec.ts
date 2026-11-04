@@ -6,7 +6,7 @@ import { GM아이템, 가방읽기, 장비다해제, 장착, 캐릭터읽기, �
 export const spec = defineCase({
   tcId: 'ASA-FN-121',
   name: '+0 짧은 검 대신 +3 짧은 검을 장착하면 공격력이 6 더 높다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['장비를 다 해제한 1레벨 전사가 있다'],
   params: null,
   expected: null,

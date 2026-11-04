@@ -6,7 +6,7 @@ import { 가입, 로그인, 본문, 새비밀번호, 새아이디, 칸이름들 
 export const spec = defineCase({
   tcId: 'ASA-FN-043',
   name: '로그인하면 응답 칸 이름이 「accessToken」 · 「expiresInSeconds」 · 「refreshToken」이다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['가입한 아이디가 하나 있다'],
   params: null,
   expected: null,

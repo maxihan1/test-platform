@@ -5,7 +5,7 @@ import { 캐릭터읽기, 플레이어만들기, type 플레이어 } from './hel
 export const spec = defineCase({
   tcId: 'ASA-FN-283',
   name: '새 캐릭터의 상태가 「Innocent」다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['새 캐릭터가 있다'],
   params: null,
   expected: null,

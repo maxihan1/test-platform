@@ -7,7 +7,7 @@ import { 값읽기, 사냥터좌표, 위치옮기기, 캐릭터읽기, 플레이
 export const spec = defineCase({
   tcId: 'ASA-FN-286',
   name: '선량한 봇을 먼저 공격하면 「purpleUntil」이 60초 뒤다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['초록 들판에 선 캐릭터와 선량한 봇이 있다'],
   params: z.object({
     허용오차초: z.number().describe('60초와 견주는 허용 오차(초) — 1 이상 30 이하').default(5),

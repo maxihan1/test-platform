@@ -6,7 +6,7 @@ import { GM레벨, 값읽기, 캐릭터읽기, 플레이어만들기, type 캐�
 export const spec = defineCase({
   tcId: 'ASA-FN-136',
   name: '2레벨 캐릭터가 죽어도 레벨은 2 다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['2레벨 캐릭터가 있다'],
   params: null,
   expected: null,

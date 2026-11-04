@@ -5,7 +5,7 @@ import { GM레벨, 캐릭터읽기, 플레이어만들기, type 플레이어 } f
 export const spec = defineCase({
   tcId: 'ASA-FN-127',
   name: '1레벨 캐릭터의 「expToNext」가 100 이다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['1레벨 캐릭터가 있다'],
   params: null,
   expected: null,

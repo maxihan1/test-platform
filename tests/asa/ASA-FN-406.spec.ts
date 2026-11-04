@@ -6,7 +6,7 @@ import { GM봇리셋, 플레이어만들기, type 플레이어 } from './helpers
 export const spec = defineCase({
   tcId: 'ASA-FN-406',
   name: '불꽃 군주의 폐허 봇을 리셋하면 그 구역 봇 번호가 모두 바뀐다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['로그인한 캐릭터가 있다'],
   params: null,
   expected: null,

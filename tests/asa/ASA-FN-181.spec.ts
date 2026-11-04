@@ -5,7 +5,7 @@ import { 가방읽기, 템플릿찾기, 플레이어만들기, type 플레이어
 export const spec = defineCase({
   tcId: 'ASA-FN-181',
   name: '새 캐릭터를 만들면 가방에 빨간 물약 「potion_hp_s」가 10개 있다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['새 캐릭터가 있다'],
   params: null,
   expected: null,

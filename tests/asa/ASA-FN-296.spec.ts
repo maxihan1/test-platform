@@ -7,7 +7,7 @@ import { GM성향, 값읽기, 캐릭터읽기, 플레이어만들기, type 스�
 export const spec = defineCase({
   tcId: 'ASA-FN-296',
   name: '성향치 990 에서 몬스터를 처치하면 성향치가 1000 이다',
-  apiDoc: 1,
+  apiDoc: 2,
   techniques: ['경계값 분석'],
   precondition: ['성향치 990 인 캐릭터가 있다', '성향치 995 인 캐릭터가 있다'],
   params: z.object({

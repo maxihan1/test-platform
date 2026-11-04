@@ -17,7 +17,7 @@ import {
 export const spec = defineCase({
   tcId: 'ASA-FN-204',
   name: '가방이 다 찬 캐릭터가 상점에서 사면 「INVENTORY_FULL」로 막힌다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['가방 40칸이 다 찬 캐릭터가 있다', '가방 40칸이 다 찬 캐릭터 곁에 바닥 아이템이 있다'],
   params: null,
   expected: null,

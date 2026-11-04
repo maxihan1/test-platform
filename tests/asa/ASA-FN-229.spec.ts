@@ -6,7 +6,7 @@ import { 가방읽기, GM골드, GM아이템, 강화, 값읽기, 템플릿찾기
 export const spec = defineCase({
   tcId: 'ASA-FN-229',
   name: '+0 장비를 강화하면 골드가 100 준다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['무기 강화 주문서를 가진 캐릭터가 있다'],
   params: null,
   expected: null,

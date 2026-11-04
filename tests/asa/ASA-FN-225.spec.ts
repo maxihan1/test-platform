@@ -5,7 +5,7 @@ import { 가방읽기, GM아이템, 강화, 오류코드읽기, 템플릿찾기,
 export const spec = defineCase({
   tcId: 'ASA-FN-225',
   name: '무기에 방어구 강화 주문서를 쓰면 「SCROLL_MISMATCH」로 막힌다',
-  apiDoc: 1,
+  apiDoc: 2,
   techniques: ['동등 분할'],
   precondition: ['방어구 강화 주문서를 가진 캐릭터가 있다', '무기 강화 주문서를 가진 캐릭터가 있다'],
   params: null,

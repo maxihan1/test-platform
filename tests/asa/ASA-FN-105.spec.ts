@@ -5,7 +5,7 @@ import { 가방읽기, 아이템쓰기, 오류코드읽기, 템플릿찾기, 플
 export const spec = defineCase({
   tcId: 'ASA-FN-105',
   name: '장비에 아이템 사용을 부르면 409 「NOT_USABLE」로 막힌다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['짧은 검을 가진 캐릭터가 있다'],
   params: null,
   expected: null,

@@ -7,7 +7,7 @@ import { 길이별캐릭터이름 } from './helpers/character.helper.js';
 export const spec = defineCase({
   tcId: 'ASA-FN-080',
   name: '캐릭터 이름을 1자로 적어 만들면 400 「VALIDATION_FAILED」로 막힌다',
-  apiDoc: 1,
+  apiDoc: 2,
   techniques: ['경계값 분석'],
   precondition: ['로그인한 계정이 있다'],
   params: z.object({

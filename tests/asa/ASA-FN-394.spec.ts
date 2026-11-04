@@ -5,7 +5,7 @@ import { GM골드, 값읽기, 캐릭터읽기, 플레이어만들기, type 플�
 export const spec = defineCase({
   tcId: 'ASA-FN-394',
   name: 'GM 골드 「amount」가 −100 이면 골드가 400 이다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['골드 500 인 캐릭터가 있다'],
   params: null,
   expected: null,

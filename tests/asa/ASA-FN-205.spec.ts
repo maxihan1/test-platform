@@ -8,7 +8,7 @@ import { 가방읽기, 가방채우기, 플레이어만들기, type 플레이어
 export const spec = defineCase({
   tcId: 'ASA-FN-205',
   name: '가방이 다 찬 캐릭터가 봇 전리품을 얻으면 「droppedToGround」가 true 다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['가방 40칸이 다 찬 캐릭터가 있다'],
   params: z.object({
     시도상한: z.number().int().min(6).max(12).describe('전리품이 나올 때까지 봇을 처치해 볼 최대 횟수 — 6 이상 12 이하').default(6),

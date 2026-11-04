@@ -6,7 +6,7 @@ import { 가입, 본문, 새비밀번호, 새아이디 } from './helpers/api.hel
 export const spec = defineCase({
   tcId: 'ASA-FN-631',
   name: '새 아이디로 가입하면 응답 코드가 기대값과 같다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['가입하지 않은 새 아이디다'],
   params: null,
   expected: z.object({

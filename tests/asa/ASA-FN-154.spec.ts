@@ -6,7 +6,7 @@ import { 가방읽기, 플레이어만들기, type 스폰, type 플레이어 } f
 export const spec = defineCase({
   tcId: 'ASA-FN-154',
   name: '임프를 처치해도 가방 아이템 수가 그대로다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['캐릭터가 있다'],
   params: null,
   expected: null,

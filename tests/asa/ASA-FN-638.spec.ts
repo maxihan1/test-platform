@@ -6,7 +6,7 @@ import { 캐릭터지우기, 플레이어만들기, type 플레이어 } from './
 export const spec = defineCase({
   tcId: 'ASA-FN-638',
   name: '캐릭터를 지우면 응답 코드가 기대값과 같다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['캐릭터가 하나 있다'],
   params: null,
   expected: z.object({

@@ -6,7 +6,7 @@ import { 가입, 본문, 새비밀번호, 새아이디, 오류코드 } from './h
 export const spec = defineCase({
   tcId: 'ASA-FN-015',
   name: '이미 있는 아이디로 다시 가입하면 409 「USERNAME_TAKEN」으로 막힌다',
-  apiDoc: 1,
+  apiDoc: 2,
   techniques: ['동등 분할'],
   precondition: ['가입한 아이디가 하나 있다'],
   params: null,

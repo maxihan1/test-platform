@@ -5,7 +5,7 @@ import { 로그인, 새비밀번호, 새아이디, 칸이름들 } from './helper
 export const spec = defineCase({
   tcId: 'ASA-FN-039',
   name: '로그인이 막히면 오류 응답의 칸이 「code」 · 「message」 둘이다',
-  apiDoc: 1,
+  apiDoc: 2,
   techniques: ['동등 분할'],
   precondition: ['가입하지 않은 아이디다'],
   params: null,

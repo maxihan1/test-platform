@@ -5,7 +5,7 @@ import { 가방읽기, 값읽기, 사기, 플레이어만들기, type 가방, ty
 export const spec = defineCase({
   tcId: 'ASA-FN-211',
   name: '빨간 물약 하나를 사면 골드가 30 준다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['골드 500 인 캐릭터가 있다'],
   params: null,
   expected: null,

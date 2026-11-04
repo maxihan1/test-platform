@@ -5,7 +5,7 @@ import { 캐릭터읽기, 플레이어만들기, type 플레이어 } from './hel
 export const spec = defineCase({
   tcId: 'ASA-FN-178',
   name: '새 캐릭터를 만들면 골드가 500 이다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['새 캐릭터가 있다'],
   params: null,
   expected: null,

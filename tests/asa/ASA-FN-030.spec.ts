@@ -5,7 +5,7 @@ import { 갱신, 무작위글자, 오류코드 } from './helpers/api.helper.js';
 export const spec = defineCase({
   tcId: 'ASA-FN-030',
   name: '받은 적 없는 리프레시 토큰으로 갱신하면 401 「INVALID_REFRESH_TOKEN」으로 막힌다',
-  apiDoc: 1,
+  apiDoc: 2,
   techniques: ['동등 분할'],
   precondition: ['받은 적 없는 리프레시 토큰이다'],
   params: null,

@@ -6,7 +6,7 @@ import { GM레벨, 캐릭터읽기, 플레이어만들기, type 플레이어 } f
 export const spec = defineCase({
   tcId: 'ASA-FN-131',
   name: '50레벨로 올리면 레벨이 50 이다',
-  apiDoc: 1,
+  apiDoc: 2,
   techniques: ['경계값 분석'],
   precondition: ['1레벨 캐릭터가 있다'],
   params: z.object({

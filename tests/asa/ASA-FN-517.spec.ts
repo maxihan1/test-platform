@@ -5,7 +5,7 @@ import { GM드랍설정, 플레이어만들기, type 플레이어 } from './help
 export const spec = defineCase({
   tcId: 'ASA-FN-517',
   name: 'GM 드랍 설정에 빈 요청을 보내면 200 이 돌아온다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['로그인한 캐릭터가 있다'],
   params: null,
   expected: null,

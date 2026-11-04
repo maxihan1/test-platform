@@ -5,7 +5,7 @@ import { GM성향, 캐릭터읽기, 플레이어만들기, type 플레이어 } f
 export const spec = defineCase({
   tcId: 'ASA-FN-272',
   name: 'GM 으로 성향치를 −1001 로 바꾸려 하면 성향치가 −1000 아래로 내려가지 않는다',
-  apiDoc: 1,
+  apiDoc: 2,
   techniques: ['경계값 분석'],
   precondition: ['캐릭터가 있다'],
   params: null,

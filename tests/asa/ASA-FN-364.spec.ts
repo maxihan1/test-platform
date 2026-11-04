@@ -7,7 +7,7 @@ import { 플레이어만들기, type 바닥아이템, type 봇, type 플레이�
 export const spec = defineCase({
   tcId: 'ASA-FN-364',
   name: '봇이 바닥 아이템을 주우면 그 봇의 「itemCount」가 1 는다',
-  apiDoc: 1,
+  apiDoc: 2,
   precondition: ['바닥 아이템과 살아 있는 봇이 있다'],
   params: null,
   expected: null,
