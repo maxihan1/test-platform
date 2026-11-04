@@ -2,7 +2,7 @@
 
 import { useRef } from 'react';
 
-import type { api, Platform, RunInsights as 비교 } from './api.js';
+import type { api, ItemStatus, Platform, RunInsights as 비교 } from './api.js';
 import { 갈라낸다, type CaseGroup } from './group.js';
 import { use말 } from './i18n.js';
 import { RunFailCards } from './RunFailCards.js';
@@ -91,7 +91,7 @@ interface Props {
 export function 끝난결과(props: Props) {
   const { data, insights, 판정하기, 견줌오류, 칸안, 보기, 바꾸기, 열카드 } = props;
   const { 판정, device, 쪽: page, 변화 } = 보기;
-  const on판정 = (값: 결과보기['판정']) => 바꾸기(판정고른보기(값));
+  const on판정 = (값: ItemStatus | 'ALL') => 바꾸기(판정고른보기(값));
   const on디바이스 = (값: Platform | 'ALL') => 바꾸기(디바이스고른보기(값));
   const t = use말();
   // 「실패 다시 실행」으로 다시 돌린 결과를 원래 카드에 잇는다 — 실패가 있고 끝난 실행일 때만 찾는다 (점검 2.17)

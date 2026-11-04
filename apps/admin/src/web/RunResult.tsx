@@ -3,7 +3,7 @@
 
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 
-import { api, ApiError, type ItemStatus, type RunInsights as 비교 } from './api.js';
+import { api, ApiError, type ItemStatus, type Platform, type RunInsights as 비교 } from './api.js';
 import { filterGroups, groupByCase } from './group.js';
 import { Head } from './Head.js';
 import { use증적, 증적만들기버튼들, 증적알림과목록 } from './EvidenceSection.js';
@@ -29,20 +29,7 @@ import { use보는실행알림 } from './viewedRun.js';
 
 const STATUSES: (ItemStatus | 'ALL')[] = ['ALL', 'PASS', 'FAIL', 'NA'];
 
-function 케이스결과({
-  runId,
-  판정하기,
-  칸안 = false,
-  on새실행,
-  on시나리오,
-  열카드,
-  보기,
-  on보기,
-}: {
-  /** 거르개 · 쪽 · 펼친 카드. 주소에 담는 쪽(실행 기록 · 결과 화면 감싸개)이 든다 */
-  보기: 결과보기;
-  on보기: Dispatch<SetStateAction<결과보기>>;
-  on시나리오?: () => void;
+interface 결과바깥 {
   /** 이 케이스의 실패 카드를 펼친 채 연다 — 대시보드 · 항목 상세에서 곧장 내려온 주소(`&tc=`) */
   열카드?: string;
   runId: number;
@@ -54,11 +41,30 @@ function 케이스결과({
   칸안?: boolean;
   /** 결과 칸에서 건 「실패 다시」 — 주소를 옮기지 않고 목록이 새 실행을 고른다 */
   on새실행?: (runId: number) => void;
-}) {
+}
+
+/** 거르개 · 쪽 · 펼친 카드. 주소에 담는 쪽(실행 기록 · 결과 화면 감싸개)이 든다 */
+interface 결과상태 {
+  보기: 결과보기;
+  on보기: Dispatch<SetStateAction<결과보기>>;
+}
+
+function 케이스결과({
+  runId,
+  판정하기,
+  칸안 = false,
+  on새실행,
+  on시나리오,
+  열카드,
+  보기,
+  on보기,
+}: 결과바깥 & 결과상태 & { on시나리오?: () => void }) {
   const t = use말();
   const 언어 = use언어();
   const { 판정: status, device, 쪽: page } = 보기;
-  const 바꾸기 = (바꿀: 보기바꿈) => on보기((앞) => 바꾼보기(앞, 바꿀));
+  function 바꾸기(바꿀: 보기바꿈) {
+    on보기((앞) => 바꾼보기(앞, 바꿀));
+  }
   const [멈출까, set멈출까] = useState(false);
   const [멈추는중, set멈추는중] = useState(false);
   const [끝났다고알릴까말까, set알릴까] = useState(false);
@@ -138,7 +144,7 @@ function 케이스결과({
       ? null
       : 시간글자(Math.max(0, new Date(data.finishedAt).getTime() - new Date(data.startedAt).getTime()), 언어);
   const 판정고름 = (값: ItemStatus | 'ALL') => 바꾸기(판정고른보기(값));
-  const 디바이스고름 = (값: 결과보기['device']) => 바꾸기(디바이스고른보기(값));
+  const 디바이스고름 = (값: Platform | 'ALL') => 바꾸기(디바이스고른보기(값));
   const 쪽고름 = (쪽: number) => 바꾸기({ 쪽 });
 
   // 실행 정보는 이 한 줄이 전부다 — 앞 판은 같은 값을 옆 칸에 또 적었고 좁은 창에서 그 칸이 맨 아래로 묻혔다 (도메인/실행 §8.3 · 점검 2.2)
@@ -336,8 +342,7 @@ function 케이스결과({
   );
 }
 
-type 케이스결과props = Parameters<typeof 케이스결과>[0];
-type 결과props = Omit<케이스결과props, '보기' | 'on보기' | 'on시나리오'> & { 보기?: 결과보기; on보기?: Dispatch<SetStateAction<결과보기>> };
+type 결과props = 결과바깥 & Partial<결과상태>;
 
 /** 실행 기록의 결과 칸은 `보기` 를 주소와 함께 넘긴다. 안 주면(결과 화면 `#/runs/번호`) 감싸개가 그 주소에 담는다 */
 export function RunResult(props: 결과props) {
@@ -353,7 +358,7 @@ function 주소로보는결과(props: 결과props) {
   return <결과갈래 {...props} 보기={보기} on보기={set보기} />;
 }
 
-function 결과갈래(props: Omit<케이스결과props, 'on시나리오'>) {
+function 결과갈래(props: 결과바깥 & 결과상태) {
   const [시나리오, set시나리오] = useState<number | null>(null); // 시나리오 실행 번호는 404 SCENARIO_RUN 으로 알려 준다 — 갈래를 바깥에 둬 훅 순서를 지킨다
   // 머리가 진행을 적으니 알림 줄은 이 실행의 도는 줄을 뺀다 (공통/5-화면공통 §8 「알림」)
   use보는실행알림(props.runId);

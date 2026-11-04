@@ -68,10 +68,10 @@ export type 보기바꿈 = Partial<결과보기> | ((앞: 결과보기) => Parti
 export const 바꾼보기 = (앞: 결과보기, 바꿀: 보기바꿈): 결과보기 => ({ ...앞, ...(typeof 바꿀 === 'function' ? 바꿀(앞) : 바꿀) });
 
 /** 판정 칩을 고르면 줄은 1쪽부터 — 앞 쪽 번호로 새 거르개를 보면 빈 쪽이 선다 */
-export const 판정고른보기 = (판정: 결과보기['판정']): Partial<결과보기> => ({ 판정, 쪽: 1 });
+export const 판정고른보기 = (판정: ItemStatus | 'ALL'): Partial<결과보기> => ({ 판정, 쪽: 1 });
 
 /** 디바이스를 고르면 카드도 다른 카드가 서니 카드 쪽 · 칩 · 펼침까지 처음으로 */
-export const 디바이스고른보기 = (device: 결과보기['device']): Partial<결과보기> => ({ device, 쪽: 1, 카드쪽: 1, 유형: null, 안본것만: false, 열린: [] });
+export const 디바이스고른보기 = (device: Platform | 'ALL'): Partial<결과보기> => ({ device, 쪽: 1, 카드쪽: 1, 유형: null, 안본것만: false, 열린: [] });
 
 /** 카드를 펴거나 접은 뒤의 보기. 같은 것을 다시 펴면 그대로다 — 펼 때마다 주소가 바뀌지 않게 */
 export function 펼침바꾼보기(앞: 결과보기, tcId: string, 열림: boolean): 결과보기 {
