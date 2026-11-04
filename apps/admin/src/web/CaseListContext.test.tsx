@@ -269,6 +269,6 @@ describe('종류 칩 · 넘어온 요구 번호', () => {
     expect(스파이.mock.calls[0]![0]).toMatchObject({ req: 'ZCL-REQ-003' });
     fireEvent.click(screen.getByRole('button', { name: '요구 ZCL-REQ-003 조건 풀기' }));
     expect(마지막조건(스파이).req).toBeUndefined();
-    expect(window.location.hash).toBe('#/cases/fn');
+    expect(window.location.hash).toBe('#/cases/fn?service=ZCL');
   });
 });

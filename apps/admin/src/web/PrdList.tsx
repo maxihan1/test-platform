@@ -40,7 +40,8 @@ export function PrdList({
   const t = use말();
   // 찾기 글자는 주소에 남는다 — 케이스 목록에 갔다 뒤로 와도 그대로다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
   const [q, setQ] = useState(() => 주소조건().get('q') ?? '');
-  use주소조건(여기 === undefined ? '#/prd' : PRD항목주소(여기), q === '' ? {} : { q });
+  // 맨 PRD 는 애플리케이션을 `service=` 로 단다 — 요구 번호 주소는 번호의 접두사가 그 몫을 한다 (공통/5-화면공통 §8 「링크에 애플리케이션이 담긴다」)
+  use주소조건(여기 === undefined ? '#/prd' : PRD항목주소(여기), { ...(q === '' ? {} : { q }), ...(여기 === undefined && service !== '' ? { service } : {}) });
   // 판을 받은 뒤에 그려지므로 처음 값에서 바로 찾는다. 지금 판에 없는 번호면 아무것도 안 편다
   const 여기것 = 여기 === undefined ? undefined : now.items.find((x) => x.reqId === 여기);
   const [연묶음, set연묶음] = useState<Set<string>>(() => new Set(여기것 === undefined ? [] : [여기것.feature]));

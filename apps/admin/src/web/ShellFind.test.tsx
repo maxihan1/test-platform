@@ -71,7 +71,7 @@ describe('찾기 창', () => {
     fireEvent.click(await screen.findByText('ZSH-FN-001 이름'));
     expect(찾기).toHaveBeenCalledWith({ service: 'ZSH', q: 'ZSH-FN' });
     expect(찾기).toHaveBeenCalledTimes(1);
-    expect(window.location.hash).toBe('#/cases/fn?q=ZSH-FN-001&case=ZSH-FN-001');
+    expect(window.location.hash).toBe('#/cases/fn?q=ZSH-FN-001&case=ZSH-FN-001&service=ZSH');
   });
 
   it('말을 고친 직후에는 앞 말로 찾은 케이스를 보이지 않는다 — Enter 가 엉뚱한 케이스로 가지 않게', async () => {

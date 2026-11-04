@@ -89,7 +89,7 @@ describe('한 건 실행 진행 창 (도메인/실행 §8.9 「완료 모달」)
     await 그린다();
     expect(screen.getByText('이 케이스 상세의 「실행 기록」에 남았습니다')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '결과 보기' }));
-    expect(window.location.hash).toBe('#/cases/fn?q=ZRS-001&case=ZRS-001');
+    expect(window.location.hash).toBe('#/cases/fn?q=ZRS-001&case=ZRS-001&service=ZRS');
   });
 });
 

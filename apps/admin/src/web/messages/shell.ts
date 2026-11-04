@@ -64,6 +64,8 @@ export const 껍데기말: Record<string, string> = {
   '결정 필요 {수}건': '{수} need a decision',
   '전체 메뉴': 'All menus',
   '애플리케이션 바꾸기 · {프로젝트}': 'Switch application · {프로젝트}',
+  // 링크의 `service=` 가 못 보는 애플리케이션이면 띠를 그대로 두고 띄운다 (공통/5-화면공통 §8 「링크에 애플리케이션이 담긴다」)
+  '링크의 애플리케이션은 볼 권한이 없어 지금 고른 애플리케이션으로 엽니다': "You can't access the linked application, so it opened in your current one",
   '{이름} 메뉴': '{이름} menu',
   // 휴대폰 고르기 바 — 단추가 같은 폭으로 나란해 「조건에 맞는 N건 모두 고름」을 줄였다 (CaseListPick.tsx)
   '모두 {수}건': 'All {수}',

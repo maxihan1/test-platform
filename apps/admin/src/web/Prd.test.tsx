@@ -206,7 +206,8 @@ describe('PRD 관리 — 찾기 글자는 주소에 남는다', () => {
 
     const 길이 = window.history.length;
     fireEvent.change(칸, { target: { value: '' } });
-    expect(window.location.hash).toBe('#/prd');
+    // 맨 PRD 는 애플리케이션을 단다 (WEB-F8-02)
+    expect(window.location.hash).toBe('#/prd?service=MKT');
     expect(window.history.length).toBe(길이);
     window.history.replaceState(null, '', '#/');
   });
