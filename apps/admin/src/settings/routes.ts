@@ -1,7 +1,6 @@
 // 설정 API (SPEC §7). 운영(admin) 등급만 닿는다 — 막는 것은 인증 미들웨어다 (auth/gate.ts).
 // 화면은 WS-E 가 만든다 (§8.8). 여기는 API 까지다
 
-import { 앱파일값인가 } from '@platform/kit/protocol';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
@@ -12,8 +11,8 @@ import { 화면크기목록 } from '../prd/screens.js';
 import { 정수 } from '../routeParams.js';
 
 import { API서버라우트 } from './apiServerRoutes.js';
-import { API인증줄, API칸, API칸오류, API칸지금, 어드민키줄 } from './apiService.js';
-import { 역할까닭찾기 } from './roles.js';
+import { API칸, API칸오류, API칸지금 } from './apiService.js';
+import { 게임패키지, 게임패키지거절, 대상서버목록, 역할틀림 } from './envBody.js';
 import { 프로젝트만들기, 프로젝트목록, 프로젝트이름고치기 } from './projects.js';
 import { 제외경로정리 } from './rules.js';
 import { 정기실행틀린칸 } from './scheduleCheck.js';
@@ -23,35 +22,6 @@ import { 계정거절, 계정고치기, 계정만들기, 계정목록, 계정수
 // SPEC §2 의 접두사 모양을 코드가 복사해 둔 자리다. §2 를 고치면 여기도 같이 움직인다 (CLAUDE.md §2.7 ⑤).
 // scripts/add-service.ts 가 이것을 가져다 쓴다 — 같은 모양을 두 번 적지 않는다
 export const 접두사모양 = /^[A-Z][A-Z0-9]{0,11}$/;
-
-// 테스트 계정 칸은 키가 없으면 기존 값을 유지하고 null·빈 글자면 지운다. 역할 계정 · 운영 서버 표시도 키가 없으면 유지한다
-// (SPEC 도메인/인증 §7 「envs[] 한 줄」). 역할 이름 규칙은 스키마 밖 roles.ts 에서 본다 — 어기면 400 BAD_ROLE 이다
-const 역할계정 = z.object({
-  role: z.string(),
-  loginId: z.string().nullable().optional(),
-  loginPassword: z.string().nullable().optional(),
-});
-
-const 대상서버 = z.object({
-  env: z.string().min(1),
-  baseUrl: z.string().min(1),
-  loginId: z.string().nullable().optional(),
-  loginPassword: z.string().nullable().optional(),
-  isProd: z.boolean().optional(),
-  accounts: z.array(역할계정).optional(),
-  // Appium 이 도는 PC(팜 PC)의 apk 경로나 http(s) 주소다. 있는지는 안 본다(Appium 이 그 항목의 실패 사유로 말한다).
-  // http(s) 밖의 주소(file:// 등)는 막는다 — 그 PC 의 아무 파일이나 폰에 깔게 된다 (APP-F1-03 · APP-F1-10)
-  appPath: z.string().max(1000).refine(앱파일값인가, 'appPath 는 파일 경로나 http(s) 주소여야 합니다').nullable().optional(),
-  apiAuths: z.array(API인증줄).optional(),
-  adminKey: 어드민키줄.nullable().optional(),
-});
-
-// 이름이 키다 — 겹치면 둘째 줄 INSERT 가 기본 키에 걸려 500 이 된다
-const 대상서버목록 = z.array(대상서버).refine((envs) => new Set(envs.map((e) => e.env)).size === envs.length, 'envs 의 env 이름이 겹칩니다');
-
-// 한 줄이라도 어긋나면 저장 전체를 막는다. 어느 줄인지는 싣지 않는다 — 화면이 보내기 전에 같은 규칙으로 짚는다
-const 역할틀림 = (envs: { accounts?: { role: string }[] }[] | undefined): boolean =>
-  (envs ?? []).some((e) => e.accounts !== undefined && 역할까닭찾기(e.accounts.map((a) => a.role)) !== null);
 
 // 저장은 정리한 값이다. 틀린 줄은 다른 틀린 칸과 같은 400 INVALID_REQUEST 의 detail 로 돌려준다 (SPEC 도메인/인증 §7 계약 변경 블록)
 const 훑지않을경로 = z.array(z.string()).transform((줄들, ctx) => {
@@ -208,6 +178,7 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
       return reply.code(400).send({ error: 'PREFIX_SHAPE', detail: parsed.data.prefix });
     }
     if (역할틀림(parsed.data.envs)) return reply.code(400).send({ error: 'BAD_ROLE' });
+    if (게임패키지(parsed.data.kind, parsed.data.envs)) return reply.code(400).send(게임패키지거절);
     const API오류 = API칸오류(parsed.data, { kind: parsed.data.kind, apiDocEnv: null, envs: [] });
     if (API오류 !== null) return reply.code(400).send({ error: API오류 });
     return reply.code(201).send({ id: await 서비스만들기(parsed.data) });
@@ -234,6 +205,7 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
       const 틀린칸 = await 정기실행틀린칸(id, parsed.data);
       if (틀린칸 !== null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: 틀린칸 });
       const 지금 = await API칸지금(id);
+      if (지금 !== null && 게임패키지(지금.kind, parsed.data.envs)) return reply.code(400).send(게임패키지거절);
       const API오류 = 지금 === null ? null : API칸오류(parsed.data, 지금);
       if (API오류 !== null) return reply.code(400).send({ error: API오류 });
       await 서비스고치기(id, parsed.data);

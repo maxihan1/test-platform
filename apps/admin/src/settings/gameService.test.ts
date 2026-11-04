@@ -110,4 +110,20 @@ describe.skipIf(연결 === undefined)('설정 API 의 게임 애플리케이션 
     expect(res.json()).toEqual({ error: 'NOT_GAME_SERVICE' });
     expect(await 읽는다(화면접두사)).toBeUndefined();
   });
+
+  it('게임 줄의 앱 파일 칸에 스토어 앱 패키지 이름을 적으면 400 이고 Android 앱 애플리케이션은 받는다 — 게임은 SDK 든 APK 라야 돈다', async () => {
+    const 말 = { error: 'INVALID_REQUEST', detail: 'appPath 는 게임 애플리케이션에서 패키지 이름을 받지 않습니다 — SDK 를 넣은 APK 경로나 http(s) 주소여야 합니다' };
+    const 고침 = await 고친다({ envs: [{ ...줄(), appPath: ' com.xgm.game ' }] });
+    expect([고침.statusCode, 고침.json()]).toEqual([400, 말]);
+    const 새게임 = await 만든다({ prefix: 화면접두사, kind: 'GAME', envs: [{ ...줄(), appPath: 'com.xgm.game' }] });
+    expect([새게임.statusCode, 새게임.json()]).toEqual([400, 말]);
+    expect((await 고친다({ envs: [{ ...줄(), appPath: 'xgm.apk' }] })).statusCode).toBe(200);
+    try {
+      expect((await 만든다({ prefix: 화면접두사, kind: 'APP', envs: [{ ...줄(), appPath: 'com.xgm.app' }] })).statusCode).toBe(201);
+    } finally {
+      await 치운다();
+      const 다시 = await 만든다({ prefix: 접두사, kind: 'GAME', envs: [줄({ header: 'X-Admin-Key', value: 키값 })] });
+      번호 = 다시.json<{ id: number }>().id;
+    }
+  });
 });
