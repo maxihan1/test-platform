@@ -11,7 +11,6 @@ import { use필터조건들 } from './CaseListFilterBar.js';
 import { 떠나기막기 } from './leaveGuard.js';
 import { RunLocation } from './RunLocation.js';
 import { ServicePanel } from './SettingsService.js';
-import { 서비스고르개 } from './ShellPickers.js';
 import { 애플리케이션줄 } from './ShellRail.js';
 
 afterEach(() => {
@@ -112,14 +111,12 @@ describe('게임 애플리케이션 설정 — 어드민 키 (도메인/인증 �
 describe('게임 종류가 그리는 곳 (도메인/러너 §5.2 종류 표 GAME 줄)', () => {
   const 행 = { ...게임앱([]), envs: [{ env: 'qa', baseUrl: 'https://qa.ashveil.dev' }], permissions: { cases: 'write', runs: 'write', authoring: 'write' } } as ServiceRow;
 
-  it('헤더 고르개에 게임 묶음이 Android 앱 다음에 서고, 애플리케이션 줄에는 폰과 다른 게임 아이콘이 붙는다', () => {
+  it('애플리케이션 줄에 게임이 Android 앱 다음에 서고, 폰과 다른 게임 아이콘이 붙는다', () => {
     const 웹 = { ...행, id: 1, prefix: 'MKW', name: '데모마켓 웹', kind: 'SCREEN' } as ServiceRow;
     const 폰 = { ...행, id: 3, prefix: 'MKA', name: '데모마켓 앱', kind: 'APP' } as ServiceRow;
     const user = { username: 'z', displayName: 'z', role: 'member' as const, dashboard: 'read' as const, mustChangePassword: false, services: [행, 웹, 폰] };
-    render(<서비스고르개 user={user} service={웹} onService={() => {}} />);
-    expect([...document.querySelectorAll('optgroup')].map((g) => g.label)).toEqual(['웹', 'Android 앱', '게임']);
-    cleanup();
     render(<애플리케이션줄 user={user} service={행} onService={() => {}} 새로만들기={false} />);
+    expect(screen.getAllByRole('button').map((단추) => 단추.getAttribute('aria-label'))).toEqual(['데모마켓 웹 · 웹', '데모마켓 앱 · Android 앱', `${행.name} · 게임`]);
     const 게임아이콘 = screen.getByRole('button', { name: `${행.name} · 게임` }).querySelector('svg')?.innerHTML;
     expect(게임아이콘).toBeTruthy();
     expect(게임아이콘).not.toBe(screen.getByRole('button', { name: '데모마켓 앱 · Android 앱' }).querySelector('svg')?.innerHTML);

@@ -433,19 +433,7 @@ describe('서비스 색이 되살아나지 않는다 (SPEC §8, 2026-09-22)', ()
 });
 
 // 「예쁘게」는 잴 수 없다. 숫자로 적어야 검사가 붙는다 (계획 게이트 1 주의 7)
-describe('서비스 고르개 (SPEC §8, 2026-09-22)', () => {
-  // 기본 규칙은 손가락 기준(휴대폰 위 줄이 쓴다). PC 사이드바 맨 위 프로젝트 고르개는 rail.css 가 32px 로 덮는다 (2026-10-30 · 2026-11-02 바닥에서 옮김)
-  it('누르는 영역이 44px 기준을 넘는다. 브라우저 반올림 때문에 46 으로 건다', () => {
-    const 규칙 = css.slice(css.indexOf('.side-pick {'));
-    const 높이 = /min-height:\s*(\d+)px/.exec(규칙);
-    expect(높이, '.side-pick 에 min-height 가 없다').not.toBeNull();
-    expect(Number(높이![1])).toBeGreaterThanOrEqual(46);
-  });
-
-  it('포커스 표시가 있다. 키보드로 쓰는 사람이 지금 어디인지 알아야 한다', () => {
-    expect(css).toContain('.side-pick:focus-visible');
-  });
-
+describe('눌린 칩 (SPEC §8, 2026-09-22)', () => {
   it('눌린 칩의 포커스 테두리가 칩 밖에 선다. 안쪽이면 잉크 바탕에 잉크 선이라 안 보인다', () => {
     expect(규칙(".chip[aria-pressed='true']:focus-visible")).toMatch(/outline-offset:\s*2px/);
   });
@@ -639,7 +627,7 @@ describe('넓은 상자가 표를 담을 만큼 크다 (DESIGN.md, 2026-09-22)',
 // OS 가 짙은 사이드바 위에 흰 상자를 그렸다. 두 번째라 기계로 옮긴다 (CLAUDE.md §2.5).
 // 밝은 면 위의 select 는 OS 모양이어도 읽히므로 사이드바만 본다
 describe('사이드바의 select 를 OS 가 그리지 않는다 (LEARNINGS 2026-09-21 재발)', () => {
-  // 사이드바 · 휴대폰 위 줄이 같이 쓰는 고르개 둘은 ShellPickers.tsx 에 산다 (2026-10-12 묶음 5)
+  // 내 메뉴 · 휴대폰 메뉴판이 같이 쓰는 언어 고르개는 ShellPickers.tsx 에 산다 (2026-10-12 묶음 5). 프로젝트 · 애플리케이션 고르개는 2026-11-05 위치 판 단추로 바뀌어 하나만 남았다
   const 껍데기 = readFileSync(new URL('./ShellPickers.tsx', import.meta.url), 'utf8');
 
   /** 사이드바가 그리는 select 하나하나의 자리 이름(class 나 id)을 모은다 */
@@ -653,7 +641,7 @@ describe('사이드바의 select 를 OS 가 그리지 않는다 (LEARNINGS 2026-
   }
 
   it('사이드바가 그리는 고르개를 세었다', () => {
-    expect(고르개이름들().length).toBeGreaterThanOrEqual(2);
+    expect(고르개이름들().length).toBeGreaterThanOrEqual(1);
   });
 
   // 「appearance 라는 글자가 css 어딘가에 있다」로는 안 된다 — 다른 선택자에 걸린 것도 통과한다.

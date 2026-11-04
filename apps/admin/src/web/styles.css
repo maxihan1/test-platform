@@ -1831,10 +1831,6 @@ input[type='file']::file-selector-button {
     grid-template-columns: 1fr;
   }
 
-  /* 휴대폰 위 줄의 서비스 고르개도 관문이다. 이름이 잘리면 어느 서비스를 보는지 알 수 없다 (SPEC §8) */
-  .side-pick {
-    max-width: 100%;
-  }
 }
 
 /* 케이스 목록이 좁으면 줄을 쌓는다 — 번호 → 케이스명 → 마지막 결과 · 버튼 (PR #159 시안 A · 입력값 줄은 ⑫ 에서 상세 칸으로 갔다).
@@ -2040,58 +2036,11 @@ input[type='file']::file-selector-button {
   color: var(--ink-faint);
 }
 
-/* ── 맨 위 띠 · 알림 줄 (SPEC §8) ──────────────────────────────────── */
-
-/* `appearance: none` 이 없으면 OS 가 select 를 제 모양대로 그린다 —
-   background 를 transparent 로 줘도 짙은 사이드바 위에 흰 상자가 뜬다 (2026-09-21 제품 CSS 실측).
-   화살표는 배경 그림으로 직접 그린다. 지우면 눌러서 펴는 것인지 안 보인다 */
-/* 손가락으로 누르는 영역 기준은 44px 인데 **46px 로 건다** —
-   브라우저가 반올림하며 소수점만큼 깎는다 (SPEC §8 의 자리 목록과 같은 이유) */
-.side-pick {
-  appearance: none;
-  width: 100%;
-  min-height: 46px;
-  background: transparent
-    url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23848b97' stroke-width='1.5'/%3E%3C/svg%3E")
-    no-repeat right 8px center;
-  background-size: 9px;
-  color: var(--ink);
-  border: 1px solid var(--line-2);
-  border-radius: 4px;
-  padding: 4px 24px 4px 9px;
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-/* 포커스 표시는 짙은 사이드바 위에서 명암비 3 을 넘어야 한다 (DESIGN.md UI 요소 기준).
-   `--ink` 는 `--rail` 과 마우스 올림 바탕(`--well`) 위에서 본문 기준까지 넘는다 — styles.test.ts 가 잰다 */
-.side-pick:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 2px;
-}
-
-.side-pick:hover {
-  background-color: var(--well);
-}
-
-.side-pick option {
-  color: var(--ink);
-}
-
-.side-svc-name {
-  font-weight: 600;
-}
-.side-pick:focus-visible {
-  outline: 2px solid #fff;
-  outline-offset: -1px;
-}
-
 /* ── 자리 목록 (SPEC §8) ── 옛 이름을 그대로 쓰고 배치만 덮는다. 짙은 바탕이라 색 토큰도 `--rail*` 로 갈아 끼운다 */
 
 /* 언어 고르개 (2026-09-22). 여기까지는 자리 이름만 있고 **규칙이 한 줄도 없었다** —
    그래서 OS 가 `select` 를 제 모양대로, 짙은 사이드바 위에 흰 상자로 그렸다.
-   바로 위 `.side-pick` 주석이 그 함정을 이미 경고하고 있었는데 이 자리만 빠져 있었다.
+   옛 프로젝트 · 서비스 고르개(`.side-pick`, 2026-11-05 걷었다) 주석이 그 함정을 이미 경고하고 있었는데 이 자리만 빠져 있었다.
    같은 사고가 2026-09-21 에 한 번 났고 이번이 두 번째라 `styles.test.ts` 가 막게 옮겼다
    (CLAUDE.md §2.5) */
 /* PC 내 메뉴(rail.css 의 `.rail-me-menu`)와 휴대폰 내 메뉴(phone.css)가 같이 쓴다.
@@ -2115,7 +2064,7 @@ input[type='file']::file-selector-button {
   white-space: nowrap;
 }
 
-/* `appearance: none` 이 없으면 OS 가 제 모양대로 그린다 — `.side-pick` 과 같은 처리다.
+/* `appearance: none` 이 없으면 OS 가 제 모양대로 그린다 — 옛 `.side-pick` 과 같은 처리다.
    화살표는 배경 그림으로 직접 그린다. 지우면 눌러서 펴는 것인지 안 보인다 */
 .side-lang select {
   appearance: none;

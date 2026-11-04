@@ -1,4 +1,4 @@
-// 휴대폰 껍데기 — 위 줄(애플리케이션 고르개 · 알림 종 · 내 동그라미) · 본문 · 아래 탭 다섯 · 전체 메뉴판 (SPEC 공통/5-화면공통 §8 「휴대폰 화면」)
+// 휴대폰 껍데기 — 위 줄(위치 단추 · 알림 종 · 내 동그라미) · 본문 · 아래 탭 다섯 · 전체 메뉴판 (SPEC 공통/5-화면공통 §8 「휴대폰 화면」)
 // 2026-10-30 부터 휴대폰에서도 모든 메뉴가 열린다 — 앞 판은 결과 확인 밖의 화면을 「PC 에서 여세요」 안내로 막았다
 
 import { useEffect, useRef, useState } from 'react';
@@ -11,8 +11,10 @@ import { 종류, 종류이름, 종류차례, 종류키 } from './kind.js';
 import { 고른서비스를적는다, 프로젝트서비스들, 자리목록, type 빈띠, type 자리 } from './layout.js';
 import { Notice } from './Notice.js';
 import { 표에라벨을단다 } from './phone.js';
+import { 할수있나 } from './role.js';
 import { 내메뉴항목 } from './ShellMe.js';
-import { 언어고르개, 프로젝트고르개 } from './ShellPickers.js';
+import { 언어고르개 } from './ShellPickers.js';
+import { 위치판 } from './ShellPlace.js';
 import { 아래판 } from './Sheet.js';
 import { 밝기단추 } from './theme.js';
 
@@ -73,13 +75,20 @@ export function PhoneShell({ user, service, onService, 언어, on언어, onLogou
         {service === null ? (
           <span className="ph-app-none">{t('애플리케이션 없음')}</span>
         ) : (
-          <button type="button" className="ph-app" aria-haspopup="dialog" aria-label={t('애플리케이션 선택')} onClick={() => set열린판('apps')}>
-            <아이콘 이름={종류(service.kind).아이콘} />
+          // PC 위치 카드와 같은 두 이름이다 — 프로젝트도 여기서 바꾼다 (2026-11-05 · 앞 판은 「전체」 메뉴판에 숨어 있었다)
+          <button
+            type="button"
+            className="ph-app"
+            aria-haspopup="dialog"
+            aria-label={t('{프로젝트} › {이름} · 바꾸기', { 프로젝트: service.projectName, 이름: service.name })}
+            onClick={() => set열린판('apps')}
+          >
+            <span className="place-ic">
+              <아이콘 이름={종류(service.kind).아이콘} />
+            </span>
             <span className="ph-app-text">
+              <small>{service.projectName}</small>
               <b>{service.name}</b>
-              <small>
-                {종류이름(service.kind, 언어)} · {service.prefix}
-              </small>
             </span>
             <span className="ph-app-chev" aria-hidden="true">
               ▾
@@ -162,9 +171,8 @@ export function PhoneShell({ user, service, onService, 언어, on언어, onLogou
       </nav>
 
       {열린판 === 'apps' && service !== null ? (
-        <아래판 제목={t('애플리케이션 선택')} onClose={닫기}>
-          <h3 className="sheet-h">{t('애플리케이션 바꾸기 · {프로젝트}', { 프로젝트: service.projectName })}</h3>
-          <앱격자 user={user} service={service} onService={onService} 닫기={닫기} />
+        <아래판 제목={t('프로젝트 · 애플리케이션 고르기')} onClose={닫기}>
+          <위치판 user={user} service={service} onService={onService} 새로만들기={할수있나(user, service.prefix, '설정')} 닫기={닫기} 휴대폰 />
         </아래판>
       ) : null}
 
@@ -179,13 +187,8 @@ export function PhoneShell({ user, service, onService, 언어, on언어, onLogou
           )}
           <메뉴목록 자리들={자리들.filter((it) => it !== 설정)} current={current} 닫기={닫기} />
           <h3 className="sheet-h">{t('계정')}</h3>
+          {/* 프로젝트 고르개는 2026-11-05 위 줄 위치 판으로 옮겼다 — 바꾸는 곳이 둘이면 처음 온 사람이 헷갈린다 */}
           <div className="sheet-acct">
-            {service === null ? null : (
-              <div className="sheet-row">
-                <아이콘 이름="project" />
-                <프로젝트고르개 user={user} service={service} onService={onService} />
-              </div>
-            )}
             {설정 === undefined ? null : (
               <a className="sheet-row" href={설정.해시} onClick={닫기} {...지금이면(아래인가(current, '#/settings'))}>
                 <아이콘 이름="settings" />
