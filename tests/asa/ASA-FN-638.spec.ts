@@ -7,11 +7,10 @@ export const spec = defineCase({
   tcId: 'ASA-FN-638',
   name: '캐릭터를 지우면 응답 코드가 기대값과 같다',
   apiDoc: 1,
-  held: '판정 불가 — 자료 어긋남: 기획서 204 · API 문서 판 1 200',
   precondition: ['캐릭터가 하나 있다'],
   params: null,
   expected: z.object({
-    지우기응답코드: z.number().int().describe('캐릭터를 지웠을 때의 응답 코드 — 기획서는 204 · API 문서 판 1 은 200'),
+    지우기응답코드: z.number().int().describe('캐릭터를 지웠을 때의 응답 코드 — 기획서는 204 · API 문서 판 1 은 200').default(204),
   }),
 });
 

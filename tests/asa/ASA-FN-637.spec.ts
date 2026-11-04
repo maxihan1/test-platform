@@ -7,11 +7,10 @@ export const spec = defineCase({
   tcId: 'ASA-FN-637',
   name: '새 이름으로 캐릭터를 만들면 응답 코드가 기대값과 같다',
   apiDoc: 1,
-  held: '판정 불가 — 자료 어긋남: 기획서 201 · API 문서 판 1 200',
   precondition: ['로그인한 계정이 있다'],
   params: null,
   expected: z.object({
-    만들기응답코드: z.number().int().describe('캐릭터를 만들었을 때의 응답 코드 — 기획서는 201 · API 문서 판 1 은 200'),
+    만들기응답코드: z.number().int().describe('캐릭터를 만들었을 때의 응답 코드 — 기획서는 201 · API 문서 판 1 은 200').default(201),
   }),
 });
 
