@@ -2,7 +2,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { 잡기를늘린다, 팜머리, 팜주소, 팜폰으로, 폰Chrome으로 } from './farm.js';
+import { 거를패키지, 잡기를늘린다, 팜머리, 팜주소, 팜폰으로, 폰Chrome으로 } from './farm.js';
 
 const 팜 = 'http://farm.test/wd/hub';
 
@@ -86,6 +86,26 @@ describe('팜폰으로', () => {
     expect(받음).toEqual(['GET /api/devices']);
   });
 
+  it('스토어 앱 패키지를 주면 그 앱이 남는 폰만 물어 잡는다', async () => {
+    const { 받음, 부르기 } = 가짜팜({ 목록: [빈폰하나] });
+
+    const 결과 = await 팜폰으로(팜, async (udid) => `돌림 ${udid}`, (까닭) => 까닭, 부르기, 안쉼, undefined, undefined, 'com.shop.app');
+
+    expect(결과).toBe('돌림 R3CR10TCVCD');
+    expect(받음[0]).toBe('GET /api/devices?app=com.shop.app');
+  });
+
+  it('그 앱이 깔린 폰이 하나도 없으면 깔린 폰이 없다고 하고, 깔린 폰이 다 바쁘면 지금처럼 빈 폰이 없다고 한다', async () => {
+    const 없음 = 가짜팜({});
+    expect(await 팜폰으로(팜, async () => '돌림', (까닭) => 까닭, 없음.부르기, 안쉼, undefined, undefined, 'com.shop.app')).toBe(
+      'Device VISION 에 com.shop.app 가 깔린 폰이 없습니다',
+    );
+    expect(없음.받음).toEqual(['GET /api/devices?app=com.shop.app']);
+
+    const 바쁨 = 가짜팜({ 목록: [남이씀] });
+    expect(await 팜폰으로(팜, async () => '돌림', (까닭) => 까닭, 바쁨.부르기, 안쉼, undefined, undefined, 'com.shop.app')).toBe('Device VISION 에 빈 폰이 없습니다');
+  });
+
   it('앞 항목이 막 놓아 정리 중인 폰은 빈 폰이 될 때까지 다시 본다', async () => {
     const { 받음, 부르기 } = 가짜팜({ 목록: [정리중, 정리중, 빈폰하나] });
 
@@ -129,6 +149,13 @@ describe('팜폰으로', () => {
     const { 부르기 } = 가짜팜({ 목록: [빈폰하나], 놓기: { status: 409, body: { refused: '잡은 폰이 아니다' } } });
 
     expect(await 팜폰으로(팜, async () => '돌림', (까닭) => 까닭, 부르기, 안쉼)).toBe('돌림');
+  });
+});
+
+describe('거를패키지', () => {
+  it('패키지 이름만 거르고 파일 경로 · 주소 · 없음은 거르지 않는다', () => {
+    expect(거를패키지('com.shop.app')).toBe('com.shop.app');
+    for (const 값 of ['/apk/qa.apk', 'https://apk.example.com/a.apk', 'demo.apk', null, undefined]) expect(거를패키지(값)).toBeUndefined();
   });
 });
 

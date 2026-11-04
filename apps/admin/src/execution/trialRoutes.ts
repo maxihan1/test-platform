@@ -12,7 +12,7 @@ import { 대상줄들읽기, type 대상줄 } from '../authoring/reverse.js';
 import { 옛시험치우기 } from '../scenario/trial.js';
 import { 깔앱파일 } from './buildFile.js';
 import { enqueue } from './dispatcher.js';
-import { 팜주소, 팜폰으로, 폰Chrome으로 } from './farm.js';
+import { 거를패키지, 팜주소, 팜폰으로, 폰Chrome으로 } from './farm.js';
 import { 사람팜토큰 } from './farmToken.js';
 import { 장면을건넨다 } from './live.js';
 import { caseSchemas } from './paramSets.js';
@@ -79,7 +79,8 @@ async function 저장값으로채운다(
 
 /**
  * Android 앱 · 게임 — 정식 실행과 같은 길로 누른 사람 토큰으로 팜 빈 폰을 잡고 놓는다(러너 §5.2 「디바이스 팜 접속 방식」).
- * 앱 파일은 폰을 잡은 뒤 정한다 — 올린 빌드의 서명 주소에 기한이 있다 (도메인/실행 §3.11).
+ * 앱 파일은 폰을 잡기 전에 정한다 — 스토어 앱(패키지 이름)이면 그 앱이 깔린 폰만 잡아야 해서다(러너 §5.2 「플레이스토어 앱 — 패키지 이름」).
+ * 올린 빌드의 서명 주소는 1~2시간 유효라 폰을 잡는 몇 초가 넉넉하다 (도메인/실행 §3.11).
  * 'chrome' 이면 모바일 웹이라 그 폰 Chrome 에서 돈다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)
  */
 async function 팜폰에서돌린다(
@@ -97,6 +98,14 @@ async function 팜폰에서돌린다(
   } catch (err) {
     return na(요청, '누른 사람의 팜 토큰을 고르지 못했습니다', err instanceof Error ? err.message : String(err));
   }
+  let app: string | null = null;
+  if (앱재료 !== 'chrome') {
+    try {
+      app = await 깔앱파일(앱재료.serviceId, 앱재료.env, 앱재료.appPath);
+    } catch (err) {
+      return na(요청, err instanceof Error ? err.message : String(err));
+    }
+  }
   const 못잡음 = (까닭: string) => na(요청, 까닭);
   const 결과 =
     앱재료 === 'chrome'
@@ -113,12 +122,6 @@ async function 팜폰에서돌린다(
           팜,
           async (udid, 화면) => {
             if (화면 !== undefined) 폰화면(화면);
-            let app: string | null;
-            try {
-              app = await 깔앱파일(앱재료.serviceId, 앱재료.env, 앱재료.appPath);
-            } catch (err) {
-              return na(요청, err instanceof Error ? err.message : String(err));
-            }
             return 보낸다(요청, { ...요청, udid, ...(토큰 !== undefined && { farmToken: 토큰 }), ...(app !== null && { app }) });
           },
           못잡음,
@@ -126,6 +129,7 @@ async function 팜폰에서돌린다(
           undefined,
           undefined,
           토큰,
+          거를패키지(app),
         );
   // 팜폰으로 가 폰을 놓고 돌아왔다 — 결과를 적기 전 틈에 닫힌 링크를 내지 않는다
   폰화면(undefined);

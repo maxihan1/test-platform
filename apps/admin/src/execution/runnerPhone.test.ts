@@ -87,3 +87,29 @@ describe('callRunner — 모바일 실행 위치', () => {
     expect((await callRunner(1, { ...항목, 실제폰: true })).error?.message).toBe('이 서버에는 Device VISION(DEVICE_FARM_URL)이 연결되어 있지 않습니다');
   });
 });
+
+describe('callRunner — 스토어 앱 패키지 이름', () => {
+  afterEach(() => {
+    delete process.env.DEVICE_FARM_URL;
+    vi.restoreAllMocks();
+  });
+
+  const 앱항목: PendingItem = { ...항목, platform: 'android', filePath: 'demo/DEMO-001.spec.ts' };
+  const 거른패키지 = async (item: PendingItem): Promise<unknown> => {
+    process.env.DEVICE_FARM_URL = 'http://farm.test';
+    vi.spyOn(farmToken, '실행팜토큰').mockResolvedValue(undefined);
+    const 잡기 = vi.spyOn(farm, '팜폰으로').mockImplementation(((_팜: string, _일: unknown, 못잡음: (까닭: string) => unknown) =>
+      Promise.resolve(못잡음('Device VISION 에 빈 폰이 없습니다'))) as never);
+    await callRunner(1, item);
+    return 잡기.mock.calls[0]?.[7];
+  };
+
+  it('앱 값이 패키지 이름이면 그 앱이 깔린 폰만 잡는다', async () => {
+    expect(await 거른패키지({ ...앱항목, app: 'com.shop.app' })).toBe('com.shop.app');
+  });
+
+  it('APK 경로 · 올린 빌드면 거르지 않는다 — 빌드가 패키지 이름보다 앞서 APK 를 깐다', async () => {
+    expect(await 거른패키지({ ...앱항목, app: '/apk/qa.apk' })).toBeUndefined();
+    expect(await 거른패키지({ ...앱항목, buildId: 3 })).toBeUndefined();
+  });
+});

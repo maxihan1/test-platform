@@ -4,13 +4,13 @@ import type { ScenarioExecuteRequest, ScenarioExecuteResponse, ScenarioPart } fr
 
 import { 깔앱파일 } from '../execution/buildFile.js';
 import { 엔진칸 } from '../execution/engineField.js';
-import { 팜주소, 팜폰으로, 폰Chrome으로 } from '../execution/farm.js';
+import { 거를패키지, 팜주소, 팜폰으로, 폰Chrome으로 } from '../execution/farm.js';
 import { callScenarioRunner } from '../execution/runner.js';
 
 import { type 쓰는앱, 앱종류들 } from './apps.js';
 import { 앱단계인가, 케이스접두사 } from './mixed.js';
 
-/** 폰에 깔 앱 파일을 정할 재료. 앱 파일은 폰을 잡은 뒤 정한다 — 올린 빌드의 서명 주소에 기한이 있다 */
+/** 폰에 깔 앱 파일을 정할 재료. 앱 파일은 폰을 잡기 전에 정한다 — 스토어 앱(패키지 이름)이면 그 앱이 깔린 폰만 잡아야 해서다. 올린 빌드의 서명 주소는 1~2시간 유효라 잡는 몇 초가 넉넉하다 */
 export interface 폰앱 {
   serviceId: number;
   env: string;
@@ -101,17 +101,19 @@ export async function 팜폰으로돌린다(
       잡는분(요청.timeoutMs),
     );
   }
+  const 실은 = await 앱실기(요청, 폰);
+  if (typeof 실은 === 'string') return 못잡음(실은);
   return 팜폰으로(
     팜,
     async (udid, 화면) => {
       if (화면 !== undefined) 폰화면?.(화면);
-      const 실은 = await 앱실기({ ...요청, udid, ...(토큰 !== undefined && { farmToken: 토큰 }) }, 폰);
-      return typeof 실은 === 'string' ? 못잡음(실은) : callScenarioRunner(실은);
+      return callScenarioRunner({ ...실은, udid, ...(토큰 !== undefined && { farmToken: 토큰 }) });
     },
     못잡음,
     undefined,
     undefined,
     잡는분(요청.timeoutMs),
     토큰,
+    거를패키지(실은.app),
   );
 }

@@ -15,7 +15,7 @@ import type {
 import { 케이스판 } from '../apidoc/caseDoc.js';
 
 import { 서명주소 } from './buildFile.js';
-import { 팜주소, 팜폰으로, 폰Chrome으로 } from './farm.js';
+import { 거를패키지, 팜주소, 팜폰으로, 폰Chrome으로 } from './farm.js';
 import { 실행팜토큰 } from './farmToken.js';
 import { runnerUrl, 답하나, 러너들, 러너머리 } from './runnerAddr.js';
 import type { PendingItem } from './store.js';
@@ -197,7 +197,8 @@ export async function callRunner(
       토큰,
     );
   }
-  return 팜폰으로(팜, (udid) => 보낸다폰(udid, 토큰), (까닭) => na(item, 까닭), undefined, undefined, undefined, 토큰);
+  // 올린 빌드는 앱 값 없이 번호만 온다 — 빌드가 앞서 APK 를 까니 거르지 않는다 (러너 §5.2 「플레이스토어 앱 — 패키지 이름」)
+  return 팜폰으로(팜, (udid) => 보낸다폰(udid, 토큰), (까닭) => na(item, 까닭), undefined, undefined, undefined, 토큰, 거를패키지(item.app));
 }
 
 // 러너가 거절하거나 못 닿으면 그 항목만 NA 로 접는다 — 케이스 테스트 실행도 같은 문장으로 접는다 (execution/trialRoutes.ts)

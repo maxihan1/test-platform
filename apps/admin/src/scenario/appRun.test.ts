@@ -24,6 +24,7 @@ const 가짜 = vi.hoisted(() => ({
   응답: null as ScenarioExecuteResponse | null,
   팜: 'http://farm.xae' as string | undefined,
   잡은분: [] as number[],
+  거른패키지: [] as (string | undefined)[],
   못잡음: null as string | null,
   폰화면: undefined as string | undefined,
   멈춤: null as Promise<void> | null,
@@ -39,8 +40,9 @@ vi.mock('../execution/runner.js', async (원래) => ({
 vi.mock('../execution/farm.js', async (원래) => ({
   ...(await 원래<typeof import('../execution/farm.js')>()),
   팜주소: () => 가짜.팜,
-  팜폰으로: async <T,>(_팜: string, 일: (udid: string, 화면: string | undefined) => Promise<T>, 못잡음: (까닭: string) => T, _f?: unknown, _s?: unknown, 분?: number) => {
+  팜폰으로: async <T,>(_팜: string, 일: (udid: string, 화면: string | undefined) => Promise<T>, 못잡음: (까닭: string) => T, _f?: unknown, _s?: unknown, 분?: number, _토큰?: unknown, 패키지?: string) => {
     가짜.잡은분.push(분 ?? 0);
+    가짜.거른패키지.push(패키지);
     return 가짜.못잡음 === null ? 일('UDID-XAE', 가짜.폰화면) : 못잡음(가짜.못잡음);
   },
 }));
@@ -120,6 +122,7 @@ describe.skipIf(연결 === undefined)('앱 · 게임 단계가 있는 시나리�
   afterEach(() => {
     가짜.요청.length = 0;
     가짜.잡은분.length = 0;
+    가짜.거른패키지.length = 0;
     가짜.응답 = null;
     가짜.팜 = 'http://farm.xae';
     가짜.못잡음 = null;
@@ -211,6 +214,22 @@ describe.skipIf(연결 === undefined)('앱 · 게임 단계가 있는 시나리�
     const 결과 = await 시나리오결과(runId);
     expect(결과?.device).toEqual(기기);
     expect(결과?.farm).toEqual([]);
+  });
+
+  it('앱 파일 칸이 스토어 앱 패키지 이름이면 그 앱이 깔린 폰만 잡고 패키지 이름을 싣는다 — APK 경로는 거르지 않는다', async () => {
+    await q("UPDATE service_env SET app_path = 'com.xae.app' WHERE service_id = $1 AND env = 'stg'", [서비스['XAE']]);
+    try {
+      const { runId, 요청, 폰 } = await 실행만들기(await 앱시나리오(), 'stg', 사람);
+      await 시나리오분배(runId, 요청, 폰);
+      expect(가짜.거른패키지).toEqual(['com.xae.app']);
+      expect(가짜.요청[0]).toMatchObject({ udid: 'UDID-XAE', app: 'com.xae.app' });
+    } finally {
+      await q("UPDATE service_env SET app_path = '/apps/xae.apk' WHERE service_id = $1 AND env = 'stg'", [서비스['XAE']]);
+    }
+    가짜.거른패키지.length = 0;
+    const { runId, 요청, 폰 } = await 실행만들기(await 앱시나리오(), 'stg', 사람);
+    await 시나리오분배(runId, 요청, 폰);
+    expect(가짜.거른패키지).toEqual([undefined]);
   });
 
   it('폰을 못 잡으면 러너에 안 보내고 첫 단계를 그 까닭, 뒤 단계를 NOT_RUN 으로 닫는다', async () => {

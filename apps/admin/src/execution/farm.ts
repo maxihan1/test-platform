@@ -1,5 +1,7 @@
 // 디바이스 팜에서 빈 폰을 잡아 일을 맡기고 놓는다 — Android 앱 정식 실행 · 실제 폰 모바일 웹 · 작성 에이전트의 앱 화면 읽기가 쓴다 (도메인/러너 §5.2 「디바이스 팜 접속 방식」)
 
+import { 패키지이름인가 } from '@platform/kit/protocol';
+
 // 팜이 받는 가장 짧은 잡기다. 항목 하나의 상한(5분 · DEFAULT_TIMEOUT_MS)보다 넉넉해서 앱 항목은 늘리기(/extend)가 필요 없다
 const 잡는_분 = 30;
 const 팜_제한_ms = 10_000;
@@ -20,12 +22,16 @@ export function 팜머리(env: Record<string, string | undefined> = process.env,
 type 기기 = { serial?: unknown; state?: unknown; detail?: unknown };
 type 고름 = { serial: string } | { reason: string };
 
+/** 폰에 깔 앱 값이 스토어 앱의 패키지 이름이면 그것 — 깔지 않고 켜서 그 앱이 깔린 폰만 잡아야 한다 (러너 §5.2 「플레이스토어 앱 — 패키지 이름」) */
+export const 거를패키지 = (app: string | null | undefined): string | undefined => (app != null && 패키지이름인가(app) ? app : undefined);
+
 // 빈 폰(IDLE)만 고른다. 사람이 팜 화면에서 「쓰기」로 잡은 폰도 인증 없는 팜에서는 「내 것」으로 보여,
-// 그 폰을 잡았다 놓으면 쓰던 사람이 쫓겨난다
-async function 빈폰을고른다(팜: string, 부르기: typeof fetch, 쉬기: (ms: number) => Promise<void>, 토큰: string | undefined): Promise<고름> {
+// 그 폰을 잡았다 놓으면 쓰던 사람이 쫓겨난다. 패키지를 주면 팜이 그 앱이 놓을 때 남는 폰만 준다 (VISION 안내서 11절 「스토어 앱」)
+async function 빈폰을고른다(팜: string, 부르기: typeof fetch, 쉬기: (ms: number) => Promise<void>, 토큰: string | undefined, 패키지: string | undefined): Promise<고름> {
   const 끝 = Date.now() + 정리_기다림_ms;
+  const 주소 = 패키지 === undefined ? `${팜}/api/devices` : `${팜}/api/devices?app=${encodeURIComponent(패키지)}`;
   for (;;) {
-    const 목록 = await 부르기(`${팜}/api/devices`, { headers: 팜머리(process.env, 토큰), signal: AbortSignal.timeout(팜_제한_ms) });
+    const 목록 = await 부르기(주소, { headers: 팜머리(process.env, 토큰), signal: AbortSignal.timeout(팜_제한_ms) });
     // 인증 켠 팜은 토큰이 없거나 틀리면 401 이다 — 주소나 팜을 의심하기 전에 토큰을 보게 한다
     const 볼곳 = 토큰 === undefined ? 'DEVICE_FARM_TOKEN 을 확인하세요' : 'Auth 의 대신 PAT 를 Device VISION 이 받지 않았습니다';
     if (!목록.ok) return { reason: `Device VISION 이 기기 목록을 주지 않았습니다 (HTTP ${목록.status})${목록.status === 401 ? ` — ${볼곳}` : ''}` };
@@ -33,6 +39,8 @@ async function 빈폰을고른다(팜: string, 부르기: typeof fetch, 쉬기: 
     const 몸 = (await 목록.json().catch(() => null)) as { value?: { devices?: 기기[] } } | null;
     if (몸 === null) return { reason: 'Device VISION 의 기기 목록을 읽지 못했습니다 — DEVICE_FARM_URL 을 확인하세요' };
     const 기기들 = 몸.value?.devices ?? [];
+    // 깔린 폰이 없으면 기다려도 안 생긴다 — 바쁜 것과 갈라 사람이 팜 「남길 앱」을 보게 한다
+    if (패키지 !== undefined && 기기들.length === 0) return { reason: `Device VISION 에 ${패키지} 가 깔린 폰이 없습니다` };
     const 빈폰 = 기기들.find((d) => d.state === 'IDLE' && typeof d.serial === 'string' && d.serial !== '');
     if (빈폰 !== undefined) return { serial: 빈폰.serial as string };
     if (!기기들.some((d) => d.detail === 'cleaning') || Date.now() >= 끝) return { reason: 'Device VISION 에 빈 폰이 없습니다' };
@@ -101,7 +109,8 @@ const 닿지못함 = (err: unknown): string => `Device VISION 에 닿지 못했�
 /**
  * 빈 폰 하나를 잡아 그 번호로 일을 맡기고, 일이 어떻게 끝나든 놓는다. 못 잡으면 까닭을 넘긴다 — 던지지 않는다. 분은 팜이 받는 30 · 60 · 120.
  * 토큰은 고른 대신 PAT 다(farmToken.ts). 없으면 DEVICE_FARM_TOKEN — 고르기 · 잡기 · 놓기가 같은 주인이어야 팜이 받는다.
- * 일에 그 폰 화면 보기 링크도 넘긴다 — 테스트 모드가 누른 사람에게 새 탭으로 건넨다 (도메인/실행 §3.2 「테스트 모드」 「VISION 링크」)
+ * 일에 그 폰 화면 보기 링크도 넘긴다 — 테스트 모드가 누른 사람에게 새 탭으로 건넨다 (도메인/실행 §3.2 「테스트 모드」 「VISION 링크」).
+ * 패키지는 거를패키지 값이다 — 스토어 앱이면 그 앱이 깔린 빈 폰만 잡는다
  */
 export async function 팜폰으로<T>(
   팜: string,
@@ -111,13 +120,14 @@ export async function 팜폰으로<T>(
   쉬기: (ms: number) => Promise<void> = (ms) => new Promise((깨운다) => setTimeout(깨운다, ms)),
   분: number = 잡는_분,
   토큰?: string | (() => Promise<string | undefined>),
+  패키지?: string,
 ): Promise<T> {
   // 함수면 놓을 때 다시 고른다 — 몇 시간 도는 게임 실행은 잡을 때 받은 대신 PAT 가 놓을 때 끝났을 수 있다(주인은 같다, 러너 §5.2 「기억 · 수명」)
   const 지금토큰 = typeof 토큰 === 'function' ? 토큰 : async () => 토큰;
   const 처음 = await 지금토큰();
   let serial: string;
   try {
-    const 고른것 = await 빈폰을고른다(팜, 부르기, 쉬기, 처음);
+    const 고른것 = await 빈폰을고른다(팜, 부르기, 쉬기, 처음, 패키지);
     if ('reason' in 고른것) return 못잡음(고른것.reason);
     serial = 고른것.serial;
   } catch (err) {

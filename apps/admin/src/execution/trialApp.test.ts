@@ -1,4 +1,4 @@
-// 케이스 테스트 실행이 고른 대상 서버 줄의 앱 파일을 폰을 잡은 뒤 android 요청에만 싣고, 장면 열쇠는 브라우저 요청에만 싣는지 본다. 모바일 웹은 팜이 있으면 실제 폰이다. DB · 팜은 가짜다 (APP-F1-03 · TMO-F3-02 · TMO-F4-03)
+// 케이스 테스트 실행이 고른 대상 서버 줄의 앱 파일을 android 요청에만 싣고(패키지 이름이면 그 앱이 깔린 폰만 잡는다), 장면 열쇠는 브라우저 요청에만 싣는지 본다. 모바일 웹은 팜이 있으면 실제 폰이다. DB · 팜은 가짜다 (APP-F1-03 · TMO-F3-02 · TMO-F4-03)
 
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -63,6 +63,25 @@ describe('케이스 테스트 실행 — 대상 서버 줄 · 앱 파일 · 장�
     const { 몸 } = await 보낸요청({ platform: 'android', env: 'qa' });
     expect(몸).toMatchObject({ baseUrl: 'https://qa.example.com', udid: 's1', app: '/apk/qa.apk' });
     expect('live' in 몸).toBe(false);
+  });
+
+  it('android 앱 값이 패키지 이름이면 그 앱이 깔린 폰만 잡고 패키지 이름을 싣는다 — APK 경로는 거르지 않는다', async () => {
+    const 잡기 = vi.mocked(farm.팜폰으로);
+    잡기.mockClear();
+    줄.app_path = 'com.shop.app';
+    try {
+      const { 몸 } = await 보낸요청({ platform: 'android', env: 'qa' });
+      expect(몸).toMatchObject({ udid: 's1', app: 'com.shop.app' });
+      expect(잡기.mock.calls[0]?.[7]).toBe('com.shop.app');
+    } finally {
+      줄.app_path = '/apk/qa.apk';
+    }
+    잡기.mockClear();
+    보냄.mockClear();
+    폰을놓는다();
+    전부비운다();
+    await 보낸요청({ platform: 'android', env: 'qa' });
+    expect(잡기.mock.calls[0]?.[7]).toBeUndefined();
   });
 
   it('desktop 은 앱 경로를 안 싣고 이 시험 번호를 장면 열쇠로 싣는다', async () => {

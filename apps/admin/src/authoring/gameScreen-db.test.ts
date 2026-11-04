@@ -131,6 +131,31 @@ describe.skipIf(연결 === undefined)('게임 첫 화면 · 게임 화면 기록
     expect(서버팜토큰).toHaveBeenCalledOnce();
   });
 
+  it('앱 파일 칸이 스토어 앱 패키지 이름이면 그 앱이 깔린 폰만 묻고, 없으면 그 까닭을 적되 AI 가 붙을 앱은 준다', async () => {
+    await 종류('APP');
+    await 줄들([['qa', 'com.xgs.app', false]]);
+    const id = await 요청넣기();
+    const 물음: string[] = [];
+    const 가짜 = Fastify();
+    가짜.get('/api/devices', async (req) => {
+      물음.push(req.url);
+      return { value: { devices: [] } };
+    });
+    const 주소 = await 가짜.listen({ port: 0, host: '127.0.0.1' });
+    process.env.DEVICE_FARM_URL = 주소;
+    try {
+      expect(await 받기(id, 'app-screen')).toMatchObject({
+        screen: null,
+        reason: 'Device VISION 에 com.xgs.app 가 깔린 폰이 없습니다',
+        appium: { url: `${주소}/wd/hub`, app: 'com.xgs.app' },
+      });
+    } finally {
+      delete process.env.DEVICE_FARM_URL;
+      await 가짜.close();
+    }
+    expect(물음).toEqual(['/api/devices?app=com.xgs.app']);
+  });
+
   it('게임인데 운영 아닌 줄에 앱 파일이 없으면 까닭을 적는다 — 켤 게임이 없다', async () => {
     await 줄들([['dev', null, false], ['prod', 'https://builds/prod.apk', true]]);
     const id = await 요청넣기();
