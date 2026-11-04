@@ -1,4 +1,4 @@
-import { type 앱, type 요소, 금액, 월일글, 일요일아닌첫날, 켜졌나, 칸에적기, 키보드내리기 } from '../helpers/app.helper.js';
+import { type 앱, type 요소, 금액, 월일글, 일요일아닌첫날, 켜졌나, 칸에적기 } from '../helpers/app.helper.js';
 import { 주소검색창 } from './address-search.page.js';
 
 export type 결제수단 = '신용카드' | '계좌이체' | '무통장입금';
@@ -58,12 +58,10 @@ export class 주문하기화면 {
   }
 
   async 아래로밀기(): Promise<void> {
-    await 키보드내리기(this.driver);
     await this.driver.swipe({ direction: 'up', scrollableElement: await this.스크롤.getElement(), percent: 0.7 });
   }
 
   async 위로밀기(): Promise<void> {
-    await 키보드내리기(this.driver);
     await this.driver.swipe({ direction: 'down', scrollableElement: await this.스크롤.getElement(), percent: 0.9 });
   }
 
@@ -80,12 +78,12 @@ export class 주문하기화면 {
 
   async 받는분적기(값: string): Promise<void> {
     await this.보일때까지밀기(await this.받는분.getElement(), false);
-    await 칸에적기(this.driver, await this.받는분.getElement(), 값);
+    await 칸에적기(await this.받는분.getElement(), 값);
   }
 
   async 연락처적기(값: string): Promise<void> {
     await this.보일때까지밀기(await this.연락처.getElement(), false);
-    await 칸에적기(this.driver, await this.연락처.getElement(), 값);
+    await 칸에적기(await this.연락처.getElement(), 값);
   }
 
   async 연락처글(): Promise<string> {
@@ -94,7 +92,7 @@ export class 주문하기화면 {
 
   async 상세주소적기(값: string): Promise<void> {
     await this.보일때까지밀기(await this.상세주소.getElement(), false);
-    await 칸에적기(this.driver, await this.상세주소.getElement(), 값);
+    await 칸에적기(await this.상세주소.getElement(), 값);
   }
 
   async 주소줄글(): Promise<string> {

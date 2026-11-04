@@ -37,9 +37,10 @@ test(spec, async ({ driver, params }) => {
     await verify('주소 검색 창이 떠 있다', await 창.보이나(), true, { blocker: true });
   });
 
-  await test.step('1자 검색어 「역」으로 검색한다', async () => {
+  await test.step('1자 검색어 「역」으로 검색하고 창을 닫는다', async () => {
     await 토스트비우기(driver);
     await 창.주소찾기(params.한글자검색어);
+    await 창.닫기();
     await verify(
       '주소 검색어가 1자면 토스트 「검색어를 2자 이상 입력하세요」가 보인다',
       await 토스트글읽기(driver),
@@ -47,8 +48,9 @@ test(spec, async ({ driver, params }) => {
     );
   });
 
-  await test.step('2자 검색어 「강남」으로 검색한다', async () => {
+  await test.step('주소 검색 창을 다시 열어 2자 검색어 「강남」으로 검색한다', async () => {
     await 토스트비우기(driver);
+    await 주문하기.주소검색열기();
     await 창.주소찾기(params.두글자검색어);
     await 결과줄뜰때까지(driver).catch(() => undefined);
     const 글 = (await 상자.보이나()) ? await 상자.글() : '';

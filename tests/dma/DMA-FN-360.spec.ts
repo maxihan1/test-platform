@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { 주문서값으로 } from './helpers/cart-orders-flow.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 주문만들기 } from './helpers/order.helper.js';
-import { 토스트글읽기 } from './helpers/wait.helper.js';
+import { 토스트비우기 } from './helpers/wait.helper.js';
 import { 주문상세화면 } from './pages/order-detail.page.js';
 import { 상품목록화면 } from './pages/product-list.page.js';
 
@@ -40,6 +40,7 @@ test(spec, async ({ driver, params }) => {
   });
 
   await test.step('주문 상세에서 「주문 취소」 창을 연다', async () => {
+    await 토스트비우기(driver);
     await 상세.취소창열기().catch(() => undefined);
     await verify('「주문 취소」 창이 떠 있다', await 상세.취소창보이나(), true, { blocker: true });
   });
@@ -47,11 +48,7 @@ test(spec, async ({ driver, params }) => {
   await test.step('「기타」를 고르고 취소 사유를 비운 채 「취소하기」를 누른다', async () => {
     await 상세.사유고르기('기타');
     await 상세.사유글적기('');
-    await 상세.취소하기누르기();
-    await 상세.취소창닫힐때까지(1500).catch(() => undefined);
-    const 창남음 = await 상세.취소창보이나();
-    if (창남음) await 상세.창닫기();
-    const 토스트글 = await 토스트글읽기(driver);
+    const { 창남음, 토스트글 } = await 상세.취소하기눌러보기();
     await verify('「기타」인데 취소 사유가 비어 있으면 토스트 「취소 사유를 입력하세요」가 보인다', 토스트글, '취소 사유를 입력하세요');
     await verify('사유 글 없이 누른 「취소하기」는 창을 닫지 않는다', 창남음, true);
   }, { capture: true });
