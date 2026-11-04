@@ -49,6 +49,13 @@ export interface 실패재료 {
 /** 한 화면에서 깨진 모습 — 첫 화면 것은 실패재료 에 바로 있다 */
 export type 화면재료 = Pick<실패재료, 'steps' | '확인' | '원인' | '네트워크' | '콘솔'>;
 
+/** 실패한 단계와 실패한 확인 문장이 같으면 같은 버그로 보고 한 번만 싣는다 — 실제 값은 화면 크기마다 달라 견주지 않는다 */
+export function 같은곳에서깨짐(가: 화면재료, 나: 화면재료): boolean {
+  const 곳 = (h: 화면재료): string =>
+    JSON.stringify([h.steps.flatMap((s, i) => (s.status === 'FAIL' ? [i, s.title] : [])), h.확인?.statement ?? null]);
+  return 곳(가) === 곳(나);
+}
+
 const 바이트 = (글: string): number => Buffer.byteLength(글, 'utf8');
 
 const 짧게 = (값: unknown, 상한 = 300): string => {

@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { 꼬리표고르기, 또실패댓글, 본문상한, 이슈본문, 이슈제목, 제목상한, type 실패재료 } from './failBody.js';
+import { 같은곳에서깨짐, 꼬리표고르기, 또실패댓글, 본문상한, 이슈본문, 이슈제목, 제목상한, type 실패재료 } from './failBody.js';
 
 const 재료 = (덮어쓰기: Partial<실패재료> = {}): 실패재료 => ({
   애플리케이션: '데모마켓 웹',
@@ -129,6 +129,13 @@ describe('웹 화면', () => {
     expect(Buffer.byteLength(글, 'utf8')).toBeLessThanOrEqual(본문상한);
     expect(글.match(/이하 \d+단계는 Test Commander 실행 결과에서/g)).toHaveLength(2);
     expect(글).toContain('### 실제 — 모바일');
+  });
+
+  it('실패한 단계와 확인 문장이 같으면 실제 값이 달라도 같은 곳에서 깨진 것이다', () => {
+    const 첫 = 재료();
+    expect(같은곳에서깨짐(첫, { ...첫, 확인: { ...첫.확인!, actual: '375px' }, 네트워크: [] })).toBe(true);
+    expect(같은곳에서깨짐(첫, { ...첫, 확인: { ...첫.확인!, statement: '다른 확인' } })).toBe(false);
+    expect(같은곳에서깨짐(첫, 모바일재료)).toBe(false);
   });
 
   it('또 실패 댓글도 깨진 화면을 적는다', () => {

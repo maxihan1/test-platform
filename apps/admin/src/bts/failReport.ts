@@ -11,7 +11,7 @@ import { 지금항목 } from '../execution/single.js';
 import { 가린다, 긴것부터, 항목비밀 } from '../execution/trial.js';
 import { 실패카드, type FailureCase, type FailureDevice } from '../reporting/failures.js';
 import { 디바이스순서 } from '../reporting/failuresShape.js';
-import { 꼬리표고르기, 또실패댓글, 이슈본문, 이슈제목, 첨부상한, type 실패재료, type 화면재료 } from './failBody.js';
+import { 같은곳에서깨짐, 꼬리표고르기, 또실패댓글, 이슈본문, 이슈제목, 첨부상한, type 실패재료, type 화면재료 } from './failBody.js';
 import { 재검증실패넘기기 } from './bugfix.js';
 import { 보낼줄넣기 } from './outbox.js';
 
@@ -93,9 +93,6 @@ async function 화면재료로(pool: Pool, d: FailureDevice): Promise<화면재�
   };
 }
 
-// 실패한 단계와 실패한 확인이 같으면 같은 버그로 보고 한 번만 싣는다
-const 깨진곳 = (h: 화면재료): string => JSON.stringify([h.steps.flatMap((s, i) => (s.status === 'FAIL' ? [i, s.title] : [])), h.확인]);
-
 // 카드는 깨진 화면만 든다. 이번 실행 지금 결과에서 통과한 화면을 따로 읽는다(한 건 실행이 덮은 결과 포함)
 const 통과화면SQL = `SELECT DISTINCT i.platform FROM ${지금항목('o.run_id = $1 AND o.tc_id = $2')} i WHERE i.status = 'PASS'`;
 
@@ -130,8 +127,8 @@ async function 재료만들기(pool: Pool, 실행: 실행행, 카드실행: numb
     결과주소: 공개주소 === '' ? null : `${공개주소}/#/runs/${String(d.item.runId)}/items/${String(d.item.historyId)}`,
     // 최근 흐름 맨 앞은 이번 실행이다 — 섞임은 앞 실행들로만 본다(이번 FAIL 을 넣으면 새로 깨진 회귀가 다 흔들림이 된다)
     꼬리표: 꼬리표고르기(d.item.failure?.type ?? null, d.recent.slice(1)),
-    화면: 웹 ? { 깨짐, 통과 } : null,
-    둘째: 둘재료 !== null && 깨진곳(둘재료) !== 깨진곳(첫재료) ? 둘재료 : null,
+    화면: null,
+    둘째: 둘재료 !== null && !같은곳에서깨짐(첫재료, 둘재료) ? 둘재료 : null,
   };
   // 항목 상세는 이미 가렸지만 단계 제목 · 요구 문장 · 기록까지 밖으로 나가는 재료 전부를 한 번 더 가린다 — 되비친 비밀값(리포팅 「되비친 비밀값」).
   // 본문을 만들기 전에 가린다 — 만든 뒤 가리면 별표가 글을 늘려 크기 상한을 넘을 수 있다. 둘째 화면 항목의 값도 같이 가린다
@@ -142,7 +139,8 @@ async function 재료만들기(pool: Pool, 실행: 실행행, 카드실행: numb
         : 항목비밀({ params: x.item.params, expected: x.item.expected, param_schema: x.item.paramSchema, expected_schema: x.item.expectedSchema }),
     ),
   );
-  const 재료 = 가린다(날재료, 비밀) as 실패재료;
+  // 화면 이름은 가린 뒤에 붙인다 — 짧은 비밀값이 desktop · mobile 안에 들면 이름이 별표로 깨져 본문을 못 만든다
+  const 재료: 실패재료 = { ...(가린다(날재료, 비밀) as 실패재료), 화면: 웹 ? { 깨짐, 통과 } : null };
   // 산출물 폴더 기준 경로. 보낼 때 outbox 가 파일을 읽어 올린다. 러너가 만든 모양이 아니면 싣지 않는다 — 파일시스템을 읽는 자리다.
   // 화면마다 첫 장을 먼저 고르고 남는 자리를 차례로 채운다 — 한 화면 사진이 상한을 다 쓰면 다른 화면 사진이 빠진다
   const 캡처 = [d, 둘]
