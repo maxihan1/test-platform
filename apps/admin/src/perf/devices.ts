@@ -117,7 +117,9 @@ async function 앱없는폰(팜: string, 패키지: string, serials: string[]): 
   try {
     const res = await fetch(`${팜}/api/devices?app=${encodeURIComponent(패키지)}`, { headers: 팜머리(process.env, await 서버팜토큰()), signal: AbortSignal.timeout(목록제한ms) });
     if (!res.ok) return `Device VISION 이 기기 목록을 주지 않았습니다 (HTTP ${res.status})`;
-    const 몸 = (await res.json()) as { value?: { devices?: { serial?: unknown }[] } };
+    // 주소가 틀려 다른 쪽이 HTML 을 주면 「닿지 못했다」가 아니라 주소를 보라고 한다 (execution/farm.ts 와 같은 말)
+    const 몸 = (await res.json().catch(() => null)) as { value?: { devices?: { serial?: unknown }[] } } | null;
+    if (몸 === null) return 'Device VISION 의 기기 목록을 읽지 못했습니다 — DEVICE_FARM_URL 을 확인하세요';
     const 깔린 = new Set((몸.value?.devices ?? []).map((d) => d.serial));
     const 없는 = serials.find((serial) => !깔린.has(serial));
     return 없는 === undefined ? null : `고른 폰 ${없는} 에 ${패키지} 가 깔려 있지 않습니다 — Device VISION 「남길 앱」에 넣어 둔 폰을 고릅니다`;
