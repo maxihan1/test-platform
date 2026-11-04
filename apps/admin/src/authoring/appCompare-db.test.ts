@@ -54,9 +54,10 @@ describe.skipIf(연결 === undefined)('Android 앱 대조 요청', () => {
     await app.ready();
   });
 
-  // 앞 검사가 세운 요청이 열려 있으면 다음 요청이 AUTHORING_OPEN 으로 막힌다
+  // 앞 검사가 세운 요청이 열려 있으면 다음 요청이 AUTHORING_OPEN 으로 막힌다. 앞 검사가 올린 빌드가 남으면 켤 앱이 없던 줄에 앱이 생긴다
   beforeEach(async () => {
     await q('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
+    await q('DELETE FROM app_build WHERE service_id = $1', [서비스]);
     await q(`UPDATE service SET kind = 'APP' WHERE id = $1`, [서비스]);
   });
 
