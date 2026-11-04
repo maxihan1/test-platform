@@ -32,6 +32,15 @@ function 목록({ 듣는다 = false }: { 듣는다?: boolean }) {
       <button type="button" onClick={() => set쪽('2')}>
         2쪽
       </button>
+      <button
+        type="button"
+        onClick={() => {
+          set고른(null);
+          set쪽('2');
+        }}
+      >
+        닫고 2쪽
+      </button>
     </div>
   );
 }
@@ -123,6 +132,16 @@ describe('여는 일은 기록을 쌓는다', () => {
     const 길이 = window.history.length;
     fireEvent.click(screen.getByRole('button', { name: '2쪽' }));
     expect(window.location.hash).toBe('#/runs/fn?run=101&page=2');
+    expect(window.history.length).toBe(길이);
+  });
+
+  it('쌓는 칸 말고 다른 칸도 같이 바뀌는 이동은 쌓지 않고 고친다 — 화면이 스스로 비우는 것도 고치기다 (WEB-F8-01 검토 11)', async () => {
+    await 간다('#/runs/fn');
+    render(<뿌리 />);
+    fireEvent.click(screen.getByRole('button', { name: '101' }));
+    const 길이 = window.history.length;
+    fireEvent.click(screen.getByRole('button', { name: '닫고 2쪽' }));
+    expect(window.location.hash).toBe('#/runs/fn?page=2');
     expect(window.history.length).toBe(길이);
   });
 

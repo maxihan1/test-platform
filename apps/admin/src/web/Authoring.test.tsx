@@ -289,6 +289,23 @@ describe('작성 목록 줄 할 일 (⑫ 점검 11.2 · N2) — 줄 내용은 Au
     expect(window.location.hash).toBe('#/authoring?todo=1');
   });
 
+  it('결정 탭을 고른 뒤 「전체」 칩을 눌러도 기록을 쌓지 않고 주소만 고친다 (WEB-F8-01 검토 11)', async () => {
+    window.history.replaceState(null, '', '#/authoring?todo=1&decide=check');
+    결정.목록 = {
+      prdVersion: 3,
+      count: 1,
+      open: [],
+      failMore: 0,
+      items: [{ key: 'check:PAY-REQ-001', group: 2, kind: 'CHECK', picks: ['SAME', 'EDIT'], blockedBy: null, reqId: 'PAY-REQ-001', feature: '약관', text: 'PAY-REQ-001 제목이 보인다', checkSince: null, basis: 'SCREEN', options: [] }],
+    };
+    render(<Authoring service="PAY" 할수={() => true} />);
+    await screen.findByRole('tab', { name: /^요구사항 확인/ });
+    const 길이 = window.history.length;
+    fireEvent.click(screen.getByRole('button', { name: '전체' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/authoring'));
+    expect(window.history.length).toBe(길이);
+  });
+
   it('주소의 decide= 로 처음부터 그 탭이 열린다', async () => {
     window.history.replaceState(null, '', '#/authoring?todo=1&decide=check');
     결정.목록 = {

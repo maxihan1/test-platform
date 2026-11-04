@@ -131,9 +131,9 @@ export function use주소조건(
       const 지금 = window.location.hash;
       if (route(지금).name !== route(경로).name) return;
       if (JSON.stringify(route(지금)) === JSON.stringify(route(주소)) && 조건글(지금) === 조건글(주소)) return;
-      const 앞 = new URLSearchParams(조건글(지금).slice(1));
-      const 뒤 = new URLSearchParams(조건글(주소).slice(1));
-      const 열었다 = 최신.current.쌓는칸.some((칸) => 앞.get(칸) !== 뒤.get(칸));
+      // 쌓는 칸만 바뀔 때만 쌓는다 — 다른 칸(쪽 · 거르개 · 애플리케이션을 바꿔 비운 것)이 같이 바뀌면 사람이 연 것이 아니다
+      const 바뀐 = 바뀐칸들(지금, 주소);
+      const 열었다 = 바뀐.some((칸) => 최신.current.쌓는칸.includes(칸)) && 바뀐.every((칸) => 최신.current.쌓는칸.includes(칸));
       (쌓아도됨 && 열었다 ? 주소쌓기 : 주소고치기)(주소);
     };
     맞춘다();
