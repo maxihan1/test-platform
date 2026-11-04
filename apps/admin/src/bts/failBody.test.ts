@@ -81,9 +81,11 @@ describe('이슈 본문', () => {
     expect(글).toContain('https://qahub.example.com/runs/812');
   });
 
-  it('단계를 다 빼도 넘으면 끝을 잘라 상한 안에 든다', () => {
+  it('단계를 다 빼도 넘으면 끝을 잘라 상한 안에 들고 실행 결과 고리는 남긴다', () => {
     const reqs = Array.from({ length: 50 }, (_, i) => ({ reqId: `R-${String(i)}`, text: '나'.repeat(300) }));
-    expect(Buffer.byteLength(이슈본문(재료({ reqs })), 'utf8')).toBeLessThanOrEqual(본문상한);
+    const 글 = 이슈본문(재료({ reqs }));
+    expect(Buffer.byteLength(글, 'utf8')).toBeLessThanOrEqual(본문상한);
+    expect(글.endsWith('…\n\nTest Commander 실행 결과 — https://qahub.example.com/runs/812')).toBe(true);
   });
 });
 

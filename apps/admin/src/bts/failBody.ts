@@ -153,8 +153,10 @@ export function 이슈본문(재료: 실패재료): string {
     const 글 = 본문(재료, 남길);
     if (바이트(글) <= 본문상한) return 글;
   }
-  // 단계를 다 빼도 넘으면 끝을 자른다 — 요구 문장 · 기록이 유난히 긴 경우뿐이다
-  return Buffer.from(본문(재료, 0), 'utf8').subarray(0, 본문상한 - 3).toString('utf8').replace(/\uFFFD$/, '') + '…';
+  // 단계를 다 빼도 넘으면 끝을 자른다 — 요구 문장 · 기록이 유난히 긴 경우뿐이다. 실행 결과 고리는 잘린 글 뒤에 다시 붙여 남긴다
+  const 고리 = 재료.결과주소 === null ? '' : `\n\nTest Commander 실행 결과 — ${재료.결과주소}`;
+  const 글 = Buffer.from(본문({ ...재료, 결과주소: null }, 0), 'utf8').subarray(0, 본문상한 - 3 - 바이트(고리));
+  return `${글.toString('utf8').replace(/\uFFFD$/, '')}…${고리}`;
 }
 
 /** 열린 이슈에 다는 「또 실패」 댓글 */
