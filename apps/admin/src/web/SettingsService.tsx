@@ -164,7 +164,7 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
       </구획>
 
       <구획 제목={t('대상 서버§목록')} 쓰임={t('테스트를 실행할 서버 목록입니다. 하나 이상 등록해야 실행할 수 있습니다')}>
-        <EnvEditor envs={envs} onChange={setEnvs} 접두사={row.prefix} api={API종류} 어드민키={어드민키종류} />
+        <EnvEditor envs={envs} onChange={setEnvs} 접두사={row.prefix} api={API종류} 어드민키={어드민키종류} 스토어앱={kind === 'APP'} />
       </구획>
 
       {API종류 ? <API문서구획 경로={apiDocPath} 바꾼경로={setApiDocPath} 기준={apiDocEnv} 바꾼기준={setApiDocEnv} 서버들={서버들} /> : null}

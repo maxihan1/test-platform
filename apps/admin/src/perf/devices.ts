@@ -1,5 +1,6 @@
 // 기기 성능 — 측정 요청 검사 · 실행 만들기 · 고를 수 있는 기기 목록 (도메인/성능 §3.9 「기기 성능」 · §7 「PERF-F1-08 이 연 통로」)
 
+import { 패키지이름인가 } from '@platform/kit/protocol';
 import { z } from 'zod';
 
 import { 대상줄읽기 } from '../authoring/reverse.js';
@@ -108,6 +109,25 @@ export async function 팜기기재료(): Promise<{ serial: string; model: string
   }
 }
 
+/**
+ * 스토어 앱은 깔지 않고 켜서, 사람이 고른 팜 폰에 그 앱이 남아 있어야 한다 — 없는 첫 폰을 까닭으로 돌려준다.
+ * 목록을 못 읽어도 까닭이다 — 보지 못한 채 재면 측정이 앱을 못 연다 (러너 §5.2 「플레이스토어 앱 — 패키지 이름」 · VISION 안내서 11절 「스토어 앱」)
+ */
+async function 앱없는폰(팜: string, 패키지: string, serials: string[]): Promise<string | null> {
+  try {
+    const res = await fetch(`${팜}/api/devices?app=${encodeURIComponent(패키지)}`, { headers: 팜머리(process.env, await 서버팜토큰()), signal: AbortSignal.timeout(목록제한ms) });
+    if (!res.ok) return `Device VISION 이 기기 목록을 주지 않았습니다 (HTTP ${res.status})`;
+    // 주소가 틀려 다른 쪽이 HTML 을 주면 「닿지 못했다」가 아니라 주소를 보라고 한다 (execution/farm.ts 와 같은 말)
+    const 몸 = (await res.json().catch(() => null)) as { value?: { devices?: { serial?: unknown }[] } } | null;
+    if (몸 === null) return 'Device VISION 의 기기 목록을 읽지 못했습니다 — DEVICE_FARM_URL 을 확인하세요';
+    const 깔린 = new Set((몸.value?.devices ?? []).map((d) => d.serial));
+    const 없는 = serials.find((serial) => !깔린.has(serial));
+    return 없는 === undefined ? null : `고른 폰 ${없는} 에 ${패키지} 가 깔려 있지 않습니다 — Device VISION 「남길 앱」에 넣어 둔 폰을 고릅니다`;
+  } catch (err) {
+    return `Device VISION 에 닿지 못했습니다: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+
 /** 요청한 케이스가 이 애플리케이션의 Android 케이스인가(게임 케이스도 android 다) — 아니면 까닭 */
 async function 케이스검사(serviceId: number, caseIds: string[], 이름: string): Promise<string | null> {
   const 접두사 = (await (await 표.풀()).query<{ prefix: string }>('SELECT prefix FROM service WHERE id = $1', [serviceId])).rows[0]?.prefix;
@@ -143,7 +163,13 @@ export async function 측정세우기(b: z.infer<typeof 측정본문>, 누가: {
     // 케이스는 서버 러너가 팜에서 잡은 폰으로 돌린다 — 내 컴퓨터 러너 폰에는 보낼 길이 없다
     if (b.devices.some((d) => d.where !== 'FARM')) return 나쁨(`${b.drive === 'GAME' ? '게임' : 'Appium'} 케이스는 팜 폰만 잴 수 있습니다`);
   }
-  if (b.devices.some((d) => d.where === 'FARM') && 팜주소() === undefined) return { status: 409, error: 'FARM_OFF' };
+  const 팜 = 팜주소();
+  if (b.devices.some((d) => d.where === 'FARM') && 팜 === undefined) return { status: 409, error: 'FARM_OFF' };
+  // 케이스로 재는 길만 앱 파일 칸을 연다 — 직접 플레이는 빌드 칸의 패키지를 사람이 켠다. 케이스 길은 위에서 팜 폰만 남겼다
+  if (b.drive !== 'MANUAL' && 팜 !== undefined && 줄.appPath !== null && 패키지이름인가(줄.appPath)) {
+    const 까닭 = await 앱없는폰(팜, 줄.appPath, b.devices.map((d) => d.serial));
+    if (까닭 !== null) return 나쁨(까닭);
+  }
   if (b.devices.some((d) => d.where === 'LOCAL') && 내컴퓨터러너() === undefined) return 나쁨('이 서버에는 내 컴퓨터 러너(LOCAL_RUNNER_URL)가 연결되어 있지 않습니다');
 
   const 모델 = new Map((await 기기목록()).map((d) => [`${d.where}:${d.serial}`, d.model]));

@@ -57,7 +57,7 @@ export interface ExecuteRequest {
   params: Record<string, unknown>;
   expected: Record<string, unknown>;
   timeoutMs: number;            // 기본 300000
-  app?: string;                 // android 만. 그 대상 서버의 앱 파일 경로나 http(s) 주소(받는 쪽은 Appium 이 도는 PC). 없으면 러너 환경값 PLATFORM_APP (§5.2 · APP-F1-03)
+  app?: string;                 // android 만. 그 대상 서버의 앱 파일 경로나 http(s) 주소(받는 쪽은 Appium 이 도는 PC). 폰에 깔린 스토어 앱이면 패키지 이름(§5.2 「플레이스토어 앱 — 패키지 이름」 · APP-F2-04). 없으면 러너 환경값 PLATFORM_APP (§5.2 · APP-F1-03)
   udid?: string;                // android · 실제 폰 mobile(cdpUrl 이 올 때 꼭 같이). admin 이 디바이스 팜에서 잡은 폰. android 는 없으면 러너 환경값 PLATFORM_DEVICE_UDID (§5.2 · APP-F1-10 · TMO-F4-02)
   farmToken?: string;           // android · 실제 폰 mobile. 그 폰을 잡은 팜 토큰 — 누른 사람이나 서버 몫의 Auth 대신 PAT(2026-11-04 S25). 없으면 러너 환경값 PLATFORM_APPIUM_TOKEN(실제 폰 mobile 은 cdpUrl 이 러너 팜과 같은 호스트일 때만 — 도메인/러너 §5.2 「모바일 웹 — 실제 폰 Chrome」). 기록 · 로그에 안 넣는다 (§5.2 「팜 토큰은 누른 사람 것이 먼저다」 · APP-F1-13)
   cdpUrl?: string;              // mobile 만. VISION 이 깨끗이 켜 준 그 폰 Chrome 의 DevTools 연결 주소(ws · wss). 오면 서버 흉내 대신 그 폰 Chrome 에서 돈다 (§5.2 「모바일 웹 — 실제 폰 Chrome」 · TMO-F4-02)

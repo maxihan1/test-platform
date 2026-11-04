@@ -98,6 +98,15 @@ describe('애플리케이션 설정은 구획마다 「어디에 쓰이나」를
     await waitFor(() => expect(고침).toHaveBeenCalledWith(1, expect.objectContaining({ testsRepo: 'https://github.com/example/other' })));
   });
 
+  it('앱 파일 칸은 Android 앱 애플리케이션만 패키지 이름도 받는다고 알린다 — 게임은 패키지 이름이 400 이다', () => {
+    const 자리표시 = () => screen.getByRole('textbox', { name: '대상 서버 1 앱 파일 경로' }).getAttribute('placeholder');
+    render(<ServicePanel row={{ ...서비스, kind: 'APP' }} onDone={() => {}} />);
+    expect(자리표시()).toBe('앱 파일 경로 또는 패키지 이름');
+    cleanup();
+    render(<ServicePanel row={{ ...서비스, kind: 'GAME' }} onDone={() => {}} />);
+    expect(자리표시()).toBe('앱 파일 경로 (Android 앱 · 게임)');
+  });
+
   it('대상 서버 구획 맨 위에 칸 이름을 한 번만 단다', () => {
     render(<ServicePanel row={{ ...서비스, envs: [{ env: 'qa', baseUrl: 'https://qa.example.com' }, { env: 'stg', baseUrl: 'https://stg.example.com' }] }} onDone={() => {}} />);
 

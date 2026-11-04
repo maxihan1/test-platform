@@ -85,9 +85,10 @@ const 이름바꿈 = (it: 줄): boolean => {
 };
 
 /** 대상 서버는 여러 줄이다. 환경변수 한 줄로는 서비스가 셋만 되어도 안 들어간다 (SPEC §8.8) */
-/** 「대상 서버」 구획 안에 선다 — 구획 제목이 칸 이름을 이미 말해 라벨 열 없이 한 줄을 다 쓴다 (도메인/인증 §8.8) */
-export function EnvEditor(p: { envs: 줄[]; onChange: (next: 줄[]) => void; 접두사?: string; api?: boolean; 어드민키?: boolean }) {
-  const { envs, onChange, 접두사, api = false, 어드민키 = false } = p;
+/** 「대상 서버」 구획 안에 선다 — 구획 제목이 칸 이름을 이미 말해 라벨 열 없이 한 줄을 다 쓴다 (도메인/인증 §8.8).
+ * 스토어앱은 종류 「Android 앱」이다 — 앱 파일 칸이 스토어 앱의 패키지 이름도 받는다고 알린다. 게임은 패키지 이름이 400 이라 안 알린다 (러너 §5.2 「플레이스토어 앱 — 패키지 이름」) */
+export function EnvEditor(p: { envs: 줄[]; onChange: (next: 줄[]) => void; 접두사?: string; api?: boolean; 어드민키?: boolean; 스토어앱?: boolean }) {
+  const { envs, onChange, 접두사, api = false, 어드민키 = false, 스토어앱 = false } = p;
   const t = use말();
   // PRD 가 기다리는 역할은 역할 이름 칸의 제안이다. 새 서비스 · 권한 없음 · PRD 없음은 제안이 없을 뿐 오류가 아니라 조용히 비운다 —
   // 제안은 덤이고 직접 쳐서 넣는 길이 그대로 있다 (점검 14.2)
@@ -155,7 +156,7 @@ export function EnvEditor(p: { envs: 줄[]; onChange: (next: 줄[]) => void; 접
                 type="text"
                 autoComplete="off"
                 value={it.appPath ?? ''}
-                placeholder={t('앱 파일 경로 (Android 앱 · 게임)')}
+                placeholder={스토어앱 ? t('앱 파일 경로 또는 패키지 이름') : t('앱 파일 경로 (Android 앱 · 게임)')}
                 aria-label={t('대상 서버 {번호} 앱 파일 경로', { 번호: i + 1 })}
                 onChange={(e) => onChange(envs.map((v, k) => (k === i ? { ...v, appPath: e.target.value } : v)))}
               />
@@ -199,6 +200,7 @@ export function EnvEditor(p: { envs: 줄[]; onChange: (next: 줄[]) => void; 접
           <>
             <div className="hint">{t('테스트 계정은 실행과 테스트 작성에서 로그인할 때 사용합니다. 실서비스 서버로 체크하면 테스트 작성과 화면 탐색 대상에서 제외됩니다')}</div>
             <div className="hint">{t('앱 파일 경로는 Android 앱 · 게임 케이스를 돌릴 때 설치할 apk 입니다. Device VISION 이 도는 PC 의 파일 경로나 http(s) 주소를 적고, 비우면 테스트 실행기를 켤 때 준 PLATFORM_APP 을 씁니다')}</div>
+            {스토어앱 ? <div className="hint">{t('APK 가 없으면 Device VISION 폰에 스토어로 깔아 둔 앱의 패키지 이름을 적습니다')}</div> : null}
             {어드민키 ? (
               <div className="hint">{t('어드민 키는 서버 어드민 API 에 머리로 실어 보냅니다. 케이스가 재화 지급 같은 상태를 만들 때 씁니다. 값은 끝 4자리만 보이고, 두 칸을 비우고 저장하면 지워집니다')}</div>
             ) : null}

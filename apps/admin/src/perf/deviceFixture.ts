@@ -88,6 +88,10 @@ export async function 기기차림(접두사: string, api: boolean) {
 
   const 팜 = await 서버((h, 응답, 원본) => {
     const m = /^\/api\/devices\/([^/?]+)(\/.*)?$/.exec(h.path);
+    // 스토어 앱 com.xq.app 은 FA1 에만 남는다고 친다 (VISION 안내서 11절 「스토어 앱」)
+    if (h.path.startsWith('/api/devices?app=')) {
+      return 응답(200, { value: { devices: h.path === '/api/devices?app=com.xq.app' ? [{ serial: 'FA1', state: 'IDLE', model: 'SM-A236' }] : [] } });
+    }
     if (h.path === '/api/devices') {
       return 응답(200, { value: { devices: [
         { serial: 'FA1', state: 'IDLE', model: 'SM-A236', osVersion: '13', resolution: '1080x2408' },

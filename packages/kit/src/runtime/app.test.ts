@@ -42,6 +42,14 @@ describe('appCapabilities', () => {
     expect('appium:newCommandTimeout' in appCapabilities({ ...env, PLATFORM_APPIUM_NEW_COMMAND_TIMEOUT: '' })).toBe(false);
   });
 
+  it('패키지 이름이면 깔지 않고 appium:appPackage 로 폰에 깔린 앱을 켠다 — 데이터는 지우고 시작한다', () => {
+    const caps = appCapabilities({ PLATFORM_APP: 'com.shop.app' });
+    expect(caps['appium:appPackage']).toBe('com.shop.app');
+    expect('appium:app' in caps).toBe(false);
+    expect('appium:appActivity' in caps).toBe(false);
+    expect('appium:noReset' in caps).toBe(false);
+  });
+
   it('PLATFORM_APP 이 없으면 던진다', () => {
     expect(() => appCapabilities({})).toThrow('Android 앱 케이스를 돌리려면 PLATFORM_APP 이 필요하다');
   });
