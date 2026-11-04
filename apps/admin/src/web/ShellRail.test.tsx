@@ -2,12 +2,13 @@
 // 사이드바 왼쪽 애플리케이션 줄 · 사이드바 머리 · 화면 머리의 애플리케이션 이름 검사 (SPEC 공통/5-화면공통 §8 「껍데기」 · 2026-10-29 시안 B)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 
 import { api, type ServiceRow, type User } from './api.js';
 import { Head } from './Head.js';
 import { 언어함 } from './i18n.js';
 import { Shell } from './Shell.js';
+import { 펼치기까지 } from './ShellRail.js';
 
 afterEach(() => {
   cleanup();
@@ -71,7 +72,7 @@ describe('줄과 메뉴가 같이 맞는 자리', () => {
       </언어함>,
     );
 
-    expect(within(줄()).getAllByRole('button').map((단추) => 단추.textContent)).toEqual(['ZRA', 'ZRB', 'ZRE', 'ZRD']);
+    expect(within(줄()).getAllByRole('button').map((단추) => 단추.querySelector('.rail-code')?.textContent)).toEqual(['ZRA', 'ZRB', 'ZRE', 'ZRD']);
   });
 
   it('고른 애플리케이션이 없어도 줄 칸은 서고 운영 계정에게는 「+」만 있다', () => {
@@ -97,7 +98,7 @@ describe('애플리케이션 줄', () => {
     const 단추들 = within(줄()).getAllByRole('button');
     expect(단추들.map((it) => it.getAttribute('aria-label'))).toEqual(['데모마켓 웹 · 웹', '데모마켓 앱 · Android 앱']);
     expect(단추들.map((it) => it.getAttribute('aria-current'))).toEqual(['page', null]);
-    expect(단추들.map((it) => it.textContent)).toEqual(['ZRA', 'ZRB']);
+    expect(단추들.map((it) => it.querySelector('.rail-code')?.textContent)).toEqual(['ZRA', 'ZRB']);
   });
 
   it('다른 애플리케이션을 누르면 그 접두사로 onService 가 불리고 브라우저에 적어 둔다', () => {
@@ -130,6 +131,77 @@ describe('애플리케이션 줄', () => {
     띄운다(웹);
 
     expect(screen.queryByRole('combobox', { name: '애플리케이션 선택' })).toBeNull();
+  });
+});
+
+describe('왼쪽 줄 펼치기 (2026-11-05)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const 왼쪽 = () => document.querySelector('.rail') as HTMLElement;
+  const 펼쳤나 = () => 왼쪽().classList.contains('open');
+
+  it('마우스가 0.3초 머물면 펼치고 칸마다 이름 · 종류와 프로젝트 꼬리표가 선다', () => {
+    vi.useFakeTimers();
+    띄운다(웹);
+
+    fireEvent.mouseEnter(왼쪽());
+    act(() => vi.advanceTimersByTime(펼치기까지 - 1));
+    expect(펼쳤나()).toBe(false);
+    act(() => vi.advanceTimersByTime(1));
+    expect(펼쳤나()).toBe(true);
+
+    const 칸 = screen.getByRole('button', { name: '데모마켓 앱 · Android 앱' });
+    expect(칸.querySelector('.rail-name b')?.textContent).toBe('데모마켓 앱');
+    expect(칸.querySelector('.rail-name small')?.textContent).toBe('Android 앱');
+    expect(칸.querySelector('.rail-name')?.getAttribute('aria-hidden')).toBe('true');
+    expect(within(줄()).getByText('데모마켓의 애플리케이션')).toBeTruthy();
+    expect(within(왼쪽()).getByRole('link', { name: '설정' }).querySelector('.rail-name b')?.textContent).toBe('설정');
+  });
+
+  it('0.3초 전에 나가면 펼치지 않는다 — 사이드바 메뉴로 가는 길에 스친 것이다', () => {
+    vi.useFakeTimers();
+    띄운다(웹);
+
+    fireEvent.mouseEnter(왼쪽());
+    act(() => vi.advanceTimersByTime(펼치기까지 - 100));
+    fireEvent.mouseLeave(왼쪽());
+    act(() => vi.advanceTimersByTime(펼치기까지));
+    expect(펼쳤나()).toBe(false);
+  });
+
+  it('펼친 뒤 마우스가 나가면 접힌다 — 칸을 눌러 포커스가 남아 있어도 접힌다', () => {
+    vi.useFakeTimers();
+    띄운다(웹);
+
+    fireEvent.mouseEnter(왼쪽());
+    act(() => vi.advanceTimersByTime(펼치기까지));
+    const 칸 = screen.getByRole('button', { name: '데모마켓 앱 · Android 앱' });
+    fireEvent.focusIn(칸);
+    fireEvent.mouseLeave(왼쪽());
+    expect(펼쳤나()).toBe(false);
+  });
+
+  it('키보드로 줄 안에 들어오면 바로 펼치고, 줄 밖으로 나가면 접힌다', () => {
+    띄운다(웹);
+
+    const 칸 = screen.getByRole('button', { name: '데모마켓 웹 · 웹' });
+    fireEvent.focusIn(칸);
+    expect(펼쳤나()).toBe(true);
+    fireEvent.focusOut(칸, { relatedTarget: screen.getByRole('button', { name: '찾기' }) });
+    expect(펼쳤나()).toBe(false);
+  });
+
+  it('마우스를 올린 채 누르기로 생긴 포커스는 바로 펼치지 않는다 — 머무는 시간이 맡는다', () => {
+    vi.useFakeTimers();
+    띄운다(웹);
+
+    fireEvent.mouseEnter(왼쪽());
+    fireEvent.focusIn(screen.getByRole('button', { name: '데모마켓 앱 · Android 앱' }));
+    expect(펼쳤나()).toBe(false);
+    act(() => vi.advanceTimersByTime(펼치기까지));
+    expect(펼쳤나()).toBe(true);
   });
 });
 

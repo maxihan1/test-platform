@@ -65,6 +65,10 @@ export function 내메뉴({
         <span className="rail-me-av" aria-hidden="true">
           {Array.from(user.displayName)[0] ?? ''}
         </span>
+        {/* 왼쪽 줄을 펼쳤을 때만 보인다 (rail.css `.rail.open`) */}
+        <span className="rail-name" aria-hidden="true">
+          <b>{user.displayName}</b>
+        </span>
       </button>
       {열림 ? (
         <div className="rail-me-menu" id="rail-me-menu">
