@@ -141,7 +141,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
   return (
     <>
       {/* 저장 뒤 비운 칸은 빈 표라 고친 것이 아니다 */}
-      <떠나기상자 막나={Object.values(글자).some((it) => Object.keys(it.params).length + Object.keys(it.expected).length > 0)} />
+      <떠나기상자 막나={Object.values(글자).some((it) => Object.keys({ ...it?.params, ...it?.expected }).length > 0)} />
       {/* 제목과 주 행동은 본문 면 **바깥**에 선다. 안에 넣으면 머리와 본문이 다시 붙는다 (SPEC §8) */}
       {/* 화면 제목은 메뉴 이름이다 — 「테스트 스크립트 › 기능 테스트」로 누른 하위 메뉴까지 보인다 (2026-10-19 · 10-20 사용자) */}
       {/* 스캔 결과 · 미확정 요약 · 모으는 중이 머리 부제에 선다 (CaseListNotes.tsx) */}
