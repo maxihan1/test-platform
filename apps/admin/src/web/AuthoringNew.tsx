@@ -66,7 +66,7 @@ export function AuthoringNew({
   const 기본서버 = api모드 && 문서.기준서버 !== null && envs.some((it) => it.env === 문서.기준서버) ? 문서.기준서버 : (후보[0]?.env ?? null);
   const 판 = 문서.버전들?.some((v) => v.version === 고른판) === true ? 고른판 : (문서.버전들?.[0]?.version ?? null);
   const 줄 = 종류(앱종류);
-  // 웹은 크롤러, Android 앱은 appium-cli 가 훑는다 — 게임이 compare 를 보내면 서버가 400 BAD_ENV 로 막는다 (도메인/작성 §7 AUTHOR · §3.6 「앱 · 게임 역방향」)
+  // 웹은 크롤러, Android 앱은 appium-cli, 게임은 창 훑기가 훑는다 (도메인/작성 §7 AUTHOR · §3.6 「앱 · 게임 역방향」)
   const 대조칸 = !api모드 && 줄.대조 !== null;
   const 대조 = 대조칸 && 대조켜짐;
   const 서버 = 후보.some((it) => it.env === 고른서버) ? 고른서버 : 기본서버;
@@ -265,7 +265,7 @@ export function AuthoringNew({
                       ))}
                     </select>
                   </div>
-                  {/* 앱은 주소가 없어 앱을 켠 첫 화면에서 시작한다 — 시작 주소를 보내면 서버가 400 BAD_ENV */}
+                  {/* 앱 · 게임은 주소가 없어 폰에서 켠 첫 화면에서 시작한다 — 시작 주소를 보내면 서버가 400 BAD_ENV */}
                   {줄.대조 === 'web' && <label className="authoring-sub">
                     <span>{t('시작 주소')}</span>
                     <input

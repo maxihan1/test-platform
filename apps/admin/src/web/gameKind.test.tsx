@@ -133,11 +133,13 @@ describe('게임 종류가 그리는 곳 (도메인/러너 §5.2 종류 표 GAME
     expect([screen.getByText('게임'), screen.getByText('Device VISION')].every(Boolean)).toBe(true);
   });
 
-  it('작성 새 요청은 「실제 화면과 대조」 없이 「게임 화면 읽기」 안내가 선다', () => {
+  it('작성 새 요청은 「실제 화면과 대조」와 「게임 화면 읽기」 안내가 서고, 대조를 켜도 시작 주소 칸이 없다 (APP-F2-06)', () => {
     render(<AuthoringNew service="ASH" envs={[{ env: 'qa', baseUrl: 'https://qa.ashveil.dev' }]} 앱종류="GAME" on넣었다={() => {}} />);
 
-    expect(screen.queryByLabelText('실제 화면과 대조')).toBeNull();
     expect(screen.getByText('게임 화면 읽기')).toBeTruthy();
     expect(screen.queryByText('앱 화면 읽기')).toBeNull();
+    fireEvent.click(screen.getByLabelText('실제 화면과 대조'));
+    expect(screen.getByLabelText('대상 서버')).toBeTruthy();
+    expect(screen.queryByLabelText('시작 주소')).toBeNull();
   });
 });

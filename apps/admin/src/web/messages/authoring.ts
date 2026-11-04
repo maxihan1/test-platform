@@ -184,6 +184,8 @@ export const 작성말: Record<string, string> = {
     'Reading app screens — takes one phone from Device VISION, installs the app and reads elements from the first screen on',
   '실제 화면과 대조 — 폰에서 앱을 눌러 가며 화면을 모아 기획서와 다른 화면을 찾습니다':
     'Compare with the live screen — taps through the app on a phone to collect screens and finds those that differ from the spec',
+  '실제 화면과 대조 — 폰에서 게임 창을 하나씩 열어 기획서와 다른 창을 찾습니다':
+    'Compare with the live screen — opens each game window on a phone and finds the windows that differ from the spec',
   '기획서 · 확률표': 'Spec · probability table',
   '게임 화면 읽기 — Device VISION 에서 폰 하나를 잡아 게임을 깔고 로그인 창부터 창을 하나씩 열어 오브젝트를 읽습니다':
     'Reading game screens — takes one phone from Device VISION, installs the game and opens each window from login to read its objects',
@@ -207,6 +209,7 @@ export const 작성말: Record<string, string> = {
     'The start URL must be on the same address (domain · port) as the chosen target server',
   '대상 서버 주소에서 시작': 'Starts from the target server address',
   '앱 첫 화면에서 시작': "Starts from the app's first screen",
+  '게임 첫 화면에서 시작': "Starts from the game's first screen",
   '화면만 — 기획서 없이 PRD 에 없는 화면만 작성합니다': 'Screen only — without a spec, writes only the screens not in the PRD',
   '원본 요청 #{번호}의 입력을 그대로 씁니다': 'Uses the inputs of the original request #{번호} as they are',
   '원본 요청 #{번호}의 자료': 'Input of the original request #{번호}',
