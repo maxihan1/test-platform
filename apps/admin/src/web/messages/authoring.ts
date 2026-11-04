@@ -182,6 +182,8 @@ export const 작성말: Record<string, string> = {
     'Compare with the live screen — the crawler opens the target server and finds screens that differ from the spec',
   '앱 화면 읽기 — Device VISION 에서 폰 하나를 잡아 앱을 깔고 첫 화면부터 눌러 가며 요소를 읽습니다':
     'Reading app screens — takes one phone from Device VISION, installs the app and reads elements from the first screen on',
+  '실제 화면과 대조 — 폰에서 앱을 눌러 가며 화면을 모아 기획서와 다른 화면을 찾습니다':
+    'Compare with the live screen — taps through the app on a phone to collect screens and finds those that differ from the spec',
   '기획서 · 확률표': 'Spec · probability table',
   '게임 화면 읽기 — Device VISION 에서 폰 하나를 잡아 게임을 깔고 로그인 창부터 창을 하나씩 열어 오브젝트를 읽습니다':
     'Reading game screens — takes one phone from Device VISION, installs the game and opens each window from login to read its objects',

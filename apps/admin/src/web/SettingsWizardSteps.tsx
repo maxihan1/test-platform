@@ -64,7 +64,7 @@ export const 단계제목 = (st: 단계, 새프로젝트: boolean): readonly [st
 export const 서버들 = (v: 마법사값): string[] => v.envs.map((it) => it.env).filter((env) => env !== '');
 
 /** 탐색 제외 경로는 크롤러가 도는 웹만 쓴다 — 웹에서 적고 종류를 바꿨으면 안 보이는 칸이 검사를 막거나 몰래 가지 않게 버린다 */
-export const 쓰는제외 = (v: 마법사값): string => (종류(v.kind ?? undefined).대조 ? v.제외 : '');
+export const 쓰는제외 = (v: 마법사값): string => (종류(v.kind ?? undefined).대조 === 'web' ? v.제외 : '');
 
 /** 다 한 단계 · 고른 카드 · 끝 화면의 체크. 처음 그려질 때 한 번 그어진다(그려짐) */
 export const 체크그림 = (
@@ -212,7 +212,7 @@ export function 단계칸(p: {
             </div>
           </div>
           {/* 탐색은 크롤러가 웹만 한다 — 다른 종류에는 쓸 데가 없어 안 보인다 (도메인/러너 §5.2 종류 표) */}
-          {종류(값.kind ?? undefined).대조 ? <CrawlExcludeField 값={값.제외} 바꾼다={(제외) => 고친다({ 제외 })} /> : null}
+          {종류(값.kind ?? undefined).대조 === 'web' ? <CrawlExcludeField 값={값.제외} 바꾼다={(제외) => 고친다({ 제외 })} /> : null}
         </>
       );
     case 'confirm':

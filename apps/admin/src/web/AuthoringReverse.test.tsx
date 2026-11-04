@@ -106,6 +106,16 @@ describe('새 요청 — 실제 화면과 대조', () => {
     expect(부름[0]?.값).toEqual({ service: 'PAY', body: { kind: 'AUTHOR', figma: [], compare: true, env: 'qa' } });
   });
 
+  it('Android 앱은 대상 서버만 고르고 시작 주소 칸 없이 대조를 보낸다 — 앱을 켠 첫 화면에서 시작한다 (APP-F2-05)', async () => {
+    render(<AuthoringNew service="MKA" envs={서버들} 운영자 앱종류="APP" on넣었다={() => {}} />);
+    대조를켠다();
+    expect(screen.getByLabelText('대상 서버')).toBeTruthy();
+    expect(screen.queryByLabelText('시작 주소')).toBeNull();
+    fireEvent.click(보내기());
+    await waitFor(() => expect(부름.map((b) => b.무엇)).toEqual(['만들기', '세우기']));
+    expect(부름[0]?.값).toEqual({ service: 'MKA', body: { kind: 'AUTHOR', figma: [], compare: true, env: 'qa' } });
+  });
+
   it('대조 칸 설명이 기획서 화면을 먼저 쓰고 없는 화면이 이어진다고 알린다', () => {
     폼();
     대조를켠다();
