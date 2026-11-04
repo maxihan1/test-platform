@@ -169,7 +169,7 @@ describe('링크에 애플리케이션이 담긴다 (WEB-F8-02)', () => {
   it('다른 애플리케이션의 케이스 링크를 열면 그 애플리케이션으로 바꿔 연다 — 「케이스 없음」이 뜨지 않게', async () => {
     await 간다('#/cases/fn?q=ZBQ-FN-001&case=ZBQ-FN-001&service=ZBQ');
     render(<앱뿌리 />);
-    await waitFor(() => expect(지금고른(/ZBQ 웹/)).toBe('page'));
+    await waitFor(() => expect(지금고른(/^ZBQ 웹 · /)).toBe('page'));
     expect(localStorage.getItem('고른서비스')).toBe('ZBQ');
     expect(screen.queryByText(안내)).toBeNull();
   });
@@ -177,23 +177,23 @@ describe('링크에 애플리케이션이 담긴다 (WEB-F8-02)', () => {
   it('대시보드가 써 온 번호 꼴도 받는다', async () => {
     await 간다('#/runs/e2e?service=8');
     render(<앱뿌리 />);
-    await waitFor(() => expect(지금고른(/ZBQ 웹/)).toBe('page'));
+    await waitFor(() => expect(지금고른(/^ZBQ 웹 · /)).toBe('page'));
   });
 
   it('볼 수 없는 애플리케이션이면 지금 고른 것 그대로 열고 안내 한 줄을 띄우며, 목록이 주소를 지금 애플리케이션으로 고친다', async () => {
     await 간다('#/cases/fn?service=NOPE');
     render(<앱뿌리 />);
     expect((await screen.findByText(안내)).getAttribute('role')).toBe('status');
-    expect(지금고른(/ZAP 웹/)).toBe('page');
+    expect(지금고른(/^ZAP 웹 · /)).toBe('page');
     await waitFor(() => expect(window.location.hash).toBe('#/cases/fn?service=ZAP'));
   });
 
   it('왼쪽 줄에서 애플리케이션을 바꾸면 주소의 service= 칸도 고친다 — 새로고침이 앞 애플리케이션으로 되돌리지 않게', async () => {
     await 간다('#/scenarios?service=ZAP');
     render(<앱뿌리 />);
-    fireEvent.click(await screen.findByRole('button', { name: /ZBQ 웹/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /^ZBQ 웹 · / }));
     await waitFor(() => expect(window.location.hash).toBe('#/scenarios?service=ZBQ'));
-    expect(지금고른(/ZBQ 웹/)).toBe('page');
+    expect(지금고른(/^ZBQ 웹 · /)).toBe('page');
   });
 
   it('자리 없이 연 설정은 연 애플리케이션 자리로 기록을 덮어 채우고, 왼쪽 줄에서 바꾸면 그 자리도 따라간다', async () => {
@@ -204,7 +204,7 @@ describe('링크에 애플리케이션이 담긴다 (WEB-F8-02)', () => {
     await waitFor(() => expect(window.location.hash).toBe('#/settings/ZAP'));
     expect(window.history.length).toBe(길이);
 
-    fireEvent.click(screen.getByRole('button', { name: /ZBQ 웹/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^ZBQ 웹 · / }));
     await waitFor(() => expect(window.location.hash).toBe('#/settings/ZBQ'));
     expect(window.history.length).toBe(길이);
     await 뒤로();
@@ -229,7 +229,7 @@ describe('링크에 애플리케이션이 담긴다 (WEB-F8-02)', () => {
     fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'zap' } });
     fireEvent.change(screen.getByLabelText('비밀번호'), { target: { value: 'x' } });
     fireEvent.submit(screen.getByRole('button', { name: '로그인' }));
-    await screen.findByRole('button', { name: /ZAP 웹/ });
+    await screen.findByRole('button', { name: /^ZAP 웹 · / });
     expect(screen.queryByText(안내)).toBeNull();
   });
 });
