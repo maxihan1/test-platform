@@ -243,11 +243,11 @@ export async function 역방향칸판정(본문: Record<string, unknown>, 서비
   const { compare, env, startUrl } = 본문;
   const 주소있음 = startUrl !== undefined && startUrl !== null;
   if (compare !== undefined && typeof compare !== 'boolean') return { error: 'BAD_ENV' };
-  // 앱 · 게임은 주소가 없어 앱을 켠 첫 화면에서 시작한다. 게임 대조는 아직 막는다(APP-F2-06). 만들기 · 재실행 · 이어 작성이 모두 여기를 지난다 —
+  // 앱 · 게임은 주소가 없어 앱을 켠 첫 화면에서 시작한다. 만들기 · 재실행 · 이어 작성이 모두 여기를 지난다 —
   // 종류가 바뀌기 전에 세운 대조 원본을 물려받아도 그 종류의 규칙을 탄다 (§3.6 「★ 역방향」 「앱 · 게임 역방향」 1)
   // 대조 · 시작 주소가 없으면 종류를 볼 일이 없다 — 정방향 만들기 · 재실행 · 이어 작성마다 설정을 읽지 않는다
   const 종류 = compare === true || 주소있음 ? (await 문서설정읽기(서비스))?.kind : undefined;
-  if (폰앱인가(종류) && (주소있음 || (compare === true && 종류 !== 'APP'))) return { error: 'BAD_ENV' };
+  if (폰앱인가(종류) && 주소있음) return { error: 'BAD_ENV' };
   if (compare !== true) {
     if (주소있음) return { error: 'BAD_START_URL' };
     if (env !== undefined && env !== null) return { error: 'BAD_ENV' };
@@ -255,8 +255,8 @@ export async function 역방향칸판정(본문: Record<string, unknown>, 서비
   }
   if (typeof env !== 'string' || env === '') return { error: 'BAD_ENV' };
   const 줄 = await 대상줄읽기(서비스, env);
-  // 앱은 계정이 없어도 로그아웃 판만 훑는다. 대신 폰에서 켤 앱(최신 빌드 · 앱 파일 경로)이 있어야 한다 — 앱 화면 통로(appScreen.ts)와 같은 판정
-  if (종류 === 'APP') return 줄 !== null && !줄.isProd && (await 켤앱있나(서비스, 줄)) ? { compare: true, env, startUrl: null } : { error: 'BAD_ENV' };
+  // 앱 · 게임은 계정이 없어도 로그아웃 판만 훑는다. 대신 폰에서 켤 앱(최신 빌드 · 앱 파일 경로)이 있어야 한다 — 앱 화면 통로(appScreen.ts)와 같은 판정
+  if (폰앱인가(종류)) return 줄 !== null && !줄.isProd && (await 켤앱있나(서비스, 줄)) ? { compare: true, env, startUrl: null } : { error: 'BAD_ENV' };
   if (!계정있는줄(줄)) return { error: 'BAD_ENV' };
   if (!주소있음) return { compare: true, env, startUrl: null };
   const 정규 = 시작주소(startUrl, 줄.baseUrl);
