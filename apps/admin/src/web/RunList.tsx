@@ -107,7 +107,7 @@ export function RunList({
     ...(origin === undefined ? {} : { origin }),
     ...(days === undefined ? {} : { days: String(days) }),
     ...(page === 1 ? {} : { page: String(page) }),
-  });
+  }, { 쌓는칸: ['run'] });
 
   const 조건: RunQuery = {
     kind,

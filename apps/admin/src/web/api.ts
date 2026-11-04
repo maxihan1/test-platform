@@ -964,11 +964,44 @@ export function 세션끊김을받는다(fn: () => void): void {
   세션끊김 = fn;
 }
 
+// 로그인 화면으로 가는 길. 기본은 새 칸이고, 앱 뿌리가 현재 칸을 바꿔 끼우는 길로 갈아 끼운다 —
+// 쌓으면 로그인 뒤 그 칸을 원래 주소로 바꿀 때 같은 주소 칸이 둘이 돼 첫 뒤로 가기가 아무 일도 안 한다
+let 로그인으로간다 = (주소: string): void => {
+  location.hash = 주소;
+};
+
+export function 로그인으로가는길을정한다(fn: (주소: string) => void): void {
+  로그인으로간다 = fn;
+}
+
+// 해시 주소(`#/…`)만 돌아갈 자리다. 로그인 · 가입 · 비밀번호 화면은 로그인한 사람에게 쓸 데가 없고, 그 밖의 글자는 저장소에서 읽은 값이라 믿지 않는다
+const 돌아갈만한가 = (값: string): boolean => /^#\/(?!(?:login|signup|password)(?:[/?]|$))/.test(값);
+
+/** 로그인 화면으로 보내기 전(세션 끊김 · 링크로 연 로그인 화면 · SSO 로 떠나기 전)에 보던 주소를 이 탭에 적는다 */
+export function 돌아갈자리를적는다(해시: string, 덮는다 = true): void {
+  if (!돌아갈만한가(해시)) return;
+  try {
+    // 세션이 끊길 때는 먼저 적힌 것이 이긴다 — 화면 하나가 요청 여럿을 보내 401 이 여러 번 온다. 로그인 화면이 사람 이동을 따라 고쳐 적는 것은 덮는다
+    if (!덮는다 && sessionStorage.getItem(돌아갈자리키) !== null) return;
+    sessionStorage.setItem(돌아갈자리키, 해시);
+  } catch {
+    // 저장이 막혀도 로그인 화면은 뜬다. 돌아갈 자리를 잃을 뿐이다
+  }
+}
+
+export function 돌아갈자리를지운다(): void {
+  try {
+    sessionStorage.removeItem(돌아갈자리키);
+  } catch {
+    // 위와 같다
+  }
+}
+
 export function 돌아갈자리를꺼낸다(): string | null {
   try {
     const 값 = sessionStorage.getItem(돌아갈자리키);
     if (값 !== null) sessionStorage.removeItem(돌아갈자리키);
-    return 값;
+    return 값 !== null && 돌아갈만한가(값) ? 값 : null;
   } catch {
     // 브라우저가 저장을 막아도 로그인 자체는 되어야 한다
     return null;
@@ -993,17 +1026,10 @@ export function 나가는중이다(값: boolean): void {
 
 function 로그인으로보낸다(): void {
   if (나가는중) return;
-  try {
-    // 화면 하나가 요청 셋을 동시에 보낸다 (케이스 목록이 cases·scan·last-by-case).
-    // 먼저 온 401 이 이미 자리를 적었으면 덮어쓰지 않는다 —
-    // 덮어쓰면 뒤에 온 것이 '#/login' 을 적어 원래 가려던 화면을 잃는다
-    if (location.hash !== '#/login' && sessionStorage.getItem(돌아갈자리키) === null) {
-      sessionStorage.setItem(돌아갈자리키, location.hash);
-    }
-  } catch {
-    // 저장이 막혀도 로그인 화면으로는 보낸다. 돌아갈 자리를 잃을 뿐이다
-  }
-  location.hash = '#/login';
+  // 화면 하나가 요청 셋을 동시에 보낸다 (케이스 목록이 cases·scan·last-by-case).
+  // 먼저 온 401 이 이미 자리를 적었으면 덮지 않고, 해시가 '#/login' 으로 바뀐 뒤 온 것은 적지 않는다 — 원래 가려던 화면을 잃지 않게
+  돌아갈자리를적는다(location.hash, false);
+  로그인으로간다('#/login');
   세션끊김?.();
 }
 

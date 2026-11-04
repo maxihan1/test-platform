@@ -399,6 +399,14 @@ describe('작성 진척 · 중단 · 폐기', () => {
       await vi.waitFor(() => expect(window.location.hash).toBe('#/authoring/5'));
     });
 
+    it('뿌리 번호로 넘기는 것은 기록을 쌓지 않는다 — 쌓으면 뒤로 가기가 예전 번호로 가서 다시 넘어가 갇힌다 (WEB-F8-01)', async () => {
+      답 = 줄({ id: 7, kind: 'RERUN', sourceId: 5, rootId: 5, runs: [] });
+      const 길이 = window.history.length;
+      render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
+      await vi.waitFor(() => expect(window.location.hash).toBe('#/authoring/5'));
+      expect(window.history.length).toBe(길이);
+    });
+
     it('뿌리 쪽은 부제가 뿌리 번호이고, 상태 카드 · 다음 단계는 최신 실행 것이다', async () => {
       const 기록 = [실행({ id: 9, kind: 'RERUN', resumeFrom: 8, status: 'RUNNING', finishedAt: null }), 실행({ id: 5 })];
       답들.set(5, 줄({ id: 5, status: 'FAILED', prUrl: null, error: '옛 실패', rootId: 5, runs: 기록 }));

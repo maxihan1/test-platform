@@ -4,7 +4,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { api, ApiError, type User } from './api.js';
+import { api, ApiError, 돌아갈자리를적는다, type User } from './api.js';
 import { use말, use언어, type 언어 } from './i18n.js';
 import { 언어고르개 } from './ShellPickers.js';
 import { message } from './ui.js';
@@ -166,6 +166,14 @@ export function Login({
   const [busy, setBusy] = useState(false);
   // 묻는 동안은 아이디 · 비밀번호 칸을 그린다 — 대부분의 설치가 그 모양이고, 칸이 비어 보이는 것보다 낫다
   const sso = useSSO();
+  // 링크로 열려 로그인 화면이 떴으면 그 주소를 적는다. SSO 는 서버를 한 바퀴 돌아와 주소의 # 뒤를 잃으므로 떠나기 전에 적어야 한다
+  // 로그인 화면에 있는 동안 주소가 바뀌어도(링크를 다시 연 경우) 그 주소로 고쳐 적는다
+  useEffect(() => {
+    const 적는다 = () => 돌아갈자리를적는다(window.location.hash);
+    적는다();
+    window.addEventListener('hashchange', 적는다);
+    return () => window.removeEventListener('hashchange', 적는다);
+  }, []);
 
   if (sso === true) return <SSO로그인 on언어={on언어} 떠난다={떠난다} />;
 

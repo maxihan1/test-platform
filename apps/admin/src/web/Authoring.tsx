@@ -9,6 +9,7 @@ import { api, type AuthoringListRow, type EnvRow, type Paged, type 앱종류 } f
 import { AuthoringDecide } from './AuthoringDecide.js';
 import { AuthoringNew } from './AuthoringNew.js';
 import { decideApi } from './decideApi.js';
+import { 탭읽기, type 탭 } from './decideView.js';
 import { Drawer } from './Drawer.js';
 import { AuthoringStartModal } from './AuthoringStartModal.js';
 import { 목록글 } from './authoringStatus.js';
@@ -93,7 +94,17 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
   const [page, setPage] = useState(() => Math.max(1, Math.floor(Number(주소조건().get('page')) || 1)));
   // 「결정 필요」 — 목록 자리에 결정 목록이 선다. 주소의 todo=1 은 앞 이름 「조치 필요」 때 것을 그대로 쓴다 (도메인/작성 §3.6 「★ 결정 목록」)
   const [할일만, set할일만] = useState(() => 주소조건().get('todo') === '1');
-  use주소조건('#/authoring', { ...(할일만 ? { todo: '1' } : {}), ...(page === 1 ? {} : { page: String(page) }) });
+  // 결정 필요 탭도 주소에 남는다 — 탭을 옮길 때마다 기록을 쌓아 뒤로 가기가 앞 탭으로 간다. 이름은 todo 와 겹치지 않게 decide
+  const [결정탭, set결정탭] = useState<탭 | null>(() => 탭읽기(주소조건().get('decide')));
+  use주소조건('#/authoring', { ...(할일만 ? { todo: '1' } : {}), ...(할일만 && 결정탭 !== null ? { decide: 결정탭 } : {}), ...(page === 1 ? {} : { page: String(page) }) }, {
+    쌓는칸: ['decide'],
+    // 뒤로 가기에 화면을 다시 그리지 않는다 — 탭마다 고르던 것과 고치던 글을 잃지 않게
+    듣기: (조건) => {
+      set할일만(조건.get('todo') === '1');
+      set결정탭(탭읽기(조건.get('decide')));
+      setPage(Math.max(1, Math.floor(Number(조건.get('page')) || 1)));
+    },
+  });
   // 새 요청 폼은 오른쪽 서랍에 둔다 — 요청은 가끔 넣고 목록은 자주 보니 목록이 폭을 다 쓴다 (2026-10-20 사용자 · WEB-F5-04 시안 C)
   const [서랍, set서랍] = useState(false);
   const 서랍닫기 = () => {
@@ -189,7 +200,7 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
           ) : (
             // 판(.screen)이 넘친 아래를 숨긴다 — 줄 목록처럼 스크롤 칸에 넣어야 창보다 긴 결정 목록의 아래 항목 · 진행 버튼에 닿는다
             <div className="rows-scroll">
-              <AuthoringDecide key={service} service={service} 목록={결정판} envs={envs} 다시읽기={결정.reload} />
+              <AuthoringDecide key={service} service={service} 목록={결정판} envs={envs} 다시읽기={결정.reload} 탭={결정탭} on탭={set결정탭} />
             </div>
           )
         ) : 목록 === null ? null : (

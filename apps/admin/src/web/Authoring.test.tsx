@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { AuthoringListRow } from './api.js';
@@ -260,6 +260,66 @@ describe('작성 목록 줄 할 일 (⑫ 점검 11.2 · N2) — 줄 내용은 Au
     expect(screen.getByText('테스트를 승인할까요?')).toBeTruthy();
     expect(screen.queryByRole('button', { name: '다음' })).toBeNull();
     expect(window.location.hash).toBe('#/authoring?todo=1');
+  });
+
+  it('결정 필요 탭을 옮기면 decide= 가 붙고 기록이 쌓인다 — 뒤로 가기를 하면 앞 탭이다 (WEB-F8-01)', async () => {
+    window.history.replaceState(null, '', '#/authoring?todo=1');
+    결정.목록 = {
+      prdVersion: 3,
+      count: 2,
+      open: [],
+      failMore: 0,
+      items: [
+        { key: 'apply:7001:7002', group: 1, kind: 'APPLY', picks: ['APPLY'], blockedBy: null, rootId: 7001, runId: 7002, summary: 요약(), prUrl: null, requestedByName: '테스터', finishedAt: null },
+        { key: 'check:PAY-REQ-001', group: 2, kind: 'CHECK', picks: ['SAME', 'EDIT'], blockedBy: null, reqId: 'PAY-REQ-001', feature: '약관', text: 'PAY-REQ-001 제목이 보인다', checkSince: null, basis: 'SCREEN', options: [] },
+      ],
+    };
+    render(<Authoring service="PAY" 할수={() => true} />);
+    const 승인 = await screen.findByRole('tab', { name: /^승인 대기/ });
+    expect(승인.getAttribute('aria-selected')).toBe('true');
+    const 길이 = window.history.length;
+
+    fireEvent.click(screen.getByRole('tab', { name: /^요구사항 확인/ }));
+    expect(window.location.hash).toBe('#/authoring?todo=1&decide=check');
+    expect(window.history.length).toBe(길이 + 1);
+    expect(screen.getByRole('tab', { name: /^요구사항 확인/ }).getAttribute('aria-selected')).toBe('true');
+
+    window.history.back();
+    await waitFor(() => expect(screen.getByRole('tab', { name: /^승인 대기/ }).getAttribute('aria-selected')).toBe('true'));
+    expect(window.location.hash).toBe('#/authoring?todo=1');
+  });
+
+  it('결정 탭을 고른 뒤 「전체」 칩을 눌러도 기록을 쌓지 않고 주소만 고친다 (WEB-F8-01 검토 11)', async () => {
+    window.history.replaceState(null, '', '#/authoring?todo=1&decide=check');
+    결정.목록 = {
+      prdVersion: 3,
+      count: 1,
+      open: [],
+      failMore: 0,
+      items: [{ key: 'check:PAY-REQ-001', group: 2, kind: 'CHECK', picks: ['SAME', 'EDIT'], blockedBy: null, reqId: 'PAY-REQ-001', feature: '약관', text: 'PAY-REQ-001 제목이 보인다', checkSince: null, basis: 'SCREEN', options: [] }],
+    };
+    render(<Authoring service="PAY" 할수={() => true} />);
+    await screen.findByRole('tab', { name: /^요구사항 확인/ });
+    const 길이 = window.history.length;
+    fireEvent.click(screen.getByRole('button', { name: '전체' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/authoring'));
+    expect(window.history.length).toBe(길이);
+  });
+
+  it('주소의 decide= 로 처음부터 그 탭이 열린다', async () => {
+    window.history.replaceState(null, '', '#/authoring?todo=1&decide=check');
+    결정.목록 = {
+      prdVersion: 3,
+      count: 2,
+      open: [],
+      failMore: 0,
+      items: [
+        { key: 'apply:7001:7002', group: 1, kind: 'APPLY', picks: ['APPLY'], blockedBy: null, rootId: 7001, runId: 7002, summary: 요약(), prUrl: null, requestedByName: '테스터', finishedAt: null },
+        { key: 'check:PAY-REQ-001', group: 2, kind: 'CHECK', picks: ['SAME', 'EDIT'], blockedBy: null, reqId: 'PAY-REQ-001', feature: '약관', text: 'PAY-REQ-001 제목이 보인다', checkSince: null, basis: 'SCREEN', options: [] },
+      ],
+    };
+    render(<Authoring service="PAY" 할수={() => true} />);
+    expect((await screen.findByRole('tab', { name: /^요구사항 확인/ })).getAttribute('aria-selected')).toBe('true');
   });
 
   it('결정 목록은 작성 목록을 기다리지 않는다 — 목록을 못 읽어도 결정 목록이 서고 실패 띠가 없다', async () => {

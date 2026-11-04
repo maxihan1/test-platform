@@ -16,6 +16,28 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+describe('단계는 주소에 남는다 (WEB-F8-01)', () => {
+  it('다음으로 넘기면 step= 가 붙고 기록이 쌓이며, 뒤로 가기는 앞 단계이고 고른 값은 그대로다', async () => {
+    window.location.hash = '#/settings/new';
+    그린다({ 기본프로젝트: 2 });
+    const 길이 = window.history.length;
+    다음();
+    종류를고른다('웹');
+    다음();
+    expect(window.location.hash).toBe('#/settings/new?step=2');
+    expect(window.history.length).toBe(길이 + 2);
+
+    window.history.back();
+    await waitFor(() => expect(screen.getByRole('group', { name: '종류' })).toBeTruthy());
+    expect(종류카드들().find((it) => it.querySelector('.wz-kind-h')?.textContent === '웹')?.getAttribute('aria-pressed')).toBe('true');
+    expect(window.location.hash).toBe('#/settings/new?step=1');
+
+    window.history.back();
+    await waitFor(() => expect(screen.getByRole('button', { name: /사내 포털/ }).getAttribute('aria-pressed')).toBe('true'));
+    expect(window.location.hash).toBe('#/settings/new');
+  });
+});
+
 describe('애플리케이션만 더하기', () => {
   it('프로젝트 → 종류 → 이름 · 번호 → 대상 서버 → 알림 · 작성 도구 → 확인 차례로 넘기고, 만들면 고른 것을 보내고 끝 화면을 보인다', async () => {
     const 만듦 = vi.spyOn(api, 'createService').mockResolvedValue({ id: 9 });
@@ -107,6 +129,31 @@ describe('애플리케이션만 더하기', () => {
 
     await waitFor(() => expect(screen.getByText('이름과 번호를 정합니다')).toBeTruthy());
     expect(까닭()).toBe('그 접두사는 이미 다른 애플리케이션이 쓰고 있습니다');
+  });
+
+  it('서버 오류로 마법사가 단계를 되돌려도 기록을 쌓지 않고 주소만 그 단계로 덮는다 (WEB-F8-01 검토)', async () => {
+    const 도착 = new Promise<void>((끝) => window.addEventListener('hashchange', () => 끝(), { once: true }));
+    window.location.hash = '#/settings/new';
+    await 도착;
+    vi.spyOn(api, 'createService').mockRejectedValue(new ApiError(409, 'PREFIX_TAKEN', 'taken'));
+    그린다();
+    확인까지();
+    const 길이 = window.history.length;
+    fireEvent.click(screen.getByRole('button', { name: '만들기' }));
+
+    await waitFor(() => expect(screen.getByText('이름과 번호를 정합니다')).toBeTruthy());
+    await waitFor(() => expect(window.location.hash).toBe('#/settings/new?step=2'));
+    expect(window.history.length).toBe(길이);
+  });
+
+  it('손으로 고친 주소로 단계 검사를 건너뛰지 못한다 — 종류를 안 골랐으면 종류 단계에 남고 주소는 실제 단계다', async () => {
+    window.location.hash = '#/settings/new';
+    그린다();
+    const 도착 = new Promise<void>((끝) => window.addEventListener('hashchange', () => 끝(), { once: true }));
+    window.location.hash = '#/settings/new?step=4';
+    await 도착;
+    await waitFor(() => expect(window.location.hash).toBe('#/settings/new?step=1'));
+    expect(screen.getByRole('group', { name: '종류' })).toBeTruthy();
   });
 
   it('웹에서 탐색 제외 경로를 적고 종류를 바꾸면 그 칸은 검사도 하지 않고 보내지도 않는다', async () => {

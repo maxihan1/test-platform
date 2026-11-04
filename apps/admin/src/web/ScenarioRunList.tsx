@@ -50,7 +50,7 @@ export function ScenarioRunList({ service, 판정하기 }: { service: string; �
     ...(q === '' ? {} : { q }),
     ...(state === undefined ? {} : { state }),
     ...(page === 1 ? {} : { page: String(page) }),
-  });
+  }, { 쌓는칸: ['run'] });
 
   const runs = useAsync<목록답>(
     () => scenarioApi.runs(service, page, { ...(q === '' ? {} : { q }), ...(state === undefined ? {} : { state }) }),

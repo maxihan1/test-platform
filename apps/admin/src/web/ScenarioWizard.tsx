@@ -5,7 +5,7 @@ import type { ScenarioPart } from '@platform/kit';
 
 import type { CaseRow, Platform, ServiceRow, User } from './api.js';
 import { use말 } from './i18n.js';
-import { 떠나기막기, 떠나기상자 } from './leaveGuard.js';
+import { 떠나기막기, 떠나기상자, 주소덮기 } from './leaveGuard.js';
 import { 판정을만든다 } from './role.js';
 import { 단계칸, type 케이스줄들 } from './ScenarioWizardSteps.js';
 import { AI칸, 시작칸, type 시작방법 } from './ScenarioWizardStart.js';
@@ -19,6 +19,8 @@ import { 초안넘기기 } from './useScenarioDraft.js';
 import { useWizardEnd } from './useWizardEnd.js';
 import { useWizardKeys } from './useWizardKeys.js';
 import { useWizardMaterial } from './useWizardMaterial.js';
+import { 막는이유, 안내글 } from './ScenarioWizardGate.js';
+import { use단계주소 } from './useWizardStep.js';
 import { useWizardValues } from './useWizardValues.js';
 
 const 나가는곳 = '#/scenarios';
@@ -49,7 +51,7 @@ export function ScenarioWizard({ 띠서비스, user }: { 띠서비스: ServiceRo
   const 쓰나 = 판정을만든다(user, 서비스)('실행');
   useEffect(() => {
     // 읽기만 하는 사람이 주소로 연 마법사는 쓸 데가 없다
-    if (!쓰나) window.location.hash = 나가는곳;
+    if (!쓰나) 주소덮기(나가는곳);
   }, [쓰나]);
 
   // 단계가 바뀌면 그 단계 첫 칸에 손이 간다 — 키보드로 넘기는 사람이 칸을 찾아 헤매지 않게.
@@ -73,7 +75,6 @@ export function ScenarioWizard({ 띠서비스, user }: { 띠서비스: ServiceRo
   const 끝 = useWizardEnd({ 서비스, 디바이스, 이름, 보낼, 앱들, on까닭: set이유 });
   const { 시험, 저장됨 } = 끝;
 
-  if (!쓰나) return null;
   const 목록: 마법사단계[] = ['start', ...(방법 === 'ai' ? (['ai'] as const) : []), 'steps', 'values', 'trial', 'save'];
   const st = 목록[Math.min(지금, 목록.length - 1)]!;
   const 바람값 = 바람.trim() === '' ? {} : { wish: 바람.trim() };
@@ -87,31 +88,25 @@ export function ScenarioWizard({ 띠서비스, user }: { 띠서비스: ServiceRo
     set방향(쪽);
     set이유(null);
   };
+  const 막는상황 = { 방법, 추천만드는중: 흐름.도나, 고른후보, 단계수: 단계들.length, 값막힘: 값.막힘, 시험중: 시험.단계 === 'running' };
+  // 뒤로 가기 · 앞으로 가기 · 손으로 고친 주소도 다음 버튼과 같은 검사를 지난다 — 앞으로는 통과하는 데까지만 간다
+  use단계주소(지금, (i) => {
+    if (저장됨 !== null) return 지금;
+    let 갈곳 = Math.max(0, Math.min(i, 목록.length - 1));
+    for (let s = 지금; s < 갈곳; s++) {
+      if (막는이유(목록[s]!, 막는상황) !== null) {
+        갈곳 = s;
+        break;
+      }
+    }
+    if (갈곳 !== 지금) 간다(갈곳, 갈곳 > 지금 ? 'fwd' : 'back');
+    return 갈곳;
+  });
   // 시작 방법 · 애플리케이션 · 디바이스가 바뀌면 받은 AI 후보는 다른 조건의 것이다
   const 추천버림 = () => {
     흐름.버리기();
     set고른후보(null);
   };
-
-  function 막는이유(): string | null {
-    if (st === 'start') return 방법 === null ? '시작 방법을 고릅니다' : null;
-    if (st === 'ai') {
-      if (흐름.도나) return '추천을 만드는 중입니다. 끝나면 후보를 골라 주세요';
-      return 고른후보 === null ? '후보를 하나 골라 주세요. 맞는 후보가 없으면 「이전」에서 「직접 고르기」로 바꿉니다' : null;
-    }
-    if (st === 'steps') return 단계들.length === 0 ? '단계를 하나 이상 넣습니다' : null;
-    if (st === 'values') return 값.막힘 ? '빈 칸이 남은 값 연결이 있습니다. 적거나 삭제합니다' : null;
-    if (st === 'trial') return 시험.단계 === 'running' ? '시험 실행이 끝나면 넘어갑니다' : null;
-    return null;
-  }
-
-  // 막지 않고 바닥에 남기는 안내 (결정 15 — 시험 실행은 저장 조건이 아니다)
-  function 안내(): string | null {
-    if (st === 'values' && 값.미확인 > 0) return t('확인하지 않은 값 연결이 {수}곳 있습니다', { 수: 값.미확인 });
-    if (st !== 'trial') return null;
-    if (시험.단계 === 'idle' || 시험.단계 === 'failed') return t('시험 없이 넘어가도 저장할 수 있습니다');
-    return 시험.단계 === 'done' && 시험.결과?.status !== 'PASS' ? t('멈춘 채로도 저장할 수 있습니다') : null;
-  }
 
   async function 저장누름(실행: boolean) {
     const 까닭 = await 끝.저장(실행);
@@ -126,7 +121,7 @@ export function ScenarioWizard({ 띠서비스, user }: { 띠서비스: ServiceRo
   };
 
   function 다음() {
-    const 까닭 = 막는이유();
+    const 까닭 = 막는이유(st, 막는상황);
     if (까닭 !== null) {
       set이유(까닭);
       set흔들((n) => n + 1);
@@ -162,6 +157,7 @@ export function ScenarioWizard({ 띠서비스, user }: { 띠서비스: ServiceRo
     window.location.hash = '#/scenarios/new/build';
   }
 
+  if (!쓰나) return null;
   const 막나 = 저장됨 === null && (단계들.length > 0 || 이름.trim() !== '');
   const [제목, 설명] = 단계제목[st];
 
@@ -270,7 +266,7 @@ export function ScenarioWizard({ 띠서비스, user }: { 띠서비스: ServiceRo
           </div>
           <div className="wz-foot">
             <span key={흔들} className={이유 === null ? 'hint wz-why' : 'err wz-why wz-shake'} role={이유 === null ? undefined : 'alert'}>
-              {이유 === null ? (안내() ?? '') : t(이유)}
+              {이유 === null ? (안내글(st, { 미확인: 값.미확인, 시험단계: 시험.단계, 시험멈춤: 시험.결과?.status !== 'PASS' }, t) ?? '') : t(이유)}
             </span>
             {지금 > 0 && 저장됨 === null ? (
               <button type="button" className="btn ghost" onClick={() => 간다(지금 - 1, 'back')}>

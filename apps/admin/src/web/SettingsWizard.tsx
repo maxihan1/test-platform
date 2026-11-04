@@ -18,6 +18,7 @@ import { 단계들, 단계이름, 단계제목, 단계칸, 서버들, 쓰는제�
 import { 서비스못보내는이유, 설정오류문장, 안쓰는서비스색, 제외경로값 } from './settingsView.js';
 import { 기다림글자 } from './ui.js';
 import { useWizardKeys } from './useWizardKeys.js';
+import { use단계주소 } from './useWizardStep.js';
 
 const 처음값 = (projectId: number | null): 마법사값 => ({
   프로젝트이름: '', projectId, kind: null, prefix: '', name: '', testsDir: '', testsRepo: '', envs: [], apiDocPath: '', apiDocEnv: '', webhook: '', figma: '', 제외: '',
@@ -118,6 +119,19 @@ export function SettingsWizard(p: Props) {
     set이유(null);
     setErr(null);
   };
+  // 뒤로 가기 · 앞으로 가기 · 손으로 고친 주소도 다음 버튼과 같은 검사를 지난다 — 앞으로는 통과하는 데까지만 간다
+  const 스스로 = use단계주소(지금, (i) => {
+    if (만든것 !== null) return 지금;
+    let 갈곳 = Math.max(0, Math.min(i, 목록.length - 1));
+    for (let s = 지금; s < 갈곳; s++) {
+      if (막는이유(목록[s]!, 값, 새프로젝트, 쓰는것, 언어) !== null) {
+        갈곳 = s;
+        break;
+      }
+    }
+    if (갈곳 !== 지금) 간다(갈곳, 갈곳 > 지금 ? 'fwd' : 'back');
+    return 갈곳;
+  });
   const 막혔다 = (까닭: string) => {
     set이유(까닭);
     set흔들((n) => n + 1);
@@ -134,6 +148,7 @@ export function SettingsWizard(p: Props) {
     // 「고치기」로 앞 단계를 바꿨을 수 있다 — 막힌 단계가 있으면 그리로 데려간다
     const 막힌 = 목록.find((it) => 막는이유(it, 값, 새프로젝트, 쓰는것, 언어) !== null);
     if (막힌 !== undefined) {
+      스스로(목록.indexOf(막힌));
       간다(목록.indexOf(막힌), 'back');
       막혔다(막는이유(막힌, 값, 새프로젝트, 쓰는것, 언어)!);
       return;
@@ -173,6 +188,7 @@ export function SettingsWizard(p: Props) {
       if (이번에만듦) p.on만듦();
       // 그사이 다른 사람이 같은 접두사를 썼으면 그 칸이 있는 단계로 데려간다
       if (e instanceof ApiError && (e.code === 'PREFIX_TAKEN' || e.code === 'PREFIX_SHAPE')) {
+        스스로(목록.indexOf('basic'));
         간다(목록.indexOf('basic'), 'back');
         막혔다(설정오류문장(e.code, 언어));
       } else {

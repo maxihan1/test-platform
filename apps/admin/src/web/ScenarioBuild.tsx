@@ -9,7 +9,7 @@ import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { 종류 } from './kind.js';
 import { 고른서버를적는다, 마지막서버 } from './layout.js';
-import { 떠나기막기, 떠나기상자, 주소조건 } from './leaveGuard.js';
+import { 떠나기막기, 떠나기상자, 주소조건, 주소덮기 } from './leaveGuard.js';
 import { Loading, Failed, PLATFORM_LABEL, when } from './ui.js';
 import { 판정을만든다, 테스트만인가 } from './role.js';
 import { ScenarioCards } from './ScenarioCards.js';
@@ -71,7 +71,7 @@ export function ScenarioBuild({
 
   useEffect(() => {
     // 읽기만 하는 사람이 주소로 연 새 화면은 쓸 데가 없다
-    if (보낼곳) window.location.hash = '#/scenarios';
+    if (보낼곳) 주소덮기('#/scenarios');
   }, [보낼곳]);
 
   useEffect(() => {

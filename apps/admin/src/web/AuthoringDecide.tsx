@@ -31,12 +31,15 @@ function 탭말(x: 탭, t: 말): { 이름: string; 뜻: string } {
   }[x];
 }
 
-export function AuthoringDecide({ service, 목록, envs, 다시읽기 }: { service: string; 목록: 결정목록; envs: EnvRow[]; 다시읽기: () => void }) {
+/** 탭을 주소에 담는 쪽(테스트 작성 화면)이 `탭` 과 `on탭` 을 함께 준다. 안 주면 이 화면이 스스로 든다 */
+export function AuthoringDecide({ service, 목록, envs, 다시읽기, 탭: 주소탭, on탭 }: { service: string; 목록: 결정목록; envs: EnvRow[]; 다시읽기: () => void; 탭?: 탭 | null; on탭?: (x: 탭) => void }) {
   const t = use말();
   const 언어 = use언어();
   const [고른, set고른] = useState<Map<string, 고른값>>(new Map());
   const [편집, set편집] = useState<Map<string, string>>(new Map());
-  const [고른탭, set고른탭] = useState<탭 | null>(null);
+  const [내탭, set내탭] = useState<탭 | null>(null);
+  const 고른탭 = on탭 === undefined ? 내탭 : (주소탭 ?? null);
+  const set고른탭 = on탭 ?? set내탭;
   const [바쁨, set바쁨] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
   const [다시불러옴, set다시불러옴] = useState(false);

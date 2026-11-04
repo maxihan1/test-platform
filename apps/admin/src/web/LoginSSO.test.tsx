@@ -27,6 +27,33 @@ function 그리기(주소 = '/') {
   return 떠난다;
 }
 
+describe('통합계정 로그인 — 보던 화면으로 돌아오게 떠나기 전에 주소를 적는다 (WEB-F8-01)', () => {
+  afterEach(() => sessionStorage.clear());
+
+  it('링크로 연 주소를 Auth_platform 으로 떠나기 전에 이 탭에 적는다', async () => {
+    sessionStorage.clear();
+    window.history.replaceState(null, '', '/#/runs/9?run=3');
+    const 적힌 = vi.fn();
+    const 떠난다 = vi.fn(() => 적힌(sessionStorage.getItem('돌아갈자리')));
+    render(<Login onLogin={() => undefined} on언어={() => undefined} 떠난다={떠난다} />);
+
+    await waitFor(() => expect(떠난다).toHaveBeenCalled());
+    expect(적힌).toHaveBeenCalledWith('#/runs/9?run=3');
+  });
+
+  it('로그인 · 가입 · 비밀번호 화면 주소는 적지 않는다', async () => {
+    for (const 주소 of ['/#/login', '/#/signup', '/#/password', '/']) {
+      sessionStorage.clear();
+      window.history.replaceState(null, '', 주소);
+      const 떠난다 = vi.fn();
+      render(<Login onLogin={() => undefined} on언어={() => undefined} 떠난다={떠난다} />);
+      await waitFor(() => expect(떠난다).toHaveBeenCalled());
+      expect(sessionStorage.getItem('돌아갈자리')).toBeNull();
+      cleanup();
+    }
+  });
+});
+
 describe('통합계정 로그인 — 알림 없이 오면 화면 없이 바로 보낸다', () => {
   it('서버의 SSO 시작으로 바로 보내고 버튼 · 아이디 · 비밀번호 칸을 그리지 않는다', async () => {
     const 떠난다 = 그리기();

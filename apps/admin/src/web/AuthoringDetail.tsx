@@ -19,6 +19,7 @@ import { use말, use언어 } from './i18n.js';
 import { 종류 } from './kind.js';
 import type { 판정 } from './role.js';
 import { Failed, Loading, useAsync, when } from './ui.js';
+import { 주소덮기 } from './leaveGuard.js';
 
 export function AuthoringDetail({
   service,
@@ -76,7 +77,7 @@ export function AuthoringDetail({
   // 그 뿌리로 되돌려 보내 새 번호에 영영 못 간다 (2026-09-30 화면 확인에서 잡았다)
   const 뿌리번호 = 뿌리?.id === id ? 뿌리.rootId : undefined;
   useEffect(() => {
-    if (뿌리번호 !== undefined && 뿌리번호 !== id) window.location.hash = `#/authoring/${String(뿌리번호)}`;
+    if (뿌리번호 !== undefined && 뿌리번호 !== id) 주소덮기(`#/authoring/${String(뿌리번호)}`);
   }, [뿌리번호, id]);
 
   // 다른 서비스의 요청을 고리로 열면(알림 · 대시보드) 띠를 그 서비스로 옮긴다 — 앞 판은 띠의 서비스 이름 · 권한으로 카드와 버튼을 그렸다 (점검 12.14)

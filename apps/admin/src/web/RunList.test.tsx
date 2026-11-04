@@ -373,6 +373,62 @@ describe('RunList 오른쪽 결과 칸 (§8.7 「A안」)', () => {
   });
 });
 
+describe('RunList 뒤로 가기 (WEB-F8-01)', () => {
+  function 뿌리() {
+    const { 조건번 } = use이동();
+    return <RunList key={조건번} kind="FN" service="ZRL" envs={서버들} 판정하기={() => 운영} />;
+  }
+  const 보는실행 = () => [...document.querySelectorAll('.run-row')].find((el) => el.getAttribute('aria-current') === 'true')?.textContent ?? '';
+  const 뒤로 = async () => {
+    await act(async () => {
+      window.history.back();
+      await new Promise((끝) => setTimeout(끝, 30));
+    });
+  };
+
+  it('실행을 차례로 누른 뒤 뒤로 가기를 하면 앞서 누른 실행이 보인다', async () => {
+    vi.spyOn(api, 'runs').mockResolvedValue({ ...한쪽, items: [실행(2113, 1), 실행(2112, 0), 실행(2111, 0)] });
+    const { container } = render(<뿌리 />);
+    await screen.findByText('ZRL 실행 2112');
+    for (const 이름 of ['ZRL 실행 2113', 'ZRL 실행 2112', 'ZRL 실행 2111']) fireEvent.click(screen.getByText(이름).closest('.run-row')!);
+    expect(window.location.hash).toBe('#/runs/fn?run=2111');
+
+    await 뒤로();
+    await waitFor(() => expect(window.location.hash).toBe('#/runs/fn?run=2112'));
+    expect(보는실행()).toContain('ZRL 실행 2112');
+    expect(container.querySelector('.runs-split.picked')).not.toBeNull();
+  });
+
+  it('「목록으로」로 닫은 뒤 뒤로 가기를 하면 닫기 전 실행이 다시 열린다', async () => {
+    vi.spyOn(api, 'runs').mockResolvedValue(한쪽);
+    const { container } = render(<뿌리 />);
+    await screen.findByText('ZRL 실행 2112');
+    fireEvent.click(screen.getByText('ZRL 실행 2112').closest('.run-row')!);
+    fireEvent.click(screen.getByRole('button', { name: '목록으로' }));
+    expect(container.querySelector('.runs-split.picked')).toBeNull();
+
+    await 뒤로();
+    await waitFor(() => expect(container.querySelector('.runs-split.picked')).not.toBeNull());
+    expect(window.location.hash).toBe('#/runs/fn?run=2112');
+  });
+
+  it('메뉴로 막 연 목록에서 고리로 실행을 열고 뒤로 가기 한 번이면 고리 누르기 전 화면이다', async () => {
+    vi.spyOn(api, 'runs').mockResolvedValue(한쪽);
+    const { container } = render(<뿌리 />);
+    await screen.findByText('ZRL 실행 2112');
+    const 도착 = new Promise<void>((끝) => window.addEventListener('hashchange', () => 끝(), { once: true }));
+    await act(async () => {
+      window.location.hash = '#/runs/fn?run=2112&tc=ZRL-001';
+      await 도착;
+    });
+    await waitFor(() => expect(window.location.hash).toBe('#/runs/fn?run=2112'));
+
+    await 뒤로();
+    await waitFor(() => expect(container.querySelector('.runs-split.picked')).toBeNull());
+    expect(window.location.hash).toBe('#/runs/fn');
+  });
+});
+
 describe('RunList 결과 칸 권한', () => {
   it('주소의 실행이 다른 애플리케이션 것이면 결과 칸 버튼을 그 애플리케이션 권한으로 가른다 — 띠 권한이면 실행 읽기만 있는 사람에게 「실행 중단」이 섰다', async () => {
     window.location.hash = '#/runs/fn?run=2113';
