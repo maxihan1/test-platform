@@ -116,9 +116,9 @@ describe.skipIf(연결 === undefined)('결정 목록 · 결정 진행', () => {
       { feature: '주문', text: '주문은 취소할 수 있다', basis: [근거('기획서.docx', '취소')], status: 'CONFIRMED' },
     ]);
     const 관리자 = await 목록();
-    expect(관리자).toMatchObject({ prdVersion: 1, open: [첫], count: 3, failMore: 0 });
+    expect(관리자).toMatchObject({ prdVersion: 1, open: [첫], count: 2, failMore: 0 });
     expect(관리자.items.map((x) => [x.key, x.picks, x.blockedBy, x.needsApply ?? null])).toEqual([
-      [`apply:${String(첫)}:${String(첫)}`, ['APPLY'], null, null],
+      [`apply:${String(첫)}:${String(첫)}`, ['APPLY', 'REJECT'], null, null],
       ['check:XWX-REQ-001', ['SAME', 'EDIT'], null, null],
       ['prd:0:1', ['REDO'], null, true],
     ]);
@@ -166,6 +166,24 @@ describe.skipIf(연결 === undefined)('결정 목록 · 결정 진행', () => {
     expect(await 집기(서비스, 'xwx-agent')).toBeNull();
     await q(`UPDATE authoring_request SET status = 'DONE', finished_at = now() WHERE id = $1`, [머지]);
     expect((await 집기(서비스, 'xwx-agent'))?.id).toBe(다시);
+  });
+
+  it('반려는 그 작성을 폐기해 ① 에서 빼고 열린 작성도 풀린다 · 관리자가 아니면 403 이고 아무것도 안 한다', async () => {
+    const 첫 = await 넣기({ status: 'DONE' });
+    const 열쇠 = `apply:${String(첫)}:${String(첫)}`;
+    사람 = { role: 'member', 권한: 쓰기 };
+    const 막힘 = await 진행({ prdVersion: 0, picks: [{ key: 열쇠, pick: 'REJECT' }] });
+    expect([막힘.statusCode, 막힘.json()]).toEqual([403, { error: 'FORBIDDEN', need: 'admin' }]);
+    expect((await q<{ d: string | null }>('SELECT discarded_at AS d FROM authoring_request WHERE id = $1', [첫])).rows[0]!.d).toBeNull();
+
+    사람 = { role: 'admin', 권한: 쓰기 };
+    const r = await 진행({ prdVersion: 0, picks: [{ key: 열쇠, pick: 'REJECT' }] });
+    expect(r.statusCode).toBe(201);
+    expect((r.json() as { steps: unknown[] }).steps).toEqual([{ step: 3, key: 열쇠, requestId: null, version: null }]);
+    expect((await q<{ d: string | null }>('SELECT discarded_at AS d FROM authoring_request WHERE id = $1', [첫])).rows[0]!.d).not.toBeNull();
+    const 뒤 = await 목록();
+    expect(뒤.open).toEqual([]);
+    expect(뒤.items.filter((x) => x.kind === 'APPLY')).toEqual([]);
   });
 
   it('고를 때 본 것과 다르면 409, 권한이 모자라면 403, needsApply 를 ① 없이 고르면 400 이고 아무것도 안 한다', async () => {

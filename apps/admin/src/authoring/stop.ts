@@ -2,6 +2,7 @@
 // routes.ts 가 등록한다 — app.ts 는 routes.ts 하나만 안다
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import type { PoolClient } from 'pg';
 
 import { 고치기실행식, 고치기실행인가 } from './edit.js';
 import { 도는실행있나, 뿌리, 사슬식, 위로식, 최신실행, 최신식 } from './history.js';
@@ -89,9 +90,12 @@ async function 멈추기(id: number, 누가: string): Promise<'STOPPED' | 'RUNNI
   return r.rows[0]?.status ?? null;
 }
 
-/** 폐기는 요청 통째 — 그 뿌리의 실행을 모두 폐기한다. 판정(끝난 것만)은 누른 그 실행으로 본다 (§7 「실행 기록」) */
-async function 버리기(id: number): Promise<boolean> {
-  const r = await (await db()).query(
+/**
+ * 폐기는 요청 통째 — 그 뿌리의 실행을 모두 폐기한다. 판정(끝난 것만)은 누른 그 실행으로 본다 (§7 「실행 기록」).
+ * 결정 목록의 「반려」도 이것이다 — 그 진행의 잠금 안에서 돌도록 연결을 받는다(§3.6 「★ 결정 목록」)
+ */
+export async function 버리기(id: number, 손?: PoolClient): Promise<boolean> {
+  const r = await (손 ?? (await db())).query(
     `WITH RECURSIVE ${위로식('$1')}, ${사슬식('id = (SELECT id FROM 위 WHERE source_id IS NULL)')}
      UPDATE authoring_request SET discarded_at = now()
       WHERE id IN (SELECT id FROM 사슬) AND discarded_at IS NULL

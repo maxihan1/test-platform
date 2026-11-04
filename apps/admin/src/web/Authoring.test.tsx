@@ -257,7 +257,7 @@ describe('작성 목록 줄 할 일 (⑫ 점검 11.2 · N2) — 줄 내용은 Au
     render(<Authoring service="PAY" 할수={() => true} />);
     fireEvent.click(await screen.findByRole('button', { name: '결정 필요 1' }));
     expect(await screen.findByText('결정이 필요한 일 1건')).toBeTruthy();
-    expect(screen.getByText('테스트를 케이스 목록에 올릴까요?')).toBeTruthy();
+    expect(screen.getByText('테스트를 승인할까요?')).toBeTruthy();
     expect(screen.queryByRole('button', { name: '다음' })).toBeNull();
     expect(window.location.hash).toBe('#/authoring?todo=1');
   });

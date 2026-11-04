@@ -8,14 +8,15 @@ import { 초안고름남기기, 초안다시만들기, 초안버리기, 초안�
 import { BTS이은서비스인가 } from '../bts/link.js';
 import type { 판변경 } from '../prd/changes.js';
 import { 상한 } from '../prd/rules.js';
-import { 화면목록식, 화면이맞음채우기, type 화면이맞음 } from '../prd/screenRight.js';
+import { 화면이맞음채우기, type 화면이맞음 } from '../prd/screenRight.js';
 import { 결정판넣기, 서비스접두사, 잠그고, 지금판, type 저장하는사람 } from '../prd/store.js';
 import { 버그남기기 } from '../reporting/failReqs.js';
 import { 결정판, 요구문장, type 결정항목, type 확인결정 } from './decisionItems.js';
-import { 최근대조 } from './decisionReads.js';
+import { 버그판정실패, 최근대조 } from './decisionReads.js';
 import { 결정재료읽기, type 부른이 } from './decisions.js';
 import { 머지세우기 } from './merge.js';
 import { 열린작성 } from './openRoots.js';
+import { 버리기 } from './stop.js';
 import { 역방향칸판정 } from './reverse.js';
 import { 줄세우기, 한건 } from './store.js';
 
@@ -64,30 +65,12 @@ function 본문읽기(body: unknown): { prdVersion: number; picks: 받은것[] }
   return { prdVersion, picks: 읽음 };
 }
 
-/**
- * 버그로 판정돼 목록에 없는 실패 — 「화면이 맞음으로 바꾸기」만 받는다(§3.6 「고를 때 본 것과 다르면」 예외).
- * 이미 화면이 맞음 요청(폐기 안 됨)이 그 실패를 실었으면 안 받는다 — 같은 고침을 두 번 쓰게 된다
- */
-async function 버그판정실패(서비스: number, key: string): Promise<결정항목 | null> {
-  const m = /^fail:(\d{1,15}):(.+)$/.exec(key);
-  if (m === null) return null;
-  const { pool } = await import('../db/index.js');
-  const r = await pool.query(
-    `SELECT 1 FROM run_case_bug b JOIN test_run t ON t.run_id = b.run_id
-      WHERE b.run_id = $1 AND b.tc_id = $2 AND t.service_id = $3
-        AND NOT EXISTS (SELECT 1 FROM authoring_request q CROSS JOIN LATERAL jsonb_array_elements(${화면목록식('q.params')}) 칸
-                         WHERE q.service_id = $3 AND q.discarded_at IS NULL AND q.kind IN ('AUTHOR', 'RERUN')
-                           AND 칸->>'runId' = $1::text AND 칸->>'tcId' = $2)`,
-    [Number(m[1]), m[2], 서비스],
-  );
-  if (r.rowCount === 0) return null;
-  return { key, group: 2, kind: 'FAIL', picks: ['SCREEN'], blockedBy: null, runId: Number(m[1]), tcId: m[2]!, reqs: [], verify: null, reason: null, finishedAt: null };
-}
-
 interface 준비 {
   버그: { key: string; runId: number; tcId: string }[];
   확인: { key: string; 결정: 확인결정 }[];
   반영: { key: string; rootId: number; runId: number }[];
+  /** 반려 — 그 뿌리를 폐기한다(상세의 폐기와 같다) */
+  반려: { key: string; rootId: number; runId: number }[];
   화면: { key: string; 칸: 화면이맞음 }[];
   요구다시: string | null;
   API: { key: string; 준비: 다시작성준비 } | null;
@@ -104,7 +87,7 @@ async function 준비하기(서비스: number, 누구: 부른이, 본문: { prdV
   const 재료 = await 결정재료읽기(서비스, 누구, false);
   if (본문.prdVersion !== 재료.목록.prdVersion) return 낡음;
   const 항목들 = new Map(재료.목록.items.map((x) => [x.key, x]));
-  const 준: 준비 = { 버그: [], 확인: [], 반영: [], 화면: [], 요구다시: null, API: null, 보완: null, 초안: [], 초안끝: [], 열린: 재료.목록.open };
+  const 준: 준비 = { 버그: [], 확인: [], 반영: [], 반려: [], 화면: [], 요구다시: null, API: null, 보완: null, 초안: [], 초안끝: [], 열린: 재료.목록.open };
   const 본열쇠 = new Set<string>();
   for (const p of 본문.picks) {
     if (본열쇠.has(p.key)) return 틀림(p.key);
@@ -113,7 +96,7 @@ async function 준비하기(서비스: number, 누구: 부른이, 본문: { prdV
     const 항목 = 항목들.get(p.key) ?? 재료.실패.get(p.key) ?? (p.pick === 'SCREEN' ? await 버그판정실패(서비스, p.key) : null);
     if (항목 === null || 항목 === undefined) return 낡음;
     if (!(항목.picks as string[]).includes(p.pick)) {
-      if (p.pick === 'APPLY' && 항목.blockedBy === 'ADMIN_ONLY') return 권한없음('admin');
+      if ((p.pick === 'APPLY' || p.pick === 'REJECT') && 항목.blockedBy === 'ADMIN_ONLY') return 권한없음('admin');
       if (p.pick === 'BUG' && 항목.blockedBy === 'NO_RUN_WRITE') return 권한없음('runs:write');
       return 틀림(p.key);
     }
@@ -131,7 +114,7 @@ async function 준비하기(서비스: number, 누구: 부른이, 본문: { prdV
 async function 하나준비(서비스: number, 항목: 결정항목, p: 받은것, 준: 준비): Promise<진행결과 | null> {
   switch (항목.kind) {
     case 'APPLY':
-      준.반영.push({ key: p.key, rootId: 항목.rootId, runId: 항목.runId });
+      (p.pick === 'REJECT' ? 준.반려 : 준.반영).push({ key: p.key, rootId: 항목.rootId, runId: 항목.runId });
       return null;
     case 'FAIL': {
       if (p.pick === 'BUG') {
@@ -235,7 +218,7 @@ export async function 결정진행(서비스: number, 누구: 부른이, 사람:
       const 지금 = await 손.query<{ v: number }>('SELECT COALESCE(max(version), 0) AS v FROM prd_version WHERE service_id = $1', [서비스]);
       if (지금.rows[0]!.v !== 본문.prdVersion) throw new 되돌림(낡음);
       // 잠금 차례는 기획서 → 뿌리 → 열린 작성이다 — 재실행 · 제출(뿌리 → 열린 작성)과 엇갈려 서로 기다리지 않게
-      for (const 뿌리 of [...new Set(준.반영.map((x) => x.rootId))].sort((a, b) => a - b)) {
+      for (const 뿌리 of [...new Set([...준.반영, ...준.반려].map((x) => x.rootId))].sort((a, b) => a - b)) {
         await 손.query(`SELECT pg_advisory_xact_lock(hashtext('authoring-root'), ($1::bigint % 2147483647)::int)`, [뿌리]);
       }
       const 열린 = await 열린작성(서비스, 손);
@@ -251,8 +234,14 @@ export async function 결정진행(서비스: number, 누구: 부른이, 사람:
       for (const x of [...준.확인, ...준.초안]) steps.push({ step: 2, key: x.key, requestId: null, version });
       for (const x of 준.초안) if (!(await 초안고름남기기(손, x.card.requestId, x.rows, 사람.username, version))) throw new 되돌림(낡음);
       for (const x of 준.반영) steps.push({ step: 3, key: x.key, requestId: await 반영세우기(손, 서비스, x.runId, 사람, x.key), version: null });
+      // 그 사이 재실행 · 폐기가 끼었으면 사람이 본 것과 다르다
+      for (const x of 준.반려) {
+        if (!(await 버리기(x.runId, 손))) throw new 되돌림(낡음);
+        steps.push({ step: 3, key: x.key, requestId: null, version: null });
+      }
       // 뒤 요청은 그때 열린 작성 전부와 이번에 앞서 세운 요청 전부를 기다린다 — 한 번에 하나씩 돈다
-      const 앞것 = [...열린];
+      // 반려한 뿌리는 방금 폐기했다 — 뒤 요청이 기다릴 앞 일이 아니다
+      const 앞것 = 열린.filter((id) => !준.반려.some((x) => x.rootId === id));
       const 결정 = () => ({ decision: { after: [...앞것], count } });
       // 문장이 바뀌었거나 화면이 맞음을 골랐으면 바뀐 요구도 같이 다시 만든다 — 기준 판이 하나라 나눠 넣으면 병합 뒤 「반영 안 됨」이 틀어진다
       if (준.요구다시 !== null || 준.화면.length > 0 || 판?.문장바뀜 === true) {

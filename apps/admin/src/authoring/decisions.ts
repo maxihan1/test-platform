@@ -52,7 +52,7 @@ async function 첫묶음(서비스: number, 누구: 부른이): Promise<결정�
     if (!막힘 && x.prUrl === null) continue;
     if (!막힘) {
       대기.push({
-        key: `apply:${String(x.rootId)}:${String(x.runId)}`, group: 1, kind: 'APPLY', ...고름(누구.admin, ['APPLY'], 'ADMIN_ONLY'),
+        key: `apply:${String(x.rootId)}:${String(x.runId)}`, group: 1, kind: 'APPLY', ...고름(누구.admin, ['APPLY', 'REJECT'], 'ADMIN_ONLY'),
         rootId: x.rootId, runId: x.runId, summary: 요약.get(x.rootId)!, prUrl: x.prUrl, requestedByName: x.requestedByName, finishedAt: x.finishedAt,
       });
       continue;

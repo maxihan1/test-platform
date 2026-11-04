@@ -10,7 +10,7 @@ import type { 판변경 } from '../prd/changes.js';
 import type { 목록요약 } from './listSummary.js';
 
 // TAKE · DROP · RETRY 는 「PRD 초안」 카드 — 고른 줄로 기획서 고치기 · 초안 버리기 · 실패한 초안 다시 만들기 (도메인/BTS 「PRD 초안 → 결정 필요」)
-export type 고르기 = 'APPLY' | 'SCREEN' | 'BUG' | 'SAME' | 'EDIT' | 'PICK' | 'OWN' | 'REDO' | 'FIX' | 'TAKE' | 'DROP' | 'RETRY';
+export type 고르기 = 'APPLY' | 'REJECT' | 'SCREEN' | 'BUG' | 'SAME' | 'EDIT' | 'PICK' | 'OWN' | 'REDO' | 'FIX' | 'TAKE' | 'DROP' | 'RETRY';
 export type 막힘 = 'ADMIN_ONLY' | 'NO_WRITE' | 'NO_RUN_WRITE' | 'AUTHORING_OPEN';
 
 interface 머리 {
@@ -79,10 +79,11 @@ export function 화면지문(screens: { state: string; url: string }[]): string 
 }
 
 /**
- * 「결정 필요 N」 — 부른 사람이 지금 고를 수 있는 항목 수. FAIL 은 20건 상한 밖(failMore)도 센다 — 같은 사람에게 FAIL 의 고르기는 모두 같다
+ * 「결정 필요 N」 — 부른 사람이 지금 고를 수 있는 항목 수. FAIL 은 20건 상한 밖(failMore)도 센다 — 같은 사람에게 FAIL 의 고르기는 모두 같다.
+ * 승인 대기를 기다리는 ③(needsApply)은 안 센다 — 화면은 탭마다 적용이라 그 버튼을 꺼 둔다(§3.6 「예외 하나」 · 2026-11-04)
  */
 export function 결정수세기(items: 결정항목[], failMore: number): number {
-  const 고를것 = items.filter((x) => x.picks.length > 0);
+  const 고를것 = items.filter((x) => x.picks.length > 0 && x.needsApply !== true);
   return 고를것.length + (고를것.some((x) => x.kind === 'FAIL') ? failMore : 0);
 }
 
