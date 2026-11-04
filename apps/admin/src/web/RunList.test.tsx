@@ -358,7 +358,7 @@ describe('RunList 오른쪽 결과 칸 (§8.7 「A안」)', () => {
     await 도착;
 
     await waitFor(() => expect(api.run).toHaveBeenCalledWith(2113));
-    expect(window.location.hash).toBe('#/runs/fn?run=2113');
+    expect(window.location.hash).toBe('#/runs/fn?run=2113&open=ZRL-001');
   });
 
   it('「목록으로」를 누르면 고른 실행을 풀어 좁은 창에서 목록이 다시 보인다', async () => {
@@ -421,7 +421,7 @@ describe('RunList 뒤로 가기 (WEB-F8-01)', () => {
       window.location.hash = '#/runs/fn?run=2112&tc=ZRL-001';
       await 도착;
     });
-    await waitFor(() => expect(window.location.hash).toBe('#/runs/fn?run=2112'));
+    await waitFor(() => expect(window.location.hash).toBe('#/runs/fn?run=2112&open=ZRL-001'));
 
     await 뒤로();
     await waitFor(() => expect(container.querySelector('.runs-split.picked')).toBeNull());

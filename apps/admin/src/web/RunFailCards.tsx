@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { api, type FailureCase, type Platform, type RunItemSummary, type 실패유형, type 실패유형묶음 } from './api.js';
+import { api, type FailureCase, type Platform, type RunItemSummary, type 실패유형묶음 } from './api.js';
 import { 실패유형이름 } from './DashboardTypes.js';
 import { 카드찾기 } from './failureFind.js';
 import { 회차요약 } from './group.js';
@@ -13,6 +13,7 @@ import { RunFailBts } from './RunFailBts.js';
 import { RunFailJudge } from './RunFailJudge.js';
 import { 다시실행꼬리표, 항목실행번호 } from './RerunTag.js';
 import { 관련요구줄 } from './RunFailedReqs.js';
+import { 바꾼보기, 처음보기, 펼침바꾼보기, type 결과보기, type 보기바꿈 } from './runResultView.js';
 import { 실패이유 } from './FailureWhy.js';
 import { 같은실패끼리, RunFailDevice, 변화글 } from './RunFailDevice.js';
 import { 다시돌림꼬리표, 디바이스꼬리표, 판정꼬리표 } from './RunFailCardTags.js';
@@ -35,6 +36,9 @@ interface Props {
   열카드?: string;
   /** 「실패 다시 실행」으로 다시 돌린 결과 — 케이스마다 가장 새 것 */
   다시돌림?: ReadonlyMap<string, 다시돌린결과>;
+  /** 카드 쪽 · 유형 칩 · 「판정 안 한 카드」 · 펼친 카드. 결과 화면이 주소에 담는다. 안 주면 이 목록이 스스로 든다 */
+  보기?: 결과보기;
+  바꾸기?: (바꿀: 보기바꿈) => void;
 }
 
 const 권한없음: 판정 = () => false;
@@ -46,13 +50,15 @@ export function RunFailCards(props: Props) {
   return <카드목록 {...props} />;
 }
 
-function 카드목록({ runId, env, items, platform, 권한 = 권한없음, 유형들 = [], 변화 = null, 열카드, 다시돌림 }: Props) {
+function 카드목록({ runId, env, items, platform, 권한 = 권한없음, 유형들 = [], 변화 = null, 열카드, 다시돌림, ...props }: Props) {
   const t = use말();
-  const [쪽상태, set쪽상태] = useState({ 거르개: platform, 쪽: 1 });
-  const [고른유형, set고른유형] = useState<실패유형 | null>(null);
-  const [안본것만, set안본것만] = useState(false);
-  // 디바이스 거르개가 바뀌면 1쪽부터 — 앞 쪽 번호로 새 거르개를 부르면 쪽 수가 틀린다
-  const 쪽 = 쪽상태.거르개 === platform ? 쪽상태.쪽 : 1;
+  const [내보기, set내보기] = useState(처음보기);
+  const 보기 = props.보기 ?? 내보기;
+  const 바꾸기 = props.바꾸기 ?? ((바꿀: 보기바꿈) => set내보기((앞) => 바꾼보기(앞, 바꿀)));
+  // 디바이스를 고르면 보기가 1쪽으로 푼다(runResultView 디바이스고른보기) — 이 목록은 그때 새로 선다
+  const { 카드쪽: 쪽, 유형: 고른유형, 안본것만 } = 보기;
+  // 돌아오면 마지막에 편 카드로 화면을 옮긴다 — 링크로 온 카드가 있으면 그것. 처음 설 때 한 번만 정한다
+  const [맞출] = useState(() => 열카드 ?? 보기.열린.at(-1));
   const 응답 = useAsync(() => api.failures(runId, 쪽, platform === 'ALL' ? undefined : platform), [runId, 쪽, platform]);
   const 머리 = useRef<HTMLHeadingElement>(null);
   const 넘김 = useRef(false);
@@ -64,7 +70,7 @@ function 카드목록({ runId, env, items, platform, 권한 = 권한없음, 유�
     이동했나.current = true;
     카드찾기(runId, 열카드, platform === 'ALL' ? undefined : platform).then(
       (찾음) => {
-        if (찾음 !== null) set쪽상태({ 거르개: platform, 쪽: 찾음.쪽 });
+        if (찾음 !== null) 바꾸기({ 카드쪽: 찾음.쪽 });
       },
       (err: unknown) => console.error('[run] finding the card to open failed; staying on page 1', err),
     );
@@ -82,9 +88,10 @@ function 카드목록({ runId, env, items, platform, 권한 = 권한없음, 유�
   if (응답.error !== null) return <Failed error={응답.error} />;
   if (응답.data === null) return <Loading />;
 
+  // 쪽을 넘기면 다른 카드가 선다 — 펼친 카드도 비운다
   const 이동 = (다음쪽: number) => {
     넘김.current = true;
-    set쪽상태({ 거르개: platform, 쪽: 다음쪽 });
+    바꾸기({ 카드쪽: 다음쪽, 열린: [] });
   };
   // 총수는 서버가 실패 케이스를 그룹으로 센 정확한 값이다. 받은 건수가 쪽 크기와 같다고 더 있다고 보면
   // 정확히 한 쪽 크기일 때 빈 다음 쪽이 열린다
@@ -127,7 +134,7 @@ function 카드목록({ runId, env, items, platform, 권한 = 권한없음, 유�
                 className={u.type === 'environment' ? 'fc-cause env' : 'fc-cause'}
                 aria-pressed={u.type === 고른유형}
                 // 다시 누르면 푼다 — 「전체」 칸을 따로 두지 않는다
-                onClick={() => set고른유형(u.type === 고른유형 ? null : u.type)}
+                onClick={() => 바꾸기({ 유형: u.type === 고른유형 ? null : u.type })}
               >
                 <b className="fc-cause-n num">{u.count}</b>
                 <span className="fc-cause-type">{t(실패유형이름[u.type])}</span>
@@ -147,7 +154,7 @@ function 카드목록({ runId, env, items, platform, 권한 = 권한없음, 유�
       )}
       {/* 판정한 카드와 아직 안 본 카드를 가른다 — 판정은 카드 맨 아래라 접힌 줄만 봐서는 몰랐다 (점검 2.24) */}
       <div className="chip-group fc-types" role="group" aria-label={t('판정 여부')}>
-        <button type="button" className="chip" aria-pressed={안본것만} onClick={() => set안본것만(!안본것만)}>
+        <button type="button" className="chip" aria-pressed={안본것만} onClick={() => 바꾸기({ 안본것만: !안본것만 })}>
           {t('판정 안 한 카드')} <b className="num">{안본수}</b>
         </button>
       </div>
@@ -169,7 +176,9 @@ function 카드목록({ runId, env, items, platform, 권한 = 권한없음, 유�
             platform={platform}
             권한={권한}
             on남김={다시읽기}
-            열기={c.tcId === 열카드}
+            열기={c.tcId === 열카드 || 보기.열린.includes(c.tcId)}
+            맞추기={c.tcId === 맞출}
+            on펼침={(열림) => 바꾸기((앞) => 펼침바꾼보기(앞, c.tcId, 열림))}
             다시돌림={다시돌림?.get(c.tcId)}
           />
         ))
@@ -199,6 +208,8 @@ export function 실패카드({
   권한,
   on남김,
   열기,
+  맞추기 = false,
+  on펼침,
   다시돌림,
 }: {
   c: FailureCase;
@@ -208,17 +219,25 @@ export function 실패카드({
   platform: Platform | 'ALL';
   권한: 판정;
   on남김: () => void;
+  /** 펼친 채 선다 — 주소에 펼친 카드로 남았거나 링크로 온 카드 */
   열기: boolean;
+  /** 서면서 화면을 이 카드로 옮긴다 */
+  맞추기?: boolean;
+  /** 사람이 접고 편 것을 주소에 남긴다 */
+  on펼침?: (열림: boolean) => void;
   다시돌림: 다시돌린결과 | undefined;
 }) {
   const t = use말();
   const 접이 = useRef<HTMLDetailsElement>(null);
-  // 펼친 채 열라고 온 카드는 한 번만 펴서 화면에 맞춘다. 그 뒤의 접고 펴기는 브라우저 몫이다
+  // 화면이 편 것의 toggle 은 한 박자 늦게 온다 — 그사이 쪽을 넘겨 펼친 카드를 비우면 그 신호가 지운 카드를 주소에 되살린다
+  const 스스로폈다 = useRef(false);
+  // 설 때 한 번만 편다. 그 뒤의 접고 펴기는 브라우저 몫이고 toggle 로 듣기만 한다 — 편 것이 주소에 들어 열기가 바뀔 때마다 펴고 옮기면 누를 때마다 화면이 뛴다
   useEffect(() => {
     if (!열기 || 접이.current === null) return;
+    스스로폈다.current = true;
     접이.current.open = true;
-    접이.current.scrollIntoView?.({ block: 'start' });
-  }, [열기]);
+    if (맞추기) 접이.current.scrollIntoView?.({ block: 'start' });
+  }, []);
   const 깨진 = new Set(c.devices.map((d) => d.platform));
   // 디바이스를 거른 동안에는 그 디바이스만 낸다. 깨진 디바이스는 서버가 카드에 안 실었어도 접힌 줄에 넣지 않는다 —
   // 실패가 「통과 · 미실행」 줄처럼 접혀 보이면 안 된다
@@ -235,10 +254,17 @@ export function 실패카드({
   // 접힌 머리에는 기존 실패만 단다(실행 §8.3 표 2번 줄) — 디바이스 차례로 처음 이어진 것 하나. 회귀 실패 · 디바이스마다의 글은 펼친 디바이스 머리에 있다
   const 머리변화 = c.devices.flatMap((d) => (d.change === '계속깨짐' ? [변화글(d, t)] : [])).find((글) => 글 !== null) ?? null;
 
-  // 접고 펴는 것은 브라우저가 한다 — 화면이 상태를 들지 않는다. 쪽을 넘기면 다른 카드라 다시 접혀 선다 (실행 §8.3 「실패 카드는 접어 둔다」)
+  // 접고 펴는 것은 브라우저가 한다. 편 카드는 주소에 남아 돌아와도 펼쳐 선다. 쪽을 넘기면 다른 카드라 다시 접혀 선다 (실행 §8.3 「실패 카드는 접어 둔다」)
   return (
     <article className="fc-card">
-      <details className="fc-fold" ref={접이}>
+      <details
+        className="fc-fold"
+        ref={접이}
+        onToggle={(e) => {
+          if (스스로폈다.current) 스스로폈다.current = false;
+          else on펼침?.(e.currentTarget.open);
+        }}
+      >
         <summary className="fc-sum">
           <div className="fc-head">
             <Verdict status="FAIL" />

@@ -160,6 +160,7 @@ function 실패서랍({ 실패, 이동, onClose }: { 실패: 실패줄; 이동: 
             권한={권한없음}
             on남김={() => void 응답.reload()}
             열기
+            맞추기
             다시돌림={undefined}
           />
         )}
