@@ -1,4 +1,4 @@
-// 결정 목록 ③ 「테스트를 새로 만들까요?」 항목 — 바뀐 요구 · 바뀐 API · 미검증 화면 · 미검증 API (도메인/작성 §3.6 「★ 결정 목록」 항목 표 · 「③ 은 열린 작성이 없을 때만」)
+// 결정 목록 「테스트 업데이트」 탭 항목 — 바뀐 요구 · 바뀐 API · 미검증 화면 · 미검증 API (도메인/작성 §3.6 「★ 결정 목록」 항목 표 · 「③ 은 열린 작성이 없을 때만」)
 // AuthoringDecideItems.tsx 가 300줄을 넘어 뗐다
 
 import { Fragment, type ReactNode } from 'react';
@@ -7,7 +7,7 @@ import { 로그인역할 } from '../prd/rules.js';
 import type { EnvRow } from './api.js';
 import { 고르개, 막힘줄, type 고름하기 } from './AuthoringDecideItems.js';
 import type { 결정항목 } from './decideApi.js';
-import { 다시쓸API, 바뀐요구수, type 고른값 } from './decideView.js';
+import { 다시쓸API, 바뀐요구수, 켜졌나, type 고른값 } from './decideView.js';
 import { use말 } from './i18n.js';
 import { 고른서버를적는다, 마지막서버 } from './layout.js';
 
@@ -27,8 +27,6 @@ export function 새로만들기({
   on고름,
   open,
   envs,
-  켜짐,
-  같이,
 }: {
   service: string;
   x: 항목of<'PRD_CHANGED' | 'API_CHANGED' | 'SCREENS' | 'APIS'>;
@@ -36,10 +34,6 @@ export function 새로만들기({
   on고름: 고름하기;
   open: readonly number[];
   envs: readonly EnvRow[];
-  /** ① 을 모두 「올린다」로 골랐나 — needsApply 항목만 본다 */
-  켜짐: boolean;
-  /** 문장을 바꾸는 고름이 있어 바뀐 요구가 같이 돈다 */
-  같이: boolean;
 }) {
   const t = use말();
   let 질문: string;
@@ -98,27 +92,26 @@ export function 새로만들기({
   // 열린 작성이 있으면 서버가 셈을 null 로 준다 — 반영 대기만 남았으면 고를 수 있지만 숫자는 반영 뒤에 센다
   const 셈모름 = x.kind === 'PRD_CHANGED' ? 바뀐요구수(x) === null : x.kind === 'API_CHANGED' ? x.operations === null : x.kind === 'SCREENS' ? x.screens === null : x.apis === null;
   const 서버필요 = x.kind === 'API_CHANGED' || (x.kind === 'SCREENS' && x.env === null);
-  const 서버고름 = 서버필요 && 고른 !== undefined && 고른.pick !== 'LATER';
+  const 서버고름 = 서버필요 && 고른 !== undefined;
+  const 켜짐 = 켜졌나(x);
   return (
     <div className="decide-item">
       <span className="decide-q">{질문}</span>
-      {x.needsApply === true && 셈모름 ? <small className="hint">{t('몇 건인지는 1번이 반영된 뒤에 셉니다')}</small> : null}
+      {x.needsApply === true && 셈모름 ? <small className="hint">{t('몇 건인지는 승인한 테스트가 반영된 뒤에 셉니다')}</small> : null}
       {볼것}
       <고르개
         x={x}
-        고른={같이 ? { pick: 'REDO' } : 고른}
+        고른={고른}
         on고름={on고름}
         글들={[
-          ['REDO', t('다시 만든다')],
-          ['FIX', t('테스트 보완')],
+          ['REDO', t('재작성')],
+          ['FIX', t('테스트 추가')],
         ]}
-        꺼짐={!켜짐 || 같이}
-        나중꺼짐={같이}
+        꺼짐={!켜짐}
         // 대상 서버는 마지막에 고른 것을 미리 고른다 — 다른 실행 창과 같다(⑫-2). 안 고른 채면 진행에 안 들어간다
         처음값={서버필요 ? { env: 마지막서버(service, envs) } : {}}
       />
-      {켜짐 ? null : <small className="hint">{t('1번을 모두 「올린다」로 골라야 고를 수 있습니다')}</small>}
-      {같이 ? <small className="hint">{t('기획서 문장이 바뀌어 바뀐 요구도 같이 다시 만듭니다')}</small> : null}
+      {켜짐 ? null : <small className="hint">{t('승인 대기를 먼저 끝내 주세요')}</small>}
       {!서버고름 ? null : (
         <label className="decide-text">
           {t('대상 서버')}
@@ -129,7 +122,7 @@ export function 새로만들기({
               on고름(x.key, { ...고른, env: e.target.value });
             }}
           >
-            <option value="">{t('고르세요')}</option>
+            <option value="">{t('서버 선택')}</option>
             {envs.map((e) => (
               <option key={e.env} value={e.env}>
                 {e.env}

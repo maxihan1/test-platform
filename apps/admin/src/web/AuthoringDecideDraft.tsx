@@ -1,4 +1,4 @@
-// 결정 필요 「PRD 초안」 카드 — 배포된 기능으로 만든 기획서 초안의 줄을 골라 담거나 버리고, 실패한 초안은 다시 만든다 (도메인/BTS 「PRD 초안 → 결정 필요」 · BTS-F5-04)
+// 결정 필요 「요구사항 확인」 탭의 「PRD 초안」 카드 — 배포된 기능으로 만든 기획서 초안의 줄을 골라 담거나 버리고, 실패한 초안은 다시 만든다 (도메인/BTS 「PRD 초안 → 결정 필요」 · BTS-F5-04)
 
 import { 막힘줄, type 고름하기 } from './AuthoringDecideItems.js';
 import { 중단이유라벨 } from './authoringView.js';
@@ -51,13 +51,13 @@ function 끝난초안({ x, 고른, on고름 }: { x: 초안항목; 고른: 고른
     <div className="decide-item">
       <div className="decide-qline">
         <span className="decide-q">
-          {x.rows.length === 0 ? t('배포된 기능 {수}건으로 바뀐 요구가 없어요', { 수: x.issues.length }) : t('배포된 기능 {수}건으로 기획서를 고칠까요?', { 수: x.issues.length })}
+          {x.rows.length === 0 ? t('배포된 기능 {수}건으로 바뀐 요구가 없어요', { 수: x.issues.length }) : t('배포된 기능 {수}건으로 PRD 를 수정할까요?', { 수: x.issues.length })}
         </span>
         {x.picks.length === 0 ? null : (
           <span className="chip-group decide-choices" role="group">
             {!고르나 || 모두.length < 2 ? null : (
               <button className="btn ghost small" type="button" disabled={버림} onClick={() => on고름(x.key, { pick: 'TAKE', rows: 모두 })}>
-                {t('이슈에 적힌 {수}줄 모두 체크', { 수: 모두.length })}
+                {t('전체 선택')}
               </button>
             )}
             {x.picks.includes('DROP') ? 버리기 : null}
@@ -117,14 +117,14 @@ function 못만든초안({ x, 고른, on고름 }: { x: 초안항목; 고른: 고
   const 키들 = x.issues.map((이슈) => 이슈.key).join(', ');
   const 까닭 = x.state === 'FAILED' ? (x.reason ?? '').split('\n')[0]! : 중단이유라벨(x.reason, 언어);
   const 글들: ['RETRY' | 'DROP', string][] = [
-    ['RETRY', t('다시 만들기')],
-    ['DROP', t('삭제')],
+    ['RETRY', t('재생성')],
+    ['DROP', t('초안 삭제')],
   ];
   return (
     <div className="decide-item">
       <div className="decide-qline">
         <span className="decide-q">
-          {x.state === 'FAILED' ? t('{키들} 기획서 초안을 만들지 못했어요', { 키들 }) : t('{키들} 기획서 초안 만들기가 멈췄어요', { 키들 })}
+          {x.state === 'FAILED' ? t('{키들} PRD 초안을 만들지 못했어요', { 키들 }) : t('{키들} PRD 초안 만들기가 멈췄어요', { 키들 })}
         </span>
         {x.picks.length === 0 ? null : (
           <span className="chip-group decide-choices" role="group">

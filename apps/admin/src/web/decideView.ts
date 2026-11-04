@@ -3,9 +3,9 @@
 import { 상한 } from '../prd/rules.js';
 import type { 결정항목, 고르기, 보낼고름 } from './decideApi.js';
 
-/** 항목 하나에 고른 값. 「나중에」도 고른 것이라 화면에 눌린 채 남지만 보내지는 않는다 */
+/** 항목 하나에 고른 값. 안 고른 항목은 표에 없다 — 고른 버튼을 한 번 더 누르면 빠진다 */
 export interface 고른값 {
-  pick: 고르기 | 'LATER';
+  pick: 고르기;
   text?: string;
   option?: number;
   env?: string;
@@ -18,24 +18,32 @@ export type 고른표 = ReadonlyMap<string, 고른값>;
 type 항목of<K extends 결정항목['kind']> = Extract<결정항목, { kind: K }>;
 type 초안항목 = 항목of<'PRD_DRAFT'>;
 
-/** ① 을 모두 「올린다」로 골랐나 */
-const 다올림 = (items: readonly 결정항목[], 고른: 고른표) => items.every((y) => y.kind !== 'APPLY' || 고른.get(y.key)?.pick === 'APPLY');
+export type 탭 = 'approve' | 'fail' | 'check' | 'update';
 
-/** ③ 이 반영 대기를 기다리면 ① 을 모두 「올린다」로 골라야 켠다 — 서버도 같은 것을 본다(BAD_PICK) */
-export function 켜졌나(x: 결정항목, items: readonly 결정항목[], 고른: 고른표): boolean {
-  return x.needsApply !== true || 다올림(items, 고른);
+/**
+ * 항목이 드는 탭 — 승인 대기 · 결함 판정 · 요구사항 확인 · 테스트 업데이트(2026-11-04 사용자 · §3.6 「★ 결정 목록」 「탭」).
+ * 서버 묶음(group)은 셋이라 ② 를 실패와 그 밖으로 가른다
+ */
+export function 탭of(x: 결정항목): 탭 {
+  if (x.kind === 'APPLY' || x.kind === 'FIX') return 'approve';
+  if (x.kind === 'FAIL') return 'fail';
+  if (x.kind === 'CHECK' || x.kind === 'PRD_DRAFT') return 'check';
+  return 'update';
 }
+
+/**
+ * 승인 대기를 기다리는 ③(needsApply)은 탭에서 못 고른다 — 서버는 같은 진행에 ① 을 모두 「승인」으로 담아야 받는데(BAD_PICK),
+ * 적용은 탭마다 따로라 둘을 한 번에 보낼 자리가 없다. 승인한 뒤 그 반영이 끝나면 ③ 이 다시 선다
+ */
+export const 켜졌나 = (x: 결정항목): boolean => x.needsApply !== true;
 
 /** 요구 문장 상한을 넘었나 — 서버(PUT /api/prd 와 같은 상한)가 진행 전체를 BAD_PICK 으로 거절하므로 미리 빼고 칸 곁에 알린다 */
 export const 넘치나 = (글: string) => 글.length > 상한.요구문장;
 
-/** ① 을 「올린다」에서 바꾸면 그것을 기다리던 ③ 고름도 뺀다 — 남기면 보낼 수 없는 고름이 눌린 채 보인다 */
-export function 고름바꾼표(items: readonly 결정항목[], 고른: 고른표, key: string, 값: 고른값 | null): Map<string, 고른값> {
+export function 고름바꾼표(고른: 고른표, key: string, 값: 고른값 | null): Map<string, 고른값> {
   const 새 = new Map(고른);
   if (값 === null) 새.delete(key);
   else 새.set(key, 값);
-  const 올림 = 다올림(items, 새);
-  for (const x of items) if (x.needsApply === true && !올림) 새.delete(x.key);
   return 새;
 }
 
@@ -47,10 +55,9 @@ function 문장(x: 항목of<'CHECK'>, 값: 고른값): string | null {
 
 /** 다 고른 것만 보낸다 — 문장 칸이 비었거나 넘쳤거나 대상 서버를 안 고른 것은 사람이 아직 고르는 중이다 */
 export function 보낼것(items: readonly 결정항목[], 고른: 고른표): 보낼고름[] {
-  const 올림 = 다올림(items, 고른);
   return items.flatMap((x): 보낼고름[] => {
     const 값 = 고른.get(x.key);
-    if (값 === undefined || 값.pick === 'LATER' || !x.picks.includes(값.pick) || (x.needsApply === true && !올림)) return [];
+    if (값 === undefined || !x.picks.includes(값.pick) || !켜졌나(x)) return [];
     if (x.kind === 'PRD_DRAFT') {
       if (값.pick !== 'TAKE') return [{ key: x.key, pick: 값.pick }];
       return 값.rows === undefined || 값.rows.length === 0 ? [] : [{ key: x.key, pick: 'TAKE', rows: 값.rows }];
@@ -79,7 +86,7 @@ export type 차례줄 =
   | { 곳: 'BUG'; 종류: 'bug'; keys: string[]; tcId: string }
   | { 곳: 'PRD'; 종류: 'prd'; keys: string[]; version: number; 바뀜: { kind: 'EDIT' | 'PICK' | 'CONFIRM'; reqId: string }[]; 초안: 초안셈 | null }
   | { 곳: 'PRD'; 종류: 'draftDrop' | 'draftRetry'; keys: string[]; 이슈: string[] }
-  | { 곳: 'TEST'; 종류: 'apply'; keys: string[]; rootId: number }
+  | { 곳: 'TEST'; 종류: 'apply' | 'reject'; keys: string[]; rootId: number }
   | { 곳: 'TEST'; 종류: 'fix'; keys: string[]; 화면: number; 문장: number; 바뀐요구: boolean; 바뀐요구수: number | null; 같이: boolean; 초안: number }
   | { 곳: 'TEST'; 종류: 'api'; keys: string[]; 수: number | null }
   | { 곳: 'TEST'; 종류: 'screens'; keys: string[]; 수: number | null };
@@ -129,7 +136,7 @@ export function 차례(items: readonly 결정항목[], 고른: 고른표, prdVer
     줄.push({ 곳: 'PRD', 종류: 'prd', keys: [...확인, ...담음].map((x) => x.key), version: prdVersion + 1, 바뀜, 초안 });
   }
 
-  for (const x of 고른항목) if (x.kind === 'APPLY') 줄.push({ 곳: 'TEST', 종류: 'apply', keys: [x.key], rootId: x.rootId });
+  for (const x of 고른항목) if (x.kind === 'APPLY') 줄.push({ 곳: 'TEST', 종류: 보냄.get(x.key)!.pick === 'REJECT' ? 'reject' : 'apply', keys: [x.key], rootId: x.rootId });
 
   const 화면들 = 고른항목.filter((x) => x.kind === 'FAIL' && 보냄.get(x.key)!.pick === 'SCREEN');
   const 문장수 = 확인.filter((x) => {
@@ -166,7 +173,7 @@ export function 차례(items: readonly 결정항목[], 고른: 고른표, prdVer
 
 /** 진행 뒤 차례 줄마다 서버가 세운 요청 번호 — 기획서 · 버그는 요청이 없다. 문장 변경만으로 세운 고치기는 key 가 null 이다 */
 export function 줄요청(줄: 차례줄, steps: readonly { step: number; key: string | null; requestId: number | null }[]): number | null {
-  const 단계 = { bug: 1, prd: 2, apply: 3, fix: 4, api: 4, screens: 5, draftDrop: 6, draftRetry: 6 }[줄.종류];
+  const 단계 = { bug: 1, prd: 2, apply: 3, reject: 3, fix: 4, api: 4, screens: 5, draftDrop: 6, draftRetry: 6 }[줄.종류];
   const 맞음 = steps.find((s) => s.step === 단계 && s.requestId !== null && (s.key === null ? 줄.종류 === 'fix' : 줄.keys.includes(s.key)));
   return 맞음?.requestId ?? null;
 }

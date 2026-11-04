@@ -1,4 +1,4 @@
-/* 테스트 작성 「결정 필요」 결정 목록 (도메인/작성 §3.6 「★ 결정 목록」 · 2026-10-26 시안 3판). 고르기 버튼은 .chip-group 의 .chip 을 그대로 쓴다 */
+/* 테스트 작성 「결정 필요」 결정 목록 (도메인/작성 §3.6 「★ 결정 목록」 · 2026-11-04 탭 넷). 고르기 버튼은 .chip-group 의 .chip, 탭은 .scn-tabs 의 .scn-tab 을 그대로 쓴다 */
 .decide {
   background: var(--panel);
   border: 1px solid var(--line);
@@ -17,23 +17,25 @@
   font-size: 16px;
   font-weight: 600;
 }
-.decide-group {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 14px 20px 4px;
-  font-weight: 600;
+.decide-tabs {
+  padding: 0 12px;
 }
-.decide-num {
-  width: 22px;
-  height: 22px;
-  border: 1px solid var(--line-2);
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.decide-tab-n {
+  color: var(--ink-muted);
+  font-weight: 400;
+  margin-left: 2px;
+}
+/* 탭의 뜻은 마우스를 올리면 title 로 뜬다. 휴대폰은 올릴 수가 없어 고른 탭의 뜻을 탭 줄 아래 한 줄로 보인다 */
+.decide-tab-hint {
+  display: none;
+  margin: 0;
+  padding: 8px 20px 0;
   font-size: 12px;
+}
+@media (max-width: 620px) {
+  .decide-tab-hint {
+    display: block;
+  }
 }
 .decide-prd {
   font-size: 12px;
@@ -92,12 +94,63 @@
 .decide-req {
   display: block;
 }
+.decide-edit {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+}
 .decide-text {
   display: grid;
   gap: 6px;
   width: 100%;
-  font-size: 12px;
+  font-size: 13px;
+}
+.decide-text-name {
+  font-weight: 600;
+}
+.decide-old {
   color: var(--ink-muted);
+}
+/* 다른 화면 입력칸과 같은 모양 — 공통 규칙(styles.css 「input:not([type])」 줄)은 .field 안의 textarea 만 잡아 이 칸은 브라우저 기본 흰 상자였다 */
+.decide-text textarea {
+  font: inherit;
+  font-size: 13px;
+  background: var(--well);
+  color: var(--ink);
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+  padding: 7px 10px;
+  min-height: 52px;
+  field-sizing: content;
+  resize: vertical;
+}
+.decide-text textarea:focus {
+  outline: 2px solid var(--ink);
+  outline-offset: -1px;
+}
+.decide-edit-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.decide-count {
+  margin-right: auto;
+  font-variant-numeric: tabular-nums;
+}
+.decide-count.over {
+  color: var(--fail-text);
+}
+.decide-saved {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
 }
 .decide-list {
   margin: 0;

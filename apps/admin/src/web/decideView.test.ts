@@ -1,13 +1,13 @@
-// 결정 목록 판단 검사 — 보낼 것 · ③ 켜짐 · 진행 차례 · 단계마다 요청 번호 (도메인/작성 §3.6 「★ 결정 목록」 진행)
+// 결정 목록 판단 검사 — 탭 · 보낼 것 · ③ 켜짐 · 진행 차례 · 단계마다 요청 번호 (도메인/작성 §3.6 「★ 결정 목록」 진행)
 
 import { describe, expect, it } from 'vitest';
 
 import { 상한 } from '../prd/rules.js';
 import type { 결정항목 } from './decideApi.js';
 import { 요약 } from './authoringSummary.fixture.js';
-import { 고름바꾼표, 보낼것, 줄요청, 차례, 켜졌나, type 고른값 } from './decideView.js';
+import { 보낼것, 줄요청, 차례, 켜졌나, 탭of, type 고른값 } from './decideView.js';
 
-const 반영: 결정항목 = { key: 'apply:10:11', group: 1, kind: 'APPLY', picks: ['APPLY'], blockedBy: null, rootId: 10, runId: 11, summary: 요약(), prUrl: null, requestedByName: '맥시', finishedAt: null };
+const 반영: 결정항목 = { key: 'apply:10:11', group: 1, kind: 'APPLY', picks: ['APPLY', 'REJECT'], blockedBy: null, rootId: 10, runId: 11, summary: 요약(), prUrl: null, requestedByName: '맥시', finishedAt: null };
 const 실패: 결정항목 = { key: 'fail:7:DMW-FN-271', group: 2, kind: 'FAIL', picks: ['SCREEN', 'BUG'], blockedBy: null, runId: 7, tcId: 'DMW-FN-271', reqs: [{ reqId: 'DMW-REQ-088', text: '주문 취소' }], verify: null, reason: null, finishedAt: null };
 const 화면확인: 결정항목 = { key: 'check:DMW-REQ-349', group: 2, kind: 'CHECK', picks: ['SAME', 'EDIT'], blockedBy: null, reqId: 'DMW-REQ-349', feature: '약관', text: '제목이 보인다', checkSince: null, basis: 'SCREEN', options: [] };
 const 문구: 결정항목 = {
@@ -32,15 +32,15 @@ const items = [반영, 실패, 화면확인, 문구, 바뀐요구, 바뀐API];
 const 표 = (줄: [string, 고른값][]) => new Map(줄);
 
 describe('보낼것', () => {
-  it('「나중에」 · 문장이 빈 고치기 · 상한을 넘은 문장 · 대상 서버 없는 API 다시 작성 · 켜지지 않은 ③ 은 안 보낸다', () => {
+  it('문장이 빈 고치기 · 상한을 넘은 문장 · 대상 서버 없는 API 다시 작성 · 승인 대기를 기다리는 ③ 은 안 보낸다', () => {
     const 고른 = 표([
-      [실패.key, { pick: 'LATER' }],
+      [반영.key, { pick: 'APPLY' }],
       [화면확인.key, { pick: 'EDIT', text: '  ' }],
       [문구.key, { pick: 'OWN', text: '가'.repeat(상한.요구문장 + 1) }],
       [바뀐API.key, { pick: 'REDO' }],
       [바뀐요구.key, { pick: 'REDO' }],
     ]);
-    expect(보낼것(items, 고른)).toEqual([]);
+    expect(보낼것(items, 고른)).toEqual([{ key: 반영.key, pick: 'APPLY' }]);
   });
 
   it('문구 선택은 차례 번호, 고치기는 문장, API 다시 작성은 대상 서버를 싣는다', () => {
@@ -49,26 +49,24 @@ describe('보낼것', () => {
       [문구.key, { pick: 'PICK', option: 1 }],
       [화면확인.key, { pick: 'EDIT', text: '큰 제목이 보인다' }],
       [바뀐API.key, { pick: 'REDO', env: 'stg' }],
-      [바뀐요구.key, { pick: 'REDO' }],
     ]);
     expect(보낼것(items, 고른)).toEqual([
       { key: 반영.key, pick: 'APPLY' },
       { key: 화면확인.key, pick: 'EDIT', text: '큰 제목이 보인다' },
       { key: 문구.key, pick: 'PICK', option: 1 },
-      { key: 바뀐요구.key, pick: 'REDO' },
       { key: 바뀐API.key, pick: 'REDO', env: 'stg' },
     ]);
   });
 });
 
-describe('③ 켜짐', () => {
-  it('반영 대기를 기다리는 ③ 은 ① 을 모두 「올린다」로 골라야 켜지고, ① 을 바꾸면 고른 것이 빠진다', () => {
-    const 켬 = 표([[반영.key, { pick: 'APPLY' }]]);
-    expect(켜졌나(바뀐요구, items, 켬)).toBe(true);
-    const 고름 = 고름바꾼표(items, 켬, 바뀐요구.key, { pick: 'REDO' });
-    expect(고름.get(바뀐요구.key)).toEqual({ pick: 'REDO' });
-    const 뒤 = 고름바꾼표(items, 고름, 반영.key, { pick: 'LATER' });
-    expect(뒤.has(바뀐요구.key)).toBe(false);
+describe('탭 · ③ 켜짐', () => {
+  it('승인 대기 · 결함 판정 · 요구사항 확인 · 테스트 업데이트로 가른다', () => {
+    expect([반영, 실패, 화면확인, 문구, 초안, 바뀐요구, 바뀐API].map(탭of)).toEqual(['approve', 'fail', 'check', 'check', 'check', 'update', 'update']);
+  });
+
+  it('승인 대기를 기다리는 ③ 은 탭에서 못 고른다 — 적용이 탭마다 따로라 승인과 한 번에 보낼 수 없다', () => {
+    expect(켜졌나(바뀐요구)).toBe(false);
+    expect(켜졌나(바뀐API)).toBe(true);
   });
 });
 
@@ -79,12 +77,17 @@ describe('차례', () => {
       [반영.key, { pick: 'APPLY' }],
       [화면확인.key, { pick: 'SAME' }],
       [실패.key, { pick: 'BUG' }],
-      [바뀐요구.key, { pick: 'REDO' }],
     ]);
     const 줄 = 차례(items, 고른, 3);
-    expect(줄.map((x) => x.종류)).toEqual(['bug', 'prd', 'apply', 'fix', 'api']);
+    expect(줄.map((x) => x.종류)).toEqual(['bug', 'prd', 'apply', 'api']);
     expect(줄[1]).toMatchObject({ version: 4, 바뀜: [{ kind: 'CONFIRM', reqId: 'DMW-REQ-349' }] });
-    expect(줄[4]).toMatchObject({ 수: 1 });
+    expect(줄[3]).toMatchObject({ 수: 1 });
+  });
+
+  it('반려는 승인과 같은 자리에 「폐기」 줄로 서고 서버가 세운 요청이 없다', () => {
+    const 줄 = 차례(items, 표([[반영.key, { pick: 'REJECT' }]]), 3);
+    expect(줄).toEqual([{ 곳: 'TEST', 종류: 'reject', keys: [반영.key], rootId: 10 }]);
+    expect(줄요청(줄[0]!, [{ step: 3, key: 반영.key, requestId: null }])).toBeNull();
   });
 
   it('같은 문장으로 고치면 확정, 화면이 맞음을 고르면 바뀐 요구를 같이 다시 만든다', () => {
