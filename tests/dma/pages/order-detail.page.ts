@@ -1,4 +1,4 @@
-import { type 앱, 금액, 칸에적기, 화면글들 } from '../helpers/app.helper.js';
+import { type 앱, 금액, 칸에적기, 두번누르기, 화면글들 } from '../helpers/app.helper.js';
 import { 토스트글읽기 } from '../helpers/wait.helper.js';
 
 export type 취소사유 = '단순 변심' | '상품 정보 상이' | '배송 지연' | '기타';
@@ -157,8 +157,7 @@ export class 주문상세화면 {
   }
 
   async 취소하기두번누르기(): Promise<void> {
-    const 버튼 = await this.취소하기버튼.getElement();
-    await Promise.all([버튼.click(), 버튼.click()]);
+    await 두번누르기(await this.취소하기버튼.getElement());
   }
 
   async 창닫기(): Promise<void> {

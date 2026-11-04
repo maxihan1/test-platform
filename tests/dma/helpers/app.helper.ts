@@ -68,6 +68,12 @@ export async function 켜졌나(칸: 요소): Promise<boolean> {
   return (await 칸.getAttribute('checked')) === 'true';
 }
 
+export async function 두번누르기(칸: 요소): Promise<void> {
+  const 결과 = await Promise.allSettled([칸.click(), 칸.click()]);
+  const 실패 = 결과.filter((하나): 하나 is PromiseRejectedResult => 하나.status === 'rejected');
+  if (실패.length === 결과.length) throw 실패[0]?.reason;
+}
+
 export async function 칸에적기(칸: 요소, 값: string): Promise<void> {
   await 칸.clearValue();
   if (값 !== '') await 칸.setValue(값);

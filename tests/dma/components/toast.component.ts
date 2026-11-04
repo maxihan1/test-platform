@@ -15,9 +15,22 @@ export class 토스트 {
     return this.상자.isDisplayed();
   }
 
-  async 글(): Promise<string> {
-    await this.뜰때까지();
-    return this.상자.$('android.widget.TextView').getText();
+  async 글(timeout = 15000): Promise<string> {
+    let 글 = '';
+    await this.driver
+      .waitUntil(async () => (글 = await this.지금글()) !== '', { timeout, interval: 200 })
+      .catch(() => undefined);
+    return 글;
+  }
+
+  private async 지금글(): Promise<string> {
+    try {
+      const 상자 = (await this.driver.$$('id=toast'))[0];
+      const 글칸 = 상자 === undefined ? undefined : (await 상자.$$('android.widget.TextView'))[0];
+      return 글칸 === undefined ? '' : await 글칸.getText();
+    } catch {
+      return '';
+    }
   }
 
   async 글이바뀔때까지(앞글: string, timeout = 15000): Promise<void> {
