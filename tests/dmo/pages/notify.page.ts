@@ -66,6 +66,8 @@ export class 알림쿠폰화면 {
 
   async 쿠폰두번주기(회원아이디: string, 할인: number, 최소주문: number): Promise<void> {
     await this.쿠폰적기(회원아이디, 할인, 최소주문);
+    const 응답 = this.page.waitForResponse((r) => r.request().method() === 'POST' && new URL(r.url()).pathname === '/api/ops/coupons');
     await this.주기.dblclick();
+    await (await 응답).finished();
   }
 }

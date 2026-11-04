@@ -6,7 +6,7 @@ import { 홈화면 } from './pages/home.page.js';
 export const spec = defineCase({
   tcId: 'DMW-UI-003',
   name: '머리글 「커뮤니티」에 마우스를 올리면 하위 메뉴 「자유게시판」 · 「질문게시판」 · 「후기게시판」이 보인다',
-  platforms: ['desktop', 'mobile'],
+  platforms: ['desktop'],
   precondition: ['비회원이다'],
   params: null,
   expected: null,

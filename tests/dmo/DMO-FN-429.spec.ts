@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 import { 토스트 } from './components/toast.component.js';
 import { 관리자로그인 } from './helpers/account.helper.js';
-import { 관리자세션인가 } from './helpers/notify-flow.helper.js';
+import { 관리자세션인가, 요청수집 } from './helpers/notify-flow.helper.js';
 import { 알림쿠폰화면 } from './pages/notify.page.js';
 
 export const spec = defineCase({
@@ -33,9 +33,10 @@ test(spec, async ({ page, params }) => {
   });
 
   await test.step('쿠폰 받는 회원 아이디를 비우고 「주기」를 누른다', async () => {
+    const 수집 = 요청수집(page, '/api/ops/coupons');
     await 화면.쿠폰주기('', 5000, 0);
     await 알림.목록.first().waitFor();
-    const 안줌 = await verify('쿠폰을 줬다는 안내가 뜨지 않는다', await 알림.글자('쿠폰을 줬습니다').isVisible(), false);
+    const 안줌 = await verify('쿠폰을 주지 않는다', await 수집.성공수(), 0);
     const 안내 = await verify('「회원 아이디를 입력하세요」 안내가 보인다', await 알림.글자('회원 아이디를 입력하세요').isVisible(), true);
     await verify('쿠폰 받는 회원 아이디를 비우고 「주기」를 누르면 쿠폰을 주지 않고 안내가 보인다', 안줌 && 안내, true);
   });
