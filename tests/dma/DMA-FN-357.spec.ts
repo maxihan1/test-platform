@@ -1,10 +1,10 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
-import { 토스트 } from './components/toast.component.js';
 import { 주문서값으로 } from './helpers/cart-orders-flow.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 주문만들기 } from './helpers/order.helper.js';
+import { 토스트비우기 } from './helpers/wait.helper.js';
 import { 주문상세화면 } from './pages/order-detail.page.js';
 import { 상품목록화면 } from './pages/product-list.page.js';
 
@@ -30,7 +30,6 @@ export const spec = defineCase({
 test(spec, async ({ driver, params }) => {
   const 목록 = new 상품목록화면(driver);
   const 상세 = new 주문상세화면(driver);
-  const 알림 = new 토스트(driver);
 
   await test.step('일반 회원 계정으로 로그인해 상품 목록을 연다', async () => {
     await 로그인하기(driver, params.loginId, params.loginPassword);
@@ -42,18 +41,16 @@ test(spec, async ({ driver, params }) => {
   });
 
   await test.step('주문 상세에서 「주문 취소」 창을 연다', async () => {
+    await 토스트비우기(driver);
     await 상세.취소창열기().catch(() => undefined);
     await verify('「주문 취소」 창이 떠 있다', await 상세.취소창보이나(), true, { blocker: true });
   });
 
   await test.step('사유를 고르지 않고 「취소하기」를 누른다', async () => {
-    await 상세.취소하기누르기();
-    await 알림.뜰때까지(8000).catch(() => undefined);
-    const 토스트글 = (await 알림.보이나()) ? await 알림.글() : '';
+    const { 창남음, 토스트글 } = await 상세.취소하기눌러보기();
     await verify('취소 사유를 고르지 않으면 토스트 「취소 사유를 선택하세요」가 보인다', 토스트글, '취소 사유를 선택하세요');
-    const 창유지 = await verify('「주문 취소」 창을 닫지 않는다', await 상세.취소창보이나(), true);
+    const 창유지 = await verify('「주문 취소」 창을 닫지 않는다', 창남음, true);
     const 상태유지 = await verify('상태는 「결제완료」 그대로다', await 상세.상태글(), '결제완료');
     await verify('사유 없이 누른 「취소하기」는 창을 닫지 않고 상태도 「결제완료」 그대로다', 창유지 && 상태유지, true);
-    if (await 상세.취소창보이나()) await 상세.창닫기();
   }, { capture: true });
 });

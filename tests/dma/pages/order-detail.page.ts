@@ -1,4 +1,5 @@
-import { type 앱, 금액, 키보드내리기, 화면글들 } from '../helpers/app.helper.js';
+import { type 앱, 금액, 칸에적기, 화면글들 } from '../helpers/app.helper.js';
+import { 토스트글읽기 } from '../helpers/wait.helper.js';
 
 export type 취소사유 = '단순 변심' | '상품 정보 상이' | '배송 지연' | '기타';
 
@@ -137,14 +138,22 @@ export class 주문상세화면 {
 
   async 사유글적기(값: string): Promise<void> {
     await this.사유글칸.waitForDisplayed({ timeout: 10000 });
-    await this.사유글칸.click();
-    await this.사유글칸.clearValue();
-    if (값 !== '') await this.사유글칸.setValue(값);
-    await 키보드내리기(this.driver);
+    await 칸에적기(await this.사유글칸.getElement(), 값);
   }
 
   async 취소하기누르기(): Promise<void> {
     await this.취소하기버튼.click();
+  }
+
+  async 취소하기눌러보기(): Promise<{ 창남음: boolean; 토스트글: string }> {
+    await this.취소하기누르기();
+    await this.취소창닫힐때까지(1500).catch(() => undefined);
+    const 창남음 = await this.취소창보이나();
+    if (창남음) {
+      await this.취소하기누르기();
+      await this.창닫기();
+    }
+    return { 창남음, 토스트글: await 토스트글읽기(this.driver) };
   }
 
   async 취소하기두번누르기(): Promise<void> {
