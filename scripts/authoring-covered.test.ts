@@ -244,6 +244,13 @@ describe('모두덮음', () => {
     expect(모두덮음('{"덮음":true}')).toBeNull();
     expect(모두덮음('깨짐')).toBeNull();
   });
+
+  it('덮음 칸이 없는 줄은 덮은 틀로 본다 — Android 앱 크롤 목록 (APP-F2-05)', () => {
+    const 목록 = JSON.stringify([{ 틀: 'app:.Main/홈' }, { 틀: 'app:.Main/login screen', 덮음: true }]);
+    expect(모두덮음(목록, new Set(['app:.Main/홈']))).toBe(2);
+    expect(모두덮음(목록, new Set(['app:.Main/설정']))).toBeNull();
+    expect(모두덮음(목록)).toBeNull();
+  });
 });
 
 describe('다덮음사유', () => {

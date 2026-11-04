@@ -105,6 +105,23 @@ describe('저장본올리기', () => {
     ]);
   });
 
+  it('Android 앱 크롤(appium-cli) 결과도 같은 길로 올린다 — 열쇠가 url 이고 따라가기 칸이 없어 못 본 화면은 안 지운다 (APP-F2-05)', async () => {
+    const 열쇠 = 'app:.Main/login screen';
+    writeFileSync(join(자료, 'crawl', 'list.json'), JSON.stringify([{ 주소: 열쇠, 이름: 'Login', 상태: '로그아웃', 파일: '로그아웃/001.yml', 틀: 열쇠, 지문: 'aaaaaaaaaaaa', 글자지문: 'bbbbbbbbbbbb', 저장본: '새 화면' }]));
+    writeFileSync(join(자료, 'crawl', 'summary.json'), JSON.stringify({ 멈춘까닭: null, 상태들: ['로그아웃'], 예외: false }));
+    writeFileSync(join(자료, 'crawl', 'links.json'), JSON.stringify([{ 상태: '로그아웃', 틀: 열쇠, 연결: [{ to: 'app:.Main/signup', via: '버튼 「가입」' }] }]));
+    writeFileSync(join(자료, 'crawl', 'apis.json'), JSON.stringify([{ 상태: '로그아웃', 틀: 열쇠, api: [{ method: 'POST', url: 'http://qa.test/api/login' }] }]));
+    writeFileSync(join(자료, 'crawl', 'index.json'), JSON.stringify({ screens: [] }));
+    writeFileSync(join(자료, 'screens', 'out-001.md'), `# ${열쇠}\n로그인 화면 기록`);
+    서버(다봄답());
+    expect(await 저장본올리기(통로, 자료, ['pw-1234'], 지금)).toEqual({ 줄: '화면 기록 저장: 재사용 0장 · 새로 저장 1장' });
+    expect(건것들.slice(1).map((x) => x.body)).toEqual([
+      { state: '로그아웃', url: 열쇠, name: 'Login', textFp: 'bbbbbbbbbbbb', structFp: 'aaaaaaaaaaaa', record: `# ${열쇠}\n로그인 화면 기록`, crawledAt: '2026-10-20T03:00:00.000Z',
+        links: [{ toUrl: 'app:.Main/signup', via: '버튼 「가입」' }], apis: [{ method: 'POST', url: 'http://qa.test/api/login' }] },
+      { seen: [{ state: '로그아웃', url: 열쇠, name: 'Login' }], complete: [] },
+    ]);
+  });
+
   it('AI 가 안 훑은 화면도 크롤 목록에 있으면 본 것으로 넘긴다 — 대조는 기획서 화면만 훑는다', async () => {
     크롤쓰기([홈, 로그인화면]);
     writeFileSync(join(자료, 'screens', 'out-001.md'), '# https://s.test/\n홈 기록');
@@ -249,6 +266,14 @@ describe('크롤모두덮음 — 올리기가 「PRD 에 없는 화면 0」을 �
     expect(크롤모두덮음(자료)).toBeNull();
     rmSync(join(자료, 'crawl'), { recursive: true });
     expect(크롤모두덮음(자료)).toBeNull();
+  });
+
+  it('덮음 칸이 없는 앱 크롤 목록은 자료 폴더 covered.json 의 열쇠로 본다 (APP-F2-05)', () => {
+    크롤쓰기([{ ...홈, 틀: 'app:.Main/홈' }]);
+    expect(크롤모두덮음(자료)).toBeNull();
+    writeFileSync(join(자료, 'covered.json'), JSON.stringify(['app:.Main/홈']));
+    expect(크롤모두덮음(자료)).toBe(1);
+    rmSync(join(자료, 'covered.json'));
   });
 
   it('list.json 이 링크면 따라가지 않는다 — 자식이 자리 밖 파일을 읽히지 못하게', () => {

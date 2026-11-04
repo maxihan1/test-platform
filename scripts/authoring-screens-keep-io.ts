@@ -6,7 +6,8 @@ import { join } from 'node:path';
 import { 모두덮음 } from './authoring-covered.js';
 import { type 서비스판정, type 화면차이, 차이모양, 판정이름 } from './authoring-crawl-viewport.js';
 import { 부른다 } from './authoring-io.js';
-import { 계정섞였나 } from './authoring-reverse.js';
+import { 덮은틀읽기 } from './authoring-crawl-rules.js';
+import { 계정섞였나, 덮은파일이름 } from './authoring-reverse.js';
 import { type 목록칸, 날수, 받은저장본, 상태인가, 이번것들 } from './authoring-screens-keep.js';
 
 const 기록상한 = 200_000;
@@ -114,10 +115,13 @@ export function 크롤목록(자료: string): string | null {
   return 폴더인가(크롤) ? 안전히읽기(크롤, 'list.json', 목록상한) : null;
 }
 
-/** 자료 폴더의 크롤 목록(list.json)이 전부 테스트가 이미 확인한 화면이면 그 장수, 아니면(목록이 없거나 못 읽거나 덮지 않은 화면이 있다) null (PRD-F6-03) */
+/**
+ * 자료 폴더의 크롤 목록(list.json)이 전부 테스트가 이미 확인한 화면이면 그 장수, 아니면(목록이 없거나 못 읽거나 덮지 않은 화면이 있다) null (PRD-F6-03).
+ * 에이전트가 넣은 덮은 틀(covered.json)도 같이 본다 — Android 앱 크롤 목록에는 덮음 칸이 없다 (APP-F2-05)
+ */
 export function 크롤모두덮음(자료: string): number | null {
   const 글 = 크롤목록(자료);
-  return 글 === null ? null : 모두덮음(글);
+  return 글 === null ? null : 모두덮음(글, 덮은틀읽기(안전히읽기(자료, 덮은파일이름, 목록상한) ?? 'null'));
 }
 
 /**
