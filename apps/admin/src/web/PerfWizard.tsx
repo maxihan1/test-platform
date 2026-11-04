@@ -16,7 +16,7 @@ import { PerfStepScenario, type 일단계값 } from './PerfStepScenario.js';
 import { PerfStepTargets, type 삼단계값 } from './PerfStepTargets.js';
 import { 저장꼴 } from './PerfTxDetail.js';
 import { 구간만들기, 기본부하칸, 넘길까닭, 총초, 최대목표 } from './perfView.js';
-import { 조건붙인주소, 주소고치기, 주소조건 } from './leaveGuard.js';
+import { 조건붙인주소, 떠나기로했다, 떠나기상자, 주소고치기, 주소조건 } from './leaveGuard.js';
 import { 할수있나 } from './role.js';
 import { Failed, Loading, message, useAsync } from './ui.js';
 import { use단계주소 } from './useWizardStep.js';
@@ -72,6 +72,8 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
   const [이, set이] = useState(처음.이);
   const [삼, set삼] = useState(처음.삼);
   const [사, set사] = useState(처음.사);
+  // 마지막으로 저장한 네 단계 값. 이것과 다르면 떠나기 전에 묻는다
+  const [저장본, set저장본] = useState(() => JSON.stringify([처음.일, 처음.이, 처음.삼, 처음.사]));
   const [번호, set번호] = useState<number | null>(시나리오?.id ?? null);
   const [버전, set버전] = useState<number | null>(시나리오?.version ?? null);
   const [저장된계정, set저장된계정] = useState(시나리오?.accountsRows ?? 0);
@@ -154,6 +156,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
         set사({ ...사, accountsCsv: undefined });
       }
       set초안(undefined);
+      set저장본(JSON.stringify([일, 이, 삼, { ...사, accountsCsv: undefined }]));
       set알림({ 글: t('저장했습니다'), 오류: false });
       return id;
     } catch (err) {
@@ -175,6 +178,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
     try {
       고른서버를적는다(service.prefix, 사.env);
       const { runId } = await perfApi.run({ scenarioId: id, env: 사.env, testType: 이.testType, basis: 이.basis, stages: 이.stages, targets: 삼.targets, agentIds: 사.agentIds, monitorIds: 사.monitorIds, ...(페이지칸 && 사.pageCheck ? { pageCheck: true } : {}) });
+      떠나기로했다();
       window.location.hash = `#/perf/runs/${String(runId)}`;
     } catch (err) {
       set알림({ 글: message(err, 언어), 오류: true });
@@ -207,6 +211,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
 
   return (
     <>
+      <떠나기상자 막나={JSON.stringify([일, 이, 삼, 사]) !== 저장본} />
       <Head
         위치={t('성능 테스트')}
         제목={일.name.trim() === '' ? t('새 시나리오') : 일.name}
