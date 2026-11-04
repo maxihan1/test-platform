@@ -303,57 +303,6 @@
   display: none;
 }
 
-/* ── 사이드바 머리 ── */
-.side-app {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 4px 8px 12px;
-  min-width: 0;
-}
-
-.side-app-ic {
-  flex: none;
-  width: 30px;
-  height: 30px;
-  display: grid;
-  place-items: center;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  color: var(--ink-muted);
-}
-
-.side-app-ic .side-ico {
-  width: 16px;
-  height: 16px;
-}
-
-.side-app-text {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.side-app b {
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.3;
-  color: var(--ink);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.side-app small {
-  font-size: 11.5px;
-  color: var(--ink-faint);
-}
-
-/* 접으면 머리 글자는 숨긴다 — 줄이 같은 것을 말한다 */
-.folded .side-app {
-  display: none;
-}
 
 /* ── 찾기 칸 ── */
 .side-find {
@@ -503,53 +452,6 @@
   visibility: hidden;
 }
 
-/* 로고 아래 프로젝트 고르개 — 테두리를 벗어 글자 하나처럼 보인다 */
-.side-proj {
-  position: relative;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-}
-
-/* 프로젝트 아이콘은 접었을 때만 보인다 — 펼치면 글자가 말한다 */
-.side-proj > .side-ico {
-  display: none;
-  width: 18px;
-  height: 18px;
-  color: var(--ink-faint);
-}
-
-.side-proj .side-pick,
-.side-proj .side-svc-name {
-  width: 100%;
-  min-width: 0;
-  /* 기본 고르개는 손가락 기준 46px 이다. PC 사이드바는 접기 단추와 줄을 맞춘다 */
-  min-height: 32px;
-  padding: 0 22px 0 8px;
-  background-color: transparent;
-  border: 0;
-  /* 바로 아래 애플리케이션 이름(14px / 600 --ink)보다 한 단 낮춰 두 줄이 같은 급 제목으로 읽히지 않게 한다 */
-  color: var(--ink-muted);
-  font-size: 12.5px;
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.side-proj .side-svc-name {
-  display: block;
-  padding-right: 8px;
-}
-
-.side-proj .side-pick:hover {
-  background-color: var(--well);
-  color: var(--ink);
-}
-
-.side-proj .side-pick option {
-  background: var(--panel);
-}
 
 /* ── 찾기 창 ── */
 .find-input {
@@ -626,36 +528,7 @@
   color: var(--fail-text);
 }
 
-/* 접으면 프로젝트 아이콘만 남는다. 고르개는 지우지 않고 아이콘 위에 투명하게 덮어 — 누르면 펼쳐지고 키보드도 닿는다 */
+/* 접으면 맨 위 줄은 접기 단추만 가운데 남는다. 위치 카드는 place.css 가 아이콘 단추로 접는다 */
 .folded .side-top {
   justify-content: center;
-}
-
-.folded .side-proj {
-  flex: none;
-  align-self: center;
-  width: 40px;
-  height: 40px;
-  justify-content: center;
-}
-
-.folded .side-proj > .side-ico {
-  display: block;
-}
-
-.folded .side-proj .side-pick {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.folded .side-proj:has(.side-pick:focus-visible) {
-  outline: 2px solid var(--ink);
-  outline-offset: -2px;
-  border-radius: 6px;
-}
-
-.folded .side-proj .side-svc-name {
-  display: none;
 }

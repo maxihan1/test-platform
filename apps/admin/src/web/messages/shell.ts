@@ -34,8 +34,13 @@ export const 껍데기말: Record<string, string> = {
     'Only the applications in the chosen project are shown. You can change it any time at the top of the sidebar.',
   '마지막에 연 프로젝트': 'Last opened project',
   '애플리케이션 없음': 'No application',
-  // 사이드바 맨 위 프로젝트 고르개 (화면공통 §8 「껍데기」 맨 위 줄)
+  // 사이드바 맨 위 위치 카드 · 위치 판 (화면공통 §8 「껍데기」 위치 카드 · 2026-11-05). 판 왼쪽 칸 제목 「프로젝트」 는 설정 표의 'Projects' 를 같이 쓴다
   '애플리케이션 {수}개': '{수} applications',
+  '프로젝트§카드': 'Project',
+  '{프로젝트} › {이름} · 바꾸기': '{프로젝트} › {이름} · Switch',
+  '프로젝트 · 애플리케이션 고르기': 'Choose project and application',
+  // 위치 판 오른쪽 칸 제목 · 펼친 왼쪽 줄 꼬리표
+  '{프로젝트}의 애플리케이션': 'Applications in {프로젝트}',
   // 사이드바 찾기 칸 · 찾기 창 (ShellFind.tsx · 화면공통 §8 「껍데기」 찾기 칸)
   '찾을 말': 'Search term',
   '메뉴 이름': 'Menu name',

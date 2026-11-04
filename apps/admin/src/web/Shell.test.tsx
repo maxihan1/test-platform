@@ -85,7 +85,7 @@ describe('애플리케이션 색을 걷었다 (SPEC §8, 2026-09-22)', () => {
     띄운다(결제);
     expect(색표시()).toBeNull();
     expect(document.querySelector('.side-dot')).toBeNull();
-    const 띠 = document.querySelector('.side-proj') as HTMLElement | null;
+    const 띠 = document.querySelector('.place-card') as HTMLElement | null;
     expect(띠).not.toBeNull();
     expect(띠!.style.background).toBe('');
     expect(띠!.style.getPropertyValue('--svc')).toBe('');
@@ -105,11 +105,11 @@ describe('애플리케이션 색을 걷었다 (SPEC §8, 2026-09-22)', () => {
     expect(Array.from(document.querySelectorAll('.rail-code')).map((it) => it.textContent)).toEqual(['ZSH', 'ZSI']);
   });
 
-  it('구분은 이름이 한다. 색을 걷어도 줄 단추 이름과 사이드바 머리로 어느 애플리케이션인지 읽힌다', () => {
+  it('구분은 이름이 한다. 색을 걷어도 줄 단추 이름과 위치 카드로 어느 애플리케이션인지 읽힌다', () => {
     띄운다(결제);
     expect(screen.getByRole('button', { name: '결제 애플리케이션 · 웹' }).getAttribute('aria-current')).toBe('page');
     expect(screen.getByRole('button', { name: '정산 애플리케이션 · 웹' }).getAttribute('aria-current')).toBeNull();
-    expect(document.querySelector('.side-app b')?.textContent).toBe('결제 애플리케이션');
+    expect(document.querySelector('.place-app-text b')?.textContent).toBe('결제 애플리케이션');
   });
 });
 
@@ -124,7 +124,7 @@ describe('세로 껍데기 (SPEC §8)', () => {
 
     const 안 = within(document.querySelector('.side-col') as HTMLElement);
     expect(안.getByRole('button', { name: '찾기' })).toBeTruthy();
-    expect(안.getByText('데모마켓 · 애플리케이션 2개')).toBeTruthy();
+    expect(안.getByRole('button', { name: '데모마켓 › 결제 애플리케이션 · 바꾸기' })).toBeTruthy();
     // 설정은 자리 목록에서 빠져 톱니로 갔다. 하위는 지금 자리가 든 묶음(테스트 스크립트)만 펼친다
     const 메뉴 = 자리목록(사람, 결제.prefix, 'ko').filter((자리) => 자리.해시 !== '#/settings');
     const 펼친하위 = 메뉴.find((자리) => 자리.해시 === '#/cases')?.하위?.length ?? 0;
@@ -159,9 +159,10 @@ describe('세로 껍데기 (SPEC §8)', () => {
     expect(screen.queryByRole('link', { name: '설정' })).toBeNull();
   });
 
-  it('맨 위 프로젝트 고르개가 프로젝트 이름과 애플리케이션 수를 적는다', () => {
+  it('맨 위 위치 카드가 프로젝트 이름과 애플리케이션 이름을 적는다', () => {
     띄운다(결제);
-    expect(document.querySelector('.side-proj')?.textContent).toBe('데모마켓 · 애플리케이션 2개');
+    expect(document.querySelector('.place-proj b')?.textContent).toBe('데모마켓');
+    expect(document.querySelector('.place-app-text b')?.textContent).toBe('결제 애플리케이션');
   });
 
   it('푸터가 제품과 지금 애플리케이션을 적는다', () => {
@@ -353,10 +354,10 @@ describe('언어 고르개 (SPEC §8 다국어)', () => {
     사이드바접음을적는다(false);
   });
 
-  it('접어도 고르개가 화면에서 사라지지 않는다. 지우면 키보드 이동에서 빠진다', () => {
+  it('접어도 위치 카드가 화면에서 사라지지 않는다. 지우면 키보드 이동에서 빠진다', () => {
     사이드바접음을적는다(true);
     띄운다(결제);
-    expect(document.querySelector('.side-proj')?.textContent).toBe('데모마켓 · 애플리케이션 2개');
+    expect(screen.getByRole('button', { name: '데모마켓 › 결제 애플리케이션 · 바꾸기' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '찾기' })).toBeTruthy();
     사이드바접음을적는다(false);
   });

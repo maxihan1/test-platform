@@ -138,20 +138,3 @@ export function 애플리케이션줄({
   );
 }
 
-/** 자리 목록 위 — 아래 메뉴가 「이 애플리케이션의 메뉴」로 읽힌다 */
-export function 사이드바머리({ service }: { service: ServiceRow }) {
-  const 언어 = use언어();
-  return (
-    <div className="side-app">
-      <span className="side-app-ic">
-        <아이콘 이름={종류(service.kind).아이콘} />
-      </span>
-      <span className="side-app-text">
-        <b>{service.name}</b>
-        <small>
-          {종류이름(service.kind, 언어)} · {service.prefix}
-        </small>
-      </span>
-    </div>
-  );
-}

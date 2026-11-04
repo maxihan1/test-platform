@@ -133,17 +133,6 @@ describe('애플리케이션 줄', () => {
   });
 });
 
-describe('사이드바 머리', () => {
-  it('이름과 「종류 · 접두사」 가 자리 목록 위에 선다', () => {
-    띄운다(앱);
-
-    const 머리 = document.querySelector('.side-app') as HTMLElement;
-    expect(머리.querySelector('b')?.textContent).toBe('데모마켓 앱');
-    expect(머리.querySelector('small')?.textContent).toBe('Android 앱 · ZRB');
-    expect(머리.compareDocumentPosition(document.querySelector('.side-nav') as HTMLElement) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-});
-
 describe('껍데기가 화면 머리에 넣는 애플리케이션 이름', () => {
   it('화면 머리 위치 줄 맨 앞에 애플리케이션 이름이 선다', () => {
     띄운다(앱);
