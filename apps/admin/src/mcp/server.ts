@@ -7,8 +7,9 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
-import { PAT사람, type 묻기함수 } from '../auth/pat.js';
-import type { 사용자 } from '../auth/store.js';
+import { 작성계정인가 } from '../auth/agentToken.js';
+import { MCP자원, MCP토큰확인, SSO설정읽기 } from '../auth/oidc.js';
+import { 사용자와해시, type 사용자 } from '../auth/store.js';
 import type { 부르기함수 } from '../bts/client.js';
 import { 일열쇠사람 } from './jobKey.js';
 import { 노트읽기 } from './note.js';
@@ -16,7 +17,6 @@ import { 실행보기, 실행찾기 } from './runs.js';
 import { BTS찾기, prd찾기, 지도찾기, type 도구답 } from './tools.js';
 
 export interface MCP설정 {
-  묻기?: 묻기함수;
   부르기?: 부르기함수;
 }
 
@@ -64,7 +64,8 @@ const 이름 = z.string().regex(/^[A-Z][A-Z0-9]{0,11}$/).describe('애플리케�
 // 30줄씩 넘기는 쪽 번호 — 상한은 터무니없는 OFFSET 으로 DB 를 훑지 않게 둔다
 const 쪽 = z.number().int().min(0).max(1000).optional().describe('0 부터. 잘린 찾기의 다음 30줄');
 
-function 서버세우기(사람: 사용자, pat: string | null, 부르기?: 부르기함수): McpServer {
+/** authSub 는 브라우저 로그인으로 온 사람의 Auth id — 자동 AI(mcj_)는 null 이다 */
+function 서버세우기(사람: 사용자, authSub: string | null, 부르기?: 부르기함수): McpServer {
   const 서버 = new McpServer({ name: 'qa-hub', version: '1.0.0' }, { instructions: 안내문 });
   const 읽기만 = { readOnlyHint: true, openWorldHint: false } as const;
 
@@ -110,7 +111,7 @@ function 서버세우기(사람: 사용자, pat: string | null, 부르기?: 부�
   서버.registerTool(
     'bts_search',
     {
-      description: '그 프로젝트가 이은 Issue Bunker 에서 이슈 · task 를 찾는다. issueKey(예: DM-12)로 하나를 읽으면 키 · 제목 · 상태 · 본문(4,000자까지)과 최근 댓글 20개(하나에 1,000자 · 오래된 것부터 · 넘으면 moreComments · 못 읽으면 commentsError), query 로 찾으면 키 · 제목 · 상태만 30줄씩(다음이 있으면 truncated — page 를 올린다) 준다. 닫힌 이슈도 상태로 보인다. 사람은 자기 통합계정 토큰으로, 자동 AI 는 프로젝트에 적은 「QA Hub AI」 계정의 대신 PAT 로 Issue Bunker 를 부른다',
+      description: '그 프로젝트가 이은 Issue Bunker 에서 이슈 · task 를 찾는다. issueKey(예: DM-12)로 하나를 읽으면 키 · 제목 · 상태 · 본문(4,000자까지)과 최근 댓글 20개(하나에 1,000자 · 오래된 것부터 · 넘으면 moreComments · 못 읽으면 commentsError), query 로 찾으면 키 · 제목 · 상태만 30줄씩(다음이 있으면 truncated — page 를 올린다) 준다. 닫힌 이슈도 상태로 보인다. 사람은 자기 대신 PAT 로, 자동 AI 는 프로젝트에 적은 「QA Hub AI」 계정의 대신 PAT 로 Issue Bunker 를 부른다',
       inputSchema: {
         projectId: z.number().int().positive().describe('Test Commander 프로젝트 번호'),
         issueKey: z.string().max(40).optional(),
@@ -119,7 +120,7 @@ function 서버세우기(사람: 사용자, pat: string | null, 부르기?: 부�
       },
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
-    async ({ projectId, issueKey, query, page }) => 글답(await BTS찾기(사람, pat, projectId, { issueKey, query, page }, 부르기)),
+    async ({ projectId, issueKey, query, page }) => 글답(await BTS찾기(사람, authSub, projectId, { issueKey, query, page }, 부르기)),
   );
 
   서버.registerTool(
@@ -151,37 +152,70 @@ function 서버세우기(사람: 사용자, pat: string | null, 부르기?: 부�
 
 const 오류몸 = (code: number, message: string) => ({ jsonrpc: '2.0', error: { code, message }, id: null });
 
-const 열쇠없음 = (reply: FastifyReply) => reply.code(401).header('www-authenticate', 'Bearer').send(오류몸(-32001, 'UNAUTHENTICATED'));
+// 붙는 쪽(Claude)이 401 다음에 읽는 자리 — 어느 Auth 에 로그인하라는지 적힌 문서 (RFC 9728 Protected Resource Metadata)
+const 자원정보길 = '/.well-known/oauth-protected-resource/mcp';
+const 범위 = 'commander';
+
+/**
+ * Claude 는 HTTP 401 과 이 머리를 보고서만 브라우저 로그인을 시작한다(200 안의 오류는 보지 않는다 — MCP 인가 2025-11-25).
+ * 토큰을 냈는데 틀렸으면 invalid_token 을 붙인다. SSO 를 끈 설치는 로그인할 Auth 가 없어 Bearer 만 준다
+ */
+function 열쇠없음(reply: FastifyReply, 틀림 = false) {
+  const sso = SSO설정읽기();
+  const 칸 = [...(틀림 ? ['error="invalid_token"'] : []), ...(sso === null ? [] : [`resource_metadata="${sso.publicUrl}${자원정보길}"`, `scope="${범위}"`])];
+  return reply
+    .code(401)
+    .header('www-authenticate', 칸.length === 0 ? 'Bearer' : `Bearer ${칸.join(', ')}`)
+    .send(오류몸(-32001, 'UNAUTHENTICATED'));
+}
 
 // 인증 방식 이름은 대소문자를 가리지 않는다 (RFC 7235)
 const 열쇠읽기 = (머리: string | undefined): string => /^bearer\s+(\S+)\s*$/i.exec(머리 ?? '')?.[1] ?? '';
-// 작성 요청마다 나는 열쇠 — PAT 가 아니라 Auth 에 묻지 않는다 (jobKey.ts)
+// 작성 요청마다 나는 열쇠 — JWT 가 아니라 Auth 열쇠로 확인하지 않는다 (jobKey.ts)
 const 일열쇠인가 = (열쇠: string) => 열쇠.startsWith('mcj_');
 
+/** 그 Auth id 에 묶인 계정. 묶인 계정 없음 · 꺼진 계정 · 작성 에이전트 계정은 null — 꺼졌는지는 토큰이 살아 있어도 요청마다 DB 로 본다 */
+async function 토큰사람(authSub: string): Promise<사용자 | null> {
+  const { pool } = await import('../db/index.js');
+  const { rows } = await pool.query<{ username: string }>('SELECT username FROM app_user WHERE auth_sub = $1', [authSub]);
+  const username = rows[0]?.username;
+  // 작성 에이전트 계정은 사람 열쇠로 쓰지 않는다 (identify.ts 와 같은 판단)
+  if (username === undefined || 작성계정인가(username)) return null;
+  const 찾은것 = await 사용자와해시(username);
+  // SSO 설치라 비밀번호 바꾸기 길이 없다 (identify.ts 와 같다)
+  return 찾은것 === null ? null : { ...찾은것.user, mustChangePassword: false };
+}
+
 export default async function mcpRoutes(app: FastifyInstance, 설정: MCP설정 = {}): Promise<void> {
+  // 열쇠문이 확인한 사람의 Auth id — bts_search 가 그 사람의 대신 PAT 를 받는다. 받은 토큰은 Issue Bunker 로 넘기지 않는다 (MCP 인가 「Token Passthrough」)
+  const 누구 = new WeakMap<FastifyRequest, string>();
+
   // 열쇠는 몸을 읽기 전에 본다 — 열쇠 없는 사람이 보낸 큰 몸이 메모리에 올라간 뒤에야 401 이 나가지 않게 (auth/gate.ts onRequest · bts/inbound.ts 와 같다)
   const 열쇠문 = async (req: FastifyRequest, reply: FastifyReply) => {
     const 열쇠 = 열쇠읽기(req.headers.authorization);
     if (열쇠 === '') return 열쇠없음(reply);
     if (일열쇠인가(열쇠)) {
       const 사람 = await 일열쇠사람(열쇠);
-      if (사람 === null) return 열쇠없음(reply);
+      if (사람 === null) return 열쇠없음(reply, true);
       req.user = 사람;
       return;
     }
-    const 사람 = await PAT사람(열쇠, req.ip, 설정.묻기);
-    if (사람 === '닿지못함') return reply.code(503).send(오류몸(-32002, 'AUTH_UNREACHABLE'));
-    if (사람 === '너무많음') return reply.code(429).send(오류몸(-32003, 'TOO_MANY_REQUESTS'));
-    if (사람 === null) return 열쇠없음(reply);
+    const sso = SSO설정읽기();
+    if (sso === null) return 열쇠없음(reply, true);
+    const 답 = await MCP토큰확인(sso, 열쇠);
+    if (답 === '닿지못함') return reply.code(503).send(오류몸(-32002, 'AUTH_UNREACHABLE'));
+    if (답 === '틀림') return 열쇠없음(reply, true);
+    const 사람 = await 토큰사람(답.sub);
+    if (사람 === null) return 열쇠없음(reply, true);
     req.user = 사람;
+    누구.set(req, 답.sub);
   };
 
   app.post('/mcp', { onRequest: 열쇠문 }, async (req, reply) => {
     // 열쇠문이 사람을 실었다. 없으면 이미 돌려보냈다
     const 사람 = req.user;
     if (사람 === null) return 열쇠없음(reply);
-    const 열쇠 = 열쇠읽기(req.headers.authorization);
-    const 서버 = 서버세우기(사람, 일열쇠인가(열쇠) ? null : 열쇠, 설정.부르기);
+    const 서버 = 서버세우기(사람, 누구.get(req) ?? null, 설정.부르기);
     // 세션 없이 — 요청 하나에 서버 하나. 답은 SSE 가 아니라 JSON 한 덩어리다
     const 전송 = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     reply.raw.on('close', () => {
@@ -205,4 +239,13 @@ export default async function mcpRoutes(app: FastifyInstance, 설정: MCP설정 
   const 안받음 = async (_req: FastifyRequest, reply: FastifyReply) => reply.code(405).header('allow', 'POST').send(오류몸(-32000, 'Method not allowed'));
   app.get('/mcp', 안받음);
   app.delete('/mcp', 안받음);
+
+  // 401 머리가 가리키는 문서. 경로 붙은 자리가 정본이고(RFC 9728 §3.1) 뿌리 자리는 그것만 찾는 클라이언트 몫이다. SSO 를 끈 설치는 로그인할 Auth 가 없어 404
+  const 자원정보 = async (_req: FastifyRequest, reply: FastifyReply) => {
+    const sso = SSO설정읽기();
+    if (sso === null) return reply.callNotFound();
+    return { resource: MCP자원(sso), authorization_servers: [sso.issuer], scopes_supported: [범위], bearer_methods_supported: ['header'] };
+  };
+  app.get(자원정보길, 자원정보);
+  app.get('/.well-known/oauth-protected-resource', 자원정보);
 }

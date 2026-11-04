@@ -4,7 +4,7 @@ import { 대신PAT } from '../auth/delegatedPat.js';
 
 /**
  * 부를 BTS 와 누구로 부를지. 봇은 「QA Hub AI」 Auth 계정 이름(bts_link.bot_username) — 부를 때마다 대신 PAT 로 바꾼다.
- * pat 은 이미 받은 토큰(자동 설정은 누른 사람의 대신 PAT · MCP 는 부른 사람의 PAT)
+ * pat 은 이미 받은 토큰(자동 설정은 누른 사람의 대신 PAT · MCP 는 부른 사람의 대신 PAT)
  */
 export type BTS자리 = { baseUrl: string } & ({ 봇: string } | { pat: string });
 
