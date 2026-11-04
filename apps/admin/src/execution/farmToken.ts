@@ -20,7 +20,7 @@ export async function 서버팜토큰(env: NodeJS.ProcessEnv = process.env): Pro
   try {
     return await 대신PAT({ username: 이름 });
   } catch (err) {
-    console.error(`[farm-token] 서버 몫(DEVICE_FARM_RUN_AS)의 대신 PAT 를 못 받아 DEVICE_FARM_TOKEN 으로 간다: ${왜(err)}`);
+    console.error(`[farm-token] 서버 몫(DEVICE_FARM_RUN_AS)의 대신 PAT 를 못 받아 DEVICE_FARM_TOKEN 으로 간다 — DEVICE_FARM_RUN_AS · Auth delegated-pats clients 를 확인하세요: ${왜(err)}`);
     return undefined;
   }
 }

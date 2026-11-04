@@ -240,7 +240,7 @@ describe('팜머리', () => {
     const { 부르기 } = 가짜팜({ 목록: [{ status: 401, body: {} }] });
 
     expect(await 팜폰으로(팜, async () => '돌림', (까닭) => 까닭, 부르기, 안쉼)).toBe(
-      'Device VISION 이 기기 목록을 주지 않았습니다 (HTTP 401) — DEVICE_FARM_TOKEN 을 확인하세요',
+      'Device VISION 이 기기 목록을 주지 않았습니다 (HTTP 401) — DEVICE_FARM_RUN_AS · Auth delegated-pats clients 를 확인하세요',
     );
   });
 });
