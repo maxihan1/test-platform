@@ -128,7 +128,7 @@ UI Test 와 Functional Test 는 Page Object 를 쓴다. locator 를 케이스 �
 | 무엇 | 규칙 |
 |---|---|
 | 자리 · 이름 | `tests/<폴더>/pages/<화면>.page.ts` · 두 화면 이상에 나오는 화면 조각(머리 메뉴 · 토스트 · 모달)만 `tests/<폴더>/components/<조각>.component.ts` · 로그인 · 계정(가입 · 탈퇴) · 자료 만들고 지우기 같은 공용 도우미는 `tests/<폴더>/helpers/<이름>.helper.ts`. **도우미를 `components/` 에 두지 않는다** — 스캔이 케이스가 가져오는 `pages/` · `components/` 로 「케이스 ↔ 화면」 지도를 채우는데, 거의 모든 케이스가 쓰는 로그인 도구가 거기 있으면 모든 케이스가 그 조각에 닿는다(명세 도메인/작성 §3.6 「지도」). 화면 하나에 파일 하나 · 클래스 하나 · 생성자는 `page` 만 받는다(적응형만 기기마다 둘 — 아래 「화면 크기 판정」). **`.spec.ts` · `.test.ts` 로 끝나는 이름 금지** — Playwright 가 테스트로 집는다 |
-| 화면 주소 | 화면 파일(`pages/`) 클래스 첫 줄에 그 화면의 주소를 값으로 둔다 — `static readonly 주소 = '/cart';`. 따옴표 안 글자 그대로만 읽는다(계산식이면 지도에 주소가 비어 들어간다). 주석이 아니라 값인 까닭은 테스트 코드에 주석을 못 쓰기 때문이다. 화면 조각 · 도우미에는 두지 않는다 |
+| 화면 주소 | 화면 파일(`pages/`) 클래스 첫 줄에 그 화면의 주소를 값으로 둔다 — `static readonly 주소 = '/cart';`. 따옴표 안 글자 그대로만 읽는다(계산식이면 지도에 주소가 비어 들어간다). 주석이 아니라 값인 까닭은 테스트 코드에 주석을 못 쓰기 때문이다. 화면 조각 · 도우미에는 두지 않는다. **Android 앱 화면 파일은 그 화면의 앱 화면 열쇠 글자 그대로다** — `static readonly 주소 = 'app:.Main/login screen';`, 생성자는 `page` 대신 `driver` 를 받는다. 열쇠는 crawl 목록 · `appium-cli screen` 에서만 옮긴다(`tpx-author` `app.md` §3 · 2026-11-04 APP-F2-05). 게임 창은 `game.md` 「창 화면 객체」 |
 | 담는 것 | §4 에서 확정한 locator(우선순위 그대로)와 짧은 동작(채우기 · 누르기 · 이동). **찾는 법의 정본은 여기다** — 용어 사전에는 이름과 뜻만 남긴다 |
 | 담지 않는 것 | `test.step` · `verify` · 기대값 · 판정. **K6 · K12 와 증적 문서가 케이스 파일의 절차 제목과 판정 문장을 글자로 읽는다** — Page Object 안의 `verify` 는 판정 0 건으로 센다 |
 | 금지 | 주석 · `expect` — `tests/**` 전체에 걸리는 규칙이라 Page Object 파일도 훅과 CI(`check:tests` K7)가 막는다. 가져오기는 같은 `tests/` 안 파일 · `@playwright/test`(`test` · `expect` 말고) · kit 의 타입뿐이다(명세 공통/2-명세선언 「Page Object 파일」) |
