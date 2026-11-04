@@ -22,6 +22,11 @@ type 초안항목 = 항목of<'PRD_DRAFT'>;
 
 export type 탭 = 'approve' | 'fail' | 'check' | 'update';
 
+/** 주소의 글자가 탭 이름이면 그것, 아니면 null. 손으로 고친 주소가 없는 탭을 고르지 않게 한다 */
+export function 탭읽기(글: string | null): 탭 | null {
+  return (['approve', 'fail', 'check', 'update'] as const).find((x) => x === 글) ?? null;
+}
+
 /**
  * 항목이 드는 탭 — 승인 대기 · 결함 판정 · 요구사항 확인 · 테스트 업데이트(2026-11-04 사용자 · §3.6 「★ 결정 목록」 「탭」).
  * 서버 묶음(group)은 셋이라 ② 를 실패와 그 밖으로 가른다
