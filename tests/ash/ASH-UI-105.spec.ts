@@ -3,6 +3,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { type 봇, type 캐릭터 } from './helpers/api.helper.js';
 import { 게임입장 } from './helpers/game-enter.helper.js';
 import { 봇목록, 살아있는봇, 새캐릭터, 순간이동, 캐릭터지우기 } from './helpers/game-state.helper.js';
+import { GM콘솔 } from './pages/gm-console.page.js';
 import { 월드화면 } from './pages/world.page.js';
 
 export const spec = defineCase({
@@ -28,6 +29,15 @@ test(spec, async ({ game, admin }) => {
     await test.step('새 전사 캐릭터로 게임에 들어간다', async () => {
       const 월드 = await 게임입장(game, 누구!);
       await verify('월드 화면 구역 이름에 「초록 들판」이 보인다', await 월드.구역글(), '초록 들판', { blocker: true });
+    });
+    await test.step('GM 콘솔에서 초록 들판 봇을 내 둘레로 부르고 콘솔을 닫는다', async () => {
+      const 콘솔 = await GM콘솔.열기(game);
+      await 콘솔.봇부르기누르기();
+      await 콘솔.출력글뜰때까지('봇');
+      const 결과 = (await 콘솔.출력글()).replace(/\d+/, 'N');
+      await verify('GM 콘솔 결과 글에 「초록 들판 봇 N명을 불렀습니다.」가 보인다', 결과, '초록 들판 봇 N명을 불렀습니다.', { blocker: true });
+      await 콘솔.닫기누르기();
+      await 콘솔.닫힐때까지();
     });
     await test.step('초록 들판 봇 이름표를 읽는다', async () => {
       const 월드 = new 월드화면(game);
