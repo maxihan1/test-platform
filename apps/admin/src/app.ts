@@ -99,7 +99,7 @@ export function buildApp(sessionSecret = process.env.SESSION_SECRET ?? '') {
 
   // 대시보드는 /api 밖이다. 문(auth/grafanaGate.ts)을 지난 요청만 Grafana 로 넘어간다 (SPEC 도메인/인증 §7)
   app.register(grafanaProxy);
-  // MCP 창구도 /api 밖이다. 열쇠(통합계정 PAT)는 라우트가, 권한은 도구마다 문과 같은 판정이 본다 (도메인/BTS §7 「MCP」)
+  // MCP 창구도 /api 밖이다. 열쇠(브라우저 로그인 토큰 · mcj_)와 자원 정보 두 통로는 라우트가, 권한은 도구마다 문과 같은 판정이 본다 (도메인/BTS §7 「MCP」)
   app.register(mcpRoutes);
 
   // 화면은 WS-E가 Vite로 빌드한다. 산출물이 아직 없는 동안에도 서버는 떠야 한다

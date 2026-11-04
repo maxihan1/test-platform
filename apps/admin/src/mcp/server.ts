@@ -174,16 +174,21 @@ const 열쇠읽기 = (머리: string | undefined): string => /^bearer\s+(\S+)\s*
 // 작성 요청마다 나는 열쇠 — JWT 가 아니라 Auth 열쇠로 확인하지 않는다 (jobKey.ts)
 const 일열쇠인가 = (열쇠: string) => 열쇠.startsWith('mcj_');
 
-/** 그 Auth id 에 묶인 계정. 묶인 계정 없음 · 꺼진 계정 · 작성 에이전트 계정은 null — 꺼졌는지는 토큰이 살아 있어도 요청마다 DB 로 본다 */
-async function 토큰사람(authSub: string): Promise<사용자 | null> {
+/**
+ * 그 Auth id 에 묶인 계정. 묶인 계정 없음 · 꺼진 계정 · 작성 에이전트 계정은 null — 꺼졌는지는 토큰이 살아 있어도 요청마다 DB 로 본다.
+ * Auth 가 back-channel 로 끝냈다고 알린 로그인도 null 이다 — 그 세션(sid)이 끝났거나, 그 사람의 세션이 다 끊긴 시각보다 앞에 낸 토큰 (identify.ts Auth가끊었나 와 같은 판단)
+ */
+async function 토큰사람(토큰: { sub: string; sid?: string; iat?: number }): Promise<사용자 | null> {
   const { pool } = await import('../db/index.js');
-  const { rows } = await pool.query<{ username: string }>('SELECT username FROM app_user WHERE auth_sub = $1', [authSub]);
+  const { rows } = await pool.query<{ username: string }>('SELECT username FROM app_user WHERE auth_sub = $1', [토큰.sub]);
   const username = rows[0]?.username;
   // 작성 에이전트 계정은 사람 열쇠로 쓰지 않는다 (identify.ts 와 같은 판단)
   if (username === undefined || 작성계정인가(username)) return null;
-  const 찾은것 = await 사용자와해시(username);
+  const 찾은것 = await 사용자와해시(username, 토큰.sid);
+  if (찾은것 === null || 찾은것.sidRevoked) return null;
+  if (찾은것.sessionsValidAfter !== null && (토큰.iat ?? 0) * 1000 < 찾은것.sessionsValidAfter.getTime()) return null;
   // SSO 설치라 비밀번호 바꾸기 길이 없다 (identify.ts 와 같다)
-  return 찾은것 === null ? null : { ...찾은것.user, mustChangePassword: false };
+  return { ...찾은것.user, mustChangePassword: false };
 }
 
 export default async function mcpRoutes(app: FastifyInstance, 설정: MCP설정 = {}): Promise<void> {
@@ -205,7 +210,7 @@ export default async function mcpRoutes(app: FastifyInstance, 설정: MCP설정 
     const 답 = await MCP토큰확인(sso, 열쇠);
     if (답 === '닿지못함') return reply.code(503).send(오류몸(-32002, 'AUTH_UNREACHABLE'));
     if (답 === '틀림') return 열쇠없음(reply, true);
-    const 사람 = await 토큰사람(답.sub);
+    const 사람 = await 토큰사람(답);
     if (사람 === null) return 열쇠없음(reply, true);
     req.user = 사람;
     누구.set(req, 답.sub);
@@ -243,7 +248,10 @@ export default async function mcpRoutes(app: FastifyInstance, 설정: MCP설정 
   // 401 머리가 가리키는 문서. 경로 붙은 자리가 정본이고(RFC 9728 §3.1) 뿌리 자리는 그것만 찾는 클라이언트 몫이다. SSO 를 끈 설치는 로그인할 Auth 가 없어 404
   const 자원정보 = async (_req: FastifyRequest, reply: FastifyReply) => {
     const sso = SSO설정읽기();
-    if (sso === null) return reply.callNotFound();
+    if (sso === null) {
+      reply.callNotFound();
+      return reply;
+    }
     return { resource: MCP자원(sso), authorization_servers: [sso.issuer], scopes_supported: [범위], bearer_methods_supported: ['header'] };
   };
   app.get(자원정보길, 자원정보);

@@ -1,6 +1,6 @@
 // MCP 조회 도구 셋(노트 읽기는 mcp/note.ts · 실행 둘은 mcp/runs.ts) — 화면 통로와 같은 판정(문판정)을 거친 뒤 같은 질의를 읽는다 (도메인/BTS §3.12 「맥락 — MCP 조회 도구」 · §7 「MCP」)
 
-import { 대신PAT } from '../auth/delegatedPat.js';
+import { 대신PAT오류 } from '../auth/delegatedPat.js';
 import { 문판정, type 문막힘 as 문막힘몸 } from '../auth/gate.js';
 import { 필요권한 } from '../auth/routeTable.js';
 import { 케이스의서비스 } from '../auth/scope.js';
@@ -172,15 +172,8 @@ export async function BTS찾기(사람: 사용자, authSub: string | null, proje
   const r = await (await db()).query<{ base_url: string; bts_project: string; bot_username: string | null }>('SELECT base_url, bts_project, bot_username FROM bts_link WHERE project_id = $1', [projectId]);
   const 연결 = r.rows[0];
   if (연결 === undefined) return { ok: false, error: 'NOT_LINKED', detail: `project ${String(projectId)} 은 Issue Bunker 를 잇지 않았다` };
-  let 자리: BTS자리 = { baseUrl: 연결.base_url, 봇: 연결.bot_username ?? '' };
-  if (authSub !== null) {
-    try {
-      자리 = { baseUrl: 연결.base_url, pat: await 대신PAT({ userId: authSub }) };
-    } catch (err) {
-      console.error(`[mcp] Issue Bunker 를 부를 대신 PAT 를 못 받았다: ${err instanceof Error ? err.message : String(err)}`);
-      return { ok: false, error: 'BTS_UNREACHABLE' };
-    }
-  }
+  // 대신 PAT 는 BTS부르기가 주소를 확인한 뒤에 받는다 — 막힐 입력 · 허용 밖 주소로 Auth 에 PAT 를 만들게 하지 않는다
+  const 자리: BTS자리 = authSub !== null ? { baseUrl: 연결.base_url, userId: authSub } : { baseUrl: 연결.base_url, 봇: 연결.bot_username ?? '' };
 
   let 부를것: Parameters<부르기함수>;
   // 이슈 하나를 읽을 때만 댓글도 부른다 — 댓글에서 바뀐 규칙을 PRD 초안 · 수정 AI 가 놓치지 않게 (2026-11-02 사용자)
@@ -203,7 +196,8 @@ export async function BTS찾기(사람: 사용자, authSub: string | null, proje
     답 = await 부르기(...부를것);
   } catch (err) {
     console.error(`[mcp] Issue Bunker(${연결.base_url}) 에 닿지 못했다: ${err instanceof Error ? err.message : String(err)}`);
-    return { ok: false, error: 'BTS_UNREACHABLE' };
+    // Bunker 는 멀쩡한데 Auth 가 대신 PAT 를 안 준 때(403 · 429)는 Bunker 주소를 의심하지 않게 갈라 준다. 까닭 원문은 로그에만
+    return { ok: false, error: 'BTS_UNREACHABLE', ...(err instanceof 대신PAT오류 && { detail: 'Auth 에서 Issue Bunker 를 부를 대신 PAT 를 못 받았다' }) };
   }
 
   if (답.status === 200) {

@@ -4,7 +4,7 @@ import type { CaseSpec } from '@platform/kit';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { 대신PAT기억비우기 } from '../auth/delegatedPat.js';
+import { 대신PAT오류 } from '../auth/delegatedPat.js';
 import { 인증등록 } from '../auth/gate.js';
 import { 세션등록 } from '../auth/session.js';
 import type { 부르기함수 } from '../bts/client.js';
@@ -40,7 +40,8 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
   let 내토큰 = '';
   const BTS받은것: { 열쇠: string; method: string; 경로: string; 몸?: unknown }[] = [];
   const 부르기: 부르기함수 = async (자리, method, 경로, 몸) => {
-    BTS받은것.push({ 열쇠: 'pat' in 자리 ? 자리.pat : `봇:${자리.봇}`, method, 경로, 몸 });
+    BTS받은것.push({ 열쇠: 'pat' in 자리 ? 자리.pat : '봇' in 자리 ? `봇:${자리.봇}` : `사람:${자리.userId}`, method, 경로, 몸 });
+    if (경로 === '/api/v1/issues/XMQ-503') throw new 대신PAT오류('userId xmc-sub-me 의 대신 PAT 를 못 받았다: HTTP 429');
     if (경로 === '/api/v1/issues/XMQ-404') return { status: 404, json: null };
     if (경로 === '/api/v1/issues/XMQ-0') return { status: 200, json: { data: null } };
     if (경로 === '/api/v1/issues/XMQ-13/comments') return { status: 500, json: null };
@@ -160,8 +161,6 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
   });
 
   beforeEach(() => {
-    대신PAT기억비우기();
-    auth.대신PAT요청.length = 0;
     BTS받은것.length = 0;
   });
 
@@ -217,7 +216,6 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
     expect((await 도구('run_result', { runId: 내실행 }, 일부)).글).toContain('FORBIDDEN — runs:read');
     expect((await 도구('bts_search', { projectId: 내프로젝트, query: '잠금' }, 일부)).글).toContain('FORBIDDEN');
     expect(BTS받은것).toHaveLength(0);
-    expect(auth.대신PAT요청).toHaveLength(0);
   });
 
   it('실행 결과 보기 — 통과는 수로만, 실패 · 미실행만 줄로 잘라서 싣고, 남의 실행은 FORBIDDEN, 없는 번호는 NOT_FOUND', async () => {
@@ -243,15 +241,15 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
     expect(하나.comments[0]).toEqual({ body: '댓글 6', createdAt: '2026-11-01T00:00:05Z' });
     expect(하나.comments[19]!.body).toBe(`${'마'.repeat(1000)}…(이하 생략)`);
     expect(BTS받은것.slice(0, 2)).toMatchObject([
-      { 열쇠: 'pat_dlg_xmc-sub-me', method: 'GET', 경로: '/api/v1/issues/XMQ-12' },
-      { 열쇠: 'pat_dlg_xmc-sub-me', method: 'GET', 경로: '/api/v1/issues/XMQ-12/comments' },
+      { 열쇠: '사람:xmc-sub-me', method: 'GET', 경로: '/api/v1/issues/XMQ-12' },
+      { 열쇠: '사람:xmc-sub-me', method: 'GET', 경로: '/api/v1/issues/XMQ-12/comments' },
     ]);
-    // 대신 PAT 는 Commander 비밀로 한 번 받아 기억한다
-    expect(auth.대신PAT요청).toEqual([{ 경로: '/api/v1/delegated-pats', basic: true, 몸: { userId: 'xmc-sub-me' } }]);
+    // 받은 access token 은 BTS 로 가지 않는다 — 부르기가 그 사람의 Auth id 로 대신 PAT 를 받는다(bts/client.test.ts)
+    expect(BTS받은것.some((b) => b.열쇠 === 내토큰)).toBe(false);
     expect((await 도구('bts_search', { projectId: 내프로젝트, issueKey: 'XMQ-13' })).json()).toMatchObject({ key: 'XMQ-12', comments: [], commentsError: 'HTTP 500' });
 
     const 찾음 = (await 도구('bts_search', { projectId: 내프로젝트, query: '잠금 "따옴표"', page: 1 })).json() as { items: unknown[]; truncated?: boolean };
-    expect(BTS받은것[4]).toMatchObject({ 열쇠: 'pat_dlg_xmc-sub-me', method: 'POST', 경로: '/api/v1/search/aql', 몸: { projectKey: 'XMQ', query: 'text ~ "잠금 \\"따옴표\\""', page: 1, size: 30 } });
+    expect(BTS받은것[4]).toMatchObject({ 열쇠: '사람:xmc-sub-me', method: 'POST', 경로: '/api/v1/search/aql', 몸: { projectKey: 'XMQ', query: 'text ~ "잠금 \\"따옴표\\""', page: 1, size: 30 } });
     expect(찾음.items).toHaveLength(30);
     expect(찾음.items[0]).toEqual({ key: 'XMQ-1', title: '로그인 잠금', status: 'closed' });
     expect(찾음.truncated).toBe(true);
@@ -264,6 +262,8 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
     expect((await 도구('bts_search', { projectId: 남프로젝트, query: '잠금' })).글).toContain('FORBIDDEN');
     // 없는 이슈 · 빈 이슈에는 댓글을 부르지 않는다
     expect(BTS받은것).toHaveLength(8);
+    // Auth 가 대신 PAT 를 안 주면 Bunker 주소를 의심하지 않게 갈라 준다
+    expect((await 도구('bts_search', { projectId: 내프로젝트, issueKey: 'XMQ-503' })).글).toBe('BTS_UNREACHABLE — Auth 에서 Issue Bunker 를 부를 대신 PAT 를 못 받았다');
   });
 
   it('세션 없는 창구라 GET · DELETE 는 405', async () => {

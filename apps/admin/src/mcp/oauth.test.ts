@@ -9,7 +9,8 @@ import { 가짜Auth띄우기, 검사자원, type 가짜Auth } from './authFixtur
 import mcpRoutes from './server.js';
 
 const 연결 = process.env.DATABASE_URL;
-const 계정들 = ['xmo-me', 'xmo-off', 'xmo-agent'];
+const 계정들 = ['xmo-me', 'xmo-off', 'xmo-agent', 'xmo-cut'];
+const 끊긴sid = 'xmo-sid-gone';
 const 자원정보 = 'resource_metadata="http://localhost:3000/.well-known/oauth-protected-resource/mcp", scope="commander"';
 
 describe.skipIf(연결 === undefined)('MCP 브라우저 로그인', () => {
@@ -33,6 +34,7 @@ describe.skipIf(연결 === undefined)('MCP 브라우저 로그인', () => {
     vi.stubEnv('PLATFORM_PUBLIC_URL', 'http://localhost:3000/');
     vi.stubEnv('AUTHORING_AGENT_USER', 'xmo-agent');
     await q('DELETE FROM app_user WHERE username = ANY($1)', [계정들]);
+    await q('DELETE FROM auth_revoked_sid WHERE sid = $1', [끊긴sid]);
     for (const 이름 of 계정들) {
       await q(
         `INSERT INTO app_user (username, display_name, password_hash, role, perm_dashboard, is_approved, must_change_password, auth_sub, is_active)
@@ -40,6 +42,9 @@ describe.skipIf(연결 === undefined)('MCP 브라우저 로그인', () => {
         [이름, `${이름}-sub`, 이름 !== 'xmo-off'],
       );
     }
+    // Auth 가 back-channel 로 알린 로그아웃 — 그 세션 하나(sid) · 그 사람의 세션 전부(sessions_valid_after 보다 앞에 낸 토큰)
+    await q('INSERT INTO auth_revoked_sid (sid) VALUES ($1)', [끊긴sid]);
+    await q(`UPDATE app_user SET sessions_valid_after = now() + interval '1 hour' WHERE username = 'xmo-cut'`);
     app = Fastify();
     세션등록(app, 'xmo-검사용-세션-열쇠-32글자를-넘긴다-넉넉히');
     인증등록(app);
@@ -51,6 +56,7 @@ describe.skipIf(연결 === undefined)('MCP 브라우저 로그인', () => {
     await app?.close();
     await auth?.닫기();
     await q('DELETE FROM app_user WHERE username = ANY($1)', [계정들]);
+    await q('DELETE FROM auth_revoked_sid WHERE sid = $1', [끊긴sid]);
     vi.unstubAllEnvs();
   });
 
@@ -64,9 +70,10 @@ describe.skipIf(연결 === undefined)('MCP 브라우저 로그인', () => {
     const 토큰 = await auth.토큰('xmo-me-sub');
     expect((await 부르기(토큰)).statusCode).toBe(200);
     expect((await 부르기(토큰, 'bearer')).statusCode).toBe(200);
+    expect((await 부르기(await auth.토큰('xmo-me-sub', { sid: 'xmo-sid-live' }))).statusCode).toBe(200);
   });
 
-  it('옛 PAT · 다른 창구 몫 토큰 · 서명 · 발급처 · 기간이 틀린 토큰 · 꺼진 계정 · 묶인 계정 없음 · 작성 에이전트 계정은 401 invalid_token', async () => {
+  it('옛 PAT · 다른 창구 몫 토큰 · 서명 · 발급처 · 기간이 틀린 토큰 · 꺼진 계정 · 묶인 계정 없음 · 작성 에이전트 계정 · Auth 가 끝낸 로그인은 401 invalid_token', async () => {
     const 틀린것 = [
       'pat_old00001',
       'mcj_없는열쇠',
@@ -78,6 +85,8 @@ describe.skipIf(연결 === undefined)('MCP 브라우저 로그인', () => {
       await auth.토큰('xmo-off-sub'),
       await auth.토큰('xmo-nobody-sub'),
       await auth.토큰('xmo-agent-sub'),
+      await auth.토큰('xmo-me-sub', { sid: 끊긴sid }),
+      await auth.토큰('xmo-cut-sub'),
     ];
     for (const 열쇠 of 틀린것) {
       const res = await 부르기(열쇠);
@@ -103,7 +112,7 @@ describe.skipIf(연결 === undefined)('MCP 브라우저 로그인', () => {
     }
   });
 
-  it('SSO 를 끈 설치는 자원 정보가 404 이고 401 머리는 Bearer 하나', async () => {
+  it('SSO 를 끈 설치는 자원 정보가 404 이고 401 머리에 로그인할 자리가 없다', async () => {
     for (const 칸 of ['AUTH_ISSUER', 'AUTH_CLIENT_ID', 'AUTH_CLIENT_SECRET']) vi.stubEnv(칸, '');
     try {
       expect((await app.inject({ method: 'GET', url: '/.well-known/oauth-protected-resource/mcp' })).statusCode).toBe(404);
