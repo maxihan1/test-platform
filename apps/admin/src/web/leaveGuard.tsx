@@ -21,15 +21,22 @@ let 한번통과 = false;
 let 이전 = window.location.hash;
 // 방문 기록에서 지금 선 칸. 쌓을 때 다음 번호를 주려고 모듈이 든다
 let 지금칸 = 0;
-// 주소의 조건 바뀜을 스스로 듣는 화면(마법사 · 결정 탭)이 몇 개 섰나. 같은 화면 안 이동이면 앱 뿌리가 다시 그리지도, 떠나기를 묻지도 않는다 —
-// 다시 그리면 쓰던 값을 잃고, 단계를 옮기는 것은 떠나는 일이 아니다
-let 스스로듣는 = 0;
+// 주소의 조건 바뀜을 스스로 듣는 화면(마법사 · 결정 탭)이 듣는 칸들. 그 칸만 바뀌는 같은 화면 안 이동이면 앱 뿌리가 다시 그리지도, 떠나기를 묻지도 않는다 —
+// 다시 그리면 쓰던 값을 잃고, 단계를 옮기는 것은 떠나는 일이 아니다. 다른 칸까지 바뀌면 그 칸에 걸린 떠나기 막기가 그대로 묻는다
+const 듣는칸들: (readonly string[])[] = [];
 
-export function 스스로듣기(): () => void {
-  스스로듣는++;
+export function 스스로듣기(칸들: readonly string[]): () => void {
+  듣는칸들.push(칸들);
   return () => {
-    스스로듣는--;
+    const 자리 = 듣는칸들.indexOf(칸들);
+    if (자리 !== -1) 듣는칸들.splice(자리, 1);
   };
+}
+
+function 바뀐칸들(앞: string, 뒤: string): string[] {
+  const a = new URLSearchParams(조건글(앞).slice(1));
+  const b = new URLSearchParams(조건글(뒤).slice(1));
+  return [...new Set([...a.keys(), ...b.keys()])].filter((칸) => a.get(칸) !== b.get(칸));
 }
 
 /** null 이면 다 푼다 — 로그아웃 · 세션 끊김 · 저장 뒤 자기 이동은 무엇도 막으면 안 된다 */
@@ -115,7 +122,7 @@ export function use주소조건(
   최신.current = { 쌓는칸, 듣기 };
   const 처음 = useRef(true);
   const 듣나 = 듣기 !== undefined;
-  useEffect(() => (듣나 ? 스스로듣기() : undefined), [듣나]);
+  useEffect(() => (듣나 ? 스스로듣기(최신.current.쌓는칸) : undefined), [듣나]);
   useEffect(() => {
     // 처음 그릴 때는 쌓지 않는다 — 막 열린 화면이 주소를 정리하는 것이지 사람이 연 것이 아니다
     let 쌓아도됨 = !처음.current;
@@ -136,7 +143,7 @@ export function use주소조건(
       if (route(지금).name !== route(경로).name) return;
       // 조건 붙은 주소 · 뒤로 가기는 되돌리지 않는다 — 고리를 눌러 온 것(「RUN N에서 통과」)이거나 기록의 한 칸이라 그 주소를 따른다.
       // 화면은 앱 뿌리가 새로 그리거나(use이동 의 조건번) `듣기` 가 고친다
-      if (칸번호() !== null || 조건글(지금) !== '') {
+      if (!이번이동이새칸 || 조건글(지금) !== '') {
         최신.current.듣기?.(주소조건());
         return;
       }
@@ -153,6 +160,13 @@ function 칸번호(): number | null {
   const s: unknown = window.history.state;
   return typeof s === 'object' && s !== null && 'navIndex' in s && typeof s.navIndex === 'number' ? s.navIndex : null;
 }
+
+// 이번 hashchange 가 새 칸(링크 · 메뉴)인지 기록 이동(뒤로 · 앞으로 · 덮기)인지. 모듈이 맨 먼저 듣고 정해 둬서 듣는 차례에 기대지 않는다 —
+// 앱 뿌리의 듣기가 먼저 서면 새 칸에도 칸 번호가 찍힌 뒤에 목록이 읽는다
+let 이번이동이새칸 = false;
+window.addEventListener('hashchange', () => {
+  이번이동이새칸 = 칸번호() === null;
+});
 
 function 칸적기(번호: number): void {
   const s: unknown = window.history.state;
@@ -175,7 +189,11 @@ export function use이동(): { hash: string; 조건번: number } {
       if (새것 === 이전) return;
       const 온칸 = 칸번호();
       // 단계 · 탭을 스스로 듣는 화면 안에서 뒤로 · 앞으로 가는 것은 떠나는 일이 아니다 — 막지도, 다시 그리지도 않는다
-      const 안에서 = 스스로듣는 > 0 && 온칸 !== null && JSON.stringify(route(새것)) === JSON.stringify(route(이전));
+      const 안에서 =
+        듣는칸들.length > 0 &&
+        온칸 !== null &&
+        JSON.stringify(route(새것)) === JSON.stringify(route(이전)) &&
+        바뀐칸들(이전, 새것).every((칸) => 듣는칸들.some((들) => 들.includes(칸)));
       const 묻는것 = 막는것들.at(-1);
       if ((막는쪽 !== null || 묻는것 !== undefined) && !한번통과 && !안에서) {
         if (온칸 === null) {

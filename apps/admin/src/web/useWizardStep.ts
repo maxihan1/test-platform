@@ -19,7 +19,7 @@ export function use단계주소(지금: number, 옮기기: (단계: number) => v
   const 처음 = useRef(true);
   const 듣고옴 = useRef(false);
 
-  useEffect(() => 스스로듣기(), []);
+  useEffect(() => 스스로듣기(['step']), []);
 
   useEffect(() => {
     const 경로 = window.location.hash.split('?')[0]!;

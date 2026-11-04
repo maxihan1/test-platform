@@ -56,6 +56,14 @@ function 뿌리({ 듣는다 = false }: { 듣는다?: boolean }) {
   );
 }
 
+// 실제 앱처럼 앱 뿌리의 듣기가 먼저 서고 목록은 로그인 확인 뒤에 뜬다
+function 늦은뿌리() {
+  const { hash, 조건번 } = use이동();
+  const [열림, set열림] = useState(false);
+  useEffect(() => set열림(true), []);
+  return 열림 && route(hash).name === 'runs' ? <목록 key={조건번} /> : null;
+}
+
 async function 간다(해시: string) {
   const 도착 = new Promise<void>((끝) => window.addEventListener('hashchange', () => 끝(), { once: true }));
   await act(async () => {
@@ -155,6 +163,15 @@ describe('한 번에 떠나는 곳', () => {
     expect(window.location.hash).toBe('#/start');
   });
 
+  it('앱 뿌리의 듣기가 먼저 서 있어도 메뉴를 다시 누르면(새 칸) 주소를 화면이 든 조건으로 되돌린다 — 새로고침이 조건을 잃지 않게', async () => {
+    await 간다('#/runs/fn?run=7');
+    render(<늦은뿌리 />);
+    expect(await screen.findByTestId('고른')).toBeTruthy();
+    await 간다('#/runs/fn');
+    expect(window.location.hash).toBe('#/runs/fn?run=7');
+    expect(고른()).toBe('7');
+  });
+
   it('메뉴를 다시 누르면(새 칸) 화면이 든 조건으로 주소를 되돌리는 것은 그대로다', async () => {
     await 간다('#/runs/fn?run=7');
     render(<뿌리 />);
@@ -187,6 +204,20 @@ describe('스스로 듣는 화면', () => {
     await 뒤로();
     expect(막는쪽).not.toHaveBeenCalled();
     expect(고른()).toBe('101');
+  });
+});
+
+describe('듣는 칸이 아닌 것까지 바뀌면 떠나기 막기가 그대로 묻는다', () => {
+  it('듣는 화면의 같은 화면 기록 이동이어도 조건(쪽)이 다르면 묻는다 — 쓰던 값이 말없이 사라지지 않게', async () => {
+    await 간다('#/runs/fn');
+    render(<뿌리 듣는다 />);
+    await 간다('#/runs/fn?page=2');
+    await 간다('#/runs/fn?page=3');
+    const 막는쪽 = vi.fn();
+    떠나기막기(막는쪽);
+    await 뒤로();
+    expect(막는쪽).toHaveBeenCalledExactlyOnceWith('#/runs/fn?page=2');
+    expect(window.location.hash).toBe('#/runs/fn?page=3');
   });
 });
 
