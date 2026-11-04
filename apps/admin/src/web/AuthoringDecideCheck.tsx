@@ -62,8 +62,8 @@ function 문장칸({
   );
 }
 
-/** 저장한 문장 한 줄과 [다시 수정] */
-function 저장한문장({ 글, on다시 }: { 글: string; on다시: () => void }) {
+/** 저장한 문장 한 줄과 [다시 수정] · (있으면) [선택 취소] — 고른 것을 다시 「안 고름」으로 돌리는 길이다 */
+function 저장한문장({ 글, on다시, on풀기 }: { 글: string; on다시: () => void; on풀기?: () => void }) {
   const t = use말();
   return (
     <div className="decide-saved">
@@ -71,6 +71,11 @@ function 저장한문장({ 글, on다시 }: { 글: string; on다시: () => void 
       <button className="btn ghost small" type="button" onClick={on다시}>
         {t('다시 수정')}
       </button>
+      {on풀기 === undefined ? null : (
+        <button className="btn ghost small" type="button" onClick={on풀기}>
+          {t('선택 취소')}
+        </button>
+      )}
     </div>
   );
 }
@@ -93,7 +98,8 @@ export function 의도확인({
 }) {
   const t = use말();
   const 나이글 = use나이글();
-  const 고를수있는 = 줄들.filter((x) => x.picks.includes('SAME'));
+  // 일괄 확정은 아직 아무것도 안 한 줄만 — 저장한 수정이나 쓰던 글을 덮으면 사람이 고친 문장이 말없이 사라진다
+  const 고를수있는 = 줄들.filter((x) => x.picks.includes('SAME') && !고른표.has(x.key) && !편집.has(x.key));
   const 확정 = (key: string) => {
     on편집(key, null);
     on고름(key, { pick: 'SAME' });
@@ -131,21 +137,26 @@ export function 의도확인({
             </div>
             {x.picks.length === 0 ? null : (
               <span className="chip-group decide-choices" role="group">
-                <button className="chip" type="button" aria-pressed={고른?.pick === 'SAME'} onClick={() => (고른?.pick === 'SAME' ? on고름(x.key, null) : 확정(x.key))}>
-                  {t('확정')}
-                </button>
-                <button
-                  className="chip"
-                  type="button"
-                  aria-pressed={적던 !== undefined || 저장함 !== null}
-                  onClick={() => {
-                    if (적던 !== undefined) return on편집(x.key, null);
-                    if (고른?.pick === 'SAME') on고름(x.key, null);
-                    on편집(x.key, 저장함 ?? x.text);
-                  }}
-                >
-                  {t('수정')}
-                </button>
+                {!x.picks.includes('SAME') ? null : (
+                  <button className="chip" type="button" aria-pressed={고른?.pick === 'SAME'} onClick={() => (고른?.pick === 'SAME' ? on고름(x.key, null) : 확정(x.key))}>
+                    {t('확정')}
+                  </button>
+                )}
+                {/* 칸을 열기만 해서는 고른 것이 안 바뀐다 — [저장]해야 확정이 수정으로 바뀌고, [취소]하면 앞의 고름이 그대로다 */}
+                {!x.picks.includes('EDIT') ? null : (
+                  <button
+                    className="chip"
+                    type="button"
+                    aria-pressed={적던 !== undefined || 저장함 !== null}
+                    onClick={() => {
+                      if (적던 !== undefined) return on편집(x.key, null);
+                      if (저장함 !== null) return on고름(x.key, null);
+                      on편집(x.key, x.text);
+                    }}
+                  >
+                    {t('수정')}
+                  </button>
+                )}
               </span>
             )}
             {적던 !== undefined ? (
@@ -212,12 +223,13 @@ export function 문구고르기({ x, 고른표, on고름, 편집, on편집 }: { 
         ),
       )}
       {!고르나 ? null : 저장함 !== null && 적던 === undefined ? (
-        <저장한문장 글={저장함} on다시={() => on편집(x.key, 저장함)} />
+        <저장한문장 글={저장함} on다시={() => on편집(x.key, 저장함)} on풀기={() => on고름(x.key, null)} />
       ) : (
         <문장칸
           이름={t('둘 다 아니면 직접 입력')}
           안내={t('맞는 요구사항을 적어 주세요')}
           글={적던 ?? ''}
+          on취소={저장함 === null ? undefined : () => on편집(x.key, null)}
           on글={(글) => {
             if (고른?.pick === 'PICK') on고름(x.key, null);
             on편집(x.key, 글 === '' ? null : 글);

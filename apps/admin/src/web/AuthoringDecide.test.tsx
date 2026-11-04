@@ -145,6 +145,34 @@ describe('결정 목록', () => {
     expect(screen.getByText('→ 큰 제목 「서비스 이용약관」')).toBeTruthy();
   });
 
+  it('[일괄 확정]은 저장한 수정을 덮지 않고, 확정한 줄에서 [수정]을 열었다 [취소]하면 확정이 그대로다', () => {
+    render(<AuthoringDecide service="DMW" 목록={목록([화면확인('DMW-REQ-349'), 화면확인('DMW-REQ-350'), 화면확인('DMW-REQ-351')])} envs={[]} 다시읽기={() => {}} />);
+    fireEvent.click(screen.getAllByRole('button', { name: '수정' })[0]!);
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: '새 문장' } });
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    fireEvent.click(screen.getByRole('button', { name: '일괄 확정' }));
+    expect(screen.getByText('→ 새 문장')).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: '확정' }).map((x) => x.getAttribute('aria-pressed'))).toEqual(['false', 'true', 'true']);
+    fireEvent.click(screen.getAllByRole('button', { name: '수정' })[1]!);
+    fireEvent.click(screen.getByRole('button', { name: '취소' }));
+    expect(screen.getAllByRole('button', { name: '확정' })[1]!.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(screen.getAllByRole('button', { name: '수정' })[0]!);
+    expect(screen.queryByText('→ 새 문장')).toBeNull();
+  });
+
+  it('저장한 직접 입력은 [선택 취소]로 안 고름이 되고, [다시 수정]을 연 뒤 [취소]하면 저장한 문장으로 돌아간다', () => {
+    render(<AuthoringDecide service="DMW" 목록={목록([문구()])} envs={[]} 다시읽기={() => {}} />);
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: '다' } });
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    fireEvent.click(screen.getByRole('button', { name: '다시 수정' }));
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: '라' } });
+    fireEvent.click(screen.getByRole('button', { name: '취소' }));
+    expect(screen.getByText('→ 다')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '선택 취소' }));
+    expect(screen.queryByText('→ 다')).toBeNull();
+    expect(적용().disabled).toBe(true);
+  });
+
   it('기획서끼리 다르면 맞는 쪽 하나만 체크되고, 아래 칸에 적으면 체크가 풀리고 저장해야 들어간다', () => {
     render(<AuthoringDecide service="DMW" 목록={목록([문구()])} envs={[]} 다시읽기={() => {}} />);
     const 칸들 = () => screen.getAllByRole('checkbox') as HTMLInputElement[];

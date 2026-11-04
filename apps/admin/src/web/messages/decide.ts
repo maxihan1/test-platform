@@ -103,6 +103,7 @@ export const 결정말: Record<string, string> = {
   'PRD 수정': 'Update PRD',
   기존: 'Current',
   '다시 수정': 'Edit again',
+  '선택 취소': 'Clear choice',
   '기획서에 없어서 화면을 보고 적은 요구 {수}건입니다. 이대로 확정할까요?':
     '{수} requirements were written from the screens because the spec did not cover them. Confirm them as they are?',
   '확인이 필요한 요구 {수}건입니다. 이대로 확정할까요?': '{수} requirements need checking. Confirm them as they are?',
