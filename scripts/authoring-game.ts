@@ -4,9 +4,10 @@ import { mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 
 import { 지도열쇠들, 케이스요소들 } from './authoring-check-game.js';
+import { 덮은틀읽기, 덮음인가 } from './authoring-crawl-rules.js';
 import { type 저장한창, type 창, 구역꼴, 목록지문, 창목록 } from './authoring-game-crawl.js';
 import { 부른다 } from './authoring-io.js';
-import { 계정섞였나 } from './authoring-reverse.js';
+import { 계정섞였나, 덮은파일이름 } from './authoring-reverse.js';
 import { type 상태, 상태인가 } from './authoring-screens-keep.js';
 import { type 화면통로, 새로쓰기, 안전히읽기, 폴더인가 } from './authoring-screens-keep-io.js';
 
@@ -113,6 +114,23 @@ function 폴더읽기(폴더: string): 훑은폴더 | null {
   }
 }
 
+/** 자료 폴더의 훑기 폴더(`game-crawl/<이름>/`) 수와 그 가운데 견주기를 마친 것 */
+function 훑은폴더들(자료: string): { 폴더수: number; 묶음: 훑은폴더[] } {
+  const 훑기 = join(자료, 게임자리.훑기);
+  const 폴더들 = 폴더인가(훑기) ? readdirSync(훑기).filter((이름) => /^[\w.-]+$/.test(이름) && 폴더인가(join(훑기, 이름))) : [];
+  return { 폴더수: 폴더들.length, 묶음: 폴더들.flatMap((이름) => 폴더읽기(join(훑기, 이름)) ?? []) };
+}
+
+/**
+ * 화면만 — 견주기를 마친 훑기 폴더의 창이 하나 이상이고 전부 테스트가 이미 확인한 창(에이전트가 넣은 covered.json 열쇠)이면 그 장수, 아니면 null.
+ * 웹 · 앱의 크롤모두덮음과 같은 셈이다 — 자식이 「PRD 에 없는 화면 0」으로 아무것도 안 썼을 때 올리기 거절 대신 실패로 닫는다 (작성 §3.6 「앱 · 게임 역방향」 · APP-F2-06)
+ */
+export function 게임모두덮음(자료: string): number | null {
+  const 덮은틀 = 덮은틀읽기(안전히읽기(자료, 덮은파일이름, 요소상한) ?? 'null');
+  const 키들 = new Set(훑은폴더들(자료).묶음.flatMap((x) => x.창들.map((c) => c.키)));
+  return 키들.size > 0 && [...키들].every((키) => 덮음인가(키, 덮은틀)) ? 키들.size : null;
+}
+
 /**
  * 훑기 폴더(`game-crawl/<이름>/`)마다 읽어 바뀐 창 · 새 창만 올린다. 같음은 안 올린다 — 훑은 때를 둬야 30일 그물이 돈다.
  * 다만 같음 창에서 서버가 모르는 창으로 가는 연결이 생겼으면(지난 훑기가 상한에 걸려 못 연 창) 서버의 기록 · 지문 · 훑은 때를 그대로 둔 채 연결만 보태 다시 올린다.
@@ -120,10 +138,8 @@ function 폴더읽기(폴더: string): 훑은폴더 | null {
  * 테스트 계정 비밀번호가 든 기록은 하나도 올리지 않는다
  */
 async function 창올리기(통로: 화면통로, 자료: string, 비밀: readonly string[], 지금: Date): Promise<string> {
-  const 훑기 = join(자료, 게임자리.훑기);
-  const 폴더들 = 폴더인가(훑기) ? readdirSync(훑기).filter((이름) => /^[\w.-]+$/.test(이름) && 폴더인가(join(훑기, 이름))) : [];
-  const 묶음 = 폴더들.flatMap((이름) => 폴더읽기(join(훑기, 이름)) ?? []);
-  if (묶음.length === 0) return `게임 창 기록 저장: 견주기를 마친 훑기 폴더가 없어 건너뜀(폴더 ${폴더들.length}개)`;
+  const { 폴더수, 묶음 } = 훑은폴더들(자료);
+  if (묶음.length === 0) return `게임 창 기록 저장: 견주기를 마친 훑기 폴더가 없어 건너뜀(폴더 ${폴더수}개)`;
   const 길 = `/authoring/requests/${통로.번호}/screens`;
   try {
     const 받음 = await 부른다(통로.주소기지, 통로.토큰, 길);

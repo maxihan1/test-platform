@@ -12,7 +12,7 @@ import { type 이어작성입력, 이어작성절 } from './authoring-continue.j
 import { type 반영입력, 반영요청인가, 반영절 } from './authoring-apply.js';
 import type { 표준기획서입력 } from './authoring-prd-io.js';
 import { 역방향절 } from './authoring-reverse.js';
-import { 앱역방향절 } from './authoring-reverse-app.js';
+import { 게임역방향절, 앱역방향절 } from './authoring-reverse-app.js';
 import { API절 } from './authoring-api.js';
 import { 지도자리 } from './authoring-screens-keep-io.js';
 
@@ -28,7 +28,7 @@ export function 줄프롬프트(
   서비스: string,
   계획: 읽을자료[],
   대상?: { 폴더: string; 서버들: { env: string; baseUrl: string }[] },
-  역방향?: { 화면만: boolean; 산출물폴더: string; 제외?: readonly string[]; 앱?: boolean },
+  역방향?: { 화면만: boolean; 산출물폴더: string; 제외?: readonly string[]; 앱?: boolean; 게임?: boolean },
   이어하기?: { 번호: number; 이유: string | null; 까닭: string | null },
   원장?: 원장입력,
   이어작성?: 이어작성입력,
@@ -71,8 +71,8 @@ export function 줄프롬프트(
     '',
     // 화면만 · 반영 · 바뀐 API 만 다시 작성은 기획서가 없다 — 빈 기획서 절을 싣으면 자식이 「기획서가 비었다」로 멈춘다
     ...(계획.length > 0 ? 자료목록글(계획) : 역방향?.화면만 === true || 반영요청인가(것) || 것.api?.반영 != null ? [] : ['--- 기획서 ---', 것.specText ?? '']),
-    // Android 앱은 웹 크롤러 대신 appium-cli crawl 로 훑는다 (도메인/작성 §3.6 「앱 · 게임 역방향」)
-    ...(역방향 === undefined ? [] : (역방향.앱 === true ? 앱역방향절 : 역방향절)({ ...역방향, 요청번호: 자료출처(것) })),
+    // Android 앱은 웹 크롤러 대신 appium-cli crawl, 게임은 창 훑기로 훑는다 (도메인/작성 §3.6 「앱 · 게임 역방향」)
+    ...(역방향 === undefined ? [] : (역방향.앱 === true ? 앱역방향절 : 역방향.게임 === true ? 게임역방향절 : 역방향절)({ ...역방향, 요청번호: 자료출처(것) })),
     ...(이어하기 === undefined ? [] : 이어하기절(이어하기, 메모경로)),
     ...(원장 === undefined ? [] : 원장절(원장, 서비스, 대상?.폴더)),
     ...(표준기획서 === undefined ? [] : 표준기획서절(표준기획서)),

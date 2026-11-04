@@ -1,10 +1,15 @@
-// 자식이 산출물 폴더에 쓴 파일을 root 가 안전하게 읽는다 — 차이 목록 · 표준 기획서 결과
+// 자식이 산출물 폴더에 쓴 파일을 root 가 안전하게 읽는다 — 차이 목록 · 표준 기획서 결과 · 화면만이 찾은 화면
 // authoring-upload.ts 가 300줄에 닿아 뗐다 (2026-09-30)
 
 import { lstatSync, readFileSync, realpathSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { 사본 } from './authoring-copy.js';
+import { 게임모두덮음 } from './authoring-game.js';
+import { 크롤모두덮음 } from './authoring-screens-keep-io.js';
+
+/** 화면만인데 자식이 아무것도 안 썼을 때 — 찾은 화면이 전부 테스트가 이미 확인한 화면이면 그 장수. 웹 · 앱은 크롤 목록, 게임은 훑기 폴더의 창으로 센다 (작성 §3.6 「앱 · 게임 역방향」) */
+export const 화면만다덮음 = (자료: string, 게임: boolean): number | null => (게임 ? 게임모두덮음 : 크롤모두덮음)(자료);
 
 /**
  * 자식이 `<자료>/out/` 에 쓴 산출물 하나를 읽는다. 없으면 `몸: null`.
