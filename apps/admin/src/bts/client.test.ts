@@ -38,6 +38,14 @@ describe('BTS 를 부를 열쇠 고르기', () => {
     expect(받은머리).toEqual(['Bearer pat_qahub-ai', 'Bearer pat_qahub-ai']);
   });
 
+  it('사람(userId)은 주소를 확인한 뒤 그 사람의 대신 PAT 로 바꿔 싣는다 — MCP 가 받은 access token 을 넘기지 않는다', async () => {
+    await BTS부르기({ baseUrl: 'https://bts.example.com', userId: 'auth-sub-1' }, 'GET', '/api/v1/issues/DM-1');
+    expect(vi.mocked(대신PAT).mock.calls.map(([누구]) => 누구)).toEqual([{ userId: 'auth-sub-1' }]);
+    expect(받은머리).toEqual(['Bearer pat_auth-sub-1']);
+    await expect(BTS부르기({ baseUrl: 'https://evil.example.com', userId: 'auth-sub-1' }, 'GET', '/x')).rejects.toThrow('BTS_URLS 에 없습니다');
+    expect(대신PAT).toHaveBeenCalledTimes(1);
+  });
+
   it('받은 토큰(pat)은 그대로 싣고 Auth 에 묻지 않는다', async () => {
     await BTS부르기({ baseUrl: 'https://bts.example.com', pat: 'pat_person' }, 'GET', '/api/v1/webhooks');
     expect(받은머리).toEqual(['Bearer pat_person']);

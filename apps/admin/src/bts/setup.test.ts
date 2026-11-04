@@ -49,7 +49,7 @@ describe.skipIf(연결 === undefined)('BTS 자동 설정', () => {
   const 누르기 = () => app.inject({ method: 'POST', url: `/api/settings/projects/${프로젝트}/bts/setup` });
 
   const 가짜BTS = async (자리: BTS자리, method: string, 경로: string, 몸?: unknown): Promise<BTS응답> => {
-    부른것.push({ method, 경로, 열쇠: 'pat' in 자리 ? 자리.pat : `봇:${자리.봇}`, 몸 });
+    부른것.push({ method, 경로, 열쇠: 'pat' in 자리 ? 자리.pat : '봇' in 자리 ? `봇:${자리.봇}` : `사람:${자리.userId}`, 몸 });
     if (경로.startsWith('/api/v1/webhooks')) {
       if (웹훅답 !== 200) return { status: 웹훅답, json: null };
       if (method === 'GET') return { status: 200, json: 웹훅들 };

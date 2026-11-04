@@ -35,7 +35,7 @@ describe.skipIf(연결 === undefined)('BTS 가 부르는 두 문', () => {
   const 부른것: string[] = [];
   let 깨짐 = false;
   const 부르기 = async (자리: BTS자리, method: string, 경로: string) => {
-    부른것.push(`${'pat' in 자리 ? 자리.pat : 자리.봇} ${method} ${경로}`);
+    부른것.push(`${'pat' in 자리 ? 자리.pat : '봇' in 자리 ? 자리.봇 : 자리.userId} ${method} ${경로}`);
     if (깨짐) return { status: 502, json: null };
     return { status: 200, json: { data: { key: 'XBW-7', currentStateKey: 'closed', resolution: { name: '흔들림' }, typeKey: 'bug', summary: '요약' } } };
   };

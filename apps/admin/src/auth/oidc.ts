@@ -1,6 +1,6 @@
-// maxihan 계정(Auth_platform, OIDC Provider)과 주고받는 곳. openid-client · jose 는 이 파일만 안다 (SPEC 도메인/인증 §3.5 「maxihan 계정」)
+// maxihan 계정(Auth_platform, OIDC Provider)과 주고받는 곳. openid-client · jose 는 이 파일만 안다 — 검사가 가짜 Auth 토큰을 서명하는 mcp/authFixture.ts 는 빼고 (SPEC 도메인/인증 §3.5 「maxihan 계정」)
 
-import { createRemoteJWKSet, jwtVerify } from 'jose';
+import { createRemoteJWKSet, errors, jwtVerify } from 'jose';
 import * as oidc from 'openid-client';
 
 export interface SSO설정 {
@@ -113,21 +113,24 @@ export type 로그아웃알림 = { sid: string } | { sub: string; iat: number };
 
 const 로그아웃사건 = 'http://schemas.openid.net/event/backchannel-logout';
 
-// 열쇠 묶음은 issuer 마다 하나다 — jose 가 받아 둔 열쇠를 쓰다가 모르는 kid 가 오면 다시 받는다
+// 열쇠 묶음은 issuer 마다 하나다 — jose 가 받아 둔 열쇠를 쓰다가 모르는 kid 가 오면 다시 받는다(30초에 한 번까지)
 const 열쇠묶음 = new Map<string, ReturnType<typeof createRemoteJWKSet>>();
-
-/**
- * Auth_platform 이 back-channel 로 보낸 logout_token 을 확인한다 (OIDC Back-Channel Logout 1.0 · Auth_platform S24 plan §1). 틀리면 던진다.
- * typ 을 `logout+jwt` 로 못박아야 id token · access token 을 logout_token 으로 돌려쓰지 못한다
- */
-export async function 로그아웃토큰확인(s: SSO설정, token: string): Promise<로그아웃알림> {
+function 열쇠묶음읽기(s: SSO설정): ReturnType<typeof createRemoteJWKSet> {
   const 주소 = `${s.issuer}/oauth2/jwks`;
   let 열쇠 = 열쇠묶음.get(주소);
   if (열쇠 === undefined) {
     열쇠 = createRemoteJWKSet(new URL(주소));
     열쇠묶음.set(주소, 열쇠);
   }
-  const { payload } = await jwtVerify(token, 열쇠, {
+  return 열쇠;
+}
+
+/**
+ * Auth_platform 이 back-channel 로 보낸 logout_token 을 확인한다 (OIDC Back-Channel Logout 1.0 · Auth_platform S24 plan §1). 틀리면 던진다.
+ * typ 을 `logout+jwt` 로 못박아야 id token · access token 을 logout_token 으로 돌려쓰지 못한다
+ */
+export async function 로그아웃토큰확인(s: SSO설정, token: string): Promise<로그아웃알림> {
+  const { payload } = await jwtVerify(token, 열쇠묶음읽기(s), {
     issuer: s.issuer,
     audience: s.clientId,
     typ: 'logout+jwt',
@@ -143,4 +146,36 @@ export async function 로그아웃토큰확인(s: SSO설정, token: string): Pro
   if (typeof payload.sid === 'string' && payload.sid !== '') return { sid: payload.sid };
   if (typeof payload.sub === 'string' && payload.sub !== '' && payload.iat !== undefined) return { sub: payload.sub, iat: payload.iat };
   throw new Error('logout_token 에 sid · sub 가 둘 다 없다');
+}
+
+/** /mcp 가 받는 access token 의 aud — Auth 설정 `auth.mcp.resource` 와 글자까지 같아야 한다 (도메인/BTS §7 「MCP」 · Auth S28) */
+export const MCP자원 = (s: SSO설정): string => `${s.publicUrl}/mcp`;
+
+/** sid 는 브라우저 로그인 때의 Auth 세션 — back-channel 로그아웃이 그 세션을 끝내면 이 토큰도 막는다(Auth 가 VISION 때문에 access token 에도 싣는다 · S26) */
+export type MCP토큰답 = { sub: string; sid?: string; iat?: number } | '틀림' | '닿지못함';
+
+// 토큰 탓이 아니라 열쇠 묶음을 못 받은 탓인 jose 오류 — 시간 끝 · 200 아닌 답 · 깨진 묶음. fetch 가 던진 것(닿지 못함)은 JOSEError 가 아니다
+const 닿지못한오류 = new Set(['ERR_JOSE_GENERIC', 'ERR_JWKS_TIMEOUT', 'ERR_JWKS_INVALID']);
+
+/**
+ * Claude 가 브라우저 로그인으로 받아 온 access token(JWT)을 확인한다 (MCP 인가 2025-11-25 · Auth_platform S28).
+ * **aud 가 이 창구여야 한다** — Commander 로그인(aud test-platform) · VISION(aud devicefarm) token 은 같은 Auth 가 같은 열쇠로 서명해 aud 로만 갈린다.
+ * 맞으면 그 사람의 Auth id(sub = app_user.auth_sub). 열쇠 묶음을 못 받으면 '닿지못함' — 401 을 주면 Claude 가 로그인 창을 다시 띄운다
+ */
+export async function MCP토큰확인(s: SSO설정, token: string): Promise<MCP토큰답> {
+  try {
+    const { payload } = await jwtVerify(token, 열쇠묶음읽기(s), {
+      issuer: s.issuer,
+      audience: MCP자원(s),
+      algorithms: ['RS256'],
+      requiredClaims: ['exp', 'sub'],
+      clockTolerance: 30,
+    });
+    if (typeof payload.sub !== 'string' || payload.sub === '') return '틀림';
+    return { sub: payload.sub, ...(typeof payload.sid === 'string' && payload.sid !== '' && { sid: payload.sid }), ...(payload.iat !== undefined && { iat: payload.iat }) };
+  } catch (err) {
+    if (err instanceof errors.JOSEError && !닿지못한오류.has(err.code)) return '틀림';
+    console.error(`[mcp] Auth 열쇠 묶음(${s.issuer}/oauth2/jwks)을 받지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+    return '닿지못함';
+  }
 }

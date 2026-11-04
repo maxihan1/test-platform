@@ -26,7 +26,7 @@ describe.skipIf(연결 === undefined)('MCP 일마다 열쇠 mcj_', () => {
   let 남실행 = 0;
   const BTS받은것: { 열쇠: string; 경로: string }[] = [];
   const 부르기: 부르기함수 = async (자리, _method, 경로) => {
-    BTS받은것.push({ 열쇠: 'pat' in 자리 ? 자리.pat : `봇:${자리.봇}`, 경로 });
+    BTS받은것.push({ 열쇠: 'pat' in 자리 ? 자리.pat : '봇' in 자리 ? `봇:${자리.봇}` : `사람:${자리.userId}`, 경로 });
     if (경로 === '/api/v1/issues/XMJQ-401') return { status: 401, json: null };
     return { status: 200, json: { data: { key: 'XMJQ-1' } } };
   };
