@@ -50,6 +50,8 @@ export function ScenarioRunList({ service, 판정하기 }: { service: string; �
     ...(q === '' ? {} : { q }),
     ...(state === undefined ? {} : { state }),
     ...(page === 1 ? {} : { page: String(page) }),
+    // 고른 실행은 띠를 따라가지 않는다 — E2E 는 애플리케이션 여럿을 섞어 실행 번호로 하나를 못 고른다. 링크가 애플리케이션을 들고 간다 (공통/5-화면공통 §8 「링크에 애플리케이션이 담긴다」)
+    ...(service === '' ? {} : { service }),
   }, { 쌓는칸: ['run'] });
 
   const runs = useAsync<목록답>(

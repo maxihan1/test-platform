@@ -96,7 +96,8 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
   const [할일만, set할일만] = useState(() => 주소조건().get('todo') === '1');
   // 결정 필요 탭도 주소에 남는다 — 탭을 옮길 때마다 기록을 쌓아 뒤로 가기가 앞 탭으로 간다. 이름은 todo 와 겹치지 않게 decide
   const [결정탭, set결정탭] = useState<탭 | null>(() => 탭읽기(주소조건().get('decide')));
-  use주소조건('#/authoring', { ...(할일만 ? { todo: '1' } : {}), ...(할일만 && 결정탭 !== null ? { decide: 결정탭 } : {}), ...(page === 1 ? {} : { page: String(page) }) }, {
+  // 애플리케이션도 남긴다 — 링크를 받은 사람도 이 애플리케이션의 목록을 연다 (공통/5-화면공통 §8 「링크에 애플리케이션이 담긴다」)
+  use주소조건('#/authoring', { ...(할일만 ? { todo: '1' } : {}), ...(할일만 && 결정탭 !== null ? { decide: 결정탭 } : {}), ...(page === 1 ? {} : { page: String(page) }), ...(service === '' ? {} : { service }) }, {
     쌓는칸: ['decide'],
     // 뒤로 가기에 화면을 다시 그리지 않는다 — 탭마다 고르던 것과 고치던 글을 잃지 않게
     듣기: (조건) => {

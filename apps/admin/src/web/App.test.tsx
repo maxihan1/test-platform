@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 앱 뿌리를 통째로 그려 방문 기록을 본다 — 세션 끊김 뒤 다시 로그인 · 권한 없는 자리 · 로그아웃 · 부하 마법사 저장 뒤 뒤로 가기 (WEB-F8-01 검토 12 · 13)
+// 앱 뿌리를 통째로 그려 방문 기록을 본다 — 세션 끊김 뒤 다시 로그인 · 권한 없는 자리 · 로그아웃 · 부하 마법사 저장 뒤 뒤로 가기 (WEB-F8-01 검토 12 · 13) · 링크의 애플리케이션 (WEB-F8-02)
 // 서버는 fetch 를 가로채 가짜로 답한다. 화면이 부르는 나머지 요청은 답이 오지 않는다(불러오는 중)
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -115,7 +115,8 @@ describe('앱 뿌리의 방문 기록 (WEB-F8-01)', () => {
     await 간다('#/runs/fn');
     const 길이 = window.history.length;
     render(<앱뿌리 />);
-    await waitFor(() => expect(window.location.hash).toBe('#/cases'));
+    // 집은 케이스 목록이고, 목록이 고른 애플리케이션을 주소에 단다 (WEB-F8-02)
+    await waitFor(() => expect(window.location.hash).toBe('#/cases/fn?service=ZAP'));
     expect(window.history.length).toBe(길이);
 
     await 뒤로();
@@ -149,5 +150,86 @@ describe('앱 뿌리의 방문 기록 (WEB-F8-01)', () => {
     fireEvent.click(screen.getByRole('button', { name: '임시 저장' }));
     await waitFor(() => expect(부름.some((it) => it.method === 'PUT' && it.url === '/api/perf/scenarios/42')).toBe(true));
     expect(부름.filter((it) => it.method === 'POST' && it.url === '/api/perf/scenarios')).toHaveLength(1);
+  });
+});
+
+describe('링크에 애플리케이션이 담긴다 (WEB-F8-02)', () => {
+  const 둘: User = {
+    ...모두쓴다,
+    services: [...모두쓴다.services, { ...모두쓴다.services[0]!, id: 8, prefix: 'ZBQ', name: 'ZBQ 웹' }],
+  };
+  const 지금고른 = (이름: RegExp) => screen.getByRole('button', { name: 이름 }).getAttribute('aria-current');
+  const 안내 = '링크의 애플리케이션은 볼 권한이 없어 지금 고른 애플리케이션으로 엽니다';
+
+  beforeEach(() => {
+    세.나 = 둘;
+    localStorage.setItem('고른서비스', 'ZAP');
+  });
+
+  it('다른 애플리케이션의 케이스 링크를 열면 그 애플리케이션으로 바꿔 연다 — 「케이스 없음」이 뜨지 않게', async () => {
+    await 간다('#/cases/fn?q=ZBQ-FN-001&case=ZBQ-FN-001&service=ZBQ');
+    render(<앱뿌리 />);
+    await waitFor(() => expect(지금고른(/ZBQ 웹/)).toBe('page'));
+    expect(localStorage.getItem('고른서비스')).toBe('ZBQ');
+    expect(screen.queryByText(안내)).toBeNull();
+  });
+
+  it('대시보드가 써 온 번호 꼴도 받는다', async () => {
+    await 간다('#/runs/e2e?service=8');
+    render(<앱뿌리 />);
+    await waitFor(() => expect(지금고른(/ZBQ 웹/)).toBe('page'));
+  });
+
+  it('볼 수 없는 애플리케이션이면 지금 고른 것 그대로 열고 안내 한 줄을 띄우며, 목록이 주소를 지금 애플리케이션으로 고친다', async () => {
+    await 간다('#/cases/fn?service=NOPE');
+    render(<앱뿌리 />);
+    expect((await screen.findByText(안내)).getAttribute('role')).toBe('status');
+    expect(지금고른(/ZAP 웹/)).toBe('page');
+    await waitFor(() => expect(window.location.hash).toBe('#/cases/fn?service=ZAP'));
+  });
+
+  it('왼쪽 줄에서 애플리케이션을 바꾸면 주소의 service= 칸도 고친다 — 새로고침이 앞 애플리케이션으로 되돌리지 않게', async () => {
+    await 간다('#/scenarios?service=ZAP');
+    render(<앱뿌리 />);
+    fireEvent.click(await screen.findByRole('button', { name: /ZBQ 웹/ }));
+    await waitFor(() => expect(window.location.hash).toBe('#/scenarios?service=ZBQ'));
+    expect(지금고른(/ZBQ 웹/)).toBe('page');
+  });
+
+  it('자리 없이 연 설정은 연 애플리케이션 자리로 기록을 덮어 채우고, 왼쪽 줄에서 바꾸면 그 자리도 따라간다', async () => {
+    await 간다('#/before');
+    await 간다('#/settings');
+    const 길이 = window.history.length;
+    render(<앱뿌리 />);
+    await waitFor(() => expect(window.location.hash).toBe('#/settings/ZAP'));
+    expect(window.history.length).toBe(길이);
+
+    fireEvent.click(screen.getByRole('button', { name: /ZBQ 웹/ }));
+    await waitFor(() => expect(window.location.hash).toBe('#/settings/ZBQ'));
+    expect(window.history.length).toBe(길이);
+    await 뒤로();
+    expect(window.location.hash).toBe('#/before');
+  });
+
+  it('지금 애플리케이션에서도 그 화면을 못 보면 집으로 옮길 뿐 안내하지 않는다 — 「지금 고른 애플리케이션으로 엽니다」가 틀린 말이 된다', async () => {
+    세.나 = { ...둘, services: 둘.services.map((it) => ({ ...it, permissions: { ...it.permissions, cases: 'none' as const } })) };
+    await 간다('#/cases/fn?service=NOPE');
+    render(<앱뿌리 />);
+    await waitFor(() => expect(window.location.hash).toBe('#/dashboard'));
+    expect(screen.queryByText(안내)).toBeNull();
+  });
+
+  it('로그아웃하면 떠 있던 안내 한 줄을 거둔다 — 다음 로그인에 옛 안내가 뜨지 않게', async () => {
+    await 간다('#/cases/fn?service=NOPE');
+    render(<앱뿌리 />);
+    await screen.findByText(안내);
+    fireEvent.click(screen.getByRole('button', { name: /앱검사|내 메뉴/ }));
+    fireEvent.click(await screen.findByRole('button', { name: '로그아웃' }));
+    await screen.findByLabelText('아이디');
+    fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'zap' } });
+    fireEvent.change(screen.getByLabelText('비밀번호'), { target: { value: 'x' } });
+    fireEvent.submit(screen.getByRole('button', { name: '로그인' }));
+    await screen.findByRole('button', { name: /ZAP 웹/ });
+    expect(screen.queryByText(안내)).toBeNull();
   });
 });

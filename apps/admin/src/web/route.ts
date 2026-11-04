@@ -1,8 +1,8 @@
 // 주소창의 해시를 화면 한 개로 푼다. 서버 라우팅을 건드리지 않으려고 해시를 쓴다
 // app.ts의 정적 서빙은 Phase 0가 고정한 공용 골격이라 history API용 되돌림 규칙을 넣을 수 없다
 
-import type { ServiceRow, User } from './api.js';
-import { 기능보나, type 기능 } from './role.js';
+import type { User } from './api.js';
+import { 기능보나, 케이스서비스, type 기능 } from './role.js';
 
 // 사이드바 하위 메뉴(UI 테스트 · 기능 테스트). 종류 없는 옛 주소는 기능이다 — 지금 케이스가 전부 기능이라서 (화면공통 §8 · PR #132)
 export type 케이스종류 = 'UI' | 'FN';
@@ -62,34 +62,22 @@ export function 실행기록주소(tcId: string, runId: number, 카드열기 = f
 
 /**
  * 케이스 목록에서 그 케이스 상세를 편 주소 (CaseListFilter 의 `case` 조건).
- * 그 번호로 찾아(`q`) 연다 — 목록은 받은 쪽 안에서만 연 줄을 찾아 첫 쪽(50건) 밖 케이스는 칸이 안 열렸다
+ * 그 번호로 찾아(`q`) 연다 — 목록은 받은 쪽 안에서만 연 줄을 찾아 첫 쪽(50건) 밖 케이스는 칸이 안 열렸다.
+ * 번호의 접두사를 `service=` 로 단다 — 다른 애플리케이션을 고른 사람이 열어도 그 케이스의 애플리케이션으로 연다 (공통/5-화면공통 §8 「링크에 애플리케이션이 담긴다」)
  */
 export const 케이스주소 = (tcId: string) => {
   const 번호 = encodeURIComponent(tcId);
-  return `#/cases/${UI케이스인가(tcId) ? 'ui' : 'fn'}?q=${번호}&case=${번호}`;
+  const 접두사 = 케이스서비스(tcId);
+  const 앱 = 접두사 === null ? '' : '&service=' + encodeURIComponent(접두사);
+  return `#/cases/${UI케이스인가(tcId) ? 'ui' : 'fn'}?q=${번호}&case=${번호}${앱}`;
 };
 
 /** 「PRD 관리」의 그 항목 주소. 거기서 묶음을 펴고 그 줄로 간다 (도메인/카탈로그 §8.1 「맥락」) */
 export const PRD항목주소 = (reqId: string) => `#/prd/${encodeURIComponent(reqId)}`;
 
 /**
- * 요구 번호 주소(`#/prd/<접두사>-REQ-<3자리>`)가 가리키는 배정 서비스. 그 밖의 주소 · 배정에 없는 접두사는 null — 띠를 그대로 둔다.
- * 실패 카드는 다른 서비스 실행에서도 요구 고리를 건다. 띠로 열면 PRD 관리가 띠 서비스의 판에서 그 번호를 찾는다
- */
-export function 주소의서비스(주소: string, 배정: ServiceRow[]): string | null {
-  const 지금 = route(주소);
-  const 접두사 =
-    지금.name === 'prd' && 지금.reqId !== undefined
-      ? 지금.reqId.slice(0, 지금.reqId.indexOf('-REQ-'))
-      : 지금.name === 'authoring'
-        ? new URLSearchParams(주소.split('?')[1] ?? '').get('service')
-        : null;
-  return 접두사 !== null && 배정.some((service) => service.prefix === 접두사) ? 접두사 : null;
-}
-
-/**
  * 그 애플리케이션의 「결정 필요」 주소. 실패 카드는 다른 애플리케이션 실행에서도 판정하러 보낸다 — 띠로 열면 띠 애플리케이션의 결정 목록이라 그 실패가 없다.
- * 띠는 위 주소의서비스 가 맞추고, 목록은 열자마자 주소 조건을 todo 만 남겨 다시 쓴다
+ * 띠는 routeService.ts 주소의서비스 가 맞추고, 목록은 그 칸을 지금 애플리케이션으로 남긴다
  */
 export const 결정필요주소 = (접두사: string) => `#/authoring?todo=1&service=${encodeURIComponent(접두사)}`;
 
@@ -214,7 +202,7 @@ export function route(hash: string): Route {
  * 한 건 주소(실행·항목·실행 설정·작성 상세)는 그 건의 서비스가 따로 있어 화면이 판정한다 —
  * 띠로 가르면 B 서비스 실행 알림을 A 를 고른 채 열 때 판정 전에 집으로 튕긴다. 서버가 다시 막는다
  */
-const 기능자리: Partial<Record<Route['name'], 기능>> = {
+export const 기능자리: Partial<Record<Route['name'], 기능>> = {
   cases: 'cases',
   // 표준 기획서는 작성 칸을 쓴다 (화면공통 §8 · 도메인/작성 §3.6 「★ 표준 기획서」)
   prd: 'authoring',

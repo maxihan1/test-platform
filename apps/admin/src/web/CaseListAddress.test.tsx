@@ -89,9 +89,9 @@ describe('케이스 목록 조건을 주소에서 읽는다', () => {
 });
 
 describe('케이스 목록 조건을 주소에 쓴다', () => {
-  it('조건 없이 들어온 주소는 건드리지 않는다', async () => {
+  it('조건 없이 들어온 주소에는 애플리케이션만 단다 — 링크를 받은 사람도 같은 애플리케이션으로 연다 (WEB-F8-02)', async () => {
     await 그리기('#/cases');
-    expect(window.location.hash).toBe('#/cases');
+    expect(window.location.hash).toBe('#/cases/fn?service=ZCA');
   });
 
   it('필터 판 · 쪽을 바꾸면 방문 기록을 쌓지 않고 지금 주소를 고치고, 조건 초기화면 조건이 빠진다', async () => {
@@ -99,14 +99,14 @@ describe('케이스 목록 조건을 주소에 쓴다', () => {
     const 길이 = window.history.length;
 
     판칩누르기('디바이스', '모바일');
-    expect(window.location.hash).toBe('#/cases/fn?dev=mobile');
+    expect(window.location.hash).toBe('#/cases/fn?dev=mobile&service=ZCA');
     판닫기();
     fireEvent.click(await screen.findByRole('button', { name: '다음' }));
-    expect(window.location.hash).toBe('#/cases/fn?page=2&dev=mobile');
+    expect(window.location.hash).toBe('#/cases/fn?page=2&dev=mobile&service=ZCA');
     expect(window.history.length).toBe(길이);
 
     fireEvent.click(screen.getByRole('button', { name: '조건 초기화' }));
-    expect(window.location.hash).toBe('#/cases/fn');
+    expect(window.location.hash).toBe('#/cases/fn?service=ZCA');
   });
 
   it('이름을 눌러 상세 칸을 열면 case= 가 붙고 닫으면 빠진다 — 열고 닫을 때마다 방문 기록이 한 칸씩 쌓인다', async () => {
@@ -114,9 +114,9 @@ describe('케이스 목록 조건을 주소에 쓴다', () => {
     const 길이 = window.history.length;
 
     fireEvent.click(screen.getByRole('button', { name: 'ZCA-FN-001 케이스' }));
-    expect(window.location.hash).toBe('#/cases/fn?dev=mobile&case=ZCA-FN-001');
+    expect(window.location.hash).toBe('#/cases/fn?dev=mobile&case=ZCA-FN-001&service=ZCA');
     fireEvent.click(screen.getByRole('button', { name: '상세 닫기' }));
-    expect(window.location.hash).toBe('#/cases/fn?dev=mobile');
+    expect(window.location.hash).toBe('#/cases/fn?dev=mobile&service=ZCA');
     expect(window.history.length).toBe(길이 + 2);
   });
 
@@ -127,7 +127,7 @@ describe('케이스 목록 조건을 주소에 쓴다', () => {
 
     window.history.back();
     await waitFor(() => expect(document.getElementById('case-pane')).toBeNull());
-    expect(window.location.hash).toBe('#/cases/fn?dev=mobile');
+    expect(window.location.hash).toBe('#/cases/fn?dev=mobile&service=ZCA');
   });
 
   it('조건 초기화를 눌러도 열어 둔 상세 칸은 그대로 둔다 — 조건이 아니라 보고 있는 것이다', async () => {
@@ -135,7 +135,7 @@ describe('케이스 목록 조건을 주소에 쓴다', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '조건 초기화' }));
 
-    expect(window.location.hash).toBe('#/cases/fn?case=ZCA-FN-001');
+    expect(window.location.hash).toBe('#/cases/fn?case=ZCA-FN-001&service=ZCA');
     expect(document.getElementById('case-pane')).not.toBeNull();
   });
 
@@ -143,9 +143,9 @@ describe('케이스 목록 조건을 주소에 쓴다', () => {
     await 그리기('#/cases/fn');
 
     fireEvent.click(screen.getByRole('button', { name: '미실행 13' }));
-    expect(window.location.hash).toBe('#/cases/fn?last=NA');
+    expect(window.location.hash).toBe('#/cases/fn?last=NA&service=ZCA');
     fireEvent.click(screen.getByRole('button', { name: '전체 120' }));
-    expect(window.location.hash).toBe('#/cases/fn');
+    expect(window.location.hash).toBe('#/cases/fn?service=ZCA');
   });
 
   it('찾기는 누른 뒤에만 주소에 남는다 — 치는 동안의 글자는 조건이 아니다', async () => {
@@ -153,9 +153,9 @@ describe('케이스 목록 조건을 주소에 쓴다', () => {
     const 칸 = screen.getByPlaceholderText('케이스 이름이나 ID로 찾기');
 
     fireEvent.change(칸, { target: { value: '결제' } });
-    expect(window.location.hash).toBe('#/cases/fn');
+    expect(window.location.hash).toBe('#/cases/fn?service=ZCA');
     fireEvent.click(screen.getByRole('button', { name: '찾기' }));
-    expect(window.location.hash).toBe(`#/cases/fn?${new URLSearchParams({ q: '결제' })}`);
+    expect(window.location.hash).toBe(`#/cases/fn?${new URLSearchParams({ q: '결제', service: 'ZCA' })}`);
   });
 });
 
@@ -166,6 +166,6 @@ describe('보고 있는 목록의 메뉴를 다시 누르면', () => {
     const 도착 = new Promise<void>((끝) => window.addEventListener('hashchange', () => 끝(), { once: true }));
     window.location.hash = '#/cases/fn';
     await 도착;
-    expect(window.location.hash).toBe('#/cases/fn?dev=mobile');
+    expect(window.location.hash).toBe('#/cases/fn?dev=mobile&service=ZCA');
   });
 });
