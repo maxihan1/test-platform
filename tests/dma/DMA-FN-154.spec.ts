@@ -2,7 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 화면글들 } from './helpers/app.helper.js';
-import { 상품상세열기 } from './helpers/cart.helper.js';
+import { 살수있는옵션상품, 상품상세열기 } from './helpers/cart.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 주문하기화면 } from './pages/checkout.page.js';
 import { 상품상세화면 } from './pages/product-detail.page.js';
@@ -29,6 +29,7 @@ test(spec, async ({ driver, params }) => {
   const 목록 = new 상품목록화면(driver);
   const 상세 = new 상품상세화면(driver);
   const 주문하기 = new 주문하기화면(driver);
+  let 상품이름 = params.optionProduct;
 
   await test.step('일반 회원 계정으로 로그인해 상품 목록을 연다', async () => {
     await 로그인하기(driver, params.loginId, params.loginPassword);
@@ -36,7 +37,8 @@ test(spec, async ({ driver, params }) => {
   });
 
   await test.step('상품 목록에서 옵션 있는 상품 상세를 연다', async () => {
-    await 상품상세열기(driver, params.optionProduct);
+    상품이름 = await 살수있는옵션상품(driver, params.optionProduct);
+    await 상품상세열기(driver, 상품이름);
     await verify('옵션 있는 상품 상세 화면이 보인다', await 상세.옵션있나(), true, { blocker: true });
   });
 
@@ -46,7 +48,7 @@ test(spec, async ({ driver, params }) => {
     await 주문하기.열릴때까지().catch(() => undefined);
     const 열림 = await verify('주문하기 화면이 열린다', await 주문하기.보이나(), true);
     const 한줄 = await verify('주문 상품이 한 줄이다', (await 주문하기.주문상품줄글들()).length, 1);
-    const 그상품 = await verify('주문 상품에 그 상품이 보인다', (await 화면글들(driver)).some((글) => 글.includes(params.optionProduct)), true);
+    const 그상품 = await verify('주문 상품에 그 상품이 보인다', (await 화면글들(driver)).some((글) => 글.includes(상품이름)), true);
     await verify('「바로 구매」를 누르면 그 상품 한 줄로 주문하기 화면이 열린다', 열림 && 한줄 && 그상품, true);
   });
 });

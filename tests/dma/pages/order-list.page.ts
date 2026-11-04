@@ -18,7 +18,13 @@ export class 주문내역화면 {
   }
 
   async 카드들(): Promise<요소[]> {
-    return [...(await this.driver.$$('id=order_item'))];
+    const 목록 = await this.driver.getElementRect((await this.목록.getElement()).elementId);
+    const 모음: 요소[] = [];
+    for (const 카드 of await this.driver.$$('id=order_item')) {
+      const 칸 = await this.driver.getElementRect(카드.elementId);
+      if (칸.y > 목록.y && 칸.y + 칸.height < 목록.y + 목록.height) 모음.push(카드);
+    }
+    return 모음;
   }
 
   async 카드글들(카드: 요소): Promise<string[]> {

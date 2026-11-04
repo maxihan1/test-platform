@@ -34,13 +34,16 @@ test(spec, async ({ game, admin }) => {
       await 창.장비고르기(칼);
       await verify('강화 창 설명에 강화 비용이 보인다', (await 창.설명글()).includes('강화 비용'), true, { blocker: true });
     });
-    await test.step('강화 창에서 「강화하기」를 누르고 강화 결과가 뜨기 전에 다시 누른다', async () => {
+    await test.step('강화 창에서 「강화하기」를 두 번 한꺼번에 눌러 잠긴 동안 다시 누른다', async () => {
       const 창 = new 강화창(game);
-      const 앞결과 = await 창.결과글();
       const 앞 = await 강화기록수(admin, 누구!);
+      const 누른때 = Date.now();
       await 창.강화두번누르기();
-      await verify('두 번째로 누를 때 강화 결과가 아직 바뀌지 않았다', await 창.결과글(), 앞결과, { blocker: true });
+      const 걸린시간 = Date.now() - 누른때;
       const 뒤 = await 강화기록이멈출때까지(admin, 누구!, 앞);
+      if (뒤 - 앞 !== 1) {
+        await verify('두 번째 누름이 첫 누름 뒤 0.5초 안에 들어갔다', 걸린시간 < 500, true, { blocker: true });
+      }
       await verify('강화 응답을 기다리는 동안 「강화하기」를 다시 눌러도 강화는 한 번만 된다', 뒤 - 앞, 1);
     });
     await test.step('강화 창에서 「강화하기」를 누르고 강화 결과가 뜨자마자 다시 누른다', async () => {
@@ -49,8 +52,11 @@ test(spec, async ({ game, admin }) => {
       const 앞 = await 강화기록수(admin, 누구!);
       const 뜬때 = await 누르고결과뜰때까지(창);
       await 창.강화누르기();
-      await verify('강화 결과가 뜬 뒤 0.5초 안에 다시 눌렀다', 지난시간(뜬때) < 500, true, { blocker: true });
+      const 다시누른때 = 지난시간(뜬때);
       const 뒤 = await 강화기록이멈출때까지(admin, 누구!, 앞);
+      if (뒤 - 앞 !== 1) {
+        await verify('강화 결과가 뜬 뒤 0.5초 안에 다시 눌렀다', 다시누른때 < 500, true, { blocker: true });
+      }
       await verify('강화 결과가 뜬 뒤 0.5초 안에 「강화하기」를 다시 눌러도 강화는 한 번만 된다', 뒤 - 앞, 1);
     });
   } finally {

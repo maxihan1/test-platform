@@ -109,7 +109,7 @@ export async function 주소줄이채워질때까지(driver: 앱, 주문하기: 
 
 export function 주문상품줄꼴인가(줄글들: string[], 상품이름: string, 수량: number, 옵션있음: boolean): boolean {
   const 옵션 = 옵션있음 ? ' \\(.+ / .+\\)' : '';
-  return new RegExp(`^${글자막기(상품이름)}${옵션} × ${String(수량)} [\\d,]+원$`).test(줄글들.join(', '));
+  return new RegExp(`^${글자막기(상품이름)}${옵션} × ${String(수량)} [\\d,]+원$`).test(줄글들.join(', ').replace(/\s+/g, ' '));
 }
 
 export async function 금액줄차례(주문하기: 주문하기화면): Promise<string[]> {

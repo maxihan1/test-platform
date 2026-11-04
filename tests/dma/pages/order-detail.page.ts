@@ -1,4 +1,4 @@
-import { type 앱, 금액, 화면글들 } from '../helpers/app.helper.js';
+import { type 앱, 금액, 키보드내리기, 화면글들 } from '../helpers/app.helper.js';
 
 export type 취소사유 = '단순 변심' | '상품 정보 상이' | '배송 지연' | '기타';
 
@@ -140,7 +140,7 @@ export class 주문상세화면 {
     await this.사유글칸.click();
     await this.사유글칸.clearValue();
     if (값 !== '') await this.사유글칸.setValue(값);
-    await this.driver.hideKeyboard().catch(() => undefined);
+    await 키보드내리기(this.driver);
   }
 
   async 취소하기누르기(): Promise<void> {

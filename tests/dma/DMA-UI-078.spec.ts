@@ -1,6 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
+import { 살수있는옵션상품 } from './helpers/cart.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 주문상품줄꼴인가, 옵션고르고수량바로구매열기 } from './helpers/checkout-flow.helper.js';
 import { 주문하기화면 } from './pages/checkout.page.js';
@@ -20,10 +21,12 @@ export const spec = defineCase({
 
 test(spec, async ({ driver, params }) => {
   const 주문하기 = new 주문하기화면(driver);
+  let 상품이름 = params.상품이름;
 
   await test.step('일반 회원 계정으로 로그인해 옵션 있는 상품을 수량 2로 바로 구매한다', async () => {
     await 로그인하기(driver, params.loginId, params.loginPassword);
-    await 옵션고르고수량바로구매열기(driver, params.상품이름, 2);
+    상품이름 = await 살수있는옵션상품(driver, params.상품이름);
+    await 옵션고르고수량바로구매열기(driver, 상품이름, 2);
   });
 
   await test.step('주문하기 화면을 확인한다', async () => {
@@ -33,7 +36,7 @@ test(spec, async ({ driver, params }) => {
   await test.step('「주문 상품」 줄을 확인한다', async () => {
     await verify(
       '「주문 상품」 줄은 「{상품명} ({옵션}) × {수량} {금액}」 꼴로 보인다',
-      주문상품줄꼴인가(await 주문하기.주문상품줄글들(), params.상품이름, 2, true),
+      주문상품줄꼴인가(await 주문하기.주문상품줄글들(), 상품이름, 2, true),
       true,
     );
   }, { capture: true });

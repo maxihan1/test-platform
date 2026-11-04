@@ -1,7 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
-import { 목록으로돌아가기 } from './helpers/cart.helper.js';
+import { 목록으로돌아가기, 살수있는옵션상품 } from './helpers/cart.helper.js';
 import { 장바구니숫자읽기 } from './helpers/product-flow.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 바로구매열기 } from './helpers/order.helper.js';
@@ -33,7 +33,7 @@ test(spec, async ({ driver, params }) => {
 
   await test.step('상품 상세에서 「바로 구매」를 누르고 상품 목록으로 돌아온다', async () => {
     const 앞수 = await 장바구니숫자읽기(driver);
-    await 바로구매열기(driver, params.optionProduct);
+    await 바로구매열기(driver, await 살수있는옵션상품(driver, params.optionProduct));
     await 목록으로돌아가기(driver);
     await verify('「바로 구매」를 눌러도 「장바구니 {N}」 숫자는 그대로다', await 목록.장바구니수(), 앞수);
   });

@@ -72,7 +72,16 @@ export async function 칸에적기(driver: 앱, 칸: 요소, 값: string): Promi
   await 칸.click();
   await 칸.clearValue();
   if (값 !== '') await 칸.setValue(값);
-  await driver.hideKeyboard().catch(() => undefined);
+  await 키보드내리기(driver);
+}
+
+export async function 키보드내리기(driver: 앱): Promise<void> {
+  for (let 번 = 0; 번 < 2 && (await driver.isKeyboardShown()); 번 += 1) {
+    await driver.back();
+    await driver
+      .waitUntil(async () => !(await driver.isKeyboardShown()), { timeout: 1500, interval: 300 })
+      .catch(() => undefined);
+  }
 }
 
 export function 일요일아닌첫날(오늘: Date): Date {

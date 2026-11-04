@@ -1,10 +1,10 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
-import { 토스트 } from './components/toast.component.js';
 import { 주문서값으로 } from './helpers/cart-orders-flow.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 주문만들기 } from './helpers/order.helper.js';
+import { 토스트글읽기 } from './helpers/wait.helper.js';
 import { 주문상세화면 } from './pages/order-detail.page.js';
 import { 상품목록화면 } from './pages/product-list.page.js';
 
@@ -29,7 +29,6 @@ export const spec = defineCase({
 test(spec, async ({ driver, params }) => {
   const 목록 = new 상품목록화면(driver);
   const 상세 = new 주문상세화면(driver);
-  const 알림 = new 토스트(driver);
 
   await test.step('일반 회원 계정으로 로그인해 상품 목록을 연다', async () => {
     await 로그인하기(driver, params.loginId, params.loginPassword);
@@ -49,10 +48,11 @@ test(spec, async ({ driver, params }) => {
     await 상세.사유고르기('기타');
     await 상세.사유글적기('');
     await 상세.취소하기누르기();
-    await 알림.뜰때까지(8000).catch(() => undefined);
-    const 토스트글 = (await 알림.보이나()) ? await 알림.글() : '';
+    await 상세.취소창닫힐때까지(1500).catch(() => undefined);
+    const 창남음 = await 상세.취소창보이나();
+    if (창남음) await 상세.창닫기();
+    const 토스트글 = await 토스트글읽기(driver);
     await verify('「기타」인데 취소 사유가 비어 있으면 토스트 「취소 사유를 입력하세요」가 보인다', 토스트글, '취소 사유를 입력하세요');
-    await verify('사유 글 없이 누른 「취소하기」는 창을 닫지 않는다', await 상세.취소창보이나(), true);
-    if (await 상세.취소창보이나()) await 상세.창닫기();
+    await verify('사유 글 없이 누른 「취소하기」는 창을 닫지 않는다', 창남음, true);
   }, { capture: true });
 });

@@ -45,7 +45,7 @@ test(spec, async ({ driver, params }) => {
     const 주문일 = await verify('「주문일 {날짜}」가 보인다', 글.some((칸) => /^주문일 \S+/.test(칸)), true);
     const 상품줄 = await verify('상품 줄이 보인다', (await 상세.상품줄글들()).length > 0, true);
     const 받는분 = await verify('받는 분이 보인다', 글.some((칸) => 칸.includes('받는 분')), true);
-    const 주소 = await verify('주소가 보인다', 글.some((칸) => 칸.includes('주소')), true);
+    const 주소 = await verify('주소가 보인다', 글.some((칸) => /^\[\d{5}\] \S/.test(칸)), true);
     const 배송희망일 = await verify('배송 희망일이 보인다', 글.some((칸) => 칸.includes('배송 희망일')), true);
     const 결제수단 = await verify('결제 수단이 보인다', await 상세.결제수단.isDisplayed(), true);
     const 금액줄 = await verify('금액 줄이 보인다', await 상세.결제금액.isDisplayed(), true);
