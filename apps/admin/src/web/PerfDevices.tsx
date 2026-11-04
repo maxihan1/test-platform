@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 
 import type { ServiceRow } from './api.js';
 import { use언어 } from './i18n.js';
+import { 주소덮기 } from './leaveGuard.js';
 import { perfApi, type 실행상세, type 실행줄 } from './perfApi.js';
 import { PerfDeviceLive } from './PerfDeviceLive.js';
 import { PerfDeviceResult } from './PerfDeviceResult.js';
@@ -49,7 +50,7 @@ export function PerfDevices({ service, run, 쓰나 }: { service: ServiceRow; run
         // 실행 기록에서 DEVICE 가 아닌 번호가 넘어오면 그 실행의 화면으로 돌려보낸다
         if (받음.kind !== 'DEVICE') {
           떠남 = true;
-          return window.location.replace(`#/perf/runs/${String(id)}`);
+          return 주소덮기(`#/perf/runs/${String(id)}`);
         }
         set읽은(받음);
       } catch (err) {

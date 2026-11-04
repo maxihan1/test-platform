@@ -11,7 +11,7 @@ import { CaseList } from './CaseList.js';
 import { Dashboard } from './Dashboard.js';
 import { 언어함, use말, type 언어 } from './i18n.js';
 import { ItemDetail } from './ItemDetail.js';
-import { use이동, 떠나기막기, 버리기전, 주소고치기, 주소덮기 } from './leaveGuard.js';
+import { use이동, 떠나기로했다, 떠나기막기, 버리기전, 주소고치기, 주소덮기 } from './leaveGuard.js';
 import {
   고른서비스,
   대시보드재료,
@@ -398,7 +398,11 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
           // 다른 서비스의 요구 번호가 주소에 남으면 새로고침 · 뒤로 가기가 그 서비스로 띠를 되돌린다 — 번호를 떼고 목록 자리로 바꿔 둔다
           const 지금 = route(window.location.hash);
           const 주소것 = 주소의서비스(window.location.hash, 상태.user);
-          if (지금.name === 'prd' && 지금.reqId !== undefined && 주소것 !== null && 주소것 !== 접두사) window.location.replace('#/prd');
+          if (지금.name === 'prd' && 지금.reqId !== undefined && 주소것 !== null && 주소것 !== 접두사) {
+            // 주소덮기는 hashchange 를 그 자리에서 내서 아직 내려가지 않은 화면의 떠나기 상자가 한 번 더 막는다 — 이미 버리기로 한 뒤다
+            떠나기로했다();
+            주소덮기('#/prd');
+          }
         });
       }}
       언어={언어}
