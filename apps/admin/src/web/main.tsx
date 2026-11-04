@@ -12,7 +12,7 @@ import { CaseList } from './CaseList.js';
 import { Dashboard } from './Dashboard.js';
 import { 언어함, use말, type 언어 } from './i18n.js';
 import { ItemDetail } from './ItemDetail.js';
-import { use이동, 떠나기막기, 버리기전 } from './leaveGuard.js';
+import { use이동, 떠나기막기, 버리기전, 주소덮기 } from './leaveGuard.js';
 import {
   고른서비스,
   대시보드재료,
@@ -122,7 +122,7 @@ function Screen({
       );
     case 'setup':
       // 옛 주소 — 한 건짜리 실행 설정 화면은 실행 창으로 합쳤다(2026-10-09). 북마크 · 지난 알림으로 와도 같은 창을 연다
-      return <RunWindow tcIds={[current.tcId]} onClose={() => { window.location.hash = '#/cases'; }} on걸림={() => undefined} />;
+      return <RunWindow tcIds={[current.tcId]} onClose={() => 주소덮기('#/cases')} on걸림={() => undefined} />;
     case 'prd':
       // 서비스마다 새로 그린다 — 앞 서비스에서 고른 확인 필요 · 펼친 줄 · 고치던 칸이 남으면 다른 서비스의 판에 보낸다
       return (
@@ -318,7 +318,7 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
   const 보낼곳 =
     상태.어디 !== '안' ? null : 들어가는자리 ? 집(상태.user, 열린접두사) : 갈자리(hash, 상태.user, 열린접두사);
   useEffect(() => {
-    if (보낼곳 !== null && 보낼곳 !== hash) window.location.hash = 보낼곳;
+    if (보낼곳 !== null && 보낼곳 !== hash) 주소덮기(보낼곳);
   }, [보낼곳, hash]);
 
   if (상태.어디 === '묻는중') {

@@ -125,6 +125,13 @@ describe('ScenarioWizard 시작 방법', () => {
     그리기(사람('read'));
     await waitFor(() => expect(window.location.hash).toBe('#/scenarios'));
   });
+
+  it('읽기만 하는 사람을 목록으로 보내는 것은 기록을 쌓지 않는다 (WEB-F8-01)', async () => {
+    const 길이 = window.history.length;
+    그리기(사람('read'));
+    await waitFor(() => expect(window.location.hash).toBe('#/scenarios'));
+    expect(window.history.length).toBe(길이);
+  });
 });
 
 describe('ScenarioWizard AI 추천', () => {

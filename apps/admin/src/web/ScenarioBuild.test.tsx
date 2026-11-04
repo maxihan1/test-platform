@@ -37,6 +37,14 @@ describe('ScenarioBuild 새 시나리오', () => {
     새로그리기(사람('read'));
     await waitFor(() => expect(window.location.hash).toBe('#/scenarios'));
   });
+
+  it('목록으로 보내는 것은 기록을 쌓지 않는다 — 쌓으면 뒤로 가기가 이 화면으로 와서 다시 튕긴다 (WEB-F8-01)', async () => {
+    window.location.hash = '#/scenarios/new/build';
+    const 길이 = window.history.length;
+    새로그리기(사람('read'));
+    await waitFor(() => expect(window.location.hash).toBe('#/scenarios'));
+    expect(window.history.length).toBe(길이);
+  });
 });
 
 describe('ScenarioBuild 기존 시나리오 불러오기', () => {

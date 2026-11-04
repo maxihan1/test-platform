@@ -5,7 +5,7 @@ import type { ScenarioPart } from '@platform/kit';
 
 import type { CaseRow, Platform, ServiceRow, User } from './api.js';
 import { use말 } from './i18n.js';
-import { 떠나기막기, 떠나기상자 } from './leaveGuard.js';
+import { 떠나기막기, 떠나기상자, 주소덮기 } from './leaveGuard.js';
 import { 판정을만든다 } from './role.js';
 import { 단계칸, type 케이스줄들 } from './ScenarioWizardSteps.js';
 import { AI칸, 시작칸, type 시작방법 } from './ScenarioWizardStart.js';
@@ -50,7 +50,7 @@ export function ScenarioWizard({ 띠서비스, user }: { 띠서비스: ServiceRo
   const 쓰나 = 판정을만든다(user, 서비스)('실행');
   useEffect(() => {
     // 읽기만 하는 사람이 주소로 연 마법사는 쓸 데가 없다
-    if (!쓰나) window.location.hash = 나가는곳;
+    if (!쓰나) 주소덮기(나가는곳);
   }, [쓰나]);
 
   // 단계가 바뀌면 그 단계 첫 칸에 손이 간다 — 키보드로 넘기는 사람이 칸을 찾아 헤매지 않게.
