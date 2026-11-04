@@ -114,6 +114,21 @@ describe('ScenarioWizard 시작 방법', () => {
     await waitFor(() => expect(screen.getByText(/^2 \/ 5/u)).toBeTruthy());
   });
 
+  it('권한이 중간에 읽기로 바뀌어도 화면이 죽지 않는다 — 훅 개수가 같다 (WEB-F8-01 검토)', () => {
+    const { rerender } = 그리기();
+    expect(() => rerender(<ScenarioWizard 띠서비스={서비스('ZSB')} user={사람('read')} />)).not.toThrow();
+    expect(document.querySelector('.wz')).toBeNull();
+  });
+
+  it('손으로 고친 주소나 앞으로 가기로 검사를 건너뛰지 못한다 — 시작 방법을 안 골랐으면 첫 단계에 남고 주소는 실제 단계다', async () => {
+    그리기();
+    const 도착 = new Promise<void>((끝) => window.addEventListener('hashchange', () => 끝(), { once: true }));
+    window.location.hash = '#/scenarios/new?step=3';
+    await 도착;
+    await waitFor(() => expect(window.location.hash).toBe('#/scenarios/new'));
+    expect(screen.getByText(/^1 \/ 5/u)).toBeTruthy();
+  });
+
   it('주소에 step= 이 있는 채 열면 첫 단계에서 시작하고 주소의 step= 은 지운다 — 새로고침하면 쓰던 값이 없다', () => {
     window.location.hash = '#/scenarios/new?step=3';
     그리기();

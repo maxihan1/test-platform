@@ -47,6 +47,13 @@ async function 그리기(id: number | null = null, user: User = 사람(), 더미
 
 const 다음 = () => fireEvent.click(screen.getByRole('button', { name: '다음' }));
 
+async function 주소로(해시: string) {
+  if (window.location.hash === 해시) return;
+  const 도착 = new Promise<void>((끝) => window.addEventListener('hashchange', () => 끝(), { once: true }));
+  window.location.hash = 해시;
+  await 도착;
+}
+
 describe('단계는 주소에 남는다 (WEB-F8-01)', () => {
   it('다음으로 넘기면 step= 가 붙고 기록이 쌓이며, 뒤로 가기는 앞 단계이고 적은 이름은 그대로다', async () => {
     window.location.hash = '#/perf/scenarios/new';
@@ -66,7 +73,41 @@ describe('단계는 주소에 남는다 (WEB-F8-01)', () => {
     expect(window.location.hash).toBe('#/perf/scenarios/new');
   });
 
-  it('처음 저장해 번호 주소로 바뀌어도 지금 단계는 주소에 남고 기록 칸 번호도 그대로다', async () => {
+  it('처음 저장한 뒤 앞 단계로 뒤로 가도 쓴 값이 남고 다시 저장하면 새로 만들지 않고 이어 저장한다 (WEB-F8-01 검토)', async () => {
+    await 주소로('#/perf/scenarios/new');
+    const 만들기 = vi.spyOn(perfApi, 'create').mockResolvedValue({ id: 42, version: 1 });
+    const 저장 = vi.spyOn(perfApi, 'save').mockResolvedValue({ version: 2 });
+    await 그리기();
+    fireEvent.change(screen.getByLabelText('시나리오 이름'), { target: { value: '주문하기' } });
+    fireEvent.click(screen.getByRole('button', { name: '트랜잭션 추가' }));
+    fireEvent.change(screen.getByLabelText('주소'), { target: { value: '/api/products' } });
+    다음();
+    await screen.findByLabelText('최대 가상 사용자');
+    fireEvent.click(screen.getByRole('button', { name: '임시 저장' }));
+    await waitFor(() => expect(만들기).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(window.location.hash).toBe('#/perf/scenarios/new?step=2&id=42'));
+
+    window.history.back();
+    expect(await screen.findByRole('button', { name: '트랜잭션 추가' })).toBeTruthy();
+    expect(document.body.textContent).toContain('/api/products');
+    await waitFor(() => expect(window.location.hash).toBe('#/perf/scenarios/new?id=42'));
+
+    fireEvent.click(screen.getByRole('button', { name: '임시 저장' }));
+    await waitFor(() => expect(저장).toHaveBeenCalled());
+    expect(만들기).toHaveBeenCalledTimes(1);
+  });
+
+  it('손으로 고친 주소로 단계 검사를 건너뛰지 못한다 — 이름이 비었으면 첫 단계에 남는다', async () => {
+    window.location.hash = '#/perf/scenarios/new';
+    await 그리기();
+    const 도착 = new Promise<void>((끝) => window.addEventListener('hashchange', () => 끝(), { once: true }));
+    window.location.hash = '#/perf/scenarios/new?step=3';
+    await 도착;
+    await waitFor(() => expect(window.location.hash).toBe('#/perf/scenarios/new'));
+    expect(screen.getByLabelText('시나리오 이름')).toBeTruthy();
+  });
+
+  it('처음 저장하면 번호가 주소(id=)에 붙고 지금 단계와 기록 칸 번호는 그대로다', async () => {
     window.location.hash = '#/perf/scenarios/new';
     vi.spyOn(perfApi, 'create').mockResolvedValue({ id: 42, version: 1 });
     vi.spyOn(perfApi, 'save').mockResolvedValue({ version: 2 });
@@ -79,7 +120,7 @@ describe('단계는 주소에 남는다 (WEB-F8-01)', () => {
     const 칸 = (window.history.state as { navIndex?: number } | null)?.navIndex;
 
     fireEvent.click(screen.getByRole('button', { name: '임시 저장' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/perf/scenarios/42?step=2'));
+    await waitFor(() => expect(window.location.hash).toBe('#/perf/scenarios/new?step=2&id=42'));
     expect((window.history.state as { navIndex?: number } | null)?.navIndex).toBe(칸);
   });
 });

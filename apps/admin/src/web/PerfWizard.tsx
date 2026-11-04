@@ -1,7 +1,7 @@
 // 성능 시나리오 만들기 · 고치기 — 네 단계 마법사 (도메인/성능 §8.14 · 시안 캔버스 버전 14 「고른 시안」 B)
 // 고칠 때는 끝낸 단계를 눌러 바로 간다. 「실행」을 누르면 그 실행의 화면(#/perf/runs/번호)으로 간다
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import type { ServiceRow, User } from './api.js';
 import { Head } from './Head.js';
@@ -16,7 +16,7 @@ import { PerfStepScenario, type 일단계값 } from './PerfStepScenario.js';
 import { PerfStepTargets, type 삼단계값 } from './PerfStepTargets.js';
 import { 저장꼴 } from './PerfTxDetail.js';
 import { 구간만들기, 기본부하칸, 넘길까닭, 총초, 최대목표 } from './perfView.js';
-import { 주소고치기 } from './leaveGuard.js';
+import { 조건붙인주소, 주소고치기, 주소조건 } from './leaveGuard.js';
 import { 할수있나 } from './role.js';
 import { Failed, Loading, message, useAsync } from './ui.js';
 import { use단계주소 } from './useWizardStep.js';
@@ -27,7 +27,13 @@ export function PerfWizard({ id, 띠서비스, user }: { id: number | null; 띠�
   const t = use말();
   // 만드는 중 띠를 바꿔도 처음 애플리케이션에 만든다 — E2E 시나리오 조립과 같은 규칙 (main.tsx scenarioNew)
   const [처음띠] = useState(띠서비스);
-  const 읽음 = useAsync(() => (id === null ? Promise.resolve(null) : perfApi.scenario(id)).then((s) => ({ s })), [id]);
+  // 처음 저장한 시나리오를 새로고침으로 다시 열 때를 위해 주소의 id= 도 본다(경로는 `new` 그대로)
+  const [주소번호] = useState(() => {
+    const 글 = 주소조건().get('id');
+    return 글 !== null && /^\d{1,10}$/.test(글) ? Number(글) : null;
+  });
+  const 읽을번호 = id ?? 주소번호;
+  const 읽음 = useAsync(() => (읽을번호 === null ? Promise.resolve(null) : perfApi.scenario(읽을번호)).then((s) => ({ s })), [읽을번호]);
   if (읽음.error !== null) return <Failed error={읽음.error} />;
   if (읽음.data === null) return <Loading />;
   const 시나리오 = 읽음.data.s;
@@ -80,8 +86,33 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
   const 더미 = 일.방식 === 'DUMMY';
   // 더미 클라이언트 실행은 부하 중 페이지 측정을 못 한다 — 서버가 400 으로 거절한다
   const 페이지칸 = 웹 && !더미;
+  const 넘길재료 = { name: 일.name, txCount: 일.transactions.length, dummy: 더미, dummyPicked: 일.더미번호 !== null, stages: 이.stages };
+  // 뒤로 가기 · 앞으로 가기 · 손으로 고친 주소도 다음 버튼과 같은 검사를 지난다 — 앞으로는 통과하는 데까지만 간다.
+  // 처음 저장해 적은 번호(id=)도 이 마법사가 들고 있다 — 앞 단계 칸으로 뒤로 가도 같은 화면이라 쓴 값이 남고 다시 저장해도 둘이 안 생긴다
+  const 스스로 = use단계주소(
+    지금,
+    (i) => {
+      let 갈곳 = Math.min(4, Math.max(1, i));
+      for (let s = 지금; s < 갈곳; s++) {
+        if (넘길까닭(s as 1 | 2 | 3, 넘길재료, 언어) !== null) {
+          갈곳 = s;
+          break;
+        }
+      }
+      set지금(갈곳 as 단계);
+      return 갈곳;
+    },
+    1,
+    ['id'],
+  );
   // 더미 클라이언트는 동시 사용자 기준으로만 돈다 — TPS 로 잡아 둔 채 넘어오면 VUS 로 되돌린다
-  use단계주소(지금, (i) => set지금(Math.min(4, Math.max(1, i)) as 단계), 1);
+  // 저장한 번호를 주소에 적어 둔다 — 새로고침하면 저장한 시나리오를 이어 연다. 경로는 그대로 `new` 라 화면이 다시 뜨지 않는다
+  useEffect(() => {
+    // 저장하고 실행으로 넘어가는 중이면(주소가 이미 다른 화면) 건드리지 않는다
+    if (번호 === null || !window.location.hash.startsWith('#/perf/scenarios/') || 주소조건().get('id') === String(번호)) return;
+    const 조건 = Object.fromEntries(주소조건());
+    주소고치기(조건붙인주소(window.location.hash.split('?')[0]!, { ...조건, id: String(번호) }));
+  }, [번호, 지금]);
   const 일고침 = (값: 일단계값) => {
     set일(값);
     if (값.방식 === 'DUMMY' && 이.basis === 'TPS') set이({ ...이, basis: 'VUS' });
@@ -98,6 +129,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
   async function 저장(): Promise<number | null> {
     const 까닭 = 넘길까닭(1, { name: 일.name, txCount: 일.transactions.length, dummy: 더미, dummyPicked: 일.더미번호 !== null, stages: 이.stages }, 언어);
     if (까닭 !== null) {
+      스스로(1);
       set지금(1);
       set알림({ 글: 까닭, 오류: true });
       return null;
@@ -110,8 +142,6 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
         const r = await perfApi.create(service.id, 일.name.trim(), 본문(), 초안);
         id = r.id;
         set버전(r.version);
-        // 주소만 바꾼다 — hashchange 를 내면 화면이 다시 떠서 지금 단계를 잃는다. 단계(?step=)는 그대로 둔다
-        주소고치기(`#/perf/scenarios/${String(id)}${window.location.hash.includes('?') ? window.location.hash.slice(window.location.hash.indexOf('?')) : ''}`);
         set번호(id);
       }
       if (번호 !== null || 사.accountsCsv !== undefined) {
