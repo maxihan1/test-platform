@@ -101,6 +101,11 @@ export interface 대상 {
   loginPassword: string | null;
   /** 「운영 서버」로 체크된 줄 — 그때 계정 칸은 비어 온다. 에이전트가 이 까닭으로 FAILED 를 낸다 (§7 claim) */
   isProd?: true;
+  /**
+   * 테스트를 안 만들 화면 틀 — 결정 목록에서 [제외]한 것(service.skip_screens)과 이 요청에서 고르지 않은 것(params.skipScreens).
+   * 화면만 작성은 이것도 「이미 확인한 화면」으로 보고 건너뛴다. 없으면 안 싣는다 (§3.6 「★ 결정 목록」 「제외한 화면」)
+   */
+  skipScreens?: string[];
 }
 
 /**
@@ -140,6 +145,13 @@ export function 집기대상(env: string, 원줄: 대상줄 | null, startUrl: st
     loginPassword: 줄?.loginPassword ?? null,
     ...(원줄?.isProd === true ? { isProd: true as const } : {}),
   };
+}
+
+/** 제외한 화면 + 이 요청에서 고르지 않은 화면. params 는 통로가 막지 않아 사람이 낸 값이 올 수 있다 — 글자만 받는다 */
+async function 건너뛸화면(서비스: number, 요청것: unknown): Promise<string[]> {
+  const r = await (await 풀()).query<{ skip_screens: string[] }>('SELECT skip_screens FROM service WHERE id = $1', [서비스]);
+  const 요청 = Array.isArray(요청것) ? 요청것.filter((x): x is string => typeof x === 'string') : [];
+  return [...new Set([...(r.rows[0]?.skip_screens ?? []), ...요청])];
 }
 
 /** 집기 응답 accounts 한 줄 (§7 claim) */
@@ -186,7 +198,8 @@ export async function 집기대상칸(
   // PRD 초안도 대조처럼 그 줄의 화면을 훑는다 — 대상 서버 · 계정을 같은 길로 싣는다 (도메인/BTS 「PRD 초안 → 결정 필요」)
   const 대조env = 행.compare || 행.kind === 'PRD_DRAFT' ? 행.env : null;
   const 원줄 = 대조env !== null ? await 대상줄읽기(서비스, 대조env) : null;
-  const target = 대조env !== null ? 집기대상(대조env, 원줄, 행.startUrl) : undefined;
+  const 건너뛸 = 대조env !== null ? await 건너뛸화면(서비스, 행.params.skipScreens) : [];
+  const target = 대조env !== null ? { ...집기대상(대조env, 원줄, 행.startUrl), ...(건너뛸.length === 0 ? {} : { skipScreens: 건너뛸 }) } : undefined;
   const 줄 = 작성에실을줄(원줄);
   const 머지줄 = 대조env === null && typeof 머지env === 'string' ? 작성에실을줄(await 대상줄읽기(서비스, 머지env)) : null;
   const 그밖 =

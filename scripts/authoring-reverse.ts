@@ -18,6 +18,8 @@ export interface 대상 {
   loginPassword?: string | null;
   /** 「운영 서버」로 체크된 줄 — 서버가 계정을 비워 보낸다 (도메인/작성 §7 claim) */
   isProd?: boolean;
+  /** 테스트를 안 만들 화면 틀 — 결정 목록에서 제외한 것과 이 요청에서 고르지 않은 것. 화면만 작성이 확인한 화면으로 본다 (§3.6 「제외한 화면」) */
+  skipScreens?: unknown;
 }
 
 /**

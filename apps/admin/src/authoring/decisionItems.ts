@@ -36,7 +36,7 @@ export type 결정항목 = 머리 &
     | { kind: 'CHECK'; reqId: string; feature: string; text: string; checkSince: string | null; basis: 'SCREEN' | 'DOCS' | 'OTHER'; options: { asset: string; quote: string }[] }
     | { kind: 'PRD_CHANGED'; changed: 바뀐요구줄[] | null; added: 바뀐요구줄[] | null; removed: 바뀐요구줄[] | null; scenarios: { id: number; name: string }[] }
     | { kind: 'API_CHANGED'; fromVersion: number; toVersion: number; operations: { method: string; path: string; change: 'NEW' | 'CHANGED' | 'REMOVED'; breaking: boolean }[] | null }
-    | { kind: 'SCREENS'; screens: { state: string; url: string; name: string }[] | null; env: string | null }
+    | { kind: 'SCREENS'; screens: { state: string; url: string; name: string }[] | null; env: string | null; skipped: { url: string; name: string }[] }
     | { kind: 'APIS'; apis: { method: string; path: string; name: string | null }[] | null }
     | ({ kind: 'PRD_DRAFT' } & 초안카드)
   );

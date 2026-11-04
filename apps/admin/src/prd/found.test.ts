@@ -80,10 +80,11 @@ describe.skipIf(연결 === undefined)('PRD 에 없는 화면 셈', () => {
   });
 
   it('케이스가 없으면 찾은 화면 전부가 미검증 화면이다', async () => {
-    expect(await 읽기()).toEqual({ uncoveredScreens: [] });
+    expect(await 읽기()).toEqual({ uncoveredScreens: [], skippedScreens: [] });
     await 찾음([['로그인:일반 회원', '/cart', '장바구니'], ['로그아웃', '/', '홈']]);
     expect(await 읽기()).toEqual({
       uncoveredScreens: [{ state: '로그아웃', url: '/', name: '홈' }, { state: '로그인:일반 회원', url: '/cart', name: '장바구니' }],
+      skippedScreens: [],
     });
   });
 
@@ -132,6 +133,7 @@ describe.skipIf(연결 === undefined)('PRD 에 없는 화면 셈', () => {
     await 찾음([['로그인:일반 회원', '/cart', '장바구니'], ['로그인:관리자', '/cart', '장바구니']], 'prod');
     expect(await 읽기()).toEqual({
       uncoveredScreens: [{ state: '로그인:관리자', url: '/cart', name: '장바구니' }, { state: '로그인:일반 회원', url: '/cart', name: '장바구니' }],
+      skippedScreens: [],
     });
   });
 

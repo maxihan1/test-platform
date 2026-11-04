@@ -89,10 +89,19 @@ export function 화면케이스지도(케이스: readonly 케이스화면[]): Re
 }
 
 /**
+ * 테스트가 확인한 틀에 건너뛸 틀(집기 `target.skipScreens` — 결정 목록에서 제외 · 안 고른 화면)을 더한다. 크롤러가 둘 다 「덮음」으로 달아 자식이 안 쓴다.
+ * 글자가 아닌 것은 버린다 — 서버가 거른 값이지만 명령줄 가까이 가는 파일이라 한 번 더 본다 (§3.6 「★ 결정 목록」 「제외한 화면」)
+ */
+export function 덮은틀더하기(덮은틀: readonly string[], 건너뛸: unknown): string[] {
+  const 더할 = Array.isArray(건너뛸) ? 건너뛸.filter((x): x is string => typeof x === 'string' && x !== '') : [];
+  return [...new Set([...덮은틀, ...더할])].sort();
+}
+
+/**
  * 자료 폴더에 화면 ↔ 케이스 지도(`screen-cases.json`)를 쓰고, 화면만이면 테스트가 이미 확인한 화면(`covered.json`)도 쓴다(root 가 자식 폴더에 쓰는 안전한 꼴).
  * 화면만이 확인한 화면을 다 못 세면 막힘(그 화면을 또 쓴다) — 화면 파일 하나를 못 읽어도 막는다. 지도만 못 세거나 못 쓰면 경고 — 바뀐 화면 케이스를 안 볼 뿐이다
  */
-export function 화면지도준비(입력: 덮은입력 & { 자료폴더: string; 화면만: boolean }): { 막힘: string } | { 경고: string | null } {
+export function 화면지도준비(입력: 덮은입력 & { 자료폴더: string; 화면만: boolean; 건너뛸?: unknown }): { 막힘: string } | { 경고: string | null } {
   const 지도파일 = join(입력.자료폴더, 화면케이스파일이름);
   // 못 세면 옛 지도를 지운다 — 이어하기는 자료 폴더를 다시 써서 앞 실행의 지도가 남아 있다
   const 지도없이 = (까닭: string) => (rmSync(지도파일, { force: true }), 입력.화면만 ? { 막힘: 까닭 } : { 경고: 까닭 });
@@ -101,7 +110,7 @@ export function 화면지도준비(입력: 덮은입력 & { 자료폴더: string
   const 앞 = 지도.건너뜀.slice(0, 3).join(' · ') + (지도.건너뜀.length > 3 ? ' …' : '');
   const 건너뜀줄 = `화면 파일 ${String(지도.건너뜀.length)}개를 못 읽어 그 화면은 지도에서 뺐다 — ${앞}`;
   if (입력.화면만 && 지도.건너뜀.length > 0) return 지도없이(건너뜀줄);
-  if (입력.화면만 && !새로쓰기(join(입력.자료폴더, 덮은파일이름), JSON.stringify(지도.덮은틀))) return 지도없이(`${덮은파일이름} 를 자료 폴더에 못 썼다`);
+  if (입력.화면만 && !새로쓰기(join(입력.자료폴더, 덮은파일이름), JSON.stringify(덮은틀더하기(지도.덮은틀, 입력.건너뛸)))) return 지도없이(`${덮은파일이름} 를 자료 폴더에 못 썼다`);
   if (!새로쓰기(지도파일, JSON.stringify(화면케이스지도(지도.케이스)))) return { 경고: `${화면케이스파일이름} 를 자료 폴더에 못 썼다` };
   return { 경고: 지도.건너뜀.length === 0 ? null : 건너뜀줄 };
 }
