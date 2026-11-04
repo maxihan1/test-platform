@@ -16,6 +16,28 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+describe('단계는 주소에 남는다 (WEB-F8-01)', () => {
+  it('다음으로 넘기면 step= 가 붙고 기록이 쌓이며, 뒤로 가기는 앞 단계이고 고른 값은 그대로다', async () => {
+    window.location.hash = '#/settings/new';
+    그린다({ 기본프로젝트: 2 });
+    const 길이 = window.history.length;
+    다음();
+    종류를고른다('웹');
+    다음();
+    expect(window.location.hash).toBe('#/settings/new?step=2');
+    expect(window.history.length).toBe(길이 + 2);
+
+    window.history.back();
+    await waitFor(() => expect(screen.getByRole('group', { name: '종류' })).toBeTruthy());
+    expect(종류카드들().find((it) => it.querySelector('.wz-kind-h')?.textContent === '웹')?.getAttribute('aria-pressed')).toBe('true');
+    expect(window.location.hash).toBe('#/settings/new?step=1');
+
+    window.history.back();
+    await waitFor(() => expect(screen.getByRole('button', { name: /사내 포털/ }).getAttribute('aria-pressed')).toBe('true'));
+    expect(window.location.hash).toBe('#/settings/new');
+  });
+});
+
 describe('애플리케이션만 더하기', () => {
   it('프로젝트 → 종류 → 이름 · 번호 → 대상 서버 → 알림 · 작성 도구 → 확인 차례로 넘기고, 만들면 고른 것을 보내고 끝 화면을 보인다', async () => {
     const 만듦 = vi.spyOn(api, 'createService').mockResolvedValue({ id: 9 });

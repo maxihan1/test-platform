@@ -19,6 +19,7 @@ import { 초안넘기기 } from './useScenarioDraft.js';
 import { useWizardEnd } from './useWizardEnd.js';
 import { useWizardKeys } from './useWizardKeys.js';
 import { useWizardMaterial } from './useWizardMaterial.js';
+import { use단계주소 } from './useWizardStep.js';
 import { useWizardValues } from './useWizardValues.js';
 
 const 나가는곳 = '#/scenarios';
@@ -87,6 +88,7 @@ export function ScenarioWizard({ 띠서비스, user }: { 띠서비스: ServiceRo
     set방향(쪽);
     set이유(null);
   };
+  use단계주소(지금, (i) => 간다(Math.max(0, Math.min(i, 목록.length - 1)), i > 지금 ? 'fwd' : 'back'));
   // 시작 방법 · 애플리케이션 · 디바이스가 바뀌면 받은 AI 후보는 다른 조건의 것이다
   const 추천버림 = () => {
     흐름.버리기();

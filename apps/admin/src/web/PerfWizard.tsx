@@ -16,8 +16,10 @@ import { PerfStepScenario, type 일단계값 } from './PerfStepScenario.js';
 import { PerfStepTargets, type 삼단계값 } from './PerfStepTargets.js';
 import { 저장꼴 } from './PerfTxDetail.js';
 import { 구간만들기, 기본부하칸, 넘길까닭, 총초, 최대목표 } from './perfView.js';
+import { 주소고치기 } from './leaveGuard.js';
 import { 할수있나 } from './role.js';
 import { Failed, Loading, message, useAsync } from './ui.js';
+import { use단계주소 } from './useWizardStep.js';
 
 type 단계 = 1 | 2 | 3 | 4;
 
@@ -79,6 +81,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
   // 더미 클라이언트 실행은 부하 중 페이지 측정을 못 한다 — 서버가 400 으로 거절한다
   const 페이지칸 = 웹 && !더미;
   // 더미 클라이언트는 동시 사용자 기준으로만 돈다 — TPS 로 잡아 둔 채 넘어오면 VUS 로 되돌린다
+  use단계주소(지금, (i) => set지금(Math.min(4, Math.max(1, i)) as 단계), 1);
   const 일고침 = (값: 일단계값) => {
     set일(값);
     if (값.방식 === 'DUMMY' && 이.basis === 'TPS') set이({ ...이, basis: 'VUS' });
@@ -107,8 +110,8 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
         const r = await perfApi.create(service.id, 일.name.trim(), 본문(), 초안);
         id = r.id;
         set버전(r.version);
-        // 주소만 바꾼다 — hashchange 를 내면 화면이 다시 떠서 지금 단계를 잃는다
-        window.history.replaceState(null, '', `#/perf/scenarios/${String(id)}`);
+        // 주소만 바꾼다 — hashchange 를 내면 화면이 다시 떠서 지금 단계를 잃는다. 단계(?step=)는 그대로 둔다
+        주소고치기(`#/perf/scenarios/${String(id)}${window.location.hash.includes('?') ? window.location.hash.slice(window.location.hash.indexOf('?')) : ''}`);
         set번호(id);
       }
       if (번호 !== null || 사.accountsCsv !== undefined) {

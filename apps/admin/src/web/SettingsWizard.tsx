@@ -18,6 +18,7 @@ import { 단계들, 단계이름, 단계제목, 단계칸, 서버들, 쓰는제�
 import { 서비스못보내는이유, 설정오류문장, 안쓰는서비스색, 제외경로값 } from './settingsView.js';
 import { 기다림글자 } from './ui.js';
 import { useWizardKeys } from './useWizardKeys.js';
+import { use단계주소 } from './useWizardStep.js';
 
 const 처음값 = (projectId: number | null): 마법사값 => ({
   프로젝트이름: '', projectId, kind: null, prefix: '', name: '', testsDir: '', testsRepo: '', envs: [], apiDocPath: '', apiDocEnv: '', webhook: '', figma: '', 제외: '',
@@ -118,6 +119,7 @@ export function SettingsWizard(p: Props) {
     set이유(null);
     setErr(null);
   };
+  use단계주소(지금, (i) => 간다(Math.max(0, Math.min(i, 목록.length - 1)), i > 지금 ? 'fwd' : 'back'));
   const 막혔다 = (까닭: string) => {
     set이유(까닭);
     set흔들((n) => n + 1);

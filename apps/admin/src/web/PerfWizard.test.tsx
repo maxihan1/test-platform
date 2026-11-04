@@ -47,6 +47,43 @@ async function 그리기(id: number | null = null, user: User = 사람(), 더미
 
 const 다음 = () => fireEvent.click(screen.getByRole('button', { name: '다음' }));
 
+describe('단계는 주소에 남는다 (WEB-F8-01)', () => {
+  it('다음으로 넘기면 step= 가 붙고 기록이 쌓이며, 뒤로 가기는 앞 단계이고 적은 이름은 그대로다', async () => {
+    window.location.hash = '#/perf/scenarios/new';
+    await 그리기();
+    const 길이 = window.history.length;
+    fireEvent.change(screen.getByLabelText('시나리오 이름'), { target: { value: '주문하기' } });
+    fireEvent.click(screen.getByRole('button', { name: '트랜잭션 추가' }));
+    fireEvent.change(screen.getByLabelText('주소'), { target: { value: '/api/products' } });
+    다음();
+    expect(await screen.findByLabelText('최대 가상 사용자')).toBeTruthy();
+    expect(window.location.hash).toBe('#/perf/scenarios/new?step=2');
+    expect(window.history.length).toBe(길이 + 1);
+
+    window.history.back();
+    expect(await screen.findByLabelText('시나리오 이름')).toBeTruthy();
+    expect((screen.getByLabelText('시나리오 이름') as HTMLInputElement).value).toBe('주문하기');
+    expect(window.location.hash).toBe('#/perf/scenarios/new');
+  });
+
+  it('처음 저장해 번호 주소로 바뀌어도 지금 단계는 주소에 남고 기록 칸 번호도 그대로다', async () => {
+    window.location.hash = '#/perf/scenarios/new';
+    vi.spyOn(perfApi, 'create').mockResolvedValue({ id: 42, version: 1 });
+    vi.spyOn(perfApi, 'save').mockResolvedValue({ version: 2 });
+    await 그리기();
+    fireEvent.change(screen.getByLabelText('시나리오 이름'), { target: { value: '주문하기' } });
+    fireEvent.click(screen.getByRole('button', { name: '트랜잭션 추가' }));
+    fireEvent.change(screen.getByLabelText('주소'), { target: { value: '/api/products' } });
+    다음();
+    await screen.findByLabelText('최대 가상 사용자');
+    const 칸 = (window.history.state as { navIndex?: number } | null)?.navIndex;
+
+    fireEvent.click(screen.getByRole('button', { name: '임시 저장' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/perf/scenarios/42?step=2'));
+    expect((window.history.state as { navIndex?: number } | null)?.navIndex).toBe(칸);
+  });
+});
+
 describe('새 시나리오를 네 단계로 만들어 실행한다', () => {
   it('이름 · 트랜잭션 · 부하 · 목표 · 실행 설정이 저장과 실행 요청에 실린다', async () => {
     const 만들기 = vi.spyOn(perfApi, 'create').mockResolvedValue({ id: 42, version: 1 });

@@ -96,6 +96,31 @@ describe('ScenarioWizard 시작 방법', () => {
     expect(본문.scrollTop).toBe(0);
   });
 
+  it('단계를 넘기면 step= 가 붙고 기록이 쌓인다 — 뒤로 가기는 앞 단계이고 고른 값은 그대로다 (WEB-F8-01)', async () => {
+    그리기();
+    const 길이 = window.history.length;
+    fireEvent.click(screen.getByRole('button', { name: /직접 고르기/ }));
+    다음();
+    expect(screen.getByText(/^2 \/ 5/u)).toBeTruthy();
+    expect(window.location.hash).toBe('#/scenarios/new?step=1');
+    expect(window.history.length).toBe(길이 + 1);
+
+    window.history.back();
+    await waitFor(() => expect(screen.getByText(/^1 \/ 5/u)).toBeTruthy());
+    expect(screen.getByRole('button', { name: /직접 고르기/ }).getAttribute('aria-pressed')).toBe('true');
+    expect(window.location.hash).toBe('#/scenarios/new');
+
+    window.history.forward();
+    await waitFor(() => expect(screen.getByText(/^2 \/ 5/u)).toBeTruthy());
+  });
+
+  it('주소에 step= 이 있는 채 열면 첫 단계에서 시작하고 주소의 step= 은 지운다 — 새로고침하면 쓰던 값이 없다', () => {
+    window.location.hash = '#/scenarios/new?step=3';
+    그리기();
+    expect(screen.getByText(/^1 \/ 5/u)).toBeTruthy();
+    expect(window.location.hash).toBe('#/scenarios/new');
+  });
+
   it('읽기만 하는 사람은 목록으로 보낸다', async () => {
     그리기(사람('read'));
     await waitFor(() => expect(window.location.hash).toBe('#/scenarios'));
