@@ -26,17 +26,17 @@ export async function 담을상품(관리자: Page, 가격상한: number): Promi
   return 상품;
 }
 
-export function 요청수집(page: Page, 주소조각: string): { 끝날때까지: () => Promise<number> } {
+export function 요청수집(page: Page, 주소조각: string): { 성공수: () => Promise<number> } {
   const 요청들: Request[] = [];
   const 듣기 = (요청: Request): void => {
     if (요청.method() === 'POST' && 요청.url().includes(주소조각)) 요청들.push(요청);
   };
   page.on('request', 듣기);
   return {
-    async 끝날때까지(): Promise<number> {
+    async 성공수(): Promise<number> {
       page.off('request', 듣기);
-      await Promise.all(요청들.map((요청) => 요청.response()));
-      return 요청들.length;
+      const 응답들 = await Promise.all(요청들.map((요청) => 요청.response()));
+      return 응답들.filter((응답) => 응답?.ok() === true).length;
     },
   };
 }
