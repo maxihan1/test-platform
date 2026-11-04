@@ -26,12 +26,13 @@ import {
 } from './layout.js';
 import { Login } from './Login.js';
 import { PasswordChange } from './PasswordChange.js';
-import { PasswordNotice } from './PasswordNotice.js';
+import { FlashNotice } from './FlashNotice.js';
 import { ProjectPick } from './ProjectPick.js';
 import { Guide } from './Guide.js';
 import { Prd } from './Prd.js';
 import { 기능보나, 판정을만든다 } from './role.js';
-import { route, 갈자리, 돌아갈자리, 링크를못보나, 서비스바꾼주소, 주소의서비스, 집 } from './route.js';
+import { route, 갈자리, 돌아갈자리, 집 } from './route.js';
+import { 링크를못보나, 서비스바꾼주소, 설정자리채운주소, 주소의서비스 } from './routeService.js';
 import { RunList } from './RunList.js';
 import { RunResult } from './RunResult.js';
 import { RunWindow } from './RunWindow.js';
@@ -209,12 +210,10 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
   const [prefix, setPrefix] = useState<string | null>(() => 고른서비스를읽는다());
   // 스스로 비밀번호를 바꾼 뒤 돌아갈 자리. 들어가는 화면들은 기억하지 않는다 — 거기로 돌아가면 쓸 데가 없다
   const 직전 = useRef('');
-  // 스스로 바꾼 직후에만 돌아간 자리에서 확인 한 줄을 보인다. 강제로 바꾼 사람은 집으로 가며 그 줄이 없다
-  const [비밀번호바꿈, set비밀번호바꿈] = useState(false);
-  const 알림끄기 = useCallback(() => set비밀번호바꿈(false), []);
-  // 링크가 가리킨 애플리케이션을 못 봐서 지금 것 그대로 연 때 한 줄 알린다 (공통/5-화면공통 §8 「링크에 애플리케이션이 담긴다」)
-  const [링크못봄, set링크못봄] = useState(false);
-  const 링크알림끄기 = useCallback(() => set링크못봄(false), []);
+  // 잠깐 보이는 한 줄. 비밀번호는 스스로 바꾼 직후에만 돌아간 자리에서 보인다 — 강제로 바꾼 사람은 집으로 가며 그 줄이 없다.
+  // 링크는 가리킨 애플리케이션을 못 봐서 지금 것 그대로 연 때다 (공통/5-화면공통 §8 「링크에 애플리케이션이 담긴다」). 하나만 선다 — 나중 것이 이긴다
+  const [안내, set안내] = useState<'password' | 'link' | null>(null);
+  const 안내끄기 = useCallback(() => set안내(null), []);
   const t = use말();
   const sso = useSSO();
   useEffect(() => {
@@ -282,7 +281,9 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
     set맞춘주소(hash);
     const 주소것 = 주소의서비스(hash, 상태.user);
     if (주소것 !== null && 주소것 !== prefix) setPrefix(주소것);
-    if (링크를못보나(hash, 상태.user, 고른서비스(prefix, 상태.user.services)?.prefix ?? null)) set링크못봄(true);
+    // 지금 애플리케이션에서도 그 화면을 못 보면 집으로 옮길 뿐 안내하지 않는다 — 「지금 고른 애플리케이션으로 엽니다」가 틀린 말이 된다
+    const 지금것 = 고른서비스(prefix, 상태.user.services)?.prefix ?? null;
+    if (링크를못보나(hash, 상태.user, 지금것) && 갈자리(hash, 상태.user, 지금것) === hash) set안내('link');
   }
 
   // 저장된 서비스가 배정에서 빠졌거나 주소가 서비스를 골랐으면 실제로 연 것을 적어 둔다.
@@ -300,8 +301,9 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
   // `none` 인 자리 주소를 직접 쳐도 집으로 보낸다 — 집은 권한으로 고른 맨 위 자리다 (화면공통 §8)
   // 가입 화면도 로그인한 사람에게는 쓸 데가 없어 집으로 보낸다
   const 들어가는자리 = route(hash).name === 'login' || route(hash).name === 'signup';
+  // 자리 없이 연 설정은 연 애플리케이션 자리로 채운다 (공통/5-화면공통 §8 「링크에 애플리케이션이 담긴다」)
   const 보낼곳 =
-    상태.어디 !== '안' ? null : 들어가는자리 ? 집(상태.user, 열린접두사) : 갈자리(hash, 상태.user, 열린접두사);
+    상태.어디 !== '안' ? null : 들어가는자리 ? 집(상태.user, 열린접두사) : 설정자리채운주소(갈자리(hash, 상태.user, 열린접두사), 열린접두사);
   useEffect(() => {
     if (보낼곳 !== null && 보낼곳 !== hash) 주소덮기(보낼곳);
   }, [보낼곳, hash]);
@@ -340,7 +342,7 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
       set상태({ 어디: '밖' });
       set프로젝트묻기(false);
       // 알림이 뜬 채 나가면 줄이 사라져 끄는 길(onGone)이 안 불린다. 남겨 두면 다음 로그인에 옛 알림이 뜬다
-      set비밀번호바꿈(false);
+      set안내(null);
       window.location.hash = '#/login';
     };
     void api.logout().then(정리, () => 정리());
@@ -349,7 +351,7 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
   // 바뀐 나를 받아 강제면 집으로, 스스로면 직전 자리로 (도메인/인증 §8.6). 세션은 그대로다
   const 비밀번호바뀜 = (user: User, 강제: boolean) => {
     set상태({ 어디: '안', user });
-    set비밀번호바꿈(!강제);
+    set안내(강제 ? null : 'password');
     const 고른 = 고른서비스(prefix, user.services)?.prefix ?? null;
     window.location.hash = 강제 ? 집(user, 고른) : 돌아갈자리(직전.current, user, 고른);
   };
@@ -359,6 +361,16 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
     return <PasswordChange 강제 onDone={(user) => 비밀번호바뀜(user, true)} onLogout={나간다} />;
   }
 
+  // 애플리케이션을 연다 — 고른 것을 적고 주소의 `service=` 칸도 고친다. 안 고치면 새로고침 · 뒤로 가기가 띠를 앞 애플리케이션으로 되돌린다.
+  // 목록은 다시 그리며 스스로 고치지만, 그 칸을 들고 온 다른 화면은 안 고친다 (공통/5-화면공통 §8 「링크에 애플리케이션이 담긴다」)
+  const 앱을연다 = (접두사: string) => {
+    고른서비스를적는다(접두사);
+    setPrefix(접두사);
+    const 갈곳 = 서비스바꾼주소(window.location.hash, 열린접두사, 접두사);
+    // 설정은 자리가 주소의 길이라 화면이 새 자리로 다시 그려져야 한다
+    (route(갈곳).name === 'settings' ? 주소덮기 : 주소고치기)(갈곳);
+  };
+
   if (프로젝트묻기 && 배정프로젝트들(상태.user.services).length > 1) {
     return (
       <ProjectPick
@@ -366,8 +378,7 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
         // 한 번도 안 열어 본 브라우저는 마지막이 없다 — 첫 애플리케이션으로 열려도 「마지막에 연」 표시는 달지 않는다
         마지막={상태.user.services.find((it) => it.prefix === prefix) ?? null}
         onPick={(접두사) => {
-          고른서비스를적는다(접두사);
-          setPrefix(접두사);
+          앱을연다(접두사);
           set프로젝트묻기(false);
         }}
         onLogout={나간다}
@@ -383,14 +394,11 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
         // 고르개는 고른 서비스를 먼저 적어 둔다. 쓰던 글이 있어 떠나기 상자가 막으면 묻던 서비스가 남아야 새로고침이 그리로 연다
         if (열린접두사 !== null) 고른서비스를적는다(열린접두사);
         버리기전(() => {
-          고른서비스를적는다(접두사);
-          setPrefix(접두사);
-          // 다른 서비스의 요구 번호가 주소에 남으면 새로고침 · 뒤로 가기가 그 서비스로 띠를 되돌린다 — 번호를 떼고 목록 자리로 바꿔 둔다.
-          // `service=` 칸은 새 서비스로 고친다 — 목록은 다시 그리며 스스로 고치지만, 그 칸을 들고 온 다른 화면은 안 고친다
+          앱을연다(접두사);
+          // 다른 서비스의 요구 번호가 주소에 남으면 새로고침 · 뒤로 가기가 그 서비스로 띠를 되돌린다 — 번호를 떼고 목록 자리로 바꿔 둔다
           const 지금 = route(window.location.hash);
           const 주소것 = 주소의서비스(window.location.hash, 상태.user);
           if (지금.name === 'prd' && 지금.reqId !== undefined && 주소것 !== null && 주소것 !== 접두사) window.location.replace('#/prd');
-          else 주소고치기(서비스바꾼주소(window.location.hash, 접두사));
         });
       }}
       언어={언어}
@@ -401,8 +409,14 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
         return 지금자리(지금.name, 집(상태.user, 열린접두사), 'kind' in 지금 ? 지금.kind : undefined);
       })()}
     >
-      {비밀번호바꿈 ? <PasswordNotice onGone={알림끄기} /> : null}
-      {링크못봄 ? <PasswordNotice 글={t('링크의 애플리케이션은 볼 권한이 없어 지금 고른 애플리케이션으로 엽니다')} onGone={링크알림끄기} /> : null}
+      {안내 === null ? null : (
+        <FlashNotice
+          // 글이 바뀌면 5초를 새로 센다
+          key={안내}
+          글={안내 === 'password' ? t('비밀번호를 바꿨습니다') : t('링크의 애플리케이션은 볼 권한이 없어 지금 고른 애플리케이션으로 엽니다')}
+          onGone={안내끄기}
+        />
+      )}
       <Screen
         // 조건 붙은 주소로 오면 새로 그린다 — 목록은 조건을 그릴 때 한 번만 읽어 「RUN N에서 통과」 고리를 눌러도 앞 실행에 남았다
         key={조건번}
@@ -413,9 +427,7 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
         // 사이드바 고르개와 같은 길이다 — 대시보드에서 다른 서비스의 작성 요청을 열 때 쓴다
         on서비스번호={(번호) => {
           const 접두사 = 배정서비스접두사(번호, 상태.user.services);
-          if (접두사 === null) return;
-          고른서비스를적는다(접두사);
-          setPrefix(접두사);
+          if (접두사 !== null) 앱을연다(접두사);
         }}
         onMeChanged={() => {
           // 설정 화면이 /auth/me 의 재료를 고쳤다 — 계정의 배정·등급이든 서비스의 이름·색·

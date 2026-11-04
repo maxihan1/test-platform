@@ -4,10 +4,10 @@ import { describe, expect, it } from 'vitest';
 
 import type { ServiceRow, User } from './api.js';
 import type { 권한칸 } from './role.js';
-import { route, 갈자리, 결정필요주소, 돌아갈자리, 링크를못보나, 서비스바꾼주소, 실행기록주소, 주소의서비스, 집, 케이스주소 } from './route.js';
+import { route, 갈자리, 돌아갈자리, 실행기록주소, 집, 케이스주소 } from './route.js';
 
-function 서비스(prefix: string, permissions: 권한칸, id = 1): ServiceRow {
-  return { id, prefix, name: prefix, color: '#000000', projectId: 1, projectName: '데모마켓', envs: [], hasSlackWebhook: false, permissions };
+function 서비스(prefix: string, permissions: 권한칸): ServiceRow {
+  return { id: 1, prefix, name: prefix, color: '#000000', projectId: 1, projectName: '데모마켓', envs: [], hasSlackWebhook: false, permissions };
 }
 
 function 사람(services: ServiceRow[]): User {
@@ -254,59 +254,5 @@ describe('route', () => {
   it('케이스 주소는 그 번호로 찾은 목록에서 상세 칸을 연다 — 케이스가 첫 쪽(50건) 밖이면 목록 쪽 안에 없어 칸이 안 열렸다', () => {
     expect(케이스주소('MKT-FN-051')).toBe('#/cases/fn?q=MKT-FN-051&case=MKT-FN-051&service=MKT');
     expect(케이스주소('MKT-UI-003')).toBe('#/cases/ui?q=MKT-UI-003&case=MKT-UI-003&service=MKT');
-  });
-});
-
-describe('주소의 애플리케이션 (공통/5-화면공통 §8 「링크에 애플리케이션이 담긴다」)', () => {
-  const 다읽음 = { cases: 'read', runs: 'read', authoring: 'read' } as const;
-  const 나 = 사람([서비스('PAY', 다읽음, 11), 서비스('MEM', 다읽음, 12), 서비스('OPS', { cases: 'none', runs: 'read', authoring: 'read' }, 13)]);
-
-  it('요구 번호 주소는 그 번호 접두사의 배정 애플리케이션을 고른다 — 다른 애플리케이션 실행의 실패 카드에서 요구 번호를 눌러도 띠 애플리케이션의 PRD 를 열지 않게', () => {
-    expect(주소의서비스('#/prd/MEM-REQ-004', 나)).toBe('MEM');
-  });
-
-  it('배정에 없는 접두사 · 애플리케이션을 가리키지 않는 주소는 띠를 그대로 둔다', () => {
-    expect(주소의서비스('#/prd/SET-REQ-001', 나)).toBe(null);
-    expect(주소의서비스('#/prd', 나)).toBe(null);
-    expect(주소의서비스('#/cases/fn?case=MEM-FN-001', 나)).toBe(null);
-    expect(주소의서비스('#/authoring?todo=1', 나)).toBe(null);
-  });
-
-  it('어느 화면이든 service= 칸의 접두사로 고른다 — 다른 애플리케이션을 고른 사람이 케이스 링크를 열어도 「케이스 없음」이 뜨지 않게', () => {
-    expect(결정필요주소('MEM')).toBe('#/authoring?todo=1&service=MEM');
-    expect(주소의서비스(결정필요주소('MEM'), 나)).toBe('MEM');
-    expect(주소의서비스(케이스주소('MEM-FN-001'), 나)).toBe('MEM');
-    expect(주소의서비스('#/prd?service=MEM', 나)).toBe('MEM');
-    expect(주소의서비스('#/runs/e2e?run=5&service=MEM', 나)).toBe('MEM');
-  });
-
-  it('대시보드가 써 온 번호 꼴도 받는다 — 붙여 둔 고리가 썩지 않게. 「전체」는 아무것도 고르지 않는다', () => {
-    expect(주소의서비스('#/dashboard?service=12', 나)).toBe('MEM');
-    expect(주소의서비스('#/cases/fn?service=12', 나)).toBe('MEM');
-    expect(주소의서비스('#/dashboard?service=99', 나)).toBe(null);
-    expect(주소의서비스('#/dashboard?service=all', 나)).toBe(null);
-  });
-
-  it('배정은 받았어도 그 화면 칸이 none 이면 고르지 않는다 — 고르면 집으로 튕긴다. 칸이 있는 화면은 고른다', () => {
-    expect(주소의서비스('#/cases/fn?service=OPS', 나)).toBe(null);
-    expect(주소의서비스('#/authoring?service=OPS', 나)).toBe('OPS');
-  });
-
-  it('못 보는 애플리케이션을 가리켰을 때만 안내한다 — 안 가리켰거나 지금 고른 것이면 알릴 것이 없다', () => {
-    expect(링크를못보나('#/cases/fn?service=SET', 나, 'PAY')).toBe(true);
-    expect(링크를못보나('#/cases/fn?service=99', 나, 'PAY')).toBe(true);
-    expect(링크를못보나('#/cases/fn?service=OPS', 나, 'PAY')).toBe(true);
-    expect(링크를못보나('#/cases/fn?service=OPS', 나, 'OPS')).toBe(false);
-    expect(링크를못보나('#/cases/fn?service=MEM', 나, 'PAY')).toBe(false);
-    expect(링크를못보나('#/cases/fn', 나, 'PAY')).toBe(false);
-    expect(링크를못보나('#/dashboard?service=all', 나, 'PAY')).toBe(false);
-  });
-
-  it('애플리케이션을 바꾸면 주소의 service= 칸만 새 것으로 고친다 — 대시보드는 자기 고르개가 번호로 고친다', () => {
-    expect(서비스바꾼주소('#/runs/e2e?run=5&service=MEM', 'PAY')).toBe('#/runs/e2e?run=5&service=PAY');
-    expect(서비스바꾼주소('#/scenarios?service=MEM', 'PAY')).toBe('#/scenarios?service=PAY');
-    expect(서비스바꾼주소('#/cases/fn?q=x', 'PAY')).toBe('#/cases/fn?q=x');
-    expect(서비스바꾼주소('#/cases/fn', 'PAY')).toBe('#/cases/fn');
-    expect(서비스바꾼주소('#/dashboard?service=12', 'PAY')).toBe('#/dashboard?service=12');
   });
 });

@@ -5,6 +5,7 @@ import type { MouseEvent } from 'react';
 import type { 대시보드응답 } from '../reporting/dashboardResults.js';
 import { use말 } from './i18n.js';
 import { 주소조건 } from './leaveGuard.js';
+import { 서비스번호꼴 } from './routeService.js';
 
 export const 기간들 = [7, 14, 30] as const;
 export type 기간 = (typeof 기간들)[number];
@@ -24,7 +25,7 @@ export function 주소에서조건(기본서비스: number | null = null): 대�
   const 주소 = 주소조건();
   const 서비스글 = 주소.get('service');
   return {
-    서비스: 서비스글 === 'all' ? null : 서비스글 !== null && /^[1-9]\d{0,9}$/.test(서비스글) ? Number(서비스글) : 기본서비스,
+    서비스: 서비스글 === 'all' ? null : (서비스번호꼴(서비스글) ?? 기본서비스),
     일: 기간들.find((일) => String(일) === 주소.get('days')) ?? 기본기간,
   };
 }

@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen } from '@testing-library/react';
 
-import { PasswordNotice } from './PasswordNotice.js';
+import { FlashNotice } from './FlashNotice.js';
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -13,10 +13,10 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe('비밀번호를 바꾼 뒤 확인 한 줄', () => {
-  it('바꿨다는 말이 상태 줄로 보이고 5초 뒤 스스로 거둔다', () => {
+describe('잠깐 보이는 확인 · 안내 한 줄', () => {
+  it('받은 글이 상태 줄로 보이고 5초 뒤 스스로 거둔다', () => {
     const 거둠 = vi.fn();
-    render(<PasswordNotice onGone={거둠} />);
+    render(<FlashNotice 글="비밀번호를 바꿨습니다" onGone={거둠} />);
 
     expect(screen.getByRole('status').textContent).toBe('비밀번호를 바꿨습니다');
     act(() => {

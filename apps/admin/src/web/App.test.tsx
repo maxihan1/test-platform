@@ -195,4 +195,41 @@ describe('링크에 애플리케이션이 담긴다 (WEB-F8-02)', () => {
     await waitFor(() => expect(window.location.hash).toBe('#/scenarios?service=ZBQ'));
     expect(지금고른(/ZBQ 웹/)).toBe('page');
   });
+
+  it('자리 없이 연 설정은 연 애플리케이션 자리로 기록을 덮어 채우고, 왼쪽 줄에서 바꾸면 그 자리도 따라간다', async () => {
+    await 간다('#/before');
+    await 간다('#/settings');
+    const 길이 = window.history.length;
+    render(<앱뿌리 />);
+    await waitFor(() => expect(window.location.hash).toBe('#/settings/ZAP'));
+    expect(window.history.length).toBe(길이);
+
+    fireEvent.click(screen.getByRole('button', { name: /ZBQ 웹/ }));
+    await waitFor(() => expect(window.location.hash).toBe('#/settings/ZBQ'));
+    expect(window.history.length).toBe(길이);
+    await 뒤로();
+    expect(window.location.hash).toBe('#/before');
+  });
+
+  it('지금 애플리케이션에서도 그 화면을 못 보면 집으로 옮길 뿐 안내하지 않는다 — 「지금 고른 애플리케이션으로 엽니다」가 틀린 말이 된다', async () => {
+    세.나 = { ...둘, services: 둘.services.map((it) => ({ ...it, permissions: { ...it.permissions, cases: 'none' as const } })) };
+    await 간다('#/cases/fn?service=NOPE');
+    render(<앱뿌리 />);
+    await waitFor(() => expect(window.location.hash).toBe('#/dashboard'));
+    expect(screen.queryByText(안내)).toBeNull();
+  });
+
+  it('로그아웃하면 떠 있던 안내 한 줄을 거둔다 — 다음 로그인에 옛 안내가 뜨지 않게', async () => {
+    await 간다('#/cases/fn?service=NOPE');
+    render(<앱뿌리 />);
+    await screen.findByText(안내);
+    fireEvent.click(screen.getByRole('button', { name: /앱검사|내 메뉴/ }));
+    fireEvent.click(await screen.findByRole('button', { name: '로그아웃' }));
+    await screen.findByLabelText('아이디');
+    fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'zap' } });
+    fireEvent.change(screen.getByLabelText('비밀번호'), { target: { value: 'x' } });
+    fireEvent.submit(screen.getByRole('button', { name: '로그인' }));
+    await screen.findByRole('button', { name: /ZAP 웹/ });
+    expect(screen.queryByText(안내)).toBeNull();
+  });
 });
