@@ -839,7 +839,7 @@ Android 앱 케이스의 「실행」(결과가 실행 기록 · 증적에 남�
 - 「디바이스 팜이 폰을 내주지 않았습니다: …」 뒤의 문장은 팜이 준 거절 사유다. 뜻은 팜 안내서 7절 표에 있다.
 - 증적의 앱 판이 「판 모름」이면 먼저 팜이 옛 판인지 본다 — 폰에 앱 판을 묻는 옵션(`adb_shell`)은 팜 저장소가 연다(2026-10-22 결정). 팜 저장소를 받아 팜을 `kill -INT` 로 끈 뒤 다시 켠다. 그래도 그러면 SPEC 러너 §5.2 「앱 실행」 「기기 정보」의 다른 까닭을 본다.
 - 「▶ 테스트 실행」도 2026-11-03 TMO-F3-02 부터 정식 실행처럼 팜이다 — 누른 사람 이름(Auth 대신 PAT)으로 빈 폰을 잡고 끝나면 놓는다. 쓰이는 중이면 409 `DEVICE_BUSY`, 팜이 없으면 409 `FARM_OFF` 다. 러너를 직접 불러 돌릴 때(§15)만 같은 맥이면 팜 화면에서 폰을 「쓰기」로 먼저 잡는다.
-  팜이 인증을 켰으면 그때 러너를 `PLATFORM_APPIUM_TOKEN=<폰을 잡은 사람의 Auth_platform 개인 액세스 토큰> npm run runner:local` 로 켠다 — 폰을 잡은 사람과 연결을 여는 토큰이 같아야 팜이 받는다.
+  팜이 인증을 켰으면 러너를 직접 불러 돌릴 수 없다 — 연결을 열려면 폰을 잡은 사람의 PAT 가 있어야 하는데, 사람은 PAT 를 만들지 않는다(2026-11-04 Auth_platform `docs/token-policy.md` §2). 화면의 「▶ 테스트 실행」으로 돌린다.
 
 **끄기** — `.env` 의 `DEVICE_FARM_URL` 을 비우고 3번을 다시 한다. 팜 자체를 끄는 법은 팜 안내서에 있다 — `kill -9` 로 끄면 잡은 폰의 정리를 건너뛴다.
 
@@ -952,16 +952,17 @@ docker run -d --init --restart unless-stopped --network host --name qahub-monito
    GRAFANA_RO_PASSWORD=<새 값>
    PLATFORM_PUBLIC_URL=https://qahub.maxihan.com
    DEVICE_FARM_URL=https://farm.maxihan.com/wd/hub
-   DEVICE_FARM_RUN_AS=maxi
+   DEVICE_FARM_RUN_AS=qahub-runner
    BTS_BOT_USERNAMES=qahub-ai
    BTS_URLS=<설정 › BTS 연결에 적는 Issue Bunker 주소>
    AUTHORING_AGENT_USER=<맥 .env 와 같은 아이디>
    ```
-   - **`DEVICE_FARM_RUN_AS` 는 정기 · 빌드 실행 · 작성 AI · 기기 성능이 팜에 보일 Auth 계정 이름(username)이다** (2026-11-04 S25 — 지금은 `maxi`). admin 이 그 이름의 「대신 PAT」(3시간)를 Auth 에서 받아 팜에 싣는다. 사람이 누른 실행은 누른 사람 이름이다 — 아무도 토큰을 붙여 넣지 않는다(SPEC 도메인/러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」 · 도메인/인증 §7 「대신 PAT」)
-   - 대신 PAT 는 로그인과 같은 `AUTH_ISSUER` · `AUTH_CLIENT_ID` · `AUTH_CLIENT_SECRET` 로 받는다. Auth 운영 설정의 `auth.delegated-pats.clients` 에 `AUTH_CLIENT_ID`(`test-platform`)가 있어야 한다 — 없으면 403 이라 서버 몫 · 사람 실행이 모두 `DEVICE_FARM_TOKEN` 으로 물러선다
+   - **`DEVICE_FARM_RUN_AS` 는 사람이 안 누른 일(정기 · 빌드 실행 · 작성 AI · 기기 성능 · 기기 목록)이 팜에 보일 전용 Auth 계정 이름(username)이다 — 운영은 `qahub-runner`** (2026-11-04 토큰 정책 · 앞 판은 `maxi`). admin 이 그 이름의 「대신 PAT」(3시간)를 Auth 에서 받아 팜에 싣는다. 사람이 누른 실행은 누른 사람 이름이다 — 아무도 토큰을 붙여 넣지 않는다(SPEC 도메인/러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」 · 도메인/인증 §7 「대신 PAT」)
+   - 개인 계정을 적지 않는다 — 팜은 같은 주인의 잡기 요청에 이미 잡힌 폰을 내줘서, 그 사람이 손으로 쓰던 폰과 섞이고 기록 · 사용률도 섞인다. 전용 계정은 Auth 관리자 화면 › 사용자에서 만들고 그 계정으로 브라우저 로그인하지 않는다. 토큰 규칙의 원본은 Auth_platform `docs/token-policy.md` 다
+   - 대신 PAT 는 로그인과 같은 `AUTH_ISSUER` · `AUTH_CLIENT_ID` · `AUTH_CLIENT_SECRET` 로 받는다. Auth 운영 설정의 `auth.delegated-pats.clients` 에 `AUTH_CLIENT_ID`(`test-platform`)가 있어야 한다 — 없으면 403 이라 Auth 에 묶인 사람이 누른 실행은 그 항목이 NA 로 닫히고, 서버 몫(Auth 에 안 묶인 계정이 누른 실행도)은 (아래대로 `DEVICE_FARM_TOKEN` 을 비워 두었으니) 팜 토큰 없이 가서 인증 켠 팜이 401 을 준다
    - **`BTS_BOT_USERNAMES` 는 설정 › BTS 연결의 「QA Hub AI 계정 이름」으로 받을 Auth 계정 이름, `BTS_URLS` 는 열쇠를 보낼 Issue Bunker 주소다**(둘 다 쉼표로 여럿) — 밖의 이름 · 주소는 저장 · 불러오기 · 부르기를 거절한다. 비면 Issue Bunker 를 못 잇는다(SPEC 도메인/BTS 「열쇠 표」)
-   - **`DEVICE_FARM_TOKEN` 은 SSO 를 끈 설치에만 적는다** — SSO 설치에서는 비워 둔다. 앞 판(2026-10-27 ~ 11-03)은 여기에 `maxi` 의 PAT 를 넣었다. 지웠으면 그 PAT 는 Auth 「내 계정」에서 폐기한다
-   - 새면 3시간 동안 팜과 Issue Bunker 를 그 계정 이름으로 쓸 수 있다(대신 PAT 의 scopes `[bunker, vision]`). 러너의 Android 앱 · 게임 케이스(AI 가 쓴 코드)와 작성 AI 자식 세션이 이 값을 읽을 수 있다. 그래서 `DEVICE_FARM_RUN_AS` 는 Bunker 권한이 작은 계정인 쪽이 낫다
+   - **`DEVICE_FARM_TOKEN` 은 비워 둔다 — 사람 PAT 를 넣지 않는다**(토큰 정책 §2). 사람은 PAT 를 만들지 않아서 SSO 를 끈 설치도 넣을 값이 없다 — 그런 설치는 인증 없는 팜(같은 맥)에만 붙는다. 운영 서버는 이미 비워 두었다(2026-11-04 — `.env` 에 이 줄이 없다). 앞 판(2026-10-27 ~ 11-03)은 여기에 `maxi` 의 PAT 를 넣었다. 코드는 이 칸을 아직 읽는다
+   - 새면 3시간 동안 팜과 Issue Bunker 를 그 계정 이름으로 쓸 수 있다(대신 PAT 의 scopes `[bunker, vision]`). 러너의 Android 앱 · 게임 케이스(AI 가 쓴 코드)와 작성 AI 자식 세션이 팜 토큰(대신 PAT)을 읽을 수 있다. 그래서 `DEVICE_FARM_RUN_AS` 는 Bunker 권한이 작은 계정인 쪽이 낫다
    - `COMPOSE_FILE` 이 서버용 덧붙임 파일을 늘 같이 읽게 한다 — 서버에서 그냥 `docker compose up -d` 를 쳐도 perf-agent 가 안 뜨고 CPU · 메모리 상한이 걸린다
    - **`ADMIN_PORT` 앞의 `127.0.0.1` 을 빼지 않는다** — 빼면 Docker 가 서버 방화벽(firewalld)을 건너뛰고 13000 을 바깥에 연다. 바깥에서는 Caddy(https)로만 들어온다
    - 작성 토큰 셋(`AUTHORING_AGENT_TOKEN` · `CLAUDE_CODE_OAUTH_TOKEN` · `GH_TOKEN`) · `PERF_AGENT_TOKEN` 은 서버에 두지 않는다 — author · perf-agent 는 맥에 뜬다
