@@ -51,6 +51,15 @@ describe.skipIf(연결 === undefined)('기기 성능', { timeout: 90_000 }, () =
     expect((await 앱({ caseIds: ['XQD-002'] })).json()).toMatchObject({ detail: 'Android 앱 케이스가 아닙니다: XQD-002' });
     expect((await 앱({ devices: [{ serial: 'LC1', where: 'LOCAL' }] })).json()).toMatchObject({ detail: 'Appium 케이스는 팜 폰만 잴 수 있습니다' });
     expect((await 앱({ devices: [{ serial: 'FA1', where: 'FARM' }, { serial: 'FA1', where: 'FARM' }] })).statusCode).toBe(400);
+    await 판.pool.query(`UPDATE service_env SET app_path = 'com.xq.app' WHERE service_id = $1 AND env = 'qa'`, [판.서비스]);
+    try {
+      expect((await 앱({ devices: [{ serial: 'FA1', where: 'FARM' }, { serial: 'FA2', where: 'FARM' }] })).json()).toMatchObject({
+        error: 'INVALID_REQUEST',
+        detail: '고른 폰 FA2 에 com.xq.app 가 깔려 있지 않습니다 — Device VISION 「남길 앱」에 넣어 둔 폰을 고릅니다',
+      });
+    } finally {
+      await 판.pool.query(`UPDATE service_env SET app_path = '/apps/demo.apk' WHERE service_id = $1 AND env = 'qa'`, [판.서비스]);
+    }
     const 원래 = (await 판.pool.query<{ kind: string }>('SELECT kind FROM service WHERE id = $1', [판.서비스])).rows[0]!.kind;
     await 판.pool.query(`UPDATE service SET kind = 'GAME' WHERE id = $1`, [판.서비스]);
     try {
