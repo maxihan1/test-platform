@@ -24,8 +24,16 @@ export class GM콘솔 {
     await this.game.click('GmGoldButton');
   }
 
+  async 봇부르기누르기(): Promise<void> {
+    await this.game.click('GmSummonBots');
+  }
+
   async 출력글(): Promise<string> {
     return this.game.text('GmOutputText');
+  }
+
+  async 출력글뜰때까지(글자: string): Promise<void> {
+    await this.game.waitFor('GmOutputText', { text: 글자 });
   }
 
   async 닫기누르기(): Promise<void> {
