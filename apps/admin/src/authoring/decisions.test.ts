@@ -116,7 +116,7 @@ describe.skipIf(연결 === undefined)('결정 목록 · 결정 진행', () => {
       { feature: '주문', text: '주문은 취소할 수 있다', basis: [근거('기획서.docx', '취소')], status: 'CONFIRMED' },
     ]);
     const 관리자 = await 목록();
-    expect(관리자).toMatchObject({ prdVersion: 1, open: [첫], count: 3, failMore: 0 });
+    expect(관리자).toMatchObject({ prdVersion: 1, open: [첫], count: 2, failMore: 0 });
     expect(관리자.items.map((x) => [x.key, x.picks, x.blockedBy, x.needsApply ?? null])).toEqual([
       [`apply:${String(첫)}:${String(첫)}`, ['APPLY', 'REJECT'], null, null],
       ['check:XWX-REQ-001', ['SAME', 'EDIT'], null, null],

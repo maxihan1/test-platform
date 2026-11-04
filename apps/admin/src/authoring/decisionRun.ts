@@ -8,11 +8,11 @@ import { 초안고름남기기, 초안다시만들기, 초안버리기, 초안�
 import { BTS이은서비스인가 } from '../bts/link.js';
 import type { 판변경 } from '../prd/changes.js';
 import { 상한 } from '../prd/rules.js';
-import { 화면목록식, 화면이맞음채우기, type 화면이맞음 } from '../prd/screenRight.js';
+import { 화면이맞음채우기, type 화면이맞음 } from '../prd/screenRight.js';
 import { 결정판넣기, 서비스접두사, 잠그고, 지금판, type 저장하는사람 } from '../prd/store.js';
 import { 버그남기기 } from '../reporting/failReqs.js';
 import { 결정판, 요구문장, type 결정항목, type 확인결정 } from './decisionItems.js';
-import { 최근대조 } from './decisionReads.js';
+import { 버그판정실패, 최근대조 } from './decisionReads.js';
 import { 결정재료읽기, type 부른이 } from './decisions.js';
 import { 머지세우기 } from './merge.js';
 import { 열린작성 } from './openRoots.js';
@@ -63,26 +63,6 @@ function 본문읽기(body: unknown): { prdVersion: number; picks: 받은것[] }
     읽음.push({ key: x.key, pick: x.pick, text: x.text, option: x.option, env: x.env, rows: x.rows });
   }
   return { prdVersion, picks: 읽음 };
-}
-
-/**
- * 버그로 판정돼 목록에 없는 실패 — 「화면이 맞음으로 바꾸기」만 받는다(§3.6 「고를 때 본 것과 다르면」 예외).
- * 이미 화면이 맞음 요청(폐기 안 됨)이 그 실패를 실었으면 안 받는다 — 같은 고침을 두 번 쓰게 된다
- */
-async function 버그판정실패(서비스: number, key: string): Promise<결정항목 | null> {
-  const m = /^fail:(\d{1,15}):(.+)$/.exec(key);
-  if (m === null) return null;
-  const { pool } = await import('../db/index.js');
-  const r = await pool.query(
-    `SELECT 1 FROM run_case_bug b JOIN test_run t ON t.run_id = b.run_id
-      WHERE b.run_id = $1 AND b.tc_id = $2 AND t.service_id = $3
-        AND NOT EXISTS (SELECT 1 FROM authoring_request q CROSS JOIN LATERAL jsonb_array_elements(${화면목록식('q.params')}) 칸
-                         WHERE q.service_id = $3 AND q.discarded_at IS NULL AND q.kind IN ('AUTHOR', 'RERUN')
-                           AND 칸->>'runId' = $1::text AND 칸->>'tcId' = $2)`,
-    [Number(m[1]), m[2], 서비스],
-  );
-  if (r.rowCount === 0) return null;
-  return { key, group: 2, kind: 'FAIL', picks: ['SCREEN'], blockedBy: null, runId: Number(m[1]), tcId: m[2]!, reqs: [], verify: null, reason: null, finishedAt: null };
 }
 
 interface 준비 {
@@ -260,7 +240,8 @@ export async function 결정진행(서비스: number, 누구: 부른이, 사람:
         steps.push({ step: 3, key: x.key, requestId: null, version: null });
       }
       // 뒤 요청은 그때 열린 작성 전부와 이번에 앞서 세운 요청 전부를 기다린다 — 한 번에 하나씩 돈다
-      const 앞것 = [...열린];
+      // 반려한 뿌리는 방금 폐기했다 — 뒤 요청이 기다릴 앞 일이 아니다
+      const 앞것 = 열린.filter((id) => !준.반려.some((x) => x.rootId === id));
       const 결정 = () => ({ decision: { after: [...앞것], count } });
       // 문장이 바뀌었거나 화면이 맞음을 골랐으면 바뀐 요구도 같이 다시 만든다 — 기준 판이 하나라 나눠 넣으면 병합 뒤 「반영 안 됨」이 틀어진다
       if (준.요구다시 !== null || 준.화면.length > 0 || 판?.문장바뀜 === true) {

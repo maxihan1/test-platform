@@ -9,6 +9,7 @@ import { db } from './store.js';
 import { 종류조건 } from '../execution/runKind.js';
 import { 지금항목 } from '../execution/single.js';
 import { 화면목록식 } from '../prd/screenRight.js';
+import type { 결정항목 } from './decisionItems.js';
 
 export interface 손남은뿌리 {
   rootId: number;
@@ -149,4 +150,24 @@ export async function 최근대조(서비스: number): Promise<{ env: string; st
   );
   const 행 = r.rows[0];
   return 행 === undefined ? null : { env: 행.env, startUrl: 행.start_url };
+}
+
+/**
+ * 버그로 판정돼 목록에 없는 실패 — 「화면이 맞음으로 바꾸기」만 받는다(§3.6 「고를 때 본 것과 다르면」 예외).
+ * 이미 화면이 맞음 요청(폐기 안 됨)이 그 실패를 실었으면 안 받는다 — 같은 고침을 두 번 쓰게 된다
+ */
+export async function 버그판정실패(서비스: number, key: string): Promise<결정항목 | null> {
+  const m = /^fail:(\d{1,15}):(.+)$/.exec(key);
+  if (m === null) return null;
+  const { pool } = await import('../db/index.js');
+  const r = await pool.query(
+    `SELECT 1 FROM run_case_bug b JOIN test_run t ON t.run_id = b.run_id
+      WHERE b.run_id = $1 AND b.tc_id = $2 AND t.service_id = $3
+        AND NOT EXISTS (SELECT 1 FROM authoring_request q CROSS JOIN LATERAL jsonb_array_elements(${화면목록식('q.params')}) 칸
+                         WHERE q.service_id = $3 AND q.discarded_at IS NULL AND q.kind IN ('AUTHOR', 'RERUN')
+                           AND 칸->>'runId' = $1::text AND 칸->>'tcId' = $2)`,
+    [Number(m[1]), m[2], 서비스],
+  );
+  if (r.rowCount === 0) return null;
+  return { key, group: 2, kind: 'FAIL', picks: ['SCREEN'], blockedBy: null, runId: Number(m[1]), tcId: m[2]!, reqs: [], verify: null, reason: null, finishedAt: null };
 }
