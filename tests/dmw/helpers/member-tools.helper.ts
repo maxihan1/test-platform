@@ -125,8 +125,15 @@ export function 계정값(loginId: string | undefined, password: string | undefi
 }
 
 export async function 시계멈추기(page: Page): Promise<void> {
-  const 지금 = await page.evaluate(() => Date.now());
-  await page.clock.pauseAt(지금 + 10);
+  for (let 남은시도 = 3; ; 남은시도--) {
+    const 지금 = await page.evaluate(() => Date.now());
+    try {
+      await page.clock.pauseAt(지금 + 10);
+      return;
+    } catch (오류) {
+      if (남은시도 <= 1 || !String(오류).includes('Cannot fast-forward to the past')) throw 오류;
+    }
+  }
 }
 
 export async function 화면가운데인가(page: Page, 요소: Locator): Promise<boolean> {
