@@ -273,6 +273,17 @@ describe('ScenarioRunList 오른쪽 결과 칸 (실행 §8.7 「A안」)', () =>
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
+  it('줄을 누르면 방문 기록이 한 칸 쌓이고 거르개를 바꾸면 쌓이지 않는다 (WEB-F8-01)', async () => {
+    const { container } = await 그리기();
+    await screen.findByText(/ZSL 시나리오 12/);
+    const 길이 = window.history.length;
+
+    fireEvent.click(줄들(container)[1]!);
+    expect(window.history.length).toBe(길이 + 1);
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'failed' } });
+    expect(window.history.length).toBe(길이 + 1);
+  });
+
   it('주소의 실행과 거르개로 연다 — 조건 밖이면 까닭을 한 줄 적는다', async () => {
     window.location.hash = '#/runs/e2e?run=5&state=failed&page=2';
     const { 스파이, 결과 } = await 그리기();

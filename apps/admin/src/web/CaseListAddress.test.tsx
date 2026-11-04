@@ -109,7 +109,7 @@ describe('케이스 목록 조건을 주소에 쓴다', () => {
     expect(window.location.hash).toBe('#/cases/fn');
   });
 
-  it('이름을 눌러 상세 칸을 열면 case= 가 붙고 닫으면 빠진다 — 방문 기록은 쌓지 않는다', async () => {
+  it('이름을 눌러 상세 칸을 열면 case= 가 붙고 닫으면 빠진다 — 열고 닫을 때마다 방문 기록이 한 칸씩 쌓인다', async () => {
     await 그리기('#/cases/fn?dev=mobile');
     const 길이 = window.history.length;
 
@@ -117,7 +117,17 @@ describe('케이스 목록 조건을 주소에 쓴다', () => {
     expect(window.location.hash).toBe('#/cases/fn?dev=mobile&case=ZCA-FN-001');
     fireEvent.click(screen.getByRole('button', { name: '상세 닫기' }));
     expect(window.location.hash).toBe('#/cases/fn?dev=mobile');
-    expect(window.history.length).toBe(길이);
+    expect(window.history.length).toBe(길이 + 2);
+  });
+
+  it('상세를 연 뒤 뒤로 가기를 하면 상세만 닫히고 목록 조건은 그대로다', async () => {
+    await 그리기('#/cases/fn?dev=mobile');
+    fireEvent.click(screen.getByRole('button', { name: 'ZCA-FN-001 케이스' }));
+    expect(document.getElementById('case-pane')).not.toBeNull();
+
+    window.history.back();
+    await waitFor(() => expect(document.getElementById('case-pane')).toBeNull());
+    expect(window.location.hash).toBe('#/cases/fn?dev=mobile');
   });
 
   it('조건 초기화를 눌러도 열어 둔 상세 칸은 그대로 둔다 — 조건이 아니라 보고 있는 것이다', async () => {

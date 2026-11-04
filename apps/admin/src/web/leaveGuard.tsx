@@ -174,8 +174,8 @@ export function use이동(): { hash: string; 조건번: number } {
       const 새것 = window.location.hash;
       if (새것 === 이전) return;
       const 온칸 = 칸번호();
-      // 단계 · 탭을 스스로 듣는 화면 안에서 옮기는 것은 떠나는 일이 아니다 — 막지도, 다시 그리지도 않는다
-      const 안에서 = 스스로듣는 > 0 && JSON.stringify(route(새것)) === JSON.stringify(route(이전));
+      // 단계 · 탭을 스스로 듣는 화면 안에서 뒤로 · 앞으로 가는 것은 떠나는 일이 아니다 — 막지도, 다시 그리지도 않는다
+      const 안에서 = 스스로듣는 > 0 && 온칸 !== null && JSON.stringify(route(새것)) === JSON.stringify(route(이전));
       const 묻는것 = 막는것들.at(-1);
       if ((막는쪽 !== null || 묻는것 !== undefined) && !한번통과 && !안에서) {
         if (온칸 === null) {
