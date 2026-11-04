@@ -11,7 +11,7 @@ import { use말 } from './i18n.js';
 import { use주소조건, 주소조건 } from './leaveGuard.js';
 import { 다음이있나 } from './paging.js';
 import { RunResult } from './RunResult.js';
-import { 결과칸들, 보기읽기, 보기조건, 처음보기 } from './runResultView.js';
+import { use실행보기, 결과칸들, 보기조건 } from './runResultView.js';
 import { 실행줄 } from './RunListRow.js';
 import { 케이스서비스 } from './role.js';
 import { 도는중 } from './runState.js';
@@ -58,14 +58,7 @@ export function RunList({
   const [origin, setOrigin] = useState<RunQuery['origin']>(() => 고른값(처음.get('origin'), 방식들));
   const [days, setDays] = useState<number | undefined>(() => 기간들.find((일) => String(일) === 처음.get('days')));
   // 사람이 고른 실행. 없으면 결과 칸은 맨 위 줄을 보인다 — 좁은 창에서는 고르기 전까지 목록만 보인다
-  const [고른, set고른실행] = useState(() => 번호(처음.get('run')));
-  // 결과 칸의 거르개 · 쪽 · 펼친 카드 — 고른 실행에 딸려 주소에 남는다. 다른 실행을 고르면 처음으로 (공통/5-화면공통 §8)
-  const [보기, set보기] = useState(() => 보기읽기(처음));
-  const set고른 = (n: number | null) => {
-    if (n === 고른) return;
-    set고른실행(n);
-    set보기(처음보기);
-  };
+  const [고른, set고른] = useState(() => 번호(처음.get('run')));
   // 주소로 곧장 내려온 케이스(`&tc=`) — 처음 연 그 실행에서만 그 실패 카드를 펼친다
   const 처음실행 = 번호(처음.get('run'));
   const 열카드 = 처음.get('tc') ?? undefined;
@@ -85,7 +78,7 @@ export function RunList({
     // 한 번만 남긴다 — 그 뒤 사람이 애플리케이션을 바꾸면 고른 실행을 버린다
     const 남길것 = 따라간실행.current;
     따라간실행.current = null;
-    if (고른 === null || 고른 !== 남길것) set고른(null);
+    set고른((앞) => (앞 !== null && 앞 === 남길것 ? 앞 : null));
   }
   useEffect(() => {
     if (처음실행 === null || 서비스바꿈 === undefined) return undefined;
@@ -105,18 +98,6 @@ export function RunList({
       살아있음 = false;
     };
   }, []);
-
-  // 기본값인 조건은 적지 않는다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
-  use주소조건(`#/runs/${kind === 'UI' ? 'ui' : 'fn'}`, {
-    ...(고른 === null ? {} : { run: String(고른) }),
-    ...(q === '' ? {} : { q }),
-    ...(state === undefined ? {} : { state }),
-    ...(env === '' ? {} : { env }),
-    ...(origin === undefined ? {} : { origin }),
-    ...(days === undefined ? {} : { days: String(days) }),
-    ...(page === 1 ? {} : { page: String(page) }),
-    ...보기조건(보기),
-  }, { 쌓는칸: ['run'], 딸린칸: 결과칸들 });
 
   const 조건: RunQuery = {
     kind,
@@ -152,13 +133,28 @@ export function RunList({
     };
   }, [도는것있나, runs.data]);
 
+  const 보는실행 = 고른 ?? 줄들[0]?.runId ?? null;
+  // 결과 칸의 거르개 · 쪽 · 펼친 카드 — 보이는 실행에 딸려 주소에 남는다. 다른 실행이 보이면 처음으로 (공통/5-화면공통 §8)
+  const [보기, set보기] = use실행보기(처음, 보는실행);
+
+  // 기본값인 조건은 적지 않는다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
+  use주소조건(`#/runs/${kind === 'UI' ? 'ui' : 'fn'}`, {
+    ...(고른 === null ? {} : { run: String(고른) }),
+    ...(q === '' ? {} : { q }),
+    ...(state === undefined ? {} : { state }),
+    ...(env === '' ? {} : { env }),
+    ...(origin === undefined ? {} : { origin }),
+    ...(days === undefined ? {} : { days: String(days) }),
+    ...(page === 1 ? {} : { page: String(page) }),
+    ...보기조건(보기),
+  }, { 쌓는칸: ['run'], 딸린칸: 결과칸들 });
+
   if (runs.error !== null) return <Failed error={runs.error} />;
   if (runs.data === null) return <Loading />;
 
   // 총건수로 페이지 수를 계산하지 않는다 (SPEC §8.7 — §8.1 과 같은 함정이다)
   const 더있나 = 다음이있나(runs.data);
   const 건조건 = q !== '' || state !== undefined || env !== '' || origin !== undefined || days !== undefined;
-  const 보는실행 = 고른 ?? 줄들[0]?.runId ?? null;
   // 거르개를 바꿔도 고른 실행은 그대로 둔다 — 대신 목록에 없는 까닭을 한 줄 적는다
   const 조건밖 = 고른 !== null && 건조건 && !줄들.some((run) => run.runId === 고른);
 

@@ -12,7 +12,7 @@ import { 서비스를열며, 실행목록주소, 이동속성, 창실패종류, 
 import { 실패유형이름 } from './DashboardTypes.js';
 import { use말, use언어 } from './i18n.js';
 import { 실행기록주소 } from './route.js';
-import { 실패카드 } from './RunFailCards.js';
+import { 실패카드 } from './RunFailCard.js';
 import { Failed, Loading, PLATFORM_LABEL, useAsync } from './ui.js';
 
 type 자료 = 대시보드응답;
