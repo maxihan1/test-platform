@@ -24,3 +24,8 @@ export function parseResult(stdout: string): RunnerResult | null {
 export function kit경고(출력: string): string[] {
   return [...new Set(stripVTControlCharacters(출력).split('\n').map((줄) => 줄.trim()).filter((줄) => 줄.startsWith('[kit]')))];
 }
+
+// 실패 사유로 쓸 stderr — kit 경고는 뺀다. 결과 줄 없이 죽은 실행에서 장면 경고가 진짜 사유(stdout 꼬리)를 밀어내지 않게
+export function kit경고뺌(출력: string): string {
+  return 출력.split('\n').filter((줄) => !stripVTControlCharacters(줄).trim().startsWith('[kit]')).join('\n');
+}

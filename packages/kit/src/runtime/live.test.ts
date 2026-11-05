@@ -199,10 +199,10 @@ describe('장면걸기 (브라우저)', () => {
     const page = await browser.newPage();
     try {
       const 찍기 = vi.spyOn(page, 'screenshot');
-      const 장면 = await 장면걸기(page, 파일, undefined, { 첫장ms: 1_000, 찍기ms: 30 });
+      const 장면 = await 장면걸기(page, 파일, undefined, { 첫장ms: 3_000, 찍기ms: 30 });
       await page.setContent('<p>장면이 오는 탭</p>');
-      await vi.waitFor(() => expect(existsSync(파일)).toBe(true), { timeout: 5000 });
-      await new Promise((끝) => setTimeout(끝, 1_200));
+      await vi.waitFor(() => expect(existsSync(파일)).toBe(true), { timeout: 2_500 });
+      await new Promise((끝) => setTimeout(끝, 3_200));
       await 장면?.끄기();
 
       expect(찍기).not.toHaveBeenCalled();

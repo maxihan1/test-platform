@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { kit경고, parseResult } from './result.js';
+import { kit경고, kit경고뺌, parseResult } from './result.js';
 
 const line = (payload: unknown) => `@@RESULT@@${JSON.stringify(payload)}`;
 
@@ -53,5 +53,10 @@ describe('kit경고', () => {
       '[kit] 테스트 모드 장면이 2000ms 동안 한 장도 안 와 탭을 직접 찍는다',
       '[kit] 테스트 모드 장면을 못 찍었다: 탭이 닫혔다',
     ]);
+  });
+
+  it('실패 사유로 쓸 stderr 에서는 kit 경고를 뺀다 — 장면 경고만 남으면 빈 글이라 stdout 꼬리가 사유가 된다', () => {
+    expect(kit경고뺌('\u001b[33m[kit] 테스트 모드 장면을 못 걸었다: x\u001b[39m\nError: 작업자가 죽었다')).toBe('Error: 작업자가 죽었다');
+    expect(kit경고뺌('[kit] 테스트 모드 장면이 2000ms 동안 한 장도 안 와 탭을 직접 찍는다\n').trim()).toBe('');
   });
 });

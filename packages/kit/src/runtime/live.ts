@@ -98,6 +98,11 @@ function 찍어받친다(page: Page, 쓰개: 장면쓰개, 받았나: () => bool
     };
   });
   const 그만 = (): boolean => 멈춤 || 받았나() || page.isClosed();
+  const 닫힘 = () => {
+    멈춤 = true;
+    깨우기();
+  };
+  page.once('close', 닫힘);
   const 돌기 = (async () => {
     await 쉬기(틈.첫장ms);
     if (그만()) return;
@@ -115,11 +120,7 @@ function 찍어받친다(page: Page, 쓰개: 장면쓰개, 받았나: () => bool
       }
       await 쉬기(틈.찍기ms);
     }
-  })();
-  page.once('close', () => {
-    멈춤 = true;
-    깨우기();
-  });
+  })().finally(() => page.off('close', 닫힘));
   return async () => {
     멈춤 = true;
     깨우기();
