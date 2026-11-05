@@ -263,7 +263,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
             고름={골랐나(row)}
             뒤집기={(row, 사이) => 뽑기.뒤집기(row, 보일것, 사이 ? 펼친줄 : undefined)}
             열림={연줄?.tcId === row.tcId}
-            on실행={할수('테스트실행') ? (row) => void 뽑기.하나열기(row) : undefined}
+            on실행={할수('테스트실행') ? (row, 디바이스) => void 뽑기.하나열기(row, 디바이스) : undefined}
             테스트만={테스트만}
             on열기={열기}
             on스모크={할수('스모크고치기') ? cases.reload : undefined}

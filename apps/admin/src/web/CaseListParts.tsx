@@ -2,7 +2,7 @@
 // 고르는 칸이 붙으면서 CaseList 가 300줄을 넘었다. 판단은 CaseList 에 두고 그리는 쪽만 여기로 옮겼다.
 // 빈 목록 안내 · 스캔 결과 줄은 CaseListNotes.tsx 로 갔다 (2026-10-01 — 이 파일도 300줄을 넘었다)
 
-import type { CaseRow, ItemStatus } from './api.js';
+import type { CaseRow, ItemStatus, Platform } from './api.js';
 import { 케이스맥락 } from './CaseListContext.js';
 import { 스모크칩 } from './CaseSmoke.js';
 import { keyOf, type LastMap, 마지막판정 } from './catalogView.js';
@@ -83,8 +83,8 @@ export function 케이스줄({
   뒤집기: (row: CaseRow, 사이: boolean) => void;
   /** 오른쪽 상세 칸에 이 케이스가 열려 있나 */
   열림?: boolean;
-  /** 줄의 ▶ — 그 한 건으로 실행 창을 연다. 고른 서비스에서 실행 쓰기가 아니면 오지 않고 버튼도 없다 (화면공통 §8) */
-  on실행?: (row: CaseRow) => void;
+  /** 디바이스 칸마다의 ▶ — 그 한 건을 그 디바이스로 실행 창을 연다. 고른 서비스에서 실행 쓰기가 아니면 오지 않고 버튼도 없다 (화면공통 §8 · 시안 ①) */
+  on실행?: (row: CaseRow, 디바이스: Platform) => void;
   /** 실행 칸이 `trial` 이다 — ▶ 가 기록 없는 테스트 실행 창을 연다 (도메인/인증 §3.5 「테스트 모드」) */
   테스트만?: boolean;
   on열기: (tcId: string) => void;
@@ -142,36 +142,37 @@ export function 케이스줄({
             return (
               <div className="device" key={platform}>
                 {디바이스이름 ? <span className="device-name">{t(PLATFORM_LABEL[platform])}</span> : null}
-                {result === undefined ? (
-                  <span className="device-none">{t('실행 기록 없음')}</span>
-                ) : (
-                  <>
+                <div className="device-line">
+                  {result === undefined ? (
+                    <span className="device-none">{t('실행 기록 없음')}</span>
+                  ) : (
                     <a
                       href={`#/runs/${result.runId}/items/${result.historyId}`}
                       title={`${when(result.finishedAt, 언어)} · ${seconds(result.durationMs, 언어)}`}
                     >
                       <Verdict status={result.status} />
                     </a>
-                    {/* 흐름은 디바이스마다다. 줄에 하나만 두면 PC 와 모바일이 한 줄로 뭉개진다 */}
-                    <판정흐름 recent={result.recent} />
-                  </>
-                )}
+                  )}
+                  {/* ▶ 는 디바이스마다다 — 하나만 두면 모바일만 돌리고 싶어도 PC 가 같이 낀다 (시안 ①).
+                      글자 대신 아이콘이다 — 영어 「Run」이 「Details」 아래로 밀려 내려갔다(진행판 WEB-F2-12). 이름은 화면 읽기가 말한다 */}
+                  {on실행 === undefined ? null : (
+                    <button
+                      type="button"
+                      className="btn ghost icon device-run"
+                      aria-label={t(테스트만 ? '{케이스} {디바이스} 시험 실행' : '{케이스} {디바이스} 실행', { 케이스: row.tcId, 디바이스: t(PLATFORM_LABEL[platform]) })}
+                      title={테스트만 ? t('시험 실행') : t('실행')}
+                      onClick={() => on실행(row, platform)}
+                    >
+                      <아이콘 이름="run" />
+                    </button>
+                  )}
+                </div>
+                {/* 흐름은 디바이스마다다. 줄에 하나만 두면 PC 와 모바일이 한 줄로 뭉개진다 */}
+                {result === undefined ? null : <판정흐름 recent={result.recent} />}
               </div>
             );
           })}
         </div>
-        {/* 글자 대신 아이콘이다 — 영어 「Run」이 「Details」 아래로 밀려 내려갔다(진행판 WEB-F2-12). 이름은 화면 읽기가 말한다 */}
-        {on실행 === undefined ? null : (
-          <button
-            type="button"
-            className="btn ghost icon"
-            aria-label={테스트만 ? t('{케이스} 시험 실행', { 케이스: row.tcId }) : t('{케이스} 실행', { 케이스: row.tcId })}
-            title={테스트만 ? t('시험 실행') : t('실행')}
-            onClick={() => on실행(row)}
-          >
-            <아이콘 이름="run" />
-          </button>
-        )}
       </div>
     </div>
   );

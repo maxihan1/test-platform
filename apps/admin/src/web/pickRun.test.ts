@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { CaseRow, Platform } from './api.js';
 import { 넘었나 } from './runPlan.js';
-import { 담을것, 몇건, 실행항목, 안드로이드있나, 지난값글자 } from './pickRun.js';
+import { 담을것, 디바이스만, 몇건, 실행항목, 안드로이드있나, 지난값글자 } from './pickRun.js';
 import { schemaToFields } from './schema.js';
 
 function 케이스(tcId: string, platforms: Platform[], isActive = true): CaseRow {
@@ -125,5 +125,12 @@ describe('지난값글자', () => {
 
   it('스키마에 없는 키는 무시한다', () => {
     expect(지난값글자(칸들, { 낯선키: 'x' })).toEqual({});
+  });
+});
+
+describe('디바이스만', () => {
+  it('그 디바이스를 선언한 케이스만 남기고 디바이스를 그것 하나로 좁힌다', () => {
+    const 결과 = 디바이스만([케이스('A', ['desktop', 'mobile']), 케이스('B', ['desktop']), 케이스('C', ['mobile'])], 'mobile');
+    expect(결과.map((c) => [c.tcId, c.platforms])).toEqual([['A', ['mobile']], ['C', ['mobile']]]);
   });
 });

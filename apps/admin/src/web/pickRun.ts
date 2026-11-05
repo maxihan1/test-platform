@@ -1,6 +1,6 @@
 // 목록에서 고른 케이스를 실행 요청 항목으로 바꾸는 계산 (SPEC §8.2). 화면 조각은 없다
 
-import type { CaseRow, RunRequestItem, 모바일위치 } from './api.js';
+import type { CaseRow, Platform, RunRequestItem, 모바일위치 } from './api.js';
 import { 항목수 } from './runPlan.js';
 import type { Field } from './schema.js';
 
@@ -82,6 +82,14 @@ export function 지난값글자(fields: Field[], 값들: Record<string, unknown>
 /** 실행 위치 안내 줄을 보일지 가른다 (SPEC §8.10) */
 export function 안드로이드있나(케이스들: CaseRow[]): boolean {
   return 케이스들.some((c) => c.platforms.includes('android'));
+}
+
+/**
+ * 그 디바이스를 가진 케이스만, 그 디바이스 하나로 돈다 — 목록의 「PC ▶」 · 「모바일 N건 실행」 (도메인/실행 §8.10 · 시안 ①).
+ * 케이스 선언을 넓히지 않는다 — PC 만 선언한 케이스는 「모바일 실행」에서 빠진다
+ */
+export function 디바이스만(케이스들: CaseRow[], 디바이스: Platform): CaseRow[] {
+  return 케이스들.filter((c) => c.platforms.includes(디바이스)).map((c) => ({ ...c, platforms: [디바이스] }));
 }
 
 /** 모바일 웹 실행 위치 줄을 세우고 요청에 mobileOn 을 실을지 가른다 (도메인/실행 §8.2) */

@@ -112,13 +112,14 @@ describe('케이스 줄의 이름 버튼 (점검 7.12)', () => {
     const on실행 = vi.fn();
     const { unmount } = 그린다(값있는스키마, { on실행 });
 
-    fireEvent.click(screen.getByRole('button', { name: 'ZZC-001 실행' }));
+    fireEvent.click(screen.getByRole('button', { name: 'ZZC-001 PC 실행' }));
     expect(on실행).toHaveBeenCalledTimes(1);
     expect((on실행.mock.calls[0]![0] as CaseRow).tcId).toBe('ZZC-001');
+    expect(on실행.mock.calls[0]![1]).toBe('desktop');
 
     unmount();
     그린다(값있는스키마);
-    expect(screen.queryByRole('button', { name: 'ZZC-001 실행' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'ZZC-001 PC 실행' })).toBeNull();
   });
 
   it('미확정 배지에 사유가 말풍선(title)으로 붙는다. 확정 케이스에는 배지가 없다', () => {

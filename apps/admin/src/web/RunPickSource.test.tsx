@@ -164,7 +164,7 @@ describe('저장한 뒤', () => {
     fireEvent.click(단추('이 값 저장'));
 
     expect(await screen.findAllByText('아이디가 틀렸다')).toHaveLength(1);
-    expect(screen.getAllByRole('button', { name: '값' })[1]?.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getAllByRole('button', { name: /^입력값 / })[1]?.getAttribute('aria-expanded')).toBe('true');
   });
 });
 
