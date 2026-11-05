@@ -186,7 +186,7 @@ describe('RunWindow', () => {
 
     fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'u2' } });
 
-    expect(screen.getByRole('status').textContent).toBe('케이스 1 × 디바이스 1 × 반복 1 = 1번');
+    expect(screen.getByRole('status').textContent).toBe('');
   });
 
   it('그 애플리케이션의 실행 칸이 쓰기가 아니면 실행 버튼 없이 사유만 보인다 — 옛 주소는 아무나 칠 수 있다', async () => {
@@ -196,7 +196,7 @@ describe('RunWindow', () => {
 
     expect(await screen.findByText('실행 권한이 있어야 고치고 돌릴 수 있습니다')).toBeTruthy();
     expect(screen.queryByRole('button', { name: '실행' })).toBeNull();
-    expect(screen.queryByRole('button', { name: '▶ 테스트 실행' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '시험 실행' })).toBeNull();
   });
 
   it('걸린 뒤에는 on걸림 을 부르고 onClose 는 안 부른다 — 옛 주소에서 닫힘이 실행 결과 대신 목록으로 보냈다', async () => {
@@ -243,7 +243,7 @@ describe('RunWindow', () => {
   });
 
   it('원래 실행의 모바일이 실제 폰에서 돌았으면 실제 폰을, 아니면 서버 흉내를 미리 고른다 — 다시 실행은 원래 실행이 돈 곳이다', async () => {
-    const 고른것 = () => (screen.getByRole('radio', { name: 'Device VISION (실제 폰 Chrome)' }) as HTMLInputElement).checked;
+    const 고른것 = () => (screen.getByRole('radio', { name: '실제 기기' }) as HTMLInputElement).checked;
     읽기모킹([케이스('ZRS-001', { platforms: ['desktop', 'mobile'] })], ['SM-G996N']);
     render(<RunWindow tcIds={['ZRS-001']} rerunOf={20914} onClose={vi.fn()} />);
     await screen.findByRole('dialog');
@@ -264,8 +264,8 @@ describe('RunWindow', () => {
     render(<RunWindow tcIds={['ZRS-001']} rerunOf={20914} onClose={vi.fn()} />);
     await screen.findByRole('dialog', { name: '실행할 케이스 1건' });
 
-    expect((screen.getByRole('radio', { name: '서버 (iPhone 14 흉내)' }) as HTMLInputElement).checked).toBe(true);
-    expect(screen.getByText(/^원래 실행을 읽지 못해 모바일 실행 위치를 서버 흉내로 골라 두었습니다/)).toBeTruthy();
+    expect((screen.getByRole('radio', { name: '가상 기기' }) as HTMLInputElement).checked).toBe(true);
+    expect(screen.getByText(/^원래 실행을 읽지 못해 모바일 실행 위치를 가상 기기로 골라 두었습니다/)).toBeTruthy();
   });
 
   it('원래 실행이 없으면 실행을 읽지 않고 서버 흉내로 연다', async () => {
@@ -274,6 +274,6 @@ describe('RunWindow', () => {
     await screen.findByRole('dialog');
 
     expect(api.run).not.toHaveBeenCalled();
-    expect((screen.getByRole('radio', { name: '서버 (iPhone 14 흉내)' }) as HTMLInputElement).checked).toBe(true);
+    expect((screen.getByRole('radio', { name: '가상 기기' }) as HTMLInputElement).checked).toBe(true);
   });
 });

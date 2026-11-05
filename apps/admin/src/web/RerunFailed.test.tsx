@@ -178,7 +178,7 @@ describe('실패다시실행', () => {
     fireEvent.click(screen.getByRole('button', { name: '실패 1건 다시 실행' }));
     await screen.findByRole('dialog');
 
-    expect((screen.getByRole('radio', { name: 'Device VISION (실제 폰 Chrome)' }) as HTMLInputElement).checked).toBe(true);
+    expect((screen.getByRole('radio', { name: '실제 기기' }) as HTMLInputElement).checked).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
 
     await waitFor(() => expect(만들기).toHaveBeenCalled());

@@ -79,12 +79,12 @@ async function 그리기(cases: (page: number) => Promise<CasePage> = 쪽주기)
 }
 
 describe('CaseList 종류 (화면공통 §8 하위 메뉴 · PR #132)', () => {
-  it('고른 종류로 부르고 제목에 「테스트 스크립트 › 종류」로 위치를 적는다', async () => {
+  it('고른 종류로 부르고 제목에 「테스트 실행 › 종류」로 위치를 적는다', async () => {
     const 스파이 = 모킹(쪽주기);
     render(<CaseList kind="UI" service="ZPK" 할수={전부된다} 결과보나 />);
     await screen.findByText('ZPK-001');
     expect(스파이).toHaveBeenCalledWith(expect.objectContaining({ service: 'ZPK', kind: 'UI' }));
-    expect(screen.getByRole('heading', { level: 1, name: '테스트 스크립트 › UI 테스트' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: '테스트 실행 › UI 테스트' })).toBeTruthy();
   });
 });
 
@@ -626,7 +626,7 @@ describe('CaseList 여러 건 실행 걸기', () => {
     fireEvent.change(screen.getByLabelText('반복'), { target: { value: '2' } });
 
     // 값을 고친 뒤에도 옛 사유가 남아 있으면 방금 고친 것이 또 거절당한 것처럼 읽힌다
-    await waitFor(() => expect(within(모달).getByRole('status').textContent).toBe('케이스 3 (디바이스 합계 4) × 반복 2 = 8번'));
+    await waitFor(() => expect(within(모달).getByRole('status').textContent).toBe(''));
   });
 
   it('모달을 닫으면 지난번 사유가 다음에 열 때 남지 않는다', async () => {
@@ -644,7 +644,7 @@ describe('CaseList 여러 건 실행 걸기', () => {
 
     const 다시 = await screen.findByRole('dialog');
     await waitFor(() =>
-      expect(within(다시).getByRole('status').textContent).toBe('케이스 3 (디바이스 합계 4) × 반복 1 = 4번'),
+      expect(within(다시).getByRole('status').textContent).toBe(''),
     );
   });
 });
@@ -873,7 +873,7 @@ describe('CaseList 화면 머리 (2026-09-22)', () => {
 
     const 머리 = container.querySelector('.head');
     expect(머리).not.toBeNull();
-    expect(머리?.querySelector('h1')?.textContent).toBe('테스트 스크립트 › 기능 테스트');
+    expect(머리?.querySelector('h1')?.textContent).toBe('테스트 실행 › 기능 테스트');
     // 「다시 스캔」과 실행 버튼은 이 화면에서 가장 흔한 다음 행동이라 머리에 선다
     expect(머리?.textContent).toContain('다시 스캔');
     expect(머리?.textContent).toContain('실행');

@@ -166,8 +166,8 @@ export const 설정말: Record<string, string> = {
   '읽기': 'Read',
   '테스트만': 'Test only',
   '쓰기': 'Write',
-  '「테스트만」은 결과를 보고 테스트 실행 · 시험 실행만 합니다. 기록이 남는 실행은 못 합니다':
-    'Test only sees results and starts test runs and trial runs only. It cannot start runs that are recorded',
+  '「테스트만」은 결과를 보고 시험 실행만 합니다. 기록이 남는 실행은 못 합니다':
+    'Test only sees results and starts trial runs only. It cannot start runs that are recorded',
   '이대로면 실행 설정에서 고를 케이스가 보이지 않습니다.': 'No cases will show up to pick in run setup.',
   '세 칸이 모두 「안 씀」이면 저장되지 않습니다. 배정을 풀려면 프로젝트를 끄세요.':
     'All three set to Off cannot be saved. To unassign, turn the project off.',
@@ -243,7 +243,7 @@ export const 설정말: Record<string, string> = {
   '테스트를 실행할 서버 목록입니다. 하나 이상 등록해야 실행할 수 있습니다':
     'The servers tests run against. Register at least one to run',
   '실행 알림': 'Run notifications',
-  '실행할 때 「끝나면 Slack으로 알리기」를 켜면 이 채널로 결과를 보냅니다':
+  '실행할 때 「완료 시 Slack 알림」을 켜면 이 채널로 결과를 보냅니다':
     'Results go to this channel when Notify Slack when done is on for a run',
   '기획서와 피그마로 테스트 스크립트를 만들 때만 사용합니다. 실행에는 영향을 주지 않습니다':
     'Only used when building test scripts from specs and Figma. Runs are not affected',

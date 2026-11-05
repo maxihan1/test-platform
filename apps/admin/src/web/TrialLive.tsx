@@ -125,12 +125,12 @@ export function 장면칸({ 주소, 도는중, vision, 부제, 폰만: 앱폰 = 
       {그림 === null ? (
         <p className="live-wait">
           {앱폰 && vision === null
-            ? t('빈 폰을 잡고 있습니다')
+            ? t('사용할 폰을 찾는 중')
             : 폰칸
               ? t('폰 화면을 기다리고 있습니다')
               : vision !== null
                 ? t('화면을 기다리고 있습니다')
-                : t('브라우저 화면을 기다리고 있습니다. 앞 실행이 끝나야 시작할 때도 있습니다')}
+                : t('차례를 기다리는 중')}
         </p>
       ) : (
         <div className={폰단계 ? 'live-shot dim' : 'live-shot'}>
@@ -139,12 +139,10 @@ export function 장면칸({ 주소, 도는중, vision, 부제, 폰만: 앱폰 = 
         </div>
       )}
       {못닿음 ? (
-        <p className="live-note bad">{t('테스트 실행기에 닿지 않아 화면을 받지 못했습니다. 다시 받아 봅니다')}</p>
-      ) : 도는중 && !폰칸 ? (
-        <p className="live-note">{t('누른 곳을 표시하며 동작마다 1초씩 쉬어 갑니다')}</p>
-      ) : 도는중 && 실제폰웹 ? (
+        <p className="live-note bad">{t('실행 서버와 연결이 끊겼습니다. 다시 연결하는 중입니다')}</p>
+      ) : 도는중 && (!폰칸 || 실제폰웹) ? (
         // 실제 폰도 늦춘다. 앱 · 게임은 Appium 이라 안 늦춘다 (러너 §5.2)
-        <p className="live-note">{t('동작마다 1초씩 쉬어 갑니다')}</p>
+        <p className="live-note">{t('동작마다 1초 천천히')}</p>
       ) : null}
     </section>
   );

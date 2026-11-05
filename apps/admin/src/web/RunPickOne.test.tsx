@@ -25,7 +25,7 @@ describe('한 건 창 — 실행 걸기 (SPEC §8.2)', () => {
     fireEvent.click(실행버튼());
 
     expect(onRun).not.toHaveBeenCalled();
-    expect(screen.getByText('대상 서버를 고르세요. 리포트에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.')).toBeTruthy();
+    expect(screen.getByText('대상 서버를 선택하세요. 리포트에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.')).toBeTruthy();
   });
 
   it('대상 서버를 고르면 그 서버로 걸린다', async () => {
@@ -72,7 +72,7 @@ describe('한 건 창 — 실행 걸기 (SPEC §8.2)', () => {
     fireEvent.change(screen.getByLabelText('반복'), { target: { value: '5000' } });
 
     expect(실행버튼().disabled).toBe(false);
-    expect(줄().textContent).toBe('케이스 1 × 디바이스 1 × 반복 5000 = 5000번');
+    expect(줄().textContent).toBe('');
     fireEvent.click(실행버튼());
     expect(onRun).toHaveBeenCalledTimes(1);
   });
@@ -88,12 +88,11 @@ describe('한 건 창 — 실행 걸기 (SPEC §8.2)', () => {
     expect(screen.queryByText('hunter2')).toBeNull();
   });
 
-  it('사전조건과 실행자가 보이고 실행자는 고칠 칸이 아니다', async () => {
+  it('사전조건이 보이고 실행자 줄은 없다', async () => {
     await 그린다();
 
     expect(screen.getByText('로그인되어 있다')).toBeTruthy();
-    expect(screen.getByText('실행자 김실행')).toBeTruthy();
-    expect(screen.queryByLabelText('실행자')).toBeNull();
+    expect(screen.queryByText(/^실행자 /)).toBeNull();
   });
 });
 
@@ -129,7 +128,7 @@ describe('한 건 창 — 디바이스 · 실행 위치', () => {
     fireEvent.click(실행버튼());
 
     expect(onRun).not.toHaveBeenCalled();
-    expect(줄().textContent).toBe('실행할 디바이스를 하나 이상 고르세요.');
+    expect(줄().textContent).toBe('실행할 디바이스를 하나 이상 선택하세요.');
   });
 
   it('Android 앱을 고르면 「Device VISION」 안내가 보이고 요청에는 location 을 싣지 않는다', async () => {
@@ -185,7 +184,7 @@ describe('한 건 창 — 고친 칸 검사', () => {
     서버고르기();
 
     fireEvent.change(screen.getByLabelText('개수'), { target: { value: 'abc' } });
-    fireEvent.click(screen.getByRole('button', { name: '▶ 테스트 실행' }));
+    fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
 
     expect(시작).not.toHaveBeenCalled();
     expect(줄().textContent).toBe('입력값이 명세와 맞지 않습니다.');

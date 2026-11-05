@@ -144,7 +144,7 @@ export function PermissionPicker({
                       </div>
                     ))}
                     {내것.permissions.runs !== 'trial' ? null : (
-                      <div className="hint">{t('「테스트만」은 결과를 보고 테스트 실행 · 시험 실행만 합니다. 기록이 남는 실행은 못 합니다')}</div>
+                      <div className="hint">{t('「테스트만」은 결과를 보고 시험 실행만 합니다. 기록이 남는 실행은 못 합니다')}</div>
                     )}
                   </>
                 )}

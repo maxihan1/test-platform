@@ -60,7 +60,7 @@ export function PhoneShell({ user, service, onService, 언어, on언어, onLogou
   const 자리들 = 자리목록(user, service?.prefix ?? null, 언어);
   const 찾기 = (해시: string) => 자리들.find((it) => it.해시 === 해시);
   const 대시보드 = 찾기('#/dashboard');
-  // API 애플리케이션은 테스트 스크립트가 하위 없이 `#/cases/fn` 이다 (layout.ts)
+  // API 애플리케이션은 테스트 실행이 하위 없이 `#/cases/fn` 이다 (layout.ts)
   const 테스트 = 자리들.find((it) => it.아이콘 === 'cases');
   const 실행기록 = 찾기('#/runs');
   const 작성 = 찾기('#/authoring');

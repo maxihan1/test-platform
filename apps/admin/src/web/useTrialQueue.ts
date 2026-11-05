@@ -79,7 +79,7 @@ export function useTrialQueue(간격: number = 기본간격) {
       // 결과를 못 받고 끝났다. 서버가 놓았을 폰의 링크를 남기지 않는다 — 시작 전에 막혔으면 앞 시험 것이라 이미 비었다
       if (!멈춤.current) set지금((앞) => (앞 === null || 앞.vision === null ? 앞 : { ...앞, vision: null }));
       if (err instanceof ApiError && err.code === 'TRIAL_BUSY') {
-        const 글 = t('이미 테스트 실행이 돌고 있습니다');
+        const 글 = t('이미 시험 실행이 돌고 있습니다');
         쓴다(항목.tcId, { 종류: 'notice', 글 });
         return 글;
       }
@@ -94,7 +94,7 @@ export function useTrialQueue(간격: number = 기본간격) {
         return null;
       }
       쓴다(항목.tcId, { 종류: 'notice', 글: message(err, 언어) });
-      return t('앞 케이스에서 멈춰 돌리지 못했습니다');
+      return t('앞 케이스 오류로 실행하지 않았습니다');
     }
   }
 

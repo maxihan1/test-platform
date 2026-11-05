@@ -92,7 +92,7 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
     });
 
     expect(시작).toHaveBeenCalledTimes(1);
-    expect(result.current.줄들['X-2']).toEqual({ 종류: 'notice', 글: '이미 테스트 실행이 돌고 있습니다' });
+    expect(result.current.줄들['X-2']).toEqual({ 종류: 'notice', 글: '이미 시험 실행이 돌고 있습니다' });
   });
 
   it('그 밖의 오류로 멈추면 남은 줄은 앞에서 멈췄다고 적는다 — 대기로 남기지 않는다', async () => {
@@ -104,7 +104,7 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
     });
 
     expect(result.current.줄들['X-1']).toMatchObject({ 종류: 'notice' });
-    expect(result.current.줄들['X-2']).toEqual({ 종류: 'notice', 글: '앞 케이스에서 멈춰 돌리지 못했습니다' });
+    expect(result.current.줄들['X-2']).toEqual({ 종류: 'notice', 글: '앞 케이스 오류로 실행하지 않았습니다' });
   });
 
   it('입력값이 명세와 안 맞는 줄은 그 줄만 안내하고 다음 줄을 이어 돈다', async () => {

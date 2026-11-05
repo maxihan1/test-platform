@@ -87,7 +87,7 @@ export function 자리목록(user: User, prefix: string | null, 언어: 언어):
     목록.push({ 이름: t('테스트 작성', 언어), 해시: '#/authoring', 아이콘: 'authoring' });
   }
   if (기능보나(user, prefix, 'cases')) {
-    const 이름 = t('테스트 스크립트', 언어);
+    const 이름 = t('테스트 실행', 언어);
     // API 애플리케이션은 기능 테스트뿐이라 하위 없이 바로 그 목록이다. 주소는 지금 자리(`지금자리` 의 `#/cases/fn`)와 같아야 밑줄이 간다
     목록.push(API ? { 이름, 해시: '#/cases/fn', 아이콘: 'cases' } : { 이름, 해시: '#/cases', 아이콘: 'cases', 하위: 종류하위(이름, '#/cases', 언어) });
   }

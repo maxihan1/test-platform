@@ -7,10 +7,10 @@ import { ApiError, type CaseRow, type ServiceRow, type User, type 모바일위�
 import { Form } from './Form.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
-import { type 글자표, type 실행요청, 건수재료, 몇건, 실행항목, 안드로이드있나, 모바일있나 } from './pickRun.js';
+import { type 글자표, type 실행요청, 몇건, 실행항목, 안드로이드있나, 모바일있나 } from './pickRun.js';
 import { 고른서버를적는다, 마지막서버 } from './layout.js';
 import { RunLocation } from './RunLocation.js';
-import { use닫기묻기, 건수풀이, 바닥한줄, 반복과알림, 실행버튼들 } from './RunPickFoot.js';
+import { use닫기묻기, 바닥한줄, 반복과알림, 실행버튼들 } from './RunPickFoot.js';
 import { 한건머리, use한건 } from './RunPickOne.js';
 import { 저장한값줄 } from './RunPickSaved.js';
 import { use입력값저장, 출처줄 } from './RunPickSource.js';
@@ -30,7 +30,7 @@ interface Props {
   초기서버?: string;
   /** 대상 서버 목록과 Slack 칸 여부가 여기 실려 온다 (SPEC §8.2 → §7) */
   service: ServiceRow | null;
-  /** 한 건 창의 실행자 이름과 묶음 · 저장값 권한. 없으면 그 칸들을 그리지 않는다 */
+  /** 한 건 창의 묶음 · 저장값 권한. 없으면 그 칸들을 그리지 않는다 */
   user?: User | null;
   /**
    * 걸었다가 서버가 거절한 사유 한 줄.
@@ -50,15 +50,13 @@ interface Props {
   /** 저장값을 바꿨다. 그 케이스를 새로 읽어 「저장값 · 누가 · 언제」를 맞춘다 */
   on다시읽기?: (tcId: string) => void;
   onRun: (요청: 실행요청) => void;
-  /** 「실패 1건 다시 실행」의 원래 실행 — 「결과가 남는 곳」이 그 실행에 붙는지 읽는다 */
-  원래실행?: number;
   /** 미리 고를 모바일 실행 위치. 다시 실행은 원래 실행이 돈 곳이고 그 밖은 서버 흉내다 (도메인/실행 §3.2 「모바일 웹 실행 위치」) */
   초기모바일?: 모바일위치;
-  /** 실행 칸이 `trial` 이면 거짓 — 테스트 실행만 하고 반복 · 알림 · 모바일 실행 위치 · 건수 풀이는 기록이 남는 실행 몫이라 안 그린다 (도메인/인증 §3.5 「테스트 모드」) */
+  /** 실행 칸이 `trial` 이면 거짓 — 시험 실행만 하고 반복 · 알림 · 모바일 실행 위치는 기록이 남는 실행 몫이라 안 그린다 (도메인/인증 §3.5 「테스트 모드」) */
   정식?: boolean;
 }
 
-export function RunPickModal({ 케이스들, service, 초기글자, 초기서버, user, 사유, 안내, 거는중, onClose, on값고침, on다시읽기, onRun, 원래실행, 초기모바일, 정식 = true }: Props) {
+export function RunPickModal({ 케이스들, service, 초기글자, 초기서버, user, 사유, 안내, 거는중, onClose, on값고침, on다시읽기, onRun, 초기모바일, 정식 = true }: Props) {
   const t = use말();
   const 언어 = use언어();
   // **기본값을 두지 않는다.** 안 고르면 빈 칸이 아니라 틀린 값이 증적에 남는다 (SPEC §8.2).
@@ -106,9 +104,9 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
   const 너무많나 = 넘었나(건수);
   const [android, 모바일] = [안드로이드있나(돌릴것), 모바일있나(돌릴것)];
   const 주소 = service?.envs.find((it) => it.env === env)?.baseUrl ?? null;
-  // 「▶ 테스트 실행」 — 기록 없이 한 건씩 차례로 (도메인/실행 §8.10)
+  // 「시험 실행」 — 기록 없이 한 건씩 차례로 (도메인/실행 §8.10)
   const 시험 = use여러건시험({ 케이스들: 돌릴것, 고친값: 값.고친값, env, 알림: setNotice });
-  const { 줄, 빨갛나 } = 바닥한줄(t, { notice, 정식, 너무많나, 건수, 사유, 풀이: () => 건수풀이(t, 건수재료(돌릴것), 반복수, 건수) });
+  const { 줄, 빨갛나 } = 바닥한줄(t, { notice, 정식, 너무많나, 건수, 사유 });
 
   /** 서버가 칸별 사유를 주면 그 칸 아래에 붙인다. 아니면 창의 한 줄로 (SPEC §8.2) */
   function 저장실패(err: unknown, tcId?: string) {
@@ -135,12 +133,12 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
   function 실행() {
     if (!값이맞나()) return;
     if (한건 !== null && 하나.디바이스.length === 0) {
-      setNotice(t('실행할 디바이스를 하나 이상 고르세요.'));
+      setNotice(t('실행할 디바이스를 하나 이상 선택하세요.'));
       return;
     }
     if (env === '') {
       // 버튼을 비활성화하지 않는다. 누르면 사유를 보여준다 (SPEC §8.2 · DESIGN.md)
-      setNotice(t('대상 서버를 고르세요. 리포트에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.'));
+      setNotice(t('대상 서버를 선택하세요. 리포트에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.'));
       return;
     }
     onRun({
@@ -155,7 +153,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
 
   return (
     <Modal
-      제목={정식 ? t('실행할 케이스 {건수}건', { 건수: 케이스들.length }) : t('테스트 실행할 케이스 {건수}건', { 건수: 케이스들.length })}
+      제목={정식 ? t('실행할 케이스 {건수}건', { 건수: 케이스들.length }) : t('시험 실행할 케이스 {건수}건', { 건수: 케이스들.length })}
       onClose={닫기.요청}
       넓게
       바깥눌러닫기={false}
@@ -185,7 +183,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
         <label htmlFor="pick-env">{t('대상 서버')}</label>
         <select id="pick-env" value={env} onChange={(e) => { 손댐(); setEnv(e.target.value); if (service !== null) 고른서버를적는다(service.prefix, e.target.value); }}>
           {/* 기본값이 없다. 반드시 고른다 (SPEC §8.2) */}
-          <option value="">{t('고르세요')}</option>
+          <option value="">{t('선택하세요')}</option>
           {(service?.envs ?? []).map((it) => (
             <option key={it.env} value={it.env}>
               {it.env}
@@ -204,7 +202,6 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
           케이스={한건}
           디바이스={하나.디바이스}
           on디바이스={(다음) => { 손댐(); 하나.set디바이스(다음); }}
-          실행자={user?.displayName ?? null}
         />
       )}
 
@@ -236,7 +233,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
               </div>
               {한건 !== null && 시험줄?.종류 === 'done' ? <시험절차 결과={시험줄.결과} /> : null}
               {!값있나 || 칸 === undefined ? (
-                <p className="prow-none">{t('선언된 입력값이 없습니다. 그대로 실행됩니다')}</p>
+                <p className="prow-none">{t('입력값 없음')}</p>
               ) : (
                 <div className={펼친.has(c.tcId) ? 'prow-edit open' : 'prow-edit'}>
                   {칸.params.length === 0 ? null : (
@@ -281,7 +278,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
           repeat={repeat}
           on반복={(값) => { 손댐(); setRepeat(값); }}
           slack칸={service?.hasSlackWebhook === true}
-          남는곳={{ tcId: 한건?.tcId ?? null, 디바이스: 하나.디바이스, env, 반복수, 원래실행, mobileOn }}
+          한건한번={한건 !== null && 반복수 === 1}
           notifySlack={notifySlack} onSlack={setNotifySlack}
         />
       )}

@@ -37,7 +37,7 @@ function 띄운다(service: ServiceRow, 옵션: { role?: User['role']; current?:
   return render(
     <언어함 value="ko">
       <Shell user={user} service={service} onService={옵션.onService ?? (() => {})} 언어="ko" on언어={() => {}} onLogout={() => {}} current={옵션.current ?? '#/cases'}>
-        <Head 제목="기능 테스트" 위치="테스트 스크립트" />
+        <Head 제목="기능 테스트" 위치="테스트 실행" />
       </Shell>
     </언어함>,
   );
@@ -46,7 +46,7 @@ function 띄운다(service: ServiceRow, 옵션: { role?: User['role']; current?:
 const 줄 = () => screen.getByRole('navigation', { name: '애플리케이션' });
 
 describe('줄과 메뉴가 같이 맞는 자리', () => {
-  it('API 애플리케이션의 테스트 스크립트는 하위가 없어도 그 목록을 열면 지금 자리로 표시된다', () => {
+  it('API 애플리케이션의 테스트 실행은 하위가 없어도 그 목록을 열면 지금 자리로 표시된다', () => {
     vi.spyOn(api, 'notifications').mockResolvedValue({ running: [], recent: [] });
     const API앱: ServiceRow = { ...웹, id: 4, prefix: 'ZRD', name: '알림 API', kind: 'API' };
     render(
@@ -57,7 +57,7 @@ describe('줄과 메뉴가 같이 맞는 자리', () => {
       </언어함>,
     );
 
-    expect(screen.getByRole('link', { name: '테스트 스크립트' }).getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('link', { name: '테스트 실행' }).getAttribute('aria-current')).toBe('page');
   });
 
   it('서버가 준 차례와 상관없이 웹 · Android 앱 · 게임 · API 차례로 선다 — 휴대폰 고르개의 묶음 차례와 같다', () => {
@@ -229,21 +229,21 @@ describe('껍데기가 화면 머리에 넣는 애플리케이션 이름', () =>
   it('화면 머리 위치 줄 맨 앞에 애플리케이션 이름이 선다', () => {
     띄운다(앱);
 
-    expect(screen.getByRole('heading', { level: 1, name: '데모마켓 앱 › 테스트 스크립트 › 기능 테스트' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: '데모마켓 앱 › 테스트 실행 › 기능 테스트' })).toBeTruthy();
   });
 
   it('대시보드에서는 이름이 없다 — 여러 애플리케이션을 모은 화면이다', () => {
     띄운다(앱, { current: '#/dashboard' });
 
-    expect(screen.getByRole('heading', { level: 1, name: '테스트 스크립트 › 기능 테스트' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: '테스트 실행 › 기능 테스트' })).toBeTruthy();
   });
 
   it('설정 · 비밀번호 변경에서도 이름이 없다 — 고른 애플리케이션과 상관없는 화면이다', () => {
     띄운다(앱, { current: '#/settings' });
-    expect(screen.getByRole('heading', { level: 1, name: '테스트 스크립트 › 기능 테스트' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: '테스트 실행 › 기능 테스트' })).toBeTruthy();
     cleanup();
 
     띄운다(앱, { current: '#/password' });
-    expect(screen.getByRole('heading', { level: 1, name: '테스트 스크립트 › 기능 테스트' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: '테스트 실행 › 기능 테스트' })).toBeTruthy();
   });
 });

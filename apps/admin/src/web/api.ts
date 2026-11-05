@@ -1246,12 +1246,6 @@ export const api = {
     // 보내는 쪽이 정할 수 있으면 아무 이름이나 적을 수 있어 증적이 증적이 아니게 된다 (SPEC §3.5)
   }) => call<{ runId: number; attachedTo?: number | null }>('/runs', json(body)),
 
-  /** 지금 이 케이스 한 건을 걸면 붙을 실행 — 실행 창 「결과가 남는 곳」 (도메인/실행 §7 `rerun-target`) */
-  rerunTarget: (tcId: string, env: string, platforms: Platform[], mobileOn: 모바일위치 = 'server') =>
-    call<{ target: { runId: number; title: string; startedAt: string } | null }>(
-      `/cases/${encodeURIComponent(tcId)}/rerun-target?${new URLSearchParams({ env, platforms: platforms.join(','), mobileOn }).toString()}`,
-    ),
-
   /** 대기 중인 것과 돌고 있는 것을 둘 다 끊는다 (SPEC §8.3) */
   abortRun: (runId: number) => call<{ aborted: number }>(`/runs/${runId}/abort`, { method: 'POST' }),
 

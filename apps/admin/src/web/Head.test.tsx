@@ -21,9 +21,9 @@ describe('화면 머리', () => {
   });
 
   it('하위 메뉴 화면은 제목 앞에 묶음 이름이 서서 지금 위치가 보인다', () => {
-    render(<Head 제목="기능 테스트" 위치="테스트 스크립트" />);
+    render(<Head 제목="기능 테스트" 위치="테스트 실행" />);
 
-    expect(screen.getByRole('heading', { level: 1, name: '테스트 스크립트 › 기능 테스트' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: '테스트 실행 › 기능 테스트' })).toBeTruthy();
   });
 
   it('부제를 주면 제목 아래에 같이 나온다', () => {
@@ -40,7 +40,7 @@ describe('화면 머리', () => {
 
   it('주 행동을 주면 머리 안에 선다 — 본문이 아니다', () => {
     const { container } = render(
-      <Head 제목="테스트 스크립트 목록" 행동={<button type="button">전체 실행</button>} />,
+      <Head 제목="테스트 실행 목록" 행동={<button type="button">전체 실행</button>} />,
     );
 
     const 머리 = container.querySelector('.head');
@@ -58,11 +58,11 @@ describe('화면 머리', () => {
     const 앱 = { id: 1, prefix: 'ZHD', name: '데모마켓 앱' } as ServiceRow;
     render(
       <지금앱칸.Provider value={앱}>
-        <Head 제목="기능 테스트" 위치="테스트 스크립트" />
+        <Head 제목="기능 테스트" 위치="테스트 실행" />
       </지금앱칸.Provider>,
     );
 
-    expect(screen.getByRole('heading', { level: 1, name: '데모마켓 앱 › 테스트 스크립트 › 기능 테스트' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: '데모마켓 앱 › 테스트 실행 › 기능 테스트' })).toBeTruthy();
   });
 
   it('위치가 없는 화면도 애플리케이션 이름이 제목 앞에 선다', () => {
@@ -79,10 +79,10 @@ describe('화면 머리', () => {
   it('칸이 비어 있으면(대시보드 · 껍데기 밖) 예전 그대로다', () => {
     render(
       <지금앱칸.Provider value={null}>
-        <Head 제목="기능 테스트" 위치="테스트 스크립트" />
+        <Head 제목="기능 테스트" 위치="테스트 실행" />
       </지금앱칸.Provider>,
     );
 
-    expect(screen.getByRole('heading', { level: 1, name: '테스트 스크립트 › 기능 테스트' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: '테스트 실행 › 기능 테스트' })).toBeTruthy();
   });
 });

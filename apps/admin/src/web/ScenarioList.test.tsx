@@ -16,7 +16,7 @@ const 서버들: EnvRow[] = [
   { env: 'stg', baseUrl: 'https://stg.example.com' },
 ];
 const 서버없음글자 = '이 애플리케이션에 등록된 대상 서버가 없습니다. 설정에서 추가해야 실행할 수 있습니다';
-const 서버고르기글자 = '대상 서버를 고르세요. 리포트에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.';
+const 서버고르기글자 = '대상 서버를 선택하세요. 리포트에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.';
 
 afterEach(() => {
   cleanup();
@@ -228,8 +228,8 @@ describe('ScenarioList 실행', () => {
     await screen.findByText(/ZSM 시나리오 1/);
     fireEvent.change(screen.getByRole('combobox', { name: '대상 서버' }), { target: { value: 'qa' } });
 
-    expect((screen.getByRole('radio', { name: '서버 (iPhone 14 흉내)' }) as HTMLInputElement).checked).toBe(true);
-    fireEvent.click(screen.getByRole('radio', { name: 'Device VISION (실제 폰 Chrome)' }));
+    expect((screen.getByRole('radio', { name: '가상 기기' }) as HTMLInputElement).checked).toBe(true);
+    fireEvent.click(screen.getByRole('radio', { name: '실제 기기' }));
     // 시나리오는 폰을 한 번 잡는다 — 케이스 글(「케이스마다 …」)이 아니다
     expect(screen.getByText('시나리오 하나 동안 빈 폰을 한 번 잡고 다 돌면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 실행에 남습니다')).toBeTruthy();
     expect(screen.queryByText(/케이스마다 빈 폰을/)).toBeNull();

@@ -2909,8 +2909,13 @@ input[type='file']::file-selector-button {
 
 .run-loc-radios label {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
+}
+
+/* 이름 아래 작은 설명 — 「가상 기기」 밑 「서버에서 iPhone 14 화면 크기로 실행」 (시안 7판 ③) */
+.run-loc-radios label small {
+  display: block;
 }
 
 /* 「테스트 실행」의 케이스 줄마다 붙는 결과 (2026-09-30). 기록이 아니라 임시 결과라 판정 배지만 쓰고 색은 판정에서만 온다 */
@@ -3343,16 +3348,6 @@ input[type='file']::file-selector-button {
 
 .prow-src.changed {
   color: var(--ink-muted);
-}
-
-/* 결과가 남는 곳 — 반복 줄 바로 위, 「실행」을 누르기 전에 읽는 자리 */
-.mdest {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 12px;
-  align-items: baseline;
-  flex: none;
-  font-size: 13px;
 }
 
 /* 값이 없는 케이스는 빈 자리 대신 그 사실을 적는다 */

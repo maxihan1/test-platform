@@ -69,7 +69,7 @@ describe('진행 알약 (도메인/실행 §8.9)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '실행 중단' }));
     expect(screen.getAllByRole('dialog')).toHaveLength(2);
-    expect(screen.getAllByRole('dialog')[1]!.getAttribute('aria-label')).toBe(`RUN ${String(RUN_ID)} 실행을 멈출까요?`);
+    expect(screen.getAllByRole('dialog')[1]!.getAttribute('aria-label')).toBe(`RUN ${String(RUN_ID)} 실행을 중단할까요?`);
 
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.getAllByRole('dialog')).toHaveLength(1);

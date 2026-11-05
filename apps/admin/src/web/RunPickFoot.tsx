@@ -1,27 +1,27 @@
-// 실행 창 바닥 칸 — 결과가 남는 곳 · 반복 횟수 · 끝나면 Slack 으로 알리기 · 건수 풀이 · 테스트 실행과 실행 버튼 (도메인/실행 §8.2 · §8.10) · 고친 채 닫을 때 묻는 버튼 줄
+// 실행 창 바닥 칸 — 반복 횟수 · 완료 시 Slack 알림 · 시험 실행과 실행 버튼 (도메인/실행 §8.2 · §8.10) · 고친 채 닫을 때 묻는 버튼 줄
 // RunPickModal 이 300줄을 넘어 떼어 냈다 (2026-10-12 휴대폰 값 접기)
 
-import { useState, type ComponentProps } from 'react';
+import { useState } from 'react';
 
 import { use말 } from './i18n.js';
-import { 결과남는곳 } from './RunPickDest.js';
 import { 상한 } from './runPlan.js';
 
 /**
- * 창 바닥의 한 줄. 넷을 겸한다 — 방금 누른 것에 대한 답 · 버튼을 죽인 이유 · **걸었다 거절당한 사유** · 건수 안내.
+ * 창 바닥의 한 줄. 셋을 겸한다 — 방금 누른 것에 대한 답 · 버튼을 죽인 이유(상한) · **걸었다 거절당한 사유**.
+ * 건수 곱셈 풀이는 사람이 볼 일이 없어 뺐다 — 상한을 넘을 때만 건수를 말한다 (2026-11-05 WEB-F9-01).
  *
  * 사유는 안내를 이긴다. 실패한 직후에는 `notice` 가 비어 있고 상한도 안 넘은 상태라
  * (안 그랬으면 애초에 안 걸렸다) **거절당한 그 순간 사유가 늘 보인다.**
  * 대신 위 둘까지 덮지는 않는다 — 옛 사유가 버튼이 죽은 이유를 가리면
  * 「왜 안 눌리는지」를 읽을 자리가 사라진다 (DESIGN.md 접근성 기준).
  *
- * 테스트 실행만 하는 창(`정식` 거짓 — 실행 칸 trial)은 방금 누른 것에 대한 답만 적는다 — 상한 · 거절 사유 · 건수 풀이는 기록이 남는 실행 몫이다 (도메인/인증 §3.5 「테스트 모드」)
+ * 시험 실행만 하는 창(`정식` 거짓 — 실행 칸 trial)은 방금 누른 것에 대한 답만 적는다 — 상한 · 거절 사유는 기록이 남는 실행 몫이다 (도메인/인증 §3.5 「테스트 모드」)
  */
 export function 바닥한줄(
   t: (키: string, 값?: Record<string, string | number>) => string,
-  { notice, 정식, 너무많나, 건수, 사유, 풀이 }: { notice: string | null; 정식: boolean; 너무많나: boolean; 건수: number; 사유?: string; 풀이: () => string },
+  { notice, 정식, 너무많나, 건수, 사유 }: { notice: string | null; 정식: boolean; 너무많나: boolean; 건수: number; 사유?: string },
 ): { 줄: string | null; 빨갛나: boolean } {
-  const 정식줄 = 너무많나 ? t('한 번에 {상한}건까지 만들 수 있습니다 (지금 {지금}건)', { 상한, 지금: 건수 }) : (사유 ?? 풀이());
+  const 정식줄 = 너무많나 ? t('한 번에 {상한}건까지 만들 수 있습니다 (지금 {지금}건)', { 상한, 지금: 건수 }) : (사유 ?? null);
   return { 줄: notice ?? (정식 ? 정식줄 : null), 빨갛나: notice !== null || (정식 && (너무많나 || 사유 !== undefined)) };
 }
 
@@ -89,15 +89,13 @@ interface Props {
   slack칸: boolean;
   notifySlack: boolean;
   onSlack: (켬: boolean) => void;
-  /** 「결과가 남는 곳」 줄의 재료 — 누르기 전에 결과를 어디서 찾을지 적는다 (도메인/실행 §8.10) */
-  남는곳: ComponentProps<typeof 결과남는곳>;
+  /** 케이스 한 건 · 반복 1 이다 — 실행으로 서지 않아 Slack 칸을 숨긴다 */
+  한건한번: boolean;
 }
 
-export function 반복과알림({ repeat, on반복, slack칸, notifySlack, onSlack, 남는곳 }: Props) {
+export function 반복과알림({ repeat, on반복, slack칸, notifySlack, onSlack, 한건한번 }: Props) {
   const t = use말();
   return (
-    <>
-    <결과남는곳 {...남는곳} />
     <div className="mfoot">
       <label htmlFor="pick-repeat">{t('반복')}</label>
       {/* 새로 쓴 테스트가 매번 같은 결과를 내는지 여러 번 돌려 본다 (SPEC §3.2 · §5.2) */}
@@ -112,7 +110,7 @@ export function 반복과알림({ repeat, on반복, slack칸, notifySlack, onSla
       />
       {/* 웹훅이 없는 서비스에서는 칸 자체를 그리지 않는다. 흐리게 두지 않는다 (SPEC §8.2).
           한 건 · 반복 1 도 숨긴다 — 실행으로 서지 않아 서버가 알림을 버린다 (도메인/실행 §8.9 「언제 보내나」) */}
-      {!slack칸 || (남는곳.tcId !== null && 남는곳.반복수 === 1) ? null : (
+      {!slack칸 || 한건한번 ? null : (
         <label className="check-inline" htmlFor="pick-slack">
           <input
             type="checkbox"
@@ -120,28 +118,15 @@ export function 반복과알림({ repeat, on반복, slack칸, notifySlack, onSla
             checked={notifySlack}
             onChange={(e) => onSlack(e.target.checked)}
           />
-          {t('끝나면 Slack 으로 알리기')}
+          {t('완료 시 Slack 알림')}
         </label>
       )}
     </div>
-    </>
   );
 }
 
-/** 창 바닥 줄의 「실행 항목이 N건 생깁니다」. 곱셈 꼴로 풀어 어디서 나온 수인지 보인다 (도메인/실행 §8.2) */
-export function 건수풀이(
-  t: (키: string, 값?: Record<string, string | number>) => string,
-  재료: { 케이스: number; 디바이스: number | null; 디바이스합: number },
-  반복: number,
-  건수: number,
-): string {
-  return 재료.디바이스 === null
-    ? t('케이스 {케이스} (디바이스 합계 {합}) × 반복 {반복} = {건수}번', { 케이스: 재료.케이스, 합: 재료.디바이스합, 반복, 건수 })
-    : t('케이스 {케이스} × 디바이스 {디바이스} × 반복 {반복} = {건수}번', { 케이스: 재료.케이스, 디바이스: 재료.디바이스, 반복, 건수 });
-}
-
 /**
- * 테스트 실행과 실행. 버튼 아래에 기록이 남는지를 화면 글자로 적는다 — 말풍선(title)만으로는 누르기 전에 못 읽는다.
+ * 시험 실행과 실행. 버튼 아래에 기록이 남는지를 화면 글자로 적는다 — 말풍선(title)만으로는 누르기 전에 못 읽는다.
  * 설명은 버튼 밖에 둔다. 안에 넣으면 버튼 이름이 길어져 다른 자리가 이름으로 못 찾는다
  */
 export function 실행버튼들({
@@ -163,7 +148,7 @@ export function 실행버튼들({
     <>
       <span className="foot-act">
         <button className="btn ghost" onClick={on시험}>
-          {t('▶ 테스트 실행')}
+          {t('시험 실행')}
         </button>
         <span className="hint">{t('기록·리포트가 남지 않습니다')}</span>
       </span>

@@ -40,7 +40,7 @@ describe('장면칸', () => {
     expect(받기).toHaveBeenCalledWith(주소);
     expect(장면()).toBe('blob:1');
     expect(screen.getByText('실시간 화면')).toBeTruthy();
-    expect(screen.getByText('누른 곳을 표시하며 동작마다 1초씩 쉬어 갑니다')).toBeTruthy();
+    expect(screen.getByText('동작마다 1초 천천히')).toBeTruthy();
 
     await 흘리기(250);
     expect(받기).toHaveBeenCalledTimes(2);
@@ -59,7 +59,7 @@ describe('장면칸', () => {
     expect(받기).toHaveBeenCalledTimes(1);
     expect(장면()).toBe('blob:1');
     expect(screen.getByText('마지막 화면')).toBeTruthy();
-    expect(screen.queryByText('누른 곳을 표시하며 동작마다 1초씩 쉬어 갑니다')).toBeNull();
+    expect(screen.queryByText('동작마다 1초 천천히')).toBeNull();
   });
 
   it('장면이 오기 전에는 기다린다고 알리고, 장면 없이 끝나면 칸을 그리지 않는다', async () => {
@@ -67,7 +67,7 @@ describe('장면칸', () => {
     const { container, rerender } = render(<장면칸 주소={주소} 도는중 vision={null} />);
     await 흘리기();
 
-    expect(screen.getByText('브라우저 화면을 기다리고 있습니다. 앞 실행이 끝나야 시작할 때도 있습니다')).toBeTruthy();
+    expect(screen.getByText('차례를 기다리는 중')).toBeTruthy();
 
     rerender(<장면칸 주소={주소} 도는중={false} vision={null} />);
     expect(container.textContent).toBe('');
@@ -81,7 +81,7 @@ describe('장면칸', () => {
     render(<장면칸 주소={주소} 도는중 vision={null} />);
     await 흘리기();
 
-    const 못닿음 = '테스트 실행기에 닿지 않아 화면을 받지 못했습니다. 다시 받아 봅니다';
+    const 못닿음 = '실행 서버와 연결이 끊겼습니다. 다시 연결하는 중입니다';
     expect(screen.getByText(못닿음)).toBeTruthy();
 
     await 흘리기(250);
@@ -106,7 +106,7 @@ describe('장면칸', () => {
     await 흘리기(1000);
 
     expect(받기).not.toHaveBeenCalled();
-    expect(screen.getByText('브라우저 화면을 기다리고 있습니다. 앞 실행이 끝나야 시작할 때도 있습니다')).toBeTruthy();
+    expect(screen.getByText('차례를 기다리는 중')).toBeTruthy();
   });
 
   it('VISION 이 폰을 잡으면 그 폰 화면을 새 탭으로 여는 링크를 단다', async () => {
@@ -145,7 +145,7 @@ describe('장면칸', () => {
     expect(screen.getByText('폰 화면')).toBeTruthy();
     expect(screen.getByText('Device VISION 폰')).toBeTruthy();
     expect(screen.getByRole('img').getAttribute('alt')).toBe('폰의 지금 화면');
-    expect(screen.queryByText('누른 곳을 표시하며 동작마다 1초씩 쉬어 갑니다')).toBeNull();
+    expect(screen.queryByText('동작마다 1초 천천히')).toBeNull();
     expect(받기).toHaveBeenCalledTimes(2);
 
     await 흘리기(250);
@@ -169,7 +169,7 @@ describe('장면칸', () => {
     await 흘리기();
 
     expect(screen.getByText('폰 화면')).toBeTruthy();
-    expect(screen.getByText('빈 폰을 잡고 있습니다')).toBeTruthy();
+    expect(screen.getByText('사용할 폰을 찾는 중')).toBeTruthy();
 
     rerender(<장면칸 주소={주소} 도는중 vision="https://vision.example/#phone=R3C&view=k1" 폰만 />);
     expect(screen.getByText('폰 화면을 기다리고 있습니다')).toBeTruthy();
@@ -181,7 +181,7 @@ describe('장면칸', () => {
     expect(장면()).toBe('blob:1');
     expect(screen.getByRole('img').getAttribute('alt')).toBe('폰의 지금 화면');
     expect(screen.getByRole('link', { name: 'Device VISION 에서 보기 ↗' })).toBeTruthy();
-    expect(screen.queryByText('누른 곳을 표시하며 동작마다 1초씩 쉬어 갑니다')).toBeNull();
+    expect(screen.queryByText('동작마다 1초 천천히')).toBeNull();
   });
 
   it('모바일 웹은 폰을 잡으면 실제 폰 Chrome 장면을 「폰 화면」으로 그린다 — 앱 단계라고 하지 않는다', async () => {
@@ -190,7 +190,7 @@ describe('장면칸', () => {
     await 흘리기();
 
     expect(받기).toHaveBeenCalled();
-    expect(screen.getByText('브라우저 화면을 기다리고 있습니다. 앞 실행이 끝나야 시작할 때도 있습니다')).toBeTruthy();
+    expect(screen.getByText('차례를 기다리는 중')).toBeTruthy();
 
     rerender(<장면칸 주소={주소} 도는중 vision="https://vision.example/#phone=R3C&view=k1" 모바일웹 />);
     await 흘리기();
@@ -201,7 +201,7 @@ describe('장면칸', () => {
     expect(장면()).not.toBeNull();
     expect(screen.getByText('폰 화면')).toBeTruthy();
     expect(screen.getByText('실제 폰 Chrome')).toBeTruthy();
-    expect(screen.getByText('동작마다 1초씩 쉬어 갑니다')).toBeTruthy();
+    expect(screen.getByText('동작마다 1초 천천히')).toBeTruthy();
     expect(screen.queryByText(/앱 단계/)).toBeNull();
     expect(screen.getByRole('link', { name: 'Device VISION 에서 보기 ↗' })).toBeTruthy();
   });

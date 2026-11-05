@@ -25,18 +25,19 @@ describe('RunLocation', () => {
     expect(screen.queryByText('준비 중')).toBeNull();
   });
 
-  it('모바일 웹 줄은 서버 흉내 · 실제 폰 둘 중 하나를 고르고, 실제 폰이면 팜이 하는 일을 덧붙인다', () => {
+  it('모바일 웹 줄은 가상 기기 · 실제 기기 둘 중 하나를 고르고, 이름 아래에 무엇인지 작게 적는다', () => {
     const on바꿈 = vi.fn();
     const { rerender } = render(<RunLocation android={false} 모바일={{ 값: 'server', on바꿈 }} />);
 
-    expect((screen.getByRole('radio', { name: '서버 (iPhone 14 흉내)' }) as HTMLInputElement).checked).toBe(true);
-    expect(screen.queryByText(/빈 폰을 하나씩/)).toBeNull();
-    fireEvent.click(screen.getByRole('radio', { name: 'Device VISION (실제 폰 Chrome)' }));
+    expect((screen.getByRole('radio', { name: '가상 기기' }) as HTMLInputElement).checked).toBe(true);
+    expect(screen.getByText('서버에서 iPhone 14 화면 크기로 실행')).toBeTruthy();
+    expect(screen.getByText('Device VISION 의 Android 폰 Chrome')).toBeTruthy();
+    fireEvent.click(screen.getByRole('radio', { name: '실제 기기' }));
     expect(on바꿈).toHaveBeenCalledWith('vision');
 
     rerender(<RunLocation android={false} 모바일={{ 값: 'vision', on바꿈 }} />);
-    expect((screen.getByRole('radio', { name: 'Device VISION (실제 폰 Chrome)' }) as HTMLInputElement).checked).toBe(true);
-    expect(screen.getByText('케이스마다 빈 폰을 하나씩 잡고 끝나면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 항목에 남습니다')).toBeTruthy();
+    expect((screen.getByRole('radio', { name: '실제 기기' }) as HTMLInputElement).checked).toBe(true);
+    expect(screen.queryByText(/빈 폰/)).toBeNull();
   });
 
   it('둘이 한 화면에 서도 라디오 묶음이 섞이지 않는다', () => {
@@ -48,8 +49,8 @@ describe('RunLocation', () => {
     );
 
     const 묶음 = screen.getAllByRole('radiogroup', { name: '모바일 웹' });
-    const 고른것 = (g: HTMLElement) => g.querySelector<HTMLInputElement>('input:checked')?.parentElement?.textContent;
-    expect(묶음.map(고른것)).toEqual(['서버 (iPhone 14 흉내)', 'Device VISION (실제 폰 Chrome)']);
+    const 고른것 = (g: HTMLElement) => g.querySelector<HTMLInputElement>('input:checked')?.getAttribute('aria-label');
+    expect(묶음.map(고른것)).toEqual(['가상 기기', '실제 기기']);
     expect(new Set(묶음.map((g) => g.querySelector('input')?.getAttribute('name'))).size).toBe(2);
   });
 });

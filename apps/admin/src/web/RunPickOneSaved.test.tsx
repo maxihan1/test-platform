@@ -47,7 +47,7 @@ describe('한 건 창의 권한 칸', () => {
     expect(screen.queryByLabelText('저장한 값')).toBeNull();
     expect(screen.queryByRole('button', { name: '묶음으로 저장' })).toBeNull();
     expect(screen.queryByPlaceholderText('묶음 이름')).toBeNull();
-    expect(screen.getByText('선언된 입력값이 없습니다. 그대로 실행됩니다')).toBeTruthy();
+    expect(screen.getByText('입력값 없음')).toBeTruthy();
   });
 });
 

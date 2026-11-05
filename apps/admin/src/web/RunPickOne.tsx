@@ -1,4 +1,4 @@
-// 실행 창이 케이스 한 건으로 열렸을 때만 붙는 칸 — 사전조건 · 디바이스 · 실행자 (도메인/실행 §8.10, 저장한 값 줄은 RunPickSaved)
+// 실행 창이 케이스 한 건으로 열렸을 때만 붙는 칸 — 사전조건 · 디바이스 (도메인/실행 §8.10, 저장한 값 줄은 RunPickSaved)
 // 한 건짜리 실행 설정 화면이 하던 일을 창 안으로 옮겼다. 실행 문은 하나다 (2026-10-09 UI 개편 묶음 4)
 
 import { useState } from 'react';
@@ -17,20 +17,17 @@ export function use한건(케이스: CaseRow | null) {
 }
 
 /**
- * 창 머리 아래 — 사전조건 · 디바이스 · 실행자.
+ * 창 머리 아래 — 사전조건 · 디바이스. 실행자는 늘 누른 사람 자신이라 그 줄을 뺐다 (2026-11-05 WEB-F9-01).
  * 실행 제목 칸은 없다 — 서버가 시작 방식과 담긴 케이스로 짓는다 (§8.10 · 2026-10-19 ⑫). 앞 판의 칸은 거의 안 고쳐졌다
  */
 export function 한건머리({
   케이스,
   디바이스,
   on디바이스,
-  실행자,
 }: {
   케이스: CaseRow;
   디바이스: Platform[];
   on디바이스: (다음: Platform[]) => void;
-  /** 고칠 수 없는 표시다. 사람이 적게 두면 남의 이름을 적을 수 있다 (SPEC §8.2) */
-  실행자: string | null;
 }) {
   const t = use말();
 
@@ -39,7 +36,7 @@ export function 한건머리({
       <div className="one-pre">
         <span className="one-label">{t('사전조건')}</span>
         {케이스.precondition.length === 0 ? (
-          <span className="hint">{t('선언된 사전조건이 없습니다.')}</span>
+          <span className="hint">{t('사전조건 없음')}</span>
         ) : (
           케이스.precondition.map((line) => (
             <div className="pre" key={line}>
@@ -63,11 +60,6 @@ export function 한건머리({
           ))}
         </div>
       </div>
-      {실행자 === null ? null : (
-        <div className="mhead">
-          <span className="hint">{t('실행자 {이름}', { 이름: 실행자 })}</span>
-        </div>
-      )}
     </div>
   );
 }

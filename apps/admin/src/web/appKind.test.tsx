@@ -107,18 +107,18 @@ describe('케이스 목록', () => {
 });
 
 describe('실행 창 실행 위치', () => {
-  it('Android 앱 애플리케이션은 고른 케이스에 앱이 없어도 늘 보이고 팜이 하는 일을 덧붙인다', () => {
+  it('Android 앱 애플리케이션은 고른 케이스에 앱이 없어도 늘 보이고 폰을 잡는 설명은 붙이지 않는다', () => {
     render(<RunLocation android={false} 앱종류="APP" />);
 
     expect([screen.getByText('Android 앱'), screen.getByText('Device VISION')].every(Boolean)).toBe(true);
-    expect(screen.getByText('케이스마다 빈 폰을 하나씩 잡고 끝나면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 항목에 남습니다')).toBeTruthy();
+    expect(screen.queryByText(/빈 폰/)).toBeNull();
   });
 
-  it('게임 애플리케이션은 실행 하나에 폰을 한 번 잡는다고 덧붙인다', () => {
+  it('게임 애플리케이션도 고른 케이스와 상관없이 「게임 · Device VISION」 줄이 선다', () => {
     render(<RunLocation android={false} 앱종류="GAME" />);
 
-    expect(screen.getByText('실행 하나 동안 빈 폰을 한 번 잡고 다 돌면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 항목에 남습니다')).toBeTruthy();
-    expect(screen.queryByText(/케이스마다 빈 폰을/)).toBeNull();
+    expect([screen.getByText('게임'), screen.getByText('Device VISION')].every(Boolean)).toBe(true);
+    expect(screen.queryByText(/빈 폰/)).toBeNull();
   });
 
   it('웹 애플리케이션은 지금처럼 앱 케이스가 있을 때 한 줄만이다', () => {
