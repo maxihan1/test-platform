@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { api, type TrialResult } from './api.js';
-import { 그린다, 서비스, 케이스 } from './runPick.fixture.js';
+import { 그린다, 서비스, 케이스, 시작누름 } from './runPick.fixture.js';
 import { RunPickModal } from './RunPickModal.js';
 import { 시험배지 } from './RunPickTrial.js';
 import { 장면통로 } from './TrialLive.js';
@@ -60,6 +60,7 @@ describe('한 건 창의 테스트 실행', () => {
 
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
+    시작누름('시험 실행 시작');
 
     await waitFor(() => expect(document.querySelector('.trial-steps')).not.toBeNull(), { timeout: 5000 });
     expect(screen.getByText('로그인한다')).toBeTruthy();
@@ -74,6 +75,7 @@ describe('한 건 창의 테스트 실행', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: 'PC' }));
     fireEvent.click(screen.getByRole('checkbox', { name: '모바일' }));
     fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
+    시작누름('시험 실행 시작');
 
     expect(시작).not.toHaveBeenCalled();
     expect(screen.getByRole('status').textContent).toBe('실행할 디바이스를 하나 이상 선택하세요.');
@@ -87,6 +89,7 @@ describe('한 건 창의 테스트 실행', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: 'PC' }));
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
+    시작누름('시험 실행 시작');
 
     await waitFor(() => expect(시작).toHaveBeenCalledTimes(1));
     expect(시작.mock.calls[0]?.[1]).toMatchObject({ platform: 'mobile' });
@@ -97,7 +100,7 @@ describe('실행 창 오른쪽 실시간 칸', () => {
   it('테스트 실행을 누르기 전에는 칸이 없다', async () => {
     await 그린다();
 
-    expect(document.querySelector('.pick-live')?.childElementCount).toBe(0);
+    expect(document.querySelector('.trial-live')).toBeNull();
   });
 
   it('누르면 오른쪽에 그 케이스의 장면 칸이 열리고, VISION 이 폰을 잡으면 링크를 단다', async () => {
@@ -108,6 +111,7 @@ describe('실행 창 오른쪽 실시간 칸', () => {
 
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
+    시작누름('시험 실행 시작');
 
     const 링크 = await screen.findByRole('link', { name: 'Device VISION 에서 보기 ↗' });
     expect(링크.getAttribute('href')).toBe('https://vision.example/#phone=R3C&view=k1');
@@ -124,6 +128,7 @@ describe('실행 창 오른쪽 실시간 칸', () => {
 
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
+    시작누름('시험 실행 시작');
 
     expect(await screen.findByText('폰 화면을 기다리고 있습니다')).toBeTruthy();
     expect(screen.queryByText(/앱 단계/)).toBeNull();
@@ -139,6 +144,7 @@ describe('실행 창 오른쪽 실시간 칸', () => {
 
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
+    시작누름('시험 실행 시작');
 
     expect(await screen.findByRole('link', { name: 'Device VISION 에서 보기 ↗' })).toBeTruthy();
     await waitFor(() => expect(screen.queryByRole('link', { name: 'Device VISION 에서 보기 ↗' })).toBeNull(), { timeout: 5000 });
@@ -154,6 +160,7 @@ describe('실행 창 오른쪽 실시간 칸', () => {
 
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
+    시작누름('시험 실행 시작');
 
     expect(await screen.findByText('1 / 2 · ZRS-001 실행 설정 케이스')).toBeTruthy();
   });
@@ -168,6 +175,7 @@ describe('실행 창 오른쪽 실시간 칸', () => {
 
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
+    시작누름('시험 실행 시작');
 
     expect(await screen.findByText('2 / 2 · ZRS-001 실행 설정 케이스 · 모바일', {}, { timeout: 5000 })).toBeTruthy();
     expect(시작.mock.calls.map(([, body]) => body.platform)).toEqual(['desktop', 'mobile']);

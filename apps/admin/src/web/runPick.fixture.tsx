@@ -1,7 +1,7 @@
 // 한 건 실행 창 테스트 둘이 같이 쓰는 케이스 · 서비스 · 사람과 그리기 도우미
 
 import { vi } from 'vitest';
-import { act, render } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 
 import { api, type CaseRow, type ParamSetRow, type ServiceRow, type User } from './api.js';
 import { RunPickModal } from './RunPickModal.js';
@@ -73,4 +73,10 @@ export async function 그린다(row: CaseRow = 케이스, 누구: User = 사람,
   render(<RunPickModal 케이스들={[row]} service={서비스} user={누구} onRun={onRun} on다시읽기={on다시읽기} onClose={vi.fn()} {...속성} />);
   await act(async () => {});
   return { onRun, on다시읽기 };
+}
+
+/** 실행 창의 「실행」 · 「시험 실행」 뒤에 뜨는 시작 확인 창을 넘긴다. 창이 안 떴으면(걸기 전에 막혔으면) 아무것도 안 누른다 */
+export function 시작누름(이름: '실행 시작' | '시험 실행 시작' = '실행 시작'): void {
+  const 단추 = screen.queryByRole('button', { name: 이름 });
+  if (단추 !== null) fireEvent.click(단추);
 }

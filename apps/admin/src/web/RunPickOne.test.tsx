@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, screen } from '@testing-library/react';
 
 import { api, type CaseRow } from './api.js';
-import { 그린다, 비밀스키마, 사람, 케이스 } from './runPick.fixture.js';
+import { 그린다, 비밀스키마, 사람, 케이스, 시작누름 } from './runPick.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -23,6 +23,7 @@ describe('한 건 창 — 실행 걸기 (SPEC §8.2)', () => {
 
     expect(실행버튼().disabled).toBe(false);
     fireEvent.click(실행버튼());
+    시작누름();
 
     expect(onRun).not.toHaveBeenCalled();
     expect(screen.getByText('대상 서버를 선택하세요. 리포트에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.')).toBeTruthy();
@@ -33,6 +34,7 @@ describe('한 건 창 — 실행 걸기 (SPEC §8.2)', () => {
 
     서버고르기('stage');
     fireEvent.click(실행버튼());
+    시작누름();
 
     expect(onRun).toHaveBeenCalledTimes(1);
     expect(onRun.mock.calls[0]?.[0].env).toBe('stage');
@@ -43,6 +45,7 @@ describe('한 건 창 — 실행 걸기 (SPEC §8.2)', () => {
 
     expect((screen.getByLabelText('대상 서버') as HTMLSelectElement).value).toBe('stage');
     fireEvent.click(실행버튼());
+    시작누름();
 
     expect(onRun.mock.calls[0]?.[0].env).toBe('stage');
   });
@@ -62,6 +65,7 @@ describe('한 건 창 — 실행 걸기 (SPEC §8.2)', () => {
     expect(실행버튼().disabled).toBe(true);
     expect(줄().textContent).toBe('한 번에 5000건까지 만들 수 있습니다 (지금 5001건)');
     fireEvent.click(실행버튼());
+    시작누름();
     expect(onRun).not.toHaveBeenCalled();
   });
 
@@ -74,6 +78,7 @@ describe('한 건 창 — 실행 걸기 (SPEC §8.2)', () => {
     expect(실행버튼().disabled).toBe(false);
     expect(줄().textContent).toBe('');
     fireEvent.click(실행버튼());
+    시작누름();
     expect(onRun).toHaveBeenCalledTimes(1);
   });
 
@@ -105,6 +110,7 @@ describe('한 건 창 — 디바이스 · 실행 위치', () => {
     expect(screen.queryByLabelText('실행 제목')).toBeNull();
 
     fireEvent.click(실행버튼());
+    시작누름();
 
     expect(onRun.mock.calls[0]?.[0]).not.toHaveProperty('title');
   });
@@ -115,6 +121,7 @@ describe('한 건 창 — 디바이스 · 실행 위치', () => {
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'PC' }));
     fireEvent.click(실행버튼());
+    시작누름();
 
     expect(onRun.mock.calls[0]?.[0].items[0]?.platforms).toEqual(['mobile']);
   });
@@ -126,6 +133,7 @@ describe('한 건 창 — 디바이스 · 실행 위치', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: 'PC' }));
     fireEvent.click(screen.getByRole('checkbox', { name: '모바일' }));
     fireEvent.click(실행버튼());
+    시작누름();
 
     expect(onRun).not.toHaveBeenCalled();
     expect(줄().textContent).toBe('실행할 디바이스를 하나 이상 선택하세요.');
@@ -137,6 +145,7 @@ describe('한 건 창 — 디바이스 · 실행 위치', () => {
 
     expect(screen.getByText('Device VISION')).toBeTruthy();
     fireEvent.click(실행버튼());
+    시작누름();
 
     expect(onRun.mock.calls[0]?.[0]).not.toHaveProperty('location');
   });
@@ -146,6 +155,7 @@ describe('한 건 창 — 디바이스 · 실행 위치', () => {
     서버고르기();
 
     fireEvent.click(실행버튼());
+    시작누름();
 
     expect(screen.queryByText(/실행 위치/)).toBeNull();
     expect(onRun.mock.calls[0]?.[0]).not.toHaveProperty('location');
@@ -158,6 +168,7 @@ describe('한 건 창 — 디바이스 · 실행 위치', () => {
 
     fireEvent.click(screen.getByRole('checkbox', { name: '모바일' }));
     fireEvent.click(실행버튼());
+    시작누름();
 
     expect(screen.queryByRole('radiogroup', { name: '모바일 웹' })).toBeNull();
     expect(onRun.mock.calls[0]?.[0]).not.toHaveProperty('mobileOn');
@@ -172,6 +183,7 @@ describe('한 건 창 — 고친 칸 검사', () => {
     fireEvent.change(screen.getByLabelText('개수'), { target: { value: 'abc' } });
     expect(screen.queryByRole('alert')).toBeNull();
     fireEvent.click(실행버튼());
+    시작누름();
 
     expect(onRun).not.toHaveBeenCalled();
     expect(줄().textContent).toBe('입력값이 명세와 맞지 않습니다.');
@@ -185,6 +197,7 @@ describe('한 건 창 — 고친 칸 검사', () => {
 
     fireEvent.change(screen.getByLabelText('개수'), { target: { value: 'abc' } });
     fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
+    시작누름('시험 실행 시작');
 
     expect(시작).not.toHaveBeenCalled();
     expect(줄().textContent).toBe('입력값이 명세와 맞지 않습니다.');

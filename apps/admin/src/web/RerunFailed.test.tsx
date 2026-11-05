@@ -6,7 +6,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 
 import { api, type CaseRow, type ItemStatus, type Platform, type RunItemSummary } from './api.js';
 import { 실패다시실행, 실패디바이스, 실패케이스들 } from './RerunFailed.js';
-import { 사람 } from './runPick.fixture.js';
+import { 사람, 시작누름 } from './runPick.fixture.js';
 
 const 원래실행 = (mobileDevices: string[]) =>
   ({ runId: 20914, env: 'stage', items: [], mobileDevices }) as unknown as Awaited<ReturnType<typeof api.run>>;
@@ -131,6 +131,7 @@ describe('실패다시실행', () => {
     await screen.findByRole('dialog');
 
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
+    시작누름();
 
     await waitFor(() => expect(on걸었다).toHaveBeenCalledWith(20915));
     expect(만들기.mock.calls[0]?.[0]).toMatchObject({ rerunOf: 20914, env: 'stage' });
@@ -160,6 +161,7 @@ describe('실패다시실행', () => {
     await screen.findByRole('dialog');
 
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
+    시작누름();
 
     await waitFor(() => expect(만들기).toHaveBeenCalled());
     expect(만들기.mock.calls[0]?.[0].items.map((it) => [it.tcId, it.platforms])).toEqual([
@@ -180,6 +182,7 @@ describe('실패다시실행', () => {
 
     expect((screen.getByRole('radio', { name: '실제 기기' }) as HTMLInputElement).checked).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
+    시작누름();
 
     await waitFor(() => expect(만들기).toHaveBeenCalled());
     expect(만들기.mock.calls[0]?.[0]).toMatchObject({ rerunOf: 20914, mobileOn: 'vision' });

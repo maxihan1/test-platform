@@ -6,6 +6,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 
 import type { CaseRow, JsonSchema, Platform, ServiceRow } from './api.js';
 import { RunPickModal } from './RunPickModal.js';
+import { 시작누름 } from './runPick.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -58,6 +59,7 @@ describe('RunPickModal 실행 위치 (SPEC §8.10)', () => {
     expect(screen.getByText('Device VISION')).toBeTruthy();
     expect((실행버튼() as HTMLButtonElement).disabled).toBe(false);
     fireEvent.click(실행버튼());
+    시작누름();
 
     expect(onRun).toHaveBeenCalledTimes(1);
     expect(onRun.mock.calls[0]?.[0]).not.toHaveProperty('location');
@@ -68,6 +70,7 @@ describe('RunPickModal 실행 위치 (SPEC §8.10)', () => {
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
 
     fireEvent.click(실행버튼());
+    시작누름();
 
     expect(screen.queryByRole('radiogroup')).toBeNull();
     expect(onRun.mock.calls[0]?.[0]).not.toHaveProperty('location');
@@ -80,10 +83,12 @@ describe('RunPickModal 실행 위치 (SPEC §8.10)', () => {
 
     expect((screen.getByRole('radio', { name: '가상 기기' }) as HTMLInputElement).checked).toBe(true);
     fireEvent.click(실행버튼());
+    시작누름();
     expect(onRun.mock.calls[0]?.[0].mobileOn).toBe('server');
 
     fireEvent.click(screen.getByRole('radio', { name: '실제 기기' }));
     fireEvent.click(실행버튼());
+    시작누름();
     expect(onRun.mock.calls[1]?.[0].mobileOn).toBe('vision');
   });
 
@@ -93,6 +98,7 @@ describe('RunPickModal 실행 위치 (SPEC §8.10)', () => {
 
     expect((screen.getByRole('radio', { name: '실제 기기' }) as HTMLInputElement).checked).toBe(true);
     fireEvent.click(실행버튼());
+    시작누름();
     expect(onRun.mock.calls[0]?.[0].mobileOn).toBe('vision');
   });
 });

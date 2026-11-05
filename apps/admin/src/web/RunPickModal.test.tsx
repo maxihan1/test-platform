@@ -5,10 +5,11 @@
 // 곱셈으로 세면 있지도 않은 조합을 센다 — 둘짜리 하나와 하나짜리 하나는 2도 4도 아닌 3건이다.
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 import { api, type CaseRow, type JsonSchema, type Platform, type ServiceRow } from './api.js';
 import { RunPickModal } from './RunPickModal.js';
+import { 시작누름 } from './runPick.fixture.js';
 
 // globals 가 꺼져 있어 testing-library 가 스스로 cleanup 을 걸지 못한다. 직접 건다
 afterEach(() => {
@@ -93,6 +94,7 @@ describe('RunPickModal', () => {
     render(<RunPickModal 케이스들={[값없는케이스, 값있는케이스]} service={{ ...서비스, envs }} onRun={onRun} onClose={vi.fn()} />);
 
     fireEvent.click(실행버튼());
+    시작누름();
 
     expect(onRun).not.toHaveBeenCalled();
     expect(줄().textContent).toContain('대상 서버를 선택하세요');
@@ -105,6 +107,7 @@ describe('RunPickModal', () => {
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'zpm-tester' } });
     fireEvent.click(실행버튼());
+    시작누름();
 
     expect(onRun).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -145,6 +148,7 @@ describe('RunPickModal', () => {
 
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.click(실행버튼());
+    시작누름();
 
     expect(onRun.mock.calls[0]?.[0].items).toEqual([
       { tcId: 'MKT-001', platforms: ['desktop'], params: { loginId: 'u' }, expected: { homePath: '/', flag: true } },
@@ -190,6 +194,7 @@ describe('RunPickModal', () => {
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.change(screen.getByLabelText('반복'), { target: { value: '2.7' } });
     fireEvent.click(실행버튼());
+    시작누름();
     expect(onRun.mock.calls[0]?.[0].repeat).toBe(2);
   });
 
@@ -261,6 +266,7 @@ describe('RunPickModal 테스트 실행', () => {
     서버고르기();
     fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'zpm-tester' } });
     fireEvent.click(테스트버튼());
+    시작누름('시험 실행 시작');
 
     await waitFor(() => expect(screen.getAllByText('통과')).toHaveLength(3), { timeout: 5000 });
     expect(시작.mock.calls.map(([id, body]) => `${id} ${body.platform}`)).toEqual(['ZPM-001 desktop', 'ZPM-001 mobile', 'ZPM-002 desktop']);
@@ -275,6 +281,7 @@ describe('RunPickModal 테스트 실행', () => {
     render(<RunPickModal 케이스들={[값없는케이스, 값있는케이스]} service={{ ...서비스, envs }} onRun={vi.fn()} onClose={vi.fn()} />);
 
     fireEvent.click(테스트버튼());
+    시작누름('시험 실행 시작');
 
     expect(시작).not.toHaveBeenCalled();
     expect(줄().textContent).toBe('시험 실행할 대상 서버를 선택하세요.');
@@ -286,29 +293,42 @@ describe('RunPickModal 테스트 실행', () => {
     expect(screen.queryByText('고급 · 테스트 실행 설정')).toBeNull();
   });
 
-  it('도는 중에 또 누르면 안내하고 큐가 끝나면 그 안내를 걷는다', async () => {
+  it('도는 동안 단추 줄은 「중단」 하나고 값 칸 · 대상 서버 칸이 없다', async () => {
     vi.spyOn(api, 'startTrial').mockResolvedValue({ trialId: 't' });
-    const 끝 = { status: 'DONE' as const, result: { status: 'PASS' as const, durationMs: 1, steps: [] } };
-    let 풀림 = false;
-    let 풀기!: () => void;
-    vi.spyOn(api, 'getTrial').mockImplementation(() =>
-      풀림 ? Promise.resolve(끝) : new Promise((ok) => { 풀기 = () => { 풀림 = true; ok(끝); }; }),
-    );
+    vi.spyOn(api, 'getTrial').mockResolvedValue({ status: 'RUNNING' });
     그리기([값없는케이스]);
 
     서버고르기();
     fireEvent.click(테스트버튼());
-    fireEvent.click(테스트버튼());
-    await waitFor(() => expect(줄().textContent).toContain('이미 시험 실행이 돌고 있습니다'));
+    시작누름('시험 실행 시작');
 
-    풀기();
-    await waitFor(() => expect(줄().textContent).not.toContain('이미 시험 실행이 돌고 있습니다'));
+    expect(await screen.findByRole('button', { name: '중단' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '시험 실행' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '실행' })).toBeNull();
+    expect(screen.queryByLabelText('대상 서버')).toBeNull();
+    expect(screen.getByText('결과는 이 창에서만 보이고 실행 기록에 남지 않습니다')).toBeTruthy();
   });
 
-  it('테스트 실행에는 기록 · 리포트가 남지 않는다고, 실행 곁에는 기록이 남는다고 화면 글자로 적는다', () => {
-    그리기();
-    expect(screen.getByText('기록·리포트가 남지 않습니다')).toBeTruthy();
-    expect(screen.getByText('기록이 남습니다')).toBeTruthy();
-    expect(테스트버튼().hasAttribute('title')).toBe(false);
+  it('누르면 시작 확인 창이 기록이 남는지와 무엇이 도는지를 적고, 취소하면 돌리지 않는다', () => {
+    const 시작 = 서버모킹();
+    const onRun = vi.fn();
+    render(<RunPickModal 케이스들={[값없는케이스, 값있는케이스]} service={서비스} onRun={onRun} onClose={vi.fn()} />);
+    서버고르기();
+
+    fireEvent.click(테스트버튼());
+    const 시험창 = within(screen.getByRole('dialog', { name: '시험 실행을 시작할까요?' }));
+    expect(시험창.getByText('실행 기록 · 리포트에 남지 않습니다')).toBeTruthy();
+    expect(시험창.getByText('2건 · 한 건씩 차례로')).toBeTruthy();
+    expect(시험창.getByText('PC 2 · 모바일 1')).toBeTruthy();
+    fireEvent.click(시험창.getByRole('button', { name: '취소' }));
+    expect(시작).not.toHaveBeenCalled();
+
+    fireEvent.click(실행버튼());
+    const 정식창 = within(screen.getByRole('dialog', { name: '정식 실행을 시작할까요?' }));
+    expect(정식창.getByText('끝나면 실행 기록에 새 RUN 으로 남고 리포트가 만들어집니다')).toBeTruthy();
+    expect(정식창.getByText('PC 2 · 모바일 1 (가상 기기)')).toBeTruthy();
+    expect(onRun).not.toHaveBeenCalled();
+    fireEvent.click(정식창.getByRole('button', { name: '실행 시작' }));
+    expect(onRun).toHaveBeenCalledTimes(1);
   });
 });

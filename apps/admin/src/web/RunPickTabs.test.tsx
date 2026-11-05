@@ -6,6 +6,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 
 import { api, type CaseRow, type Paged, type Platform, type ServiceRow, type User } from './api.js';
 import { CaseList } from './CaseList.js';
+import { 시작누름 } from './runPick.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -85,6 +86,7 @@ describe('고르기 바의 디바이스별 실행', () => {
     expect(창안().getByRole('radio', { name: '가상 기기' })).toBeTruthy();
     fireEvent.change(창안().getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.click(창안().getByRole('button', { name: '실행' }));
+    시작누름();
 
     await waitFor(() => expect(걸기).toHaveBeenCalledTimes(1));
     expect(걸기.mock.calls[0]?.[0].items.map((it) => [it.tcId, it.platforms])).toEqual([
@@ -123,6 +125,7 @@ describe('「모두 실행」 창의 PC · 모바일 탭', () => {
 
     fireEvent.change(창안().getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.click(창안().getByRole('button', { name: '실행' }));
+    시작누름();
 
     await waitFor(() => expect(걸기).toHaveBeenCalledTimes(1));
     expect(걸기.mock.calls[0]?.[0]).toMatchObject({

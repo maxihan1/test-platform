@@ -11,6 +11,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 
 import type { CaseRow, JsonSchema, ServiceRow } from './api.js';
 import { RunPickModal } from './RunPickModal.js';
+import { 시작누름 } from './runPick.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -80,6 +81,7 @@ describe('실행 창 — 값 접기', () => {
     const 칸 = screen.getByLabelText('개수');
     fireEvent.change(칸, { target: { value: 'abc' } });
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
+    시작누름();
     const [첫, 둘째] = screen.getAllByRole('button', { name: /^입력값 / });
     expect(첫!.getAttribute('aria-expanded')).toBe('false');
     expect(둘째!.getAttribute('aria-expanded')).toBe('true');
