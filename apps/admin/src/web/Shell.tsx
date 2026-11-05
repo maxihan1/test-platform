@@ -23,8 +23,8 @@ import { 기능보나, 판정을만든다, 할수있나 } from './role.js';
 import { RunWatch } from './RunWatch.js';
 import { 찾기칸 } from './ShellFind.js';
 import { 로고움직임다시 } from './logoMotion.js';
-import { 서비스고르개, 프로젝트고르개 } from './ShellPickers.js';
-import { 사이드바머리, 왼쪽줄 } from './ShellRail.js';
+import { 위치카드 } from './ShellPlace.js';
+import { 왼쪽줄 } from './ShellRail.js';
 import { 밝기단추 } from './theme.js';
 import { use가입대기수 } from './useSignupWaiting.js';
 
@@ -89,7 +89,7 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
   return (
     <div className={접음 ? 'wrap folded' : 'wrap'}>
       {/* 위쪽 바는 없다 (화면공통 §8 「껍데기」 · 2026-10-30 시안 11판). 로고 · 알림 · 설정 · 내 메뉴는 왼쪽 줄로, 찾기는 사이드바 머리로,
-          프로젝트 고르개는 사이드바 바닥으로 왔다가 2026-11-02 로고 아래로 올라갔다. 2026-09-21 ② 에 옛 이름(`.band`·`.nav`·`.notice`·`.svc-dot`)을 걷어냈다 */}
+          프로젝트 고르개는 사이드바 바닥으로 왔다가 2026-11-02 로고 아래로 올라갔고, 2026-11-05 머리와 합쳐 위치 카드가 됐다. 2026-09-21 ② 에 옛 이름(`.band`·`.nav`·`.notice`·`.svc-dot`)을 걷어냈다 */}
       <aside className="side">
         <왼쪽줄
           user={user}
@@ -126,13 +126,9 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
           {접음 ? '»' : '«'}
         </button>
         </div>
-        {/* 로고 아래 — 프로젝트가 가장 위 층이라 애플리케이션 머리 · 메뉴보다 먼저 읽힌다(2026-11-02 사용자 — 바닥에 두니 「말도 안 된다」).
-            고른 애플리케이션이 없으면 그 사실을 여기서 말한다 — 왼쪽 줄도 비어 있다 */}
-        <div className="side-proj">
-          <아이콘 이름="project" />
-          {service === null ? <서비스고르개 user={user} service={service} onService={onService} /> : <프로젝트고르개 user={user} service={service} onService={onService} 수를붙임 />}
-        </div>
-        {service === null ? null : <사이드바머리 service={service} />}
+        {/* 로고 아래 — 프로젝트가 가장 위 층이라 메뉴보다 먼저 읽힌다(2026-11-02 사용자 — 바닥에 두니 「말도 안 된다」).
+            프로젝트와 애플리케이션 이름을 한 카드에 크게 두고, 누르면 둘 다 고르는 판이 뜬다(2026-11-05 — 처음 온 사람이 바꾸는 곳을 못 찾았다) */}
+        <위치카드 user={user} service={service} onService={onService} 새로만들기={할수있나(user, service?.prefix ?? null, '설정')} />
         <찾기칸 자리들={자리들} prefix={service?.prefix ?? null} 케이스볼수있나={기능보나(user, service?.prefix ?? null, 'cases')} />
         <nav className="side-nav">
           {메뉴들.map((자리) =>

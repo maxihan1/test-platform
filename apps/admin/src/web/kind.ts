@@ -1,7 +1,7 @@
 // 애플리케이션 종류마다 화면이 다르게 그리는 것 — 도메인/러너 §5.2 「애플리케이션 종류 「Android 앱」」 종류 표를 옮긴 상수 하나
 // 화면 곳곳에서 종류를 따로 묻지 않고 이 표를 본다
 
-import type { Platform, 앱종류 } from './api.js';
+import type { Platform, ServiceRow, 앱종류 } from './api.js';
 import { t, type 언어 } from './i18n.js';
 import type { 아이콘이름 } from './icons.js';
 
@@ -118,6 +118,11 @@ export const 종류차례: readonly 앱종류[] = ['SCREEN', 'APP', 'GAME', 'API
 export const 종류키 = (kind: 앱종류 | undefined): 앱종류 => (kind !== undefined && 종류차례.includes(kind) ? kind : 'SCREEN');
 
 export const 종류 = (kind: 앱종류 | undefined): 종류줄 => 종류표[종류키(kind)];
+
+/** 위치 판 · 왼쪽 줄 · 휴대폰이 같은 차례로 늘어놓는다 — 같은 사람이 자리마다 다른 차례를 보지 않게. 같은 종류 안은 받은 차례 그대로다 */
+export function 종류차례로(목록: readonly ServiceRow[]): ServiceRow[] {
+  return [...목록].sort((a, b) => 종류차례.indexOf(종류키(a.kind)) - 종류차례.indexOf(종류키(b.kind)));
+}
 
 /** 기기 성능 화면 이름 — 메뉴가 없는 종류(웹)도 주소로는 열리고 재는 것은 폰 앱이라 「앱 성능」으로 읽는다. 영어 표의 키다 */
 export const 기기성능이름 = (kind: 앱종류 | undefined): string => 종류(kind).기기성능 ?? '앱 성능';

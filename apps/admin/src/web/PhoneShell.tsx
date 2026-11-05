@@ -1,18 +1,21 @@
-// 휴대폰 껍데기 — 위 줄(애플리케이션 고르개 · 알림 종 · 내 동그라미) · 본문 · 아래 탭 다섯 · 전체 메뉴판 (SPEC 공통/5-화면공통 §8 「휴대폰 화면」)
+// 휴대폰 껍데기 — 위 줄(위치 단추 · 알림 종 · 내 동그라미) · 본문 · 아래 탭 다섯 · 전체 메뉴판 (SPEC 공통/5-화면공통 §8 「휴대폰 화면」)
 // 2026-10-30 부터 휴대폰에서도 모든 메뉴가 열린다 — 앞 판은 결과 확인 밖의 화면을 「PC 에서 여세요」 안내로 막았다
 
 import { useEffect, useRef, useState } from 'react';
 
 import type { ServiceRow, User } from './api.js';
 import { decideApi } from './decideApi.js';
-import { use말, use언어, type 언어 } from './i18n.js';
+import { use말, type 언어 } from './i18n.js';
 import { 아이콘 } from './icons.js';
-import { 종류, 종류이름, 종류차례, 종류키 } from './kind.js';
-import { 고른서비스를적는다, 프로젝트서비스들, 자리목록, type 빈띠, type 자리 } from './layout.js';
+import { 종류 } from './kind.js';
+import { 고른서비스를적는다, 자리목록, type 빈띠 } from './layout.js';
 import { Notice } from './Notice.js';
+import { 메뉴목록, 앱격자, 지금이면 } from './PhoneMenu.js';
 import { 표에라벨을단다 } from './phone.js';
+import { 할수있나 } from './role.js';
 import { 내메뉴항목 } from './ShellMe.js';
-import { 언어고르개, 프로젝트고르개 } from './ShellPickers.js';
+import { 언어고르개 } from './ShellPickers.js';
+import { 위치판 } from './ShellPlace.js';
 import { 아래판 } from './Sheet.js';
 import { 밝기단추 } from './theme.js';
 
@@ -31,7 +34,6 @@ interface Props {
 
 type 판 = 'menu' | 'apps' | 'me';
 
-const 지금이면 = (맞나: boolean) => (맞나 ? { 'aria-current': 'page' as const } : {});
 const 아래인가 = (current: string, 해시: string) => current === 해시 || current.startsWith(`${해시}/`);
 
 export function PhoneShell({ user, service, onService, 언어, on언어, onLogout, current, 사유, children }: Props) {
@@ -73,13 +75,20 @@ export function PhoneShell({ user, service, onService, 언어, on언어, onLogou
         {service === null ? (
           <span className="ph-app-none">{t('애플리케이션 없음')}</span>
         ) : (
-          <button type="button" className="ph-app" aria-haspopup="dialog" aria-label={t('애플리케이션 선택')} onClick={() => set열린판('apps')}>
-            <아이콘 이름={종류(service.kind).아이콘} />
+          // PC 위치 카드와 같은 두 이름이다 — 프로젝트도 여기서 바꾼다 (2026-11-05 · 앞 판은 「전체」 메뉴판에 숨어 있었다)
+          <button
+            type="button"
+            className="ph-app"
+            aria-haspopup="dialog"
+            aria-label={t('{프로젝트} › {이름} · 바꾸기', { 프로젝트: service.projectName, 이름: service.name })}
+            onClick={() => set열린판('apps')}
+          >
+            <span className="place-ic">
+              <아이콘 이름={종류(service.kind).아이콘} />
+            </span>
             <span className="ph-app-text">
+              <small>{service.projectName}</small>
               <b>{service.name}</b>
-              <small>
-                {종류이름(service.kind, 언어)} · {service.prefix}
-              </small>
             </span>
             <span className="ph-app-chev" aria-hidden="true">
               ▾
@@ -162,9 +171,8 @@ export function PhoneShell({ user, service, onService, 언어, on언어, onLogou
       </nav>
 
       {열린판 === 'apps' && service !== null ? (
-        <아래판 제목={t('애플리케이션 선택')} onClose={닫기}>
-          <h3 className="sheet-h">{t('애플리케이션 바꾸기 · {프로젝트}', { 프로젝트: service.projectName })}</h3>
-          <앱격자 user={user} service={service} onService={onService} 닫기={닫기} />
+        <아래판 제목={t('프로젝트 · 애플리케이션 고르기')} onClose={닫기}>
+          <위치판 user={user} service={service} onService={onService} 새로만들기={할수있나(user, service.prefix, '설정')} 닫기={닫기} 휴대폰 />
         </아래판>
       ) : null}
 
@@ -179,13 +187,8 @@ export function PhoneShell({ user, service, onService, 언어, on언어, onLogou
           )}
           <메뉴목록 자리들={자리들.filter((it) => it !== 설정)} current={current} 닫기={닫기} />
           <h3 className="sheet-h">{t('계정')}</h3>
+          {/* 프로젝트 고르개는 2026-11-05 위 줄 위치 판으로 옮겼다 — 프로젝트를 바꾸는 곳이 둘이면 처음 온 사람이 헷갈린다 */}
           <div className="sheet-acct">
-            {service === null ? null : (
-              <div className="sheet-row">
-                <아이콘 이름="project" />
-                <프로젝트고르개 user={user} service={service} onService={onService} />
-              </div>
-            )}
             {설정 === undefined ? null : (
               <a className="sheet-row" href={설정.해시} onClick={닫기} {...지금이면(아래인가(current, '#/settings'))}>
                 <아이콘 이름="settings" />
@@ -217,70 +220,6 @@ export function PhoneShell({ user, service, onService, 언어, on언어, onLogou
         </아래판>
       ) : null}
     </div>
-  );
-}
-
-/** 고른 프로젝트의 애플리케이션 칸. PC 왼쪽 줄과 같은 차례다 — 같은 사람이 PC 와 휴대폰에서 다른 차례를 보지 않게 */
-function 앱격자({ user, service, onService, 닫기 }: { user: User; service: ServiceRow; onService: (prefix: string) => void; 닫기: () => void }) {
-  const 언어 = use언어();
-  return (
-    <div className="sheet-apps">
-      {프로젝트서비스들(service.projectId, user.services)
-        .sort((a, b) => 종류차례.indexOf(종류키(a.kind)) - 종류차례.indexOf(종류키(b.kind)))
-        .map((it) => (
-          <button
-            key={it.prefix}
-            type="button"
-            aria-label={`${it.name} · ${종류이름(it.kind, 언어)}`}
-            {...지금이면(it.prefix === service.prefix)}
-            onClick={() => {
-              고른서비스를적는다(it.prefix);
-              onService(it.prefix);
-              닫기();
-            }}
-          >
-            <아이콘 이름={종류(it.kind).아이콘} />
-            <span>{it.name}</span>
-            <b>{it.prefix}</b>
-          </button>
-        ))}
-    </div>
-  );
-}
-
-/** 자리 목록 전부. 묶음은 이름 아래에 하위를 두 칸 격자로 다 편다 — 휴대폰은 펼칠 자리가 없다 */
-function 메뉴목록({ 자리들, current, 닫기 }: { 자리들: 자리[]; current: string; 닫기: () => void }) {
-  return (
-    <nav className="sheet-menu">
-      {자리들.map((it) =>
-        it.바깥 === true ? (
-          <a key={it.해시} className="sheet-row" href={it.해시} target="_blank" rel="noreferrer" onClick={닫기}>
-            <아이콘 이름={it.아이콘} />
-            {it.이름}
-            <span className="sheet-ext">↗</span>
-          </a>
-        ) : it.하위 === undefined ? (
-          <a key={it.해시} className="sheet-row" href={it.해시} onClick={닫기} {...지금이면(current === it.해시)}>
-            <아이콘 이름={it.아이콘} />
-            {it.이름}
-          </a>
-        ) : (
-          <div key={it.해시} role="group" aria-label={it.이름}>
-            <span className="sheet-row sheet-group">
-              <아이콘 이름={it.아이콘} />
-              {it.이름}
-            </span>
-            <div className="sheet-subs">
-              {it.하위.map((하) => (
-                <a key={하.해시} href={하.해시} aria-label={하.라벨} onClick={닫기} {...지금이면(current === 하.해시)}>
-                  {하.이름}
-                </a>
-              ))}
-            </div>
-          </div>
-        ),
-      )}
-    </nav>
   );
 }
 

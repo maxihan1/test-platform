@@ -27,15 +27,18 @@ export const 껍데기말: Record<string, string> = {
   // 사이드바 바닥 — 지금 아닌 쪽 이름이다 (화면공통 §8 「껍데기」 바닥)
   '밝게 보기': 'Light mode',
   '어둡게 보기': 'Dark mode',
-  '애플리케이션 선택': 'Choose application',
-  '프로젝트 선택': 'Choose project',
   '프로젝트를 고르세요': 'Choose a project',
   '고른 프로젝트의 애플리케이션만 보입니다. 사이드바 맨 위에서 언제든 바꿀 수 있습니다.':
     'Only the applications in the chosen project are shown. You can change it any time at the top of the sidebar.',
   '마지막에 연 프로젝트': 'Last opened project',
   '애플리케이션 없음': 'No application',
-  // 사이드바 맨 위 프로젝트 고르개 (화면공통 §8 「껍데기」 맨 위 줄)
+  // 사이드바 맨 위 위치 카드 · 위치 판 (화면공통 §8 「껍데기」 위치 카드 · 2026-11-05). 판 왼쪽 칸 제목 「프로젝트」 는 설정 표의 'Projects' 를 같이 쓴다
   '애플리케이션 {수}개': '{수} applications',
+  '프로젝트§카드': 'Project',
+  '{프로젝트} › {이름} · 바꾸기': '{프로젝트} › {이름} · Switch',
+  '프로젝트 · 애플리케이션 고르기': 'Choose project and application',
+  // 위치 판 오른쪽 칸 제목 · 펼친 왼쪽 줄 꼬리표
+  '{프로젝트}의 애플리케이션': 'Applications in {프로젝트}',
   // 사이드바 찾기 칸 · 찾기 창 (ShellFind.tsx · 화면공통 §8 「껍데기」 찾기 칸)
   '찾을 말': 'Search term',
   '메뉴 이름': 'Menu name',
@@ -63,7 +66,6 @@ export const 껍데기말: Record<string, string> = {
   테스트: 'Tests',
   '결정 필요 {수}건': '{수} need a decision',
   '전체 메뉴': 'All menus',
-  '애플리케이션 바꾸기 · {프로젝트}': 'Switch application · {프로젝트}',
   // 링크의 `service=` 가 못 보는 애플리케이션이면 띠를 그대로 두고 띄운다 (공통/5-화면공통 §8 「링크에 애플리케이션이 담긴다」)
   '링크의 애플리케이션은 볼 권한이 없어 지금 고른 애플리케이션으로 엽니다': "You can't access the linked application, so it opened in your current one",
   '{이름} 메뉴': '{이름} menu',

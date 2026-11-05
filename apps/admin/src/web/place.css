@@ -1,0 +1,364 @@
+/* 사이드바 맨 위 위치 카드 · 위치 판 · 휴대폰 위치 판 (SPEC 공통/5-화면공통 §8 「껍데기」 위치 카드 · DESIGN.md 「PC 껍데기」). 색은 토큰만 쓴다.
+   두 이름(프로젝트 · 애플리케이션)이 사이드바에서 가장 잘 보이는 글자다 — 2026-11-05 사용자 「더 잘 보였으면」 */
+
+.place {
+  position: relative;
+  margin-bottom: 4px;
+}
+
+.place-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px 12px;
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--t1),
+    box-shadow var(--t1);
+}
+
+.place-card:hover {
+  border-color: var(--ink-faint);
+}
+
+.place-card[aria-expanded='true'] {
+  border-color: var(--accent-mark);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.place-card:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* 위 칸 — 오른쪽 여백은 ▾ 자리다 */
+.place-proj {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  padding: 0 22px 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.place-proj small {
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  color: var(--ink-faint);
+}
+
+.place-proj b {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.place-app {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.place-ic {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink-muted);
+}
+
+.place-ic .side-ico {
+  width: 16px;
+  height: 16px;
+}
+
+.place-app-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* 애플리케이션 이름은 말줄임으로 자르지 않는다 — 길면 줄을 바꿔 다 보인다 */
+.place-app-text b {
+  font-size: 15.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.place-app-text small {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+/* ▾ — 꺾쇠 아이콘을 돌려 쓴다. 판이 열리면 위를 본다 */
+.place-caret {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  color: var(--ink-faint);
+  transform: rotate(90deg);
+  transition: transform var(--t2) var(--ease);
+}
+
+.place-caret .side-ico {
+  width: 18px;
+  height: 18px;
+}
+
+.place-card[aria-expanded='true'] .place-caret {
+  transform: rotate(-90deg);
+}
+
+.place-none {
+  display: block;
+  padding: 6px 8px 10px;
+  color: var(--ink-faint);
+  font-size: 13px;
+}
+
+/* ── 위치 판 (PC) — 사이드바 칸은 스크롤 상자라 화면 기준으로 띄운다. 펼친 왼쪽 줄(z 30)보다 위다 ── */
+.place-pop {
+  position: fixed;
+  z-index: 40;
+  width: 480px;
+  max-width: calc(100vw - 24px);
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  animation: 떠오름 var(--t2) var(--ease);
+}
+
+.place-pop.one {
+  width: 308px;
+}
+
+.place-cols {
+  display: grid;
+  grid-template-columns: 172px minmax(0, 1fr);
+}
+
+.place-pop.one .place-cols {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.place-projs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  background: var(--well);
+  border-right: 1px solid var(--line);
+}
+
+.place-apps {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 8px;
+}
+
+.place-h {
+  padding: 6px 8px 4px;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  color: var(--ink-faint);
+}
+
+.place-proj-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 0 8px;
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.place-proj-row:hover {
+  color: var(--ink);
+}
+
+.place-proj-row[aria-pressed='true'] {
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--line);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.place-pn {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.place-n {
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
+/* 지금 프로젝트 점 — 다른 줄은 같은 폭의 빈자리라 이름 줄이 맞는다 */
+.place-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-mark);
+}
+
+.place-dot.gap {
+  background: transparent;
+}
+
+.place-app-row {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 8px;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.place-app-row:hover {
+  background: var(--well);
+}
+
+.place-app-row[aria-current='page'] {
+  background: var(--accent-soft);
+}
+
+.place-app-row .place-app-text b {
+  font-size: 14px;
+}
+
+.place-app-row .place-app-text small {
+  font-size: 11.5px;
+}
+
+.place-check {
+  color: var(--accent-mark);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.place-add {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border-top: 1px solid var(--line);
+  color: var(--link);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.place-add:hover {
+  background: var(--well);
+}
+
+:is(.place-proj-row, .place-app-row, .place-add, .place-chip):focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+
+/* ── 접은 사이드바 — 카드는 종류 아이콘 단추로 남는다. 글자만 숨기고 단추는 남겨 키보드가 닿는다 ── */
+.folded .place-card {
+  width: 40px;
+  height: 40px;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background: transparent;
+  border-color: transparent;
+}
+
+.folded .place-card:hover {
+  background: var(--well);
+}
+
+/* 카드 안만 숨긴다 — 판도 사이드바 안에 있어서 넓게 걸면 판의 애플리케이션 이름까지 사라진다 (2026-11-05 그려 보고 찾음) */
+.folded .place-card :is(.place-proj, .place-app-text, .place-caret) {
+  display: none;
+}
+
+/* ── 휴대폰 위치 판 — 아래판 안. 누르는 자리는 46px 이상 (SPEC 「휴대폰 화면」) ── */
+.place-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.place-chip {
+  flex: none;
+  min-height: 46px;
+  padding: 0 16px;
+  background: transparent;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* 들여다보기는 지금 있는 자리가 아니라 대표색을 쓰지 않는다 — PC 판의 들여다보는 줄과 같은 잉크다 */
+.place-chip[aria-pressed='true'] {
+  background: var(--well);
+  border-color: var(--ink-faint);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.place-sheet .place-apps {
+  padding: 0;
+}
+
+.place-sheet .place-app-row {
+  min-height: 54px;
+}
+
+.place-sheet .place-add {
+  min-height: 46px;
+  padding: 0 8px;
+  border-top: 0;
+}

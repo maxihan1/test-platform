@@ -147,21 +147,42 @@ describe('휴대폰 껍데기', () => {
   });
 });
 
-describe('애플리케이션 고르기 판', () => {
-  it('대시보드에서도 위 줄 고르개가 선다 — PC 왼쪽 줄과 같다', () => {
+describe('위치 판 (2026-11-05)', () => {
+  const 위치단추 = () => screen.getByRole('button', { name: '데모마켓 › 결제 애플리케이션 · 바꾸기' });
+  const 판 = () => screen.getByRole('dialog', { name: '프로젝트 · 애플리케이션 고르기' });
+
+  it('대시보드에서도 위 줄 단추가 서고 프로젝트 이름과 애플리케이션 이름을 같이 적는다 — PC 위치 카드와 같다', () => {
     띄운다('#/dashboard');
-    expect(screen.getByRole('button', { name: '애플리케이션 선택' }).textContent).toContain('결제 애플리케이션');
+    expect(위치단추().querySelector('small')?.textContent).toBe('데모마켓');
+    expect(위치단추().querySelector('b')?.textContent).toBe('결제 애플리케이션');
   });
 
-  it('고르개를 누르면 프로젝트의 애플리케이션 칸이 올라오고, 고르면 바꾸고 닫힌다', () => {
+  it('누르면 지금 프로젝트의 애플리케이션 줄이 올라오고, 고르면 바꾸고 닫힌다', () => {
     띄운다('#/runs/fn');
-    fireEvent.click(screen.getByRole('button', { name: '애플리케이션 선택' }));
-    const 판 = screen.getByRole('dialog', { name: '애플리케이션 선택' });
-    expect(within(판).getByText('애플리케이션 바꾸기 · 데모마켓')).toBeTruthy();
-    expect(within(판).getByRole('button', { name: '결제 애플리케이션 · 웹' }).getAttribute('aria-current')).toBe('page');
-    fireEvent.click(within(판).getByRole('button', { name: /쇼핑 앱/ }));
+    fireEvent.click(위치단추());
+    expect(within(판()).getByText('데모마켓의 애플리케이션')).toBeTruthy();
+    expect(within(판()).getByRole('button', { name: '결제 애플리케이션 · 웹' }).getAttribute('aria-current')).toBe('page');
+    // 프로젝트가 하나뿐이라 칩 줄이 없다
+    expect(판().querySelector('.place-chips')).toBeNull();
+    fireEvent.click(within(판()).getByRole('button', { name: '쇼핑 앱 · Android 앱' }));
     expect(고름).toHaveBeenCalledWith('ZPA');
-    expect(screen.queryByRole('dialog', { name: '애플리케이션 선택' })).toBeNull();
+    expect(screen.queryByRole('dialog', { name: '프로젝트 · 애플리케이션 고르기' })).toBeNull();
+  });
+
+  it('프로젝트가 둘 이상이면 칩 줄이 서고, 칩을 누르면 아래 목록만 바뀐다 — 애플리케이션을 눌러야 옮겨 간다', () => {
+    const 포털: ServiceRow = { ...결제, id: 3, prefix: 'ZPP', name: '직원 포털', projectId: 2, projectName: '사내 포털' };
+    render(껍데기('#/runs/fn', { ...사람, services: [결제, 앱, 포털] }));
+    fireEvent.click(위치단추());
+
+    const 칩 = within(판()).getByRole('button', { name: '사내 포털' });
+    expect(within(판()).getByRole('button', { name: '데모마켓' }).getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(칩);
+    expect(칩.getAttribute('aria-pressed')).toBe('true');
+    expect(within(판()).getByText('사내 포털의 애플리케이션')).toBeTruthy();
+    expect(고름).not.toHaveBeenCalled();
+    fireEvent.click(within(판()).getByRole('button', { name: '직원 포털 · 웹' }));
+    expect(고름).toHaveBeenCalledWith('ZPP');
+    expect(localStorage.getItem('고른서비스')).toBe('ZPP');
   });
 });
 
@@ -178,6 +199,8 @@ describe('전체 메뉴판', () => {
     expect(within(판).getAllByRole('link', { name: '설정' })).toHaveLength(1);
     expect(within(판).getByRole('button', { name: /밝게 보기|어둡게 보기/ })).toBeTruthy();
     expect(within(판).getByLabelText('언어')).toBeTruthy();
+    // 프로젝트는 위 줄 위치 판에서 바꾼다 — 바꾸는 곳이 둘이면 처음 온 사람이 헷갈린다 (2026-11-05)
+    expect(within(판.querySelector('.sheet-acct') as HTMLElement).queryByText('데모마켓')).toBeNull();
   });
 
   it('메뉴를 누르면 판이 닫힌다', () => {

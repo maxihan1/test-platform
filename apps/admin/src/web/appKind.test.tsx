@@ -12,7 +12,6 @@ import { Empty } from './CaseListNotes.js';
 import { 떠나기막기 } from './leaveGuard.js';
 import { RunLocation } from './RunLocation.js';
 import { 애플리케이션줄 } from './ShellRail.js';
-import { 서비스고르개 } from './ShellPickers.js';
 
 afterEach(() => {
   떠나기막기(null);
@@ -36,35 +35,6 @@ const 앱 = (prefix: string, name: string, kind?: ServiceRow['kind'], projectId 
 const 사람 = (services: ServiceRow[]): User => ({ username: 'zak1', displayName: '김앱', role: 'member', dashboard: 'read', mustChangePassword: false, services });
 
 const 빈형편 = { scannedAt: '2026-10-21T00:00:00.000Z', 스캔문제: false, 전체건수: 0, 건조건: false, 친글자: '' };
-
-describe('헤더 애플리케이션 고르개', () => {
-  it('종류가 둘 이상이면 웹 · Android 앱 · API 차례의 묶음으로 열고 고른 프로젝트 것만 담는다', () => {
-    const 목록 = [앱('MKW', '데모마켓 웹'), 앱('MKN', '알림', 'API'), 앱('MKA', '데모마켓 앱', 'APP'), 앱('MKO', '데모마켓 운영툴', 'SCREEN'), 앱('ZZO', '다른 프로젝트 앱', 'APP', 2)];
-    render(<서비스고르개 user={사람(목록)} service={목록[0] ?? null} onService={() => {}} />);
-
-    const 묶음들 = [...document.querySelectorAll('optgroup')].map((g) => [g.label, [...g.querySelectorAll('option')].map((o) => o.textContent)]);
-    expect(묶음들).toEqual([
-      ['웹', ['데모마켓 웹', '데모마켓 운영툴']],
-      ['Android 앱', ['데모마켓 앱']],
-      ['API', ['알림']],
-    ]);
-  });
-
-  it('종류가 하나뿐이면 묶음 제목 없이 목록만이다', () => {
-    const 목록 = [앱('MKW', '데모마켓 웹'), 앱('MKO', '데모마켓 운영툴', 'SCREEN')];
-    render(<서비스고르개 user={사람(목록)} service={목록[0] ?? null} onService={() => {}} />);
-
-    expect(document.querySelectorAll('optgroup')).toHaveLength(0);
-    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(['데모마켓 웹', '데모마켓 운영툴']);
-  });
-
-  it('표에 없는 종류는 웹으로 읽어 목록에서 빠지지 않는다', () => {
-    const 모름 = { ...앱('MKI', 'iOS 앱'), kind: 'IOS' } as unknown as ServiceRow;
-    const 목록 = [앱('MKW', '데모마켓 웹'), 앱('MKA', '데모마켓 앱', 'APP'), 모름];
-    render(<서비스고르개 user={사람(목록)} service={모름} onService={() => {}} />);
-    expect([...document.querySelectorAll('optgroup')][0]?.querySelectorAll('option')).toHaveLength(2);
-  });
-});
 
 describe('애플리케이션 줄의 종류 아이콘', () => {
   const 아이콘들 = (목록: ServiceRow[]) => {
