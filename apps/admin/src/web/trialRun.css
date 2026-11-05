@@ -241,6 +241,12 @@
   color: var(--ink-muted);
 }
 
+/* 한 줄이 길어도 칩은 접히지 않는다 — 「요소 미검출」이 두 줄로 꺾였다 */
+.trial-res .why .fail-type {
+  flex: none;
+  white-space: nowrap;
+}
+
 /* 「중단」 — 되돌릴 수 없는 동작이라 실패 색 테두리를 쓴다. 확인 창의 「중단」만 채운다 */
 .btn.ghost.trial-stop {
   border-color: var(--fail);
