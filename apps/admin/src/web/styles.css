@@ -3006,7 +3006,10 @@ input[type='file']::file-selector-button {
   color: var(--ink-faint);
 }
 
+/* 안내 글이 길어도 케이스 이름 칸을 누르지 않게 폭을 묶고 접는다 (2026-11-05 WEB-F9-10) */
 .trial-badge.err {
+  max-width: 22em;
+  white-space: normal;
   color: var(--fail-text);
 }
 

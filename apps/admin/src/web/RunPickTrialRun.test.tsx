@@ -174,6 +174,28 @@ describe('완료 창', () => {
     expect(vi.mocked(api.startTrial).mock.calls[2]?.[0]).toBe('ZRS-002');
   });
 
+  it('실패 줄은 케이스 줄 아래에 단계 · 유형 · 한국어 한 줄로 서고 러너 원문은 접힌 「원문 보기」 안에만 있다', async () => {
+    const 원문 = "Error: Can't call click on element with selector \"id=buy_now_button\" because element wasn't found";
+    const 깨짐: TrialResult = { ...실패, steps: [실패.steps[0]!, { ...실패.steps[1]!, error: { message: 원문 } }] };
+    차례대로({
+      't-ZRS-001': [{ status: 'DONE', result: 통과, failure: null }],
+      't-ZRS-002': [{ status: 'DONE', result: 깨짐, failure: { type: 'notFound', reason: '구매하기 단추를 찾지 못했습니다' } }],
+    });
+    둘을연다();
+    시험시작();
+
+    await screen.findByRole('dialog', { name: '시험 실행 완료' }, { timeout: 4000 });
+    const 줄 = document.querySelector('.trial-res li.bad') as HTMLElement;
+    const 실패줄 = 줄.querySelector('.why') as HTMLElement;
+    expect(within(실패줄).getByText('2단계 · 수량을 3으로 바꾼다')).toBeTruthy();
+    expect(within(실패줄).getByText('요소 미검출')).toBeTruthy();
+    expect(within(실패줄).getByText('구매하기 단추를 찾지 못했습니다')).toBeTruthy();
+    const 접힘 = within(실패줄).getByText('원문 보기').closest('details') as HTMLDetailsElement;
+    expect(접힘.open).toBe(false);
+    expect(접힘.textContent).toContain('buy_now_button');
+    expect(줄.querySelector('.nm')?.textContent).toBe('둘째 케이스');
+  });
+
   it('「실행」은 정식 실행 시작 확인 창을 거쳐 같은 케이스를 걸고 값 창으로 돌아간다 — 거절 사유가 그 바닥에 뜬다', async () => {
     차례대로({ 't-ZRS-001': [{ status: 'DONE', result: 통과 }], 't-ZRS-002': [{ status: 'DONE', result: 통과 }] });
     const onRun = 둘을연다();

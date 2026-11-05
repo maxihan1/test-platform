@@ -4,6 +4,7 @@
 import { Fragment, useEffect, useState } from 'react';
 
 import type { CaseRow, Platform, RunRequestItem, TrialResult } from './api.js';
+import { 원문보기 } from './FailureWhy.js';
 import { use말, use언어 } from './i18n.js';
 import { type 고친값표, 실행항목 } from './pickRun.js';
 import { PLATFORM_LABEL, seconds, Verdict } from './ui.js';
@@ -122,9 +123,8 @@ function 한칸배지({ 줄, 이름 }: { 줄: 시험줄; 이름?: string }) {
     <span className="trial-badge">
       {머리}
       <Verdict status={줄.결과.status} />
+      {/* 오류 글은 줄에 넣지 않는다 — 영어 원문이 줄 폭을 먹어 케이스 이름 칸이 한 글자 폭으로 눌렸다. 까닭은 완료 창 실패 줄이 적는다 (2026-11-05 WEB-F9-10) */}
       <span className="dur">{seconds(줄.결과.durationMs, 언어)}</span>
-      {/* 러너에 못 닿은 사정도 서버가 준 문장을 그대로 낸다 */}
-      {줄.결과.error === undefined ? null : <span className="err">{줄.결과.error.message}</span>}
     </span>
   );
 }
@@ -156,7 +156,7 @@ function 절차목록({ 결과 }: { 결과: TrialResult }) {
         <li key={step.seq} className={step.status === 'FAIL' ? 'trial-step fail' : 'trial-step'}>
           <Verdict status={step.status} />
           <span>{step.title}</span>
-          {step.error === undefined ? null : <span className="err">{step.error.message}</span>}
+          <원문보기 글={step.error?.message} />
         </li>
       ))}
     </ol>

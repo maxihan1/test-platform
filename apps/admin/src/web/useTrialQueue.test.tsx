@@ -50,8 +50,8 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
       ['X-1', { platform: 'mobile', env: 'qa', params: { a: 1 }, expected: {} }],
     ]);
     expect(result.current.줄들['X-1']).toEqual([
-      { platform: 'desktop', 줄: { 종류: 'done', 결과: 통과 } },
-      { platform: 'mobile', 줄: { 종류: 'done', 결과: 통과 } },
+      { platform: 'desktop', 줄: { 종류: 'done', 결과: 통과, 실패: null } },
+      { platform: 'mobile', 줄: { 종류: 'done', 결과: 통과, 실패: null } },
     ]);
   });
 

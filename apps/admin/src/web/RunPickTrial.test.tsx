@@ -16,11 +16,12 @@ afterEach(() => {
 });
 
 describe('시험배지', () => {
-  it('러너에 못 닿아 NA 로 끝나면 서버가 준 문장을 그대로 보인다', () => {
-    const 결과: TrialResult = { status: 'NA', durationMs: 10, steps: [], error: { message: '러너에 닿지 못했습니다' } };
-    render(<시험배지 칸들={[{ platform: 'desktop', 줄: { 종류: 'done', 결과 } }]} />);
+  it('끝난 칸에는 판정과 걸린 시간만 두고 오류 글은 넣지 않는다 — 긴 원문이 케이스 이름 칸을 누르지 않게', () => {
+    const 결과: TrialResult = { status: 'FAIL', durationMs: 2000, steps: [], error: { message: "Error: Can't call click on element" } };
+    const { container } = render(<시험배지 칸들={[{ platform: 'desktop', 줄: { 종류: 'done', 결과 } }]} />);
 
-    expect(screen.getByText('러너에 닿지 못했습니다')).toBeTruthy();
+    expect(container.textContent).not.toContain('Error');
+    expect(container.querySelector('.verdict')).toBeTruthy();
   });
 
   it('아직 안 돌렸으면 아무것도 그리지 않는다', () => {
@@ -65,7 +66,7 @@ describe('한 건 창의 테스트 실행', () => {
     await waitFor(() => expect(document.querySelector('.trial-steps')).not.toBeNull(), { timeout: 5000 });
     expect(screen.getByText('로그인한다')).toBeTruthy();
     expect(screen.getByText('목록을 확인한다').closest('li')?.className).toContain('fail');
-    expect(screen.getByText('행이 없습니다', { selector: '.trial-step .err' })).toBeTruthy();
+    expect(screen.getByText('행이 없습니다', { selector: '.trial-step details pre' })).toBeTruthy();
   });
 
   it('디바이스를 다 끄고 누르면 보내지 않고 사유를 보인다', async () => {
