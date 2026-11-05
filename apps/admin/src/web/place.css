@@ -275,6 +275,7 @@
 
 .place-check {
   color: var(--accent-mark);
+  font-size: 16px;
   font-weight: 600;
 }
 
@@ -340,9 +341,10 @@
   cursor: pointer;
 }
 
+/* 들여다보기는 지금 있는 자리가 아니라 대표색을 쓰지 않는다 — PC 판의 들여다보는 줄과 같은 잉크다 */
 .place-chip[aria-pressed='true'] {
-  background: var(--accent-soft);
-  border-color: var(--accent-mark);
+  background: var(--well);
+  border-color: var(--ink-faint);
   color: var(--ink);
   font-weight: 600;
 }
