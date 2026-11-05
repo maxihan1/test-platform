@@ -67,6 +67,19 @@ describe('폰장면걸기', () => {
     expect(existsSync(파일)).toBe(false);
   });
 
+  it('찍기가 매달려도 끄기는 2초 안에 끝나고 파일을 지운다 — 단계 한도 실패를 더 늦추지 않는다', async () => {
+    const 파일 = join(폴더, 'live', '0b7e2c1a-0000-4000-8000-000000000006.jpg');
+    const takeScreenshot = vi.fn<() => Promise<string>>().mockResolvedValueOnce(PNG.toString('base64')).mockReturnValue(new Promise<string>(() => {}));
+
+    const 장면 = await 폰장면걸기({ takeScreenshot }, 파일, 10);
+    await vi.waitFor(() => expect(takeScreenshot).toHaveBeenCalledTimes(2));
+    const 시작 = Date.now();
+    await 장면?.끄기();
+
+    expect(Date.now() - 시작).toBeLessThan(3_000);
+    expect(existsSync(파일)).toBe(false);
+  });
+
   it('한 장을 못 찍어도 멈추지 않고 다음 장을 찍는다', async () => {
     const 파일 = join(폴더, 'live', '0b7e2c1a-0000-4000-8000-000000000005.jpg');
     const takeScreenshot = vi.fn<() => Promise<string>>().mockRejectedValueOnce(new Error('앱이 넘어가는 중')).mockResolvedValue(PNG.toString('base64'));

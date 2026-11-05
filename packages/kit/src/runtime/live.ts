@@ -72,7 +72,8 @@ export async function 장면걸기(page: Page, 파일 = process.env.PLATFORM_LIV
   try {
     await mkdir(dirname(파일), { recursive: true });
     await page.screencast.start({ quality: 품질, onFrame: ({ data }) => 쓰개.받기(data) });
-    await page.screencast.showActions();
+    // 누른 곳 표시는 서버 러너 브라우저에만 건다 — 실제 폰 Chrome(PLATFORM_CDP_URL)에서는 확인하지 않았다 (러너 §5.2 「테스트 모드 — 실시간 장면」)
+    if (!process.env.PLATFORM_CDP_URL) await page.screencast.showActions();
   } catch (err) {
     console.warn(`[kit] 테스트 모드 장면을 못 걸었다: ${글(err)}`);
   }
@@ -86,6 +87,8 @@ export async function 장면걸기(page: Page, 파일 = process.env.PLATFORM_LIV
 
 // 폰 화면 한 장 사이에 쉬는 틈. 찍기는 단계 명령과 같은 Appium 세션을 쓴다 — 쉬지 않으면 단계가 찍기 뒤에 줄을 선다
 const 폰쉼ms = 1_000;
+// 끌 때 찍던 장을 기다리는 상한 — 게임 한 장(1.5초쯤)은 기다린다
+const 끄기기다림ms = 2_000;
 
 /** Appium 연결에서 장면을 찍는 데 쓰는 것만 — webdriverio 의 driver 가 맞는다 */
 export interface 폰찍개 {
@@ -133,7 +136,8 @@ export async function 폰장면걸기(driver: 폰찍개, 파일 = process.env.PL
     async 끄기() {
       멈춤 = true;
       깨우기();
-      await 돌기;
+      // 찍던 장은 끝까지 안 기다린다 — 매달린 Appium 명령 뒤에 줄 선 찍기가 단계 한도 실패를 더 늦추지 않게. 늦게 온 장은 멈춤을 보고 버린다
+      await Promise.race([돌기, new Promise((끝) => setTimeout(끝, 끄기기다림ms))]);
       await 쓰개.닫기();
     },
   };
