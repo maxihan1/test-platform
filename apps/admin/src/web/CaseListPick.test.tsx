@@ -56,10 +56,10 @@ async function 그리기(cases: (page: number) => CasePage = (page) => (page ===
   return 스파이;
 }
 
-const 고르기칸 = () => screen.getAllByRole('checkbox', { name: /고르기$/ }) as HTMLInputElement[];
+const 고르기칸 = () => screen.getAllByRole('checkbox', { name: /^(?!이 쪽 전체).* 선택$/ }) as HTMLInputElement[];
 const 머리칸 = () => screen.getByRole('checkbox', { name: '이 쪽 전체 선택' });
 const 띠 = () => document.querySelector('.pick-band');
-const 바 = () => screen.getByRole('toolbar', { name: '고른 케이스' });
+const 바 = () => screen.getByRole('toolbar', { name: '선택한 케이스' });
 const 바글 = () => 바().querySelector('span')?.textContent;
 
 describe('「모두 고르기」 띠', () => {
@@ -68,21 +68,21 @@ describe('「모두 고르기」 띠', () => {
     expect(띠()).toBeNull();
 
     fireEvent.click(머리칸());
-    expect(띠()?.textContent).toContain('이 쪽 2건을 모두 골랐습니다');
-    expect(바글()).toBe('2건 고름');
+    expect(띠()?.textContent).toContain('이 쪽 2건을 모두 선택했습니다');
+    expect(바글()).toBe('2건 선택');
 
     스파이.mockClear();
-    fireEvent.click(screen.getByRole('button', { name: '조건에 맞는 3건 모두 고르기' }));
+    fireEvent.click(screen.getByRole('button', { name: '조건에 맞는 3건 모두 선택' }));
 
-    expect(띠()?.textContent).toContain('조건에 맞는 3건을 모두 골랐습니다');
-    expect(바글()).toBe('조건에 맞는 3건 모두 고름');
+    expect(띠()?.textContent).toContain('조건에 맞는 3건을 모두 선택했습니다');
+    expect(바글()).toBe('조건에 맞는 3건 모두 선택');
     expect(스파이).not.toHaveBeenCalled();
   });
 
   it('모두 고른 채 바의 실행은 조건에 맞는 전부를 쪽마다 모아 담는다', async () => {
     const 스파이 = await 그리기();
     fireEvent.click(머리칸());
-    fireEvent.click(screen.getByRole('button', { name: '조건에 맞는 3건 모두 고르기' }));
+    fireEvent.click(screen.getByRole('button', { name: '조건에 맞는 3건 모두 선택' }));
     스파이.mockClear();
 
     fireEvent.click(within(바()).getByRole('button', { name: '모두 실행' }));
@@ -96,64 +96,64 @@ describe('「모두 고르기」 띠', () => {
     await 그리기(() => ({ ...쪽1, total: 2 }));
     fireEvent.click(머리칸());
     expect(띠()).toBeNull();
-    expect(바글()).toBe('2건 고름');
+    expect(바글()).toBe('2건 선택');
   });
 
   it('모두 고른 채 줄 하나를 풀면 「모두」가 풀리고 이 쪽에서 고른 것만 남는다', async () => {
     await 그리기();
     fireEvent.click(머리칸());
-    fireEvent.click(screen.getByRole('button', { name: '조건에 맞는 3건 모두 고르기' }));
+    fireEvent.click(screen.getByRole('button', { name: '조건에 맞는 3건 모두 선택' }));
 
     fireEvent.click(고르기칸()[0]!);
 
-    expect(바글()).toBe('1건 고름');
+    expect(바글()).toBe('1건 선택');
     expect(띠()).toBeNull();
   });
 
   it('필터를 바꾸면 「모두」는 풀리고 고른 줄은 남는다', async () => {
     const 스파이 = await 그리기();
     fireEvent.click(머리칸());
-    fireEvent.click(screen.getByRole('button', { name: '조건에 맞는 3건 모두 고르기' }));
+    fireEvent.click(screen.getByRole('button', { name: '조건에 맞는 3건 모두 선택' }));
 
     fireEvent.change(screen.getByPlaceholderText('케이스 이름이나 ID로 찾기'), { target: { value: '결제' } });
     fireEvent.click(screen.getByRole('button', { name: '찾기' }));
     await waitFor(() => expect(스파이.mock.calls.at(-1)![0].q).toBe('결제'));
 
-    expect(바글()).toBe('2건 고름');
+    expect(바글()).toBe('2건 선택');
   });
 
   it('모두 고른 채 다음 쪽으로 가면 그 쪽 줄도 고른 모양이고 바는 그대로다', async () => {
     await 그리기();
     fireEvent.click(머리칸());
-    fireEvent.click(screen.getByRole('button', { name: '조건에 맞는 3건 모두 고르기' }));
+    fireEvent.click(screen.getByRole('button', { name: '조건에 맞는 3건 모두 선택' }));
 
     fireEvent.click(screen.getByRole('button', { name: '다음' }));
     await screen.findByText('ZPK-003');
 
     expect(고르기칸().map((칸) => 칸.checked)).toEqual([true]);
     expect((머리칸() as HTMLInputElement).checked).toBe(true);
-    expect(바글()).toBe('조건에 맞는 3건 모두 고름');
+    expect(바글()).toBe('조건에 맞는 3건 모두 선택');
   });
 
   it('모두 고른 채 머리 네모를 누르면 전부 풀린다', async () => {
     await 그리기();
     fireEvent.click(머리칸());
-    fireEvent.click(screen.getByRole('button', { name: '조건에 맞는 3건 모두 고르기' }));
+    fireEvent.click(screen.getByRole('button', { name: '조건에 맞는 3건 모두 선택' }));
 
     fireEvent.click(머리칸());
 
-    expect(screen.queryByRole('toolbar', { name: '고른 케이스' })).toBeNull();
+    expect(screen.queryByRole('toolbar', { name: '선택한 케이스' })).toBeNull();
     expect(고르기칸().some((칸) => 칸.checked)).toBe(false);
   });
 
-  it('띠의 고르기 풀기는 전부 푼다', async () => {
+  it('띠의 선택 해제는 전부 푼다', async () => {
     await 그리기();
     fireEvent.click(머리칸());
-    fireEvent.click(screen.getByRole('button', { name: '조건에 맞는 3건 모두 고르기' }));
+    fireEvent.click(screen.getByRole('button', { name: '조건에 맞는 3건 모두 선택' }));
 
-    fireEvent.click(within(띠() as HTMLElement).getByRole('button', { name: '고르기 풀기' }));
+    fireEvent.click(within(띠() as HTMLElement).getByRole('button', { name: '선택 해제' }));
 
-    expect(screen.queryByRole('toolbar', { name: '고른 케이스' })).toBeNull();
+    expect(screen.queryByRole('toolbar', { name: '선택한 케이스' })).toBeNull();
     expect(고르기칸().some((칸) => 칸.checked)).toBe(false);
   });
 });
@@ -165,10 +165,10 @@ describe('상한을 띠가 미리 알린다', () => {
   it('삭제 요청 상한을 넘으면 누르기 전부터 알리고, 모두 고르면 바의 삭제 요청이 잠긴다', async () => {
     await 그리기(큰쪽(60));
     fireEvent.click(머리칸());
-    expect(띠()?.textContent).toContain('모두 고르면 삭제 요청은 보낼 수 없습니다(한 번에 50건까지)');
+    expect(띠()?.textContent).toContain('모두 선택하면 삭제 요청은 보낼 수 없습니다(한 번에 50건까지)');
     expect((within(바()).getByRole('button', { name: '삭제 요청' }) as HTMLButtonElement).disabled).toBe(false);
 
-    fireEvent.click(screen.getByRole('button', { name: '조건에 맞는 60건 모두 고르기' }));
+    fireEvent.click(screen.getByRole('button', { name: '조건에 맞는 60건 모두 선택' }));
     expect((within(바()).getByRole('button', { name: '삭제 요청' }) as HTMLButtonElement).disabled).toBe(true);
   });
 
@@ -218,7 +218,7 @@ describe('Shift 사이 고르기', () => {
     fireEvent.click(고르기칸()[2]!, { shiftKey: true });
 
     expect(고르기칸().map((칸) => 칸.checked)).toEqual([true, true, true, false]);
-    expect(바글()).toBe('3건 고름');
+    expect(바글()).toBe('3건 선택');
   });
 
   it('고른 줄에서 Shift 로 풀면 사이 줄이 다 풀린다', async () => {
@@ -230,10 +230,10 @@ describe('Shift 사이 고르기', () => {
     expect(고르기칸().map((칸) => 칸.checked)).toEqual([true, false, false, false]);
   });
 
-  it('고르기 풀기 뒤의 Shift 는 지난번 줄에서 시작하지 않는다', async () => {
+  it('선택 해제 뒤의 Shift 는 지난번 줄에서 시작하지 않는다', async () => {
     await 그리기(() => 네건);
     fireEvent.click(고르기칸()[0]!);
-    fireEvent.click(within(바()).getByRole('button', { name: '고르기 풀기' }));
+    fireEvent.click(within(바()).getByRole('button', { name: '선택 해제' }));
 
     fireEvent.click(고르기칸()[3]!, { shiftKey: true });
 

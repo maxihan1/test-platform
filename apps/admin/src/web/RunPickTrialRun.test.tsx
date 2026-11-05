@@ -67,6 +67,36 @@ describe('시험 실행 중', () => {
     expect(screen.getByText('상품 목록을 연다').closest('li')?.getAttribute('aria-current')).toBe('step');
     expect(screen.getByRole('dialog', { name: '시험 실행 중 · 1 / 2' })).toBeTruthy();
   });
+
+  it('단계가 늘면 단계 목록 칸만 굴리고 둘레 칸은 끌어 내리지 않는다 — 한 건이 끝나 다음 건으로 넘어가도 같다', async () => {
+    const 끌어오기 = vi.fn();
+    Element.prototype.scrollIntoView = 끌어오기;
+    vi.spyOn(HTMLElement.prototype, 'offsetTop', 'get').mockImplementation(function (this: HTMLElement) {
+      return this.tagName === 'LI' ? 40 * (Number(this.querySelector('.no')?.textContent ?? '1') - 1) : 0;
+    });
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(40);
+    vi.spyOn(Element.prototype, 'clientHeight', 'get').mockReturnValue(60);
+    try {
+      차례대로({
+        't-ZRS-001': [
+          { status: 'RUNNING', step: { seq: 1, title: '로그인한다', elapsedMs: 900 } },
+          { status: 'RUNNING', step: { seq: 2, title: '상품 목록을 연다', elapsedMs: 1500 } },
+          { status: 'DONE', result: 통과 },
+        ],
+        't-ZRS-002': [{ status: 'RUNNING', step: { seq: 1, title: '둘째 첫 단계', elapsedMs: 300 } }],
+      });
+      둘을연다();
+      시험시작();
+
+      await screen.findByText('상품 목록을 연다', {}, { timeout: 4000 });
+      expect((document.querySelector('.trial-now-steps') as HTMLElement).scrollTop).toBe(20);
+
+      await screen.findByText('둘째 첫 단계', {}, { timeout: 6000 });
+      expect(끌어오기).not.toHaveBeenCalled();
+    } finally {
+      delete (Element.prototype as Partial<Element>).scrollIntoView;
+    }
+  }, 15000);
 });
 
 describe('중단 확인', () => {

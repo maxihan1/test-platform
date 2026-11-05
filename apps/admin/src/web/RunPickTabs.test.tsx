@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 고르기 바의 「PC N건 실행」 · 「모바일 N건 실행」 · 「모두 실행」과 실행 창의 PC · 모바일 탭 (도메인/실행 §8.10 · 시안 ① ② ③)
+// 고르기 바의 「PC N건 실행」 · 「모바일 N건 실행」 · 「모두 실행」과 실행 창의 디바이스 체크칸 (도메인/실행 §8.10 · 시안 8판 ① ② ③)
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -52,10 +52,10 @@ async function 그리기(줄들: CaseRow[]) {
   vi.spyOn(api, 'cases').mockResolvedValue(쪽);
   render(<CaseList kind="FN" service="ZPT" 할수={() => true} 결과보나 />);
   await screen.findByText(줄들[0]!.tcId);
-  for (const 칸 of screen.getAllByRole('checkbox', { name: /고르기$/ })) fireEvent.click(칸);
+  for (const 칸 of screen.getAllByRole('checkbox', { name: /^(?!이 쪽 전체).* 선택$/ })) fireEvent.click(칸);
 }
 
-const 바 = () => within(screen.getByRole('toolbar', { name: '고른 케이스' }));
+const 바 = () => within(screen.getByRole('toolbar', { name: '선택한 케이스' }));
 const 창안 = () => within(screen.getByRole('dialog'));
 
 describe('고르기 바의 디바이스별 실행', () => {
@@ -74,14 +74,14 @@ describe('고르기 바의 디바이스별 실행', () => {
     expect(바().queryByRole('button', { name: /^모바일/ })).toBeNull();
   });
 
-  it('「모바일 N건 실행」은 모바일을 가진 것만 모바일로 담고 탭이 없다', async () => {
+  it('「모바일 N건 실행」은 모바일을 가진 것만 모바일로 담고 디바이스 체크칸이 없다', async () => {
     const 걸기 = vi.spyOn(api, 'createRun').mockResolvedValue({ runId: 7 });
     await 그리기([케이스('ZPT-001', ['desktop', 'mobile']), 케이스('ZPT-002', ['desktop']), 케이스('ZPT-003', ['mobile'])]);
 
     fireEvent.click(바().getByRole('button', { name: '모바일 2건 실행' }));
 
     await screen.findByRole('dialog', { name: '실행할 케이스 2건' });
-    expect(창안().queryByRole('tablist')).toBeNull();
+    expect(창안().queryByRole('group', { name: '실행할 디바이스' })).toBeNull();
     expect(창안().queryByText('ZPT-002 케이스')).toBeNull();
     expect(창안().getByRole('radio', { name: '가상 기기' })).toBeTruthy();
     fireEvent.change(창안().getByLabelText('대상 서버'), { target: { value: 'qa' } });
@@ -96,32 +96,74 @@ describe('고르기 바의 디바이스별 실행', () => {
   });
 });
 
-describe('「모두 실행」 창의 PC · 모바일 탭', () => {
-  it('탭마다 그 디바이스 케이스만 보이고 실행 기기 칸은 모바일 탭에만 있다', async () => {
-    await 그리기([케이스('ZPT-001', ['desktop', 'mobile']), 케이스('ZPT-002', ['desktop'])]);
-    fireEvent.click(바().getByRole('button', { name: '모두 실행' }));
-    await screen.findByRole('dialog', { name: '실행할 케이스 2건' });
+const 디바이스칸 = () => within(창안().getByRole('group', { name: '실행할 디바이스' }));
 
-    const [pc, 모바일] = 창안().getAllByRole('tab');
-    expect(pc!.textContent).toBe('PC 2');
-    expect(모바일!.textContent).toBe('모바일 1');
-    expect(pc!.getAttribute('aria-selected')).toBe('true');
-    expect(창안().getByText('ZPT-002 케이스')).toBeTruthy();
-    expect(창안().queryByRole('radio', { name: '가상 기기' })).toBeNull();
+async function 모두실행창() {
+  await 그리기([케이스('ZPT-001', ['desktop', 'mobile']), 케이스('ZPT-002', ['desktop'])]);
+  fireEvent.click(바().getByRole('button', { name: '모두 실행' }));
+  await screen.findByRole('dialog', { name: '실행할 케이스 2건' });
+}
 
-    fireEvent.click(모바일!);
+describe('「모두 실행」 창의 디바이스 체크칸', () => {
+  it('처음엔 PC · 모바일이 다 켜져 있고 끄면 그 디바이스만 남은 케이스가 줄에서 빠진다', async () => {
+    await 모두실행창();
+
+    const pc = 디바이스칸().getByRole('checkbox', { name: 'PC 2건' }) as HTMLInputElement;
+    const 모바일 = 디바이스칸().getByRole('checkbox', { name: '모바일 1건' }) as HTMLInputElement;
+    expect(pc.checked).toBe(true);
+    expect(모바일.checked).toBe(true);
+    expect(창안().getByRole('radio', { name: '가상 기기' })).toBeTruthy();
+
+    fireEvent.click(pc);
 
     expect(창안().queryByText('ZPT-002 케이스')).toBeNull();
     expect(창안().getByText('ZPT-001 케이스')).toBeTruthy();
-    expect(창안().getByRole('radio', { name: '가상 기기' })).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: '실행할 케이스 1건' })).toBeTruthy();
+
+    fireEvent.click(pc);
+    fireEvent.click(모바일);
+
+    expect(창안().getByText('ZPT-002 케이스')).toBeTruthy();
+    expect(창안().queryByRole('radio', { name: '가상 기기' })).toBeNull();
   });
 
-  it('어느 탭에서 실행해도 PC · 모바일을 한 번에 다 건다', async () => {
+  it('모바일을 끄고 실행하면 PC 로만 건다', async () => {
+    const 걸기 = vi.spyOn(api, 'createRun').mockResolvedValue({ runId: 9 });
+    await 모두실행창();
+    fireEvent.click(디바이스칸().getByRole('checkbox', { name: '모바일 1건' }));
+
+    fireEvent.change(창안().getByLabelText('대상 서버'), { target: { value: 'qa' } });
+    fireEvent.click(창안().getByRole('button', { name: '실행' }));
+    시작누름();
+
+    await waitFor(() => expect(걸기).toHaveBeenCalledTimes(1));
+    const 요청 = 걸기.mock.calls[0]?.[0];
+    expect(요청).not.toHaveProperty('mobileOn');
+    expect(요청?.items.map((it) => [it.tcId, it.platforms])).toEqual([
+      ['ZPT-001', ['desktop']],
+      ['ZPT-002', ['desktop']],
+    ]);
+  });
+
+  it('다 끄고 누르면 걸지 않고 사유를 보인다', async () => {
+    const 걸기 = vi.spyOn(api, 'createRun').mockResolvedValue({ runId: 10 });
+    await 모두실행창();
+    fireEvent.click(디바이스칸().getByRole('checkbox', { name: 'PC 2건' }));
+    fireEvent.click(디바이스칸().getByRole('checkbox', { name: '모바일 1건' }));
+    fireEvent.change(창안().getByLabelText('대상 서버'), { target: { value: 'qa' } });
+
+    fireEvent.click(창안().getByRole('button', { name: '실행' }));
+    expect(창안().getByText('실행할 디바이스를 하나 이상 선택하세요.')).toBeTruthy();
+    fireEvent.click(창안().getByRole('button', { name: '시험 실행' }));
+    expect(창안().getByText('실행할 디바이스를 하나 이상 선택하세요.')).toBeTruthy();
+
+    expect(걸기).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog', { name: /시작할까요/ })).toBeNull();
+  });
+
+  it('둘 다 켠 채로 실행하면 PC · 모바일을 한 번에 다 건다', async () => {
     const 걸기 = vi.spyOn(api, 'createRun').mockResolvedValue({ runId: 8 });
-    await 그리기([케이스('ZPT-001', ['desktop', 'mobile']), 케이스('ZPT-002', ['desktop'])]);
-    fireEvent.click(바().getByRole('button', { name: '모두 실행' }));
-    await screen.findByRole('dialog', { name: '실행할 케이스 2건' });
-    fireEvent.click(창안().getByRole('tab', { name: '모바일 1' }));
+    await 모두실행창();
 
     fireEvent.change(창안().getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.click(창안().getByRole('button', { name: '실행' }));

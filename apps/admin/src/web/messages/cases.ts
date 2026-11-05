@@ -96,7 +96,7 @@ export const 케이스말: Record<string, string> = {
   '{조건} 조건 풀기': 'Remove filter {조건}',
 
   // 케이스 한 줄
-  '{아이디} {이름} 고르기': 'Select {아이디} {이름}',
+  '{아이디} {이름} 선택': 'Select {아이디} {이름}',
   '실행 기록 없음': 'No runs yet',
   '상세': 'Details',
   '실행': 'Run',
@@ -125,16 +125,16 @@ export const 케이스말: Record<string, string> = {
   '입력값': 'Inputs',
   '이 쪽 전체 선택': 'Select all on this page',
   // 여러 건 고르기 — 표 위 띠와 고르기 바 (2026-10-30 WEB-F7-08)
-  '이 쪽 {수}건을 모두 골랐습니다': 'All {수} on this page are selected',
-  '조건에 맞는 {전체}건 모두 고르기': 'Select all {전체} matching',
-  '조건에 맞는 {전체}건을 모두 골랐습니다': 'All {전체} matching are selected',
-  '고르기 풀기': 'Clear selection',
+  '이 쪽 {수}건을 모두 선택했습니다': 'All {수} on this page are selected',
+  '조건에 맞는 {전체}건 모두 선택': 'Select all {전체} matching',
+  '조건에 맞는 {전체}건을 모두 선택했습니다': 'All {전체} matching are selected',
+  '선택 해제': 'Clear selection',
   '실행은 앞 {한계}건까지만 담습니다': 'A run takes only the first {한계}',
   '시험 실행은 앞 {한계}건까지만 담습니다': 'A trial run takes only the first {한계}',
-  '모두 고르면 삭제 요청은 보낼 수 없습니다(한 번에 {상한}건까지)': 'With all selected you cannot request deletion (up to {상한} at a time)',
-  '고른 케이스': 'Selected cases',
-  '조건에 맞는 {수}건 모두 고름': 'All {수} matching selected',
-  '{수}건 고름': '{수} selected',
+  '모두 선택하면 삭제 요청은 보낼 수 없습니다(한 번에 {상한}건까지)': 'With all selected you cannot request deletion (up to {상한} at a time)',
+  '선택한 케이스': 'Selected cases',
+  '조건에 맞는 {수}건 모두 선택': 'All {수} matching selected',
+  '{수}건 선택': '{수} selected',
   // 고르기 바의 디바이스별 실행 (시안 ①)
   '{디바이스} {수}건 실행': 'Run {수} on {디바이스}',
   '{디바이스} {수}건 시험 실행': 'Trial run {수} on {디바이스}',

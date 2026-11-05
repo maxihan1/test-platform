@@ -89,12 +89,12 @@ describe('CaseList 종류 (화면공통 §8 하위 메뉴 · PR #132)', () => {
   });
 });
 
-const 고르기칸 = () => screen.getAllByRole('checkbox', { name: /고르기$/ });
+const 고르기칸 = () => screen.getAllByRole('checkbox', { name: /^(?!이 쪽 전체).* 선택$/ });
 const 머리칸 = () => screen.getByRole('checkbox', { name: '이 쪽 전체 선택' }) as HTMLInputElement;
 const 실행버튼 = () => screen.getByRole('button', { name: /^조건에 맞는 \d+건 실행$/ });
 const 모달실행 = () => within(screen.getByRole('dialog')).getByRole('button', { name: '실행' });
-const 고르기바 = () => screen.getByRole('toolbar', { name: '고른 케이스' });
-const 바글 = () => screen.queryByRole('toolbar', { name: '고른 케이스' })?.querySelector('span')?.textContent ?? null;
+const 고르기바 = () => screen.getByRole('toolbar', { name: '선택한 케이스' });
+const 바글 = () => screen.queryByRole('toolbar', { name: '선택한 케이스' })?.querySelector('span')?.textContent ?? null;
 const 바실행 = () => within(고르기바()).getByRole('button', { name: '모두 실행' });
 
 const 전체실행글 = '조건에 맞는 3건 실행';
@@ -278,14 +278,14 @@ describe('CaseList 여러 건 고르기', () => {
     await 그리기();
     expect(고르기칸()).toHaveLength(2);
     // ID 만 읽으면 화면을 안 보는 사람에게는 암호다
-    expect(screen.getByRole('checkbox', { name: 'ZPK-001 ZPK-001 케이스 고르기' })).toBeTruthy();
+    expect(screen.getByRole('checkbox', { name: 'ZPK-001 ZPK-001 케이스 선택' })).toBeTruthy();
   });
 
   it('머리의 체크박스가 이 쪽 케이스를 한 번에 고르고 다시 누르면 푼다', async () => {
     await 그리기();
     fireEvent.click(머리칸());
     expect(고르기칸().every((칸) => (칸 as HTMLInputElement).checked)).toBe(true);
-    expect(바글()).toBe('2건 고름');
+    expect(바글()).toBe('2건 선택');
 
     fireEvent.click(머리칸());
     expect(고르기칸().some((칸) => (칸 as HTMLInputElement).checked)).toBe(false);
@@ -317,9 +317,9 @@ describe('CaseList 여러 건 고르기', () => {
     await 그리기();
     expect(바글()).toBeNull();
     fireEvent.click(고르기칸()[0]!);
-    expect(바글()).toBe('1건 고름');
+    expect(바글()).toBe('1건 선택');
     fireEvent.click(고르기칸()[1]!);
-    expect(바글()).toBe('2건 고름');
+    expect(바글()).toBe('2건 선택');
     expect(실행버튼().textContent).toBe(전체실행글);
   });
 
@@ -335,10 +335,10 @@ describe('CaseList 여러 건 고르기', () => {
     expect(스파이.mock.calls.map(([q]) => q.page)).toEqual([1, 2]);
   });
 
-  it('바의 고르기 풀기는 고른 것을 비우고 포커스를 머리 실행 단추로 보낸다', async () => {
+  it('바의 선택 해제는 고른 것을 비우고 포커스를 머리 실행 단추로 보낸다', async () => {
     await 그리기();
     fireEvent.click(고르기칸()[0]!);
-    fireEvent.click(within(고르기바()).getByRole('button', { name: '고르기 풀기' }));
+    fireEvent.click(within(고르기바()).getByRole('button', { name: '선택 해제' }));
 
     expect(바글()).toBeNull();
     expect(고르기칸().some((칸) => (칸 as HTMLInputElement).checked)).toBe(false);
@@ -422,7 +422,7 @@ describe('CaseList 고른 것을 줄 통째로 든다', () => {
 
     // 칩은 「무엇을 볼까」이지 「무엇을 돌릴까」가 아니다. 서버가 거른 새 목록이 와도 고른 것은 줄 통째로 들고 있다
     fireEvent.click(결과칩('실패'));
-    expect(바글()).toBe('2건 고름');
+    expect(바글()).toBe('2건 선택');
     fireEvent.click(바실행());
 
     const 모달 = await screen.findByRole('dialog');
@@ -432,7 +432,7 @@ describe('CaseList 고른 것을 줄 통째로 든다', () => {
   it('애플리케이션을 바꾸면 고른 것도 버린다', async () => {
     const { rerender } = await 그리기();
     fireEvent.click(고르기칸()[0]!);
-    expect(바글()).toBe('1건 고름');
+    expect(바글()).toBe('1건 선택');
 
     rerender(<CaseList kind="FN" service="ZPY" 할수={전부된다} 결과보나 />);
 
@@ -496,7 +496,7 @@ describe('CaseList 담지 못한 것을 말한다', () => {
     fireEvent.click(바실행());
 
     const 모달 = await screen.findByRole('dialog');
-    expect(within(모달).getByText(/고른 2건 중 1건이 대상입니다/)).toBeTruthy();
+    expect(within(모달).getByText(/선택한 2건 중 1건이 대상입니다/)).toBeTruthy();
   });
 });
 
@@ -833,7 +833,7 @@ describe('CaseList 오른쪽 상세 칸 (⑫ 시안 A · 점검 7.12 · ⑬-2 �
     fireEvent.click(screen.getByRole('button', { name: 'ZPK-002 케이스' }));
 
     expect(screen.getByText('ZPK-001')).toBeTruthy();
-    expect(바글()).toBe('1건 고름');
+    expect(바글()).toBe('1건 선택');
   });
 
   it('이 쪽에 없는 케이스가 열려 있으면 칸을 안 그리지만 주소는 남겨 돌아오면 다시 열린다', async () => {
@@ -1017,11 +1017,11 @@ describe('CaseList 설계 기법 (도메인/카탈로그 §8.1 「설계 기법�
   it('고르면 고른 것은 그대로 둔다 — 디바이스 · 표시 칩과 같다', async () => {
     const { 스파이 } = await 그리기();
     fireEvent.click(고르기칸()[0]!);
-    expect(바글()).toBe('1건 고름');
+    expect(바글()).toBe('1건 선택');
 
     기법('상태 전이');
     await waitFor(() => expect(마지막질의(스파이)?.technique).toBe('상태 전이'));
-    expect(바글()).toBe('1건 고름');
+    expect(바글()).toBe('1건 선택');
   });
 
   it('찾기 칸의 조건 초기화가 기법도 비운다', async () => {

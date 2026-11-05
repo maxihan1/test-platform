@@ -103,7 +103,7 @@ describe('케이스 줄의 이름 버튼 (점검 7.12)', () => {
     const 뒤집기 = vi.fn();
     그린다(값있는스키마, { 뒤집기 });
 
-    fireEvent.click(screen.getByRole('checkbox', { name: 'ZZC-001 값 칸 케이스 고르기' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'ZZC-001 값 칸 케이스 선택' }));
 
     expect(뒤집기).toHaveBeenCalledTimes(1);
   });

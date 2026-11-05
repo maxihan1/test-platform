@@ -179,11 +179,11 @@ export const 실행말: Record<string, string> = {
   '입력값 없음': 'No inputs',
   '실행을 시작하는 중': 'Starting…',
   '취소': 'Cancel',
-  '실행할 케이스가 없습니다. 고른 것이 전부 비활성이거나 걸러졌습니다':
+  '실행할 케이스가 없습니다. 선택한 것이 전부 비활성이거나 걸러졌습니다':
     'Nothing to run. Everything picked is inactive or filtered out',
   '목록이 너무 길어 앞 {모은수}건까지만 담았습니다. 검색으로 좁혀서 다시 실행하세요':
     'The list is too long — only the first {모은수} were taken. Narrow it with search and try again',
-  '고른 {고른수}건 중 {담을수}건이 대상입니다. 나머지는 비활성이라 뺐습니다':
+  '선택한 {고른수}건 중 {담을수}건이 대상입니다. 나머지는 비활성이라 뺐습니다':
     '{담을수} of the {고른수} picked will run. The rest are inactive and were dropped',
 
   // 실행 결과 (§8.3)
