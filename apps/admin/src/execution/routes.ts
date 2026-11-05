@@ -12,6 +12,7 @@ import { artifactsDir, 볼륨파일읽기 } from '../artifactFile.js';
 import { dispatch, markAborted } from './dispatcher.js';
 import { 실행남은시간 } from './eta.js';
 import { notifyRun } from './notify.js';
+import { 항목장면경로, 항목화면 } from './live.js';
 import { abortRunner, 진행 } from './runner.js';
 import { caseSchemas, createParamSet, deleteParamSet, listParamSets } from './paramSets.js';
 import { caseHistory, lastByCase } from './history.js';
@@ -164,7 +165,10 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
     return {
       items: 돌고있는것들.flatMap((돌고있는것) => {
         const timeoutMs = 내것.get(돌고있는것.historyId);
-        return timeoutMs === undefined ? [] : [{ ...돌고있는것, timeoutMs }];
+        if (timeoutMs === undefined) return [];
+        // 화면 카드 — 장면 열쇠가 메모리에 있나 · 잡은 폰의 VISION 링크 (도메인/실행 §3.2 「시험 실행 지금 단계 · 중단 · 정식 실행 화면」)
+        const 화면 = 항목화면(돌고있는것.historyId);
+        return [{ ...돌고있는것, timeoutMs, live: 화면?.열쇠 !== undefined, ...(화면?.vision !== undefined && { vision: { url: 화면.vision } }) }];
       }),
       remainingMs: await 실행남은시간(runId),
     };
@@ -241,6 +245,7 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
   // 영상 Range 를 받는 sendFile 이 따로 등록돼야 해서 플러그인 하나로 붙인다
   await app.register(팜증적경로);
   await app.register(팜영상경로);
+  await app.register(항목장면경로);
 
   app.get<{ Params: { runId: string; historyId: string; seq: string } }>(
     '/screenshots/:runId/:historyId/:seq.png',

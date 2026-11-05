@@ -44,6 +44,11 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
   // 러너가 쥔 장면 — 열쇠마다 마지막 한 장. 없는 열쇠는 러너처럼 404 다
   const 장면 = new Map<string, Buffer>();
   const 폰화면 = 'https://vision.example.com/#phone=s1&view=xtr-view';
+  // 러너 GET /progress 가 내는 절차들 · 물은 횟수, POST /abort 로 받은 번호와 그 답
+  let 진행답: { historyId: number; seq: number; title: string; elapsedMs: number }[] = [];
+  let 진행물음 = 0;
+  const 받은중단: number[] = [];
+  let 중단답 = true;
   const 옛환경 = {
     RUNNER_URL: process.env.RUNNER_URL,
     DEVICE_FARM_URL: process.env.DEVICE_FARM_URL,
@@ -93,7 +98,20 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
         const 답 = req.method === 'POST' ? JSON.stringify({ held: { until: 0, now: 0, screen: 폰화면 } }) : '{}';
         return void res.writeHead(200, { 'content-type': 'application/json' }).end(답);
       }
+      if (req.method === 'GET' && req.url === '/progress') {
+        진행물음 += 1;
+        return void res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ items: 진행답 }));
+      }
       if (req.method === 'GET') return void res.writeHead(req.url === '/health' ? 200 : 404).end('{}');
+      if (req.url === '/abort') {
+        const 조각: Buffer[] = [];
+        req.on('data', (c: Buffer) => 조각.push(c));
+        req.on('end', () => {
+          받은중단.push((JSON.parse(Buffer.concat(조각).toString('utf8')) as { historyId: number }).historyId);
+          res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ aborted: 중단답 }));
+        });
+        return;
+      }
       const 조각: Buffer[] = [];
       req.on('data', (c: Buffer) => 조각.push(c));
       req.on('end', () => {
@@ -163,6 +181,9 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
     끝낸다();
     전부비운다();
     받은요청.length = 0;
+    받은중단.length = 0;
+    진행답 = [];
+    중단답 = true;
     장면.clear();
     process.env.RUNNER_URL = 러너주소;
     delete process.env.DEVICE_FARM_URL;
@@ -181,6 +202,8 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
     app.inject({ method: 'GET', url: `/api/cases/${tcId}/test-run/${trialId}`, cookies: { platform_session: 출입증.get(누구)! } });
   const 장면읽기 = (trialId: string, 누구 = 'xtr-writer') =>
     app.inject({ method: 'GET', url: `/api/cases/${케이스}/test-run/${trialId}/live`, cookies: { platform_session: 출입증.get(누구)! } });
+  const 중단 = (trialId: string, 누구 = 'xtr-writer', tcId = 케이스) =>
+    app.inject({ method: 'POST', url: `/api/cases/${tcId}/test-run/${trialId}/abort`, cookies: { platform_session: 출입증.get(누구)! } });
   const 정상 = { platform: 'desktop', env: 'qa', params: { loginId: 'u', password: 'p4ss!' }, expected: {} };
   const 러너에닿을때까지 = async (건수: number) => {
     for (let i = 0; i < 100 && 받은요청.length < 건수; i += 1) await new Promise((ok) => setTimeout(ok, 20));
@@ -443,6 +466,87 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
     const 둘째 = await 시작(정상);
     expect(둘째.statusCode).toBe(409);
     expect(둘째.json<{ error: string }>().error).toBe('TRIAL_BUSY');
+  });
+
+  it('러너에 보낸 시험은 지금 단계를 싣는다 — 러너 진행은 1초 동안 함께 쓴다', async () => {
+    러너응답 = () => 멈춤;
+    const { trialId } = (await 시작(정상)).json<{ trialId: string }>();
+    await 러너에닿을때까지(1);
+    진행답 = [
+      { historyId: 받은요청[0]!.historyId, seq: 3, title: '비밀번호 입력', elapsedMs: 4000 },
+      { historyId: 1, seq: 9, title: '남의 정식 실행 단계', elapsedMs: 1 },
+    ];
+    await new Promise((ok) => setTimeout(ok, 1100));
+    const 앞 = 진행물음;
+    expect((await 읽기(trialId)).json()).toEqual({ status: 'RUNNING', step: { seq: 3, title: '비밀번호 입력', elapsedMs: 4000 } });
+    expect((await 읽기(trialId)).json()).toMatchObject({ step: { seq: 3 } });
+    expect(진행물음 - 앞).toBe(1);
+
+    끝낸다();
+    expect(await 끝날때까지(trialId)).not.toHaveProperty('step');
+  });
+
+  it('차례를 기다리는 시험은 러너에 단계를 묻지 않고, 중단하면 러너에 안 보내고 NA · ABORTED 로 닫는다', async () => {
+    process.env.EXECUTION_CONCURRENCY = '1';
+    let 비운다: () => void = () => undefined;
+    const 앞일 = enqueue(() => new Promise<void>((ok) => (비운다 = ok)));
+    try {
+      const { trialId } = (await 시작(정상)).json<{ trialId: string }>();
+      await new Promise((ok) => setTimeout(ok, 1100));
+      const 앞 = 진행물음;
+      expect((await 읽기(trialId)).json()).toEqual({ status: 'RUNNING' });
+      expect(진행물음).toBe(앞);
+
+      const 답 = await 중단(trialId);
+      expect(답.statusCode).toBe(200);
+      expect(답.json()).toEqual({ aborted: true });
+      expect(await 끝날때까지(trialId)).toMatchObject({ status: 'DONE', result: { status: 'NA', error: { message: 'ABORTED' }, steps: [] } });
+      // 닫혔으니 바로 새로 시작할 수 있다
+      러너응답 = () => 멈춤;
+      expect((await 시작(정상)).statusCode).toBe(202);
+
+      비운다();
+      await 앞일;
+      await 러너에닿을때까지(1);
+      expect(받은요청[0]!.live).not.toBe(trialId);
+      expect(받은중단).toEqual([]);
+    } finally {
+      비운다();
+    }
+  });
+
+  it('러너에 보낸 시험의 중단은 러너 /abort 로 끊고 결과는 러너 답 그대로다', async () => {
+    러너응답 = () => 멈춤;
+    const { trialId } = (await 시작(정상)).json<{ trialId: string }>();
+    await 러너에닿을때까지(1);
+
+    expect((await 중단(trialId)).json()).toEqual({ aborted: true });
+    expect(받은중단).toEqual([받은요청[0]!.historyId]);
+    expect((await 읽기(trialId)).json()).toMatchObject({ status: 'RUNNING' });
+    끝낸다({ historyId: 받은요청[0]!.historyId, status: 'TIMEOUT', durationMs: 5, steps: [] });
+    expect(await 끝날때까지(trialId)).toMatchObject({ result: { status: 'TIMEOUT' } });
+
+    // 끝난 시험은 오류가 아니라 false 다
+    expect((await 중단(trialId)).json()).toEqual({ aborted: false });
+  });
+
+  it('러너가 못 끊었다고 답하면 false 다', async () => {
+    러너응답 = () => 멈춤;
+    중단답 = false;
+    const { trialId } = (await 시작(정상)).json<{ trialId: string }>();
+    await 러너에닿을때까지(1);
+    expect((await 중단(trialId)).json()).toEqual({ aborted: false });
+  });
+
+  it('남의 시험 · 다른 케이스 주소 · 없는 번호의 중단은 404 다', async () => {
+    러너응답 = () => 멈춤;
+    const { trialId } = (await 시작(정상)).json<{ trialId: string }>();
+    await 러너에닿을때까지(1);
+    expect((await 중단(trialId, 'xtr-other')).statusCode).toBe(404);
+    expect((await 중단(trialId, 'xtr-writer', 데스크톱만)).statusCode).toBe(404);
+    expect((await 중단('44444444-4444-4444-8444-444444444444')).json()).toEqual({ error: 'TRIAL_NOT_FOUND', detail: '44444444-4444-4444-8444-444444444444' });
+    expect((await 중단(trialId, 'xtr-reader')).statusCode).toBe(403);
+    expect(받은중단).toEqual([]);
   });
 
   it('실행 read 만 있는 사람은 시작이 403 이다', async () => {

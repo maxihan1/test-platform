@@ -9,6 +9,7 @@ import { Pool } from 'pg';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
+import { 항목폰화면, 항목화면을닫는다, 항목화면을연다 } from './live.js';
 import executionRoutes from './routes.js';
 
 // 라우트 등록이 띄우는 재기동 복구가 이 파일이 만든 RUNNING 실행까지 닫아, 진행 조회의 남은 시간이 그 경주에 따라 null · 0 으로 갈렸다(4번 중 3번 실패).
@@ -47,6 +48,7 @@ describe.skipIf(연결 === undefined)('진행 조회', () => {
   let 남의실행 = 0;
   let 내항목 = 0;
   let 남의항목 = 0;
+  const 러너장면 = new Map<string, Buffer>();
 
   async function 실행만든다(title: string): Promise<number> {
     const row = await pool.query<{ run_id: string }>(
@@ -92,6 +94,11 @@ describe.skipIf(연결 === undefined)('진행 조회', () => {
         { historyId: 남의항목, seq: 1, title: '결제한다', elapsedMs: 800 },
       ],
     }));
+    // 러너가 쥔 장면 — 열쇠마다 한 장. 없는 열쇠는 러너처럼 404 다
+    가짜러너.get<{ Params: { key: string } }>('/live/:key', async (req, reply) => {
+      const 장 = 러너장면.get(req.params.key);
+      return 장 === undefined ? reply.code(404).send({}) : reply.type('image/jpeg').send(장);
+    });
     await 가짜러너.listen({ port: 0, host: '127.0.0.1' });
     const addr = 가짜러너.server.address();
     process.env.RUNNER_URL = `http://127.0.0.1:${typeof addr === 'object' && addr !== null ? addr.port : 0}`;
@@ -127,7 +134,46 @@ describe.skipIf(연결 === undefined)('진행 조회', () => {
       title: '로그인한다',
       elapsedMs: 1200,
       timeoutMs: 7000,
+      live: false,
     });
+  });
+
+  it('도는 항목의 장면 열쇠 · 잡은 폰 링크가 메모리에 있으면 live · vision 이 실린다 — 열쇠는 밖에 안 나간다', async () => {
+    const 열쇠 = 항목화면을연다(내항목, true)!;
+    항목폰화면(내항목, 'https://vision.example.com/#phone=s1');
+    try {
+      const body = (await app.inject({ method: 'GET', url: `/api/runs/${내실행}/progress` })).json();
+      expect(body.items[0]).toMatchObject({ historyId: 내항목, live: true, vision: { url: 'https://vision.example.com/#phone=s1' } });
+      expect(JSON.stringify(body)).not.toContain(열쇠);
+    } finally {
+      항목화면을닫는다(내항목);
+    }
+  });
+
+  it('항목 장면 — 첫 장면 전 204, 장면이 있으면 JPEG, 그 실행의 항목이 아니거나 끝난 항목은 404 다', async () => {
+    const 장면 = (runId: number, historyId: number) => app.inject({ method: 'GET', url: `/api/runs/${runId}/items/${historyId}/live` });
+    const 열쇠 = 항목화면을연다(내항목, true)!;
+    try {
+      expect((await 장면(내실행, 내항목)).statusCode).toBe(204);
+      러너장면.set(열쇠, Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
+      const 한장 = await 장면(내실행, 내항목);
+      expect(한장.statusCode).toBe(200);
+      expect(한장.headers['content-type']).toBe('image/jpeg');
+      expect(한장.headers['cache-control']).toBe('no-store');
+      expect([...한장.rawPayload]).toEqual([0xff, 0xd8, 0xff, 0xd9]);
+      expect((await 장면(남의실행, 내항목)).json()).toEqual({ error: 'LIVE_NOT_FOUND', detail: String(내항목) });
+    } finally {
+      항목화면을닫는다(내항목);
+      러너장면.clear();
+    }
+    expect((await 장면(내실행, 내항목)).statusCode).toBe(404);
+    // 장면을 안 찍는 항목(android · API 애플리케이션)도 404 다
+    항목화면을연다(내항목, false);
+    try {
+      expect((await 장면(내실행, 내항목)).statusCode).toBe(404);
+    } finally {
+      항목화면을닫는다(내항목);
+    }
   });
 
   it('android 케이스를 디바이스 팜(DEVICE_FARM_URL) 없이 실행하면 409 FARM_OFF 이고 test_run 이 안 생긴다', async () => {

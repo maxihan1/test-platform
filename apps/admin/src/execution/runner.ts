@@ -17,6 +17,7 @@ import { 케이스판 } from '../apidoc/caseDoc.js';
 import { 서명주소 } from './buildFile.js';
 import { 거를패키지, 팜주소, 팜폰으로, 폰Chrome으로 } from './farm.js';
 import { 실행팜토큰 } from './farmToken.js';
+import { 항목폰화면, 항목화면을닫는다, 항목화면을연다 } from './live.js';
 import { runnerUrl, 답하나, 러너들, 러너머리 } from './runnerAddr.js';
 import type { PendingItem } from './store.js';
 
@@ -53,13 +54,13 @@ export async function abortRunner(historyId: number): Promise<boolean> {
 // 지금 러너에서 돌고 있는 절차들. 닿지 못하거나 200 이 아니면 빈 목록이다 —
 // 한 번 실패가 곧 「러너가 죽었다」는 아니고, 러너 고장을 사람에게 알리는 자리는 따로 있다 (SPEC §8.3).
 // **여기서 거르지 않는다.** 러너의 목록은 모든 서비스의 자식을 담고 runId 칸이 없다 (SPEC §5.2)
-export async function 진행(): Promise<RunningStep[]> {
+export async function 진행(주소들 = 러너들(), 제한ms = 3_000): Promise<RunningStep[]> {
   // 러너마다 따로 묻는다. 한쪽이 죽어도 다른 쪽 절차는 보여야 한다
   const 목록 = await Promise.all(
-    러너들().map(async (주소): Promise<RunningStep[]> => {
+    주소들.map(async (주소): Promise<RunningStep[]> => {
       try {
         // 화면이 짧은 주기로 다시 묻는다. 오래 매달려 있어 봐야 다음 물음이 덮는다
-        const res = await fetch(`${주소}/progress`, { headers: 러너머리(), signal: AbortSignal.timeout(3_000) });
+        const res = await fetch(`${주소}/progress`, { headers: 러너머리(), signal: AbortSignal.timeout(제한ms) });
         if (!res.ok) return [];
         return ((await res.json()) as { items?: RunningStep[] }).items ?? [];
       } catch {
@@ -68,6 +69,18 @@ export async function 진행(): Promise<RunningStep[]> {
     }),
   );
   return 목록.flat();
+}
+
+let 앞시험진행: { 때: number; 값: Promise<RunningStep[]> } | undefined;
+
+/**
+ * 시험 실행이 도는 서버 러너의 절차들 — 1초 동안 모든 시험이 한 답을 함께 쓰고 1초까지만 기다린다.
+ * 화면이 1.5초마다 묻고 시험이 여럿이면 그만큼 러너를 부르게 돼서다 (도메인/실행 §3.2 「시험 실행 지금 단계 · 중단 · 정식 실행 화면」)
+ */
+export function 시험진행(): Promise<RunningStep[]> {
+  const 지금 = Date.now();
+  if (앞시험진행 === undefined || 지금 - 앞시험진행.때 >= 1_000) 앞시험진행 = { 때: 지금, 값: 진행([runnerUrl()], 1_000) };
+  return 앞시험진행.값;
 }
 
 // 400·404·500은 전부 { error, detail } 이다. 사람이 읽을 사유로 합쳐 둔다
@@ -125,6 +138,8 @@ export async function 러너에보낸다(경로: string, 본문: unknown, 제한
 export interface 잡은폰 {
   udid: string;
   토큰: string | undefined;
+  // 그 폰의 VISION 화면 링크 — 진행 창 카드가 단다
+  화면?: string | undefined;
 }
 
 // 멈췄나는 디스패처가 넘긴다. 팜에서 폰을 잡는 몇 초 사이에 멈추면 러너는 아직 그 항목을 몰라 중단을 못 받는다 — 잡은 뒤 한 번 더 본다.
@@ -144,6 +159,24 @@ export async function callRunner(
   }
   if ('사유' in 판) return na(item, 판.사유);
 
+  // 브라우저를 여는 항목(PC · 모바일 웹)만 장면을 찍는다 — API 애플리케이션 케이스는 desktop 이어도 브라우저를 안 연다.
+  // 정식 실행은 늦추지 않고 화면만 찍는다(러너가 runId 로 가른다) (도메인/실행 §3.2 「시험 실행 지금 단계 · 중단 · 정식 실행 화면」)
+  const 열쇠 = 항목화면을연다(item.historyId, item.platform !== 'android' && !('apiDoc' in 판));
+  try {
+    return await 항목을보낸다(runId, item, 판, 열쇠, 멈췄나, 잡은폰);
+  } finally {
+    항목화면을닫는다(item.historyId);
+  }
+}
+
+async function 항목을보낸다(
+  runId: number,
+  item: PendingItem,
+  판: Exclude<Awaited<ReturnType<typeof 케이스판>>, { 사유: string }>,
+  열쇠: string | undefined,
+  멈췄나: () => boolean,
+  잡은폰: 잡은폰 | undefined,
+): Promise<ExecuteResponse> {
   const body: ExecuteRequest = {
     runId,
     historyId: item.historyId,
@@ -158,6 +191,7 @@ export async function callRunner(
     ...(item.apiAuths !== undefined && { apiAuths: item.apiAuths }),
     ...(item.engine !== undefined && { engine: item.engine }),
     ...(item.adminKey !== undefined && { adminKey: item.adminKey }),
+    ...(열쇠 !== undefined && { live: 열쇠 }),
     ...판,
   };
 
@@ -177,7 +211,16 @@ export async function callRunner(
     if (app === null) return na(item, 'PLATFORM_PUBLIC_URL 이 비어 있어 Device VISION 이 빌드를 받을 주소를 만들지 못했습니다');
     return 보낸다(item, { ...폰body, app });
   };
-  if (잡은폰 !== undefined) return 보낸다폰(잡은폰.udid, 잡은폰.토큰);
+  // 폰을 잡은 동안만 링크를 단다
+  const 폰화면과 = async <T>(화면: string | undefined, 일: () => Promise<T>): Promise<T> => {
+    항목폰화면(item.historyId, 화면);
+    try {
+      return await 일();
+    } finally {
+      항목폰화면(item.historyId, undefined);
+    }
+  };
+  if (잡은폰 !== undefined) return 폰화면과(잡은폰.화면, () => 보낸다폰(잡은폰.udid, 잡은폰.토큰));
   // 앱 항목 · 실제 폰 모바일 항목은 서버 러너가 팜에 붙어 돈다. 폰은 항목마다 잡고 놓는다 — 놓을 때 팜이 깐 앱 · Chrome 데이터를 지워 다음 항목이 깨끗한 폰에서 연다 (러너 §5.2 「디바이스 팜 접속 방식」).
   // 팜 주소가 없는데 여기까지 왔다면 요청을 받은 뒤 서버를 다시 띄우며 값을 지웠을 때뿐이다 — 실행 요청 통로가 FARM_OFF 로 거절한다
   const 팜 = 팜주소();
@@ -192,13 +235,13 @@ export async function callRunner(
   if (폰Chrome) {
     return 폰Chrome으로(
       팜,
-      async (칸) => 멈춤() ?? 보낸다(item, { ...body, ...칸 }),
+      async (칸, 화면) => 폰화면과(화면, async () => 멈춤() ?? 보낸다(item, { ...body, ...칸 })),
       (까닭) => na(item, 까닭),
       토큰,
     );
   }
   // 올린 빌드는 앱 값 없이 번호만 온다 — 빌드가 앞서 APK 를 까니 거르지 않는다 (러너 §5.2 「플레이스토어 앱 — 패키지 이름」)
-  return 팜폰으로(팜, (udid) => 보낸다폰(udid, 토큰), (까닭) => na(item, 까닭), undefined, undefined, undefined, 토큰, 거를패키지(item.app));
+  return 팜폰으로(팜, (udid, 화면) => 폰화면과(화면, () => 보낸다폰(udid, 토큰)), (까닭) => na(item, 까닭), undefined, undefined, undefined, 토큰, 거를패키지(item.app));
 }
 
 // 러너가 거절하거나 못 닿으면 그 항목만 NA 로 접는다 — 케이스 테스트 실행도 같은 문장으로 접는다 (execution/trialRoutes.ts)

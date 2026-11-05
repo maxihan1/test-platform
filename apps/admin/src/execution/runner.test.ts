@@ -8,6 +8,7 @@ import type { ExecuteRequest, ScenarioExecuteRequest } from '@platform/kit';
 
 import { 케이스판 } from '../apidoc/caseDoc.js';
 
+import { 항목화면 } from './live.js';
 import { callRunner, callScenarioRunner, httpTimeoutMs, 러너에보낸다, 진행 } from './runner.js';
 import type { PendingItem } from './store.js';
 
@@ -84,7 +85,43 @@ describe('callRunner', () => {
       params: { 아이디: 'tester' },
       expected: { 결과: true },
       timeoutMs: 5000,
+      live: expect.stringMatching(/^[0-9a-f-]{36}$/) as unknown as string,
     });
+  });
+
+  it('브라우저 항목은 보낼 때마다 새 장면 열쇠를 싣고 도는 동안만 메모리에 둔다', async () => {
+    const 받은것: ExecuteRequest[] = [];
+    const 도는중: (string | undefined)[] = [];
+    await 띄운다((body) => {
+      받은것.push(body);
+      도는중.push(항목화면(body.historyId)?.열쇠);
+      return { historyId: body.historyId, status: 'PASS', durationMs: 1, steps: [] };
+    });
+
+    await callRunner(7, 항목);
+    await callRunner(7, { ...항목, platform: 'mobile' });
+
+    expect(도는중).toEqual(받은것.map((b) => b.live));
+    expect(받은것[0]!.live).not.toBe(받은것[1]!.live);
+    expect(항목화면(42)).toBeUndefined();
+  });
+
+  it('API 케이스 · android 항목은 장면 열쇠를 안 싣는다 — 잡은 폰 링크는 도는 동안만 단다', async () => {
+    const 받은것: ExecuteRequest[] = [];
+    const 도는중: ({ 열쇠?: string; vision?: string } | undefined)[] = [];
+    await 띄운다((body) => {
+      받은것.push(body);
+      도는중.push({ ...항목화면(body.historyId) });
+      return { historyId: body.historyId, status: 'PASS', durationMs: 1, steps: [] };
+    });
+    vi.mocked(케이스판).mockResolvedValueOnce({ apiDoc: { version: 1, doc: {} } });
+
+    await callRunner(7, 항목);
+    await callRunner(7, { ...항목, platform: 'android' }, () => false, { udid: 'R3', 토큰: undefined, 화면: 'https://vision.example.com/#phone=R3' });
+
+    expect(받은것.map((b) => b.live)).toEqual([undefined, undefined]);
+    expect(도는중).toEqual([{}, { vision: 'https://vision.example.com/#phone=R3' }]);
+    expect(항목화면(42)).toBeUndefined();
   });
 
   it('항목의 엔진 칸을 그대로 싣는다 (도메인/게임 §3.10 결정 6)', async () => {

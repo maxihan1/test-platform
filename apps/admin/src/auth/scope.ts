@@ -88,6 +88,7 @@ export const 라우트표: Record<string, 원천> = {
   '/api/cases/:tcId/test-run': { 종류: '케이스', 칸: 'tcId' },
   '/api/cases/:tcId/test-run/:trialId': { 종류: '케이스', 칸: 'tcId' },
   '/api/cases/:tcId/test-run/:trialId/live': { 종류: '케이스', 칸: 'tcId' },
+  '/api/cases/:tcId/test-run/:trialId/abort': { 종류: '케이스', 칸: 'tcId' },
 
   '/api/runs/:runId': { 종류: '실행', 칸: 'runId' },
   '/api/runs/:runId/abort': { 종류: '실행', 칸: 'runId' },
@@ -98,6 +99,7 @@ export const 라우트표: Record<string, 원천> = {
   '/api/runs/:runId/items/:historyId': { 종류: '실행', 칸: 'runId' },
   '/api/runs/:runId/progress': { 종류: '실행', 칸: 'runId' },
   '/api/runs/:runId/items/:historyId/farm/:name': { 종류: '실행', 칸: 'runId' },
+  '/api/runs/:runId/items/:historyId/live': { 종류: '실행', 칸: 'runId' },
   '/api/runs/:runId/items/:historyId/farm-video': { 종류: '실행', 칸: 'runId' },
   '/api/screenshots/:runId/:historyId/:seq.png': { 종류: '실행', 칸: 'runId' },
 

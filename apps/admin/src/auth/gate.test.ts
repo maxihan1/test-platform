@@ -168,6 +168,7 @@ describe.skipIf(연결 === undefined)('인증 미들웨어', () => {
         scope.post('/cases/:tcId/test-run', async () => ({ 지나감: true }));
         scope.get('/cases/:tcId/test-run/:trialId', async () => ({ 지나감: true }));
         scope.get('/cases/:tcId/test-run/:trialId/live', async () => ({ 지나감: true }));
+        scope.post('/cases/:tcId/test-run/:trialId/abort', async () => ({ 지나감: true }));
         scope.get('/cases/:tcId/param-sets', async () => ({ 지나감: true }));
         scope.post('/cases/:tcId/param-sets', async () => ({ 지나감: true }));
         scope.get('/catalog/cases/:tcId', async () => ({ 지나감: true }));
@@ -549,6 +550,9 @@ describe.skipIf(연결 === undefined)('인증 미들웨어', () => {
     expect(읽기.statusCode).toBe(200);
     const 장면 = await app.inject({ method: 'GET', url: '/api/cases/XFS3B-001/test-run/abc/live', cookies: 쿠키 });
     expect(장면.statusCode).toBe(200);
+    const 중단 = await app.inject({ method: 'POST', url: '/api/cases/XFS3B-001/test-run/abc/abort', cookies: 쿠키 });
+    expect(중단.statusCode).toBe(403);
+    expect(중단.json()).toEqual({ error: 'FORBIDDEN', need: 'runs:trial' });
   });
 
   it('실행 칸이 없으면 테스트 실행 결과 읽기도 need runs:read 다', async () => {
@@ -766,6 +770,7 @@ describe('등급 표', () => {
     'POST /api/cases/:tcId/test-run': { 기능: 'runs', 까닭: '주소는 케이스 아래지만 브라우저를 돌리는 실행이다 (execution/trialRoutes.ts)' },
     'GET /api/cases/:tcId/test-run/:trialId': { 기능: 'runs', 까닭: '테스트 실행 결과 읽기다 (execution/trialRoutes.ts)' },
     'GET /api/cases/:tcId/test-run/:trialId/live': { 기능: 'runs', 까닭: '도는 테스트 실행의 장면이다 (execution/trialRoutes.ts)' },
+    'POST /api/cases/:tcId/test-run/:trialId/abort': { 기능: 'runs', 까닭: '도는 테스트 실행을 멈춘다 (execution/trialRoutes.ts)' },
     'GET /api/dashboard': { 기능: 'runs', 까닭: '주소에 기능 접두사가 없다. 돌려주는 것이 실행 결과 집계다 (reporting/routes.ts)' },
     'GET /api/notifications': { 기능: 'runs', 까닭: '주소에 기능 접두사가 없다. 도는 실행과 작성 요청을 함께 주며 작성 쪽은 라우트가 작성 read 로 거른다 (notifications/routes.ts)' },
     'POST /api/perf/ai-jobs/claim': { 기능: 'authoring', 까닭: '주소는 성능 아래지만 작성 에이전트가 집는 AI 일이다 — 작성 집기와 같은 무게 (perf/aiRoutes.ts · 도메인/성능 §7)' },
