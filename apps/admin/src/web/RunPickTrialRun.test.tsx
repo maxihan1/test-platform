@@ -144,7 +144,7 @@ describe('완료 창', () => {
     expect(vi.mocked(api.startTrial).mock.calls[2]?.[0]).toBe('ZRS-002');
   });
 
-  it('「닫기」는 값 창으로 돌아가고, 「실행」은 정식 실행 시작 확인 창을 거쳐 같은 케이스를 건다', async () => {
+  it('「실행」은 정식 실행 시작 확인 창을 거쳐 같은 케이스를 걸고 값 창으로 돌아간다 — 거절 사유가 그 바닥에 뜬다', async () => {
     차례대로({ 't-ZRS-001': [{ status: 'DONE', result: 통과 }], 't-ZRS-002': [{ status: 'DONE', result: 통과 }] });
     const onRun = 둘을연다();
     시험시작();
@@ -153,7 +153,15 @@ describe('완료 창', () => {
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
     fireEvent.click(within(screen.getByRole('dialog', { name: '정식 실행을 시작할까요?' })).getByRole('button', { name: '실행 시작' }));
     expect(onRun.mock.calls[0]?.[0]).toMatchObject({ env: 'qa', items: [{ tcId: 'ZRS-001' }, { tcId: 'ZRS-002' }] });
+    expect(screen.getByLabelText('대상 서버')).toBeTruthy();
+  });
 
+  it('「닫기」는 값 창으로 돌아간다', async () => {
+    차례대로({ 't-ZRS-001': [{ status: 'DONE', result: 통과 }], 't-ZRS-002': [{ status: 'DONE', result: 통과 }] });
+    둘을연다();
+    시험시작();
+
+    await screen.findByRole('dialog', { name: '시험 실행 완료' }, { timeout: 4000 });
     fireEvent.click(screen.getByRole('button', { name: '닫기' }));
     expect(screen.getByLabelText('대상 서버')).toBeTruthy();
   });
