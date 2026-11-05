@@ -188,6 +188,13 @@ describe('scenarioEnv', () => {
       expect(환경.PLATFORM_LIVE_FILE).toMatch(new RegExp(`/live/${trialId}\\.jpg$`));
     });
 
+    it('정식 실행에 열쇠가 오면 장면 파일만 주고 늦추지 않는다', () => {
+      vi.stubEnv('PLATFORM_SLOW_MO', '1000');
+      const 환경 = scenarioEnv({ ...기본, live: trialId });
+      expect(환경.PLATFORM_SLOW_MO).toBe('');
+      expect(환경.PLATFORM_LIVE_FILE).toMatch(new RegExp(`/live/${trialId}\\.jpg$`));
+    });
+
     it('장면 열쇠가 없으면 창을 띄우는 러너의 시험 실행이라도 늦추지 않는다 — 셸에 남은 값도 비운다', () => {
       vi.stubEnv('PLATFORM_HEADED', '1');
       vi.stubEnv('PLATFORM_SLOW_MO', '1000');

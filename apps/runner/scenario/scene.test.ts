@@ -20,6 +20,7 @@ describe('장면자리', () => {
     폴더 = mkdtempSync(join(tmpdir(), 'scn-scene-'));
     const 파일 = join(폴더, 'live', '0b7e2c1a-0000-4000-8000-000000000007.jpg');
     vi.stubEnv('PLATFORM_LIVE_FILE', 파일);
+    vi.stubEnv('PLATFORM_SLOW_MO', '1000');
     const takeScreenshot = vi.fn(async () => Buffer.from([0x89, 0x50, 0x4e, 0x47]).toString('base64'));
     const 자리 = 장면자리();
     let 닫음 = false;
@@ -37,9 +38,20 @@ describe('장면자리', () => {
 
   it('닫힌 단계에는 폰 장면을 걸지 않는다', async () => {
     vi.stubEnv('PLATFORM_LIVE_FILE', join(tmpdir(), 'scn-scene-none.jpg'));
+    vi.stubEnv('PLATFORM_SLOW_MO', '1000');
     const takeScreenshot = vi.fn(async () => '');
 
     await 장면자리().폰에({ takeScreenshot }, () => true);
+
+    expect(takeScreenshot).not.toHaveBeenCalled();
+  });
+
+  it('정식 실행(늦추기 값이 빔)에는 폰 장면을 걸지 않는다 — 찍는 동안 단계 명령이 선다', async () => {
+    vi.stubEnv('PLATFORM_LIVE_FILE', join(tmpdir(), 'scn-scene-formal.jpg'));
+    vi.stubEnv('PLATFORM_SLOW_MO', '');
+    const takeScreenshot = vi.fn(async () => '');
+
+    await 장면자리().폰에({ takeScreenshot }, () => false);
 
     expect(takeScreenshot).not.toHaveBeenCalled();
   });
