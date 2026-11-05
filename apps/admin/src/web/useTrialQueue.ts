@@ -94,7 +94,7 @@ export function useTrialQueue(간격: number = 기본간격) {
         return null;
       }
       쓴다(항목.tcId, { 종류: 'notice', 글: message(err, 언어) });
-      return t('앞 케이스에서 멈춰 돌리지 못했습니다');
+      return t('앞 케이스 오류로 실행하지 않았습니다');
     }
   }
 

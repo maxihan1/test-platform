@@ -63,7 +63,7 @@ describe('한 건 창의 테스트 실행', () => {
     fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
 
     expect(시작).not.toHaveBeenCalled();
-    expect(screen.getByRole('status').textContent).toBe('실행할 디바이스를 하나 이상 고르세요.');
+    expect(screen.getByRole('status').textContent).toBe('실행할 디바이스를 하나 이상 선택하세요.');
   });
 
   it('고른 디바이스로 보낸다 — 첫째가 꺼져 있으면 남은 것으로 돈다', async () => {

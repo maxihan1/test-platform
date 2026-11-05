@@ -21,7 +21,7 @@ export const 실행말: Record<string, string> = {
   '기록이 남습니다': 'Leaves a record',
   '대기': 'Waiting',
   '실행 중': 'Running',
-  '앞 케이스에서 멈춰 돌리지 못했습니다': 'Not run because an earlier case stopped the queue',
+  '앞 케이스 오류로 실행하지 않았습니다': 'Not run because of an error in an earlier case',
   '시험 실행할 대상 서버를 선택하세요.': 'Select a target server for the trial run.',
   '이미 테스트 실행이 돌고 있습니다': 'A test run is already in progress',
   '그중 미확정 {수}건': 'Of these, {수} unconfirmed',
@@ -34,16 +34,14 @@ export const 실행말: Record<string, string> = {
   '디바이스': 'Device',
   '실행 위치 · Device VISION': 'Run location · Device VISION',
   '모바일 웹': 'Mobile web',
-  '서버 (iPhone 14 흉내)': 'Server (iPhone 14 emulation)',
-  'Device VISION (실제 폰 Chrome)': 'Device VISION (Chrome on a real phone)',
-  '동작마다 1초씩 쉬어 갑니다': 'Pauses 1 second after each action',
+  '가상 기기': 'Virtual device',
+  '서버에서 iPhone 14 화면 크기로 실행': 'Runs on the server at iPhone 14 screen size',
+  '실제 기기': 'Real device',
+  'Device VISION 의 Android 폰 Chrome': 'Chrome on an Android phone in Device VISION',
+  '동작마다 1초 천천히': 'One second slower per action',
   '실제 폰 Chrome': 'Chrome on a real phone',
-  '원래 실행을 읽지 못해 모바일 실행 위치를 서버 흉내로 골라 두었습니다 ({까닭})':
-    'Could not read the original run, so the mobile run location is set to server emulation ({까닭})',
-  '케이스마다 빈 폰을 하나씩 잡고 끝나면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 항목에 남습니다':
-    'Each case takes a free phone and releases it when done. Screen video and logcat are kept for items that did not pass',
-  '실행 하나 동안 빈 폰을 한 번 잡고 다 돌면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 항목에 남습니다':
-    'One free phone is taken for the whole run and released when it is done. Screen video and logcat are kept for items that did not pass',
+  '원래 실행을 읽지 못해 모바일 실행 위치를 가상 기기로 골라 두었습니다 ({까닭})':
+    'Could not read the original run, so the mobile run location is set to the virtual device ({까닭})',
   '상태': 'Status',
 
   // 실행 기록 목록 (§8.7)
@@ -84,7 +82,7 @@ export const 실행말: Record<string, string> = {
 
   // 실행 설정 (§8.2)
   '사전조건': 'Preconditions',
-  '선언된 사전조건이 없습니다.': 'No preconditions declared.',
+  '사전조건 없음': 'No preconditions',
   '입력값': 'Inputs',
   '기대결과': 'Expected result',
   '대상 서버': 'Target server',
@@ -92,7 +90,7 @@ export const 실행말: Record<string, string> = {
   '고르세요': 'Select',
   '실행자': 'Run by',
   '반복': 'Repeat',
-  '끝나면 Slack 으로 알리기': 'Notify Slack when done',
+  '완료 시 Slack 알림': 'Slack notice when done',
   // 케이스 저장값 — 목록 줄과 한 건 실행 창이 같이 쓴다 (도메인/실행 §8.2)
   '저장값 · {누가} · {언제}': 'Saved · {누가} · {언제}',
   '저장한 값': 'Saved values',
@@ -102,14 +100,7 @@ export const 실행말: Record<string, string> = {
   '코드 기본값과 다릅니다 · 이번 실행에만 씁니다': 'Differs from the code default · used for this run only',
   '저장값과 다릅니다 · 이번 실행에만 씁니다': 'Differs from the saved values · used for this run only',
   '이 값 저장': 'Save these values',
-  '결과가 남는 곳': 'Where results go',
-  '실행 기록에 새 RUN 으로 남습니다': 'Saved to run history as a new RUN',
   // 한 건 실행이 붙는 곳 (도메인/실행 §3.2 · §8.10)
-  '대상 서버를 고르면 보입니다': 'Shown once you pick a target server',
-  '붙을 실행을 확인하지 못했습니다': 'Could not check which run this attaches to',
-  '확인하는 중입니다': 'Checking',
-  '아직 전체 테스트에 들어간 적이 없어 이 케이스 상세에만 남습니다': 'Not in any full test run yet, so it stays only in this case’s detail',
-  'RUN {번호} 결과에 다시 실행으로 붙습니다 · {제목} · {시각}': 'Attaches to RUN {번호} results as a rerun · {제목} · {시각}',
   '다시 실행해서 통과': 'Passed on rerun',
   '다시 실행해서도 실패': 'Failed again on rerun',
   '지난 결과 보기': 'Show previous result',
@@ -125,11 +116,11 @@ export const 실행말: Record<string, string> = {
   '{케이스} 실행': 'Run {케이스}',
   // 실행 칸이 테스트만인 사람의 실행 자리 (도메인/인증 §3.5 「테스트 모드」)
   '{케이스} 시험 실행': 'Trial run {케이스}',
-  '실행할 디바이스를 하나 이상 고르세요.': 'Pick at least one device to run.',
+  '실행할 디바이스를 하나 이상 선택하세요.': 'Select at least one device to run.',
   // 실행 창을 여는 다른 자리 — 실행 결과 · 항목 상세 (도메인/실행 §8.10)
   '실패 {건수}건 다시 실행': 'Rerun {건수} failed',
   '비활성이거나 없어 뺀 케이스 {목록}': 'Left out as inactive or missing: {목록}',
-  '대상 서버를 고르세요. 리포트에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.':
+  '대상 서버를 선택하세요. 리포트에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.':
     'Pick a target server. The report records which server was hit.',
   '묶음 이름': 'Set name',
   '{이름}으로 저장했습니다.': 'Saved as {이름}.',
@@ -137,15 +128,13 @@ export const 실행말: Record<string, string> = {
   '이 애플리케이션에 등록된 대상 서버가 없습니다. 설정에서 추가해야 실행할 수 있습니다':
     'This application has no target servers. Add one in Settings before running',
   '한 번에 {상한}건까지 만들 수 있습니다 (지금 {지금}건)': 'Up to {상한} items per run ({지금} right now)',
-  '케이스 {케이스} × 디바이스 {디바이스} × 반복 {반복} = {건수}번': '{케이스} cases × {디바이스} devices × {반복} repeats = {건수} runs',
-  '케이스 {케이스} (디바이스 합계 {합}) × 반복 {반복} = {건수}번': '{케이스} cases ({합} devices in total) × {반복} repeats = {건수} runs',
 
   // 여러 건 실행 모달 (§8.10)
   '실행할 케이스 {건수}건': '{건수} cases to run',
   '시험 실행할 케이스 {건수}건': '{건수} cases to trial run',
   // 휴대폰 실행 창에서 접힌 값 칸을 펴는 버튼 (도메인/실행 §8.10)
   값: 'Values',
-  '선언된 입력값이 없습니다. 그대로 실행됩니다': 'No inputs declared. It runs as is',
+  '입력값 없음': 'No inputs',
   '실행을 시작하는 중': 'Starting…',
   '취소': 'Cancel',
   '실행할 케이스가 없습니다. 고른 것이 전부 비활성이거나 걸러졌습니다':
@@ -158,11 +147,12 @@ export const 실행말: Record<string, string> = {
   // 실행 결과 (§8.3)
   '실행 중단': 'Stop run',
   '조건에 맞는 결과가 없습니다': 'No results match the filters',
-  'RUN {번호} 실행을 멈출까요?': 'Stop RUN {번호}?',
-  '아직 시작 안 한 항목은 빼고 돌고 있는 항목은 끊습니다': 'Items not started yet are dropped and running ones are cut off',
+  'RUN {번호} 실행을 중단할까요?': 'Abort RUN {번호}?',
+  '진행 중인 케이스는 바로 멈추고 남은 케이스는 실행하지 않습니다': 'The running case stops now and the rest are not run',
   '되돌릴 수 없습니다': 'This cannot be undone',
   '되돌릴 수 없습니다.': 'This cannot be undone.',
   '아니오': 'No',
+  '계속 실행': 'Keep running',
   '상세': 'Details',
   '{시간} 평균': '{시간} avg',
   '실행자 미상 (인증 도입 이전)': 'Unknown — before sign-in',
@@ -234,30 +224,30 @@ export const 실행말: Record<string, string> = {
   'E2E RUN {번호} 실행 중': 'E2E RUN {번호} running',
   '{수}단계': '{수} steps',
   'RUN {번호} 실행이 끝났습니다': 'RUN {번호} finished',
-  'RUN {번호} 실행이 멈췄습니다': 'RUN {번호} was stopped',
+  'RUN {번호} 실행이 중단됐습니다': 'RUN {번호} was aborted',
   '{끝난} / {전체} 완료': '{끝난} / {전체} done',
   'RUN {번호} 진행 보기 · {끝난} / {전체} 완료': 'Show RUN {번호} progress · {끝난} / {전체} done',
   '{케이스} 실행 중': '{케이스} running',
   '{케이스} 실행이 끝났습니다': '{케이스} finished',
-  '{케이스} 실행이 멈췄습니다': '{케이스} was stopped',
+  '{케이스} 실행이 중단됐습니다': '{케이스} was aborted',
   '{케이스} 진행 보기 · {끝난} / {전체} 완료': 'Show {케이스} progress · {끝난} / {전체} done',
   // 남은 시간 (remainText.ts) — 실행 진행 상자와 알림 줄이 같이 쓴다
   '남은 시간 계산 중': 'Estimating time left',
   '1분 미만 남음': 'Under 1 min left',
   '약 {시간} 남음 · {시각} 종료 예상': 'About {시간} left · expected to end {시각}',
   '절차 {번호}': 'Step {번호}',
-  '{시간}째': '{시간} in',
+  '{시간} 경과': '{시간} elapsed',
   '제한 {시간}': 'limit {시간}',
   '{초}초': '{초}s',
   '{분}분': '{분}m',
   '{분}분 {초}초': '{분}m {초}s',
-  '방금 끝난 것': 'Just finished',
+  '최근 완료': 'Recently finished',
   '실패한 케이스': 'Failed cases',
   '외 {건수}건': 'and {건수} more',
   '닫기': 'Close',
 
   // 돌지 못한 항목의 사유 (§8.3)
-  '사용자가 멈춤': 'Stopped by user',
+  '사용자가 중단': 'Aborted by user',
   '제한 시간 초과': 'Timed out',
   '테스트 실행기에 닿지 못했습니다': 'Could not reach the test runner',
   // 서버가 저장해 둔 옛 낱말(러너)을 화면 낱말로 바꾸는 runState.ts 의 짝이다
@@ -321,7 +311,7 @@ export const 실행말: Record<string, string> = {
   '기록을 아직 정리하지 않았거나 이 기능 전에 돈 항목입니다 — 방금 끝난 실행이면 잠시 뒤 새로 고쳐 주세요':
     'Not processed yet, or this item ran before recording existed — if the run just ended, refresh in a moment',
   'Android 앱 실행은 기록을 남기지 않습니다': 'Android app runs are not recorded',
-  '테스트 실행기가 실행을 끊어(제한 시간 · 멈춤) 기록이 남지 않았습니다': 'The test runner cut the run short (time limit · stop), so nothing was recorded',
+  '테스트 실행기가 실행을 끊어(제한 시간 · 중단) 기록이 남지 않았습니다': 'The test runner cut the run short (time limit · stop), so nothing was recorded',
   '다른 컴퓨터의 테스트 실행기에서 돌았거나 기록 파일을 옮기다 실패해 기록이 없습니다':
     'Ran on a runner on another computer, or moving the trace file failed, so nothing was recorded',
 
@@ -403,14 +393,13 @@ export const 실행말: Record<string, string> = {
   '서버 브라우저': 'Server browser',
   'Device VISION 폰': 'Device VISION phone',
   'Device VISION 에서 보기 ↗': 'View in Device VISION ↗',
-  '빈 폰을 잡고 있습니다': 'Taking a free phone',
+  '사용할 폰을 찾는 중': 'Finding a phone to use',
   '폰 화면을 기다리고 있습니다': 'Waiting for the phone screen',
   '화면을 기다리고 있습니다': 'Waiting for the screen',
   '지금은 앱 단계라 폰에서 실행 중입니다': 'An app step is running on the phone now',
-  '브라우저 화면을 기다리고 있습니다. 앞 실행이 끝나야 시작할 때도 있습니다': 'Waiting for the browser. It may start after the run ahead of it finishes',
+  '차례를 기다리는 중': 'Waiting for its turn',
   '서버 브라우저의 지금 화면': 'Current screen of the server browser',
   '폰의 지금 화면': 'Current screen of the phone',
   '끝난 순간의 화면': 'Screen at the moment it ended',
-  '테스트 실행기에 닿지 않아 화면을 받지 못했습니다. 다시 받아 봅니다': 'Could not reach the runner to get the screen. Trying again',
-  '누른 곳을 표시하며 동작마다 1초씩 쉬어 갑니다': 'Marks where it clicks and pauses one second per action',
+  '실행 서버와 연결이 끊겼습니다. 다시 연결하는 중입니다': 'Lost the connection to the run server. Reconnecting',
 };

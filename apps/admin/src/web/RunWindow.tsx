@@ -46,7 +46,7 @@ function 디바이스칸(c: CaseRow, 돌릴?: Platform[]): CaseRow {
  * @param 기준시각 이 시각 뒤에 저장값이 바뀐 케이스를 창 위에 알린다 — 원래 실행과 다른 값으로 돌 수 있어서다
  * @param 위치실행 모바일 실행 위치를 이 실행이 돈 곳으로 미리 고른다 — 없으면 rerunOf, 둘 다 없으면 서버 흉내다.
  *   깨진 곳에서 다시 통과해야 고친 것이라 대상 서버처럼 원래 실행을 따른다. 실제 폰 모바일 항목이 남긴 폰 모델(mobileDevices)로 읽는다 —
- *   폰을 하나도 못 잡은 실행은 흉내로 읽혀 서버 흉내로 연다(도메인/실행 §3.2 「모바일 웹 실행 위치」 「알고 고른 한계」 · RunPickDest.tsx 붙을곳읽기와 같은 한계)
+ *   폰을 하나도 못 잡은 실행은 흉내로 읽혀 서버 흉내로 연다(도메인/실행 §3.2 「모바일 웹 실행 위치」 「알고 고른 한계」)
  */
 export function RunWindow({
   tcIds,
@@ -154,7 +154,7 @@ export function RunWindow({
     연.바뀐저장값.length === 0 ? undefined : t('실행 뒤에 저장값이 바뀐 케이스 {목록} — 실패 때와 다른 값으로 돕니다', { 목록: 연.바뀐저장값.join(', ') }),
     연.위치못읽음 === null || !케이스들.some((c) => c.platforms.includes('mobile'))
       ? undefined
-      : t('원래 실행을 읽지 못해 모바일 실행 위치를 서버 흉내로 골라 두었습니다 ({까닭})', { 까닭: 연.위치못읽음 }),
+      : t('원래 실행을 읽지 못해 모바일 실행 위치를 가상 기기로 골라 두었습니다 ({까닭})', { 까닭: 연.위치못읽음 }),
   ].filter((글): 글 is string => 글 !== undefined);
   const 안내글 = 안내들.length === 0 ? undefined : 안내들.join(' · ');
 
@@ -169,7 +169,6 @@ export function RunWindow({
       안내={안내글}
       거는중={걸기.거는중}
       onClose={onClose}
-      원래실행={rerunOf}
       초기모바일={연.모바일}
       on값고침={걸기.사유지우기}
       on다시읽기={(tcId) => {

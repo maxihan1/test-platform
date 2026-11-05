@@ -78,7 +78,7 @@ describe('RunPickModal', () => {
 
   it('입력칸이 없는 케이스는 그 사실을 글로 적는다', () => {
     그리기();
-    expect(screen.getByText(/ZPM-001.*선언된 입력값이 없습니다|선언된 입력값이 없습니다/)).toBeTruthy();
+    expect(screen.getByText('입력값 없음')).toBeTruthy();
   });
 
   it('기본값이 무엇인지 칸마다 보인다', () => {
@@ -95,7 +95,7 @@ describe('RunPickModal', () => {
     fireEvent.click(실행버튼());
 
     expect(onRun).not.toHaveBeenCalled();
-    expect(줄().textContent).toContain('대상 서버를 고르세요');
+    expect(줄().textContent).toContain('대상 서버를 선택하세요');
   });
 
   it('값을 고치고 실행하면 그 값이 onRun 의 items 에 실린다', () => {
@@ -166,15 +166,16 @@ describe('RunPickModal', () => {
   });
 
   it('실행 항목 수는 디바이스 수가 다른 케이스들에서도 합이다', () => {
-    // 둘짜리 하나 + 하나짜리 하나 = 3건. 곱셈이면 2나 4가 나온다
+    // 둘짜리 하나 + 하나짜리 하나 = 3건 × 1667 = 5001건. 곱셈이면 6668 이나 3334 가 나온다
     그리기();
-    expect(줄().textContent).toBe('케이스 2 (디바이스 합계 3) × 반복 1 = 3번');
+    fireEvent.change(screen.getByLabelText('반복'), { target: { value: '1667' } });
+    expect(줄().textContent).toBe('한 번에 5000건까지 만들 수 있습니다 (지금 5001건)');
   });
 
-  it('디바이스 수가 모두 같으면 케이스 × 디바이스 × 반복 곱셈으로 풀어 쓴다', () => {
+  it('상한 안이면 바닥 줄에 건수를 적지 않는다', () => {
     그리기([값있는케이스, 케이스('ZPM-003', ['desktop'], 빈스키마)]);
     fireEvent.change(screen.getByLabelText('반복'), { target: { value: '3' } });
-    expect(줄().textContent).toBe('케이스 2 × 디바이스 1 × 반복 3 = 6번');
+    expect(줄().textContent).toBe('');
   });
 
   it('반복 칸은 1 이상 정수를 받는 숫자 칸이다', () => {
@@ -188,7 +189,6 @@ describe('RunPickModal', () => {
     const { onRun } = 그리기([값있는케이스]);
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.change(screen.getByLabelText('반복'), { target: { value: '2.7' } });
-    expect(줄().textContent).toBe('케이스 1 × 디바이스 1 × 반복 2 = 2번');
     fireEvent.click(실행버튼());
     expect(onRun.mock.calls[0]?.[0].repeat).toBe(2);
   });

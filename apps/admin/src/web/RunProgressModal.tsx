@@ -112,7 +112,7 @@ function 도는줄({ 항목, 절차 }: { 항목: RunItemSummary; 절차: 항목�
           {/* 분모 없는 순번은 진행이 아니라 그냥 번호로 읽힌다. 진행을 실제로 말하는 것은
               2초마다 바뀌는 경과라 순번보다 크게 두고, 제한과 나란히 둬야
               「느린 것」과 「멈춘 것」이 갈린다 (게이트 1 화면 규칙) */}
-          <b>{t말('{시간}째', { 시간: 시간글자(절차.elapsedMs, 언어) })}</b>
+          <b>{t말('{시간} 경과', { 시간: 시간글자(절차.elapsedMs, 언어) })}</b>
           <span className="lim">/ {t말('제한 {시간}', { 시간: 시간글자(절차.timeoutMs, 언어) })}</span>
         </div>
       )}
@@ -160,7 +160,7 @@ function 진행내용({ data, 진행목록, 남은ms }: { data: RunDetail; 진�
 
       {방금끝난것.length === 0 ? null : (
         <div>
-          <div className="sec-h">{t말('방금 끝난 것')}</div>
+          <div className="sec-h">{t말('최근 완료')}</div>
           {방금끝난것.map((item) => (
             <div className="pre" key={item.historyId}>
               {item.tcId} {item.tcName} · {STATUS_LABEL[item.status]}
@@ -239,12 +239,12 @@ function 제목(data: RunDetail, 언어: 언어): string {
   const 케이스 = 한건이름(data);
   if (케이스 !== null) {
     if (도는중(data.status)) return t('{케이스} 실행 중', 언어, { 케이스 });
-    return data.status === 'ABORTED' ? t('{케이스} 실행이 멈췄습니다', 언어, { 케이스 }) : t('{케이스} 실행이 끝났습니다', 언어, { 케이스 });
+    return data.status === 'ABORTED' ? t('{케이스} 실행이 중단됐습니다', 언어, { 케이스 }) : t('{케이스} 실행이 끝났습니다', 언어, { 케이스 });
   }
   if (도는중(data.status)) return t('RUN {번호} 실행 중', 언어, { 번호: data.runId });
   // 사람이 끊어서 끝난 것과 끝까지 돌아서 끝난 것은 같은 말로 알리지 않는다 (SPEC §3.2)
   return data.status === 'ABORTED'
-    ? t('RUN {번호} 실행이 멈췄습니다', 언어, { 번호: data.runId })
+    ? t('RUN {번호} 실행이 중단됐습니다', 언어, { 번호: data.runId })
     : t('RUN {번호} 실행이 끝났습니다', 언어, { 번호: data.runId });
 }
 

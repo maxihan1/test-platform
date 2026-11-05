@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 실행 창 입력값 출처 줄 — 저장값 · 코드 기본값 · 「이번 실행에만 · 이 값 저장 · 되돌리기」 · 저장하고 닫기 (도메인/실행 §8.10). 결과가 남는 곳은 RunPickDest.test.tsx
+// 실행 창 입력값 출처 줄 — 저장값 · 코드 기본값 · 「이번 실행에만 · 이 값 저장 · 되돌리기」 · 저장하고 닫기 (도메인/실행 §8.10)
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';

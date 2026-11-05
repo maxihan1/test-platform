@@ -67,7 +67,7 @@ export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; 
       <div className="sec">
         <div className="sec-h">{t말('사전조건')}</div>
         {item.precondition.length === 0 ? (
-          <p className="hint">{t말('선언된 사전조건이 없습니다.')}</p>
+          <p className="hint">{t말('사전조건 없음')}</p>
         ) : (
           item.precondition.map((line) => (
             <div className="pre" key={line}>

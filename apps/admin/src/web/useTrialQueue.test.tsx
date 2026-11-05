@@ -104,7 +104,7 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
     });
 
     expect(result.current.줄들['X-1']).toMatchObject({ 종류: 'notice' });
-    expect(result.current.줄들['X-2']).toEqual({ 종류: 'notice', 글: '앞 케이스에서 멈춰 돌리지 못했습니다' });
+    expect(result.current.줄들['X-2']).toEqual({ 종류: 'notice', 글: '앞 케이스 오류로 실행하지 않았습니다' });
   });
 
   it('입력값이 명세와 안 맞는 줄은 그 줄만 안내하고 다음 줄을 이어 돈다', async () => {
