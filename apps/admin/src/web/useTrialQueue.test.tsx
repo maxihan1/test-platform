@@ -37,17 +37,17 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
     expect(result.current.도는중).toBe(false);
   });
 
-  it('고른 디바이스를 PC → 모바일 차례로 다 돌리고 대상 서버 이름과 입력값을 그대로 싣는다', async () => {
+  it('고른 디바이스를 PC → 모바일 차례로 다 돌리고 대상 서버 이름 · 입력값 · 모바일 칸의 실행 기기를 그대로 싣는다', async () => {
     const { 시작 } = 서버({});
     const { result } = renderHook(() => useTrialQueue(1));
 
     await act(async () => {
-      await result.current.시작([{ ...항목('X-1'), platforms: ['mobile', 'desktop'] }], 'qa');
+      await result.current.시작([{ ...항목('X-1'), platforms: ['mobile', 'desktop'] }], 'qa', 'vision');
     });
 
     expect(시작.mock.calls).toEqual([
       ['X-1', { platform: 'desktop', env: 'qa', params: { a: 1 }, expected: {} }],
-      ['X-1', { platform: 'mobile', env: 'qa', params: { a: 1 }, expected: {} }],
+      ['X-1', { platform: 'mobile', env: 'qa', params: { a: 1 }, expected: {}, mobileOn: 'vision' }],
     ]);
     expect(result.current.줄들['X-1']).toEqual([
       { platform: 'desktop', 줄: { 종류: 'done', 결과: 통과, 실패: null } },

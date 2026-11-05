@@ -18,7 +18,7 @@ import { 산출물폴더, 출력폴더를지운다, 출력폴더이름 } from '.
 import { 녹화폴더, 다음HAR경로 } from './recordHar.js';
 import { createProgressCollector } from './progress.js';
 import { 실제폰인가, 실제폰환경, 폰기기를묻는다, 폰로그, 폰로그를받는다, 폰증적을둔다 } from './realPhone.js';
-import { parseResult, type RunnerResult } from './result.js';
+import { kit경고, kit경고뺌, parseResult, type RunnerResult } from './result.js';
 
 // playwright.config.ts가 있는 곳. 여기서 자식 프로세스를 띄워야 projects 정의가 잡힌다
 export const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -246,6 +246,8 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
     await 로그끝?.();
   });
   await 출력폴더를지운다(출력);
+  // 러너 기록에 옮겨 적는다 — 자식 출력은 응답 사유로만 쓰여 서버 기록에서 안 보였다
+  for (const 줄 of kit경고(stderr)) console.warn(`[runner] ${req.tcId} #${String(req.historyId)} ${줄}`);
 
   // killedBy 와 상관없이 닫는다 — 정상 종료라도 kit 의 닫기가 실패했으면 번호 파일이 남는다.
   // 답하기 전에 끝내야 admin 이 답을 받았을 때 팜의 디바이스가 이미 풀려 있다
@@ -291,7 +293,7 @@ function 응답을만든다(
     status,
     durationMs: Date.now() - startedAt,
     steps: [],
-    ...(status === 'PASS' ? {} : { error: { message: tail(stderr) || tail(stdout) } }),
+    ...(status === 'PASS' ? {} : { error: { message: tail(kit경고뺌(stderr)) || tail(stdout) } }),
     ...fps칸,
   };
 }

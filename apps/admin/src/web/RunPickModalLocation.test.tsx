@@ -2,9 +2,9 @@
 // 여러 건 실행 모달의 실행 위치 안내 검사 (SPEC §8.10) — RunPickModal.test.tsx 가 300줄을 넘어 떼어 냈다
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-import type { CaseRow, JsonSchema, Platform, ServiceRow } from './api.js';
+import { api, type CaseRow, type JsonSchema, type Platform, type ServiceRow } from './api.js';
 import { RunPickModal } from './RunPickModal.js';
 import { 시작누름 } from './runPick.fixture.js';
 
@@ -104,7 +104,7 @@ describe('RunPickModal 실행 위치 (SPEC §8.10)', () => {
 });
 
 describe('실행 칸이 테스트만인 사람의 실행 창 (도메인/인증 §3.5 「테스트 모드」)', () => {
-  it('「시험 실행」만 있고 기록이 남는 실행 · 반복 · Slack 알림 · 모바일 실행 위치 · 건수 풀이는 안 그린다', () => {
+  it('「시험 실행」만 있고 기록이 남는 실행 · 반복 · Slack 알림 · 건수 풀이는 안 그린다 — 모바일 웹 실행 위치는 시험 실행도 따라 그린다', () => {
     render(<RunPickModal 케이스들={[값없는케이스]} service={서비스} onRun={vi.fn()} onClose={vi.fn()} 정식={false} />);
 
     expect(screen.getByText('시험 실행할 케이스 1건')).toBeTruthy();
@@ -113,7 +113,28 @@ describe('실행 칸이 테스트만인 사람의 실행 창 (도메인/인증 �
     expect(screen.queryByText('기록이 남습니다')).toBeNull();
     expect(screen.queryByLabelText('반복')).toBeNull();
     expect(screen.queryByText('완료 시 Slack 알림')).toBeNull();
-    expect(screen.queryByRole('radio', { name: '가상 기기' })).toBeNull();
+    expect((screen.getByRole('radio', { name: '가상 기기' }) as HTMLInputElement).checked).toBe(true);
     expect(screen.getByRole('status').textContent).toBe('');
+  });
+});
+
+describe('시험 실행의 모바일 웹 실행 위치 (도메인/실행 §3.2 「테스트 모드」 · WEB-F9-11)', () => {
+  it('실제 기기를 고르고 시험 실행하면 모바일 칸에만 mobileOn vision 을 싣는다 — 시작 확인 창에도 「(실제 기기)」가 붙는다', async () => {
+    const 시작 = vi.spyOn(api, 'startTrial').mockImplementation((tcId) => Promise.resolve({ trialId: `t-${tcId}` }));
+    vi.spyOn(api, 'getTrial').mockResolvedValue({ status: 'DONE', result: { status: 'PASS', durationMs: 5, steps: [] } });
+    try {
+      render(<RunPickModal 케이스들={[값없는케이스]} service={서비스} onRun={vi.fn()} onClose={vi.fn()} 정식={false} />);
+      fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
+      fireEvent.click(screen.getByRole('radio', { name: '실제 기기' }));
+      fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
+
+      expect(screen.getByText('PC 1 · 모바일 1 (실제 기기)')).toBeTruthy();
+      시작누름('시험 실행 시작');
+
+      await waitFor(() => expect(시작).toHaveBeenCalledTimes(2));
+      expect(시작.mock.calls.map(([, 몸]) => [몸.platform, 몸.mobileOn])).toEqual([['desktop', undefined], ['mobile', 'vision']]);
+    } finally {
+      vi.restoreAllMocks();
+    }
   });
 });

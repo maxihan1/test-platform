@@ -224,7 +224,7 @@ describe('창 하나 — 공용 창 · 단계 열기 · 단계 닫기 (SPEC 도�
     try {
       const { 탭, 감싸기 } = 판();
       const 장면 = { start: vi.fn(async () => ({})), showActions: vi.fn(async () => ({})), stop: vi.fn(async () => {}) };
-      Object.assign(탭, { screencast: 장면 });
+      Object.assign(탭, { screencast: 장면, once: vi.fn(), off: vi.fn() });
       const 공용 = await 감싸기.newWindow(new Map());
       expect(장면.start).not.toHaveBeenCalled();
 

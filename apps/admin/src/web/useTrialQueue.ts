@@ -5,7 +5,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { api, ApiError, type Platform, type RunRequestItem, type TrialResult, type TrialStep, type 항목실패 } from './api.js';
+import { api, ApiError, type Platform, type RunRequestItem, type TrialResult, type TrialStep, type 모바일위치, type 항목실패 } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { message, 디바이스순서 } from './ui.js';
 
@@ -81,10 +81,10 @@ export function useTrialQueue(간격: number = 기본간격) {
   };
 
   /** 이어 돌면 null, 멈추면 남은 칸에 붙일 글 */
-  async function 한번(항목: RunRequestItem, platform: Platform, env: string, 차례: number, 전체: number): Promise<string | null> {
+  async function 한번(항목: RunRequestItem, platform: Platform, env: string, mobileOn: 모바일위치, 차례: number, 전체: number): Promise<string | null> {
     쓴다(항목.tcId, platform, { 종류: 'run' });
     try {
-      const { trialId } = await api.startTrial(항목.tcId, { platform, env, params: 항목.params, expected: 항목.expected });
+      const { trialId } = await api.startTrial(항목.tcId, { platform, env, params: 항목.params, expected: 항목.expected, ...(platform === 'mobile' && { mobileOn }) });
       if (!멈춤.current) set지금({ tcId: 항목.tcId, trialId, platform, vision: null, 차례, 전체, 단계들: [] });
       // 시작 응답을 기다리는 사이 중단을 눌렀다 — 그때는 끊을 번호가 없었다
       if (중단.current) void 끊기(항목.tcId, trialId);
@@ -131,7 +131,8 @@ export function useTrialQueue(간격: number = 기본간격) {
     }
   }
 
-  async function 시작(항목들: RunRequestItem[], env: string): Promise<void> {
+  /** mobileOn 은 실행 창의 모바일 웹 「가상 기기 · 실제 기기」다 — mobile 칸만 싣는다 (도메인/실행 §3.2 「테스트 모드」) */
+  async function 시작(항목들: RunRequestItem[], env: string, mobileOn: 모바일위치 = 'server'): Promise<void> {
     // 두 번 눌러도 큐가 둘 생기지 않게 막는다
     if (도는.current) return;
     도는.current = true;
@@ -154,7 +155,7 @@ export function useTrialQueue(간격: number = 기본간격) {
           쓴다(항목.tcId, platform, { 종류: 'skip' });
           continue;
         }
-        const 멈춘글 = await 한번(항목, platform, env, i + 1, 차례들.length);
+        const 멈춘글 = await 한번(항목, platform, env, mobileOn, i + 1, 차례들.length);
         if (멈춘글 === null) continue;
         // 서버 전체에 걸린 사정이나 러너 고장이면 남은 칸도 돌릴 수 없다. 대기로 두면 영영 기다리는 것처럼 보인다.
         // 같은 케이스의 남은 디바이스에 「앞 케이스」라고 적으면 없는 앞 케이스를 찾게 된다

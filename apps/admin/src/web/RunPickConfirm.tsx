@@ -52,7 +52,7 @@ export function 시작확인({ 종류, 케이스들, env, 반복수, slack, mobi
   const 디바이스글 = 디바이스들
     .map((p) => {
       const 수 = 케이스들.filter((c) => c.platforms.includes(p)).length;
-      const 위치 = !시험 && p === 'mobile' && mobileOn !== null ? ` (${mobileOn === 'vision' ? t('실제 기기') : t('가상 기기')})` : '';
+      const 위치 = p === 'mobile' && mobileOn !== null ? ` (${mobileOn === 'vision' ? t('실제 기기') : t('가상 기기')})` : '';
       return `${t(PLATFORM_LABEL[p])} ${수}${위치}`;
     })
     .join(' · ');

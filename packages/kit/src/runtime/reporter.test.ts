@@ -53,6 +53,15 @@ describe('리포터가 워커 출력을 넘겨받는다', () => {
 
     expect(쓰기.mock.calls.map(([조각]) => String(조각))).toEqual([문법오류, String(스택)]);
   });
+
+  it('워커의 stderr(kit 경고)를 진짜 stderr 로 다시 쓴다 — 버리면 장면 실패 같은 경고가 러너 기록에 안 남는다', () => {
+    const 쓰기 = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
+    const 경고 = '[kit] 테스트 모드 장면을 못 걸었다: 연결이 끊겼다\n';
+
+    new PlatformReporter().onStdErr(경고);
+
+    expect(쓰기).toHaveBeenCalledWith(경고);
+  });
 });
 
 describe('리포터가 케이스 파일을 못 읽은 오류를 넘겨받는다', () => {

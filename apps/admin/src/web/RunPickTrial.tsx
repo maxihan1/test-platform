@@ -3,7 +3,7 @@
 
 import { Fragment, useEffect, useState } from 'react';
 
-import type { CaseRow, Platform, RunRequestItem, TrialResult } from './api.js';
+import type { CaseRow, Platform, RunRequestItem, TrialResult, 모바일위치 } from './api.js';
 import { 원문보기 } from './FailureWhy.js';
 import { use말, use언어 } from './i18n.js';
 import { type 고친값표, 실행항목 } from './pickRun.js';
@@ -23,9 +23,11 @@ export function use여러건시험(옵션: {
   케이스들: CaseRow[];
   고친값: 고친값표;
   env: string;
+  /** 모바일 웹 실행 기기 — mobile 칸만 그 값으로 돈다 */
+  mobileOn: 모바일위치;
   알림: (바꿈: (전: string | null) => string | null) => void;
 }) {
-  const { 케이스들, 고친값, env, 알림 } = 옵션;
+  const { 케이스들, 고친값, env, mobileOn, 알림 } = 옵션;
   const t = use말();
   const 큐 = useTrialQueue();
   const [보기, set보기] = useState<창보기>('edit');
@@ -45,7 +47,7 @@ export function use여러건시험(옵션: {
     알림(() => null);
     set시작시각(Date.now());
     set보기('running');
-    void 큐.시작(항목들, env);
+    void 큐.시작(항목들, env, mobileOn);
   }
 
   return {
