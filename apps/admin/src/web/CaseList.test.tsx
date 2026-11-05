@@ -90,11 +90,11 @@ describe('CaseList 종류 (화면공통 §8 하위 메뉴 · PR #132)', () => {
 
 const 고르기칸 = () => screen.getAllByRole('checkbox', { name: /고르기$/ });
 const 머리칸 = () => screen.getByRole('checkbox', { name: '이 쪽 전체 선택' }) as HTMLInputElement;
-const 실행버튼 = () => screen.getByRole('button', { name: /(전체|건) 실행$/ });
+const 실행버튼 = () => screen.getByRole('button', { name: /^조건에 맞는 \d+건 실행$/ });
 const 모달실행 = () => within(screen.getByRole('dialog')).getByRole('button', { name: '실행' });
 const 고르기바 = () => screen.getByRole('toolbar', { name: '고른 케이스' });
 const 바글 = () => screen.queryByRole('toolbar', { name: '고른 케이스' })?.querySelector('span')?.textContent ?? null;
-const 바실행 = () => within(고르기바()).getByRole('button', { name: '실행' });
+const 바실행 = () => within(고르기바()).getByRole('button', { name: '모두 실행' });
 
 const 전체실행글 = '조건에 맞는 3건 실행';
 const 결과칩 = (글: string) => screen.getByRole('button', { name: new RegExp(`^${글} \\d+$`) });
@@ -912,14 +912,14 @@ describe('CaseList 권한 칸', () => {
     await screen.findByText('ZPK-001');
     expect(screen.queryByRole('button', { name: /(전체|건) 실행$/ })).toBeNull();
     fireEvent.click(고르기칸()[0]!);
-    expect(within(고르기바()).queryByRole('button', { name: '실행' })).toBeNull();
+    expect(within(고르기바()).queryByRole('button', { name: /실행/ })).toBeNull();
   });
 
   it('실행 읽기면 줄마다의 실행 버튼도 없다', async () => {
     모킹(쪽주기);
     render(<CaseList kind="FN" service="ZPK" 할수={실행빼고} 결과보나 />);
     await screen.findByText('ZPK-001');
-    expect(screen.queryByRole('button', { name: 'ZPK-001 실행' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'ZPK-001 PC 실행' })).toBeNull();
   });
 
   it('실행 칸이 none 이면 마지막 결과를 부르지 않는다 — 부르면 403 이다', async () => {

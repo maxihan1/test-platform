@@ -2,11 +2,18 @@
 
 import { 고치기상한 } from '../authoring/edit.js';
 
+import type { Platform } from './api.js';
 import { 고른것고치기 } from './CaseBulkEdit.js';
+import { use지금앱 } from './Head.js';
 import { use말 } from './i18n.js';
+import { 종류 } from './kind.js';
 import { use휴대폰 } from './phone.js';
 import { 테스트만인가, type 판정 } from './role.js';
+import { PLATFORM_LABEL } from './ui.js';
 import type { useRunPick } from './useRunPick.js';
+
+/** 웹 애플리케이션 케이스가 선언하는 디바이스. 고르기 바가 디바이스마다 실행 단추를 세운다 (시안 ①) */
+const 웹디바이스: Platform[] = ['desktop', 'mobile'];
 
 /**
  * 머리 네모로 이 쪽을 다 고르면 표 위에 선다. 쪽을 넘기지 않고 조건에 맞는 전부로 넓힌다.
@@ -76,15 +83,31 @@ export function 고르기바({
   const 수 = 뽑기.모두 ? 전체 : 뽑기.고른.size;
   // 휴대폰 바는 아래 탭 자리를 덮고 단추가 같은 폭으로 나란하다 — 긴 글은 단추를 밀어내 「모두 N건」으로 줄인다 (DESIGN.md 「고르기 바」)
   const 휴대폰 = use휴대폰();
+  // PC · 모바일로 나눠 돌리는 것은 웹 애플리케이션뿐이다. 앱 · 게임 · API 는 디바이스가 하나라 단추도 하나다
+  const 나눠도나 = 종류(use지금앱()?.kind).디바이스칩;
+  const 시험만 = 테스트만인가(할수);
   // 고른 것으로 할 일이 하나도 없는 사람에게는 마지막 줄을 가리는 빈 바를 띄우지 않는다
   if (수 === 0 || (!할수('테스트실행') && !할수('작성요청'))) return null;
   return (
     <div className="pick-bar" role="toolbar" aria-label={t('고른 케이스')}>
       <span>{뽑기.모두 ? (휴대폰 ? t('모두 {수}건', { 수 }) : t('조건에 맞는 {수}건 모두 고름', { 수 })) : t('{수}건 고름', { 수 })}</span>
       {/* 실행 칸이 trial 이면 같은 창이 테스트 실행만 연다 (도메인/인증 §3.5 「테스트 모드」) */}
+      {!할수('테스트실행') || !나눠도나 ? null : 웹디바이스.map((디바이스) => {
+        // 「조건에 맞는 전부」는 손에 줄이 없어 셀 수 없다 — 건수 없이 단다. 고른 것 중 그 디바이스가 없으면 단추를 안 세운다
+        const 몇 = [...뽑기.고른.values()].filter((row) => row.platforms.includes(디바이스)).length;
+        if (!뽑기.모두 && 몇 === 0) return null;
+        const 이름 = t(PLATFORM_LABEL[디바이스]);
+        return (
+          <button key={디바이스} type="button" className="btn ghost" onClick={() => void 뽑기.고른모으기(디바이스)} disabled={뽑기.모으는중}>
+            {뽑기.모두
+              ? t(시험만 ? '{디바이스} 시험 실행' : '{디바이스} 실행', { 디바이스: 이름 })
+              : t(시험만 ? '{디바이스} {수}건 시험 실행' : '{디바이스} {수}건 실행', { 디바이스: 이름, 수: 몇 })}
+          </button>
+        );
+      })}
       {!할수('테스트실행') ? null : (
         <button type="button" className="btn" onClick={() => void 뽑기.고른모으기()} disabled={뽑기.모으는중}>
-          {테스트만인가(할수) ? t('시험 실행') : t('실행')}
+          {나눠도나 ? t(시험만 ? '모두 시험 실행' : '모두 실행') : t(시험만 ? '시험 실행' : '실행')}
         </button>
       )}
       {/* 삭제 요청은 작성 쓰기일 때만 (도메인/작성 §3.6 「★ 케이스 고치기」) */}

@@ -85,7 +85,7 @@ describe('「모두 고르기」 띠', () => {
     fireEvent.click(screen.getByRole('button', { name: '조건에 맞는 3건 모두 고르기' }));
     스파이.mockClear();
 
-    fireEvent.click(within(바()).getByRole('button', { name: '실행' }));
+    fireEvent.click(within(바()).getByRole('button', { name: '모두 실행' }));
 
     const 모달 = await screen.findByRole('dialog');
     expect(모달.getAttribute('aria-label')).toBe('실행할 케이스 3건');
@@ -188,8 +188,9 @@ describe('상한을 띠가 미리 알린다', () => {
     await 그리기(큰쪽(81), (무엇) => 무엇 !== '실행');
     fireEvent.click(머리칸());
 
-    expect(within(바()).getByRole('button', { name: '시험 실행' })).toBeTruthy();
-    expect(within(바()).queryByRole('button', { name: '실행' })).toBeNull();
+    expect(within(바()).getByRole('button', { name: '모두 시험 실행' })).toBeTruthy();
+    expect(within(바()).getByRole('button', { name: 'PC 2건 시험 실행' })).toBeTruthy();
+    expect(within(바()).queryByRole('button', { name: '모두 실행' })).toBeNull();
     expect(띠()?.textContent).toContain('시험 실행은 앞 80건까지만 담습니다');
   });
 
@@ -197,8 +198,7 @@ describe('상한을 띠가 미리 알린다', () => {
     await 그리기(() => 쪽1, (무엇) => 무엇 !== '실행' && 무엇 !== '테스트실행');
     fireEvent.click(고르기칸()[0]!);
 
-    expect(within(바()).queryByRole('button', { name: '실행' })).toBeNull();
-    expect(within(바()).queryByRole('button', { name: '시험 실행' })).toBeNull();
+    expect(within(바()).queryByRole('button', { name: /실행/ })).toBeNull();
   });
 
   it('작성 쓰기가 없으면 삭제 안내도 바의 삭제 요청도 없다', async () => {

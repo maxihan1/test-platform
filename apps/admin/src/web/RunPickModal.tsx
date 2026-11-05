@@ -13,6 +13,7 @@ import { RunLocation } from './RunLocation.js';
 import { use닫기묻기, 바닥한줄, 반복과알림, 실행버튼들 } from './RunPickFoot.js';
 import { 한건머리, use한건 } from './RunPickOne.js';
 import { 저장한값줄 } from './RunPickSaved.js';
+import { use디바이스탭, 디바이스탭 } from './RunPickTabs.js';
 import { use입력값저장, 출처줄 } from './RunPickSource.js';
 import { 넘었나 } from './runPlan.js';
 import { use여러건시험, 시험나눔, 시험배지, 시험절차 } from './RunPickTrial.js';
@@ -97,6 +98,8 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
   const 하나 = use한건(한건);
   // 한 건이면 사람이 고른 디바이스로 돈다. 여러 건이면 케이스가 선언한 것을 전부 쓴다 (SPEC §8.10)
   const 돌릴것 = 한건 === null ? 케이스들 : [{ ...한건, platforms: 하나.디바이스 }];
+  // 탭은 보일 줄만 가른다. 거는 것 · 세는 것은 늘 돌릴것 전부다 (RunPickTabs)
+  const 탭 = use디바이스탭(돌릴것, 한건 !== null);
 
   // 보내는 값과 같은 규칙으로 센다. 소수를 그대로 세면 화면 건수와 실제 항목 수가 갈린다
   const 반복수 = Math.max(1, Math.floor(Number(repeat) || 1));
@@ -180,6 +183,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
     >
       <시험나눔 시험={시험} 케이스들={돌릴것}>
       <div className="mhead">
+        <디바이스탭 탭={탭} />
         <label htmlFor="pick-env">{t('대상 서버')}</label>
         <select id="pick-env" value={env} onChange={(e) => { 손댐(); setEnv(e.target.value); if (service !== null) 고른서버를적는다(service.prefix, e.target.value); }}>
           {/* 기본값이 없다. 반드시 고른다 (SPEC §8.2) */}
@@ -196,7 +200,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
           <span className="err">{t('이 애플리케이션에 등록된 대상 서버가 없습니다. 설정에서 추가해야 실행할 수 있습니다')}</span>
         ) : null}
       </div>
-      <RunLocation android={android} 앱종류={service?.kind} 모바일={모바일 && 정식 ? { 값: mobileOn, on바꿈: (값) => { 손댐(); setMobileOn(값); } } : undefined} />
+      <RunLocation android={android} 앱종류={service?.kind} 모바일={모바일 && 정식 && 탭.모바일탭 ? { 값: mobileOn, on바꿈: (값) => { 손댐(); setMobileOn(값); } } : undefined} />
       {한건 === null ? null : (
         <한건머리
           케이스={한건}
@@ -210,10 +214,11 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
 
       {/* 여기만 스크롤한다. 머리와 바닥은 고정이다 (SPEC §8.10) */}
       <div className="picked">
-        {돌릴것.map((c) => {
+        {탭.보일것.map((c) => {
           const 칸 = 값.칸들.get(c.tcId);
           // 값이 없는 케이스는 그 사실을 글로 적는다. 빈 자리를 남기면 「안 불러왔나」로 읽힌다
-          const 값있나 = (칸?.params.length ?? 0) + (칸?.expected.length ?? 0) > 0;
+          const 값수 = (칸?.params.length ?? 0) + (칸?.expected.length ?? 0);
+          const 값있나 = 값수 > 0;
           const 시험줄 = 시험.줄들[c.tcId];
 
           return (
@@ -227,7 +232,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
                 {/* 여러 건이면 값을 접어 두고 이 단추로 편다 — 「실행」을 가깝게 둔다 (도메인/실행 §8.10 · styles.css) */}
                 {한건 !== null || !값있나 ? null : (
                   <button type="button" className="btn small ghost prow-fold" aria-expanded={펼친.has(c.tcId)} onClick={() => 뒤집기(c.tcId)}>
-                    {t('값')}
+                    {펼친.has(c.tcId) ? t('입력값 접기') : t('입력값 {수}개', { 수: 값수 })}
                   </button>
                 )}
               </div>

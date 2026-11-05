@@ -135,6 +135,13 @@ export const 케이스말: Record<string, string> = {
   '고른 케이스': 'Selected cases',
   '조건에 맞는 {수}건 모두 고름': 'All {수} matching selected',
   '{수}건 고름': '{수} selected',
+  // 고르기 바의 디바이스별 실행 (시안 ①)
+  '{디바이스} {수}건 실행': 'Run {수} on {디바이스}',
+  '{디바이스} {수}건 시험 실행': 'Trial run {수} on {디바이스}',
+  '{디바이스} 실행': 'Run on {디바이스}',
+  '{디바이스} 시험 실행': 'Trial run on {디바이스}',
+  '모두 실행': 'Run all',
+  '모두 시험 실행': 'Trial run all',
   '시험 절차': 'Test steps',
   '아직 돌린 적이 없습니다. 한 번 돌리면 절차가 여기에 남습니다':
     'Never run. Run it once and the steps will show up here.',

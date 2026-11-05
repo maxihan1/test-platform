@@ -5,10 +5,10 @@
 
 import { useRef, useState } from 'react';
 
-import { api, type CaseQuery, type CaseRow, type ServiceRow, type User } from './api.js';
+import { api, type CaseQuery, type CaseRow, type Platform, type ServiceRow, type User } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { 다음이있나 } from './paging.js';
-import { 담을것 } from './pickRun.js';
+import { 담을것, 디바이스만 } from './pickRun.js';
 import type { 실행요청 } from './pickRun.js';
 import { message } from './ui.js';
 import { useRunStart } from './useRunStart.js';
@@ -99,23 +99,26 @@ export function useRunPick(옵션: {
 
   /**
    * `고른것` 이 거짓이면 머리의 「조건에 맞는 N건 실행」 — 고른 것과 상관없이 조건에 맞는 전부다.
-   * 참이면 고르기 바의 「실행」 — 모두 골랐으면 조건에 맞는 전부와 같다
+   * 참이면 고르기 바의 「실행」 — 모두 골랐으면 조건에 맞는 전부와 같다.
+   * `디바이스` 를 주면 고르기 바의 「PC N건 실행」 · 「모바일 N건 실행」 — 그 디바이스를 가진 것만 그 디바이스로 (시안 ①)
    */
-  async function 모으기(고른것: boolean) {
+  async function 모으기(고른것: boolean, 디바이스?: Platform) {
     set모으는중(true);
     알림(null);
     const 지목: ReadonlyMap<string, CaseRow> = 고른것 && !모두 ? 고른 : new Map();
     try {
       // 고른 것이 있으면 손에 이미 다 있다. 실체를 찾으러 쪽을 되돌 이유가 없다
       const { 모은, 잘렸나 } = 지목.size > 0 ? { 모은: [], 잘렸나: false } : await 쪽모으기();
-      const 담을 = 담을것(모은, 지목);
+      const 다 = 담을것(모은, 지목);
+      const 담을 = 디바이스 === undefined ? 다 : 디바이스만(다, 디바이스);
       if (담을.length === 0) {
         // 빈 모달을 열지 않는다. 열어 봐야 실행이 서버에서 400 으로 되돌아온다
         알림(t('실행할 케이스가 없습니다. 고른 것이 전부 비활성이거나 걸러졌습니다'));
         return;
       }
       await 사람읽기();
-      set안내(빠진안내({ 고른수: 지목.size, 담을수: 담을.length, 잘렸나, 모은수: 모은.length }, t));
+      // 디바이스로 좁혀 빠진 것은 단추 이름의 건수가 이미 말했다 — 비활성으로 빠진 것만 따로 적는다
+      set안내(빠진안내({ 고른수: 지목.size, 담을수: 다.length, 잘렸나, 모은수: 모은.length }, t));
       set담은것(담을);
     } catch (err) {
       알림(message(err, 언어));
@@ -130,8 +133,11 @@ export function useRunPick(옵션: {
     set서비스(user.services.find((it) => it.prefix === service) ?? null);
   }
 
-  /** 목록 줄의 ▶ — 그 한 건으로 같은 창을 연다. 실행 문은 하나다 (도메인/실행 §8.10, 2026-10-09 UI 개편 묶음 4) */
-  async function 하나열기(row: CaseRow) {
+  /**
+   * 목록 줄의 ▶ — 그 한 건으로 같은 창을 연다. 실행 문은 하나다 (도메인/실행 §8.10, 2026-10-09 UI 개편 묶음 4).
+   * `디바이스` 는 줄의 디바이스 칸마다 붙은 ▶ 다 — 그 디바이스로만 돈다 (시안 ①). 상세 칸의 실행은 주지 않아 선언한 디바이스 전부다
+   */
+  async function 하나열기(row: CaseRow, 디바이스?: Platform) {
     알림(null);
     if (!row.isActive) {
       // 빈 창을 열지 않는다. 비활성은 스캔이 코드에서 지웠다고 본 케이스라 서버가 400 을 낸다
@@ -141,7 +147,7 @@ export function useRunPick(옵션: {
     try {
       await 사람읽기();
       set안내(undefined);
-      set담은것([row]);
+      set담은것([디바이스 === undefined ? row : { ...row, platforms: [디바이스] }]);
     } catch (err) {
       알림(message(err, 언어));
     }
@@ -151,7 +157,8 @@ export function useRunPick(옵션: {
   async function 다시읽기(tcId: string) {
     try {
       const 새 = await api.caseOf(tcId);
-      set담은것((전) => 전?.map((c) => (c.tcId === tcId ? 새 : c)) ?? 전);
+      // 디바이스는 창을 연 ▶ 가 좁혀 둔 그대로 둔다 — 새로 읽은 선언으로 되돌리면 「PC ▶」로 연 창에 모바일이 다시 낀다
+      set담은것((전) => 전?.map((c) => (c.tcId === tcId ? { ...새, platforms: c.platforms } : c)) ?? 전);
     } catch (err) {
       알림(message(err, 언어));
     }
@@ -235,7 +242,7 @@ export function useRunPick(옵션: {
     안내,
     거는중: 걸기.거는중,
     조건모으기: () => 모으기(false),
-    고른모으기: () => 모으기(true),
+    고른모으기: (디바이스?: Platform) => 모으기(true, 디바이스),
     하나열기,
     다시읽기,
     실행걸기,

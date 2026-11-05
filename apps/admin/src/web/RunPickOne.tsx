@@ -45,6 +45,8 @@ export function 한건머리({
           ))
         )}
       </div>
+      {/* 디바이스가 하나면 고를 것이 없다 — 목록의 「PC ▶」로 열면 그 디바이스 하나로 좁혀져 온다 (시안 ①) */}
+      {케이스.platforms.length < 2 ? null : (
       <div className="one-row">
         <span className="one-label" id="pick-devices">{t('디바이스')}</span>
         <div className="checks" role="group" aria-labelledby="pick-devices">
@@ -60,6 +62,7 @@ export function 한건머리({
           ))}
         </div>
       </div>
+      )}
     </div>
   );
 }

@@ -114,9 +114,12 @@ export const 실행말: Record<string, string> = {
   '지우기 확인': 'Confirm clear',
   '팀 모두와 정기 실행에 쓰입니다': 'Used by the whole team and scheduled runs',
   '실행': 'Run',
-  '{케이스} 실행': 'Run {케이스}',
+  // 목록 줄의 디바이스마다 ▶ (시안 ①)
+  '{케이스} {디바이스} 실행': 'Run {케이스} on {디바이스}',
   // 실행 칸이 테스트만인 사람의 실행 자리 (도메인/인증 §3.5 「테스트 모드」)
-  '{케이스} 시험 실행': 'Trial run {케이스}',
+  '{케이스} {디바이스} 시험 실행': 'Trial run {케이스} on {디바이스}',
+  // 실행 창의 PC · 모바일 탭 (시안 ② ③)
+  '실행할 디바이스': 'Device to run',
   '실행할 디바이스를 하나 이상 선택하세요.': 'Select at least one device to run.',
   // 실행 창을 여는 다른 자리 — 실행 결과 · 항목 상세 (도메인/실행 §8.10)
   '실패 {건수}건 다시 실행': 'Rerun {건수} failed',
@@ -133,8 +136,9 @@ export const 실행말: Record<string, string> = {
   // 여러 건 실행 모달 (§8.10)
   '실행할 케이스 {건수}건': '{건수} cases to run',
   '시험 실행할 케이스 {건수}건': '{건수} cases to trial run',
-  // 휴대폰 실행 창에서 접힌 값 칸을 펴는 버튼 (도메인/실행 §8.10)
-  값: 'Values',
+  // 여러 건 실행 창에서 접힌 값 칸을 펴고 접는 버튼 (도메인/실행 §8.10 · 시안 ②)
+  '입력값 {수}개': '{수} inputs',
+  '입력값 접기': 'Hide inputs',
   '입력값 없음': 'No inputs',
   '실행을 시작하는 중': 'Starting…',
   '취소': 'Cancel',

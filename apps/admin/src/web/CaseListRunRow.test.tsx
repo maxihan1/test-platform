@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 케이스 목록 줄의 ▶ 실행 버튼 — 누르면 그 한 건으로 실행 창이 열린다 (도메인/실행 §8.10 · 화면공통 §8)
+// 케이스 목록 줄의 디바이스마다 ▶ — 누르면 그 한 건을 그 디바이스로 실행 창이 열린다 (도메인/실행 §8.10 · 화면공통 §8 · 시안 ①)
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -55,58 +55,59 @@ async function 그리기(할수: 판정 = () => true) {
   await screen.findByText('ZPK-001');
 }
 
-describe('케이스 줄의 ▶ 실행', () => {
-  it('줄마다 이름이 「{tcId} 실행」인 버튼이 있고 링크가 아니다', async () => {
+describe('케이스 줄의 디바이스마다 ▶ 실행', () => {
+  it('줄의 디바이스 칸마다 「{tcId} {디바이스} 실행」 버튼이 있고 링크가 아니다', async () => {
     await 그리기();
 
-    expect(screen.getByRole('button', { name: 'ZPK-001 실행' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'ZPK-002 실행' })).toBeTruthy();
+    for (const 이름 of ['ZPK-001 PC 실행', 'ZPK-001 모바일 실행', 'ZPK-002 PC 실행', 'ZPK-002 모바일 실행']) {
+      expect(screen.getByRole('button', { name: 이름 })).toBeTruthy();
+    }
     expect(screen.queryByRole('link', { name: /실행/ })).toBeNull();
   });
 
-  it('누르면 그 케이스 한 건으로 실행 창이 열린다 — 한 건 모드의 칸이 보인다', async () => {
+  it('「모바일 ▶」를 누르면 그 한 건이 모바일 하나로 열린다 — 디바이스 고르기 칸은 없고 실행 기기 칸이 있다', async () => {
     await 그리기();
 
-    fireEvent.click(screen.getByRole('button', { name: 'ZPK-002 실행' }));
+    fireEvent.click(screen.getByRole('button', { name: 'ZPK-002 모바일 실행' }));
 
     const 창 = within(await screen.findByRole('dialog', { name: '실행할 케이스 1건' }));
     expect(창.getByText('ZPK-002 케이스')).toBeTruthy();
     expect(창.queryByText('ZPK-001 케이스')).toBeNull();
     expect(창.getByText('로그인되어 있다')).toBeTruthy();
-    expect(창.queryByText(/^실행자 /)).toBeNull();
+    expect(창.queryByRole('group', { name: '디바이스' })).toBeNull();
+    expect(창.getByRole('radio', { name: '가상 기기' })).toBeTruthy();
+    expect(창.queryByRole('tablist')).toBeNull();
   });
 
-  it('창에서 실행하면 그 한 건만 담아 걸고 실행 결과로 간다', async () => {
+  it('「PC ▶」로 연 창에서 실행하면 그 한 건을 PC 로만 걸고 실행 기기 값을 싣지 않는다', async () => {
     const 걸기 = vi.spyOn(api, 'createRun').mockResolvedValue({ runId: 31 });
     await 그리기();
-    fireEvent.click(screen.getByRole('button', { name: 'ZPK-001 실행' }));
+    fireEvent.click(screen.getByRole('button', { name: 'ZPK-001 PC 실행' }));
     const 창 = within(await screen.findByRole('dialog', { name: '실행할 케이스 1건' }));
+    expect(창.queryByRole('radio', { name: '가상 기기' })).toBeNull();
 
     fireEvent.change(창.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.click(창.getByRole('button', { name: '실행' }));
 
     await waitFor(() => expect(window.location.hash).toBe('#/runs/fn?run=31'));
-    expect(걸기.mock.calls[0]?.[0]).toMatchObject({
-      env: 'qa',
-      items: [{ tcId: 'ZPK-001', platforms: ['desktop', 'mobile'] }],
-    });
+    expect(걸기.mock.calls[0]?.[0]).toMatchObject({ env: 'qa', items: [{ tcId: 'ZPK-001', platforms: ['desktop'] }] });
+    expect(걸기.mock.calls[0]?.[0]).not.toHaveProperty('mobileOn');
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('실행 읽기면 줄마다의 버튼이 없다', async () => {
+  it('실행 읽기면 줄의 ▶ 가 없다', async () => {
     await 그리기((무엇) => 무엇 !== '실행' && 무엇 !== '테스트실행');
 
-    expect(screen.queryByRole('button', { name: 'ZPK-001 실행' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'ZPK-002 실행' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^ZPK-00\d .* 실행$/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /조건에 맞는/ })).toBeNull();
   });
 
-  it('실행 테스트만이면 줄 · 머리 단추가 테스트 실행이고 창에는 「시험 실행」만 있다', async () => {
+  it('실행 테스트만이면 줄 · 머리 단추가 시험 실행이고 창에는 「시험 실행」만 있다', async () => {
     await 그리기((무엇) => 무엇 !== '실행');
 
-    expect(screen.queryByRole('button', { name: 'ZPK-001 실행' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'ZPK-001 PC 실행' })).toBeNull();
     expect(screen.getByRole('button', { name: '조건에 맞는 2건 시험 실행' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'ZPK-001 시험 실행' }));
+    fireEvent.click(screen.getByRole('button', { name: 'ZPK-001 PC 시험 실행' }));
 
     const 창 = within(await screen.findByRole('dialog', { name: '시험 실행할 케이스 1건' }));
     expect(창.getByRole('button', { name: '시험 실행' })).toBeTruthy();
