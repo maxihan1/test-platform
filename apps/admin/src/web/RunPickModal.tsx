@@ -106,7 +106,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
   const 너무많나 = 넘었나(건수);
   const [android, 모바일] = [안드로이드있나(돌릴것), 모바일있나(돌릴것)];
   const 주소 = service?.envs.find((it) => it.env === env)?.baseUrl ?? null;
-  // 「▶ 테스트 실행」 — 기록 없이 한 건씩 차례로 (도메인/실행 §8.10)
+  // 「시험 실행」 — 기록 없이 한 건씩 차례로 (도메인/실행 §8.10)
   const 시험 = use여러건시험({ 케이스들: 돌릴것, 고친값: 값.고친값, env, 알림: setNotice });
   const { 줄, 빨갛나 } = 바닥한줄(t, { notice, 정식, 너무많나, 건수, 사유, 풀이: () => 건수풀이(t, 건수재료(돌릴것), 반복수, 건수) });
 
@@ -155,7 +155,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
 
   return (
     <Modal
-      제목={정식 ? t('실행할 케이스 {건수}건', { 건수: 케이스들.length }) : t('테스트 실행할 케이스 {건수}건', { 건수: 케이스들.length })}
+      제목={정식 ? t('실행할 케이스 {건수}건', { 건수: 케이스들.length }) : t('시험 실행할 케이스 {건수}건', { 건수: 케이스들.length })}
       onClose={닫기.요청}
       넓게
       바깥눌러닫기={false}

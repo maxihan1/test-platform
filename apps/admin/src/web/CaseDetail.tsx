@@ -282,7 +282,7 @@ export function CaseDetail({
         )}
         {on실행 === undefined || !row.isActive ? null : (
           <button type="button" className="btn" onClick={() => on실행(row)}>
-            {t(입력값.length === 0 && 기대결과.length === 0 ? (테스트만 ? '테스트 실행' : '실행') : 테스트만 ? '이 값으로 테스트 실행' : '이 값으로 실행')}
+            {t(입력값.length === 0 && 기대결과.length === 0 ? (테스트만 ? '시험 실행' : '실행') : 테스트만 ? '이 값으로 시험 실행' : '이 값으로 실행')}
           </button>
         )}
       </div>

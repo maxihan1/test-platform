@@ -239,7 +239,7 @@ describe('RunPickModal', () => {
 
 // 여러 건 「테스트 실행」 — 기록 없이 서버 러너로 한 건씩 차례로 (2026-09-30 · 2026-11-03 TMO 에 열 주소 칸을 걷었다)
 describe('RunPickModal 테스트 실행', () => {
-  const 테스트버튼 = () => screen.getByRole('button', { name: '▶ 테스트 실행' });
+  const 테스트버튼 = () => screen.getByRole('button', { name: '시험 실행' });
   const 서버고르기 = () => fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
 
   function 서버모킹() {
@@ -277,7 +277,7 @@ describe('RunPickModal 테스트 실행', () => {
     fireEvent.click(테스트버튼());
 
     expect(시작).not.toHaveBeenCalled();
-    expect(줄().textContent).toBe('테스트 실행할 대상 서버를 고르세요.');
+    expect(줄().textContent).toBe('시험 실행할 대상 서버를 선택하세요.');
   });
 
   it('열 주소 칸이 없다 — 서버가 대상 서버로 주소를 찾는다', () => {

@@ -17,13 +17,12 @@ export const 실행말: Record<string, string> = {
   '미확정': 'Unconfirmed',
 
   // 테스트 실행 (실행 창)
-  '▶ 테스트 실행': '▶ Test run',
   '기록·리포트가 남지 않습니다': 'Leaves no record or report',
   '기록이 남습니다': 'Leaves a record',
   '대기': 'Waiting',
   '실행 중': 'Running',
   '앞 케이스에서 멈춰 돌리지 못했습니다': 'Not run because an earlier case stopped the queue',
-  '테스트 실행할 대상 서버를 고르세요.': 'Choose a target server for the test run.',
+  '시험 실행할 대상 서버를 선택하세요.': 'Select a target server for the trial run.',
   '이미 테스트 실행이 돌고 있습니다': 'A test run is already in progress',
   '그중 미확정 {수}건': 'Of these, {수} unconfirmed',
   '통과 {수}': '{수} passed',
@@ -125,8 +124,7 @@ export const 실행말: Record<string, string> = {
   '실행': 'Run',
   '{케이스} 실행': 'Run {케이스}',
   // 실행 칸이 테스트만인 사람의 실행 자리 (도메인/인증 §3.5 「테스트 모드」)
-  '테스트 실행': 'Test run',
-  '{케이스} 테스트 실행': 'Test run {케이스}',
+  '{케이스} 시험 실행': 'Trial run {케이스}',
   '실행할 디바이스를 하나 이상 고르세요.': 'Pick at least one device to run.',
   // 실행 창을 여는 다른 자리 — 실행 결과 · 항목 상세 (도메인/실행 §8.10)
   '실패 {건수}건 다시 실행': 'Rerun {건수} failed',
@@ -144,7 +142,7 @@ export const 실행말: Record<string, string> = {
 
   // 여러 건 실행 모달 (§8.10)
   '실행할 케이스 {건수}건': '{건수} cases to run',
-  '테스트 실행할 케이스 {건수}건': '{건수} cases to test run',
+  '시험 실행할 케이스 {건수}건': '{건수} cases to trial run',
   // 휴대폰 실행 창에서 접힌 값 칸을 펴는 버튼 (도메인/실행 §8.10)
   값: 'Values',
   '선언된 입력값이 없습니다. 그대로 실행됩니다': 'No inputs declared. It runs as is',

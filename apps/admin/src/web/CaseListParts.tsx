@@ -165,8 +165,8 @@ export function 케이스줄({
           <button
             type="button"
             className="btn ghost icon"
-            aria-label={테스트만 ? t('{케이스} 테스트 실행', { 케이스: row.tcId }) : t('{케이스} 실행', { 케이스: row.tcId })}
-            title={테스트만 ? t('테스트 실행') : t('실행')}
+            aria-label={테스트만 ? t('{케이스} 시험 실행', { 케이스: row.tcId }) : t('{케이스} 실행', { 케이스: row.tcId })}
+            title={테스트만 ? t('시험 실행') : t('실행')}
             onClick={() => on실행(row)}
           >
             <아이콘 이름="run" />

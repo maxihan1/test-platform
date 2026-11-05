@@ -163,7 +163,7 @@ export function 실행버튼들({
     <>
       <span className="foot-act">
         <button className="btn ghost" onClick={on시험}>
-          {t('▶ 테스트 실행')}
+          {t('시험 실행')}
         </button>
         <span className="hint">{t('기록·리포트가 남지 않습니다')}</span>
       </span>

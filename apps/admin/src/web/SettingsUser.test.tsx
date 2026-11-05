@@ -205,7 +205,7 @@ describe('프로젝트와 권한 고르개 (도메인/인증 §8.8 · 시안 B)'
     expect(within(칸묶음('데모마켓 케이스')!).getAllByRole('button').map((b) => b.textContent)).toEqual(['안 씀', '읽기', '쓰기']);
     expect(within(칸묶음('데모마켓 작성')!).getAllByRole('button').map((b) => b.textContent)).toEqual(['안 씀', '읽기', '쓰기']);
     고른다('데모마켓 실행', '테스트만');
-    expect(screen.getByText('「테스트만」은 결과를 보고 테스트 실행 · 시험 실행만 합니다. 기록이 남는 실행은 못 합니다')).toBeTruthy();
+    expect(screen.getByText('「테스트만」은 결과를 보고 시험 실행만 합니다. 기록이 남는 실행은 못 합니다')).toBeTruthy();
   });
 
   it('실행 테스트만에 케이스 안 씀이어도 케이스가 안 보인다고 알린다', () => {
