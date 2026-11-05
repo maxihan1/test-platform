@@ -37,8 +37,6 @@ export const 실행말: Record<string, string> = {
   '모바일 웹': 'Mobile web',
   '서버 (iPhone 14 흉내)': 'Server (iPhone 14 emulation)',
   'Device VISION (실제 폰 Chrome)': 'Device VISION (Chrome on a real phone)',
-  '모바일 웹은 Device VISION 실제 폰 Chrome 에서 실행됩니다. 폰 화면은 새 탭에서 봅니다':
-    'Mobile web runs in Chrome on a real Device VISION phone. Watch the phone screen in a new tab',
   '동작마다 1초씩 쉬어 갑니다': 'Pauses 1 second after each action',
   '실제 폰 Chrome': 'Chrome on a real phone',
   '원래 실행을 읽지 못해 모바일 실행 위치를 서버 흉내로 골라 두었습니다 ({까닭})':
@@ -407,11 +405,12 @@ export const 실행말: Record<string, string> = {
   '서버 브라우저': 'Server browser',
   'Device VISION 에서 보기 ↗': 'View in Device VISION ↗',
   '빈 폰을 잡고 있습니다': 'Taking a free phone',
-  '이 케이스는 Device VISION 폰에서 실행됩니다. 폰 화면은 새 탭에서 봅니다': 'This case runs on a Device VISION phone. Watch the phone screen in a new tab',
+  '폰 화면을 기다리고 있습니다': 'Waiting for the phone screen',
+  '화면을 기다리고 있습니다': 'Waiting for the screen',
   '지금은 앱 단계라 폰에서 실행 중입니다': 'An app step is running on the phone now',
-  '앱 단계 화면은 Device VISION 에서 봅니다. 웹 단계가 시작되면 여기에 화면이 뜹니다': 'Watch app steps in Device VISION. Web steps show here once they start',
   '브라우저 화면을 기다리고 있습니다. 앞 실행이 끝나야 시작할 때도 있습니다': 'Waiting for the browser. It may start after the run ahead of it finishes',
   '서버 브라우저의 지금 화면': 'Current screen of the server browser',
+  '폰의 지금 화면': 'Current screen of the phone',
   '끝난 순간의 화면': 'Screen at the moment it ended',
   '테스트 실행기에 닿지 않아 화면을 받지 못했습니다. 다시 받아 봅니다': 'Could not reach the runner to get the screen. Trying again',
   '누른 곳을 표시하며 동작마다 1초씩 쉬어 갑니다': 'Marks where it clicks and pauses one second per action',
