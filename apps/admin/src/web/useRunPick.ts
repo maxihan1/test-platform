@@ -64,7 +64,7 @@ export function useRunPick(옵션: {
   const [담은것, set담은것] = useState<CaseRow[] | null>(null);
   // 대상 서버 목록은 배정 응답에만 실려 온다. 이 화면은 접두사만 받으므로 걸기 직전에 한 번 읽는다
   const [서비스, set서비스] = useState<ServiceRow | null>(null);
-  // 한 건 창이 실행자 이름과 묶음 · 저장값 권한을 이 사람으로 본다 — 같은 응답에서 같이 받는다
+  // 한 건 창이 묶음 · 저장값 권한을 이 사람으로 본다 — 같은 응답에서 같이 받는다
   const [사람, set사람] = useState<User | null>(null);
   // 담는 사이에 빠진 것. 버튼이 「전체」라 말해 놓고 조용히 자르지 않는다
   const [안내, set안내] = useState<string | undefined>(undefined);

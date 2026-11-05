@@ -179,7 +179,7 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
         />
       </구획>
 
-      <구획 제목={t('실행 알림')} 쓰임={t('실행할 때 「끝나면 Slack으로 알리기」를 켜면 이 채널로 결과를 보냅니다')}>
+      <구획 제목={t('실행 알림')} 쓰임={t('실행할 때 「완료 시 Slack 알림」을 켜면 이 채널로 결과를 보냅니다')}>
         <비밀칸 id="sf-hook" 이름={t('Slack 웹훅')} 설정됨={row.hasSlackWebhook}
           값={webhook} 바꾼다={setWebhook} placeholder="https://hooks.slack.com/..."
           비울때={t('이대로 저장하면 알림이 꺼집니다. 유지하려면 「변경 취소」를 누릅니다')} />

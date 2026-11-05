@@ -243,7 +243,7 @@ export const 설정말: Record<string, string> = {
   '테스트를 실행할 서버 목록입니다. 하나 이상 등록해야 실행할 수 있습니다':
     'The servers tests run against. Register at least one to run',
   '실행 알림': 'Run notifications',
-  '실행할 때 「끝나면 Slack으로 알리기」를 켜면 이 채널로 결과를 보냅니다':
+  '실행할 때 「완료 시 Slack 알림」을 켜면 이 채널로 결과를 보냅니다':
     'Results go to this channel when Notify Slack when done is on for a run',
   '기획서와 피그마로 테스트 스크립트를 만들 때만 사용합니다. 실행에는 영향을 주지 않습니다':
     'Only used when building test scripts from specs and Figma. Runs are not affected',
