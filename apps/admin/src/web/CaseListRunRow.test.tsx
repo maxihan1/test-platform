@@ -7,6 +7,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { api, type CaseRow, type Paged, type ServiceRow, type User } from './api.js';
 import { CaseList } from './CaseList.js';
 import type { 판정 } from './role.js';
+import { 시작누름 } from './runPick.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -88,6 +89,7 @@ describe('케이스 줄의 디바이스마다 ▶ 실행', () => {
 
     fireEvent.change(창.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.click(창.getByRole('button', { name: '실행' }));
+    시작누름();
 
     await waitFor(() => expect(window.location.hash).toBe('#/runs/fn?run=31'));
     expect(걸기.mock.calls[0]?.[0]).toMatchObject({ env: 'qa', items: [{ tcId: 'ZPK-001', platforms: ['desktop'] }] });

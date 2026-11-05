@@ -14,6 +14,7 @@ import { 판닫기, 판열기, 판조건, 판칩누르기 } from './CaseListFilt
 import { 언어함 } from './i18n.js';
 import { 끝났다고알린다 } from './runWatchStore.js';
 import type { 판정 } from './role.js';
+import { 시작누름 } from './runPick.fixture.js';
 
 const 전부된다: 판정 = () => true;
 
@@ -532,6 +533,7 @@ describe('CaseList 여러 건 실행 걸기', () => {
     await 모달까지();
 
     fireEvent.click(모달실행());
+    시작누름();
 
     await waitFor(() => expect(걸기).toHaveBeenCalledTimes(1));
     const 본문 = 걸기.mock.calls[0]![0];
@@ -556,6 +558,7 @@ describe('CaseList 여러 건 실행 걸기', () => {
     await 모달까지();
 
     fireEvent.click(모달실행());
+    시작누름();
 
     const 거는중 = await screen.findByRole('button', { name: '실행을 시작하는 중' });
     expect(거는중.hasAttribute('disabled')).toBe(true);
@@ -573,6 +576,7 @@ describe('CaseList 여러 건 실행 걸기', () => {
     await 모달까지();
 
     fireEvent.click(모달실행());
+    시작누름();
 
     await waitFor(() => expect(window.location.hash).toBe('#/runs/fn?run=7'));
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -585,6 +589,7 @@ describe('CaseList 여러 건 실행 걸기', () => {
     await 모달까지();
 
     fireEvent.click(모달실행());
+    시작누름();
 
     // 목록 어딘가에 있기만 하면 통과하는 단언은 이 사고를 못 막는다.
     // 목록 줄은 잉크 40% 덮개 뒤에 깔려서 사람 눈에는 「아무 일도 안 일어난 것」이다
@@ -603,12 +608,14 @@ describe('CaseList 여러 건 실행 걸기', () => {
     await 모달까지();
 
     fireEvent.click(모달실행());
+    시작누름();
     const 모달 = screen.getByRole('dialog');
     await waitFor(() => expect(within(모달).getByRole('status').textContent).toContain('대상 서버가 없다'));
 
     // 연타를 막는 빗장이 실패한 자리에서 안 풀리면 여기서 영영 못 누른다
     expect(모달실행().hasAttribute('disabled')).toBe(false);
     fireEvent.click(모달실행());
+    시작누름();
 
     await waitFor(() => expect(window.location.hash).toBe('#/runs/fn?run=9'));
     expect(걸기).toHaveBeenCalledTimes(2);
@@ -620,6 +627,7 @@ describe('CaseList 여러 건 실행 걸기', () => {
     );
     await 모달까지();
     fireEvent.click(모달실행());
+    시작누름();
     const 모달 = screen.getByRole('dialog');
     await waitFor(() => expect(within(모달).getByRole('status').textContent).toContain('ZPK-003'));
 
@@ -635,6 +643,7 @@ describe('CaseList 여러 건 실행 걸기', () => {
     );
     await 모달까지();
     fireEvent.click(모달실행());
+    시작누름();
     await waitFor(() =>
       expect(within(screen.getByRole('dialog')).getByRole('status').textContent).toContain('ZPK-003'),
     );
@@ -728,6 +737,7 @@ describe('CaseList 상세 칸에서 고친 값', () => {
     await screen.findByRole('dialog');
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.click(모달실행());
+    시작누름();
 
     await waitFor(() => expect(걸기).toHaveBeenCalledTimes(1));
     // 모달에 떠 있는 것까지가 아니라 **요청에 실렸는지**를 본다.

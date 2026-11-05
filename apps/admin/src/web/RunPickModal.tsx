@@ -8,15 +8,18 @@ import { Form } from './Form.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import { type 글자표, type 실행요청, 몇건, 실행항목, 안드로이드있나, 모바일있나 } from './pickRun.js';
-import { 고른서버를적는다, 마지막서버 } from './layout.js';
+import { 마지막서버 } from './layout.js';
 import { RunLocation } from './RunLocation.js';
 import { use닫기묻기, 바닥한줄, 반복과알림, 실행버튼들 } from './RunPickFoot.js';
 import { 한건머리, use한건 } from './RunPickOne.js';
 import { 저장한값줄 } from './RunPickSaved.js';
-import { use디바이스탭, 디바이스탭 } from './RunPickTabs.js';
+import { 머리줄 } from './RunPickHead.js';
+import { use디바이스탭 } from './RunPickTabs.js';
 import { use입력값저장, 출처줄 } from './RunPickSource.js';
 import { 넘었나 } from './runPlan.js';
-import { use여러건시험, 시험나눔, 시험배지, 시험절차 } from './RunPickTrial.js';
+import { 시작확인 } from './RunPickConfirm.js';
+import { use여러건시험, 시험배지, 시험절차 } from './RunPickTrial.js';
+import { 시험바닥, 시험제목, 시험화면, 중단확인 } from './RunPickTrialRun.js';
 import { 케이스서비스, 할수있나 } from './role.js';
 import { message, PLATFORM_LABEL } from './ui.js';
 import { useRunPickValues } from './useRunPickValues.js';
@@ -55,9 +58,11 @@ interface Props {
   초기모바일?: 모바일위치;
   /** 실행 칸이 `trial` 이면 거짓 — 시험 실행만 하고 반복 · 알림 · 모바일 실행 위치는 기록이 남는 실행 몫이라 안 그린다 (도메인/인증 §3.5 「테스트 모드」) */
   정식?: boolean;
+  /** 「실패 1건 다시 실행」의 원래 실행 — 정식 실행 시작 확인 창이 그 실행에 붙는지 읽는다 */
+  원래실행?: number;
 }
 
-export function RunPickModal({ 케이스들, service, 초기글자, 초기서버, user, 사유, 안내, 거는중, onClose, on값고침, on다시읽기, onRun, 초기모바일, 정식 = true }: Props) {
+export function RunPickModal({ 케이스들, service, 초기글자, 초기서버, user, 사유, 안내, 거는중, onClose, on값고침, on다시읽기, onRun, 초기모바일, 정식 = true, 원래실행 }: Props) {
   const t = use말();
   const 언어 = use언어();
   // **기본값을 두지 않는다.** 안 고르면 빈 칸이 아니라 틀린 값이 증적에 남는다 (SPEC §8.2).
@@ -106,7 +111,6 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
   const 건수 = 몇건(돌릴것, 반복수);
   const 너무많나 = 넘었나(건수);
   const [android, 모바일] = [안드로이드있나(돌릴것), 모바일있나(돌릴것)];
-  const 주소 = service?.envs.find((it) => it.env === env)?.baseUrl ?? null;
   // 「시험 실행」 — 기록 없이 한 건씩 차례로 (도메인/실행 §8.10)
   const 시험 = use여러건시험({ 케이스들: 돌릴것, 고친값: 값.고친값, env, 알림: setNotice });
   const { 줄, 빨갛나 } = 바닥한줄(t, { notice, 정식, 너무많나, 건수, 사유 });
@@ -133,6 +137,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
     return false;
   }
 
+  /** 「실행」 — 걸기 전에 시작 확인 창을 띄운다. 완료 창의 「실행」도 같은 길이다 (시안 7판 ③-1 ⑥) */
   function 실행() {
     if (!값이맞나()) return;
     if (한건 !== null && 하나.디바이스.length === 0) {
@@ -144,6 +149,13 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
       setNotice(t('대상 서버를 선택하세요. 리포트에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.'));
       return;
     }
+    시험.정식묻기();
+  }
+
+  function 건다() {
+    시험.확인닫기();
+    // 완료 창에서 걸었어도 값 창으로 돌아간다 — 「실행을 시작하는 중」과 거절 사유는 값 창 바닥에 뜬다
+    시험.값으로();
     onRun({
       env,
       // 화면이 세는 것과 같은 값을 보낸다. 소수를 그대로 보내면 서버의 z.number().int() 가 400 을 낸다
@@ -156,12 +168,12 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
 
   return (
     <Modal
-      제목={정식 ? t('실행할 케이스 {건수}건', { 건수: 케이스들.length }) : t('시험 실행할 케이스 {건수}건', { 건수: 케이스들.length })}
+      제목={시험.보기 !== 'edit' ? 시험제목(t, 시험) : 정식 ? t('실행할 케이스 {건수}건', { 건수: 케이스들.length }) : t('시험 실행할 케이스 {건수}건', { 건수: 케이스들.length })}
       onClose={닫기.요청}
       넓게
       바깥눌러닫기={false}
       버튼={
-        닫기.묻나 ? 닫기.줄 : (
+        시험.보기 !== 'edit' ? <시험바닥 시험={시험} 케이스들={돌릴것} env={env} 정식={정식} on실행={실행} /> : 닫기.묻나 ? 닫기.줄 : (
         <>
           {/* 사유도 건수도 말풍선이 아니라 화면 줄이다. 오류는 실패 글자색(--fail-text)으로 적는다 (DESIGN.md 원칙 1 오류 예외) */}
           <span className="note" role="status" style={빨갛나 ? { color: 'var(--fail-text)' } : undefined}>
@@ -181,25 +193,14 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
         )
       }
     >
-      <시험나눔 시험={시험} 케이스들={돌릴것}>
-      <div className="mhead">
-        <디바이스탭 탭={탭} />
-        <label htmlFor="pick-env">{t('대상 서버')}</label>
-        <select id="pick-env" value={env} onChange={(e) => { 손댐(); setEnv(e.target.value); if (service !== null) 고른서버를적는다(service.prefix, e.target.value); }}>
-          {/* 기본값이 없다. 반드시 고른다 (SPEC §8.2) */}
-          <option value="">{t('선택하세요')}</option>
-          {(service?.envs ?? []).map((it) => (
-            <option key={it.env} value={it.env}>
-              {it.env}
-            </option>
-          ))}
-        </select>
-        {/* 고른 뒤 「어디로 쏘는지」를 확인할 자리가 있어야 한다 (SPEC §8.2) */}
-        {주소 === null ? null : <span className="addr">{주소}</span>}
-        {service !== null && service.envs.length === 0 ? (
-          <span className="err">{t('이 애플리케이션에 등록된 대상 서버가 없습니다. 설정에서 추가해야 실행할 수 있습니다')}</span>
-        ) : null}
-      </div>
+      {시험.확인 === null ? null : (
+        <시작확인 종류={시험.확인} 케이스들={돌릴것} env={env} 반복수={시험.확인 === 'trial' ? 1 : 반복수}
+          slack={service?.hasSlackWebhook === true && !(한건 !== null && 반복수 === 1) ? notifySlack : null}
+          mobileOn={모바일 ? mobileOn : null} 원래실행={원래실행} onClose={시험.확인닫기} on시작={시험.확인 === 'trial' ? 시험.시작 : 건다} />
+      )}
+      <중단확인 시험={시험} />
+      {시험.보기 !== 'edit' ? <시험화면 시험={시험} 케이스들={돌릴것} 한건={한건 !== null} /> : (<>
+      <머리줄 탭={탭} service={service} env={env} on서버={(값) => { 손댐(); setEnv(값); }} />
       <RunLocation android={android} 앱종류={service?.kind} 모바일={모바일 && 정식 && 탭.모바일탭 ? { 값: mobileOn, on바꿈: (값) => { 손댐(); setMobileOn(값); } } : undefined} />
       {한건 === null ? null : (
         <한건머리
@@ -287,7 +288,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
           notifySlack={notifySlack} onSlack={setNotifySlack}
         />
       )}
-      </시험나눔>
+      </>)}
     </Modal>
   );
 }

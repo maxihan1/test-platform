@@ -169,6 +169,7 @@ export function RunWindow({
       안내={안내글}
       거는중={걸기.거는중}
       onClose={onClose}
+      원래실행={rerunOf}
       초기모바일={연.모바일}
       on값고침={걸기.사유지우기}
       on다시읽기={(tcId) => {

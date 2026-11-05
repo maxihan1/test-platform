@@ -126,8 +126,7 @@ export function 반복과알림({ repeat, on반복, slack칸, notifySlack, onSla
 }
 
 /**
- * 시험 실행과 실행. 버튼 아래에 기록이 남는지를 화면 글자로 적는다 — 말풍선(title)만으로는 누르기 전에 못 읽는다.
- * 설명은 버튼 밖에 둔다. 안에 넣으면 버튼 이름이 길어져 다른 자리가 이름으로 못 찾는다
+ * 시험 실행과 실행. 기록이 남는지는 누르면 뜨는 시작 확인 창이 적는다 — 앞 판은 단추 아래 두 줄이었다 (2026-11-05 WEB-F9-06 · RunPickConfirm)
  */
 export function 실행버튼들({
   on시험,
@@ -146,21 +145,15 @@ export function 실행버튼들({
   const t = use말();
   return (
     <>
-      <span className="foot-act">
-        <button className="btn ghost" onClick={on시험}>
-          {t('시험 실행')}
-        </button>
-        <span className="hint">{t('기록·리포트가 남지 않습니다')}</span>
-      </span>
+      <button className="btn ghost" onClick={on시험}>
+        {t('시험 실행')}
+      </button>
       {/* 상한은 서버도 같은 것을 본다. 화면만 막으면 직접 찌르는 요청을 못 막는다 (SPEC §8.2) */}
       {/* 도는 동안 글자가 바뀌고 눌리지 않는다. 안 그러면 두 번째 누름이 조용히 무시된다 */}
       {!정식 ? null : (
-        <span className="foot-act">
-          <button className="btn" onClick={on실행} disabled={실행막힘 || 거는중}>
-            {거는중 ? t('실행을 시작하는 중') : t('실행')}
-          </button>
-          <span className="hint">{t('기록이 남습니다')}</span>
-        </span>
+        <button className="btn" onClick={on실행} disabled={실행막힘 || 거는중}>
+          {거는중 ? t('실행을 시작하는 중') : t('실행')}
+        </button>
       )}
     </>
   );

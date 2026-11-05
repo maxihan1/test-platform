@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 
 import { api, ApiError, type ParamSetRow } from './api.js';
-import { 그린다, 읽기만, 저장값케이스, 케이스, 값케이스 } from './runPick.fixture.js';
+import { 그린다, 읽기만, 저장값케이스, 케이스, 값케이스, 시작누름 } from './runPick.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -92,6 +92,7 @@ describe('저장한 값 목록', () => {
     서버고르기();
     fireEvent.change(목록(), { target: { value: 'set:7' } });
     fireEvent.click(실행버튼());
+    시작누름();
 
     expect(onRun.mock.calls[0]?.[0].items[0]?.params).toEqual({ userId: 'bundle', password: 'pw' });
   });
@@ -199,6 +200,7 @@ describe('저장값과 실행', () => {
 
     fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'user2' } });
     fireEvent.click(실행버튼());
+    시작누름();
 
     expect(onRun).toHaveBeenCalledTimes(1);
     expect(onRun.mock.calls[0]?.[0].items[0]?.params).toEqual({ userId: 'user2' });

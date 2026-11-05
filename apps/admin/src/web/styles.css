@@ -3065,24 +3065,6 @@ input[type='file']::file-selector-button {
   width: 56px;
 }
 
-/* 창 바닥의 테스트 실행 · 실행 — 단추 아래에 기록이 남는지를 글자로 적는다 (2026-10-19) */
-.foot-act {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-}
-
-.foot-act .hint {
-  font-size: 11.5px;
-  white-space: nowrap;
-}
-
-/* 설명 글이 붙은 단추 곁의 맨 단추(「취소」)는 위를 맞춘다 — 가운데 맞춤이면 「취소」만 위로 떠 보였다 (2026-10-31 시험 f5) */
-.modal-foot:has(> .foot-act) > .btn {
-  align-self: flex-start;
-}
-
 /* 한 건 창 (2026-10-09 UI 개편 묶음 4) — 한 건짜리 실행 설정 화면이 하던 칸이 창 안에 선다.
    사전조건 · 디바이스 · 제목은 대상 서버 아래 고정 칸이고, 묶음 · 저장값 줄은 입력값 칸 아래다 */
 .one-head {

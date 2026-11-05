@@ -1,0 +1,238 @@
+/* 실행 창의 시작 확인 · 시험 실행 중 · 중단 · 완료 (도메인/실행 §8.10 · 시안 7판 ③-1 ④ ⑤ ⑥). 색은 토큰만 쓴다 — DESIGN.md 원칙 1 */
+
+/* 시작 확인 창 (시안 7판 ③-1) — 띠 색으로 시험 실행(회색 · 기록 없음)과 정식 실행(주황 · 기록 남음)을 가른다 */
+.start-band {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--well);
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+
+.start-band b {
+  color: var(--ink);
+}
+
+.start-band.rec {
+  background: var(--accent-soft);
+  color: var(--link);
+  font-weight: 600;
+}
+
+.start-what {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 16px;
+  margin: 0 0 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--well);
+  font-size: 13px;
+}
+
+.start-what dt {
+  color: var(--ink-muted);
+}
+
+.start-what dd {
+  margin: 0;
+  text-align: right;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* 시험 실행 중 · 완료 (시안 7판 ④ ⑥) — 같은 창의 내용이 바뀐다 */
+.trial-band {
+  flex: none;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--well);
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+
+.trial-band b {
+  color: var(--ink);
+  margin-right: 4px;
+}
+
+.pick-split.trial-run:has(> .pick-live > .trial-live) {
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+}
+
+.trial-runlist {
+  overflow-y: auto;
+}
+
+.trial-queue,
+.trial-now-steps,
+.trial-res {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.trial-queue li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+.trial-queue li.cur {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.trial-now-steps {
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.trial-now-steps li {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.trial-now-steps .no {
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  text-align: right;
+}
+
+.trial-now-steps .t {
+  font-size: 12px;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.trial-now-steps li.done .t {
+  color: var(--pass-text);
+  font-weight: 700;
+}
+
+.trial-now-steps li.now {
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent);
+  font-weight: 600;
+}
+
+.trial-now-steps li.now .t {
+  color: var(--link);
+}
+
+.trial-now-steps li.failed {
+  background: var(--fail-soft);
+  color: var(--fail-text);
+  box-shadow: inset 3px 0 0 var(--fail);
+}
+
+.trial-now-none {
+  margin: 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+
+.trial-score {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  flex: none;
+}
+
+.trial-score div {
+  flex: 1 1 90px;
+  display: grid;
+  padding: 10px 12px;
+  border-radius: 8px;
+}
+
+.trial-score b {
+  font-size: 22px;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.trial-score span {
+  font-size: 12px;
+}
+
+.trial-score .p {
+  background: var(--pass-soft);
+  color: var(--pass-text);
+}
+
+.trial-score .f {
+  background: var(--fail-soft);
+  color: var(--fail-text);
+}
+
+.trial-score .s {
+  background: var(--na-soft);
+  color: var(--ink-muted);
+}
+
+.trial-res {
+  gap: 6px;
+  overflow-y: auto;
+}
+
+.trial-res li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: 4px 10px;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.trial-res li.bad {
+  border-color: var(--fail);
+}
+
+.trial-res .dur {
+  font-size: 12px;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.trial-res .why {
+  grid-column: 2 / -1;
+  display: grid;
+  gap: 2px;
+  font-size: 12.5px;
+  color: var(--fail-text);
+}
+
+.trial-res .why span {
+  color: var(--ink-muted);
+}
+
+/* 「중단」 — 되돌릴 수 없는 동작이라 실패 색 테두리를 쓴다. 확인 창의 「중단」만 채운다 */
+.btn.ghost.trial-stop {
+  border-color: var(--fail);
+  color: var(--fail-text);
+}
+
+.btn.trial-stop-go {
+  background: var(--fail);
+  border-color: var(--fail);
+  color: #fff;
+}

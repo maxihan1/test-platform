@@ -3,7 +3,7 @@ import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { api, ApiError, type RunRequestItem, type TrialResult } from './api.js';
-import { type 디바이스칸, useTrialQueue } from './useTrialQueue.js';
+import { type 디바이스칸, useTrialQueue, 단계쌓기 } from './useTrialQueue.js';
 
 afterEach(() => {
   cleanup();
@@ -227,5 +227,17 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
     await 끝!;
 
     expect(시작).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('단계쌓기', () => {
+  it('같은 단계면 경과만 고치고 새 단계면 뒤에 붙이고 단계가 없으면 그대로 둔다', () => {
+    const 하나 = 단계쌓기([], { seq: 1, title: '로그인한다', elapsedMs: 100 });
+    const 같은 = 단계쌓기(하나, { seq: 1, title: '로그인한다', elapsedMs: 900 });
+    const 둘 = 단계쌓기(같은, { seq: 3, title: '담는다', elapsedMs: 10 });
+
+    expect(같은).toEqual([{ seq: 1, title: '로그인한다', elapsedMs: 900 }]);
+    expect(둘.map((s) => s.seq)).toEqual([1, 3]);
+    expect(단계쌓기(둘, undefined)).toBe(둘);
   });
 });

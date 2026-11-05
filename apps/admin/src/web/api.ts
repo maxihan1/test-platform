@@ -919,7 +919,16 @@ export interface TrialResult {
 }
 
 /** 폰을 잡은 동안 도는 중 응답에 그 폰 화면 주소가 실린다 (도메인/실행 §7 「테스트 모드 통로」) */
-export type TrialState = { status: 'RUNNING'; vision?: { url: string } } | { status: 'DONE'; result: TrialResult };
+/** 지금 단계는 러너에 보낸 뒤 첫 단계부터 실린다 — 기다리는 중 · 폰을 여는 중 · 러너에 못 닿았을 때는 없다 (도메인/실행 §3.2 「시험 실행 지금 단계 · 중단 · 정식 실행 화면」) */
+export interface TrialStep {
+  seq: number;
+  title: string;
+  elapsedMs: number;
+}
+
+export type TrialState =
+  | { status: 'RUNNING'; vision?: { url: string }; step?: TrialStep }
+  | { status: 'DONE'; result: TrialResult };
 
 // 서버가 칸별 사유를 돌려준 것(400 INVALID_PARAMS)과 진짜 고장을 갈라야
 // 화면이 오류를 칸 아래에 붙일지 위에 붙일지 정할 수 있다 (SPEC §8.2)
@@ -1255,6 +1264,16 @@ export const api = {
 
   getTrial: (tcId: string, trialId: string) =>
     call<TrialState>(`/cases/${encodeURIComponent(tcId)}/test-run/${encodeURIComponent(trialId)}`),
+
+  /** 시작한 사람만 멈춘다. 이미 끝났으면 오류가 아니라 false — 끝나는 것과 누르는 것이 겹친다 (도메인/실행 §7 「케이스 테스트 실행」) */
+  abortTrial: (tcId: string, trialId: string) =>
+    call<{ aborted: boolean }>(`/cases/${encodeURIComponent(tcId)}/test-run/${encodeURIComponent(trialId)}/abort`, { method: 'POST' }),
+
+  /** 지금 이 케이스 한 건을 걸면 붙을 실행 — 정식 실행 시작 확인 창 (도메인/실행 §7 `rerun-target` · §8.10) */
+  rerunTarget: (tcId: string, env: string, platforms: Platform[], mobileOn: 모바일위치 = 'server') =>
+    call<{ target: { runId: number; title: string; startedAt: string } | null }>(
+      `/cases/${encodeURIComponent(tcId)}/rerun-target?${new URLSearchParams({ env, platforms: platforms.join(','), mobileOn }).toString()}`,
+    ),
 
   // 장면은 오른쪽 실시간 칸이 0.25초마다 직접 받는다. 글자만 돌려준다
   trialLive: (tcId: string, trialId: string) => `/api/cases/${encodeURIComponent(tcId)}/test-run/${encodeURIComponent(trialId)}/live`,

@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { api, ApiError, type CaseRow } from './api.js';
-import { 사람 } from './runPick.fixture.js';
+import { 사람, 시작누름 } from './runPick.fixture.js';
 import { RunWindow } from './RunWindow.js';
 
 beforeEach(() => {
@@ -148,6 +148,7 @@ describe('RunWindow', () => {
 
     서버고르기();
     fireEvent.click(실행버튼());
+    시작누름();
 
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
     expect(window.location.hash).toBe('#/runs/fn?run=42');
@@ -164,6 +165,7 @@ describe('RunWindow', () => {
 
     서버고르기();
     fireEvent.click(실행버튼());
+    시작누름();
 
     await waitFor(() => expect(screen.getByRole('status').textContent).toBe('그 케이스를 찾지 못했습니다'));
     expect(onClose).not.toHaveBeenCalled();
@@ -171,6 +173,7 @@ describe('RunWindow', () => {
     expect((실행버튼() as HTMLButtonElement).disabled).toBe(false);
 
     fireEvent.click(실행버튼());
+    시작누름();
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
     expect(window.location.hash).toBe('#/runs/fn?run=9');
   });
@@ -182,6 +185,7 @@ describe('RunWindow', () => {
     await screen.findByRole('dialog');
     서버고르기();
     fireEvent.click(실행버튼());
+    시작누름();
     await waitFor(() => expect(screen.getByRole('status').textContent).toBe('그 케이스를 찾지 못했습니다'));
 
     fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'u2' } });
@@ -209,6 +213,7 @@ describe('RunWindow', () => {
 
     서버고르기();
     fireEvent.click(실행버튼());
+    시작누름();
 
     await waitFor(() => expect(on걸림).toHaveBeenCalledTimes(1));
     expect(onClose).not.toHaveBeenCalled();
@@ -223,6 +228,7 @@ describe('RunWindow', () => {
 
     서버고르기();
     fireEvent.click(실행버튼());
+    시작누름();
 
     await waitFor(() => expect(window.location.hash).toBe('#/runs/ui?run=44'));
   });
@@ -236,6 +242,7 @@ describe('RunWindow', () => {
 
     서버고르기();
     fireEvent.click(실행버튼());
+    시작누름();
 
     await waitFor(() => expect(on걸었다).toHaveBeenCalledWith(45));
     expect(만들기.mock.calls[0]?.[0]).toMatchObject({ rerunOf: 20914 });
