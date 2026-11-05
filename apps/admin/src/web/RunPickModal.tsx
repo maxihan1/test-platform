@@ -14,7 +14,7 @@ import { use닫기묻기, 바닥한줄, 반복과알림, 실행버튼들 } from 
 import { 한건머리, use한건 } from './RunPickOne.js';
 import { 저장한값줄 } from './RunPickSaved.js';
 import { 머리줄 } from './RunPickHead.js';
-import { use디바이스탭 } from './RunPickTabs.js';
+import { use디바이스고르기 } from './RunPickTabs.js';
 import { use입력값저장, 출처줄 } from './RunPickSource.js';
 import { 넘었나 } from './runPlan.js';
 import { 시작확인 } from './RunPickConfirm.js';
@@ -102,9 +102,9 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
   const 한건 = 케이스들.length === 1 ? 케이스들[0]! : null;
   const 하나 = use한건(한건);
   // 한 건이면 사람이 고른 디바이스로 돈다. 여러 건이면 케이스가 선언한 것을 전부 쓴다 (SPEC §8.10)
-  const 돌릴것 = 한건 === null ? 케이스들 : [{ ...한건, platforms: 하나.디바이스 }];
-  // 탭은 보일 줄만 가른다. 거는 것 · 세는 것은 늘 돌릴것 전부다 (RunPickTabs)
-  const 탭 = use디바이스탭(돌릴것, 한건 !== null);
+  // 여러 건이 PC · 모바일로 섞였으면 체크칸에서 끈 디바이스를 뺀다 — 거는 것 · 세는 것 · 보이는 줄이 모두 이것이다 (RunPickTabs)
+  const 디바이스 = use디바이스고르기(한건 === null ? 케이스들 : [{ ...한건, platforms: 하나.디바이스 }], 한건 !== null);
+  const 돌릴것 = 디바이스.돌릴것;
 
   // 보내는 값과 같은 규칙으로 센다. 소수를 그대로 세면 화면 건수와 실제 항목 수가 갈린다
   const 반복수 = Math.max(1, Math.floor(Number(repeat) || 1));
@@ -138,12 +138,15 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
   }
 
   /** 「실행」 — 걸기 전에 시작 확인 창을 띄운다. 완료 창의 「실행」도 같은 길이다 (시안 7판 ③-1 ⑥) */
+  /** 켠 디바이스가 없으면 사유를 보이고 거짓 — 실행 · 시험 실행이 같은 검사를 거친다 */
+  function 디바이스있나(): boolean {
+    if (돌릴것.some((c) => c.platforms.length > 0)) return true;
+    setNotice(t('실행할 디바이스를 하나 이상 선택하세요.'));
+    return false;
+  }
+
   function 실행() {
-    if (!값이맞나()) return;
-    if (한건 !== null && 하나.디바이스.length === 0) {
-      setNotice(t('실행할 디바이스를 하나 이상 선택하세요.'));
-      return;
-    }
+    if (!값이맞나() || !디바이스있나()) return;
     if (env === '') {
       // 버튼을 비활성화하지 않는다. 누르면 사유를 보여준다 (SPEC §8.2 · DESIGN.md)
       setNotice(t('대상 서버를 선택하세요. 리포트에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.'));
@@ -168,7 +171,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
 
   return (
     <Modal
-      제목={시험.보기 !== 'edit' ? 시험제목(t, 시험) : 정식 ? t('실행할 케이스 {건수}건', { 건수: 케이스들.length }) : t('시험 실행할 케이스 {건수}건', { 건수: 케이스들.length })}
+      제목={시험.보기 !== 'edit' ? 시험제목(t, 시험) : 정식 ? t('실행할 케이스 {건수}건', { 건수: 돌릴것.length }) : t('시험 실행할 케이스 {건수}건', { 건수: 돌릴것.length })}
       onClose={닫기.요청}
       넓게
       바깥눌러닫기={false}
@@ -183,7 +186,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
             {t('취소')}
           </button>
           <실행버튼들
-            on시험={() => { if (값이맞나()) 시험.누름(); }}
+            on시험={() => { if (값이맞나() && 디바이스있나()) 시험.누름(); }}
             on실행={실행}
             실행막힘={너무많나}
             거는중={거는중 === true}
@@ -200,8 +203,8 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
       )}
       <중단확인 시험={시험} />
       {시험.보기 !== 'edit' ? <시험화면 시험={시험} 케이스들={돌릴것} 한건={한건 !== null} /> : (<>
-      <머리줄 탭={탭} service={service} env={env} on서버={(값) => { 손댐(); setEnv(값); }} />
-      <RunLocation android={android} 앱종류={service?.kind} 모바일={모바일 && 정식 && 탭.모바일탭 ? { 값: mobileOn, on바꿈: (값) => { 손댐(); setMobileOn(값); } } : undefined} />
+      <머리줄 디바이스={디바이스}service={service} env={env} on서버={(값) => { 손댐(); setEnv(값); }} />
+      <RunLocation android={android} 앱종류={service?.kind} 모바일={모바일 && 정식 ? { 값: mobileOn, on바꿈: (값) => { 손댐(); setMobileOn(값); } } : undefined} />
       {한건 === null ? null : (
         <한건머리
           케이스={한건}
@@ -215,7 +218,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
 
       {/* 여기만 스크롤한다. 머리와 바닥은 고정이다 (SPEC §8.10) */}
       <div className="picked">
-        {탭.보일것.map((c) => {
+        {돌릴것.map((c) => {
           const 칸 = 값.칸들.get(c.tcId);
           // 값이 없는 케이스는 그 사실을 글로 적는다. 빈 자리를 남기면 「안 불러왔나」로 읽힌다
           const 값수 = (칸?.params.length ?? 0) + (칸?.expected.length ?? 0);

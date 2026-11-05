@@ -77,7 +77,7 @@ describe('케이스 줄의 디바이스마다 ▶ 실행', () => {
     expect(창.getByText('로그인되어 있다')).toBeTruthy();
     expect(창.queryByRole('group', { name: '디바이스' })).toBeNull();
     expect(창.getByRole('radio', { name: '가상 기기' })).toBeTruthy();
-    expect(창.queryByRole('tablist')).toBeNull();
+    expect(창.queryByRole('group', { name: '실행할 디바이스' })).toBeNull();
   });
 
   it('「PC ▶」로 연 창에서 실행하면 그 한 건을 PC 로만 걸고 실행 기기 값을 싣지 않는다', async () => {
