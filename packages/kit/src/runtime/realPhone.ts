@@ -1,12 +1,10 @@
 // 실제 폰 Chrome — 모바일 웹 케이스를 VISION 이 켜 준 폰 Chrome 의 창 하나 · 탭 하나에 붙여 돌린다 (SPEC 도메인/러너 §5.2 「모바일 웹 — 실제 폰 Chrome」)
 // 러너 고정 spec 도 같은 연결을 한다(apps/runner/scenario/realPhone.ts) — 고정 spec 은 kit 을 값으로 못 불러 옮겨 적었다. 실패 글은 wire.test.ts 가 견주고, 연결은 real-phone.test.ts 가 두 길 다 실측한다
 
-import { mkdir } from 'node:fs/promises';
-import { dirname } from 'node:path';
-
 import { test as base, type APIRequestContext, type Browser, type BrowserContext, type BrowserType, type Page } from '@playwright/test';
 
 import type { DeviceInfo } from '../types.js';
+import { 장면걸기 } from './live.js';
 import { DEVICE_ATTACHMENT, 창하나글 } from './protocol.js';
 
 const 글 = (err: unknown): string => (err instanceof Error ? err.message : String(err));
@@ -71,19 +69,6 @@ export function 주소를푼다(context: BrowserContext, page: Page, 기준: str
   });
 }
 
-/** 통과 못 한 정식 실행 항목의 폰 화면 영상 — 러너가 경로를 준 실행만 찍고, 통과면 러너가 지운다. 못 찍어도 케이스는 그대로 돈다 */
-export async function 영상을찍는다(page: Page, 경로: string | undefined): Promise<() => Promise<void>> {
-  if (!경로) return async () => {};
-  try {
-    await mkdir(dirname(경로), { recursive: true });
-    await page.screencast.start({ path: 경로 });
-  } catch (err) {
-    console.warn(`[kit] 폰 화면 영상을 못 걸었다: ${글(err)}`);
-    return async () => {};
-  }
-  return () => page.screencast.stop().catch((err: unknown) => console.warn(`[kit] 폰 화면 영상을 못 마쳤다: ${글(err)}`));
-}
-
 // 케이스 단독 실행의 창 · 탭을 폰 Chrome 의 것으로 바꾼다. 프로젝트 use 의 화면 크기 · 사용자 에이전트는 안 건다 — 폰 값 그대로다
 export function 실제폰테스트() {
   return base.extend({
@@ -105,9 +90,11 @@ export function 실제폰테스트() {
       const page = context.pages()[0] ?? (await context.newPage());
       // 리포터가 결과 줄 device 로 싣는다 (도메인/리포팅 §8.4)
       await testInfo.attach(DEVICE_ATTACHMENT, { body: JSON.stringify(Chrome기기(browser)), contentType: 'application/json' });
-      const 영상끝 = await 영상을찍는다(page, process.env.PLATFORM_PHONE_VIDEO);
+      // 통과 못 한 정식 실행 항목의 폰 화면 영상(러너가 경로를 준 실행만 · 통과면 러너가 지운다)과 장면을 한 호출로 건다
+      const 찍기 = await 장면걸기(page, process.env.PLATFORM_LIVE_FILE, process.env.PLATFORM_PHONE_VIDEO || undefined);
       await use(주소를푼다(context, page, baseURL));
-      await 영상끝();
+      // 영상을 마무리하려고 멈추기만 한다 — 장면 파일은 러너가 실행 끝에 지운다
+      if (찍기 !== undefined) await page.screencast.stop().catch((err: unknown) => console.warn(`[kit] 폰 화면 영상을 못 마쳤다: ${글(err)}`));
     },
   });
 }

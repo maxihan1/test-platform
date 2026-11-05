@@ -15,9 +15,11 @@ const 장면파일 = (열쇠: string): string => resolve(장면폴더(), `${열�
 const 도는열쇠 = new Set<string>();
 
 // 자식 환경 — 둘 다 늘 적는다. 러너를 켠 셸에 값이 있으면 자식이 물려받아 정식 실행까지 늦춘다.
-// 테스트 모드는 동작마다 1초 쉰다 — 창이 뜨는지는 안 본다 (§5.2 「천천히 돈다」)
-export function 장면환경(live: string | undefined): { PLATFORM_LIVE_FILE: string; PLATFORM_SLOW_MO: string } {
-  return live === undefined ? { PLATFORM_LIVE_FILE: '', PLATFORM_SLOW_MO: '' } : { PLATFORM_LIVE_FILE: 장면파일(live), PLATFORM_SLOW_MO: '1000' };
+// 시험 실행은 동작마다 1초 쉰다 — 창이 뜨는지는 안 본다 (§5.2 「천천히 돈다」). 늦추기는 열쇠가 아니라 시험인지로 가른다 —
+// 정식 실행도 열쇠를 실어 장면만 찍는다. 늦추기 값이 자식에게는 「시험 실행」 표시다(누른 곳 표시 · 한도 다섯 배)
+export function 장면환경(live: string | undefined, 시험: boolean): { PLATFORM_LIVE_FILE: string; PLATFORM_SLOW_MO: string } {
+  if (live === undefined) return { PLATFORM_LIVE_FILE: '', PLATFORM_SLOW_MO: '' };
+  return { PLATFORM_LIVE_FILE: 장면파일(live), PLATFORM_SLOW_MO: 시험 ? '1000' : '' };
 }
 
 // 실행 하나를 감싼다 — 도는 동안만 열쇠를 열고, 끝나면 장면을 지운다. 자식이 쓰다 죽어 남은 임시 파일도 같이
@@ -42,7 +44,7 @@ export async function 장면폴더를비운다(): Promise<void> {
 export function registerLive(app: FastifyInstance): void {
   app.get<{ Params: { key: string } }>('/live/:key', async (request, reply) => {
     const { key } = request.params;
-    if (!도는열쇠.has(key)) return reply.code(404).send({ error: 'LIVE_NOT_FOUND', detail: '도는 테스트 모드의 장면 열쇠가 아니다' });
+    if (!도는열쇠.has(key)) return reply.code(404).send({ error: 'LIVE_NOT_FOUND', detail: '도는 실행의 장면 열쇠가 아니다' });
     let 장: Buffer;
     try {
       장 = await readFile(장면파일(key));

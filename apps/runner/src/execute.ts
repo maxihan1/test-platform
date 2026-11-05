@@ -201,8 +201,8 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
         PLATFORM_APPIUM_NEW_COMMAND_TIMEOUT: '',
         // 성능 녹화 — 설정 파일이 이 경로로 HAR 를 남긴다. 늘 적는다 — 러너를 켠 셸에 값이 있으면 자식이 물려받아 모든 실행을 녹화한다
         PLATFORM_RECORD_HAR: req.recordHar === undefined ? '' : 다음HAR경로(녹화폴더(req.recordHar.jobId)),
-        // 테스트 모드 — 동작마다 1초 쉬고 page 의 장면을 이 파일에 쓴다. 정식 실행은 둘 다 빈 값이다 (도메인/러너 §5.2 「테스트 모드 — 실시간 장면」)
-        ...장면환경(req.live),
+        // 열쇠가 오면 page 의 장면을 이 파일에 쓴다. 동작마다 1초 쉬는 것은 테스트 실행(runId 0)뿐이다 (도메인/러너 §5.2 「테스트 모드 — 실시간 장면」)
+        ...장면환경(req.live, req.runId === 0),
         // 위의 팜 토큰 · 장면 파일보다 뒤에 둔다 — 실제 폰은 그 둘을 바꾼다
         ...실제폰환경(req, 폰폴더, 폰증적),
       },

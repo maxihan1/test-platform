@@ -252,20 +252,26 @@ describe('execute 가 끝난 뒤 앱 연결을 닫는다', () => {
     }
   });
 
-  it('장면 열쇠가 오면 자식이 동작마다 1초 쉬고 장면 파일을 받는다 — 없으면 러너를 켠 셸에 남은 늦추기 값도 비운다', async () => {
+  it('테스트 실행에 장면 열쇠가 오면 자식이 동작마다 1초 쉬고 장면 파일을 받는다 — 없으면 러너를 켠 셸에 남은 늦추기 값도 비운다', async () => {
     const 임시 = mkdtempSync(join(tmpdir(), 'exec-live-'));
     const 기록 = join(임시, 'env.txt');
     const 열쇠 = '0b7e2c1a-0000-4000-8000-000000000002';
     process.env.PLATFORM_SLOW_MO = '1000';
     스크립트.지금 = `printf '%s|%s' "$PLATFORM_SLOW_MO" "$PLATFORM_LIVE_FILE" > '${기록}'`;
     try {
-      await execute({ ...요청('desktop'), live: 열쇠 }, 'a.spec.ts');
+      await execute({ ...요청('desktop'), runId: 0, live: 열쇠 }, 'a.spec.ts');
       const [늦춤, 파일] = readFileSync(기록, 'utf8').split('|');
       expect(늦춤).toBe('1000');
       expect(파일!.endsWith(`/live/${열쇠}.jpg`)).toBe(true);
 
       await execute(요청('desktop'), 'a.spec.ts');
       expect(readFileSync(기록, 'utf8')).toBe('|');
+
+      // 정식 실행은 장면 파일만 받고 늦추지 않는다 — 셸에 남은 값도 비운다
+      await execute({ ...요청('desktop'), runId: 12, historyId: 34, live: 열쇠 }, 'a.spec.ts');
+      const [정식늦춤, 정식파일] = readFileSync(기록, 'utf8').split('|');
+      expect(정식늦춤).toBe('');
+      expect(정식파일!.endsWith(`/live/${열쇠}.jpg`)).toBe(true);
     } finally {
       delete process.env.PLATFORM_SLOW_MO;
       rmSync(임시, { recursive: true, force: true });
