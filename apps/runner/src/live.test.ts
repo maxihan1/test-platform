@@ -61,12 +61,16 @@ function 붙잡는다<T>(답: T): { 대기: () => Promise<T>; 끝내기: () => v
 }
 
 describe('장면환경', () => {
-  it('열쇠가 오면 동작마다 1초 쉬고 산출물 폴더의 live/<열쇠>.jpg 에 장면을 쓰게 한다', () => {
-    expect(장면환경(열쇠)).toEqual({ PLATFORM_LIVE_FILE: join(산출물, 'live', `${열쇠}.jpg`), PLATFORM_SLOW_MO: '1000' });
+  it('시험 실행에 열쇠가 오면 동작마다 1초 쉬고 산출물 폴더의 live/<열쇠>.jpg 에 장면을 쓰게 한다', () => {
+    expect(장면환경(열쇠, true)).toEqual({ PLATFORM_LIVE_FILE: join(산출물, 'live', `${열쇠}.jpg`), PLATFORM_SLOW_MO: '1000' });
   });
 
-  it('열쇠가 없으면 둘 다 빈 값이다 — 러너를 켠 셸의 값이 정식 실행에 번지지 않게', () => {
-    expect(장면환경(undefined)).toEqual({ PLATFORM_LIVE_FILE: '', PLATFORM_SLOW_MO: '' });
+  it('정식 실행에 열쇠가 오면 장면만 쓰고 늦추지 않는다', () => {
+    expect(장면환경(열쇠, false)).toEqual({ PLATFORM_LIVE_FILE: join(산출물, 'live', `${열쇠}.jpg`), PLATFORM_SLOW_MO: '' });
+  });
+
+  it.each([true, false])('열쇠가 없으면 둘 다 빈 값이다 — 러너를 켠 셸의 값이 번지지 않게 (시험 %s)', (시험) => {
+    expect(장면환경(undefined, 시험)).toEqual({ PLATFORM_LIVE_FILE: '', PLATFORM_SLOW_MO: '' });
   });
 });
 
@@ -85,7 +89,7 @@ describe('GET /live/:key', () => {
 
     expect((await 장면읽기(app)).statusCode).toBe(204);
 
-    const 파일 = 장면환경(열쇠).PLATFORM_LIVE_FILE;
+    const 파일 = 장면환경(열쇠, true).PLATFORM_LIVE_FILE;
     mkdirSync(dirname(파일), { recursive: true });
     writeFileSync(파일, 장면);
     writeFileSync(`${파일}.tmp`, 장면);
@@ -108,7 +112,7 @@ describe('GET /live/:key', () => {
     const app = 서버();
     const 돌림 = app.inject({ method: 'POST', url: '/execute', payload: 케이스요청({ platform: 'android' }) });
     await vi.waitFor(() => expect(execute).toHaveBeenCalled());
-    const 파일 = 장면환경(열쇠).PLATFORM_LIVE_FILE;
+    const 파일 = 장면환경(열쇠, true).PLATFORM_LIVE_FILE;
     mkdirSync(dirname(파일), { recursive: true });
     writeFileSync(파일, Buffer.from([0x89, 0x50, 0x4e, 0x47, 1, 2]));
 
@@ -160,15 +164,24 @@ describe('장면 열쇠 입구 검사', () => {
   });
 
   it.each([
-    ['/execute', () => 케이스요청({ runId: 12, historyId: 34 })],
-    ['/execute-scenario', () => 시나리오요청({ runId: 12, trialId: undefined })],
-  ] as const)('%s 정식 실행에 열쇠가 오면 400 이다 — 정식 실행은 늦추지도 그리지도 않는다', async (길, 요청) => {
+    ['/execute android', '/execute', () => 케이스요청({ runId: 12, historyId: 34, platform: 'android' })],
+    ['/execute-scenario', '/execute-scenario', () => 시나리오요청({ runId: 12, trialId: undefined })],
+  ] as const)('%s 정식 실행에 열쇠가 오면 400 이다 — Appium 찍기는 단계를 세우고 E2E 정식 실행 화면은 없다', async (_이름, 길, 요청) => {
     const res = await 서버().inject({ method: 'POST', url: 길, payload: 요청() });
 
     expect(res.statusCode).toBe(400);
     expect(res.json().detail).toContain('장면 열쇠');
     expect(execute).not.toHaveBeenCalled();
     expect(executeScenario).not.toHaveBeenCalled();
+  });
+
+  it.each(['desktop', 'mobile'])('%s 정식 실행의 열쇠는 받아 실행에 넘긴다', async (platform) => {
+    vi.mocked(execute).mockResolvedValue({ status: 'PASS', durationMs: 0 } as ExecuteResponse);
+
+    const res = await 서버().inject({ method: 'POST', url: '/execute', payload: 케이스요청({ runId: 12, historyId: 34, platform }) });
+
+    expect(res.statusCode).toBe(200);
+    expect(execute).toHaveBeenCalledWith(expect.objectContaining({ runId: 12, live: 열쇠 }), expect.any(String));
   });
 
   it('열쇠를 버리지 않고 실행에 넘긴다', async () => {

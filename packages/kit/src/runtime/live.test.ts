@@ -1,5 +1,5 @@
 // 테스트 모드 장면 — 마지막 장면만 덮어 쓰는지, 실제 Chromium 탭에서 JPEG 장면이 쌓이고 끄면 지워지는지 본다 (SPEC 도메인/러너 §5.2 「테스트 모드 — 실시간 장면」)
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -127,6 +127,40 @@ describe('장면걸기 (브라우저)', () => {
       await vi.waitFor(() => expect(readFileSync(파일).subarray(0, 3)).toEqual(Buffer.from([0xff, 0xd8, 0xff])), { timeout: 5000 });
       await 장면?.끄기();
       expect(existsSync(파일)).toBe(false);
+    } finally {
+      await page.close();
+    }
+  });
+
+  it.each([
+    ['1000', 1],
+    ['', 0],
+  ])('누른 곳 표시는 늦추기 값(%s)이 있는 시험 실행에만 건다 — 정식 실행은 화면만 찍는다', async (늦춤, 횟수) => {
+    vi.stubEnv('PLATFORM_SLOW_MO', 늦춤);
+    const 파일 = join(폴더, 'live', `0b7e2c1a-0000-4000-8000-00000000001${String(횟수)}.jpg`);
+    const page = await browser.newPage();
+    try {
+      const 표시 = vi.spyOn(page.screencast, 'showActions');
+      const 장면 = await 장면걸기(page, 파일);
+      expect(표시).toHaveBeenCalledTimes(횟수);
+      await 장면?.끄기();
+    } finally {
+      vi.unstubAllEnvs();
+      await page.close();
+    }
+  });
+
+  it('영상 경로도 오면 한 호출로 영상과 장면을 같이 받는다 — 실제 폰 Chrome 정식 실행', async () => {
+    const 파일 = join(폴더, 'live', '0b7e2c1a-0000-4000-8000-000000000005.jpg');
+    const 영상 = join(폴더, 'farm', 'video.webm');
+    const page = await browser.newPage();
+    try {
+      const 장면 = await 장면걸기(page, 파일, 영상);
+      await page.setContent('<p>영상과 장면</p>');
+
+      await vi.waitFor(() => expect(existsSync(파일)).toBe(true), { timeout: 5000 });
+      await 장면?.끄기();
+      expect(statSync(영상).size).toBeGreaterThan(0);
     } finally {
       await page.close();
     }

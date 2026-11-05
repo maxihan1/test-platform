@@ -116,6 +116,15 @@ describe('실제 폰 Chrome 실측 (브라우저)', () => {
     expect(readFileSync(join(산출물, 'live', `${열쇠}.jpg`)).subarray(0, 3)).toEqual(Buffer.from([0xff, 0xd8, 0xff]));
   }, 90_000);
 
+  it('정식 실행에 장면 열쇠가 오면 증거 영상과 장면을 같이 받는다 — 탭마다 하나인 screencast 가 겹치지 않는다', async () => {
+    const 열쇠 = '0b7e2c1a-0000-4000-8000-000000000009';
+    const 결과 = await execute(케이스('XRP-002', { runId: 96, historyId: 97, live: 열쇠 }), join(폴더, 'XRP-002.spec.ts'));
+
+    expect(결과.status).toBe('FAIL');
+    expect(statSync(join(runDir('96', '97'), 'farm', 'video-1.webm')).size).toBeGreaterThan(0);
+    expect(readFileSync(join(산출물, 'live', `${열쇠}.jpg`)).subarray(0, 3)).toEqual(Buffer.from([0xff, 0xd8, 0xff]));
+  }, 90_000);
+
   it('통과한 정식 실행은 증적을 안 남긴다', async () => {
     const 결과 = await execute(케이스('XRP-001', { runId: 93, historyId: 94 }), join(폴더, 'XRP-001.spec.ts'));
 

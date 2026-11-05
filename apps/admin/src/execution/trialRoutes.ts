@@ -17,11 +17,11 @@ import { 사람팜토큰 } from './farmToken.js';
 import { 장면을건넨다 } from './live.js';
 import { caseSchemas } from './paramSets.js';
 import { Chrome차례, 폰을놓는다, 폰을바로잡는다 } from './phone.js';
-import { na, 보낸다 } from './runner.js';
+import { abortRunner, na, 보낸다, 시험진행 } from './runner.js';
 import { 저장값을채운다 } from './savedInput.js';
 import { 엔진칸 } from './engineField.js';
 import { prefixOf } from './store.js';
-import { 시작한다, 읽는다, TrialBusyError } from './trial.js';
+import { 닫는다, 시작한다, 읽는다, TrialBusyError } from './trial.js';
 import { validate } from './validate.js';
 
 const 제한ms = 300_000;
@@ -30,6 +30,19 @@ const 제한ms = 300_000;
 // ponytail: 성능 녹화(perf/record.ts)도 runs/0 에 Date.now() 를 쓴다 — 같은 밀리초면 겹칠 수 있다. 겹침이 보이면 번호 하나를 같이 쓴다
 let 앞번호 = 0;
 const 새번호 = (): number => (앞번호 = Math.max(앞번호 + 1, Date.now()));
+
+/**
+ * 도는 시험마다 러너에 보낸 번호와 어디까지 갔는지. 러너에 보내기 전이면 중단을 admin 이 닫고, 보낸 뒤면 러너가 끊는다.
+ * 일이 끝나면 지운다 (도메인/실행 §3.2 「시험 실행 지금 단계 · 중단 · 정식 실행 화면」)
+ */
+interface 시험상태 {
+  historyId: number;
+  보냄: boolean;
+  멈춤: boolean;
+}
+const 상태들 = new Map<string, 시험상태>();
+// 러너가 끊긴 실행에 주는 모양과 같다 — 화면이 이 글자로 「중단」을 가른다
+const 중단글 = 'ABORTED';
 
 const body = z.object({
   platform: z.enum(['desktop', 'mobile', 'android']),
@@ -88,6 +101,8 @@ async function 팜폰에서돌린다(
   사람: string,
   앱재료: { serviceId: number; env: string; appPath: string | null } | 'chrome',
   폰화면: (url: string | undefined) => void,
+  보내기: (body: ExecuteRequest) => Promise<ExecuteResponse>,
+  멈췄나: () => boolean,
 ): Promise<ExecuteResponse> {
   const 팜 = 팜주소();
   // 받은 뒤 서버를 다시 띄우며 값을 지웠을 때뿐이다 — 통로가 FARM_OFF 로 먼저 거절한다
@@ -106,6 +121,8 @@ async function 팜폰에서돌린다(
       return na(요청, err instanceof Error ? err.message : String(err));
     }
   }
+  // 토큰 · 앱 파일을 고르는 사이에 중단했으면 폰을 잡지 않는다. 잡는 중에 중단하면 잡은 뒤 보내기가 한 번 더 보고 놓는다
+  if (멈췄나()) return na(요청, 중단글);
   const 못잡음 = (까닭: string) => na(요청, 까닭);
   const 결과 =
     앱재료 === 'chrome'
@@ -113,7 +130,7 @@ async function 팜폰에서돌린다(
           팜,
           async (칸, 화면) => {
             if (화면 !== undefined) 폰화면(화면);
-            return 보낸다(요청, { ...요청, ...칸 });
+            return 보내기({ ...요청, ...칸 });
           },
           못잡음,
           토큰,
@@ -122,7 +139,7 @@ async function 팜폰에서돌린다(
           팜,
           async (udid, 화면) => {
             if (화면 !== undefined) 폰화면(화면);
-            return 보낸다(요청, { ...요청, udid, ...(토큰 !== undefined && { farmToken: 토큰 }), ...(app !== null && { app }) });
+            return 보내기({ ...요청, udid, ...(토큰 !== undefined && { farmToken: 토큰 }), ...(app !== null && { app }) });
           },
           못잡음,
           undefined,
@@ -196,17 +213,27 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
     const 사람 = req.user?.username ?? '알 수 없음';
     try {
       const 일 = async (id: string, 폰화면: (url: string | undefined) => void): Promise<ExecuteResponse> => {
+        const 상태: 시험상태 = { historyId: 요청.historyId, 보냄: false, 멈춤: false };
+        상태들.set(id, 상태);
+        // 멈췄나를 보고 보냄을 적는 사이에 await 가 없다 — 중단은 둘 중 한 갈래만 탄다
+        const 보내기 = async (b: ExecuteRequest): Promise<ExecuteResponse> => {
+          if (상태.멈춤) return na(요청, 중단글);
+          상태.보냄 = true;
+          return 보낸다(요청, b);
+        };
+        const 멈췄나 = (): boolean => 상태.멈춤;
         try {
           // 정식 실행과 같은 규칙 — 판이 없으면 러너에 안 보내고 미실행으로 닫는다 (도메인/API §3.8 「응답 모양 확인」)
           const 판 = await 케이스판(tcId);
           if ('사유' in 판) return na(요청, 판.사유);
           // 앱 · 게임은 정식 실행처럼 전역 상한 밖의 디바이스 줄이다. 장면은 러너가 Appium 으로 찍는다 (도메인/실행 §3.2 「테스트 모드」 · 2026-11-05 사용자)
-          if (폰씀) return await 팜폰에서돌린다({ ...요청, ...판, live: id }, 사람, { serviceId, env: 줄.env, appPath: 줄.appPath }, 폰화면);
+          if (폰씀) return await 팜폰에서돌린다({ ...요청, ...판, live: id }, 사람, { serviceId, env: 줄.env, appPath: 줄.appPath }, 폰화면, 보내기, 멈췄나);
           // 실제 폰은 디바이스 줄 대신 Chrome 줄 → 브라우저처럼 한 자리 차례다. 장면은 폰 Chrome 탭에서 받는다 (러너 §5.2 「모바일 웹 — 실제 폰 Chrome」)
-          if (폰Chrome) return await Chrome차례(() => enqueue(() => 팜폰에서돌린다({ ...요청, ...판, live: id }, 사람, 'chrome', 폰화면)));
+          if (폰Chrome) return await Chrome차례(() => enqueue(() => 팜폰에서돌린다({ ...요청, ...판, live: id }, 사람, 'chrome', 폰화면, 보내기, 멈췄나)));
           // 브라우저는 정식 실행과 같은 줄에 한 자리를 쓴다. 장면 열쇠는 이 시험 번호다
-          return await enqueue(() => 보낸다(요청, { ...요청, ...판, live: id }));
+          return await enqueue(() => 보내기({ ...요청, ...판, live: id }));
         } finally {
+          상태들.delete(id);
           if (폰씀) 폰을놓는다();
         }
       };
@@ -233,7 +260,27 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
     // 그 케이스의 시험만 읽는다 — 문은 주소의 tcId 로 권한을 봤다
     const 읽음 = 읽는다(req.user?.username ?? '알 수 없음', req.params.trialId, req.params.tcId);
     if (읽음 === null) return reply.code(404).send({ error: 'TRIAL_NOT_FOUND', detail: req.params.trialId });
-    return 읽음;
+    // 러너에 보낸 시험만 지금 단계를 묻는다. 러너가 아직 모르거나 못 닿으면 빈 칸이다 — 오류가 아니다
+    const 상태 = 읽음.status === 'RUNNING' ? 상태들.get(req.params.trialId) : undefined;
+    if (상태?.보냄 !== true) return 읽음;
+    const 단계 = (await 시험진행()).find((s) => s.historyId === 상태.historyId);
+    return 단계 === undefined ? 읽음 : { ...읽음, step: { seq: 단계.seq, title: 단계.title, elapsedMs: 단계.elapsedMs } };
+  });
+
+  // 시작한 사람만 멈춘다 — 남의 번호 · 다른 케이스 주소는 결과 읽기처럼 404 다.
+  // 끝나는 것과 누르는 것이 겹치는 경합이라 이미 끝났으면 오류가 아니라 false 다 (도메인/실행 §7 「케이스 테스트 실행」)
+  app.post<{ Params: { tcId: string; trialId: string } }>('/cases/:tcId/test-run/:trialId/abort', async (req, reply) => {
+    const 사람 = req.user?.username ?? '알 수 없음';
+    const { trialId } = req.params;
+    const 읽음 = 읽는다(사람, trialId, req.params.tcId);
+    if (읽음 === null) return reply.code(404).send({ error: 'TRIAL_NOT_FOUND', detail: trialId });
+    const 상태 = 읽음.status === 'RUNNING' ? 상태들.get(trialId) : undefined;
+    if (상태 === undefined) return { aborted: false };
+    // 보낸 뒤면 결과는 러너 답 그대로다 — 겹치면 TIMEOUT · PASS · FAIL 일 수 있고 고쳐 쓰지 않는다.
+    // ponytail: 보낸 직후 러너가 그 번호를 받기 전(/health 확인 · 전송 — 2초 안쪽)이면 false 다. 정식 실행 중단도 같은 틈이 있다
+    if (상태.보냄) return { aborted: await abortRunner(상태.historyId) };
+    상태.멈춤 = true;
+    return { aborted: 닫는다(사람, trialId, na(상태, 중단글)) };
   });
 
   // 끝난 시험도 404 다 — 러너가 장면을 버렸고, 화면은 마지막으로 받은 장면을 그대로 둔다

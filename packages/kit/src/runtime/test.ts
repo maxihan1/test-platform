@@ -265,7 +265,8 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
     // 테스트 모드는 동작마다 쉬니 시험 한도를 다섯 배로 늘린다 — 안 늘리면 동작이 많은 케이스가 테스트 모드에서만 시간 초과로 빨개진다 (SPEC 도메인/러너 §5.2 「테스트 모드」)
     if (Number(process.env.PLATFORM_SLOW_MO) > 0) testInfo.setTimeout(testInfo.timeout * 5);
     const inputs = prepare(testInfo);
-    await 장면걸기(page);
+    // 실제 폰 Chrome 은 고정물(realPhone.ts)이 영상과 같이 건다 — 탭마다 하나라 여기서 또 걸면 겹친다
+    if (!process.env.PLATFORM_CDP_URL) await 장면걸기(page);
     await 느린망(page);
     await execute(testInfo, request, { page }, (seq, 요소) => capture(page, seq, 요소), inputs);
   });

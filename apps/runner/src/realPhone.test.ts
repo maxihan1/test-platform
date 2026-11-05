@@ -55,7 +55,7 @@ describe('실제폰환경', () => {
 
   it('테스트 모드의 장면 파일을 비우지 않는다 — 실제 폰 Chrome 장면도 오른쪽 칸에 뜬다', () => {
     const 열쇠 = '0b7e2c1a-0000-4000-8000-000000000003';
-    const 자식 = { ...장면환경(열쇠), ...실제폰환경(폰, '/r/0/8', false) };
+    const 자식 = { ...장면환경(열쇠, true), ...실제폰환경(폰, '/r/0/8', false) };
 
     expect(자식.PLATFORM_LIVE_FILE.endsWith(`/live/${열쇠}.jpg`)).toBe(true);
     expect(자식.PLATFORM_SLOW_MO).toBe('1000');

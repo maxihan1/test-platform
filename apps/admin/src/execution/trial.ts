@@ -9,8 +9,11 @@ import type { 부품기록 } from '../scenario/runTrace.js';
 
 import { 가린값들 } from '../web/mask.js';
 
-/** 도는 중에는 폰을 잡았으면 그 폰 화면 보기 링크가 붙는다 (도메인/실행 §3.2 「테스트 모드」 「VISION 링크」) */
-export type 도는중 = { status: 'RUNNING'; vision?: { url: string } };
+/**
+ * 도는 중에는 폰을 잡았으면 그 폰 화면 보기 링크가 붙는다 (도메인/실행 §3.2 「테스트 모드」 「VISION 링크」).
+ * 지금 단계는 케이스 통로가 러너에서 받아 붙인다 (도메인/실행 §3.2 「시험 실행 지금 단계 · 중단 · 정식 실행 화면」)
+ */
+export type 도는중 = { status: 'RUNNING'; vision?: { url: string }; step?: { seq: number; title: string; elapsedMs: number } };
 export type 시험읽기 = 도는중 | { status: 'DONE'; result: ExecuteResponse };
 
 export interface 시험명세 {
@@ -31,6 +34,7 @@ interface 항목<R> {
   결과: R | null;
   // 잡은 폰의 VISION 화면 링크. 폰을 놓거나 끝나면 안 낸다 — 놓은 폰의 링크는 닫혀 있다
   폰화면?: string | undefined;
+  가릴것: string[];
 }
 
 interface 보관소설정<R, S extends string> {
@@ -125,20 +129,21 @@ export function 시험보관소<R, S extends string>(설정: 보관소설정<R, 
       if (저장소.size >= 상한) throw new TrialBusyError(설정.바쁨문구);
 
       const id = randomUUID();
-      const 이것: 항목<R> = { 사람, 서비스, 시작: 지금, 결과: null };
-      저장소.set(id, 이것);
       // 부품 여럿에서 모은 비밀은 이어 붙인 순서라 여기서 다시 줄 세운다
       const 가릴것 = 긴것부터(비밀);
+      const 이것: 항목<R> = { 사람, 서비스, 시작: 지금, 결과: null, 가릴것 };
+      저장소.set(id, 이것);
 
       void 실행(id, (url) => {
         이것.폰화면 = url;
       })
+        // 중단으로 먼저 닫혔으면 늦게 끝난 실행이 덮지 않는다
         .then((r) => {
-          이것.결과 = 가린다(r, 가릴것) as R;
+          이것.결과 ??= 가린다(r, 가릴것) as R;
         })
         .catch((err: unknown) => {
           const 사유 = err instanceof Error ? err.message : String(err);
-          이것.결과 = 가린다(설정.실패로(사유, Date.now() - 지금), 가릴것) as R;
+          이것.결과 ??= 가린다(설정.실패로(사유, Date.now() - 지금), 가릴것) as R;
         });
       return id;
     },
@@ -148,6 +153,15 @@ export function 시험보관소<R, S extends string>(설정: 보관소설정<R, 
       if (항 === null) return null;
       if (항.결과 !== null) return { status: 설정.끝글자, result: 항.결과 };
       return 항.폰화면 === undefined ? { status: 'RUNNING' } : { status: 'RUNNING', vision: { url: 항.폰화면 } };
+    },
+
+    /** 실행이 끝나기 전에 결과를 정해 닫는다(중단). 이미 끝났거나 남의 번호면 false */
+    닫는다(사람: string, id: string, 결과: R): boolean {
+      const 항 = 내것(사람, id);
+      if (항 === null || 항.결과 !== null) return false;
+      항.결과 = 가린다(결과, 항.가릴것) as R;
+      항.폰화면 = undefined;
+      return true;
     },
 
     /** 문(auth/gate.ts)이 배정을 볼 서비스. 남의 번호면 null 이라 문이 지나보내고 라우트가 404 를 낸다 */
@@ -187,6 +201,11 @@ export function 시작한다(
 export function 읽는다(사람: string, id: string, tcId?: string): 시험읽기 | null {
   if (tcId !== undefined && 케이스시험.서비스(사람, id) !== tcId) return null;
   return 케이스시험.읽는다(사람, id);
+}
+
+/** 러너에 보내기 전에 중단한 시험을 그 결과로 닫는다 (도메인/실행 §3.2 「시험 실행 지금 단계 · 중단 · 정식 실행 화면」) */
+export function 닫는다(사람: string, id: string, 결과: ExecuteResponse): boolean {
+  return 케이스시험.닫는다(사람, id, 결과);
 }
 
 export function 전부비운다(): void {

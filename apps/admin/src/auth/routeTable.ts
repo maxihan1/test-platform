@@ -68,6 +68,8 @@ export const 등급표: Record<string, 표값> = {
   'GET /api/cases/:tcId/test-run/:trialId': 실행읽기,
   // 도는 테스트 모드의 장면 한 장 — 결과 읽기와 같다 (도메인/실행 §3.2 「테스트 모드」)
   'GET /api/cases/:tcId/test-run/:trialId/live': 실행읽기,
+  // 시험 실행 중단 — 시작과 같은 칸이고 시작한 사람만이다(execution/trialRoutes.ts) (도메인/실행 §3.2 「시험 실행 지금 단계 · 중단 · 정식 실행 화면」)
+  'POST /api/cases/:tcId/test-run/:trialId/abort': 테스트모드,
   'GET /api/evidence/:id': 실행읽기,
   'GET /api/runs': 실행읽기,
   'GET /api/runs/last-by-case': 실행읽기,
@@ -82,6 +84,8 @@ export const 등급표: Record<string, 표값> = {
   'GET /api/runs/:runId/progress': 실행읽기,
   'GET /api/runs/:runId/items/:historyId/farm/:name': 실행읽기,
   'GET /api/runs/:runId/items/:historyId/farm-video': 실행읽기,
+  // 도는 정식 실행 항목의 장면 — 기록이 남는 실행이라 시작한 사람만이 아니라 그 실행을 볼 수 있는 사람 모두다
+  'GET /api/runs/:runId/items/:historyId/live': 실행읽기,
   'GET /api/screenshots/:runId/:historyId/:seq.png': 실행읽기,
   'POST /api/runs': 실행쓰기,
   'POST /api/runs/:runId/abort': 실행쓰기,

@@ -219,6 +219,8 @@ describe('창 하나 — 공용 창 · 단계 열기 · 단계 닫기 (SPEC 도�
   it('테스트 모드는 웹 단계 탭에 장면을 걸고 앱 · 게임 단계 동안은 꺼서 비운다 — 다음 웹 단계에서 다시 건다 (러너 §5.2 「테스트 모드 — 실시간 장면」)', async () => {
     const 폴더 = mkdtempSync(join(tmpdir(), 'scn-live-'));
     vi.stubEnv('PLATFORM_LIVE_FILE', join(폴더, 'live', '0b7e2c1a-0000-4000-8000-000000000005.jpg'));
+    // 러너는 시험 실행에 늘 늦추기 값을 같이 준다 — 자식에게는 그것이 누른 곳을 그리는 테스트 모드 표시다
+    vi.stubEnv('PLATFORM_SLOW_MO', '1000');
     try {
       const { 탭, 감싸기 } = 판();
       const 장면 = { start: vi.fn(async () => ({})), showActions: vi.fn(async () => ({})), stop: vi.fn(async () => {}) };
