@@ -108,6 +108,14 @@ describe('실제 폰 Chrome 실측 (브라우저)', () => {
     expect(readFileSync(join(증적, 'logcat.txt'), 'utf8')).toContain('E chromium: 폰 Chrome 줄');
   }, 90_000);
 
+  it('테스트 모드는 폰 Chrome 탭의 장면을 JPEG 로 쓴다 — 오른쪽 칸에 폰 화면이 뜬다', async () => {
+    const 열쇠 = '0b7e2c1a-0000-4000-8000-000000000008';
+    const 결과 = await execute(케이스('XRP-001', { live: 열쇠 }), join(폴더, 'XRP-001.spec.ts'));
+
+    expect(결과.status).toBe('PASS');
+    expect(readFileSync(join(산출물, 'live', `${열쇠}.jpg`)).subarray(0, 3)).toEqual(Buffer.from([0xff, 0xd8, 0xff]));
+  }, 90_000);
+
   it('통과한 정식 실행은 증적을 안 남긴다', async () => {
     const 결과 = await execute(케이스('XRP-001', { runId: 93, historyId: 94 }), join(폴더, 'XRP-001.spec.ts'));
 

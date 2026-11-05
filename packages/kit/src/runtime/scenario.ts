@@ -15,7 +15,7 @@ export { SCENARIO_CLEANUP_MARKER, SCENARIO_DEVICE_MARKER, SCENARIO_PART_MARKER }
 // 러너가 표시판을 만들려면 모양을 알아야 한다. 고정 spec 은 이 진입점에서 타입만 가져간다
 export type { ScenarioPhase };
 // 테스트 모드 장면 — 고정 spec 이 첫 탭에 건다. 케이스 단독 실행은 test() 가 page 에 건다 (도메인/러너 §5.2 「테스트 모드 — 실시간 장면」)
-export { 장면걸기, type 장면 } from './live.js';
+export { 장면걸기, 폰장면걸기, type 장면, type 폰찍개 } from './live.js';
 
 // 웹 단계는 page, 앱 · 게임 단계는 driver(게임이면 game 도)를 받는다. 둘 다 없으면 부품이 실패한다 (도메인/시나리오 §3.7 결정 16)
 export interface ScenarioCaseInput {

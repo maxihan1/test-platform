@@ -37,7 +37,7 @@ export function 폰실행위치({ 시험 = true }: { 시험?: boolean }) {
     <div className="hint">
       {t('실행 위치 · Device VISION')}
       <div>{t('시나리오 하나 동안 빈 폰을 한 번 잡고 다 돌면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 실행에 남습니다')}</div>
-      {시험 ? <div>{t('시험 실행도 Device VISION 폰에서 실행됩니다. 폰 화면은 「Device VISION 에서 보기 ↗」를 눌러 새 탭에서 봅니다')}</div> : null}
+      {시험 ? <div>{t('시험 실행도 Device VISION 폰에서 실행됩니다. 폰 화면은 오른쪽 칸에 뜨고 「Device VISION 에서 보기 ↗」로 새 탭에서도 봅니다')}</div> : null}
     </div>
   );
 }

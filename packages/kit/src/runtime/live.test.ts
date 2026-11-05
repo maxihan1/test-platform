@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { type Browser, chromium } from '@playwright/test';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { 장면걸기, 장면쓰개 } from './live.js';
+import { 장면걸기, 장면쓰개, 폰장면걸기 } from './live.js';
 
 let 폴더 = '';
 
@@ -39,6 +39,60 @@ describe('장면쓰개', () => {
     await new Promise((끝) => setTimeout(끝, 60));
 
     expect(existsSync(파일)).toBe(false);
+  });
+});
+
+describe('폰장면걸기', () => {
+  const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a]);
+
+  it('장면 파일을 안 받은 실행(정식 실행)은 폰을 안 찍는다', async () => {
+    const takeScreenshot = vi.fn(async () => PNG.toString('base64'));
+
+    expect(await 폰장면걸기({ takeScreenshot }, '')).toBeUndefined();
+    expect(takeScreenshot).not.toHaveBeenCalled();
+  });
+
+  it('테스트 모드는 Appium 폰 화면을 PNG 그대로 쓰고 쉬었다 다시 찍는다 — 끄면 더 안 찍고 파일을 지운다', async () => {
+    const 파일 = join(폴더, 'live', '0b7e2c1a-0000-4000-8000-000000000004.jpg');
+    const takeScreenshot = vi.fn(async () => PNG.toString('base64'));
+
+    const 장면 = await 폰장면걸기({ takeScreenshot }, 파일, 10);
+    await vi.waitFor(() => expect(takeScreenshot.mock.calls.length).toBeGreaterThanOrEqual(2));
+    await vi.waitFor(() => expect(readFileSync(파일)).toEqual(PNG));
+    await 장면?.끄기();
+    const 찍은수 = takeScreenshot.mock.calls.length;
+    await new Promise((끝) => setTimeout(끝, 40));
+
+    expect(takeScreenshot.mock.calls.length).toBe(찍은수);
+    expect(existsSync(파일)).toBe(false);
+  });
+
+  it('찍기가 매달려도 끄기는 2초 안에 끝나고 파일을 지운다 — 단계 한도 실패를 더 늦추지 않는다', async () => {
+    const 파일 = join(폴더, 'live', '0b7e2c1a-0000-4000-8000-000000000006.jpg');
+    const takeScreenshot = vi.fn<() => Promise<string>>().mockResolvedValueOnce(PNG.toString('base64')).mockReturnValue(new Promise<string>(() => {}));
+
+    const 장면 = await 폰장면걸기({ takeScreenshot }, 파일, 10);
+    await vi.waitFor(() => expect(takeScreenshot).toHaveBeenCalledTimes(2));
+    const 시작 = Date.now();
+    await 장면?.끄기();
+
+    expect(Date.now() - 시작).toBeLessThan(3_000);
+    expect(existsSync(파일)).toBe(false);
+  });
+
+  it('한 장을 못 찍어도 멈추지 않고 다음 장을 찍는다', async () => {
+    const 파일 = join(폴더, 'live', '0b7e2c1a-0000-4000-8000-000000000005.jpg');
+    const takeScreenshot = vi.fn<() => Promise<string>>().mockRejectedValueOnce(new Error('앱이 넘어가는 중')).mockResolvedValue(PNG.toString('base64'));
+    const 경고 = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const 장면 = await 폰장면걸기({ takeScreenshot }, 파일, 10);
+      await vi.waitFor(() => expect(readFileSync(파일)).toEqual(PNG));
+      await 장면?.끄기();
+
+      expect(경고).toHaveBeenCalledTimes(1);
+    } finally {
+      경고.mockRestore();
+    }
   });
 });
 

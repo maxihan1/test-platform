@@ -171,7 +171,7 @@ describe('조립 화면 — 디바이스 고르개와 실행 위치', () => {
     render(<ScenarioBuild id={12} 띠서비스={앱서비스()} user={앱사람()} />);
 
     expect(await screen.findByText(실행위치)).toBeTruthy();
-    expect(screen.getByText('시험 실행도 Device VISION 폰에서 실행됩니다. 폰 화면은 「Device VISION 에서 보기 ↗」를 눌러 새 탭에서 봅니다')).toBeTruthy();
+    expect(screen.getByText('시험 실행도 Device VISION 폰에서 실행됩니다. 폰 화면은 오른쪽 칸에 뜨고 「Device VISION 에서 보기 ↗」로 새 탭에서도 봅니다')).toBeTruthy();
   });
 
   it('PC 로 저장된 옛 Android 앱 시나리오는 그 값도 보이고 바꾸라고 알린다', async () => {

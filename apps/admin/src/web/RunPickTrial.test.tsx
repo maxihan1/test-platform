@@ -103,7 +103,7 @@ describe('실행 창 오른쪽 실시간 칸', () => {
     expect(받기).toHaveBeenCalledWith('/api/cases/ZRS-001/test-run/t1/live');
   });
 
-  it('모바일 웹 케이스는 VISION 이 폰을 잡으면 실제 폰 Chrome 칸으로 바뀌고 앱 단계라고 하지 않는다', async () => {
+  it('모바일 웹 케이스는 VISION 이 폰을 잡으면 실제 폰 Chrome 폰 화면 칸으로 바뀌고 앱 단계라고 하지 않는다', async () => {
     vi.spyOn(api, 'startTrial').mockResolvedValue({ trialId: 't2' });
     vi.spyOn(api, 'getTrial').mockResolvedValue({ status: 'RUNNING', vision: { url: 'https://vision.example/#phone=R3C&view=k2' } });
     vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'empty' });
@@ -112,7 +112,7 @@ describe('실행 창 오른쪽 실시간 칸', () => {
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.click(screen.getByRole('button', { name: '▶ 테스트 실행' }));
 
-    expect(await screen.findByText('모바일 웹은 Device VISION 실제 폰 Chrome 에서 실행됩니다. 폰 화면은 새 탭에서 봅니다')).toBeTruthy();
+    expect(await screen.findByText('폰 화면을 기다리고 있습니다')).toBeTruthy();
     expect(screen.queryByText(/앱 단계/)).toBeNull();
   });
 

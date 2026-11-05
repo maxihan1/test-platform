@@ -200,9 +200,9 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
           // 정식 실행과 같은 규칙 — 판이 없으면 러너에 안 보내고 미실행으로 닫는다 (도메인/API §3.8 「응답 모양 확인」)
           const 판 = await 케이스판(tcId);
           if ('사유' in 판) return na(요청, 판.사유);
-          // 앱 · 게임은 정식 실행처럼 전역 상한 밖의 디바이스 줄이고 Appium 이라 장면 열쇠를 안 싣는다 (도메인/실행 §3.2 「테스트 모드」)
-          if (폰씀) return await 팜폰에서돌린다({ ...요청, ...판 }, 사람, { serviceId, env: 줄.env, appPath: 줄.appPath }, 폰화면);
-          // 실제 폰은 디바이스 줄 대신 Chrome 줄 → 브라우저처럼 한 자리 차례다. 장면은 안 만들지만 열쇠가 늦추기를 켠다 (러너 §5.2 「모바일 웹 — 실제 폰 Chrome」)
+          // 앱 · 게임은 정식 실행처럼 전역 상한 밖의 디바이스 줄이다. 장면은 러너가 Appium 으로 찍는다 (도메인/실행 §3.2 「테스트 모드」 · 2026-11-05 사용자)
+          if (폰씀) return await 팜폰에서돌린다({ ...요청, ...판, live: id }, 사람, { serviceId, env: 줄.env, appPath: 줄.appPath }, 폰화면);
+          // 실제 폰은 디바이스 줄 대신 Chrome 줄 → 브라우저처럼 한 자리 차례다. 장면은 폰 Chrome 탭에서 받는다 (러너 §5.2 「모바일 웹 — 실제 폰 Chrome」)
           if (폰Chrome) return await Chrome차례(() => enqueue(() => 팜폰에서돌린다({ ...요청, ...판, live: id }, 사람, 'chrome', 폰화면)));
           // 브라우저는 정식 실행과 같은 줄에 한 자리를 쓴다. 장면 열쇠는 이 시험 번호다
           return await enqueue(() => 보낸다(요청, { ...요청, ...판, live: id }));

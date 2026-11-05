@@ -1,4 +1,4 @@
-// 케이스 테스트 실행이 고른 대상 서버 줄의 앱 파일을 android 요청에만 싣고(패키지 이름이면 그 앱이 깔린 폰만 잡는다), 장면 열쇠는 브라우저 요청에만 싣는지 본다. 모바일 웹은 팜이 있으면 실제 폰이다. DB · 팜은 가짜다 (APP-F1-03 · TMO-F3-02 · TMO-F4-03)
+// 케이스 테스트 실행이 고른 대상 서버 줄의 앱 파일을 android 요청에만 싣고(패키지 이름이면 그 앱이 깔린 폰만 잡는다), 장면 열쇠는 모든 테스트 실행에 싣는지 본다(android 는 2026-11-05 부터). 모바일 웹은 팜이 있으면 실제 폰이다. DB · 팜은 가짜다 (APP-F1-03 · TMO-F3-02 · TMO-F4-03)
 
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -59,10 +59,9 @@ describe('케이스 테스트 실행 — 대상 서버 줄 · 앱 파일 · 장�
     return { 몸: 보냄.mock.calls[0]![1] as Record<string, unknown>, trialId: res.json<{ trialId: string }>().trialId };
   };
 
-  it('android 는 폰을 잡고 그 줄의 앱 경로를 싣는다 — 장면 열쇠는 안 싣는다', async () => {
-    const { 몸 } = await 보낸요청({ platform: 'android', env: 'qa' });
-    expect(몸).toMatchObject({ baseUrl: 'https://qa.example.com', udid: 's1', app: '/apk/qa.apk' });
-    expect('live' in 몸).toBe(false);
+  it('android 는 폰을 잡고 그 줄의 앱 경로와 장면 열쇠를 싣는다 — 폰 장면은 러너가 Appium 으로 찍는다', async () => {
+    const { 몸, trialId } = await 보낸요청({ platform: 'android', env: 'qa' });
+    expect(몸).toMatchObject({ baseUrl: 'https://qa.example.com', udid: 's1', app: '/apk/qa.apk', live: trialId });
   });
 
   it('android 앱 값이 패키지 이름이면 그 앱이 깔린 폰만 잡고 패키지 이름을 싣는다 — APK 경로는 거르지 않는다', async () => {

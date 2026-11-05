@@ -1,6 +1,6 @@
 // 고정 spec 감싸기 검사 — 브라우저 없이 가짜 Browser · APIRequest 로 미룬 삭제 연결 옵션 · 응답 적기를 본다 (SPEC 도메인/러너 §5.2)
 
-import { mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -10,7 +10,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { 응답듣기 } from './browser.js';
 import { 새부품, 새이음, type 미룬삭제 } from './links.js';
 import { 가짜플창, 쿠키 } from './parts-fake.js';
-import { 감싸기걸기, 만들때값 } from './window.js';
+import { 감싸기걸기, 만들때값, type 감싸기설정 } from './window.js';
 
 const 설정 = { baseUrl: 'https://qa.example.com', platform: 'desktop', 기본머리: { 'x-tenant': 'qa' }, 기본인증: { username: 'qa', password: 'pw' } };
 
@@ -237,6 +237,36 @@ describe('창 하나 — 공용 창 · 단계 열기 · 단계 닫기 (SPEC 도�
       await 공용.단계(새부품(4, []), true);
       expect(장면.start).toHaveBeenCalledTimes(2);
     } finally {
+      vi.unstubAllEnvs();
+      rmSync(폴더, { recursive: true, force: true });
+    }
+  });
+
+  it('테스트 모드의 앱 · 게임 단계는 폰을 얻은 뒤 Appium 으로 폰 화면을 찍고, 단계를 닫으면 그친다 (러너 §5.2 「테스트 모드 — 실시간 장면」)', async () => {
+    const 폴더 = mkdtempSync(join(tmpdir(), 'scn-phone-live-'));
+    const 장면파일 = join(폴더, 'live', '0b7e2c1a-0000-4000-8000-000000000006.jpg');
+    const 케이스파일 = join(폴더, 'XAP-LIVE.mjs');
+    writeFileSync(케이스파일, '');
+    const 등록부 = ((globalThis as unknown as Record<symbol, Map<string, unknown> | undefined>)[Symbol.for('platform.scenarioCases')] ??= new Map());
+    등록부.set('XAP-LIVE', async () => ({ seq: 1, steps: [], failed: false }));
+    const takeScreenshot = vi.fn(async () => Buffer.from([0x89, 0x50, 0x4e, 0x47]).toString('base64'));
+    vi.stubEnv('PLATFORM_LIVE_FILE', 장면파일);
+    try {
+      const 단계요청 = { storageState: vi.fn(async () => ({ cookies: [], origins: [] })), dispose: vi.fn(async () => {}) };
+      const 폰 = { 얻기: vi.fn(async () => ({ driver: { takeScreenshot } })), 닫기: vi.fn(async () => {}) } as unknown as NonNullable<감싸기설정['폰']>;
+      const 감싸기 = 감싸기걸기({ newContext: vi.fn() } as unknown as Browser, { newContext: vi.fn(async () => 단계요청) } as unknown as APIRequest, 새이음([], 설정.baseUrl), { ...설정, 폰 });
+
+      const 앱 = await 감싸기.appWindow(새부품(1, []), { cookies: [], origins: [] });
+      await 앱.runCase({ kind: 'case', tcId: 'XAP-LIVE', params: {}, expected: {}, skipSteps: [], filePath: 케이스파일, appStep: true }, 0, { started: false, inStep: 0, judged: false }, {});
+      await vi.waitFor(() => expect(existsSync(장면파일)).toBe(true));
+      await 앱.close();
+      const 찍은수 = takeScreenshot.mock.calls.length;
+      await new Promise((끝) => setTimeout(끝, 50));
+
+      expect(takeScreenshot.mock.calls.length).toBe(찍은수);
+      expect(existsSync(장면파일)).toBe(false);
+    } finally {
+      등록부.delete('XAP-LIVE');
       vi.unstubAllEnvs();
       rmSync(폴더, { recursive: true, force: true });
     }

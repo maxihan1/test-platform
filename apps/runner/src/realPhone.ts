@@ -49,8 +49,8 @@ const 머리 = (req: 폰요청): Record<string, string> => {
 };
 
 /**
- * 자식 환경 — 늘 적는다(러너를 켠 셸의 값을 안 물려받게). 실제 폰이면 장면 파일을 비운다 — 그 화면은 VISION 이 보인다.
- * 늦추기(PLATFORM_SLOW_MO)는 그대로 두면 kit 이 연결 옵션으로 넘긴다 (§5.2 「테스트 모드 — 실시간 장면」)
+ * 자식 환경 — 늘 적는다(러너를 켠 셸의 값을 안 물려받게). 장면 파일 · 늦추기는 앞에 펼친 장면환경 값 그대로 둔다 —
+ * 폰 Chrome 탭에서도 웹처럼 장면을 받고, 늦추기는 kit 이 연결 옵션으로 넘긴다 (§5.2 「테스트 모드 — 실시간 장면」 · 2026-11-05 사용자)
  */
 export function 실제폰환경(req: 폰요청, 폴더: string, 증적: boolean): Record<string, string | undefined> {
   if (!실제폰인가(req)) return { PLATFORM_CDP_URL: '', PLATFORM_PHONE_VIDEO: '' };
@@ -58,7 +58,6 @@ export function 실제폰환경(req: 폰요청, 폴더: string, 증적: boolean)
     PLATFORM_CDP_URL: req.cdpUrl,
     PLATFORM_APPIUM_TOKEN: 폰토큰(req),
     PLATFORM_PHONE_VIDEO: 증적 ? join(폴더, 폰영상) : '',
-    PLATFORM_LIVE_FILE: '',
   };
 }
 
