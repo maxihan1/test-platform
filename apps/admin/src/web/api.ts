@@ -915,6 +915,8 @@ export interface TrialRequest {
   env: string;
   params: Record<string, unknown>;
   expected: Record<string, unknown>;
+  /** mobile 만 — 실행 창의 「가상 기기 · 실제 기기」. 정식 실행 요청과 같은 이름 · 값이고 없으면 가상 기기다 (도메인/실행 §3.2 「테스트 모드」) */
+  mobileOn?: 모바일위치;
 }
 
 export interface TrialResult {

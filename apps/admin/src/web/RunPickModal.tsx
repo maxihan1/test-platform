@@ -56,7 +56,7 @@ interface Props {
   onRun: (요청: 실행요청) => void;
   /** 미리 고를 모바일 실행 위치. 다시 실행은 원래 실행이 돈 곳이고 그 밖은 서버 흉내다 (도메인/실행 §3.2 「모바일 웹 실행 위치」) */
   초기모바일?: 모바일위치;
-  /** 실행 칸이 `trial` 이면 거짓 — 시험 실행만 하고 반복 · 알림 · 모바일 실행 위치는 기록이 남는 실행 몫이라 안 그린다 (도메인/인증 §3.5 「테스트 모드」) */
+  /** 실행 칸이 `trial` 이면 거짓 — 시험 실행만 하고 반복 · 알림은 기록이 남는 실행 몫이라 안 그린다. 모바일 웹 실행 위치는 시험 실행도 따른다 (도메인/인증 §3.5 「테스트 모드」 · 2026-11-05 WEB-F9-11) */
   정식?: boolean;
   /** 「실패 1건 다시 실행」의 원래 실행 — 정식 실행 시작 확인 창이 그 실행에 붙는지 읽는다 */
   원래실행?: number;
@@ -112,7 +112,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
   const 너무많나 = 넘었나(건수);
   const [android, 모바일] = [안드로이드있나(돌릴것), 모바일있나(돌릴것)];
   // 「시험 실행」 — 기록 없이 한 건씩 차례로 (도메인/실행 §8.10)
-  const 시험 = use여러건시험({ 케이스들: 돌릴것, 고친값: 값.고친값, env, 알림: setNotice });
+  const 시험 = use여러건시험({ 케이스들: 돌릴것, 고친값: 값.고친값, env, mobileOn, 알림: setNotice });
   const { 줄, 빨갛나 } = 바닥한줄(t, { notice, 정식, 너무많나, 건수, 사유 });
 
   /** 서버가 칸별 사유를 주면 그 칸 아래에 붙인다. 아니면 창의 한 줄로 (SPEC §8.2) */
@@ -204,7 +204,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
       <중단확인 시험={시험} />
       {시험.보기 !== 'edit' ? <시험화면 시험={시험} 케이스들={돌릴것} 한건={한건 !== null} /> : (<>
       <머리줄 디바이스={디바이스}service={service} env={env} on서버={(값) => { 손댐(); setEnv(값); }} />
-      <RunLocation android={android} 앱종류={service?.kind} 모바일={모바일 && 정식 ? { 값: mobileOn, on바꿈: (값) => { 손댐(); setMobileOn(값); } } : undefined} />
+      <RunLocation android={android} 앱종류={service?.kind} 모바일={모바일 ? { 값: mobileOn, on바꿈: (값) => { 손댐(); setMobileOn(값); } } : undefined} />
       {한건 === null ? null : (
         <한건머리
           케이스={한건}
