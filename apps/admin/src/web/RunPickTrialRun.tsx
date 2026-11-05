@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { api, type CaseRow, type Platform, type TrialResult } from './api.js';
+import { 원문보기, 실패이유 } from './FailureWhy.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import { 분초, 시분 } from './perfRunView.js';
@@ -203,15 +204,18 @@ function 판정({ 줄 }: { 줄: 시험줄 }) {
 
 function 까닭({ 줄 }: { 줄: 시험줄 }) {
   const t = use말();
-  if (줄.종류 === 'notice') return <span className="why">{줄.글}</span>;
+  if (줄.종류 === 'notice') return <div className="why">{줄.글}</div>;
   if (줄.종류 !== 'done' || 줄.결과.status === 'PASS' || 중단됐나(줄.결과)) return null;
   const 깨진 = 줄.결과.steps.find((s) => s.status === 'FAIL');
-  const 글 = 깨진?.error?.message ?? 줄.결과.error?.message;
+  // 서버는 한 줄을 항목 오류에서 먼저 고른다 — 원문도 항목 오류와 실패 단계 오류를 다 접어 둔다(같으면 하나)
+  const 원문 = [...new Set([줄.결과.error?.message, 깨진?.error?.message].map((글) => 글?.trim() ?? '').filter((글) => 글 !== ''))].join('\n\n');
+  // 서버가 준 안내 문장(러너에 못 닿음 따위)은 한 줄과 같다 — 같은 글을 접어 한 번 더 두지 않는다
   return (
-    <span className="why">
+    <div className="why">
       {깨진 === undefined ? null : <b>{t('{번호}단계 · {제목}', { 번호: 깨진.seq, 제목: 깨진.title })}</b>}
-      {글 === undefined ? null : <span>{글}</span>}
-    </span>
+      <실패이유 failure={줄.실패} />
+      <원문보기 글={원문 === 줄.실패?.reason ? null : 원문} />
+    </div>
   );
 }
 

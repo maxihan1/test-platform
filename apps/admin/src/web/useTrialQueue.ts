@@ -5,14 +5,14 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { api, ApiError, type Platform, type RunRequestItem, type TrialResult, type TrialStep } from './api.js';
+import { api, ApiError, type Platform, type RunRequestItem, type TrialResult, type TrialStep, type 항목실패 } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { message, 디바이스순서 } from './ui.js';
 
 export type 시험줄 =
   | { 종류: 'wait' }
   | { 종류: 'run' }
-  | { 종류: 'done'; 결과: TrialResult }
+  | { 종류: 'done'; 결과: TrialResult; 실패?: 항목실패 | null }
   | { 종류: 'notice'; 글: string }
   /** 중단해서 차례가 안 왔다 — 완료 창의 「실행 안 함」 (시안 7판 ⑤ ⑥) */
   | { 종류: 'skip' };
@@ -97,7 +97,7 @@ export function useTrialQueue(간격: number = 기본간격) {
         if (멈춤.current) return '';
         if (답.status === 'DONE') {
           링크(null);
-          쓴다(항목.tcId, platform, { 종류: 'done', 결과: 답.result });
+          쓴다(항목.tcId, platform, { 종류: 'done', 결과: 답.result, 실패: 답.failure ?? null });
           return null;
         }
         링크(답.vision?.url ?? null);

@@ -446,6 +446,22 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
     expect(끝).toMatchObject({ status: 'DONE', result: { status: 'NA', error: { message: '러너에 닿지 못했습니다' } } });
   });
 
+  it('실패하면 DONE 에 정식 실행과 같은 실패 유형과 한 줄을 싣고 통과면 null 이다', async () => {
+    러너응답 = () => ({
+      historyId: 1,
+      status: 'FAIL',
+      durationMs: 5,
+      steps: [{ seq: 6, title: '구매하기를 누른다', status: 'FAIL', durationMs: 1, assertions: [], error: { message: 'locator.click: Timeout' } }],
+      error: { message: 'Error: Can\'t call click on element with selector "id=buy_now_button" because element wasn\'t found' },
+    });
+    const 실패 = await 끝날때까지((await 시작(정상)).json<{ trialId: string }>().trialId);
+    expect(실패).toMatchObject({ status: 'DONE', failure: { type: 'notFound' } });
+    expect((실패.failure as { reason: string }).reason).toContain('buy_now_button');
+
+    러너응답 = () => ({ historyId: 1, status: 'PASS', durationMs: 5, steps: [] });
+    expect(await 끝날때까지((await 시작(정상)).json<{ trialId: string }>().trialId)).toMatchObject({ status: 'DONE', failure: null });
+  });
+
   it('응답 어디에도 비밀번호 원문이 없다', async () => {
     러너응답 = () => ({
       historyId: 1,

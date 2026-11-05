@@ -52,6 +52,10 @@ describe('원인을가른다', () => {
     expect(미실행('Device VISION 이 폰을 내주지 않았습니다: 다른 사용자(maxi)가 쓰는 중')).toBe('environment');
   });
 
+  it('앱(Appium) 이 요소를 못 찾아 누르지 못한 오류도 요소 미검출이다', () => {
+    expect(실패('Error: Can\'t call click on element with selector "id=buy_now_button" because element wasn\'t found')).toBe('notFound');
+  });
+
   it('기다리던 요소 이름에 「러너」가 들어 있어도 러너 고장이 아니라 요소 미검출이다', () => {
     expect(
       미실행('Test timeout of 30000ms exceeded.', "locator.click: Test timeout of 30000ms exceeded.\nCall log:\n  - waiting for getByText('러너 상태')"),

@@ -934,7 +934,8 @@ export interface TrialStep {
 
 export type TrialState =
   | { status: 'RUNNING'; vision?: { url: string }; step?: TrialStep }
-  | { status: 'DONE'; result: TrialResult };
+  /** failure 는 정식 실행 실패 카드와 같은 유형 · 한 줄이다. 통과 · 중단이면 null (도메인/실행 §7 「케이스 테스트 실행」) */
+  | { status: 'DONE'; result: TrialResult; failure?: 항목실패 | null };
 
 // 서버가 칸별 사유를 돌려준 것(400 INVALID_PARAMS)과 진짜 고장을 갈라야
 // 화면이 오류를 칸 아래에 붙일지 위에 붙일지 정할 수 있다 (SPEC §8.2)
