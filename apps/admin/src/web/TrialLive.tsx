@@ -30,7 +30,7 @@ const 폰묻는간격 = 1000;
 // 못 닿는 동안은 천천히 묻는다 — 꺼진 러너에 칸마다 1초에 네 번씩 두드리지 않게
 const 못닿을때간격 = 2000;
 
-function use장면(주소: string | null, 도는중: boolean, 앱폰: boolean) {
+export function use장면(주소: string | null, 도는중: boolean, 앱폰: boolean) {
   const [그림, set그림] = useState<string | null>(null);
   // 마지막 그림이 Appium 폰 장면(PNG)인가 — 섞인 E2E 의 앱 · 게임 단계도 폰 칸 이름과 1초 간격을 쓴다
   const [폰그림, set폰그림] = useState(false);

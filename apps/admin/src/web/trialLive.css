@@ -170,3 +170,116 @@
     margin: 12px 16px 0;
   }
 }
+
+/* 정식 실행 진행 창의 화면 카드 (RunLiveCards.tsx · 시안 7판 ⑦) — 카드가 뜬 동안만 상자를 넓힌다.
+   넓은 상자(.modal.wide 1400px)는 표가 드는 상자 몫이라 쓰지 않는다. 끝나면 숫자와 목록뿐이라 좁은 상자로 돌아간다 */
+.modal:has(.livecards) {
+  max-width: 760px;
+}
+
+.livecards {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  /* 카드 높이를 맞춰 늘이지 않는다 — PC 카드가 폰 카드 키를 따라가 아래가 빈다 */
+  align-items: start;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.livecards.two {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.lc {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.lc > .live-head {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.lc-tag {
+  font-size: 12px;
+  color: var(--ink-muted);
+  background: var(--well);
+  border-radius: 999px;
+  padding: 0 8px;
+}
+
+.lc-scene {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 10px;
+  background: var(--well);
+}
+
+.lc-scene > .live-shot,
+.lc-scene > .live-wait {
+  width: 100%;
+}
+
+.lc-scene .live-shot img {
+  max-height: 260px;
+}
+
+.lc.big .lc-scene .live-shot img {
+  max-height: 60vh;
+}
+
+/* 모바일 장면은 세로라 폰 모양 테두리 안에 좁게 세운다 */
+.lc-scene > .live-shot.lc-phone {
+  width: auto;
+  max-width: 180px;
+  border: 6px solid var(--line-2);
+  border-radius: 20px;
+}
+
+.lc.big .lc-scene > .live-shot.lc-phone {
+  max-width: 320px;
+}
+
+.lc-zoom {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+}
+
+/* 장면 그림 위에 뜨는 단추라 바탕을 칠한다 — 어두운 테마에서 투명 단추의 밝은 글자가 밝은 장면에 묻혔다 */
+.lc-zoom.btn.ghost {
+  background: var(--panel);
+}
+
+.lc-foot {
+  display: grid;
+  gap: 2px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  border-top: 1px solid var(--line);
+}
+
+.lc-st {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.lc-st .lim {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+}
+
+@media (max-width: 760px) {
+  .livecards.two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

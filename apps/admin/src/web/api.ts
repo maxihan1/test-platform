@@ -354,7 +354,13 @@ export interface 다시실행 {
  * 러너가 지금 어느 절차에 서 있는지. `timeoutMs` 는 러너가 아니라 admin 이 붙인다 —
  * 절차 경과만으로는 「느린 것」과 「멈춘 것」을 가를 수 없어 화면이 견줄 상한이 같이 와야 한다
  */
-export type 항목진행 = RunningStep & { timeoutMs: number };
+export type 항목진행 = RunningStep & {
+  timeoutMs: number;
+  /** 장면을 찍는 항목인가(브라우저를 여는 desktop · mobile). 옛 가짜 응답을 안 고치려고 선택으로 둔다 (도메인/실행 §7 `GET /api/runs/:runId/progress`) */
+  live?: boolean;
+  /** 그 항목이 잡은 폰의 Device VISION 화면. 폰을 잡았을 때만 온다 */
+  vision?: { url: string };
+};
 
 export interface RunItemDetail extends RunItemSummary {
   runId: number;
@@ -1222,6 +1228,9 @@ export const api = {
 
   /** 지금 도는 절차들. 상세 조회와 별개다 — 상세는 DB 를, 이쪽은 러너의 지금을 본다 (SPEC §7) */
   progress: (runId: number) => call<{ items: 항목진행[]; remainingMs: number | null }>(`/runs/${runId}/progress`),
+
+  /** 도는 정식 실행 항목의 장면 한 장 주소 — 화면 카드가 되풀이해 받는다 (도메인/실행 §7) */
+  itemLive: (runId: number, historyId: number) => `/api/runs/${runId}/items/${historyId}/live`,
 
   /** 본문 위 알림 줄과 서랍의 재료. 서비스 고르개와 상관없이 볼 수 있는 서비스 전체다 */
   notifications: () => call<NoticeResponse>('/notifications'),

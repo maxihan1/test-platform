@@ -203,8 +203,7 @@ describe('RunProgressModal (SPEC §8.9)', () => {
       <RunProgressModal data={도는중실행} 진행목록={[절차(13, 4, '장바구니에 담는다', 12000)]} onClose={() => {}} />,
     );
 
-    expect(본문()).toContain('절차 4');
-    expect(본문()).toContain('장바구니에 담는다');
+    expect(본문()).toContain('4단계 · 장바구니에 담는다');
   });
 
   it('머문 시간과 제한 시간을 함께 적고 밀리초 숫자를 그대로 내지 않는다', () => {
@@ -234,11 +233,11 @@ describe('RunProgressModal (SPEC §8.9)', () => {
       />,
     );
 
-    expect(document.querySelectorAll('.now-step').length).toBe(2);
+    expect(document.querySelectorAll('.lc').length).toBe(2);
     expect(본문()).toContain('케이스 13');
     expect(본문()).toContain('케이스 14');
-    expect(본문()).toContain('절차 1');
-    expect(본문()).toContain('절차 2');
+    expect(본문()).toContain('1단계 · 로그인한다');
+    expect(본문()).toContain('2단계 · 검색한다');
     expect(본문()).toContain('1분 1초 경과');
   });
 
