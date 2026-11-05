@@ -223,7 +223,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
                 <span className="nm">{c.name}</span>
                 {/* 여러 건이면 디바이스는 케이스가 선언한 것을 전부 쓴다. 여기서 고르지 않는다 (SPEC §8.10) */}
                 <span className="dev">{c.platforms.map((p) => PLATFORM_LABEL[p]).join(' · ')}</span>
-                <시험배지 줄={시험줄} />
+                <시험배지 칸들={시험줄} />
                 {/* 여러 건이면 값을 접어 두고 이 단추로 편다 — 「실행」을 가깝게 둔다 (도메인/실행 §8.10 · styles.css) */}
                 {한건 !== null || !값있나 ? null : (
                   <button type="button" className="btn small ghost prow-fold" aria-expanded={펼친.has(c.tcId)} onClick={() => 뒤집기(c.tcId)}>
@@ -231,7 +231,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
                   </button>
                 )}
               </div>
-              {한건 !== null && 시험줄?.종류 === 'done' ? <시험절차 결과={시험줄.결과} /> : null}
+              {한건 !== null ? <시험절차 칸들={시험줄} /> : null}
               {!값있나 || 칸 === undefined ? (
                 <p className="prow-none">{t('입력값 없음')}</p>
               ) : (

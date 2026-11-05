@@ -262,8 +262,8 @@ describe('RunPickModal 테스트 실행', () => {
     fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'zpm-tester' } });
     fireEvent.click(테스트버튼());
 
-    await waitFor(() => expect(screen.getAllByText('통과')).toHaveLength(2), { timeout: 5000 });
-    expect(시작.mock.calls.map(([id]) => id)).toEqual(['ZPM-001', 'ZPM-002']);
+    await waitFor(() => expect(screen.getAllByText('통과')).toHaveLength(3), { timeout: 5000 });
+    expect(시작.mock.calls.map(([id, body]) => `${id} ${body.platform}`)).toEqual(['ZPM-001 desktop', 'ZPM-001 mobile', 'ZPM-002 desktop']);
     expect(시작).toHaveBeenCalledWith('ZPM-002', expect.objectContaining({ platform: 'desktop', env: 'qa', params: { userId: 'zpm-tester' } }));
   });
 
@@ -288,9 +288,11 @@ describe('RunPickModal 테스트 실행', () => {
 
   it('도는 중에 또 누르면 안내하고 큐가 끝나면 그 안내를 걷는다', async () => {
     vi.spyOn(api, 'startTrial').mockResolvedValue({ trialId: 't' });
+    const 끝 = { status: 'DONE' as const, result: { status: 'PASS' as const, durationMs: 1, steps: [] } };
+    let 풀림 = false;
     let 풀기!: () => void;
-    vi.spyOn(api, 'getTrial').mockImplementation(
-      () => new Promise((ok) => { 풀기 = () => ok({ status: 'DONE', result: { status: 'PASS', durationMs: 1, steps: [] } }); }),
+    vi.spyOn(api, 'getTrial').mockImplementation(() =>
+      풀림 ? Promise.resolve(끝) : new Promise((ok) => { 풀기 = () => { 풀림 = true; ok(끝); }; }),
     );
     그리기([값없는케이스]);
 

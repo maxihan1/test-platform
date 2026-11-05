@@ -2928,6 +2928,26 @@ input[type='file']::file-selector-button {
   text-align: right;
 }
 
+/* 디바이스가 둘 이상인 케이스의 배지 묶음 — 「PC 통과 3초 · 모바일 실행 중」 (RunPickTrial 시험배지) */
+.trial-badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 2px 14px;
+  justify-self: end;
+}
+
+.trial-dev {
+  color: var(--ink-muted);
+}
+
+.trial-steps-head {
+  margin: 6px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
 .trial-badge.dim {
   color: var(--ink-faint);
 }
