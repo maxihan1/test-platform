@@ -9,7 +9,7 @@ import type { ExecuteRequest, ScenarioExecuteRequest } from '@platform/kit';
 import { 케이스판 } from '../apidoc/caseDoc.js';
 
 import { 항목화면 } from './live.js';
-import { callRunner, callScenarioRunner, httpTimeoutMs, 러너에보낸다, 진행 } from './runner.js';
+import { callRunner, callScenarioRunner, httpTimeoutMs, 러너에보낸다, 시험진행, 진행 } from './runner.js';
 import type { PendingItem } from './store.js';
 
 // 화면 애플리케이션 케이스로 둔다 — API 케이스 검사가 저마다 바꿔 낀다
@@ -338,5 +338,18 @@ describe('진행', () => {
     process.env.RUNNER_URL = 'http://127.0.0.1:9';
 
     expect(await 진행()).toEqual([]);
+  });
+
+  it('시험 실행의 진행은 1초 넘게 늦는 러너를 기다리지 않고 빈 목록으로 낸다', async () => {
+    const app = Fastify();
+    app.get('/progress', async () => {
+      await new Promise((ok) => setTimeout(ok, 3_000));
+      return { items: [{ historyId: 42, seq: 1, title: '늦은 답', elapsedMs: 1 }] };
+    });
+    await 붙인다(app);
+    const 시작 = Date.now();
+
+    expect(await 시험진행()).toEqual([]);
+    expect(Date.now() - 시작).toBeLessThan(2_000);
   });
 });
