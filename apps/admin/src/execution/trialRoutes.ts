@@ -52,6 +52,7 @@ const body = z.object({
   env: z.string().default(''),
   params: z.record(z.string(), z.unknown()).default({}),
   expected: z.record(z.string(), z.unknown()).default({}),
+  mobileOn: z.enum(['server', 'vision']).default('server'), // 실행 창의 「가상 기기 · 실제 기기」 — 정식 실행 요청과 같은 이름 · 값 (도메인/실행 §3.2)
 });
 
 async function 케이스행(tcId: string): Promise<{ platforms: string[]; file_path: string } | null> {
@@ -158,7 +159,7 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
   app.post<{ Params: { tcId: string } }>('/cases/:tcId/test-run', async (req, reply) => {
     const parsed = body.safeParse(req.body);
     if (!parsed.success) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
-    const { platform, env } = parsed.data;
+    const { platform, env, mobileOn } = parsed.data;
 
     const { tcId } = req.params;
     const 행 = await 케이스행(tcId);
@@ -201,9 +202,8 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
       ...(줄.apiAuths.length > 0 && { apiAuths: 줄.apiAuths }),
     };
     const 폰씀 = platform === 'android';
-    // 테스트 모드의 모바일 웹은 늘 실제 폰이다 — 팜이 없는 서버만 서버 흉내로 돈다 (도메인/실행 §3.2 「테스트 모드」)
-    const 폰Chrome = platform === 'mobile' && 팜주소() !== undefined;
-    if (폰씀 && 팜주소() === undefined) {
+    const 폰Chrome = platform === 'mobile' && mobileOn === 'vision'; // 실행 창에서 고른 곳 — 실제 기기는 팜이 있어야 한다(정식 실행과 같은 409 · 도메인/실행 §3.2 「테스트 모드」)
+    if ((폰씀 || 폰Chrome) && 팜주소() === undefined) {
       return reply.code(409).send({ error: 'FARM_OFF', detail: '이 서버에는 Device VISION(DEVICE_FARM_URL)이 연결되어 있지 않습니다' });
     }
     // 같은 디바이스에 연결 둘이 겹치면 뒤 연결이 앞을 가로챈다. 검증 전에 잡으면 400 경로에서 디바이스가 재기동 때까지 잠긴다
