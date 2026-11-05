@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { type Browser, chromium } from '@playwright/test';
+import { type Browser, chromium, type Page } from '@playwright/test';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { 장면걸기, 장면쓰개, 폰장면걸기 } from './live.js';
@@ -161,6 +161,70 @@ describe('장면걸기 (브라우저)', () => {
       await vi.waitFor(() => expect(existsSync(파일)).toBe(true), { timeout: 5000 });
       await 장면?.끄기();
       expect(statSync(영상).size).toBeGreaterThan(0);
+    } finally {
+      await page.close();
+    }
+  });
+
+  it.each([
+    ['장면이 한 장도 안 오는 브라우저', (page: Page) => vi.spyOn(page.screencast, 'start').mockResolvedValue({ [Symbol.asyncDispose]: async () => {} } as never)],
+    ['장면 걸기가 실패하는 브라우저', (page: Page) => vi.spyOn(page.screencast, 'start').mockRejectedValue(new Error('Page.startScreencast 없음'))],
+  ])('%s(실제 폰 Chrome)는 탭을 직접 찍어 같은 파일에 JPEG 로 쓴다 — 끄면 더 안 찍고 파일을 지운다', async (_이름, 막기) => {
+    const 파일 = join(폴더, 'live', '0b7e2c1a-0000-4000-8000-000000000020.jpg');
+    const page = await browser.newPage();
+    const 경고 = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      막기(page);
+      const 찍기 = vi.spyOn(page, 'screenshot');
+      await page.setContent('<p>장면이 안 오는 탭</p>');
+      const 장면 = await 장면걸기(page, 파일, undefined, { 첫장ms: 30, 찍기ms: 30 });
+
+      await vi.waitFor(() => expect(readFileSync(파일).subarray(0, 3)).toEqual(Buffer.from([0xff, 0xd8, 0xff])), { timeout: 5000 });
+      await vi.waitFor(() => expect(찍기.mock.calls.length).toBeGreaterThanOrEqual(2), { timeout: 5000 });
+      await 장면?.끄기();
+      const 찍은수 = 찍기.mock.calls.length;
+      await new Promise((끝) => setTimeout(끝, 100));
+
+      expect(찍기.mock.calls.length).toBe(찍은수);
+      expect(existsSync(파일)).toBe(false);
+      expect(경고.mock.calls.some(([글]) => String(글).startsWith('[kit]'))).toBe(true);
+    } finally {
+      경고.mockRestore();
+      await page.close();
+    }
+  });
+
+  it('장면이 오는 브라우저는 탭을 따로 찍지 않는다', async () => {
+    const 파일 = join(폴더, 'live', '0b7e2c1a-0000-4000-8000-000000000021.jpg');
+    const page = await browser.newPage();
+    try {
+      const 찍기 = vi.spyOn(page, 'screenshot');
+      const 장면 = await 장면걸기(page, 파일, undefined, { 첫장ms: 1_000, 찍기ms: 30 });
+      await page.setContent('<p>장면이 오는 탭</p>');
+      await vi.waitFor(() => expect(existsSync(파일)).toBe(true), { timeout: 5000 });
+      await new Promise((끝) => setTimeout(끝, 1_200));
+      await 장면?.끄기();
+
+      expect(찍기).not.toHaveBeenCalled();
+    } finally {
+      await page.close();
+    }
+  });
+
+  it('멈추면 장면 파일은 남기고 더 안 쓴다 — 실제 폰 Chrome 고정물은 영상만 마무리한다', async () => {
+    const 파일 = join(폴더, 'live', '0b7e2c1a-0000-4000-8000-000000000022.jpg');
+    const page = await browser.newPage();
+    try {
+      vi.spyOn(page.screencast, 'start').mockResolvedValue({ [Symbol.asyncDispose]: async () => {} } as never);
+      const 찍기 = vi.spyOn(page, 'screenshot');
+      const 장면 = await 장면걸기(page, 파일, undefined, { 첫장ms: 30, 찍기ms: 30 });
+      await vi.waitFor(() => expect(existsSync(파일)).toBe(true), { timeout: 5000 });
+      await 장면?.멈추기();
+      const 찍은수 = 찍기.mock.calls.length;
+      await new Promise((끝) => setTimeout(끝, 100));
+
+      expect(찍기.mock.calls.length).toBe(찍은수);
+      expect(existsSync(파일)).toBe(true);
     } finally {
       await page.close();
     }

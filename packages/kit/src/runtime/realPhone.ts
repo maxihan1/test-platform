@@ -94,7 +94,7 @@ export function 실제폰테스트() {
       const 찍기 = await 장면걸기(page, process.env.PLATFORM_LIVE_FILE, process.env.PLATFORM_PHONE_VIDEO || undefined);
       await use(주소를푼다(context, page, baseURL));
       // 영상을 마무리하려고 멈추기만 한다 — 장면 파일은 러너가 실행 끝에 지운다
-      if (찍기 !== undefined) await page.screencast.stop().catch((err: unknown) => console.warn(`[kit] 폰 화면 영상을 못 마쳤다: ${글(err)}`));
+      await 찍기?.멈추기();
     },
   });
 }
