@@ -70,6 +70,7 @@ export interface 장면 {
 export async function 장면걸기(page: Page, 파일 = process.env.PLATFORM_LIVE_FILE, 영상?: string): Promise<장면 | undefined> {
   if (!파일 && !영상) return undefined;
   const 쓰개 = 파일 ? 장면쓰개(파일) : undefined;
+  let 장면됨 = 쓰개 !== undefined;
   try {
     for (const 곳 of [파일, 영상]) if (곳) await mkdir(dirname(곳), { recursive: true });
     await page.screencast.start({
@@ -77,13 +78,18 @@ export async function 장면걸기(page: Page, 파일 = process.env.PLATFORM_LIV
       ...(영상 && { path: 영상 }),
     });
   } catch (err) {
-    console.warn(`[kit] 테스트 모드 장면을 못 걸었다: ${글(err)}`);
-    // 영상이 증적이다 — 장면과 같이 못 걸었으면 영상만 다시 건다
-    if (영상 && 쓰개 !== undefined) await page.screencast.start({ path: 영상 }).catch((e: unknown) => console.warn(`[kit] 폰 화면 영상을 못 걸었다: ${글(e)}`));
+    장면됨 = false;
+    console.warn(`[kit] ${쓰개 === undefined ? '폰 화면 영상' : '테스트 모드 장면'}을 못 걸었다: ${글(err)}`);
+    // 영상이 증적이다 — 장면과 같이 못 걸었으면 영상만 다시 건다. 그것도 못 걸면 멈출 것이 없다
+    const 영상됨 = 영상 && 쓰개 !== undefined && (await page.screencast.start({ path: 영상 }).then(() => true, (e: unknown) => (console.warn(`[kit] 폰 화면 영상을 못 걸었다: ${글(e)}`), false)));
+    if (!영상됨) {
+      await 쓰개?.닫기();
+      return undefined;
+    }
   }
   // 누른 곳 표시는 시험 실행(러너가 늦추기 값을 준 실행)의 서버 러너 브라우저에만 건다 — 정식 실행은 화면만 찍고,
   // 실제 폰 Chrome(PLATFORM_CDP_URL)에서는 확인하지 않았다 (러너 §5.2 「테스트 모드 — 실시간 장면」)
-  if (쓰개 !== undefined && Number(process.env.PLATFORM_SLOW_MO) > 0 && !process.env.PLATFORM_CDP_URL) {
+  if (장면됨 && Number(process.env.PLATFORM_SLOW_MO) > 0 && !process.env.PLATFORM_CDP_URL) {
     await page.screencast.showActions().catch((err: unknown) => console.warn(`[kit] 누른 곳 표시를 못 걸었다: ${글(err)}`));
   }
   return {

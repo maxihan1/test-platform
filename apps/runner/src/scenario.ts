@@ -54,7 +54,7 @@ export function scenarioEnv(req: ScenarioExecuteRequest, parts: readonly unknown
   const 시험 = req.runId === null;
   return {
     // 테스트 모드(장면 열쇠가 온 시험 실행)만 동작마다 1초 쉬고 첫 탭의 장면을 쓴다. 창이 뜨는지는 안 본다 (SPEC 도메인/러너 §5.2 「테스트 모드 — 실시간 장면」)
-    ...장면환경(req.live, req.runId === null),
+    ...장면환경(req.live, 시험),
     PLATFORM_SCENARIO_MODE: '1',
     PLATFORM_SCENARIO: JSON.stringify(parts),
     PLATFORM_BASE_URL: req.baseUrl,
