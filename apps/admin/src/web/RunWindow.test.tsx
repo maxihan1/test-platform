@@ -131,11 +131,11 @@ describe('RunWindow', () => {
     expect(await screen.findByRole('dialog', { name: '실행' })).toBeTruthy();
   });
 
-  it('고른 것이 전부 비활성이면 돌릴 것이 없다는 말만 있는 창이 뜬다', async () => {
+  it('선택한 것이 전부 비활성이면 돌릴 것이 없다는 말만 있는 창이 뜬다', async () => {
     읽기모킹([케이스('ZRS-001', { isActive: false })]);
     render(<RunWindow tcIds={['ZRS-001']} onClose={vi.fn()} />);
 
-    expect(await screen.findByText('실행할 케이스가 없습니다. 고른 것이 전부 비활성이거나 걸러졌습니다')).toBeTruthy();
+    expect(await screen.findByText('실행할 케이스가 없습니다. 선택한 것이 전부 비활성이거나 걸러졌습니다')).toBeTruthy();
     expect(screen.queryByRole('button', { name: '실행' })).toBeNull();
   });
 

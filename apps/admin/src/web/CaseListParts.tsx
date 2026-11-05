@@ -110,7 +110,7 @@ export function 케이스줄({
           type="checkbox"
           checked={고름}
           // ID 만 읽으면 화면을 안 보는 사람에게는 무엇을 고르는지가 암호다
-          aria-label={t('{아이디} {이름} 고르기', { 아이디: row.tcId, 이름: row.name })}
+          aria-label={t('{아이디} {이름} 선택', { 아이디: row.tcId, 이름: row.name })}
           // 체크박스의 onChange 는 React 가 click 으로 받는다 — 원래 사건이 Shift 를 안다
           onChange={(e) => 뒤집기(row, (e.nativeEvent as MouseEvent).shiftKey === true)}
         />
