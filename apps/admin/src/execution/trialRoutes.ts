@@ -261,7 +261,8 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
     // 그 케이스의 시험만 읽는다 — 문은 주소의 tcId 로 권한을 봤다
     const 읽음 = 읽는다(req.user?.username ?? '알 수 없음', req.params.trialId, req.params.tcId);
     if (읽음 === null) return reply.code(404).send({ error: 'TRIAL_NOT_FOUND', detail: req.params.trialId });
-    // 정식 실행 실패 카드와 같은 유형 · 한 줄이다. 보관소가 결과를 이미 가려 두어 여기서는 다시 안 가린다
+    // 정식 실행 실패 카드와 같은 유형 · 한 줄이다. 보관소가 결과를 이미 가려 두어 여기서는 다시 안 가린다.
+    // ponytail: 가린 뒤에 색 코드를 걷는다 — 숫자 비밀(예: 31)이 색 코드 속 숫자를 덮으면 한 줄에 깨진 글자가 남는다(비밀은 안 샌다). 거슬리면 보관할 때 가르게 옮긴다
     if (읽음.status === 'DONE') {
       const r = 읽음.result;
       return { ...읽음, failure: 항목실패를가른다({ status: r.status, finished: true, error: r.error, steps: r.steps }, (글) => 글) };

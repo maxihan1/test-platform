@@ -3009,7 +3009,6 @@ input[type='file']::file-selector-button {
 /* 안내 글이 길어도 케이스 이름 칸을 누르지 않게 폭을 묶고 접는다 (2026-11-05 WEB-F9-10) */
 .trial-badge.err {
   max-width: 22em;
-  white-space: normal;
   color: var(--fail-text);
 }
 
@@ -3796,6 +3795,13 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
 
 .trial-step.fail {
   font-weight: 600;
+}
+
+/* 단계 오류 원문은 제목 옆이 아니라 그 아래 온 폭으로 접는다 — 긴 원문이 창을 넓히지 않게 (2026-11-05 WEB-F9-10) */
+.trial-step > details {
+  flex: 1 0 100%;
+  min-width: 0;
+  font-weight: 400;
 }
 
 /* E2E 시나리오 (도메인/시나리오 §8.11 · 실행 §8.7) */

@@ -24,6 +24,13 @@ describe('시험배지', () => {
     expect(container.querySelector('.verdict')).toBeTruthy();
   });
 
+  it('단계 없이 끝난 미실행은 서버 안내 문장을 그 칸에 둔다 — 값 창으로 돌아와도 까닭이 남는다', () => {
+    const 결과: TrialResult = { status: 'NA', durationMs: 10, steps: [], error: { message: '러너에 닿지 못했습니다' } };
+    render(<시험배지 칸들={[{ platform: 'desktop', 줄: { 종류: 'done', 결과 } }]} />);
+
+    expect(screen.getByText('러너에 닿지 못했습니다')).toBeTruthy();
+  });
+
   it('아직 안 돌렸으면 아무것도 그리지 않는다', () => {
     const { container } = render(<시험배지 칸들={undefined} />);
 

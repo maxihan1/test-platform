@@ -196,6 +196,22 @@ describe('완료 창', () => {
     expect(줄.querySelector('.nm')?.textContent).toBe('둘째 케이스');
   });
 
+  it('러너에 못 닿은 미실행은 서버 안내 문장을 실패 줄에 한 번만 두고 「원문 보기」를 안 단다', async () => {
+    const 못닿음: TrialResult = { status: 'NA', durationMs: 10, steps: [], error: { message: '러너에 닿지 못했습니다' } };
+    차례대로({
+      't-ZRS-001': [{ status: 'DONE', result: 통과, failure: null }],
+      't-ZRS-002': [{ status: 'DONE', result: 못닿음, failure: { type: 'environment', reason: '러너에 닿지 못했습니다' } }],
+    });
+    둘을연다();
+    시험시작();
+
+    await screen.findByRole('dialog', { name: '시험 실행 완료' }, { timeout: 4000 });
+    const 실패줄 = [...document.querySelectorAll('.trial-res .why')];
+    expect(실패줄).toHaveLength(1);
+    expect(within(실패줄[0] as HTMLElement).getAllByText('러너에 닿지 못했습니다')).toHaveLength(1);
+    expect(within(실패줄[0] as HTMLElement).queryByText('원문 보기')).toBeNull();
+  });
+
   it('「실행」은 정식 실행 시작 확인 창을 거쳐 같은 케이스를 걸고 값 창으로 돌아간다 — 거절 사유가 그 바닥에 뜬다', async () => {
     차례대로({ 't-ZRS-001': [{ status: 'DONE', result: 통과 }], 't-ZRS-002': [{ status: 'DONE', result: 통과 }] });
     const onRun = 둘을연다();
