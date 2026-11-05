@@ -8,7 +8,7 @@ import { use말, use언어 } from './i18n.js';
 import { type 고친값표, 실행항목 } from './pickRun.js';
 import { 장면칸 } from './TrialLive.js';
 import { PLATFORM_LABEL, seconds, Verdict } from './ui.js';
-import { type 디바이스칸, type 시험줄, type 지금시험, useTrialQueue } from './useTrialQueue.js';
+import { type 디바이스칸, 디바이스차례, type 시험줄, type 지금시험, useTrialQueue } from './useTrialQueue.js';
 
 /**
  * 실행 창의 「시험 실행」 상태와 동작을 한 벌로 든다. 위에서 고른 대상 서버로 서버 러너에서 돈다 —
@@ -66,14 +66,15 @@ export function 시험나눔({
   const 칸들 = 지금 === null ? [] : (줄들[지금.tcId] ?? []);
   const 차례 = 지금 !== null && 지금.전체 > 1 ? [`${지금.차례} / ${지금.전체}`] : [];
   const 디바이스 = 지금 !== null && 칸들.length > 1 ? [t(PLATFORM_LABEL[지금.platform])] : [];
+  const 첫디바이스 = 디바이스차례(케이스들[0]?.platforms ?? [])[0];
   const 부제 = 지금 === null ? '' : [...차례, [지금.tcId, 이름].filter((글) => 글 !== '').join(' '), ...디바이스].join(' · ');
   return (
     <div className="pick-split">
       <div className="pick-main">{children}</div>
       <div className="pick-live">
         {지금 === null ? (
-          // 누른 뒤 첫 시험이 시작되기 전 — 칸을 먼저 열어 기다린다고 알린다. 큐는 첫 케이스의 첫 디바이스부터 돈다
-          도는중 ? <장면칸 key="시작" 주소={null} 도는중 vision={null} 폰만={케이스들[0]?.platforms[0] === 'android'} /> : null
+          // 누른 뒤 첫 시험이 시작되기 전 — 칸을 먼저 열어 기다린다고 알린다. 큐는 첫 케이스의 디바이스차례 첫째부터 돈다
+          도는중 ? <장면칸 key="시작" 주소={null} 도는중 vision={null} 폰만={첫디바이스 === 'android'} 모바일웹={첫디바이스 === 'mobile'} /> : null
         ) : (
           <장면칸
             key={지금.trialId}

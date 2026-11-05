@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { api, ApiError, type Platform, type RunRequestItem, type TrialResult } from './api.js';
 import { use말, use언어 } from './i18n.js';
-import { message } from './ui.js';
+import { message, 디바이스순서 } from './ui.js';
 
 export type 시험줄 =
   | { 종류: 'wait' }
@@ -34,10 +34,9 @@ export interface 지금시험 {
 }
 
 const 기본간격 = 1500;
-const 차례표: Platform[] = ['desktop', 'mobile', 'android'];
 
-/** PC → 모바일 → Android 앱 차례 — 사람이 고른 순서와 상관없이 늘 같아야 줄의 칸과 도는 차례가 어긋나지 않는다 */
-export const 디바이스차례 = (platforms: readonly Platform[]): Platform[] => 차례표.filter((p) => platforms.includes(p));
+/** PC → 모바일 → Android 앱 차례 — 사람이 고른 순서와 상관없이 화면의 다른 디바이스 칩과 같은 차례로 돈다 */
+export const 디바이스차례 = (platforms: readonly Platform[]): Platform[] => 디바이스순서.filter((p) => platforms.includes(p));
 
 /** @param 간격 결과를 다시 묻는 주기(ms). 검사에서만 줄인다 */
 export function useTrialQueue(간격: number = 기본간격) {
@@ -115,11 +114,10 @@ export function useTrialQueue(간격: number = 기본간격) {
     set도는중(true);
     // 고른 디바이스를 차례로 다 돈다 — 앞 판은 첫째만 돌아 웹 케이스의 모바일이 안 돌았다 (도메인/실행 §8.2 「케이스 테스트 실행」)
     const 차례들 = 항목들.flatMap((항목) => 디바이스차례(항목.platforms).map((platform) => ({ 항목, platform })));
-    set줄들(
-      Object.fromEntries(
-        항목들.map((it) => [it.tcId, 디바이스차례(it.platforms).map((platform): 디바이스칸 => ({ platform, 줄: { 종류: 'wait' } }))]),
-      ),
-    );
+    // 줄의 칸도 같은 차례들에서 만든다 — 따로 세면 칸 차례와 도는 차례가 어긋날 수 있다
+    const 첫줄들: Record<string, 디바이스칸[]> = {};
+    for (const { 항목, platform } of 차례들) (첫줄들[항목.tcId] ??= []).push({ platform, 줄: { 종류: 'wait' } });
+    set줄들(첫줄들);
     // 지난번 장면은 걷는다 — 새 큐의 첫 장면이 오기 전까지 옛 케이스 화면이 남으면 지금 것으로 읽힌다
     set지금(null);
     try {
@@ -128,8 +126,13 @@ export function useTrialQueue(간격: number = 기본간격) {
         const { 항목, platform } = 차례들[i]!;
         const 멈춘글 = await 한번(항목, platform, env, i + 1, 차례들.length);
         if (멈춘글 === null) continue;
-        // 서버 전체에 걸린 사정이나 러너 고장이면 남은 칸도 돌릴 수 없다. 대기로 두면 영영 기다리는 것처럼 보인다
-        for (const 남은 of 차례들.slice(i + 1)) 쓴다(남은.항목.tcId, 남은.platform, { 종류: 'notice', 글: 멈춘글 });
+        // 서버 전체에 걸린 사정이나 러너 고장이면 남은 칸도 돌릴 수 없다. 대기로 두면 영영 기다리는 것처럼 보인다.
+        // 같은 케이스의 남은 디바이스에 「앞 케이스」라고 적으면 없는 앞 케이스를 찾게 된다
+        const 앞오류 = t('앞 케이스 오류로 실행하지 않았습니다');
+        for (const 남은 of 차례들.slice(i + 1)) {
+          const 글 = 멈춘글 === 앞오류 && 남은.항목.tcId === 항목.tcId ? t('앞 디바이스 오류로 실행하지 않았습니다') : 멈춘글;
+          쓴다(남은.항목.tcId, 남은.platform, { 종류: 'notice', 글 });
+        }
         break;
       }
     } finally {

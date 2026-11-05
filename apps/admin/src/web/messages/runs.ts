@@ -22,6 +22,7 @@ export const 실행말: Record<string, string> = {
   '대기': 'Waiting',
   '실행 중': 'Running',
   '앞 케이스 오류로 실행하지 않았습니다': 'Not run because of an error in an earlier case',
+  '앞 디바이스 오류로 실행하지 않았습니다': 'Not run because of an error on an earlier device',
   '시험 실행할 대상 서버를 선택하세요.': 'Select a target server for the trial run.',
   '이미 시험 실행이 돌고 있습니다': 'A trial run is already in progress',
   '그중 미확정 {수}건': 'Of these, {수} unconfirmed',
