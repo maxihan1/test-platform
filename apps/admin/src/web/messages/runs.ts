@@ -403,6 +403,7 @@ export const 실행말: Record<string, string> = {
   '마지막 화면': 'Last frame',
   '폰 화면': 'Phone screen',
   '서버 브라우저': 'Server browser',
+  'Device VISION 폰': 'Device VISION phone',
   'Device VISION 에서 보기 ↗': 'View in Device VISION ↗',
   '빈 폰을 잡고 있습니다': 'Taking a free phone',
   '폰 화면을 기다리고 있습니다': 'Waiting for the phone screen',

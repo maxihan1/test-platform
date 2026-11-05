@@ -132,6 +132,28 @@ describe('장면칸', () => {
     expect(screen.getByText('지금은 앱 단계라 폰에서 실행 중입니다')).toBeTruthy();
   });
 
+  it('섞인 E2E 의 앱 단계에서 폰 장면(PNG)이 오면 「폰 화면」 · 「Device VISION 폰」으로 바꾸고 1초마다 묻는다', async () => {
+    const 받기 = vi
+      .spyOn(장면통로, '받기')
+      .mockResolvedValueOnce(그림())
+      .mockResolvedValue({ 종류: 'frame', 그림: new Blob(['png'], { type: 'image/png' }) });
+    render(<장면칸 주소={주소} 도는중 vision="https://vision.example/#phone=R3C&view=k1" />);
+    await 흘리기();
+    expect(screen.getByText('서버 브라우저')).toBeTruthy();
+
+    await 흘리기(250);
+    expect(screen.getByText('폰 화면')).toBeTruthy();
+    expect(screen.getByText('Device VISION 폰')).toBeTruthy();
+    expect(screen.getByRole('img').getAttribute('alt')).toBe('폰의 지금 화면');
+    expect(screen.queryByText('누른 곳을 표시하며 동작마다 1초씩 쉬어 갑니다')).toBeNull();
+    expect(받기).toHaveBeenCalledTimes(2);
+
+    await 흘리기(250);
+    expect(받기).toHaveBeenCalledTimes(2);
+    await 흘리기(750);
+    expect(받기).toHaveBeenCalledTimes(3);
+  });
+
   it('폰을 잡았어도 첫 장면이 오기 전에는 앱 단계라고 단정하지 않는다 — 폰은 시나리오 내내 잡혀 있다', async () => {
     vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'empty' });
     render(<장면칸 주소={주소} 도는중 vision="https://vision.example/#phone=R3C&view=k1" />);

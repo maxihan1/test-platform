@@ -30,8 +30,10 @@ const 폰묻는간격 = 1000;
 // 못 닿는 동안은 천천히 묻는다 — 꺼진 러너에 칸마다 1초에 네 번씩 두드리지 않게
 const 못닿을때간격 = 2000;
 
-function use장면(주소: string | null, 도는중: boolean, 간격: number) {
+function use장면(주소: string | null, 도는중: boolean, 앱폰: boolean) {
   const [그림, set그림] = useState<string | null>(null);
+  // 마지막 그림이 Appium 폰 장면(PNG)인가 — 섞인 E2E 의 앱 · 게임 단계도 폰 칸 이름과 1초 간격을 쓴다
+  const [폰그림, set폰그림] = useState(false);
   // 마지막 답이 「장면 없음」이었나 — E2E 는 앱 · 게임 단계를 열고 폰 장면이 오기 전까지 장면이 없다
   const [비었나, set비었나] = useState(false);
   const [못닿음, set못닿음] = useState(false);
@@ -49,6 +51,7 @@ function use장면(주소: string | null, 도는중: boolean, 간격: number) {
     if (주소 === null || !도는중) return;
     let 멈춤 = false;
     let 타이머: ReturnType<typeof setTimeout> | undefined;
+    let 폰장 = 앱폰;
     // 앞 물음이 끝나야 다음을 묻는다 — 느린 망에서 물음이 겹쳐 쌓이지 않게
     const 받기 = async () => {
       const 답 = await 장면통로.받기(주소);
@@ -60,18 +63,20 @@ function use장면(주소: string | null, 도는중: boolean, 간격: number) {
         if (지금그림.current !== null) URL.revokeObjectURL(지금그림.current);
         지금그림.current = 새;
         set그림(새);
+        폰장 = 앱폰 || 답.그림.type === 'image/png';
+        set폰그림(폰장);
       }
       if (답.종류 !== 'unreachable') set비었나(답.종류 === 'empty');
-      타이머 = setTimeout(() => void 받기(), 답.종류 === 'unreachable' ? 못닿을때간격 : 간격);
+      타이머 = setTimeout(() => void 받기(), 답.종류 === 'unreachable' ? 못닿을때간격 : 폰장 ? 폰묻는간격 : 묻는간격);
     };
     void 받기();
     return () => {
       멈춤 = true;
       clearTimeout(타이머);
     };
-  }, [주소, 도는중, 간격]);
+  }, [주소, 도는중, 앱폰]);
 
-  return { 그림, 비었나, 못닿음: 못닿음 && 도는중 };
+  return { 그림, 폰그림, 비었나, 못닿음: 못닿음 && 도는중 };
 }
 
 interface Props {
@@ -80,7 +85,7 @@ interface Props {
   도는중: boolean;
   /** VISION 이 폰을 잡은 동안 그 폰 화면 주소. 서버가 http(s) 만 싣는다 */
   vision: string | null;
-  /** 칸 머리 둘째 글. 없으면 「서버 브라우저」 — 실행 창은 몇째 케이스인지 적는다 */
+  /** 칸 머리 둘째 글. 없으면 「서버 브라우저」(폰 장면이면 「Device VISION 폰」) — 실행 창은 몇째 케이스인지 적는다 */
   부제?: string;
   /**
    * Android 앱 · 게임 케이스 — 러너가 Appium 으로 1초쯤마다 찍은 폰 화면이 온다(러너 §5.2 「테스트 모드 — 실시간 장면」).
@@ -98,8 +103,8 @@ interface Props {
 export function 장면칸({ 주소, 도는중, vision, 부제, 폰만: 앱폰 = false, 모바일웹 = false }: Props) {
   const t = use말();
   const 실제폰웹 = 모바일웹 && vision !== null;
-  const 폰칸 = 앱폰 || 실제폰웹;
-  const { 그림, 비었나, 못닿음 } = use장면(주소, 도는중, 앱폰 ? 폰묻는간격 : 묻는간격);
+  const { 그림, 폰그림, 비었나, 못닿음 } = use장면(주소, 도는중, 앱폰);
+  const 폰칸 = 앱폰 || 실제폰웹 || 폰그림;
   if (!도는중 && 그림 === null) return null;
   // 섞인 E2E 의 앱 단계를 열고 첫 폰 장면이 오기 전 — 마지막 웹 장면을 흐리게 둔다. E2E 는 창 하나라 웹 장면이 한 번 온 뒤의 「장면 없음」은 폰 단계뿐이다.
   // 폰은 시나리오 내내 잡혀 있어 장면이 오기 전에는 폰 단계인지 첫 웹 단계를 기다리는 중인지 모른다
@@ -110,7 +115,7 @@ export function 장면칸({ 주소, 도는중, vision, 부제, 폰만: 앱폰 = 
       <div className="live-head">
         {도는중 ? <span className="pulse" aria-hidden="true" /> : null}
         <b>{!도는중 ? t('마지막 화면') : 폰칸 ? t('폰 화면') : t('실시간 화면')}</b>
-        <span className="live-sub">{부제 ?? (실제폰웹 ? t('실제 폰 Chrome') : t('서버 브라우저'))}</span>
+        <span className="live-sub">{부제 ?? (실제폰웹 ? t('실제 폰 Chrome') : 폰그림 ? t('Device VISION 폰') : t('서버 브라우저'))}</span>
         {vision === null ? null : (
           <a className="btn small ghost live-vision" href={vision} target="_blank" rel="noreferrer">
             {t('Device VISION 에서 보기 ↗')}
