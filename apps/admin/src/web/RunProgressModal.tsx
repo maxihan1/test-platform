@@ -9,8 +9,9 @@ import { groupByCase, 회차요약 } from './group.js';
 import { t, use말, use언어, type 언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import { 항목실행번호 } from './RerunTag.js';
+import { 기록띠, 진행중카드들 } from './RunLiveCards.js';
 import { type RunDetail, type 진행막대, 진행상황 } from './runProgress.js';
-import { 실행남은글, 시간글자 } from './remainText.js';
+import { 실행남은글 } from './remainText.js';
 import { 도는중, 미실행사유 } from './runState.js';
 import { STATUS_LABEL } from './ui.js';
 import { 그중미확정글 } from './unconfirmed.js';
@@ -92,34 +93,6 @@ function 판정칸들({ 칸들 }: { 칸들: ReturnType<typeof 막대칸들> }) {
   );
 }
 
-/** 지금 도는 항목 하나. 이름 줄과 절차 줄이 한 덩어리다 */
-function 도는줄({ 항목, 절차 }: { 항목: RunItemSummary; 절차: 항목진행 | null }) {
-  const t말 = use말();
-  const 언어 = use언어();
-
-  return (
-    <div className="pre">
-      <div className="one-line">
-        {항목.tcId} {항목.tcName}
-      </div>
-      {/* 절차를 모를 때는 줄을 **아예 두지 않는다.** 빈 자리를 잡아 두면 2초마다 다시 묻는 이 화면에서
-          절차가 왔다 갔다 할 때 상자 높이가 같이 튄다. 이름 줄과 붙여 둬서 덩어리만 짧아진다 */}
-      {절차 === null ? null : (
-        <div className="now-step">
-          <span className="one-line">
-            {t말('절차 {번호}', { 번호: 절차.seq })} · {절차.title}
-          </span>
-          {/* 분모 없는 순번은 진행이 아니라 그냥 번호로 읽힌다. 진행을 실제로 말하는 것은
-              2초마다 바뀌는 경과라 순번보다 크게 두고, 제한과 나란히 둬야
-              「느린 것」과 「멈춘 것」이 갈린다 (게이트 1 화면 규칙) */}
-          <b>{t말('{시간} 경과', { 시간: 시간글자(절차.elapsedMs, 언어) })}</b>
-          <span className="lim">/ {t말('제한 {시간}', { 시간: 시간글자(절차.timeoutMs, 언어) })}</span>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function 진행내용({ data, 진행목록, 남은ms }: { data: RunDetail; 진행목록: 항목진행[]; 남은ms: number | null }) {
   const t말 = use말();
   const 언어 = use언어();
@@ -152,9 +125,7 @@ function 진행내용({ data, 진행목록, 남은ms }: { data: RunDetail; 진�
           {/* 「실행 중: X」라고 쓰지 않는다. 항목 둘이 동시에 돌아(EXECUTION_CONCURRENCY 기본 2)
               여기 뜨는 것이 전부라는 보장이 없다 — 단정하면 없는 확실함을 만든다 (runProgress.ts) */}
           <div className="sec-h">{t말('진행 중')}</div>
-          {지금도는것들.map(({ 항목, 절차 }) => (
-            <도는줄 key={항목.historyId} 항목={항목} 절차={절차} />
-          ))}
+          <진행중카드들 runId={data.runId} 것들={지금도는것들} />
         </div>
       )}
 
@@ -313,7 +284,12 @@ export function RunProgressModal({
         )
       }
     >
-      {도는가 ? <진행내용 data={data} 진행목록={진행목록} 남은ms={남은ms} /> : <>{덧붙임}<완료내용 data={data} onClose={onClose} /></>}
+      {도는가 ? (
+        <>
+          <기록띠 data={data} />
+          <진행내용 data={data} 진행목록={진행목록} 남은ms={남은ms} />
+        </>
+      ) : <>{덧붙임}<완료내용 data={data} onClose={onClose} /></>}
     </Modal>
   );
 }

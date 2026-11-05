@@ -277,7 +277,6 @@ export const 실행말: Record<string, string> = {
   '남은 시간 계산 중': 'Estimating time left',
   '1분 미만 남음': 'Under 1 min left',
   '약 {시간} 남음 · {시각} 종료 예상': 'About {시간} left · expected to end {시각}',
-  '절차 {번호}': 'Step {번호}',
   '{시간} 경과': '{시간} elapsed',
   '제한 {시간}': 'limit {시간}',
   '{초}초': '{초}s',
@@ -428,6 +427,14 @@ export const 실행말: Record<string, string> = {
   '환경 문제로 닫힘': 'Closed: environment problem',
   '중복으로 닫힘': 'Closed: duplicate',
   '재검증 통과로 닫힘': 'Closed: passed recheck',
+  // 정식 실행 진행 창 맨 위 띠 · 화면 카드 (RunProgressModal.tsx · RunLiveCards.tsx · 시안 7판 ⑦)
+  '정식 실행': 'Run',
+  '끝나면 실행 기록에 RUN {번호} 로 남습니다': 'When it ends, it is saved to run history as RUN {번호}',
+  '끝나면 RUN {번호} 결과에 다시 실행으로 추가됩니다': 'When it ends, it is added to RUN {번호} results as a rerun',
+  '끝나면 이 케이스 상세에 남습니다': 'When it ends, it stays in this case’s detail',
+  '가상 기기 · iPhone 14': 'Virtual device · iPhone 14',
+  '크게 보기': 'Enlarge',
+  '작게 보기': 'Shrink',
   // 테스트 모드 오른쪽 실시간 칸 (TrialLive.tsx)
   '실시간 화면': 'Live view',
   '마지막 화면': 'Last frame',
