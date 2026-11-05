@@ -178,7 +178,7 @@ describe('RunProgressModal (SPEC §8.9)', () => {
   it('사람이 멈춘 실행은 끝났다고 적지 않는다', () => {
     render(<RunProgressModal data={{ ...끝난실행, status: 'ABORTED' }} 진행목록={[]} onClose={() => {}} />);
 
-    expect(screen.queryByText(/RUN 7 실행이 멈췄습니다/)).not.toBeNull();
+    expect(screen.queryByText(/RUN 7 실행이 중단됐습니다/)).not.toBeNull();
   });
 
   it('판정을 색만으로 전달하지 않는다 — 숫자 칸마다 글자가 있다', () => {
@@ -212,7 +212,7 @@ describe('RunProgressModal (SPEC §8.9)', () => {
       <RunProgressModal data={도는중실행} 진행목록={[절차(13, 4, '장바구니에 담는다', 12000)]} onClose={() => {}} />,
     );
 
-    expect(본문()).toContain('12초째');
+    expect(본문()).toContain('12초 경과');
     expect(본문()).toContain('제한 5분');
     expect(본문()).not.toContain('12000');
     expect(본문()).not.toContain('300000');
@@ -239,7 +239,7 @@ describe('RunProgressModal (SPEC §8.9)', () => {
     expect(본문()).toContain('케이스 14');
     expect(본문()).toContain('절차 1');
     expect(본문()).toContain('절차 2');
-    expect(본문()).toContain('1분 1초째');
+    expect(본문()).toContain('1분 1초 경과');
   });
 
   it('도는 중 막대는 판정 색 셋과 중립색 하나로 네 칸을 그린다', () => {

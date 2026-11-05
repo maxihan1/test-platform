@@ -73,7 +73,7 @@ describe('케이스 줄의 ▶ 실행', () => {
     expect(창.getByText('ZPK-002 케이스')).toBeTruthy();
     expect(창.queryByText('ZPK-001 케이스')).toBeNull();
     expect(창.getByText('로그인되어 있다')).toBeTruthy();
-    expect(창.getByText('실행자 검사')).toBeTruthy();
+    expect(창.queryByText(/^실행자 /)).toBeNull();
   });
 
   it('창에서 실행하면 그 한 건만 담아 걸고 실행 결과로 간다', async () => {
