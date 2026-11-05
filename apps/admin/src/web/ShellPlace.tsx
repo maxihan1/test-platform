@@ -5,15 +5,13 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ServiceRow, User } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { 아이콘 } from './icons.js';
-import { 종류, 종류이름, 종류차례, 종류키 } from './kind.js';
+import { 종류, 종류이름, 종류차례로 } from './kind.js';
 import { 고른서비스를적는다, 배정프로젝트들, 프로젝트서비스들 } from './layout.js';
 
 import './place.css';
 
-/** 판 · 왼쪽 줄 · 휴대폰이 같은 차례로 늘어놓는다 — 같은 사람이 자리마다 다른 차례를 보지 않게 (웹 · Android 앱 · 게임 · API) */
-export function 종류차례로(목록: readonly ServiceRow[]): ServiceRow[] {
-  return [...목록].sort((a, b) => 종류차례.indexOf(종류키(a.kind)) - 종류차례.indexOf(종류키(b.kind)));
-}
+/** 프로젝트 줄에 이만큼 머물러야 오른쪽 칸을 바꾼다 — 대각선으로 애플리케이션을 향해 가며 지나친 프로젝트로 목록이 바뀌지 않게 */
+export const 들여다보기까지 = 120;
 
 /**
  * 처음 온 사람이 바꾸는 곳을 못 찾았다(2026-11-05) — 고르개는 회색 작은 글자라 설명처럼 읽혔고, 가장 큰 이름은 눌리지 않았다.
@@ -23,6 +21,8 @@ export function 위치카드({ user, service, onService, 새로만들기 }: { us
   const t = use말();
   const 언어 = use언어();
   const [열림, set열림] = useState(false);
+  // 키보드(Enter · Space)로 열었을 때만 판 안으로 포커스를 옮긴다 — 마우스로 연 사람의 포커스를 빼앗지 않는다
+  const [키보드로, set키보드로] = useState(false);
   const 상자 = useRef<HTMLDivElement>(null);
   const 단추 = useRef<HTMLButtonElement>(null);
 
@@ -49,7 +49,14 @@ export function 위치카드({ user, service, onService, 새로만들기 }: { us
   // 왼쪽 줄도 비어 있어 이 사실을 말할 곳이 여기뿐이다
   if (service === null) return <span className="place-none">{t('애플리케이션 없음')}</span>;
   return (
-    <div className="place" ref={상자}>
+    <div
+      className="place"
+      ref={상자}
+      onBlur={(e) => {
+        // Tab 으로 판 밖에 나가면 닫는다 — 열린 판이 포커스가 간 메뉴를 덮은 채 남았다. 가는 곳이 없는 blur(누른 줄이 다시 그려진 것)는 두고 본다
+        if (e.relatedTarget !== null && !e.currentTarget.contains(e.relatedTarget)) set열림(false);
+      }}
+    >
       <button
         ref={단추}
         type="button"
@@ -57,7 +64,11 @@ export function 위치카드({ user, service, onService, 새로만들기 }: { us
         aria-haspopup="dialog"
         aria-expanded={열림}
         aria-label={t('{프로젝트} › {이름} · 바꾸기', { 프로젝트: service.projectName, 이름: service.name })}
-        onClick={() => set열림(!열림)}
+        onClick={(e) => {
+          // 마우스 누르기는 detail 이 1 이상, 키보드로 누른 click 은 0 이다
+          set키보드로(e.detail === 0);
+          set열림(!열림);
+        }}
       >
         <span className="place-proj">
           <small>{t('프로젝트§카드')}</small>
@@ -85,6 +96,7 @@ export function 위치카드({ user, service, onService, 새로만들기 }: { us
           onService={onService}
           새로만들기={새로만들기}
           기준={단추}
+          포커스={키보드로}
           닫기={() => {
             set열림(false);
             단추.current?.focus();
@@ -108,6 +120,7 @@ export function 위치판({
   닫기,
   휴대폰 = false,
   기준,
+  포커스 = false,
 }: {
   user: User;
   service: ServiceRow;
@@ -118,12 +131,16 @@ export function 위치판({
   휴대폰?: boolean;
   /** PC 판을 띄울 기준(카드) */
   기준?: React.RefObject<HTMLElement | null>;
+  /** 열면서 지금 애플리케이션 줄로 포커스를 옮기나 (키보드로 열었을 때) */
+  포커스?: boolean;
 }) {
   const t = use말();
   const 언어 = use언어();
   const [들여다봄, set들여다봄] = useState(service.projectId);
   const [자리, set자리] = useState<React.CSSProperties>();
   const 판 = useRef<HTMLDivElement>(null);
+  const 머묾 = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(머묾.current), []);
   const 프로젝트들 = 배정프로젝트들(user.services);
   const 프로젝트 = 프로젝트들.find((it) => it.id === 들여다봄) ?? { id: service.projectId, name: service.projectName };
   const 앱들 = 종류차례로(프로젝트서비스들(프로젝트.id, user.services));
@@ -136,14 +153,19 @@ export function 위치판({
       if (칸 !== undefined) set자리({ top: 칸.bottom + 5, left: 칸.left });
     };
     맞춘다();
+    // 사이드바 칸이 굴러가도 카드를 따라간다 — 굴림은 바깥 누르기가 아니라 판이 열린 채 카드에서 떨어졌다
     window.addEventListener('resize', 맞춘다);
-    return () => window.removeEventListener('resize', 맞춘다);
+    window.addEventListener('scroll', 맞춘다, true);
+    return () => {
+      window.removeEventListener('resize', 맞춘다);
+      window.removeEventListener('scroll', 맞춘다, true);
+    };
   }, [기준]);
 
   // 키보드로 연 사람이 바로 고르게 지금 애플리케이션에 포커스를 둔다. 휴대폰은 아래판이 판 자체에 둔다
   useEffect(() => {
-    if (!휴대폰) 판.current?.querySelector<HTMLElement>('.place-app-row[aria-current="page"]')?.focus();
-  }, [휴대폰]);
+    if (!휴대폰 && 포커스) 판.current?.querySelector<HTMLElement>('.place-app-row[aria-current="page"]')?.focus();
+  }, [휴대폰, 포커스]);
 
   const 고른다 = (prefix: string) => {
     고른서비스를적는다(prefix);
@@ -181,9 +203,16 @@ export function 위치판({
               aria-pressed={it.id === 프로젝트.id}
               aria-label={[it.name, t('애플리케이션 {수}개', { 수 })].join(' · ')}
               {...(it.id === service.projectId ? { 'aria-current': 'true' as const } : {})}
-              onMouseEnter={() => set들여다봄(it.id)}
+              onMouseEnter={() => {
+                clearTimeout(머묾.current);
+                머묾.current = setTimeout(() => set들여다봄(it.id), 들여다보기까지);
+              }}
+              onMouseLeave={() => clearTimeout(머묾.current)}
               onFocus={() => set들여다봄(it.id)}
-              onClick={() => set들여다봄(it.id)}
+              onClick={() => {
+                clearTimeout(머묾.current);
+                set들여다봄(it.id);
+              }}
             >
               <span className={it.id === service.projectId ? 'place-dot' : 'place-dot gap'} aria-hidden="true" />
               <span className="place-pn">{it.name}</span>

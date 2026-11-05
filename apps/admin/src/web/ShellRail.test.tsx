@@ -183,14 +183,34 @@ describe('왼쪽 줄 펼치기 (2026-11-05)', () => {
     expect(펼쳤나()).toBe(false);
   });
 
-  it('키보드로 줄 안에 들어오면 바로 펼치고, 줄 밖으로 나가면 접힌다', () => {
+  it('Tab 으로 줄 안에 들어오면 바로 펼치고, 줄 밖으로 나가면 접힌다', () => {
     띄운다(웹);
 
     const 칸 = screen.getByRole('button', { name: '데모마켓 웹 · 웹' });
+    fireEvent.keyDown(document, { key: 'Tab' });
     fireEvent.focusIn(칸);
     expect(펼쳤나()).toBe(true);
     fireEvent.focusOut(칸, { relatedTarget: screen.getByRole('button', { name: '찾기' }) });
     expect(펼쳤나()).toBe(false);
+  });
+
+  it('코드가 옮긴 포커스(내 메뉴를 Esc 로 닫을 때 등)로는 펼치지 않는다', () => {
+    띄운다(웹);
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    fireEvent.focusIn(screen.getByRole('button', { name: '내 메뉴 · 김수민' }));
+    expect(펼쳤나()).toBe(false);
+  });
+
+  it('마우스를 올릴 수 없는 기기에서는 머물기로 펼치지 않는다 — 탭 한 번에 덮은 채 남았다', () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('matchMedia', (질의: string) => ({ matches: 질의 === '(hover: none)', media: 질의, addEventListener: () => {}, removeEventListener: () => {} }));
+    띄운다(웹);
+
+    fireEvent.mouseEnter(왼쪽());
+    act(() => vi.advanceTimersByTime(펼치기까지));
+    expect(펼쳤나()).toBe(false);
+    vi.unstubAllGlobals();
   });
 
   it('마우스를 올린 채 누르기로 생긴 포커스는 바로 펼치지 않는다 — 머무는 시간이 맡는다', () => {

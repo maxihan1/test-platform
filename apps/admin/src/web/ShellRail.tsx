@@ -5,12 +5,11 @@ import { useEffect, useRef, useState } from "react";
 import type { ServiceRow, User } from "./api.js";
 import { use말, use언어, type 언어 } from "./i18n.js";
 import { 아이콘 } from "./icons.js";
-import { 종류, 종류이름 } from "./kind.js";
+import { 종류, 종류이름, 종류차례로 } from "./kind.js";
 import { 고른서비스를적는다, 프로젝트서비스들 } from "./layout.js";
 import { 로고움직임다시 } from "./logoMotion.js";
 import { 집 } from "./route.js";
 import { 내메뉴 } from "./ShellMe.js";
-import { 종류차례로 } from "./ShellPlace.js";
 
 import "./rail.css";
 
@@ -18,7 +17,8 @@ import "./rail.css";
 export const 펼치기까지 = 300;
 
 /**
- * 마우스가 머물거나 키보드가 들어오면 펼친다. 줄 안 마우스 누르기로 생긴 포커스는 펼치지 않는다 — 머무는 시간이 맡는다.
+ * 마우스가 머물거나 Tab 으로 들어오면 펼친다. 줄 안 마우스 누르기로 생긴 포커스 · 코드가 옮긴 포커스(내 메뉴를 Esc 로 닫을 때 등)는 펼치지 않는다.
+ * 마우스를 올릴 수 없는 기기(손가락뿐인 태블릿)는 머물기로 펼치지 않는다 — 탭이 흉내 낸 mouseenter 뒤에 나가는 일이 없어 덮은 채 남았다.
  * 브라우저 기본 이벤트로 듣는다 — 알림 단추는 Notice 가 이 줄 안에 옮겨 그린 것이라 React 이벤트는 줄로 안 올라온다
  */
 function use펼침(줄: React.RefObject<HTMLElement | null>): boolean {
@@ -28,7 +28,15 @@ function use펼침(줄: React.RefObject<HTMLElement | null>): boolean {
     if (칸 === null) return;
     let 타이머: ReturnType<typeof setTimeout> | undefined;
     let 마우스안 = false;
+    let 탭으로 = false;
+    const 키 = (e: KeyboardEvent) => {
+      if (e.key === "Tab") 탭으로 = true;
+    };
+    const 누름 = () => {
+      탭으로 = false;
+    };
     const 들어옴 = () => {
+      if (window.matchMedia?.("(hover: none)").matches === true) return;
       마우스안 = true;
       clearTimeout(타이머);
       타이머 = setTimeout(() => set펼침(true), 펼치기까지);
@@ -40,17 +48,21 @@ function use펼침(줄: React.RefObject<HTMLElement | null>): boolean {
       set펼침(false);
     };
     const 포커스옴 = () => {
-      if (!마우스안) set펼침(true);
+      if (!마우스안 && 탭으로) set펼침(true);
     };
     const 포커스감 = (e: FocusEvent) => {
       if (!마우스안 && !칸.contains(e.relatedTarget as Node | null)) set펼침(false);
     };
+    document.addEventListener("keydown", 키, true);
+    document.addEventListener("pointerdown", 누름, true);
     칸.addEventListener("mouseenter", 들어옴);
     칸.addEventListener("mouseleave", 나감);
     칸.addEventListener("focusin", 포커스옴);
     칸.addEventListener("focusout", 포커스감);
     return () => {
       clearTimeout(타이머);
+      document.removeEventListener("keydown", 키, true);
+      document.removeEventListener("pointerdown", 누름, true);
       칸.removeEventListener("mouseenter", 들어옴);
       칸.removeEventListener("mouseleave", 나감);
       칸.removeEventListener("focusin", 포커스옴);

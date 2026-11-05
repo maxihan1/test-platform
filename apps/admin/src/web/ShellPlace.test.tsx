@@ -2,13 +2,15 @@
 // 사이드바 맨 위 위치 카드 · 위치 판 검사 (SPEC 공통/5-화면공통 §8 「껍데기」 위치 카드 · 위치 판 · 2026-11-05)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 
 import { api, type ServiceRow, type User } from './api.js';
 import { 언어함, type 언어 } from './i18n.js';
 import { Shell } from './Shell.js';
+import { 들여다보기까지 } from './ShellPlace.js';
 
 afterEach(() => {
+  vi.useRealTimers();
   cleanup();
   localStorage.clear();
   vi.restoreAllMocks();
@@ -110,18 +112,47 @@ describe('위치 판', () => {
     expect(document.activeElement).toBe(지금);
   });
 
-  it('프로젝트에 마우스를 올리면 오른쪽 칸만 바뀌고 옮겨 가지 않는다', () => {
+  it('키보드로 열면 지금 애플리케이션에 포커스가 가고, 마우스로 열면 포커스가 카드에 남는다', () => {
+    띄운다(웹);
+    fireEvent.click(카드(), { detail: 1 });
+    expect(document.activeElement).not.toBe(screen.getByRole('dialog').querySelector('[aria-current="page"]'));
+  });
+
+  it('프로젝트에 마우스가 머물면 오른쪽 칸만 바뀌고 옮겨 가지 않는다', () => {
+    vi.useFakeTimers();
     const 바꿈 = vi.fn();
     띄운다(웹, 모두, { onService: 바꿈 });
 
     const 판 = 판열기();
     fireEvent.mouseEnter(within(판).getByRole('button', { name: 'Ashveil · 애플리케이션 2개' }));
+    act(() => vi.advanceTimersByTime(들여다보기까지));
 
     expect(within(판).getByText('Ashveil의 애플리케이션')).toBeTruthy();
     expect(앱줄들(판)).toEqual(['Ashveil · 게임', 'Ashveil 서버 · API']);
     expect(within(판).getByRole('button', { name: 'Ashveil · 애플리케이션 2개' }).getAttribute('aria-pressed')).toBe('true');
     expect(바꿈).not.toHaveBeenCalled();
     expect(screen.getByRole('dialog', { name: '프로젝트 · 애플리케이션 고르기' })).toBeTruthy();
+  });
+
+  it('프로젝트 줄을 스치기만 하면 오른쪽 칸이 안 바뀐다 — 대각선으로 애플리케이션을 향해 가는 길이다', () => {
+    vi.useFakeTimers();
+    띄운다(웹);
+
+    const 판 = 판열기();
+    const 지나감 = within(판).getByRole('button', { name: 'Ashveil · 애플리케이션 2개' });
+    fireEvent.mouseEnter(지나감);
+    act(() => vi.advanceTimersByTime(들여다보기까지 - 20));
+    fireEvent.mouseLeave(지나감);
+    act(() => vi.advanceTimersByTime(들여다보기까지));
+    expect(within(판).getByText('데모마켓의 애플리케이션')).toBeTruthy();
+  });
+
+  it('Tab 으로 판 밖에 나가면 닫힌다 — 열린 판이 포커스가 간 메뉴를 덮지 않게', () => {
+    띄운다(웹);
+
+    const 판 = 판열기();
+    fireEvent.blur(within(판).getByRole('button', { name: '데모마켓 웹 · 웹' }), { relatedTarget: screen.getByRole('button', { name: '찾기' }) });
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('다른 프로젝트의 애플리케이션을 누르면 그리로 바꾸고 브라우저에 적어 둔 뒤 판을 닫고 카드로 포커스를 돌린다', () => {
