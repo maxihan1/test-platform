@@ -1,7 +1,7 @@
-// 여러 케이스를 「테스트 실행」으로 한 건씩 차례로 돌리는 큐 — 기록에 남지 않는다 (도메인/실행 §3.2 · §7)
+// 여러 케이스를 「시험 실행」으로 케이스 × 디바이스 한 번씩 차례로 돌리는 큐 — 기록에 남지 않는다 (도메인/실행 §3.2 · §7)
 //
-// 서버는 사람당 한 건만 받는다(TRIAL_BUSY). 그래서 병렬이 아니라 차례로 돌리고, 한 건이 끝나야 다음을 시작한다.
-// 새 서버 API 는 없다 — 케이스 테스트 실행 통로 둘(시작 · 결과)을 케이스마다 되풀이한다
+// 서버는 사람당 한 건만 받는다(TRIAL_BUSY). 그래서 병렬이 아니라 차례로 돌리고, 한 번이 끝나야 다음을 시작한다.
+// 새 서버 API 는 없다 — 케이스 테스트 실행 통로 둘(시작 · 결과)을 케이스 × 디바이스마다 되풀이한다
 
 import { useEffect, useRef, useState } from 'react';
 
@@ -15,6 +15,12 @@ export type 시험줄 =
   | { 종류: 'done'; 결과: TrialResult }
   | { 종류: 'notice'; 글: string };
 
+/** 케이스 한 줄 안의 디바이스 한 칸 — 고른 디바이스마다 하나, 디바이스차례 순서다 */
+export interface 디바이스칸 {
+  platform: Platform;
+  줄: 시험줄;
+}
+
 /** 오른쪽 실시간 칸이 그릴 시험 — 마지막으로 시작한 것. 끝나도 남아 마지막 장면을 보인다 */
 export interface 지금시험 {
   tcId: string;
@@ -22,18 +28,22 @@ export interface 지금시험 {
   platform: Platform;
   /** VISION 이 폰을 잡은 동안 그 폰 화면 주소 */
   vision: string | null;
-  /** 몇째 케이스인지 · 모두 몇 건인지 (1부터) */
+  /** 몇째인지 · 모두 몇 번인지 (1부터) — 케이스 × 디바이스로 센다 */
   차례: number;
   전체: number;
 }
 
 const 기본간격 = 1500;
+const 차례표: Platform[] = ['desktop', 'mobile', 'android'];
+
+/** PC → 모바일 → Android 앱 차례 — 사람이 고른 순서와 상관없이 늘 같아야 줄의 칸과 도는 차례가 어긋나지 않는다 */
+export const 디바이스차례 = (platforms: readonly Platform[]): Platform[] => 차례표.filter((p) => platforms.includes(p));
 
 /** @param 간격 결과를 다시 묻는 주기(ms). 검사에서만 줄인다 */
 export function useTrialQueue(간격: number = 기본간격) {
   const t = use말();
   const 언어 = use언어();
-  const [줄들, set줄들] = useState<Record<string, 시험줄>>({});
+  const [줄들, set줄들] = useState<Record<string, 디바이스칸[]>>({});
   const [도는중, set도는중] = useState(false);
   const [지금, set지금] = useState<지금시험 | null>(null);
   // 화면을 떠나면 남은 줄을 시작하지 않는다. 안 멈추면 없는 화면에 상태를 쓰며 서버를 계속 두드린다
@@ -47,15 +57,15 @@ export function useTrialQueue(간격: number = 기본간격) {
     };
   }, []);
 
-  const 쓴다 = (tcId: string, 줄: 시험줄) => {
-    if (!멈춤.current) set줄들((전) => ({ ...전, [tcId]: 줄 }));
+  const 쓴다 = (tcId: string, platform: Platform, 줄: 시험줄) => {
+    if (!멈춤.current) {
+      set줄들((전) => ({ ...전, [tcId]: (전[tcId] ?? []).map((칸) => (칸.platform === platform ? { platform, 줄 } : 칸)) }));
+    }
   };
 
-  /** 이어 돌면 null, 멈추면 남은 줄에 붙일 글 */
-  async function 한건(항목: RunRequestItem, env: string, 차례: number, 전체: number): Promise<string | null> {
-    쓴다(항목.tcId, { 종류: 'run' });
-    // 디바이스는 첫째 하나만 돈다 — 한 건 창은 사람이 고른 것 중 첫째다 (도메인/실행 §8.2)
-    const platform = 항목.platforms[0]!;
+  /** 이어 돌면 null, 멈추면 남은 칸에 붙일 글 */
+  async function 한번(항목: RunRequestItem, platform: Platform, env: string, 차례: number, 전체: number): Promise<string | null> {
+    쓴다(항목.tcId, platform, { 종류: 'run' });
     try {
       const { trialId } = await api.startTrial(항목.tcId, { platform, env, params: 항목.params, expected: 항목.expected });
       if (!멈춤.current) set지금({ tcId: 항목.tcId, trialId, platform, vision: null, 차례, 전체 });
@@ -68,7 +78,7 @@ export function useTrialQueue(간격: number = 기본간격) {
         if (멈춤.current) return '';
         if (답.status === 'DONE') {
           링크(null);
-          쓴다(항목.tcId, { 종류: 'done', 결과: 답.result });
+          쓴다(항목.tcId, platform, { 종류: 'done', 결과: 답.result });
           return null;
         }
         링크(답.vision?.url ?? null);
@@ -80,20 +90,20 @@ export function useTrialQueue(간격: number = 기본간격) {
       if (!멈춤.current) set지금((앞) => (앞 === null || 앞.vision === null ? 앞 : { ...앞, vision: null }));
       if (err instanceof ApiError && err.code === 'TRIAL_BUSY') {
         const 글 = t('이미 시험 실행이 돌고 있습니다');
-        쓴다(항목.tcId, { 종류: 'notice', 글 });
+        쓴다(항목.tcId, platform, { 종류: 'notice', 글 });
         return 글;
       }
       if (err instanceof ApiError && (err.code === 'DEVICE_BUSY' || err.code === 'FARM_OFF')) {
-        // 디바이스 하나가 바쁘거나 이 서버에 디바이스 팜이 없을 뿐이라 그 줄만 안내하고 다음 줄은 이어 돈다 — 브라우저 케이스는 돌 수 있다
-        쓴다(항목.tcId, { 종류: 'notice', 글: message(err, 언어) });
+        // 디바이스 하나가 바쁘거나 이 서버에 디바이스 팜이 없을 뿐이라 그 칸만 안내하고 다음 칸은 이어 돈다 — 브라우저 케이스는 돌 수 있다
+        쓴다(항목.tcId, platform, { 종류: 'notice', 글: message(err, 언어) });
         return null;
       }
       if (err instanceof ApiError && err.violations.length > 0) {
-        // 그 케이스만 안 맞는다. 다음 줄은 이어 돈다
-        쓴다(항목.tcId, { 종류: 'notice', 글: t('입력값이 명세와 맞지 않습니다.') });
+        // 그 케이스만 안 맞는다. 다음 칸은 이어 돈다
+        쓴다(항목.tcId, platform, { 종류: 'notice', 글: t('입력값이 명세와 맞지 않습니다.') });
         return null;
       }
-      쓴다(항목.tcId, { 종류: 'notice', 글: message(err, 언어) });
+      쓴다(항목.tcId, platform, { 종류: 'notice', 글: message(err, 언어) });
       return t('앞 케이스 오류로 실행하지 않았습니다');
     }
   }
@@ -103,16 +113,23 @@ export function useTrialQueue(간격: number = 기본간격) {
     if (도는.current) return;
     도는.current = true;
     set도는중(true);
-    set줄들(Object.fromEntries(항목들.map((it) => [it.tcId, { 종류: 'wait' } as 시험줄])));
+    // 고른 디바이스를 차례로 다 돈다 — 앞 판은 첫째만 돌아 웹 케이스의 모바일이 안 돌았다 (도메인/실행 §8.2 「케이스 테스트 실행」)
+    const 차례들 = 항목들.flatMap((항목) => 디바이스차례(항목.platforms).map((platform) => ({ 항목, platform })));
+    set줄들(
+      Object.fromEntries(
+        항목들.map((it) => [it.tcId, 디바이스차례(it.platforms).map((platform): 디바이스칸 => ({ platform, 줄: { 종류: 'wait' } }))]),
+      ),
+    );
     // 지난번 장면은 걷는다 — 새 큐의 첫 장면이 오기 전까지 옛 케이스 화면이 남으면 지금 것으로 읽힌다
     set지금(null);
     try {
-      for (let i = 0; i < 항목들.length; i += 1) {
+      for (let i = 0; i < 차례들.length; i += 1) {
         if (멈춤.current) return;
-        const 멈춘글 = await 한건(항목들[i]!, env, i + 1, 항목들.length);
+        const { 항목, platform } = 차례들[i]!;
+        const 멈춘글 = await 한번(항목, platform, env, i + 1, 차례들.length);
         if (멈춘글 === null) continue;
-        // 서버 전체에 걸린 사정이나 러너 고장이면 남은 줄도 돌릴 수 없다. 대기로 두면 영영 기다리는 것처럼 보인다
-        for (const 남은 of 항목들.slice(i + 1)) 쓴다(남은.tcId, { 종류: 'notice', 글: 멈춘글 });
+        // 서버 전체에 걸린 사정이나 러너 고장이면 남은 칸도 돌릴 수 없다. 대기로 두면 영영 기다리는 것처럼 보인다
+        for (const 남은 of 차례들.slice(i + 1)) 쓴다(남은.항목.tcId, 남은.platform, { 종류: 'notice', 글: 멈춘글 });
         break;
       }
     } finally {

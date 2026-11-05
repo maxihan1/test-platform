@@ -18,15 +18,28 @@ afterEach(() => {
 describe('시험배지', () => {
   it('러너에 못 닿아 NA 로 끝나면 서버가 준 문장을 그대로 보인다', () => {
     const 결과: TrialResult = { status: 'NA', durationMs: 10, steps: [], error: { message: '러너에 닿지 못했습니다' } };
-    render(<시험배지 줄={{ 종류: 'done', 결과 }} />);
+    render(<시험배지 칸들={[{ platform: 'desktop', 줄: { 종류: 'done', 결과 } }]} />);
 
     expect(screen.getByText('러너에 닿지 못했습니다')).toBeTruthy();
   });
 
   it('아직 안 돌렸으면 아무것도 그리지 않는다', () => {
-    const { container } = render(<시험배지 줄={undefined} />);
+    const { container } = render(<시험배지 칸들={undefined} />);
 
     expect(container.textContent).toBe('');
+  });
+
+  it('디바이스가 둘이면 칸마다 디바이스 이름을 달고, 하나면 이름 없이 결과만 둔다', () => {
+    const 결과: TrialResult = { status: 'PASS', durationMs: 3000, steps: [] };
+    const { container, rerender } = render(
+      <시험배지 칸들={[{ platform: 'desktop', 줄: { 종류: 'done', 결과 } }, { platform: 'mobile', 줄: { 종류: 'run' } }]} />,
+    );
+
+    expect([...container.querySelectorAll('.trial-dev')].map((el) => el.textContent)).toEqual(['PC', '모바일']);
+    expect(container.querySelectorAll('.trial-badge')[1]?.textContent).toBe('모바일실행 중');
+
+    rerender(<시험배지 칸들={[{ platform: 'desktop', 줄: { 종류: 'run' } }]} />);
+    expect(container.querySelector('.trial-dev')).toBeNull();
   });
 });
 
@@ -143,5 +156,20 @@ describe('실행 창 오른쪽 실시간 칸', () => {
     fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
 
     expect(await screen.findByText('1 / 2 · ZRS-001 실행 설정 케이스')).toBeTruthy();
+  });
+
+  it('PC 와 모바일을 고른 케이스는 PC 다음 모바일을 돌고, 모바일 차례에 칸 머리가 모바일을 적는다', async () => {
+    const 시작 = vi.spyOn(api, 'startTrial').mockImplementation((_tcId, body) => Promise.resolve({ trialId: `t-${body.platform}` }));
+    vi.spyOn(api, 'getTrial').mockImplementation((_tcId, trialId) =>
+      Promise.resolve(trialId === 't-desktop' ? { status: 'DONE', result: { status: 'PASS', durationMs: 1, steps: [] } } : { status: 'RUNNING' }),
+    );
+    vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'empty' });
+    await 그린다({ ...케이스, platforms: ['desktop', 'mobile'] });
+
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
+    fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
+
+    expect(await screen.findByText('2 / 2 · ZRS-001 실행 설정 케이스 · 모바일', {}, { timeout: 5000 })).toBeTruthy();
+    expect(시작.mock.calls.map(([, body]) => body.platform)).toEqual(['desktop', 'mobile']);
   });
 });

@@ -3,14 +3,15 @@ import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { api, ApiError, type RunRequestItem, type TrialResult } from './api.js';
-import { useTrialQueue } from './useTrialQueue.js';
+import { type 디바이스칸, useTrialQueue } from './useTrialQueue.js';
 
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
 });
 
-const 항목 = (tcId: string): RunRequestItem => ({ tcId, platforms: ['desktop', 'mobile'], params: { a: 1 }, expected: {} });
+const 항목 = (tcId: string): RunRequestItem => ({ tcId, platforms: ['desktop'], params: { a: 1 }, expected: {} });
+const 첫칸 = (줄들: Record<string, 디바이스칸[]>, tcId: string) => 줄들[tcId]?.[0]?.줄;
 const 통과: TrialResult = { status: 'PASS', durationMs: 5, steps: [] };
 
 function 서버(결과들: Record<string, TrialResult>) {
@@ -31,20 +32,48 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
     });
 
     expect(시작.mock.calls.map(([id]) => id)).toEqual(['X-1', 'X-2']);
-    expect(result.current.줄들['X-1']).toMatchObject({ 종류: 'done', 결과: { status: 'PASS' } });
-    expect(result.current.줄들['X-2']).toMatchObject({ 종류: 'done', 결과: { status: 'FAIL' } });
+    expect(첫칸(result.current.줄들, 'X-1')).toMatchObject({ 종류: 'done', 결과: { status: 'PASS' } });
+    expect(첫칸(result.current.줄들, 'X-2')).toMatchObject({ 종류: 'done', 결과: { status: 'FAIL' } });
     expect(result.current.도는중).toBe(false);
   });
 
-  it('디바이스는 첫째 하나만 보내고 대상 서버 이름과 입력값을 그대로 싣는다', async () => {
+  it('고른 디바이스를 PC → 모바일 차례로 다 돌리고 대상 서버 이름과 입력값을 그대로 싣는다', async () => {
     const { 시작 } = 서버({});
     const { result } = renderHook(() => useTrialQueue(1));
 
     await act(async () => {
-      await result.current.시작([항목('X-1')], 'qa');
+      await result.current.시작([{ ...항목('X-1'), platforms: ['mobile', 'desktop'] }], 'qa');
     });
 
-    expect(시작).toHaveBeenCalledWith('X-1', { platform: 'desktop', env: 'qa', params: { a: 1 }, expected: {} });
+    expect(시작.mock.calls).toEqual([
+      ['X-1', { platform: 'desktop', env: 'qa', params: { a: 1 }, expected: {} }],
+      ['X-1', { platform: 'mobile', env: 'qa', params: { a: 1 }, expected: {} }],
+    ]);
+    expect(result.current.줄들['X-1']).toEqual([
+      { platform: 'desktop', 줄: { 종류: 'done', 결과: 통과 } },
+      { platform: 'mobile', 줄: { 종류: 'done', 결과: 통과 } },
+    ]);
+  });
+
+  it('모바일 차례에는 오른쪽 칸이 모바일 시험을 그린다 — 차례는 케이스 × 디바이스로 센다', async () => {
+    서버({});
+    let 풀기!: () => void;
+    vi.spyOn(api, 'getTrial')
+      .mockResolvedValueOnce({ status: 'DONE', result: 통과 })
+      .mockImplementationOnce(() => new Promise((ok) => { 풀기 = () => ok({ status: 'DONE', result: 통과 }); }));
+    const { result } = renderHook(() => useTrialQueue(1));
+
+    let 끝: Promise<void>;
+    act(() => {
+      끝 = result.current.시작([{ ...항목('X-1'), platforms: ['desktop', 'mobile'] }], 'qa');
+    });
+    await waitFor(() => expect(result.current.지금).toMatchObject({ tcId: 'X-1', platform: 'mobile', 차례: 2, 전체: 2 }));
+    expect(result.current.줄들['X-1']?.[1]).toEqual({ platform: 'mobile', 줄: { 종류: 'run' } });
+
+    await act(async () => {
+      풀기();
+      await 끝!;
+    });
   });
 
   it('돌기 전 줄은 대기이고 도는 줄은 실행 중이다', async () => {
@@ -59,8 +88,8 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
     act(() => {
       끝 = result.current.시작([항목('X-1'), 항목('X-2')], 'qa');
     });
-    await waitFor(() => expect(result.current.줄들['X-1']).toEqual({ 종류: 'run' }));
-    expect(result.current.줄들['X-2']).toEqual({ 종류: 'wait' });
+    await waitFor(() => expect(첫칸(result.current.줄들, 'X-1')).toEqual({ 종류: 'run' }));
+    expect(첫칸(result.current.줄들, 'X-2')).toEqual({ 종류: 'wait' });
     expect(result.current.도는중).toBe(true);
 
     await act(async () => {
@@ -92,7 +121,7 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
     });
 
     expect(시작).toHaveBeenCalledTimes(1);
-    expect(result.current.줄들['X-2']).toEqual({ 종류: 'notice', 글: '이미 시험 실행이 돌고 있습니다' });
+    expect(첫칸(result.current.줄들, 'X-2')).toEqual({ 종류: 'notice', 글: '이미 시험 실행이 돌고 있습니다' });
   });
 
   it('그 밖의 오류로 멈추면 남은 줄은 앞에서 멈췄다고 적는다 — 대기로 남기지 않는다', async () => {
@@ -103,8 +132,34 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
       await result.current.시작([항목('X-1'), 항목('X-2')], 'qa');
     });
 
-    expect(result.current.줄들['X-1']).toMatchObject({ 종류: 'notice' });
-    expect(result.current.줄들['X-2']).toEqual({ 종류: 'notice', 글: '앞 케이스 오류로 실행하지 않았습니다' });
+    expect(첫칸(result.current.줄들, 'X-1')).toMatchObject({ 종류: 'notice' });
+    expect(첫칸(result.current.줄들, 'X-2')).toEqual({ 종류: 'notice', 글: '앞 케이스 오류로 실행하지 않았습니다' });
+  });
+
+  it('PC 칸에서 멈추면 같은 케이스의 모바일 칸도 대기로 남기지 않는다', async () => {
+    vi.spyOn(api, 'startTrial').mockRejectedValue(new Error('네트워크 끊김'));
+    const { result } = renderHook(() => useTrialQueue(1));
+
+    await act(async () => {
+      await result.current.시작([{ ...항목('X-1'), platforms: ['desktop', 'mobile'] }], 'qa');
+    });
+
+    expect(result.current.줄들['X-1']?.[1]).toEqual({ platform: 'mobile', 줄: { 종류: 'notice', 글: '앞 케이스 오류로 실행하지 않았습니다' } });
+  });
+
+  it('모바일 폰이 바쁘면(DEVICE_BUSY) 그 칸만 안내하고 다음 케이스를 이어 돈다', async () => {
+    vi.spyOn(api, 'startTrial').mockImplementation((tcId, body) =>
+      body.platform === 'mobile' ? Promise.reject(new ApiError(409, 'DEVICE_BUSY', '', [])) : Promise.resolve({ trialId: `t-${tcId}` }),
+    );
+    vi.spyOn(api, 'getTrial').mockResolvedValue({ status: 'DONE', result: 통과 });
+    const { result } = renderHook(() => useTrialQueue(1));
+
+    await act(async () => {
+      await result.current.시작([{ ...항목('X-1'), platforms: ['desktop', 'mobile'] }, 항목('X-2')], 'qa');
+    });
+
+    expect(result.current.줄들['X-1']?.map((칸) => 칸.줄.종류)).toEqual(['done', 'notice']);
+    expect(첫칸(result.current.줄들, 'X-2')).toMatchObject({ 종류: 'done' });
   });
 
   it('입력값이 명세와 안 맞는 줄은 그 줄만 안내하고 다음 줄을 이어 돈다', async () => {
@@ -120,8 +175,8 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
       await result.current.시작([항목('X-1'), 항목('X-2')], 'qa');
     });
 
-    expect(result.current.줄들['X-1']).toMatchObject({ 종류: 'notice' });
-    expect(result.current.줄들['X-2']).toMatchObject({ 종류: 'done' });
+    expect(첫칸(result.current.줄들, 'X-1')).toMatchObject({ 종류: 'notice' });
+    expect(첫칸(result.current.줄들, 'X-2')).toMatchObject({ 종류: 'done' });
   });
 
   it('디바이스가 쓰이는 중인 줄(DEVICE_BUSY)은 그 줄만 안내하고 다음 줄을 이어 돈다', async () => {
@@ -135,8 +190,8 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
       await result.current.시작([항목('X-1'), 항목('X-2')], 'qa');
     });
 
-    expect(result.current.줄들['X-1']).toEqual({ 종류: 'notice', 글: '디바이스가 다른 실행에 쓰이고 있습니다' });
-    expect(result.current.줄들['X-2']).toMatchObject({ 종류: 'done' });
+    expect(첫칸(result.current.줄들, 'X-1')).toEqual({ 종류: 'notice', 글: '디바이스가 다른 실행에 쓰이고 있습니다' });
+    expect(첫칸(result.current.줄들, 'X-2')).toMatchObject({ 종류: 'done' });
   });
 
   it('이 서버에 디바이스 팜이 없는 앱 줄(FARM_OFF)도 그 줄만 안내하고 다음 브라우저 줄을 이어 돈다', async () => {
@@ -150,8 +205,8 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
       await result.current.시작([항목('X-1'), 항목('X-2')], 'qa');
     });
 
-    expect(result.current.줄들['X-1']).toEqual({ 종류: 'notice', 글: '이 서버에는 폰에서 돌릴 Device VISION 이 연결되어 있지 않습니다' });
-    expect(result.current.줄들['X-2']).toMatchObject({ 종류: 'done' });
+    expect(첫칸(result.current.줄들, 'X-1')).toEqual({ 종류: 'notice', 글: '이 서버에는 폰에서 돌릴 Device VISION 이 연결되어 있지 않습니다' });
+    expect(첫칸(result.current.줄들, 'X-2')).toMatchObject({ 종류: 'done' });
   });
 
   it('화면을 떠나면 남은 줄을 시작하지 않는다', async () => {
