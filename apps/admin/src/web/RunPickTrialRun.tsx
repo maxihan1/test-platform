@@ -115,24 +115,32 @@ function 진행({ 시험, 케이스들 }: { 시험: 여러건시험; 케이스�
 /**
  * 지금 시험의 단계 — 물을 때마다 받은 단계를 쌓고 마지막 줄이 지금 단계다. 목록이 그 줄로 저절로 내려간다.
  * 그 시험이 끝나면 결과가 모든 단계를 채운다 — 묻는 사이 빠진 짧은 단계도 그때 보인다
+ *
+ * 이 목록 칸의 scrollTop 만 옮긴다. scrollIntoView 는 둘레 칸(차례 목록이 든 왼쪽 칸)까지 굴려
+ * 한 건이 끝날 때마다 왼쪽 칸이 맨 아래로 내려갔다 (2026-11-05 사용자 시험). 끝난 결과로 바뀔 때는 실패 단계로만 옮긴다
  */
 function 단계목록({ 지금, 줄 }: { 지금: 지금시험 | null; 줄: 시험줄 | undefined }) {
   const t = use말();
   const 언어 = use언어();
-  const 끝줄 = useRef<HTMLLIElement>(null);
+  const 목록 = useRef<HTMLOListElement>(null);
+  const 볼줄 = useRef<HTMLLIElement>(null);
   const 단계수 = 지금?.단계들.length ?? 0;
   const 끝 = 지금?.단계들[단계수 - 1];
 
   useEffect(() => {
-    // jsdom 에는 scrollIntoView 가 없다
-    끝줄.current?.scrollIntoView?.({ block: 'nearest' });
+    const 칸 = 목록.current;
+    const li = 볼줄.current;
+    if (칸 === null || li === null) return;
+    // 볼 줄의 아래 끝이 칸 아래 끝에 닿게 둔다 — 줄 위치는 칸(position: relative) 기준이다
+    칸.scrollTop = Math.max(0, li.offsetTop + li.offsetHeight - 칸.clientHeight);
   }, [지금?.trialId, 단계수, 줄?.종류]);
 
   if (줄?.종류 === 'done' && 줄.결과.steps.length > 0) {
+    const 실패 = 줄.결과.steps.find((step) => step.status === 'FAIL');
     return (
-      <ol className="trial-now-steps">
-        {줄.결과.steps.map((step, i) => (
-          <li key={step.seq} ref={i === 줄.결과.steps.length - 1 ? 끝줄 : undefined} className={step.status === 'FAIL' ? 'failed' : 'done'}>
+      <ol className="trial-now-steps" ref={목록}>
+        {줄.결과.steps.map((step) => (
+          <li key={step.seq} ref={step === 실패 ? 볼줄 : undefined} className={step.status === 'FAIL' ? 'failed' : 'done'}>
             <span className="no">{step.seq}</span>
             <span>{step.title}</span>
             <Verdict status={step.status} />
@@ -143,9 +151,9 @@ function 단계목록({ 지금, 줄 }: { 지금: 지금시험 | null; 줄: 시�
   }
   if (지금 === null || 끝 === undefined) return <p className="trial-now-none">{t('첫 단계를 기다리는 중')}</p>;
   return (
-    <ol className="trial-now-steps">
+    <ol className="trial-now-steps" ref={목록}>
       {지금.단계들.map((step) => (
-        <li key={step.seq} ref={step === 끝 ? 끝줄 : undefined} className={step === 끝 ? 'now' : 'done'} aria-current={step === 끝 ? 'step' : undefined}>
+        <li key={step.seq} ref={step === 끝 ? 볼줄 : undefined} className={step === 끝 ? 'now' : 'done'} aria-current={step === 끝 ? 'step' : undefined}>
           <span className="no">{step.seq}</span>
           <span>{step.title}</span>
           <span className="t">{step === 끝 ? t('{시간} 경과', { 시간: seconds(step.elapsedMs, 언어) }) : '✓'}</span>
