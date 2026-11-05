@@ -92,7 +92,7 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
     });
 
     expect(시작).toHaveBeenCalledTimes(1);
-    expect(result.current.줄들['X-2']).toEqual({ 종류: 'notice', 글: '이미 테스트 실행이 돌고 있습니다' });
+    expect(result.current.줄들['X-2']).toEqual({ 종류: 'notice', 글: '이미 시험 실행이 돌고 있습니다' });
   });
 
   it('그 밖의 오류로 멈추면 남은 줄은 앞에서 멈췄다고 적는다 — 대기로 남기지 않는다', async () => {

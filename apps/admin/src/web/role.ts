@@ -85,7 +85,7 @@ export function 판정을만든다(user: User | null, prefix: string | null): �
   return (무엇) => 할수있나(user, prefix, 무엇);
 }
 
-/** 실행 칸이 `trial` 이라 실행 자리가 모두 기록 없는 테스트 실행이다 — 읽기만 하는 사람은 아니다 (도메인/인증 §3.5 「테스트 모드」) */
+/** 실행 칸이 `trial` 이라 실행 자리가 모두 기록 없는 시험 실행이다 — 읽기만 하는 사람은 아니다 (도메인/인증 §3.5 「테스트 모드」) */
 export function 테스트만인가(할수: 판정): boolean {
   return 할수('테스트실행') && !할수('실행');
 }

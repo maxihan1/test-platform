@@ -46,7 +46,7 @@ function 띄운다(service: ServiceRow, 옵션: { role?: User['role']; current?:
 const 줄 = () => screen.getByRole('navigation', { name: '애플리케이션' });
 
 describe('줄과 메뉴가 같이 맞는 자리', () => {
-  it('API 애플리케이션의 테스트 실행는 하위가 없어도 그 목록을 열면 지금 자리로 표시된다', () => {
+  it('API 애플리케이션의 테스트 실행은 하위가 없어도 그 목록을 열면 지금 자리로 표시된다', () => {
     vi.spyOn(api, 'notifications').mockResolvedValue({ running: [], recent: [] });
     const API앱: ServiceRow = { ...웹, id: 4, prefix: 'ZRD', name: '알림 API', kind: 'API' };
     render(

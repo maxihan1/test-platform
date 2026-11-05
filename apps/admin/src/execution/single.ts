@@ -105,7 +105,7 @@ export interface 붙을곳 {
 /**
  * 같은 대상 서버에서 그 케이스의 고른 디바이스 항목이 하나라도 있는 끝난 실행 가운데 시작이 가장 늦은 것.
  * 빌드 스모크 · 한 건 실행 · 시나리오 실행(항목이 없다)은 후보가 아니다. 고른 것이 반복 실행이면 그 앞으로 내려가지 않고 null —
- * 더 낡은 실행을 고치게 된다. 실행을 만드는 쪽과 실행 창의 「결과가 남는 곳」이 같은 함수를 쓴다
+ * 더 낡은 실행을 고치게 된다. 실행을 만드는 쪽과 rerun-target 통로가 같은 함수를 쓴다
  */
 export async function 붙을곳고르기(
   client: 질의,
@@ -155,7 +155,8 @@ export async function 시작방식정하기<기본 extends string>(
 }
 
 /**
- * 실행 창의 「결과가 남는 곳」 — 지금 이 케이스 한 건을 걸면 붙을 실행 (도메인/실행 §7 `rerun-target`).
+ * 지금 이 케이스 한 건을 걸면 붙을 실행 (도메인/실행 §7 `rerun-target`). 2026-11-05 WEB-F9-01 부터 화면이 안 부른다 —
+ * 실행 창 「결과가 남는 곳」 줄을 뺐고, 정식 실행 시작 확인 창(WEB-F9-06)이 다시 쓰려고 둔다.
  * 모르는 대상 서버 · 선언 밖 디바이스는 실행을 걸 때처럼 거절한다 — 걸지 못할 실행의 붙을 곳을 말하지 않는다
  */
 export async function 붙을실행(tcId: string, env: string, platforms: string[], 실제폰 = false): Promise<{ target: 붙을곳 | null } | { error: string }> {

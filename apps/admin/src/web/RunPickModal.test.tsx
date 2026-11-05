@@ -297,10 +297,10 @@ describe('RunPickModal 테스트 실행', () => {
     서버고르기();
     fireEvent.click(테스트버튼());
     fireEvent.click(테스트버튼());
-    await waitFor(() => expect(줄().textContent).toContain('이미 테스트 실행이 돌고 있습니다'));
+    await waitFor(() => expect(줄().textContent).toContain('이미 시험 실행이 돌고 있습니다'));
 
     풀기();
-    await waitFor(() => expect(줄().textContent).not.toContain('이미 테스트 실행이 돌고 있습니다'));
+    await waitFor(() => expect(줄().textContent).not.toContain('이미 시험 실행이 돌고 있습니다'));
   });
 
   it('테스트 실행에는 기록 · 리포트가 남지 않는다고, 실행 곁에는 기록이 남는다고 화면 글자로 적는다', () => {

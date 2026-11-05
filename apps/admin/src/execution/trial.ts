@@ -163,7 +163,7 @@ export function 시험보관소<R, S extends string>(설정: 보관소설정<R, 
 
 const 케이스시험 = 시험보관소<ExecuteResponse, 'DONE'>({
   끝글자: 'DONE',
-  바쁨문구: '이미 테스트 실행이 돌고 있습니다',
+  바쁨문구: '이미 시험 실행이 돌고 있습니다',
   실패로: (사유, 걸린ms) => ({
     historyId: 0,
     status: 'NA',

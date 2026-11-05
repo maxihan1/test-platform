@@ -23,7 +23,7 @@ export const 실행말: Record<string, string> = {
   '실행 중': 'Running',
   '앞 케이스 오류로 실행하지 않았습니다': 'Not run because of an error in an earlier case',
   '시험 실행할 대상 서버를 선택하세요.': 'Select a target server for the trial run.',
-  '이미 테스트 실행이 돌고 있습니다': 'A test run is already in progress',
+  '이미 시험 실행이 돌고 있습니다': 'A trial run is already in progress',
   '그중 미확정 {수}건': 'Of these, {수} unconfirmed',
   '통과 {수}': '{수} passed',
   '실패 {수}': '{수} failed',
@@ -121,7 +121,7 @@ export const 실행말: Record<string, string> = {
   '실패 {건수}건 다시 실행': 'Rerun {건수} failed',
   '비활성이거나 없어 뺀 케이스 {목록}': 'Left out as inactive or missing: {목록}',
   '대상 서버를 선택하세요. 리포트에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.':
-    'Pick a target server. The report records which server was hit.',
+    'Select a target server. The report records which server was hit.',
   '묶음 이름': 'Set name',
   '{이름}으로 저장했습니다.': 'Saved as {이름}.',
   '입력값이 명세와 맞지 않습니다.': 'Inputs do not match the schema.',
