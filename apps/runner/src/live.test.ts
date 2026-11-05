@@ -102,6 +102,22 @@ describe('GET /live/:key', () => {
     expect(existsSync(`${파일}.tmp`)).toBe(false);
   });
 
+  it('앱 · 게임 폰 장면(Appium PNG)은 image/png 로 낸다', async () => {
+    const 잡음 = 붙잡는다({ status: 'PASS', durationMs: 0 } as ExecuteResponse);
+    vi.mocked(execute).mockImplementation(잡음.대기);
+    const app = 서버();
+    const 돌림 = app.inject({ method: 'POST', url: '/execute', payload: 케이스요청({ platform: 'android' }) });
+    await vi.waitFor(() => expect(execute).toHaveBeenCalled());
+    const 파일 = 장면환경(열쇠).PLATFORM_LIVE_FILE;
+    mkdirSync(dirname(파일), { recursive: true });
+    writeFileSync(파일, Buffer.from([0x89, 0x50, 0x4e, 0x47, 1, 2]));
+
+    expect((await 장면읽기(app)).headers['content-type']).toBe('image/png');
+
+    잡음.끝내기();
+    await 돌림;
+  });
+
   it('실행이 던져도 열쇠를 닫는다 — 끝난 실행의 장면을 계속 내지 않는다', async () => {
     vi.mocked(execute).mockRejectedValue(new Error('자식을 못 띄웠다'));
     const app = 서버();

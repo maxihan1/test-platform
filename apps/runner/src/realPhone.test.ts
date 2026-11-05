@@ -7,6 +7,7 @@ import { join } from 'node:path';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { 장면환경 } from './live.js';
 import { 로그한줄, 실제폰환경, 팜주소, 폰기기를묻는다, 폰로그, 폰로그를받는다, 폰영상, 폰증적을둔다, 폰토큰 } from './realPhone.js';
 import { executeRequest, scenarioRequest } from './schema.js';
 
@@ -45,11 +46,19 @@ describe('입구 검사', () => {
 });
 
 describe('실제폰환경', () => {
-  it('폰 Chrome 항목은 주소 · 토큰을 싣고 장면 파일을 비운다 — 영상 경로는 남길 실행에만 준다', () => {
+  it('폰 Chrome 항목은 주소 · 토큰을 싣는다 — 영상 경로는 남길 실행에만 준다', () => {
     expect(실제폰환경(폰, '/r/7/8', true)).toEqual({
-      PLATFORM_CDP_URL: 폰.cdpUrl, PLATFORM_APPIUM_TOKEN: 'pat_me', PLATFORM_PHONE_VIDEO: join('/r/7/8', 폰영상), PLATFORM_LIVE_FILE: '',
+      PLATFORM_CDP_URL: 폰.cdpUrl, PLATFORM_APPIUM_TOKEN: 'pat_me', PLATFORM_PHONE_VIDEO: join('/r/7/8', 폰영상),
     });
     expect(실제폰환경(폰, '/r/0/8', false).PLATFORM_PHONE_VIDEO).toBe('');
+  });
+
+  it('테스트 모드의 장면 파일을 비우지 않는다 — 실제 폰 Chrome 장면도 오른쪽 칸에 뜬다', () => {
+    const 열쇠 = '0b7e2c1a-0000-4000-8000-000000000003';
+    const 자식 = { ...장면환경(열쇠), ...실제폰환경(폰, '/r/0/8', false) };
+
+    expect(자식.PLATFORM_LIVE_FILE.endsWith(`/live/${열쇠}.jpg`)).toBe(true);
+    expect(자식.PLATFORM_SLOW_MO).toBe('1000');
   });
 
   it('흉내 항목도 두 칸을 빈 값으로 늘 적는다 — 러너를 켠 셸의 값을 안 물려받게', () => {

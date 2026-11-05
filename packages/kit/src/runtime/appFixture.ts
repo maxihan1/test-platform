@@ -4,6 +4,7 @@ import { test as base } from '@playwright/test';
 
 import { closeApp, type AppDriver } from './app.js';
 import { 게임증적을남긴다, type KitGame } from './game.js';
+import { 폰장면걸기, type 장면 } from './live.js';
 import { 폰을연다 } from './phone.js';
 import { DEVICE_ATTACHMENT } from './protocol.js';
 
@@ -15,6 +16,8 @@ export const 앱테스트 = () =>
     appSession: async ({}, use, testInfo) => {
       // 여는 중인 약속을 쥐어야 한다. 새 폰은 첫 연결에 도우미 앱을 깔아 오래 걸려, 열리는 도중 제한 시간이 오면 Appium 이 뒤늦게 세션을 만든다
       let opening: Promise<AppSide> | undefined;
+      // 테스트 모드의 폰 장면 — 연 직후 걸고 닫기 전에 끈다. 정식 실행은 장면 파일이 없어 안 걸린다
+      let 폰장면: 장면 | undefined;
       // 기기 정보는 연 직후 한 번 남긴다 — 리포터가 결과 줄 device 로 싣는다 (도메인/리포팅 §8.4 · APP-F1-05)
       const 열고남긴다 = async (): Promise<AppSide> => {
         const { device, ...side } = await 폰을연다(process.env);
@@ -26,6 +29,7 @@ export const 앱테스트 = () =>
             console.error(`[kit] 기기 정보를 남기지 못했다: ${err instanceof Error ? err.message : String(err)}`);
           }
         }
+        폰장면 = await 폰장면걸기(side.driver);
         return side;
       };
       await use({ open: () => (opening ??= 열고남긴다()) });
@@ -41,6 +45,8 @@ export const 앱테스트 = () =>
         }
         return;
       }
+      // 닫은 연결에 찍기를 보내지 않게 연결보다 먼저 끈다
+      await 폰장면?.끄기();
       // 통과 못 한 게임 항목 — 실패 순간 오브젝트 목록 · 게임 오류 기록. 연결을 닫기 전에 남긴다 (도메인/게임 §3.10 「실행 결과」)
       if (side.game !== undefined && testInfo.status !== testInfo.expectedStatus) {
         await 게임증적을남긴다(side.game, process.env.PLATFORM_RUN_ID ?? '0', process.env.PLATFORM_HISTORY_ID ?? '0');

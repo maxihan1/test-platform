@@ -7,7 +7,7 @@ import { basename } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import type { APIRequest, APIRequestContext, Browser, Page } from '@playwright/test';
-import { 장면걸기, type ScenarioCaseInput, type 장면 } from '@platform/kit/scenario';
+import { 장면걸기, 폰장면걸기, type ScenarioCaseInput, type 장면 } from '@platform/kit/scenario';
 
 import { 기준바꾸기, 기준읽기, 쿠키더하기, 응답듣기, 이어주기걸기 } from './browser.js';
 import { 주소의, type CasePart, type 미룬삭제, type 부품상태, type 상태, type 이음 } from './links.js';
@@ -77,7 +77,7 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
   const 원래요청 = 요청도구.newContext.bind(요청도구);
   let 지금: 지금부품 | undefined;
   let 걸린: ReadonlyMap<string, RouteHandler> = new Map();
-  // 테스트 모드 장면 — 웹 단계의 탭에 걸고 앱 · 게임 단계 동안은 꺼서 비운다(러너가 204 를 낸다). 탭이 바뀌면 새 탭에 다시 건다 (SPEC 도메인/러너 §5.2 「테스트 모드 — 실시간 장면」)
+  // 테스트 모드 장면 — 웹 단계는 탭에 걸고, 앱 · 게임 단계는 폰을 얻은 뒤 Appium 으로 찍는다. 탭이 바뀌면 새 탭에 다시 건다 (SPEC 도메인/러너 §5.2 「테스트 모드 — 실시간 장면」)
   let 장면탭: Page | undefined;
   let 지금장면: 장면 | undefined;
   const 장면끄기 = async () => {
@@ -165,6 +165,8 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
       const 폰쪽: 단계쪽 = async () => {
         if (설정.폰 === undefined) throw new Error('이 실행에는 폰 연결이 없다');
         const { driver, game } = await 설정.폰.얻기();
+        // 테스트 모드면 이 단계 동안 폰 화면을 장면으로 찍는다. 웹 장면은 단계를 열 때 껐다
+        if (!닫음 && 지금장면 === undefined) 지금장면 = await 폰장면걸기(driver);
         return { driver, ...(game && { game }), ...(설정.adminKey && { adminKey: 설정.adminKey }), platform: 'android' };
       };
       return {
@@ -174,6 +176,8 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
           if (닫음) return;
           닫음 = true;
           이번.닫힘 = true;
+          // 폰은 시나리오 끝에 닫힌다 — 닫힌 연결에 찍기를 보내지 않게 단계를 닫을 때 끈다
+          await 장면끄기();
           for (const 닫기 of 이번.직접만든) await 닫기().catch(남김('케이스가 직접 만든 창 · 연결을 못 닫았다'));
           await 부품요청.dispose().catch(남김('부품 request 를 못 닫았다'));
         },

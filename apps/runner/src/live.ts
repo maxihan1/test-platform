@@ -38,7 +38,7 @@ export async function 장면폴더를비운다(): Promise<void> {
   await rm(장면폴더(), { recursive: true, force: true });
 }
 
-// 모르는 열쇠 · 끝난 실행은 404, 첫 장면 전 · 폰 단계는 204. 도는 열쇠는 요청 검사에서 UUID 만 받았으니 경로가 밖으로 안 샌다
+// 모르는 열쇠 · 끝난 실행은 404, 첫 장면 전은 204. 도는 열쇠는 요청 검사에서 UUID 만 받았으니 경로가 밖으로 안 샌다
 export function registerLive(app: FastifyInstance): void {
   app.get<{ Params: { key: string } }>('/live/:key', async (request, reply) => {
     const { key } = request.params;
@@ -50,6 +50,7 @@ export function registerLive(app: FastifyInstance): void {
       if ((err as NodeJS.ErrnoException).code === 'ENOENT') return reply.code(204).send();
       throw new Error(`장면 파일을 못 읽었다 (${key}): ${err instanceof Error ? err.message : String(err)}`);
     }
-    return reply.header('cache-control', 'no-store').type('image/jpeg').send(장);
+    // 앱 · 게임 폰 장면은 Appium 이 주는 PNG 그대로다 (§5.2 「테스트 모드 — 실시간 장면」)
+    return reply.header('cache-control', 'no-store').type(장[0] === 0x89 ? 'image/png' : 'image/jpeg').send(장);
   });
 }

@@ -82,7 +82,7 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
       const 장면열쇠 = /^\/live\/(.+)$/.exec(req.url ?? '')?.[1];
       if (req.method === 'GET' && 장면열쇠 !== undefined) {
         const 장 = 장면.get(장면열쇠);
-        return void (장 === undefined ? res.writeHead(404).end('{}') : res.writeHead(200, { 'content-type': 'image/jpeg' }).end(장));
+        return void (장 === undefined ? res.writeHead(404).end('{}') : res.writeHead(200, { 'content-type': 장[0] === 0x89 ? 'image/png' : 'image/jpeg' }).end(장));
       }
       if (req.method === 'GET' && req.url === '/api/devices') {
         const 목록 = { value: { devices: [{ serial: 's1', state: 'IDLE' }] } };
@@ -332,7 +332,7 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
     expect((await 장면읽기(trialId)).json()).toEqual({ error: 'TRIAL_NOT_FOUND', detail: trialId });
   });
 
-  it('Android 앱 테스트 실행은 팜 빈 폰을 잡고 도는 동안 그 폰 화면 링크를 싣는다 — 장면 열쇠는 없다', async () => {
+  it('Android 앱 테스트 실행은 팜 빈 폰을 잡고 도는 동안 그 폰 화면 링크와 장면 열쇠를 싣는다 — 폰 장면은 PNG 그대로 건넨다', async () => {
     process.env.DEVICE_FARM_URL = 러너주소;
     러너응답 = () => 멈춤;
     const 폰 = await 시작({ ...정상, platform: 'android' });
@@ -340,9 +340,13 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
     const { trialId } = 폰.json<{ trialId: string }>();
     await 러너에닿을때까지(1);
     expect(받은요청[0]).toMatchObject({ platform: 'android', udid: 's1', baseUrl: 'https://qa.example.com' });
-    expect('live' in 받은요청[0]!).toBe(false);
+    expect(받은요청[0]!.live).toBe(trialId);
     expect((await 읽기(trialId)).json()).toEqual({ status: 'RUNNING', vision: { url: 폰화면 } });
     expect((await 장면읽기(trialId)).statusCode).toBe(204);
+    장면.set(trialId, Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+    const 한장 = await 장면읽기(trialId);
+    expect(한장.headers['content-type']).toBe('image/png');
+    expect([...한장.rawPayload]).toEqual([0x89, 0x50, 0x4e, 0x47]);
 
     끝낸다();
     const 끝 = await 끝날때까지(trialId);
