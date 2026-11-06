@@ -269,7 +269,7 @@ describe('RunPickModal 테스트 실행', () => {
     fireEvent.click(테스트버튼());
     시작누름('시험 실행 시작');
 
-    await waitFor(() => expect(screen.getAllByText('통과')).toHaveLength(3), { timeout: 5000 });
+    await waitFor(() => expect(document.querySelectorAll('.trial-res .v-pass')).toHaveLength(3), { timeout: 5000 });
     expect(시작.mock.calls.map(([id, body]) => `${id} ${body.platform}`)).toEqual(['ZPM-001 desktop', 'ZPM-001 mobile', 'ZPM-002 desktop']);
     expect(시작).toHaveBeenCalledWith('ZPM-002', expect.objectContaining({ platform: 'desktop', env: 'qa', params: { userId: 'zpm-tester' } }));
   });

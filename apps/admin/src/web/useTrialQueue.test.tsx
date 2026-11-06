@@ -3,7 +3,7 @@ import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { api, ApiError, type RunRequestItem, type TrialResult } from './api.js';
-import { type 디바이스칸, useTrialQueue, 단계쌓기 } from './useTrialQueue.js';
+import { type 디바이스칸, useTrialQueue, 단계쌓기, 제목맞나 } from './useTrialQueue.js';
 
 afterEach(() => {
   cleanup();
@@ -49,9 +49,9 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
       ['X-1', { platform: 'desktop', env: 'qa', params: { a: 1 }, expected: {} }],
       ['X-1', { platform: 'mobile', env: 'qa', params: { a: 1 }, expected: {}, mobileOn: 'vision' }],
     ]);
-    expect(result.current.줄들['X-1']).toEqual([
-      { platform: 'desktop', 줄: { 종류: 'done', 결과: 통과, 실패: null } },
-      { platform: 'mobile', 줄: { 종류: 'done', 결과: 통과, 실패: null } },
+    expect(result.current.줄들['X-1']).toMatchObject([
+      { platform: 'desktop', 줄: { 종류: 'done', 결과: 통과, 실패: null, 제목들: null } },
+      { platform: 'mobile', 줄: { 종류: 'done', 결과: 통과, 실패: null, 제목들: null } },
     ]);
   });
 
@@ -231,13 +231,62 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
 });
 
 describe('단계쌓기', () => {
-  it('같은 단계면 경과만 고치고 새 단계면 뒤에 붙이고 단계가 없으면 그대로 둔다', () => {
-    const 하나 = 단계쌓기([], { seq: 1, title: '로그인한다', elapsedMs: 100 });
-    const 같은 = 단계쌓기(하나, { seq: 1, title: '로그인한다', elapsedMs: 900 });
-    const 둘 = 단계쌓기(같은, { seq: 3, title: '담는다', elapsedMs: 10 });
+  it('같은 단계면 경과만 고치고 새 단계면 처음 본 시각에서 경과를 뺀 시작과 함께 뒤에 붙이고 단계가 없으면 그대로 둔다', () => {
+    const 하나 = 단계쌓기([], { seq: 1, title: '로그인한다', elapsedMs: 100 }, 1_000);
+    const 같은 = 단계쌓기(하나, { seq: 1, title: '로그인한다', elapsedMs: 900 }, 1_800);
+    const 둘 = 단계쌓기(같은, { seq: 3, title: '담는다', elapsedMs: 10 }, 3_000);
 
-    expect(같은).toEqual([{ seq: 1, title: '로그인한다', elapsedMs: 900 }]);
-    expect(둘.map((s) => s.seq)).toEqual([1, 3]);
+    expect(같은).toEqual([{ seq: 1, title: '로그인한다', elapsedMs: 900, 시작: 900 }]);
+    expect(둘.map((s) => [s.seq, s.시작])).toEqual([[1, 900], [3, 2_990]]);
     expect(단계쌓기(둘, undefined)).toBe(둘);
+  });
+});
+
+describe('제목맞나', () => {
+  it('도는 단계가 저장된 같은 자리 제목과 다르면 저장값을 버리고, 같거나 단계가 없으면 그대로 둔다', () => {
+    const 제목들 = ['로그인한다', '담는다'];
+
+    expect(제목맞나(제목들, { seq: 2, title: '담는다', elapsedMs: 0 })).toBe(제목들);
+    expect(제목맞나(제목들, undefined)).toBe(제목들);
+    expect(제목맞나(제목들, { seq: 2, title: '결제한다', elapsedMs: 0 })).toBeNull();
+    expect(제목맞나(제목들, { seq: 3, title: '결제한다', elapsedMs: 0 })).toBeNull();
+  });
+});
+
+describe('스캔이 센 단계 제목 · 걸린 시간', () => {
+  it('처음 받은 RUNNING 의 제목을 들고 돌다가 끝나면 그 제목과 누른 때부터 끝날 때까지의 시간을 결과 칸에 남긴다', async () => {
+    const 시계 = vi.spyOn(Date, 'now');
+    시계.mockReturnValue(10_000);
+    vi.spyOn(api, 'startTrial').mockResolvedValue({ trialId: 't1' });
+    vi.spyOn(api, 'getTrial')
+      .mockResolvedValueOnce({ status: 'RUNNING', stepTitles: ['로그인한다', '담는다'], step: { seq: 1, title: '로그인한다', elapsedMs: 0 } })
+      .mockImplementationOnce(() => {
+        시계.mockReturnValue(18_000);
+        return Promise.resolve({ status: 'DONE', result: 통과 });
+      });
+    const { result } = renderHook(() => useTrialQueue(1));
+
+    await act(async () => {
+      await result.current.시작([항목('X-1')], 'qa');
+    });
+
+    expect(result.current.지금?.제목들).toEqual(['로그인한다', '담는다']);
+    expect(첫칸(result.current.줄들, 'X-1')).toMatchObject({ 종류: 'done', 걸린ms: 8_000, 제목들: ['로그인한다', '담는다'] });
+  });
+
+  it('도는 단계가 저장된 제목과 어긋나면 그 시험은 끝까지 제목 없이 돈다', async () => {
+    vi.spyOn(api, 'startTrial').mockResolvedValue({ trialId: 't1' });
+    vi.spyOn(api, 'getTrial')
+      .mockResolvedValueOnce({ status: 'RUNNING', stepTitles: ['로그인한다', '담는다'], step: { seq: 1, title: '다른 단계', elapsedMs: 0 } })
+      .mockResolvedValueOnce({ status: 'RUNNING', stepTitles: ['로그인한다', '담는다'], step: { seq: 2, title: '담는다', elapsedMs: 0 } })
+      .mockResolvedValueOnce({ status: 'DONE', result: 통과 });
+    const { result } = renderHook(() => useTrialQueue(1));
+
+    await act(async () => {
+      await result.current.시작([항목('X-1')], 'qa');
+    });
+
+    expect(result.current.지금?.제목들).toBeNull();
+    expect(첫칸(result.current.줄들, 'X-1')).toMatchObject({ 종류: 'done', 제목들: null });
   });
 });

@@ -1,0 +1,243 @@
+/* 실행 창의 시험 실행 결과 — 한 줄 알약 점수 · 실패 카드 (도메인/실행 §8.16 ④ · 시안 A ④). 대기열과 같이 쓰는 판정 알약 .pill 도 여기 둔다. 색은 토큰만 쓴다 — DESIGN.md 원칙 1 */
+
+/* 판정 색 알약 — 대기열 줄 상태와 결과 점수가 같이 쓴다 (점검표 D3 · B18) */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.pill.pass {
+  background: var(--pass-soft);
+  color: var(--pass-text);
+}
+
+.pill.fail {
+  background: var(--fail-soft);
+  color: var(--fail-text);
+}
+
+.pill.na,
+.pill.wait {
+  background: var(--na-soft);
+  color: var(--na-text);
+}
+
+.pill.run {
+  background: var(--accent-soft);
+  color: var(--link);
+}
+
+.pill.run::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-mark);
+}
+
+.pill.zero {
+  background: transparent;
+  border: 1px dashed var(--line-2);
+  color: var(--ink-faint);
+}
+
+/* ④ 결과 — 한 줄 알약 점수 (점검표 B18) */
+.trial-sum {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.trial-sum .pill {
+  padding: 3px 10px;
+  font-size: 13px;
+}
+
+.trial-sum .pill b {
+  font-size: 14px;
+}
+
+.trial-sum .r {
+  margin-left: auto;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+
+/* grid 로 두면 카드(overflow: hidden)의 최소 높이가 0 이 돼 줄이 눌려 단계 목록이 잘렸다 — 세로 flex 에 카드는 제 키대로 둔다 */
+.trial-res {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.trial-res > li {
+  flex: none;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.trial-res > li.bad {
+  border-color: color-mix(in srgb, var(--fail) 45%, var(--line));
+}
+
+.trial-res .top {
+  display: grid;
+  grid-template-columns: 128px minmax(0, 1fr) 70px 64px 52px;
+  gap: 10px;
+  align-items: center;
+  padding: 9px 14px;
+  font-size: 13px;
+}
+
+.trial-res .top .nm {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.trial-res .dur {
+  font-size: 12px;
+  color: var(--ink-faint);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 실패 카드 안 — 이름 열 아래에 줄을 맞춘다. 긴 원문은 접힌 「원문 보기」 안에만 있다 */
+.trial-res .why {
+  display: grid;
+  justify-items: start;
+  gap: 3px;
+  min-width: 0;
+  padding: 0 14px 10px 152px;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.trial-res .why b {
+  color: var(--fail-text);
+  font-weight: 600;
+}
+
+.trial-res .why details {
+  max-width: 100%;
+}
+
+.trial-res .why .fail-why {
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+/* 한 줄이 길어도 칩은 접히지 않는다 — 「요소를 찾지 못함」이 두 줄로 꺾였다 */
+.trial-res .why .fail-type {
+  flex: none;
+  white-space: nowrap;
+}
+
+.trial-res .lk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 4px 14px;
+  font-size: 12.5px;
+}
+
+.trial-res .lk .linklike,
+.trial-back {
+  color: var(--link);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.trial-res .lk .linklike {
+  font-size: 12.5px;
+  line-height: 1.7;
+}
+
+.trial-res-steps {
+  display: grid;
+  gap: 3px;
+  padding: 8px 14px 10px 152px;
+  background: var(--well);
+  border-top: 1px solid var(--line);
+  font-size: 12.5px;
+}
+
+.trial-res-steps li {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) 80px;
+  gap: 6px;
+  color: var(--ink-muted);
+}
+
+.trial-res-steps .n {
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  text-align: right;
+}
+
+.trial-res-steps .ok,
+.trial-res-steps .ng,
+.trial-res-steps .sk {
+  text-align: right;
+}
+
+.trial-res-steps .ok {
+  color: var(--pass-text);
+}
+
+.trial-res-steps .ng,
+.trial-res-steps li.f {
+  color: var(--fail-text);
+  font-weight: 600;
+}
+
+.trial-res-steps .sk {
+  color: var(--ink-faint);
+}
+
+/* 결과 바닥 왼쪽 — 준비로 돌아가는 글자 단추. 「닫기」는 창을 닫는다 (점검표 B10) */
+.trial-back {
+  margin-right: auto;
+  font-size: 13px;
+}
+
+/* 휴대폰 — 줄 칸을 두 줄로 접는다 (§8.16 「틀」 · 점검표 D12) */
+@media (max-width: 620px) {
+  .trial-res .top {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    row-gap: 4px;
+  }
+
+  .trial-res .top .id,
+  .trial-res .top .nm {
+    grid-column: 1 / -1;
+  }
+
+  .trial-res .why,
+  .trial-res-steps {
+    padding-left: 14px;
+  }
+
+  .trial-sum .r {
+    margin-left: 0;
+    flex-basis: 100%;
+  }
+
+  .trial-back {
+    margin-right: 0;
+    text-align: center;
+  }
+}

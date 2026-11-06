@@ -7,7 +7,8 @@ import type { CaseRow, Platform, RunRequestItem, TrialResult, 모바일위치 } 
 import { 원문보기 } from './FailureWhy.js';
 import { use말, use언어 } from './i18n.js';
 import { type 고친값표, 실행항목 } from './pickRun.js';
-import { PLATFORM_LABEL, seconds, Verdict } from './ui.js';
+import { 걸린글 } from './trialView.js';
+import { PLATFORM_LABEL, Verdict } from './ui.js';
 import { type 디바이스칸, type 시험줄, useTrialQueue } from './useTrialQueue.js';
 
 /** 실행 창이 지금 보이는 것 — 값을 고치는 창 · 시험 실행 중 · 완료 (시안 7판 ② ④ ⑥) */
@@ -51,6 +52,8 @@ export function use여러건시험(옵션: {
   }
 
   return {
+    /** 결과 줄의 「모바일(가상 기기)」 — 결과 창에서는 바꿀 수 없어 지금 값이 돈 값이다 */
+    mobileOn,
     줄들: 큐.줄들,
     도는중: 큐.도는중,
     지금: 큐.지금,
@@ -84,7 +87,7 @@ export function use여러건시험(옵션: {
       set중단묻기(false);
       큐.중단();
     },
-    /** 완료 창 「닫기」 — 값 창으로 돌아가 고쳐서 다시 돌린다. 결과 배지는 줄에 남는다 */
+    /** 결과 「← 준비로 돌아가기」 — 값 창으로 돌아가 고쳐서 다시 돌린다. 결과 배지는 줄에 남는다. 「닫기」는 창을 닫는다 (§8.16 ④ · 점검표 B10) */
     값으로: () => set보기('edit'),
   };
 }
@@ -126,7 +129,8 @@ function 한칸배지({ 줄, 이름 }: { 줄: 시험줄; 이름?: string }) {
     <span className="trial-badge">
       {머리}
       <Verdict status={줄.결과.status} />
-      <span className="dur">{seconds(줄.결과.durationMs, 언어)}</span>
+      {/* 사람이 기다린 시간을 초 단위로 — 결과 창과 같은 값이다 (§8.16 ④ · 점검표 B12 · B15f) */}
+      <span className="dur">{걸린글(줄.걸린ms ?? 줄.결과.durationMs, 언어)}</span>
       {안내 === undefined ? null : <span className="trial-badge err">{안내}</span>}
     </span>
   );

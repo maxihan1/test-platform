@@ -33,7 +33,7 @@ describe('실패 유형 칸', () => {
     const 줄들 = [...칸.querySelectorAll('.dash-types-list > li')];
     expect(줄들.map((줄) => 줄.querySelector('.dash-types-head > :first-child')!.textContent)).toEqual([
       '기대 결과 불일치',
-      '요소 미검출',
+      '요소를 찾지 못함',
       '타임아웃',
       '환경 오류',
       '그 밖',

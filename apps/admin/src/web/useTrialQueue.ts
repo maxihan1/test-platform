@@ -12,7 +12,11 @@ import { message, 디바이스순서 } from './ui.js';
 export type 시험줄 =
   | { 종류: 'wait' }
   | { 종류: 'run' }
-  | { 종류: 'done'; 결과: TrialResult; 실패?: 항목실패 | null }
+  /**
+   * 걸린ms 는 누른 때부터 끝난 결과를 받은 때까지다 — 러너의 durationMs 는 늦춘 1초를 빼서 8초 기다린 사람에게 1.80초로 보였다 (도메인/실행 §8.16 ④ · 점검표 B12).
+   * 제목들은 그 시험이 끝까지 믿은 단계 제목이다 — 결과에 없는 남은 단계를 「실행 안 함」으로 그린다 (점검표 B6)
+   */
+  | { 종류: 'done'; 결과: TrialResult; 실패?: 항목실패 | null; 걸린ms?: number; 제목들?: string[] | null }
   | { 종류: 'notice'; 글: string }
   /** 중단해서 차례가 안 왔다 — 완료 창의 「실행 안 함」 (시안 7판 ⑤ ⑥) */
   | { 종류: 'skip' };
@@ -37,16 +41,30 @@ export interface 지금시험 {
    * 물을 때마다 받은 지금 단계를 쌓은 것. 서버는 지나간 단계를 모아 두지 않아 화면이 쌓는다 —
    * 묻는 사이(1.5초)에 끝난 짧은 단계는 빠질 수 있다 (도메인/실행 §3.2 「시험 실행 지금 단계 · 중단 · 정식 실행 화면」)
    */
-  단계들: TrialStep[];
+  단계들: 쌓인단계[];
+  /**
+   * 스캔이 센 단계 제목. 누른 뒤 처음 받은 것을 끝까지 쓰고, 도는 단계가 그 자리 제목과 다르면 그 순간 버린다(null) —
+   * 틀린 남은 단계를 흐리게 보이느니 안 보이는 쪽이 낫다 (도메인/실행 §3.2 「단계 목록은 처음부터 다 보인다」)
+   */
+  제목들: string[] | null;
+}
+
+/** 시작은 그 단계를 처음 본 순간에서 경과를 뺀 시각(ms)이다 — 다음 단계의 시작과 빼서 끝난 단계가 걸린 시간을 낸다 */
+export interface 쌓인단계 extends TrialStep {
+  시작: number;
 }
 
 /** 같은 단계면 경과만 고치고 새 단계면 뒤에 붙인다 */
-export function 단계쌓기(단계들: TrialStep[], 새: TrialStep | undefined): TrialStep[] {
+export function 단계쌓기(단계들: 쌓인단계[], 새: TrialStep | undefined, 지금ms: number = Date.now()): 쌓인단계[] {
   if (새 === undefined) return 단계들;
   const 끝 = 단계들[단계들.length - 1];
-  if (끝?.seq === 새.seq) return 끝.elapsedMs === 새.elapsedMs ? 단계들 : [...단계들.slice(0, -1), 새];
-  return [...단계들, 새];
+  if (끝?.seq === 새.seq) return 끝.elapsedMs === 새.elapsedMs ? 단계들 : [...단계들.slice(0, -1), { ...끝, elapsedMs: 새.elapsedMs }];
+  return [...단계들, { ...새, 시작: 지금ms - 새.elapsedMs }];
 }
+
+/** 받은 단계가 저장된 같은 자리 제목과 맞나. 다르면 저장값을 버린다 */
+export const 제목맞나 = (제목들: string[] | null, 단계: TrialStep | undefined): string[] | null =>
+  제목들 === null || 단계 === undefined || 제목들[단계.seq - 1] === 단계.title ? 제목들 : null;
 
 const 기본간격 = 1500;
 
@@ -83,9 +101,12 @@ export function useTrialQueue(간격: number = 기본간격) {
   /** 이어 돌면 null, 멈추면 남은 칸에 붙일 글 */
   async function 한번(항목: RunRequestItem, platform: Platform, env: string, mobileOn: 모바일위치, 차례: number, 전체: number): Promise<string | null> {
     쓴다(항목.tcId, platform, { 종류: 'run' });
+    const 누른때 = Date.now();
+    // 처음 받은 RUNNING 의 제목을 끝까지 쓴다. undefined 는 아직 못 받았다는 뜻이다
+    let 제목: string[] | null | undefined;
     try {
       const { trialId } = await api.startTrial(항목.tcId, { platform, env, params: 항목.params, expected: 항목.expected, ...(platform === 'mobile' && { mobileOn }) });
-      if (!멈춤.current) set지금({ tcId: 항목.tcId, trialId, platform, vision: null, 차례, 전체, 단계들: [] });
+      if (!멈춤.current) set지금({ tcId: 항목.tcId, trialId, platform, vision: null, 차례, 전체, 단계들: [], 제목들: null });
       // 시작 응답을 기다리는 사이 중단을 눌렀다 — 그때는 끊을 번호가 없었다
       if (중단.current) void 끊기(항목.tcId, trialId);
       // 이 시험의 칸일 때만 링크를 바꾼다
@@ -97,13 +118,16 @@ export function useTrialQueue(간격: number = 기본간격) {
         if (멈춤.current) return '';
         if (답.status === 'DONE') {
           링크(null);
-          쓴다(항목.tcId, platform, { 종류: 'done', 결과: 답.result, 실패: 답.failure ?? null });
+          쓴다(항목.tcId, platform, { 종류: 'done', 결과: 답.result, 실패: 답.failure ?? null, 걸린ms: Date.now() - 누른때, 제목들: 제목 ?? null });
           return null;
         }
         링크(답.vision?.url ?? null);
-        if (!멈춤.current && 답.step !== undefined) {
-          const 단계 = 답.step;
-          set지금((앞) => (앞 === null || 앞.trialId !== trialId ? 앞 : { ...앞, 단계들: 단계쌓기(앞.단계들, 단계) }));
+        제목 = 제목맞나(제목 === undefined ? (답.stepTitles ?? null) : 제목, 답.step);
+        if (!멈춤.current) {
+          const [단계, 제목들] = [답.step, 제목];
+          set지금((앞) =>
+            앞 === null || 앞.trialId !== trialId || (단계 === undefined && 앞.제목들 === 제목들) ? 앞 : { ...앞, 단계들: 단계쌓기(앞.단계들, 단계), 제목들 },
+          );
         }
         await new Promise((ok) => setTimeout(ok, 간격));
         if (멈춤.current) return '';

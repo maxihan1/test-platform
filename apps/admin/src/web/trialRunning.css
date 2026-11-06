@@ -1,0 +1,281 @@
+/* 실행 창의 시험 실행 중 — 띠 · 대기열 · 단계 · 장면 칸. 결과와 같이 쓰는 판정 알약은 trialResult.css 다 (도메인/실행 §8.16 ③ · 시안 A ③). 같은 틀(runWindow.css) 안에서 내용만 바뀐다. 색은 토큰만 쓴다 — DESIGN.md 원칙 1 */
+.trial-band {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--well);
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+
+.trial-band b {
+  flex: none;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.trial-band .r {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+/* ③ 왼쪽 대기열 · 단계, 오른쪽 장면. 폰 차례면 장면 칸이 300px 폰 폭이다 (점검표 B14) — 창 크기는 그대로다 */
+.trial-run {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: 14px;
+}
+
+.trial-run.phone {
+  grid-template-columns: minmax(0, 1fr) 300px;
+}
+
+/* 왼쪽 칸은 구르지 않는다 — 대기열과 단계 목록이 따로 구른다. 단계가 늘어도 대기열이 그 자리에 있다 */
+.trial-colL {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.trial-queue,
+.trial-now-steps,
+.trial-res,
+.trial-res-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.trial-queue {
+  flex: 0 0 auto;
+  max-height: 40%;
+  overflow-y: auto;
+  border-bottom: 1px solid var(--line);
+}
+
+.trial-queue li {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.trial-queue li + li {
+  border-top: 1px solid var(--line);
+}
+
+.trial-queue li.cur {
+  background: var(--accent-soft);
+}
+
+.trial-queue li.cur .nm-t {
+  font-weight: 600;
+}
+
+.trial-queue .nm {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.trial-queue .nm-t {
+  margin-left: 2px;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trial-queue .tag,
+.trial-res .tag {
+  flex: none;
+  justify-self: start;
+  padding: 0 6px;
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+  background: var(--panel);
+  color: var(--ink-muted);
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+.trial-now-steps {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  gap: 2px;
+  align-content: start;
+  padding: 8px;
+}
+
+.trial-now-steps li {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 72px;
+  gap: 6px;
+  align-items: center;
+  padding: 7px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.trial-now-steps .no {
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  text-align: right;
+}
+
+.trial-now-steps .t {
+  text-align: right;
+  font-size: 12px;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.trial-now-steps li.done {
+  color: var(--ink);
+}
+
+.trial-now-steps li.done .t::before {
+  content: '✓ ';
+  color: var(--pass-text);
+  font-weight: 700;
+}
+
+.trial-now-steps li.now {
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--accent-mark);
+}
+
+.trial-now-steps li.now .t {
+  color: var(--link);
+}
+
+/* 남은 단계는 흐리게 (점검표 B11) */
+.trial-now-steps li.wait {
+  opacity: 0.5;
+}
+
+.trial-now-none {
+  margin: 0;
+  padding: 12px;
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+
+/* 장면 칸은 칸을 채우고 구르지 않는다 — 앞 판은 세로 스크롤바가 섰다 (점검표 D2) */
+.trial-colR {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+}
+
+.trial-colR > .trial-live {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.trial-colR .live-shot,
+.trial-colR .live-wait {
+  flex: 1 1 0;
+  min-height: 0;
+  aspect-ratio: auto;
+}
+
+.trial-colR .live-shot img {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  object-fit: contain;
+}
+
+/* 첫 장면 전 뼈대 (점검표 B1) — 목록을 불러올 때의 뼈대(styles.css .skel-row)와 같은 빛 훑기다. 움직임 줄이기는 styles.css 가 한 번에 끈다 */
+.live-skel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  place-content: initial;
+}
+
+.live-skel .skel-bar,
+.live-skel .skel-box {
+  display: block;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--well) 0%, var(--line-2) 50%, var(--well) 100%);
+  background-size: 200% 100%;
+  animation: 훑기 var(--dur-shimmer) linear infinite;
+}
+
+.live-skel .skel-bar {
+  height: 12px;
+  width: 70%;
+}
+
+.live-skel .skel-bar.short {
+  width: 40%;
+}
+
+.live-skel .skel-box {
+  flex: 1 1 auto;
+  min-height: 40px;
+}
+
+.live-skel p {
+  margin: 0;
+  text-align: center;
+  color: var(--ink-muted);
+}
+
+/* 휴대폰 — 칸을 위아래로 쌓고 장면 칸이 단계 위로 온다 (§8.16 「틀」 · 점검표 D12) */
+@media (max-width: 620px) {
+  .trial-run,
+  .trial-run.phone {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 38vh minmax(0, 1fr);
+  }
+
+  .trial-colR {
+    order: -1;
+  }
+
+  /* 대기열 줄은 한 줄로 — 디바이스는 장면 칸 머리가 적어 꼬리표를 걷는다. 두 줄이면 세 건만으로 단계 칸이 눌렸다 */
+  .trial-queue li {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 7px 10px;
+  }
+
+  .trial-queue .tag {
+    display: none;
+  }
+
+  .trial-band {
+    flex-wrap: wrap;
+  }
+
+  .trial-band .r {
+    margin-left: 0;
+  }
+}

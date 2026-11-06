@@ -2,7 +2,7 @@
 // 실행 창의 「시험 실행」 조각 — 결과 배지 · 한 건 창의 절차 목록 · 오른쪽 실시간 칸 (도메인/실행 §8.10)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 import { api, type TrialResult } from './api.js';
 import { 그린다, 서비스, 케이스, 시작누름 } from './runPick.fixture.js';
@@ -61,7 +61,7 @@ describe('한 건 창의 테스트 실행', () => {
     ],
   };
 
-  it('끝나면 절차마다의 판정 목록이 줄 아래에 펼쳐진다', async () => {
+  it('끝나면 실패 카드 안에 절차마다의 판정 목록이 펼쳐지고 원문은 카드에 하나다', async () => {
     vi.spyOn(api, 'startTrial').mockResolvedValue({ trialId: 't1' });
     vi.spyOn(api, 'getTrial').mockResolvedValue({ status: 'DONE', result: 끝 });
     await 그린다();
@@ -70,10 +70,12 @@ describe('한 건 창의 테스트 실행', () => {
     fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
     시작누름('시험 실행 시작');
 
-    await waitFor(() => expect(document.querySelector('.trial-steps')).not.toBeNull(), { timeout: 5000 });
-    expect(screen.getByText('로그인한다')).toBeTruthy();
-    expect(screen.getByText('목록을 확인한다').closest('li')?.className).toContain('fail');
-    expect(screen.getByText('행이 없습니다', { selector: '.trial-step details pre' })).toBeTruthy();
+    await waitFor(() => expect(document.querySelector('.trial-res .trial-res-steps')).not.toBeNull(), { timeout: 5000 });
+    const 카드 = within(document.querySelector('.trial-res li.bad') as HTMLElement);
+    expect(카드.getByText('로그인한다', { selector: '.trial-res-steps span' })).toBeTruthy();
+    expect(카드.getByText('목록을 확인한다', { selector: '.trial-res-steps span' }).closest('li')?.className).toBe('f');
+    expect(카드.getAllByText('원문 보기')).toHaveLength(1);
+    expect(카드.getByText('행이 없습니다', { selector: 'details pre' })).toBeTruthy();
   });
 
   it('디바이스를 다 끄면 시험 실행이 잠겨 보내지 않는다', async () => {
@@ -127,7 +129,7 @@ describe('디바이스를 바꾼 뒤 남는 시험 결과', () => {
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
     시작누름('시험 실행 시작');
-    fireEvent.click(await screen.findByRole('button', { name: '닫기' }, { timeout: 5000 }));
+    fireEvent.click(await screen.findByRole('button', { name: '← 준비로 돌아가기' }, { timeout: 5000 }));
     expect(document.querySelectorAll('.trial-dev')).toHaveLength(4);
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'PC 2건' }));
@@ -156,8 +158,9 @@ describe('실행 창 오른쪽 실시간 칸', () => {
 
     const 링크 = await screen.findByRole('link', { name: 'Device VISION 에서 보기 ↗' });
     expect(링크.getAttribute('href')).toBe('https://vision.example/#phone=R3C&view=k1');
-    expect(document.querySelector('.pick-live .trial-live')).not.toBeNull();
-    expect(screen.getByText('ZRS-001 실행 설정 케이스')).toBeTruthy();
+    expect(document.querySelector('.trial-colR .trial-live')).not.toBeNull();
+    // 케이스 이름은 대기열이 적는다 — 장면 칸 머리에 또 쓰지 않는다 (§8.16 ③ · 점검표 D2)
+    expect(document.querySelector('.live-sub')?.textContent).toBe('서버 브라우저');
     expect(받기).toHaveBeenCalledWith('/api/cases/ZRS-001/test-run/t1/live');
   });
 
@@ -191,7 +194,7 @@ describe('실행 창 오른쪽 실시간 칸', () => {
     await waitFor(() => expect(screen.queryByRole('link', { name: 'Device VISION 에서 보기 ↗' })).toBeNull(), { timeout: 5000 });
   });
 
-  it('여러 건이면 몇째 케이스인지 칸 머리에 적는다', async () => {
+  it('여러 건이면 몇째인지 창 제목에 적고 지금 케이스는 대기열 줄이 진하게 가리킨다', async () => {
     vi.spyOn(api, 'paramSets').mockResolvedValue({ items: [] });
     vi.spyOn(api, 'startTrial').mockResolvedValue({ trialId: 't1' });
     vi.spyOn(api, 'getTrial').mockResolvedValue({ status: 'RUNNING' });
@@ -203,10 +206,11 @@ describe('실행 창 오른쪽 실시간 칸', () => {
     fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
     시작누름('시험 실행 시작');
 
-    expect(await screen.findByText('1 / 2 · ZRS-001 실행 설정 케이스')).toBeTruthy();
+    expect(await screen.findByRole('dialog', { name: '시험 실행 · 1 / 2' })).toBeTruthy();
+    expect(document.querySelector('.trial-queue li.cur .id')?.textContent).toBe('ZRS-001');
   });
 
-  it('PC 와 모바일을 고른 케이스는 PC 다음 모바일을 돌고, 모바일 차례에 칸 머리가 모바일을 적는다', async () => {
+  it('PC 와 모바일을 고른 케이스는 PC 다음 모바일을 돌고, 모바일 차례에 장면 칸이 가상 기기 폰 폭이 된다', async () => {
     const 시작 = vi.spyOn(api, 'startTrial').mockImplementation((_tcId, body) => Promise.resolve({ trialId: `t-${body.platform}` }));
     vi.spyOn(api, 'getTrial').mockImplementation((_tcId, trialId) =>
       Promise.resolve(trialId === 't-desktop' ? { status: 'DONE', result: { status: 'PASS', durationMs: 1, steps: [] } } : { status: 'RUNNING' }),
@@ -218,7 +222,9 @@ describe('실행 창 오른쪽 실시간 칸', () => {
     fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
     시작누름('시험 실행 시작');
 
-    expect(await screen.findByText('2 / 2 · ZRS-001 실행 설정 케이스 · 모바일', {}, { timeout: 5000 })).toBeTruthy();
+    expect(await screen.findByRole('dialog', { name: '시험 실행 · 2 / 2' }, { timeout: 5000 })).toBeTruthy();
+    expect(screen.getByText('가상 기기 · iPhone 14')).toBeTruthy();
+    expect(document.querySelector('.trial-run')?.classList.contains('phone')).toBe(true);
     expect(시작.mock.calls.map(([, body]) => body.platform)).toEqual(['desktop', 'mobile']);
   });
 });

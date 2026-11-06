@@ -940,7 +940,8 @@ export interface TrialStep {
 }
 
 export type TrialState =
-  | { status: 'RUNNING'; vision?: { url: string }; step?: TrialStep }
+  /** stepTitles 는 스캔이 센 그 케이스의 단계 제목 차례다. 못 센 케이스는 없다 (도메인/실행 §3.2 「단계 목록은 처음부터 다 보인다」) */
+  | { status: 'RUNNING'; vision?: { url: string }; step?: TrialStep; stepTitles?: string[] }
   /** failure 는 정식 실행 실패 카드와 같은 유형 · 한 줄이다. 통과 · 중단이면 null (도메인/실행 §7 「케이스 테스트 실행」) */
   | { status: 'DONE'; result: TrialResult; failure?: 항목실패 | null };
 
