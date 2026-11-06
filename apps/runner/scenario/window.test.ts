@@ -253,6 +253,7 @@ describe('창 하나 — 공용 창 · 단계 열기 · 단계 닫기 (SPEC 도�
     등록부.set('XAP-LIVE', async () => ({ seq: 1, steps: [], failed: false }));
     const takeScreenshot = vi.fn(async () => Buffer.from([0x89, 0x50, 0x4e, 0x47]).toString('base64'));
     vi.stubEnv('PLATFORM_LIVE_FILE', 장면파일);
+    vi.stubEnv('PLATFORM_SLOW_MO', '1000');
     try {
       const 단계요청 = { storageState: vi.fn(async () => ({ cookies: [], origins: [] })), dispose: vi.fn(async () => {}) };
       const 폰 = { 얻기: vi.fn(async () => ({ driver: { takeScreenshot } })), 닫기: vi.fn(async () => {}) } as unknown as NonNullable<감싸기설정['폰']>;
