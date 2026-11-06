@@ -7,8 +7,7 @@ import { 정수 } from '../routeParams.js';
 
 import { 실행남은시간 } from './eta.js';
 import { 보낸항목들, 항목화면 } from './live.js';
-import { 진행 } from './runner.js';
-import { 시나리오진행 } from './scenarioRunner.js';
+import { 러너진행 } from './runner.js';
 
 export async function 진행경로(app: FastifyInstance): Promise<void> {
   app.get<{ Params: { runId: string } }>('/runs/:runId/progress', async (req, reply) => {
@@ -18,7 +17,8 @@ export async function 진행경로(app: FastifyInstance): Promise<void> {
     // 러너의 목록은 **모든 서비스의 자식**을 담고 runId 칸이 없다. 그대로 흘리면 남의 실행의
     // 절차 제목이 이 화면에 뜬다 — 문(auth/scope.ts)은 「이 runId 를 볼 자격」만 보고 내용물은 안 본다.
     // 자기 DB 의 historyId 와 교집합만 낸다. 제한 시간도 같은 줄에 있어 한 질의로 끝난다 (SPEC §7)
-    const [돌고있는것들, 시나리오들] = await Promise.all([진행(), 시나리오진행()]);
+    // 러너 /progress 를 한 번만 묻는다 — 케이스 단계와 E2E 지금 부품이 한 답에 같이 온다
+    const { items: 돌고있는것들, scenarios: 시나리오들 } = await 러너진행();
     // E2E 정식 실행이면 지금 부품 번호 · 경과 — runId 는 이 실행 것만 고른다 (도메인/실행 §7 · §3.2 「E2E 도 지금 단계를 알리고 끊는다」)
     const 시나리오 = 시나리오들.find((s) => s.runId === runId);
     const step = 시나리오 === undefined ? {} : { step: { seq: 시나리오.seq, elapsedMs: 시나리오.elapsedMs } };

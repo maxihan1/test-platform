@@ -9,7 +9,8 @@ import { z } from 'zod';
 import { artifactsDir, 볼륨파일읽기 } from '../artifactFile.js';
 import { 권한이되나 } from '../auth/gate.js';
 import { 장면을건넨다 } from '../execution/live.js';
-import { abortScenarioRunner, 시나리오진행 } from '../execution/scenarioRunner.js';
+import { 시험시나리오진행 } from '../execution/runner.js';
+import { abortScenarioRunner } from '../execution/scenarioRunner.js';
 import { 시나리오시험, TrialBusyError } from '../execution/trial.js';
 import { 정수 } from '../routeParams.js';
 
@@ -61,7 +62,7 @@ export default async function scenarioTrialRoutes(app: FastifyInstance): Promise
     // 러너에 보낸 시험만 지금 부품을 묻는다. 러너가 아직 모르거나 못 닿으면 빈 칸이다 — 오류가 아니다.
     // 러너의 목록은 모든 시나리오를 담으니 이 시험 번호로 거른다
     if (읽음.status !== 'RUNNING' || 상태찾기(trialId)?.보냄 !== true) return 읽음;
-    const 지금 = (await 시나리오진행()).find((s) => s.trialId === trialId);
+    const 지금 = (await 시험시나리오진행()).find((s) => s.trialId === trialId);
     return 지금 === undefined ? 읽음 : { ...읽음, step: { seq: 지금.seq, elapsedMs: 지금.elapsedMs } };
   });
 

@@ -7,7 +7,6 @@ import https from 'node:https';
 import type {
   ExecuteRequest,
   ExecuteResponse,
-  RunningStep,
   ScenarioExecuteRequest,
   ScenarioExecuteResponse,
 } from '@platform/kit';
@@ -18,7 +17,7 @@ import { 서명주소 } from './buildFile.js';
 import { 거를패키지, 팜주소, 팜폰으로, 폰Chrome으로 } from './farm.js';
 import { 실행팜토큰 } from './farmToken.js';
 import { 항목폰화면, 항목화면을닫는다, 항목화면을연다 } from './live.js';
-import { runnerUrl, 답하나, 러너들, 러너머리 } from './runnerAddr.js';
+import { runnerUrl, 답하나, 러너머리 } from './runnerAddr.js';
 import type { PendingItem } from './store.js';
 
 // 러너는 자기 제한 시간이 지나면 자식을 죽이고 200 + NA로 돌려준다. 이쪽이 먼저 끊으면 그 부분 결과가 사라진다
@@ -51,45 +50,8 @@ export async function abortRunner(historyId: number): Promise<boolean> {
   }
 }
 
-// 지금 러너에서 돌고 있는 절차들. 닿지 못하거나 200 이 아니면 빈 목록이다 —
-// 한 번 실패가 곧 「러너가 죽었다」는 아니고, 러너 고장을 사람에게 알리는 자리는 따로 있다 (SPEC §8.3).
-// **여기서 거르지 않는다.** 러너의 목록은 모든 서비스의 자식을 담고 runId 칸이 없다 (SPEC §5.2)
-export async function 진행(주소들 = 러너들(), 제한ms = 3_000): Promise<RunningStep[]> {
-  // 러너마다 따로 묻는다. 한쪽이 죽어도 다른 쪽 절차는 보여야 한다
-  const 목록 = await Promise.all(
-    주소들.map(async (주소): Promise<RunningStep[]> => {
-      try {
-        // 화면이 짧은 주기로 다시 묻는다. 오래 매달려 있어 봐야 다음 물음이 덮는다
-        const res = await fetch(`${주소}/progress`, { headers: 러너머리(), signal: AbortSignal.timeout(제한ms) });
-        if (!res.ok) return [];
-        return ((await res.json()) as { items?: RunningStep[] }).items ?? [];
-      } catch {
-        return [];
-      }
-    }),
-  );
-  return 목록.flat();
-}
-
-// 받은 때가 undefined 면 아직 답을 기다리는 중이다 — 그동안 온 물음도 같은 답을 기다린다
-let 앞시험진행: { 받은때: number | undefined; 값: Promise<RunningStep[]> } | undefined;
-
-/**
- * 시험 실행이 도는 서버 러너의 절차들 — 답을 받은 뒤 1초 동안, 그리고 기다리는 동안 모든 시험이 한 답을 함께 쓴다.
- * 화면이 1.5초마다 묻고 시험이 여럿이면 그만큼 러너를 부르게 돼서다.
- * 3초까지 기다린다 — 1초였을 때 CPU 둘인 서버에서 WebKit(모바일)이 돌면 답이 매번 늦어 단계가 끝까지 비었다
- * (2026-11-06 WEB-F9-14 · 점검표 B1 · 도메인/실행 §3.2 「시험 실행 지금 단계 · 중단 · 정식 실행 화면」)
- */
-export function 시험진행(): Promise<RunningStep[]> {
-  const 앞 = 앞시험진행;
-  if (앞 !== undefined && (앞.받은때 === undefined || Date.now() - 앞.받은때 < 1_000)) return 앞.값;
-  const 이번: NonNullable<typeof 앞시험진행> = { 받은때: undefined, 값: 진행([runnerUrl()], 3_000) };
-  void 이번.값.then(() => {
-    이번.받은때 = Date.now();
-  });
-  앞시험진행 = 이번;
-  return 이번.값;
-}
+// 진행 묻기는 runnerProgress.ts 로 옮겼다 — 이 파일이 300줄을 넘었다. 부르던 곳이 그대로 쓰게 다시 내보낸다
+export { 러너진행, 시험시나리오진행, 시험진행, 진행, type 러너진행답 } from './runnerProgress.js';
 
 // 400·404·500은 전부 { error, detail } 이다. 사람이 읽을 사유로 합쳐 둔다
 function 거절사유(status: number, json: unknown): string {
