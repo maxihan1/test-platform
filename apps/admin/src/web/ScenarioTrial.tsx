@@ -10,6 +10,7 @@ import { 멈춘사유글자 } from './scenarioResultView.js';
 import { 가리킴빈곳, 종류글, 카드요약, type 재료들 } from './scenarioView.js';
 import { RunLocation, type 모바일고르개 } from './RunLocation.js';
 import { 장면칸 } from './TrialLive.js';
+import { 걸린글 } from './trialView.js';
 import { seconds, Verdict } from './ui.js';
 import type { 시험상태 } from './useScenarioTrial.js';
 
@@ -212,7 +213,8 @@ export function TrialRow({
           ) : (
             <Verdict status={part.status} />
           )}
-          {안돌았다 ? null : <span className="scn-dur">{seconds(part.durationMs, 언어)}</span>}
+          {/* 초 단위 정수다 — 케이스 시험 결과와 같다 (점검표 B15f · §8.16 ④) */}
+          {안돌았다 || part.durationMs === null ? null : <span className="scn-dur">{걸린글(part.durationMs, 언어)}</span>}
         </span>
       </div>
       {part.status !== 'FAIL' || 사유 === '' ? null : <pre className="scn-error">{사유}</pre>}

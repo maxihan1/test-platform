@@ -254,7 +254,7 @@ describe('시험 실행 결과 창 · 왼쪽 요약', () => {
     expect(줄들).toHaveLength(3);
     expect(within(줄들[0]!).getByText('통과')).toBeTruthy();
     expect(within(줄들[0]!).getByText('케이스')).toBeTruthy();
-    expect(within(줄들[0]!).getByText('1.20초')).toBeTruthy();
+    expect(within(줄들[0]!).getByText('1초')).toBeTruthy();
     expect(within(줄들[1]!).getByText('실패')).toBeTruthy();
     expect(줄들[1]!.querySelector('pre.scn-error')?.textContent).toBe('기대 a\n실제 b');
     const 사진 = within(줄들[1]!).getByRole('link', { name: '실패 화면 보기' });
