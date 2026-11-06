@@ -157,7 +157,7 @@ export interface AbortResult {
 }
 
 // 이미 끝났거나 이미 멈춘 실행은 다시 멈출 수 없다. 그 사실을 부르는 쪽이 409로 알린다 (SPEC §7)
-// 시나리오 실행은 러너에 끊을 통로가 없어 DB 만 닫으면 러너는 계속 돈다. 그래서 따로 거절한다 (SPEC 실행 §7)
+// 시나리오 실행은 DB 만 닫으면 러너가 계속 돈다. 그래서 여기서 닫지 않고 'SCENARIO' 로 알리면 부르는 쪽이 러너에 끊어 달라 하며 닫는다 (scenario/runAbort.ts · SPEC 실행 §7)
 export async function abortRun(runId: number): Promise<AbortResult | null | 'SCENARIO'> {
   const client = await (await db()).connect();
   try {

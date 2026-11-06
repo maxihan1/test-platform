@@ -8,6 +8,7 @@ import { z } from 'zod';
 
 import { 칸되는서비스 } from '../auth/permissions.js';
 import { 정수 } from '../routeParams.js';
+import { 시나리오실행을멈춘다 } from '../scenario/runAbort.js';
 import { artifactsDir, 볼륨파일읽기 } from '../artifactFile.js';
 import { dispatch, markAborted } from './dispatcher.js';
 import { 실행남은시간 } from './eta.js';
@@ -119,8 +120,11 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
 
     // DB 에서 먼저 닫는다. 러너 응답과 겹쳐도 finished_at IS NULL 조건이 먼저 온 것만 기록한다 (SPEC §7.1)
     const result = await abortRun(runId);
+    // 시나리오 실행은 케이스처럼 항목을 DB 에서 먼저 닫지 않는다 — 러너에 보냈으면 러너 답이 올 때까지 열어 둔다 (scenario/runAbort.ts)
     if (result === 'SCENARIO') {
-      return reply.code(409).send({ error: 'NOT_ABORTABLE', detail: `실행 ${runId}은 시나리오 실행이라 멈출 수 없다` });
+      const 멈춤 = await 시나리오실행을멈춘다(runId);
+      if (멈춤 === null) return reply.code(409).send({ error: 'NOT_RUNNING', detail: `실행 ${runId}은 이미 끝났거나 멈춘 상태다` });
+      return 멈춤;
     }
     if (result === null) {
       return reply.code(409).send({ error: 'NOT_RUNNING', detail: `실행 ${runId}은 이미 끝났거나 멈춘 상태다` });

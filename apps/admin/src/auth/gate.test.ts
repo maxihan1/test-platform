@@ -1000,8 +1000,19 @@ describe.skipIf(연결 === undefined)('시나리오 문', () => {
       for (const url of [`/api/scenario-trials/${번호}`, `/api/scenario-trials/${번호}/screenshots/1`, `/api/scenario-trials/${번호}/live`]) {
         expect((await app.inject({ method: 'GET', url, cookies })).statusCode, url).toBe(200);
       }
-      expect((await app.inject({ method: 'POST', url: `/api/scenario-trials/${번호}/abort`, cookies })).statusCode, '중단').toBe(200);
     }
+    시나리오시험.전부비운다();
+  });
+
+  it('시험 실행 중단은 읽기 등급이면 403 이고, 남의 번호 · 없는 번호 · 모양 아닌 번호는 문이 지나보낸다 — 라우트가 404 를 낸다', async () => {
+    시나리오시험.전부비운다();
+    const 남의것 = 시나리오시험.시작한다('누군가', 'XSA2', () => new Promise(() => {}), []);
+    const 읽기 = await 출입증('xsa-reader');
+    const 쓰기 = await 출입증('xsa-writer');
+    const 중단 = (cookies: Record<string, string>, 번호: string) => app.inject({ method: 'POST', url: `/api/scenario-trials/${번호}/abort`, cookies });
+
+    expect((await 중단(읽기, 남의것)).json()).toEqual({ error: 'FORBIDDEN', need: 'runs:trial' });
+    for (const 번호 of [남의것, '44444444-4444-4444-8444-444444444444', '모양아님']) expect((await 중단(쓰기, 번호)).statusCode, 번호).toBe(200);
     시나리오시험.전부비운다();
   });
 

@@ -211,7 +211,7 @@ describe.skipIf(연결 === undefined)('test_run 의 kind 거르기', () => {
     await 실행치우기();
   });
 
-  it('시나리오 실행 중단 요청은 409 NOT_ABORTABLE 이다', async () => {
+  it('admin 이 분배를 모르는 시나리오 실행(DB 에만 RUNNING)의 중단 요청은 409 NOT_RUNNING 이고 그대로 둔다 — NOT_ABORTABLE 은 거뒀다', async () => {
     await 실행치우기();
     const app = Fastify();
     await app.register(executionRoutes, { prefix: '/api' });
@@ -223,7 +223,7 @@ describe.skipIf(연결 === undefined)('test_run 의 kind 거르기', () => {
       const res = await app.inject({ method: 'POST', url: `/api/runs/${S}/abort` });
 
       expect(res.statusCode).toBe(409);
-      expect(res.json().error).toBe('NOT_ABORTABLE');
+      expect(res.json().error).toBe('NOT_RUNNING');
       expect(await 상태(S)).toBe('RUNNING');
     } finally {
       await app.close();
