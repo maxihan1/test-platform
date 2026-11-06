@@ -80,7 +80,8 @@ export interface 받침틈 {
   첫장ms: number;
   찍기ms: number;
 }
-const 기본받침틈: 받침틈 = { 첫장ms: 2_000, 찍기ms: 폰쉼ms };
+// 첫 장은 0.5초만 기다린다 — 브라우저를 여는 데 4~5초가 들어 2초를 더 기다리면 6초짜리 케이스는 장면 한 장 없이 끝났다 (운영 시험 F9-19 T6)
+const 기본받침틈: 받침틈 = { 첫장ms: 500, 찍기ms: 폰쉼ms };
 
 /**
  * 장면이 첫장ms 동안 한 장도 안 오면 탭을 직접 찍는다. Playwright 는 Chromium 의 장면 걸기(Page.startScreencast) 실패를 삼켜
