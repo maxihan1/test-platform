@@ -54,6 +54,8 @@ export function useRunStart(on걸었다?: (runId: number) => void) {
       // 결과 화면 대신 실행 기록에서 그 실행을 고른 채 연다 — 뒤로 가면 떠난 목록의 조건이 그대로다 (도메인/실행 §8.7 「A안」)
       if (on걸었다 !== undefined) on걸었다(runId);
       else window.location.hash = 실행기록주소(요청.items[0]?.tcId ?? '', runId);
+      // 옮긴 뒤에도 진행 창을 바로 연다 — 앞 판은 알약 「N/12 완료」를 눌러야 열려 시험에서 못 찾았다 (점검표 B7 · §8.16 ⑤)
+      지켜본다({ runId, 열림: true });
       return true;
     } catch (err) {
       set사유(message(err, 언어));
