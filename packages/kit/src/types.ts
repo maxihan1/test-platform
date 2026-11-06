@@ -66,7 +66,7 @@ export interface ExecuteRequest {
   apiAuths?: ApiAuth[];         // 그 대상 서버 줄의 API 인증 전부. API 종류 애플리케이션 케이스만 (도메인/API §3.8 · API-F1-04)
   apiDoc?: ApiDocRef;           // 그 케이스의 판. CaseSpec.apiDoc 이 있을 때만 (도메인/API §3.8 · API-F1-05)
   recordHar?: { jobId: number }; // 성능 시나리오 녹화 — 오면 HAR 를 남긴다. jobId 는 기다리는 perf_ai_job 번호. 기록 · 증적에 안 남는다 (공통/3-공유계약 「성능 테스트 타입」)
-  uiCheck?: true;               // 호환성 실행 항목만. 오면 kit 이 Appium 연결 capability 에 farm:uiCheck: true 를 넣고, 러너는 통과해도 ui-check.json · ui-*.png 를 받는다. historyId 는 compat_run_case.id (도메인/호환성 §7 「러너 · kit」 · COMPAT-F1-03)
+  uiCheck?: true;               // 호환성 실행 항목만. historyId 는 compat_run_case.id. COMPAT-F1-03 부터 kit 이 Appium 연결 capability 에 farm:uiCheck: true 를 넣고 러너가 통과해도 ui-check.json · ui-*.png 를 받는다 — 그 전에는 러너 입구가 이 칸을 버린다 (도메인/호환성 §7 「러너 · kit」)
   live?: string;                // 장면 열쇠(UUID — 테스트 실행은 그 시험의 trialId · 정식 실행은 항목마다 새것). 오면 마지막 장면을 GET /live/:key 로 낸다. 테스트 실행(runId 0)이면 동작마다 1초 쉬고(누른 곳 표시는 2026-11-06 WEB-F9-14 에 뺐다), 정식 실행은 장면만 찍는다 · 정식 실행 android 는 러너가 400 (도메인/러너 §5.2 「테스트 모드 — 실시간 장면」)
 }
 
