@@ -101,6 +101,11 @@ describe('돌지 못한 항목의 사유 (SPEC §8.3)', () => {
     expect(칸사유([{ status: 'NA', error: { message: 'TIMEOUT' } }], 'ko')).toBe('제한 시간 초과');
   });
 
+  it('이미 저장된 Playwright 테스트 제한 시간 초과 글도 색 코드를 걷고 제한 시간 초과로 읽는다 (점검표 B3 — RUN 21043)', () => {
+    expect(미실행사유({ message: '\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m' }, 'ko')).toBe('제한 시간 초과');
+    expect(미실행사유({ message: '\u001b[31m러너에 닿지 못했습니다\u001b[39m' }, 'ko')).toBe('테스트 실행기에 닿지 못했습니다');
+  });
+
   it('원문 오류는 목록에 쓰지 않는다. 상세의 접힌 자리에 둔다', () => {
     const 스택 = { message: 'connect ECONNREFUSED 127.0.0.1:4000', stack: 'Error: connect...' };
     expect(미실행사유(스택, 'ko')).toBe('테스트 실행기에 닿지 못했습니다');

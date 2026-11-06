@@ -12,12 +12,28 @@ export function parseResult(stdout: string): RunnerResult | null {
   const last = lines.at(-1);
   if (last === undefined) return null;
 
+  let 결과: RunnerResult;
   try {
-    return JSON.parse(last.slice(RESULT_MARKER.length)) as RunnerResult;
+    결과 = JSON.parse(last.slice(RESULT_MARKER.length)) as RunnerResult;
   } catch (err) {
     // 리포터가 뱉은 줄을 러너가 못 읽는 상황이다. 케이스 실패가 아니라 러너 고장이다
     throw new Error(`${RESULT_MARKER} 줄을 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`);
   }
+  return 결과.error === undefined ? 결과 : { ...결과, error: 오류를다듬는다(결과.error) };
+}
+
+const 테스트시간초과 = /^Test timeout of \d+ms exceeded/;
+
+/**
+ * Playwright 는 오류 글에 색 코드를 섞는다 — 화면이 「\u001b[31mTest timeout…」을 문장으로 못 읽어 「테스트 실행기에 닿지 못했습니다」로 보였다.
+ * 테스트 제한 시간 초과는 러너가 끊은 것과 같은 TIMEOUT 으로 적는다 — 사람이 보는 사유가 「제한 시간 초과」다. 원문은 stack 에 남긴다
+ * (2026-11-06 WEB-F9-14 · 점검표 B3 · 도메인/러너 §5.2)
+ */
+function 오류를다듬는다(error: NonNullable<RunnerResult['error']>): NonNullable<RunnerResult['error']> {
+  const message = stripVTControlCharacters(error.message);
+  const stack = error.stack === undefined ? undefined : stripVTControlCharacters(error.stack);
+  if (테스트시간초과.test(message)) return { message: 'TIMEOUT', stack: stack ?? message };
+  return { message, ...(stack !== undefined && { stack }) };
 }
 
 // 자식(케이스)이 남긴 kit 경고 줄 — 장면 · 영상을 못 건 까닭이 여기에만 있다. 같은 줄은 한 번만 (2026-11-05 WEB-F9-11)
