@@ -13,7 +13,7 @@ import { 가린값들 } from '../web/mask.js';
  * 도는 중에는 폰을 잡았으면 그 폰 화면 보기 링크가 붙는다 (도메인/실행 §3.2 「테스트 모드」 「VISION 링크」).
  * 지금 단계는 케이스 통로가 러너에서 받아 붙인다 (도메인/실행 §3.2 「시험 실행 지금 단계 · 중단 · 정식 실행 화면」)
  */
-export type 도는중 = { status: 'RUNNING'; vision?: { url: string }; step?: { seq: number; title: string; elapsedMs: number } };
+export type 도는중 = { status: 'RUNNING'; vision?: { url: string; name?: string }; step?: { seq: number; title: string; elapsedMs: number } };
 export type 시험읽기 = 도는중 | { status: 'DONE'; result: ExecuteResponse };
 
 export interface 시험명세 {
@@ -34,6 +34,8 @@ interface 항목<R> {
   결과: R | null;
   // 잡은 폰의 VISION 화면 링크. 폰을 놓거나 끝나면 안 낸다 — 놓은 폰의 링크는 닫혀 있다
   폰화면?: string | undefined;
+  // 잡은 폰 모델 이름 — 팜이 안 주면 없다 (도메인/실행 §7 「폰 이름」)
+  폰이름?: string | undefined;
   가릴것: string[];
 }
 
@@ -119,7 +121,7 @@ export function 시험보관소<R, S extends string>(설정: 보관소설정<R, 
      * 실행은 밖에서 넣는다. 번호를 실행에도 넘긴다(시나리오 사진 폴더 이름 · 장면 열쇠). 폰을 잡으면 실행이 화면 링크를 단다.
      * 돌려주는 번호로 시작한 사람만 읽는다
      */
-    시작한다(사람: string, 서비스: string, 실행: (id: string, 폰화면: (url: string | undefined) => void) => Promise<R>, 비밀: string[]): string {
+    시작한다(사람: string, 서비스: string, 실행: (id: string, 폰화면: (url: string | undefined, 이름?: string) => void) => Promise<R>, 비밀: string[]): string {
       const 지금 = Date.now();
       치운다(지금);
       if ([...저장소.values()].some((항) => 항.사람 === 사람 && 항.결과 === null)) {
@@ -134,8 +136,9 @@ export function 시험보관소<R, S extends string>(설정: 보관소설정<R, 
       const 이것: 항목<R> = { 사람, 서비스, 시작: 지금, 결과: null, 가릴것 };
       저장소.set(id, 이것);
 
-      void 실행(id, (url) => {
+      void 실행(id, (url, 이름) => {
         이것.폰화면 = url;
+        이것.폰이름 = url === undefined ? undefined : 이름;
       })
         // 중단으로 먼저 닫혔으면 늦게 끝난 실행이 덮지 않는다
         .then((r) => {
@@ -152,7 +155,9 @@ export function 시험보관소<R, S extends string>(설정: 보관소설정<R, 
       const 항 = 내것(사람, id);
       if (항 === null) return null;
       if (항.결과 !== null) return { status: 설정.끝글자, result: 항.결과 };
-      return 항.폰화면 === undefined ? { status: 'RUNNING' } : { status: 'RUNNING', vision: { url: 항.폰화면 } };
+      return 항.폰화면 === undefined
+        ? { status: 'RUNNING' }
+        : { status: 'RUNNING', vision: { url: 항.폰화면, ...(항.폰이름 !== undefined && { name: 항.폰이름 }) } };
     },
 
     /** 실행이 끝나기 전에 결과를 정해 닫는다(중단). 이미 끝났거나 남의 번호면 false */
@@ -190,7 +195,7 @@ const 케이스시험 = 시험보관소<ExecuteResponse, 'DONE'>({
 /** 케이스 「테스트 실행」 — 서버 러너. 서비스 칸에 그 케이스 번호를 둔다 — 읽을 때 주소의 tcId 와 견준다 */
 export function 시작한다(
   사람: string,
-  실행: (id: string, 폰화면: (url: string | undefined) => void) => Promise<ExecuteResponse>,
+  실행: (id: string, 폰화면: (url: string | undefined, 이름?: string) => void) => Promise<ExecuteResponse>,
   명세: 시험명세,
   tcId = '',
 ): string {
