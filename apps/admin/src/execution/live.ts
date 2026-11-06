@@ -33,32 +33,44 @@ export async function 장면을건넨다(reply: FastifyReply, 열쇠: string): P
   return reply.header('cache-control', 'no-store').type(형식).send(Buffer.from(await res.arrayBuffer()));
 }
 
+type 화면 = { 열쇠?: string; vision?: string };
+
 /**
- * 도는 정식 실행 항목의 화면 — 장면 열쇠(브라우저를 여는 항목만)와 잡은 폰의 VISION 링크. admin 메모리에만 두고 항목이 끝나면 지운다.
- * admin 이 다시 떠서 잃으면 progress 가 live: false 를 내 화면이 죽은 통로를 묻지 않는다. 열쇠는 밖에 안 나간다 — 화면은 historyId 로만 묻는다
+ * 도는 정식 실행의 화면 — 장면 열쇠(브라우저를 여는 것만)와 잡은 폰의 VISION 링크. admin 메모리에만 두고 끝나면 지운다.
+ * admin 이 다시 떠서 잃으면 progress · 결과 응답이 live: false 를 내 화면이 죽은 통로를 묻지 않는다. 열쇠는 밖에 안 나간다 — 화면은 번호로만 묻는다.
+ * 케이스 항목은 historyId, E2E 는 runId 로 찾는다 — 번호 자리가 달라 칸을 나눈다
  */
-const 항목화면들 = new Map<number, { 열쇠?: string; vision?: string }>();
-
-/** 러너에 보내기 전에 연다. 장면을 찍는 항목이면 새 열쇠를 돌려준다 */
-export function 항목화면을연다(historyId: number, 장면: boolean): string | undefined {
-  const 열쇠 = 장면 ? randomUUID() : undefined;
-  항목화면들.set(historyId, 열쇠 === undefined ? {} : { 열쇠 });
-  return 열쇠;
+function 화면칸() {
+  const 화면들 = new Map<number, 화면>();
+  return {
+    /** 러너에 보내기 전에 연다. 장면을 찍는 것이면 새 열쇠를 돌려준다 */
+    연다(번호: number, 장면: boolean): string | undefined {
+      const 열쇠 = 장면 ? randomUUID() : undefined;
+      화면들.set(번호, 열쇠 === undefined ? {} : { 열쇠 });
+      return 열쇠;
+    },
+    /** 폰을 잡으면 링크를 달고 놓으면 뗀다 — 놓은 폰의 링크는 닫혀 있다 */
+    폰(번호: number, url: string | undefined): void {
+      const 칸 = 화면들.get(번호);
+      if (칸 !== undefined) 칸.vision = url;
+    },
+    닫는다(번호: number): void {
+      화면들.delete(번호);
+    },
+    본다(번호: number): 화면 | undefined {
+      return 화면들.get(번호);
+    },
+  };
 }
 
-/** 폰을 잡으면 링크를 달고 놓으면 뗀다 — 놓은 폰의 링크는 닫혀 있다 */
-export function 항목폰화면(historyId: number, url: string | undefined): void {
-  const 화면 = 항목화면들.get(historyId);
-  if (화면 !== undefined) 화면.vision = url;
-}
+const 항목칸 = 화면칸();
+export const 항목화면을연다 = 항목칸.연다;
+export const 항목폰화면 = 항목칸.폰;
+export const 항목화면을닫는다 = 항목칸.닫는다;
+export const 항목화면 = 항목칸.본다;
 
-export function 항목화면을닫는다(historyId: number): void {
-  항목화면들.delete(historyId);
-}
-
-export function 항목화면(historyId: number): { 열쇠?: string; vision?: string } | undefined {
-  return 항목화면들.get(historyId);
-}
+/** 도는 E2E 정식 실행의 화면 — runId 로 찾는다 (도메인/실행 §3.2 「시험 실행 지금 단계 · 중단 · 정식 실행 화면」) */
+export const 시나리오화면 = 화면칸();
 
 /**
  * GET /api/runs/:runId/items/:historyId/live — 도는 정식 실행 항목의 마지막 장면 한 장. 권한은 (실행, read) 라 그 실행을 볼 수 있는 사람이 다 본다.

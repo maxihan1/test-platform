@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { 증적목록 } from '../execution/queries.js';
 import { 볼륨파일읽기 } from '../artifactFile.js';
 import { 팜증적목록 } from '../execution/farmEvidence.js';
+import { 시나리오화면, 장면을건넨다 } from '../execution/live.js';
 import { artifactsDir, 시나리오실행인가 } from '../execution/routes.js';
 import { 가린다, 긴것부터 } from '../execution/trial.js';
 import { 항목실패를가른다 } from '../reporting/itemFailure.js';
@@ -126,6 +127,7 @@ export async function 시나리오결과(runId: number) {
   );
   const 행 = 머리.rows[0];
   if (행 === undefined) return null;
+  const 화면 = 시나리오화면.본다(runId);
 
   const 부품 = await pool.query<부품행>(
     `SELECT id, seq, kind, tc_id, tc_name, part, status, duration_ms, skipped_steps, mocks, error,
@@ -205,6 +207,9 @@ export async function 시나리오결과(runId: number) {
     farm: 행.platform === 'android' || 행.device !== null ? await 팜증적목록(runId, 'scenario') : [],
     // 케이스 결과 응답(GET /api/runs/:runId)과 같은 모양이다 — 화면이 증적 칸 하나로 둘 다 그린다 (§7)
     evidence: await 증적목록(runId),
+    // 도는 동안의 화면 — 진행 창 항목(GET /api/runs/:runId/progress)의 live · vision 과 같은 뜻이다. 끝났거나 admin 이 다시 떴으면 false (도메인/실행 §3.2)
+    live: 화면?.열쇠 !== undefined,
+    ...(화면?.vision !== undefined && { vision: { url: 화면.vision } }),
   };
 }
 
@@ -237,6 +242,15 @@ export default async function scenarioRunRoutes(app: FastifyInstance): Promise<v
     const 본것 = await 시나리오결과(runId);
     if (본것 === null) return reply.code(404).send({ error: 'RUN_NOT_FOUND', detail: req.params.runId });
     return 본것;
+  });
+
+  // 도는 E2E 정식 실행의 마지막 장면 한 장. 권한은 항목 장면과 같은 (실행, read) 다 — 열쇠는 이 runId 로 연 것뿐이라 남의 실행 장면이 나갈 길이 없다 (도메인/실행 §3.2)
+  app.get<{ Params: { runId: string } }>('/runs/:runId/scenario/live', async (req, reply) => {
+    const runId = 정수(req.params.runId);
+    if (runId === null) return 잘못(reply, req.params.runId);
+    const 열쇠 = 시나리오화면.본다(runId)?.열쇠;
+    if (열쇠 === undefined) return reply.code(404).send({ error: 'LIVE_NOT_FOUND', detail: String(runId) });
+    return 장면을건넨다(reply, 열쇠);
   });
 
   // :seq 는 절차 순번이다 — 시나리오 전체에서 이어지고 부품 순번이 아니다 (§7)

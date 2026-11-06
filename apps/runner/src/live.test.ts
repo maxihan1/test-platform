@@ -163,16 +163,21 @@ describe('장면 열쇠 입구 검사', () => {
     expect(executeScenario).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ['/execute android', '/execute', () => 케이스요청({ runId: 12, historyId: 34, platform: 'android' })],
-    ['/execute-scenario', '/execute-scenario', () => 시나리오요청({ runId: 12, trialId: undefined })],
-  ] as const)('%s 정식 실행에 열쇠가 오면 400 이다 — Appium 찍기는 단계를 세우고 E2E 정식 실행 화면은 없다', async (_이름, 길, 요청) => {
-    const res = await 서버().inject({ method: 'POST', url: 길, payload: 요청() });
+  it('android 정식 실행에 열쇠가 오면 400 이다 — Appium 찍기는 단계를 세운다', async () => {
+    const res = await 서버().inject({ method: 'POST', url: '/execute', payload: 케이스요청({ runId: 12, historyId: 34, platform: 'android' }) });
 
     expect(res.statusCode).toBe(400);
     expect(res.json().detail).toContain('장면 열쇠');
     expect(execute).not.toHaveBeenCalled();
-    expect(executeScenario).not.toHaveBeenCalled();
+  });
+
+  it('E2E 정식 실행의 열쇠는 받아 실행에 넘긴다', async () => {
+    vi.mocked(executeScenario).mockResolvedValue({ status: 'PASS', durationMs: 0, parts: [] });
+
+    const res = await 서버().inject({ method: 'POST', url: '/execute-scenario', payload: 시나리오요청({ runId: 12, trialId: undefined }) });
+
+    expect(res.statusCode).toBe(200);
+    expect(executeScenario).toHaveBeenCalledWith(expect.objectContaining({ runId: 12, live: 열쇠 }));
   });
 
   it.each(['desktop', 'mobile'])('%s 정식 실행의 열쇠는 받아 실행에 넘긴다', async (platform) => {

@@ -5,6 +5,7 @@ import type { Pool, PoolClient } from 'pg';
 
 import { enqueue } from '../execution/dispatcher.js';
 import { 실행팜토큰 } from '../execution/farmToken.js';
+import { 시나리오화면 } from '../execution/live.js';
 import { Chrome차례, 폰차례 } from '../execution/phone.js';
 import { callScenarioRunner } from '../execution/runner.js';
 import { 기기칸 } from '../execution/runLifecycle.js';
@@ -23,12 +24,33 @@ async function db(): Promise<Pool> {
 // finishRun 을 안 쓴다: run_item 이 0건이라 부르는 즉시 FINISHED 가 된다.
 // 앱 · 게임 단계가 있으면 디바이스 줄 → 동시성 자리 → 팜 폰 차례로 잡는다 — 줄에서 기다리는 동안 웹 실행 자리를 묶지 않게 (§3.7 결정 16).
 // 실제 폰 모바일 시나리오는 디바이스 줄 대신 Chrome 줄 → 동시성 자리 → 팜 폰이다 — 게임 실행이 쥔 디바이스 줄에 막히지 않게 (§3.7 「모바일 시나리오를 실제 폰에서 돌릴 때」)
+// 도는 동안 결과 화면이 지금 화면을 본다 — 늦추지 않고 웹 단계만 찍는다. 앱 · 게임 단계는 잡은 폰의 VISION 링크만 선다 (도메인/실행 §3.2 「시험 실행 지금 단계 · 중단 · 정식 실행 화면」)
 export function 시나리오분배(runId: number, 요청: ScenarioExecuteRequest, 폰?: 시나리오폰): Promise<void> {
   const 돌기 = () =>
     enqueue(async () => {
-      await 결과저장(runId, 폰 === undefined ? await callScenarioRunner(요청) : await 팜폰으로돌린다(요청, 폰, () => 실행팜토큰(runId)));
+      const 열쇠 = 시나리오화면.연다(runId, 창단계있나(요청, 폰));
+      const 실은 = 열쇠 === undefined ? 요청 : { ...요청, live: 열쇠 };
+      let 응답: ScenarioExecuteResponse;
+      try {
+        응답 =
+          폰 === undefined
+            ? await callScenarioRunner(실은)
+            : await 팜폰으로돌린다(실은, 폰, () => 실행팜토큰(runId), (url) => 시나리오화면.폰(runId, url));
+      } finally {
+        // 폰을 놓았다 — 결과를 적는 동안 닫힌 링크 · 끝난 장면을 내지 않는다
+        시나리오화면.닫는다(runId);
+      }
+      await 결과저장(runId, 응답);
     });
   return 폰 === undefined ? 돌기() : 폰 === 'chrome' ? Chrome차례(돌기) : 폰차례(돌기);
+}
+
+// 브라우저를 여는 단계는 웹 케이스뿐이다 — API 호출 · 모킹 · 기다리기 · 앱 · 게임 단계와 API 애플리케이션 케이스(판이 실린다)는 창을 안 연다.
+// 빼지 않으면 장면이 안 오는 빈 칸이 끝까지 「기다리는 중」으로 남는다.
+// 실제 폰 Chrome 실행도 뺀다 — 러너가 그 탭에 증거 영상 녹화(scenario/realPhone.ts)를 먼저 걸어 장면 녹화를 또 걸면 영상이 잘린다. 카드에는 VISION 링크가 선다
+export function 창단계있나(요청: Pick<ScenarioExecuteRequest, 'parts'>, 폰?: 시나리오폰): boolean {
+  if (폰 === 'chrome') return false;
+  return 요청.parts.some((p) => p.kind === 'case' && p.appStep !== true && p.apiDoc === undefined);
 }
 
 const 빠진부품 = '러너가 이 단계 결과를 돌려주지 않았다';

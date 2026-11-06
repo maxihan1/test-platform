@@ -109,6 +109,8 @@ export const 등급표: Record<string, 표값> = {
   'GET /api/runs/:runId/scenario': 실행읽기,
   'GET /api/runs/:runId/scenario/screenshots/:seq': 실행읽기,
   'GET /api/runs/:runId/scenario/farm/:name': 실행읽기,
+  // 도는 E2E 정식 실행의 장면 — 항목 장면과 같은 까닭으로 그 실행을 볼 수 있는 사람 모두다
+  'GET /api/runs/:runId/scenario/live': 실행읽기,
   // trial 이 쓸 수 있는 조립은 라우트가 더 거른다 — API 호출 · 모킹 단계는 저장된 시나리오에 있는 것만 (scenario/trialGuard.ts)
   'POST /api/scenario-trials': 테스트모드,
   'GET /api/scenario-trials/:trialId': 실행읽기,

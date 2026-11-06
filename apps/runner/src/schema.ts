@@ -39,10 +39,9 @@ const adminKey = z.object({ header: z.string().min(1), value: z.string().min(1) 
 
 // 장면 열쇠. 장면 파일 이름(live/<열쇠>.jpg)에 그대로 들어가 UUID 가 아니면 ../ 로 빠져나갈 수 있다 (SPEC 도메인/러너 §5.2 「테스트 모드 — 실시간 장면」)
 const live = z.string().uuid().optional();
-// 케이스 정식 실행은 장면만 찍는다(늦추기는 runId 로 가른다 — live.ts 장면환경). android 정식 실행은 Appium 찍기가 단계를 세워 막고,
-// E2E 정식 실행은 화면이 없어 막는다 (SPEC 도메인/실행 §3.2 「시험 실행 지금 단계 · 중단 · 정식 실행 화면」)
+// 정식 실행은 장면만 찍는다(늦추기는 runId 로 가른다 — live.ts 장면환경). android 정식 실행은 Appium 찍기가 단계를 세워 막는다.
+// E2E 정식 실행은 받는다 — 앱 · 게임 단계의 폰 장면은 시험 실행만 건다(scenario/scene.ts) (SPEC 도메인/실행 §3.2 「시험 실행 지금 단계 · 중단 · 정식 실행 화면」)
 const 앱장면은시험만 = '앱 · 게임(android) 항목의 장면 열쇠(live)는 테스트 실행에만 온다';
-const 장면은시험만 = '시나리오의 장면 열쇠(live)는 시험 실행에만 온다';
 
 // VISION 이 켜 준 폰 Chrome 의 DevTools 연결 주소. 자식 환경값으로 간다 — 공백이 섞이면 다른 값을 끼워 넣을 수 있다 (SPEC 도메인/러너 §5.2 「모바일 웹 — 실제 폰 Chrome」)
 const cdpUrl = z.string().max(2000).regex(/^wss?:\/\/\S+$/, 'cdpUrl 은 ws(s) 주소여야 한다').optional();
@@ -195,7 +194,6 @@ export const scenarioRequest = z
     cdpUrl,
   })
   .refine((r) => r.runId !== null || r.trialId !== undefined, '시험 실행에는 trialId 가 있어야 한다')
-  .refine((r) => r.live === undefined || r.runId === null, 장면은시험만)
   .refine(실제폰은모바일만, 실제폰은모바일만글)
   // 앱 단계의 Appium 연결과 폰 Chrome 연결이 한 폰을 같이 못 쓴다 — VISION 이 둘 중 하나를 거절한다
   .refine((r) => r.cdpUrl === undefined || !r.parts.some((p) => p.kind === 'case' && p.appStep === true), '폰 Chrome 시나리오(cdpUrl)에는 앱 · 게임 단계를 넣지 못한다')

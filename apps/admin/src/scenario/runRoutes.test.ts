@@ -39,6 +39,9 @@ describe.skipIf(연결 === undefined)('시나리오 실행 통로', () => {
   let 못도는 = 0;
   let 실행번호 = 0;
   let 케이스실행번호 = 0;
+  // 러너가 도는 사이에 부른다 — 도는 동안의 결과 조회 · 장면을 본다
+  let 도는중에: ((요청: ScenarioExecuteRequest) => Promise<void>) | null = null;
+  const 받은열쇠: (string | undefined)[] = [];
   const 원래 = {
     tests: process.env.PLATFORM_TESTS_DIR,
     artifacts: process.env.PLATFORM_ARTIFACTS_DIR,
@@ -135,8 +138,13 @@ describe.skipIf(연결 === undefined)('시나리오 실행 통로', () => {
 
     // 부품 2 의 절차 순번은 부품 1 에 이어 3·4 다 — 사진 :seq 가 부품 순번이 아님을 본다
     러너 = Fastify();
+    러너.get<{ Params: { key: string } }>('/live/:key', async (req, reply) =>
+      받은열쇠.includes(req.params.key) ? reply.type('image/jpeg').send(Buffer.from([0xff, 0xd8, 0xff, 0xd9])) : reply.code(404).send({}),
+    );
     러너.post('/execute-scenario', async (req) => {
       const 요청 = req.body as ScenarioExecuteRequest;
+      받은열쇠.push(요청.live);
+      await 도는중에?.(요청);
       const 절차 = (seq: number, title: string, 건너뜀 = false) => ({
         seq,
         title,
@@ -188,6 +196,29 @@ describe.skipIf(연결 === undefined)('시나리오 실행 통로', () => {
     실행번호 = res.json<{ runId: number }>().runId;
     expect(typeof 실행번호).toBe('number');
     expect(await 끝나기를(실행번호)).toBe('FINISHED');
+  });
+
+  it('도는 동안 결과 조회가 live: true 를 싣고 장면 통로가 그 실행 장면을 낸다 — 끝나면 live: false · 404 다', async () => {
+    let 도는중: { 결과: Record<string, unknown>; 장면: number; 형식: unknown; 남의장면: number } | null = null;
+    도는중에 = async (요청) => {
+      const 결과 = (await app.inject({ method: 'GET', url: `/api/runs/${요청.runId}/scenario` })).json<Record<string, unknown>>();
+      const 장면 = await app.inject({ method: 'GET', url: `/api/runs/${요청.runId}/scenario/live` });
+      const 남의장면 = await app.inject({ method: 'GET', url: `/api/runs/${케이스실행번호}/scenario/live` });
+      도는중 = { 결과, 장면: 장면.statusCode, 형식: 장면.headers['content-type'], 남의장면: 남의장면.statusCode };
+    };
+    받은열쇠.length = 0;
+    try {
+      const runId = (await 실행요청(돌린, { env: 'qa' })).json<{ runId: number }>().runId;
+      expect(await 끝나기를(runId)).toBe('FINISHED');
+
+      expect(받은열쇠[0]).toMatch(/^[0-9a-f-]{36}$/);
+      expect(도는중).toMatchObject({ 결과: { status: 'RUNNING', live: true }, 장면: 200, 형식: 'image/jpeg', 남의장면: 404 });
+      expect(JSON.stringify(도는중!.결과)).not.toContain(받은열쇠[0]);
+      expect((await app.inject({ method: 'GET', url: `/api/runs/${runId}/scenario` })).json()).toMatchObject({ live: false });
+      expect((await app.inject({ method: 'GET', url: `/api/runs/${runId}/scenario/live` })).json()).toEqual({ error: 'LIVE_NOT_FOUND', detail: String(runId) });
+    } finally {
+      도는중에 = null;
+    }
   });
 
   it('실행 요청의 거절 — 본문 · 없음 · 치운 것 · 못 도는 것 · 대상 서버 없음', async () => {
