@@ -274,6 +274,16 @@ button.iv {
   padding: 4px 0;
 }
 
+/* 칸 이름 · 입력 · 기본값 줄이 한 열에 차례로 쌓인다 — 설정 폼의 둘째 열 자리(grid-column: 2)를 여기서는 푼다 */
+.prow-vals .field > * {
+  grid-column: 1;
+}
+
+.prow-vals .field input,
+.prow-vals .field select {
+  width: 100%;
+}
+
 .prow-vals + .prow-src {
   margin-top: 0;
 }
