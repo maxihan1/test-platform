@@ -114,6 +114,16 @@
   white-space: nowrap;
 }
 
+.trial-queue li.cur .tag:not(.on) {
+  opacity: 0.5;
+}
+
+.trial-queue li.cur .tag.on {
+  border-color: var(--accent-mark);
+  color: var(--ink);
+  font-weight: 600;
+}
+
 .trial-now-steps {
   position: relative;
   flex: 1 1 0;
