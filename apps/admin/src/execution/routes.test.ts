@@ -199,10 +199,20 @@ describe.skipIf(연결 === undefined)('진행 조회', () => {
       expect(칸(아는것).stepTitles).toEqual(['연다', '누른다', '확인한다']);
       expect(칸(모르는것)).not.toHaveProperty('stepTitles');
       expect(칸(내항목)).not.toHaveProperty('stepTitles');
+
+      // 러너가 이미 단계를 알린 항목도 같은 칸에서 읽는다
+      await pool.query(
+        `INSERT INTO test_case (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, step_titles)
+              VALUES ('XBR-010', 'x', '["desktop"]', '[]', 'demo/XBR-010.spec.ts', '{}', '{}', $1)
+         ON CONFLICT (tc_id) DO UPDATE SET step_titles = EXCLUDED.step_titles`,
+        [['연다', '로그인한다']],
+      );
+      const 다시 = (await app.inject({ method: 'GET', url: `/api/runs/${내실행}/progress` })).json();
+      expect(다시.items.find((i: { historyId: number }) => i.historyId === 내항목)).toMatchObject({ seq: 2, stepTitles: ['연다', '로그인한다'] });
     } finally {
       for (const 번호 of [아는것, 모르는것]) 항목화면을닫는다(번호);
       await pool.query("DELETE FROM run_item WHERE tc_id IN ('XBR-014', 'XBR-015')");
-      await pool.query("DELETE FROM test_case WHERE tc_id IN ('XBR-014', 'XBR-015')");
+      await pool.query("DELETE FROM test_case WHERE tc_id IN ('XBR-010', 'XBR-014', 'XBR-015')");
     }
   });
 
