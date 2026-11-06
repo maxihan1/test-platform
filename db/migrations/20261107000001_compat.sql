@@ -43,8 +43,9 @@ CREATE TABLE compat_run_device (
 );
 
 CREATE TABLE compat_run_case (
-  -- run_item.history_id 와 같은 번호 줄이다 — 러너가 historyId 하나로 자식 · 중단 · 진행을 가르니 따로 세면 부딪힌다
-  id          BIGINT      PRIMARY KEY DEFAULT nextval(pg_get_serial_sequence('run_item', 'history_id')),
+  -- run_item.history_id 와 같은 번호 줄이다 — 러너가 historyId 하나로 자식 · 중단 · 진행을 가르니 따로 세면 부딪힌다.
+  -- 이름 글자가 아니라 regclass 로 묶어야 번호 줄을 지우거나 바꿀 때 postgres 가 막아 준다
+  id          BIGINT      PRIMARY KEY DEFAULT nextval('run_item_history_id_seq'::regclass),
   run_id      BIGINT      NOT NULL,
   seq         INTEGER     NOT NULL,
   tc_id       TEXT        NOT NULL,

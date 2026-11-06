@@ -321,14 +321,11 @@ describe.skipIf(연결 === undefined)('실패 → Issue Bunker 등록', () => {
       `INSERT INTO compat_set (service_id, name, devices, created_by) VALUES ($1, 'XBF 세트', '[]', 'xbf') RETURNING id`,
       [서비스],
     );
-    const r = await pool.query<{ run_id: string }>(
-      `INSERT INTO test_run (title, triggered_by, env, status, service_id, service_name, tests_repo, base_url, kind, compat_set_id, finished_at)
-       VALUES ('XBF 호환성', 'xbf', 'qa', 'FINISHED', $1, 'XBF 마켓', '', '', 'COMPAT', $2, now()) RETURNING run_id`,
-      [서비스, 세트.rows[0]!.id],
-    );
-    const runId = Number(r.rows[0]!.run_id);
+    // 케이스 실행으로 읽히면 올라갈 실패 항목을 담아 둔다 — 조건이 E2E 만 빼던 때로 돌아가면 1 이 된다
+    const runId = await 실행(서비스, [{ tcId: 'XBF-901', status: 'FAIL' }]);
+    await pool.query(`UPDATE test_run SET kind = 'COMPAT', compat_set_id = $2 WHERE run_id = $1`, [runId, 세트.rows[0]!.id]);
     expect(await 실패등록(runId)).toBe(0);
-    expect(await BTS카드칸들(runId, ['XBF-001'])).toBeNull();
+    expect(await BTS카드칸들(runId, ['XBF-901'])).toBeNull();
   });
 
   it('BTS 를 안 이은 프로젝트는 줄을 안 넣고 카드에 bts 칸이 없다', async () => {

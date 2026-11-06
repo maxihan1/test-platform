@@ -192,11 +192,18 @@ describe.skipIf(연결 === undefined)('호환성 표', () => {
   it('케이스 한 번은 run_item.history_id 와 같은 번호 줄에서 번호를 받는다', async () => {
     const runId = await 실행('COMPAT', await 세트());
     await 상태(runId, 1);
-    const 앞 = await q<{ n: string }>('SELECT last_value AS n FROM run_item_history_id_seq');
-    const id = await 케이스(runId, 1);
-    expect(id).toBeGreaterThan(Number(앞.rows[0]!.n));
-    const 뒤 = await q<{ n: string }>('SELECT last_value AS n FROM run_item_history_id_seq');
-    expect(Number(뒤.rows[0]!.n)).toBe(id);
+    const r = await q<{ id: string; n: string }>(
+      `INSERT INTO compat_run_case (run_id, seq, tc_id, tc_name, picked, file_path, timeout_ms)
+       VALUES ($1, 1, 'XCO-001', '로그인', 'AUTO', 'xco/a.spec.ts', 300000)
+       RETURNING id, currval('run_item_history_id_seq') AS n`,
+      [runId],
+    );
+    expect(r.rows[0]!.id).toBe(r.rows[0]!.n);
+    const d = await q<{ n: string }>(
+      `SELECT count(*) AS n FROM pg_depend
+        WHERE classid = 'pg_attrdef'::regclass AND refobjid = 'run_item_history_id_seq'::regclass`,
+    );
+    expect(Number(d.rows[0]!.n)).toBe(2);
   });
 
   it('케이스 한 번은 있는 점검 상태에만 · 한 상태에 케이스 하나씩 · 정한 값만 받는다', async () => {
