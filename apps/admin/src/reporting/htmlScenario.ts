@@ -27,7 +27,7 @@ function 줄(라벨: string, 글들: string[]): string[] {
 // 결과 화면의 단계 줄 끝과 같다 — 모킹 켜기 · 끄기는 「적용됨」, 안 돈 단계는 판정 대신 한 줄 (도메인/시나리오 §8.11)
 function 끝(d: E2E단계): string {
   if (d.적용됨) return 칩('적용됨');
-  if (d.안돌았다) return `<span class="devs">– 실행 안 됨</span>`;
+  if (d.안돌았다) return `<span class="devs">– 실행 안 함</span>`;
   return `${판정(d.status)}${d.durationMs === null ? '' : `<span class="ms">(${d.durationMs}ms)</span>`}`;
 }
 

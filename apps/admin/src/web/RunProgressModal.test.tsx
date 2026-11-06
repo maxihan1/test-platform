@@ -213,9 +213,43 @@ describe('RunProgressModal (SPEC §8.9)', () => {
     render(<RunProgressModal data={끝난실행} 진행목록={[]} onClose={() => {}} />);
 
     expect(screen.queryByText(/RUN 7 실행이 끝났습니다/)).not.toBeNull();
-    expect(screen.queryByText(/실패한 케이스/)).not.toBeNull();
     expect(screen.queryByText(/케이스 12/)).not.toBeNull();
-    expect(screen.queryByText(/ZZR 진행 확인 · 대상 서버 qa/)).not.toBeNull();
+    expect(screen.queryByText(/ZZR 진행 확인 · 대상 서버 qa · 총 40분/)).not.toBeNull();
+  });
+
+  it('완료 창은 항목 목록을 실패 먼저 서른 줄까지 그리고 나머지는 「외 N건」이다', () => {
+    const 많음 = [...Array(35).keys()].map((i) => 항목(i + 1, 분(i + 1), i === 34 ? 'FAIL' : 'PASS'));
+    render(<RunProgressModal data={실행('FINISHED', 많음, { total: 35, pass: 34, fail: 1, na: 0, running: 0 })} 진행목록={[]} onClose={() => {}} />);
+
+    const 줄들 = [...document.querySelectorAll('.done-items > li')];
+    expect(줄들).toHaveLength(30);
+    expect(줄들[0]?.textContent).toContain('케이스 35');
+    expect(줄들[0]?.querySelector('.verdict')?.textContent).toBe('실패');
+    expect(screen.queryByText('외 5건')).not.toBeNull();
+  });
+
+  it('실패 줄에는 실패 카드가 쓰는 한 줄 이유가 붙는다', async () => {
+    vi.spyOn(api, 'failures').mockResolvedValue({
+      items: [{ tcId: 'ZZR-0012', devices: [{ platform: 'desktop', item: { failure: { type: 'notFound', reason: '구매하기 단추를 찾지 못했습니다' } } }] }],
+    } as never);
+    render(<RunProgressModal data={끝난실행} 진행목록={[]} onClose={() => {}} />);
+
+    expect(await screen.findByText('구매하기 단추를 찾지 못했습니다')).toBeTruthy();
+  });
+
+  it('실패가 한 쪽(20건)을 넘으면 둘째 쪽 이유도 받아 붙인다', async () => {
+    const 케이스 = (tcId: string, reason: string) => ({ tcId, devices: [{ platform: 'desktop', item: { failure: { type: 'notFound', reason } } }] });
+    const 스파이 = vi.spyOn(api, 'failures').mockImplementation((_runId, page) =>
+      Promise.resolve(
+        (page === 1
+          ? { items: [케이스('ZZR-0012', '첫째 쪽 이유')], total: 21, page: 1, pageSize: 20 }
+          : { items: [케이스('ZZR-0013', '둘째 쪽 이유')], total: 21, page: 2, pageSize: 20 }) as never,
+      ),
+    );
+    render(<RunProgressModal data={끝난실행} 진행목록={[]} onClose={() => {}} />);
+
+    expect(await screen.findByText('둘째 쪽 이유')).toBeTruthy();
+    expect(스파이).toHaveBeenCalledWith(expect.anything(), 2);
   });
 
   it('사람이 멈춘 실행은 끝났다고 적지 않는다', () => {

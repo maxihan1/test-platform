@@ -124,7 +124,7 @@ describe('E2E 증적 HTML', () => {
 
   it('안 돈 단계는 한 줄이고 절차를 그리지 않는다', () => {
     const 넷째 = html.slice(html.indexOf('4단계'));
-    expect(넷째).toContain('– 실행 안 됨');
+    expect(넷째).toContain('– 실행 안 함');
     expect(넷째.slice(0, 넷째.indexOf('</section>'))).not.toContain('사전조건');
   });
 
@@ -192,7 +192,7 @@ describe('E2E 증적 엑셀', () => {
     expect(본문.some((r) => String(r[1]).startsWith('2단계 · 모킹 켜기') && r[칸('케이스명')] === '**/api/pg/** → 200 (실제 서버 응답이 아님)')).toBe(true);
     expect(본문.some((r) => String(r[1]).includes('값 주입 · orderId'))).toBe(true);
     expect(본문.some((r) => r[칸('절차명')] === '로그인' && r[칸('절차판정')] === '건너뜀')).toBe(true);
-    expect(본문.some((r) => String(r[1]).startsWith('4단계') && r[칸('판정')] === '실행 안 됨')).toBe(true);
+    expect(본문.some((r) => String(r[1]).startsWith('4단계') && r[칸('판정')] === '실행 안 함')).toBe(true);
     expect(String(본문.at(-1)?.[1])).toBe('테스트 데이터 정리 · 마지막에 실행 DELETE /api/orders/812 → 204 (3번이 미룸)');
     expect(본문.at(-1)?.[칸('종류')]).toBe('E2E 시나리오');
   });

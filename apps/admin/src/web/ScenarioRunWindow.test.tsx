@@ -80,7 +80,7 @@ describe('E2E 정식 실행 창 — 도는 중', () => {
     그리기();
 
     const 창 = within(await screen.findByRole('dialog', { name: 'E2E 실행 중 · RUN 21045' }));
-    expect(await 창.findByText(/로그인 → 장바구니 → 주문 · 끝나면 실행 기록 E2E 에 남습니다/)).toBeTruthy();
+    expect(await 창.findByText(/끝나면 실행 기록에 남고 리포트를 만들 수 있습니다 · RUN \d+/)).toBeTruthy();
     expect(창.getByText('정식 실행')).toBeTruthy();
     const 줄들 = [...screen.getByRole('dialog').querySelectorAll('.e2e-steps li')];
     expect(줄들).toHaveLength(3);
@@ -95,7 +95,7 @@ describe('E2E 정식 실행 창 — 도는 중', () => {
     vi.spyOn(scenarioApi, 'step').mockResolvedValue(null);
     그리기();
 
-    await screen.findByText(/끝나면 실행 기록 E2E 에 남습니다/);
+    await screen.findByText(/끝나면 실행 기록에 남고 리포트를 만들 수 있습니다/);
     const 첫 = screen.getByRole('dialog').querySelector('.e2e-steps li')!;
     expect(첫.className).toBe('now');
     expect(첫.querySelector('.t')?.textContent).toBe('기다리는 중');
@@ -168,7 +168,7 @@ describe('E2E 정식 실행 창 — 끝남', () => {
 
     const 창 = within(await screen.findByRole('dialog', { name: 'E2E 실행이 끝났습니다 · RUN 21045' }));
     expect(await 창.findByText('실행 중단으로 멈춤')).toBeTruthy();
-    expect(창.getByText('실행 안 됨')).toBeTruthy();
+    expect(창.getByText('실행 안 함')).toBeTruthy();
     expect([...screen.getByRole('dialog').querySelectorAll('.trial-sum .pill')].map((알약) => 알약.textContent)).toEqual(['통과 1', '실패 0', '미실행 2']);
 
     fireEvent.click(창.getByRole('button', { name: '결과 보기' }));

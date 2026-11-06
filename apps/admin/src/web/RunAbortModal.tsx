@@ -36,7 +36,7 @@ export function RunAbortModal({
             {t('계속 실행')}
           </button>
           <button
-            className="btn"
+            className="btn trial-stop-go"
             disabled={멈추는중}
             onClick={() => {
               on멈추는중(true);

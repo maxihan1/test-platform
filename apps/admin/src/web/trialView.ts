@@ -39,7 +39,7 @@ export function 도는단계줄들(쌓인: 쌓인단계[], 제목들: string[] |
 export interface 결과단계줄 {
   seq: number;
   title: string;
-  /** null 은 실패한 뒤 돌지 않은 단계 — 「실행 안 함」 */
+  /** null 은 실패하거나 사람이 멈춰서 돌지 않은 단계 — 「실행 안 함」 */
   status: ItemStatus | null;
 }
 

@@ -131,16 +131,16 @@ describe('도는 중 아직 안 돈 단계', () => {
     for (const 줄 of [줄들[1]!, 줄들[2]!]) {
       expect(줄.querySelector('.verdict')).toBeNull();
       expect(줄.textContent).not.toContain('미실행');
-      expect(줄.textContent).not.toContain('– 실행 안 됨');
+      expect(줄.textContent).not.toContain('– 실행 안 함');
     }
     expect(줄들[0]!.querySelector('.verdict')?.textContent).toBe('통과');
   });
 
-  it('끝난 뒤 NOT_RUN 은 – 실행 안 됨을 보인다', async () => {
+  it('끝난 뒤 NOT_RUN 은 – 실행 안 함을 보인다', async () => {
     연다(결과({ parts: [로그인, 안돈] }));
     await screen.findByText('단계별 결과');
 
-    expect(screen.getByText('– 실행 안 됨')).toBeTruthy();
+    expect(screen.getByText('– 실행 안 함')).toBeTruthy();
   });
 });
 

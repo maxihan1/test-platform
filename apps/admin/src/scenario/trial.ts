@@ -214,8 +214,9 @@ async function 시험돌기(
   // 앱 · 게임 단계 · 실제 폰 모바일 시나리오는 서버 러너 + 팜에서 잡은 폰이다 (결정 16)
   const 보내기 = 보내는길(상태);
   const 받음 = 돌폰 === null ? await 보내기(요청) : await 팜폰으로돌린다(요청, 돌폰, () => 사람팜토큰(누구), 폰화면, 보내기);
-  // 사람이 끊은 부품의 'ABORTED' 는 'STOPPED' 로 바꿔 둔다 — 부품 'ABORTED' 는 서버 재시작 몫이다 (도메인/시나리오 §8.11)
-  const 응답 = 멈춘부품을고친다(받음);
+  // 사람이 끊은 답의 'ABORTED' 를 바꿔 둔다 — 돌던 부품은 'STOPPED', 시작도 못 한 부품은 'NOT_RUN', 머리는 'STOPPED'.
+  // 부품 'ABORTED' 는 서버 재시작 몫이다 (도메인/시나리오 §8.11)
+  const 응답 = 멈춘부품을고친다(받음, 본문.parts.length);
   // 폰을 놓았다 — 아래 trace · 가림 처리 동안 닫힌 링크를 내지 않는다 (§3.7 결정 16 「시험 실행」)
   폰화면(undefined);
   console.info(`[scenario-trial] 끝 ${id} · ${누구} · ${본문.service} · ${응답.status} · ${Date.now() - 시작}ms`);

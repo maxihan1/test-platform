@@ -56,6 +56,10 @@ export function 시작확인({ 종류, 케이스들, env, 반복수, slack, mobi
       return `${t(PLATFORM_LABEL[p])} ${수}${위치}`;
     })
     .join(' · ');
+  // 케이스마다 켠 디바이스가 달라 케이스별로 센다 — 곱셈식은 F9-01 이 뺐고 결과 한 줄만 적는다 (점검표 U9)
+  const 총횟수 = 케이스들.reduce((합, c) => 합 + c.platforms.length, 0) * 반복수;
+  // 합이 케이스 수와 우연히 같아도 숨기지 않는다 — 숨기는 것은 모든 케이스가 디바이스 하나 · 반복 1 일 때뿐이다
+  const 한번씩 = 반복수 === 1 && 케이스들.every((c) => c.platforms.length === 1);
   const 브라우저 = 디바이스들.some((p) => p !== 'android');
 
   return (
@@ -97,6 +101,7 @@ export function 시작확인({ 종류, 케이스들, env, 반복수, slack, mobi
           </>
         )}
       </dl>
+      {!한번씩 ? <p className="start-total">{t('모두 {수}번 실행', { 수: 총횟수 })}</p> : null}
       <p className="hint">
         {시험
           ? 브라우저
@@ -125,7 +130,7 @@ function 남는곳({ 한건, env, 원래실행, mobileOn }: { 한건: CaseRow | 
         : 곳 === null
           ? t('붙을 실행을 확인하는 중입니다')
           : 곳.붙음 === null
-            ? t('아직 전체 테스트에 들어간 적이 없어 이 케이스 상세에만 남습니다')
+            ? t('이 케이스만 따로 실행해 케이스 상세의 실행 기록에만 남습니다')
             : t('끝나면 RUN {번호} 결과에 다시 실행으로 추가됩니다 · {제목} · {시각}', {
                 번호: 곳.붙음.runId,
                 제목: 곳.붙음.title,

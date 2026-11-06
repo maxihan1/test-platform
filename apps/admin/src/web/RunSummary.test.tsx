@@ -38,6 +38,11 @@ function 견줌(고침: Partial<RunInsights> = {}): RunInsights {
   };
 }
 
+const 항목줄 = (historyId: number, tcId: string, platform: 'desktop' | 'mobile' = 'desktop'): RunItemSummary => ({
+  historyId, tcId, tcName: `${tcId} 이름`, platform, attempt: 1, params: {}, paramSchema: {}, status: 'PASS',
+  durationMs: 1, error: null, startedAt: '2026-10-01T00:00:00Z', finishedAt: '2026-10-01T00:00:01Z',
+});
+
 function 그린다(
   counts: RunCounts,
   insights: RunInsights | null = null,
@@ -170,7 +175,7 @@ describe('요약 띠 — 직전 실행 대비', () => {
   });
 
   it('주소가 바뀌었으면 한 줄로 알리고 빠진 케이스가 있으면 건수를 적는다', () => {
-    그린다(집계(47, 3, 0), 견줌({ 주소바뀜: true, 빠진건수: 3 }));
+    그린다(집계(47, 3, 0), 견줌({ 주소바뀜: true, 빠진건수: 3 }), 'ALL', undefined, undefined, { 항목들: ['ZRS-001', 'ZRS-002', 'ZRS-003', 'ZRS-004'].map((id, i) => 항목줄(i, id)) });
     expect(screen.getByText('직전 실행은 다른 주소에서 실행됐습니다')).toBeTruthy();
     expect(screen.getByText(/직전 실행에 있었으나 이번에 실행되지 않은 케이스 3건/)).toBeTruthy();
   });
@@ -195,9 +200,33 @@ describe('요약 띠 — 직전 실행 대비', () => {
     expect(screen.queryByText('ZRS-001 이름', { exact: false })).toBeNull();
   });
 
-  it('일부만 골라 돌린 실행(빠진 수가 이번에 돈 항목보다 많다)이면 빠진 케이스 줄을 감춘다 (점검표 B15e)', () => {
-    그린다(집계(6, 0, 0), 견줌({ 빠진건수: 598 }));
+  it('빠진 케이스 목록은 케이스 하나를 한 줄로 보이고 빠진 디바이스를 모은다 (WEB-F9-20)', async () => {
+    vi.spyOn(api, 'run').mockResolvedValue({
+      runId: 1038, title: '앞', triggeredBy: 'u', triggeredByName: null, env: 'qa', baseUrl: '', serviceName: 'ZRS', status: 'FINISHED',
+      startedAt: '2026-10-01T00:00:00Z', finishedAt: '2026-10-01T00:01:00Z', counts: { total: 3, pass: 3, fail: 0, na: 0, running: 0 },
+      items: [항목줄(1, 'ZRS-001'), 항목줄(2, 'ZRS-003'), 항목줄(3, 'ZRS-003', 'mobile')], evidence: [],
+    });
+    그린다(집계(3, 0, 0), 견줌({ 빠진건수: 1 }), 'ALL', undefined, undefined, { 항목들: [항목줄(11, 'ZRS-001'), 항목줄(12, 'ZRS-002')] });
+
+    fireEvent.click(screen.getByRole('button', { name: /이번에 실행되지 않은 케이스 1건/ }));
+
+    await waitFor(() => expect(screen.getAllByText('ZRS-003 이름', { exact: false })).toHaveLength(1));
+  });
+
+  it('일부만 골라 돌린 실행(빠진 케이스 수가 이번에 돈 케이스 수보다 많다)이면 빠진 케이스 줄을 감춘다 (점검표 B15e)', () => {
+    그린다(집계(6, 0, 0), 견줌({ 빠진건수: 598 }), 'ALL', undefined, undefined, { 항목들: [항목줄(1, 'ZRS-001')] });
     expect(screen.queryByText(/이번에 실행되지 않은/)).toBeNull();
+  });
+
+  it('빠진 케이스 수가 이번에 돈 케이스 수와 같아도 감춘다 — 케이스 2건 × 디바이스 2 × 2회 = 8항목이어도 케이스로 센다 (WEB-F9-20)', () => {
+    const 항목들 = ['ZRS-001', 'ZRS-002'].flatMap((id, i) => (['desktop', 'mobile'] as const).flatMap((p, j) => [항목줄(i * 10 + j * 2, id, p), 항목줄(i * 10 + j * 2 + 1, id, p)]));
+    그린다(집계(8, 0, 0), 견줌({ 빠진건수: 2 }), 'ALL', undefined, undefined, { 항목들 });
+    expect(screen.queryByText(/이번에 실행되지 않은/)).toBeNull();
+  });
+
+  it('빠진 케이스가 이번에 돈 케이스보다 적으면 줄이 선다', () => {
+    그린다(집계(3, 0, 0), 견줌({ 빠진건수: 1 }), 'ALL', undefined, undefined, { 항목들: [항목줄(1, 'ZRS-001'), 항목줄(2, 'ZRS-002')] });
+    expect(screen.getByText(/이번에 실행되지 않은 케이스 1건/)).toBeTruthy();
   });
 
   it('주소가 같고 빠진 것이 없으면 그 두 줄이 없다', () => {

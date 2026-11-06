@@ -20,24 +20,39 @@ beforeEach(() => {
 });
 
 describe('보내기전멈춘결과', () => {
-  it('전체는 NA · ABORTED 이고 부품은 전부 NA · STOPPED 다', () => {
+  it('전체는 NA · STOPPED 이고 부품은 하나도 안 돌았으니 전부 NA · NOT_RUN 이다', () => {
     const 결과 = 보내기전멈춘결과(3);
 
-    expect(결과).toMatchObject({ status: 'NA', durationMs: 0, error: { message: 'ABORTED' } });
-    expect(결과.parts.map((p) => [p.seq, p.status, p.error?.message])).toEqual([[1, 'NA', 'STOPPED'], [2, 'NA', 'STOPPED'], [3, 'NA', 'STOPPED']]);
+    expect(결과).toMatchObject({ status: 'NA', durationMs: 0, error: { message: 'STOPPED' } });
+    expect(결과.parts.map((p) => [p.seq, p.status, p.error?.message])).toEqual([[1, 'NA', 'NOT_RUN'], [2, 'NA', 'NOT_RUN'], [3, 'NA', 'NOT_RUN']]);
   });
 });
 
 describe('멈춘부품을고친다', () => {
-  it('끊긴 답이면 안 끝난 부품의 ABORTED 만 STOPPED 로 바꾸고 끝난 부품은 그대로 둔다', () => {
+  it('끊긴 답이면 머리는 STOPPED, 돌던 부품(첫 ABORTED)은 STOPPED 와 걸린 시간 그대로, 그 뒤는 NOT_RUN 이다', () => {
     const 답: ScenarioExecuteResponse = {
-      status: 'NA', durationMs: 5, error: { message: 'ABORTED' }, parts: [부품(1, 'PASS'), 부품(2, 'NA', 'ABORTED'), 부품(3, 'NA', 'NOT_RUN')],
+      status: 'NA', durationMs: 5, error: { message: 'ABORTED' },
+      parts: [부품(1, 'PASS'), { ...부품(2, 'NA', 'ABORTED'), durationMs: 13000 }, 부품(3, 'NA', 'ABORTED'), 부품(4, 'NA', 'NOT_RUN')],
     };
 
     const 고침 = 멈춘부품을고친다(답);
 
-    expect(고침.error?.message).toBe('ABORTED');
-    expect(고침.parts.map((p) => p.error?.message)).toEqual([undefined, 'STOPPED', 'NOT_RUN']);
+    expect(고침.error?.message).toBe('STOPPED');
+    expect(고침.parts.map((p) => [p.error?.message, p.durationMs])).toEqual([[undefined, 1], ['STOPPED', 13000], ['NOT_RUN', 0], ['NOT_RUN', 1]]);
+  });
+
+  it('답에 돌던 부품이 없으면(줄이 빠진 답) 비어 있는 첫 부품을 STOPPED 로, 나머지를 NOT_RUN 으로 채운다', () => {
+    const 답: ScenarioExecuteResponse = { status: 'NA', durationMs: 5, error: { message: 'ABORTED' }, parts: [부품(1, 'PASS')] };
+
+    const 고침 = 멈춘부품을고친다(답, 3);
+
+    expect(고침.parts.map((p) => [p.seq, p.status, p.error?.message, p.durationMs])).toEqual([[1, 'PASS', undefined, 1], [2, 'NA', 'STOPPED', 0], [3, 'NA', 'NOT_RUN', 0]]);
+  });
+
+  it('앞 부품이 실패해 멈춘 답이면 돌던 부품을 만들어 채우지 않는다', () => {
+    const 답: ScenarioExecuteResponse = { status: 'NA', durationMs: 5, error: { message: 'ABORTED' }, parts: [{ ...부품(1, 'PASS'), status: 'FAIL' }] };
+
+    expect(멈춘부품을고친다(답, 3).parts).toHaveLength(1);
   });
 
   it('끊긴 답이 아니면 건드리지 않는다', () => {
@@ -66,7 +81,7 @@ describe('보내는길', () => {
 
     expect(callScenarioRunner).not.toHaveBeenCalled();
     expect(상태.보냄).toBe(false);
-    expect(결과.parts.map((p) => p.error?.message)).toEqual(['STOPPED', 'STOPPED']);
+    expect(결과.parts.map((p) => p.error?.message)).toEqual(['NOT_RUN', 'NOT_RUN']);
     상태를지운다('t-2');
   });
 

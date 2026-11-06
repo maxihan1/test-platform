@@ -19,7 +19,7 @@ function 가짜팜(답들: { 목록?: 답[]; 잡기?: 답 | 'throw'; 놓기?: �
     if (방법 === 'POST' && 답들.잡기 === 'throw') throw new Error('The operation was aborted due to timeout');
     const 고른 =
       방법 === 'GET' ? (목록들.length > 1 ? 목록들.shift()! : 목록들[0]!)
-      : 방법 === 'POST' ? ((답들.잡기 as 답 | undefined) ?? { status: 200, body: { held: {} } })
+      : 방법 === 'POST' ? ((답들.잡기 as 답 | undefined) ?? { status: 200, body: { value: { held: {} } } })
       : (답들.놓기 ?? { status: 200, body: { released: true } });
     return new Response(typeof 고른.body === 'string' ? 고른.body : JSON.stringify(고른.body), { status: 고른.status });
   }) as typeof fetch;
@@ -48,7 +48,7 @@ describe('팜폰으로', () => {
 
   it('잡기 답의 그 폰 화면 보기 링크를 일에 넘긴다 — 옛 팜처럼 없으면 undefined 다', async () => {
     const 화면 = 'https://farm.test/#phone=R3CR10TCVCD&view=k1';
-    const 새팜 = 가짜팜({ 목록: [빈폰하나], 잡기: { status: 200, body: { held: { until: 1, now: 0, screen: 화면 } } } });
+    const 새팜 = 가짜팜({ 목록: [빈폰하나], 잡기: { status: 200, body: { value: { held: { until: 1, now: 0, screen: 화면 } } } } });
     expect(await 팜폰으로(팜, async (_udid, 받은화면) => 받은화면, () => '못 잡음', 새팜.부르기, 안쉼)).toBe(화면);
 
     const 옛팜 = 가짜팜({ 목록: [빈폰하나] });
@@ -65,7 +65,7 @@ describe('팜폰으로', () => {
 
   it('화면 링크가 http(s) 가 아니면 넘기지 않는다 — 화면이 새 탭으로 연다', async () => {
     for (const screen of ['javascript:alert(1)', 'file:///etc/passwd', '그냥 글자']) {
-      const 팜답 = 가짜팜({ 목록: [빈폰하나], 잡기: { status: 200, body: { held: { screen } } } });
+      const 팜답 = 가짜팜({ 목록: [빈폰하나], 잡기: { status: 200, body: { value: { held: { screen } } } } });
       expect(await 팜폰으로(팜, async (_udid, 받은화면) => 받은화면 ?? '없음', () => '못 잡음', 팜답.부르기, 안쉼), screen).toBe('없음');
     }
   });
@@ -139,7 +139,7 @@ describe('팜폰으로', () => {
   });
 
   it('잡기가 거절되면 팜의 거절 문장을 까닭에 싣고 놓지 않는다', async () => {
-    const { 받음, 부르기 } = 가짜팜({ 목록: [빈폰하나], 잡기: { status: 409, body: { refused: '다른 사용자(maxi)가 쓰는 중' } } });
+    const { 받음, 부르기 } = 가짜팜({ 목록: [빈폰하나], 잡기: { status: 409, body: { value: { refused: '다른 사용자(maxi)가 쓰는 중' } } } });
 
     expect(await 팜폰으로(팜, async () => '돌림', (까닭) => 까닭, 부르기, 안쉼)).toBe(
       'Device VISION 이 폰을 내주지 않았습니다: 다른 사용자(maxi)가 쓰는 중',
@@ -272,7 +272,7 @@ describe('폰Chrome으로', () => {
         if (켜기 === 'throw') throw new Error('The operation was aborted due to timeout');
         return new Response(JSON.stringify(켜기.body), { status: 켜기.status });
       }
-      return new Response(JSON.stringify(경로 === '/api/devices' ? 빈폰하나.body : { held: { screen: 'https://farm.test/#phone=R3CR10TCVCD&view=k1' } }), { status: 200 });
+      return new Response(JSON.stringify(경로 === '/api/devices' ? 빈폰하나.body : { value: { held: { screen: 'https://farm.test/#phone=R3CR10TCVCD&view=k1' } } }), { status: 200 });
     }) as typeof fetch;
     return { 받음, 부르기 };
   }

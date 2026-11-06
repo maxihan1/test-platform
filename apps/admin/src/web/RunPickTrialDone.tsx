@@ -7,6 +7,7 @@ import type { CaseRow, Platform, TrialResult, 모바일위치 } from './api.js';
 import { 원문보기, 실패이유 } from './FailureWhy.js';
 import { use말, use언어 } from './i18n.js';
 import type { 여러건시험 } from './RunPickTrial.js';
+import { show } from './ItemSteps.js';
 import { 걸린글, 결과단계줄들 } from './trialView.js';
 import { PLATFORM_LABEL, STATUS_LABEL, Verdict } from './ui.js';
 import type { 디바이스칸, 시험줄 } from './useTrialQueue.js';
@@ -96,6 +97,21 @@ function 판정({ 줄 }: { 줄: 시험줄 }) {
   return <Verdict status={줄.결과.status} />;
 }
 
+const 값최대 = 60;
+
+/** 실패한 확인에서 기대와 실제 값 한 줄. 긴 값은 자른다. 값이 둘 다 없으면 줄을 안 그린다 (점검표 U1) */
+function 받은값({ 단계 }: { 단계: TrialResult['steps'][number] | undefined }) {
+  const t = use말();
+  const 언어 = use언어();
+  const 확인 = 단계?.assertions.find((a) => a.status === 'FAIL');
+  if (확인 === undefined || (확인.actual === undefined && 확인.expected === undefined)) return null;
+  const 자름 = (값: unknown): string => {
+    const 글 = show(값, 언어);
+    return 글.length > 값최대 ? `${글.slice(0, 값최대)}…` : 글;
+  };
+  return <span className="got">{t('기대 {기대} · 실제 {실제}', { 기대: 자름(확인.expected), 실제: 자름(확인.actual) })}</span>;
+}
+
 /**
  * 실패 카드 안 — ① 몇째 단계 · 제목 · 유형 ② 한국어 한 줄 ③ 원문 보기 하나 ④ 단계 목록 (§8.16 ④ · 점검표 D14 · B4).
  * 실패 순간 화면 고리는 없다 — 시험 실행 사진을 화면이 열 통로가 서버에 없다(점검표 D15 · 범위 밖)
@@ -113,6 +129,7 @@ function 까닭({ 줄, 펼침, 첫, on펼침, on접음 }: { 줄: 시험줄; 펼�
       <div className="why">
         {깨진 === undefined ? null : <b>{t('{번호}단계 · {제목}', { 번호: 깨진.seq, 제목: 깨진.title })}</b>}
         <실패이유 failure={줄.실패} />
+        <받은값 단계={깨진} />
         <div className="lk">
           {/* 서버가 준 안내 문장(러너에 못 닿음 따위)은 한 줄과 같다 — 같은 글을 접어 한 번 더 두지 않는다 */}
           <원문보기 글={원문 === 줄.실패?.reason ? null : 원문} />

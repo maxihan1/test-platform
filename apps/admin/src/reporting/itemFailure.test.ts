@@ -54,7 +54,7 @@ describe('항목실패를가른다', () => {
       }),
       그대로,
     );
-    expect(결과).toEqual({ type: 'notFound', reason: 유형문장.notFound });
+    expect(결과).toEqual({ type: 'notFound', reason: `${유형문장.notFound} — getByRole('button')` });
   });
 
   it('앱(Appium) 오류처럼 한글이 없는 원문 첫 줄은 유형마다 정한 문장이다 — 원문은 원문 보기에 남는다 (점검표 B4)', () => {
@@ -62,7 +62,15 @@ describe('항목실패를가른다', () => {
       재료({ error: { message: "Error: Can't call click on element with selector \"id=buy_now_button\" because element wasn't found\n    at …" } }),
       그대로,
     );
-    expect(결과).toEqual({ type: 'notFound', reason: 유형문장.notFound });
+    expect(결과).toEqual({ type: 'notFound', reason: `${유형문장.notFound} — id=buy_now_button` });
+  });
+
+  it('요소 이름은 가린 글에서 뽑는다 — 비밀이 이름에 섞여도 새지 않는다', () => {
+    const 결과 = 항목실패를가른다(
+      재료({ error: { message: 'Error: Can\'t call click on element with selector "text=hunter2" because element wasn\'t found' } }),
+      (글) => 글.replaceAll('hunter2', '●●●'),
+    );
+    expect(결과?.reason).toBe(`${유형문장.notFound} — text=●●●`);
   });
 
   it('사람이 쓴 확인 문장은 영어여도 그대로 한 줄이다', () => {

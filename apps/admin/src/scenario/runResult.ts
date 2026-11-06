@@ -71,7 +71,7 @@ export function 창단계있나(요청: Pick<ScenarioExecuteRequest, 'parts'>, �
 const 빠진부품 = '러너가 이 단계 결과를 돌려주지 않았다';
 
 // 규칙의 정본은 도메인/시나리오 §7 「실행 결과를 적는 규칙」. false 면 결과를 적지 못했다(늦게 왔거나 저장이 깨졌다)
-// 사람이멈춤이면 FINISHED 가 아니라 ABORTED 로 닫고 안 끝난 부품을 'STOPPED' 로 적는다 (도메인/실행 §3.2 「E2E 도 지금 단계를 알리고 끊는다」)
+// 사람이멈춤이면 FINISHED 가 아니라 ABORTED 로 닫고 돌던 부품을 'STOPPED' 로, 시작도 못 한 부품을 'NOT_RUN' 으로 적는다 (도메인/실행 §3.2 「E2E 도 지금 단계를 알리고 끊는다」)
 export async function 결과저장(runId: number, 응답: ScenarioExecuteResponse, 사람이멈춤 = false): Promise<boolean> {
   try {
     return await 적는다(runId, 응답, 사람이멈춤);
@@ -105,8 +105,11 @@ async function 실패기록(pool: Pool, runId: number, 응답: ScenarioExecuteRe
 async function 적는다(runId: number, 받은응답: ScenarioExecuteResponse, 사람이멈춤: boolean): Promise<boolean> {
   // 케이스 결과 저장(execution/runLifecycle.ts finishItem)과 같은 까닭으로 거른다 — 글자 하나에 부품 전부가 NA 가 되지 않게
   const 맞춘 = jsonb에맞춘다(받은응답);
-  const 응답 = 사람이멈춤 ? 멈춘부품을고친다(맞춘) : 맞춘;
   const pool = await db();
+  const 부품수 = 사람이멈춤
+    ? (await pool.query<{ n: number }>('SELECT count(*)::int AS n FROM scenario_run_part WHERE run_id = $1', [runId])).rows[0]?.n
+    : undefined;
+  const 응답 = 사람이멈춤 ? 멈춘부품을고친다(맞춘, 부품수) : 맞춘;
   // 트랜잭션 밖에서 푼다 — zip 을 푸는 동안 실행 행을 잡고 있지 않게
   const 기록들 = await 실패기록(pool, runId, 응답);
   const c = await pool.connect();
@@ -142,7 +145,7 @@ async function 적는다(runId: number, 받은응답: ScenarioExecuteResponse, �
           `UPDATE scenario_run_part SET status = 'NA', duration_ms = COALESCE(duration_ms, 0),
                   error = jsonb_build_object('message', $2::text), finished_at = now()
             WHERE id = $1`,
-          [행.id, 사람이멈춤 ? 'STOPPED' : (응답.error?.message ?? 빠진부품)],
+          [행.id, 사람이멈춤 ? 'NOT_RUN' : (응답.error?.message ?? 빠진부품)],
         );
         continue;
       }

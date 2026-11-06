@@ -3,6 +3,7 @@
 import type { 항목실패 } from './api.js';
 import { 실패유형이름 } from './DashboardTypes.js';
 import { use말 } from './i18n.js';
+import { 겹침걷기 } from './rawText.js';
 
 export function 실패이유({ failure }: { failure: 항목실패 | null | undefined }) {
   const t = use말();
@@ -22,7 +23,7 @@ export function 원문보기({ 글 }: { 글: string | null | undefined }) {
   return (
     <details className="code raw">
       <summary>{t('원문 보기')}</summary>
-      <pre>{글}</pre>
+      <pre>{겹침걷기(글)}</pre>
     </details>
   );
 }

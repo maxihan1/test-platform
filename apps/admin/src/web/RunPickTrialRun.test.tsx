@@ -190,6 +190,6 @@ describe('정식 실행 시작 확인', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
 
-    expect(await screen.findByText('아직 전체 테스트에 들어간 적이 없어 이 케이스 상세에만 남습니다')).toBeTruthy();
+    expect(await screen.findByText('이 케이스만 따로 실행해 케이스 상세의 실행 기록에만 남습니다')).toBeTruthy();
   });
 });

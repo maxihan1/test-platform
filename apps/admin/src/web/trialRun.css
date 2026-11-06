@@ -42,6 +42,14 @@
   overflow-wrap: anywhere;
 }
 
+/* 케이스 × 디바이스 × 반복이 실제로 몇 번 도는지 한 줄 */
+.start-total {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+}
+
 /* 「중단」 — 되돌릴 수 없는 동작이라 실패 색 테두리를 쓴다. 확인 창의 「중단」만 채운다 */
 .btn.ghost.trial-stop {
   border-color: var(--fail);

@@ -68,7 +68,8 @@ async function 잡는다(팜: string, serial: string, 부르기: typeof fetch, �
     body: JSON.stringify({ minutes: 분 }),
     signal: AbortSignal.timeout(팜_제한_ms),
   });
-  const 몸 = (await 잡기.json().catch(() => null)) as { refused?: unknown; held?: { screen?: unknown } } | null;
+  // 팜은 기기 목록처럼 잡기 답도 { value } 로 감싼다(WebDriver 꼴). 감싸지 않은 꼴로 읽어 링크를 늘 놓쳤다 (2026-11-06 운영 시험 F9-19 T1 · T2)
+  const 몸 = ((await 잡기.json().catch(() => null)) as { value?: { refused?: unknown; held?: { screen?: unknown } } } | null)?.value;
   if (잡기.ok) return { 화면: 웹주소(몸?.held?.screen) };
   // 목록을 본 사이에 남이 잡았을 때가 흔하다. 팜의 거절 문장이 까닭을 다 말한다
   return { 거절: `Device VISION 이 폰을 내주지 않았습니다: ${typeof 몸?.refused === 'string' ? 몸.refused : `HTTP ${잡기.status}`}` };

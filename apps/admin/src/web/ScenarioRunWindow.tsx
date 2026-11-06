@@ -114,7 +114,7 @@ export function ScenarioRunWindow({ runId, 어디서, on닫기 }: { runId: numbe
             <p className="start-band rec e2e-band">
               <b>{t('정식 실행')}</b>{' '}
               {도는중
-                ? [...(이름들.length === 0 ? [] : [이름들.map((n) => n.제목).join(' → ')]), t('끝나면 실행 기록 E2E 에 남습니다')].join(' · ')
+                ? t('끝나면 실행 기록에 남고 리포트를 만들 수 있습니다 · RUN {번호}', { 번호: runId })
                 : t('실행 기록 E2E 에 남았습니다 · RUN {번호}', { 번호: runId })}
             </p>
             {도는중 ? (
@@ -193,7 +193,7 @@ function 장면없음({ data, 머리끝 }: { data: ScenarioRunResult; 머리끝:
   );
 }
 
-/** 안 돈 이유 — 앞 단계 탓으로 안 돈 것은 판정 자리에 `실행 안 됨` 이고, 사람이 멈춘 것 · 시간 초과 같은 NA 는 사유를 적는다 */
+/** 안 돈 이유 — 안 돈 단계(NOT_RUN — 앞 단계 실패 · 사람이 멈춰 시작도 못 함)는 판정 자리에 `실행 안 함` 이고, 사람이 멈춘 것 · 시간 초과 같은 NA 는 사유를 적는다 */
 function 사유(p: ScenarioRunPart, 언어: ReturnType<typeof use언어>): string | null {
   if (p.status === 'FAIL') return p.failure?.reason ?? p.error?.message.split('\n')[0] ?? null;
   if (p.status === 'NA' && p.error != null && p.error.message !== 'NOT_RUN') return 멈춘사유글자(p.error.message, 언어);
@@ -223,7 +223,7 @@ function 결과몸({ data }: { data: ScenarioRunResult }) {
                 <span className="mono e2e-tail">{이름들[i]?.꼬리}</span> {이름들[i]?.제목}
               </span>
               <span className="dur">{p.durationMs === null || (p.status === 'NA' && p.error?.message === 'NOT_RUN') ? '' : 걸린글(p.durationMs, 언어)}</span>
-              {p.status === 'NA' && p.error?.message === 'NOT_RUN' ? <span className="e2e-faint">{t('실행 안 됨')}</span> : <Verdict status={p.status} />}
+              {p.status === 'NA' && p.error?.message === 'NOT_RUN' ? <span className="e2e-faint">{t('실행 안 함')}</span> : <Verdict status={p.status} />}
               {이유 === null ? null : <span className="why">{이유}</span>}
             </li>
           );

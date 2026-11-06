@@ -72,7 +72,8 @@ function 진행({ 시험, 케이스들 }: { 시험: 여러건시험; 케이스�
                 <li key={c.tcId} className={지금?.tcId === c.tcId ? 'cur' : undefined}>
                   <span className="id mono">{c.tcId}</span>
                   <span className="nm">
-                    {칸들.map((칸) => <span className="tag" key={칸.platform}>{t(PLATFORM_LABEL[칸.platform])}</span>)}
+                    {/* 지금 도는 디바이스만 진하게 둔다 — 줄만 봐서는 PC 차례인지 모바일 차례인지 몰랐다 (점검표 U4) */}
+                    {칸들.map((칸) => <span className={지금?.tcId === c.tcId && 칸.platform === 지금.platform ? 'tag on' : 'tag'} key={칸.platform}>{t(PLATFORM_LABEL[칸.platform])}</span>)}
                     <span className="nm-t">{c.name}</span>
                   </span>
                   <대기열알약칸 칸들={칸들} />

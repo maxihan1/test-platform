@@ -131,7 +131,6 @@ export const 시나리오마법사말: Record<string, string> = {
   '{번호}번 입력값 바꾸기': 'Change inputs of #{번호}',
   '바꾸기': 'Change',
   '바꿀 값만 적습니다 · 나머지는 저장값 그대로': 'Enter only what changes · the rest uses saved values',
-  '실행 안 됨': 'Not run',
   '쓰임': 'Used',
   '안 쓰임': 'Not used',
   '통과 · 쓰였는지는 결과에 남지 않습니다': 'Passed · the result doesn’t record whether it was used',

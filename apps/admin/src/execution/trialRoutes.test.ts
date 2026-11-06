@@ -95,7 +95,7 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
       }
       if (req.url === '/api/devices/s1/hold') {
         req.resume();
-        const 답 = req.method === 'POST' ? JSON.stringify({ held: { until: 0, now: 0, screen: 폰화면 } }) : '{}';
+        const 답 = req.method === 'POST' ? JSON.stringify({ value: { held: { until: 0, now: 0, screen: 폰화면 } } }) : '{}';
         return void res.writeHead(200, { 'content-type': 'application/json' }).end(답);
       }
       if (req.method === 'GET' && req.url === '/progress') {
@@ -457,7 +457,7 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
     const 실패 = await 끝날때까지((await 시작(정상)).json<{ trialId: string }>().trialId);
     expect(실패).toMatchObject({ status: 'DONE', failure: { type: 'notFound' } });
     // 한 줄은 사람 말이고 영어 원문은 결과 오류에 그대로 남아 「원문 보기」가 보인다 (점검표 B4)
-    expect((실패.failure as { reason: string }).reason).toBe('요소를 끝내 찾지 못했습니다');
+    expect((실패.failure as { reason: string }).reason).toBe('요소를 끝내 찾지 못했습니다 — id=buy_now_button');
     expect(실패).toMatchObject({ result: { error: { message: expect.stringContaining('buy_now_button') } } });
 
     러너응답 = () => ({ historyId: 1, status: 'PASS', durationMs: 5, steps: [] });

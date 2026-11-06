@@ -118,6 +118,35 @@ describe('시험 실행 시작 확인', () => {
   });
 });
 
+describe('시작 확인의 실제 실행 횟수', () => {
+  it('케이스 × 디바이스가 케이스 수와 다르면 「모두 N번 실행」 한 줄을 적고, 같으면 안 적는다', async () => {
+    const 둘 = { ...케이스, platforms: ['desktop', 'mobile'] as ('desktop' | 'mobile')[] };
+    const 한 = render(<RunPickModal 케이스들={[둘, { ...둘, tcId: 'ZRS-002' }]} service={서비스} onRun={vi.fn()} onClose={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
+    fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
+    expect(screen.getByRole('dialog', { name: '시험 실행을 시작할까요?' }).querySelector('.start-total')?.textContent).toBe('모두 4번 실행');
+    한.unmount();
+
+    await 그린다();
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
+    fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
+    expect(screen.getByRole('dialog', { name: '시험 실행을 시작할까요?' }).querySelector('.start-total')).toBeNull();
+  });
+});
+
+describe('시작 확인의 실제 실행 횟수 — 합이 우연히 같을 때', () => {
+  it('합이 케이스 수와 같아도 모든 케이스가 디바이스 하나가 아니면 「모두 N번 실행」을 적는다', () => {
+    const 둘 = { ...케이스, platforms: ['desktop', 'mobile'] as ('desktop' | 'mobile')[] };
+    render(<RunPickModal 케이스들={[둘, { ...케이스, tcId: 'ZRS-002', platforms: [] }]} service={서비스} onRun={vi.fn()} onClose={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
+    fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
+
+    expect(screen.getByRole('dialog', { name: '시험 실행을 시작할까요?' }).querySelector('.start-total')?.textContent).toBe('모두 2번 실행');
+  });
+});
+
 describe('디바이스를 바꾼 뒤 남는 시험 결과', () => {
   it('끈 디바이스의 결과는 줄에서 걷는다 — PC 로 돈 결과가 모바일만 남긴 줄에 남지 않는다', async () => {
     vi.spyOn(api, 'paramSets').mockResolvedValue({ items: [] });

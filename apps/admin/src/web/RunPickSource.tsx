@@ -80,10 +80,12 @@ export function 출처줄({
       </p>
     );
   }
+  // 저장값도 고친 값도 없으면 말할 출처가 없다. 「코드 기본값」 글자가 입력값 칸 밑에 홀로 떠 있었다 (점검표 U10)
   if (상태 === 'source') {
+    if (saved === undefined) return null;
     return (
       <p className="prow-src">
-        {saved === undefined ? t('코드 기본값') : t('저장값 · {누가} · {언제}', { 누가: saved.savedBy, 언제: when(saved.savedAt, 언어) })}
+        {t('저장값 · {누가} · {언제}', { 누가: saved.savedBy, 언제: when(saved.savedAt, 언어) })}
       </p>
     );
   }

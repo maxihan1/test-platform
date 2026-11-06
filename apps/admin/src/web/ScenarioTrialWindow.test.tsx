@@ -50,7 +50,8 @@ describe('E2E 시험 실행 창 — 도는 중', () => {
     const 창 = screen.getByRole('dialog', { name: 'E2E 시험 실행' });
     expect(within(창).getByText('결과는 이 창에서만 보이고 실행 기록에 남지 않습니다')).toBeTruthy();
     expect(within(창).getByText('동작마다 1초 천천히')).toBeTruthy();
-    expect(within(창).getByText('경과 0:21')).toBeTruthy();
+    expect(within(창).queryByText('경과 0:21')).toBeNull();
+    expect(within(창).getByText(/· 경과 00:21/)).toBeTruthy();
     const 줄들 = [...창.querySelectorAll('.e2e-steps li')];
     expect(줄들).toHaveLength(3);
     expect(줄들[0]?.textContent).toContain('FN-087');
@@ -167,15 +168,15 @@ describe('E2E 시험 실행 창 — 결과', () => {
     const 창 = screen.getByRole('dialog', { name: 'E2E 시험 실행 결과' });
     expect([...창.querySelectorAll('.trial-sum .pill')].map((알약) => 알약.textContent)).toEqual(['통과 1', '실패 0', '미실행 2']);
     expect(within(창).getByText('실행 중단으로 멈춤')).toBeTruthy();
-    expect(within(창).getByText('– 실행 안 됨')).toBeTruthy();
+    expect(within(창).getByText('– 실행 안 함')).toBeTruthy();
     expect(창.querySelector('.e2e-steps')).toBeNull();
     expect(창.querySelectorAll('.frame-steps [aria-current="step"]')[0]?.textContent).toBe('결과');
   });
 
-  it('닫기는 묻지 않고 닫고, 다시 시험 실행은 다시 건다', () => {
+  it('닫기는 묻지 않고 닫고, 다시 시험은 다시 건다', () => {
     const { 닫기, 다시 } = 그리기(끝남());
 
-    fireEvent.click(screen.getByRole('button', { name: '다시 시험 실행' }));
+    fireEvent.click(screen.getByRole('button', { name: '다시 시험' }));
     expect(다시).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole('button', { name: '닫기' }));
     expect(닫기).toHaveBeenCalledTimes(1);

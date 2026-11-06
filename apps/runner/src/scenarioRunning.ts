@@ -19,6 +19,8 @@ export interface 도는시나리오 {
   실패함: boolean;
   // 지금 부품이 시작한 때 — 첫 부품은 자식을 띄운 때, 그 뒤는 앞 결과 줄을 받은 때
   부품시작: number;
+  // 끊은 순간에 잰 돌던 부품 시간 — 끊은 뒤 정리(프로세스 정리 · 폰 연결 닫기 · trace 옮기기)가 끝난 때 재면 그 시간까지 섞인다
+  돌던ms?: number;
 }
 export const runningScenarios = new Map<string, 도는시나리오>();
 
@@ -41,6 +43,7 @@ export function abortScenario(k: { scenarioRunId: number } | { scenarioTrialId: 
   if (entry === undefined) return false;
   if (entry.killedBy !== null) return true;
   entry.killedBy = 'ABORTED';
+  entry.돌던ms = Date.now() - entry.부품시작;
   killTree(entry.child);
   return true;
 }

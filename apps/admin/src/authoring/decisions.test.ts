@@ -288,6 +288,15 @@ describe.skipIf(연결 === undefined)('결정 목록 · 결정 진행', () => {
     expect([또.statusCode, 또.json()]).toEqual([409, { error: 'DECISIONS_STALE' }]);
   });
 
+  it('실패 판정 — 뒤에 멈춰서 안 돌고 닫힌 실행(NA · ABORTED)이 있어도 판정이 난 마지막 실행의 실패가 그대로 선다', async () => {
+    await 케이스넣기();
+    const 실패실행 = await 실행넣기();
+    const 멈춘실행 = await 실행넣기('ABORTED', 'NA');
+    await q(`UPDATE run_item SET error = '{"message":"ABORTED"}' WHERE run_id = $1`, [멈춘실행]);
+
+    expect((await 목록()).items.some((x) => x.key === `fail:${String(실패실행)}:${케이스}`)).toBe(true);
+  });
+
   it('BTS 를 이은 프로젝트는 실패 판정을 싣지 않고 실패를 고른 진행은 400 BAD_DECISION — 연결을 끊으면 다시 뜬다', async () => {
     await 케이스넣기();
     const runId = await 실행넣기();

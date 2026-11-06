@@ -86,7 +86,7 @@ export interface ScenarioRunPart {
   error: { message: string; stack?: string } | null;
   /** 실패한 case 부품만 찬다 — 서버가 넣을 때 가린 네트워크 · 조작 · 콘솔 (도메인/시나리오 §7 「실패 기록」) */
   trace: ItemTrace | null;
-  /** 실패 · 미실행 부품의 유형과 한 줄. 통과 · 멈춤 · 앞 부품 실패로 안 돈 부품은 null (도메인/시나리오 §7) */
+  /** 실패 · 미실행 부품의 유형과 한 줄. 통과 · 멈춤 · 안 돈 부품(앞 부품 실패 · 사람이 멈춰 시작도 못 함)은 null (도메인/시나리오 §7) */
   failure?: 항목실패 | null;
   /** case · API 단계가 돈 애플리케이션 접두사와 주소. 그 밖은 null (도메인/시나리오 §7 결정 13) */
   service?: string | null;

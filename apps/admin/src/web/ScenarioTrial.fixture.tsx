@@ -104,6 +104,9 @@ export const 시험누르기 = async () => {
   await act(async () => {
     fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
   });
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: '시험 실행 시작' }));
+  });
   await 흘리기(0);
 };
 export const 탭 = (container: HTMLElement) => container.querySelector('.scn-build')?.getAttribute('data-tab');

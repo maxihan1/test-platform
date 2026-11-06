@@ -94,3 +94,19 @@ export function 조립시작확인({
     />
   );
 }
+
+/** 시험 실행 시작 확인 — 케이스 시험 실행과 같은 확인 창이다. 시험은 닫으면 멈추고 기록이 안 남아서 한 번 말해 준다 (점검표 U7) */
+export function 조립시험확인({ id, 초안, 서버, onClose, on시작 }: { id: number | null; 초안: 초안; 서버: string; onClose: () => void; on시작: () => void }) {
+  const t = use말();
+  return (
+    <ScenarioStartConfirm
+      시나리오={id === null ? 초안.이름 : `SC-${id} ${초안.이름}`.trim()}
+      단계수={초안.단계들.length}
+      디바이스={t(PLATFORM_LABEL[초안.디바이스])}
+      env={서버}
+      시험={{ 늦춤: 초안.디바이스 !== 'android' }}
+      onClose={onClose}
+      on시작={on시작}
+    />
+  );
+}

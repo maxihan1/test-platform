@@ -33,9 +33,9 @@ const Esc = () => fireEvent.keyDown(document, { key: 'Escape' });
 const 단추 = (name: string) => screen.getByRole('button', { name });
 
 describe('출처 줄', () => {
-  it('저장값으로 열면 누가 언제 저장했는지, 저장값이 없으면 코드 기본값이라고 적는다', async () => {
+  it('저장값으로 열면 누가 언제 저장했는지, 저장값이 없으면 줄을 두지 않는다', async () => {
     await 연다([값케이스]);
-    expect(document.querySelector('.prow-src')?.textContent).toBe('코드 기본값');
+    expect(document.querySelector('.prow-src')).toBeNull();
 
     cleanup();
     await 연다([저장값케이스]);

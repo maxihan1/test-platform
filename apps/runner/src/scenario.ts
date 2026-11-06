@@ -129,7 +129,7 @@ const 빈부품 = (seq: number, message: string, status: ScenarioPartResult['sta
 });
 
 // 줄이 안 온 순번을 채운다. 러너가 채워야 자식이 죽어도 admin 이 「몇 번째에서 멈췄나」를 행으로 적는다.
-// 오류 값의 정본은 SPEC 도메인/시나리오 §3.7 결정 9 — NOT_RUN 은 「앞 부품이 실패해 멈췄다」만 뜻한다
+// 오류 값의 정본은 SPEC 도메인/시나리오 §3.7 결정 9 — NOT_RUN 은 「앞 부품이 실패해 안 돌았다」와 「사람이 멈춰 시작도 못 했다」를 뜻한다(제한 시간은 TIMEOUT)
 export function finishScenario(
   lines: ScenarioPartResult[],
   total: number,
@@ -137,6 +137,7 @@ export function finishScenario(
   durationMs: number,
   꼬리: string,
   cleanup?: ScenarioCleanup[],
+  돌던ms = 0,
 ): ScenarioExecuteResponse {
   const bySeq = new Map(lines.map((p) => [p.seq, p]));
   const parts: ScenarioPartResult[] = [];
@@ -151,8 +152,8 @@ export function finishScenario(
     } else if (멈춤) {
       parts.push(빈부품(seq, 'NOT_RUN', 'NA'));
     } else if (killed !== null) {
-      // 멈춘 원인이 앞 부품 실패가 아니라 제한 시간이거나 사람이 끊은 것이다
-      parts.push(빈부품(seq, killed, 'NA'));
+      // 멈춘 원인이 앞 부품 실패가 아니라 제한 시간이거나 사람이 끊은 것이다. 첫 빈 부품이 끊길 때 돌던 부품이라 걸린 시간을 남긴다
+      parts.push({ ...빈부품(seq, killed, 'NA'), durationMs: parts.some((p) => p.error?.message === killed) ? 0 : 돌던ms });
     } else {
       // 안 죽였는데 줄 없이 끝났다 — 설정 오류·자식 사망. 「안 돌았음」으로 두면 원인이 사라진다
       사유 = 꼬리 || '결과 줄 없이 끝났다';
@@ -227,7 +228,10 @@ export async function executeScenario(req: ScenarioExecuteRequest): Promise<Scen
 
   const timer = setTimeout(() => {
     // 사람이 먼저 끊었으면 그 사유가 이긴다
-    entry.killedBy ??= 'TIMEOUT';
+    if (entry.killedBy === null) {
+      entry.killedBy = 'TIMEOUT';
+      entry.돌던ms = Date.now() - entry.부품시작;
+    }
     killTree(child);
   }, req.timeoutMs);
 
@@ -254,6 +258,7 @@ export async function executeScenario(req: ScenarioExecuteRequest): Promise<Scen
 
   const 결과 = finishScenario(
     parseParts(stdout), req.parts.length, entry.killedBy, Date.now() - startedAt, tail(stderr) || tail(stdout), parseCleanup(stdout),
+    entry.돌던ms ?? Date.now() - entry.부품시작,
   );
   if (폰기기 !== undefined) {
     if (폰증적) await 폰증적을둔다(폰폴더, 결과.status);
