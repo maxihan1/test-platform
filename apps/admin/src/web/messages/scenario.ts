@@ -243,7 +243,6 @@ export const 시나리오말: Record<string, string> = {
   'E2E 시험 실행 결과': 'E2E trial run result',
   'E2E 실행 중 · RUN {번호}': 'E2E running · RUN {번호}',
   'E2E 실행이 끝났습니다 · RUN {번호}': 'E2E run finished · RUN {번호}',
-  '끝나면 실행 기록 E2E 에 남습니다': 'Saved to Run history E2E when it finishes',
   '실행 기록 E2E 에 남았습니다 · RUN {번호}': 'Saved to Run history E2E as RUN {번호}',
   '끝나면 실행 기록 E2E 에 남고 리포트를 만들 수 있습니다': 'Saved to Run history E2E when it finishes, and you can make a report',
   '시나리오§이름': 'Scenario',

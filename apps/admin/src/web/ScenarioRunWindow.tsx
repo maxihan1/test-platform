@@ -114,7 +114,7 @@ export function ScenarioRunWindow({ runId, 어디서, on닫기 }: { runId: numbe
             <p className="start-band rec e2e-band">
               <b>{t('정식 실행')}</b>{' '}
               {도는중
-                ? [...(이름들.length === 0 ? [] : [이름들.map((n) => n.제목).join(' → ')]), t('끝나면 실행 기록 E2E 에 남습니다')].join(' · ')
+                ? t('끝나면 실행 기록에 남고 리포트를 만들 수 있습니다 · RUN {번호}', { 번호: runId })
                 : t('실행 기록 E2E 에 남았습니다 · RUN {번호}', { 번호: runId })}
             </p>
             {도는중 ? (
