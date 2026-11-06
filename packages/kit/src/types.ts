@@ -140,6 +140,14 @@ export interface RunningStep extends StepProgress {
   elapsedMs: number;
 }
 
+// 러너가 GET /progress 의 scenarios 로 답하는 것 (2026-11-06 WEB-F9-13 · 도메인/러너 §5.2 「시나리오 진행 · 중단」)
+export interface RunningScenario {
+  runId: number | null;           // 정식 실행이면 그 실행 번호, 시험 실행이면 null
+  trialId?: string;               // 시험 실행일 때만
+  seq: number;                    // 지금 도는 부품 번호(1부터) — 마지막으로 받은 결과 줄 순번 + 1
+  elapsedMs: number;              // 그 부품이 시작한 뒤 흐른 시간. 러너가 자기 시계로 잰다
+}
+
 // E2E 시나리오 — admin 과 러너가 주고받는 모양. 무엇이고 왜인지는 SPEC 도메인/시나리오 §3.7
 export type ScenarioPart =                         // 부품 목록의 정본은 도메인/시나리오 §3.7 「부품」 표
   | { kind: 'case'; tcId: TcId; params: Record<string, unknown>; expected: Record<string, unknown>;
