@@ -150,6 +150,27 @@ describe.skipIf(연결 === undefined)('진행 조회', () => {
     }
   });
 
+  it('러너에 보냈고 러너가 아직 첫 단계를 안 알린 항목도 싣는다 — 단계 칸 없이 · 항목 경과와 함께 (점검표 B2 · B13)', async () => {
+    const 보낸항목 = await 항목넣는다(내실행, 'XBR-012', 9000);
+    const 남의보낸항목 = await 항목넣는다(남의실행, 'XBR-013', 9000);
+    항목화면을연다(보낸항목, true, { runId: 내실행, timeoutMs: 9000 });
+    항목폰화면(보낸항목, 'https://vision.example.com/#phone=s9');
+    항목화면을연다(남의보낸항목, true, { runId: 남의실행, timeoutMs: 9000 });
+    항목화면을연다(내항목, true, { runId: 내실행, timeoutMs: 7000 });
+    try {
+      const body = (await app.inject({ method: 'GET', url: `/api/runs/${내실행}/progress` })).json();
+      expect(body.items.map((i: { historyId: number }) => i.historyId)).toEqual([내항목, 보낸항목]);
+      const 아직 = body.items[1];
+      expect(아직).toMatchObject({ historyId: 보낸항목, timeoutMs: 9000, live: true, vision: { url: 'https://vision.example.com/#phone=s9' } });
+      expect(아직).not.toHaveProperty('seq');
+      expect(아직.itemElapsedMs).toBeGreaterThanOrEqual(0);
+      expect(body.items[0]).toMatchObject({ historyId: 내항목, seq: 2, elapsedMs: 1200 });
+      expect(body.items[0].itemElapsedMs).toBeGreaterThanOrEqual(0);
+    } finally {
+      for (const 번호 of [보낸항목, 남의보낸항목, 내항목]) 항목화면을닫는다(번호);
+    }
+  });
+
   it('항목 장면 — 첫 장면 전 204, 장면이 있으면 JPEG, 그 실행의 항목이 아니거나 끝난 항목은 404 다', async () => {
     const 장면 = (runId: number, historyId: number) => app.inject({ method: 'GET', url: `/api/runs/${runId}/items/${historyId}/live` });
     const 열쇠 = 항목화면을연다(내항목, true)!;

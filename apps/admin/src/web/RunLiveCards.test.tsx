@@ -131,6 +131,25 @@ describe('정식 실행 진행 창 — 화면 카드 (시안 7판 ⑦)', () => {
     expect(받기).not.toHaveBeenCalled();
   });
 
+  it('러너가 첫 단계를 알리기 전 항목도 장면 칸 · VISION 링크가 서고 단계 줄은 비운다 (점검표 B2)', async () => {
+    const 받기 = vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'empty' });
+    render(
+      <RunProgressModal
+        data={실행([항목(1, 'desktop'), 항목(2, 'mobile')])}
+        진행목록={[
+          { historyId: 1, timeoutMs: 30000, live: true, itemElapsedMs: 3000 },
+          { historyId: 2, timeoutMs: 30000, live: false, vision: { url: 'https://vision.example.test/#phone=s2' } },
+        ]}
+        onClose={() => {}}
+      />,
+    );
+    await 흘리기();
+
+    expect(받기).toHaveBeenCalledWith('/api/runs/128/items/1/live');
+    expect(screen.getByRole('link', { name: 'Device VISION ↗' })).toBeTruthy();
+    expect(document.body.textContent).not.toContain('undefined');
+  });
+
   it('카드는 둘까지다 — 셋째로 도는 항목은 이름 줄로 남는다', () => {
     vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'empty' });
     render(

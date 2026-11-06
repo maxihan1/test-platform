@@ -33,7 +33,14 @@ export async function 장면을건넨다(reply: FastifyReply, 열쇠: string): P
   return reply.header('cache-control', 'no-store').type(형식).send(Buffer.from(await res.arrayBuffer()));
 }
 
-type 화면 = { 열쇠?: string; vision?: string };
+/** 케이스 항목만 — 러너에 보낸 실행 · 제한 · 보낸 때. 러너가 첫 단계를 알리기 전에도 진행 응답이 그 항목을 싣는다 (도메인/실행 §3.2 「진행 응답은 러너가 첫 단계를 알리기 전 항목도 싣는다」) */
+export interface 보낸것 {
+  runId: number;
+  timeoutMs: number;
+  보낸때: number;
+}
+
+type 화면 = { 열쇠?: string; vision?: string; 보냄?: 보낸것 };
 
 /**
  * 도는 정식 실행의 화면 — 장면 열쇠(브라우저를 여는 것만)와 잡은 폰의 VISION 링크. admin 메모리에만 두고 끝나면 지운다.
@@ -44,9 +51,9 @@ function 화면칸() {
   const 화면들 = new Map<number, 화면>();
   return {
     /** 러너에 보내기 전에 연다. 장면을 찍는 것이면 새 열쇠를 돌려준다 */
-    연다(번호: number, 장면: boolean): string | undefined {
+    연다(번호: number, 장면: boolean, 보냄?: Omit<보낸것, '보낸때'>): string | undefined {
       const 열쇠 = 장면 ? randomUUID() : undefined;
-      화면들.set(번호, 열쇠 === undefined ? {} : { 열쇠 });
+      화면들.set(번호, { ...(열쇠 !== undefined && { 열쇠 }), ...(보냄 !== undefined && { 보냄: { ...보냄, 보낸때: Date.now() } }) });
       return 열쇠;
     },
     /** 폰을 잡으면 링크를 달고 놓으면 뗀다 — 놓은 폰의 링크는 닫혀 있다 */
@@ -60,6 +67,10 @@ function 화면칸() {
     본다(번호: number): 화면 | undefined {
       return 화면들.get(번호);
     },
+    /** 그 실행에서 보내고 아직 답을 못 받은 항목들 */
+    보낸것들(runId: number): (화면 & { 번호: number; 보냄: 보낸것 })[] {
+      return [...화면들].flatMap(([번호, 칸]) => (칸.보냄?.runId === runId ? [{ ...칸, 번호, 보냄: 칸.보냄 }] : []));
+    },
   };
 }
 
@@ -68,6 +79,7 @@ export const 항목화면을연다 = 항목칸.연다;
 export const 항목폰화면 = 항목칸.폰;
 export const 항목화면을닫는다 = 항목칸.닫는다;
 export const 항목화면 = 항목칸.본다;
+export const 보낸항목들 = 항목칸.보낸것들;
 
 /** 도는 E2E 정식 실행의 화면 — runId 로 찾는다 (도메인/실행 §3.2 「시험 실행 지금 단계 · 중단 · 정식 실행 화면」) */
 export const 시나리오화면 = 화면칸();

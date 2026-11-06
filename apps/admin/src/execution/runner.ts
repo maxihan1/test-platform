@@ -169,7 +169,7 @@ export async function callRunner(
 
   // 브라우저를 여는 항목(PC · 모바일 웹)만 장면을 찍는다 — API 애플리케이션 케이스는 desktop 이어도 브라우저를 안 연다.
   // 정식 실행은 늦추지 않고 화면만 찍는다(러너가 runId 로 가른다) (도메인/실행 §3.2 「시험 실행 지금 단계 · 중단 · 정식 실행 화면」)
-  const 열쇠 = 항목화면을연다(item.historyId, item.platform !== 'android' && !('apiDoc' in 판));
+  const 열쇠 = 항목화면을연다(item.historyId, item.platform !== 'android' && !('apiDoc' in 판), { runId, timeoutMs: item.timeoutMs });
   try {
     return await 항목을보낸다(runId, item, 판, 열쇠, 멈췄나, 잡은폰);
   } finally {
