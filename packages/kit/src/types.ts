@@ -66,7 +66,7 @@ export interface ExecuteRequest {
   apiAuths?: ApiAuth[];         // 그 대상 서버 줄의 API 인증 전부. API 종류 애플리케이션 케이스만 (도메인/API §3.8 · API-F1-04)
   apiDoc?: ApiDocRef;           // 그 케이스의 판. CaseSpec.apiDoc 이 있을 때만 (도메인/API §3.8 · API-F1-05)
   recordHar?: { jobId: number }; // 성능 시나리오 녹화 — 오면 HAR 를 남긴다. jobId 는 기다리는 perf_ai_job 번호. 기록 · 증적에 안 남는다 (공통/3-공유계약 「성능 테스트 타입」)
-  live?: string;                // 장면 열쇠(UUID — 테스트 실행은 그 시험의 trialId · 정식 실행은 항목마다 새것). 오면 마지막 장면을 GET /live/:key 로 낸다. 테스트 실행(runId 0)이면 동작마다 1초 쉬고 누른 곳을 그리고, 정식 실행은 장면만 찍는다 · 정식 실행 android 는 러너가 400 (도메인/러너 §5.2 「테스트 모드 — 실시간 장면」)
+  live?: string;                // 장면 열쇠(UUID — 테스트 실행은 그 시험의 trialId · 정식 실행은 항목마다 새것). 오면 마지막 장면을 GET /live/:key 로 낸다. 테스트 실행(runId 0)이면 동작마다 1초 쉬고(누른 곳 표시는 2026-11-06 WEB-F9-14 에 뺐다), 정식 실행은 장면만 찍는다 · 정식 실행 android 는 러너가 400 (도메인/러너 §5.2 「테스트 모드 — 실시간 장면」)
 }
 
 export interface ApiAuth {      // 대상 서버 줄의 API 인증 하나 (service_env.api_auths). 러너 · kit 까지만 비밀값이 간다
@@ -138,6 +138,14 @@ export interface StepProgress {
 // 러너가 GET /progress로 답하는 것. 경과는 킷이 아니라 러너가 자기 시계로 잰다
 export interface RunningStep extends StepProgress {
   elapsedMs: number;
+}
+
+// 러너가 GET /progress 의 scenarios 로 답하는 것 (2026-11-06 WEB-F9-13 · 도메인/러너 §5.2 「시나리오 진행 · 중단」)
+export interface RunningScenario {
+  runId: number | null;           // 정식 실행이면 그 실행 번호, 시험 실행이면 null
+  trialId?: string;               // 시험 실행일 때만
+  seq: number;                    // 지금 도는 부품 번호(1부터) — 마지막으로 받은 결과 줄 순번 + 1
+  elapsedMs: number;              // 그 부품이 시작한 뒤 흐른 시간. 러너가 자기 시계로 잰다
 }
 
 // E2E 시나리오 — admin 과 러너가 주고받는 모양. 무엇이고 왜인지는 SPEC 도메인/시나리오 §3.7

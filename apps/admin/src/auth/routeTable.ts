@@ -116,6 +116,8 @@ export const 등급표: Record<string, 표값> = {
   'GET /api/scenario-trials/:trialId': 실행읽기,
   'GET /api/scenario-trials/:trialId/screenshots/:seq': 실행읽기,
   'GET /api/scenario-trials/:trialId/live': 실행읽기,
+  // 시험 실행 중단 — 시작과 같은 칸이다. 시작한 사람만 닿는다 (도메인/인증 §7 「시험 실행 중단」)
+  'POST /api/scenario-trials/:trialId/abort': 테스트모드,
 
   'GET /api/authoring/requests': 작성읽기,
   'GET /api/authoring/requests/:id': 작성읽기,

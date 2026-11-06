@@ -6,8 +6,9 @@ import { join } from 'node:path';
 
 import type { ScenarioExecuteRequest, ScenarioExecuteResponse, ScenarioPart } from '@platform/kit';
 import Fastify from 'fastify';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
+import { 시나리오실행을멈춘다 } from './runAbort.js';
 import { 결과저장, 시나리오분배 } from './runResult.js';
 import { 실행만들기, 시나리오실행오류 } from './runStore.js';
 import { 만들기, 고치기, 치우기 } from './store.js';
@@ -496,5 +497,71 @@ describe.skipIf(연결 === undefined)('시나리오 실행 만들기', () => {
     expect(받은).toEqual([요청]);
     expect((await 실행상태(runId)).status).toBe('FINISHED');
     expect((await 부품행(runId)).map((r) => r.status)).toEqual(['PASS', 'PASS', 'PASS']);
+  });
+
+  it('사람이 멈춘 실행(사람이멈춤)은 ABORTED 로 닫고 끝난 부품은 그대로, 안 끝난 부품은 NA + STOPPED 다', async () => {
+    const runId = await 세부품();
+    const 응답: ScenarioExecuteResponse = {
+      status: 'NA',
+      durationMs: 5,
+      error: { message: 'ABORTED' },
+      parts: [
+        { seq: 1, status: 'PASS', durationMs: 3, mocks: [], steps: [] },
+        { seq: 2, status: 'NA', durationMs: 0, mocks: [], steps: [], error: { message: 'ABORTED' } },
+      ],
+    };
+    expect(await 결과저장(runId, 응답, true)).toBe(true);
+
+    expect((await 부품행(runId)).map((r) => [r.seq, r.status, r.error])).toEqual([
+      [1, 'PASS', null],
+      [2, 'NA', { message: 'STOPPED' }],
+      [3, 'NA', { message: 'STOPPED' }],
+    ]);
+    expect((await 실행상태(runId)).status).toBe('ABORTED');
+  });
+
+  it('러너에 보낸 시나리오 실행을 멈추면 러너에 끊어 달라 하고 러너 답이 오면 ABORTED 로 닫는다', async () => {
+    const runId = await 세부품();
+    const 요청: ScenarioExecuteRequest = { runId, platform: 'desktop', baseUrl: 'http://xse.example', parts: [], timeoutMs: 60000 };
+    const 매달린: ((답: object) => void)[] = [];
+    const 받은중단: unknown[] = [];
+    const app = Fastify();
+    app.post('/execute-scenario', () => new Promise((ok) => { 매달린.push(ok); }));
+    app.post('/abort', async (req) => {
+      받은중단.push(req.body);
+      for (const ok of 매달린.splice(0)) {
+        ok({
+          status: 'NA',
+          durationMs: 2,
+          error: { message: 'ABORTED' },
+          parts: [
+            { seq: 1, status: 'PASS', durationMs: 1, mocks: [], steps: [] },
+            { seq: 2, status: 'NA', durationMs: 0, mocks: [], steps: [], error: { message: 'ABORTED' } },
+            { seq: 3, status: 'NA', durationMs: 0, mocks: [], steps: [], error: { message: 'ABORTED' } },
+          ],
+        });
+      }
+      return { aborted: true };
+    });
+    await app.listen({ port: 0, host: '127.0.0.1' });
+    const 원래 = process.env.RUNNER_URL;
+    const addr = app.server.address();
+    process.env.RUNNER_URL = `http://127.0.0.1:${typeof addr === 'object' && addr !== null ? addr.port : 0}`;
+    try {
+      const 분배 = 시나리오분배(runId, 요청);
+      await vi.waitFor(() => expect(매달린).toHaveLength(1));
+
+      expect(await 시나리오실행을멈춘다(runId)).toEqual({ aborted: 1 });
+      await 분배;
+      expect(await 시나리오실행을멈춘다(runId)).toBeNull();
+    } finally {
+      await app.close();
+      if (원래 === undefined) delete process.env.RUNNER_URL;
+      else process.env.RUNNER_URL = 원래;
+    }
+
+    expect(받은중단).toEqual([{ scenarioRunId: runId }]);
+    expect((await 실행상태(runId)).status).toBe('ABORTED');
+    expect((await 부품행(runId)).map((r) => [r.status, r.error])).toEqual([['PASS', null], ['NA', { message: 'STOPPED' }], ['NA', { message: 'STOPPED' }]]);
   });
 });

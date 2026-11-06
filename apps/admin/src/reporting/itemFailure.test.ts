@@ -46,7 +46,7 @@ describe('항목실패를가른다', () => {
     expect(결과).toEqual({ type: 'mismatch', reason: '주문 수가 1 늘어난다' });
   });
 
-  it('확인 문장 없이 깨졌으면 항목 오류의 색 코드를 지우고 빈 줄을 건너뛴 첫 줄이다', () => {
+  it('확인 문장 없이 깨졌으면 항목 오류로 유형을 가르고 · 한글 없는 원문 첫 줄이면 유형 문장이다', () => {
     const 결과 = 항목실패를가른다(
       재료({
         status: 'NA',
@@ -54,7 +54,23 @@ describe('항목실패를가른다', () => {
       }),
       그대로,
     );
-    expect(결과).toEqual({ type: 'notFound', reason: 'Test timeout of 30000ms exceeded.' });
+    expect(결과).toEqual({ type: 'notFound', reason: 유형문장.notFound });
+  });
+
+  it('앱(Appium) 오류처럼 한글이 없는 원문 첫 줄은 유형마다 정한 문장이다 — 원문은 원문 보기에 남는다 (점검표 B4)', () => {
+    const 결과 = 항목실패를가른다(
+      재료({ error: { message: "Error: Can't call click on element with selector \"id=buy_now_button\" because element wasn't found\n    at …" } }),
+      그대로,
+    );
+    expect(결과).toEqual({ type: 'notFound', reason: 유형문장.notFound });
+  });
+
+  it('사람이 쓴 확인 문장은 영어여도 그대로 한 줄이다', () => {
+    expect(항목실패를가른다(재료({ steps: [{ assertions: [확인('Order total equals cart sum', 'FAIL')] }] }), 그대로)?.reason).toBe('Order total equals cart sum');
+  });
+
+  it('한글이 든 오류 첫 줄은 그대로 한 줄이다', () => {
+    expect(항목실패를가른다(재료({ error: { message: 'Error: 「구매」 단추가 안 보인다' } }), 그대로)?.reason).toBe('Error: 「구매」 단추가 안 보인다');
   });
 
   it('항목 오류가 없으면 절차 오류로 넘어가지 않고 유형마다 정한 문장이다', () => {

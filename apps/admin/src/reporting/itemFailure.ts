@@ -20,6 +20,8 @@ export const 유형문장: Record<실패유형, string> = {
 };
 
 const 러너글자 = /^[A-Z][A-Z_]*$/;
+// 사람 말 한 줄이어야 한다 — 한글이 없는 첫 줄은 Playwright · Appium 원문이다. 원문은 「원문 보기」가 따로 보인다 (2026-11-06 WEB-F9-14 · 점검표 B4)
+const 한글 = /[가-힣]/;
 
 export interface 항목재료 {
   status: ItemStatus;
@@ -47,8 +49,10 @@ export function 항목실패를가른다(항목: 항목재료, 가리기: (글: 
   // 앞 부품이 실패해 안 돈 시나리오 부품(NOT_RUN)은 실패 원인이 아니다 (도메인/시나리오 §3.7 결정 9 — 케이스 항목에는 이 글이 없다)
   if (원인 === 'stopped' || 항목.error?.message === 'NOT_RUN') return null;
   // 색 코드는 가리기 전에 걷는다 — 숫자 비밀(예: 31)이 색 코드 속 숫자를 덮으면 걷는 무늬가 안 맞는다
+  const 오류에서 = 실패확인 === undefined && Boolean(항목.error?.message);
   const 재료 = 실패확인?.statement ?? (항목.error?.message || (모양실패 === undefined ? '' : 모양문장(모양실패)));
   const 한줄 = 한줄로자른다(가리기(재료.replace(색코드, '')));
-  // 러너가 끊은 자리의 상태 글자(TIMEOUT 따위)는 사람 말이 아니다 — 유형이 말하는 문장으로 바꾼다
-  return { type: 원인, reason: 한줄 === '' || 러너글자.test(한줄) ? 유형문장[원인] : 한줄 };
+  // 러너가 끊은 자리의 상태 글자(TIMEOUT 따위)와 오류의 영어 원문은 사람 말이 아니다 — 유형이 말하는 문장으로 바꾼다.
+  // 사람이 쓴 확인 문장은 영어여도 그대로다 — 실패를 서로 가를 수 있게 (WEB-F9-14 끝 검사)
+  return { type: 원인, reason: 한줄 === '' || 러너글자.test(한줄) || (오류에서 && !한글.test(한줄)) ? 유형문장[원인] : 한줄 };
 }

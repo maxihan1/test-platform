@@ -14,6 +14,7 @@ import { registerLive, 장면과돌린다 } from './live.js';
 import { registerPerfDeviceRoutes } from './perfDevice.js';
 import { registerRemote } from './remote.js';
 import { executeScenario, 판뺀부품들, 폰단계가있나, 폰시나리오가도는가 } from './scenario.js';
+import { abortScenario, 시나리오진행 } from './scenarioRunning.js';
 import { 폰값이없다 } from './scenarioGate.js';
 import { abortRequest, appScreenRequest, executeRequest, scenarioRequest, 목록상한, 판상한 } from './schema.js';
 
@@ -76,7 +77,7 @@ export function registerRoutes(app: FastifyInstance): void {
     });
   }
 
-  // 시나리오 1개 = 프로세스 1개. 진행 알림과 중단 통로는 없다 — 제한 시간이 상한이다 (SPEC 도메인/러너 §5.2)
+  // 시나리오 1개 = 프로세스 1개. 진행 · 중단은 runId · trialId 열쇠로 한다 (SPEC 도메인/러너 §5.2 「시나리오 진행 · 중단」)
   app.post('/execute-scenario', 판상한, async (request, reply) => {
     const parsed = scenarioRequest.safeParse(request.body);
     if (!parsed.success) {
@@ -130,6 +131,7 @@ export function registerRoutes(app: FastifyInstance): void {
         ? []
         : [{ ...progress.step, historyId, elapsedMs: Date.now() - progress.시작한때 }],
     ),
+    scenarios: 시나리오진행(),
   }));
 
   app.post('/abort', async (request, reply) => {
@@ -139,6 +141,7 @@ export function registerRoutes(app: FastifyInstance): void {
     }
 
     // 이미 끝났거나 모르는 historyId면 false다. 경합이지 고장이 아니므로 404로 만들지 않는다 (SPEC §5.2)
-    return { aborted: abort(parsed.data.historyId) };
+    const 열쇠 = parsed.data;
+    return { aborted: 'historyId' in 열쇠 ? abort(열쇠.historyId) : abortScenario(열쇠) };
   });
 }

@@ -74,6 +74,10 @@ describe('원인을가른다', () => {
     expect(미실행('ABORTED')).toBe('stopped');
   });
 
+  it('사람이 멈춘 E2E 부품(STOPPED)도 ABORTED 처럼 멈춤이다', () => {
+    expect(미실행('STOPPED')).toBe('stopped');
+  });
+
   it('게임 드라이버가 켜진 오브젝트에서 못 찾은 것은 요소 미검출이다 (GAME-F1-09)', () => {
     expect(실패('켜진 오브젝트 중에 /Canvas/StartButton 이 없습니다')).toBe('notFound');
     expect(실패('켜진 오브젝트 중에 /Canvas/Shop 이 없습니다 (Shop 에서 끊김)')).toBe('notFound');

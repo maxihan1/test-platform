@@ -14,6 +14,12 @@ const 카드최대 = 2;
 
 type 말 = ReturnType<typeof use말>;
 
+/** 러너가 첫 단계를 알렸나 — 보내고 아직 안 알린 항목은 단계 칸이 없다 (2026-11-06 WEB-F9-14 · 그리기는 WEB-F9-18) */
+function 단계(절차: 항목진행 | null): (항목진행 & { seq: number; title: string; elapsedMs: number }) | null {
+  if (절차 === null || 절차.seq === undefined || 절차.title === undefined || 절차.elapsedMs === undefined) return null;
+  return { ...절차, seq: 절차.seq, title: 절차.title, elapsedMs: 절차.elapsedMs };
+}
+
 /** 칸 머리 꼬리표. Android 앱은 늘 VISION 폰이라 링크가 대신 말한다 */
 function 기기글({ 항목, 절차 }: 도는것, t: 말): string | null {
   if (항목.platform === 'desktop') return t('서버 브라우저');
@@ -39,6 +45,7 @@ function 카드({ runId, 것, 크게, on크게 }: { runId: number; 것: 도는�
   const { 항목, 절차 } = 것;
   const 꼬리표 = 기기글(것, t);
   const 화면있음 = 절차?.live === true;
+  const 지금단계 = 단계(절차);
 
   return (
     <section className={크게 ? 'lc big' : 'lc'} aria-label={`${항목.tcId} ${t('실시간 화면')}`}>
@@ -66,14 +73,14 @@ function 카드({ runId, 것, 크게, on크게 }: { runId: number; 것: 도는�
             {항목.tcId} {항목.tcName}
           </b>
           {/* 경과와 제한을 나란히 둬야 「느린 것」과 「멈춘 것」이 갈린다 (게이트 1 화면 규칙) */}
-          {절차 === null ? null : (
+          {지금단계 === null ? null : (
             <span className="lim">
-              {t('{시간} 경과', { 시간: 시간글자(절차.elapsedMs, 언어) })} / {t('제한 {시간}', { 시간: 시간글자(절차.timeoutMs, 언어) })}
+              {t('{시간} 경과', { 시간: 시간글자(지금단계.elapsedMs, 언어) })} / {t('제한 {시간}', { 시간: 시간글자(지금단계.timeoutMs, 언어) })}
             </span>
           )}
         </div>
-        {절차 === null ? null : (
-          <span className="hint one-line">{t('{번호}단계 · {제목}', { 번호: 절차.seq, 제목: 절차.title })}</span>
+        {지금단계 === null ? null : (
+          <span className="hint one-line">{t('{번호}단계 · {제목}', { 번호: 지금단계.seq, 제목: 지금단계.title })}</span>
         )}
       </div>
     </section>
@@ -104,9 +111,10 @@ function 화면카드들({ runId, 것들 }: { runId: number; 것들: 도는것[]
 }
 
 /** 지금 도는 항목 하나. 이름 줄과 절차 줄이 한 덩어리다 */
-function 도는줄({ 항목, 절차 }: { 항목: RunItemSummary; 절차: 항목진행 | null }) {
+function 도는줄({ 항목, 절차: 받은절차 }: { 항목: RunItemSummary; 절차: 항목진행 | null }) {
   const t말 = use말();
   const 언어 = use언어();
+  const 절차 = 단계(받은절차);
 
   return (
     <div className="pre">

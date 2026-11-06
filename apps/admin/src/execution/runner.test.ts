@@ -120,7 +120,9 @@ describe('callRunner', () => {
     await callRunner(7, { ...항목, platform: 'android' }, () => false, { udid: 'R3', 토큰: undefined, 화면: 'https://vision.example.com/#phone=R3' });
 
     expect(받은것.map((b) => b.live)).toEqual([undefined, undefined]);
-    expect(도는중).toEqual([{}, { vision: 'https://vision.example.com/#phone=R3' }]);
+    // 보낸 항목은 실행 · 제한 · 보낸 때를 같이 든다 — 러너가 첫 단계를 알리기 전에도 진행 응답이 싣는다 (점검표 B2)
+    const 보냄 = { runId: 7, timeoutMs: 5000, 보낸때: expect.any(Number) };
+    expect(도는중).toEqual([{ 보냄 }, { 보냄, vision: 'https://vision.example.com/#phone=R3' }]);
     expect(항목화면(42)).toBeUndefined();
   });
 
@@ -340,16 +342,34 @@ describe('진행', () => {
     expect(await 진행()).toEqual([]);
   });
 
-  it('시험 실행의 진행은 1초 넘게 늦는 러너를 기다리지 않고 빈 목록으로 낸다', async () => {
+  it('시험 실행의 진행은 1.5초 늦게 오는 러너 답도 받는다 — CPU 둘인 서버에서 WebKit 이 돌면 1초를 넘긴다 (점검표 B1)', async () => {
     const app = Fastify();
     app.get('/progress', async () => {
-      await new Promise((ok) => setTimeout(ok, 3_000));
+      await new Promise((ok) => setTimeout(ok, 1_500));
       return { items: [{ historyId: 42, seq: 1, title: '늦은 답', elapsedMs: 1 }] };
     });
     await 붙인다(app);
+
+    expect(await 시험진행()).toEqual([{ historyId: 42, seq: 1, title: '늦은 답', elapsedMs: 1 }]);
+  });
+
+  it('시험 실행의 진행은 3초 넘게 늦는 러너를 기다리지 않고 빈 목록으로 낸다 · 기다리는 동안 온 물음은 같은 답을 함께 쓴다', async () => {
+    let 물음 = 0;
+    const app = Fastify();
+    app.get('/progress', async () => {
+      물음 += 1;
+      await new Promise((ok) => setTimeout(ok, 4_500));
+      return { items: [] };
+    });
+    await 붙인다(app);
+    // 앞 검사가 받은 답을 1초 동안 함께 쓴다 — 그 창이 지나야 새로 묻는다
+    await new Promise((ok) => setTimeout(ok, 1_100));
     const 시작 = Date.now();
 
-    expect(await 시험진행()).toEqual([]);
-    expect(Date.now() - 시작).toBeLessThan(2_000);
+    const 첫 = 시험진행();
+    await new Promise((ok) => setTimeout(ok, 1_200));
+    expect(await Promise.all([첫, 시험진행()])).toEqual([[], []]);
+    expect(Date.now() - 시작).toBeLessThan(4_000);
+    expect(물음).toBe(1);
   });
 });

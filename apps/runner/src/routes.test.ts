@@ -11,6 +11,7 @@ import { execute, running, 진행을_모은다, type Running } from './execute.j
 import { killTree } from './kill.js';
 import { registerRoutes } from './routes.js';
 import { executeScenario } from './scenario.js';
+import { runningScenarios } from './scenarioRunning.js';
 
 // 입구가 실행에 무엇을 넘기는지만 본다. 진짜 실행은 자식 프로세스와 브라우저를 띄운다
 vi.mock('./scenario.js', async (원본) => ({
@@ -32,8 +33,9 @@ function 서버() {
 // 지도를 비우는 책임은 execute()의 finally에만 있고 이 테스트는 그 경로를 안 거친다.
 // 단언이 깨져 끊는 자리까지 못 갔으면 자식이 30초를 더 산다. 비우기 전에 먼저 내린다
 afterEach(() => {
-  for (const { child } of running.values()) killTree(child);
+  for (const { child } of [...running.values(), ...runningScenarios.values()]) killTree(child);
   running.clear();
+  runningScenarios.clear();
   vi.useRealTimers();
 });
 
@@ -269,6 +271,56 @@ describe('POST /abort', () => {
   });
 });
 
+describe('시나리오 — POST /abort · GET /progress', () => {
+  const 시나리오자식 = (열쇠: string, 바꿈: Partial<Parameters<typeof runningScenarios.set>[1]> = {}) => {
+    const child = spawn('sh', ['-c', 'sleep 30'], { detached: true, stdio: 'ignore' });
+    runningScenarios.set(열쇠, { child, killedBy: null, runId: 42, trialId: undefined, total: 3, 받은줄수: 1, 실패함: false, 부품시작: Date.now(), ...바꿈 });
+    return child;
+  };
+
+  it('scenarioRunId 로 도는 자식을 끊고 aborted true 다', async () => {
+    const child = 시나리오자식('run:42');
+
+    const res = await 서버().inject({ method: 'POST', url: '/abort', payload: { scenarioRunId: 42 } });
+
+    expect(res.json()).toEqual({ aborted: true });
+    expect(runningScenarios.get('run:42')?.killedBy).toBe('ABORTED');
+    await once(child, 'close');
+  });
+
+  it('scenarioTrialId 로도 끊고, 모르는 열쇠는 200 에 aborted false 다', async () => {
+    const child = 시나리오자식('trial:t-1', { runId: null, trialId: 't-1' });
+
+    const 모름 = await 서버().inject({ method: 'POST', url: '/abort', payload: { scenarioTrialId: 'nope' } });
+    const 앎 = await 서버().inject({ method: 'POST', url: '/abort', payload: { scenarioTrialId: 't-1' } });
+
+    expect(모름.statusCode).toBe(200);
+    expect(모름.json()).toEqual({ aborted: false });
+    expect(앎.json()).toEqual({ aborted: true });
+    await once(child, 'close');
+  });
+
+  it('열쇠를 둘 이상 실으면 400 이다', async () => {
+    const res = await 서버().inject({ method: 'POST', url: '/abort', payload: { historyId: 1, scenarioRunId: 2 } });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toBe('INVALID_REQUEST');
+  });
+
+  it('GET /progress 가 scenarios 에 도는 시나리오의 runId · trialId · seq · elapsedMs 를 싣는다', async () => {
+    시나리오자식('run:42');
+    시나리오자식('trial:t-1', { runId: null, trialId: 't-1', 받은줄수: 0 });
+
+    const res = await 서버().inject({ method: 'GET', url: '/progress' });
+
+    expect(res.json().items).toEqual([]);
+    expect(res.json().scenarios).toEqual([
+      { runId: 42, seq: 2, elapsedMs: expect.any(Number) },
+      { runId: null, trialId: 't-1', seq: 1, elapsedMs: expect.any(Number) },
+    ]);
+  });
+});
+
 describe('GET /progress', () => {
   it('지금 돌고 있는 항목의 seq·title·elapsedMs를 낸다', async () => {
     const child = 진행을_흘리는_자식(7);
@@ -301,12 +353,12 @@ describe('GET /progress', () => {
     const 아무것도없음 = await 서버().inject({ method: 'GET', url: '/progress' });
 
     expect(아무것도없음.statusCode).toBe(200);
-    expect(아무것도없음.json()).toEqual({ items: [] });
+    expect(아무것도없음.json()).toEqual({ items: [], scenarios: [] });
 
     진행을_흘리는_자식(8);
     const 아직안알림 = await 서버().inject({ method: 'GET', url: '/progress' });
 
-    expect(아직안알림.json()).toEqual({ items: [] });
+    expect(아직안알림.json()).toEqual({ items: [], scenarios: [] });
   });
 
   it('같은 항목의 다음 절차가 오면 앞 절차를 덮어쓴다', async () => {

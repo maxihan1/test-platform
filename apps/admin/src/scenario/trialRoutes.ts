@@ -9,10 +9,13 @@ import { z } from 'zod';
 import { artifactsDir, 볼륨파일읽기 } from '../artifactFile.js';
 import { 권한이되나 } from '../auth/gate.js';
 import { 장면을건넨다 } from '../execution/live.js';
+import { 시험시나리오진행 } from '../execution/runner.js';
+import { abortScenarioRunner } from '../execution/scenarioRunner.js';
 import { 시나리오시험, TrialBusyError } from '../execution/trial.js';
 import { 정수 } from '../routeParams.js';
 
 import { 시험시작, 시험시작오류, uuid모양 } from './trial.js';
+import { 보내기전멈춘결과, 상태찾기 } from './trialAbort.js';
 import { 저장안된단계 } from './trialGuard.js';
 import { 부품들모양 } from './validate.js';
 
@@ -53,8 +56,29 @@ export default async function scenarioTrialRoutes(app: FastifyInstance): Promise
   });
 
   app.get<{ Params: { trialId: string } }>('/scenario-trials/:trialId', async (req, reply) => {
-    const 읽음 = 시나리오시험.읽는다(누구(req), req.params.trialId);
-    return 읽음 ?? 없음(reply, req.params.trialId);
+    const { trialId } = req.params;
+    const 읽음 = 시나리오시험.읽는다(누구(req), trialId);
+    if (읽음 === null) return 없음(reply, trialId);
+    // 러너에 보낸 시험만 지금 부품을 묻는다. 러너가 아직 모르거나 못 닿으면 빈 칸이다 — 오류가 아니다.
+    // 러너의 목록은 모든 시나리오를 담으니 이 시험 번호로 거른다
+    if (읽음.status !== 'RUNNING' || 상태찾기(trialId)?.보냄 !== true) return 읽음;
+    const 지금 = (await 시험시나리오진행()).find((s) => s.trialId === trialId);
+    return 지금 === undefined ? 읽음 : { ...읽음, step: { seq: 지금.seq, elapsedMs: 지금.elapsedMs } };
+  });
+
+  // 시작한 사람만 멈춘다 — 남의 번호는 결과 읽기처럼 404 다. 끝나는 것과 누르는 것이 겹치면 오류가 아니라 false 다.
+  // 규칙은 케이스 시험 실행 중단과 같다: 러너에 보내기 전이면 admin 이 닫고, 보낸 뒤면 러너가 끊고 결과는 러너 답이다 (도메인/실행 §3.2 「E2E 도 지금 단계를 알리고 끊는다」)
+  app.post<{ Params: { trialId: string } }>('/scenario-trials/:trialId/abort', async (req, reply) => {
+    const { trialId } = req.params;
+    const 사람 = 누구(req);
+    const 읽음 = 시나리오시험.읽는다(사람, trialId);
+    if (읽음 === null) return 없음(reply, trialId);
+    const 상태 = 읽음.status === 'RUNNING' ? 상태찾기(trialId) : undefined;
+    if (상태 === undefined) return { aborted: false };
+    // ponytail: 보낸 직후 러너가 그 번호를 받기 전(/health 확인 · 전송 — 2초 안쪽)이면 false 다. 케이스 시험 실행 중단도 같은 틈이 있다
+    if (상태.보냄) return { aborted: await abortScenarioRunner({ scenarioTrialId: trialId }) };
+    상태.멈춤 = true;
+    return { aborted: 시나리오시험.닫는다(사람, trialId, 보내기전멈춘결과(상태.부품수)) };
   });
 
   // 도는 시험의 장면 한 장. 끝난 시험도 404 다 — 러너가 장면을 버렸다 (도메인/실행 §3.2 「테스트 모드」)

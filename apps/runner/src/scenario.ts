@@ -1,22 +1,24 @@
 // E2E 시나리오 1개를 Playwright 자식 프로세스 1개로 돌리고 부품 결과를 모아 돌려준다. 러너는 DB 를 모른다 (SPEC 도메인/러너 §5.2)
-// 진행 알림과 중단 통로는 없다 — 둘 다 historyId 로 지목하는데 시나리오에는 그것이 없다. 그래서 running 지도에 안 올린다.
+// 진행 알림과 중단은 케이스의 running 지도(historyId 열쇠)와 따로 runId · trialId 열쇠의 지도로 한다 (SPEC 도메인/러너 §5.2 「시나리오 진행 · 중단」)
 // 앱 · 게임 단계가 있으면 폰 연결 하나를 쥔다 — 그동안은 폰시나리오가도는가() 가 참이라 화면 읽기가 폰을 안 가로챈다 (SPEC 도메인/시나리오 §3.7 결정 16)
 
 import { spawn } from 'node:child_process';
 import { copyFile, mkdir, readdir, rename, unlink } from 'node:fs/promises';
 import { basename, dirname, join, resolve } from 'node:path';
 
-import { runDir, type DeviceInfo, type ScenarioCleanup, type ScenarioExecuteRequest, type ScenarioExecuteResponse, type ScenarioPartResult } from '@platform/kit';
-import { SCENARIO_CLEANUP_MARKER, SCENARIO_DEVICE_MARKER, SCENARIO_PART_MARKER } from '@platform/kit/scenario';
+import { runDir, type ScenarioCleanup, type ScenarioExecuteRequest, type ScenarioExecuteResponse, type ScenarioPartResult } from '@platform/kit';
+import { SCENARIO_PART_MARKER } from '@platform/kit/scenario';
 
 import { 판쓰기, 판지우기 } from './apiDoc.js';
 import { 앱연결을닫는다 } from './appSession.js';
-import { appRoot, gameEnv, tail } from './execute.js';
+import { appRoot, gameEnv, tail, type KilledBy } from './execute.js';
 import { killTree } from './kill.js';
 import { 장면환경 } from './live.js';
 import { 산출물폴더, 출력폴더를지운다, 출력폴더이름 } from './outputDir.js';
 import { 실제폰인가, 실제폰환경, 폰기기를묻는다, 폰로그, 폰로그를받는다, 폰증적을둔다 } from './realPhone.js';
 import { 녹화폴더 } from './recordHar.js';
+import { parseCleanup, parseDevice, parseParts } from './scenarioLines.js';
+import { runningScenarios, 열쇠, type 도는시나리오 } from './scenarioRunning.js';
 
 const scenarioConfig = resolve(appRoot, 'apps/runner/scenario/playwright.config.ts');
 
@@ -120,53 +122,7 @@ export async function 판을파일로(req: ScenarioExecuteRequest): Promise<{ pa
   return { parts, 파일들 };
 }
 
-// 줄 맨 앞의 표시자만 읽는다. kit 이 흘리는 진행 줄(@@PROGRESS@@)은 historyId 가 숫자가 아니라 여기서 버린다.
-// 제한 시간에 죽이면 마지막 줄이 잘려 있을 수 있다 — 그 줄만 버리고 앞 부품은 살린다.
-// **순번이 제 차례인 줄만 받는다.** 케이스 코드도 같은 stdout 에 쓴다 — 뒷 순번 줄을 찍으면 돌지 않은 부품이 PASS 로 보인다.
-// 다음 순번은 새로 받고, 지금 순번은 갈아 끼운다(진짜 줄은 그 부품이 끝난 뒤에 온다). 실패 뒤는 버린다
-export function parseParts(stdout: string): ScenarioPartResult[] {
-  const parts: ScenarioPartResult[] = [];
-  for (const line of stdout.split('\n')) {
-    if (!line.startsWith(SCENARIO_PART_MARKER)) continue;
-    let part: ScenarioPartResult;
-    try {
-      part = JSON.parse(line.slice(SCENARIO_PART_MARKER.length)) as ScenarioPartResult;
-    } catch (err) {
-      console.warn(`[runner] 시나리오 결과 줄을 버린다: ${err instanceof Error ? err.message : String(err)}`);
-      continue;
-    }
-    const 마지막 = parts.at(-1);
-    if (part.seq === parts.length && 마지막 !== undefined) parts[parts.length - 1] = part;
-    else if (part.seq === parts.length + 1 && 마지막?.status !== 'FAIL') parts.push(part);
-  }
-  return parts;
-}
-
-// 고정 spec 이 시나리오 끝에 한 번 흘린다. 맨 앞 표시자 · 잘린 줄 규칙은 parseParts 와 같다
-export function parseCleanup(stdout: string): ScenarioCleanup[] | undefined {
-  let cleanup: ScenarioCleanup[] | undefined;
-  for (const line of stdout.split('\n')) {
-    if (!line.startsWith(SCENARIO_CLEANUP_MARKER)) continue;
-    try {
-      cleanup = JSON.parse(line.slice(SCENARIO_CLEANUP_MARKER.length)) as ScenarioCleanup[];
-    } catch (err) {
-      console.warn(`[runner] 시나리오 뒷정리 줄을 버린다: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  }
-  return cleanup;
-}
-
-// 폰이 열리면 고정 spec 이 한 번 흘린다. 잘린 줄은 버린다 — 판정과 상관없는 머리 정보다
-export function parseDevice(stdout: string): DeviceInfo | undefined {
-  const 줄 = stdout.split('\n').find((l) => l.startsWith(SCENARIO_DEVICE_MARKER));
-  if (줄 === undefined) return undefined;
-  try {
-    return JSON.parse(줄.slice(SCENARIO_DEVICE_MARKER.length)) as DeviceInfo;
-  } catch (err) {
-    console.warn(`[runner] 시나리오 기기 줄을 버린다: ${err instanceof Error ? err.message : String(err)}`);
-    return undefined;
-  }
-}
+export { parseCleanup, parseDevice, parseParts } from './scenarioLines.js';
 
 const 빈부품 = (seq: number, message: string, status: ScenarioPartResult['status']): ScenarioPartResult => ({
   seq, status, durationMs: 0, steps: [], mocks: [], error: { message },
@@ -177,7 +133,7 @@ const 빈부품 = (seq: number, message: string, status: ScenarioPartResult['sta
 export function finishScenario(
   lines: ScenarioPartResult[],
   total: number,
-  killed: boolean,
+  killed: KilledBy | null,
   durationMs: number,
   꼬리: string,
   cleanup?: ScenarioCleanup[],
@@ -194,9 +150,9 @@ export function finishScenario(
       if (got.status === 'FAIL') 멈춤 = true;
     } else if (멈춤) {
       parts.push(빈부품(seq, 'NOT_RUN', 'NA'));
-    } else if (killed) {
-      // 멈춘 원인이 앞 부품 실패가 아니라 제한 시간이다
-      parts.push(빈부품(seq, 'TIMEOUT', 'NA'));
+    } else if (killed !== null) {
+      // 멈춘 원인이 앞 부품 실패가 아니라 제한 시간이거나 사람이 끊은 것이다
+      parts.push(빈부품(seq, killed, 'NA'));
     } else {
       // 안 죽였는데 줄 없이 끝났다 — 설정 오류·자식 사망. 「안 돌았음」으로 두면 원인이 사라진다
       사유 = 꼬리 || '결과 줄 없이 끝났다';
@@ -205,7 +161,7 @@ export function finishScenario(
     }
   }
 
-  if (killed) return { status: 'NA', durationMs, parts, error: { message: 'TIMEOUT' } };
+  if (killed !== null) return { status: 'NA', durationMs, parts, error: { message: killed } };
   const status = parts.every((p) => p.status === 'PASS') ? 'PASS' : 'FAIL';
   return {
     status, durationMs, parts,
@@ -246,12 +202,32 @@ export async function executeScenario(req: ScenarioExecuteRequest): Promise<Scen
   child.stderr.setEncoding('utf8');
   let stdout = '';
   let stderr = '';
-  child.stdout.on('data', (chunk: string) => { stdout += chunk; });
+  const entry: 도는시나리오 = {
+    child, killedBy: null, runId: req.runId, trialId: req.trialId, total: req.parts.length, 받은줄수: 0, 실패함: false, 부품시작: startedAt,
+  };
+  const key = 열쇠(req);
+  runningScenarios.set(key, entry);
+  let 읽은끝 = 0;
+  child.stdout.on('data', (chunk: string) => {
+    stdout += chunk;
+    // 끝까지 온 줄만 센다 — 잘린 줄을 읽으면 JSON 경고가 청크마다 난다
+    const 끝 = stdout.lastIndexOf('\n') + 1;
+    const 새줄 = stdout.slice(읽은끝, 끝);
+    읽은끝 = 끝;
+    if (!새줄.includes(SCENARIO_PART_MARKER)) return;
+    // ponytail: 결과 줄이 올 때마다 앞에서부터 다시 읽는다 — 부품 수(수십)만큼이라 둔다. 부품이 수백이 되면 새 줄만 읽게 바꾼다
+    const 받은 = parseParts(stdout.slice(0, 끝));
+    if (받은.length !== entry.받은줄수) {
+      entry.받은줄수 = 받은.length;
+      entry.실패함 = 받은.at(-1)?.status === 'FAIL';
+      entry.부품시작 = Date.now();
+    }
+  });
   child.stderr.on('data', (chunk: string) => { stderr += chunk; });
 
-  let killed = false;
   const timer = setTimeout(() => {
-    killed = true;
+    // 사람이 먼저 끊었으면 그 사유가 이긴다
+    entry.killedBy ??= 'TIMEOUT';
     killTree(child);
   }, req.timeoutMs);
 
@@ -261,6 +237,7 @@ export async function executeScenario(req: ScenarioExecuteRequest): Promise<Scen
     child.on('close', done);
   }).finally(async () => {
     clearTimeout(timer);
+    if (runningScenarios.get(key) === entry) runningScenarios.delete(key);
     await 판지우기(판.파일들);
     await 로그끝?.();
     // 죽였든 끝났든 kit 이 못 닫은 연결이 남아 있으면 닫는다 — 답하기 전에 끝내야 admin 이 폰을 놓을 때 팜 연결이 이미 풀려 있다 (execute.ts 와 같다)
@@ -273,10 +250,10 @@ export async function executeScenario(req: ScenarioExecuteRequest): Promise<Scen
   await 출력폴더를지운다(출력);
 
   // 부품 줄이 다 PASS 인데 자식이 0 아닌 코드로 끝났다 — 뒷정리에서 났다. 판정은 부품 줄이 정본이라 남기기만 한다
-  if (!killed && code !== 0) console.warn(`[runner] 시나리오 자식이 ${String(code)} 로 끝났다: ${tail(stderr)}`);
+  if (entry.killedBy === null && code !== 0) console.warn(`[runner] 시나리오 자식이 ${String(code)} 로 끝났다: ${tail(stderr)}`);
 
   const 결과 = finishScenario(
-    parseParts(stdout), req.parts.length, killed, Date.now() - startedAt, tail(stderr) || tail(stdout), parseCleanup(stdout),
+    parseParts(stdout), req.parts.length, entry.killedBy, Date.now() - startedAt, tail(stderr) || tail(stdout), parseCleanup(stdout),
   );
   if (폰기기 !== undefined) {
     if (폰증적) await 폰증적을둔다(폰폴더, 결과.status);

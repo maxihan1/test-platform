@@ -200,6 +200,7 @@ export const 라우트표: Record<string, 원천> = {
   '/api/scenario-trials/:trialId': { 종류: '시험', 칸: 'trialId' },
   '/api/scenario-trials/:trialId/screenshots/:seq': { 종류: '시험', 칸: 'trialId' },
   '/api/scenario-trials/:trialId/live': { 종류: '시험', 칸: 'trialId' },
+  '/api/scenario-trials/:trialId/abort': { 종류: '시험', 칸: 'trialId' },
 
   // 성능 테스트 (도메인/성능 §7). POST 의 본문 serviceId · scenarioId 는 gate.ts 의 본문 갈래가 같이 본다
   '/api/perf/scenarios': { 종류: '질의번호', 칸: 'serviceId' },

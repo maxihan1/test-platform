@@ -204,4 +204,9 @@ export const scenarioRequest = z
 
 // 실행 묶음 전체를 끊는 일은 admin이 자기가 아는 historyId를 하나씩 부르는 것으로 한다.
 // runId 단위 중단을 여기 두면 러너가 실행 묶음을 알아야 한다 (SPEC §5.2)
-export const abortRequest = z.object({ historyId: z.number() });
+// 시나리오는 historyId 가 없어 정식 실행은 runId, 시험 실행은 trialId 로 지목한다 (SPEC 도메인/러너 §5.2 「시나리오 진행 · 중단」). 셋 중 하나만 받는다
+export const abortRequest = z.union([
+  z.strictObject({ historyId: z.number() }),
+  z.strictObject({ scenarioRunId: z.number() }),
+  z.strictObject({ scenarioTrialId: z.string() }),
+]);

@@ -34,6 +34,22 @@ describe('parseResult', () => {
     expect(parseResult(stdout)?.status).toBe('FAIL');
   });
 
+  it('Playwright 테스트 제한 시간 초과 글의 색 코드를 걷는다 — 러너가 끊은 TIMEOUT 과는 가른다 (점검표 B3)', () => {
+    const parsed = parseResult(
+      line({ historyId: 0, status: 'NA', durationMs: 30000, steps: [], error: { message: '\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m' } }),
+    );
+
+    expect(parsed?.error).toEqual({ message: 'Test timeout of 30000ms exceeded.' });
+  });
+
+  it('stack 의 색 코드도 걷는다', () => {
+    const parsed = parseResult(
+      line({ historyId: 0, status: 'FAIL', durationMs: 1, steps: [], error: { message: '\u001b[2mError: boom\u001b[22m', stack: '\u001b[31mat x\u001b[39m' } }),
+    );
+
+    expect(parsed?.error).toEqual({ message: 'Error: boom', stack: 'at x' });
+  });
+
   it('결과 줄이 깨져 있으면 러너 고장으로 올린다', () => {
     expect(() => parseResult('@@RESULT@@{망가진')).toThrow(/@@RESULT@@/);
   });

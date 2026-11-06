@@ -251,7 +251,7 @@ function toStep(row: RawStep, 비밀: string[], api: boolean): EvidenceStep {
 // 판별이 두 갈래인 것은 닫는 쪽이 둘이기 때문이다 — 아무도 안 닫은 행과 중단 처리가 닫은 행
 function 미실행사유를찾는다(row: RawItem, 실행상태: RunStatus): string | null {
   // 중단 처리(store.ts CLOSE_UNFINISHED)는 finished_at 을 채우고 간다. error 말고는 가려낼 표가 없다
-  if (row.status === 'NA' && isPlainObject(row.error) && row.error.message === 'ABORTED') {
+  if (row.status === 'NA' && isPlainObject(row.error) && (row.error.message === 'ABORTED' || row.error.message === 'STOPPED')) {
     // recoverRunning() 도 같은 문자열을 쓴다. 사람이 멈춘 것인지 서버가 죽어 끊긴 것인지
     // DB 가 구분하지 못하므로 구분하는 척하지 않는다 (SPEC §6)
     return '실행이 멈춰 돌지 못했습니다';

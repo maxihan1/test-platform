@@ -7,12 +7,13 @@ import { enqueue } from '../execution/dispatcher.js';
 import { 실행팜토큰 } from '../execution/farmToken.js';
 import { 시나리오화면 } from '../execution/live.js';
 import { Chrome차례, 폰차례 } from '../execution/phone.js';
-import { callScenarioRunner } from '../execution/runner.js';
 import { 기기칸 } from '../execution/runLifecycle.js';
 import { jsonb에맞춘다 } from '../jsonbText.js';
 
 import { type 시나리오폰, 팜폰으로돌린다 } from './phone.js';
+import { 실행상태를연다, 실행상태를지운다 } from './runAbort.js';
 import { type 부품기록, 부품비밀, 실패부품trace, 시나리오trace경로, trace를지운다 } from './runTrace.js';
+import { 멈춘부품을고친다, 보내는길 } from './trialAbort.js';
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. CI 는 DB 없이 돌아야 하므로 쓸 때 가져온다
 async function db(): Promise<Pool> {
@@ -25,24 +26,38 @@ async function db(): Promise<Pool> {
 // 앱 · 게임 단계가 있으면 디바이스 줄 → 동시성 자리 → 팜 폰 차례로 잡는다 — 줄에서 기다리는 동안 웹 실행 자리를 묶지 않게 (§3.7 결정 16).
 // 실제 폰 모바일 시나리오는 디바이스 줄 대신 Chrome 줄 → 동시성 자리 → 팜 폰이다 — 게임 실행이 쥔 디바이스 줄에 막히지 않게 (§3.7 「모바일 시나리오를 실제 폰에서 돌릴 때」)
 // 도는 동안 결과 화면이 지금 화면을 본다 — 늦추지 않고 웹 단계만 찍는다. 앱 · 게임 단계는 잡은 폰의 VISION 링크만 선다 (도메인/실행 §3.2 「시험 실행 지금 단계 · 중단 · 정식 실행 화면」)
-export function 시나리오분배(runId: number, 요청: ScenarioExecuteRequest, 폰?: 시나리오폰): Promise<void> {
+// 중단은 줄에서 기다리는 동안에도 닿아야 해서 줄에 서기 전에 상태를 연다 (scenario/runAbort.ts)
+export async function 시나리오분배(runId: number, 요청: ScenarioExecuteRequest, 폰?: 시나리오폰): Promise<void> {
+  const 상태 = 실행상태를연다(runId, 요청.parts.length);
+  const 보내기 = 보내는길(상태);
   const 돌기 = () =>
     enqueue(async () => {
+      // 줄에서 기다리는 사이 멈췄다 — 실행은 이미 닫혔고 폰도 대상 서버도 건드리지 않는다
+      if (상태.멈춤) return;
       const 열쇠 = 시나리오화면.연다(runId, 창단계있나(요청, 폰));
       const 실은 = 열쇠 === undefined ? 요청 : { ...요청, live: 열쇠 };
       let 응답: ScenarioExecuteResponse;
       try {
         응답 =
           폰 === undefined
-            ? await callScenarioRunner(실은)
-            : await 팜폰으로돌린다(실은, 폰, () => 실행팜토큰(runId), (url) => 시나리오화면.폰(runId, url));
+            ? await 보내기(실은)
+            : await 팜폰으로돌린다(실은, 폰, () => 실행팜토큰(runId), (url) => 시나리오화면.폰(runId, url), 보내기);
       } finally {
         // 폰을 놓았다 — 결과를 적는 동안 닫힌 링크 · 끝난 장면을 내지 않는다
         시나리오화면.닫는다(runId);
       }
-      await 결과저장(runId, 응답);
+      // 폰을 잡은 뒤에 멈췄다 — 보내지 않았고 실행은 이미 ABORTED 로 닫혔다
+      if (상태.멈춤 && !상태.보냄) return;
+      // 사람이 멈춘 것은 러너가 끊고 돌려준 답으로 안다 — 러너의 'ABORTED' 는 /abort 로 끊었을 때뿐이다(제한 시간은 'TIMEOUT').
+      // admin 메모리로 가르면 답이 오는 중에 누른 중단이 다 통과한 실행을 ABORTED 로 만든다 (WEB-F9-14 끝 검사). 답이 온 뒤 중단은 멈출 것이 없게 닫는 중으로 적는다
+      상태.멈춤 = true;
+      await 결과저장(runId, 응답, 응답.error?.message === 'ABORTED');
     });
-  return 폰 === undefined ? 돌기() : 폰 === 'chrome' ? Chrome차례(돌기) : 폰차례(돌기);
+  try {
+    await (폰 === undefined ? 돌기() : 폰 === 'chrome' ? Chrome차례(돌기) : 폰차례(돌기));
+  } finally {
+    실행상태를지운다(runId);
+  }
 }
 
 // 브라우저를 여는 단계는 웹 케이스뿐이다 — API 호출 · 모킹 · 기다리기 · 앱 · 게임 단계와 API 애플리케이션 케이스(판이 실린다)는 창을 안 연다.
@@ -56,9 +71,10 @@ export function 창단계있나(요청: Pick<ScenarioExecuteRequest, 'parts'>, �
 const 빠진부품 = '러너가 이 단계 결과를 돌려주지 않았다';
 
 // 규칙의 정본은 도메인/시나리오 §7 「실행 결과를 적는 규칙」. false 면 결과를 적지 못했다(늦게 왔거나 저장이 깨졌다)
-export async function 결과저장(runId: number, 응답: ScenarioExecuteResponse): Promise<boolean> {
+// 사람이멈춤이면 FINISHED 가 아니라 ABORTED 로 닫고 안 끝난 부품을 'STOPPED' 로 적는다 (도메인/실행 §3.2 「E2E 도 지금 단계를 알리고 끊는다」)
+export async function 결과저장(runId: number, 응답: ScenarioExecuteResponse, 사람이멈춤 = false): Promise<boolean> {
   try {
-    return await 적는다(runId, 응답);
+    return await 적는다(runId, 응답, 사람이멈춤);
   } catch (err) {
     // 원문은 부품 error 에도 남지만 운영자는 로그부터 본다 — 닫고 나서도 한 줄 남긴다.
     // 뒷정리도 같이 버려지므로 어느 삭제가 실패했는지는 이 로그에만 남는다
@@ -86,9 +102,10 @@ async function 실패기록(pool: Pool, runId: number, 응답: ScenarioExecuteRe
   return 실패부품trace(시나리오trace경로({ runId }), 응답, 비밀);
 }
 
-async function 적는다(runId: number, 받은응답: ScenarioExecuteResponse): Promise<boolean> {
+async function 적는다(runId: number, 받은응답: ScenarioExecuteResponse, 사람이멈춤: boolean): Promise<boolean> {
   // 케이스 결과 저장(execution/runLifecycle.ts finishItem)과 같은 까닭으로 거른다 — 글자 하나에 부품 전부가 NA 가 되지 않게
-  const 응답 = jsonb에맞춘다(받은응답);
+  const 맞춘 = jsonb에맞춘다(받은응답);
+  const 응답 = 사람이멈춤 ? 멈춘부품을고친다(맞춘) : 맞춘;
   const pool = await db();
   // 트랜잭션 밖에서 푼다 — zip 을 푸는 동안 실행 행을 잡고 있지 않게
   const 기록들 = await 실패기록(pool, runId, 응답);
@@ -98,9 +115,9 @@ async function 적는다(runId: number, 받은응답: ScenarioExecuteResponse): 
     // 실행 행을 먼저 RUNNING 조건으로 닫는다. 재기동 복구가 ABORTED 로 닫은 실행을 늦은 결과가 덮지 않게 한다
     // 폰 판은 앱 · 게임 단계가 있고 연결이 열렸을 때만 온다 — 시나리오에 한 벌이라 실행 행에 둔다 (§3.7 결정 16)
     const 닫힘 = await c.query(
-      `UPDATE test_run SET status = 'FINISHED', finished_at = now(), device = $2
+      `UPDATE test_run SET status = $3, finished_at = now(), device = $2
         WHERE run_id = $1 AND kind = 'SCENARIO' AND status = 'RUNNING'`,
-      [runId, 기기칸(응답.device)],
+      [runId, 기기칸(응답.device), 사람이멈춤 ? 'ABORTED' : 'FINISHED'],
     );
     if (닫힘.rowCount === 0) {
       await c.query('ROLLBACK');
@@ -125,7 +142,7 @@ async function 적는다(runId: number, 받은응답: ScenarioExecuteResponse): 
           `UPDATE scenario_run_part SET status = 'NA', duration_ms = COALESCE(duration_ms, 0),
                   error = jsonb_build_object('message', $2::text), finished_at = now()
             WHERE id = $1`,
-          [행.id, 응답.error?.message ?? 빠진부품],
+          [행.id, 사람이멈춤 ? 'STOPPED' : (응답.error?.message ?? 빠진부품)],
         );
         continue;
       }

@@ -8,12 +8,13 @@ import { z } from 'zod';
 
 import { 칸되는서비스 } from '../auth/permissions.js';
 import { 정수 } from '../routeParams.js';
+import { 시나리오실행을멈춘다 } from '../scenario/runAbort.js';
 import { artifactsDir, 볼륨파일읽기 } from '../artifactFile.js';
 import { dispatch, markAborted } from './dispatcher.js';
-import { 실행남은시간 } from './eta.js';
 import { notifyRun } from './notify.js';
-import { 항목장면경로, 항목화면 } from './live.js';
-import { abortRunner, 진행 } from './runner.js';
+import { 항목장면경로 } from './live.js';
+import { 진행경로 } from './progressRoute.js';
+import { abortRunner } from './runner.js';
 import { caseSchemas, createParamSet, deleteParamSet, listParamSets } from './paramSets.js';
 import { caseHistory, lastByCase } from './history.js';
 import { 붙을실행 } from './single.js';
@@ -119,8 +120,11 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
 
     // DB 에서 먼저 닫는다. 러너 응답과 겹쳐도 finished_at IS NULL 조건이 먼저 온 것만 기록한다 (SPEC §7.1)
     const result = await abortRun(runId);
+    // 시나리오 실행은 케이스처럼 항목을 DB 에서 먼저 닫지 않는다 — 러너에 보냈으면 러너 답이 올 때까지 열어 둔다 (scenario/runAbort.ts)
     if (result === 'SCENARIO') {
-      return reply.code(409).send({ error: 'NOT_ABORTABLE', detail: `실행 ${runId}은 시나리오 실행이라 멈출 수 없다` });
+      const 멈춤 = await 시나리오실행을멈춘다(runId);
+      if (멈춤 === null) return reply.code(409).send({ error: 'NOT_RUNNING', detail: `실행 ${runId}은 이미 끝났거나 멈춘 상태다` });
+      return 멈춤;
     }
     if (result === null) {
       return reply.code(409).send({ error: 'NOT_RUNNING', detail: `실행 ${runId}은 이미 끝났거나 멈춘 상태다` });
@@ -139,39 +143,6 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
     }
 
     return result;
-  });
-
-  app.get<{ Params: { runId: string } }>('/runs/:runId/progress', async (req, reply) => {
-    const runId = 정수(req.params.runId);
-    if (runId === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.params.runId });
-
-    // 러너의 목록은 **모든 서비스의 자식**을 담고 runId 칸이 없다. 그대로 흘리면 남의 실행의
-    // 절차 제목이 이 화면에 뜬다 — 문(auth/scope.ts)은 「이 runId 를 볼 자격」만 보고 내용물은 안 본다.
-    // 자기 DB 의 historyId 와 교집합만 낸다. 제한 시간도 같은 줄에 있어 한 질의로 끝난다 (SPEC §7)
-    const 돌고있는것들 = await 진행();
-    if (돌고있는것들.length === 0) return { items: [], remainingMs: await 실행남은시간(runId) };
-
-    // **러너가 답한 것만 물어본다.** run_id 로만 좁히면 5000건짜리 실행에서 보는 사람마다
-    // 2초에 한 번 5000행을 읽는다 — 정작 쓰는 것은 동시 실행 수만큼(기본 2)뿐이다
-    const { pool } = await import('../db/index.js');
-    const 제한 = await pool.query<{ history_id: string; timeout_ms: number }>(
-      'SELECT history_id, timeout_ms FROM run_item WHERE run_id = $1 AND history_id = ANY($2)',
-      [runId, 돌고있는것들.map((it) => it.historyId)],
-    );
-    const 내것 = new Map(제한.rows.map((r) => [Number(r.history_id), r.timeout_ms]));
-
-    // 없는 runId 에도 200 빈 목록이다. 형제 라우트(findRun·findItem)는 404 를 내지만
-    // 여기서 404 를 내려면 실행을 한 번 더 조회해야 하고, 화면은 도는 중일 때만 부른다 (SPEC §8.9)
-    return {
-      items: 돌고있는것들.flatMap((돌고있는것) => {
-        const timeoutMs = 내것.get(돌고있는것.historyId);
-        if (timeoutMs === undefined) return [];
-        // 화면 카드 — 장면 열쇠가 메모리에 있나 · 잡은 폰의 VISION 링크 (도메인/실행 §3.2 「시험 실행 지금 단계 · 중단 · 정식 실행 화면」)
-        const 화면 = 항목화면(돌고있는것.historyId);
-        return [{ ...돌고있는것, timeoutMs, live: 화면?.열쇠 !== undefined, ...(화면?.vision !== undefined && { vision: { url: 화면.vision } }) }];
-      }),
-      remainingMs: await 실행남은시간(runId),
-    };
   });
 
   app.get<{ Querystring: { service?: string; page?: string; q?: string; state?: string; env?: string; kind?: string; origin?: string; days?: string } }>(
@@ -246,6 +217,7 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
   await app.register(팜증적경로);
   await app.register(팜영상경로);
   await app.register(항목장면경로);
+  await app.register(진행경로);
 
   app.get<{ Params: { runId: string; historyId: string; seq: string } }>(
     '/screenshots/:runId/:historyId/:seq.png',

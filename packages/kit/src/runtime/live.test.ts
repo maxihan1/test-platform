@@ -135,14 +135,14 @@ describe('장면걸기 (브라우저)', () => {
   it.each([
     ['1000', 1],
     ['', 0],
-  ])('누른 곳 표시는 늦추기 값(%s)이 있는 시험 실행에만 건다 — 정식 실행은 화면만 찍는다', async (늦춤, 횟수) => {
+  ])('늦추기 값(%s)이 있어도 없어도 동작 표시를 걸지 않는다 — Playwright 가 장면에 영어 동작 제목을 찍는다 (점검표 B20)', async (늦춤, 번호) => {
     vi.stubEnv('PLATFORM_SLOW_MO', 늦춤);
-    const 파일 = join(폴더, 'live', `0b7e2c1a-0000-4000-8000-00000000001${String(횟수)}.jpg`);
+    const 파일 = join(폴더, 'live', `0b7e2c1a-0000-4000-8000-00000000001${String(번호)}.jpg`);
     const page = await browser.newPage();
     try {
       const 표시 = vi.spyOn(page.screencast, 'showActions');
       const 장면 = await 장면걸기(page, 파일);
-      expect(표시).toHaveBeenCalledTimes(횟수);
+      expect(표시).not.toHaveBeenCalled();
       await 장면?.끄기();
     } finally {
       vi.unstubAllEnvs();

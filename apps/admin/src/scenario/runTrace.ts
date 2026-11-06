@@ -75,7 +75,7 @@ export async function 실패부품trace(
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== 'ENOENT') return 못읽음(err);
     // 러너가 제한 시간에 자식을 끊으면 Playwright 가 zip 을 못 쓴다 — 케이스와 같은 사유로 가른다
-    return 모두(없음('NONE', 결과.error?.message === 'TIMEOUT' ? trace없는까닭.끊김 : trace없는까닭.파일없음));
+    return 모두(없음('NONE', ['TIMEOUT', 'ABORTED', 'STOPPED'].includes(결과.error?.message ?? '') ? trace없는까닭.끊김 : trace없는까닭.파일없음));
   }
   try {
     const 풀림 = trace가린다(await trace를푼다(zip, { 본문: true }), 긴것부터(비밀));

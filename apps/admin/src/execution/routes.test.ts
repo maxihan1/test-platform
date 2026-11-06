@@ -93,6 +93,12 @@ describe.skipIf(연결 === undefined)('진행 조회', () => {
         { historyId: 내항목, seq: 2, title: '로그인한다', elapsedMs: 1200 },
         { historyId: 남의항목, seq: 1, title: '결제한다', elapsedMs: 800 },
       ],
+      // E2E 시나리오 자식 — 남의 실행 것은 응답에 안 나온다
+      scenarios: [
+        { runId: 내실행, seq: 3, elapsedMs: 4000 },
+        { runId: 남의실행, seq: 5, elapsedMs: 9000 },
+        { runId: null, trialId: 'x', seq: 1, elapsedMs: 1 },
+      ],
     }));
     // 러너가 쥔 장면 — 열쇠마다 한 장. 없는 열쇠는 러너처럼 404 다
     가짜러너.get<{ Params: { key: string } }>('/live/:key', async (req, reply) => {
@@ -126,6 +132,11 @@ describe.skipIf(연결 === undefined)('진행 조회', () => {
     expect(body.remainingMs).toBeNull();
   });
 
+  it('E2E 실행이면 러너가 알린 그 실행의 지금 부품 번호 · 경과를 step 으로 싣는다', async () => {
+    const body = (await app.inject({ method: 'GET', url: `/api/runs/${내실행}/progress` })).json();
+    expect(body.step).toEqual({ seq: 3, elapsedMs: 4000 });
+  });
+
   it('응답에 그 항목의 timeoutMs 가 실린다', async () => {
     const body = (await app.inject({ method: 'GET', url: `/api/runs/${내실행}/progress` })).json();
     expect(body.items[0]).toEqual({
@@ -147,6 +158,27 @@ describe.skipIf(연결 === undefined)('진행 조회', () => {
       expect(JSON.stringify(body)).not.toContain(열쇠);
     } finally {
       항목화면을닫는다(내항목);
+    }
+  });
+
+  it('러너에 보냈고 러너가 아직 첫 단계를 안 알린 항목도 싣는다 — 단계 칸 없이 · 항목 경과와 함께 (점검표 B2 · B13)', async () => {
+    const 보낸항목 = await 항목넣는다(내실행, 'XBR-012', 9000);
+    const 남의보낸항목 = await 항목넣는다(남의실행, 'XBR-013', 9000);
+    항목화면을연다(보낸항목, true, { runId: 내실행, timeoutMs: 9000 });
+    항목폰화면(보낸항목, 'https://vision.example.com/#phone=s9');
+    항목화면을연다(남의보낸항목, true, { runId: 남의실행, timeoutMs: 9000 });
+    항목화면을연다(내항목, true, { runId: 내실행, timeoutMs: 7000 });
+    try {
+      const body = (await app.inject({ method: 'GET', url: `/api/runs/${내실행}/progress` })).json();
+      expect(body.items.map((i: { historyId: number }) => i.historyId)).toEqual([내항목, 보낸항목]);
+      const 아직 = body.items[1];
+      expect(아직).toMatchObject({ historyId: 보낸항목, timeoutMs: 9000, live: true, vision: { url: 'https://vision.example.com/#phone=s9' } });
+      expect(아직).not.toHaveProperty('seq');
+      expect(아직.itemElapsedMs).toBeGreaterThanOrEqual(0);
+      expect(body.items[0]).toMatchObject({ historyId: 내항목, seq: 2, elapsedMs: 1200 });
+      expect(body.items[0].itemElapsedMs).toBeGreaterThanOrEqual(0);
+    } finally {
+      for (const 번호 of [보낸항목, 남의보낸항목, 내항목]) 항목화면을닫는다(번호);
     }
   });
 

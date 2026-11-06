@@ -71,13 +71,15 @@ async function 앱실기(요청: ScenarioExecuteRequest, 폰: 폰앱): Promise<S
 /**
  * 서버 러너 — 팜에서 빈 폰 하나를 시나리오 동안 잡고, 러너가 답하면(통과 · 실패 · 러너 고장 모두) 놓는다. 'chrome' 이면 그 폰 Chrome 을 켜 연결 칸을 싣는다.
  * 토큰찾기는 누른 사람 토큰을 준다(없으면 undefined — 서버 몫). 잡은 토큰을 러너에도 실어야 팜이 연결을 받는다 (러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」).
- * 폰화면은 시험 실행만 준다 — 잡은 폰의 VISION 화면 링크를 누른 사람에게 건넨다 (도메인/실행 §3.2 「테스트 모드」)
+ * 폰화면은 시험 실행만 준다 — 잡은 폰의 VISION 화면 링크를 누른 사람에게 건넨다 (도메인/실행 §3.2 「테스트 모드」).
+ * 보내기는 러너로 보내는 길이다 — 시험 실행은 폰을 잡은 뒤 멈췄는지 한 번 더 보고 보내지 않는 길을 넘긴다 (scenario/trialAbort.ts)
  */
 export async function 팜폰으로돌린다(
   요청: ScenarioExecuteRequest,
   폰: 시나리오폰,
   토큰찾기: () => Promise<string | undefined>,
   폰화면?: (url: string) => void,
+  보내기: (요청: ScenarioExecuteRequest) => Promise<ScenarioExecuteResponse> = callScenarioRunner,
 ): Promise<ScenarioExecuteResponse> {
   const 팜 = 팜주소();
   // 요청을 받은 뒤 서버를 다시 띄우며 값을 지웠을 때뿐이다 — 실행 통로가 FARM_OFF 로 먼저 거절한다
@@ -94,7 +96,7 @@ export async function 팜폰으로돌린다(
       팜,
       async (칸, 화면) => {
         if (화면 !== undefined) 폰화면?.(화면);
-        return callScenarioRunner({ ...요청, ...칸 });
+        return 보내기({ ...요청, ...칸 });
       },
       못잡음,
       토큰,
@@ -107,7 +109,7 @@ export async function 팜폰으로돌린다(
     팜,
     async (udid, 화면) => {
       if (화면 !== undefined) 폰화면?.(화면);
-      return callScenarioRunner({ ...실은, udid, ...(토큰 !== undefined && { farmToken: 토큰 }) });
+      return 보내기({ ...실은, udid, ...(토큰 !== undefined && { farmToken: 토큰 }) });
     },
     못잡음,
     undefined,
