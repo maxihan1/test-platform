@@ -80,28 +80,28 @@ describe('parseCleanup', () => {
 
 describe('finishScenario 뒷정리', () => {
   it('안 죽였으면 받은 뒷정리를 싣는다 — 빈 목록도 싣는다', () => {
-    expect(finishScenario([줄({ seq: 1 })], 1, false, 10, '', [삭제(1)]).cleanup).toEqual([삭제(1)]);
-    expect(finishScenario([줄({ seq: 1 })], 1, false, 10, '', [])).toHaveProperty('cleanup', []);
+    expect(finishScenario([줄({ seq: 1 })], 1, null, 10, '', [삭제(1)]).cleanup).toEqual([삭제(1)]);
+    expect(finishScenario([줄({ seq: 1 })], 1, null, 10, '', [])).toHaveProperty('cleanup', []);
   });
 
   it('제한 시간에 죽였으면 싣지 않는다', () => {
-    expect(finishScenario([줄({ seq: 1 })], 2, true, 10, '', [삭제(1)])).not.toHaveProperty('cleanup');
+    expect(finishScenario([줄({ seq: 1 })], 2, 'TIMEOUT', 10, '', [삭제(1)])).not.toHaveProperty('cleanup');
   });
 
   it('뒷정리 줄이 없었으면 칸이 없다', () => {
-    expect(finishScenario([줄({ seq: 1 })], 1, false, 10, '', undefined)).not.toHaveProperty('cleanup');
+    expect(finishScenario([줄({ seq: 1 })], 1, null, 10, '', undefined)).not.toHaveProperty('cleanup');
   });
 });
 
 describe('finishScenario', () => {
   it('전부 PASS 일 때만 PASS 다', () => {
-    const 결과 = finishScenario([줄({ seq: 1 }), 줄({ seq: 2 })], 2, false, 10, '');
+    const 결과 = finishScenario([줄({ seq: 1 }), 줄({ seq: 2 })], 2, null, 10, '');
 
     expect(결과).toEqual({ status: 'PASS', durationMs: 10, parts: [줄({ seq: 1 }), 줄({ seq: 2 })] });
   });
 
   it('실패한 부품 뒤는 NA + NOT_RUN 으로 채운다', () => {
-    const 결과 = finishScenario([줄({ seq: 1, status: 'FAIL' })], 3, false, 10, '');
+    const 결과 = finishScenario([줄({ seq: 1, status: 'FAIL' })], 3, null, 10, '');
 
     expect(결과.status).toBe('FAIL');
     expect(결과.parts.map((p) => [p.seq, p.status, p.error?.message])).toEqual([
@@ -111,7 +111,7 @@ describe('finishScenario', () => {
   });
 
   it('제한 시간에 죽였으면 안 끝난 부품은 TIMEOUT 이고 전체는 NA 다', () => {
-    const 결과 = finishScenario([줄({ seq: 1 })], 3, true, 10, '');
+    const 결과 = finishScenario([줄({ seq: 1 })], 3, 'TIMEOUT', 10, '');
 
     expect(결과).toMatchObject({ status: 'NA', error: { message: 'TIMEOUT' } });
     expect(결과.parts.map((p) => [p.status, p.error?.message])).toEqual([
@@ -120,13 +120,13 @@ describe('finishScenario', () => {
   });
 
   it('제한 시간에 죽였어도 앞 부품 실패로 멈춘 뒤는 NOT_RUN 이다', () => {
-    const 결과 = finishScenario([줄({ seq: 1, status: 'FAIL' })], 2, true, 10, '');
+    const 결과 = finishScenario([줄({ seq: 1, status: 'FAIL' })], 2, 'TIMEOUT', 10, '');
 
     expect(결과.parts[1]!.error?.message).toBe('NOT_RUN');
   });
 
   it('안 죽였는데 줄 없이 끝나면 첫 빈 부품을 실패로 두고 오류 꼬리를 싣는다 — 「안 돌았음」으로 두지 않는다', () => {
-    const 결과 = finishScenario([줄({ seq: 1 })], 3, false, 10, 'Error: Cannot find module');
+    const 결과 = finishScenario([줄({ seq: 1 })], 3, null, 10, 'Error: Cannot find module');
 
     expect(결과).toMatchObject({ status: 'FAIL', error: { message: 'Error: Cannot find module' } });
     expect(결과.parts.map((p) => [p.status, p.error?.message])).toEqual([
