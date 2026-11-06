@@ -174,6 +174,9 @@ describe('도는 중인 실행 (SPEC §8.3 · §8.9)', () => {
     const 진행 = await screen.findByRole('button', { name: /0 \/ 2 완료 · 약 8분 남음/ });
     expect(screen.queryByRole('dialog')).toBeNull();
     fireEvent.click(진행);
-    expect(within(await screen.findByRole('dialog')).getByText('ZZI-0009 결제 승인')).toBeDefined();
+    const 창 = await screen.findByRole('dialog');
+    // 진행 창 ⑤ — 도는 항목은 왼쪽 「진행 중」 줄과 화면 카드 발에 번호 · 이름으로 선다
+    expect(within(창).getAllByText('ZZI-0009').length).toBeGreaterThan(0);
+    expect(창.querySelector('.lc-foot')?.textContent).toContain('ZZI-0009 결제 승인');
   });
 });
