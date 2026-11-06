@@ -55,6 +55,19 @@ describe('완료 창', () => {
     expect(줄.querySelector('.nm')?.textContent).toBe('둘째 케이스');
   });
 
+  it('실패한 확인의 기대 · 실제 값을 한 줄로 보이고 값이 없으면 줄을 안 그린다', async () => {
+    const 깨짐: TrialResult = {
+      ...실패,
+      steps: [실패.steps[0]!, { ...실패.steps[1]!, assertions: [{ statement: '체크한 줄이 지워진다', status: 'FAIL', actual: 1, expected: 0 }] }],
+    };
+    차례대로({ 't-ZRS-001': [{ status: 'DONE', result: 통과 }], 't-ZRS-002': [{ status: 'DONE', result: 깨짐 }] });
+    둘을연다();
+    시험시작();
+
+    await screen.findByRole('dialog', { name: '시험 실행 결과' }, { timeout: 4000 });
+    expect(document.querySelector('.trial-res li.bad .why .got')?.textContent).toBe('기대 0 · 실제 1');
+  });
+
   it('러너에 못 닿은 미실행은 서버 안내 문장을 실패 줄에 한 번만 두고 「원문 보기」를 안 단다', async () => {
     const 못닿음: TrialResult = { status: 'NA', durationMs: 10, steps: [], error: { message: '러너에 닿지 못했습니다' } };
     차례대로({

@@ -241,3 +241,10 @@
     text-align: center;
   }
 }
+
+/* 실패한 확인의 기대 · 실제 값 한 줄 — 긴 값은 글에서 잘라 오고 여기서는 줄만 꺾는다 */
+.trial-res .why .got {
+  font-size: 13px;
+  color: var(--ink-muted);
+  overflow-wrap: anywhere;
+}
