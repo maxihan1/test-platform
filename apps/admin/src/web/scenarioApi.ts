@@ -114,8 +114,8 @@ export interface ScenarioRunResult {
   evidence: EvidenceRow[];
   /** 도는 동안 장면이 있나 — 웹 단계가 있는 실행만. 끝났거나 서버가 다시 떴으면 false. 옛 응답에는 없다 (도메인/실행 §3.2 「시험 실행 지금 단계 · 중단 · 정식 실행 화면」) */
   live?: boolean;
-  /** 앱 · 게임 단계 · 실제 폰 모바일 시나리오가 폰을 잡은 동안만 — 그 폰의 Device VISION 화면 주소 */
-  vision?: { url: string };
+  /** 앱 · 게임 단계 · 실제 폰 모바일 시나리오가 폰을 잡은 동안만 — 그 폰의 Device VISION 화면 주소와 모델 이름(팜이 안 주면 없다) */
+  vision?: { url: string; name?: string };
 }
 
 /** 시험 실행 결과 — 실패한 case 부품에만 trace 가 붙는다 */
