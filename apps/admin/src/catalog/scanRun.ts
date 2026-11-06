@@ -12,6 +12,7 @@ import { 게임밖요소, 요소지도채우기 } from './elementMap.js';
 import { 지도채우기 } from './reqMap.js';
 import { scanApart, testsRoot, type Duplicate } from './scanner.js';
 import { 화면지도채우기 } from './screenMap.js';
+import { 단계제목들 } from './stepTitles.js';
 import { activeServices, save, type ServiceRow } from './store.js';
 
 // 경고 · 오류 줄만 쓴다 — 서버의 다시 훑기 명령(scripts/scan.ts)이 console 을 넘긴다
@@ -49,7 +50,6 @@ let last: 스캔기록 | null = null;
 let startup: Promise<스캔기록> | null = null;
 
 const 있나 = (길: string): Promise<boolean> => stat(길).then(() => true, () => false);
-
 // 고르기 — 고른 서비스만 훑고 나머지 서비스 결과는 지난 스캔 것을 그대로 둔다(병합 뒤 · 목록의 「다시 스캔」)
 // 서버의 다시 훑기 명령(scripts/scan.ts)도 부른다 — 통째로 깨졌는지(`깨짐`)를 보고 끝 코드를 정한다
 export async function runScan(log: 스캔로그, 고르기?: (s: ServiceRow) => boolean): Promise<스캔기록> {
@@ -128,7 +128,9 @@ export async function runScan(log: 스캔로그, 고르기?: (s: ServiceRow) => 
       if (found.duplicates.length > 0) continue;
 
       // 읽지 못한 파일이 있으면 무엇이 정말 사라졌는지 가릴 수 없다. 비활성 처리는 건너뛰고 읽은 것만 갱신한다
-      const saved = await save(내것, found.failures.length === 0, service.prefix);
+      const 단계 = await 단계제목들(root, 내것);
+      결과.problems.push(...단계.문제);
+      const saved = await save(내것, found.failures.length === 0, service.prefix, 단계.제목들);
       결과.added = saved.added;
       결과.updated = saved.updated;
       결과.deactivated = saved.deactivated;

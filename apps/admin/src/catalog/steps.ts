@@ -13,6 +13,8 @@ export interface CaseStep {
 export interface CaseSteps {
   steps: CaseStep[];
   r16: boolean;
+  /** 도는 차례대로의 단계 제목 — 다 셀 수 없으면 null */
+  stepTitles: string[] | null;
 }
 
 interface Found {
@@ -24,6 +26,8 @@ interface Found {
   unsure: boolean;
   // 이 절차 안에서 fixture 로 만든 변수. 함수를 담지 않았으니 부르더라도 판정을 숨길 수 없다
   locals: Set<string>;
+  // 제목이 글자 그대로이고 꼭 한 번 돈다 — 스캔이 단계 제목을 미리 저장할 수 있다 (카탈로그 §3.1 「단계 제목」)
+  counted: boolean;
 }
 
 export function isTestStep(node: ts.Node): node is ts.CallExpression {
@@ -77,6 +81,17 @@ function wrapped(step: ts.CallExpression): boolean {
       if (call === undefined || !isTestStep(call)) return true;
     }
     node = parent;
+  }
+  return false;
+}
+
+// 조건 갈래(if · 삼항 · switch · catch · && || ??의 오른쪽) 안이면 돌지 않을 수 있다 — 미리 적어 둔 남은 단계가 거짓이 된다
+function branched(step: ts.CallExpression): boolean {
+  for (let node: ts.Node = step; node.parent !== undefined && !(ts.isFunctionLike(node) && isTestCall(node.parent)); node = node.parent) {
+    const p: ts.Node = node.parent;
+    if (ts.isIfStatement(p) || ts.isConditionalExpression(p) || ts.isCaseOrDefaultClause(p) || ts.isCatchClause(p)) return true;
+    const 갈림 = [ts.SyntaxKind.AmpersandAmpersandToken, ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken];
+    if (ts.isBinaryExpression(p) && p.right === node && 갈림.includes(p.operatorToken.kind)) return true;
   }
   return false;
 }
@@ -221,13 +236,16 @@ export function caseSteps(text: string): CaseSteps {
 
     if (isTestStep(node)) {
       const first = node.arguments[0];
+      const title = first !== undefined && ts.isStringLiteralLike(first) ? first.text : undefined;
+      const loose = wrapped(node) || !isInlineFunction(node.arguments[1]);
       const step: Found = {
-        title: first !== undefined && ts.isStringLiteralLike(first) ? first.text : undefined,
+        title,
         line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1,
         verifies: 0,
         blocker: false,
-        unsure: wrapped(node) || !isInlineFunction(node.arguments[1]),
+        unsure: loose,
         locals: new Set(),
+        counted: title !== undefined && !loose && !branched(node),
       };
       // 바깥 절차를 건너뛰면 안쪽 절차가 통째로 안 돈다
       const outer = stack[stack.length - 1];
@@ -276,23 +294,7 @@ export function caseSteps(text: string): CaseSteps {
     return [{ title: s.title, line: s.line, skippable }];
   });
 
-  return { steps, r16: steps.some((s) => s.skippable) };
-}
-
-/**
- * 케이스 파일의 `verify('문장', …)` · `verify.element` · `verify.rates` 첫 인자를 소스 차례대로. 문자열이 아닌 첫 인자는 건너뛴다(K6 이 따로 잡는다).
- * 코드를 실행하지 않고 읽는다 — 작성 끝내기가 확인 문장을 싣는 데 쓴다
- */
-export function 확인문장들(text: string): string[] {
-  const sf = ts.createSourceFile('case.spec.ts', text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
-  const 문장들: string[] = [];
-  const walk = (node: ts.Node): void => {
-    if (ts.isCallExpression(node) && isVerify(node)) {
-      const 첫 = node.arguments[0];
-      if (첫 !== undefined && ts.isStringLiteralLike(첫)) 문장들.push(첫.text);
-    }
-    node.forEachChild(walk);
-  };
-  walk(sf);
-  return 문장들;
+  // 하나라도 셀 수 없으면 통째로 NULL — 일부만 아는 목록은 남은 단계 수를 틀리게 보인다 (카탈로그 §3.1 「단계 제목」)
+  const stepTitles = found.every((s) => s.counted) ? found.map((s) => s.title!) : null;
+  return { steps, r16: steps.some((s) => s.skippable), stepTitles };
 }

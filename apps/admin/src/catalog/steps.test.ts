@@ -2,7 +2,8 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { caseSteps, 확인문장들 } from './steps.js';
+import { caseSteps } from './steps.js';
+import { 확인문장들 } from './verifyLines.js';
 
 function body(inner: string): string {
   return `import { defineCase, test, verify } from '@platform/kit';

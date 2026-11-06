@@ -37,17 +37,22 @@ export async function 진행경로(app: FastifyInstance): Promise<void> {
     };
     if (돌고있는것들.length === 0 && 보낸것들.length === 0) return { items: [], ...step, remainingMs: await 실행남은시간(runId) };
 
-    // **러너가 답한 것만 물어본다.** run_id 로만 좁히면 5000건짜리 실행에서 보는 사람마다
-    // 2초에 한 번 5000행을 읽는다 — 정작 쓰는 것은 동시 실행 수만큼(기본 2)뿐이다
+    // **러너가 답한 것 · admin 이 보낸 것만 물어본다.** run_id 로만 좁히면 5000건짜리 실행에서 보는 사람마다
+    // 2초에 한 번 5000행을 읽는다 — 정작 쓰는 것은 동시 실행 수만큼(기본 2)뿐이다.
+    // 보낸 항목은 단계 제목만 쓴다 — 실행에 박제하지 않고 지금 케이스 칸에서 읽는다 (공통/4-데이터모델 「단계 제목 칸」)
     const { pool } = await import('../db/index.js');
-    const 제한 =
-      돌고있는것들.length === 0
-        ? { rows: [] }
-        : await pool.query<{ history_id: string; timeout_ms: number }>(
-            'SELECT history_id, timeout_ms FROM run_item WHERE run_id = $1 AND history_id = ANY($2)',
-            [runId, 돌고있는것들.map((it) => it.historyId)],
-          );
+    const 제한 = await pool.query<{ history_id: string; timeout_ms: number; step_titles: string[] | null }>(
+      `SELECT ri.history_id, ri.timeout_ms, tc.step_titles
+         FROM run_item ri LEFT JOIN test_case tc ON tc.tc_id = ri.tc_id
+        WHERE ri.run_id = $1 AND ri.history_id = ANY($2)`,
+      [runId, [...돌고있는것들.map((it) => it.historyId), ...보낸것들.map((칸) => 칸.번호)]],
+    );
     const 내것 = new Map(제한.rows.map((r) => [Number(r.history_id), r.timeout_ms]));
+    const 제목들 = new Map(제한.rows.map((r) => [Number(r.history_id), r.step_titles]));
+    const 제목칸 = (historyId: number) => {
+      const 제목 = 제목들.get(historyId);
+      return 제목 === null || 제목 === undefined ? {} : { stepTitles: 제목 };
+    };
 
     // 없는 runId 에도 200 빈 목록이다. 형제 라우트(findRun·findItem)는 404 를 내지만
     // 여기서 404 를 내려면 실행을 한 번 더 조회해야 하고, 화면은 도는 중일 때만 부른다 (SPEC §8.9)
@@ -55,12 +60,12 @@ export async function 진행경로(app: FastifyInstance): Promise<void> {
       const timeoutMs = 내것.get(돌고있는것.historyId);
       if (timeoutMs === undefined) return [];
       // 화면 카드 — 장면 열쇠가 메모리에 있나 · 잡은 폰의 VISION 링크 (도메인/실행 §3.2 「시험 실행 지금 단계 · 중단 · 정식 실행 화면」)
-      return [{ ...돌고있는것, timeoutMs, ...화면칸(돌고있는것.historyId) }];
+      return [{ ...돌고있는것, timeoutMs, ...화면칸(돌고있는것.historyId), ...제목칸(돌고있는것.historyId) }];
     });
     const 답한번호 = new Set(러너가답한것.map((it) => it.historyId));
     const 아직 = 보낸것들
       .filter((칸) => !답한번호.has(칸.번호))
-      .map((칸) => ({ historyId: 칸.번호, timeoutMs: 칸.보냄.timeoutMs, ...화면칸(칸.번호) }));
+      .map((칸) => ({ historyId: 칸.번호, timeoutMs: 칸.보냄.timeoutMs, ...화면칸(칸.번호), ...제목칸(칸.번호) }));
     return {
       items: [...러너가답한것, ...아직],
       ...step,
