@@ -16,12 +16,17 @@ export function 빠진목록({ 앞: 앞번호, 이번, 건수 }: { 앞: number; 
   const 직전 = useAsync(() => (열림 ? api.run(앞번호) : Promise.resolve(null)), [열림, 앞번호]);
 
   const 이번키 = new Set(이번.map((it) => `${it.tcId}\u0000${it.platform}`));
+  // 건수가 케이스 수라 목록도 케이스 한 줄에 빠진 디바이스를 모은다
   const 빠진 = [
-    ...new Map(
-      (직전.data?.items ?? [])
-        .filter((it) => !이번키.has(`${it.tcId}\u0000${it.platform}`))
-        .map((it) => [`${it.tcId}\u0000${it.platform}`, it] as const),
-    ).values(),
+    ...(직전.data?.items ?? [])
+      .filter((it) => !이번키.has(`${it.tcId}\u0000${it.platform}`))
+      .reduce((모음, it) => {
+        const 이미 = 모음.get(it.tcId);
+        if (이미 === undefined) 모음.set(it.tcId, { tcId: it.tcId, tcName: it.tcName, platforms: [it.platform] });
+        else if (!이미.platforms.includes(it.platform)) 이미.platforms.push(it.platform);
+        return 모음;
+      }, new Map<string, { tcId: string; tcName: string; platforms: RunItemSummary['platform'][] }>())
+      .values(),
   ];
 
   return (
@@ -38,8 +43,8 @@ export function 빠진목록({ 앞: 앞번호, 이번, 건수 }: { 앞: number; 
       ) : (
         <div>
           {빠진.slice(0, 보일수).map((it) => (
-            <div className="rr-fixed" key={`${it.tcId}\u0000${it.platform}`}>
-              <span className="mono">{it.tcId}</span> {it.tcName} · {PLATFORM_LABEL[it.platform]}
+            <div className="rr-fixed" key={it.tcId}>
+              <span className="mono">{it.tcId}</span> {it.tcName} · {it.platforms.map((p) => PLATFORM_LABEL[p]).join(' · ')}
             </div>
           ))}
           {빠진.length <= 보일수 ? null : <p className="rs-note">{t('외 {건수}건', { 건수: 빠진.length - 보일수 })}</p>}

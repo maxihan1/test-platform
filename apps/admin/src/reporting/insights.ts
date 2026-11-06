@@ -14,7 +14,7 @@ export interface 비교 {
   previous: { runId: number; startedAt: string } | null;
   /** 같은 env 뒤의 주소를 설정 화면에서 바꿨으면 사실은 다른 서버다. 막지는 않고 사실만 알린다 */
   주소바뀜: boolean;
-  /** 앞 실행에는 있었고 이번에 없는 (케이스, 디바이스)의 수 */
+  /** 앞 실행에는 있었고 이번에 없는 (케이스, 디바이스)가 걸친 케이스의 수 — PC · 모바일 줄이 둘이어도 케이스 하나다 */
   빠진건수: number;
   케이스들: { tcId: string; tcName: string; platform: string; 판정: 변화 }[];
   /** 이번 실행의 실패를 같은 사유끼리 묶은 것. 견줄 앞 실행이 없어도 낸다 */
@@ -74,18 +74,18 @@ const 키 = (row: 접힌행): string => `${row.tc_id}\u0000${row.platform}`;
 export function 케이스판정들(앞접힘: 접힌행[], 이번접힘: 접힌행[]): Pick<비교, '케이스들' | '빠진건수'> {
   const 이번칸 = new Map(이번접힘.map((row) => [키(row), row]));
   const 케이스들: 비교['케이스들'] = [];
-  let 빠진건수 = 0;
+  const 빠진케이스 = new Set<string>();
   // 앞 실행에 없던 케이스는 어느 칸에도 넣지 않는다. 새 케이스를 「고쳐짐」으로 세면 거짓이다 —
   // 그래서 이번 것이 아니라 앞 것을 훑는다
   for (const 앞행 of 앞접힘) {
     const 이번행 = 이번칸.get(키(앞행));
     if (이번행 === undefined) {
-      빠진건수 += 1;
+      빠진케이스.add(앞행.tc_id);
       continue;
     }
     케이스들.push({ tcId: 이번행.tc_id, tcName: 이번행.tc_name, platform: 이번행.platform, 판정: 판정표[앞행.status][이번행.status] });
   }
-  return { 케이스들, 빠진건수 };
+  return { 케이스들, 빠진건수: 빠진케이스.size };
 }
 
 // 대표 문장은 실패한 첫 검증 문장이고, 없으면 error.message 다. 둘 다 없으면 NULL 로 나와 덩어리에서 빠진다 —
