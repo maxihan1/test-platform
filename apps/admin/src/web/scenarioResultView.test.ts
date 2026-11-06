@@ -88,6 +88,9 @@ describe('멈춘사유글자', () => {
     expect(멈춘사유글자('ABORTED', 'ko')).toBe('서버 재시작으로 멈춤');
     expect(멈춘사유글자('TIMEOUT', 'en')).toBe('Timed out');
     expect(멈춘사유글자('ABORTED', 'en')).toBe('Stopped by a server restart');
+    // 사람이 멈춘 부품 — 2026-11-06 WEB-F9-14 부터 서버가 적는다 (도메인/시나리오 §8.11 판정 표)
+    expect(멈춘사유글자('STOPPED', 'ko')).toBe('실행 중단으로 멈춤');
+    expect(멈춘사유글자('STOPPED', 'en')).toBe('Stopped by the user');
     expect(멈춘사유글자('러너가 이 단계 결과를 돌려주지 않았다', 'ko')).toBe('러너가 이 단계 결과를 돌려주지 않았다');
   });
 });
