@@ -14,6 +14,7 @@ import { 실행자이름 } from './runState.js';
 import { scenarioApi } from './scenarioApi.js';
 import { FailGuide, RerunButton, useRerun, 멈춘단계, type 들어온곳 } from './ScenarioResultNext.js';
 import { E2E화면카드 } from './ScenarioLiveCard.js';
+import { ScenarioRunWindow } from './ScenarioRunWindow.js';
 import { ScenarioResultPart } from './ScenarioResultPart.js';
 import { 미확정있나, 접은판정 } from './scenarioResultView.js';
 import { Failed, Loading, PLATFORM_LABEL, seconds, useAsync, Verdict, when } from './ui.js';
@@ -110,6 +111,7 @@ export function ScenarioResult({
 
   return (
     <>
+      {다시실행.창 === null ? null : <ScenarioRunWindow runId={다시실행.창} 어디서={다시실행.어디서} on닫기={다시실행.창닫기} />}
       {칸안 ? (
         // 케이스 결과 칸(RunResult)과 같은 머리 — 고른 줄과 같은 제목을 크게 단다
         <div className="box-head">

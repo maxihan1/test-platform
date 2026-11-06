@@ -44,13 +44,15 @@ export function useRerun(
   const [도는중, set도는중] = useState(false);
   // 다시 실행도 케이스 실행처럼 한 번 묻는다 (점검표 B19 · 도메인/시나리오 §8.11 「`실행` 은 시작 확인 상자를 거친다」)
   const [묻기, set묻기] = useState(false);
+  // 건 실행을 지켜볼 실행 창 ⑥ — 목록 · 조립 화면처럼 결과 화면으로 바로 옮기지 않는다. 창의 「결과 보기」가 옮긴다 (도메인/실행 §8.16 ⑥)
+  const [창, set창] = useState<number | null>(null);
   const [오류, set오류] = useState<string | null>(null);
   async function 다시() {
     set도는중(true);
     set오류(null);
     try {
       const { runId } = await scenarioApi.run(scenarioId, env, mobileOn);
-      if (on새실행 === undefined) window.location.hash = 결과주소(runId, 어디서);
+      if (on새실행 === undefined) set창(runId);
       else on새실행(runId);
     } catch (err) {
       set오류(message(err, 언어));
@@ -58,7 +60,7 @@ export function useRerun(
       set도는중(false);
     }
   }
-  return { 도는중, 오류, 다시, 묻기, set묻기, 이름표, mobileOn };
+  return { 도는중, 오류, 다시, 묻기, set묻기, 이름표, mobileOn, 창, 창닫기: () => set창(null), 어디서 };
 }
 
 export function RerunButton({ 다시실행, env, 주 = false }: { 다시실행: ReturnType<typeof useRerun>; env: string; 주?: boolean }) {
