@@ -188,7 +188,7 @@ describe('저장 안 한 채 닫기', () => {
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.click(단추('시험 실행'));
     fireEvent.click(단추('시험 실행 시작'));
-    await screen.findByText('시험 실행 완료', {}, { timeout: 5000 });
+    await screen.findByText('시험 실행 결과', {}, { timeout: 5000 });
 
     fireEvent.click(단추('창 닫기'));
 

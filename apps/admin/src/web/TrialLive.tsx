@@ -97,10 +97,14 @@ interface Props {
    * 폰을 잡기 전에는 팜 없는 서버의 흉내일 수도 있어 브라우저 장면을 기다린다
    */
   모바일웹?: boolean;
+  /** 「동작마다 1초 천천히」를 칸 아래에 둔다. 실행 창은 띠 오른쪽에 적어서 끈다 (도메인/실행 §8.16 ③) */
+  늦춤글?: boolean;
+  /** 첫 장면 전 브라우저 칸에 「브라우저를 여는 중」 뼈대를 그린다 — 자식 Playwright 가 브라우저를 여는 4~5초가 빈 칸이었다 (§8.16 ③ · 점검표 B1) */
+  뼈대?: boolean;
 }
 
 /** 시작한 테스트 모드 하나의 칸. 끝나도 마지막 장면을 그대로 둔다. 장면 없이 끝났으면 칸을 그리지 않는다 */
-export function 장면칸({ 주소, 도는중, vision, 부제, 폰만: 앱폰 = false, 모바일웹 = false }: Props) {
+export function 장면칸({ 주소, 도는중, vision, 부제, 폰만: 앱폰 = false, 모바일웹 = false, 늦춤글 = true, 뼈대 = false }: Props) {
   const t = use말();
   const 실제폰웹 = 모바일웹 && vision !== null;
   const { 그림, 폰그림, 비었나, 못닿음 } = use장면(주소, 도는중, 앱폰);
@@ -122,7 +126,14 @@ export function 장면칸({ 주소, 도는중, vision, 부제, 폰만: 앱폰 = 
           </a>
         )}
       </div>
-      {그림 === null ? (
+      {그림 === null && 뼈대 && !폰칸 && vision === null ? (
+        <div className="live-wait live-skel" aria-busy="true">
+          <span className="skel-bar" aria-hidden="true" />
+          <span className="skel-bar short" aria-hidden="true" />
+          <span className="skel-box" aria-hidden="true" />
+          <p>{t('브라우저를 여는 중')}</p>
+        </div>
+      ) : 그림 === null ? (
         <p className="live-wait">
           {앱폰 && vision === null
             ? t('사용할 폰을 찾는 중')
@@ -140,7 +151,7 @@ export function 장면칸({ 주소, 도는중, vision, 부제, 폰만: 앱폰 = 
       )}
       {못닿음 ? (
         <p className="live-note bad">{t('실행 서버와 연결이 끊겼습니다. 다시 연결하는 중입니다')}</p>
-      ) : 도는중 && (!폰칸 || 실제폰웹) ? (
+      ) : 늦춤글 && 도는중 && (!폰칸 || 실제폰웹) ? (
         // 실제 폰도 늦춘다. 앱 · 게임은 Appium 이라 안 늦춘다 (러너 §5.2)
         <p className="live-note">{t('동작마다 1초 천천히')}</p>
       ) : null}
