@@ -13,7 +13,6 @@ export const 실행말: Record<string, string> = {
   '통과': 'Passed',
   '실패': 'Failed',
   '미실행': 'Not run',
-  '남음': 'Left',
   '미확정': 'Unconfirmed',
 
   // 테스트 실행 (실행 창)
@@ -282,7 +281,7 @@ export const 실행말: Record<string, string> = {
   'RUN {번호} 실행이 중단됐습니다': 'RUN {번호} was aborted',
   '{끝난} / {전체} 완료': '{끝난} / {전체} done',
   // 정식 실행 진행 창 ⑤ (도메인/실행 §8.16 · RunLiveLeft · RunLiveCards)
-  '끝남': 'Finished',
+  '끝남': 'Ended',
   '{번호} / {전체}단계 · {제목}': 'Step {번호} / {전체} · {제목}',
   '{번호} / {전체}단계': 'Step {번호} / {전체}',
   '{경과} / 제한 {제한}': '{경과} / limit {제한}',
@@ -298,8 +297,6 @@ export const 실행말: Record<string, string> = {
   '남은 시간 계산 중': 'Estimating time left',
   '1분 미만 남음': 'Under 1 min left',
   '약 {시간} 남음 · {시각} 종료 예상': 'About {시간} left · expected to end {시각}',
-  '{시간} 경과': '{시간} elapsed',
-  '제한 {시간}': 'limit {시간}',
   '{초}초': '{초}s',
   '{분}분': '{분}m',
   '{분}분 {초}초': '{분}m {초}s',
