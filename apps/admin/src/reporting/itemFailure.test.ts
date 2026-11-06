@@ -65,6 +65,10 @@ describe('항목실패를가른다', () => {
     expect(결과).toEqual({ type: 'notFound', reason: 유형문장.notFound });
   });
 
+  it('사람이 쓴 확인 문장은 영어여도 그대로 한 줄이다', () => {
+    expect(항목실패를가른다(재료({ steps: [{ assertions: [확인('Order total equals cart sum', 'FAIL')] }] }), 그대로)?.reason).toBe('Order total equals cart sum');
+  });
+
   it('한글이 든 오류 첫 줄은 그대로 한 줄이다', () => {
     expect(항목실패를가른다(재료({ error: { message: 'Error: 「구매」 단추가 안 보인다' } }), 그대로)?.reason).toBe('Error: 「구매」 단추가 안 보인다');
   });
