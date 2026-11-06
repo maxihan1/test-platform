@@ -169,7 +169,7 @@ export async function trace를적재한다(historyId: number): Promise<상태 | 
   );
   const row = r.rows[0];
   if (row === undefined) return null;
-  const 끊김 = typeof row.error?.message === 'string' && ['TIMEOUT', 'ABORTED'].includes(row.error.message);
+  const 끊김 = typeof row.error?.message === 'string' && ['TIMEOUT', 'ABORTED', 'STOPPED'].includes(row.error.message);
 
   if (row.platform === 'android') {
     await 상태를남긴다(pool, historyId, 'NONE', trace없는까닭.앱);

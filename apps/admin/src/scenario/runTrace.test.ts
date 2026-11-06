@@ -51,6 +51,12 @@ describe('실패부품trace', () => {
     expect(기록.get(1)?.reason).toBe(trace없는까닭.끊김);
   });
 
+  it('사람이 끊은 실행(ABORTED)도 「끊김」 사유다', async () => {
+    const 기록 = await 실패부품trace(join(폴더, 'trace.zip'), { parts: [부품(1, 'FAIL', [1])], error: { message: 'ABORTED' } }, []);
+
+    expect(기록.get(1)?.reason).toBe(trace없는까닭.끊김);
+  });
+
   it('실패 부품이 없으면 zip 을 읽지 않는다', async () => {
     const 경로 = join(폴더, 'trace.zip');
     writeFileSync(경로, 'zip 아님');
