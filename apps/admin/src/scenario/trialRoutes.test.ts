@@ -250,7 +250,12 @@ describe.skipIf(연결 === undefined)('시나리오 시험 실행 통로', () =>
       { runId: null, trialId, seq: 2, elapsedMs: 300 },
     ];
 
-    expect((await 부른다('xstr-a', 'GET', `/api/scenario-trials/${trialId}`)).json()).toEqual({ status: 'RUNNING', step: { seq: 2, elapsedMs: 300 } });
+    // 러너 진행 답은 받은 뒤 1초 동안 모든 시험이 함께 쓴다 — 앞 검사가 받은 답이 지나야 새 답이 보인다
+    await vi.waitFor(
+      async () =>
+        expect((await 부른다('xstr-a', 'GET', `/api/scenario-trials/${trialId}`)).json()).toEqual({ status: 'RUNNING', step: { seq: 2, elapsedMs: 300 } }),
+      { timeout: 3_000, interval: 200 },
+    );
   });
 
   it('중단 — 러너에 보낸 뒤면 러너에 끊어 달라 하고 결과는 러너 답이되 안 끝난 부품은 ABORTED 가 아니라 STOPPED 다', async () => {
