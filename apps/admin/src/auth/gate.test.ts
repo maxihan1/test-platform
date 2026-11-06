@@ -894,6 +894,7 @@ describe.skipIf(연결 === undefined)('시나리오 문', () => {
         scope.get('/scenario-trials/:trialId', async () => ({ 지나감: true }));
         scope.get('/scenario-trials/:trialId/screenshots/:seq', async () => ({ 지나감: true }));
         scope.get('/scenario-trials/:trialId/live', async () => ({ 지나감: true }));
+        scope.post('/scenario-trials/:trialId/abort', async () => ({ 지나감: true }));
       },
       { prefix: '/api' },
     );
@@ -999,6 +1000,7 @@ describe.skipIf(연결 === undefined)('시나리오 문', () => {
       for (const url of [`/api/scenario-trials/${번호}`, `/api/scenario-trials/${번호}/screenshots/1`, `/api/scenario-trials/${번호}/live`]) {
         expect((await app.inject({ method: 'GET', url, cookies })).statusCode, url).toBe(200);
       }
+      expect((await app.inject({ method: 'POST', url: `/api/scenario-trials/${번호}/abort`, cookies })).statusCode, '중단').toBe(200);
     }
     시나리오시험.전부비운다();
   });

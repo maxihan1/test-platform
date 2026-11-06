@@ -12,7 +12,9 @@ import { 인증등록 } from '../auth/gate.js';
 import { 해시 } from '../auth/password.js';
 import authRoutes from '../auth/routes.js';
 import { 세션등록 } from '../auth/session.js';
+import { enqueue, limit } from '../execution/dispatcher.js';
 import { 시나리오시험 } from '../execution/trial.js';
+import { 상태찾기 } from './trialAbort.js';
 import scenarioTrialRoutes from './trialRoutes.js';
 
 const 연결 = process.env.DATABASE_URL;
@@ -42,6 +44,11 @@ describe.skipIf(연결 === undefined)('시나리오 시험 실행 통로', () =>
   const 받은요청: ScenarioExecuteRequest[] = [];
   const 매달린것: http.ServerResponse[] = [];
   let 매단다 = false;
+  // 러너 GET /progress 의 scenarios · POST /abort 로 받은 본문 · 그 답
+  let 러너진행: object[] = [];
+  const 받은중단: unknown[] = [];
+  let 중단답 = true;
+  const 끊긴답 = { status: 'NA', durationMs: 2, error: { message: 'ABORTED' }, parts: [{ seq: 1, status: 'NA', durationMs: 1, mocks: [], steps: [], error: { message: 'ABORTED' } }] };
   // 러너가 쥔 장면 — 열쇠마다 마지막 한 장. 없는 열쇠는 러너처럼 404 다
   const 장면 = new Map<string, Buffer>();
   let 뿌리 = '';
@@ -98,10 +105,18 @@ describe.skipIf(연결 === undefined)('시나리오 시험 실행 통로', () =>
         const 장 = 장면.get(장면열쇠);
         return void (장 === undefined ? res.writeHead(404).end('{}') : res.writeHead(200, { 'content-type': 'image/jpeg' }).end(장));
       }
+      if (req.method === 'GET' && req.url === '/progress') return void res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ items: [], scenarios: 러너진행 }));
       if (req.method === 'GET') return void res.writeHead(req.url === '/health' ? 200 : 404).end('{}');
       const 조각: Buffer[] = [];
       req.on('data', (c: Buffer) => 조각.push(c));
       req.on('end', () => {
+        if (req.url === '/abort') {
+          받은중단.push(JSON.parse(Buffer.concat(조각).toString('utf8')));
+          // 진짜 러너처럼 끊으면 매달린 /execute-scenario 가 끊긴 답으로 돌아온다
+          if (중단답) for (const 매달림 of 매달린것.splice(0)) 매달림.setHeader('content-type', 'application/json'), 매달림.end(JSON.stringify(끊긴답));
+          res.setHeader('content-type', 'application/json');
+          return void res.end(JSON.stringify({ aborted: 중단답 }));
+        }
         받은요청.push(JSON.parse(Buffer.concat(조각).toString('utf8')) as ScenarioExecuteRequest);
         if (매단다) {
           매달린것.push(res);
@@ -157,6 +172,9 @@ describe.skipIf(연결 === undefined)('시나리오 시험 실행 통로', () =>
   beforeEach(() => {
     풀어준다();
     매단다 = false;
+    러너진행 = [];
+    받은중단.length = 0;
+    중단답 = true;
     장면.clear();
     시나리오시험.전부비운다();
   });
@@ -220,6 +238,83 @@ describe.skipIf(연결 === undefined)('시나리오 시험 실행 통로', () =>
     const 두번째 = await 부른다('xstr-a', 'POST', '/api/scenario-trials', 본문());
     expect(두번째.statusCode).toBe(409);
     expect(두번째.json()).toEqual({ error: 'TRIAL_BUSY', detail: '이미 시험 실행이 돌고 있습니다' });
+  });
+
+  it('러너에 보낸 시험은 RUNNING 에 지금 부품(step)이 붙고, 다른 시험의 진행은 섞이지 않는다', async () => {
+    매단다 = true;
+    const { trialId } = (await 부른다('xstr-a', 'POST', '/api/scenario-trials', 본문())).json<{ trialId: string }>();
+    await vi.waitFor(() => expect(받은요청.at(-1)).toMatchObject({ trialId }));
+    러너진행 = [
+      { runId: null, trialId: '다른-시험', seq: 5, elapsedMs: 9 },
+      { runId: 42, seq: 4, elapsedMs: 8 },
+      { runId: null, trialId, seq: 2, elapsedMs: 300 },
+    ];
+
+    expect((await 부른다('xstr-a', 'GET', `/api/scenario-trials/${trialId}`)).json()).toEqual({ status: 'RUNNING', step: { seq: 2, elapsedMs: 300 } });
+  });
+
+  it('중단 — 러너에 보낸 뒤면 러너에 끊어 달라 하고 결과는 러너 답이되 안 끝난 부품은 ABORTED 가 아니라 STOPPED 다', async () => {
+    매단다 = true;
+    const { trialId } = (await 부른다('xstr-a', 'POST', '/api/scenario-trials', 본문())).json<{ trialId: string }>();
+    await vi.waitFor(() => expect(상태찾기(trialId)?.보냄).toBe(true));
+
+    const res = await 부른다('xstr-a', 'POST', `/api/scenario-trials/${trialId}/abort`);
+
+    expect(res.json()).toEqual({ aborted: true });
+    expect(받은중단).toEqual([{ scenarioTrialId: trialId }]);
+    await vi.waitFor(async () => {
+      const 읽음 = (await 부른다('xstr-a', 'GET', `/api/scenario-trials/${trialId}`)).json<{ status: string; result?: { error?: { message: string }; parts: { error?: { message: string } }[] } }>();
+      expect(읽음.status).toBe('FINISHED');
+      expect(읽음.result?.error?.message).toBe('ABORTED');
+      expect(읽음.result?.parts[0]?.error?.message).toBe('STOPPED');
+    });
+  });
+
+  it('중단 — 러너가 모르는 번호면 aborted false 다', async () => {
+    매단다 = true;
+    중단답 = false;
+    const { trialId } = (await 부른다('xstr-a', 'POST', '/api/scenario-trials', 본문())).json<{ trialId: string }>();
+    await vi.waitFor(() => expect(상태찾기(trialId)?.보냄).toBe(true));
+
+    expect((await 부른다('xstr-a', 'POST', `/api/scenario-trials/${trialId}/abort`)).json()).toEqual({ aborted: false });
+  });
+
+  it('중단 — 줄에서 기다리는 동안이면 admin 이 NA · ABORTED(부품은 STOPPED)로 닫고 러너에 보내지 않는다', async () => {
+    const 풀어줄것: (() => void)[] = [];
+    let 풀림 = false;
+    // 앞서 도는 일이 자리를 쥐고 있으면 막이 일부가 나중에야 시작한다 — 풀린 뒤에 시작하는 것은 바로 끝나게 한다
+    const 막이 = Array.from({ length: limit() }, () => enqueue(() => new Promise<void>((ok) => (풀림 ? ok() : 풀어줄것.push(ok)))));
+    try {
+      const { trialId } = (await 부른다('xstr-a', 'POST', '/api/scenario-trials', 본문())).json<{ trialId: string }>();
+
+      const res = await 부른다('xstr-a', 'POST', `/api/scenario-trials/${trialId}/abort`);
+
+      expect(res.json()).toEqual({ aborted: true });
+      expect(받은중단).toEqual([]);
+      const 읽음 = (await 부른다('xstr-a', 'GET', `/api/scenario-trials/${trialId}`)).json<{ status: string; result: { status: string; error: { message: string }; parts: { status: string; error: { message: string } }[] } }>();
+      expect(읽음.status).toBe('FINISHED');
+      expect(읽음.result).toMatchObject({ status: 'NA', error: { message: 'ABORTED' } });
+      expect(읽음.result.parts.map((p) => [p.status, p.error.message])).toEqual([['NA', 'STOPPED']]);
+
+      풀림 = true;
+      for (const 풀 of 풀어줄것) 풀();
+      await vi.waitFor(() => expect(상태찾기(trialId)).toBeUndefined());
+      expect(받은요청.some((r) => r.trialId === trialId)).toBe(false);
+    } finally {
+      풀림 = true;
+      for (const 풀 of 풀어줄것) 풀();
+      await Promise.all(막이);
+    }
+  });
+
+  it('중단 — 남의 시험은 404 · 이미 끝난 시험은 aborted false 다', async () => {
+    const { trialId } = (await 부른다('xstr-a', 'POST', '/api/scenario-trials', 본문())).json<{ trialId: string }>();
+    await vi.waitFor(async () => expect((await 부른다('xstr-a', 'GET', `/api/scenario-trials/${trialId}`)).json<{ status: string }>().status).toBe('FINISHED'));
+
+    const 남 = await 부른다('xstr-b', 'POST', `/api/scenario-trials/${trialId}/abort`);
+    expect(남.statusCode).toBe(404);
+    expect(남.json()).toEqual({ error: 'TRIAL_NOT_FOUND', detail: trialId });
+    expect((await 부른다('xstr-a', 'POST', `/api/scenario-trials/${trialId}/abort`)).json()).toEqual({ aborted: false });
   });
 
   it('남의 시험은 같은 서비스 사람도 · 다른 서비스 사람도 404 TRIAL_NOT_FOUND 다', async () => {

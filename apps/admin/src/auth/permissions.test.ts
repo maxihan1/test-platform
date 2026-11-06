@@ -25,6 +25,12 @@ describe('실행 칸 trial', () => {
     }
   });
 
+  it('E2E 시험 실행 중단은 시작과 같은 칸이다 — trial 부터 열리고 read 는 막힌다', () => {
+    const 틀 = '/api/scenario-trials/:trialId/abort';
+    expect(필요권한(틀, 'POST')).toEqual({ 기능: 'runs', 칸: 'trial' });
+    expect([되나('read', 'POST', 틀), 되나('trial', 'POST', 틀), 되나('write', 'POST', 틀)]).toEqual([false, true, true]);
+  });
+
   it('기록이 남는 일 · 시나리오 저장 · 토큰을 쓰는 일은 trial 에 안 열린다', () => {
     const 막힐것 = [
       ['POST', '/api/runs'],
