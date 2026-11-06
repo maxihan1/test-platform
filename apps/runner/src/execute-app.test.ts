@@ -215,8 +215,8 @@ describe('execute 가 자식에게 넘기는 팜 AI 점검 켜기 (COMPAT-F1-03)
     rmSync(폴더, { recursive: true, force: true });
   });
 
-  const 요청 = (platform: ExecuteRequest['platform'], uiCheck?: true): ExecuteRequest => ({
-    runId: 5, historyId: 13, tcId: 'AND-001', platform, filePath: 'a.spec.ts', baseUrl: '', params: {}, expected: {}, timeoutMs: 10_000,
+  const 요청 = (platform: ExecuteRequest['platform'], uiCheck?: true, runId = 5): ExecuteRequest => ({
+    runId, historyId: 13, tcId: 'AND-001', platform, filePath: 'a.spec.ts', baseUrl: '', params: {}, expected: {}, timeoutMs: 10_000,
     ...(uiCheck !== undefined && { uiCheck }),
   });
   const 받은값 = () => readFileSync(join(폴더, 'ui.txt'), 'utf8');
@@ -230,6 +230,11 @@ describe('execute 가 자식에게 넘기는 팜 AI 점검 켜기 (COMPAT-F1-03)
     await execute(요청('android'), 'a.spec.ts');
     expect(받은값()).toBe('');
     await execute(요청('mobile', true), 'a.spec.ts');
+    expect(받은값()).toBe('');
+  });
+
+  it('테스트 실행(runId 0)이면 켜지 않는다 — 결과를 안 받아 비전 사용량만 쓴다', async () => {
+    await execute(요청('android', true, 0), 'a.spec.ts');
     expect(받은값()).toBe('');
   });
 });

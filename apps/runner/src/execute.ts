@@ -199,8 +199,9 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
         ...gameEnv(req),
         // 시나리오만 쓰는 값이다 — 러너를 켠 셸에 남은 값이 단독 항목의 연결 유지 시간을 바꾸지 않게 늘 비운다
         PLATFORM_APPIUM_NEW_COMMAND_TIMEOUT: '',
-        // 호환성 실행 앱 · 게임 항목만 팜 AI 점검을 켠다. 늘 적는다 — 러너를 켠 셸의 값을 물려받아 모든 항목이 찍히지 않게 (도메인/호환성 §7 「러너 · kit」)
-        PLATFORM_UI_CHECK: req.platform === 'android' && req.uiCheck === true ? '1' : '',
+        // 호환성 정식 실행의 앱 · 게임 항목만 팜 AI 점검을 켠다 — 테스트 실행(runId 0)은 결과를 안 받아 비전 사용량만 쓴다.
+        // 늘 적는다 — 러너를 켠 셸의 값을 물려받아 모든 항목이 찍히지 않게 (도메인/호환성 §7 「러너 · kit」)
+        PLATFORM_UI_CHECK: req.platform === 'android' && req.uiCheck === true && req.runId > 0 ? '1' : '',
         // 성능 녹화 — 설정 파일이 이 경로로 HAR 를 남긴다. 늘 적는다 — 러너를 켠 셸에 값이 있으면 자식이 물려받아 모든 실행을 녹화한다
         PLATFORM_RECORD_HAR: req.recordHar === undefined ? '' : 다음HAR경로(녹화폴더(req.recordHar.jobId)),
         // 열쇠가 오면 page 의 장면을 이 파일에 쓴다. 동작마다 1초 쉬는 것은 테스트 실행(runId 0)뿐이다 (도메인/러너 §5.2 「테스트 모드 — 실시간 장면」)

@@ -119,6 +119,17 @@ describe('점검결과를기다린다', () => {
     expect(existsSync(둔곳('ui-check.json'))).toBe(true);
   });
 
+  it('그림 하나를 팜이 지웠으면(404) 그 그림만 빼고 점검 결과를 둔다 · 여러 줄이 가리킨 그림은 한 번만 받는다', async () => {
+    점검 = { status: 'done', screens: [{ file: 'ui-001.png' }, { file: 'ui-001.png' }, { file: 'ui-002.png' }] };
+    목록 = { ready: true, files: [파일('ui-check.json'), 파일('ui-001.png'), 파일('ui-002.png')] };
+    await 점검결과를기다린다(폴더, 팜, 'sess-1', undefined, Date.now());
+    expect(existsSync(둔곳('ui-check.json'))).toBe(true);
+    expect(existsSync(둔곳('ui-001.png'))).toBe(true);
+    expect(existsSync(둔곳('ui-002.png'))).toBe(false);
+    expect(부른곳.filter((u) => u.endsWith('/ui-001.png'))).toHaveLength(1);
+    expect(부른곳.filter((u) => u === 목록주소)).toHaveLength(1);
+  });
+
   it('팜 밖 주소 · 폴더 밖 이름은 받지 않는다 — 토큰이 새거나 다른 곳에 파일이 써지지 않게', async () => {
     점검 = { status: 'done', screens: [{ file: '../x.png' }, { file: 'ui-002.png' }] };
     목록 = { ready: true, files: [파일('ui-check.json'), { name: 'ui-002.png', bytes: 1, url: 'http://evil.test/ui-002.png' }] };

@@ -55,7 +55,9 @@ export async function 팜증적을받는다(
   const raw = process.env.PLATFORM_APPIUM_URL;
   // 호환성 항목은 판정과 상관없이 AI 점검 결과를 받는다. 점검은 연결이 닫힌 뒤 몇 분 걸려 받기 줄을 막지 않게 따로 기다린다 (도메인/호환성 §7 「러너 · kit」)
   if (점검 !== undefined && runId !== 0 && sessionId !== '' && raw !== undefined && raw !== '') {
-    void 점검결과를기다린다(폴더, raw, sessionId, 요청토큰 ?? process.env.PLATFORM_APPIUM_TOKEN, 점검.끝난때);
+    // 잘못된 팜 주소처럼 안에서 못 잡은 오류가 러너를 끄지 않게 받는다
+    점검결과를기다린다(폴더, raw, sessionId, 요청토큰 ?? process.env.PLATFORM_APPIUM_TOKEN, 점검.끝난때)
+      .catch((err: unknown) => 알림('AI 점검 결과를 받지 못했다', err));
   }
   // 통과한 정식 실행 항목은 받지 않고 번호만 남긴다 — 「영상 보기」를 누를 때 admin 이 받는다
   if (runId !== 0 && status === 'PASS' && sessionId !== '') return;

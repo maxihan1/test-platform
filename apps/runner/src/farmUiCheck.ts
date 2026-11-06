@@ -56,13 +56,24 @@ async function 한번받는다(폴더: string, base: string, headers: Record<str
   const 둘곳 = join(폴더, FARM_EVIDENCE_DIR);
   try {
     await mkdir(받는곳, { recursive: true });
-    const 그림들: string[] = [];
-    for (const s of 결과.screens ?? []) {
-      if (typeof s.file !== 'string' || !점검화면이름.test(s.file)) continue;
-      const u = 주소(s.file);
+    const 그림들 = new Set<string>();
+    // 같은 그림을 여러 화면 줄이 가리킬 수 있다
+    for (const 이름 of new Set((결과.screens ?? []).map((x) => x.file))) {
+      if (typeof 이름 !== 'string' || !점검화면이름.test(이름)) continue;
+      const u = 주소(이름);
       if (u === undefined) continue;
-      await writeFile(join(받는곳, s.file), Buffer.from(await (await 받기(u)).arrayBuffer()));
-      그림들.push(s.file);
+      let 그림: Response;
+      try {
+        그림 = await 받기(u);
+      } catch (err) {
+        // 팜이 지운 그림은 다시 물어도 없다 — 그 그림만 빼고 점검 결과는 둔다
+        const 코드 = (err as { status?: number }).status;
+        if (코드 !== 404 && 코드 !== 410) throw err;
+        알림('의심 화면 그림 하나를 받지 못해 빼고 둔다', err);
+        continue;
+      }
+      await writeFile(join(받는곳, 이름), Buffer.from(await 그림.arrayBuffer()));
+      그림들.add(이름);
     }
     await writeFile(join(받는곳, UI_CHECK_FILE), 원문);
     await mkdir(둘곳, { recursive: true });

@@ -110,6 +110,12 @@ describe('팜증적을받는다', () => {
     expect(existsSync(join(폴더(), FARM_EVIDENCE_DIR, 'ui-001.png'))).toBe(false);
   });
 
+  it('점검 결과 받기가 던져도 러너를 끄지 않고 알린다', async () => {
+    점검결과를기다린다.mockRejectedValue(new Error('Invalid URL'));
+    await 팜증적을받는다(3, 9, 'PASS', undefined, { 끝난때: 1 });
+    await vi.waitFor(() => expect(console.error).toHaveBeenCalledWith(expect.stringContaining('Invalid URL')));
+  });
+
   it('호환성 항목이 아니면 점검 결과를 기다리지 않는다', async () => {
     await 팜증적을받는다(3, 9, 'FAIL');
     expect(점검결과를기다린다).not.toHaveBeenCalled();
