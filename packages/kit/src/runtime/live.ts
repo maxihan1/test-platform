@@ -1,4 +1,4 @@
-// 테스트 모드 장면 — 탭(또는 Appium 폰 화면)의 마지막 장면 한 장을 러너가 준 파일에 덮어 쓰고 탭이면 누른 곳을 그린다 (SPEC 도메인/러너 §5.2 「테스트 모드 — 실시간 장면」)
+// 테스트 모드 장면 — 탭(또는 Appium 폰 화면)의 마지막 장면 한 장을 러너가 준 파일에 덮어 쓴다 (SPEC 도메인/러너 §5.2 「테스트 모드 — 실시간 장면」)
 // 이 프로세스는 러너의 손자(Playwright 작업자)라 파일로 넘긴다. 러너가 GET /live/:key 로 그 파일을 낸다
 
 import { mkdir, rename, rm, writeFile } from 'node:fs/promises';
@@ -135,7 +135,6 @@ export async function 장면걸기(page: Page, 파일 = process.env.PLATFORM_LIV
   const 쓰개 = 파일 ? 장면쓰개(파일) : undefined;
   let 받음 = false;
   let 걸림 = true;
-  let 장면됨 = 쓰개 !== undefined;
   try {
     for (const 곳 of [파일, 영상]) if (곳) await mkdir(dirname(곳), { recursive: true });
     await page.screencast.start({
@@ -149,18 +148,14 @@ export async function 장면걸기(page: Page, 파일 = process.env.PLATFORM_LIV
       ...(영상 && { path: 영상 }),
     });
   } catch (err) {
-    장면됨 = false;
     console.warn(`[kit] ${쓰개 === undefined ? '폰 화면 영상' : '테스트 모드 장면'}을 못 걸었다: ${글(err)}`);
     // 영상이 증적이다 — 장면과 같이 못 걸었으면 영상만 다시 건다. 장면은 아래 받쳐 찍기가 맡는다
     걸림 = Boolean(영상 && 쓰개 !== undefined && (await page.screencast.start({ path: 영상 }).then(() => true, (e: unknown) => (console.warn(`[kit] 폰 화면 영상을 못 걸었다: ${글(e)}`), false))));
     if (!걸림 && 쓰개 === undefined) return undefined;
   }
   const 받침멈추기 = 쓰개 === undefined ? undefined : 찍어받친다(page, 쓰개, () => 받음, 틈);
-  // 누른 곳 표시는 시험 실행(러너가 늦추기 값을 준 실행)의 서버 러너 브라우저에만 건다 — 정식 실행은 화면만 찍고,
-  // 실제 폰 Chrome(PLATFORM_CDP_URL)에서는 확인하지 않았다 (러너 §5.2 「테스트 모드 — 실시간 장면」)
-  if (장면됨 && Number(process.env.PLATFORM_SLOW_MO) > 0 && !process.env.PLATFORM_CDP_URL) {
-    await page.screencast.showActions().catch((err: unknown) => console.warn(`[kit] 누른 곳 표시를 못 걸었다: ${글(err)}`));
-  }
+  // 누른 곳 표시(page.screencast.showActions)는 걸지 않는다 — Playwright 가 동작마다 「Click getByRole(…)」 영어 제목을 장면에 찍고
+  // 제목만 끄는 설정이 없다(1.63 — fontSize 0 은 무시된다). 화살표도 같이 사라진다 (2026-11-06 사용자 · WEB-F9-14 · 점검표 B20 · 러너 §5.2 「테스트 모드 — 실시간 장면」)
   const 멈추기 = async (): Promise<void> => {
     await 받침멈추기?.();
     if (걸림 && !page.isClosed()) await page.screencast.stop().catch((err: unknown) => console.warn(`[kit] 테스트 모드 장면을 못 멈췄다: ${글(err)}`));
