@@ -11,7 +11,7 @@ type 자료 = 대시보드응답;
 /** 유형 이름 글자의 정본 — 결과 화면의 유형 칩 · 칩 줄도 이것을 쓴다 (도메인/실행 §8.3 「실패 유형으로 묶는다」) */
 export const 실패유형이름: Record<실패유형, string> = {
   mismatch: '기대 결과 불일치',
-  notFound: '요소 미검출',
+  notFound: '요소를 찾지 못함',
   timeout: '타임아웃',
   environment: '환경 오류',
   other: '그 밖',

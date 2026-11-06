@@ -92,7 +92,7 @@ export const 대시보드말: Record<string, string> = {
   '최근 {일}일 실패 · 미실행의 원인': 'Causes of failed and not-run tests in the last {일} days',
   '최근 {일}일 실패 · 미실행이 없습니다': 'No failed or not-run tests in the last {일} days',
   '기대 결과 불일치': 'Expected result mismatch',
-  '요소 미검출': 'Element not found',
+  '요소를 찾지 못함': 'Element not found',
   타임아웃: 'Timeout',
   '환경 오류': 'Environment error',
   '그 밖': 'Other',

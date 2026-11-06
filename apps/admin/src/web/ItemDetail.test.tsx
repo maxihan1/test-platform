@@ -85,7 +85,7 @@ describe('항목 상세 (SPEC §8.4)', () => {
       failure: { type: 'notFound', reason: 'Test timeout of 30000ms exceeded.' },
     });
     expect(await screen.findByText('실패 이유')).toBeTruthy();
-    expect(screen.getByText('요소 미검출')).toBeTruthy();
+    expect(screen.getByText('요소를 찾지 못함')).toBeTruthy();
     expect(screen.queryByText('실행이 멈춘 사유')).toBeNull();
     const 원문 = screen.getByText('원문 보기').closest('details') as HTMLDetailsElement;
     expect(원문.open).toBe(false);
