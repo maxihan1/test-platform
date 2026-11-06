@@ -71,16 +71,24 @@ export async function 진행(주소들 = 러너들(), 제한ms = 3_000): Promise
   return 목록.flat();
 }
 
-let 앞시험진행: { 때: number; 값: Promise<RunningStep[]> } | undefined;
+// 받은 때가 undefined 면 아직 답을 기다리는 중이다 — 그동안 온 물음도 같은 답을 기다린다
+let 앞시험진행: { 받은때: number | undefined; 값: Promise<RunningStep[]> } | undefined;
 
 /**
- * 시험 실행이 도는 서버 러너의 절차들 — 1초 동안 모든 시험이 한 답을 함께 쓰고 1초까지만 기다린다.
- * 화면이 1.5초마다 묻고 시험이 여럿이면 그만큼 러너를 부르게 돼서다 (도메인/실행 §3.2 「시험 실행 지금 단계 · 중단 · 정식 실행 화면」)
+ * 시험 실행이 도는 서버 러너의 절차들 — 답을 받은 뒤 1초 동안, 그리고 기다리는 동안 모든 시험이 한 답을 함께 쓴다.
+ * 화면이 1.5초마다 묻고 시험이 여럿이면 그만큼 러너를 부르게 돼서다.
+ * 3초까지 기다린다 — 1초였을 때 CPU 둘인 서버에서 WebKit(모바일)이 돌면 답이 매번 늦어 단계가 끝까지 비었다
+ * (2026-11-06 WEB-F9-14 · 점검표 B1 · 도메인/실행 §3.2 「시험 실행 지금 단계 · 중단 · 정식 실행 화면」)
  */
 export function 시험진행(): Promise<RunningStep[]> {
-  const 지금 = Date.now();
-  if (앞시험진행 === undefined || 지금 - 앞시험진행.때 >= 1_000) 앞시험진행 = { 때: 지금, 값: 진행([runnerUrl()], 1_000) };
-  return 앞시험진행.값;
+  const 앞 = 앞시험진행;
+  if (앞 !== undefined && (앞.받은때 === undefined || Date.now() - 앞.받은때 < 1_000)) return 앞.값;
+  const 이번: NonNullable<typeof 앞시험진행> = { 받은때: undefined, 값: 진행([runnerUrl()], 3_000) };
+  void 이번.값.then(() => {
+    이번.받은때 = Date.now();
+  });
+  앞시험진행 = 이번;
+  return 이번.값;
 }
 
 // 400·404·500은 전부 { error, detail } 이다. 사람이 읽을 사유로 합쳐 둔다
