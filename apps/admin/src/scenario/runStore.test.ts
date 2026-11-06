@@ -521,6 +521,18 @@ describe.skipIf(연결 === undefined)('시나리오 실행 만들기', () => {
     expect((await 실행상태(runId)).status).toBe('ABORTED');
   });
 
+  it('사람이 멈췄는데 러너 답에 부품이 없으면 첫 부품을 STOPPED(시간 0), 나머지를 NOT_RUN 으로 적는다', async () => {
+    const runId = await 세부품();
+
+    expect(await 결과저장(runId, { status: 'NA', durationMs: 5, error: { message: 'ABORTED' }, parts: [] }, true)).toBe(true);
+
+    expect((await 부품행(runId)).map((r) => [r.seq, r.status, r.error])).toEqual([
+      [1, 'NA', { message: 'STOPPED' }],
+      [2, 'NA', { message: 'NOT_RUN' }],
+      [3, 'NA', { message: 'NOT_RUN' }],
+    ]);
+  });
+
   it('러너에 보낸 시나리오 실행을 멈추면 러너에 끊어 달라 하고 러너 답이 오면 ABORTED 로 닫는다', async () => {
     const runId = await 세부품();
     const 요청: ScenarioExecuteRequest = { runId, platform: 'desktop', baseUrl: 'http://xse.example', parts: [], timeoutMs: 60000 };

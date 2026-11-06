@@ -23,7 +23,7 @@ export function 실행상태를연다(runId: number, 부품수: number): 시험�
 
 export const 실행상태를지운다 = (runId: number): void => void 상태들.delete(runId);
 
-// 보내기 전이라 어느 부품도 안 돌았다 — 전부 'NOT_RUN'(화면 「실행 안 됨」)이다. 'ABORTED' 는 재기동 복구 몫이라 쓰지 않는다 (도메인/시나리오 §8.11)
+// 보내기 전이라 어느 부품도 안 돌았다 — 전부 'NOT_RUN'(화면 「실행 안 함」)이다. 'ABORTED' 는 재기동 복구 몫이라 쓰지 않는다 (도메인/시나리오 §8.11)
 async function 보내기전에닫는다(runId: number): Promise<boolean> {
   const c = await (await db()).connect();
   try {

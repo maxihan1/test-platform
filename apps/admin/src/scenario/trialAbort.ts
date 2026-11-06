@@ -39,9 +39,11 @@ export function 보내기전멈춘결과(부품수: number): ScenarioExecuteResp
 
 /**
  * 러너가 끊고 돌려준 답을 사람이 멈춘 모양으로 바꾼다 — 머리는 'STOPPED', 돌던 부품(첫 'ABORTED')은 'STOPPED' 로 걸린 시간을 남기고
- * 시작도 못 한 그 뒤 부품은 'NOT_RUN'(화면 「실행 안 됨」)이다. 끊긴 답이 아니면 건드리지 않는다
+ * 시작도 못 한 그 뒤 부품은 'NOT_RUN'(화면 「실행 안 함」)이다. 끊긴 답이 아니면 건드리지 않는다.
+ * 부품수를 주면 답에 돌던 부품이 없을 때(빈 parts · 줄이 빠진 답)에도 비어 있는 첫 부품을 'STOPPED'(시간 0), 나머지를 'NOT_RUN' 으로 채운다 —
+ * 안 그러면 돌던 부품까지 「실행 안 함」으로 보인다. 앞 부품이 실패했으면 돌던 부품이 없으니 채우지 않는다
  */
-export function 멈춘부품을고친다<R extends ScenarioExecuteResponse>(응답: R): R {
+export function 멈춘부품을고친다<R extends ScenarioExecuteResponse>(응답: R, 부품수?: number): R {
   if (응답.error?.message !== 'ABORTED') return 응답;
   let 돌던것을봤다 = false;
   const parts = 응답.parts.map((p) => {
@@ -52,6 +54,20 @@ export function 멈춘부품을고친다<R extends ScenarioExecuteResponse>(응�
     }
     return { ...p, durationMs: 0, error: { ...p.error, message: 'NOT_RUN' } };
   });
+  if (!돌던것을봤다 && 부품수 !== undefined && !parts.some((p) => p.status === 'FAIL')) {
+    const 있는 = new Map(parts.map((p) => [p.seq, p]));
+    let 첫빈자리 = true;
+    for (let seq = 1; seq <= 부품수; seq++) {
+      const got = 있는.get(seq);
+      if (got !== undefined && !(got.status === 'NA' && got.error?.message === 'NOT_RUN')) continue;
+      const 메시지 = 첫빈자리 ? 'STOPPED' : 'NOT_RUN';
+      첫빈자리 = false;
+      const 채움 = { seq, status: 'NA' as const, durationMs: 0, steps: [], mocks: [], ...got, error: { message: 메시지 } };
+      if (got === undefined) parts.push(채움);
+      else parts[parts.indexOf(got)] = 채움;
+    }
+    parts.sort((a, b) => a.seq - b.seq);
+  }
   return { ...응답, error: { ...응답.error, message: 'STOPPED' }, parts };
 }
 

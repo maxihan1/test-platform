@@ -105,8 +105,11 @@ async function 실패기록(pool: Pool, runId: number, 응답: ScenarioExecuteRe
 async function 적는다(runId: number, 받은응답: ScenarioExecuteResponse, 사람이멈춤: boolean): Promise<boolean> {
   // 케이스 결과 저장(execution/runLifecycle.ts finishItem)과 같은 까닭으로 거른다 — 글자 하나에 부품 전부가 NA 가 되지 않게
   const 맞춘 = jsonb에맞춘다(받은응답);
-  const 응답 = 사람이멈춤 ? 멈춘부품을고친다(맞춘) : 맞춘;
   const pool = await db();
+  const 부품수 = 사람이멈춤
+    ? (await pool.query<{ n: number }>('SELECT count(*)::int AS n FROM scenario_run_part WHERE run_id = $1', [runId])).rows[0]?.n
+    : undefined;
+  const 응답 = 사람이멈춤 ? 멈춘부품을고친다(맞춘, 부품수) : 맞춘;
   // 트랜잭션 밖에서 푼다 — zip 을 푸는 동안 실행 행을 잡고 있지 않게
   const 기록들 = await 실패기록(pool, runId, 응답);
   const c = await pool.connect();
