@@ -63,7 +63,7 @@ describe('RunWindow', () => {
     render(<RunWindow tcIds={['ZRS-001', 'ZRS-002']} onClose={vi.fn()} />);
 
     expect(screen.getByText('불러오는 중입니다.')).toBeTruthy();
-    expect(await screen.findByRole('dialog', { name: '실행할 케이스 2건' })).toBeTruthy();
+    expect(await screen.findByRole('dialog', { name: '케이스 2건 실행' })).toBeTruthy();
     expect(screen.getByText('ZRS-001 케이스')).toBeTruthy();
     expect(screen.getByText('ZRS-002 케이스')).toBeTruthy();
     expect(screen.getByRole('option', { name: 'qa' })).toBeTruthy();
@@ -106,7 +106,7 @@ describe('RunWindow', () => {
     읽기모킹([케이스('ZRS-001'), 케이스('ZRS-002', { isActive: false })]);
     render(<RunWindow tcIds={['ZRS-001', 'ZRS-002']} onClose={vi.fn()} />);
 
-    expect(await screen.findByRole('dialog', { name: '실행할 케이스 1건' })).toBeTruthy();
+    expect(await screen.findByRole('dialog', { name: '케이스 1건 실행' })).toBeTruthy();
     expect(screen.getByText('비활성이거나 없어 뺀 케이스 ZRS-002')).toBeTruthy();
     expect(screen.queryByText('ZRS-002 케이스')).toBeNull();
   });
@@ -118,7 +118,7 @@ describe('RunWindow', () => {
     );
     render(<RunWindow tcIds={['ZRS-001', 'ZRS-009']} onClose={vi.fn()} />);
 
-    expect(await screen.findByRole('dialog', { name: '실행할 케이스 1건' })).toBeTruthy();
+    expect(await screen.findByRole('dialog', { name: '케이스 1건 실행' })).toBeTruthy();
     expect(screen.getByText('비활성이거나 없어 뺀 케이스 ZRS-009')).toBeTruthy();
   });
 
@@ -269,7 +269,7 @@ describe('RunWindow', () => {
     읽기모킹([케이스('ZRS-001', { platforms: ['mobile'] })]);
     vi.spyOn(api, 'run').mockRejectedValue(new ApiError(500, 'INTERNAL', ''));
     render(<RunWindow tcIds={['ZRS-001']} rerunOf={20914} onClose={vi.fn()} />);
-    await screen.findByRole('dialog', { name: '실행할 케이스 1건' });
+    await screen.findByRole('dialog', { name: '케이스 1건 실행' });
 
     expect((screen.getByRole('radio', { name: '가상 기기' }) as HTMLInputElement).checked).toBe(true);
     expect(screen.getByText(/^원래 실행을 읽지 못해 모바일 실행 위치를 가상 기기로 골라 두었습니다/)).toBeTruthy();

@@ -155,9 +155,9 @@ export const 실행말: Record<string, string> = {
   '{케이스} {디바이스} 실행': 'Run {케이스} on {디바이스}',
   // 실행 칸이 테스트만인 사람의 실행 자리 (도메인/인증 §3.5 「테스트 모드」)
   '{케이스} {디바이스} 시험 실행': 'Trial run {케이스} on {디바이스}',
-  // 실행 창의 PC · 모바일 탭 (시안 ② ③)
-  '실행할 디바이스': 'Device to run',
-  '실행할 디바이스를 하나 이상 선택하세요.': 'Select at least one device to run.',
+  // 실행 창 준비 화면 — 디바이스를 다 껐을 때 표 자리 · 모바일 웹 고르개 (도메인/실행 §8.16 ①)
+  '실행할 디바이스를 하나 이상 선택하세요': 'Select at least one device to run',
+  '빈 폰 {수}대': '{수} idle phones',
   // 실행 창을 여는 다른 자리 — 실행 결과 · 항목 상세 (도메인/실행 §8.10)
   '실패 {건수}건 다시 실행': 'Rerun {건수} failed',
   '비활성이거나 없어 뺀 케이스 {목록}': 'Left out as inactive or missing: {목록}',
@@ -171,11 +171,14 @@ export const 실행말: Record<string, string> = {
   '한 번에 {상한}건까지 만들 수 있습니다 (지금 {지금}건)': 'Up to {상한} items per run ({지금} right now)',
 
   // 여러 건 실행 모달 (§8.10)
-  '실행할 케이스 {건수}건': '{건수} cases to run',
-  '시험 실행할 케이스 {건수}건': '{건수} cases to trial run',
-  // 여러 건 실행 창에서 접힌 값 칸을 펴고 접는 버튼 (도메인/실행 §8.10 · 시안 ②)
-  '입력값 {수}개': '{수} inputs',
-  '입력값 접기': 'Hide inputs',
+  '케이스 {건수}건 실행': 'Run {건수} cases',
+  '케이스 {건수}건 시험 실행': 'Trial run {건수} cases',
+  // 실행 창 한 틀의 머리 — 단계 표시와 닫기 × (도메인/실행 §8.16)
+  '단계': 'Steps',
+  '창 닫기': 'Close window',
+  // 실행 창 케이스 표의 열과 입력값 열 (도메인/실행 §8.16 ① · 시안 A)
+  '{수}개 펼치기 ▾': 'Show {수} ▾',
+  '접기 ▴': 'Hide ▴',
   '입력값 없음': 'No inputs',
   '실행을 시작하는 중': 'Starting…',
   '취소': 'Cancel',

@@ -11,7 +11,7 @@ import { type 글자표, type 실행요청, 몇건, 실행항목, 안드로이�
 import { 마지막서버 } from './layout.js';
 import { RunLocation } from './RunLocation.js';
 import { use닫기묻기, 바닥한줄, 반복과알림, 실행버튼들 } from './RunPickFoot.js';
-import { 한건머리, use한건 } from './RunPickOne.js';
+import { 한건머리 } from './RunPickOne.js';
 import { 저장한값줄 } from './RunPickSaved.js';
 import { 머리줄 } from './RunPickHead.js';
 import { use디바이스고르기 } from './RunPickTabs.js';
@@ -80,7 +80,8 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
   // 칸 아래 사유를 언제 보일까. 치는 동안 빨간 글이 따라다니면 다 적기도 전에 틀렸다고 말한다
   const [오류보임, set오류보임] = useState(false);
   // 값 칸을 편 케이스(여러 건은 접힌 채 시작한다). 저절로 접지 않는다 — 고치는 도중 사유가 사라졌다고 칸이 닫히면 안 된다 (도메인/실행 §8.10)
-  const [펼친, set펼친] = useState<ReadonlySet<string>>(new Set());
+  // 한 건 창은 편 채로 시작한다 — 고칠 값이 그것뿐이다
+  const [펼친, set펼친] = useState<ReadonlySet<string>>(() => new Set(케이스들.length === 1 ? [케이스들[0]!.tcId] : []));
   const 뒤집기 = (tcId: string) => set펼친((전) => new Set(전.has(tcId) ? [...전].filter((it) => it !== tcId) : [...전, tcId]));
 
   /** 사람이 뭔가 손댔다. 방금 누른 것에 대한 답과 옛 사유를 함께 치운다 */
@@ -100,11 +101,11 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
   const 저장된다 = 할수있나(user ?? null, 케이스서비스(케이스들[0]?.tcId ?? ''), '입력값저장');
   const 닫기 = use닫기묻기(값.안저장.length > 0, onClose, 저장된다 ? () => void 저장(값.안저장).then((됨) => { if (됨) onClose(); }) : undefined);
   const 한건 = 케이스들.length === 1 ? 케이스들[0]! : null;
-  const 하나 = use한건(한건);
-  // 한 건이면 사람이 고른 디바이스로 돈다. 여러 건이면 케이스가 선언한 것을 전부 쓴다 (SPEC §8.10)
-  // 여러 건이 PC · 모바일로 섞였으면 체크칸에서 끈 디바이스를 뺀다 — 거는 것 · 세는 것 · 보이는 줄이 모두 이것이다 (RunPickTabs)
-  const 디바이스 = use디바이스고르기(한건 === null ? 케이스들 : [{ ...한건, platforms: 하나.디바이스 }], 한건 !== null);
+  // 한 건 · 여러 건 모두 머리 줄 체크칸에서 끈 디바이스를 뺀다 — 거는 것 · 세는 것 · 보이는 줄이 모두 이것이다 (RunPickTabs · 도메인/실행 §8.16 ①)
+  const 디바이스 = use디바이스고르기(케이스들);
   const 돌릴것 = 디바이스.돌릴것;
+  // 다 끄면 표 자리에 사유를 두고 단추를 잠근다 — 누른 뒤 뜬 경고가 다시 켜도 남던 앞 판을 걷었다 (§8.16 ① · 점검표 B9)
+  const 다껐나 = 돌릴것.length === 0;
 
   // 보내는 값과 같은 규칙으로 센다. 소수를 그대로 세면 화면 건수와 실제 항목 수가 갈린다
   const 반복수 = Math.max(1, Math.floor(Number(repeat) || 1));
@@ -138,15 +139,8 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
   }
 
   /** 「실행」 — 걸기 전에 시작 확인 창을 띄운다. 완료 창의 「실행」도 같은 길이다 (시안 7판 ③-1 ⑥) */
-  /** 켠 디바이스가 없으면 사유를 보이고 거짓 — 실행 · 시험 실행이 같은 검사를 거친다 */
-  function 디바이스있나(): boolean {
-    if (돌릴것.some((c) => c.platforms.length > 0)) return true;
-    setNotice(t('실행할 디바이스를 하나 이상 선택하세요.'));
-    return false;
-  }
-
   function 실행() {
-    if (!값이맞나() || !디바이스있나()) return;
+    if (다껐나 || !값이맞나()) return;
     if (env === '') {
       // 버튼을 비활성화하지 않는다. 누르면 사유를 보여준다 (SPEC §8.2 · DESIGN.md)
       setNotice(t('대상 서버를 선택하세요. 리포트에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.'));
@@ -171,13 +165,23 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
 
   return (
     <Modal
-      제목={시험.보기 !== 'edit' ? 시험제목(t, 시험) : 정식 ? t('실행할 케이스 {건수}건', { 건수: 돌릴것.length }) : t('시험 실행할 케이스 {건수}건', { 건수: 돌릴것.length })}
+      제목={시험.보기 !== 'edit' ? 시험제목(t, 시험) : t(정식 ? '케이스 {건수}건 실행' : '케이스 {건수}건 시험 실행', { 건수: 다껐나 ? 케이스들.length : 돌릴것.length })}
       onClose={닫기.요청}
-      넓게
+      틀={시험.보기 === 'edit' ? '준비' : 시험.보기 === 'running' ? '실행 중' : '결과'}
       바깥눌러닫기={false}
       버튼={
         시험.보기 !== 'edit' ? <시험바닥 시험={시험} 케이스들={돌릴것} env={env} 정식={정식} on실행={실행} /> : 닫기.묻나 ? 닫기.줄 : (
         <>
+          {/* 반복 · 알림은 바닥 왼쪽이다 (§8.16 ① · 시안 A) */}
+          {!정식 ? null : (
+            <반복과알림
+              repeat={repeat}
+              on반복={(값) => { 손댐(); setRepeat(값); }}
+              slack칸={service?.hasSlackWebhook === true}
+              한건한번={한건 !== null && 반복수 === 1}
+              notifySlack={notifySlack} onSlack={setNotifySlack}
+            />
+          )}
           {/* 사유도 건수도 말풍선이 아니라 화면 줄이다. 오류는 실패 글자색(--fail-text)으로 적는다 (DESIGN.md 원칙 1 오류 예외) */}
           <span className="note" role="status" style={빨갛나 ? { color: 'var(--fail-text)' } : undefined}>
             {줄}
@@ -186,8 +190,9 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
             {t('취소')}
           </button>
           <실행버튼들
-            on시험={() => { if (값이맞나() && 디바이스있나()) 시험.누름(); }}
+            on시험={() => { if (값이맞나()) 시험.누름(); }}
             on실행={실행}
+            다껐나={다껐나}
             실행막힘={너무많나}
             거는중={거는중 === true}
             정식={정식}
@@ -203,94 +208,80 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
       )}
       <중단확인 시험={시험} />
       {시험.보기 !== 'edit' ? <시험화면 시험={시험} 케이스들={돌릴것} 한건={한건 !== null} /> : (<>
-      <머리줄 디바이스={디바이스}service={service} env={env} on서버={(값) => { 손댐(); setEnv(값); }} />
-      <RunLocation android={android} 앱종류={service?.kind} 모바일={모바일 ? { 값: mobileOn, on바꿈: (값) => { 손댐(); setMobileOn(값); } } : undefined} />
-      {한건 === null ? null : (
-        <한건머리
-          케이스={한건}
-          디바이스={하나.디바이스}
-          on디바이스={(다음) => { 손댐(); 하나.set디바이스(다음); }}
-        />
-      )}
+      <머리줄 디바이스={디바이스} service={service} env={env} on서버={(값) => { 손댐(); setEnv(값); }}
+        mobileOn={mobileOn} on모바일={(값) => { 손댐(); setMobileOn(값); }} />
+      <RunLocation android={android} 앱종류={service?.kind} />
+      {한건 === null ? null : <한건머리 케이스={한건} />}
 
       {/* 고른 것이 왜 줄었는지. 제목의 건수만 보면 어디서 사라졌는지 아무 데도 안 적힌다 */}
       {안내 === undefined ? null : <div className="mnote">{안내}</div>}
 
-      {/* 여기만 스크롤한다. 머리와 바닥은 고정이다 (SPEC §8.10) */}
+      {/* 여기만 스크롤한다. 머리와 바닥은 고정이다 (SPEC §8.10). 열은 TC ID · 케이스명 · 디바이스 · 입력값 넷이다 (§8.16 ① · 점검표 D4) */}
+      {다껐나 ? (
+        <p className="picked picked-none" role="status">{t('실행할 디바이스를 하나 이상 선택하세요')}</p>
+      ) : (
       <div className="picked">
+        <div className="prow prow-head" aria-hidden="true">
+          <span>{t('TC ID')}</span>
+          <span>{t('케이스명')}</span>
+          <span>{t('디바이스')}</span>
+          <span>{t('입력값')}</span>
+        </div>
         {돌릴것.map((c) => {
           const 칸 = 값.칸들.get(c.tcId);
-          // 값이 없는 케이스는 그 사실을 글로 적는다. 빈 자리를 남기면 「안 불러왔나」로 읽힌다
           const 값수 = (칸?.params.length ?? 0) + (칸?.expected.length ?? 0);
-          const 값있나 = 값수 > 0;
           // 돈 디바이스 칸에만 남긴다 — 시험 뒤 디바이스를 바꾸면 끈 디바이스의 결과는 걷는다 (도메인/실행 §8.16 ① · 점검표 B5)
           const 시험줄 = 시험.줄들[c.tcId]?.filter((칸) => c.platforms.includes(칸.platform));
+          const 폈나 = 펼친.has(c.tcId);
 
           return (
-            <div key={c.tcId}>
+            <div key={c.tcId} className={폈나 && 값수 > 0 ? 'prow-wrap open' : 'prow-wrap'}>
               <div className="prow">
                 <span className="id">{c.tcId}</span>
-                <span className="nm">{c.name}</span>
-                {/* 여러 건이면 디바이스는 케이스가 선언한 것을 전부 쓴다. 여기서 고르지 않는다 (SPEC §8.10) */}
-                <span className="dev">{c.platforms.map((p) => PLATFORM_LABEL[p]).join(' · ')}</span>
-                <시험배지 칸들={시험줄} />
-                {/* 여러 건이면 값을 접어 두고 이 단추로 편다 — 「실행」을 가깝게 둔다 (도메인/실행 §8.10 · styles.css) */}
-                {한건 !== null || !값있나 ? null : (
-                  <button type="button" className="btn small ghost prow-fold" aria-expanded={펼친.has(c.tcId)} onClick={() => 뒤집기(c.tcId)}>
-                    {펼친.has(c.tcId) ? t('입력값 접기') : t('입력값 {수}개', { 수: 값수 })}
+                <span className="nm">
+                  {c.name}
+                  <시험배지 칸들={시험줄} />
+                </span>
+                <span className="dev">
+                  {c.platforms.map((p) => <span className="tag" key={p}>{t(PLATFORM_LABEL[p])}</span>)}
+                </span>
+                {/* 입력값 열은 늘 같은 자리다 — 값이 없으면 그 사실을 글로 적는다. 빈 자리를 남기면 「안 불러왔나」로 읽힌다 */}
+                {값수 === 0 || 칸 === undefined ? (
+                  <span className="iv">{t('없음')}</span>
+                ) : (
+                  <button type="button" className="iv prow-fold" aria-expanded={폈나} onClick={() => 뒤집기(c.tcId)}>
+                    {폈나 ? t('접기 ▴') : t('{수}개 펼치기 ▾', { 수: 값수 })}
                   </button>
                 )}
               </div>
               {한건 !== null ? <시험절차 칸들={시험줄} /> : null}
-              {!값있나 || 칸 === undefined ? (
-                <p className="prow-none">{t('입력값 없음')}</p>
-              ) : (
-                <div className={펼친.has(c.tcId) ? 'prow-edit open' : 'prow-edit'}>
-                  {칸.params.length === 0 ? null : (
-                    <Form
-                      idPrefix={`p-${c.tcId}`}
-                      fields={칸.params}
-                      text={값.글자of(c.tcId, 'params')}
-                      errors={값.칸오류(c.tcId, 'params', 오류보임)}
-                      onChange={값.고치기(c.tcId, 'params')}
-                    />
-                  )}
-                  {칸.expected.length === 0 ? null : (
-                    <Form
-                      idPrefix={`e-${c.tcId}`}
-                      fields={칸.expected}
-                      text={값.글자of(c.tcId, 'expected')}
-                      errors={값.칸오류(c.tcId, 'expected', 오류보임)}
-                      onChange={값.고치기(c.tcId, 'expected')}
-                    />
-                  )}
+              {값수 === 0 || 칸 === undefined ? null : (
+                <div className={폈나 ? 'prow-edit open' : 'prow-edit'}>
+                  {/* 한 건 · 여러 건 · 앱 창 모두 같은 두 칸 격자다 */}
+                  <div className="prow-vals">
+                    {(['params', 'expected'] as const).map((쪽) => 칸[쪽].length === 0 ? null : (
+                      <Form key={쪽} idPrefix={`${쪽 === 'params' ? 'p' : 'e'}-${c.tcId}`} fields={칸[쪽]} text={값.글자of(c.tcId, 쪽)}
+                        errors={값.칸오류(c.tcId, 쪽, 오류보임)} onChange={값.고치기(c.tcId, 쪽)} />
+                    ))}
+                  </div>
                   <출처줄 케이스={c} 상태={값.출처(c.tcId)} 저장된다={저장된다} 저장중={저장중}
                     on저장={() => void 저장([c.tcId])} on되돌리기={() => 값.되돌리기(c.tcId)} />
+                  {한건 === null ? null : (
+                    <저장한값줄
+                      케이스={한건}
+                      user={user ?? null}
+                      값={값.저장할값(c.tcId)}
+                      on불러오기={(글자) => 값.불러오기(c.tcId, 글자)}
+                      on다시읽기={() => { 값.저장잊기(c.tcId); on다시읽기?.(c.tcId); }}
+                      on실패={저장실패}
+                    />
+                  )}
                 </div>
-              )}
-              {한건 === null || !값있나 ? null : (
-                <저장한값줄
-                  케이스={한건}
-                  user={user ?? null}
-                  값={값.저장할값(c.tcId)}
-                  on불러오기={(글자) => 값.불러오기(c.tcId, 글자)}
-                  on다시읽기={() => { 값.저장잊기(c.tcId); on다시읽기?.(c.tcId); }}
-                  on실패={저장실패}
-                />
               )}
             </div>
           );
         })}
       </div>
-
-      {!정식 ? null : (
-        <반복과알림
-          repeat={repeat}
-          on반복={(값) => { 손댐(); setRepeat(값); }}
-          slack칸={service?.hasSlackWebhook === true}
-          한건한번={한건 !== null && 반복수 === 1}
-          notifySlack={notifySlack} onSlack={setNotifySlack}
-        />
       )}
       </>)}
     </Modal>

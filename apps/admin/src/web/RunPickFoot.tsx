@@ -131,12 +131,15 @@ export function 반복과알림({ repeat, on반복, slack칸, notifySlack, onSla
 export function 실행버튼들({
   on시험,
   on실행,
+  다껐나,
   실행막힘,
   거는중,
   정식,
 }: {
   on시험: () => void;
   on실행: () => void;
+  /** 디바이스를 다 껐다 — 사유가 표 자리에 크게 적혀 있어 단추를 잠근다 (도메인/실행 §8.16 ① · 점검표 B9) */
+  다껐나: boolean;
   실행막힘: boolean;
   거는중: boolean;
   /** 실행 칸이 `write` 다. `trial` 이면 기록이 남는 「실행」을 안 그린다 (도메인/인증 §3.5 「테스트 모드」) */
@@ -145,13 +148,13 @@ export function 실행버튼들({
   const t = use말();
   return (
     <>
-      <button className="btn ghost" onClick={on시험}>
+      <button className="btn ghost" onClick={on시험} disabled={다껐나}>
         {t('시험 실행')}
       </button>
       {/* 상한은 서버도 같은 것을 본다. 화면만 막으면 직접 찌르는 요청을 못 막는다 (SPEC §8.2) */}
       {/* 도는 동안 글자가 바뀌고 눌리지 않는다. 안 그러면 두 번째 누름이 조용히 무시된다 */}
       {!정식 ? null : (
-        <button className="btn" onClick={on실행} disabled={실행막힘 || 거는중}>
+        <button className="btn" onClick={on실행} disabled={다껐나 || 실행막힘 || 거는중}>
           {거는중 ? t('실행을 시작하는 중') : t('실행')}
         </button>
       )}

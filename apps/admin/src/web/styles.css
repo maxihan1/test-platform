@@ -1967,20 +1967,6 @@ input[type='file']::file-selector-button {
   overflow: hidden;
 }
 
-/* 표가 들어가 480px 에 안 들어가는 상자. `넓게` 를 주는 곳의 정본은 DESIGN.md 「모달」 목록이다 —
-   케이스 상세 · 실행 결과 상자는 2026-10-19 ⑫ · 10-20 ⑬ 에 오른쪽 칸으로 옮겨 없어졌다.
-   여러 건 실행 모달은 `DESIGN.md` 가 처음부터 넓은 것으로 셌는데 코드가 `넓게` 를 안 줘 480px 였다 —
-   「너무 좁다」는 지적(2026-09-30)으로 코드를 문서에 맞췄다 (2026-09-22 자기검사 H2 가 찾았던 어긋남).
-   좁은 화면 규칙은 `.modal` 과 같다.
-
-   **880px 로 잡았다가 같은 주에 1400px 로 올렸다.** 「표가 들어가 480px 에 안 들어간다」는
-   그대로 맞는데, 880 으로도 **모자랐다** — 실행 결과 상자에서 정보 UI 가 95% 를 먹고
-   케이스 목록에 32px 만 남아 줄 하나(101px)도 안 들어갔다 (2026-09-22 실측).
-   넓은 상자는 값 하나를 쓴다. 가르면 DESIGN.md 도 갈라야 하고 다음 사람이 한쪽만 고친다 */
-.modal.wide {
-  max-width: 1400px;
-}
-
 .modal-title {
   font-size: 19px;
   font-weight: 600;
@@ -3031,10 +3017,11 @@ input[type='file']::file-selector-button {
 
 .prow {
   display: grid;
-  grid-template-columns: 104px 1fr auto auto auto;
-  gap: 0 10px;
+  /* TC ID · 케이스명 · 디바이스 · 입력값 — 열은 늘 같은 자리다 (도메인/실행 §8.16 ① · 점검표 D4) */
+  grid-template-columns: 128px minmax(0, 1fr) 150px 130px;
+  gap: 0 12px;
   align-items: baseline;
-  padding: 9px 0;
+  padding: 9px 14px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -3078,9 +3065,9 @@ input[type='file']::file-selector-button {
   border-bottom: 1px solid var(--line);
 }
 
-/* 여러 건 창의 값 칸은 PC 에서도 접힌 채 시작한다 — `값` 을 누르면 편다. 휴대폰만 접던 것을 넓혔다 (2026-10-19 · 도메인/실행 §8.10).
-   한 건 창은 `값` 단추가 없어 이 규칙이 닿지 않는다 */
-.prow:has(.prow-fold) + .prow-edit:not(.open) {
+/* 값 칸은 접힌 채 시작한다 — 입력값 열의 `N개 펼치기` 로 편다. 휴대폰만 접던 것을 넓혔다 (2026-10-19 · 도메인/실행 §8.10).
+   한 건 창도 같은 단추가 있고 편 채로 시작한다 (2026-11-06 §8.16 ①) */
+.prow-edit:not(.open) {
   display: none;
 }
 

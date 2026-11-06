@@ -3,6 +3,7 @@
 
 import { useEffect, useRef } from 'react';
 
+import { use말 } from './i18n.js';
 import { use휴대폰 } from './phone.js';
 import { 손잡이, use끌어닫기 } from './Sheet.js';
 
@@ -12,14 +13,20 @@ interface Props {
   children: React.ReactNode;
   /** 아래쪽 버튼들. 오른쪽 끝이 주 동작이다 */
   버튼: React.ReactNode;
-  /** 표가 들어가 480px 에 안 들어가는 상자 (DESIGN.md 「②의 상자 둘」). 880px 로 연다 */
-  넓게?: boolean;
+  /**
+   * 실행 창 한 틀의 지금 단계 (도메인/실행 §8.16). 주면 1180×744 고정 창이 되고 머리에 단계 표시와 닫기 × 가 선다 —
+   * 단계가 바뀌어도 창 크기와 단추 자리가 그대로다 (점검표 D1 · D5)
+   */
+  틀?: 틀단계;
   /**
    * 뒷막을 눌러 닫을지. 끄면 뒷막은 무시하고 Escape·취소 버튼은 그대로 닫는다.
    * 값을 많이 고친 창을 빗나간 클릭 하나로 잃지 않게 한다
    */
   바깥눌러닫기?: boolean;
 }
+
+export type 틀단계 = '준비' | '실행 중' | '결과';
+const 틀단계들: 틀단계[] = ['준비', '실행 중', '결과'];
 
 /** 열려 있는 상자들, 나중에 열린 것이 뒤. Esc 한 번이 겹친 상자를 한꺼번에 닫지 않게 맨 위만 반응하려고 둔다 */
 const 열린상자들: symbol[] = [];
@@ -32,7 +39,8 @@ export function 상자열렸나(): boolean {
 /** 포커스를 가둘 때 훑을 것들. 화면 전체를 덮는 설정 마법사도 같은 것으로 가둔다 */
 export const 포커스가능 = 'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
-export function Modal({ 제목, onClose, children, 버튼, 넓게 = false, 바깥눌러닫기 = true }: Props) {
+export function Modal({ 제목, onClose, children, 버튼, 틀, 바깥눌러닫기 = true }: Props) {
+  const t = use말();
   const 상자 = useRef<HTMLDivElement>(null);
   // 닫으면 열기 전 있던 자리로 돌려준다 (DESIGN.md)
   const 열기전 = useRef<Element | null>(null);
@@ -93,7 +101,7 @@ export function Modal({ 제목, onClose, children, 버튼, 넓게 = false, 바�
       }}
     >
       <div
-        className={['modal', 넓게 ? 'wide' : '', 휴대폰 && !바깥눌러닫기 ? 'full' : ''].filter(Boolean).join(' ')}
+        className={['modal', 틀 === undefined ? '' : 'frame', 휴대폰 && !바깥눌러닫기 ? 'full' : ''].filter(Boolean).join(' ')}
         role="dialog"
         aria-modal="true"
         aria-label={제목}
@@ -101,7 +109,25 @@ export function Modal({ 제목, onClose, children, 버튼, 넓게 = false, 바�
         style={아래판 ? 끌기.판 : undefined}
       >
         {아래판 ? <손잡이 끌기={끌기} /> : null}
-        <div className="modal-title">{제목}</div>
+        {틀 === undefined ? (
+          <div className="modal-title">{제목}</div>
+        ) : (
+          <div className="modal-title frame-head">
+            <span className="frame-title">{제목}</span>
+            {/* 지금 단계만 진하게. 진행 · 결과에서 연 창도 같은 머리다 */}
+            <ol className="frame-steps" aria-label={t('단계')}>
+              {틀단계들.map((단계) => (
+                <li key={단계} aria-current={단계 === 틀 ? 'step' : undefined}>
+                  <span>{t(단계)}</span>
+                </li>
+              ))}
+            </ol>
+            {/* 앞 판은 Esc 로만 닫혔다. 바닥 단추 「닫기」와 이름이 겹치지 않게 「창 닫기」다 */}
+            <button type="button" className="frame-x" aria-label={t('창 닫기')} onClick={onClose}>
+              ×
+            </button>
+          </div>
+        )}
         <div className="modal-body">{children}</div>
         <div className="modal-foot">{버튼}</div>
       </div>

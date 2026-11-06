@@ -88,7 +88,7 @@ describe('「모두 고르기」 띠', () => {
     fireEvent.click(within(바()).getByRole('button', { name: '모두 실행' }));
 
     const 모달 = await screen.findByRole('dialog');
-    expect(모달.getAttribute('aria-label')).toBe('실행할 케이스 3건');
+    expect(모달.getAttribute('aria-label')).toBe('케이스 3건 실행');
     expect(스파이.mock.calls.map(([q]) => q.page)).toEqual([1, 2]);
   });
 

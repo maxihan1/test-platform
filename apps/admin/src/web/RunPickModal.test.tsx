@@ -77,9 +77,9 @@ describe('RunPickModal', () => {
     expect(screen.queryByRole('button', { name: /값 고치기/ })).toBeNull();
   });
 
-  it('입력칸이 없는 케이스는 그 사실을 글로 적는다', () => {
+  it('입력칸이 없는 케이스는 입력값 열에 그 사실을 글로 적는다', () => {
     그리기();
-    expect(screen.getByText('입력값 없음')).toBeTruthy();
+    expect(document.querySelector('.prow .iv')?.textContent).toBe('없음');
   });
 
   it('기본값이 무엇인지 칸마다 보인다', () => {
@@ -235,10 +235,11 @@ describe('RunPickModal', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('넓은 상자로 연다', () => {
+  it('한 틀 창으로 열고 머리 단계 표시는 준비다', () => {
     그리기();
 
-    expect(screen.getByRole('dialog').classList.contains('wide')).toBe(true);
+    expect(screen.getByRole('dialog').classList.contains('frame')).toBe(true);
+    expect(screen.getByRole('list', { name: '단계' }).querySelector('[aria-current="step"]')?.textContent).toBe('준비');
   });
 });
 

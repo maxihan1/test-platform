@@ -132,7 +132,7 @@ export function RunWindow({
   );
   if (열기.error !== null || 열기.data === null) {
     return (
-      <Modal 제목={t('실행')} onClose={onClose} 버튼={닫기}>
+      <Modal 제목={t('실행')} onClose={onClose} 버튼={닫기} 틀="준비" 바깥눌러닫기={false}>
         {열기.error !== null ? <Failed error={열기.error} /> : <Loading />}
       </Modal>
     );
@@ -142,7 +142,7 @@ export function RunWindow({
   const 못한다 = !할수있나(연.user, 케이스서비스(tcIds[0] ?? ''), '실행');
   if (못한다 || 연.케이스들.length === 0) {
     return (
-      <Modal 제목={t('실행')} onClose={onClose} 버튼={닫기}>
+      <Modal 제목={t('실행')} onClose={onClose} 버튼={닫기} 틀="준비" 바깥눌러닫기={false}>
         <p>{못한다 ? t('실행 권한이 있어야 고치고 돌릴 수 있습니다') : t('실행할 케이스가 없습니다. 선택한 것이 전부 비활성이거나 걸러졌습니다')}</p>
       </Modal>
     );

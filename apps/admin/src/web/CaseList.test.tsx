@@ -331,7 +331,7 @@ describe('CaseList 여러 건 고르기', () => {
     fireEvent.click(실행버튼());
 
     const 모달 = await screen.findByRole('dialog');
-    expect(모달.getAttribute('aria-label')).toBe('실행할 케이스 3건');
+    expect(모달.getAttribute('aria-label')).toBe('케이스 3건 실행');
     expect(스파이.mock.calls.map(([q]) => q.page)).toEqual([1, 2]);
   });
 
@@ -410,7 +410,7 @@ describe('CaseList 고른 것을 줄 통째로 든다', () => {
     fireEvent.click(바실행());
 
     const 모달 = await screen.findByRole('dialog');
-    expect(모달.getAttribute('aria-label')).toBe('실행할 케이스 1건');
+    expect(모달.getAttribute('aria-label')).toBe('케이스 1건 실행');
     // 1건을 고르고 21쪽까지 되도는 일이 없어야 한다. 손에 이미 다 있다
     expect(스파이).not.toHaveBeenCalled();
   });
@@ -426,7 +426,7 @@ describe('CaseList 고른 것을 줄 통째로 든다', () => {
     fireEvent.click(바실행());
 
     const 모달 = await screen.findByRole('dialog');
-    expect(모달.getAttribute('aria-label')).toBe('실행할 케이스 2건');
+    expect(모달.getAttribute('aria-label')).toBe('케이스 2건 실행');
   });
 
   it('애플리케이션을 바꾸면 고른 것도 버린다', async () => {
@@ -460,7 +460,7 @@ describe('CaseList 담지 못한 것을 말한다', () => {
 
     const 모달 = await screen.findByRole('dialog');
     expect(스파이).toHaveBeenCalledTimes(40);
-    expect(모달.getAttribute('aria-label')).toBe('실행할 케이스 80건');
+    expect(모달.getAttribute('aria-label')).toBe('케이스 80건 실행');
     // 버튼 글자가 「전체」인 채로 조용히 자르지 않는다
     expect(within(모달).getByText(/앞 80건까지만 담았습니다/)).toBeTruthy();
   });
@@ -478,7 +478,7 @@ describe('CaseList 담지 못한 것을 말한다', () => {
     fireEvent.click(실행버튼());
 
     const 모달 = await screen.findByRole('dialog');
-    expect(모달.getAttribute('aria-label')).toBe('실행할 케이스 2건');
+    expect(모달.getAttribute('aria-label')).toBe('케이스 2건 실행');
   });
 
   it('고른 것 중 비활성이 빠지면 몇 건이 대상인지 적는다', async () => {
@@ -516,7 +516,7 @@ describe('CaseList 여러 건 실행 걸기', () => {
     fireEvent.click(실행버튼());
 
     const 모달 = await screen.findByRole('dialog');
-    expect(모달.getAttribute('aria-label')).toBe('실행할 케이스 3건');
+    expect(모달.getAttribute('aria-label')).toBe('케이스 3건 실행');
     expect(screen.getAllByText('ZPK-003')).not.toHaveLength(0);
   });
 

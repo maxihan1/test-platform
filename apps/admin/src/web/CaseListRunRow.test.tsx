@@ -66,25 +66,25 @@ describe('케이스 줄의 디바이스마다 ▶ 실행', () => {
     expect(screen.queryByRole('link', { name: /실행/ })).toBeNull();
   });
 
-  it('「모바일 ▶」를 누르면 그 한 건이 모바일 하나로 열린다 — 디바이스 고르기 칸은 없고 실행 기기 칸이 있다', async () => {
+  it('「모바일 ▶」를 누르면 그 한 건이 모바일 하나로 열린다 — 디바이스 체크칸은 모바일 하나로 잠기고 실행 기기 칸이 있다', async () => {
     await 그리기();
 
     fireEvent.click(screen.getByRole('button', { name: 'ZPK-002 모바일 실행' }));
 
-    const 창 = within(await screen.findByRole('dialog', { name: '실행할 케이스 1건' }));
+    const 창 = within(await screen.findByRole('dialog', { name: '케이스 1건 실행' }));
     expect(창.getByText('ZPK-002 케이스')).toBeTruthy();
     expect(창.queryByText('ZPK-001 케이스')).toBeNull();
     expect(창.getByText('로그인되어 있다')).toBeTruthy();
-    expect(창.queryByRole('group', { name: '디바이스' })).toBeNull();
+    expect((창.getByRole('checkbox', { name: '모바일 1건' }) as HTMLInputElement).disabled).toBe(true);
+    expect(창.queryByRole('checkbox', { name: 'PC 1건' })).toBeNull();
     expect(창.getByRole('radio', { name: '가상 기기' })).toBeTruthy();
-    expect(창.queryByRole('group', { name: '실행할 디바이스' })).toBeNull();
   });
 
   it('「PC ▶」로 연 창에서 실행하면 그 한 건을 PC 로만 걸고 실행 기기 값을 싣지 않는다', async () => {
     const 걸기 = vi.spyOn(api, 'createRun').mockResolvedValue({ runId: 31 });
     await 그리기();
     fireEvent.click(screen.getByRole('button', { name: 'ZPK-001 PC 실행' }));
-    const 창 = within(await screen.findByRole('dialog', { name: '실행할 케이스 1건' }));
+    const 창 = within(await screen.findByRole('dialog', { name: '케이스 1건 실행' }));
     expect(창.queryByRole('radio', { name: '가상 기기' })).toBeNull();
 
     fireEvent.change(창.getByLabelText('대상 서버'), { target: { value: 'qa' } });
@@ -111,7 +111,7 @@ describe('케이스 줄의 디바이스마다 ▶ 실행', () => {
     expect(screen.getByRole('button', { name: '조건에 맞는 2건 시험 실행' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'ZPK-001 PC 시험 실행' }));
 
-    const 창 = within(await screen.findByRole('dialog', { name: '시험 실행할 케이스 1건' }));
+    const 창 = within(await screen.findByRole('dialog', { name: '케이스 1건 시험 실행' }));
     expect(창.getByRole('button', { name: '시험 실행' })).toBeTruthy();
     expect(창.queryByRole('button', { name: '실행' })).toBeNull();
   });
