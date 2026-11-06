@@ -146,10 +146,10 @@
 
 ### ② 서버 · 러너
 **무엇** 표를 만들고, 러너가 AI 점검 결과를 받아 오게 하고, 세트 · 실행 · 결과 통로를 연다.
-- [ ] `COMPAT-F1-02` DB · 계약 — 마이그레이션(`compat_set` · `compat_run_device` · `compat_run_case` · `compat_screen` · `compat_verdict` · `test_run.kind` 에 `COMPAT` · `compat_set_id`) · kit `ExecuteRequest.uiCheck` · 데이터모델 · 호환성 §7 블록을 「반영 완료」로
+- [ ] `COMPAT-F1-02` DB · 계약 — 마이그레이션(`compat_set` · `compat_run_device` · `compat_run_case` · `compat_screen` · `compat_verdict` · `test_run.kind` 에 `COMPAT` · `compat_set_id`) · kit `ExecuteRequest.uiCheck` · `kind <> 'SCENARIO'` 꼴 자리(`bts/card.ts` · `bts/failReport.ts` · `notifications/store.ts` · `runKind.ts`)를 「케이스 실행」 조건으로 · 데이터모델 · 호환성 §7 블록을 「반영 완료」로
 - [ ] `COMPAT-F1-03` 러너 · kit — `uiCheck` 면 capability `farm:uiCheck: true` · `farmEvidence` 가 `uiCheck` 항목은 통과해도 `ui-check.json` · `ui-*.png` 를 받고 `checking` 이면 1분마다 다시(상한 60분) · 실패 항목은 지금처럼 영상 · logcat 도 (비전 대기 — Chrome 연결의 켜는 길)
-- [ ] `COMPAT-F1-04` 서버 세트 · 자동 선택 — `/api/compat-sets/**`(목록 · 상세 · 미리 셈 · 만들기 · 고치기 · 치우기) · 전체 화면 목록(웹 `screen_found` · 앱 `app:` · 게임 `game:` + `zone:`) × 지도 ② 탐욕 근사 · 화면 커버리지 · 미커버 화면 · 목록이 없을 때 케이스가 아는 화면 · 예상 소요 시간 · 라우트표 두 줄
-- [ ] `COMPAT-F1-05` 서버 실행 · 결과 · 판정 — `POST /api/compat-sets/:id/runs` · 점검 상태 차례로 잡기 · 사용 중이면 미루기 · 모델별 1대 바꿔 잡기 · 30분 못 잡으면 건너뛰기 · 끝나면 바로 놓기 · `ui-check.json` → `compat_screen`(화면 찾기 · 단계 맞추기 · 「화면 모름」) · 60분 점검 상한 · 중단(`abort`) · `GET /api/compat-runs/:runId` · 판정 · `GET /api/runs?kind=compat` · 알림 줄 종류 `compat` (비전 대기 — 화면 단서 · 폴더블 상태 바꾸기)
+- [ ] `COMPAT-F1-04` 서버 세트 · 자동 선택 — `/api/compat-sets/**`(목록 · 상세 · 미리 셈 · 만들기 · 고치기 · 치우기) · 전체 화면 목록(웹 `screen_found` · 앱 `app:` · 게임 `game:` + `zone:`) × 지도 ② 탐욕 근사 · 화면 커버리지 · 미커버 화면 · 목록이 없을 때 케이스가 아는 화면 · 예상 소요 시간 · `GET /api/compat-devices`(팜 폰만 · 비전 칸 그대로) · 라우트표 두 줄
+- [ ] `COMPAT-F1-05` 서버 실행 · 결과 · 판정 — `POST /api/compat-sets/:id/runs` · 점검 상태 차례로 잡기 · 사용 중이면 미루기 · 모델별 1대 바꿔 잡기 · 30분 못 잡으면 건너뛰기 · 끝나면 바로 놓기 · `ui-check.json` → `compat_screen`(화면 찾기 · 단계 맞추기 · 「화면 모름」) · 60분 점검 상한 · 디바이스 줄 밖 · 상태마다 잡기 · 늘리기 · `held_serial` · 중단(`abort` 호환성 가지 · 바로 `ABORTED`) · admin 다시 켜기 정리(`recoverRunning`) · 끝내기는 호환성 몫(`finishRun` 안 부름) · `GET /api/compat-runs/:runId` · 판정 · `GET /api/runs?kind=compat` · 알림 줄 종류 `compat` (비전 대기 — 화면 단서 · 폴더블 상태 바꾸기)
 
 ### ③ 화면
 **무엇** 확정 시안 다섯 장을 그대로 만든다. 화면 낱말은 호환성 §3.13 「화면 낱말」 — 「깨짐」을 쓰지 않는다.
