@@ -49,6 +49,7 @@ export const 실행말: Record<string, string> = {
   '단계 접기 ▴': 'Hide steps ▴',
   '← 준비로 돌아가기': '← Back to setup',
   '재실행': 'Run again',
+  '다시 시험': 'Run trial again',
   '모두 {수}번 실행': 'Runs {수} times in all',
   '시험 실행 중단함': 'Trial run stopped',
   '결과는 이 창에서만 보이고 실행 기록에 남지 않습니다': 'Results show only in this window and are not saved to run history',

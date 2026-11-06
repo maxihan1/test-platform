@@ -66,7 +66,7 @@ export function ScenarioTrialWindow({ 시험, 단계들, 재료, platform, 모�
                 {t('닫기')}
               </button>
               <button type="button" className="btn" onClick={on다시}>
-                {t('재실행')}
+                {t('다시 시험')}
               </button>
             </>
           )

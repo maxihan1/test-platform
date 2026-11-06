@@ -173,10 +173,10 @@ describe('E2E 시험 실행 창 — 결과', () => {
     expect(창.querySelectorAll('.frame-steps [aria-current="step"]')[0]?.textContent).toBe('결과');
   });
 
-  it('닫기는 묻지 않고 닫고, 재실행은 다시 건다', () => {
+  it('닫기는 묻지 않고 닫고, 다시 시험은 다시 건다', () => {
     const { 닫기, 다시 } = 그리기(끝남());
 
-    fireEvent.click(screen.getByRole('button', { name: '재실행' }));
+    fireEvent.click(screen.getByRole('button', { name: '다시 시험' }));
     expect(다시).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole('button', { name: '닫기' }));
     expect(닫기).toHaveBeenCalledTimes(1);

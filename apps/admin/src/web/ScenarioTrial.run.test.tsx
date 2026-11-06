@@ -297,6 +297,25 @@ describe('시험 실행 돌리기', () => {
   });
 });
 
+describe('시험 결과 창의 「다시 시험」', () => {
+  it('결과 창을 닫고 시작 확인 창 하나만 띄운다 — 두 창이 겹치지 않는다', async () => {
+    await 기존그리기();
+    vi.spyOn(scenarioApi, 'startTrial').mockResolvedValue({ trialId: 't-1' });
+    vi.spyOn(scenarioApi, 'trial').mockResolvedValue({ status: 'FINISHED', result: 통과결과 });
+    vi.useFakeTimers();
+    서버고르기('stg');
+    await 시험누르기();
+    await 흘리기(2000);
+
+    const 결과창 = screen.getByRole('dialog');
+    fireEvent.click(within(결과창).getByRole('button', { name: '다시 시험' }));
+
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    expect(결과창.isConnected).toBe(false);
+    expect(screen.getByRole('button', { name: '시험 실행 시작' })).toBeTruthy();
+  });
+});
+
 describe('시험 결과 줄은 돌린 때의 단계 이름이다 (FIX-F4-05 · L31)', () => {
   const 줄들 = () => [...screen.getByRole('dialog').querySelectorAll<HTMLElement>('.scn-steps > li')];
 
