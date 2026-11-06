@@ -5,11 +5,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { api, type CaseRow, type JsonSchema, type Platform, type ServiceRow } from './api.js';
+import { 기기호출 } from './perfDeviceApi.js';
 import { RunPickModal } from './RunPickModal.js';
 import { 시작누름 } from './runPick.fixture.js';
 
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
 });
 
 const 빈스키마: JsonSchema = {};
@@ -107,7 +109,7 @@ describe('실행 칸이 테스트만인 사람의 실행 창 (도메인/인증 �
   it('「시험 실행」만 있고 기록이 남는 실행 · 반복 · Slack 알림 · 건수 풀이는 안 그린다 — 모바일 웹 실행 위치는 시험 실행도 따라 그린다', () => {
     render(<RunPickModal 케이스들={[값없는케이스]} service={서비스} onRun={vi.fn()} onClose={vi.fn()} 정식={false} />);
 
-    expect(screen.getByText('시험 실행할 케이스 1건')).toBeTruthy();
+    expect(screen.getByText('케이스 1건 시험 실행')).toBeTruthy();
     expect(screen.getByRole('button', { name: '시험 실행' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: '실행' })).toBeNull();
     expect(screen.queryByText('기록이 남습니다')).toBeNull();
@@ -136,5 +138,26 @@ describe('시험 실행의 모바일 웹 실행 위치 (도메인/실행 §3.2 �
     } finally {
       vi.restoreAllMocks();
     }
+  });
+});
+
+describe('모바일 웹 고르개의 빈 폰 수 (도메인/실행 §8.16 ①)', () => {
+  const 폰 = (serial: string, where: 'FARM' | 'LOCAL', status: 'IDLE' | 'BUSY') => ({ serial, model: 'SM-S918N', os: '14', where, status });
+
+  it('실제 기기 곁에 디바이스 팜의 쉬는 폰 수만 센다', async () => {
+    vi.spyOn(기기호출, 'devices').mockResolvedValue({ devices: [폰('a', 'FARM', 'IDLE'), 폰('b', 'FARM', 'IDLE'), 폰('c', 'FARM', 'BUSY'), 폰('d', 'LOCAL', 'IDLE')] });
+    그리기();
+
+    expect(await screen.findByText('빈 폰 2대')).toBeTruthy();
+  });
+
+  it('기기 목록을 못 읽으면 수 없이 적고 실제 기기는 그대로 고를 수 있다', async () => {
+    const 읽기 = vi.spyOn(기기호출, 'devices').mockRejectedValue(new Error('권한 없음'));
+    그리기();
+
+    await waitFor(() => expect(읽기).toHaveBeenCalled());
+    expect(screen.queryByText(/빈 폰/)).toBeNull();
+    fireEvent.click(screen.getByRole('radio', { name: '실제 기기' }));
+    expect((screen.getByRole('radio', { name: '실제 기기' }) as HTMLInputElement).checked).toBe(true);
   });
 });

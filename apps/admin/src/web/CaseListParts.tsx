@@ -168,7 +168,8 @@ export function 케이스줄({
                   )}
                 </div>
                 {/* 흐름은 디바이스마다다. 줄에 하나만 두면 PC 와 모바일이 한 줄로 뭉개진다 */}
-                {result === undefined ? null : <판정흐름 recent={result.recent} />}
+                {/* 줄에는 배지와 막대만 — 개수는 막대에 올린 글 · 화면 읽기가 말한다 (2026-11-06 사용자 · 시험 D9) */}
+                {result === undefined ? null : <판정흐름 recent={result.recent} 글자없이 />}
               </div>
             );
           })}

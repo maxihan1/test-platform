@@ -56,3 +56,17 @@
   background: color-mix(in srgb, var(--bg) 12%, transparent);
   border-color: var(--bg);
 }
+
+/* 실행 창이 떠 있는 동안은 숨는다 — 덮개 밑에 깔려도 어둡게에서 밝은 바가 창 아래로 비쳐 창 위에 뜬 것처럼 보였다 (2026-11-06 시험 B17).
+   바 안에서 여는 「삭제 요청」 확인 창은 바의 자식이라 실행 창(.modal.frame)이 떴을 때로만 좁힌다 */
+body:has(.modal.frame) .pick-bar {
+  visibility: hidden;
+}
+
+/* 되돌리기 어려운 「삭제 요청」 앞 구분선 — 실행 단추와 떼어 둔다 (2026-11-06 시험 D10) */
+.pick-bar-sep {
+  align-self: stretch;
+  width: 1px;
+  margin: 2px 4px;
+  background: color-mix(in srgb, var(--bg) 30%, transparent);
+}

@@ -1,0 +1,113 @@
+/* 실행 창 한 틀 — 준비 → 실행 중 → 결과가 같은 크기 (도메인/실행 §8.16 · DESIGN.md 「모달」 · 시안 A). 색은 토큰만 쓴다 */
+
+/* 창 하나가 처음부터 끝까지 같은 크기다. 화면이 작으면 덮개 여백 16px 씩을 남기고 줄어든다 (점검표 D1 · B8) */
+.modal.frame {
+  max-width: 1180px;
+  height: min(744px, calc(100vh - 32px));
+  padding: 0;
+  gap: 0;
+}
+
+.modal.frame .frame-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px 12px 20px;
+}
+
+.frame-title {
+  font-size: 18px;
+  font-weight: 600;
+  min-width: 0;
+}
+
+/* 준비 › 실행 중 › 결과 — 지금 단계만 진하게 */
+.frame-steps {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.frame-steps li + li::before {
+  content: '›';
+  margin: 0 4px;
+}
+
+.frame-steps span {
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+
+.frame-steps [aria-current='step'] span {
+  background: var(--accent-soft);
+  color: var(--link);
+  font-weight: 600;
+}
+
+/* 닫기 × — 앞 판은 Esc 로만 닫혔다 (점검표 D5) */
+.frame-x {
+  margin-left: auto;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.frame-x:hover {
+  background: var(--well);
+  color: var(--ink);
+}
+
+.modal.frame .modal-body {
+  flex: 1 1 auto;
+  padding: 14px 20px;
+}
+
+/* 단추 줄은 늘 바닥에 붙는다 */
+.modal.frame .modal-foot {
+  padding: 12px 20px;
+  border-top: 1px solid var(--line);
+}
+
+/* 휴대폰은 화면 가득이다 (점검표 D12) — phone.css 의 .modal.full 이 높이 · 모서리를 맡고 여기는 틀 숫자만 푼다 */
+@media (max-width: 620px) {
+  .modal.frame {
+    height: 100%;
+    max-width: none;
+    padding: 0;
+  }
+
+  .modal.frame .frame-head {
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    padding: 12px 12px 10px 16px;
+  }
+
+  .frame-steps {
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  .modal.frame .modal-body {
+    padding: 12px 16px;
+  }
+
+  .modal.frame .modal-foot {
+    padding: 10px 16px 14px;
+  }
+}

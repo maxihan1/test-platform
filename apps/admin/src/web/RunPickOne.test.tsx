@@ -119,24 +119,28 @@ describe('한 건 창 — 디바이스 · 실행 위치', () => {
     const { onRun } = await 그린다(둘다);
     서버고르기();
 
-    fireEvent.click(screen.getByRole('checkbox', { name: 'PC' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'PC 1건' }));
     fireEvent.click(실행버튼());
     시작누름();
 
     expect(onRun.mock.calls[0]?.[0].items[0]?.platforms).toEqual(['mobile']);
   });
 
-  it('디바이스를 다 끄면 걸리지 않고 사유를 보인다', async () => {
-    const { onRun } = await 그린다(둘다);
+  it('디바이스를 다 끄면 표 자리에 사유를 두고 단추를 잠그며, 다시 켜면 사유가 바로 사라진다', async () => {
+    await 그린다(둘다);
     서버고르기();
 
-    fireEvent.click(screen.getByRole('checkbox', { name: 'PC' }));
-    fireEvent.click(screen.getByRole('checkbox', { name: '모바일' }));
-    fireEvent.click(실행버튼());
-    시작누름();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'PC 1건' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: '모바일 1건' }));
 
-    expect(onRun).not.toHaveBeenCalled();
-    expect(줄().textContent).toBe('실행할 디바이스를 하나 이상 선택하세요.');
+    expect(screen.getByText('실행할 디바이스를 하나 이상 선택하세요')).toBeTruthy();
+    expect((실행버튼() as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: '시험 실행' }) as HTMLButtonElement).disabled).toBe(true);
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'PC 1건' }));
+
+    expect(screen.queryByText('실행할 디바이스를 하나 이상 선택하세요')).toBeNull();
+    expect((실행버튼() as HTMLButtonElement).disabled).toBe(false);
   });
 
   it('Android 앱을 고르면 「Device VISION」 안내가 보이고 요청에는 location 을 싣지 않는다', async () => {
@@ -161,16 +165,17 @@ describe('한 건 창 — 디바이스 · 실행 위치', () => {
     expect(onRun.mock.calls[0]?.[0]).not.toHaveProperty('location');
   });
 
-  it('모바일을 끄면 모바일 웹 실행 위치 줄이 사라지고 mobileOn 을 싣지 않는다', async () => {
+  it('모바일을 끄면 모바일 웹 고르개는 그 자리에 흐리게 남아 고를 수 없고 mobileOn 을 싣지 않는다', async () => {
     const { onRun } = await 그린다(둘다);
     서버고르기();
     expect(screen.getByRole('radiogroup', { name: '모바일 웹' })).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('checkbox', { name: '모바일' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: '모바일 1건' }));
     fireEvent.click(실행버튼());
     시작누름();
 
-    expect(screen.queryByRole('radiogroup', { name: '모바일 웹' })).toBeNull();
+    expect(screen.getByRole('radiogroup', { name: '모바일 웹' })).toBeTruthy();
+    expect((screen.getByRole('radio', { name: '실제 기기' }) as HTMLInputElement).disabled).toBe(true);
     expect(onRun.mock.calls[0]?.[0]).not.toHaveProperty('mobileOn');
   });
 });

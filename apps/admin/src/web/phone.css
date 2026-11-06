@@ -545,7 +545,7 @@ a.sheet-row[aria-current='page'] {
     min-width: 46px;
   }
 
-  /* 여러 건 실행 창의 `값` 단추를 손가락 크기로 키운다. 접는 규칙은 PC 와 같다(styles.css `.prow-edit`) */
+  /* 실행 창 입력값 열의 `N개 펼치기` 단추를 손가락 크기로 키운다. 접는 규칙은 PC 와 같다(styles.css `.prow-edit`) */
   .prow-fold {
     display: inline-flex;
     align-items: center;
@@ -558,8 +558,7 @@ a.sheet-row[aria-current='page'] {
     padding: 32px 0 0;
   }
 
-  .modal,
-  .modal.wide {
+  .modal {
     max-width: none;
     border-bottom: 0;
     border-radius: 16px 16px 0 0;
@@ -631,6 +630,12 @@ a.sheet-row[aria-current='page'] {
     flex-wrap: nowrap;
     padding: 6px 12px;
     border-radius: 0;
+  }
+
+  /* 바가 화면 바닥에 떠 있어 목록 끝 줄을 가렸다 — 바가 뜬 동안 목록 아래에 바 높이만큼 여백을 둔다 (DESIGN.md 「고르기 바」 · 2026-11-06 시험 D11).
+     ponytail: 단추 글자가 접히면 바가 106px 까지 자라 그보다 넉넉한 고정값이다. 단추가 늘어 더 자라면 이 값도 올린다 */
+  .ph .rows-scroll:has(> .pick-bar) {
+    padding-bottom: 128px;
   }
 
   .ph .pick-bar > span {

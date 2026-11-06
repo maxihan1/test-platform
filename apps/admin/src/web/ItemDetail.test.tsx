@@ -195,7 +195,7 @@ describe('값 바꿔 재실행 (도메인/실행 §8.10)', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: '입력 값 수정 후 다시 실행' }));
 
-    const 창 = within(await screen.findByRole('dialog', { name: '실행할 케이스 1건' }));
+    const 창 = within(await screen.findByRole('dialog', { name: '케이스 1건 실행' }));
     expect(((await 창.findByLabelText(/^아이디/)) as HTMLInputElement).value).toBe('u-지난');
     expect((창.getByLabelText('비밀번호') as HTMLInputElement).value).toBe('');
     // 모바일 실행 위치는 그 항목이 든 실행이 돈 곳으로 미리 고른다 (도메인/실행 §8.10)

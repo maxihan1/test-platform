@@ -119,15 +119,6 @@ describe('Modal', () => {
     expect(container.querySelector('.modal')).not.toBeNull();
   });
 
-  it('넓게 를 주면 wide 클래스가 붙는다 (DESIGN.md 「②의 상자 둘」, 880px)', () => {
-    const { container } = render(
-      <Modal 제목="넓은 상자" onClose={() => {}} 넓게 버튼={<button type="button">닫기</button>}>
-        <p>내용</p>
-      </Modal>,
-    );
-    expect(container.querySelector('.modal.wide')).not.toBeNull();
-  });
-
   it('닫으면 열기 전 있던 자리로 포커스가 돌아온다', () => {
     const 열기전 = document.createElement('button');
     document.body.appendChild(열기전);
@@ -177,5 +168,32 @@ describe('Modal', () => {
 
     expect(위닫기).toHaveBeenCalledTimes(1);
     expect(아래닫기).not.toHaveBeenCalled();
+  });
+
+  it('틀을 주면 머리에 준비 · 실행 중 · 결과가 서고 지금 단계만 표시되며 × 가 창을 닫는다', () => {
+    const 닫기 = vi.fn();
+    render(
+      <Modal 제목="케이스 3건 실행" onClose={닫기} 버튼={null} 틀="실행 중" 바깥눌러닫기={false}>
+        <p>본문</p>
+      </Modal>,
+    );
+
+    const 단계 = screen.getByRole('list', { name: '단계' });
+    expect([...단계.querySelectorAll('li')].map((li) => li.textContent)).toEqual(['준비', '실행 중', '결과']);
+    expect(단계.querySelector('[aria-current="step"]')?.textContent).toBe('실행 중');
+    expect(screen.getByRole('dialog').className).toContain('frame');
+
+    fireEvent.click(screen.getByRole('button', { name: '창 닫기' }));
+    expect(닫기).toHaveBeenCalledTimes(1);
+  });
+
+  it('틀 창을 열면 첫 포커스는 × 가 아니라 본문 첫 칸이다 — 열자마자 Enter 한 번에 닫히지 않게', () => {
+    render(
+      <Modal 제목="케이스 1건 실행" onClose={() => {}} 버튼={<button type="button">취소</button>} 틀="준비" 바깥눌러닫기={false}>
+        <input aria-label="첫 칸" />
+      </Modal>,
+    );
+
+    expect(document.activeElement).toBe(screen.getByLabelText('첫 칸'));
   });
 });

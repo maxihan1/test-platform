@@ -115,7 +115,7 @@ describe('실패다시실행', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '실패 2건 다시 실행' }));
 
-    expect(await screen.findByRole('dialog', { name: '실행할 케이스 2건' })).toBeTruthy();
+    expect(await screen.findByRole('dialog', { name: '케이스 2건 실행' })).toBeTruthy();
     expect(읽기.mock.calls.map(([id]) => id)).toEqual(['ZRS-001', 'ZRS-002']);
     expect((screen.getByLabelText('대상 서버') as HTMLSelectElement).value).toBe('stage');
   });

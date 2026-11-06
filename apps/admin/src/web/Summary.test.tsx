@@ -53,6 +53,14 @@ describe('판정흐름', () => {
     expect(칸들).toEqual(['p', 'f', 'e', 'e', 'e']);
   });
 
+  it('글자 없는 막대(케이스 목록)는 개수 글자를 줄에 두지 않고 막대 이름 · 마우스 올림 글로 말한다', () => {
+    render(<판정흐름 recent={['PASS', 'PASS', 'FAIL', 'PASS']} 글자없이 />);
+
+    const 막대 = screen.getByRole('img', { name: '최근 4회: 통과 3, 실패 1' });
+    expect(막대.getAttribute('title')).toBe('통과 3, 실패 1');
+    expect(document.querySelector('.sparktext')).toBeNull();
+  });
+
   it('한 번도 안 돌린 케이스에는 아예 안 그린다', () => {
     const { container } = render(<판정흐름 recent={[]} />);
 

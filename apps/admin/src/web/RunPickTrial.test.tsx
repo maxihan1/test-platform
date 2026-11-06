@@ -76,17 +76,17 @@ describe('한 건 창의 테스트 실행', () => {
     expect(screen.getByText('행이 없습니다', { selector: '.trial-step details pre' })).toBeTruthy();
   });
 
-  it('디바이스를 다 끄고 누르면 보내지 않고 사유를 보인다', async () => {
+  it('디바이스를 다 끄면 시험 실행이 잠겨 보내지 않는다', async () => {
     const 시작 = vi.spyOn(api, 'startTrial');
     await 그린다({ ...케이스, platforms: ['desktop', 'mobile'] });
 
-    fireEvent.click(screen.getByRole('checkbox', { name: 'PC' }));
-    fireEvent.click(screen.getByRole('checkbox', { name: '모바일' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'PC 1건' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: '모바일 1건' }));
     fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
     시작누름('시험 실행 시작');
 
     expect(시작).not.toHaveBeenCalled();
-    expect(screen.getByRole('status').textContent).toBe('실행할 디바이스를 하나 이상 선택하세요.');
+    expect(screen.getByText('실행할 디바이스를 하나 이상 선택하세요')).toBeTruthy();
   });
 
   it('고른 디바이스로 보낸다 — 첫째가 꺼져 있으면 남은 것으로 돈다', async () => {
@@ -94,13 +94,46 @@ describe('한 건 창의 테스트 실행', () => {
     vi.spyOn(api, 'getTrial').mockResolvedValue({ status: 'DONE', result: { status: 'PASS', durationMs: 1, steps: [] } });
     await 그린다({ ...케이스, platforms: ['desktop', 'mobile'] });
 
-    fireEvent.click(screen.getByRole('checkbox', { name: 'PC' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'PC 1건' }));
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
     시작누름('시험 실행 시작');
 
     await waitFor(() => expect(시작).toHaveBeenCalledTimes(1));
     expect(시작.mock.calls[0]?.[1]).toMatchObject({ platform: 'mobile' });
+  });
+});
+
+describe('시험 실행 시작 확인', () => {
+  it('1건이면 케이스 줄에 「한 건씩 차례로」를 붙이지 않는다', async () => {
+    await 그린다();
+
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
+    fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
+
+    const 확인 = screen.getByRole('dialog', { name: '시험 실행을 시작할까요?' });
+    expect(확인.querySelector('.start-what dd')?.textContent).toBe('1건');
+  });
+});
+
+describe('디바이스를 바꾼 뒤 남는 시험 결과', () => {
+  it('끈 디바이스의 결과는 줄에서 걷는다 — PC 로 돈 결과가 모바일만 남긴 줄에 남지 않는다', async () => {
+    vi.spyOn(api, 'paramSets').mockResolvedValue({ items: [] });
+    vi.spyOn(api, 'startTrial').mockImplementation((_tcId, body) => Promise.resolve({ trialId: `t-${body.platform}` }));
+    vi.spyOn(api, 'getTrial').mockResolvedValue({ status: 'DONE', result: { status: 'PASS', durationMs: 2720, steps: [] } });
+    const 둘 = { ...케이스, platforms: ['desktop', 'mobile'] as const };
+    render(<RunPickModal 케이스들={[{ ...둘, platforms: [...둘.platforms] }, { ...둘, tcId: 'ZRS-002', platforms: [...둘.platforms] }]} service={서비스} onRun={vi.fn()} onClose={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
+    fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
+    시작누름('시험 실행 시작');
+    fireEvent.click(await screen.findByRole('button', { name: '닫기' }, { timeout: 5000 }));
+    expect(document.querySelectorAll('.trial-dev')).toHaveLength(4);
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'PC 2건' }));
+
+    expect(document.querySelectorAll('.trial-dev')).toHaveLength(0);
+    expect(document.querySelectorAll('.trial-badge .verdict')).toHaveLength(2);
   });
 });
 

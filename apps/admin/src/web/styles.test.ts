@@ -601,11 +601,13 @@ describe('표가 창을 쓴다 (2026-09-22)', () => {
 
 // 상자가 880 × 80vh 이던 때 실행 결과 상자의 케이스 목록에 32px 만 남았다 — 줄이 101px 이라
 // **한 줄도 안 들어갔다.** 정보 UI 가 상자의 95% 를 먹고 있었다 (2026-09-22 실측)
-describe('넓은 상자가 표를 담을 만큼 크다 (DESIGN.md, 2026-09-22)', () => {
-  it('넓은 상자는 1400px 이다', () => {
-    const 값 = /max-width:\s*(\d+)px/.exec(규칙('.modal.wide'))?.[1];
-    expect(값, '.modal.wide 에 max-width 가 없다').toBeDefined();
-    expect(Number(값)).toBe(1400);
+describe('상자가 표를 담을 만큼 크다 (DESIGN.md, 2026-09-22)', () => {
+  // 2026-11-06 부터 넓은 상자(1400px)는 없고 실행 창이 한 틀로 고정이다 — 단계가 바뀌어도 단추가 제자리에 있다 (도메인/실행 §8.16)
+  it('실행 창 한 틀은 폭 1180px · 높이 744px 이고 낮은 창에서는 덮개 여백을 뺀 만큼으로 줄어든다', () => {
+    const 틀 = readFileSync(new URL('./runWindow.css', import.meta.url), 'utf8');
+    const 블록 = /\.modal\.frame\s*\{([^}]*)\}/.exec(틀)?.[1] ?? '';
+    expect(블록).toMatch(/max-width:\s*1180px/);
+    expect(블록).toMatch(/height:\s*min\(744px,\s*calc\(100vh\s*-\s*32px\)\)/);
   });
 
   // `94vh` 로 적으면 창이 533px 보다 낮을 때 덮개 여백 32px 과 합쳐 화면을 넘어

@@ -164,11 +164,38 @@ describe('저장한 뒤', () => {
     fireEvent.click(단추('이 값 저장'));
 
     expect(await screen.findAllByText('아이디가 틀렸다')).toHaveLength(1);
-    expect(screen.getAllByRole('button', { name: /^입력값 / })[1]?.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getAllByRole('button', { name: /펼치기 ▾$|^접기 ▴$/ })[1]?.getAttribute('aria-expanded')).toBe('true');
   });
 });
 
 describe('저장 안 한 채 닫기', () => {
+  it('창 머리 × 는 묻기만 띄우고, 묻는 중에 또 눌러도 묻기를 거두지 않는다 — 닫는 단추가 되돌리는 쪽으로 돌지 않게', async () => {
+    const { onClose } = await 연다([저장값케이스]);
+    고친다('user2');
+
+    fireEvent.click(단추('창 닫기'));
+    fireEvent.click(단추('창 닫기'));
+
+    expect(screen.getByText('고친 입력값이 저장되지 않았습니다 · 팀 모두와 정기 실행에 쓰입니다')).toBeTruthy();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('시험 실행 결과 화면에서 × 를 눌러도 고친 값이 있으면 바닥이 묻는다', async () => {
+    vi.spyOn(api, 'startTrial').mockResolvedValue({ trialId: 't1' });
+    vi.spyOn(api, 'getTrial').mockResolvedValue({ status: 'DONE', result: { status: 'PASS', durationMs: 1, steps: [] } });
+    const { onClose } = await 연다([저장값케이스]);
+    고친다('user2');
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
+    fireEvent.click(단추('시험 실행'));
+    fireEvent.click(단추('시험 실행 시작'));
+    await screen.findByText('시험 실행 완료', {}, { timeout: 5000 });
+
+    fireEvent.click(단추('창 닫기'));
+
+    expect(screen.getByText('고친 입력값이 저장되지 않았습니다 · 팀 모두와 정기 실행에 쓰입니다')).toBeTruthy();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it('고친 값을 저장하지 않고 닫으려 하면 「저장하고 닫기」까지 묻고, 누르면 저장한 뒤 닫는다', async () => {
     const { onClose } = await 연다([저장값케이스]);
     const 저장 = vi.spyOn(api, 'saveInput').mockResolvedValue(null);
