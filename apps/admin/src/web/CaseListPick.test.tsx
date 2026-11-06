@@ -247,3 +247,15 @@ describe('Shift 사이 고르기', () => {
     expect(고르기칸().map((칸) => 칸.checked)).toEqual([true, false, true, false]);
   });
 });
+
+describe('고르기 바 단추 차례', () => {
+  it('되돌리기 어려운 「삭제 요청」은 실행 단추와 떨어진 맨 끝 구분선 뒤에 선다', async () => {
+    await 그리기();
+    fireEvent.click(고르기칸()[0]!);
+
+    const 이름들 = within(바()).getAllByRole('button').map((단추) => 단추.textContent);
+    expect(이름들.at(-1)).toBe('삭제 요청');
+    expect(이름들.at(-2)).toBe('선택 해제');
+    expect(바().querySelector('.pick-bar-sep + button')?.textContent).toBe('삭제 요청');
+  });
+});

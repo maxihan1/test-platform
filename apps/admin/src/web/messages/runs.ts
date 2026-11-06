@@ -228,6 +228,8 @@ export const 실행말: Record<string, string> = {
   '{회수}회 중 {실패}회 실패': '{실패} of {회수} attempts failed',
   '{서버} 서버 · 이 실행까지': '{서버} server · up to this run',
   '{앞말} 최근 {회}회, 맨 앞이 이번 실행: {판정}': '{앞말}, last {회} runs, newest first: {판정}',
+  // 케이스 목록 줄의 흐름 막대 — 개수는 이름 · 마우스 올림 글로 (2026-11-06 시험 D9)
+  '최근 {회}회: {개수}': 'Last {회} runs: {개수}',
   '디바이스로 거르기': 'Filter by device',
   '실패한 케이스 안의 항목 {건수}건은 「전체」에서 카드로 봅니다':
     '{건수} items inside failed cases appear as cards under "All"',

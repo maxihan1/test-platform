@@ -110,18 +110,24 @@ export function 고르기바({
           {나눠도나 ? t(시험만 ? '모두 시험 실행' : '모두 실행') : t(시험만 ? '시험 실행' : '실행')}
         </button>
       )}
-      {/* 삭제 요청은 작성 쓰기일 때만 (도메인/작성 §3.6 「★ 케이스 고치기」) */}
-      {!할수('작성요청') ? null : 뽑기.모두 ? (
-        // ponytail: 띠는 한 쪽(50)을 넘을 때만 서고 삭제 상한도 50 이라 모두로는 늘 넘친다. 쪽 크기를 키우면 여기서 모아 보내게 고친다
-        <button type="button" className="btn ghost" disabled>
-          {t('삭제 요청')}
-        </button>
-      ) : (
-        <고른것고치기 service={service} 고른={뽑기.고른} 다되면={on풀기} />
-      )}
       <button type="button" className="btn ghost" onClick={on풀기}>
         {t('선택 해제')}
       </button>
+      {/* 삭제 요청은 작성 쓰기일 때만 (도메인/작성 §3.6 「★ 케이스 고치기」).
+          되돌리기 어려운 일이라 실행 단추와 떼어 맨 끝 구분선 뒤에 둔다 — 「모두 실행」을 누르려던 손이 닿지 않게 (2026-11-06 시험 D10) */}
+      {!할수('작성요청') ? null : (
+        <>
+          <span className="pick-bar-sep" aria-hidden="true" />
+          {뽑기.모두 ? (
+            // ponytail: 띠는 한 쪽(50)을 넘을 때만 서고 삭제 상한도 50 이라 모두로는 늘 넘친다. 쪽 크기를 키우면 여기서 모아 보내게 고친다
+            <button type="button" className="btn ghost" disabled>
+              {t('삭제 요청')}
+            </button>
+          ) : (
+            <고른것고치기 service={service} 고른={뽑기.고른} 다되면={on풀기} />
+          )}
+        </>
+      )}
     </div>
   );
 }
