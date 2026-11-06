@@ -15,11 +15,12 @@ export function 빠진목록({ 앞: 앞번호, 이번, 건수 }: { 앞: number; 
   // 눌렀을 때만 읽는다 — 요약 띠는 거의 늘 이 목록을 안 본다
   const 직전 = useAsync(() => (열림 ? api.run(앞번호) : Promise.resolve(null)), [열림, 앞번호]);
 
-  const 이번키 = new Set(이번.map((it) => `${it.tcId}\u0000${it.platform}`));
-  // 건수가 케이스 수라 목록도 케이스 한 줄에 빠진 디바이스를 모은다
+  // 이번 실행에 그 케이스가 한 줄도 없을 때만 빠진 것이다 — 건수(빠진건수)와 같은 기준이라 디바이스 하나만 안 돈 케이스는 안 낀다
+  const 이번케이스 = new Set(이번.map((it) => it.tcId));
+  // 목록도 케이스 한 줄에 직전에 돈 디바이스를 모은다
   const 빠진 = [
     ...(직전.data?.items ?? [])
-      .filter((it) => !이번키.has(`${it.tcId}\u0000${it.platform}`))
+      .filter((it) => !이번케이스.has(it.tcId))
       .reduce((모음, it) => {
         const 이미 = 모음.get(it.tcId);
         if (이미 === undefined) 모음.set(it.tcId, { tcId: it.tcId, tcName: it.tcName, platforms: [it.platform] });

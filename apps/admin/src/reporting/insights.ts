@@ -74,13 +74,15 @@ const 키 = (row: 접힌행): string => `${row.tc_id}\u0000${row.platform}`;
 export function 케이스판정들(앞접힘: 접힌행[], 이번접힘: 접힌행[]): Pick<비교, '케이스들' | '빠진건수'> {
   const 이번칸 = new Map(이번접힘.map((row) => [키(row), row]));
   const 케이스들: 비교['케이스들'] = [];
+  const 이번케이스 = new Set(이번접힘.map((row) => row.tc_id));
   const 빠진케이스 = new Set<string>();
   // 앞 실행에 없던 케이스는 어느 칸에도 넣지 않는다. 새 케이스를 「고쳐짐」으로 세면 거짓이다 —
   // 그래서 이번 것이 아니라 앞 것을 훑는다
   for (const 앞행 of 앞접힘) {
     const 이번행 = 이번칸.get(키(앞행));
     if (이번행 === undefined) {
-      빠진케이스.add(앞행.tc_id);
+      // 이번에 디바이스 하나로만 돈 케이스는 빠진 것이 아니다 — 빠진 케이스는 이번 실행에 그 tc_id 가 한 줄도 없는 것이다
+      if (!이번케이스.has(앞행.tc_id)) 빠진케이스.add(앞행.tc_id);
       continue;
     }
     케이스들.push({ tcId: 이번행.tc_id, tcName: 이번행.tc_name, platform: 이번행.platform, 판정: 판정표[앞행.status][이번행.status] });
