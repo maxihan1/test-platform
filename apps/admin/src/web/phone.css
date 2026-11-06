@@ -545,7 +545,7 @@ a.sheet-row[aria-current='page'] {
     min-width: 46px;
   }
 
-  /* 여러 건 실행 창의 `값` 단추를 손가락 크기로 키운다. 접는 규칙은 PC 와 같다(styles.css `.prow-edit`) */
+  /* 실행 창 입력값 열의 `N개 펼치기` 단추를 손가락 크기로 키운다. 접는 규칙은 PC 와 같다(styles.css `.prow-edit`) */
   .prow-fold {
     display: inline-flex;
     align-items: center;

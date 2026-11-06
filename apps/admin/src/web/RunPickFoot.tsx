@@ -36,6 +36,8 @@ export function use닫기묻기(고쳤나: boolean, onClose: () => void, 저장�
   return {
     묻나,
     요청: () => (묻나 ? set묻나(false) : 고쳤나 ? set묻나(true) : onClose()),
+    /** 창 머리 × — 묻는 중이면 그대로 둔다. 「창 닫기」 단추가 묻기를 거두면 눌렀는데 창이 안 닫힌 것으로 보인다 */
+    닫기단추: () => (묻나 ? undefined : 고쳤나 ? set묻나(true) : onClose()),
     줄: (
       <닫기묻는줄
         on계속={() => set묻나(false)}

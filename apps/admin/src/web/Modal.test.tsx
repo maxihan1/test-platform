@@ -186,4 +186,14 @@ describe('Modal', () => {
     fireEvent.click(screen.getByRole('button', { name: '창 닫기' }));
     expect(닫기).toHaveBeenCalledTimes(1);
   });
+
+  it('틀 창을 열면 첫 포커스는 × 가 아니라 본문 첫 칸이다 — 열자마자 Enter 한 번에 닫히지 않게', () => {
+    render(
+      <Modal 제목="케이스 1건 실행" onClose={() => {}} 버튼={<button type="button">취소</button>} 틀="준비" 바깥눌러닫기={false}>
+        <input aria-label="첫 칸" />
+      </Modal>,
+    );
+
+    expect(document.activeElement).toBe(screen.getByLabelText('첫 칸'));
+  });
 });

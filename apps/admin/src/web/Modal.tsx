@@ -18,6 +18,8 @@ interface Props {
    * 단계가 바뀌어도 창 크기와 단추 자리가 그대로다 (점검표 D1 · D5)
    */
   틀?: 틀단계;
+  /** 틀 머리의 × 를 누를 때. 없으면 onClose 다 — Esc 는 「묻기 거두기」라 되돌리는 쪽, × 는 닫는 쪽만 해야 해서 따로 받는다 */
+  on닫기단추?: () => void;
   /**
    * 뒷막을 눌러 닫을지. 끄면 뒷막은 무시하고 Escape·취소 버튼은 그대로 닫는다.
    * 값을 많이 고친 창을 빗나간 클릭 하나로 잃지 않게 한다
@@ -39,7 +41,7 @@ export function 상자열렸나(): boolean {
 /** 포커스를 가둘 때 훑을 것들. 화면 전체를 덮는 설정 마법사도 같은 것으로 가둔다 */
 export const 포커스가능 = 'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
-export function Modal({ 제목, onClose, children, 버튼, 틀, 바깥눌러닫기 = true }: Props) {
+export function Modal({ 제목, onClose, children, 버튼, 틀, on닫기단추 = onClose, 바깥눌러닫기 = true }: Props) {
   const t = use말();
   const 상자 = useRef<HTMLDivElement>(null);
   // 닫으면 열기 전 있던 자리로 돌려준다 (DESIGN.md)
@@ -53,7 +55,9 @@ export function Modal({ 제목, onClose, children, 버튼, 틀, 바깥눌러닫�
   useEffect(() => {
     열기전.current = document.activeElement;
     // 되돌릴 수 없는 버튼이 앞에 서는 상자는 첫 포커스를 `data-first` 로 옮긴다 — Enter 한 번에 그쪽으로 가지 않게
-    (상자.current?.querySelector<HTMLElement>('[data-first]') ?? 상자.current?.querySelector<HTMLElement>(포커스가능))?.focus();
+    // 틀 머리의 × 는 첫 포커스에서 뺀다 — 창을 열자마자 Enter 한 번에 닫히지 않게
+    const 첫칸 = [...(상자.current?.querySelectorAll<HTMLElement>(포커스가능) ?? [])].find((el) => !el.classList.contains('frame-x'));
+    (상자.current?.querySelector<HTMLElement>('[data-first]') ?? 첫칸)?.focus();
     const 내표 = 나.current;
     열린상자들.push(내표);
 
@@ -123,7 +127,7 @@ export function Modal({ 제목, onClose, children, 버튼, 틀, 바깥눌러닫�
               ))}
             </ol>
             {/* 앞 판은 Esc 로만 닫혔다. 바닥 단추 「닫기」와 이름이 겹치지 않게 「창 닫기」다 */}
-            <button type="button" className="frame-x" aria-label={t('창 닫기')} onClick={onClose}>
+            <button type="button" className="frame-x" aria-label={t('창 닫기')} onClick={on닫기단추}>
               ×
             </button>
           </div>
