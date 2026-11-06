@@ -55,6 +55,14 @@ describe('팜폰으로', () => {
     expect(await 팜폰으로(팜, async (_udid, 받은화면) => 받은화면 ?? '없음', () => '못 잡음', 옛팜.부르기, 안쉼)).toBe('없음');
   });
 
+  it('고른 폰의 모델 이름을 일에 넘긴다 — 옛 팜처럼 없으면 undefined 다', async () => {
+    const 이름팜 = 가짜팜({ 목록: [{ status: 200, body: { value: { devices: [{ serial: 'R3CR10TCVCD', state: 'IDLE', model: 'SM-S911N' }] } } }] });
+    expect(await 팜폰으로(팜, async (_udid, _화면, 이름) => 이름, () => '못 잡음', 이름팜.부르기, 안쉼)).toBe('SM-S911N');
+
+    const 옛팜 = 가짜팜({ 목록: [빈폰하나] });
+    expect(await 팜폰으로(팜, async (_udid, _화면, 이름) => 이름 ?? '없음', () => '못 잡음', 옛팜.부르기, 안쉼)).toBe('없음');
+  });
+
   it('화면 링크가 http(s) 가 아니면 넘기지 않는다 — 화면이 새 탭으로 연다', async () => {
     for (const screen of ['javascript:alert(1)', 'file:///etc/passwd', '그냥 글자']) {
       const 팜답 = 가짜팜({ 목록: [빈폰하나], 잡기: { status: 200, body: { held: { screen } } } });

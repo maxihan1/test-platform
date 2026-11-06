@@ -19,8 +19,9 @@ export function 팜머리(env: Record<string, string | undefined> = process.env,
   return 토큰 === '' ? {} : { authorization: `Bearer ${토큰}` };
 }
 
-type 기기 = { serial?: unknown; state?: unknown; detail?: unknown };
-type 고름 = { serial: string } | { reason: string };
+type 기기 = { serial?: unknown; state?: unknown; detail?: unknown; model?: unknown };
+// 모델 이름은 진행 창 카드 머리에 적는다 — 옛 팜은 안 준다 (도메인/실행 §8.16 ⑤)
+type 고름 = { serial: string; model?: string } | { reason: string };
 
 /** 폰에 깔 앱 값이 스토어 앱의 패키지 이름이면 그것 — 깔지 않고 켜서 그 앱이 깔린 폰만 잡아야 한다 (러너 §5.2 「플레이스토어 앱 — 패키지 이름」) */
 export const 거를패키지 = (app: string | null | undefined): string | undefined => (app != null && 패키지이름인가(app) ? app : undefined);
@@ -42,7 +43,7 @@ async function 빈폰을고른다(팜: string, 부르기: typeof fetch, 쉬기: 
     // 깔린 폰이 없으면 기다려도 안 생긴다 — 바쁜 것과 갈라 사람이 팜 「남길 앱」을 보게 한다
     if (패키지 !== undefined && 기기들.length === 0) return { reason: `Device VISION 에 ${패키지} 가 깔린 폰이 없습니다` };
     const 빈폰 = 기기들.find((d) => d.state === 'IDLE' && typeof d.serial === 'string' && d.serial !== '');
-    if (빈폰 !== undefined) return { serial: 빈폰.serial as string };
+    if (빈폰 !== undefined) return { serial: 빈폰.serial as string, ...(typeof 빈폰.model === 'string' && 빈폰.model !== '' && { model: 빈폰.model }) };
     if (!기기들.some((d) => d.detail === 'cleaning') || Date.now() >= 끝) return { reason: 'Device VISION 에 빈 폰이 없습니다' };
     await 쉬기(다시_볼_ms);
   }
@@ -114,7 +115,7 @@ const 닿지못함 = (err: unknown): string => `Device VISION 에 닿지 못했�
  */
 export async function 팜폰으로<T>(
   팜: string,
-  일: (udid: string, 화면: string | undefined) => Promise<T>,
+  일: (udid: string, 화면: string | undefined, 이름?: string) => Promise<T>,
   못잡음: (까닭: string) => T,
   부르기: typeof fetch = fetch,
   쉬기: (ms: number) => Promise<void> = (ms) => new Promise((깨운다) => setTimeout(깨운다, ms)),
@@ -126,10 +127,12 @@ export async function 팜폰으로<T>(
   const 지금토큰 = typeof 토큰 === 'function' ? 토큰 : async () => 토큰;
   const 처음 = await 지금토큰();
   let serial: string;
+  let 이름: string | undefined;
   try {
     const 고른것 = await 빈폰을고른다(팜, 부르기, 쉬기, 처음, 패키지);
     if ('reason' in 고른것) return 못잡음(고른것.reason);
     serial = 고른것.serial;
+    이름 = 고른것.model;
   } catch (err) {
     return 못잡음(닿지못함(err));
   }
@@ -144,7 +147,7 @@ export async function 팜폰으로<T>(
     return 못잡음(닿지못함(err));
   }
   try {
-    return await 일(serial, 화면);
+    return await 일(serial, 화면, 이름);
   } finally {
     await 폰을돌려준다(팜, serial, 부르기, await 지금토큰().catch(() => 처음));
   }
@@ -186,7 +189,7 @@ async function Chrome을켠다(팜: string, serial: string, 부르기: typeof fe
  */
 export function 폰Chrome으로<T>(
   팜: string,
-  일: (칸: 폰Chrome칸, 화면: string | undefined) => Promise<T>,
+  일: (칸: 폰Chrome칸, 화면: string | undefined, 이름?: string) => Promise<T>,
   못잡음: (까닭: string) => T,
   토큰?: string,
   분?: number,
@@ -195,9 +198,9 @@ export function 폰Chrome으로<T>(
   const farmToken = 토큰 ?? (process.env.DEVICE_FARM_TOKEN || undefined);
   return 팜폰으로(
     팜,
-    async (udid, 화면) => {
+    async (udid, 화면, 이름) => {
       const 켬 = await Chrome을켠다(팜, udid, 부르기, 토큰);
-      return '까닭' in 켬 ? 못잡음(켬.까닭) : 일({ udid, cdpUrl: 켬.cdpUrl, ...(farmToken !== undefined && { farmToken }) }, 화면);
+      return '까닭' in 켬 ? 못잡음(켬.까닭) : 일({ udid, cdpUrl: 켬.cdpUrl, ...(farmToken !== undefined && { farmToken }) }, 화면, 이름);
     },
     못잡음,
     부르기,

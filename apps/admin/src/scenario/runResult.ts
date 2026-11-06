@@ -41,7 +41,7 @@ export async function 시나리오분배(runId: number, 요청: ScenarioExecuteR
         응답 =
           폰 === undefined
             ? await 보내기(실은)
-            : await 팜폰으로돌린다(실은, 폰, () => 실행팜토큰(runId), (url) => 시나리오화면.폰(runId, url), 보내기);
+            : await 팜폰으로돌린다(실은, 폰, () => 실행팜토큰(runId), (url, 이름) => 시나리오화면.폰(runId, url, 이름), 보내기);
       } finally {
         // 폰을 놓았다 — 결과를 적는 동안 닫힌 링크 · 끝난 장면을 내지 않는다
         시나리오화면.닫는다(runId);

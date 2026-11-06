@@ -78,7 +78,7 @@ export async function 팜폰으로돌린다(
   요청: ScenarioExecuteRequest,
   폰: 시나리오폰,
   토큰찾기: () => Promise<string | undefined>,
-  폰화면?: (url: string) => void,
+  폰화면?: (url: string, 이름?: string) => void,
   보내기: (요청: ScenarioExecuteRequest) => Promise<ScenarioExecuteResponse> = callScenarioRunner,
 ): Promise<ScenarioExecuteResponse> {
   const 팜 = 팜주소();
@@ -94,8 +94,8 @@ export async function 팜폰으로돌린다(
   if (폰 === 'chrome') {
     return 폰Chrome으로(
       팜,
-      async (칸, 화면) => {
-        if (화면 !== undefined) 폰화면?.(화면);
+      async (칸, 화면, 이름) => {
+        if (화면 !== undefined) 폰화면?.(화면, 이름);
         return 보내기({ ...요청, ...칸 });
       },
       못잡음,
@@ -107,8 +107,8 @@ export async function 팜폰으로돌린다(
   if (typeof 실은 === 'string') return 못잡음(실은);
   return 팜폰으로(
     팜,
-    async (udid, 화면) => {
-      if (화면 !== undefined) 폰화면?.(화면);
+    async (udid, 화면, 이름) => {
+      if (화면 !== undefined) 폰화면?.(화면, 이름);
       return 보내기({ ...실은, udid, ...(토큰 !== undefined && { farmToken: 토큰 }) });
     },
     못잡음,

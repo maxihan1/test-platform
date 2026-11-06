@@ -110,6 +110,8 @@ export interface 잡은폰 {
   토큰: string | undefined;
   // 그 폰의 VISION 화면 링크 — 진행 창 카드가 단다
   화면?: string | undefined;
+  // 그 폰 모델 이름 — 옛 팜은 안 준다
+  이름?: string | undefined;
 }
 
 // 멈췄나는 디스패처가 넘긴다. 팜에서 폰을 잡는 몇 초 사이에 멈추면 러너는 아직 그 항목을 몰라 중단을 못 받는다 — 잡은 뒤 한 번 더 본다.
@@ -182,15 +184,15 @@ async function 항목을보낸다(
     return 보낸다(item, { ...폰body, app });
   };
   // 폰을 잡은 동안만 링크를 단다
-  const 폰화면과 = async <T>(화면: string | undefined, 일: () => Promise<T>): Promise<T> => {
-    항목폰화면(item.historyId, 화면);
+  const 폰화면과 = async <T>(화면: string | undefined, 일: () => Promise<T>, 이름?: string): Promise<T> => {
+    항목폰화면(item.historyId, 화면, 이름);
     try {
       return await 일();
     } finally {
       항목폰화면(item.historyId, undefined);
     }
   };
-  if (잡은폰 !== undefined) return 폰화면과(잡은폰.화면, () => 보낸다폰(잡은폰.udid, 잡은폰.토큰));
+  if (잡은폰 !== undefined) return 폰화면과(잡은폰.화면, () => 보낸다폰(잡은폰.udid, 잡은폰.토큰), 잡은폰.이름);
   // 앱 항목 · 실제 폰 모바일 항목은 서버 러너가 팜에 붙어 돈다. 폰은 항목마다 잡고 놓는다 — 놓을 때 팜이 깐 앱 · Chrome 데이터를 지워 다음 항목이 깨끗한 폰에서 연다 (러너 §5.2 「디바이스 팜 접속 방식」).
   // 팜 주소가 없는데 여기까지 왔다면 요청을 받은 뒤 서버를 다시 띄우며 값을 지웠을 때뿐이다 — 실행 요청 통로가 FARM_OFF 로 거절한다
   const 팜 = 팜주소();
@@ -205,13 +207,13 @@ async function 항목을보낸다(
   if (폰Chrome) {
     return 폰Chrome으로(
       팜,
-      async (칸, 화면) => 폰화면과(화면, async () => 멈춤() ?? 보낸다(item, { ...body, ...칸 })),
+      async (칸, 화면, 이름) => 폰화면과(화면, async () => 멈춤() ?? 보낸다(item, { ...body, ...칸 }), 이름),
       (까닭) => na(item, 까닭),
       토큰,
     );
   }
   // 올린 빌드는 앱 값 없이 번호만 온다 — 빌드가 앞서 APK 를 까니 거르지 않는다 (러너 §5.2 「플레이스토어 앱 — 패키지 이름」)
-  return 팜폰으로(팜, (udid, 화면) => 폰화면과(화면, () => 보낸다폰(udid, 토큰)), (까닭) => na(item, 까닭), undefined, undefined, undefined, 토큰, 거를패키지(item.app));
+  return 팜폰으로(팜, (udid, 화면, 이름) => 폰화면과(화면, () => 보낸다폰(udid, 토큰), 이름), (까닭) => na(item, 까닭), undefined, undefined, undefined, 토큰, 거를패키지(item.app));
 }
 
 // 러너가 거절하거나 못 닿으면 그 항목만 NA 로 접는다 — 케이스 테스트 실행도 같은 문장으로 접는다 (execution/trialRoutes.ts)
