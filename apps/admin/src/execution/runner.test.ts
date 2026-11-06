@@ -120,7 +120,9 @@ describe('callRunner', () => {
     await callRunner(7, { ...항목, platform: 'android' }, () => false, { udid: 'R3', 토큰: undefined, 화면: 'https://vision.example.com/#phone=R3' });
 
     expect(받은것.map((b) => b.live)).toEqual([undefined, undefined]);
-    expect(도는중).toEqual([{}, { vision: 'https://vision.example.com/#phone=R3' }]);
+    // 보낸 항목은 실행 · 제한 · 보낸 때를 같이 든다 — 러너가 첫 단계를 알리기 전에도 진행 응답이 싣는다 (점검표 B2)
+    const 보냄 = { runId: 7, timeoutMs: 5000, 보낸때: expect.any(Number) };
+    expect(도는중).toEqual([{ 보냄 }, { 보냄, vision: 'https://vision.example.com/#phone=R3' }]);
     expect(항목화면(42)).toBeUndefined();
   });
 

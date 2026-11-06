@@ -2,7 +2,7 @@
 
 import type { Pool } from 'pg';
 
-import { abortScenarioRunner } from '../execution/runner.js';
+import { abortScenarioRunner } from '../execution/scenarioRunner.js';
 
 import type { 시험상태 } from './trialAbort.js';
 

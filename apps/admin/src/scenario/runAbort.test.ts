@@ -17,12 +17,14 @@ vi.mock('../db/index.js', () => ({
   },
 }));
 vi.mock('../execution/runner.js', () => ({
-  abortScenarioRunner: vi.fn(async () => true),
   callScenarioRunner: vi.fn(),
+}));
+vi.mock('../execution/scenarioRunner.js', () => ({
+  abortScenarioRunner: vi.fn(async () => true),
 }));
 
 const { 시나리오실행을멈춘다, 실행상태를연다, 실행상태를지운다 } = await import('./runAbort.js');
-const { abortScenarioRunner } = await import('../execution/runner.js');
+const { abortScenarioRunner } = await import('../execution/scenarioRunner.js');
 
 afterEach(() => {
   질의.length = 0;

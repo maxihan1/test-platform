@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { artifactsDir, 볼륨파일읽기 } from '../artifactFile.js';
 import { 권한이되나 } from '../auth/gate.js';
 import { 장면을건넨다 } from '../execution/live.js';
-import { abortScenarioRunner, 시나리오진행 } from '../execution/runner.js';
+import { abortScenarioRunner, 시나리오진행 } from '../execution/scenarioRunner.js';
 import { 시나리오시험, TrialBusyError } from '../execution/trial.js';
 import { 정수 } from '../routeParams.js';
 
