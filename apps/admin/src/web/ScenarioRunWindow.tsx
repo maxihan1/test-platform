@@ -193,7 +193,7 @@ function 장면없음({ data, 머리끝 }: { data: ScenarioRunResult; 머리끝:
   );
 }
 
-/** 안 돈 이유 — 앞 단계 탓으로 안 돈 것은 판정 자리에 `실행 안 함` 이고, 사람이 멈춘 것 · 시간 초과 같은 NA 는 사유를 적는다 */
+/** 안 돈 이유 — 안 돈 단계(NOT_RUN — 앞 단계 실패 · 사람이 멈춰 시작도 못 함)는 판정 자리에 `실행 안 함` 이고, 사람이 멈춘 것 · 시간 초과 같은 NA 는 사유를 적는다 */
 function 사유(p: ScenarioRunPart, 언어: ReturnType<typeof use언어>): string | null {
   if (p.status === 'FAIL') return p.failure?.reason ?? p.error?.message.split('\n')[0] ?? null;
   if (p.status === 'NA' && p.error != null && p.error.message !== 'NOT_RUN') return 멈춘사유글자(p.error.message, 언어);

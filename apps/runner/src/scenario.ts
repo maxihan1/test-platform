@@ -129,7 +129,7 @@ const 빈부품 = (seq: number, message: string, status: ScenarioPartResult['sta
 });
 
 // 줄이 안 온 순번을 채운다. 러너가 채워야 자식이 죽어도 admin 이 「몇 번째에서 멈췄나」를 행으로 적는다.
-// 오류 값의 정본은 SPEC 도메인/시나리오 §3.7 결정 9 — NOT_RUN 은 「앞 부품이 실패해 멈췄다」만 뜻한다
+// 오류 값의 정본은 SPEC 도메인/시나리오 §3.7 결정 9 — NOT_RUN 은 「앞 부품이 실패해 안 돌았다」와 「사람이 멈춰 시작도 못 했다」를 뜻한다(제한 시간은 TIMEOUT)
 export function finishScenario(
   lines: ScenarioPartResult[],
   total: number,
