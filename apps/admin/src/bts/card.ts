@@ -2,6 +2,8 @@
 
 import type { Pool } from 'pg';
 
+import { 종류조건 } from '../execution/runKind.js';
+
 async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
   return pool;
@@ -15,11 +17,11 @@ export interface BTS카드칸 {
   resolution: string | null;
 }
 
-// 시나리오 실행은 카드가 없다 — 없는 실행으로 본다(reporting/routes.ts 실행상태 와 같다)
+// 케이스 실행만 카드가 있다 — 시나리오 · 호환성 실행은 없는 실행으로 본다(reporting/routes.ts 실행상태 와 같다)
 const 연결SQL = `
   SELECT r.service_id, r.env, l.base_url
     FROM test_run r JOIN service s ON s.id = r.service_id JOIN bts_link l ON l.project_id = s.project_id
-   WHERE r.run_id = $1 AND r.kind <> 'SCENARIO'`;
+   WHERE r.run_id = $1 AND ${종류조건('case')}`;
 
 const 줄SQL = `
   SELECT tc_id, kind, state, issue_key, last_error, COALESCE(run_id = $4, false) AS mine

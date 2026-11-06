@@ -6,7 +6,7 @@ import { 사슬식, 오류첫줄 } from '../authoring/history.js';
 import { 작성제목 } from '../authoring/notify.js';
 import { 실행남은시간 } from '../execution/eta.js';
 import { RUN_COLUMNS, toRun, type RawRun } from '../execution/runRow.js';
-import { 종류조건 } from '../execution/runKind.js';
+import { 케이스실행인가, 종류조건 } from '../execution/runKind.js';
 import type { RunCounts, RunSummary } from '../execution/runTypes.js';
 import { 지금항목 } from '../execution/single.js';
 import { 지금판 } from '../prd/store.js';
@@ -213,7 +213,7 @@ export async function 알림(
         runId: 실행.runId,
         title: 실행.title,
         env: 실행.env,
-        testKind: 실행.kind === 'SCENARIO' ? null : 실행.kind,
+        testKind: 케이스실행인가(실행.kind) ? 실행.kind : null,
         total: 실행.counts.total,
         done: 실행.counts.total - 실행.counts.running,
         counts: 실행.counts,
@@ -255,7 +255,7 @@ export async function 알림(
         runId: 실행.runId,
         title: 실행.title,
         env: 실행.env,
-        testKind: 실행.kind === 'SCENARIO' ? null : 실행.kind,
+        testKind: 케이스실행인가(실행.kind) ? 실행.kind : null,
         status: 실행.status,
         counts: 실행.counts,
         finishedAt: 실행.finishedAt!,

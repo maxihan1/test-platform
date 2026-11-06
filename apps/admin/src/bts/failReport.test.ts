@@ -6,7 +6,7 @@ import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { 실패카드 } from '../reporting/failures.js';
-import { BTS다시보내기 } from './card.js';
+import { BTS다시보내기, BTS카드칸들 } from './card.js';
 import { 실패등록 } from './failReport.js';
 import btsLinkRoutes from './routes.js';
 
@@ -120,6 +120,7 @@ describe.skipIf(연결 === undefined)('실패 → Issue Bunker 등록', () => {
     // bts_outbox · bts_issue_case 는 service 와, bts_link 는 project 와 같이 지워진다. 남은 애플리케이션이 없는 project 는 트리거가 지운다
     await pool.query('DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = ANY($1))', [[서비스, 남의서비스, API서비스]]);
     await pool.query('DELETE FROM test_run WHERE service_id = ANY($1)', [[서비스, 남의서비스, API서비스]]);
+    await pool.query('DELETE FROM compat_set WHERE service_id = $1', [서비스]);
     await pool.query('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
     await pool.query('DELETE FROM service WHERE id = ANY($1)', [[서비스, 남의서비스, API서비스]]);
     await pool.end();
@@ -313,6 +314,18 @@ describe.skipIf(연결 === undefined)('실패 → Issue Bunker 등록', () => {
   it('API 애플리케이션은 디바이스가 desktop 이어도 화면 줄을 달지 않는다', async () => {
     expect(await 실패등록(await 실행(API서비스, [{ tcId: 'XBFA-001', status: 'FAIL' }]))).toBe(1);
     expect((await 줄들(API서비스))[0]!.payload.description as string).not.toContain('**화면**');
+  });
+
+  it('호환성 실행은 케이스 실행이 아니라 등록 줄도 카드 칸도 없다', async () => {
+    const 세트 = await pool.query<{ id: string }>(
+      `INSERT INTO compat_set (service_id, name, devices, created_by) VALUES ($1, 'XBF 세트', '[]', 'xbf') RETURNING id`,
+      [서비스],
+    );
+    // 케이스 실행으로 읽히면 올라갈 실패 항목을 담아 둔다 — 조건이 E2E 만 빼던 때로 돌아가면 1 이 된다
+    const runId = await 실행(서비스, [{ tcId: 'XBF-901', status: 'FAIL' }]);
+    await pool.query(`UPDATE test_run SET kind = 'COMPAT', compat_set_id = $2 WHERE run_id = $1`, [runId, 세트.rows[0]!.id]);
+    expect(await 실패등록(runId)).toBe(0);
+    expect(await BTS카드칸들(runId, ['XBF-901'])).toBeNull();
   });
 
   it('BTS 를 안 이은 프로젝트는 줄을 안 넣고 카드에 bts 칸이 없다', async () => {
