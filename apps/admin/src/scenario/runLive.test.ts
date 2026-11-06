@@ -20,4 +20,9 @@ describe('창단계있나', () => {
     expect(창단계있나({ parts: [기다리기, 케이스({ appStep: true })] })).toBe(false);
     expect(창단계있나({ parts: [케이스({ apiDoc: {} as 부품['apiDoc'] })] })).toBe(false);
   });
+
+  it('실제 폰 Chrome 실행은 웹 단계가 있어도 안 찍는다 — 증거 영상 녹화와 같은 탭에 겹친다', () => {
+    expect(창단계있나({ parts: [케이스()] }, 'chrome')).toBe(false);
+    expect(창단계있나({ parts: [케이스(), 케이스({ appStep: true })] }, { serviceId: 1, env: 'qa', appPath: null })).toBe(true);
+  });
 });

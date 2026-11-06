@@ -52,16 +52,39 @@ describe('E2E 화면 카드', () => {
     expect(document.querySelector('.lc-tag')?.textContent).toBe('가상 기기 · iPhone 14');
   });
 
-  it('앱 단계에서 폰만 잡았으면 Device VISION 링크만 서고 장면을 묻지 않는다', async () => {
+  it('실제 폰 Chrome 실행은 Device VISION 링크만 서고 장면을 묻지 않는다', async () => {
     const 받기 = vi.spyOn(장면통로, '받기');
 
-    render(<E2E화면카드 runId={77} platform="android" live={false} vision={{ url: 'https://vision.example.com/#phone=s1' }} />);
+    render(<E2E화면카드 runId={77} platform="mobile" live={false} vision={{ url: 'https://vision.example.com/#phone=s1' }} />);
     await 흘리기();
 
     expect(screen.getByRole('link', { name: 'Device VISION ↗' }).getAttribute('href')).toBe('https://vision.example.com/#phone=s1');
     expect(document.querySelector('.lc-tag')?.textContent).toBe('실제 기기');
     expect(document.querySelector('.lc-scene')).toBeNull();
     expect(받기).not.toHaveBeenCalled();
+  });
+
+  it('앱 단계가 섞여 폰을 쥔 실행은 웹 장면을 그대로 서버 브라우저로 적고, 앱 단계에 들면 흐리게 두고 폰에서 돈다고 알린다', async () => {
+    vi.spyOn(장면통로, '받기').mockResolvedValueOnce({ 종류: 'frame', 그림: new Blob(['jpeg']) }).mockResolvedValue({ 종류: 'empty' });
+
+    render(<E2E화면카드 runId={77} platform="desktop" live vision={{ url: 'https://vision.example.com/#phone=s1' }} />);
+    await 흘리기();
+    expect(document.querySelector('.lc-tag')?.textContent).toBe('서버 브라우저');
+    expect(document.querySelector('.live-shot.dim')).toBeNull();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+    expect(document.querySelector('.live-shot.dim')).not.toBeNull();
+    expect(screen.getByText('지금은 앱 단계라 폰에서 실행 중입니다')).toBeTruthy();
+  });
+
+  it('android 시나리오의 웹 단계는 PC 창이라 꼬리표가 없다', () => {
+    vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'empty' });
+
+    render(<E2E화면카드 runId={77} platform="android" live vision={{ url: 'https://vision.example.com/#phone=s1' }} />);
+
+    expect(document.querySelector('.lc-tag')).toBeNull();
   });
 
   it('장면도 폰도 없으면 카드를 그리지 않는다 — 웹 단계가 없는 실행 · 서버가 다시 뜬 실행', () => {
