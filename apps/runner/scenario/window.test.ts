@@ -219,7 +219,7 @@ describe('창 하나 — 공용 창 · 단계 열기 · 단계 닫기 (SPEC 도�
   it('테스트 모드는 웹 단계 탭에 장면을 걸고 앱 · 게임 단계 동안은 꺼서 비운다 — 다음 웹 단계에서 다시 건다 (러너 §5.2 「테스트 모드 — 실시간 장면」)', async () => {
     const 폴더 = mkdtempSync(join(tmpdir(), 'scn-live-'));
     vi.stubEnv('PLATFORM_LIVE_FILE', join(폴더, 'live', '0b7e2c1a-0000-4000-8000-000000000005.jpg'));
-    // 러너는 시험 실행에 늘 늦추기 값을 같이 준다 — 자식에게는 그것이 누른 곳을 그리는 테스트 모드 표시다
+    // 러너는 시험 실행에 늘 늦추기 값을 같이 준다 — 그래도 누른 곳 표시는 안 건다(장면에 영어 동작 제목이 찍힌다 · 점검표 B20)
     vi.stubEnv('PLATFORM_SLOW_MO', '1000');
     try {
       const { 탭, 감싸기 } = 판();
@@ -231,7 +231,7 @@ describe('창 하나 — 공용 창 · 단계 열기 · 단계 닫기 (SPEC 도�
       await (await 공용.단계(새부품(1, []), true)).close();
       await (await 공용.단계(새부품(2, []), true)).close();
       expect(장면.start).toHaveBeenCalledTimes(1);
-      expect(장면.showActions).toHaveBeenCalledTimes(1);
+      expect(장면.showActions).not.toHaveBeenCalled();
 
       await (await 감싸기.appWindow(새부품(3, []), { cookies: [], origins: [] })).close();
       expect(장면.stop).toHaveBeenCalledTimes(1);
