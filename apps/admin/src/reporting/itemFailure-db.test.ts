@@ -82,7 +82,7 @@ describe.skipIf(연결 === undefined)('실패 항목의 유형과 한 줄', () =
     expect((await findItem(실행, 번호['1pc']!))?.failure).toEqual({ type: 'mismatch', reason: '주문 수가 늘어난다' });
     expect((await findItem(실행, 번호['1mo']!))?.failure).toEqual({
       type: 'notFound',
-      reason: '요소를 끝내 찾지 못했습니다',
+      reason: "요소를 끝내 찾지 못했습니다 — getByRole('button')",
     });
   });
 
