@@ -8,6 +8,7 @@ import type { Pool } from 'pg';
 
 import { 팜logcat읽기, 팜증적받는중 } from '../execution/farmEvidence.js';
 import { trace줄끝 } from '../execution/traceIngest.js';
+import { 종류조건 } from '../execution/runKind.js';
 import { 지금항목 } from '../execution/single.js';
 import { 가린다, 긴것부터, 항목비밀 } from '../execution/trial.js';
 import { 실패카드, type FailureCase, type FailureDevice } from '../reporting/failures.js';
@@ -34,13 +35,13 @@ interface 실행행 {
   kind: string;
 }
 
-// BTS 를 이은 프로젝트의 끝난 케이스 실행만 — 시나리오는 카드가 없다
+// BTS 를 이은 프로젝트의 끝난 케이스 실행만 — 시나리오 · 호환성은 카드가 없다
 const 실행SQL = `
   SELECT r.service_id, s.project_id, r.env, r.build_no, s.name AS service_name, l.bts_project, r.origin, r.rerun_of, s.kind
     FROM test_run r
     JOIN service s ON s.id = r.service_id
     JOIN bts_link l ON l.project_id = s.project_id
-   WHERE r.run_id = $1 AND r.kind <> 'SCENARIO' AND r.status <> 'RUNNING'`;
+   WHERE r.run_id = $1 AND ${종류조건('case')} AND r.status <> 'RUNNING'`;
 
 /** 러너가 run_item_step.screenshot_path 에 남기는 값의 접두사 (reporting/generate.ts 와 같다) */
 const 저장접두 = 'artifacts/';

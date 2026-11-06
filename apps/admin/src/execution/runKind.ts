@@ -1,10 +1,15 @@
-// 실행 종류 — 케이스 실행은 UI · FN, E2E 는 SCENARIO 다. 「케이스 실행」 조건과 종류 판정을 여기 한 곳에 둔다
-// 정본은 SPEC 공통/4-데이터모델 「실행 종류」 · 도메인/작성 §3.6 「★ 테스트 두 갈래」 (2026-10-02 · PR #131)
+// 실행 종류 — 케이스 실행은 UI · FN, E2E 는 SCENARIO, 호환성은 COMPAT 다. 「케이스 실행」 조건과 종류 판정을 여기 한 곳에 둔다
+// 정본은 SPEC 공통/4-데이터모델 「실행 종류」 · 도메인/작성 §3.6 「★ 테스트 두 갈래」 (2026-10-02 · PR #131) · 도메인/호환성 §3.13 「결과 · 판정」
 
 import { tcId종류 } from '../catalog/rules.js';
 
 export type 케이스종류 = 'UI' | 'FN';
-export type RunKind = 케이스종류 | 'SCENARIO';
+export type RunKind = 케이스종류 | 'SCENARIO' | 'COMPAT';
+
+// 「E2E 만 빼면 케이스 실행」으로 읽으면 종류가 늘 때마다 새 종류가 케이스 실행에 섞인다 — 케이스 실행은 이 둘로만 가른다
+export function 케이스실행인가(kind: RunKind): kind is 케이스종류 {
+  return kind === 'UI' || kind === 'FN';
+}
 /** 실행 목록의 `?kind=` — case 는 UI · FN 둘 다다. #132 화면이 하위 메뉴로 가를 때까지 기본값이다 */
 export type 목록종류 = 'ui' | 'fn' | 'case' | 'scenario';
 

@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { 목록종류읽기, 실행종류, 종류별로나눈다, 종류조건 } from './runKind.js';
+import { 목록종류읽기, 실행종류, 종류별로나눈다, 종류조건, 케이스실행인가 } from './runKind.js';
 
 describe('실행종류', () => {
   it('UI 번호만이면 UI, 옛 꼴 · FN 번호면 FN 이다', () => {
@@ -12,6 +12,12 @@ describe('실행종류', () => {
 
   it('섞이면 null 이다', () => {
     expect(실행종류(['PAY-UI-001', 'PAY-041'])).toBeNull();
+  });
+});
+
+describe('케이스실행인가', () => {
+  it('UI · FN 만 케이스 실행이고 E2E · 호환성은 아니다', () => {
+    expect((['UI', 'FN', 'SCENARIO', 'COMPAT'] as const).map(케이스실행인가)).toEqual([true, true, false, false]);
   });
 });
 
