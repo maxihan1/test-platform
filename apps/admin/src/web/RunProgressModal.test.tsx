@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 
-import { api, type ItemStatus, type RunItemPage, type RunItemSummary, type 항목진행 } from './api.js';
+import { api, type ItemStatus, type RunItemSummary, type 항목진행 } from './api.js';
 import type { RunDetail } from './runProgress.js';
 import { RunProgressModal } from './RunProgressModal.js';
 
@@ -110,7 +110,7 @@ describe('RunProgressModal (SPEC §8.9)', () => {
     const 빈실행 = 실행('RUNNING', [], { total: 0, pass: 0, fail: 0, na: 0, running: 0 });
     const { container } = render(<RunProgressModal data={빈실행} 진행목록={[]} onClose={() => {}} />);
 
-    expect(container.querySelector('.stripe')).toBeNull();
+    expect(container.querySelector('.rl-bar')).toBeNull();
   });
 
   it('도는 중이면 지금 진행 중인 항목의 이름이 보인다', () => {
@@ -119,17 +119,30 @@ describe('RunProgressModal (SPEC §8.9)', () => {
     expect(screen.queryByText(/케이스 13/)).not.toBeNull();
   });
 
-  it('방금 끝난 실패 옆에는 영어 예외 대신 서버가 준 유형과 한 줄을 적는다', async () => {
-    const 상세 = vi
-      .spyOn(api, 'item')
-      .mockResolvedValue({ failure: { type: 'mismatch', reason: '로그인 뒤 이름이 보인다' } } as unknown as RunItemPage);
+  it('끝난 항목은 「끝남」 아래 판정 알약 한 줄이고 영어 예외를 적지 않는다 (점검표 D7)', () => {
+    const 상세 = vi.spyOn(api, 'item');
     const 실패만 = 실행('RUNNING', [항목(301, 분(1), 'FAIL'), 항목(302, null, 'PASS')], { total: 2, pass: 0, fail: 1, na: 0, running: 1 });
     render(<RunProgressModal data={실패만} 진행목록={[]} onClose={() => {}} />);
 
-    await waitFor(() => expect(screen.queryByText('로그인 뒤 이름이 보인다')).not.toBeNull());
-    expect(screen.getByText('기대 결과 불일치')).toBeTruthy();
+    const 목록 = document.querySelector('.rl-items')!;
+    expect(목록.textContent).toContain('끝남 1');
+    expect(목록.querySelector('.pill.fail')?.textContent).toBe('실패');
     expect(본문()).not.toContain('기대값 200, 실제 500');
-    expect(상세).toHaveBeenCalledWith(7, 301);
+    // 2초마다 다시 그리는 창이 끝난 항목마다 상세를 묻지 않는다
+    expect(상세).not.toHaveBeenCalled();
+  });
+
+  it('끝남 · 대기가 많으면 앞 서른 줄만 그리고 나머지는 「외 N건」이다', () => {
+    const 많음 = 실행(
+      'RUNNING',
+      Array.from({ length: 70 }, (_, i) => 항목(400 + i, i < 35 ? 분(1) : null, 'PASS')),
+      { total: 70, pass: 35, fail: 0, na: 0, running: 35 },
+    );
+    render(<RunProgressModal data={많음} 진행목록={[]} onClose={() => {}} />);
+
+    expect(document.querySelectorAll('.rl-items li').length).toBe(1 + 30 + 30);
+    expect(screen.getByText('외 5건')).toBeTruthy();
+    expect(screen.getByText('외 4건')).toBeTruthy();
   });
 
   it('도는 중이면 끝난 수와 전체 수를 함께 적는다', () => {
@@ -149,9 +162,39 @@ describe('RunProgressModal (SPEC §8.9)', () => {
   it('지금 도는 것을 유일한 것으로 단정하지 않는다', () => {
     render(<RunProgressModal data={도는중실행} 진행목록={[]} onClose={() => {}} />);
 
-    expect(screen.queryByText('진행 중')).not.toBeNull();
+    expect(document.querySelector('.rl-items .ih')?.textContent).toBe('진행 중 1');
     // 상자 제목 「RUN 7 실행 중」은 실행 하나를 말한다. 항목을 「실행 중: X」로 단정하는 줄은 없다
-    expect(screen.queryByText(/^실행 중/)).toBeNull();
+    expect(본문()).not.toMatch(/실행 중:/);
+  });
+
+  it('도는 중 바닥은 닫아도 계속 돈다는 한 줄과 「닫기」다 — 멈출 수 있는 사람에게만 왼쪽에 「실행 중단」', () => {
+    const on멈추기 = vi.fn();
+    render(<RunProgressModal data={도는중실행} 진행목록={[]} onClose={() => {}} on멈추기={on멈추기} />);
+
+    const 바닥 = document.querySelector('.modal-foot')!;
+    expect(바닥.textContent).toContain('닫아도 실행은 계속되고 끝나면 알림이 옵니다');
+    const 버튼들 = [...바닥.querySelectorAll('button')].map((b) => b.textContent);
+    expect(버튼들).toEqual(['실행 중단', '닫기']);
+    fireEvent.click(screen.getByRole('button', { name: '실행 중단' }));
+    expect(on멈추기).toHaveBeenCalledTimes(1);
+  });
+
+  it('도는 중에도 끝난 뒤에도 같은 1180×744 틀이다 — 머리 단계 표시만 바뀐다 (점검표 D1 · D8)', () => {
+    const { unmount } = render(<RunProgressModal data={도는중실행} 진행목록={[]} onClose={() => {}} />);
+    expect(document.querySelector('.modal.frame')).not.toBeNull();
+    expect(document.querySelector('.frame-steps [aria-current="step"]')?.textContent).toBe('실행 중');
+    unmount();
+    render(<RunProgressModal data={끝난실행} 진행목록={[]} onClose={() => {}} />);
+    expect(document.querySelector('.modal.frame')).not.toBeNull();
+    expect(document.querySelector('.frame-steps [aria-current="step"]')?.textContent).toBe('결과');
+  });
+
+  it('바깥을 눌러도 닫히지 않는다 — 한 틀의 닫는 길은 × · Esc · 바닥 단추다 (§8.16 「틀」)', () => {
+    const onClose = vi.fn();
+    render(<RunProgressModal data={도는중실행} 진행목록={[]} onClose={onClose} />);
+    const 덮개 = document.querySelector('.modal-back')!;
+    fireEvent.mouseDown(덮개, { target: 덮개 });
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it('도는 중에는 닫는 버튼 하나만 두고 못 누르는 버튼을 놓지 않는다', () => {
@@ -185,14 +228,10 @@ describe('RunProgressModal (SPEC §8.9)', () => {
     for (const data of [도는중실행, 끝난실행]) {
       const { unmount } = render(<RunProgressModal data={data} 진행목록={[]} onClose={() => {}} />);
 
-      const 칸들 = [...document.querySelectorAll('.tally > div')];
-      expect(칸들.length).toBeGreaterThan(0);
-      for (const 칸 of 칸들) {
-        expect(칸.querySelector('b')?.textContent ?? '').not.toBe('');
-        expect(칸.querySelector('span')?.textContent ?? '').not.toBe('');
-      }
-      const 라벨들 = 칸들.map((칸) => 칸.querySelector('span')?.textContent);
-      expect(라벨들).toEqual(expect.arrayContaining(['통과', '실패', '미실행']));
+      const 알약들 = [...document.querySelectorAll('.rl-pills .pill')];
+      expect(알약들.length).toBe(3);
+      for (const 알약 of 알약들) expect(알약.querySelector('b')?.textContent ?? '').not.toBe('');
+      expect(알약들.map((알약) => 알약.firstChild?.textContent?.trim())).toEqual(['통과', '실패', '미실행']);
 
       unmount();
     }
@@ -211,17 +250,17 @@ describe('RunProgressModal (SPEC §8.9)', () => {
       <RunProgressModal data={도는중실행} 진행목록={[절차(13, 4, '장바구니에 담는다', 12000)]} onClose={() => {}} />,
     );
 
-    expect(본문()).toContain('12초 경과');
-    expect(본문()).toContain('제한 5분');
+    expect(본문()).toContain('12초 / 제한 5분');
     expect(본문()).not.toContain('12000');
     expect(본문()).not.toContain('300000');
   });
 
-  it('절차가 없으면 그 줄을 아예 두지 않는다 — 빈 자리를 잡아 두지 않는다', () => {
+  it('러너가 아무것도 안 알렸으면 안 끝난 첫째를 카드로 세우고 발에 「브라우저를 여는 중」을 적는다', () => {
     render(<RunProgressModal data={도는중실행} 진행목록={[]} onClose={() => {}} />);
 
-    expect(document.querySelector('.now-step')).toBeNull();
+    expect(document.querySelector('.lc-foot')?.textContent).toContain('브라우저를 여는 중');
     expect(screen.queryByText(/케이스 13/)).not.toBeNull();
+    expect(본문()).not.toContain('undefined');
   });
 
   it('도는 것이 둘이면 둘 다 절차와 함께 보인다', () => {
@@ -238,13 +277,13 @@ describe('RunProgressModal (SPEC §8.9)', () => {
     expect(본문()).toContain('케이스 14');
     expect(본문()).toContain('1단계 · 로그인한다');
     expect(본문()).toContain('2단계 · 검색한다');
-    expect(본문()).toContain('1분 1초 경과');
+    expect(본문()).toContain('1분 1초 / 제한');
   });
 
   it('도는 중 막대는 판정 색 셋과 중립색 하나로 네 칸을 그린다', () => {
     render(<RunProgressModal data={도는중실행} 진행목록={[]} onClose={() => {}} />);
 
-    const 칸들 = [...document.querySelectorAll<HTMLElement>('.stripe i')];
+    const 칸들 = [...document.querySelectorAll<HTMLElement>('.rl-bar i')];
     expect(칸들.map((i) => i.style.background)).toEqual([
       'var(--pass)',
       'var(--fail)',
@@ -258,7 +297,7 @@ describe('RunProgressModal (SPEC §8.9)', () => {
     const 섞임 = { ...도는중실행, counts: { ...도는중실행.counts, pass: 11, unconfirmed: 2 } };
     render(<RunProgressModal data={섞임} 진행목록={[]} onClose={() => {}} />);
 
-    const 칸들 = [...document.querySelectorAll<HTMLElement>('.stripe i')];
+    const 칸들 = [...document.querySelectorAll<HTMLElement>('.rl-bar i')];
     expect(칸들.map((i) => i.style.background)).toEqual([
       'var(--pass)',
       'var(--fail)',

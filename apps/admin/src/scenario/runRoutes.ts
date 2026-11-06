@@ -209,7 +209,7 @@ export async function 시나리오결과(runId: number) {
     evidence: await 증적목록(runId),
     // 도는 동안의 화면 — 진행 창 항목(GET /api/runs/:runId/progress)의 live · vision 과 같은 뜻이다. 끝났거나 admin 이 다시 떴으면 false (도메인/실행 §3.2)
     live: 화면?.열쇠 !== undefined,
-    ...(화면?.vision !== undefined && { vision: { url: 화면.vision } }),
+    ...(화면?.vision !== undefined && { vision: { url: 화면.vision, ...(화면.폰이름 !== undefined && { name: 화면.폰이름 }) } }),
   };
 }
 

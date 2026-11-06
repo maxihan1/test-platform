@@ -13,7 +13,10 @@ export function RunAbortModal({
   on멈추는중,
   onClose,
   on멈춤,
+  e2e = false,
 }: {
+  /** E2E 시나리오 실행 — 돌리는 것이 케이스가 아니라 단계다 */
+  e2e?: boolean;
   runId: number;
   멈추는중: boolean;
   on멈추는중: (값: boolean) => void;
@@ -51,7 +54,7 @@ export function RunAbortModal({
       }
     >
       <p>
-        {t('진행 중인 케이스는 바로 멈추고 남은 케이스는 실행하지 않습니다')}
+        {e2e ? t('진행 중인 단계는 바로 멈추고 남은 단계는 실행하지 않습니다') : t('진행 중인 케이스는 바로 멈추고 남은 케이스는 실행하지 않습니다')}
         <br />
         {t('되돌릴 수 없습니다')}
       </p>

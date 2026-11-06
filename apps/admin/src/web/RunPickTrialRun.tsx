@@ -168,7 +168,7 @@ export function 시험바닥({ 시험, 케이스들, 정식, on실행, on닫기 
   );
 }
 
-function 경과({ 시작시각 }: { 시작시각: number }) {
+export function 경과({ 시작시각 }: { 시작시각: number }) {
   const t = use말();
   const [지금, set지금] = useState(() => Date.now());
   useEffect(() => {

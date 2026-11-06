@@ -10,6 +10,7 @@ import { 멈춘사유글자 } from './scenarioResultView.js';
 import { 가리킴빈곳, 종류글, 카드요약, type 재료들 } from './scenarioView.js';
 import { RunLocation, type 모바일고르개 } from './RunLocation.js';
 import { 장면칸 } from './TrialLive.js';
+import { 걸린글 } from './trialView.js';
 import { seconds, Verdict } from './ui.js';
 import type { 시험상태 } from './useScenarioTrial.js';
 
@@ -106,7 +107,7 @@ export function TrialControls({
 }
 
 // 실패 색은 FAIL 일 때만이다. 시간 초과 · 러너 거절 같은 NA 는 판정 없음 색이다
-const 오류칠 = (status: ScenarioExecuteResponse['status']) => (status === 'NA' ? 'scn-trial-na' : 'scn-trial-fail');
+export const 오류칠 = (status: ScenarioExecuteResponse['status']) => (status === 'NA' ? 'scn-trial-na' : 'scn-trial-fail');
 
 export function TrialSummary({ 시험, on자세히 }: { 시험: 시험상태; on자세히: () => void }) {
   const t = use말();
@@ -170,7 +171,7 @@ export function TrialTab({ 시험, 단계들, 재료, 장면 }: { 시험: 시험
   );
 }
 
-function TrialRow({
+export function TrialRow({
   part,
   단계,
   재료,
@@ -212,7 +213,8 @@ function TrialRow({
           ) : (
             <Verdict status={part.status} />
           )}
-          {안돌았다 ? null : <span className="scn-dur">{seconds(part.durationMs, 언어)}</span>}
+          {/* 초 단위 정수다 — 케이스 시험 결과와 같다 (점검표 B15f · §8.16 ④) */}
+          {안돌았다 || part.durationMs === null ? null : <span className="scn-dur">{걸린글(part.durationMs, 언어)}</span>}
         </span>
       </div>
       {part.status !== 'FAIL' || 사유 === '' ? null : <pre className="scn-error">{사유}</pre>}

@@ -111,12 +111,12 @@ async function 게임실행(runId: number, 항목들: PendingItem[]): Promise<vo
     const 다시받기 = (): Promise<string | undefined> => 실행팜토큰(runId).catch(() => 처음토큰);
     await 팜폰으로(
       팜,
-      async (udid, 화면) => {
+      async (udid, 화면, 이름) => {
         for (const item of 항목들) {
           if (멈춘실행.has(runId)) return;
           const 지금 = await 다시받기();
           await 잡기를늘린다(팜, udid, fetch, 지금);
-          await runOne(runId, item, { udid, 토큰: 지금, 화면 });
+          await runOne(runId, item, { udid, 토큰: 지금, 화면, 이름 });
         }
       },
       async (까닭) => {

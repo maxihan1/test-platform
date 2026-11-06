@@ -85,7 +85,7 @@ async function 팜폰에서돌린다(
   요청: ExecuteRequest,
   사람: string,
   앱재료: { serviceId: number; env: string; appPath: string | null } | 'chrome',
-  폰화면: (url: string | undefined) => void,
+  폰화면: (url: string | undefined, 이름?: string) => void,
   보내기: (body: ExecuteRequest) => Promise<ExecuteResponse>,
   멈췄나: () => boolean,
 ): Promise<ExecuteResponse> {
@@ -113,8 +113,8 @@ async function 팜폰에서돌린다(
     앱재료 === 'chrome'
       ? await 폰Chrome으로(
           팜,
-          async (칸, 화면) => {
-            if (화면 !== undefined) 폰화면(화면);
+          async (칸, 화면, 이름) => {
+            if (화면 !== undefined) 폰화면(화면, 이름);
             return 보내기({ ...요청, ...칸 });
           },
           못잡음,
@@ -122,8 +122,8 @@ async function 팜폰에서돌린다(
         )
       : await 팜폰으로(
           팜,
-          async (udid, 화면) => {
-            if (화면 !== undefined) 폰화면(화면);
+          async (udid, 화면, 이름) => {
+            if (화면 !== undefined) 폰화면(화면, 이름);
             return 보내기({ ...요청, udid, ...(토큰 !== undefined && { farmToken: 토큰 }), ...(app !== null && { app }) });
           },
           못잡음,
@@ -196,7 +196,7 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
     }
     const 사람 = req.user?.username ?? '알 수 없음';
     try {
-      const 일 = async (id: string, 폰화면: (url: string | undefined) => void): Promise<ExecuteResponse> => {
+      const 일 = async (id: string, 폰화면: (url: string | undefined, 이름?: string) => void): Promise<ExecuteResponse> => {
         const 상태: 시험상태 = { historyId: 요청.historyId, 보냄: false, 멈춤: false, ...(행.step_titles !== null && { stepTitles: 행.step_titles }) };
         상태들.set(id, 상태);
         // 멈췄나를 보고 보냄을 적는 사이에 await 가 없다 — 중단은 둘 중 한 갈래만 탄다

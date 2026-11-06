@@ -363,8 +363,10 @@ export type 항목진행 = Pick<RunningStep, 'historyId'> & Partial<Omit<Running
   itemElapsedMs?: number;
   /** 장면을 찍는 항목인가(브라우저를 여는 desktop · mobile). 옛 가짜 응답을 안 고치려고 선택으로 둔다 (도메인/실행 §7 `GET /api/runs/:runId/progress`) */
   live?: boolean;
-  /** 그 항목이 잡은 폰의 Device VISION 화면. 폰을 잡았을 때만 온다 */
-  vision?: { url: string };
+  /** 그 항목이 잡은 폰의 Device VISION 화면과 모델 이름. 폰을 잡았을 때만 온다 · 이름은 팜이 안 주면 없다 (도메인/실행 §7 「폰 이름」) */
+  vision?: { url: string; name?: string };
+  /** 그 케이스의 단계 제목 전부 — 스캔이 못 센 케이스는 없다 (도메인/실행 §3.2 「단계 목록은 처음부터 다 보인다」) */
+  stepTitles?: string[];
 };
 
 export interface RunItemDetail extends RunItemSummary {

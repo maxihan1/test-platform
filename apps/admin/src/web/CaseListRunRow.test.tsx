@@ -8,9 +8,11 @@ import { api, type CaseRow, type Paged, type ServiceRow, type User } from './api
 import { CaseList } from './CaseList.js';
 import type { 판정 } from './role.js';
 import { 시작누름 } from './runPick.fixture.js';
+import { 지켜보는실행, 지켜본다 } from './runWatchStore.js';
 
 afterEach(() => {
   cleanup();
+  지켜본다(null);
   vi.restoreAllMocks();
 });
 
@@ -92,6 +94,8 @@ describe('케이스 줄의 디바이스마다 ▶ 실행', () => {
     시작누름();
 
     await waitFor(() => expect(window.location.hash).toBe('#/runs/fn?run=31'));
+    // 실행 기록으로 옮기고 진행 창도 바로 연다 — 앞 판은 「N/12 완료」를 눌러야 열렸다 (점검표 B7)
+    expect(지켜보는실행()).toEqual({ runId: 31, 열림: true });
     expect(걸기.mock.calls[0]?.[0]).toMatchObject({ env: 'qa', items: [{ tcId: 'ZPK-001', platforms: ['desktop'] }] });
     expect(걸기.mock.calls[0]?.[0]).not.toHaveProperty('mobileOn');
     expect(screen.queryByRole('dialog')).toBeNull();

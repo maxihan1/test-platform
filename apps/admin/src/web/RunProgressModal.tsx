@@ -1,145 +1,33 @@
 // 실행 하나를 「도는 중」과 「끝났다」 두 모습으로 그리는 모달 (SPEC §8.9 · DESIGN.md 모달)
 // 모달을 둘로 나누면 같은 화면이 두 번 가로막는다. 그래서 상자는 하나이고 상태가 내용을 고른다
 
-import { useEffect, useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
-import { api, type RunItemSummary, type 항목실패, type 항목진행 } from './api.js';
-import { 실패이유 } from './FailureWhy.js';
+import type { RunItemSummary, 항목진행 } from './api.js';
 import { groupByCase, 회차요약 } from './group.js';
 import { t, use말, use언어, type 언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import { 항목실행번호 } from './RerunTag.js';
-import { 기록띠, 진행중카드들 } from './RunLiveCards.js';
-import { type RunDetail, type 진행막대, 진행상황 } from './runProgress.js';
-import { 실행남은글 } from './remainText.js';
-import { 도는중, 미실행사유 } from './runState.js';
-import { STATUS_LABEL } from './ui.js';
+import { 기록띠, 화면카드들 } from './RunLiveCards.js';
+import { 진행왼쪽, 셈알약 } from './RunLiveLeft.js';
+import { type RunDetail, 진행상황 } from './runProgress.js';
+import { 도는중 } from './runState.js';
 import { 그중미확정글 } from './unconfirmed.js';
 
 const 실패목록최대 = 5;
 
-function 막대칸들(막대: 진행막대, 언어: 언어) {
-  return [
-    // 색은 막대(도형), 글은 숫자 글자다 — 어두운 바탕에서 도형 색을 글자에 쓰면 4.5 를 못 넘는다 (DESIGN.md 「두 벌 토큰」)
-    { 이름: t('통과', 언어), 수: 막대.통과, 색: 'var(--pass)', 글: 'var(--pass-text)', 판정: true },
-    { 이름: t('실패', 언어), 수: 막대.실패, 색: 'var(--fail)', 글: 'var(--fail-text)', 판정: true },
-    { 이름: t('미실행', 언어), 수: 막대.미실행, 색: 'var(--na)', 글: 'var(--na-text)', 판정: true },
-    // 남은 것은 판정이 아니다. 판정 색 셋 중 하나를 쓰면 아직 안 난 결과가 결과처럼 읽힌다 (DESIGN.md)
-    { 이름: t('남음', 언어), 수: 막대.남은것, 색: 'var(--well)', 글: 'var(--ink-muted)', 판정: false },
-  ];
-}
-
-// 2초마다 다시 그려도 끝난 항목의 이유는 안 바뀐다 — 한 번 물은 것은 다시 묻지 않는다
-const 이유기억 = new Map<string, Promise<항목실패 | null>>();
-
-function 이유읽기(runId: number, historyId: number): Promise<항목실패 | null> {
-  const 키 = `${String(runId)}:${String(historyId)}`;
-  let 약속 = 이유기억.get(키);
-  if (약속 === undefined) {
-    // ponytail: 화면을 오래 켜 두면 쌓인다 — 넘치면 통째로 비운다. 진행 응답에 이유가 실리면 이 기억을 걷는다
-    if (이유기억.size > 500) 이유기억.clear();
-    // 못 읽으면 줄만 비운다. 기억에서 빼야 다음 그림에서 다시 묻는다
-    약속 = api.item(runId, historyId).then(
-      (상세) => 상세.failure ?? null,
-      () => {
-        이유기억.delete(키);
-        return null;
-      },
-    );
-    이유기억.set(키, 약속);
-  }
-  return 약속;
-}
-
-/**
- * 방금 끝난 실패 · 미실행 항목의 유형과 한 줄. 앞 판은 러너의 영어 예외 첫 줄을 그대로 적었다 (점검 5.2).
- * 이유는 항목 상세와 같은 서버 값이다 — 화면이 원문을 다듬어 따로 짓지 않는다
- */
-function 끝난이유({ runId, item }: { runId: number; item: RunItemSummary }) {
-  const 언어 = use언어();
-  const [이유, set이유] = useState<항목실패 | null>(null);
-  useEffect(() => {
-    if (item.status === 'PASS') return;
-    let 살아있음 = true;
-    void 이유읽기(runId, item.historyId).then((값) => {
-      if (살아있음) set이유(값);
-    });
-    return () => {
-      살아있음 = false;
-    };
-  }, [runId, item.historyId, item.status]);
-  // 멈춰 닫힌 미실행(ABORTED)은 서버가 이유를 안 준다 — 앞 판처럼 미실행 사유(「사용자가 멈춤」)를 적는다
-  if (이유 === null) {
-    const 사유 = item.status === 'NA' ? 미실행사유(item.error, 언어) : null;
-    return 사유 === null ? null : <div className="hint">{사유}</div>;
-  }
-  return (
-    <div className="hint">
-      <실패이유 failure={이유} />
-    </div>
-  );
-}
-
-function 판정칸들({ 칸들 }: { 칸들: ReturnType<typeof 막대칸들> }) {
-  return (
-    <div className="tally">
-      {칸들.map((칸) => (
-        <div key={칸.이름}>
-          <b style={칸.판정 ? { color: 칸.글 } : undefined}>{칸.수}</b>
-          <span>{칸.이름}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
+/** ⑤ 실행 중 — 왼쪽 숫자 · 목록, 오른쪽 화면 카드가 처음부터 보인다 (도메인/실행 §8.16 ⑤ · 점검표 D7) */
 function 진행내용({ data, 진행목록, 남은ms }: { data: RunDetail; 진행목록: 항목진행[]; 남은ms: number | null }) {
-  const t말 = use말();
-  const 언어 = use언어();
-  const { 막대, 끝난수, 전체수, 지금도는것들, 방금끝난것 } = 진행상황(data, 진행목록);
-  const 칸들 = 막대칸들(막대, 언어);
-
+  const 지금 = 진행상황(data, 진행목록);
   return (
     <>
-      {/* 넷의 합이 전체수와 같아 폭 비율을 flex 가 그대로 낸다.
-          여백과 「줄어들지 않는다」는 styles.css 의 `.modal-body .stripe` 가 갖는다 —
-          인라인으로 두면 그 규칙이 있는지 다음 사람이 알 수 없다.
-          **전체수가 0 이면 띠를 안 그린다** — 네 칸이 다 폭 0 이라 회색 빈 띠만 남는다.
-          결과 목록도 같은 자리에서 같은 판단을 한다 (RunResult.tsx) */}
-      {전체수 === 0 ? null : (
-        <div className="stripe">
-          {칸들.map((칸) => (
-            <i key={칸.이름} style={{ background: 칸.색, flex: 칸.수 }} />
-          ))}
+      <기록띠 data={data} />
+      <div className="rl">
+        <진행왼쪽 data={data} 진행={지금} 남은ms={남은ms} />
+        <div className="rl-right">
+          <화면카드들 runId={data.runId} 것들={지금.지금도는것들} />
         </div>
-      )}
-      {/* 색만으로는 판정을 전달하지 않는다 — 칸마다 숫자와 글자를 같이 적는다 (SPEC §8.9).
-          미확정은 칸이 아니라 아래 「그중 미확정 N건」 한 줄이다 — 이미 위 칸들에 센 항목이다 */}
-      <판정칸들 칸들={칸들} />
-      {그중미확정글(data.counts, 언어) === '' ? null : <p className="hint">{그중미확정글(data.counts, 언어)}</p>}
-      <p>{t말('{끝난} / {전체} 완료', { 끝난: 끝난수, 전체: 전체수 })}</p>
-      <p className="hint">{실행남은글(남은ms, Date.now(), 언어)}</p>
-
-      {지금도는것들.length === 0 ? null : (
-        <div>
-          {/* 「실행 중: X」라고 쓰지 않는다. 항목 둘이 동시에 돌아(EXECUTION_CONCURRENCY 기본 2)
-              여기 뜨는 것이 전부라는 보장이 없다 — 단정하면 없는 확실함을 만든다 (runProgress.ts) */}
-          <div className="sec-h">{t말('진행 중')}</div>
-          <진행중카드들 runId={data.runId} 것들={지금도는것들} />
-        </div>
-      )}
-
-      {방금끝난것.length === 0 ? null : (
-        <div>
-          <div className="sec-h">{t말('최근 완료')}</div>
-          {방금끝난것.map((item) => (
-            <div className="pre" key={item.historyId}>
-              {item.tcId} {item.tcName} · {STATUS_LABEL[item.status]}
-              <끝난이유 runId={data.runId} item={item} />
-            </div>
-          ))}
-        </div>
-      )}
+      </div>
     </>
   );
 }
@@ -172,9 +60,6 @@ function 실패한케이스들(items: RunItemSummary[]): (RunItemSummary & { tcN
 function 완료내용({ data, onClose }: { data: RunDetail; onClose: () => void }) {
   const t말 = use말();
   const 언어 = use언어();
-  const 칸들 = 막대칸들({ 통과: data.counts.pass, 실패: data.counts.fail, 미실행: data.counts.na, 남은것: 0 }, 언어).filter(
-    (칸) => 칸.판정,
-  );
   const 실패목록 = 실패한케이스들(data.items);
 
   return (
@@ -182,7 +67,12 @@ function 완료내용({ data, onClose }: { data: RunDetail; onClose: () => void 
       <p>
         {data.title} · {t말('대상 서버 {서버}', { 서버: data.env })}
       </p>
-      <판정칸들 칸들={칸들} />
+      {/* 점수는 한 줄 알약 — 시험 결과 ④ 와 같다. 0 은 점선 회색이다 (시안 A ④ · 점검표 B18) */}
+      <div className="rl-pills">
+        <셈알약 종류="pass" 이름={t말('통과')} 수={data.counts.pass} />
+        <셈알약 종류="fail" 이름={t말('실패')} 수={data.counts.fail} />
+        <셈알약 종류="na" 이름={t말('미실행')} 수={data.counts.na} />
+      </div>
       {그중미확정글(data.counts, 언어) === '' ? null : <p className="hint">{그중미확정글(data.counts, 언어)}</p>}
       {실패목록.length === 0 ? null : (
         <div>
@@ -255,15 +145,19 @@ export function RunProgressModal({
     <Modal
       제목={제목(data, 언어)}
       onClose={onClose}
+      틀={도는가 ? '실행 중' : '결과'}
+      // 한 틀은 바깥을 눌러 닫히지 않고 휴대폰에서 화면 가득이다 (§8.16 「틀」 「닫는 길」)
+      바깥눌러닫기={false}
       버튼={
         도는가 ? (
           <>
-            {/* 멈추기 확인은 이 상자 위에 겹친다 (DESIGN.md 「휴대폰의 창」 — 창 위의 창은 ①끼리만) */}
+            {/* 되돌릴 수 없는 일은 주 단추와 떨어진 왼쪽이다 (§8.16 「바닥」). 멈추기 확인은 이 창 위에 겹친다 */}
             {on멈추기 === undefined ? null : (
-              <button className="btn ghost" onClick={on멈추기}>
+              <button className="btn ghost trial-stop" onClick={on멈추기}>
                 {t말('실행 중단')}
               </button>
             )}
+            <span className="rl-note">{t말('닫아도 실행은 계속되고 끝나면 알림이 옵니다')}</span>
             <button className="btn" onClick={onClose} data-first>
               {t말('닫기')}
             </button>
@@ -285,11 +179,13 @@ export function RunProgressModal({
       }
     >
       {도는가 ? (
+        <진행내용 data={data} 진행목록={진행목록} 남은ms={남은ms} />
+      ) : (
         <>
-          <기록띠 data={data} />
-          <진행내용 data={data} 진행목록={진행목록} 남은ms={남은ms} />
+          {덧붙임}
+          <완료내용 data={data} onClose={onClose} />
         </>
-      ) : <>{덧붙임}<완료내용 data={data} onClose={onClose} /></>}
+      )}
     </Modal>
   );
 }

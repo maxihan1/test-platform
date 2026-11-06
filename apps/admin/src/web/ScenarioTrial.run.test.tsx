@@ -54,7 +54,7 @@ describe('시험 실행 돌리기', () => {
     expect(screen.getByRole('button', { name: '시험 실행' })).toBeTruthy();
   });
 
-  it('누르면 시험 결과 탭이 열린다', async () => {
+  it('누르면 시험 실행 창이 열리고 탭은 그대로다', async () => {
     const { container } = await 기존그리기();
     vi.spyOn(scenarioApi, 'startTrial').mockResolvedValue({ trialId: 't-1' });
     vi.spyOn(scenarioApi, 'trial').mockResolvedValue({ status: 'RUNNING' });
@@ -63,48 +63,74 @@ describe('시험 실행 돌리기', () => {
 
     await 시험누르기();
 
-    expect(탭(container)).toBe('trial');
+    expect(screen.getByRole('dialog', { name: 'E2E 시험 실행' })).toBeTruthy();
+    expect(탭(container)).toBe('settings');
+    expect(screen.queryByRole('tab', { name: '시험 결과' })).toBeNull();
   });
 
-  it('시험 결과 탭 맨 위에 실시간 칸이 열리고, 폰을 잡으면 VISION 링크를 달았다가 끝나면 걷는다', async () => {
+  it('시험 실행 창의 실시간 칸이 열리고, 폰을 잡으면 폰 이름과 VISION 링크를 달았다가 끝나면 걷는다', async () => {
     const { container } = await 기존그리기();
     vi.spyOn(scenarioApi, 'startTrial').mockResolvedValue({ trialId: 't-1' });
     vi.spyOn(scenarioApi, 'trial')
-      .mockResolvedValueOnce({ status: 'RUNNING', vision: { url: 'https://vision.example/#phone=R3C&view=k1' } })
+      .mockResolvedValueOnce({ status: 'RUNNING', vision: { url: 'https://vision.example/#phone=R3C&view=k1', name: 'Galaxy S23' } })
       .mockResolvedValue({ status: 'FINISHED', result: 통과결과 });
     const 받기 = vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'empty' });
     vi.useFakeTimers();
     서버고르기('stg');
 
     await 시험누르기();
-    expect(container.querySelector('.scn-trial > .trial-live')).not.toBeNull();
+    expect(container.ownerDocument.querySelector('.modal.frame .trial-colR > .trial-live')).not.toBeNull();
     expect(받기).toHaveBeenCalledWith('/api/scenario-trials/t-1/live');
 
     await 흘리기(2000);
     expect(screen.getByRole('link', { name: 'Device VISION 에서 보기 ↗' }).getAttribute('href')).toBe('https://vision.example/#phone=R3C&view=k1');
+    expect(screen.getByText('Galaxy S23')).toBeTruthy();
 
     await 흘리기(2000);
     expect(screen.queryByRole('link', { name: 'Device VISION 에서 보기 ↗' })).toBeNull();
   });
 
-  it('다른 탭에 다녀와도 끝난 시험의 마지막 장면이 남는다', async () => {
-    const { container } = await 기존그리기();
+  it('RUNNING 응답의 지금 단계가 창 단계 목록에 오고, 중단을 확인하면 중단 통로를 부른다', async () => {
+    await 기존그리기();
     vi.spyOn(scenarioApi, 'startTrial').mockResolvedValue({ trialId: 't-1' });
-    vi.spyOn(scenarioApi, 'trial').mockResolvedValue({ status: 'FINISHED', result: 통과결과 });
-    vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'frame', 그림: new Blob(['jpeg']) });
-    Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: vi.fn(() => 'blob:1') });
-    Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: vi.fn() });
+    vi.spyOn(scenarioApi, 'trial').mockResolvedValue({ status: 'RUNNING', step: { seq: 2, elapsedMs: 3200 } });
+    const 중단 = vi.spyOn(scenarioApi, 'abortTrial').mockResolvedValue({ aborted: true });
+    vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'empty' });
     vi.useFakeTimers();
     서버고르기('stg');
-
     await 시험누르기();
     await 흘리기(2000);
-    fireEvent.click(screen.getByRole('tab', { name: '단계 추가' }));
-    fireEvent.click(screen.getByRole('tab', { name: '시험 결과' }));
 
-    expect(탭(container)).toBe('trial');
-    expect(screen.getByText('마지막 화면')).toBeTruthy();
-    expect(screen.getByRole('img', { name: '끝난 순간의 화면' }).getAttribute('src')).toBe('blob:1');
+    const 창 = screen.getByRole('dialog', { name: 'E2E 시험 실행' });
+    expect([...창.querySelectorAll('.e2e-steps li')].map((줄) => 줄.className)).toEqual(['done', 'now', 'wait']);
+    expect(창.querySelectorAll('.e2e-steps li')[1]?.querySelector('.t')?.textContent).toBe('4초째');
+
+    fireEvent.click(within(창).getByRole('button', { name: '중단' }));
+    await act(async () => {
+      fireEvent.click(within(screen.getByRole('dialog', { name: '시험 실행을 중단할까요?' })).getByRole('button', { name: '중단' }));
+    });
+
+    expect(중단).toHaveBeenCalledWith('t-1');
+    expect(screen.getByRole('button', { name: '중단하는 중' })).toBeTruthy();
+  });
+
+  it('도는 중 창을 × 로 닫고 멈추고 닫기를 누르면 창이 닫히고 중단 통로를 부른다', async () => {
+    await 기존그리기();
+    vi.spyOn(scenarioApi, 'startTrial').mockResolvedValue({ trialId: 't-1' });
+    vi.spyOn(scenarioApi, 'trial').mockResolvedValue({ status: 'RUNNING' });
+    const 중단 = vi.spyOn(scenarioApi, 'abortTrial').mockResolvedValue({ aborted: true });
+    vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'empty' });
+    vi.useFakeTimers();
+    서버고르기('stg');
+    await 시험누르기();
+
+    fireEvent.click(screen.getByRole('button', { name: '창 닫기' }));
+    await act(async () => {
+      fireEvent.click(within(screen.getByRole('dialog', { name: '닫으면 시험 실행을 멈춥니다' })).getByRole('button', { name: '멈추고 닫기' }));
+    });
+
+    expect(중단).toHaveBeenCalledWith('t-1');
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('sessionStorage 에 시험 번호가 있으면 화면이 열릴 때 이어 묻고 결과를 받는다', async () => {
@@ -269,7 +295,7 @@ describe('시험 실행 돌리기', () => {
 });
 
 describe('시험 결과 줄은 돌린 때의 단계 이름이다 (FIX-F4-05 · L31)', () => {
-  const 줄들 = () => within(screen.getByRole('tabpanel')).getAllByRole('listitem');
+  const 줄들 = () => [...screen.getByRole('dialog').querySelectorAll<HTMLElement>('.scn-steps > li')];
 
   it('시험이 끝난 뒤 단계를 옮겨도 실패한 2번 줄은 그때 돌린 ZSB-002 다', async () => {
     await 기존그리기();
@@ -308,6 +334,6 @@ describe('시험 결과 줄은 돌린 때의 단계 이름이다 (FIX-F4-05 · L
 
     await 시험누르기();
 
-    expect(JSON.parse(sessionStorage.getItem('scn-trial:12') ?? 'null')).toEqual({ trialId: 't-1', env: 'stg', parts: 단계셋 });
+    expect(JSON.parse(sessionStorage.getItem('scn-trial:12') ?? 'null')).toEqual({ trialId: 't-1', env: 'stg', parts: 단계셋, 시작: expect.any(Number) });
   });
 });

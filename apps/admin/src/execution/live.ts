@@ -40,7 +40,7 @@ export interface 보낸것 {
   보낸때: number;
 }
 
-type 화면 = { 열쇠?: string; vision?: string; 보냄?: 보낸것 };
+type 화면 = { 열쇠?: string; vision?: string; 폰이름?: string; 보냄?: 보낸것 };
 
 /**
  * 도는 정식 실행의 화면 — 장면 열쇠(브라우저를 여는 것만)와 잡은 폰의 VISION 링크. admin 메모리에만 두고 끝나면 지운다.
@@ -57,9 +57,12 @@ function 화면칸() {
       return 열쇠;
     },
     /** 폰을 잡으면 링크를 달고 놓으면 뗀다 — 놓은 폰의 링크는 닫혀 있다 */
-    폰(번호: number, url: string | undefined): void {
+    폰(번호: number, url: string | undefined, 이름?: string): void {
       const 칸 = 화면들.get(번호);
-      if (칸 !== undefined) 칸.vision = url;
+      if (칸 === undefined) return;
+      칸.vision = url;
+      // 놓으면 이름도 뗀다 — 다음에 잡은 폰 이름이 아니다
+      칸.폰이름 = url === undefined ? undefined : 이름;
     },
     닫는다(번호: number): void {
       화면들.delete(번호);

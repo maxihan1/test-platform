@@ -51,6 +51,21 @@ describe('테스트 실행 메모리 저장소', () => {
     await vi.waitFor(() => expect(읽는다('kim', id)).toEqual({ status: 'DONE', result: 결과() }));
   });
 
+  it('팜이 준 폰 이름도 같이 싣고, 폰을 놓으면 이름도 뗀다 (도메인/실행 §7 「폰 이름」)', async () => {
+    const 러너 = 미룬것();
+    let 놓기: (url: string | undefined, 이름?: string) => void = () => undefined;
+    const id = 시작한다('kim', (_id, 폰화면) => {
+      폰화면('https://vision.example.com/#phone=s1', 'SM-S911N');
+      놓기 = 폰화면;
+      return 러너.promise;
+    }, 명세);
+    expect(읽는다('kim', id)).toEqual({ status: 'RUNNING', vision: { url: 'https://vision.example.com/#phone=s1', name: 'SM-S911N' } });
+    놓기(undefined);
+    expect(읽는다('kim', id)).toEqual({ status: 'RUNNING' });
+    러너.끝냄(결과());
+    await vi.waitFor(() => expect(읽는다('kim', id)?.status).toBe('DONE'));
+  });
+
   it('실행이 던지면 NA 와 안내 문장이고 원문은 stack 에 있다', async () => {
     const id = 시작한다('kim', () => Promise.reject(new Error('connect ECONNREFUSED 127.0.0.1:4001')), 명세);
     await vi.waitFor(() => expect(읽는다('kim', id)?.status).toBe('DONE'));

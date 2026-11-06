@@ -31,7 +31,7 @@ export async function 진행경로(app: FastifyInstance): Promise<void> {
       const 화면 = 항목화면(historyId);
       return {
         live: 화면?.열쇠 !== undefined,
-        ...(화면?.vision !== undefined && { vision: { url: 화면.vision } }),
+        ...(화면?.vision !== undefined && { vision: { url: 화면.vision, ...(화면.폰이름 !== undefined && { name: 화면.폰이름 }) } }),
         ...(화면?.보냄 !== undefined && { itemElapsedMs: 지금 - 화면.보냄.보낸때 }),
       };
     };

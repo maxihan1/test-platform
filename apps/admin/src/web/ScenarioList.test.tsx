@@ -6,7 +6,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 
 import { ApiError, type EnvRow } from './api.js';
 import type { 판정 } from './role.js';
-import { scenarioApi, type ScenarioRow } from './scenarioApi.js';
+import { scenarioApi, type ScenarioRow, type ScenarioRunResult } from './scenarioApi.js';
 import { ScenarioList } from './ScenarioList.js';
 
 const 운영: 판정 = () => true;
@@ -55,6 +55,30 @@ async function 그리기(items: ScenarioRow[], 할수: 판정 = 운영, envs: En
   await waitFor(() => expect(스파이).toHaveBeenCalledWith('ZSM'));
   return { ...것, 스파이 };
 }
+
+const 도는결과 = (): ScenarioRunResult => ({
+  scenarioId: 2,
+  version: 2,
+  status: 'RUNNING',
+  platform: 'desktop',
+  title: 'ZSM 시나리오 2',
+  env: 'stg',
+  baseUrl: 'https://stg.example.com',
+  triggeredBy: 'zsm',
+  triggeredByName: null,
+  startedAt: new Date().toISOString(),
+  finishedAt: null,
+  parts: [],
+  evidence: [],
+  live: true,
+});
+
+function 창열기준비() {
+  vi.spyOn(scenarioApi, 'result').mockResolvedValue(도는결과());
+  vi.spyOn(scenarioApi, 'step').mockResolvedValue(null);
+}
+
+const 확인상자 = () => within(screen.getByRole('dialog', { name: '정식 실행을 시작할까요?' }));
 
 function 행(container: HTMLElement, n: number): HTMLElement {
   return container.querySelectorAll('.row')[n] as HTMLElement;
@@ -209,7 +233,7 @@ describe('ScenarioList 실행', () => {
     expect((within(행(container, 0)).getByRole('button', { name: '실행' }) as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it('고르고 실행하면 서버를 부르고 실행 화면으로 간다', async () => {
+  it('실행을 누르면 시작 확인 상자가 먼저 뜨고 취소하면 서버를 안 부른다', async () => {
     const 실행 = vi.spyOn(scenarioApi, 'run').mockResolvedValue({ runId: 55 });
     const { container } = await 그리기([줄(1), 줄(2)]);
     await screen.findByText(/ZSM 시나리오 1/);
@@ -217,13 +241,68 @@ describe('ScenarioList 실행', () => {
     fireEvent.change(screen.getByRole('combobox', { name: '대상 서버' }), { target: { value: 'stg' } });
     fireEvent.click(within(행(container, 1)).getByRole('button', { name: '실행' }));
 
-    await waitFor(() => expect(window.location.hash).toBe('#/runs/55?from=scenarios'));
+    const 상자 = 확인상자();
+    expect(상자.getByText('끝나면 실행 기록 E2E 에 남고 리포트를 만들 수 있습니다')).toBeTruthy();
+    expect(상자.getByText('SC-2 ZSM 시나리오 2 · 3단계')).toBeTruthy();
+    expect(상자.getByText('PC')).toBeTruthy();
+    expect(상자.getByText('stg')).toBeTruthy();
+    expect(document.activeElement).toBe(상자.getByRole('button', { name: '취소' }));
+    expect(실행).not.toHaveBeenCalled();
+
+    fireEvent.click(상자.getByRole('button', { name: '취소' }));
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(실행).not.toHaveBeenCalled();
+  });
+
+  it('확인 상자에서 실행 시작을 누르면 서버를 부르고 화면을 옮기지 않고 E2E 실행 창을 띄운다', async () => {
+    const 실행 = vi.spyOn(scenarioApi, 'run').mockResolvedValue({ runId: 55 });
+    창열기준비();
+    const { container } = await 그리기([줄(1), 줄(2)]);
+    await screen.findByText(/ZSM 시나리오 1/);
+
+    fireEvent.change(screen.getByRole('combobox', { name: '대상 서버' }), { target: { value: 'stg' } });
+    fireEvent.click(within(행(container, 1)).getByRole('button', { name: '실행' }));
+    fireEvent.click(확인상자().getByRole('button', { name: '실행 시작' }));
+
+    expect(await screen.findByRole('dialog', { name: 'E2E 실행 중 · RUN 55' })).toBeTruthy();
     expect(실행).toHaveBeenCalledWith(2, 'stg', 'server');
+    expect(window.location.hash).toBe('');
     expect(screen.queryByRole('radiogroup', { name: '모바일 웹' })).toBeNull();
+  });
+
+  it('실행 창을 닫아도 실행은 계속되고, 도는 중에는 바닥에 그 안내와 실행 중단이 있다', async () => {
+    vi.spyOn(scenarioApi, 'run').mockResolvedValue({ runId: 55 });
+    창열기준비();
+    const { container } = await 그리기([줄(1), 줄(2)]);
+    await screen.findByText(/ZSM 시나리오 1/);
+    fireEvent.change(screen.getByRole('combobox', { name: '대상 서버' }), { target: { value: 'stg' } });
+    fireEvent.click(within(행(container, 1)).getByRole('button', { name: '실행' }));
+    fireEvent.click(확인상자().getByRole('button', { name: '실행 시작' }));
+
+    const 창 = within(await screen.findByRole('dialog', { name: 'E2E 실행 중 · RUN 55' }));
+    expect(창.getByText('닫아도 실행은 계속되고 끝나면 알림이 옵니다')).toBeTruthy();
+    expect(창.getByRole('button', { name: '실행 중단' })).toBeTruthy();
+
+    fireEvent.click(창.getByRole('button', { name: '닫기' }));
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('줄에는 「실행」만 서고 위험한 「삭제」는 줄 끝 「⋯」 안에 있다 (점검표 D10)', async () => {
+    const { container } = await 그리기([줄(1)]);
+    await screen.findByText(/ZSM 시나리오 1/);
+
+    const 칸 = 행(container, 0).querySelector('.scn-row-acts')!;
+    const 바로보이는 = [...칸.children].filter((el) => el.tagName === 'BUTTON').map((b) => b.textContent);
+    expect(바로보이는).toEqual(['실행']);
+    expect(칸.querySelector('details.scn-more summary')?.getAttribute('aria-label')).toBe('SC-1 더 보기');
+    expect(칸.querySelector('details.scn-more button')?.textContent).toBe('삭제');
   });
 
   it('모바일 시나리오가 있으면 모바일 웹 실행 위치를 고르고, 기본은 서버 흉내다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)', async () => {
     const 실행 = vi.spyOn(scenarioApi, 'run').mockResolvedValue({ runId: 56 });
+    창열기준비();
     const { container } = await 그리기([줄(1), 줄(2, { platform: 'mobile' })]);
     await screen.findByText(/ZSM 시나리오 1/);
     fireEvent.change(screen.getByRole('combobox', { name: '대상 서버' }), { target: { value: 'qa' } });
@@ -234,9 +313,13 @@ describe('ScenarioList 실행', () => {
     expect(screen.getByText('시나리오 하나 동안 빈 폰을 한 번 잡고 다 돌면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 실행에 남습니다')).toBeTruthy();
     expect(screen.queryByText(/케이스마다 빈 폰을/)).toBeNull();
     fireEvent.click(within(행(container, 1)).getByRole('button', { name: '실행' }));
+    expect(확인상자().getByText('모바일 (실제 기기)')).toBeTruthy();
+    fireEvent.click(확인상자().getByRole('button', { name: '실행 시작' }));
 
     await waitFor(() => expect(실행).toHaveBeenCalledWith(2, 'qa', 'vision'));
+    fireEvent.click(screen.getByRole('button', { name: '창 닫기' }));
     fireEvent.click(within(행(container, 0)).getByRole('button', { name: '실행' }));
+    fireEvent.click(확인상자().getByRole('button', { name: '실행 시작' }));
     await waitFor(() => expect(실행).toHaveBeenLastCalledWith(1, 'qa', 'server'));
   });
 
@@ -247,6 +330,7 @@ describe('ScenarioList 실행', () => {
 
     fireEvent.change(screen.getByRole('combobox', { name: '대상 서버' }), { target: { value: 'qa' } });
     fireEvent.click(within(행(container, 0)).getByRole('button', { name: '실행' }));
+    fireEvent.click(확인상자().getByRole('button', { name: '실행 시작' }));
 
     const 알림 = await screen.findByText('지금은 실행할 수 없는 시나리오입니다');
     expect(행(container, 0).nextElementSibling).toBe(알림);

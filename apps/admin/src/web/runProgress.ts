@@ -23,18 +23,11 @@ export interface 진행 {
   끝난수: number;
   전체수: number;
   지금도는것들: 도는것[];
-  방금끝난것: RunItemSummary[];
-  /**
-   * **지금 어느 화면도 이것을 안 그린다.** SPEC §8.9 의 「도는 동안 그리는 것」 목록에도 없다 —
-   * 계산만 되고 쓰는 곳이 없는 채로 `main` 에 이미 들어와 있었다 (2026-09-21 검사가 둘 다 짚었다).
-   * 그리기로 하면 §8.9 를 먼저 고친다. 안 쓸 거면 이 칸과 검사를 같이 걷어낸다 —
-   * **안 뜨는 값에 붙은 검사는 영원히 초록이면서 아무것도 안 지킨다.**
-   */
-  대기줄: RunItemSummary[];
+  /** 끝난 항목 전부 — 늦게 끝난 것이 앞이다. 몇 줄까지 그릴지는 화면이 정한다 */
+  끝난것들: RunItemSummary[];
+  /** 아직 안 끝났고 지금 도는 것도 아닌 항목 전부 — 실행 차례대로 */
+  대기것들: RunItemSummary[];
 }
-
-const 방금끝난것최대 = 4;
-const 대기줄최대 = 3;
 
 /**
  * 모달이 그릴 것을 한 번에 낸다.
@@ -81,10 +74,9 @@ export function 진행상황(data: RunDetail, 진행목록: 항목진행[]): 진
     끝난수: counts.total - counts.running,
     전체수: counts.total,
     지금도는것들,
-    방금끝난것: [...끝난것].sort((a, b) => b.finishedAt.localeCompare(a.finishedAt)).slice(0, 방금끝난것최대),
-    // **앞자리 하나만 건너뛰지 않는다.** `slice(1, …)` 은 도는 것이 언제나 하나라는 가정인데
-    // 러너는 둘 이상을 답한다 — 그러면 두 번째로 도는 항목이 「지금 도는 것」과 「대기줄」
-    // 양쪽에 동시에 선다. 도는 것을 먼저 빼고 남은 것에서 앞 셋을 고른다
-    대기줄: 안끝난것.filter((i) => !도는중인historyId.has(i.historyId)).slice(0, 대기줄최대),
+    끝난것들: [...끝난것].sort((a, b) => b.finishedAt.localeCompare(a.finishedAt)),
+    // **앞자리 하나만 건너뛰지 않는다.** 러너는 둘 이상을 답한다 — 도는 것을 먼저 빼야
+    // 두 번째로 도는 항목이 「진행 중」과 「대기」 양쪽에 서지 않는다
+    대기것들: 안끝난것.filter((i) => !도는중인historyId.has(i.historyId)),
   };
 }

@@ -189,7 +189,7 @@ async function 시험돌기(
   본문: 시험본문,
   재료: 시험재료결과,
   돌폰: 시나리오폰 | null,
-  폰화면: (url: string | undefined) => void,
+  폰화면: (url: string | undefined, 이름?: string) => void,
   상태: 시험상태,
 ): Promise<시나리오시험결과> {
   const { 앱들, baseUrl, parts, 부품재료, 비밀, 폰 } = 재료;

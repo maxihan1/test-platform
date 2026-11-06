@@ -4,16 +4,20 @@
 
 import { Fragment, useState } from 'react';
 
-import { ApiError, type EnvRow, type 앱종류, type 모바일위치 } from './api.js';
+import { type EnvRow, type 앱종류, type 모바일위치 } from './api.js';
+import './e2eWindow.css';
+import { 디바이스글 } from './e2eWindowView.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { 종류 } from './kind.js';
 import { 고른서버를적는다, 마지막서버 } from './layout.js';
-import { Modal } from './Modal.js';
 import type { 판정 } from './role.js';
 import { scenarioApi, type ScenarioRow } from './scenarioApi.js';
+import { 치우기확인 } from './ScenarioListArchive.js';
 import { ScenarioWhy } from './ScenarioListWhy.js';
 import { 결과주소 } from './ScenarioResultNext.js';
+import { ScenarioRunWindow } from './ScenarioRunWindow.js';
+import { ScenarioStartConfirm } from './ScenarioStartConfirm.js';
 import { 모바일실행위치, 폰실행위치 } from './ScenarioTrial.js';
 import { Failed, Loading, message, useAsync, Verdict, when } from './ui.js';
 
@@ -33,6 +37,9 @@ export function ScenarioList({ service, kind, envs, 할수 }: { service: string;
   // 모바일 시나리오의 정식 실행 위치. 기본은 서버 흉내다 — 실행 창과 같다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)
   const [mobileOn, setMobileOn] = useState<모바일위치>('server');
   const [치울것, set치울것] = useState<ScenarioRow | null>(null);
+  // 실행 단추는 바로 걸지 않고 시작 확인 상자를 먼저 띄운다. 걸린 실행은 같은 틀 창에서 지켜본다 (도메인/실행 §8.16 ⑥)
+  const [확인, set확인] = useState<ScenarioRow | null>(null);
+  const [실행창, set실행창] = useState<number | null>(null);
   // 삭제한 줄은 다시 받지 않고 화면에서 뺀다 — 다시 받기가 실패하면 목록 전체가 오류 화면으로 바뀐다
   const [치운, set치운] = useState<number[]>([]);
   const list = useAsync(() => scenarioApi.list(service), [service]);
@@ -48,18 +55,22 @@ export function ScenarioList({ service, kind, envs, 할수 }: { service: string;
     </a>
   ) : null;
 
-  async function 실행(id: number, 모바일: boolean) {
+  function 누름(줄: ScenarioRow) {
     if (env === '') {
       // 버튼을 잠그지 않고 누르면 사유를 보여준다 (SPEC §8.2)
-      set안내({ id, 글: t('대상 서버를 선택하세요. 리포트에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.') });
+      set안내({ id: 줄.id, 글: t('대상 서버를 선택하세요. 리포트에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.') });
       return;
     }
     set안내(null);
+    set확인(줄);
+  }
+
+  async function 실행(id: number, 모바일: boolean) {
     set돌리는중(id);
     try {
       // 고른 실행 위치는 모바일 시나리오에만 싣는다 — PC 시나리오에 남은 값이 따라가지 않게
       const { runId } = await scenarioApi.run(id, env, 모바일 ? mobileOn : 'server');
-      window.location.hash = 결과주소(runId, 'scenarios');
+      set실행창(runId);
     } catch (err) {
       set안내({ id, 글: message(err, 언어) });
     } finally {
@@ -118,7 +129,7 @@ export function ScenarioList({ service, kind, envs, 할수 }: { service: string;
                     줄={it}
                     쓰나={쓰나}
                     돌리는중={돌리는중 === it.id}
-                    on실행={() => void 실행(it.id, it.platform === 'mobile')}
+                    on실행={() => 누름(it)}
                     on치우기={() => set치울것(it)}
                   />
                   {안내?.id !== it.id ? null : (
@@ -133,6 +144,21 @@ export function ScenarioList({ service, kind, envs, 할수 }: { service: string;
         </div>
       </div>
 
+      {확인 === null ? null : (
+        <ScenarioStartConfirm
+          시나리오={`SC-${확인.id} ${확인.name}`}
+          단계수={확인.partCount}
+          디바이스={디바이스글(t, 확인.platform, mobileOn)}
+          env={env}
+          onClose={() => set확인(null)}
+          on시작={() => {
+            set확인(null);
+            void 실행(확인.id, 확인.platform === 'mobile');
+          }}
+        />
+      )}
+      {실행창 === null ? null : <ScenarioRunWindow runId={실행창} 어디서="scenarios" on닫기={() => set실행창(null)} />}
+
       {치울것 === null ? null : (
         <치우기확인
           줄={치울것}
@@ -145,64 +171,6 @@ export function ScenarioList({ service, kind, envs, 할수 }: { service: string;
         />
       )}
     </>
-  );
-}
-
-// 서버는 지우지 않고 목록에서 빼지만(archive) 되살리는 통로가 없어 쓰는 사람에게는 삭제다. 누르기 전에 한 번 묻는다 (DESIGN.md 「모달」 ①)
-function 치우기확인({ 줄, onClose, on치움 }: { 줄: ScenarioRow; onClose: () => void; on치움: () => void }) {
-  const t = use말();
-  const 언어 = use언어();
-  const [치우는중, set치우는중] = useState(false);
-  const [오류, set오류] = useState<string | null>(null);
-  // 요청이 나간 뒤에는 닫지 못하게 한다 — 닫혀도 요청은 끝까지 가서 「취소」가 거짓말이 된다
-  const 닫기 = () => {
-    if (!치우는중) onClose();
-  };
-  return (
-    <Modal
-      제목={t('SC-{번호} 시나리오를 삭제할까요?', { 번호: 줄.id })}
-      onClose={닫기}
-      바깥눌러닫기={!치우는중}
-      버튼={
-        <>
-          <button type="button" className="btn ghost" disabled={치우는중} onClick={닫기}>
-            {t('취소')}
-          </button>
-          <button
-            type="button"
-            className="btn"
-            disabled={치우는중}
-            onClick={() => {
-              set치우는중(true);
-              set오류(null);
-              void scenarioApi
-                .archive(줄.id)
-                .then(on치움)
-                .catch((err: unknown) => {
-                  // 이미 없는 시나리오면 목록에서 빼는 것이 맞다 — 남겨 두면 눌러도 같은 오류만 되풀이된다
-                  if (err instanceof ApiError && err.status === 404) {
-                    on치움();
-                    return;
-                  }
-                  set오류(message(err, 언어));
-                  set치우는중(false);
-                });
-            }}
-          >
-            {치우는중 ? t('삭제하는 중') : t('삭제')}
-          </button>
-        </>
-      }
-    >
-      <p>
-        {줄.name}
-        <br />
-        {t('지난 실행 기록과 리포트는 그대로 남습니다.')}
-        <br />
-        {t('삭제한 시나리오는 되살릴 수 없습니다.')}
-      </p>
-      {오류 === null ? null : <p className="err">{오류}</p>}
-    </Modal>
   );
 }
 
@@ -270,22 +238,29 @@ function 시나리오줄({
             </a>
           )}
         </div>
-        {!쓰나 || !줄.runnable || !줄.isActive ? null : (
-          <button type="button" className="btn small ghost" disabled={돌리는중} onClick={on실행}>
-            {t('실행')}
-          </button>
-        )}
-        {/* 못 도는 줄은 실행 자리에 수정을 둔다 — 까닭을 읽은 사람이 다음에 할 일이 그것이다 */}
-        {!쓰나 || 줄.runnable || !줄.isActive ? null : (
-          <a className="btn small ghost" href={`#/scenarios/${줄.id}`}>
-            {t('수정')}
-          </a>
-        )}
-        {/* 실행 불가 줄도 삭제한다 — 못 도는 시나리오가 가장 먼저 지울 거리다 */}
+        {/* 삭제는 되돌릴 수 없어 줄 끝 「⋯」 안에 둔다 — 줄에는 「실행」만 서서 누르려던 손이 「삭제」에 닿지 않는다 (점검표 D10 · 시나리오 §8.11). 못 도는 줄은 실행 자리에 수정이다 */}
         {!쓰나 || !줄.isActive ? null : (
-          <button type="button" className="btn small ghost" disabled={돌리는중} onClick={on치우기}>
-            {t('삭제')}
-          </button>
+          <div className="scn-row-acts">
+            {줄.runnable ? (
+              <button type="button" className="btn small ghost" disabled={돌리는중} onClick={on실행}>
+                {t('실행')}
+              </button>
+            ) : (
+              <a className="btn small ghost" href={`#/scenarios/${줄.id}`}>
+                {t('수정')}
+              </a>
+            )}
+            <details className="scn-more">
+              <summary className="btn small ghost" aria-label={t('SC-{번호} 더 보기', { 번호: 줄.id })}>
+                ⋯
+              </summary>
+              <div className="scn-more-menu">
+                <button type="button" className="btn small ghost" disabled={돌리는중} onClick={on치우기}>
+                  {t('삭제')}
+                </button>
+              </div>
+            </details>
+          </div>
         )}
       </div>
     </div>

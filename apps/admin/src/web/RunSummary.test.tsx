@@ -195,6 +195,11 @@ describe('요약 띠 — 직전 실행 대비', () => {
     expect(screen.queryByText('ZRS-001 이름', { exact: false })).toBeNull();
   });
 
+  it('일부만 골라 돌린 실행(빠진 수가 이번에 돈 항목보다 많다)이면 빠진 케이스 줄을 감춘다 (점검표 B15e)', () => {
+    그린다(집계(6, 0, 0), 견줌({ 빠진건수: 598 }));
+    expect(screen.queryByText(/이번에 실행되지 않은/)).toBeNull();
+  });
+
   it('주소가 같고 빠진 것이 없으면 그 두 줄이 없다', () => {
     그린다(집계(47, 3, 0), 견줌());
     expect(screen.queryByText(/다른 주소/)).toBeNull();

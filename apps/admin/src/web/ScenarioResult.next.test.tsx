@@ -2,7 +2,7 @@
 // E2E 실행 결과의 다음 할 일 — 실패 안내 줄 · 단계 수정 · 다시 실행 · 돌아갈 곳 (도메인/시나리오 §8.11 「실행 결과」)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { scenarioApi } from './scenarioApi.js';
 import { ScenarioResult } from './ScenarioResult.js';
 import { 멈춘단계 } from './ScenarioResultNext.js';
@@ -42,7 +42,11 @@ describe('실패 안내 줄', () => {
     const 단추들 = await screen.findAllByRole('button', { name: 'qa에서 다시 실행' });
     expect(단추들).toHaveLength(1);
     fireEvent.click(단추들[0]!);
-    await waitFor(() => expect(window.location.hash).toBe('#/runs/88'));
+    // 바로 걸지 않고 시작 확인을 한 번 거친다 (점검표 B19)
+    expect(run).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '실행 시작' }));
+    // 결과 화면으로 바로 옮기지 않고 실행 창 ⑥ 을 띄운다 — 목록 · 조립 화면과 같다 (§8.16 ⑥)
+    expect(await screen.findByRole('dialog', { name: 'E2E 실행 중 · RUN 88' })).toBeTruthy();
     expect(run).toHaveBeenCalledWith(12, 'qa', 'server');
   });
 
@@ -50,6 +54,7 @@ describe('실패 안내 줄', () => {
     연다(결과({ platform: 'mobile', device: { model: 'SM-G996N', osVersion: '15', appVersion: null, browser: '156.0.7339.51' } }));
     const run = vi.spyOn(scenarioApi, 'run').mockResolvedValue({ runId: 89 });
     fireEvent.click(await screen.findByRole('button', { name: 'qa에서 다시 실행' }));
+    fireEvent.click(screen.getByRole('button', { name: '실행 시작' }));
     await waitFor(() => expect(run).toHaveBeenCalledWith(12, 'qa', 'vision'));
   });
 
@@ -60,8 +65,10 @@ describe('실패 안내 줄', () => {
     window.location.hash = '#/runs/e2e';
     render(<ScenarioResult runId={77} 판정하기={() => () => true} 칸안 on새실행={받음} />);
     fireEvent.click(await screen.findByRole('button', { name: 'qa에서 다시 실행' }));
+    fireEvent.click(screen.getByRole('button', { name: '실행 시작' }));
     await waitFor(() => expect(받음).toHaveBeenCalledWith(90));
     expect(window.location.hash).toBe('#/runs/e2e');
+    expect(await screen.findByRole('dialog', { name: /RUN 90/ })).toBeTruthy();
   });
 
   it('통과한 결과는 안내 줄 없이 머리에 다시 실행만 있다', async () => {
@@ -95,6 +102,11 @@ describe('돌아갈 곳', () => {
     연다(결과());
     vi.spyOn(scenarioApi, 'run').mockResolvedValue({ runId: 89 });
     fireEvent.click(await screen.findByRole('button', { name: 'qa에서 다시 실행' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/runs/89?from=scenarios'));
+    fireEvent.click(screen.getByRole('button', { name: '실행 시작' }));
+    // 창이 끝을 보고 「결과 보기」를 누르면 들어온 곳을 이어 간 주소로 옮긴다
+    vi.spyOn(scenarioApi, 'result').mockResolvedValue(결과({ status: 'FINISHED', finishedAt: '2026-11-06T00:00:00.000Z' }));
+    const 창 = await screen.findByRole('dialog', { name: /RUN 89/ });
+    fireEvent.click(await within(창).findByRole('button', { name: '결과 보기' }));
+    expect(window.location.hash).toBe('#/runs/89?from=scenarios');
   });
 });

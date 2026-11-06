@@ -104,17 +104,17 @@ describe('진행상황', () => {
     expect(결과.지금도는것들.map((d) => d.항목.historyId)).toEqual([10]);
   });
 
-  it('방금 끝난 것은 finishedAt 내림차순 넷이다', () => {
-    expect(진행상황(도는중, []).방금끝난것.map((i) => i.historyId)).toEqual([3, 1, 6, 4]);
+  it('끝난 것은 finishedAt 내림차순 전부다', () => {
+    expect(진행상황(도는중, []).끝난것들.map((i) => i.historyId).slice(0, 4)).toEqual([3, 1, 6, 4]);
   });
 
-  it('대기줄은 지금 도는 것을 뺀, 아직 시작 안 한 앞 셋이다', () => {
-    expect(진행상황(도는중, []).대기줄.map((i) => i.historyId)).toEqual([8, 9, 10]);
+  it('대기는 지금 도는 것을 뺀, 아직 시작 안 한 것 전부다', () => {
+    expect(진행상황(도는중, []).대기것들.map((i) => i.historyId)).toEqual([8, 9, 10]);
   });
 
-  it('러너가 둘을 답하면 그 둘은 대기줄에 없다', () => {
+  it('러너가 둘을 답하면 그 둘은 대기에 없다', () => {
     const 결과 = 진행상황(도는중, [절차(7, 2, '로그인한다'), 절차(8, 1, '장바구니를 연다')]);
-    expect(결과.대기줄.map((i) => i.historyId)).toEqual([9, 10]);
+    expect(결과.대기것들.map((i) => i.historyId)).toEqual([9, 10]);
   });
 
   it('전부 끝났으면 지금 도는 것이 없다', () => {

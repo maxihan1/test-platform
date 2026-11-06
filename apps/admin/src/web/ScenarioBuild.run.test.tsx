@@ -2,10 +2,10 @@
 // E2E 조립 화면의 정식 실행 — 실행 · 저장하고 실행 · 주소의 단계 열기 (도메인/시나리오 §8.11 「조립」)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { ApiError, type User } from './api.js';
 import { 떠나기막기 } from './leaveGuard.js';
-import { scenarioApi } from './scenarioApi.js';
+import { scenarioApi, type ScenarioRunResult } from './scenarioApi.js';
 import { ScenarioBuild } from './ScenarioBuild.js';
 import { 서비스, 사람, 재료, 기존그리기, 바꾸기, 케이스단계, 케이스목록막기, 케이스더하기 } from './ScenarioBuild.fixture.js';
 
@@ -18,6 +18,30 @@ function 서버고르기() {
   fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
 }
 
+const 확인상자 = () => within(screen.getByRole('dialog', { name: '정식 실행을 시작할까요?' }));
+const 시작하기 = () => fireEvent.click(확인상자().getByRole('button', { name: '실행 시작' }));
+
+function 창열기준비() {
+  const 도는결과: ScenarioRunResult = {
+    scenarioId: 12,
+    version: 3,
+    status: 'RUNNING',
+    platform: 'desktop',
+    title: 'ZSB 가입 흐름',
+    env: 'qa',
+    baseUrl: 'https://qa.example.com',
+    triggeredBy: 'zsb',
+    triggeredByName: null,
+    startedAt: new Date().toISOString(),
+    finishedAt: null,
+    parts: [],
+    evidence: [],
+    live: true,
+  };
+  vi.spyOn(scenarioApi, 'result').mockResolvedValue(도는결과);
+  vi.spyOn(scenarioApi, 'step').mockResolvedValue(null);
+}
+
 afterEach(() => {
   떠나기막기(null);
   cleanup();
@@ -27,15 +51,30 @@ afterEach(() => {
 });
 
 describe('ScenarioBuild 정식 실행', () => {
-  it('저장한 그대로면 「실행」이 저장 없이 실행을 걸고 결과로 옮긴다. 돌아갈 곳은 이 시나리오다', async () => {
+  it('「실행」은 시작 확인 상자부터 띄우고, 시작하면 저장 없이 실행을 걸어 화면을 옮기지 않고 E2E 실행 창을 띄운다', async () => {
     await 기존그리기({}, 서버있는사람());
+    창열기준비();
     const update = vi.spyOn(scenarioApi, 'update');
     const run = vi.spyOn(scenarioApi, 'run').mockResolvedValue({ runId: 501 });
     서버고르기();
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/runs/501?from=scenario'));
+    expect(run).not.toHaveBeenCalled();
+    expect(확인상자().getByText('SC-12 ZSB 가입 흐름 · 3단계')).toBeTruthy();
+    시작하기();
+    expect(await screen.findByRole('dialog', { name: 'E2E 실행 중 · RUN 501' })).toBeTruthy();
+    expect(window.location.hash).toBe('');
     expect(run).toHaveBeenCalledWith(12, 'qa', 'server');
     expect(update).not.toHaveBeenCalled();
+  });
+
+  it('확인 상자에서 취소하면 실행을 안 건다', async () => {
+    await 기존그리기({}, 서버있는사람());
+    const run = vi.spyOn(scenarioApi, 'run');
+    서버고르기();
+    fireEvent.click(screen.getByRole('button', { name: '실행' }));
+    fireEvent.click(확인상자().getByRole('button', { name: '취소' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(run).not.toHaveBeenCalled();
   });
 
   it('모바일 시나리오는 머리 아래에서 모바일 웹 실행 위치를 고르고 그 값으로 실행을 건다 — 기본은 서버 흉내 (도메인/실행 §3.2 「모바일 웹 실행 위치」)', async () => {
@@ -46,6 +85,8 @@ describe('ScenarioBuild 정식 실행', () => {
     expect((screen.getByRole('radio', { name: '가상 기기' }) as HTMLInputElement).checked).toBe(true);
     fireEvent.click(screen.getByRole('radio', { name: '실제 기기' }));
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
+    expect(확인상자().getByText('모바일 (실제 기기)')).toBeTruthy();
+    시작하기();
 
     await waitFor(() => expect(run).toHaveBeenCalledWith(12, 'qa', 'vision'));
   });
@@ -61,8 +102,11 @@ describe('ScenarioBuild 정식 실행', () => {
     const run = vi.spyOn(scenarioApi, 'run').mockResolvedValue({ runId: 502 });
     바꾸기('새 이름');
     서버고르기();
+    창열기준비();
     fireEvent.click(screen.getByRole('button', { name: '저장하고 실행' }));
-    await waitFor(() => expect(window.location.hash).toBe('#/runs/502?from=scenario'));
+    expect(update).not.toHaveBeenCalled();
+    시작하기();
+    expect(await screen.findByRole('dialog', { name: 'E2E 실행 중 · RUN 502' })).toBeTruthy();
     expect(update).toHaveBeenCalledWith(12, expect.objectContaining({ name: '새 이름', baseVersion: 3 }));
     expect(update.mock.invocationCallOrder[0]).toBeLessThan(run.mock.invocationCallOrder[0] ?? 0);
   });
@@ -102,6 +146,7 @@ describe('ScenarioBuild 정식 실행', () => {
     // 단계가 섞이기 전에 골랐던 서버는 막힌 이름이 되면 고른 것으로 치지 않는다
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'stg' } });
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
+    시작하기();
 
     await waitFor(() => expect(run).toHaveBeenCalledWith(12, 'stg', 'server'));
   });
@@ -130,6 +175,7 @@ describe('ScenarioBuild 정식 실행', () => {
     vi.spyOn(scenarioApi, 'run').mockRejectedValue(new ApiError(409, 'SCENARIO_NOT_RUNNABLE', '실행할 수 없는 시나리오다: 1번 단계'));
     서버고르기();
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
+    시작하기();
     expect((await screen.findByRole('alert')).textContent).toContain('실행할 수 없는 시나리오다');
     expect(window.location.hash).toBe('');
   });
@@ -145,6 +191,7 @@ describe('ScenarioBuild 정식 실행', () => {
     await 케이스더하기('ZSB-001');
     서버고르기();
     fireEvent.click(screen.getByRole('button', { name: '저장하고 실행' }));
+    시작하기();
     await waitFor(() => expect(window.location.hash).toBe('#/scenarios/40'));
   });
 

@@ -14,6 +14,7 @@ import { 실행자이름 } from './runState.js';
 import { scenarioApi } from './scenarioApi.js';
 import { FailGuide, RerunButton, useRerun, 멈춘단계, type 들어온곳 } from './ScenarioResultNext.js';
 import { E2E화면카드 } from './ScenarioLiveCard.js';
+import { ScenarioRunWindow } from './ScenarioRunWindow.js';
 import { ScenarioResultPart } from './ScenarioResultPart.js';
 import { 미확정있나, 접은판정 } from './scenarioResultView.js';
 import { Failed, Loading, PLATFORM_LABEL, seconds, useAsync, Verdict, when } from './ui.js';
@@ -59,7 +60,14 @@ export function ScenarioResult({
   // 결과 칸(실행 기록 › E2E)은 목록 옆이라 돌아갈 곳이 없다 — 주소를 안 본다
   const 어디서 = 칸안 ? null : 들어온곳읽기();
   // 모바일 시나리오는 원래 실행이 돈 곳으로 다시 돈다 — 흉내는 기기 칸이 비고 실제 폰만 찬다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)
-  const 다시실행 = useRerun(data?.scenarioId ?? 0, data?.env ?? '', 어디서, on새실행, data?.platform === 'mobile' && data.device != null ? 'vision' : 'server');
+  const 다시실행 = useRerun(
+    data?.scenarioId ?? 0,
+    data?.env ?? '',
+    어디서,
+    on새실행,
+    data?.platform === 'mobile' && data.device != null ? 'vision' : 'server',
+    data === null ? null : { 시나리오: data.title, 단계수: data.parts.length, platform: data.platform },
+  );
 
   if (res.error !== null) return <Failed error={res.error} />;
   if (data === null) return <Loading />;
@@ -103,6 +111,7 @@ export function ScenarioResult({
 
   return (
     <>
+      {다시실행.창 === null ? null : <ScenarioRunWindow runId={다시실행.창} 어디서={다시실행.어디서} on닫기={다시실행.창닫기} />}
       {칸안 ? (
         // 케이스 결과 칸(RunResult)과 같은 머리 — 고른 줄과 같은 제목을 크게 단다
         <div className="box-head">

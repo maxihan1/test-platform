@@ -29,3 +29,31 @@ export function use보는실행(): number | null {
   }, []);
   return 값;
 }
+
+// 진행 창(E2E 실행 창)이 떠 있는 실행 번호. 결과 화면의 「보는 실행」과 달리 알림 줄이 그 실행의 도는 줄 · 끝난 줄을 모두 뺀다 (도메인/실행 §8.16 ⑥)
+const 창바뀜 = 'tp:window-run';
+let 창실행: number | null = null;
+
+/** 실행 창이 떠 있는 동안 그 실행 번호를 알린다. 창이 내려가면 지운다 */
+export function use창실행알림(runId: number): void {
+  useEffect(() => {
+    창실행 = runId;
+    window.dispatchEvent(new Event(창바뀜));
+    return () => {
+      // 겹친 창이 먼저 자기 번호를 적었으면 그대로 둔다 — 남의 창 거르기를 지우지 않는다
+      if (창실행 === runId) 창실행 = null;
+      window.dispatchEvent(new Event(창바뀜));
+    };
+  }, [runId]);
+}
+
+export function use창실행(): number | null {
+  const [값, set값] = useState(창실행);
+  useEffect(() => {
+    const 다시읽는다 = () => set값(창실행);
+    window.addEventListener(창바뀜, 다시읽는다);
+    다시읽는다();
+    return () => window.removeEventListener(창바뀜, 다시읽는다);
+  }, []);
+  return 값;
+}

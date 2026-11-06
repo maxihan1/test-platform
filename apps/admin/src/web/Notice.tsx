@@ -10,7 +10,7 @@ import { NoticeDrawer } from './NoticeDrawer.js';
 import { 읽음들, 읽음바뀜, 읽음으로적는다, 읽음정리 } from './noticeRead.js';
 import { 끝난글, 끝난줄만들기, 보일줄들, 새소식, 안읽은수, 읽음열쇠, type 끝난줄, type 도는줄, type 줄 as 줄타입 } from './noticeView.js';
 import { use지켜봄 } from './runWatchStore.js';
-import { use보는실행 } from './viewedRun.js';
+import { use보는실행, use창실행 } from './viewedRun.js';
 
 /**
  * 도는 것이 있으면 3초, 없으면 20초마다 묻는다. E2E 실행만 돌면 20초다 — 도중 진척이 없어 자주 물어도 바뀌는 것이 없다. 서비스 고르개와 상관없이 볼 수 있는 서비스 전체를 받는다.
@@ -195,16 +195,20 @@ export function Notice({ 줄숨김, 서비스바꿈, 버튼자리 }: { 줄숨김
   const 보는실행 = use보는실행();
   const 버튼 = useRef<HTMLButtonElement>(null);
   const 지켜봄 = use지켜봄();
+  // E2E 실행 창이 떠 있는 실행 — 케이스 진행 창(지켜봄)과 같이 그 창이 알린다 (점검표 D8 · B21)
+  const 창실행 = use창실행();
+  // 두 창이 같이 떠 있을 수 있어 둘 다 뺀다
+  const 창실행들 = [창실행, 지켜봄?.열림 === true ? 지켜봄.runId : null].filter((n): n is number => n !== null);
   const 앞소식 = useRef<NoticeRecent[] | null>(null);
   const [토스트줄, set토스트줄] = useState<끝난줄 | null>(null);
 
   // 답이 올 때마다 앞 답과 견줘 새로 끝난 것 하나를 토스트로 — 완료 창(진행 알약)과 결과 화면이 알리는 실행은 겹쳐 띄우지 않는다
   useEffect(() => {
     if (답 === null) return;
-    const 새 = 새소식(앞소식.current, 답.recent, 읽음들(), [보는실행, 지켜봄?.runId ?? null]);
+    const 새 = 새소식(앞소식.current, 답.recent, 읽음들(), [보는실행, 지켜봄?.runId ?? null, 창실행]);
     앞소식.current = 답.recent;
     if (새 !== null) set토스트줄(끝난줄만들기(새, 언어));
-  }, [답, 보는실행, 지켜봄, 언어]);
+  }, [답, 보는실행, 지켜봄, 창실행, 언어]);
 
   // 같은 탭의 실행 결과 화면이 읽음으로 적어도(`runState.ts`), 다른 탭에서 적어도 바로 따라온다
   useEffect(() => {
@@ -227,7 +231,7 @@ export function Notice({ 줄숨김, 서비스바꿈, 버튼자리 }: { 줄숨김
   if (막힘) return null;
 
   const 지금 = Date.now();
-  const { 줄들, 넘친수 } = 답 === null || 줄숨김 ? { 줄들: [], 넘친수: 0 } : 보일줄들(답, 읽음, 지금, 언어, 보는실행);
+  const { 줄들, 넘친수 } = 답 === null || 줄숨김 ? { 줄들: [], 넘친수: 0 } : 보일줄들(답, 읽음, 지금, 언어, 보는실행, 창실행들);
   const 안읽음 = 답 === null ? 0 : 안읽은수(답.recent, 읽음);
 
   const 닫는다 = () => {
