@@ -54,12 +54,21 @@ let startup: Promise<스캔기록> | null = null;
 const 있나 = (길: string): Promise<boolean> => stat(길).then(() => true, () => false);
 
 /**
- * 케이스마다 단계 제목 — 글로만 읽어 import 하지 않는다(지도 ② 와 같다). 방금 읽은 파일이 그사이 사라지면 그 케이스만 모른다(null)로 두고
- * 스캔은 계속한다 — 화면이 한 줄씩 늘어나는 쪽으로 받친다 (카탈로그 §3.1 「단계 제목」)
+ * 케이스마다 단계 제목 — 글로만 읽어 import 하지 않는다(지도 ② 와 같다). 못 읽은 케이스는 모른다(null)로 두고 까닭을 돌려준다 —
+ * 스캔은 계속하고 화면이 한 줄씩 늘어나는 쪽으로 받친다 (카탈로그 §3.1 「단계 제목」). 수천 건을 한꺼번에 열지 않게 하나씩 읽는다
  */
-export async function 단계제목들(root: string, specs: readonly CaseSpec[]): Promise<Map<string, string[] | null>> {
-  const 글들 = await Promise.all(specs.map((s) => readFile(join(root, s.filePath), 'utf8').catch(() => null)));
-  return new Map(specs.map((s, i) => [s.tcId, 글들[i] === null ? null : caseSteps(글들[i]!).stepTitles]));
+export async function 단계제목들(root: string, specs: readonly CaseSpec[]): Promise<{ 제목들: Map<string, string[] | null>; 문제: string[] }> {
+  const 제목들 = new Map<string, string[] | null>();
+  const 문제: string[] = [];
+  for (const s of specs) {
+    try {
+      제목들.set(s.tcId, caseSteps(await readFile(join(root, s.filePath), 'utf8')).stepTitles);
+    } catch (err) {
+      제목들.set(s.tcId, null);
+      문제.push(`${s.filePath}의 단계 제목을 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+  return { 제목들, 문제 };
 }
 
 // 고르기 — 고른 서비스만 훑고 나머지 서비스 결과는 지난 스캔 것을 그대로 둔다(병합 뒤 · 목록의 「다시 스캔」)
@@ -140,7 +149,9 @@ export async function runScan(log: 스캔로그, 고르기?: (s: ServiceRow) => 
       if (found.duplicates.length > 0) continue;
 
       // 읽지 못한 파일이 있으면 무엇이 정말 사라졌는지 가릴 수 없다. 비활성 처리는 건너뛰고 읽은 것만 갱신한다
-      const saved = await save(내것, found.failures.length === 0, service.prefix, await 단계제목들(root, 내것));
+      const 단계 = await 단계제목들(root, 내것);
+      결과.problems.push(...단계.문제);
+      const saved = await save(내것, found.failures.length === 0, service.prefix, 단계.제목들);
       결과.added = saved.added;
       결과.updated = saved.updated;
       결과.deactivated = saved.deactivated;

@@ -236,14 +236,16 @@ export function caseSteps(text: string): CaseSteps {
 
     if (isTestStep(node)) {
       const first = node.arguments[0];
+      const title = first !== undefined && ts.isStringLiteralLike(first) ? first.text : undefined;
+      const loose = wrapped(node) || !isInlineFunction(node.arguments[1]);
       const step: Found = {
-        title: first !== undefined && ts.isStringLiteralLike(first) ? first.text : undefined,
+        title,
         line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1,
         verifies: 0,
         blocker: false,
-        unsure: wrapped(node) || !isInlineFunction(node.arguments[1]),
+        unsure: loose,
         locals: new Set(),
-        counted: first !== undefined && ts.isStringLiteralLike(first) && !wrapped(node) && !branched(node) && isInlineFunction(node.arguments[1]),
+        counted: title !== undefined && !loose && !branched(node),
       };
       // 바깥 절차를 건너뛰면 안쪽 절차가 통째로 안 돈다
       const outer = stack[stack.length - 1];

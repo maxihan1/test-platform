@@ -44,13 +44,15 @@ describe('단계제목들', () => {
     await rm(뿌리, { recursive: true, force: true });
   });
 
-  it('케이스마다 제목을 읽고, 못 세거나 파일이 사라졌으면 null 이다', async () => {
-    const 제목들 = await 단계제목들(뿌리, [
+  it('케이스마다 제목을 읽고, 못 세거나 파일이 사라졌으면 null 이다 — 사라진 파일은 까닭을 남긴다', async () => {
+    const { 제목들, 문제 } = await 단계제목들(뿌리, [
       { ...spec('XTT-001'), filePath: 'a.spec.ts' },
       { ...spec('XTT-002'), filePath: 'b.spec.ts' },
       { ...spec('XTT-003'), filePath: '없는.spec.ts' },
     ]);
     expect(Object.fromEntries(제목들)).toEqual({ 'XTT-001': ['연다'], 'XTT-002': null, 'XTT-003': null });
+    expect(문제).toHaveLength(1);
+    expect(문제[0]).toContain('없는.spec.ts의 단계 제목을 읽지 못했다');
   });
 });
 
