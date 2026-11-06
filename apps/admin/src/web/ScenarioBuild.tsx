@@ -5,18 +5,17 @@ import { useEffect, useRef, useState } from 'react';
 import type { ScenarioPart } from '@platform/kit';
 
 import type { ServiceRow, User } from './api.js';
-import { 디바이스글 } from './e2eWindowView.js';
 import { Head } from './Head.js';
-import { use말, use언어 } from './i18n.js';
+import { use말 } from './i18n.js';
 import { 종류 } from './kind.js';
 import { 고른서버를적는다, 마지막서버 } from './layout.js';
 import { 떠나기막기, 떠나기상자, 주소조건, 주소덮기 } from './leaveGuard.js';
-import { Loading, Failed, PLATFORM_LABEL, when } from './ui.js';
+import { Loading, Failed, PLATFORM_LABEL } from './ui.js';
 import { 판정을만든다, 테스트만인가 } from './role.js';
 import { ScenarioCards } from './ScenarioCards.js';
+import { 디바이스고르개, 조립부제, 조립시작확인 } from './ScenarioBuildParts.js';
 import { ScenarioBuildTabs } from './ScenarioBuildTabs.js';
 import { ScenarioRunWindow } from './ScenarioRunWindow.js';
-import { ScenarioStartConfirm } from './ScenarioStartConfirm.js';
 import { ScenarioTabs, type 조립탭 } from './ScenarioTabs.js';
 import { 모바일실행위치, 시험막는글, TrialControls, TrialSummary, 폰실행위치 } from './ScenarioTrial.js';
 import { ScenarioTrialWindow } from './ScenarioTrialWindow.js';
@@ -39,7 +38,6 @@ export function ScenarioBuild({
   user: User;
 }) {
   const t = use말();
-  const 언어 = use언어();
   const 초안 = useScenarioDraft(id, 띠서비스?.prefix ?? null, 종류(띠서비스?.kind).시나리오디바이스[0]);
   const 판정 = 판정을만든다(user, 초안.서비스);
   const 쓰나 = 판정('실행') && 초안.살아있나;
@@ -164,52 +162,14 @@ export function ScenarioBuild({
   function 고른단계바꿈(새단계: ScenarioPart) {
     초안.단계들바꾸기(초안.단계들.map((p, i) => (i === (고른번호 ?? 0) - 1 ? 새단계 : p)));
   }
-  const 최신 = 초안.버전들[0];
   const 서비스이름 = user.services.find((s) => s.prefix === 초안.서비스)?.name ?? 초안.서비스;
   // 저장했다는 줄은 그 뒤에 다시 고치면 낡은 말이다
   const 상태글 = 초안.저장오류 ?? (초안.바뀜 ? null : 저장글);
   const 시험알림 = 시험글 ?? 시험.오류문장;
 
-  const 부제 = (
-    <>
-      <input
-        type="text"
-        className="scn-name-input"
-        aria-label={t('시나리오 이름')}
-        placeholder={t('시나리오 이름')}
-        value={초안.이름}
-        readOnly={!쓰나}
-        onChange={(e) => {
-          if (쓰나) 초안.set이름(e.target.value);
-        }}
-      />
-      {최신 === undefined ? null : (
-        <span>
-          {t('v{버전} · {이름} 저장 · {시각}', {
-            버전: 최신.version,
-            이름: 최신.savedByName,
-            시각: when(최신.savedAt, 언어),
-          })}
-        </span>
-      )}
-      {!초안.바뀜 ? null : <span className="case-tag">{t('저장 안 된 변경 있음')}</span>}
-    </>
-  );
-
   const 행동 = (
     <>
-      <select
-        aria-label={t('디바이스')}
-        value={초안.디바이스}
-        disabled={!쓰나 || 디바이스들.length < 2}
-        onChange={(e) => 초안.set디바이스(디바이스들.find((p) => p === e.target.value) ?? 초안.디바이스)}
-      >
-        {디바이스들.map((p) => (
-          <option key={p} value={p}>
-            {t(PLATFORM_LABEL[p])}
-          </option>
-        ))}
-      </select>
+      <디바이스고르개 초안={초안} 쓰나={쓰나} 디바이스들={디바이스들} />
       {!시험하나 ? null : (
         <TrialControls
           서버들={서버들}
@@ -242,7 +202,7 @@ export function ScenarioBuild({
       <div className="scn-back">
         <a href="#/scenarios">{t('← 목록')}</a>
       </div>
-      <Head 클래스="scn-head" 제목={id === null ? t('새 시나리오') : `SC-${id}`} 부제={부제} 행동={행동} />
+      <Head 클래스="scn-head" 제목={id === null ? t('새 시나리오') : `SC-${id}`} 부제={<조립부제 초안={초안} 쓰나={쓰나} />} 행동={행동} />
 
       <div className="screen scn-screen">
         {폰단계있나(앱들, 초안.단계들) ? <폰실행위치 /> : 초안.디바이스 === 'mobile' && !테스트만인가(판정) ? <모바일실행위치 {...정식.위치} /> : null}
@@ -320,16 +280,7 @@ export function ScenarioBuild({
         />
       )}
       {!시작확인 ? null : (
-        <ScenarioStartConfirm
-          시나리오={id === null ? 초안.이름 : `SC-${id} ${초안.이름}`.trim()}
-          디바이스={디바이스글(t, 초안.디바이스, 정식.위치.값)}
-          env={서버}
-          onClose={() => set시작확인(false)}
-          on시작={() => {
-            set시작확인(false);
-            void 정식.실행(서버, 초안.바뀜, 칸오류번호 ?? 빈칸있는단계(초안.단계들), () => 초안.저장(칸오류번호 ?? 빈칸있는단계(초안.단계들)));
-          }}
-        />
+        <조립시작확인 id={id} 초안={초안} 정식={정식} 서버={서버} 칸오류번호={칸오류번호} onClose={() => set시작확인(false)} />
       )}
       {실행창 === null ? null : <ScenarioRunWindow runId={실행창} 어디서="scenario" on닫기={() => set실행창(null)} />}
 
