@@ -46,7 +46,7 @@ export function registerRoutes(app: FastifyInstance): void {
     try {
       const res = await 장면과돌린다(req.live, () => execute(req, specPath));
       // 큰 영상을 받느라 답이 늦으면 admin 의 디바이스 줄이 막힌다. 답한 뒤에 받는다 (SPEC 도메인/러너 §5.2 「디바이스 팜 접속 방식」)
-      if (req.platform === 'android') 팜증적받기를줄세운다(req.runId, req.historyId, res.status, req.farmToken);
+      if (req.platform === 'android') 팜증적받기를줄세운다(req.runId, req.historyId, res.status, req.farmToken, req.uiCheck);
       // 실제 폰 Chrome 항목도 팜 토큰을 받는다 (SPEC 도메인/러너 §5.2 「모바일 웹 — 실제 폰 Chrome」)
       return req.platform === 'android' || req.cdpUrl !== undefined ? 팜토큰을지운다(res, [req.farmToken, process.env.PLATFORM_APPIUM_TOKEN]) : res;
     } catch (err) {

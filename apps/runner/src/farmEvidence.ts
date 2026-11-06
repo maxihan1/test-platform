@@ -1,4 +1,4 @@
-// 통과하지 못한 android 항목의 팜 증적(화면 영상 · logcat)을 실행 폴더로 받는다 (SPEC 러너 §5.2 「디바이스 팜 접속 방식」)
+// 통과하지 못한 android 항목의 팜 증적(화면 영상 · logcat)과 호환성 항목의 AI 점검 결과를 실행 폴더로 받는다 (SPEC 러너 §5.2 「디바이스 팜 접속 방식」)
 
 import { mkdir, readdir, readFile, rename, rm } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -6,6 +6,8 @@ import { join } from 'node:path';
 import type { ItemStatus } from '@platform/kit';
 import { APPIUM_SESSION_ID_FILE, FARM_EVIDENCE_DIR, runDir } from '@platform/kit';
 import { farmArtifacts } from 'appium-cli';
+
+import { UI_CHECK_FILE, 점검결과를기다린다, 점검화면이름 } from './farmUiCheck.js';
 
 /**
  * 답에서 팜 토큰을 지운다. 케이스(AI 가 쓴 코드)가 환경값이나 머리를 찍으면 admin 이 그 글을 실행 기록에 남기고,
@@ -24,9 +26,11 @@ const 알림 = (말: string, err: unknown): void =>
 // ponytail: 러너 하나에 받기 하나씩 — 실패가 몰리면 뒤 항목 증적이 늦게 뜬다. 늦으면 팜 PC 쪽에서 나란히 받는다
 let 줄: Promise<void> = Promise.resolve();
 
-/** 응답 뒤에 부른다. 실패가 몰려도 큰 영상을 한꺼번에 받지 않게 앞 받기가 끝난 뒤에 받는다 */
-export function 팜증적받기를줄세운다(runId: number, historyId: number | string, status: ItemStatus, 토큰?: string): void {
-  줄 = 줄.then(() => 팜증적을받는다(runId, historyId, status, 토큰));
+/** 응답 뒤에 부른다. 실패가 몰려도 큰 영상을 한꺼번에 받지 않게 앞 받기가 끝난 뒤에 받는다. uiCheck 면 AI 점검 결과도 받는다 */
+export function 팜증적받기를줄세운다(runId: number, historyId: number | string, status: ItemStatus, 토큰?: string, uiCheck?: true): void {
+  // 점검 결과를 그만 받는 때는 항목이 끝난 때부터 잰다 — 앞 받기가 밀려도 admin 의 60분과 어긋나지 않게
+  const 점검 = uiCheck === true ? { 끝난때: Date.now() } : undefined;
+  줄 = 줄.then(() => 팜증적을받는다(runId, historyId, status, 토큰, 점검));
 }
 
 /**
@@ -35,7 +39,9 @@ export function 팜증적받기를줄세운다(runId: number, historyId: number 
  * 무엇이 실패해도 던지지 않는다 — 이미 admin 에 답한 판정은 바뀌지 않고, 증적이 없을 뿐이다
  */
 // 토큰은 그 연결을 연 것이어야 한다 — 팜은 남의 연결 증적을 없는 것처럼 404 로 답한다 (러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」)
-export async function 팜증적을받는다(runId: number, historyId: number | string, status: ItemStatus, 요청토큰?: string): Promise<void> {
+export async function 팜증적을받는다(
+  runId: number, historyId: number | string, status: ItemStatus, 요청토큰?: string, 점검?: { 끝난때: number },
+): Promise<void> {
   const 폴더 = runDir(String(runId), String(historyId));
   const idFile = join(폴더, APPIUM_SESSION_ID_FILE);
   let sessionId: string;
@@ -47,6 +53,10 @@ export async function 팜증적을받는다(runId: number, historyId: number | s
     return;
   }
   const raw = process.env.PLATFORM_APPIUM_URL;
+  // 호환성 항목은 판정과 상관없이 AI 점검 결과를 받는다. 점검은 연결이 닫힌 뒤 몇 분 걸려 받기 줄을 막지 않게 따로 기다린다 (도메인/호환성 §7 「러너 · kit」)
+  if (점검 !== undefined && runId !== 0 && sessionId !== '' && raw !== undefined && raw !== '') {
+    void 점검결과를기다린다(폴더, raw, sessionId, 요청토큰 ?? process.env.PLATFORM_APPIUM_TOKEN, 점검.끝난때);
+  }
   // 통과한 정식 실행 항목은 받지 않고 번호만 남긴다 — 「영상 보기」를 누를 때 admin 이 받는다
   if (runId !== 0 && status === 'PASS' && sessionId !== '') return;
   try {
@@ -62,7 +72,11 @@ export async function 팜증적을받는다(runId: number, historyId: number | s
       // 게임 항목은 kit 이 이 폴더에 실패 순간 오브젝트 목록 · 게임 오류 기록을 먼저 둔다 — 폴더째 옮기면 그 파일과 부딪혀 파일마다 옮긴다
       const 둘곳 = join(폴더, FARM_EVIDENCE_DIR);
       await mkdir(둘곳, { recursive: true });
-      for (const 이름 of await readdir(받는곳)) await rename(join(받는곳, 이름), join(둘곳, 이름));
+      for (const 이름 of await readdir(받는곳)) {
+        // AI 점검 결과는 위에서 점검이 끝난 뒤 따로 받는다 — 여기 것은 점검 중일 수 있다
+        if (이름 === UI_CHECK_FILE || 점검화면이름.test(이름)) continue;
+        await rename(join(받는곳, 이름), join(둘곳, 이름));
+      }
       await rm(받는곳, { recursive: true, force: true });
     } catch (err) {
       // 팜이 아닌 Appium 은 이 주소가 없다(404). 반쯤 받은 것은 버린다

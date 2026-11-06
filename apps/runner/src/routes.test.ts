@@ -186,6 +186,21 @@ describe('POST /execute', () => {
     expect((await 보낸다({ adminKey: { header: 'X-Admin-Key', value: '' } })).statusCode).toBe(400);
   });
 
+  it('호환성 항목 표시(uiCheck)를 버리지 않고 넘기고, true 가 아니면 400 이다', async () => {
+    const 보낸다 = (uiCheck: unknown) =>
+      서버().inject({
+        method: 'POST',
+        url: '/execute',
+        payload: {
+          runId: 1, historyId: 7, tcId: 'TODO-001', platform: 'android', filePath: 'todo/TODO-001.spec.ts',
+          baseUrl: 'https://qa.example.com', params: {}, expected: {}, uiCheck,
+        },
+      });
+    expect((await 보낸다(true)).statusCode).not.toBe(400);
+    expect(execute).toHaveBeenLastCalledWith(expect.objectContaining({ uiCheck: true }), expect.any(String));
+    expect((await 보낸다(false)).statusCode).toBe(400);
+  });
+
   describe('API 인증 (도메인/러너 §5.2 「API 케이스 실행」)', () => {
     const 인증 = { name: '고객사 A', tokenUrl: '/v1/oauth/token', clientId: 'client-a', clientSecret: 'secret-a' };
     const 보낸다 = (apiAuths: unknown) =>
