@@ -64,16 +64,22 @@ describe('시나리오실행을멈춘다', () => {
     expect(await 시나리오실행을멈춘다(7)).toEqual({ aborted: 1 });
 
     expect(abortScenarioRunner).toHaveBeenCalledWith({ scenarioRunId: 7 });
-    expect(상태.멈춤).toBe(true);
     expect(질의).toEqual([]);
   });
 
-  it('이미 멈춘 실행을 또 멈추라 하면 null 이다', async () => {
+  it('보낸 뒤 러너가 끊을 것이 없다고 하면(이미 끝났다) null 이고 멈춤을 적지 않는다 — 다 통과한 실행이 ABORTED 로 닫히지 않게', async () => {
+    vi.mocked(abortScenarioRunner).mockResolvedValueOnce(false);
     const 상태 = 실행상태를연다(7, 3);
     상태.보냄 = true;
+
+    expect(await 시나리오실행을멈춘다(7)).toBeNull();
+    expect(상태.멈춤).toBe(false);
+  });
+
+  it('보내기 전에 이미 멈춘 실행을 또 멈추라 하면 null 이다', async () => {
+    실행상태를연다(7, 3);
     await 시나리오실행을멈춘다(7);
 
     expect(await 시나리오실행을멈춘다(7)).toBeNull();
-    expect(abortScenarioRunner).toHaveBeenCalledTimes(1);
   });
 });

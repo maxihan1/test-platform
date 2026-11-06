@@ -48,10 +48,10 @@ export async function 시나리오분배(runId: number, 요청: ScenarioExecuteR
       }
       // 폰을 잡은 뒤에 멈췄다 — 보내지 않았고 실행은 이미 ABORTED 로 닫혔다
       if (상태.멈춤 && !상태.보냄) return;
-      // 답이 온 뒤의 중단은 멈출 것이 없다 — 이미 끝난 실행을 ABORTED 라 하지 않게 닫는 중으로 적어 둔다
-      const 사람이멈춤 = 상태.멈춤;
+      // 사람이 멈춘 것은 러너가 끊고 돌려준 답으로 안다 — 러너의 'ABORTED' 는 /abort 로 끊었을 때뿐이다(제한 시간은 'TIMEOUT').
+      // admin 메모리로 가르면 답이 오는 중에 누른 중단이 다 통과한 실행을 ABORTED 로 만든다 (WEB-F9-14 끝 검사). 답이 온 뒤 중단은 멈출 것이 없게 닫는 중으로 적는다
       상태.멈춤 = true;
-      await 결과저장(runId, 응답, 사람이멈춤);
+      await 결과저장(runId, 응답, 응답.error?.message === 'ABORTED');
     });
   try {
     await (폰 === undefined ? 돌기() : 폰 === 'chrome' ? Chrome차례(돌기) : 폰차례(돌기));
