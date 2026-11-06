@@ -227,7 +227,7 @@ export function Notice({ 줄숨김, 서비스바꿈, 버튼자리 }: { 줄숨김
   if (막힘) return null;
 
   const 지금 = Date.now();
-  const { 줄들, 넘친수 } = 답 === null || 줄숨김 ? { 줄들: [], 넘친수: 0 } : 보일줄들(답, 읽음, 지금, 언어, 보는실행);
+  const { 줄들, 넘친수 } = 답 === null || 줄숨김 ? { 줄들: [], 넘친수: 0 } : 보일줄들(답, 읽음, 지금, 언어, 보는실행, 지켜봄?.열림 === true ? 지켜봄.runId : null);
   const 안읽음 = 답 === null ? 0 : 안읽은수(답.recent, 읽음);
 
   const 닫는다 = () => {

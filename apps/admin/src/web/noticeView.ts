@@ -200,14 +200,17 @@ export function 보일줄들(
   지금: number,
   언어: 언어,
   보는실행: number | null = null,
+  /** 진행 창이 떠 있는 실행 — 그 창이 도는 것도 끝난 것도 알려 이 줄은 창을 닫았을 때만 그 실행을 알린다 (점검표 D8 · 도메인/실행 §8.16 ⑤) */
+  창실행: number | null = null,
 ): { 줄들: 줄[]; 넘친수: number } {
+  const 창것 = (n: 알림재료) => 창실행 !== null && n.kind !== 'authoring' && n.runId === 창실행;
   // 결과 화면 머리에 같은 진행이 있어 보고 있는 실행의 도는 줄은 겹친다. 끝난 줄은 소식이라 남긴다.
   // E2E 결과 머리에는 진행 글이 없어 E2E 줄은 남긴다
   const 도는것 = 답.running
-    .filter((n) => n.kind !== 'run' || n.runId !== 보는실행)
+    .filter((n) => (n.kind !== 'run' || n.runId !== 보는실행) && !창것(n))
     .sort((a, b) => 도는차례[a.kind] - 도는차례[b.kind] || 번호(b) - 번호(a));
   const 끝난것 = 답.recent
-    .filter((n) => !읽음.has(읽음열쇠(n)) && 지금 - Date.parse(n.finishedAt) < 끝난소식유효)
+    .filter((n) => !읽음.has(읽음열쇠(n)) && 지금 - Date.parse(n.finishedAt) < 끝난소식유효 && !창것(n))
     .sort((a, b) => Date.parse(b.finishedAt) - Date.parse(a.finishedAt));
 
   const 전부: 줄[] = [...도는것.map((n) => 도는줄만들기(n, 지금, 언어)), ...끝난것.map((n) => 끝난줄만들기(n, 언어))];
