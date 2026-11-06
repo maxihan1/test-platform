@@ -3,18 +3,16 @@
 
 import type { ReactNode } from 'react';
 
-import type { RunItemSummary, 항목진행 } from './api.js';
-import { groupByCase, 회차요약 } from './group.js';
+import type { 항목진행 } from './api.js';
 import { t, use말, use언어, type 언어 } from './i18n.js';
 import { Modal } from './Modal.js';
-import { 항목실행번호 } from './RerunTag.js';
+import { RunDoneItems } from './RunDoneItems.js';
 import { 기록띠, 화면카드들 } from './RunLiveCards.js';
 import { 진행왼쪽, 셈알약 } from './RunLiveLeft.js';
 import { type RunDetail, 진행상황 } from './runProgress.js';
 import { 도는중 } from './runState.js';
+import { 걸린글 } from './trialView.js';
 import { 그중미확정글 } from './unconfirmed.js';
-
-const 실패목록최대 = 5;
 
 /** ⑤ 실행 중 — 왼쪽 숫자 · 목록, 오른쪽 화면 카드가 처음부터 보인다 (도메인/실행 §8.16 ⑤ · 점검표 D7) */
 function 진행내용({ data, 진행목록, 남은ms }: { data: RunDetail; 진행목록: 항목진행[]; 남은ms: number | null }) {
@@ -32,40 +30,15 @@ function 진행내용({ data, 진행목록, 남은ms }: { data: RunDetail; 진�
   );
 }
 
-/**
- * 실패한 **케이스**. 항목이 아니다.
- *
- * **회차를 접는다.** 5회 반복에서 케이스 하나가 3회 깨지면 항목으로 세었을 때
- * **그 하나가 목록 다섯 칸 중 셋을 먹고** 다른 케이스가 「외 N건」 뒤로 밀린다.
- * 제목이 「실패한 케이스」라 사람은 서로 다른 케이스를 봤다고 읽는다.
- *
- * 접는 규칙은 목록과 같은 `회차요약()` 이다 — SPEC §8.3 이 「케이스 1건 = 1행」으로 정했고
- * 바로 아래 결과 목록이 이미 그 규칙으로 그린다. **한 화면이 같은 것을 두 단위로 말하면 안 된다.**
- */
-function 실패한케이스들(items: RunItemSummary[]): (RunItemSummary & { tcName: string })[] {
-  return groupByCase(items)
-    .filter((묶음) =>
-      Object.values(묶음.byPlatform).some((칸) => 칸 !== undefined && 칸.length > 0 && 회차요약(칸).status === 'FAIL'),
-    )
-    .flatMap((묶음) => {
-      // 누르면 깨진 회차의 상세로 간다 (점검 5.3). 가장 먼저 돌린 깨진 회차다
-      const 깨진 = Object.values(묶음.byPlatform)
-        .flat()
-        .filter((it): it is RunItemSummary => it !== undefined && it.status === 'FAIL')
-        .sort((a, b) => a.historyId - b.historyId)[0];
-      return 깨진 === undefined ? [] : [{ ...깨진, tcName: 묶음.tcName }];
-    });
-}
-
 function 완료내용({ data, onClose }: { data: RunDetail; onClose: () => void }) {
   const t말 = use말();
   const 언어 = use언어();
-  const 실패목록 = 실패한케이스들(data.items);
+  const 총 = data.finishedAt === null ? null : Date.parse(data.finishedAt) - Date.parse(data.startedAt);
 
   return (
     <>
       <p>
-        {data.title} · {t말('대상 서버 {서버}', { 서버: data.env })}
+        {[data.title, t말('대상 서버 {서버}', { 서버: data.env }), ...(총 === null || Number.isNaN(총) ? [] : [t말('총 {시간}', { 시간: 걸린글(총, 언어) })])].join(' · ')}
       </p>
       {/* 점수는 한 줄 알약 — 시험 결과 ④ 와 같다. 0 은 점선 회색이다 (시안 A ④ · 점검표 B18) */}
       <div className="rl-pills">
@@ -74,23 +47,7 @@ function 완료내용({ data, onClose }: { data: RunDetail; onClose: () => void 
         <셈알약 종류="na" 이름={t말('미실행')} 수={data.counts.na} />
       </div>
       {그중미확정글(data.counts, 언어) === '' ? null : <p className="hint">{그중미확정글(data.counts, 언어)}</p>}
-      {실패목록.length === 0 ? null : (
-        <div>
-          {/* 숫자만 보여주면 사람이 결국 목록을 뒤져야 한다 (SPEC §8.9) */}
-          <div className="sec-h">{t말('실패한 케이스')}</div>
-          {/* 눌러도 아무 일 없던 줄이다 — 그 케이스의 깨진 항목 상세로 간다. 상자는 닫아 「봤다」로 적는다 */}
-          {실패목록.slice(0, 실패목록최대).map((것) => (
-            <div className="pre" key={것.tcId}>
-              <a href={`#/runs/${String(항목실행번호(것, data.runId))}/items/${String(것.historyId)}`} onClick={onClose}>
-                {것.tcId} {것.tcName}
-              </a>
-            </div>
-          ))}
-          {실패목록.length <= 실패목록최대 ? null : (
-            <p className="hint">{t말('외 {건수}건', { 건수: 실패목록.length - 실패목록최대 })}</p>
-          )}
-        </div>
-      )}
+      <RunDoneItems runId={data.runId} items={data.items} onClose={onClose} />
     </>
   );
 }
