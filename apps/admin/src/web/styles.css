@@ -263,6 +263,12 @@
   padding: 0;
 }
 
+/* 체크칸 · 라디오는 대표색이다 — 브라우저 기본 하늘색을 쓰지 않는다. 앱 전체에 한 번 건다 (DESIGN.md · 2026-11-06 시험 B16) */
+input[type='checkbox'],
+input[type='radio'] {
+  accent-color: var(--accent);
+}
+
 body {
   background: var(--bg);
   color: var(--ink);
@@ -988,7 +994,6 @@ input[type='file']::file-selector-button {
   width: 15px;
   height: 15px;
   margin: 0;
-  accent-color: var(--ink);
   cursor: pointer;
 }
 
