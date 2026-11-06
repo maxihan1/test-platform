@@ -149,7 +149,7 @@ function 단계글(d: E2E단계): string {
 
 // 절차가 없는 단계(모킹 · API · 대기 · 안 돈 케이스)도 한 행을 남긴다 — 행이 없으면 그 단계가 표에서 사라진다
 function 한행(판: EvidenceDocument, d: E2E단계, platform: E2E증적['platform']): 칸값[] {
-  const 판정 = d.적용됨 ? '적용됨' : d.안돌았다 ? '실행 안 됨' : 판정글자[d.status];
+  const 판정 = d.적용됨 ? '적용됨' : d.안돌았다 ? '실행 안 함' : 판정글자[d.status];
   const 케이스 = d.item === null ? [null, d.요약] : [d.item.tcId, d.item.tcName];
   return [
     ...실행칸(판),
