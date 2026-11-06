@@ -228,7 +228,10 @@ export async function executeScenario(req: ScenarioExecuteRequest): Promise<Scen
 
   const timer = setTimeout(() => {
     // 사람이 먼저 끊었으면 그 사유가 이긴다
-    entry.killedBy ??= 'TIMEOUT';
+    if (entry.killedBy === null) {
+      entry.killedBy = 'TIMEOUT';
+      entry.돌던ms = Date.now() - entry.부품시작;
+    }
     killTree(child);
   }, req.timeoutMs);
 
@@ -255,7 +258,7 @@ export async function executeScenario(req: ScenarioExecuteRequest): Promise<Scen
 
   const 결과 = finishScenario(
     parseParts(stdout), req.parts.length, entry.killedBy, Date.now() - startedAt, tail(stderr) || tail(stdout), parseCleanup(stdout),
-    Date.now() - entry.부품시작,
+    entry.돌던ms ?? Date.now() - entry.부품시작,
   );
   if (폰기기 !== undefined) {
     if (폰증적) await 폰증적을둔다(폰폴더, 결과.status);

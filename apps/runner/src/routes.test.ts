@@ -279,12 +279,13 @@ describe('시나리오 — POST /abort · GET /progress', () => {
   };
 
   it('scenarioRunId 로 도는 자식을 끊고 aborted true 다', async () => {
-    const child = 시나리오자식('run:42');
+    const child = 시나리오자식('run:42', { 부품시작: Date.now() - 1500 });
 
     const res = await 서버().inject({ method: 'POST', url: '/abort', payload: { scenarioRunId: 42 } });
 
     expect(res.json()).toEqual({ aborted: true });
     expect(runningScenarios.get('run:42')?.killedBy).toBe('ABORTED');
+    expect(runningScenarios.get('run:42')?.돌던ms).toBeGreaterThanOrEqual(1500);
     await once(child, 'close');
   });
 
