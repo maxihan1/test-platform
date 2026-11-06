@@ -75,7 +75,8 @@
 
 .rl-items li {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  /* 케이스 번호 · 디바이스는 붙여 읽고 판정 알약만 오른쪽 끝이다 (시안 A ⑤) */
+  grid-template-columns: max-content minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
   padding: 4px 14px;
@@ -152,7 +153,9 @@
 
 /* 휴대폰은 위아래로 쌓는다 — 장면 카드가 숫자 위로 온다 (점검표 D12) */
 @media (max-width: 620px) {
+  /* 본문이 통째로 구른다 — 칸이 본문 높이에 맞춰 줄면 카드 발이 잘린다 */
   .rl {
+    flex: none;
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto auto;
   }
@@ -166,13 +169,23 @@
     overflow: visible;
   }
 
+  /* 카드가 위아래로 쌓이면 제 키대로 선다 — 칸 높이를 나눠 갖게 두면 앞 카드가 0 으로 접혔다 */
+  .rl-right .livecards {
+    grid-template-rows: none;
+  }
+
+  .rl-right .lc-scene {
+    flex: none;
+  }
+
   .rl-right .lc-scene .live-shot img,
   .rl-right .lc.big .lc-scene .live-shot img {
     max-height: 300px;
   }
 
+  /* 휴대폰 바닥은 단추가 세로로 선다(phone.css) — 안내 한 줄을 단추 위로 */
   .rl-note {
-    flex-basis: 100%;
     order: -1;
+    margin-right: 0;
   }
 }
