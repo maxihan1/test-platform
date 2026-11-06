@@ -243,7 +243,7 @@ describe('ScenarioList 실행', () => {
 
     const 상자 = 확인상자();
     expect(상자.getByText('끝나면 실행 기록 E2E 에 남고 리포트를 만들 수 있습니다')).toBeTruthy();
-    expect(상자.getByText('SC-2 ZSM 시나리오 2')).toBeTruthy();
+    expect(상자.getByText('SC-2 ZSM 시나리오 2 · 3단계')).toBeTruthy();
     expect(상자.getByText('PC')).toBeTruthy();
     expect(상자.getByText('stg')).toBeTruthy();
     expect(document.activeElement).toBe(상자.getByRole('button', { name: '취소' }));

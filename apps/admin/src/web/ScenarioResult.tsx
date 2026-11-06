@@ -66,7 +66,7 @@ export function ScenarioResult({
     어디서,
     on새실행,
     data?.platform === 'mobile' && data.device != null ? 'vision' : 'server',
-    data === null ? null : { 시나리오: data.title, platform: data.platform },
+    data === null ? null : { 시나리오: data.title, 단계수: data.parts.length, platform: data.platform },
   );
 
   if (res.error !== null) return <Failed error={res.error} />;

@@ -147,6 +147,7 @@ export function ScenarioList({ service, kind, envs, 할수 }: { service: string;
       {확인 === null ? null : (
         <ScenarioStartConfirm
           시나리오={`SC-${확인.id} ${확인.name}`}
+          단계수={확인.partCount}
           디바이스={디바이스글(t, 확인.platform, mobileOn)}
           env={env}
           onClose={() => set확인(null)}

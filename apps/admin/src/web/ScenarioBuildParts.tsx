@@ -83,6 +83,7 @@ export function 조립시작확인({
   return (
     <ScenarioStartConfirm
       시나리오={id === null ? 초안.이름 : `SC-${id} ${초안.이름}`.trim()}
+      단계수={초안.단계들.length}
       디바이스={디바이스글(t, 초안.디바이스, 정식.위치.값)}
       env={서버}
       onClose={onClose}

@@ -59,7 +59,7 @@ describe('ScenarioBuild 정식 실행', () => {
     서버고르기();
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
     expect(run).not.toHaveBeenCalled();
-    expect(확인상자().getByText('SC-12 ZSB 가입 흐름')).toBeTruthy();
+    expect(확인상자().getByText('SC-12 ZSB 가입 흐름 · 3단계')).toBeTruthy();
     시작하기();
     expect(await screen.findByRole('dialog', { name: 'E2E 실행 중 · RUN 501' })).toBeTruthy();
     expect(window.location.hash).toBe('');

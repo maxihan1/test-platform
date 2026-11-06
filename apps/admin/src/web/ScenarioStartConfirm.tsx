@@ -6,6 +6,8 @@ import { Modal } from './Modal.js';
 interface Props {
   /** `SC-12 가입 흐름` */
   시나리오: string;
+  /** 단계 수 — 이름 곁에 `· 8단계` 로 붙는다 (도메인/시나리오 §8.11 「이름표 줄」) */
+  단계수: number;
   /** `PC` · `모바일 (실제 기기)` */
   디바이스: string;
   env: string;
@@ -13,7 +15,7 @@ interface Props {
   on시작: () => void;
 }
 
-export function ScenarioStartConfirm({ 시나리오, 디바이스, env, onClose, on시작 }: Props) {
+export function ScenarioStartConfirm({ 시나리오, 단계수, 디바이스, env, onClose, on시작 }: Props) {
   const t = use말();
   return (
     <Modal
@@ -34,7 +36,9 @@ export function ScenarioStartConfirm({ 시나리오, 디바이스, env, onClose,
       <p className="start-band rec">{t('끝나면 실행 기록 E2E 에 남고 리포트를 만들 수 있습니다')}</p>
       <dl className="start-what">
         <dt>{t('시나리오§이름')}</dt>
-        <dd>{시나리오}</dd>
+        <dd>
+          {시나리오} · {t('{수}단계', { 수: 단계수 })}
+        </dd>
         <dt>{t('디바이스')}</dt>
         <dd>{디바이스}</dd>
         <dt>{t('대상 서버')}</dt>

@@ -38,7 +38,7 @@ export function useRerun(
   on새실행?: (runId: number) => void,
   mobileOn: 모바일위치 = 'server',
   /** 시작 확인 상자의 이름표 — `시나리오` 줄에 적을 실행 제목 · 디바이스 */
-  이름표: { 시나리오: string; platform: Platform } | null = null,
+  이름표: { 시나리오: string; 단계수: number; platform: Platform } | null = null,
 ) {
   const 언어 = use언어();
   const [도는중, set도는중] = useState(false);
@@ -74,6 +74,7 @@ export function RerunButton({ 다시실행, env, 주 = false }: { 다시실행: 
       {!다시실행.묻기 ? null : (
         <ScenarioStartConfirm
           시나리오={이름표?.시나리오 ?? ''}
+          단계수={이름표?.단계수 ?? 0}
           디바이스={이름표 === null ? '' : 디바이스글(t, 이름표.platform, 다시실행.mobileOn)}
           env={env}
           onClose={() => 다시실행.set묻기(false)}
