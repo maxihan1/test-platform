@@ -7,7 +7,7 @@ import { 남은손들 } from './listTodo.js';
 import { 반영할일 } from './applyTodo.js';
 import { db } from './store.js';
 import { 종류조건 } from '../execution/runKind.js';
-import { 지금항목 } from '../execution/single.js';
+import { 멈춰닫힌항목아님, 지금항목 } from '../execution/single.js';
 import { 화면목록식 } from '../prd/screenRight.js';
 import type { 결정항목 } from './decisionItems.js';
 
@@ -94,6 +94,7 @@ export async function 판정없는실패들(서비스: number): Promise<실패�
               (array_agg(COALESCE(i.rerun_run_id, i.run_id) ORDER BY i.history_id) FILTER (WHERE i.status = 'FAIL'))[1] AS item_run_id
          FROM test_run r JOIN LATERAL ${지금항목('o.run_id = r.run_id')} i ON true
         WHERE r.service_id = $1 AND ${종류조건('case', 'r')} AND r.status <> 'RUNNING' AND r.origin <> 'SINGLE' AND i.finished_at IS NOT NULL
+          AND ${멈춰닫힌항목아님('i')}
         GROUP BY i.tc_id, r.run_id, r.finished_at
      ), 최근 AS (
        SELECT DISTINCT ON (tc_id) * FROM 돈것 ORDER BY tc_id, finished_at DESC NULLS LAST, run_id DESC
