@@ -52,8 +52,9 @@ export function useRerun(
     set오류(null);
     try {
       const { runId } = await scenarioApi.run(scenarioId, env, mobileOn);
-      if (on새실행 === undefined) set창(runId);
-      else on새실행(runId);
+      // 실행 기록 결과 칸(on새실행)도 목록에서 새 실행을 고르면서 창을 띄운다 — 결과의 「다시 실행」은 어디서나 창 ⑥ 이다 (시나리오 §8.11)
+      set창(runId);
+      on새실행?.(runId);
     } catch (err) {
       set오류(message(err, 언어));
     } finally {

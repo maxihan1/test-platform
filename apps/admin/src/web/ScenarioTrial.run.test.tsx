@@ -114,7 +114,7 @@ describe('시험 실행 돌리기', () => {
     expect(screen.getByRole('button', { name: '중단하는 중' })).toBeTruthy();
   });
 
-  it('도는 중 창을 × 로 닫고 중단하면 창이 닫히고 중단 통로를 부른다', async () => {
+  it('도는 중 창을 × 로 닫고 멈추고 닫기를 누르면 창이 닫히고 중단 통로를 부른다', async () => {
     await 기존그리기();
     vi.spyOn(scenarioApi, 'startTrial').mockResolvedValue({ trialId: 't-1' });
     vi.spyOn(scenarioApi, 'trial').mockResolvedValue({ status: 'RUNNING' });
@@ -126,7 +126,7 @@ describe('시험 실행 돌리기', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '창 닫기' }));
     await act(async () => {
-      fireEvent.click(within(screen.getByRole('dialog', { name: '시험 실행을 중단할까요?' })).getByRole('button', { name: '중단' }));
+      fireEvent.click(within(screen.getByRole('dialog', { name: '닫으면 시험 실행을 멈춥니다' })).getByRole('button', { name: '멈추고 닫기' }));
     });
 
     expect(중단).toHaveBeenCalledWith('t-1');

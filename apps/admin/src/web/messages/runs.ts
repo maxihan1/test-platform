@@ -446,7 +446,7 @@ export const 실행말: Record<string, string> = {
   '재검증 통과로 닫힘': 'Closed: passed recheck',
   // 정식 실행 진행 창 맨 위 띠 · 화면 카드 (RunProgressModal.tsx · RunLiveCards.tsx · 시안 7판 ⑦)
   '정식 실행': 'Run',
-  '끝나면 실행 기록에 RUN {번호} 로 남습니다': 'When it ends, it is saved to run history as RUN {번호}',
+  '끝나면 실행 기록에 남고 리포트를 만들 수 있습니다 · RUN {번호}': 'When it ends, it is saved to run history and you can make a report · RUN {번호}',
   '끝나면 RUN {번호} 결과에 다시 실행으로 추가됩니다': 'When it ends, it is added to RUN {번호} results as a rerun',
   '끝나면 이 케이스 상세에 남습니다': 'When it ends, it stays in this case’s detail',
   '가상 기기 · iPhone 14': 'Virtual device · iPhone 14',

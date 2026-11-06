@@ -146,6 +146,8 @@ export function RunProgressModal({
       제목={제목(data, 언어)}
       onClose={onClose}
       틀={도는가 ? '실행 중' : '결과'}
+      // 한 틀은 바깥을 눌러 닫히지 않고 휴대폰에서 화면 가득이다 (§8.16 「틀」 「닫는 길」)
+      바깥눌러닫기={false}
       버튼={
         도는가 ? (
           <>

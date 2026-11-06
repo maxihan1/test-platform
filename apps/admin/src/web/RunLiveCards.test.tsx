@@ -73,7 +73,7 @@ describe('정식 실행 진행 창 — 화면 카드 (시안 A ⑤)', () => {
     render(<RunProgressModal data={실행([항목(1, 'desktop')])} 진행목록={[]} onClose={() => {}} />);
 
     const 띠 = document.querySelector('.start-band.rec');
-    expect(띠?.textContent).toBe('정식 실행 끝나면 실행 기록에 RUN 128 로 남습니다');
+    expect(띠?.textContent).toBe('정식 실행 끝나면 실행 기록에 남고 리포트를 만들 수 있습니다 · RUN 128');
   });
 
   it('한 건 실행의 띠는 붙을 실행이 있으면 그 RUN 에, 없으면 케이스 상세에 남는다고 말한다', () => {

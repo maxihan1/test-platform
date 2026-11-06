@@ -105,12 +105,13 @@ export function ScenarioTrialWindow({ 시험, 단계들, 재료, platform, 모�
       </Modal>
       {묻기 === null ? null : (
         <Modal
-          제목={t('시험 실행을 중단할까요?')}
+          // 닫기로 물으면 「닫으면 멈춘다」를 먼저 말한다 — E2E 시험은 닫으면 다시 볼 자리가 없다 (도메인/실행 §3.2 「E2E 시험 실행 창을 닫으면 시험을 멈춘다」)
+          제목={묻기 === 'close' ? t('닫으면 시험 실행을 멈춥니다') : t('시험 실행을 중단할까요?')}
           onClose={() => set묻기(null)}
           버튼={
             <>
               <button type="button" className="btn ghost" onClick={() => set묻기(null)} data-first>
-                {t('계속 실행')}
+                {묻기 === 'close' ? t('계속 보기') : t('계속 실행')}
               </button>
               <button
                 type="button"
@@ -121,7 +122,7 @@ export function ScenarioTrialWindow({ 시험, 단계들, 재료, platform, 모�
                   set묻기(null);
                 }}
               >
-                {t('중단§버튼')}
+                {묻기 === 'close' ? t('멈추고 닫기') : t('중단§버튼')}
               </button>
             </>
           }

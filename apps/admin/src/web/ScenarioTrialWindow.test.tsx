@@ -110,14 +110,16 @@ describe('E2E 시험 실행 창 — 도는 중', () => {
     expect(닫기).not.toHaveBeenCalled();
   });
 
-  it('× 로 닫으면 한 번 묻고, 계속 실행을 누르면 아무 일도 없다', () => {
+  it('× 로 닫으면 「닫으면 멈춘다」고 한 번 묻고, 계속 보기를 누르면 아무 일도 없다', () => {
     const 것 = 시험();
     const { 닫기 } = 그리기(것);
 
     fireEvent.click(screen.getByRole('button', { name: '창 닫기' }));
-    fireEvent.click(within(screen.getByRole('dialog', { name: '시험 실행을 중단할까요?' })).getByRole('button', { name: '계속 실행' }));
+    const 묻기 = within(screen.getByRole('dialog', { name: '닫으면 시험 실행을 멈춥니다' }));
+    expect(document.activeElement).toBe(묻기.getByRole('button', { name: '계속 보기' }));
+    fireEvent.click(묻기.getByRole('button', { name: '계속 보기' }));
 
-    expect(screen.queryByRole('dialog', { name: '시험 실행을 중단할까요?' })).toBeNull();
+    expect(screen.queryByRole('dialog', { name: '닫으면 시험 실행을 멈춥니다' })).toBeNull();
     expect(것.중단).not.toHaveBeenCalled();
     expect(닫기).not.toHaveBeenCalled();
   });
@@ -127,7 +129,7 @@ describe('E2E 시험 실행 창 — 도는 중', () => {
     const { 닫기 } = 그리기(것);
 
     fireEvent.keyDown(document, { key: 'Escape' });
-    fireEvent.click(within(screen.getByRole('dialog', { name: '시험 실행을 중단할까요?' })).getByRole('button', { name: '중단' }));
+    fireEvent.click(within(screen.getByRole('dialog', { name: '닫으면 시험 실행을 멈춥니다' })).getByRole('button', { name: '멈추고 닫기' }));
 
     expect(것.중단).toHaveBeenCalledTimes(1);
     expect(닫기).toHaveBeenCalledTimes(1);

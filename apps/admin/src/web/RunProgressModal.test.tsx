@@ -189,6 +189,14 @@ describe('RunProgressModal (SPEC §8.9)', () => {
     expect(document.querySelector('.frame-steps [aria-current="step"]')?.textContent).toBe('결과');
   });
 
+  it('바깥을 눌러도 닫히지 않는다 — 한 틀의 닫는 길은 × · Esc · 바닥 단추다 (§8.16 「틀」)', () => {
+    const onClose = vi.fn();
+    render(<RunProgressModal data={도는중실행} 진행목록={[]} onClose={onClose} />);
+    const 덮개 = document.querySelector('.modal-back')!;
+    fireEvent.mouseDown(덮개, { target: 덮개 });
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it('도는 중에는 닫는 버튼 하나만 두고 못 누르는 버튼을 놓지 않는다', () => {
     const onClose = vi.fn();
     render(<RunProgressModal data={도는중실행} 진행목록={[]} onClose={onClose} />);

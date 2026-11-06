@@ -1,4 +1,4 @@
-// E2E 시나리오 조립 화면 오른쪽 탭의 속 — 단계 추가 · 시험 결과 · 변경 이력 · 고른 단계의 설정. 어느 것을 그릴지만 정하고 상태는 화면이 쥔다 (도메인/시나리오 §8.11)
+// E2E 시나리오 조립 화면 오른쪽 탭의 속 — 단계 추가 · 변경 이력 · 고른 단계의 설정(시험 결과는 실행 창 ⑥ — ScenarioTrialWindow). 어느 것을 그릴지만 정하고 상태는 화면이 쥔다 (도메인/시나리오 §8.11)
 
 import type { ScenarioPart } from '@platform/kit';
 import { useState } from 'react';

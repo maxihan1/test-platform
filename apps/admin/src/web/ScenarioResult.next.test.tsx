@@ -68,6 +68,7 @@ describe('실패 안내 줄', () => {
     fireEvent.click(screen.getByRole('button', { name: '실행 시작' }));
     await waitFor(() => expect(받음).toHaveBeenCalledWith(90));
     expect(window.location.hash).toBe('#/runs/e2e');
+    expect(await screen.findByRole('dialog', { name: /RUN 90/ })).toBeTruthy();
   });
 
   it('통과한 결과는 안내 줄 없이 머리에 다시 실행만 있다', async () => {

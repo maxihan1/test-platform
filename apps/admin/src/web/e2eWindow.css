@@ -19,7 +19,8 @@
 .e2e-bar i {
   display: block;
   height: 100%;
-  background: var(--pass);
+  /* 진척이지 판정이 아니다 — 판정 색(통과 초록)을 쓰지 않는다 (DESIGN.md 원칙 1) */
+  background: var(--accent);
 }
 
 .e2e-prog-row {
