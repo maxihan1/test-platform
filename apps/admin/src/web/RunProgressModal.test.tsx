@@ -237,6 +237,21 @@ describe('RunProgressModal (SPEC §8.9)', () => {
     expect(await screen.findByText('구매하기 단추를 찾지 못했습니다')).toBeTruthy();
   });
 
+  it('실패가 한 쪽(20건)을 넘으면 둘째 쪽 이유도 받아 붙인다', async () => {
+    const 케이스 = (tcId: string, reason: string) => ({ tcId, devices: [{ platform: 'desktop', item: { failure: { type: 'notFound', reason } } }] });
+    const 스파이 = vi.spyOn(api, 'failures').mockImplementation((_runId, page) =>
+      Promise.resolve(
+        (page === 1
+          ? { items: [케이스('ZZR-0012', '첫째 쪽 이유')], total: 21, page: 1, pageSize: 20 }
+          : { items: [케이스('ZZR-0013', '둘째 쪽 이유')], total: 21, page: 2, pageSize: 20 }) as never,
+      ),
+    );
+    render(<RunProgressModal data={끝난실행} 진행목록={[]} onClose={() => {}} />);
+
+    expect(await screen.findByText('둘째 쪽 이유')).toBeTruthy();
+    expect(스파이).toHaveBeenCalledWith(expect.anything(), 2);
+  });
+
   it('사람이 멈춘 실행은 끝났다고 적지 않는다', () => {
     render(<RunProgressModal data={{ ...끝난실행, status: 'ABORTED' }} 진행목록={[]} onClose={() => {}} />);
 
