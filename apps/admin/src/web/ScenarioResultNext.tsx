@@ -2,10 +2,14 @@
 
 import { useState } from 'react';
 
-import { 실패유형이름 } from './DashboardTypes.js';
-import { use말, use언어 } from './i18n.js';
+import type { Platform } from '@platform/kit';
+
 import type { 모바일위치 } from './api.js';
+import { 실패유형이름 } from './DashboardTypes.js';
+import { 디바이스글 } from './e2eWindowView.js';
+import { use말, use언어 } from './i18n.js';
 import { scenarioApi, type ScenarioRunPart } from './scenarioApi.js';
+import { ScenarioStartConfirm } from './ScenarioStartConfirm.js';
 import { message } from './ui.js';
 
 /** 결과에서 돌아갈 곳. 들어온 곳을 주소 `from` 에 실어 온다 — 없으면 실행 기록이다 */
@@ -27,9 +31,19 @@ export function 멈춘단계<P extends Pick<ScenarioRunPart, 'status'> & { error
  * `on새실행` 을 주면 주소를 옮기지 않고 넘긴다 — 실행 기록 결과 칸은 목록을 떠나지 않고 새 실행을 연다.
  * `mobileOn` 은 원래 실행이 돈 모바일 실행 위치다 — 같은 서버로 다시 돌리는 것처럼 같은 곳에서 다시 돈다
  */
-export function useRerun(scenarioId: number, env: string, 어디서: 들어온곳, on새실행?: (runId: number) => void, mobileOn: 모바일위치 = 'server') {
+export function useRerun(
+  scenarioId: number,
+  env: string,
+  어디서: 들어온곳,
+  on새실행?: (runId: number) => void,
+  mobileOn: 모바일위치 = 'server',
+  /** 시작 확인 상자의 이름표 — `시나리오` 줄에 적을 실행 제목 · 디바이스 */
+  이름표: { 시나리오: string; platform: Platform } | null = null,
+) {
   const 언어 = use언어();
   const [도는중, set도는중] = useState(false);
+  // 다시 실행도 케이스 실행처럼 한 번 묻는다 (점검표 B19 · 도메인/시나리오 §8.11 「`실행` 은 시작 확인 상자를 거친다」)
+  const [묻기, set묻기] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
   async function 다시() {
     set도는중(true);
@@ -44,15 +58,30 @@ export function useRerun(scenarioId: number, env: string, 어디서: 들어온�
       set도는중(false);
     }
   }
-  return { 도는중, 오류, 다시 };
+  return { 도는중, 오류, 다시, 묻기, set묻기, 이름표, mobileOn };
 }
 
 export function RerunButton({ 다시실행, env, 주 = false }: { 다시실행: ReturnType<typeof useRerun>; env: string; 주?: boolean }) {
   const t = use말();
+  const { 이름표 } = 다시실행;
   return (
-    <button type="button" className={주 ? 'btn' : 'btn ghost'} disabled={다시실행.도는중} onClick={() => void 다시실행.다시()}>
-      {다시실행.도는중 ? t('실행 요청 중') : t('{서버}에서 다시 실행', { 서버: env })}
-    </button>
+    <>
+      <button type="button" className={주 ? 'btn' : 'btn ghost'} disabled={다시실행.도는중} onClick={() => 다시실행.set묻기(true)}>
+        {다시실행.도는중 ? t('실행 요청 중') : t('{서버}에서 다시 실행', { 서버: env })}
+      </button>
+      {!다시실행.묻기 ? null : (
+        <ScenarioStartConfirm
+          시나리오={이름표?.시나리오 ?? ''}
+          디바이스={이름표 === null ? '' : 디바이스글(t, 이름표.platform, 다시실행.mobileOn)}
+          env={env}
+          onClose={() => 다시실행.set묻기(false)}
+          on시작={() => {
+            다시실행.set묻기(false);
+            void 다시실행.다시();
+          }}
+        />
+      )}
+    </>
   );
 }
 

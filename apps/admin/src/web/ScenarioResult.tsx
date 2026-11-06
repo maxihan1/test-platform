@@ -59,7 +59,14 @@ export function ScenarioResult({
   // 결과 칸(실행 기록 › E2E)은 목록 옆이라 돌아갈 곳이 없다 — 주소를 안 본다
   const 어디서 = 칸안 ? null : 들어온곳읽기();
   // 모바일 시나리오는 원래 실행이 돈 곳으로 다시 돈다 — 흉내는 기기 칸이 비고 실제 폰만 찬다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)
-  const 다시실행 = useRerun(data?.scenarioId ?? 0, data?.env ?? '', 어디서, on새실행, data?.platform === 'mobile' && data.device != null ? 'vision' : 'server');
+  const 다시실행 = useRerun(
+    data?.scenarioId ?? 0,
+    data?.env ?? '',
+    어디서,
+    on새실행,
+    data?.platform === 'mobile' && data.device != null ? 'vision' : 'server',
+    data === null ? null : { 시나리오: data.title, platform: data.platform },
+  );
 
   if (res.error !== null) return <Failed error={res.error} />;
   if (data === null) return <Loading />;

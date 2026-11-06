@@ -299,6 +299,7 @@ describe('ScenarioRunList 오른쪽 결과 칸 (실행 §8.7 「A안」)', () =>
     결과.mockResolvedValue(시나리오결과());
     vi.spyOn(scenarioApi, 'run').mockResolvedValue({ runId: 99 });
     fireEvent.click(await screen.findByRole('button', { name: 'qa에서 다시 실행' }));
+    fireEvent.click(screen.getByRole('button', { name: '실행 시작' }));
 
     await waitFor(() => expect(스파이).toHaveBeenLastCalledWith('ZSL', 1, {}));
     expect(window.location.hash).toBe('#/runs/e2e?run=99&service=ZSL');
