@@ -203,7 +203,7 @@ export async function executeScenario(req: ScenarioExecuteRequest): Promise<Scen
   let stdout = '';
   let stderr = '';
   const entry: 도는시나리오 = {
-    child, killedBy: null, runId: req.runId, trialId: req.trialId, total: req.parts.length, 받은줄수: 0, 부품시작: startedAt,
+    child, killedBy: null, runId: req.runId, trialId: req.trialId, total: req.parts.length, 받은줄수: 0, 실패함: false, 부품시작: startedAt,
   };
   const key = 열쇠(req);
   runningScenarios.set(key, entry);
@@ -215,9 +215,11 @@ export async function executeScenario(req: ScenarioExecuteRequest): Promise<Scen
     const 새줄 = stdout.slice(읽은끝, 끝);
     읽은끝 = 끝;
     if (!새줄.includes(SCENARIO_PART_MARKER)) return;
-    const 수 = parseParts(stdout.slice(0, 끝)).length;
-    if (수 !== entry.받은줄수) {
-      entry.받은줄수 = 수;
+    // ponytail: 결과 줄이 올 때마다 앞에서부터 다시 읽는다 — 부품 수(수십)만큼이라 둔다. 부품이 수백이 되면 새 줄만 읽게 바꾼다
+    const 받은 = parseParts(stdout.slice(0, 끝));
+    if (받은.length !== entry.받은줄수) {
+      entry.받은줄수 = 받은.length;
+      entry.실패함 = 받은.at(-1)?.status === 'FAIL';
       entry.부품시작 = Date.now();
     }
   });

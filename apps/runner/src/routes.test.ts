@@ -274,7 +274,7 @@ describe('POST /abort', () => {
 describe('시나리오 — POST /abort · GET /progress', () => {
   const 시나리오자식 = (열쇠: string, 바꿈: Partial<Parameters<typeof runningScenarios.set>[1]> = {}) => {
     const child = spawn('sh', ['-c', 'sleep 30'], { detached: true, stdio: 'ignore' });
-    runningScenarios.set(열쇠, { child, killedBy: null, runId: 42, trialId: undefined, total: 3, 받은줄수: 1, 부품시작: Date.now(), ...바꿈 });
+    runningScenarios.set(열쇠, { child, killedBy: null, runId: 42, trialId: undefined, total: 3, 받은줄수: 1, 실패함: false, 부품시작: Date.now(), ...바꿈 });
     return child;
   };
 

@@ -80,6 +80,17 @@ describe('시나리오진행', () => {
     await 답;
   });
 
+  it('부품이 실패하면 그 부품에 머문다 — 뒤 부품은 돌지 않는다 (WEB-F9-14 끝 검사)', async () => {
+    const { 답, 자식 } = await 띄운다(요청());
+
+    자식.stdout.write(`@@SCENARIO_PART@@${JSON.stringify({ seq: 1, status: 'FAIL', durationMs: 1, steps: [], mocks: [] } satisfies ScenarioPartResult)}\n`);
+    await new Promise((r) => setImmediate(r));
+    expect(시나리오진행()[0]?.seq).toBe(1);
+
+    자식.emit('close', 0);
+    await 답;
+  });
+
   it('끝나면 지도에서 빠진다', async () => {
     const { 답, 자식 } = await 띄운다(요청());
     자식.emit('close', 0);

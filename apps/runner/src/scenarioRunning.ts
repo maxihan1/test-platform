@@ -15,6 +15,8 @@ export interface 도는시나리오 {
   trialId: string | undefined;
   total: number;
   받은줄수: number;
+  // 마지막 결과 줄이 실패였다 — 뒤 부품은 안 돈다(parseParts 가 실패 뒤를 버린다). 지금 부품은 그 실패한 부품이다
+  실패함: boolean;
   // 지금 부품이 시작한 때 — 첫 부품은 자식을 띄운 때, 그 뒤는 앞 결과 줄을 받은 때
   부품시작: number;
 }
@@ -28,7 +30,7 @@ export function 시나리오진행(): RunningScenario[] {
   return [...runningScenarios.values()].map((e) => ({
     runId: e.runId,
     ...(e.trialId === undefined ? {} : { trialId: e.trialId }),
-    seq: Math.min(e.받은줄수 + 1, e.total),
+    seq: e.실패함 ? e.받은줄수 : Math.min(e.받은줄수 + 1, e.total),
     elapsedMs: Date.now() - e.부품시작,
   }));
 }
