@@ -260,7 +260,7 @@ describe('시험 실행 결과 창 · 왼쪽 요약', () => {
     const 사진 = within(줄들[1]!).getByRole('link', { name: '실패 화면 보기' });
     expect(사진.getAttribute('href')).toBe(scenarioApi.trialShot('t-1', 5));
     expect(사진.getAttribute('target')).toBe('_blank');
-    expect(within(줄들[2]!).getByText('– 실행 안 됨')).toBeTruthy();
+    expect(within(줄들[2]!).getByText('– 실행 안 함')).toBeTruthy();
     expect(줄들[2]!.querySelector('.verdict')).toBeNull();
   });
 

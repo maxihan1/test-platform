@@ -209,7 +209,7 @@ export function TrialRow({
           {적용됨 ? (
             <span className="tech-tag">{t('적용됨')}</span>
           ) : 안돌았다 ? (
-            <span className="scn-notrun">{t('– 실행 안 됨')}</span>
+            <span className="scn-notrun">{t('– 실행 안 함')}</span>
           ) : (
             <Verdict status={part.status} />
           )}

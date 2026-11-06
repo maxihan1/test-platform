@@ -23,7 +23,7 @@ describe('단계 줄', () => {
     expect(within(모킹).getByText('적용됨').className).toContain('tech-tag');
     const api = screen.getByText('API 호출').closest('.scn-part') as HTMLElement;
     expect(within(api).getByText('GET /api/orders → 200')).toBeTruthy();
-    expect(within(api).getByText('– 실행 안 됨')).toBeTruthy();
+    expect(within(api).getByText('– 실행 안 함')).toBeTruthy();
     expect(api.querySelector('.verdict')).toBeNull();
   });
 
@@ -70,7 +70,7 @@ describe('단계 줄', () => {
     expect(within(줄('XSX-003')).queryByText('모킹되지 않음')).toBeNull();
   });
 
-  it('판정 없음 단계는 받은 사유 글자를 보이고 안 돈 단계는 실행 안 됨만', async () => {
+  it('판정 없음 단계는 받은 사유 글자를 보이고 안 돈 단계는 실행 안 함만', async () => {
     const 멈춤 = 부품(5, { status: 'NA', error: { message: '러너가 이 단계 결과를 돌려주지 않았다' } });
     연다(결과({ parts: [멈춤, 안돈] }));
     await screen.findByText('단계별 결과');
@@ -78,7 +78,7 @@ describe('단계 줄', () => {
     expect(within(멈춘줄).getByText('실행이 멈춘 사유')).toBeTruthy();
     expect(within(멈춘줄).getByText('러너가 이 단계 결과를 돌려주지 않았다').className).not.toContain('scn-error');
     const api = screen.getByText('API 호출').closest('.scn-part') as HTMLElement;
-    expect(within(api).getByText('– 실행 안 됨')).toBeTruthy();
+    expect(within(api).getByText('– 실행 안 함')).toBeTruthy();
     expect(api.textContent).not.toContain('NOT_RUN');
     expect(within(api).queryByText('실행이 멈춘 사유')).toBeNull();
   });

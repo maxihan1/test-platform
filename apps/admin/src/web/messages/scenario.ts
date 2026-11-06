@@ -44,7 +44,7 @@ export const 시나리오말: Record<string, string> = {
   '모킹 끄기': 'Mock off',
   '대기§단계': 'Wait',
   '적용됨': 'Applied',
-  '– 실행 안 됨': '– Not run',
+  '– 실행 안 함': '– Not run',
   '서버 재시작으로 멈춤': 'Stopped by a server restart',
   '실행 중단으로 멈춤': 'Stopped by the user',
   '단독 실행': 'Run alone',
