@@ -127,6 +127,8 @@ export async function lastByCase(배정받은서비스: string[]): Promise<LastR
            FROM run_item
           WHERE finished_at IS NOT NULL
             AND split_part(tc_id, '-', 1) = ANY($1)
+            -- 멈춰서 안 돌고 닫힌 항목(NA · ABORTED)은 판정이 아니다. 넣으면 통과였던 케이스가 멈춘 실행 하나로 「미실행」이 된다
+            AND NOT (status = 'NA' AND error->>'message' = 'ABORTED')
        ) 줄세운것
       WHERE 몇번째 <= $2
       ORDER BY tc_id, platform, 몇번째`,
