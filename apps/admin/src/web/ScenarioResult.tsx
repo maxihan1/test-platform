@@ -13,6 +13,7 @@ import { 케이스서비스 } from './role.js';
 import { 실행자이름 } from './runState.js';
 import { scenarioApi } from './scenarioApi.js';
 import { FailGuide, RerunButton, useRerun, 멈춘단계, type 들어온곳 } from './ScenarioResultNext.js';
+import { E2E화면카드 } from './ScenarioLiveCard.js';
 import { ScenarioResultPart } from './ScenarioResultPart.js';
 import { 미확정있나, 접은판정 } from './scenarioResultView.js';
 import { Failed, Loading, PLATFORM_LABEL, seconds, useAsync, Verdict, when } from './ui.js';
@@ -142,9 +143,12 @@ export function ScenarioResult({
       {/* 결과 칸에서는 머리를 고정하고 이 아래만 스크롤한다 (도메인/실행 §8.7 「A안」) */}
       <div className={칸안 ? 'screen pane-results scn-pane' : 'screen'}>
         {!running ? null : (
-          <p className="scn-running" role="status">
-            {t('실행 중입니다. 끝나면 결과가 채워집니다')}
-          </p>
+          <>
+            <p className="scn-running" role="status">
+              {t('실행 중입니다. 끝나면 결과가 채워집니다')}
+            </p>
+            <E2E화면카드 runId={runId} platform={data.platform} live={data.live === true} vision={data.vision} />
+          </>
         )}
         {멈춘 === null ? null : (
           <FailGuide scenarioId={data.scenarioId} part={멈춘} 쓰나={쓰나} 다시실행={다시실행} env={data.env} />

@@ -112,6 +112,10 @@ export interface ScenarioRunResult {
   farm?: 팜파일[];
   /** 만든 증적 문서 — 케이스 결과 응답과 같은 모양이라 증적 칸(EvidenceSection.tsx)을 그대로 쓴다 (도메인/시나리오 §7) */
   evidence: EvidenceRow[];
+  /** 도는 동안 장면이 있나 — 웹 단계가 있는 실행만. 끝났거나 서버가 다시 떴으면 false. 옛 응답에는 없다 (도메인/실행 §3.2 「시험 실행 지금 단계 · 중단 · 정식 실행 화면」) */
+  live?: boolean;
+  /** 앱 · 게임 단계 · 실제 폰 모바일 시나리오가 폰을 잡은 동안만 — 그 폰의 Device VISION 화면 주소 */
+  vision?: { url: string };
 }
 
 /** 시험 실행 결과 — 실패한 case 부품에만 trace 가 붙는다 */
@@ -220,6 +224,7 @@ export const scenarioApi = {
 
   // 사진은 <img src> 가 직접 부른다. 글자만 돌려준다
   runShot: (runId: number, seq: number) => `/api/runs/${runId}/scenario/screenshots/${seq}`,
+  runLive: (runId: number) => `/api/runs/${runId}/scenario/live`,
   runFarm: (runId: number, name: string) => `/api/runs/${runId}/scenario/farm/${encodeURIComponent(name)}`,
 
   trialShot: (trialId: string, seq: number) => `/api/scenario-trials/${encodeURIComponent(trialId)}/screenshots/${seq}`,

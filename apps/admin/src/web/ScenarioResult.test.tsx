@@ -6,6 +6,7 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 import { api } from './api.js';
 import { scenarioApi } from './scenarioApi.js';
 import { ScenarioResult } from './ScenarioResult.js';
+import { 장면통로 } from './TrialLive.js';
 import { 부품, 로그인, 안돈, 결과, 연다 } from './ScenarioResult.fixture.js';
 
 afterEach(() => {
@@ -166,5 +167,21 @@ describe('도는 중', () => {
       await vi.advanceTimersByTimeAsync(6000);
     });
     expect(부름).toHaveBeenCalledTimes(2);
+  });
+
+  it('도는 동안 화면 카드를 띄우고 끝나면 거둔다', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'empty' });
+    vi.spyOn(scenarioApi, 'result')
+      .mockResolvedValueOnce(결과({ status: 'RUNNING', finishedAt: null, parts: [안돈], live: true }))
+      .mockResolvedValue(결과());
+    render(<ScenarioResult runId={77} 판정하기={() => () => true} />);
+    await act(async () => {});
+    expect(screen.getByRole('region', { name: '실시간 화면' })).toBeTruthy();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+    expect(screen.queryByRole('region', { name: '실시간 화면' })).toBeNull();
   });
 });
