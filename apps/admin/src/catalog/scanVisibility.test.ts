@@ -45,6 +45,7 @@ vi.mock('./store.js', () => ({
 }));
 
 vi.mock('./reqMap.js', () => ({ 지도채우기: async () => 0 }));
+vi.mock('./stepTitles.js', () => ({ 단계제목들: async () => ({ 제목들: new Map(), 문제: [] }) }));
 vi.mock('./screenMap.js', () => ({
   화면지도채우기: async (...인자: unknown[]) => {
     화면지도.차례.push(`화면 ${String(인자[1])}`);

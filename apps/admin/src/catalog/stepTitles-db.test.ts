@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { CaseSpec } from '@platform/kit';
 
-import { 단계제목들 } from './scanRun.js';
+import { 단계제목들 } from './stepTitles.js';
 import { save } from './store.js';
 
 const 연결 = process.env.DATABASE_URL;
