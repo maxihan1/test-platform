@@ -20,8 +20,8 @@ async function db(): Promise<Pool> {
 const UPSERT = `
   INSERT INTO test_case
     (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, is_active, scanned_at,
-     techniques, api_doc, elements, smoke)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, true, now(), $8::text[], $9, $10::text[], $11)
+     techniques, api_doc, elements, smoke, step_titles)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, true, now(), $8::text[], $9, $10::text[], $11, $12::text[])
   ON CONFLICT (tc_id) DO UPDATE SET
     name            = EXCLUDED.name,
     platforms       = EXCLUDED.platforms,
@@ -33,11 +33,18 @@ const UPSERT = `
     api_doc         = EXCLUDED.api_doc,
     elements        = EXCLUDED.elements,
     smoke           = EXCLUDED.smoke,
+    step_titles     = EXCLUDED.step_titles,
     is_active       = true,
     scanned_at      = now()
   RETURNING (xmax = 0) AS inserted`;
 
-export async function save(specs: CaseSpec[], deactivateMissing: boolean, prefix: string): Promise<SaveResult> {
+/** 제목들 — tcId 마다 케이스 코드에서 읽은 단계 제목(catalog/steps.ts `caseSteps`). 없거나 null 이면 NULL 로 덮는다 (카탈로그 §3.1 「단계 제목」) */
+export async function save(
+  specs: CaseSpec[],
+  deactivateMissing: boolean,
+  prefix: string,
+  제목들: ReadonlyMap<string, string[] | null> = new Map(),
+): Promise<SaveResult> {
   const client = await (await db()).connect();
   try {
     await client.query('BEGIN');
@@ -61,6 +68,8 @@ export async function save(specs: CaseSpec[], deactivateMissing: boolean, prefix
         spec.elements ?? [],
         // 코드 값만 덮는다. 사람이 목록에서 고친 smoke_set 은 스캔이 건드리지 않는다 (도메인/게임 §3.10 「빌드마다 돌리기」)
         spec.smoke === true,
+        // 옛 제목이 남으면 고친 케이스의 남은 단계를 틀리게 보인다 — 못 읽었으면 NULL 로 덮는다
+        제목들.get(spec.tcId) ?? null,
       ]);
       if (upserted.rows[0]?.inserted === true) added += 1;
     }

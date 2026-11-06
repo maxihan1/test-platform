@@ -2,7 +2,7 @@
 // 서버의 상한과 모양 검사를 그대로 가져다 먼저 돌린다 — 목록 하나가 틀려 끝내기가 400 이 되면 에이전트가 목록만 빼고 다시 보내야 한다
 
 import { 지도줄들 } from '../apps/admin/src/catalog/reqMap.js';
-import { 확인문장들 } from '../apps/admin/src/catalog/steps.js';
+import { 확인문장들 } from '../apps/admin/src/catalog/verifyLines.js';
 import {
   type 만든케이스,
   요구번호상한,

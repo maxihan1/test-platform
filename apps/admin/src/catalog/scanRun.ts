@@ -3,8 +3,10 @@
 
 import type { FastifyBaseLogger } from 'fastify';
 
-import { readdir, stat } from 'node:fs/promises';
+import { readdir, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
+
+import type { CaseSpec } from '@platform/kit';
 
 import { 칸되는서비스 } from '../auth/permissions.js';
 import type { 사용자 } from '../auth/store.js';
@@ -12,6 +14,7 @@ import { 게임밖요소, 요소지도채우기 } from './elementMap.js';
 import { 지도채우기 } from './reqMap.js';
 import { scanApart, testsRoot, type Duplicate } from './scanner.js';
 import { 화면지도채우기 } from './screenMap.js';
+import { caseSteps } from './steps.js';
 import { activeServices, save, type ServiceRow } from './store.js';
 
 // 경고 · 오류 줄만 쓴다 — 서버의 다시 훑기 명령(scripts/scan.ts)이 console 을 넘긴다
@@ -49,6 +52,15 @@ let last: 스캔기록 | null = null;
 let startup: Promise<스캔기록> | null = null;
 
 const 있나 = (길: string): Promise<boolean> => stat(길).then(() => true, () => false);
+
+/**
+ * 케이스마다 단계 제목 — 글로만 읽어 import 하지 않는다(지도 ② 와 같다). 방금 읽은 파일이 그사이 사라지면 그 케이스만 모른다(null)로 두고
+ * 스캔은 계속한다 — 화면이 한 줄씩 늘어나는 쪽으로 받친다 (카탈로그 §3.1 「단계 제목」)
+ */
+export async function 단계제목들(root: string, specs: readonly CaseSpec[]): Promise<Map<string, string[] | null>> {
+  const 글들 = await Promise.all(specs.map((s) => readFile(join(root, s.filePath), 'utf8').catch(() => null)));
+  return new Map(specs.map((s, i) => [s.tcId, 글들[i] === null ? null : caseSteps(글들[i]!).stepTitles]));
+}
 
 // 고르기 — 고른 서비스만 훑고 나머지 서비스 결과는 지난 스캔 것을 그대로 둔다(병합 뒤 · 목록의 「다시 스캔」)
 // 서버의 다시 훑기 명령(scripts/scan.ts)도 부른다 — 통째로 깨졌는지(`깨짐`)를 보고 끝 코드를 정한다
@@ -128,7 +140,7 @@ export async function runScan(log: 스캔로그, 고르기?: (s: ServiceRow) => 
       if (found.duplicates.length > 0) continue;
 
       // 읽지 못한 파일이 있으면 무엇이 정말 사라졌는지 가릴 수 없다. 비활성 처리는 건너뛰고 읽은 것만 갱신한다
-      const saved = await save(내것, found.failures.length === 0, service.prefix);
+      const saved = await save(내것, found.failures.length === 0, service.prefix, await 단계제목들(root, 내것));
       결과.added = saved.added;
       결과.updated = saved.updated;
       결과.deactivated = saved.deactivated;
