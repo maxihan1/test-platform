@@ -250,6 +250,7 @@ export const 시나리오말: Record<string, string> = {
   '다시 시험 실행': 'Trial run again',
   '진행 중인 단계는 바로 멈추고 남은 단계는 실행하지 않습니다': 'The running step stops now and the remaining steps will not run',
   '지금은 보여 줄 화면이 없습니다': 'There is no screen to show right now',
+  'SC-{번호} 더 보기': 'More for SC-{번호}',
   '/ {전체} 단계': '/ {전체} steps',
   '경과 {시간}': 'Elapsed {시간}',
   '기다리는 중': 'Waiting',

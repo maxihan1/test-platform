@@ -289,14 +289,15 @@ describe('ScenarioList 실행', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('줄 끝에서 위험한 삭제는 주 단추 실행보다 앞(왼쪽)에 떨어져 있다', async () => {
+  it('줄에는 「실행」만 서고 위험한 「삭제」는 줄 끝 「⋯」 안에 있다 (점검표 D10)', async () => {
     const { container } = await 그리기([줄(1)]);
     await screen.findByText(/ZSM 시나리오 1/);
 
     const 칸 = 행(container, 0).querySelector('.scn-row-acts')!;
-    const 단추들 = [...칸.querySelectorAll('button')].map((b) => b.textContent);
-    expect(단추들).toEqual(['삭제', '실행']);
-    expect(칸.querySelector('.scn-acts-sep')).not.toBeNull();
+    const 바로보이는 = [...칸.children].filter((el) => el.tagName === 'BUTTON').map((b) => b.textContent);
+    expect(바로보이는).toEqual(['실행']);
+    expect(칸.querySelector('details.scn-more summary')?.getAttribute('aria-label')).toBe('SC-1 더 보기');
+    expect(칸.querySelector('details.scn-more button')?.textContent).toBe('삭제');
   });
 
   it('모바일 시나리오가 있으면 모바일 웹 실행 위치를 고르고, 기본은 서버 흉내다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)', async () => {

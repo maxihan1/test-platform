@@ -238,13 +238,9 @@ function 시나리오줄({
             </a>
           )}
         </div>
-        {/* 삭제는 되돌릴 수 없어 주 단추 「실행」과 떼어 왼쪽에 둔다 — 「실행」을 누르려던 손이 닿지 않게 (점검표 D10). 못 도는 줄은 실행 자리에 수정이다 */}
+        {/* 삭제는 되돌릴 수 없어 줄 끝 「⋯」 안에 둔다 — 줄에는 「실행」만 서서 누르려던 손이 「삭제」에 닿지 않는다 (점검표 D10 · 시나리오 §8.11). 못 도는 줄은 실행 자리에 수정이다 */}
         {!쓰나 || !줄.isActive ? null : (
           <div className="scn-row-acts">
-            <button type="button" className="btn small ghost" disabled={돌리는중} onClick={on치우기}>
-              {t('삭제')}
-            </button>
-            <span className="scn-acts-sep" aria-hidden="true" />
             {줄.runnable ? (
               <button type="button" className="btn small ghost" disabled={돌리는중} onClick={on실행}>
                 {t('실행')}
@@ -254,6 +250,16 @@ function 시나리오줄({
                 {t('수정')}
               </a>
             )}
+            <details className="scn-more">
+              <summary className="btn small ghost" aria-label={t('SC-{번호} 더 보기', { 번호: 줄.id })}>
+                ⋯
+              </summary>
+              <div className="scn-more-menu">
+                <button type="button" className="btn small ghost" disabled={돌리는중} onClick={on치우기}>
+                  {t('삭제')}
+                </button>
+              </div>
+            </details>
           </div>
         )}
       </div>

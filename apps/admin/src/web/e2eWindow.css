@@ -147,7 +147,7 @@
   }
 }
 
-/* E2E 목록 줄 끝 — 되돌릴 수 없는 「삭제」는 왼쪽, 주 단추 「실행」은 오른쪽 끝, 사이에 구분선 (점검표 D10) */
+/* E2E 목록 줄 끝 — 「실행」만 줄에 서고 되돌릴 수 없는 「삭제」는 「⋯」 안이다 (점검표 D10) */
 .scn-row-acts {
   flex: none;
   display: flex;
@@ -155,9 +155,27 @@
   gap: 8px;
 }
 
-.scn-acts-sep {
-  align-self: stretch;
-  width: 1px;
-  margin: 2px 8px;
-  background: var(--line-2);
+.scn-more {
+  position: relative;
+}
+
+.scn-more > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.scn-more > summary::-webkit-details-marker {
+  display: none;
+}
+
+.scn-more-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 5;
+  padding: 4px;
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  box-shadow: var(--shadow);
 }
