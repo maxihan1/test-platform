@@ -23,6 +23,12 @@ describe('겹침걷기', () => {
     expect(겹침걷기(글)).toBe(글);
   });
 
+  it('짧은 다른 문장이 다음 첫 줄 안에 들어 있기만 하면 지우지 않는다', () => {
+    const 글 = 'TIMEOUT\n\nError: locator TIMEOUT 30000ms\n    at a.ts:1:1';
+
+    expect(겹침걷기(글)).toBe(글);
+  });
+
   it('문단이 하나면 그대로 둔다', () => {
     expect(겹침걷기('한 줄')).toBe('한 줄');
   });
