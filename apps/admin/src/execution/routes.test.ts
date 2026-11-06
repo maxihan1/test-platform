@@ -182,6 +182,30 @@ describe.skipIf(연결 === undefined)('진행 조회', () => {
     }
   });
 
+  it('스캔이 단계 제목을 저장한 케이스면 보낸 항목에도 stepTitles 를 싣고, 못 셌으면(NULL) 안 싣는다 (점검표 B11)', async () => {
+    await pool.query(
+      `INSERT INTO test_case (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, step_titles)
+            VALUES ('XBR-014', 'x', '["desktop"]', '[]', 'demo/XBR-014.spec.ts', '{}', '{}', $1),
+                   ('XBR-015', 'x', '["desktop"]', '[]', 'demo/XBR-015.spec.ts', '{}', '{}', NULL)`,
+      [['연다', '누른다', '확인한다']],
+    );
+    const 아는것 = await 항목넣는다(내실행, 'XBR-014', 9000);
+    const 모르는것 = await 항목넣는다(내실행, 'XBR-015', 9000);
+    항목화면을연다(아는것, true, { runId: 내실행, timeoutMs: 9000 });
+    항목화면을연다(모르는것, true, { runId: 내실행, timeoutMs: 9000 });
+    try {
+      const body = (await app.inject({ method: 'GET', url: `/api/runs/${내실행}/progress` })).json();
+      const 칸 = (번호: number) => body.items.find((i: { historyId: number }) => i.historyId === 번호);
+      expect(칸(아는것).stepTitles).toEqual(['연다', '누른다', '확인한다']);
+      expect(칸(모르는것)).not.toHaveProperty('stepTitles');
+      expect(칸(내항목)).not.toHaveProperty('stepTitles');
+    } finally {
+      for (const 번호 of [아는것, 모르는것]) 항목화면을닫는다(번호);
+      await pool.query("DELETE FROM run_item WHERE tc_id IN ('XBR-014', 'XBR-015')");
+      await pool.query("DELETE FROM test_case WHERE tc_id IN ('XBR-014', 'XBR-015')");
+    }
+  });
+
   it('항목 장면 — 첫 장면 전 204, 장면이 있으면 JPEG, 그 실행의 항목이 아니거나 끝난 항목은 404 다', async () => {
     const 장면 = (runId: number, historyId: number) => app.inject({ method: 'GET', url: `/api/runs/${runId}/items/${historyId}/live` });
     const 열쇠 = 항목화면을연다(내항목, true)!;

@@ -9,7 +9,6 @@ import { z } from 'zod';
 import { 케이스판 } from '../apidoc/caseDoc.js';
 import { 항목실패를가른다 } from '../reporting/itemFailure.js';
 import { artifactsDir } from '../artifactFile.js';
-import { 대상줄들읽기, type 대상줄 } from '../authoring/reverse.js';
 import { 옛시험치우기 } from '../scenario/trial.js';
 import { 깔앱파일 } from './buildFile.js';
 import { enqueue } from './dispatcher.js';
@@ -23,6 +22,7 @@ import { 저장값을채운다 } from './savedInput.js';
 import { 엔진칸 } from './engineField.js';
 import { prefixOf } from './store.js';
 import { 닫는다, 시작한다, 읽는다, TrialBusyError } from './trial.js';
+import { 대상줄찾기, 케이스행 } from './trialCase.js';
 import { validate } from './validate.js';
 
 const 제한ms = 300_000;
@@ -40,6 +40,8 @@ interface 시험상태 {
   historyId: number;
   보냄: boolean;
   멈춤: boolean;
+  /** 누를 때 읽은 단계 제목 — 스캔이 못 셌으면 없다 (도메인/실행 §3.2 「단계 목록은 처음부터 다 보인다」) */
+  stepTitles?: string[];
 }
 const 상태들 = new Map<string, 시험상태>();
 // 러너가 끊긴 실행에 주는 모양과 같다 — 화면이 이 글자로 「중단」을 가른다
@@ -54,25 +56,6 @@ const body = z.object({
   expected: z.record(z.string(), z.unknown()).default({}),
   mobileOn: z.enum(['server', 'vision']).default('server'), // 실행 창의 「가상 기기 · 실제 기기」 — 정식 실행 요청과 같은 이름 · 값 (도메인/실행 §3.2)
 });
-
-async function 케이스행(tcId: string): Promise<{ platforms: string[]; file_path: string } | null> {
-  const { pool } = await import('../db/index.js');
-  const r = await pool.query<{ platforms: string[]; file_path: string }>(
-    'SELECT platforms, file_path FROM test_case WHERE tc_id = $1',
-    [tcId],
-  );
-  return r.rows[0] ?? null;
-}
-
-/** 그 케이스 애플리케이션의 그 이름 대상 서버 줄. 애플리케이션이나 줄이 없으면 null */
-async function 대상줄찾기(tcId: string, env: string): Promise<{ 줄: 대상줄; 종류: string; serviceId: number } | null> {
-  const { pool } = await import('../db/index.js');
-  const r = await pool.query<{ id: string; kind: string }>('SELECT id, kind FROM service WHERE prefix = $1', [prefixOf(tcId)]);
-  const 서비스 = r.rows[0];
-  if (서비스 === undefined) return null;
-  const 줄 = (await 대상줄들읽기(Number(서비스.id))).find((c) => c.env === env);
-  return 줄 === undefined ? null : { 줄, 종류: 서비스.kind, serviceId: Number(서비스.id) };
-}
 
 async function 저장값으로채운다(
   tcId: string,
@@ -214,7 +197,7 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
     const 사람 = req.user?.username ?? '알 수 없음';
     try {
       const 일 = async (id: string, 폰화면: (url: string | undefined) => void): Promise<ExecuteResponse> => {
-        const 상태: 시험상태 = { historyId: 요청.historyId, 보냄: false, 멈춤: false };
+        const 상태: 시험상태 = { historyId: 요청.historyId, 보냄: false, 멈춤: false, ...(행.step_titles !== null && { stepTitles: 행.step_titles }) };
         상태들.set(id, 상태);
         // 멈췄나를 보고 보냄을 적는 사이에 await 가 없다 — 중단은 둘 중 한 갈래만 탄다
         const 보내기 = async (b: ExecuteRequest): Promise<ExecuteResponse> => {
@@ -269,9 +252,11 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
     }
     // 러너에 보낸 시험만 지금 단계를 묻는다. 러너가 아직 모르거나 못 닿으면 빈 칸이다 — 오류가 아니다
     const 상태 = 읽음.status === 'RUNNING' ? 상태들.get(req.params.trialId) : undefined;
-    if (상태?.보냄 !== true) return 읽음;
+    // 단계 제목은 차례를 기다리는 중에도 싣는다 — 화면이 시작하자마자 전체 단계를 그린다 (도메인/실행 §7 「케이스 테스트 실행」)
+    const 실음 = 상태?.stepTitles === undefined ? 읽음 : { ...읽음, stepTitles: 상태.stepTitles };
+    if (상태?.보냄 !== true) return 실음;
     const 단계 = (await 시험진행()).find((s) => s.historyId === 상태.historyId);
-    return 단계 === undefined ? 읽음 : { ...읽음, step: { seq: 단계.seq, title: 단계.title, elapsedMs: 단계.elapsedMs } };
+    return 단계 === undefined ? 실음 : { ...실음, step: { seq: 단계.seq, title: 단계.title, elapsedMs: 단계.elapsedMs } };
   });
 
   // 시작한 사람만 멈춘다 — 남의 번호 · 다른 케이스 주소는 결과 읽기처럼 404 다.

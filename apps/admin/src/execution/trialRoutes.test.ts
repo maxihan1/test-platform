@@ -504,6 +504,36 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
     expect(await 끝날때까지(trialId)).not.toHaveProperty('step');
   });
 
+  it('스캔이 저장한 단계 제목은 누를 때 읽어 차례를 기다리는 중부터 끝나기 전까지 싣는다 (점검표 B11)', async () => {
+    await q('UPDATE test_case SET step_titles = $2 WHERE tc_id = $1', [케이스, ['연다', '비밀번호 입력', '확인한다']]);
+    process.env.EXECUTION_CONCURRENCY = '1';
+    let 비운다: () => void = () => undefined;
+    const 앞일 = enqueue(() => new Promise<void>((ok) => (비운다 = ok)));
+    try {
+      const { trialId } = (await 시작(정상)).json<{ trialId: string }>();
+      // 누른 뒤 다시 스캔해 바뀌어도 이 시험은 누를 때 읽은 제목이다
+      await q('UPDATE test_case SET step_titles = NULL WHERE tc_id = $1', [케이스]);
+      expect((await 읽기(trialId)).json()).toEqual({ status: 'RUNNING', stepTitles: ['연다', '비밀번호 입력', '확인한다'] });
+
+      러너응답 = () => 멈춤;
+      비운다();
+      await 앞일;
+      await 러너에닿을때까지(1);
+      진행답 = [{ historyId: 받은요청[0]!.historyId, seq: 2, title: '비밀번호 입력', elapsedMs: 300 }];
+      await new Promise((ok) => setTimeout(ok, 1100));
+      expect((await 읽기(trialId)).json()).toEqual({
+        status: 'RUNNING',
+        stepTitles: ['연다', '비밀번호 입력', '확인한다'],
+        step: { seq: 2, title: '비밀번호 입력', elapsedMs: 300 },
+      });
+      끝낸다();
+      expect(await 끝날때까지(trialId)).not.toHaveProperty('stepTitles');
+    } finally {
+      비운다();
+      await q('UPDATE test_case SET step_titles = NULL WHERE tc_id = $1', [케이스]);
+    }
+  });
+
   it('차례를 기다리는 시험은 러너에 단계를 묻지 않고, 중단하면 러너에 안 보내고 NA · ABORTED 로 닫는다', async () => {
     process.env.EXECUTION_CONCURRENCY = '1';
     let 비운다: () => void = () => undefined;
