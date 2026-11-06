@@ -95,7 +95,7 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
       }
       if (req.url === '/api/devices/s1/hold') {
         req.resume();
-        const 답 = req.method === 'POST' ? JSON.stringify({ held: { until: 0, now: 0, screen: 폰화면 } }) : '{}';
+        const 답 = req.method === 'POST' ? JSON.stringify({ value: { held: { until: 0, now: 0, screen: 폰화면 } } }) : '{}';
         return void res.writeHead(200, { 'content-type': 'application/json' }).end(답);
       }
       if (req.method === 'GET' && req.url === '/progress') {
