@@ -223,7 +223,8 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
           // 값이 없는 케이스는 그 사실을 글로 적는다. 빈 자리를 남기면 「안 불러왔나」로 읽힌다
           const 값수 = (칸?.params.length ?? 0) + (칸?.expected.length ?? 0);
           const 값있나 = 값수 > 0;
-          const 시험줄 = 시험.줄들[c.tcId];
+          // 돈 디바이스 칸에만 남긴다 — 시험 뒤 디바이스를 바꾸면 끈 디바이스의 결과는 걷는다 (도메인/실행 §8.16 ① · 점검표 B5)
+          const 시험줄 = 시험.줄들[c.tcId]?.filter((칸) => c.platforms.includes(칸.platform));
 
           return (
             <div key={c.tcId}>
