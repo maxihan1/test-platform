@@ -15,6 +15,7 @@ import { 장면칸 } from './TrialLive.js';
 import { 걸린글 } from './trialView.js';
 import { Failed, PLATFORM_LABEL, useAsync, Verdict } from './ui.js';
 import { 단계쌓기, type 쌓인단계 } from './useTrialQueue.js';
+import { 본것으로적는다 } from './runState.js';
 import { use창실행알림 } from './viewedRun.js';
 
 const 묻는간격 = 2000;
@@ -61,6 +62,11 @@ export function ScenarioRunWindow({ runId, 어디서, on닫기 }: { runId: numbe
     }
   }, [data]);
 
+  // 끝난 것을 창에서 본 뒤 닫으면 알림 줄이 같은 끝을 또 알리지 않는다 — 케이스 진행 창(RunWatch)과 같다 (점검표 D8)
+  const 닫는다 = () => {
+    if (!도는중) 본것으로적는다(runId);
+    on닫기();
+  };
   const 이름들 = 정식이름줄들(data?.parts ?? [], 언어);
   const 제목 = 도는중 ? t('E2E 실행 중 · RUN {번호}', { 번호: runId }) : t('E2E 실행이 끝났습니다 · RUN {번호}', { 번호: runId });
 
@@ -69,7 +75,7 @@ export function ScenarioRunWindow({ runId, 어디서, on닫기 }: { runId: numbe
       <Modal
         제목={제목}
         틀={도는중 ? '실행 중' : '결과'}
-        onClose={on닫기}
+        onClose={닫는다}
         바깥눌러닫기={false}
         버튼={
           도는중 ? (
@@ -84,14 +90,14 @@ export function ScenarioRunWindow({ runId, 어디서, on닫기 }: { runId: numbe
             </>
           ) : (
             <>
-              <button type="button" className="btn ghost" onClick={on닫기}>
+              <button type="button" className="btn ghost" onClick={닫는다}>
                 {t('닫기')}
               </button>
               <button
                 type="button"
                 className="btn"
                 onClick={() => {
-                  on닫기();
+                  닫는다();
                   window.location.hash = 결과주소(runId, 어디서);
                 }}
               >

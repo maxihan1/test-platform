@@ -6,6 +6,7 @@ import { api, 알림바뀜 } from './api.js';
 import { scenarioApi, type ScenarioRunPart, type ScenarioRunResult } from './scenarioApi.js';
 import { ScenarioRunWindow } from './ScenarioRunWindow.js';
 import { 장면통로 } from './TrialLive.js';
+import { 읽음들 } from './noticeRead.js';
 import { use창실행 } from './viewedRun.js';
 
 afterEach(() => {
@@ -174,6 +175,17 @@ describe('E2E 정식 실행 창 — 끝남', () => {
 
     expect(닫기).toHaveBeenCalledTimes(1);
     expect(window.location.hash).toBe('#/runs/21045?from=scenarios');
+  });
+
+  it('끝난 것을 본 뒤 닫으면 알림 줄이 같은 끝을 또 알리지 않게 읽음으로 적는다 (점검표 D8)', async () => {
+    vi.spyOn(scenarioApi, 'result').mockResolvedValue(끝난결과());
+    vi.spyOn(scenarioApi, 'step').mockResolvedValue(null);
+    그리기();
+
+    const 창 = within(await screen.findByRole('dialog', { name: 'E2E 실행이 끝났습니다 · RUN 21045' }));
+    fireEvent.click(창.getByRole('button', { name: '닫기' }));
+
+    expect(읽음들().has('run:21045')).toBe(true);
   });
 
   it('도는 걸 본 뒤 끝나면 같은 창이 결과로 넘어가고 알림 줄이 바로 다시 묻도록 알린다', async () => {
