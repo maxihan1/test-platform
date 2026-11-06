@@ -224,6 +224,9 @@ describe('시험 실행 돌리기', () => {
       fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
     });
     await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '시험 실행 시작' }));
+    });
+    await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: '저장' }));
     });
     await waitFor(() => expect(window.location.hash).toBe('#/scenarios/55'));

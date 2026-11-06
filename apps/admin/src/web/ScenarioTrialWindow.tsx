@@ -12,7 +12,7 @@ import { scenarioApi } from './scenarioApi.js';
 import { 멈춘사유글자 } from './scenarioResultView.js';
 import { 오류칠, TrialRow } from './ScenarioTrial.js';
 import type { 재료들 } from './scenarioView.js';
-import { E2E진행몸, use경과, 점수알약 } from './ScenarioWindowParts.js';
+import { E2E진행몸, 점수알약 } from './ScenarioWindowParts.js';
 import { 장면칸 } from './TrialLive.js';
 import { 걸린글 } from './trialView.js';
 import { PLATFORM_LABEL } from './ui.js';
@@ -38,7 +38,6 @@ export function ScenarioTrialWindow({ 시험, 단계들, 재료, platform, 모�
   const 돌린단계 = 시험.단계들 ?? 단계들;
   const 도는중 = 시험.단계 === 'running';
   const [묻기, set묻기] = useState<'stop' | 'close' | null>(null);
-  const 경과ms = use경과(시험.시작시각);
 
   // 도는 중 × · Esc 는 한 번 묻고 시험을 멈춘다. 이미 멈추는 중이면 묻지 않고 닫는다
   const 닫기요청 = () => {
@@ -67,7 +66,7 @@ export function ScenarioTrialWindow({ 시험, 단계들, 재료, platform, 모�
                 {t('닫기')}
               </button>
               <button type="button" className="btn" onClick={on다시}>
-                {t('다시 시험 실행')}
+                {t('재실행')}
               </button>
             </>
           )
@@ -83,7 +82,7 @@ export function ScenarioTrialWindow({ 시험, 단계들, 재료, platform, 모�
         {도는중 || 시험.결과 === null ? (
           <E2E진행몸
             줄들={목록줄들(시험이름줄들(돌린단계, 재료, 언어), 시험.지금단계들, 도는중)}
-            경과ms={경과ms}
+            경과ms={null}
             장면={(크게버튼) => (
               <장면칸
                 key={시험.trialId ?? '시작'}

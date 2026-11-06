@@ -50,6 +50,21 @@ describe('시험 실행 시작 전 막기', () => {
     expect(고르개.value).toBe('');
   });
 
+  it('시험 실행을 누르면 시작 확인 창이 먼저 뜨고, 취소하면 서버를 안 부른다', async () => {
+    await 기존그리기();
+    const start = vi.spyOn(scenarioApi, 'startTrial');
+    서버고르기('stg');
+
+    fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
+
+    const 창 = screen.getByRole('dialog', { name: '시험 실행을 시작할까요?' });
+    expect(within(창).getByText('실행 기록 · 리포트에 남지 않습니다')).toBeTruthy();
+    expect(within(창).getByText('stg')).toBeTruthy();
+    fireEvent.click(within(창).getByRole('button', { name: '취소' }));
+    expect(screen.queryByRole('dialog', { name: '시험 실행을 시작할까요?' })).toBeNull();
+    expect(start).not.toHaveBeenCalled();
+  });
+
   it('막힌 뒤 대상 서버를 고르면 먼저 고르라는 줄이 사라진다', async () => {
     await 기존그리기();
     fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));

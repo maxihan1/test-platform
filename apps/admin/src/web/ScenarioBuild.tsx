@@ -13,7 +13,7 @@ import { 떠나기막기, 떠나기상자, 주소조건, 주소덮기 } from './
 import { Loading, Failed, PLATFORM_LABEL } from './ui.js';
 import { 판정을만든다, 테스트만인가 } from './role.js';
 import { ScenarioCards } from './ScenarioCards.js';
-import { 디바이스고르개, 조립부제, 조립시작확인 } from './ScenarioBuildParts.js';
+import { 디바이스고르개, 조립부제, 조립시작확인, 조립시험확인 } from './ScenarioBuildParts.js';
 import { ScenarioBuildTabs } from './ScenarioBuildTabs.js';
 import { ScenarioRunWindow } from './ScenarioRunWindow.js';
 import { ScenarioTabs, type 조립탭 } from './ScenarioTabs.js';
@@ -53,6 +53,7 @@ export function ScenarioBuild({
   const [시험창, set시험창] = useState(false);
   const [실행창, set실행창] = useState(넘겨받은실행번호);
   const [시작확인, set시작확인] = useState(false);
+  const [시험확인, set시험확인] = useState(false);
   // 새 시나리오는 단계를 넣는 일이 먼저라 추가 탭부터 연다
   const [탭, set탭] = useState<조립탭>(id === null ? 'add' : 'settings');
   const [고른번호, set고른번호] = useState<number | null>(null);
@@ -144,6 +145,10 @@ export function ScenarioBuild({
     const 사유 = 시험막는글(t, 서버, 초안.단계들, 칸오류번호 ?? 빈칸있는단계(초안.단계들));
     set시험글(사유);
     if (사유 !== null) return;
+    set시험확인(true);
+  }
+  function 시험시작() {
+    set시험확인(false);
     set시험창(true);
     void 시험.시작({ service: 초안.서비스, env: 서버, platform: 초안.디바이스, parts: 초안.단계들 });
   }
@@ -279,6 +284,7 @@ export function ScenarioBuild({
           on다시={시험누름}
         />
       )}
+      {!시험확인 ? null : <조립시험확인 id={id} 초안={초안} 서버={서버} onClose={() => set시험확인(false)} on시작={시험시작} />}
       {!시작확인 ? null : (
         <조립시작확인 id={id} 초안={초안} 정식={정식} 서버={서버} 칸오류번호={칸오류번호} onClose={() => set시작확인(false)} />
       )}

@@ -18,7 +18,7 @@ export function use경과(시작: number | null): number {
 }
 
 /** 왼쪽 맨 위 `4 / 8 단계` 와 막대, 오른쪽에 경과 */
-function 진행머리({ 줄들, 경과ms }: { 줄들: 목록줄[]; 경과ms: number }) {
+function 진행머리({ 줄들, 경과ms }: { 줄들: 목록줄[]; 경과ms: number | null }) {
   const t = use말();
   const 끝남 = 줄들.filter((줄) => 줄.상태 === 'done').length;
   return (
@@ -30,7 +30,7 @@ function 진행머리({ 줄들, 경과ms }: { 줄들: 목록줄[]; 경과ms: num
         <span>
           <b>{지금번호(줄들)}</b> {t('/ {전체} 단계', { 전체: 줄들.length })}
         </span>
-        <span className="e2e-faint">{t('경과 {시간}', { 시간: 경과글(경과ms) })}</span>
+        {경과ms === null ? null : <span className="e2e-faint">{t('경과 {시간}', { 시간: 경과글(경과ms) })}</span>}
       </div>
     </div>
   );
@@ -81,7 +81,8 @@ function 단계목록({ 줄들 }: { 줄들: 목록줄[] }) {
  * 도는 동안의 몸 — 왼쪽 진행 머리 + 단계 목록, 오른쪽 장면 칸이 칸을 채운다.
  * 「크게 보기」는 왼쪽을 접고 장면 칸이 창을 채운다. 휴대폰은 위아래로 쌓고 장면이 목록 위다 (점검표 D12)
  */
-export function E2E진행몸({ 줄들, 경과ms, 장면 }: { 줄들: 목록줄[]; 경과ms: number; 장면: (크게버튼: ReactNode) => ReactNode }) {
+/** 경과ms 가 null 이면 머리에 경과를 안 적는다 — 시험 실행 창은 바닥에 한 번 적는다 (점검표 U7) */
+export function E2E진행몸({ 줄들, 경과ms, 장면 }: { 줄들: 목록줄[]; 경과ms: number | null; 장면: (크게버튼: ReactNode) => ReactNode }) {
   const t = use말();
   const [크게, set크게] = useState(false);
   const 버튼 = (

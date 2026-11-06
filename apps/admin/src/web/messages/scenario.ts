@@ -246,7 +246,6 @@ export const 시나리오말: Record<string, string> = {
   '실행 기록 E2E 에 남았습니다 · RUN {번호}': 'Saved to Run history E2E as RUN {번호}',
   '끝나면 실행 기록 E2E 에 남고 리포트를 만들 수 있습니다': 'Saved to Run history E2E when it finishes, and you can make a report',
   '시나리오§이름': 'Scenario',
-  '다시 시험 실행': 'Trial run again',
   '진행 중인 단계는 바로 멈추고 남은 단계는 실행하지 않습니다': 'The running step stops now and the remaining steps will not run',
   '지금은 보여 줄 화면이 없습니다': 'There is no screen to show right now',
   'SC-{번호} 더 보기': 'More for SC-{번호}',
