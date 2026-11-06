@@ -1,7 +1,7 @@
 // E2E 시나리오 조립 화면 오른쪽 탭의 속 — 단계 추가 · 시험 결과 · 변경 이력 · 고른 단계의 설정. 어느 것을 그릴지만 정하고 상태는 화면이 쥔다 (도메인/시나리오 §8.11)
 
 import type { ScenarioPart } from '@platform/kit';
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 
 import type { 지도API } from '../prd/apiMap.js';
 import { ScenarioLinks } from './ScenarioLinks.js';
@@ -18,8 +18,6 @@ interface Props {
   id: number | null;
   탭: 조립탭;
   쓰나: boolean;
-  /** 시험 결과 탭을 그리나 — 실행 칸 trial 은 고치지 못해도 시험 실행은 한다 (도메인/인증 §3.5 「테스트 모드」) */
-  시험하나: boolean;
   초안: ReturnType<typeof useScenarioDraft>;
   /** 시나리오 서비스와 같은 프로젝트의 애플리케이션 (도메인/시나리오 §8.11) */
   앱들: readonly 앱줄[];
@@ -32,18 +30,14 @@ interface Props {
   on바꿈: (새단계: ScenarioPart) => void;
   on되돌림: () => void;
   on칸오류: (번호: number, 있나: boolean) => void;
-  시험: ReactNode;
 }
 
 export function ScenarioBuildTabs(props: Props) {
-  const { 탭, 쓰나, 시험하나, 초안, 앱들, 고른번호, 바꿀번호, on케이스, on다른단계, on바꾸기취소 } = props;
+  const { 탭, 쓰나, 초안, 앱들, 고른번호, 바꿀번호, on케이스, on다른단계, on바꾸기취소 } = props;
   // 팔레트는 단계 추가 탭을 한 번 연 뒤로는 그려 두고 가리기만 한다. 내리면 단계를 넣을 때마다 케이스 목록을 처음부터 다시 받고
   // 찾기 글자가 지워진다. 한 번도 안 열었으면 안 그린다 — 설정만 보는 사람이 목록을 20쪽씩 받을 까닭이 없다
   const [열었나, set열었나] = useState(탭 === 'add');
   if (탭 === 'add' && !열었나) set열었나(true);
-  // 시험 결과 탭도 한 번 연 뒤로는 가리기만 한다 — 내리면 실시간 칸의 마지막 장면이 사라진다 (도메인/실행 §8.2 「케이스 테스트 실행」 「실시간 칸」)
-  const [시험열었나, set시험열었나] = useState(탭 === 'trial');
-  if (탭 === 'trial' && !시험열었나) set시험열었나(true);
   // 설정 탭을 처음 열 때 한 번만 받는다. 설정 탭을 오가도 다시 받지 않는다. 다른 애플리케이션 단계는 그 애플리케이션의 지도다
   const 고른 = 고른번호 === null ? undefined : 초안.단계들[고른번호 - 1];
   const 지도 = useServiceApis((고른 === undefined ? null : 단계앱(고른, 초안.서비스)) ?? 초안.서비스, 탭 === 'settings');
@@ -64,8 +58,7 @@ export function ScenarioBuildTabs(props: Props) {
           />
         </div>
       )}
-      {!시험하나 || !시험열었나 ? null : <div hidden={탭 !== 'trial'}>{props.시험}</div>}
-      {탭 === 'add' || 탭 === 'trial' ? null : <TabBody {...props} 지도={지도} />}
+      {탭 === 'add' ? null : <TabBody {...props} 지도={지도} />}
     </>
   );
 }

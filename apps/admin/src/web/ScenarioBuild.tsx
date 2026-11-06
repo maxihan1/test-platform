@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ScenarioPart } from '@platform/kit';
 
 import type { ServiceRow, User } from './api.js';
+import { 디바이스글 } from './e2eWindowView.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { 종류 } from './kind.js';
@@ -14,11 +15,14 @@ import { Loading, Failed, PLATFORM_LABEL, when } from './ui.js';
 import { 판정을만든다, 테스트만인가 } from './role.js';
 import { ScenarioCards } from './ScenarioCards.js';
 import { ScenarioBuildTabs } from './ScenarioBuildTabs.js';
+import { ScenarioRunWindow } from './ScenarioRunWindow.js';
+import { ScenarioStartConfirm } from './ScenarioStartConfirm.js';
 import { ScenarioTabs, type 조립탭 } from './ScenarioTabs.js';
-import { 모바일실행위치, 시험막는글, 시험장면, TrialControls, TrialSummary, TrialTab, 폰실행위치 } from './ScenarioTrial.js';
+import { 모바일실행위치, 시험막는글, TrialControls, TrialSummary, 폰실행위치 } from './ScenarioTrial.js';
+import { ScenarioTrialWindow } from './ScenarioTrialWindow.js';
 import { 끄기기본, 빈칸있는단계, 서버선택지, 시나리오칩들, 케이스바꾸기, 폰단계있나 } from './scenarioView.js';
 import { useScenarioDraft } from './useScenarioDraft.js';
-import { useScenarioRun, 넘겨받은실행글 } from './useScenarioRun.js';
+import { useScenarioRun, 넘겨받은실행글, 넘겨받은실행번호 } from './useScenarioRun.js';
 import { 시험열쇠, 시험열쇠옮기기, useScenarioTrial } from './useScenarioTrial.js';
 
 export type { 조립탭 };
@@ -47,6 +51,10 @@ export function ScenarioBuild({
   // null 은 아직 안 골랐다. 빈 칸을 고른 것과 가른다 — 빈 칸을 골랐는데 마지막 서버가 되살아나면 안 된다
   const [고른서버, set서버] = useState<string | null>(null);
   const [시험글, set시험글] = useState(넘겨받은실행글);
+  // 시험 실행과 정식 실행은 같은 틀 창에서 지켜본다. 정식 실행은 닫아도 계속 돌고, 시험 실행은 닫으면 멈춘다 (도메인/실행 §8.16 ⑥)
+  const [시험창, set시험창] = useState(false);
+  const [실행창, set실행창] = useState(넘겨받은실행번호);
+  const [시작확인, set시작확인] = useState(false);
   // 새 시나리오는 단계를 넣는 일이 먼저라 추가 탭부터 연다
   const [탭, set탭] = useState<조립탭>(id === null ? 'add' : 'settings');
   const [고른번호, set고른번호] = useState<number | null>(null);
@@ -60,6 +68,7 @@ export function ScenarioBuild({
   const 정식 = useScenarioRun({
     id,
     어디서: 'scenario',
+    창: set실행창,
     on글: set시험글,
     on새주소: (새번호) => {
       시험열쇠옮기기(시험열쇠(null), 시험열쇠(새번호));
@@ -137,7 +146,7 @@ export function ScenarioBuild({
     const 사유 = 시험막는글(t, 서버, 초안.단계들, 칸오류번호 ?? 빈칸있는단계(초안.단계들));
     set시험글(사유);
     if (사유 !== null) return;
-    set탭('trial');
+    set시험창(true);
     void 시험.시작({ service: 초안.서비스, env: 서버, platform: 초안.디바이스, parts: 초안.단계들 });
   }
   function 케이스골랐다(tcId: string) {
@@ -221,7 +230,7 @@ export function ScenarioBuild({
         </button>
       )}
       {!쓰나 ? null : (
-        <button type="button" className="btn" disabled={초안.저장하는중 || 실행중} onClick={() => void 정식.실행(서버, 초안.바뀜, 칸오류번호 ?? 빈칸있는단계(초안.단계들), () => 초안.저장(칸오류번호 ?? 빈칸있는단계(초안.단계들)))}>
+        <button type="button" className="btn" disabled={초안.저장하는중 || 실행중} onClick={() => { if (정식.걸수있나(서버, 칸오류번호 ?? 빈칸있는단계(초안.단계들))) set시작확인(true); }}>
           {실행중 ? t('실행 요청 중') : id === null || 초안.바뀜 ? t('저장하고 실행') : t('실행')}
         </button>
       )}
@@ -270,16 +279,15 @@ export function ScenarioBuild({
               고른번호={고른번호}
               on고르기={카드고름}
               on탭={탭옮김}
-              시험요약={시험하나 ? <TrialSummary 시험={시험} on자세히={() => 탭옮김('trial')} /> : undefined}
+              시험요약={시험하나 ? <TrialSummary 시험={시험} on자세히={() => set시험창(true)} /> : undefined}
             />
           </section>
           <section className="scn-build-panel" aria-label={t('단계 추가 · 설정')}>
-            <ScenarioTabs 탭={탭} on탭={탭옮김} 고른번호={고른번호} 쓰나={쓰나} 시험하나={시험하나} 이력있나={id !== null}>
+            <ScenarioTabs 탭={탭} on탭={탭옮김} 고른번호={고른번호} 쓰나={쓰나} 이력있나={id !== null}>
               <ScenarioBuildTabs
                 id={id}
                 탭={탭}
                 쓰나={쓰나}
-                시험하나={시험하나}
                 초안={초안}
                 앱들={앱들}
                 고른번호={고른번호}
@@ -294,12 +302,36 @@ export function ScenarioBuild({
                 on바꿈={고른단계바꿈}
                 on되돌림={되돌림끝}
                 on칸오류={(번호, 있나) => set칸오류번호((앞) => (있나 ? 번호 : 앞 === 번호 ? null : 앞))}
-                시험={<TrialTab 시험={시험} 단계들={초안.단계들} 재료={초안.재료} 장면={<시험장면 시험={시험} 모바일={초안.디바이스 === 'mobile' && !폰단계있나(앱들, 초안.단계들)} />} />}
               />
             </ScenarioTabs>
           </section>
         </div>
       </div>
+
+      {!시험창 || 시험.단계 === 'idle' || 시험.단계 === 'failed' ? null : (
+        <ScenarioTrialWindow
+          시험={시험}
+          단계들={초안.단계들}
+          재료={초안.재료}
+          platform={초안.디바이스}
+          모바일웹={초안.디바이스 === 'mobile' && !폰단계있나(앱들, 초안.단계들)}
+          on닫기={() => set시험창(false)}
+          on다시={시험누름}
+        />
+      )}
+      {!시작확인 ? null : (
+        <ScenarioStartConfirm
+          시나리오={id === null ? 초안.이름 : `SC-${id} ${초안.이름}`.trim()}
+          디바이스={디바이스글(t, 초안.디바이스, 정식.위치.값)}
+          env={서버}
+          onClose={() => set시작확인(false)}
+          on시작={() => {
+            set시작확인(false);
+            void 정식.실행(서버, 초안.바뀜, 칸오류번호 ?? 빈칸있는단계(초안.단계들), () => 초안.저장(칸오류번호 ?? 빈칸있는단계(초안.단계들)));
+          }}
+        />
+      )}
+      {실행창 === null ? null : <ScenarioRunWindow runId={실행창} 어디서="scenario" on닫기={() => set실행창(null)} />}
 
       <떠나기상자 막나={막나} />
     </>

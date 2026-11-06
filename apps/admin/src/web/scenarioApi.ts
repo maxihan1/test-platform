@@ -122,7 +122,9 @@ export interface ScenarioRunResult {
 export type TrialResult = Omit<ScenarioExecuteResponse, 'parts'> & { parts: (ScenarioPartResult & { trace?: ItemTrace })[] };
 
 /** 폰을 잡은 동안 도는 중 응답에 그 폰 화면 주소가 실린다 (도메인/실행 §7 「테스트 모드 통로」) */
-export type TrialState = { status: 'RUNNING'; vision?: { url: string } } | { status: 'FINISHED'; result: TrialResult };
+export type TrialState =
+  | { status: 'RUNNING'; vision?: { url: string; name?: string }; step?: { seq: number; elapsedMs: number } }
+  | { status: 'FINISHED'; result: TrialResult };
 
 export type ScenarioRunRow = Omit<RunSummary, 'counts'> & {
   scenarioId: number;
@@ -221,6 +223,13 @@ export const scenarioApi = {
   startTrial: (body: TrialBody) => call<{ trialId: string }>('/scenario-trials', json(body)),
 
   trial: (trialId: string) => call<TrialState>(`/scenario-trials/${encodeURIComponent(trialId)}`),
+
+  /** 사람이 멈춘다. 끝나는 것과 겹치면 오류가 아니라 false 다 (도메인/실행 §3.2 「E2E 도 지금 단계를 알리고 끊는다」) */
+  abortTrial: (trialId: string) => call<{ aborted: boolean }>(`/scenario-trials/${encodeURIComponent(trialId)}/abort`, { method: 'POST' }),
+
+  /** 정식 실행의 지금 단계 — 진행 응답 맨 위의 step 만 읽는다. E2E 실행이 아니거나 러너가 아직 안 알렸으면 없다 */
+  step: async (runId: number): Promise<{ seq: number; elapsedMs: number } | null> =>
+    (await call<{ step?: { seq: number; elapsedMs: number } }>(`/runs/${runId}/progress`)).step ?? null,
 
   // 사진은 <img src> 가 직접 부른다. 글자만 돌려준다
   runShot: (runId: number, seq: number) => `/api/runs/${runId}/scenario/screenshots/${seq}`,

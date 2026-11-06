@@ -1,6 +1,6 @@
 // 테스트 모드의 오른쪽 실시간 칸 — 브라우저 · 폰 장면을 되풀이해 받아 그리고, 폰을 잡으면 Device VISION 링크를 띄운다 (도메인/실행 §3.2 「테스트 모드」 · 시안 A)
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { use말 } from './i18n.js';
 
@@ -101,10 +101,14 @@ interface Props {
   늦춤글?: boolean;
   /** 첫 장면 전 브라우저 칸에 「브라우저를 여는 중」 뼈대를 그린다 — 자식 Playwright 가 브라우저를 여는 4~5초가 빈 칸이었다 (§8.16 ③ · 점검표 B1) */
   뼈대?: boolean;
+  /** VISION 이 잡은 폰의 모델 이름. 팜이 안 주면 없다 — 있으면 칸 머리에 적는다 (E2E 실행 창) */
+  폰이름?: string | null;
+  /** 칸 머리 맨 끝에 더할 것 — E2E 실행 창의 「크게 보기」 */
+  머리끝?: ReactNode;
 }
 
 /** 시작한 테스트 모드 하나의 칸. 끝나도 마지막 장면을 그대로 둔다. 장면 없이 끝났으면 칸을 그리지 않는다 */
-export function 장면칸({ 주소, 도는중, vision, 부제, 폰만: 앱폰 = false, 모바일웹 = false, 늦춤글 = true, 뼈대 = false }: Props) {
+export function 장면칸({ 주소, 도는중, vision, 부제, 폰만: 앱폰 = false, 모바일웹 = false, 늦춤글 = true, 뼈대 = false, 폰이름 = null, 머리끝 }: Props) {
   const t = use말();
   const 실제폰웹 = 모바일웹 && vision !== null;
   const { 그림, 폰그림, 비었나, 못닿음 } = use장면(주소, 도는중, 앱폰);
@@ -120,11 +124,13 @@ export function 장면칸({ 주소, 도는중, vision, 부제, 폰만: 앱폰 = 
         {도는중 ? <span className="pulse" aria-hidden="true" /> : null}
         <b>{!도는중 ? t('마지막 화면') : 폰칸 ? t('폰 화면') : t('실시간 화면')}</b>
         <span className="live-sub">{부제 ?? (실제폰웹 ? t('실제 폰 Chrome') : 폰그림 ? t('Device VISION 폰') : t('서버 브라우저'))}</span>
+        {폰이름 === null || vision === null ? null : <span className="live-phone">{폰이름}</span>}
         {vision === null ? null : (
           <a className="btn small ghost live-vision" href={vision} target="_blank" rel="noreferrer">
             {t('Device VISION 에서 보기 ↗')}
           </a>
         )}
+        {머리끝}
       </div>
       {그림 === null && 뼈대 && !폰칸 && vision === null ? (
         <div className="live-wait live-skel" aria-busy="true">

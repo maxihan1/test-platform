@@ -105,7 +105,10 @@ describe('시험 실행 시작 전 막기', () => {
   });
 });
 
-describe('시험 결과 탭 · 왼쪽 요약', () => {
+const 단계줄들 = () => [...screen.getByRole('dialog').querySelectorAll<HTMLElement>('.scn-steps > li')];
+const 결과창 = () => within(screen.getByRole('dialog', { name: 'E2E 시험 실행 결과' }));
+
+describe('시험 실행 결과 창 · 왼쪽 요약', () => {
   async function 끝낸것(결과: TrialResult) {
     sessionStorage.setItem('scn-trial:12', JSON.stringify({ trialId: 't-1', env: 'stg' }));
     vi.spyOn(scenarioApi, 'trial').mockResolvedValue({ status: 'FINISHED', result: 결과 });
@@ -114,27 +117,40 @@ describe('시험 결과 탭 · 왼쪽 요약', () => {
     return 것;
   }
 
-  it('안 돌렸으면 요약을 안 그리고 탭에 안내와 한 줄을 둔다', async () => {
-    const { container } = await 기존그리기();
+  it('안 돌렸으면 요약도 창도 없고 시험 결과 탭도 없다', async () => {
+    await 기존그리기();
 
     expect(screen.queryByText(/^시험 실행 · /)).toBeNull();
-    fireEvent.click(screen.getByRole('tab', { name: '시험 결과' }));
-    expect(탭(container)).toBe('trial');
-    const 칸 = within(screen.getByRole('tabpanel'));
-    expect(칸.getByText('시험 실행은 기록에 남지 않고 리포트도 만들지 않습니다. 저장하지 않은 변경 내용으로도 실행해 볼 수 있습니다')).toBeTruthy();
-    expect(칸.getByText('아직 시험 실행을 하지 않았습니다')).toBeTruthy();
+    expect(screen.queryByRole('tab', { name: '시험 결과' })).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('요약은 서버 · 초 · 실패한 첫 단계를 보이고 자세히가 시험 결과 탭을 연다', async () => {
+  it('요약은 서버 · 초 · 실패한 첫 단계를 보이고 자세히가 시험 실행 결과 창을 연다', async () => {
     const { container } = await 끝낸것(실패결과);
 
     expect(screen.getByText('시험 실행 · stg · 3.40초')).toBeTruthy();
     expect(screen.getByText('2번에서 멈춤')).toBeTruthy();
     expect(탭(container)).toBe('settings');
+    expect(screen.queryByRole('dialog')).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: '자세히' }));
 
-    expect(탭(container)).toBe('trial');
+    expect(screen.getByRole('dialog', { name: 'E2E 시험 실행 결과' })).toBeTruthy();
+    expect(탭(container)).toBe('settings');
+  });
+
+  it('결과 창은 한 줄 알약 점수와 서버 · 총 시간을 보이고 닫기로 닫힌다', async () => {
+    await 끝낸것(실패결과);
+    fireEvent.click(screen.getByRole('button', { name: '자세히' }));
+
+    const 창 = 결과창();
+    const 점수 = screen.getByRole('dialog').querySelector('.trial-sum')!;
+    expect([...점수.querySelectorAll('.pill')].map((알약) => 알약.textContent)).toEqual(['통과 1', '실패 1', '미실행 1']);
+    expect(창.getByText(/stg · 총 3초/)).toBeTruthy();
+
+    fireEvent.click(창.getByRole('button', { name: '닫기' }));
+
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('실패한 단계 아래에 화면 오류 한 줄과 네트워크 · 조작 · 콘솔', async () => {
@@ -143,7 +159,7 @@ describe('시험 결과 탭 · 왼쪽 요약', () => {
     await 끝낸것({ ...실패결과, parts: [첫!, { ...둘!, trace: { status: 'DONE', reason: null, network: [], actions: [], console } }, 셋!] });
     fireEvent.click(screen.getByRole('button', { name: '자세히' }));
 
-    const 줄들 = within(document.getElementById('scn-tabpanel')!).getAllByRole('listitem');
+    const 줄들 = 단계줄들();
     expect(within(줄들[1]!).getByText('터짐 at busy (common.js:71)')).toBeTruthy();
     expect(within(줄들[1]!).getByText('네트워크 · 조작 · 콘솔')).toBeTruthy();
     expect(within(줄들[0]!).queryByText('네트워크 · 조작 · 콘솔')).toBeNull();
@@ -153,7 +169,7 @@ describe('시험 결과 탭 · 왼쪽 요약', () => {
     await 끝낸것(실패결과);
     fireEvent.click(screen.getByRole('button', { name: '자세히' }));
 
-    const 줄들 = within(screen.getByRole('tabpanel')).getAllByRole('listitem');
+    const 줄들 = 단계줄들();
     expect(within(줄들[0]!).getByText('ZSB-001')).toBeTruthy();
     expect(within(줄들[0]!).getByText('ZSB-001 케이스')).toBeTruthy();
     expect(within(줄들[1]!).getByText('ZSB-002')).toBeTruthy();
@@ -170,7 +186,7 @@ describe('시험 결과 탭 · 왼쪽 요약', () => {
     await screen.findByText(/^시험 실행 · stg/);
     fireEvent.click(screen.getByRole('button', { name: '자세히' }));
 
-    expect(within(screen.getByRole('tabpanel')).getByText('**/api/** → 200')).toBeTruthy();
+    expect(결과창().getByText('**/api/** → 200')).toBeTruthy();
   });
 
   it('모킹 켜기 · 끄기 단계는 통과가 아니라 적용됨으로 보인다', async () => {
@@ -193,7 +209,7 @@ describe('시험 결과 탭 · 왼쪽 요약', () => {
     await screen.findByText(/^시험 실행 · stg/);
     fireEvent.click(screen.getByRole('button', { name: '자세히' }));
 
-    const 줄들 = within(screen.getByRole('tabpanel')).getAllByRole('listitem');
+    const 줄들 = 단계줄들();
     expect(줄들).toHaveLength(2);
     for (const 줄 of 줄들) {
       expect(within(줄).getByText('적용됨')).toBeTruthy();
@@ -213,7 +229,7 @@ describe('시험 결과 탭 · 왼쪽 요약', () => {
     const 요약문장 = screen.getByText('러너가 거절했습니다');
     expect(요약문장.className).toBe('scn-trial-na');
     fireEvent.click(screen.getByRole('button', { name: '자세히' }));
-    const 탭문장 = within(screen.getByRole('tabpanel')).getByText('러너가 거절했습니다');
+    const 탭문장 = 결과창().getByText('러너가 거절했습니다');
     expect(탭문장.className).toBe('scn-trial-na');
   });
 
@@ -234,7 +250,7 @@ describe('시험 결과 탭 · 왼쪽 요약', () => {
     await 끝낸것(실패결과);
     fireEvent.click(screen.getByRole('button', { name: '자세히' }));
 
-    const 줄들 = within(screen.getByRole('tabpanel')).getAllByRole('listitem');
+    const 줄들 = 단계줄들();
     expect(줄들).toHaveLength(3);
     expect(within(줄들[0]!).getByText('통과')).toBeTruthy();
     expect(within(줄들[0]!).getByText('케이스')).toBeTruthy();
@@ -257,7 +273,7 @@ describe('시험 결과 탭 · 왼쪽 요약', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: '자세히' }));
 
-    const 칸 = within(screen.getByRole('tabpanel'));
+    const 칸 = 결과창();
     expect(칸.getByText('실행이 멈춘 사유')).toBeTruthy();
     expect(칸.getByText('러너가 멈췄습니다')).toBeTruthy();
     expect(칸.getByText('제한 시간 초과')).toBeTruthy();
@@ -273,7 +289,7 @@ describe('시험 결과 탭 · 왼쪽 요약', () => {
     expect(screen.getByText('제한 시간 초과').className).toBe('scn-trial-na');
     fireEvent.click(screen.getByRole('button', { name: '자세히' }));
 
-    const 칸 = screen.getByRole('tabpanel');
+    const 칸 = screen.getByRole('dialog', { name: 'E2E 시험 실행 결과' });
     expect(within(칸).getAllByText('제한 시간 초과')).toHaveLength(2);
     expect(칸.textContent).not.toContain('TIMEOUT');
   });

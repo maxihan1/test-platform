@@ -7,6 +7,7 @@ import { ApiError, type Platform } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { scenarioApi, type TrialResult } from './scenarioApi.js';
 import { message } from './ui.js';
+import { 단계쌓기, type 쌓인단계 } from './useTrialQueue.js';
 
 export interface 시험상태 {
   단계: 'idle' | 'running' | 'done' | 'failed';
@@ -18,6 +19,14 @@ export interface 시험상태 {
   단계들: ScenarioPart[] | null;
   /** VISION 이 폰을 잡은 동안 그 폰 화면 주소. 폰을 놓으면 서버가 안 싣는다 */
   vision: string | null;
+  /** 잡은 폰의 모델 이름. 팜이 안 주면 없다 */
+  폰이름: string | null;
+  /** 러너가 알린 지금 단계들을 본 순서로 쌓은 것 — 끝난 단계가 걸린 시간을 이것으로 낸다 (실행 창 왼쪽 목록) */
+  지금단계들: 쌓인단계[];
+  /** 시작을 누른 시각(ms). 이어 묻는 시험은 저장해 둔 값이다 */
+  시작시각: number | null;
+  /** 사람이 중단을 눌렀다. 결과가 올 때까지 창이 「중단하는 중」을 적는다 */
+  중단함: boolean;
 }
 
 export interface 시험본문 {
@@ -28,12 +37,13 @@ export interface 시험본문 {
 }
 
 const 묻는간격 = 2000;
-const 비어있다: 시험상태 = { 단계: 'idle', trialId: null, env: '', 결과: null, 오류문장: null, 단계들: null, vision: null };
+const 비어있다: 시험상태 = { 단계: 'idle', trialId: null, env: '', 결과: null, 오류문장: null, 단계들: null, vision: null, 폰이름: null, 지금단계들: [], 시작시각: null, 중단함: false };
 
 interface 저장값 {
   trialId: string;
   env: string;
   parts?: ScenarioPart[];
+  시작?: number;
 }
 
 export const 시험열쇠 = (id: number | null) => 'scn-trial:' + String(id ?? 'new');
@@ -45,10 +55,15 @@ function 읽기(열쇠: string): 저장값 | null {
     if (글 === null) return null;
     const 값: unknown = JSON.parse(글);
     if (typeof 값 !== 'object' || 값 === null) return null;
-    const { trialId, env, parts } = 값 as Record<string, unknown>;
+    const { trialId, env, parts, 시작 } = 값 as Record<string, unknown>;
     if (typeof trialId !== 'string' || typeof env !== 'string') return null;
     // 단계는 이 화면이 적은 것이다. 없으면 이름을 지금 초안으로 붙인다
-    return Array.isArray(parts) ? { trialId, env, parts: parts as ScenarioPart[] } : { trialId, env };
+    return {
+      trialId,
+      env,
+      ...(Array.isArray(parts) ? { parts: parts as ScenarioPart[] } : {}),
+      ...(typeof 시작 === 'number' ? { 시작 } : {}),
+    };
   } catch {
     return null;
   }
@@ -94,6 +109,9 @@ export function useScenarioTrial(열쇠: string) {
   글.current = t;
   const 말투 = useRef(언어);
   말투.current = 언어;
+  const 지금번호 = useRef<string | null>(null);
+  지금번호.current = 상태.trialId;
+  const 멈춰달라 = useRef(false);
 
   const 묻기 = useCallback(async (trialId: string, 이줄: 줄) => {
     try {
@@ -101,13 +119,17 @@ export function useScenarioTrial(열쇠: string) {
       if (이줄.끝남) return;
       if (답.status === 'RUNNING') {
         const vision = 답.vision?.url ?? null;
-        set상태((앞) => (앞.vision === vision ? 앞 : { ...앞, vision }));
+        const 폰이름 = 답.vision?.name ?? null;
+        set상태((앞) => {
+          const 쌓임 = 단계쌓기(앞.지금단계들, 답.step === undefined ? undefined : { ...답.step, title: '' });
+          return 앞.vision === vision && 앞.폰이름 === 폰이름 && 쌓임 === 앞.지금단계들 ? 앞 : { ...앞, vision, 폰이름, 지금단계들: 쌓임 };
+        });
         타이머.current = setTimeout(() => void 묻기(trialId, 이줄), 묻는간격);
         return;
       }
       // 끝난 시험은 화면 상태에만 둔다. 열쇠를 남기면 서버가 잊은 뒤 그 시나리오를 열 때 엉뚱한 「찾지 못했습니다」가 뜬다
       쓰기(옮긴곳.get(열쇠쪽.current) ?? 열쇠쪽.current, null);
-      set상태((앞) => ({ ...앞, 단계: 'done', 결과: 답.result, vision: null }));
+      set상태((앞) => ({ ...앞, 단계: 'done', 결과: 답.result, vision: null, 폰이름: null, 중단함: false }));
     } catch (err) {
       if (이줄.끝남) return;
       const 없다 = err instanceof ApiError && err.code === 'TRIAL_NOT_FOUND';
@@ -116,6 +138,8 @@ export function useScenarioTrial(열쇠: string) {
         ...앞,
         단계: 'failed',
         vision: null,
+        폰이름: null,
+        중단함: false,
         오류문장: 없다
           ? 글.current('시험 결과를 찾지 못했습니다. 시간이 지났거나 서버가 다시 켜졌을 수 있습니다')
           : message(err, 말투.current),
@@ -133,7 +157,7 @@ export function useScenarioTrial(열쇠: string) {
     } else {
       const 저장 = 읽기(열쇠쪽.current);
       if (저장 !== null) {
-        set상태({ ...비어있다, 단계: 'running', trialId: 저장.trialId, env: 저장.env, 단계들: 저장.parts ?? null });
+        set상태({ ...비어있다, 단계: 'running', trialId: 저장.trialId, env: 저장.env, 단계들: 저장.parts ?? null, 시작시각: 저장.시작 ?? Date.now() });
         void 묻기(저장.trialId, 이줄);
       }
     }
@@ -147,13 +171,17 @@ export function useScenarioTrial(열쇠: string) {
     async (본문: 시험본문) => {
       const 이줄 = 지금줄.current;
       clearTimeout(타이머.current);
-      set상태({ ...비어있다, 단계: 'running', env: 본문.env, 단계들: 본문.parts });
+      const 시작 = Date.now();
+      멈춰달라.current = false;
+      set상태({ ...비어있다, 단계: 'running', env: 본문.env, 단계들: 본문.parts, 시작시각: 시작 });
       try {
         const { trialId } = await scenarioApi.startTrial(본문);
         // 화면을 떠났거나 열쇠가 옮겨진 뒤에 와도 지금 열쇠에는 적어 둔다
-        쓰기(옮긴곳.get(열쇠쪽.current) ?? 열쇠쪽.current, { trialId, env: 본문.env, parts: 본문.parts });
+        쓰기(옮긴곳.get(열쇠쪽.current) ?? 열쇠쪽.current, { trialId, env: 본문.env, parts: 본문.parts, 시작 });
         if (이줄.끝남) return;
         set상태((앞) => ({ ...앞, trialId }));
+        // 시작 응답이 오기 전에 중단을 눌렀다면 번호를 안 뒤에 멈춘다
+        if (멈춰달라.current) void scenarioApi.abortTrial(trialId).catch(() => undefined);
         타이머.current = setTimeout(() => void 묻기(trialId, 이줄), 묻는간격);
       } catch (err) {
         if (이줄.끝남) return;
@@ -170,5 +198,18 @@ export function useScenarioTrial(열쇠: string) {
     [묻기],
   );
 
-  return { ...상태, 시작 };
+  /** 사람이 시험을 멈춘다. 결과는 계속 묻다가 러너가 돌려준 것을 받는다 */
+  const 중단 = useCallback(async () => {
+    멈춰달라.current = true;
+    set상태((앞) => ({ ...앞, 중단함: true }));
+    const 번호 = 지금번호.current;
+    if (번호 === null) return;
+    try {
+      await scenarioApi.abortTrial(번호);
+    } catch (err) {
+      set상태((앞) => ({ ...앞, 중단함: false, 오류문장: message(err, 말투.current) }));
+    }
+  }, []);
+
+  return { ...상태, 시작, 중단 };
 }

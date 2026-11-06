@@ -124,14 +124,14 @@ describe('ScenarioTabs 탭 틀', () => {
 
   it('쓰기 · 이력에 따라 보이는 탭이 다르다', () => {
     const { unmount } = render(<판 단계들={[케이스('ZSB-001')]} 고른번호={1} 탭="settings" />);
-    expect(screen.getAllByRole('tab').map((e) => e.textContent)).toEqual(['1번 설정', '단계 추가', '시험 결과', '변경 이력']);
+    expect(screen.getAllByRole('tab').map((e) => e.textContent)).toEqual(['1번 설정', '단계 추가', '변경 이력']);
     unmount();
 
     render(<판 단계들={[]} 쓰나={false} 이력있나={false} />);
     expect(screen.queryAllByRole('tab')).toHaveLength(0);
   });
 
-  it('쓰기가 아니면 단계 추가 · 시험 결과 탭이 없고 새 시나리오면 변경 이력 탭이 없다', () => {
+  it('쓰기가 아니면 단계 추가 탭이 없고 새 시나리오면 변경 이력 탭이 없다', () => {
     const { unmount } = render(<판 단계들={[케이스('ZSB-001')]} 고른번호={1} 탭="settings" 쓰나={false} />);
     expect(screen.getAllByRole('tab').map((e) => e.textContent)).toEqual(['1번 설정', '변경 이력']);
     unmount();
