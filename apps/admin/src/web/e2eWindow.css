@@ -1,0 +1,163 @@
+/* E2E 실행 창(시험 · 정식) — 왼쪽 단계 목록과 진행 머리, 크게 보기, 바닥 (도메인/실행 §8.16 ⑥ · 시안 A ⑥). 틀은 runWindow.css, 목록 · 장면 칸은 trialRunning.css 를 그대로 쓴다. 색은 토큰만 쓴다 — DESIGN.md 원칙 1 */
+
+.e2e-prog {
+  flex: none;
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.e2e-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--well);
+  overflow: hidden;
+}
+
+.e2e-bar i {
+  display: block;
+  height: 100%;
+  background: var(--pass);
+}
+
+.e2e-prog-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.e2e-faint {
+  font-size: 12.5px;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 시험 실행 단계 칸보다 시간 칸을 넓힌다 — 「기다리는 중」 · 「1분 2초」 가 두 줄로 꺾이지 않게 */
+.e2e-steps li {
+  grid-template-columns: 24px minmax(0, 1fr) 84px;
+}
+
+.e2e-tail {
+  font-size: 11.5px;
+  color: var(--ink-faint);
+}
+
+.e2e-steps li.now .e2e-tail {
+  color: var(--ink-muted);
+}
+
+/* 크게 보기 — 왼쪽 칸을 접고 장면 칸이 창을 채운다 */
+.trial-run.e2e-run.big {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.trial-run.e2e-run.big .trial-colL {
+  display: none;
+}
+
+.live-phone {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.e2e-zoom {
+  margin-left: auto;
+}
+
+.live-vision + .e2e-zoom {
+  margin-left: 0;
+}
+
+/* 정식 실행 띠 — 단계 흐름이 길어도 한 줄로 줄인다 */
+.start-band.e2e-band {
+  flex: none;
+  margin: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* 바닥 — 왼쪽 되돌릴 수 없는 일, 가운데 안내, 오른쪽 주 단추 */
+.modal-foot .e2e-foot-l {
+  margin-right: auto;
+}
+
+.modal-foot .e2e-foot-mid {
+  margin: 0 auto 0 0;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+/* 정식 결과 줄 — 번호 · 이름 · 시간 · 판정 */
+.e2e-res {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.e2e-res li {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.e2e-res li.bad {
+  border-color: var(--fail);
+}
+
+.e2e-res .no {
+  text-align: right;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+}
+
+.e2e-res .why {
+  grid-column: 2 / -1;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+.e2e-res .dur {
+  font-size: 12px;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 휴대폰 — 칸이 위아래로 쌓일 때 크게 보기는 장면이 나머지를 채운다 (점검표 D12) */
+@media (max-width: 620px) {
+  .trial-run.e2e-run.big {
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .modal-foot .e2e-foot-l,
+  .modal-foot .e2e-foot-mid {
+    margin: 0;
+  }
+}
+
+/* E2E 목록 줄 끝 — 되돌릴 수 없는 「삭제」는 왼쪽, 주 단추 「실행」은 오른쪽 끝, 사이에 구분선 (점검표 D10) */
+.scn-row-acts {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.scn-acts-sep {
+  align-self: stretch;
+  width: 1px;
+  margin: 2px 8px;
+  background: var(--line-2);
+}
