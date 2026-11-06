@@ -197,3 +197,39 @@ describe('execute 가 자식에게 넘기는 API 문서 판 (API-F1-05)', () => 
     expect(readFileSync(join(폴더, 'path.txt'), 'utf8')).toBe('');
   });
 });
+
+describe('execute 가 자식에게 넘기는 팜 AI 점검 켜기 (COMPAT-F1-03)', () => {
+  let 폴더: string;
+  let 옛값: string | undefined;
+
+  beforeEach(() => {
+    폴더 = mkdtempSync(join(tmpdir(), 'runner-uicheck-'));
+    옛값 = process.env.PLATFORM_UI_CHECK;
+    process.env.PLATFORM_UI_CHECK = '1';
+    스크립트.지금 = `printf %s "$PLATFORM_UI_CHECK" > '${join(폴더, 'ui.txt')}'`;
+  });
+
+  afterEach(() => {
+    if (옛값 === undefined) delete process.env.PLATFORM_UI_CHECK;
+    else process.env.PLATFORM_UI_CHECK = 옛값;
+    rmSync(폴더, { recursive: true, force: true });
+  });
+
+  const 요청 = (platform: ExecuteRequest['platform'], uiCheck?: true): ExecuteRequest => ({
+    runId: 5, historyId: 13, tcId: 'AND-001', platform, filePath: 'a.spec.ts', baseUrl: '', params: {}, expected: {}, timeoutMs: 10_000,
+    ...(uiCheck !== undefined && { uiCheck }),
+  });
+  const 받은값 = () => readFileSync(join(폴더, 'ui.txt'), 'utf8');
+
+  it('호환성 앱 항목이면 켠다', async () => {
+    await execute(요청('android', true), 'a.spec.ts');
+    expect(받은값()).toBe('1');
+  });
+
+  it('요청에 없거나 브라우저 항목이면 비운다 — 러너를 켠 셸의 값을 물려받지 않는다', async () => {
+    await execute(요청('android'), 'a.spec.ts');
+    expect(받은값()).toBe('');
+    await execute(요청('mobile', true), 'a.spec.ts');
+    expect(받은값()).toBe('');
+  });
+});
