@@ -26,6 +26,7 @@ export type 원천 =
   | { 종류: '성능실행'; 칸: string } // params[칸] 이 perf_run 번호다
   | { 종류: '성능AI일'; 칸: string } // params[칸] 이 perf_ai_job 번호다
   | { 종류: '성능더미클라이언트'; 칸: string } // params[칸] 이 perf_dummy_client 번호다
+  | { 종류: '호환성세트'; 칸: string } // params[칸] 이 compat_set 번호다. 치운 세트도 그 애플리케이션이다
   | { 종류: '시험'; 칸: string }; // params[칸] 이 시험 실행 번호다. 메모리 보관소가 시작한 사람에게만 서비스를 알려 준다
 
 /**
@@ -222,6 +223,12 @@ export const 라우트표: Record<string, 원천> = {
   '/api/perf/suggest': { 종류: '질의번호', 칸: 'serviceId' },
   '/api/perf/pages/measure': { 종류: '질의번호', 칸: 'serviceId' },
   '/api/perf/devices': { 종류: '질의번호', 칸: 'serviceId' },
+  // 호환성 세트 (도메인/호환성 §7). 만들기 · 미리 셈의 본문 serviceId 는 gate.ts 의 본문 갈래가 같이 본다
+  '/api/compat-sets': { 종류: '질의번호', 칸: 'serviceId' },
+  '/api/compat-sets/preview': { 종류: '질의번호', 칸: 'serviceId' },
+  '/api/compat-sets/:id': { 종류: '호환성세트', 칸: 'id' },
+  // 팜 디바이스 목록은 애플리케이션에 안 매인다 — 실행 read 인 배정이 하나라도 있으면 본다
+  '/api/compat-devices': { 종류: '안매임' },
   '/api/perf/devices/measure': { 종류: '질의번호', 칸: 'serviceId' },
   '/api/perf/ai-jobs/:id': { 종류: '성능AI일', 칸: 'id' },
   '/api/perf/ai-jobs/:id/finish': { 종류: '성능AI일', 칸: 'id' },
@@ -259,7 +266,7 @@ export function 케이스의서비스(tcId: unknown): string | null {
   return 접두사모양.test(접두사) ? 접두사 : null;
 }
 
-export type 찾을것 = { 종류: '실행' | '증적' | '입력값묶음' | '작성요청' | '시나리오' | '서비스' | '성능시나리오' | '성능실행' | '성능AI일' | '성능더미클라이언트'; 번호: number };
+export type 찾을것 = { 종류: '실행' | '증적' | '입력값묶음' | '작성요청' | '시나리오' | '서비스' | '성능시나리오' | '성능실행' | '성능AI일' | '성능더미클라이언트' | '호환성세트'; 번호: number };
 
 /** 번호 칸은 **라우트와 같은 엄격함**으로 읽는다. 느슨하면 문과 라우트가 다른 값을 본다 */
 export function 번호로(값: unknown): number | null {
@@ -292,6 +299,7 @@ const 질의: Record<찾을것['종류'], string> = {
   성능실행: 'SELECT s.prefix FROM perf_run r JOIN service s ON s.id = r.service_id WHERE r.id = $1',
   성능AI일: 'SELECT s.prefix FROM perf_ai_job j JOIN service s ON s.id = j.service_id WHERE j.id = $1',
   성능더미클라이언트: 'SELECT s.prefix FROM perf_dummy_client d JOIN service s ON s.id = d.service_id WHERE d.id = $1',
+  호환성세트: 'SELECT s.prefix FROM compat_set c JOIN service s ON s.id = c.service_id WHERE c.id = $1',
 };
 
 /**
