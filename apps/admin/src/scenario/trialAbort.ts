@@ -25,22 +25,34 @@ export function 상태를연다(id: string, 부품수: number): 시험상태 {
 export const 상태를지운다 = (id: string): void => void 상태들.delete(id);
 export const 상태찾기 = (id: string): 시험상태 | undefined => 상태들.get(id);
 
-/** 러너에 보내지 않고 닫은 시험의 결과 — 전체 NA · 'ABORTED', 부품은 전부 NA · 'STOPPED'. 부품의 'ABORTED' 는 재기동 복구 몫이다 (도메인/시나리오 §8.11) */
+/** 러너에 보내지 않고 닫은 시험의 결과 — 전체 NA · 'STOPPED', 부품은 하나도 안 돌았으니 전부 NA · 'NOT_RUN'. 'ABORTED' 는 재기동 복구 몫이다 (도메인/시나리오 §8.11) */
 export function 보내기전멈춘결과(부품수: number): ScenarioExecuteResponse {
   return {
     status: 'NA',
     durationMs: 0,
     parts: Array.from({ length: 부품수 }, (_, i) => ({
-      seq: i + 1, status: 'NA' as const, durationMs: 0, steps: [], mocks: [], error: { message: 'STOPPED' },
+      seq: i + 1, status: 'NA' as const, durationMs: 0, steps: [], mocks: [], error: { message: 'NOT_RUN' },
     })),
-    error: { message: 'ABORTED' },
+    error: { message: 'STOPPED' },
   };
 }
 
-/** 러너가 끊고 돌려준 답은 그대로이되, 안 끝난 부품의 'ABORTED' 만 'STOPPED' 로 바꾼다. 끊긴 답이 아니면 건드리지 않는다 */
+/**
+ * 러너가 끊고 돌려준 답을 사람이 멈춘 모양으로 바꾼다 — 머리는 'STOPPED', 돌던 부품(첫 'ABORTED')은 'STOPPED' 로 걸린 시간을 남기고
+ * 시작도 못 한 그 뒤 부품은 'NOT_RUN'(화면 「실행 안 됨」)이다. 끊긴 답이 아니면 건드리지 않는다
+ */
 export function 멈춘부품을고친다<R extends ScenarioExecuteResponse>(응답: R): R {
   if (응답.error?.message !== 'ABORTED') return 응답;
-  return { ...응답, parts: 응답.parts.map((p) => (p.status === 'NA' && p.error?.message === 'ABORTED' ? { ...p, error: { ...p.error, message: 'STOPPED' } } : p)) };
+  let 돌던것을봤다 = false;
+  const parts = 응답.parts.map((p) => {
+    if (p.status !== 'NA' || p.error?.message !== 'ABORTED') return p;
+    if (!돌던것을봤다) {
+      돌던것을봤다 = true;
+      return { ...p, error: { ...p.error, message: 'STOPPED' } };
+    }
+    return { ...p, durationMs: 0, error: { ...p.error, message: 'NOT_RUN' } };
+  });
+  return { ...응답, error: { ...응답.error, message: 'STOPPED' }, parts };
 }
 
 /**

@@ -23,7 +23,7 @@ export function 실행상태를연다(runId: number, 부품수: number): 시험�
 
 export const 실행상태를지운다 = (runId: number): void => void 상태들.delete(runId);
 
-// 부품의 'ABORTED' 는 재기동 복구 몫이라 사람이 멈춘 부품은 'STOPPED' 로 따로 적는다 (도메인/시나리오 §8.11)
+// 보내기 전이라 어느 부품도 안 돌았다 — 전부 'NOT_RUN'(화면 「실행 안 됨」)이다. 'ABORTED' 는 재기동 복구 몫이라 쓰지 않는다 (도메인/시나리오 §8.11)
 async function 보내기전에닫는다(runId: number): Promise<boolean> {
   const c = await (await db()).connect();
   try {
@@ -37,7 +37,7 @@ async function 보내기전에닫는다(runId: number): Promise<boolean> {
       return false;
     }
     await c.query(
-      `UPDATE scenario_run_part SET status = 'NA', duration_ms = COALESCE(duration_ms, 0), error = jsonb_build_object('message', 'STOPPED'), finished_at = now()
+      `UPDATE scenario_run_part SET status = 'NA', duration_ms = COALESCE(duration_ms, 0), error = jsonb_build_object('message', 'NOT_RUN'), finished_at = now()
         WHERE run_id = $1 AND finished_at IS NULL`,
       [runId],
     );

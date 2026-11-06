@@ -119,6 +119,12 @@ describe('finishScenario', () => {
     ]);
   });
 
+  it('사람이 끊었으면 돌던 첫 빈 부품에 걸린 시간을 싣는다', () => {
+    const 결과 = finishScenario([줄({ seq: 1 })], 3, 'ABORTED', 20000, '', undefined, 13000);
+
+    expect(결과.parts.map((p) => [p.error?.message, p.durationMs])).toEqual([[undefined, 줄({ seq: 1 }).durationMs], ['ABORTED', 13000], ['ABORTED', 0]]);
+  });
+
   it('제한 시간에 죽였어도 앞 부품 실패로 멈춘 뒤는 NOT_RUN 이다', () => {
     const 결과 = finishScenario([줄({ seq: 1, status: 'FAIL' })], 2, 'TIMEOUT', 10, '');
 

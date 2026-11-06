@@ -258,7 +258,7 @@ describe.skipIf(연결 === undefined)('시나리오 시험 실행 통로', () =>
     );
   });
 
-  it('중단 — 러너에 보낸 뒤면 러너에 끊어 달라 하고 결과는 러너 답이되 안 끝난 부품은 ABORTED 가 아니라 STOPPED 다', async () => {
+  it('중단 — 러너에 보낸 뒤면 러너에 끊어 달라 하고 결과는 러너 답이되 머리와 돌던 부품은 ABORTED 가 아니라 STOPPED 다', async () => {
     매단다 = true;
     const { trialId } = (await 부른다('xstr-a', 'POST', '/api/scenario-trials', 본문())).json<{ trialId: string }>();
     await vi.waitFor(() => expect(상태찾기(trialId)?.보냄).toBe(true));
@@ -270,7 +270,7 @@ describe.skipIf(연결 === undefined)('시나리오 시험 실행 통로', () =>
     await vi.waitFor(async () => {
       const 읽음 = (await 부른다('xstr-a', 'GET', `/api/scenario-trials/${trialId}`)).json<{ status: string; result?: { error?: { message: string }; parts: { error?: { message: string } }[] } }>();
       expect(읽음.status).toBe('FINISHED');
-      expect(읽음.result?.error?.message).toBe('ABORTED');
+      expect(읽음.result?.error?.message).toBe('STOPPED');
       expect(읽음.result?.parts[0]?.error?.message).toBe('STOPPED');
     });
   });
@@ -284,7 +284,7 @@ describe.skipIf(연결 === undefined)('시나리오 시험 실행 통로', () =>
     expect((await 부른다('xstr-a', 'POST', `/api/scenario-trials/${trialId}/abort`)).json()).toEqual({ aborted: false });
   });
 
-  it('중단 — 줄에서 기다리는 동안이면 admin 이 NA · ABORTED(부품은 STOPPED)로 닫고 러너에 보내지 않는다', async () => {
+  it('중단 — 줄에서 기다리는 동안이면 admin 이 NA · STOPPED(부품은 NOT_RUN)로 닫고 러너에 보내지 않는다', async () => {
     const 풀어줄것: (() => void)[] = [];
     let 풀림 = false;
     // 앞서 도는 일이 자리를 쥐고 있으면 막이 일부가 나중에야 시작한다 — 풀린 뒤에 시작하는 것은 바로 끝나게 한다
@@ -298,8 +298,8 @@ describe.skipIf(연결 === undefined)('시나리오 시험 실행 통로', () =>
       expect(받은중단).toEqual([]);
       const 읽음 = (await 부른다('xstr-a', 'GET', `/api/scenario-trials/${trialId}`)).json<{ status: string; result: { status: string; error: { message: string }; parts: { status: string; error: { message: string } }[] } }>();
       expect(읽음.status).toBe('FINISHED');
-      expect(읽음.result).toMatchObject({ status: 'NA', error: { message: 'ABORTED' } });
-      expect(읽음.result.parts.map((p) => [p.status, p.error.message])).toEqual([['NA', 'STOPPED']]);
+      expect(읽음.result).toMatchObject({ status: 'NA', error: { message: 'STOPPED' } });
+      expect(읽음.result.parts.map((p) => [p.status, p.error.message])).toEqual([['NA', 'NOT_RUN']]);
 
       풀림 = true;
       for (const 풀 of 풀어줄것) 풀();

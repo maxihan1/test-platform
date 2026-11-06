@@ -137,6 +137,7 @@ export function finishScenario(
   durationMs: number,
   꼬리: string,
   cleanup?: ScenarioCleanup[],
+  돌던ms = 0,
 ): ScenarioExecuteResponse {
   const bySeq = new Map(lines.map((p) => [p.seq, p]));
   const parts: ScenarioPartResult[] = [];
@@ -151,8 +152,8 @@ export function finishScenario(
     } else if (멈춤) {
       parts.push(빈부품(seq, 'NOT_RUN', 'NA'));
     } else if (killed !== null) {
-      // 멈춘 원인이 앞 부품 실패가 아니라 제한 시간이거나 사람이 끊은 것이다
-      parts.push(빈부품(seq, killed, 'NA'));
+      // 멈춘 원인이 앞 부품 실패가 아니라 제한 시간이거나 사람이 끊은 것이다. 첫 빈 부품이 끊길 때 돌던 부품이라 걸린 시간을 남긴다
+      parts.push({ ...빈부품(seq, killed, 'NA'), durationMs: parts.some((p) => p.error?.message === killed) ? 0 : 돌던ms });
     } else {
       // 안 죽였는데 줄 없이 끝났다 — 설정 오류·자식 사망. 「안 돌았음」으로 두면 원인이 사라진다
       사유 = 꼬리 || '결과 줄 없이 끝났다';
@@ -254,6 +255,7 @@ export async function executeScenario(req: ScenarioExecuteRequest): Promise<Scen
 
   const 결과 = finishScenario(
     parseParts(stdout), req.parts.length, entry.killedBy, Date.now() - startedAt, tail(stderr) || tail(stdout), parseCleanup(stdout),
+    Date.now() - entry.부품시작,
   );
   if (폰기기 !== undefined) {
     if (폰증적) await 폰증적을둔다(폰폴더, 결과.status);

@@ -499,7 +499,7 @@ describe.skipIf(연결 === undefined)('시나리오 실행 만들기', () => {
     expect((await 부품행(runId)).map((r) => r.status)).toEqual(['PASS', 'PASS', 'PASS']);
   });
 
-  it('사람이 멈춘 실행(사람이멈춤)은 ABORTED 로 닫고 끝난 부품은 그대로, 안 끝난 부품은 NA + STOPPED 다', async () => {
+  it('사람이 멈춘 실행(사람이멈춤)은 ABORTED 로 닫고 끝난 부품은 그대로, 돌던 부품은 STOPPED · 시작도 못 한 부품은 NOT_RUN 이다', async () => {
     const runId = await 세부품();
     const 응답: ScenarioExecuteResponse = {
       status: 'NA',
@@ -507,7 +507,7 @@ describe.skipIf(연결 === undefined)('시나리오 실행 만들기', () => {
       error: { message: 'ABORTED' },
       parts: [
         { seq: 1, status: 'PASS', durationMs: 3, mocks: [], steps: [] },
-        { seq: 2, status: 'NA', durationMs: 0, mocks: [], steps: [], error: { message: 'ABORTED' } },
+        { seq: 2, status: 'NA', durationMs: 4000, mocks: [], steps: [], error: { message: 'ABORTED' } },
       ],
     };
     expect(await 결과저장(runId, 응답, true)).toBe(true);
@@ -515,8 +515,9 @@ describe.skipIf(연결 === undefined)('시나리오 실행 만들기', () => {
     expect((await 부품행(runId)).map((r) => [r.seq, r.status, r.error])).toEqual([
       [1, 'PASS', null],
       [2, 'NA', { message: 'STOPPED' }],
-      [3, 'NA', { message: 'STOPPED' }],
+      [3, 'NA', { message: 'NOT_RUN' }],
     ]);
+    expect((await 부품행(runId)).map((r) => r.duration_ms)).toEqual([3, 4000, 0]);
     expect((await 실행상태(runId)).status).toBe('ABORTED');
   });
 
@@ -536,7 +537,7 @@ describe.skipIf(연결 === undefined)('시나리오 실행 만들기', () => {
           error: { message: 'ABORTED' },
           parts: [
             { seq: 1, status: 'PASS', durationMs: 1, mocks: [], steps: [] },
-            { seq: 2, status: 'NA', durationMs: 0, mocks: [], steps: [], error: { message: 'ABORTED' } },
+            { seq: 2, status: 'NA', durationMs: 7, mocks: [], steps: [], error: { message: 'ABORTED' } },
             { seq: 3, status: 'NA', durationMs: 0, mocks: [], steps: [], error: { message: 'ABORTED' } },
           ],
         });
@@ -562,6 +563,6 @@ describe.skipIf(연결 === undefined)('시나리오 실행 만들기', () => {
 
     expect(받은중단).toEqual([{ scenarioRunId: runId }]);
     expect((await 실행상태(runId)).status).toBe('ABORTED');
-    expect((await 부품행(runId)).map((r) => [r.status, r.error])).toEqual([['PASS', null], ['NA', { message: 'STOPPED' }], ['NA', { message: 'STOPPED' }]]);
+    expect((await 부품행(runId)).map((r) => [r.status, r.error])).toEqual([['PASS', null], ['NA', { message: 'STOPPED' }], ['NA', { message: 'NOT_RUN' }]]);
   });
 });
