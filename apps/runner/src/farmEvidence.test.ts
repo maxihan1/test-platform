@@ -9,6 +9,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const farmArtifacts = vi.fn();
 vi.mock('appium-cli', () => ({ farmArtifacts: (...a: unknown[]) => farmArtifacts(...a) }));
+const 점검결과를기다린다 = vi.fn();
+vi.mock('./farmUiCheck.js', async (원본) => ({
+  ...(await 원본<typeof import('./farmUiCheck.js')>()),
+  점검결과를기다린다: (...a: unknown[]) => 점검결과를기다린다(...a),
+}));
 
 const { 팜증적받기를줄세운다, 팜증적을받는다, 팜토큰을지운다 } = await import('./farmEvidence.js');
 
@@ -23,6 +28,8 @@ beforeEach(() => {
   mkdirSync(폴더(), { recursive: true });
   writeFileSync(idFile(), 'sess-1\n');
   farmArtifacts.mockReset();
+  점검결과를기다린다.mockReset();
+  점검결과를기다린다.mockResolvedValue(undefined);
   farmArtifacts.mockResolvedValue({ files: [], errors: [] });
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
 });
@@ -81,6 +88,37 @@ describe('팜증적을받는다', () => {
     await 팜증적을받는다(3, 9, 'PASS');
     expect(farmArtifacts).not.toHaveBeenCalled();
     expect(existsSync(idFile())).toBe(true);
+  });
+
+  it('호환성 항목은 통과해도 AI 점검 결과를 기다려 받고, 번호 파일은 남긴다', async () => {
+    await 팜증적을받는다(3, 9, 'PASS', 'pat_kim', { 끝난때: 1234 });
+    expect(점검결과를기다린다).toHaveBeenCalledWith(폴더(), 'http://farm:4723/wd/hub', 'sess-1', 'pat_kim', 1234);
+    expect(farmArtifacts).not.toHaveBeenCalled();
+    expect(existsSync(idFile())).toBe(true);
+  });
+
+  it('실패한 호환성 항목은 영상 · logcat 도 받되, 그 길로 온 점검 중 파일은 farm 에 두지 않는다', async () => {
+    farmArtifacts.mockImplementation(async (_u: string, _s: string, 받는곳: string) => {
+      mkdirSync(받는곳, { recursive: true });
+      for (const 이름 of ['video-1.mp4', 'ui-check.json', 'ui-001.png']) writeFileSync(join(받는곳, 이름), 'x');
+      return { files: [], errors: [] };
+    });
+    await 팜증적을받는다(3, 9, 'FAIL', undefined, { 끝난때: 1 });
+    expect(점검결과를기다린다).toHaveBeenCalledTimes(1);
+    expect(existsSync(join(폴더(), FARM_EVIDENCE_DIR, 'video-1.mp4'))).toBe(true);
+    expect(existsSync(join(폴더(), FARM_EVIDENCE_DIR, 'ui-check.json'))).toBe(false);
+    expect(existsSync(join(폴더(), FARM_EVIDENCE_DIR, 'ui-001.png'))).toBe(false);
+  });
+
+  it('점검 결과 받기가 던져도 러너를 끄지 않고 알린다', async () => {
+    점검결과를기다린다.mockRejectedValue(new Error('Invalid URL'));
+    await 팜증적을받는다(3, 9, 'PASS', undefined, { 끝난때: 1 });
+    await vi.waitFor(() => expect(console.error).toHaveBeenCalledWith(expect.stringContaining('Invalid URL')));
+  });
+
+  it('호환성 항목이 아니면 점검 결과를 기다리지 않는다', async () => {
+    await 팜증적을받는다(3, 9, 'FAIL');
+    expect(점검결과를기다린다).not.toHaveBeenCalled();
   });
 
   it('kit 이 farm 폴더에 먼저 둔 게임 증적과 부딪히지 않고 받은 파일을 옆에 더한다', async () => {

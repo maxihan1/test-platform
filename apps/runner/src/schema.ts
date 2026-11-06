@@ -65,6 +65,8 @@ export const executeRequest = z.object({
   farmToken: 팜토큰.optional(),
   // z.object 는 모르는 칸을 버린다 — 여기 안 적으면 게임 항목이 앱처럼 돈다 (도메인/러너 §5.2 종류 결정 3)
   engine: z.literal('GAME').optional(),
+  // 호환성 실행 항목 — 안 적으면 z.object 가 버려 팜 AI 점검이 안 켜진다 (도메인/호환성 §7 「러너 · kit」)
+  uiCheck: z.literal(true).optional(),
   adminKey,
   apiAuths,
   apiDoc,

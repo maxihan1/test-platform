@@ -35,6 +35,11 @@ describe('appCapabilities', () => {
     expect('appium:noReset' in appCapabilities({ PLATFORM_APP: '/tmp/a.apk' })).toBe(false);
   });
 
+  it('호환성 실행 항목이면 팜 AI 점검을 켠다 — 아니면 넣지 않는다', () => {
+    expect(appCapabilities({ PLATFORM_APP: '/tmp/a.apk', PLATFORM_UI_CHECK: '1' })['farm:uiCheck']).toBe(true);
+    expect('farm:uiCheck' in appCapabilities({ PLATFORM_APP: '/tmp/a.apk', PLATFORM_UI_CHECK: '' })).toBe(false);
+  });
+
   it('E2E 시나리오가 준 연결 유지 시간이 앱 · 게임 기본값보다 앞선다', () => {
     const env = { PLATFORM_APP: '/tmp/g.apk', PLATFORM_APPIUM_NEW_COMMAND_TIMEOUT: '1800' };
     expect(appCapabilities(env)['appium:newCommandTimeout']).toBe(1800);

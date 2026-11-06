@@ -37,9 +37,9 @@ export const 폰시나리오가도는가 = (): boolean => 폰시나리오 > 0;
 
 // 폰 연결 값 — 단독 앱 항목과 같은 이름이고 요청 값이 러너를 켤 때 준 값보다 앞선다. 앱 단계가 없으면 팜 토큰을 빼고 넘긴다(execute.ts 와 같은 까닭)
 export function 폰환경(req: ScenarioExecuteRequest): Record<string, string | undefined> {
-  // 다섯 다 늘 적는다 — 러너를 켠 셸의 값을 자식이 물려받지 않게
+  // 여섯 다 늘 적는다 — 러너를 켠 셸의 값을 자식이 물려받지 않게. AI 점검(PLATFORM_UI_CHECK)은 호환성 단독 항목만 켠다 (도메인/호환성 §7 「러너 · kit」)
   if (!폰단계가있나(req)) {
-    return { PLATFORM_APPIUM_TOKEN: undefined, PLATFORM_APPIUM_NEW_COMMAND_TIMEOUT: '', PLATFORM_ENGINE: '', PLATFORM_GAME_LINK: '', PLATFORM_ADMIN_KEY: '' };
+    return { PLATFORM_APPIUM_TOKEN: undefined, PLATFORM_APPIUM_NEW_COMMAND_TIMEOUT: '', PLATFORM_ENGINE: '', PLATFORM_GAME_LINK: '', PLATFORM_ADMIN_KEY: '', PLATFORM_UI_CHECK: '' };
   }
   return {
     PLATFORM_APPIUM_TOKEN: req.farmToken ?? process.env.PLATFORM_APPIUM_TOKEN,
@@ -47,6 +47,7 @@ export function 폰환경(req: ScenarioExecuteRequest): Record<string, string | 
     ...(req.udid !== undefined && { PLATFORM_DEVICE_UDID: req.udid }),
     // 웹 단계가 몇 개 끼어도 앱에 명령이 안 가는 동안 끊기지 않게 시나리오 제한 시간(초로 올림)으로 연다
     PLATFORM_APPIUM_NEW_COMMAND_TIMEOUT: String(Math.ceil(req.timeoutMs / 1000)),
+    PLATFORM_UI_CHECK: '',
     ...gameEnv({ ...req, platform: 'android' }),
   };
 }
