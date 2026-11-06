@@ -78,11 +78,11 @@ describe.skipIf(연결 === undefined)('실패 항목의 유형과 한 줄', () =
     await shared.end();
   });
 
-  it('항목 상세가 유형과 한 줄을 싣는다 — 확인 문장이 있으면 그 문장, 없으면 색 코드를 걷은 오류 첫 줄', async () => {
+  it('항목 상세가 유형과 한 줄을 싣는다 — 확인 문장이 있으면 그 문장, 없으면 오류 첫 줄 · 한글 없는 원문이면 유형 문장', async () => {
     expect((await findItem(실행, 번호['1pc']!))?.failure).toEqual({ type: 'mismatch', reason: '주문 수가 늘어난다' });
     expect((await findItem(실행, 번호['1mo']!))?.failure).toEqual({
       type: 'notFound',
-      reason: 'Test timeout of 30000ms exceeded.',
+      reason: '요소를 끝내 찾지 못했습니다',
     });
   });
 
