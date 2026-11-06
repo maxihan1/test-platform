@@ -118,6 +118,12 @@ describe('정식 실행 진행 창 — 화면 카드 (시안 A ⑤)', () => {
     expect(document.querySelector('.rl-items')?.textContent).toContain('3 / 5단계');
   });
 
+  it('단계가 도는데 장면 열쇠가 없으면(admin 이 다시 떴다) 「여는 중」이 아니라 보여 줄 화면이 없다고 적는다', () => {
+    render(<RunProgressModal data={실행([항목(15, 'desktop')])} 진행목록={[절차(15, { live: false })]} onClose={() => {}} />);
+
+    expect(document.querySelector('.lc-scene')?.textContent).toBe('지금은 보여 줄 화면이 없습니다');
+  });
+
   it('저장한 단계 제목이 지금 단계와 다르면 분모를 붙이지 않는다', () => {
     vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'empty' });
     render(

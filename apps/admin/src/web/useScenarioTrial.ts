@@ -122,7 +122,9 @@ export function useScenarioTrial(열쇠: string) {
         const 폰이름 = 답.vision?.name ?? null;
         set상태((앞) => {
           const 쌓임 = 단계쌓기(앞.지금단계들, 답.step === undefined ? undefined : { ...답.step, title: '' });
-          return 앞.vision === vision && 앞.폰이름 === 폰이름 && 쌓임 === 앞.지금단계들 ? 앞 : { ...앞, vision, 폰이름, 지금단계들: 쌓임 };
+          return 앞.vision === vision && 앞.폰이름 === 폰이름 && 쌓임 === 앞.지금단계들 && 앞.오류문장 === null
+            ? 앞
+            : { ...앞, vision, 폰이름, 지금단계들: 쌓임, 오류문장: null };
         });
         타이머.current = setTimeout(() => void 묻기(trialId, 이줄), 묻는간격);
         return;
@@ -133,16 +135,20 @@ export function useScenarioTrial(열쇠: string) {
     } catch (err) {
       if (이줄.끝남) return;
       const 없다 = err instanceof ApiError && err.code === 'TRIAL_NOT_FOUND';
-      if (없다) 쓰기(옮긴곳.get(열쇠쪽.current) ?? 열쇠쪽.current, null);
+      // 한 번 묻기가 끊긴 것(망 · 5xx)으로 창을 내리지 않는다 — 시험은 서버에서 계속 돌고 창이 내려가면 「중단」할 길이 없다. 다음 간격에 다시 묻는다
+      if (!없다) {
+        set상태((앞) => ({ ...앞, 오류문장: message(err, 말투.current) }));
+        타이머.current = setTimeout(() => void 묻기(trialId, 이줄), 묻는간격);
+        return;
+      }
+      쓰기(옮긴곳.get(열쇠쪽.current) ?? 열쇠쪽.current, null);
       set상태((앞) => ({
         ...앞,
         단계: 'failed',
         vision: null,
         폰이름: null,
         중단함: false,
-        오류문장: 없다
-          ? 글.current('시험 결과를 찾지 못했습니다. 시간이 지났거나 서버가 다시 켜졌을 수 있습니다')
-          : message(err, 말투.current),
+        오류문장: 글.current('시험 결과를 찾지 못했습니다. 시간이 지났거나 서버가 다시 켜졌을 수 있습니다'),
       }));
     }
   }, []);
@@ -179,6 +185,8 @@ export function useScenarioTrial(열쇠: string) {
         // 화면을 떠났거나 열쇠가 옮겨진 뒤에 와도 지금 열쇠에는 적어 둔다
         쓰기(옮긴곳.get(열쇠쪽.current) ?? 열쇠쪽.current, { trialId, env: 본문.env, parts: 본문.parts, 시작 });
         if (이줄.끝남) return;
+        // 다시 그리기 전에 누른 「중단」도 번호를 읽게 바로 적는다 — 그리기에서만 채우면 그 틈의 중단이 빈손으로 끝난다
+        지금번호.current = trialId;
         set상태((앞) => ({ ...앞, trialId }));
         // 시작 응답이 오기 전에 중단을 눌렀다면 번호를 안 뒤에 멈춘다
         if (멈춰달라.current) void scenarioApi.abortTrial(trialId).catch(() => undefined);

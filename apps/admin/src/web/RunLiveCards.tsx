@@ -48,7 +48,7 @@ export function 짧은단계글(절차: 항목진행 | null, t: 말): string | n
  * 「2초 / 제한 30초」 — 앞 시간은 항목 경과다. 단계 경과는 단계마다 0초로 돌아가 항목 제한과 짝이 안 맞았다(점검표 B13).
  * 옛 응답처럼 항목 경과가 없으면 단계 경과로 물러선다
  */
-export function 경과글(절차: 항목진행 | null, 언어: 언어, t: 말): string | null {
+export function 제한경과글(절차: 항목진행 | null, 언어: 언어, t: 말): string | null {
   const 경과 = 절차?.itemElapsedMs ?? 절차?.elapsedMs;
   if (절차 === null || 경과 === undefined) return null;
   return t('{경과} / 제한 {제한}', { 경과: 시간글자(경과, 언어), 제한: 시간글자(절차.timeoutMs, 언어) });
@@ -86,7 +86,7 @@ function 카드({ runId, 것, 크게, on크게 }: { runId: number; 것: 도는�
   // 장면을 찍는 항목인지는 admin 메모리의 열쇠가 정한다 — 디바이스로 짐작하지 않는다 (도메인/실행 §7 progress 의 live)
   const 화면있음 = 절차?.live === true;
   const 지금단계 = 단계(절차);
-  const 시간 = 경과글(절차, 언어, t);
+  const 시간 = 제한경과글(절차, 언어, t);
 
   return (
     <section className={크게 ? 'lc big' : 'lc'} aria-label={`${항목.tcId} ${t('실시간 화면')}`}>
@@ -109,8 +109,11 @@ function 카드({ runId, 것, 크게, on크게 }: { runId: number; 것: 도는�
         {화면있음 ? (
           <장면 runId={runId} historyId={항목.historyId} 폰={항목.platform !== 'desktop'} />
         ) : (
-          // 정식 실행은 앱 폰 장면을 찍지 않는다 — 폰 화면은 VISION 링크가 연다 (도메인/실행 §3.2 「정식 실행 화면」)
-          <p className="live-wait">{절차?.vision === undefined ? 첫단계전글(것, t) : t('폰 화면은 Device VISION 에서 봅니다')}</p>
+          // 정식 실행은 앱 폰 장면을 찍지 않는다 — 폰 화면은 VISION 링크가 연다 (도메인/실행 §3.2 「정식 실행 화면」).
+          // 단계가 이미 도는데 장면이 없으면 admin 이 다시 떠 장면 열쇠를 잃은 것이다 — 「여는 중」이라 하면 멈춘 것처럼 읽힌다
+          <p className="live-wait">
+            {절차?.vision !== undefined ? t('폰 화면은 Device VISION 에서 봅니다') : 지금단계 === null ? 첫단계전글(것, t) : t('지금은 보여 줄 화면이 없습니다')}
+          </p>
         )}
       </div>
       <div className="lc-foot">

@@ -168,7 +168,7 @@ type 말 = ReturnType<typeof use말>;
 /** 칸 머리 둘째 글 — 디바이스와 어디서 도는지. 실제 폰은 Device VISION 이다 */
 function 어디서도는지(data: ScenarioRunResult, t: 말): string {
   const 어디 =
-    data.platform === 'desktop' ? t('서버 브라우저') : data.platform === 'mobile' ? (data.vision !== undefined && data.live !== true ? t('실제 기기') : t('가상 기기 · iPhone 14')) : t('Device VISION 폰');
+    data.platform === 'desktop' ? t('서버 브라우저') : data.platform === 'mobile' ? (data.vision !== undefined ? t('실제 기기') : t('가상 기기 · iPhone 14')) : t('Device VISION 폰');
   return `${t(PLATFORM_LABEL[data.platform])} · ${어디}`;
 }
 

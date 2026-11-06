@@ -40,7 +40,8 @@ export function use창실행알림(runId: number): void {
     창실행 = runId;
     window.dispatchEvent(new Event(창바뀜));
     return () => {
-      창실행 = null;
+      // 겹친 창이 먼저 자기 번호를 적었으면 그대로 둔다 — 남의 창 거르기를 지우지 않는다
+      if (창실행 === runId) 창실행 = null;
       window.dispatchEvent(new Event(창바뀜));
     };
   }, [runId]);

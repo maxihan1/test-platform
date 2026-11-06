@@ -78,6 +78,8 @@ export function ScenarioTrialWindow({ 시험, 단계들, 재료, platform, 모�
           {/* Android 는 Appium 이라 늦추지 않는다 (러너 §5.2) */}
           {도는중 && platform !== 'android' ? <span className="r">{t('동작마다 1초 천천히')}</span> : null}
         </p>
+        {/* 묻기가 끊겨도 창은 남아 다시 묻는다 — 끊긴 까닭은 띠 아래 한 줄 */}
+        {도는중 && 시험.오류문장 !== null ? <p className="err">{시험.오류문장}</p> : null}
         {도는중 || 시험.결과 === null ? (
           <E2E진행몸
             줄들={목록줄들(시험이름줄들(돌린단계, 재료, 언어), 시험.지금단계들, 도는중)}
