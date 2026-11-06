@@ -289,7 +289,7 @@ button.iv {
 }
 
 /* 디바이스를 다 끄면 표 자리에 사유를 크게 둔다 (점검표 B9) */
-.picked-none {
+.modal.frame .picked-none {
   display: grid;
   place-items: center;
   min-height: 160px;
