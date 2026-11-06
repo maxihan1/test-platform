@@ -2,11 +2,11 @@
 // 진행 알림과 중단은 케이스의 running 지도(historyId 열쇠)와 따로 runId · trialId 열쇠의 지도로 한다 (SPEC 도메인/러너 §5.2 「시나리오 진행 · 중단」)
 // 앱 · 게임 단계가 있으면 폰 연결 하나를 쥔다 — 그동안은 폰시나리오가도는가() 가 참이라 화면 읽기가 폰을 안 가로챈다 (SPEC 도메인/시나리오 §3.7 결정 16)
 
-import { spawn, type ChildProcess } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { copyFile, mkdir, readdir, rename, unlink } from 'node:fs/promises';
 import { basename, dirname, join, resolve } from 'node:path';
 
-import { runDir, type DeviceInfo, type RunningScenario, type ScenarioCleanup, type ScenarioExecuteRequest, type ScenarioExecuteResponse, type ScenarioPartResult } from '@platform/kit';
+import { runDir, type DeviceInfo, type ScenarioCleanup, type ScenarioExecuteRequest, type ScenarioExecuteResponse, type ScenarioPartResult } from '@platform/kit';
 import { SCENARIO_CLEANUP_MARKER, SCENARIO_DEVICE_MARKER, SCENARIO_PART_MARKER } from '@platform/kit/scenario';
 
 import { 판쓰기, 판지우기 } from './apiDoc.js';
@@ -17,6 +17,7 @@ import { 장면환경 } from './live.js';
 import { 산출물폴더, 출력폴더를지운다, 출력폴더이름 } from './outputDir.js';
 import { 실제폰인가, 실제폰환경, 폰기기를묻는다, 폰로그, 폰로그를받는다, 폰증적을둔다 } from './realPhone.js';
 import { 녹화폴더 } from './recordHar.js';
+import { runningScenarios, 열쇠, type 도는시나리오 } from './scenarioRunning.js';
 
 const scenarioConfig = resolve(appRoot, 'apps/runner/scenario/playwright.config.ts');
 
@@ -29,42 +30,6 @@ export const 시나리오폴더 = (req: Pick<ScenarioExecuteRequest, 'runId' | '
 
 // android 시나리오의 웹 단계 · 시작 빈 창은 PC 창으로 돈다. android project 에는 브라우저가 없다 (SPEC 도메인/시나리오 §3.7 결정 16)
 export const 시나리오project = (req: Pick<ScenarioExecuteRequest, 'platform'>): string => (req.platform === 'android' ? 'desktop' : req.platform);
-
-// 돌고 있는 시나리오 자식. 열쇠는 정식 실행이면 run:<runId>, 시험 실행이면 trial:<trialId> — 케이스의 historyId 와 열쇠 꼴이 달라 지도를 따로 둔다
-interface 도는시나리오 {
-  child: ChildProcess;
-  killedBy: KilledBy | null;
-  runId: number | null;
-  trialId: string | undefined;
-  total: number;
-  받은줄수: number;
-  // 지금 부품이 시작한 때 — 첫 부품은 자식을 띄운 때, 그 뒤는 앞 결과 줄을 받은 때
-  부품시작: number;
-}
-export const runningScenarios = new Map<string, 도는시나리오>();
-
-const 열쇠 = (req: Pick<ScenarioExecuteRequest, 'runId' | 'trialId'>): string =>
-  req.runId === null ? `trial:${req.trialId ?? ''}` : `run:${String(req.runId)}`;
-
-// 경과는 묻는 그 순간에 잰다 — 받는 쪽 시계와의 차가 오차로 남지 않게 (케이스 /progress 와 같다)
-export function 시나리오진행(): RunningScenario[] {
-  return [...runningScenarios.values()].map((e) => ({
-    runId: e.runId,
-    ...(e.trialId === undefined ? {} : { trialId: e.trialId }),
-    seq: Math.min(e.받은줄수 + 1, e.total),
-    elapsedMs: Date.now() - e.부품시작,
-  }));
-}
-
-// 끊는 방식은 제한 시간과 같다. 모르는 열쇠는 경합이라 false 이고, 이미 죽인 것은 true 다 — 먼저 찍힌 사유가 이긴다 (execute.ts abort 와 같다)
-export function abortScenario(k: { scenarioRunId: number } | { scenarioTrialId: string }): boolean {
-  const entry = runningScenarios.get('scenarioRunId' in k ? `run:${String(k.scenarioRunId)}` : `trial:${k.scenarioTrialId}`);
-  if (entry === undefined) return false;
-  if (entry.killedBy !== null) return true;
-  entry.killedBy = 'ABORTED';
-  killTree(entry.child);
-  return true;
-}
 
 let 폰시나리오 = 0;
 export const 폰시나리오가도는가 = (): boolean => 폰시나리오 > 0;

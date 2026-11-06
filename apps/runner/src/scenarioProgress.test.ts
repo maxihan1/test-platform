@@ -21,7 +21,8 @@ vi.mock('node:child_process', async () => {
 });
 vi.mock('./kill.js', () => ({ killTree: vi.fn((c: EventEmitter) => { c.emit('close', null); }) }));
 
-const { abortScenario, executeScenario, runningScenarios, 시나리오진행 } = await import('./scenario.js');
+const { executeScenario } = await import('./scenario.js');
+const { abortScenario, runningScenarios, 시나리오진행 } = await import('./scenarioRunning.js');
 const { killTree } = await import('./kill.js');
 
 const 줄 = (seq: number): string =>

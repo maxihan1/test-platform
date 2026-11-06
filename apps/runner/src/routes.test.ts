@@ -10,7 +10,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { execute, running, 진행을_모은다, type Running } from './execute.js';
 import { killTree } from './kill.js';
 import { registerRoutes } from './routes.js';
-import { executeScenario, runningScenarios } from './scenario.js';
+import { executeScenario } from './scenario.js';
+import { runningScenarios } from './scenarioRunning.js';
 
 // 입구가 실행에 무엇을 넘기는지만 본다. 진짜 실행은 자식 프로세스와 브라우저를 띄운다
 vi.mock('./scenario.js', async (원본) => ({

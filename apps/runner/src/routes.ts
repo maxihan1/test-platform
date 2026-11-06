@@ -13,7 +13,8 @@ import { 팜증적받기를줄세운다, 팜토큰을지운다 } from './farmEvi
 import { registerLive, 장면과돌린다 } from './live.js';
 import { registerPerfDeviceRoutes } from './perfDevice.js';
 import { registerRemote } from './remote.js';
-import { abortScenario, executeScenario, 시나리오진행, 판뺀부품들, 폰단계가있나, 폰시나리오가도는가 } from './scenario.js';
+import { executeScenario, 판뺀부품들, 폰단계가있나, 폰시나리오가도는가 } from './scenario.js';
+import { abortScenario, 시나리오진행 } from './scenarioRunning.js';
 import { 폰값이없다 } from './scenarioGate.js';
 import { abortRequest, appScreenRequest, executeRequest, scenarioRequest, 목록상한, 판상한 } from './schema.js';
 
