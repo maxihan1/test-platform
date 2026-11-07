@@ -104,7 +104,14 @@ describe('의심 네모 · 카드 글', () => {
   });
 
   it('카드 아래 줄은 케이스 번호와 단계다', () => {
-    expect(찍은때({ tcId: 'DMA-UI-031', step: 4 }, t)).toBe('DMA-UI-031 4단계 · 터치 직전 캡처');
-    expect(찍은때({ tcId: 'DMA-UI-031', step: null }, t)).toBe('DMA-UI-031');
+    expect(찍은때({ tcId: 'DMA-UI-031', step: 4, before: 'element/click' }, t)).toBe('DMA-UI-031 4단계 · 터치 직전 캡처');
+    expect(찍은때({ tcId: 'DMA-UI-031', step: null, before: 'element/click' }, t)).toBe('DMA-UI-031');
+  });
+
+  it('뒤로 가기 · 세션 닫기 직전에 찍은 화면은 그 때를 적는다 — 그 단계에서 누른 화면이 아니다', () => {
+    expect(찍은때({ tcId: 'DMA-UI-133', step: 4, before: 'back' }, t)).toBe('DMA-UI-133 4단계 · 뒤로 가기 직전 캡처');
+    expect(찍은때({ tcId: 'DMA-UI-133', step: 5, before: 'session/delete' }, t)).toBe('DMA-UI-133 5단계 · 테스트 종료 직전 캡처');
+    expect(찍은때({ tcId: 'DMA-UI-133', step: 3, before: 'element/value' }, t)).toBe('DMA-UI-133 3단계 · 터치 직전 캡처');
+    expect(찍은때({ tcId: 'DMA-UI-133', step: 3, before: '' }, t)).toBe('DMA-UI-133 3단계');
   });
 });

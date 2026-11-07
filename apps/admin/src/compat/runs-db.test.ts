@@ -165,7 +165,7 @@ describe.skipIf(연결 === undefined)('호환성 실행 · 결과 · 판정', { 
 
     const 결과 = (await app.inject({ method: 'GET', url: `/api/compat-runs/${runId}` })).json<{
       run: { state: string }; devices: { serial: string; fold: string | null; state: string; os: string | null }[]; rows: { key: string; cells: { seq: number; value: string }[] }[];
-      counts: Record<string, number>; cards: { screenId: number; step: number }[]; hiddenOk: number;
+      counts: Record<string, number>; cards: { screenId: number; step: number; before: string }[]; hiddenOk: number;
     }>();
     expect(결과.run.state).toBe('FINISHED');
     expect(결과.devices.map((d) => [d.serial, d.fold, d.state, d.os])).toEqual([['XCRA2', 'OPEN', 'DONE', '14'], ['XCRB1', null, 'DONE', '14']]);
@@ -174,6 +174,7 @@ describe.skipIf(연결 === undefined)('호환성 실행 · 결과 · 판정', { 
     expect(결과.rows[1]?.cells).toEqual([{ seq: 1, value: 'PENDING' }, { seq: 2, value: 'PENDING' }]);
     expect(결과.counts).toMatchObject({ devices: 2, states: 2, pending: 4, confirmed: 0 });
     expect(결과.cards[0]?.step).toBe(1);
+    expect(결과.cards.map((c) => c.before).sort()).toEqual(['cdp click', 'cdp click', 'element/click', 'element/click']);
 
     // 앱 그림은 러너가, Chrome 그림은 admin 이 실행 폴더에 받아 둔다
     for (const 카드 of 결과.cards) {

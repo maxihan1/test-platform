@@ -41,6 +41,8 @@ export interface 저장화면 {
   step: number | null;
   status: 'done' | 'failed' | 'skipped';
   issues: 의심[];
+  // 비전이 찍은 때(ui-check.json before) — 카드 설명이 터치 · 뒤로 가기 · 테스트 종료 직전을 가른다
+  before: string;
 }
 
 export interface 판정줄 {
@@ -160,6 +162,7 @@ export function 결과셈(재: 결과재료) {
           screenId: s.id,
           tcId: 재.케이스들.find((c) => c.id === s.caseRunId)?.tcId ?? '',
           step: s.step,
+          before: s.before,
           issues: s.issues,
           verdict: v?.verdict ?? null,
           judgedBy: v?.judgedBy ?? null,
