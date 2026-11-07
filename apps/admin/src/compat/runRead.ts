@@ -70,11 +70,11 @@ export async function 케이스들읽기(runId: number): Promise<실행케이스
 }
 
 export async function 화면들읽기(runId: number): Promise<(저장화면 & { file: string | null })[]> {
-  const r = await (await db()).query<{ id: string; case_run_id: string; seq: number; screen_key: string; step: number | null; status: 저장화면['status']; issues: 의심[]; file: string | null }>(
-    'SELECT id, case_run_id, seq, screen_key, step, status, issues, file FROM compat_screen WHERE run_id = $1 ORDER BY id',
+  const r = await (await db()).query<{ id: string; case_run_id: string; seq: number; screen_key: string; step: number | null; status: 저장화면['status']; issues: 의심[]; file: string | null; before: string }>(
+    'SELECT id, case_run_id, seq, screen_key, step, status, issues, file, before FROM compat_screen WHERE run_id = $1 ORDER BY id',
     [runId],
   );
-  return r.rows.map((x) => ({ id: Number(x.id), caseRunId: Number(x.case_run_id), seq: x.seq, key: x.screen_key, step: x.step, status: x.status, issues: x.issues, file: x.file }));
+  return r.rows.map((x) => ({ id: Number(x.id), caseRunId: Number(x.case_run_id), seq: x.seq, key: x.screen_key, step: x.step, status: x.status, issues: x.issues, file: x.file, before: x.before }));
 }
 
 export async function 판정들읽기(runId: number): Promise<판정줄[]> {

@@ -168,6 +168,12 @@ export function 네모자리(box: readonly number[], 가로: number, 세로: num
   return { left: 퍼(x, 가로), top: 퍼(y, 세로), width: 퍼(w, 가로), height: 퍼(h, 세로) };
 }
 
-/** 카드 아래 한 줄 — 시안 `DMA-UI-031 4단계 · 터치 직전 캡처` */
-export const 찍은때 = (c: Pick<CompatCard, 'tcId' | 'step'>, t: 번역): string =>
-  c.step === null ? c.tcId : t('{번호} {단계}단계 · 터치 직전 캡처', { 번호: c.tcId, 단계: c.step });
+/**
+ * 카드 아래 한 줄 — 시안 `DMA-UI-031 4단계 · 터치 직전 캡처`. 비전은 뒤로 가기 · 세션 닫기 직전에도 찍는다 —
+ * 그 사진에 「터치 직전」을 붙이면 그 단계에서 누른 다른 화면을 가리킨다 (2026-11-07 COMPAT-F1-08 뒤 사용자)
+ */
+export const 찍은때 = (c: Pick<CompatCard, 'tcId' | 'step' | 'before'>, t: 번역): string => {
+  if (c.step === null) return c.tcId;
+  const 글 = c.before === 'back' ? '{번호} {단계}단계 · 뒤로 가기 직전 캡처' : c.before === 'session/delete' ? '{번호} {단계}단계 · 테스트 종료 직전 캡처' : '{번호} {단계}단계 · 터치 직전 캡처';
+  return t(글, { 번호: c.tcId, 단계: c.step });
+};

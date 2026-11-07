@@ -24,6 +24,7 @@ export const 카드 = (key: string, seq: number, screenId: number, 덮: Partial<
   screenId,
   tcId: 'DMA-UI-031',
   step: 4,
+  before: 'element/click',
   issues: [{ kind: 'text-overflow', box: [0, 76, 1080, 94], note: '「주문하기」 버튼 텍스트 하단 잘림' }],
   verdict: null,
   judgedBy: null,

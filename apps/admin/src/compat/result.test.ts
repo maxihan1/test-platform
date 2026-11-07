@@ -22,10 +22,10 @@ describe('결과셈', () => {
       케이스들: [케이스(11, 1, 'A-1'), 케이스(21, 2, 'A-1')],
       지나는: new Map([['A-1', ['/a', '/b']]]),
       화면들: [
-        { id: 1, caseRunId: 11, seq: 1, key: '/a', step: 1, status: 'done', issues: 의심 },
-        { id: 2, caseRunId: 11, seq: 1, key: '/b', step: 2, status: 'done', issues: [] },
-        { id: 3, caseRunId: 21, seq: 2, key: '/a', step: 1, status: 'done', issues: 의심 },
-        { id: 4, caseRunId: 21, seq: 2, key: '/b', step: 2, status: 'done', issues: [] },
+        { id: 1, caseRunId: 11, seq: 1, key: '/a', step: 1, status: 'done', before: 'element/click', issues: 의심 },
+        { id: 2, caseRunId: 11, seq: 1, key: '/b', step: 2, status: 'done', before: 'element/click', issues: [] },
+        { id: 3, caseRunId: 21, seq: 2, key: '/a', step: 1, status: 'done', before: 'element/click', issues: 의심 },
+        { id: 4, caseRunId: 21, seq: 2, key: '/b', step: 2, status: 'done', before: 'element/click', issues: [] },
       ],
       판정들: [{ key: '/a', seq: 2, verdict: 'CONFIRMED', judgedBy: 'me', judgedAt: '2026-11-07T00:00:00.000Z' }],
     }));
@@ -71,7 +71,7 @@ describe('결과셈', () => {
     const r = 결과셈(재료({
       상태들: [상태(1)],
       케이스들: [케이스(11, 1, 'DMA-UI-031')],
-      화면들: [{ id: 1, caseRunId: 11, seq: 1, key: 'unknown:DMA-UI-031#4', step: 4, status: 'done', issues: 의심 }],
+      화면들: [{ id: 1, caseRunId: 11, seq: 1, key: 'unknown:DMA-UI-031#4', step: 4, status: 'done', before: 'element/click', issues: 의심 }],
     }));
     expect(r.rows[0]?.name).toBe('화면 모름 — DMA-UI-031 4단계');
   });
@@ -82,8 +82,8 @@ describe('결과셈', () => {
       케이스들: [케이스(11, 1, 'DMA-UI-133'), 케이스(12, 1, 'DMA-FN-250', { status: 'FAIL', failedStep: 1 })],
       지나는: new Map([['DMA-UI-133', ['/login']], ['DMA-FN-250', ['/receiver']]]),
       화면들: [
-        { id: 1, caseRunId: 11, seq: 1, key: '/login', step: 1, status: 'done', issues: [] },
-        { id: 2, caseRunId: 12, seq: 1, key: 'unknown:DMA-FN-250#1', step: 1, status: 'done', issues: [] },
+        { id: 1, caseRunId: 11, seq: 1, key: '/login', step: 1, status: 'done', before: 'element/click', issues: [] },
+        { id: 2, caseRunId: 12, seq: 1, key: 'unknown:DMA-FN-250#1', step: 1, status: 'done', before: 'element/click', issues: [] },
       ],
     }));
     expect(r.counts).toMatchObject({ screens: 1, unchecked: 1 });

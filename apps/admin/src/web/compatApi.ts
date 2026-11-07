@@ -107,6 +107,7 @@ export interface CompatCard {
   screenId: number;
   tcId: string;
   step: number | null;
+  before: string;
   issues: CompatIssue[];
   verdict: 'CONFIRMED' | 'NOT_DEFECT' | null;
   judgedBy: string | null;
