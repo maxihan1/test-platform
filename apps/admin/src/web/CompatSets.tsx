@@ -18,7 +18,7 @@ export const 세트주소 = (id: number | 'new', 접두사: string) => `#/compat
 const 케이스글 = (자동수: number, 직접수: number, t: (키: string, 값?: Record<string, number>) => string) =>
   직접수 === 0 ? t('자동 선택 {수}', { 수: 자동수 }) : t('자동 선택 {자동} · 직접 추가 {직접}', { 자동: 자동수, 직접: 직접수 });
 
-function 최근실행({ run }: { run: CompatSetRow['lastRun'] }) {
+function 최근실행({ run, service }: { run: CompatSetRow['lastRun']; service: string }) {
   const t = use말();
   const 언어 = use언어();
   if (run === null) return <span className="compat-faint">{t('실행 이력 없음')}</span>;
@@ -30,7 +30,7 @@ function 최근실행({ run }: { run: CompatSetRow['lastRun'] }) {
   ].filter((x) => x.수 > 0);
   return (
     <>
-      <a className="mono" href={결과주소(run.runId)}>
+      <a className="mono" href={결과주소(run.runId, service)}>
         {when(run.startedAt, 언어)}
       </a>
       {알약들.length === 0 ? null : (
@@ -117,7 +117,7 @@ export function CompatSets({ serviceId, service, envs, 쓰나 }: { serviceId: nu
                       ) : null}
                     </td>
                     <td data-label={t('최근 실행')}>
-                      <최근실행 run={s.lastRun} />
+                      <최근실행 run={s.lastRun} service={service} />
                     </td>
                     {쓰나 ? (
                       <td className="compat-go">

@@ -34,6 +34,7 @@ import './runList.css';
 import './caseList.css';
 import './casePick.css';
 import './compat.css';
+import './compatResult.css';
 import './compatRun.css';
 import './perf.css';
 import './perfPages.css';

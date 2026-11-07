@@ -1,6 +1,6 @@
 // 실행 기록 › 호환성 — 지난 호환성 실행 표. 줄을 누르면 결과로 간다 (도메인/호환성 §8.17 ⑤)
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { compatApi, type CompatRunRow } from './compatApi.js';
 import { 결과주소 } from './CompatRunWindow.js';
@@ -12,6 +12,8 @@ import { 다음이있나 } from './paging.js';
 import { 실행자이름 } from './runState.js';
 import { Failed, Loading, useAsync, when } from './ui.js';
 
+const 묻는간격 = 5000;
+
 function 번호(글: string | null): number | null {
   return 글 !== null && /^\d{1,10}$/.test(글) ? Number(글) : null;
 }
@@ -20,6 +22,12 @@ function 번호(글: string | null): number | null {
 function 도는진행({ runId }: { runId: number }) {
   const t = use말();
   const r = useAsync(() => compatApi.run(runId), [runId]);
+  const reload = r.reload;
+  // ponytail: 줄마다 결과 통로 전체를 읽는다. 도는 실행이 많아지면 목록 줄에 진행 칸을 싣는다(계약 변경)
+  useEffect(() => {
+    const 타이머 = setInterval(() => void reload(), 묻는간격);
+    return () => clearInterval(타이머);
+  }, [reload]);
   if (r.data === null) return <span className="cr-state now">{t('실행 중')}</span>;
   const 끝 = r.data.devices.filter(끝났나).length;
   const 점검 = r.data.devices.reduce((a, d) => ({ done: a.done + d.checks.done, total: a.total + d.checks.total }), { done: 0, total: 0 });
@@ -30,11 +38,11 @@ function 도는진행({ runId }: { runId: number }) {
   );
 }
 
-function 줄({ run }: { run: CompatRunRow }) {
+function 줄({ run, service }: { run: CompatRunRow; service: string }) {
   const t = use말();
   const 언어 = use언어();
   const c = run.compat;
-  const 주소 = 결과주소(run.runId);
+  const 주소 = 결과주소(run.runId, service);
   return (
     // 줄 어디를 눌러도 결과로 간다. 화면 읽기 프로그램은 RUN 번호 링크로 간다
     <tr className="cr-row" onClick={() => (window.location.hash = 주소)}>
@@ -136,7 +144,7 @@ export function CompatRunList({ service }: { service: string }) {
               </thead>
               <tbody>
                 {runs.data.items.map((run) => (
-                  <줄 key={run.runId} run={run} />
+                  <줄 key={run.runId} run={run} service={service} />
                 ))}
               </tbody>
             </table>

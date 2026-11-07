@@ -87,5 +87,7 @@ describe('결과셈', () => {
     }));
     expect(r.devices[0]?.now).toEqual({ tcId: 'A-2', name: 'A-2 이름', startedAt: '2026-11-07T01:00:00.000Z' });
     expect(r.devices[1]?.now).toBeNull();
+    const 멈춤 = 결과셈(재료({ 상태들: [상태(1, { state: 'STOPPED' })], 케이스들: [케이스(11, 1, 'A-1', { finished: false, checkState: null })] }));
+    expect(멈춤.devices[0]?.now).toBeNull();
   });
 });

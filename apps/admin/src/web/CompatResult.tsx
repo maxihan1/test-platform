@@ -32,6 +32,15 @@ export function CompatResult({ runId, service, 쓰나 }: { runId: number; servic
   // 도는 실행을 열면 실행 창을 같이 띄운다 — 결과는 도는 동안 비어 있다 (§7 「결과」 「돌거나 점검 중인 칸은 cells 에 없다」)
   const [창, set창] = useState(false);
   const data = res.data;
+  const 도는중 = data?.run.state === 'RUNNING';
+  const reload = res.reload;
+
+  // 도는 동안은 창을 닫아도 칸이 채워지게 다시 읽는다 — 창이 떠 있으면 창이 읽고 닫힐 때 한 번 읽는다
+  useEffect(() => {
+    if (!도는중 || 창) return;
+    const 타이머 = setInterval(() => void reload(), 5000);
+    return () => clearInterval(타이머);
+  }, [도는중, 창, reload]);
 
   useEffect(() => {
     if (data === null || 펼친 !== null) return;
@@ -137,6 +146,7 @@ export function CompatResult({ runId, service, 쓰나 }: { runId: number; servic
       {창 ? (
         <CompatRunWindow
           runId={runId}
+          service={service}
           닫기={() => {
             set창(false);
             void res.reload();

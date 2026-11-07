@@ -6,7 +6,7 @@ import { 알림바뀜 } from './api.js';
 import { compatApi, type CompatRunDevice, type CompatRunResult } from './compatApi.js';
 import { 요약띠 } from './CompatResultParts.js';
 import { CompatShot } from './CompatShot.js';
-import { 상태글자, 상태별의심, 순서설명, 지금상태, 진행, 최근의심 } from './compatRunView.js';
+import { 상태글자, 상태별의심, 케이스차례, 순서설명, 지금상태, 진행, 최근의심 } from './compatRunView.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import { RunAbortModal } from './RunAbortModal.js';
@@ -18,7 +18,8 @@ import { use창실행알림 } from './viewedRun.js';
 
 const 묻는간격 = 2000;
 
-export const 결과주소 = (runId: number) => `#/compat/runs/${String(runId)}`;
+/** 결과 주소. 애플리케이션을 담는다 — 띠가 그 실행의 애플리케이션으로 바뀌어 판정 권한 · 세트 링크가 그 실행 것이 된다 (공통/5-화면공통 §8 「링크에 애플리케이션이 담긴다」) */
+export const 결과주소 = (runId: number, service: string) => `#/compat/runs/${String(runId)}?service=${encodeURIComponent(service)}`;
 
 function 지금카드({ d, 의심수 }: { d: CompatRunDevice; 의심수: number }) {
   const t = use말();
@@ -40,7 +41,7 @@ function 지금카드({ d, 의심수 }: { d: CompatRunDevice; 의심수: number 
         <span className="cr-state now">{t(상태글자[d.state])}</span>
       </div>
       <p>
-        {t('케이스 {끝난} / {전체}', { 끝난: Math.min(d.cases.done + (d.state === 'RUNNING' ? 1 : 0), d.cases.total), 전체: d.cases.total })}
+        {t('케이스 {끝난} / {전체}', { 끝난: 케이스차례(d), 전체: d.cases.total })}
         {d.now === null ? null : (
           <>
             {' · '}
@@ -62,7 +63,7 @@ function 지금카드({ d, 의심수 }: { d: CompatRunDevice; 의심수: number 
 function 진행몸({ data }: { data: CompatRunResult }) {
   const t = use말();
   const 셈 = 진행(data, Date.now());
-  const 의심 = 상태별의심(data.cards);
+  const 의심 = 상태별의심(data.cards.filter((c) => c.verdict !== 'NOT_DEFECT'));
   const 지금 = 지금상태(data.devices);
   const 최근 = 최근의심(data.cards);
   const 이름 = new Map(data.rows.map((r) => [r.key, r.name]));
@@ -133,7 +134,7 @@ function 진행몸({ data }: { data: CompatRunResult }) {
   );
 }
 
-export function CompatRunWindow({ runId, 닫기 }: { runId: number; 닫기: () => void }) {
+export function CompatRunWindow({ runId, service, 닫기 }: { runId: number; service: string; 닫기: () => void }) {
   const t = use말();
   const 언어 = use언어();
   // 창이 떠 있는 동안 알림 줄은 이 실행의 끝을 따로 알리지 않는다 — 창이 알린다
@@ -204,7 +205,7 @@ export function CompatRunWindow({ runId, 닫기 }: { runId: number; 닫기: () =
                 className="btn"
                 onClick={() => {
                   닫는다();
-                  window.location.hash = 결과주소(runId);
+                  window.location.hash = 결과주소(runId, service);
                 }}
               >
                 {t('결과 보기')}

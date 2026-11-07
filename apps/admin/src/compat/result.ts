@@ -121,7 +121,8 @@ export function 결과셈(재: 결과재료) {
       const 찍힘 = 재.화면들.filter((s) => s.seq === d.seq).length;
       const 남은 = 케이스.filter((c) => c.checkState === 'checking').reduce((a, c) => a + Math.max(1, 재.화면수.get(c.tcId) ?? 0), 0);
       // 한 상태는 케이스를 한 건씩 돌려 시작했고 안 끝난 것이 많아야 하나다 — 실행 중 창의 지금 케이스 (§8.17 ③)
-      const 도는 = 케이스.find((c) => c.started && !c.finished);
+      // 멈춘 상태(중단 · 다시 켜기)에 끝 없이 남은 케이스는 도는 것이 아니다
+      const 도는 = d.state === 'RUNNING' ? 케이스.find((c) => c.started && !c.finished) : undefined;
       return {
         seq: d.seq,
         serial: d.heldSerial ?? d.serial,

@@ -7,7 +7,9 @@ const t = (키: string, 값: Record<string, string | number> = {}) => 키.replac
 
 describe('실행 순서 줄', () => {
   it('도는 상태는 지금 케이스 차례 · 점검 중은 장 수 · 끝은 의심 수 · 건너뜀은 까닭이다', () => {
-    expect(순서설명(상태(1, { state: 'RUNNING', cases: { done: 5, total: 9 } }), 0, t)).toBe('케이스 6 / 9');
+    expect(순서설명(상태(1, { state: 'RUNNING', cases: { done: 5, total: 9 }, now: { tcId: 'A', name: 'a', startedAt: null } }), 0, t)).toBe('케이스 6 / 9');
+    // 케이스 사이(도는 케이스가 없다)에는 끝난 수다
+    expect(순서설명(상태(1, { state: 'RUNNING', cases: { done: 5, total: 9 } }), 0, t)).toBe('케이스 5 / 9');
     expect(순서설명(상태(1, { state: 'CHECKING', checks: { done: 40, total: 61 } }), 0, t)).toBe('AI 점검 40 / 61장');
     expect(순서설명(상태(1, { fold: 'OPEN' }), 1, t)).toBe('펼침 · AI 점검 완료 · 결함 의심 1');
     expect(순서설명(상태(1, { state: 'SKIPPED', skipReason: '디바이스를 잡지 못했습니다' }), 0, t)).toBe('디바이스를 잡지 못했습니다');
@@ -22,13 +24,13 @@ describe('실행 순서 줄', () => {
 });
 
 describe('진행 셈', () => {
-  it('끝난 상태는 완료 · 건너뜀 · 중단이고 남은 시간은 끝난 상태의 평균으로 어림한다', () => {
+  it('끝난 상태는 완료 · 건너뜀 · 중단이고 남은 시간은 다 돈 상태의 평균으로 어림한다 — 건너뜀은 시간이 안 들어 평균에서 뺀다', () => {
     const r = 결과({
       run: { ...결과().run, startedAt: '2026-11-07T00:00:00Z' },
       devices: [상태(1), 상태(2, { state: 'SKIPPED' }), 상태(3, { state: 'RUNNING' }), 상태(4, { state: 'WAIT' })],
     });
     const 셈 = 진행(r, Date.parse('2026-11-07T00:20:00Z'));
-    expect(셈).toMatchObject({ 끝난: 2, 전체: 4, 실행중: 1, 대기: 1, 점검중: 0, 남은분: 20 });
+    expect(셈).toMatchObject({ 끝난: 2, 전체: 4, 실행중: 1, 대기: 1, 점검중: 0, 남은분: 40 });
   });
 
   it('끝난 상태가 없으면 남은 시간을 말하지 않는다', () => {

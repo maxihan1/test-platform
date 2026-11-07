@@ -9,7 +9,8 @@ import { when } from './ui.js';
 
 type 판정 = CompatCard['verdict'];
 
-function 카드({ runId, c, 이름, d, 쓰나, 누르는중, on판정 }: { runId: number; c: CompatCard; 이름: string; d: CompatRunDevice | undefined; 쓰나: boolean; 누르는중: boolean; on판정: (v: 판정) => void }) {
+/** 첫째 — 그 칸(화면 × 상태)의 첫 카드. 표 칸이 내려갈 자리다. 한 칸에 같은 화면이 여러 번 찍히면 카드가 여럿이다 */
+function 카드({ runId, c, 이름, d, 쓰나, 누르는중, 첫째, on판정 }: { runId: number; c: CompatCard; 이름: string; d: CompatRunDevice | undefined; 쓰나: boolean; 누르는중: boolean; 첫째: boolean; on판정: (v: 판정) => void }) {
   const t = use말();
   const 언어 = use언어();
   // 다시 누르면 미판정으로 되돌린다 (§3.13 「판정은 칸마다 하나다」)
@@ -19,7 +20,7 @@ function 카드({ runId, c, 이름, d, 쓰나, 누르는중, on판정 }: { runId
     </button>
   );
   return (
-    <div className="cr-card" id={카드자리(c.key, c.seq)}>
+    <div className="cr-card" id={첫째 ? 카드자리(c.key, c.seq) : undefined}>
       <CompatShot runId={runId} screenId={c.screenId} issues={c.issues} 이름={`${d?.model ?? ''} ${이름}`} />
       <div className="cr-card-body">
         <b className="mono">{d?.model ?? c.seq}</b>
@@ -95,7 +96,7 @@ export function CompatCards({
             {!열림 ? null : (
               <>
                 <div className="cr-cards">
-                  {m.cards.map((c) => (
+                  {m.cards.map((c, n) => (
                     <카드
                       key={`${c.key}#${String(c.seq)}#${String(c.screenId)}`}
                       runId={runId}
@@ -104,6 +105,7 @@ export function CompatCards({
                       d={상태.get(c.seq)}
                       쓰나={쓰나}
                       누르는중={누르는중 === `${c.key}#${String(c.seq)}`}
+                      첫째={m.cards.findIndex((x) => x.seq === c.seq) === n}
                       on판정={(v) => on판정(c, v)}
                     />
                   ))}

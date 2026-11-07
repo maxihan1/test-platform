@@ -47,7 +47,7 @@ describe('실행 기록 › 호환성', () => {
     expect(목록).toHaveBeenCalledWith('DMA', 1, '');
 
     const 끝난 = within(screen.getByRole('link', { name: 'RUN 21107' }).closest('tr')!);
-    expect(screen.getByRole('link', { name: 'RUN 21107' }).getAttribute('href')).toBe('#/compat/runs/21107');
+    expect(screen.getByRole('link', { name: 'RUN 21107' }).getAttribute('href')).toBe('#/compat/runs/21107?service=DMA');
     expect(끝난.getByText('결함 확정 2')).toBeTruthy();
     expect(끝난.getByText('미판정 4')).toBeTruthy();
     expect(끝난.getByText('발생 6 / 14 상태')).toBeTruthy();

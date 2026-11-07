@@ -34,12 +34,15 @@ export const 끝났나 = (d: Pick<CompatRunDevice, 'state'>): boolean => d.state
 /** 폴더블은 꽂힌 상태를 적는다 — 원격 접기가 생기면 한 폰이 두 줄로 선다 (§3.13 「디바이스 · 점검 상태」) */
 export const 접힘글자 = (d: Pick<CompatRunDevice, 'fold'>, t: 번역): string | null => (d.fold === 'OPEN' ? t('펼침') : d.fold === 'FOLDED' ? t('접힘') : null);
 
+/** 지금 몇째 케이스인가 — 도는 케이스(now)가 있으면 그것까지 센다. 케이스 사이에는 끝난 수다 */
+export const 케이스차례 = (d: Pick<CompatRunDevice, 'cases' | 'now'>): number => Math.min(d.cases.done + (d.now === null ? 0 : 1), d.cases.total);
+
 /** 실행 순서 한 줄의 설명 — 시안 ③ `AI 점검 완료 · 결함 의심 1` · `케이스 6 / 9` */
 export function 순서설명(d: CompatRunDevice, 의심수: number, t: 번역): string {
   const 접힘 = 접힘글자(d, t);
   const 본 =
     d.state === 'RUNNING'
-      ? t('케이스 {끝난} / {전체}', { 끝난: Math.min(d.cases.done + 1, d.cases.total), 전체: d.cases.total })
+      ? t('케이스 {끝난} / {전체}', { 끝난: 케이스차례(d), 전체: d.cases.total })
       : d.state === 'CHECKING'
         ? t('AI 점검 {끝난} / {전체}장', { 끝난: d.checks.done, 전체: d.checks.total })
         : d.state === 'DONE'
@@ -71,6 +74,7 @@ export interface 진행셈 {
 
 export function 진행(r: Pick<CompatRunResult, 'devices' | 'cards' | 'run'>, 지금: number): 진행셈 {
   const 끝난 = r.devices.filter(끝났나).length;
+  const 다돈 = r.devices.filter((d) => d.state === 'DONE').length;
   const 전체 = r.devices.length;
   const 지난 = 지금 - Date.parse(r.run.startedAt);
   return {
@@ -80,8 +84,8 @@ export function 진행(r: Pick<CompatRunResult, 'devices' | 'cards' | 'run'>, �
     점검중: r.devices.filter((d) => d.state === 'CHECKING').length,
     대기: r.devices.filter((d) => d.state === 'WAIT').length,
     의심: r.cards.filter((c) => c.verdict !== 'NOT_DEFECT').length,
-    // ponytail: 끝난 상태의 평균으로 어림한다. 상태마다 케이스 수가 같아 크게 안 빗나간다 — 케이스 소요 기록으로 셀 일이 생기면 서버가 준다
-    남은분: 끝난 === 0 || Number.isNaN(지난) ? null : Math.max(1, Math.round(((지난 / 끝난) * (전체 - 끝난)) / 60000)),
+    // ponytail: 다 돈 상태의 평균으로 어림한다(건너뜀 · 중단은 시간이 안 들어 빼고 센다). 상태마다 케이스 수가 같아 크게 안 빗나간다 — 케이스 소요 기록으로 셀 일이 생기면 서버가 준다
+    남은분: 다돈 === 0 || Number.isNaN(지난) ? null : Math.max(1, Math.round(((지난 / 다돈) * (전체 - 끝난)) / 60000)),
   };
 }
 

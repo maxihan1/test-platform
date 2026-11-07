@@ -22,7 +22,7 @@ export function CompatStart({ setId, service, envs, 닫기, on시작 }: { setId:
   const [runId, setRunId] = useState<number | null>(null);
   const [env, setEnv] = useState(() => 마지막서버(service, envs));
 
-  if (runId !== null) return <CompatRunWindow runId={runId} 닫기={닫기} />;
+  if (runId !== null) return <CompatRunWindow runId={runId} service={service} 닫기={닫기} />;
 
   async function 시작() {
     set하는중(true);
@@ -34,7 +34,7 @@ export function CompatStart({ setId, service, envs, 닫기, on시작 }: { setId:
       setRunId(새번호);
     } catch (err) {
       // 실행의 NO_DEVICE 는 「고르세요」가 아니라 세트의 디바이스가 팜에 없다는 뜻이다 (§7 「실행」)
-      set오류(err instanceof ApiError && err.code === 'NO_DEVICE' ? 번역('세트의 디바이스가 Device VISION 에 하나도 없습니다. 디바이스 선택을 다시 엽니다', 언어) : message(err, 언어));
+      set오류(err instanceof ApiError && err.code === 'NO_DEVICE' ? 번역('세트의 디바이스가 Device VISION 에 하나도 없습니다. 세트에서 디바이스를 다시 고릅니다', 언어) : message(err, 언어));
     } finally {
       set하는중(false);
     }

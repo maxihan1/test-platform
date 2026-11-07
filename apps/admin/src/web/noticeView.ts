@@ -32,7 +32,7 @@ function 번호(n: 알림재료): number {
 // 호환성은 결과 화면이 따로다 — 실행 결과 통로가 404 COMPAT_RUN 을 낸다 (도메인/호환성 §7 · §8.17 ④)
 function 열기주소(n: 알림재료): string {
   if (n.kind === 'authoring') return `#/authoring/${String(n.requestId)}`;
-  if (n.kind === 'compat' || (n.kind === 'run' && n.testKind === 'COMPAT')) return `#/compat/runs/${String(n.runId)}`;
+  if (n.kind === 'compat' || (n.kind === 'run' && n.testKind === 'COMPAT')) return `#/compat/runs/${String(n.runId)}?service=${encodeURIComponent(n.prefix)}`;
   return `#/runs/${String(n.runId)}`;
 }
 

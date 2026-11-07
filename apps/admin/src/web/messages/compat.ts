@@ -103,7 +103,7 @@ export const 호환성말: Record<string, string> = {
   '실행을 만드는 중': 'Creating the run',
   '설정에서 대상 서버를 먼저 넣습니다': 'Add a target server in Settings first',
   '실행할 때 자동 선택을 다시 계산합니다': 'Auto-selection is recalculated when the run starts',
-  '세트의 디바이스가 Device VISION 에 하나도 없습니다. 디바이스 선택을 다시 엽니다': 'None of the devices in this set are in Device VISION. Open device selection again',
+  '세트의 디바이스가 Device VISION 에 하나도 없습니다. 세트에서 디바이스를 다시 고릅니다': 'None of the devices in this set are in Device VISION. Choose devices again in the set',
   '호환성 실행 · RUN {번호}': 'Compatibility run · RUN {번호}',
   '{세트} · 호환성 실행 중': '{세트} · Compatibility run in progress',
   '{세트} · 호환성 실행이 중단됐습니다': '{세트} · Compatibility run stopped',
