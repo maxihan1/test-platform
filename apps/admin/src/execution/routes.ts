@@ -55,11 +55,11 @@ function page(raw: string | undefined): number {
 export default async function executionRoutes(app: FastifyInstance): Promise<void> {
   // 재기동으로 분배기가 사라지면 그 항목들은 영원히 끝나지 않아 FINISHED 조건이 결코 만족되지 않는다.
   // 뜨는 김에 한 번 닫는다. 실패해도 admin 은 떠야 하므로 사유만 남긴다 (SPEC §3.2)
-  void 호환성다시켜기()
-    .catch((err: unknown) => {
-      app.log.error(`[execution] 재기동 전 호환성 실행을 닫다가 깨졌다: ${err instanceof Error ? err.message : String(err)}`);
-    })
-    .then(() => recoverRunning())
+  // 호환성 실행은 따로 닫는다 — recoverRunning 은 COMPAT 를 안 집어 둘이 겹치지 않는다 (도메인/호환성 §3.13 「실행」 6)
+  void 호환성다시켜기().catch((err: unknown) => {
+    app.log.error(`[execution] 재기동 전 호환성 실행을 닫다가 깨졌다: ${err instanceof Error ? err.message : String(err)}`);
+  });
+  void recoverRunning()
     .then((n) => {
       if (n > 0) app.log.warn(`[execution] 재기동 전에 돌던 실행 ${n}건을 중단으로 닫았다`);
     })

@@ -98,7 +98,8 @@ export async function 실행머리읽기(runId: number): Promise<실행머리 | 
 
 export async function 상태들읽기(runId: number): Promise<상태줄[]> {
   const r = await (await db()).query<{ seq: number; serial: string; held_serial: string | null; model: string; name: string; os: string | null; fold: 상태줄['fold']; state: 상태값; skip_reason: string | null }>(
-    `SELECT seq, serial, held_serial, model, name, device->>'os' AS os, fold, state, skip_reason FROM compat_run_device WHERE run_id = $1 ORDER BY seq`,
+    // 놓으면 held_serial 이 비지만 잡은 폰의 사본(device)이 남는다 — 결과는 실제로 돈 폰을 보인다 (모델별 1대로 바꿔 잡았으면 고른 것과 다르다)
+    `SELECT seq, serial, COALESCE(held_serial, device->>'serial') AS held_serial, model, name, device->>'os' AS os, fold, state, skip_reason FROM compat_run_device WHERE run_id = $1 ORDER BY seq`,
     [runId],
   );
   return r.rows.map((x) => ({ seq: x.seq, serial: x.serial, heldSerial: x.held_serial, model: x.model, name: x.name, os: x.os, fold: x.fold, state: x.state, skipReason: x.skip_reason }));

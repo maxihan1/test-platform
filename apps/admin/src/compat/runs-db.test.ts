@@ -149,7 +149,8 @@ describe.skipIf(연결 === undefined)('호환성 실행 · 결과 · 판정', { 
     }>();
     expect(결과.run.state).toBe('FINISHED');
     expect(결과.devices.map((d) => [d.serial, d.fold, d.state])).toEqual([['XCRA2', 'OPEN', 'DONE'], ['XCRB1', null, 'DONE']]);
-    expect(결과.rows.map((r) => r.key)).toEqual(['app:.Main/home', 'unknown:XCR-001#1']);
+    // 의심 없는 「화면 모름」 줄은 이상 없음이라 숨는다
+    expect([결과.rows.map((r) => r.key), 결과.hiddenOk]).toEqual([['app:.Main/home'], 1]);
     expect(결과.rows[0]?.cells).toEqual([{ seq: 1, value: 'PENDING' }, { seq: 2, value: 'PENDING' }]);
     expect(결과.counts).toMatchObject({ devices: 2, states: 2, pending: 2, confirmed: 0 });
     expect(결과.cards[0]?.step).toBe(1);
