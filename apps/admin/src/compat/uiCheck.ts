@@ -89,8 +89,7 @@ export function 열쇠찾기(s: 점검화면, 파일들: readonly 화면파일[]
     const 값들 = [s.locator.value, s.locator.value.replace(/^.*:id\//, '')];
     const 맞나 = (f: 화면파일) => 값들.some((v) => 담았나(f.글, v));
     const 케이스쪽 = 파일들.filter(맞나);
-    const 내파일 = new Set(파일들.map((f) => f.file));
-    고른 = 하나로(케이스쪽.length > 0 ? 케이스쪽 : 앱파일들.filter((f) => !내파일.has(f.file) && 맞나(f)), 앞파일);
+    고른 = 하나로(케이스쪽.length > 0 ? 케이스쪽 : 앱파일들.filter(맞나), 앞파일);
   } else if (s.game !== undefined) {
     const t = s.game.target;
     if (t.startsWith('/')) {
@@ -120,10 +119,12 @@ export interface 단계시간 {
  */
 export function 단계찾기(at: number, 끝: number, 단계들: readonly 단계시간[]): number | null {
   if (단계들.length === 0) return null;
-  const 시각들 = 단계들.map((s) => (s.startedAt === undefined ? Number.NaN : Date.parse(s.startedAt)));
   let 든 = 단계들[0]!.seq;
-  if (시각들.every((t) => !Number.isNaN(t))) {
-    단계들.forEach((s, i) => { if (at >= 시각들[i]!) 든 = s.seq; });
+  // 건너뛴 단계(E2E 체크를 푼 「만들기」)는 시각이 없지만 시간도 안 든다 — 시각 있는 단계만으로 찾는다
+  const 시각단계 = 단계들.flatMap((s) => { const t = s.startedAt === undefined ? Number.NaN : Date.parse(s.startedAt); return Number.isNaN(t) ? [] : [{ seq: s.seq, t }]; });
+  if (시각단계.length > 0) {
+    든 = 시각단계[0]!.seq;
+    for (const s of 시각단계) if (at >= s.t) 든 = s.seq;
     return 든;
   }
   let 시작 = 끝 - 단계들.reduce((a, s) => a + s.durationMs, 0);

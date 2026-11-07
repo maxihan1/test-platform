@@ -95,7 +95,8 @@ async function 재료읽기(runId: number): Promise<실행재료 | { 까닭: str
     ),
     pool.query<{ tc_id: string; file: string; screen_url: string }>(
       `SELECT cs.tc_id, cs.file, cs.screen_url FROM case_screen cs JOIN test_case t ON t.tc_id = cs.tc_id
-        WHERE t.is_active AND split_part(cs.tc_id, '-', 1) = $1 AND cs.screen_url IS NOT NULL`,
+        WHERE t.is_active AND split_part(cs.tc_id, '-', 1) = $1 AND cs.screen_url IS NOT NULL
+        ORDER BY cs.file, cs.tc_id`,
       [머리.prefix],
     ),
   ]);
@@ -107,7 +108,7 @@ async function 재료읽기(runId: number): Promise<실행재료 | { 까닭: str
   );
   // 화면 파일 글은 앱 locator · 게임 대상 이름을 찾는 데만 쓴다 — 못 읽으면 빈 글이라 그 화면은 「화면 모름」이 된다
   const 글들 = new Map<string, string>();
-  for (const f of new Set(화면.rows.map((r) => r.file))) 글들.set(f, await readFile(join(testsRoot(), f.replace(/^tests\//, '')), 'utf8').catch(() => ''));
+  await Promise.all([...new Set(화면.rows.map((r) => r.file))].map(async (f) => 글들.set(f, await readFile(join(testsRoot(), f.replace(/^tests\//, '')), 'utf8').catch(() => ''))));
   const 파일꼴 = (r: { file: string; screen_url: string }): 화면파일[] => { const key = 주소틀(r.screen_url); return key === null ? [] : [{ file: r.file, key, 글: 글들.get(r.file) ?? '' }]; };
   const 케이스 = new Map<string, 케이스재료>();
   for (const c of 채움) {
@@ -119,7 +120,8 @@ async function 재료읽기(runId: number): Promise<실행재료 | { 까닭: str
       파일들: 화면.rows.filter((r) => r.tc_id === c.tcId).flatMap(파일꼴),
     });
   }
-  const 앱파일들 = [...new Map(화면.rows.flatMap(파일꼴).map((f) => [f.file, f])).values()];
+  // 같은 파일에 화면 주소가 둘이면(다시 훑기 사이) 질의 차례(파일 · tc_id)에서 처음 것이다 — 실행마다 같은 열쇠가 나오게
+  const 앱파일들 = [...new Map(화면.rows.flatMap(파일꼴).reverse().map((f) => [f.file, f])).values()];
   return { runId, 팜, 토큰, baseUrl: 줄.baseUrl, app: 줄.appPath, serviceKind: 머리.serviceKind, adminKey: 줄.adminKey, onePerModel: 머리.onePerModel, 케이스, 앱파일들 };
 }
 

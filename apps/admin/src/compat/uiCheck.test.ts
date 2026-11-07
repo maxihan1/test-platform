@@ -94,6 +94,8 @@ describe('단계찾기', () => {
     expect(단계찾기(Date.parse(시각(42.271)), 끝, 단계들)).toBe(1);
     expect(단계찾기(Date.parse(시각(30)), 끝, 단계들)).toBe(1);
     expect(단계찾기(Date.parse(시각(44.441)), 끝, 단계들.map(({ seq, durationMs }) => ({ seq, durationMs })))).toBe(1);
+    // 건너뛴 단계는 시각이 없어도 나머지 시각으로 찾는다
+    expect(단계찾기(Date.parse(시각(44.441)), 끝, [단계들[0]!, { seq: 2, durationMs: 0 }, { ...단계들[1]!, seq: 3 }])).toBe(3);
   });
 });
 
