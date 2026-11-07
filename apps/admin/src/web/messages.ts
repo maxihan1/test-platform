@@ -9,6 +9,7 @@ import { 작성할일말 } from './messages/authoringTodo.js';
 import { 결정말 } from './messages/decide.js';
 import { 빌드말 } from './messages/build.js';
 import { 케이스말 } from './messages/cases.js';
+import { 호환성말 } from './messages/compat.js';
 import { BTS말 } from './messages/bts.js';
 import { CI토큰말 } from './messages/ciToken.js';
 import { 대시보드말 } from './messages/dashboard.js';
@@ -48,6 +49,7 @@ export const 표들: Record<string, string>[] = [
   성능말,
   성능실행말,
   성능페이지말,
+  호환성말,
   성능기기말,
   마법사말,
   빌드말,

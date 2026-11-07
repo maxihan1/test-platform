@@ -1,0 +1,402 @@
+/* 테스트 실행 › 호환성 — 세트 목록 · 세트 · 디바이스 선택 상자 · 케이스 추가 (도메인/호환성 §8.17 · 시안 FSGHPH6CyRpaa6hdaWtVYE). 색은 토큰만 쓴다 */
+
+.compat-faint {
+  color: var(--ink-faint);
+  font-size: 13px;
+}
+
+.compat-err {
+  color: var(--fail-text);
+  font-size: 13px;
+  margin: 0;
+}
+
+.compat-panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  overflow-x: auto;
+}
+
+.compat-panel h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.compat-ph {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.compat-pad {
+  padding: 12px 18px;
+  margin: 0;
+}
+
+.compat-sub {
+  margin: 0;
+  padding: 10px 18px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.compat-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+
+.compat-row:last-child {
+  border-bottom: 0;
+}
+
+.compat-tc {
+  width: 110px;
+}
+
+.compat-grow {
+  flex: 1 1 240px;
+}
+
+/* 알약 — 출처 · 셈(회색 바탕) · 꼬리표(테두리) · 결함 확정(판정 색). 판정 색은 결함 확정(사람의 판정)에만 쓴다 */
+.compat-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.compat-pad.compat-pills {
+  margin-top: 0;
+}
+
+.compat-auto,
+.compat-tag,
+.compat-bad,
+.compat-idle,
+.compat-busy,
+.compat-off,
+.side-new {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.compat-auto {
+  background: var(--well);
+  color: var(--ink-muted);
+}
+
+.compat-tag,
+.compat-off {
+  border: 1px solid var(--line-2);
+  color: var(--ink-muted);
+}
+
+.compat-bad {
+  background: var(--fail-soft);
+  color: var(--fail-text);
+  font-weight: 600;
+}
+
+/* 디바이스 상태 · 신규 꼬리표는 판정도 대표색 자리도 아니다(공통/5-화면공통 §8 「대표색」) — 잉크 테두리 · 회색 바탕으로만 가른다 */
+.compat-idle {
+  border: 1px solid var(--ink-muted);
+  color: var(--ink);
+}
+
+.compat-busy {
+  background: var(--well);
+  color: var(--ink-muted);
+}
+
+.side-new {
+  margin-left: 6px;
+  padding: 0 6px;
+  border: 1px solid var(--ink-muted);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.compat-scr {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--well);
+  font-size: 12px;
+}
+
+.compat-devs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+}
+
+/* ① 세트 목록 */
+.compat-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.compat-table th {
+  font-size: 12px;
+  color: var(--ink-muted);
+  font-weight: 600;
+  text-align: left;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.compat-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+  vertical-align: top;
+}
+
+.compat-name {
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.compat-note {
+  margin: 12px 0 0;
+}
+
+/* ② 세트 */
+.compat-set {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 1120px;
+}
+
+.compat-back {
+  margin: 0;
+  font-size: 13px;
+}
+
+.compat-name-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.compat-name-field input {
+  font: inherit;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ink);
+  padding: 6px 10px;
+  width: 320px;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.compat-eta {
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.compat-eta p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* ②-1 디바이스 선택 상자 — 시안 1180 × 744 */
+.modal:has(.compat-pick) {
+  width: min(1180px, calc(100vw - 32px));
+  max-width: none;
+}
+
+.compat-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.compat-pick p {
+  margin: 0;
+}
+
+.compat-pick-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.compat-pick-tools input[type='search'] {
+  width: 240px;
+  max-width: 100%;
+}
+
+.compat-pick-tools label {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.compat-pick-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+
+.compat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.compat-chips > span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.compat-chip {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.compat-chip[aria-pressed='true'] {
+  background: var(--accent-soft);
+  border-color: var(--accent-mark);
+  font-weight: 600;
+}
+
+.compat-pick-table {
+  max-height: 52vh;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.compat-pick-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.compat-pick-table th {
+  position: sticky;
+  top: 0;
+  background: var(--panel);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  text-align: left;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.compat-pick-table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.compat-pick-table tr.dim td {
+  color: var(--ink-faint);
+}
+
+.compat-dup {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--well);
+  color: var(--ink-muted);
+  font-size: 11px;
+}
+
+.compat-pick-sum {
+  margin-right: auto;
+  font-size: 14px;
+}
+
+/* 케이스 추가 */
+.compat-case-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: min(560px, 100%);
+}
+
+.compat-case-pick ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 50vh;
+  overflow: auto;
+}
+
+.compat-case-pick label {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+
+/* 휴대폰 — 세트 목록 표는 카드 줄이다 (§8.17 「휴대폰」 · 실행.md §8.7) */
+@media (max-width: 720px) {
+  .compat-list thead {
+    display: none;
+  }
+
+  .compat-list tr {
+    display: block;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .compat-list td {
+    display: block;
+    padding: 4px 0;
+    border: 0;
+  }
+
+  .compat-list td::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 11px;
+    color: var(--ink-faint);
+  }
+
+  .compat-tc {
+    width: auto;
+  }
+}

@@ -45,6 +45,8 @@ import { PerfWizard } from './PerfWizard.js';
 import { ScenarioBuild } from './ScenarioBuild.js';
 import { ScenarioWizard } from './ScenarioWizard.js';
 import { ScenarioList } from './ScenarioList.js';
+import { CompatSet } from './CompatSet.js';
+import { CompatSets } from './CompatSets.js';
 import { ScenarioRunList } from './ScenarioRunList.js';
 import { Settings } from './Settings.js';
 import { Shell } from './Shell.js';
@@ -138,6 +140,18 @@ function Screen({
             if (번호 !== undefined) on서비스번호(번호);
           }}
         />
+      );
+    case 'compatSets':
+      // 애플리케이션마다 새로 그린다 — 앞 애플리케이션의 세트 목록이 남지 않게. API 는 화면이 없어 메뉴도 없다 — 주소로 와도 안내만 한다
+      if (service?.kind === 'API') return <div className="empty">{t('API 애플리케이션에는 호환성 점검이 없습니다')}</div>;
+      return service === null ? <div className="empty">{t('애플리케이션을 먼저 골라 주세요')}</div> : <CompatSets key={prefix} serviceId={service.id} service={service.prefix} 쓰나={할수('실행')} />;
+    case 'compatSet':
+      if (service?.kind === 'API') return <div className="empty">{t('API 애플리케이션에는 호환성 점검이 없습니다')}</div>;
+      // 세트 주소는 `?service=` 로 그 세트의 애플리케이션을 띠에 올린다(routeService.ts). 번호 · 애플리케이션마다 새로 그려 고치던 값이 남지 않게
+      return service === null ? (
+        <div className="empty">{t('애플리케이션을 먼저 골라 주세요')}</div>
+      ) : (
+        <CompatSet key={`${prefix}:${String(current.id)}`} id={current.id} serviceId={service.id} service={service.prefix} kind={service.kind} 쓰나={할수('실행')} />
       );
     case 'scenarios':
       // 서비스를 바꾸면 새로 그린다 — 고른 대상 서버와 앞 서비스의 실행 안내가 남으면 다른 서비스에 쏜다

@@ -1,7 +1,7 @@
 // 휴대폰 「전체」 메뉴판 안 조각 — 지금 프로젝트의 애플리케이션 칸 격자와 자리 목록 전부 (SPEC 공통/5-화면공통 §8 「휴대폰 화면」 「전체 메뉴판」). PhoneShell 이 300줄을 넘어 떼어 냈다
 
 import type { ServiceRow, User } from './api.js';
-import { use언어 } from './i18n.js';
+import { use말, use언어 } from './i18n.js';
 import { 아이콘 } from './icons.js';
 import { 종류, 종류이름, 종류차례로 } from './kind.js';
 import { 고른서비스를적는다, 프로젝트서비스들, type 자리 } from './layout.js';
@@ -36,6 +36,7 @@ export function 앱격자({ user, service, onService, 닫기 }: { user: User; se
 
 /** 자리 목록 전부. 묶음은 이름 아래에 하위를 두 칸 격자로 다 편다 — 휴대폰은 펼칠 자리가 없다 */
 export function 메뉴목록({ 자리들, current, 닫기 }: { 자리들: 자리[]; current: string; 닫기: () => void }) {
+  const t = use말();
   return (
     <nav className="sheet-menu">
       {자리들.map((it) =>
@@ -60,6 +61,7 @@ export function 메뉴목록({ 자리들, current, 닫기 }: { 자리들: 자리
               {it.하위.map((하) => (
                 <a key={하.해시} href={하.해시} aria-label={하.라벨} onClick={닫기} {...지금이면(current === 하.해시)}>
                   {하.이름}
+                  {하.신규 === true ? <span className="side-new">{t('신규')}</span> : null}
                 </a>
               ))}
             </div>
