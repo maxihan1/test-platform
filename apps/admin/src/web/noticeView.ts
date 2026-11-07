@@ -34,7 +34,7 @@ function 열기주소(n: 알림재료): string {
 }
 
 // 도는 것의 차례 — 케이스 실행 → E2E 실행 → 작성 (E2E 도 실행이라 실행 무리에 선다)
-const 도는차례: Record<NoticeRunning['kind'], number> = { run: 0, scenario: 1, authoring: 2 };
+const 도는차례: Record<NoticeRunning['kind'], number> = { run: 0, scenario: 1, compat: 1, authoring: 2 };
 
 export interface 막대칸 {
   통과: number;
@@ -91,13 +91,31 @@ function 오류첫줄(오류: string | null): string | null {
 function 실행덧말(n: Extract<NoticeRunning | NoticeRecent, { kind: 'run' }>, 언어: 언어): string[] {
   return [
     ...(n.title === '' ? [] : [n.title]),
-    ...(n.testKind === null ? [] : [t(n.testKind === 'UI' ? 'UI 테스트' : '기능 테스트', 언어)]),
+    ...(n.testKind === null ? [] : [t(n.testKind === 'UI' ? 'UI 테스트' : n.testKind === 'FN' ? '기능 테스트' : '호환성', 언어)]),
     t('대상 서버 {서버}', 언어, { 서버: n.env }),
   ];
 }
 
 export function 끝난줄만들기(n: NoticeRecent, 언어: 언어): 끝난줄 {
   const 바탕 = { 도는중: false as const, 열쇠: 읽음열쇠(n), 서비스: n.serviceName, 접두사: n.prefix, 열기: 열기주소(n), 끝난때: n.finishedAt };
+
+  // 호환성은 통과 · 실패를 결과에 안 넣는다 — 미판정 · 미점검 화면 수가 할 일이다 (도메인/호환성 §3.13 결정 1)
+  if (n.kind === 'run' && n.testKind === 'COMPAT') {
+    const 멈춤 = n.status === 'ABORTED';
+    return {
+      ...바탕,
+      종류: 'run',
+      모양: 멈춤 ? 'halt' : 'pass',
+      머리: t(멈춤 ? 'RUN {번호} 실행이 중단됐습니다' : 'RUN {번호} 실행이 끝났습니다', 언어, { 번호: n.runId }),
+      집계: [
+        ...실행덧말(n, 언어),
+        ...(n.compat.pending > 0 ? [t('미판정 {수}', 언어, { 수: n.compat.pending })] : []),
+        ...(n.compat.unchecked > 0 ? [t('미점검 화면 {수}', 언어, { 수: n.compat.unchecked })] : []),
+      ],
+      확인필요: 0,
+      열기라벨: t('결과 보기', 언어),
+    };
+  }
 
   if (n.kind === 'run') {
     const { counts } = n;
@@ -149,6 +167,17 @@ export function 도는줄만들기(n: NoticeRunning, 지금: number, 언어: 언
       t('E2E RUN {번호} 실행 중', 언어, { 번호: n.runId }),
       ...(n.title === '' ? [] : [n.title]),
       t('{수}단계', 언어, { 수: n.parts }),
+      지난글(지난(n.startedAt, 지금), 언어),
+    ];
+    return { ...바탕, 앞글: 앞.join(' · '), 막대: null, 뒷글: null };
+  }
+
+  if (n.kind === 'compat') {
+    const 앞 = [
+      t('호환성 RUN {번호} 실행 중', 언어, { 번호: n.runId }),
+      ...(n.title === '' ? [] : [n.title]),
+      t('점검 상태 {끝난} / {전체}', 언어, { 끝난: n.states.done, 전체: n.states.total }),
+      t('AI 점검 {끝난} / {전체}장', 언어, { 끝난: n.checks.done, 전체: n.checks.total }),
       지난글(지난(n.startedAt, 지금), 언어),
     ];
     return { ...바탕, 앞글: 앞.join(' · '), 막대: null, 뒷글: null };

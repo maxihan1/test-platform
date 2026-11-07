@@ -278,6 +278,13 @@ export const 실행말: Record<string, string> = {
   // 진행·완료 모달 (§8.9)
   'RUN {번호} 실행 중': 'RUN {번호} running',
   'E2E RUN {번호} 실행 중': 'E2E RUN {번호} running',
+  // 호환성 알림 줄 (도메인/호환성 §3.13 「실행」 7)
+  '호환성 RUN {번호} 실행 중': 'Compatibility RUN {번호} running',
+  '호환성': 'Compatibility',
+  '점검 상태 {끝난} / {전체}': 'Check states {끝난} / {전체}',
+  'AI 점검 {끝난} / {전체}장': 'AI check {끝난} / {전체} screens',
+  '미판정 {수}': '{수} not judged',
+  '미점검 화면 {수}': '{수} unchecked screens',
   '{수}단계': '{수} steps',
   'RUN {번호} 실행이 끝났습니다': 'RUN {번호} finished',
   'RUN {번호} 실행이 중단됐습니다': 'RUN {번호} was aborted',

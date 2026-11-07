@@ -229,6 +229,8 @@ export type NoticeRunning =
     })
   /** 도는 E2E 시나리오 실행 — 결과가 끝에 한꺼번에 와서 진척 · 남은 시간이 없다 */
   | (NoticeService & { kind: 'scenario'; runId: number; title: string; parts: number; startedAt: string })
+  /** 도는 호환성 실행 — 점검 상태 · AI 점검 장 수가 진척이다 (도메인/호환성 §3.13 「실행」 7) */
+  | (NoticeService & { kind: 'compat'; runId: number; title: string; states: { done: number; total: number }; checks: { done: number; total: number }; startedAt: string })
   | (NoticeService & {
       kind: 'authoring';
       requestId: number;
@@ -250,6 +252,17 @@ export type NoticeRecent =
       testKind: 'UI' | 'FN' | null;
       status: string;
       counts: RunCounts;
+      finishedAt: string;
+    })
+  /** 끝난 호환성 실행 — 집계 대신 미판정 · 미점검 화면 수다 */
+  | (NoticeService & {
+      kind: 'run';
+      runId: number;
+      title: string;
+      env: string;
+      testKind: 'COMPAT';
+      status: string;
+      compat: { pending: number; unchecked: number };
       finishedAt: string;
     })
   | (NoticeService & {

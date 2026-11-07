@@ -28,6 +28,17 @@ export function 도는E2E(runId: number, 덮을것: Partial<Extract<NoticeRunnin
   return { ...서비스, kind: 'scenario', runId, title: '장바구니 결제', parts: 5, startedAt: 전에(3), ...덮을것 };
 }
 
+export function 도는호환성(runId: number): NoticeRunning {
+  return { ...서비스, kind: 'compat', runId, title: '주요 단말 12대', states: { done: 3, total: 12 }, checks: { done: 40, total: 61 }, startedAt: 전에(30) };
+}
+
+export function 끝난호환성(runId: number, 덮을것: Partial<Extract<NoticeRecent, { testKind: 'COMPAT' }>> = {}): NoticeRecent {
+  return {
+    ...서비스, kind: 'run', runId, title: '주요 단말 12대', env: 'qa', testKind: 'COMPAT', status: 'FINISHED',
+    compat: { pending: 4, unchecked: 2 }, finishedAt: 방금(), ...덮을것,
+  };
+}
+
 export function 도는작성(requestId: number, 덮을것: Partial<Extract<NoticeRunning, { kind: 'authoring' }>> = {}): NoticeRunning {
   return {
     ...서비스,
@@ -43,7 +54,7 @@ export function 도는작성(requestId: number, 덮을것: Partial<Extract<Notic
   };
 }
 
-export function 끝난실행(runId: number, counts: Partial<RunCounts> = {}, 덮을것: Partial<Extract<NoticeRecent, { kind: 'run' }>> = {}): NoticeRecent {
+export function 끝난실행(runId: number, counts: Partial<RunCounts> = {}, 덮을것: Partial<Extract<NoticeRecent, { counts: RunCounts }>> = {}): NoticeRecent {
   return {
     ...서비스,
     kind: 'run',
