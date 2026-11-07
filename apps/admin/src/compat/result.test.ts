@@ -8,7 +8,7 @@ const 상태 = (seq: number, 덧: Partial<상태줄> = {}): 상태줄 => ({
   seq, serial: `S${seq}`, heldSerial: null, model: `M${seq}`, name: `폰${seq}`, os: '14', fold: null, state: 'DONE', skipReason: null, ...덧,
 });
 const 케이스 = (id: number, seq: number, tcId: string, 덧: Partial<케이스줄> = {}): 케이스줄 => ({
-  id, seq, tcId, status: 'PASS', failedStep: null, checkState: 'done', started: true, finished: true, ...덧,
+  id, seq, tcId, status: 'PASS', failedStep: null, checkState: 'done', started: true, finished: true, 까닭: null, ...덧,
 });
 const 재료 = (덧: Partial<결과재료>): 결과재료 => ({
   상태들: [], 케이스들: [], 화면들: [], 판정들: [], 지나는: new Map(), 화면수: new Map(), 이름: new Map(), ...덧,

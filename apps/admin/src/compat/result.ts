@@ -26,6 +26,8 @@ export interface 케이스줄 {
   checkState: 'checking' | 'done' | 'failed' | 'limit' | 'missing' | null;
   started: boolean;
   finished: boolean;
+  /** 케이스가 남긴 오류 문장 — 못 돌린 까닭(Chrome 을 못 켬 · 케이스가 없어짐 · 서버가 다시 켜짐)을 미점검 칸에 보인다 */
+  까닭: string | null;
 }
 
 export interface 저장화면 {
@@ -80,9 +82,11 @@ function 칸(재: 결과재료, 상태: 상태줄, key: string, 화면: 저장�
   if (지난케이스.some((c) => c.checkState === 'checking' || (c.started && !c.finished))) return null;
   const 실패 = 지난케이스.find((c) => c.status === 'FAIL');
   if (실패 !== undefined) return { value: 'UNCHECKED', reason: `${실패.tcId} 이 ${실패.failedStep === null ? '' : `${실패.failedStep}단계에서 `}실패` };
-  if (지난케이스.some((c) => !c.started)) return { value: 'UNCHECKED', reason: 상태.skipReason ?? '케이스를 돌리지 못했습니다' };
-  const 점검 = 지난케이스.find((c) => c.checkState !== null && c.checkState in 점검까닭);
-  if (점검 !== undefined) return { value: 'UNCHECKED', reason: 점검까닭[점검.checkState!]! };
+  const 못돈 = 지난케이스.find((c) => !c.started || (c.status === 'NA' && c.checkState === null));
+  if (못돈 !== undefined) return { value: 'UNCHECKED', reason: (못돈.started ? 못돈.까닭 : null) ?? 상태.skipReason ?? 못돈.까닭 ?? '케이스를 돌리지 못했습니다' };
+  // 여러 케이스가 지나면 limit → failed → missing 차례로 앞엣것 하나다
+  const 점검 = (['limit', 'failed', 'missing'] as const).find((v) => 지난케이스.some((c) => c.checkState === v));
+  if (점검 !== undefined) return { value: 'UNCHECKED', reason: 점검까닭[점검]! };
   return { value: 'UNCHECKED', reason: '찍힌 화면이 없습니다' };
 }
 

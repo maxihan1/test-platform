@@ -15,7 +15,7 @@ import { notifyRun } from './notify.js';
 import { 항목장면경로 } from './live.js';
 import { 진행경로 } from './progressRoute.js';
 import { 호환성다시켜기, 호환성중단 } from '../compat/runEngine.js';
-import { 실행머리읽기 } from '../compat/runStore.js';
+import { 실행머리읽기 } from '../compat/runRead.js';
 import { abortRunner } from './runner.js';
 import { caseSchemas, createParamSet, deleteParamSet, listParamSets } from './paramSets.js';
 import { caseHistory, lastByCase } from './history.js';

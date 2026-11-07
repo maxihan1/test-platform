@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { 정수 } from '../routeParams.js';
 import { 시리얼 } from '../perf/devices.js';
 import { 호환성디바이스목록 } from './devices.js';
-import { 세트최근실행 } from './runStore.js';
+import { 세트최근실행 } from './runRead.js';
 import { 호환성요약들 } from './runView.js';
 import { type 고른것, 셈하기, 예상하기, 자동선택 } from './select.js';
 import { type 세트, type 세트디바이스, 세트고치기, 세트만들기, 세트목록, 세트치우기, 세트하나, 재료읽기, 최근소요, type 재료 } from './store.js';

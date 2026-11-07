@@ -14,7 +14,8 @@ import { 정수 } from '../routeParams.js';
 import { db } from '../settings/store.js';
 import { 호환성디바이스목록 } from './devices.js';
 import { 실행돌리기 } from './runEngine.js';
-import { 실행머리읽기, 실행세우기, 판정하기, 호환성실행오류 } from './runStore.js';
+import { 실행머리읽기, 판정하기 } from './runRead.js';
+import { 실행세우기, 호환성실행오류 } from './runStore.js';
 import { 호환성결과 } from './runView.js';
 import { 셈하기 } from './select.js';
 import { 세트하나, 재료읽기 } from './store.js';
@@ -90,8 +91,10 @@ export default async function compatRunRoutes(app: FastifyInstance): Promise<voi
     let png: Buffer;
     try {
       png = await 볼륨파일읽기(join(runDir(String(runId), 줄.case_run_id), FARM_EVIDENCE_DIR, 줄.file));
-    } catch {
-      return 없음();
+    } catch (e) {
+      // 의심 화면 그림을 못 받았을 수 있다(팜 받기 실패) — 없는 것은 404, 그 밖의 읽기 오류는 그대로 던진다
+      if ((e as NodeJS.ErrnoException).code === 'ENOENT') return 없음();
+      throw e;
     }
     return reply.type('image/png').send(png);
   });
