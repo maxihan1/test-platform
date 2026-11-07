@@ -10,6 +10,7 @@ import { 케이스실행인가, 종류조건 } from '../execution/runKind.js';
 import type { RunCounts, RunSummary } from '../execution/runTypes.js';
 import { 지금항목 } from '../execution/single.js';
 import { 지금판 } from '../prd/store.js';
+import { type 호환성끝난줄, type 호환성도는줄, 호환성알림 } from './compat.js';
 import { 확인필요 } from '../prd/rules.js';
 
 export interface NoticeService {
@@ -39,6 +40,7 @@ export type NoticeRunning =
       parts: number;
       startedAt: string;
     })
+  | 호환성도는줄
   | (NoticeService & {
       kind: 'authoring';
       requestId: number;
@@ -63,6 +65,7 @@ export type NoticeRecent =
       counts: RunCounts;
       finishedAt: string;
     })
+  | 호환성끝난줄
   | (NoticeService & {
       kind: 'authoring';
       requestId: number;
@@ -176,9 +179,10 @@ export async function 알림(
   // 한 건 실행은 실행으로 서지 않아 알림에 없다 — 끝은 건 사람의 진행 창이 알린다 (도메인/실행 §3.2)
   const 케이스실행 = `${종류조건('case')} AND r.origin <> 'SINGLE'`;
 
-  const [도는실행, 도는시나리오, 끝난실행, 작성줄] = await Promise.all([
+  const [도는실행, 도는시나리오, 호환성, 끝난실행, 작성줄] = await Promise.all([
     비었다(실행서비스, () => 실행들(실행서비스, `r.service_id = ANY($1) AND r.status = 'RUNNING' AND ${케이스실행}`)),
     비었다(실행서비스, () => 도는시나리오들(실행서비스)),
+    실행서비스.length === 0 ? { running: [], recent: [] } : 호환성알림(실행서비스, (id) => 서비스칸(서비스맵, id), 최근날수, 최근상한),
     비었다(실행서비스, () =>
       실행들(
         실행서비스,
@@ -229,6 +233,7 @@ export async function 알림(
       parts: Number(줄.parts),
       startedAt: 줄.started_at.toISOString(),
     })),
+    ...호환성.running,
     ...도는작성.map((줄): NoticeRunning => {
       const 서비스 = Number(줄.service_id);
       const 다섯 = 다섯단계(줄);
@@ -261,6 +266,7 @@ export async function 알림(
         finishedAt: 실행.finishedAt!,
       };
     }),
+    ...호환성.recent,
     ...끝난작성.map((줄): NoticeRecent => {
       const 서비스 = Number(줄.service_id);
       return {

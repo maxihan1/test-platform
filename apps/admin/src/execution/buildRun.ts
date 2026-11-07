@@ -46,7 +46,7 @@ async function 앞빌드건너뛰기(빌드: 올린빌드): Promise<void> {
     const runId = Number(run_id);
     const 미완 = await unfinishedItems(runId);
     const 결과 = await abortRun(runId);
-    if (결과 === null || 결과 === 'SCENARIO') continue;
+    if (결과 === null || 결과 === 'SCENARIO' || 결과 === 'COMPAT') continue;
     markAborted(runId);
     await Promise.all(미완.map((i) => abortRunner(i.historyId)));
     콘솔.info(`[build ${빌드.buildNo}] 앞 빌드에서 끝난 항목이 없는 실행 ${String(runId)}을 멈췄다`);

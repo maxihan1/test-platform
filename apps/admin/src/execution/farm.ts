@@ -61,7 +61,7 @@ function 웹주소(값: unknown): string | undefined {
 }
 
 // 거절이면 그 문장, 잡았으면 그 폰 화면 보기 링크(held.screen — 옛 팜은 없다). 닿지 못하면 던진다
-async function 잡는다(팜: string, serial: string, 부르기: typeof fetch, 분: number, 토큰: string | undefined): Promise<{ 거절: string } | { 화면: string | undefined }> {
+export async function 잡는다(팜: string, serial: string, 부르기: typeof fetch, 분: number, 토큰: string | undefined): Promise<{ 거절: string } | { 화면: string | undefined }> {
   const 잡기 = await 부르기(`${팜}/api/devices/${encodeURIComponent(serial)}/hold`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...팜머리(process.env, 토큰) },
@@ -76,7 +76,7 @@ async function 잡는다(팜: string, serial: string, 부르기: typeof fetch, �
 }
 
 // 놓아야 팜이 깐 앱 · 앱 데이터를 정리한다. 실패해도 던지지 않는다 — 이미 난 판정을 덮지 않고, 잡기는 30분 뒤 팜이 스스로 푼다
-async function 폰을돌려준다(팜: string, serial: string, 부르기: typeof fetch, 토큰: string | undefined): Promise<void> {
+export async function 폰을돌려준다(팜: string, serial: string, 부르기: typeof fetch, 토큰: string | undefined): Promise<void> {
   try {
     const res = await 부르기(`${팜}/api/devices/${encodeURIComponent(serial)}/hold`, {
       method: 'DELETE',

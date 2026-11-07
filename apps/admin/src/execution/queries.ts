@@ -16,6 +16,8 @@ import { 가린값들 } from '../web/mask.js';
 import { 가린다, 항목비밀 } from './trial.js';
 import { runSummary, 거르는조건, 시나리오칸, type 시나리오실행줄, type 실행거르개, type 실행집계 } from './runSummary.js';
 
+import { 호환성요약들, type 호환성요약 } from '../compat/runView.js';
+
 import { 종류조건 } from './runKind.js';
 import { 다시실행칸들, 다시실행칸으로, 지금항목, type 다시실행원재료, type 다시실행칸 } from './single.js';
 import { DEVICE_COLUMN, FAIL_CASE_COLUMNS, RUN_COLUMNS, toFailCases, toRun, to시나리오줄, type RawFailCases, type RawRun } from './runRow.js';
@@ -37,6 +39,8 @@ export async function serviceExists(prefix: string): Promise<boolean> {
 
 type 실행목록<줄> = { items: 줄[]; total: number; page: number; pageSize: number; summary: 실행집계 };
 
+export type 호환성실행줄 = Omit<RunSummary, 'counts'> & { compat: Pick<호환성요약, 'setName' | 'devices' | 'screens' | 'confirmed' | 'pending' | 'affected' | 'unchecked' | 'stopReason'> };
+
 export async function listRuns(
   service: string,
   page: number,
@@ -53,14 +57,20 @@ export async function listRuns(
   service: string,
   page: number,
   pageSize: number,
+  거르개: 실행거르개 & { kind: 'compat' },
+): Promise<실행목록<호환성실행줄>>;
+export async function listRuns(
+  service: string,
+  page: number,
+  pageSize: number,
   거르개: 실행거르개,
-): Promise<실행목록<RunListRow> | 실행목록<시나리오실행줄>>;
+): Promise<실행목록<RunListRow> | 실행목록<시나리오실행줄> | 실행목록<호환성실행줄>>;
 export async function listRuns(
   service: string,
   page: number,
   pageSize: number,
   거르개: 실행거르개 = {},
-): Promise<실행목록<RunListRow> | 실행목록<시나리오실행줄>> {
+): Promise<실행목록<RunListRow> | 실행목록<시나리오실행줄> | 실행목록<호환성실행줄>> {
   const pool = await db();
   const 시나리오 = 거르개.kind === 'scenario';
   const 조건 = 거르는조건(거르개, 4);
@@ -88,6 +98,24 @@ export async function listRuns(
   ]);
   const 머리 = { total: rows.rows[0]?.grand_total ?? 0, page, pageSize, summary };
   if (시나리오) return { items: rows.rows.map(to시나리오줄), ...머리 };
+  // 호환성은 run_item 이 없어 집계가 늘 0 이다 — 줄마다 호환성 요약을 싣는다 (도메인/호환성 §7 「실행 기록」)
+  if (거르개.kind === 'compat') {
+    const 요약 = await 호환성요약들(rows.rows.map((r) => Number(r.run_id)));
+    return {
+      items: rows.rows.map((r) => {
+        const { counts: _counts, ...줄 } = toRun(r);
+        const x = 요약.get(줄.runId);
+        return {
+          ...줄,
+          compat: {
+            setName: x?.setName ?? 줄.title, devices: x?.devices ?? 0, screens: x?.screens ?? 0, confirmed: x?.confirmed ?? 0, pending: x?.pending ?? 0,
+            affected: x?.affected ?? { states: 0, total: 0 }, unchecked: x?.unchecked ?? 0, stopReason: x?.stopReason ?? null,
+          },
+        };
+      }),
+      ...머리,
+    };
+  }
   return {
     items: rows.rows.map((r) => ({
       ...toRun(r),

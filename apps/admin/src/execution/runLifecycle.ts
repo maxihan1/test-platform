@@ -158,7 +158,8 @@ export interface AbortResult {
 
 // 이미 끝났거나 이미 멈춘 실행은 다시 멈출 수 없다. 그 사실을 부르는 쪽이 409로 알린다 (SPEC §7)
 // 시나리오 실행은 DB 만 닫으면 러너가 계속 돈다. 그래서 여기서 닫지 않고 'SCENARIO' 로 알리면 부르는 쪽이 러너에 끊어 달라 하며 닫는다 (scenario/runAbort.ts · SPEC 실행 §7)
-export async function abortRun(runId: number): Promise<AbortResult | null | 'SCENARIO'> {
+// 호환성 실행도 run_item 이 없어 여기서 닫으면 아무것도 안 끊긴다 — 'COMPAT' 으로 알리면 부르는 쪽이 호환성 가지로 멈춘다 (도메인/호환성 §3.13 「실행」 6)
+export async function abortRun(runId: number): Promise<AbortResult | null | 'SCENARIO' | 'COMPAT'> {
   const client = await (await db()).connect();
   try {
     await client.query('BEGIN');
@@ -167,9 +168,9 @@ export async function abortRun(runId: number): Promise<AbortResult | null | 'SCE
       "SELECT status, kind FROM test_run WHERE run_id = $1 FOR UPDATE",
       [runId],
     );
-    if (run.rows[0]?.kind === 'SCENARIO') {
+    if (run.rows[0]?.kind === 'SCENARIO' || run.rows[0]?.kind === 'COMPAT') {
       await client.query('ROLLBACK');
-      return 'SCENARIO';
+      return run.rows[0].kind;
     }
     if (run.rows[0]?.status !== 'RUNNING') {
       await client.query('ROLLBACK');
@@ -206,7 +207,8 @@ export async function unfinishedItems(runId: number): Promise<{ historyId: numbe
 // 부팅 직후 한 번 닫는다 (SPEC §3.2)
 export async function recoverRunning(): Promise<number> {
   const pool = await db();
-  const running = await pool.query<{ run_id: string }>("SELECT run_id FROM test_run WHERE status = 'RUNNING'");
+  // 호환성 실행은 상태 · 점검 · 잡은 디바이스까지 닫아야 해서 compat/runEngine.ts 호환성다시켜기 가 따로 닫는다
+  const running = await pool.query<{ run_id: string }>("SELECT run_id FROM test_run WHERE status = 'RUNNING' AND kind <> 'COMPAT'");
   for (const row of running.rows) {
     // 시나리오 실행의 부품도 닫는다 (SPEC 실행 §3.2). 실행보다 먼저 — 여기서 죽어도 실행이 RUNNING 으로 남아
     // 다음 기동이 다시 집는다. duration_ms 는 CLOSE_UNFINISHED 와 맞춘다 — 같은 마감이 두 표에서 다르게 보이지 않게

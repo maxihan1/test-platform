@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { 끝난글, 끝난줄만들기, 도는줄만들기, 보일줄들, 상대시각, 새소식, 서랍목록, 안읽은수, 읽음열쇠, 줄최대, type 끝난줄, type 도는줄 } from './noticeView.js';
-import { 끝난실행, 끝난작성, 도는E2E, 도는실행, 도는작성, 전에 } from './notice.fixture.js';
+import { 끝난실행, 끝난작성, 끝난호환성, 도는E2E, 도는실행, 도는작성, 도는호환성, 전에 } from './notice.fixture.js';
 
 const 지금 = Date.now();
 const 없음 = new Set<string>();
@@ -62,6 +62,21 @@ describe('도는 줄', () => {
     expect(글('케이스를 만드는 중')).toBe('#9 작성 요청이 진행 중입니다 · 케이스를 만드는 중 · 12분 지남');
     expect(글('CI 기다리는 중')).toBe('#9 작성 요청이 진행 중입니다 · CI 기다리는 중 · 12분 지남');
     expect(글(null)).toBe('#9 작성 요청이 진행 중입니다 · 12분 지남');
+  });
+});
+
+describe('호환성 줄', () => {
+  it('도는 호환성 실행은 점검 상태 · AI 점검 장 수를 적고 막대가 없다', () => {
+    const 줄 = 도는줄만들기(도는호환성(31), Date.now(), 'ko');
+    expect(줄.앞글).toBe('호환성 RUN 31 실행 중 · 주요 단말 12대 · 점검 상태 3 / 12 · AI 점검 40 / 61장 · 30분 지남');
+    expect(줄.막대).toBeNull();
+  });
+
+  it('끝난 호환성 실행은 통과 · 실패 대신 미판정 · 미점검 화면 수를 적는다', () => {
+    expect(끝난글(끝난줄만들기(끝난호환성(31), 'ko'))).toBe('RUN 31 실행이 끝났습니다 · 주요 단말 12대 · 호환성 · 대상 서버 qa · 미판정 4 · 미점검 화면 2');
+    const 멈춤 = 끝난줄만들기(끝난호환성(32, { status: 'ABORTED', compat: { pending: 0, unchecked: 0 } }), 'ko');
+    expect(끝난글(멈춤)).toBe('RUN 32 실행이 중단됐습니다 · 주요 단말 12대 · 호환성 · 대상 서버 qa');
+    expect(멈춤.모양).toBe('halt');
   });
 });
 
