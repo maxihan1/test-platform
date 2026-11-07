@@ -54,6 +54,18 @@ describe('열쇠찾기', () => {
     expect(열쇠찾기(화면({ game: { target: 'Npc_npc_enhancer' } }), 게임, null).key).toBe('game:World/WorldRoot/HudCanvas/PanelLayer/EnhancePanel');
   });
 
+  it('케이스 화면 파일에 없으면 같은 앱의 다른 화면 파일에서 찾는다 — 헬퍼로만 지나는 로그인 화면', () => {
+    const 주문: 화면파일[] = [{ file: 'tests/dma/pages/checkout.page.ts', key: 'app:.MainActivity/receiver', 글: "this.driver.$('id=receiver')" }];
+    const 앱: 화면파일[] = [
+      ...주문,
+      { file: 'tests/dma/pages/login.page.ts', key: 'app:.MainActivity/login_id', 글: "this.driver.$('id=login_id'); this.driver.$('id=title')" },
+      { file: 'tests/dma/pages/list.page.ts', key: 'app:.MainActivity/product_list', 글: "this.driver.$('id=title')" },
+    ];
+    expect(열쇠찾기(화면({ locator: { using: 'id', value: 'com.demo:id/login_id' } }), 주문, null, 앱).key).toBe('app:.MainActivity/login_id');
+    expect(열쇠찾기(화면({ locator: { using: 'id', value: 'title' } }), 주문, null, 앱).key).toBeNull();
+    expect(열쇠찾기(화면({ locator: { using: 'id', value: 'receiver' } }), 주문, null, 앱).key).toBe('app:.MainActivity/receiver');
+  });
+
   it('웹은 주소를 같은 틀로 바꾼다', () => {
     expect(열쇠찾기(화면({ url: 'https://shop.test/goods/12' }), [], null).key).toBe('/goods/:n');
   });
@@ -67,6 +79,21 @@ describe('단계찾기', () => {
     expect(단계찾기(13_500, 14_000, 단계들)).toBe(3);
     expect(단계찾기(1_000, 14_000, 단계들)).toBe(1);
     expect(단계찾기(1_000, 14_000, [])).toBeNull();
+  });
+
+  it('단계 시작 시각이 있으면 그것으로 찾는다 — 끝난 때에 세션 정리가 끼어도 앞 단계로 밀리지 않는다', () => {
+    // RUN 21057 DMA-UI-133 — cart_button 누르기(44.441초)는 2단계인데 끝에서 거꾸로 세면 1단계가 됐다
+    const 시각 = (초: number) => new Date(Date.UTC(2026, 10, 7, 3, 48, 0) + 초 * 1000).toISOString();
+    const 단계들 = [
+      { seq: 1, durationMs: 5870, startedAt: 시각(38.5) },
+      { seq: 2, durationMs: 2585, startedAt: 시각(44.37) },
+      { seq: 3, durationMs: 2710, startedAt: 시각(46.96) },
+    ];
+    const 끝 = Date.parse(시각(54.321));
+    expect(단계찾기(Date.parse(시각(44.441)), 끝, 단계들)).toBe(2);
+    expect(단계찾기(Date.parse(시각(42.271)), 끝, 단계들)).toBe(1);
+    expect(단계찾기(Date.parse(시각(30)), 끝, 단계들)).toBe(1);
+    expect(단계찾기(Date.parse(시각(44.441)), 끝, 단계들.map(({ seq, durationMs }) => ({ seq, durationMs })))).toBe(1);
   });
 });
 
