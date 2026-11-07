@@ -100,7 +100,7 @@ async function Chrome점검(곳: 팜곳, id: number, sid: string): Promise<점�
  * 점검이 끝날 때까지 받아 화면 줄로 남긴다. 케이스가 끝난 뒤 60분이 지나면 미점검(missing)이다.
  * 받다 깨지면 미점검으로 닫는다 — checking 에 남으면 그 상태 · 실행이 끝나지 않는다
  */
-export async function 점검기다리기(곳: 팜곳, c: { id: number; tcId: string }, 파일들: 화면파일[], 끝: number, 결과: ExecuteResponse, Chrome세션: string | undefined): Promise<void> {
+export async function 점검기다리기(곳: 팜곳, c: { id: number; tcId: string }, 파일들: 화면파일[], 끝: number, 결과: ExecuteResponse, Chrome세션: string | undefined, 앱파일들: 화면파일[] = []): Promise<void> {
   try {
     for (;;) {
       await 쉬기(설정.점검간격ms);
@@ -110,7 +110,7 @@ export async function 점검기다리기(곳: 팜곳, c: { id: number; tcId: str
         return;
       }
       if (점검 !== null && 점검.status !== 'checking') {
-        await 점검저장(c.id, 점검.status, 화면줄들(점검, c.tcId, 파일들, 끝, 결과.steps));
+        await 점검저장(c.id, 점검.status, 화면줄들(점검, c.tcId, 파일들, 끝, 결과.steps, 앱파일들));
         return;
       }
       if (Date.now() - 끝 >= 설정.점검상한ms) {

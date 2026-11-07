@@ -39,6 +39,19 @@ describe('runStep', () => {
     expect(emitted[0].screenshotPath).toBeUndefined();
   });
 
+  it('절차를 시작한 시각을 싣는다 — 호환성이 찍힌 화면의 단계를 찾는다', async () => {
+    const { run, emitted } = makeRun();
+    const 전 = Date.now();
+
+    await runStep(run, '메인 화면을 연다', async () => {
+      await new Promise((r) => setTimeout(r, 20));
+    });
+
+    const 시작 = Date.parse(emitted[0].startedAt ?? '');
+    expect(시작).toBeGreaterThanOrEqual(전);
+    expect(시작 + emitted[0].durationMs).toBeLessThanOrEqual(Date.now());
+  });
+
   it('검증이 실패해도 절차는 끝까지 돌고 다음 절차로 넘어간다', async () => {
     const { run, emitted } = makeRun();
 

@@ -77,15 +77,19 @@ function 하나로(후보: 화면파일[], 앞파일: string | null): 화면파�
 
 /**
  * 찍힌 화면의 열쇠. 웹은 주소, 앱은 누른 요소의 locator 를 가진 화면 파일, 게임은 대상 경로 아래 창 · 대상 이름을 가진 파일이다.
+ * 앱은 그 케이스의 화면 파일에 하나도 없으면 같은 애플리케이션의 다른 화면 파일(앱파일들)에서 한 번 더 찾는다 —
+ * 헬퍼(로그인 등)로만 지나는 화면은 지도 ② 가 케이스에 안 잇는다(작성 §3.6 「지도」).
  * 못 찾으면 key 가 null 이다. file 은 다음 화면 줄이 「앞 화면 줄과 같은 파일」을 고를 때 쓴다
  */
-export function 열쇠찾기(s: 점검화면, 파일들: readonly 화면파일[], 앞파일: string | null): { key: string | null; file: string | null } {
+export function 열쇠찾기(s: 점검화면, 파일들: readonly 화면파일[], 앞파일: string | null, 앱파일들: readonly 화면파일[] = []): { key: string | null; file: string | null } {
   if (s.url !== undefined) return { key: 주소틀(s.url), file: null };
   let 고른: 화면파일 | null = null;
   if (s.locator !== undefined) {
     // 팜은 짧은 id 에 패키지를 붙여 보낸다(com.x:id/cart) — 화면 파일에는 짧은 쪽(id=cart)이 적힌다
     const 값들 = [s.locator.value, s.locator.value.replace(/^.*:id\//, '')];
-    고른 = 하나로(파일들.filter((f) => 값들.some((v) => 담았나(f.글, v))), 앞파일);
+    const 맞나 = (f: 화면파일) => 값들.some((v) => 담았나(f.글, v));
+    const 케이스쪽 = 파일들.filter(맞나);
+    고른 = 하나로(케이스쪽.length > 0 ? 케이스쪽 : 앱파일들.filter(맞나), 앞파일);
   } else if (s.game !== undefined) {
     const t = s.game.target;
     if (t.startsWith('/')) {
@@ -102,14 +106,28 @@ export function 열쇠찾기(s: 점검화면, 파일들: readonly 화면파일[]
   return 고른 === null ? { key: null, file: null } : { key: 고른.key, file: 고른.file };
 }
 
+export interface 단계시간 {
+  seq: number;
+  durationMs: number;
+  startedAt?: string;
+}
+
 /**
- * 찍은 시각이 든 단계(1부터). 단계 시작은 항목이 끝난 때에서 거꾸로 걸린 시간을 빼 놓는다 — 앞쪽에 연결 · 앱 설치가 끼어
- * 항목 시작에서 세면 단계가 뒤로 밀린다(기기 성능 구간과 같은 까닭). 단계가 없으면 null
+ * 찍은 시각이 든 단계(1부터). kit 이 단계마다 시작 시각을 실으면 그것으로 찾는다. 시각이 없는 옛 결과는 항목이 끝난 때에서
+ * 거꾸로 걸린 시간을 빼 놓는다 — 끝난 때에 세션 정리가 끼어 단계가 앞으로 밀리는 근사다(2026-11-07 COMPAT-F1-08 시험).
+ * 첫 단계보다 앞이면 첫 단계다. 단계가 없으면 null
  */
-export function 단계찾기(at: number, 끝: number, 단계들: readonly { seq: number; durationMs: number }[]): number | null {
+export function 단계찾기(at: number, 끝: number, 단계들: readonly 단계시간[]): number | null {
   if (단계들.length === 0) return null;
-  let 시작 = 끝 - 단계들.reduce((a, s) => a + s.durationMs, 0);
   let 든 = 단계들[0]!.seq;
+  // 건너뛴 단계(E2E 체크를 푼 「만들기」)는 시각이 없지만 시간도 안 든다 — 시각 있는 단계만으로 찾는다
+  const 시각단계 = 단계들.flatMap((s) => { const t = s.startedAt === undefined ? Number.NaN : Date.parse(s.startedAt); return Number.isNaN(t) ? [] : [{ seq: s.seq, t }]; });
+  if (시각단계.length > 0) {
+    든 = 시각단계[0]!.seq;
+    for (const s of 시각단계) if (at >= s.t) 든 = s.seq;
+    return 든;
+  }
+  let 시작 = 끝 - 단계들.reduce((a, s) => a + s.durationMs, 0);
   for (const s of 단계들) {
     if (at >= 시작) 든 = s.seq;
     시작 += s.durationMs;
@@ -128,10 +146,10 @@ export interface 화면줄 {
 }
 
 /** 파일 하나의 화면 줄을 저장할 꼴로. 못 찾은 화면은 unknown:<tcId>#<단계> 다 */
-export function 화면줄들(점검: 점검파일, tcId: string, 파일들: readonly 화면파일[], 끝: number, 단계들: readonly { seq: number; durationMs: number }[]): 화면줄[] {
+export function 화면줄들(점검: 점검파일, tcId: string, 파일들: readonly 화면파일[], 끝: number, 단계들: readonly 단계시간[], 앱파일들: readonly 화면파일[] = []): 화면줄[] {
   let 앞파일: string | null = null;
   return 점검.screens.map((s) => {
-    const 찾음 = 열쇠찾기(s, 파일들, 앞파일);
+    const 찾음 = 열쇠찾기(s, 파일들, 앞파일, 앱파일들);
     if (찾음.file !== null) 앞파일 = 찾음.file;
     const step = 단계찾기(Date.parse(s.at), 끝, 단계들);
     return { key: 찾음.key ?? `unknown:${tcId}#${step ?? 0}`, step, at: s.at, before: s.before, status: s.status, issues: s.issues, file: s.file ?? null };

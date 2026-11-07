@@ -81,7 +81,7 @@ export async function runStep(
   const 짚을요소 = '실패요소' in scope ? scope.실패요소 : scope.마지막요소;
   const screenshotPath = failed || options?.capture === true ? await run.capture(seq, failed ? 짚을요소 : undefined) : undefined;
 
-  const result: StepResult = { seq, title, status, durationMs, assertions: scope.assertions };
+  const result: StepResult = { seq, title, status, durationMs, startedAt: new Date(startedAt).toISOString(), assertions: scope.assertions };
   if (scope.line !== undefined) result.line = scope.line;
   if (screenshotPath !== undefined) result.screenshotPath = screenshotPath;
   if (scope.httpTrace !== undefined) result.httpTrace = scope.httpTrace;

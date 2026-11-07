@@ -54,6 +54,8 @@ interface 실행재료 extends 팜곳 {
   adminKey: Parameters<typeof 엔진칸>[2];
   onePerModel: boolean;
   케이스: Map<string, 케이스재료>;
+  // 그 애플리케이션 활성 케이스들이 쓰는 화면 파일 전부 — 케이스 화면 파일에서 단서를 못 찾을 때 한 번 더 본다 (§3.13 「화면 찾기」)
+  앱파일들: 화면파일[];
 }
 
 /** 세운 실행을 돌리기 시작한다. 기다리지 않는다 — 실행 하나가 수십 분이다 */
@@ -92,8 +94,10 @@ async function 재료읽기(runId: number): Promise<실행재료 | { 까닭: str
       [번호들],
     ),
     pool.query<{ tc_id: string; file: string; screen_url: string }>(
-      'SELECT tc_id, file, screen_url FROM case_screen WHERE tc_id = ANY($1::text[]) AND screen_url IS NOT NULL',
-      [번호들],
+      `SELECT cs.tc_id, cs.file, cs.screen_url FROM case_screen cs JOIN test_case t ON t.tc_id = cs.tc_id
+        WHERE t.is_active AND split_part(cs.tc_id, '-', 1) = $1 AND cs.screen_url IS NOT NULL
+        ORDER BY cs.file, cs.tc_id`,
+      [머리.prefix],
     ),
   ]);
   const 채움 = await 저장값을채운다(
@@ -104,7 +108,8 @@ async function 재료읽기(runId: number): Promise<실행재료 | { 까닭: str
   );
   // 화면 파일 글은 앱 locator · 게임 대상 이름을 찾는 데만 쓴다 — 못 읽으면 빈 글이라 그 화면은 「화면 모름」이 된다
   const 글들 = new Map<string, string>();
-  for (const f of new Set(화면.rows.map((r) => r.file))) 글들.set(f, await readFile(join(testsRoot(), f.replace(/^tests\//, '')), 'utf8').catch(() => ''));
+  await Promise.all([...new Set(화면.rows.map((r) => r.file))].map(async (f) => 글들.set(f, await readFile(join(testsRoot(), f.replace(/^tests\//, '')), 'utf8').catch(() => ''))));
+  const 파일꼴 = (r: { file: string; screen_url: string }): 화면파일[] => { const key = 주소틀(r.screen_url); return key === null ? [] : [{ file: r.file, key, 글: 글들.get(r.file) ?? '' }]; };
   const 케이스 = new Map<string, 케이스재료>();
   for (const c of 채움) {
     const platforms = 행.rows.find((r) => r.tc_id === c.tcId)?.platforms ?? [];
@@ -112,10 +117,12 @@ async function 재료읽기(runId: number): Promise<실행재료 | { 까닭: str
       platform: platforms.includes('android') ? 'android' : 'mobile',
       params: c.params,
       expected: c.expected,
-      파일들: 화면.rows.filter((r) => r.tc_id === c.tcId).flatMap((r) => { const key = 주소틀(r.screen_url); return key === null ? [] : [{ file: r.file, key, 글: 글들.get(r.file) ?? '' }]; }),
+      파일들: 화면.rows.filter((r) => r.tc_id === c.tcId).flatMap(파일꼴),
     });
   }
-  return { runId, 팜, 토큰, baseUrl: 줄.baseUrl, app: 줄.appPath, serviceKind: 머리.serviceKind, adminKey: 줄.adminKey, onePerModel: 머리.onePerModel, 케이스 };
+  // 같은 파일에 화면 주소가 둘이면(다시 훑기 사이) 질의 차례(파일 · tc_id)에서 처음 것이다 — 실행마다 같은 열쇠가 나오게
+  const 앱파일들 = [...new Map(화면.rows.flatMap(파일꼴).reverse().map((f) => [f.file, f])).values()];
+  return { runId, 팜, 토큰, baseUrl: 줄.baseUrl, app: 줄.appPath, serviceKind: 머리.serviceKind, adminKey: 줄.adminKey, onePerModel: 머리.onePerModel, 케이스, 앱파일들 };
 }
 
 async function 돌기(runId: number, s: 도는실행): Promise<void> {
@@ -212,7 +219,7 @@ async function 상태돌기(재: 실행재료, s: 도는실행, seq: number, 폰
   }
 }
 
-const 단계꼴 = (r: ExecuteResponse) => r.steps.map((x) => ({ seq: x.seq, title: x.title, status: x.status, durationMs: x.durationMs }));
+const 단계꼴 = (r: ExecuteResponse) => r.steps.map((x) => ({ seq: x.seq, title: x.title, status: x.status, durationMs: x.durationMs, ...(x.startedAt === undefined ? {} : { startedAt: x.startedAt }) }));
 
 async function 케이스돌기(재: 실행재료, s: 도는실행, seq: number, serial: string, c: 실행케이스): Promise<void> {
   const 재료 = 재.케이스.get(c.tcId);
@@ -254,7 +261,7 @@ async function 케이스돌기(재: 실행재료, s: 도는실행, seq: number, 
     error: 결과.error ?? null,
     checkState: 점검받나 ? 'checking' : null,
   });
-  if (점검받나) s.점검들.push(점검기다리기(재, c, 재료.파일들, 끝, 결과, Chrome세션));
+  if (점검받나) s.점검들.push(점검기다리기(재, c, 재료.파일들, 끝, 결과, Chrome세션, 재.앱파일들));
 }
 
 /**

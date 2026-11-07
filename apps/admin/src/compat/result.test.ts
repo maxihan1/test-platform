@@ -76,6 +76,21 @@ describe('결과셈', () => {
     expect(r.rows[0]?.name).toBe('화면 모름 — DMA-UI-031 4단계');
   });
 
+  it('이상 없는 화면 모름은 점검 화면 · 숨긴 화면에 안 센다 — 점검 + 미점검이 전체 화면 수를 넘지 않게', () => {
+    const r = 결과셈(재료({
+      상태들: [상태(1)],
+      케이스들: [케이스(11, 1, 'DMA-UI-133'), 케이스(12, 1, 'DMA-FN-250', { status: 'FAIL', failedStep: 1 })],
+      지나는: new Map([['DMA-UI-133', ['/login']], ['DMA-FN-250', ['/receiver']]]),
+      화면들: [
+        { id: 1, caseRunId: 11, seq: 1, key: '/login', step: 1, status: 'done', issues: [] },
+        { id: 2, caseRunId: 12, seq: 1, key: 'unknown:DMA-FN-250#1', step: 1, status: 'done', issues: [] },
+      ],
+    }));
+    expect(r.counts).toMatchObject({ screens: 1, unchecked: 1 });
+    expect(r.hiddenOk).toBe(1);
+    expect(r.rows.map((x) => x.key)).toEqual(['/receiver']);
+  });
+
   it('지금 케이스는 시작했고 안 끝난 케이스다 — 다 끝났거나 아직 안 돌았으면 null', () => {
     const r = 결과셈(재료({
       상태들: [상태(1, { state: 'RUNNING' }), 상태(2, { state: 'WAIT' })],
