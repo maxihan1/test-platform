@@ -138,7 +138,8 @@ async function 닿는서비스(req: FastifyRequest): Promise<string[] | typeof �
     원천.종류 === '성능시나리오' ||
     원천.종류 === '성능실행' ||
     원천.종류 === '성능AI일' ||
-    원천.종류 === '성능더미클라이언트'
+    원천.종류 === '성능더미클라이언트' ||
+    원천.종류 === '호환성세트'
   ) {
     const 번호 = 번호로(params[원천.칸]);
     // 라우트는 이 값을 숫자로 읽는다. 문이 못 읽는 모양이면 둘이 다른 것을 보고 있다
@@ -165,7 +166,8 @@ async function 닿는서비스(req: FastifyRequest): Promise<string[] | typeof �
 
   // 성능 시나리오 만들기는 본문 serviceId, 실행 만들기는 본문 scenarioId 의 애플리케이션이다 (도메인/성능 §7)
   // 초안 · 추천 · 페이지 단독 측정도 본문 serviceId 다. 파일 초안은 본문이 파일 그대로라 위 ?serviceId= 로 본다 (PERF-F1-04 · 07)
-  const 성능본문 = ['/api/perf/scenarios', '/api/perf/runs', '/api/perf/scenarios/draft', '/api/perf/suggest', '/api/perf/pages/measure', '/api/perf/devices/measure'];
+  // 호환성 세트 만들기 · 미리 셈도 본문 serviceId 다. 고치기는 주소의 세트가 정하고 라우트가 본문 serviceId 가 같은지 본다 (도메인/호환성 §7)
+  const 성능본문 = ['/api/perf/scenarios', '/api/perf/runs', '/api/perf/scenarios/draft', '/api/perf/suggest', '/api/perf/pages/measure', '/api/perf/devices/measure', '/api/compat-sets', '/api/compat-sets/preview'];
   if (틀 !== undefined && 성능본문.includes(틀) && req.method === 'POST' && !Buffer.isBuffer(req.body)) {
     const body = req.body;
     const 칸 = 틀 === '/api/perf/runs' ? 'scenarioId' : 'serviceId';

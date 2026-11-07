@@ -44,6 +44,7 @@ import btsBugfixRoutes from './bts/bugfixRoutes.js';
 import btsDraftRoutes from './bts/draftRoutes.js';
 import btsRollbackRoutes from './bts/rollbackRoutes.js';
 import btsQualityRoutes from './bts/qualityRoutes.js';
+import compatRoutes from './compat/routes.js';
 import reportingRoutes from './reporting/routes.js';
 import scenarioRoutes from './scenario/routes.js';
 import scenarioRunRoutes from './scenario/runRoutes.js';
@@ -96,6 +97,7 @@ export function buildApp(sessionSecret = process.env.SESSION_SECRET ?? '') {
   app.register(btsInboundRoutes, { prefix: '/api' });
   app.register(btsDeployRoutes, { prefix: '/api' });
   app.register(perfRoutes, { prefix: '/api' });
+  app.register(compatRoutes, { prefix: '/api' });
 
   // 대시보드는 /api 밖이다. 문(auth/grafanaGate.ts)을 지난 요청만 Grafana 로 넘어간다 (SPEC 도메인/인증 §7)
   app.register(grafanaProxy);

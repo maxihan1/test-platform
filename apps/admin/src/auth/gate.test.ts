@@ -695,6 +695,8 @@ describe('등급 표', () => {
     ['DELETE /api/perf/agents/:id', 'admin'],
     // 성능 시나리오의 정기 실행을 켜고 끄는 일도 admin 이다 (도메인/성능 §7 「정기 실행」)
     ['PUT /api/perf/scenarios/:id/schedule', 'admin'],
+    // 호환성 미리 셈은 POST 지만 저장하지 않아 읽기다 (도메인/인증 §7 호환성 줄)
+    ['POST /api/compat-sets/preview', 'viewer'],
     // 에이전트 통로는 사람 판정 밖이라 표에 「안 따짐」이다 — 사람이 닿으면 문이 401 로 먼저 돌려보낸다
     ['POST /api/perf/agent/hello', 'admin'],
     ['POST /api/perf/agent/claim', 'admin'],
@@ -779,7 +781,7 @@ describe('등급 표', () => {
   it('표의 기능은 경로 접두사가 정한 기능과 같다 — 접두사예외만 빼고', () => {
     const 경로의기능 = (틀: string): 기능 | null => {
       if (/^\/api\/(catalog|cases|param-sets)(\/|$)/.test(틀)) return 'cases';
-      if (/^\/api\/(runs|evidence|screenshots|scenarios|scenario-trials|perf)(\/|$)/.test(틀)) return 'runs';
+      if (/^\/api\/(runs|evidence|screenshots|scenarios|scenario-trials|perf|compat-sets|compat-devices)(\/|$)/.test(틀)) return 'runs';
       // API 문서는 애플리케이션 번호 아래지만 작성 기능이다 (도메인/API §7)
       if (/^\/api\/(authoring|prd|guide)(\/|$)/.test(틀) || /^\/api\/services\/:id\/api-/.test(틀)) return 'authoring';
       return null;
