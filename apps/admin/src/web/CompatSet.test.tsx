@@ -56,6 +56,7 @@ afterEach(() => {
 function 차림() {
   vi.spyOn(compatApi, 'devices').mockResolvedValue({ devices: 팜 });
   vi.spyOn(compatApi, 'set').mockResolvedValue(상세);
+  vi.spyOn(compatApi, 'sets').mockResolvedValue({ sets: [상세] });
   const 미리셈 = vi.spyOn(compatApi, 'preview').mockResolvedValue(셈);
   const 케이스 = (items: { tcId: string; name: string }[]) => ({ items, total: items.length, page: 1, pageSize: 50 }) as unknown as CasePage;
   vi.spyOn(api, 'cases').mockImplementation((q) =>
@@ -141,6 +142,37 @@ describe('저장한 호환성 세트', () => {
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
     await waitFor(() => expect(고치기).toHaveBeenCalled());
     expect(고치기.mock.calls[0]![1]).toMatchObject({ addedCases: ['MKA-FN-050'], devices: [{ serial: 's1' }, { serial: 's4' }] });
+  });
+
+  it('지워진 직접 추가는 건너뜀으로 보이고 미리 셈에 안 보낸다', async () => {
+    const { 미리셈 } = 차림();
+    vi.spyOn(compatApi, 'set').mockResolvedValue({ ...상세, addedCases: ['MKA-FN-046', 'MKA-FN-099'] });
+    render(<CompatSet id={3} serviceId={7} service="MKA" kind="APP" 쓰나 />);
+    expect(await screen.findByText('케이스가 없어 실행 때 건너뜀')).toBeTruthy();
+    expect(screen.getByText('케이스 3')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'MKA-FN-046 제외' }));
+    await waitFor(() => expect(미리셈).toHaveBeenLastCalledWith(7, []));
+  });
+
+  it('등록에서 빠진 디바이스도 선택 상자에서 뺄 수 있다', async () => {
+    차림();
+    vi.spyOn(compatApi, 'set').mockResolvedValue({ ...상세, devices: [...상세.devices, { serial: 'gone', model: 'SM-G991N', name: 'Galaxy S21' }] });
+    render(<CompatSet id={3} serviceId={7} service="MKA" kind="APP" 쓰나 />);
+    expect(await screen.findByText('등록에서 빠짐 1')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '디바이스 선택' }));
+    const 상자 = within(screen.getByRole('dialog', { name: '디바이스 선택' }));
+    fireEvent.click(상자.getByRole('checkbox', { name: 'Galaxy S21 SM-G991N' }));
+    fireEvent.click(상자.getByRole('button', { name: '선택 완료' }));
+    expect(screen.getByText('디바이스 2대')).toBeTruthy();
+    expect(screen.queryByText('등록에서 빠짐 1')).toBeNull();
+  });
+
+  it('다른 애플리케이션의 세트는 고치지 않는다', async () => {
+    차림();
+    vi.spyOn(compatApi, 'sets').mockResolvedValue({ sets: [] });
+    render(<CompatSet id={3} serviceId={8} service="MKW" kind="SCREEN" 쓰나 />);
+    expect(await screen.findByText('이 세트는 지금 고른 애플리케이션의 세트가 아닙니다')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '저장' })).toBeNull();
   });
 
   it('실행 read 는 보기만 한다', async () => {

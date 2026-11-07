@@ -1,6 +1,6 @@
 // 호환성 세트의 「케이스 추가」 창 — 폰에서 도는 활성 케이스를 찾아 여러 건 고른다 (도메인/호환성 §8.17 ② · §3.13 「자동 선택」 고를 수 있는 케이스)
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { api, type CaseRow, type Platform } from './api.js';
 import { use말 } from './i18n.js';
@@ -24,8 +24,14 @@ export function CompatCasePick({
 }) {
   const t = use말();
   const [찾기, set찾기] = useState('');
+  // 글자마다 부르지 않는다 — 치기를 멈추고 0.3초 뒤에 찾는다
+  const [찾을말, set찾을말] = useState('');
+  useEffect(() => {
+    const 잠시 = window.setTimeout(() => set찾을말(찾기.trim()), 300);
+    return () => window.clearTimeout(잠시);
+  }, [찾기]);
   const [고른, set고른] = useState<CaseRow[]>([]);
-  const 목록 = useAsync(() => api.cases({ service, platform, q: 찾기.trim(), page: 1 }), [service, platform, 찾기]);
+  const 목록 = useAsync(() => api.cases({ service, platform, q: 찾을말, page: 1 }), [service, platform, 찾을말]);
   const 줄들 = (목록.data?.items ?? []).filter((c) => !이미.has(c.tcId));
   const 골랐나 = (tcId: string) => 고른.some((c) => c.tcId === tcId);
 

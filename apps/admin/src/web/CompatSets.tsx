@@ -42,12 +42,13 @@ function 최근실행({ run }: { run: CompatSetRow['lastRun'] }) {
 export function CompatSets({ serviceId, service, 쓰나 }: { serviceId: number; service: string; 쓰나: boolean }) {
   const t = use말();
   // 자동 선택은 세트와 상관없이 애플리케이션마다 하나다(직접 추가와 따로 센다) — 빈 직접 추가로 한 번 미리 세어 수를 얻는다
-  const 목록 = useAsync(() => Promise.all([compatApi.sets(serviceId), compatApi.preview(serviceId, [])]), [serviceId]);
+  // 미리 셈이 실패해도 목록은 선다 — 자동 선택 수만 빠진다
+  const 목록 = useAsync(() => Promise.all([compatApi.sets(serviceId), compatApi.preview(serviceId, []).catch(() => null)]), [serviceId]);
 
   if (목록.error !== null) return <Failed error={목록.error} />;
   if (목록.data === null) return <Loading />;
-  const [{ sets: 줄들 }, { auto }] = 목록.data;
-  const 자동 = new Set(auto.map((a) => a.tcId));
+  const [{ sets: 줄들 }, 셈] = 목록.data;
+  const 자동 = new Set((셈?.auto ?? []).map((a) => a.tcId));
 
   return (
     <>
@@ -94,7 +95,7 @@ export function CompatSets({ serviceId, service, 쓰나 }: { serviceId: number; 
                       {t('{수}대', { 수: s.devices.length })}
                       <div className="compat-faint">{s.devices.slice(0, 3).map((d) => d.name).join(' · ')}{s.devices.length > 3 ? ' ' + t('외 {수}대', { 수: s.devices.length - 3 }) : ''}</div>
                     </td>
-                    <td data-label={t('케이스')}>{케이스글(auto.length, s.addedCases.filter((c) => !자동.has(c)).length, t)}</td>
+                    <td data-label={t('케이스')}>{셈 === null ? t('직접 추가 {수}', { 수: s.addedCases.length }) : 케이스글(셈.auto.length, s.addedCases.filter((c) => !자동.has(c)).length, t)}</td>
                     <td data-label={t('화면 커버리지')}>
                       <span className="mono">
                         {s.coverage.covered} / {s.coverage.total}

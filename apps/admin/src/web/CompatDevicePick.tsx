@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-import type { CompatDevice } from './compatApi.js';
+import type { CompatDevice, CompatSetDevice } from './compatApi.js';
 import { 같은모델들, 디바이스요약글, 모델별하나만, 상태글자, 안드로이드, 요약, 인치글, 잠겼나, 해상도글, 형태글자, 형태로, type 형태 } from './compatView.js';
 import { use말 } from './i18n.js';
 import { Modal } from './Modal.js';
@@ -30,12 +30,15 @@ function 칩줄<T extends string | number>({ 이름, 값들, 고른, 고침, 글
 export function CompatDevicePick({
   목록,
   처음고른,
+  빠진,
   처음모델별,
   닫기,
   완료,
 }: {
   목록: CompatDevice[];
   처음고른: string[];
+  /** 세트에 있지만 팜 등록에서 빠진 디바이스. 목록에 없어도 여기서 뺄 수 있어야 한다 — 안 그러면 세트에서 영영 못 지운다 */
+  빠진: CompatSetDevice[];
   처음모델별: boolean;
   닫기: () => void;
   완료: (고른: string[], 모델별: boolean) => void;
@@ -50,6 +53,8 @@ export function CompatDevicePick({
   const [형, set형] = useState<형태 | null>(null);
 
   const 고른칸 = new Set(고른);
+  // 등록에서 빠진 디바이스도 모델을 안다(세트 사본) — 같은 모델 둘을 서버가 거절하지 않게 같이 본다
+  const 모델표 = [...목록, ...빠진];
   const 같은 = 모델별 ? 같은모델들(목록, 고른칸) : new Set<string>();
   const 고를수 = (d: CompatDevice) => !잠겼나(d) && !같은.has(d.serial);
   const 낱말 = 찾기.trim().toLowerCase();
@@ -84,7 +89,7 @@ export function CompatDevicePick({
           <button type="button" className="btn ghost" onClick={닫기}>
             {t('취소')}
           </button>
-          <button type="button" className="btn" onClick={() => 완료(모델별 ? 모델별하나만(목록, 고른) : 고른, 모델별)}>
+          <button type="button" className="btn" onClick={() => 완료(모델별 ? 모델별하나만(모델표, 고른) : 고른, 모델별)}>
             {t('선택 완료')}
           </button>
         </>
@@ -100,7 +105,7 @@ export function CompatDevicePick({
               checked={모델별}
               onChange={(e) => {
                 set모델별(e.target.checked);
-                if (e.target.checked) set고른((앞) => 모델별하나만(목록, 앞));
+                if (e.target.checked) set고른((앞) => 모델별하나만(모델표, 앞));
               }}
             />
             {t('같은 모델은 1대만')}
@@ -131,7 +136,7 @@ export function CompatDevicePick({
                       set고른((앞) => {
                         if (!켬) return 앞.filter((s) => !고를것.some((d) => d.serial === s));
                         const 더 = [...앞, ...고를것.map((d) => d.serial).filter((s) => !앞.includes(s))];
-                        return 모델별 ? 모델별하나만(목록, 더) : 더;
+                        return 모델별 ? 모델별하나만(모델표, 더) : 더;
                       });
                     }}
                   />
@@ -148,7 +153,22 @@ export function CompatDevicePick({
               </tr>
             </thead>
             <tbody>
-              {보일것.length === 0 ? (
+              {빠진.map((d) => (
+                <tr key={d.serial} className="dim">
+                  <td>
+                    <input type="checkbox" aria-label={`${d.name} ${d.model}`} checked={고른칸.has(d.serial)} onChange={(e) => 바꾸기(d.serial, e.target.checked)} />
+                  </td>
+                  <td>
+                    <b>{d.name}</b>
+                  </td>
+                  <td className="mono">{d.model}</td>
+                  <td colSpan={6}>-</td>
+                  <td>
+                    <span className="compat-off">{t('등록에서 빠짐')}</span>
+                  </td>
+                </tr>
+              ))}
+              {보일것.length === 0 && 빠진.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="compat-faint">
                     {t('조건에 맞는 디바이스가 없습니다')}

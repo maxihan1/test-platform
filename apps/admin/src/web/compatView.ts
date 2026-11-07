@@ -86,7 +86,7 @@ export function 같은모델들(목록: readonly CompatDevice[], 고른: Readonl
 }
 
 /** 「같은 모델은 1대만」을 켜면 고른 것에서 같은 모델의 두 번째부터를 뺀다 — 서버도 같은 모델 둘을 거절한다 */
-export function 모델별하나만(목록: readonly CompatDevice[], 고른: readonly string[]): string[] {
+export function 모델별하나만(목록: readonly Pick<CompatDevice, 'serial' | 'model'>[], 고른: readonly string[]): string[] {
   const 모델 = new Map(목록.map((d) => [d.serial, d.model]));
   const 본 = new Set<string>();
   return 고른.filter((s) => {

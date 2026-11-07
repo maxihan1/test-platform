@@ -89,4 +89,10 @@ export const 호환성말: Record<string, string> = {
   '세트 만들기': 'Create set',
   '최근 실행': 'Last run',
   '직접 선택': 'Chosen manually',
+  '직접 추가한 케이스 이름을 읽지 못했습니다': 'Could not read the names of the added cases',
+  '이 세트는 지금 고른 애플리케이션의 세트가 아닙니다': 'This set does not belong to the selected application',
+  '세트 목록에서 다시 엽니다': 'Open it again from the set list',
+  '등록에서 빠짐 {수}': 'Unregistered {수}',
+  '케이스가 없어 실행 때 건너뜀': 'Case not found, skipped when running',
+  '직접 추가 {수}': 'Added manually {수}',
 };
