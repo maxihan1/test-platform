@@ -38,6 +38,7 @@ export interface StepResult {
   title: string;                // '로그인 API를 호출한다'
   status: ItemStatus;
   durationMs: number;
+  startedAt?: string;           // 절차를 시작한 시각(ISO). 호환성이 찍힌 화면의 단계를 찾는다 — 없는 옛 결과는 끝에서 거꾸로 센다 (도메인/호환성 §3.13 「화면 찾기」)
   assertions: AssertionResult[];
   line?: number;                // 실패한 소스 줄 번호. 코드 뷰가 이 줄을 중심으로 연다
   screenshotPath?: string;      // 실패 시 자동, 또는 capture:true인 스텝
