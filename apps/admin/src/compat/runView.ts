@@ -1,6 +1,7 @@
 // 호환성 실행 결과를 모아 통로 꼴로 — 결과 화면 · 세트 목록 최근 실행 · 실행 기록 줄 · 알림이 같이 읽는다 (도메인/호환성 §7 「결과」)
 
 import { 결과셈 } from './result.js';
+import { 폰화면 } from './runEngine.js';
 import { 상태들읽기, 실행머리읽기, 케이스들읽기, 판정들읽기, 화면들읽기 } from './runRead.js';
 import { 셈하기 } from './select.js';
 import { 재료읽기 } from './store.js';
@@ -33,8 +34,10 @@ export async function 호환성결과(runId: number, 캐시: 재료캐시 = new 
   });
   // 미커버 화면은 그때 박제한 케이스(상태마다 같다)로 지금 전체 화면 목록을 다시 센다
   const uncovered = 요약만 ? [] : 셈하기(재.전체, 재.후보들, 쓴, 재.fallback, []).uncovered;
-  const { affected, ...보임 } = 셈;
+  const { affected, devices: _devices, ...보임 } = 셈;
   return {
+    // 잡은 폰의 VISION 링크는 엔진 메모리에 있다 — 놓았거나 admin 이 다시 켜졌으면 null (§7 「결과」)
+    devices: 셈.devices.map((d) => ({ ...d, vision: 폰화면(runId, d.seq) })),
     run: { runId, setId: 머리.setId, title: 머리.title, env: 머리.env, buildNo: 머리.buildNo, startedAt: 머리.startedAt, finishedAt: 머리.finishedAt, state: 머리.status, startedBy: 머리.startedBy },
     ...보임,
     uncovered,

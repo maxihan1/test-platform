@@ -1,0 +1,246 @@
+/* 호환성 결과 · 실행 기록 (도메인/호환성 §8.17 ④ · ⑤). 실행 창 · 의심 화면 그림은 compatRun.css */
+
+/* ④ 결과 */
+.compat-result {
+  display: grid;
+  gap: 16px;
+}
+
+/* 세트 화면의 패널은 줄마다 여백을 따로 두지만 결과 패널은 통째로 둔다 */
+.compat-result .compat-panel {
+  padding: 14px 18px;
+}
+
+.cr-sums {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.cr-sum {
+  display: grid;
+  gap: 2px;
+}
+
+.cr-sum b {
+  font-size: 24px;
+}
+
+.cr-sum span {
+  color: var(--ink-faint);
+  font-size: 12px;
+}
+
+.cr-sum.bad b {
+  color: var(--fail-text);
+}
+
+.cr-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.cr-head h2 {
+  margin: 0;
+}
+
+.cr-head .btn {
+  margin-left: auto;
+}
+
+.cr-key {
+  overflow-wrap: anywhere;
+}
+
+.cr-mx-wrap {
+  overflow-x: auto;
+}
+
+.cr-mx {
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.cr-mx th,
+.cr-mx td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.cr-mx .l {
+  text-align: left;
+}
+
+/* 휴대폰에서 가로로 밀어도 화면 이름 열은 남는다 (§8.17 「휴대폰」) */
+.cr-mx tbody th,
+.cr-mx thead th:first-child {
+  position: sticky;
+  left: 0;
+  background: var(--panel);
+}
+
+/* 휴대폰 공통 규칙(phone.css 「표는 카드 줄이다」)의 예외다 — 이 표는 첫 열을 고정하고 가로로 민다 (§8.17 「휴대폰」) */
+.ph table.cr-mx {
+  display: table;
+}
+
+.ph .cr-mx thead {
+  display: table-header-group;
+}
+
+.ph .cr-mx tbody {
+  display: table-row-group;
+}
+
+.ph .cr-mx tr,
+.ph .cr-mx tbody tr {
+  display: table-row;
+  padding: 0;
+}
+
+.ph .cr-mx td,
+.ph .cr-mx th,
+.ph .cr-mx tbody th {
+  display: table-cell;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+  text-align: center;
+}
+
+.ph .cr-mx .l {
+  text-align: left;
+}
+
+.ph .cr-mx td[data-label]::before,
+.ph .cr-mx tbody th[data-label]::before {
+  content: none;
+}
+
+/* 칸 값 — 결함 확정만 판정 색이다. 미판정 · 아님 · 미점검은 회색 단계로 가른다 */
+.cr-c {
+  display: inline-block;
+  min-width: 44px;
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: none;
+  color: var(--ink-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.cr-c.ok {
+  color: var(--ink-faint);
+  cursor: default;
+}
+
+.cr-c.confirmed {
+  background: var(--fail-soft);
+  color: var(--fail-text);
+  font-weight: 600;
+}
+
+.cr-c.pending {
+  border-color: var(--ink-faint);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.cr-c.not_defect {
+  background: var(--well);
+}
+
+.cr-c.unchecked {
+  border-style: dashed;
+  border-color: var(--line-2);
+}
+
+.cr-filters {
+  margin: 0;
+}
+
+.cr-cards {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.cr-card {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.cr-card-body {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.cr-kind {
+  font-weight: 600;
+}
+
+.cr-verdicts {
+  display: flex;
+  gap: 8px;
+}
+
+.cr-verdicts .btn[aria-pressed='true'] {
+  border-color: var(--ink-faint);
+  font-weight: 600;
+}
+
+.cr-none {
+  margin: 0;
+}
+
+.cr-line {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.cr-why {
+  display: block;
+}
+
+/* ⑤ 실행 기록 — 줄 어디를 눌러도 결과로 간다 */
+.cr-row {
+  cursor: pointer;
+}
+
+.cr-row:hover {
+  background: var(--well);
+}
+
+.compat-go {
+  text-align: right;
+}
+
+@media (max-width: 720px) {
+  .cr-sums {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .cr-card {
+    flex-direction: column;
+  }
+
+  .cr-line {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .compat-go {
+    text-align: left;
+  }
+}

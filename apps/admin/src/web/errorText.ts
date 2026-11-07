@@ -73,6 +73,9 @@ export const 오류말: Record<string, string> = {
   UNKNOWN_DEVICE: 'Device VISION 에 없는 디바이스가 있습니다. 디바이스 선택을 다시 엽니다',
   UNKNOWN_CASE: '호환성에서 돌릴 수 없는 케이스가 있습니다. 지워졌거나 폰에서 돌지 않는 케이스입니다',
   FARM_UNREACHABLE: 'Device VISION 이 답하지 않습니다. 잠시 뒤 다시 합니다',
+  // 호환성 실행 · 판정 (도메인/호환성 §7 「실행」 · 「결과」). 실행의 NO_DEVICE 는 뜻이 달라 시작 확인 창(CompatStart)이 따로 적는다
+  NO_CASE: '돌릴 케이스가 없습니다. 폰에서 도는 케이스를 먼저 만듭니다',
+  NOT_SUSPECT: '그 칸에는 결함 의심이 없습니다. 새로 고쳐 보세요',
 
   // E2E 시나리오 (도메인/시나리오 §7). TRIAL_BUSY · TRIAL_NOT_FOUND 는 시험 실행 화면이 따로 다룬다
   SCENARIO_NOT_FOUND: '그 시나리오를 찾지 못했습니다',

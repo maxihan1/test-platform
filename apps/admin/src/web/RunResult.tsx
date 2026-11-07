@@ -72,7 +72,12 @@ function 케이스결과({
   // 화면에 안 나오는 값이라 `useRef` 로 둔다 — 그리는 값이면 `useState` 여야 한다 (2026-09-21 사고)
   const 앞선상태 = useRef<string | null>(null);
 
-  const run = useAsync(() => api.run(runId).catch((e: unknown) => { if (e instanceof ApiError && e.code === 'SCENARIO_RUN') on시나리오?.(); throw e; }), [runId]);
+  // 호환성 실행은 결과 화면이 따로다 — 옛 알림 · 받은 링크(#/runs/<번호>)로 와도 그리로 옮긴다 (도메인/호환성 §7 `COMPAT_RUN`)
+  const run = useAsync(() => api.run(runId).catch((e: unknown) => {
+    if (e instanceof ApiError && e.code === 'SCENARIO_RUN') on시나리오?.();
+    if (e instanceof ApiError && e.code === 'COMPAT_RUN') window.location.replace(`#/compat/runs/${String(runId)}`);
+    throw e;
+  }), [runId]);
   const data = run.data;
   // ABORTED 를 빠뜨리면 사람이 멈춘 실행에서 2초마다 영원히 다시 묻는다 (SPEC §8.3)
   const running = data !== null && 도는중(data.status);

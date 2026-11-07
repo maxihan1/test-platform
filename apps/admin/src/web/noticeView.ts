@@ -28,9 +28,12 @@ function 번호(n: 알림재료): number {
   return n.kind === 'authoring' ? n.requestId : n.runId;
 }
 
-// E2E 실행도 같은 주소다 — 실행 결과 화면이 시나리오 실행이면 E2E 결과로 갈라 그린다
+// E2E 실행도 같은 주소다 — 실행 결과 화면이 시나리오 실행이면 E2E 결과로 갈라 그린다.
+// 호환성은 결과 화면이 따로다 — 실행 결과 통로가 404 COMPAT_RUN 을 낸다 (도메인/호환성 §7 · §8.17 ④)
 function 열기주소(n: 알림재료): string {
-  return n.kind === 'authoring' ? `#/authoring/${String(n.requestId)}` : `#/runs/${String(n.runId)}`;
+  if (n.kind === 'authoring') return `#/authoring/${String(n.requestId)}`;
+  if (n.kind === 'compat' || (n.kind === 'run' && n.testKind === 'COMPAT')) return `#/compat/runs/${String(n.runId)}?service=${encodeURIComponent(n.prefix)}`;
+  return `#/runs/${String(n.runId)}`;
 }
 
 // 도는 것의 차례 — 케이스 실행 → E2E 실행 → 작성 (E2E 도 실행이라 실행 무리에 선다)

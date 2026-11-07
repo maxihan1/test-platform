@@ -36,6 +36,10 @@ interface 도는실행 {
 const 도는들 = new Map<number, 도는실행>();
 export const 도는호환성인가 = (runId: number): boolean => 도는들.has(runId);
 
+// 잡은 폰의 Device VISION 화면 링크 — 실행 중 창이 연다 (§8.17 ③). 메모리에만 두고 놓으면 뗀다 — 놓은 폰의 링크는 닫혀 있다
+const 폰화면들 = new Map<string, string>();
+export const 폰화면 = (runId: number, seq: number): string | null => 폰화면들.get(`${String(runId)}#${String(seq)}`) ?? null;
+
 interface 케이스재료 {
   platform: 'android' | 'mobile';
   params: Record<string, unknown>;
@@ -170,14 +174,14 @@ const 잡을분 = (케이스수: number) => [30, 60, 120].find((m) => m >= 케�
  * 고른 디바이스를 잡는다. 못 잡았고 「모델별 1대」 세트면 같은 모델의 빈 디바이스를 찾는다. 못 잡으면 null,
  * 팜 목록에 그 디바이스(모델별 1대면 같은 모델)가 아예 없으면 '없음'
  */
-async function 잡아보기(재: 실행재료, serial: string, model: string, 케이스수: number): Promise<{ serial: string; 기기: 호환성디바이스 | undefined } | null | '없음'> {
+async function 잡아보기(재: 실행재료, serial: string, model: string, 케이스수: number): Promise<{ serial: string; 기기: 호환성디바이스 | undefined; 화면: string | undefined } | null | '없음'> {
   const 목록 = await 호환성디바이스목록();
   if (목록 !== null && !목록.some((d) => d.serial === serial || (재.onePerModel && d.model === model))) return '없음';
   const 후보 = [serial, ...(재.onePerModel ? (목록 ?? []).filter((d) => d.serial !== serial && d.model === model && d.state === 'IDLE').map((d) => d.serial) : [])];
   for (const x of 후보) {
     try {
       const 잡음 = await 잡는다(재.팜, x, fetch, 잡을분(케이스수), 재.토큰);
-      if ('화면' in 잡음) return { serial: x, 기기: 목록?.find((d) => d.serial === x) };
+      if ('화면' in 잡음) return { serial: x, 기기: 목록?.find((d) => d.serial === x), 화면: 잡음.화면 };
     } catch (e) {
       // 답이 늦게 왔을 뿐 팜은 잡았을 수 있다 — 놓고 다음 차례에 다시 본다
       console.error(`[compat] 실행 ${재.runId} 이 ${x} 를 잡다 닿지 못했다: ${글(e)}`);
@@ -187,7 +191,9 @@ async function 잡아보기(재: 실행재료, serial: string, model: string, �
   return null;
 }
 
-async function 상태돌기(재: 실행재료, s: 도는실행, seq: number, 폰: { serial: string; 기기: 호환성디바이스 | undefined }, 케이스들: 실행케이스[]): Promise<void> {
+async function 상태돌기(재: 실행재료, s: 도는실행, seq: number, 폰: { serial: string; 기기: 호환성디바이스 | undefined; 화면: string | undefined }, 케이스들: 실행케이스[]): Promise<void> {
+  const 화면열쇠 = `${String(재.runId)}#${String(seq)}`;
+  if (폰.화면 !== undefined) 폰화면들.set(화면열쇠, 폰.화면);
   const fold = 폰.기기?.fold === 'folded' ? 'FOLDED' : 폰.기기?.fold === 'unfolded' ? 'OPEN' : null;
   try {
     // 중단이 먼저 STOPPED 로 닫았으면 돌지 않는다
@@ -198,6 +204,7 @@ async function 상태돌기(재: 실행재료, s: 도는실행, seq: number, 폰
       await 케이스돌기(재, s, seq, 폰.serial, c);
     }
   } finally {
+    폰화면들.delete(화면열쇠);
     await 폰을돌려준다(재.팜, 폰.serial, fetch, 재.토큰);
     await 상태놓음(재.runId, seq);
     // 점검을 기다릴 케이스가 없던 상태는 바로 끝이다 — 실행이 다 돌 때까지 CHECKING 에 두지 않는다

@@ -21,10 +21,13 @@ export interface 케이스줄 {
   id: number;
   seq: number;
   tcId: string;
+  name: string;
   status: 'PASS' | 'FAIL' | 'NA';
   failedStep: number | null;
   checkState: 'checking' | 'done' | 'failed' | 'limit' | 'missing' | null;
   started: boolean;
+  /** 시작한 때 — 실행 중 창의 「38초째」 (§8.17 ③). 안 돌았으면 null */
+  startedAt: string | null;
   finished: boolean;
   /** 케이스가 남긴 오류 문장 — 못 돌린 까닭(Chrome 을 못 켬 · 케이스가 없어짐 · 서버가 다시 켜짐)을 미점검 칸에 보인다 */
   까닭: string | null;
@@ -117,6 +120,9 @@ export function 결과셈(재: 결과재료) {
       const 케이스 = 재.케이스들.filter((c) => c.seq === d.seq);
       const 찍힘 = 재.화면들.filter((s) => s.seq === d.seq).length;
       const 남은 = 케이스.filter((c) => c.checkState === 'checking').reduce((a, c) => a + Math.max(1, 재.화면수.get(c.tcId) ?? 0), 0);
+      // 한 상태는 케이스를 한 건씩 돌려 시작했고 안 끝난 것이 많아야 하나다 — 실행 중 창의 지금 케이스 (§8.17 ③)
+      // 멈춘 상태(중단 · 다시 켜기)에 끝 없이 남은 케이스는 도는 것이 아니다
+      const 도는 = d.state === 'RUNNING' ? 케이스.find((c) => c.started && !c.finished) : undefined;
       return {
         seq: d.seq,
         serial: d.heldSerial ?? d.serial,
@@ -126,6 +132,7 @@ export function 결과셈(재: 결과재료) {
         fold: d.fold,
         state: d.state,
         cases: { done: 케이스.filter((c) => c.finished).length, total: 케이스.length },
+        now: 도는 === undefined ? null : { tcId: 도는.tcId, name: 도는.name, startedAt: 도는.startedAt },
         checks: { done: 찍힘, total: 찍힘 + 남은 },
         skipReason: d.skipReason,
       };

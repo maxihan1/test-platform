@@ -108,6 +108,8 @@ export const 오류영어: Record<string, string> = {
   // 호환성 세트 (errorText.ts)
   '그 호환성 세트를 찾지 못했습니다. 치운 세트일 수 있습니다': 'Could not find that compatibility set. It may have been archived',
   '디바이스를 한 대 이상 고릅니다': 'Choose at least one device',
+  '돌릴 케이스가 없습니다. 폰에서 도는 케이스를 먼저 만듭니다': 'There are no cases to run. Create cases that run on a phone first',
+  '그 칸에는 결함 의심이 없습니다. 새로 고쳐 보세요': 'That cell has no suspected defect. Try refreshing',
   'Device VISION 에 없는 디바이스가 있습니다. 디바이스 선택을 다시 엽니다': 'Some devices are not registered in Device VISION. Open device selection again',
   '호환성에서 돌릴 수 없는 케이스가 있습니다. 지워졌거나 폰에서 돌지 않는 케이스입니다': 'Some cases cannot run in compatibility. They were removed or do not run on a phone',
   'Device VISION 이 답하지 않습니다. 잠시 뒤 다시 합니다': 'Device VISION is not responding. Try again shortly',

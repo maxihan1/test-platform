@@ -1,0 +1,229 @@
+/* 호환성 시작 확인 창 · 실행 중 창 · 의심 화면 그림 (도메인/호환성 §8.17 ③). 결과 · 실행 기록은 compatResult.css, 세트 화면은 compat.css */
+
+/* 시작 확인 — 실행 창 한 틀의 준비 단계 */
+.cr-start {
+  display: grid;
+  gap: 14px;
+  max-width: 560px;
+}
+
+.cr-start-name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.cr-field {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.cr-facts {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 8px 12px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.cr-facts dt {
+  color: var(--ink-faint);
+}
+
+.cr-facts dd {
+  margin: 0;
+}
+
+/* ③ 실행 중 — 왼쪽 진행 · 순서, 오른쪽 실시간 화면 · 최근 의심 */
+.cr-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  height: 100%;
+  min-height: 0;
+}
+
+.cr-left,
+.cr-right {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.cr-left p,
+.cr-right p {
+  margin: 0;
+  font-size: 13px;
+}
+
+/* 진행 막대는 대표색 자리(공통/5-화면공통 §8 「대표색」 진행 막대)다. 상태 알약 · 지금 줄 표시에는 쓰지 않는다 — 지금 줄은 잉크 막대다 */
+.cr-bar,
+.cr-mini {
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--well);
+}
+
+.cr-mini {
+  height: 4px;
+}
+
+.cr-bar i,
+.cr-mini i {
+  display: block;
+  height: 100%;
+  background: var(--accent-mark);
+  transition: width var(--t3) var(--ease);
+}
+
+/* 상태 알약은 판정 색 · 대표색을 쓰지 않는다 — 실행 중은 굵기로만 가른다 */
+.cr-state {
+  display: inline-block;
+  padding: 1px 8px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  color: var(--ink-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.cr-state.now {
+  color: var(--ink);
+  border-color: var(--ink-faint);
+  font-weight: 600;
+}
+
+.cr-now {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.cr-now-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cr-now-head .cr-state {
+  margin-left: auto;
+}
+
+.cr-sub {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cr-queue {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cr-queue li {
+  display: grid;
+  grid-template-columns: 22px 110px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.cr-queue li[aria-current='step'] {
+  box-shadow: inset 3px 0 0 var(--ink);
+}
+
+.cr-live {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--well);
+}
+
+.cr-live .btn {
+  justify-self: start;
+}
+
+.cr-thumbs {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cr-thumbs figure {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  font-size: 12px;
+}
+
+.cr-thumbs figcaption {
+  display: grid;
+}
+
+/* 의심 화면 그림 — 네모는 원본 픽셀 근사값을 퍼센트로 올린다. 의심은 판정 전이라 판정 색이 아니라 잉크 점선이다 */
+.cr-shot {
+  position: relative;
+  width: 180px;
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--well);
+}
+
+.cr-shot.small {
+  width: 84px;
+}
+
+.cr-shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.cr-shot-none {
+  display: block;
+  padding: 24px 8px;
+  color: var(--ink-faint);
+  font-size: 12px;
+  text-align: center;
+}
+
+.cr-mark {
+  position: absolute;
+  border: 2px dashed var(--ink);
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+.cr-done {
+  display: grid;
+  gap: 14px;
+}
+
+.cr-done p {
+  margin: 0;
+}
+
+@media (max-width: 720px) {
+  .cr-body {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+  }
+}
