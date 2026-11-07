@@ -69,7 +69,7 @@ describe('새 호환성 세트', () => {
   it('디바이스를 고르고 이름을 적어 저장하면 고른 차례대로 보내고 그 세트 주소로 간다', async () => {
     차림();
     const 만들기 = vi.spyOn(compatApi, 'create').mockResolvedValue({ id: 9 });
-    render(<CompatSet id="new" serviceId={7} service="MKA" kind="APP" 쓰나 />);
+    render(<CompatSet envs={[]} id="new" serviceId={7} service="MKA" kind="APP" 쓰나 />);
     await screen.findByText('새 호환성 세트');
     const 저장 = screen.getByRole('button', { name: '저장' }) as HTMLButtonElement;
     expect(저장.disabled).toBe(true);
@@ -100,7 +100,7 @@ describe('새 호환성 세트', () => {
 
   it('같은 모델은 1대만을 끄면 같은 모델 두 대를 고를 수 있다', async () => {
     차림();
-    render(<CompatSet id="new" serviceId={7} service="MKA" kind="APP" 쓰나 />);
+    render(<CompatSet envs={[]} id="new" serviceId={7} service="MKA" kind="APP" 쓰나 />);
     fireEvent.click(await screen.findByRole('button', { name: '디바이스 선택' }));
     const 상자 = within(screen.getByRole('dialog', { name: '디바이스 선택' }));
     fireEvent.click(상자.getByRole('checkbox', { name: '같은 모델은 1대만' }));
@@ -113,7 +113,7 @@ describe('새 호환성 세트', () => {
 describe('저장한 호환성 세트', () => {
   it('자동 선택 · 직접 추가 · 미커버 화면 · 예상 소요 시간을 보인다', async () => {
     차림();
-    render(<CompatSet id={3} serviceId={7} service="MKA" kind="APP" 쓰나 />);
+    render(<CompatSet envs={[]} id={3} serviceId={7} service="MKA" kind="APP" 쓰나 />);
     await screen.findByText('추가 커버 화면 7');
     expect(screen.getByText('케이스 3')).toBeTruthy();
     expect(await screen.findByText('바로 구매 · 쿠폰 적용')).toBeTruthy();
@@ -126,7 +126,7 @@ describe('저장한 호환성 세트', () => {
   it('직접 추가를 빼거나 더하면 다시 세고, 저장 전에는 예상 시간을 비운다', async () => {
     const { 미리셈 } = 차림();
     const 고치기 = vi.spyOn(compatApi, 'update').mockResolvedValue({ id: 3 });
-    render(<CompatSet id={3} serviceId={7} service="MKA" kind="APP" 쓰나 />);
+    render(<CompatSet envs={[]} id={3} serviceId={7} service="MKA" kind="APP" 쓰나 />);
     fireEvent.click(await screen.findByRole('button', { name: 'MKA-FN-046 제외' }));
     await waitFor(() => expect(미리셈).toHaveBeenLastCalledWith(7, []));
     expect(screen.getByText('저장하면 예상 소요 시간을 셉니다')).toBeTruthy();
@@ -147,7 +147,7 @@ describe('저장한 호환성 세트', () => {
   it('지워진 직접 추가는 건너뜀으로 보이고 미리 셈에 안 보낸다', async () => {
     const { 미리셈 } = 차림();
     vi.spyOn(compatApi, 'set').mockResolvedValue({ ...상세, addedCases: ['MKA-FN-046', 'MKA-FN-099'] });
-    render(<CompatSet id={3} serviceId={7} service="MKA" kind="APP" 쓰나 />);
+    render(<CompatSet envs={[]} id={3} serviceId={7} service="MKA" kind="APP" 쓰나 />);
     expect(await screen.findByText('케이스가 없어 실행 때 건너뜀')).toBeTruthy();
     expect(screen.getByText('케이스 3')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'MKA-FN-046 제외' }));
@@ -157,7 +157,7 @@ describe('저장한 호환성 세트', () => {
   it('등록에서 빠진 디바이스도 선택 상자에서 뺄 수 있다', async () => {
     차림();
     vi.spyOn(compatApi, 'set').mockResolvedValue({ ...상세, devices: [...상세.devices, { serial: 'gone', model: 'SM-G991N', name: 'Galaxy S21' }] });
-    render(<CompatSet id={3} serviceId={7} service="MKA" kind="APP" 쓰나 />);
+    render(<CompatSet envs={[]} id={3} serviceId={7} service="MKA" kind="APP" 쓰나 />);
     expect(await screen.findByText('등록에서 빠짐 1')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '디바이스 선택' }));
     const 상자 = within(screen.getByRole('dialog', { name: '디바이스 선택' }));
@@ -170,14 +170,14 @@ describe('저장한 호환성 세트', () => {
   it('다른 애플리케이션의 세트는 고치지 않는다', async () => {
     차림();
     vi.spyOn(compatApi, 'sets').mockResolvedValue({ sets: [] });
-    render(<CompatSet id={3} serviceId={8} service="MKW" kind="SCREEN" 쓰나 />);
+    render(<CompatSet envs={[]} id={3} serviceId={8} service="MKW" kind="SCREEN" 쓰나 />);
     expect(await screen.findByText('이 세트는 지금 고른 애플리케이션의 세트가 아닙니다')).toBeTruthy();
     expect(screen.queryByRole('button', { name: '저장' })).toBeNull();
   });
 
   it('실행 read 는 보기만 한다', async () => {
     차림();
-    render(<CompatSet id={3} serviceId={7} service="MKA" kind="APP" 쓰나={false} />);
+    render(<CompatSet envs={[]} id={3} serviceId={7} service="MKA" kind="APP" 쓰나={false} />);
     await screen.findByText('추가 커버 화면 7');
     expect(screen.queryByRole('button', { name: '저장' })).toBeNull();
     expect(screen.queryByRole('button', { name: '디바이스 선택' })).toBeNull();
@@ -188,7 +188,7 @@ describe('저장한 호환성 세트', () => {
   it('웹에 폰에서 도는 케이스가 없으면 그 까닭을 보인다', async () => {
     차림();
     vi.spyOn(compatApi, 'preview').mockResolvedValue({ auto: [], coverage: { covered: 0, total: 0, fallback: true }, uncovered: [] });
-    render(<CompatSet id="new" serviceId={7} service="MKW" kind="SCREEN" 쓰나 />);
+    render(<CompatSet envs={[]} id="new" serviceId={7} service="MKW" kind="SCREEN" 쓰나 />);
     expect(await screen.findByText('실제 폰에서 도는 모바일 웹 케이스가 없습니다')).toBeTruthy();
     expect(screen.getByText('전체 화면 목록이 없어 케이스가 아는 화면으로 셉니다')).toBeTruthy();
   });

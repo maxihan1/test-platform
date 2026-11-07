@@ -99,7 +99,9 @@ export function 자리목록(user: User, prefix: string | null, 언어: 언어):
     // 만드는 일(작성 → 케이스 → 시나리오) 끝, 보는 일 앞이다 (화면공통 §8). 시나리오는 실행 칸을 쓴다 (도메인/시나리오 §7)
     목록.push({ 이름: t('E2E 시나리오', 언어), 해시: '#/scenarios', 아이콘: 'scenarios' });
     const 이름 = t('실행 기록', 언어);
-    목록.push({ 이름, 해시: '#/runs', 아이콘: 'runs', 하위: 종류하위(이름, '#/runs', 언어, API) });
+    // 호환성은 폰에서 도는 종류(웹 · 앱 · 게임)에만 선다 — 테스트 실행 › 호환성과 같다 (도메인/호환성 §8.17 「메뉴」)
+    const 호환성기록 = API ? [] : [{ 이름: t('호환성', 언어), 해시: '#/runs/compat', 라벨: `${이름} · ${t('호환성', 언어)}`, 신규: true }];
+    목록.push({ 이름, 해시: '#/runs', 아이콘: 'runs', 하위: [...종류하위(이름, '#/runs', 언어, API), ...호환성기록] });
     // 실행 기록 다음 · 그래프 앞 (화면공통 §8 「자리 목록」). 페이지 성능 · 기기 성능은 고른 애플리케이션 종류에 맞을 때만 선다 (kind.ts)
     const 성능 = t('성능 테스트', 언어);
     const 성능하위 = (글: string, 해시: string): 하위자리 => ({ 이름: t(글, 언어), 해시, 라벨: `${성능} · ${t(글, 언어)}` });
@@ -148,6 +150,8 @@ export function 지금자리(name: string, 집: string, 종류?: 'UI' | 'FN' | '
   if (name === 'perfDevices') return '#/perf/devices';
   if (name === 'perfRuns' || name === 'perfRun') return '#/perf/runs';
   if (name === 'compatSets' || name === 'compatSet') return '#/compat';
+  // 결과는 실행 기록에서 들어온 자리다
+  if (name === 'compatRuns' || name === 'compatRun') return '#/runs/compat';
   if (name === 'settings') return '#/settings';
   // 비밀번호 변경은 자리 목록에 없다. 집을 돌려주면 케이스에 밑줄이 가서 딴 화면처럼 보인다
   if (name === 'password') return '#/password';

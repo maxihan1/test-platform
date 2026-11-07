@@ -1,0 +1,472 @@
+/* 호환성 시작 확인 창 · 실행 중 창 · 결과 · 실행 기록 (도메인/호환성 §8.17 ③ · ④ · ⑤). 세트 화면은 compat.css */
+
+/* 시작 확인 — 실행 창 한 틀의 준비 단계 */
+.cr-start {
+  display: grid;
+  gap: 14px;
+  max-width: 560px;
+}
+
+.cr-start-name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.cr-field {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.cr-facts {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 8px 12px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.cr-facts dt {
+  color: var(--ink-faint);
+}
+
+.cr-facts dd {
+  margin: 0;
+}
+
+/* ③ 실행 중 — 왼쪽 진행 · 순서, 오른쪽 실시간 화면 · 최근 의심 */
+.cr-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  height: 100%;
+  min-height: 0;
+}
+
+.cr-left,
+.cr-right {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.cr-left p,
+.cr-right p {
+  margin: 0;
+  font-size: 13px;
+}
+
+/* 진행 막대는 지금 진행 중인 것이라 대표색이다 (DESIGN.md 원칙 1). 상태 알약에는 쓰지 않는다 */
+.cr-bar,
+.cr-mini {
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--well);
+}
+
+.cr-mini {
+  height: 4px;
+}
+
+.cr-bar i,
+.cr-mini i {
+  display: block;
+  height: 100%;
+  background: var(--accent-mark);
+  transition: width var(--t3) var(--ease);
+}
+
+/* 상태 알약은 판정 색 · 대표색을 쓰지 않는다 — 실행 중은 굵기로만 가른다 */
+.cr-state {
+  display: inline-block;
+  padding: 1px 8px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  color: var(--ink-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.cr-state.now {
+  color: var(--ink);
+  border-color: var(--ink-faint);
+  font-weight: 600;
+}
+
+.cr-now {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.cr-now-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cr-now-head .cr-state {
+  margin-left: auto;
+}
+
+.cr-sub {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cr-queue {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cr-queue li {
+  display: grid;
+  grid-template-columns: 22px 110px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.cr-queue li[aria-current='step'] {
+  box-shadow: inset 3px 0 0 var(--accent-mark);
+}
+
+.cr-live {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--well);
+}
+
+.cr-live .btn {
+  justify-self: start;
+}
+
+.cr-thumbs {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cr-thumbs figure {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  font-size: 12px;
+}
+
+.cr-thumbs figcaption {
+  display: grid;
+}
+
+/* 의심 화면 그림 — 네모는 원본 픽셀 근사값을 퍼센트로 올린다 */
+.cr-shot {
+  position: relative;
+  width: 180px;
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--well);
+}
+
+.cr-shot.small {
+  width: 84px;
+}
+
+.cr-shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.cr-shot-none {
+  display: block;
+  padding: 24px 8px;
+  color: var(--ink-faint);
+  font-size: 12px;
+  text-align: center;
+}
+
+.cr-mark {
+  position: absolute;
+  border: 2px dashed var(--fail);
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+.cr-done {
+  display: grid;
+  gap: 14px;
+}
+
+.cr-done p {
+  margin: 0;
+}
+
+/* ④ 결과 */
+.compat-result {
+  display: grid;
+  gap: 16px;
+}
+
+/* 세트 화면의 패널은 줄마다 여백을 따로 두지만 결과 패널은 통째로 둔다 */
+.compat-result .compat-panel {
+  padding: 14px 18px;
+}
+
+.cr-sums {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.cr-sum {
+  display: grid;
+  gap: 2px;
+}
+
+.cr-sum b {
+  font-size: 24px;
+}
+
+.cr-sum span {
+  color: var(--ink-faint);
+  font-size: 12px;
+}
+
+.cr-sum.bad b {
+  color: var(--fail-text);
+}
+
+.cr-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.cr-head h2 {
+  margin: 0;
+}
+
+.cr-head .btn {
+  margin-left: auto;
+}
+
+.cr-key {
+  overflow-wrap: anywhere;
+}
+
+.cr-mx-wrap {
+  overflow-x: auto;
+}
+
+.cr-mx {
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.cr-mx th,
+.cr-mx td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.cr-mx .l {
+  text-align: left;
+}
+
+/* 휴대폰에서 가로로 밀어도 화면 이름 열은 남는다 (§8.17 「휴대폰」) */
+.cr-mx tbody th,
+.cr-mx thead th:first-child {
+  position: sticky;
+  left: 0;
+  background: var(--panel);
+}
+
+/* 휴대폰 공통 규칙(phone.css 「표는 카드 줄이다」)의 예외다 — 이 표는 첫 열을 고정하고 가로로 민다 (§8.17 「휴대폰」) */
+.ph table.cr-mx {
+  display: table;
+}
+
+.ph .cr-mx thead {
+  display: table-header-group;
+}
+
+.ph .cr-mx tbody {
+  display: table-row-group;
+}
+
+.ph .cr-mx tr,
+.ph .cr-mx tbody tr {
+  display: table-row;
+  padding: 0;
+}
+
+.ph .cr-mx td,
+.ph .cr-mx th,
+.ph .cr-mx tbody th {
+  display: table-cell;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+  text-align: center;
+}
+
+.ph .cr-mx .l {
+  text-align: left;
+}
+
+.ph .cr-mx td[data-label]::before,
+.ph .cr-mx tbody th[data-label]::before {
+  content: none;
+}
+
+/* 칸 값 — 결함 확정만 판정 색이다. 미판정 · 아님 · 미점검은 회색 단계로 가른다 */
+.cr-c {
+  display: inline-block;
+  min-width: 44px;
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: none;
+  color: var(--ink-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.cr-c.ok {
+  color: var(--ink-faint);
+  cursor: default;
+}
+
+.cr-c.confirmed {
+  background: var(--fail-soft);
+  color: var(--fail-text);
+  font-weight: 600;
+}
+
+.cr-c.pending {
+  border-color: var(--ink-faint);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.cr-c.not_defect {
+  background: var(--na-soft);
+}
+
+.cr-c.unchecked {
+  border-style: dashed;
+  border-color: var(--line-2);
+}
+
+.cr-filters {
+  margin: 0;
+}
+
+.cr-cards {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.cr-card {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.cr-card-body {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.cr-kind {
+  font-weight: 600;
+}
+
+.cr-verdicts {
+  display: flex;
+  gap: 8px;
+}
+
+.cr-verdicts .btn[aria-pressed='true'] {
+  border-color: var(--ink-faint);
+  font-weight: 600;
+}
+
+.cr-none {
+  margin: 0;
+}
+
+.cr-line {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.cr-why {
+  display: block;
+}
+
+/* ⑤ 실행 기록 — 줄 어디를 눌러도 결과로 간다 */
+.cr-row {
+  cursor: pointer;
+}
+
+.cr-row:hover {
+  background: var(--well);
+}
+
+.compat-go {
+  text-align: right;
+}
+
+@media (max-width: 720px) {
+  .cr-body {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+  }
+
+  .cr-sums {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .cr-card {
+    flex-direction: column;
+  }
+
+  .cr-line {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .compat-go {
+    text-align: left;
+  }
+}

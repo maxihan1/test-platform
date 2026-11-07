@@ -104,6 +104,9 @@ describe('route', () => {
     expect(route('#/compat/7?service=MKA')).toEqual({ name: 'compatSet', id: 7 });
     expect(route('#/compat/7x').name).toBe('unknown');
     expect(route('#/compat/12345678901').name).toBe('unknown');
+    expect(route('#/compat/runs/21107')).toEqual({ name: 'compatRun', runId: 21107 });
+    expect(route('#/compat/runs/x').name).toBe('unknown');
+    expect(route('#/runs/compat?service=DMA')).toEqual({ name: 'compatRuns' });
   });
 
   it('시나리오 번호는 열 자리 숫자 글자만 받는다. 서버도 같은 모양으로 거른다', () => {

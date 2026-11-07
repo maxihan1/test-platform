@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { api, type 앱종류 } from './api.js';
+import { api, type EnvRow, type 앱종류 } from './api.js';
 import { compatApi, type CompatPreview, type CompatSetDetail, type CompatSetDevice } from './compatApi.js';
 import { CompatCasePick } from './CompatCasePick.js';
 import { CompatDevicePick } from './CompatDevicePick.js';
+import { CompatStart } from './CompatStart.js';
 import { 세트주소 } from './CompatSets.js';
 import { 디바이스구획, 예상구획, 커버리지구획, 케이스구획 } from './CompatSetParts.js';
 import { Head } from './Head.js';
@@ -24,7 +25,7 @@ const 빈세트: 고칠것 = { name: '', onePerModel: true, devices: [], addedCa
 const 본뜨기 = (d: CompatSetDetail): 고칠것 => ({ name: d.name, onePerModel: d.onePerModel, devices: d.devices, addedCases: d.addedCases });
 const 같나 = (a: 고칠것, b: 고칠것) => JSON.stringify(a) === JSON.stringify(b);
 
-export function CompatSet({ id, serviceId, service, kind, 쓰나 }: { id: number | 'new'; serviceId: number; service: string; kind?: 앱종류; 쓰나: boolean }) {
+export function CompatSet({ id, serviceId, service, kind, envs, 쓰나 }: { id: number | 'new'; serviceId: number; service: string; kind?: 앱종류; envs: readonly EnvRow[]; 쓰나: boolean }) {
   const t = use말();
   const 언어 = use언어();
   const 웹 = kind === undefined || kind === 'SCREEN';
@@ -45,7 +46,7 @@ export function CompatSet({ id, serviceId, service, kind, 쓰나 }: { id: number
   const [이름오류, set이름오류] = useState<string | null>(null);
   // 미리 셈은 늦게 온 앞 응답이 새 셈을 덮지 않게 마지막 것만 받는다
   const 셈차례 = useRef(0);
-  const [창, set창] = useState<'디바이스' | '케이스' | null>(null);
+  const [창, set창] = useState<'디바이스' | '케이스' | '실행' | null>(null);
   const [오류, set오류] = useState<string | null>(null);
   const [저장중, set저장중] = useState(false);
 
@@ -142,9 +143,17 @@ export function CompatSet({ id, serviceId, service, kind, 쓰나 }: { id: number
         제목={id === 'new' ? t('새 호환성 세트') : 저장본.name}
         행동={
           쓰나 ? (
-            <button type="button" className="btn" disabled={!저장되나} onClick={() => void 저장()}>
-              {t('저장')}
-            </button>
+            <>
+              <button type="button" className={id === 'new' ? 'btn' : 'btn ghost'} disabled={!저장되나} onClick={() => void 저장()}>
+                {t('저장')}
+              </button>
+              {/* 저장한 세트로만 돈다 — 고치는 중이면 서버의 세트와 화면이 달라 무엇이 돌지 헷갈린다 */}
+              {id === 'new' ? null : (
+                <button type="button" className="btn" disabled={바뀜} title={바뀜 ? t('저장한 뒤 실행합니다') : undefined} onClick={() => set창('실행')}>
+                  {t('실행')}
+                </button>
+              )}
+            </>
           ) : undefined
         }
       />
@@ -187,6 +196,7 @@ export function CompatSet({ id, serviceId, service, kind, 쓰나 }: { id: number
           }}
         />
       ) : null}
+      {창 === '실행' && id !== 'new' ? <CompatStart setId={id} service={service} envs={envs} 닫기={() => set창(null)} /> : null}
       {창 === '케이스' ? (
         <CompatCasePick
           service={service}

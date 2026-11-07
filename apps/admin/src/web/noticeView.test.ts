@@ -70,6 +70,8 @@ describe('호환성 줄', () => {
     const 줄 = 도는줄만들기(도는호환성(31), Date.now(), 'ko');
     expect(줄.앞글).toBe('호환성 RUN 31 실행 중 · 주요 단말 12대 · 점검 상태 3 / 12 · AI 점검 40 / 61장 · 30분 지남');
     expect(줄.막대).toBeNull();
+    // 호환성은 결과 화면이 따로다 — 케이스 실행 결과 주소로 가면 404 COMPAT_RUN 이다
+    expect(줄.열기).toBe('#/compat/runs/31');
   });
 
   it('끝난 호환성 실행은 통과 · 실패 대신 미판정 · 미점검 화면 수를 적는다', () => {
@@ -77,6 +79,7 @@ describe('호환성 줄', () => {
     const 멈춤 = 끝난줄만들기(끝난호환성(32, { status: 'ABORTED', compat: { pending: 0, unchecked: 0 } }), 'ko');
     expect(끝난글(멈춤)).toBe('RUN 32 실행이 중단됐습니다 · 주요 단말 12대 · 호환성 · 대상 서버 qa');
     expect(멈춤.모양).toBe('halt');
+    expect(멈춤.열기).toBe('#/compat/runs/32');
   });
 });
 

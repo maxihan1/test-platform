@@ -30,6 +30,9 @@ export type Route =
   /** 테스트 실행 › 호환성 — 세트 목록과 세트 하나. 새 세트는 `new` 다 (도메인/호환성 §8.17) */
   | { name: 'compatSets' }
   | { name: 'compatSet'; id: number | 'new' }
+  /** 실행 기록 › 호환성과 실행 하나의 결과(도는 중이면 실행 창이 같이 뜬다) (도메인/호환성 §8.17 ④ · ⑤) */
+  | { name: 'compatRuns' }
+  | { name: 'compatRun'; runId: number }
   /** 성능 테스트 › 시나리오. 마법사는 새것과 고칠 것이 같은 화면이다 (도메인/성능 §8.14) */
   | { name: 'perfScenarios' }
   | { name: 'perfScenarioNew' }
@@ -163,6 +166,7 @@ export function route(hash: string): Route {
     if (parts.length === 1) return { name: 'compatSets' };
     if (parts.length === 2 && parts[1] === 'new') return { name: 'compatSet', id: 'new' };
     if (parts.length === 2 && /^\d{1,10}$/.test(parts[1]!)) return { name: 'compatSet', id: Number(parts[1]) };
+    if (parts.length === 3 && parts[1] === 'runs' && /^\d{1,10}$/.test(parts[2]!)) return { name: 'compatRun', runId: Number(parts[2]) };
   }
 
   // 번호 규칙은 E2E 시나리오와 같다 — 서버도 숫자 글자만 받는다 (도메인/성능 §7)
@@ -191,6 +195,8 @@ export function route(hash: string): Route {
 
   if (parts[0] === 'runs') {
     if (parts.length === 1) return { name: 'runs', kind: 'FN' };
+    // 호환성은 케이스 실행 목록과 줄 모양이 달라 따로 선다 — 실행종류에 넣지 않는다 (도메인/호환성 §8.17 ⑤)
+    if (parts.length === 2 && parts[1] === 'compat') return { name: 'compatRuns' };
     if (parts.length === 2 && 실행종류글자[parts[1]!] !== undefined) return { name: 'runs', kind: 실행종류글자[parts[1]!]! };
 
     const runId = Number(parts[1]);
@@ -234,6 +240,8 @@ export const 기능자리: Partial<Record<Route['name'], 기능>> = {
   // 호환성은 실행 칸을 쓴다 (도메인/호환성 §7). 세트 주소는 `?service=` 로 그 세트의 애플리케이션을 담는다
   compatSets: 'runs',
   compatSet: 'runs',
+  // 결과 한 건(compatRun)은 그 실행의 애플리케이션이 따로 있어 띠로 가르지 않는다 — 알림에서 다른 애플리케이션 실행을 열 수 있다. 서버가 다시 막는다
+  compatRuns: 'runs',
 };
 
 /**

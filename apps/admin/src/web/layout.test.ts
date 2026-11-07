@@ -194,7 +194,7 @@ describe('자리 목록', () => {
 
   // 사이드바 하위 메뉴 — 늘 펼쳐 둔다 (화면공통 §8 「자리 목록」 · 2026-10-02 사용자 시안 A · PR #132)
   // 묶음을 누르면 기능 화면이 열린다 — 첫 하위가 기능이어야 누른 자리와 열린 화면이 맞는다 (2026-10-20 사용자)
-  it('테스트 실행과 실행 기록이 기능 테스트 · UI 테스트 하위를 품는다 · 테스트 실행에는 호환성도 선다', () => {
+  it('테스트 실행과 실행 기록이 기능 테스트 · UI 테스트 하위를 품는다 · 둘 다 호환성도 선다', () => {
     const 자리들 = 자리목록(김, 'MEM', 'ko');
     const 하위 = (이름: string) => 자리들.find((자리) => 자리.이름 === 이름)?.하위?.map((h) => [h.이름, h.해시, h.라벨]);
     expect(하위('테스트 실행')).toEqual([
@@ -207,6 +207,7 @@ describe('자리 목록', () => {
       ['기능 테스트', '#/runs/fn', '실행 기록 · 기능 테스트'],
       ['UI 테스트', '#/runs/ui', '실행 기록 · UI 테스트'],
       ['E2E', '#/runs/e2e', '실행 기록 · E2E'],
+      ['호환성', '#/runs/compat', '실행 기록 · 호환성'],
     ]);
     expect(자리들.find((자리) => 자리.이름 === '테스트 작성')?.하위).toBeUndefined();
     expect(자리들.find((자리) => 자리.이름 === 'E2E 시나리오')?.하위).toBeUndefined();
@@ -217,6 +218,9 @@ describe('자리 목록', () => {
     expect(지금자리('cases', '#/cases', 'FN')).toBe('#/cases/fn');
     expect(지금자리('runs', '#/cases', 'UI')).toBe('#/runs/ui');
     expect(지금자리('runs', '#/cases', 'E2E')).toBe('#/runs/e2e');
+    // 호환성 결과는 실행 기록 › 호환성에서 들어온 자리다
+    expect(지금자리('compatRuns', '#/cases')).toBe('#/runs/compat');
+    expect(지금자리('compatRun', '#/cases')).toBe('#/runs/compat');
     expect(지금자리('setup', '#/cases')).toBe('#/cases');
   });
 
