@@ -102,7 +102,8 @@ export function 결과셈(재: 결과재료) {
   for (const s of 재.화면들) 상태열쇠.get(s.seq)?.add(s.key);
   for (const ks of 상태열쇠.values()) for (const k of ks) 열쇠들.add(k);
 
-  const 줄들 = [...열쇠들].sort().map((key) => ({
+  // 「화면 모름」은 의심이 있어 표에 줄로 설 때만 센다 — 이상 없는 화면 모름까지 세면 점검 + 미점검이 전체 화면 수를 넘는다 (2026-11-07 COMPAT-F1-08 시험)
+  const 모두 = [...열쇠들].sort().map((key) => ({
     key,
     name: 화면이름(key, 재.이름),
     cells: 재.상태들.flatMap((d) => {
@@ -111,6 +112,7 @@ export function 결과셈(재: 결과재료) {
       return 값 === null ? [] : [{ seq: d.seq, ...값 }];
     }),
   }));
+  const 줄들 = 모두.filter((r) => !r.key.startsWith('unknown:') || r.cells.some((c) => c.value !== 'OK'));
   const 셀들 = 줄들.flatMap((r) => r.cells);
   const 수 = (v: 칸값) => 셀들.filter((c) => c.value === v).length;
   const 의심상태 = new Set(셀들.filter((c) => c.value === 'PENDING' || c.value === 'CONFIRMED').map((c) => c.seq));
