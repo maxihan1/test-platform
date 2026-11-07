@@ -160,6 +160,7 @@ export const 호환성말: Record<string, string> = {
   '{번호} {단계}단계 · 터치 직전 캡처': '{번호} step {단계} · Captured before tap',
   '{번호} {단계}단계 · 뒤로 가기 직전 캡처': '{번호} step {단계} · Captured before going back',
   '{번호} {단계}단계 · 테스트 종료 직전 캡처': '{번호} step {단계} · Captured before the test ended',
+  '{번호} {단계}단계': '{번호} step {단계}',
   '요소 겹침': 'Overlapping elements',
   '텍스트 잘림': 'Clipped text',
   '배치 틀어짐': 'Misaligned layout',

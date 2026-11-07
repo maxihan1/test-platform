@@ -172,8 +172,12 @@ export function 네모자리(box: readonly number[], 가로: number, 세로: num
  * 카드 아래 한 줄 — 시안 `DMA-UI-031 4단계 · 터치 직전 캡처`. 비전은 뒤로 가기 · 세션 닫기 직전에도 찍는다 —
  * 그 사진에 「터치 직전」을 붙이면 그 단계에서 누른 다른 화면을 가리킨다 (2026-11-07 COMPAT-F1-08 뒤 사용자)
  */
-export const 찍은때 = (c: Pick<CompatCard, 'tcId' | 'step' | 'before'>, t: 번역): string => {
-  if (c.step === null) return c.tcId;
-  const 글 = c.before === 'back' ? '{번호} {단계}단계 · 뒤로 가기 직전 캡처' : c.before === 'session/delete' ? '{번호} {단계}단계 · 테스트 종료 직전 캡처' : '{번호} {단계}단계 · 터치 직전 캡처';
-  return t(글, { 번호: c.tcId, 단계: c.step });
+// 비전 ui-check.json 의 before 값(비전 안내서 10절) → 카드 문구. 나머지 누르기 · 글자 넣기는 「터치 직전」, 빈 값은 찍은 때를 모르니 꼬리를 안 단다
+const 찍은때글: Record<string, string> = {
+  back: '{번호} {단계}단계 · 뒤로 가기 직전 캡처',
+  'session/delete': '{번호} {단계}단계 · 테스트 종료 직전 캡처',
+  '': '{번호} {단계}단계',
 };
+
+export const 찍은때 = (c: Pick<CompatCard, 'tcId' | 'step' | 'before'>, t: 번역): string =>
+  c.step === null ? c.tcId : t(찍은때글[c.before] ?? '{번호} {단계}단계 · 터치 직전 캡처', { 번호: c.tcId, 단계: c.step });
