@@ -14,6 +14,8 @@ import { dispatch, markAborted } from './dispatcher.js';
 import { notifyRun } from './notify.js';
 import { 항목장면경로 } from './live.js';
 import { 진행경로 } from './progressRoute.js';
+import { 호환성다시켜기, 호환성중단 } from '../compat/runEngine.js';
+import { 실행머리읽기 } from '../compat/runStore.js';
 import { abortRunner } from './runner.js';
 import { caseSchemas, createParamSet, deleteParamSet, listParamSets } from './paramSets.js';
 import { caseHistory, lastByCase } from './history.js';
@@ -53,7 +55,11 @@ function page(raw: string | undefined): number {
 export default async function executionRoutes(app: FastifyInstance): Promise<void> {
   // 재기동으로 분배기가 사라지면 그 항목들은 영원히 끝나지 않아 FINISHED 조건이 결코 만족되지 않는다.
   // 뜨는 김에 한 번 닫는다. 실패해도 admin 은 떠야 하므로 사유만 남긴다 (SPEC §3.2)
-  void recoverRunning()
+  void 호환성다시켜기()
+    .catch((err: unknown) => {
+      app.log.error(`[execution] 재기동 전 호환성 실행을 닫다가 깨졌다: ${err instanceof Error ? err.message : String(err)}`);
+    })
+    .then(() => recoverRunning())
     .then((n) => {
       if (n > 0) app.log.warn(`[execution] 재기동 전에 돌던 실행 ${n}건을 중단으로 닫았다`);
     })
@@ -126,6 +132,11 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
       if (멈춤 === null) return reply.code(409).send({ error: 'NOT_RUNNING', detail: `실행 ${runId}은 이미 끝났거나 멈춘 상태다` });
       return 멈춤;
     }
+    if (result === 'COMPAT') {
+      const 멈춤 = await 호환성중단(runId);
+      if (멈춤 === null) return reply.code(409).send({ error: 'NOT_RUNNING', detail: `실행 ${runId}은 이미 끝났거나 멈춘 상태다` });
+      return 멈춤;
+    }
     if (result === null) {
       return reply.code(409).send({ error: 'NOT_RUNNING', detail: `실행 ${runId}은 이미 끝났거나 멈춘 상태다` });
     }
@@ -183,6 +194,9 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
     // 번호만 들고 온 화면이 결과 화면을 갈아탈 수 있게 없는 번호와 가른다 (도메인/시나리오 §7)
     if (await 시나리오실행인가(runId)) {
       return reply.code(404).send({ error: 'SCENARIO_RUN', detail: `실행 ${runId}은 시나리오 실행이다 — /api/runs/${runId}/scenario` });
+    }
+    if ((await 실행머리읽기(runId)) !== null) {
+      return reply.code(404).send({ error: 'COMPAT_RUN', detail: `실행 ${runId}은 호환성 실행이다 — /api/compat-runs/${runId}` });
     }
     return reply.code(404).send({ error: 'RUN_NOT_FOUND', detail: req.params.runId });
   });

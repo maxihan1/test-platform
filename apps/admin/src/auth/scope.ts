@@ -227,6 +227,11 @@ export const 라우트표: Record<string, 원천> = {
   '/api/compat-sets': { 종류: '질의번호', 칸: 'serviceId' },
   '/api/compat-sets/preview': { 종류: '질의번호', 칸: 'serviceId' },
   '/api/compat-sets/:id': { 종류: '호환성세트', 칸: 'id' },
+  '/api/compat-sets/:id/runs': { 종류: '호환성세트', 칸: 'id' },
+  // 호환성 실행 번호도 test_run 이다 — 케이스 실행과 같은 갈래로 그 실행의 애플리케이션을 찾는다
+  '/api/compat-runs/:runId': { 종류: '실행', 칸: 'runId' },
+  '/api/compat-runs/:runId/screens/:screenId/image': { 종류: '실행', 칸: 'runId' },
+  '/api/compat-runs/:runId/verdicts': { 종류: '실행', 칸: 'runId' },
   // 팜 디바이스 목록은 애플리케이션에 안 매인다 — 실행 read 인 배정이 하나라도 있으면 본다
   '/api/compat-devices': { 종류: '안매임' },
   '/api/perf/devices/measure': { 종류: '질의번호', 칸: 'serviceId' },

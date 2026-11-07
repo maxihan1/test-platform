@@ -10,19 +10,20 @@ export type RunKind = 케이스종류 | 'SCENARIO' | 'COMPAT';
 export function 케이스실행인가(kind: RunKind): kind is 케이스종류 {
   return kind === 'UI' || kind === 'FN';
 }
-/** 실행 목록의 `?kind=` — case 는 UI · FN 둘 다다. #132 화면이 하위 메뉴로 가를 때까지 기본값이다 */
-export type 목록종류 = 'ui' | 'fn' | 'case' | 'scenario';
+/** 실행 목록의 `?kind=` — case 는 UI · FN 둘 다다. #132 화면이 하위 메뉴로 가를 때까지 기본값이다. compat 은 따로 고를 때만 온다 (도메인/호환성 §7) */
+export type 목록종류 = 'ui' | 'fn' | 'case' | 'scenario' | 'compat';
 
 const 글자: Record<목록종류, string> = {
   ui: "kind = 'UI'",
   fn: "kind = 'FN'",
   scenario: "kind = 'SCENARIO'",
   case: "kind IN ('UI','FN')",
+  compat: "kind = 'COMPAT'",
 };
 
 // 모르는 값을 400 으로 막지 않는다 — state 거르개와 같은 관례다 (도메인/시나리오 §7 「실행 목록의 E2E 탭」)
 export function 목록종류읽기(값: string | undefined): 목록종류 {
-  return 값 === 'ui' || 값 === 'fn' || 값 === 'scenario' ? 값 : 'case';
+  return 값 === 'ui' || 값 === 'fn' || 값 === 'scenario' || 값 === 'compat' ? 값 : 'case';
 }
 
 /** 별칭을 비우면 칸 이름만 쓴다 — 단건 조회처럼 test_run 하나만 읽는 질의용 */

@@ -7,6 +7,8 @@ import { z } from 'zod';
 import { 정수 } from '../routeParams.js';
 import { 시리얼 } from '../perf/devices.js';
 import { 호환성디바이스목록 } from './devices.js';
+import { 세트최근실행 } from './runStore.js';
+import { 호환성요약들 } from './runView.js';
 import { type 고른것, 셈하기, 예상하기, 자동선택 } from './select.js';
 import { type 세트, type 세트디바이스, 세트고치기, 세트만들기, 세트목록, 세트치우기, 세트하나, 재료읽기, 최근소요, type 재료 } from './store.js';
 
@@ -40,16 +42,27 @@ const 모르는케이스 = (재: 재료, 더한: readonly string[], 있던: read
 
 const 셈 = (재: 재료, 더한: readonly string[], auto?: 고른것[]) => 셈하기(재.전체, 재.후보들, 더한, 재.fallback, auto);
 
-const 목록줄 = (s: 세트, coverage: ReturnType<typeof 셈>['coverage']) => ({
+type 최근 = { runId: number; startedAt: string; state: string; confirmed: number; pending: number; unchecked: number } | null;
+
+const 목록줄 = (s: 세트, coverage: ReturnType<typeof 셈>['coverage'], lastRun: 최근) => ({
   id: s.id,
   name: s.name,
   onePerModel: s.onePerModel,
   devices: s.devices,
   addedCases: s.addedCases,
   coverage,
-  // 실행이 생기는 COMPAT-F1-05 가 채운다
-  lastRun: null,
+  lastRun,
 });
+
+/** 세트마다 가장 최근 실행의 요약 — 세트 목록 「최근 실행」 칸의 알약이다 (§8.17 ①) */
+async function 최근실행들(setIds: readonly number[]): Promise<Map<number, NonNullable<최근>>> {
+  const 번호 = await 세트최근실행(setIds);
+  const 요약 = await 호환성요약들([...번호.values()]);
+  return new Map([...번호].flatMap(([setId, runId]) => {
+    const x = 요약.get(runId);
+    return x === undefined ? [] : [[setId, { runId, startedAt: x.started, state: x.status, confirmed: x.confirmed, pending: x.pending, unchecked: x.unchecked }] as const];
+  }));
+}
 
 type 디바이스결과 = { devices: 세트디바이스[] } | { status: 400 | 502; body: object };
 
@@ -78,7 +91,8 @@ export default async function compatRoutes(app: FastifyInstance): Promise<void> 
     if (앱 === null) return 잘못(reply, `모르는 애플리케이션입니다: ${serviceId}`);
     const [재, 세트들] = await Promise.all([재료읽기(앱.id, 앱.prefix), 세트목록(앱.id)]);
     const auto = 자동선택(재.전체, 재.후보들);
-    return { sets: 세트들.map((s) => 목록줄(s, 셈(재, s.addedCases, auto).coverage)) };
+    const 최근 = await 최근실행들(세트들.map((s) => s.id));
+    return { sets: 세트들.map((s) => 목록줄(s, 셈(재, s.addedCases, auto).coverage, 최근.get(s.id) ?? null)) };
   });
 
   app.post('/compat-sets/preview', async (req, reply) => {
@@ -105,7 +119,7 @@ export default async function compatRoutes(app: FastifyInstance): Promise<void> 
     const 돌것 = [...new Set([...결과.auto.map((a) => a.tcId), ...s.addedCases])].flatMap((t) => { const c = 후보.get(t); return c === undefined ? [] : [c]; });
     const 소요 = await 최근소요(돌것.map((c) => c.tcId));
     return {
-      ...목록줄(s, 결과.coverage),
+      ...목록줄(s, 결과.coverage, (await 최근실행들([s.id])).get(s.id) ?? null),
       auto: 결과.auto,
       uncovered: 결과.uncovered,
       // 원격 접기가 없어 폴더블도 상태 하나다 — 점검 상태 수 = 디바이스 수 (§3.13 「비전에 기대는 것」 3)
