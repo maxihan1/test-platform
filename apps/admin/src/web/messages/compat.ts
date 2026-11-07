@@ -108,8 +108,8 @@ export const 호환성말: Record<string, string> = {
   '{세트} · 호환성 실행 중': '{세트} · Compatibility run in progress',
   '{세트} · 호환성 실행이 중단됐습니다': '{세트} · Compatibility run stopped',
   '{세트} · 호환성 실행이 끝났습니다': '{세트} · Compatibility run finished',
-  '창을 닫아도 실행은 계속됩니다 · 중단 시 점검을 마친 화면까지 결과에 남습니다':
-    'The run continues if you close this window · If stopped, screens already checked stay in the result',
+  '닫아도 실행은 계속되고 끝나면 알림이 옵니다 · 중단 시 점검을 마친 화면까지 결과에 남습니다':
+    'The run continues if you close this and you get a notification when it ends · If stopped, screens already checked stay in the result',
   '점검 상태 {끝난} / {전체} 완료': '{끝난} / {전체} check states done',
   '남은 시간 약 {분}분': 'About {분} min left',
   '완료 {수}': 'Done {수}',

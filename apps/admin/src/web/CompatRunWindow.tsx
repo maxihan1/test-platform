@@ -101,7 +101,7 @@ function 진행몸({ data }: { data: CompatRunResult }) {
       <div className="cr-right">
         <section className="cr-live" aria-label={t('실시간 화면')}>
           <h3 className="cr-sub">{지금 === null ? t('실시간 화면') : t('{모델} 실시간 화면 · Device VISION', { 모델: 지금.model })}</h3>
-          {/* 앱 폰 장면은 찍지 않는다 — 폰 화면은 VISION 링크가 연다 (실행 §3.2 「정식 실행 화면」) */}
+          {/* 호환성은 장면을 찍지 않는다 — 폰 화면은 VISION 링크가 연다. 모바일 웹 장면은 아직 없다 (§8.17 ③) */}
           {지금?.vision != null ? (
             <a className="btn ghost" href={지금.vision} target="_blank" rel="noreferrer">
               {t('Device VISION 에서 폰 화면 보기')} ↗
@@ -190,7 +190,7 @@ export function CompatRunWindow({ runId, service, 닫기 }: { runId: number; ser
               <button type="button" className="btn ghost trial-stop" disabled={data === null} onClick={() => set중단묻기(true)}>
                 {t('실행 중단')}
               </button>
-              <span className="e2e-foot-mid">{t('창을 닫아도 실행은 계속됩니다 · 중단 시 점검을 마친 화면까지 결과에 남습니다')}</span>
+              <span className="e2e-foot-mid">{t('닫아도 실행은 계속되고 끝나면 알림이 옵니다 · 중단 시 점검을 마친 화면까지 결과에 남습니다')}</span>
               <button type="button" className="btn ghost" onClick={닫기}>
                 {t('닫기')}
               </button>

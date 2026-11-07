@@ -152,7 +152,7 @@
 }
 
 .cr-c.not_defect {
-  background: var(--na-soft);
+  background: var(--well);
 }
 
 .cr-c.unchecked {

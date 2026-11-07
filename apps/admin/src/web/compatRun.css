@@ -58,7 +58,7 @@
   font-size: 13px;
 }
 
-/* 진행 막대는 지금 진행 중인 것이라 대표색이다 (DESIGN.md 원칙 1). 상태 알약에는 쓰지 않는다 */
+/* 진행 막대는 대표색 자리(공통/5-화면공통 §8 「대표색」 진행 막대)다. 상태 알약 · 지금 줄 표시에는 쓰지 않는다 — 지금 줄은 잉크 막대다 */
 .cr-bar,
 .cr-mini {
   height: 8px;
@@ -142,7 +142,7 @@
 }
 
 .cr-queue li[aria-current='step'] {
-  box-shadow: inset 3px 0 0 var(--accent-mark);
+  box-shadow: inset 3px 0 0 var(--ink);
 }
 
 .cr-live {
@@ -176,7 +176,7 @@
   display: grid;
 }
 
-/* 의심 화면 그림 — 네모는 원본 픽셀 근사값을 퍼센트로 올린다 */
+/* 의심 화면 그림 — 네모는 원본 픽셀 근사값을 퍼센트로 올린다. 의심은 판정 전이라 판정 색이 아니라 잉크 점선이다 */
 .cr-shot {
   position: relative;
   width: 180px;
@@ -207,7 +207,7 @@
 
 .cr-mark {
   position: absolute;
-  border: 2px dashed var(--fail);
+  border: 2px dashed var(--ink);
   border-radius: 3px;
   pointer-events: none;
 }
