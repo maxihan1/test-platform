@@ -62,10 +62,17 @@ export async function 호환성디바이스목록(): Promise<호환성디바이�
   if (팜 === undefined) return null;
   try {
     const res = await fetch(`${팜}/api/devices`, { headers: 팜머리(process.env, await 서버팜토큰()), signal: AbortSignal.timeout(목록제한ms) });
-    if (!res.ok) return null;
+    // 502 하나로 묶어 내도 까닭은 로그에 남긴다 — 토큰(401) · 주소가 틀려 HTML 을 받은 것 · 팜이 꺼진 것을 가를 수 있게
+    if (!res.ok) {
+      console.error(`[compat] 팜 기기 목록이 HTTP ${res.status} 로 답했다`);
+      return null;
+    }
     const 몸 = (await res.json().catch(() => null)) as { value?: { devices?: unknown } } | null;
     const 줄들 = 몸?.value?.devices;
-    if (!Array.isArray(줄들)) return null;
+    if (!Array.isArray(줄들)) {
+      console.error('[compat] 팜 기기 목록을 읽지 못했다 — DEVICE_FARM_URL 이 팜을 가리키는지 확인한다');
+      return null;
+    }
     return 줄들.flatMap((d: unknown) => {
       const x = typeof d === 'object' && d !== null ? 디바이스로(d as Record<string, unknown>) : null;
       return x === null ? [] : [x];

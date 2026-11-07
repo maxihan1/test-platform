@@ -56,9 +56,11 @@ export function 자동선택(전체: readonly 화면[], 후보들: readonly 후�
   }
 }
 
-/** 자동 선택 ∪ 직접 추가가 지나는 화면으로 화면 커버리지 · 미커버 화면을 센다. 직접 추가는 후보에 있는 것만 받는다(부르는 쪽이 먼저 거른다) */
-export function 셈하기(전체: readonly 화면[], 후보들: readonly 후보[], 더한: readonly string[], fallback: boolean): 셈결과 {
-  const auto = 자동선택(전체, 후보들);
+/**
+ * 자동 선택 ∪ 직접 추가가 지나는 화면으로 화면 커버리지 · 미커버 화면을 센다. 후보에 없는 직접 추가(지운 케이스)는 지나는 화면이 없다.
+ * 자동 선택은 직접 추가와 상관없어 세트 여럿을 셀 때 한 번 구해 넘긴다
+ */
+export function 셈하기(전체: readonly 화면[], 후보들: readonly 후보[], 더한: readonly string[], fallback: boolean, auto = 자동선택(전체, 후보들)): 셈결과 {
   const 고른 = new Set([...auto.map((a) => a.tcId), ...더한]);
   const 지남 = new Set(후보들.filter((c) => 고른.has(c.tcId)).flatMap((c) => [...덮는것(전체, c.틀)]));
   return {

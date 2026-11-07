@@ -96,13 +96,13 @@ export async function 재료읽기(serviceId: number, prefix: string): Promise<�
   };
 }
 
-/** 케이스마다 최근 통과 소요 평균(최근 5건). 기록이 없는 케이스는 빠진다 */
+/** 케이스마다 폰(mobile · android)에서 돈 최근 통과 소요 평균(최근 5건). 기록이 없는 케이스는 빠진다 — PC 소요는 폰보다 훨씬 짧아 섞지 않는다 */
 export async function 최근소요(tcIds: readonly string[]): Promise<Map<string, number>> {
   if (tcIds.length === 0) return new Map();
   const r = await (await db()).query<{ tc_id: string; avg: string }>(
     `SELECT tc_id, avg(duration_ms) AS avg FROM (
        SELECT tc_id, duration_ms, row_number() OVER (PARTITION BY tc_id ORDER BY started_at DESC) AS n
-         FROM run_item WHERE tc_id = ANY($1::text[]) AND status = 'PASS' AND duration_ms > 0
+         FROM run_item WHERE tc_id = ANY($1::text[]) AND platform IN ('mobile', 'android') AND status = 'PASS' AND duration_ms > 0
      ) t WHERE n <= 5 GROUP BY tc_id`,
     [tcIds],
   );

@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { 정수 } from '../routeParams.js';
 import { 시리얼 } from '../perf/devices.js';
 import { 호환성디바이스목록 } from './devices.js';
-import { 셈하기, 예상하기 } from './select.js';
+import { type 고른것, 셈하기, 예상하기, 자동선택 } from './select.js';
 import { type 세트, type 세트디바이스, 세트고치기, 세트만들기, 세트목록, 세트치우기, 세트하나, 재료읽기, 최근소요, type 재료 } from './store.js';
 
 const 케이스번호 = z.string().min(1).max(100);
@@ -29,25 +29,24 @@ async function 애플리케이션(serviceId: number): Promise<{ id: number; pref
   return r.rows[0] === undefined ? null : { id: serviceId, prefix: r.rows[0].prefix };
 }
 
-/** 직접 추가에 고를 수 없는 케이스(없는 · 다른 애플리케이션 · 폰에서 안 도는 · 지운 케이스)가 있으면 그 번호들 */
-const 모르는케이스 = (재: 재료, 더한: readonly string[]) => {
-  const 있음 = new Set(재.후보들.map((c) => c.tcId));
+/**
+ * 직접 추가에 고를 수 없는 케이스(없는 · 다른 애플리케이션 · 폰에서 안 도는 · 지운 케이스)가 있으면 그 번호들.
+ * 이미 세트에 있던 것은 묻지 않는다 — 저장한 뒤 지워진 케이스 하나로 세트를 못 고치게 되면 안 된다(셈에서는 빠지고 실행 때 건너뛴다)
+ */
+const 모르는케이스 = (재: 재료, 더한: readonly string[], 있던: readonly string[] = []) => {
+  const 있음 = new Set([...재.후보들.map((c) => c.tcId), ...있던]);
   return [...new Set(더한)].filter((t) => !있음.has(t));
 };
 
-// 저장된 직접 추가는 케이스가 지워졌을 수 있다 — 셈에서는 빼고 세트에는 남긴다(실행 때 건너뛴다)
-const 셈 = (재: 재료, 더한: readonly string[]) => {
-  const 있음 = new Set(재.후보들.map((c) => c.tcId));
-  return 셈하기(재.전체, 재.후보들, 더한.filter((t) => 있음.has(t)), 재.fallback);
-};
+const 셈 = (재: 재료, 더한: readonly string[], auto?: 고른것[]) => 셈하기(재.전체, 재.후보들, 더한, 재.fallback, auto);
 
-const 목록줄 = (s: 세트, 재: 재료) => ({
+const 목록줄 = (s: 세트, coverage: ReturnType<typeof 셈>['coverage']) => ({
   id: s.id,
   name: s.name,
   onePerModel: s.onePerModel,
   devices: s.devices,
   addedCases: s.addedCases,
-  coverage: 셈(재, s.addedCases).coverage,
+  coverage,
   // 실행이 생기는 COMPAT-F1-05 가 채운다
   lastRun: null,
 });
@@ -78,7 +77,8 @@ export default async function compatRoutes(app: FastifyInstance): Promise<void> 
     const 앱 = await 애플리케이션(serviceId);
     if (앱 === null) return 잘못(reply, `모르는 애플리케이션입니다: ${serviceId}`);
     const [재, 세트들] = await Promise.all([재료읽기(앱.id, 앱.prefix), 세트목록(앱.id)]);
-    return { sets: 세트들.map((s) => 목록줄(s, 재)) };
+    const auto = 자동선택(재.전체, 재.후보들);
+    return { sets: 세트들.map((s) => 목록줄(s, 셈(재, s.addedCases, auto).coverage)) };
   });
 
   app.post('/compat-sets/preview', async (req, reply) => {
@@ -101,10 +101,11 @@ export default async function compatRoutes(app: FastifyInstance): Promise<void> 
     const 재 = await 재료읽기(앱.id, 앱.prefix);
     const 결과 = 셈(재, s.addedCases);
     // 직접 추가가 자동 선택에도 들면 한 번만 돈다 — 자동 선택 쪽으로 센다
-    const 돌것 = [...new Set([...결과.auto.map((a) => a.tcId), ...s.addedCases])].flatMap((t) => 재.후보들.filter((c) => c.tcId === t));
+    const 후보 = new Map(재.후보들.map((c) => [c.tcId, c]));
+    const 돌것 = [...new Set([...결과.auto.map((a) => a.tcId), ...s.addedCases])].flatMap((t) => { const c = 후보.get(t); return c === undefined ? [] : [c]; });
     const 소요 = await 최근소요(돌것.map((c) => c.tcId));
     return {
-      ...목록줄(s, 재),
+      ...목록줄(s, 결과.coverage),
       auto: 결과.auto,
       uncovered: 결과.uncovered,
       // 원격 접기가 없어 폴더블도 상태 하나다 — 점검 상태 수 = 디바이스 수 (§3.13 「비전에 기대는 것」 3)
@@ -119,10 +120,12 @@ export default async function compatRoutes(app: FastifyInstance): Promise<void> 
     if (옛 !== null && b.serviceId !== 옛.serviceId) return 잘못(reply, '세트의 애플리케이션은 바꿀 수 없습니다');
     const 앱 = await 애플리케이션(b.serviceId);
     if (앱 === null) return 잘못(reply, `모르는 애플리케이션입니다: ${b.serviceId}`);
-    const 모름 = 모르는케이스(await 재료읽기(앱.id, 앱.prefix), b.addedCases);
+    const 모름 = 모르는케이스(await 재료읽기(앱.id, 앱.prefix), b.addedCases, 옛?.addedCases);
     if (모름.length > 0) return reply.code(400).send({ error: 'UNKNOWN_CASE', tcIds: 모름 });
     const 디 = await 디바이스채우기(b.devices, 옛?.devices ?? []);
     if ('status' in 디) return reply.code(디.status).send(디.body);
+    // 모델이 단위다 — 「모델별 1대」를 켠 세트에 같은 모델이 둘이면 같은 모델을 두 번 돈다 (§3.13 「호환성 세트」 · §8.17)
+    if (b.onePerModel && new Set(디.devices.map((d) => d.model)).size !== 디.devices.length) return 잘못(reply, '모델별 1대를 켠 세트는 같은 모델을 한 대만 고릅니다');
     const 몸 = { name: b.name, onePerModel: b.onePerModel, devices: 디.devices, addedCases: [...new Set(b.addedCases)] };
     if (옛 === null) return reply.code(201).send({ id: await 세트만들기(앱.id, 몸, req.user?.username ?? '알 수 없음') });
     return (await 세트고치기(옛.id, 몸)) ? { id: 옛.id } : 세트없음(reply);

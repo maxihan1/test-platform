@@ -21,6 +21,7 @@ const 팜기기 = [
     serial: 'FOLD1', state: 'OCCUPIED', model: 'SM-F946N', osVersion: '14', manufacturer: 'samsung', resolution: '1812x2176', density: '높음', formFactor: 'foldable',
     displays: [{ size: '1812x2176', inches: 7.6 }, { size: '904x2316', inches: 6.2 }], fold: 'unfolded',
   },
+  { serial: 'R3CR2', state: 'IDLE', model: 'SM-G996N', osVersion: '13', manufacturer: 'samsung', resolution: '1080x2400' },
   { serial: 'bad serial!', state: 'IDLE' },
 ];
 
@@ -107,11 +108,11 @@ describe.skipIf(연결 === undefined)('호환성 세트 · 디바이스 통로',
       [앱],
     );
     테스트실행 = Number(r.rows[0]?.run_id);
-    for (const [attempt, ms, status] of [[1, 100_000, 'PASS'], [2, 140_000, 'PASS'], [3, 999_000, 'FAIL']] as const) {
+    for (const [attempt, ms, status, platform] of [[1, 100_000, 'PASS', 'mobile'], [2, 140_000, 'PASS', 'mobile'], [3, 999_000, 'FAIL', 'mobile'], [1, 5_000, 'PASS', 'desktop']] as const) {
       await pool.query(
         `INSERT INTO run_item (run_id, tc_id, platform, attempt, tc_name, file_path, timeout_ms, precondition, params, expected, param_schema, expected_schema, status, duration_ms, started_at, finished_at)
-         VALUES ($1, 'XCP-001', 'mobile', $2, 'XCP-001', 'xcp.spec.ts', 5000, '[]', '{}', '{}', '{}', '{}', $4, $3, now(), now())`,
-        [테스트실행, attempt, ms, status],
+         VALUES ($1, 'XCP-001', $5, $2, 'XCP-001', 'xcp.spec.ts', 5000, '[]', '{}', '{}', '{}', '{}', $4, $3, now(), now())`,
+        [테스트실행, attempt, ms, status, platform],
       );
     }
   }, 60_000);
@@ -146,6 +147,7 @@ describe.skipIf(연결 === undefined)('호환성 세트 · 디바이스 통로',
             serial: 'FOLD1', model: 'SM-F946N', manufacturer: 'samsung', os: '14', resolution: '1812x2176', state: 'OCCUPIED', formFactor: 'foldable',
             displays: [{ size: '1812x2176', inches: 7.6 }, { size: '904x2316', inches: 6.2 }], fold: 'unfolded',
           },
+          { serial: 'R3CR2', model: 'SM-G996N', manufacturer: 'samsung', os: '13', resolution: '1080x2400', state: 'IDLE' },
         ],
       });
     });
@@ -205,6 +207,17 @@ describe.skipIf(연결 === undefined)('호환성 세트 · 디바이스 통로',
     });
     expect((await 부르기('xcp-reader', 'GET', `/api/compat-sets?serviceId=${앱}`)).json<{ sets: { id: number }[] }>().sets.map((s) => s.id)).toEqual([id]);
 
+    // 저장한 뒤 꺼진 직접 추가 케이스는 셈에서만 빠지고, 상세가 준 몸을 그대로 다시 보내도 저장된다
+    await pool.query("UPDATE test_case SET is_active = false WHERE tc_id = 'XCP-003'");
+    try {
+      await 팜으로(async () => {
+        expect((await 부르기('xcp-writer', 'PUT', `/api/compat-sets/${id}`, { serviceId: 앱, name: '주요 폰', onePerModel: true, devices: [{ serial: 'R3CR1' }, { serial: 'FOLD1' }], addedCases: ['XCP-003'] })).statusCode).toBe(200);
+      });
+      expect((await 부르기('xcp-reader', 'GET', `/api/compat-sets/${id}`)).json()).toMatchObject({ addedCases: ['XCP-003'], coverage: { covered: 4, total: 6 } });
+    } finally {
+      await pool.query("UPDATE test_case SET is_active = true WHERE tc_id = 'XCP-003'");
+    }
+
     // 팜이 꺼져도 이미 세트에 있던 디바이스는 옛 사본으로 고친다. 새 디바이스는 확인할 길이 없어 502 다
     await 환경로({ DEVICE_FARM_URL: undefined }, async () => {
       expect((await 부르기('xcp-writer', 'PUT', `/api/compat-sets/${id}`, { serviceId: 앱, name: '이름 바꿈', onePerModel: false, devices: [{ serial: 'FOLD1' }], addedCases: [] })).statusCode).toBe(200);
@@ -228,6 +241,7 @@ describe.skipIf(연결 === undefined)('호환성 세트 · 디바이스 통로',
       expect((await 부르기('xcp-writer', 'POST', '/api/compat-sets', { ...몸, devices: [{ serial: 'NOPE1' }, { serial: 'R3CR1' }] })).json()).toEqual({ error: 'UNKNOWN_DEVICE', serials: ['NOPE1'] });
       expect((await 부르기('xcp-writer', 'POST', '/api/compat-sets', { ...몸, devices: [{ serial: 'R3CR1' }, { serial: 'R3CR1' }] })).statusCode).toBe(400);
       expect((await 부르기('xcp-writer', 'POST', '/api/compat-sets', { ...몸, addedCases: ['XCP-004'] })).json()).toEqual({ error: 'UNKNOWN_CASE', tcIds: ['XCP-004'] });
+      expect((await 부르기('xcp-writer', 'POST', '/api/compat-sets', { ...몸, devices: [{ serial: 'R3CR1' }, { serial: 'R3CR2' }] })).json()).toMatchObject({ error: 'INVALID_REQUEST', detail: '모델별 1대를 켠 세트는 같은 모델을 한 대만 고릅니다' });
       expect((await 부르기('xcp-reader', 'POST', '/api/compat-sets', 몸)).statusCode).toBe(403);
     });
     expect((await 부르기('xcp-none', 'GET', `/api/compat-sets?serviceId=${앱}`)).statusCode).toBe(403);
