@@ -176,8 +176,10 @@
   text-decoration: none;
 }
 
+/* .screen 판에 안쪽 여백이 없어 줄 스스로 띄운다 — 안 띄우면 글이 판 테두리에 붙는다 (2026-11-07 COMPAT-F1-08 시험) */
 .compat-note {
-  margin: 12px 0 0;
+  margin: 0;
+  padding: 12px 16px;
 }
 
 /* ② 세트 */
