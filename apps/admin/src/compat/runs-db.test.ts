@@ -169,8 +169,8 @@ describe.skipIf(연결 === undefined)('호환성 실행 · 결과 · 판정', { 
     }>();
     expect(결과.run.state).toBe('FINISHED');
     expect(결과.devices.map((d) => [d.serial, d.fold, d.state, d.os])).toEqual([['XCRA2', 'OPEN', 'DONE', '14'], ['XCRB1', null, 'DONE', '14']]);
-    // 의심 없는 「화면 모름」 줄은 이상 없음이라 숨는다. 웹 주소는 같은 틀로 바꾼다
-    expect([결과.rows.map((r) => r.key), 결과.hiddenOk]).toEqual([['/web/cart', 'app:.Main/home'], 1]);
+    // 의심 없는 「화면 모름」 줄은 표에도 숨긴 수에도 안 든다(§3.13 「결과 · 판정」). 웹 주소는 같은 틀로 바꾼다
+    expect([결과.rows.map((r) => r.key), 결과.hiddenOk]).toEqual([['/web/cart', 'app:.Main/home'], 0]);
     expect(결과.rows[1]?.cells).toEqual([{ seq: 1, value: 'PENDING' }, { seq: 2, value: 'PENDING' }]);
     expect(결과.counts).toMatchObject({ devices: 2, states: 2, pending: 4, confirmed: 0 });
     expect(결과.cards[0]?.step).toBe(1);
