@@ -8,7 +8,7 @@ const 상태 = (seq: number, 덧: Partial<상태줄> = {}): 상태줄 => ({
   seq, serial: `S${seq}`, heldSerial: null, model: `M${seq}`, name: `폰${seq}`, os: '14', fold: null, state: 'DONE', skipReason: null, ...덧,
 });
 const 케이스 = (id: number, seq: number, tcId: string, 덧: Partial<케이스줄> = {}): 케이스줄 => ({
-  id, seq, tcId, status: 'PASS', failedStep: null, checkState: 'done', started: true, finished: true, 까닭: null, ...덧,
+  id, seq, tcId, name: `${tcId} 이름`, status: 'PASS', failedStep: null, checkState: 'done', started: true, startedAt: '2026-11-07T00:00:00.000Z', finished: true, 까닭: null, ...덧,
 });
 const 재료 = (덧: Partial<결과재료>): 결과재료 => ({
   상태들: [], 케이스들: [], 화면들: [], 판정들: [], 지나는: new Map(), 화면수: new Map(), 이름: new Map(), ...덧,
@@ -74,5 +74,18 @@ describe('결과셈', () => {
       화면들: [{ id: 1, caseRunId: 11, seq: 1, key: 'unknown:DMA-UI-031#4', step: 4, status: 'done', issues: 의심 }],
     }));
     expect(r.rows[0]?.name).toBe('화면 모름 — DMA-UI-031 4단계');
+  });
+
+  it('지금 케이스는 시작했고 안 끝난 케이스다 — 다 끝났거나 아직 안 돌았으면 null', () => {
+    const r = 결과셈(재료({
+      상태들: [상태(1, { state: 'RUNNING' }), 상태(2, { state: 'WAIT' })],
+      케이스들: [
+        케이스(11, 1, 'A-1'),
+        케이스(12, 1, 'A-2', { finished: false, checkState: null, startedAt: '2026-11-07T01:00:00.000Z' }),
+        케이스(21, 2, 'A-1', { started: false, startedAt: null, finished: false, checkState: null }),
+      ],
+    }));
+    expect(r.devices[0]?.now).toEqual({ tcId: 'A-2', name: 'A-2 이름', startedAt: '2026-11-07T01:00:00.000Z' });
+    expect(r.devices[1]?.now).toBeNull();
   });
 });

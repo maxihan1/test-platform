@@ -50,7 +50,6 @@ export async function 상태들읽기(runId: number): Promise<상태줄[]> {
 }
 
 export interface 실행케이스 extends 케이스줄 {
-  name: string;
   filePath: string;
   timeoutMs: number;
 }
@@ -66,7 +65,7 @@ export async function 케이스들읽기(runId: number): Promise<실행케이스
   );
   return r.rows.map((x) => ({
     id: Number(x.id), seq: x.seq, tcId: x.tc_id, name: x.tc_name, filePath: x.file_path, timeoutMs: x.timeout_ms, status: x.status, failedStep: x.failed_step,
-    checkState: x.check_state, started: x.started_at !== null, finished: x.finished_at !== null, 까닭: x.message,
+    checkState: x.check_state, started: x.started_at !== null, startedAt: x.started_at?.toISOString() ?? null, finished: x.finished_at !== null, 까닭: x.message,
   }));
 }
 
