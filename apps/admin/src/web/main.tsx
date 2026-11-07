@@ -33,6 +33,7 @@ import './runEvidence.css';
 import './runList.css';
 import './caseList.css';
 import './casePick.css';
+import './compat.css';
 import './perf.css';
 import './perfPages.css';
 import './perfDevices.css';

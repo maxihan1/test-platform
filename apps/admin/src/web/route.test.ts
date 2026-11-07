@@ -97,6 +97,15 @@ describe('route', () => {
     expect(route('#/scenarios/12')).toEqual({ name: 'scenario', id: 12 });
   });
 
+  // 자리 `테스트 실행 › 호환성` (도메인/호환성 §8.17)
+  it('호환성 세트 목록 · 새 세트 · 세트 한 건. 애플리케이션 칸(?service=)은 화면을 고르지 않는다', () => {
+    expect(route('#/compat')).toEqual({ name: 'compatSets' });
+    expect(route('#/compat/new?service=MKA')).toEqual({ name: 'compatSet', id: 'new' });
+    expect(route('#/compat/7?service=MKA')).toEqual({ name: 'compatSet', id: 7 });
+    expect(route('#/compat/7x').name).toBe('unknown');
+    expect(route('#/compat/12345678901').name).toBe('unknown');
+  });
+
   it('시나리오 번호는 열 자리 숫자 글자만 받는다. 서버도 같은 모양으로 거른다', () => {
     expect(route('#/scenarios/12a')).toMatchObject({ name: 'unknown' });
     expect(route('#/scenarios/12345678901')).toMatchObject({ name: 'unknown' });

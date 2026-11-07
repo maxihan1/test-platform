@@ -27,7 +27,7 @@ describe('종류별 자리 목록', () => {
     const 앞 = [['대시보드', []]] as const;
     const 뒤 = [['그래프(Grafana)', []]] as const;
     const 작성 = [['테스트 작성', []]] as const;
-    const 스크립트 = ['테스트 실행', ['기능 테스트', 'UI 테스트']] as const;
+    const 스크립트 = ['테스트 실행', ['기능 테스트', 'UI 테스트', '호환성']] as const;
     const 시나리오 = ['E2E 시나리오', []] as const;
     const 실행 = ['실행 기록', ['기능 테스트', 'UI 테스트', 'E2E']] as const;
 
@@ -45,6 +45,20 @@ describe('종류별 자리 목록', () => {
       ['성능 테스트', ['부하 테스트', '실행 기록']],
       ...뒤,
     ]);
+  });
+
+  it('호환성은 실행 칸을 쓴다 — 실행을 못 보는 사람에게는 테스트 실행 아래에 서지 않고, 서면 신규 꼬리표가 붙는다', () => {
+    const 사람 = (runs: 'none' | 'read'): User => ({
+      username: 'kim',
+      displayName: '김철수',
+      role: 'member',
+      dashboard: 'read',
+      mustChangePassword: false,
+      services: [{ ...기본, kind: 'APP', permissions: { cases: 'read', runs, authoring: 'none' } }],
+    });
+    const 테스트실행 = (runs: 'none' | 'read') => 자리목록(사람(runs), 'PAY', 'ko').find((자리) => 자리.이름 === '테스트 실행')?.하위 ?? [];
+    expect(테스트실행('none').map((h) => h.이름)).toEqual(['기능 테스트', 'UI 테스트']);
+    expect(테스트실행('read').at(-1)).toEqual({ 이름: '호환성', 해시: '#/compat', 라벨: '테스트 실행 · 호환성', 신규: true });
   });
 
   it('종류를 모르면 웹으로 읽는다 — 기기 성능이 없다', () => {

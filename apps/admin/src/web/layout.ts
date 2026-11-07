@@ -30,6 +30,8 @@ export interface 하위자리 {
   이름: string;
   해시: string;
   라벨: string;
+  /** 이름 곁의 `신규` 꼬리표 (도메인/호환성 §8.17 「메뉴」) */
+  신규?: boolean;
 }
 
 function 종류하위(묶음: string, 바탕: '#/cases' | '#/runs', 언어: 언어, UI없음 = false): 하위자리[] {
@@ -89,7 +91,9 @@ export function 자리목록(user: User, prefix: string | null, 언어: 언어):
   if (기능보나(user, prefix, 'cases')) {
     const 이름 = t('테스트 실행', 언어);
     // API 애플리케이션은 기능 테스트뿐이라 하위 없이 바로 그 목록이다. 주소는 지금 자리(`지금자리` 의 `#/cases/fn`)와 같아야 밑줄이 간다
-    목록.push(API ? { 이름, 해시: '#/cases/fn', 아이콘: 'cases' } : { 이름, 해시: '#/cases', 아이콘: 'cases', 하위: 종류하위(이름, '#/cases', 언어) });
+    // 호환성은 실행 칸을 쓰고 폰에서 도는 종류(웹 · 앱 · 게임)에만 선다 (공통/5-화면공통 §8 「자리 목록」 · 도메인/호환성 §8.17)
+    const 호환성 = 기능보나(user, prefix, 'runs') ? [{ 이름: t('호환성', 언어), 해시: '#/compat', 라벨: `${이름} · ${t('호환성', 언어)}`, 신규: true }] : [];
+    목록.push(API ? { 이름, 해시: '#/cases/fn', 아이콘: 'cases' } : { 이름, 해시: '#/cases', 아이콘: 'cases', 하위: [...종류하위(이름, '#/cases', 언어), ...호환성] });
   }
   if (기능보나(user, prefix, 'runs')) {
     // 만드는 일(작성 → 케이스 → 시나리오) 끝, 보는 일 앞이다 (화면공통 §8). 시나리오는 실행 칸을 쓴다 (도메인/시나리오 §7)
@@ -143,6 +147,7 @@ export function 지금자리(name: string, 집: string, 종류?: 'UI' | 'FN' | '
   if (name === 'perfPages') return '#/perf/pages';
   if (name === 'perfDevices') return '#/perf/devices';
   if (name === 'perfRuns' || name === 'perfRun') return '#/perf/runs';
+  if (name === 'compatSets' || name === 'compatSet') return '#/compat';
   if (name === 'settings') return '#/settings';
   // 비밀번호 변경은 자리 목록에 없다. 집을 돌려주면 케이스에 밑줄이 가서 딴 화면처럼 보인다
   if (name === 'password') return '#/password';

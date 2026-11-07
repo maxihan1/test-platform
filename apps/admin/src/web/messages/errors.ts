@@ -105,6 +105,13 @@ export const 오류영어: Record<string, string> = {
   '이 서버에는 폰에서 돌릴 Device VISION 이 연결되어 있지 않습니다': 'This server has no Device VISION to run on phones',
   '디바이스가 다른 실행에 쓰이고 있습니다': 'The device is being used by another run',
 
+  // 호환성 세트 (errorText.ts)
+  '그 호환성 세트를 찾지 못했습니다. 치운 세트일 수 있습니다': 'Could not find that compatibility set. It may have been archived',
+  '디바이스를 한 대 이상 고릅니다': 'Choose at least one device',
+  'Device VISION 에 없는 디바이스가 있습니다. 디바이스 선택을 다시 엽니다': 'Some devices are not registered in Device VISION. Open device selection again',
+  '호환성에서 돌릴 수 없는 케이스가 있습니다. 지워졌거나 폰에서 돌지 않는 케이스입니다': 'Some cases cannot run in compatibility. They were removed or do not run on a phone',
+  'Device VISION 이 답하지 않습니다. 잠시 뒤 다시 합니다': 'Device VISION is not responding. Try again shortly',
+
   // E2E 시나리오
   '그 시나리오를 찾지 못했습니다': 'We could not find that scenario',
   '삭제한 시나리오라 고치거나 실행할 수 없습니다': 'This scenario was archived, so it cannot be edited or run',

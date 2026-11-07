@@ -67,6 +67,13 @@ export const 오류말: Record<string, string> = {
   FARM_OFF: '이 서버에는 폰에서 돌릴 Device VISION 이 연결되어 있지 않습니다',
   DEVICE_BUSY: '디바이스가 다른 실행에 쓰이고 있습니다',
 
+  // 호환성 세트 (도메인/호환성 §7). 화면이 고를 수 없게 막아도 그사이 팜 등록이 바뀌거나 케이스가 지워지면 만난다
+  COMPAT_SET_NOT_FOUND: '그 호환성 세트를 찾지 못했습니다. 치운 세트일 수 있습니다',
+  NO_DEVICE: '디바이스를 한 대 이상 고릅니다',
+  UNKNOWN_DEVICE: 'Device VISION 에 없는 디바이스가 있습니다. 디바이스 선택을 다시 엽니다',
+  UNKNOWN_CASE: '호환성에서 돌릴 수 없는 케이스가 있습니다. 지워졌거나 폰에서 돌지 않는 케이스입니다',
+  FARM_UNREACHABLE: 'Device VISION 이 답하지 않습니다. 잠시 뒤 다시 합니다',
+
   // E2E 시나리오 (도메인/시나리오 §7). TRIAL_BUSY · TRIAL_NOT_FOUND 는 시험 실행 화면이 따로 다룬다
   SCENARIO_NOT_FOUND: '그 시나리오를 찾지 못했습니다',
   SCENARIO_ARCHIVED: '삭제한 시나리오라 고치거나 실행할 수 없습니다',

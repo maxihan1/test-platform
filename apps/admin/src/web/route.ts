@@ -27,6 +27,9 @@ export type Route =
   | { name: 'scenarioNew' }
   | { name: 'scenarioNewBuild' }
   | { name: 'scenario'; id: number }
+  /** 테스트 실행 › 호환성 — 세트 목록과 세트 하나. 새 세트는 `new` 다 (도메인/호환성 §8.17) */
+  | { name: 'compatSets' }
+  | { name: 'compatSet'; id: number | 'new' }
   /** 성능 테스트 › 시나리오. 마법사는 새것과 고칠 것이 같은 화면이다 (도메인/성능 §8.14) */
   | { name: 'perfScenarios' }
   | { name: 'perfScenarioNew' }
@@ -155,6 +158,13 @@ export function route(hash: string): Route {
     if (parts.length === 2 && /^\d{1,10}$/.test(parts[1]!)) return { name: 'scenario', id: Number(parts[1]) };
   }
 
+  // 번호 규칙은 E2E 시나리오와 같다 — 서버도 숫자 글자만 받는다 (도메인/호환성 §7)
+  if (parts[0] === 'compat') {
+    if (parts.length === 1) return { name: 'compatSets' };
+    if (parts.length === 2 && parts[1] === 'new') return { name: 'compatSet', id: 'new' };
+    if (parts.length === 2 && /^\d{1,10}$/.test(parts[1]!)) return { name: 'compatSet', id: Number(parts[1]) };
+  }
+
   // 번호 규칙은 E2E 시나리오와 같다 — 서버도 숫자 글자만 받는다 (도메인/성능 §7)
   if (parts[0] === 'perf' && parts[1] === 'scenarios') {
     if (parts.length === 2) return { name: 'perfScenarios' };
@@ -221,6 +231,9 @@ export const 기능자리: Partial<Record<Route['name'], 기능>> = {
   perfPages: 'runs',
   perfDevices: 'runs',
   perfRuns: 'runs',
+  // 호환성은 실행 칸을 쓴다 (도메인/호환성 §7). 세트 주소는 `?service=` 로 그 세트의 애플리케이션을 담는다
+  compatSets: 'runs',
+  compatSet: 'runs',
 };
 
 /**
