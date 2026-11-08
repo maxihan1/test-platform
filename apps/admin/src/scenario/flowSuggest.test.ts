@@ -10,9 +10,9 @@ const 원천 = (덧: Partial<재료원천> = {}): 재료원천 => ({
   wish: null,
   prd: [{ reqId: 'MKT-REQ-001', feature: '주문', text: '주문한다' }, { reqId: 'MKT-REQ-002', feature: '주문', text: '수량은 1~99' }],
   케이스들: [
-    { tcId: 'MKT-FN-001', name: '주문하기', platforms: ['desktop'], techniques: [] },
-    { tcId: 'MKT-FN-002', name: '수량 경계', platforms: ['desktop', 'mobile'], techniques: [] },
-    { tcId: 'MKT-FN-003', name: '앱 전용', platforms: ['mobile'], techniques: [] },
+    { tcId: 'MKT-FN-001', name: '주문하기', platforms: ['desktop'], techniques: [], stepTitles: ['로그인한다', '주문한다'] },
+    { tcId: 'MKT-FN-002', name: '수량 경계', platforms: ['desktop', 'mobile'], techniques: [], stepTitles: null },
+    { tcId: 'MKT-FN-003', name: '앱 전용', platforms: ['mobile'], techniques: [], stepTitles: null },
   ],
   맥락: new Map([
     ['MKT-FN-001', { reqs: [{ reqId: 'MKT-REQ-001', axis: '정상' }], screens: [{ url: 'http://shop.test/orders/12' }, { url: null }] }],
@@ -27,11 +27,11 @@ const 원천 = (덧: Partial<재료원천> = {}): 재료원천 => ({
 });
 
 describe('재료짓기', () => {
-  it('고른 디바이스의 케이스만 담고 정상 쪽 · 요구 · 화면 틀을 단다', () => {
+  it('고른 디바이스의 케이스만 담고 정상 쪽 · 요구 · 화면 틀 · 첫 절차 제목을 단다', () => {
     const 재료 = 재료짓기(원천());
     expect(재료.cases).toEqual([
-      { tcId: 'MKT-FN-001', name: '주문하기', reqIds: ['MKT-REQ-001'], screens: ['/orders/:n'], normal: true },
-      { tcId: 'MKT-FN-002', name: '수량 경계', reqIds: ['MKT-REQ-002'], screens: [], normal: false },
+      { tcId: 'MKT-FN-001', name: '주문하기', reqIds: ['MKT-REQ-001'], screens: ['/orders/:n'], normal: true, first: '로그인한다' },
+      { tcId: 'MKT-FN-002', name: '수량 경계', reqIds: ['MKT-REQ-002'], screens: [], normal: false, first: null },
     ]);
     expect(재료.reqs).toEqual([
       { reqId: 'MKT-REQ-001', feature: '주문', kinds: ['정상'], text: '주문한다' },
@@ -51,7 +51,7 @@ describe('재료짓기', () => {
   });
 
   it('상한을 넘으면 앞에서부터 담고 truncated 를 단다', () => {
-    const 케이스들 = Array.from({ length: 케이스상한 + 1 }, (_, i) => ({ tcId: `MKT-FN-${i}`, name: '케이스', platforms: ['desktop'], techniques: [] }));
+    const 케이스들 = Array.from({ length: 케이스상한 + 1 }, (_, i) => ({ tcId: `MKT-FN-${i}`, name: '케이스', platforms: ['desktop'], techniques: [], stepTitles: null }));
     const 재료 = 재료짓기(원천({ 케이스들 }));
     expect(재료.cases).toHaveLength(케이스상한);
     expect(재료.truncated).toBe(true);
@@ -61,7 +61,7 @@ describe('재료짓기', () => {
 describe('흐름다듬기', () => {
   const 재료 = {
     reqs: [{ reqId: 'MKT-REQ-001', feature: '주문', kinds: ['정상'], text: '주문한다' }],
-    cases: ['001', '002', '003'].map((n) => ({ tcId: `MKT-FN-${n}`, name: `케이스 ${n}`, reqIds: [], screens: [], normal: true })),
+    cases: ['001', '002', '003'].map((n) => ({ tcId: `MKT-FN-${n}`, name: `케이스 ${n}`, reqIds: [], screens: [], normal: true, first: null })),
   };
   const 줄 = (method: string, path: string, ...tcIds: string[]): 지도요청 => ({ method, path, cases: tcIds.map((tcId) => ({ tcId })) });
   const 지도 = new Map([['MKT', [줄('POST', '/api/orders', 'MKT-FN-001'), 줄('GET', '/api/orders/:n', 'MKT-FN-003')]]]);
@@ -81,7 +81,7 @@ describe('흐름다듬기', () => {
   });
 
   it('실행 한도 60분을 넘는 후보(케이스 13개)는 버리고 12개 후보는 남긴다', () => {
-    const 많은재료 = { ...재료, cases: Array.from({ length: 13 }, (_, i) => ({ tcId: `MKT-FN-${100 + i}`, name: `케이스 ${i}`, reqIds: [], screens: [], normal: true })) };
+    const 많은재료 = { ...재료, cases: Array.from({ length: 13 }, (_, i) => ({ tcId: `MKT-FN-${100 + i}`, name: `케이스 ${i}`, reqIds: [], screens: [], normal: true, first: null })) };
     const 번호들 = 많은재료.cases.map((c) => c.tcId);
     const 결과 = 흐름다듬기(많은재료, [
       후보({ name: '긴 흐름', tcIds: 번호들 }),

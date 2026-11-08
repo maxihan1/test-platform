@@ -64,8 +64,8 @@ async function 재료읽기(서비스: number, prefix: string, platform: Platfor
   const [판, 맥락, 케이스, 연결들] = await Promise.all([
     지금판(서비스),
     맥락읽기(prefix),
-    (await db()).query<{ tc_id: string; name: string; platforms: string[]; techniques: string[] }>(
-      `SELECT tc_id, name, platforms, techniques FROM test_case WHERE tc_id LIKE $1 AND is_active ORDER BY tc_id COLLATE "C"`,
+    (await db()).query<{ tc_id: string; name: string; platforms: string[]; techniques: string[]; step_titles: string[] | null }>(
+      `SELECT tc_id, name, platforms, techniques, step_titles FROM test_case WHERE tc_id LIKE $1 AND is_active ORDER BY tc_id COLLATE "C"`,
       [`${prefix}-%`],
     ),
     화면연결들(서비스),
@@ -74,7 +74,7 @@ async function 재료읽기(서비스: number, prefix: string, platform: Platfor
     platform,
     wish,
     prd: (판?.items ?? []).map((i) => ({ reqId: i.reqId, feature: i.feature, text: i.text })),
-    케이스들: 케이스.rows.filter((r) => tcId종류(r.tc_id) !== 'UI').map((r) => ({ tcId: r.tc_id, name: r.name, platforms: r.platforms, techniques: r.techniques })),
+    케이스들: 케이스.rows.filter((r) => tcId종류(r.tc_id) !== 'UI').map((r) => ({ tcId: r.tc_id, name: r.name, platforms: r.platforms, techniques: r.techniques, stepTitles: r.step_titles })),
     맥락,
     PRD씀: [...맥락.values()].some((x) => x.feature !== null),
     연결들,
