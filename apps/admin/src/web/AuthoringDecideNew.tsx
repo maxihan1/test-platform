@@ -46,7 +46,7 @@ export function 새로만들기({
         <ul className="decide-list">
           {x.operations.map((o) => (
             <li key={`${o.method} ${o.path}`}>
-              <span className="case-tag">{{ NEW: t('새 항목'), CHANGED: t('바뀜'), REMOVED: t('지움') }[o.change]}</span> <span className="prd-id">{o.method} {o.path}</span>
+              <span className="case-tag">{{ NEW: t('새 항목'), CHANGED: t('변경'), REMOVED: t('지움') }[o.change]}</span> <span className="prd-id">{o.method} {o.path}</span>
               {o.breaking ? <span className="hint"> · {t('기존 테스트가 실패할 수 있음')}</span> : null}
             </li>
           ))}
@@ -114,7 +114,7 @@ export function 새로만들기({
 function 바뀐요구들({ x }: { x: 항목of<'PRD_CHANGED'> }) {
   const t = use말();
   const 종류: [string, typeof x.changed][] = [
-    [t('바뀜'), x.changed],
+    [t('변경'), x.changed],
     [t('새 항목'), x.added],
     [t('지움'), x.removed],
   ];

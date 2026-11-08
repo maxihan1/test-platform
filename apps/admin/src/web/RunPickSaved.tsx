@@ -154,7 +154,7 @@ export function 저장한값줄({
               </>
             ) : (
               <button type="button" className="btn ghost" onClick={() => set확인중(true)}>
-                {t('저장값 삭제')}
+                {t('저장값 초기화')}
               </button>
             )}
           </>

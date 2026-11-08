@@ -66,7 +66,7 @@ export function AuthoringCases({
                 </td>
                 <td>
                   <span className={c.change === 'NEW' ? 'held-chip' : 'held-chip und'}>
-                    {c.change === 'NEW' ? t('신규') : t('바뀜')}
+                    {c.change === 'NEW' ? t('신규') : t('변경')}
                   </span>
                 </td>
                 <td>

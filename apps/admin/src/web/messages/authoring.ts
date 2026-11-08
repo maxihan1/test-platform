@@ -107,7 +107,7 @@ export const 작성말: Record<string, string> = {
   '테스트 반영 완료': 'Tests merged',
   '시작 전에 중단되었습니다': 'Stopped before it started',
   '케이스 파일 {수}개를 만들었습니다': 'Made {수} case files',
-  '케이스를 PR 로 올렸습니다': 'Opened the cases as a PR',
+  '케이스를 PR 로 등록했습니다': 'Opened the cases as a PR',
 
   // 다음 단계 (2026-09-28 「해야 할 일」에서 바꿨다 — 고르는 상황에 시키는 말투가 안 맞았다)
   '다음 단계': 'Next steps',
@@ -146,7 +146,7 @@ export const 작성말: Record<string, string> = {
   '중단된 자리부터 남은 작업을 계속합니다.': 'Continues the rest from where it stopped.',
   '{날}까지 이어갈 수 있습니다.': 'You can continue until {날}.',
   '이미 이어서 작성했습니다. 아래 실행 기록을 보세요.': 'Already continued. See the run history below.',
-  '보관 기간이 지나 작성 결과를 지웠습니다. 처음부터 다시 작성하세요.':
+  '보관 기간이 지나 작성 결과를 삭제했습니다. 처음부터 다시 작성하세요.':
     'The keep period is over and what was made was deleted. Write again from the start.',
   '목록에서 사라집니다. 보관한 작업물도 삭제합니다. 통계와 토큰 기록은 남습니다.':
     'It disappears from the list and the kept work is deleted. Stats and token records stay.',

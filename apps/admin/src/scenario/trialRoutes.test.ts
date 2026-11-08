@@ -237,7 +237,7 @@ describe.skipIf(연결 === undefined)('시나리오 시험 실행 통로', () =>
     expect((await 부른다('xstr-a', 'GET', `/api/scenario-trials/${trialId}`)).json()).toEqual({ status: 'RUNNING' });
     const 두번째 = await 부른다('xstr-a', 'POST', '/api/scenario-trials', 본문());
     expect(두번째.statusCode).toBe(409);
-    expect(두번째.json()).toEqual({ error: 'TRIAL_BUSY', detail: '이미 시험 실행이 돌고 있습니다' });
+    expect(두번째.json()).toEqual({ error: 'TRIAL_BUSY', detail: '이미 시험 실행이 진행 중입니다' });
   });
 
   it('러너에 보낸 시험은 RUNNING 에 지금 부품(step)이 붙고, 다른 시험의 진행은 섞이지 않는다', async () => {

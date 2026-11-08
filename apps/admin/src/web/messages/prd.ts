@@ -23,7 +23,6 @@ export const 기획서말: Record<string, string> = {
   원문: 'Original text',
   '실제 화면에서 본 것': 'Seen on the live screen',
   '사람이 직접 적은 것': 'Written by a person',
-  바뀜: 'Changed',
   '새 항목': 'New',
   지움: 'Removed',
   오늘: 'today',
@@ -48,7 +47,7 @@ export const 기획서말: Record<string, string> = {
   '확인 필요 · {나이}': 'Needs check · {나이}',
   // 상태 칸의 「확정」 — 버튼의 「확정」(Confirm)과 영어가 다르다
   '확정§상태': 'Confirmed',
-  '사람이 고침': 'Edited by a person',
+  '사람이 수정': 'Edited by a person',
   '테스트 작성 › 결정 필요에서 테스트를 다시 만들 수 있어요 →': 'You can remake the tests in Test authoring › Decisions needed →',
   출처: 'Source',
   '설계 미리보기': 'Test design preview',
@@ -124,7 +123,7 @@ export const 기획서말: Record<string, string> = {
   // 바뀐 것은 서버가 적어 준 줄(changes)을 그대로 쓰고, 없으면 앞 버전과 견줘 화면이 계산한다
   '문장 변경': 'Wording changed',
   '문구 선택': 'Wording picked',
-  '확인 필요로 바꿈': 'Marked as needs checking',
+  '확인 필요로 지정': 'Marked as needs checking',
   '{키들} 에서 옴': 'from {키들}',
   '화면이 맞음({번호})': 'Screen is right ({번호})',
   '출처 {자료}': 'from {자료}',
@@ -133,10 +132,10 @@ export const 기획서말: Record<string, string> = {
   '변경된 요구 없음': 'No requirement changed',
   '{종류} {건수}건': '{종류}: {건수}',
   '버전 {버전}에서 변경된 요구': 'Requirements changed in version {버전}',
-  '상태만 바뀜': 'Status only',
-  '확정으로 바뀜': 'Now confirmed',
-  '확인 필요로 바뀜': 'Now needs checking',
-  '출처가 바뀜': 'Source changed',
+  '상태만 변경': 'Status only',
+  '확정으로 변경': 'Now confirmed',
+  '확인 필요로 변경': 'Now needs checking',
+  '출처 변경': 'Source changed',
   '기능 묶음 {앞} → {뒤}': 'Feature {앞} → {뒤}',
 
   // 서비스 지도 (PrdApis.tsx · 도메인/작성 §3.6 「서비스 지도」)

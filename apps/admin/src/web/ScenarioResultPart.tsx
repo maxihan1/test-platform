@@ -104,7 +104,7 @@ export function ScenarioResultPart({
         </p>
       )}
 
-      {!섞임 || part.baseUrl == null ? null : <세부 라벨={t('돈 주소')}>{part.baseUrl}</세부>}
+      {!섞임 || part.baseUrl == null ? null : <세부 라벨={t('실행한 주소')}>{part.baseUrl}</세부>}
       {입력 === '' ? null : <세부 라벨={t('입력값')}>{입력}</세부>}
       {part.skippedSteps.length === 0 ? null : (
         <세부 라벨={t('건너뜀')}>

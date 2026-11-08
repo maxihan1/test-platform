@@ -57,13 +57,13 @@ export function 값연결글(link: ScenarioLink, bound: Record<string, unknown>,
 export function 멈춘사유글자(message: string, 언어: 언어): string {
   if (message === 시간초과) return t('제한 시간 초과', 언어);
   if (message === 'ABORTED') return t('서버 재시작으로 중단', 언어);
-  if (message === 'STOPPED') return t('사용자가 중단', 언어);
+  if (message === 'STOPPED') return t('실행 중단됨', 언어);
   return message;
 }
 
 export function 멈춘단계글자(줄: ScenarioRunRow, 언어: 언어): string {
   if (줄.status === 'RUNNING') return '';
-  if (줄.stoppedAt !== null) return t('{번호}번에서 중단', 언어, { 번호: 줄.stoppedAt });
+  if (줄.stoppedAt !== null) return t('{번호}번에서 종료', 언어, { 번호: 줄.stoppedAt });
   // 단계 기록 없이 닫힌 실행도 stoppedAt 이 비어 있다 — 판정 칩 「미실행」 아래 「모두 통과」가 서면 거짓이다
   return 줄.verdict === 'PASS' ? t('모두 통과', 언어) : '';
 }

@@ -124,7 +124,7 @@ export function TrialSummary({ 시험, on자세히 }: { 시험: 시험상태; on
   const 실패 = 결과.parts.find((p) => p.status === 'FAIL');
   const 문장 =
     실패 !== undefined
-      ? t('{번호}번에서 중단', { 번호: 실패.seq })
+      ? t('{번호}번에서 종료', { 번호: 실패.seq })
       : 결과.status === 'PASS'
         ? t('모두 통과')
         : 멈춘사유글자(결과.error?.message ?? '', 언어);

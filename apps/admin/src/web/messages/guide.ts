@@ -36,7 +36,7 @@ export const 가이드말: Record<string, string> = {
   '옛 버전은 볼 수만 있습니다': 'Earlier versions are view-only',
   '변경 사항': 'Changes',
   보기: 'View',
-  '글 고침 — {구획}': 'Text edited — {구획}',
+  '글 수정 — {구획}': 'Text edited — {구획}',
   '더함 — {이름}': 'Added — {이름}',
   '뺌 — {이름}': 'Removed — {이름}',
   '버전 {버전} 보기': 'View version {버전}',

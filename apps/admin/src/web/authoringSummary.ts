@@ -73,16 +73,16 @@ export function 결과글(s: 목록요약, 언어: 언어): { 글: string; 실�
   if (r.stoppedAt !== null) {
     // 고치기는 단계 막대가 없다 — 「준비 단계에서」라 하면 어디서 멈췄는지 거짓말을 한다
     if (s.kind === 'EDIT') return { 글: t('수정 중 중단', 언어), 실패: true };
-    if (r.stoppedAt === '') return { 글: t('시작 전에 중단', 언어), 실패: true };
+    if (r.stoppedAt === '') return { 글: t('시작 전에 종료', 언어), 실패: true };
     const 만든 = (r.casesMade ?? 0) > 0 ? t('케이스 {수}건 만듦', 언어, { 수: r.casesMade! }) : t('만든 케이스 없음', 언어);
     // 칸 표에 없는 단계 글(겹침 보기 · 3회 돌리기 같은)을 첫 칸으로 옮기면 어디서 멈췄는지 거짓말을 한다 — 단계 없이 멈춤만 말한다
-    if (r.stoppedAt !== '준비' && !아는단계글(r.stoppedAt)) return { 글: [t('중간에 중단', 언어), 만든].join(' · '), 실패: true };
+    if (r.stoppedAt !== '준비' && !아는단계글(r.stoppedAt)) return { 글: [t('중간에 종료', 언어), 만든].join(' · '), 실패: true };
     const 단계 = 단계라벨(단계이름들[단계칸(r.stoppedAt, false)] ?? '준비', 언어);
-    return { 글: [t('{단계} 단계에서 중단', 언어, { 단계 }), 만든].join(' · '), 실패: true };
+    return { 글: [t('{단계} 단계에서 종료', 언어, { 단계 }), 만든].join(' · '), 실패: true };
   }
   const 조각 = [
     (r.casesMade ?? 0) > 0 ? t('케이스 {수}건 만듦', 언어, { 수: r.casesMade! }) : null,
-    (r.casesFixed ?? 0) > 0 ? t('케이스 {수}건 고침', 언어, { 수: r.casesFixed! }) : null,
+    (r.casesFixed ?? 0) > 0 ? t('케이스 {수}건 수정', 언어, { 수: r.casesFixed! }) : null,
     r.reqsTotal !== null && r.reqsCovered !== null && r.reqsTotal > 0 ? t('요구 {전체}건 중 {덮음}건', 언어, { 전체: r.reqsTotal, 덮음: r.reqsCovered }) : null,
     (r.held ?? 0) > 0 ? t('보류 {수}건', 언어, { 수: r.held! }) : null,
   ].filter((x): x is string => x !== null);

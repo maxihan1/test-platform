@@ -43,7 +43,7 @@ describe('단계 줄', () => {
     연다(결과({ parts: [부품(1, { service: 'XSX', baseUrl: 'https://qa.example.com' }), 부품(2, { service: 'XSX', baseUrl: 'https://qa.example.com' })] }));
     await screen.findByText('단계별 결과');
     expect(document.querySelector('.scn-app-tag')).toBeNull();
-    expect(screen.queryByText('돈 주소')).toBeNull();
+    expect(screen.queryByText('실행한 주소')).toBeNull();
   });
 
   it('모킹 구간 안 줄에 안내 문장', async () => {

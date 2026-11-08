@@ -158,7 +158,7 @@ export const 케이스말: Record<string, string> = {
   '예': 'Yes',
   '아니오': 'No',
   '기본값': 'Default',
-  '에서 바꿈': 'changed',
+  '에서 변경': 'changed',
   '저장값': 'Saved',
   '코드 기본값': 'code default',
 

@@ -77,7 +77,7 @@ export function 이어서작성({
         {typeof 요청.resumedBy === 'number' ? (
           <p className="hint">{t('이미 이어서 작성했습니다. 아래 실행 기록을 보세요.')}</p>
         ) : (
-          <p className="hint">{t('보관 기간이 지나 작성 결과를 지웠습니다. 처음부터 다시 작성하세요.')}</p>
+          <p className="hint">{t('보관 기간이 지나 작성 결과를 삭제했습니다. 처음부터 다시 작성하세요.')}</p>
         )}
       </일>
     );

@@ -153,7 +153,7 @@ export const 실행말: Record<string, string> = {
   '이 케이스 상세의 「실행 기록」에 남았습니다': 'Recorded in this case’s “Run history”',
   'RUN {번호} 결과에 다시 실행으로 붙었습니다': 'Attached to RUN {번호} results as a rerun',
   'RUN {번호} 실패 {앞}건 → {뒤}건': 'RUN {번호} failures {앞} → {뒤}',
-  '저장값 삭제': 'Clear saved values',
+  '저장값 초기화': 'Clear saved values',
   '저장값으로 저장했습니다.': 'Saved as the saved values.',
   '이 이름의 묶음으로 따로 저장합니다': 'Saved separately as a set with this name',
   '초기화 확인': 'Confirm clear',

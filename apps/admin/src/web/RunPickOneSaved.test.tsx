@@ -38,7 +38,7 @@ describe('한 건 창의 권한 칸', () => {
   it('케이스 읽기면 저장 단추도 저장값 지우기도 없고 목록은 그대로 쓴다', async () => {
     await 그린다(저장값케이스, 읽기만);
     expect(screen.queryByRole('button', { name: '묶음으로 저장' })).toBeNull();
-    expect(screen.queryByRole('button', { name: '저장값 삭제' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '저장값 초기화' })).toBeNull();
     expect(목록().value).toBe('saved');
   });
 
@@ -164,7 +164,7 @@ describe('「저장값 지우기」', () => {
     const { on다시읽기 } = await 그린다(저장값케이스);
     const 지우기 = vi.spyOn(api, 'clearInput').mockResolvedValue(undefined);
 
-    fireEvent.click(screen.getByRole('button', { name: '저장값 삭제' }));
+    fireEvent.click(screen.getByRole('button', { name: '저장값 초기화' }));
     expect(지우기).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: '초기화 확인' }));
 
@@ -176,17 +176,17 @@ describe('「저장값 지우기」', () => {
     await 그린다(저장값케이스);
     const 지우기 = vi.spyOn(api, 'clearInput').mockResolvedValue(undefined);
 
-    fireEvent.click(screen.getByRole('button', { name: '저장값 삭제' }));
+    fireEvent.click(screen.getByRole('button', { name: '저장값 초기화' }));
     fireEvent.click(within(document.querySelector<HTMLElement>('.one-values')!).getByRole('button', { name: '취소' }));
 
     expect(지우기).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: '저장값 삭제' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '저장값 초기화' })).toBeTruthy();
   });
 
   it('저장값이 없으면 지우기 단추가 없다', async () => {
     await 그린다(값케이스);
     expect(screen.getByRole('button', { name: '묶음으로 저장' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: '저장값 삭제' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '저장값 초기화' })).toBeNull();
   });
 });
 

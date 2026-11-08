@@ -133,7 +133,7 @@ describe('목록글', () => {
 
   it('끝난 것은 결과를 말한다 — 날것 단계 글(끝)을 보이지 않는다', () => {
     expect(목록글(줄({ status: 'DONE', stage: '끝', progress: 도는진척 }), 'ko')).toBe('케이스 파일 3개를 만들었습니다');
-    expect(목록글(줄({ status: 'DONE', stage: '끝' }), 'ko')).toBe('케이스를 PR 로 올렸습니다');
+    expect(목록글(줄({ status: 'DONE', stage: '끝' }), 'ko')).toBe('케이스를 PR 로 등록했습니다');
     expect(목록글(줄({ status: 'DONE', kind: 'MERGE', stage: '끝' }), 'ko')).toBe('테스트 반영 완료');
     expect(목록글(줄({ status: 'STOPPED', stage: '케이스를 만드는 중' }), 'ko')).toBe('케이스 작성 단계에서 중단되었습니다');
     expect(목록글(줄({ status: 'STOPPED', startedAt: null, stage: null }), 'ko')).toBe('시작 전에 중단되었습니다');
@@ -166,7 +166,7 @@ describe('케이스 고치기 실행', () => {
   const 고침 = { edits: [{ tcId: 'PAY-001', delete: true }] };
 
   it('작성 단계 막대를 그리지 않는다. 자료 · PRD 읽기 · 케이스 작성을 안 밟는다', () => {
-    expect(단계자리(줄({ kind: 'EDIT', params: 고침, stage: '케이스를 수정하는 중' }))).toBeNull();
+    expect(단계자리(줄({ kind: 'EDIT', params: 고침, stage: '케이스를 고치는 중' }))).toBeNull();
     expect(단계자리(줄({ kind: 'RERUN', sourceId: 3, params: 고침, status: 'DONE' }))).toBeNull();
   });
 

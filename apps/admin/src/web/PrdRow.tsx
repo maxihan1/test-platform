@@ -64,7 +64,7 @@ export function 요구줄({
           <span className="prd-tags">
             {/* 확정은 기본 상태라 꼬리표를 달지 않는다 — 줄마다 붙으면 확인 필요가 묻힌다 (점검 8.12) */}
             {x.status === 'NEEDS_CHECK' ? <span className="case-tag prd-check">{나이 === null ? t('확인 필요') : t('확인 필요 · {나이}', { 나이 })}</span> : null}
-            {x.byPerson === true ? <span className="prd-plain">{t('사람이 고침')}</span> : null}
+            {x.byPerson === true ? <span className="prd-plain">{t('사람이 수정')}</span> : null}
           </span>
           <span className="prd-caret" aria-hidden="true">
             ▸

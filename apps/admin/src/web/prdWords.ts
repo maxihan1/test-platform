@@ -16,5 +16,5 @@ export function use나이글(): (since: string | null | undefined) => string | n
 
 export function use반영종류글(): Record<반영종류, string> {
   const t = use말();
-  return { changed: t('바뀜'), added: t('새 항목'), removed: t('지움') };
+  return { changed: t('변경'), added: t('새 항목'), removed: t('지움') };
 }

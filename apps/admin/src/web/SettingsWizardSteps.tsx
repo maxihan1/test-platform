@@ -244,7 +244,7 @@ function 확인표(p: { 값: 마법사값; 새프로젝트: boolean; 만든프�
     <div className="wz-sum">
       {줄('project', p.새프로젝트 ? (
         <>
-          {값.프로젝트이름.trim()} <span className="wz-badge">{p.만든프로젝트 ? t('이미 만들었습니다') : t('신규 생성합니다')}</span>
+          {값.프로젝트이름.trim()} <span className="wz-badge">{p.만든프로젝트 ? t('이미 만들었습니다') : t('생성합니다')}</span>
         </>
       ) : (p.projects.find((it) => it.id === 값.projectId)?.name ?? ''))}
       {줄('kind', 값.kind === null ? '' : 종류이름(값.kind, 언어))}

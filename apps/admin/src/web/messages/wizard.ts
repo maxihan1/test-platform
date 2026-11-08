@@ -51,7 +51,7 @@ export const 마법사말: Record<string, string> = {
     'Create one in Figma under Settings → Security → Personal access tokens. Read-only is enough',
 
   // 확인 표
-  '신규 생성합니다': 'New',
+  '생성합니다': 'New',
   '이미 만들었습니다': 'Already created',
   '없음 — 나중에 설정에서 넣습니다': 'None — add later in settings',
   '비워 둠': 'Left empty',
@@ -71,7 +71,7 @@ export const 마법사말: Record<string, string> = {
   '애플리케이션은 프로젝트 안에 들어갑니다': 'Applications live inside a project',
   '+ 새 애플리케이션': '+ New application',
   '선택한 프로젝트를 볼 수 있는 사람은 새 애플리케이션도 볼 수 있습니다': 'Anyone who can see the chosen project can also see the new application',
-  '잘못 골랐다면 나중에 프로젝트 설정에서 옮길 수 있습니다': 'If you pick the wrong one, move it later in the project settings',
+  '잘못 선택했다면 나중에 프로젝트 설정에서 옮길 수 있습니다': 'If you pick the wrong one, move it later in the project settings',
   '나중에 옮길 수 있습니다': 'You can move it later',
   '어떤 걸 선택해야 할지 모르겠다면': 'Not sure which to pick?',
   '관리자 페이지(운영툴)도 브라우저로 열면 「웹」입니다': 'Admin pages (back office) opened in a browser are “Web” too',

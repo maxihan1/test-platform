@@ -7,7 +7,7 @@ import { 오류첫줄 } from './history.js';
 import { db } from './store.js';
 
 // 목록 줄 제목은 상태 문구라 화면 언어를 따라가는 클라이언트 몫이다. 서버(알림 통로 · Slack)는 어떤 요청인지만 말한다
-export const 작성제목 = (뿌리종류: string): string => (뿌리종류 === 'EDIT' ? '케이스 고치기' : '테스트 작성');
+export const 작성제목 = (뿌리종류: string): string => (뿌리종류 === 'EDIT' ? '케이스 수정' : '테스트 작성');
 
 export interface 알릴것 {
   status: 'DONE' | 'FAILED' | 'STOPPED';

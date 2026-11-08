@@ -361,7 +361,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
     it('보관 기간이 지났으면 까닭을 적고 처음부터 다시만 남긴다', async () => {
       답 = 멈춤({ canResume: false, resumedBy: null });
       render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
-      expect(await screen.findByText('보관 기간이 지나 작성 결과를 지웠습니다. 처음부터 다시 작성하세요.')).toBeTruthy();
+      expect(await screen.findByText('보관 기간이 지나 작성 결과를 삭제했습니다. 처음부터 다시 작성하세요.')).toBeTruthy();
       expect(screen.queryByRole('button', { name: '이어서 작성' })).toBeNull();
       expect(screen.getByRole('button', { name: '같은 자료로 다시 작성' })).toBeTruthy();
     });

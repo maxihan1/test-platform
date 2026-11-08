@@ -145,7 +145,7 @@ describe('ScenarioRunList 줄', () => {
     expect(within(첫).getByText('단계 5개')).toBeTruthy();
     expect(within(첫).getByText('모두 통과')).toBeTruthy();
 
-    expect(within(줄들[1] as HTMLElement).getByText('3번에서 중단')).toBeTruthy();
+    expect(within(줄들[1] as HTMLElement).getByText('3번에서 종료')).toBeTruthy();
   });
 
   it('도는 중이면 멈춘 단계 글자가 비어 있다', async () => {
@@ -170,8 +170,8 @@ describe('ScenarioRunList 줄', () => {
     await screen.findByText(/ZSL 시나리오 22/);
 
     const [실패, 없음] = Array.from(container.querySelectorAll('.run-row')) as HTMLElement[];
-    expect(within(실패 as HTMLElement).getByText('3번에서 중단')).toBeTruthy();
-    expect(within(없음 as HTMLElement).getByText('3번에서 중단')).toBeTruthy();
+    expect(within(실패 as HTMLElement).getByText('3번에서 종료')).toBeTruthy();
+    expect(within(없음 as HTMLElement).getByText('3번에서 종료')).toBeTruthy();
     expect(실패?.querySelector('.v-fail')?.textContent).toBe('실패');
     expect(없음?.querySelector('.v-na')?.textContent).toBe('미실행');
     expect(없음?.querySelector('.title small')?.textContent).toContain('대상 서버 stage');

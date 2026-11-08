@@ -22,7 +22,7 @@ export const 오류영어: Record<string, string> = {
   '그 화면 사진을 찾지 못했습니다': 'Screenshot not found',
   '그 케이스 파일을 읽지 못했습니다. 캐시가 오래되었을 수 있습니다':
     'Could not read the test file. The cache may be stale.',
-  '그 항목을 찾지 못했습니다. 다른 사람이 지웠을 수 있습니다':
+  '그 항목을 찾지 못했습니다. 다른 사람이 삭제했을 수 있습니다':
     'Not found. Someone else may have removed it.',
 
   // 실행

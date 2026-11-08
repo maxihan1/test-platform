@@ -144,7 +144,7 @@ describe('시험 실행 결과 창 · 왼쪽 요약', () => {
     const { container } = await 끝낸것(실패결과);
 
     expect(screen.getByText('시험 실행 · stg · 3.40초')).toBeTruthy();
-    expect(screen.getByText('2번에서 중단')).toBeTruthy();
+    expect(screen.getByText('2번에서 종료')).toBeTruthy();
     expect(탭(container)).toBe('settings');
     expect(screen.queryByRole('dialog')).toBeNull();
 

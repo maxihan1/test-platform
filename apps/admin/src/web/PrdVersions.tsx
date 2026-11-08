@@ -22,10 +22,10 @@ const 바로계산 = 10;
 function 차이줄글({ 줄 }: { 줄: 차이줄 }) {
   const t = use말();
   const 종류글 = use반영종류글();
-  const 상태 = 줄.뒤?.status === 'CONFIRMED' ? t('확정으로 바뀜') : t('확인 필요로 바뀜');
+  const 상태 = 줄.뒤?.status === 'CONFIRMED' ? t('확정으로 변경') : t('확인 필요로 변경');
   return (
     <li>
-      <span className="prd-kind">{줄.kind === 'state' ? t('상태만 바뀜') : 종류글[줄.kind]}</span>
+      <span className="prd-kind">{줄.kind === 'state' ? t('상태만 변경') : 종류글[줄.kind]}</span>
       <span className="prd-id">{줄.reqId}</span>
       {줄.kind === 'state' ? (
         <span>{상태}</span>
@@ -34,7 +34,7 @@ function 차이줄글({ 줄 }: { 줄: 차이줄 }) {
           {줄.앞.text === 줄.뒤.text ? (
             <>
               {줄.앞.feature === 줄.뒤.feature
-                ? t('출처가 바뀜')
+                ? t('출처 변경')
                 : t('기능 묶음 {앞} → {뒤}', {
                     앞: 줄.앞.feature,
                     뒤: 줄.뒤.feature,
@@ -58,7 +58,7 @@ function 차이줄글({ 줄 }: { 줄: 차이줄 }) {
 /** 서버가 적어 준 「바뀐 것」 — 앞 버전과 견주지 않고 그대로 줄마다 적는다 */
 function 적힌바뀐것({ changes }: { changes: PrdVersionChange[] }) {
   const t = use말();
-  const 종류글: Record<PrdVersionChange['kind'], string> = { EDIT: t('문장 변경'), PICK: t('문구 선택'), CONFIRM: t('확정'), ADD: t('추가'), DEL: t('삭제'), CHECK: t('확인 필요로 바꿈') };
+  const 종류글: Record<PrdVersionChange['kind'], string> = { EDIT: t('문장 변경'), PICK: t('문구 선택'), CONFIRM: t('확정'), ADD: t('추가'), DEL: t('삭제'), CHECK: t('확인 필요로 지정') };
   return (
     <ul className="prd-diff">
       {changes.map((c) => {
@@ -111,7 +111,7 @@ function 바뀐것({ service, 판, 앞판, 읽은, 바로 }: { service: string; 
 
   const 줄들 = 차이.data;
   const 셈 = (kind: 차이줄['kind']) => 줄들.filter((x) => x.kind === kind).length;
-  const 요약 = [...(['changed', 'added', 'removed'] as const).map((k) => [종류글[k], 셈(k)] as const), [t('상태만 바뀜'), 셈('state')] as const]
+  const 요약 = [...(['changed', 'added', 'removed'] as const).map((k) => [종류글[k], 셈(k)] as const), [t('상태만 변경'), 셈('state')] as const]
     .filter(([, 수]) => 수 > 0)
     .map(([이름, 수]) => t('{종류} {건수}건', { 종류: 이름, 건수: 수 }))
     .join(' · ');

@@ -13,7 +13,7 @@ import { Failed, Loading, useAsync, when } from './ui.js';
 function 바뀐것({ changed }: { changed: GuideVersionRow['changed'] }) {
   const t = use말();
   const 줄 = [
-    ...changed.sections.map((s) => t('글 고침 — {구획}', { 구획: t(구획이름[s]) })),
+    ...changed.sections.map((s) => t('글 수정 — {구획}', { 구획: t(구획이름[s]) })),
     ...changed.added.map((f) => t('더함 — {이름}', { 이름: f.name })),
     ...changed.removed.map((f) => t('뺌 — {이름}', { 이름: f.name })),
   ];

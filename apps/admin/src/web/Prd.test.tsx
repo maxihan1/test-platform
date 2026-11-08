@@ -118,7 +118,7 @@ describe('PRD 관리 — 전체 요구', () => {
     fireEvent.click(로그인);
     const 줄 = screen.getByRole('button', { name: /MKT-REQ-041/ });
     expect(줄.textContent).not.toContain('반영 안 됨');
-    expect(줄.textContent).toContain('사람이 고침');
+    expect(줄.textContent).toContain('사람이 수정');
   });
 
   it('줄을 펴면 근거와 판정 함수가 계산한 설계 미리보기를 보인다', async () => {

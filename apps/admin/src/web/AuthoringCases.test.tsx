@@ -71,7 +71,7 @@ describe('만든 케이스 표', () => {
     expect(표.querySelectorAll('tbody tr')).toHaveLength(2);
     expect(screen.getByText('결제가 끝나면 영수증이 보인다')).toBeTruthy();
     expect(screen.getByText('신규')).toBeTruthy();
-    expect(screen.getByText('바뀜')).toBeTruthy();
+    expect(screen.getByText('변경')).toBeTruthy();
     expect(screen.getByText('결제 완료 문구가 보인다')).toBeTruthy();
     expect(screen.getByText('외 2개')).toBeTruthy();
     expect(screen.getByText('영수증 번호가 보인다').closest('details')).not.toBeNull();
