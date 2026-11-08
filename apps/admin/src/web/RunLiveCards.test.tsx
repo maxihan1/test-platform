@@ -152,7 +152,7 @@ describe('정식 실행 진행 창 — 화면 카드 (시안 A ⑤)', () => {
 
     const [이름, 이름없음] = 카드들();
     expect(이름!.querySelector('.lc-tag')?.textContent).toBe('SM-S911N');
-    expect(이름없음!.querySelector('.lc-tag')?.textContent).toBe('실제 기기');
+    expect(이름없음!.querySelector('.lc-tag')?.textContent).toBe('실제 디바이스');
     expect(screen.getAllByRole('link', { name: 'Device VISION ↗' })).toHaveLength(2);
   });
 
@@ -167,9 +167,9 @@ describe('정식 실행 진행 창 — 화면 카드 (시안 A ⑤)', () => {
     );
 
     const [실제, 가상] = 카드들();
-    expect(실제!.textContent).toContain('실제 기기');
+    expect(실제!.textContent).toContain('실제 디바이스');
     expect(screen.getByRole('link', { name: 'Device VISION ↗' }).getAttribute('href')).toBe('https://vision.example.test/#phone=s1');
-    expect(가상!.textContent).toContain('가상 기기 · iPhone 14');
+    expect(가상!.textContent).toContain('가상 디바이스 · iPhone 14');
   });
 
   it('장면을 안 찍는 항목(Android 앱 · API)은 장면 대신 안내를 두고 장면 통로를 묻지 않는다', () => {
@@ -184,7 +184,7 @@ describe('정식 실행 진행 창 — 화면 카드 (시안 A ⑤)', () => {
 
     expect(카드들()).toHaveLength(1);
     expect(document.querySelector('.lc-scene img')).toBeNull();
-    expect(document.querySelector('.lc-scene')?.textContent).toBe('폰 화면은 Device VISION 에서 봅니다');
+    expect(document.querySelector('.lc-scene')?.textContent).toBe('디바이스 화면은 Device VISION 에서 봅니다');
     expect(screen.queryByRole('button', { name: '크게 보기' })).toBeNull();
     expect(screen.getByRole('link', { name: 'Device VISION ↗' })).toBeTruthy();
     expect(받기).not.toHaveBeenCalled();

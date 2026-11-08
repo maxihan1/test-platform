@@ -127,7 +127,7 @@ export const 작성할일말: Record<string, string> = {
   '입력이 필요한지 확인할 수 없음': 'Cannot tell whether input is needed',
   '입력이 필요한 케이스로만 {수}': 'Only cases needing input {수}',
   '빠진 요구': 'Missing requirements',
-  '만든 {덮음}개 중 기능 테스트가 덮은 것 {기능} · UI 테스트가 덮은 것 {UI} — 둘 다 덮은 요구는 양쪽에 셉니다': 'Of {덮음} covered, functional tests cover {기능} · UI tests cover {UI} — a requirement covered by both counts on each side',
+  '만든 {덮음}개 중 기능 테스트가 커버한 것 {기능} · UI 테스트가 커버한 것 {UI} — 둘 다 커버한 요구는 양쪽에 셉니다': 'Of {덮음} covered, functional tests cover {기능} · UI tests cover {UI} — a requirement covered by both counts on each side',
   '요구 {총}개 중 케이스로 만듦 {덮음}개 ({퍼센트}%)': '{덮음} of {총} requirements have cases ({퍼센트}%)',
   '요구 {총}개 중 케이스로 만듦 {덮음}개': '{덮음} of {총} requirements have cases',
   '빠짐 {수}': 'Missing {수}',

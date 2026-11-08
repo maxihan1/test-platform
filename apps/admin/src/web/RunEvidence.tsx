@@ -131,7 +131,7 @@ function 증거칸({ devices, seq, 상세, 읽기 }: { devices: FailureDevice[];
   const 폰탭들: { id: 탭; 이름: string }[] = [
     ...(팜.some((f) => !팜영상인가(f)) ? [{ id: 'log' as const, 이름: 'logcat' }] : []),
     ...(팜.some(팜영상인가) ? [{ id: 'video' as const, 이름: t('화면 영상') }] : []),
-    ...(devices.some((d) => d.device != null) ? [{ id: 'dev' as const, 이름: t('기기 정보') }] : []),
+    ...(devices.some((d) => d.device != null) ? [{ id: 'dev' as const, 이름: t('디바이스 정보') }] : []),
   ];
   const 탭들: { id: 탭; 이름: string }[] =
     종류 === 'api'

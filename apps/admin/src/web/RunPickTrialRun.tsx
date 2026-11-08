@@ -57,7 +57,7 @@ function 진행({ 시험, 케이스들 }: { 시험: 여러건시험; 케이스�
   const 폰 = 디바이스 === 'android' || 디바이스 === 'mobile';
   const 지금줄 = 지금 === null ? undefined : 줄들[지금.tcId]?.find((칸) => 칸.platform === 지금.platform)?.줄;
   // 장면 칸 머리에 케이스 이름을 또 쓰지 않는다 — 대기열이 적는다(점검표 D2). 가상 기기만 어디서 도는지 적는다
-  const 부제 = 디바이스 === 'mobile' && 시험.mobileOn === 'server' ? t('가상 기기 · iPhone 14') : undefined;
+  const 부제 = 디바이스 === 'mobile' && 시험.mobileOn === 'server' ? t('가상 디바이스 · iPhone 14') : undefined;
 
   return (
     <>

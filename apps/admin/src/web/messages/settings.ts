@@ -84,7 +84,7 @@ export const 설정말: Record<string, string> = {
   '대상 서버 {번호} 앱 파일 경로': 'Target server {번호} app file path',
   '앱 파일 경로 (Android 앱 · 게임)': 'App file path (Android apps · games)',
   '앱 파일 경로 또는 패키지 이름': 'App file path or package name',
-  'APK 가 없으면 Device VISION 폰에 스토어로 깔아 둔 앱의 패키지 이름을 적습니다': 'If there is no APK, enter the package name of the app installed from the store on a Device VISION phone',
+  'APK 가 없으면 Device VISION 디바이스에 스토어로 깔아 둔 앱의 패키지 이름을 적습니다': 'If there is no APK, enter the package name of the app installed from the store on a Device VISION phone',
   '앱 파일 경로는 Android 앱 · 게임 케이스를 돌릴 때 설치할 apk 입니다. Device VISION 이 도는 PC 의 파일 경로나 http(s) 주소를 적고, 비우면 테스트 실행기를 켤 때 준 PLATFORM_APP 을 씁니다':
     'The app file path is the apk installed when Android app cases run. Enter a file path on the PC running Device VISION or an http(s) URL. Leave it empty to use PLATFORM_APP given when the runner started',
   '역할 이름': 'Role name',

@@ -55,7 +55,7 @@ export function 시험결과({ 시험, 케이스들, env, mobileOn }: { 시험: 
   const [편, set편] = useState<ReadonlySet<string>>(new Set());
   const 첫실패 = 실패칸들(칸들)[0];
   const 디바이스 = [...new Set(칸들.map((칸) => 칸.platform))].map((p) =>
-    p === 'mobile' ? `${t(PLATFORM_LABEL[p])}(${t(mobileOn === 'vision' ? '실제 기기' : '가상 기기')})` : t(PLATFORM_LABEL[p]),
+    p === 'mobile' ? `${t(PLATFORM_LABEL[p])}(${t(mobileOn === 'vision' ? '실제 디바이스' : '가상 디바이스')})` : t(PLATFORM_LABEL[p]),
   );
   const 총 = 총걸린ms(칸들);
 

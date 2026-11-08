@@ -83,12 +83,12 @@ describe('RunPickModal 실행 위치 (SPEC §8.10)', () => {
     const { onRun } = 그리기();
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
 
-    expect((screen.getByRole('radio', { name: '가상 기기' }) as HTMLInputElement).checked).toBe(true);
+    expect((screen.getByRole('radio', { name: '가상 디바이스' }) as HTMLInputElement).checked).toBe(true);
     fireEvent.click(실행버튼());
     시작누름();
     expect(onRun.mock.calls[0]?.[0].mobileOn).toBe('server');
 
-    fireEvent.click(screen.getByRole('radio', { name: '실제 기기' }));
+    fireEvent.click(screen.getByRole('radio', { name: '실제 디바이스' }));
     fireEvent.click(실행버튼());
     시작누름();
     expect(onRun.mock.calls[1]?.[0].mobileOn).toBe('vision');
@@ -98,7 +98,7 @@ describe('RunPickModal 실행 위치 (SPEC §8.10)', () => {
     const { onRun } = 그리기([값없는케이스], 'vision');
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
 
-    expect((screen.getByRole('radio', { name: '실제 기기' }) as HTMLInputElement).checked).toBe(true);
+    expect((screen.getByRole('radio', { name: '실제 디바이스' }) as HTMLInputElement).checked).toBe(true);
     fireEvent.click(실행버튼());
     시작누름();
     expect(onRun.mock.calls[0]?.[0].mobileOn).toBe('vision');
@@ -115,22 +115,22 @@ describe('실행 칸이 테스트만인 사람의 실행 창 (도메인/인증 �
     expect(screen.queryByText('기록이 남습니다')).toBeNull();
     expect(screen.queryByLabelText('반복')).toBeNull();
     expect(screen.queryByText('완료 시 Slack 알림')).toBeNull();
-    expect((screen.getByRole('radio', { name: '가상 기기' }) as HTMLInputElement).checked).toBe(true);
+    expect((screen.getByRole('radio', { name: '가상 디바이스' }) as HTMLInputElement).checked).toBe(true);
     expect(screen.getByRole('status').textContent).toBe('');
   });
 });
 
 describe('시험 실행의 모바일 웹 실행 위치 (도메인/실행 §3.2 「테스트 모드」 · WEB-F9-11)', () => {
-  it('실제 기기를 고르고 시험 실행하면 모바일 칸에만 mobileOn vision 을 싣는다 — 시작 확인 창에도 「(실제 기기)」가 붙는다', async () => {
+  it('실제 기기를 고르고 시험 실행하면 모바일 칸에만 mobileOn vision 을 싣는다 — 시작 확인 창에도 「(실제 디바이스)」가 붙는다', async () => {
     const 시작 = vi.spyOn(api, 'startTrial').mockImplementation((tcId) => Promise.resolve({ trialId: `t-${tcId}` }));
     vi.spyOn(api, 'getTrial').mockResolvedValue({ status: 'DONE', result: { status: 'PASS', durationMs: 5, steps: [] } });
     try {
       render(<RunPickModal 케이스들={[값없는케이스]} service={서비스} onRun={vi.fn()} onClose={vi.fn()} 정식={false} />);
       fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
-      fireEvent.click(screen.getByRole('radio', { name: '실제 기기' }));
+      fireEvent.click(screen.getByRole('radio', { name: '실제 디바이스' }));
       fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
 
-      expect(screen.getByText('PC 1 · 모바일 1 (실제 기기)')).toBeTruthy();
+      expect(screen.getByText('PC 1 · 모바일 1 (실제 디바이스)')).toBeTruthy();
       시작누름('시험 실행 시작');
 
       await waitFor(() => expect(시작).toHaveBeenCalledTimes(2));
@@ -148,7 +148,7 @@ describe('모바일 웹 고르개의 빈 폰 수 (도메인/실행 §8.16 ①)',
     vi.spyOn(기기호출, 'devices').mockResolvedValue({ devices: [폰('a', 'FARM', 'IDLE'), 폰('b', 'FARM', 'IDLE'), 폰('c', 'FARM', 'BUSY'), 폰('d', 'LOCAL', 'IDLE')] });
     그리기();
 
-    expect(await screen.findByText('빈 폰 2대')).toBeTruthy();
+    expect(await screen.findByText('빈 디바이스 2대')).toBeTruthy();
   });
 
   it('기기 목록을 못 읽으면 수 없이 적고 실제 기기는 그대로 고를 수 있다', async () => {
@@ -157,7 +157,7 @@ describe('모바일 웹 고르개의 빈 폰 수 (도메인/실행 §8.16 ①)',
 
     await waitFor(() => expect(읽기).toHaveBeenCalled());
     expect(screen.queryByText(/빈 폰/)).toBeNull();
-    fireEvent.click(screen.getByRole('radio', { name: '실제 기기' }));
-    expect((screen.getByRole('radio', { name: '실제 기기' }) as HTMLInputElement).checked).toBe(true);
+    fireEvent.click(screen.getByRole('radio', { name: '실제 디바이스' }));
+    expect((screen.getByRole('radio', { name: '실제 디바이스' }) as HTMLInputElement).checked).toBe(true);
   });
 });

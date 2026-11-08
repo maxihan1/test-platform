@@ -106,7 +106,7 @@ export function ScenarioResult({
   ];
   // 앱 · 게임 단계가 있는 시나리오만 폰 정보가 온다 — 폰 연결이 하나라 시나리오에 한 벌이다 (도메인/시나리오 §3.7 결정 16)
   const 폰 = 폰글(data.device);
-  if (폰 !== null) 칸들.push([t('폰'), 폰]);
+  if (폰 !== null) 칸들.push([t('디바이스'), 폰]);
   const 팜 = data.farm ?? [];
 
   return (

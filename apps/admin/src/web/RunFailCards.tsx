@@ -157,7 +157,7 @@ function 카드목록({ runId, env, items, platform, 권한 = 권한없음, 유�
           {t('판정 안 한 카드')} <b className="num">{안본수}</b>
         </button>
       </div>
-      {!이쪽만거름 ? null : <p className="hint">{t('거른 결과는 이 쪽 카드 안에서만 보입니다 — 다른 쪽도 확인하세요')}</p>}
+      {!이쪽만거름 ? null : <p className="hint">{t('필터 결과는 이 쪽 카드 안에서만 보입니다 — 다른 쪽도 확인하세요')}</p>}
       {유형칸 === null || 보일카드.length === 유형칸.count ? null : (
         <p className="hint">{t('이 쪽에 {보인}건 · 이 유형 전체 {전체}건 — 나머지는 다른 쪽에 있습니다', { 보인: 보일카드.length, 전체: 유형칸.count })}</p>
       )}

@@ -120,7 +120,7 @@ export function CompatResult({ runId, service, 쓰나 }: { runId: number; servic
             내려가기(카드자리(key, seq));
           }}
         />
-        <div className="chip-group cr-filters" role="group" aria-label={t('카드 거르기')}>
+        <div className="chip-group cr-filters" role="group" aria-label={t('카드 필터')}>
           {거르개들.map((g) => (
             <button key={g} type="button" className="chip" aria-pressed={거름 === g} onClick={() => set거름(g)}>
               {t(g)}

@@ -104,10 +104,10 @@ function 진행몸({ data }: { data: CompatRunResult }) {
           {/* 호환성은 장면을 찍지 않는다 — 폰 화면은 VISION 링크가 연다. 모바일 웹 장면은 아직 없다 (§8.17 ③) */}
           {지금?.vision != null ? (
             <a className="btn ghost" href={지금.vision} target="_blank" rel="noreferrer">
-              {t('Device VISION 에서 폰 화면 보기')} ↗
+              {t('Device VISION 에서 디바이스 화면 보기')} ↗
             </a>
           ) : (
-            <p className="compat-faint">{지금 === null ? t('다음 디바이스를 기다리는 중입니다') : t('폰 화면은 Device VISION 에서 봅니다')}</p>
+            <p className="compat-faint">{지금 === null ? t('다음 디바이스를 기다리는 중입니다') : t('디바이스 화면은 Device VISION 에서 봅니다')}</p>
           )}
         </section>
         <section aria-label={t('최근 UI 결함 의심 화면')}>

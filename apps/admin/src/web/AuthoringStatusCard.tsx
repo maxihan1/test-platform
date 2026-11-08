@@ -49,7 +49,7 @@ function 커버리지글(c: AuthoringCoverage, 상태: AuthoringRow['status'], t
   const 갈래 =
     c.casedFn === undefined || c.casedUi === undefined
       ? null
-      : t('만든 {덮음}개 중 기능 테스트가 덮은 것 {기능} · UI 테스트가 덮은 것 {UI} — 둘 다 덮은 요구는 양쪽에 셉니다', { 덮음: c.cased, 기능: c.casedFn, UI: c.casedUi });
+      : t('만든 {덮음}개 중 기능 테스트가 커버한 것 {기능} · UI 테스트가 커버한 것 {UI} — 둘 다 커버한 요구는 양쪽에 셉니다', { 덮음: c.cased, 기능: c.casedFn, UI: c.casedUi });
   return { 셈: 칸.filter((x): x is string => x !== null).join(' · '), 갈래 };
 }
 

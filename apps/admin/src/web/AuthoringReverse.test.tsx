@@ -191,7 +191,7 @@ describe('새 요청 — 실제 화면과 대조', () => {
       대조를켠다();
       fireEvent.click(보내기());
       const 뒤 = 운영자 ? '설정 > 애플리케이션에서 확인하세요' : '관리자에게 확인을 요청하세요';
-      expect(await screen.findByText(`이 대상 서버에는 폰에서 켤 앱(앱 파일 경로나 올린 빌드)이 없거나 실서비스 서버로 체크돼 있습니다. ${뒤}`)).toBeTruthy();
+      expect(await screen.findByText(`이 대상 서버에는 디바이스에서 켤 앱(앱 파일 경로나 올린 빌드)이 없거나 실서비스 서버로 체크돼 있습니다. ${뒤}`)).toBeTruthy();
       cleanup();
     }
   });

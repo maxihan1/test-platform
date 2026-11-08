@@ -175,7 +175,7 @@ describe('한 건 창 — 디바이스 · 실행 위치', () => {
     시작누름();
 
     expect(screen.getByRole('radiogroup', { name: '모바일 웹' })).toBeTruthy();
-    expect((screen.getByRole('radio', { name: '실제 기기' }) as HTMLInputElement).disabled).toBe(true);
+    expect((screen.getByRole('radio', { name: '실제 디바이스' }) as HTMLInputElement).disabled).toBe(true);
     expect(onRun.mock.calls[0]?.[0]).not.toHaveProperty('mobileOn');
   });
 });

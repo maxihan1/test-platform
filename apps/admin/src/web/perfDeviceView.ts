@@ -8,7 +8,7 @@ import { 가장큰값, type 말 } from './perfRunView.js';
 export const 지표표: Record<기기지표, { 이름: string; op: '<=' | '>=' }> = {
   AVG_FPS: { 이름: '평균 FPS', op: '>=' },
   LOW1_FPS: { 이름: '1% Low FPS', op: '>=' },
-  MAX_TEMP: { 이름: '최대 기기 온도', op: '<=' },
+  MAX_TEMP: { 이름: '최대 디바이스 온도', op: '<=' },
   MAX_MEM: { 이름: '메모리 최대', op: '<=' },
   LAUNCH_MS: { 이름: '앱 실행 시간', op: '<=' },
 };
@@ -20,7 +20,7 @@ export const 측정항목: [측정지표, string][] = [
   ['JANK', '프레임 드랍'],
   ['CPU', 'CPU'],
   ['MEM', '메모리'],
-  ['TEMP', '기기 온도'],
+  ['TEMP', '디바이스 온도'],
   ['BATTERY', '배터리'],
 ];
 

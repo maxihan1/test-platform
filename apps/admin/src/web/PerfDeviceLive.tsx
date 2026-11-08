@@ -93,7 +93,7 @@ export function PerfDeviceLive({ run, 다시읽기, 쓰나 }: { run: 실행상�
       <Head
         위치={t('성능 테스트')}
         제목={`${t(기기성능)} ${run.code}`}
-        부제={[조작글(설정, t), 직접 ? t('{수}분', { 수: Math.round(설정.durationSec / 60) }) : t('반복 {수}회', { 수: 설정.repeat }), t('기기 {수}대', { 수: 설정.devices.length }), run.env, run.startedAt === null ? t('아직 시작 전') : t('{시각} 시작', { 시각: 시각글(run.startedAt, 언어) })].join(' · ')}
+        부제={[조작글(설정, t), 직접 ? t('{수}분', { 수: Math.round(설정.durationSec / 60) }) : t('반복 {수}회', { 수: 설정.repeat }), t('디바이스 {수}대', { 수: 설정.devices.length }), run.env, run.startedAt === null ? t('아직 시작 전') : t('{시각} 시작', { 시각: 시각글(run.startedAt, 언어) })].join(' · ')}
         행동={
           <div className="perf-row">
             <span>
@@ -114,7 +114,7 @@ export function PerfDeviceLive({ run, 다시읽기, 쓰나 }: { run: 실행상�
           <div className="perf-row">
             <h2 id="pd-p">{t('시나리오 진행')}</h2>
             <span className="perf-faint">
-              {직접 ? t('지난 시간 {시간}', { 시간: 분초(지난초) }) : 지금회차 === 0 ? t('기기를 잡고 기록기를 켜는 중입니다') : [t('{수}회차', { 수: 지금회차 }), 지금구간].filter(Boolean).join(' · ')}
+              {직접 ? t('지난 시간 {시간}', { 시간: 분초(지난초) }) : 지금회차 === 0 ? t('디바이스를 잡고 기록기를 켜는 중입니다') : [t('{수}회차', { 수: 지금회차 }), 지금구간].filter(Boolean).join(' · ')}
             </span>
           </div>
           <div className="pd-prog" role="progressbar" aria-label={t('전체 진행')} aria-valuenow={Math.round(진행)} aria-valuemin={0} aria-valuemax={100}>
@@ -149,7 +149,7 @@ export function PerfDeviceLive({ run, 다시읽기, 쓰나 }: { run: 실행상�
                 <svg viewBox="0 0 200 40" preserveAspectRatio="none" className="pd-spark" aria-hidden="true">
                   <polyline points={선점(선, 선구간, 눈금최대(60, ...선.map((p) => p.y)), 200, 40)} className={나쁨 ? 'bad' : undefined} vectorEffect="non-scaling-stroke" />
                 </svg>
-                {값('기기 온도', 글(최근?.tempC, (n) => t('{수}도', { 수: n })), 벗어남.has('MAX_TEMP'))}
+                {값('디바이스 온도', 글(최근?.tempC, (n) => t('{수}도', { 수: n })), 벗어남.has('MAX_TEMP'))}
                 {값('CPU', 글(최근?.cpu, (n) => `${String(Math.round(n))}%`), false)}
                 {값('메모리', 메모리글자(최근?.memMb ?? null), 벗어남.has('MAX_MEM'))}
                 {값('배터리', 글(최근?.batteryPct, (n) => `${String(n)}%`), false)}

@@ -9,7 +9,7 @@ export type 형태 = 'phone' | 'foldable' | 'tablet';
 export const 형태로 = (d: Pick<CompatDevice, 'formFactor'>): 형태 => d.formFactor ?? 'phone';
 
 /** 영어 표의 키다 */
-export const 형태글자: Record<형태, string> = { phone: '폰', foldable: '폴더블', tablet: '태블릿' };
+export const 형태글자: Record<형태, string> = { phone: '디바이스', foldable: '폴더블', tablet: '태블릿' };
 
 /** 비전 상태 넷. 점검 중 · 연결 끊김은 잡을 수 없어 고르지 못한다 (§8.17 ②-1). 영어 표의 키다 */
 export const 상태글자: Record<디바이스상태, string> = { IDLE: '사용 가능', OCCUPIED: '사용 중', MAINTENANCE: '점검 중', OFFLINE: '연결 끊김' };

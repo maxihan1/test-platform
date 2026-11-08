@@ -88,8 +88,8 @@ describe('실패 카드의 시간축 증거 (WEB-F7-13)', () => {
     const 판 = { model: 'SM-S911N', osVersion: '14', appVersion: null, appBuild: '241' };
     그리기(쪽([케이스('ZZI-0001', '주소 검색', [장치('android', 11, { device: 판 }, { steps: 화면단계들() })])]), [줄(11, 'ZZI-0001', 'android', 'FAIL')]);
 
-    fireEvent.click(await screen.findByRole('tab', { name: '기기 정보' }));
-    expect(screen.getByRole('tabpanel').textContent).toBe('기기SM-S911NAndroid14앱 버전빌드 241');
+    fireEvent.click(await screen.findByRole('tab', { name: '디바이스 정보' }));
+    expect(screen.getByRole('tabpanel').textContent).toBe('디바이스SM-S911NAndroid14앱 버전빌드 241');
   });
 
   it('판을 못 읽은 앱 항목 · 웹 항목에는 「기기 정보」 탭이 없다', async () => {
@@ -102,7 +102,7 @@ describe('실패 카드의 시간축 증거 (WEB-F7-13)', () => {
     );
 
     await screen.findAllByRole('group', { name: '단계 고르기' });
-    expect(screen.queryByRole('tab', { name: '기기 정보' })).toBeNull();
+    expect(screen.queryByRole('tab', { name: '디바이스 정보' })).toBeNull();
   });
 
   it('같은 단계를 다시 눌러도 단계 칸이 다시 깜박이고 포커스는 그 칸에 남는다', async () => {

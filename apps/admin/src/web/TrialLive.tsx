@@ -122,8 +122,8 @@ export function 장면칸({ 주소, 도는중, vision, 부제, 폰만: 앱폰 = 
     <section className="trial-live" aria-label={t('실시간 화면')}>
       <div className="live-head">
         {도는중 ? <span className="pulse" aria-hidden="true" /> : null}
-        <b>{!도는중 ? t('마지막 화면') : 폰칸 ? t('폰 화면') : t('실시간 화면')}</b>
-        <span className="live-sub">{부제 ?? (실제폰웹 ? t('실제 폰 Chrome') : 폰그림 ? t('Device VISION 폰') : t('서버 브라우저'))}</span>
+        <b>{!도는중 ? t('마지막 화면') : 폰칸 ? t('디바이스 화면') : t('실시간 화면')}</b>
+        <span className="live-sub">{부제 ?? (실제폰웹 ? t('실제 디바이스 Chrome') : 폰그림 ? t('Device VISION 디바이스') : t('서버 브라우저'))}</span>
         {폰이름 === null || vision === null ? null : <span className="live-phone">{폰이름}</span>}
         {vision === null ? null : (
           <a className="btn small ghost live-vision" href={vision} target="_blank" rel="noreferrer">
@@ -142,17 +142,17 @@ export function 장면칸({ 주소, 도는중, vision, 부제, 폰만: 앱폰 = 
       ) : 그림 === null ? (
         <p className="live-wait">
           {앱폰 && vision === null
-            ? t('사용할 폰을 찾는 중')
+            ? t('사용할 디바이스를 찾는 중')
             : 폰칸
-              ? t('폰 화면을 기다리고 있습니다')
+              ? t('디바이스 화면을 기다리고 있습니다')
               : vision !== null
                 ? t('화면을 기다리고 있습니다')
                 : t('차례를 기다리는 중')}
         </p>
       ) : (
         <div className={폰단계 ? 'live-shot dim' : 'live-shot'}>
-          <img src={그림} alt={!도는중 ? t('끝난 순간의 화면') : 폰칸 ? t('폰의 지금 화면') : t('서버 브라우저의 지금 화면')} />
-          {폰단계 ? <p className="live-over">{t('지금은 앱 단계라 폰에서 실행 중입니다')}</p> : null}
+          <img src={그림} alt={!도는중 ? t('끝난 순간의 화면') : 폰칸 ? t('디바이스의 지금 화면') : t('서버 브라우저의 지금 화면')} />
+          {폰단계 ? <p className="live-over">{t('지금은 앱 단계라 디바이스에서 실행 중입니다')}</p> : null}
         </div>
       )}
       {못닿음 ? (

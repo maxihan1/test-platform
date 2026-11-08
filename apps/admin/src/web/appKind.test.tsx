@@ -70,7 +70,7 @@ describe('케이스 목록', () => {
     render(<Empty 형편={빈형편} onClear={() => {}} 앱종류="APP" 작성보나 />);
 
     expect(screen.getByText('아직 Android 앱 케이스가 없습니다')).toBeTruthy();
-    expect(screen.getByText('테스트 작성에서 앱 기획서를 넣으면 AI 가 Device VISION 폰으로 앱 화면을 읽고 케이스를 만듭니다')).toBeTruthy();
+    expect(screen.getByText('테스트 작성에서 앱 기획서를 넣으면 AI 가 Device VISION 디바이스로 앱 화면을 읽고 케이스를 만듭니다')).toBeTruthy();
     expect(screen.getByRole('link', { name: '테스트 작성으로' }).getAttribute('href')).toBe('#/authoring');
   });
 

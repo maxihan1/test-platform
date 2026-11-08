@@ -15,7 +15,7 @@ type 말 = ReturnType<typeof use말>;
  */
 function 기기글(platform: Platform, live: boolean, 폰잡음: boolean, t: 말): string | null {
   if (platform === 'desktop') return t('서버 브라우저');
-  if (platform === 'mobile') return 폰잡음 && !live ? t('실제 기기') : t('가상 기기 · iPhone 14');
+  if (platform === 'mobile') return 폰잡음 && !live ? t('실제 디바이스') : t('가상 디바이스 · iPhone 14');
   return null;
 }
 
@@ -29,7 +29,7 @@ function 장면({ runId, 폰, 폰잡음 }: { runId: number; 폰: boolean; 폰잡
   return (
     <div className={['live-shot', 폰 ? 'lc-phone' : '', 폰단계 ? 'dim' : ''].filter(Boolean).join(' ')}>
       <img src={그림} alt={t('지금 화면')} />
-      {폰단계 ? <p className="live-over">{t('지금은 앱 단계라 폰에서 실행 중입니다')}</p> : null}
+      {폰단계 ? <p className="live-over">{t('지금은 앱 단계라 디바이스에서 실행 중입니다')}</p> : null}
     </div>
   );
 }

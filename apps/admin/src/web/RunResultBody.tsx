@@ -43,7 +43,7 @@ export function 디바이스칩({
     <>
       <span className="filter-label">{t('디바이스')}</span>
       {/* 판정별 보기에도 「전체」가 있다 — 화면 읽기에서 어느 묶음의 「전체」인지 이름으로 가른다 */}
-      <div className="chip-group" role="group" aria-label={t('디바이스로 거르기')}>
+      <div className="chip-group" role="group" aria-label={t('디바이스 필터')}>
         {(['ALL', ...디바이스들] as (Platform | 'ALL')[]).map((값) => (
           <button className="chip" key={값} aria-pressed={device === 값} onClick={() => on디바이스(값)}>
             {값 === 'ALL' ? t('전체') : PLATFORM_LABEL[값]}

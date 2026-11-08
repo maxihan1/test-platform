@@ -76,7 +76,7 @@ export const 마법사말: Record<string, string> = {
   '어떤 걸 골라야 할지 모르겠다면': 'Not sure which to pick?',
   '관리자 페이지(운영툴)도 브라우저로 열면 「웹」입니다': 'Admin pages (back office) opened in a browser are “Web” too',
   '웹과 앱을 둘 다 테스트하려면 애플리케이션을 하나씩 따로 만듭니다': 'To test both web and app, create a separate application for each',
-  '성능 테스트는 어느 종류든 쓸 수 있습니다. 서버 부하는 모두 같고, 웹은 페이지 속도를, 앱 · 게임은 폰 성능을 더 잽니다':
+  '성능 테스트는 어느 종류든 쓸 수 있습니다. 서버 부하는 모두 같고, 웹은 페이지 속도를, 앱 · 게임은 디바이스 성능을 더 잽니다':
     'Performance testing works for every type. All get server load tests; web also measures page speed, apps and games phone performance',
   '종류마다 테스트를 만드는 방식이 달라 처음에 한 번만 정합니다': 'Each type writes tests differently, so you choose it once at the start',
   '만든 뒤에는 바꿀 수 없습니다': 'Can’t be changed once created',
@@ -139,8 +139,8 @@ export const 마법사말: Record<string, string> = {
   '주소창에 주소를 쳐서 연다': 'Opened by typing an address',
   '휴대폰에 설치해서 쓰는 앱': 'An app installed on a phone',
   '쇼핑 앱 · 배달 앱 · 사내 앱': 'Shopping apps · delivery apps · in-house apps',
-  '실제 폰에 앱을 깔고 버튼을 눌러 화면이 맞게 바뀌는지 확인합니다': 'Installs the app on a real phone and taps buttons to check the screens change correctly',
-  '성능 테스트: 서버 부하 · 폰 성능': 'Performance: server load · phone performance',
+  '실제 디바이스에 앱을 깔고 버튼을 눌러 화면이 맞게 바뀌는지 확인합니다': 'Installs the app on a real phone and taps buttons to check the screens change correctly',
+  '성능 테스트: 서버 부하 · 디바이스 성능': 'Performance: server load · phone performance',
   '스토어나 apk 파일로 설치한다': 'Installed from a store or an apk file',
   '휴대폰에서 하는 Unity 게임': 'A Unity game played on a phone',
   'RPG · 퍼즐 · 캐주얼 게임': 'RPG · puzzle · casual games',

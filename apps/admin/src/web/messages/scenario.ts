@@ -229,13 +229,12 @@ export const 시나리오말: Record<string, string> = {
   '기대 값': 'Expected value',
   '응답 값 확인 삭제': 'Delete response value check',
   '+ 응답 값 확인 추가': '+ Add response value check',
-  '앱 단계는 폰에서 돕니다. Android 앱 케이스만 보입니다': 'App steps run on the phone. Only Android app cases are shown',
+  '앱 단계는 디바이스에서 돕니다. Android 앱 케이스만 보입니다': 'App steps run on the phone. Only Android app cases are shown',
   '웹 단계는 PC 화면으로 돕니다. PC 에서 도는 케이스만 보입니다': 'Web steps run in a PC window. Only cases that run on PC are shown',
-  '시나리오 하나 동안 빈 폰을 한 번 잡고 다 돌면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 실행에 남습니다':
+  '시나리오 하나 동안 빈 디바이스를 한 번 잡고 다 돌면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 실행에 남습니다':
     'Takes one free phone for the whole scenario and releases it at the end. Screen recordings and logcat are kept for runs that did not pass',
-  '시험 실행도 Device VISION 폰에서 실행됩니다. 폰 화면은 오른쪽 칸에 뜨고 「Device VISION 에서 보기 ↗」로 새 탭에서도 봅니다':
+  '시험 실행도 Device VISION 디바이스에서 실행됩니다. 디바이스 화면은 오른쪽 칸에 뜨고 「Device VISION 에서 보기 ↗」로 새 탭에서도 봅니다':
     'Trial runs also run on a Device VISION phone. The phone screen shows in the right panel, and 「View in Device VISION ↗」 opens it in a new tab',
-  '폰': 'Phone',
   'Device VISION 기록': 'Device VISION records',
   '이 애플리케이션은 디바이스 「{디바이스}」로만 돌립니다. 디바이스를 바꿔 저장합니다': 'This application runs only on {디바이스}. Change the device and save',
   // E2E 실행 창 (도메인/실행 §8.16 ⑥)

@@ -113,7 +113,7 @@ export const 케이스말: Record<string, string> = {
   '케이스 불러오기': 'Load cases',
   '조건에 맞는 케이스가 없습니다': 'No cases match the filters',
   '「{친글자}」에 맞는 케이스가 없습니다': 'No cases match “{친글자}”',
-  '거른 조건을 지우면 전체가 다시 보입니다': 'Clear the filters to see everything again',
+  '필터를 지우면 전체가 다시 보입니다': 'Clear the filters to see everything again',
   '아직 테스트가 없습니다': 'No tests yet',
   '「테스트 작성」에서 처음 작성을 시작합니다': 'Start writing the first tests in “Authoring”',
   '불러왔지만 케이스가 하나도 없습니다': 'Loaded, but there are no cases',
@@ -167,7 +167,7 @@ export const 케이스말: Record<string, string> = {
 
   // Android 앱 애플리케이션의 빈 목록 (도메인/카탈로그 §8.1 「디바이스」)
   '아직 Android 앱 케이스가 없습니다': 'No Android app cases yet',
-  '테스트 작성에서 앱 기획서를 넣으면 AI 가 Device VISION 폰으로 앱 화면을 읽고 케이스를 만듭니다':
+  '테스트 작성에서 앱 기획서를 넣으면 AI 가 Device VISION 디바이스로 앱 화면을 읽고 케이스를 만듭니다':
     'Add an app PRD in Authoring and AI reads the app screens on a Device VISION phone to write cases',
   '테스트 작성으로': 'Go to Authoring',
 };

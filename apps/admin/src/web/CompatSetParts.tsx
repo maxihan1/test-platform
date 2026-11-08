@@ -95,7 +95,7 @@ export function 케이스구획({
         <small className="compat-faint">{t('자동 선택은 실행할 때마다 다시 계산합니다')}</small>
       </div>
       {auto.length + 도는직접.length === 0 ? (
-        <p className="compat-pad">{웹 ? t('실제 폰에서 도는 모바일 웹 케이스가 없습니다') : t('폰에서 도는 케이스가 없습니다')}</p>
+        <p className="compat-pad">{웹 ? t('실제 디바이스에서 도는 모바일 웹 케이스가 없습니다') : t('디바이스에서 도는 케이스가 없습니다')}</p>
       ) : null}
       {auto.length === 0 ? null : (
         <>

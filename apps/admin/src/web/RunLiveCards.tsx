@@ -57,14 +57,14 @@ export function 제한경과글(절차: 항목진행 | null, 언어: 언어, t: 
 /** 칸 머리 꼬리표 — 어디서 도는지. 실제 폰이면 그 폰 이름, 팜이 이름을 안 줬으면 「실제 기기」 */
 function 기기글({ 항목, 절차 }: 도는것, t: 말): string | null {
   if (항목.platform === 'desktop') return t('서버 브라우저');
-  if (절차?.vision !== undefined) return 절차.vision.name ?? t('실제 기기');
-  return 항목.platform === 'mobile' ? t('가상 기기 · iPhone 14') : null;
+  if (절차?.vision !== undefined) return 절차.vision.name ?? t('실제 디바이스');
+  return 항목.platform === 'mobile' ? t('가상 디바이스 · iPhone 14') : null;
 }
 
 /** 첫 단계 전 발 글 — 브라우저를 여는 4~5초 · 폰을 잡는 동안 카드가 멈춘 것처럼 보이지 않게 (점검표 B1 · B2) */
 function 첫단계전글({ 항목, 절차 }: 도는것, t: 말): string {
   if (항목.platform !== 'android') return t('브라우저를 여는 중');
-  return 절차?.vision === undefined ? t('사용할 폰을 찾는 중') : t('앱을 여는 중');
+  return 절차?.vision === undefined ? t('사용할 디바이스를 찾는 중') : t('앱을 여는 중');
 }
 
 function 장면({ runId, historyId, 폰 }: { runId: number; historyId: number; 폰: boolean }) {
@@ -112,7 +112,7 @@ function 카드({ runId, 것, 크게, on크게 }: { runId: number; 것: 도는�
           // 정식 실행은 앱 폰 장면을 찍지 않는다 — 폰 화면은 VISION 링크가 연다 (도메인/실행 §3.2 「정식 실행 화면」).
           // 단계가 이미 도는데 장면이 없으면 admin 이 다시 떠 장면 열쇠를 잃은 것이다 — 「여는 중」이라 하면 멈춘 것처럼 읽힌다
           <p className="live-wait">
-            {절차?.vision !== undefined ? t('폰 화면은 Device VISION 에서 봅니다') : 지금단계 === null ? 첫단계전글(것, t) : t('지금은 보여 줄 화면이 없습니다')}
+            {절차?.vision !== undefined ? t('디바이스 화면은 Device VISION 에서 봅니다') : 지금단계 === null ? 첫단계전글(것, t) : t('지금은 보여 줄 화면이 없습니다')}
           </p>
         )}
       </div>

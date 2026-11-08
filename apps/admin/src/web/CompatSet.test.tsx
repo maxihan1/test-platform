@@ -189,7 +189,7 @@ describe('저장한 호환성 세트', () => {
     차림();
     vi.spyOn(compatApi, 'preview').mockResolvedValue({ auto: [], coverage: { covered: 0, total: 0, fallback: true }, uncovered: [] });
     render(<CompatSet envs={[]} id="new" serviceId={7} service="MKW" kind="SCREEN" 쓰나 />);
-    expect(await screen.findByText('실제 폰에서 도는 모바일 웹 케이스가 없습니다')).toBeTruthy();
+    expect(await screen.findByText('실제 디바이스에서 도는 모바일 웹 케이스가 없습니다')).toBeTruthy();
     expect(screen.getByText('전체 화면 목록이 없어 케이스가 아는 화면으로 셉니다')).toBeTruthy();
   });
 });

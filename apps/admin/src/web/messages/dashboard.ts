@@ -129,12 +129,11 @@ export const 대시보드말: Record<string, string> = {
 
   // 종류별 칸
   '브라우저별 결과': 'Results by browser',
-  '기기별 결과': 'Results by device',
+  '디바이스별 결과': 'Results by device',
   '창별 결과': 'Results by window',
   '엔드포인트별 결과': 'Results by endpoint',
   '모바일 · Chromium': 'Mobile · Chromium',
   '디바이스 정보 없는 결과 {건}건': '{건} results without device info',
-  '기기 정보 없는 결과 {건}건': '{건} results without device info',
   '창 정보 없는 결과 {건}건': '{건} results without window info',
   '엔드포인트 정보 없음': 'No endpoint info',
   '최근 {일}일 결과가 없습니다': 'No results in the last {일} days',

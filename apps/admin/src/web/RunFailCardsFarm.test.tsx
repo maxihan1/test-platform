@@ -39,14 +39,14 @@ describe('실패 카드의 팜 화면 영상 · logcat (도메인/러너 §5.2)'
     그리기(쪽([케이스('ZZI-0002', '장바구니', [장치('mobile', 12, { farm, device })])]), [줄(12, 'ZZI-0002', 'mobile', 'FAIL')]);
 
     await screen.findAllByRole('article');
-    expect(screen.getAllByRole('tab').map((탭) => 탭.textContent)).toEqual(['화면', '네트워크', '콘솔', 'logcat', '화면 영상', '기기 정보']);
+    expect(screen.getAllByRole('tab').map((탭) => 탭.textContent)).toEqual(['화면', '네트워크', '콘솔', 'logcat', '화면 영상', '디바이스 정보']);
     fireEvent.click(screen.getByRole('tab', { name: '화면 영상' }));
     expect(screen.getByLabelText('화면 영상 1').getAttribute('src')).toBe(`/api/runs/${String(RUN_ID)}/items/12/farm/video-1.webm`);
     fireEvent.click(screen.getByRole('tab', { name: 'logcat' }));
     expect(screen.getByRole('link', { name: 'logcat.txt 받기 (0.4MB)' })).toBeTruthy();
     expect(screen.queryByRole('link', { name: /video-1\.webm/ })).toBeNull();
-    fireEvent.click(screen.getByRole('tab', { name: '기기 정보' }));
-    expect(screen.getByRole('tabpanel').textContent).toBe('기기SM-G996NAndroid15Chrome156.0.7339.51');
+    fireEvent.click(screen.getByRole('tab', { name: '디바이스 정보' }));
+    expect(screen.getByRole('tabpanel').textContent).toBe('디바이스SM-G996NAndroid15Chrome156.0.7339.51');
   });
 
   it('PC 와 실제 폰이 같은 실패로 묶이면 영상 · logcat · 기기 정보에는 받아 둔 실제 폰 칸만 선다 — PC 칸은 늘 비어 있다', async () => {
@@ -60,8 +60,8 @@ describe('실패 카드의 팜 화면 영상 · logcat (도메인/러너 §5.2)'
     fireEvent.click(await screen.findByRole('tab', { name: '화면 영상' }));
     expect(screen.getByRole('tabpanel').querySelectorAll('b')).toHaveLength(1);
     expect(screen.getByRole('tabpanel').textContent).not.toContain('PC');
-    fireEvent.click(screen.getByRole('tab', { name: '기기 정보' }));
-    expect(screen.getByRole('tabpanel').textContent).toBe('모바일기기SM-G996NAndroid15Chrome모름');
+    fireEvent.click(screen.getByRole('tab', { name: '디바이스 정보' }));
+    expect(screen.getByRole('tabpanel').textContent).toBe('모바일디바이스SM-G996NAndroid15Chrome모름');
   });
 
   it('받은 것이 없으면 영상 · logcat 탭을 세우지 않는다', async () => {

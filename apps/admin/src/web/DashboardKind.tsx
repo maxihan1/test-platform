@@ -7,7 +7,7 @@ type 종류칸 = NonNullable<대시보드응답['byKind']>;
 
 const 제목: Record<종류칸['kind'], string> = {
   SCREEN: '브라우저별 결과',
-  APP: '기기별 결과',
+  APP: '디바이스별 결과',
   GAME: '창별 결과',
   API: '엔드포인트별 결과',
 };
@@ -17,7 +17,7 @@ const 웹이름: Record<string, string> = { desktop: 'PC · Chromium', mobile: '
 // 막대 칸에서는 단위를 모르는 줄을 막대로 안 세우고 칸 아래 한 줄로 센다 — 실제 기기 · 창과 같은 막대로 서면 「기기 정보 없음 0%」가 기기 하나처럼 읽혔다 (2026-10-31 시험 f14)
 const 모름줄: Record<Exclude<종류칸['kind'], 'API'>, string> = {
   SCREEN: '디바이스 정보 없는 결과 {건}건',
-  APP: '기기 정보 없는 결과 {건}건',
+  APP: '디바이스 정보 없는 결과 {건}건',
   GAME: '창 정보 없는 결과 {건}건',
 };
 

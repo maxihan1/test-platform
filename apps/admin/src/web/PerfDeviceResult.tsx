@@ -85,7 +85,7 @@ export function PerfDeviceResult({ run, service, 다시읽기, 쓰나, 새측정
         부제={
           <>
             {종류 === 'LIVE' ? null : <span className={`verdict ${판정꼴[종류]}`}>{판정이름(종류, t)}</span>}{' '}
-            {[조작글(설정, t), 설정.drive === 'MANUAL' ? null : t('반복 {수}회', { 수: 설정.repeat }), t('기기 {수}대', { 수: 설정.devices.length }), run.env, 시각글(run.startedAt, 언어), ...걸린, run.stopReason === null ? null : 사유이름(run.stopReason, t)]
+            {[조작글(설정, t), 설정.drive === 'MANUAL' ? null : t('반복 {수}회', { 수: 설정.repeat }), t('디바이스 {수}대', { 수: 설정.devices.length }), run.env, 시각글(run.startedAt, 언어), ...걸린, run.stopReason === null ? null : 사유이름(run.stopReason, t)]
               .filter((x): x is string => x !== null)
               .join(' · ')}
           </>
@@ -162,15 +162,15 @@ export function PerfDeviceResult({ run, service, 다시읽기, 쓰나, 새측정
             )}
 
             <section className="perf-panel" aria-labelledby="pd-t">
-              <h2 id="pd-t">{t('기기별 요약')}</h2>
+              <h2 id="pd-t">{t('디바이스별 요약')}</h2>
               <div className="perf-table-box">
-                <table className="perf-table" aria-label={t('기기별 요약')}>
+                <table className="perf-table" aria-label={t('디바이스별 요약')}>
                   <thead>
                     <tr>
-                      <th>{t('기기')}</th>
+                      <th>{t('디바이스')}</th>
                       <th className="r">{t('평균 FPS')}</th>
                       <th className="r">{t('1% Low FPS')}</th>
-                      <th className="r">{t('최대 기기 온도')}</th>
+                      <th className="r">{t('최대 디바이스 온도')}</th>
                       <th className="r">{t('메모리 최대')}</th>
                       <th className="r">{t('앱 실행 시간')}</th>
                       <th>{t('판정')}</th>

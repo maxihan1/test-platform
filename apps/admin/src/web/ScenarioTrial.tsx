@@ -37,8 +37,8 @@ export function 폰실행위치({ 시험 = true }: { 시험?: boolean }) {
   return (
     <div className="hint">
       {t('실행 위치 · Device VISION')}
-      <div>{t('시나리오 하나 동안 빈 폰을 한 번 잡고 다 돌면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 실행에 남습니다')}</div>
-      {시험 ? <div>{t('시험 실행도 Device VISION 폰에서 실행됩니다. 폰 화면은 오른쪽 칸에 뜨고 「Device VISION 에서 보기 ↗」로 새 탭에서도 봅니다')}</div> : null}
+      <div>{t('시나리오 하나 동안 빈 디바이스를 한 번 잡고 다 돌면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 실행에 남습니다')}</div>
+      {시험 ? <div>{t('시험 실행도 Device VISION 디바이스에서 실행됩니다. 디바이스 화면은 오른쪽 칸에 뜨고 「Device VISION 에서 보기 ↗」로 새 탭에서도 봅니다')}</div> : null}
     </div>
   );
 }
@@ -48,7 +48,7 @@ export function 폰실행위치({ 시험 = true }: { 시험?: boolean }) {
  * 실제 폰은 시나리오에 한 번 잡아 덧붙임 글이 앱 · 게임 시나리오 안내와 같다 (도메인/시나리오 §3.7 「모바일 시나리오를 실제 폰에서 돌릴 때」)
  */
 export function 모바일실행위치(고르개: 모바일고르개) {
-  return <RunLocation android={false} 모바일={{ ...고르개, 덧붙임: '시나리오 하나 동안 빈 폰을 한 번 잡고 다 돌면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 실행에 남습니다' }} />;
+  return <RunLocation android={false} 모바일={{ ...고르개, 덧붙임: '시나리오 하나 동안 빈 디바이스를 한 번 잡고 다 돌면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 실행에 남습니다' }} />;
 }
 
 /**

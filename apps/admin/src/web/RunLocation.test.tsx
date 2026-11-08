@@ -29,14 +29,14 @@ describe('RunLocation', () => {
     const on바꿈 = vi.fn();
     const { rerender } = render(<RunLocation android={false} 모바일={{ 값: 'server', on바꿈 }} />);
 
-    expect((screen.getByRole('radio', { name: '가상 기기' }) as HTMLInputElement).checked).toBe(true);
+    expect((screen.getByRole('radio', { name: '가상 디바이스' }) as HTMLInputElement).checked).toBe(true);
     expect(screen.getByText('서버에서 iPhone 14 화면 크기로 실행')).toBeTruthy();
-    expect(screen.getByText('Device VISION 의 Android 폰 Chrome')).toBeTruthy();
-    fireEvent.click(screen.getByRole('radio', { name: '실제 기기' }));
+    expect(screen.getByText('Device VISION 의 Android 디바이스 Chrome')).toBeTruthy();
+    fireEvent.click(screen.getByRole('radio', { name: '실제 디바이스' }));
     expect(on바꿈).toHaveBeenCalledWith('vision');
 
     rerender(<RunLocation android={false} 모바일={{ 값: 'vision', on바꿈 }} />);
-    expect((screen.getByRole('radio', { name: '실제 기기' }) as HTMLInputElement).checked).toBe(true);
+    expect((screen.getByRole('radio', { name: '실제 디바이스' }) as HTMLInputElement).checked).toBe(true);
     expect(screen.queryByText(/빈 폰/)).toBeNull();
   });
 
@@ -50,7 +50,7 @@ describe('RunLocation', () => {
 
     const 묶음 = screen.getAllByRole('radiogroup', { name: '모바일 웹' });
     const 고른것 = (g: HTMLElement) => g.querySelector<HTMLInputElement>('input:checked')?.getAttribute('aria-label');
-    expect(묶음.map(고른것)).toEqual(['가상 기기', '실제 기기']);
+    expect(묶음.map(고른것)).toEqual(['가상 디바이스', '실제 디바이스']);
     expect(new Set(묶음.map((g) => g.querySelector('input')?.getAttribute('name'))).size).toBe(2);
   });
 });

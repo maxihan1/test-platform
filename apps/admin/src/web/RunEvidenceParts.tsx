@@ -107,7 +107,7 @@ export function 기기정보({ device, 이름 }: { device: DeviceInfo | null; �
     <>
       {이름 === null ? null : <b>{이름}</b>}
       <dl className="ev-dev">
-        <dt>{t('기기')}</dt>
+        <dt>{t('디바이스')}</dt>
         <dd className="mono">{device?.model ?? 모름}</dd>
         <dt>Android</dt>
         <dd className="mono">{device?.osVersion ?? 모름}</dd>

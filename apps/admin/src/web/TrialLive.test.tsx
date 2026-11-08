@@ -129,7 +129,7 @@ describe('장면칸', () => {
     await 흘리기(250);
     expect(container.querySelector('.live-shot.dim')).not.toBeNull();
     expect(장면()).toBe('blob:1');
-    expect(screen.getByText('지금은 앱 단계라 폰에서 실행 중입니다')).toBeTruthy();
+    expect(screen.getByText('지금은 앱 단계라 디바이스에서 실행 중입니다')).toBeTruthy();
   });
 
   it('섞인 E2E 의 앱 단계에서 폰 장면(PNG)이 오면 「폰 화면」 · 「Device VISION 폰」으로 바꾸고 1초마다 묻는다', async () => {
@@ -142,9 +142,9 @@ describe('장면칸', () => {
     expect(screen.getByText('서버 브라우저')).toBeTruthy();
 
     await 흘리기(250);
-    expect(screen.getByText('폰 화면')).toBeTruthy();
-    expect(screen.getByText('Device VISION 폰')).toBeTruthy();
-    expect(screen.getByRole('img').getAttribute('alt')).toBe('폰의 지금 화면');
+    expect(screen.getByText('디바이스 화면')).toBeTruthy();
+    expect(screen.getByText('Device VISION 디바이스')).toBeTruthy();
+    expect(screen.getByRole('img').getAttribute('alt')).toBe('디바이스의 지금 화면');
     expect(screen.queryByText('동작마다 1초 천천히')).toBeNull();
     expect(받기).toHaveBeenCalledTimes(2);
 
@@ -160,7 +160,7 @@ describe('장면칸', () => {
     await 흘리기();
 
     expect(screen.getByText('화면을 기다리고 있습니다')).toBeTruthy();
-    expect(screen.queryByText('지금은 앱 단계라 폰에서 실행 중입니다')).toBeNull();
+    expect(screen.queryByText('지금은 앱 단계라 디바이스에서 실행 중입니다')).toBeNull();
   });
 
   it('Android 앱 · 게임은 폰 장면을 1초마다 받아 「폰 화면」으로 그리고 VISION 링크도 단다', async () => {
@@ -168,18 +168,18 @@ describe('장면칸', () => {
     const { rerender } = render(<장면칸 주소={주소} 도는중 vision={null} 폰만 />);
     await 흘리기();
 
-    expect(screen.getByText('폰 화면')).toBeTruthy();
-    expect(screen.getByText('사용할 폰을 찾는 중')).toBeTruthy();
+    expect(screen.getByText('디바이스 화면')).toBeTruthy();
+    expect(screen.getByText('사용할 디바이스를 찾는 중')).toBeTruthy();
 
     rerender(<장면칸 주소={주소} 도는중 vision="https://vision.example/#phone=R3C&view=k1" 폰만 />);
-    expect(screen.getByText('폰 화면을 기다리고 있습니다')).toBeTruthy();
+    expect(screen.getByText('디바이스 화면을 기다리고 있습니다')).toBeTruthy();
     await 흘리기(250);
     expect(받기).toHaveBeenCalledTimes(1);
     await 흘리기(750);
 
     expect(받기).toHaveBeenCalledTimes(2);
     expect(장면()).toBe('blob:1');
-    expect(screen.getByRole('img').getAttribute('alt')).toBe('폰의 지금 화면');
+    expect(screen.getByRole('img').getAttribute('alt')).toBe('디바이스의 지금 화면');
     expect(screen.getByRole('link', { name: 'Device VISION 에서 보기 ↗' })).toBeTruthy();
     expect(screen.queryByText('동작마다 1초 천천히')).toBeNull();
   });
@@ -194,13 +194,13 @@ describe('장면칸', () => {
 
     rerender(<장면칸 주소={주소} 도는중 vision="https://vision.example/#phone=R3C&view=k1" 모바일웹 />);
     await 흘리기();
-    expect(screen.getByText('폰 화면을 기다리고 있습니다')).toBeTruthy();
+    expect(screen.getByText('디바이스 화면을 기다리고 있습니다')).toBeTruthy();
     받기.mockImplementation(async () => 그림());
     await 흘리기(250);
 
     expect(장면()).not.toBeNull();
-    expect(screen.getByText('폰 화면')).toBeTruthy();
-    expect(screen.getByText('실제 폰 Chrome')).toBeTruthy();
+    expect(screen.getByText('디바이스 화면')).toBeTruthy();
+    expect(screen.getByText('실제 디바이스 Chrome')).toBeTruthy();
     expect(screen.getByText('동작마다 1초 천천히')).toBeTruthy();
     expect(screen.queryByText(/앱 단계/)).toBeNull();
     expect(screen.getByRole('link', { name: 'Device VISION 에서 보기 ↗' })).toBeTruthy();

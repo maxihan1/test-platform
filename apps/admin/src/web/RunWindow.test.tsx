@@ -250,7 +250,7 @@ describe('RunWindow', () => {
   });
 
   it('원래 실행의 모바일이 실제 폰에서 돌았으면 실제 폰을, 아니면 서버 흉내를 미리 고른다 — 다시 실행은 원래 실행이 돈 곳이다', async () => {
-    const 고른것 = () => (screen.getByRole('radio', { name: '실제 기기' }) as HTMLInputElement).checked;
+    const 고른것 = () => (screen.getByRole('radio', { name: '실제 디바이스' }) as HTMLInputElement).checked;
     읽기모킹([케이스('ZRS-001', { platforms: ['desktop', 'mobile'] })], ['SM-G996N']);
     render(<RunWindow tcIds={['ZRS-001']} rerunOf={20914} onClose={vi.fn()} />);
     await screen.findByRole('dialog');
@@ -271,8 +271,8 @@ describe('RunWindow', () => {
     render(<RunWindow tcIds={['ZRS-001']} rerunOf={20914} onClose={vi.fn()} />);
     await screen.findByRole('dialog', { name: '케이스 1건 실행' });
 
-    expect((screen.getByRole('radio', { name: '가상 기기' }) as HTMLInputElement).checked).toBe(true);
-    expect(screen.getByText(/^원래 실행을 읽지 못해 모바일 실행 위치를 가상 기기로 골라 두었습니다/)).toBeTruthy();
+    expect((screen.getByRole('radio', { name: '가상 디바이스' }) as HTMLInputElement).checked).toBe(true);
+    expect(screen.getByText(/^원래 실행을 읽지 못해 모바일 실행 위치를 가상 디바이스로 골라 두었습니다/)).toBeTruthy();
   });
 
   it('원래 실행이 없으면 실행을 읽지 않고 서버 흉내로 연다', async () => {
@@ -281,6 +281,6 @@ describe('RunWindow', () => {
     await screen.findByRole('dialog');
 
     expect(api.run).not.toHaveBeenCalled();
-    expect((screen.getByRole('radio', { name: '가상 기기' }) as HTMLInputElement).checked).toBe(true);
+    expect((screen.getByRole('radio', { name: '가상 디바이스' }) as HTMLInputElement).checked).toBe(true);
   });
 });

@@ -82,10 +82,10 @@ describe('ScenarioBuild 정식 실행', () => {
     const run = vi.spyOn(scenarioApi, 'run').mockResolvedValue({ runId: 503 });
     서버고르기();
 
-    expect((screen.getByRole('radio', { name: '가상 기기' }) as HTMLInputElement).checked).toBe(true);
-    fireEvent.click(screen.getByRole('radio', { name: '실제 기기' }));
+    expect((screen.getByRole('radio', { name: '가상 디바이스' }) as HTMLInputElement).checked).toBe(true);
+    fireEvent.click(screen.getByRole('radio', { name: '실제 디바이스' }));
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
-    expect(확인상자().getByText('모바일 (실제 기기)')).toBeTruthy();
+    expect(확인상자().getByText('모바일 (실제 디바이스)')).toBeTruthy();
     시작하기();
 
     await waitFor(() => expect(run).toHaveBeenCalledWith(12, 'qa', 'vision'));

@@ -154,7 +154,7 @@ export function RunWindow({
     연.바뀐저장값.length === 0 ? undefined : t('실행 뒤에 저장값이 바뀐 케이스 {목록} — 실패 때와 다른 값으로 돕니다', { 목록: 연.바뀐저장값.join(', ') }),
     연.위치못읽음 === null || !케이스들.some((c) => c.platforms.includes('mobile'))
       ? undefined
-      : t('원래 실행을 읽지 못해 모바일 실행 위치를 가상 기기로 골라 두었습니다 ({까닭})', { 까닭: 연.위치못읽음 }),
+      : t('원래 실행을 읽지 못해 모바일 실행 위치를 가상 디바이스로 골라 두었습니다 ({까닭})', { 까닭: 연.위치못읽음 }),
   ].filter((글): 글 is string => 글 !== undefined);
   const 안내글 = 안내들.length === 0 ? undefined : 안내들.join(' · ');
 

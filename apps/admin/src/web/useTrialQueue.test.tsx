@@ -205,7 +205,7 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
       await result.current.시작([항목('X-1'), 항목('X-2')], 'qa');
     });
 
-    expect(첫칸(result.current.줄들, 'X-1')).toEqual({ 종류: 'notice', 글: '이 서버에는 폰에서 돌릴 Device VISION 이 연결되어 있지 않습니다' });
+    expect(첫칸(result.current.줄들, 'X-1')).toEqual({ 종류: 'notice', 글: '이 서버에는 디바이스에서 돌릴 Device VISION 이 연결되어 있지 않습니다' });
     expect(첫칸(result.current.줄들, 'X-2')).toMatchObject({ 종류: 'done' });
   });
 

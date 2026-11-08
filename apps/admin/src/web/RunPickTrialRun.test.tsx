@@ -108,7 +108,7 @@ describe('시험 실행 중 — 시안 A ③', () => {
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     시험시작();
 
-    expect(await screen.findByText('가상 기기 · iPhone 14')).toBeTruthy();
+    expect(await screen.findByText('가상 디바이스 · iPhone 14')).toBeTruthy();
     expect(document.querySelector('.trial-run')?.classList.contains('phone')).toBe(true);
   });
 });
