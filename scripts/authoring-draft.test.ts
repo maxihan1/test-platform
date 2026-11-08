@@ -5,7 +5,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { E2E만틀림, 초안자식인자, 탐침PATH } from './authoring-draft.js';
+import { E2E만틀림, 초안대상환경, 초안자식인자, 탐침PATH } from './authoring-draft.js';
 import { 값가리기, 비밀섞였나, 요청글, 초안일인가, 초안지시문, 출력읽기, 탐침명령, 화면보나, type 초안자료 } from './authoring-draft-prompt.js';
 import { 가림표 } from './authoring-reverse.js';
 
@@ -53,12 +53,13 @@ describe('입력 파일', () => {
 });
 
 describe('초안지시문', () => {
-  it('웹이면 허용된 탐침 명령(playwright cli)으로 이슈가 말한 화면만 열고 계정은 변수째 넘기게 한다', () => {
+  it('웹이면 허용된 탐침 명령(playwright cli)으로 이슈가 말한 화면만 열고 로그인이 필요한 화면은 이슈 글로만 쓰게 한다', () => {
     const 글 = 초안지시문({ 자료, 서비스: 'MKW', 폴더: '/w/data', 화면: true });
     expect(탐침명령).toBe('playwright cli');
     expect(글).toContain(`\`${탐침명령} --help\``);
     expect(글).not.toContain('playwright-cli');
-    expect(글).toContain('"$TARGET_LOGIN_PASSWORD"');
+    expect(글).toContain('로그인이 필요한 화면은 열지 않고 이슈 글로만 쓴다');
+    expect(글).not.toContain('TARGET_LOGIN');
     expect(글).toContain('DM-12 · DM-13');
     expect(글).toContain('/w/data/draft-output.json');
   });
@@ -138,6 +139,16 @@ describe('탐침PATH', () => {
     expect(앞.endsWith(join('node_modules', '.bin'))).toBe(true);
     const 판 = spawnSync(join(앞, 'playwright'), ['cli', '--version'], { cwd: '/', encoding: 'utf8' });
     expect(판.stdout).toMatch(/^Version \d+\.\d+/);
+  });
+});
+
+describe('초안대상환경', () => {
+  it('대상 서버 주소와 탐침 PATH 만 넘기고 계정은 넘기지 않는다', () => {
+    const 환경 = 초안대상환경({ env: 'qa', baseUrl: 'https://qa.example', loginId: 'qa1', loginPassword: 's3cret!' }, '/usr/bin');
+    expect(환경.TARGET_BASE_URL).toBe('https://qa.example');
+    expect(환경.PATH.endsWith(':/usr/bin')).toBe(true);
+    expect(Object.keys(환경).filter((키) => /LOGIN|ACCOUNTS/.test(키))).toEqual([]);
+    expect(JSON.stringify(환경)).not.toContain('s3cret!');
   });
 });
 

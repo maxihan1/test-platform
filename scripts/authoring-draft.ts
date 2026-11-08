@@ -5,7 +5,7 @@ import { mkdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync 
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 
-import { 비밀번호들, 계정환경 } from './authoring-accounts.js';
+import { 비밀번호들 } from './authoring-accounts.js';
 import { 자식환경 } from './authoring-chain.js';
 import { type 계정, 사본자리, 파일거부사유 } from './authoring-copy.js';
 import { MCP설정쓰기, 모양보기, 사본치우기, 새집, 자식거두기 } from './authoring-child.js';
@@ -17,7 +17,7 @@ import { type 박동, 박동손 } from './authoring-heartbeat.js';
 import { 도는번호 } from './authoring-keeping.js';
 import { type 모델, 모델인자, 한도걸렸나 } from './authoring-model.js';
 import { 진척누적기, 끝낼상태, 자식제한 } from './authoring-progress.js';
-import { 대상환경, 사유거르기 } from './authoring-reverse.js';
+import { type 대상, 대상환경, 사유거르기 } from './authoring-reverse.js';
 import { type 집은것, MCP설정글 } from './authoring-rules.js';
 import type { 서비스설정 } from './authoring-token.js';
 import { 사용량보고 } from './authoring-usage.js';
@@ -35,6 +35,15 @@ export function 탐침PATH(부모: string | undefined): string {
   // 직접 깐 @playwright/test 가 기준이다 — .bin/playwright 가 그 cli.js 를 가리킨다
   const 빈 = join(dirname(createRequire(import.meta.url).resolve('@playwright/test/package.json')), '..', '..', '.bin');
   return 부모 === undefined || 부모 === '' ? 빈 : `${빈}:${부모}`;
+}
+
+/**
+ * 화면을 여는 자식의 대상 서버 칸 — 주소와 탐침 PATH 만. **계정은 넘기지 않는다** — `playwright cli` 로 로그인하면
+ * 비밀번호가 명령 인자와 대화에 펼쳐진다. 로그인이 필요한 화면은 이슈 글로만 쓴다 (도메인/BTS 「자식」 · 2026-11-08 사용자)
+ */
+export function 초안대상환경(t: 대상, 부모PATH: string | undefined): Record<string, string> {
+  const { TARGET_LOGIN_ID: _아이디, TARGET_LOGIN_PASSWORD: _비밀번호, ...주소 } = 대상환경(t);
+  return { ...주소, PATH: 탐침PATH(부모PATH) };
 }
 
 /**
@@ -128,7 +137,7 @@ async function 초안건(
       {
         ...자식환경(process.env, 자리.gh),
         ...(자식 === null ? {} : { HOME: 자리.집, TMPDIR: 자리.임시 }),
-        ...(화면 && 것.target !== undefined ? { ...대상환경(것.target), ...계정환경(것.accounts), PATH: 탐침PATH(process.env.PATH) } : {}),
+        ...(화면 && 것.target !== undefined ? 초안대상환경(것.target, process.env.PATH) : {}),
       },
       undefined,
     );
