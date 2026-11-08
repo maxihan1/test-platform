@@ -7,7 +7,7 @@
 | 화면 문구 (`apps/admin/src/web/messages/*.ts` 의 한글 키) | §1 · §2 | `apps/admin/src/web/words.test.ts` — 늘 도는 검사(`test:always`)라 문서만 고친 push 를 빼고 매번 돈다 |
 | Grafana 대시보드 (`infra/grafana/provisioning/dashboards/*.json` 의 패널 제목 · 설명 · 표 칸 이름 · 표에 찍히는 값) | §1 · §2 | 같은 `words.test.ts` |
 | 리포트(PDF · 엑셀 · HTML) · 워드 · 엑셀 내보내기 · 알림 글 (서버 코드) | §1 · §2 | 없음 — 서버 글자는 로그와 섞여 기계로 못 가른다 |
-| AI 에이전트 글 — 단발 AI 다섯(수정 AI · PRD 초안 · 노트 · 성능 AI · E2E 흐름 후보) | §1 · §2 | 없음 — 지시문을 만들 때마다 이 표를 읽어 싣는다(`scripts/authoring-prompt-common.ts` 「낱말」) |
+| AI 에이전트 글 — 단발 AI(수정 AI · PRD 초안 · 노트 · 성능 AI · E2E 흐름 후보. Page Object 합치기는 코드만 내서 뺀다) | §1 · §2 | 없음 — 지시문을 만들 때마다 이 표에서 무늬가 있는 줄을 읽어 싣는다(`scripts/authoring-prompt-common.ts` 「낱말」). 무늬가 없는 줄(「근거」처럼 뜻에 따라 갈리는 말)은 싣지 않는다 |
 | AI 에이전트 글 — 작성 에이전트 자식(케이스 · PRD 문장 · 결과 요약) | §1 · §2 | 없음 — 처음 여는 `korean-ai-tells.md` 가 이 표를 가리킨다 |
 | 명세 · 문서 · 시안 | §1 · §2. 결정 기록에 남은 옛 말은 그대로 둔다 | 없음 |
 | 대화 · 커밋 · PR | §2 + CLAUDE.md §4 「저장소에서만 쓰는 말은 흔한 말로」 | 없음 |

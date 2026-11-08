@@ -46,7 +46,7 @@ export interface ExportInput {
 const 디바이스: Record<Platform, string> = { desktop: 'PC', mobile: '모바일', android: 'Android 앱' };
 // 마지막 결과는 케이스 하나의 판정(prd/trace.ts 케이스판정)이라 NA 는 「기기가 다 통과하지도 하나라도 깨지지도 않았다」 — 목록 · 추적표처럼 미실행이다
 const 판정글자: Record<ItemStatus, string> = { PASS: '통과', FAIL: '실패', NA: '미실행' };
-const 구분글자: Record<보류['kind'], string> = { UNDECIDABLE: '입력 필요', ON_HOLD: '보류' };
+const 구분글자: Record<보류['kind'], string> = { UNDECIDABLE: '기대 결과 없음', ON_HOLD: '테스트 데이터 없음' };
 const 없음 = '—';
 const 모킹표시 = '가짜 응답(모킹)';
 

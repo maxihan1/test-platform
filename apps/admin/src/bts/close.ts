@@ -173,7 +173,7 @@ export async function 테스트고침댓글(요청: { serviceId: number; params:
     projectId: 프로젝트,
     kind: 'COMMENT',
     issueKey: 고침.issueKey,
-    payload: { body: `테스트 수정 PR ${번호 === undefined ? '' : `#${번호} `}— ${prUrl}\nTest Commander 가 테스트만 수정한 검토용 PR 을 열었습니다. 반영은 사람이 합니다` },
+    payload: { body: `테스트 수정 PR ${번호 === undefined ? '' : `#${번호} `}— ${prUrl}\nTest Commander 가 테스트만 수정한 검토용 PR 을 열었습니다. 병합은 사람이 합니다` },
   });
   return true;
 }
