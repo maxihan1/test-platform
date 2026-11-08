@@ -113,6 +113,11 @@ describe('조립 검사', () => {
     expect(시나리오제한시간(넘침)).toBe(3600001);
     expect(검사(넘침)).toEqual([expect.stringMatching(/제한 시간/)]);
   });
+
+  it('제한 시간 거절 글은 ms 숫자 대신 분으로 말하고 줄일 것을 알려 준다', () => {
+    const 열셋 = Array.from({ length: 13 }, () => 케이스('SHOP-002'));
+    expect(검사(열셋)).toEqual(['단계가 많아 제한 시간 합이 65분으로 한도 60분을 넘습니다 — 케이스 단계(하나에 5분)를 줄여 주세요']);
+  });
 });
 
 describe('제한 시간 바닥 · API 몫 · 크기 상한', () => {
@@ -128,7 +133,7 @@ describe('제한 시간 바닥 · API 몫 · 크기 상한', () => {
     const 케이스들 = (n: number) => Array.from({ length: n }, () => 케이스('SHOP-002'));
     expect(검사(케이스들(12))).toEqual([]);
     expect(검사(케이스들(13))).toEqual([expect.stringMatching(/제한 시간/)]);
-    expect(검사([...케이스들(12), api])).toEqual([expect.stringMatching(/3630000ms/)]);
+    expect(검사([...케이스들(12), api])).toEqual([expect.stringMatching(/61분/)]);
   });
 
   it('단계 목록 JSON 이 100000 바이트를 넘으면 거절한다', () => {

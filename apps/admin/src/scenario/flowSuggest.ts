@@ -8,6 +8,7 @@ import { 주소틀 } from '../../../../scripts/authoring-crawl-rules.js';
 import { 흐름인가 } from './flowSide.js';
 import { 값연결제안들, type 값연결제안, type 지도요청 } from './linkSuggest.js';
 import { 메뉴뺀연결들, type 연결줄 } from './next.js';
+import { 제한시간크기사유 } from './validate.js';
 
 export const 케이스상한 = 1000;
 export const 연결상한 = 2000;
@@ -123,6 +124,8 @@ export function 흐름다듬기(
     if (남은.length < 2) return [];
 
     const parts: ScenarioPart[] = 남은.map((tcId) => ({ kind: 'case', tcId, params: {}, expected: {}, skipSteps: [] }));
+    // 실행 한도(60분 · 크기)를 넘는 후보는 시험 실행 · 저장이 어차피 거절한다 — 고른 뒤에 막히지 않게 여기서 버린다 (2026-11-08 E2E-F3-05 시험)
+    if (제한시간크기사유(parts).length > 0) return [];
     const 제안들 = 값연결제안들(parts, 지도, 입력칸);
     const 쓴 = new Set<값연결제안>();
     const links: 값연결제안[] = [];
