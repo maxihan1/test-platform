@@ -43,7 +43,7 @@ export async function 로그인화면(serviceId: number, env: string): Promise<s
        SELECT url, name FROM screen_record WHERE service_id = $1 AND env = $2 AND state = '로그아웃'
        UNION SELECT url, name FROM screen_found WHERE service_id = $1 AND env = $2 AND state = '로그아웃'
      ) t WHERE url LIKE '/%' AND url NOT LIKE '%:n%' AND (url ~* '(log-?in|sign-?in)' OR name LIKE '%로그인%')
-     ORDER BY url !~* '(log-?in|sign-?in)', length(url), url LIMIT 1`,
+     ORDER BY url !~* '(^|/)(log-?in|sign-?in)($|[/?#.])', length(url), url LIMIT 1`,
     [serviceId, env],
   );
   return r.rows[0]?.url.replace(/ \(구조 다름\)$/, '') ?? null;
