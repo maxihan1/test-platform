@@ -5,7 +5,7 @@ import type { PrdItem } from '@platform/kit';
 
 import { 사슬식 } from '../authoring/chainSql.js';
 import { 열린작성 } from '../authoring/openRoots.js';
-import { 줄세우기 } from '../authoring/store.js';
+import { 줄세우기, type 요청 } from '../authoring/store.js';
 import type { 판변경 } from '../prd/changes.js';
 import { 판같나 } from '../prd/rules.js';
 import { 롤백판넣기, 잠그고 } from '../prd/store.js';
@@ -67,6 +67,11 @@ export function 롤백판(기록: readonly 판기록[], 키들: readonly string[
   return { items: [...판.values()].sort((a, b) => a.reqId.localeCompare(b.reqId)), changes };
 }
 
+// ponytail: 판을 전부 읽는다 — 롤백은 드물다. 판이 수천이 되면 키가 닿은 판과 그 앞 판만 읽는다
+async function 판기록읽기(손: PoolClient, 서비스: number): Promise<판기록[]> {
+  return (await 손.query<판기록>('SELECT version, source, items, changes FROM prd_version WHERE service_id = $1 ORDER BY version', [서비스])).rows;
+}
+
 // 대기는 멈추고 도는 것은 멈춤을 건 채 버린다 — 집기는 폐기를 안 보므로 대기 줄은 STOPPED 로 닫아야 다시 안 집힌다.
 // 멈춘 사람은 「bts」다(닫기 사유가 세우는 요청의 요청자와 같다 — close.ts). 중단이면 이유와 누가가 반드시 찬다(stopped_pair_check)
 const 멈추고버리기 = `discarded_at = now(),
@@ -88,18 +93,33 @@ export async function 롤백되돌리기(deployId: number, projectId: number, bu
   const 요청들: number[] = [];
   for (const 서비스 of 앱들) {
     const id = await 잠그고(서비스, async (손) => {
-      // ponytail: 판을 전부 읽는다 — 롤백은 드물다. 판이 수천이 되면 키가 닿은 판과 그 앞 판만 읽는다
-      const 기록 = (await 손.query<판기록>('SELECT version, source, items, changes FROM prd_version WHERE service_id = $1 ORDER BY version', [서비스])).rows;
+      const 기록 = await 판기록읽기(손, 서비스);
       const 새 = 롤백판(기록, 키들);
       if (새.changes.length === 0) return null;
-      await 롤백판넣기(손, 서비스, 새.items, 사람, 새.changes, deployId);
       const 열린 = await 열린작성(서비스, 손);
+      // 열린 작성이 있으면 판은 되돌림 요청을 집을 때 세운다(미룬롤백판세우기) — 그 작성이 들고 있던 옛 판 사본으로 판을 올려 되돌림을 덮는다(BTS-F9-01 문제 28).
+      // 옮기기는 byPerson 항목만 지키고 합치는데 ROLLBACK 판 항목은 byPerson 이 아니다 — 결정 진행이 작성 중에 막히는(AUTHORING_OPEN) 것과 같은 까닭이다.
+      // 실패한 신호를 같은 빌드로 다시 보내면 미룬 요청이 이미 있다 — 막 집혀 판을 세우는 중(RUNNING)이어도 본다
+      if (열린.length > 0) {
+        const 미룸 = await 손.query(
+          `SELECT 1 FROM authoring_request WHERE service_id = $1 AND kind = 'AUTHOR' AND status IN ('PENDING', 'RUNNING') AND discarded_at IS NULL
+              AND params ? 'rollbackKeys' AND params->>'rollbackBuild' = $2`,
+          [서비스, buildNo],
+        );
+        if (미룸.rows.length > 0) return null;
+      } else await 롤백판넣기(손, 서비스, 새.items, 사람, 새.changes, deployId);
       return 줄세우기(
         {
           서비스,
           kind: 'AUTHOR',
           기획서: null,
-          값: { prdApply: true, rollbackDeploy: deployId, rollbackBuild: buildNo, decision: { after: 열린, count: 1 } },
+          값: {
+            prdApply: true,
+            rollbackDeploy: deployId,
+            rollbackBuild: buildNo,
+            ...(열린.length > 0 ? { rollbackKeys: 키들 } : {}),
+            decision: { after: 열린, count: 1 },
+          },
           누가: 사람.username,
           이름: 사람.displayName,
         },
@@ -124,6 +144,36 @@ export async function 롤백되돌리기(deployId: number, projectId: number, bu
     [앱들, 키들],
   );
   return 요청들;
+}
+
+/**
+ * 미룬 롤백 판을 되돌림 요청을 집을 때 세운다 — 기다리던 작성이 다 닫힌 뒤라 그 작성이 올린 판까지 본 판 기록으로 짓는다.
+ * 세운 판을 그 요청의 읽은 판으로 적고 rollbackKeys 를 지운다 — 집기를 되돌려 다시 집어도 판이 또 서지 않는다.
+ * 배포 줄은 빌드로 찾는다 — 실패한 신호를 다시 보내면 앞 배포 줄이 지워지고 새 줄이 선다(deploy.ts)
+ */
+export async function 미룬롤백판세우기(집은것: 요청): Promise<void> {
+  if (집은것.kind !== 'AUTHOR' || 집은것.serviceId === null || !Array.isArray(집은것.params.rollbackKeys)) return;
+  const 서비스 = 집은것.serviceId;
+  await 잠그고(서비스, async (손) => {
+    const 행 = (await 손.query<{ keys: unknown; build: string | null }>(
+      "SELECT params->'rollbackKeys' AS keys, params->>'rollbackBuild' AS build FROM authoring_request WHERE id = $1 FOR UPDATE",
+      [집은것.id],
+    )).rows[0];
+    if (행 === undefined || !Array.isArray(행.keys)) return;
+    const 기록 = await 판기록읽기(손, 서비스);
+    const 새 = 롤백판(기록, 행.keys.filter((k): k is string => typeof k === 'string'));
+    if (새.changes.length > 0) {
+      const 배포 = (await 손.query<{ id: string }>(
+        'SELECT d.id FROM bts_deploy d JOIN service s ON s.project_id = d.project_id WHERE s.id = $1 AND d.build_no = $2',
+        [서비스, 행.build],
+      )).rows[0];
+      const 사람 = { username: 집은것.requestedBy, displayName: 집은것.requestedByName };
+      const 판 = await 롤백판넣기(손, 서비스, 새.items, 사람, 새.changes, 배포 === undefined ? null : Number(배포.id));
+      await 손.query('UPDATE authoring_request SET prd_version = $2 WHERE id = $1', [집은것.id, 판]);
+    }
+    await 손.query("UPDATE authoring_request SET params = params - 'rollbackKeys' WHERE id = $1", [집은것.id]);
+  });
+  delete 집은것.params.rollbackKeys;
 }
 
 /**

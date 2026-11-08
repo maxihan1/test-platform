@@ -171,7 +171,7 @@ export async function 결정판넣기(손: PoolClient, 서비스: number, items:
 }
 
 /** 롤백 배포가 짓는 버전(bts/rollback.ts) — 서비스 잠금을 쥔 트랜잭션 안에서 부른다. 지운 번호는 다시 안 주므로 lastNo 는 그대로다 */
-export async function 롤백판넣기(손: PoolClient, 서비스: number, items: PrdItem[], 사람: 저장하는사람, changes: 판변경[], 배포: number): Promise<number> {
+export async function 롤백판넣기(손: PoolClient, 서비스: number, items: PrdItem[], 사람: 저장하는사람, changes: 판변경[], 배포: number | null): Promise<number> {
   const 앞 = await 지금판읽기(손, 서비스);
   return 판넣기(손, 서비스, 앞, { items, lastNo: 앞?.lastNo ?? 0 }, 'ROLLBACK', 사람, null, changes, 배포);
 }

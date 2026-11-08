@@ -206,7 +206,8 @@ export async function 이어작성준비(
         입력.원본.specText,
         // 바뀐 API 만 다시 작성은 뿌리 한 번만이다 — 이어 작성이 물려받으면 누를 때 박아 둔 케이스로 다시 쓴다 (도메인/API §3.8).
         // 결정 진행 표시(decision)도 안 물려받는다 — 사람이 새로 시작한 작성이고, 물려받으면 집기가 옛 앞 일을 다시 기다린다 (작성 §7 「결정 목록 통로」)
-        JSON.stringify(Object.fromEntries(Object.entries(입력.원본.params).filter(([k]) => k !== 'apiApply' && k !== 'decision'))),
+        // 미룬 롤백 판(rollbackKeys)도 — 물려받으면 이어 작성을 집을 때 롤백 판이 뒤늦게 선다 (도메인/BTS 「새 기능 바퀴」 8)
+        JSON.stringify(Object.fromEntries(Object.entries(입력.원본.params).filter(([k]) => k !== 'apiApply' && k !== 'decision' && k !== 'rollbackKeys'))),
         입력.누가,
         입력.이름,
         입력.대조 !== undefined,
