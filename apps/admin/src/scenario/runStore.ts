@@ -129,7 +129,7 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
     // 되돌린 옛 버전 · 저장 뒤 종류를 바꾼 애플리케이션은 조립 검사를 안 거쳤다 — 연결 하나에 앱 하나를 여기서 다시 본다 (결정 16)
     const 앱접두사 = new Set(행.parts.flatMap((p) => (p.kind === 'case' && 앱단계인가(p, 종류) ? [케이스접두사(p.tcId)] : [])));
     if (앱접두사.size > 1) {
-      throw new 시나리오실행오류('NOT_RUNNABLE', `실행할 수 없는 시나리오다: 앱 · 게임 애플리케이션은 한 시나리오에 하나다: ${[...앱접두사].join(' · ')}`);
+      throw new 시나리오실행오류('NOT_RUNNABLE', `앱 · 게임 애플리케이션은 한 시나리오에 하나다: ${[...앱접두사].join(' · ')}`);
     }
     const 폰 = 폰값(행.parts, 앱들, env);
     // 실제 폰은 모바일 시나리오에서 고른 것만이고, 앱 · 게임 단계가 섞이면 웹 단계를 흉내로 돈다 (「모바일 시나리오를 실제 폰에서 돌릴 때」)
@@ -145,7 +145,7 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
     // 저장 뒤 애플리케이션을 다른 프로젝트로 옮겼으면 API 단계는 케이스처럼 비활성으로 드러나지 않는다 — 여기서 막는다
     const 밖 = 쓰는.filter((a) => !판정.허용.includes(a));
     if (밖.length > 0) {
-      throw new 시나리오실행오류('NOT_RUNNABLE', `실행할 수 없는 시나리오다: ${밖.join(' · ')} 는 ${행.prefix} 서비스와 같은 프로젝트가 아니다`);
+      throw new 시나리오실행오류('NOT_RUNNABLE', `${밖.join(' · ')} 는 ${행.prefix} 서비스와 같은 프로젝트가 아니다`);
     }
 
     // 저장 뒤 케이스가 바뀌어 건너뛸 수 없게 된 제목은 뺀다. 러너는 받은 제목이면 확인 절차도 건너뛴다 (결정 8)
@@ -168,7 +168,7 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
     const 채운부품 = await 부품채우기(c, parts, 케이스들, (tcId) => 앱들.get(케이스접두사(tcId))?.계정들 ?? 계정없음);
     const 크기사유 = 제한시간크기사유(채운부품);
     if (크기사유.length > 0) {
-      throw new 시나리오실행오류('NOT_RUNNABLE', `실행할 수 없는 시나리오다: 저장값을 채운 뒤 ${크기사유.join(' · ')}`);
+      throw new 시나리오실행오류('NOT_RUNNABLE', `저장값을 채운 뒤 ${크기사유.join(' · ')}`);
     }
 
     const run = await c.query<{ run_id: string }>(
@@ -290,5 +290,5 @@ function 실행가능확인(parts: ScenarioPart[], 재료: 카탈로그): 시나
       }),
     ...제한시간크기사유(parts),
   ];
-  return new 시나리오실행오류('NOT_RUNNABLE', `실행할 수 없는 시나리오다: ${사유.join(' · ')}`);
+  return new 시나리오실행오류('NOT_RUNNABLE', 사유.join(' · '));
 }

@@ -258,10 +258,12 @@ describe.skipIf(연결 === undefined)('시나리오 실행 만들기', () => {
   it('비활성 케이스 · 60분 초과 · tests 뿌리 밖 경로는 NOT_RUNNABLE 이다', async () => {
     const 비활성 = await 거절(await 버전바로넣기([케이스('XSE-002')]), 'qa', 'NOT_RUNNABLE');
     expect(비활성.message).toContain('XSE-002');
+    // 화면이 SCENARIO_NOT_RUNNABLE 을 「지금은 실행할 수 없는 시나리오입니다」로 옮겨 앞에 붙인다 — 서버가 또 붙이면 같은 말이 두 번 뜬다
+    expect(비활성.message).not.toContain('실행할 수 없는');
 
     const 길다 = Array.from({ length: 13 }, () => 케이스('XSE-001'));
     const 초과 = await 거절(await 버전바로넣기(길다), 'qa', 'NOT_RUNNABLE');
-    expect(초과.message).toContain('한도 60분을 넘습니다');
+    expect(초과.message).toMatch(/^단계가 많아 제한 시간 합이/);
 
     const 밖 = await 거절(await 버전바로넣기([케이스('XSE-003')]), 'qa', 'NOT_RUNNABLE');
     expect(밖.message).toContain('XSE-003');
