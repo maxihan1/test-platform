@@ -10,7 +10,8 @@ import { 표들 } from './messages.js';
 const 정본 = join(dirname(fileURLToPath(import.meta.url)), '../../../../docs/WORDS.md');
 
 // API 가 주는 값이라 바꾸지 않는다(CLAUDE.md §3). 화면에는 「회귀 실패」 · 「기존 실패」로 옮겨 나간다(RunFailDevice.tsx)
-const 예외 = new Set(['새로깨짐', '계속깨짐', '고쳐짐']);
+// 「러너」는 runState.ts 가 서버 글 속 그 낱말을 찾아 「테스트 실행기」로 바꾸는 데만 쓴다 — 화면에 그대로 나가지 않는다
+const 예외 = new Set(['새로깨짐', '계속깨짐', '고쳐짐', '러너']);
 
 interface 낱말줄 {
   쓰는말: string;
