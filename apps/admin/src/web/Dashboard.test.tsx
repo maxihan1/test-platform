@@ -384,11 +384,11 @@ describe('정기 실행 안내 줄 (리포팅 §8.12 빈 상태 · WEB-F3-08)', 
 });
 
 describe('그래프 칸 자리', () => {
-  it('일별 · 히트맵 · 커버리지는 판이고 쌓이는 순서는 화면 읽기 순서다 (안의 그림은 DashboardCharts.test 가 본다)', async () => {
+  it('일별 · 히트맵 · 커버리지는 판이고 묶음마다 왼쪽 기둥 · 오른쪽 기둥 차례로 쌓인다 (안의 그림은 DashboardCharts.test 가 본다)', async () => {
     읽기를(응답({ running: [실행중(12, 3, 8)] }));
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
     await screen.findByText('실행 중 1건');
-    const 순서 = ['실행 중 1건', '회귀 실패', '애플리케이션별 품질', '통과율', '일별 테스트 결과', '실패 히트맵', '실패 유형', '요구사항 커버리지'];
+    const 순서 = ['실행 중 1건', '회귀 실패', '애플리케이션별 품질', '일별 테스트 결과', '통과율', '실패 히트맵', '요구사항 커버리지', '실패 유형'];
     const 위치 = 순서.map((글) => screen.getByText(글, { selector: 'h2, .dash-live-head' }));
     for (let i = 1; i < 위치.length; i += 1) {
       expect(위치[i - 1]!.compareDocumentPosition(위치[i]!) & Node.DOCUMENT_POSITION_FOLLOWING, 순서[i]).toBeTruthy();
@@ -514,6 +514,6 @@ describe('새로 고침', () => {
     expect(container.querySelector('.dash-board')).toBe(판);
     expect(container.querySelector('.dash-ring')).toBe(도넛);
     expect(숫자.textContent).toBe('95%');
-    expect(container.querySelectorAll('.dash-board > *')).toHaveLength(5);
+    expect(container.querySelectorAll('.dash-board > *')).toHaveLength(2);
   });
 });
