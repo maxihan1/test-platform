@@ -189,7 +189,7 @@ describe('작성 한 건 상세', () => {
     expect(링크.hasAttribute('download')).toBe(false);
   });
 
-  it('준비 중(DRAFT) 요청에는 줄에 서지 않았으니 폐기하고 새 요청으로 다시 넣으라고 알린다', async () => {
+  it('준비 중(DRAFT) 요청에는 줄에 서지 않았으니 삭제하고 새 요청으로 다시 넣으라고 알린다', async () => {
     답 = 줄({ status: 'DRAFT', prUrl: null, finishedAt: null, startedAt: null, assets: [] });
     render(<AuthoringDetail service="PAY" id={7} 할수={운영} />);
     expect(await screen.findByText('이 요청은 대기열에 들어가지 못했습니다. 삭제하고 새 요청으로 다시 넣으세요')).toBeTruthy();
@@ -208,7 +208,7 @@ const 도는진척 = {
   lastActionAt: new Date(Date.now() - 5000).toISOString(),
 };
 
-describe('작성 진척 · 중단 · 폐기', () => {
+describe('작성 진척 · 중단 · 삭제', () => {
   it('도는 중이면 Status 카드가 숫자 칸과 지금 하는 일을 보인다 — 토큰 · 에이전트 기록 줄 · 에이전트 아이디는 없다 (⑫ 점검 12.8 · 12.9 · 12.16)', async () => {
     답 = 줄({ status: 'RUNNING', stage: '케이스를 만드는 중', prUrl: null, finishedAt: null, progress: 도는진척, canStop: true });
     render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
@@ -244,7 +244,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
     await vi.waitFor(() => expect(멈춤).toHaveBeenCalledWith('PAY', 7));
   });
 
-  it('병합 안 한 끝난 작성은 다음 단계 끝에 폐기가 있고, 누르면 PR 을 GitHub 에서 닫으라고 한 번 더 묻는다 (PRD-F9-16)', async () => {
+  it('병합 안 한 끝난 작성은 다음 단계 끝에 삭제가 있고, 누르면 PR 을 GitHub 에서 닫으라고 한 번 더 묻는다 (PRD-F9-16)', async () => {
     답 = 줄({ canDiscard: true });
     render(<AuthoringDetail service="PAY" id={7} 할수={운영} />);
     fireEvent.click(await screen.findByRole('button', { name: '삭제' }));
@@ -328,7 +328,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
         ...덮을것,
       });
 
-    it('제목은 다음 단계이고 이어서 작성 · 같은 자료로 다시 작성 · 폐기를 차례로 낸다', async () => {
+    it('제목은 다음 단계이고 이어서 작성 · 같은 자료로 다시 작성 · 삭제를 차례로 낸다', async () => {
       답 = 멈춤({ canResume: true, resumeUntil: '2026-10-05T03:00:00.000Z' });
       render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
       const 카드 = await screen.findByRole('region', { name: '다음 단계' });
@@ -502,7 +502,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
     expect(screen.getByText('차이를 표시한 기획서 — 원본 요청 #3의 자료')).toBeTruthy();
   });
 
-  it('폐기는 한 번 더 묻고, 성공하면 목록으로 간다', async () => {
+  it('삭제는 한 번 더 묻고, 성공하면 목록으로 간다', async () => {
     답 = 줄({ status: 'FAILED', prUrl: null, error: '실패함', canDiscard: true });
     render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
     fireEvent.click(await screen.findByRole('button', { name: '삭제' }));
@@ -512,7 +512,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
     expect(폐기).toHaveBeenCalledWith('PAY', 7);
   });
 
-  it('폐기된 행을 직접 열면 폐기됨이라고 보인다', async () => {
+  it('삭제된 행을 직접 열면 삭제됨이라고 보인다', async () => {
     답 = 줄({ status: 'STOPPED', prUrl: null, stopReason: 'USER', stoppedBy: 'kim', stoppedByName: '김철수', discardedAt: new Date().toISOString() });
     render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
     expect(await screen.findByText(/^삭제됨/)).toBeTruthy();

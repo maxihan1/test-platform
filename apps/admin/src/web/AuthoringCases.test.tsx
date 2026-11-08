@@ -189,7 +189,7 @@ describe('계정 없음 단계', () => {
   it('운영자에게는 없는 역할 이름 · 요구 번호 고리 · 설정에서 등록 고리를 낸다', async () => {
     지금([{ role: '판매자', count: 1, registered: false }], { 'FR-021': ['판매자'], 'FR-030': ['구매자'] });
     render(<AuthoringTodo service="PAY" 요청={반영줄()} 커버리지={계정셈} 할수={운영} 차이수={0} reload={reload} />);
-    expect(screen.getByText('계정이 없어 못 쓴 요구사항 2개')).toBeTruthy();
+    expect(screen.getByText('계정이 없어 못 쓴 요구사항 2건')).toBeTruthy();
     expect(await screen.findByText('판매자 계정이 없어 테스트를 못 썼습니다. 계정을 넣으면 이 요구사항만 이어 작성합니다')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'FR-021' }).getAttribute('href')).toBe('#/prd/FR-021');
     expect(screen.queryByRole('link', { name: 'FR-030' })).toBeNull();
@@ -221,7 +221,7 @@ describe('계정 없음 단계', () => {
   it('끝난 작성 요청의 다음 단계에도 같은 단계가 있다', async () => {
     지금([{ role: '판매자', count: 1, registered: false }], { 'FR-021': ['판매자'] });
     render(<AuthoringTodo service="PAY" 요청={줄({})} 커버리지={계정셈} 할수={운영} 차이수={0} reload={reload} />);
-    expect(screen.getByText('계정이 없어 못 쓴 요구사항 2개')).toBeTruthy();
+    expect(screen.getByText('계정이 없어 못 쓴 요구사항 2건')).toBeTruthy();
     expect(await screen.findByRole('link', { name: '설정에서 판매자 계정 등록' })).toBeTruthy();
   });
 });

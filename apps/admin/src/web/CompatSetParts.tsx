@@ -31,7 +31,7 @@ export function 디바이스구획({ 고른, 팜, 팜오류, 쓰나, 열기 }: {
         <>
           {팜 === null ? null : (
           <div className="compat-pills compat-pad">
-            {빠진수 === 0 ? null : <span className="compat-tag">{t('등록에서 누락 {수}', { 수: 빠진수 })}</span>}
+            {빠진수 === 0 ? null : <span className="compat-tag">{t('등록 해제 {수}', { 수: 빠진수 })}</span>}
             {디바이스요약글(셈, t).map((글) => (
               <span key={글} className="compat-auto">
                 {글}
@@ -46,7 +46,7 @@ export function 디바이스구획({ 고른, 팜, 팜오류, 쓰나, 열기 }: {
             {고른.map((d) => (
               <li key={d.serial} className="compat-scr" title={d.name}>
                 <span className="mono">{d.model}</span>
-                {팜 !== null && !팜사본.has(d.serial) ? <span className="compat-tag">{t('등록에서 누락')}</span> : null}
+                {팜 !== null && !팜사본.has(d.serial) ? <span className="compat-tag">{t('등록 해제')}</span> : null}
               </li>
             ))}
           </ol>

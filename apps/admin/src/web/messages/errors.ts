@@ -91,7 +91,7 @@ export const 오류영어: Record<string, string> = {
     'This request is not merged yet. Merge the tests first, then start a follow-up',
   '이미 남은 요구사항을 넘겨받은 요청이 있습니다. 화면을 새로고침합니다': 'Another request already took the remaining requirements. Refresh the page',
   '이어 작성할 남은 요구사항이 없습니다': 'No requirements are left for a follow-up',
-  '원본 요청이 삭제됐거나 아직 준비 중입니다. 화면을 새로고침합니다': 'The original request was discarded or is still being prepared. Refresh the page',
+  '원본 요청이 삭제됐거나 아직 준비 중입니다. 화면을 새로고침합니다': 'The original request was deleted or is still being prepared. Refresh the page',
   // 케이스 고치기 (도메인/작성 §3.6 「★ 케이스 고치기」)
   '수정할 내용을 받을 수 없는 케이스나 칸이 있습니다': 'A case or field cannot take this change',
   '같은 케이스를 수정하는 요청이 이미 열려 있습니다. 그 요청을 반영하거나 삭제한 뒤 다시 요청합니다':

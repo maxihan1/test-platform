@@ -17,7 +17,7 @@ export const 작성할일말: Record<string, string> = {
     'This target server has no test account or is marked as production. Ask an admin to check it',
   '이 애플리케이션에는 대상 서버가 없습니다. 관리자에게 대상 서버를 넣어 달라고 요청하세요':
     'This application has no target server. Ask an admin to add one',
-  '목록에 남은 그 줄은 삭제하세요': 'Discard the row left in the list.',
+  '목록에 남은 그 줄은 삭제하세요': 'Delete the row left in the list.',
   // 에이전트 실패 글을 옮긴 것 (authoringFailText.ts). 에이전트 글의 정본은 scripts/authoring-*.ts 의 끝내기 error
   '작성 도구가 완료되지 않아 결과를 등록하지 않았습니다. 같은 자료로 다시 작성하세요':
     'The writing tool did not exit, so nothing was uploaded. Write again with the same files',
@@ -55,9 +55,9 @@ export const 작성할일말: Record<string, string> = {
     'The earlier request has no requirement list, so what is left is unknown. You can discard this request',
   '반영할 것이 없습니다. 지금 버전의 요구사항이 이미 테스트에 들어 있습니다. 이 요청은 삭제해도 됩니다':
     'Nothing to apply. This version of the requirements is already in the tests. You can discard this request',
-  '기획서에 없는 화면이 없습니다. 이 요청은 삭제해도 됩니다': 'Every screen is in the spec. You can discard this request',
+  '기획서에 없는 화면이 없습니다. 이 요청은 삭제해도 됩니다': 'Every screen is in the spec. You can delete this request',
   // ⑫-10 작성 상세 할 일 흐름 (2026-10-19 · 점검 12.2~12.6 · 12.10~12.13 · 12.15 · N16 · N17 · 낱말은 시작 질문에서 사용자가 고른 것)
-  '계정이 없어 못 쓴 요구사항 {수}개': '{수} requirements not written for lack of an account',
+  '계정이 없어 못 쓴 요구사항 {수}건': '{수} requirements not written for lack of an account',
   '필요한 계정을 모두 넣었습니다. PRD 관리에서 이 요구사항만 이어 작성하세요': 'All needed accounts are in. Continue just these requirements from PRD management',
   'PRD 관리로 가기': 'Go to PRD management',
   '역할 계정이 없어 테스트를 못 쓴 요구사항입니다. 계정을 넣으면 이 요구사항만 이어 작성합니다': 'No test was written for these because a role account is missing. Add the account to continue just these requirements',
@@ -97,7 +97,7 @@ export const 작성할일말: Record<string, string> = {
   '다른 곳 보기': 'See the differences',
   '중복 케이스 {수}건 중 {고른}건 선택': '{고른} of {수} duplicate cases chosen',
   '두 케이스 비교를 눌러 내용을 보고 선택합니다.': 'Press Compare both to see each case, then choose.',
-  '반영하지 않을 테스트면 삭제합니다. 올라간 PR 은 삭제한 뒤 GitHub 에서 닫습니다.': 'Discard tests you will not apply. Close the PR on GitHub after discarding.',
+  '반영하지 않을 테스트면 삭제합니다. 올라간 PR 은 삭제한 뒤 GitHub 에서 닫습니다.': 'Delete tests you will not apply. Close the PR on GitHub after deleting.',
   '테스트 {수}건을 케이스 목록에 넣었습니다.': '{수} tests were added to the case list.',
   'UI 테스트 {수}건 바로 실행': 'Run {수} UI tests now',
   '기능 테스트 {수}건 바로 실행': 'Run {수} functional tests now',
@@ -127,9 +127,9 @@ export const 작성할일말: Record<string, string> = {
   '입력이 필요한지 확인할 수 없음': 'Cannot tell whether input is needed',
   '입력이 필요한 케이스로만 {수}': 'Only cases needing input {수}',
   '누락된 요구사항': 'Missing requirements',
-  '만든 {덮음}개 중 기능 테스트가 커버한 것 {기능} · UI 테스트가 커버한 것 {UI} — 둘 다 커버한 요구사항은 양쪽에 집계합니다': 'Of {덮음} covered, functional tests cover {기능} · UI tests cover {UI} — a requirement covered by both counts on each side',
-  '요구사항 {총}개 중 케이스로 만듦 {덮음}개 ({퍼센트}%)': '{덮음} of {총} requirements have cases ({퍼센트}%)',
-  '요구사항 {총}개 중 케이스로 만듦 {덮음}개': '{덮음} of {총} requirements have cases',
+  '만든 {덮음}건 중 기능 테스트가 커버한 것 {기능} · UI 테스트가 커버한 것 {UI} — 둘 다 커버한 요구사항은 양쪽에 집계합니다': 'Of {덮음} covered, functional tests cover {기능} · UI tests cover {UI} — a requirement covered by both counts on each side',
+  '요구사항 {총}건 중 케이스로 만듦 {덮음}건 ({퍼센트}%)': '{덮음} of {총} requirements have cases ({퍼센트}%)',
+  '요구사항 {총}건 중 케이스로 만듦 {덮음}건': '{덮음} of {총} requirements have cases',
   '누락 {수}': 'Missing {수}',
   'PR 닫으러 가기': 'Go close the PR',
   '입력 필요 {수}': '{수} need input',

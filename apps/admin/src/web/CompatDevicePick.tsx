@@ -164,7 +164,7 @@ export function CompatDevicePick({
                   <td className="mono">{d.model}</td>
                   <td colSpan={6}>-</td>
                   <td>
-                    <span className="compat-off">{t('등록에서 누락')}</span>
+                    <span className="compat-off">{t('등록 해제')}</span>
                   </td>
                 </tr>
               ))}

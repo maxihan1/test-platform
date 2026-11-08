@@ -19,7 +19,7 @@ export const 결정말: Record<string, string> = {
   '#{번호} 케이스 {수}건에 값이 필요합니다': '{수} cases in #{번호} need values',
   '#{번호} 케이스 {수}건이 다른 요청과 겹칩니다': '{수} cases in #{번호} overlap another request',
   '뒤에서': 'Behind it,',
-  '이 기다립니다 — 수정하거나 삭제하면 이어서 실행됩니다': 'is waiting — it runs once this is fixed or discarded',
+  '이 기다립니다 — 수정하거나 삭제하면 이어서 실행됩니다': 'is waiting — it runs once this is fixed or deleted',
 
   // ② 무엇이 맞는지
   '실패 {수}건이 더 있습니다. 위의 것을 정하면 이어서 보입니다': '{수} more failures. They show up once you decide the ones above',
@@ -125,7 +125,7 @@ export const 결정말: Record<string, string> = {
   'PRD 를 새 버전으로 저장합니다(버전 {버전}) — {바뀜}': 'Save the PRD as version {버전} — {바뀜}',
   '{키들} PRD 초안을 다시 만듭니다': 'Rebuild the PRD draft for {키들}',
   '#{번호} 테스트를 승인해 케이스 목록에 등록합니다': 'Approve the #{번호} tests and add them to the case list',
-  '#{번호} 작성 결과를 삭제합니다': 'Discard what #{번호} wrote',
+  '#{번호} 작성 결과를 삭제합니다': 'Delete what #{번호} wrote',
   'PRD 수정 {수}건': '{수} PRD updates',
   'PRD 초안 {수}줄': '{수} PRD draft rows',
   '적용을 시작했습니다': 'Started',

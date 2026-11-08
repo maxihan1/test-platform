@@ -158,13 +158,13 @@ describe('저장한 호환성 세트', () => {
     차림();
     vi.spyOn(compatApi, 'set').mockResolvedValue({ ...상세, devices: [...상세.devices, { serial: 'gone', model: 'SM-G991N', name: 'Galaxy S21' }] });
     render(<CompatSet envs={[]} id={3} serviceId={7} service="MKA" kind="APP" 쓰나 />);
-    expect(await screen.findByText('등록에서 누락 1')).toBeTruthy();
+    expect(await screen.findByText('등록 해제 1')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '디바이스 선택' }));
     const 상자 = within(screen.getByRole('dialog', { name: '디바이스 선택' }));
     fireEvent.click(상자.getByRole('checkbox', { name: 'Galaxy S21 SM-G991N' }));
     fireEvent.click(상자.getByRole('button', { name: '선택 완료' }));
     expect(screen.getByText('디바이스 2대')).toBeTruthy();
-    expect(screen.queryByText('등록에서 누락 1')).toBeNull();
+    expect(screen.queryByText('등록 해제 1')).toBeNull();
   });
 
   it('다른 애플리케이션의 세트는 고치지 않는다', async () => {

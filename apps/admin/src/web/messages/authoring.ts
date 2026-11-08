@@ -34,7 +34,7 @@ export const 작성말: Record<string, string> = {
   '지원하지 않는 파일입니다. PDF · 워드 · 엑셀 · md · txt · csv 만 업로드할 수 있습니다': 'File type not accepted. Only PDF · Word · Excel · md · txt · csv',
   '지원하지 않는 파일입니다. PDF · 워드 · md · txt 만 업로드할 수 있습니다': 'File type not accepted. Only PDF · Word · md · txt',
   '이 요청은 대기열에 들어가지 못했습니다. 새 요청으로 다시 넣으세요': 'This request was not queued. Submit a new request',
-  '이 요청은 대기열에 들어가지 못했습니다. 삭제하고 새 요청으로 다시 넣으세요': 'This request was not queued. Discard it and submit a new request',
+  '이 요청은 대기열에 들어가지 못했습니다. 삭제하고 새 요청으로 다시 넣으세요': 'This request was not queued. Delete it and submit a new request',
   '파일 하나가 크기 상한을 넘었습니다': 'The file is larger than the per-file limit',
   '빈 파일은 업로드할 수 없습니다': 'Empty files cannot be uploaded',
   '피그마 주소 형식이 맞지 않습니다. 피그마 디자인 파일의 링크를 넣으세요 (FigJam은 받지 않습니다)':
@@ -168,7 +168,7 @@ export const 작성말: Record<string, string> = {
   삭제됨: 'Deleted',
   '저장하고 PR 을 만드는 중 — 중단할 수 없습니다': 'Saving and opening the PR — cannot be stopped',
   '작성을 중단할까요?': 'Stop writing?',
-  '이 요청을 삭제할까요?': 'Discard this request?',
+  '이 요청을 삭제할까요?': 'Delete this request?',
   '{분}분 동안 만든 것은 남겨 두어 나중에 이어서 작성할 수 있습니다.':
     'What was made in {분} min is kept so you can continue writing later.',
   '아직 시작 전이라 바로 취소됩니다.': 'It has not started yet, so it is cancelled right away.',
