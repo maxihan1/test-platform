@@ -149,8 +149,12 @@ export class 주문서화면 {
     return this.쿠폰.getByRole('option', { name: 이름, exact: true }).evaluate((옵션) => (옵션 as HTMLOptionElement).disabled);
   }
 
-  async 쿠폰선택지글들(): Promise<string[]> {
-    return this.쿠폰.getByRole('option').allInnerTexts();
+  async 보유쿠폰글들(): Promise<string[]> {
+    return this.쿠폰.evaluate((칸) =>
+      Array.from((칸 as HTMLSelectElement).options)
+        .filter((옵션) => 옵션.value !== '')
+        .map((옵션) => 옵션.text),
+    );
   }
 
   async 쿠폰고르기(이름: string): Promise<void> {
