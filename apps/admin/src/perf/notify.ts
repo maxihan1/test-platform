@@ -2,13 +2,14 @@
 
 import { 슬랙으로 } from '../execution/notify.js';
 import { 실행번호글 } from './pdf.js';
-import { 사유 } from './reasons.js';
+import { 사유글 } from './reasons.js';
 import * as 표 from './store.js';
 
 const 유형글: Record<string, string> = { LOAD: '부하 테스트', STRESS: '스트레스 테스트', SPIKE: '스파이크 테스트', SOAK: '내구성 테스트' };
 
 export interface 알림재료 {
   id: number;
+  kind: string;
   scenarioName: string;
   status: string;
   verdict: 'PASS' | 'FAIL' | null;
@@ -43,11 +44,11 @@ export function 알림문장(r: 알림재료): string {
     ...(r.errorRate === null ? [] : [`에러율 ${r.errorRate.toFixed(1)}%`]),
   ];
   const 첫줄 = `${머리글(r)}${r.degraded ? ' [성능 저하]' : ''} ${r.scenarioName} ${실행번호글(r.id)} · ${숫자.join(' · ')}`;
-  return r.stopReason === null ? 첫줄 : `${첫줄}\n${사유[r.stopReason] ?? r.stopReason}`;
+  return r.stopReason === null ? 첫줄 : `${첫줄}\n${사유글(r.stopReason, r.kind)}`;
 }
 
 type 줄 = {
-  status: string; verdict: 'PASS' | 'FAIL' | null; stop_reason: string | null; test_type: string | null; env: string; origin: 'MANUAL' | 'SCHEDULED';
+  kind: string; status: string; verdict: 'PASS' | 'FAIL' | null; stop_reason: string | null; test_type: string | null; env: string; origin: 'MANUAL' | 'SCHEDULED';
   degraded: boolean | null; peak_vus: number | null; p95_ms: number | null; error_rate: string | null; name: string | null; alert: boolean | null; webhook: string | null;
 };
 
@@ -57,7 +58,7 @@ type 줄 = {
  */
 export async function 성능알림(runId: number, 보내기: (웹훅: string, 글: string) => Promise<boolean> = 슬랙으로): Promise<boolean> {
   const r = await (await 표.풀()).query<줄>(
-    `SELECT r.status, r.verdict, r.stop_reason, r.test_type, r.env, r.origin, r.degraded, r.peak_vus, r.p95_ms, r.error_rate,
+    `SELECT r.kind, r.status, r.verdict, r.stop_reason, r.test_type, r.env, r.origin, r.degraded, r.peak_vus, r.p95_ms, r.error_rate,
             s.name, (v.body->'run'->>'degradeAlert')::boolean AS alert, svc.slack_webhook AS webhook
        FROM perf_run r
        JOIN service svc ON svc.id = r.service_id
@@ -70,7 +71,7 @@ export async function 성능알림(runId: number, 보내기: (웹훅: string, �
   if (x === undefined || x.webhook === null || x.webhook === '') return false;
   if (!알림보낼까(x.origin, x.alert !== false, x.degraded === true)) return false;
   const 글 = 알림문장({
-    id: runId, scenarioName: x.name ?? '', status: x.status, verdict: x.verdict, stopReason: x.stop_reason, testType: x.test_type, env: x.env,
+    id: runId, kind: x.kind, scenarioName: x.name ?? '', status: x.status, verdict: x.verdict, stopReason: x.stop_reason, testType: x.test_type, env: x.env,
     peakVus: x.peak_vus, p95Ms: x.p95_ms, errorRate: x.error_rate === null ? null : Number(x.error_rate), degraded: x.degraded === true,
   });
   try {
