@@ -126,7 +126,7 @@ describe('케이스 고치기 상세', () => {
     const 할일 = within(await screen.findByRole('region', { name: '다음 단계' }));
     expect(할일.getByRole('link', { name: '수정한 케이스 보기 (PR)' }).getAttribute('href')).toBe('https://github.com/x/y/pull/3');
     expect(할일.getByRole('button', { name: '테스트 반영하기' })).toBeTruthy();
-    expect(할일.getByRole('button', { name: '폐기' })).toBeTruthy();
+    expect(할일.getByRole('button', { name: '삭제' })).toBeTruthy();
   });
 
   it('폐기 상자는 GitHub 의 PR 이 남는다고 알린다', async () => {
@@ -134,7 +134,7 @@ describe('케이스 고치기 상세', () => {
     render(<AuthoringDetail service="PAY" id={7} 할수={운영} />);
 
     const 할일 = within(await screen.findByRole('region', { name: '다음 단계' }));
-    fireEvent.click(할일.getByRole('button', { name: '폐기' }));
+    fireEvent.click(할일.getByRole('button', { name: '삭제' }));
     expect(within(screen.getByRole('dialog')).getByText(/GitHub 의 PR/)).toBeTruthy();
   });
 

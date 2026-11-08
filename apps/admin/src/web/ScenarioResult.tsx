@@ -99,7 +99,7 @@ export function ScenarioResult({
   const 걸린시간 = data.finishedAt === null ? null : Date.parse(data.finishedAt) - Date.parse(data.startedAt);
   const 칸들: [string, string][] = [
     [t('실행 시각'), when(data.startedAt, 언어)],
-    [t('소요'), seconds(걸린시간, 언어)],
+    [t('소요 시간'), seconds(걸린시간, 언어)],
     [t('대상 서버'), data.env],
     [t('대상 주소'), data.baseUrl],
     [t('실행자'), 실행자이름(data, 언어)],

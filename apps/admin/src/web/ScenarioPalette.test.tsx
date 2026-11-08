@@ -205,7 +205,7 @@ describe('ScenarioPalette 맥락', () => {
     expect(가입.querySelector('a')).toBeNull();
 
     const 배너 = screen.getByRole('button', { name: 'ZSP-004 추가' }).closest('li')!;
-    expect(배너.querySelector('.case-req')?.textContent).toBe('연결된 요구 없음');
+    expect(배너.querySelector('.case-req')?.textContent).toBe('연결된 요구사항 없음');
   });
 
   it('찾기는 요구 번호 · 요구 문장에도 맞고, 찾는 동안은 걸린 묶음과 경계 · 예외를 펴 둔 채 못 접는다', async () => {

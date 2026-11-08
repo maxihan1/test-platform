@@ -30,7 +30,7 @@ export function use엑셀받기(조건: CaseQuery, 건수: number | null): { 버
   return {
     버튼: (
       <button className="btn ghost case-export" onClick={() => void 받기()} disabled={받는중 || (건수 ?? 0) === 0}>
-        <기다림글자 중={받는중} 평소={t('이 결과 엑셀로 ({건수}건)', { 건수: 건수 ?? 0 })} 기다림={t('만드는 중…')} />
+        <기다림글자 중={받는중} 평소={t('이 결과 엑셀로 ({건수}건)', { 건수: 건수 ?? 0 })} 기다림={t('만드는 중')} />
       </button>
     ),
     알림:

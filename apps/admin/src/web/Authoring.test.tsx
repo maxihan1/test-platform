@@ -150,10 +150,10 @@ describe('작성 권한 칸', () => {
   it('남은 요구를 이어 작성한 요청 줄은 원본을 평문으로 적는다 — 줄 전체가 고리라 안에 고리를 두지 않는다', async () => {
     줄들.push(줄({ id: 5901, rootId: 5901, continueFrom: 5873, runCount: 1, summary: 요약({ kind: 'CONTINUE', from: { after: 5873 } }) }));
     render(<Authoring service="PAY" 할수={() => true} />);
-    const 첫 = await screen.findByText(/#5873의 남은 요구/);
+    const 첫 = await screen.findByText(/#5873의 남은 요구사항/);
     expect(첫.textContent).toContain('#5873의 남은 요구');
     expect(첫.closest('a')).toBe(null);
-    expect(screen.getAllByText('남은 요구 이어 작성')).toHaveLength(1);
+    expect(screen.getAllByText('남은 요구사항 이어 작성')).toHaveLength(1);
   });
 
   it('대조 병합 뒤 서버가 세운 기획서에 없는 화면 요청 줄은 종류 꼬리표와 앞 뿌리 번호를 단다 — 요청한 사람은 안 적는다', async () => {

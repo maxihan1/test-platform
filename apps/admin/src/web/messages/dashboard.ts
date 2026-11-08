@@ -17,7 +17,7 @@ export const 대시보드말: Record<string, string> = {
 
   // 회귀 실패
   '회귀 실패': 'Regressions',
-  '최근 {일}일, 같은 서버의 직전 실행과 비교': 'Last {일} days, compared with the previous run on the same server',
+  '최근 {일}일, 같은 서버의 이전 실행과 비교': 'Last {일} days, compared with the previous run on the same server',
   '회귀 실패가 없습니다': 'No regressions',
   '{수}건 더 있습니다': '{수} more',
   '실행 기록에서 보기': 'View in run history',
@@ -38,7 +38,7 @@ export const 대시보드말: Record<string, string> = {
   '애플리케이션별 품질': 'Quality by application',
   '직전 {일}일 대비': 'vs previous {일} days',
   '최근 실행, 맨 앞이 최신': 'Recent runs, newest first',
-  '직전 실행과 비교': 'Against previous run',
+  '이전 실행과 비교': 'Against previous run',
   '마지막 실행': 'Last run',
   '마지막 실행이 없습니다': 'No run yet',
   '마지막 실행에 실패가 있습니다': 'The last run has failures',
@@ -72,19 +72,19 @@ export const 대시보드말: Record<string, string> = {
   '{날짜} 실패 없음': '{날짜} no failures',
   '{날짜} 실패 1회': '{날짜} 1 failure',
   '{날짜} 실패 2회 이상': '{날짜} 2 or more failures',
-  '최근 {일}일 실패가 많은 케이스 {수}개의 날짜별 실패 횟수. 가장 많은 것은 {TC}':
+  '최근 {일}일 실패가 많은 케이스 {수}건의 날짜별 실패 횟수. 가장 많은 것은 {TC}':
     'Failures per day for the {수} cases with the most failures in the last {일} days. Most failures: {TC}',
   '최근 {일}일 실패한 케이스가 없습니다': 'No cases failed in the last {일} days',
 
   // 요구사항 커버리지
   '마지막 작성 기준': 'Based on the last authoring run',
-  '테스트 있는 요구 {덮음} / {전체}': 'Requirements with tests: {덮음} / {전체}',
+  '테스트 있는 요구사항 {덮음} / {전체}': 'Requirements with tests: {덮음} / {전체}',
   기능: 'Functional',
   전체: 'All',
   '기능 · UI 를 나누기 전에 작성한 애플리케이션 {수}개는 게이지에 넣지 않았습니다':
     '{수} applications authored before the functional / UI split are left out of the gauges',
   '{날짜} · 요청 #{번호}': '{날짜} · request #{번호}',
-  '테스트 없는 요구 {수}건 보기': 'View {수} requirements without tests',
+  '테스트 없는 요구사항 {수}건 보기': 'View {수} requirements without tests',
   '작성 기록이 없습니다': 'No authoring run yet',
 
   // 실패 유형
@@ -116,7 +116,7 @@ export const 대시보드말: Record<string, string> = {
   // 검토할 것 (2026-10-30 WEB-F7-06)
   '검토할 것': 'To review',
   '건': 'items',
-  '직전 실행에서는 통과': 'Passed in the previous run',
+  '이전 실행에서는 통과': 'Passed in the previous run',
   '테스트 작성에서 선택할 것': 'Waiting for your pick in test authoring',
   '서버 · 테스트 실행기에 닿지 못함': 'Could not reach the server or test runner',
 

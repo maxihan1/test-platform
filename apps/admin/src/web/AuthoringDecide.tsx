@@ -195,7 +195,7 @@ export function AuthoringDecide({ service, 목록, envs, 다시읽기, 탭: 주�
         <div className="decide-run">
           <small className="hint">{안저장 === 0 ? t('선택하지 않은 일은 이 목록에 남습니다') : t('저장하지 않은 수정 {수}건은 빠집니다', { 수: 안저장 })}</small>
           <button className="btn" type="button" disabled={바쁨 || 보냄.length === 0} onClick={() => void 적용하기()}>
-            <기다림글자 중={바쁨} 평소={t('{수}건 적용', { 수: 보냄.length })} 기다림={t('적용하는 중…')} />
+            <기다림글자 중={바쁨} 평소={t('{수}건 적용', { 수: 보냄.length })} 기다림={t('적용하는 중')} />
           </button>
         </div>
         {오류 === null ? null : (

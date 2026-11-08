@@ -89,12 +89,12 @@ export const 오류영어: Record<string, string> = {
   // 남은 요구로 이어 작성 (도메인/작성 §3.6 「★ 원장」) — 영어는 follow-up. continue 는 이어서 작성(재개)에만 쓴다
   '이 요청은 아직 반영되지 않았습니다. 테스트를 반영한 뒤에 이어 작성할 수 있습니다':
     'This request is not merged yet. Merge the tests first, then start a follow-up',
-  '이미 남은 요구를 넘겨받은 요청이 있습니다. 화면을 새로고침합니다': 'Another request already took the remaining requirements. Refresh the page',
-  '이어 작성할 남은 요구가 없습니다': 'No requirements are left for a follow-up',
-  '원본 요청이 폐기됐거나 아직 준비 중입니다. 화면을 새로고침합니다': 'The original request was discarded or is still being prepared. Refresh the page',
+  '이미 남은 요구사항을 넘겨받은 요청이 있습니다. 화면을 새로고침합니다': 'Another request already took the remaining requirements. Refresh the page',
+  '이어 작성할 남은 요구사항이 없습니다': 'No requirements are left for a follow-up',
+  '원본 요청이 삭제됐거나 아직 준비 중입니다. 화면을 새로고침합니다': 'The original request was deleted or is still being prepared. Refresh the page',
   // 케이스 고치기 (도메인/작성 §3.6 「★ 케이스 고치기」)
   '수정할 내용을 받을 수 없는 케이스나 칸이 있습니다': 'A case or field cannot take this change',
-  '같은 케이스를 수정하는 요청이 이미 열려 있습니다. 그 요청을 반영하거나 폐기한 뒤 다시 요청합니다':
+  '같은 케이스를 수정하는 요청이 이미 열려 있습니다. 그 요청을 반영하거나 삭제한 뒤 다시 요청합니다':
     'Another open request already changes the same case. Merge or discard it, then request again',
   // 반영 때 겹침 (도메인/작성 §3.6 「★ 반영 때 겹침 검사」)
   '중복 케이스를 아직 다 선택하지 않아 반영할 수 없습니다': 'Duplicate cases are not all decided yet, so the apply cannot start',
@@ -122,7 +122,7 @@ export const 오류영어: Record<string, string> = {
     'Someone else saved first. Reloading will discard your current edits',
   '다른 사람이 먼저 PRD 를 변경했습니다. 최신 버전을 불러왔으니 확인하고 다시 합니다':
     'Someone else changed the PRD first. The latest version is loaded. Check it and try again',
-  '요구 번호가 999 까지 찼습니다. 더 넣으려면 관리자와 정합니다':
+  '요구사항 번호가 999 까지 찼습니다. 더 넣으려면 관리자와 정합니다':
     'Requirement IDs are used up to 999. Talk to an admin before adding more',
   '다른 사람이 먼저 가이드를 변경했습니다. 최신 버전을 불러왔으니 확인하고 다시 합니다':
     'Someone else changed the guide first. The latest version is loaded. Check it and try again',
@@ -130,7 +130,7 @@ export const 오류영어: Record<string, string> = {
     'Attachment limit reached: 20 in the current version, 200 per application including removed ones',
   '글이 너무 깁니다. 구획마다 20,000자까지입니다': 'Too long. Each section takes up to 20,000 characters',
   '글자를 뽑을 수 없는 파일입니다. 파일 이름을 눌러 다운로드합니다': 'This file has no readable text. Click the file name to download it',
-  '반영하지 않은 테스트 작성 요청이 있습니다. 그 요청을 반영하거나 폐기한 뒤에 할 수 있습니다':
+  '반영하지 않은 테스트 작성 요청이 있습니다. 그 요청을 반영하거나 삭제한 뒤에 할 수 있습니다':
     'An authoring request is not merged yet. Merge or discard it first',
   '그 사이 변경된 것이 있습니다. 화면을 다시 불러온 뒤 다시 합니다': 'Something changed in the meantime. Reload the page and try again',
   '선택한 값으로 진행할 수 없습니다. 그 항목을 다시 선택합니다': 'Cannot run with that choice. Choose that item again',

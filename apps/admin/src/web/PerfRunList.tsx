@@ -109,7 +109,7 @@ export function PerfRunList({ serviceId }: { serviceId: number }) {
                     <th>{t('시나리오')}</th>
                     <th>{t('테스트 유형 · 대상 서버')}</th>
                     <th>{t('시작')}</th>
-                    <th className="r">{t('걸린 시간')}</th>
+                    <th className="r">{t('소요 시간')}</th>
                     <th>{t('판정')}</th>
                     {/* 측정 줄만 있으면 부하 테스트 칸 머리 셋 아래에 측정 수치가 걸린다 — 한 칸 「핵심 수치」로 (2026-10-31 시험 f19) */}
                     {부하있음 ? (

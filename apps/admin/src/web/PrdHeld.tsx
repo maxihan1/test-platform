@@ -40,7 +40,7 @@ export function PrdHeldCard({ service, held, 쓰나 }: { service: string; held: 
             ? t('보류 {건수}건 — {역할} 계정을 등록했습니다', { 건수, 역할: 역할글 })
             : t('보류 {건수}건 — {역할} 계정이 등록되지 않았습니다', { 건수, 역할: 역할글 })}
         </h2>
-        <small>{다등록 ? t('이어 작성하면 이 요구만 다시 작성합니다') : t('등록하면 이 요구만 다시 작성합니다')}</small>
+        <small>{다등록 ? t('이어 작성하면 이 요구사항만 다시 작성합니다') : t('등록하면 이 요구사항만 다시 작성합니다')}</small>
       </header>
       <footer>
         <a className="btn ghost small" href={`#/settings/${encodeURIComponent(service)}`}>
@@ -49,7 +49,7 @@ export function PrdHeldCard({ service, held, 쓰나 }: { service: string; held: 
         {쓰나 ? (
           <>
             <button className="btn small" disabled={보내는중 || 뿌리 === null} onClick={이어작성}>
-              {t('남은 요구로 이어 작성')}
+              {t('남은 요구사항으로 이어 작성')}
             </button>
             {뿌리 === null ? (
               <span className="note">{다등록 ? t('이어 작성할 작성 요청이 없습니다') : t('계정을 등록한 뒤에 이어 작성할 수 있습니다')}</span>

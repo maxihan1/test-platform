@@ -109,19 +109,19 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, 커버리지
   const 폐기버튼 =
     요청.canDiscard === true ? (
       <button className="btn ghost" type="button" onClick={() => set열린('discard')}>
-        {t('폐기')}
+        {t('삭제')}
       </button>
     ) : null;
 
   let 본문: React.ReactNode;
   if (요청.discardedAt) {
-    본문 = <p>{t('폐기됨')} · {when(요청.discardedAt, 언어)}</p>;
+    본문 = <p>{t('삭제됨')} · {when(요청.discardedAt, 언어)}</p>;
   } else if (고치기 !== undefined) {
     본문 = <고치기할일 {...{ service, 요청, 할수, 보내는중, 새줄로, 중단버튼, 폐기버튼 }} 반영실패={고치기.반영실패} />;
   } else if (요청.status === 'DRAFT') {
     본문 = (
       <>
-        <p>{t('이 요청은 대기열에 들어가지 못했습니다. 폐기하고 새 요청으로 다시 넣으세요')}</p>
+        <p>{t('이 요청은 대기열에 들어가지 못했습니다. 삭제하고 새 요청으로 다시 넣으세요')}</p>
         <div className="btns">{폐기버튼}</div>
       </>
     );
@@ -179,7 +179,7 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, 커버리지
             disabled={보내는중}
             onClick={() => 새줄로(() => api.createAuthoringRequest(service, { kind: 'RERUN', sourceId: 원본 }))}
           >
-            <기다림글자 중={보내는중} 평소={t('같은 자료로 다시 작성')} 기다림={t('시작하는 중…')} />
+            <기다림글자 중={보내는중} 평소={t('같은 자료로 다시 작성')} 기다림={t('시작하는 중')} />
           </button>
         ) : null}
       </일>
@@ -191,7 +191,7 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, 커버리지
         {폐기버튼 === null ? null : (
           <일
             표={중단 ? 'C' : 'B'}
-            제목={t('폐기')}
+            제목={t('삭제')}
             설명={중단 ? t('목록에서 사라집니다. 보관한 작업물도 삭제합니다. 통계와 토큰 기록은 남습니다.') : t('목록에서 사라집니다. 통계와 토큰 기록은 남습니다.')}
           >
             <div className="btns">{폐기버튼}</div>
@@ -213,7 +213,7 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, 커버리지
 
       {열린 === null ? null : (
         <Modal
-          제목={열린 === 'stop' ? t('작성을 중단할까요?') : t('이 요청을 폐기할까요?')}
+          제목={열린 === 'stop' ? t('작성을 중단할까요?') : t('이 요청을 삭제할까요?')}
           onClose={닫는다}
           버튼={
             <>
@@ -223,7 +223,7 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, 커버리지
               <button className="btn" type="button" disabled={보내는중} onClick={확인했다}>
                 {열린 === 'stop'
                   ? 보내는중 ? t('중단하는 중') : t('작성 중단')
-                  : 보내는중 ? t('폐기하는 중') : t('폐기')}
+                  : 보내는중 ? t('삭제하는 중') : t('삭제')}
               </button>
             </>
           }

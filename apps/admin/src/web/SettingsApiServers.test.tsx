@@ -29,7 +29,7 @@ describe('API 서버 구획', () => {
     const 읽기 = 그리기();
     expect(await screen.findByText('auth.demomarket.kr')).toBeTruthy();
     expect(읽기).toHaveBeenCalledWith(5);
-    expect(screen.getByText('케이스 12개')).toBeTruthy();
+    expect(screen.getByText('케이스 12건')).toBeTruthy();
     expect((screen.getByLabelText('auth.demomarket.kr 이름') as HTMLInputElement).value).toBe('인증');
     const 빈칸 = screen.getByLabelText('pay.demomarket.kr 이름') as HTMLInputElement;
     expect(빈칸.value).toBe('');

@@ -16,7 +16,7 @@ export function PrdNew({ service, now, 짓기, on닫기 }: { service: string; no
 
   return (
     <div className="prd-new prd-new-top" ref={칸}>
-      <h3>{t('새 요구')}</h3>
+      <h3>{t('새 요구사항')}</h3>
       <PrdItemForm
         새요구
         처음={빈요구()}

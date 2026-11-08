@@ -7,8 +7,8 @@ export const 성능기기말: Record<string, string> = {
   '게임 성능': 'Game performance',
   '새 측정': 'New measurement',
   '직접 플레이': 'Manual play',
-  'Appium 케이스 {수}개': '{수} Appium cases',
-  '게임 케이스 {수}개': '{수} game cases',
+  'Appium 케이스 {수}건': '{수} Appium cases',
+  '게임 케이스 {수}건': '{수} game cases',
   '반복 {수}회': 'Repeat {수}×',
   '디바이스 {수}대': 'Devices {수}',
 

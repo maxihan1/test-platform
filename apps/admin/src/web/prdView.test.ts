@@ -25,7 +25,7 @@ describe('기능 묶음', () => {
 
 describe('보낼 판', () => {
   const 판 = [항목('MKT-REQ-001', '가'), 항목('MKT-REQ-002', '나')];
-  const 새것 = { feature: '다', text: '새 요구', basis: [{ from: '화면', quote: '보인 글' }], status: 'NEEDS_CHECK' as const };
+  const 새것 = { feature: '다', text: '새 요구사항', basis: [{ from: '화면', quote: '보인 글' }], status: 'NEEDS_CHECK' as const };
 
   it('번호가 있으면 그 자리에서 바꾸고 번호는 그대로 둔다', () => {
     expect(고친판(판, 'MKT-REQ-001', 새것)).toEqual([{ ...새것, reqId: 'MKT-REQ-001' }, 판[1]]);

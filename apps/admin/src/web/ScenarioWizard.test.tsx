@@ -164,7 +164,7 @@ describe('ScenarioWizard AI 추천', () => {
     const 후보 = await screen.findByRole('button', { name: /첫 주문/ });
     expect(맡기기).toHaveBeenCalledWith({ service: 'ZSB', platform: 'desktop' });
     expect(묻기).toHaveBeenCalledWith(7);
-    expect(후보.textContent).toContain('단계 2개 · 값 연결 1곳 · 요구 2건');
+    expect(후보.textContent).toContain('단계 2개 · 값 연결 1곳 · 요구사항 2건');
     expect(screen.getByText('테스트 12건')).toBeTruthy();
 
     다음();

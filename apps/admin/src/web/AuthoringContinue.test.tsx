@@ -89,10 +89,10 @@ describe('반영 끝 — 남은 요구로 이어 작성', () => {
     expect(screen.getByText('테스트가 반영됐습니다. 케이스 목록에서 새 케이스를 볼 수 있습니다.')).toBeTruthy();
     expect(
       screen.getByText(
-        '반영한 실행 기준으로 다음 요청 120개 · 빠짐 3개가 남았습니다. 이것을 새 요청으로 작성하고 새 번호로 넘어갑니다. 남은 요구는 작성을 시작할 때 다시 집계합니다.',
+        '반영한 실행 기준으로 다음 요청 120개 · 누락 3개가 남았습니다. 이것을 새 요청으로 작성하고 새 번호로 넘어갑니다. 남은 요구사항은 작성을 시작할 때 다시 집계합니다.',
       ),
     ).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: '남은 요구로 이어 작성' }));
+    fireEvent.click(screen.getByRole('button', { name: '남은 요구사항으로 이어 작성' }));
     await waitFor(() => expect(window.location.hash).toBe('#/authoring/5901'));
     expect(보낸것).toEqual([{ kind: 'AUTHOR', continueFrom: 5873 }]);
   });
@@ -100,18 +100,18 @@ describe('반영 끝 — 남은 요구로 이어 작성', () => {
   it('셈이 없으면 남은 수 문장을 뺀다', () => {
     카드(줄({}), null);
     expect(screen.queryByText(/반영한 실행 기준으로/)).toBeNull();
-    expect(screen.getByText('이것을 새 요청으로 작성하고 새 번호로 넘어갑니다. 남은 요구는 작성을 시작할 때 다시 집계합니다.')).toBeTruthy();
+    expect(screen.getByText('이것을 새 요청으로 작성하고 새 번호로 넘어갑니다. 남은 요구사항은 작성을 시작할 때 다시 집계합니다.')).toBeTruthy();
   });
 
   it('작성 요청 권한이 없으면 버튼 대신 까닭을 말한다', () => {
     카드(줄({}), 셈, 작성못함);
-    expect(screen.queryByRole('button', { name: '남은 요구로 이어 작성' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '남은 요구사항으로 이어 작성' })).toBeNull();
     expect(screen.getByText('이어 작성은 작성 요청 권한이 있는 사람만 할 수 있습니다.')).toBeTruthy();
   });
 
   it('이미 넘겼으면 맡은 요청으로 가는 고리를 보인다', () => {
     카드(줄({ canContinue: false, continuedBy: 5901 }));
-    expect(screen.getByText('남은 요구는 #5901 요청이 맡았습니다.')).toBeTruthy();
+    expect(screen.getByText('남은 요구사항은 #5901 요청이 맡았습니다.')).toBeTruthy();
     expect(screen.getByRole('link', { name: '#5901 요청 보기' }).getAttribute('href')).toBe('#/authoring/5901');
   });
 
@@ -121,8 +121,8 @@ describe('반영 끝 — 남은 요구로 이어 작성', () => {
   ];
   it.each(못누름)('못 누르면(%s) 이어 작성 줄도 까닭 줄도 안 그린다', (_, 커버리지, 글) => {
     카드(줄({ canContinue: false }), 커버리지);
-    expect(screen.queryByRole('button', { name: '남은 요구로 이어 작성' })).toBeNull();
-    expect(screen.queryByText('남은 요구로 이어 작성')).toBeNull();
+    expect(screen.queryByRole('button', { name: '남은 요구사항으로 이어 작성' })).toBeNull();
+    expect(screen.queryByText('남은 요구사항으로 이어 작성')).toBeNull();
     expect(screen.queryByText(글)).toBeNull();
     expect(screen.getByText('테스트가 반영됐습니다. 케이스 목록에서 새 케이스를 볼 수 있습니다.')).toBeTruthy();
   });
@@ -130,22 +130,22 @@ describe('반영 끝 — 남은 요구로 이어 작성', () => {
   it('셈에 남은 것이 있는데 서버가 막으면(입력 자료 없는 옛 요청) 이어 작성 줄도 일반 까닭도 안 그린다', () => {
     카드(줄({ canContinue: false }));
     expect(screen.queryByText('이 요청은 이어 작성할 수 없습니다.')).toBeNull();
-    expect(screen.queryByText('남은 요구로 이어 작성')).toBeNull();
-    expect(screen.queryByRole('button', { name: '남은 요구로 이어 작성' })).toBeNull();
+    expect(screen.queryByText('남은 요구사항으로 이어 작성')).toBeNull();
+    expect(screen.queryByRole('button', { name: '남은 요구사항으로 이어 작성' })).toBeNull();
   });
 
   it('서버가 409 로 막으면 오류 한 줄을 띄우고 다시 읽는다', async () => {
     만들기답 = () => Promise.reject(new ApiError(409, 'ALREADY_CONTINUED', ''));
     카드(줄({}));
-    fireEvent.click(screen.getByRole('button', { name: '남은 요구로 이어 작성' }));
-    await waitFor(() => expect(screen.getByText('이미 남은 요구를 넘겨받은 요청이 있습니다. 화면을 새로고침합니다')).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: '남은 요구사항으로 이어 작성' }));
+    await waitFor(() => expect(screen.getByText('이미 남은 요구사항을 넘겨받은 요청이 있습니다. 화면을 새로고침합니다')).toBeTruthy());
     expect(다시읽음).toHaveBeenCalled();
     expect(window.location.hash).toBe('#/authoring/5873');
   });
 
   it('옛 응답(canContinue 없음)에는 항목을 안 그린다', () => {
     카드(줄({ canContinue: undefined, continuedBy: undefined }));
-    expect(screen.queryByText('남은 요구로 이어 작성')).toBeNull();
+    expect(screen.queryByText('남은 요구사항으로 이어 작성')).toBeNull();
   });
 });
 
@@ -155,7 +155,7 @@ describe('끝난 작성 실행 — GitHub 직접 병합 안내', () => {
 
   it('셈에 남은 요구가 있으면 반영을 눌러야 이어 작성할 수 있다고 알린다', () => {
     카드(작성끝());
-    expect(screen.getByText('GitHub 에서 이미 반영했어도 여기서 반영을 눌러야 남은 요구를 이어 작성할 수 있습니다.')).toBeTruthy();
+    expect(screen.getByText('GitHub 에서 이미 반영했어도 여기서 반영을 눌러야 남은 요구사항을 이어 작성할 수 있습니다.')).toBeTruthy();
   });
 
   it('남은 요구가 없으면 안내하지 않는다', () => {
@@ -187,7 +187,7 @@ describe('이어 작성 요청 — 원본 표시', () => {
         <AuthoringDetail service="MKT" id={5901} 할수={다됨} />
       </언어함>,
     );
-    const 고리 = await screen.findByRole('link', { name: '#5873의 남은 요구' });
+    const 고리 = await screen.findByRole('link', { name: '#5873의 남은 요구사항' });
     expect(고리.getAttribute('href')).toBe('#/authoring/5873');
   });
 
@@ -200,7 +200,7 @@ describe('이어 작성 요청 — 원본 표시', () => {
     );
     const 고리 = await screen.findByRole('link', { name: '#5873 다음 · 기획서에 없는 화면' });
     expect(고리.getAttribute('href')).toBe('#/authoring/5873');
-    expect(screen.queryByRole('link', { name: /남은 요구/ })).toBeNull();
+    expect(screen.queryByRole('link', { name: /남은 요구사항/ })).toBeNull();
   });
 
   it('재실행이 최신이어도 부제는 뿌리의 원본을 적는다 — 재실행 행에는 칸이 없다', async () => {
@@ -212,7 +212,7 @@ describe('이어 작성 요청 — 원본 표시', () => {
         <AuthoringDetail service="MKT" id={5901} 할수={다됨} />
       </언어함>,
     );
-    expect((await screen.findByRole('link', { name: '#5873의 남은 요구' })).getAttribute('href')).toBe('#/authoring/5873');
+    expect((await screen.findByRole('link', { name: '#5873의 남은 요구사항' })).getAttribute('href')).toBe('#/authoring/5873');
   });
 
   it('다른 요청 상세로 넘어갈 때 앞 요청의 답이 남아 있어도 앞 번호로 되돌려 보내지 않는다', async () => {
@@ -231,7 +231,7 @@ describe('이어 작성 요청 — 원본 표시', () => {
         <AuthoringDetail service="MKT" id={5901} 할수={다됨} />
       </언어함>,
     );
-    await screen.findByRole('link', { name: '#5873의 남은 요구' });
+    await screen.findByRole('link', { name: '#5873의 남은 요구사항' });
     expect(window.location.hash).toBe('#/authoring/5901');
   });
 });

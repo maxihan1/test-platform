@@ -131,7 +131,7 @@ export function RunFailJudge({ c, runId, 권한, on남김 }: Props) {
             </>
           }
         >
-          <p>{t('{번호} 가 커버하는 요구를 지금 화면에 맞게 수정하는 작성 요청을 바로 만듭니다.', { 번호: c.tcId })}</p>
+          <p>{t('{번호} 가 커버하는 요구사항을 지금 화면에 맞게 수정하는 작성 요청을 바로 만듭니다.', { 번호: c.tcId })}</p>
           {깨진확인 === null ? null : (
             <div className="fc-judge-diff">
               <span>{깨진확인.statement}</span>

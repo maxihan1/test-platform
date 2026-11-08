@@ -131,7 +131,7 @@ describe('요약 띠 — 직전 실행 대비', () => {
     그린다(집계(47, 3, 0), 견줌());
     const 고리 = screen.getByRole('link', { name: 'RUN 1038' });
     expect(고리.getAttribute('href')).toBe('#/runs/1038');
-    expect(고리.closest('.rs-axis')?.textContent).toBe('직전 실행 RUN 1038 대비 · 케이스 수');
+    expect(고리.closest('.rs-axis')?.textContent).toBe('이전 실행 RUN 1038 대비 · 케이스 수');
     const 수 = (이름: string) =>
       within(screen.getByText(이름).closest('.rs-stat') as HTMLElement).getByText(/^\d+$/).textContent;
     expect(수('회귀 실패')).toBe('2');
@@ -176,8 +176,8 @@ describe('요약 띠 — 직전 실행 대비', () => {
 
   it('주소가 바뀌었으면 한 줄로 알리고 빠진 케이스가 있으면 건수를 적는다', () => {
     그린다(집계(47, 3, 0), 견줌({ 주소바뀜: true, 빠진건수: 3 }), 'ALL', undefined, undefined, { 항목들: ['ZRS-001', 'ZRS-002', 'ZRS-003', 'ZRS-004'].map((id, i) => 항목줄(i, id)) });
-    expect(screen.getByText('직전 실행은 다른 주소에서 실행됐습니다')).toBeTruthy();
-    expect(screen.getByText(/직전 실행에 있었으나 이번에 실행되지 않은 케이스 3건/)).toBeTruthy();
+    expect(screen.getByText('이전 실행은 다른 주소에서 실행됐습니다')).toBeTruthy();
+    expect(screen.getByText(/이전 실행에 있었으나 이번에 실행되지 않은 케이스 3건/)).toBeTruthy();
   });
 
   it('빠진 케이스는 눌렀을 때 직전 실행과 맞대 이름을 목록으로 보인다 (점검 2.20)', async () => {
@@ -238,13 +238,13 @@ describe('요약 띠 — 직전 실행 대비', () => {
   it('insights 가 null 이면 대비 칸이 아예 없다', () => {
     const { container } = 그린다(집계(47, 3, 0), null);
     expect(container.querySelector('.rs-diff')).toBeNull();
-    expect(screen.queryByText(/직전 실행/)).toBeNull();
+    expect(screen.queryByText(/이전 실행/)).toBeNull();
   });
 
   it('previous 가 null 이면 대비 칸이 아예 없다', () => {
     const { container } = 그린다(집계(47, 3, 0), 견줌({ previous: null, 케이스들: [] }));
     expect(container.querySelector('.rs-diff')).toBeNull();
-    expect(screen.queryByText(/직전 실행/)).toBeNull();
+    expect(screen.queryByText(/이전 실행/)).toBeNull();
   });
 });
 

@@ -94,7 +94,7 @@ describe('결정 목록', () => {
     expect(screen.getByText('테스트 412건을 승인할까요?')).toBeTruthy();
     expect(screen.getByText(/기능 1개 테스트 · 회원가입/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '반려' }));
-    expect(screen.getByText('#10 작성 결과를 폐기합니다')).toBeTruthy();
+    expect(screen.getByText('#10 작성 결과를 삭제합니다')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '승인' }));
     expect(screen.getByText('#10 테스트를 승인해 케이스 목록에 등록합니다')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '승인' }));
@@ -144,7 +144,7 @@ describe('결정 목록', () => {
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
     expect(screen.getByText('→ 큰 제목 「서비스 이용약관」')).toBeTruthy();
     expect(screen.queryByRole('textbox')).toBeNull();
-    expect(screen.getByText('문장이 변경된 요구 1건 · 변경된 요구 1건의 테스트를 수정하고 다시 만듭니다 (변경된 요구도 같이 다시 만듭니다)')).toBeTruthy();
+    expect(screen.getByText('문장이 변경된 요구사항 1건 · 변경된 요구사항 1건의 테스트를 수정하고 다시 만듭니다 (변경된 요구사항도 같이 다시 만듭니다)')).toBeTruthy();
     expect(적용().textContent).toBe('1건 적용');
 
     fireEvent.click(screen.getByRole('button', { name: '다시 수정' }));
@@ -303,7 +303,7 @@ describe('결정 목록', () => {
     expect(칸().map((c) => c.disabled)).toEqual([false, false, false, false, true]);
     fireEvent.click(screen.getByRole('button', { name: '전체 선택' }));
     expect(칸().map((c) => c.checked)).toEqual([true, true, false, false, false]);
-    expect(screen.getByText('지금 기획서에 없는 요구라 선택할 수 없어요', { exact: false })).toBeTruthy();
+    expect(screen.getByText('지금 기획서에 없는 요구사항이라 선택할 수 없어요', { exact: false })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '초안 삭제' }));
     expect(칸().every((c) => c.disabled)).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: '초안 삭제' }));

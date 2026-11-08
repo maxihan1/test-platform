@@ -62,7 +62,7 @@ export const 성능실행말: Record<string, string> = {
   '아직 성능 테스트 실행이 없습니다': 'No performance runs yet',
   '성능 실행 목록': 'Performance runs',
   '테스트 유형 · 대상 서버': 'Test type · Target server',
-  '걸린 시간': 'Duration',
+  '소요 시간': 'Duration',
   '이전 실행 대비': 'Vs previous run',
   정기: 'Scheduled',
   '번호를 누르면 실행 중이면 실행 중 화면, 종료되었으면 결과 화면이 열립니다': 'Open a number to see the live screen while running, or the result once finished',

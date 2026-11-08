@@ -194,7 +194,7 @@ describe('결과', () => {
     vi.spyOn(perfApi, 'deviceResult').mockResolvedValue(결과);
     const 만들기 = vi.spyOn(perfApi, 'measureDevices').mockResolvedValue({ runId: 43 });
     render(<PerfDevices service={{ ...앱, kind: 'GAME' }} run={40} 쓰나 />);
-    expect(await screen.findByText(/게임 케이스 1개 · 반복 3회/)).toBeTruthy();
+    expect(await screen.findByText(/게임 케이스 1건 · 반복 3회/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '다시 실행' }));
     await waitFor(() => expect(만들기).toHaveBeenCalled());
     expect(만들기.mock.calls[0]![0]).toMatchObject({ drive: 'GAME', caseIds: ['ZQD-001'], repeat: 3 });
@@ -205,7 +205,7 @@ describe('결과', () => {
     vi.spyOn(perfApi, 'deviceResult').mockResolvedValue(결과);
     const 만들기 = vi.spyOn(perfApi, 'measureDevices').mockResolvedValue({ runId: 44 });
     render(<PerfDevices service={{ ...앱, kind: 'GAME' }} run={40} 쓰나 />);
-    expect(await screen.findByText(/Appium 케이스 1개 · 반복 3회/)).toBeTruthy();
+    expect(await screen.findByText(/Appium 케이스 1건 · 반복 3회/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '다시 실행' }));
     await waitFor(() => expect(만들기).toHaveBeenCalled());
     expect(만들기.mock.calls[0]![0]).toMatchObject({ drive: 'GAME', caseIds: ['ZQD-001'] });

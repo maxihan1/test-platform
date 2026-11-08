@@ -81,7 +81,7 @@ afterEach(cleanup);
 describe('Status 카드 — PRD 요구사항 집계 한 줄', () => {
   it('집계가 있으면 요구 수 · 케이스로 만든 수와 % · 입력이 필요한 케이스로만 · 제외(다음 작성) · 빠짐을 한 줄에 적는다', () => {
     render(<AuthoringStatusCard 요청={줄({ coverage: 예시셈 })} 지금={지금} />);
-    expect(셈줄().textContent).toBe('PRD 요구사항요구 172개 중 케이스로 만듦 48개 (28%) · 입력이 필요한 케이스로만 3 · 제외 124 (다음 작성 100) · 빠짐 0');
+    expect(셈줄().textContent).toBe('PRD 요구사항요구사항 172건 중 케이스로 만듦 48건 (28%) · 입력이 필요한 케이스로만 3 · 제외 124 (다음 작성 100) · 누락 0');
   });
 
   it('보류를 모르면 끝난 실행에서만 보류 여부 확인 불가라고 적는다 — 보류는 끝났을 때만 센다', () => {
@@ -96,8 +96,8 @@ describe('Status 카드 — PRD 요구사항 집계 한 줄', () => {
   it('갈래 수가 있으면 첫 줄은 그대로 두고 둘째 줄에 기능 · UI 테스트가 덮은 수를 따로 적는다', () => {
     render(<AuthoringStatusCard 요청={줄({ coverage: { ...예시셈, casedFn: 40, casedUi: 12 } })} 지금={지금} />);
     const 글 = 셈줄().textContent ?? '';
-    expect(글).toContain('요구 172개 중 케이스로 만듦 48개 (28%) · 입력이 필요한 케이스로만 3 · 제외 124 (다음 작성 100) · 빠짐 0');
-    expect(글).toContain('만든 48개 중 기능 테스트가 커버한 것 40 · UI 테스트가 커버한 것 12 — 둘 다 커버한 요구는 양쪽에 집계합니다');
+    expect(글).toContain('요구사항 172건 중 케이스로 만듦 48건 (28%) · 입력이 필요한 케이스로만 3 · 제외 124 (다음 작성 100) · 누락 0');
+    expect(글).toContain('만든 48건 중 기능 테스트가 커버한 것 40 · UI 테스트가 커버한 것 12 — 둘 다 커버한 요구사항은 양쪽에 집계합니다');
     expect(글.split('기능 테스트')).toHaveLength(2);
   });
 
@@ -116,15 +116,15 @@ describe('Status 카드 — PRD 요구사항 집계 한 줄', () => {
 
   it('빠진 요구가 있으면 셋째 줄에 번호 고리를 단다', () => {
     render(<AuthoringStatusCard 요청={줄({ coverage: { ...예시셈, missing: ['FR-001', 'FR-002'] } })} 지금={지금} />);
-    expect(셈줄().textContent).toContain('빠짐 2');
-    expect(셈줄().textContent).toContain('빠진 요구');
+    expect(셈줄().textContent).toContain('누락 2');
+    expect(셈줄().textContent).toContain('누락된 요구사항');
     expect(screen.getByRole('link', { name: 'FR-001' }).getAttribute('href')).toBe('#/prd/FR-001');
     expect(screen.getByRole('link', { name: 'FR-002' }).getAttribute('href')).toBe('#/prd/FR-002');
   });
 
   it('빠진 요구가 없으면 번호 줄이 없고, 열 개를 넘으면 앞의 열 개와 외 N개만 낸다', () => {
     render(<AuthoringStatusCard 요청={줄({ coverage: 예시셈 })} 지금={지금} />);
-    expect(셈줄().textContent).not.toContain('빠진 요구');
+    expect(셈줄().textContent).not.toContain('누락된 요구사항');
     expect(screen.queryAllByRole('link')).toHaveLength(0);
     cleanup();
     render(<AuthoringStatusCard 요청={줄({ coverage: { ...예시셈, missing: 번호들('FR', 13) } })} 지금={지금} />);
@@ -132,7 +132,7 @@ describe('Status 카드 — PRD 요구사항 집계 한 줄', () => {
     expect(screen.getByRole('link', { name: 'FR-10' })).toBeTruthy();
     expect(screen.queryByRole('link', { name: 'FR-11' })).toBeNull();
     expect(셈줄().textContent).toContain('외 3개');
-    expect(셈줄().textContent).toContain('빠짐 13');
+    expect(셈줄().textContent).toContain('누락 13');
   });
 
   it('다음 작성이 없으면 괄호를 빼고, PRD 밖 자료가 있으면 끝에 적는다', () => {
@@ -144,7 +144,7 @@ describe('Status 카드 — PRD 요구사항 집계 한 줄', () => {
     );
     const 글 = 셈줄().textContent ?? '';
     expect(글).not.toContain('(다음 작성');
-    expect(글).toContain('제외 124 · 빠짐 0 · PRD 밖 자료 1');
+    expect(글).toContain('제외 124 · 누락 0 · PRD 밖 자료 1');
   });
 
   it('제외가 0 이어도 제외 칸을 남긴다 — 넷이 합쳐 전부라는 것이 보여야 한다', () => {
@@ -154,7 +154,7 @@ describe('Status 카드 — PRD 요구사항 집계 한 줄', () => {
         지금={지금}
       />,
     );
-    expect(셈줄().textContent).toContain('요구 3개 중 케이스로 만듦 1개 (33%) · 제외 0 · 빠짐 2');
+    expect(셈줄().textContent).toContain('요구사항 3건 중 케이스로 만듦 1건 (33%) · 제외 0 · 누락 2');
   });
 
   it('요구가 0 개면 % 를 뺀다', () => {
@@ -165,14 +165,14 @@ describe('Status 카드 — PRD 요구사항 집계 한 줄', () => {
       />,
     );
     const 글 = 셈줄().textContent ?? '';
-    expect(글).toContain('요구 0개 중 케이스로 만듦 0개');
+    expect(글).toContain('요구사항 0건 중 케이스로 만듦 0건');
     expect(글).not.toContain('%');
   });
 
   it('제외에 계정 미등록이 있어도 카드에는 계정 보류 줄을 안 적는다 — 다음 단계가 역할 이름과 함께 말한다', () => {
     render(<AuthoringStatusCard 요청={줄({ coverage: { ...예시셈, excluded: { '계정 미등록': 16 } } })} 지금={지금} />);
     expect(screen.queryByText(/역할 계정이 등록되지 않았습니다/)).toBeNull();
-    expect(screen.queryByText(/계정이 없어 못 쓴 요구/)).toBeNull();
+    expect(screen.queryByText(/계정이 없어 못 쓴 요구사항/)).toBeNull();
     expect(셈줄().textContent).toContain('제외 16');
   });
 
@@ -192,13 +192,13 @@ describe('Status 카드 — PRD 요구사항 집계 한 줄', () => {
   it('진척 기록이 없어도 줄은 보인다 — 숫자 칸과 따로다', () => {
     render(<AuthoringStatusCard 요청={줄({ progress: null, coverage: 예시셈 })} 지금={지금} />);
     expect(screen.queryByText('작성한 케이스 파일')).toBeNull();
-    expect(셈줄().textContent).toContain('요구 172개 중 케이스로 만듦 48개 (28%)');
+    expect(셈줄().textContent).toContain('요구사항 172건 중 케이스로 만듦 48건 (28%)');
   });
 
   it('셈을 따로 넘기면 요청의 셈 대신 그것을 쓴다 — null 을 넘기면 줄이 없다', () => {
     const 따로 = { ...예시셈, total: 50, cased: 50, excluded: {}, later: [] };
     render(<AuthoringStatusCard 요청={줄({ coverage: 예시셈 })} 커버리지={따로} 지금={지금} />);
-    expect(셈줄().textContent).toContain('요구 50개 중 케이스로 만듦 50개 (100%)');
+    expect(셈줄().textContent).toContain('요구사항 50건 중 케이스로 만듦 50건 (100%)');
     cleanup();
     render(<AuthoringStatusCard 요청={줄({ coverage: 예시셈 })} 커버리지={null} 지금={지금} />);
     expect(screen.queryByText('PRD 요구사항')).toBeNull();
@@ -243,7 +243,7 @@ describe('상세 — 셈은 머지를 뺀 최신 작성 실행 것이다', () =>
     답들.set(11, 줄({ id: 11, kind: 'MERGE', sourceId: 5, progress: null, rootId: 5, runs: 기록 }));
     render(<AuthoringDetail service="PAY" id={5} 할수={운영} />);
     await screen.findByText('PRD 요구사항');
-    expect(셈줄().textContent).toContain('요구 172개 중 케이스로 만듦 48개 (28%)');
+    expect(셈줄().textContent).toContain('요구사항 172건 중 케이스로 만듦 48건 (28%)');
   });
 
   it('다시 작성한 실행이 있으면 처음 실행이 아니라 그 실행의 셈을 보인다', async () => {
@@ -253,7 +253,7 @@ describe('상세 — 셈은 머지를 뺀 최신 작성 실행 것이다', () =>
     답들.set(11, 줄({ id: 11, kind: 'MERGE', sourceId: 9, progress: null, rootId: 5, runs: 기록 }));
     render(<AuthoringDetail service="PAY" id={5} 할수={운영} />);
     await screen.findByText('PRD 요구사항');
-    expect(셈줄().textContent).toContain('요구 172개 중 케이스로 만듦 48개 (28%)');
+    expect(셈줄().textContent).toContain('요구사항 172건 중 케이스로 만듦 48건 (28%)');
     expect(screen.queryByText(/처음 실행의 옛 셈/)).toBeNull();
   });
 });

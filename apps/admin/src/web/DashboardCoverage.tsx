@@ -64,7 +64,7 @@ function 게이지({ 이름, 덮음, 전체 }: { 이름: string; 덮음: number;
           )}
         </span>
       </div>
-      {퍼센트 === null ? null : <p className="dash-gauge-cap">{t('테스트 있는 요구 {덮음} / {전체}', { 덮음, 전체 })}</p>}
+      {퍼센트 === null ? null : <p className="dash-gauge-cap">{t('테스트 있는 요구사항 {덮음} / {전체}', { 덮음, 전체 })}</p>}
     </div>
   );
 }
@@ -129,7 +129,7 @@ export function 요구커버리지({
                   title={t('{날짜} · 요청 #{번호}', { 날짜: 짧은날짜(줄.finishedAt, 언어), 번호: 줄.requestId })}
                   {...서비스를열며(서비스열기, 줄.serviceId)}
                 >
-                  {t('테스트 없는 요구 {수}건 보기', { 수: 줄.total - 줄.cased })}
+                  {t('테스트 없는 요구사항 {수}건 보기', { 수: 줄.total - 줄.cased })}
                 </a>
               ) : null}
             </span>

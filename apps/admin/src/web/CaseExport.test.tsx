@@ -59,7 +59,7 @@ describe('케이스 목록 — 이 결과 엑셀로', () => {
     fireEvent.click(await screen.findByRole('button', { name: '이 결과 엑셀로 (6건)' }));
 
     expect(받기).toHaveBeenCalledWith(expect.objectContaining({ service: 'XCX', q: '로그인' }));
-    expect(screen.getByRole('button', { name: '만드는 중…' })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: '만드는 중' })).toHaveProperty('disabled', true);
 
     끝내기({ 파일: new Blob(['x']), 머리: "attachment; filename=\"XCX-testcases-2026-09-29.xlsx\"; filename*=UTF-8''XCX-%ED%85%8C%EC%8A%A4%ED%8A%B8%EC%BC%80%EC%9D%B4%EC%8A%A4-2026-09-29.xlsx" });
     await waitFor(() => expect(누름).toHaveBeenCalledOnce());

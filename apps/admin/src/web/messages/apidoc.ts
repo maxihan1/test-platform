@@ -9,8 +9,8 @@ export const API문서말: Record<string, string> = {
   '버전 {버전}': 'Version {버전}',
   'API {건수}개': '{건수} APIs',
   '문서 가져오기': 'Fetch docs again',
-  '받는 중…': 'Fetching…',
-  '업로드 중…': 'Uploading…',
+  '받는 중': 'Fetching…',
+  '업로드 중': 'Uploading…',
   'API 문서 파일': 'API doc file',
   '현재 버전과 같아 새 버전을 만들지 않았습니다 (버전 {버전})': 'Same as version {버전}, so no new version was made',
   '문서 가져오기로 기준 서버에서 가져오거나, 파일 첨부로 OpenAPI 3 JSON 파일을 업로드합니다':

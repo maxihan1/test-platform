@@ -110,7 +110,7 @@ describe('머리', () => {
     연다(결과());
     await screen.findByText('단계별 결과');
     const 칸 = document.querySelector('.scn-info') as HTMLElement;
-    for (const 라벨 of ['실행 시각', '소요', '대상 서버', '대상 주소', '실행자']) expect(within(칸).getByText(라벨)).toBeTruthy();
+    for (const 라벨 of ['실행 시각', '소요 시간', '대상 서버', '대상 주소', '실행자']) expect(within(칸).getByText(라벨)).toBeTruthy();
     for (const 값 of ['qa', 'https://qa.example.com', '김검사', '12.00초']) expect(within(칸).getByText(값)).toBeTruthy();
   });
 });

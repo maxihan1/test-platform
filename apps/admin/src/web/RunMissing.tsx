@@ -33,7 +33,7 @@ export function 빠진목록({ 앞: 앞번호, 이번, 건수 }: { 앞: number; 
   return (
     <div className="rs-missing">
       <button type="button" className="rs-note linklike" aria-expanded={열림} onClick={() => set열림(!열림)}>
-        {t('직전 실행에 있었으나 이번에 실행되지 않은 케이스 {건수}건', { 건수 })}
+        {t('이전 실행에 있었으나 이번에 실행되지 않은 케이스 {건수}건', { 건수 })}
         {' · '}
         {열림 ? t('접기') : t('목록 보기')}
       </button>

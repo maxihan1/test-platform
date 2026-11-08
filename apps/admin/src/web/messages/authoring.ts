@@ -24,7 +24,7 @@ export const 작성말: Record<string, string> = {
   '피그마 주소': 'Figma links',
   '한 줄에 하나씩': 'One per line',
   '테스트 작성 시작': 'Start writing tests',
-  '시작하는 중…': 'Starting…',
+  '시작하는 중': 'Starting…',
   'API 문서 버전 {버전}': 'API doc version {버전}',
   // API 애플리케이션의 새 요청 폼 (도메인/작성 §7 「AUTHOR API 문서 판」)
   '버전 {버전} (현재 버전)': 'Version {버전} (current)',
@@ -34,7 +34,7 @@ export const 작성말: Record<string, string> = {
   '지원하지 않는 파일입니다. PDF · 워드 · 엑셀 · md · txt · csv 만 업로드할 수 있습니다': 'File type not accepted. Only PDF · Word · Excel · md · txt · csv',
   '지원하지 않는 파일입니다. PDF · 워드 · md · txt 만 업로드할 수 있습니다': 'File type not accepted. Only PDF · Word · md · txt',
   '이 요청은 대기열에 들어가지 못했습니다. 새 요청으로 다시 넣으세요': 'This request was not queued. Submit a new request',
-  '이 요청은 대기열에 들어가지 못했습니다. 폐기하고 새 요청으로 다시 넣으세요': 'This request was not queued. Discard it and submit a new request',
+  '이 요청은 대기열에 들어가지 못했습니다. 삭제하고 새 요청으로 다시 넣으세요': 'This request was not queued. Delete it and submit a new request',
   '파일 하나가 크기 상한을 넘었습니다': 'The file is larger than the per-file limit',
   '빈 파일은 업로드할 수 없습니다': 'Empty files cannot be uploaded',
   '피그마 주소 형식이 맞지 않습니다. 피그마 디자인 파일의 링크를 넣으세요 (FigJam은 받지 않습니다)':
@@ -164,12 +164,11 @@ export const 작성말: Record<string, string> = {
   '작성 중 끊김': 'Cut off while writing',
   '업로드 거절': 'Upload rejected',
   '작성 중단': 'Stop writing',
-  폐기: 'Discard',
-  '폐기하는 중': 'Discarding…',
-  폐기됨: 'Discarded',
+  '삭제하는 중': 'Deleting…',
+  삭제됨: 'Deleted',
   '저장하고 PR 을 만드는 중 — 중단할 수 없습니다': 'Saving and opening the PR — cannot be stopped',
   '작성을 중단할까요?': 'Stop writing?',
-  '이 요청을 폐기할까요?': 'Discard this request?',
+  '이 요청을 삭제할까요?': 'Delete this request?',
   '{분}분 동안 만든 것은 남겨 두어 나중에 이어서 작성할 수 있습니다.':
     'What was made in {분} min is kept so you can continue writing later.',
   '아직 시작 전이라 바로 취소됩니다.': 'It has not started yet, so it is cancelled right away.',
@@ -259,17 +258,17 @@ export const 작성말: Record<string, string> = {
   '집계 없음 — {까닭}': 'no tally — {까닭}',
   // 계정이 없어 보류된 요구 (도메인/작성 §3.6 「★ 역할별 계정」 「작성 결과 카드」)
   // 남은 요구로 이어 작성 (도메인/작성 §3.6 「★ 원장」) — 영어는 follow-up. continue 는 이어서 작성(재개)에만 쓴다
-  '남은 요구로 이어 작성': 'Follow up on remaining requirements',
-  '남은 요구는 #{번호} 요청이 맡았습니다.': 'Request #{번호} took the remaining requirements.',
+  '남은 요구사항으로 이어 작성': 'Follow up on remaining requirements',
+  '남은 요구사항은 #{번호} 요청이 맡았습니다.': 'Request #{번호} took the remaining requirements.',
   '#{번호} 요청 보기': 'View request #{번호}',
-  '#{번호}의 남은 요구': 'Follow-up of #{번호}',
+  '#{번호}의 남은 요구사항': 'Follow-up of #{번호}',
   '#{번호} 다음 · 기획서에 없는 화면': 'After #{번호} · screens not in the spec',
-  '반영한 실행 기준으로 다음 요청 {다음}개 · 빠짐 {빠짐}개가 남았습니다.':
+  '반영한 실행 기준으로 다음 요청 {다음}개 · 누락 {빠짐}개가 남았습니다.':
     'As of the merged run, {다음} left for the next request · {빠짐} missing.',
-  '이것을 새 요청으로 작성하고 새 번호로 넘어갑니다. 남은 요구는 작성을 시작할 때 다시 집계합니다.':
+  '이것을 새 요청으로 작성하고 새 번호로 넘어갑니다. 남은 요구사항은 작성을 시작할 때 다시 집계합니다.':
     'They are written as a new request, and you move to its new number. The remaining requirements are counted again when writing starts.',
   '이어 작성은 작성 요청 권한이 있는 사람만 할 수 있습니다.': 'Only people who can request writing can start a follow-up.',
-  'GitHub 에서 이미 반영했어도 여기서 반영을 눌러야 남은 요구를 이어 작성할 수 있습니다.':
+  'GitHub 에서 이미 반영했어도 여기서 반영을 눌러야 남은 요구사항을 이어 작성할 수 있습니다.':
     'Even if the PR was applied on GitHub, apply here to follow up on the remaining requirements.',
   // 반영 때 겹침 (도메인/작성 §3.6 「★ 반영 때 겹침 검사」)
   '번호가 겹쳐 반영할 때 새 번호를 받습니다': 'The ID overlaps, so it gets a new ID when merged',

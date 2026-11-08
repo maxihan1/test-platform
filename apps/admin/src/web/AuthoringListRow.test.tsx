@@ -55,7 +55,7 @@ describe('작성 목록 줄 내용 (도메인/작성 §3.6 「작성 목록 줄�
     render(<Authoring service="PAY" 할수={() => true} />);
     expect((await screen.findByText('기능 25개 테스트 · 공통 · 홈 · 회원가입 외 22개')).getAttribute('href')).toBe('#/authoring/14675');
     expect(screen.getByText('기획서로 작성')).toBeTruthy();
-    expect(screen.getByText('케이스 412건 만듦 · 요구 348건 중 347건 · 보류 2건')).toBeTruthy();
+    expect(screen.getByText('케이스 412건 만듦 · 요구사항 348건 중 347건 · 보류 2건')).toBeTruthy();
     expect(screen.getByText(/^자료 기획서\.docx · Figma 디자인 · 요청한 사람 테스터 · /)).toBeTruthy();
   });
 
@@ -70,7 +70,7 @@ describe('작성 목록 줄 내용 (도메인/작성 §3.6 「작성 목록 줄�
     expect(await screen.findByText('작성 순서를 기다리는 중')).toBeTruthy();
     // 제목이 종류로 떨어지면 꼬리표를 또 달지 않는다
     expect(screen.getAllByText('화면만 대조')).toHaveLength(1);
-    expect(screen.getByText('요구 348건 테스트 다시 작성')).toBeTruthy();
+    expect(screen.getByText('요구사항 348건 테스트 다시 작성')).toBeTruthy();
     // 중단은 판정이 아니라 실패 색을 쓰지 않는다 — 실패만 실패 색이다
     expect(screen.getByText('케이스 작성 단계에서 종료 · 만든 케이스 없음').className).not.toContain('fail');
     expect(screen.getByText(/^PRD 관리에서 시작 · 요청한 사람 테스터/)).toBeTruthy();
