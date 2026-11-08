@@ -196,16 +196,16 @@ describe('표머리 (SPEC §8.1)', () => {
     render(<표머리 고름상태="none" on모두고르기={vi.fn()} />);
     expect(screen.queryByRole('row')).toBeNull();
     expect(screen.queryAllByRole('columnheader')).toHaveLength(0);
-    expect(screen.getAllByRole('checkbox', { name: '이 쪽 전체 선택' })).toHaveLength(1);
+    expect(screen.getAllByRole('checkbox', { name: '이 페이지 전체 선택' })).toHaveLength(1);
   });
 
   it('쌓인 줄에서 보일 「이 쪽 전체 선택」 글이 있고 화면 읽기에는 체크박스 이름 하나만 읽힌다 (PR #159)', () => {
     const { container } = render(<표머리 고름상태="none" on모두고르기={vi.fn()} />);
 
     const 글 = container.querySelector('.pick-all');
-    expect(글?.textContent).toBe('이 쪽 전체 선택');
+    expect(글?.textContent).toBe('이 페이지 전체 선택');
     expect(글?.getAttribute('aria-hidden')).toBe('true');
-    expect(screen.getAllByRole('checkbox', { name: '이 쪽 전체 선택' })).toHaveLength(1);
+    expect(screen.getAllByRole('checkbox', { name: '이 페이지 전체 선택' })).toHaveLength(1);
   });
 
   it('「이 쪽 전체 선택」 글을 눌러도 고른다 — 라벨처럼 보이는 글이 안 눌리면 20px 네모만 노리게 된다', () => {

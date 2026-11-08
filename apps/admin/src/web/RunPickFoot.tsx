@@ -54,10 +54,10 @@ function 닫기묻는줄({ on계속, on닫기, on저장닫기 }: { on계속: () 
     return (
       <>
         <span className="note" role="status">
-          {t('고친 입력값이 저장되지 않았습니다')} · {t('팀 모두와 정기 실행에 쓰입니다')}
+          {t('수정한 입력값이 저장되지 않았습니다')} · {t('팀 모두와 정기 실행에 쓰입니다')}
         </span>
         <button className="btn ghost" onClick={on계속}>
-          {t('계속 고치기')}
+          {t('계속 수정')}
         </button>
         <button className="btn ghost" onClick={on닫기}>
           {t('저장 안 하고 닫기')}
@@ -72,10 +72,10 @@ function 닫기묻는줄({ on계속, on닫기, on저장닫기 }: { on계속: () 
     <>
       {/* 오류가 아니라 묻는 글이라 실패 색을 쓰지 않는다 (DESIGN.md 원칙 1) */}
       <span className="note" role="status">
-        {t('고친 값이 사라집니다')}
+        {t('수정한 값이 사라집니다')}
       </span>
       <button className="btn" onClick={on계속}>
-        {t('계속 고치기')}
+        {t('계속 수정')}
       </button>
       <button className="btn ghost" onClick={on닫기}>
         {t('닫기')}

@@ -14,12 +14,12 @@ export const BTS말: Record<string, string> = {
   '{bts} 주소': '{bts} address',
   '{bts} 프로젝트 키': '{bts} project key',
   '「QA Hub AI」 계정 이름': '"QA Hub AI" account name',
-  'Test Commander 가 실패한 테스트를 {bts} 이슈로 올릴 때 쓰는 통합계정입니다. 사람 계정과 따로 두어야 {bts} 에서 누가 올렸는지 구분됩니다':
+  'Test Commander 가 실패한 테스트를 {bts} 이슈로 등록할 때 쓰는 통합계정입니다. 사람 계정과 따로 두어야 {bts} 에서 누가 등록했는지 구분됩니다':
     'The unified account used to file failed tests as {bts} issues. Keep it separate from personal accounts so {bts} shows who filed what',
 
   // 상태 매핑
   '상태 매핑': 'Status mapping',
-  'Test Commander 단계마다 {bts} 상태를 하나씩 고릅니다. 비어 있는 단계가 있으면 저장할 수 없습니다':
+  'Test Commander 단계마다 {bts} 상태를 하나씩 선택합니다. 비어 있는 단계가 있으면 저장할 수 없습니다':
     'Pick one {bts} status for each Test Commander stage. You cannot save while a stage is empty',
   '{bts} 에서 불러오기': 'Load from {bts}',
   '다시 불러오기': 'Load again',
@@ -40,24 +40,24 @@ export const BTS말: Record<string, string> = {
 
   // 코드 저장소
   '코드 저장소': 'Code repositories',
-  '수정 AI 가 코드를 내려받을 저장소입니다. 애플리케이션마다 따로 저장됩니다': 'Repositories the fix AI clones. Saved per application',
+  '수정 AI 가 코드를 다운로드할 저장소입니다. 애플리케이션마다 따로 저장됩니다': 'Repositories the fix AI clones. Saved per application',
   '{앱} 저장소 {번호} 이름': '{앱} repository {번호} name',
   '{앱} 저장소 {번호} 주소': '{앱} repository {번호} URL',
-  '{앱} 저장소 {번호} 빼기': 'Remove {앱} repository {번호}',
+  '{앱} 저장소 {번호} 제거': 'Remove {앱} repository {번호}',
   '+ 저장소 추가': '+ Add repository',
 
   // 2 · 자동 설정
   '2 · {bts} 자동 설정': '2 · Set up {bts} automatically',
-  '내 통합계정 권한으로 {bts} 에 아래 넷을 만듭니다. 이미 있으면 새로 만들지 않고 고칩니다':
+  '내 통합계정 권한으로 {bts} 에 아래 넷을 만듭니다. 이미 있으면 생성하지 않고 수정합니다':
     'Creates the four items below in {bts} with your unified account permissions. Existing ones are updated, not duplicated',
   '웹훅': 'Webhook',
   '담당자 변경 규칙': 'Assignee change rule',
   'PR 병합 규칙': 'PR merge rule',
   '보드 「QA 검토」 칸': 'Board "QA review" column',
   '이슈 생성 · 상태 변경을 Test Commander 로 보냅니다': 'Sends issue creation · status changes to Test Commander',
-  '담당자가 바뀌면 Test Commander 를 부릅니다': 'Calls Test Commander when the assignee changes',
+  '담당자가 변경되면 Test Commander 를 호출합니다': 'Calls Test Commander when the assignee changes',
   'PR 이 병합되면 Test Commander 를 부릅니다': 'Calls Test Commander when a PR is merged',
-  '실패로 올린 이슈가 이 칸에 섭니다': 'Issues filed from failures land in this column',
+  '실패로 등록한 이슈가 이 칸에 들어갑니다': 'Issues filed from failures land in this column',
   '권한 없음': 'No permission',
   '접속하지 못함': 'Could not connect',
   '실패 ({코드})': 'Failed ({코드})',
@@ -71,19 +71,19 @@ export const BTS말: Record<string, string> = {
 
   // 3 · 배포 스크립트 한 줄
   '3 · 배포 스크립트 한 줄': '3 · One line for the deploy script',
-  'deploy.sh 는 회사 배포 서버에 있어 Test Commander 가 고칠 수 없습니다. 아래 한 줄을 deploy.sh 마지막에 넣어 주세요':
+  'deploy.sh 는 회사 배포 서버에 있어 Test Commander 가 수정할 수 없습니다. 아래 한 줄을 deploy.sh 마지막에 넣어 주세요':
     "deploy.sh lives on your company's deploy server, so Test Commander cannot edit it. Add the line below at the end of deploy.sh",
   '배포 알림 토큰': 'Deploy notification token',
   '발급 전 · 이 프로젝트 전용': 'Not issued · this project only',
   '방금 발급했습니다 · 원문은 지금만 보입니다': 'Just issued · the token is shown only now',
   '발급': 'Issue',
   '배포 알림 토큰 다시 발급': 'Reissue deploy notification token',
-  '다시 발급하면 deploy.sh 에 넣어 둔 토큰은 바로 쓸 수 없습니다. 새 한 줄로 바꿔 넣어야 배포 알림이 다시 옵니다':
+  '다시 발급하면 deploy.sh 에 넣어 둔 토큰은 바로 쓸 수 없습니다. 새 한 줄로 교체해야 배포 알림이 다시 옵니다':
     'Reissuing stops the token in deploy.sh right away. Replace it with the new line to get deploy notices again',
   '보드 없음': 'No board',
   '복사': 'Copy',
   '복사했습니다': 'Copied',
-  '복사하지 못했습니다. 글을 직접 골라 복사해 주세요': 'Could not copy. Select the text and copy it yourself',
+  '복사하지 못했습니다. 글을 직접 선택해 복사해 주세요': 'Could not copy. Select the text and copy it yourself',
 
   // 이 화면의 오류 (SettingsBts.tsx 연결오류)
   '{bts} 에 접속하지 못했습니다. 주소 · 프로젝트 키 · 「QA Hub AI」 계정 이름을 확인해 주세요':
@@ -92,8 +92,8 @@ export const BTS말: Record<string, string> = {
   '서버가 허용한 {bts} 주소가 아닙니다. 서버 .env 의 BTS_URLS 를 확인해 주세요': 'This is not a {bts} address the server allows. Check BTS_URLS in the server .env',
   '서버가 허용한 「QA Hub AI」 계정 이름이 아닙니다. 서버 .env 의 BTS_BOT_USERNAMES 를 확인해 주세요': 'This is not a "QA Hub AI" account name the server allows. Check BTS_BOT_USERNAMES in the server .env',
   '「QA Hub AI」 계정 이름을 적어야 합니다': 'Enter the "QA Hub AI" account name',
-  '비어 있는 단계가 있습니다. 모든 단계에 {bts} 상태를 골라 주세요': 'Some stages are empty. Pick a {bts} status for every stage',
-  'Auth 계정으로 로그인한 운영 계정이어야 {bts} 자동 설정을 할 수 있습니다':
+  '비어 있는 단계가 있습니다. 모든 단계에 {bts} 상태를 선택해 주세요': 'Some stages are empty. Pick a {bts} status for every stage',
+  'Auth 계정으로 로그인한 관리자 계정이어야 {bts} 자동 설정을 할 수 있습니다':
     'Only an admin account signed in with Auth can set up {bts} automatically',
   '이 서버의 공개 주소(PLATFORM_PUBLIC_URL)가 없어 {bts} 가 Test Commander 를 부를 수 없습니다':
     'This server has no public address (PLATFORM_PUBLIC_URL), so {bts} cannot call Test Commander',

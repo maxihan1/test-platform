@@ -30,10 +30,10 @@ describe('앱 파일 경로 칸', () => {
     const 줄들 = 줄로([{ env: 'qa', baseUrl: 'https://qa.example.com' }]);
     render(<EnvEditor envs={줄들} onChange={vi.fn()} 스토어앱 />);
     expect(screen.getByRole('textbox', { name: '대상 서버 1 앱 파일 경로' }).getAttribute('placeholder')).toBe('앱 파일 경로 또는 패키지 이름');
-    expect(screen.getByText('APK 가 없으면 Device VISION 디바이스에 스토어로 깔아 둔 앱의 패키지 이름을 적습니다')).toBeTruthy();
+    expect(screen.getByText('APK 가 없으면 Device VISION 디바이스에 스토어로 설치해 둔 앱의 패키지 이름을 적습니다')).toBeTruthy();
     cleanup();
     render(<EnvEditor envs={줄들} onChange={vi.fn()} 어드민키 />);
     expect(screen.getByRole('textbox', { name: '대상 서버 1 앱 파일 경로' }).getAttribute('placeholder')).toBe('앱 파일 경로 (Android 앱 · 게임)');
-    expect(screen.queryByText('APK 가 없으면 Device VISION 디바이스에 스토어로 깔아 둔 앱의 패키지 이름을 적습니다')).toBeNull();
+    expect(screen.queryByText('APK 가 없으면 Device VISION 디바이스에 스토어로 설치해 둔 앱의 패키지 이름을 적습니다')).toBeNull();
   });
 });

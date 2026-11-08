@@ -72,7 +72,7 @@ describe('승인 대기 묶음', () => {
 
   it('수락하면 권한 고르개가 열리고 처음 값은 그래프(Grafana) 읽기 · 프로젝트 없음이다', () => {
     묶음();
-    fireEvent.click(screen.getByRole('button', { name: '수락' }));
+    fireEvent.click(screen.getByRole('button', { name: '승인' }));
 
     const 서비스칸 = screen.getByRole('checkbox', { name: /데모마켓/ }) as HTMLInputElement;
     expect(서비스칸.checked).toBe(false);
@@ -84,9 +84,9 @@ describe('승인 대기 묶음', () => {
     const 수락 = vi.spyOn(api, 'approveUser').mockResolvedValue({ ok: true });
     const 다시 = vi.fn();
     묶음([운영자, 신청], 다시);
-    fireEvent.click(screen.getByRole('button', { name: '수락' }));
+    fireEvent.click(screen.getByRole('button', { name: '승인' }));
     fireEvent.click(screen.getByRole('checkbox', { name: /데모마켓/ }));
-    fireEvent.click(screen.getByRole('button', { name: '수락한다' }));
+    fireEvent.click(screen.getByRole('button', { name: '승인한다' }));
 
     await waitFor(() => expect(다시).toHaveBeenCalled());
     expect(수락).toHaveBeenCalledWith('minsu', {
@@ -102,7 +102,7 @@ describe('승인 대기 묶음', () => {
     묶음([운영자, 신청], 다시);
     fireEvent.click(screen.getByRole('button', { name: '거절' }));
 
-    expect(screen.getByText(/가입 신청을 삭제합니다. 되돌릴 수 없습니다/)).toBeTruthy();
+    expect(screen.getByText(/가입 신청을 삭제합니다. 복원할 수 없습니다/)).toBeTruthy();
     expect(거절).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: '삭제한다' }));
 
@@ -132,8 +132,8 @@ describe('승인 대기 묶음', () => {
     const 다시 = vi.fn();
     묶음([운영자, 신청], 다시);
     if (일 === 'approve') {
-      fireEvent.click(screen.getByRole('button', { name: '수락' }));
-      fireEvent.click(screen.getByRole('button', { name: '수락한다' }));
+      fireEvent.click(screen.getByRole('button', { name: '승인' }));
+      fireEvent.click(screen.getByRole('button', { name: '승인한다' }));
     } else {
       fireEvent.click(screen.getByRole('button', { name: '거절' }));
       fireEvent.click(screen.getByRole('button', { name: '삭제한다' }));
@@ -158,9 +158,9 @@ describe('두 번 누름과 빈 묶음', () => {
   it('수락한다를 두 번 눌러도 수락 요청은 한 번만 간다', () => {
     const 수락 = vi.spyOn(api, 'approveUser').mockReturnValue(new Promise(() => undefined));
     묶음();
-    fireEvent.click(screen.getByRole('button', { name: '수락' }));
-    fireEvent.click(screen.getByRole('button', { name: '수락한다' }));
-    fireEvent.click(screen.getByRole('button', { name: '수락한다' }));
+    fireEvent.click(screen.getByRole('button', { name: '승인' }));
+    fireEvent.click(screen.getByRole('button', { name: '승인한다' }));
+    fireEvent.click(screen.getByRole('button', { name: '승인한다' }));
 
     expect(수락).toHaveBeenCalledTimes(1);
   });
@@ -172,7 +172,7 @@ describe('두 번 누름과 빈 묶음', () => {
     fireEvent.click(screen.getByRole('button', { name: '삭제한다' }));
 
     expect((screen.getByRole('button', { name: '삭제한다' }) as HTMLButtonElement).disabled).toBe(true);
-    expect((screen.getByRole('button', { name: '수락' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: '승인' }) as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('마지막 신청이 사라지면 알림이 있어도 묶음을 그리지 않는다', async () => {

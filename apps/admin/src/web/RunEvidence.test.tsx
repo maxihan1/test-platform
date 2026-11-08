@@ -34,7 +34,7 @@ describe('실패 카드의 시간축 증거 (WEB-F7-13)', () => {
   it('처음에는 깨진 단계를 고르고, 띠에서 다른 단계를 누르면 증거 칸 화면이 그 단계 것으로 바뀐다', async () => {
     그리기(쪽([케이스('ZZI-0001', '장바구니', [장치('desktop', 11, {}, { steps: 화면단계들() })])]), [줄(11, 'ZZI-0001', 'desktop', 'FAIL')]);
 
-    const 띠 = within(await screen.findByRole('group', { name: '단계 고르기' }));
+    const 띠 = within(await screen.findByRole('group', { name: '단계 선택' }));
     expect(띠.getByRole('button', { name: '2단계 수량을 0으로 바꾼다' }).getAttribute('aria-pressed')).toBe('true');
     expect(within(screen.getByRole('tabpanel')).getByRole('img').getAttribute('alt')).toBe('수량을 0으로 바꾼다 실패 시점 화면');
 
@@ -49,7 +49,7 @@ describe('실패 카드의 시간축 증거 (WEB-F7-13)', () => {
     const 읽기 = vi.spyOn(api, 'item').mockResolvedValue({ ...상세(11, 'desktop', { steps: 화면단계들() }), trace: 기록() });
     그리기(쪽([케이스('ZZI-0001', '장바구니', [장치('desktop', 11, {}, { steps: 화면단계들() })])]), [줄(11, 'ZZI-0001', 'desktop', 'FAIL')]);
 
-    await screen.findByRole('group', { name: '단계 고르기' });
+    await screen.findByRole('group', { name: '단계 선택' });
     expect(읽기).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('tab', { name: '네트워크' }));
@@ -73,15 +73,15 @@ describe('실패 카드의 시간축 증거 (WEB-F7-13)', () => {
     그리기(쪽([케이스('ZZI-0001', '알림 만들기', [장치('desktop', 11, {}, { steps: 단계들 })])]), [줄(11, 'ZZI-0001', 'desktop', 'FAIL')]);
 
     const 탭들 = await screen.findAllByRole('tab');
-    expect(탭들.map((탭) => 탭.textContent)).toEqual(['요청', '응답', '기대값 차이']);
+    expect(탭들.map((탭) => 탭.textContent)).toEqual(['요청', '응답', '기대 결과 차이']);
     expect(screen.getByRole('tabpanel').textContent).toContain('/v1/notifications');
 
-    fireEvent.click(screen.getByRole('tab', { name: '기대값 차이' }));
+    fireEvent.click(screen.getByRole('tab', { name: '기대 결과 차이' }));
     const 줄들 = within(screen.getByRole('tabpanel')).getAllByRole('row');
     expect(줄들.map((r) => r.textContent)).toEqual(['확인기대실제', '상태 코드가 400 이다400500']);
 
     fireEvent.click(screen.getByRole('button', { name: '1단계 토큰을 받는다' }));
-    expect(screen.getByText('이 단계는 기대값과 다른 곳이 없습니다')).toBeTruthy();
+    expect(screen.getByText('이 단계는 기대 결과와 다른 곳이 없습니다')).toBeTruthy();
   });
 
   it('앱 항목은 판을 읽었을 때만 「기기 정보」 탭이 서고 못 읽은 칸은 「모름」이다', async () => {
@@ -101,14 +101,14 @@ describe('실패 카드의 시간축 증거 (WEB-F7-13)', () => {
       [줄(11, 'ZZI-0001', 'android', 'FAIL'), 줄(12, 'ZZI-0002', 'desktop', 'FAIL')],
     );
 
-    await screen.findAllByRole('group', { name: '단계 고르기' });
+    await screen.findAllByRole('group', { name: '단계 선택' });
     expect(screen.queryByRole('tab', { name: '디바이스 정보' })).toBeNull();
   });
 
   it('같은 단계를 다시 눌러도 단계 칸이 다시 깜박이고 포커스는 그 칸에 남는다', async () => {
     그리기(쪽([케이스('ZZI-0001', '장바구니', [장치('desktop', 11, {}, { steps: 화면단계들() })])]), [줄(11, 'ZZI-0001', 'desktop', 'FAIL')]);
 
-    const 칸 = within(await screen.findByRole('group', { name: '단계 고르기' })).getByRole('button', { name: '1단계 장바구니 화면을 연다' });
+    const 칸 = within(await screen.findByRole('group', { name: '단계 선택' })).getByRole('button', { name: '1단계 장바구니 화면을 연다' });
     칸.focus();
     fireEvent.click(칸);
     expect(칸.className).toBe('ev-seg flash-a');
@@ -123,7 +123,7 @@ describe('실패 카드의 시간축 증거 (WEB-F7-13)', () => {
     const 읽기 = vi.spyOn(api, 'item').mockResolvedValue({ ...상세(11, 'desktop', { steps: 화면단계들() }), trace: 기록들 });
     그리기(쪽([케이스('ZZI-0001', '장바구니', [장치('desktop', 11, {}, { steps: 화면단계들() })])]), [줄(11, 'ZZI-0001', 'desktop', 'FAIL')]);
 
-    const 접이 = (await screen.findByRole('group', { name: '단계 고르기' })).closest('details')!;
+    const 접이 = (await screen.findByRole('group', { name: '단계 선택' })).closest('details')!;
     접이.open = true;
     fireEvent(접이, new Event('toggle'));
 
@@ -145,7 +145,7 @@ describe('실패 카드의 시간축 증거 (WEB-F7-13)', () => {
     const 읽기 = vi.spyOn(api, 'item');
     그리기(쪽([케이스('ZZI-0001', '주소 검색', [장치('android', 11, {}, { steps: 화면단계들() })])]), [줄(11, 'ZZI-0001', 'android', 'FAIL')]);
 
-    const 접이 = (await screen.findByRole('group', { name: '단계 고르기' })).closest('details')!;
+    const 접이 = (await screen.findByRole('group', { name: '단계 선택' })).closest('details')!;
     접이.open = true;
     fireEvent(접이, new Event('toggle'));
 
@@ -192,7 +192,7 @@ describe('실패 카드의 시간축 증거 (WEB-F7-13)', () => {
   it('대조도 오브젝트 목록도 없는 앱 항목에는 「오브젝트」 탭이 없다', async () => {
     그리기(쪽([케이스('ZZI-0001', '주소 검색', [장치('android', 11, { elementChecks: [] }, { steps: 화면단계들() })])]), [줄(11, 'ZZI-0001', 'android', 'FAIL')]);
 
-    await screen.findAllByRole('group', { name: '단계 고르기' });
+    await screen.findAllByRole('group', { name: '단계 선택' });
     expect(screen.queryByRole('tab', { name: '오브젝트' })).toBeNull();
   });
 
@@ -228,7 +228,7 @@ describe('실패 카드의 시간축 증거 (WEB-F7-13)', () => {
       [줄(11, 'ZZI-0001', 'android', 'FAIL'), 줄(12, 'ZZI-0002', 'android', 'FAIL')],
     );
 
-    await screen.findAllByRole('group', { name: '단계 고르기' });
+    await screen.findAllByRole('group', { name: '단계 선택' });
     expect(screen.queryByRole('img', { name: /FPS 흐름/ })).toBeNull();
     expect(screen.queryByText('FPS (점선 30)')).toBeNull();
   });

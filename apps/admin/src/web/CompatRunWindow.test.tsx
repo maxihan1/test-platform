@@ -47,7 +47,7 @@ describe('호환성 실행 중 창', () => {
   it('끝나면 결과 단계로 넘어가고 결과 보기는 애플리케이션을 담은 결과 주소로 간다', async () => {
     vi.spyOn(compatApi, 'run').mockResolvedValue(결과());
     render(<CompatRunWindow runId={21107} service="DMA" 닫기={() => undefined} />);
-    const 창 = within(await screen.findByRole('dialog', { name: '출시 전 점검 · 호환성 실행이 끝났습니다' }));
+    const 창 = within(await screen.findByRole('dialog', { name: '출시 전 점검 · 호환성 실행이 완료되었습니다' }));
     fireEvent.click(창.getByRole('button', { name: '결과 보기' }));
     expect(window.location.hash).toBe('#/compat/runs/21107?service=DMA');
   });

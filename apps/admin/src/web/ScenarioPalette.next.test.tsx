@@ -81,7 +81,7 @@ describe('ScenarioPalette 다음 단계 추천', () => {
   it('케이스 바꾸기 중이면 부르지 않고, 추천이 비면 칸을 안 그린다', async () => {
     const spy = 차리기(async () => ({ items: [] }));
     그리기(null, 2);
-    await screen.findByText('케이스 찾기');
+    await screen.findByText('케이스 검색');
     expect(spy).not.toHaveBeenCalled();
     cleanup();
 
@@ -110,6 +110,6 @@ describe('ScenarioPalette 다음 단계 추천', () => {
     그리기({ tcId: 'ZNX-FN-009', 번호: 2 });
 
     await screen.findByText(/서버가 안 받습니다/);
-    expect(screen.getByText('케이스 찾기')).toBeTruthy();
+    expect(screen.getByText('케이스 검색')).toBeTruthy();
   });
 });

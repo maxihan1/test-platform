@@ -103,7 +103,7 @@ export function 출처줄({
         </>
       )}
       <button type="button" className="btn small ghost" onClick={on되돌리기} disabled={저장중}>
-        {t('되돌리기')}
+        {t('실행 취소')}
       </button>
     </p>
   );

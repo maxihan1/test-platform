@@ -326,7 +326,7 @@ describe('RunPickModal 테스트 실행', () => {
 
     fireEvent.click(실행버튼());
     const 정식창 = within(screen.getByRole('dialog', { name: '정식 실행을 시작할까요?' }));
-    expect(정식창.getByText('끝나면 실행 기록에 새 RUN 으로 남고 리포트가 만들어집니다')).toBeTruthy();
+    expect(정식창.getByText('완료되면 실행 기록에 새 RUN 으로 남고 리포트가 만들어집니다')).toBeTruthy();
     expect(정식창.getByText('PC 2 · 모바일 1 (가상 디바이스)')).toBeTruthy();
     expect(onRun).not.toHaveBeenCalled();
     fireEvent.click(정식창.getByRole('button', { name: '실행 시작' }));

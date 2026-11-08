@@ -208,7 +208,7 @@ describe('RunList 거르개 — 거르는 일은 서버가 한다', () => {
     const { 스파이 } = await 그리기();
     await screen.findByText('ZRL 실행 2113');
 
-    fireEvent.change(screen.getByLabelText('케이스 · 제목으로 찾기'), { target: { value: 'ZRL-FN-007' } });
+    fireEvent.change(screen.getByLabelText('케이스 · 제목으로 검색'), { target: { value: 'ZRL-FN-007' } });
     fireEvent.submit(screen.getByRole('search'));
 
     await waitFor(() => expect(스파이).toHaveBeenLastCalledWith('ZRL', 1, expect.objectContaining({ q: 'ZRL-FN-007' })));
@@ -340,7 +340,7 @@ describe('RunList 오른쪽 결과 칸 (§8.7 「A안」)', () => {
     expect(스파이).toHaveBeenCalledWith('ZRL', 2, { kind: 'FN', state: 'failed' });
     await waitFor(() => expect(api.run).toHaveBeenCalledWith(2001));
     // 거르개에 걸려 목록에 없는 실행도 결과 칸은 그대로 연다 — 대신 까닭을 한 줄 적는다
-    expect(await screen.findByText('고른 실행은 지금 조건 밖입니다')).toBeTruthy();
+    expect(await screen.findByText('선택한 실행은 지금 조건 밖입니다')).toBeTruthy();
   });
 
   it('같은 화면에서 조건이 다른 고리(「RUN N에서 통과」)를 누르면 주소가 옛 실행으로 돌아가지 않고 결과 칸이 그 실행을 연다', async () => {

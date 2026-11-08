@@ -199,6 +199,6 @@ describe('실패다시실행', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '실패 2건 다시 실행' }));
 
-    expect(await screen.findByText('실행 뒤에 저장값이 바뀐 케이스 ZRS-001 — 실패 때와 다른 값으로 돕니다')).toBeTruthy();
+    expect(await screen.findByText('실행 뒤에 저장값이 변경된 케이스 ZRS-001 — 실패 때와 다른 값으로 실행됩니다')).toBeTruthy();
   });
 });

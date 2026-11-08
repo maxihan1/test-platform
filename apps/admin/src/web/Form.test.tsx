@@ -120,7 +120,7 @@ describe('Form', () => {
 
     const 태그 = 칸찾기(container, '태그') as HTMLSelectElement;
     expect(태그.tagName).toBe('SELECT');
-    expect(태그.options[0]?.textContent).toBe('고르지 않음');
+    expect(태그.options[0]?.textContent).toBe('선택 안 함');
     expect(태그.options[0]?.value).toBe('');
   });
 

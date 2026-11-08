@@ -30,7 +30,7 @@ export function PerfImport({ service, 받음 }: { service: ServiceRow; 받음: (
   return (
     <>
       <div className="perf-row">
-        <span className="perf-faint">{t('가져오면 지금 트랜잭션 목록을 바꿉니다')}</span>
+        <span className="perf-faint">{t('가져오면 지금 트랜잭션 목록을 변경합니다')}</span>
         <div className="perf-acts">
           {단추('RECORD', t('E2E 녹화'))}
           {단추('SWAGGER', t('Swagger 가져오기'))}
@@ -60,7 +60,7 @@ export function PerfImport({ service, 받음 }: { service: ServiceRow; 받음: (
               }}
             />
           </label>
-          <span className="perf-faint">{t('옮기지 못한 부분(BeanShell · 자바 코드)은 따로 보여 줍니다. 1MB 까지 올릴 수 있습니다')}</span>
+          <span className="perf-faint">{t('옮기지 못한 부분(BeanShell · 자바 코드)은 따로 보여 줍니다. 1MB 까지 업로드할 수 있습니다')}</span>
         </div>
       ) : null}
       {일.오류 === null ? null : <p className="perf-err" role="alert">{일.오류}</p>}
@@ -82,7 +82,7 @@ function 녹화칸({ service, 맡기기 }: { service: ServiceRow; 맡기기: 맡
 
   function 시작() {
     if (시나리오 === '' || env === '') {
-      set까닭(t('E2E 시나리오와 대상 서버를 골라 주세요'));
+      set까닭(t('E2E 시나리오와 대상 서버를 선택해 주세요'));
       return;
     }
     void 맡기기(() => perfApi.draft({ serviceId: service.id, from: 'RECORD', env, scenarioId: Number(시나리오) }));
@@ -94,7 +94,7 @@ function 녹화칸({ service, 맡기기 }: { service: ServiceRow; 맡기기: 맡
         <label className="perf-field">
           {t('E2E 시나리오')}
           <select value={시나리오} onChange={(e) => set시나리오(e.target.value)}>
-            <option value="">{t('고르기')}</option>
+            <option value="">{t('선택')}</option>
             {목록.data.items.map((it) => (
               <option key={it.id} value={it.id}>
                 {it.name}
@@ -105,7 +105,7 @@ function 녹화칸({ service, 맡기기 }: { service: ServiceRow; 맡기기: 맡
         <label className="perf-field">
           {t('대상 서버')}
           <select value={env} onChange={(e) => setEnv(e.target.value)}>
-            <option value="">{t('고르기')}</option>
+            <option value="">{t('선택')}</option>
             {service.envs.map((it) => (
               <option key={it.env} value={it.env}>
                 {it.env}
@@ -117,7 +117,7 @@ function 녹화칸({ service, 맡기기 }: { service: ServiceRow; 맡기기: 맡
           {t('녹화 시작')}
         </button>
       </div>
-      <span className="perf-faint">{t('서버 테스트 실행기가 시나리오를 한 번 돌리며 오간 요청을 남깁니다. 이 실행은 실행 기록에 남지 않습니다')}</span>
+      <span className="perf-faint">{t('서버 테스트 실행기가 시나리오를 한 번 실행하며 오간 요청을 남깁니다. 이 실행은 실행 기록에 남지 않습니다')}</span>
       {까닭 === null ? null : <p className="perf-err">{까닭}</p>}
     </div>
   );
@@ -145,12 +145,12 @@ function 스웨거칸({ service, 맡기기 }: { service: ServiceRow; 맡기기: 
 
   if (문서.error !== null) return <Failed error={문서.error} />;
   if (문서.data === null) return <Loading />;
-  if (문서.data.판 === null) return <div className="perf-well perf-faint">{t('이 애플리케이션에 올린 API 문서가 없습니다. PRD 관리 › API 문서에서 먼저 올려 주세요')}</div>;
+  if (문서.data.판 === null) return <div className="perf-well perf-faint">{t('이 애플리케이션에 업로드한 API 문서가 없습니다. PRD 관리 › API 문서에서 먼저 업로드해 주세요')}</div>;
   const { version, 작업들 } = 문서.data.판;
 
   function 가져오기() {
     if (고른.length === 0) {
-      set까닭(t('API 를 하나 이상 골라 주세요'));
+      set까닭(t('API 를 하나 이상 선택해 주세요'));
       return;
     }
     const operations = 고른.map((키) => {
@@ -162,7 +162,7 @@ function 스웨거칸({ service, 맡기기 }: { service: ServiceRow; 맡기기: 
 
   return (
     <div className="perf-well">
-      <span className="perf-faint">{t('API 문서 버전 {번호} · 고른 차례대로 트랜잭션이 됩니다 (50개까지)', { 번호: version })}</span>
+      <span className="perf-faint">{t('API 문서 버전 {번호} · 선택한 순서대로 트랜잭션이 됩니다 (50개까지)', { 번호: version })}</span>
       <div className="perf-picks">
         {작업들.map((op) => {
           const 키 = `${op.method} ${op.path}`;
@@ -183,7 +183,7 @@ function 스웨거칸({ service, 맡기기 }: { service: ServiceRow; 맡기기: 
       </div>
       <div>
         <button type="button" className="btn small" onClick={가져오기}>
-          {t('고른 API 가져오기')}
+          {t('선택한 API 가져오기')}
         </button>
       </div>
       {까닭 === null ? null : <p className="perf-err">{까닭}</p>}

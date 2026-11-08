@@ -91,7 +91,7 @@ export function 작성끝단계({ service, 요청, 할수, 차이수, 커버리�
             </a>
             {표시사본.map((a) => (
               <a key={a.id} className="btn ghost" href={api.authoringAssetUrl(요청.id, a.id)} download>
-                {t('표시한 기획서 내려받기')}
+                {t('표시한 기획서 다운로드')}
               </a>
             ))}
           </div>
@@ -107,7 +107,7 @@ export function 작성끝단계({ service, 요청, 할수, 차이수, 커버리�
         <일
           표={다음()}
           제목={t('중복 케이스 {수}건 중 {고른}건 선택', { 수: conflicts.length, 고른: conflicts.length - (요청.conflictsOpen ?? 0) })}
-          설명={t('두 케이스 비교를 눌러 내용을 보고 고릅니다.')}
+          설명={t('두 케이스 비교를 눌러 내용을 보고 선택합니다.')}
         >
           <AuthoringConflicts service={service} 요청번호={요청.id} conflicts={conflicts} 새것={만든것} 편집={할수('작성요청')} reload={reload} />
         </일>

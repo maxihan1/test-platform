@@ -63,7 +63,7 @@ export function Form({ idPrefix, fields, text, errors, onChange }: Props) {
             <div>
               {field.kind === 'enum' ? (
                 <select id={id} value={value} onChange={(e) => onChange(field.key, e.target.value)}>
-                  {field.optional ? <option value="">{t('고르지 않음')}</option> : null}
+                  {field.optional ? <option value="">{t('선택 안 함')}</option> : null}
                   {(field.options ?? []).map((option) => (
                     <option key={option} value={option}>
                       {option}

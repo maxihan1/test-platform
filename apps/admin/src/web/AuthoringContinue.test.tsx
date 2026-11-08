@@ -89,7 +89,7 @@ describe('반영 끝 — 남은 요구로 이어 작성', () => {
     expect(screen.getByText('테스트가 반영됐습니다. 케이스 목록에서 새 케이스를 볼 수 있습니다.')).toBeTruthy();
     expect(
       screen.getByText(
-        '반영한 실행 기준으로 다음 요청 120개 · 빠짐 3개가 남았습니다. 이것을 새 요청으로 작성하고 새 번호로 넘어갑니다. 남은 요구는 작성을 시작할 때 다시 셉니다.',
+        '반영한 실행 기준으로 다음 요청 120개 · 빠짐 3개가 남았습니다. 이것을 새 요청으로 작성하고 새 번호로 넘어갑니다. 남은 요구는 작성을 시작할 때 다시 집계합니다.',
       ),
     ).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '남은 요구로 이어 작성' }));
@@ -100,7 +100,7 @@ describe('반영 끝 — 남은 요구로 이어 작성', () => {
   it('셈이 없으면 남은 수 문장을 뺀다', () => {
     카드(줄({}), null);
     expect(screen.queryByText(/반영한 실행 기준으로/)).toBeNull();
-    expect(screen.getByText('이것을 새 요청으로 작성하고 새 번호로 넘어갑니다. 남은 요구는 작성을 시작할 때 다시 셉니다.')).toBeTruthy();
+    expect(screen.getByText('이것을 새 요청으로 작성하고 새 번호로 넘어갑니다. 남은 요구는 작성을 시작할 때 다시 집계합니다.')).toBeTruthy();
   });
 
   it('작성 요청 권한이 없으면 버튼 대신 까닭을 말한다', () => {
@@ -138,7 +138,7 @@ describe('반영 끝 — 남은 요구로 이어 작성', () => {
     만들기답 = () => Promise.reject(new ApiError(409, 'ALREADY_CONTINUED', ''));
     카드(줄({}));
     fireEvent.click(screen.getByRole('button', { name: '남은 요구로 이어 작성' }));
-    await waitFor(() => expect(screen.getByText('이미 남은 요구를 넘겨받은 요청이 있습니다. 화면을 새로 고칩니다')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('이미 남은 요구를 넘겨받은 요청이 있습니다. 화면을 새로고침합니다')).toBeTruthy());
     expect(다시읽음).toHaveBeenCalled();
     expect(window.location.hash).toBe('#/authoring/5873');
   });

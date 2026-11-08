@@ -77,7 +77,7 @@ export function useWizardEnd({ 서비스, 디바이스, 이름, 보낼, 앱들, 
     if (실행 && 서버 === '') {
       // 시험 실행 단계로 데려가지 않고 저장 단계에 고르개를 연다
       set서버열기(true);
-      return '대상 서버를 먼저 고릅니다';
+      return '대상 서버를 먼저 선택합니다';
     }
     on까닭(null);
     if (실행) {

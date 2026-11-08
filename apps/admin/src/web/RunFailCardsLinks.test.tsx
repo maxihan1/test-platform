@@ -28,7 +28,7 @@ describe('실패 카드 판정 꼬리표와 거르개 (점검 2.24)', () => {
   it('판정을 남긴 카드 머리에만 「판정함」 꼬리표가 붙는다', async () => {
     그리기(두장(), 두줄);
 
-    expect(await screen.findAllByText('판정함 · 버그')).toHaveLength(1);
+    expect(await screen.findAllByText('판정함 · 결함')).toHaveLength(1);
   });
 
   it('「판정 안 한 카드」를 누르면 아직 안 본 카드만 남는다', async () => {

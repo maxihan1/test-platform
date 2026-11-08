@@ -49,7 +49,7 @@ describe('절차 부품 (항목 상세 · 실패 카드 공용)', () => {
   it('실패 확인에만 assert bad 를, blocker 인 실패에 「뒤 절차 멈춤」을 붙인다', () => {
     const { container } = 그린다();
     expect(container.querySelectorAll('.assert.bad')).toHaveLength(1);
-    expect(screen.getAllByText('뒤 절차 멈춤')).toHaveLength(1);
+    expect(screen.getAllByText('뒤 절차 중단')).toHaveLength(1);
   });
 
   it('스크린샷은 첫 실패 확인 바로 아래에 두고 lazy 로 읽는다', () => {

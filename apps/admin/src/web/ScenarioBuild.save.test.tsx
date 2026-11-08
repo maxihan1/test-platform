@@ -60,7 +60,7 @@ describe('ScenarioBuild 저장 전 확인', () => {
     const update = vi.spyOn(scenarioApi, 'update');
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
 
-    expect((await screen.findByRole('status')).textContent).toBe('가져올 단계를 다시 골라야 저장할 수 있습니다');
+    expect((await screen.findByRole('status')).textContent).toBe('가져올 단계를 다시 선택해야 저장할 수 있습니다');
     expect(update).not.toHaveBeenCalled();
   });
 });

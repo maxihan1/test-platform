@@ -98,7 +98,7 @@ export function 증적버튼들(
   if (!할수('증적만들기')) return null;
 
   if (도는중(status)) {
-    return { 버튼들: [], 안내: t('실행이 끝나면 리포트를 만들 수 있습니다', 언어) };
+    return { 버튼들: [], 안내: t('실행이 완료되면 리포트를 만들 수 있습니다', 언어) };
   }
 
   return { 버튼들: 형식들.map((꼴) => 한형식(꼴, 문서들, 언어)), 안내: null };
@@ -119,5 +119,5 @@ export function 증적버튼들(
 export function 받는법(format: string, 언어: 언어): { 글: string; 새창: boolean; 라벨: string } {
   const 꼴 = 형식들.find((it) => it.format === format.toUpperCase());
   const 새창 = 꼴?.새창 === true;
-  return { 글: 새창 ? t('열기 ↗', 언어) : t('받기', 언어), 새창, 라벨: t(꼴?.라벨 ?? format, 언어) };
+  return { 글: 새창 ? t('열기 ↗', 언어) : t('다운로드', 언어), 새창, 라벨: t(꼴?.라벨 ?? format, 언어) };
 }

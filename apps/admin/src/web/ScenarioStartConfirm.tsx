@@ -40,7 +40,7 @@ export function ScenarioStartConfirm({ 시나리오, 단계수, 디바이스, en
           {t('결과는 이 창에서만 보이고')} <b>{t('실행 기록 · 리포트에 남지 않습니다')}</b>
         </p>
       ) : (
-        <p className="start-band rec">{t('끝나면 실행 기록 E2E 에 남고 리포트를 만들 수 있습니다')}</p>
+        <p className="start-band rec">{t('완료되면 실행 기록 E2E 에 남고 리포트를 만들 수 있습니다')}</p>
       )}
       <dl className="start-what">
         <dt>{t('시나리오§이름')}</dt>

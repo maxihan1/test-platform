@@ -55,9 +55,9 @@ export function 찾기칸({ 자리들, prefix, 케이스볼수있나 }: { 자리
 
   return (
     <>
-      <button type="button" className="side-find" aria-label={t('찾기')} aria-haspopup="dialog" onClick={() => set열림(true)}>
+      <button type="button" className="side-find" aria-label={t('검색')} aria-haspopup="dialog" onClick={() => set열림(true)}>
         <아이콘 이름="search" />
-        <span className="side-find-text">{t('찾기')}</span>
+        <span className="side-find-text">{t('검색')}</span>
         <kbd>{맥인가() ? '⌘K' : 'Ctrl K'}</kbd>
       </button>
       {열림 ? <찾기창 자리들={자리들} prefix={케이스볼수있나 ? prefix : null} onClose={() => set열림(false)} /> : null}
@@ -115,7 +115,7 @@ function 찾기창({ 자리들, prefix, onClose }: { 자리들: readonly 자리[
 
   return (
     <Modal
-      제목={t('찾기')}
+      제목={t('검색')}
       onClose={onClose}
       버튼={
         <button type="button" className="btn ghost" onClick={onClose}>

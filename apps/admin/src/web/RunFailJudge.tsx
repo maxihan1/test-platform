@@ -106,14 +106,14 @@ export function RunFailJudge({ c, runId, 권한, on남김 }: Props) {
               {t('화면이 맞음')} · <a href={`#/authoring/${String(지금.requestId)}`}>{t('작성 요청 #{번호}', { 번호: 지금.requestId })}</a>
             </>
           ) : (
-            t('버그')
+            t('결함')
           )}
           {지금.byName === '' ? '' : ` · ${지금.byName}`} · {when(지금.at, 언어)}
         </p>
       )}
       {!바꾸기가능 ? null : (
         <button type="button" className="btn small" disabled={바쁨} onClick={() => set묻는중(true)}>
-          {t('화면이 맞음으로 바꾸기')}
+          {t('화면이 맞음으로 변경')}
         </button>
       )}
       {!묻는중 ? null : (
@@ -131,7 +131,7 @@ export function RunFailJudge({ c, runId, 권한, on남김 }: Props) {
             </>
           }
         >
-          <p>{t('{번호} 가 커버하는 요구를 지금 화면에 맞게 고치는 작성 요청을 바로 만듭니다.', { 번호: c.tcId })}</p>
+          <p>{t('{번호} 가 커버하는 요구를 지금 화면에 맞게 수정하는 작성 요청을 바로 만듭니다.', { 번호: c.tcId })}</p>
           {깨진확인 === null ? null : (
             <div className="fc-judge-diff">
               <span>{깨진확인.statement}</span>

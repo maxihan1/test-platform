@@ -232,7 +232,7 @@ export function AuthoringDetail({
                   {data.kind === 'RERUN' ? (
                     <small>{t('원본 요청 #{번호}의 입력을 그대로 씁니다', { 번호: data.sourceId ?? '—' })}</small>
                   ) : 입력.length === 0 ? (
-                    <small>{t('화면만 — 기획서 없이 PRD 에 없는 화면만 작성합니다')}</small>
+                    <small>{t('화면만 — 기획서 없이 미검증 화면만 작성합니다')}</small>
                   ) : null}
                 </dd>
               </>

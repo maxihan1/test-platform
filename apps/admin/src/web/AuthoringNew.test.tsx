@@ -21,7 +21,7 @@ vi.mock('./api.js', async () => {
         return 만들기답;
       },
       uploadAuthoringAsset: (_service: string, id: number, file: File) => {
-        부름.push({ 무엇: '올리기', 값: { id, 이름: file.name } });
+        부름.push({ 무엇: '업로드', 값: { id, 이름: file.name } });
         return 올리기답(file.name);
       },
       discardAuthoring: (_service: string, id: number) => {
@@ -88,7 +88,7 @@ describe('새 작성 요청 — 자료 목록', () => {
 
     await waitFor(() => expect(넣었다).toBe(1));
     expect(받은번호).toBe(7);
-    expect(부름.map((b) => b.무엇)).toEqual(['만들기', '올리기', '올리기', '세우기']);
+    expect(부름.map((b) => b.무엇)).toEqual(['만들기', '업로드', '업로드', '세우기']);
     expect(부름[0]?.값).toEqual({
       service: 'PAY',
       body: { kind: 'AUTHOR', figma: ['https://www.figma.com/design/AbC/결제?node-id=12-34&t=xY'] },
@@ -131,7 +131,7 @@ describe('새 작성 요청 — 자료 목록', () => {
     fireEvent.click(보내기());
 
     await waitFor(() => expect(넣었다).toBe(1));
-    expect(부름.filter((b) => b.무엇 === '올리기').map((b) => (b.값 as { 이름: string }).이름)).toEqual(['결제 기획서.pdf', '화면정의서.docx']);
+    expect(부름.filter((b) => b.무엇 === '업로드').map((b) => (b.값 as { 이름: string }).이름)).toEqual(['결제 기획서.pdf', '화면정의서.docx']);
   });
 
   it('낱개 제거는 그 파일만 목록과 요청에서 뺀다', async () => {
@@ -144,7 +144,7 @@ describe('새 작성 요청 — 자료 목록', () => {
     fireEvent.click(보내기());
 
     await waitFor(() => expect(넣었다).toBe(1));
-    expect(부름.filter((b) => b.무엇 === '올리기').map((b) => (b.값 as { 이름: string }).이름)).toEqual(['화면정의서.docx']);
+    expect(부름.filter((b) => b.무엇 === '업로드').map((b) => (b.값 as { 이름: string }).이름)).toEqual(['화면정의서.docx']);
   });
 
   it('같은 파일을 두 번 고르면 한 번만 남는다', () => {
@@ -195,7 +195,7 @@ describe('새 작성 요청 — 자료 목록', () => {
     fireEvent.click(보내기());
 
     await screen.findByText(/이 요청은 대기열에 들어가지 못했습니다\. 새 요청으로 다시 넣으세요/);
-    expect(부름.map((b) => b.무엇)).toEqual(['만들기', '올리기', '올리기', '치우기']);
+    expect(부름.map((b) => b.무엇)).toEqual(['만들기', '업로드', '업로드', '치우기']);
     expect(부름.at(-1)?.값).toEqual({ id: 7 });
     expect(screen.getByText(/\(둘\.docx — /)).toBeTruthy();
     expect(screen.queryByText(/목록에 남은 그 줄은 폐기하세요/)).toBeNull();
@@ -209,7 +209,7 @@ describe('새 작성 요청 — 자료 목록', () => {
     fireEvent.click(보내기());
     expect(await screen.findByText(/반영하지 않은 테스트 작성 요청이 있습니다/)).toBeTruthy();
     expect(screen.getByText(/#6101/)).toBeTruthy();
-    expect(부름.map((b) => b.무엇)).toEqual(['만들기', '올리기', '세우기', '치우기']);
+    expect(부름.map((b) => b.무엇)).toEqual(['만들기', '업로드', '세우기', '치우기']);
   });
 
   it('치우기도 실패하면 남은 줄을 폐기하라고 덧붙인다 — 왜 줄이 남았는지 말한다', async () => {
@@ -305,7 +305,7 @@ describe('피그마를 미리 막는다 (점검 11.5)', () => {
     render(<AuthoringNew service="PAY" 피그마토큰={false} on넣었다={() => {}} />);
     파일을고른다('기획서.pdf');
     fireEvent.click(보내기());
-    await waitFor(() => expect(부름.map((b) => b.무엇)).toEqual(['만들기', '올리기', '세우기']));
+    await waitFor(() => expect(부름.map((b) => b.무엇)).toEqual(['만들기', '업로드', '세우기']));
     expect(부름[0]?.값).toMatchObject({ body: { figma: [] } });
   });
 
@@ -354,7 +354,7 @@ describe('보내기 전 파일 거르기', () => {
     const 파일 = (name: string) => new File(['x'], name);
     expect(거절사유(파일('확률표.xlsx'))).toBeNull();
     expect(거절사유(파일('아이템.csv'))).toBeNull();
-    expect(거절사유(파일('확률표.xlsx'), true)).toBe('지원하지 않는 파일입니다. PDF · 워드 · md · txt 만 올릴 수 있습니다');
+    expect(거절사유(파일('확률표.xlsx'), true)).toBe('지원하지 않는 파일입니다. PDF · 워드 · md · txt 만 업로드할 수 있습니다');
     expect(거절사유(파일('소개.md'), true)).toBeNull();
   });
 });

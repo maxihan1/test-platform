@@ -15,9 +15,9 @@ export function 한건머리({ 케이스 }: { 케이스: CaseRow }) {
   return (
     <div className="one-head">
       <div className="one-pre">
-        <span className="one-label">{t('사전조건')}</span>
+        <span className="one-label">{t('사전 조건')}</span>
         {케이스.precondition.length === 0 ? (
-          <span className="hint">{t('사전조건 없음')}</span>
+          <span className="hint">{t('사전 조건 없음')}</span>
         ) : (
           케이스.precondition.map((line) => (
             <div className="pre" key={line}>

@@ -2,7 +2,7 @@
 
 export const CI토큰말: Record<string, string> = {
   'CI 토큰': 'CI tokens',
-  'CI 가 새 빌드를 올릴 때 쓰는 열쇠입니다. 빌드가 올라오면 스모크 테스트부터 자동으로 실행합니다': 'The key CI uses to upload a new build. Once a build arrives, the smoke tests run automatically',
+  'CI 가 새 빌드를 업로드할 때 쓰는 토큰입니다. 빌드가 업로드되면 스모크 테스트부터 자동으로 실행합니다': 'The key CI uses to upload a new build. Once a build arrives, the smoke tests run automatically',
   '아직 만든 토큰이 없습니다': 'No tokens yet',
   '만든 사람': 'Created by',
   '만든 날': 'Created',
@@ -10,7 +10,7 @@ export const CI토큰말: Record<string, string> = {
   '쓴 적 없음': 'Never used',
   '끊기': 'Revoke',
   '{이름} 끊기': 'Revoke {이름}',
-  '이 토큰을 쓰는 CI 는 다음 빌드부터 올리지 못합니다': 'CI using this token can no longer upload builds starting with the next one',
+  '이 토큰을 쓰는 CI 는 다음 빌드부터 업로드하지 못합니다': 'CI using this token can no longer upload builds starting with the next one',
   '끊는다': 'Revoke it',
   '토큰 이름': 'Token name',
   '토큰 만들기': 'Create token',
@@ -21,10 +21,10 @@ export const CI토큰말: Record<string, string> = {
   '실서비스가 아닌 대상 서버를 먼저 등록해야 빌드를 받을 수 있습니다': 'Register a non-production target server first so builds can be received',
   '그 밖의 CI (curl)': 'Other CI (curl)',
   '예시 복사': 'Copy example',
-  'Test Commander 에 빌드 올리기': 'Upload the build to Test Commander',
+  'Test Commander 에 빌드 업로드': 'Upload the build to Test Commander',
   'Test Commander 에 빌드 알리기': 'Tell Test Commander about the build',
-  'APK 경로는 CI 가 만든 파일로 바꿉니다. 회사 저장소에 올려 둔 APK 라면 파일 대신 JSON 으로 apkUrl 을 보내도 됩니다': 'Replace the APK path with the file your CI built. If the APK is stored in your company repository, you can send an apkUrl as JSON instead of the file',
-  '앱의 versionCode 를 빌드 번호와 같게 두면 디바이스에 다른 빌드가 깔렸을 때 실행 결과에서 알 수 있습니다': 'If the app versionCode matches the build number, the run result tells you when a different build is installed on the phone',
+  'APK 경로는 CI 가 만든 파일로 변경합니다. 회사 저장소에 업로드해 둔 APK 라면 파일 대신 JSON 으로 apkUrl 을 보내도 됩니다': 'Replace the APK path with the file your CI built. If the APK is stored in your company repository, you can send an apkUrl as JSON instead of the file',
+  '앱의 versionCode 를 빌드 번호와 같게 두면 디바이스에 다른 빌드가 설치되었을 때 실행 결과에서 알 수 있습니다': 'If the app versionCode matches the build number, the run result tells you when a different build is installed on the phone',
   '배포를 끝낸 뒤에 부릅니다': 'Call it after the deploy finishes',
   '적었습니다': 'Noted it',
 };

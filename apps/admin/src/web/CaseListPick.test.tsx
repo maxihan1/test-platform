@@ -56,8 +56,8 @@ async function 그리기(cases: (page: number) => CasePage = (page) => (page ===
   return 스파이;
 }
 
-const 고르기칸 = () => screen.getAllByRole('checkbox', { name: /^(?!이 쪽 전체).* 선택$/ }) as HTMLInputElement[];
-const 머리칸 = () => screen.getByRole('checkbox', { name: '이 쪽 전체 선택' });
+const 고르기칸 = () => screen.getAllByRole('checkbox', { name: /^(?!이 페이지 전체).* 선택$/ }) as HTMLInputElement[];
+const 머리칸 = () => screen.getByRole('checkbox', { name: '이 페이지 전체 선택' });
 const 띠 = () => document.querySelector('.pick-band');
 const 바 = () => screen.getByRole('toolbar', { name: '선택한 케이스' });
 const 바글 = () => 바().querySelector('span')?.textContent;
@@ -68,7 +68,7 @@ describe('「모두 고르기」 띠', () => {
     expect(띠()).toBeNull();
 
     fireEvent.click(머리칸());
-    expect(띠()?.textContent).toContain('이 쪽 2건을 모두 선택했습니다');
+    expect(띠()?.textContent).toContain('이 페이지 2건을 모두 선택했습니다');
     expect(바글()).toBe('2건 선택');
 
     스파이.mockClear();
@@ -115,8 +115,8 @@ describe('「모두 고르기」 띠', () => {
     fireEvent.click(머리칸());
     fireEvent.click(screen.getByRole('button', { name: '조건에 맞는 3건 모두 선택' }));
 
-    fireEvent.change(screen.getByPlaceholderText('케이스 이름이나 ID로 찾기'), { target: { value: '결제' } });
-    fireEvent.click(screen.getByRole('button', { name: '찾기' }));
+    fireEvent.change(screen.getByPlaceholderText('케이스 이름이나 ID로 검색'), { target: { value: '결제' } });
+    fireEvent.click(screen.getByRole('button', { name: '검색' }));
     await waitFor(() => expect(스파이.mock.calls.at(-1)![0].q).toBe('결제'));
 
     expect(바글()).toBe('2건 선택');

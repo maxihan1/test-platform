@@ -90,7 +90,7 @@ describe('완료 창', () => {
     시험시작();
 
     await screen.findByRole('dialog', { name: '시험 실행 결과' }, { timeout: 4000 });
-    fireEvent.click(screen.getByRole('button', { name: '재실행' }));
+    fireEvent.click(screen.getByRole('button', { name: '다시 실행' }));
     fireEvent.click(within(screen.getByRole('dialog', { name: '정식 실행을 시작할까요?' })).getByRole('button', { name: '실행 시작' }));
     expect(onRun.mock.calls[0]?.[0]).toMatchObject({ env: 'qa', items: [{ tcId: 'ZRS-001' }, { tcId: 'ZRS-002' }] });
     expect(screen.getByLabelText('대상 서버')).toBeTruthy();

@@ -137,7 +137,7 @@ export function 결과칸들(게임: boolean, 결과: Pick<기기결과, 'device
   const 메모리 = 칸('메모리 최대', (d) => d.summary.maxMemMb, true, 메모리글자, 'MAX_MEM');
   if (게임) return [칸('평균 FPS', (d) => d.summary.avgFps, false, (n) => String(한자리(n)), 'AVG_FPS'), 칸('프레임 드랍', (d) => 드랍(d.serial), true, 퍼센트), cpu, 메모리];
   const 프리징 = 칸('프리징', (d) => d.summary.freezeCount, true, (n) => t('{수}번', { 수: n }));
-  프리징.보조.push(t('0.7초 넘게 멈춤'));
+  프리징.보조.push(t('0.7초 넘게 정지'));
   return [cpu, 메모리, 칸('앱 실행 시간', (d) => d.launchMs, true, (n) => 값글자('LAUNCH_MS', n, t), 'LAUNCH_MS'), 프리징];
 }
 

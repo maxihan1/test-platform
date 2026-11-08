@@ -23,19 +23,19 @@ export const 성능실행말: Record<string, string> = {
   ', 초과 시 자동 중단': ', auto-stops when exceeded',
   '응답시간과 가상 사용자 추이': 'Response time and virtual users',
   '가상 사용자와 95% 응답시간 추이 그래프': 'Graph of virtual users and p95 response time over time',
-  '서버 모니터링 에이전트를 고르지 않았습니다': 'No monitoring agent was selected',
+  '서버 모니터링 에이전트를 선택하지 않았습니다': 'No monitoring agent was selected',
   '트랜잭션별 현황': 'Transactions now',
   '실행 로그': 'Run log',
   '아직 기록이 없습니다': 'Nothing logged yet',
   '아직 받은 숫자가 없습니다': 'No numbers received yet',
   '실행을 중단할까요?': 'Stop this run?',
   '지금까지 모인 숫자는 남고 성능 목표 판정은 내지 않습니다': 'Numbers so far are kept and no verdict is given',
-  '이미 끝난 실행입니다': 'This run has already finished',
+  '이미 종료된 실행입니다': 'This run has already finished',
   메모리: 'Memory',
   '{값} (초과)': '{값} (exceeded)',
 
   // 결과
-  'PDF로 내려받기': 'Download PDF',
+  'PDF 다운로드': 'Download PDF',
   '다시 실행': 'Run again',
   '최대 동시 사용자': 'Max concurrent users',
   '핵심 수치': 'Key metrics',
@@ -65,15 +65,15 @@ export const 성능실행말: Record<string, string> = {
   '걸린 시간': 'Duration',
   '이전 실행 대비': 'Vs previous run',
   정기: 'Scheduled',
-  '번호를 누르면 실행 중이면 실행 중 화면, 끝났으면 결과 화면이 열립니다': 'Open a number to see the live screen while running, or the result once finished',
+  '번호를 누르면 실행 중이면 실행 중 화면, 종료되었으면 결과 화면이 열립니다': 'Open a number to see the live screen while running, or the result once finished',
 
   // 정기 실행
   '매일 {시각} · {서버}': 'Daily {시각} · {서버}',
   끄기: 'Turn off',
   켜기: 'Turn on',
   '{서버} · 부하 테스트 불가': '{서버} · cannot be load tested',
-  '매일 이 시각에 이 시나리오를 저장된 설정 그대로 돌립니다': 'Runs this scenario every day at this time with the saved settings',
-  '시각과 대상 서버를 골라 주세요': 'Pick a time and a target server',
+  '매일 이 시각에 이 시나리오를 저장된 설정 그대로 실행합니다': 'Runs this scenario every day at this time with the saved settings',
+  '시각과 대상 서버를 선택해 주세요': 'Pick a time and a target server',
 
   // PRD 추적표
   '성능 목표 {수}개': '{수} performance targets',

@@ -94,7 +94,7 @@ describe('ScenarioPartPanel 입력값 · 기대값', () => {
         expectedSchema: { type: 'object', properties: { total: { type: 'number', description: '합계' } }, required: ['total'] },
       }),
     );
-    const 묶음 = screen.getByRole('group', { name: '기대값' });
+    const 묶음 = screen.getByRole('group', { name: '기대 결과' });
     expect((within(묶음).getByLabelText('합계') as HTMLInputElement).value).toBe('');
     fireEvent.change(within(묶음).getByLabelText('합계'), { target: { value: '9' } });
     expect(마지막바꿈(on바꿈).expected).toEqual({ total: 9 });
@@ -127,16 +127,16 @@ describe('ScenarioPartPanel 재료 없음 · 읽기 전용', () => {
     const { on케이스바꾸기 } = 그리기(단계('ZSB-001'), null);
 
     expect(screen.getByText('케이스를 찾지 못했습니다')).toBeTruthy();
-    expect(screen.getByText('다른 케이스로 바꾸면 이 단계의 사전 단계 · 입력값 설정은 처음부터 다시 합니다')).toBeTruthy();
+    expect(screen.getByText('다른 케이스로 변경하면 이 단계의 사전 단계 · 입력값 설정은 처음부터 다시 합니다')).toBeTruthy();
     expect(screen.queryByRole('switch')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: '케이스 바꾸기' }));
+    fireEvent.click(screen.getByRole('button', { name: '케이스 변경' }));
     expect(on케이스바꾸기).toHaveBeenCalledTimes(1);
   });
 
   it('읽기만 하는 사람에게는 케이스 바꾸기가 없다', () => {
     그리기(단계('ZSB-001'), null, { 쓰나: false });
     expect(screen.getByText('케이스를 찾지 못했습니다')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: '케이스 바꾸기' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '케이스 변경' })).toBeNull();
   });
 
   it('읽기만 하는 사람에게는 스위치 · 체크박스 · 입력이 전부 잠긴다', () => {
@@ -147,7 +147,7 @@ describe('ScenarioPartPanel 재료 없음 · 읽기 전용', () => {
     for (const 이름 of ['이름', '수량', '동의', '종류', '비밀번호 입력']) {
       expect((screen.getByLabelText(이름) as HTMLInputElement).disabled).toBe(true);
     }
-    expect(screen.queryByRole('button', { name: '케이스 바꾸기' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '케이스 변경' })).toBeNull();
   });
 
   it('재료가 아직 안 왔으면 불러오는 중을 보인다', () => {

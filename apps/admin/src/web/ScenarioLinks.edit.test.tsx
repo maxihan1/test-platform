@@ -35,7 +35,7 @@ describe('ScenarioLinks 칸 아래 문장', () => {
 
   it('넣을 칸이 비면 골라야 한다는 문장이 나온다', () => {
     그리기([{ kind: 'bind', param: '', value: 참조 }]);
-    expect(screen.getByText('넣을 칸을 골라야 합니다')).toBeTruthy();
+    expect(screen.getByText('넣을 칸을 선택해야 합니다')).toBeTruthy();
     expect((screen.getByLabelText('넣을 칸') as HTMLSelectElement).value).toBe('');
   });
 
@@ -77,7 +77,7 @@ describe('ScenarioLinks 고치기 · 빼기', () => {
         to: { method: 'PATCH', path: '/o/{}', value: 참조 },
       },
     ]);
-    fireEvent.change(within(묶음).getByLabelText('바꿀 메서드'), { target: { value: 'PUT' } });
+    fireEvent.change(within(묶음).getByLabelText('변경할 메서드'), { target: { value: 'PUT' } });
     expect(마지막(on바꿈)).toEqual([
       {
         kind: 'rewrite',

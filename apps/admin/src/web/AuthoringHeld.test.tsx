@@ -93,7 +93,7 @@ describe('보류 케이스 표', () => {
     expect(screen.getByRole('table', { name: '입력이 필요한 케이스' })).toBeTruthy();
     expect(screen.queryByRole('heading')).toBeNull();
     expect(screen.getByText('MKT-030')).toBeTruthy();
-    expect(screen.getByText('기대값 없음')).toBeTruthy();
+    expect(screen.getByText('기대 결과 없음')).toBeTruthy();
     expect(screen.getAllByText('테스트 데이터 없음')).toHaveLength(2);
     expect(screen.getByText('확인 내용')).toBeTruthy();
     expect(screen.getByText('필요한 것')).toBeTruthy();
@@ -137,7 +137,7 @@ describe('보류 케이스 표', () => {
 
   it('되돌리기는 DELETE 를 부른다', async () => {
     render(<AuthoringHeld service="MKT" 요청번호={7} held={[삭제글]} 편집 reload={reload} />);
-    fireEvent.click(screen.getByRole('button', { name: '되돌리기' }));
+    fireEvent.click(screen.getByRole('button', { name: '실행 취소' }));
     await vi.waitFor(() => expect(지우기).toHaveBeenCalledWith('MKT', 7, 'MKT-035'));
   });
 
@@ -158,7 +158,7 @@ describe('다음 단계의 보류 진척과 반영', () => {
     const 버튼 = screen.getByRole('button', { name: '테스트 반영하기' });
     expect((버튼 as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText('입력이 필요한 케이스 2건이 남아 있어 아직 반영할 수 없습니다.')).toBeTruthy();
-    expect(screen.queryByText(/3번 돌려/)).toBeNull();
+    expect(screen.queryByText(/3번 실행/)).toBeNull();
     expect(screen.queryByLabelText('대상 서버')).toBeNull();
   });
 
@@ -183,7 +183,7 @@ describe('다음 단계의 보류 진척과 반영', () => {
     expect(screen.queryByLabelText('대상 서버')).toBeNull();
     expect(screen.getByText('테스트 계정을 넣은 대상 서버가 없습니다. 설정 > 애플리케이션에서 넣으세요.')).toBeTruthy();
     expect((screen.getByRole('button', { name: '테스트 반영하기' }) as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.getByText(/3번 돌려/)).toBeTruthy();
+    expect(screen.getByText(/3번 실행/)).toBeTruthy();
   });
 
   it('보류가 없으면 진척도 설명도 없고 반영은 대상 서버 없이 보낸다', async () => {
@@ -223,6 +223,6 @@ describe('다음 단계의 보류 진척과 반영', () => {
     머지.mockRejectedValueOnce(new ApiError(409, 'HELD_OPEN', ''));
     render(<AuthoringTodo service="MKT" 요청={줄({ held: [삭제글], heldOpen: 0 })} 할수={운영} 차이수={0} reload={reload} />);
     fireEvent.click(screen.getByRole('button', { name: '테스트 반영하기' }));
-    expect(await screen.findByText('입력이 필요한 케이스가 남아 있어 아직 반영할 수 없습니다. 새로 고쳐 보세요')).toBeTruthy();
+    expect(await screen.findByText('입력이 필요한 케이스가 남아 있어 아직 반영할 수 없습니다. 새로고침해 보세요')).toBeTruthy();
   });
 });

@@ -58,7 +58,7 @@ describe('측정', () => {
     await screen.findByRole('table', { name: '페이지별 측정 결과' });
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.click(screen.getByRole('button', { name: '다시 측정' }));
-    expect((await screen.findByRole('alert')).textContent).toBe('고른 부하 발생 에이전트가 연결돼 있지 않습니다');
+    expect((await screen.findByRole('alert')).textContent).toBe('선택한 부하 발생 에이전트가 연결돼 있지 않습니다');
     expect(screen.getByRole('button', { name: '다시 측정' })).toBeTruthy();
   });
 
@@ -89,7 +89,7 @@ describe('측정', () => {
     await screen.findByRole('table', { name: '페이지별 측정 결과' });
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.click(screen.getByRole('button', { name: '다시 측정' }));
-    expect((await screen.findByRole('alert')).textContent).toBe('측정이 오류로 끝났습니다 — 브라우저를 열지 못했습니다');
+    expect((await screen.findByRole('alert')).textContent).toBe('측정이 오류로 종료되었습니다 — 브라우저를 열지 못했습니다');
   });
 
   it('실행 쓰기 권한이 없으면 측정 · 조건 · 페이지 선택이 없다', async () => {

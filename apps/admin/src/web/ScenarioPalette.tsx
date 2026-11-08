@@ -126,7 +126,7 @@ export function ScenarioPalette({ 서비스, 앱들 = [], 디바이스, 바꿀�
     <div className="scn-palette">
       {바꿀번호 === null ? null : (
         <div className="scn-pal-swap">
-          <p className="scn-set-sub">{t('{번호}번 단계를 바꿀 케이스를 고릅니다', { 번호: 바꿀번호 })}</p>
+          <p className="scn-set-sub">{t('{번호}번 단계를 변경할 케이스를 선택합니다', { 번호: 바꿀번호 })}</p>
           <button type="button" className="btn ghost" onClick={on바꾸기취소}>
             {t('취소')}
           </button>
@@ -174,15 +174,15 @@ export function ScenarioPalette({ 서비스, 앱들 = [], 디바이스, 바꿀�
             </section>
           )}
           <label className="scn-pal-find">
-            <span className="scn-set-sub">{t('케이스 찾기')}</span>
+            <span className="scn-set-sub">{t('케이스 검색')}</span>
             <input type="text" value={찾기} onChange={(e) => set찾기(e.target.value)} />
           </label>
           {!읽음.잘림 ? null : (
-            <p className="scn-set-note">{t('케이스가 많아 앞 {수}건만 보입니다. 찾기로 좁힙니다', { 수: 읽음.목록.length })}</p>
+            <p className="scn-set-note">{t('케이스가 많아 앞 {수}건만 보입니다. 검색으로 좁힙니다', { 수: 읽음.목록.length })}</p>
           )}
           {차례.뺀수 === 0 ? null : (
             <p className="scn-set-note">
-              {t('{디바이스}에서 돌지 않는 케이스 {수}건은 뺐습니다', { 디바이스: t(PLATFORM_LABEL[디바이스]), 수: 차례.뺀수 })}
+              {t('{디바이스}에서 실행되지 않는 케이스 {수}건은 뺐습니다', { 디바이스: t(PLATFORM_LABEL[디바이스]), 수: 차례.뺀수 })}
             </p>
           )}
           {PRD씀 ? (

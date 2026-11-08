@@ -173,7 +173,7 @@ describe('프로젝트와 권한 고르개 (도메인/인증 §8.8 · 시안 B)'
     expect(칸묶음('데모마켓 케이스')).toBeNull();
     expect(칸묶음('그래프(Grafana)')).toBeNull();
     expect(프로젝트칸(/데모마켓/)).toBeTruthy();
-    expect(screen.getByText('관리자는 배정된 프로젝트에서 모든 기능을 씁니다. 켜 둘 프로젝트만 고르세요.')).toBeTruthy();
+    expect(screen.getByText('관리자는 배정된 프로젝트에서 모든 기능을 씁니다. 켜 둘 프로젝트만 선택하세요.')).toBeTruthy();
   });
 
   it('실행 쓰기에 케이스 안 씀이면 알리되 저장은 막지 않는다', () => {
@@ -182,7 +182,7 @@ describe('프로젝트와 권한 고르개 (도메인/인증 §8.8 · 시안 B)'
     고른다('데모마켓 실행', '쓰기');
     고른다('데모마켓 케이스', '안 씀');
 
-    expect(screen.getByRole('status').textContent).toContain('이대로면 실행 설정에서 고를 케이스가 보이지 않습니다.');
+    expect(screen.getByRole('status').textContent).toContain('이대로면 실행 설정에서 선택할 케이스가 보이지 않습니다.');
     expect((screen.getByText('계정 추가') as HTMLButtonElement).disabled).toBe(false);
   });
 
@@ -214,7 +214,7 @@ describe('프로젝트와 권한 고르개 (도메인/인증 §8.8 · 시안 B)'
     고른다('데모마켓 실행', '테스트만');
     고른다('데모마켓 케이스', '안 씀');
 
-    expect(screen.getByRole('status').textContent).toContain('이대로면 실행 설정에서 고를 케이스가 보이지 않습니다.');
+    expect(screen.getByRole('status').textContent).toContain('이대로면 실행 설정에서 선택할 케이스가 보이지 않습니다.');
   });
 
   it('그래프(Grafana)에는 쓰기가 없다', () => {

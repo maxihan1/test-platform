@@ -122,7 +122,7 @@ describe('중단 확인', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: '중단' }));
     const 묻기 = within(screen.getByRole('dialog', { name: '시험 실행을 중단할까요?' }));
-    expect(묻기.getByText('진행 중인 ZRS-001 는 바로 멈추고 남은 1건은 실행하지 않습니다')).toBeTruthy();
+    expect(묻기.getByText('진행 중인 ZRS-001 는 즉시 중단하고 남은 1건은 실행하지 않습니다')).toBeTruthy();
     expect(묻기.getByText('확인하는 동안에도 실행은 계속됩니다')).toBeTruthy();
     fireEvent.click(묻기.getByRole('button', { name: '계속 실행' }));
 
@@ -179,7 +179,7 @@ describe('정식 실행 시작 확인', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
 
-    expect(await screen.findByText(/끝나면 RUN 112 결과에 다시 실행으로 추가됩니다 · 어젯밤 실행/)).toBeTruthy();
+    expect(await screen.findByText(/완료되면 RUN 112 결과에 다시 실행으로 추가됩니다 · 어젯밤 실행/)).toBeTruthy();
     expect(읽기).toHaveBeenCalledWith('ZRS-001', 'qa', ['desktop'], 'server');
   });
 

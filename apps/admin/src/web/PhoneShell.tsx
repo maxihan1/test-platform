@@ -80,7 +80,7 @@ export function PhoneShell({ user, service, onService, 언어, on언어, onLogou
             type="button"
             className="ph-app"
             aria-haspopup="dialog"
-            aria-label={t('{프로젝트} › {이름} · 바꾸기', { 프로젝트: service.projectName, 이름: service.name })}
+            aria-label={t('{프로젝트} › {이름} · 변경', { 프로젝트: service.projectName, 이름: service.name })}
             onClick={() => set열린판('apps')}
           >
             <span className="place-ic">
@@ -171,7 +171,7 @@ export function PhoneShell({ user, service, onService, 언어, on언어, onLogou
       </nav>
 
       {열린판 === 'apps' && service !== null ? (
-        <아래판 제목={t('프로젝트 · 애플리케이션 고르기')} onClose={닫기}>
+        <아래판 제목={t('프로젝트 · 애플리케이션 선택')} onClose={닫기}>
           <위치판 user={user} service={service} onService={onService} 새로만들기={할수있나(user, service.prefix, '설정')} 닫기={닫기} 휴대폰 />
         </아래판>
       ) : null}

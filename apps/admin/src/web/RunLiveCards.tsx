@@ -161,10 +161,10 @@ export function 기록띠({ data }: { data: RunDetail }) {
   const t말 = use말();
   const 글 =
     data.origin !== 'SINGLE'
-      ? t말('끝나면 실행 기록에 남고 리포트를 만들 수 있습니다 · RUN {번호}', { 번호: data.runId })
+      ? t말('완료되면 실행 기록에 남고 리포트를 만들 수 있습니다 · RUN {번호}', { 번호: data.runId })
       : data.rerunOf === null || data.rerunOf === undefined
-        ? t말('끝나면 이 케이스 상세에 남습니다')
-        : t말('끝나면 RUN {번호} 결과에 다시 실행으로 추가됩니다', { 번호: data.rerunOf });
+        ? t말('완료되면 이 케이스 상세에 남습니다')
+        : t말('완료되면 RUN {번호} 결과에 다시 실행으로 추가됩니다', { 번호: data.rerunOf });
   return (
     <p className="start-band rec">
       <b>{t말('정식 실행')}</b> {글}

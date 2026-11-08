@@ -69,7 +69,7 @@ describe('항목 상세 (SPEC §8.4)', () => {
     그린다({ farm: [{ name: 'video-1.mp4', bytes: 2_428_030 }, { name: 'logcat.txt', bytes: 1_048_576 }] });
     const 영상 = await screen.findByLabelText('화면 영상 1');
     expect(영상.getAttribute('src')).toBe(`/api/runs/${String(RUN_ID)}/items/${String(HISTORY_ID)}/farm/video-1.mp4`);
-    expect(screen.getByRole('link', { name: 'logcat.txt 받기 (1.0MB)' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'logcat.txt 다운로드 (1.0MB)' })).toBeTruthy();
   });
 
   it('멈춰 닫힌 미실행은 서버가 이유를 안 줘도 「사용자가 멈춤」을 적는다', async () => {
@@ -86,7 +86,7 @@ describe('항목 상세 (SPEC §8.4)', () => {
     });
     expect(await screen.findByText('실패 이유')).toBeTruthy();
     expect(screen.getByText('요소를 찾지 못함')).toBeTruthy();
-    expect(screen.queryByText('실행이 멈춘 사유')).toBeNull();
+    expect(screen.queryByText('실행이 중단된 사유')).toBeNull();
     const 원문 = screen.getByText('원문 보기').closest('details') as HTMLDetailsElement;
     expect(원문.open).toBe(false);
     expect(원문.textContent).toContain('at demo/a.spec.ts:12:7');
@@ -122,7 +122,7 @@ describe('항목 상세 (SPEC §8.4)', () => {
       expectedSchema: { type: 'object', properties: { title: { type: 'string', description: '제목', default: 'AI 올인원' } } },
     });
 
-    const 머리 = await screen.findByText('기대결과');
+    const 머리 = await screen.findByText('기대 결과');
     const 칸 = 머리.closest('.sec');
     expect(칸?.textContent).toContain('제목');
     expect(칸?.textContent).toContain('AI 올인원');
@@ -132,7 +132,7 @@ describe('항목 상세 (SPEC §8.4)', () => {
   it('기대값도 기본값도 없으면 「기대결과 없음」', async () => {
     그린다();
 
-    expect(await screen.findByText('기대결과 없음')).toBeTruthy();
+    expect(await screen.findByText('기대 결과 없음')).toBeTruthy();
   });
 });
 

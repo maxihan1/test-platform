@@ -31,7 +31,7 @@ describe('종류마다 다른 칸', () => {
     fireEvent.change(칸('토큰 주소'), { target: { value: '/oauth/token' } });
     fireEvent.change(칸('클라이언트 ID'), { target: { value: 'client-a' } });
     fireEvent.change(칸('비밀값'), { target: { value: 'secret-123456789' } });
-    fireEvent.change(screen.getByLabelText('대상 서버 1 어드민 키 머리 이름'), { target: { value: 'X-Admin-Key' } });
+    fireEvent.change(screen.getByLabelText('대상 서버 1 어드민 키 헤더 이름'), { target: { value: 'X-Admin-Key' } });
     fireEvent.change(screen.getByLabelText('대상 서버 1 어드민 키 값'), { target: { value: 'secret-admin-0002' } });
     다음();
     fireEvent.change(screen.getByLabelText('문서 경로'), { target: { value: '/openapi.json' } });
@@ -57,7 +57,7 @@ describe('종류마다 다른 칸', () => {
     이름을채운다('ASH', 'Ashveil');
     다음();
     서버를더한다('qa', 'https://qa.ashveil.dev');
-    fireEvent.change(screen.getByLabelText('대상 서버 1 어드민 키 머리 이름'), { target: { value: 'X-Admin-Key' } });
+    fireEvent.change(screen.getByLabelText('대상 서버 1 어드민 키 헤더 이름'), { target: { value: 'X-Admin-Key' } });
     fireEvent.change(screen.getByLabelText('대상 서버 1 어드민 키 값'), { target: { value: 'secret-admin-0001' } });
     다음();
     다음();
@@ -92,7 +92,7 @@ describe('확인 표', () => {
     확인까지();
     fireEvent.click(screen.getByRole('button', { name: '만들기' }));
 
-    expect((screen.getByRole('button', { name: '종류 고치기' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: '종류 수정' }) as HTMLButtonElement).disabled).toBe(true);
     expect((screen.getByRole('button', { name: '종류' }) as HTMLButtonElement).disabled).toBe(true);
   });
 });
@@ -120,7 +120,7 @@ describe('끝 화면', () => {
     await 다만든다();
 
     expect(screen.queryByRole('button', { name: '테스트 작성 시작' })).toBeNull();
-    expect(screen.getByText('맨 위 고르개에서 고르려면 「계정」에서 이 프로젝트를 나에게 배정합니다')).toBeTruthy();
+    expect(screen.getByText('맨 위 드롭다운에서 선택하려면 「계정」에서 이 프로젝트를 나에게 배정합니다')).toBeTruthy();
   });
 
   it('배정된 프로젝트인데 맨 위 재료를 아직 다시 읽는 중이면 배정 안내를 띄우지 않는다', async () => {

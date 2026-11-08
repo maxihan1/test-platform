@@ -71,7 +71,7 @@ const 바닥 = () => document.querySelector('.wz-why')?.textContent;
 
 async function 값연결로(user = 사람()) {
   render(<ScenarioWizard 띠서비스={서비스('ZSB')} user={user} />);
-  fireEvent.click(screen.getByRole('button', { name: /직접 고르기/ }));
+  fireEvent.click(screen.getByRole('button', { name: /직접 선택/ }));
   다음();
   fireEvent.click(within(await screen.findByRole('region', { name: '첫 단계 추천' })).getByRole('button', { name: 'ZSB-001 넣기' }));
   fireEvent.click(within(await screen.findByRole('region', { name: '다음 단계 추천' })).getByRole('button', { name: 'ZSB-002 넣기' }));
@@ -83,7 +83,7 @@ async function 경로채우고시험으로(user = 사람()) {
   await 값연결로(user);
   fireEvent.change(screen.getByLabelText('JSON 경로'), { target: { value: 'id' } });
   다음();
-  await screen.findByRole('heading', { name: '끝까지 이어지는지 돌려 봅니다' });
+  await screen.findByRole('heading', { name: '끝까지 이어지는지 실행해 봅니다' });
 }
 
 describe('ScenarioWizard 값 연결', () => {
@@ -100,7 +100,7 @@ describe('ScenarioWizard 값 연결', () => {
     expect(연결.textContent).toContain('2번 ZSB-002 케이스');
     expect(연결.textContent).toContain('1번 ZSB-001 케이스');
     expect(연결.textContent).toContain('확인 필요');
-    expect(연결.textContent).toContain('서비스 지도에서 찾았습니다 · 종류 「값 주입」');
+    expect(연결.textContent).toContain('애플리케이션 지도에서 찾았습니다 · 종류 「값 주입」');
     expect(screen.getByText('앞 단계 응답에서 꺼낼 값의 경로를 적습니다 · 예: id, data.id')).toBeTruthy();
     expect(screen.getByText('1번 「ZSB-001 케이스」부터 끝까지 같은 계정으로 이어 갑니다. 뒤 단계의 로그인 사전 단계는 건너뜁니다')).toBeTruthy();
 
@@ -112,7 +112,7 @@ describe('ScenarioWizard 값 연결', () => {
     expect(연결.textContent).toContain('확인함');
 
     다음();
-    expect(screen.getByRole('heading', { name: '끝까지 이어지는지 돌려 봅니다' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: '끝까지 이어지는지 실행해 봅니다' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '이전' }));
     await waitFor(() => expect(제안받기).toHaveBeenCalledTimes(2));
     expect(await screen.findByText('값 연결 1곳 찾음')).toBeTruthy();
@@ -137,7 +137,7 @@ describe('ScenarioWizard 시험 실행 · 저장', () => {
     const 기본 = 사람();
     await 경로채우고시험으로({ ...기본, services: 기본.services.map((s) => ({ ...s, envs: s.envs.slice(0, 1) })) });
     expect((screen.getByLabelText('대상 서버') as HTMLSelectElement).value).toBe('stg');
-    expect(screen.queryByText('지난번에 고른 서버를 미리 골라 두었습니다')).toBeNull();
+    expect(screen.queryByText('지난번에 선택한 서버를 미리 선택해 두었습니다')).toBeNull();
   });
 
   it('시험 실행을 누르면 본문 오른쪽에 실시간 칸이 선다', async () => {
@@ -158,7 +158,7 @@ describe('ScenarioWizard 시험 실행 · 저장', () => {
   it('지난번 서버로 돌려 값 연결이 쓰였는지 알리고, 같은 단계로 저장한다', async () => {
     localStorage.setItem('대상서버:ZSB', 'stg');
     await 경로채우고시험으로();
-    expect(screen.getByText('지난번에 고른 서버를 미리 골라 두었습니다')).toBeTruthy();
+    expect(screen.getByText('지난번에 선택한 서버를 미리 선택해 두었습니다')).toBeTruthy();
     expect(바닥()).toBe('시험 없이 넘어가도 저장할 수 있습니다');
 
     const 시작 = vi.spyOn(scenarioApi, 'startTrial').mockResolvedValue({ trialId: 't-1' });
@@ -194,11 +194,11 @@ describe('ScenarioWizard 시험 실행 · 저장', () => {
     expect(시작).toHaveBeenCalledWith({ service: 'ZSB', env: 'stg', platform: 'desktop', parts: 보낸 });
     expect(screen.getByText(/^끝까지 이어졌습니다 · 2단계/)).toBeTruthy();
     expect(screen.getByText('2번 ← 1번 · 값 주입 · 쓰임')).toBeTruthy();
-    expect(screen.getByRole('button', { name: '다시 돌리기' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '다시 실행' })).toBeTruthy();
 
     다음();
     const 요약 = screen.getByRole('heading', { name: '이름을 정하고 저장합니다' }).parentElement!;
-    expect(요약.textContent).toContain('직접 고름');
+    expect(요약.textContent).toContain('직접 선택함');
     expect(요약.textContent).toContain('단계 2개');
     expect(요약.textContent).toContain('값 연결 1곳 · 로그인 이어받기');
     expect(요약.textContent).toContain('통과 · stg');
@@ -244,7 +244,7 @@ describe('ScenarioWizard 시험 실행 · 저장', () => {
     다음();
     fireEvent.change(screen.getByLabelText('시나리오 이름'), { target: { value: '첫 주문' } });
     fireEvent.click(screen.getByRole('button', { name: '저장하고 실행' }));
-    expect((await screen.findByRole('alert')).textContent).toBe('대상 서버를 먼저 고릅니다');
+    expect((await screen.findByRole('alert')).textContent).toBe('대상 서버를 먼저 선택합니다');
     expect(screen.queryByRole('button', { name: '시험 실행 중' })).toBeNull();
 
     vi.spyOn(scenarioApi, 'create').mockResolvedValue({ id: 32, version: 1 });

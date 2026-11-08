@@ -48,7 +48,7 @@ export function 요청고르개({ 아이디, tcId, 지도, 방법, 무늬, 잠�
   }
   const 고른 = 목록.findIndex((r) => r.method === 방법 && r.urlPattern === 무늬);
   return (
-    <칸 아이디={아이디} 라벨="요청 고르기" 문장={null}>
+    <칸 아이디={아이디} 라벨="요청 선택" 문장={null}>
       {(속성) => (
         <select
           {...속성}

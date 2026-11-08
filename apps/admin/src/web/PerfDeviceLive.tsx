@@ -114,7 +114,7 @@ export function PerfDeviceLive({ run, 다시읽기, 쓰나 }: { run: 실행상�
           <div className="perf-row">
             <h2 id="pd-p">{t('시나리오 진행')}</h2>
             <span className="perf-faint">
-              {직접 ? t('지난 시간 {시간}', { 시간: 분초(지난초) }) : 지금회차 === 0 ? t('디바이스를 잡고 기록기를 켜는 중입니다') : [t('{수}회차', { 수: 지금회차 }), 지금구간].filter(Boolean).join(' · ')}
+              {직접 ? t('지난 시간 {시간}', { 시간: 분초(지난초) }) : 지금회차 === 0 ? t('디바이스를 할당받고 기록기를 켜는 중입니다') : [t('{수}회차', { 수: 지금회차 }), 지금구간].filter(Boolean).join(' · ')}
             </span>
           </div>
           <div className="pd-prog" role="progressbar" aria-label={t('전체 진행')} aria-valuenow={Math.round(진행)} aria-valuemin={0} aria-valuemax={100}>

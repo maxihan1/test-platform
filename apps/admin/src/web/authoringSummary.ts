@@ -12,10 +12,10 @@ const 종류글: Record<요약종류, string> = {
   UNCOVERED: '기획서에 없는 화면',
   SCREEN_ONLY: '화면만 대조',
   CONTINUE: '남은 요구 이어 작성',
-  PRD_APPLY: '바뀐 요구 다시 작성',
-  API_APPLY: '바뀐 API 다시 작성',
+  PRD_APPLY: '변경된 요구 다시 작성',
+  API_APPLY: '변경된 API 다시 작성',
   DECISION: '결정 진행',
-  EDIT: '케이스 고치기',
+  EDIT: '케이스 수정',
 };
 
 export function 종류꼬리표(s: 목록요약, 언어: 언어): string {
@@ -48,13 +48,13 @@ export function 무슨테스트(s: 목록요약, 언어: 언어): string {
   if (s.kind === 'PRD_APPLY' && w.reqs > 0) return t('요구 {수}건 테스트 다시 작성', 언어, { 수: w.reqs });
   if (s.kind === 'DECISION' && w.reqs + w.screenRight > 0) {
     const 조각 = [
-      w.reqs > 0 ? t('바뀐 요구 {수}건', 언어, { 수: w.reqs }) : null,
+      w.reqs > 0 ? t('변경된 요구 {수}건', 언어, { 수: w.reqs }) : null,
       w.screenRight > 0 ? t('화면이 맞음 {수}건', 언어, { 수: w.screenRight }) : null,
     ].filter((x): x is string => x !== null);
-    return t('{조각} 테스트 고치기', 언어, { 조각: 조각.join(' · ') });
+    return t('{조각} 테스트 수정', 언어, { 조각: 조각.join(' · ') });
   }
   if (s.kind === 'EDIT' && w.tcIds.length > 0) {
-    const 무엇 = t(w.fix === 'EXPECTED' ? '기대값 고치기' : w.fix === 'DELETE' ? '삭제§목록 줄' : '고치기§목록 줄', 언어);
+    const 무엇 = t(w.fix === 'EXPECTED' ? '기대 결과 수정' : w.fix === 'DELETE' ? '삭제§목록 줄' : '수정§목록 줄', 언어);
     const 나머지 = w.tcIds.length - 1 + w.tcMore;
     return 나머지 > 0 ? t('{번호} 외 {수}건 {무엇}', 언어, { 번호: w.tcIds[0]!, 수: 나머지, 무엇 }) : [w.tcIds[0]!, 무엇].join(' ');
   }
@@ -72,13 +72,13 @@ export function 결과글(s: 목록요약, 언어: 언어): { 글: string; 실�
   if (r === null) return null;
   if (r.stoppedAt !== null) {
     // 고치기는 단계 막대가 없다 — 「준비 단계에서」라 하면 어디서 멈췄는지 거짓말을 한다
-    if (s.kind === 'EDIT') return { 글: t('고치는 중에 멈춤', 언어), 실패: true };
-    if (r.stoppedAt === '') return { 글: t('시작 전에 멈춤', 언어), 실패: true };
+    if (s.kind === 'EDIT') return { 글: t('수정 중 중단', 언어), 실패: true };
+    if (r.stoppedAt === '') return { 글: t('시작 전에 중단', 언어), 실패: true };
     const 만든 = (r.casesMade ?? 0) > 0 ? t('케이스 {수}건 만듦', 언어, { 수: r.casesMade! }) : t('만든 케이스 없음', 언어);
     // 칸 표에 없는 단계 글(겹침 보기 · 3회 돌리기 같은)을 첫 칸으로 옮기면 어디서 멈췄는지 거짓말을 한다 — 단계 없이 멈춤만 말한다
-    if (r.stoppedAt !== '준비' && !아는단계글(r.stoppedAt)) return { 글: [t('중간에 멈춤', 언어), 만든].join(' · '), 실패: true };
+    if (r.stoppedAt !== '준비' && !아는단계글(r.stoppedAt)) return { 글: [t('중간에 중단', 언어), 만든].join(' · '), 실패: true };
     const 단계 = 단계라벨(단계이름들[단계칸(r.stoppedAt, false)] ?? '준비', 언어);
-    return { 글: [t('{단계} 단계에서 멈춤', 언어, { 단계 }), 만든].join(' · '), 실패: true };
+    return { 글: [t('{단계} 단계에서 중단', 언어, { 단계 }), 만든].join(' · '), 실패: true };
   }
   const 조각 = [
     (r.casesMade ?? 0) > 0 ? t('케이스 {수}건 만듦', 언어, { 수: r.casesMade! }) : null,

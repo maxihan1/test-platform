@@ -193,7 +193,7 @@ describe('작성 한 건 상세', () => {
     답 = 줄({ status: 'DRAFT', prUrl: null, finishedAt: null, startedAt: null, assets: [] });
     render(<AuthoringDetail service="PAY" id={7} 할수={운영} />);
     expect(await screen.findByText('이 요청은 대기열에 들어가지 못했습니다. 폐기하고 새 요청으로 다시 넣으세요')).toBeTruthy();
-    expect(screen.getByText('자료 올리는 중')).toBeTruthy();
+    expect(screen.getByText('자료 업로드 중')).toBeTruthy();
   });
 });
 
@@ -224,7 +224,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
     답 = 줄({ status: 'RUNNING', prUrl: null, finishedAt: null, progress: null });
     render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
     await screen.findByText('테스터');
-    expect(screen.queryByText('저장하고 PR 을 만드는 중 — 멈출 수 없습니다')).toBeNull();
+    expect(screen.queryByText('저장하고 PR 을 만드는 중 — 중단할 수 없습니다')).toBeNull();
   });
 
   it('칸이 덜 찬 진척(childRunning 뿐)이어도 죽지 않는다', async () => {
@@ -278,7 +278,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
   it('자식이 끝나 올리는 중이면 멈출 수 없다고 말한다', async () => {
     답 = 줄({ status: 'RUNNING', prUrl: null, finishedAt: null, progress: { ...도는진척, childRunning: false }, canStop: false });
     render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
-    expect(await screen.findByText('저장하고 PR 을 만드는 중 — 멈출 수 없습니다')).toBeTruthy();
+    expect(await screen.findByText('저장하고 PR 을 만드는 중 — 중단할 수 없습니다')).toBeTruthy();
   });
 
   it('중단된 것은 누가 왜 멈췄는지 보이고 다시 읽지 않는다', async () => {
@@ -286,7 +286,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
     vi.useFakeTimers();
     render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
     await 첫읽기끝();
-    expect(screen.getByText('김철수 · 사용자가 멈춤')).toBeTruthy();
+    expect(screen.getByText('김철수 · 사용자가 중단')).toBeTruthy();
     expect(screen.getByText('중단')).toBeTruthy();
     await vi.advanceTimersByTimeAsync(10_000);
     expect(부른횟수).toBe(1);
@@ -366,10 +366,10 @@ describe('작성 진척 · 중단 · 폐기', () => {
       expect(screen.getByRole('button', { name: '같은 자료로 다시 작성' })).toBeTruthy();
     });
 
-    it('올리기 거절이면 거절 까닭을 상태 카드에 보인다', async () => {
+    it('업로드 거절이면 거절 까닭을 상태 카드에 보인다', async () => {
       답 = 멈춤({ stopReason: 'REJECTED', error: '올릴 것에 테스트 계정 비밀번호가 들어 있다 — 올리지 않는다', canResume: true });
       render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
-      expect(await screen.findByText('시스템 · 올리기 거절')).toBeTruthy();
+      expect(await screen.findByText('시스템 · 업로드 거절')).toBeTruthy();
       expect(screen.getByText('올릴 것에 테스트 계정 비밀번호가 들어 있다 — 올리지 않는다')).toBeTruthy();
     });
 
@@ -438,7 +438,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
       expect(줄들).toHaveLength(3);
       expect(줄들[0]).toEqual(['3차', '이어서', expect.any(String), '완료', '29']);
       expect(줄들[1]!.slice(0, 2)).toEqual(['2차', '처음부터']);
-      expect(줄들[1]![3]).toBe('중단 — 사용자가 멈춤');
+      expect(줄들[1]![3]).toBe('중단 — 사용자가 중단');
       expect(줄들[2]!.slice(0, 2)).toEqual(['1차', '처음']);
       expect(줄들[2]![3]).toBe('실패 — 비밀번호가 들어 있다');
     });
@@ -471,7 +471,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
     render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
     expect(
       await screen.findByText(
-        '넣었던 자료 그대로 같은 요청에서 처음부터 다시 돌립니다. 지금까지의 실행은 실행 기록에 남습니다. 대상 서버와 시작 주소도 원본 그대로 씁니다.',
+        '넣었던 자료 그대로 같은 요청에서 처음부터 다시 실행합니다. 지금까지의 실행은 실행 기록에 남습니다. 대상 서버와 시작 주소도 원본 그대로 씁니다.',
       ),
     ).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '같은 자료로 다시 작성' }));
@@ -482,7 +482,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
     답 = 줄({ status: 'FAILED', prUrl: null, error: '실패함', canDiscard: true });
     render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
     expect(
-      await screen.findByText('원인을 먼저 고친 뒤 누르세요. 넣었던 자료 그대로 같은 요청에서 처음부터 다시 돌립니다.'),
+      await screen.findByText('원인을 먼저 수정한 뒤 누르세요. 넣었던 자료 그대로 같은 요청에서 처음부터 다시 실행합니다.'),
     ).toBeTruthy();
   });
 
@@ -498,7 +498,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
     });
     render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
     expect(await screen.findByText('원본 요청 #3의 입력을 그대로 씁니다')).toBeTruthy();
-    expect(screen.queryByText('화면만 — 기획서 없이 PRD 에 없는 화면만 작성합니다')).toBeNull();
+    expect(screen.queryByText('화면만 — 기획서 없이 미검증 화면만 작성합니다')).toBeNull();
     expect(screen.getByText('차이를 표시한 기획서 — 원본 요청 #3의 자료')).toBeTruthy();
   });
 

@@ -53,7 +53,7 @@ describe('머리', () => {
 
   it('도는 중이면 버튼 대신 안내 한 줄', async () => {
     연다(결과({ status: 'RUNNING', finishedAt: null }));
-    expect(await screen.findByText('실행이 끝나면 리포트를 만들 수 있습니다')).toBeTruthy();
+    expect(await screen.findByText('실행이 완료되면 리포트를 만들 수 있습니다')).toBeTruthy();
     expect(screen.queryByRole('button', { name: '리포트 생성' })).toBeNull();
   });
 
@@ -153,7 +153,7 @@ describe('도는 중', () => {
       .mockResolvedValue(결과());
     render(<ScenarioResult runId={77} 판정하기={() => () => true} />);
     await act(async () => {});
-    expect(screen.getByRole('status').textContent).toBe('실행 중입니다. 끝나면 결과가 채워집니다');
+    expect(screen.getByRole('status').textContent).toBe('실행 중입니다. 완료되면 결과가 채워집니다');
     expect(document.querySelector('.head .verdict')).toBeNull();
     expect(부름).toHaveBeenCalledTimes(1);
 

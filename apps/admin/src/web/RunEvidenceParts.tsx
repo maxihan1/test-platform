@@ -166,7 +166,7 @@ export function 게임오브젝트({ 대조, 목록주소, 이름 }: { 대조: E
           {목록.error !== null ? <Failed error={목록.error} /> : 목록.data === null ? <Loading /> : <pre className="ev-json">{목록.data.slice(0, TREE_CHAR_LIMIT)}</pre>}
           {(목록.data?.length ?? 0) > TREE_CHAR_LIMIT ? <p className="hint">{t('앞 {글자}자만 보입니다', { 글자: TREE_CHAR_LIMIT.toLocaleString() })}</p> : null}
           <a className="farm-ev-file" href={목록주소} download={GAME_TREE_FILE}>
-            {t('파일로 받기')}
+            {t('파일 다운로드')}
           </a>
         </>
       )}
@@ -183,7 +183,7 @@ export function API증거({ step, 탭 }: { step: StepResult | undefined; 탭: 'r
     return 원문 === undefined ? <p className="fc-faint">{t('이 단계는 API 를 부르지 않았습니다')}</p> : <pre className="ev-json">{JSON.stringify(원문, null, 2)}</pre>;
   }
   const 다른것 = step?.assertions.filter((a) => a.status === 'FAIL') ?? [];
-  if (다른것.length === 0) return <p className="fc-faint">{t('이 단계는 기대값과 다른 곳이 없습니다')}</p>;
+  if (다른것.length === 0) return <p className="fc-faint">{t('이 단계는 기대 결과와 다른 곳이 없습니다')}</p>;
   return (
     <table className="trace-table">
       <thead>

@@ -65,11 +65,11 @@ export function 코드기본값고치기({ row, service }: { row: CaseRow; servi
   }
 
   return (
-    <div className="dsec case-edit" role="group" aria-label={t('코드 기본값 바꾸기 요청')}>
-      <div className="dlabel">{t('코드 기본값 바꾸기 요청')}</div>
-      <p className="hint">{t('케이스에 적힌 기대결과입니다. 바꾼 칸만 작성 요청으로 보내고, 반영하면 다음 실행부터 이 값이 기본값이 됩니다')}</p>
+    <div className="dsec case-edit" role="group" aria-label={t('코드 기본값 변경 요청')}>
+      <div className="dlabel">{t('코드 기본값 변경 요청')}</div>
+      <p className="hint">{t('케이스에 적힌 기대 결과입니다. 변경한 칸만 작성 요청으로 보내고, 반영하면 다음 실행부터 이 값이 기본값이 됩니다')}</p>
       {칸들.length === 0 ? (
-        <p className="hint">{t('코드에서 바꿀 수 있는 기대결과 칸이 없습니다')}</p>
+        <p className="hint">{t('코드에서 변경할 수 있는 기대 결과 칸이 없습니다')}</p>
       ) : (
         <Form
           idPrefix={`edit-${row.tcId}`}
@@ -80,7 +80,7 @@ export function 코드기본값고치기({ row, service }: { row: CaseRow; servi
         />
       )}
       {지울칸.length === 0 ? null : (
-        <p className="hint">{t('{칸들} — 반영되면 이 저장값은 지워집니다', { 칸들: 지울칸.join(', ') })}</p>
+        <p className="hint">{t('{칸들} — 반영되면 이 저장값은 삭제됩니다', { 칸들: 지울칸.join(', ') })}</p>
       )}
 
       {만든번호 !== null ? (

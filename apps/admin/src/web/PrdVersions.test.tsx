@@ -79,9 +79,9 @@ describe('PRD 관리 — 버전 기록', () => {
     const 칸 = (n: number) => 줄들[n]!.querySelectorAll('td')[1]!.textContent;
     expect([0, 1, 2, 3, 4, 5, 6].map(칸)).toEqual([
       '롤백 · 빌드 a1b2c3d-202611011530 · DM-12 · DM-14', '롤백 · DM-12',
-      '되돌림', '테스트 작성에서 결정', '테스트 작성에서 결정 · AI #20', 'AI 작성', 'AI 작성 #14681',
+      '복원', '테스트 작성에서 결정', '테스트 작성에서 결정 · AI #20', 'AI 작성', 'AI 작성 #14681',
     ]);
-    expect([...줄들[0]!.closest('table')!.querySelectorAll('th')].map((th) => th.textContent)).toEqual(['버전', '어디서', '바뀐 것', '저장한 사람', '저장 일시', '']);
+    expect([...줄들[0]!.closest('table')!.querySelectorAll('th')].map((th) => th.textContent)).toEqual(['버전', '어디서', '변경 사항', '저장한 사람', '저장 일시', '']);
   });
 
   it('changes 가 있으면 앞 버전을 읽지 않고 그 줄을 그대로 적는다 — 종류 · 번호 · 새 문장 · 까닭', async () => {
@@ -105,10 +105,10 @@ describe('PRD 관리 — 버전 기록', () => {
     const 줄 = (await screen.findAllByRole('row'))[1]!;
     expect(within(줄).getAllByRole('listitem').map((x) => x.textContent)).toEqual([
       '문장 변경MKT-REQ-088주문 취소 버튼은 배송 전에만 보인다 · 화면이 맞음(MKT-FN-271)',
-      '문구 선택MKT-REQ-021쿠폰은 한 번만 쓴다 · 화면설명메모.md 쪽',
+      '문구 선택MKT-REQ-021쿠폰은 한 번만 쓴다 · 출처 화면설명메모.md',
       '확정MKT-REQ-349',
     ]);
-    expect(within(줄).queryByRole('button', { name: '바뀐 것 보기' })).toBeNull();
+    expect(within(줄).queryByRole('button', { name: '변경 사항 보기' })).toBeNull();
     expect(한판).not.toHaveBeenCalled();
   });
 
@@ -151,7 +151,7 @@ describe('PRD 관리 — 버전 기록', () => {
     expect(within(줄들[1]!).getByText('처음 버전')).toBeTruthy();
     expect(within(줄들[0]!).queryByRole('list')).toBeNull();
     fireEvent.click(요약);
-    const 목록 = within(줄들[0]!).getByRole('list', { name: '버전 12에서 바뀐 요구' });
+    const 목록 = within(줄들[0]!).getByRole('list', { name: '버전 12에서 변경된 요구' });
     const 항목들 = within(목록).getAllByRole('listitem').map((x) => x.textContent);
     expect(항목들).toEqual([
       '바뀜MKT-REQ-032아이디 칸에는 12자까지만 들어간다 → 아이디 칸에는 12자까지만 들어간다(고침)',
@@ -190,7 +190,7 @@ describe('PRD 관리 — 버전 기록', () => {
     const 줄들 = (await screen.findAllByRole('row')).slice(1);
     expect(줄들).toHaveLength(12);
     await within(줄들[0]!).findByRole('button', { name: '바뀜 1건' });
-    const 열한째 = within(줄들[10]!).getByRole('button', { name: '바뀐 것 보기' });
+    const 열한째 = within(줄들[10]!).getByRole('button', { name: '변경 사항 보기' });
     const 읽은 = 한판.mock.calls.length;
     fireEvent.click(열한째);
     await within(줄들[10]!).findByRole('button', { name: '바뀜 1건' });

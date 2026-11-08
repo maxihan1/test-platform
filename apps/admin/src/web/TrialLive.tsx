@@ -151,7 +151,7 @@ export function 장면칸({ 주소, 도는중, vision, 부제, 폰만: 앱폰 = 
         </p>
       ) : (
         <div className={폰단계 ? 'live-shot dim' : 'live-shot'}>
-          <img src={그림} alt={!도는중 ? t('끝난 순간의 화면') : 폰칸 ? t('디바이스의 지금 화면') : t('서버 브라우저의 지금 화면')} />
+          <img src={그림} alt={!도는중 ? t('종료된 순간의 화면') : 폰칸 ? t('디바이스의 지금 화면') : t('서버 브라우저의 지금 화면')} />
           {폰단계 ? <p className="live-over">{t('지금은 앱 단계라 디바이스에서 실행 중입니다')}</p> : null}
         </div>
       )}

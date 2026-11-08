@@ -77,7 +77,7 @@ export function CompatCasePick({
           </ul>
         )}
         {/* 한 쪽(50건)만 보인다 — 더 있으면 찾기로 좁힌다 */}
-        {목록.data !== null && 목록.data.total > 목록.data.items.length ? <p className="compat-faint">{t('{수}건 가운데 앞의 일부만 보입니다. 찾기로 좁혀 주세요', { 수: 목록.data.total })}</p> : null}
+        {목록.data !== null && 목록.data.total > 목록.data.items.length ? <p className="compat-faint">{t('{수}건 가운데 앞의 일부만 보입니다. 검색으로 좁혀 주세요', { 수: 목록.data.total })}</p> : null}
       </div>
     </Modal>
   );

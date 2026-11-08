@@ -75,7 +75,7 @@ describe('API 문서', () => {
   it('API 애플리케이션이 아니면 안내 한 줄이고, 설정 고리는 운영 계정에게만 보인다', async () => {
     목록.mockRejectedValue(new ApiError(400, 'NOT_API_SERVICE', 'NOT_API_SERVICE'));
     const { rerender } = render(<ApiDocs service={앱} 할수={쓰는사람} 설정보나={false} />);
-    expect(await screen.findByText('API 애플리케이션을 고르면 API 문서가 보입니다')).toBeTruthy();
+    expect(await screen.findByText('API 애플리케이션을 선택하면 API 문서가 보입니다')).toBeTruthy();
     expect(screen.queryByRole('link', { name: '설정에서 종류 보기' })).toBeNull();
     rerender(<ApiDocs service={앱} 할수={쓰는사람} 설정보나 />);
     expect(screen.getByRole('link', { name: '설정에서 종류 보기' })).toBeTruthy();
@@ -84,8 +84,8 @@ describe('API 문서', () => {
   it('버전이 없으면 그렇다고 말하고 받기 · 첨부만 남는다', async () => {
     목록.mockResolvedValue({ docPath: '/openapi.json', docEnv: 'stg', versions: [] });
     render(<ApiDocs service={앱} 할수={쓰는사람} 설정보나 />);
-    expect(await screen.findByText(/문서 새로 받기로 기준 서버에서 받거나/)).toBeTruthy();
-    expect(screen.getByRole('button', { name: '문서 새로 받기' })).toBeTruthy();
+    expect(await screen.findByText(/문서 가져오기로 기준 서버에서 가져오거나/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: '문서 가져오기' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '파일 첨부' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: '버전 기록' })).toBeNull();
   });
@@ -114,14 +114,14 @@ describe('API 문서', () => {
   it('작성 read 만 있으면 받기 · 첨부 버튼이 없다', async () => {
     render(<ApiDocs service={앱} 할수={보는사람} 설정보나={false} />);
     await screen.findByRole('region', { name: '케이스가 안 거친 응답 2개' });
-    expect(screen.queryByRole('button', { name: '문서 새로 받기' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '문서 가져오기' })).toBeNull();
     expect(screen.queryByRole('button', { name: '파일 첨부' })).toBeNull();
     expect(screen.queryByRole('button', { name: /테스트에 반영/ })).toBeNull();
   });
 
   it('지금 받은 문서가 현재 버전과 같으면 새 버전을 만들지 않았다고 알린다', async () => {
     render(<ApiDocs service={앱} 할수={쓰는사람} 설정보나 />);
-    fireEvent.click(await screen.findByRole('button', { name: '문서 새로 받기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '문서 가져오기' }));
     expect(await screen.findByText('현재 버전과 같아 새 버전을 만들지 않았습니다 (버전 3)')).toBeTruthy();
     expect(받기).toHaveBeenCalledWith(7);
   });
@@ -137,11 +137,11 @@ describe('API 문서', () => {
 
   it('「바뀐 API 만 다시 작성」은 견줄 앞 버전이 있을 때만 서고 결정 필요 목록으로 보낸다 (시안 11판 · WEB-F7-18)', async () => {
     render(<ApiDocs service={앱} 할수={쓰는사람} 설정보나 />);
-    expect((await screen.findByRole('link', { name: '바뀐 API 만 다시 작성' })).getAttribute('href')).toBe('#/authoring?todo=1');
+    expect((await screen.findByRole('link', { name: '변경된 API 만 다시 작성' })).getAttribute('href')).toBe('#/authoring?todo=1');
     cleanup();
     목록.mockResolvedValue({ docPath: '/openapi.json', docEnv: 'stg', versions: [버전줄(1)] });
     render(<ApiDocs service={앱} 할수={쓰는사람} 설정보나 />);
     await screen.findByText(/버전 1/);
-    expect(screen.queryByRole('link', { name: '바뀐 API 만 다시 작성' })).toBeNull();
+    expect(screen.queryByRole('link', { name: '변경된 API 만 다시 작성' })).toBeNull();
   });
 });

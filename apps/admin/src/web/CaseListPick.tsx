@@ -50,7 +50,7 @@ export function 고르기띠({
     <div className="pick-band">
       <p>
         {/* 알리는 것은 문장만이다 — 띠 전체를 알림 칸으로 두면 바뀔 때마다 단추 글자까지 다시 읽힌다 */}
-        <span role="status">{모두 ? t('조건에 맞는 {전체}건을 모두 선택했습니다', { 전체 }) : t('이 쪽 {수}건을 모두 선택했습니다', { 수: 보일수 })}</span>{' '}
+        <span role="status">{모두 ? t('조건에 맞는 {전체}건을 모두 선택했습니다', { 전체 }) : t('이 페이지 {수}건을 모두 선택했습니다', { 수: 보일수 })}</span>{' '}
         <button type="button" className="linklike" onClick={모두 ? on풀기 : on모두}>
           {모두 ? t('선택 해제') : t('조건에 맞는 {전체}건 모두 선택', { 전체 })}
         </button>

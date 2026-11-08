@@ -28,7 +28,7 @@ describe('작성 줄 한 줄을 어떻게 보이나', () => {
   it('자료를 올리는 중(DRAFT)이면 자료 올리는 중이다. 대기라고 하면 기다리면 되는 줄로 읽는다', () => {
     const 보 = 줄보임(줄({ status: 'DRAFT' }), 지금);
     expect(보).toBe('draft');
-    expect(보임라벨(보, 'ko')).toBe('자료 올리는 중');
+    expect(보임라벨(보, 'ko')).toBe('자료 업로드 중');
   });
 
   it('아직 아무도 안 집었으면 대기다', () => {
@@ -71,13 +71,13 @@ describe('작성 줄 한 줄을 어떻게 보이나', () => {
 
 describe('중단 이유를 사람 말로', () => {
   it('이유마다 사람 말로 낸다', () => {
-    expect(중단이유라벨('USER', 'ko')).toBe('사용자가 멈춤');
+    expect(중단이유라벨('USER', 'ko')).toBe('사용자가 중단');
     expect(중단이유라벨('TIMEOUT', 'ko')).toBe('시간초과');
     expect(중단이유라벨('LIMIT', 'ko')).toBe('구독 한도');
     expect(중단이유라벨('AGENT_RESTART', 'ko')).toBe('작성 재시작');
     expect(중단이유라벨('AGENT_LOST', 'ko')).toBe('작성 응답 없음');
     expect(중단이유라벨('CRASH', 'ko')).toBe('작성 중 끊김');
-    expect(중단이유라벨('REJECTED', 'ko')).toBe('올리기 거절');
+    expect(중단이유라벨('REJECTED', 'ko')).toBe('업로드 거절');
   });
 
   it('모르는 값이나 빈 값은 기록 없음이다. 식별자를 화면에 흘리지 않는다', () => {
@@ -90,7 +90,7 @@ describe('케이스 고치기를 가른다', () => {
   const 고침 = { edits: [{ tcId: 'PAY-001', delete: true }] };
 
   it('종류 글자는 케이스 고치기다', () => {
-    expect(종류라벨('EDIT', 'ko')).toBe('케이스 고치기');
+    expect(종류라벨('EDIT', 'ko')).toBe('케이스 수정');
     expect(종류라벨('EDIT', 'en')).not.toMatch(/[가-힣]/);
   });
 
@@ -102,7 +102,7 @@ describe('케이스 고치기를 가른다', () => {
   });
 
   it('도는 고치기의 칩은 작성 중이 아니라 고치는 중이다. 머지는 반영 중이다', () => {
-    expect(칩글(줄({ kind: 'EDIT', params: 고침, status: 'RUNNING' }), 'running', 'ko')).toBe('고치는 중');
+    expect(칩글(줄({ kind: 'EDIT', params: 고침, status: 'RUNNING' }), 'running', 'ko')).toBe('수정 중');
     expect(칩글(줄({ kind: 'MERGE', status: 'RUNNING' }), 'running', 'ko')).toBe('반영 중');
     expect(칩글(줄({ kind: 'AUTHOR', status: 'RUNNING' }), 'running', 'ko')).toBe('작성 중');
     expect(칩글(줄({ kind: 'EDIT', params: 고침, status: 'DONE' }), 'done', 'ko')).toBe('완료');

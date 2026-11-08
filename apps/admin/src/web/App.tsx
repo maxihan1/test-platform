@@ -147,7 +147,7 @@ function Screen({
       // 애플리케이션마다 새로 그린다 — 앞 애플리케이션의 세트 목록이 남지 않게. API 는 화면이 없어 메뉴도 없다 — 주소로 와도 안내만 한다
       if (service?.kind === 'API') return <div className="empty">{t('API 애플리케이션에는 호환성 점검이 없습니다')}</div>;
       return service === null ? (
-        <div className="empty">{t('애플리케이션을 먼저 골라 주세요')}</div>
+        <div className="empty">{t('애플리케이션을 먼저 선택해 주세요')}</div>
       ) : (
         <CompatSets key={prefix} serviceId={service.id} service={service.prefix} envs={service.envs} 쓰나={할수('실행')} />
       );
@@ -155,13 +155,13 @@ function Screen({
       if (service?.kind === 'API') return <div className="empty">{t('API 애플리케이션에는 호환성 점검이 없습니다')}</div>;
       // 세트 주소는 `?service=` 로 그 세트의 애플리케이션을 띠에 올린다(routeService.ts). 번호 · 애플리케이션마다 새로 그려 고치던 값이 남지 않게
       return service === null ? (
-        <div className="empty">{t('애플리케이션을 먼저 골라 주세요')}</div>
+        <div className="empty">{t('애플리케이션을 먼저 선택해 주세요')}</div>
       ) : (
         <CompatSet key={`${prefix}:${String(current.id)}`} id={current.id} serviceId={service.id} service={service.prefix} kind={service.kind} envs={service.envs} 쓰나={할수('실행')} />
       );
     case 'compatRuns':
       if (service?.kind === 'API') return <div className="empty">{t('API 애플리케이션에는 호환성 점검이 없습니다')}</div>;
-      return service === null ? <div className="empty">{t('애플리케이션을 먼저 골라 주세요')}</div> : <CompatRunList key={prefix} service={service.prefix} />;
+      return service === null ? <div className="empty">{t('애플리케이션을 먼저 선택해 주세요')}</div> : <CompatRunList key={prefix} service={service.prefix} />;
     case 'compatRun':
       // 번호마다 새로 그린다 — 앞 실행의 펼친 묶음 · 거르개가 남지 않게
       return <CompatResult key={current.runId} runId={current.runId} service={prefix} 쓰나={할수('실행')} />;
@@ -177,19 +177,19 @@ function Screen({
     case 'scenario':
       return <ScenarioBuild key={current.id} id={current.id} 띠서비스={service} user={user} />;
     case 'perfScenarios':
-      return service === null ? <div className="empty">{t('애플리케이션을 먼저 골라 주세요')}</div> : <PerfScenarioList key={prefix} serviceId={service.id} 할수={할수} />;
+      return service === null ? <div className="empty">{t('애플리케이션을 먼저 선택해 주세요')}</div> : <PerfScenarioList key={prefix} serviceId={service.id} 할수={할수} />;
     case 'perfScenarioNew':
       return <PerfWizard key="new" id={null} 띠서비스={service} user={user} />;
     case 'perfScenario':
       return <PerfWizard key={current.id} id={current.id} 띠서비스={service} user={user} />;
     case 'perfPages':
       // 애플리케이션 · 실행마다 새로 그린다 — 앞 애플리케이션의 측정 조건 · 고른 페이지가 남아 다른 애플리케이션에 쏘지 않게
-      return service === null ? <div className="empty">{t('애플리케이션을 먼저 골라 주세요')}</div> : <PerfPages key={`${prefix}:${String(current.run ?? '')}`} service={service} run={current.run} 쓰나={할수('실행')} />;
+      return service === null ? <div className="empty">{t('애플리케이션을 먼저 선택해 주세요')}</div> : <PerfPages key={`${prefix}:${String(current.run ?? '')}`} service={service} run={current.run} 쓰나={할수('실행')} />;
     case 'perfDevices':
       // 페이지 성능과 같다 — 애플리케이션 · 실행마다 새로 그려 앞 애플리케이션의 고른 기기 · 케이스가 남지 않게
-      return service === null ? <div className="empty">{t('애플리케이션을 먼저 골라 주세요')}</div> : <PerfDevices key={`${prefix}:${String(current.run ?? '')}`} service={service} run={current.run} 쓰나={할수('실행')} />;
+      return service === null ? <div className="empty">{t('애플리케이션을 먼저 선택해 주세요')}</div> : <PerfDevices key={`${prefix}:${String(current.run ?? '')}`} service={service} run={current.run} 쓰나={할수('실행')} />;
     case 'perfRuns':
-      return service === null ? <div className="empty">{t('애플리케이션을 먼저 골라 주세요')}</div> : <PerfRunList key={prefix} serviceId={service.id} />;
+      return service === null ? <div className="empty">{t('애플리케이션을 먼저 선택해 주세요')}</div> : <PerfRunList key={prefix} serviceId={service.id} />;
     case 'perfRun':
       // 번호마다 새로 그린다 — 다시 실행으로 새 번호 주소로 오면 앞 실행의 숫자가 남지 않게
       return <PerfRun key={current.runId} runId={current.runId} 판정하기={(접두사) => 판정을만든다(user, 접두사)} />;
@@ -443,7 +443,7 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
         <FlashNotice
           // 글이 바뀌면 5초를 새로 센다
           key={안내}
-          글={안내 === 'password' ? t('비밀번호를 바꿨습니다') : t('링크의 애플리케이션은 볼 권한이 없어 지금 고른 애플리케이션으로 엽니다')}
+          글={안내 === 'password' ? t('비밀번호를 변경했습니다') : t('링크의 애플리케이션은 볼 권한이 없어 지금 선택한 애플리케이션으로 엽니다')}
           onGone={안내끄기}
         />
       )}

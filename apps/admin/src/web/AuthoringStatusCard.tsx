@@ -49,7 +49,7 @@ function 커버리지글(c: AuthoringCoverage, 상태: AuthoringRow['status'], t
   const 갈래 =
     c.casedFn === undefined || c.casedUi === undefined
       ? null
-      : t('만든 {덮음}개 중 기능 테스트가 커버한 것 {기능} · UI 테스트가 커버한 것 {UI} — 둘 다 커버한 요구는 양쪽에 셉니다', { 덮음: c.cased, 기능: c.casedFn, UI: c.casedUi });
+      : t('만든 {덮음}개 중 기능 테스트가 커버한 것 {기능} · UI 테스트가 커버한 것 {UI} — 둘 다 커버한 요구는 양쪽에 집계합니다', { 덮음: c.cased, 기능: c.casedFn, UI: c.casedUi });
   return { 셈: 칸.filter((x): x is string => x !== null).join(' · '), 갈래 };
 }
 
@@ -144,14 +144,14 @@ export function AuthoringStatusCard({
         <div className="status-row">
           <span className="status-label">{t('진척')}</span>
           <span className="status-sub">
-            {요청.status === 'PENDING' ? t('작성 순서를 기다리는 중') : t('자료 올리기가 끝나지 않았습니다')}
+            {요청.status === 'PENDING' ? t('작성 순서를 기다리는 중') : t('자료 업로드가 완료되지 않았습니다')}
           </span>
         </div>
       ) : null}
 
       {시간.시작 === null ? null : (
         <div className="status-row">
-          <span className="status-label">{시간.끝 === null ? t('시간') : 요청.status === 'DONE' ? t('완료') : t('끝남')}</span>
+          <span className="status-label">{시간.끝 === null ? t('시간') : 요청.status === 'DONE' ? t('완료') : t('종료')}</span>
           <div className="status-v">
             {시간.한도 === null ? null : <막대 이름={t('시간')} 비율={시간.한도.비율} 흐림 />}
             <span className="status-sub">

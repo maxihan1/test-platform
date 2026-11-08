@@ -73,7 +73,7 @@ describe('BTS 를 이은 프로젝트의 판정 줄', () => {
     const 고리 = await screen.findByRole('link', { name: 'Issue Bunker DM-12 에서 확인 중' });
     expect(고리.getAttribute('href')).toBe('https://bts.example.com/issues/DM-12');
     expect(screen.queryByRole('link', { name: '테스트 작성 › 결정 필요에서 판정합니다' })).toBeNull();
-    expect(screen.queryByRole('button', { name: '화면이 맞음으로 바꾸기' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '화면이 맞음으로 변경' })).toBeNull();
   });
 
   it('닫혔으면 사유를 덧붙이고, 보일 등록이 없으면(null) 판정 줄도 결정 목록 고리도 없다', async () => {

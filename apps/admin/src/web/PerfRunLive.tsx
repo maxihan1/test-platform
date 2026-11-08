@@ -162,7 +162,7 @@ export function PerfRunLive({ run, 다시읽기, 쓰나 }: { run: 실행상세; 
           <section className="perf-panel" aria-labelledby="perf-m">
             <h2 id="perf-m">{t('서버 모니터링')}</h2>
             {run.config.monitorIds.length === 0 ? (
-              <span className="perf-faint">{t('서버 모니터링 에이전트를 고르지 않았습니다')}</span>
+              <span className="perf-faint">{t('서버 모니터링 에이전트를 선택하지 않았습니다')}</span>
             ) : (
               <호스트막대들 호스트={호스트} 번호들={run.config.monitorIds} />
             )}

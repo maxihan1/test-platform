@@ -12,11 +12,11 @@ export const 성능페이지말: Record<string, string> = {
   '제한 없음': 'No limit',
   '측정 대상: 화면 지도 기준 주요 페이지 {수}개': 'Pages to measure: {수} main pages from the screen map',
   '측정 대상: 페이지 {수}개': 'Pages to measure: {수}',
-  'AI 가 측정할 페이지를 고르는 중입니다': 'AI is choosing the pages to measure',
+  'AI 가 측정할 페이지를 선택하는 중입니다': 'AI is choosing the pages to measure',
   '페이지 선택': 'Choose pages',
-  '대상 서버를 골라 주세요': 'Choose a target server',
-  '측정이 오류로 끝났습니다': 'The measurement ended with an error',
-  '측정이 오류로 끝났습니다 — {까닭}': 'The measurement ended with an error — {까닭}',
+  '대상 서버를 선택해 주세요': 'Choose a target server',
+  '측정이 오류로 종료되었습니다': 'The measurement ended with an error',
+  '측정이 오류로 종료되었습니다 — {까닭}': 'The measurement ended with an error — {까닭}',
   '아직 측정 결과가 없습니다. 측정을 누르면 페이지마다 속도를 잽니다': 'No results yet. Press Measure to time each page',
   // 기본 페이지 이름 — 서버에 저장되는 값이라 번역하지 않는다
   메인: 'Home',
@@ -48,12 +48,12 @@ export const 성능페이지말: Record<string, string> = {
   '{목록}이 차례로 걸려 LCP가 {값}인 그림': 'Waterfall of {목록}, with LCP at {값}',
 
   // 페이지 선택 창
-  '측정할 페이지를 1개에서 {수}개까지 고릅니다': 'Choose 1 to {수} pages to measure',
+  '측정할 페이지를 1개에서 {수}개까지 선택합니다': 'Choose 1 to {수} pages to measure',
   '경로는 /로 시작해야 합니다': 'The path must start with /',
   '경로는 {수}자까지 적을 수 있습니다': 'The path can be up to {수} characters',
   '이미 있는 경로입니다': 'This path is already in the list',
-  '페이지는 {수}개까지 고를 수 있습니다': 'You can choose up to {수} pages',
-  '{이름} 빼기': 'Remove {이름}',
+  '페이지는 {수}개까지 선택할 수 있습니다': 'You can choose up to {수} pages',
+  '{이름} 제거': 'Remove {이름}',
   적용: 'Apply',
 
   // 실행 중 · 마법사

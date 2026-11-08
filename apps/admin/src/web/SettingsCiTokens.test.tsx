@@ -93,7 +93,7 @@ describe('설정 › CI 토큰', () => {
     render(<CI토큰구획 row={행()} />);
     fireEvent.click(await screen.findByRole('button', { name: 'github-main 끊기' }));
     expect(끊기).not.toHaveBeenCalled();
-    expect(screen.getByText('이 토큰을 쓰는 CI 는 다음 빌드부터 올리지 못합니다')).toBeTruthy();
+    expect(screen.getByText('이 토큰을 쓰는 CI 는 다음 빌드부터 업로드하지 못합니다')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '끊는다' }));
     await waitFor(() => expect(끊기).toHaveBeenCalledWith(9, 4));
     await waitFor(() => expect(읽기).toHaveBeenCalledTimes(2));

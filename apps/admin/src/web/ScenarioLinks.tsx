@@ -56,7 +56,7 @@ export function ScenarioLinks({ 번호, 단계, 단계들, 재료, 쓰나, 지�
     const 선택지 = l.param === '' || 남은.includes(l.param) ? 남은 : [...남은, l.param];
     return (
       <>
-        <칸 아이디={`${아이디}-param`} 라벨="넣을 칸" 문장={l.param === '' ? '넣을 칸을 골라야 합니다' : null}>
+        <칸 아이디={`${아이디}-param`} 라벨="넣을 칸" 문장={l.param === '' ? '넣을 칸을 선택해야 합니다' : null}>
           {(속성) => (
             <select {...속성} value={l.param} disabled={잠금} onChange={(e) => 고침(자리, { ...l, param: e.target.value })}>
               {l.param === '' ? <option value="" /> : null}
@@ -129,7 +129,7 @@ export function ScenarioLinks({ 번호, 단계, 단계들, 재료, 쓰나, 지�
               <>
                 <메서드칸
                   아이디={`${아이디}-newmethod`}
-                  라벨="바꿀 메서드"
+                  라벨="변경할 메서드"
                   값={l.to.method}
                   목록={바꿀메서드들}
                   잠금={잠금}

@@ -59,7 +59,7 @@ describe('단계 카드 이름표 · 구분선', () => {
     expect(screen.getAllByText('ADM 어드민')).toHaveLength(2);
     const 구분선 = screen.getAllByRole('separator');
     expect(구분선).toHaveLength(1);
-    expect(구분선[0]!.textContent).toBe('여기서 애플리케이션이 바뀝니다');
+    expect(구분선[0]!.textContent).toBe('여기서 애플리케이션이 변경됩니다');
     expect(구분선[0]!.nextElementSibling?.textContent).toContain('ADM-FN-001');
   });
 

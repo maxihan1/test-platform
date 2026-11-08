@@ -10,7 +10,7 @@ export const 케이스말: Record<string, string> = {
   '다시 스캔': 'Rescan',
   '조건에 맞는 {건수}건 실행': 'Run {건수} matching',
   '조건에 맞는 {건수}건 시험 실행': 'Trial run {건수} matching',
-  '{번호} / {전체}쪽': 'Page {번호} of {전체}',
+  '{번호} / {전체}페이지': 'Page {번호} of {전체}',
   '상세 닫기': 'Close details',
   'RUN {번호} · {때}': 'RUN {번호} · {때}',
   '이 값으로 실행': 'Run with these values',
@@ -33,20 +33,20 @@ export const 케이스말: Record<string, string> = {
   '{아이디} 중복 — {파일1}, {파일2}': '{아이디} appears in both {파일1} and {파일2}.',
 
   // 검색 칸과 조건 칩
-  '케이스 이름이나 ID로 찾기': 'Search by case name or ID',
-  '찾기': 'Search',
+  '케이스 이름이나 ID로 검색': 'Search by case name or ID',
+  '검색': 'Search',
   '조건 초기화': 'Reset filters',
   '디바이스': 'Device',
   '표시': 'Show',
   '활성만': 'Active only',
   '마지막 결과': 'Last result',
   // 필터 판 — 조건마다 한 줄 설명 (2026-10-30 WEB-F7-07)
-  '고른 조건에 맞는 케이스만 목록에 남습니다': 'Only cases that match the chosen filters stay in the list',
+  '선택한 조건에 맞는 케이스만 목록에 남습니다': 'Only cases that match the chosen filters stay in the list',
   '비활성 케이스는 「활성만」에서 숨기고 실행에서도 뺍니다': 'Inactive cases are hidden under "Active only" and left out of runs',
   '케이스를 만든 관점입니다 — 정상 동작 · 경계값 · 잘못된 입력': 'The angle the case was written from — normal behavior, boundary values, invalid input',
   '케이스를 설계할 때 쓴 방법입니다': 'The method used to design the case',
-  '그 디바이스에서 도는 케이스만 남깁니다': 'Keeps only cases that run on that device',
-  '새 빌드가 오면 먼저 도는 핵심 경로 케이스입니다': 'Core-path cases that run first when a new build arrives',
+  '그 디바이스에서 실행되는 케이스만 남깁니다': 'Keeps only cases that run on that device',
+  '새 빌드가 오면 먼저 실행되는 핵심 경로 케이스입니다': 'Core-path cases that run first when a new build arrives',
   '케이스를 실행했을 때 부른 서버입니다': 'Servers the case called when it ran',
   '{건수}건 보기': 'Show {건수}',
   // 표머리 (2026-09-22)
@@ -63,7 +63,7 @@ export const 케이스말: Record<string, string> = {
   '스모크만': 'Smoke only',
   '직접': 'manual',
   '{아이디} 스모크': '{아이디} smoke',
-  '직접 고친 값입니다. 다시 누르면 AI 가 정한 값으로 돌아갑니다': 'Set by hand. Press again to go back to the value the AI set',
+  '직접 수정한 값입니다. 다시 누르면 AI 가 정한 값으로 돌아갑니다': 'Set by hand. Press again to go back to the value the AI set',
   'API 서버 {이름}': 'API server {이름}',
   '경계값 분석': 'Boundary value analysis',
   '동등 분할': 'Equivalence partitioning',
@@ -85,7 +85,7 @@ export const 케이스말: Record<string, string> = {
   '창 조각': 'Window part',
   '실패 {건수}': '{건수} failed',
   'PRD 에 연결되지 않은 케이스': 'Not linked to the PRD',
-  '앞 쪽에서 이어짐': 'Continued from the previous page',
+  '앞 페이지에서 이어짐': 'Continued from the previous page',
   '이것만 보기': 'Show only this',
   '{이름}만 보기': 'Show only {이름}',
   '연결된 요구 없음': 'No linked requirement',
@@ -104,16 +104,16 @@ export const 케이스말: Record<string, string> = {
   // 쪽 넘기기
   '이전': 'Previous',
   '다음': 'Next',
-  '{번호}쪽': 'Page {번호}',
+  '{번호}페이지': 'Page {번호}',
 
   // 빈 목록 세 갈래
   '아직 케이스를 불러오지 않았습니다': 'No cases loaded yet',
-  '케이스 파일을 훑어 실행할 수 있는 케이스 목록을 만듭니다. 목록은 그때마다 코드에서 새로 만듭니다':
+  '케이스 파일을 훑어 실행할 수 있는 케이스 목록을 만듭니다. 목록은 그때마다 코드에서 다시 만듭니다':
     'Scanning the case files builds the list of runnable cases. The code is the source of truth, so the list is rebuilt every time.',
   '케이스 불러오기': 'Load cases',
   '조건에 맞는 케이스가 없습니다': 'No cases match the filters',
   '「{친글자}」에 맞는 케이스가 없습니다': 'No cases match “{친글자}”',
-  '필터를 지우면 전체가 다시 보입니다': 'Clear the filters to see everything again',
+  '필터를 초기화하면 전체가 다시 보입니다': 'Clear the filters to see everything again',
   '아직 테스트가 없습니다': 'No tests yet',
   '「테스트 작성」에서 처음 작성을 시작합니다': 'Start writing the first tests in “Authoring”',
   '불러왔지만 케이스가 하나도 없습니다': 'Loaded, but there are no cases',
@@ -121,11 +121,11 @@ export const 케이스말: Record<string, string> = {
     'The tests folder is empty, or some files broke the rules and could not be read. The reason is in the scan result above.',
 
   // 케이스 상세 펼침
-  '사전조건': 'Preconditions',
+  '사전 조건': 'Preconditions',
   '입력값': 'Inputs',
-  '이 쪽 전체 선택': 'Select all on this page',
+  '이 페이지 전체 선택': 'Select all on this page',
   // 여러 건 고르기 — 표 위 띠와 고르기 바 (2026-10-30 WEB-F7-08)
-  '이 쪽 {수}건을 모두 선택했습니다': 'All {수} on this page are selected',
+  '이 페이지 {수}건을 모두 선택했습니다': 'All {수} on this page are selected',
   '조건에 맞는 {전체}건 모두 선택': 'Select all {전체} matching',
   '조건에 맞는 {전체}건을 모두 선택했습니다': 'All {전체} matching are selected',
   '선택 해제': 'Clear selection',
@@ -143,7 +143,7 @@ export const 케이스말: Record<string, string> = {
   '모두 실행': 'Run all',
   '모두 시험 실행': 'Trial run all',
   '시험 절차': 'Test steps',
-  '아직 돌린 적이 없습니다. 한 번 돌리면 절차가 여기에 남습니다':
+  '아직 실행한 적이 없습니다. 한 번 실행하면 절차가 여기에 남습니다':
     'Never run. Run it once and the steps will show up here.',
   '절차를 불러오지 못했습니다': 'Could not load the steps',
   '절차를 불러오는 중입니다': 'Loading the steps…',
@@ -154,7 +154,7 @@ export const 케이스말: Record<string, string> = {
   '이 케이스에는 입력값이 없습니다.': 'This case declares no inputs.',
   '입력됨': 'Saved',
   '비워도 됨': 'Optional',
-  '고르지 않음': 'Not selected',
+  '선택 안 함': 'Not selected',
   '예': 'Yes',
   '아니오': 'No',
   '기본값': 'Default',

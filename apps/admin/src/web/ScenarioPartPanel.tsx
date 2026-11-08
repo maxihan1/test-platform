@@ -39,9 +39,9 @@ export function ScenarioPartPanel(props: Props) {
         {!props.쓰나 ? null : (
           <>
             <button type="button" className="btn" onClick={props.on케이스바꾸기}>
-              {t('케이스 바꾸기')}
+              {t('케이스 변경')}
             </button>
-            <p className="hint">{t('다른 케이스로 바꾸면 이 단계의 사전 단계 · 입력값 설정은 처음부터 다시 합니다')}</p>
+            <p className="hint">{t('다른 케이스로 변경하면 이 단계의 사전 단계 · 입력값 설정은 처음부터 다시 합니다')}</p>
           </>
         )}
       </div>
@@ -200,7 +200,7 @@ function PanelBody({
       )}
       {기대칸.length === 0 ? null : (
         <fieldset className="scn-set-block scn-set-group">
-          <legend>{t('기대값')}</legend>
+          <legend>{t('기대 결과')}</legend>
           <ScenarioFields
             idPrefix={`${아이디}-expected`}
             fields={기대칸}

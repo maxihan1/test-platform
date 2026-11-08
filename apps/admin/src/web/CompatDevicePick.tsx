@@ -127,7 +127,7 @@ export function CompatDevicePick({
                 <th>
                   <input
                     type="checkbox"
-                    aria-label={t('보이는 디바이스 모두 고르기')}
+                    aria-label={t('보이는 디바이스 모두 선택')}
                     checked={다골랐나}
                     disabled={고를것.length === 0}
                     onChange={(e) => {

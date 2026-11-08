@@ -52,7 +52,7 @@ describe('진행 알약 (도메인/실행 §8.9)', () => {
       await vi.advanceTimersByTimeAsync(2000);
     });
 
-    expect(상자라벨()).toContain('끝났습니다');
+    expect(상자라벨()).toContain('완료되었습니다');
     expect(screen.queryByRole('button', { name: /진행 보기/ })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: '결과 보기' }));
 

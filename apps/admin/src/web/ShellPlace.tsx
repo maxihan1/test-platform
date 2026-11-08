@@ -63,7 +63,7 @@ export function 위치카드({ user, service, onService, 새로만들기 }: { us
         className="place-card"
         aria-haspopup="dialog"
         aria-expanded={열림}
-        aria-label={t('{프로젝트} › {이름} · 바꾸기', { 프로젝트: service.projectName, 이름: service.name })}
+        aria-label={t('{프로젝트} › {이름} · 변경', { 프로젝트: service.projectName, 이름: service.name })}
         onClick={(e) => {
           // 마우스 누르기는 detail 이 1 이상, 키보드로 누른 click 은 0 이다
           set키보드로(e.detail === 0);
@@ -274,7 +274,7 @@ export function 위치판({
     );
   }
   return (
-    <div className={프로젝트칸 === null ? 'place-pop one' : 'place-pop'} ref={판} role="dialog" aria-label={t('프로젝트 · 애플리케이션 고르기')} style={자리}>
+    <div className={프로젝트칸 === null ? 'place-pop one' : 'place-pop'} ref={판} role="dialog" aria-label={t('프로젝트 · 애플리케이션 선택')} style={자리}>
       <div className="place-cols">
         {프로젝트칸}
         {앱칸}

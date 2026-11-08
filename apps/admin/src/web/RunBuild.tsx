@@ -33,7 +33,7 @@ export function 다른빌드알림({ buildNo, apps }: { buildNo?: string | null;
     // 판정 색을 쓰지 않는다 — 결과 머리의 빨간 글은 실패로 읽힌다. 경고성 표시는 중립 꼬리표다(DESIGN.md 「E2E 화면의 칩」 · `.case-tag`)
     <div className="hint" role="note">
       <span className="case-tag">{t('다른 빌드')}</span>{' '}
-      <span>{t('다른 빌드가 깔려 있었습니다 — 실행한 빌드 {빌드} · 디바이스에 깔린 빌드 {깔린}', { 빌드: buildNo, 깔린: 다른.join(', ') })}</span>
+      <span>{t('다른 빌드가 설치되어 있었습니다 — 실행한 빌드 {빌드} · 디바이스에 설치된 빌드 {깔린}', { 빌드: buildNo, 깔린: 다른.join(', ') })}</span>
     </div>
   );
 }

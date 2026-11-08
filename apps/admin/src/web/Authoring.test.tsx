@@ -179,7 +179,7 @@ describe('작성 목록 쪽은 주소에 남는다 (점검 11.4)', () => {
     읽기.총건수 = 50;
     window.history.replaceState(null, '', '#/authoring?page=2');
     render(<Authoring service="PAY" 할수={() => true} />);
-    expect(await screen.findByText('이 쪽에는 요청이 없습니다')).toBeTruthy();
+    expect(await screen.findByText('이 페이지에는 요청이 없습니다')).toBeTruthy();
     expect(screen.queryByText('아직 작성을 요청한 기록이 없습니다')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: '이전' }));
     await vi.waitFor(() => expect(부른쪽.at(-1)).toBe(1));

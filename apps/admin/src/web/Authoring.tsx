@@ -209,7 +209,7 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
         <div className="rows-scroll">
           {/* 건수가 한 쪽 크기의 배수면 「다음」이 빈 쪽으로 간다(paging.ts) — 거기서 「기록이 없다」고 하면 거짓이다 (리뷰 L18) */}
           {목록.items.length === 0 && page > 1 && 목록.total > 0 ? (
-            <div className="empty">{t('이 쪽에는 요청이 없습니다')}</div>
+            <div className="empty">{t('이 페이지에는 요청이 없습니다')}</div>
           ) : 목록.items.length === 0 ? (
             <div className="empty">
               {t('아직 작성을 요청한 기록이 없습니다')}

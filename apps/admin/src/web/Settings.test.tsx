@@ -209,7 +209,7 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     펼친다('pending', [계정, 대기]);
 
     expect(await screen.findByText('가입자')).toBeTruthy();
-    expect(screen.getByRole('button', { name: '수락' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '승인' })).toBeTruthy();
   });
 
   it('없는 접두사면 그 사실을 적는다', async () => {

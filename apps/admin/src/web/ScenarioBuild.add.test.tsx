@@ -102,14 +102,14 @@ describe('ScenarioBuild 팔레트 유지', () => {
   it('단계를 하나 넣고 다시 단계 추가 탭을 열어도 케이스 목록을 다시 받지 않고 찾기 글자가 남는다', async () => {
     막기();
     render(<ScenarioBuild id={null} 띠서비스={서비스} user={사람} />);
-    const 찾기칸 = (await screen.findByLabelText('케이스 찾기')) as HTMLInputElement;
+    const 찾기칸 = (await screen.findByLabelText('케이스 검색')) as HTMLInputElement;
     fireEvent.change(찾기칸, { target: { value: '002' } });
     fireEvent.click(await screen.findByRole('button', { name: 'ZSB-002 추가' }));
     await waitFor(() => expect(탭('1번 설정').getAttribute('aria-selected')).toBe('true'));
 
     fireEvent.click(탭('단계 추가'));
 
-    expect((screen.getByLabelText('케이스 찾기') as HTMLInputElement).value).toBe('002');
+    expect((screen.getByLabelText('케이스 검색') as HTMLInputElement).value).toBe('002');
     expect(vi.mocked(api.cases)).toHaveBeenCalledTimes(1);
   });
 
@@ -165,14 +165,14 @@ describe('ScenarioBuild 케이스 바꾸기', () => {
     막기();
     vi.spyOn(scenarioApi, 'detail').mockResolvedValue(상세());
     render(<ScenarioBuild id={12} 띠서비스={서비스} user={사람} />);
-    fireEvent.click(await screen.findByRole('button', { name: '케이스 바꾸기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '케이스 변경' }));
   }
 
   it('바꾸기 모드로 열리고 고르면 그 단계만 바뀌어 설정 입력이 비고 N번 설정으로 돌아온다', async () => {
     await 열기();
 
     expect(탭('단계 추가').getAttribute('aria-selected')).toBe('true');
-    await screen.findByText('1번 단계를 바꿀 케이스를 고릅니다');
+    await screen.findByText('1번 단계를 변경할 케이스를 선택합니다');
     fireEvent.click(await screen.findByRole('button', { name: 'ZSB-002 추가' }));
 
     await waitFor(() => expect(탭('1번 설정').getAttribute('aria-selected')).toBe('true'));
@@ -181,7 +181,7 @@ describe('ScenarioBuild 케이스 바꾸기', () => {
     expect(요약).toContain('사전 단계 전부 실행');
     expect(요약).toContain('저장값 사용');
     fireEvent.click(탭('단계 추가'));
-    expect(screen.queryByText(/번 단계를 바꿀 케이스를 고릅니다/)).toBeNull();
+    expect(screen.queryByText(/번 단계를 변경할 케이스를 선택합니다/)).toBeNull();
   });
 
   it('취소하면 바꾸기 모드만 풀리고 단계는 그대로다', async () => {
@@ -189,29 +189,29 @@ describe('ScenarioBuild 케이스 바꾸기', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: '취소' }));
 
-    expect(screen.queryByText(/번 단계를 바꿀 케이스를 고릅니다/)).toBeNull();
+    expect(screen.queryByText(/번 단계를 변경할 케이스를 선택합니다/)).toBeNull();
     expect(탭('단계 추가').getAttribute('aria-selected')).toBe('true');
     expect(카드이름들()[0]).toBe('ZSB-404');
   });
 
   it('다른 탭으로 옮겼다 돌아오면 바꾸기 모드가 풀려 있다', async () => {
     await 열기();
-    await screen.findByText('1번 단계를 바꿀 케이스를 고릅니다');
+    await screen.findByText('1번 단계를 변경할 케이스를 선택합니다');
 
     fireEvent.click(탭('1번 설정'));
     fireEvent.click(탭('단계 추가'));
 
-    expect(screen.queryByText(/번 단계를 바꿀 케이스를 고릅니다/)).toBeNull();
+    expect(screen.queryByText(/번 단계를 변경할 케이스를 선택합니다/)).toBeNull();
   });
 
   it('다른 카드를 고르면 바꾸기 모드가 풀린다', async () => {
     await 열기();
-    await screen.findByText('1번 단계를 바꿀 케이스를 고릅니다');
+    await screen.findByText('1번 단계를 변경할 케이스를 선택합니다');
 
     fireEvent.click(document.querySelector('[data-card="2"][data-act="pick"]') as HTMLElement);
     fireEvent.click(탭('단계 추가'));
 
-    expect(screen.queryByText(/번 단계를 바꿀 케이스를 고릅니다/)).toBeNull();
+    expect(screen.queryByText(/번 단계를 변경할 케이스를 선택합니다/)).toBeNull();
   });
 });
 
@@ -242,7 +242,7 @@ describe('ScenarioBuild 잘못 적은 칸이 있을 때', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
 
-    expect((await screen.findByRole('status')).textContent).toBe('1번 단계의 잘못 적은 칸을 고쳐야 저장할 수 있습니다');
+    expect((await screen.findByRole('status')).textContent).toBe('1번 단계의 잘못 적은 칸을 수정해야 저장할 수 있습니다');
     expect(update).not.toHaveBeenCalled();
   });
 
@@ -290,7 +290,7 @@ describe('ScenarioBuild 빈 칸이 남은 단계', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
 
-    expect((await screen.findByRole('status')).textContent).toBe('2번 단계의 잘못 적은 칸을 고쳐야 저장할 수 있습니다');
+    expect((await screen.findByRole('status')).textContent).toBe('2번 단계의 잘못 적은 칸을 수정해야 저장할 수 있습니다');
     expect(update).not.toHaveBeenCalled();
   });
 });

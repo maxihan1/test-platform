@@ -26,7 +26,7 @@ describe('실패 카드의 팜 화면 영상 · logcat (도메인/러너 §5.2)'
     expect(screen.getByLabelText('화면 영상 2')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('tab', { name: 'logcat' }));
-    const 로그 = screen.getByRole('link', { name: 'logcat.txt 받기 (10.1MB)' });
+    const 로그 = screen.getByRole('link', { name: 'logcat.txt 다운로드 (10.1MB)' });
     expect(로그.getAttribute('href')).toBe(`/api/runs/${String(RUN_ID)}/items/11/farm/logcat.txt`);
   });
 
@@ -43,7 +43,7 @@ describe('실패 카드의 팜 화면 영상 · logcat (도메인/러너 §5.2)'
     fireEvent.click(screen.getByRole('tab', { name: '화면 영상' }));
     expect(screen.getByLabelText('화면 영상 1').getAttribute('src')).toBe(`/api/runs/${String(RUN_ID)}/items/12/farm/video-1.webm`);
     fireEvent.click(screen.getByRole('tab', { name: 'logcat' }));
-    expect(screen.getByRole('link', { name: 'logcat.txt 받기 (0.4MB)' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'logcat.txt 다운로드 (0.4MB)' })).toBeTruthy();
     expect(screen.queryByRole('link', { name: /video-1\.webm/ })).toBeNull();
     fireEvent.click(screen.getByRole('tab', { name: '디바이스 정보' }));
     expect(screen.getByRole('tabpanel').textContent).toBe('디바이스SM-G996NAndroid15Chrome156.0.7339.51');

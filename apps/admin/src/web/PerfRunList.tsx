@@ -180,7 +180,7 @@ export function PerfRunList({ serviceId }: { serviceId: number }) {
               </table>
             </div>
             {/* 판 안 표 아래에 둔다 — 판 밖이면 아래 테두리 위에 붙었고, 기록이 0건일 때는 누를 번호가 없어 안 띄운다 (2026-10-31 시험 f11) */}
-            <p className="perf-faint">{t('번호를 누르면 실행 중이면 실행 중 화면, 끝났으면 결과 화면이 열립니다')}</p>
+            <p className="perf-faint">{t('번호를 누르면 실행 중이면 실행 중 화면, 종료되었으면 결과 화면이 열립니다')}</p>
           </div>
         )}
       </div>

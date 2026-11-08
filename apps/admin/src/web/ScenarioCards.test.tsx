@@ -37,7 +37,7 @@ describe('ScenarioCards 카드', () => {
 
   it('단계가 0개면 안내 문장이 뜬다', () => {
     render(<판 단계들={[]} />);
-    expect(screen.getByText('아직 단계가 없습니다. 「단계 추가」 탭에서 케이스를 고릅니다')).toBeTruthy();
+    expect(screen.getByText('아직 단계가 없습니다. 「단계 추가」 탭에서 케이스를 선택합니다')).toBeTruthy();
   });
 
   it('+ 단계 추가를 누르면 탭이 단계 추가로 간다', () => {
@@ -63,7 +63,7 @@ describe('ScenarioCards 칩', () => {
   it('조건이 없으면 칩이 하나도 안 뜬다', () => {
     render(<판 단계들={[케이스('ZSB-001')]} 재료={new Map([['ZSB-001', 재료('ZSB-001')]])} />);
     for (const 글 of ['미확정', '단독 실행', '확인 필요', '실행 불가', '모킹되지 않음']) expect(칩찾기(글)).toBeNull();
-    expect(screen.queryByText(/돌지 않는 케이스/)).toBeNull();
+    expect(screen.queryByText(/실행되지 않는 케이스/)).toBeNull();
   });
 
   it('재료가 아직 안 온 case 는 칩 없이 그린다', () => {
@@ -100,7 +100,7 @@ describe('ScenarioCards 칩', () => {
 
   it('조립 디바이스를 안 지원하는 케이스에 디바이스 칩이 뜬다', () => {
     render(<판 단계들={[케이스('ZSB-001')]} 재료={new Map([['ZSB-001', 재료('ZSB-001', { platforms: ['mobile'] })]])} 디바이스="desktop" />);
-    expect(칩찾기('PC에서 돌지 않는 케이스')?.className).toContain('case-tag');
+    expect(칩찾기('PC에서 실행되지 않는 케이스')?.className).toContain('case-tag');
   });
 
   it('모킹 구간 안의 api 단계는 모킹되지 않음 칩과 구간 표시가 붙는다', () => {

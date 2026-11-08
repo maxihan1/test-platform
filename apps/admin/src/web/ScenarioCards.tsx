@@ -99,7 +99,7 @@ export function ScenarioCards({
       </div>
       <p className="scn-cards-hint">{t('단계를 누르면 설정이 열립니다')}</p>
       {단계들.length === 0 ? (
-        <p className="scn-cards-empty">{t('아직 단계가 없습니다. 「단계 추가」 탭에서 케이스를 고릅니다')}</p>
+        <p className="scn-cards-empty">{t('아직 단계가 없습니다. 「단계 추가」 탭에서 케이스를 선택합니다')}</p>
       ) : (
         <ol className="scn-cards">
           {단계들.map((part, i) => {
@@ -119,7 +119,7 @@ export function ScenarioCards({
               <Fragment key={번호}>
               {!바뀜 ? null : (
                 <li className="scn-card-swap" role="separator">
-                  {t('여기서 애플리케이션이 바뀝니다')}
+                  {t('여기서 애플리케이션이 변경됩니다')}
                 </li>
               )}
               <li className={클래스}>
@@ -226,7 +226,7 @@ function 칩들(
       {단독}
       {!확인필요 ? null : <span className="case-tag">{t('확인 필요')}</span>}
       {재료값.platforms.includes(디바이스) ? null : (
-        <span className="case-tag">{t('{디바이스}에서 돌지 않는 케이스', { 디바이스: t(PLATFORM_LABEL[디바이스]) })}</span>
+        <span className="case-tag">{t('{디바이스}에서 실행되지 않는 케이스', { 디바이스: t(PLATFORM_LABEL[디바이스]) })}</span>
       )}
     </>
   );

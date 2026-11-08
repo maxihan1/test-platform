@@ -96,7 +96,7 @@ export function PasswordChange({ 강제, onDone, onLogout, onCancel }: Props) {
       <form className="login-box" onSubmit={(e) => void submit(e)} noValidate>
         <div className="login-title">Test Commander</div>
         <h1 className="login-greet">{t('비밀번호 변경')}</h1>
-        {강제 ? <p className="login-sub">{t('처음 받은 비밀번호를 바꿔야 계속할 수 있습니다')}</p> : null}
+        {강제 ? <p className="login-sub">{t('처음 받은 비밀번호를 변경해야 계속할 수 있습니다')}</p> : null}
 
         {칸하나('current', t('현재 비밀번호'), 'current-password')}
         {칸하나('next', t('새 비밀번호'), 'new-password')}
@@ -105,7 +105,7 @@ export function PasswordChange({ 강제, onDone, onLogout, onCancel }: Props) {
         {failed === null ? null : <div className="err login-err">{failed}</div>}
 
         <button className="btn" type="submit" disabled={busy}>
-          {busy ? t('바꾸는 중') : t('비밀번호 바꾸기')}
+          {busy ? t('변경 중') : t('비밀번호 변경')}
         </button>
         {/* 변경 강제 중에는 다른 화면이 없다. 빠져나갈 길은 로그아웃 하나다 (§8.6) */}
         {강제 ? (

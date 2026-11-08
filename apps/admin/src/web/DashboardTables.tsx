@@ -45,7 +45,7 @@ export function 서비스별표({ 값, 서비스열기 }: { 값: 자료; 서비�
                 {t('직전 {일}일 대비', { 일: 값.window.days })}
               </th>
               <th scope="col">{t('최근 실행, 맨 앞이 최신')}</th>
-              <th scope="col">{t('직전 실행과 견줌')}</th>
+              <th scope="col">{t('직전 실행과 비교')}</th>
               <th scope="col" className="r">
                 {t('마지막 실행')}
               </th>

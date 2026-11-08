@@ -159,7 +159,7 @@ describe('링크에 애플리케이션이 담긴다 (WEB-F8-02)', () => {
     services: [...모두쓴다.services, { ...모두쓴다.services[0]!, id: 8, prefix: 'ZBQ', name: 'ZBQ 웹' }],
   };
   const 지금고른 = (이름: RegExp) => screen.getByRole('button', { name: 이름 }).getAttribute('aria-current');
-  const 안내 = '링크의 애플리케이션은 볼 권한이 없어 지금 고른 애플리케이션으로 엽니다';
+  const 안내 = '링크의 애플리케이션은 볼 권한이 없어 지금 선택한 애플리케이션으로 엽니다';
 
   beforeEach(() => {
     세.나 = 둘;

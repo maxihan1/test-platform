@@ -104,7 +104,7 @@ describe('애플리케이션 가이드 — 시안 A', () => {
     await screen.findByText(/버전 3/);
     fireEvent.change(정책칸(), { target: { value: '결제는 테스트 카드만 씁니다' } });
     fireEvent.click(저장버튼());
-    expect(await screen.findByText(/다른 사람이 먼저 가이드를 바꿨습니다/)).toBeTruthy();
+    expect(await screen.findByText(/다른 사람이 먼저 가이드를 변경했습니다/)).toBeTruthy();
     await vi.waitFor(() => expect(지금).toHaveBeenCalledTimes(2));
     expect(정책칸().value).toBe('결제는 테스트 카드만 씁니다');
   });

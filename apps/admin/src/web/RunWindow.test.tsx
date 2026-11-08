@@ -198,7 +198,7 @@ describe('RunWindow', () => {
     vi.spyOn(api, 'me').mockResolvedValue({ user: { ...사람, services: [{ ...사람.services[0]!, permissions: { cases: 'read', runs: 'read', authoring: 'none' } }] } });
     render(<RunWindow tcIds={['ZRS-001']} onClose={vi.fn()} />);
 
-    expect(await screen.findByText('실행 권한이 있어야 고치고 돌릴 수 있습니다')).toBeTruthy();
+    expect(await screen.findByText('실행 권한이 있어야 수정하고 실행할 수 있습니다')).toBeTruthy();
     expect(screen.queryByRole('button', { name: '실행' })).toBeNull();
     expect(screen.queryByRole('button', { name: '시험 실행' })).toBeNull();
   });
@@ -272,7 +272,7 @@ describe('RunWindow', () => {
     await screen.findByRole('dialog', { name: '케이스 1건 실행' });
 
     expect((screen.getByRole('radio', { name: '가상 디바이스' }) as HTMLInputElement).checked).toBe(true);
-    expect(screen.getByText(/^원래 실행을 읽지 못해 모바일 실행 위치를 가상 디바이스로 골라 두었습니다/)).toBeTruthy();
+    expect(screen.getByText(/^원래 실행을 읽지 못해 모바일 실행 위치를 가상 디바이스로 선택해 두었습니다/)).toBeTruthy();
   });
 
   it('원래 실행이 없으면 실행을 읽지 않고 서버 흉내로 연다', async () => {

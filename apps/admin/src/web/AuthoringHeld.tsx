@@ -9,9 +9,9 @@ import { message, when } from './ui.js';
 
 // 보류 통로에서만 만나는 서버 코드. 모르면 공통 번역(message)으로 넘긴다 — AuthoringNew 의 작성오류와 같은 모양
 const 보류오류: Record<string, string> = {
-  HELD_OPEN: '입력이 필요한 케이스가 남아 있어 아직 반영할 수 없습니다. 새로 고쳐 보세요',
+  HELD_OPEN: '입력이 필요한 케이스가 남아 있어 아직 반영할 수 없습니다. 새로고침해 보세요',
   HELD_UNKNOWN: '입력이 필요한 케이스를 읽지 못했습니다. 같은 자료로 다시 작성하세요.',
-  MERGE_ACTIVE: '반영이 대기 중이거나 진행 중이라 지금은 값을 바꿀 수 없습니다',
+  MERGE_ACTIVE: '반영이 대기 중이거나 진행 중이라 지금은 값을 변경할 수 없습니다',
   BAD_HELD: '넣은 값이 이 케이스의 칸과 맞지 않습니다',
 };
 
@@ -165,7 +165,7 @@ export function AuthoringHeld({ service, 요청번호, held, 편집, reload }: P
   return (
     <section id="held" className="authoring-held" aria-label={t('입력이 필요한 케이스')}>
       <p className="hint">
-        {t('기대값 없음은 기획서에 판정 기준이 없는 케이스, 테스트 데이터 없음은 사전 조건을 만들 수 없는 케이스입니다. 넣은 값은 테스트의 기본값이 되고, 실행할 때 바꿀 수 있습니다.')}
+        {t('기대 결과 없음은 기획서에 판정 기준이 없는 케이스, 테스트 데이터 없음은 사전 조건을 만들 수 없는 케이스입니다. 넣은 값은 테스트의 기본값이 되고, 실행할 때 변경할 수 있습니다.')}
       </p>
       <div className="authoring-diffs-wrap">
         <table className="dhist" aria-label={t('입력이 필요한 케이스')}>
@@ -189,7 +189,7 @@ export function AuthoringHeld({ service, 요청번호, held, 편집, reload }: P
                       <span className="mono">{h.tcId}</span>
                       <br />
                       <span className={h.kind === 'UNDECIDABLE' ? 'held-chip und' : 'held-chip'}>
-                        {h.kind === 'UNDECIDABLE' ? t('기대값 없음') : t('테스트 데이터 없음')}
+                        {h.kind === 'UNDECIDABLE' ? t('기대 결과 없음') : t('테스트 데이터 없음')}
                       </span>
                     </td>
                     <td className={s === 'removed' ? 'held-rm' : undefined}>
@@ -210,7 +210,7 @@ export function AuthoringHeld({ service, 요청번호, held, 편집, reload }: P
                     <td className="held-btns">
                       {!편집 ? null : s === 'removed' ? (
                         <button className="btn ghost" type="button" onClick={() => 보낸다(h.tcId, () => api.deleteAuthoringHeld(service, 요청번호, h.tcId), null)}>
-                          {t('되돌리기')}
+                          {t('실행 취소')}
                         </button>
                       ) : (
                         <>

@@ -73,17 +73,17 @@ describe('정식 실행 진행 창 — 화면 카드 (시안 A ⑤)', () => {
     render(<RunProgressModal data={실행([항목(1, 'desktop')])} 진행목록={[]} onClose={() => {}} />);
 
     const 띠 = document.querySelector('.start-band.rec');
-    expect(띠?.textContent).toBe('정식 실행 끝나면 실행 기록에 남고 리포트를 만들 수 있습니다 · RUN 128');
+    expect(띠?.textContent).toBe('정식 실행 완료되면 실행 기록에 남고 리포트를 만들 수 있습니다 · RUN 128');
   });
 
   it('한 건 실행의 띠는 붙을 실행이 있으면 그 RUN 에, 없으면 케이스 상세에 남는다고 말한다', () => {
     const { rerender } = render(
       <RunProgressModal data={실행([항목(1, 'desktop')], { origin: 'SINGLE', rerunOf: 112 })} 진행목록={[]} onClose={() => {}} />,
     );
-    expect(document.querySelector('.start-band.rec')?.textContent).toContain('끝나면 RUN 112 결과에 다시 실행으로 추가됩니다');
+    expect(document.querySelector('.start-band.rec')?.textContent).toContain('완료되면 RUN 112 결과에 다시 실행으로 추가됩니다');
 
     rerender(<RunProgressModal data={실행([항목(1, 'desktop')], { origin: 'SINGLE', rerunOf: null })} 진행목록={[]} onClose={() => {}} />);
-    expect(document.querySelector('.start-band.rec')?.textContent).toContain('끝나면 이 케이스 상세에 남습니다');
+    expect(document.querySelector('.start-band.rec')?.textContent).toContain('완료되면 이 케이스 상세에 남습니다');
   });
 
   it('장면을 찍는 PC 항목은 그 항목의 장면 통로를 받아 그리고 지금 단계와 경과 · 제한을 적는다', async () => {

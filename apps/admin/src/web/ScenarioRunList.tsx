@@ -95,13 +95,13 @@ export function ScenarioRunList({ service, 판정하기 }: { service: string; �
           >
             <input
               type="text"
-              aria-label={t('시나리오 이름으로 찾기')}
-              placeholder={t('시나리오 이름으로 찾기')}
+              aria-label={t('시나리오 이름으로 검색')}
+              placeholder={t('시나리오 이름으로 검색')}
               value={typed}
               onChange={(e) => setTyped(e.target.value)}
             />
             <button className="chip" type="submit">
-              {t('찾기')}
+              {t('검색')}
             </button>
             <label className="run-filter">
               <span className="filter-label">{t('상태')}</span>
@@ -113,14 +113,14 @@ export function ScenarioRunList({ service, 판정하기 }: { service: string; �
             </label>
           </form>
 
-          {조건밖 ? <p className="runs-out">{t('고른 실행은 지금 조건 밖입니다')}</p> : null}
+          {조건밖 ? <p className="runs-out">{t('선택한 실행은 지금 조건 밖입니다')}</p> : null}
 
           <div className="rows-scroll">
             {runs.data.items.length === 0 ? (
               <div className="empty">
                 {/* 서비스를 바꿔 들어온 사람과 검색한 사람에게 같은 문장을 쓰면 한쪽에게는 거짓이다 */}
-                {건조건 ? t('조건에 맞는 실행이 없습니다') : t('이 애플리케이션에서 아직 돌린 E2E 시나리오가 없습니다')}
-                {건조건 ? <small>{t('검색어나 상태를 바꿔 보세요')}</small> : null}
+                {건조건 ? t('조건에 맞는 실행이 없습니다') : t('이 애플리케이션에서 아직 실행한 E2E 시나리오가 없습니다')}
+                {건조건 ? <small>{t('검색어나 상태를 변경해 보세요')}</small> : null}
                 {건조건 ? (
                   <button
                     className="btn"
@@ -131,7 +131,7 @@ export function ScenarioRunList({ service, 판정하기 }: { service: string; �
                       상태고르기(undefined);
                     }}
                   >
-                    {t('조건 지우기')}
+                    {t('조건 초기화')}
                   </button>
                 ) : (
                   <a className="btn" style={{ marginTop: '14px' }} href="#/scenarios">
@@ -159,7 +159,7 @@ export function ScenarioRunList({ service, 판정하기 }: { service: string; �
               <button onClick={() => setPage((n) => n - 1)} disabled={page <= 1}>
                 {t('이전')}
               </button>
-              <span>{t('{쪽}쪽', { 쪽: page })}</span>
+              <span>{t('{쪽}페이지', { 쪽: page })}</span>
               <button onClick={() => setPage((n) => n + 1)} disabled={!더있나}>
                 {t('다음')}
               </button>

@@ -20,7 +20,7 @@ afterEach(() => {
   localStorage.clear();
 });
 
-const 실행위치 = '시나리오 하나 동안 빈 디바이스를 한 번 잡고 다 돌면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 실행에 남습니다';
+const 실행위치 = '시나리오 하나 동안 유휴 디바이스를 한 번 할당받고 모두 실행하면 반납합니다. 화면 영상과 logcat 은 통과하지 못한 실행에 남습니다';
 
 const 행 = (tcId: string, platforms: Platform[]): CaseRow => ({
   tcId,
@@ -46,7 +46,7 @@ describe('마법사 디바이스 칩', () => {
     const 칩들 = screen.getByRole('group', { name: '디바이스' }).querySelectorAll('button');
     expect([...칩들].map((b) => b.textContent)).toEqual(['Android 앱']);
     expect(칩들[0]!.getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByText(/Android 앱 애플리케이션은 디바이스 한 대에서 돌립니다/u)).toBeTruthy();
+    expect(screen.getByText(/Android 앱 애플리케이션은 디바이스 한 대에서 실행합니다/u)).toBeTruthy();
   });
 
   it('웹 애플리케이션으로 바꾸면 PC · 모바일 칩으로 돌아가고 PC 가 골라진다', () => {
@@ -77,11 +77,11 @@ describe('팔레트 — 섞은 케이스를 도는 디바이스로 거른다', (
   it('모바일 시나리오에 앱 칩을 고르면 android 케이스가 보이고 안내가 붙는다', async () => {
     그리기('ZAW', 'mobile');
     await screen.findByRole('button', { name: 'ZAW-FN-002 추가' });
-    expect(screen.queryByText(/앱 단계는 폰에서 돕니다/u)).toBeNull();
+    expect(screen.queryByText(/앱 단계는 디바이스에서 실행됩니다/u)).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'ZAA 데모 앱' }));
     expect(await screen.findByRole('button', { name: 'ZAA-FN-001 추가' })).toBeTruthy();
-    expect(screen.getByText('앱 단계는 디바이스에서 돕니다. Android 앱 케이스만 보입니다')).toBeTruthy();
+    expect(screen.getByText('앱 단계는 디바이스에서 실행됩니다. Android 앱 케이스만 보입니다')).toBeTruthy();
   });
 
   it('Android 앱 시나리오에 섞은 웹 케이스는 PC 케이스만 보인다', async () => {
@@ -91,7 +91,7 @@ describe('팔레트 — 섞은 케이스를 도는 디바이스로 거른다', (
     fireEvent.click(screen.getByRole('button', { name: 'ZAW 운영툴' }));
     expect(await screen.findByRole('button', { name: 'ZAW-FN-001 추가' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'ZAW-FN-002 추가' })).toBeNull();
-    expect(screen.getByText('웹 단계는 PC 화면으로 돕니다. PC 에서 도는 케이스만 보입니다')).toBeTruthy();
+    expect(screen.getByText('웹 단계는 PC 화면으로 실행됩니다. PC 에서 실행되는 케이스만 보입니다')).toBeTruthy();
   });
 });
 
@@ -137,8 +137,8 @@ describe('결과 화면 — 폰 줄과 Device VISION 기록', () => {
     expect(칸.querySelector('video')?.getAttribute('src')).toBe('/api/runs/77/scenario/farm/screen-1.mp4');
     const 받기 = [...칸.querySelectorAll('a')].map((a) => [a.textContent, a.getAttribute('href')]);
     expect(받기).toEqual([
-      ['logcat.txt 받기 (2.0MB)', '/api/runs/77/scenario/farm/logcat.txt'],
-      ['game-tree.txt 받기 (0.0MB)', '/api/runs/77/scenario/farm/game-tree.txt'],
+      ['logcat.txt 다운로드 (2.0MB)', '/api/runs/77/scenario/farm/logcat.txt'],
+      ['game-tree.txt 다운로드 (0.0MB)', '/api/runs/77/scenario/farm/game-tree.txt'],
     ]);
   });
 
@@ -178,10 +178,10 @@ describe('조립 화면 — 디바이스 고르개와 실행 위치', () => {
     vi.spyOn(scenarioApi, 'detail').mockResolvedValue(상세({ service: 'ZAA', platform: 'desktop', parts: [] }));
     render(<ScenarioBuild id={12} 띠서비스={앱서비스()} user={앱사람()} />);
 
-    expect(await screen.findByText('이 애플리케이션은 디바이스 「Android 앱」로만 돌립니다. 디바이스를 바꿔 저장합니다')).toBeTruthy();
+    expect(await screen.findByText('이 애플리케이션은 디바이스 「Android 앱」로만 실행합니다. 디바이스를 변경해 저장합니다')).toBeTruthy();
     expect([...고르개().options].map((o) => o.textContent)).toEqual(['PC', 'Android 앱']);
     fireEvent.change(고르개(), { target: { value: 'android' } });
-    expect(screen.queryByText(/로만 돌립니다/u)).toBeNull();
+    expect(screen.queryByText(/로만 실행합니다/u)).toBeNull();
   });
 });
 
@@ -194,7 +194,7 @@ describe('마법사 시험 실행 — 실행 위치', () => {
     vi.spyOn(scenarioApi, 'linkSuggestions').mockResolvedValue({ items: [] });
     render(<ScenarioWizard 띠서비스={앱서비스()} user={앱사람()} />);
 
-    fireEvent.click(screen.getByRole('button', { name: /직접 고르기/ }));
+    fireEvent.click(screen.getByRole('button', { name: /직접 선택/ }));
     fireEvent.click(screen.getByRole('button', { name: '다음' }));
     fireEvent.change(await screen.findByRole('textbox'), { target: { value: 'ZAA' } });
     fireEvent.click(await screen.findByRole('button', { name: 'ZAA-001 넣기' }));

@@ -198,7 +198,7 @@ export function useScenarioTrial(열쇠: string) {
           ...비어있다,
           단계: 'failed',
           오류문장: 바쁨
-            ? 글.current('이미 시험 실행이 돌고 있습니다. 끝나면 다시 실행할 수 있습니다')
+            ? 글.current('이미 시험 실행이 진행 중입니다. 완료되면 다시 실행할 수 있습니다')
             : message(err, 말투.current),
         });
       }

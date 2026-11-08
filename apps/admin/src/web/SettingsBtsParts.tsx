@@ -32,7 +32,7 @@ function 고르는칸({ id, 값, 고를것, 바꾼다 }: { id: string; 값: stri
   const 있나 = 값 === '' || 고를것.some((it) => it.값 === 값);
   return (
     <select id={id} value={값} onChange={(e) => 바꾼다(e.target.value)}>
-      <option value="">{t('고르세요')}</option>
+      <option value="">{t('선택하세요')}</option>
       {있나 ? null : <option value={값}>{값}</option>}
       {고를것.map((it) => (
         <option key={it.값} value={it.값}>
@@ -57,7 +57,7 @@ export function 상태매핑구획(p: {
   const 상태목록 = p.목록?.statuses.map((it) => ({ 값: it.key, 이름: it.name })) ?? null;
   const 해결목록 = p.목록?.resolutions.map((it) => ({ 값: it.name, 이름: it.name })) ?? null;
   return (
-    <구획 제목={t('상태 매핑')} 쓰임={t('Test Commander 단계마다 {bts} 상태를 하나씩 고릅니다. 비어 있는 단계가 있으면 저장할 수 없습니다', { bts: BTS이름 })}>
+    <구획 제목={t('상태 매핑')} 쓰임={t('Test Commander 단계마다 {bts} 상태를 하나씩 선택합니다. 비어 있는 단계가 있으면 저장할 수 없습니다', { bts: BTS이름 })}>
       <div className="bts-load">
         <button type="button" className="btn ghost" disabled={p.불러오는중} onClick={p.불러온다}>
           {p.목록 === null ? t('{bts} 에서 불러오기', { bts: BTS이름 }) : t('다시 불러오기')}
@@ -97,7 +97,7 @@ export type 저장소들 = Record<number, { name: string; url: string }[]>;
 export function 코드저장소구획({ 앱들, 저장소, 바꾼다 }: { 앱들: SettingsServiceRow[]; 저장소: 저장소들; 바꾼다: (앱: number, 줄: { name: string; url: string }[]) => void }) {
   const t = use말();
   return (
-    <구획 제목={t('코드 저장소')} 쓰임={t('수정 AI 가 코드를 내려받을 저장소입니다. 애플리케이션마다 따로 저장됩니다')}>
+    <구획 제목={t('코드 저장소')} 쓰임={t('수정 AI 가 코드를 다운로드할 저장소입니다. 애플리케이션마다 따로 저장됩니다')}>
       {앱들.map((앱) => {
         const 줄들 = 저장소[앱.id] ?? [];
         return (
@@ -111,7 +111,7 @@ export function 코드저장소구획({ 앱들, 저장소, 바꾼다 }: { 앱들
                   onChange={(e) => 바꾼다(앱.id, 줄들.map((it, j) => (j === i ? { ...it, name: e.target.value } : it)))} />
                 <input type="url" value={줄.url} aria-label={t('{앱} 저장소 {번호} 주소', { 앱: 앱.name, 번호: i + 1 })} placeholder="https://github.com/…"
                   onChange={(e) => 바꾼다(앱.id, 줄들.map((it, j) => (j === i ? { ...it, url: e.target.value } : it)))} />
-                <button type="button" className="btn ghost icon" aria-label={t('{앱} 저장소 {번호} 빼기', { 앱: 앱.name, 번호: i + 1 })}
+                <button type="button" className="btn ghost icon" aria-label={t('{앱} 저장소 {번호} 제거', { 앱: 앱.name, 번호: i + 1 })}
                   onClick={() => 바꾼다(앱.id, 줄들.filter((_, j) => j !== i))}>
                   −
                 </button>
@@ -138,9 +138,9 @@ const 항목이름: Record<BTS설정결과['what'], string> = {
 
 const 항목쓰임: Record<BTS설정결과['what'], string> = {
   WEBHOOK: '이슈 생성 · 상태 변경을 Test Commander 로 보냅니다',
-  RULE_ASSIGNEE: '담당자가 바뀌면 Test Commander 를 부릅니다',
+  RULE_ASSIGNEE: '담당자가 변경되면 Test Commander 를 호출합니다',
   RULE_PR: 'PR 이 병합되면 Test Commander 를 부릅니다',
-  BOARD: '실패로 올린 이슈가 이 칸에 섭니다',
+  BOARD: '실패로 등록한 이슈가 이 칸에 들어갑니다',
 };
 
 /** 결과가 없으면(아직 안 눌렀으면) 넷을 이름과 쓰임만 보인다. 막힌 것만 ✕ 와 까닭 */
@@ -195,7 +195,7 @@ export function 배포한줄({ 바탕, projectId, 원문 }: { 바탕: string; pr
       <button type="button" className="btn" onClick={복사하기}>
         {복사 === 'ok' ? t('복사했습니다') : t('복사')}
       </button>
-      {복사 === 'no' ? <p className="hint">{t('복사하지 못했습니다. 글을 직접 골라 복사해 주세요')}</p> : null}
+      {복사 === 'no' ? <p className="hint">{t('복사하지 못했습니다. 글을 직접 선택해 복사해 주세요')}</p> : null}
     </div>
   );
 }

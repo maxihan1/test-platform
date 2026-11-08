@@ -14,14 +14,14 @@ export interface 막는상황 {
 }
 
 export function 막는이유(st: 마법사단계, 상황: 막는상황): string | null {
-  if (st === 'start') return 상황.방법 === null ? '시작 방법을 고릅니다' : null;
+  if (st === 'start') return 상황.방법 === null ? '시작 방법을 선택합니다' : null;
   if (st === 'ai') {
-    if (상황.추천만드는중) return '추천을 만드는 중입니다. 끝나면 후보를 골라 주세요';
-    return 상황.고른후보 === null ? '후보를 하나 골라 주세요. 맞는 후보가 없으면 「이전」에서 「직접 고르기」로 바꿉니다' : null;
+    if (상황.추천만드는중) return '추천을 만드는 중입니다. 완료되면 후보를 선택해 주세요';
+    return 상황.고른후보 === null ? '후보를 하나 선택해 주세요. 맞는 후보가 없으면 「이전」에서 「직접 선택」으로 변경합니다' : null;
   }
   if (st === 'steps') return 상황.단계수 === 0 ? '단계를 하나 이상 넣습니다' : null;
   if (st === 'values') return 상황.값막힘 ? '빈 칸이 남은 값 연결이 있습니다. 적거나 삭제합니다' : null;
-  if (st === 'trial') return 상황.시험중 ? '시험 실행이 끝나면 넘어갑니다' : null;
+  if (st === 'trial') return 상황.시험중 ? '시험 실행이 완료되면 넘어갑니다' : null;
   return null;
 }
 
@@ -30,5 +30,5 @@ export function 안내글(st: 마법사단계, 상황: { 미확인: number; 시�
   if (st === 'values' && 상황.미확인 > 0) return t('확인하지 않은 값 연결이 {수}곳 있습니다', { 수: 상황.미확인 });
   if (st !== 'trial') return null;
   if (상황.시험단계 === 'idle' || 상황.시험단계 === 'failed') return t('시험 없이 넘어가도 저장할 수 있습니다');
-  return 상황.시험단계 === 'done' && 상황.시험멈춤 ? t('멈춘 채로도 저장할 수 있습니다') : null;
+  return 상황.시험단계 === 'done' && 상황.시험멈춤 ? t('중단된 채로도 저장할 수 있습니다') : null;
 }

@@ -19,7 +19,7 @@ export function 스모크칩({ row, on바뀜 }: { row: CaseRow; on바뀜?: () =>
   const 직접 = row.smokeSet != null;
   const 글 = <>{smoke ? '● ' : '○ '}{t('스모크')}{직접 ? <> · {t('직접')}</> : null}</>;
   // 「AI 값과 다르다」고는 안 쓴다 — 응답에 코드 값이 없어 다시 스캔해 같아졌는지 모른다
-  const 뜻 = 직접 ? t('직접 고친 값입니다. 다시 누르면 AI 가 정한 값으로 돌아갑니다') : undefined;
+  const 뜻 = 직접 ? t('직접 수정한 값입니다. 다시 누르면 AI 가 정한 값으로 돌아갑니다') : undefined;
   // 꺼진 칩은 줄에 올릴 때만 보인다. 직접 꺼 둔 것은 되돌릴 길이라 늘 보인다
   const 클래스 = `smoke-chip ${smoke ? 'smoke-on' : 직접 ? 'smoke-off smoke-set' : 'smoke-off'}`;
 

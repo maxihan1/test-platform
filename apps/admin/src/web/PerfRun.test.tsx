@@ -120,7 +120,7 @@ describe('실행 중에서 결과로', () => {
     const 주문줄 = screen.getByRole('cell', { name: '주문' }).closest('tr')!;
     expect(주문줄.textContent).toContain('2.1초');
     expect(주문줄.textContent).toContain('(초과)');
-    expect(screen.queryByText('PDF로 내려받기')).toBeNull();
+    expect(screen.queryByText('PDF 다운로드')).toBeNull();
 
     // 다음 5초에는 마지막 초(2)에서 겹침 구간(10초)만큼 앞부터 다시 받는다 — 늦게 온 에이전트 몫이 같은 초를 키우기 때문이다
     await waitFor(() => expect(시리즈.mock.calls.length).toBeGreaterThan(1));
@@ -128,7 +128,7 @@ describe('실행 중에서 결과로', () => {
     expect(시리즈.mock.calls[1]).toEqual([12, 0]);
 
     지금 = 끝난상세();
-    expect(await screen.findByText('PDF로 내려받기')).toBeTruthy();
+    expect(await screen.findByText('PDF 다운로드')).toBeTruthy();
     expect(screen.queryByRole('button', { name: '실행 중단' })).toBeNull();
   });
 
@@ -192,7 +192,7 @@ describe('실행 중에서 결과로', () => {
     vi.spyOn(perfApi, 'runOf').mockResolvedValue({ ...상세, config: { ...상세.config, monitorIds: [] } });
     숫자들만들기();
     render(<PerfRun runId={12} 판정하기={된다} />);
-    expect(await screen.findByText('서버 모니터링 에이전트를 고르지 않았습니다')).toBeTruthy();
+    expect(await screen.findByText('서버 모니터링 에이전트를 선택하지 않았습니다')).toBeTruthy();
   });
 
   it('실행 중단은 확인을 받고 보낸다. 실행 write 가 없으면 단추가 없다', async () => {
@@ -219,7 +219,7 @@ describe('실행 중에서 결과로', () => {
     render(<PerfRun runId={12} 판정하기={된다} />);
     fireEvent.click(await screen.findByRole('button', { name: '실행 중단' }));
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: '실행 중단' }));
-    expect(await within(await screen.findByRole('dialog')).findByText('이미 끝난 실행입니다')).toBeTruthy();
+    expect(await within(await screen.findByRole('dialog')).findByText('이미 종료된 실행입니다')).toBeTruthy();
   });
 });
 
@@ -372,7 +372,7 @@ describe('결과', () => {
     Object.assign(URL, { createObjectURL: vi.fn(() => 'blob:perf'), revokeObjectURL: vi.fn() });
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
     render(<PerfRun runId={12} 판정하기={된다} />);
-    fireEvent.click(await screen.findByRole('button', { name: 'PDF로 내려받기' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'PDF 다운로드' }));
     await waitFor(() => expect(받기).toHaveBeenCalledWith(12));
   });
 });
@@ -382,7 +382,7 @@ describe('페이지 측정 실행', () => {
     vi.spyOn(perfApi, 'runOf').mockResolvedValue(끝난상세({ id: 30, kind: 'PAGE' }));
     render(<PerfRun runId={30} 판정하기={된다} />);
     await waitFor(() => expect(window.location.hash).toBe('#/perf/pages?run=30'));
-    expect(screen.queryByRole('button', { name: 'PDF로 내려받기' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'PDF 다운로드' })).toBeNull();
   });
 
   it('보내면서 방문 기록 칸 번호를 지우지 않는다 — 떠나기 막기가 한 칸 어긋나지 않게', async () => {

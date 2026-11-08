@@ -32,14 +32,14 @@ export function 막힘줄({ 까닭, open }: { 까닭: 막힘 | null; open: reado
   if (까닭 === 'AUTHORING_OPEN') {
     return (
       <small className="hint">
-        <요청고리 번호들={open} /> {t('이 반영된 뒤에 셉니다')}
+        <요청고리 번호들={open} /> {t('이 반영된 뒤에 집계합니다')}
       </small>
     );
   }
   const 글: Record<Exclude<막힘, 'AUTHORING_OPEN'>, string> = {
     ADMIN_ONLY: t('승인 · 반려는 관리자가 합니다'),
-    NO_WRITE: t('작성 쓰기 권한이 있는 사람이 고릅니다'),
-    NO_RUN_WRITE: t('버그 판정은 실행 쓰기 권한이 있는 사람이 합니다'),
+    NO_WRITE: t('작성 쓰기 권한이 있는 사람이 선택합니다'),
+    NO_RUN_WRITE: t('결함 판정은 실행 쓰기 권한이 있는 사람이 합니다'),
   };
   return 까닭 === null ? null : <small className="hint">{글[까닭]}</small>;
 }
@@ -129,7 +129,7 @@ export function 상세할일({ x }: { x: 항목of<'FIX'> }) {
       <span className="decide-q">{질문}</span>
       {x.waiting.length === 0 ? null : (
         <small className="hint">
-          {t('뒤에서')} <요청고리 번호들={x.waiting} /> {t('이 기다립니다 — 고치거나 폐기하면 이어서 돕니다')}
+          {t('뒤에서')} <요청고리 번호들={x.waiting} /> {t('이 기다립니다 — 수정하거나 폐기하면 이어서 실행됩니다')}
         </small>
       )}
       {/* 값을 넣거나 겹침을 고르는 일은 상세가 맡는다 — 이름은 거기서 할 일이다 */}

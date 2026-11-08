@@ -33,7 +33,7 @@ export function PerfSchedule({ scenarioId, envs, 지금, 바뀜, 닫기 }: { sce
 
   function 켜기() {
     if (!/^\d{2}:\d{2}$/.test(시각) || 서버 === '') {
-      set오류(t('시각과 대상 서버를 골라 주세요'));
+      set오류(t('시각과 대상 서버를 선택해 주세요'));
       return;
     }
     // 시간대는 브라우저 것을 보낸다 — 「매일 03:00」이 사람이 있는 곳의 03:00 이 되게
@@ -68,7 +68,7 @@ export function PerfSchedule({ scenarioId, envs, 지금, 바뀜, 닫기 }: { sce
         <label className="perf-field">
           {t('대상 서버')}
           <select value={서버} onChange={(e) => set서버(e.target.value)}>
-            <option value="">{t('고르기')}</option>
+            <option value="">{t('선택')}</option>
             {envs.map((it) => (
               <option key={it.env} value={it.env} disabled={it.isProd === true}>
                 {it.isProd === true ? t('{서버} · 부하 테스트 불가', { 서버: it.env }) : it.env}
@@ -77,7 +77,7 @@ export function PerfSchedule({ scenarioId, envs, 지금, 바뀜, 닫기 }: { sce
           </select>
         </label>
       </div>
-      <p className="perf-faint">{t('매일 이 시각에 이 시나리오를 저장된 설정 그대로 돌립니다')}</p>
+      <p className="perf-faint">{t('매일 이 시각에 이 시나리오를 저장된 설정 그대로 실행합니다')}</p>
       {오류 === null ? null : <p className="perf-err" role="alert">{오류}</p>}
     </Modal>
   );

@@ -75,19 +75,19 @@ describe('단계 줄', () => {
     연다(결과({ parts: [멈춤, 안돈] }));
     await screen.findByText('단계별 결과');
     const 멈춘줄 = 줄('XSX-005');
-    expect(within(멈춘줄).getByText('실행이 멈춘 사유')).toBeTruthy();
+    expect(within(멈춘줄).getByText('실행이 중단된 사유')).toBeTruthy();
     expect(within(멈춘줄).getByText('러너가 이 단계 결과를 돌려주지 않았다').className).not.toContain('scn-error');
     const api = screen.getByText('API 호출').closest('.scn-part') as HTMLElement;
     expect(within(api).getByText('– 실행 안 함')).toBeTruthy();
     expect(api.textContent).not.toContain('NOT_RUN');
-    expect(within(api).queryByText('실행이 멈춘 사유')).toBeNull();
+    expect(within(api).queryByText('실행이 중단된 사유')).toBeNull();
   });
 
   it('러너 · 서버 상태 코드는 멈춘 사유에 사람 말로 보인다', async () => {
     연다(결과({ parts: [부품(5, { status: 'NA', error: { message: 'TIMEOUT' } }), 부품(6, { status: 'NA', error: { message: 'ABORTED' } })] }));
     await screen.findByText('단계별 결과');
     expect(within(줄('XSX-005')).getByText('제한 시간 초과')).toBeTruthy();
-    expect(within(줄('XSX-006')).getByText('서버 재시작으로 멈춤')).toBeTruthy();
+    expect(within(줄('XSX-006')).getByText('서버 재시작으로 중단')).toBeTruthy();
     expect(줄('XSX-005').textContent).not.toContain('TIMEOUT');
     expect(줄('XSX-006').textContent).not.toContain('ABORTED');
   });

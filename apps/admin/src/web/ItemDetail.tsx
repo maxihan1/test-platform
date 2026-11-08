@@ -65,9 +65,9 @@ export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; 
       )}
 
       <div className="sec">
-        <div className="sec-h">{t말('사전조건')}</div>
+        <div className="sec-h">{t말('사전 조건')}</div>
         {item.precondition.length === 0 ? (
-          <p className="hint">{t말('사전조건 없음')}</p>
+          <p className="hint">{t말('사전 조건 없음')}</p>
         ) : (
           item.precondition.map((line) => (
             <div className="pre" key={line}>
@@ -78,7 +78,7 @@ export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; 
       </div>
 
       <값칸 머리={t말('입력값')} 없음={t말('입력 없음')} 칸={params} />
-      <값칸 머리={t말('기대결과')} 없음={t말('기대결과 없음')} 칸={expected} />
+      <값칸 머리={t말('기대 결과')} 없음={t말('기대 결과 없음')} 칸={expected} />
 
       <div className="sec">
         <div className="sec-h">{t말('시험 절차')}</div>

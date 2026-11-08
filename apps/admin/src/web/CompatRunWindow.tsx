@@ -174,7 +174,7 @@ export function CompatRunWindow({ runId, service, 닫기 }: { runId: number; ser
         ? t('{세트} · 호환성 실행 중', { 세트: data.run.title })
         : data.run.state === 'ABORTED'
           ? t('{세트} · 호환성 실행이 중단됐습니다', { 세트: data.run.title })
-          : t('{세트} · 호환성 실행이 끝났습니다', { 세트: data.run.title });
+          : t('{세트} · 호환성 실행이 완료되었습니다', { 세트: data.run.title });
   const 총 = data?.run.finishedAt == null ? null : Date.parse(data.run.finishedAt) - Date.parse(data.run.startedAt);
 
   return (
@@ -190,7 +190,7 @@ export function CompatRunWindow({ runId, service, 닫기 }: { runId: number; ser
               <button type="button" className="btn ghost trial-stop" disabled={data === null} onClick={() => set중단묻기(true)}>
                 {t('실행 중단')}
               </button>
-              <span className="e2e-foot-mid">{t('닫아도 실행은 계속되고 끝나면 알림이 옵니다 · 중단 시 점검을 마친 화면까지 결과에 남습니다')}</span>
+              <span className="e2e-foot-mid">{t('닫아도 실행은 계속되고 완료되면 알림이 옵니다 · 중단 시 점검을 마친 화면까지 결과에 남습니다')}</span>
               <button type="button" className="btn ghost" onClick={닫기}>
                 {t('닫기')}
               </button>

@@ -68,7 +68,7 @@ export function ScenarioRunWindow({ runId, 어디서, on닫기 }: { runId: numbe
     on닫기();
   };
   const 이름들 = 정식이름줄들(data?.parts ?? [], 언어);
-  const 제목 = 도는중 ? t('E2E 실행 중 · RUN {번호}', { 번호: runId }) : t('E2E 실행이 끝났습니다 · RUN {번호}', { 번호: runId });
+  const 제목 = 도는중 ? t('E2E 실행 중 · RUN {번호}', { 번호: runId }) : t('E2E 실행이 완료되었습니다 · RUN {번호}', { 번호: runId });
 
   return (
     <>
@@ -83,7 +83,7 @@ export function ScenarioRunWindow({ runId, 어디서, on닫기 }: { runId: numbe
               <button type="button" className="btn ghost trial-stop" disabled={data === null} onClick={() => set중단묻기(true)}>
                 {t('실행 중단')}
               </button>
-              <span className="e2e-foot-mid">{t('닫아도 실행은 계속되고 끝나면 알림이 옵니다')}</span>
+              <span className="e2e-foot-mid">{t('닫아도 실행은 계속되고 완료되면 알림이 옵니다')}</span>
               <button type="button" className="btn ghost" onClick={on닫기}>
                 {t('닫기')}
               </button>
@@ -114,7 +114,7 @@ export function ScenarioRunWindow({ runId, 어디서, on닫기 }: { runId: numbe
             <p className="start-band rec e2e-band">
               <b>{t('정식 실행')}</b>{' '}
               {도는중
-                ? t('끝나면 실행 기록에 남고 리포트를 만들 수 있습니다 · RUN {번호}', { 번호: runId })
+                ? t('완료되면 실행 기록에 남고 리포트를 만들 수 있습니다 · RUN {번호}', { 번호: runId })
                 : t('실행 기록 E2E 에 남았습니다 · RUN {번호}', { 번호: runId })}
             </p>
             {도는중 ? (

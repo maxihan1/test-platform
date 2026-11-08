@@ -87,7 +87,7 @@ export function 화면고르기({
           </button>
         )}
       </div>
-      {x.needsApply === true ? <small className="hint">{t('승인 대기를 먼저 끝내 주세요')}</small> : null}
+      {x.needsApply === true ? <small className="hint">{t('승인 대기를 먼저 처리해 주세요')}</small> : null}
       {[...화면별].map(([url, 줄]) => (
         <div key={url} className="decide-box decide-screen-row">
           {고르나 ? (
@@ -129,7 +129,7 @@ export function 화면고르기({
               </option>
             ))}
           </select>
-          {(고른?.env ?? '') === '' ? <small className="hint">{t('대상 서버를 고르면 진행에 들어갑니다')}</small> : null}
+          {(고른?.env ?? '') === '' ? <small className="hint">{t('대상 서버를 선택하면 진행에 들어갑니다')}</small> : null}
         </label>
       )}
       {x.skipped.length === 0 ? null : (
@@ -143,7 +143,7 @@ export function 화면고르기({
               </span>
               {!바꿀수있나 ? null : (
                 <button className="btn ghost small" type="button" disabled={바쁨} onClick={() => void 바꾸기(s.url, false)}>
-                  {t('되돌리기')}
+                  {t('실행 취소')}
                 </button>
               )}
             </div>
@@ -171,7 +171,7 @@ export function 화면고르기({
           <ul className="decide-list">
             <li>{t('앞으로 테스트 업데이트에 나오지 않습니다')}</li>
             <li>{t('AI 가 이 화면 테스트를 만들지 않습니다')}</li>
-            <li>{t('아래 「제외한 화면」에서 되돌릴 수 있습니다')}</li>
+            <li>{t('아래 「제외한 화면」에서 복원할 수 있습니다')}</li>
           </ul>
           {오류 === null ? null : <p className="error-text">{오류}</p>}
         </Modal>

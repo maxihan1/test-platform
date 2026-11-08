@@ -19,8 +19,8 @@ const 연결오류: Record<string, string> = {
   SSO_REQUIRED: 'Auth 로그인을 켠 설치에서만 {bts} 를 이을 수 있습니다',
   BOT_NOT_ALLOWED: '서버가 허용한 「QA Hub AI」 계정 이름이 아닙니다. 서버 .env 의 BTS_BOT_USERNAMES 를 확인해 주세요',
   BTS_URL_NOT_ALLOWED: '서버가 허용한 {bts} 주소가 아닙니다. 서버 .env 의 BTS_URLS 를 확인해 주세요',
-  MAP_INCOMPLETE: '비어 있는 단계가 있습니다. 모든 단계에 {bts} 상태를 골라 주세요',
-  NO_PERSONAL_TOKEN: 'Auth 계정으로 로그인한 운영 계정이어야 {bts} 자동 설정을 할 수 있습니다',
+  MAP_INCOMPLETE: '비어 있는 단계가 있습니다. 모든 단계에 {bts} 상태를 선택해 주세요',
+  NO_PERSONAL_TOKEN: 'Auth 계정으로 로그인한 관리자 계정이어야 {bts} 자동 설정을 할 수 있습니다',
   PUBLIC_URL_REQUIRED: '이 서버의 공개 주소(PLATFORM_PUBLIC_URL)가 없어 {bts} 가 Test Commander 를 부를 수 없습니다',
 };
 // 서버도 빈 이름을 INVALID_REQUEST 로 막지만 그 말로는 어느 칸인지 모른다 — 부르기 전에 먼저 막는다
@@ -177,7 +177,7 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
           <label htmlFor="bts-bot">{t('「QA Hub AI」 계정 이름')}</label>
           <input id="bts-bot" type="text" autoComplete="off" value={botUsername} maxLength={100} placeholder="qahub-ai" onChange={(e) => setBotUsername(e.target.value)} />
         </div>
-        <p className="hint">{t('Test Commander 가 실패한 테스트를 {bts} 이슈로 올릴 때 쓰는 통합계정입니다. 사람 계정과 따로 두어야 {bts} 에서 누가 올렸는지 구분됩니다', { bts: BTS이름 })}</p>
+        <p className="hint">{t('Test Commander 가 실패한 테스트를 {bts} 이슈로 등록할 때 쓰는 통합계정입니다. 사람 계정과 따로 두어야 {bts} 에서 누가 등록했는지 구분됩니다', { bts: BTS이름 })}</p>
       </구획>
 
       <상태매핑구획
@@ -192,7 +192,7 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
       />
       <코드저장소구획 앱들={앱들} 저장소={저장소} 바꾼다={(앱, 줄) => set저장소((전) => ({ ...전, [앱]: 줄 }))} />
 
-      <구획 제목={t('2 · {bts} 자동 설정', { bts: BTS이름 })} 쓰임={t('내 통합계정 권한으로 {bts} 에 아래 넷을 만듭니다. 이미 있으면 새로 만들지 않고 고칩니다', { bts: BTS이름 })}>
+      <구획 제목={t('2 · {bts} 자동 설정', { bts: BTS이름 })} 쓰임={t('내 통합계정 권한으로 {bts} 에 아래 넷을 만듭니다. 이미 있으면 생성하지 않고 수정합니다', { bts: BTS이름 })}>
         <자동설정결과 결과={결과} />
       </구획>
       {오류 === null ? null : (
@@ -212,7 +212,7 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
       </div>
 
       {지금.linked ? (
-        <구획 제목={t('3 · 배포 스크립트 한 줄')} 쓰임={t('deploy.sh 는 회사 배포 서버에 있어 Test Commander 가 고칠 수 없습니다. 아래 한 줄을 deploy.sh 마지막에 넣어 주세요')}>
+        <구획 제목={t('3 · 배포 스크립트 한 줄')} 쓰임={t('deploy.sh 는 회사 배포 서버에 있어 Test Commander 가 수정할 수 없습니다. 아래 한 줄을 deploy.sh 마지막에 넣어 주세요')}>
           <div className="bts-key">
             <span>{t('배포 알림 토큰')}</span>
             <span className="set-sub">{배포원문 !== null ? t('방금 발급했습니다 · 원문은 지금만 보입니다') : 지금.deployKey === null ? t('발급 전 · 이 프로젝트 전용') : `••••${지금.deployKey.tail}`}</span>
@@ -240,7 +240,7 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
             </>
           }
         >
-          <p>{t('다시 발급하면 deploy.sh 에 넣어 둔 토큰은 바로 쓸 수 없습니다. 새 한 줄로 바꿔 넣어야 배포 알림이 다시 옵니다')}</p>
+          <p>{t('다시 발급하면 deploy.sh 에 넣어 둔 토큰은 바로 쓸 수 없습니다. 새 한 줄로 교체해야 배포 알림이 다시 옵니다')}</p>
         </Modal>
       ) : null}
 

@@ -94,7 +94,7 @@ describe('ScenarioRunList 호출 · 거르개', () => {
     const { 스파이 } = await 그리기();
     await screen.findByText(/ZSL 시나리오 11/);
 
-    fireEvent.change(screen.getByPlaceholderText(/시나리오 이름으로 찾기/), { target: { value: '결제' } });
+    fireEvent.change(screen.getByPlaceholderText(/시나리오 이름으로 검색/), { target: { value: '결제' } });
     fireEvent.submit(screen.getByRole('search'));
 
     await waitFor(() => expect(스파이).toHaveBeenLastCalledWith('ZSL', 1, { q: '결제' }));
@@ -145,7 +145,7 @@ describe('ScenarioRunList 줄', () => {
     expect(within(첫).getByText('단계 5개')).toBeTruthy();
     expect(within(첫).getByText('모두 통과')).toBeTruthy();
 
-    expect(within(줄들[1] as HTMLElement).getByText('3번에서 멈춤')).toBeTruthy();
+    expect(within(줄들[1] as HTMLElement).getByText('3번에서 중단')).toBeTruthy();
   });
 
   it('도는 중이면 멈춘 단계 글자가 비어 있다', async () => {
@@ -170,8 +170,8 @@ describe('ScenarioRunList 줄', () => {
     await screen.findByText(/ZSL 시나리오 22/);
 
     const [실패, 없음] = Array.from(container.querySelectorAll('.run-row')) as HTMLElement[];
-    expect(within(실패 as HTMLElement).getByText('3번에서 멈춤')).toBeTruthy();
-    expect(within(없음 as HTMLElement).getByText('3번에서 멈춤')).toBeTruthy();
+    expect(within(실패 as HTMLElement).getByText('3번에서 중단')).toBeTruthy();
+    expect(within(없음 as HTMLElement).getByText('3번에서 중단')).toBeTruthy();
     expect(실패?.querySelector('.v-fail')?.textContent).toBe('실패');
     expect(없음?.querySelector('.v-na')?.textContent).toBe('미실행');
     expect(없음?.querySelector('.title small')?.textContent).toContain('대상 서버 stage');
@@ -229,7 +229,7 @@ describe('ScenarioRunList 빈 목록', () => {
   it('조건이 없으면 시나리오 목록으로 이끈다', async () => {
     await 그리기(빈쪽(빈집계));
 
-    expect(await screen.findByText(/이 애플리케이션에서 아직 돌린 E2E 시나리오가 없습니다/)).toBeTruthy();
+    expect(await screen.findByText(/이 애플리케이션에서 아직 실행한 E2E 시나리오가 없습니다/)).toBeTruthy();
     expect(screen.getByRole('link', { name: '시나리오 목록으로' }).getAttribute('href')).toBe('#/scenarios');
   });
 
@@ -238,12 +238,12 @@ describe('ScenarioRunList 빈 목록', () => {
     await screen.findByText(/ZSL 시나리오 11/);
 
     스파이.mockResolvedValue(빈쪽(집계));
-    fireEvent.change(screen.getByPlaceholderText(/시나리오 이름으로 찾기/), { target: { value: '없는것' } });
+    fireEvent.change(screen.getByPlaceholderText(/시나리오 이름으로 검색/), { target: { value: '없는것' } });
     fireEvent.submit(screen.getByRole('search'));
 
     expect(await screen.findByText(/조건에 맞는 실행이 없습니다/)).toBeTruthy();
     스파이.mockResolvedValue(한쪽);
-    fireEvent.click(screen.getByRole('button', { name: '조건 지우기' }));
+    fireEvent.click(screen.getByRole('button', { name: '조건 초기화' }));
     await waitFor(() => expect(스파이).toHaveBeenLastCalledWith('ZSL', 1, {}));
   });
 });
@@ -290,7 +290,7 @@ describe('ScenarioRunList 오른쪽 결과 칸 (실행 §8.7 「A안」)', () =>
 
     expect(스파이).toHaveBeenCalledWith('ZSL', 2, { state: 'failed' });
     await waitFor(() => expect(결과).toHaveBeenCalledWith(5));
-    expect(await screen.findByText('고른 실행은 지금 조건 밖입니다')).toBeTruthy();
+    expect(await screen.findByText('선택한 실행은 지금 조건 밖입니다')).toBeTruthy();
   });
 
   it('결과 칸에서 다시 실행하면 첫 쪽으로 돌아가 새 실행을 고른다 — 뒤쪽에 머물면 고른 줄이 목록에 없다', async () => {

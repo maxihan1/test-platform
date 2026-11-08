@@ -102,7 +102,7 @@ describe('중복 케이스 표', () => {
 
   it('고른 줄에만 되돌리기가 있고 DELETE 를 보낸다', async () => {
     render(<AuthoringConflicts service="PAY" 요청번호={7} conflicts={[번호겹침, 요구겹침]} 편집 reload={reload} />);
-    const 되돌리기 = screen.getAllByRole('button', { name: /되돌리기/ });
+    const 되돌리기 = screen.getAllByRole('button', { name: /실행 취소/ });
     expect(되돌리기).toHaveLength(1);
     fireEvent.click(되돌리기[0] as HTMLElement);
     await vi.waitFor(() => expect(지우기).toHaveBeenCalledWith('PAY', 7, 'PAY-043'));
@@ -207,15 +207,15 @@ const 실패반영: AuthoringRun = {
 describe('반영 실패 안내', () => {
   it('겹침으로 실패했으면 사람 말과 중복 케이스 고르기만 보이고 원문은 접는다', () => {
     render(<AuthoringMergeFailed service="PAY" 실행={실패반영} 원본={7} 권한 반영권한 운영자={false} 겹침수={2} reload={reload} />);
-    expect(screen.getByText('이미 있는 케이스와 중복되는 케이스가 2건입니다. 아래 표에서 고른 뒤 다시 반영하세요')).toBeTruthy();
+    expect(screen.getByText('이미 있는 케이스와 중복되는 케이스가 2건입니다. 아래 표에서 선택한 뒤 다시 반영하세요')).toBeTruthy();
     expect(screen.getByText('원문 보기')).toBeTruthy();
-    expect(screen.getByRole('button', { name: '중복 케이스 고르기' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '중복 케이스 선택' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: '같은 자료로 다시 작성' })).toBeNull();
   });
 
   it('겹침 글인데 고를 목록이 안 실렸으면 고르기 대신 같은 자료로 다시 작성을 낸다', () => {
     render(<AuthoringMergeFailed service="PAY" 실행={실패반영} 원본={7} 권한 반영권한 운영자={false} 겹침수={0} reload={reload} />);
-    expect(screen.queryByRole('button', { name: '중복 케이스 고르기' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '중복 케이스 선택' })).toBeNull();
     expect(screen.getByRole('button', { name: '같은 자료로 다시 작성' })).toBeTruthy();
   });
 
@@ -257,7 +257,7 @@ describe('반영 실패 안내', () => {
 
   it('권한이 없으면 까닭만 보이고 버튼은 없다', () => {
     render(<AuthoringMergeFailed service="PAY" 실행={실패반영} 원본={7} 권한={false} 반영권한={false} 운영자={false} 겹침수={2} reload={reload} />);
-    expect(screen.getByText('이미 있는 케이스와 중복되는 케이스가 2건입니다. 아래 표에서 고른 뒤 다시 반영하세요')).toBeTruthy();
+    expect(screen.getByText('이미 있는 케이스와 중복되는 케이스가 2건입니다. 아래 표에서 선택한 뒤 다시 반영하세요')).toBeTruthy();
     expect(screen.queryByRole('button', { name: '같은 자료로 다시 작성' })).toBeNull();
     expect(screen.queryByRole('button', { name: '다시 반영' })).toBeNull();
   });

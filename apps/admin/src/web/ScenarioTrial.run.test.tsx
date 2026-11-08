@@ -126,7 +126,7 @@ describe('시험 실행 돌리기', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '창 닫기' }));
     await act(async () => {
-      fireEvent.click(within(screen.getByRole('dialog', { name: '닫으면 시험 실행을 멈춥니다' })).getByRole('button', { name: '멈추고 닫기' }));
+      fireEvent.click(within(screen.getByRole('dialog', { name: '닫으면 시험 실행을 멈춥니다' })).getByRole('button', { name: '중단하고 닫기' }));
     });
 
     expect(중단).toHaveBeenCalledWith('t-1');
@@ -264,7 +264,7 @@ describe('시험 실행 돌리기', () => {
 
     await 시험누르기();
 
-    expect(screen.getByText('이미 시험 실행이 돌고 있습니다. 끝나면 다시 실행할 수 있습니다')).toBeTruthy();
+    expect(screen.getByText('이미 시험 실행이 진행 중입니다. 완료되면 다시 실행할 수 있습니다')).toBeTruthy();
     expect(screen.queryByText('시험 실행 중입니다')).toBeNull();
   });
 

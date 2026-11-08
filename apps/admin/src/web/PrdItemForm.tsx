@@ -108,7 +108,7 @@ export function PrdItemForm({
       </div>
       <p className="hint prd-form-hint">{t('규칙 하나만 적습니다. 숫자 · 조건 낱말(이상 · 미만 · 까지)은 원문 그대로 둡니다')}</p>
       {새것 ? (
-        <p className="hint prd-form-hint">{t('출처는 「직접 작성」으로 자동으로 달립니다. 저장한 뒤 요구 줄의 고치기에서 더할 수 있습니다')}</p>
+        <p className="hint prd-form-hint">{t('출처는 「직접 작성」으로 자동으로 달립니다. 저장한 뒤 요구 줄의 수정에서 더할 수 있습니다')}</p>
       ) : (
         <fieldset className="prd-basis-edit">
           <legend>{t('출처')}</legend>
@@ -118,7 +118,7 @@ export function PrdItemForm({
               <input type="text" aria-label={t('원본 번호')} placeholder={t('원본 번호 · 화면 주소')} value={b.ref ?? ''} onChange={(e) => 근거고침(i, 'ref', e.target.value)} />
               <input type="text" aria-label={t('원본 문장')} placeholder={t('원본 문장')} value={b.quote} onChange={(e) => 근거고침(i, 'quote', e.target.value)} />
               <button type="button" className="btn ghost small" disabled={x.basis.length === 1} onClick={() => setX({ ...x, basis: x.basis.filter((_, j) => j !== i) })}>
-                {t('빼기')}
+                {t('제거')}
               </button>
             </div>
           ))}

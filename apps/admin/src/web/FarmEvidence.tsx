@@ -40,7 +40,7 @@ export function 팜증적({ 주소, files, 보일 }: { 주소: (name: string) =>
       )}
       {로그.map((f) => (
         <a key={f.name} className="farm-ev-file" href={주소(f.name)} download={f.name}>
-          {t('{파일} 받기 ({크기})', { 파일: f.name, 크기: MB(f.bytes) })}
+          {t('{파일} 다운로드 ({크기})', { 파일: f.name, 크기: MB(f.bytes) })}
         </a>
       ))}
     </div>

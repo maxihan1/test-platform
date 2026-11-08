@@ -106,7 +106,7 @@ describe('ScenarioLinks 종류마다 칸', () => {
       },
     ]);
     const 묶음 = screen.getByRole('group', { name: '수정 요청으로 변경' });
-    for (const 이름 of ['바꿀 메서드', '수정 주소']) expect(within(묶음).getByLabelText(이름)).toBeTruthy();
+    for (const 이름 of ['변경할 메서드', '수정 주소']) expect(within(묶음).getByLabelText(이름)).toBeTruthy();
     expect(screen.getByText('수정 주소의 {} 자리에 가져온 값이 들어갑니다')).toBeTruthy();
     const 값묶음 = within(묶음).getByRole('group', { name: '가져올 값' });
     for (const 이름 of ['가져올 단계', '메서드', 'URL 패턴', 'JSON 경로']) {

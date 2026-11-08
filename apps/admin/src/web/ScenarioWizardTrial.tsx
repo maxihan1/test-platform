@@ -71,7 +71,7 @@ export function 시험칸(p: Props) {
       <div className="scw-row">
         <TrialControls 서버들={p.서버들} 서버={p.서버} on서버={p.on서버} 도는중={p.시험.단계 === 'running'} on시작={p.on시작} 다시={결과 !== null} />
       </div>
-      {p.미리 ? <p className="hint">{t('지난번에 고른 서버를 미리 골라 두었습니다')}</p> : null}
+      {p.미리 ? <p className="hint">{t('지난번에 선택한 서버를 미리 선택해 두었습니다')}</p> : null}
       {p.폰 ? <폰실행위치 /> : null}
       {p.막는글 === null ? null : (
         <p className="err" role="alert">
@@ -95,12 +95,12 @@ export function 시험칸(p: Props) {
           <b>
             {실패 === undefined
               ? 멈춘사유글자(결과.error?.message ?? '', 언어)
-              : t('{번호}번 「{이름}」에서 멈췄습니다', { 번호: 실패.seq, 이름: p.이름(실패.seq) })}
+              : t('{번호}번 「{이름}」에서 중단되었습니다', { 번호: 실패.seq, 이름: p.이름(실패.seq) })}
           </b>
           {실패 === undefined ? null : <실패이유 failure={멈춘까닭(실패)} />}
           <span className="scw-label">{t('이렇게 해 보세요')}</span>
           <ul>
-            <li>{t('이 케이스만 따로 돌려 통과하는지 먼저 봅니다')}</li>
+            <li>{t('이 케이스만 따로 실행해 통과하는지 먼저 봅니다')}</li>
             <li>{t('넘겨받을 값이 비었는지 「값 연결」에서 확인합니다')}</li>
           </ul>
           {쓰임줄}

@@ -171,7 +171,7 @@ export function CaseDetail({
 
       {row.precondition.length === 0 ? null : (
         <div className="dsec">
-          <div className="dlabel">{t('사전조건')}</div>
+          <div className="dlabel">{t('사전 조건')}</div>
           <ol className="dlist">
             {row.precondition.map((줄) => (
               <li key={줄}>{줄}</li>
@@ -207,7 +207,7 @@ export function CaseDetail({
           </div>
         )}
         {결과 === undefined ? (
-          <p className="hint">{t('아직 돌린 적이 없습니다. 한 번 돌리면 절차가 여기에 남습니다')}</p>
+          <p className="hint">{t('아직 실행한 적이 없습니다. 한 번 실행하면 절차가 여기에 남습니다')}</p>
         ) : 절차 === undefined ? (
           <p className="hint">{t('절차를 불러오는 중입니다')}</p>
         ) : 절차 === null ? (
@@ -253,7 +253,7 @@ export function CaseDetail({
           )}
           {기대결과.length === 0 ? null : (
             <>
-              <div className="dlabel">{t('기대결과')}</div>
+              <div className="dlabel">{t('기대 결과')}</div>
               <Form
                 idPrefix={`detail-${row.tcId}-e`}
                 fields={기대결과}
@@ -293,7 +293,7 @@ export function CaseDetail({
       {/* 비활성 케이스는 서버가 늘 거절한다(BAD_EDIT) — 목록 확인 상자도 같은 까닭으로 뺀다 */}
       {고칠서비스 === undefined || !row.isActive ? null : (
         <details className="case-edit-fold">
-          <summary>{t('코드 기본값 바꾸기 요청')}</summary>
+          <summary>{t('코드 기본값 변경 요청')}</summary>
           <코드기본값고치기 row={row} service={고칠서비스} />
         </details>
       )}

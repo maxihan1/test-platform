@@ -103,7 +103,7 @@ export function CompatResult({ runId, service, 쓰나 }: { runId: number; servic
         <p className="compat-back">
           <a href={기록주소}>{t('실행 기록 › 호환성')}</a> › <span className="mono">RUN {runId}</span>
         </p>
-        {data.run.state === 'RUNNING' ? <p className="compat-faint">{t('실행 중입니다 · 돌거나 점검 중인 디바이스의 칸은 끝나면 채워집니다')}</p> : null}
+        {data.run.state === 'RUNNING' ? <p className="compat-faint">{t('실행 중입니다 · 실행 중이거나 점검 중인 디바이스의 칸은 완료되면 채워집니다')}</p> : null}
         {오류 === null ? null : (
           <p className="compat-err" role="alert">
             {오류}

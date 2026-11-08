@@ -76,7 +76,7 @@ describe('측정 시작', () => {
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.change(screen.getByLabelText('앱 패키지 이름'), { target: { value: 'com.demo.game' } });
     fireEvent.click(screen.getByRole('button', { name: '측정 시작' }));
-    expect((await screen.findByRole('alert')).textContent).toBe('측정하며 돌릴 게임 케이스를 골라 주세요');
+    expect((await screen.findByRole('alert')).textContent).toBe('측정하며 실행할 게임 케이스를 선택해 주세요');
     fireEvent.click(await screen.findByLabelText(/ZQD-001/));
     fireEvent.click(await screen.findByLabelText('Galaxy S24 선택'));
     fireEvent.click(screen.getByRole('button', { name: '측정 시작' }));
@@ -102,7 +102,7 @@ describe('측정 시작', () => {
     vi.spyOn(perfApi, 'suggestDevices').mockResolvedValue({ jobId: 5 });
     vi.spyOn(perfApi, 'job').mockResolvedValue({ status: 'DONE', output: { devices: [{ serial: 'A23', why: '저사양' }], basis: [] } });
     render(<PerfDevices service={앱} 쓰나 />);
-    fireEvent.click(await screen.findByRole('button', { name: '추천 받기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '추천 요청' }));
     expect(await screen.findByText(/Galaxy A23\(저사양\)/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '추천 적용' }));
     expect(screen.getByLabelText<HTMLInputElement>('Galaxy A23 선택').checked).toBe(true);
@@ -163,7 +163,7 @@ describe('결과', () => {
 
     expect(screen.getByText('회차마다 약 100MB 증가', { exact: false })).toBeTruthy();
     expect(screen.getByText(/2회차 더 돌면 메모리 목표를 넘습니다/)).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'PDF로 내려받기' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'PDF 다운로드' })).toBeNull();
   });
 
   it('기기 한 대 숫자가 6만 줄인 긴 측정의 결과도 그래프까지 열린다', async () => {

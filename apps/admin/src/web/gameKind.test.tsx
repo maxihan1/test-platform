@@ -42,7 +42,7 @@ async function 고친본문() {
   return 고침.mock.calls[0]?.[1];
 }
 
-const 머리칸 = () => screen.getByLabelText('대상 서버 1 어드민 키 머리 이름');
+const 머리칸 = () => screen.getByLabelText('대상 서버 1 어드민 키 헤더 이름');
 const 값칸 = () => screen.getByLabelText('대상 서버 1 어드민 키 값');
 
 describe('게임 애플리케이션 설정 — 어드민 키 (도메인/인증 §7 adminKey · GAME-F1-08)', () => {
@@ -57,16 +57,16 @@ describe('게임 애플리케이션 설정 — 어드민 키 (도메인/인증 �
   it('두 칸을 비우고 저장하면 null 을 보내 지운다', async () => {
     render(<ServicePanel row={게임앱([키있는줄])} onDone={() => {}} />);
 
-    expect(screen.queryByText('이대로 저장하면 이 서버의 어드민 키가 지워집니다')).toBeNull();
+    expect(screen.queryByText('이대로 저장하면 이 서버의 어드민 키가 삭제됩니다')).toBeNull();
     fireEvent.change(머리칸(), { target: { value: '' } });
-    expect(screen.getByText('이대로 저장하면 이 서버의 어드민 키가 지워집니다')).toBeTruthy();
+    expect(screen.getByText('이대로 저장하면 이 서버의 어드민 키가 삭제됩니다')).toBeTruthy();
     expect(값칸().getAttribute('placeholder')).toBe('키 값');
     expect((await 고친본문())?.envs?.[0]?.adminKey).toBeNull();
   });
 
   it('머리 이름이나 대상 서버 이름 · 주소를 바꾸고 값을 안 넣으면 저장 전에 까닭을 말한다', () => {
     render(<ServicePanel row={게임앱([키있는줄])} onDone={() => {}} />);
-    const 까닭 = '새 어드민 키는 값을 입력해 주세요. 머리 이름이나 대상 서버 이름 · 주소를 바꾸면 다시 넣어야 합니다';
+    const 까닭 = '새 어드민 키는 값을 입력해 주세요. 헤더 이름이나 대상 서버 이름 · 주소를 변경하면 다시 넣어야 합니다';
 
     fireEvent.change(머리칸(), { target: { value: 'X-Gm-Key' } });
     expect(screen.getByText(까닭)).toBeTruthy();
@@ -84,10 +84,10 @@ describe('게임 애플리케이션 설정 — 어드민 키 (도메인/인증 �
     render(<ServicePanel row={게임앱([키있는줄])} onDone={() => {}} />);
 
     fireEvent.change(머리칸(), { target: { value: 'X Admin' } });
-    expect(screen.getByText('어드민 키 머리 이름은 영문 · 숫자 · - 로 100자까지입니다')).toBeTruthy();
+    expect(screen.getByText('어드민 키 헤더 이름은 영문 · 숫자 · - 로 100자까지입니다')).toBeTruthy();
     fireEvent.change(머리칸(), { target: { value: '' } });
     fireEvent.change(값칸(), { target: { value: 'secret-admin-0001' } });
-    expect(screen.getByText('어드민 키 머리 이름을 입력해 주세요')).toBeTruthy();
+    expect(screen.getByText('어드민 키 헤더 이름을 입력해 주세요')).toBeTruthy();
     fireEvent.change(머리칸(), { target: { value: 'X-Admin-Key' } });
     fireEvent.change(값칸(), { target: { value: 'has space 12345' } });
     expect(screen.getByText('어드민 키 값은 공백 없이 12자 이상 500자 이하로 입력해 주세요')).toBeTruthy();
@@ -96,7 +96,7 @@ describe('게임 애플리케이션 설정 — 어드민 키 (도메인/인증 �
   it('게임이 아닌 애플리케이션에는 칸이 없고 adminKey 를 안 보낸다', async () => {
     render(<ServicePanel row={{ ...게임앱([{ env: 'qa', baseUrl: 'https://qa.example.com' }]), kind: 'APP' }} onDone={() => {}} />);
 
-    expect(screen.queryByLabelText('대상 서버 1 어드민 키 머리 이름')).toBeNull();
+    expect(screen.queryByLabelText('대상 서버 1 어드민 키 헤더 이름')).toBeNull();
     expect((await 고친본문())?.envs?.[0]).not.toHaveProperty('adminKey');
   });
 

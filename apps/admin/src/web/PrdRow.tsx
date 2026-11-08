@@ -103,7 +103,7 @@ export function 요구줄({
           {쓰나 ? (
             <div className="prd-acts">
               <button className="btn ghost small" onClick={on고치기}>
-                {t('고치기')}
+                {t('수정')}
               </button>
             </div>
           ) : null}

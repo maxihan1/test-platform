@@ -199,10 +199,10 @@ export function EnvEditor(p: { envs: 줄[]; onChange: (next: 줄[]) => void; 접
         ) : (
           <>
             <div className="hint">{t('테스트 계정은 실행과 테스트 작성에서 로그인할 때 사용합니다. 실서비스 서버로 체크하면 테스트 작성과 화면 탐색 대상에서 제외됩니다')}</div>
-            <div className="hint">{t('앱 파일 경로는 Android 앱 · 게임 케이스를 돌릴 때 설치할 apk 입니다. Device VISION 이 도는 PC 의 파일 경로나 http(s) 주소를 적고, 비우면 테스트 실행기를 켤 때 준 PLATFORM_APP 을 씁니다')}</div>
-            {스토어앱 ? <div className="hint">{t('APK 가 없으면 Device VISION 디바이스에 스토어로 깔아 둔 앱의 패키지 이름을 적습니다')}</div> : null}
+            <div className="hint">{t('앱 파일 경로는 Android 앱 · 게임 케이스를 실행할 때 설치할 apk 입니다. Device VISION 이 실행 중인 PC 의 파일 경로나 http(s) 주소를 적고, 비우면 테스트 실행기를 켤 때 준 PLATFORM_APP 을 씁니다')}</div>
+            {스토어앱 ? <div className="hint">{t('APK 가 없으면 Device VISION 디바이스에 스토어로 설치해 둔 앱의 패키지 이름을 적습니다')}</div> : null}
             {어드민키 ? (
-              <div className="hint">{t('어드민 키는 서버 어드민 API 에 머리로 실어 보냅니다. 케이스가 재화 지급 같은 상태를 만들 때 씁니다. 값은 끝 4자리만 보이고, 두 칸을 비우고 저장하면 지워집니다')}</div>
+              <div className="hint">{t('어드민 키는 서버 어드민 API 에 헤더로 실어 보냅니다. 케이스가 재화 지급 같은 상태를 만들 때 씁니다. 값은 끝 4자리만 보이고, 두 칸을 비우고 저장하면 삭제됩니다')}</div>
             ) : null}
           </>
         )}
@@ -241,7 +241,7 @@ function 계정칸({ 줄: it, 번호, 고친다 }: { 줄: 줄; 번호: number; �
         }}
       />
       {이름바꿈(it) ? (
-        <div className="hint">{t('키 이름을 바꾸면 이 서버의 비밀번호가 초기화됩니다. 저장한 뒤 다시 입력해 주세요')}</div>
+        <div className="hint">{t('키 이름을 변경하면 이 서버의 비밀번호가 초기화됩니다. 저장한 뒤 다시 입력해 주세요')}</div>
       ) : null}
     </div>
   );

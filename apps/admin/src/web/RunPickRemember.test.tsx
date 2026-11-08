@@ -42,9 +42,9 @@ describe('실행 창 — 고친 채 닫기', () => {
 
     Esc();
     expect(onClose).not.toHaveBeenCalled();
-    expect(screen.getByText('고친 값이 사라집니다')).toBeTruthy();
+    expect(screen.getByText('수정한 값이 사라집니다')).toBeTruthy();
     Esc();
-    expect(screen.queryByText('고친 값이 사라집니다')).toBeNull();
+    expect(screen.queryByText('수정한 값이 사라집니다')).toBeNull();
     expect((screen.getByLabelText('아이디') as HTMLInputElement).value).toBe('user2');
 
     fireEvent.click(screen.getByRole('button', { name: '취소' }));

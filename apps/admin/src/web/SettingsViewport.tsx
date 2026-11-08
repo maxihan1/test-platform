@@ -59,7 +59,7 @@ export function ViewportSection({ serviceId, envs }: { serviceId: number; envs: 
       ) : (
         <화면차이표 env={연것} 결과={결과} />
       )}
-      <div className="hint">{t('테스트 작성 때 화면을 탐색하면 정해집니다. 대상 서버 주소를 바꾸면 다음 탐색까지 비워 둡니다')}</div>
+      <div className="hint">{t('테스트 작성 때 화면을 탐색하면 정해집니다. 대상 서버 주소를 변경하면 다음 탐색까지 비워 둡니다')}</div>
     </div>
   );
 }

@@ -121,12 +121,12 @@ export function ScenarioTrialWindow({ 시험, 단계들, 재료, platform, 모�
                   set묻기(null);
                 }}
               >
-                {묻기 === 'close' ? t('멈추고 닫기') : t('중단§버튼')}
+                {묻기 === 'close' ? t('중단하고 닫기') : t('중단§버튼')}
               </button>
             </>
           }
         >
-          <p>{t('진행 중인 단계는 바로 멈추고 남은 단계는 실행하지 않습니다')}</p>
+          <p>{t('진행 중인 단계는 즉시 중단하고 남은 단계는 실행하지 않습니다')}</p>
           <p className="hint">{t('확인하는 동안에도 실행은 계속됩니다')}</p>
         </Modal>
       )}

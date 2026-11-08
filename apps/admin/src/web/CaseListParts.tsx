@@ -47,12 +47,12 @@ export function 찾기폼({
     >
       <input
         type="text"
-        placeholder={t('케이스 이름이나 ID로 찾기')}
+        placeholder={t('케이스 이름이나 ID로 검색')}
         value={typed}
         onChange={(e) => onTyped(e.target.value)}
       />
       <button className="chip" type="submit">
-        {t('찾기')}
+        {t('검색')}
       </button>
       {!건조건 ? null : (
         <button className="chip" type="button" onClick={onClear}>

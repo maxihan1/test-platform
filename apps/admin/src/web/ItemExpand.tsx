@@ -49,9 +49,9 @@ export function 사전입력({ item }: { item: RunItemDetail }) {
   return (
     <>
       <div className="fc-sec">
-        <span className="fc-k">{t('사전조건')}</span>
+        <span className="fc-k">{t('사전 조건')}</span>
         {item.precondition.length === 0 ? (
-          <span className="fc-faint">{t('사전조건 없음')}</span>
+          <span className="fc-faint">{t('사전 조건 없음')}</span>
         ) : (
           <ul className="fc-pre">
             {item.precondition.map((line) => (

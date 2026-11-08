@@ -148,8 +148,8 @@ describe('휴대폰 껍데기', () => {
 });
 
 describe('위치 판 (2026-11-05)', () => {
-  const 위치단추 = () => screen.getByRole('button', { name: '데모마켓 › 결제 애플리케이션 · 바꾸기' });
-  const 판 = () => screen.getByRole('dialog', { name: '프로젝트 · 애플리케이션 고르기' });
+  const 위치단추 = () => screen.getByRole('button', { name: '데모마켓 › 결제 애플리케이션 · 변경' });
+  const 판 = () => screen.getByRole('dialog', { name: '프로젝트 · 애플리케이션 선택' });
 
   it('대시보드에서도 위 줄 단추가 서고 프로젝트 이름과 애플리케이션 이름을 같이 적는다 — PC 위치 카드와 같다', () => {
     띄운다('#/dashboard');
@@ -166,7 +166,7 @@ describe('위치 판 (2026-11-05)', () => {
     expect(판().querySelector('.place-chips')).toBeNull();
     fireEvent.click(within(판()).getByRole('button', { name: '쇼핑 앱 · Android 앱' }));
     expect(고름).toHaveBeenCalledWith('ZPA');
-    expect(screen.queryByRole('dialog', { name: '프로젝트 · 애플리케이션 고르기' })).toBeNull();
+    expect(screen.queryByRole('dialog', { name: '프로젝트 · 애플리케이션 선택' })).toBeNull();
   });
 
   it('프로젝트가 둘 이상이면 칩 줄이 서고, 칩을 누르면 아래 목록만 바뀐다 — 애플리케이션을 눌러야 옮겨 간다', () => {

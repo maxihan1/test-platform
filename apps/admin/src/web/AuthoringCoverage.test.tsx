@@ -97,16 +97,16 @@ describe('Status 카드 — PRD 요구사항 집계 한 줄', () => {
     render(<AuthoringStatusCard 요청={줄({ coverage: { ...예시셈, casedFn: 40, casedUi: 12 } })} 지금={지금} />);
     const 글 = 셈줄().textContent ?? '';
     expect(글).toContain('요구 172개 중 케이스로 만듦 48개 (28%) · 입력이 필요한 케이스로만 3 · 제외 124 (다음 작성 100) · 빠짐 0');
-    expect(글).toContain('만든 48개 중 기능 테스트가 커버한 것 40 · UI 테스트가 커버한 것 12 — 둘 다 커버한 요구는 양쪽에 셉니다');
+    expect(글).toContain('만든 48개 중 기능 테스트가 커버한 것 40 · UI 테스트가 커버한 것 12 — 둘 다 커버한 요구는 양쪽에 집계합니다');
     expect(글.split('기능 테스트')).toHaveLength(2);
   });
 
   it('갈래 수가 하나라도 없으면 둘째 줄을 안 적는다', () => {
     render(<AuthoringStatusCard 요청={줄({ coverage: { ...예시셈, casedFn: 40 } })} 지금={지금} />);
-    expect(셈줄().textContent).not.toContain('덮은 것');
+    expect(셈줄().textContent).not.toContain('커버한 것');
     cleanup();
     render(<AuthoringStatusCard 요청={줄({ coverage: 예시셈 })} 지금={지금} />);
-    expect(셈줄().textContent).not.toContain('덮은 것');
+    expect(셈줄().textContent).not.toContain('커버한 것');
   });
 
   it('입력이 필요한 케이스로만 쓴 것이 0 이면 그 칸을 뺀다', () => {

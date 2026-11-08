@@ -33,7 +33,7 @@ export function 저장칸(p: Props) {
     return (
       <div className="scw-res pass" role="status">
         <b>{t('「{이름}」 시나리오를 저장했습니다 · v{버전}', { 이름: p.저장됨.이름, 버전: p.저장됨.version })}</b>
-        <span>{t('실행할 때마다 실행 기록과 리포트가 남습니다. 다음에 고칠 때는 조립 화면에서 바로 고칩니다')}</span>
+        <span>{t('실행할 때마다 실행 기록과 리포트가 남습니다. 다음에 수정할 때는 조립 화면에서 바로 수정합니다')}</span>
         <div className="scw-link-acts">
           <a className="btn" href={`#/scenarios/${p.저장됨.id}`}>
             {t('조립 화면에서 열기')}
@@ -51,9 +51,9 @@ export function 저장칸(p: Props) {
       ? t('안 함')
       : 결과.status === 'PASS'
         ? t('통과 · {서버} · {초}', { 서버: p.시험.env, 초: seconds(결과.durationMs, 언어) })
-        : t('{번호}번에서 멈춤 · {서버}', { 번호: 결과.parts.find((x) => x.status === 'FAIL')?.seq ?? 결과.parts.length, 서버: p.시험.env });
+        : t('{번호}번에서 중단 · {서버}', { 번호: 결과.parts.find((x) => x.status === 'FAIL')?.seq ?? 결과.parts.length, 서버: p.시험.env });
   const 줄들: { 곳: 마법사단계; 값: ReactNode }[] = [
-    { 곳: 'start', 값: p.후보이름 === null ? t('직접 고름') : t('AI 추천 · {이름}', { 이름: p.후보이름 }) },
+    { 곳: 'start', 값: p.후보이름 === null ? t('직접 선택함') : t('AI 추천 · {이름}', { 이름: p.후보이름 }) },
     { 곳: 'start', 값: `${p.앱} · ${t(PLATFORM_LABEL[p.디바이스])}` },
     {
       곳: 'steps',

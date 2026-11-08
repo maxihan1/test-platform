@@ -18,9 +18,9 @@ export const 실패유형이름: Record<실패유형, string> = {
 };
 
 const 설명: Record<실패유형, string> = {
-  mismatch: '확인 문장의 기대값과 실제 값이 다름',
-  notFound: '화면에서 버튼 · 입력 칸을 끝내 찾지 못함',
-  timeout: '제한 시간 안에 끝나지 않음',
+  mismatch: '확인 문장의 기대 결과와 실제 값이 다름',
+  notFound: '화면에서 버튼 · 입력 칸을 결국 찾지 못함',
+  timeout: '제한 시간 안에 완료되지 않음',
   environment: '대상 서버 · 테스트 실행기에 닿지 못하거나 테스트 실행기가 거절함',
   other: '위 넷에 들지 않는 그 밖의 오류',
 };
@@ -92,7 +92,7 @@ export function 실패유형칸({ 값, 이동 }: { 값: 자료; 이동?: 이동�
         </>
       )}
       {stopped > 0 ? (
-        <p className="dash-types-foot">{t('실행이 멈춰 돌지 못한 {수}건은 세지 않았습니다', { 수: stopped })}</p>
+        <p className="dash-types-foot">{t('실행이 중단되어 실행되지 못한 {수}건은 집계하지 않았습니다', { 수: stopped })}</p>
       ) : null}
     </section>
   );

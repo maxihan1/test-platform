@@ -154,7 +154,7 @@ export function ScenarioResult({
         {!running ? null : (
           <>
             <p className="scn-running" role="status">
-              {t('실행 중입니다. 끝나면 결과가 채워집니다')}
+              {t('실행 중입니다. 완료되면 결과가 채워집니다')}
             </p>
             <E2E화면카드 runId={runId} platform={data.platform} live={data.live === true} vision={data.vision} />
           </>

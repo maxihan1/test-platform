@@ -6,7 +6,7 @@ import { use말 } from './i18n.js';
 import type { Transaction } from './perfApi.js';
 
 const 메서드들: Transaction['method'][] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
-const 추출곳: Record<'JSON' | 'HEADER' | 'COOKIE', string> = { JSON: '응답 본문', HEADER: '응답 머리글', COOKIE: '쿠키' };
+const 추출곳: Record<'JSON' | 'HEADER' | 'COOKIE', string> = { JSON: '응답 본문', HEADER: '응답 헤더', COOKIE: '쿠키' };
 
 export type 전송종류 = NonNullable<Transaction['type']>;
 export const 종류글자: Record<전송종류, string> = { HTTP: 'HTTP', WS: 'WebSocket', GRPC: 'gRPC' };

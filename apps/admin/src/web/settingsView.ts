@@ -91,7 +91,7 @@ export function 서비스못보내는이유(
   if (정기 !== undefined && 정기 !== null) {
     if (정기.at === '') return t('정기 실행 시각을 입력해 주세요', 언어);
     // 대상 서버 줄의 이름을 고쳤거나 줄을 뺐으면 고른 것이 사라진다 — 서버가 400 을 내기 전에 사람 말로 짚는다
-    if (!입력.envs.some((it) => it.env === 정기.env)) return t('정기 실행의 대상 서버를 대상 서버 목록에서 고릅니다', 언어);
+    if (!입력.envs.some((it) => it.env === 정기.env)) return t('정기 실행의 대상 서버를 대상 서버 목록에서 선택합니다', 언어);
   }
   return null;
 }

@@ -64,7 +64,7 @@ describe('멈춘단계글자 · E2E띠색', () => {
   it('멈춘단계글자', () => {
     expect(멈춘단계글자(줄({ status: 'RUNNING' }), 'ko')).toBe('');
     expect(멈춘단계글자(줄({}), 'ko')).toBe('모두 통과');
-    expect(멈춘단계글자(줄({ stoppedAt: 3 }), 'ko')).toBe('3번에서 멈춤');
+    expect(멈춘단계글자(줄({ stoppedAt: 3 }), 'ko')).toBe('3번에서 중단');
     expect(멈춘단계글자(줄({ stoppedAt: 3 }), 'en')).toBe('Stopped at step 3');
   });
 
@@ -85,12 +85,12 @@ describe('멈춘단계글자 · E2E띠색', () => {
 describe('멈춘사유글자', () => {
   it('러너 · 서버 상태 코드는 사람 말로, 그 밖의 문장은 그대로', () => {
     expect(멈춘사유글자('TIMEOUT', 'ko')).toBe('제한 시간 초과');
-    expect(멈춘사유글자('ABORTED', 'ko')).toBe('서버 재시작으로 멈춤');
+    expect(멈춘사유글자('ABORTED', 'ko')).toBe('서버 재시작으로 중단');
     expect(멈춘사유글자('TIMEOUT', 'en')).toBe('Timed out');
     expect(멈춘사유글자('ABORTED', 'en')).toBe('Stopped by a server restart');
     // 사람이 멈춘 부품 — 2026-11-06 WEB-F9-14 부터 서버가 적는다 (도메인/시나리오 §8.11 판정 표)
-    expect(멈춘사유글자('STOPPED', 'ko')).toBe('실행 중단으로 멈춤');
-    expect(멈춘사유글자('STOPPED', 'en')).toBe('Stopped by the user');
+    expect(멈춘사유글자('STOPPED', 'ko')).toBe('사용자가 중단');
+    expect(멈춘사유글자('STOPPED', 'en')).toBe('Stopped by user');
     expect(멈춘사유글자('러너가 이 단계 결과를 돌려주지 않았다', 'ko')).toBe('러너가 이 단계 결과를 돌려주지 않았다');
   });
 });

@@ -177,7 +177,7 @@ export function 결과바닥({ 시험, 케이스들, 정식, on실행, on닫기 
       {/* 같은 케이스 · 같은 값으로 정식 실행을 건다 — 시작 확인 창을 거친다 */}
       {!정식 ? null : (
         <button className="btn" onClick={on실행}>
-          {t('재실행')}
+          {t('다시 실행')}
         </button>
       )}
     </>

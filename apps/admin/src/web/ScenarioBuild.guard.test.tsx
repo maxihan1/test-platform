@@ -20,7 +20,7 @@ describe('ScenarioBuild 권한 · 치운 것 · 애플리케이션', () => {
 
     expect(screen.queryByRole('button', { name: '저장' })).toBeNull();
     expect(screen.queryByRole('button', { name: '변경 이력' })).toBeNull();
-    expect(screen.getByText('실행 권한이 있어야 고치고 돌릴 수 있습니다')).toBeTruthy();
+    expect(screen.getByText('실행 권한이 있어야 수정하고 실행할 수 있습니다')).toBeTruthy();
     expect(이름칸().readOnly).toBe(true);
     expect((screen.getByLabelText('디바이스') as HTMLSelectElement).disabled).toBe(true);
   });

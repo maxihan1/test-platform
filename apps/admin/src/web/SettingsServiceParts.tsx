@@ -89,7 +89,7 @@ export function 접두사칸({ 값 }: { 값: string }) {
       <label htmlFor="sf-prefix">{t('접두사')}</label>
       <div>
         <input id="sf-prefix" type="text" value={값} disabled />
-        <div className="hint">{t('만든 뒤에는 바꿀 수 없습니다. 케이스 번호에 이미 쓰고 있습니다')}</div>
+        <div className="hint">{t('만든 뒤에는 변경할 수 없습니다. 케이스 번호에 이미 쓰고 있습니다')}</div>
       </div>
     </div>
   );

@@ -114,16 +114,16 @@ export function Prd({
               <>
                 <span className="prd-menu">
                   <button className="btn ghost" aria-expanded={메뉴} aria-haspopup="true" onClick={() => set메뉴(!메뉴)} disabled={받는중 !== null}>
-                    <기다림글자 중={받는중 !== null} 평소={t('내려받기')} 기다림={t('만드는 중…')} />
+                    <기다림글자 중={받는중 !== null} 평소={t('다운로드')} 기다림={t('만드는 중…')} />
                     <span aria-hidden="true"> ▾</span>
                   </button>
                   {메뉴 ? (
                     <span className="prd-menu-list">
                       <button className="btn ghost small" onClick={() => void 받기('docx')}>
-                        {t('워드로 내려받기')}
+                        {t('워드 다운로드')}
                       </button>
                       <button className="btn ghost small" onClick={() => void 받기('xlsx')}>
-                        {t('추적표 엑셀로 내려받기')}
+                        {t('추적표 엑셀 다운로드')}
                       </button>
                     </span>
                   ) : null}
@@ -150,7 +150,7 @@ export function Prd({
         <div className="screen">
           <div className="empty">
             {t('아직 PRD 가 없습니다')}
-            {쓰나 ? <small>{t('테스트 작성 요청으로 기획서를 올리거나, 요구사항 추가로 첫 요구를 직접 적습니다')}</small> : null}
+            {쓰나 ? <small>{t('테스트 작성 요청으로 기획서를 업로드하거나, 요구사항 추가로 첫 요구를 직접 적습니다')}</small> : null}
           </div>
         </div>
       ) : (

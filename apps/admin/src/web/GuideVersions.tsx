@@ -48,7 +48,7 @@ export function GuideVersions({ service, 지금판 }: { service: string; 지금�
                 <th>{t('버전')}</th>
                 <th>{t('저장한 사람')}</th>
                 <th>{t('저장 일시')}</th>
-                <th>{t('바뀐 것')}</th>
+                <th>{t('변경 사항')}</th>
                 <th aria-label={t('보기')} />
               </tr>
             </thead>
