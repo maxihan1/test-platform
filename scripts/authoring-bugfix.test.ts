@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { 수정건브랜치 } from './authoring-bugfix.js';
 import {
   PR본문,
+  닫기낱말끊기,
   PR본문상한,
   수정일인가,
   수정자식인자,
@@ -171,6 +172,10 @@ describe('덮어쓰기 판정', () => {
   });
 });
 
+// BTS 저장소 backend/modules/automation/.../PrIssueKeyExtractor.kt 의 PATTERN 을 옮겼다 — 그쪽이 바뀌면 같이 바꾼다
+const bunker키뽑기 = (글: string): string[] =>
+  [...new Set([...글.matchAll(/(?:[Cc][Ll][Oo][Ss][Ee][Ss]?[Dd]?|[Ff][Ii][Xx](?:[Ee][Ss]|[Ee][Dd])?|[Rr][Ee][Ss][Oo][Ll][Vv][Ee][Ss]?[Dd]?)\s+([A-Z][A-Z0-9]{1,9}-[1-9][0-9]*)(?![A-Za-z0-9-])/g)].map((m) => m[1]!))];
+
 describe('PR본문', () => {
   it('요약이 아주 길어도 본문 전체가 상한 안이고 맺음말이 남는다', () => {
     const 글 = PR본문({ issueKey: 'DM-1', title: 't', summary: '가'.repeat(100_000), files: ['a.ts'] });
@@ -190,8 +195,15 @@ describe('PR본문', () => {
   it('첫 줄이 Closes <이슈 키> 라 병합하면 Issue Bunker 가 이슈를 배포 대기로 옮긴다', () => {
     const 글 = PR본문({ issueKey: 'MQA-113', title: '쿠폰이 두 번 적용돼요', summary: '고쳤어요', files: ['a.ts'] });
     expect(글.split('\n')[0]).toBe('Closes MQA-113');
-    const 키들 = [...글.matchAll(/(?:Closes?d?|Fix(?:es|ed)?|Resolves?d?)\s+([A-Z][A-Z0-9]{1,9}-[1-9][0-9]*)(?![A-Za-z0-9-])/gi)].map((m) => m[1]);
-    expect(키들).toEqual(['MQA-113']);
+    expect(bunker키뽑기(글)).toEqual(['MQA-113']);
+  });
+
+  it('이슈 제목 · 요약의 닫기 낱말은 끊어 맡은 이슈 말고는 Issue Bunker 가 옮기지 않는다', () => {
+    const 글 = PR본문({ issueKey: 'MQA-113', title: 'Hotfix MQA-90 뒤 쿠폰이 두 번 적용돼요', summary: 'fixed MQA-77 회귀를 되돌리고 Resolves  MQA-5 도 봤어요', files: ['a.ts'] });
+    expect(bunker키뽑기(글)).toEqual(['MQA-113']);
+    expect(글).toContain('Hotfix: MQA-90');
+    expect(닫기낱말끊기('[Test Commander] MQA-113 Fix MQA-9')).toBe('[Test Commander] MQA-113 Fix: MQA-9');
+    expect(닫기낱말끊기(닫기낱말끊기('Closes MQA-1'))).toBe('Closes: MQA-1');
   });
 
   it('파일이 많으면 쉰 개까지 보이고 나머지는 개수로 줄인다', () => {
