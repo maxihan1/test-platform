@@ -392,7 +392,7 @@ POST /api/runs/:runId/bts/resend   { tcId, env }
 #   NOTE 집기는 그 프로젝트 어느 애플리케이션의 집기(?service=)에서나 집힌다(4-데이터모델 「NOTE 줄을 집는 길」). 응답에 칸 하나 (BTS-F4-03 반영 2026-10-31 · projectNote/claim.ts)
 #     note: { project: { id, name, btsProject }, services: [{ prefix, name, kind }], current: { version, savedAt, docs: [{ name, summary, body }] } | null, events: [{ id, kind, payload, createdAt }] }
 #     — events 는 집을 때 이 줄에 묶은 반영 안 된 사건(도메인 「맥락 — 프로젝트 노트」) · 차례는 오래된 것부터 · 200건까지(넘은 것은 다음 노트 고치기가 받는다)
-#   PRD_DRAFT 집기는 애플리케이션 줄이다 — target · accounts 는 대조처럼 그 줄의 대상 서버로 싣고 mcpKey 도 싣는다. 응답에 칸 하나 (BTS-F5-03 반영 2026-10-31 · bts/draft.ts 초안집기칸)
+#   PRD_DRAFT 집기는 애플리케이션 줄이다 — target · accounts 는 대조처럼 그 줄의 대상 서버로 싣고 mcpKey 도 싣는다(에이전트는 계정을 비밀번호 가리기에만 쓰고 자식에게는 넘기지 않는다 — 위 「자식」). 응답에 칸 하나 (BTS-F5-03 반영 2026-10-31 · bts/draft.ts 초안집기칸)
 #     draft: { projectId, services: [{ prefix, name, kind }], issueKeys, buildNo }   — services 는 같은 프로젝트의 애플리케이션(E2E 제안의 접두사)
 POST /api/authoring/requests/:id/draft    { prdVersion, rows: [{ op, reqId?, text, basis, issueKeys, sure }], e2e?: [{ title, services, steps, issueKeys }] }   — PRD_DRAFT 결과 (BTS-F5-03 반영 2026-10-31 · bts/draftRoutes.ts · draft.ts)
   — 몸에 prdVersion(자식이 읽은 판 번호, PRD 가 없으면 0)도 싣는다 — 도는 사이 사람이 새 판을 저장해도 요구 번호를 그 판과 견준다. 없는 판이면 400 BAD_DRAFT { detail: 'prdVersion' }
