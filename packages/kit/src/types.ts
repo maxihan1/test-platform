@@ -45,7 +45,7 @@ export interface StepResult {
   httpTrace?: { request: unknown; response: unknown };  // API 테스트용
   shapeChecks?: ShapeCheck[];   // 그 절차에서 보낸 요청의 응답 모양 확인. 하나라도 FAIL 이면 그 절차 status 는 FAIL (도메인/API §3.8)
   error?: { message: string; stack?: string };
-  skipped?: true;               // 사람이 체크를 풀어 건너뛴 「만들기」 절차. 판정 없이 PASS 로 적는다 (E2E 시나리오)
+  skipped?: true;               // 사람이 체크를 풀어 건너뛴 「만들기」 절차 · 이어받은 첫 절차. 판정 없이 PASS 로 적는다 (E2E 시나리오)
 }
 
 export interface ExecuteRequest {
@@ -153,7 +153,7 @@ export interface RunningScenario {
 // E2E 시나리오 — admin 과 러너가 주고받는 모양. 무엇이고 왜인지는 SPEC 도메인/시나리오 §3.7
 export type ScenarioPart =                         // 부품 목록의 정본은 도메인/시나리오 §3.7 「부품」 표
   | { kind: 'case'; tcId: TcId; params: Record<string, unknown>; expected: Record<string, unknown>;
-      skipSteps: string[];                         // 건너뛸 「만들기」 절차 제목. 비면 전부 돈다
+      skipSteps: string[];                         // 건너뛸 「만들기」 절차 · 이어받을 첫 절차 제목. 비면 전부 돈다
       carryOver?: boolean;                         // 넘겨받기. 없으면 true. false 면 skipSteps · links 가 비어야 한다 (결정 12)
       links?: ScenarioLink[] }                     // 이어 주기. 비면 없다 (결정 12)
   | { kind: 'api'; method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; path: string;   // '/' 로 시작. baseUrl 기준
