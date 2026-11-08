@@ -21,7 +21,7 @@ export function PerfPagesPick({ 목록, 적용, 닫기 }: { 목록: 측정페이
     if (!url.startsWith('/')) return set오류(t('경로는 /로 시작해야 합니다'));
     if (url.length > 페이지범위.경로최대) return set오류(t('경로는 {수}자까지 적을 수 있습니다', { 수: 페이지범위.경로최대 }));
     if (고르는중.some((it) => it.url === url)) return set오류(t('이미 있는 경로입니다'));
-    if (고르는중.length >= 페이지범위.최대) return set오류(t('페이지는 {수}개까지 고를 수 있습니다', { 수: 페이지범위.최대 }));
+    if (고르는중.length >= 페이지범위.최대) return set오류(t('페이지는 {수}개까지 선택할 수 있습니다', { 수: 페이지범위.최대 }));
     set고르는중([...고르는중, { url, name: 이름.trim() === '' ? url : 이름.trim(), login: false }]);
     set경로('');
     set이름('');
@@ -43,15 +43,15 @@ export function PerfPagesPick({ 목록, 적용, 닫기 }: { 목록: 측정페이
         </>
       }
     >
-      <p className="perf-faint">{t('측정할 페이지를 1개에서 {수}개까지 고릅니다', { 수: 페이지범위.최대 })}</p>
+      <p className="perf-faint">{t('측정할 페이지를 1개에서 {수}개까지 선택합니다', { 수: 페이지범위.최대 })}</p>
       <ul className="pp-pick-list">
         {고르는중.map((it) => (
           <li key={it.url}>
             <span>
               {it.name} <span className="mono perf-faint">{it.url}</span> {it.login ? <span className="perf-tag">{t('로그인')}</span> : null}
             </span>
-            <button type="button" className="btn ghost" aria-label={t('{이름} 빼기', { 이름: it.name })} onClick={() => set고르는중(고르는중.filter((x) => x !== it))}>
-              {t('빼기')}
+            <button type="button" className="btn ghost" aria-label={t('{이름} 제거', { 이름: it.name })} onClick={() => set고르는중(고르는중.filter((x) => x !== it))}>
+              {t('제거')}
             </button>
           </li>
         ))}

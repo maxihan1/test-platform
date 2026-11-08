@@ -43,7 +43,7 @@ export function 기록없음({ trace }: { trace: ItemTrace | null }) {
   const t = use말();
   const [꼬리표, 글] =
     trace === null
-      ? [t('아직 없음'), t('기록을 아직 정리하지 않았거나 이 기능 전에 돈 항목입니다 — 방금 끝난 실행이면 잠시 뒤 새로 고쳐 주세요')]
+      ? [t('아직 없음'), t('기록을 아직 정리하지 않았거나 이 기능 전에 실행된 항목입니다 — 방금 종료된 실행이면 잠시 뒤 새로고침해 주세요')]
       : trace.status === 'FAILED'
         ? [t('읽기 실패'), t('기록 파일을 읽지 못했습니다 — 관리자에게 알려 주세요')]
         : [t('기록 없음§실패 기록'), 없는까닭글(trace.reason, t)];
@@ -58,7 +58,7 @@ export function 기록없음({ trace }: { trace: ItemTrace | null }) {
 function 없는까닭글(reason: string | null, t: (키: string) => string): string {
   if (reason === trace없는까닭.앱) return t('Android 앱 실행은 기록을 남기지 않습니다');
   if (reason === trace없는까닭.끊김) return t('테스트 실행기가 실행을 끊어(제한 시간 · 중단) 기록이 남지 않았습니다');
-  if (reason === trace없는까닭.파일없음) return t('다른 컴퓨터의 테스트 실행기에서 돌았거나 기록 파일을 옮기다 실패해 기록이 없습니다');
+  if (reason === trace없는까닭.파일없음) return t('다른 컴퓨터의 테스트 실행기에서 실행되었거나 기록 파일을 옮기다 실패해 기록이 없습니다');
   // 모르는 사유는 원문 그대로 — 빈 칸보다 낫다
   return reason ?? t('기록이 없습니다');
 }

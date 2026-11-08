@@ -94,11 +94,11 @@ export function PerfDeviceStart({
   const 골라보냄 = 쓸기기.map((d) => ({ serial: d.serial, where: d.where }));
 
   function 막는까닭(): string | null {
-    if (env === '') return t('대상 서버를 골라 주세요');
+    if (env === '') return t('대상 서버를 선택해 주세요');
     if (!앱이름.test(앱)) return t('앱 패키지 이름을 com.demo.market 꼴로 적어 주세요');
-    if (케이스로 && 고른케이스.length === 0) return 게임 ? t('측정하며 돌릴 게임 케이스를 골라 주세요') : t('측정하며 돌릴 Android 앱 케이스를 골라 주세요');
-    if (골라보냄.length === 0) return t('측정할 기기를 골라 주세요');
-    if (항목.length === 0) return t('측정 항목을 하나 이상 골라 주세요');
+    if (케이스로 && 고른케이스.length === 0) return 게임 ? t('측정하며 실행할 게임 케이스를 선택해 주세요') : t('측정하며 실행할 Android 앱 케이스를 선택해 주세요');
+    if (골라보냄.length === 0) return t('측정할 디바이스를 선택해 주세요');
+    if (항목.length === 0) return t('측정 항목을 하나 이상 선택해 주세요');
     return null;
   }
 
@@ -148,9 +148,9 @@ export function PerfDeviceStart({
           <h2 id="pd-m">{t('조작 방식')}</h2>
           <div className="pd-kinds" role="radiogroup" aria-label={t('조작 방식')}>
             {게임
-              ? 조작칸('GAME', '게임 케이스', '고른 게임 케이스를 기기마다 반복해 돌리며 측정합니다. Device VISION 폰만 됩니다')
-              : 조작칸('APPIUM', 'Appium 케이스', '고른 Android 앱 케이스를 기기마다 반복해 돌리며 측정합니다. Device VISION 폰만 됩니다')}
-            {조작칸('MANUAL', '직접 플레이', 'Device VISION 에 꽂힌 폰을 손에 들고 플레이하는 동안 기록합니다')}
+              ? 조작칸('GAME', '게임 케이스', '선택한 게임 케이스를 디바이스마다 반복 실행하며 측정합니다. Device VISION 디바이스만 됩니다')
+              : 조작칸('APPIUM', 'Appium 케이스', '선택한 Android 앱 케이스를 디바이스마다 반복 실행하며 측정합니다. Device VISION 디바이스만 됩니다')}
+            {조작칸('MANUAL', '직접 플레이', 'Device VISION 에 꽂힌 디바이스를 손에 들고 플레이하는 동안 기록합니다')}
           </div>
         </section>
 
@@ -160,7 +160,7 @@ export function PerfDeviceStart({
             <label className="perf-field">
               {t('대상 서버')}
               <select value={env} disabled={!쓰나} onChange={(e) => setEnv(e.target.value)}>
-                <option value="">{t('고르기')}</option>
+                <option value="">{t('선택')}</option>
                 {service.envs.map((it) => (
                   <option key={it.env} value={it.env}>
                     {it.env}
@@ -193,7 +193,7 @@ export function PerfDeviceStart({
               <span className="perf-faint">{게임 ? t('아직 게임 케이스가 없습니다') : t('아직 Android 앱 케이스가 없습니다')}</span>
             ) : (
               <fieldset className="pd-cases">
-                <legend className="perf-faint">{t('돌릴 케이스 ({수}/{상한})', { 수: 고른케이스.length, 상한: 케이스상한 })}</legend>
+                <legend className="perf-faint">{t('실행할 케이스 ({수}/{상한})', { 수: 고른케이스.length, 상한: 케이스상한 })}</legend>
                 {케이스들.map((c) => {
                   const 골랐나 = 고른케이스.includes(c.tcId);
                   return (
@@ -245,7 +245,7 @@ export function PerfDeviceStart({
               <span className="perf-faint">{t('FPS가 떨어진 장면을 녹화 화면으로 확인')}</span>
             </label>
           </div>
-          <span className="perf-faint">{t('앱 실행 시간은 측정을 시작할 때 기기마다 한 번 잽니다')}</span>
+          <span className="perf-faint">{t('앱 실행 시간은 측정을 시작할 때 디바이스마다 한 번 잽니다')}</span>
         </section>
 
         {알림 === null ? null : (

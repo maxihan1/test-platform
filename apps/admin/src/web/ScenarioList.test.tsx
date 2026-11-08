@@ -242,7 +242,7 @@ describe('ScenarioList 실행', () => {
     fireEvent.click(within(행(container, 1)).getByRole('button', { name: '실행' }));
 
     const 상자 = 확인상자();
-    expect(상자.getByText('끝나면 실행 기록 E2E 에 남고 리포트를 만들 수 있습니다')).toBeTruthy();
+    expect(상자.getByText('완료되면 실행 기록 E2E 에 남고 리포트를 만들 수 있습니다')).toBeTruthy();
     expect(상자.getByText('SC-2 ZSM 시나리오 2 · 3단계')).toBeTruthy();
     expect(상자.getByText('PC')).toBeTruthy();
     expect(상자.getByText('stg')).toBeTruthy();
@@ -281,7 +281,7 @@ describe('ScenarioList 실행', () => {
     fireEvent.click(확인상자().getByRole('button', { name: '실행 시작' }));
 
     const 창 = within(await screen.findByRole('dialog', { name: 'E2E 실행 중 · RUN 55' }));
-    expect(창.getByText('닫아도 실행은 계속되고 끝나면 알림이 옵니다')).toBeTruthy();
+    expect(창.getByText('닫아도 실행은 계속되고 완료되면 알림이 옵니다')).toBeTruthy();
     expect(창.getByRole('button', { name: '실행 중단' })).toBeTruthy();
 
     fireEvent.click(창.getByRole('button', { name: '닫기' }));
@@ -307,13 +307,13 @@ describe('ScenarioList 실행', () => {
     await screen.findByText(/ZSM 시나리오 1/);
     fireEvent.change(screen.getByRole('combobox', { name: '대상 서버' }), { target: { value: 'qa' } });
 
-    expect((screen.getByRole('radio', { name: '가상 기기' }) as HTMLInputElement).checked).toBe(true);
-    fireEvent.click(screen.getByRole('radio', { name: '실제 기기' }));
+    expect((screen.getByRole('radio', { name: '가상 디바이스' }) as HTMLInputElement).checked).toBe(true);
+    fireEvent.click(screen.getByRole('radio', { name: '실제 디바이스' }));
     // 시나리오는 폰을 한 번 잡는다 — 케이스 글(「케이스마다 …」)이 아니다
-    expect(screen.getByText('시나리오 하나 동안 빈 폰을 한 번 잡고 다 돌면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 실행에 남습니다')).toBeTruthy();
+    expect(screen.getByText('시나리오 하나 동안 유휴 디바이스를 한 번 할당받고 모두 실행하면 반납합니다. 화면 영상과 logcat 은 통과하지 못한 실행에 남습니다')).toBeTruthy();
     expect(screen.queryByText(/케이스마다 빈 폰을/)).toBeNull();
     fireEvent.click(within(행(container, 1)).getByRole('button', { name: '실행' }));
-    expect(확인상자().getByText('모바일 (실제 기기)')).toBeTruthy();
+    expect(확인상자().getByText('모바일 (실제 디바이스)')).toBeTruthy();
     fireEvent.click(확인상자().getByRole('button', { name: '실행 시작' }));
 
     await waitFor(() => expect(실행).toHaveBeenCalledWith(2, 'qa', 'vision'));

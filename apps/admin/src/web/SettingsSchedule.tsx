@@ -29,7 +29,7 @@ export function ScheduleFields({
     <>
       <label className="check-inline" htmlFor="sf-sched-on">
         <input id="sf-sched-on" type="checkbox" checked={값 !== null} onChange={(e) => (e.target.checked ? 켠다() : 바꾼다(null))} />
-        {t('매일 돌리기')}
+        {t('매일 실행')}
       </label>
       {값 === null ? null : (
         <>

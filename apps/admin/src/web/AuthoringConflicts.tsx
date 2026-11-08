@@ -55,7 +55,7 @@ export function AuthoringConflicts({ service, 요청번호, conflicts, 새것 = 
     <section id="conflicts" tabIndex={-1} className="authoring-conflicts" aria-label={t('중복 케이스')}>
       <div className="conflicts-head">
         <p className="hint">
-          {t('먼저 반영된 케이스와 번호 · 요구사항 · 이름이 겹칩니다. 케이스마다 고른 뒤에 반영할 수 있습니다.')}
+          {t('먼저 반영된 케이스와 번호 · 요구사항 · 이름이 겹칩니다. 케이스마다 선택한 뒤에 반영할 수 있습니다.')}
         </p>
         {편집 && 남은 > 0 ? (
           <button
@@ -145,11 +145,11 @@ export function AuthoringConflicts({ service, 요청번호, conflicts, 새것 = 
                         <button
                           className="btn ghost"
                           type="button"
-                          aria-label={`${c.tcId} ${t('되돌리기')}`}
+                          aria-label={`${c.tcId} ${t('실행 취소')}`}
                           disabled={보내는중}
                           onClick={() => 보낸다([() => api.deleteAuthoringConflict(service, 요청번호, c.tcId)])}
                         >
-                          {t('되돌리기')}
+                          {t('실행 취소')}
                         </button>
                       )}
                     </>

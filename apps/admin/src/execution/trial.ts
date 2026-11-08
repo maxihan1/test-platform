@@ -182,7 +182,7 @@ export function 시험보관소<R, S extends string>(설정: 보관소설정<R, 
 
 const 케이스시험 = 시험보관소<ExecuteResponse, 'DONE'>({
   끝글자: 'DONE',
-  바쁨문구: '이미 시험 실행이 돌고 있습니다',
+  바쁨문구: '이미 시험 실행이 진행 중입니다',
   실패로: (사유, 걸린ms) => ({
     historyId: 0,
     status: 'NA',
@@ -223,7 +223,7 @@ export type 시나리오시험결과 = Omit<ScenarioExecuteResponse, 'parts'> & 
 /** E2E 시나리오 「시험 실행」 — 서버 러너. 문(auth/scope.ts)이 이 인스턴스에서 서비스를 읽어 여기 둔다 — scenario/trial.ts 는 무겁다 */
 export const 시나리오시험 = 시험보관소<시나리오시험결과, 'FINISHED'>({
   끝글자: 'FINISHED',
-  바쁨문구: '이미 시험 실행이 돌고 있습니다',
+  바쁨문구: '이미 시험 실행이 진행 중입니다',
   실패로: (사유, 걸린ms) => ({
     status: 'NA',
     durationMs: 걸린ms,

@@ -72,7 +72,7 @@ describe('정기 실행', () => {
     expect(within(창).queryByRole('button', { name: '끄기' })).toBeNull();
 
     fireEvent.click(within(창).getByRole('button', { name: '켜기' }));
-    expect((await within(창).findByRole('alert')).textContent).toBe('시각과 대상 서버를 골라 주세요');
+    expect((await within(창).findByRole('alert')).textContent).toBe('시각과 대상 서버를 선택해 주세요');
     expect(보내기).not.toHaveBeenCalled();
 
     fireEvent.change(within(창).getByLabelText('시각'), { target: { value: '03:00' } });

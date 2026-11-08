@@ -70,7 +70,7 @@ describe('회귀 실패 서랍', () => {
     expect(within(서랍).getByRole('link', { name: '실행 기록에서 보기' }).getAttribute('href')).toBe('#/runs/fn?run=7&tc=ZDA-001');
     expect(서비스열기).not.toHaveBeenCalled();
     expect(within(서랍).queryByRole('button', { name: '화면이 맞음' })).toBeNull();
-    expect(within(서랍).queryByRole('button', { name: '버그' })).toBeNull();
+    expect(within(서랍).queryByRole('button', { name: '결함' })).toBeNull();
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 

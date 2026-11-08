@@ -213,7 +213,7 @@ export function ScenarioBuild({
         {폰단계있나(앱들, 초안.단계들) ? <폰실행위치 /> : 초안.디바이스 === 'mobile' && !테스트만인가(판정) ? <모바일실행위치 {...정식.위치} /> : null}
         {/* 그 애플리케이션 칩에 없는 디바이스로 저장된 옛 시나리오 — 서버가 저장 · 실행을 거절하니 미리 알린다 (§3.7 결정 16) */}
         {칩들.includes(초안.디바이스) ? null : (
-          <p className="scn-note">{t('이 애플리케이션은 디바이스 「{디바이스}」로만 돌립니다. 디바이스를 바꿔 저장합니다', { 디바이스: 칩들.map((p) => t(PLATFORM_LABEL[p])).join(' · ') })}</p>
+          <p className="scn-note">{t('이 애플리케이션은 디바이스 「{디바이스}」로만 실행합니다. 디바이스를 변경해 저장합니다', { 디바이스: 칩들.map((p) => t(PLATFORM_LABEL[p])).join(' · ') })}</p>
         )}
         {상태글 === null ? null : (
           <p className="scn-note" role="status">
@@ -225,7 +225,7 @@ export function ScenarioBuild({
             {시험알림}
           </p>
         )}
-        {판정('실행') ? null : <p className="scn-note">{판정('테스트실행') ? t('테스트만 하는 권한이라 저장된 시나리오를 그대로 시험 실행합니다') : t('실행 권한이 있어야 고치고 돌릴 수 있습니다')}</p>}
+        {판정('실행') ? null : <p className="scn-note">{판정('테스트실행') ? t('테스트만 하는 권한이라 저장된 시나리오를 그대로 시험 실행합니다') : t('실행 권한이 있어야 수정하고 실행할 수 있습니다')}</p>}
         {초안.살아있나 ? null : <p className="scn-note">{t('삭제한 시나리오라 보기만 할 수 있습니다')}</p>}
         {띠서비스 === null || 띠서비스.prefix === 초안.서비스 ? null : (
           <p className="scn-note">{t('{서비스} 애플리케이션의 시나리오입니다', { 서비스: 서비스이름 })}</p>

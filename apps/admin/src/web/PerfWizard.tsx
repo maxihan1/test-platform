@@ -39,7 +39,7 @@ export function PerfWizard({ id, 띠서비스, user }: { id: number | null; 띠�
   const 시나리오 = 읽음.data.s;
   // 고칠 때는 그 시나리오의 애플리케이션을 쓴다 — 띠에서 다른 것을 골라도 남의 대상 서버가 섞이지 않게
   const service = 시나리오 === null ? 처음띠 : (user.services.find((it) => it.id === 시나리오.serviceId) ?? null);
-  if (service === null) return <div className="empty">{t('애플리케이션을 먼저 골라 주세요')}</div>;
+  if (service === null) return <div className="empty">{t('애플리케이션을 먼저 선택해 주세요')}</div>;
   return <마법사 시나리오={시나리오} service={service} user={user} />;
 }
 
@@ -169,7 +169,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
 
   async function 실행() {
     if (사.env === '' || 사.agentIds.length === 0) {
-      set알림({ 글: t('대상 서버와 부하 발생 에이전트를 골라 주세요'), 오류: true });
+      set알림({ 글: t('대상 서버와 부하 발생 에이전트를 선택해 주세요'), 오류: true });
       return;
     }
     const id = await 저장();
@@ -282,7 +282,7 @@ function 마법사({ 시나리오, service, user }: { 시나리오: PerfScenario
               { 이름: t('테스트 유형'), 값: t(유형글자[이.testType].이름) },
               { 이름: t('부하'), 값: t('최대 {수}{단위}, 전체 {분}분', { 수: 최대.toLocaleString(), 단위, 분 }) },
               { 이름: t('성능 목표'), 값: t('{수}개', { 수: 삼.targets.length }) },
-              { 이름: t('대상 서버'), 값: 사.env === '' ? t('고르지 않음') : 사.env },
+              { 이름: t('대상 서버'), 값: 사.env === '' ? t('선택 안 함') : 사.env },
               { 이름: t('예상 소요 시간'), 값: t('최대 {분}분', { 분: 분 + 1 }) },
             ]}
           />

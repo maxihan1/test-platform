@@ -146,7 +146,7 @@ export function 저장한값줄({
             {saved === undefined ? null : 확인중 ? (
               <>
                 <button type="button" className="btn ghost" onClick={() => void 지우기()} disabled={busy}>
-                  {t('지우기 확인')}
+                  {t('초기화 확인')}
                 </button>
                 <button type="button" className="btn ghost" onClick={() => set확인중(false)} disabled={busy}>
                   {t('취소')}
@@ -154,7 +154,7 @@ export function 저장한값줄({
               </>
             ) : (
               <button type="button" className="btn ghost" onClick={() => set확인중(true)}>
-                {t('저장값 지우기')}
+                {t('저장값 초기화')}
               </button>
             )}
           </>

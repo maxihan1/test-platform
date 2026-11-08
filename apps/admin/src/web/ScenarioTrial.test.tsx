@@ -25,7 +25,7 @@ describe('시험 실행 시작 전 막기', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
 
-    expect(screen.getByText('시험 실행할 대상 서버를 먼저 고릅니다')).toBeTruthy();
+    expect(screen.getByText('시험 실행할 대상 서버를 먼저 선택합니다')).toBeTruthy();
     expect(start).not.toHaveBeenCalled();
     expect((screen.getByRole('button', { name: '시험 실행' }) as HTMLButtonElement).disabled).toBe(false);
     expect((screen.getByLabelText('대상 서버') as HTMLSelectElement).value).toBe('');
@@ -68,11 +68,11 @@ describe('시험 실행 시작 전 막기', () => {
   it('막힌 뒤 대상 서버를 고르면 먼저 고르라는 줄이 사라진다', async () => {
     await 기존그리기();
     fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
-    expect(screen.getByText('시험 실행할 대상 서버를 먼저 고릅니다')).toBeTruthy();
+    expect(screen.getByText('시험 실행할 대상 서버를 먼저 선택합니다')).toBeTruthy();
 
     서버고르기('stg');
 
-    expect(screen.queryByText('시험 실행할 대상 서버를 먼저 고릅니다')).toBeNull();
+    expect(screen.queryByText('시험 실행할 대상 서버를 먼저 선택합니다')).toBeNull();
   });
 
   it('가리킴이 빈 값 연결이 있으면 문장을 띄우고 서버를 안 부른다', async () => {
@@ -85,7 +85,7 @@ describe('시험 실행 시작 전 막기', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
 
-    expect(screen.getByText('가져올 단계를 다시 골라야 시험 실행할 수 있습니다')).toBeTruthy();
+    expect(screen.getByText('가져올 단계를 다시 선택해야 시험 실행할 수 있습니다')).toBeTruthy();
     expect(start).not.toHaveBeenCalled();
   });
 
@@ -97,7 +97,7 @@ describe('시험 실행 시작 전 막기', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
 
-    expect(screen.getByText('1번 단계의 잘못 적은 칸을 고쳐야 시험 실행할 수 있습니다')).toBeTruthy();
+    expect(screen.getByText('1번 단계의 잘못 적은 칸을 수정해야 시험 실행할 수 있습니다')).toBeTruthy();
     expect(start).not.toHaveBeenCalled();
   });
 
@@ -144,7 +144,7 @@ describe('시험 실행 결과 창 · 왼쪽 요약', () => {
     const { container } = await 끝낸것(실패결과);
 
     expect(screen.getByText('시험 실행 · stg · 3.40초')).toBeTruthy();
-    expect(screen.getByText('2번에서 멈춤')).toBeTruthy();
+    expect(screen.getByText('2번에서 종료')).toBeTruthy();
     expect(탭(container)).toBe('settings');
     expect(screen.queryByRole('dialog')).toBeNull();
 
@@ -258,7 +258,7 @@ describe('시험 실행 결과 창 · 왼쪽 요약', () => {
     await 끝낸것(통과결과);
 
     expect(screen.getByText('모두 통과')).toBeTruthy();
-    expect(screen.queryByText(/번에서 멈춤/)).toBeNull();
+    expect(screen.queryByText(/번에서 중단/)).toBeNull();
   });
 
   it('탭은 단계마다 종류 · 판정 · 소요 · 오류 · 실패 화면 · 안 돈 단계를 보인다', async () => {
@@ -289,7 +289,7 @@ describe('시험 실행 결과 창 · 왼쪽 요약', () => {
     fireEvent.click(screen.getByRole('button', { name: '자세히' }));
 
     const 칸 = 결과창();
-    expect(칸.getByText('실행이 멈춘 사유')).toBeTruthy();
+    expect(칸.getByText('실행이 중단된 사유')).toBeTruthy();
     expect(칸.getByText('러너가 멈췄습니다')).toBeTruthy();
     expect(칸.getByText('제한 시간 초과')).toBeTruthy();
   });

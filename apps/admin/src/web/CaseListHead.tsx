@@ -32,7 +32,7 @@ export function 표머리({ 고름상태, on모두고르기 }: { 고름상태?: 
             <input
               id={id}
               type="checkbox"
-              aria-label={t('이 쪽 전체 선택')}
+              aria-label={t('이 페이지 전체 선택')}
               checked={고름상태 === 'all'}
               ref={(el) => {
                 if (el !== null) el.indeterminate = 고름상태 === 'some';
@@ -43,7 +43,7 @@ export function 표머리({ 고름상태, on모두고르기 }: { 고름상태?: 
           {/* 줄이 쌓였을 때만 보인다 — 칸 이름이 없으니 체크박스가 무엇을 고르는지 글로 적고, 라벨로 이어 글을 눌러도 고른다.
               이름은 aria-label 이 먼저라 화면 읽기에서는 이 글을 뺀다 */}
           <label className="pick-all" htmlFor={id} aria-hidden="true">
-            {t('이 쪽 전체 선택')}
+            {t('이 페이지 전체 선택')}
           </label>
         </>
       )}
@@ -65,8 +65,8 @@ export function 쪽넘기기({ page, 더있나, 받은, setPage }: { page: numbe
       </button>
       <span>
         {받은?.totalIsExact === true && 받은.pageSize !== null
-          ? t('{번호} / {전체}쪽', { 번호: page, 전체: Math.max(1, Math.ceil(받은.total / 받은.pageSize)) })
-          : t('{번호}쪽', { 번호: page })}
+          ? t('{번호} / {전체}페이지', { 번호: page, 전체: Math.max(1, Math.ceil(받은.total / 받은.pageSize)) })
+          : t('{번호}페이지', { 번호: page })}
       </span>
       <button onClick={() => setPage((n) => n + 1)} disabled={!더있나}>
         {t('다음')}

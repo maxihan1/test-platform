@@ -65,7 +65,7 @@ describe('호환성 세트 목록', () => {
     const 줄 = (await screen.findByRole('link', { name: '출시 전 점검' })).closest('tr')!;
     expect(within(줄).getByText('직접 선택')).toBeTruthy();
     expect(within(줄).getByText('자동 선택 8')).toBeTruthy();
-    expect(within(줄).getByText('실행 이력 없음')).toBeTruthy();
+    expect(within(줄).getByText('실행 기록 없음')).toBeTruthy();
     expect(within(줄).queryByText(/미커버 화면/)).toBeNull();
   });
 
@@ -107,7 +107,7 @@ describe('호환성 세트 목록', () => {
     // 대상 서버가 하나면 그것을 미리 고른다
     fireEvent.click(창.getByRole('button', { name: '실행' }));
     expect(await 창.findByRole('alert')).toBeTruthy();
-    expect(창.getByRole('alert').textContent).toBe('세트의 디바이스가 Device VISION 에 하나도 없습니다. 세트에서 디바이스를 다시 고릅니다');
+    expect(창.getByRole('alert').textContent).toBe('세트의 디바이스가 Device VISION 에 하나도 없습니다. 세트에서 디바이스를 다시 선택합니다');
   });
 
   it('실행 write 가 아니면 실행 단추가 없다', async () => {

@@ -26,7 +26,7 @@ describe('실행 칸이 테스트만인 사람의 조립 화면', () => {
     expect(screen.queryByRole('tab', { name: '단계 추가' })).toBeNull();
     expect(screen.queryByRole('tab', { name: '시험 결과' })).toBeNull();
     expect(screen.getByText('테스트만 하는 권한이라 저장된 시나리오를 그대로 시험 실행합니다')).toBeTruthy();
-    expect(screen.queryByText('실행 권한이 있어야 고치고 돌릴 수 있습니다')).toBeNull();
+    expect(screen.queryByText('실행 권한이 있어야 수정하고 실행할 수 있습니다')).toBeNull();
     expect((screen.getByLabelText('시나리오 이름') as HTMLInputElement).readOnly).toBe(true);
   });
 

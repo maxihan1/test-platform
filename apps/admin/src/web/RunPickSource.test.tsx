@@ -48,7 +48,7 @@ describe('출처 줄', () => {
 
     expect(screen.getByText('저장값과 다릅니다 · 이번 실행에만 씁니다')).toBeTruthy();
     expect(단추('이 값 저장')).toBeTruthy();
-    expect(단추('되돌리기')).toBeTruthy();
+    expect(단추('실행 취소')).toBeTruthy();
     expect(screen.getByText('팀 모두와 정기 실행에 쓰입니다')).toBeTruthy();
   });
 
@@ -75,7 +75,7 @@ describe('출처 줄', () => {
     const { onRun } = await 연다([저장값케이스]);
     고친다('user2');
 
-    fireEvent.click(단추('되돌리기'));
+    fireEvent.click(단추('실행 취소'));
 
     expect(아이디칸().value).toBe('user1');
     expect(document.querySelector('.prow-src')?.textContent).toMatch(/^저장값 · 맥시 ·/);
@@ -88,7 +88,7 @@ describe('출처 줄', () => {
     await 연다([저장값케이스], { user: 읽기만 });
     고친다('user2');
     expect(screen.queryByRole('button', { name: '이 값 저장' })).toBeNull();
-    expect(단추('되돌리기')).toBeTruthy();
+    expect(단추('실행 취소')).toBeTruthy();
   });
 
   it('명세에 안 맞는 값은 저장하지 않고 칸 아래에 사유를 붙인다', async () => {
@@ -130,8 +130,8 @@ describe('저장한 뒤', () => {
     fireEvent.click(단추('이 값 저장'));
     await screen.findByText('저장값으로 저장했습니다.');
 
-    fireEvent.click(단추('저장값 지우기'));
-    fireEvent.click(단추('지우기 확인'));
+    fireEvent.click(단추('저장값 초기화'));
+    fireEvent.click(단추('초기화 확인'));
 
     await waitFor(() => expect(screen.queryByText('저장값으로 저장했습니다.')).toBeNull());
   });
@@ -176,7 +176,7 @@ describe('저장 안 한 채 닫기', () => {
     fireEvent.click(단추('창 닫기'));
     fireEvent.click(단추('창 닫기'));
 
-    expect(screen.getByText('고친 입력값이 저장되지 않았습니다 · 팀 모두와 정기 실행에 쓰입니다')).toBeTruthy();
+    expect(screen.getByText('수정한 입력값이 저장되지 않았습니다 · 팀 모두와 정기 실행에 쓰입니다')).toBeTruthy();
     expect(onClose).not.toHaveBeenCalled();
   });
 
@@ -192,7 +192,7 @@ describe('저장 안 한 채 닫기', () => {
 
     fireEvent.click(단추('창 닫기'));
 
-    expect(screen.getByText('고친 입력값이 저장되지 않았습니다 · 팀 모두와 정기 실행에 쓰입니다')).toBeTruthy();
+    expect(screen.getByText('수정한 입력값이 저장되지 않았습니다 · 팀 모두와 정기 실행에 쓰입니다')).toBeTruthy();
     expect(onClose).not.toHaveBeenCalled();
   });
 
@@ -202,7 +202,7 @@ describe('저장 안 한 채 닫기', () => {
     고친다('user2');
 
     Esc();
-    expect(screen.getByText('고친 입력값이 저장되지 않았습니다 · 팀 모두와 정기 실행에 쓰입니다')).toBeTruthy();
+    expect(screen.getByText('수정한 입력값이 저장되지 않았습니다 · 팀 모두와 정기 실행에 쓰입니다')).toBeTruthy();
     fireEvent.click(단추('저장하고 닫기'));
 
     await waitFor(() => expect(onClose).toHaveBeenCalledOnce());

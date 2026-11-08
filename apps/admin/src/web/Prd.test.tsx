@@ -34,10 +34,10 @@ describe('PRD 관리 — 머리와 할 일 칸', () => {
   it('판이 없으면 빈 화면과 첫 요구를 적는 길을 보인다', async () => {
     지금.mockResolvedValue(판({ version: 0, items: [] }));
     render(<Prd service="MKT" 할수={쓰는사람} />);
-    expect(await screen.findByText('테스트 작성 요청으로 기획서를 올리거나, 요구사항 추가로 첫 요구를 직접 적습니다')).toBeTruthy();
+    expect(await screen.findByText('테스트 작성 요청으로 기획서를 업로드하거나, 요구사항 추가로 첫 요구를 직접 적습니다')).toBeTruthy();
     expect(screen.getByRole('link', { name: '테스트 작성 요청' }).getAttribute('href')).toBe('#/authoring');
     expect(screen.queryByRole('button', { name: '버전 기록' })).toBeNull();
-    expect(screen.queryByRole('button', { name: '내려받기' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '다운로드' })).toBeNull();
   });
 
   it('머리에서 테스트 작성으로 가는 길은 작성 쓰기가 있을 때만 있다 (점검 8.1)', async () => {
@@ -51,11 +51,11 @@ describe('PRD 관리 — 머리와 할 일 칸', () => {
 
   it('내려받기는 한 단추로 접혀 있고, 눌러야 워드와 추적표 엑셀이 나온다 (점검 8.1)', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
-    const 메뉴 = await screen.findByRole('button', { name: /^내려받기/ });
-    expect(screen.queryByRole('button', { name: '워드로 내려받기' })).toBeNull();
+    const 메뉴 = await screen.findByRole('button', { name: /^다운로드/ });
+    expect(screen.queryByRole('button', { name: '워드 다운로드' })).toBeNull();
     fireEvent.click(메뉴);
-    expect(screen.getByRole('button', { name: '워드로 내려받기' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: '추적표 엑셀로 내려받기' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '워드 다운로드' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '추적표 엑셀 다운로드' })).toBeTruthy();
   });
 
 
@@ -92,7 +92,7 @@ describe('PRD 관리 — 머리와 할 일 칸', () => {
     fireEvent.click(screen.getByRole('button', { name: /로그인/ }));
     fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-032|MKT-REQ-040/ }));
     expect(screen.queryByRole('button', { name: '이 요구만 확정' })).toBeNull();
-    expect(screen.getByRole('button', { name: '고치기' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '수정' })).toBeTruthy();
   });
 
   it('작성 쓰기가 없으면 고르기 · 확정 · 더하기 · 고치기가 아예 없다', async () => {
@@ -104,7 +104,7 @@ describe('PRD 관리 — 머리와 할 일 칸', () => {
     fireEvent.click(screen.getByRole('button', { name: /회원가입/ }));
     fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-031/ }));
     expect(screen.getByText('설계 미리보기')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: '고치기' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '수정' })).toBeNull();
   });
 });
 
@@ -118,7 +118,7 @@ describe('PRD 관리 — 전체 요구', () => {
     fireEvent.click(로그인);
     const 줄 = screen.getByRole('button', { name: /MKT-REQ-041/ });
     expect(줄.textContent).not.toContain('반영 안 됨');
-    expect(줄.textContent).toContain('사람이 고침');
+    expect(줄.textContent).toContain('사람이 수정');
   });
 
   it('줄을 펴면 근거와 판정 함수가 계산한 설계 미리보기를 보인다', async () => {
@@ -171,15 +171,15 @@ describe('PRD 관리 — 워드로 내려받기', () => {
     const 누름 = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
     render(<Prd service="MKT" 할수={보는사람} />);
 
-    fireEvent.click(await screen.findByRole('button', { name: /^내려받기/ }));
-    fireEvent.click(screen.getByRole('button', { name: '워드로 내려받기' }));
+    fireEvent.click(await screen.findByRole('button', { name: /^다운로드/ }));
+    fireEvent.click(screen.getByRole('button', { name: '워드 다운로드' }));
     expect(워드).toHaveBeenCalledWith('MKT');
     expect(screen.getByRole('button', { name: /^만드는 중…/ })).toHaveProperty('disabled', true);
 
     끝내기({ 파일: new Blob(['x']), 머리: 'attachment; filename="MKT-PRD-v12.docx"' });
     await vi.waitFor(() => expect(누름).toHaveBeenCalledOnce());
     expect((누름.mock.contexts[0] as HTMLAnchorElement).download).toBe('MKT-PRD-v12.docx');
-    expect(screen.getByRole('button', { name: /^내려받기/ })).toHaveProperty('disabled', false);
+    expect(screen.getByRole('button', { name: /^다운로드/ })).toHaveProperty('disabled', false);
     누름.mockRestore();
   });
 
@@ -188,8 +188,8 @@ describe('PRD 관리 — 워드로 내려받기', () => {
     const 누름 = vi.spyOn(HTMLAnchorElement.prototype, 'click');
     render(<Prd service="MKT" 할수={보는사람} />);
 
-    fireEvent.click(await screen.findByRole('button', { name: /^내려받기/ }));
-    fireEvent.click(screen.getByRole('button', { name: '워드로 내려받기' }));
+    fireEvent.click(await screen.findByRole('button', { name: /^다운로드/ }));
+    fireEvent.click(screen.getByRole('button', { name: '워드 다운로드' }));
     expect((await screen.findByRole('status')).className).toBe('prd-note bad');
     expect(누름).not.toHaveBeenCalled();
     누름.mockRestore();

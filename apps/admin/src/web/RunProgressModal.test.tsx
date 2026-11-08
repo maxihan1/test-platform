@@ -125,7 +125,7 @@ describe('RunProgressModal (SPEC §8.9)', () => {
     render(<RunProgressModal data={실패만} 진행목록={[]} onClose={() => {}} />);
 
     const 목록 = document.querySelector('.rl-items')!;
-    expect(목록.textContent).toContain('끝남 1');
+    expect(목록.textContent).toContain('종료 1');
     expect(목록.querySelector('.pill.fail')?.textContent).toBe('실패');
     expect(본문()).not.toContain('기대값 200, 실제 500');
     // 2초마다 다시 그리는 창이 끝난 항목마다 상세를 묻지 않는다
@@ -172,7 +172,7 @@ describe('RunProgressModal (SPEC §8.9)', () => {
     render(<RunProgressModal data={도는중실행} 진행목록={[]} onClose={() => {}} on멈추기={on멈추기} />);
 
     const 바닥 = document.querySelector('.modal-foot')!;
-    expect(바닥.textContent).toContain('닫아도 실행은 계속되고 끝나면 알림이 옵니다');
+    expect(바닥.textContent).toContain('닫아도 실행은 계속되고 완료되면 알림이 옵니다');
     const 버튼들 = [...바닥.querySelectorAll('button')].map((b) => b.textContent);
     expect(버튼들).toEqual(['실행 중단', '닫기']);
     fireEvent.click(screen.getByRole('button', { name: '실행 중단' }));
@@ -212,7 +212,7 @@ describe('RunProgressModal (SPEC §8.9)', () => {
   it('끝나면 같은 컴포넌트가 완료 내용을 그리고 실패한 케이스 이름이 보인다', () => {
     render(<RunProgressModal data={끝난실행} 진행목록={[]} onClose={() => {}} />);
 
-    expect(screen.queryByText(/RUN 7 실행이 끝났습니다/)).not.toBeNull();
+    expect(screen.queryByText(/RUN 7 실행이 완료되었습니다/)).not.toBeNull();
     expect(screen.queryByText(/케이스 12/)).not.toBeNull();
     expect(screen.queryByText(/ZZR 진행 확인 · 대상 서버 qa · 총 40분/)).not.toBeNull();
   });

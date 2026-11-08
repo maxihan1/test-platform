@@ -14,13 +14,13 @@ export function ScenarioUsage({ service, tcIds, 대신문장 = true }: { service
   const { data, error } = useAsync(() => scenarioApi.list(service, tcIds), [service, tcIds.join(',')]);
 
   if (error !== null) {
-    return 대신문장 ? <p className="hint">{t('삭제하면 이 케이스를 쓰는 E2E 시나리오가 더 돌지 않습니다. 실행 기록은 남습니다.')}</p> : null;
+    return 대신문장 ? <p className="hint">{t('삭제하면 이 케이스를 쓰는 E2E 시나리오가 더 이상 실행되지 않습니다. 실행 기록은 남습니다.')}</p> : null;
   }
   if (data === null || data.items.length === 0) return null;
   return (
     <div className="hint">
       <p>
-        {t('이 케이스를 쓰는 E2E 시나리오 {수}개 — 삭제하면 다른 케이스로 바꿀 때까지 실행할 수 없습니다', { 수: data.items.length })}
+        {t('이 케이스를 쓰는 E2E 시나리오 {수}개 — 삭제하면 다른 케이스로 변경할 때까지 실행할 수 없습니다', { 수: data.items.length })}
       </p>
       <ul className="edit-list">
         {data.items.map((줄) => (

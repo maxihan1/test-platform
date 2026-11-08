@@ -25,14 +25,14 @@ function 바뀐것({ id, 판, 앞판, 바로 }: { id: number; 판: number; 앞�
   if (!읽음) {
     return (
       <button className="btn ghost small" onClick={() => { set읽음(true); set폄(true); }}>
-        {t('바뀐 것 보기')}
+        {t('변경 사항 보기')}
       </button>
     );
   }
   if (차이.error !== null) return <span className="prd-note bad">{차이.error}</span>;
   if (차이.data === null) return <span className="prd-plain">…</span>;
   const 줄들 = 차이.data;
-  if (줄들.length === 0) return <span className="prd-plain">{t('바뀐 API 없음')}</span>;
+  if (줄들.length === 0) return <span className="prd-plain">{t('변경된 API 없음')}</span>;
   const 요약 = (['CHANGED', 'NEW', 'REMOVED'] as const)
     .map((k) => [종류글[바뀐종류[k]], 줄들.filter((x) => x.change === k).length] as const)
     .filter(([, 수]) => 수 > 0)
@@ -44,7 +44,7 @@ function 바뀐것({ id, 판, 앞판, 바로 }: { id: number; 판: number; 앞�
         {요약}
       </button>
       {!폄 ? null : (
-        <ul className="prd-diff" aria-label={t('버전 {버전}에서 바뀐 API', { 버전: 판 })}>
+        <ul className="prd-diff" aria-label={t('버전 {버전}에서 변경된 API', { 버전: 판 })}>
           {줄들.map((c) => (
             <li key={`${c.method} ${c.path}`}>
               <span className="prd-kind">{종류글[바뀐종류[c.change]]}</span> <span className="prd-api-m">{c.method}</span>{' '}
@@ -95,7 +95,7 @@ export function ApiDocVersions({ id, versions, 연버전 }: { id: number; versio
               <th>{t('받은 곳')}</th>
               <th>{t('저장한 사람')}</th>
               <th>{t('저장 일시')}</th>
-              <th>{t('바뀐 것')}</th>
+              <th>{t('변경 사항')}</th>
               <th aria-label={t('보기')} />
             </tr>
           </thead>

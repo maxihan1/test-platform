@@ -157,11 +157,11 @@ describe('옛 버전 펼치기', () => {
     fireEvent.click(screen.getByRole('button', { name: 줄글(2, '김철수', 시각2) }));
     await screen.findByRole('list', { name: 'v2 단계' });
 
-    expect(screen.queryByRole('button', { name: '이 버전으로 되돌리기' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '이 버전으로 복원' })).toBeNull();
   });
 });
 
-describe('이 버전으로 되돌리기', () => {
+describe('이 버전으로 복원', () => {
   it('restore 를 부르고 상세를 다시 불러 새 버전 줄과 알림이 나오고 케이스 패널 입력 칸이 새 값을 보인다', async () => {
     await 이력열기();
     fireEvent.click(await screen.findByRole('tab', { name: '1번 설정' }));
@@ -177,10 +177,10 @@ describe('이 버전으로 되돌리기', () => {
       }),
     );
     fireEvent.click(screen.getByRole('button', { name: 줄글(2, '김철수', 시각2) }));
-    fireEvent.click(await screen.findByRole('button', { name: '이 버전으로 되돌리기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '이 버전으로 복원' }));
 
     await waitFor(() => expect(복원).toHaveBeenCalledWith(12, 2));
-    expect(await screen.findByText('v2 내용으로 되돌렸습니다 · 지금 v4')).toBeTruthy();
+    expect(await screen.findByText('v2 내용으로 복원했습니다 · 지금 v4')).toBeTruthy();
     await waitFor(() => expect(다시).toHaveBeenCalled());
     expect(await screen.findByText(줄글(4, '조립자', 시각4))).toBeTruthy();
     expect(screen.getAllByText('지금 버전')).toHaveLength(1);
@@ -195,9 +195,9 @@ describe('이 버전으로 되돌리기', () => {
     fireEvent.change(screen.getByLabelText('시나리오 이름'), { target: { value: 'ZSB 고친 이름' } });
 
     fireEvent.click(screen.getByRole('button', { name: 줄글(2, '김철수', 시각2) }));
-    fireEvent.click(await screen.findByRole('button', { name: '이 버전으로 되돌리기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '이 버전으로 복원' }));
 
-    expect(await screen.findByText('저장 안 된 변경이 있어 되돌릴 수 없습니다')).toBeTruthy();
+    expect(await screen.findByText('저장 안 된 변경이 있어 복원할 수 없습니다')).toBeTruthy();
     expect(복원).not.toHaveBeenCalled();
   });
 
@@ -206,10 +206,10 @@ describe('이 버전으로 되돌리기', () => {
     vi.spyOn(scenarioApi, 'restore').mockRejectedValue(new ApiError(409, 'SCENARIO_ARCHIVED', ''));
 
     fireEvent.click(screen.getByRole('button', { name: 줄글(2, '김철수', 시각2) }));
-    fireEvent.click(await screen.findByRole('button', { name: '이 버전으로 되돌리기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '이 버전으로 복원' }));
 
-    expect(await screen.findByText('삭제한 시나리오라 고치거나 실행할 수 없습니다')).toBeTruthy();
-    expect(screen.queryByText(/내용으로 되돌렸습니다/)).toBeNull();
+    expect(await screen.findByText('삭제한 시나리오라 수정하거나 실행할 수 없습니다')).toBeTruthy();
+    expect(screen.queryByText(/내용으로 복원했습니다/)).toBeNull();
   });
 
   it('되돌린 뒤 상세를 다시 불러오다 실패하면 조립 화면은 남고 상태 줄에 오류 문장이 뜬다', async () => {
@@ -218,7 +218,7 @@ describe('이 버전으로 되돌리기', () => {
     vi.spyOn(scenarioApi, 'detail').mockRejectedValue(new ApiError(500, 'SERVER_ERROR', ''));
 
     fireEvent.click(screen.getByRole('button', { name: 줄글(2, '김철수', 시각2) }));
-    fireEvent.click(await screen.findByRole('button', { name: '이 버전으로 되돌리기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '이 버전으로 복원' }));
 
     expect(await screen.findByText('요청이 실패했습니다 (SERVER_ERROR)')).toBeTruthy();
     expect(screen.getByLabelText('시나리오 이름')).toBeTruthy();

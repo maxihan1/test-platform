@@ -110,11 +110,11 @@ describe('케이스 고치기 상세', () => {
     답들.set(7, 줄({}));
     render(<AuthoringDetail service="PAY" id={7} 할수={운영} />);
 
-    const 목록 = within(await screen.findByRole('region', { name: '고칠 내용' }));
-    expect(screen.getByText('케이스 고치기')).toBeTruthy();
+    const 목록 = within(await screen.findByRole('region', { name: '수정할 내용' }));
+    expect(screen.getByText('케이스 수정')).toBeTruthy();
     expect(목록.getByText('PAY-001')).toBeTruthy();
     expect(목록.getByText('삭제')).toBeTruthy();
-    expect(목록.getByText(/기대값 state: 배송 중/)).toBeTruthy();
+    expect(목록.getByText(/기대 결과 state: 배송 중/)).toBeTruthy();
     expect(목록.getByText(/확정/)).toBeTruthy();
     expect(screen.queryByText('자료 · PRD 읽기')).toBeNull();
   });
@@ -124,7 +124,7 @@ describe('케이스 고치기 상세', () => {
     render(<AuthoringDetail service="PAY" id={7} 할수={운영} />);
 
     const 할일 = within(await screen.findByRole('region', { name: '다음 단계' }));
-    expect(할일.getByRole('link', { name: '고친 케이스 보기 (PR)' }).getAttribute('href')).toBe('https://github.com/x/y/pull/3');
+    expect(할일.getByRole('link', { name: '수정한 케이스 보기 (PR)' }).getAttribute('href')).toBe('https://github.com/x/y/pull/3');
     expect(할일.getByRole('button', { name: '테스트 반영하기' })).toBeTruthy();
     expect(할일.getByRole('button', { name: '폐기' })).toBeTruthy();
   });
@@ -146,9 +146,9 @@ describe('케이스 고치기 상세', () => {
 
     답들.set(7, 줄({ status: 'RUNNING', prUrl: null, finishedAt: null, stage: '케이스를 고치는 중', canStop: false, canDiscard: false }));
     render(<AuthoringDetail service="PAY" id={7} 할수={운영} />);
-    expect(await screen.findByText(/케이스를 고쳐 PR 로 올리는 중입니다/)).toBeTruthy();
+    expect(await screen.findByText(/케이스를 수정해 PR 로 등록하는 중입니다/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: '작성 중단' })).toBeNull();
-    expect(screen.getAllByText('고치는 중').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('수정 중').length).toBeGreaterThan(0);
   });
 
   it('실패면 다시 적용 · 폐기를 낸다. 같은 자료로 다시 작성 · 이어서 작성은 없다', async () => {
@@ -168,7 +168,7 @@ describe('케이스 고치기 상세', () => {
     답들.set(12, 줄({ id: 12, kind: 'MERGE', sourceId: 7, params: {}, runs: 기록, canContinue: false }));
     render(<AuthoringDetail service="PAY" id={7} 할수={운영} />);
 
-    expect(await screen.findByText(/케이스 목록에서 바뀐 것을 볼 수 있습니다/)).toBeTruthy();
+    expect(await screen.findByText(/케이스 목록에서 변경된 것을 볼 수 있습니다/)).toBeTruthy();
     expect(screen.queryByText(/남은 요구/)).toBeNull();
   });
 
@@ -206,7 +206,7 @@ describe('케이스 고치기 상세', () => {
     render(<AuthoringDetail service="PAY" id={7} 할수={운영} />);
 
     expect(await screen.findByText(/테스트를 반영하는 중입니다/)).toBeTruthy();
-    expect(screen.queryByText(/케이스를 고쳐 PR 로 올리는 중입니다/)).toBeNull();
+    expect(screen.queryByText(/케이스를 수정해 PR 로 등록하는 중입니다/)).toBeNull();
   });
 
   it('신호가 한동안 없어 서버가 멈춤을 주면 멈출 길을 알리되 끊겼다고 단정하지 않는다. 멈춤 상자는 다시 적용을 말한다', async () => {
@@ -230,7 +230,7 @@ describe('케이스 고치기 상세', () => {
 
     const 표 = within(await screen.findByRole('table', { name: '실행 기록' }));
     expect(표.getByText('다시 적용')).toBeTruthy();
-    expect(표.getByText('케이스 고치기')).toBeTruthy();
+    expect(표.getByText('케이스 수정')).toBeTruthy();
   });
 
   it('실행 기록에서 도는 다시 적용은 고치는 중, 도는 반영은 반영 중이다', async () => {
@@ -241,7 +241,7 @@ describe('케이스 고치기 상세', () => {
     render(<AuthoringDetail service="PAY" id={7} 할수={운영} />);
 
     const 표 = within(await screen.findByRole('table', { name: '실행 기록' }));
-    expect(표.getByText('고치는 중')).toBeTruthy();
+    expect(표.getByText('수정 중')).toBeTruthy();
     expect(표.getByText('반영 중')).toBeTruthy();
     expect(표.queryByText('작성 중')).toBeNull();
   });
@@ -250,8 +250,8 @@ describe('케이스 고치기 상세', () => {
     답들.set(7, 줄({ params: { edits: [{ tcId: 'PAY-004', expected: { shown: false } }] } }));
     render(<AuthoringDetail service="PAY" id={7} 할수={운영} />);
 
-    const 목록 = within(await screen.findByRole('region', { name: '고칠 내용' }));
-    expect(목록.getByText(/기대값 shown: 아니오/)).toBeTruthy();
+    const 목록 = within(await screen.findByRole('region', { name: '수정할 내용' }));
+    expect(목록.getByText(/기대 결과 shown: 아니오/)).toBeTruthy();
   });
 });
 
@@ -267,11 +267,11 @@ describe('작성 목록의 케이스 고치기 줄', () => {
     }));
     render(<Authoring service="PAY" 할수={() => true} />);
 
-    expect(await screen.findByRole('link', { name: 'PAY-001 외 1건 기대값 고치기' })).toBeTruthy();
-    expect(screen.getByText('케이스 2건 고침')).toBeTruthy();
+    expect(await screen.findByRole('link', { name: 'PAY-001 외 1건 기대 결과 수정' })).toBeTruthy();
+    expect(screen.getByText('케이스 2건 수정')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'PAY-003 삭제' })).toBeTruthy();
-    expect(screen.getAllByText('케이스 고치기')).toHaveLength(2);
+    expect(screen.getAllByText('케이스 수정')).toHaveLength(2);
     expect(screen.getAllByText(/^케이스 목록에서 시작 · /)).toHaveLength(2);
-    expect(screen.getByText('고치는 중')).toBeTruthy();
+    expect(screen.getByText('수정 중')).toBeTruthy();
   });
 });

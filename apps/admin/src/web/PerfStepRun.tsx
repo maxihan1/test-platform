@@ -83,7 +83,7 @@ export function PerfStepRun({
         <label className="perf-field">
           {t('대상 서버')}
           <select value={값.env} disabled={!쓰나} onChange={(e) => 고침({ ...값, env: e.target.value })}>
-            <option value="">{t('고르기')}</option>
+            <option value="">{t('선택')}</option>
             {envs.map((it) => (
               <option key={it.env} value={it.env}>
                 {it.env}
@@ -96,7 +96,7 @@ export function PerfStepRun({
           {t('부하 발생 에이전트')}
           {부하.length === 0 ? <span className="perf-faint">{t('붙은 부하 발생 에이전트가 없습니다. 관리자가 설정 › 성능 에이전트에서 붙입니다')}</span> : 고르개(부하, 값.agentIds, 'agentIds')}
           {값.agentIds.length > 0 && 감당 < 최대목표 ? (
-            <span className="perf-err">{t('고른 에이전트가 감당하는 가상 사용자는 {수}명입니다. 에이전트를 더 고르거나 부하를 줄여 주세요', { 수: 감당.toLocaleString() })}</span>
+            <span className="perf-err">{t('선택한 에이전트가 감당하는 가상 사용자는 {수}명입니다. 에이전트를 더 선택하거나 부하를 줄여 주세요', { 수: 감당.toLocaleString() })}</span>
           ) : null}
         </div>
         <div className="perf-field">
@@ -106,7 +106,7 @@ export function PerfStepRun({
             <input
               type="file"
               accept=".csv,text/csv"
-              aria-label={t('테스트 계정 CSV 올리기')}
+              aria-label={t('테스트 계정 CSV 업로드')}
               onChange={(e) => {
                 const 파일 = e.target.files?.[0];
                 e.target.value = '';
@@ -140,7 +140,7 @@ export function PerfStepRun({
             </div>
           ))}
         </dl>
-        <div className="perf-well perf-faint">{t('본 테스트 전에 스모크 테스트(가상 사용자 1명, 1분)를 자동으로 돌립니다. 스크립트 오류가 있으면 여기서 중단합니다')}</div>
+        <div className="perf-well perf-faint">{t('본 테스트 전에 스모크 테스트(가상 사용자 1명, 1분)를 자동으로 실행합니다. 스크립트 오류가 있으면 여기서 중단합니다')}</div>
       </section>
     </div>
   );

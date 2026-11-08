@@ -70,7 +70,7 @@ describe('API 애플리케이션 설정 (도메인/인증 §8.8 「종류」 · 
     render(<ServicePanel row={API앱} onDone={() => {}} />);
 
     expect(screen.queryByRole('group', { name: '종류' })).toBeNull();
-    expect(screen.getByText('만든 뒤에는 바꿀 수 없습니다')).toBeTruthy();
+    expect(screen.getByText('만든 뒤에는 변경할 수 없습니다')).toBeTruthy();
     expect(구획제목들()).toContain('API 문서');
     expect((screen.getByLabelText('대상 서버 1 API 인증 1 비밀값') as HTMLInputElement).placeholder).toBe('•••• abcd');
 
@@ -106,7 +106,7 @@ describe('API 애플리케이션 설정 (도메인/인증 §8.8 「종류」 · 
     fireEvent.click(screen.getByRole('button', { name: '대상 서버 1 API 인증 추가' }));
     인증을채운다(2, { 이름: '고객사 B', 주소: '/oauth/token', 아이디: 'client-b' });
 
-    expect(screen.getByText('비밀값을 입력해 주세요. 새 인증이거나 이름 · 토큰 주소 · 서버 주소를 바꾸면 다시 넣어야 합니다')).toBeTruthy();
+    expect(screen.getByText('비밀값을 입력해 주세요. 새 인증이거나 이름 · 토큰 주소 · 서버 주소를 변경하면 다시 넣어야 합니다')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
     expect(고침).not.toHaveBeenCalled();
     expect(document.querySelector('.set-why')?.textContent).toBe('API 인증 비밀값을 입력해 주세요');
@@ -127,7 +127,7 @@ describe('API 애플리케이션 설정 (도메인/인증 §8.8 「종류」 · 
     render(<ServicePanel row={API앱} onDone={() => {}} />);
     fireEvent.change(screen.getByLabelText('대상 서버 1 주소'), { target: { value: 'https://other.example.com' } });
 
-    expect(screen.getByText('비밀값을 입력해 주세요. 새 인증이거나 이름 · 토큰 주소 · 서버 주소를 바꾸면 다시 넣어야 합니다')).toBeTruthy();
+    expect(screen.getByText('비밀값을 입력해 주세요. 새 인증이거나 이름 · 토큰 주소 · 서버 주소를 변경하면 다시 넣어야 합니다')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
     expect(고침).not.toHaveBeenCalled();
     expect(document.querySelector('.set-why')?.textContent).toBe('API 인증 비밀값을 입력해 주세요');

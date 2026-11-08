@@ -45,14 +45,14 @@ export function 어드민키보낼모양(r: 어드민키줄): EnvInput['adminKey
 /** 저장을 막을 까닭. 서버 settings/apiService.ts `API칸오류` 와 같은 규칙이다 — 서버는 BAD_ADMIN_KEY 하나로만 답해 어느 칸인지 모른다 */
 export function 어드민키못보내는이유(envs: readonly 어드민키줄[], 언어: 언어): string | null {
   const 칸들 = envs.map(지금칸);
-  if (칸들.some((it) => it.header === '' && it.새값 !== '')) return 말('어드민 키 머리 이름을 입력해 주세요', 언어);
+  if (칸들.some((it) => it.header === '' && it.새값 !== '')) return 말('어드민 키 헤더 이름을 입력해 주세요', 언어);
   if (칸들.some((it) => it.header !== '' && !/^[A-Za-z0-9-]{1,100}$/.test(it.header))) {
-    return 말('어드민 키 머리 이름은 영문 · 숫자 · - 로 100자까지입니다', 언어);
+    return 말('어드민 키 헤더 이름은 영문 · 숫자 · - 로 100자까지입니다', 언어);
   }
   if (칸들.some((it) => it.새값 !== '' && !/^[\x21-\x7e]{12,500}$/.test(it.새값))) {
     return 말('어드민 키 값은 공백 없이 12자 이상 500자 이하로 입력해 주세요', 언어);
   }
-  if (envs.some(값필요)) return 말('새 어드민 키는 값을 입력해 주세요. 머리 이름이나 대상 서버 이름 · 주소를 바꾸면 다시 넣어야 합니다', 언어);
+  if (envs.some(값필요)) return 말('새 어드민 키는 값을 입력해 주세요. 헤더 이름이나 대상 서버 이름 · 주소를 변경하면 다시 넣어야 합니다', 언어);
   return null;
 }
 
@@ -71,7 +71,7 @@ export function 어드민키칸({ 줄: r, 번호, 고친다 }: { 줄: 어드민�
         autoComplete="off"
         value={지금.header}
         placeholder="X-Admin-Key"
-        aria-label={t('대상 서버 {번호} 어드민 키 머리 이름', { 번호 })}
+        aria-label={t('대상 서버 {번호} 어드민 키 헤더 이름', { 번호 })}
         onChange={(e) => 고친다({ ...지금, header: e.target.value })}
       />
       {/* 비워 두면 저장한 값을 그대로 쓴다. 이어받지 못하는 줄에 끝 4자리를 보이면 남는 값으로 읽혀서 뺀다.
@@ -84,7 +84,7 @@ export function 어드민키칸({ 줄: r, 번호, 고친다 }: { 줄: 어드민�
         aria-label={t('대상 서버 {번호} 어드민 키 값', { 번호 })}
         onChange={(e) => 고친다({ ...지금, 새값: e.target.value })}
       />
-      {지워짐 ? <div className="hint">{t('이대로 저장하면 이 서버의 어드민 키가 지워집니다')}</div> : null}
+      {지워짐 ? <div className="hint">{t('이대로 저장하면 이 서버의 어드민 키가 삭제됩니다')}</div> : null}
     </div>
   );
 }

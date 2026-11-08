@@ -122,7 +122,7 @@ export function PerfPages({ service, run, 쓰나 }: { service: ServiceRow; run?:
           if (도는중인가(상세.status)) continue;
           if (상세.status === 'ERROR') {
             const 까닭 = (await perfApi.events(측정중)).events.filter((줄) => /warn/i.test(줄.level)).at(-1)?.message;
-            if (살음) set알림(까닭 === undefined ? t('측정이 오류로 끝났습니다') : t('측정이 오류로 끝났습니다 — {까닭}', { 까닭 }));
+            if (살음) set알림(까닭 === undefined ? t('측정이 오류로 종료되었습니다') : t('측정이 오류로 종료되었습니다 — {까닭}', { 까닭 }));
           } else {
             const 받음 = await 읽기(측정중);
             if (살음) 보이기(받음);
@@ -142,7 +142,7 @@ export function PerfPages({ service, run, 쓰나 }: { service: ServiceRow; run?:
   }, [측정중]);
 
   async function 측정() {
-    if (env === '') return set알림(t('대상 서버를 골라 주세요'));
+    if (env === '') return set알림(t('대상 서버를 선택해 주세요'));
     set하는중(true);
     set알림(null);
     try {
@@ -198,7 +198,7 @@ export function PerfPages({ service, run, 쓰나 }: { service: ServiceRow; run?:
             <label className="perf-field">
               {t('대상 서버')}
               <select value={env} disabled={!쓰나} onChange={(e) => setEnv(e.target.value)}>
-                <option value="">{t('고르기')}</option>
+                <option value="">{t('선택')}</option>
                 {service.envs.map((it) => (
                   <option key={it.env} value={it.env}>
                     {it.env}
@@ -213,7 +213,7 @@ export function PerfPages({ service, run, 쓰나 }: { service: ServiceRow; run?:
             {출처 === 'AI' ? <span className="perf-ai">AI</span> : null}
             <span>
               {추천.도나
-                ? t('AI 가 측정할 페이지를 고르는 중입니다')
+                ? t('AI 가 측정할 페이지를 선택하는 중입니다')
                 : 출처 === 'AI'
                   ? t('측정 대상: 화면 지도 기준 주요 페이지 {수}개', { 수: 목록.length })
                   : t('측정 대상: 페이지 {수}개', { 수: 목록.length })}

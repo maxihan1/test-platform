@@ -87,7 +87,7 @@ describe('실패 카드의 실패 이유 · 실패 원인 판 (실행 §8.3)', (
     );
 
     fireEvent.click(await screen.findByRole('button', { name: /기대 결과 불일치/ }));
-    expect(screen.getByText('이 쪽에 1건 · 이 유형 전체 4건 — 나머지는 다른 쪽에 있습니다')).toBeTruthy();
+    expect(screen.getByText('이 페이지에 1건 · 이 유형 전체 4건 — 나머지는 다른 페이지에 있습니다')).toBeTruthy();
   });
 
   it('고른 유형이 이 쪽에 없으면 「실패한 케이스가 없습니다」를 내지 않는다', async () => {
@@ -103,7 +103,7 @@ describe('실패 카드의 실패 이유 · 실패 원인 판 (실행 §8.3)', (
     );
 
     fireEvent.click(await screen.findByRole('button', { name: /타임아웃/ }));
-    expect(screen.getByText('이 쪽에 0건 · 이 유형 전체 2건 — 나머지는 다른 쪽에 있습니다')).toBeTruthy();
+    expect(screen.getByText('이 페이지에 0건 · 이 유형 전체 2건 — 나머지는 다른 페이지에 있습니다')).toBeTruthy();
     expect(screen.queryByText('실패한 케이스가 없습니다')).toBeNull();
   });
 

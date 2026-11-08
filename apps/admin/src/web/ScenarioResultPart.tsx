@@ -104,7 +104,7 @@ export function ScenarioResultPart({
         </p>
       )}
 
-      {!섞임 || part.baseUrl == null ? null : <세부 라벨={t('돈 주소')}>{part.baseUrl}</세부>}
+      {!섞임 || part.baseUrl == null ? null : <세부 라벨={t('실행한 주소')}>{part.baseUrl}</세부>}
       {입력 === '' ? null : <세부 라벨={t('입력값')}>{입력}</세부>}
       {part.skippedSteps.length === 0 ? null : (
         <세부 라벨={t('건너뜀')}>
@@ -152,7 +152,7 @@ export function ScenarioResultPart({
         </세부>
       )}
       {이유 !== null || part.status !== 'NA' || 안돌았다 || part.error === null || part.error.message === '' ? null : (
-        <세부 라벨={t('실행이 멈춘 사유')}>{멈춘사유글자(part.error.message, 언어)}</세부>
+        <세부 라벨={t('실행이 중단된 사유')}>{멈춘사유글자(part.error.message, 언어)}</세부>
       )}
       {/* 실패 단계는 이유가 없어도(옛 서버 응답) 원문을 접어 둔다. 미실행은 이유가 없으면 위 「실행이 멈춘 사유」 한 줄이 맡는다 */}
       {안돌았다 || part.error === null || (part.status !== 'FAIL' && 이유 === null) ? null : (

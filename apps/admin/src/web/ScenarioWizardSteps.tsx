@@ -173,7 +173,7 @@ export function 단계칸({ 시작, 앱들, 디바이스, 단계들, on단계들
             ) : 오류 !== null ? null : 추천칸 === null ? (
               <Loading />
             ) : 추천칸.length === 0 ? (
-              <p className="hint">{t('이어지는 화면 기록이 없습니다. 「케이스 찾기」로 고릅니다')}</p>
+              <p className="hint">{t('이어지는 화면 기록이 없습니다. 「케이스 검색」으로 선택합니다')}</p>
             ) : (
               <ul className="scw-list">{추천칸.map((x) => 줄(x.row))}</ul>
             )}
@@ -182,9 +182,9 @@ export function 단계칸({ 시작, 앱들, 디바이스, 단계들, on단계들
 
         <section className="scw-sec">
           <label className="scw-sec-h" htmlFor="scw-find">
-            {t('케이스 찾기')}
+            {t('케이스 검색')}
           </label>
-          <input id="scw-find" type="text" autoComplete="off" value={찾기} placeholder={t('번호나 이름으로 찾기 · 예: 쿠폰, 197')} onChange={(e) => set찾기(e.target.value)} />
+          <input id="scw-find" type="text" autoComplete="off" value={찾기} placeholder={t('번호나 이름으로 검색 · 예: 쿠폰, 197')} onChange={(e) => set찾기(e.target.value)} />
           {오류 !== null ? (
             <Failed error={오류} />
           ) : 소문자 === '' ? null : 읽음 === null ? (

@@ -74,10 +74,10 @@ export function 시간축증거({ devices }: { devices: FailureDevice[] }) {
     <div className="ev" ref={뿌리}>
       <div className="ev-tl">
         <div className="ev-tl-h">
-          <span>{t('시간축 · 단계를 누르면 증거 칸이 그 단계로 바뀝니다')}</span>
+          <span>{t('시간축 · 단계를 누르면 증거 칸이 그 단계로 변경됩니다')}</span>
           <span className="mono">{seconds(전체ms, 언어)}</span>
         </div>
-        <div className="ev-track" role="group" aria-label={t('단계 고르기')}>
+        <div className="ev-track" role="group" aria-label={t('단계 선택')}>
           {대표.steps.map((s) => (
             <button
               key={s.seq}
@@ -131,14 +131,14 @@ function 증거칸({ devices, seq, 상세, 읽기 }: { devices: FailureDevice[];
   const 폰탭들: { id: 탭; 이름: string }[] = [
     ...(팜.some((f) => !팜영상인가(f)) ? [{ id: 'log' as const, 이름: 'logcat' }] : []),
     ...(팜.some(팜영상인가) ? [{ id: 'video' as const, 이름: t('화면 영상') }] : []),
-    ...(devices.some((d) => d.device != null) ? [{ id: 'dev' as const, 이름: t('기기 정보') }] : []),
+    ...(devices.some((d) => d.device != null) ? [{ id: 'dev' as const, 이름: t('디바이스 정보') }] : []),
   ];
   const 탭들: { id: 탭; 이름: string }[] =
     종류 === 'api'
       ? [
           { id: 'req', 이름: t('요청') },
           { id: 'res', 이름: t('응답') },
-          { id: 'diff', 이름: t('기대값 차이') },
+          { id: 'diff', 이름: t('기대 결과 차이') },
         ]
       : 종류 === 'app'
         ? [
@@ -196,7 +196,7 @@ function 증거칸({ devices, seq, 상세, 읽기 }: { devices: FailureDevice[];
   } else if (탭 === 'log' || 탭 === 'video') {
     본문 = (
       <>
-        <p className="hint">{t('실행 전체의 기록입니다 — 단계를 바꿔도 같습니다')}</p>
+        <p className="hint">{t('실행 전체의 기록입니다 — 단계를 변경해도 같습니다')}</p>
         {/* 받아 둔 것이 있는 디바이스만 — 웹 묶음의 PC 칸은 늘 비어 이름만 덩그러니 선다 */}
         {devices.filter((d) => 받기파일(d).length > 0).map((d) => (
           <div key={d.platform}>
@@ -209,7 +209,7 @@ function 증거칸({ devices, seq, 상세, 읽기 }: { devices: FailureDevice[];
   } else if (탭 === 'obj') {
     본문 = (
       <>
-        <p className="hint">{t('항목 전체의 기록입니다 — 단계를 바꿔도 같습니다')}</p>
+        <p className="hint">{t('항목 전체의 기록입니다 — 단계를 변경해도 같습니다')}</p>
         {devices.map((d) => (
           <게임오브젝트
             key={d.platform}

@@ -123,8 +123,8 @@ describe('세로 껍데기 (SPEC §8)', () => {
     expect(줄.getByRole('button', { name: `내 메뉴 · ${사람.displayName}` })).toBeTruthy();
 
     const 안 = within(document.querySelector('.side-col') as HTMLElement);
-    expect(안.getByRole('button', { name: '찾기' })).toBeTruthy();
-    expect(안.getByRole('button', { name: '데모마켓 › 결제 애플리케이션 · 바꾸기' })).toBeTruthy();
+    expect(안.getByRole('button', { name: '검색' })).toBeTruthy();
+    expect(안.getByRole('button', { name: '데모마켓 › 결제 애플리케이션 · 변경' })).toBeTruthy();
     // 설정은 자리 목록에서 빠져 톱니로 갔다. 하위는 지금 자리가 든 묶음(테스트 실행)만 펼친다
     const 메뉴 = 자리목록(사람, 결제.prefix, 'ko').filter((자리) => 자리.해시 !== '#/settings');
     const 펼친하위 = 메뉴.find((자리) => 자리.해시 === '#/cases')?.하위?.length ?? 0;
@@ -357,8 +357,8 @@ describe('언어 고르개 (SPEC §8 다국어)', () => {
   it('접어도 위치 카드가 화면에서 사라지지 않는다. 지우면 키보드 이동에서 빠진다', () => {
     사이드바접음을적는다(true);
     띄운다(결제);
-    expect(screen.getByRole('button', { name: '데모마켓 › 결제 애플리케이션 · 바꾸기' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: '찾기' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '데모마켓 › 결제 애플리케이션 · 변경' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '검색' })).toBeTruthy();
     사이드바접음을적는다(false);
   });
 });

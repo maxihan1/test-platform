@@ -68,7 +68,7 @@ export function PendingSection({
               <span className="set-name">{it.displayName}</span>
               <span className="set-sub">{it.username}</span>
               <button className="btn ghost" disabled={보내는중} onClick={() => set여는것(열림 === 'approve' ? null : { username: it.username, 일: 'approve' })}>
-                {열림 === 'approve' ? t('닫기') : t('수락')}
+                {열림 === 'approve' ? t('닫기') : t('승인')}
               </button>
               <button className="btn ghost" disabled={보내는중} onClick={() => set여는것({ username: it.username, 일: 'reject' })}>
                 {t('거절')}
@@ -77,7 +77,7 @@ export function PendingSection({
             {열림 === 'reject' ? (
               // 결과를 먼저 말하고 확정은 글자가 다른 따로 된 버튼으로 둔다 — AgentToken.tsx 와 같은 모양
               <div className="set-warn">
-                {t('가입 신청을 삭제합니다. 되돌릴 수 없습니다')}{' '}
+                {t('가입 신청을 삭제합니다. 복원할 수 없습니다')}{' '}
                 <button
                   className="btn ghost set-warn"
                   disabled={보내는중}
@@ -144,7 +144,7 @@ function ApproveForm({
             void onApprove({ role, dashboard, projects: 배정들 }).finally(() => set보내는중(false));
           }}
         >
-          {t('수락한다')}
+          {t('승인한다')}
         </button>
       </div>
     </div>

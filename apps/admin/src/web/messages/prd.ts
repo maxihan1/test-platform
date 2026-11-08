@@ -6,12 +6,12 @@ export const 기획서말: Record<string, string> = {
   '아직 PRD 가 없습니다': 'No PRD yet',
   '버전 {버전} · 요구 {건수}건': 'Version {버전} · {건수} requirements',
   '버전 기록': 'Version history',
-  '워드로 내려받기': 'Download as Word',
-  '추적표 엑셀로 내려받기': 'Download traceability matrix',
-  내려받기: 'Download',
+  '워드 다운로드': 'Download as Word',
+  '추적표 엑셀 다운로드': 'Download traceability matrix',
+  다운로드: 'Download',
   '테스트 작성 요청': 'Request test authoring',
   '요구사항 추가': 'Add requirement',
-  '테스트 작성 요청으로 기획서를 올리거나, 요구사항 추가로 첫 요구를 직접 적습니다':
+  '테스트 작성 요청으로 기획서를 업로드하거나, 요구사항 추가로 첫 요구를 직접 적습니다':
     'Upload a spec with Request test authoring, or write the first requirement yourself with Add requirement',
   '저장했습니다 (버전 {버전})': 'Saved (version {버전})',
 
@@ -23,7 +23,6 @@ export const 기획서말: Record<string, string> = {
   원문: 'Original text',
   '실제 화면에서 본 것': 'Seen on the live screen',
   '사람이 직접 적은 것': 'Written by a person',
-  바뀜: 'Changed',
   '새 항목': 'New',
   지움: 'Removed',
   오늘: 'today',
@@ -48,12 +47,12 @@ export const 기획서말: Record<string, string> = {
   '확인 필요 · {나이}': 'Needs check · {나이}',
   // 상태 칸의 「확정」 — 버튼의 「확정」(Confirm)과 영어가 다르다
   '확정§상태': 'Confirmed',
-  '사람이 고침': 'Edited by a person',
+  '사람이 수정': 'Edited by a person',
   '테스트 작성 › 결정 필요에서 테스트를 다시 만들 수 있어요 →': 'You can remake the tests in Test authoring › Decisions needed →',
   출처: 'Source',
   '설계 미리보기': 'Test design preview',
   '요구 문장에서 잡힌 경계 · 예외가 없습니다': 'No boundaries or exceptions found in this requirement',
-  고치기: 'Edit',
+  수정: 'Edit',
 
   // 보류 카드 — 계정이 없어 테스트를 못 쓴 요구 (도메인/작성 §3.6 「★ 역할별 계정」)
   '보류 {건수}건 — {역할} 계정이 등록되지 않았습니다': '{건수} on hold — no {역할} account registered',
@@ -88,7 +87,7 @@ export const 기획서말: Record<string, string> = {
   '원본 번호 · 화면 주소': 'Source ID or screen URL',
   '원본 문장': 'Source sentence',
   '출처 추가': 'Add source',
-  '출처는 「직접 작성」으로 자동으로 달립니다. 저장한 뒤 요구 줄의 고치기에서 더할 수 있습니다':
+  '출처는 「직접 작성」으로 자동으로 달립니다. 저장한 뒤 요구 줄의 수정에서 더할 수 있습니다':
     'The source is set to “직접 작성” (direct entry) automatically. After saving, add more from Edit on the requirement',
   '이 요구 삭제': 'Delete this requirement',
   // 「지우기 확인」은 입력값 지우기(Confirm clear)에 이미 쓰인다 — 여기는 요구를 지운다
@@ -110,7 +109,6 @@ export const 기획서말: Record<string, string> = {
   'AI 작성': 'AI',
   '직접 수정': 'Edited by hand',
   'AI 작성 #{번호}': 'AI #{번호}',
-  되돌림: 'Reverted',
   '롤백 · 빌드 {빌드} · {키}': 'Rollback · build {빌드} · {키}',
   '롤백 · {키}': 'Rollback · {키}',
   '테스트 작성에서 결정': 'Decided in test authoring',
@@ -125,19 +123,19 @@ export const 기획서말: Record<string, string> = {
   // 바뀐 것은 서버가 적어 준 줄(changes)을 그대로 쓰고, 없으면 앞 버전과 견줘 화면이 계산한다
   '문장 변경': 'Wording changed',
   '문구 선택': 'Wording picked',
-  '확인 필요로 바꿈': 'Marked as needs checking',
+  '확인 필요로 지정': 'Marked as needs checking',
   '{키들} 에서 옴': 'from {키들}',
   '화면이 맞음({번호})': 'Screen is right ({번호})',
-  '{자료} 쪽': 'from {자료}',
-  '바뀐 것 보기': 'Show changes',
+  '출처 {자료}': 'from {자료}',
+  '변경 사항 보기': 'Show changes',
   '처음 버전': 'First version',
-  '바뀐 요구 없음': 'No requirement changed',
+  '변경된 요구 없음': 'No requirement changed',
   '{종류} {건수}건': '{종류}: {건수}',
-  '버전 {버전}에서 바뀐 요구': 'Requirements changed in version {버전}',
-  '상태만 바뀜': 'Status only',
-  '확정으로 바뀜': 'Now confirmed',
-  '확인 필요로 바뀜': 'Now needs checking',
-  '출처가 바뀜': 'Source changed',
+  '버전 {버전}에서 변경된 요구': 'Requirements changed in version {버전}',
+  '상태만 변경': 'Status only',
+  '확정으로 변경': 'Now confirmed',
+  '확인 필요로 변경': 'Now needs checking',
+  '출처 변경': 'Source changed',
   '기능 묶음 {앞} → {뒤}': 'Feature {앞} → {뒤}',
 
   // 서비스 지도 (PrdApis.tsx · 도메인/작성 §3.6 「서비스 지도」)

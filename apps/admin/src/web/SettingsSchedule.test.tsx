@@ -44,7 +44,7 @@ describe('애플리케이션 설정 「정기 실행」 구획 (도메인/인증
     render(<ServicePanel row={꺼진서비스} onDone={() => {}} />);
 
     expect(screen.queryByLabelText('시각')).toBeNull();
-    fireEvent.click(screen.getByLabelText('매일 돌리기'));
+    fireEvent.click(screen.getByLabelText('매일 실행'));
     expect((screen.getByLabelText('시각') as HTMLInputElement).value).toBe('03:00');
     expect((screen.getByLabelText('대상 서버') as HTMLSelectElement).value).toBe('demo');
 
@@ -73,8 +73,8 @@ describe('애플리케이션 설정 「정기 실행」 구획 (도메인/인증
     const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
     render(<ServicePanel row={켜진서비스} onDone={() => {}} />);
 
-    fireEvent.click(screen.getByLabelText('매일 돌리기'));
-    fireEvent.click(screen.getByLabelText('매일 돌리기'));
+    fireEvent.click(screen.getByLabelText('매일 실행'));
+    fireEvent.click(screen.getByLabelText('매일 실행'));
     expect((screen.getByLabelText('시각') as HTMLInputElement).value).toBe('04:30');
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
 
@@ -86,7 +86,7 @@ describe('애플리케이션 설정 「정기 실행」 구획 (도메인/인증
     const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
     render(<ServicePanel row={켜진서비스} onDone={() => {}} />);
 
-    fireEvent.click(screen.getByLabelText('매일 돌리기'));
+    fireEvent.click(screen.getByLabelText('매일 실행'));
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
 
     await waitFor(() => expect(고침).toHaveBeenCalledWith(7, expect.objectContaining({ schedule: null })));
@@ -109,7 +109,7 @@ describe('애플리케이션 설정 「정기 실행」 구획 (도메인/인증
     fireEvent.change(screen.getByLabelText('대상 서버 1 키'), { target: { value: 'stage' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
 
-    expect(screen.getByText('정기 실행의 대상 서버를 대상 서버 목록에서 고릅니다')).toBeTruthy();
+    expect(screen.getByText('정기 실행의 대상 서버를 대상 서버 목록에서 선택합니다')).toBeTruthy();
     expect((screen.getByLabelText('대상 서버') as HTMLSelectElement).value).toBe('qa');
     expect(고침).not.toHaveBeenCalled();
   });

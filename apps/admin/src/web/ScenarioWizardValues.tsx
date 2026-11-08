@@ -139,7 +139,7 @@ export function 값연결칸(p: Props) {
                   </div>
                   {메모 === undefined || 메모.why === '' ? null : <p className="scw-link-why">{메모.why}</p>}
                   <span className="hint">
-                    {t('서비스 지도에서 찾았습니다 · 종류 「{종류}」', { 종류: t(종류이름[link.kind]) })}
+                    {t('애플리케이션 지도에서 찾았습니다 · 종류 「{종류}」', { 종류: t(종류이름[link.kind]) })}
                     {메모?.AI === true ? ` · ${t('JSON 경로는 AI 가 짐작했습니다')}` : null}
                   </span>
                   <div className="scw-link-acts">
@@ -181,7 +181,7 @@ export function 값연결칸(p: Props) {
                   {!열림 ? null : (
                     <div className="scw-link-edit">
                       {경로빔 ? <p className="hint">{t('앞 단계 응답에서 꺼낼 값의 경로를 적습니다 · 예: id, data.id')}</p> : null}
-                      {link.kind === 'bind' && link.param.trim() === '' ? <p className="hint">{t('값을 넣을 입력값 칸을 고릅니다')}</p> : null}
+                      {link.kind === 'bind' && link.param.trim() === '' ? <p className="hint">{t('값을 넣을 입력값 칸을 선택합니다')}</p> : null}
                       <ScenarioLinks
                         번호={받는번호}
                         단계={받는}
@@ -250,8 +250,8 @@ function 입력줄({
           </span>
         </span>
         {케이스 == null || 칸들.length === 0 ? null : (
-          <button type="button" className="btn ghost" aria-expanded={펼침} aria-label={t('{번호}번 입력값 바꾸기', { 번호 })} onClick={() => set펼침(!펼침)}>
-            {t('바꾸기')}
+          <button type="button" className="btn ghost" aria-expanded={펼침} aria-label={t('{번호}번 입력값 변경', { 번호 })} onClick={() => set펼침(!펼침)}>
+            {t('변경')}
           </button>
         )}
       </div>
@@ -285,7 +285,7 @@ function 입력칸({ 번호, 단계, 케이스, on바꿈 }: { 번호: number; �
           on바꿈({ ...단계, params: 조립값(칸들, 새글) });
         }}
       />
-      <p className="hint">{t('바꿀 값만 적습니다 · 나머지는 저장값 그대로')}</p>
+      <p className="hint">{t('변경할 값만 적습니다 · 나머지는 저장값 그대로')}</p>
     </div>
   );
 }

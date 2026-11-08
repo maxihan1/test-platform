@@ -66,7 +66,7 @@ export function Step({ step, tcId, runId, historyId, 코드 = true, 화면 = tru
               {assertion.statement}
               {/* 이 문장이 뒤 절차를 멈추게 했다. 뒤가 왜 없는지 설명이 필요하다 (SPEC §8.4) */}
               {assertion.blocker === true && assertion.status === 'FAIL' ? (
-                <span className="blocker">{t말('뒤 절차 멈춤')}</span>
+                <span className="blocker">{t말('뒤 절차 중단')}</span>
               ) : null}
             </span>
             <span className="exp">{t말('기대 {값}', { 값: show(assertion.expected, 언어) })}</span>

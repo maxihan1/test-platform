@@ -37,7 +37,7 @@ function 채운다(값: { 지금?: string; 새것?: string; 확인?: string }) {
   fireEvent.change(screen.getByLabelText('새 비밀번호 확인'), {
     target: { value: 값.확인 ?? 값.새것 ?? 'longpass1' },
   });
-  fireEvent.submit(screen.getByRole('button', { name: '비밀번호 바꾸기' }));
+  fireEvent.submit(screen.getByRole('button', { name: '비밀번호 변경' }));
 }
 
 describe('비밀번호 변경 화면', () => {
@@ -56,7 +56,7 @@ describe('비밀번호 변경 화면', () => {
     const 나감 = vi.fn();
     그리기(true, () => undefined, 나감);
 
-    expect(screen.getByText('처음 받은 비밀번호를 바꿔야 계속할 수 있습니다')).toBeTruthy();
+    expect(screen.getByText('처음 받은 비밀번호를 변경해야 계속할 수 있습니다')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '로그아웃' }));
     expect(나감).toHaveBeenCalled();
   });
@@ -79,7 +79,7 @@ describe('비밀번호 변경 화면', () => {
   it('스스로 바꿀 때는 강제 문구가 없다', () => {
     그리기(false);
 
-    expect(screen.queryByText('처음 받은 비밀번호를 바꿔야 계속할 수 있습니다')).toBeNull();
+    expect(screen.queryByText('처음 받은 비밀번호를 변경해야 계속할 수 있습니다')).toBeNull();
   });
 
   it('새 비밀번호 두 칸이 다르면 보내지 않는다', () => {

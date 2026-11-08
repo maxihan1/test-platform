@@ -34,21 +34,21 @@ export function 차례글(줄: 차례줄, t: 말): string {
     case 'draftRetry':
       return t('{키들} PRD 초안을 다시 만듭니다', { 키들: 줄.이슈.join(', ') });
     case 'apply':
-      return t('#{번호} 테스트를 승인해 케이스 목록에 올립니다', { 번호: 줄.rootId });
+      return t('#{번호} 테스트를 승인해 케이스 목록에 등록합니다', { 번호: 줄.rootId });
     case 'reject':
       return t('#{번호} 작성 결과를 폐기합니다', { 번호: 줄.rootId });
     case 'fix': {
       const 조각 = [
         ...(줄.화면 > 0 ? [t('PRD 수정 {수}건', { 수: 줄.화면 })] : []),
-        ...(줄.문장 > 0 ? [t('문장이 바뀐 요구 {수}건', { 수: 줄.문장 })] : []),
+        ...(줄.문장 > 0 ? [t('문장이 변경된 요구 {수}건', { 수: 줄.문장 })] : []),
         ...(줄.초안 > 0 ? [t('PRD 초안 {수}줄', { 수: 줄.초안 })] : []),
-        ...(줄.바뀐요구 ? [줄.바뀐요구수 === null ? t('바뀐 요구') : t('바뀐 요구 {수}건', { 수: 줄.바뀐요구수 })] : []),
+        ...(줄.바뀐요구 ? [줄.바뀐요구수 === null ? t('변경된 요구') : t('변경된 요구 {수}건', { 수: 줄.바뀐요구수 })] : []),
       ];
-      const 글 = t('{대상}의 테스트를 고치고 다시 만듭니다', { 대상: 조각.join(' · ') });
-      return 줄.같이 ? `${글} (${t('바뀐 요구도 같이 다시 만듭니다')})` : 글;
+      const 글 = t('{대상}의 테스트를 수정하고 다시 만듭니다', { 대상: 조각.join(' · ') });
+      return 줄.같이 ? `${글} (${t('변경된 요구도 같이 다시 만듭니다')})` : 글;
     }
     case 'api':
-      return 줄.수 === null ? t('바뀐 API 의 테스트를 다시 만듭니다') : t('바뀐 API {수}건의 테스트를 다시 만듭니다', { 수: 줄.수 });
+      return 줄.수 === null ? t('변경된 API 의 테스트를 다시 만듭니다') : t('변경된 API {수}건의 테스트를 다시 만듭니다', { 수: 줄.수 });
     case 'screens':
       return 줄.수 === null ? t('테스트가 확인하지 않은 화면의 테스트를 만듭니다') : t('테스트가 확인하지 않은 화면 {수}개의 테스트를 만듭니다', { 수: 줄.수 });
   }
@@ -76,17 +76,17 @@ export function 진행중({ service, 줄들, steps, on돌아가기 }: { service:
   }, [service, 번호들.join(), 남음]);
 
   const 상태글 = (n: number | null) => {
-    if (n === null) return t('끝남');
+    if (n === null) return t('종료');
     const s = 상태.get(n);
-    if (s === undefined || s === 'PENDING' || s === 'DRAFT') return t('앞 일이 끝나면 시작');
+    if (s === undefined || s === 'PENDING' || s === 'DRAFT') return t('앞 일이 완료되면 시작');
     if (s === 'RUNNING') return t('진행 중');
-    return { DONE: t('끝남'), FAILED: t('실패'), STOPPED: t('중단') }[s];
+    return { DONE: t('완료'), FAILED: t('실패'), STOPPED: t('중단') }[s];
   };
   return (
     <section className="decide" role="status" aria-labelledby="decide-run-title">
       <header>
         <h2 id="decide-run-title">{t('적용을 시작했습니다')}</h2>
-        <small className="hint">{t('위에서부터 차례로 적용합니다. 바뀐 내용은 PRD 관리 › 버전 기록에서 볼 수 있습니다')}</small>
+        <small className="hint">{t('위에서부터 차례로 적용합니다. 변경된 내용은 PRD 관리 › 버전 기록에서 볼 수 있습니다')}</small>
       </header>
       <ol className="decide-plan">
         {줄들.map((줄, i) => {

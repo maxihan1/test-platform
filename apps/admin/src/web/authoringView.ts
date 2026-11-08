@@ -65,7 +65,7 @@ export function 끝났나(status: AuthoringRow['status']): boolean {
 export function 종류라벨(kind: AuthoringRow['kind'], 언어: 언어): string {
   if (kind === 'MERGE') return t('반영', 언어);
   if (kind === 'RERUN') return t('다시 실행', 언어);
-  if (kind === 'EDIT') return t('케이스 고치기', 언어);
+  if (kind === 'EDIT') return t('케이스 수정', 언어);
   return t('작성', 언어);
 }
 
@@ -88,7 +88,7 @@ export function 칩글(행: Omit<AuthoringRow, 'assets'>, 보: 보임, 언어: �
   if (반영 === 'FAILED') return t('반영 실패', 언어);
   if (반영 === 'WAITING') return t('반영 대기', 언어);
   if (보 === 'running' && 행.kind === 'MERGE') return t('반영 중', 언어);
-  if (보 === 'running' && 고치기실행인가(행)) return t('고치는 중', 언어);
+  if (보 === 'running' && 고치기실행인가(행)) return t('수정 중', 언어);
   if (보 === 'done' && 행.kind === 'MERGE') return t('반영 완료', 언어);
   return 보임라벨(보, 언어);
 }
@@ -113,7 +113,7 @@ export function 할일칩들(todo: AuthoringTodoCount, 언어: 언어): { 글: s
 /** 보임을 사람 말로 (`runState.ts` 의 `상태라벨` 과 같은 모양) */
 export function 보임라벨(보: 보임, 언어: 언어): string {
   // 「대기」와 가른다. 대기는 기다리면 맥이 집지만, 준비 중은 자료를 다 못 올린 채 멈췄으면 영영 안 집힌다
-  if (보 === 'draft') return t('자료 올리는 중', 언어);
+  if (보 === 'draft') return t('자료 업로드 중', 언어);
   if (보 === 'queued') return t('대기 중', 언어);
   if (보 === 'running') return t('작성 중', 언어);
   // **서버가 주는 상태가 아니다.** 신호가 오래 끊긴 것을 화면이 판정했다 — 까닭은 모르니 끊긴 사실만 말한다
@@ -127,7 +127,7 @@ export function 보임라벨(보: 보임, 언어: 언어): string {
 
 /** 중단 이유를 사람 말로 (도메인/작성 §7). 모르는 값은 「기록 없음」 — 식별자를 화면에 흘리지 않는다 */
 export function 중단이유라벨(reason: string | null | undefined, 언어: 언어): string {
-  if (reason === 'USER') return t('사용자가 멈춤', 언어);
+  if (reason === 'USER') return t('사용자가 중단', 언어);
   // 제한 시간 숫자를 박지 않는다 — 에이전트 설정이 바뀌면 글이 거짓말을 한다(분모는 progress.limitSec 이 준다)
   if (reason === 'TIMEOUT') return t('시간초과', 언어);
   if (reason === 'LIMIT') return t('구독 한도', 언어);
@@ -135,7 +135,7 @@ export function 중단이유라벨(reason: string | null | undefined, 언어: �
   if (reason === 'AGENT_LOST') return t('작성 응답 없음', 언어);
   // 이어서 작성할 수 있어 중단이다 — 실패는 자식을 띄우기 전 문제만 (작성 §7 「이어하기」, 2026-09-28)
   if (reason === 'CRASH') return t('작성 중 끊김', 언어);
-  if (reason === 'REJECTED') return t('올리기 거절', 언어);
+  if (reason === 'REJECTED') return t('업로드 거절', 언어);
   return t('기록 없음', 언어);
 }
 

@@ -32,7 +32,7 @@ describe('호환성 실행 중 창', () => {
     expect(창.getAllByText(/케이스 6 \/ 9/)).toHaveLength(2);
     expect(창.getByText('장바구니 담기', { exact: false })).toBeTruthy();
     expect(창.getByText(/^점검 상태 1 \/ 3 완료/)).toBeTruthy();
-    expect(창.getByRole('link', { name: /Device VISION 에서 폰 화면 보기/ }).getAttribute('href')).toBe('https://vision.example/devices/S2');
+    expect(창.getByRole('link', { name: /Device VISION 에서 디바이스 화면 보기/ }).getAttribute('href')).toBe('https://vision.example/devices/S2');
     expect(창.getByRole('button', { name: '실행 중단' })).toBeTruthy();
   });
 
@@ -41,13 +41,13 @@ describe('호환성 실행 중 창', () => {
     render(<CompatRunWindow runId={21107} service="DMA" 닫기={() => undefined} />);
     const 창 = within(await screen.findByRole('dialog', { name: '출시 전 점검 · 호환성 실행 중' }));
     expect(창.queryByRole('link', { name: /Device VISION/ })).toBeNull();
-    expect(창.getByText('폰 화면은 Device VISION 에서 봅니다')).toBeTruthy();
+    expect(창.getByText('디바이스 화면은 Device VISION 에서 봅니다')).toBeTruthy();
   });
 
   it('끝나면 결과 단계로 넘어가고 결과 보기는 애플리케이션을 담은 결과 주소로 간다', async () => {
     vi.spyOn(compatApi, 'run').mockResolvedValue(결과());
     render(<CompatRunWindow runId={21107} service="DMA" 닫기={() => undefined} />);
-    const 창 = within(await screen.findByRole('dialog', { name: '출시 전 점검 · 호환성 실행이 끝났습니다' }));
+    const 창 = within(await screen.findByRole('dialog', { name: '출시 전 점검 · 호환성 실행이 완료되었습니다' }));
     fireEvent.click(창.getByRole('button', { name: '결과 보기' }));
     expect(window.location.hash).toBe('#/compat/runs/21107?service=DMA');
   });

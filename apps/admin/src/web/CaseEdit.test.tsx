@@ -43,13 +43,13 @@ function 시나리오(id: number, name: string): ScenarioRow {
   return { id, name, platform: 'desktop', version: 1, partCount: 1, isActive: true, needsCheck: false, runnable: true, lastRun: null };
 }
 
-const 기존문장 = '삭제하면 이 케이스를 쓰는 E2E 시나리오가 더 돌지 않습니다. 실행 기록은 남습니다.';
+const 기존문장 = '삭제하면 이 케이스를 쓰는 E2E 시나리오가 더 이상 실행되지 않습니다. 실행 기록은 남습니다.';
 
 function 자리() {
-  return within(screen.getByRole('group', { name: '코드 기본값 바꾸기 요청' }));
+  return within(screen.getByRole('group', { name: '코드 기본값 변경 요청' }));
 }
 
-describe('코드 기본값 바꾸기 요청', () => {
+describe('코드 기본값 변경 요청', () => {
   it('바꿀 수 있는 칸만 코드 기본값으로 채워 연다. 비밀값 · 배열 칸은 없다', () => {
     render(<코드기본값고치기 row={케이스()} service="XEW" />);
 
@@ -100,9 +100,9 @@ describe('코드 기본값 바꾸기 요청', () => {
     });
     render(<코드기본값고치기 row={행} service="XEW" />);
 
-    expect(자리().queryByText(/반영되면 이 저장값은 지워집니다/)).toBeNull();
+    expect(자리().queryByText(/반영되면 이 저장값은 삭제됩니다/)).toBeNull();
     fireEvent.change(자리().getByLabelText(/주문 상태/), { target: { value: '배송 완료' } });
-    expect(자리().getByText(/주문 상태 — 반영되면 이 저장값은 지워집니다/)).toBeTruthy();
+    expect(자리().getByText(/주문 상태 — 반영되면 이 저장값은 삭제됩니다/)).toBeTruthy();
   });
 
   it('미확정 케이스에도 확정 고르개가 없다. 확정은 「PRD 관리」에서 한다', async () => {
@@ -123,8 +123,8 @@ describe('코드 기본값 바꾸기 요청', () => {
     render(
       <CaseDetail row={케이스({ isActive: false })} 마지막={{}} 기억={빈기억()} 고칠서비스="XEW" onClose={() => {}} on값={() => {}} on저장됨={() => {}} />,
     );
-    expect(screen.queryByText('코드 기본값 바꾸기 요청')).toBeNull();
-    expect(screen.queryByRole('group', { name: '코드 기본값 바꾸기 요청', hidden: true })).toBeNull();
+    expect(screen.queryByText('코드 기본값 변경 요청')).toBeNull();
+    expect(screen.queryByRole('group', { name: '코드 기본값 변경 요청', hidden: true })).toBeNull();
   });
 
   it('활성 케이스 상세에는 접힌 details 안에 고치기 자리가 있다', () => {
@@ -134,8 +134,8 @@ describe('코드 기본값 바꾸기 요청', () => {
     );
     const 접힘 = container.querySelector('details.case-edit-fold') as HTMLDetailsElement;
     expect(접힘.open).toBe(false);
-    expect(접힘.querySelector('summary')?.textContent).toBe('코드 기본값 바꾸기 요청');
-    expect(within(접힘).getByRole('group', { name: '코드 기본값 바꾸기 요청', hidden: true })).toBeTruthy();
+    expect(접힘.querySelector('summary')?.textContent).toBe('코드 기본값 변경 요청');
+    expect(within(접힘).getByRole('group', { name: '코드 기본값 변경 요청', hidden: true })).toBeTruthy();
   });
 
   it('삭제는 두 번 눌러야 간다', async () => {
@@ -209,7 +209,7 @@ describe('코드 기본값 바꾸기 요청', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '케이스 삭제 요청' }));
 
-    expect(await screen.findByText(/이 케이스를 쓰는 E2E 시나리오 2개 — 삭제하면 다른 케이스로 바꿀 때까지 실행할 수 없습니다/)).toBeTruthy();
+    expect(await screen.findByText(/이 케이스를 쓰는 E2E 시나리오 2개 — 삭제하면 다른 케이스로 변경할 때까지 실행할 수 없습니다/)).toBeTruthy();
     expect(부름).toHaveBeenCalledWith('XEW', ['XEW-001']);
     expect(screen.getByRole('link', { name: 'SC-3 가입 흐름' }).getAttribute('href')).toBe('#/scenarios/3');
     expect(screen.getByRole('link', { name: 'SC-8 결제 흐름' }).getAttribute('href')).toBe('#/scenarios/8');

@@ -89,7 +89,7 @@ export function 진행왼쪽({ data, 진행: 지금, 남은ms }: { data: RunDeta
             <줄 key={항목.historyId} 항목={항목} 오른쪽={<span className="pill run">{짧은단계글(절차, t) ?? t('진행 중')}</span>} />
           ))}
         </묶음>
-        <묶음 이름={t('끝남')} 수={끝난것들.length}>
+        <묶음 이름={t('종료')} 수={끝난것들.length}>
           {끝난것들.slice(0, 줄최대).map((항목) => (
             <줄 key={항목.historyId} 항목={항목} 오른쪽={<span className={`pill ${알약종류[항목.status]}`}>{t(STATUS_LABEL[항목.status])}</span>} />
           ))}

@@ -166,7 +166,7 @@ export function 역할계정칸들({
             >
               −
             </button>
-            {역할이름바꿈(r) ? <div className="hint">{t('역할 이름을 바꾸면 이 역할의 비밀번호가 초기화됩니다. 저장한 뒤 다시 입력해 주세요')}</div> : null}
+            {역할이름바꿈(r) ? <div className="hint">{t('역할 이름을 변경하면 이 역할의 비밀번호가 초기화됩니다. 저장한 뒤 다시 입력해 주세요')}</div> : null}
           </div>
         );
       })}

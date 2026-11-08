@@ -77,7 +77,7 @@ describe('ScenarioWizard 시작 방법', () => {
   it('고르기 전에 다음을 누르면 까닭이 뜨고, 직접 고르기면 AI 추천 단계가 띠에 없다', () => {
     그리기();
     다음();
-    expect(screen.getByRole('alert').textContent).toBe('시작 방법을 고릅니다');
+    expect(screen.getByRole('alert').textContent).toBe('시작 방법을 선택합니다');
     expect(띠()).toEqual(['시작 방법', '단계', '값 연결', '시험 실행', '저장']);
 
     fireEvent.click(screen.getByRole('button', { name: /AI 추천으로 시작/ }));
@@ -87,7 +87,7 @@ describe('ScenarioWizard 시작 방법', () => {
 
   it('다음 단계로 넘어가면 본문이 맨 위에서 시작한다', () => {
     그리기();
-    fireEvent.click(screen.getByRole('button', { name: /직접 고르기/ }));
+    fireEvent.click(screen.getByRole('button', { name: /직접 선택/ }));
     const 본문 = document.querySelector('.wz-main');
     if (본문 === null) throw new Error('마법사 본문이 없다');
     본문.scrollTop = 490;
@@ -99,7 +99,7 @@ describe('ScenarioWizard 시작 방법', () => {
   it('단계를 넘기면 step= 가 붙고 기록이 쌓인다 — 뒤로 가기는 앞 단계이고 고른 값은 그대로다 (WEB-F8-01)', async () => {
     그리기();
     const 길이 = window.history.length;
-    fireEvent.click(screen.getByRole('button', { name: /직접 고르기/ }));
+    fireEvent.click(screen.getByRole('button', { name: /직접 선택/ }));
     다음();
     expect(screen.getByText(/^2 \/ 5/u)).toBeTruthy();
     expect(window.location.hash).toBe('#/scenarios/new?step=1');
@@ -107,7 +107,7 @@ describe('ScenarioWizard 시작 방법', () => {
 
     window.history.back();
     await waitFor(() => expect(screen.getByText(/^1 \/ 5/u)).toBeTruthy());
-    expect(screen.getByRole('button', { name: /직접 고르기/ }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: /직접 선택/ }).getAttribute('aria-pressed')).toBe('true');
     expect(window.location.hash).toBe('#/scenarios/new');
 
     window.history.forward();
@@ -168,7 +168,7 @@ describe('ScenarioWizard AI 추천', () => {
     expect(screen.getByText('테스트 12건')).toBeTruthy();
 
     다음();
-    expect(screen.getByRole('alert').textContent).toContain('후보를 하나 골라 주세요');
+    expect(screen.getByRole('alert').textContent).toContain('후보를 하나 선택해 주세요');
     fireEvent.click(후보);
     expect(후보.getAttribute('aria-pressed')).toBe('true');
     다음();
@@ -191,7 +191,7 @@ describe('ScenarioWizard AI 추천', () => {
     다음();
 
     expect(await screen.findByText('AI 추천을 지금 쓸 수 없습니다')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: '직접 고르기로 바꾸기' }));
+    fireEvent.click(screen.getByRole('button', { name: '직접 선택으로 변경' }));
     expect(screen.getByRole('heading', { name: '단계를 차례로 이어 붙입니다' })).toBeTruthy();
     expect(띠()).toEqual(['시작 방법', '단계', '값 연결', '시험 실행', '저장']);
   });
@@ -200,7 +200,7 @@ describe('ScenarioWizard AI 추천', () => {
 describe('ScenarioWizard 단계', () => {
   async function 단계로() {
     그리기();
-    fireEvent.click(screen.getByRole('button', { name: /직접 고르기/ }));
+    fireEvent.click(screen.getByRole('button', { name: /직접 선택/ }));
     다음();
     await screen.findByRole('region', { name: '지금 순서' });
   }
@@ -234,11 +234,11 @@ describe('ScenarioWizard 단계', () => {
   it('케이스 찾기는 경계 · 예외 케이스도 찾고, 다른 단계는 줄 아래에 설정 칸을 편다', async () => {
     vi.spyOn(scenarioApi, 'nextCases').mockResolvedValue({ items: [] });
     await 단계로();
-    expect(await screen.findByText('이어지는 화면 기록이 없습니다. 「케이스 찾기」로 고릅니다')).toBeTruthy();
+    expect(await screen.findByText('이어지는 화면 기록이 없습니다. 「케이스 검색」으로 선택합니다')).toBeTruthy();
 
-    fireEvent.change(screen.getByLabelText('케이스 찾기'), { target: { value: 'ZSB-003' } });
+    fireEvent.change(screen.getByLabelText('케이스 검색'), { target: { value: 'ZSB-003' } });
     fireEvent.click(await screen.findByRole('button', { name: 'ZSB-003 넣기' }));
-    fireEvent.change(screen.getByLabelText('케이스 찾기'), { target: { value: '없는 것' } });
+    fireEvent.change(screen.getByLabelText('케이스 검색'), { target: { value: '없는 것' } });
     expect(screen.getByText('「없는 것」에 맞는 케이스가 없습니다')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: '+ 대기' }));
@@ -260,7 +260,7 @@ describe('ScenarioWizard 조립 화면으로', () => {
     vi.spyOn(scenarioApi, 'nextCases').mockResolvedValue({ items: [{ tcId: 'ZSB-001', screen: '/' }] });
     vi.spyOn(scenarioApi, 'caseParts').mockImplementation(async (tcId) => 재료(tcId));
     render(<감싸개 />);
-    fireEvent.click(screen.getByRole('button', { name: /직접 고르기/ }));
+    fireEvent.click(screen.getByRole('button', { name: /직접 선택/ }));
     다음();
     fireEvent.click(within(await screen.findByRole('region', { name: '첫 단계 추천' })).getByRole('button', { name: 'ZSB-001 넣기' }));
     fireEvent.click(screen.getByRole('button', { name: '조립 화면으로' }));

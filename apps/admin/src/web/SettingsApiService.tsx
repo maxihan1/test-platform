@@ -15,7 +15,7 @@ export function 종류칸({ 값 }: { 값: 앱종류 }) {
       <span className="field-label">{t('종류')}</span>
       <div>
         <span>{종류이름(값, 언어)}</span>
-        <div className="hint">{t('만든 뒤에는 바꿀 수 없습니다')}</div>
+        <div className="hint">{t('만든 뒤에는 변경할 수 없습니다')}</div>
       </div>
     </div>
   );
@@ -37,7 +37,7 @@ export function API문서구획(p: { 경로: string; 바꾼경로: (v: string) =
         <label htmlFor="sf-apidoc-env">{t('기준 서버')}</label>
         <div>
           <select id="sf-apidoc-env" value={p.기준} onChange={(e) => p.바꾼기준(e.target.value)}>
-            <option value="">{t('고르지 않음')}</option>
+            <option value="">{t('선택 안 함')}</option>
             {p.서버들.map((env) => (
               <option key={env} value={env}>
                 {env}
@@ -46,7 +46,7 @@ export function API문서구획(p: { 경로: string; 바꾼경로: (v: string) =
             {/* 고른 줄의 이름을 고쳤거나 뺐으면 그대로 보여 준다 — 조용히 비우면 모르고 저장한다. 저장은 아래 까닭이 막는다 */}
             {p.기준 === '' || p.서버들.includes(p.기준) ? null : <option value={p.기준}>{p.기준}</option>}
           </select>
-          <div className="hint">{t('이 서버의 문서가 바뀔 때만 새 버전으로 저장합니다')}</div>
+          <div className="hint">{t('이 서버의 문서가 변경될 때만 새 버전으로 저장합니다')}</div>
         </div>
       </div>
     </구획>
@@ -56,6 +56,6 @@ export function API문서구획(p: { 경로: string; 바꾼경로: (v: string) =
 /** 서버가 400 BAD_API_DOC_URL 로 막을 것을 먼저 짚는다. 어느 칸이 틀렸는지 응답에 안 담겨 온다 */
 export function API문서못보내는이유(입력: { 경로: string; 기준: string; 서버들: string[] }, 언어: 언어): string | null {
   if (입력.경로 !== '' && (!입력.경로.startsWith('/') || 입력.경로.length > 500)) return 말('문서 경로는 / 로 시작하고 500자까지 적을 수 있습니다', 언어);
-  if (입력.기준 !== '' && !입력.서버들.includes(입력.기준)) return 말('API 문서의 기준 서버를 대상 서버 목록에서 고릅니다', 언어);
+  if (입력.기준 !== '' && !입력.서버들.includes(입력.기준)) return 말('API 문서의 기준 서버를 대상 서버 목록에서 선택합니다', 언어);
   return null;
 }

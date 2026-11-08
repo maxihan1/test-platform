@@ -190,7 +190,7 @@ describe('왼쪽 줄 펼치기 (2026-11-05)', () => {
     fireEvent.keyDown(document, { key: 'Tab' });
     fireEvent.focusIn(칸);
     expect(펼쳤나()).toBe(true);
-    fireEvent.focusOut(칸, { relatedTarget: screen.getByRole('button', { name: '찾기' }) });
+    fireEvent.focusOut(칸, { relatedTarget: screen.getByRole('button', { name: '검색' }) });
     expect(펼쳤나()).toBe(false);
   });
 

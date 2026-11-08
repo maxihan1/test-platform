@@ -135,7 +135,7 @@ export function SettingsPerfAgents({ projects, 아래 }: { projects: { id: numbe
       {아래}
       {지울것 === null ? null : (
         <Modal
-          제목={t('에이전트를 지울까요?')}
+          제목={t('에이전트를 삭제할까요?')}
           onClose={() => set지울것(null)}
           버튼={
             <>
@@ -148,7 +148,7 @@ export function SettingsPerfAgents({ projects, 아래 }: { projects: { id: numbe
             </>
           }
         >
-          <p>{t('「{이름}」을 지우면 그 토큰도 끊겨 다시 붙이려면 새로 설치해야 합니다', { 이름: 지울것.name })}</p>
+          <p>{t('「{이름}」을 삭제하면 그 토큰도 끊겨 다시 연결하려면 재설치해야 합니다', { 이름: 지울것.name })}</p>
         </Modal>
       )}
     </div>
@@ -207,7 +207,7 @@ function 에이전트추가({ projects, 붙음 }: { projects: { id: number; name
           <label className="perf-field">
             {t('프로젝트')}
             <select value={projectId} onChange={(e) => setProjectId(e.target.value)}>
-              <option value="">{t('고르기')}</option>
+              <option value="">{t('선택')}</option>
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}

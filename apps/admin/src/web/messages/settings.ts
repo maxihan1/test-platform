@@ -38,7 +38,7 @@ export const 설정말: Record<string, string> = {
 
   // 서비스 편집기
   '접두사': 'Prefix',
-  '만든 뒤에는 바꿀 수 없습니다. 케이스 번호에 이미 쓰고 있습니다':
+  '만든 뒤에는 변경할 수 없습니다. 케이스 번호에 이미 쓰고 있습니다':
     'Cannot be changed after creation. It is already baked into the case IDs',
   '대문자로 시작하는 영문·숫자 12자 이내로 적습니다. 예: PAY · MEM2':
     'Up to 12 letters and digits, starting with a capital. e.g. PAY · MEM2',
@@ -46,7 +46,7 @@ export const 설정말: Record<string, string> = {
   '결제 페이지': 'Payments',
   '테스트 폴더': 'Tests folder',
   '테스트 저장소': 'Tests repository',
-  '작성 요청이 올린 PR 이 이 저장소 것인지 확인하는 데 씁니다. 비워 두면 작성한 케이스를 반영할 수 없습니다':
+  '작성 요청이 등록한 PR 이 이 저장소 것인지 확인하는 데 씁니다. 비워 두면 작성한 케이스를 반영할 수 없습니다':
     'Used to check that the PR from an authoring request belongs to this repository. Leave it empty and the cases it wrote cannot be applied',
   '플랫폼이 테스트 스크립트를 읽어 오는 폴더입니다': 'The folder the platform reads test scripts from',
   '탐색 제외 경로': 'Excluded paths',
@@ -84,8 +84,8 @@ export const 설정말: Record<string, string> = {
   '대상 서버 {번호} 앱 파일 경로': 'Target server {번호} app file path',
   '앱 파일 경로 (Android 앱 · 게임)': 'App file path (Android apps · games)',
   '앱 파일 경로 또는 패키지 이름': 'App file path or package name',
-  'APK 가 없으면 Device VISION 폰에 스토어로 깔아 둔 앱의 패키지 이름을 적습니다': 'If there is no APK, enter the package name of the app installed from the store on a Device VISION phone',
-  '앱 파일 경로는 Android 앱 · 게임 케이스를 돌릴 때 설치할 apk 입니다. Device VISION 이 도는 PC 의 파일 경로나 http(s) 주소를 적고, 비우면 테스트 실행기를 켤 때 준 PLATFORM_APP 을 씁니다':
+  'APK 가 없으면 Device VISION 디바이스에 스토어로 설치해 둔 앱의 패키지 이름을 적습니다': 'If there is no APK, enter the package name of the app installed from the store on a Device VISION phone',
+  '앱 파일 경로는 Android 앱 · 게임 케이스를 실행할 때 설치할 apk 입니다. Device VISION 이 실행 중인 PC 의 파일 경로나 http(s) 주소를 적고, 비우면 테스트 실행기를 켤 때 준 PLATFORM_APP 을 씁니다':
     'The app file path is the apk installed when Android app cases run. Enter a file path on the PC running Device VISION or an http(s) URL. Leave it empty to use PLATFORM_APP given when the runner started',
   '역할 이름': 'Role name',
   '+ 역할 추가': '+ Add role',
@@ -98,8 +98,8 @@ export const 설정말: Record<string, string> = {
   '대상 서버 {번호} 역할 {순번} 비밀번호 삭제': 'Delete target server {번호} role {순번} password',
   '대상 서버 {번호} 역할 {순번} 비밀번호 변경 취소': 'Cancel changing target server {번호} role {순번} password',
   '대상 서버 {번호} 역할 {순번} 삭제': 'Delete target server {번호} role {순번}',
-  '역할 이름을 바꾸면 이 역할의 비밀번호가 초기화됩니다. 저장한 뒤 다시 입력해 주세요': 'Renaming the role resets its password. Enter it again after saving',
-  '키 이름을 바꾸면 이 서버의 비밀번호가 초기화됩니다. 저장한 뒤 다시 입력해 주세요': 'Renaming the key resets this server\'s password. Enter it again after saving',
+  '역할 이름을 변경하면 이 역할의 비밀번호가 초기화됩니다. 저장한 뒤 다시 입력해 주세요': 'Renaming the role resets its password. Enter it again after saving',
+  '키 이름을 변경하면 이 서버의 비밀번호가 초기화됩니다. 저장한 뒤 다시 입력해 주세요': 'Renaming the key resets this server\'s password. Enter it again after saving',
   '없음': 'None',
   '이대로 저장하면 알림이 꺼집니다. 유지하려면 「변경 취소」를 누릅니다':
     'Saving like this turns notifications off. Press Cancel change to keep them on',
@@ -114,7 +114,7 @@ export const 설정말: Record<string, string> = {
   '+ 대상 서버 추가': '+ Add target server',
   '주소': 'URL',
   'PRD 가 기다리는 역할: {역할}': 'Roles the PRD is waiting for: {역할}',
-  '빼기': 'Remove',
+  '제거': 'Remove',
   '등록된 서버가 없으면 테스트를 실행할 수 없습니다': 'Tests cannot run until a server is registered',
 
   // 못 보내는 이유 (§8.2 — 버튼은 살려 두고 사유를 말한다)
@@ -146,10 +146,10 @@ export const 설정말: Record<string, string> = {
     'You have no projects assigned to yourself yet. Assign them from Edit on your own row below',
   '김철수': 'Jane Doe',
   '관리자': 'Admin',
-  '마지막 관리자라 끌 수 없습니다. 먼저 다른 사람을 관리자로 올립니다':
+  '마지막 관리자라 끌 수 없습니다. 먼저 다른 사람을 관리자로 지정합니다':
     'The last admin cannot be turned off. Make someone else an admin first',
   '관리자 (배정된 프로젝트 전부 + 설정 · 반영)': 'Admin (all assigned projects + Settings · apply)',
-  '관리자는 배정된 프로젝트에서 모든 기능을 씁니다. 켜 둘 프로젝트만 고르세요.':
+  '관리자는 배정된 프로젝트에서 모든 기능을 씁니다. 켜 둘 프로젝트만 선택하세요.':
     'Admins use every feature in their assigned projects. Pick only the projects to turn on.',
   '프로젝트와 권한': 'Projects and permissions',
   '케이스§권한': 'Cases',
@@ -168,18 +168,18 @@ export const 설정말: Record<string, string> = {
   '쓰기': 'Write',
   '「테스트만」은 결과를 보고 시험 실행만 합니다. 기록이 남는 실행은 못 합니다':
     'Test only sees results and starts trial runs only. It cannot start runs that are recorded',
-  '이대로면 실행 설정에서 고를 케이스가 보이지 않습니다.': 'No cases will show up to pick in run setup.',
+  '이대로면 실행 설정에서 선택할 케이스가 보이지 않습니다.': 'No cases will show up to pick in run setup.',
   '세 칸이 모두 「안 씀」이면 저장되지 않습니다. 배정을 풀려면 프로젝트를 끄세요.':
     'All three set to Off cannot be saved. To unassign, turn the project off.',
   '먼저 프로젝트를 만듭니다': 'Create a project first',
-  '프로젝트를 고르면 그 안의 애플리케이션이 모두 열리고, 새 애플리케이션이 들어와도 바로 열립니다. 배정받지 않은 프로젝트는 그 사람의 프로젝트 선택 목록에 뜨지 않습니다':
+  '프로젝트를 선택하면 그 안의 애플리케이션이 모두 열리고, 새 애플리케이션이 들어와도 바로 열립니다. 배정받지 않은 프로젝트는 그 사람의 프로젝트 선택 목록에 뜨지 않습니다':
     'Choosing a project opens every application in it, including ones added later. Projects not assigned do not show up in their project picker',
   '애플리케이션 {수}개': '{수} applications',
   '비밀번호는 시스템이 만듭니다. 만든 직후': 'The system generates the password. It is shown',
   '한 번만': 'only once',
   '보여 줍니다': 'right after the account is created',
   '비밀번호 재발급': 'Reissue password',
-  '자기 비밀번호는 맨 위 오른쪽 이름을 눌러 나오는 「비밀번호 변경」에서 바꿉니다':
+  '자기 비밀번호는 맨 위 오른쪽 이름을 눌러 나오는 「비밀번호 변경」에서 변경합니다':
     'Change your own password with "Change password" in the menu under your name at the top right',
   '한 번 더 누르면 지금 비밀번호가 무효가 됩니다': 'Press once more and the current password stops working',
 
@@ -231,7 +231,7 @@ export const 설정말: Record<string, string> = {
   '이름 없음': 'No name',
   '{호스트} 이름': 'Name for {호스트}',
   '다른 프로젝트로 옮기려면 프로젝트 화면에서 합니다': 'To move it to another project, use the project screen',
-  '프로젝트를 골라 주세요': 'Choose a project',
+  '프로젝트를 선택해 주세요': 'Choose a project',
   '사람': 'People',
   '기다리는 가입 신청이 없습니다': 'No sign-up requests waiting',
   '그런 애플리케이션이 없습니다': 'No such application',
@@ -258,7 +258,7 @@ export const 설정말: Record<string, string> = {
   '정기 실행': 'Scheduled runs',
   '매일 정한 시각에 이 애플리케이션의 스크립트를 자동으로 한 번 실행합니다. 대시보드의 통과율과 일별 결과는 이 실행으로 집계됩니다':
     'Runs this application\'s scripts automatically once a day at the set time. The dashboard pass rate and daily results are based on these runs',
-  '매일 돌리기': 'Run daily',
+  '매일 실행': 'Run daily',
   '시각': 'Time',
   '{시간대} 기준': '{시간대} time',
   '정한 시각부터 1시간 안에 사용 중인 스크립트를 UI·기능 테스트로 한 번씩 실행하고 Slack 웹훅이 있으면 결과를 알립니다. 그 시간에 서버가 꺼져 있으면 그날은 건너뜁니다':
@@ -266,7 +266,7 @@ export const 설정말: Record<string, string> = {
   '마지막 정기 실행': 'Last scheduled run',
   '아직 실행한 적이 없습니다': 'Has not run yet',
   '정기 실행 시각을 입력해 주세요': 'Enter the scheduled run time',
-  '정기 실행의 대상 서버를 대상 서버 목록에서 고릅니다': 'Pick the scheduled run target server from the target server list',
+  '정기 실행의 대상 서버를 대상 서버 목록에서 선택합니다': 'Pick the scheduled run target server from the target server list',
 
   // 화면 크기 구획 (§8.8 · PRD-F10-08)
   '화면 크기': 'Screen size',
@@ -278,7 +278,7 @@ export const 설정말: Record<string, string> = {
   'PC 전용': 'Desktop only',
   '아직 판정 안 함': 'Not checked yet',
   '화면별 차이': 'Differences by page',
-  '테스트 작성 때 화면을 탐색하면 정해집니다. 대상 서버 주소를 바꾸면 다음 탐색까지 비워 둡니다':
+  '테스트 작성 때 화면을 탐색하면 정해집니다. 대상 서버 주소를 변경하면 다음 탐색까지 비워 둡니다':
     'Set when test authoring explores the pages. Changing the server address clears it until the next exploration',
   'PC 와 모바일이 다른 화면이 없습니다': 'No page differs between desktop and mobile',
   '{서버} 화면': '{서버} pages',

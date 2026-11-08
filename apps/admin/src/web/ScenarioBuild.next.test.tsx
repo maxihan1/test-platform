@@ -39,8 +39,8 @@ it('케이스 바꾸기 중에는 추천을 부르지도 그리지도 않고, �
   const 추천 = vi.spyOn(scenarioApi, 'nextCases').mockResolvedValue({ items: [{ tcId: 'ZSB-002', screen: '/cart' }] });
   render(<ScenarioBuild id={12} 띠서비스={서비스('ZSB')} user={사람()} />);
 
-  fireEvent.click(await screen.findByRole('button', { name: '케이스 바꾸기' }, { timeout: 5000 }));
-  await screen.findByText('1번 단계를 바꿀 케이스를 고릅니다', undefined, { timeout: 5000 });
+  fireEvent.click(await screen.findByRole('button', { name: '케이스 변경' }, { timeout: 5000 }));
+  await screen.findByText('1번 단계를 변경할 케이스를 선택합니다', undefined, { timeout: 5000 });
   expect(screen.queryByRole('region', { name: '다음 단계 추천' })).toBeNull();
   expect(추천).not.toHaveBeenCalled();
 

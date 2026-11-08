@@ -10,8 +10,8 @@ export const 의심글자: Record<string, string> = {
   overlap: '요소 겹침',
   'text-overflow': '텍스트 잘림',
   misaligned: '배치 틀어짐',
-  'font-broken': '글꼴 깨짐',
-  'render-broken': '그리기 깨짐',
+  'font-broken': '글꼴 표시 오류',
+  'render-broken': '렌더링 오류',
   offscreen: '화면 밖',
 };
 

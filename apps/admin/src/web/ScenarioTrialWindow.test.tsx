@@ -102,7 +102,7 @@ describe('E2E 시험 실행 창 — 도는 중', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '중단' }));
     const 묻기 = within(screen.getByRole('dialog', { name: '시험 실행을 중단할까요?' }));
-    expect(묻기.getByText('진행 중인 단계는 바로 멈추고 남은 단계는 실행하지 않습니다')).toBeTruthy();
+    expect(묻기.getByText('진행 중인 단계는 즉시 중단하고 남은 단계는 실행하지 않습니다')).toBeTruthy();
     expect(document.activeElement).toBe(묻기.getByRole('button', { name: '계속 실행' }));
 
     fireEvent.click(묻기.getByRole('button', { name: '중단' }));
@@ -130,7 +130,7 @@ describe('E2E 시험 실행 창 — 도는 중', () => {
     const { 닫기 } = 그리기(것);
 
     fireEvent.keyDown(document, { key: 'Escape' });
-    fireEvent.click(within(screen.getByRole('dialog', { name: '닫으면 시험 실행을 멈춥니다' })).getByRole('button', { name: '멈추고 닫기' }));
+    fireEvent.click(within(screen.getByRole('dialog', { name: '닫으면 시험 실행을 멈춥니다' })).getByRole('button', { name: '중단하고 닫기' }));
 
     expect(것.중단).toHaveBeenCalledTimes(1);
     expect(닫기).toHaveBeenCalledTimes(1);
@@ -167,7 +167,7 @@ describe('E2E 시험 실행 창 — 결과', () => {
 
     const 창 = screen.getByRole('dialog', { name: 'E2E 시험 실행 결과' });
     expect([...창.querySelectorAll('.trial-sum .pill')].map((알약) => 알약.textContent)).toEqual(['통과 1', '실패 0', '미실행 2']);
-    expect(within(창).getByText('실행 중단으로 멈춤')).toBeTruthy();
+    expect(within(창).getByText('실행 중단됨')).toBeTruthy();
     expect(within(창).getByText('– 실행 안 함')).toBeTruthy();
     expect(창.querySelector('.e2e-steps')).toBeNull();
     expect(창.querySelectorAll('.frame-steps [aria-current="step"]')[0]?.textContent).toBe('결과');

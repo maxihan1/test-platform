@@ -83,7 +83,7 @@ describe('애플리케이션만 더하기', () => {
     다음();
 
     다음();
-    expect(까닭()).toBe('무엇을 테스트할지 하나 골라 주세요');
+    expect(까닭()).toBe('무엇을 테스트할지 하나 선택해 주세요');
     종류를고른다('Android 앱');
     다음();
 
@@ -113,12 +113,12 @@ describe('애플리케이션만 더하기', () => {
     그린다();
     확인까지();
 
-    fireEvent.click(screen.getByRole('button', { name: '종류 고치기' }));
-    expect(screen.getByText('무엇을 테스트할지 고릅니다')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '종류 수정' }));
+    expect(screen.getByText('무엇을 테스트할지 선택합니다')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /이름 · 번호/ }));
-    expect(screen.getByText('무엇을 테스트할지 고릅니다')).toBeTruthy();
+    expect(screen.getByText('무엇을 테스트할지 선택합니다')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '프로젝트' }));
-    expect(screen.getByText('애플리케이션을 넣을 프로젝트를 고릅니다')).toBeTruthy();
+    expect(screen.getByText('애플리케이션을 넣을 프로젝트를 선택합니다')).toBeTruthy();
   });
 
   it('그사이 다른 사람이 접두사를 쓰면(409 PREFIX_TAKEN) 이름 · 번호 단계로 데려가 까닭을 말한다', async () => {
@@ -160,7 +160,7 @@ describe('애플리케이션만 더하기', () => {
     const 만듦 = vi.spyOn(api, 'createService').mockResolvedValue({ id: 9 });
     그린다();
     확인까지();
-    fireEvent.click(screen.getByRole('button', { name: '알림 · 작성 도구 고치기' }));
+    fireEvent.click(screen.getByRole('button', { name: '알림 · 작성 도구 수정' }));
     fireEvent.change(screen.getByLabelText('탐색 제외 경로'), { target: { value: 'daejeon' } });
     fireEvent.click(screen.getByRole('button', { name: '종류' }));
     종류를고른다('Android 앱');

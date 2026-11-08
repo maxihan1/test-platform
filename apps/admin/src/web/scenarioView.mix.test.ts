@@ -69,8 +69,8 @@ describe('앱 · 게임 단계의 디바이스 (도메인/시나리오 §3.7 결
   });
 
   it('시나리오 디바이스와 다르게 돌 때만 안내 한 줄이 붙는다', () => {
-    expect(단계디바이스안내(단계디바이스(앱들, 'DMA', 'desktop'), 'desktop')).toBe('앱 단계는 폰에서 돕니다. Android 앱 케이스만 보입니다');
-    expect(단계디바이스안내(단계디바이스(앱들, 'MKO', 'android'), 'android')).toBe('웹 단계는 PC 화면으로 돕니다. PC 에서 도는 케이스만 보입니다');
+    expect(단계디바이스안내(단계디바이스(앱들, 'DMA', 'desktop'), 'desktop')).toBe('앱 단계는 디바이스에서 실행됩니다. Android 앱 케이스만 보입니다');
+    expect(단계디바이스안내(단계디바이스(앱들, 'MKO', 'android'), 'android')).toBe('웹 단계는 PC 화면으로 실행됩니다. PC 에서 실행되는 케이스만 보입니다');
     expect(단계디바이스안내(단계디바이스(앱들, 'DMA', 'android'), 'android')).toBeNull();
     expect(단계디바이스안내(단계디바이스(앱들, 'MKO', 'desktop'), 'desktop')).toBeNull();
   });

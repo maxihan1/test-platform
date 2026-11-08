@@ -103,7 +103,7 @@ export function CompatResult({ runId, service, 쓰나 }: { runId: number; servic
         <p className="compat-back">
           <a href={기록주소}>{t('실행 기록 › 호환성')}</a> › <span className="mono">RUN {runId}</span>
         </p>
-        {data.run.state === 'RUNNING' ? <p className="compat-faint">{t('실행 중입니다 · 돌거나 점검 중인 디바이스의 칸은 끝나면 채워집니다')}</p> : null}
+        {data.run.state === 'RUNNING' ? <p className="compat-faint">{t('실행 중입니다 · 실행 중이거나 점검 중인 디바이스의 칸은 완료되면 채워집니다')}</p> : null}
         {오류 === null ? null : (
           <p className="compat-err" role="alert">
             {오류}
@@ -120,7 +120,7 @@ export function CompatResult({ runId, service, 쓰나 }: { runId: number; servic
             내려가기(카드자리(key, seq));
           }}
         />
-        <div className="chip-group cr-filters" role="group" aria-label={t('카드 거르기')}>
+        <div className="chip-group cr-filters" role="group" aria-label={t('카드 필터')}>
           {거르개들.map((g) => (
             <button key={g} type="button" className="chip" aria-pressed={거름 === g} onClick={() => set거름(g)}>
               {t(g)}

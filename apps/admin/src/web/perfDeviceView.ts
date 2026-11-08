@@ -8,7 +8,7 @@ import { 가장큰값, type 말 } from './perfRunView.js';
 export const 지표표: Record<기기지표, { 이름: string; op: '<=' | '>=' }> = {
   AVG_FPS: { 이름: '평균 FPS', op: '>=' },
   LOW1_FPS: { 이름: '1% Low FPS', op: '>=' },
-  MAX_TEMP: { 이름: '최대 기기 온도', op: '<=' },
+  MAX_TEMP: { 이름: '최대 디바이스 온도', op: '<=' },
   MAX_MEM: { 이름: '메모리 최대', op: '<=' },
   LAUNCH_MS: { 이름: '앱 실행 시간', op: '<=' },
 };
@@ -20,7 +20,7 @@ export const 측정항목: [측정지표, string][] = [
   ['JANK', '프레임 드랍'],
   ['CPU', 'CPU'],
   ['MEM', '메모리'],
-  ['TEMP', '기기 온도'],
+  ['TEMP', '디바이스 온도'],
   ['BATTERY', '배터리'],
 ];
 
@@ -137,7 +137,7 @@ export function 결과칸들(게임: boolean, 결과: Pick<기기결과, 'device
   const 메모리 = 칸('메모리 최대', (d) => d.summary.maxMemMb, true, 메모리글자, 'MAX_MEM');
   if (게임) return [칸('평균 FPS', (d) => d.summary.avgFps, false, (n) => String(한자리(n)), 'AVG_FPS'), 칸('프레임 드랍', (d) => 드랍(d.serial), true, 퍼센트), cpu, 메모리];
   const 프리징 = 칸('프리징', (d) => d.summary.freezeCount, true, (n) => t('{수}번', { 수: n }));
-  프리징.보조.push(t('0.7초 넘게 멈춤'));
+  프리징.보조.push(t('0.7초 넘게 정지'));
   return [cpu, 메모리, 칸('앱 실행 시간', (d) => d.launchMs, true, (n) => 값글자('LAUNCH_MS', n, t), 'LAUNCH_MS'), 프리징];
 }
 

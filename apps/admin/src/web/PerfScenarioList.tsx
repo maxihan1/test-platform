@@ -80,7 +80,7 @@ export function PerfScenarioList({ serviceId, 할수 }: { serviceId: number; 할
                     <th>{t('이름')}</th>
                     <th>{t('버전')}</th>
                     <th>{t('마지막 실행')}</th>
-                    <th>{t('고친 시각')}</th>
+                    <th>{t('수정 시각')}</th>
                     {쓰나 ? <th aria-label={t('삭제')} /> : null}
                   </tr>
                 </thead>
@@ -113,7 +113,7 @@ export function PerfScenarioList({ serviceId, 할수 }: { serviceId: number; 할
       </div>
       {지울것 === null ? null : (
         <Modal
-          제목={t('시나리오를 지울까요?')}
+          제목={t('시나리오를 삭제할까요?')}
           onClose={() => set지울것(null)}
           버튼={
             <>

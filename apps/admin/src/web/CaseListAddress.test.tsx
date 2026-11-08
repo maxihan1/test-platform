@@ -43,7 +43,7 @@ async function 그리기(주소: string) {
   const 스파이 = vi.spyOn(api, 'cases').mockResolvedValue(쪽);
   render(<CaseList kind="FN" service="ZCA" 할수={전부된다} 결과보나 />);
   await waitFor(() => expect(스파이).toHaveBeenCalled());
-  await screen.findByPlaceholderText('케이스 이름이나 ID로 찾기');
+  await screen.findByPlaceholderText('케이스 이름이나 ID로 검색');
   return 스파이;
 }
 
@@ -55,7 +55,7 @@ describe('케이스 목록 조건을 주소에서 읽는다', () => {
     const 스파이 = await 그리기(`#/cases/fn?${조건}`);
 
     expect(처음조건(스파이)).toMatchObject({ q: '로그인', page: 3, platform: 'mobile', active: false, technique: '경계값 분석', axis: '경계', last: 'FAIL' });
-    expect((screen.getByPlaceholderText('케이스 이름이나 ID로 찾기') as HTMLInputElement).value).toBe('로그인');
+    expect((screen.getByPlaceholderText('케이스 이름이나 ID로 검색') as HTMLInputElement).value).toBe('로그인');
     expect(screen.getByRole('button', { name: '실패 7' }).getAttribute('aria-pressed')).toBe('true');
     expect([...document.querySelectorAll('.filter-on')].map((el) => el.firstChild?.textContent)).toEqual(['표시 전체', '종류 경계', '설계 기법 경계값 분석', '디바이스 모바일']);
     expect(within(판조건('디바이스')).getByRole('button', { name: '모바일' }).getAttribute('aria-pressed')).toBe('true');
@@ -150,11 +150,11 @@ describe('케이스 목록 조건을 주소에 쓴다', () => {
 
   it('찾기는 누른 뒤에만 주소에 남는다 — 치는 동안의 글자는 조건이 아니다', async () => {
     await 그리기('#/cases/fn');
-    const 칸 = screen.getByPlaceholderText('케이스 이름이나 ID로 찾기');
+    const 칸 = screen.getByPlaceholderText('케이스 이름이나 ID로 검색');
 
     fireEvent.change(칸, { target: { value: '결제' } });
     expect(window.location.hash).toBe('#/cases/fn?service=ZCA');
-    fireEvent.click(screen.getByRole('button', { name: '찾기' }));
+    fireEvent.click(screen.getByRole('button', { name: '검색' }));
     expect(window.location.hash).toBe(`#/cases/fn?${new URLSearchParams({ q: '결제', service: 'ZCA' })}`);
   });
 });

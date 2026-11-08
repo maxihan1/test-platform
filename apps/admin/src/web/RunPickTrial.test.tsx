@@ -203,7 +203,7 @@ describe('실행 창 오른쪽 실시간 칸', () => {
     fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
     시작누름('시험 실행 시작');
 
-    expect(await screen.findByText('폰 화면을 기다리고 있습니다')).toBeTruthy();
+    expect(await screen.findByText('디바이스 화면을 기다리고 있습니다')).toBeTruthy();
     expect(screen.queryByText(/앱 단계/)).toBeNull();
   });
 
@@ -252,7 +252,7 @@ describe('실행 창 오른쪽 실시간 칸', () => {
     시작누름('시험 실행 시작');
 
     expect(await screen.findByRole('dialog', { name: '시험 실행 · 2 / 2' }, { timeout: 5000 })).toBeTruthy();
-    expect(screen.getByText('가상 기기 · iPhone 14')).toBeTruthy();
+    expect(screen.getByText('가상 디바이스 · iPhone 14')).toBeTruthy();
     expect(document.querySelector('.trial-run')?.classList.contains('phone')).toBe(true);
     expect(시작.mock.calls.map(([, body]) => body.platform)).toEqual(['desktop', 'mobile']);
   });

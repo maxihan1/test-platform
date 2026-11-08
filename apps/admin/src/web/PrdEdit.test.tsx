@@ -42,7 +42,7 @@ async function 펴서고치기(묶음: RegExp, 번호: RegExp) {
   render(<Prd service="MKT" 할수={쓰는사람} />);
   fireEvent.click(await screen.findByRole('button', { name: 묶음 }));
   fireEvent.click(screen.getByRole('button', { name: 번호 }));
-  fireEvent.click(screen.getByRole('button', { name: '고치기' }));
+  fireEvent.click(screen.getByRole('button', { name: '수정' }));
 }
 
 describe('PRD 관리 — 쓴 것을 버리기 전에 묻기 (점검 8.4)', () => {
@@ -58,7 +58,7 @@ describe('PRD 관리 — 쓴 것을 버리기 전에 묻기 (점검 8.4)', () =>
     expect((screen.getByLabelText('요구 문장') as HTMLTextAreaElement).value).toBe('쓰다 만 글');
 
     fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-041/ }));
-    fireEvent.click(screen.getByRole('button', { name: '고치기' }));
+    fireEvent.click(screen.getByRole('button', { name: '수정' }));
     expect(screen.getByRole('dialog', { name: '저장 안 된 변경 있음' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '저장하지 않고 떠나기' }));
     expect(screen.getAllByLabelText('요구 문장')).toHaveLength(1);
@@ -69,7 +69,7 @@ describe('PRD 관리 — 쓴 것을 버리기 전에 묻기 (점검 8.4)', () =>
     const 찾기 = await screen.findByRole('textbox', { name: '요구 문장 · 번호 검색' });
     fireEvent.change(찾기, { target: { value: '잠긴다' } });
     fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-041/ }));
-    fireEvent.click(screen.getByRole('button', { name: '고치기' }));
+    fireEvent.click(screen.getByRole('button', { name: '수정' }));
     fireEvent.change(screen.getByLabelText('요구 문장'), { target: { value: '쓰다 만 글' } });
 
     fireEvent.change(찾기, { target: { value: '' } });
@@ -80,7 +80,7 @@ describe('PRD 관리 — 쓴 것을 버리기 전에 묻기 (점검 8.4)', () =>
   it('안 고친 줄은 다른 줄을 고치기 시작해도 묻지 않는다', async () => {
     await 펴서고치기(/회원가입/, /MKT-REQ-031/);
     fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-032/ }));
-    fireEvent.click(screen.getByRole('button', { name: '고치기' }));
+    fireEvent.click(screen.getByRole('button', { name: '수정' }));
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 });
@@ -118,7 +118,7 @@ describe('PRD 관리 — 고치기', () => {
     await vi.waitFor(() => expect(screen.queryByLabelText('요구 문장')).toBeNull());
     expect(screen.queryByRole('link', { name: /테스트를 다시 만들 수 있어요/ })).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: '고치기' }));
+    fireEvent.click(screen.getByRole('button', { name: '수정' }));
     fireEvent.click(screen.getByRole('button', { name: '이 요구 삭제' }));
     fireEvent.click(screen.getByRole('button', { name: '삭제 확인' }));
     await vi.waitFor(() => expect(저장).toHaveBeenCalledTimes(2));
@@ -146,7 +146,7 @@ describe('PRD 관리 — 고치기', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-031/ }));
     expect(screen.queryByLabelText('요구 문장')).toBeNull();
-    expect(screen.getByRole('button', { name: '고치기' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '수정' })).toBeTruthy();
     expect(저장).not.toHaveBeenCalled();
   });
 
@@ -229,7 +229,7 @@ describe('PRD 관리 — 고치기', () => {
     fireEvent.change(screen.getByLabelText('요구 문장'), { target: { value: '고치던 글' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
     const 칸 = screen.getByLabelText('요구 문장').closest('form')!;
-    expect((await within(칸).findByRole('alert')).textContent).toBe('다른 사람이 먼저 PRD 를 바꿨습니다. 최신 버전을 불러왔으니 확인하고 다시 합니다');
+    expect((await within(칸).findByRole('alert')).textContent).toBe('다른 사람이 먼저 PRD 를 변경했습니다. 최신 버전을 불러왔으니 확인하고 다시 합니다');
     expect((screen.getByLabelText('요구 문장') as HTMLTextAreaElement).value).toBe('고치던 글');
     // 다시 저장을 시작하면 지난 실패 글은 지워진다
     저장.mockResolvedValueOnce({ version: 14 });
@@ -244,6 +244,6 @@ describe('PRD 관리 — 고치기', () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
     fireEvent.click(await screen.findByRole('button', { name: '요구사항 추가' }));
     expect(screen.getByRole('heading', { name: '새 요구' })).toBeTruthy();
-    expect(screen.queryByText('테스트 작성 요청으로 기획서를 올리거나, 요구사항 추가로 첫 요구를 직접 적습니다')).toBeNull();
+    expect(screen.queryByText('테스트 작성 요청으로 기획서를 업로드하거나, 요구사항 추가로 첫 요구를 직접 적습니다')).toBeNull();
   });
 });

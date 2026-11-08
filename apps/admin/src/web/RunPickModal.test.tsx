@@ -320,14 +320,14 @@ describe('RunPickModal 테스트 실행', () => {
     const 시험창 = within(screen.getByRole('dialog', { name: '시험 실행을 시작할까요?' }));
     expect(시험창.getByText('실행 기록 · 리포트에 남지 않습니다')).toBeTruthy();
     expect(시험창.getByText('2건 · 한 건씩 차례로')).toBeTruthy();
-    expect(시험창.getByText('PC 2 · 모바일 1 (가상 기기)')).toBeTruthy();
+    expect(시험창.getByText('PC 2 · 모바일 1 (가상 디바이스)')).toBeTruthy();
     fireEvent.click(시험창.getByRole('button', { name: '취소' }));
     expect(시작).not.toHaveBeenCalled();
 
     fireEvent.click(실행버튼());
     const 정식창 = within(screen.getByRole('dialog', { name: '정식 실행을 시작할까요?' }));
-    expect(정식창.getByText('끝나면 실행 기록에 새 RUN 으로 남고 리포트가 만들어집니다')).toBeTruthy();
-    expect(정식창.getByText('PC 2 · 모바일 1 (가상 기기)')).toBeTruthy();
+    expect(정식창.getByText('완료되면 실행 기록에 새 RUN 으로 남고 리포트가 만들어집니다')).toBeTruthy();
+    expect(정식창.getByText('PC 2 · 모바일 1 (가상 디바이스)')).toBeTruthy();
     expect(onRun).not.toHaveBeenCalled();
     fireEvent.click(정식창.getByRole('button', { name: '실행 시작' }));
     expect(onRun).toHaveBeenCalledTimes(1);

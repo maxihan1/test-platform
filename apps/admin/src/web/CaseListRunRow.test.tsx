@@ -79,7 +79,7 @@ describe('케이스 줄의 디바이스마다 ▶ 실행', () => {
     expect(창.getByText('로그인되어 있다')).toBeTruthy();
     expect((창.getByRole('checkbox', { name: '모바일 1건' }) as HTMLInputElement).disabled).toBe(true);
     expect(창.queryByRole('checkbox', { name: 'PC 1건' })).toBeNull();
-    expect(창.getByRole('radio', { name: '가상 기기' })).toBeTruthy();
+    expect(창.getByRole('radio', { name: '가상 디바이스' })).toBeTruthy();
   });
 
   it('「PC ▶」로 연 창에서 실행하면 그 한 건을 PC 로만 걸고 실행 기기 값을 싣지 않는다', async () => {
@@ -87,7 +87,7 @@ describe('케이스 줄의 디바이스마다 ▶ 실행', () => {
     await 그리기();
     fireEvent.click(screen.getByRole('button', { name: 'ZPK-001 PC 실행' }));
     const 창 = within(await screen.findByRole('dialog', { name: '케이스 1건 실행' }));
-    expect(창.queryByRole('radio', { name: '가상 기기' })).toBeNull();
+    expect(창.queryByRole('radio', { name: '가상 디바이스' })).toBeNull();
 
     fireEvent.change(창.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.click(창.getByRole('button', { name: '실행' }));

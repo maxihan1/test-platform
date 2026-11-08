@@ -133,10 +133,10 @@ describe('종류별 칸', () => {
         일={14}
       />,
     );
-    expect(screen.getByRole('heading', { name: '기기별 결과' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: '디바이스별 결과' })).toBeTruthy();
     expect(container.querySelectorAll('.dash-kind-list li')).toHaveLength(1);
     expect(screen.queryByText('기기 정보 없음')).toBeNull();
-    expect(screen.getByText('기기 정보 없는 결과 2건')).toBeTruthy();
+    expect(screen.getByText('디바이스 정보 없는 결과 2건')).toBeTruthy();
   });
 
   it('API 는 엔드포인트마다 95% 응답과 통과 / 전체를 표로 보인다', () => {

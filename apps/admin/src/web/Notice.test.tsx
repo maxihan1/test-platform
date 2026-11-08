@@ -67,7 +67,7 @@ describe('알림 줄', () => {
     띄운다({ running: [도는실행(2113), 도는실행(2114)], recent: [끝난실행(2113)] });
     expect(await screen.findByText(/^RUN 2114 실행 중/)).toBeTruthy();
     expect(screen.queryByText(/^RUN 2113 실행 중/)).toBeNull();
-    expect(screen.getByText(/^RUN 2113 실행이 끝났습니다/)).toBeTruthy();
+    expect(screen.getByText(/^RUN 2113 실행이 완료되었습니다/)).toBeTruthy();
     // 실행 기록에서 줄을 바꿔 고르면 주소는 replaceState 로 바뀌어 hashchange 가 안 온다 — 결과 화면이 알린다
     act(() => 보는실행알림(2114));
     expect(screen.getByText(/^RUN 2113 실행 중/)).toBeTruthy();
@@ -76,9 +76,9 @@ describe('알림 줄', () => {
 
   it('끝난 줄의 ×를 누르면 줄이 사라지고 읽음으로 남는다. 배지도 하나 준다', async () => {
     띄운다({ running: [], recent: [끝난실행(7, { pass: 3, fail: 1 }), 끝난실행(8)] });
-    const 글 = await screen.findByText('RUN 7 실행이 끝났습니다 · 기능 전체 382건 · 기능 테스트 · 대상 서버 qa · 3 통과 · 1 실패');
+    const 글 = await screen.findByText('RUN 7 실행이 완료되었습니다 · 기능 전체 382건 · 기능 테스트 · 대상 서버 qa · 3 통과 · 1 실패');
     fireEvent.click(within(글.closest('.nt-line') as HTMLElement).getByRole('button', { name: '알림 닫기' }));
-    expect(screen.queryByText(/RUN 7 실행이 끝났습니다/)).toBeNull();
+    expect(screen.queryByText(/RUN 7 실행이 완료되었습니다/)).toBeNull();
     expect(읽음들().has('run:7')).toBe(true);
     expect(screen.getByLabelText('안 읽은 알림 1건').textContent).toBe('1');
   });
@@ -91,7 +91,7 @@ describe('알림 줄', () => {
 
   it('작성이 끝났는데 PRD 확인이 남았으면 그 수와 PRD 관리 링크를 같은 줄에 둔다', async () => {
     띄운다({ running: [], recent: [끝난작성(9, { prdNeedsCheck: 3 })] });
-    const 줄 = (await screen.findByText('#9 작성 요청이 끝났습니다 · 케이스 파일 12개')).closest('.nt-line') as HTMLElement;
+    const 줄 = (await screen.findByText('#9 작성 요청이 완료되었습니다 · 케이스 파일 12개')).closest('.nt-line') as HTMLElement;
     expect(within(줄).getByText(/PRD 확인 필요 3건/)).toBeTruthy();
     expect(within(줄).getByRole('link', { name: '결정 필요' }).getAttribute('href')).toBe('#/authoring?todo=1');
     expect(within(줄).getByRole('link', { name: '작성 결과' }).getAttribute('href')).toBe('#/authoring/9');
@@ -161,7 +161,7 @@ describe('알림 서랍', () => {
   it('최근 7일 것을 새것 먼저 보이고 PRD 확인 필요 칩과 링크를 단다', async () => {
     const 서랍 = within(await 연다());
     const 제목들 = 서랍.getAllByRole('listitem').map((li) => li.querySelector('.nt-item-title')?.textContent);
-    expect(제목들).toEqual(['RUN 1 실행이 끝났습니다', '#2 작성 요청이 끝났습니다', '#3 작성 요청이 실패했습니다']);
+    expect(제목들).toEqual(['RUN 1 실행이 완료되었습니다', '#2 작성 요청이 완료되었습니다', '#3 작성 요청이 실패했습니다']);
     expect(서랍.getByText('PRD 확인 필요 2건')).toBeTruthy();
     expect(서랍.getByRole('link', { name: '결정 필요에서 확인' }).getAttribute('href')).toBe('#/authoring?todo=1');
     expect(서랍.getByText('볼 수 있는 애플리케이션 전체 · 최근 7일')).toBeTruthy();
@@ -195,7 +195,7 @@ describe('알림 서랍', () => {
   it('비었으면 최근 7일 동안 없다고 말한다', async () => {
     띄운다({ running: [], recent: [] });
     fireEvent.click(버튼());
-    expect(await screen.findByText('최근 7일 동안 끝난 실행과 작성이 없습니다')).toBeTruthy();
+    expect(await screen.findByText('최근 7일 동안 종료된 실행과 작성이 없습니다')).toBeTruthy();
   });
 });
 
@@ -268,10 +268,10 @@ describe('토스트', () => {
     expect(screen.getByRole('status').textContent).toBe('');
 
     await 다시묻는다({ running: [], recent: [끝난실행(2), 끝난실행(1)] }, 부름);
-    expect(screen.getByRole('status').textContent).toMatch(/^RUN 2 실행이 끝났습니다/);
+    expect(screen.getByRole('status').textContent).toMatch(/^RUN 2 실행이 완료되었습니다/);
     const 뜬것 = 토스트()!;
     expect(뜬것.className).toBe('toast');
-    expect(within(뜬것).getByText(/^RUN 2 실행이 끝났습니다/)).toBeTruthy();
+    expect(within(뜬것).getByText(/^RUN 2 실행이 완료되었습니다/)).toBeTruthy();
     expect(within(뜬것).getByRole('link', { name: '결과 보기' }).getAttribute('href')).toBe('#/runs/2');
 
     await act(async () => {
@@ -388,7 +388,7 @@ describe('받아 오기', () => {
 
   it('작성 요청을 폐기하면 20초를 기다리지 않고 바로 다시 물어 그 끝난 줄을 지운다', async () => {
     const 부름 = 띄운다({ running: [], recent: [끝난작성(14671)] });
-    expect(await screen.findByText(/#14671 작성 요청이 끝났습니다/)).toBeTruthy();
+    expect(await screen.findByText(/#14671 작성 요청이 완료되었습니다/)).toBeTruthy();
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 200 }));
     부름.mockResolvedValue({ running: [], recent: [] });
 
@@ -396,14 +396,14 @@ describe('받아 오기', () => {
       await api.discardAuthoring('PAY', 14671);
     });
 
-    expect(screen.queryByText(/#14671 작성 요청이 끝났습니다/)).toBeNull();
+    expect(screen.queryByText(/#14671 작성 요청이 완료되었습니다/)).toBeNull();
   });
 
   it('폐기 전에 나간 주기 요청의 답이 늦게 와도 지운 줄을 되살리지 않는다', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const 옛답 = { running: [], recent: [끝난작성(14671)] };
     const 부름 = 띄운다(옛답);
-    expect(await screen.findByText(/#14671 작성 요청이 끝났습니다/)).toBeTruthy();
+    expect(await screen.findByText(/#14671 작성 요청이 완료되었습니다/)).toBeTruthy();
     let 늦은답풀기: (답: NoticeResponse) => void = () => undefined;
     부름.mockReturnValueOnce(new Promise((풀기) => { 늦은답풀기 = 풀기; }));
     await act(async () => {
@@ -414,10 +414,10 @@ describe('받아 오기', () => {
     await act(async () => {
       window.dispatchEvent(new Event(알림바뀜));
     });
-    expect(screen.queryByText(/#14671 작성 요청이 끝났습니다/)).toBeNull();
+    expect(screen.queryByText(/#14671 작성 요청이 완료되었습니다/)).toBeNull();
     await act(async () => {
       늦은답풀기(옛답);
     });
-    expect(screen.queryByText(/#14671 작성 요청이 끝났습니다/)).toBeNull();
+    expect(screen.queryByText(/#14671 작성 요청이 완료되었습니다/)).toBeNull();
   });
 });

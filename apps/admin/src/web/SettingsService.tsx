@@ -158,7 +158,7 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
               onChange={(e) => setTestsRepo(e.target.value)}
               placeholder="https://github.com/..."
             />
-            <div className="hint">{t('작성 요청이 올린 PR 이 이 저장소 것인지 확인하는 데 씁니다. 비워 두면 작성한 케이스를 반영할 수 없습니다')}</div>
+            <div className="hint">{t('작성 요청이 등록한 PR 이 이 저장소 것인지 확인하는 데 씁니다. 비워 두면 작성한 케이스를 반영할 수 없습니다')}</div>
           </div>
         </div>
       </구획>
@@ -215,7 +215,7 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
         <ViewportSection serviceId={row.id} envs={row.envs} />
       </구획>
 
-      <구획 제목={t('CI 토큰')} 쓰임={t('CI 가 새 빌드를 올릴 때 쓰는 열쇠입니다. 빌드가 올라오면 스모크 테스트부터 자동으로 실행합니다')}>
+      <구획 제목={t('CI 토큰')} 쓰임={t('CI 가 새 빌드를 업로드할 때 쓰는 토큰입니다. 빌드가 업로드되면 스모크 테스트부터 자동으로 실행합니다')}>
         <CI토큰구획 row={row} />
       </구획>
 

@@ -21,10 +21,10 @@ export function 시험막는글(
   단계들: ScenarioPart[],
   칸오류번호: number | null,
 ): string | null {
-  if (서버 === '') return t('시험 실행할 대상 서버를 먼저 고릅니다');
+  if (서버 === '') return t('시험 실행할 대상 서버를 먼저 선택합니다');
   if (단계들.length === 0) return t('단계를 하나 이상 넣어야 시험 실행할 수 있습니다');
-  if (가리킴빈곳(단계들).length > 0) return t('가져올 단계를 다시 골라야 시험 실행할 수 있습니다');
-  if (칸오류번호 !== null) return t('{번호}번 단계의 잘못 적은 칸을 고쳐야 시험 실행할 수 있습니다', { 번호: 칸오류번호 });
+  if (가리킴빈곳(단계들).length > 0) return t('가져올 단계를 다시 선택해야 시험 실행할 수 있습니다');
+  if (칸오류번호 !== null) return t('{번호}번 단계의 잘못 적은 칸을 수정해야 시험 실행할 수 있습니다', { 번호: 칸오류번호 });
   return null;
 }
 
@@ -37,8 +37,8 @@ export function 폰실행위치({ 시험 = true }: { 시험?: boolean }) {
   return (
     <div className="hint">
       {t('실행 위치 · Device VISION')}
-      <div>{t('시나리오 하나 동안 빈 폰을 한 번 잡고 다 돌면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 실행에 남습니다')}</div>
-      {시험 ? <div>{t('시험 실행도 Device VISION 폰에서 실행됩니다. 폰 화면은 오른쪽 칸에 뜨고 「Device VISION 에서 보기 ↗」로 새 탭에서도 봅니다')}</div> : null}
+      <div>{t('시나리오 하나 동안 유휴 디바이스를 한 번 할당받고 모두 실행하면 반납합니다. 화면 영상과 logcat 은 통과하지 못한 실행에 남습니다')}</div>
+      {시험 ? <div>{t('시험 실행도 Device VISION 디바이스에서 실행됩니다. 디바이스 화면은 오른쪽 칸에 뜨고 「Device VISION 에서 보기 ↗」로 새 탭에서도 봅니다')}</div> : null}
     </div>
   );
 }
@@ -48,7 +48,7 @@ export function 폰실행위치({ 시험 = true }: { 시험?: boolean }) {
  * 실제 폰은 시나리오에 한 번 잡아 덧붙임 글이 앱 · 게임 시나리오 안내와 같다 (도메인/시나리오 §3.7 「모바일 시나리오를 실제 폰에서 돌릴 때」)
  */
 export function 모바일실행위치(고르개: 모바일고르개) {
-  return <RunLocation android={false} 모바일={{ ...고르개, 덧붙임: '시나리오 하나 동안 빈 폰을 한 번 잡고 다 돌면 놓습니다. 화면 영상과 logcat 은 통과하지 못한 실행에 남습니다' }} />;
+  return <RunLocation android={false} 모바일={{ ...고르개, 덧붙임: '시나리오 하나 동안 유휴 디바이스를 한 번 할당받고 모두 실행하면 반납합니다. 화면 영상과 logcat 은 통과하지 못한 실행에 남습니다' }} />;
 }
 
 /**
@@ -100,7 +100,7 @@ export function TrialControls({
       </select>
       {/* 옆의 「실행」과 무엇이 다른지 단추에서 알 수 있게 한다 */}
       <button type="button" className="btn ghost" title={t('기록 · 리포트가 남지 않습니다')} disabled={도는중} onClick={on시작}>
-        {도는중 ? t('시험 실행 중') : 다시 ? t('다시 돌리기') : t('시험 실행')}
+        {도는중 ? t('시험 실행 중') : 다시 ? t('다시 실행') : t('시험 실행')}
       </button>
     </>
   );
@@ -124,7 +124,7 @@ export function TrialSummary({ 시험, on자세히 }: { 시험: 시험상태; on
   const 실패 = 결과.parts.find((p) => p.status === 'FAIL');
   const 문장 =
     실패 !== undefined
-      ? t('{번호}번에서 멈춤', { 번호: 실패.seq })
+      ? t('{번호}번에서 종료', { 번호: 실패.seq })
       : 결과.status === 'PASS'
         ? t('모두 통과')
         : 멈춘사유글자(결과.error?.message ?? '', 언어);
@@ -221,7 +221,7 @@ export function TrialRow({
       {part.status !== 'FAIL' || part.trace === undefined ? null : <PartTrace trace={part.trace} />}
       {part.status !== 'NA' || 안돌았다 || 사유 === '' ? null : (
         <div className="scn-detail">
-          <span className="scn-k">{t('실행이 멈춘 사유')}</span>
+          <span className="scn-k">{t('실행이 중단된 사유')}</span>
           <div className="scn-v">{사유}</div>
         </div>
       )}

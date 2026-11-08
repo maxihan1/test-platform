@@ -95,7 +95,7 @@ describe('실행 진행 상자 (SPEC §8.9)', () => {
     });
 
     expect(screen.getAllByRole('dialog')).toHaveLength(1);
-    expect(상자라벨()).toContain('끝났습니다');
+    expect(상자라벨()).toContain('완료되었습니다');
   });
 
   // 결과 칸에서 그 실행을 보고 있으면 「그 실행을 보고 있을 때」다 (도메인/실행 §8.9)
@@ -110,7 +110,7 @@ describe('실행 진행 상자 (SPEC §8.9)', () => {
       await vi.advanceTimersByTimeAsync(2000);
     });
 
-    expect(상자라벨()).toContain('끝났습니다');
+    expect(상자라벨()).toContain('완료되었습니다');
   });
 
   it('도는 동안 띠는 남은 것까지 칸을 받는다 — 끝난 것만으로 다 차지 않는다', async () => {

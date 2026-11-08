@@ -52,7 +52,7 @@ export function 시작확인({ 종류, 케이스들, env, 반복수, slack, mobi
   const 디바이스글 = 디바이스들
     .map((p) => {
       const 수 = 케이스들.filter((c) => c.platforms.includes(p)).length;
-      const 위치 = p === 'mobile' && mobileOn !== null ? ` (${mobileOn === 'vision' ? t('실제 기기') : t('가상 기기')})` : '';
+      const 위치 = p === 'mobile' && mobileOn !== null ? ` (${mobileOn === 'vision' ? t('실제 디바이스') : t('가상 디바이스')})` : '';
       return `${t(PLATFORM_LABEL[p])} ${수}${위치}`;
     })
     .join(' · ');
@@ -124,14 +124,14 @@ function 남는곳({ 한건, env, 원래실행, mobileOn }: { 한건: CaseRow | 
   const 곳 = 읽음.data;
   const 글 =
     한건 === null || 곳 === 'NEW_RUN'
-      ? t('끝나면 실행 기록에 새 RUN 으로 남고 리포트가 만들어집니다')
+      ? t('완료되면 실행 기록에 새 RUN 으로 남고 리포트가 만들어집니다')
       : 읽음.error !== null
         ? t('붙을 실행을 확인하지 못했습니다')
         : 곳 === null
           ? t('붙을 실행을 확인하는 중입니다')
           : 곳.붙음 === null
             ? t('이 케이스만 따로 실행해 케이스 상세의 실행 기록에만 남습니다')
-            : t('끝나면 RUN {번호} 결과에 다시 실행으로 추가됩니다 · {제목} · {시각}', {
+            : t('완료되면 RUN {번호} 결과에 다시 실행으로 추가됩니다 · {제목} · {시각}', {
                 번호: 곳.붙음.runId,
                 제목: 곳.붙음.title,
                 시각: when(곳.붙음.startedAt, 언어),

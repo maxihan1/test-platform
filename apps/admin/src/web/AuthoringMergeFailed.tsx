@@ -89,12 +89,12 @@ export function AuthoringMergeFailed({ service, 실행, 원본, 권한, 반영�
       )}
       {까닭 === 'CONFLICT' ? (
         <>
-          <p className="hint">{t('아래 표에서 케이스마다 고른 뒤 다시 반영하세요.')}</p>
+          <p className="hint">{t('아래 표에서 케이스마다 선택한 뒤 다시 반영하세요.')}</p>
           {/* 고르는 단추는 작성 쓰기 권한에만 있다 — 없는 사람에게는 내려갈 곳이 없다 */}
           {권한 ? (
             <div className="btns">
               <button className="btn" type="button" onClick={() => 가기('conflicts')}>
-                {t('중복 케이스 고르기')}
+                {t('중복 케이스 선택')}
               </button>
             </div>
           ) : null}

@@ -51,7 +51,7 @@ function 끝난초안({ x, 고른, on고름 }: { x: 초안항목; 고른: 고른
     <div className="decide-item">
       <div className="decide-qline">
         <span className="decide-q">
-          {x.rows.length === 0 ? t('배포된 기능 {수}건으로 바뀐 요구가 없어요', { 수: x.issues.length }) : t('배포된 기능 {수}건으로 PRD 를 수정할까요?', { 수: x.issues.length })}
+          {x.rows.length === 0 ? t('배포된 기능 {수}건으로 변경된 요구가 없어요', { 수: x.issues.length }) : t('배포된 기능 {수}건으로 PRD 를 수정할까요?', { 수: x.issues.length })}
         </span>
         {x.picks.length === 0 ? null : (
           <span className="chip-group decide-choices" role="group">
@@ -90,7 +90,7 @@ function 끝난초안({ x, 고른, on고름 }: { x: 초안항목; 고른: 고른
             <br />
             <small className="hint">
               {r.basis}
-              {r.gone ? <> · {t('지금 기획서에 없는 요구라 고를 수 없어요')}</> : r.sure ? null : <> · {t('체크하지 않으면 「확인 필요」로 남아요')}</>}
+              {r.gone ? <> · {t('지금 기획서에 없는 요구라 선택할 수 없어요')}</> : r.sure ? null : <> · {t('체크하지 않으면 「확인 필요」로 남아요')}</>}
             </small>
           </span>
         </label>
@@ -124,7 +124,7 @@ function 못만든초안({ x, 고른, on고름 }: { x: 초안항목; 고른: 고
     <div className="decide-item">
       <div className="decide-qline">
         <span className="decide-q">
-          {x.state === 'FAILED' ? t('{키들} PRD 초안을 만들지 못했어요', { 키들 }) : t('{키들} PRD 초안 만들기가 멈췄어요', { 키들 })}
+          {x.state === 'FAILED' ? t('{키들} PRD 초안을 만들지 못했어요', { 키들 }) : t('{키들} PRD 초안 만들기가 중단됐어요', { 키들 })}
         </span>
         {x.picks.length === 0 ? null : (
           <span className="chip-group decide-choices" role="group">

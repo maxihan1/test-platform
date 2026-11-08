@@ -66,7 +66,7 @@ describe('ScenarioPalette 불러오기', () => {
     const spy = 쪽들(꽉(1100));
     그리기();
 
-    await screen.findByText('케이스가 많아 앞 1000건만 보입니다. 찾기로 좁힙니다');
+    await screen.findByText('케이스가 많아 앞 1000건만 보입니다. 검색으로 좁힙니다');
     expect(spy).toHaveBeenCalledTimes(20);
     expect(screen.getByRole('button', { name: 'ZSP-1000 추가' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'ZSP-1001 추가' })).toBeNull();
@@ -92,7 +92,7 @@ describe('ScenarioPalette 불러오기', () => {
     그리기();
 
     await waitFor(() => expect(document.querySelector('.empty')).not.toBeNull());
-    expect(screen.queryByLabelText('케이스 찾기')).toBeNull();
+    expect(screen.queryByLabelText('케이스 검색')).toBeNull();
   });
 });
 
@@ -103,14 +103,14 @@ describe('ScenarioPalette 목록', () => {
 
     await screen.findByRole('button', { name: 'ZSP-001 추가' });
     expect(screen.queryByRole('button', { name: 'ZSP-002 추가' })).toBeNull();
-    expect(screen.getByText('모바일에서 돌지 않는 케이스 2건은 뺐습니다')).toBeTruthy();
+    expect(screen.getByText('모바일에서 실행되지 않는 케이스 2건은 뺐습니다')).toBeTruthy();
   });
 
   it('케이스 찾기는 tcId 와 이름에 든 글자로 거르고 대소문자를 가리지 않는다', async () => {
     쪽들([케이스('ZSP-001', { name: '로그인' }), 케이스('ZSP-002', { name: '주문 Flow' }), 케이스('ABC-003', { name: '결제' })]);
     그리기();
     await screen.findByRole('button', { name: 'ZSP-001 추가' });
-    const 칸 = screen.getByLabelText('케이스 찾기');
+    const 칸 = screen.getByLabelText('케이스 검색');
 
     fireEvent.change(칸, { target: { value: 'flow' } });
     expect(screen.queryByRole('button', { name: 'ZSP-001 추가' })).toBeNull();
@@ -212,7 +212,7 @@ describe('ScenarioPalette 맥락', () => {
     쪽들(PRD케이스들());
     그리기();
     await screen.findByRole('button', { name: /회원가입/ });
-    const 칸 = screen.getByLabelText('케이스 찾기');
+    const 칸 = screen.getByLabelText('케이스 검색');
 
     fireEvent.change(칸, { target: { value: '8자' } });
     expect(screen.getByRole('button', { name: 'ZSP-002 추가' })).toBeTruthy();
@@ -254,7 +254,7 @@ describe('ScenarioPalette 맥락', () => {
 
     expect(screen.queryByText('기능 묶음 없음')).toBeNull();
     expect(document.querySelector('.case-req')).toBeNull();
-    fireEvent.change(screen.getByLabelText('케이스 찾기'), { target: { value: 'ZSP-002' } });
+    fireEvent.change(screen.getByLabelText('케이스 검색'), { target: { value: 'ZSP-002' } });
     expect(screen.getByRole('button', { name: /입력값 검증 케이스 1/ }).getAttribute('aria-expanded')).toBe('false');
   });
 });
@@ -293,7 +293,7 @@ describe('ScenarioPalette 바꾸기 모드', () => {
     const 손 = 그리기({ 바꿀번호: 2 });
 
     await screen.findByRole('button', { name: 'ZSP-001 추가' });
-    expect(screen.getByText('2번 단계를 바꿀 케이스를 고릅니다')).toBeTruthy();
+    expect(screen.getByText('2번 단계를 변경할 케이스를 선택합니다')).toBeTruthy();
     for (const 이름 of ['API 호출', '모킹 켜기', '모킹 끄기', '대기']) {
       expect(screen.queryByRole('button', { name: 이름 })).toBeNull();
     }

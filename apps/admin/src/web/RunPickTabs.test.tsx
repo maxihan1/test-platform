@@ -52,7 +52,7 @@ async function 그리기(줄들: CaseRow[]) {
   vi.spyOn(api, 'cases').mockResolvedValue(쪽);
   render(<CaseList kind="FN" service="ZPT" 할수={() => true} 결과보나 />);
   await screen.findByText(줄들[0]!.tcId);
-  for (const 칸 of screen.getAllByRole('checkbox', { name: /^(?!이 쪽 전체).* 선택$/ })) fireEvent.click(칸);
+  for (const 칸 of screen.getAllByRole('checkbox', { name: /^(?!이 페이지 전체).* 선택$/ })) fireEvent.click(칸);
 }
 
 const 바 = () => within(screen.getByRole('toolbar', { name: '선택한 케이스' }));
@@ -83,7 +83,7 @@ describe('고르기 바의 디바이스별 실행', () => {
     await screen.findByRole('dialog', { name: '케이스 2건 실행' });
     expect((창안().getByRole('checkbox', { name: '모바일 2건' }) as HTMLInputElement).disabled).toBe(true);
     expect(창안().queryByText('ZPT-002 케이스')).toBeNull();
-    expect(창안().getByRole('radio', { name: '가상 기기' })).toBeTruthy();
+    expect(창안().getByRole('radio', { name: '가상 디바이스' })).toBeTruthy();
     fireEvent.change(창안().getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.click(창안().getByRole('button', { name: '실행' }));
     시작누름();
@@ -112,7 +112,7 @@ describe('「모두 실행」 창의 디바이스 체크칸', () => {
     const 모바일 = 디바이스칸().getByRole('checkbox', { name: '모바일 1건' }) as HTMLInputElement;
     expect(pc.checked).toBe(true);
     expect(모바일.checked).toBe(true);
-    expect(창안().getByRole('radio', { name: '가상 기기' })).toBeTruthy();
+    expect(창안().getByRole('radio', { name: '가상 디바이스' })).toBeTruthy();
 
     fireEvent.click(pc);
 
@@ -124,7 +124,7 @@ describe('「모두 실행」 창의 디바이스 체크칸', () => {
     fireEvent.click(모바일);
 
     expect(창안().getByText('ZPT-002 케이스')).toBeTruthy();
-    expect((창안().getByRole('radio', { name: '가상 기기' }) as HTMLInputElement).disabled).toBe(true);
+    expect((창안().getByRole('radio', { name: '가상 디바이스' }) as HTMLInputElement).disabled).toBe(true);
   });
 
   it('모바일을 끄고 실행하면 PC 로만 건다', async () => {

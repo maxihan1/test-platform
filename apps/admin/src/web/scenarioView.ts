@@ -126,7 +126,7 @@ export const 폰단계있나 = (앱들: readonly 앱줄[], 단계들: ScenarioPa
 /** 고른 칩이 시나리오 디바이스와 다른 디바이스(도는)로 돌 때만 붙는 안내 한 줄(영어 표의 키). 같으면 null */
 export function 단계디바이스안내(도는: Platform, 디바이스: Platform): string | null {
   if (도는 === 디바이스) return null;
-  return 도는 === 'android' ? '앱 단계는 폰에서 돕니다. Android 앱 케이스만 보입니다' : '웹 단계는 PC 화면으로 돕니다. PC 에서 도는 케이스만 보입니다';
+  return 도는 === 'android' ? '앱 단계는 디바이스에서 실행됩니다. Android 앱 케이스만 보입니다' : '웹 단계는 PC 화면으로 실행됩니다. PC 에서 실행되는 케이스만 보입니다';
 }
 
 /**

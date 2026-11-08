@@ -72,8 +72,8 @@ describe('작성 목록 줄 내용 (도메인/작성 §3.6 「작성 목록 줄�
     expect(screen.getAllByText('화면만 대조')).toHaveLength(1);
     expect(screen.getByText('요구 348건 테스트 다시 작성')).toBeTruthy();
     // 중단은 판정이 아니라 실패 색을 쓰지 않는다 — 실패만 실패 색이다
-    expect(screen.getByText('케이스 작성 단계에서 멈춤 · 만든 케이스 없음').className).not.toContain('fail');
+    expect(screen.getByText('케이스 작성 단계에서 종료 · 만든 케이스 없음').className).not.toContain('fail');
     expect(screen.getByText(/^PRD 관리에서 시작 · 요청한 사람 테스터/)).toBeTruthy();
-    expect(screen.getByText('자료 · PRD 읽기 단계에서 멈춤 · 만든 케이스 없음').className).toContain('fail');
+    expect(screen.getByText('자료 · PRD 읽기 단계에서 종료 · 만든 케이스 없음').className).toContain('fail');
   });
 });

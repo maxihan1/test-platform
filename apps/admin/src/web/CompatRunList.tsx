@@ -114,14 +114,14 @@ export function CompatRunList({ service }: { service: string }) {
             setPage(1);
           }}
         >
-          <input type="text" aria-label={t('세트 이름으로 찾기')} placeholder={t('세트 이름으로 찾기')} value={typed} onChange={(e) => setTyped(e.target.value)} />
+          <input type="text" aria-label={t('세트 이름으로 검색')} placeholder={t('세트 이름으로 검색')} value={typed} onChange={(e) => setTyped(e.target.value)} />
           <button className="chip" type="submit">
-            {t('찾기')}
+            {t('검색')}
           </button>
         </form>
         {runs.data.items.length === 0 ? (
           <div className="empty">
-            {q === '' ? t('이 애플리케이션에서 아직 돌린 호환성 실행이 없습니다') : t('조건에 맞는 실행이 없습니다')}
+            {q === '' ? t('이 애플리케이션에는 아직 실행된 호환성 실행이 없습니다') : t('조건에 맞는 실행이 없습니다')}
             {q === '' ? (
               <a className="btn" style={{ marginTop: '14px' }} href={`#/compat?service=${encodeURIComponent(service)}`}>
                 {t('호환성 세트로')}
@@ -155,7 +155,7 @@ export function CompatRunList({ service }: { service: string }) {
             <button onClick={() => setPage((n) => n - 1)} disabled={page <= 1}>
               {t('이전')}
             </button>
-            <span>{t('{쪽}쪽', { 쪽: page })}</span>
+            <span>{t('{쪽}페이지', { 쪽: page })}</span>
             <button onClick={() => setPage((n) => n + 1)} disabled={!더있나}>
               {t('다음')}
             </button>

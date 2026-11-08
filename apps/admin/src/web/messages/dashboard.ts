@@ -17,7 +17,7 @@ export const 대시보드말: Record<string, string> = {
 
   // 회귀 실패
   '회귀 실패': 'Regressions',
-  '최근 {일}일, 같은 서버의 직전 실행과 견줌': 'Last {일} days, compared with the previous run on the same server',
+  '최근 {일}일, 같은 서버의 직전 실행과 비교': 'Last {일} days, compared with the previous run on the same server',
   '회귀 실패가 없습니다': 'No regressions',
   '{수}건 더 있습니다': '{수} more',
   '실행 기록에서 보기': 'View in run history',
@@ -38,7 +38,7 @@ export const 대시보드말: Record<string, string> = {
   '애플리케이션별 품질': 'Quality by application',
   '직전 {일}일 대비': 'vs previous {일} days',
   '최근 실행, 맨 앞이 최신': 'Recent runs, newest first',
-  '직전 실행과 견줌': 'Against previous run',
+  '직전 실행과 비교': 'Against previous run',
   '마지막 실행': 'Last run',
   '마지막 실행이 없습니다': 'No run yet',
   '마지막 실행에 실패가 있습니다': 'The last run has failures',
@@ -96,12 +96,12 @@ export const 대시보드말: Record<string, string> = {
   타임아웃: 'Timeout',
   '환경 오류': 'Environment error',
   '그 밖': 'Other',
-  '확인 문장의 기대값과 실제 값이 다름': 'A check’s expected and actual values differ',
-  '화면에서 버튼 · 입력 칸을 끝내 찾지 못함': 'A button or input never appeared on the screen',
-  '제한 시간 안에 끝나지 않음': 'Did not finish within the time limit',
+  '확인 문장의 기대 결과와 실제 값이 다름': 'A check’s expected and actual values differ',
+  '화면에서 버튼 · 입력 칸을 결국 찾지 못함': 'A button or input never appeared on the screen',
+  '제한 시간 안에 완료되지 않음': 'Did not finish within the time limit',
   '대상 서버 · 테스트 실행기에 닿지 못하거나 테스트 실행기가 거절함': 'Could not reach the target server or runner, or the runner refused',
   '위 넷에 들지 않는 그 밖의 오류': 'Any other error not in the four above',
-  '실행이 멈춰 돌지 못한 {수}건은 세지 않았습니다': '{수} tests that did not run because the run was stopped are not counted',
+  '실행이 중단되어 실행되지 못한 {수}건은 집계하지 않았습니다': '{수} tests that did not run because the run was stopped are not counted',
 
   // 실행 0
   '아직 실행한 테스트가 없습니다': 'No tests have run yet',
@@ -117,7 +117,7 @@ export const 대시보드말: Record<string, string> = {
   '검토할 것': 'To review',
   '건': 'items',
   '직전 실행에서는 통과': 'Passed in the previous run',
-  '테스트 작성에서 고를 것': 'Waiting for your pick in test authoring',
+  '테스트 작성에서 선택할 것': 'Waiting for your pick in test authoring',
   '서버 · 테스트 실행기에 닿지 못함': 'Could not reach the server or test runner',
 
   // AI 품질 (2026-11-01 BTS-F8-01)
@@ -129,12 +129,11 @@ export const 대시보드말: Record<string, string> = {
 
   // 종류별 칸
   '브라우저별 결과': 'Results by browser',
-  '기기별 결과': 'Results by device',
+  '디바이스별 결과': 'Results by device',
   '창별 결과': 'Results by window',
   '엔드포인트별 결과': 'Results by endpoint',
   '모바일 · Chromium': 'Mobile · Chromium',
   '디바이스 정보 없는 결과 {건}건': '{건} results without device info',
-  '기기 정보 없는 결과 {건}건': '{건} results without device info',
   '창 정보 없는 결과 {건}건': '{건} results without window info',
   '엔드포인트 정보 없음': 'No endpoint info',
   '최근 {일}일 결과가 없습니다': 'No results in the last {일} days',

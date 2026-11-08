@@ -104,7 +104,7 @@ describe('애플리케이션 가이드 — 시안 A', () => {
     await screen.findByText(/버전 3/);
     fireEvent.change(정책칸(), { target: { value: '결제는 테스트 카드만 씁니다' } });
     fireEvent.click(저장버튼());
-    expect(await screen.findByText(/다른 사람이 먼저 가이드를 바꿨습니다/)).toBeTruthy();
+    expect(await screen.findByText(/다른 사람이 먼저 가이드를 변경했습니다/)).toBeTruthy();
     await vi.waitFor(() => expect(지금).toHaveBeenCalledTimes(2));
     expect(정책칸().value).toBe('결제는 테스트 카드만 씁니다');
   });
@@ -242,7 +242,7 @@ describe('애플리케이션 가이드 — 시안 A', () => {
     await screen.findByText(/버전 3/);
     fireEvent.click(screen.getByRole('button', { name: '버전 기록' }));
     const 표 = await screen.findByRole('table');
-    expect(within(표).getByText('글 고침 — 정책')).toBeTruthy();
+    expect(within(표).getByText('글 수정 — 정책')).toBeTruthy();
     expect(within(표).getByText('더함 — 운영 정책.docx · 뺌 — 옛 정책.docx')).toBeTruthy();
     expect(within(표).getByText('현재 버전')).toBeTruthy();
 

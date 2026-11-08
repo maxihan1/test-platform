@@ -39,7 +39,7 @@ function 진행을흉내() {
 }
 
 async function 바꾸고확인() {
-  fireEvent.click(await screen.findByRole('button', { name: '화면이 맞음으로 바꾸기' }));
+  fireEvent.click(await screen.findByRole('button', { name: '화면이 맞음으로 변경' }));
   fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: '화면이 맞음' }));
 }
 
@@ -50,7 +50,7 @@ describe('판정 줄 — 판정이 없을 때', () => {
     const 고리 = await screen.findByRole('link', { name: '테스트 작성 › 결정 필요에서 판정합니다' });
     expect(고리.getAttribute('href')).toBe('#/authoring?todo=1&service=ZZI');
     expect(버튼('화면이 맞음')).toBeNull();
-    expect(버튼('버그')).toBeNull();
+    expect(버튼('결함')).toBeNull();
   });
 
   it('작성 보기 권한이 없으면 고리 없이 글자뿐이다', async () => {
@@ -68,26 +68,26 @@ describe('판정 줄 — 판정이 남은 카드', () => {
     const 고리 = await screen.findByRole('link', { name: '작성 요청 #77' });
     expect(고리.getAttribute('href')).toBe('#/authoring/77');
     expect(screen.getByText(/김철수/)).toBeDefined();
-    expect(버튼('화면이 맞음으로 바꾸기')).toBeNull();
+    expect(버튼('화면이 맞음으로 변경')).toBeNull();
   });
 
   it('버그가 이미 있으면 「화면이 맞음으로 바꾸기」만 남는다', async () => {
     열기(버그판정);
 
     await screen.findByText(/박영희/);
-    expect(버튼('화면이 맞음으로 바꾸기')).not.toBeNull();
-    expect(버튼('버그')).toBeNull();
+    expect(버튼('화면이 맞음으로 변경')).not.toBeNull();
+    expect(버튼('결함')).toBeNull();
   });
 
   it('작성 쓰기가 없거나 덮는 요구가 판에 없으면 바꾸기도 없다', async () => {
     열기(버그판정, 요구, 실행만);
     await screen.findByText(/박영희/);
-    expect(버튼('화면이 맞음으로 바꾸기')).toBeNull();
+    expect(버튼('화면이 맞음으로 변경')).toBeNull();
     cleanup();
 
     열기(버그판정, 판에없음);
     await screen.findByText(/박영희/);
-    expect(버튼('화면이 맞음으로 바꾸기')).toBeNull();
+    expect(버튼('화면이 맞음으로 변경')).toBeNull();
   });
 });
 
@@ -96,7 +96,7 @@ describe('판정 줄 — 화면이 맞음으로 바꾸기', () => {
     const 진행 = 진행을흉내();
     열기(버그판정);
 
-    fireEvent.click(await screen.findByRole('button', { name: '화면이 맞음으로 바꾸기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '화면이 맞음으로 변경' }));
     const 창 = await screen.findByRole('dialog');
     expect(within(창).getByText(/작성 요청을 바로 만듭니다/)).toBeTruthy();
     fireEvent.click(within(창).getByRole('button', { name: '아니오' }));
@@ -109,7 +109,7 @@ describe('판정 줄 — 화면이 맞음으로 바꾸기', () => {
     진행을흉내();
     열기(버그판정);
 
-    fireEvent.click(await screen.findByRole('button', { name: '화면이 맞음으로 바꾸기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '화면이 맞음으로 변경' }));
     const 창 = await screen.findByRole('dialog');
     expect(within(창).getByText('가입한 이메일이 보인다')).toBeTruthy();
     expect(within(창).getByText(/기대 new@demo\.kr · 지금 화면/)).toBeTruthy();
@@ -124,7 +124,7 @@ describe('판정 줄 — 화면이 맞음으로 바꾸기', () => {
 
     await screen.findByRole('link', { name: '작성 요청 #88' });
     expect(진행).toHaveBeenCalledWith('ZZI', 4, [{ key: `fail:${String(RUN_ID)}:ZZI-0001`, pick: 'SCREEN' }]);
-    expect(버튼('화면이 맞음으로 바꾸기')).toBeNull();
+    expect(버튼('화면이 맞음으로 변경')).toBeNull();
   });
 
   it('누른 뒤 카드 재료를 다시 읽어 서버 값으로 맞춘다', async () => {
@@ -146,7 +146,7 @@ describe('판정 줄 — 화면이 맞음으로 바꾸기', () => {
 
     await 바꾸고확인();
 
-    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('그 사이 바뀐 것이 있습니다'));
-    expect(버튼('화면이 맞음으로 바꾸기')).not.toBeNull();
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('그 사이 변경된 것이 있습니다'));
+    expect(버튼('화면이 맞음으로 변경')).not.toBeNull();
   });
 });

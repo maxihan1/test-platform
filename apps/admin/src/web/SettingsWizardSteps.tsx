@@ -49,17 +49,17 @@ export const 단계이름: Record<단계, string> = {
 
 const 제목들: Record<단계, readonly [string, string]> = {
   project: ['새 프로젝트를 만듭니다', '먼저 프로젝트 이름을 정하고, 이어서 그 안에 들어갈 첫 애플리케이션을 설정합니다'],
-  kind: ['무엇을 테스트할지 고릅니다', '고른 종류에 맞춰 테스트를 만들고 실행하는 방법이 정해집니다'],
+  kind: ['무엇을 테스트할지 선택합니다', '선택한 종류에 맞춰 테스트를 만들고 실행하는 방법이 정해집니다'],
   basic: ['이름과 번호를 정합니다', '화면에 보일 이름과 테스트 번호 앞에 붙을 약자를 적습니다'],
-  envs: ['테스트할 서버 주소를 넣습니다', '실행할 때 이 목록에서 서버를 고릅니다. 지금 없으면 나중에 넣어도 됩니다'],
+  envs: ['테스트할 서버 주소를 넣습니다', '실행할 때 이 목록에서 서버를 선택합니다. 지금 없으면 나중에 넣어도 됩니다'],
   apidoc: ['API 문서 위치를 적습니다', 'API 목록이 적힌 Swagger 문서를 어디서 받는지 알려 줍니다'],
   extra: ['알림과 작성 도구를 연결합니다', '모두 선택입니다. 지금 건너뛰고 나중에 설정에서 넣어도 됩니다'],
-  confirm: ['이대로 만듭니다', '고칠 것이 있으면 줄 끝의 「고치기」를 누릅니다'],
+  confirm: ['이대로 만듭니다', '수정할 것이 있으면 줄 끝의 「수정」을 누릅니다'],
 };
 
 /** 애플리케이션만 더할 때의 첫 단계는 고르기다 */
 export const 단계제목 = (st: 단계, 새프로젝트: boolean): readonly [string, string] =>
-  st === 'project' && !새프로젝트 ? ['애플리케이션을 넣을 프로젝트를 고릅니다', '지금 보던 프로젝트를 먼저 골라 두었습니다'] : 제목들[st];
+  st === 'project' && !새프로젝트 ? ['애플리케이션을 넣을 프로젝트를 선택합니다', '지금 보던 프로젝트를 먼저 선택해 두었습니다'] : 제목들[st];
 
 export const 서버들 = (v: 마법사값): string[] => v.envs.map((it) => it.env).filter((env) => env !== '');
 
@@ -107,8 +107,8 @@ export function 단계칸(p: {
           <input id="wz-project" type="text" autoComplete="off" value={값.프로젝트이름} disabled={p.만든프로젝트}
             placeholder={t('예: 우리 쇼핑몰')} onChange={(e) => 고친다({ 프로젝트이름: e.target.value })} />,
           p.만든프로젝트
-            ? t('프로젝트는 이미 만들었습니다. 이름은 나중에 프로젝트 설정에서 바꿉니다')
-            : t('회사나 제품 이름을 그대로 쓰면 나중에 찾기 쉽습니다'),
+            ? t('프로젝트는 이미 만들었습니다. 이름은 나중에 프로젝트 설정에서 변경합니다')
+            : t('회사나 제품 이름을 그대로 쓰면 나중에 검색하기 쉽습니다'),
         );
       }
       return (
@@ -159,16 +159,16 @@ export function 단계칸(p: {
                 const prefix = e.target.value.toUpperCase();
                 고친다({ prefix, ...(따라감 ? { testsDir: prefix.toLowerCase() } : {}) });
               }} />,
-            t('테스트 번호 앞에 붙는 영문 약자입니다. 소문자로 쳐도 대문자로 바뀝니다'))}
+            t('테스트 번호 앞에 붙는 영문 약자입니다. 소문자로 입력해도 대문자로 변환됩니다'))}
           {칸('wz-name', t('이름'),
-            <input id="wz-name" type="text" autoComplete="off" value={값.name} placeholder={t('예: 결제 서비스')} onChange={(e) => 고친다({ name: e.target.value })} />,
-            t('메뉴와 맨 위 고르개에 보이는 이름입니다'))}
+            <input id="wz-name" type="text" autoComplete="off" value={값.name} placeholder={t('예: 결제 웹')} onChange={(e) => 고친다({ name: e.target.value })} />,
+            t('메뉴와 맨 위 드롭다운에 보이는 이름입니다'))}
           {칸('wz-dir', t('테스트 폴더'),
             <input id="wz-dir" type="text" autoComplete="off" value={값.testsDir} placeholder="pay" onChange={(e) => 고친다({ testsDir: e.target.value })} />,
             t('자동화 스크립트를 모아 둘 폴더 이름입니다. 접두사를 적으면 미리 채워 둡니다'))}
           {칸('wz-repo', t('테스트 저장소'),
             <input id="wz-repo" type="text" autoComplete="off" value={값.testsRepo} placeholder="https://github.com/..." onChange={(e) => 고친다({ testsRepo: e.target.value })} />,
-            t('AI 가 만든 테스트를 올릴 GitHub 저장소 주소입니다. 비워 두면 만든 테스트를 반영할 수 없습니다'))}
+            t('AI 가 만든 테스트를 등록할 GitHub 저장소 주소입니다. 비워 두면 만든 테스트를 반영할 수 없습니다'))}
         </>
       );
     }
@@ -182,14 +182,14 @@ export function 단계칸(p: {
             t('기준 서버 주소 뒤에 붙여 문서를 받아 옵니다'))}
           {칸('wz-apienv', t('기준 서버'),
             <select id="wz-apienv" value={값.apiDocEnv} onChange={(e) => 고친다({ apiDocEnv: e.target.value })}>
-              <option value="">{t('고르지 않음')}</option>
+              <option value="">{t('선택 안 함')}</option>
               {서버들(값).map((env) => (
                 <option key={env} value={env}>
                   {env}
                 </option>
               ))}
             </select>,
-            t('문서를 받아 올 서버입니다. 앞 단계에서 넣은 서버 중에서 고릅니다'))}
+            t('문서를 받아 올 서버입니다. 앞 단계에서 넣은 서버 중에서 선택합니다'))}
         </>
       );
     case 'extra':
@@ -198,7 +198,7 @@ export function 단계칸(p: {
           {/* 비밀값이라 글자를 가린다. 자동완성을 끈다 — 브라우저가 이 관리 화면의 로그인 비밀번호를 채워 넣으면 그것이 저장된다 */}
           {칸('wz-hook', t('Slack 웹훅'),
             <input id="wz-hook" type="password" autoComplete="new-password" value={값.webhook} placeholder="https://hooks.slack.com/..." onChange={(e) => 고친다({ webhook: e.target.value })} />,
-            t('테스트가 끝나면 결과를 보낼 Slack 채널의 웹훅 주소입니다'))}
+            t('테스트가 완료되면 결과를 보낼 Slack 채널의 웹훅 주소입니다'))}
           <div className="field">
             <label htmlFor="wz-figma">{t('피그마 토큰')}</label>
             <div>
@@ -235,8 +235,8 @@ function 확인표(p: { 값: 마법사값; 새프로젝트: boolean; 만든프�
     <div key={st}>
       <span className="wz-sum-k">{t(단계이름[st])}</span>
       <span className="wz-sum-v">{내용}</span>
-      <button type="button" className="btn ghost small" disabled={p.잠김} aria-label={t('{이름} 고치기', { 이름: t(단계이름[st]) })} onClick={() => p.고치러(st)}>
-        {t('고치기')}
+      <button type="button" className="btn ghost small" disabled={p.잠김} aria-label={t('{이름} 수정', { 이름: t(단계이름[st]) })} onClick={() => p.고치러(st)}>
+        {t('수정')}
       </button>
     </div>
   );
@@ -244,7 +244,7 @@ function 확인표(p: { 값: 마법사값; 새프로젝트: boolean; 만든프�
     <div className="wz-sum">
       {줄('project', p.새프로젝트 ? (
         <>
-          {값.프로젝트이름.trim()} <span className="wz-badge">{p.만든프로젝트 ? t('이미 만들었습니다') : t('새로 만듭니다')}</span>
+          {값.프로젝트이름.trim()} <span className="wz-badge">{p.만든프로젝트 ? t('이미 만들었습니다') : t('생성합니다')}</span>
         </>
       ) : (p.projects.find((it) => it.id === 값.projectId)?.name ?? ''))}
       {줄('kind', 값.kind === null ? '' : 종류이름(값.kind, 언어))}
@@ -265,7 +265,7 @@ function 확인표(p: { 값: 마법사값; 새프로젝트: boolean; 만든프�
       )))}
       {값.kind === 'API' ? 줄('apidoc', (
         <>
-          <span className="mono">{값.apiDocPath === '' ? t('비워 둠') : 값.apiDocPath}</span> · {t('기준 서버')} {값.apiDocEnv === '' ? t('고르지 않음') : 값.apiDocEnv}
+          <span className="mono">{값.apiDocPath === '' ? t('비워 둠') : 값.apiDocPath}</span> · {t('기준 서버')} {값.apiDocEnv === '' ? t('선택 안 함') : 값.apiDocEnv}
         </>
       )) : null}
       {줄('extra', 붙인것.length === 0 ? t('건너뜀') : 붙인것.join(' · '))}

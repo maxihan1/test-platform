@@ -54,8 +54,8 @@ describe('케이스 목록 — 이 결과 엑셀로', () => {
     Object.assign(URL, { createObjectURL: 만들기, revokeObjectURL: vi.fn() });
     const 누름 = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
 
-    fireEvent.change(await screen.findByPlaceholderText('케이스 이름이나 ID로 찾기'), { target: { value: '로그인' } });
-    fireEvent.click(screen.getByRole('button', { name: '찾기' }));
+    fireEvent.change(await screen.findByPlaceholderText('케이스 이름이나 ID로 검색'), { target: { value: '로그인' } });
+    fireEvent.click(screen.getByRole('button', { name: '검색' }));
     fireEvent.click(await screen.findByRole('button', { name: '이 결과 엑셀로 (6건)' }));
 
     expect(받기).toHaveBeenCalledWith(expect.objectContaining({ service: 'XCX', q: '로그인' }));

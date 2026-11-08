@@ -150,7 +150,7 @@ describe('고른 것으로 고치기 요청', () => {
     fireEvent.click(screen.getByRole('button', { name: '삭제 요청' }));
     const 상자 = within(screen.getByRole('dialog'));
 
-    expect(await 상자.findByText(/이 케이스를 쓰는 E2E 시나리오 1개 — 삭제하면 다른 케이스로 바꿀 때까지 실행할 수 없습니다/)).toBeTruthy();
+    expect(await 상자.findByText(/이 케이스를 쓰는 E2E 시나리오 1개 — 삭제하면 다른 케이스로 변경할 때까지 실행할 수 없습니다/)).toBeTruthy();
     expect(부름).toHaveBeenCalledWith('XEW', ['XEW-001', 'XEW-002']);
     expect(상자.getByRole('link', { name: 'SC-3 가입 흐름' }).getAttribute('href')).toBe('#/scenarios/3');
   });
@@ -165,6 +165,6 @@ describe('고른 것으로 고치기 요청', () => {
     await act(async () => {
       await Promise.resolve();
     });
-    expect(상자.textContent?.match(/E2E 시나리오(도|가) 더 돌지 않습니다/g)).toHaveLength(1);
+    expect(상자.textContent?.match(/E2E 시나리오(도|가) 더 이상 실행되지 않습니다/g)).toHaveLength(1);
   });
 });

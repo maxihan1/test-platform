@@ -55,11 +55,11 @@ export function useScenarioRun({
   function 걸수있나(서버: string, 막는번호: number | null): boolean {
     // 잘못 적은 칸은 초안에 안 들어가 바뀜이 거짓일 수 있다 — 그대로 돌면 화면과 다른 옛 값으로 기록 · 증적이 남는다
     if (막는번호 !== null) {
-      on글(t('{번호}번 단계의 잘못 적은 칸을 고쳐야 실행할 수 있습니다', { 번호: 막는번호 }));
+      on글(t('{번호}번 단계의 잘못 적은 칸을 수정해야 실행할 수 있습니다', { 번호: 막는번호 }));
       return false;
     }
     if (서버 === '') {
-      on글(t('실행할 대상 서버를 먼저 고릅니다'));
+      on글(t('실행할 대상 서버를 먼저 선택합니다'));
       return false;
     }
     on글(null);

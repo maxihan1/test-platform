@@ -33,7 +33,7 @@ export function SettingsPerfDummy({ services, 기본접두사, 관리자 }: { se
   // 413 은 본문에 사유가 없을 수 있어 상태 코드로 가린다
   function 오류글(err: unknown): string {
     if (err instanceof ApiError && err.status === 413) return t('파일은 200MB 까지입니다');
-    if (err instanceof ApiError && err.code === 'IN_USE') return t('이 더미 클라이언트를 쓰는 시나리오가 있어 지우지 못합니다');
+    if (err instanceof ApiError && err.code === 'IN_USE') return t('이 더미 클라이언트를 쓰는 시나리오가 있어 삭제할 수 없습니다');
     return message(err, 언어);
   }
 
@@ -57,7 +57,7 @@ export function SettingsPerfDummy({ services, 기본접두사, 관리자 }: { se
       return;
     }
     if (파일 === null) {
-      set오류(t('올릴 .zip 파일을 골라 주세요'));
+      set오류(t('업로드할 .zip 파일을 선택해 주세요'));
       return;
     }
     // 서버 상한(§7)과 같은 값 — 다 보낸 뒤에야 413 을 받지 않게 미리 막는다
@@ -95,7 +95,7 @@ export function SettingsPerfDummy({ services, 기본접두사, 관리자 }: { se
       </label>
       {list.error === null ? null : <p className="perf-err" role="alert">{message(list.error, 언어)}</p>}
       {list.data !== null && 클라이언트들.length === 0 ? (
-        <div className="empty">{t('올린 더미 클라이언트가 없습니다')}</div>
+        <div className="empty">{t('업로드한 더미 클라이언트가 없습니다')}</div>
       ) : (
         <div className="perf-table-box">
           <table className="perf-table">
@@ -104,7 +104,7 @@ export function SettingsPerfDummy({ services, 기본접두사, 관리자 }: { se
                 <th>{t('이름')}</th>
                 <th>{t('실행 명령')}</th>
                 <th>{t('크기')}</th>
-                <th>{t('올린 날')}</th>
+                <th>{t('업로드한 날')}</th>
                 {관리자 ? <th aria-label={t('삭제')} /> : null}
               </tr>
             </thead>
@@ -144,7 +144,7 @@ export function SettingsPerfDummy({ services, 기본접두사, 관리자 }: { se
               <input key={판} type="file" accept=".zip" onChange={(e) => set파일(e.target.files?.[0] ?? null)} />
             </label>
             <button type="button" className="btn" disabled={하는중} onClick={올리기}>
-              {t('올리기')}
+              {t('업로드')}
             </button>
           </div>
           <span className="perf-faint">

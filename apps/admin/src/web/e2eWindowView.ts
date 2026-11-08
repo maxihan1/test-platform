@@ -58,7 +58,7 @@ export const 지금번호 = (줄들: 목록줄[]): number => 줄들.find((줄) =
 /** 시작 확인 상자의 디바이스 글 — 모바일은 가상 기기인지 실제 기기인지 붙인다 */
 export function 디바이스글(t: (키: string) => string, platform: Platform, 위치: 모바일위치): string {
   const 이름 = t(PLATFORM_LABEL[platform]);
-  return platform === 'mobile' ? 이름 + ' (' + t(위치 === 'vision' ? '실제 기기' : '가상 기기') + ')' : 이름;
+  return platform === 'mobile' ? 이름 + ' (' + t(위치 === 'vision' ? '실제 디바이스' : '가상 디바이스') + ')' : 이름;
 }
 
 /** 경과 `0:21` · `1:05` — 분과 초 */

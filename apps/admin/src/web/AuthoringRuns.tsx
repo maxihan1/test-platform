@@ -16,7 +16,7 @@ export function 방식(
   뿌리종류?: AuthoringRun['kind'],
 ): string {
   if (실행.kind === 'MERGE') return t('반영');
-  if (실행.kind === 'EDIT') return t('케이스 고치기');
+  if (실행.kind === 'EDIT') return t('케이스 수정');
   if (실행.kind === 'AUTHOR') return t('처음');
   if (뿌리종류 === 'EDIT') return t('다시 적용');
   return 실행.resumeFrom == null ? t('처음부터') : t('이어서');
@@ -40,7 +40,7 @@ export function AuthoringRuns({ runs, 뿌리종류, 운영자 = false }: { runs:
   const 결과 = (r: AuthoringRun): string => {
     // 도는 반영 · 고치기를 「작성 중」이라 하면 거짓말이다 — 상태 칩(authoringView `칩글`)과 같은 말을 쓴다
     if (r.status === 'RUNNING' && r.kind === 'MERGE') return t('반영 중');
-    if (r.status === 'RUNNING' && 뿌리종류 === 'EDIT') return t('고치는 중');
+    if (r.status === 'RUNNING' && 뿌리종류 === 'EDIT') return t('수정 중');
     const 이름 = 보임라벨(상태보임(r.status), 언어);
     if (r.status === 'STOPPED') return `${이름} — ${중단이유라벨(r.stopReason, 언어)}`;
     if (r.status === 'FAILED' && r.error !== null) return `${이름} — ${실패글(r.error, 언어, 운영자).글}`;

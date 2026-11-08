@@ -48,10 +48,10 @@ function 띄운다(service: ServiceRow | null, 배정: ServiceRow[] = 모두, �
   );
 }
 
-const 카드 = () => screen.getByRole('button', { name: '데모마켓 › 데모마켓 웹 · 바꾸기' });
+const 카드 = () => screen.getByRole('button', { name: '데모마켓 › 데모마켓 웹 · 변경' });
 const 판열기 = () => {
   fireEvent.click(카드());
-  return screen.getByRole('dialog', { name: '프로젝트 · 애플리케이션 고르기' });
+  return screen.getByRole('dialog', { name: '프로젝트 · 애플리케이션 선택' });
 };
 const 앱줄들 = (판: HTMLElement) => [...판.querySelectorAll('.place-app-row')].map((it) => it.getAttribute('aria-label'));
 
@@ -62,7 +62,7 @@ describe('위치 카드', () => {
     const 단추 = 카드();
     expect(단추.closest('.side-col')).not.toBeNull();
     expect(document.querySelector('.side-top')!.compareDocumentPosition(단추) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(단추.compareDocumentPosition(screen.getByRole('button', { name: '찾기' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(단추.compareDocumentPosition(screen.getByRole('button', { name: '검색' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(단추.querySelector('.place-proj small')?.textContent).toBe('프로젝트');
     expect(단추.querySelector('.place-proj b')?.textContent).toBe('데모마켓');
     expect(단추.querySelector('.place-app-text b')?.textContent).toBe('데모마켓 웹');
@@ -131,7 +131,7 @@ describe('위치 판', () => {
     expect(앱줄들(판)).toEqual(['Ashveil · 게임', 'Ashveil 서버 · API']);
     expect(within(판).getByRole('button', { name: 'Ashveil · 애플리케이션 2개' }).getAttribute('aria-pressed')).toBe('true');
     expect(바꿈).not.toHaveBeenCalled();
-    expect(screen.getByRole('dialog', { name: '프로젝트 · 애플리케이션 고르기' })).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: '프로젝트 · 애플리케이션 선택' })).toBeTruthy();
   });
 
   it('프로젝트 줄을 스치기만 하면 오른쪽 칸이 안 바뀐다 — 대각선으로 애플리케이션을 향해 가는 길이다', () => {
@@ -151,7 +151,7 @@ describe('위치 판', () => {
     띄운다(웹);
 
     const 판 = 판열기();
-    fireEvent.blur(within(판).getByRole('button', { name: '데모마켓 웹 · 웹' }), { relatedTarget: screen.getByRole('button', { name: '찾기' }) });
+    fireEvent.blur(within(판).getByRole('button', { name: '데모마켓 웹 · 웹' }), { relatedTarget: screen.getByRole('button', { name: '검색' }) });
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 

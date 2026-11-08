@@ -28,7 +28,7 @@ function 탭말(x: 탭, t: 말): { 이름: string; 뜻: string } {
     approve: { 이름: t('승인 대기'), 뜻: t('AI 가 만든 테스트입니다. 승인하면 케이스 목록에 정식 테스트로 들어갑니다') },
     fail: { 이름: t('결함 판정'), 뜻: t('실패한 테스트입니다. 화면이 틀렸으면 이슈로 등록하고 기획서가 틀렸으면 PRD 를 수정합니다') },
     check: { 이름: t('요구사항 확인'), 뜻: t('AI 가 확신하지 못한 요구사항입니다. 확정하거나 수정하면 PRD 새 버전으로 저장됩니다') },
-    update: { 이름: t('테스트 업데이트'), 뜻: t('바뀐 요구사항 · API 와 테스트가 없는 화면입니다. 테스트를 다시 만들거나 새로 더합니다') },
+    update: { 이름: t('테스트 업데이트'), 뜻: t('변경된 요구사항 · API 와 테스트가 없는 화면입니다. 테스트를 다시 만들거나 신규로 추가합니다') },
   }[x];
 }
 
@@ -135,8 +135,8 @@ export function AuthoringDecide({ service, 목록, envs, 다시읽기, 탭: 주�
       <떠나기상자 막나={고른.size > 0 || 고침} />
       <header>
         <h2 id="decide-title">{t('결정이 필요한 일 {수}건', { 수: 목록.count })}</h2>
-        <small className="hint">{t('탭마다 고른 뒤 맨 아래 「적용」을 누릅니다')}</small>
-        {다시불러옴 ? <p className="prd-note bad">{t('그 사이 바뀐 것이 있어 다시 불러왔습니다')}</p> : null}
+        <small className="hint">{t('탭마다 선택한 뒤 맨 아래 「적용」을 누릅니다')}</small>
+        {다시불러옴 ? <p className="prd-note bad">{t('그 사이 변경된 것이 있어 다시 불러왔습니다')}</p> : null}
       </header>
       <div role="tablist" className="scn-tabs decide-tabs">
         {보이는.map((x, i) => {
@@ -182,7 +182,7 @@ export function AuthoringDecide({ service, 목록, envs, 다시읽기, 탭: 주�
       <footer>
         <b>{t('적용하면 이렇게 됩니다')}</b>
         {줄들.length === 0 ? (
-          <small className="hint">{t('아직 고른 것이 없습니다')}</small>
+          <small className="hint">{t('아직 선택한 것이 없습니다')}</small>
         ) : (
           <ol className="decide-plan">
             {줄들.map((줄, i) => (
@@ -193,7 +193,7 @@ export function AuthoringDecide({ service, 목록, envs, 다시읽기, 탭: 주�
           </ol>
         )}
         <div className="decide-run">
-          <small className="hint">{안저장 === 0 ? t('고르지 않은 일은 이 목록에 남습니다') : t('저장하지 않은 수정 {수}건은 빠집니다', { 수: 안저장 })}</small>
+          <small className="hint">{안저장 === 0 ? t('선택하지 않은 일은 이 목록에 남습니다') : t('저장하지 않은 수정 {수}건은 빠집니다', { 수: 안저장 })}</small>
           <button className="btn" type="button" disabled={바쁨 || 보냄.length === 0} onClick={() => void 적용하기()}>
             <기다림글자 중={바쁨} 평소={t('{수}건 적용', { 수: 보냄.length })} 기다림={t('적용하는 중…')} />
           </button>

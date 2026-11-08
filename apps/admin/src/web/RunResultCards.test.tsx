@@ -154,7 +154,7 @@ describe('디바이스 칩 묶음은 이름이 있다', () => {
     연다(섞인항목);
     await screen.findByText('이름-ZRR-002');
 
-    const 묶음 = screen.getByRole('group', { name: '디바이스로 거르기' });
+    const 묶음 = screen.getByRole('group', { name: '디바이스 필터' });
     expect(묶음.querySelectorAll('button.chip')).toHaveLength(3);
     expect(묶음.textContent).toContain('PC');
   });

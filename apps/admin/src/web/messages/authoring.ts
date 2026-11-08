@@ -3,12 +3,12 @@
 
 export const 작성말: Record<string, string> = {
   // 줄의 종류와 상태
-  '자료 올리는 중': 'Uploading files',
+  '자료 업로드 중': 'Uploading files',
   '대기 중': 'Queued',
   '작성 중': 'Writing',
   // 서버가 주는 상태가 아니다. 신호가 오래 끊긴 것을 화면이 판정했다 — 까닭은 모르니 끊긴 사실만 말한다
   '응답 없음': 'No response',
-  끝남: 'Ended',
+  종료: 'Ended',
   '기록 없음': 'No record',
   실패: 'Failed',
 
@@ -16,7 +16,7 @@ export const 작성말: Record<string, string> = {
   '아직 작성을 요청한 기록이 없습니다': 'No authoring requests yet',
   '기획서를 넣으면 여기에 줄이 생깁니다': 'Add a spec and a row appears here',
   '작성 요청이 들어오면 여기에 줄이 생깁니다': 'A row appears here when authoring is requested',
-  '이 쪽에는 요청이 없습니다': 'No requests on this page',
+  '이 페이지에는 요청이 없습니다': 'No requests on this page',
 
   // 새 요청 폼 — 파일과 피그마 주소를 한 세트로 (도메인/작성 §7 「자료」)
   '새 작성': 'New request',
@@ -31,18 +31,18 @@ export const 작성말: Record<string, string> = {
   '버전 {버전}': 'Version {버전}',
   'API 문서가 아직 없습니다. API 문서 화면에서 먼저 받습니다': 'There is no API doc yet. Fetch one on the API docs screen first',
   'API 문서 화면으로': 'Go to the API docs screen',
-  '지원하지 않는 파일입니다. PDF · 워드 · 엑셀 · md · txt · csv 만 올릴 수 있습니다': 'File type not accepted. Only PDF · Word · Excel · md · txt · csv',
-  '지원하지 않는 파일입니다. PDF · 워드 · md · txt 만 올릴 수 있습니다': 'File type not accepted. Only PDF · Word · md · txt',
+  '지원하지 않는 파일입니다. PDF · 워드 · 엑셀 · md · txt · csv 만 업로드할 수 있습니다': 'File type not accepted. Only PDF · Word · Excel · md · txt · csv',
+  '지원하지 않는 파일입니다. PDF · 워드 · md · txt 만 업로드할 수 있습니다': 'File type not accepted. Only PDF · Word · md · txt',
   '이 요청은 대기열에 들어가지 못했습니다. 새 요청으로 다시 넣으세요': 'This request was not queued. Submit a new request',
   '이 요청은 대기열에 들어가지 못했습니다. 폐기하고 새 요청으로 다시 넣으세요': 'This request was not queued. Discard it and submit a new request',
   '파일 하나가 크기 상한을 넘었습니다': 'The file is larger than the per-file limit',
-  '빈 파일은 올릴 수 없습니다': 'Empty files cannot be uploaded',
+  '빈 파일은 업로드할 수 없습니다': 'Empty files cannot be uploaded',
   '피그마 주소 형식이 맞지 않습니다. 피그마 디자인 파일의 링크를 넣으세요 (FigJam은 받지 않습니다)':
     'Not a Figma link we accept. Paste a Figma design file link (FigJam is not accepted)',
   '파일 이름에 쓸 수 없는 글자(따옴표 · 빗금 · ..)가 있습니다': 'The file name has characters that are not allowed (quotes · slashes · ..)',
   '한 요청에 넣을 수 있는 자료 개수를 넘었습니다': 'Too many attachments for one request',
   '자료가 하나도 없습니다. 파일이나 피그마 주소를 넣으세요': 'No attachments. Add a file or a Figma link',
-  '요청한 사람만 자료를 올릴 수 있습니다': 'Only the requester can upload attachments',
+  '요청한 사람만 자료를 업로드할 수 있습니다': 'Only the requester can upload attachments',
   // 피그마를 미리 열어 보기 (도메인/작성 §7 「자료」 「미리 열어 보기」)
   '이 애플리케이션에는 피그마 토큰이 없어 피그마 주소를 받을 수 없습니다.': 'This application has no Figma token, so Figma links cannot be accepted.',
   '설정 > 애플리케이션에서 피그마 토큰을 넣으세요': 'Add a Figma token in Settings > Applications',
@@ -80,7 +80,7 @@ export const 작성말: Record<string, string> = {
   '케이스 작성': 'Write cases',
   '저장 · PR 생성': 'Save · create PR',
   '작성 순서를 기다리는 중': 'Waiting for its authoring turn',
-  '자료 올리기가 끝나지 않았습니다': 'File upload did not finish',
+  '자료 업로드가 완료되지 않았습니다': 'File upload did not finish',
   시간: 'Time',
   '{시간} 걸림 (시작 {시작})': 'took {시간} (started {시작})',
   '{지난} 지남 / 한도 {한도}': '{지난} elapsed / limit {한도}',
@@ -98,22 +98,22 @@ export const 작성말: Record<string, string> = {
   '저장하고 PR 을 만드는 중': 'Saving and creating the PR',
   '대조 결과를 저장하는 중': 'Saving comparison results',
   '겹치는 케이스를 보는 중': 'Reviewing overlapping cases',
-  '채운 케이스를 3회 돌리는 중': 'Running the filled cases 3 times',
+  '채운 케이스를 3회 실행 중': 'Running the filled cases 3 times',
   '보관한 작업 폴더가 없어 처음부터 하는 중': 'No saved work folder, starting from scratch',
   '원본에 차이를 표시하는 중': 'Marking differences on the original',
 
   // 목록 한 줄 — 날것 단계 글 대신 (authoringStatus.ts 의 목록글)
-  '{단계} 단계에서 멈췄습니다': 'Stopped at {단계}',
+  '{단계} 단계에서 중단되었습니다': 'Stopped at {단계}',
   '테스트 반영 완료': 'Tests merged',
-  '시작 전에 멈췄습니다': 'Stopped before it started',
+  '시작 전에 중단되었습니다': 'Stopped before it started',
   '케이스 파일 {수}개를 만들었습니다': 'Made {수} case files',
-  '케이스를 PR 로 올렸습니다': 'Opened the cases as a PR',
+  '케이스를 PR 로 등록했습니다': 'Opened the cases as a PR',
 
   // 다음 단계 (2026-09-28 「해야 할 일」에서 바꿨다 — 고르는 상황에 시키는 말투가 안 맞았다)
   '다음 단계': 'Next steps',
   '작성 응답이 끊겼습니다. 작성 중단을 누른 뒤 이어서 작성하세요':
     'Authoring stopped responding. Press Stop writing, then continue writing',
-  '지금은 없습니다. 작성이 끝나면 여기에 검토할 것이 생깁니다. 이 페이지를 닫아도 됩니다.':
+  '지금은 없습니다. 작성이 완료되면 여기에 검토할 것이 생깁니다. 이 페이지를 닫아도 됩니다.':
     'Nothing for now. Things to review appear here when writing ends. You can close this page.',
   '아직 시작 전이라 누르면 바로 취소됩니다.': 'It has not started, so it is cancelled right away.',
   '중단하면 30초 안에 멈춥니다. 만든 것은 남겨 두어 이어서 작성할 수 있습니다.':
@@ -125,28 +125,28 @@ export const 작성말: Record<string, string> = {
     'It was opened as a draft PR. Read it and leave a comment on the PR if something looks wrong.',
   '만든 케이스 보기 (PR)': 'View the new cases (PR)',
   '기획서와 다른 곳 {수}건 확인': 'Check {수} differences from the spec',
-  '표시한 기획서 내려받기': 'Download the marked spec',
+  '표시한 기획서 다운로드': 'Download the marked spec',
   '테스트 반영하기': 'Merge the tests',
-  '검토가 끝나면 PR 을 반영해 케이스 목록에 올립니다.': 'After review, apply the PR to add the cases to the list.',
+  '검토가 완료되면 PR 을 반영해 케이스 목록에 등록합니다.': 'After review, apply the PR to add the cases to the list.',
   '반영하는 중': 'Merging…',
   '반영은 관리자만 할 수 있습니다.': 'Someone with admin rights merges it.',
   '같은 자료로 다시 작성': 'Write again with the same inputs',
-  '원인을 먼저 고친 뒤 누르세요. 넣었던 자료 그대로 같은 요청에서 처음부터 다시 돌립니다.':
+  '원인을 먼저 수정한 뒤 누르세요. 넣었던 자료 그대로 같은 요청에서 처음부터 다시 실행합니다.':
     'Fix the cause first. This runs the same request again from the start with the same inputs.',
   '대상 서버와 시작 주소도 원본 그대로 씁니다.': 'It uses the same target server and start URL as the original.',
-  '넣었던 자료 그대로 같은 요청에서 처음부터 다시 돌립니다. 지금까지의 실행은 실행 기록에 남습니다.':
+  '넣었던 자료 그대로 같은 요청에서 처음부터 다시 실행합니다. 지금까지의 실행은 실행 기록에 남습니다.':
     'This runs the same request again from the start with the same inputs. Earlier runs stay in the run history.',
 
   // 이어하기 (도메인/작성 §7 「이어하기」)
   '이어서 작성': 'Continue writing',
-  '이 요청은 이어서 작성할 수 없습니다. 이미 이어받았거나 보관 기간이 지났습니다. 새로 고쳐 보세요':
+  '이 요청은 이어서 작성할 수 없습니다. 이미 이어받았거나 보관 기간이 지났습니다. 새로고침해 보세요':
     'This request cannot be continued. It was already continued or its keep period is over. Refresh the page',
   '중단 전까지 만든 테스트 {수}개를 이어받아 남은 작업을 계속합니다.':
     'Takes over the {수} tests made before the stop and continues the rest.',
   '중단된 자리부터 남은 작업을 계속합니다.': 'Continues the rest from where it stopped.',
   '{날}까지 이어갈 수 있습니다.': 'You can continue until {날}.',
   '이미 이어서 작성했습니다. 아래 실행 기록을 보세요.': 'Already continued. See the run history below.',
-  '보관 기간이 지나 작성 결과를 지웠습니다. 처음부터 다시 작성하세요.':
+  '보관 기간이 지나 작성 결과를 삭제했습니다. 처음부터 다시 작성하세요.':
     'The keep period is over and what was made was deleted. Write again from the start.',
   '목록에서 사라집니다. 보관한 작업물도 삭제합니다. 통계와 토큰 기록은 남습니다.':
     'It disappears from the list and the kept work is deleted. Stats and token records stay.',
@@ -156,19 +156,19 @@ export const 작성말: Record<string, string> = {
   '{수}장': '{수}',
   '{수}개': '{수}',
   시스템: 'System',
-  '사용자가 멈춤': 'Stopped by user',
+  '사용자가 중단': 'Stopped by user',
   '시간초과': 'Timed out',
   '구독 한도': 'Subscription limit',
   '작성 재시작': 'Authoring restarted',
   '작성 응답 없음': 'Authoring not responding',
   '작성 중 끊김': 'Cut off while writing',
-  '올리기 거절': 'Upload rejected',
+  '업로드 거절': 'Upload rejected',
   '작성 중단': 'Stop writing',
   폐기: 'Discard',
   '폐기하는 중': 'Discarding…',
   폐기됨: 'Discarded',
-  '저장하고 PR 을 만드는 중 — 멈출 수 없습니다': 'Saving and opening the PR — cannot be stopped',
-  '작성을 멈출까요?': 'Stop writing?',
+  '저장하고 PR 을 만드는 중 — 중단할 수 없습니다': 'Saving and opening the PR — cannot be stopped',
+  '작성을 중단할까요?': 'Stop writing?',
   '이 요청을 폐기할까요?': 'Discard this request?',
   '{분}분 동안 만든 것은 남겨 두어 나중에 이어서 작성할 수 있습니다.':
     'What was made in {분} min is kept so you can continue writing later.',
@@ -180,14 +180,14 @@ export const 작성말: Record<string, string> = {
   '피그마 화면': 'Figma screens',
   '실제 화면과 대조 — 크롤러가 대상 서버를 열어 기획서와 다른 화면을 찾습니다':
     'Compare with the live screen — the crawler opens the target server and finds screens that differ from the spec',
-  '앱 화면 읽기 — Device VISION 에서 폰 하나를 잡아 앱을 깔고 첫 화면부터 눌러 가며 요소를 읽습니다':
+  '앱 화면 읽기 — Device VISION 에서 디바이스 하나를 할당받아 앱을 설치하고 첫 화면부터 눌러 가며 요소를 읽습니다':
     'Reading app screens — takes one phone from Device VISION, installs the app and reads elements from the first screen on',
-  '실제 화면과 대조 — 폰에서 앱을 눌러 가며 화면을 모아 기획서와 다른 화면을 찾습니다':
+  '실제 화면과 대조 — 디바이스에서 앱을 눌러 가며 화면을 모아 기획서와 다른 화면을 찾습니다':
     'Compare with the live screen — taps through the app on a phone to collect screens and finds those that differ from the spec',
-  '실제 화면과 대조 — 폰에서 게임 창을 하나씩 열어 기획서와 다른 창을 찾습니다':
+  '실제 화면과 대조 — 디바이스에서 게임 창을 하나씩 열어 기획서와 다른 창을 찾습니다':
     'Compare with the live screen — opens each game window on a phone and finds the windows that differ from the spec',
   '기획서 · 확률표': 'Spec · probability table',
-  '게임 화면 읽기 — Device VISION 에서 폰 하나를 잡아 게임을 깔고 로그인 창부터 창을 하나씩 열어 오브젝트를 읽습니다':
+  '게임 화면 읽기 — Device VISION 에서 디바이스 하나를 할당받아 게임을 설치하고 로그인 창부터 창을 하나씩 열어 오브젝트를 읽습니다':
     'Reading game screens — takes one phone from Device VISION, installs the game and opens each window from login to read its objects',
   'API 문서 버전 — 지난 버전과 달라진 엔드포인트만 다시 작성합니다': 'API doc version — only endpoints changed since the last version are rewritten',
   '기획서(있으면)': 'Spec (if any)',
@@ -201,16 +201,16 @@ export const 작성말: Record<string, string> = {
     'This application has no target servers. Add one in Settings > Applications first',
   '이 대상 서버에는 테스트 계정이 없거나 실서비스 서버로 체크돼 있습니다. 설정 > 애플리케이션에서 확인하세요':
     'This target server has no test account or is marked as production. Check Settings > Applications',
-  '이 대상 서버에는 폰에서 켤 앱(앱 파일 경로나 올린 빌드)이 없거나 실서비스 서버로 체크돼 있습니다. 설정 > 애플리케이션에서 확인하세요':
+  '이 대상 서버에는 디바이스에서 켤 앱(앱 파일 경로나 업로드한 빌드)이 없거나 실서비스 서버로 체크돼 있습니다. 설정 > 애플리케이션에서 확인하세요':
     'This target server has no app to launch on the phone (app file path or uploaded build) or is marked as production. Check Settings > Applications',
-  '이 대상 서버에는 폰에서 켤 앱(앱 파일 경로나 올린 빌드)이 없거나 실서비스 서버로 체크돼 있습니다. 관리자에게 확인을 요청하세요':
+  '이 대상 서버에는 디바이스에서 켤 앱(앱 파일 경로나 업로드한 빌드)이 없거나 실서비스 서버로 체크돼 있습니다. 관리자에게 확인을 요청하세요':
     'This target server has no app to launch on the phone (app file path or uploaded build) or is marked as production. Ask an admin to check',
-  '시작 주소는 고른 대상 서버와 같은 주소(도메인 · 포트)여야 합니다':
+  '시작 주소는 선택한 대상 서버와 같은 주소(도메인 · 포트)여야 합니다':
     'The start URL must be on the same address (domain · port) as the chosen target server',
   '대상 서버 주소에서 시작': 'Starts from the target server address',
   '앱 첫 화면에서 시작': "Starts from the app's first screen",
   '게임 첫 화면에서 시작': "Starts from the game's first screen",
-  '화면만 — 기획서 없이 PRD 에 없는 화면만 작성합니다': 'Screen only — without a spec, writes only the screens not in the PRD',
+  '화면만 — 기획서 없이 미검증 화면만 작성합니다': 'Screen only — without a spec, writes only the screens not in the PRD',
   '원본 요청 #{번호}의 입력을 그대로 씁니다': 'Uses the inputs of the original request #{번호} as they are',
   '원본 요청 #{번호}의 자료': 'Input of the original request #{번호}',
   '입력 자료': 'Inputs',
@@ -237,17 +237,17 @@ export const 작성말: Record<string, string> = {
   테스트: 'Tests',
   // 보류 케이스 (도메인/작성 §3.6 「★ 보류 케이스」 · 시안 A)
   접기: 'Collapse',
-  되돌리기: 'Undo',
+  '실행 취소': 'Undo',
   '넣을 값': 'Input',
-  '기대 결과': 'Expected',
+  '기대 결과': 'Expected result',
   숫자: 'Number',
   글자: 'Text',
   '숫자를 넣으세요': 'Enter a number',
   저장했습니다: 'Saved',
   '칸을 벗어나면 바로 저장됩니다': 'Saved as soon as you leave the field',
-  '반영하면 넣은 값을 케이스에 적고, 값을 채운 케이스를 3번 돌려 모두 통과해야 반영합니다.':
+  '반영하면 넣은 값을 케이스에 적고, 값을 채운 케이스를 3번 실행해 모두 통과해야 반영합니다.':
     'Applying writes your values into the cases, runs each filled case 3 times, and applies only if all pass.',
-  '반영이 대기 중이거나 진행 중이라 지금은 값을 바꿀 수 없습니다': 'A merge is queued or running, so values cannot be changed now',
+  '반영이 대기 중이거나 진행 중이라 지금은 값을 변경할 수 없습니다': 'A merge is queued or running, so values cannot be changed now',
   '넣은 값이 이 케이스의 칸과 맞지 않습니다': 'The values do not match this case’s fields',
   '테스트 계정을 넣은 대상 서버가 없습니다. 설정 > 애플리케이션에서 넣으세요.':
     'No target server has a test account. Add one in Settings > Applications.',
@@ -266,7 +266,7 @@ export const 작성말: Record<string, string> = {
   '#{번호} 다음 · 기획서에 없는 화면': 'After #{번호} · screens not in the spec',
   '반영한 실행 기준으로 다음 요청 {다음}개 · 빠짐 {빠짐}개가 남았습니다.':
     'As of the merged run, {다음} left for the next request · {빠짐} missing.',
-  '이것을 새 요청으로 작성하고 새 번호로 넘어갑니다. 남은 요구는 작성을 시작할 때 다시 셉니다.':
+  '이것을 새 요청으로 작성하고 새 번호로 넘어갑니다. 남은 요구는 작성을 시작할 때 다시 집계합니다.':
     'They are written as a new request, and you move to its new number. The remaining requirements are counted again when writing starts.',
   '이어 작성은 작성 요청 권한이 있는 사람만 할 수 있습니다.': 'Only people who can request writing can start a follow-up.',
   'GitHub 에서 이미 반영했어도 여기서 반영을 눌러야 남은 요구를 이어 작성할 수 있습니다.':
@@ -280,11 +280,11 @@ export const 작성말: Record<string, string> = {
 
   // 새 요청 — Android 앱 애플리케이션 (도메인/러너 §5.2 종류 표)
   '앱 화면 읽기': 'Reading app screens',
-  '대상 서버에 앱 파일 경로가 있으면 Device VISION 에서 빈 폰 하나를 잡아 앱을 설치하고, 첫 화면부터 눌러 가며 요소 주소를 읽습니다. 끝나면 폰을 놓습니다':
+  '대상 서버에 앱 파일 경로가 있으면 Device VISION 에서 유휴 디바이스 하나를 할당받아 앱을 설치하고, 첫 화면부터 눌러 가며 요소 주소를 읽습니다. 완료되면 디바이스를 반납합니다':
     'If the target server has an app file path, takes a free phone from Device VISION, installs the app, and taps through from the first screen to read element locators. The phone is released when done',
-  '앱 케이스는 끝 검사에서 폰으로 돌려 보지 않습니다. 반영 뒤 「테스트 실행」 메뉴에서 돌려 확인합니다':
+  '앱 케이스는 끝 검사에서 디바이스로 실행해 보지 않습니다. 반영 뒤 「테스트 실행」 메뉴에서 실행해 확인합니다':
     'App cases are not run on a phone during the final check. Run them from “Test runs” after the merge',
   '게임 화면 읽기': 'Reading game screens',
-  'Device VISION 에서 빈 폰 하나를 잡아 게임을 설치하고, 로그인 창부터 창을 하나씩 열어 오브젝트 목록을 읽습니다. 끝나면 폰을 놓습니다':
+  'Device VISION 에서 유휴 디바이스 하나를 할당받아 게임을 설치하고, 로그인 창부터 창을 하나씩 열어 오브젝트 목록을 읽습니다. 완료되면 디바이스를 반납합니다':
     'Takes a free phone from Device VISION, installs the game, and opens each window from the login window on to read its object list. The phone is released when done',
 };

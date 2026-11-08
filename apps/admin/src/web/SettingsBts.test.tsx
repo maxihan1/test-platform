@@ -108,7 +108,7 @@ describe('설정 › BTS 연결', () => {
     expect((screen.getByLabelText('「QA Hub AI」 계정 이름') as HTMLInputElement).value).toBe('qahub-ai');
     fireEvent.change(screen.getByLabelText('QA 검토'), { target: { value: '' } });
     fireEvent.click(screen.getByRole('button', { name: '저장하고 Issue Bunker 자동 설정' }));
-    expect(await screen.findByText('비어 있는 단계가 있습니다. 모든 단계에 Issue Bunker 상태를 골라 주세요')).toBeTruthy();
+    expect(await screen.findByText('비어 있는 단계가 있습니다. 모든 단계에 Issue Bunker 상태를 선택해 주세요')).toBeTruthy();
     expect(저장).not.toHaveBeenCalled();
   });
 
@@ -132,7 +132,7 @@ describe('설정 › BTS 연결', () => {
 
     const 버튼 = await screen.findByRole('button', { name: '저장하고 Issue Bunker 자동 설정' });
     fireEvent.click(버튼);
-    expect(await screen.findByText('Auth 계정으로 로그인한 운영 계정이어야 Issue Bunker 자동 설정을 할 수 있습니다')).toBeTruthy();
+    expect(await screen.findByText('Auth 계정으로 로그인한 관리자 계정이어야 Issue Bunker 자동 설정을 할 수 있습니다')).toBeTruthy();
 
     저장.mockRejectedValue(new ApiError(400, 'SSO_REQUIRED', '', []));
     fireEvent.click(버튼);

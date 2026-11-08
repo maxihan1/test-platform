@@ -194,7 +194,7 @@ function 가져온줄({ 결과 }: { 결과: 초안결과 }) {
       )}
       {못옮긴것.length === 0 ? null : (
         <details open>
-          <summary>{t('옮기지 못한 부분 {수}건 — 직접 고쳐 주세요', { 수: 못옮긴것.length })}</summary>
+          <summary>{t('옮기지 못한 부분 {수}건 — 직접 수정해 주세요', { 수: 못옮긴것.length })}</summary>
           <ul>
             {못옮긴것.map((it, i) => (
               <li key={i}>
@@ -237,7 +237,7 @@ function 더미고르개({ 값, 고침, 더미들, 쓰나 }: { 값: 일단계값
           </label>
         ) : null}
       </div>
-      {값.방식 === 'DUMMY' ? <span className="perf-faint">{t('올려 둔 실행 파일을 에이전트마다 한 번 띄웁니다. 동시 사용자 기준으로만 걸 수 있고 트랜잭션 목록은 쓰지 않습니다')}</span> : null}
+      {값.방식 === 'DUMMY' ? <span className="perf-faint">{t('업로드해 둔 실행 파일을 에이전트마다 한 번 실행합니다. 동시 사용자 기준으로만 걸 수 있고 트랜잭션 목록은 쓰지 않습니다')}</span> : null}
     </div>
   );
 }

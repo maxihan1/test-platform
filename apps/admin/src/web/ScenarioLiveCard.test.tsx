@@ -49,7 +49,7 @@ describe('E2E 화면 카드', () => {
       await vi.advanceTimersByTimeAsync(1_000);
     });
     expect(document.querySelector('.live-shot.lc-phone')).not.toBeNull();
-    expect(document.querySelector('.lc-tag')?.textContent).toBe('가상 기기 · iPhone 14');
+    expect(document.querySelector('.lc-tag')?.textContent).toBe('가상 디바이스 · iPhone 14');
   });
 
   it('실제 폰 Chrome 실행은 Device VISION 링크만 서고 장면을 묻지 않는다', async () => {
@@ -59,7 +59,7 @@ describe('E2E 화면 카드', () => {
     await 흘리기();
 
     expect(screen.getByRole('link', { name: 'Device VISION ↗' }).getAttribute('href')).toBe('https://vision.example.com/#phone=s1');
-    expect(document.querySelector('.lc-tag')?.textContent).toBe('실제 기기');
+    expect(document.querySelector('.lc-tag')?.textContent).toBe('실제 디바이스');
     expect(document.querySelector('.lc-scene')).toBeNull();
     expect(받기).not.toHaveBeenCalled();
   });
@@ -76,7 +76,7 @@ describe('E2E 화면 카드', () => {
       await vi.advanceTimersByTimeAsync(1_000);
     });
     expect(document.querySelector('.live-shot.dim')).not.toBeNull();
-    expect(screen.getByText('지금은 앱 단계라 폰에서 실행 중입니다')).toBeTruthy();
+    expect(screen.getByText('지금은 앱 단계라 디바이스에서 실행 중입니다')).toBeTruthy();
   });
 
   it('android 시나리오의 웹 단계는 PC 창이라 꼬리표가 없다', () => {

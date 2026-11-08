@@ -26,7 +26,7 @@ export function 디바이스구획({ 고른, 팜, 팜오류, 쓰나, 열기 }: {
       </div>
       {팜오류 === null ? null : <p className="compat-err">{팜오류}</p>}
       {고른.length === 0 ? (
-        <p className="compat-faint compat-pad">{t('아직 고른 디바이스가 없습니다. 「디바이스 선택」에서 고릅니다')}</p>
+        <p className="compat-faint compat-pad">{t('아직 선택한 디바이스가 없습니다. 「디바이스 선택」에서 선택합니다')}</p>
       ) : (
         <>
           {팜 === null ? null : (
@@ -95,7 +95,7 @@ export function 케이스구획({
         <small className="compat-faint">{t('자동 선택은 실행할 때마다 다시 계산합니다')}</small>
       </div>
       {auto.length + 도는직접.length === 0 ? (
-        <p className="compat-pad">{웹 ? t('실제 폰에서 도는 모바일 웹 케이스가 없습니다') : t('폰에서 도는 케이스가 없습니다')}</p>
+        <p className="compat-pad">{웹 ? t('실제 디바이스에서 실행되는 모바일 웹 케이스가 없습니다') : t('디바이스에서 실행되는 케이스가 없습니다')}</p>
       ) : null}
       {auto.length === 0 ? null : (
         <>
@@ -153,7 +153,7 @@ export function 커버리지구획({ 셈 }: { 셈: CompatPreview }) {
         <small className="compat-faint">{t('전체 화면 {전체}개 중 {덮음}개 커버', { 전체: total, 덮음: covered })}</small>
       </div>
       <div className="compat-pad">
-        {fallback ? <p className="compat-faint">{t('전체 화면 목록이 없어 케이스가 아는 화면으로 셉니다')}</p> : null}
+        {fallback ? <p className="compat-faint">{t('전체 화면 목록이 없어 케이스가 아는 화면으로 집계합니다')}</p> : null}
         {셈.uncovered.length === 0 ? (
           <p className="compat-faint">{t('미커버 화면이 없습니다')}</p>
         ) : (
@@ -184,7 +184,7 @@ export function 예상구획({ 예상, 상태수 }: { 예상: CompatSetDetail['e
     <section className="compat-panel compat-eta" aria-labelledby="cs-eta">
       <h2 id="cs-eta">{t('예상 소요 시간')}</h2>
       {예상 === null ? (
-        <p className="compat-faint">{t('저장하면 예상 소요 시간을 셉니다')}</p>
+        <p className="compat-faint">{t('저장하면 예상 소요 시간을 계산합니다')}</p>
       ) : (
         <>
           <p>{t('케이스 {케이스} × 점검 상태 {상태} = {회}회 실행', { 케이스: 상태수 === 0 ? 0 : Math.round(예상.runs / 상태수), 상태: 상태수, 회: 예상.runs })}</p>

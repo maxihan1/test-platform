@@ -22,10 +22,10 @@ const 바로계산 = 10;
 function 차이줄글({ 줄 }: { 줄: 차이줄 }) {
   const t = use말();
   const 종류글 = use반영종류글();
-  const 상태 = 줄.뒤?.status === 'CONFIRMED' ? t('확정으로 바뀜') : t('확인 필요로 바뀜');
+  const 상태 = 줄.뒤?.status === 'CONFIRMED' ? t('확정으로 변경') : t('확인 필요로 변경');
   return (
     <li>
-      <span className="prd-kind">{줄.kind === 'state' ? t('상태만 바뀜') : 종류글[줄.kind]}</span>
+      <span className="prd-kind">{줄.kind === 'state' ? t('상태만 변경') : 종류글[줄.kind]}</span>
       <span className="prd-id">{줄.reqId}</span>
       {줄.kind === 'state' ? (
         <span>{상태}</span>
@@ -34,7 +34,7 @@ function 차이줄글({ 줄 }: { 줄: 차이줄 }) {
           {줄.앞.text === 줄.뒤.text ? (
             <>
               {줄.앞.feature === 줄.뒤.feature
-                ? t('출처가 바뀜')
+                ? t('출처 변경')
                 : t('기능 묶음 {앞} → {뒤}', {
                     앞: 줄.앞.feature,
                     뒤: 줄.뒤.feature,
@@ -58,11 +58,11 @@ function 차이줄글({ 줄 }: { 줄: 차이줄 }) {
 /** 서버가 적어 준 「바뀐 것」 — 앞 버전과 견주지 않고 그대로 줄마다 적는다 */
 function 적힌바뀐것({ changes }: { changes: PrdVersionChange[] }) {
   const t = use말();
-  const 종류글: Record<PrdVersionChange['kind'], string> = { EDIT: t('문장 변경'), PICK: t('문구 선택'), CONFIRM: t('확정'), ADD: t('추가'), DEL: t('삭제'), CHECK: t('확인 필요로 바꿈') };
+  const 종류글: Record<PrdVersionChange['kind'], string> = { EDIT: t('문장 변경'), PICK: t('문구 선택'), CONFIRM: t('확정'), ADD: t('추가'), DEL: t('삭제'), CHECK: t('확인 필요로 지정') };
   return (
     <ul className="prd-diff">
       {changes.map((c) => {
-        const 까닭 = [c.tcId === null ? null : t('화면이 맞음({번호})', { 번호: c.tcId }), c.asset === null ? null : t('{자료} 쪽', { 자료: c.asset }), c.issueKeys === undefined || c.issueKeys.length === 0 ? null : t('{키들} 에서 옴', { 키들: c.issueKeys.join(', ') })].filter((x) => x !== null);
+        const 까닭 = [c.tcId === null ? null : t('화면이 맞음({번호})', { 번호: c.tcId }), c.asset === null ? null : t('출처 {자료}', { 자료: c.asset }), c.issueKeys === undefined || c.issueKeys.length === 0 ? null : t('{키들} 에서 옴', { 키들: c.issueKeys.join(', ') })].filter((x) => x !== null);
         return (
           <li key={`${c.kind}\n${c.reqId}`}>
             <span className="prd-kind">{종류글[c.kind]}</span>
@@ -102,7 +102,7 @@ function 바뀐것({ service, 판, 앞판, 읽은, 바로 }: { service: string; 
           set폄(true);
         }}
       >
-        {t('바뀐 것 보기')}
+        {t('변경 사항 보기')}
       </button>
     );
   }
@@ -111,18 +111,18 @@ function 바뀐것({ service, 판, 앞판, 읽은, 바로 }: { service: string; 
 
   const 줄들 = 차이.data;
   const 셈 = (kind: 차이줄['kind']) => 줄들.filter((x) => x.kind === kind).length;
-  const 요약 = [...(['changed', 'added', 'removed'] as const).map((k) => [종류글[k], 셈(k)] as const), [t('상태만 바뀜'), 셈('state')] as const]
+  const 요약 = [...(['changed', 'added', 'removed'] as const).map((k) => [종류글[k], 셈(k)] as const), [t('상태만 변경'), 셈('state')] as const]
     .filter(([, 수]) => 수 > 0)
     .map(([이름, 수]) => t('{종류} {건수}건', { 종류: 이름, 건수: 수 }))
     .join(' · ');
-  if (줄들.length === 0) return <span className="prd-plain">{t('바뀐 요구 없음')}</span>;
+  if (줄들.length === 0) return <span className="prd-plain">{t('변경된 요구 없음')}</span>;
   return (
     <>
       <button className="btn ghost small" aria-expanded={폄} onClick={() => set폄(!폄)}>
         {요약}
       </button>
       {!폄 ? null : (
-        <ul className="prd-diff" aria-label={t('버전 {버전}에서 바뀐 요구', { 버전: 판 })}>
+        <ul className="prd-diff" aria-label={t('버전 {버전}에서 변경된 요구', { 버전: 판 })}>
           {줄들.map((줄) => (
             <차이줄글 key={줄.reqId} 줄={줄} />
           ))}
@@ -150,7 +150,7 @@ export function PrdVersions({ service, 지금판, 쓰나, 짓기 }: { service: s
       const 키 = [...new Set((v.changes ?? []).flatMap((c) => c.issueKeys ?? []))].join(' · ');
       return v.rollbackBuild ? t('롤백 · 빌드 {빌드} · {키}', { 빌드: v.rollbackBuild, 키 }) : t('롤백 · {키}', { 키 });
     }
-    return { PERSON: t('직접 수정'), REVERT: t('되돌림'), DECISION: t('테스트 작성에서 결정') }[v.source];
+    return { PERSON: t('직접 수정'), REVERT: t('복원'), DECISION: t('테스트 작성에서 결정') }[v.source];
   };
 
   async function 되돌리기(toVersion: number) {
@@ -178,7 +178,7 @@ export function PrdVersions({ service, 지금판, 쓰나, 짓기 }: { service: s
               <tr>
                 <th>{t('버전')}</th>
                 <th>{t('어디서')}</th>
-                <th>{t('바뀐 것')}</th>
+                <th>{t('변경 사항')}</th>
                 <th>{t('저장한 사람')}</th>
                 <th>{t('저장 일시')}</th>
                 <th aria-label={t('복원')} />

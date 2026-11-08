@@ -80,14 +80,14 @@ describe('E2E 정식 실행 창 — 도는 중', () => {
     그리기();
 
     const 창 = within(await screen.findByRole('dialog', { name: 'E2E 실행 중 · RUN 21045' }));
-    expect(await 창.findByText(/끝나면 실행 기록에 남고 리포트를 만들 수 있습니다 · RUN \d+/)).toBeTruthy();
+    expect(await 창.findByText(/완료되면 실행 기록에 남고 리포트를 만들 수 있습니다 · RUN \d+/)).toBeTruthy();
     expect(창.getByText('정식 실행')).toBeTruthy();
     const 줄들 = [...screen.getByRole('dialog').querySelectorAll('.e2e-steps li')];
     expect(줄들).toHaveLength(3);
     expect(줄들.map((줄) => 줄.className)).toEqual(['done', 'now', 'wait']);
     expect(줄들[1]?.querySelector('.t')?.textContent).toBe('5초째');
     expect(줄들[1]?.textContent).toContain('FN-213');
-    expect(창.getByText('닫아도 실행은 계속되고 끝나면 알림이 옵니다')).toBeTruthy();
+    expect(창.getByText('닫아도 실행은 계속되고 완료되면 알림이 옵니다')).toBeTruthy();
   });
 
   it('첫 단계를 아직 안 알렸으면 1단계가 기다리는 중이다', async () => {
@@ -95,7 +95,7 @@ describe('E2E 정식 실행 창 — 도는 중', () => {
     vi.spyOn(scenarioApi, 'step').mockResolvedValue(null);
     그리기();
 
-    await screen.findByText(/끝나면 실행 기록에 남고 리포트를 만들 수 있습니다/);
+    await screen.findByText(/완료되면 실행 기록에 남고 리포트를 만들 수 있습니다/);
     const 첫 = screen.getByRole('dialog').querySelector('.e2e-steps li')!;
     expect(첫.className).toBe('now');
     expect(첫.querySelector('.t')?.textContent).toBe('기다리는 중');
@@ -131,7 +131,7 @@ describe('E2E 정식 실행 창 — 도는 중', () => {
 
     fireEvent.click(창.getByRole('button', { name: '실행 중단' }));
     const 묻기 = within(screen.getByRole('dialog', { name: 'RUN 21045 실행을 중단할까요?' }));
-    expect(묻기.getByText(/진행 중인 단계는 바로 멈추고/)).toBeTruthy();
+    expect(묻기.getByText(/진행 중인 단계는 즉시 중단하고/)).toBeTruthy();
     expect(중단).not.toHaveBeenCalled();
     await act(async () => {
       fireEvent.click(묻기.getByRole('button', { name: '중단' }));
@@ -166,8 +166,8 @@ describe('E2E 정식 실행 창 — 끝남', () => {
     vi.spyOn(scenarioApi, 'step').mockResolvedValue(null);
     const 닫기 = 그리기();
 
-    const 창 = within(await screen.findByRole('dialog', { name: 'E2E 실행이 끝났습니다 · RUN 21045' }));
-    expect(await 창.findByText('실행 중단으로 멈춤')).toBeTruthy();
+    const 창 = within(await screen.findByRole('dialog', { name: 'E2E 실행이 완료되었습니다 · RUN 21045' }));
+    expect(await 창.findByText('실행 중단됨')).toBeTruthy();
     expect(창.getByText('실행 안 함')).toBeTruthy();
     expect([...screen.getByRole('dialog').querySelectorAll('.trial-sum .pill')].map((알약) => 알약.textContent)).toEqual(['통과 1', '실패 0', '미실행 2']);
 
@@ -182,7 +182,7 @@ describe('E2E 정식 실행 창 — 끝남', () => {
     vi.spyOn(scenarioApi, 'step').mockResolvedValue(null);
     그리기();
 
-    const 창 = within(await screen.findByRole('dialog', { name: 'E2E 실행이 끝났습니다 · RUN 21045' }));
+    const 창 = within(await screen.findByRole('dialog', { name: 'E2E 실행이 완료되었습니다 · RUN 21045' }));
     fireEvent.click(창.getByRole('button', { name: '닫기' }));
 
     expect(읽음들().has('run:21045')).toBe(true);
@@ -209,7 +209,7 @@ describe('E2E 정식 실행 창 — 끝남', () => {
     });
 
     expect(결과들).toHaveBeenCalledTimes(2);
-    expect(screen.getByRole('dialog', { name: 'E2E 실행이 끝났습니다 · RUN 21045' })).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: 'E2E 실행이 완료되었습니다 · RUN 21045' })).toBeTruthy();
     expect(알림).toHaveBeenCalledTimes(1);
     window.removeEventListener(알림바뀜, 알림);
   });

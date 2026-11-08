@@ -63,7 +63,7 @@ export function Form({ idPrefix, fields, text, errors, onChange }: Props) {
             <div>
               {field.kind === 'enum' ? (
                 <select id={id} value={value} onChange={(e) => onChange(field.key, e.target.value)}>
-                  {field.optional ? <option value="">{t('고르지 않음')}</option> : null}
+                  {field.optional ? <option value="">{t('선택 안 함')}</option> : null}
                   {(field.options ?? []).map((option) => (
                     <option key={option} value={option}>
                       {option}
@@ -104,7 +104,7 @@ export function Form({ idPrefix, fields, text, errors, onChange }: Props) {
               <div className={바뀜 ? 'deflt changed' : 'deflt'}>
                 {바뀜 ? <span className="mark" aria-hidden="true" /> : null}
                 {저장됨 ? t('저장값') : t('기본값')} {바뀜 ? <s>{기본값}</s> : 기본값}
-                {바뀜 ? ' ' + t('에서 바꿈') : ''}
+                {바뀜 ? ' ' + t('에서 변경') : ''}
                 {코드기본값 === null ? '' : ' · ' + t('코드 기본값') + ' ' + 코드기본값}
               </div>
             )}

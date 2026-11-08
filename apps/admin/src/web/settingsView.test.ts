@@ -240,7 +240,7 @@ describe('서버가 낸 오류를 사람 말로 (SPEC §8.8)', () => {
   });
 
   it('접두사는 만든 뒤에 못 바꾼다는 것을 이유까지 말한다', () => {
-    expect(설정오류문장('PREFIX_IMMUTABLE', 'ko')).toContain('바꿀 수 없');
+    expect(설정오류문장('PREFIX_IMMUTABLE', 'ko')).toContain('변경할 수 없');
   });
 
   it('마지막 관리자를 내리려 하면 왜 막혔는지 말한다', () => {

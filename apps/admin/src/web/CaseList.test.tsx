@@ -89,8 +89,8 @@ describe('CaseList 종류 (화면공통 §8 하위 메뉴 · PR #132)', () => {
   });
 });
 
-const 고르기칸 = () => screen.getAllByRole('checkbox', { name: /^(?!이 쪽 전체).* 선택$/ });
-const 머리칸 = () => screen.getByRole('checkbox', { name: '이 쪽 전체 선택' }) as HTMLInputElement;
+const 고르기칸 = () => screen.getAllByRole('checkbox', { name: /^(?!이 페이지 전체).* 선택$/ });
+const 머리칸 = () => screen.getByRole('checkbox', { name: '이 페이지 전체 선택' }) as HTMLInputElement;
 const 실행버튼 = () => screen.getByRole('button', { name: /^조건에 맞는 \d+건 실행$/ });
 const 모달실행 = () => within(screen.getByRole('dialog')).getByRole('button', { name: '실행' });
 const 고르기바 = () => screen.getByRole('toolbar', { name: '선택한 케이스' });
@@ -860,7 +860,7 @@ describe('CaseList 오른쪽 상세 칸 (⑫ 시안 A · 점검 7.12 · ⑬-2 �
     await screen.findByLabelText(/통화/);
 
     expect(screen.queryByRole('button', { name: '이 값으로 실행' })).toBeNull();
-    expect(screen.queryByText('코드 기본값 바꾸기 요청')).toBeNull();
+    expect(screen.queryByText('코드 기본값 변경 요청')).toBeNull();
   });
 
   it('칸 안의 실행 이력은 케이스마다 한 번만 받는다 — 닫았다 열어도 다시 안 받는다', async () => {

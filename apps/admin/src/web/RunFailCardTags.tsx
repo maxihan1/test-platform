@@ -36,7 +36,7 @@ export function 디바이스꼬리표({ tcId, items }: { tcId: string; items: Ru
 export function 판정꼬리표({ judgment }: { judgment: FailureJudgment }) {
   const t = use말();
   if (judgment === null) return null;
-  return <span className="fc-tag">{judgment.kind === 'BUG' ? t('판정함 · 버그') : t('판정함 · 화면이 맞음')}</span>;
+  return <span className="fc-tag">{judgment.kind === 'BUG' ? t('판정함 · 결함') : t('판정함 · 화면이 맞음')}</span>;
 }
 
 /** 이 케이스를 「실패 다시 실행」으로 다시 돌린 결과. 누르면 그 실행에서 이 케이스 카드가 펼쳐진 채 열린다 */

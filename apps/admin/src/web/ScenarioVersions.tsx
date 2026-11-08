@@ -61,15 +61,15 @@ export function ScenarioVersions({
 
   async function 되돌리기(버전: number) {
     if (바뀜) {
-      set글({ 뜻: 'alert', 말: t('저장 안 된 변경이 있어 되돌릴 수 없습니다') });
+      set글({ 뜻: 'alert', 말: t('저장 안 된 변경이 있어 복원할 수 없습니다') });
       return;
     }
     set도는중(true);
-    set글({ 뜻: 'status', 말: t('되돌리는 중입니다') });
+    set글({ 뜻: 'status', 말: t('복원하는 중입니다') });
     try {
       const { version } = await scenarioApi.restore(id, 버전);
       set펼침(null);
-      set글({ 뜻: 'status', 말: t('v{옛} 내용으로 되돌렸습니다 · 지금 v{새}', { 옛: 버전, 새: version }) });
+      set글({ 뜻: 'status', 말: t('v{옛} 내용으로 복원했습니다 · 지금 v{새}', { 옛: 버전, 새: version }) });
       on되돌림();
     } catch (err) {
       set글({ 뜻: 'alert', 말: message(err, 언어) });
@@ -111,7 +111,7 @@ export function ScenarioVersions({
                   <옛버전단계들 id={id} 버전={v.version} 재료={재료} />
                   {!쓰나 ? null : (
                     <button type="button" className="btn" disabled={도는중} onClick={() => void 되돌리기(v.version)}>
-                      {t('이 버전으로 되돌리기')}
+                      {t('이 버전으로 복원')}
                     </button>
                   )}
                 </>

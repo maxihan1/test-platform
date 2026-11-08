@@ -25,7 +25,7 @@ vi.mock('./api.js', async () => {
         return 만들기답;
       },
       uploadAuthoringAsset: (_service: string, id: number, file: File) => {
-        부름.push({ 무엇: '올리기', 값: { id, 이름: file.name } });
+        부름.push({ 무엇: '업로드', 값: { id, 이름: file.name } });
         return Promise.resolve({ id: 1 });
       },
       submitAuthoringRequest: (_service: string, id: number) => {
@@ -191,7 +191,7 @@ describe('새 요청 — 실제 화면과 대조', () => {
       대조를켠다();
       fireEvent.click(보내기());
       const 뒤 = 운영자 ? '설정 > 애플리케이션에서 확인하세요' : '관리자에게 확인을 요청하세요';
-      expect(await screen.findByText(`이 대상 서버에는 폰에서 켤 앱(앱 파일 경로나 올린 빌드)이 없거나 실서비스 서버로 체크돼 있습니다. ${뒤}`)).toBeTruthy();
+      expect(await screen.findByText(`이 대상 서버에는 디바이스에서 켤 앱(앱 파일 경로나 업로드한 빌드)이 없거나 실서비스 서버로 체크돼 있습니다. ${뒤}`)).toBeTruthy();
       cleanup();
     }
   });
@@ -215,7 +215,7 @@ describe('새 요청 — 실제 화면과 대조', () => {
     시작주소를적는다('https://other.example.com/');
     fireEvent.click(보내기());
     expect(
-      await screen.findByText('시작 주소는 고른 대상 서버와 같은 주소(도메인 · 포트)여야 합니다'),
+      await screen.findByText('시작 주소는 선택한 대상 서버와 같은 주소(도메인 · 포트)여야 합니다'),
     ).toBeTruthy();
   });
 
@@ -280,7 +280,7 @@ describe('상세 — 대조 설정 · 산출물 · 차이 목록', () => {
 
   it('입력 자료가 없는 대조 요청은 화면만이라고 적는다', async () => {
     await 상세를연다(줄({ compare: true, env: 'qa', startUrl: 'https://qa.example.com/', assets: [] }));
-    expect(screen.getByText('화면만 — 기획서 없이 PRD 에 없는 화면만 작성합니다')).toBeTruthy();
+    expect(screen.getByText('화면만 — 기획서 없이 미검증 화면만 작성합니다')).toBeTruthy();
   });
 
   it('정방향 요청에는 대조 줄이 없다', async () => {

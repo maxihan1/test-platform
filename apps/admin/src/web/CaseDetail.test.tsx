@@ -186,7 +186,7 @@ describe('이력 · 절차를 한 번만 받는다', () => {
 
     그린다();
 
-    await waitFor(() => expect(screen.getByText(/아직 돌린 적이 없습니다/)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/아직 실행한 적이 없습니다/)).toBeTruthy());
     expect(항목스파이).not.toHaveBeenCalled();
   });
 
@@ -391,7 +391,7 @@ describe('입력값을 칸 안에서 바로 고친다 (SPEC §8.1)', () => {
     그린다({ row: 값없는케이스 });
 
     expect(screen.queryByText('입력값')).toBeNull();
-    expect(screen.queryByText('기대결과')).toBeNull();
+    expect(screen.queryByText('기대 결과')).toBeNull();
   });
 });
 
@@ -496,7 +496,7 @@ describe('코드 기본값 바꾸기 요청은 접어 둔다 (점검 7.11)', () 
     const 접힘 = container.querySelector('details.case-edit-fold') as HTMLDetailsElement;
     expect(접힘).not.toBeNull();
     expect(접힘.open).toBe(false);
-    expect(접힘.querySelector('summary')?.textContent).toBe('코드 기본값 바꾸기 요청');
+    expect(접힘.querySelector('summary')?.textContent).toBe('코드 기본값 변경 요청');
   });
 
   it('고칠애플리케이션이 없으면(작성 쓰기 없음) 자리를 안 둔다', () => {

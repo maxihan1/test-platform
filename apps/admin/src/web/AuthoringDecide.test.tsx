@@ -96,9 +96,9 @@ describe('결정 목록', () => {
     fireEvent.click(screen.getByRole('button', { name: '반려' }));
     expect(screen.getByText('#10 작성 결과를 폐기합니다')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '승인' }));
-    expect(screen.getByText('#10 테스트를 승인해 케이스 목록에 올립니다')).toBeTruthy();
+    expect(screen.getByText('#10 테스트를 승인해 케이스 목록에 등록합니다')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '승인' }));
-    expect(screen.getByText('아직 고른 것이 없습니다')).toBeTruthy();
+    expect(screen.getByText('아직 선택한 것이 없습니다')).toBeTruthy();
     expect(screen.queryByRole('button', { name: '나중에' })).toBeNull();
   });
 
@@ -113,7 +113,7 @@ describe('결정 목록', () => {
     expect(적용().disabled).toBe(true);
     fireEvent.click(screen.getAllByRole('button', { name: '확정' })[0]!);
     expect(screen.getByText('PRD 를 새 버전으로 저장합니다(버전 4) — DMW-REQ-349 확정')).toBeTruthy();
-    expect(screen.queryByText('#10 테스트를 승인해 케이스 목록에 올립니다')).toBeNull();
+    expect(screen.queryByText('#10 테스트를 승인해 케이스 목록에 등록합니다')).toBeNull();
 
     fireEvent.click(적용());
     expect(await screen.findByText('적용을 시작했습니다')).toBeTruthy();
@@ -144,7 +144,7 @@ describe('결정 목록', () => {
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
     expect(screen.getByText('→ 큰 제목 「서비스 이용약관」')).toBeTruthy();
     expect(screen.queryByRole('textbox')).toBeNull();
-    expect(screen.getByText('문장이 바뀐 요구 1건 · 바뀐 요구 1건의 테스트를 고치고 다시 만듭니다 (바뀐 요구도 같이 다시 만듭니다)')).toBeTruthy();
+    expect(screen.getByText('문장이 변경된 요구 1건 · 변경된 요구 1건의 테스트를 수정하고 다시 만듭니다 (변경된 요구도 같이 다시 만듭니다)')).toBeTruthy();
     expect(적용().textContent).toBe('1건 적용');
 
     fireEvent.click(screen.getByRole('button', { name: '다시 수정' }));
@@ -211,7 +211,7 @@ describe('결정 목록', () => {
     const 기다림: 결정항목 = { ...바뀐요구, picks: [], blockedBy: 'AUTHORING_OPEN', changed: null, added: null, removed: null };
     render(<AuthoringDecide service="DMW" 목록={목록([기다림], { open: [14675] })} envs={[]} 다시읽기={() => {}} />);
     expect(screen.getByRole('link', { name: '#14675' }).getAttribute('href')).toBe('#/authoring/14675');
-    expect(screen.getByText('이 반영된 뒤에 셉니다', { exact: false })).toBeTruthy();
+    expect(screen.getByText('이 반영된 뒤에 집계합니다', { exact: false })).toBeTruthy();
     expect(screen.queryByRole('button', { name: '재작성' })).toBeNull();
   });
 
@@ -221,7 +221,7 @@ describe('결정 목록', () => {
     fireEvent.click(screen.getByRole('button', { name: '승인' }));
     탭(/테스트 업데이트/);
     expect((screen.getByRole('button', { name: '재작성' }) as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.getByText('승인 대기를 먼저 끝내 주세요')).toBeTruthy();
+    expect(screen.getByText('승인 대기를 먼저 처리해 주세요')).toBeTruthy();
   });
 
   it('바뀐 API 재작성은 대상 서버를 미리 골라 적용에 넣고, 서버를 비우면 안내와 함께 뺀다', () => {
@@ -229,11 +229,11 @@ describe('결정 목록', () => {
     render(<AuthoringDecide service="DMW" 목록={목록([바뀐API])} envs={[{ env: 'stg', baseUrl: 'https://stg.test' }]} 다시읽기={() => {}} />);
     expect(screen.getByText('기존 테스트가 실패할 수 있음', { exact: false })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '재작성' }));
-    expect(screen.getByText('바뀐 API 1건의 테스트를 다시 만듭니다')).toBeTruthy();
+    expect(screen.getByText('변경된 API 1건의 테스트를 다시 만듭니다')).toBeTruthy();
     fireEvent.change(screen.getByRole('combobox', { name: /대상 서버/ }), { target: { value: '' } });
     expect(screen.getByRole('option', { name: '서버 선택' })).toBeTruthy();
-    expect(screen.getByText('대상 서버를 고르면 진행에 들어갑니다')).toBeTruthy();
-    expect(screen.getByText('아직 고른 것이 없습니다')).toBeTruthy();
+    expect(screen.getByText('대상 서버를 선택하면 진행에 들어갑니다')).toBeTruthy();
+    expect(screen.getByText('아직 선택한 것이 없습니다')).toBeTruthy();
   });
 
   it('테스트가 확인하지 않은 화면은 체크한 것만 보내고, [제외]는 확인 창을 거쳐 곧바로 빼고, 제외한 화면은 [되돌리기]로 돌린다', async () => {
@@ -258,7 +258,7 @@ describe('결정 목록', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
 
     fireEvent.click(screen.getByText('제외한 화면 1개'));
-    fireEvent.click(screen.getByRole('button', { name: '되돌리기' }));
+    fireEvent.click(screen.getByRole('button', { name: '실행 취소' }));
     await waitFor(() => expect(제외한).toEqual([['/orders', true], ['/reviews/new', false]]));
 
     fireEvent.click(적용());
@@ -279,7 +279,7 @@ describe('결정 목록', () => {
     expect(screen.queryByRole('checkbox')).toBeNull();
     expect(screen.queryByRole('textbox')).toBeNull();
     expect(screen.getByText('「가」')).toBeTruthy();
-    expect(screen.getByText('작성 쓰기 권한이 있는 사람이 고릅니다')).toBeTruthy();
+    expect(screen.getByText('작성 쓰기 권한이 있는 사람이 선택합니다')).toBeTruthy();
     탭(/테스트 업데이트/);
     expect(screen.getByRole('link', { name: '#14675' })).toBeTruthy();
   });
@@ -290,7 +290,7 @@ describe('결정 목록', () => {
     render(<AuthoringDecide service="DMW" 목록={목록([반영])} envs={[]} 다시읽기={다시읽기} />);
     fireEvent.click(screen.getByRole('button', { name: '승인' }));
     fireEvent.click(screen.getByRole('button', { name: '1건 적용' }));
-    expect(await screen.findByText('그 사이 바뀐 것이 있어 다시 불러왔습니다')).toBeTruthy();
+    expect(await screen.findByText('그 사이 변경된 것이 있어 다시 불러왔습니다')).toBeTruthy();
     expect(다시읽기).toHaveBeenCalled();
     expect(screen.getByRole('button', { name: '승인' }).getAttribute('aria-pressed')).toBe('false');
   });
@@ -303,7 +303,7 @@ describe('결정 목록', () => {
     expect(칸().map((c) => c.disabled)).toEqual([false, false, false, false, true]);
     fireEvent.click(screen.getByRole('button', { name: '전체 선택' }));
     expect(칸().map((c) => c.checked)).toEqual([true, true, false, false, false]);
-    expect(screen.getByText('지금 기획서에 없는 요구라 고를 수 없어요', { exact: false })).toBeTruthy();
+    expect(screen.getByText('지금 기획서에 없는 요구라 선택할 수 없어요', { exact: false })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '초안 삭제' }));
     expect(칸().every((c) => c.disabled)).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: '초안 삭제' }));

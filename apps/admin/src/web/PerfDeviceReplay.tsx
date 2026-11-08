@@ -22,7 +22,7 @@ interface 줄그림 {
 const 그림들: 줄그림[] = [
   { 항목: 'FPS', 이름: 'FPS', 값: (줄) => 줄.fps, 목표: 'AVG_FPS' },
   { 항목: 'JANK', 이름: '프레임 드랍', 값: (줄) => 줄.jankPct },
-  { 항목: 'TEMP', 이름: '기기 온도', 값: (줄) => 줄.tempC, 목표: 'MAX_TEMP' },
+  { 항목: 'TEMP', 이름: '디바이스 온도', 값: (줄) => 줄.tempC, 목표: 'MAX_TEMP' },
   { 항목: 'CPU', 이름: 'CPU', 값: (줄) => 줄.cpu },
   { 항목: 'MEM', 이름: '메모리', 값: (줄) => 줄.memMb, 목표: 'MAX_MEM' },
   { 항목: 'BATTERY', 이름: '배터리', 값: (줄) => 줄.batteryPct },
@@ -63,7 +63,7 @@ export function PerfDeviceReplay({ runId, 결과, 항목, 목표들, 처음기�
     <section className="perf-panel" aria-labelledby="pd-v">
       <div className="perf-row">
         <h2 id="pd-v">{t('녹화 화면과 측정값')}</h2>
-        <div className="pd-tabs" role="tablist" aria-label={t('기기')}>
+        <div className="pd-tabs" role="tablist" aria-label={t('디바이스')}>
           {결과.devices.map((d) => (
             <button key={d.serial} type="button" role="tab" aria-selected={d.serial === 기기} className={d.serial === 기기 ? 'on' : undefined} onClick={() => {
                 set기기(d.serial);

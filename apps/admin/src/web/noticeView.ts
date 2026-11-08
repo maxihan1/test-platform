@@ -109,7 +109,7 @@ export function 끝난줄만들기(n: NoticeRecent, 언어: 언어): 끝난줄 {
       ...바탕,
       종류: 'run',
       모양: 멈춤 ? 'halt' : 'pass',
-      머리: t(멈춤 ? 'RUN {번호} 실행이 중단됐습니다' : 'RUN {번호} 실행이 끝났습니다', 언어, { 번호: n.runId }),
+      머리: t(멈춤 ? 'RUN {번호} 실행이 중단됐습니다' : 'RUN {번호} 실행이 완료되었습니다', 언어, { 번호: n.runId }),
       집계: [
         ...실행덧말(n, 언어),
         ...(n.compat.pending > 0 ? [t('미판정 {수}', 언어, { 수: n.compat.pending })] : []),
@@ -133,7 +133,7 @@ export function 끝난줄만들기(n: NoticeRecent, 언어: 언어): 끝난줄 {
       ...바탕,
       종류: 'run',
       모양: 멈춤 ? 'halt' : counts.fail > 0 ? 'fail' : 'pass',
-      머리: t(멈춤 ? 'RUN {번호} 실행이 중단됐습니다' : 'RUN {번호} 실행이 끝났습니다', 언어, { 번호: n.runId }),
+      머리: t(멈춤 ? 'RUN {번호} 실행이 중단됐습니다' : 'RUN {번호} 실행이 완료되었습니다', 언어, { 번호: n.runId }),
       집계,
       확인필요: 0,
       열기라벨: t('결과 보기', 언어),
@@ -146,7 +146,7 @@ export function 끝난줄만들기(n: NoticeRecent, 언어: 언어): 끝난줄 {
     return {
       ...작성,
       모양: 'pass',
-      머리: t('#{번호} 작성 요청이 끝났습니다', 언어, 값),
+      머리: t('#{번호} 작성 요청이 완료되었습니다', 언어, 값),
       집계: n.caseFiles === null ? [] : [t('케이스 파일 {수}개', 언어, { 수: n.caseFiles })],
       확인필요: n.prdNeedsCheck,
     };
@@ -155,7 +155,7 @@ export function 끝난줄만들기(n: NoticeRecent, 언어: 언어): 끝난줄 {
     const 오류 = 오류첫줄(n.error);
     return { ...작성, 모양: 'fail', 머리: t('#{번호} 작성 요청이 실패했습니다', 언어, 값), 집계: 오류 === null ? [] : [오류], 확인필요: 0 };
   }
-  return { ...작성, 모양: 'halt', 머리: t('#{번호} 작성 요청이 멈췄습니다', 언어, 값), 집계: [], 확인필요: 0 };
+  return { ...작성, 모양: 'halt', 머리: t('#{번호} 작성 요청이 중단되었습니다', 언어, 값), 집계: [], 확인필요: 0 };
 }
 
 const 지난 = (startedAt: string, 지금: number) => Math.max(0, 지금 - Date.parse(startedAt));

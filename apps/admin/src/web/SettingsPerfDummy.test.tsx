@@ -29,7 +29,7 @@ async function 채우고올리기(파일: File) {
   fireEvent.change(await screen.findByLabelText('더미 클라이언트 이름'), { target: { value: '봇 2' } });
   fireEvent.change(screen.getByLabelText('실행 명령'), { target: { value: './bot2' } });
   fireEvent.change(screen.getByLabelText('zip 파일'), { target: { files: [파일] } });
-  fireEvent.click(screen.getByRole('button', { name: '올리기' }));
+  fireEvent.click(screen.getByRole('button', { name: '업로드' }));
 }
 
 describe('설정 › 더미 클라이언트', () => {
@@ -55,7 +55,7 @@ describe('설정 › 더미 클라이언트', () => {
   it('이름이나 파일이 비면 보내지 않고 알린다', async () => {
     그리기();
     const 올리기 = vi.spyOn(perfApi, 'addDummyClient').mockResolvedValue({ id: 6 });
-    fireEvent.click(await screen.findByRole('button', { name: '올리기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '업로드' }));
     expect((await screen.findByRole('alert')).textContent).toBe('이름과 실행 명령을 적어 주세요');
     expect(올리기).not.toHaveBeenCalled();
   });
@@ -71,7 +71,7 @@ describe('설정 › 더미 클라이언트', () => {
     그리기();
     vi.spyOn(perfApi, 'removeDummyClient').mockRejectedValue(new ApiError(409, 'IN_USE', '', []));
     fireEvent.click(await screen.findByRole('button', { name: '게임 봇 삭제' }));
-    expect((await screen.findByRole('alert')).textContent).toBe('이 더미 클라이언트를 쓰는 시나리오가 있어 지우지 못합니다');
+    expect((await screen.findByRole('alert')).textContent).toBe('이 더미 클라이언트를 쓰는 시나리오가 있어 삭제할 수 없습니다');
   });
 
   it('지우기는 그 번호로 부르고 목록을 다시 읽는다', async () => {
@@ -85,7 +85,7 @@ describe('설정 › 더미 클라이언트', () => {
   it('admin 이 아니면 올리기 · 삭제 단추가 없다', async () => {
     그리기(false);
     await screen.findByText('게임 봇');
-    expect(screen.queryByRole('button', { name: '올리기' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '업로드' })).toBeNull();
     expect(screen.queryByRole('button', { name: '게임 봇 삭제' })).toBeNull();
   });
 });

@@ -73,7 +73,7 @@ describe('새 호환성 세트', () => {
     await screen.findByText('새 호환성 세트');
     const 저장 = screen.getByRole('button', { name: '저장' }) as HTMLButtonElement;
     expect(저장.disabled).toBe(true);
-    expect(screen.getByText('저장하면 예상 소요 시간을 셉니다')).toBeTruthy();
+    expect(screen.getByText('저장하면 예상 소요 시간을 계산합니다')).toBeTruthy();
 
     fireEvent.click(await screen.findByRole('button', { name: '디바이스 선택' }));
     const 상자 = within(screen.getByRole('dialog', { name: '디바이스 선택' }));
@@ -129,7 +129,7 @@ describe('저장한 호환성 세트', () => {
     render(<CompatSet envs={[]} id={3} serviceId={7} service="MKA" kind="APP" 쓰나 />);
     fireEvent.click(await screen.findByRole('button', { name: 'MKA-FN-046 제외' }));
     await waitFor(() => expect(미리셈).toHaveBeenLastCalledWith(7, []));
-    expect(screen.getByText('저장하면 예상 소요 시간을 셉니다')).toBeTruthy();
+    expect(screen.getByText('저장하면 예상 소요 시간을 계산합니다')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: '케이스 추가' }));
     const 창 = within(screen.getByRole('dialog', { name: '케이스 추가' }));
@@ -171,7 +171,7 @@ describe('저장한 호환성 세트', () => {
     차림();
     vi.spyOn(compatApi, 'sets').mockResolvedValue({ sets: [] });
     render(<CompatSet envs={[]} id={3} serviceId={8} service="MKW" kind="SCREEN" 쓰나 />);
-    expect(await screen.findByText('이 세트는 지금 고른 애플리케이션의 세트가 아닙니다')).toBeTruthy();
+    expect(await screen.findByText('이 세트는 지금 선택한 애플리케이션의 세트가 아닙니다')).toBeTruthy();
     expect(screen.queryByRole('button', { name: '저장' })).toBeNull();
   });
 
@@ -189,7 +189,7 @@ describe('저장한 호환성 세트', () => {
     차림();
     vi.spyOn(compatApi, 'preview').mockResolvedValue({ auto: [], coverage: { covered: 0, total: 0, fallback: true }, uncovered: [] });
     render(<CompatSet envs={[]} id="new" serviceId={7} service="MKW" kind="SCREEN" 쓰나 />);
-    expect(await screen.findByText('실제 폰에서 도는 모바일 웹 케이스가 없습니다')).toBeTruthy();
-    expect(screen.getByText('전체 화면 목록이 없어 케이스가 아는 화면으로 셉니다')).toBeTruthy();
+    expect(await screen.findByText('실제 디바이스에서 실행되는 모바일 웹 케이스가 없습니다')).toBeTruthy();
+    expect(screen.getByText('전체 화면 목록이 없어 케이스가 아는 화면으로 집계합니다')).toBeTruthy();
   });
 });

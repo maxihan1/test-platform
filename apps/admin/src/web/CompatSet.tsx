@@ -84,7 +84,7 @@ export function CompatSet({ id, serviceId, service, kind, envs, 쓰나 }: { id: 
   if (처음.data.남의것) {
     return (
       <div className="empty">
-        {t('이 세트는 지금 고른 애플리케이션의 세트가 아닙니다')}
+        {t('이 세트는 지금 선택한 애플리케이션의 세트가 아닙니다')}
         <small>{t('세트 목록에서 다시 엽니다')}</small>
       </div>
     );

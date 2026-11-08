@@ -100,7 +100,7 @@ describe('실행 결과 화면의 리포트 메뉴 (SPEC §8.4)', () => {
     그리기('RUNNING');
 
     // 말풍선(`title`)이 아니라 글자다. 휴대폰에는 올릴 마우스가 없다 (docs/DESIGN.md 접근성)
-    expect(await screen.findByText('실행이 끝나면 리포트를 만들 수 있습니다')).toBeDefined();
+    expect(await screen.findByText('실행이 완료되면 리포트를 만들 수 있습니다')).toBeDefined();
     expect(screen.queryByRole('button', { name: /리포트 생성/ })).toBeNull();
   });
 

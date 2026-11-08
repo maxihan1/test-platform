@@ -32,9 +32,9 @@ export function 막는이유(st: 단계, v: 마법사값, 새프로젝트: boole
   switch (st) {
     case 'project':
       if (새프로젝트) return v.프로젝트이름.trim() === '' ? 말('프로젝트 이름을 입력해 주세요', 언어) : null;
-      return v.projectId === null ? 말('프로젝트를 골라 주세요', 언어) : null;
+      return v.projectId === null ? 말('프로젝트를 선택해 주세요', 언어) : null;
     case 'kind':
-      return v.kind === null ? 말('무엇을 테스트할지 하나 골라 주세요', 언어) : null;
+      return v.kind === null ? 말('무엇을 테스트할지 하나 선택해 주세요', 언어) : null;
     case 'basic': {
       // 접두사 · 이름 · 폴더는 설정 화면과 같은 검사다. 대상 서버 · 탐색 제외 경로는 뒤 단계라 비워 넘긴다
       const 쓰는곳 = 쓰는것.get(v.prefix);

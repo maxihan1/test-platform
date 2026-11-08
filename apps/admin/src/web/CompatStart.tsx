@@ -34,7 +34,7 @@ export function CompatStart({ setId, service, envs, 닫기, on시작 }: { setId:
       setRunId(새번호);
     } catch (err) {
       // 실행의 NO_DEVICE 는 「고르세요」가 아니라 세트의 디바이스가 팜에 없다는 뜻이다 (§7 「실행」)
-      set오류(err instanceof ApiError && err.code === 'NO_DEVICE' ? 번역('세트의 디바이스가 Device VISION 에 하나도 없습니다. 세트에서 디바이스를 다시 고릅니다', 언어) : message(err, 언어));
+      set오류(err instanceof ApiError && err.code === 'NO_DEVICE' ? 번역('세트의 디바이스가 Device VISION 에 하나도 없습니다. 세트에서 디바이스를 다시 선택합니다', 언어) : message(err, 언어));
     } finally {
       set하는중(false);
     }
@@ -75,7 +75,7 @@ export function CompatStart({ setId, service, envs, 닫기, on시작 }: { setId:
               <span className="compat-faint">{t('설정에서 대상 서버를 먼저 넣습니다')}</span>
             ) : (
               <select value={env} onChange={(e) => setEnv(e.target.value)}>
-                <option value="">{t('고르세요')}</option>
+                <option value="">{t('선택하세요')}</option>
                 {envs.map((e) => (
                   <option key={e.env} value={e.env}>
                     {e.env}

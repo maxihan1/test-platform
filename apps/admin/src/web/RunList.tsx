@@ -198,13 +198,13 @@ export function RunList({
           >
             <input
               type="text"
-              aria-label={t('케이스 · 제목으로 찾기')}
+              aria-label={t('케이스 · 제목으로 검색')}
               placeholder={t('케이스 번호 · 이름 · 실행 제목')}
               value={typed}
               onChange={(e) => setTyped(e.target.value)}
             />
             <button className="chip" type="submit">
-              {t('찾기')}
+              {t('검색')}
             </button>
             <label className="run-filter">
               <span className="filter-label">{t('상태')}</span>
@@ -246,17 +246,17 @@ export function RunList({
             </label>
           </form>
 
-          {조건밖 ? <p className="runs-out">{t('고른 실행은 지금 조건 밖입니다')}</p> : null}
+          {조건밖 ? <p className="runs-out">{t('선택한 실행은 지금 조건 밖입니다')}</p> : null}
 
           <div className="rows-scroll">
             {줄들.length === 0 ? (
               <div className="empty">
                 {/* 서비스를 바꿔 들어온 사람과 검색한 사람에게 같은 문장을 쓰면 한쪽에게는 거짓이다 (SPEC §8.7) */}
                 {건조건 ? t('조건에 맞는 실행이 없습니다') : t('이 애플리케이션에서 아직 실행한 기록이 없습니다')}
-                <small>{건조건 ? t('검색어나 거르개를 바꿔 보세요') : t('케이스를 골라 실행하면 여기에 쌓입니다')}</small>
+                <small>{건조건 ? t('검색어나 필터를 변경해 보세요') : t('케이스를 선택해 실행하면 여기에 쌓입니다')}</small>
                 {건조건 ? (
                   <button className="btn" style={{ marginTop: '14px' }} onClick={다지우기}>
-                    {t('조건 지우기')}
+                    {t('조건 초기화')}
                   </button>
                 ) : (
                   <a className="btn" style={{ marginTop: '14px' }} href={kind === 'UI' ? '#/cases/ui' : '#/cases/fn'}>
@@ -284,7 +284,7 @@ export function RunList({
               <button onClick={() => setPage((n) => n - 1)} disabled={page <= 1}>
                 {t('이전')}
               </button>
-              <span>{t('{쪽}쪽', { 쪽: page })}</span>
+              <span>{t('{쪽}페이지', { 쪽: page })}</span>
               <button onClick={() => setPage((n) => n + 1)} disabled={!더있나}>
                 {t('다음')}
               </button>

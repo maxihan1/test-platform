@@ -27,16 +27,16 @@ export const 껍데기말: Record<string, string> = {
   // 사이드바 바닥 — 지금 아닌 쪽 이름이다 (화면공통 §8 「껍데기」 바닥)
   '밝게 보기': 'Light mode',
   '어둡게 보기': 'Dark mode',
-  '프로젝트를 고르세요': 'Choose a project',
-  '고른 프로젝트의 애플리케이션만 보입니다. 사이드바 맨 위에서 언제든 바꿀 수 있습니다.':
+  '프로젝트를 선택하세요': 'Choose a project',
+  '선택한 프로젝트의 애플리케이션만 보입니다. 사이드바 맨 위에서 언제든 변경할 수 있습니다.':
     'Only the applications in the chosen project are shown. You can change it any time at the top of the sidebar.',
   '마지막에 연 프로젝트': 'Last opened project',
   '애플리케이션 없음': 'No application',
   // 사이드바 맨 위 위치 카드 · 위치 판 (화면공통 §8 「껍데기」 위치 카드 · 2026-11-05). 판 왼쪽 칸 제목 「프로젝트」 는 설정 표의 'Projects' 를 같이 쓴다
   '애플리케이션 {수}개': '{수} applications',
   '프로젝트§카드': 'Project',
-  '{프로젝트} › {이름} · 바꾸기': '{프로젝트} › {이름} · Switch',
-  '프로젝트 · 애플리케이션 고르기': 'Choose project and application',
+  '{프로젝트} › {이름} · 변경': '{프로젝트} › {이름} · Switch',
+  '프로젝트 · 애플리케이션 선택': 'Choose project and application',
   // 위치 판 오른쪽 칸 제목 · 펼친 왼쪽 줄 꼬리표
   '{프로젝트}의 애플리케이션': 'Applications in {프로젝트}',
   // 사이드바 찾기 칸 · 찾기 창 (ShellFind.tsx · 화면공통 §8 「껍데기」 찾기 칸)
@@ -67,7 +67,7 @@ export const 껍데기말: Record<string, string> = {
   '결정 필요 {수}건': '{수} need a decision',
   '전체 메뉴': 'All menus',
   // 링크의 `service=` 가 못 보는 애플리케이션이면 띠를 그대로 두고 띄운다 (공통/5-화면공통 §8 「링크에 애플리케이션이 담긴다」)
-  '링크의 애플리케이션은 볼 권한이 없어 지금 고른 애플리케이션으로 엽니다': "You can't access the linked application, so it opened in your current one",
+  '링크의 애플리케이션은 볼 권한이 없어 지금 선택한 애플리케이션으로 엽니다': "You can't access the linked application, so it opened in your current one",
   '{이름} 메뉴': '{이름} menu',
   // 휴대폰 고르기 바 — 단추가 같은 폭으로 나란해 「조건에 맞는 N건 모두 고름」을 줄였다 (CaseListPick.tsx)
   '모두 {수}건': 'All {수}',
@@ -83,9 +83,9 @@ export const 껍데기말: Record<string, string> = {
   '작성 결과': 'Authoring result',
   '#{번호} 작성 요청이 진행 중입니다': 'Authoring request #{번호} is running',
   '#{번호} 작성 요청이 순서를 기다리고 있습니다': 'Authoring request #{번호} is waiting its turn',
-  '#{번호} 작성 요청이 끝났습니다': 'Authoring request #{번호} finished',
+  '#{번호} 작성 요청이 완료되었습니다': 'Authoring request #{번호} finished',
   '#{번호} 작성 요청이 실패했습니다': 'Authoring request #{번호} failed',
-  '#{번호} 작성 요청이 멈췄습니다': 'Authoring request #{번호} was stopped',
+  '#{번호} 작성 요청이 중단되었습니다': 'Authoring request #{번호} was stopped',
   '{번호} / {전체} 단계 {이름}': 'Step {번호} / {전체} {이름}',
   '케이스 파일 {수}개': '{수} case files',
   'PRD 확인 필요 {수}건': '{수} PRD items to check',
@@ -94,7 +94,7 @@ export const 껍데기말: Record<string, string> = {
   '모두 읽음으로': 'Mark all read',
   '안 읽음 {수}': 'Unread {수}',
   '볼 수 있는 애플리케이션 전체 · 최근 7일': 'All applications you can see · last 7 days',
-  '최근 7일 동안 끝난 실행과 작성이 없습니다': 'No runs or authoring finished in the last 7 days',
+  '최근 7일 동안 종료된 실행과 작성이 없습니다': 'No runs or authoring finished in the last 7 days',
   '조건에 맞는 알림이 없습니다': 'No matching notifications',
   방금: 'Just now',
   '{분}분 전': '{분}m ago',

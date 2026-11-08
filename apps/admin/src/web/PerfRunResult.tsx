@@ -104,7 +104,7 @@ export function PerfRunResult({ run, 다시읽기, 쓰나 }: { run: 실행상세
         행동={
           <div className="perf-row">
             <button type="button" className="btn ghost" disabled={하는중} onClick={() => void PDF받기()}>
-              {t('PDF로 내려받기')}
+              {t('PDF 다운로드')}
             </button>
             {쓰나 && run.scenarioId !== null ? (
               <button type="button" className="btn" disabled={하는중} onClick={() => void 다시실행()}>

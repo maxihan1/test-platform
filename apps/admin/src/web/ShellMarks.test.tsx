@@ -104,7 +104,7 @@ describe('실행 중 표시 (DESIGN.md 원칙 4)', () => {
 
   it('끝난 소식에는 맥박 점이 없다 — 되풀이 움직임은 실제로 도는 동안만이다', async () => {
     띄운다({ running: [], recent: [끝난실행] });
-    const 글 = await screen.findByText(/RUN 77 실행이 끝났습니다/);
+    const 글 = await screen.findByText(/RUN 77 실행이 완료되었습니다/);
     expect(글.closest('.nt-line')?.querySelector('.pulse')).toBeNull();
   });
 });

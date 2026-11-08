@@ -56,7 +56,7 @@ describe('측정 시작', () => {
     expect(screen.getByLabelText<HTMLInputElement>('Pixel 7 선택').disabled).toBe(true);
 
     fireEvent.click(screen.getByLabelText(/직접 플레이/));
-    expect(screen.getByText('Device VISION 에 꽂힌 폰을 손에 들고 플레이하는 동안 기록합니다')).toBeTruthy();
+    expect(screen.getByText('Device VISION 에 꽂힌 디바이스를 손에 들고 플레이하는 동안 기록합니다')).toBeTruthy();
     fireEvent.click(screen.getByLabelText('Pixel 7 선택'));
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.change(screen.getByLabelText('앱 패키지 이름'), { target: { value: 'com.demo.game' } });
@@ -76,7 +76,7 @@ describe('측정 시작', () => {
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.change(screen.getByLabelText('앱 패키지 이름'), { target: { value: 'com.demo.game' } });
     fireEvent.click(screen.getByRole('button', { name: '측정 시작' }));
-    expect((await screen.findByRole('alert')).textContent).toBe('측정하며 돌릴 게임 케이스를 골라 주세요');
+    expect((await screen.findByRole('alert')).textContent).toBe('측정하며 실행할 게임 케이스를 선택해 주세요');
     fireEvent.click(await screen.findByLabelText(/ZQD-001/));
     fireEvent.click(await screen.findByLabelText('Galaxy S24 선택'));
     fireEvent.click(screen.getByRole('button', { name: '측정 시작' }));
@@ -102,7 +102,7 @@ describe('측정 시작', () => {
     vi.spyOn(perfApi, 'suggestDevices').mockResolvedValue({ jobId: 5 });
     vi.spyOn(perfApi, 'job').mockResolvedValue({ status: 'DONE', output: { devices: [{ serial: 'A23', why: '저사양' }], basis: [] } });
     render(<PerfDevices service={앱} 쓰나 />);
-    fireEvent.click(await screen.findByRole('button', { name: '추천 받기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '추천 요청' }));
     expect(await screen.findByText(/Galaxy A23\(저사양\)/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '추천 적용' }));
     expect(screen.getByLabelText<HTMLInputElement>('Galaxy A23 선택').checked).toBe(true);
@@ -148,7 +148,7 @@ describe('결과', () => {
   it('AI 분석 · 실패 기기의 녹화 화면 · 장면 · 기기별 요약 · 누수 의심을 보인다. PDF 단추는 없다', async () => {
     결과열기();
     render(<PerfDevices service={앱} run={40} 쓰나 />);
-    const 표 = await screen.findByRole('table', { name: '기기별 요약' });
+    const 표 = await screen.findByRole('table', { name: '디바이스별 요약' });
 
     expect(screen.getByText('저사양 기기에서 FPS 하락')).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Galaxy A23' }).getAttribute('aria-selected')).toBe('true');
@@ -163,7 +163,7 @@ describe('결과', () => {
 
     expect(screen.getByText('회차마다 약 100MB 증가', { exact: false })).toBeTruthy();
     expect(screen.getByText(/2회차 더 돌면 메모리 목표를 넘습니다/)).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'PDF로 내려받기' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'PDF 다운로드' })).toBeNull();
   });
 
   it('기기 한 대 숫자가 6만 줄인 긴 측정의 결과도 그래프까지 열린다', async () => {
@@ -171,7 +171,7 @@ describe('결과', () => {
     const 긴줄 = Array.from({ length: 120_000 }, (_, i) => ({ ...결과.metrics[0]!, serial: i % 2 === 0 ? 'S24' : 'A23', sec: Math.floor(i / 2) }));
     vi.spyOn(perfApi, 'deviceResult').mockResolvedValue({ ...결과, metrics: 긴줄 });
     render(<PerfDevices service={앱} run={40} 쓰나 />);
-    expect(await screen.findByRole('table', { name: '기기별 요약' })).toBeTruthy();
+    expect(await screen.findByRole('table', { name: '디바이스별 요약' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Galaxy A23' }).getAttribute('aria-selected')).toBe('true');
   });
 

@@ -82,10 +82,10 @@ describe('ScenarioBuild 정식 실행', () => {
     const run = vi.spyOn(scenarioApi, 'run').mockResolvedValue({ runId: 503 });
     서버고르기();
 
-    expect((screen.getByRole('radio', { name: '가상 기기' }) as HTMLInputElement).checked).toBe(true);
-    fireEvent.click(screen.getByRole('radio', { name: '실제 기기' }));
+    expect((screen.getByRole('radio', { name: '가상 디바이스' }) as HTMLInputElement).checked).toBe(true);
+    fireEvent.click(screen.getByRole('radio', { name: '실제 디바이스' }));
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
-    expect(확인상자().getByText('모바일 (실제 기기)')).toBeTruthy();
+    expect(확인상자().getByText('모바일 (실제 디바이스)')).toBeTruthy();
     시작하기();
 
     await waitFor(() => expect(run).toHaveBeenCalledWith(12, 'qa', 'vision'));
@@ -116,7 +116,7 @@ describe('ScenarioBuild 정식 실행', () => {
     const run = vi.spyOn(scenarioApi, 'run');
     서버고르기();
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
-    expect((await screen.findByRole('alert')).textContent).toBe('1번 단계의 잘못 적은 칸을 고쳐야 실행할 수 있습니다');
+    expect((await screen.findByRole('alert')).textContent).toBe('1번 단계의 잘못 적은 칸을 수정해야 실행할 수 있습니다');
     expect(run).not.toHaveBeenCalled();
   });
 
@@ -126,7 +126,7 @@ describe('ScenarioBuild 정식 실행', () => {
     await 기존그리기({}, { ...기본, services: 기본.services.map((s) => ({ ...s, envs })) });
     const run = vi.spyOn(scenarioApi, 'run');
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
-    expect((await screen.findByRole('alert')).textContent).toBe('실행할 대상 서버를 먼저 고릅니다');
+    expect((await screen.findByRole('alert')).textContent).toBe('실행할 대상 서버를 먼저 선택합니다');
     expect(run).not.toHaveBeenCalled();
   });
 
@@ -166,7 +166,7 @@ describe('ScenarioBuild 정식 실행', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
 
-    expect((await screen.findByRole('alert')).textContent).toBe('실행할 대상 서버를 먼저 고릅니다');
+    expect((await screen.findByRole('alert')).textContent).toBe('실행할 대상 서버를 먼저 선택합니다');
     expect(run).not.toHaveBeenCalled();
   });
 

@@ -40,17 +40,17 @@ export function RunLocation({ android, 앱종류, 모바일 }: { android: boolea
             <div className="run-loc-radios" role="radiogroup" aria-labelledby={이름}>
               {/* 이름은 짧게, 무엇인지는 아래 작은 글로 — 라디오 이름에 설명이 섞이지 않게 aria-label 로 이름만 주고 설명은 aria-describedby 로 읽힌다 */}
               <label>
-                <input type="radio" name={이름} aria-label={t('가상 기기')} aria-describedby={`${이름}-s`} checked={모바일.값 === 'server'} onChange={() => 모바일.on바꿈('server')} />
+                <input type="radio" name={이름} aria-label={t('가상 디바이스')} aria-describedby={`${이름}-s`} checked={모바일.값 === 'server'} onChange={() => 모바일.on바꿈('server')} />
                 <span>
-                  {t('가상 기기')}
+                  {t('가상 디바이스')}
                   <small className="hint" id={`${이름}-s`}>{t('서버에서 iPhone 14 화면 크기로 실행')}</small>
                 </span>
               </label>
               <label>
-                <input type="radio" name={이름} aria-label={t('실제 기기')} aria-describedby={`${이름}-v`} checked={모바일.값 === 'vision'} onChange={() => 모바일.on바꿈('vision')} />
+                <input type="radio" name={이름} aria-label={t('실제 디바이스')} aria-describedby={`${이름}-v`} checked={모바일.값 === 'vision'} onChange={() => 모바일.on바꿈('vision')} />
                 <span>
-                  {t('실제 기기')}
-                  <small className="hint" id={`${이름}-v`}>{t('Device VISION 의 Android 폰 Chrome')}</small>
+                  {t('실제 디바이스')}
+                  <small className="hint" id={`${이름}-v`}>{t('Device VISION 의 Android 디바이스 Chrome')}</small>
                 </span>
               </label>
             </div>

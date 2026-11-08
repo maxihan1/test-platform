@@ -21,7 +21,7 @@ const 케이스글 = (자동수: number, 직접수: number, t: (키: string, 값
 function 최근실행({ run, service }: { run: CompatSetRow['lastRun']; service: string }) {
   const t = use말();
   const 언어 = use언어();
-  if (run === null) return <span className="compat-faint">{t('실행 이력 없음')}</span>;
+  if (run === null) return <span className="compat-faint">{t('실행 기록 없음')}</span>;
   // 0 은 안 보인다 (§8.17 ①)
   const 알약들 = [
     { 수: run.confirmed, 글: '결함 확정 {수}', 칸: 'compat-bad' },

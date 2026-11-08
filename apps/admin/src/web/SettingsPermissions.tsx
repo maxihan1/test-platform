@@ -74,7 +74,7 @@ export function PermissionPicker({
         <span className="field-label">{t('관리자')}</span>
         <div>
           {마지막운영 ? (
-            <div className="hint">{t('마지막 관리자라 끌 수 없습니다. 먼저 다른 사람을 관리자로 올립니다')}</div>
+            <div className="hint">{t('마지막 관리자라 끌 수 없습니다. 먼저 다른 사람을 관리자로 지정합니다')}</div>
           ) : (
             <label className="set-pick">
               <input
@@ -86,7 +86,7 @@ export function PermissionPicker({
             </label>
           )}
           {운영 ? (
-            <div className="hint">{t('관리자는 배정된 프로젝트에서 모든 기능을 씁니다. 켜 둘 프로젝트만 고르세요.')}</div>
+            <div className="hint">{t('관리자는 배정된 프로젝트에서 모든 기능을 씁니다. 켜 둘 프로젝트만 선택하세요.')}</div>
           ) : null}
         </div>
       </div>
@@ -155,13 +155,13 @@ export function PermissionPicker({
                   </div>
                 ) : 경고 === 'noCases' && !운영 ? (
                   <div className="hint set-perm-warn" role="status">
-                    {t('이대로면 실행 설정에서 고를 케이스가 보이지 않습니다.')}
+                    {t('이대로면 실행 설정에서 선택할 케이스가 보이지 않습니다.')}
                   </div>
                 ) : null}
               </div>
             );
           })}
-          <div className="hint">{t('프로젝트를 고르면 그 안의 애플리케이션이 모두 열리고, 새 애플리케이션이 들어와도 바로 열립니다. 배정받지 않은 프로젝트는 그 사람의 프로젝트 선택 목록에 뜨지 않습니다')}</div>
+          <div className="hint">{t('프로젝트를 선택하면 그 안의 애플리케이션이 모두 열리고, 새 애플리케이션이 들어와도 바로 열립니다. 배정받지 않은 프로젝트는 그 사람의 프로젝트 선택 목록에 뜨지 않습니다')}</div>
         </div>
       </div>
 

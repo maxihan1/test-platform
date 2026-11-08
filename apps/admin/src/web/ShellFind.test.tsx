@@ -65,7 +65,7 @@ describe('찾기 창', () => {
   it('케이스는 케이스 목록 검색(q)으로 찾고 고르면 그 케이스 상세를 편 목록으로 간다', async () => {
     const 찾기 = vi.spyOn(api, 'cases').mockResolvedValue(쪽(['ZSH-FN-001']));
     띄운다();
-    fireEvent.click(screen.getByRole('button', { name: '찾기' }));
+    fireEvent.click(screen.getByRole('button', { name: '검색' }));
     fireEvent.change(screen.getByRole('searchbox', { name: '찾을 말' }), { target: { value: 'ZSH-FN' } });
 
     fireEvent.click(await screen.findByText('ZSH-FN-001 이름'));
@@ -77,7 +77,7 @@ describe('찾기 창', () => {
   it('말을 고친 직후에는 앞 말로 찾은 케이스를 보이지 않는다 — Enter 가 엉뚱한 케이스로 가지 않게', async () => {
     vi.spyOn(api, 'cases').mockResolvedValueOnce(쪽(['ZSH-FN-001'])).mockReturnValueOnce(new Promise(() => {}));
     띄운다();
-    fireEvent.click(screen.getByRole('button', { name: '찾기' }));
+    fireEvent.click(screen.getByRole('button', { name: '검색' }));
     const 칸 = screen.getByRole('searchbox', { name: '찾을 말' });
     fireEvent.change(칸, { target: { value: 'ZSH-FN' } });
     await screen.findByText('ZSH-FN-001 이름');
@@ -91,7 +91,7 @@ describe('찾기 창', () => {
   it('케이스를 못 보는 사람은 메뉴만 찾는다 — 케이스 검색을 부르지 않는다', async () => {
     const 찾기 = vi.spyOn(api, 'cases').mockResolvedValue(쪽(['ZSH-FN-001']));
     띄운다(false);
-    fireEvent.click(screen.getByRole('button', { name: '찾기' }));
+    fireEvent.click(screen.getByRole('button', { name: '검색' }));
     fireEvent.change(screen.getByRole('searchbox', { name: '찾을 말' }), { target: { value: 'ZSH' } });
 
     expect(await screen.findByText('찾은 것이 없습니다')).toBeTruthy();
@@ -102,7 +102,7 @@ describe('찾기 창', () => {
   it('케이스 검색이 실패하면 그 사유를 보인다 — 「찾은 것이 없다」로 삼키지 않는다', async () => {
     vi.spyOn(api, 'cases').mockRejectedValue(new Error('끊김'));
     띄운다();
-    fireEvent.click(screen.getByRole('button', { name: '찾기' }));
+    fireEvent.click(screen.getByRole('button', { name: '검색' }));
     fireEvent.change(screen.getByRole('searchbox', { name: '찾을 말' }), { target: { value: 'ZSH' } });
 
     await waitFor(() => expect(document.querySelector('.find-error')?.textContent).toContain('끊김'));

@@ -22,7 +22,7 @@ export function API안내({ 설정보나 }: { 설정보나: boolean }) {
       <Head 위치={t('PRD 관리')} 제목={t('API 문서')} />
       <div className="screen">
         <div className="empty">
-          {t('API 애플리케이션을 고르면 API 문서가 보입니다')}
+          {t('API 애플리케이션을 선택하면 API 문서가 보입니다')}
           {설정보나 ? (
             <small>
               <a href="#/settings">{t('설정에서 종류 보기')}</a>
@@ -106,18 +106,18 @@ export function ApiDocs({ service, 할수, 버전, 설정보나 }: { service: Se
             ) : null}
             {쓰나 && versions.length >= 2 ? (
               <a className="btn" href="#/authoring?todo=1">
-                {t('바뀐 API 만 다시 작성')}
+                {t('변경된 API 만 다시 작성')}
               </a>
             ) : null}
             {/* 문서 경로 · 기준 서버가 설정에 없으면 받을 곳이 없다 — 버튼 대신 파일 첨부만 남는다 */}
             {쓰나 && docPath !== null && docEnv !== null ? (
               <button className="btn ghost" disabled={받는중 !== null} onClick={() => void 넣기('fetch', () => apiDocApi.fetch(id))}>
-                <기다림글자 중={받는중 === 'fetch'} 평소={t('문서 새로 받기')} 기다림={t('받는 중…')} />
+                <기다림글자 중={받는중 === 'fetch'} 평소={t('문서 가져오기')} 기다림={t('받는 중…')} />
               </button>
             ) : null}
             {쓰나 ? (
               <button className="btn ghost" disabled={받는중 !== null} onClick={() => 파일칸.current?.click()}>
-                <기다림글자 중={받는중 === 'upload'} 평소={t('파일 첨부')} 기다림={t('올리는 중…')} />
+                <기다림글자 중={받는중 === 'upload'} 평소={t('파일 첨부')} 기다림={t('업로드 중…')} />
               </button>
             ) : null}
             {versions.length === 0 ? null : (
@@ -149,7 +149,7 @@ export function ApiDocs({ service, 할수, 버전, 설정보나 }: { service: Se
         <div className="screen">
           <div className="empty">
             {t('아직 API 문서가 없습니다')}
-            {쓰나 ? <small>{t('문서 새로 받기로 기준 서버에서 받거나, 파일 첨부로 OpenAPI 3 JSON 파일을 올립니다')}</small> : null}
+            {쓰나 ? <small>{t('문서 가져오기로 기준 서버에서 가져오거나, 파일 첨부로 OpenAPI 3 JSON 파일을 업로드합니다')}</small> : null}
           </div>
         </div>
       ) : (

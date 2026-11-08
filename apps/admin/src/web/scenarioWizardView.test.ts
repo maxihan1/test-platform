@@ -56,7 +56,7 @@ describe('쓰였나', () => {
     const 실패 = 결과({ seq: 2, status: 'FAIL', durationMs: 5, steps: [], mocks: [], error: { message: '버튼이 없다\n적용되지 않은 값 연결 — 요청 차단 DELETE **/api/cart' } });
     expect(쓰였나(실패, 2, 차단, 'ko')).toBe('안 쓰임');
     expect(쓰였나(실패, 2, 재사용, 'ko')).toBe('쓰임');
-    expect(쓰였나(결과({ seq: 2, status: 'FAIL', durationMs: 5, steps: [], mocks: [], error: { message: '버튼이 없다' } }), 2, 차단, 'ko')).toBe('멈춤 · 쓰였는지는 결과에 남지 않습니다');
+    expect(쓰였나(결과({ seq: 2, status: 'FAIL', durationMs: 5, steps: [], mocks: [], error: { message: '버튼이 없다' } }), 2, 차단, 'ko')).toBe('중단 · 쓰였는지는 결과에 남지 않습니다');
     expect(쓰였나(결과({ seq: 2, status: 'PASS', durationMs: 5, steps: [], mocks: [] }), 2, 차단, 'ko')).toBe('통과 · 쓰였는지는 결과에 남지 않습니다');
     expect(쓰였나(결과({ seq: 2, status: 'NA', durationMs: 0, steps: [], mocks: [], error: { message: 'NOT_RUN' } }), 2, 차단, 'en')).toBe('Not run');
   });

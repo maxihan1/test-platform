@@ -193,8 +193,8 @@ describe('PRD 관리 — 요구사항 추적표 칸', () => {
     Object.assign(URL, { createObjectURL: vi.fn(() => 'blob:rtm'), revokeObjectURL: vi.fn() });
     const 누름 = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
     render(<Prd service="MKT" 할수={보는사람} />);
-    fireEvent.click(await screen.findByRole('button', { name: /^내려받기/ }));
-    fireEvent.click(screen.getByRole('button', { name: '추적표 엑셀로 내려받기' }));
+    fireEvent.click(await screen.findByRole('button', { name: /^다운로드/ }));
+    fireEvent.click(screen.getByRole('button', { name: '추적표 엑셀 다운로드' }));
     expect(엑셀).toHaveBeenCalledWith('MKT');
     await vi.waitFor(() => expect(누름).toHaveBeenCalledOnce());
     expect((누름.mock.contexts[0] as HTMLAnchorElement).download).toBe('MKT-RTM-v12-2026-10-11.xlsx');
