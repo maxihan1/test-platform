@@ -424,7 +424,7 @@ describe('자식 환경 — 자식에게서 GitHub 열쇠를 뺀다', () => {
 
 describe('자식 환경 — 탐색 브라우저', () => {
   // 기본값 Google Chrome 은 작성 컨테이너에 없어 훑기 보조가 「Chrome 없음」으로 16번 막혔다 (PRD-F14-01)
-  it('탐색 도구(playwright-cli)의 기본 브라우저는 chromium 이다', () => {
+  it('탐색 도구(playwright cli)의 기본 브라우저는 chromium 이다', () => {
     expect(자식환경({ PATH: '/usr/bin' }, '/빈').PLAYWRIGHT_MCP_BROWSER).toBe('chromium');
   });
 

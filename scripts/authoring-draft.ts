@@ -2,21 +2,22 @@
 // 테스트 저장소 · PR 을 만들지 않는다. 자식은 코드를 읽지 않아 사본이 필요 없다 — 입력 파일만 둔 작업 폴더 하나로 돈다(노트 고치기와 같은 틀)
 
 import { mkdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
 
-import { 비밀번호들, 계정환경 } from './authoring-accounts.js';
+import { 비밀번호들 } from './authoring-accounts.js';
 import { 자식환경 } from './authoring-chain.js';
 import { type 계정, 사본자리, 파일거부사유 } from './authoring-copy.js';
 import { MCP설정쓰기, 모양보기, 사본치우기, 새집, 자식거두기 } from './authoring-child.js';
 import { 초안몸상한 } from '../apps/admin/src/bts/draft.js';
 import { 결제환경 } from './authoring-billing.js';
-import { 초안파일, 초안지시문, 값가리기, 비밀섞였나, 요청글, 출력읽기, 화면보나, type 초안자료 } from './authoring-draft-prompt.js';
+import { 초안파일, 초안지시문, 값가리기, 비밀섞였나, 요청글, 출력읽기, 탐침명령, 화면보나, type 초안자료 } from './authoring-draft-prompt.js';
 import { type 보고손, 닫으며, 멈춤, 보고손만들기, 부른다, 돌린다, 친다 } from './authoring-io.js';
 import { type 박동, 박동손 } from './authoring-heartbeat.js';
 import { 도는번호 } from './authoring-keeping.js';
 import { type 모델, 모델인자, 한도걸렸나 } from './authoring-model.js';
 import { 진척누적기, 끝낼상태, 자식제한 } from './authoring-progress.js';
-import { 대상환경, 사유거르기 } from './authoring-reverse.js';
+import { type 대상, 대상환경, 사유거르기 } from './authoring-reverse.js';
 import { type 집은것, MCP설정글 } from './authoring-rules.js';
 import type { 서비스설정 } from './authoring-token.js';
 import { 사용량보고 } from './authoring-usage.js';
@@ -26,8 +27,30 @@ import type { 판 } from './authoring-run.js';
 const 출력상한 = 초안몸상한;
 
 /**
- * 자식 인자. 도구는 작업 폴더의 파일 읽기 · 쓰기와 QA Hub MCP, 웹이면 playwright-cli 뿐이다 —
- * `--tools` 에 Bash 를 넣어도 `-p` 의 허용 목록 밖 명령은 거절된다(묻지 못하니). 프롬프트는 stdin 으로 간다
+ * 탐침 명령이 도는 PATH. 자식의 작업 폴더는 저장소 밖이라 `npx` 가 저장소 Playwright 를 못 찾고,
+ * 컨테이너에는 `playwright-cli` 명령이 없다(전역 설치 금지 — docs/SETUP.md §9). 저장소에 깔린 Playwright 의
+ * `.bin` 을 앞에 붙인다 — 컨테이너(/repo)든 맥 대체 실행이든 이 파일이 읽는 node_modules 가 기준이다
+ */
+export function 탐침PATH(부모: string | undefined): string {
+  // 직접 깐 @playwright/test 가 기준이다 — .bin/playwright 가 그 cli.js 를 가리킨다
+  const 빈 = join(dirname(createRequire(import.meta.url).resolve('@playwright/test/package.json')), '..', '..', '.bin');
+  return 부모 === undefined || 부모 === '' ? 빈 : `${빈}:${부모}`;
+}
+
+/**
+ * 화면을 여는 자식의 대상 서버 칸 — 주소와 탐침 PATH 만. **계정은 넘기지 않는다** — `playwright cli` 로 로그인하면
+ * 비밀번호가 명령 인자와 대화에 펼쳐진다. 로그인이 필요한 화면은 이슈 글로만 쓴다 (도메인/BTS 「자식」 · 2026-11-08 사용자)
+ */
+export function 초안대상환경(t: 대상, 부모PATH: string | undefined): Record<string, string> {
+  const { TARGET_LOGIN_ID: _아이디, TARGET_LOGIN_PASSWORD: _비밀번호, ...주소 } = 대상환경(t);
+  return { ...주소, PATH: 탐침PATH(부모PATH) };
+}
+
+/**
+ * 자식 인자. 도구는 작업 폴더의 파일 읽기 · 쓰기와 QA Hub MCP, 웹이면 탐침 명령(`playwright cli`) 하나뿐이다 —
+ * `--tools` 에 Bash 를 넣어도 `-p` 의 허용 목록 밖 명령은 거절된다(묻지 못하니). 프롬프트는 stdin 으로 간다.
+ * 사용자 설정은 읽지 않는다 — 컨테이너의 새 집(새집)과 맥 사용자 설정이 둘 다 `Bash(*)` 를 허용해 허용 목록이 무력해진다
+ * (2026-11-08 실측: 사용자 설정을 읽으면 `ls /` 가 통과하고, 빼면 막히고 탐침만 돈다)
  */
 export function 초안자식인자(모델값: 모델, 자료폴더: string, 임시: string, 설정파일: string, 화면: boolean): string[] {
   return [
@@ -44,12 +67,14 @@ export function 초안자식인자(모델값: 모델, 자료폴더: string, 임�
     '--tools',
     화면 ? 'Read,Write,Edit,Glob,Grep,Bash' : 'Read,Write,Edit,Glob,Grep',
     '--disable-slash-commands',
+    '--setting-sources',
+    'project,local',
     '--strict-mcp-config',
     '--mcp-config',
     설정파일,
     '--allowedTools',
     'mcp__qa-hub',
-    ...(화면 ? ['Bash(playwright-cli:*)'] : []),
+    ...(화면 ? [`Bash(${탐침명령}:*)`] : []),
   ];
 }
 
@@ -112,7 +137,7 @@ async function 초안건(
       {
         ...자식환경(process.env, 자리.gh),
         ...(자식 === null ? {} : { HOME: 자리.집, TMPDIR: 자리.임시 }),
-        ...(화면 && 것.target !== undefined ? { ...대상환경(것.target), ...계정환경(것.accounts) } : {}),
+        ...(화면 && 것.target !== undefined ? 초안대상환경(것.target, process.env.PATH) : {}),
       },
       undefined,
     );
