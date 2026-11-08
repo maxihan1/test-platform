@@ -261,7 +261,7 @@ describe.skipIf(연결 === undefined)('시나리오 실행 만들기', () => {
 
     const 길다 = Array.from({ length: 13 }, () => 케이스('XSE-001'));
     const 초과 = await 거절(await 버전바로넣기(길다), 'qa', 'NOT_RUNNABLE');
-    expect(초과.message).toContain('3600000ms');
+    expect(초과.message).toContain('한도 60분을 넘습니다');
 
     const 밖 = await 거절(await 버전바로넣기([케이스('XSE-003')]), 'qa', 'NOT_RUNNABLE');
     expect(밖.message).toContain('XSE-003');

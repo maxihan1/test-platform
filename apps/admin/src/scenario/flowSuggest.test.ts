@@ -80,6 +80,16 @@ describe('흐름다듬기', () => {
     }]);
   });
 
+  it('실행 한도 60분을 넘는 후보(케이스 13개)는 버리고 12개 후보는 남긴다', () => {
+    const 많은재료 = { ...재료, cases: Array.from({ length: 13 }, (_, i) => ({ tcId: `MKT-FN-${100 + i}`, name: `케이스 ${i}`, reqIds: [], screens: [], normal: true })) };
+    const 번호들 = 많은재료.cases.map((c) => c.tcId);
+    const 결과 = 흐름다듬기(많은재료, [
+      후보({ name: '긴 흐름', tcIds: 번호들 }),
+      후보({ name: '열두 단계', tcIds: 번호들.slice(0, 12) }),
+    ], 지도, 입력칸);
+    expect(결과.map((c) => [c.name, c.steps.length])).toEqual([['열두 단계', 12]]);
+  });
+
   it('지도 제안이 같은 두 단계에 있으면 JSON 경로와 있는 입력값 칸만 채우고 번호는 남은 차례로 바꾼다', () => {
     const [하나] = 흐름다듬기(재료, [후보({
       tcIds: ['MKT-FN-001', 'MKT-FN-404', 'MKT-FN-003'],
