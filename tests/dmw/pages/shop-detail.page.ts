@@ -27,6 +27,7 @@ export class 상품상세화면 {
   readonly 리뷰패널: Locator;
   readonly 문의패널: Locator;
   readonly 리뷰실패안내: Locator;
+  readonly 리뷰불러오는중: Locator;
   readonly 리뷰글들: Locator;
   readonly 다시시도: Locator;
   readonly 확대창: Locator;
@@ -59,6 +60,7 @@ export class 상품상세화면 {
     this.리뷰패널 = page.getByRole('tabpanel', { name: /^리뷰/ });
     this.문의패널 = page.getByRole('tabpanel', { name: '상품 문의', exact: true });
     this.리뷰실패안내 = page.getByText('리뷰를 불러오지 못했습니다', { exact: true });
+    this.리뷰불러오는중 = page.getByText('리뷰를 불러오는 중…', { exact: true });
     this.리뷰글들 = this.리뷰패널.getByRole('article');
     this.다시시도 = page.getByRole('button', { name: '다시 시도', exact: true });
     this.확대창 = page.getByRole('dialog', { name: '이미지 확대 보기' });
