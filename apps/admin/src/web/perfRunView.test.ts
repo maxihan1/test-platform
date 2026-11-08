@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { 가장큰값, 분초, 목표글자, 증가율, 최근집계, 트랜잭션줄, 판정종류 } from './perfRunView.js';
+import { 가장큰값, 분초, 목표글자, 사유이름, 증가율, 최근집계, 트랜잭션줄, 판정종류 } from './perfRunView.js';
 
 const 그대로 = (키: string, 값?: Record<string, string | number>) => Object.entries(값 ?? {}).reduce((글, [이름, v]) => 글.replace(`{${이름}}`, String(v)), 키);
 const 줄 = (sec: number, 덮 = {}) => ({ sec, tx: '', vus: 10, requests: 100, errors: 1, p95Ms: 1000, p99Ms: 1500, ...덮 });
@@ -60,5 +60,11 @@ describe('글자', () => {
     expect(증가율(1900, 1400)).toBe(36);
     expect(증가율(1900, null)).toBeNull();
     expect(증가율(1900, 0)).toBeNull();
+  });
+
+  it('디바이스 측정이 무소식으로 멈추면 부하 에이전트가 아니라 디바이스 측정값이 끊겼다고 보인다', () => {
+    expect(사유이름('AGENT_LOST', 그대로, 'DEVICE')).toBe('디바이스 측정값 끊김');
+    expect(사유이름('AGENT_LOST', 그대로, 'LOAD')).toBe('부하 발생 에이전트 연결 끊김');
+    expect(사유이름('USER', 그대로, 'DEVICE')).toBe('사람이 중단');
   });
 });

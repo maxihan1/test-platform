@@ -99,7 +99,7 @@ export function PerfRunResult({ run, 다시읽기, 쓰나 }: { run: 실행상세
         앞={종류 === 'LIVE' ? null : <span className={`verdict ${판정꼴[종류]}`}>{판정이름(종류, t)}</span>}
         덧={[
           ...(run.startedAt !== null && run.finishedAt !== null ? [분초((new Date(run.finishedAt).getTime() - new Date(run.startedAt).getTime()) / 1000)] : []),
-          ...(run.stopReason === null ? [] : [사유이름(run.stopReason, t)]),
+          ...(run.stopReason === null ? [] : [사유이름(run.stopReason, t, run.kind)]),
         ]}
         행동={
           <div className="perf-row">

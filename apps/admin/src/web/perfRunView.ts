@@ -49,8 +49,9 @@ const 사유글자: Record<Exclude<중단사유, null>, string> = {
   AGENT_LOST: '부하 발생 에이전트 연결 끊김',
   USER: '사람이 중단',
 };
-export function 사유이름(사유: Exclude<중단사유, null>, t: 말): string {
-  return t(사유글자[사유]);
+/** 디바이스 측정에는 부하 발생 에이전트가 없다 — 같은 AGENT_LOST 라도 디바이스에서 측정값이 안 온 것이다 (§7 「팜 폰」) */
+export function 사유이름(사유: Exclude<중단사유, null>, t: 말, kind: string): string {
+  return t(kind === 'DEVICE' && 사유 === 'AGENT_LOST' ? '디바이스 측정값 끊김' : 사유글자[사유]);
 }
 
 /** 1342 → 「1,342」 */

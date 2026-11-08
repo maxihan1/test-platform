@@ -7,7 +7,7 @@ import { 줄읽기 as 기기줄읽기 } from './deviceStore.js';
 import { degraded, judge, judgeWindow, summary, type SecRow, type Stop } from './judge.js';
 import { 단독쓰기 } from './pages.js';
 import { 가운데값, 목표줄들, type 페이지표본 } from './pageStats.js';
-import { 사유 } from './reasons.js';
+import { 사유, 사유글 } from './reasons.js';
 import { 도는것 } from './state.js';
 import * as 표 from './store.js';
 import type { DeviceRunConfig, PageRunConfig } from './types.js';
@@ -76,7 +76,7 @@ async function 기기끝내기(runId: number, 끝: 끝): Promise<표.끝값 | nu
     if (끝.kind === 'ERROR') 오류 = 끝.why;
     else if (끝.kind === 'STOP') {
       값 = { ...빈끝, status: 'STOPPED', stopReason: 끝.stop.reason };
-      멈춤글 = 끝.stop.reason === 'AGENT_LOST' ? '기기에서 측정값이 오지 않아 중단했습니다' : (사유[끝.stop.reason] ?? 끝.stop.reason);
+      멈춤글 = 사유글(끝.stop.reason, 'DEVICE');
     } else {
       const rows = await 기기줄읽기(runId);
       if (rows.length === 0) 오류 = '기기 숫자를 하나도 받지 못했습니다';

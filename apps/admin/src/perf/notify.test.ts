@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { 알림문장, 알림보낼까, type 알림재료 } from './notify.js';
 
 const 기본: 알림재료 = {
-  id: 12, scenarioName: '상품 목록', status: 'DONE', verdict: 'PASS', stopReason: null, testType: 'LOAD', env: 'qa',
+  id: 12, kind: 'LOAD', scenarioName: '상품 목록', status: 'DONE', verdict: 'PASS', stopReason: null, testType: 'LOAD', env: 'qa',
   peakVus: 120, p95Ms: 842, errorRate: 0.34, degraded: false,
 };
 

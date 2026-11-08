@@ -156,7 +156,7 @@ export function PerfRunList({ serviceId }: { serviceId: number }) {
                           ) : (
                             <>
                               <span className={`verdict ${판정꼴[꼴]}`}>{판정이름(꼴, t)}</span>
-                              {꼴 === 'STOP' && 줄.stopReason !== null ? <div className="perf-faint">{사유이름(줄.stopReason, t)}</div> : null}
+                              {꼴 === 'STOP' && 줄.stopReason !== null ? <div className="perf-faint">{사유이름(줄.stopReason, t, 줄.kind)}</div> : null}
                             </>
                           )}
                         </td>

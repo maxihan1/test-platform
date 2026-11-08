@@ -43,6 +43,8 @@ export interface 기록기 {
   readonly serial: string;
   /** 팜만 — 잡기가 끝나는 시각(ms). 모르면 null */
   잡음끝(): number | null;
+  /** 팜만 — 폰을 잡은 주인의 토큰. Appium 세션도 이것으로 열어야 팜이 받는다. 내 컴퓨터 러너는 undefined */
+  팜토큰(): Promise<string | undefined>;
   켜기(o: 켜기옵션): Promise<void>;
   새줄(since: number): Promise<읽음>;
   늘리기(): Promise<void>;
@@ -100,6 +102,11 @@ export function 팜기록기(serial: string, 부르기: typeof fetch = fetch): �
     where: 'FARM',
     serial,
     잡음끝: () => 끝,
+    // 러너는 자기 토큰을 같은 팜 호스트에만 싣는다 — 서버 몫을 못 고른 설치도 잡은 DEVICE_FARM_TOKEN 을 그대로 넘긴다 (러너 §5.2)
+    async 팜토큰() {
+      await 머리();
+      return 토큰 ?? (process.env.DEVICE_FARM_TOKEN || undefined);
+    },
     async 켜기(o) {
       분 = o.holdMinutes;
       let res: Response;
@@ -164,6 +171,7 @@ export function 로컬기록기(serial: string, 주소: string, 부르기: typeo
   return {
     where: 'LOCAL',
     serial,
+    팜토큰: async () => undefined,
     잡음끝: () => null,
     async 켜기(o) {
       const res = await 부르기(`${주소}/perf/device/start`, {

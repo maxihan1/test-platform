@@ -6,6 +6,7 @@ import { 분석결과쓰기 } from './analysis.js';
 import { 차리기, type 차림 } from './dbFixture.js';
 import { 도는실행들, 한번돌기 } from './engine.js';
 import { 뒷일기다리기 } from './finish.js';
+import { 로그인화면 } from './pages.js';
 
 const 연결 = process.env.DATABASE_URL;
 const 에이전트이름 = 'xpp-load';
@@ -79,6 +80,18 @@ describe.skipIf(연결 === undefined)('페이지 성능', { timeout: 60_000 }, (
     expect((await 측정({ env: 'dev' })).json()).toMatchObject({ detail: '로그인이 필요한 페이지가 있는데 대상 서버에 테스트 계정이 없습니다' });
     expect((await 측정({ pages: [{ url: 'http://evil.test/', name: '밖', login: false }] })).statusCode).toBe(400);
     expect((await 판.사람(판.읽기만, 'POST', '/api/perf/pages/measure', { serviceId: 판.서비스, env: 'qa', pages: [{ url: '/', name: '메인', login: false }], device: 'desktop', network: 'NONE' })).statusCode).toBe(403);
+  });
+
+  it('로그인 화면은 주소가 로그인 꼴인 화면이 먼저다 — 로그아웃 상태에서 이름만 「로그인」인 짧은 주소를 고르지 않는다', async () => {
+    await 판.pool.query(
+      `INSERT INTO screen_record (service_id, env, state, url, name, text_fp, struct_fp, record, crawled_at) VALUES ($1, 'qa', '로그아웃', '/cart', '로그인', 'a', 'b', 'http://shop.xpp.test/cart', now())`,
+      [판.서비스],
+    );
+    try {
+      expect(await 로그인화면(판.서비스, 'qa')).toBe('/login');
+    } finally {
+      await 판.pool.query(`DELETE FROM screen_record WHERE service_id = $1 AND url = '/cart'`, [판.서비스]);
+    }
   });
 
   it('PAGE 일이 가고 세 번 잰 가운데 값으로 판정한다 — 로그인 화면 · 계정을 싣고 못 넘은 목표는 실패', async () => {

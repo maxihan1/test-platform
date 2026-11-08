@@ -9,3 +9,8 @@ export const 사유: Record<string, string> = {
   SMOKE_FAILED: '스모크 테스트에서 에러가 나 본 테스트를 하지 않았습니다',
   USER: '실행을 중단했습니다',
 };
+
+/** 디바이스 측정에는 부하 발생 에이전트가 없다 — 같은 AGENT_LOST 라도 디바이스에서 측정값이 안 온 것이다 (§7 「팜 폰」) */
+export function 사유글(reason: string, kind: string): string {
+  return kind === 'DEVICE' && reason === 'AGENT_LOST' ? '기기에서 측정값이 오지 않아 중단했습니다' : (사유[reason] ?? reason);
+}
