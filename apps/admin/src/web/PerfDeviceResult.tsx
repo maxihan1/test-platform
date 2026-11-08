@@ -85,7 +85,7 @@ export function PerfDeviceResult({ run, service, 다시읽기, 쓰나, 새측정
         부제={
           <>
             {종류 === 'LIVE' ? null : <span className={`verdict ${판정꼴[종류]}`}>{판정이름(종류, t)}</span>}{' '}
-            {[조작글(설정, t), 설정.drive === 'MANUAL' ? null : t('반복 {수}회', { 수: 설정.repeat }), t('디바이스 {수}대', { 수: 설정.devices.length }), run.env, 시각글(run.startedAt, 언어), ...걸린, run.stopReason === null ? null : 사유이름(run.stopReason, t)]
+            {[조작글(설정, t), 설정.drive === 'MANUAL' ? null : t('반복 {수}회', { 수: 설정.repeat }), t('디바이스 {수}대', { 수: 설정.devices.length }), run.env, 시각글(run.startedAt, 언어), ...걸린, run.stopReason === null ? null : 사유이름(run.stopReason, t, 'DEVICE')]
               .filter((x): x is string => x !== null)
               .join(' · ')}
           </>

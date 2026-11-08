@@ -14,6 +14,7 @@ export const 성능실행말: Record<string, string> = {
   '에러율 20% 초과로 자동 중단': 'Auto-stopped, error rate over 20%',
   '스모크 테스트 실패': 'Smoke test failed',
   '부하 발생 에이전트 연결 끊김': 'Load generator disconnected',
+  '디바이스 측정값 끊김': 'Device metrics stopped arriving',
   '사람이 중단': 'Stopped by a person',
 
   // 실행 중
