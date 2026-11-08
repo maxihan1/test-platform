@@ -84,7 +84,7 @@ export function 케이스목록만들기(명세들: unknown[], 재료: 케이스
 }
 
 /**
- * DONE 끝내기 몸에 만든 케이스를 싣는다. 못 읽었거나 하나도 없으면 싣지 않는다 — PR 은 이미 섰으니 끝내기를 막지 않는다.
+ * DONE 끝내기 몸에 만든 케이스를 싣는다. 스캔 · 바뀐 파일 목록을 못 읽으면 올리기가 push 전에 거절한다(2026-11-08) — 여기서 못 읽음은 방어용이라 싣지 않고 넘긴다.
  * 못 읽은 까닭은 삼키지 않고 로그에 남긴다
  */
 export function 케이스실은몸(몸: Record<string, unknown>, 명세들: unknown[] | null, 재료: 케이스재료 | null): Record<string, unknown> {

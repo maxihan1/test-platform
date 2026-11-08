@@ -30,10 +30,10 @@ import { 저장본올리기 } from './authoring-screens-keep-io.js';
 import { 기준화면지도, 다덮음사유, 바뀐화면줄 } from './authoring-covered.js';
 import type { 원장 } from './authoring-ledger.js';
 import { type 기준결정, tcId들 } from './authoring-ledger-check.js';
-import { tcId별글, 원장판정 } from './authoring-ledger-verdict.js';
+import { tcId별글, 원장판정, 케이스없음사유 } from './authoring-ledger-verdict.js';
 import { 케이스글들 } from './authoring-ledger-io.js';
 import { type 셈재료, 커버리지싣는손 } from './authoring-coverage.js';
-import { 보류싣는손 } from './authoring-held.js';
+import { 거두며스캔, 보류싣는손 } from './authoring-held.js';
 import { type 케이스재료, 바뀜풀기, 변경상태인자, 케이스싣는손 } from './authoring-cases.js';
 import { 모양보기, 트리실제 } from './authoring-child.js';
 import { type 자료, 자료출처, 화면만인가 } from './authoring-assets.js';
@@ -87,12 +87,7 @@ export async function 올리기(
   let 케이스자료: 케이스재료 | null = null;
   const 손 = 보류싣는손(
     케이스싣는손(커버리지싣는손(원손, () => 셈), () => ({ 명세들, 재료: 케이스자료 })),
-    자리,
-    원장재료.자식,
-    원장재료.폴더,
-    (읽은것) => {
-      명세들 = 읽은것;
-    },
+    () => 명세들,
   );
   const 깃 = 사본환경(자리);
   // 거절 까닭은 화면과 이어받는 자식의 프롬프트로 간다 — 자식이 정한 파일 이름에 계정 원문이 섞일 수 있어 모두 거른다
@@ -102,6 +97,7 @@ export async function 올리기(
   const 트리에서 = (명령: string, 인자: string[]) => 친다(명령, 인자, 자리.트리, undefined, 120_000, { env: 깃 });
 
   await 손.단계('올리는 중');
+  const 스캔 = await 거두며스캔(자리, 원장재료.자식, 원장재료.폴더); // 자식 코드를 실행한다 — 커밋 · 모든 검사보다 먼저 돌리고 다시 거둬 스캔이 바꾼 파일도 아래 검사를 다 거친다 (작성 §3.6 「케이스 0건」)
   // 자식이 tests · docs 밖에 새로 남긴 파일은 지우고 올린다 — 그 하나로 케이스 전부를 거절하지 않는다 (작성 §3.6 마무리)
   const 새것 = 트리에서('git', ['status', '--porcelain', '-z', '-uall']);
   const 지운것 = 새것.ok ? 치울새파일들(새것.낸것) : [];
@@ -174,15 +170,7 @@ export async function 올리기(
     return;
   }
   const 읽기 = (f: string) => (모양보기(자리.트리, f).종류 === '파일' ? readFileSync(join(자리.트리, f), 'utf8') : '');
-  // 저장본이 바뀐 화면을 쓰는 기준 케이스와 그중 이번에 고친 것 — 자식 요약이 아니라 에이전트가 기준 SHA 로 센다 (§3.6 「바뀐 화면 — 닿는 케이스만 다시 본다」)
-  // 바뀐 화면이 없으면 지도를 다시 세지 않는다. 못 셌으면 줄로 알린다 — 「바뀐 화면 없음」과 갈리게
-  const 바뀐틀 = 역 === undefined ? null : 바뀐틀읽기(자리.자료, 원장재료.게임 === true);
-  const 화면지도 = 바뀐틀 === null || 바뀐틀.size === 0 ? null : 기준화면지도({ 깃: (인자) => 트리에서('git', 인자), 기준, 서비스, 폴더: 원장재료.폴더 });
-  const 바뀐줄 = 화면지도 === null || 바뀐틀 === null ? null : '까닭' in 화면지도 ? `⚠️ 바뀐 화면 케이스를 못 셌다 — ${화면지도.까닭}` : 바뀐화면줄(바뀐틀, 화면지도.케이스, new Set(전체));
-  const 바뀜표 = 트리에서('git', 변경상태인자(기준));
-  if (바뀜표.ok) 케이스자료 = { 바뀜: 바뀜풀기(바뀜표.낸것), 표글: 읽기(표), 접두사: 서비스, 읽기 };
-  else console.error(`[작성] ${것.id}번 바뀐 파일 상태를 못 읽어 만든 케이스를 싣지 않는다: ${바뀜표.까닭}`);
-  // 원장 대조 — 메모리의 원장 · 올릴 트리의 표와 케이스로 본다. 빠져도 거절하지 않고 셈과 PR 본문 머리에 남긴다 (§3.6 「★ 원장」, 2026-09-30 게이트 1)
+  // 원장 대조 — 메모리의 원장 · 올릴 트리의 표와 케이스로 본다. 빠져도 거절하지 않고 셈과 PR 본문 머리에 남긴다 — 케이스 0건만 예외다 (§3.6 「★ 원장」, 2026-09-30 게이트 1)
   const 추적 = 트리에서('git', ['ls-files', '-z', '--', `tests/${원장재료.폴더}`]);
   if (!추적.ok) return void (await 손.끝내기(거절(`원장 대조용 케이스 목록을 못 읽었다: ${추적.까닭}`)));
   const 글들 = 케이스글들(추적.낸것.split('\0'), 원장재료.폴더, 읽기);
@@ -190,6 +178,19 @@ export async function 올리기(
   // 여기부터의 끝내기(DONE · 올리기 거절)에 셈이 실린다
   const 원장값 = 원장재료.값;
   셈 = '없음' in 원장값 ? { 없음: 원장값.없음 } : '대조' in 원장결과 ? { 대조: 원장결과.대조, 원장: 원장값 } : null;
+  // 케이스 0건 · 바뀐 파일 목록 · 보류 스캔을 못 읽음은 push 전에 거절로 닫는다 — DONE 이면 PR 이 서고 작업 폴더가 지워진다 (§3.6 「★ 원장」 「케이스 0건」 · #15285)
+  const 영건 = 케이스없음사유(원장결과, 글들.length);
+  if (영건 !== null) return void (await 손.끝내기(거절(영건)));
+  const 바뀜표 = 트리에서('git', 변경상태인자(기준));
+  if (!바뀜표.ok) return void (await 손.끝내기(거절(`바뀐 파일 목록을 못 읽었다: ${바뀜표.까닭}`)));
+  if ('사유' in 스캔) return void (await 손.끝내기(거절(스캔.사유)));
+  명세들 = 스캔;
+  케이스자료 = { 바뀜: 바뀜풀기(바뀜표.낸것), 표글: 읽기(표), 접두사: 서비스, 읽기 };
+  // 저장본이 바뀐 화면을 쓰는 기준 케이스와 그중 이번에 고친 것 — 자식 요약이 아니라 에이전트가 기준 SHA 로 센다 (§3.6 「바뀐 화면 — 닿는 케이스만 다시 본다」)
+  // 바뀐 화면이 없으면 지도를 다시 세지 않는다. 못 셌으면 줄로 알린다 — 「바뀐 화면 없음」과 갈리게
+  const 바뀐틀 = 역 === undefined ? null : 바뀐틀읽기(자리.자료, 원장재료.게임 === true);
+  const 화면지도 = 바뀐틀 === null || 바뀐틀.size === 0 ? null : 기준화면지도({ 깃: (인자) => 트리에서('git', 인자), 기준, 서비스, 폴더: 원장재료.폴더 });
+  const 바뀐줄 = 화면지도 === null || 바뀐틀 === null ? null : '까닭' in 화면지도 ? `⚠️ 바뀐 화면 케이스를 못 셌다 — ${화면지도.까닭}` : 바뀐화면줄(바뀐틀, 화면지도.케이스, new Set(전체));
   const 본문글 = PR본문({
     표경로: 표,
     표: 읽기(표),

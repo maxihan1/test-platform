@@ -31,7 +31,7 @@ function 자르기(글: string, 상한: number): string {
 }
 
 /**
- * 셈을 만든다. `보류` 는 보류 케이스 tcId 들 — null 이면 모른다(보류 스캔은 DONE 때만 돈다 · 스캔 실패).
+ * 셈을 만든다. `보류` 는 보류 케이스 tcId 들 — null 이면 모른다(DONE 이 아니다 · 그 전 에이전트 행의 스캔 실패).
  * 보류로만 덮인 번호는 `cased` 에도 든다 — 보류 케이스도 덮는다(§3.6 「덮는다는 것」)
  */
 export function 커버리지만들기(재료: 셈재료, 보류: Set<string> | null): 커버리지 {
