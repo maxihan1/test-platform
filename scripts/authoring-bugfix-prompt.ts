@@ -164,6 +164,9 @@ export function PR본문(입력: { issueKey: string; title: string; summary: str
   if (입력.files.length > 50) 보일.push(`- 외 ${입력.files.length - 50}개`);
   const 만들기 = (요약: string) =>
     [
+      // Issue Bunker 의 PR 병합 규칙은 닫기 낱말이 바로 앞에 붙은 키만 읽는다 — 없으면 병합해도 이슈가 「배포 대기」로 안 간다 (도메인/BTS 「수정 AI」)
+      `Closes ${입력.issueKey}`,
+      '',
       '## 이슈',
       `${입력.issueKey} — ${입력.title.replace(/\s+/g, ' ')}`,
       `Issue Bunker 이슈 ${입력.issueKey} 를 Test Commander 가 맡아 고쳤어요.`,

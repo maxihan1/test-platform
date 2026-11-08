@@ -187,6 +187,13 @@ describe('PR본문', () => {
     expect(글).toContain('병합은 사람이 해요');
   });
 
+  it('첫 줄이 Closes <이슈 키> 라 병합하면 Issue Bunker 가 이슈를 배포 대기로 옮긴다', () => {
+    const 글 = PR본문({ issueKey: 'MQA-113', title: '쿠폰이 두 번 적용돼요', summary: '고쳤어요', files: ['a.ts'] });
+    expect(글.split('\n')[0]).toBe('Closes MQA-113');
+    const 키들 = [...글.matchAll(/(?:Closes?d?|Fix(?:es|ed)?|Resolves?d?)\s+([A-Z][A-Z0-9]{1,9}-[1-9][0-9]*)(?![A-Za-z0-9-])/gi)].map((m) => m[1]);
+    expect(키들).toEqual(['MQA-113']);
+  });
+
   it('파일이 많으면 쉰 개까지 보이고 나머지는 개수로 줄인다', () => {
     const 파일들 = Array.from({ length: 53 }, (_, k) => `f${k}.ts`);
     const 글 = PR본문({ issueKey: 'DM-1', title: 't', summary: '', files: 파일들 });
