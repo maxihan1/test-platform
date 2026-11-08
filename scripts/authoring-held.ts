@@ -83,7 +83,7 @@ export function 스캔풀기(낸것: string): unknown[] | null {
  * 사본 트리의 `tests/<폴더>` 를 스캐너로 읽는다. 케이스 파일은 자식이 쓴 코드라 import 하면 실행된다 —
  * 에이전트 프로세스(토큰을 쥔)가 아니라 **자리 uid · 빈 환경의 하위 프로세스**에서 읽는다
  */
-function 명세읽기(자리: 사본, 자식: 계정 | null, 폴더: string): unknown[] | { 사유: string } {
+export function 보류스캔(자리: 사본, 자식: 계정 | null, 폴더: string): unknown[] | { 사유: string } {
   const 스캐너 = join(자리.트리, 'apps', 'admin', 'src', 'catalog', 'scanner.ts');
   const 뿌리 = join(자리.트리, 'tests', 폴더);
   const 코드 = `import(${JSON.stringify(스캐너)}).then(async (m) => { const r = await m.scan(${JSON.stringify(뿌리)}); process.stdout.write(${JSON.stringify(스캔표시)} + JSON.stringify(r.specs)); })`;
@@ -109,23 +109,16 @@ export function 보류실은몸(몸: Record<string, unknown>, 읽음: 보류[] |
 }
 
 /**
- * 읽은 명세를 `명세받기` 로도 넘긴다 — 만든 케이스(result.cases)가 같은 스캔을 다시 돌리지 않고 쓴다.
- * 못 읽었으면 null 을 넘긴다
+ * 스캔은 올리기가 push 전에 `보류스캔` 으로 한 번 돌리고 여기서는 그 결과만 싣는다 — 못 읽으면 올리지 않고 거절로 닫는다(§3.6 「★ 보류 케이스」 · #15285).
+ * PR 뒤에 스캔하던 때는 실패해도 DONE 으로 남았다. null(스캔 전에 DONE) 은 없어야 하지만 오면 보류를 모른다고 단다
  */
-export function 보류싣는손(
-  손: 보고손,
-  자리: 사본,
-  자식: 계정 | null,
-  폴더: string,
-  명세받기: (명세들: unknown[] | null) => void = () => undefined,
-): 보고손 {
+export function 보류싣는손(손: 보고손, 명세들: () => unknown[] | null): 보고손 {
   return {
     ...손,
     끝내기: (몸) => {
       if (몸.status !== 'DONE') return 손.끝내기(몸);
-      const 명세들 = 명세읽기(자리, 자식, 폴더);
-      명세받기('사유' in 명세들 ? null : 명세들);
-      return 손.끝내기(보류실은몸(몸, '사유' in 명세들 ? 명세들 : 보류목록(명세들)));
+      const 읽은것 = 명세들();
+      return 손.끝내기(보류실은몸(몸, 읽은것 === null ? { 사유: '보류 케이스를 못 읽었다 (스캔 전에 끝냈다)' } : 보류목록(읽은것)));
     },
   };
 }

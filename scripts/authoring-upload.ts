@@ -30,10 +30,10 @@ import { 저장본올리기 } from './authoring-screens-keep-io.js';
 import { 기준화면지도, 다덮음사유, 바뀐화면줄 } from './authoring-covered.js';
 import type { 원장 } from './authoring-ledger.js';
 import { type 기준결정, tcId들 } from './authoring-ledger-check.js';
-import { tcId별글, 원장판정 } from './authoring-ledger-verdict.js';
+import { tcId별글, 원장판정, 케이스없음사유 } from './authoring-ledger-verdict.js';
 import { 케이스글들 } from './authoring-ledger-io.js';
 import { type 셈재료, 커버리지싣는손 } from './authoring-coverage.js';
-import { 보류싣는손 } from './authoring-held.js';
+import { 보류스캔, 보류싣는손 } from './authoring-held.js';
 import { type 케이스재료, 바뀜풀기, 변경상태인자, 케이스싣는손 } from './authoring-cases.js';
 import { 모양보기, 트리실제 } from './authoring-child.js';
 import { type 자료, 자료출처, 화면만인가 } from './authoring-assets.js';
@@ -87,12 +87,7 @@ export async function 올리기(
   let 케이스자료: 케이스재료 | null = null;
   const 손 = 보류싣는손(
     케이스싣는손(커버리지싣는손(원손, () => 셈), () => ({ 명세들, 재료: 케이스자료 })),
-    자리,
-    원장재료.자식,
-    원장재료.폴더,
-    (읽은것) => {
-      명세들 = 읽은것;
-    },
+    () => 명세들,
   );
   const 깃 = 사본환경(자리);
   // 거절 까닭은 화면과 이어받는 자식의 프롬프트로 간다 — 자식이 정한 파일 이름에 계정 원문이 섞일 수 있어 모두 거른다
@@ -180,8 +175,6 @@ export async function 올리기(
   const 화면지도 = 바뀐틀 === null || 바뀐틀.size === 0 ? null : 기준화면지도({ 깃: (인자) => 트리에서('git', 인자), 기준, 서비스, 폴더: 원장재료.폴더 });
   const 바뀐줄 = 화면지도 === null || 바뀐틀 === null ? null : '까닭' in 화면지도 ? `⚠️ 바뀐 화면 케이스를 못 셌다 — ${화면지도.까닭}` : 바뀐화면줄(바뀐틀, 화면지도.케이스, new Set(전체));
   const 바뀜표 = 트리에서('git', 변경상태인자(기준));
-  if (바뀜표.ok) 케이스자료 = { 바뀜: 바뀜풀기(바뀜표.낸것), 표글: 읽기(표), 접두사: 서비스, 읽기 };
-  else console.error(`[작성] ${것.id}번 바뀐 파일 상태를 못 읽어 만든 케이스를 싣지 않는다: ${바뀜표.까닭}`);
   // 원장 대조 — 메모리의 원장 · 올릴 트리의 표와 케이스로 본다. 빠져도 거절하지 않고 셈과 PR 본문 머리에 남긴다 (§3.6 「★ 원장」, 2026-09-30 게이트 1)
   const 추적 = 트리에서('git', ['ls-files', '-z', '--', `tests/${원장재료.폴더}`]);
   if (!추적.ok) return void (await 손.끝내기(거절(`원장 대조용 케이스 목록을 못 읽었다: ${추적.까닭}`)));
@@ -190,6 +183,14 @@ export async function 올리기(
   // 여기부터의 끝내기(DONE · 올리기 거절)에 셈이 실린다
   const 원장값 = 원장재료.값;
   셈 = '없음' in 원장값 ? { 없음: 원장값.없음 } : '대조' in 원장결과 ? { 대조: 원장결과.대조, 원장: 원장값 } : null;
+  // 케이스 0건 · 바뀐 파일 목록 · 보류 스캔을 못 읽음은 push 전에 거절로 닫는다 — DONE 이면 PR 이 서고 작업 폴더가 지워진다 (§3.6 「★ 원장」 「케이스 0건」 · #15285)
+  const 영건 = 케이스없음사유(원장결과);
+  if (영건 !== null) return void (await 손.끝내기(거절(영건)));
+  if (!바뀜표.ok) return void (await 손.끝내기(거절(`바뀐 파일 목록을 못 읽었다: ${바뀜표.까닭}`)));
+  const 스캔 = 보류스캔(자리, 원장재료.자식, 원장재료.폴더);
+  if ('사유' in 스캔) return void (await 손.끝내기(거절(스캔.사유)));
+  명세들 = 스캔;
+  케이스자료 = { 바뀜: 바뀜풀기(바뀜표.낸것), 표글: 읽기(표), 접두사: 서비스, 읽기 };
   const 본문글 = PR본문({
     표경로: 표,
     표: 읽기(표),
