@@ -8,6 +8,8 @@ export interface CaseStep {
   title: string;
   line: number;
   skippable: boolean;
+  /** 첫 절차라 같은 애플리케이션 앞 단계가 같은 제목으로 이미 돌았으면 확인이 있어도 건너뛸 수 있다 (도메인/시나리오 §3.7 결정 4 「로그인 이어받기」) */
+  carry: boolean;
 }
 
 export interface CaseSteps {
@@ -291,7 +293,9 @@ export function caseSteps(text: string): CaseSteps {
     if (s.title === undefined) return [];
     const next = found[i + 1];
     const skippable = readable && s.verifies === 0 && !s.unsure && next !== undefined && next.blocker;
-    return [{ title: s.title, line: s.line, skippable }];
+    // 첫 절차는 아직 아무 상태도 바꾸지 않았다. 반복 · 갈래 안이면 한 제목이 몇 번 도는지 몰라 빼고, 안의 판정은 앞 단계에서 이미 통과했다
+    const carry = i === 0 && readable && s.counted && !skippable;
+    return [{ title: s.title, line: s.line, skippable, carry }];
   });
 
   // 하나라도 셀 수 없으면 통째로 NULL — 일부만 아는 목록은 남은 단계 수를 틀리게 보인다 (카탈로그 §3.1 「단계 제목」)
