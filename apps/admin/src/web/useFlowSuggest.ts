@@ -18,6 +18,8 @@ export interface 흐름일 {
   /** 맡기기 · 묻기가 실패한 문장. 일이 FAILED 로 끝난 사유는 결과.error 다 */
   오류: string | null;
   맡겼나: boolean;
+  /** 마지막으로 맡긴 「확인하고 싶은 흐름」. 안 적었으면 빈 글자 */
+  맡긴글: string;
   맡기기: (요청: { service: string; platform: Platform; wish?: string }) => void;
   /** 받은 결과를 버린다 — 시작 방법 · 애플리케이션 · 디바이스가 바뀌면 그 결과는 다른 조건의 것이다 */
   버리기: () => void;
@@ -29,6 +31,7 @@ export function useFlowSuggest(): 흐름일 {
   const [결과, set결과] = useState<FlowJob | null>(null);
   const [맡기는중, set맡기는중] = useState(false);
   const [맡겼나, set맡겼나] = useState(false);
+  const [맡긴글, set맡긴글] = useState('');
   const [꺼짐, set꺼짐] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
   // 버린 뒤 늦게 온 맡기기 응답이 새 조건의 화면을 덮지 않게 판을 센다
@@ -63,6 +66,7 @@ export function useFlowSuggest(): 흐름일 {
     set결과(null);
     set맡기는중(false);
     set맡겼나(false);
+    set맡긴글('');
     set꺼짐(false);
     set오류(null);
   }
@@ -72,6 +76,7 @@ export function useFlowSuggest(): 흐름일 {
     const 이번 = 판.current;
     set맡기는중(true);
     set맡겼나(true);
+    set맡긴글(요청.wish ?? '');
     scenarioApi.suggestFlows(요청).then(
       ({ jobId }) => {
         if (판.current !== 이번) return;
@@ -88,5 +93,5 @@ export function useFlowSuggest(): 흐름일 {
   }
 
   const 끝남 = 결과 !== null && (결과.status === 'DONE' || 결과.status === 'FAILED');
-  return { 결과, 도나: 오류 === null && (맡기는중 || (일 !== null && !끝남)), 꺼짐, 오류, 맡겼나, 맡기기, 버리기 };
+  return { 결과, 도나: 오류 === null && (맡기는중 || (일 !== null && !끝남)), 꺼짐, 오류, 맡겼나, 맡긴글, 맡기기, 버리기 };
 }

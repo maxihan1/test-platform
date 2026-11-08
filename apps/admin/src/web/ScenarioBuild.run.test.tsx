@@ -172,11 +172,11 @@ describe('ScenarioBuild 정식 실행', () => {
 
   it('실행이 거절되면 그 문장을 보이고 화면에 남는다', async () => {
     await 기존그리기({}, 서버있는사람());
-    vi.spyOn(scenarioApi, 'run').mockRejectedValue(new ApiError(409, 'SCENARIO_NOT_RUNNABLE', '실행할 수 없는 시나리오다: 1번 단계'));
+    vi.spyOn(scenarioApi, 'run').mockRejectedValue(new ApiError(409, 'SCENARIO_NOT_RUNNABLE', '1번 단계: ZSB-001 는 없거나 비활성인 케이스다'));
     서버고르기();
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
     시작하기();
-    expect((await screen.findByRole('alert')).textContent).toContain('실행할 수 없는 시나리오다');
+    expect((await screen.findByRole('alert')).textContent).toBe('지금은 실행할 수 없는 시나리오입니다 — 1번 단계: ZSB-001 는 없거나 비활성인 케이스다');
     expect(window.location.hash).toBe('');
   });
 

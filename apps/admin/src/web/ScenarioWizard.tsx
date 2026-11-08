@@ -103,6 +103,11 @@ export function ScenarioWizard({ 띠서비스, user }: { 띠서비스: ServiceRo
     return 갈곳;
   });
   // 시작 방법 · 애플리케이션 · 디바이스가 바뀌면 받은 AI 후보는 다른 조건의 것이다
+  // 새 후보 목록에서 앞 목록의 번호가 골라진 채로 남지 않게 비운다
+  const 다시맡기기 = () => {
+    set고른후보(null);
+    흐름.맡기기({ service: 서비스, platform: 디바이스, ...바람값 });
+  };
   const 추천버림 = () => {
     흐름.버리기();
     set고른후보(null);
@@ -127,8 +132,8 @@ export function ScenarioWizard({ 띠서비스, user }: { 띠서비스: ServiceRo
       set흔들((n) => n + 1);
       return;
     }
-    // 처음 들어올 때만 맡긴다 — 받은 결과가 있으면 「이전」으로 돌아와도 다시 맡기지 않는다
-    if (목록[지금 + 1] === 'ai' && !흐름.맡겼나) 흐름.맡기기({ service: 서비스, platform: 디바이스, ...바람값 });
+    // 처음 들어올 때만 맡긴다 — 받은 결과가 있으면 「이전」으로 돌아와도 다시 맡기지 않는다. 시작 방법에서 흐름 글을 바꿨으면 그 글로 다시 맡긴다
+    if (목록[지금 + 1] === 'ai' && (!흐름.맡겼나 || 흐름.맡긴글 !== 바람.trim())) 다시맡기기();
     간다(지금 + 1, 'fwd');
   }
 
@@ -196,6 +201,8 @@ export function ScenarioWizard({ 띠서비스, user }: { 띠서비스: ServiceRo
                   set방법(값);
                   set이유(null);
                 }}
+                바람={바람}
+                on바람={set바람}
                 on서비스={(값) => {
                   // 애플리케이션이 시나리오 서비스다 — 바꾸면 앞 애플리케이션 기준 단계 · 추천은 쓸 수 없다
                   추천버림();
@@ -216,10 +223,7 @@ export function ScenarioWizard({ 띠서비스, user }: { 띠서비스: ServiceRo
                 on바람={set바람}
                 고른후보={고른후보}
                 on후보={후보고름}
-                on다시={() => {
-                  set고른후보(null);
-                  흐름.맡기기({ service: 서비스, platform: 디바이스, ...바람값 });
-                }}
+                on다시={다시맡기기}
                 on직접={() => {
                   추천버림();
                   set방법('manual');
