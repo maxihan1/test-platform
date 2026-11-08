@@ -472,7 +472,7 @@ describe.skipIf(연결 === undefined)('증적 자료 수집', () => {
     const 못돈것 = 문서!.items[1]!;
     expect(못돈것.tcId).toBe('XDC-202');
     expect(못돈것.status).toBe('NOT_RUN');
-    expect(못돈것.notRunReason).toBe('실행이 멈춰 돌지 못했습니다');
+    expect(못돈것.notRunReason).toBe('실행이 중단되어 수행되지 않았습니다');
     expect(못돈것.durationMs).toBeNull();
     expect(못돈것.steps).toEqual([]);
   });
@@ -486,7 +486,7 @@ describe.skipIf(연결 === undefined)('증적 자료 수집', () => {
   it('끝난 실행에 남은 미실행 항목은 결과가 안 적혔다고 적는다', async () => {
     const 문서 = await collectRun(미기록실행);
     expect(문서!.items[0]!.status).toBe('NOT_RUN');
-    expect(문서!.items[0]!.notRunReason).toBe('실행이 끝났지만 결과가 기록되지 않았습니다');
+    expect(문서!.items[0]!.notRunReason).toBe('실행이 완료되었지만 결과가 기록되지 않았습니다');
   });
 
   it('중단 처리가 닫고 간 항목도 미실행이다 — finished_at 이 차 있어도', async () => {
@@ -495,7 +495,7 @@ describe.skipIf(연결 === undefined)('증적 자료 수집', () => {
     expect(닫힌것.tcId).toBe('XDC-501');
     expect(닫힌것.status).toBe('NOT_RUN');
     // 사람이 멈춘 것인지 서버가 죽어 끊긴 것인지 DB 가 구분하지 못한다. 문장도 구분하지 않는다
-    expect(닫힌것.notRunReason).toBe('실행이 멈춰 돌지 못했습니다');
+    expect(닫힌것.notRunReason).toBe('실행이 중단되어 수행되지 않았습니다');
     // 중단 처리가 박아 넣은 0 은 「0밀리초 걸렸다」가 아니라 「안 돌았다」다
     expect(닫힌것.durationMs).toBeNull();
   });

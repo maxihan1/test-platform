@@ -139,7 +139,7 @@ describe.skipIf(연결 === undefined)('실패 → Issue Bunker 등록', () => {
     expect(줄!.payload).toMatchObject({
       projectKey: 'DM',
       summary: '[XBF 마켓] XBF-001 비밀번호 오류',
-      labels: ['QA Hub', '버그 가능성 높음'],
+      labels: ['QA Hub', '결함 가능성 높음'],
       attachments: [expect.stringMatching(new RegExp(`^runs/${String(runId)}/\\d+/2\\.png$`))],
     });
     expect(줄!.payload).not.toMatchObject({ attachments: [expect.stringContaining('artifacts/')] });

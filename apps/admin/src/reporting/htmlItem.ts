@@ -139,7 +139,7 @@ export function 항목줄(item: EvidenceItem, 덧말 = ''): string {
 export function 본문(item: EvidenceItem, 원문고리?: (seq: number) => string): string[] {
   const 사전 =
     item.precondition.length === 0
-      ? [`      <div class="none">사전조건 없음</div>`]
+      ? [`      <div class="none">사전 조건 없음</div>`]
       : item.precondition.map((p) => `      <div class="pre">· ${안전(p)}</div>`);
 
   const 절차 =
@@ -149,7 +149,7 @@ export function 본문(item: EvidenceItem, 원문고리?: (seq: number) => strin
 
   return [
     `    <div class="row">`,
-    `      <div class="row-k">사전조건</div>`,
+    `      <div class="row-k">사전 조건</div>`,
     `      <div class="row-v">`,
     ...사전,
     `      </div>`,
@@ -157,6 +157,6 @@ export function 본문(item: EvidenceItem, 원문고리?: (seq: number) => strin
     ...필드행('입력', item.params, '입력 없음'),
     ...필드행('기대 결과', item.expected, '기대 결과 없음'),
     ...절차,
-    ...(item.farm == null ? [] : [`    <div class="row">`, `      <div class="row-k">팜 기록</div>`, `      <div class="row-v">${안전(item.farm)}</div>`, `    </div>`]),
+    ...(item.farm == null ? [] : [`    <div class="row">`, `      <div class="row-k">Device VISION 기록</div>`, `      <div class="row-v">${안전(item.farm)}</div>`, `    </div>`]),
   ];
 }

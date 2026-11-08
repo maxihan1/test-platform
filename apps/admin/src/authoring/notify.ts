@@ -31,9 +31,9 @@ export function 본문(a: 알릴것, publicUrl: string): string {
   // 칸이 없는 조각은 뺀다 — 없는 값을 0 이나 미상으로 적으면 틀린 말이 된다
   if (a.status === 'DONE') {
     const 조각 = [
-      a.caseFiles === null ? null : `스크립트 파일 ${a.caseFiles}개`,
+      a.caseFiles === null ? null : `케이스 파일 ${a.caseFiles}개`,
       a.확인필요 === null ? null : `PRD 확인 필요 ${a.확인필요}건`,
-      a.ms === null ? null : `걸린 시간 ${걸린시간(a.ms)}`,
+      a.ms === null ? null : `소요 시간 ${걸린시간(a.ms)}`,
     ].filter((x) => x !== null);
     if (조각.length > 0) 줄.push(조각.join(' · '));
   }

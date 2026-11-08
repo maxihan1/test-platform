@@ -33,9 +33,9 @@ function 읽기전용주소(원본: string): string {
 describe('Grafana 대시보드 프로비저닝', () => {
   it('패널 제목이 SPEC §8.5 목록 그대로다', () => {
     expect(대시보드.panels.map((p) => p.title)).toEqual([
-      '평균 소요시간',
+      '평균 소요 시간',
       '최근 실행 목록',
-      '작성에 걸린 시간',
+      '작성 소요 시간',
       '작성 토큰',
       '작성 커버리지',
       '성능 테스트 추세',
@@ -50,7 +50,7 @@ describe('Grafana 대시보드 프로비저닝', () => {
 
   it('test_run 을 읽는 패널은 케이스 실행(UI · 기능)만 본다 — 시나리오 실행을 뺀다 (PR #131)', () => {
     const 읽는패널 = 대시보드.panels.filter((p) => p.targets.some((t) => t.rawSql.includes('test_run')));
-    expect(읽는패널.map((p) => p.title)).toEqual(['평균 소요시간', '최근 실행 목록']);
+    expect(읽는패널.map((p) => p.title)).toEqual(['평균 소요 시간', '최근 실행 목록']);
     for (const p of 읽는패널) {
       expect(p.targets.every((t) => t.rawSql.includes("kind IN ('UI','FN')")), p.title).toBe(true);
     }
@@ -110,7 +110,7 @@ describe('Grafana 대시보드 프로비저닝', () => {
     });
 
     it('평균 소요시간은 측정치라 미확정을 빼지 않는다', () => {
-      const sql = 대시보드.panels.find((p) => p.title === '평균 소요시간')!.targets[0]!.rawSql;
+      const sql = 대시보드.panels.find((p) => p.title === '평균 소요 시간')!.targets[0]!.rawSql;
       expect(sql).not.toContain('unconfirmed');
     });
   });

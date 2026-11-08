@@ -42,7 +42,7 @@ function 문서(items: EvidenceItem[]): EvidenceDocument {
   };
 }
 
-const 블록수 = (html: string) => html.match(/<div class="row-k">사전조건<\/div>/g)?.length ?? 0;
+const 블록수 = (html: string) => html.match(/<div class="row-k">사전 조건<\/div>/g)?.length ?? 0;
 
 const 반복 = [
   항목('AUTH-002', { attempt: 1 }),
@@ -50,7 +50,7 @@ const 반복 = [
   항목('AUTH-002', { attempt: 3, status: 'FAIL' }),
   항목('AUTH-002', { platform: 'mobile' }),
   항목('AUTH-001'),
-  항목('AUTH-003', { status: 'NOT_RUN', durationMs: null, notRunReason: '실행이 멈춰 돌지 못했습니다' }),
+  항목('AUTH-003', { status: 'NOT_RUN', durationMs: null, notRunReason: '실행이 중단되어 수행되지 않았습니다' }),
 ];
 
 describe('증적 C 양식', () => {
@@ -137,13 +137,13 @@ describe('증적 C 양식', () => {
     const html = renderHtml(
       문서([
         항목('D-1', { status: 'NOT_RUN', durationMs: null, notRunReason: '러너에 닿지 못했습니다' }),
-        항목('D-1', { platform: 'mobile', status: 'NOT_RUN', durationMs: null, notRunReason: '실행이 멈춰 돌지 못했습니다' }),
+        항목('D-1', { platform: 'mobile', status: 'NOT_RUN', durationMs: null, notRunReason: '실행이 중단되어 수행되지 않았습니다' }),
       ]),
       PDF,
     );
     const 줄 = html.split('\n').find((l) => l.includes('class="fold fold-line"') && l.includes('D-1 케이스')) ?? '';
 
     expect(줄).toContain('러너에 닿지 못했습니다');
-    expect(줄).toContain('실행이 멈춰 돌지 못했습니다');
+    expect(줄).toContain('실행이 중단되어 수행되지 않았습니다');
   });
 });

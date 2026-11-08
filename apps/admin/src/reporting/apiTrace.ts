@@ -36,7 +36,7 @@ export function 원문글(trace: HttpTrace, 비밀: string[] = []): EvidenceTrac
   return {
     request: 글([
       ...(첫줄 === '' ? [] : [첫줄]),
-      ...(요청.headers === undefined ? [] : [`머리 ${펼친다(요청.headers)}`]),
+      ...(요청.headers === undefined ? [] : [`헤더 ${펼친다(요청.headers)}`]),
       ...(요청.data === undefined ? [] : [`본문 ${펼친다(요청.data)}`]),
     ]),
     response: 글([

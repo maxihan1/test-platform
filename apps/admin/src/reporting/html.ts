@@ -203,7 +203,7 @@ function E2E요약절(줄들: E2E요약줄[]): string[] {
       const 이름 = `<span class="tc-id">SC-${z.scenarioId}</span><span class="tc-name">${안전(z.name)}</span>`;
       if (z.startedAt === null || z.verdict === null) return `<div class="fold fold-line">${이름}<span class="devs">실행 기록 없음</span></div>`;
       // 단계 행 없이 멈춘 실행은 판정 없음인데 멈춘 단계도 없다 — 「모두 통과」는 통과에만 붙인다
-      const 멈춘곳 = z.stoppedAt !== null ? ` · ${z.stoppedAt}번에서 멈춤` : z.verdict === 'PASS' ? ' · 모두 통과' : '';
+      const 멈춘곳 = z.stoppedAt !== null ? ` · ${z.stoppedAt}번에서 종료` : z.verdict === 'PASS' ? ' · 모두 통과' : '';
       const 미확정 = z.unconfirmed ? `<span class="badge">미확정</span>` : '';
       return `<div class="fold fold-line">${판정(z.verdict)}${이름}<span class="devs">${안전(z.startedAt)}${멈춘곳}</span>${미확정}</div>`;
     }),
@@ -226,7 +226,7 @@ export function 머리말(h: EvidenceHeader, generatedAt: string): string[] {
     `    <dt>대상 서버</dt><dd>${안전(h.env)}</dd>`,
     `    <dt>대상 주소</dt><dd>${안전(h.baseUrl)}</dd>`,
     // 앱 항목이 있는 실행만 — 브라우저 실행 · E2E 증적에는 줄이 없다 (도메인/리포팅 §8.4 · APP-F1-05)
-    ...(기기.length === 0 ? [] : [`    <dt>기기</dt><dd>${안전(기기.join(' / '))}</dd>`]),
+    ...(기기.length === 0 ? [] : [`    <dt>디바이스</dt><dd>${안전(기기.join(' / '))}</dd>`]),
     `    <dt>만든 시각</dt><dd>${안전(generatedAt)}</dd>`,
     `  </dl>`,
     `</header>`,
@@ -258,7 +258,7 @@ export function renderHtml(doc: EvidenceDocument, options: RenderOptions): strin
   const 줄들: 케이스[] = [];
   for (const c of 케이스로(doc.items)) (c.펼침.length > 0 ? 실패들 : 줄들).push(c);
 
-  return 문서판(`${h.serviceName} 증적 문서 — RUN ${doc.runId}`, [
+  return 문서판(`${h.serviceName} 리포트 — RUN ${doc.runId}`, [
     ...머리말(h, options.generatedAt),
     ...요약(doc.items),
     `<h2 class="sec">실패 케이스 ${실패들.length}건</h2>`,

@@ -77,8 +77,8 @@ describe.skipIf(연결 === undefined)('증적의 기기 정보', () => {
 
     const 문서 = await collectRun(실행);
     expect([문서?.header.devices, 문서?.items.map((i) => i.device)]).toEqual([
-      ['SM-G996N · Android 14 · 앱 판 모름'],
-      ['SM-G996N · Android 14 · 앱 판 모름', 'SM-G996N · Android 14 · 앱 판 모름', null],
+      ['SM-G996N · Android 14 · 앱 버전 모름'],
+      ['SM-G996N · Android 14 · 앱 버전 모름', 'SM-G996N · Android 14 · 앱 버전 모름', null],
     ]);
   });
 

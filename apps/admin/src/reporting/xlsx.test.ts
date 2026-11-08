@@ -79,7 +79,7 @@ describe('증적 문서 엑셀', () => {
     expect(행값(ws, 1)).toEqual([
       'RUN',
       '실행일시',
-      '서비스',
+      '애플리케이션',
       '대상서버',
       '주소',
       '실행자',
@@ -91,9 +91,9 @@ describe('증적 문서 엑셀', () => {
       '소요(ms)',
       '미실행·판정불가 사유',
       '미확정 사유',
-      '사전조건',
+      '사전 조건',
       '입력값',
-      '기대값',
+      '기대 결과',
       '절차번호',
       '절차명',
       '절차판정',
@@ -104,8 +104,8 @@ describe('증적 문서 엑셀', () => {
       '판정',
       '스크린샷경로',
       '종류',
-      '기기',
-      '팜 기록',
+      '디바이스 정보',
+      'Device VISION 기록',
       '다시 실행',
     ]);
     expect(셀(ws, 2, 27)).toBe('기능 테스트');
@@ -147,14 +147,14 @@ describe('증적 문서 엑셀', () => {
 
   it('절차가 하나도 없는 미실행 항목도 한 행이 남는다', async () => {
     const ws = await 편다(
-      문서([항목({ status: 'NOT_RUN', durationMs: null, notRunReason: '실행이 멈춰 돌지 못했습니다', steps: [] })]),
+      문서([항목({ status: 'NOT_RUN', durationMs: null, notRunReason: '실행이 중단되어 수행되지 않았습니다', steps: [] })]),
     );
 
     expect(ws.rowCount).toBe(2);
     expect(셀(ws, 2, 7)).toBe('AUTH-002');
     expect(셀(ws, 2, 11)).toBe('미실행');
     expect(셀(ws, 2, 12)).toBe('');
-    expect(셀(ws, 2, 13)).toBe('실행이 멈춰 돌지 못했습니다');
+    expect(셀(ws, 2, 13)).toBe('실행이 중단되어 수행되지 않았습니다');
     expect(셀(ws, 2, 18)).toBe('');
   });
 

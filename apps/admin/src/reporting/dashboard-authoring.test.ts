@@ -34,7 +34,7 @@ describe('작성 토큰 패널의 중단 이유 글', () => {
   it('작성 중 끊김 · 올리기 거절도 사람 말로 가른다 — 모르는 이유는 빈 글이 되어 줄이 뭉개진다', () => {
     const sql = 패널SQL('작성 토큰');
     expect(sql).toContain("WHEN 'CRASH' THEN '작성 중 끊김'");
-    expect(sql).toContain("WHEN 'REJECTED' THEN '올리기 거절'");
+    expect(sql).toContain("WHEN 'REJECTED' THEN '업로드 거절'");
   });
 });
 
@@ -160,16 +160,16 @@ describe.skipIf(연결 === undefined)('Grafana 작성 현황', () => {
     });
   });
 
-  describe('작성에 걸린 시간', () => {
+  describe('작성 소요 시간', () => {
     const 줄 = async (방식: string) =>
-      (await 읽기전용.query<Record<string, string | number>>(패널SQL('작성에 걸린 시간'))).rows.find(
-        (r) => r['서비스'] === 'XDH 작성 현황' && r['방식'] === 방식,
+      (await 읽기전용.query<Record<string, string | number>>(패널SQL('작성 소요 시간'))).rows.find(
+        (r) => r['애플리케이션'] === 'XDH 작성 현황' && r['방식'] === 방식,
       );
 
     it('보통 요청 — 끝난 시각 30일 안의 처음 작성만 세고 대기·작업을 갈라 분으로 낸다', async () => {
       const 보통 = await 줄('보통');
       expect(보통).toBeDefined();
-      expect(Number(보통!['성공'])).toBe(4);
+      expect(Number(보통!['완료'])).toBe(4);
       expect(Number(보통!['실패'])).toBe(1);
       expect(Number(보통!['중단'])).toBe(2);
       expect(Number(보통!['대기 중간값 (분)'])).toBe(10);
@@ -180,16 +180,16 @@ describe.skipIf(연결 === undefined)('Grafana 작성 현황', () => {
     it('화면과 대조한 요청은 따로 한 줄이다', async () => {
       const 대조 = await 줄('화면과 대조');
       expect(대조).toBeDefined();
-      expect(Number(대조!['성공'])).toBe(1);
+      expect(Number(대조!['완료'])).toBe(1);
       expect(Number(대조!['실패'])).toBe(0);
       expect(Number(대조!['대기 중간값 (분)'])).toBe(20);
       expect(Number(대조!['작업 중간값 (분)'])).toBe(240);
     });
 
     it('재실행은 보통 줄에 섞지 않고 따로 한 줄이다 (PRD-F9-23)', async () => {
-      const 재실행 = await 줄('재실행');
+      const 재실행 = await 줄('다시 실행');
       expect(재실행).toBeDefined();
-      expect(Number(재실행!['성공'])).toBe(1);
+      expect(Number(재실행!['완료'])).toBe(1);
       expect(Number(재실행!['실패'])).toBe(1);
       expect(Number(재실행!['대기 중간값 (분)'])).toBe(5);
       expect(Number(재실행!['작업 중간값 (분)'])).toBe(595);
@@ -199,11 +199,11 @@ describe.skipIf(연결 === undefined)('Grafana 작성 현황', () => {
   describe('작성 토큰', () => {
     const 줄 = async (방식: string, 결과: string) =>
       (await 읽기전용.query<Record<string, string | number | null>>(패널SQL('작성 토큰'))).rows.find(
-        (r) => r['서비스'] === 'XDH 작성 현황' && r['방식'] === 방식 && r['결과'] === 결과,
+        (r) => r['애플리케이션'] === 'XDH 작성 현황' && r['방식'] === 방식 && r['결과'] === 결과,
       );
 
     it('보통·성공 — 사용량을 알린 실행만 세고 입력 · 출력 · 캐시 읽기 · 캐시 쓰기를 따로 낸다', async () => {
-      const 보통 = await 줄('보통', '성공');
+      const 보통 = await 줄('보통', '완료');
       expect(보통).toBeDefined();
       expect(Number(보통!['실행 수'])).toBe(2);
       expect(Number(보통!['입력 중간값'])).toBe(200);
@@ -230,12 +230,12 @@ describe.skipIf(연결 === undefined)('Grafana 작성 현황', () => {
     });
 
     it('재실행은 따로 한 줄이고 30일 전에 끝난 실행은 세지 않는다', async () => {
-      const 다시 = await 줄('재실행', '성공');
+      const 다시 = await 줄('다시 실행', '완료');
       expect(다시).toBeDefined();
       expect(Number(다시!['입력 합계'])).toBe(10);
       expect(Number(다시!['출력 합계'])).toBe(5);
       const 전부 = (await 읽기전용.query<Record<string, string>>(패널SQL('작성 토큰'))).rows.filter(
-        (r) => r['서비스'] === 'XDH 작성 현황',
+        (r) => r['애플리케이션'] === 'XDH 작성 현황',
       );
       const 합 = (칸: string) => 전부.reduce((n, r) => n + Number(r[칸]), 0);
       expect(합('입력 합계')).toBe(100 + 300 + 40 + 10 + 1000 + 7 + 60 + 4);
@@ -245,9 +245,9 @@ describe.skipIf(연결 === undefined)('Grafana 작성 현황', () => {
     });
 
     it('대조는 방식이 따로고, 끊기지 않은 실패는 그 밖 실패다', async () => {
-      expect(Number((await 줄('화면과 대조', '성공'))!['입력 합계'])).toBe(1000);
-      expect(Number((await 줄('재실행', '그 밖 실패'))!['입력 합계'])).toBe(7);
-      expect(Number((await 줄('재실행', '그 밖 실패'))!['출력 합계'])).toBe(3);
+      expect(Number((await 줄('화면과 대조', '완료'))!['입력 합계'])).toBe(1000);
+      expect(Number((await 줄('다시 실행', '그 밖 실패'))!['입력 합계'])).toBe(7);
+      expect(Number((await 줄('다시 실행', '그 밖 실패'))!['출력 합계'])).toBe(3);
     });
 
     it('중단은 끊김보다 먼저 이유별로 가른다 — 끊긴 시간초과도 끊김 줄에 들지 않는다', async () => {

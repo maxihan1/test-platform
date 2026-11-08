@@ -39,7 +39,7 @@ describe('기기글', () => {
   it('못 읽은 칸은 「모름」으로 적는다 — 빈칸이면 없는 판으로 읽힌다', () => {
     expect([기기글({ model: 'SM-G996N', osVersion: '14', appVersion: '1.4.2' }), 기기글({ model: null, osVersion: null, appVersion: null })]).toEqual([
       'SM-G996N · Android 14 · 앱 1.4.2',
-      '모델 모름 · Android 판 모름 · 앱 판 모름',
+      '모델 모름 · Android 버전 모름 · 앱 버전 모름',
     ]);
   });
 
@@ -47,19 +47,19 @@ describe('기기글', () => {
     expect([
       기기글({ model: 'SM-G996N', osVersion: '15', appVersion: null, browser: '156.0.7339.51' }),
       기기글({ model: 'SM-G996N', osVersion: '15', appVersion: null, browser: null }),
-    ]).toEqual(['SM-G996N · Android 15 · Chrome 156.0.7339.51', 'SM-G996N · Android 15 · Chrome 판 모름']);
+    ]).toEqual(['SM-G996N · Android 15 · Chrome 156.0.7339.51', 'SM-G996N · Android 15 · Chrome 버전 모름']);
   });
 });
 
 describe('증적 머리말의 「기기」 줄', () => {
   it('기기가 있으면 「기기」 줄이 선다 — 둘이면 / 로 잇는다', () => {
     const html = 머리말({ ...머리, devices: ['SM-G996N · Android 14 · 앱 1.4.2', 'SM-S918N · Android 15 · 앱 1.4.2'] }, '2026-10-19T02:00:00.000Z').join('\n');
-    expect(html).toContain('<dt>기기</dt><dd>SM-G996N · Android 14 · 앱 1.4.2 / SM-S918N · Android 15 · 앱 1.4.2</dd>');
+    expect(html).toContain('<dt>디바이스</dt><dd>SM-G996N · Android 14 · 앱 1.4.2 / SM-S918N · Android 15 · 앱 1.4.2</dd>');
   });
 
   it('없으면 줄도 없다 — 브라우저 실행 · E2E 증적', () => {
-    expect(머리말({ ...머리, devices: [] }, '2026-10-19T02:00:00.000Z').join('\n')).not.toContain('<dt>기기</dt>');
-    expect(머리말(머리, '2026-10-19T02:00:00.000Z').join('\n')).not.toContain('<dt>기기</dt>');
+    expect(머리말({ ...머리, devices: [] }, '2026-10-19T02:00:00.000Z').join('\n')).not.toContain('<dt>디바이스</dt>');
+    expect(머리말(머리, '2026-10-19T02:00:00.000Z').join('\n')).not.toContain('<dt>디바이스</dt>');
   });
 });
 
@@ -72,8 +72,8 @@ describe('증적 엑셀의 「기기」 칸', () => {
     const ws = wb.worksheets[0]!;
     const 끝 = ws.getRow(1).cellCount;
     const 칸 = (열: number) => [1, 2, 3].map((줄) => ws.getRow(줄).getCell(열).value ?? null);
-    expect(칸(끝 - 2)).toEqual(['기기', 'SM-G996N · Android 14 · 앱 1.4.2', null]);
-    expect(칸(끝 - 1)).toEqual(['팜 기록', 팜, null]);
+    expect(칸(끝 - 2)).toEqual(['디바이스 정보', 'SM-G996N · Android 14 · 앱 1.4.2', null]);
+    expect(칸(끝 - 1)).toEqual(['Device VISION 기록', 팜, null]);
   });
 });
 
@@ -81,7 +81,7 @@ describe('증적 HTML 의 「팜 기록」 줄', () => {
   it('팜 기록이 있으면 절차 뒤에 한 줄 선다 — 없으면 줄도 없다', () => {
     const 팜 = '화면 영상 1개 · logcat.txt — 실행 화면의 이 항목에서 받는다';
     const 있음 = 본문({ ...항목(null), farm: 팜 }).join('\n');
-    expect(있음).toContain(`<div class="row-k">팜 기록</div>`);
+    expect(있음).toContain(`<div class="row-k">Device VISION 기록</div>`);
     expect(있음).toContain(팜);
     expect(본문(항목(null)).join('\n')).not.toContain('팜 기록');
   });

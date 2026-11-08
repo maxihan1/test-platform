@@ -112,7 +112,7 @@ describe.skipIf(연결 === undefined)('실패 등록 — 앱 · 게임 항목의
 
     expect(await 실패등록(runId)).toBe(1);
     const 글 = await 본문('XLG-001');
-    expect(글).toContain('### 폰 로그(logcat)');
+    expect(글).toContain('### 디바이스 로그(logcat)');
     expect(글).toContain('E AndroidRuntime: FATAL EXCEPTION: main');
     expect(글).toContain('java.lang.IllegalStateException: 비밀번호 ******** 를 거절했다');
     expect(글).not.toContain('XLG-PW-55');
@@ -138,14 +138,14 @@ describe.skipIf(연결 === undefined)('실패 등록 — 앱 · 게임 항목의
     expect(await 본문('XLG-002')).toContain('E AndroidRuntime: FATAL EXCEPTION: main');
   });
 
-  it('받는 중도 아닌데 logcat 이 없으면 기다리지 않고 「받아 둔 폰 로그가 없습니다」 한 줄이다', async () => {
+  it('받는 중도 아닌데 logcat 이 없으면 기다리지 않고 「받아 둔 디바이스 로그가 없습니다」 한 줄이다', async () => {
     const [runId] = await 앱실패('XLG-003');
     const 시작 = Date.now();
     expect(await 실패등록(runId)).toBe(1);
     expect(Date.now() - 시작).toBeLessThan(3000);
     const 글 = await 본문('XLG-003');
-    expect(글).toContain('### 폰 로그(logcat)');
-    expect(글).toContain('이 항목은 받아 둔 폰 로그가 없습니다');
+    expect(글).toContain('### 디바이스 로그(logcat)');
+    expect(글).toContain('이 항목은 받아 둔 디바이스 로그가 없습니다');
     expect(글).not.toContain('네트워크 · 콘솔');
   });
 });

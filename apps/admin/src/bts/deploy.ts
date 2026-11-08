@@ -137,7 +137,7 @@ export default async function btsDeployRoutes(app: FastifyInstance, opts: { 부�
     const 밖 = 이름들?.find((p) => !다.some((a) => a.prefix === p));
     if (밖 !== undefined) return 보냄(거절(400, 'UNKNOWN_SERVICE', 밖));
     const 앱들 = 이름들 === undefined ? 다 : 다.filter((a) => 이름들.includes(a.prefix));
-    if (앱들.length === 0) return 보냄(거절(400, 'UNKNOWN_SERVICE', '돌릴 애플리케이션이 없습니다'));
+    if (앱들.length === 0) return 보냄(거절(400, 'UNKNOWN_SERVICE', '실행할 애플리케이션이 없습니다'));
     const 고름 = await 앱고르기(pool, 앱들, 몸.data.env, buildNo);
     if (!Array.isArray(고름)) return 보냄(고름);
 

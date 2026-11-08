@@ -22,7 +22,7 @@ const 재료 = (덮어쓰기: Partial<실패재료> = {}): 실패재료 => ({
   콘솔: [],
   폰로그: null,
   결과주소: 'https://qahub.example.com/runs/812',
-  꼬리표: '버그 가능성 높음',
+  꼬리표: '결함 가능성 높음',
   화면: null,
   둘째: null,
   ...덮어쓰기,
@@ -45,11 +45,11 @@ describe('꼬리표', () => {
   });
 
   it('앞 실행이 다 통과였던 새 회귀는 흔들림이 아니다', () => {
-    expect(꼬리표고르기('mismatch', ['PASS', 'PASS', 'PASS'])).toBe('버그 가능성 높음');
+    expect(꼬리표고르기('mismatch', ['PASS', 'PASS', 'PASS'])).toBe('결함 가능성 높음');
   });
 
-  it('기대와 다르면 버그 가능성 높음 · 요소 못 찾음 · 시간 초과 · 환경은 테스트 문제 같음이다', () => {
-    expect(꼬리표고르기('mismatch', ['FAIL', 'FAIL'])).toBe('버그 가능성 높음');
+  it('기대와 다르면 결함 가능성 높음 · 요소 못 찾음 · 시간 초과 · 환경은 테스트 문제 같음이다', () => {
+    expect(꼬리표고르기('mismatch', ['FAIL', 'FAIL'])).toBe('결함 가능성 높음');
     expect(꼬리표고르기('notFound', ['FAIL'])).toBe('테스트 문제 같음');
     expect(꼬리표고르기('timeout', [])).toBe('테스트 문제 같음');
     expect(꼬리표고르기('environment', ['FAIL', 'NA'])).toBe('테스트 문제 같음');
@@ -207,7 +207,7 @@ describe('logcat 오류 줄', () => {
 describe('이슈 본문 — 앱 · 게임 항목', () => {
   it('폰 로그가 있으면 네트워크 · 콘솔 절 대신 「폰 로그(logcat)」 절에 오류 줄과 못 실은 수를 싣는다', () => {
     const 글 = 이슈본문(재료({ 네트워크: null, 콘솔: null, 폰로그: { 줄: ['11-04 E DemoApp: 주문 저장 실패'], 더: 3 } }));
-    expect(글).toContain('### 폰 로그(logcat)\n```\n11-04 E DemoApp: 주문 저장 실패\n```');
+    expect(글).toContain('### 디바이스 로그(logcat)\n```\n11-04 E DemoApp: 주문 저장 실패\n```');
     expect(글).toContain('나머지 오류 줄 3개는 Test Commander 실행 결과의 logcat 에서 보세요');
     expect(글).not.toContain('네트워크 · 콘솔');
   });
@@ -219,8 +219,8 @@ describe('이슈 본문 — 앱 · 게임 항목', () => {
   });
 
   it('오류 줄이 없으면 「앱 오류 줄 없음」, 받아 둔 logcat 이 없으면 없다고 적는다', () => {
-    expect(이슈본문(재료({ 폰로그: { 줄: [], 더: 0 } }))).toContain('### 폰 로그(logcat)\n- 앱 오류 줄 없음');
-    expect(이슈본문(재료({ 폰로그: '없음' }))).toContain('### 폰 로그(logcat)\n이 항목은 받아 둔 폰 로그가 없습니다');
+    expect(이슈본문(재료({ 폰로그: { 줄: [], 더: 0 } }))).toContain('### 디바이스 로그(logcat)\n- 앱 오류 줄 없음');
+    expect(이슈본문(재료({ 폰로그: '없음' }))).toContain('### 디바이스 로그(logcat)\n이 항목은 받아 둔 디바이스 로그가 없습니다');
   });
 });
 
@@ -231,6 +231,6 @@ it('제목은 [애플리케이션] 케이스 이름이고 BTS 상한을 넘지 �
 
 it('또 실패 댓글은 실행 번호 · 실패 원인 · 고리를 단다', () => {
   expect(또실패댓글(재료(), 813)).toBe(
-    'Test Commander 실행 #813 에서 또 실패했습니다 — 대상 서버 qa · 빌드 a1b2c3d-202610311530\n실패 원인: 기대 결과와 다릅니다\n꼬리표: 버그 가능성 높음\nhttps://qahub.example.com/runs/812',
+    'Test Commander 실행 #813 에서 또 실패했습니다 — 대상 서버 qa · 빌드 a1b2c3d-202610311530\n실패 원인: 기대 결과와 다릅니다\n꼬리표: 결함 가능성 높음\nhttps://qahub.example.com/runs/812',
   );
 });

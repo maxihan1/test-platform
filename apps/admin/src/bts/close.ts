@@ -131,12 +131,12 @@ export async function 닫기처리(연결: 닫기연결, 이슈: BTS이슈, 부�
   for (const 서비스 of 서비스들) {
     const 번호 = await 잠그고(서비스, async (손) => {
       const 닫은 = await 짝닫기(손, 연결.projectId, 이슈.key, 서비스, 사유);
-      for (const x of 닫은) if (x.first_run === null) 결과.기록만.push(`${x.tc_id} — 처음 올린 실행이 지워졌다`);
+      for (const x of 닫은) if (x.first_run === null) 결과.기록만.push(`${x.tc_id} — 처음 등록한 실행이 삭제됐다`);
       const 건들: { runId: number; tcId: string; env: string }[] = [];
       for (const x of 닫은) {
         if (x.first_run === null) continue;
         const runId = await 실패한실행(손, Number(x.first_run), x.tc_id);
-        if (runId === null) 결과.기록만.push(`${x.tc_id} — 처음 올린 실행에 그 케이스의 실패가 없다`);
+        if (runId === null) 결과.기록만.push(`${x.tc_id} — 처음 등록한 실행에 그 케이스의 실패가 없다`);
         else 건들.push({ runId, tcId: x.tc_id, env: x.env });
       }
       if (건들.length === 0) return null;
@@ -155,7 +155,7 @@ export async function 닫기처리(연결: 닫기연결, 이슈: BTS이슈, 부�
   return 결과;
 }
 
-/** 테스트 문제로 세운 작성이 초안 PR 을 열면 이슈에 「테스트 고침 PR #N」 댓글 — 보낼 줄로 보낸다. 테스트 고침 요청이 아니면 아무것도 안 한다 */
+/** 테스트 문제로 세운 작성이 초안 PR 을 열면 이슈에 「테스트 수정 PR #N」 댓글 — 보낼 줄로 보낸다. 테스트 고침 요청이 아니면 아무것도 안 한다 */
 export async function 테스트고침댓글(요청: { serviceId: number; params: unknown }, prUrl: string): Promise<boolean> {
   const 고침 = (요청.params as { testFix?: { issueKey?: unknown } } | null)?.testFix;
   if (typeof 고침?.issueKey !== 'string') return false;
@@ -173,7 +173,7 @@ export async function 테스트고침댓글(요청: { serviceId: number; params:
     projectId: 프로젝트,
     kind: 'COMMENT',
     issueKey: 고침.issueKey,
-    payload: { body: `테스트 고침 PR ${번호 === undefined ? '' : `#${번호} `}— ${prUrl}\nTest Commander 가 테스트만 고친 초안 PR 을 열었습니다. 병합은 사람이 합니다` },
+    payload: { body: `테스트 수정 PR ${번호 === undefined ? '' : `#${번호} `}— ${prUrl}\nTest Commander 가 테스트만 수정한 검토용 PR 을 열었습니다. 반영은 사람이 합니다` },
   });
   return true;
 }

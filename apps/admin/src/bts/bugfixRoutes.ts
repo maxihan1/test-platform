@@ -67,18 +67,18 @@ export async function BTS에알리기(id: number, serviceId: number, params: Rec
   const 사람 = await 넘길사람찾기(자리로(l), l.bts_project, 몸.owners, 구성요소, 부르기);
   // 재검증 또 실패 넘기기 · 다시 맡기 거절이 이 사람에게 돌린다
   await pool.query(`UPDATE authoring_request SET result = jsonb_set(result, '{bugfix,owner}', COALESCE(to_jsonb($2::text), 'null'::jsonb)) WHERE id = $1`, [id, 사람]);
-  const 파일 = 몸.files.length === 0 ? [] : ['', '고친 파일', ...몸.files.map((f) => `- ${f}`)];
+  const 파일 = 몸.files.length === 0 ? [] : ['', '수정한 파일', ...몸.files.map((f) => `- ${f}`)];
   if ('prUrl' in 몸) {
     // 차례가 곧 BTS 에 닿는 차례다(보낼 줄은 같은 이슈를 앞 줄부터) — 댓글 → 「코드 리뷰」 → 담당자
     const 코드리뷰 = l.status_map.CODE_REVIEW ?? '';
-    const 댓글 = [`Issue Bunker 에이전트가 수정 PR 을 올렸어요 — ${몸.prUrl}`, '', 몸.summary, ...파일, '', '초안 PR 이에요. 검토하고 병합은 사람이 해요'].join('\n');
+    const 댓글 = [`Issue Bunker 에이전트가 수정 PR 을 등록했어요 — ${몸.prUrl}`, '', 몸.summary, ...파일, '', '검토용 PR 이에요. 검토하고 병합은 사람이 해요'].join('\n');
     await 보낼줄넣기({ projectId, kind: 'COMMENT', issueKey, payload: { body: 글자르기(댓글) } });
     if (코드리뷰 !== '') await 보낼줄넣기({ projectId, kind: 'TRANSITION', issueKey, payload: { toStatusKey: 코드리뷰 } });
     if (사람 !== null) await 보낼줄넣기({ projectId, kind: 'ASSIGN', issueKey, payload: { assigneeId: 사람 } });
     else await 보낼줄넣기({ projectId, kind: 'COMMENT', issueKey, payload: { body: '넘길 사람을 찾지 못했어요 — 담당자를 정해 주세요' } });
     return;
   }
-  const 머리 = params.repo === null || params.repo === undefined ? '코드 없음 — 원인 분석만' : 'Issue Bunker 에이전트가 고치지 못해 원인 분석을 남겨요';
+  const 머리 = params.repo === null || params.repo === undefined ? '코드 없음 — 원인 분석만' : 'Issue Bunker 에이전트가 수정하지 못해 원인 분석을 남겨요';
   await 넘기기(projectId, issueKey, [머리, '', 몸.analysis, ...파일].join('\n'), 사람);
 }
 
@@ -125,5 +125,5 @@ export async function 수정끝난뒤(행: { id: number; serviceId: number; para
   if (l === null || issueKey === '') return;
   const 구성요소 = await 이슈읽기(자리로(l), issueKey, 부르기).then((x) => x.componentIds, () => []);
   const 사람 = await 넘길사람찾기(자리로(l), l.bts_project, [], 구성요소, 부르기);
-  await 넘기기(projectId, issueKey, `Issue Bunker 에이전트가 이 버그를 끝내지 못했어요${까닭 === undefined || 까닭 === '' ? '' : ` — ${까닭.slice(0, 500)}`}\n사람이 봐 주세요`, 사람);
+  await 넘기기(projectId, issueKey, `Issue Bunker 에이전트가 이 결함을 수정하지 못했어요${까닭 === undefined || 까닭 === '' ? '' : ` — ${까닭.slice(0, 500)}`}\n사람이 봐 주세요`, 사람);
 }

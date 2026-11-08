@@ -115,12 +115,12 @@ async function 하나보내기(줄: 집은줄, 부르기: 부르기함수): Prom
         const 댓글 = await 부르기(자리, 'POST', 갈곳.COMMENT(줄.issue_key!)[1], { body: comment });
         return 상태로(댓글.status) ?? { 상태: 'SENT' };
       }
-      if (typeof data?.version !== 'number') return { 상태: 'GAVE_UP', 까닭: `Issue Bunker 이슈 판 번호를 못 읽었습니다 (${String(읽음.status)})` };
+      if (typeof data?.version !== 'number') return { 상태: 'GAVE_UP', 까닭: `Issue Bunker 이슈 버전 번호를 못 읽었습니다 (${String(읽음.status)})` };
       보낼몸 = { ...(몸 as object), expectedVersion: data.version };
     }
     const r = await 부르기(자리, method, 경로, 보낼몸);
     // 읽은 판과 보낸 사이에 누가 이슈를 고쳤다 — 다음 점검이 새 판을 읽어 다시 보낸다
-    if (판읽음 && r.status === 409) return { 상태: 'RETRY', 까닭: 'Issue Bunker 이슈 판이 그사이 바뀌었습니다 (409)' };
+    if (판읽음 && r.status === 409) return { 상태: 'RETRY', 까닭: 'Issue Bunker 이슈 버전이 그사이 변경되었습니다 (409)' };
     const 실패 = 상태로(r.status);
     if (실패 !== null) return 실패;
     if (줄.kind !== 'CREATE') return { 상태: 'SENT' };
