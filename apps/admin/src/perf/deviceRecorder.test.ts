@@ -68,6 +68,18 @@ describe('팜기록기 · 토큰', () => {
     expect(await 한바퀴()).toEqual(['Bearer pat_dlg1', 'Bearer pat_dlg1', 'Bearer pat_dlg1', 'Bearer pat_dlg2', 'Bearer pat_dlg2']);
     expect(서버팜토큰).toHaveBeenCalledTimes(5);
   });
+
+  it('케이스 요청에 실을 팜 토큰은 폰을 잡은 토큰이다 — 서버 몫을 못 받으면 앞 토큰, 처음부터 없으면 DEVICE_FARM_TOKEN', async () => {
+    vi.stubEnv('DEVICE_FARM_URL', 'http://farm.test/wd/hub');
+    vi.stubEnv('DEVICE_FARM_TOKEN', 'pat_abc');
+    const 가짜 = vi.fn(async () => Response.json({ held: { until: 2, now: 1 } })) as unknown as typeof fetch;
+    vi.mocked(서버팜토큰).mockResolvedValueOnce('pat_dlg1').mockResolvedValue(undefined);
+    const rec = 팜기록기('R3CR', 가짜);
+    await rec.켜기(켜기);
+    expect(await rec.팜토큰()).toBe('pat_dlg1');
+    expect(await 팜기록기('R3CS', 가짜).팜토큰()).toBe('pat_abc');
+    expect(await 로컬기록기('LC1', 'http://127.0.0.1:1', 부르기({})).팜토큰()).toBeUndefined();
+  });
 });
 
 describe('로컬기록기 · 놓기', () => {
