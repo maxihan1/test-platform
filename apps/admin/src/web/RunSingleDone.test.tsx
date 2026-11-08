@@ -64,6 +64,40 @@ describe('한 건 실행 진행 창 (도메인/실행 §8.9 「완료 모달」)
     expect(지켜보는실행()).toBeNull();
   });
 
+  it('도는 중에 「닫기」로 닫으면 케이스 번호 알약으로 남고, 끝나면 어느 화면에서든 끝남 창이 뜬다 (2026-11-08 재시험 f16)', async () => {
+    vi.useFakeTimers();
+    let 끝 = false;
+    vi.spyOn(api, 'run').mockImplementation((runId) =>
+      Promise.resolve(runId === 붙은 ? 붙은실행(11, false) : { ...(끝 ? 끝난응답 : 도는중응답), ...한건, rerunOf: 붙은 }),
+    );
+    await 그린다();
+    fireEvent.click(screen.getByRole('button', { name: '닫기' }));
+    expect(screen.getByRole('button', { name: /^ZRS-001 진행 보기/ })).toBeTruthy();
+    expect(screen.queryByRole('dialog')).toBeNull();
+
+    끝 = true;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+    expect(screen.getByRole('dialog', { name: 'ZRS-001 실행이 완료되었습니다' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /진행 보기/ })).toBeNull();
+  });
+
+  it('끝남 창을 닫으면 그 실행은 본 것이라 알약도 끝남 창도 다시 뜨지 않는다 (도메인/실행 §8.9)', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(api, 'run').mockImplementation((runId) =>
+      Promise.resolve(runId === 붙은 ? 붙은실행(10, true) : { ...끝난응답, ...한건, rerunOf: 붙은 }),
+    );
+    await 그린다();
+    fireEvent.click(screen.getByRole('button', { name: '닫기' }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(6000);
+    });
+    expect(지켜보는실행()).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.queryByRole('button', { name: /진행 보기/ })).toBeNull();
+  });
+
   it('끝난 뒤에 처음 열면 앞 수를 모르니 실패 수 변화 없이 붙은 실행만 적는다', async () => {
     vi.spyOn(api, 'run').mockImplementation((runId) =>
       Promise.resolve(runId === 붙은 ? 붙은실행(10, true) : { ...끝난응답, ...한건, rerunOf: 붙은 }),

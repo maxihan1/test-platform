@@ -4998,7 +4998,7 @@ details[open]:not(.ph-me)::details-content {
 /* ── 앱 대시보드 (DESIGN.md 「대시보드」, 2026-10-07 · 9판 A 「실패 먼저」) ──────────
    표는 선(위 2px · 행 괘선), 그래프 · 요약은 테두리 판이다 (원칙 2 · 두께는 2026-10-30 에 걷었다). 그래프와 표에는 대표색을 쓰지 않는다.
    칸 쌓기는 창이 아니라 **대시보드 폭**을 본다 — 사이드바를 접고 펴면 같은 창에서도 본문 폭이 달라진다.
-   넓은 화면 배치는 grid 자리로 옮기고 DOM 순서는 화면 읽기 순서(실행 중 → 회귀 실패 → 통과율 → 서비스별 → 일별 → 히트맵 → 실패 유형 → 커버리지)다 */
+   DOM 순서는 넓은 화면 기둥 차례(묶음마다 왼쪽 기둥 → 오른쪽 기둥)이고, 좁은 화면 차례는 아래 900px 규칙의 order 가 세운다 */
 .dash {
   /* .main 이 세로 flex 라 안 막으면 창 높이에 맞춰 줄어든다 — .screen 과 같은 이유다 */
   flex-shrink: 0;
@@ -5016,11 +5016,11 @@ details[open]:not(.ph-me)::details-content {
   gap: 24px 16px;
 }
 
-/* 위 두 기둥 — 왼쪽(회귀 실패 · 애플리케이션별)과 오른쪽(통과율 · 종류별)이 따로 쌓인다.
-   한 격자 줄에 두면 짧은 쪽이 긴 쪽 높이만큼 비었다 — 회귀 0건이면 왼쪽 400px 빈칸(d6), 「전체」에서는 통과율 선이 늘어났다(f4) (2026-10-31 시험) */
-.dash-top {
+/* 두 묶음 — 묶음마다 왼쪽 · 오른쪽 기둥이 따로 쌓인다(어느 칸이 어느 기둥인지는 DESIGN.md 「대시보드」 표).
+   한 격자 줄에 칸 둘씩 두면 짧은 쪽이 긴 쪽 높이만큼 비었다 — 회귀 0건이면 왼쪽 400px 빈칸(d6), 「전체」에서는 통과율 선이 늘어났다(f4) (2026-10-31 시험).
+   위 묶음 기둥이 둘씩일 때도 회귀 0건이면 왼쪽 아래가 250~450px 비어 일별 · 커버리지까지 기둥에 나눠 넣었다 (2026-11-08 재시험) */
+.dash-band {
   grid-column: 1 / -1;
-  grid-row: 1;
   display: grid;
   grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
   gap: 16px;
@@ -5032,28 +5032,6 @@ details[open]:not(.ph-me)::details-content {
   flex-direction: column;
   gap: 24px;
   min-width: 0;
-}
-
-.dash-daily {
-  grid-column: 1 / 9;
-  grid-row: 2;
-}
-
-.dash-cov {
-  grid-column: 9 / 13;
-  grid-row: 2;
-}
-
-/* 옆 실패 유형(선)이 더 길다 — 늘리면 판 아래가 비어 판이 내용 높이에서 끝난다 */
-.dash-heat {
-  grid-column: 1 / 9;
-  grid-row: 3;
-  align-self: start;
-}
-
-.dash-types {
-  grid-column: 9 / 13;
-  grid-row: 3;
 }
 
 .dash-kind-list {
@@ -5219,25 +5197,22 @@ button.dash-rv:focus-visible {
   animation: 나타남 var(--t2) var(--ease) backwards;
 }
 
-.dash-board > :nth-child(2) {
+/* 칸은 묶음 · 기둥 안에 있다 — 기둥 안 차례로 늦추고 아래 묶음은 위 묶음 뒤에 나온다.
+   숫자로 둘 수 있는 시간은 0.15초까지다(styles.test 가 지킨다) */
+.dash-col > :nth-child(2) {
   animation-delay: 0.03s;
 }
 
-.dash-board > :nth-child(3) {
+.dash-col > :nth-child(3) {
   animation-delay: 0.06s;
 }
 
-.dash-board > :nth-child(4) {
+.dash-band + .dash-band .dash-col > :nth-child(1) {
   animation-delay: 0.09s;
 }
 
-.dash-board > :nth-child(5) {
+.dash-band + .dash-band .dash-col > :nth-child(2) {
   animation-delay: 0.12s;
-}
-
-/* 일곱째(커버리지)도 여섯째와 같이 나온다 — 숫자로 둘 수 있는 시간은 0.15초까지다(styles.test 가 지킨다) */
-.dash-board > :nth-child(n + 6) {
-  animation-delay: 0.15s;
 }
 
 /* 머리의 서비스 · 기간 고르개 */
@@ -6302,19 +6277,47 @@ button.dash-rv:focus-visible {
     grid-row: auto;
   }
 
-  /* 좁으면 기둥을 풀어 한 줄로 쌓는다 — 읽는 차례는 회귀 실패 → 통과율 → 종류별 → 애플리케이션별 */
-  .dash-top {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-  }
-
+  /* 좁으면 기둥을 풀어 칸마다 격자 한 줄을 다 쓴다 — 읽는 차례는 DESIGN.md 「대시보드」 「좁은 화면」.
+     앞 판은 기둥을 세로 flex 로 풀었는데 넓은 화면의 `align-items: start` 가 남아 칸이 내용 폭으로 줄었다 — 1152 창에서 오른쪽 280px 가 비었다 (2026-11-08 재시험) */
+  .dash-band,
   .dash-col {
     display: contents;
   }
 
-  .dash-top .dash-svc {
+  .dash-col > * {
+    grid-column: 1 / -1;
+  }
+
+  .dash-fail {
     order: 1;
+  }
+
+  .dash-rate {
+    order: 2;
+  }
+
+  .dash-kind {
+    order: 3;
+  }
+
+  .dash-svc {
+    order: 4;
+  }
+
+  .dash-daily {
+    order: 5;
+  }
+
+  .dash-heat {
+    order: 6;
+  }
+
+  .dash-types {
+    order: 7;
+  }
+
+  .dash-cov {
+    order: 8;
   }
 
   .dash-rv {

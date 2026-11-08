@@ -34,6 +34,9 @@ const 시간초과 = /^TIMEOUT\b|Timeout \d+ms exceeded|Test timeout of/;
 // 게임 드라이버 오류 문구(control_cli SDK · kit 게임 몸통 — 도메인/게임 「실행 결과」). 연결이 끊긴 것이 먼저다 —
 // 「게임이 120초 안에 답하지 않았습니다 — 게임 포트 13100 에 붙지 못했습니다」(켜지기 기다림 실패)는 시간 초과가 아니라 환경이다
 const 게임연결끊김 = /게임 포트 \d+ 에 붙지 못했습니다|게임이 답 없이 연결을 닫았습니다|(디바이스 팜이|Device VISION 이) 게임 명령을 HTTP \d+ 로 거절했습니다/;
+// kit 이 API 인증 토큰을 못 받았거나 대상 서버에 그 인증 이름이 없을 때 던지는 글(packages/kit/src/runtime/apiAuth.ts · 러너 apiPart.ts).
+// 케이스가 요청을 보내기도 전이라 까닭(503 · 연결 실패 · 제한 시간 · access_token 없음)과 상관없이 토큰 서버나 인증 설정 탓이다 — 2026-11-08 재시험에서 「그 밖」으로 갈렸다
+const 인증못함 = /API 인증 '.*' (토큰을 받지 못했습니다|가 없습니다)/;
 const 게임요소없음 = /켜진 오브젝트 중에 .+ 이 없습니다/;
 const 게임시간초과 = /초 안에 (뜨지 |사라지지 |「.*」이 되지 )않았습니다|게임이 [\d.]+초 안에 답하지 않았습니다/;
 
@@ -49,7 +52,7 @@ export function 원인을가른다(재료: 원인재료): 원인 {
   // STOPPED 는 사람이 멈춘 E2E 부품이다 — ABORTED 와 같은 갈래로 센다 (도메인/시나리오 §8.11)
   if (재료.status === 'NA' && /^(ABORTED|STOPPED)\b/.test(항목)) return 'stopped';
   if (재료.assertFailed) return 'mismatch';
-  if (연결끊김.test(글) || 게임연결끊김.test(글) || (재료.status === 'NA' && 러너사유.test(항목))) return 'environment';
+  if (연결끊김.test(글) || 게임연결끊김.test(글) || 인증못함.test(글) || (재료.status === 'NA' && 러너사유.test(항목))) return 'environment';
   if ((요소대기.test(글) && !요소찾음.test(글)) || 게임요소없음.test(글)) return 'notFound';
   if (시간초과.test(글) || 게임시간초과.test(글)) return 'timeout';
   return 'other';
