@@ -139,7 +139,10 @@ export default async function scenarioRoutes(app: FastifyInstance): Promise<void
     if ('jobId' in r) return reply.code(202).send(r);
     return r.error === 'AGENT_OFFLINE'
       ? reply.code(503).send({ error: 'AGENT_OFFLINE', detail: '작성 에이전트가 꺼져 있습니다' })
-      : reply.code(409).send({ error: 'NO_DATA', detail: '그 디바이스에서 도는 활성 기능 테스트가 둘보다 적습니다' });
+      : reply.code(409).send({
+          error: 'NO_DATA',
+          detail: r.error === 'NO_GAME_SCREEN' ? '게임 화면을 여는 기능 테스트가 없습니다' : '그 디바이스에서 도는 활성 기능 테스트가 둘보다 적습니다',
+        });
   });
 
   app.get<{ Params: { jobId: string } }>('/scenarios/flow-suggestions/:jobId', async (req, reply) => {

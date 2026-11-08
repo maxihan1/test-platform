@@ -46,6 +46,7 @@ describe('caseSteps', () => {
   it('케이스 몸통이 받는 이름을 싣는다', () => {
     expect(caseSteps(R16).fixtures).toEqual(['page']);
     expect(caseSteps(R16.replace('async ({ page })', 'async ({ game, admin })')).fixtures).toEqual(['game', 'admin']);
+    expect(caseSteps(R16.replace('async ({ page })', 'async ({ game: g })').replace("page.getByRole('textbox')", "g")).fixtures).toEqual(['game']);
   });
 
   it('절차마다 소스 줄을 싣는다', () => {

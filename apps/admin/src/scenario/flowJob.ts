@@ -68,10 +68,15 @@ export async function 흐름일닫기(): Promise<void> {
 async function 몸통이름들(filePath: string): Promise<string[] | undefined> {
   const 뿌리 = resolve(testsRoot());
   const 경로 = resolve(뿌리, filePath);
-  if (!경로.startsWith(뿌리 + sep)) return undefined;
+  if (!경로.startsWith(뿌리 + sep)) {
+    console.warn(`흐름 재료: tests 폴더 밖의 경로라 게임 화면을 안 여는 것으로 친다: ${filePath}`);
+    return undefined;
+  }
   try {
     return caseSteps(await readFile(경로, 'utf8')).fixtures;
-  } catch {
+  } catch (err) {
+    // 한 건 때문에 추천 전체를 막지 않는다 — 다 못 읽었으면 맡기기가 NO_GAME_SCREEN 으로 거절하고 까닭은 이 로그에 남는다
+    console.warn(`흐름 재료: 케이스 파일을 못 읽어 게임 화면을 안 여는 것으로 친다: ${filePath}: ${err instanceof Error ? err.message : String(err)}`);
     return undefined;
   }
 }
@@ -126,7 +131,7 @@ export async function 흐름맡기기(
   platform: Platform,
   wish: string | null,
   who: string,
-): Promise<{ jobId: number } | { error: 'AGENT_OFFLINE' | 'NO_DATA' }> {
+): Promise<{ jobId: number } | { error: 'AGENT_OFFLINE' | 'NO_DATA' | 'NO_GAME_SCREEN' }> {
   await 흐름일닫기();
   if (await 꺼졌나(서비스.prefix)) return { error: 'AGENT_OFFLINE' };
   const 있는 = await (await db()).query<{ id: string }>(
@@ -139,6 +144,8 @@ export async function 흐름맡기기(
   if (있는.rows[0] !== undefined) return { jobId: Number(있는.rows[0].id) };
   const 재료 = await 재료읽기(서비스.id, 서비스.prefix, platform, wish);
   if (재료.cases.length < 2) return { error: 'NO_DATA' };
+  // 게임 화면 케이스가 하나도 없으면 AI 가 무엇을 내도 다 버려진다 — 구독 한도를 쓰기 전에 거절한다
+  if (재료.game === true && !재료.cases.some((c) => c.gameScreen === true)) return { error: 'NO_GAME_SCREEN' };
   return { jobId: await 일만들기('SUGGEST_FLOWS', 서비스.id, 재료, who) };
 }
 
