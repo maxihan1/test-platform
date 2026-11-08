@@ -175,7 +175,7 @@ describe('E2E 증적 모델', () => {
     const [첫, 둘] = E2E모양(1, 멈춤, { serviceName: '', testsRepo: '' }).parts;
     expect(첫?.사유).toBe('제한 시간 초과');
     expect(첫?.item?.notRunReason).toBe('제한 시간 초과');
-    expect(둘?.사유).toBe('서버 재시작으로 멈춤');
+    expect(둘?.사유).toBe('서버 재시작으로 중단');
   });
 });
 
