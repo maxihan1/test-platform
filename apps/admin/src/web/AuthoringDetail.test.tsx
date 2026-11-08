@@ -192,7 +192,7 @@ describe('작성 한 건 상세', () => {
   it('준비 중(DRAFT) 요청에는 줄에 서지 않았으니 폐기하고 새 요청으로 다시 넣으라고 알린다', async () => {
     답 = 줄({ status: 'DRAFT', prUrl: null, finishedAt: null, startedAt: null, assets: [] });
     render(<AuthoringDetail service="PAY" id={7} 할수={운영} />);
-    expect(await screen.findByText('이 요청은 대기열에 들어가지 못했습니다. 폐기하고 새 요청으로 다시 넣으세요')).toBeTruthy();
+    expect(await screen.findByText('이 요청은 대기열에 들어가지 못했습니다. 삭제하고 새 요청으로 다시 넣으세요')).toBeTruthy();
     expect(screen.getByText('자료 업로드 중')).toBeTruthy();
   });
 });
@@ -247,10 +247,10 @@ describe('작성 진척 · 중단 · 폐기', () => {
   it('병합 안 한 끝난 작성은 다음 단계 끝에 폐기가 있고, 누르면 PR 을 GitHub 에서 닫으라고 한 번 더 묻는다 (PRD-F9-16)', async () => {
     답 = 줄({ canDiscard: true });
     render(<AuthoringDetail service="PAY" id={7} 할수={운영} />);
-    fireEvent.click(await screen.findByRole('button', { name: '폐기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '삭제' }));
     expect(screen.getByRole('dialog').textContent).toContain('GitHub 의 PR 은 남으니 GitHub 에서 닫으세요.');
     expect(폐기).not.toHaveBeenCalled();
-    fireEvent.click(screen.getAllByRole('button', { name: '폐기' }).at(-1)!);
+    fireEvent.click(screen.getAllByRole('button', { name: '삭제' }).at(-1)!);
     await vi.waitFor(() => expect(폐기).toHaveBeenCalledWith('PAY', 7));
   });
 
@@ -259,7 +259,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
     render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
     await screen.findByText('테스터');
     expect(screen.queryByRole('button', { name: '작성 중단' })).toBeNull();
-    expect(screen.queryByRole('button', { name: '폐기' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '삭제' })).toBeNull();
   });
 
   it('멈춤 요청 뒤에는 중단하는 중이라고 보이고 계속 다시 읽는다', async () => {
@@ -337,7 +337,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
         '중단 전까지 만든 테스트 12개를 이어받아 남은 작업을 계속합니다. 10월 5일까지 이어갈 수 있습니다.',
       );
       const 버튼들 = Array.from(카드.querySelectorAll('button')).map((b) => b.textContent);
-      expect(버튼들).toEqual(['이어서 작성', '같은 자료로 다시 작성', '폐기']);
+      expect(버튼들).toEqual(['이어서 작성', '같은 자료로 다시 작성', '삭제']);
       fireEvent.click(screen.getByRole('button', { name: '이어서 작성' }));
       await vi.waitFor(() => expect(다시).toHaveBeenCalledWith('PAY', { kind: 'RERUN', sourceId: 7, resume: true }));
       expect(window.location.hash).toBe('');
@@ -505,9 +505,9 @@ describe('작성 진척 · 중단 · 폐기', () => {
   it('폐기는 한 번 더 묻고, 성공하면 목록으로 간다', async () => {
     답 = 줄({ status: 'FAILED', prUrl: null, error: '실패함', canDiscard: true });
     render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
-    fireEvent.click(await screen.findByRole('button', { name: '폐기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '삭제' }));
     expect(screen.getByRole('dialog').textContent).toContain('목록에서 사라집니다. 통계와 토큰 기록은 남습니다.');
-    fireEvent.click(screen.getAllByRole('button', { name: '폐기' }).at(-1)!);
+    fireEvent.click(screen.getAllByRole('button', { name: '삭제' }).at(-1)!);
     await vi.waitFor(() => expect(window.location.hash).toBe('#/authoring'));
     expect(폐기).toHaveBeenCalledWith('PAY', 7);
   });
@@ -515,6 +515,6 @@ describe('작성 진척 · 중단 · 폐기', () => {
   it('폐기된 행을 직접 열면 폐기됨이라고 보인다', async () => {
     답 = 줄({ status: 'STOPPED', prUrl: null, stopReason: 'USER', stoppedBy: 'kim', stoppedByName: '김철수', discardedAt: new Date().toISOString() });
     render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
-    expect(await screen.findByText(/^폐기됨/)).toBeTruthy();
+    expect(await screen.findByText(/^삭제됨/)).toBeTruthy();
   });
 });

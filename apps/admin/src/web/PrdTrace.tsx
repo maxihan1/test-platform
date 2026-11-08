@@ -137,7 +137,7 @@ export function 설계미리보기({ text }: { text: string }) {
   const t = use말();
   const 기법말 = use기법말();
   const 설계 = useMemo(() => 설계하기(text), [text]);
-  if (설계.경계.length === 0 && 설계.예외.length === 0) return <p className="prd-none">{t('요구 문장에서 잡힌 경계 · 예외가 없습니다')}</p>;
+  if (설계.경계.length === 0 && 설계.예외.length === 0) return <p className="prd-none">{t('요구사항 문장에서 잡힌 경계 · 예외가 없습니다')}</p>;
   return (
     <ul className="prd-design">
       {설계.경계.map((b, i) => (

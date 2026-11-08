@@ -181,7 +181,7 @@ export function AI칸(p: {
                   </span>
                 ))}
               </span>
-              <span className="hint">{t('단계 {단계}개 · 값 연결 {연결}곳 · 요구 {요구}건', { 단계: c.steps.length, 연결: c.links.length, 요구: c.reqIds.length })}</span>
+              <span className="hint">{t('단계 {단계}개 · 값 연결 {연결}곳 · 요구사항 {요구}건', { 단계: c.steps.length, 연결: c.links.length, 요구: c.reqIds.length })}</span>
             </button>
           ))}
         </div>

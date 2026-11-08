@@ -40,7 +40,7 @@ export function 신규실패표({ 값, 이동 }: { 값: 자료; 이동: 이동�
         <h2>
           {t('회귀 실패')} <b className={전부 > 0 ? 'num bad' : 'num'}>{전부}</b>
         </h2>
-        <span className="dash-axis">{t('최근 {일}일, 같은 서버의 직전 실행과 비교', { 일: 값.window.days })}</span>
+        <span className="dash-axis">{t('최근 {일}일, 같은 서버의 이전 실행과 비교', { 일: 값.window.days })}</span>
       </div>
 
       {값.newFailures.length === 0 ? (

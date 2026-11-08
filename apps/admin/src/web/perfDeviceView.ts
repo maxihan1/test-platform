@@ -32,8 +32,8 @@ export const 조작글 = (설정: 기기설정, t: 말): string =>
   설정.drive === 'MANUAL'
     ? t('직접 플레이')
     : 설정.drive === 'GAME'
-      ? t('게임 케이스 {수}개', { 수: 설정.caseIds.length })
-      : t('Appium 케이스 {수}개', { 수: 설정.caseIds.length });
+      ? t('게임 케이스 {수}건', { 수: 설정.caseIds.length })
+      : t('Appium 케이스 {수}건', { 수: 설정.caseIds.length });
 
 /** 처음 여는 측정의 목표 — 시안의 값이다. 사람이 고치거나 지운다 */
 export const 기본목표: 기기목표[] = [

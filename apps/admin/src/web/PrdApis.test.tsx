@@ -69,7 +69,7 @@ describe('PRD 관리 — 애플리케이션 지도', () => {
 
   it('케이스가 안 거친 API 카드는 이제 없다 — 결정 필요 한 곳으로 옮겼다', async () => {
     render(<Prd service="MKT" 할수={보는사람} />);
-    await screen.findByText('버전 12 · 요구 4건');
+    await screen.findByText('버전 12 · 요구사항 4건');
     expect(screen.queryByRole('region', { name: /케이스가 안 거친 API/ })).toBeNull();
   });
 
@@ -86,6 +86,6 @@ describe('PRD 관리 — 애플리케이션 지도', () => {
     지도.mockRejectedValue(new Error('서버가 답하지 않습니다'));
     render(<Prd service="MKT" 할수={보는사람} />);
     expect(await screen.findByText(/애플리케이션 지도를 못 읽었습니다/)).toBeTruthy();
-    expect(screen.getByText('버전 12 · 요구 4건')).toBeTruthy();
+    expect(screen.getByText('버전 12 · 요구사항 4건')).toBeTruthy();
   });
 });

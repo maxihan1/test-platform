@@ -129,7 +129,7 @@ export function 상세할일({ x }: { x: 항목of<'FIX'> }) {
       <span className="decide-q">{질문}</span>
       {x.waiting.length === 0 ? null : (
         <small className="hint">
-          {t('뒤에서')} <요청고리 번호들={x.waiting} /> {t('이 기다립니다 — 수정하거나 폐기하면 이어서 실행됩니다')}
+          {t('뒤에서')} <요청고리 번호들={x.waiting} /> {t('이 기다립니다 — 수정하거나 삭제하면 이어서 실행됩니다')}
         </small>
       )}
       {/* 값을 넣거나 겹침을 고르는 일은 상세가 맡는다 — 이름은 거기서 할 일이다 */}

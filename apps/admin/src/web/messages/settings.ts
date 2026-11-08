@@ -227,7 +227,7 @@ export const 설정말: Record<string, string> = {
   '케이스가 뒤에서 부른 서버에 이름을 붙이면 케이스 목록에 이름표가 붙습니다. 같은 이름을 여러 주소에 써도 됩니다':
     'Name the servers your cases call behind the scenes and the case list shows those names as tags. You can use one name for several addresses',
   '케이스를 실행하면 부른 서버가 여기 뜹니다': 'Servers called by your cases show up here after you run them',
-  '케이스 {수}개': '{수} cases',
+  '케이스 {수}건': '{수} cases',
   '이름 없음': 'No name',
   '{호스트} 이름': 'Name for {호스트}',
   '다른 프로젝트로 옮기려면 프로젝트 화면에서 합니다': 'To move it to another project, use the project screen',

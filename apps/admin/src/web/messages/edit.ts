@@ -56,7 +56,7 @@ export const 고치기말: Record<string, string> = {
   '테스트가 반영됐습니다. 서버가 반영된 케이스를 아직 못 받아 왔습니다. 받아 온 뒤 케이스 목록에서 「다시 스캔」을 누르면 변경된 것이 보입니다.':
     'The tests were merged, but the server has not received the applied cases yet. Once it has, press “Rescan” on the case list to see the changes.',
   '수정한 케이스 검토': 'Review the changed cases',
-  '검토용 PR 로 등록되었습니다. 변경된 줄을 읽어 보고 이상하면 폐기하세요.': 'A PR is open for review. Read the changed lines and discard it if something is wrong.',
+  '검토용 PR 로 등록되었습니다. 변경된 줄을 읽어 보고 이상하면 삭제하세요.': 'A PR is open for review. Read the changed lines and discard it if something is wrong.',
   '수정한 케이스 보기 (PR)': 'View the changed cases (PR)',
   '지금까지 반영된 케이스를 기준으로 같은 내용으로 다시 수정합니다. 지금까지의 실행은 실행 기록에 남습니다.':
     'Applies the same changes again on top of the cases applied so far. Earlier runs stay in the run history.',

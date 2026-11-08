@@ -65,14 +65,14 @@ export function 고치기할일({ service, 요청, 할수, 보내는중, 새줄�
           disabled={보내는중}
           onClick={() => 새줄로(() => api.createAuthoringRequest(service, { kind: 'RERUN', sourceId: 원본 }))}
         >
-          <기다림글자 중={보내는중} 평소={t('다시 적용')} 기다림={t('시작하는 중…')} />
+          <기다림글자 중={보내는중} 평소={t('다시 적용')} 기다림={t('시작하는 중')} />
         </button>
       ) : null}
     </일>
   );
   const 폐기 = (표: string) =>
     폐기버튼 === null ? null : (
-      <일 표={표} 제목={t('폐기')} 설명={t('목록에서 사라집니다. GitHub 의 PR 은 남으니 GitHub 에서 닫으세요.')}>
+      <일 표={표} 제목={t('삭제')} 설명={t('목록에서 사라집니다. GitHub 의 PR 은 남으니 GitHub 에서 닫으세요.')}>
         <div className="btns">{폐기버튼}</div>
       </일>
     );
@@ -119,7 +119,7 @@ export function 고치기할일({ service, 요청, 할수, 보내는중, 새줄�
       <ol>
         {/* 에이전트는 PR 주소 없이 완료로 닫지 않는다 — 없으면 검토 항목만 안 그린다 */}
         {요청.prUrl === null ? null : (
-          <일 표="1" 제목={t('수정한 케이스 검토')} 설명={t('검토용 PR 로 등록되었습니다. 변경된 줄을 읽어 보고 이상하면 폐기하세요.')}>
+          <일 표="1" 제목={t('수정한 케이스 검토')} 설명={t('검토용 PR 로 등록되었습니다. 변경된 줄을 읽어 보고 이상하면 삭제하세요.')}>
             <a className="btn ghost" href={요청.prUrl} target="_blank" rel="noreferrer">
               {t('수정한 케이스 보기 (PR)')}
             </a>

@@ -60,7 +60,7 @@ export function RunSummary({
   const 미확정 = 그중미확정글(counts, 언어);
   const 앞 = insights?.previous ?? null;
   // 번호 자리만 고리로 만든다. 영어 표에서도 번호 자리가 어디든 맞도록 글을 만든 뒤 그 자리에서 가른다
-  const [직전앞, 직전뒤] = t('직전 실행 {실행} 대비 · 케이스 수', { 실행: '\u0000' }).split('\u0000');
+  const [직전앞, 직전뒤] = t('이전 실행 {실행} 대비 · 케이스 수', { 실행: '\u0000' }).split('\u0000');
 
   const 칸들 = [
     { 값: 'ALL', 종류: 'a', 이름: t('전체'), 수: 전체 },
@@ -205,7 +205,7 @@ export function RunSummary({
             </div>
             {/* 주소를 바꿨다는 사실은 접거나 숨기지 않는다 — 다른 서버에서 돈 결과를 같은 조건으로 읽게 된다 (SPEC §6) */}
             {!insights.주소바뀜 ? null : (
-              <span className="rs-note na">{t('직전 실행은 다른 주소에서 실행됐습니다')}</span>
+              <span className="rs-note na">{t('이전 실행은 다른 주소에서 실행됐습니다')}</span>
             )}
             {/* 일부만 골라 돌린 실행은 직전에 있던 거의 전부가 「빠진 것」이라 소음이다 — 빠진 케이스 수가 이번에 돈 케이스 수 이상이면 감춘다. 둘 다 케이스 수다 (점검표 B15e · 2026-11-06 사용자 승인 · WEB-F9-20 같을 때도) */}
             {insights.빠진건수 === 0 || new Set(항목들.map((i) => i.tcId)).size <= insights.빠진건수 ? null : <빠진목록 앞={앞.runId} 이번={항목들} 건수={insights.빠진건수} />}

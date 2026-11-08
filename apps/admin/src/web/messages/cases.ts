@@ -23,7 +23,7 @@ export const 케이스말: Record<string, string> = {
   '이력을 불러오지 못했습니다': 'Could not load the history',
   '{회수}번 · 실패 {실패} · 통과 {통과}': '{회수} attempts · {실패} failed · {통과} passed',
   '이 결과 엑셀로 ({건수}건)': 'Export these to Excel ({건수})',
-  '만드는 중…': 'Building…',
+  '만드는 중': 'Building…',
   '케이스 목록을 모으는 중입니다. 다 모을 때까지 실행 버튼을 누를 수 없습니다':
     'Collecting the case list. Run stays disabled until it finishes.',
 
@@ -88,11 +88,11 @@ export const 케이스말: Record<string, string> = {
   '앞 페이지에서 이어짐': 'Continued from the previous page',
   '이것만 보기': 'Show only this',
   '{이름}만 보기': 'Show only {이름}',
-  '연결된 요구 없음': 'No linked requirement',
+  '연결된 요구사항 없음': 'No linked requirement',
   'PRD 관리에서 보기': 'Open in PRD',
   'PRD 에 없는 번호예요': 'Not in the PRD',
-  '요구': 'Requirements',
-  '요구 {번호}': 'Requirement {번호}',
+  '요구사항': 'Requirements',
+  '요구사항 {번호}': 'Requirement {번호}',
   '{조건} 조건 풀기': 'Remove filter {조건}',
 
   // 케이스 한 줄

@@ -34,7 +34,7 @@ describe('PRD 관리 — 머리와 할 일 칸', () => {
   it('판이 없으면 빈 화면과 첫 요구를 적는 길을 보인다', async () => {
     지금.mockResolvedValue(판({ version: 0, items: [] }));
     render(<Prd service="MKT" 할수={쓰는사람} />);
-    expect(await screen.findByText('테스트 작성 요청으로 기획서를 업로드하거나, 요구사항 추가로 첫 요구를 직접 적습니다')).toBeTruthy();
+    expect(await screen.findByText('테스트 작성 요청으로 기획서를 업로드하거나, 요구사항 추가로 첫 요구사항을 직접 적습니다')).toBeTruthy();
     expect(screen.getByRole('link', { name: '테스트 작성 요청' }).getAttribute('href')).toBe('#/authoring');
     expect(screen.queryByRole('button', { name: '버전 기록' })).toBeNull();
     expect(screen.queryByRole('button', { name: '다운로드' })).toBeNull();
@@ -45,7 +45,7 @@ describe('PRD 관리 — 머리와 할 일 칸', () => {
     expect((await screen.findByRole('link', { name: '테스트 작성 요청' })).getAttribute('href')).toBe('#/authoring');
     unmount();
     render(<Prd service="MKT" 할수={보는사람} />);
-    await screen.findByText('버전 12 · 요구 4건');
+    await screen.findByText('버전 12 · 요구사항 4건');
     expect(screen.queryByRole('link', { name: '테스트 작성 요청' })).toBeNull();
   });
 
@@ -85,7 +85,7 @@ describe('PRD 관리 — 머리와 할 일 칸', () => {
 
   it('확인 필요 · 반영 안 됨 · PRD 에 없는 화면 카드와 일괄 확정 · 반영 단추는 이제 없다 (결정 필요 한 곳으로 옮겼다)', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
-    await screen.findByText('버전 12 · 요구 4건');
+    await screen.findByText('버전 12 · 요구사항 4건');
     expect(screen.queryByRole('region', { name: /^확인 필요 \d|반영 안 됨|PRD 에 없는 화면|케이스가 안 거친 API/ })).toBeNull();
     expect(screen.queryByText('확인할 요구도 테스트에 반영할 요구도 없습니다')).toBeNull();
     expect(screen.queryByRole('button', { name: /확정|테스트에 반영/ })).toBeNull();
@@ -97,7 +97,7 @@ describe('PRD 관리 — 머리와 할 일 칸', () => {
 
   it('작성 쓰기가 없으면 고르기 · 확정 · 더하기 · 고치기가 아예 없다', async () => {
     render(<Prd service="MKT" 할수={보는사람} />);
-    await screen.findByText('버전 12 · 요구 4건');
+    await screen.findByText('버전 12 · 요구사항 4건');
     expect(screen.queryAllByRole('checkbox')).toEqual([]);
     expect(screen.queryByRole('button', { name: /확정/ })).toBeNull();
     expect(screen.queryByRole('button', { name: '요구사항 추가' })).toBeNull();
@@ -132,12 +132,12 @@ describe('PRD 관리 — 전체 요구', () => {
 
   it('찾는 동안은 맞은 묶음을 다 펴고, 없으면 그렇게 말한다', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
-    const 칸 = await screen.findByRole('textbox', { name: '요구 문장 · 번호 검색' });
+    const 칸 = await screen.findByRole('textbox', { name: '요구사항 문장 · 번호 검색' });
     fireEvent.change(칸, { target: { value: '잠긴다' } });
     expect(screen.getByRole('button', { name: /MKT-REQ-041/ })).toBeTruthy();
     expect(screen.queryByRole('button', { name: /회원가입/ })).toBeNull();
     fireEvent.change(칸, { target: { value: '없는 말' } });
-    expect(screen.getByText('찾는 요구가 없습니다')).toBeTruthy();
+    expect(screen.getByText('찾는 요구사항이 없습니다')).toBeTruthy();
   });
 
 
@@ -174,7 +174,7 @@ describe('PRD 관리 — 워드로 내려받기', () => {
     fireEvent.click(await screen.findByRole('button', { name: /^다운로드/ }));
     fireEvent.click(screen.getByRole('button', { name: '워드 다운로드' }));
     expect(워드).toHaveBeenCalledWith('MKT');
-    expect(screen.getByRole('button', { name: /^만드는 중…/ })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: /^만드는 중/ })).toHaveProperty('disabled', true);
 
     끝내기({ 파일: new Blob(['x']), 머리: 'attachment; filename="MKT-PRD-v12.docx"' });
     await vi.waitFor(() => expect(누름).toHaveBeenCalledOnce());
@@ -200,7 +200,7 @@ describe('PRD 관리 — 찾기 글자는 주소에 남는다', () => {
   it('주소의 찾기 글자로 처음부터 거르고, 고치면 방문 기록을 쌓지 않고 주소를 고친다', async () => {
     window.history.replaceState(null, '', `#/prd?${new URLSearchParams({ q: '비밀번호' })}`);
     render(<Prd service="MKT" 할수={쓰는사람} />);
-    const 칸 = (await screen.findByRole('textbox', { name: '요구 문장 · 번호 검색' })) as HTMLInputElement;
+    const 칸 = (await screen.findByRole('textbox', { name: '요구사항 문장 · 번호 검색' })) as HTMLInputElement;
     expect(칸.value).toBe('비밀번호');
     expect(screen.queryByText(/MKT-REQ-031/)).toBeNull();
 

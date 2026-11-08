@@ -19,14 +19,14 @@ export const 결정말: Record<string, string> = {
   '#{번호} 케이스 {수}건에 값이 필요합니다': '{수} cases in #{번호} need values',
   '#{번호} 케이스 {수}건이 다른 요청과 겹칩니다': '{수} cases in #{번호} overlap another request',
   '뒤에서': 'Behind it,',
-  '이 기다립니다 — 수정하거나 폐기하면 이어서 실행됩니다': 'is waiting — it runs once this is fixed or discarded',
+  '이 기다립니다 — 수정하거나 삭제하면 이어서 실행됩니다': 'is waiting — it runs once this is fixed or discarded',
 
   // ② 무엇이 맞는지
   '실패 {수}건이 더 있습니다. 위의 것을 정하면 이어서 보입니다': '{수} more failures. They show up once you decide the ones above',
 
   // ③ 새로 만들기
-  '기획서에서 변경된 요구의 테스트를 다시 만들까요?': 'Rewrite the tests for the changed requirements?',
-  '기획서에서 변경된 요구 {수}건의 테스트를 다시 만들까요?': 'Rewrite the tests for {수} changed requirements?',
+  '기획서에서 변경된 요구사항의 테스트를 다시 만들까요?': 'Rewrite the tests for the changed requirements?',
+  '기획서에서 변경된 요구사항 {수}건의 테스트를 다시 만들까요?': 'Rewrite the tests for {수} changed requirements?',
   '이번 반영으로 변경되거나 삭제될 수 있는 케이스를 쓰는 E2E 시나리오 {수}개': '{수} E2E scenarios use cases this may change or remove',
   '반영한 뒤 시험 실행으로 확인하고 삭제한 케이스는 다른 케이스로 변경합니다': 'After applying, check them with a trial run and replace removed cases',
   'API 문서가 버전 {앞} 에서 {뒤} 로 변경되었습니다. 변경된 API 의 테스트를 다시 만들까요?':
@@ -40,11 +40,11 @@ export const 결정말: Record<string, string> = {
   // 진행
   '아직 선택한 것이 없습니다': 'Nothing chosen yet',
   '화면이 맞음 {수}건': '{수} screen-is-right',
-  '문장이 변경된 요구 {수}건': '{수} reworded requirements',
-  '변경된 요구': 'changed requirements',
-  '변경된 요구 {수}건': '{수} changed requirements',
+  '문장이 변경된 요구사항 {수}건': '{수} reworded requirements',
+  '변경된 요구사항': 'changed requirements',
+  '변경된 요구사항 {수}건': '{수} changed requirements',
   '{대상}의 테스트를 수정하고 다시 만듭니다': 'Fix and rewrite the tests for {대상}',
-  '변경된 요구도 같이 다시 만듭니다': 'changed requirements are rewritten too',
+  '변경된 요구사항도 같이 다시 만듭니다': 'changed requirements are rewritten too',
   '변경된 API 의 테스트를 다시 만듭니다': 'Rewrite the tests for the changed APIs',
   '변경된 API {수}건의 테스트를 다시 만듭니다': 'Rewrite the tests for {수} changed APIs',
   '테스트가 확인하지 않은 화면의 테스트를 만듭니다': 'Write tests for the screens no test checks',
@@ -54,12 +54,12 @@ export const 결정말: Record<string, string> = {
   '대상 서버를 선택하면 진행에 들어갑니다': 'Choose a target server to include this',
 
   // PRD 초안 카드 (BTS-F5-04)
-  '배포된 기능 {수}건으로 변경된 요구가 없어요': 'No requirement changed with {수} deployed features',
+  '배포된 기능 {수}건으로 변경된 요구사항이 없어요': 'No requirement changed with {수} deployed features',
   '확인§초안': 'OK',
   '초안 삭제': 'Delete draft',
   '빌드 {번호}': 'Build {번호}',
   '화면만 보고 적음': 'Based on the screen only',
-  '지금 기획서에 없는 요구라 선택할 수 없어요': 'This requirement is no longer in the spec, so it cannot be picked',
+  '지금 기획서에 없는 요구사항이라 선택할 수 없어요': 'This requirement is no longer in the spec, so it cannot be picked',
   '체크하지 않으면 「확인 필요」로 남아요': 'Unchecked, it stays as "Needs check"',
   'E2E 제안': 'E2E suggestion',
   '테스트를 다시 만든 뒤 E2E 메뉴에서 만들 수 있어요': 'After the tests are rebuilt, you can build it from the E2E menu',
@@ -87,7 +87,7 @@ export const 결정말: Record<string, string> = {
   '선택하지 않은 일은 이 목록에 남습니다': 'Anything not chosen stays on this list',
   '저장하지 않은 수정 {수}건은 빠집니다': '{수} unsaved edits will be left out',
   '{수}건 적용': 'Apply {수}',
-  '적용하는 중…': 'Applying…',
+  '적용하는 중': 'Applying…',
   '승인 · 반려는 관리자가 합니다': 'An admin approves or rejects this',
   '테스트를 승인할까요?': 'Approve these tests?',
   '테스트 {수}건을 승인할까요?': 'Approve {수} tests?',
@@ -102,9 +102,9 @@ export const 결정말: Record<string, string> = {
   기존: 'Current',
   '다시 수정': 'Edit again',
   '선택 취소': 'Clear choice',
-  '기획서에 없어서 화면을 보고 적은 요구 {수}건입니다. 이대로 확정할까요?':
+  '기획서에 없어서 화면을 보고 적은 요구사항 {수}건입니다. 이대로 확정할까요?':
     '{수} requirements were written from the screens because the spec did not cover them. Confirm them as they are?',
-  '확인이 필요한 요구 {수}건입니다. 이대로 확정할까요?': '{수} requirements need checking. Confirm them as they are?',
+  '확인이 필요한 요구사항 {수}건입니다. 이대로 확정할까요?': '{수} requirements need checking. Confirm them as they are?',
   '일괄 확정': 'Confirm all',
   '수정할 요구사항': 'Requirement to edit',
   '기획서 {수}개가 서로 다르게 적었습니다. 맞는 쪽을 체크해 주세요': '{수} specs say different things. Check the right one',
@@ -125,7 +125,7 @@ export const 결정말: Record<string, string> = {
   'PRD 를 새 버전으로 저장합니다(버전 {버전}) — {바뀜}': 'Save the PRD as version {버전} — {바뀜}',
   '{키들} PRD 초안을 다시 만듭니다': 'Rebuild the PRD draft for {키들}',
   '#{번호} 테스트를 승인해 케이스 목록에 등록합니다': 'Approve the #{번호} tests and add them to the case list',
-  '#{번호} 작성 결과를 폐기합니다': 'Discard what #{번호} wrote',
+  '#{번호} 작성 결과를 삭제합니다': 'Discard what #{번호} wrote',
   'PRD 수정 {수}건': '{수} PRD updates',
   'PRD 초안 {수}줄': '{수} PRD draft rows',
   '적용을 시작했습니다': 'Started',

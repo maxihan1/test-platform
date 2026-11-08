@@ -58,11 +58,11 @@ export function PrdItemForm({
 
   const 틀림말: Record<틀린칸, string> = {
     feature: t('기능 묶음을 적습니다'),
-    text: t('요구 문장을 적습니다'),
+    text: t('요구사항 문장을 적습니다'),
     basis: t('출처를 하나 이상 적습니다'),
     from: t('출처마다 자료 이름을 적습니다'),
     quote: t('출처마다 원본 문장을 적습니다'),
-    long: t('글자 수 상한을 넘었습니다 — 기능 묶음 {묶음}자 · 요구 문장 {문장}자 · 출처 {근거}개 · 자료 이름 · 원본 번호 {자리}자 · 출처 문장 {근거문장}자', {
+    long: t('글자 수 상한을 넘었습니다 — 기능 묶음 {묶음}자 · 요구사항 문장 {문장}자 · 출처 {근거}개 · 자료 이름 · 원본 번호 {자리}자 · 출처 문장 {근거문장}자', {
       묶음: 상한.기능묶음,
       문장: 상한.요구문장,
       근거: 상한.근거,
@@ -103,12 +103,12 @@ export function PrdItemForm({
         </datalist>
       </div>
       <div className="field">
-        <label htmlFor={`${id}-t`}>{t('요구 문장')}</label>
+        <label htmlFor={`${id}-t`}>{t('요구사항 문장')}</label>
         <textarea id={`${id}-t`} rows={2} value={x.text} onChange={(e) => setX({ ...x, text: e.target.value })} />
       </div>
       <p className="hint prd-form-hint">{t('규칙 하나만 적습니다. 숫자 · 조건 낱말(이상 · 미만 · 까지)은 원문 그대로 둡니다')}</p>
       {새것 ? (
-        <p className="hint prd-form-hint">{t('출처는 「직접 작성」으로 자동으로 달립니다. 저장한 뒤 요구 줄의 수정에서 더할 수 있습니다')}</p>
+        <p className="hint prd-form-hint">{t('출처는 「직접 작성」으로 자동으로 달립니다. 저장한 뒤 요구사항 줄의 수정에서 더할 수 있습니다')}</p>
       ) : (
         <fieldset className="prd-basis-edit">
           <legend>{t('출처')}</legend>
@@ -147,7 +147,7 @@ export function PrdItemForm({
         {on지우기 === undefined ? null : 지우기확인 ? (
           <>
             <button type="button" className="btn ghost small set-warn" disabled={busy} onClick={() => void 한다(() => on지우기(set저장오류))}>
-              {t('삭제 확인§요구')}
+              {t('삭제 확인§요구사항')}
             </button>
             <button type="button" className="btn ghost small" onClick={() => set지우기확인(false)}>
               {t('삭제 안 함')}
@@ -155,7 +155,7 @@ export function PrdItemForm({
           </>
         ) : (
           <button type="button" className="btn ghost small set-warn" onClick={() => set지우기확인(true)}>
-            {t('이 요구 삭제')}
+            {t('이 요구사항 삭제')}
           </button>
         )}
         <span className="prd-sp" />

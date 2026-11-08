@@ -50,7 +50,7 @@ export function ApiServers({ 프로젝트 }: { 프로젝트: number }) {
           {줄들.map((r, i) => (
             <div key={r.host} className="set-row">
               <span className="set-name">{r.host}</span>
-              <span className="set-sub">{t('케이스 {수}개', { 수: r.cases })}</span>
+              <span className="set-sub">{t('케이스 {수}건', { 수: r.cases })}</span>
               <input
                 id={`pf-api-${i}`}
                 type="text"

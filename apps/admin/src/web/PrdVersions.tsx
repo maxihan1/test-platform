@@ -115,14 +115,14 @@ function 바뀐것({ service, 판, 앞판, 읽은, 바로 }: { service: string; 
     .filter(([, 수]) => 수 > 0)
     .map(([이름, 수]) => t('{종류} {건수}건', { 종류: 이름, 건수: 수 }))
     .join(' · ');
-  if (줄들.length === 0) return <span className="prd-plain">{t('변경된 요구 없음')}</span>;
+  if (줄들.length === 0) return <span className="prd-plain">{t('변경된 요구사항 없음')}</span>;
   return (
     <>
       <button className="btn ghost small" aria-expanded={폄} onClick={() => set폄(!폄)}>
         {요약}
       </button>
       {!폄 ? null : (
-        <ul className="prd-diff" aria-label={t('버전 {버전}에서 변경된 요구', { 버전: 판 })}>
+        <ul className="prd-diff" aria-label={t('버전 {버전}에서 변경된 요구사항', { 버전: 판 })}>
           {줄들.map((줄) => (
             <차이줄글 key={줄.reqId} 줄={줄} />
           ))}

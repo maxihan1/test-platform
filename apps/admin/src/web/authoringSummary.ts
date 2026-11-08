@@ -11,8 +11,8 @@ const 종류글: Record<요약종류, string> = {
   API_DOC: 'API 문서로 작성',
   UNCOVERED: '기획서에 없는 화면',
   SCREEN_ONLY: '화면만 대조',
-  CONTINUE: '남은 요구 이어 작성',
-  PRD_APPLY: '변경된 요구 다시 작성',
+  CONTINUE: '남은 요구사항 이어 작성',
+  PRD_APPLY: '변경된 요구사항 다시 작성',
   API_APPLY: '변경된 API 다시 작성',
   DECISION: '결정 진행',
   EDIT: '케이스 수정',
@@ -45,10 +45,10 @@ export function 무슨테스트(s: 목록요약, 언어: 언어): string {
   if ((s.kind === 'UNCOVERED' || s.kind === 'SCREEN_ONLY') && w.screens.length > 0) {
     return t('{이름들} 화면 테스트', 언어, { 이름들: 셋과나머지(w.screens, w.screensMore, 언어) });
   }
-  if (s.kind === 'PRD_APPLY' && w.reqs > 0) return t('요구 {수}건 테스트 다시 작성', 언어, { 수: w.reqs });
+  if (s.kind === 'PRD_APPLY' && w.reqs > 0) return t('요구사항 {수}건 테스트 다시 작성', 언어, { 수: w.reqs });
   if (s.kind === 'DECISION' && w.reqs + w.screenRight > 0) {
     const 조각 = [
-      w.reqs > 0 ? t('변경된 요구 {수}건', 언어, { 수: w.reqs }) : null,
+      w.reqs > 0 ? t('변경된 요구사항 {수}건', 언어, { 수: w.reqs }) : null,
       w.screenRight > 0 ? t('화면이 맞음 {수}건', 언어, { 수: w.screenRight }) : null,
     ].filter((x): x is string => x !== null);
     return t('{조각} 테스트 수정', 언어, { 조각: 조각.join(' · ') });
@@ -83,7 +83,7 @@ export function 결과글(s: 목록요약, 언어: 언어): { 글: string; 실�
   const 조각 = [
     (r.casesMade ?? 0) > 0 ? t('케이스 {수}건 만듦', 언어, { 수: r.casesMade! }) : null,
     (r.casesFixed ?? 0) > 0 ? t('케이스 {수}건 수정', 언어, { 수: r.casesFixed! }) : null,
-    r.reqsTotal !== null && r.reqsCovered !== null && r.reqsTotal > 0 ? t('요구 {전체}건 중 {덮음}건', 언어, { 전체: r.reqsTotal, 덮음: r.reqsCovered }) : null,
+    r.reqsTotal !== null && r.reqsCovered !== null && r.reqsTotal > 0 ? t('요구사항 {전체}건 중 {덮음}건', 언어, { 전체: r.reqsTotal, 덮음: r.reqsCovered }) : null,
     (r.held ?? 0) > 0 ? t('보류 {수}건', 언어, { 수: r.held! }) : null,
   ].filter((x): x is string => x !== null);
   return 조각.length === 0 ? null : { 글: 조각.join(' · '), 실패: false };
@@ -97,7 +97,7 @@ export function 시작글(s: 목록요약, 행: { requestedByName: string; creat
   if (f.by === 'AUTO' && f.after !== null) 조각.push(t('#{번호} 다음 · 서버가 자동으로 시작', 언어, { 번호: f.after }));
   if (f.by === 'CASES') 조각.push(t('케이스 목록에서 시작', 언어));
   if (f.by === 'DECISION' && f.decisions !== null) 조각.push(t('결정 {수}건', 언어, { 수: f.decisions }));
-  if (s.kind === 'CONTINUE' && f.after !== null) 조각.push(t('#{번호}의 남은 요구', 언어, { 번호: f.after }));
+  if (s.kind === 'CONTINUE' && f.after !== null) 조각.push(t('#{번호}의 남은 요구사항', 언어, { 번호: f.after }));
   if (f.assets.length > 0) {
     조각.push(t('자료 {이름들}', 언어, { 이름들: 셋과나머지(f.assets.map((a) => 자료이름(a, 언어)), f.assetsMore, 언어) }));
   }

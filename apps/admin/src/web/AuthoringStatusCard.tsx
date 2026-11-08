@@ -38,18 +38,18 @@ function 커버리지글(c: AuthoringCoverage, 상태: AuthoringRow['status'], t
   const 보류 = c.held === null ? (상태 === 'DONE' ? t('입력이 필요한지 확인할 수 없음') : null) : c.held > 0 ? t('입력이 필요한 케이스로만 {수}', { 수: c.held }) : null;
   const 칸 = [
     c.total > 0
-      ? t('요구 {총}개 중 케이스로 만듦 {덮음}개 ({퍼센트}%)', { 총: c.total, 덮음: c.cased, 퍼센트: Math.round((c.cased / c.total) * 100) })
-      : t('요구 {총}개 중 케이스로 만듦 {덮음}개', { 총: c.total, 덮음: c.cased }),
+      ? t('요구사항 {총}개 중 케이스로 만듦 {덮음}개 ({퍼센트}%)', { 총: c.total, 덮음: c.cased, 퍼센트: Math.round((c.cased / c.total) * 100) })
+      : t('요구사항 {총}개 중 케이스로 만듦 {덮음}개', { 총: c.total, 덮음: c.cased }),
     보류,
     c.later.length > 0 ? t('제외 {수} (다음 작성 {다음})', { 수: 제외, 다음: c.later.length }) : t('제외 {수}', { 수: 제외 }),
-    t('빠짐 {수}', { 수: c.missing.length }),
+    t('누락 {수}', { 수: c.missing.length }),
     원장밖 > 0 ? t('PRD 밖 자료 {수}', { 수: 원장밖 }) : null,
   ];
   // 갈래 수는 이 칸 전 실행에 없다 — 0 으로 채우면 「그 갈래로 덮은 요구 0개」로 읽힌다
   const 갈래 =
     c.casedFn === undefined || c.casedUi === undefined
       ? null
-      : t('만든 {덮음}개 중 기능 테스트가 커버한 것 {기능} · UI 테스트가 커버한 것 {UI} — 둘 다 커버한 요구는 양쪽에 집계합니다', { 덮음: c.cased, 기능: c.casedFn, UI: c.casedUi });
+      : t('만든 {덮음}개 중 기능 테스트가 커버한 것 {기능} · UI 테스트가 커버한 것 {UI} — 둘 다 커버한 요구사항은 양쪽에 집계합니다', { 덮음: c.cased, 기능: c.casedFn, UI: c.casedUi });
   return { 셈: 칸.filter((x): x is string => x !== null).join(' · '), 갈래 };
 }
 
@@ -231,7 +231,7 @@ export function AuthoringStatusCard({
             {빠진.length === 0 ? null : (
               <>
                 <br />
-                <span className="hint">{t('빠진 요구')}</span>{' '}
+                <span className="hint">{t('누락된 요구사항')}</span>{' '}
                 {빠진.slice(0, 빠짐보임).map((r) => (
                   <a key={r} className="mono made-req" href={PRD항목주소(r)}>
                     {r}

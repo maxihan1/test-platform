@@ -69,7 +69,7 @@ describe('PRD 관리 — 보류', () => {
   it('보류가 없으면 카드를 그리지 않는다', async () => {
     지금.mockResolvedValue(판());
     render(<Prd service="MKT" 할수={쓰는사람} />);
-    await screen.findByText('버전 12 · 요구 4건');
+    await screen.findByText('버전 12 · 요구사항 4건');
     expect(screen.queryByText(/보류 \d+건/)).toBeNull();
   });
 });
@@ -79,20 +79,20 @@ describe('PRD 관리 — 보류 카드', () => {
 
   it('계정이 없으면 등록하라고 알리고 설정으로 가는 길을 준다 — 이어 작성은 뿌리가 없어 막고 까닭을 적는다', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
-    await screen.findByText('버전 12 · 요구 4건');
+    await screen.findByText('버전 12 · 요구사항 4건');
     expect(within(카드()).getByText('보류 2건 — 관리자 계정이 등록되지 않았습니다')).toBeTruthy();
-    expect(within(카드()).getByText('등록하면 이 요구만 다시 작성합니다')).toBeTruthy();
+    expect(within(카드()).getByText('등록하면 이 요구사항만 다시 작성합니다')).toBeTruthy();
     expect(within(카드()).getByRole('link', { name: '설정에서 계정 등록' }).getAttribute('href')).toBe('#/settings/MKT');
-    expect((within(카드()).getByRole('button', { name: '남은 요구로 이어 작성' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((within(카드()).getByRole('button', { name: '남은 요구사항으로 이어 작성' }) as HTMLButtonElement).disabled).toBe(true);
     expect(within(카드()).getByText('계정을 등록한 뒤에 이어 작성할 수 있습니다')).toBeTruthy();
   });
 
   it('계정을 다 넣었는데 이어 갈 뿌리가 없으면 그 까닭을 적는다', async () => {
     지금.mockResolvedValue(판({ held: 보류({ roles: [{ role: '관리자', count: 2, registered: true }] }) }));
     render(<Prd service="MKT" 할수={쓰는사람} />);
-    await screen.findByText('버전 12 · 요구 4건');
+    await screen.findByText('버전 12 · 요구사항 4건');
     expect(within(카드()).getByText('보류 2건 — 관리자 계정을 등록했습니다')).toBeTruthy();
-    expect(within(카드()).getByText('이어 작성하면 이 요구만 다시 작성합니다')).toBeTruthy();
+    expect(within(카드()).getByText('이어 작성하면 이 요구사항만 다시 작성합니다')).toBeTruthy();
     expect(within(카드()).getByText('이어 작성할 작성 요청이 없습니다')).toBeTruthy();
   });
 
@@ -100,8 +100,8 @@ describe('PRD 관리 — 보류 카드', () => {
     지금.mockResolvedValue(판({ held: 보류({ roles: [{ role: '관리자', count: 2, registered: true }], continueFrom: 5873 }) }));
     const 부름 = vi.spyOn(api, 'createAuthoringRequest').mockResolvedValue({ id: 5901 });
     render(<Prd service="MKT" 할수={쓰는사람} />);
-    await screen.findByText('버전 12 · 요구 4건');
-    fireEvent.click(within(카드()).getByRole('button', { name: '남은 요구로 이어 작성' }));
+    await screen.findByText('버전 12 · 요구사항 4건');
+    fireEvent.click(within(카드()).getByRole('button', { name: '남은 요구사항으로 이어 작성' }));
     await vi.waitFor(() => expect(window.location.hash).toBe('#/authoring/5901'));
     expect(부름).toHaveBeenCalledWith('MKT', { kind: 'AUTHOR', continueFrom: 5873 });
   });
@@ -110,16 +110,16 @@ describe('PRD 관리 — 보류 카드', () => {
     지금.mockResolvedValue(판({ held: 보류({ roles: [{ role: '관리자', count: 2, registered: true }], continueFrom: 5873 }) }));
     vi.spyOn(api, 'createAuthoringRequest').mockRejectedValue(new ApiError(409, 'NOTHING_LEFT', ''));
     render(<Prd service="MKT" 할수={쓰는사람} />);
-    await screen.findByText('버전 12 · 요구 4건');
-    fireEvent.click(within(카드()).getByRole('button', { name: '남은 요구로 이어 작성' }));
+    await screen.findByText('버전 12 · 요구사항 4건');
+    fireEvent.click(within(카드()).getByRole('button', { name: '남은 요구사항으로 이어 작성' }));
     expect((await within(카드()).findByRole('alert')).textContent).not.toBe('');
     expect(window.location.hash).toBe('');
   });
 
   it('작성 write 가 없으면 이어 작성 버튼을 안 그린다', async () => {
     render(<Prd service="MKT" 할수={보는사람} />);
-    await screen.findByText('버전 12 · 요구 4건');
-    expect(within(카드()).queryByRole('button', { name: '남은 요구로 이어 작성' })).toBeNull();
+    await screen.findByText('버전 12 · 요구사항 4건');
+    expect(within(카드()).queryByRole('button', { name: '남은 요구사항으로 이어 작성' })).toBeNull();
     expect(within(카드()).getByRole('link', { name: '설정에서 계정 등록' })).toBeTruthy();
   });
 

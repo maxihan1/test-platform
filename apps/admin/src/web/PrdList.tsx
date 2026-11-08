@@ -79,13 +79,13 @@ export function PrdList({
     <section className="screen prd-all" aria-labelledby="prd-all-title">
       <div className="toolbar">
         <h2 id="prd-all-title" className="prd-all-title">
-          {t('전체 요구')}
+          {t('전체 요구사항')}
         </h2>
         <input
           type="text"
           className="prd-find"
-          aria-label={t('요구 문장 · 번호 검색')}
-          placeholder={t('요구 문장 · 번호 검색')}
+          aria-label={t('요구사항 문장 · 번호 검색')}
+          placeholder={t('요구사항 문장 · 번호 검색')}
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
@@ -98,7 +98,7 @@ export function PrdList({
         </button>
       </div>
       {묶음.length === 0 ? (
-        <div className="empty">{찾는말 === '' ? t('아직 요구가 없습니다') : t('찾는 요구가 없습니다')}</div>
+        <div className="empty">{찾는말 === '' ? t('아직 요구사항이 없습니다') : t('찾는 요구사항이 없습니다')}</div>
       ) : (
         묶음.map((g) => {
           const 확인수 = g.items.filter((x) => x.status === 'NEEDS_CHECK').length;

@@ -162,14 +162,14 @@ describe('묶음 머리', () => {
     await screen.findByText('ZCL-FN-008');
     expect(screen.getByRole('button', { name: /^기능 묶음 없음\s*\d+건/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: '모두 접기' })).toBeTruthy();
-    expect(screen.getByText('연결된 요구 없음')).toBeTruthy();
+    expect(screen.getByText('연결된 요구사항 없음')).toBeTruthy();
   });
 
   it('PRD 를 안 쓰는 애플리케이션은 머리도 「연결된 요구 없음」도 없다', async () => {
     그리기({ 받을쪽: { items: [케이스('ZCL-FN-009')], total: 1, page: 1, pageSize: 50, groups: [{ feature: null, screen: null, screenUrl: null, part: null, tcIds: ['ZCL-FN-009'] }] } });
     await screen.findByText('ZCL-FN-009');
     expect(document.querySelector('.grp')).toBeNull();
-    expect(screen.queryByText('연결된 요구 없음')).toBeNull();
+    expect(screen.queryByText('연결된 요구사항 없음')).toBeNull();
     expect(screen.queryByRole('button', { name: '모두 접기' })).toBeNull();
   });
 });
@@ -267,7 +267,7 @@ describe('종류 칩 · 넘어온 요구 번호', () => {
     const 스파이 = 그리기({ 요구: 'ZCL-REQ-003' });
     await screen.findByText('ZCL-FN-001');
     expect(스파이.mock.calls[0]![0]).toMatchObject({ req: 'ZCL-REQ-003' });
-    fireEvent.click(screen.getByRole('button', { name: '요구 ZCL-REQ-003 조건 풀기' }));
+    fireEvent.click(screen.getByRole('button', { name: '요구사항 ZCL-REQ-003 조건 풀기' }));
     expect(마지막조건(스파이).req).toBeUndefined();
     expect(window.location.hash).toBe('#/cases/fn?service=ZCL');
   });

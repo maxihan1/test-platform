@@ -150,7 +150,7 @@ export function CaseDetail({
       {/* 줄에는 첫 요구만 — 덮는 요구 전부는 여기서 본다 (도메인/카탈로그 §8.1 「맥락」) */}
       {(row.reqs ?? []).length === 0 ? null : (
         <div className="dsec">
-          <div className="dlabel">{t('요구')}</div>
+          <div className="dlabel">{t('요구사항')}</div>
           <ul className="dlist case-reqs">
             {row.reqs!.map((r) => (
               <li key={`${r.reqId}:${r.axis}`}>

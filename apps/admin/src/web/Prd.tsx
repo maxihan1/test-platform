@@ -96,7 +96,7 @@ export function Prd({
       <Head
         위치={t('PRD 관리')}
         제목={t('요구사항')}
-        부제={now.version === 0 ? t('아직 PRD 가 없습니다') : t('버전 {버전} · 요구 {건수}건', { 버전: now.version, 건수: now.items.length })}
+        부제={now.version === 0 ? t('아직 PRD 가 없습니다') : t('버전 {버전} · 요구사항 {건수}건', { 버전: now.version, 건수: now.items.length })}
         행동={
           <>
             {/* 기획서를 올려 작성을 시키는 곳은 테스트 작성 화면이다 — 이 메뉴에서 바로 가는 길을 맨 앞에 둔다 (점검 8.1) */}
@@ -114,7 +114,7 @@ export function Prd({
               <>
                 <span className="prd-menu">
                   <button className="btn ghost" aria-expanded={메뉴} aria-haspopup="true" onClick={() => set메뉴(!메뉴)} disabled={받는중 !== null}>
-                    <기다림글자 중={받는중 !== null} 평소={t('다운로드')} 기다림={t('만드는 중…')} />
+                    <기다림글자 중={받는중 !== null} 평소={t('다운로드')} 기다림={t('만드는 중')} />
                     <span aria-hidden="true"> ▾</span>
                   </button>
                   {메뉴 ? (
@@ -150,7 +150,7 @@ export function Prd({
         <div className="screen">
           <div className="empty">
             {t('아직 PRD 가 없습니다')}
-            {쓰나 ? <small>{t('테스트 작성 요청으로 기획서를 업로드하거나, 요구사항 추가로 첫 요구를 직접 적습니다')}</small> : null}
+            {쓰나 ? <small>{t('테스트 작성 요청으로 기획서를 업로드하거나, 요구사항 추가로 첫 요구사항을 직접 적습니다')}</small> : null}
           </div>
         </div>
       ) : (

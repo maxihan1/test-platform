@@ -262,7 +262,7 @@ export function SettingsWizard(p: Props) {
                 </button>
               ) : null}
               <button type="button" className="btn" disabled={보내는중} onClick={다음}>
-                {st === 'confirm' ? <기다림글자 중={보내는중} 평소={t('만들기')} 기다림={t('만드는 중…')} /> : t('다음')}
+                {st === 'confirm' ? <기다림글자 중={보내는중} 평소={t('만들기')} 기다림={t('만드는 중')} /> : t('다음')}
               </button>
             </div>
           </div>

@@ -51,7 +51,7 @@ function 끝난초안({ x, 고른, on고름 }: { x: 초안항목; 고른: 고른
     <div className="decide-item">
       <div className="decide-qline">
         <span className="decide-q">
-          {x.rows.length === 0 ? t('배포된 기능 {수}건으로 변경된 요구가 없어요', { 수: x.issues.length }) : t('배포된 기능 {수}건으로 PRD 를 수정할까요?', { 수: x.issues.length })}
+          {x.rows.length === 0 ? t('배포된 기능 {수}건으로 변경된 요구사항이 없어요', { 수: x.issues.length }) : t('배포된 기능 {수}건으로 PRD 를 수정할까요?', { 수: x.issues.length })}
         </span>
         {x.picks.length === 0 ? null : (
           <span className="chip-group decide-choices" role="group">
@@ -90,7 +90,7 @@ function 끝난초안({ x, 고른, on고름 }: { x: 초안항목; 고른: 고른
             <br />
             <small className="hint">
               {r.basis}
-              {r.gone ? <> · {t('지금 기획서에 없는 요구라 선택할 수 없어요')}</> : r.sure ? null : <> · {t('체크하지 않으면 「확인 필요」로 남아요')}</>}
+              {r.gone ? <> · {t('지금 기획서에 없는 요구사항이라 선택할 수 없어요')}</> : r.sure ? null : <> · {t('체크하지 않으면 「확인 필요」로 남아요')}</>}
             </small>
           </span>
         </label>

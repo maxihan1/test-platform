@@ -109,8 +109,8 @@ export function 의도확인({
       <div className="decide-qline">
         <span className="decide-q">
           {화면기준
-            ? t('기획서에 없어서 화면을 보고 적은 요구 {수}건입니다. 이대로 확정할까요?', { 수: 줄들.length })
-            : t('확인이 필요한 요구 {수}건입니다. 이대로 확정할까요?', { 수: 줄들.length })}
+            ? t('기획서에 없어서 화면을 보고 적은 요구사항 {수}건입니다. 이대로 확정할까요?', { 수: 줄들.length })
+            : t('확인이 필요한 요구사항 {수}건입니다. 이대로 확정할까요?', { 수: 줄들.length })}
         </span>
         {고를수있는.length < 2 ? null : (
           <button className="btn ghost small" type="button" onClick={() => 고를수있는.forEach((x) => 확정(x.key))}>
@@ -126,7 +126,7 @@ export function 의도확인({
         return (
           <div key={x.key} className="decide-sub">
             <div className="decide-box">
-              <span className="hint">{t('요구')}</span>
+              <span className="hint">{t('요구사항')}</span>
               <span>
                 <a className="prd-id" href={PRD항목주소(x.reqId)}>
                   {x.reqId}

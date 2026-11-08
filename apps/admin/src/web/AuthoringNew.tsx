@@ -142,7 +142,7 @@ export function AuthoringNew({
           ? ''
           : await api.discardAuthoring(service, id).then(
               () => '',
-              () => ` ${t('목록에 남은 그 줄은 폐기하세요')}`,
+              () => ` ${t('목록에 남은 그 줄은 삭제하세요')}`,
             );
       set오류(`${t('이 요청은 대기열에 들어가지 못했습니다. 새 요청으로 다시 넣으세요')} (${어디})${치움}`);
       set보내는중(false);
@@ -287,7 +287,7 @@ export function AuthoringNew({
         </>
       )}
       <button className="btn" type="submit" disabled={못보낸다 || 보내는중}>
-        <기다림글자 중={보내는중} 평소={t('테스트 작성 시작')} 기다림={t('시작하는 중…')} />
+        <기다림글자 중={보내는중} 평소={t('테스트 작성 시작')} 기다림={t('시작하는 중')} />
       </button>
       {[...거절].map(([이유, 이름들]) => (
         <span key={이유} className="error-text">

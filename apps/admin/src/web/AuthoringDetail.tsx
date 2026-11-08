@@ -146,7 +146,7 @@ export function AuthoringDetail({
         {원본 === null ? null : (
           <>
             {' · '}
-            <a href={`#/authoring/${String(원본)}`}>{t('#{번호}의 남은 요구', { 번호: 원본 })}</a>
+            <a href={`#/authoring/${String(원본)}`}>{t('#{번호}의 남은 요구사항', { 번호: 원본 })}</a>
           </>
         )}
         {앞대조 === null ? null : (

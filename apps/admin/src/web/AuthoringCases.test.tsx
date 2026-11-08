@@ -189,8 +189,8 @@ describe('계정 없음 단계', () => {
   it('운영자에게는 없는 역할 이름 · 요구 번호 고리 · 설정에서 등록 고리를 낸다', async () => {
     지금([{ role: '판매자', count: 1, registered: false }], { 'FR-021': ['판매자'], 'FR-030': ['구매자'] });
     render(<AuthoringTodo service="PAY" 요청={반영줄()} 커버리지={계정셈} 할수={운영} 차이수={0} reload={reload} />);
-    expect(screen.getByText('계정이 없어 못 쓴 요구 2개')).toBeTruthy();
-    expect(await screen.findByText('판매자 계정이 없어 테스트를 못 썼습니다. 계정을 넣으면 이 요구만 이어 작성합니다')).toBeTruthy();
+    expect(screen.getByText('계정이 없어 못 쓴 요구사항 2개')).toBeTruthy();
+    expect(await screen.findByText('판매자 계정이 없어 테스트를 못 썼습니다. 계정을 넣으면 이 요구사항만 이어 작성합니다')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'FR-021' }).getAttribute('href')).toBe('#/prd/FR-021');
     expect(screen.queryByRole('link', { name: 'FR-030' })).toBeNull();
     expect(screen.getByRole('link', { name: '설정에서 판매자 계정 등록' }).getAttribute('href')).toBe('#/settings/PAY');
@@ -206,7 +206,7 @@ describe('계정 없음 단계', () => {
   it('그새 계정을 다 넣었으면 PRD 관리에서 이어 작성하라고 하고 역할 이름은 안 적는다', async () => {
     지금([{ role: '판매자', count: 1, registered: true }], { 'FR-021': ['판매자'] });
     render(<AuthoringTodo service="PAY" 요청={반영줄()} 커버리지={계정셈} 할수={운영} 차이수={0} reload={reload} />);
-    expect(await screen.findByText('필요한 계정을 모두 넣었습니다. PRD 관리에서 이 요구만 이어 작성하세요')).toBeTruthy();
+    expect(await screen.findByText('필요한 계정을 모두 넣었습니다. PRD 관리에서 이 요구사항만 이어 작성하세요')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'PRD 관리로 가기' }).getAttribute('href')).toBe('#/prd');
     expect(screen.queryByRole('link', { name: /설정에서/ })).toBeNull();
   });
@@ -214,14 +214,14 @@ describe('계정 없음 단계', () => {
   it('계정 때문에 제외한 요구가 없으면 단계를 안 그린다', () => {
     const 읽기 = 지금([], {});
     render(<AuthoringTodo service="PAY" 요청={반영줄()} 커버리지={{ ...계정셈, excluded: {} }} 할수={운영} 차이수={0} reload={reload} />);
-    expect(screen.queryByText(/계정이 없어 못 쓴 요구/)).toBeNull();
+    expect(screen.queryByText(/계정이 없어 못 쓴 요구사항/)).toBeNull();
     expect(읽기).not.toHaveBeenCalled();
   });
 
   it('끝난 작성 요청의 다음 단계에도 같은 단계가 있다', async () => {
     지금([{ role: '판매자', count: 1, registered: false }], { 'FR-021': ['판매자'] });
     render(<AuthoringTodo service="PAY" 요청={줄({})} 커버리지={계정셈} 할수={운영} 차이수={0} reload={reload} />);
-    expect(screen.getByText('계정이 없어 못 쓴 요구 2개')).toBeTruthy();
+    expect(screen.getByText('계정이 없어 못 쓴 요구사항 2개')).toBeTruthy();
     expect(await screen.findByRole('link', { name: '설정에서 판매자 계정 등록' })).toBeTruthy();
   });
 });
@@ -230,14 +230,14 @@ describe('폐기 확인 창', () => {
   it('PR 이 있으면 PR 닫으러 가기 고리를 그 PR 주소로 낸다', () => {
     render(<AuthoringTodo service="PAY" 요청={줄({ canDiscard: true })} 할수={운영} 차이수={0} reload={reload} />);
     expect(screen.queryByRole('link', { name: 'PR 닫으러 가기' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: '폐기' }));
+    fireEvent.click(screen.getByRole('button', { name: '삭제' }));
     expect(screen.getByRole('link', { name: 'PR 닫으러 가기' }).getAttribute('href')).toBe('https://github.com/x/y/pull/3');
   });
 
   it('PR 이 없으면 고리를 안 낸다', () => {
     render(<AuthoringTodo service="PAY" 요청={줄({ status: 'FAILED', prUrl: null, canDiscard: true })} 할수={운영} 차이수={0} reload={reload} />);
-    fireEvent.click(screen.getByRole('button', { name: '폐기' }));
-    expect(screen.getByText('이 요청을 폐기할까요?')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '삭제' }));
+    expect(screen.getByText('이 요청을 삭제할까요?')).toBeTruthy();
     expect(screen.queryByRole('link', { name: 'PR 닫으러 가기' })).toBeNull();
   });
 });

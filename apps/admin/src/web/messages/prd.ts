@@ -4,14 +4,14 @@
 export const 기획서말: Record<string, string> = {
   // 머리와 알림
   '아직 PRD 가 없습니다': 'No PRD yet',
-  '버전 {버전} · 요구 {건수}건': 'Version {버전} · {건수} requirements',
+  '버전 {버전} · 요구사항 {건수}건': 'Version {버전} · {건수} requirements',
   '버전 기록': 'Version history',
   '워드 다운로드': 'Download as Word',
   '추적표 엑셀 다운로드': 'Download traceability matrix',
   다운로드: 'Download',
   '테스트 작성 요청': 'Request test authoring',
   '요구사항 추가': 'Add requirement',
-  '테스트 작성 요청으로 기획서를 업로드하거나, 요구사항 추가로 첫 요구를 직접 적습니다':
+  '테스트 작성 요청으로 기획서를 업로드하거나, 요구사항 추가로 첫 요구사항을 직접 적습니다':
     'Upload a spec with Request test authoring, or write the first requirement yourself with Add requirement',
   '저장했습니다 (버전 {버전})': 'Saved (version {버전})',
 
@@ -33,12 +33,12 @@ export const 기획서말: Record<string, string> = {
   'UI 실패 {건수}건 보기': 'View {건수} failing UI cases',
 
   // 전체 요구
-  '전체 요구': 'All requirements',
-  '요구 문장 · 번호 검색': 'Search requirement text or ID',
+  '전체 요구사항': 'All requirements',
+  '요구사항 문장 · 번호 검색': 'Search requirement text or ID',
   '모두 펴기': 'Expand all',
   '모두 접기': 'Collapse all',
-  '아직 요구가 없습니다': 'No requirements yet',
-  '찾는 요구가 없습니다': 'No matching requirements',
+  '아직 요구사항이 없습니다': 'No requirements yet',
+  '찾는 요구사항이 없습니다': 'No matching requirements',
   '{건수}건': '{건수}',
   '모두 확인 필요': 'All need checking',
   '모두 보류': 'All on hold',
@@ -51,14 +51,14 @@ export const 기획서말: Record<string, string> = {
   '테스트 작성 › 결정 필요에서 테스트를 다시 만들 수 있어요 →': 'You can remake the tests in Test authoring › Decisions needed →',
   출처: 'Source',
   '설계 미리보기': 'Test design preview',
-  '요구 문장에서 잡힌 경계 · 예외가 없습니다': 'No boundaries or exceptions found in this requirement',
+  '요구사항 문장에서 잡힌 경계 · 예외가 없습니다': 'No boundaries or exceptions found in this requirement',
   수정: 'Edit',
 
   // 보류 카드 — 계정이 없어 테스트를 못 쓴 요구 (도메인/작성 §3.6 「★ 역할별 계정」)
   '보류 {건수}건 — {역할} 계정이 등록되지 않았습니다': '{건수} on hold — no {역할} account registered',
   '보류 {건수}건 — {역할} 계정을 등록했습니다': '{건수} on hold — {역할} account registered',
-  '등록하면 이 요구만 다시 작성합니다': 'Once registered, only these requirements are written again',
-  '이어 작성하면 이 요구만 다시 작성합니다': 'Resuming writes only these requirements again',
+  '등록하면 이 요구사항만 다시 작성합니다': 'Once registered, only these requirements are written again',
+  '이어 작성하면 이 요구사항만 다시 작성합니다': 'Resuming writes only these requirements again',
   '설정에서 계정 등록': 'Register accounts in Settings',
   '이어 작성할 작성 요청이 없습니다': 'No authoring request to resume from',
   '계정을 등록한 뒤에 이어 작성할 수 있습니다': 'Register the account first, then resume',
@@ -77,9 +77,9 @@ export const 기획서말: Record<string, string> = {
   '마지막 결과를 못 읽었습니다 — {까닭}': 'Could not load the latest results — {까닭}',
 
   // 고치기 · 더하기 칸
-  '새 요구': 'New requirement',
+  '새 요구사항': 'New requirement',
   '기능 묶음': 'Feature',
-  '요구 문장': 'Requirement',
+  '요구사항 문장': 'Requirement',
   '규칙 하나만 적습니다. 숫자 · 조건 낱말(이상 · 미만 · 까지)은 원문 그대로 둡니다':
     'One rule per requirement. Keep numbers and condition words exactly as in the source.',
   '자료 이름': 'Document',
@@ -87,18 +87,18 @@ export const 기획서말: Record<string, string> = {
   '원본 번호 · 화면 주소': 'Source ID or screen URL',
   '원본 문장': 'Source sentence',
   '출처 추가': 'Add source',
-  '출처는 「직접 작성」으로 자동으로 달립니다. 저장한 뒤 요구 줄의 수정에서 더할 수 있습니다':
+  '출처는 「직접 작성」으로 자동으로 달립니다. 저장한 뒤 요구사항 줄의 수정에서 더할 수 있습니다':
     'The source is set to “직접 작성” (direct entry) automatically. After saving, add more from Edit on the requirement',
-  '이 요구 삭제': 'Delete this requirement',
+  '이 요구사항 삭제': 'Delete this requirement',
   // 「지우기 확인」은 입력값 지우기(Confirm clear)에 이미 쓰인다 — 여기는 요구를 지운다
-  '삭제 확인§요구': 'Confirm delete',
+  '삭제 확인§요구사항': 'Confirm delete',
   '삭제 안 함': 'Keep it',
   '기능 묶음을 적습니다': 'Enter a feature',
-  '요구 문장을 적습니다': 'Enter the requirement',
+  '요구사항 문장을 적습니다': 'Enter the requirement',
   '출처를 하나 이상 적습니다': 'Add at least one source',
   '출처마다 자료 이름을 적습니다': 'Every source needs a document name',
   '출처마다 원본 문장을 적습니다': 'Every source needs a sentence',
-  '글자 수 상한을 넘었습니다 — 기능 묶음 {묶음}자 · 요구 문장 {문장}자 · 출처 {근거}개 · 자료 이름 · 원본 번호 {자리}자 · 출처 문장 {근거문장}자':
+  '글자 수 상한을 넘었습니다 — 기능 묶음 {묶음}자 · 요구사항 문장 {문장}자 · 출처 {근거}개 · 자료 이름 · 원본 번호 {자리}자 · 출처 문장 {근거문장}자':
     'Too long. Limits: feature {묶음} chars · requirement {문장} chars · {근거} sources · document name and source ID {자리} chars · source sentence {근거문장} chars',
 
   // 버전 기록 — 사람이 보는 말은 「버전」이고 명세 · DB · 에이전트의 내부 용어는 「판」 그대로다 (2026-10-12 사용자)
@@ -129,9 +129,9 @@ export const 기획서말: Record<string, string> = {
   '출처 {자료}': 'from {자료}',
   '변경 사항 보기': 'Show changes',
   '처음 버전': 'First version',
-  '변경된 요구 없음': 'No requirement changed',
+  '변경된 요구사항 없음': 'No requirement changed',
   '{종류} {건수}건': '{종류}: {건수}',
-  '버전 {버전}에서 변경된 요구': 'Requirements changed in version {버전}',
+  '버전 {버전}에서 변경된 요구사항': 'Requirements changed in version {버전}',
   '상태만 변경': 'Status only',
   '확정으로 변경': 'Now confirmed',
   '확인 필요로 변경': 'Now needs checking',

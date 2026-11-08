@@ -129,7 +129,7 @@ export function 끝난결과(props: Props) {
       />
       {견줌오류 === null ? null : (
         <p className="hint">
-          {t('직전 실행과 비교하지 못했습니다')} {견줌오류}
+          {t('이전 실행과 비교하지 못했습니다')} {견줌오류}
         </p>
       )}
 

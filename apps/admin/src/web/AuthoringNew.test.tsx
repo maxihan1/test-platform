@@ -180,7 +180,7 @@ describe('새 작성 요청 — 자료 목록', () => {
     파일을고른다('기획서.pdf');
     fireEvent.click(보내기());
 
-    const 꺼진것 = await screen.findByRole('button', { name: '시작하는 중…' });
+    const 꺼진것 = await screen.findByRole('button', { name: '시작하는 중' });
     expect(꺼진것).toHaveProperty('disabled', true);
     풀기({ id: 1 });
   });
@@ -198,7 +198,7 @@ describe('새 작성 요청 — 자료 목록', () => {
     expect(부름.map((b) => b.무엇)).toEqual(['만들기', '업로드', '업로드', '치우기']);
     expect(부름.at(-1)?.값).toEqual({ id: 7 });
     expect(screen.getByText(/\(둘\.docx — /)).toBeTruthy();
-    expect(screen.queryByText(/목록에 남은 그 줄은 폐기하세요/)).toBeNull();
+    expect(screen.queryByText(/목록에 남은 그 줄은 삭제하세요/)).toBeNull();
     expect(넣었다).toBe(0);
   });
 
@@ -218,7 +218,7 @@ describe('새 작성 요청 — 자료 목록', () => {
     render(<AuthoringNew service="PAY" on넣었다={() => {}} />);
     파일을고른다('하나.pdf');
     fireEvent.click(보내기());
-    expect(await screen.findByText(/목록에 남은 그 줄은 폐기하세요/)).toBeTruthy();
+    expect(await screen.findByText(/목록에 남은 그 줄은 삭제하세요/)).toBeTruthy();
   });
 
   it('받지 않는 종류를 고르면 보내기 전에 이유를 보이고 버튼을 끈다', () => {

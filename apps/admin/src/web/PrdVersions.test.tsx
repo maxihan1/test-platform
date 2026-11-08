@@ -151,7 +151,7 @@ describe('PRD 관리 — 버전 기록', () => {
     expect(within(줄들[1]!).getByText('처음 버전')).toBeTruthy();
     expect(within(줄들[0]!).queryByRole('list')).toBeNull();
     fireEvent.click(요약);
-    const 목록 = within(줄들[0]!).getByRole('list', { name: '버전 12에서 변경된 요구' });
+    const 목록 = within(줄들[0]!).getByRole('list', { name: '버전 12에서 변경된 요구사항' });
     const 항목들 = within(목록).getAllByRole('listitem').map((x) => x.textContent);
     expect(항목들).toEqual([
       '변경MKT-REQ-032아이디 칸에는 12자까지만 들어간다 → 아이디 칸에는 12자까지만 들어간다(고침)',

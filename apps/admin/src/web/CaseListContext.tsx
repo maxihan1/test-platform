@@ -96,7 +96,7 @@ export function 요구줄({ row, 요구보나, 요구쓰나 }: { row: CaseRow; �
   const 첫 = reqs[0];
   const 더 = new Set(reqs.map((r) => r.reqId)).size - 1;
   // PRD 를 안 쓰는 서비스는 줄마다 「없음」을 달지 않는다 — 줄 하나만 버린다
-  if (첫 === undefined) return 요구쓰나 ? <span className="case-req none">{t('연결된 요구 없음')}</span> : null;
+  if (첫 === undefined) return 요구쓰나 ? <span className="case-req none">{t('연결된 요구사항 없음')}</span> : null;
   return (
     <span className="case-req">
       {첫.text === null || !요구보나 ? (
@@ -179,7 +179,7 @@ export function 걸린칩들({
   return (
     <>
       {검색.묶음 === null ? null : <걸린칩 글={검색.묶음.이름} on풀기={() => 검색.on묶음(null)} />}
-      {검색.요구 === null ? null : <걸린칩 글={t('요구 {번호}', { 번호: 검색.요구 })} on풀기={검색.요구지우기} />}
+      {검색.요구 === null ? null : <걸린칩 글={t('요구사항 {번호}', { 번호: 검색.요구 })} on풀기={검색.요구지우기} />}
     </>
   );
 }

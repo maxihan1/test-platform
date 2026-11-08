@@ -73,7 +73,7 @@ export function AuthoringMergeFailed({ service, 실행, 원본, 권한, 반영�
   const 다시작성단추 =
     권한 && 원본 !== null ? (
       <button className={까닭 === 'CLASH' ? 'btn' : 'btn ghost'} type="button" disabled={보내는중} onClick={다시작성}>
-        <기다림글자 중={보내는중} 평소={t('같은 자료로 다시 작성')} 기다림={t('시작하는 중…')} />
+        <기다림글자 중={보내는중} 평소={t('같은 자료로 다시 작성')} 기다림={t('시작하는 중')} />
       </button>
     ) : null;
 

@@ -112,12 +112,12 @@ export function ApiDocs({ service, 할수, 버전, 설정보나 }: { service: Se
             {/* 문서 경로 · 기준 서버가 설정에 없으면 받을 곳이 없다 — 버튼 대신 파일 첨부만 남는다 */}
             {쓰나 && docPath !== null && docEnv !== null ? (
               <button className="btn ghost" disabled={받는중 !== null} onClick={() => void 넣기('fetch', () => apiDocApi.fetch(id))}>
-                <기다림글자 중={받는중 === 'fetch'} 평소={t('문서 가져오기')} 기다림={t('받는 중…')} />
+                <기다림글자 중={받는중 === 'fetch'} 평소={t('문서 가져오기')} 기다림={t('받는 중')} />
               </button>
             ) : null}
             {쓰나 ? (
               <button className="btn ghost" disabled={받는중 !== null} onClick={() => 파일칸.current?.click()}>
-                <기다림글자 중={받는중 === 'upload'} 평소={t('파일 첨부')} 기다림={t('업로드 중…')} />
+                <기다림글자 중={받는중 === 'upload'} 평소={t('파일 첨부')} 기다림={t('업로드 중')} />
               </button>
             ) : null}
             {versions.length === 0 ? null : (

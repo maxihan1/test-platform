@@ -153,7 +153,7 @@ describe('작성 권한 칸', () => {
     const 첫 = await screen.findByText(/#5873의 남은 요구/);
     expect(첫.textContent).toContain('#5873의 남은 요구');
     expect(첫.closest('a')).toBe(null);
-    expect(screen.getAllByText('남은 요구 이어 작성')).toHaveLength(1);
+    expect(screen.getAllByText('남은 요구사항 이어 작성')).toHaveLength(1);
   });
 
   it('대조 병합 뒤 서버가 세운 기획서에 없는 화면 요청 줄은 종류 꼬리표와 앞 뿌리 번호를 단다 — 요청한 사람은 안 적는다', async () => {
