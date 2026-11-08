@@ -24,6 +24,8 @@ export class 주문완료화면 {
 
   async 다그려질때까지(): Promise<void> {
     await this.제목.waitFor();
+    await this.주문번호.filter({ hasText: /\S/ }).waitFor();
+    await this.결제금액.filter({ hasText: /\S/ }).waitFor();
   }
 
   async 주문번호글(): Promise<string> {
