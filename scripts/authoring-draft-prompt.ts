@@ -5,6 +5,9 @@ import { 상한 } from '../apps/admin/src/prd/rules.js';
 import { 끝점검, 말투, 비밀값, 자료는자료, 제품이름 } from './authoring-prompt-common.js';
 import { 가림표, 계정섞였나, 글모두 } from './authoring-reverse.js';
 
+/** 화면 탐침 명령. 자식 인자의 허용 목록(`Bash(<이것>:*)`)과 지시문이 같은 값을 쓴다 — 어긋나면 자식이 화면을 못 연다 */
+export const 탐침명령 = 'playwright cli';
+
 /** 집기 응답의 `draft` 칸 — 서버(bts/draft.ts 초안집기칸)가 만든 그대로다 */
 export interface 초안자료 {
   projectId: number;
@@ -88,7 +91,7 @@ export function 초안지시문(입력: { 자료: 초안자료; 서비스: strin
     `3. ${초안파일.PRD} 에서 그 이슈가 건드리는 요구를 찾는다.`,
     ...(화면
       ? [
-          '4. 이슈가 말하는 화면만 브라우저로 열어 본다. 도구는 playwright-cli 하나다(Bash 로 playwright-cli 만 부를 수 있다). 처음엔 `playwright-cli --help` 로 명령을 본다.',
+          `4. 이슈가 말하는 화면만 브라우저로 열어 본다. 도구는 \`${탐침명령}\` 하나다(Bash 로 \`${탐침명령} …\` 만 부를 수 있고 npx · cd · 파이프는 막힌다). 처음엔 \`${탐침명령} --help\` 로 명령을 본다.`,
           '   주소는 환경 변수 TARGET_BASE_URL 이다. 로그인이 필요하면 TARGET_LOGIN_ID · TARGET_LOGIN_PASSWORD 를 `"$TARGET_LOGIN_PASSWORD"` 처럼 변수째 넘긴다. 값을 글로 옮겨 적지 않는다. 그 계정으로 못 여는 화면(관리자 전용 같은 역할 화면)은 열지 않고 이슈 글로만 쓴다.',
           '   다 보면 브라우저를 닫는다. 앱 전체를 훑지 않는다 — 이슈가 말한 기능 화면만.',
         ]

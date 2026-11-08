@@ -1,9 +1,12 @@
 // PRD 초안 자식 — 일 가르기 · 화면을 열지 · 입력 파일 · 비밀번호 가리기 · 지시문 · 출력 읽기 · 자식 인자 (도메인/BTS 「PRD 초안 → 결정 필요」)
 
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
-import { E2E만틀림, 초안자식인자 } from './authoring-draft.js';
-import { 값가리기, 비밀섞였나, 요청글, 초안일인가, 초안지시문, 출력읽기, 화면보나, type 초안자료 } from './authoring-draft-prompt.js';
+import { E2E만틀림, 초안자식인자, 탐침PATH } from './authoring-draft.js';
+import { 값가리기, 비밀섞였나, 요청글, 초안일인가, 초안지시문, 출력읽기, 탐침명령, 화면보나, type 초안자료 } from './authoring-draft-prompt.js';
 import { 가림표 } from './authoring-reverse.js';
 
 const 자료: 초안자료 = {
@@ -50,9 +53,11 @@ describe('입력 파일', () => {
 });
 
 describe('초안지시문', () => {
-  it('웹이면 playwright-cli 로 이슈가 말한 화면만 열고 계정은 변수째 넘기게 한다', () => {
+  it('웹이면 허용된 탐침 명령(playwright cli)으로 이슈가 말한 화면만 열고 계정은 변수째 넘기게 한다', () => {
     const 글 = 초안지시문({ 자료, 서비스: 'MKW', 폴더: '/w/data', 화면: true });
-    expect(글).toContain('playwright-cli');
+    expect(탐침명령).toBe('playwright cli');
+    expect(글).toContain(`\`${탐침명령} --help\``);
+    expect(글).not.toContain('playwright-cli');
     expect(글).toContain('"$TARGET_LOGIN_PASSWORD"');
     expect(글).toContain('DM-12 · DM-13');
     expect(글).toContain('/w/data/draft-output.json');
@@ -61,7 +66,7 @@ describe('초안지시문', () => {
   it('화면이 없으면 열지 말라고 하고, 같은 프로젝트의 다른 애플리케이션이 있을 때만 E2E 제안을 말한다', () => {
     const 혼자 = 초안지시문({ 자료: { ...자료, services: [자료.services[0]!] }, 서비스: 'MKW', 폴더: '/w', 화면: false });
     expect(혼자).toContain('화면을 열지 않는다');
-    expect(혼자).not.toContain('playwright-cli');
+    expect(혼자).not.toContain(탐침명령);
     expect(혼자).not.toContain('E2E 시나리오를 제안');
     expect(초안지시문({ 자료, 서비스: 'MKW', 폴더: '/w', 화면: false })).toContain('MKO 데모마켓 운영툴');
   });
@@ -113,14 +118,24 @@ describe('출력읽기', () => {
 });
 
 describe('초안자식인자', () => {
-  it('웹이면 Bash 를 열되 playwright-cli 만 허용하고, 아니면 Bash 를 안 연다', () => {
+  it('웹이면 Bash 를 열되 지침이 말하는 탐침 명령 하나만 허용하고, 아니면 Bash 를 안 연다', () => {
     const 웹 = 초안자식인자('sonnet' as never, '/w/data', '/w/tmp', '/w/tmp/mcp.json', true);
     expect(웹).toContain('Read,Write,Edit,Glob,Grep,Bash');
-    expect(웹.slice(웹.indexOf('--allowedTools') + 1)).toEqual(['mcp__qa-hub', 'Bash(playwright-cli:*)']);
+    expect(웹.slice(웹.indexOf('--allowedTools') + 1)).toEqual(['mcp__qa-hub', `Bash(${탐침명령}:*)`]);
     const 앱 = 초안자식인자('sonnet' as never, '/w/data', '/w/tmp', '/w/tmp/mcp.json', false);
     expect(앱).toContain('Read,Write,Edit,Glob,Grep');
     expect(앱.slice(앱.indexOf('--allowedTools') + 1)).toEqual(['mcp__qa-hub']);
     expect(앱).not.toContain('--bare');
+  });
+});
+
+describe('탐침PATH', () => {
+  it('저장소 node_modules/.bin 을 앞에 붙여 작업 폴더가 저장소 밖이어도 playwright 를 찾는다', () => {
+    const 경로 = 탐침PATH('/usr/bin:/bin');
+    const 앞 = 경로.split(':')[0]!;
+    expect(경로.endsWith(':/usr/bin:/bin')).toBe(true);
+    expect(앞.endsWith(join('node_modules', '.bin'))).toBe(true);
+    expect(existsSync(join(앞, 'playwright'))).toBe(true);
   });
 });
 
