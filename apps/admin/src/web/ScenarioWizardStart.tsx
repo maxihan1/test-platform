@@ -153,9 +153,9 @@ export function AI칸(p: {
   );
   return (
     <>
-      {/* 도는 중에도 누른다 — 글을 바꿨으면 새 일이고, 같은 글이면 서버가 도는 일 번호를 돌려준다 (§7 flow-suggestions) */}
+      {/* 도는 중에도 글을 바꿨으면 누른다 — 새 일이 선다. 같은 글이면 도는 일과 같아 누를 까닭이 없다 (§7 flow-suggestions) */}
       <흐름칸 바람={p.바람} on바람={p.on바람}>
-        <button type="button" className="btn ghost" onClick={p.on다시}>
+        <button type="button" className="btn ghost" disabled={흐름.도나 && p.바람.trim() === 흐름.맡긴글} onClick={p.on다시}>
           {t('다시 추천받기')}
         </button>
       </흐름칸>

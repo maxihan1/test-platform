@@ -66,6 +66,7 @@ export function useFlowSuggest(): 흐름일 {
     set결과(null);
     set맡기는중(false);
     set맡겼나(false);
+    set맡긴글('');
     set꺼짐(false);
     set오류(null);
   }
