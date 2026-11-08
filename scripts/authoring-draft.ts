@@ -32,13 +32,16 @@ const 출력상한 = 초안몸상한;
  * `.bin` 을 앞에 붙인다 — 컨테이너(/repo)든 맥 대체 실행이든 이 파일이 읽는 node_modules 가 기준이다
  */
 export function 탐침PATH(부모: string | undefined): string {
-  const 빈 = join(dirname(createRequire(import.meta.url).resolve('playwright/package.json')), '..', '.bin');
+  // 직접 깐 @playwright/test 가 기준이다 — .bin/playwright 가 그 cli.js 를 가리킨다
+  const 빈 = join(dirname(createRequire(import.meta.url).resolve('@playwright/test/package.json')), '..', '..', '.bin');
   return 부모 === undefined || 부모 === '' ? 빈 : `${빈}:${부모}`;
 }
 
 /**
  * 자식 인자. 도구는 작업 폴더의 파일 읽기 · 쓰기와 QA Hub MCP, 웹이면 탐침 명령(`playwright cli`) 하나뿐이다 —
- * `--tools` 에 Bash 를 넣어도 `-p` 의 허용 목록 밖 명령은 거절된다(묻지 못하니). 프롬프트는 stdin 으로 간다
+ * `--tools` 에 Bash 를 넣어도 `-p` 의 허용 목록 밖 명령은 거절된다(묻지 못하니). 프롬프트는 stdin 으로 간다.
+ * 사용자 설정은 읽지 않는다 — 컨테이너의 새 집(새집)과 맥 사용자 설정이 둘 다 `Bash(*)` 를 허용해 허용 목록이 무력해진다
+ * (2026-11-08 실측: 사용자 설정을 읽으면 `ls /` 가 통과하고, 빼면 막히고 탐침만 돈다)
  */
 export function 초안자식인자(모델값: 모델, 자료폴더: string, 임시: string, 설정파일: string, 화면: boolean): string[] {
   return [
@@ -55,6 +58,8 @@ export function 초안자식인자(모델값: 모델, 자료폴더: string, 임�
     '--tools',
     화면 ? 'Read,Write,Edit,Glob,Grep,Bash' : 'Read,Write,Edit,Glob,Grep',
     '--disable-slash-commands',
+    '--setting-sources',
+    'project,local',
     '--strict-mcp-config',
     '--mcp-config',
     설정파일,

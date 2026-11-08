@@ -1,6 +1,6 @@
 // PRD 초안 자식 — 일 가르기 · 화면을 열지 · 입력 파일 · 비밀번호 가리기 · 지시문 · 출력 읽기 · 자식 인자 (도메인/BTS 「PRD 초안 → 결정 필요」)
 
-import { existsSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
@@ -122,6 +122,7 @@ describe('초안자식인자', () => {
     const 웹 = 초안자식인자('sonnet' as never, '/w/data', '/w/tmp', '/w/tmp/mcp.json', true);
     expect(웹).toContain('Read,Write,Edit,Glob,Grep,Bash');
     expect(웹.slice(웹.indexOf('--allowedTools') + 1)).toEqual(['mcp__qa-hub', `Bash(${탐침명령}:*)`]);
+    expect(웹[웹.indexOf('--setting-sources') + 1]).toBe('project,local');
     const 앱 = 초안자식인자('sonnet' as never, '/w/data', '/w/tmp', '/w/tmp/mcp.json', false);
     expect(앱).toContain('Read,Write,Edit,Glob,Grep');
     expect(앱.slice(앱.indexOf('--allowedTools') + 1)).toEqual(['mcp__qa-hub']);
@@ -135,7 +136,8 @@ describe('탐침PATH', () => {
     const 앞 = 경로.split(':')[0]!;
     expect(경로.endsWith(':/usr/bin:/bin')).toBe(true);
     expect(앞.endsWith(join('node_modules', '.bin'))).toBe(true);
-    expect(existsSync(join(앞, 'playwright'))).toBe(true);
+    const 판 = spawnSync(join(앞, 'playwright'), ['cli', '--version'], { cwd: '/', encoding: 'utf8' });
+    expect(판.stdout).toMatch(/^Version \d+\.\d+/);
   });
 });
 
