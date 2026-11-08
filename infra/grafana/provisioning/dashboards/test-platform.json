@@ -1,6 +1,6 @@
 {
   "uid": "test-platform",
-  "title": "테스트 자동화 플랫폼",
+  "title": "Test Commander",
   "tags": ["test-platform"],
   "timezone": "browser",
   "schemaVersion": 39,
@@ -10,7 +10,7 @@
   "panels": [
     {
       "id": 2,
-      "title": "평균 소요시간",
+      "title": "평균 소요 시간",
       "type": "timeseries",
       "datasource": { "type": "postgres", "uid": "platform-postgres" },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
@@ -24,7 +24,7 @@
           "datasource": { "type": "postgres", "uid": "platform-postgres" },
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT date_trunc('day', r.started_at) AS time,\n       round(avg(i.duration_ms)) AS \"평균 소요시간\"\nFROM run_item i\nJOIN test_run r ON r.run_id = i.run_id\nWHERE r.started_at >= now() - interval '30 days'\n  AND r.kind IN ('UI','FN') AND r.origin <> 'SINGLE'\n  AND i.duration_ms IS NOT NULL\nGROUP BY 1\nORDER BY 1"
+          "rawSql": "SELECT date_trunc('day', r.started_at) AS time,\n       round(avg(i.duration_ms)) AS \"평균 소요 시간\"\nFROM run_item i\nJOIN test_run r ON r.run_id = i.run_id\nWHERE r.started_at >= now() - interval '30 days'\n  AND r.kind IN ('UI','FN') AND r.origin <> 'SINGLE'\n  AND i.duration_ms IS NOT NULL\nGROUP BY 1\nORDER BY 1"
         }
       ]
     },
@@ -41,14 +41,14 @@
           "datasource": { "type": "postgres", "uid": "platform-postgres" },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT r.run_id AS \"실행 번호\",\n       r.title AS \"제목\",\n       r.service_name AS \"서비스\",\n       r.env AS \"대상 서버\",\n       r.status AS \"상태\",\n       CASE r.kind WHEN 'UI' THEN 'UI 테스트' ELSE '기능 테스트' END AS \"종류\",\n       r.started_at AS \"시작 시각\"\nFROM test_run r\nWHERE r.kind IN ('UI','FN') AND r.origin <> 'SINGLE'\nORDER BY r.started_at DESC\nLIMIT 20"
+          "rawSql": "SELECT r.run_id AS \"실행 번호\",\n       r.title AS \"제목\",\n       r.service_name AS \"애플리케이션\",\n       r.env AS \"대상 서버\",\n       r.status AS \"상태\",\n       CASE r.kind WHEN 'UI' THEN 'UI 테스트' ELSE '기능 테스트' END AS \"종류\",\n       r.started_at AS \"시작 시각\"\nFROM test_run r\nWHERE r.kind IN ('UI','FN') AND r.origin <> 'SINGLE'\nORDER BY r.started_at DESC\nLIMIT 20"
         }
       ]
     },
     {
       "id": 6,
-      "title": "작성에 걸린 시간",
-      "description": "최근 30일(끝난 시각)의 작성 요청. 재실행(이어하기 · 다시 작성)은 「재실행」 한 줄로 따로 센다. 대기 = 요청을 만든 때부터 에이전트가 집을 때까지(자료 올리기·대기줄 포함), 작업 = 집은 때부터 끝날 때까지. 시간 칸은 성공한 것만, 실패와 중단은 따로 센다. 화면만 훑는 요청도 「화면과 대조」에 든다 (도메인/리포팅 §8.5)",
+      "title": "작성 소요 시간",
+      "description": "최근 30일(종료 시각)의 작성 요청. 다시 실행(이어서 작성 · 다시 작성)은 「다시 실행」 한 줄로 따로 집계한다. 대기 = 요청을 만든 때부터 에이전트가 가져갈 때까지(자료 업로드 · 대기열 포함), 작업 = 가져간 때부터 종료될 때까지. 시간 칸은 완료한 것만, 실패와 중단은 따로 집계한다. 화면만 훑는 요청도 「화면과 대조」에 든다 (도메인/리포팅 §8.5)",
       "type": "table",
       "datasource": { "type": "postgres", "uid": "platform-postgres" },
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
@@ -59,14 +59,14 @@
           "datasource": { "type": "postgres", "uid": "platform-postgres" },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT s.name AS \"서비스\",\n       CASE WHEN a.kind = 'RERUN' THEN '재실행' WHEN a.compare THEN '화면과 대조' ELSE '보통' END AS \"방식\",\n       count(*) FILTER (WHERE a.status = 'DONE') AS \"성공\",\n       count(*) FILTER (WHERE a.status = 'FAILED') AS \"실패\",\n       count(*) FILTER (WHERE a.status = 'STOPPED') AS \"중단\",\n       round((percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM a.started_at - a.created_at)::float8)\n              FILTER (WHERE a.status = 'DONE') / 60)::numeric, 1) AS \"대기 중간값 (분)\",\n       round((percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM a.finished_at - a.started_at)::float8)\n              FILTER (WHERE a.status = 'DONE') / 60)::numeric, 1) AS \"작업 중간값 (분)\",\n       round((max(extract(epoch FROM a.finished_at - a.started_at)) FILTER (WHERE a.status = 'DONE') / 60)::numeric, 1) AS \"작업 최대 (분)\"\nFROM authoring_request a\nJOIN service s ON s.id = a.service_id\nWHERE a.kind IN ('AUTHOR', 'RERUN')\n  AND a.status IN ('DONE', 'FAILED', 'STOPPED')\n  AND a.finished_at >= now() - interval '30 days'\nGROUP BY s.id, s.name, 2\nORDER BY s.name, 2"
+          "rawSql": "SELECT s.name AS \"애플리케이션\",\n       CASE WHEN a.kind = 'RERUN' THEN '다시 실행' WHEN a.compare THEN '화면과 대조' ELSE '보통' END AS \"방식\",\n       count(*) FILTER (WHERE a.status = 'DONE') AS \"완료\",\n       count(*) FILTER (WHERE a.status = 'FAILED') AS \"실패\",\n       count(*) FILTER (WHERE a.status = 'STOPPED') AS \"중단\",\n       round((percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM a.started_at - a.created_at)::float8)\n              FILTER (WHERE a.status = 'DONE') / 60)::numeric, 1) AS \"대기 중간값 (분)\",\n       round((percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM a.finished_at - a.started_at)::float8)\n              FILTER (WHERE a.status = 'DONE') / 60)::numeric, 1) AS \"작업 중간값 (분)\",\n       round((max(extract(epoch FROM a.finished_at - a.started_at)) FILTER (WHERE a.status = 'DONE') / 60)::numeric, 1) AS \"작업 최대 (분)\"\nFROM authoring_request a\nJOIN service s ON s.id = a.service_id\nWHERE a.kind IN ('AUTHOR', 'RERUN')\n  AND a.status IN ('DONE', 'FAILED', 'STOPPED')\n  AND a.finished_at >= now() - interval '30 days'\nGROUP BY s.id, s.name, 2\nORDER BY s.name, 2"
         }
       ]
     },
     {
       "id": 7,
       "title": "작성 토큰",
-      "description": "최근 30일(끝난 시각) 작성 실행이 쓴 토큰 — 입력 · 출력 · 캐시 읽기 · 캐시 쓰기를 따로 낸다. 한 줄이 실행 하나(이어서 작성 · 다시 작성도 각각)이고 claude 를 돌려 사용량을 알린 실행만 센다. 중단은 이유별로 먼저 가른다(중단 · 사용자/시간초과/구독 한도/에이전트 재시작/에이전트 응답 없음). 끊김과 중단은 결과 없이 끊겨 센 하한값이다(출력 토큰이 특히 적게 잡힌다). API 환산은 API 요금으로 친 참고값이고 구독이라 청구액이 아니다 — 끊긴 실행은 비용이 비어 합계가 적게 나온다 (도메인/리포팅 §8.5)",
+      "description": "최근 30일(종료 시각) 작성 실행이 쓴 토큰 — 입력 · 출력 · 캐시 읽기 · 캐시 쓰기를 따로 낸다. 한 줄이 실행 하나(이어서 작성 · 다시 작성도 각각)이고 claude 를 실행해 사용량을 알린 실행만 집계한다. 중단은 이유별로 먼저 가른다(중단 · 사용자/시간초과/구독 한도/작성 재시작/작성 응답 없음). 끊김과 중단은 결과 없이 끊겨 집계한 하한값이다(출력 토큰이 특히 적게 잡힌다). API 환산은 API 요금으로 친 참고값이고 구독이라 청구액이 아니다 — 끊긴 실행은 비용이 비어 합계가 적게 나온다 (도메인/리포팅 §8.5)",
       "type": "table",
       "datasource": { "type": "postgres", "uid": "platform-postgres" },
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
@@ -77,14 +77,14 @@
           "datasource": { "type": "postgres", "uid": "platform-postgres" },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT s.name AS \"서비스\",\n       CASE WHEN a.kind = 'RERUN' THEN '재실행' WHEN a.compare THEN '화면과 대조' ELSE '보통' END AS \"방식\",\n       CASE WHEN a.status = 'STOPPED' THEN '중단 · ' || CASE a.stop_reason WHEN 'USER' THEN '사용자' WHEN 'TIMEOUT' THEN '시간초과' WHEN 'LIMIT' THEN '구독 한도' WHEN 'AGENT_RESTART' THEN '에이전트 재시작' WHEN 'AGENT_LOST' THEN '에이전트 응답 없음' WHEN 'CRASH' THEN '작성 중 끊김' WHEN 'REJECTED' THEN '올리기 거절' END\n            WHEN a.tokens_partial THEN '끊김' WHEN a.status = 'DONE' THEN '성공' ELSE '그 밖 실패' END AS \"결과\",\n       count(*) AS \"실행 수\",\n       percentile_cont(0.5) WITHIN GROUP (ORDER BY a.tokens_input::float8) AS \"입력 중간값\",\n       percentile_cont(0.5) WITHIN GROUP (ORDER BY a.tokens_output::float8) AS \"출력 중간값\",\n       percentile_cont(0.5) WITHIN GROUP (ORDER BY a.tokens_cache_read::float8) AS \"캐시 읽기 중간값\",\n       percentile_cont(0.5) WITHIN GROUP (ORDER BY a.tokens_cache_write::float8) AS \"캐시 쓰기 중간값\",\n       sum(a.tokens_input) AS \"입력 합계\",\n       sum(a.tokens_output) AS \"출력 합계\",\n       sum(a.tokens_cache_read) AS \"캐시 읽기 합계\",\n       sum(a.tokens_cache_write) AS \"캐시 쓰기 합계\",\n       round(coalesce(sum(a.cost_usd), 0), 2) AS \"API 환산 (청구 아님) 합계\",\n       count(a.cost_usd) AS \"비용 있는 실행\"\nFROM authoring_request a\nJOIN service s ON s.id = a.service_id\nWHERE a.kind IN ('AUTHOR', 'RERUN')\n  AND a.status IN ('DONE', 'FAILED', 'STOPPED')\n  AND a.tokens_input IS NOT NULL\n  AND a.finished_at >= now() - interval '30 days'\nGROUP BY s.id, s.name, 2, 3\nORDER BY s.name, 2, 3"
+          "rawSql": "SELECT s.name AS \"애플리케이션\",\n       CASE WHEN a.kind = 'RERUN' THEN '다시 실행' WHEN a.compare THEN '화면과 대조' ELSE '보통' END AS \"방식\",\n       CASE WHEN a.status = 'STOPPED' THEN '중단 · ' || CASE a.stop_reason WHEN 'USER' THEN '사용자' WHEN 'TIMEOUT' THEN '시간초과' WHEN 'LIMIT' THEN '구독 한도' WHEN 'AGENT_RESTART' THEN '작성 재시작' WHEN 'AGENT_LOST' THEN '작성 응답 없음' WHEN 'CRASH' THEN '작성 중 끊김' WHEN 'REJECTED' THEN '업로드 거절' END\n            WHEN a.tokens_partial THEN '끊김' WHEN a.status = 'DONE' THEN '완료' ELSE '그 밖 실패' END AS \"결과\",\n       count(*) AS \"실행 수\",\n       percentile_cont(0.5) WITHIN GROUP (ORDER BY a.tokens_input::float8) AS \"입력 중간값\",\n       percentile_cont(0.5) WITHIN GROUP (ORDER BY a.tokens_output::float8) AS \"출력 중간값\",\n       percentile_cont(0.5) WITHIN GROUP (ORDER BY a.tokens_cache_read::float8) AS \"캐시 읽기 중간값\",\n       percentile_cont(0.5) WITHIN GROUP (ORDER BY a.tokens_cache_write::float8) AS \"캐시 쓰기 중간값\",\n       sum(a.tokens_input) AS \"입력 합계\",\n       sum(a.tokens_output) AS \"출력 합계\",\n       sum(a.tokens_cache_read) AS \"캐시 읽기 합계\",\n       sum(a.tokens_cache_write) AS \"캐시 쓰기 합계\",\n       round(coalesce(sum(a.cost_usd), 0), 2) AS \"API 환산 (청구 아님) 합계\",\n       count(a.cost_usd) AS \"비용 있는 실행\"\nFROM authoring_request a\nJOIN service s ON s.id = a.service_id\nWHERE a.kind IN ('AUTHOR', 'RERUN')\n  AND a.status IN ('DONE', 'FAILED', 'STOPPED')\n  AND a.tokens_input IS NOT NULL\n  AND a.finished_at >= now() - interval '30 days'\nGROUP BY s.id, s.name, 2, 3\nORDER BY s.name, 2, 3"
         }
       ]
     },
     {
       "id": 8,
       "title": "작성 커버리지",
-      "description": "최근 30일(끝난 시각) 작성 · 재실행 실행이 기획서 요구를 얼마나 케이스로 덮었나 — 한 줄이 실행 하나, 최근 것부터 30줄. 요구 = 케이스로 덮음 + 제외 + 빠짐이고 케이스로 덮음에는 보류 케이스가 든다(보류로만은 그 일부 · 비면 보류를 못 셌다). 기능으로 덮음 · UI 로 덮음은 그 갈래 케이스가 하나라도 덮은 요구다 — 두 갈래가 같이 덮으면 둘 다에 들어 합이 케이스로 덮음을 넘을 수 있고, 이 칸이 생기기 전 실행은 비어 있다. 빠져도 올리기를 멈추지 않으므로 빠짐이 0 이 아닐 수 있다. 성공인데 칸이 비면 원장 없음으로 적는다 — 진짜 원장 없음(PDF · 피그마만) 말고도 셈을 빼고 보낸 실행 · 이 칸이 생기기 전 실행이 섞인다. 「다음 요청」 수와 원장에 못 넣은 자료는 칸이 없어 여기 없다 — 요청 상세의 Status 카드에서 본다 (도메인/리포팅 §8.5)",
+      "description": "최근 30일(종료 시각) 작성 · 다시 실행이 기획서 요구사항을 얼마나 케이스로 커버했나 — 한 줄이 실행 하나, 최근 것부터 30줄. 요구사항 = 케이스로 커버 + 제외 + 누락이고 케이스로 커버에는 입력이 필요한 케이스가 든다(입력 필요로만은 그 일부 · 비면 입력이 필요한 케이스를 집계하지 못했다). 기능으로 커버 · UI 로 커버는 그 갈래 케이스가 하나라도 커버한 요구사항이다 — 두 갈래가 같이 커버하면 둘 다에 들어 합이 케이스로 커버를 넘을 수 있고, 이 칸이 생기기 전 실행은 비어 있다. 누락이 있어도 업로드를 중단하지 않으므로 누락이 0 이 아닐 수 있다. 완료인데 칸이 비면 「요구사항 목록 없음」으로 적는다 — 진짜 요구사항 목록이 없는 경우(PDF · 피그마만) 말고도 집계를 빼고 보낸 실행 · 이 칸이 생기기 전 실행이 섞인다. 「다음 요청」 수와 요구사항 목록에 못 넣은 자료는 칸이 없어 여기 없다 — 요청 상세의 Status 카드에서 본다 (도메인/리포팅 §8.5)",
       "type": "table",
       "datasource": { "type": "postgres", "uid": "platform-postgres" },
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 24 },
@@ -95,14 +95,14 @@
           "datasource": { "type": "postgres", "uid": "platform-postgres" },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT a.id AS \"번호\",\n       s.name AS \"서비스\",\n       CASE WHEN a.kind = 'RERUN' THEN '재실행' WHEN a.compare THEN '화면과 대조' ELSE '보통' END AS \"방식\",\n       CASE WHEN a.status = 'STOPPED' THEN '중단 · ' || CASE a.stop_reason WHEN 'USER' THEN '사용자' WHEN 'TIMEOUT' THEN '시간초과' WHEN 'LIMIT' THEN '구독 한도' WHEN 'AGENT_RESTART' THEN '에이전트 재시작' WHEN 'AGENT_LOST' THEN '에이전트 응답 없음' WHEN 'CRASH' THEN '작성 중 끊김' WHEN 'REJECTED' THEN '올리기 거절' END\n            WHEN a.status = 'DONE' THEN '성공' ELSE '실패' END AS \"결과\",\n       a.coverage_total AS \"요구\",\n       a.coverage_cased AS \"케이스로 덮음\",\n       floor(100.0 * a.coverage_cased / NULLIF(a.coverage_total, 0)) AS \"케이스 %\",\n       a.coverage_cased_fn AS \"기능으로 덮음\",\n       floor(100.0 * a.coverage_cased_fn / NULLIF(a.coverage_total, 0)) AS \"기능 %\",\n       a.coverage_cased_ui AS \"UI 로 덮음\",\n       floor(100.0 * a.coverage_cased_ui / NULLIF(a.coverage_total, 0)) AS \"UI %\",\n       a.coverage_held AS \"보류로만\",\n       a.coverage_excluded AS \"제외\",\n       a.coverage_missing AS \"빠짐\",\n       CASE WHEN a.coverage_total IS NULL THEN '원장 없음' ELSE '' END AS \"비고\",\n       a.finished_at AS \"끝난 시각\"\nFROM authoring_request a\nJOIN service s ON s.id = a.service_id\nWHERE a.kind IN ('AUTHOR', 'RERUN')\n  AND a.status IN ('DONE', 'FAILED', 'STOPPED')\n  AND a.finished_at >= now() - interval '30 days'\n  AND (a.coverage_total IS NOT NULL OR a.status = 'DONE')\nORDER BY a.finished_at DESC\nLIMIT 30"
+          "rawSql": "SELECT a.id AS \"번호\",\n       s.name AS \"애플리케이션\",\n       CASE WHEN a.kind = 'RERUN' THEN '다시 실행' WHEN a.compare THEN '화면과 대조' ELSE '보통' END AS \"방식\",\n       CASE WHEN a.status = 'STOPPED' THEN '중단 · ' || CASE a.stop_reason WHEN 'USER' THEN '사용자' WHEN 'TIMEOUT' THEN '시간초과' WHEN 'LIMIT' THEN '구독 한도' WHEN 'AGENT_RESTART' THEN '작성 재시작' WHEN 'AGENT_LOST' THEN '작성 응답 없음' WHEN 'CRASH' THEN '작성 중 끊김' WHEN 'REJECTED' THEN '업로드 거절' END\n            WHEN a.status = 'DONE' THEN '완료' ELSE '실패' END AS \"결과\",\n       a.coverage_total AS \"요구사항\",\n       a.coverage_cased AS \"케이스로 커버\",\n       floor(100.0 * a.coverage_cased / NULLIF(a.coverage_total, 0)) AS \"케이스 %\",\n       a.coverage_cased_fn AS \"기능으로 커버\",\n       floor(100.0 * a.coverage_cased_fn / NULLIF(a.coverage_total, 0)) AS \"기능 %\",\n       a.coverage_cased_ui AS \"UI 로 커버\",\n       floor(100.0 * a.coverage_cased_ui / NULLIF(a.coverage_total, 0)) AS \"UI %\",\n       a.coverage_held AS \"입력 필요로만\",\n       a.coverage_excluded AS \"제외\",\n       a.coverage_missing AS \"누락\",\n       CASE WHEN a.coverage_total IS NULL THEN '요구사항 목록 없음' ELSE '' END AS \"비고\",\n       a.finished_at AS \"종료 시각\"\nFROM authoring_request a\nJOIN service s ON s.id = a.service_id\nWHERE a.kind IN ('AUTHOR', 'RERUN')\n  AND a.status IN ('DONE', 'FAILED', 'STOPPED')\n  AND a.finished_at >= now() - interval '30 days'\n  AND (a.coverage_total IS NOT NULL OR a.status = 'DONE')\nORDER BY a.finished_at DESC\nLIMIT 30"
         }
       ]
     },
     {
       "id": 9,
       "title": "성능 테스트 추세",
-      "description": "최근 90일 끝난 성능 실행(끝 · 중단)의 최대 동시 사용자 · 최대 TPS · 95% 응답시간 · 에러율 — 점 하나가 실행 하나다. 판정은 싣지 않는다. 테스트 결과는 앱이 맡고 이 패널은 숫자의 흐름만 본다 (도메인/성능 「실행 · 결과」 · 도메인/리포팅 §8.5)",
+      "description": "최근 90일 종료된 성능 실행(완료 · 중단)의 최대 동시 사용자 · 최대 TPS · 95% 응답시간 · 에러율 — 점 하나가 실행 하나다. 판정은 싣지 않는다. 테스트 결과는 앱이 맡고 이 패널은 숫자의 흐름만 본다 (도메인/성능 「실행 · 결과」 · 도메인/리포팅 §8.5)",
       "type": "timeseries",
       "datasource": { "type": "postgres", "uid": "platform-postgres" },
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 32 },
