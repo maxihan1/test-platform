@@ -300,7 +300,7 @@ describe.skipIf(연결 === undefined)('케이스 엑셀 통로', () => {
 
   it('작성 read 가 없으면 시트 하나 · 「사람이 값 채움」 없음', async () => {
     const wb = await 책((await 받기('xcx-noauth')).rawPayload);
-    expect(wb.worksheets.map((s) => s.name)).toEqual(['케이스']);
+    expect(wb.worksheets.map((s) => s.name)).toEqual(['테스트 케이스']);
     expect(행들(wb, '테스트 케이스')[0]![6]).toBe('정식');
   });
 
