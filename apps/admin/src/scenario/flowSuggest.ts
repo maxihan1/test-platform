@@ -18,7 +18,7 @@ export interface 흐름재료 {
   platform: Platform;
   wish: string | null;
   reqs: { reqId: string; feature: string; kinds: string[]; text: string }[];
-  cases: { tcId: string; name: string; reqIds: string[]; screens: string[]; normal: boolean }[];
+  cases: { tcId: string; name: string; reqIds: string[]; screens: string[]; normal: boolean; first: string | null }[];
   links: { from: string; to: string; via: string }[];
   truncated: boolean;
 }
@@ -28,7 +28,7 @@ export interface 재료원천 {
   wish: string | null;
   prd: { reqId: string; feature: string; text: string }[];
   /** 그 애플리케이션의 활성 기능 테스트 — 디바이스는 여기서 거른다 */
-  케이스들: { tcId: string; name: string; platforms: string[]; techniques: string[] }[];
+  케이스들: { tcId: string; name: string; platforms: string[]; techniques: string[]; stepTitles: string[] | null }[];
   /** 케이스마다 지도 ① 요구(종류 포함)와 지도 ② 화면 주소 */
   맥락: ReadonlyMap<string, { reqs: { reqId: string; axis: string }[]; screens: { url: string | null }[] }>;
   /** 케이스 목록의 hasFeatures — 정상 쪽 판정이 팔레트와 같은 기준을 쓴다 */
@@ -52,6 +52,8 @@ export function 재료짓기(원천: 재료원천): 흐름재료 {
       // 화면 연결과 같은 틀로 맞춘다 — 그래야 AI 가 케이스 화면과 연결을 이어 읽는다
       screens: [...new Set((m?.screens ?? []).flatMap((s) => (s.url === null ? [] : [주소틀(s.url) ?? s.url])))],
       normal: 흐름인가({ reqs: 요구, techniques: c.techniques }, 원천.PRD씀),
+      // 첫 절차 제목이 같은 케이스끼리 이으면 뒤 단계가 그 절차(로그인 등)를 건너뛴다 (§3.7 결정 4 「첫 절차 이어받기」)
+      first: c.stepTitles?.[0] ?? null,
     };
   });
 

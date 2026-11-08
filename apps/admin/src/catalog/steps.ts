@@ -8,6 +8,8 @@ export interface CaseStep {
   title: string;
   line: number;
   skippable: boolean;
+  /** 첫 절차라 같은 애플리케이션 앞 단계가 같은 제목으로 이미 돌았으면 확인이 있어도 건너뛸 수 있다 (도메인/시나리오 §3.7 결정 4 「첫 절차 이어받기」) */
+  carry: boolean;
 }
 
 export interface CaseSteps {
@@ -28,6 +30,8 @@ interface Found {
   locals: Set<string>;
   // 제목이 글자 그대로이고 꼭 한 번 돈다 — 스캔이 단계 제목을 미리 저장할 수 있다 (카탈로그 §3.1 「단계 제목」)
   counted: boolean;
+  // 안에 다른 절차를 품었다 — 건너뛰면 안쪽 절차와 그 판정까지 사라진다
+  nests: boolean;
 }
 
 export function isTestStep(node: ts.Node): node is ts.CallExpression {
@@ -246,10 +250,14 @@ export function caseSteps(text: string): CaseSteps {
         unsure: loose,
         locals: new Set(),
         counted: title !== undefined && !loose && !branched(node),
+        nests: false,
       };
       // 바깥 절차를 건너뛰면 안쪽 절차가 통째로 안 돈다
       const outer = stack[stack.length - 1];
-      if (outer !== undefined) outer.unsure = true;
+      if (outer !== undefined) {
+        outer.unsure = true;
+        outer.nests = true;
+      }
       found.push(step);
       stack.push(step);
       node.forEachChild(walk);
@@ -291,7 +299,10 @@ export function caseSteps(text: string): CaseSteps {
     if (s.title === undefined) return [];
     const next = found[i + 1];
     const skippable = readable && s.verifies === 0 && !s.unsure && next !== undefined && next.blocker;
-    return [{ title: s.title, line: s.line, skippable }];
+    // 첫 절차는 아직 아무 상태도 바꾸지 않았다. 반복 · 갈래 안이면 한 제목이 몇 번 도는지 몰라 빼고, 안의 판정은 앞 단계에서 이미 통과했다.
+    // 다음 절차가 blocker 를 가져야 틀린 건너뛰기가 그 자리에서 빨갛다 (결정 4 「첫 절차 이어받기」)
+    const carry = i === 0 && readable && s.counted && !s.nests && next !== undefined && next.blocker && !skippable;
+    return [{ title: s.title, line: s.line, skippable, carry }];
   });
 
   // 하나라도 셀 수 없으면 통째로 NULL — 일부만 아는 목록은 남은 단계 수를 틀리게 보인다 (카탈로그 §3.1 「단계 제목」)

@@ -7,7 +7,7 @@ import type { SavedInput } from './api.js';
 import { use말 } from './i18n.js';
 import type { CasePartMaterial } from './scenarioApi.js';
 import { ScenarioFields, 시작글자 } from './ScenarioFields.js';
-import { 넘겨받기끄기, 이미실행, 조립값, type 재료들 } from './scenarioView.js';
+import { 건너뛸수있나, 넘겨받기끄기, 이미실행, 조립값, type 재료들 } from './scenarioView.js';
 import { schemaToFields } from './schema.js';
 import { Loading } from './ui.js';
 import { useSavedInput } from './useSavedInput.js';
@@ -86,7 +86,8 @@ function PanelBody({
   for (const l of 단계.links ?? []) if (l.kind === 'bind') 잠금[l.param] = l.value.fromSeq;
 
   const 아이디 = `scn-set-${번호}`;
-  const 건너뛸것 = 케이스.steps.filter((s) => s.skippable);
+  // 풀어 둔 체크는 건너뛸 수 없게 된 뒤에도 그린다 — 다시 체크해 「확인 필요」를 풀 길이 남게
+  const 건너뛸것 = 케이스.steps.filter((s) => 건너뛸수있나(단계들, 재료, 번호, s) || 보일단계.skipSteps.includes(s.title));
 
   function 이어받기바꿈() {
     if (이어받나) {
@@ -158,7 +159,7 @@ function PanelBody({
         )}
       </div>
 
-      {!케이스.r16 ? (
+      {건너뛸것.length === 0 ? (
         <p className="scn-set-note">{t('이 케이스는 사전 단계가 분리되어 있지 않아 건너뛸 수 없습니다')}</p>
       ) : (
         <fieldset className="scn-set-block scn-set-group">

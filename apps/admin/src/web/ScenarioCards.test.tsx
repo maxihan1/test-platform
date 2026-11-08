@@ -17,7 +17,7 @@ describe('ScenarioCards 카드', () => {
       { kind: 'unmock', urlPattern: '**/api/y' },
       { kind: 'wait', ms: 2000 },
     ];
-    render(<판 단계들={단계들} 재료={new Map([['ZSB-001', 재료('ZSB-001', { steps: [{ title: '가입', skippable: true }] })]])} />);
+    render(<판 단계들={단계들} 재료={new Map([['ZSB-001', 재료('ZSB-001', { steps: [{ title: '가입', skippable: true, carry: false }] })]])} />);
 
     expect(screen.getByText('단계 순서')).toBeTruthy();
     expect(screen.getByText('단계를 누르면 설정이 열립니다')).toBeTruthy();
@@ -84,11 +84,21 @@ describe('ScenarioCards 칩', () => {
   });
 
   it('건너뛸 수 없는 제목을 건너뛰면 확인 필요, 건너뛸 수 있으면 안 뜬다', () => {
-    const 표 = new Map([['ZSB-001', 재료('ZSB-001', { steps: [{ title: '가입', skippable: true }, { title: '결제', skippable: false }] })]]);
+    const 표 = new Map([['ZSB-001', 재료('ZSB-001', { steps: [{ title: '가입', skippable: true, carry: false }, { title: '결제', skippable: false, carry: false }] })]]);
     const { unmount } = render(<판 단계들={[케이스('ZSB-001', { skipSteps: ['가입'] })]} 재료={표} />);
     expect(칩찾기('확인 필요')).toBeNull();
     unmount();
     render(<판 단계들={[케이스('ZSB-001', { skipSteps: ['결제'] })]} 재료={표} />);
+    expect(칩찾기('확인 필요')?.className).toContain('case-tag');
+  });
+
+  it('첫 절차 건너뛰기는 같은 애플리케이션 앞 단계에 같은 제목이 있을 때만 확인 필요가 안 뜬다', () => {
+    const 첫절차 = (tcId: string) => 재료(tcId, { steps: [{ title: '로그인', skippable: false, carry: true }] });
+    const 표 = new Map([['ZSB-001', 첫절차('ZSB-001')], ['ZSB-002', 첫절차('ZSB-002')]]);
+    const { unmount } = render(<판 단계들={[케이스('ZSB-001'), 케이스('ZSB-002', { skipSteps: ['로그인'] })]} 재료={표} />);
+    expect(칩찾기('확인 필요')).toBeNull();
+    unmount();
+    render(<판 단계들={[케이스('ZSB-002', { skipSteps: ['로그인'] })]} 재료={표} />);
     expect(칩찾기('확인 필요')?.className).toContain('case-tag');
   });
 

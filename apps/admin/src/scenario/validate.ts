@@ -77,8 +77,29 @@ type 이어주기<K> = Extract<z.infer<typeof 이어주기모양>, { kind: K }>;
   never
 >;
 
-/** params 는 케이스 입력값 칸 이름이다 — 값 꽂기가 없는 칸을 가리키는지 본다 */
-export type 카탈로그 = Map<string, { platforms: Platform[]; isActive: boolean; skippable: string[]; titles: string[]; params: string[] }>;
+/** params 는 케이스 입력값 칸 이름이다 — 값 꽂기가 없는 칸을 가리키는지 본다. carry 는 로그인 이어받기로만 건너뛸 수 있는 첫 절차 제목이다 */
+export type 카탈로그 = Map<
+  string,
+  { platforms: Platform[]; isActive: boolean; skippable: string[]; carry?: string; titles: string[]; params: string[] }
+>;
+
+/**
+ * i 번째 단계가 그 제목을 건너뛸 수 있나 — 「만들기」 절차이거나, 첫 절차인데 같은 애플리케이션 앞 단계에 같은 제목이 있다 (SPEC 도메인/시나리오 §3.7 결정 4 · 5).
+ * 조립 화면 「N번에서 이미 실행」 칩과 같은 계산이다 (web/scenarioView.ts 이미실행)
+ */
+export function 건너뛸수있나(parts: ScenarioPart[], i: number, 재료: 카탈로그, 제목: string): boolean {
+  const p = parts[i];
+  const 케이스 = p?.kind === 'case' ? 재료.get(p.tcId) : undefined;
+  if (p?.kind !== 'case' || 케이스 === undefined) return false;
+  if (케이스.skippable.includes(제목)) return true;
+  if (케이스.carry !== 제목) return false;
+  const 앱 = 케이스접두사(p.tcId);
+  // 로그인 이어받기를 끈 단계는 로그인 상태를 비우고 돈다 — 그보다 앞 단계가 세운 로그인은 남지 않는다
+  const 앞 = parts.slice(0, i);
+  return 앞
+    .slice(앞.reduce((n, q, j) => (q.kind === 'case' && q.carryOver === false ? j : n), 0))
+    .some((q) => q.kind === 'case' && 케이스접두사(q.tcId) === 앱 && 재료.get(q.tcId)?.titles.includes(제목) === true);
+}
 
 const 케이스몫 = 300000;
 const API몫 = 30000;
@@ -193,7 +214,7 @@ export function 조립검사(
       }
       for (const 제목 of p.skipSteps) {
         // 케이스에서 사라진 제목은 실행처럼 무시한다 — 명세 결정 8 · 2026-10-06 사용자
-        if (케이스.titles.includes(제목) && !케이스.skippable.includes(제목)) 오류.push(`${자리}: 「${제목}」 은 건너뛸 수 있는 절차가 아니다`);
+        if (케이스.titles.includes(제목) && !건너뛸수있나(parts, i, 재료, 제목)) 오류.push(`${자리}: 「${제목}」 은 건너뛸 수 있는 절차가 아니다`);
       }
 
       // 이어 주기 (§3.7 결정 12)

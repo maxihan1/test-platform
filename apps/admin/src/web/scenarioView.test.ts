@@ -30,7 +30,7 @@ const 응답 = (fromSeq: number) => ({ fromSeq, method: 'GET' as const, urlPatte
 
 const 재료 = (steps: string[]): CasePartMaterial => ({
   tcId: 'X', name: 'x', platforms: ['desktop'], precondition: [], paramSchema: {}, expectedSchema: {},
-  steps: steps.map((title) => ({ title, skippable: true })), r16: false, unconfirmed: null,
+  steps: steps.map((title) => ({ title, skippable: true, carry: false })), r16: false, unconfirmed: null,
 });
 
 describe('카드요약', () => {
@@ -77,6 +77,10 @@ describe('이미실행', () => {
   it('다른 애플리케이션 단계는 안 센다 — 출처가 달라 로그인이 안 넘어간다 (결정 13)', () => {
     expect(이미실행([케이스('A-1'), 케이스('B-1')], 모음, 2, '로그인')).toBeNull();
     expect(이미실행([케이스('B-1'), 케이스('A-1'), 케이스('B-1')], 모음, 3, '로그인')).toBe(1);
+  });
+  it('로그인 이어받기를 끈 단계보다 앞은 안 센다 — 끈 단계가 로그인 상태를 비운다. 끈 단계 자신은 센다', () => {
+    expect(이미실행([케이스('A-1'), 케이스('A-2', { carryOver: false }), 케이스('A-1')], 모음, 3, '로그인')).toBeNull();
+    expect(이미실행([케이스('A-2'), 케이스('A-1', { carryOver: false }), 케이스('A-1')], 모음, 3, '로그인')).toBe(2);
   });
 });
 
