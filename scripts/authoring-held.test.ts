@@ -3,7 +3,12 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
-import { 보류목록, 보류실은몸, 보류싣는손, 스캔풀기, 스캔표시 } from './authoring-held.js';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+import type { 사본 } from './authoring-copy.js';
+import { 보류목록, 보류스캔, 보류실은몸, 보류싣는손, 스캔풀기, 스캔표시 } from './authoring-held.js';
 
 const 스키마 = (s: z.ZodObject) => z.toJSONSchema(s, { io: 'input' });
 
@@ -114,6 +119,17 @@ describe('보류실은몸', () => {
     expect(보류실은몸(몸, [])).toEqual(몸);
     const 하나 = { tcId: 'MKT-041', file: 'tests/a.spec.ts', kind: 'ON_HOLD' as const, reason: '보류 — a', fields: [] };
     expect(보류실은몸(몸, [하나])).toEqual({ ...몸, result: { summary: 'a', held: [하나] } });
+  });
+});
+
+describe('보류스캔', () => {
+  it('테스트 폴더가 아직 없으면 스캐너를 안 띄우고 빈 목록 — 요구를 전부 제외로 돌린 작성이 스캔 실패로 거절되지 않게', () => {
+    const 트리 = mkdtempSync(join(tmpdir(), 'held-scan-'));
+    try {
+      expect(보류스캔({ 트리 } as 사본, null, 'demo')).toEqual([]);
+    } finally {
+      rmSync(트리, { recursive: true, force: true });
+    }
   });
 });
 

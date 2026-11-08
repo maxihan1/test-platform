@@ -1,7 +1,9 @@
 // 끝내기의 result.held[] 를 케이스 스키마에서 계산한다 — 자식의 말이 아니라 코드를 본다 (도메인/작성 §3.6 「★ 보류 케이스」)
 
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { 자식거두기 } from './authoring-child.js';
 import type { 사본, 계정 } from './authoring-copy.js';
 import { type 보고손, 친다 } from './authoring-io.js';
 import { 변환환경 } from './authoring-reverse.js';
@@ -86,6 +88,8 @@ export function 스캔풀기(낸것: string): unknown[] | null {
 export function 보류스캔(자리: 사본, 자식: 계정 | null, 폴더: string): unknown[] | { 사유: string } {
   const 스캐너 = join(자리.트리, 'apps', 'admin', 'src', 'catalog', 'scanner.ts');
   const 뿌리 = join(자리.트리, 'tests', 폴더);
+  // 폴더가 없으면 스캐너가 ENOENT 로 죽는다 — 케이스 0건은 원장 판정(케이스없음사유)이 따로 본다. 요구를 전부 제외로 돌린 작성을 스캔 실패로 막지 않는다
+  if (!existsSync(뿌리)) return [];
   const 코드 = `import(${JSON.stringify(스캐너)}).then(async (m) => { const r = await m.scan(${JSON.stringify(뿌리)}); process.stdout.write(${JSON.stringify(스캔표시)} + JSON.stringify(r.specs)); })`;
   const 칠때 = { env: 변환환경(process.env, { HOME: 자리.집, TMPDIR: 자리.임시 }), ...(자식 ?? {}) };
   const r = 친다('npx', ['--no-install', 'tsx', '-e', 코드], 자리.트리, undefined, 120_000, 칠때);
@@ -96,7 +100,16 @@ export function 보류스캔(자리: 사본, 자식: 계정 | null, 폴더: stri
 }
 
 /**
- * DONE 끝내기 몸에 보류를 싣는다. 못 읽으면 삼키지 않고 error 에 남기고 heldUnknown 을 단다 — PR 은 이미 섰다.
+ * 스캔은 자식 코드를 실행한다 — 검사 · push 전에 돌리되 **그 뒤에 자리 uid 를 다시 거둔다**. 남은 프로세스가 비밀값 검사 뒤에 파일을 바꿔치기하지 못하게 (2026-11-08 코드 검사).
+ * 못 거두면 사유로 돌려 올리기가 거절한다
+ */
+export async function 거두며스캔(자리: 사본, 자식: 계정 | null, 폴더: string): Promise<unknown[] | { 사유: string }> {
+  const 스캔 = 보류스캔(자리, 자식, 폴더);
+  return (await 자식거두기(자식)) ? 스캔 : { 사유: '보류 스캔 뒤 자식 프로세스를 거두지 못했다 — 올리지 않는다' };
+}
+
+/**
+ * DONE 끝내기 몸에 보류를 싣는다. 못 읽으면 삼키지 않고 error 에 남기고 heldUnknown 을 단다(2026-11-08 부터 에이전트는 못 읽으면 push 전에 거절해 방어용이다).
  * 빈 held 로 보내면 서버는 「보류 없음」으로 읽고 반영을 푼다 — 값 없이 건너뛰는 케이스가 main 에 들어간다
  */
 export function 보류실은몸(몸: Record<string, unknown>, 읽음: 보류[] | { 사유: string }): Record<string, unknown> {
@@ -109,7 +122,7 @@ export function 보류실은몸(몸: Record<string, unknown>, 읽음: 보류[] |
 }
 
 /**
- * 스캔은 올리기가 push 전에 `보류스캔` 으로 한 번 돌리고 여기서는 그 결과만 싣는다 — 못 읽으면 올리지 않고 거절로 닫는다(§3.6 「★ 보류 케이스」 · #15285).
+ * 스캔은 올리기 전에 `거두며스캔` 으로 한 번 돌리고 여기서는 그 결과만 싣는다 — 못 읽으면 올리지 않고 거절로 닫는다(§3.6 「★ 보류 케이스」 · #15285).
  * PR 뒤에 스캔하던 때는 실패해도 DONE 으로 남았다. null(스캔 전에 DONE) 은 없어야 하지만 오면 보류를 모른다고 단다
  */
 export function 보류싣는손(손: 보고손, 명세들: () => unknown[] | null): 보고손 {
