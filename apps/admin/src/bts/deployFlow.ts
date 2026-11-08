@@ -138,11 +138,17 @@ export async function 맡기(deployId: number, late: boolean, 부르기: 부르�
   const 손 = await pool.connect();
   try {
     await 손.query('BEGIN');
+    // 짝이 있으면 QA Hub 가 실패로 올린 이슈다 — 실패 등록이 유형을 안 실어 Bunker 기본값(task)으로 서도 버그로 맡는다(BTS-F9-01 MQA-113).
+    // 닫힌 짝도 본다 — 재검증 통과로 짝을 닫았는데 BTS 옮기기가 그만둬 이슈가 「QA 요청」에 남았을 때 틀린 「딸린 테스트 없음」을 달지 않게.
+    // ponytail: 그 이슈는 맡은 채 남고 다시 닫지 않는다 — 보낼 줄의 그만둔 옮기기(last_error)를 사람이 보고 BTS 에서 닫는다. 잦으면 맡을 때 FIXED 짝의 옮기기를 다시 넣는다
+    const 짝있음 = new Set(
+      (await 손.query<{ issue_key: string }>('SELECT DISTINCT issue_key FROM bts_issue_case WHERE project_id = $1 AND issue_key = ANY($2)', [
+        배포.project_id,
+        이슈.map((i) => i.key),
+      ])).rows.map((r) => r.issue_key),
+    );
     for (const 하나 of 이슈) {
-      // 짝이 있으면 QA Hub 가 실패로 올린 이슈다 — 실패 등록이 유형을 안 실어 Bunker 기본값(task)으로 서도 버그로 맡는다(BTS-F9-01 MQA-113).
-      // 닫힌 짝도 본다 — 재검증 통과로 짝을 닫았는데 BTS 옮기기가 그만둬 이슈가 「QA 요청」에 남았을 때 틀린 「딸린 테스트 없음」을 달지 않게.
-      // ponytail: 그 이슈는 맡은 채 남고 다시 닫지 않는다 — 보낼 줄의 그만둔 옮기기(last_error)를 사람이 보고 BTS 에서 닫는다. 잦으면 맡을 때 FIXED 짝의 옮기기를 다시 넣는다
-      const 딸린 = ((await 손.query('SELECT 1 FROM bts_issue_case WHERE project_id = $1 AND issue_key = $2 LIMIT 1', [배포.project_id, 하나.key])).rowCount ?? 0) > 0;
+      const 딸린 = 짝있음.has(하나.key);
       const bug = 하나.bug || 딸린;
       const r = await 손.query(
         `INSERT INTO bts_claim (project_id, issue_key, deploy_id, issue_type, late) VALUES ($1, $2, $3, $4, $5)
