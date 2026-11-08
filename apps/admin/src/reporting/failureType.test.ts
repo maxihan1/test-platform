@@ -112,6 +112,10 @@ describe('원인을가른다', () => {
     expect(실패("Error: API 인증 '데모 알림' 토큰을 받지 못했습니다 — apiRequestContext.post: Timeout 10000ms exceeded.")).toBe('environment');
   });
 
+  it('대상 서버에 그 API 인증 이름이 없는 것도 인증 설정 탓이라 환경 오류다', () => {
+    expect(실패("Error: 이 대상 서버에 API 인증 '데모 알림' 가 없습니다")).toBe('environment');
+  });
+
   it('넷에 안 맞는 것은 그 밖이다', () => {
     expect(실패("TypeError: Cannot read properties of undefined (reading 'id')")).toBe('other');
     expect(실패('Error: 테스트 계정 비밀값(loginId · password)이 비어 있다')).toBe('other');

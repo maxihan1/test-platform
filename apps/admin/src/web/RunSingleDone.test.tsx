@@ -84,11 +84,15 @@ describe('한 건 실행 진행 창 (도메인/실행 §8.9 「완료 모달」)
   });
 
   it('끝남 창을 닫으면 그 실행은 본 것이라 알약도 끝남 창도 다시 뜨지 않는다 (도메인/실행 §8.9)', async () => {
+    vi.useFakeTimers();
     vi.spyOn(api, 'run').mockImplementation((runId) =>
       Promise.resolve(runId === 붙은 ? 붙은실행(10, true) : { ...끝난응답, ...한건, rerunOf: 붙은 }),
     );
     await 그린다();
     fireEvent.click(screen.getByRole('button', { name: '닫기' }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(6000);
+    });
     expect(지켜보는실행()).toBeNull();
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(screen.queryByRole('button', { name: /진행 보기/ })).toBeNull();
