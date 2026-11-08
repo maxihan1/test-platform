@@ -204,10 +204,22 @@ describe.skipIf(연결 === undefined)('프로젝트 배포 신호', { timeout: 6
     expect([다시.statusCode, 다시.json<{ deployId: number }>().deployId]).toEqual([200, 첫배포]);
     expect((await pool.query("SELECT 1 FROM project_note_event WHERE project_id = $1 AND kind = 'DEPLOY'", [프로젝트])).rowCount).toBe(1);
 
-    // 맡기 전 — 맡는 중인 옛 줄 XBN-9 는 「QA 요청」을 떠났다(알림을 놓쳤다). XBN-2 는 딸린 테스트가 있는 버그, XBN-3 은 사람이 올린 버그
+    // 맡기 전 — 맡는 중인 옛 줄 XBN-9 는 「QA 요청」을 떠났다(알림을 놓쳤다). XBN-2 는 딸린 테스트가 있는 버그, XBN-3 은 사람이 올린 버그.
+    // XBN-6 은 QA Hub 가 실패로 올렸지만 유형을 안 실어 Bunker 기본값 task 로 선 이슈다(MQA-113). XBN-7 은 그런 이슈인데 짝이 이미 닫혔다
     await pool.query("INSERT INTO bts_claim (project_id, issue_key, deploy_id, issue_type) VALUES ($1, 'XBN-9', $2, 'TASK')", [프로젝트, 첫배포]);
     await pool.query("INSERT INTO bts_issue_case (project_id, issue_key, service_id, tc_id, env) VALUES ($1, 'XBN-2', $2, 'XBN-FN-002', 'qa')", [프로젝트, 서비스.XBN]);
-    QA요청 = [{ key: 'XBN-1', typeKey: 'task', summary: '쿠폰 한 장만' }, { key: 'XBN-2', typeKey: 'bug' }, { key: 'XBN-3', typeKey: 'bug' }];
+    await pool.query("INSERT INTO bts_issue_case (project_id, issue_key, service_id, tc_id, env) VALUES ($1, 'XBN-6', $2, 'XBN-FN-001', 'staging')", [프로젝트, 서비스.XBN]);
+    await pool.query(
+      "INSERT INTO bts_issue_case (project_id, issue_key, service_id, tc_id, env, closed_at, resolution) VALUES ($1, 'XBN-7', $2, 'XBN-FN-001', 'staging', now(), 'FIXED')",
+      [프로젝트, 서비스.XBN],
+    );
+    QA요청 = [
+      { key: 'XBN-1', typeKey: 'task', summary: '쿠폰 한 장만' },
+      { key: 'XBN-2', typeKey: 'bug' },
+      { key: 'XBN-3', typeKey: 'bug' },
+      { key: 'XBN-6', typeKey: 'task', summary: '[XBN] 쿠폰 적용 확인' },
+      { key: 'XBN-7', typeKey: 'task' },
+    ];
 
     await 끝낸다(runIds.slice(0, 1), () => 'PASS');
     await 배포판정(첫배포, 부르기);
@@ -221,6 +233,8 @@ describe.skipIf(연결 === undefined)('프로젝트 배포 신호', { timeout: 6
       { issue_key: 'XBN-1', issue_type: 'TASK', late: false, released: false },
       { issue_key: 'XBN-2', issue_type: 'BUG', late: false, released: false },
       { issue_key: 'XBN-3', issue_type: 'BUG', late: false, released: false },
+      { issue_key: 'XBN-6', issue_type: 'BUG', late: false, released: false },
+      { issue_key: 'XBN-7', issue_type: 'BUG', late: false, released: false },
     ]);
     const 검색 = 부른것.find((b) => b.경로 === '/api/v1/search/aql');
     expect(검색?.몸).toEqual({ projectKey: 'XBN', query: 'status = "qa-req"', page: 0, size: 100 });

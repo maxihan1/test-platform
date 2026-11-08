@@ -102,7 +102,7 @@ async function 맡음놓기(projectId: number, 이슈: BTS이슈): Promise<void>
 
 /**
  * 이슈 열림 · 「닫힘」으로 옮김을 노트 사건으로 쌓는다 (도메인/BTS 「맥락 — 프로젝트 노트」). 다른 상태로 옮긴 알림은 안 쌓는다.
- * 닫힘 상태를 짝짓지 않은 연결은 닫힘을 알 수 없어 안 쌓는다. 버그(BTS 종류 키 bug)면 ISSUE_CLOSE, 그 밖은 task 가 끝난 것이다.
+ * 닫힘 상태를 짝짓지 않은 연결은 닫힘을 알 수 없어 안 쌓는다. 버그(BTS 종류 키 bug 거나 QA Hub 가 올린 이슈 — 배포 맡기와 같은 가르기)면 ISSUE_CLOSE, 그 밖은 task 가 끝난 것이다.
  * 던지지 않는다 — 던지면 알림을 잊어 BTS 가 다시 보내고 닫기를 또 돈다. 노트 사건 하나를 잃는 쪽이 닫기를 다시 도는 쪽보다 낫다
  */
 async function 이슈노트사건(projectId: number, 사건: string, 이슈: BTS이슈): Promise<void> {
@@ -116,7 +116,8 @@ async function 이슈노트사건(projectId: number, 사건: string, 이슈: BTS
     }
     const 짝 = (await (await db()).query<{ closed: string | null }>("SELECT status_map->>'CLOSED' AS closed FROM bts_link WHERE project_id = $1", [projectId])).rows[0];
     if (짝?.closed === undefined || 짝.closed === null || 짝.closed === '' || 이슈.state !== 짝.closed) return;
-    const 끝종류 = 이슈.type === 'bug' ? 'ISSUE_CLOSE' : 'TASK_DONE';
+    const 버그 = 이슈.type === 'bug' || ((await (await db()).query('SELECT 1 FROM bts_issue_case WHERE project_id = $1 AND issue_key = $2 LIMIT 1', [projectId, 이슈.key])).rowCount ?? 0) > 0;
+    const 끝종류 = 버그 ? 'ISSUE_CLOSE' : 'TASK_DONE';
     종류 = 끝종류;
     await 노트사건쌓기(projectId, 끝종류, { ...몸, resolution: 이슈.resolution });
   } catch (err) {

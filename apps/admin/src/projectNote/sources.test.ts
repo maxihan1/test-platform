@@ -105,10 +105,15 @@ describe.skipIf(연결 === undefined)('노트 사건이 서는 곳 · note_read'
     await 알림('issue.transitioned', 'XNS-1');
     이슈 = { ...이슈, typeKey: 'task', summary: '쿠폰 화면' };
     await 알림('issue.transitioned', 'XNS-2');
+    // QA Hub 가 실패로 올린 이슈는 Bunker 유형이 task 여도 버그다(배포 맡기와 같은 가르기)
+    await q(`INSERT INTO bts_issue_case (project_id, issue_key, service_id, tc_id, env) VALUES ($1, 'XNS-3', $2, 'XNR-FN-001', 'qa')`, [내프로젝트, 앱]);
+    이슈 = { ...이슈, summary: '[XNR] 쿠폰 적용' };
+    await 알림('issue.transitioned', 'XNS-3');
     expect(await 사건들()).toEqual([
       { kind: 'ISSUE_OPEN', payload: { issueKey: 'XNS-1', type: 'bug', summary: '로그인 잠금' } },
       { kind: 'ISSUE_CLOSE', payload: { issueKey: 'XNS-1', type: 'bug', summary: '로그인 잠금', resolution: '고침' } },
       { kind: 'TASK_DONE', payload: { issueKey: 'XNS-2', type: 'task', summary: '쿠폰 화면', resolution: '고침' } },
+      { kind: 'ISSUE_CLOSE', payload: { issueKey: 'XNS-3', type: 'task', summary: '[XNR] 쿠폰 적용', resolution: '고침' } },
     ]);
   });
 
