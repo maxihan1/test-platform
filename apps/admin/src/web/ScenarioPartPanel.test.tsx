@@ -170,3 +170,37 @@ describe('ScenarioPartPanel 준비', () => {
     expect(screen.queryByRole('group', { name: '사전 단계 — 체크한 것만 실행' })).toBeNull();
   });
 });
+
+describe('ScenarioPartPanel 첫 절차 이어받기', () => {
+  const 첫절차 = (tcId: string) =>
+    재료(tcId, {
+      steps: [
+        { title: '로그인해 목록을 연다', skippable: false, carry: true },
+        { title: '장바구니를 연다', skippable: false, carry: false },
+      ],
+    });
+
+  it('앞 단계가 같은 제목의 첫 절차를 실행했으면 확인이 든 첫 절차도 체크박스와 칩으로 나온다', () => {
+    const 앞 = 단계('ZSB-001');
+    const 지금 = 단계('ZSB-002');
+    그리기(지금, 첫절차('ZSB-002'), {
+      번호: 2,
+      단계들: [앞, 지금],
+      재료맵: new Map([
+        ['ZSB-001', 첫절차('ZSB-001')],
+        ['ZSB-002', 첫절차('ZSB-002')],
+      ]),
+    });
+    const 묶음 = screen.getByRole('group', { name: '사전 단계 — 체크한 것만 실행' });
+
+    expect(within(묶음).getAllByRole('checkbox')).toHaveLength(1);
+    expect(within(묶음).getByText('로그인해 목록을 연다')).toBeTruthy();
+    expect(within(묶음).getByText('1번에서 이미 실행')).toBeTruthy();
+    expect(within(묶음).queryByText('장바구니를 연다')).toBeNull();
+  });
+
+  it('앞 단계가 없으면 첫 절차를 건너뛸 수 없다는 문장이 나온다', () => {
+    그리기(단계('ZSB-001'), 첫절차('ZSB-001'));
+    expect(screen.getByText('이 케이스는 사전 단계가 분리되어 있지 않아 건너뛸 수 없습니다')).toBeTruthy();
+  });
+});

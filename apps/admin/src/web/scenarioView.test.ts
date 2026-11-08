@@ -30,7 +30,7 @@ const 응답 = (fromSeq: number) => ({ fromSeq, method: 'GET' as const, urlPatte
 
 const 재료 = (steps: string[]): CasePartMaterial => ({
   tcId: 'X', name: 'x', platforms: ['desktop'], precondition: [], paramSchema: {}, expectedSchema: {},
-  steps: steps.map((title) => ({ title, skippable: true })), r16: false, unconfirmed: null,
+  steps: steps.map((title) => ({ title, skippable: true, carry: false })), r16: false, unconfirmed: null,
 });
 
 describe('카드요약', () => {

@@ -92,6 +92,14 @@ export function 이미실행(parts: ScenarioPart[], 재료: 재료들, seq: numb
   return null;
 }
 
+/**
+ * seq 번 단계가 이 절차를 건너뛸 수 있나 — 「만들기」 절차이거나, 첫 절차(carry)인데 같은 애플리케이션 앞 단계가 같은 제목을 이미 실행했다.
+ * 서버 조립 검사와 같은 계산이다 (scenario/validate.ts 건너뛸수있나 · 도메인/시나리오 §3.7 결정 4)
+ */
+export function 건너뛸수있나(parts: ScenarioPart[], 재료: 재료들, seq: number, step: CasePartMaterial['steps'][number]): boolean {
+  return step.skippable || (step.carry && 이미실행(parts, 재료, seq, step.title) !== null);
+}
+
 /** 단계마다 그 단계가 돌 때 걸려 있는 모킹 무늬. 켜기 단계 자신은 다음 단계부터 걸린다 */
 export function 모킹구간(parts: ScenarioPart[]): string[][] {
   let 걸림: string[] = [];

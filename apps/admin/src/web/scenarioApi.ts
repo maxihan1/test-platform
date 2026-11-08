@@ -61,7 +61,8 @@ export interface CasePartMaterial {
   precondition: string[];
   paramSchema: JsonSchema;
   expectedSchema: JsonSchema;
-  steps: { title: string; skippable: boolean }[];
+  /** carry — 첫 절차라 같은 애플리케이션 앞 단계가 같은 제목으로 이미 실행했을 때만 건너뛸 수 있다 */
+  steps: { title: string; skippable: boolean; carry: boolean }[];
   r16: boolean;
   unconfirmed: string | null;
 }
