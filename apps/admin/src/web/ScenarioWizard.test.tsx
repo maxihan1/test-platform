@@ -183,6 +183,39 @@ describe('ScenarioWizard AI 추천', () => {
     expect(맡기기).toHaveBeenCalledTimes(1);
   });
 
+  it('시작 방법에서 적은 흐름 글로 첫 후보를 맡기고, 도는 중에도 다시 추천받기를 누를 수 있다', async () => {
+    const 맡기기 = vi.spyOn(scenarioApi, 'suggestFlows').mockResolvedValueOnce({ jobId: 8 }).mockResolvedValue({ jobId: 9 });
+    vi.spyOn(scenarioApi, 'flowJob').mockResolvedValue({ ...끝난일, status: 'RUNNING', candidates: null });
+    그리기();
+    expect(screen.queryByLabelText(/확인하고 싶은 흐름/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /AI 추천으로 시작/ }));
+    fireEvent.change(screen.getByLabelText(/확인하고 싶은 흐름/), { target: { value: '쿠폰을 쓰고 결제까지' } });
+    다음();
+
+    expect(맡기기).toHaveBeenCalledWith({ service: 'ZSB', platform: 'desktop', wish: '쿠폰을 쓰고 결제까지' });
+    expect(await screen.findByText('작성 에이전트가 처리합니다. 보통 몇 분 걸립니다')).toBeTruthy();
+    fireEvent.change(screen.getByLabelText(/확인하고 싶은 흐름/), { target: { value: '쿠폰 없이 결제' } });
+    const 다시 = screen.getByRole('button', { name: '다시 추천받기' }) as HTMLButtonElement;
+    expect(다시.disabled).toBe(false);
+    fireEvent.click(다시);
+    expect(맡기기).toHaveBeenLastCalledWith({ service: 'ZSB', platform: 'desktop', wish: '쿠폰 없이 결제' });
+  });
+
+  it('후보를 받은 뒤 시작 방법으로 돌아가 흐름 글을 바꾸면 다음에서 새 글로 다시 맡긴다', async () => {
+    const 맡기기 = vi.spyOn(scenarioApi, 'suggestFlows').mockResolvedValue({ jobId: 7 });
+    vi.spyOn(scenarioApi, 'flowJob').mockResolvedValue(끝난일);
+    그리기();
+    fireEvent.click(screen.getByRole('button', { name: /AI 추천으로 시작/ }));
+    다음();
+    await screen.findByRole('button', { name: /첫 주문/ });
+
+    fireEvent.click(screen.getByRole('button', { name: '이전' }));
+    fireEvent.change(screen.getByLabelText(/확인하고 싶은 흐름/), { target: { value: '회원 가입부터' } });
+    다음();
+    expect(맡기기).toHaveBeenCalledTimes(2);
+    expect(맡기기).toHaveBeenLastCalledWith({ service: 'ZSB', platform: 'desktop', wish: '회원 가입부터' });
+  });
+
   it('작성 에이전트가 꺼져 있으면 쓸 수 없다고 알리고 직접 고르기로 이어 간다', async () => {
     vi.spyOn(scenarioApi, 'suggestFlows').mockRejectedValue(new ApiError(503, 'AGENT_OFFLINE', '작성 에이전트가 꺼져 있습니다'));
     vi.spyOn(scenarioApi, 'nextCases').mockResolvedValue({ items: [] });

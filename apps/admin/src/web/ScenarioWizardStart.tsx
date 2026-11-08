@@ -1,5 +1,7 @@
 // E2E 마법사 본문 「시작 방법」(카드 둘 · 애플리케이션 · 디바이스)과 「AI 추천」(확인하고 싶은 흐름 · 기다림 · 후보 카드) (도메인/시나리오 §8.11 「마법사」)
 
+import type { ReactNode } from 'react';
+
 import type { Platform } from './api.js';
 import { use말 } from './i18n.js';
 import { 시나리오칩들, type 앱줄 } from './scenarioView.js';
@@ -47,6 +49,8 @@ export function 시작칸(p: {
   디바이스: Platform;
   앱들: readonly 앱줄[];
   on방법: (방법: 시작방법) => void;
+  바람: string;
+  on바람: (글: string) => void;
   on서비스: (서비스: string) => void;
   on디바이스: (디바이스: Platform) => void;
 }) {
@@ -69,6 +73,8 @@ export function 시작칸(p: {
           </button>
         ))}
       </div>
+      {/* 「다음」을 누르면 바로 맡기므로 첫 후보부터 이 글을 쓰게 여기서 받는다 (기록판 문제 21) */}
+      {p.방법 === 'ai' ? <흐름칸 바람={p.바람} on바람={p.on바람} /> : null}
       <label className="scw-field">
         <span className="scw-label">{t('애플리케이션')}</span>
         <select value={p.서비스} onChange={(e) => p.on서비스(e.target.value)}>
@@ -103,6 +109,30 @@ export function 시작칸(p: {
   );
 }
 
+function 흐름칸(p: { 바람: string; on바람: (글: string) => void; children?: ReactNode }) {
+  const t = use말();
+  return (
+    <div className="scw-field">
+      <label className="scw-label" htmlFor="scw-wish">
+        {t('확인하고 싶은 흐름')} <span className="wz-badge">{t('선택§빈칸')}</span>
+      </label>
+      <div className="scw-row">
+        <input
+          id="scw-wish"
+          type="text"
+          autoComplete="off"
+          maxLength={200}
+          value={p.바람}
+          placeholder={t('예: 쿠폰을 쓰고 결제까지')}
+          onChange={(e) => p.on바람(e.target.value)}
+        />
+        {p.children}
+      </div>
+      <span className="hint">{t('적어 두면 그 흐름에 가까운 후보를 먼저 추천합니다')}</span>
+    </div>
+  );
+}
+
 export function AI칸(p: {
   흐름: 흐름일;
   바람: string;
@@ -123,26 +153,12 @@ export function AI칸(p: {
   );
   return (
     <>
-      <div className="scw-field">
-        <label className="scw-label" htmlFor="scw-wish">
-          {t('확인하고 싶은 흐름')} <span className="wz-badge">{t('선택§빈칸')}</span>
-        </label>
-        <div className="scw-row">
-          <input
-            id="scw-wish"
-            type="text"
-            autoComplete="off"
-            maxLength={200}
-            value={p.바람}
-            placeholder={t('예: 쿠폰을 쓰고 결제까지')}
-            onChange={(e) => p.on바람(e.target.value)}
-          />
-          <button type="button" className="btn ghost" disabled={흐름.도나} onClick={p.on다시}>
-            {t('다시 추천받기')}
-          </button>
-        </div>
-        <span className="hint">{t('적어 두면 그 흐름에 가까운 후보를 먼저 추천합니다')}</span>
-      </div>
+      {/* 도는 중에도 누른다 — 글을 바꿨으면 새 일이고, 같은 글이면 서버가 도는 일 번호를 돌려준다 (§7 flow-suggestions) */}
+      <흐름칸 바람={p.바람} on바람={p.on바람}>
+        <button type="button" className="btn ghost" onClick={p.on다시}>
+          {t('다시 추천받기')}
+        </button>
+      </흐름칸>
 
       {흐름.꺼짐 ? (
         <div className="scw-box" role="alert">
