@@ -82,7 +82,7 @@ describe.skipIf(연결 === undefined)('작성 커버리지 패널 SQL', () => {
   const 줄들 = async () =>
     (
       await 읽기전용.query<Record<string, unknown>>(
-        `SELECT * FROM (${패널SQL('작성 커버리지')}) 패널 WHERE "서비스" = $1`,
+        `SELECT * FROM (${패널SQL('작성 커버리지')}) 패널 WHERE "애플리케이션" = $1`,
         [서비스이름],
       )
     ).rows;
@@ -117,11 +117,11 @@ describe.skipIf(연결 === undefined)('작성 커버리지 패널 SQL', () => {
 
   it('최근 30일 끝난 작성 · 재실행만 최근 것부터 — 칸이 빈 실패와 반영은 안 나온다', async () => {
     const r = await 줄들();
-    expect(r.map((줄) => [줄['방식'], 줄['결과'], 줄['요구']])).toEqual([
-      ['보통', '성공', 10],
-      ['재실행', '중단 · 올리기 거절', 3],
-      ['보통', '성공', null],
-      ['보통', '성공', 0],
+    expect(r.map((줄) => [줄['방식'], 줄['결과'], 줄['요구사항']])).toEqual([
+      ['보통', '완료', 10],
+      ['다시 실행', '중단 · 업로드 거절', 3],
+      ['보통', '완료', null],
+      ['보통', '완료', 0],
     ]);
   });
 
@@ -133,7 +133,7 @@ describe.skipIf(연결 === undefined)('작성 커버리지 패널 SQL', () => {
   it('기능 · UI 로 덮은 수와 % 를 따로 내고 갈래를 못 센 실행은 비운다', async () => {
     const r = await 줄들();
     const 수 = (v: unknown) => (v === null ? null : Number(v));
-    expect(r.map((줄) => [줄['기능으로 덮음'], 수(줄['기능 %']), 줄['UI 로 덮음'], 수(줄['UI %'])])).toEqual([
+    expect(r.map((줄) => [줄['기능으로 커버'], 수(줄['기능 %']), 줄['UI 로 커버'], 수(줄['UI %'])])).toEqual([
       [3, 30, 2, 20],
       [null, null, null, null],
       [null, null, null, null],
@@ -143,7 +143,7 @@ describe.skipIf(연결 === undefined)('작성 커버리지 패널 SQL', () => {
 
   it('성공인데 칸이 비면 원장 없음이라 적는다 · 보류를 모르면 비운다', async () => {
     const r = await 줄들();
-    expect(r.map((줄) => 줄['비고'])).toEqual(['', '', '원장 없음', '']);
-    expect(r.map((줄) => 줄['보류로만'])).toEqual([1, null, null, 0]);
+    expect(r.map((줄) => 줄['비고'])).toEqual(['', '', '요구사항 목록 없음', '']);
+    expect(r.map((줄) => 줄['입력 필요로만'])).toEqual([1, null, null, 0]);
   });
 });

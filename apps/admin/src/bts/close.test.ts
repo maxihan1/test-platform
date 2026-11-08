@@ -162,12 +162,12 @@ describe.skipIf(연결 === undefined)('Issue Bunker 닫기 사유 처리', () =>
     expect((await 요청(id!)).params.testFix).toMatchObject({ cases: [{ runId: 붙은, tcId: 'XBC-FN-004', env: 'qa' }] });
   });
 
-  it('테스트 고침 요청이 PR 을 열면 그 이슈에 「테스트 고침 PR #N」 댓글을 보낼 줄에 넣는다 — 다른 요청 · 같은 PR 로 또 끝난 재실행은 안 넣는다', async () => {
+  it('테스트 고침 요청이 PR 을 열면 그 이슈에 「테스트 수정 PR #N」 댓글을 보낼 줄에 넣는다 — 다른 요청 · 같은 PR 로 또 끝난 재실행은 안 넣는다', async () => {
     expect(await 테스트고침댓글({ serviceId: 서비스, params: { prdApply: true } }, 'https://github.com/o/r/pull/77')).toBe(false);
     expect(await 테스트고침댓글({ serviceId: 서비스, params: { testFix: { issueKey: 'DM-2' } } }, 'https://github.com/o/r/pull/77')).toBe(true);
     const 줄 = (await pool.query<{ kind: string; issue_key: string; payload: { body: string } }>('SELECT kind, issue_key, payload FROM bts_outbox WHERE project_id = $1 ORDER BY id DESC LIMIT 1', [프로젝트])).rows[0]!;
     expect(줄).toMatchObject({ kind: 'COMMENT', issue_key: 'DM-2' });
-    expect(줄.payload.body).toContain('테스트 고침 PR #77');
+    expect(줄.payload.body).toContain('테스트 수정 PR #77');
     expect(await 테스트고침댓글({ serviceId: 서비스, params: { testFix: { issueKey: 'DM-2' } } }, 'https://github.com/o/r/pull/77')).toBe(false);
   });
 });

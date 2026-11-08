@@ -66,7 +66,7 @@ function 문서(items: EvidenceItem[]): EvidenceDocument {
 describe('API 항목 원문', () => {
   it('원문 글은 메서드 · 주소 · 머리 · 본문과 응답 코드 · 본문이고, 없는 칸은 줄을 안 만든다', () => {
     expect(원문).toEqual({
-      request: 'POST https://stg.example.com/v1/pushes\n머리 {\n  "Authorization": "Bearer ********"\n}\n본문 {\n  "title": "<주문 완료>"\n}',
+      request: 'POST https://stg.example.com/v1/pushes\n헤더 {\n  "Authorization": "Bearer ********"\n}\n본문 {\n  "title": "<주문 완료>"\n}',
       response: '201\n{"id":"p-1","status":"QUEUED"}',
     });
     expect(원문글({ request: { method: 'GET', url: '/v1/health' }, response: { status: 204, body: '' } })).toEqual({

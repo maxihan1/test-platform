@@ -43,7 +43,7 @@ describe('추적표만들기', () => {
   it('요구 한 줄에 케이스 수 · 번호 · 종류 · 기법 · 마지막 결과를 싣고 비밀번호를 가린다', async () => {
     const 결과표: Record<string, 'PASS' | 'FAIL'> = { 'MKT-FN-001:desktop': 'PASS', 'MKT-FN-002:desktop': 'FAIL', 'MKT-UI-001:desktop': 'PASS' };
     const { 줄 } = await 읽기(await 추적표만들기(자료((tc: string, p: Platform) => 결과표[`${tc}:${p}`]), ['Mkt!pass99']));
-    expect(줄(1)).toEqual(['요구 번호', '기능 묶음', '요구 문장', '상태', '케이스 수', 'TC ID', '정상', '경계', '예외', 'UI', '설계 기법', '마지막 결과', '성능 목표']);
+    expect(줄(1)).toEqual(['요구사항 번호', '기능 묶음', '요구사항 문장', '상태', '케이스 수', 'TC ID', '정상', '경계', '예외', 'UI', '설계 기법', '마지막 결과', '성능 목표']);
     expect(줄(2)).toEqual([
       'MKT-REQ-001',
       '회원가입',

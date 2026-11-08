@@ -62,7 +62,7 @@ function 단계(d: E2E단계): string[] {
       '값 연결',
       d.값연결.map((v) => `${칩(v.종류)} ${안전(v.글)}`),
     ),
-    ...줄(d.status === 'FAIL' ? '실패 사유' : '실행이 멈춘 사유', 사유 === null ? [] : [안전(사유)]),
+    ...줄(d.status === 'FAIL' ? '실패 사유' : '실행이 중단된 사유', 사유 === null ? [] : [안전(사유)]),
     // 안 돈 단계는 절차를 그리지 않는다 (도메인/리포팅 §8.4)
     ...(d.item === null || d.안돌았다 ? [] : 본문(d.item)),
     `</section>`,
@@ -71,7 +71,7 @@ function 단계(d: E2E단계): string[] {
 
 export function renderScenarioHtml(doc: E2E증적, options: RenderOptions): string {
   const 미확정 = doc.unconfirmed ? 칩('미확정') : '';
-  return 문서판(`${doc.header.serviceName} E2E 증적 — RUN ${doc.runId}`, [
+  return 문서판(`${doc.header.serviceName} E2E 리포트 — RUN ${doc.runId}`, [
     ...머리말(doc.header, options.generatedAt),
     `<section class="band"><div class="card-head"><span class="tc-id">SC-${doc.scenarioId}</span><span class="tc-name">${안전(doc.header.title)}</span>${칩(`v${doc.version}`)}${칩(디바이스[doc.platform])}${doc.verdict === null ? '' : 판정(doc.verdict)}${미확정}</div></section>`,
     `<h2 class="sec">단계별 결과</h2>`,

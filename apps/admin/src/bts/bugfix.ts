@@ -102,7 +102,7 @@ export async function 수정맡기(projectId: number, issueKey: string, 부르�
   const 올린 = 앞.find((x) => x.handed_back);
   if (올린 !== undefined) {
     const 사람 = 올린.owner ?? (await 넘길사람찾기(자리, l.bts_project, [], 이슈.componentIds, 부르기));
-    await 넘기기(projectId, issueKey, `Issue Bunker 에이전트의 수정 PR 을 배포했는데 재검증에서 또 실패했던 이슈라 다시 맡지 않아요 — ${올린.pr_url ?? ''}\n같은 고침을 되풀이하지 않게 사람에게 넘겨요`, 사람);
+    await 넘기기(projectId, issueKey, `Issue Bunker 에이전트의 수정 PR 을 배포했는데 재검증에서 또 실패했던 이슈라 다시 맡지 않아요 — ${올린.pr_url ?? ''}\n같은 수정을 되풀이하지 않게 사람에게 넘겨요`, 사람);
     return 'HANDED_BACK';
   }
   const 앱 = await 애플리케이션고르기(l, projectId, issueKey, 이슈.componentIds, 부르기);
@@ -176,7 +176,7 @@ export async function 재검증실패넘기기(projectId: number, issueKey: stri
   await 넘기기(
     projectId,
     issueKey,
-    [`수정 PR ${줄.pr_url} 을 배포했는데 재검증에서 또 실패했어요 — Issue Bunker 에이전트는 다시 맡지 않고 사람에게 넘겨요`, '', `실패 이유: ${까닭}`, `Test Commander 실행 ${String(runId)}`, ...(파일.length === 0 ? [] : ['', '고친 파일', ...파일])].join('\n'),
+    [`수정 PR ${줄.pr_url} 을 배포했는데 재검증에서 또 실패했어요 — Issue Bunker 에이전트는 다시 맡지 않고 사람에게 넘겨요`, '', `실패 이유: ${까닭}`, `Test Commander 실행 ${String(runId)}`, ...(파일.length === 0 ? [] : ['', '수정한 파일', ...파일])].join('\n'),
     사람,
   );
   return true;

@@ -155,8 +155,8 @@ const 기록없음 = '기록 없음';
  * 실제 폰 Chrome 에서 돈 모바일 항목은 앱 판 자리에 Chrome 판이다 — 그 항목만 browser 칸이 있다 (TMO-F4-03)
  */
 export function 기기글(d: DeviceInfo): string {
-  const 끝 = d.browser === undefined ? `앱 ${d.appVersion ?? '판 모름'}` : `Chrome ${d.browser ?? '판 모름'}`;
-  return `${d.model ?? '모델 모름'} · Android ${d.osVersion ?? '판 모름'} · ${끝}`;
+  const 끝 = d.browser === undefined ? `앱 ${d.appVersion ?? '버전 모름'}` : `Chrome ${d.browser ?? '버전 모름'}`;
+  return `${d.model ?? '모델 모름'} · Android ${d.osVersion ?? '버전 모름'} · ${끝}`;
 }
 /** 비밀값은 화면과 문서에서만 가린다. DB 에는 평문 그대로다 (SPEC §4.1) */
 const 가림 = '********';
@@ -165,10 +165,10 @@ const 가림 = '********';
 const 미실행사유: Record<RunStatus, string> = {
   // 아래 미실행사유를찾는다() 의 error 갈래와 같은 문장이다. 사람이 멈춘 것인지
   // 서버가 죽어 recoverRunning() 이 닫은 것인지 DB 가 구분하지 못한다 (SPEC §6)
-  ABORTED: '실행이 멈춰 돌지 못했습니다',
+  ABORTED: '실행이 중단되어 수행되지 않았습니다',
   RUNNING: '아직 실행 중입니다',
   // 러너 결과를 저장하다 실패한 행이 여기로 온다. 증적이 그 상태를 숨기면 안 된다
-  FINISHED: '실행이 끝났지만 결과가 기록되지 않았습니다',
+  FINISHED: '실행이 완료되었지만 결과가 기록되지 않았습니다',
 };
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -254,7 +254,7 @@ function 미실행사유를찾는다(row: RawItem, 실행상태: RunStatus): str
   if (row.status === 'NA' && isPlainObject(row.error) && (row.error.message === 'ABORTED' || row.error.message === 'STOPPED')) {
     // recoverRunning() 도 같은 문자열을 쓴다. 사람이 멈춘 것인지 서버가 죽어 끊긴 것인지
     // DB 가 구분하지 못하므로 구분하는 척하지 않는다 (SPEC §6)
-    return '실행이 멈춰 돌지 못했습니다';
+    return '실행이 중단되어 수행되지 않았습니다';
   }
   // 아무도 안 닫은 행. 러너 결과를 저장하다 실패했거나 프로세스가 도중에 죽었다
   if (row.finished_at === null) return 미실행사유[실행상태];

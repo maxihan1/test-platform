@@ -46,11 +46,11 @@ export interface ExportInput {
 const 디바이스: Record<Platform, string> = { desktop: 'PC', mobile: '모바일', android: 'Android 앱' };
 // 마지막 결과는 케이스 하나의 판정(prd/trace.ts 케이스판정)이라 NA 는 「기기가 다 통과하지도 하나라도 깨지지도 않았다」 — 목록 · 추적표처럼 미실행이다
 const 판정글자: Record<ItemStatus, string> = { PASS: '통과', FAIL: '실패', NA: '미실행' };
-const 구분글자: Record<보류['kind'], string> = { UNDECIDABLE: '판정 불가', ON_HOLD: '보류' };
+const 구분글자: Record<보류['kind'], string> = { UNDECIDABLE: '기대 결과 없음', ON_HOLD: '테스트 데이터 없음' };
 const 없음 = '—';
 const 모킹표시 = '가짜 응답(모킹)';
 
-const 케이스머리 = ['TC ID', '케이스명', '기기', '전제', '입력값', '기대값', '상태', '마지막 결과'];
+const 케이스머리 = ['TC ID', '케이스명', '디바이스', '전제', '입력값', '기대 결과', '상태', '마지막 결과'];
 const 보류머리 = ['작성 요청', 'TC ID', '구분', '왜 보류됐나', '처리', '넣은 값', '누가', '언제', '반영'];
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
@@ -112,7 +112,7 @@ function 넣은값(h: ExportHeld): string {
 }
 
 function 보류행(h: ExportHeld): string[] {
-  const 처리 = !h.input ? '값 필요' : h.input.removed ? '제거함' : '값 채움';
+  const 처리 = !h.input ? '입력 필요' : h.input.removed ? '제거함' : '값 채움';
   return [
     `#${h.rootId}`,
     h.held.tcId,
@@ -144,7 +144,7 @@ export async function renderCatalogXlsx(input: ExportInput): Promise<Buffer> {
   시트(
     wb,
     '테스트 케이스',
-    [...케이스머리, ...(기법열 ? ['설계 기법'] : []), '기능 묶음', '요구 번호'],
+    [...케이스머리, ...(기법열 ? ['설계 기법'] : []), '기능 묶음', '요구사항 번호'],
     [12, 40, 12, 36, 36, 36, 30, 22, ...(기법열 ? [20] : []), 18, 20],
     input.cases.map((c) => [
       ...케이스행(c, input),

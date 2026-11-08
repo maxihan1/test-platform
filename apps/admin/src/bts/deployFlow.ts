@@ -166,7 +166,7 @@ export async function 맡기(deployId: number, late: boolean, 부르기: 부르�
     손.release();
   }
   for (const key of 댓글감) {
-    await 보낼줄넣기({ projectId: Number(배포.project_id), kind: 'COMMENT', issueKey: key, payload: { body: '딸린 테스트 없음 — 사람이 확인해 주세요\nTest Commander 에 이 버그를 확인하는 테스트가 없습니다' } });
+    await 보낼줄넣기({ projectId: Number(배포.project_id), kind: 'COMMENT', issueKey: key, payload: { body: '딸린 테스트 없음 — 사람이 확인해 주세요\nTest Commander 에 이 결함을 확인하는 테스트가 없습니다' } });
   }
   return 맡음;
 }
@@ -176,7 +176,7 @@ async function 보류댓글(projectId: number, buildNo: string, 깨진앱: strin
   const 연결 = await 연결읽기(projectId);
   if (연결 === undefined) return;
   const { 이슈 } = await QA요청이슈(연결, 부르기);
-  const body = `스모크 실패 — 보류 · 빌드 ${buildNo}\n스모크가 깨진 애플리케이션: ${깨진앱.join(', ')}\n이슈는 「QA 요청」에 그대로 두고 다음 배포에서 다시 확인합니다`;
+  const body = `스모크 실패 — 보류 · 빌드 ${buildNo}\n스모크가 실패한 애플리케이션: ${깨진앱.join(', ')}\n이슈는 「QA 요청」에 그대로 두고 다음 배포에서 다시 확인합니다`;
   for (const { key } of 이슈) await 보낼줄넣기({ projectId, kind: 'COMMENT', issueKey: key, payload: { body } });
 }
 

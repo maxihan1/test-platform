@@ -66,7 +66,7 @@ function 표(items: PrdItem[]): string {
   // 머리 줄은 쪽이 넘어가도 다시 찍는다(tblHeader) — 요구가 수백 건이면 표가 여러 쪽이다
   const 머리 =
     '<w:tr><w:trPr><w:tblHeader/></w:trPr>' +
-    ['번호', '요구 문장', '상태', '출처'].map((글, i) => 칸(칸폭[i]!, 문단(글, { 꾸밈: '<w:b/>' }), 머리바탕)).join('') +
+    ['번호', '요구사항 문장', '상태', '출처'].map((글, i) => 칸(칸폭[i]!, 문단(글, { 꾸밈: '<w:b/>' }), 머리바탕)).join('') +
     '</w:tr>';
   return (
     // 폭을 비율로 주면 글 양에 따라 표마다 칸 폭이 달라진다 — 고정 폭으로 묶음끼리 줄을 맞춘다
@@ -138,7 +138,7 @@ const 관계 = (종류: string, 대상: string) =>
 export async function 워드만들기(자료: 워드자료, 비밀번호들: string[]): Promise<Buffer> {
   const items = 가린항목(자료.items, 비밀번호들);
   const 확인수 = items.filter((x) => x.status === 'NEEDS_CHECK').length;
-  const 머리글 = `판 ${String(자료.version)} · 요구 ${String(items.length)}건 · 확인 필요 ${String(확인수)}건 · ${자료.generatedAt} 내려받음`;
+  const 머리글 = `버전 ${String(자료.version)} · 요구사항 ${String(items.length)}건 · 확인 필요 ${String(확인수)}건 · ${자료.generatedAt} 다운로드`;
   const 몸 =
     문단(`${자료.service} 표준 기획서`, { 꼴: 'Title' }) +
     문단(머리글, { 꾸밈: `<w:color w:val="${흐린글색}"/>` }) +

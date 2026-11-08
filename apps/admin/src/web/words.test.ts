@@ -1,5 +1,5 @@
-// 화면 문구가 docs/WORDS.md §1 「쓰지 않는 말」을 쓰지 않는지 본다
-import { readFileSync } from 'node:fs';
+// 화면 문구 · Grafana 대시보드 글자가 docs/WORDS.md §1 「쓰지 않는 말」을 쓰지 않는지 본다
+import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -29,9 +29,38 @@ export function 낱말표(글: string): 낱말줄[] {
   });
 }
 
+/**
+ * Grafana 대시보드의 화면 글자 — 제목 · 설명 · 칸 이름. SQL 은 큰따옴표 칸 이름과 작은따옴표 값만 화면에 찍힌다.
+ * DB 와 견주는 값은 영문 코드('DONE')라 걸리지 않는다 (2026-11-08 사용자 — Grafana 도 같은 낱말)
+ */
+function 대시보드글(json: string): string[] {
+  const 글: string[] = [];
+  const 걷기 = (v: unknown, 키: string): void => {
+    if (typeof v === 'string') {
+      if (!/[가-힣]/u.test(v)) return;
+      if (키 !== 'rawSql') {
+        글.push(v);
+        return;
+      }
+      for (const m of v.replace(/--[^\n]*/gu, '').matchAll(/"([^"]*)"|'([^']*)'/gu)) {
+        const 값 = m[1] ?? m[2] ?? '';
+        if (/[가-힣]/u.test(값)) 글.push(값);
+      }
+    } else if (Array.isArray(v)) v.forEach((x) => 걷기(x, 키));
+    else if (v !== null && typeof v === 'object') for (const [k, x] of Object.entries(v)) 걷기(x, k);
+  };
+  걷기(JSON.parse(json), '');
+  return 글;
+}
+
+const 대시보드폴더 = join(dirname(fileURLToPath(import.meta.url)), '../../../../infra/grafana/provisioning/dashboards');
+const 대시보드문구 = readdirSync(대시보드폴더)
+  .filter((n) => n.endsWith('.json'))
+  .flatMap((n) => 대시보드글(readFileSync(join(대시보드폴더, n), 'utf8')));
+
 const 줄들 = 낱말표(readFileSync(정본, 'utf8'));
 // 자리표시 이름(`{덮음}`)은 화면에 안 나온다
-const 문구들 = [...new Set(표들.flatMap((표) => Object.keys(표)))].filter((k) => !예외.has(k));
+const 문구들 = [...new Set([...표들.flatMap((표) => Object.keys(표)), ...대시보드문구])].filter((k) => !예외.has(k));
 const 보이는글 = (k: string) => k.replace(/\{[^}]*\}/gu, '');
 
 describe('화면 낱말 (docs/WORDS.md §1)', () => {

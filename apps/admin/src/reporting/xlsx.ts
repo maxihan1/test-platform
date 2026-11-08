@@ -28,7 +28,7 @@ const 판정글자: Record<EvidenceItem['status'], string> = {
 const 머리행 = [
   'RUN',
   '실행일시',
-  '서비스',
+  '애플리케이션',
   '대상서버',
   '주소',
   '실행자',
@@ -42,9 +42,9 @@ const 머리행 = [
   '미실행·판정불가 사유',
   // 비면 확정 항목이다. 걸러 내기로 미확정만 골라 볼 수 있다 (도메인/리포팅 · 실행 §3.2)
   '미확정 사유',
-  '사전조건',
+  '사전 조건',
   '입력값',
-  '기대값',
+  '기대 결과',
   '절차번호',
   '절차명',
   '절차판정',
@@ -118,11 +118,11 @@ export async function renderXlsx(doc: EvidenceDocument, options: RenderOptions):
   workbook.created = new Date(options.generatedAt);
   workbook.modified = workbook.created;
 
-  const sheet = workbook.addWorksheet('증적');
+  const sheet = workbook.addWorksheet('리포트');
   // 머리행만 고정한다. 머리행 길이만큼 가로로 훑는 표라 머리가 흘러가면 무슨 칸인지 못 읽는다
   sheet.views = [{ state: 'frozen', ySplit: 1 }];
   // 「기기」는 종류 뒤 맨 끝이다 — E2E 엑셀과 같이 쓰는 머리행에 끼우면 그쪽 칸 위치가 밀린다 (APP-F1-05)
-  sheet.addRow([...머리행, '기기', '팜 기록', '다시 실행']);
+  sheet.addRow([...머리행, '디바이스 정보', 'Device VISION 기록', '다시 실행']);
   // 한 건 실행이 덮은 디바이스는 원래 항목과 다시 돈 항목을 둘 다 펴고 맨 끝 칸으로 가른다. 앞 묶음 칸은 원래 실행 것이다 (도메인/리포팅 §8.4)
   const 끝칸 = (item: EvidenceItem, 다시: string | null) => (행: 칸값[]): 칸값[] => [...행, doc.header.kind, item.device ?? null, item.farm ?? null, 다시];
   for (const item of doc.items) {
@@ -175,7 +175,7 @@ export async function renderScenarioXlsx(doc: E2E증적, options: RenderOptions)
   workbook.created = new Date(options.generatedAt);
   workbook.modified = workbook.created;
 
-  const sheet = workbook.addWorksheet('E2E 증적');
+  const sheet = workbook.addWorksheet('E2E 리포트');
   sheet.views = [{ state: 'frozen', ySplit: 1 }];
   sheet.addRow(['단계', ...머리행]);
   // 실행 칸 여섯은 케이스 증적과 같은 함수가 채운다 — 항목은 단계마다 따로 넘긴다

@@ -125,7 +125,7 @@ describe('E2E 증적 HTML', () => {
   it('안 돈 단계는 한 줄이고 절차를 그리지 않는다', () => {
     const 넷째 = html.slice(html.indexOf('4단계'));
     expect(넷째).toContain('– 실행 안 함');
-    expect(넷째.slice(0, 넷째.indexOf('</section>'))).not.toContain('사전조건');
+    expect(넷째.slice(0, 넷째.indexOf('</section>'))).not.toContain('사전 조건');
   });
 
   it('끝에 보낸 정리는 마지막 단계 뒤에 미룬 단계 번호와 함께', () => {
@@ -149,13 +149,13 @@ describe('E2E 증적 HTML', () => {
   });
 
   it('웹만의 시나리오는 머리에 기기 줄이 없다', () => {
-    expect(html).not.toContain('<dt>기기</dt>');
+    expect(html).not.toContain('<dt>디바이스</dt>');
   });
 
   it('앱 · 게임 단계가 있는 시나리오는 머리에 폰 한 벌을 기기 줄로 적는다', () => {
     const 앱결과 = { ...결과, platform: 'android' as const, device: { model: 'SM-S921N', osVersion: '14', appVersion: null } };
     const 앱html = renderScenarioHtml(E2E모양(78, 앱결과, { serviceName: '커머스', testsRepo: 'https://git.example.com/t' }), { generatedAt: '2026-10-29 15:00' });
-    expect(앱html).toContain('<dt>기기</dt><dd>SM-S921N · Android 14 · 앱 판 모름</dd>');
+    expect(앱html).toContain('<dt>디바이스</dt><dd>SM-S921N · Android 14 · 앱 버전 모름</dd>');
   });
 });
 
@@ -183,7 +183,7 @@ describe('E2E 증적 엑셀', () => {
   it('단계 칸이 앞에 붙고 건너뛴 절차 · 안 돈 단계 · 정리가 행으로 남는다', async () => {
     const 책 = new ExcelJS.Workbook();
     await 책.xlsx.load(new Uint8Array(await renderScenarioXlsx(모양, { generatedAt: '2026-10-16T06:00:00.000Z' })).buffer);
-    const 행들 = (책.getWorksheet('E2E 증적')?.getSheetValues() ?? []).filter(Array.isArray) as unknown[][];
+    const 행들 = (책.getWorksheet('E2E 리포트')?.getSheetValues() ?? []).filter(Array.isArray) as unknown[][];
     const 머리 = 행들[0]!;
     expect(머리[1]).toBe('단계');
     const 칸 = (이름: string) => 머리.indexOf(이름);
@@ -219,7 +219,7 @@ describe('케이스 증적의 E2E 요약', () => {
     expect(글).not.toMatch(/SC-15.*모두 통과/);
     expect(글).toContain('E2E 요약');
     expect(글).toContain('이 요약은 문서를 만든 때 기준이다');
-    expect(글).toContain('2026-10-16T05:20:00.000Z · 3번에서 멈춤');
+    expect(글).toContain('2026-10-16T05:20:00.000Z · 3번에서 종료');
     expect(글).toContain('2026-10-15T01:00:00.000Z · 모두 통과');
     expect(글).toMatch(/SC-14.*실행 기록 없음/);
     expect(글).toContain('케이스 판정은 위 카드와 줄이 정본이다');

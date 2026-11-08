@@ -100,7 +100,7 @@ describe('증적 문서 HTML', () => {
   it('반복 실행한 케이스는 회차마다 한 블록씩 나오고 회차 번호가 블록 머리에 있다', () => {
     const html = renderHtml(문서([항목({ attempt: 1 }), 항목({ attempt: 2, status: 'FAIL' })]), 옵션);
 
-    expect(html.match(/<div class="row-k">사전조건<\/div>/g)).toHaveLength(2);
+    expect(html.match(/<div class="row-k">사전 조건<\/div>/g)).toHaveLength(2);
     expect(html).toContain('1회차');
     expect(html).toContain('2회차');
   });
@@ -126,7 +126,7 @@ describe('증적 문서 HTML', () => {
         항목({ status: 'PASS' }),
         항목({ status: 'FAIL' }),
         항목({ status: 'NA', notRunReason: '러너에 닿지 못했습니다' }),
-        항목({ status: 'NOT_RUN', durationMs: null, notRunReason: '실행이 멈춰 돌지 못했습니다' }),
+        항목({ status: 'NOT_RUN', durationMs: null, notRunReason: '실행이 중단되어 수행되지 않았습니다' }),
       ]),
       옵션,
     );
@@ -250,7 +250,7 @@ describe('증적 문서 HTML', () => {
           tcId: 'PAY-010',
           status: 'NOT_RUN',
           durationMs: null,
-          notRunReason: '사람이 실행을 멈춰 돌지 못했습니다',
+          notRunReason: '사람이 실행을 중단해 실행하지 못했습니다',
         }),
       ]),
       옵션,
@@ -258,7 +258,7 @@ describe('증적 문서 HTML', () => {
 
     // 검수처에 내는 문서에서 항목이 그냥 사라지면 안 된다 (SPEC §8.4)
     expect(html).toContain('PAY-010');
-    expect(html).toContain('사람이 실행을 멈춰 돌지 못했습니다');
+    expect(html).toContain('사람이 실행을 중단해 실행하지 못했습니다');
   });
 
   it('이름과 검증 문장의 < 와 & 를 escape 한다', () => {

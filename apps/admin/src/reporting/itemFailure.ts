@@ -13,8 +13,8 @@ export interface 항목실패 {
 // 고를 재료가 없을 때만 쓴다 — 모르는 사유를 지어내지 않고 유형이 말하는 만큼만 적는다
 export const 유형문장: Record<실패유형, string> = {
   mismatch: '기대 결과와 다릅니다',
-  notFound: '요소를 끝내 찾지 못했습니다',
-  timeout: '제한 시간 안에 끝나지 않았습니다',
+  notFound: '요소를 찾지 못했습니다',
+  timeout: '제한 시간 안에 완료되지 않았습니다',
   environment: '대상 서버나 러너에 닿지 못했습니다',
   other: '원인을 가르지 못했습니다',
 };

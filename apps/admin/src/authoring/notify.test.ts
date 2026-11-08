@@ -28,7 +28,7 @@ describe('작성 완료 알림 본문', () => {
     expect(본문(기본, 'https://qa.example.com/')).toBe(
       [
         '[완료] 데모마켓 · 작성 요청 #12 · 테스트 작성',
-        '스크립트 파일 7개 · PRD 확인 필요 3건 · 걸린 시간 2분 05초',
+        '케이스 파일 7개 · PRD 확인 필요 3건 · 소요 시간 2분 05초',
         'PR https://github.com/acme/demo/pull/9',
         '',
         '결과 보기 https://qa.example.com/#/authoring/12',
@@ -38,7 +38,7 @@ describe('작성 완료 알림 본문', () => {
 
   it('칸이 없는 조각만 빼고 주소를 모르면 링크 줄을 뺀다', () => {
     expect(본문({ ...기본, caseFiles: null, 확인필요: null, prUrl: null }, '')).toBe(
-      ['[완료] 데모마켓 · 작성 요청 #12 · 테스트 작성', '걸린 시간 2분 05초'].join('\n'),
+      ['[완료] 데모마켓 · 작성 요청 #12 · 테스트 작성', '소요 시간 2분 05초'].join('\n'),
     );
     expect(본문({ ...기본, caseFiles: null, 확인필요: null, ms: null, prUrl: null }, '')).toBe(
       '[완료] 데모마켓 · 작성 요청 #12 · 테스트 작성',
@@ -145,7 +145,7 @@ describe.skipIf(연결 === undefined)('끝내기 통로의 Slack 알림', () => 
     expect(주소).toBe(웹훅);
     const { text } = JSON.parse(요청.body) as { text: string };
     expect(text).toContain(`[완료] XWF 작성 알림 검사용 · 작성 요청 #${id} · 테스트 작성`);
-    expect(text).toContain('스크립트 파일 3개 · PRD 확인 필요 1건 · 걸린 시간 2분');
+    expect(text).toContain('케이스 파일 3개 · PRD 확인 필요 1건 · 소요 시간 2분');
     expect(text).toContain(`결과 보기 https://qa.example.com/#/authoring/${id}`);
   });
 
