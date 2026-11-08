@@ -158,14 +158,22 @@ export function 올릴수없는파일(파일들: readonly string[]): string | nu
 /** GitHub PR 본문 상한은 65536자다 — 여유를 두고 이 안으로 자른다 */
 export const PR본문상한 = 60000;
 
+/** 닫기 낱말 바로 뒤 키를 `:` 로 끊는다 — Issue Bunker 는 PR 제목 · 본문 어디서든 `Fix MQA-90` 꼴을 읽어(앞 낱말 경계도 안 본다 · `Hotfix MQA-90` 도) 이 PR 과 상관없는 이슈를 「배포 대기」로 옮긴다. 이슈 제목 · AI 요약은 자료라 그대로 실으면 안 된다 */
+export function 닫기낱말끊기(글: string): string {
+  return 글.replace(/(Closes?d?|Fix(?:es|ed)?|Resolves?d?)(\s+)(?=[A-Z][A-Z0-9]{1,9}-[1-9])/gi, '$1:$2');
+}
+
 /** PR 본문 — 해요체. 병합은 사람이 한다. 넘으면 고친 내용(summary)을 잘라 맺음말이 남게 한다 */
 export function PR본문(입력: { issueKey: string; title: string; summary: string; files: readonly string[] }): string {
   const 보일 = 입력.files.slice(0, 50).map((f) => `- \`${글자자르기(f, 상한.파일길이)}\``);
   if (입력.files.length > 50) 보일.push(`- 외 ${입력.files.length - 50}개`);
   const 만들기 = (요약: string) =>
     [
+      // Issue Bunker 의 PR 병합 규칙은 닫기 낱말이 바로 앞에 붙은 키만 읽는다 — 없으면 병합해도 이슈가 「배포 대기」로 안 간다 (도메인/BTS 「수정 AI」)
+      `Closes ${입력.issueKey}`,
+      '',
       '## 이슈',
-      `${입력.issueKey} — ${입력.title.replace(/\s+/g, ' ')}`,
+      `${입력.issueKey} — ${닫기낱말끊기(입력.title.replace(/\s+/g, ' '))}`,
       `Issue Bunker 이슈 ${입력.issueKey} 를 Test Commander 가 맡아 고쳤어요.`,
       '',
       '## 고친 내용',
@@ -177,7 +185,7 @@ export function PR본문(입력: { issueKey: string; title: string; summary: str
       'Test Commander 수정 AI 가 만든 초안 PR 이에요. 병합은 사람이 해요.',
     ].join('\n');
   const 틀 = 만들기('').length;
-  return 만들기(글자자르기(입력.summary, Math.max(0, PR본문상한 - 틀)));
+  return 만들기(글자자르기(닫기낱말끊기(입력.summary), Math.max(0, PR본문상한 - 틀)));
 }
 
 /** 이 스크립트가 올린 커밋 제목인가 — 다시 실행해 같은 브랜치를 덮어써도 되는 머리는 이것뿐이다(사람 커밋은 덮어쓰지 않는다) */

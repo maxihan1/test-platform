@@ -32,6 +32,7 @@ import {
   출력읽기,
   상태파일들,
   수정커밋제목인가,
+  닫기낱말끊기,
   원격머리풀기,
   푸시인자,
   상한,
@@ -157,7 +158,7 @@ async function 수정건(주소기지: string, 토큰: string, 서비스: string
     if (!담기.ok) return void (await 손.끝내기({ status: 'FAILED', error: `파일을 담지 못했다: ${담기.까닭}` }));
     const 차이 = 트리에서('git', ['diff', '--cached', '--no-ext-diff', 'HEAD']);
     if (!차이.ok) return void (await 손.끝내기({ status: 'FAILED', error: `바뀐 내용을 읽지 못했다: ${차이.까닭}` }));
-    const 제목 = 자료.title.replace(/\s+/g, ' ').trim();
+    const 제목 = 닫기낱말끊기(자료.title.replace(/\s+/g, ' ').trim());
     const 본문 = PR본문({ issueKey: 자료.issueKey, title: 제목, summary: 몸.summary, files: 파일들 });
     const 커밋글 = `[Test Commander] ${자료.issueKey} 수정 — ${제목}`;
     // diff · 본문 · 커밋 글 · 요약 · 분석 어디든 비밀이 섞였으면 push 하지 않는다
