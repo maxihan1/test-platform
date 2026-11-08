@@ -86,7 +86,8 @@ function PanelBody({
   for (const l of 단계.links ?? []) if (l.kind === 'bind') 잠금[l.param] = l.value.fromSeq;
 
   const 아이디 = `scn-set-${번호}`;
-  const 건너뛸것 = 케이스.steps.filter((s) => 건너뛸수있나(단계들, 재료, 번호, s));
+  // 풀어 둔 체크는 건너뛸 수 없게 된 뒤에도 그린다 — 다시 체크해 「확인 필요」를 풀 길이 남게
+  const 건너뛸것 = 케이스.steps.filter((s) => 건너뛸수있나(단계들, 재료, 번호, s) || 보일단계.skipSteps.includes(s.title));
 
   function 이어받기바꿈() {
     if (이어받나) {

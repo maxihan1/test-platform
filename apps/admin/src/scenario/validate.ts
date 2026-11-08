@@ -94,8 +94,10 @@ export function 건너뛸수있나(parts: ScenarioPart[], i: number, 재료: 카
   if (케이스.skippable.includes(제목)) return true;
   if (케이스.carry !== 제목) return false;
   const 앱 = 케이스접두사(p.tcId);
-  return parts
-    .slice(0, i)
+  // 로그인 이어받기를 끈 단계는 로그인 상태를 비우고 돈다 — 그보다 앞 단계가 세운 로그인은 남지 않는다
+  const 앞 = parts.slice(0, i);
+  return 앞
+    .slice(앞.reduce((n, q, j) => (q.kind === 'case' && q.carryOver === false ? j : n), 0))
     .some((q) => q.kind === 'case' && 케이스접두사(q.tcId) === 앱 && 재료.get(q.tcId)?.titles.includes(제목) === true);
 }
 

@@ -1,4 +1,4 @@
-// 로그인 이어받기 — 첫 절차는 같은 애플리케이션 앞 단계에 같은 제목이 있을 때만 건너뛴다 (SPEC 도메인/시나리오 §3.7 결정 4 · 5)
+// 첫 절차 이어받기 — 첫 절차는 같은 애플리케이션 앞 단계에 같은 제목이 있을 때만 건너뛴다 (SPEC 도메인/시나리오 §3.7 결정 4 · 5)
 
 import type { ScenarioPart } from '@platform/kit';
 import { describe, expect, it } from 'vitest';
@@ -34,6 +34,13 @@ describe('건너뛸수있나', () => {
   it('다른 애플리케이션 단계의 같은 제목은 세지 않는다 — 출처가 다르면 로그인이 안 넘어간다', () => {
     const parts = [케이스('DMB-001'), 케이스('DMA-002', [로그인])];
     expect(건너뛸수있나(parts, 1, 재료, 로그인)).toBe(false);
+  });
+
+  it('사이에 로그인 이어받기를 끈 단계가 있으면 그보다 앞 단계는 세지 않는다 — 끈 단계가 로그인 상태를 비운다', () => {
+    const 끈 = { ...케이스('DMB-001'), carryOver: false } as ScenarioPart;
+    expect(건너뛸수있나([케이스('DMA-001'), 끈, 케이스('DMA-002', [로그인])], 2, 재료, 로그인)).toBe(false);
+    const 끈같은앱 = { ...케이스('DMA-001'), carryOver: false } as ScenarioPart;
+    expect(건너뛸수있나([끈같은앱, 케이스('DMA-002', [로그인])], 1, 재료, 로그인)).toBe(true);
   });
 
   it('첫 절차가 아닌 제목은 앞 단계에 있어도 건너뛸 수 없다', () => {

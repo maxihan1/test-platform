@@ -92,6 +92,16 @@ describe('ScenarioCards 칩', () => {
     expect(칩찾기('확인 필요')?.className).toContain('case-tag');
   });
 
+  it('첫 절차 건너뛰기는 같은 애플리케이션 앞 단계에 같은 제목이 있을 때만 확인 필요가 안 뜬다', () => {
+    const 첫절차 = (tcId: string) => 재료(tcId, { steps: [{ title: '로그인', skippable: false, carry: true }] });
+    const 표 = new Map([['ZSB-001', 첫절차('ZSB-001')], ['ZSB-002', 첫절차('ZSB-002')]]);
+    const { unmount } = render(<판 단계들={[케이스('ZSB-001'), 케이스('ZSB-002', { skipSteps: ['로그인'] })]} 재료={표} />);
+    expect(칩찾기('확인 필요')).toBeNull();
+    unmount();
+    render(<판 단계들={[케이스('ZSB-002', { skipSteps: ['로그인'] })]} 재료={표} />);
+    expect(칩찾기('확인 필요')?.className).toContain('case-tag');
+  });
+
   it('재료가 404(null)면 실행 불가 칩과 찾지 못했다는 요약이 뜬다', () => {
     render(<판 단계들={[케이스('ZSB-404')]} 재료={new Map([['ZSB-404', null]])} />);
     expect(칩찾기('실행 불가')?.className).toContain('case-tag');

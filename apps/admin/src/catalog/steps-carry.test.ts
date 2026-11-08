@@ -61,8 +61,11 @@ describe('caseSteps carry', () => {
       await verify('된다', x, x);
     });
   }
+  await test.step('장바구니를 연다', async () => {
+    await verify('장바구니가 보인다', true, true, { blocker: true });
+  });
 `);
-    expect(carry(src)).toEqual([false]);
+    expect(carry(src)).toEqual([false, false]);
   });
 
   it('if 안의 첫 절차는 돌지 않을 수 있어 대상이 아니다', () => {
@@ -70,8 +73,36 @@ describe('caseSteps carry', () => {
   if (Date.now() > 0) {
 ${로그인}
   }
+  await test.step('장바구니를 연다', async () => {
+    await verify('장바구니가 보인다', true, true, { blocker: true });
+  });
 `);
-    expect(carry(src)).toEqual([false]);
+    expect(carry(src)).toEqual([false, false]);
+  });
+
+  it('다음 절차에 blocker 가 없으면 대상이 아니다 — 틀린 건너뛰기가 그 자리에서 빨갛지 않다', () => {
+    const 혼자 = body(로그인);
+    const 막지않음 = body(`${로그인}
+  await test.step('장바구니를 연다', async () => {
+    await verify('장바구니가 보인다', true, true);
+  });
+`);
+    expect(carry(혼자)).toEqual([false]);
+    expect(carry(막지않음)).toEqual([false, false]);
+  });
+
+  it('안에 다른 절차를 품은 첫 절차는 대상이 아니다 — 건너뛰면 안쪽 판정까지 사라진다', () => {
+    const src = body(`
+  await test.step('로그인한다', async () => {
+    await test.step('목록을 연다', async () => {
+      await verify('목록이 보인다', true, true, { blocker: true });
+    });
+  });
+  await test.step('장바구니를 연다', async () => {
+    await verify('장바구니가 보인다', true, true, { blocker: true });
+  });
+`);
+    expect(carry(src)).toEqual([false, false, false]);
   });
 
   it('제목을 글자로 못 읽는 절차가 하나라도 있으면 대상이 아니다', () => {

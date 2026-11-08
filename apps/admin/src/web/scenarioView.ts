@@ -79,11 +79,16 @@ export function 서버선택지(앱들: readonly 앱줄[], 시작: string, parts
   }));
 }
 
-/** 「N번에서 이미 실행」 칩 — 앞 case 단계 중 그 제목의 절차를 가진 첫 번호. 다른 애플리케이션 것은 안 센다 — 출처가 달라 로그인이 안 넘어간다 */
+/**
+ * 「N번에서 이미 실행」 칩 — 앞 case 단계 중 그 제목의 절차를 가진 첫 번호. 다른 애플리케이션 것은 안 센다 — 출처가 달라 로그인이 안 넘어간다.
+ * 로그인 이어받기를 끈 단계는 로그인 상태를 비우고 돌아 그보다 앞 단계는 안 센다 (서버 scenario/validate.ts 건너뛸수있나 와 같다)
+ */
 export function 이미실행(parts: ScenarioPart[], 재료: 재료들, seq: number, 제목: string): number | null {
   const 이 = parts[seq - 1];
   const 이앱 = 이?.kind === 'case' ? 케이스접두사(이.tcId) : null;
-  for (let i = 0; i < seq - 1 && i < parts.length; i += 1) {
+  const 앞 = parts.slice(0, seq - 1);
+  const 비운 = 앞.reduce((n, p, j) => (p.kind === 'case' && p.carryOver === false ? j : n), 0);
+  for (let i = 비운; i < 앞.length; i += 1) {
     const p = parts[i];
     if (p?.kind !== 'case') continue;
     if (이앱 !== null && 케이스접두사(p.tcId) !== 이앱) continue;

@@ -52,7 +52,7 @@ export function 재료짓기(원천: 재료원천): 흐름재료 {
       // 화면 연결과 같은 틀로 맞춘다 — 그래야 AI 가 케이스 화면과 연결을 이어 읽는다
       screens: [...new Set((m?.screens ?? []).flatMap((s) => (s.url === null ? [] : [주소틀(s.url) ?? s.url])))],
       normal: 흐름인가({ reqs: 요구, techniques: c.techniques }, 원천.PRD씀),
-      // 첫 절차 제목이 같은 케이스끼리 이으면 뒤 단계가 그 절차(로그인 등)를 건너뛴다 (§3.7 결정 4 「로그인 이어받기」)
+      // 첫 절차 제목이 같은 케이스끼리 이으면 뒤 단계가 그 절차(로그인 등)를 건너뛴다 (§3.7 결정 4 「첫 절차 이어받기」)
       first: c.stepTitles?.[0] ?? null,
     };
   });

@@ -199,6 +199,15 @@ describe('ScenarioPartPanel 첫 절차 이어받기', () => {
     expect(within(묶음).queryByText('장바구니를 연다')).toBeNull();
   });
 
+  it('풀어 둔 첫 절차 체크는 앞 단계가 사라져도 그려져 다시 체크할 수 있다', () => {
+    const { on바꿈 } = 그리기(단계('ZSB-001', { skipSteps: ['로그인해 목록을 연다'] }), 첫절차('ZSB-001'));
+    const 체크 = screen.getByRole('checkbox', { name: /로그인해 목록을 연다/ }) as HTMLInputElement;
+
+    expect(체크.checked).toBe(false);
+    fireEvent.click(체크);
+    expect(마지막바꿈(on바꿈).skipSteps).toEqual([]);
+  });
+
   it('앞 단계가 없으면 첫 절차를 건너뛸 수 없다는 문장이 나온다', () => {
     그리기(단계('ZSB-001'), 첫절차('ZSB-001'));
     expect(screen.getByText('이 케이스는 사전 단계가 분리되어 있지 않아 건너뛸 수 없습니다')).toBeTruthy();
