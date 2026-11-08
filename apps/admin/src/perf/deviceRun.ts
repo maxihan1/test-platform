@@ -9,6 +9,7 @@ import type { ExecuteRequest, ExecuteResponse } from '@platform/kit';
 import { type 대상줄, 대상줄읽기 } from '../authoring/reverse.js';
 import { 저장값을채운다 } from '../execution/savedInput.js';
 import { 엔진칸 } from '../execution/engineField.js';
+import { 서버팜토큰 } from '../execution/farmToken.js';
 import { artifactsDir } from '../execution/routes.js';
 import { abortRunner, httpTimeoutMs, 러너에보낸다 } from '../execution/runner.js';
 import { type 기록기, 로컬기록기, 팜기록기 } from './deviceRecorder.js';
@@ -213,9 +214,12 @@ async function 기기조작(s: 도는기기, d: 기기상태, 재료: 조작재�
 
 async function 케이스보내기(s: 도는기기, d: 기기상태, loop: number, c: 조작재료['케이스들'][number], { 줄 }: 조작재료): Promise<void> {
   const historyId = Date.now() * 100 + (보낸수++ % 100);
+  // 팜 폰은 기록기가 서버 몫(DEVICE_FARM_RUN_AS) 이름으로 잡았다 — Appium 세션도 같은 주인이어야 팜이 받는다 (러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」)
+  const farmToken = d.rec.where === 'FARM' ? await 서버팜토큰() : undefined;
   const 요청: ExecuteRequest = {
     runId: 0, historyId, tcId: c.tcId, platform: 'android', filePath: c.filePath, baseUrl: 줄.baseUrl, params: c.params, expected: c.expected,
     timeoutMs: 케이스제한ms, udid: d.serial, ...(줄.appPath !== null && { app: 줄.appPath }), ...엔진칸(s.cfg.drive === 'GAME' ? 'GAME' : null, 'android', 줄.adminKey),
+    ...(farmToken !== undefined && { farmToken }),
   };
   s.보낸것.add(historyId);
   const t0 = Date.now();

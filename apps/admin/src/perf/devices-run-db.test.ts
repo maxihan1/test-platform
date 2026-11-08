@@ -1,10 +1,12 @@
 // 기기 성능 실행 — Appium 2대 × 2회 · 게임 케이스의 구간 · 회차 붙이기 · 사람의 중단 · 도중 중단의 러너 끊기 · 무소식 AGENT_LOST 를 실제 DB 와 가짜 팜 · 가짜 서버 러너로 본다
 
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { 차림 } from './dbFixture.js';
 import { type 기기차림타입, 기기차림, 쉼, type 가짜 } from './deviceFixture.js';
 import { 설정 } from './deviceRun.js';
+
+vi.mock('../execution/farmToken.js', async (원래) => ({ ...(await 원래<typeof import('../execution/farmToken.js')>()), 서버팜토큰: vi.fn(async () => 'pat_runas') }));
 
 const 연결 = process.env.DATABASE_URL;
 
@@ -40,6 +42,7 @@ describe.skipIf(연결 === undefined)('기기 성능 실행', { timeout: 90_000 
       expect(보냄.filter((b) => b.udid === 'FA2')).toHaveLength(2);
       expect(보냄[0]).toMatchObject({ runId: 0, tcId: 'XQDR-001', platform: 'android', app: '/apps/demo.apk', baseUrl: 'http://shop.xqdr.test', filePath: 'x/x.spec.ts' });
       expect('engine' in 보냄[0]!).toBe(false);
+      expect(보냄.map((b) => b.farmToken)).toEqual(['pat_runas', 'pat_runas', 'pat_runas', 'pat_runas']);
       expect(팜.호출들.filter((h) => h.method === 'POST' && h.path === '/api/devices/FA1/hold').at(-1)?.body).toMatchObject({ minutes: 120 });
       const r = await 결과(runId);
       for (const serial of ['FA1', 'FA2']) {
