@@ -8,6 +8,7 @@ import { 테스트고침댓글 } from '../bts/close.js';
 import { 수정PR주소인가, 수정집기칸읽기 } from '../bts/bugfix.js';
 import { 수정끝내기틀림, 수정끝냄 } from '../bts/bugfixRoutes.js';
 import { 초안다시세우기, 초안집기칸, 초안있나 } from '../bts/draft.js';
+import { 미룬롤백판세우기 } from '../bts/rollback.js';
 import { 집기API칸 } from './apiDoc.js';
 import { 병합뒤훑기 } from '../catalog/scanRun.js';
 import { 일열쇠내기 } from '../mcp/jobKey.js';
@@ -115,6 +116,8 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
       if (집은것 === null) return reply.code(204).send();
       // 집기는 이미 커밋됐다. 아래가 던지면 맥은 번호를 모르므로 줄로 되돌려 다음 폴링이 다시 집게 한다
       try {
+        // 롤백 되돌림 요청이 열린 작성을 기다리느라 미룬 판을 여기서 세운다 — 에이전트가 판을 읽기 전이어야 한다 (도메인/BTS 「롤백 바퀴」 2)
+        await 미룬롤백판세우기(집은것);
         // 노트 고치기 줄(그 RERUN 포함)은 애플리케이션 칸(자료 · 피그마 · 대상 · API · 겹침 · 보류)이 없다 — note 칸 하나만 싣는다 (도메인/BTS §7)
         if (집은것.projectId !== null) {
           const note = await 노트집기칸읽기({ id: 집은것.id, projectId: 집은것.projectId });

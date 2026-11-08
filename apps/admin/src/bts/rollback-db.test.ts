@@ -4,7 +4,9 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import type { Pool } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { 되돌림거두기, 롤백되돌리기 } from './rollback.js';
+import { 집기 } from '../authoring/agentStore.js';
+
+import { 되돌림거두기, 롤백되돌리기, 미룬롤백판세우기 } from './rollback.js';
 import btsRollbackRoutes from './rollbackRoutes.js';
 
 const 연결 = process.env.DATABASE_URL;
@@ -82,8 +84,7 @@ describe.skipIf(연결 === undefined)('롤백 되돌리기', () => {
     await pool.query('DELETE FROM service WHERE id = $1', [서비스]);
   });
 
-  it('롤백 배포는 ROLLBACK 판과 열린 작성을 기다리는 되돌림 요청을 세우고 · 그 키의 고르기 전 초안만 버린다', async () => {
-    const 열린 = await 요청넣기('AUTHOR', 'RUNNING', {});
+  it('롤백 배포는 ROLLBACK 판과 되돌림 요청을 세우고 · 그 키의 고르기 전 초안만 버린다', async () => {
     const 도는초안 = await 요청넣기('PRD_DRAFT', 'RUNNING', { issueKeys: ['DM-12'] });
     const 대기초안 = await 요청넣기('PRD_DRAFT', 'PENDING', { issueKeys: ['DM-12', 'DM-14'] });
     const 다른키 = await 요청넣기('PRD_DRAFT', 'PENDING', { issueKeys: ['DM-14'] });
@@ -97,7 +98,7 @@ describe.skipIf(연결 === undefined)('롤백 되돌리기', () => {
     expect([판.version, 판.source, Number(판.deploy_id), 판.saved_by_name]).toEqual([3, 'ROLLBACK', 배포, 'BTS · 검사']);
     expect(판.items.map((x) => [x.reqId, x.text])).toEqual([['XRB-REQ-001', '두 장까지']]);
     expect(요청들).toHaveLength(1);
-    expect((await 행(요청들[0]!)).params).toEqual({ prdApply: true, rollbackDeploy: 배포, rollbackBuild: 'old-1', decision: { after: [열린], count: 1 } });
+    expect((await 행(요청들[0]!)).params).toEqual({ prdApply: true, rollbackDeploy: 배포, rollbackBuild: 'old-1', decision: { after: [], count: 1 } });
     expect((await 행(도는초안)).stop_requested_at).not.toBeNull();
     expect((await 행(대기초안)).status).toBe('STOPPED');
     expect((await 행(대기초안)).discarded_at).not.toBeNull();
@@ -109,6 +110,50 @@ describe.skipIf(연결 === undefined)('롤백 되돌리기', () => {
     expect(다시.map((x) => x.params.issueKeys)).toEqual([['DM-14']]);
     // 같은 롤백이 다시 와도 되돌릴 것이 없다
     expect(await 롤백되돌리기(배포, 프로젝트, 'old-1', ['DM-12'], 사람)).toEqual([]);
+  });
+
+  it('열린 작성이 있으면 판을 미뤘다가 · 그 작성이 판을 덮고 닫힌 뒤 되돌림 요청을 집을 때 세운다', async () => {
+    const 열린 = await 요청넣기('AUTHOR', 'RUNNING', {});
+    const 배포 = await 배포넣기('old-1', true);
+
+    const 요청들 = await 롤백되돌리기(배포, 프로젝트, 'old-1', ['DM-12'], 사람);
+
+    const 판들 = async () => (await pool.query<{ version: number; source: string; deploy_id: string | null; items: { reqId: string; text: string }[]; saved_by_name: string }>(
+      'SELECT version, source, deploy_id, items, saved_by_name FROM prd_version WHERE service_id = $1 ORDER BY version', [서비스],
+    )).rows;
+    expect((await 판들()).map((x) => x.source)).toEqual(['PERSON', 'DECISION']);
+    expect(요청들).toHaveLength(1);
+    const 되돌림 = 요청들[0]!;
+    expect((await 행(되돌림)).params).toEqual({
+      prdApply: true, rollbackDeploy: 배포, rollbackBuild: 'old-1', rollbackKeys: ['DM-12'], decision: { after: [열린], count: 1 },
+    });
+    // 실패한 신호를 같은 빌드로 다시 보내도(앞 배포 줄은 지워지고 새 줄이 선다) 미룬 요청이 둘이 되지 않는다
+    await pool.query('DELETE FROM bts_deploy WHERE id = $1', [배포]);
+    const 다시배포 = await 배포넣기('old-1', true);
+    expect(await 롤백되돌리기(다시배포, 프로젝트, 'old-1', ['DM-12'], 사람)).toEqual([]);
+
+    // 열린 작성이 들고 있던 2판 사본으로 판을 올리고 끝난다 — 지금이면 롤백 판을 덮었을 자리다
+    await pool.query(
+      `INSERT INTO prd_version (service_id, version, items, last_no, source, saved_by, saved_by_name, request_id)
+       SELECT service_id, 3, items, last_no, 'AGENT', 'xrb', 'xrb', $2 FROM prd_version WHERE service_id = $1 AND version = 2`, [서비스, 열린],
+    );
+    expect(await 집기(서비스, 맥)).toBeNull();
+    await pool.query("UPDATE authoring_request SET status = 'FAILED' WHERE id = $1", [열린]);
+
+    const 집은것 = await 집기(서비스, 맥);
+    expect(집은것?.id).toBe(되돌림);
+    await 미룬롤백판세우기(집은것!);
+
+    const 마지막 = (await 판들()).at(-1)!;
+    expect([마지막.version, 마지막.source, Number(마지막.deploy_id), 마지막.saved_by_name]).toEqual([4, 'ROLLBACK', 다시배포, 'BTS · 검사']);
+    expect(마지막.items.map((x) => [x.reqId, x.text])).toEqual([['XRB-REQ-001', '두 장까지']]);
+    expect(집은것!.params.rollbackKeys).toBeUndefined();
+    const 읽은판 = (await pool.query<{ prd_version: number; params: Record<string, unknown> }>('SELECT prd_version, params FROM authoring_request WHERE id = $1', [되돌림])).rows[0]!;
+    expect(읽은판.prd_version).toBe(4);
+    expect(읽은판.params.rollbackKeys).toBeUndefined();
+    // 집기를 되돌려 다시 집어도 판이 또 서지 않는다
+    await 미룬롤백판세우기(집은것!);
+    expect((await 판들()).length).toBe(4);
   });
 
   it('다시 배포되면 병합 전 되돌림 요청을 거두고 · 열린 PR 은 닫을 목록에 오른다 — 같은 빌드 · 병합된 것은 그대로', async () => {
