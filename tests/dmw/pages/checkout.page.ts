@@ -157,6 +157,10 @@ export class 주문서화면 {
     await this.쿠폰.selectOption({ label: 이름 });
   }
 
+  async 선택한쿠폰글(): Promise<string> {
+    return this.쿠폰.evaluate((칸) => (칸 as HTMLSelectElement).selectedOptions[0]?.text ?? '');
+  }
+
   async 선택지들(칸: Locator): Promise<string[]> {
     return 칸.getByRole('option').allInnerTexts();
   }

@@ -8,7 +8,7 @@ import { 주문서화면 } from './pages/checkout.page.js';
 
 export const spec = defineCase({
   tcId: 'DMW-UI-192',
-  name: '쿠폰 선택 상자에 「10% 할인 (최대 5,000원)」 · 「3,000원 할인 (30,000원 이상 구매 시)」가 보인다',
+  name: '쿠폰 선택 상자의 첫 줄은 「쿠폰 사용 안 함」이고 그 아래에 「10% 할인 (최대 5,000원)」 · 「3,000원 할인 (30,000원 이상 구매 시)」가 보인다',
   platforms: ['desktop', 'mobile'],
   precondition: ['일회용 회원으로 로그인해 있다'],
   params: null,
@@ -29,9 +29,17 @@ test(spec, async ({ page, request }) => {
       await 주문서.결제수단으로넘어가기(시험배송정보());
       await verify('「② 결제 수단」이 보인다', await 주문서.단계글(), '② 결제 수단', { blocker: true });
       const 선택지 = await 주문서.쿠폰선택지글들();
-      const 십퍼 = await verify('「10% 할인 (최대 5,000원)」이 보인다', 선택지.includes('10% 할인 (최대 5,000원)'), true);
-      const 삼천 = await verify('「3,000원 할인 (30,000원 이상 구매 시)」가 보인다', 선택지.includes('3,000원 할인 (30,000원 이상 구매 시)'), true);
-      await verify('쿠폰 선택 상자에 「10% 할인 (최대 5,000원)」 · 「3,000원 할인 (30,000원 이상 구매 시)」가 보인다', 십퍼 && 삼천, true);
+      const 첫줄 = await verify('쿠폰 선택 상자의 첫 줄은 「쿠폰 사용 안 함」이다', 선택지[0], '쿠폰 사용 안 함');
+      const 아래 = await verify(
+        '첫 줄 아래에 「10% 할인 (최대 5,000원)」 · 「3,000원 할인 (30,000원 이상 구매 시)」가 보인다',
+        선택지.slice(1).join(' · '),
+        '10% 할인 (최대 5,000원) · 3,000원 할인 (30,000원 이상 구매 시)',
+      );
+      await verify(
+        '쿠폰 선택 상자의 첫 줄은 「쿠폰 사용 안 함」이고 그 아래에 「10% 할인 (최대 5,000원)」 · 「3,000원 할인 (30,000원 이상 구매 시)」가 보인다',
+        첫줄 && 아래,
+        true,
+      );
     });
   } finally {
     await 장바구니비우기(page.request);
