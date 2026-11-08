@@ -17,6 +17,8 @@ export interface CaseSteps {
   r16: boolean;
   /** 도는 차례대로의 단계 제목 — 다 셀 수 없으면 null */
   stepTitles: string[] | null;
+  /** 케이스 몸통이 받는 이름(`page` · `game` · `driver` · `request` …) — E2E AI 흐름 후보가 게임 화면을 여는 케이스를 가린다 (도메인/시나리오 §3.7 결정 15) */
+  fixtures: string[];
 }
 
 interface Found {
@@ -307,5 +309,5 @@ export function caseSteps(text: string): CaseSteps {
 
   // 하나라도 셀 수 없으면 통째로 NULL — 일부만 아는 목록은 남은 단계 수를 틀리게 보인다 (카탈로그 §3.1 「단계 제목」)
   const stepTitles = found.every((s) => s.counted) ? found.map((s) => s.title!) : null;
-  return { steps, r16: steps.some((s) => s.skippable), stepTitles };
+  return { steps, r16: steps.some((s) => s.skippable), stepTitles, fixtures: [...fixtures] };
 }

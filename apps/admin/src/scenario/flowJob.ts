@@ -1,10 +1,15 @@
 // E2E AI 흐름 후보 일 — 재료 모으기 · 맡기기 · 작성 에이전트 꺼짐 · 오래된 일 닫기 · 결과 다듬기 · 결과 보기 (도메인/시나리오 §3.7 결정 15 · §7 「마법사 통로」)
 // 일 표 · 집기 · 끝 알리기는 성능 AI 일 그대로다(perf/ai.ts) — 여기는 흐름 후보만의 규칙을 둔다
 
+import { readFile } from 'node:fs/promises';
+import { resolve, sep } from 'node:path';
+
 import type { Platform } from '@platform/kit';
 
 import { tcId종류 } from '../catalog/rules.js';
 import { 맥락읽기 } from '../catalog/contextRead.js';
+import { testsRoot } from '../catalog/scanner.js';
+import { caseSteps } from '../catalog/steps.js';
 import { 오래된일닫기, 일만들기, 일하나 } from '../perf/ai.js';
 import { 지금판 } from '../prd/store.js';
 import { db } from '../settings/store.js';
@@ -59,22 +64,53 @@ export async function 흐름일닫기(): Promise<void> {
   }
 }
 
+/** 케이스 몸통이 받는 이름. 못 읽거나 tests 뿌리 밖이면 없다 — 게임 화면을 안 여는 것으로 친다 (parts.ts 와 같은 경로 규칙) */
+async function 몸통이름들(filePath: string): Promise<string[] | undefined> {
+  const 뿌리 = resolve(testsRoot());
+  const 경로 = resolve(뿌리, filePath);
+  if (!경로.startsWith(뿌리 + sep)) return undefined;
+  try {
+    return caseSteps(await readFile(경로, 'utf8')).fixtures;
+  } catch {
+    return undefined;
+  }
+}
+
 /** 시작 애플리케이션 하나의 재료. 케이스 파일 원문 · 화면 기록 원문 · 서비스 가이드는 넣지 않는다 */
 async function 재료읽기(서비스: number, prefix: string, platform: Platform, wish: string | null): Promise<흐름재료> {
-  const [판, 맥락, 케이스, 연결들] = await Promise.all([
+  const pool = await db();
+  const [판, 맥락, 케이스, 연결들, 종류] = await Promise.all([
     지금판(서비스),
     맥락읽기(prefix),
-    (await db()).query<{ tc_id: string; name: string; platforms: string[]; techniques: string[]; step_titles: string[] | null }>(
-      `SELECT tc_id, name, platforms, techniques, step_titles FROM test_case WHERE tc_id LIKE $1 AND is_active ORDER BY tc_id COLLATE "C"`,
+    pool.query<{ tc_id: string; name: string; platforms: string[]; techniques: string[]; step_titles: string[] | null; file_path: string; param_schema: { properties?: unknown } | null }>(
+      `SELECT tc_id, name, platforms, techniques, step_titles, file_path, param_schema FROM test_case WHERE tc_id LIKE $1 AND is_active ORDER BY tc_id COLLATE "C"`,
       [`${prefix}-%`],
     ),
     화면연결들(서비스),
+    pool.query<{ kind: string }>('SELECT kind FROM service WHERE id = $1', [서비스]),
   ]);
+  const game = 종류.rows[0]?.kind === 'GAME';
+  const 케이스들 = [];
+  // 수천 건을 한꺼번에 열지 않게 하나씩 읽는다(stepTitles.ts 와 같다). 게임이 아니면 파일을 열지 않는다
+  for (const r of 케이스.rows) {
+    if (tcId종류(r.tc_id) === 'UI') continue;
+    const 칸들 = r.param_schema?.properties;
+    케이스들.push({
+      tcId: r.tc_id,
+      name: r.name,
+      platforms: r.platforms,
+      techniques: r.techniques,
+      stepTitles: r.step_titles,
+      params: typeof 칸들 === 'object' && 칸들 !== null ? Object.keys(칸들) : [],
+      ...(game && r.platforms.includes(platform) ? { fixtures: await 몸통이름들(r.file_path) } : {}),
+    });
+  }
   return 재료짓기({
     platform,
     wish,
+    game,
     prd: (판?.items ?? []).map((i) => ({ reqId: i.reqId, feature: i.feature, text: i.text })),
-    케이스들: 케이스.rows.filter((r) => tcId종류(r.tc_id) !== 'UI').map((r) => ({ tcId: r.tc_id, name: r.name, platforms: r.platforms, techniques: r.techniques, stepTitles: r.step_titles })),
+    케이스들,
     맥락,
     PRD씀: [...맥락.values()].some((x) => x.feature !== null),
     연결들,
@@ -111,8 +147,10 @@ export async function 흐름결과다듬기(prefix: string, input: unknown, outp
   const 재료 = input as 흐름재료;
   const 후보들 = (output as { candidates: AI후보[] }).candidates;
   const { 지도, 입력칸 } = await 제안재료읽기([prefix], 후보들.flatMap((c) => c.tcIds));
-  const candidates = 흐름다듬기(재료, 후보들, 지도, 입력칸);
-  return candidates.length === 0 ? { error: '쓸 수 있는 흐름 후보가 없다' } : { output: { candidates } };
+  const 버린까닭 = new Set<string>();
+  const candidates = 흐름다듬기(재료, 후보들, 지도, 입력칸, 버린까닭);
+  // 까닭을 같이 띄워야 사람이 「직접 선택」으로 무엇을 이어야 할지 안다 (2026-11-09 E2E-F4-03)
+  return candidates.length === 0 ? { error: `쓸 수 있는 흐름 후보가 없다 (${[...버린까닭].join(' · ')})` } : { output: { candidates } };
 }
 
 export interface 흐름결과 {
