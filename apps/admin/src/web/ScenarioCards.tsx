@@ -6,7 +6,7 @@ import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Platform } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
-import { 건너뛸수있나, 단계앱, 섞였나, 모킹구간, 빼기, 순서바꾸기, 카드요약, 종류글, type 앱줄, type 재료들 } from './scenarioView.js';
+import { 단계앱, 섞였나, 모킹구간, 빼기, 순서바꾸기, 카드요약, 종류글, type 앱줄, type 재료들 } from './scenarioView.js';
 import type { 조립탭 } from './ScenarioTabs.js';
 import { PLATFORM_LABEL } from './ui.js';
 
@@ -145,7 +145,7 @@ export function ScenarioCards({
                       {앱} {앱줄값?.name ?? ''}
                     </span>
                   )}
-                  {part.kind === 'case' ? 칩들(part, 재료값, 디바이스, t, (s) => 건너뛸수있나(단계들, 재료, 번호, s)) : null}
+                  {part.kind === 'case' ? 칩들(part, 재료값, 디바이스, t) : null}
                   {part.kind === 'api' && 모킹안 ? <span className="tech-tag">{t('모킹되지 않음')}</span> : null}
                 </span>
                 {!쓰나 ? null : (
@@ -207,7 +207,6 @@ function 칩들(
   재료값: ReturnType<재료들['get']>,
   디바이스: Platform,
   t: (키: string, 값?: Record<string, string | number>) => string,
-  건너뛸까: (s: NonNullable<ReturnType<재료들['get']>>['steps'][number]) => boolean,
 ): ReactNode {
   if (재료값 === undefined) return null;
   const 단독 = part.carryOver === false ? <span className="tech-tag">{t('단독 실행')}</span> : null;
@@ -219,7 +218,7 @@ function 칩들(
       </>
     );
   }
-  const 건너뛸수있는 = new Set(재료값.steps.filter(건너뛸까).map((s) => s.title));
+  const 건너뛸수있는 = new Set(재료값.steps.filter((s) => s.skippable).map((s) => s.title));
   const 확인필요 = part.skipSteps.some((s) => !건너뛸수있는.has(s));
   return (
     <>

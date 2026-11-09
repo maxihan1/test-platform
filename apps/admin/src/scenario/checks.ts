@@ -3,7 +3,7 @@
 
 import type { ScenarioPart } from '@platform/kit';
 
-import { 건너뛸수있나, 제한시간크기사유, type 카탈로그 } from './validate.js';
+import { 제한시간크기사유, type 카탈로그 } from './validate.js';
 
 export interface 점검줄 {
   seq: number;
@@ -23,7 +23,7 @@ export function 점검(parts: ScenarioPart[], 재료: 카탈로그): 점검결�
     const 케이스 = 재료.get(p.tcId);
     if (케이스 === undefined || !케이스.isActive) checks.push({ seq: i + 1, reason: 'CASE_INACTIVE' });
     // 사라진 제목은 무시하고 실행한다 — 느려질 뿐 틀리지 않는다
-    else if (p.skipSteps.some((제목) => !건너뛸수있나(parts, i, 재료, 제목))) checks.push({ seq: i + 1, reason: 'STEP_GONE' });
+    else if (p.skipSteps.some((제목) => !케이스.skippable.includes(제목))) checks.push({ seq: i + 1, reason: 'STEP_GONE' });
   });
   return {
     checks,

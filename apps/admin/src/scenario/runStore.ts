@@ -14,7 +14,7 @@ import { 앱단계인가, 케이스접두사, 쓰는접두사 } from './mixed.js
 import { 케이스재료 } from './parts.js';
 import { type 시나리오폰, 폰값 } from './phone.js';
 import type { 저장하는사람 } from './store.js';
-import { 건너뛸수있나, 시나리오제한시간, 제한시간크기사유, type 카탈로그 } from './validate.js';
+import { 시나리오제한시간, 제한시간크기사유, type 카탈로그 } from './validate.js';
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. CI 는 DB 없이 돌아야 하므로 쓸 때 가져온다
 async function db(): Promise<Pool> {
@@ -149,8 +149,10 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
     }
 
     // 저장 뒤 케이스가 바뀌어 건너뛸 수 없게 된 제목은 뺀다. 러너는 받은 제목이면 확인 절차도 건너뛴다 (결정 8)
-    const parts = 행.parts.map((p, i) =>
-      p.kind === 'case' ? { ...p, skipSteps: p.skipSteps.filter((t) => 건너뛸수있나(행.parts, i, 판정.카탈로그, t)) } : p,
+    const parts = 행.parts.map((p) =>
+      p.kind === 'case'
+        ? { ...p, skipSteps: p.skipSteps.filter((t) => 판정.카탈로그.get(p.tcId)?.skippable.includes(t) === true) }
+        : p,
     );
     const 번호들 = parts.flatMap((p) => (p.kind === 'case' ? [p.tcId] : []));
 

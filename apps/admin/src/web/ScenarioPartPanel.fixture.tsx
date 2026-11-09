@@ -35,9 +35,9 @@ export const 준비있는 = (tcId: string) =>
   재료(tcId, {
     r16: true,
     steps: [
-      { title: '로그인한다', skippable: true, carry: false },
-      { title: '장바구니를 비운다', skippable: true, carry: false },
-      { title: '결제한다', skippable: false, carry: false },
+      { title: '로그인한다', skippable: true },
+      { title: '장바구니를 비운다', skippable: true },
+      { title: '결제한다', skippable: false },
     ],
   });
 

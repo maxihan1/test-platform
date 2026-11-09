@@ -126,6 +126,40 @@ describe('ScenarioBuild 저장', () => {
     expect(screen.queryByText('저장 안 된 변경 있음')).toBeNull();
   });
 
+  it('저장본을 열면 지금 건너뛸 수 없는 제목을 빼고, 저장 안 한 변경으로 보여 저장 한 번에 뺀 채 보낸다 (결정 8)', async () => {
+    const 건너뛰던것 = { kind: 'case', tcId: 'ZSB-002', params: {}, expected: {}, skipSteps: ['로그인한다', '담는다'] } satisfies ScenarioPart;
+    vi.spyOn(scenarioApi, 'detail').mockResolvedValue(상세({ parts: [케이스단계('ZSB-001'), 건너뛰던것] }));
+    vi.spyOn(scenarioApi, 'caseParts').mockImplementation(async (tcId) => ({
+      ...재료(tcId),
+      steps: [{ title: '로그인한다', skippable: false }, { title: '담는다', skippable: true }],
+    }));
+    vi.spyOn(scenarioApi, 'nextCases').mockResolvedValue({ items: [] });
+    const update = vi.spyOn(scenarioApi, 'update').mockResolvedValue({ version: 4 });
+    render(<ScenarioBuild id={12} 띠서비스={서비스('ZSB')} user={사람()} />);
+    await screen.findByLabelText('시나리오 이름');
+
+    expect(await screen.findByText('저장 안 된 변경 있음')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+
+    expect((await screen.findByRole('status')).textContent).toBe('저장했습니다 · v4');
+    expect(update).toHaveBeenCalledWith(12, {
+      name: 'ZSB 가입 흐름',
+      platform: 'desktop',
+      parts: [케이스단계('ZSB-001'), { ...건너뛰던것, skipSteps: ['담는다'] }],
+      baseVersion: 3,
+    });
+  });
+
+  it('저장할 수 없는 사람에게는 저장본을 열 때 뺀 체크로 「저장 안 된 변경 있음」을 띄우지 않는다', async () => {
+    vi.spyOn(scenarioApi, 'detail').mockResolvedValue(상세({ parts: [{ ...케이스단계('ZSB-001'), skipSteps: ['로그인한다'] } as ScenarioPart] }));
+    vi.spyOn(scenarioApi, 'caseParts').mockImplementation(async (tcId) => ({ ...재료(tcId), steps: [{ title: '로그인한다', skippable: false }] }));
+    vi.spyOn(scenarioApi, 'nextCases').mockResolvedValue({ items: [] });
+    render(<ScenarioBuild id={12} 띠서비스={서비스('ZSB')} user={사람('read')} />);
+    await screen.findByLabelText('시나리오 이름');
+
+    expect(screen.queryByText('저장 안 된 변경 있음')).toBeNull();
+  });
+
   it('저장했습니다 줄은 저장 뒤에 다시 고치면 사라진다', async () => {
     await 기존그리기();
     vi.spyOn(scenarioApi, 'update').mockResolvedValue({ version: 4 });

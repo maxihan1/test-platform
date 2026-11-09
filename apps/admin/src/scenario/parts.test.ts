@@ -92,8 +92,8 @@ describe.skipIf(연결 === undefined)('케이스 부품 재료', () => {
       paramSchema: { type: 'object', properties: { todoId: { type: 'string' } } },
       expectedSchema: {},
       steps: [
-        { title: '상품을 담는다', skippable: true, carry: false },
-        { title: '장바구니에 한 건이다', skippable: false, carry: false },
+        { title: '상품을 담는다', skippable: true },
+        { title: '장바구니에 한 건이다', skippable: false },
       ],
       r16: true,
       unconfirmed: null,

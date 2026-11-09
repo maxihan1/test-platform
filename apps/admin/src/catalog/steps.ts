@@ -8,8 +8,6 @@ export interface CaseStep {
   title: string;
   line: number;
   skippable: boolean;
-  /** 첫 절차라 같은 애플리케이션 앞 단계가 같은 제목으로 이미 돌았으면 확인이 있어도 건너뛸 수 있다 (도메인/시나리오 §3.7 결정 4 「첫 절차 이어받기」) */
-  carry: boolean;
 }
 
 export interface CaseSteps {
@@ -32,8 +30,6 @@ interface Found {
   locals: Set<string>;
   // 제목이 글자 그대로이고 꼭 한 번 돈다 — 스캔이 단계 제목을 미리 저장할 수 있다 (카탈로그 §3.1 「단계 제목」)
   counted: boolean;
-  // 안에 다른 절차를 품었다 — 건너뛰면 안쪽 절차와 그 판정까지 사라진다
-  nests: boolean;
 }
 
 export function isTestStep(node: ts.Node): node is ts.CallExpression {
@@ -112,6 +108,30 @@ function rootName(expr: ts.Expression): string | undefined {
     else if (ts.isParenthesizedExpression(e) || ts.isAwaitExpression(e) || ts.isNonNullExpression(e)) e = e.expression;
     else return ts.isIdentifier(e) ? e.text : undefined;
   }
+}
+
+// 이 식이 값을 넣는 이름들 — `a = …` · `a.b = …` · `[a] = …` · `a += …` · `a++` · `for (a of …)` · `delete a.b`. 풀어 넣기의 속성 이름까지 세는 것은 안전한 쪽이다
+function 넣는이름들(node: ts.Node): string[] {
+  let 왼쪽: ts.Node | undefined;
+  if (ts.isBinaryExpression(node) && node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment && node.operatorToken.kind <= ts.SyntaxKind.LastAssignment) {
+    왼쪽 = node.left;
+  } else if (
+    (ts.isPrefixUnaryExpression(node) || ts.isPostfixUnaryExpression(node)) &&
+    (node.operator === ts.SyntaxKind.PlusPlusToken || node.operator === ts.SyntaxKind.MinusMinusToken)
+  ) {
+    왼쪽 = node.operand;
+  } else if ((ts.isForOfStatement(node) || ts.isForInStatement(node)) && !ts.isVariableDeclarationList(node.initializer)) {
+    왼쪽 = node.initializer;
+  } else if (ts.isDeleteExpression(node)) {
+    왼쪽 = node.expression;
+  }
+  const 이름들: string[] = [];
+  const 모으기 = (n: ts.Node): void => {
+    if (ts.isIdentifier(n) && !(ts.isPropertyAccessExpression(n.parent) && n.parent.name === n)) 이름들.push(n.text);
+    n.forEachChild(모으기);
+  };
+  if (왼쪽 !== undefined) 모으기(왼쪽);
+  return 이름들;
 }
 
 function holdsFunction(node: ts.Node): boolean {
@@ -256,14 +276,10 @@ export function caseSteps(text: string): CaseSteps {
         unsure: loose,
         locals: new Set(),
         counted: title !== undefined && !loose && !branched(node),
-        nests: false,
       };
       // 바깥 절차를 건너뛰면 안쪽 절차가 통째로 안 돈다
       const outer = stack[stack.length - 1];
-      if (outer !== undefined) {
-        outer.unsure = true;
-        outer.nests = true;
-      }
+      if (outer !== undefined) outer.unsure = true;
       found.push(step);
       stack.push(step);
       node.forEachChild(walk);
@@ -273,6 +289,8 @@ export function caseSteps(text: string): CaseSteps {
 
     const current = stack[stack.length - 1];
     if (current !== undefined) {
+      // 절차 밖에서 선언한 이름에 값을 넣는 절차를 건너뛰면 그 이름이 비어 뒤 절차가 빈 값을 읽는다 (결정 4 — ASH-FN-103)
+      if (넣는이름들(node).some((n) => !current.locals.has(n))) current.unsure = true;
       if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name)) {
         if (node.initializer === undefined || !holdsFunction(node.initializer)) current.locals.add(node.name.text);
       } else if (ts.isNewExpression(node)) {
@@ -305,10 +323,7 @@ export function caseSteps(text: string): CaseSteps {
     if (s.title === undefined) return [];
     const next = found[i + 1];
     const skippable = readable && s.verifies === 0 && !s.unsure && next !== undefined && next.blocker;
-    // 첫 절차는 아직 아무 상태도 바꾸지 않았다. 반복 · 갈래 안이면 한 제목이 몇 번 도는지 몰라 빼고, 안의 판정은 앞 단계에서 이미 통과했다.
-    // 다음 절차가 blocker 를 가져야 틀린 건너뛰기가 그 자리에서 빨갛다 (결정 4 「첫 절차 이어받기」)
-    const carry = i === 0 && readable && s.counted && !s.nests && next !== undefined && next.blocker && !skippable;
-    return [{ title: s.title, line: s.line, skippable, carry }];
+    return [{ title: s.title, line: s.line, skippable }];
   });
 
   // 하나라도 셀 수 없으면 통째로 NULL — 일부만 아는 목록은 남은 단계 수를 틀리게 보인다 (카탈로그 §3.1 「단계 제목」)

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { CasePartMaterial, TrialResult } from './scenarioApi.js';
 import { 빼기 } from './scenarioView.js';
-import { 멈춘까닭, 연결상태, 쓰였나, 이어받기적용, 이어받기처음, 제안합치기 } from './scenarioWizardView.js';
+import { 멈춘까닭, 연결상태, 쓰였나, 이어받기적용, 제안합치기 } from './scenarioWizardView.js';
 
 const 케이스 = (tcId: string, links?: ScenarioLink[]): ScenarioPart => ({ kind: 'case', tcId, params: {}, expected: {}, skipSteps: [], ...(links === undefined ? {} : { links }) });
 const 주입: ScenarioLink = { kind: 'bind', param: 'orderId', value: { fromSeq: 1, method: 'POST', urlPattern: '**/api/orders', jsonPath: 'id' } };
@@ -36,29 +36,13 @@ describe('이어받기적용', () => {
   const 재료 = new Map<string, CasePartMaterial | null>(
     ['A-1', 'A-2', 'B-1'].map((tcId) => [
       tcId,
-      { tcId, name: tcId, platforms: ['desktop'], precondition: [], paramSchema: {}, expectedSchema: {}, steps: [{ title: '로그인한다', skippable: true, carry: false }], r16: true, unconfirmed: null },
+      { tcId, name: tcId, platforms: ['desktop'], precondition: [], paramSchema: {}, expectedSchema: {}, steps: [{ title: '로그인한다', skippable: true }], r16: true, unconfirmed: null },
     ]),
   );
   it('켜면 같은 애플리케이션 앞 단계가 이미 실행한 사전 단계만 건너뛰고, 끄면 다 실행한다', () => {
     const parts = [케이스('A-1'), 케이스('B-1'), 케이스('A-2')];
     expect(이어받기적용(parts, 재료, true).map((p) => (p.kind === 'case' ? p.skipSteps : null))).toEqual([[], [], ['로그인한다']]);
     expect(이어받기적용(parts, 재료, false).map((p) => (p.kind === 'case' ? p.skipSteps : null))).toEqual([[], [], []]);
-  });
-
-  it('확인이 든 첫 절차(carry)도 같은 애플리케이션 앞 단계가 같은 제목을 실행했으면 건너뛴다 — 중간 절차는 아니다', () => {
-    const 첫절차 = new Map<string, CasePartMaterial | null>(
-      ['D-1', 'D-2'].map((tcId) => [
-        tcId,
-        {
-          tcId, name: tcId, platforms: ['desktop'], precondition: [], paramSchema: {}, expectedSchema: {},
-          steps: [{ title: '로그인해 목록을 연다', skippable: false, carry: true }, { title: '장바구니를 연다', skippable: false, carry: false }],
-          r16: false, unconfirmed: null,
-        },
-      ]),
-    );
-    const parts = [케이스('D-1'), 케이스('D-2')];
-    expect(이어받기적용(parts, 첫절차, true).map((p) => (p.kind === 'case' ? p.skipSteps : null))).toEqual([[], ['로그인해 목록을 연다']]);
-    expect(이어받기처음(parts, 첫절차)).toBe(1);
   });
 });
 

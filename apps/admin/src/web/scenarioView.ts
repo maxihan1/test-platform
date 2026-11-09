@@ -81,7 +81,7 @@ export function 서버선택지(앱들: readonly 앱줄[], 시작: string, parts
 
 /**
  * 「N번에서 이미 실행」 칩 — 앞 case 단계 중 그 제목의 절차를 가진 첫 번호. 다른 애플리케이션 것은 안 센다 — 출처가 달라 로그인이 안 넘어간다.
- * 로그인 이어받기를 끈 단계는 로그인 상태를 비우고 돌아 그보다 앞 단계는 안 센다 (서버 scenario/validate.ts 건너뛸수있나 와 같다)
+ * 로그인 이어받기를 끈 단계는 로그인 상태를 비우고 돌아 그보다 앞 단계는 안 센다
  */
 export function 이미실행(parts: ScenarioPart[], 재료: 재료들, seq: number, 제목: string): number | null {
   const 이 = parts[seq - 1];
@@ -95,14 +95,6 @@ export function 이미실행(parts: ScenarioPart[], 재료: 재료들, seq: numb
     if (재료.get(p.tcId)?.steps.some((s) => s.title === 제목)) return i + 1;
   }
   return null;
-}
-
-/**
- * seq 번 단계가 이 절차를 건너뛸 수 있나 — 「만들기」 절차이거나, 첫 절차(carry)인데 같은 애플리케이션 앞 단계가 같은 제목을 이미 실행했다.
- * 서버 조립 검사와 같은 계산이다 (scenario/validate.ts 건너뛸수있나 · 도메인/시나리오 §3.7 결정 4)
- */
-export function 건너뛸수있나(parts: ScenarioPart[], 재료: 재료들, seq: number, step: CasePartMaterial['steps'][number]): boolean {
-  return step.skippable || (step.carry && 이미실행(parts, 재료, seq, step.title) !== null);
 }
 
 /** 단계마다 그 단계가 돌 때 걸려 있는 모킹 무늬. 켜기 단계 자신은 다음 단계부터 걸린다 */
