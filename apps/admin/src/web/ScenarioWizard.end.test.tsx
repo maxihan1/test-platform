@@ -102,7 +102,7 @@ describe('ScenarioWizard 값 연결', () => {
     expect(연결.textContent).toContain('확인 필요');
     expect(연결.textContent).toContain('애플리케이션 지도에서 찾았습니다 · 종류 「값 주입」');
     expect(screen.getByText('앞 단계 응답에서 꺼낼 값의 경로를 적습니다 · 예: id, data.id')).toBeTruthy();
-    expect(screen.getByText('1번 「ZSB-001 케이스」부터 끝까지 같은 계정으로 이어 갑니다. 뒤 단계의 로그인 사전 단계는 건너뜁니다')).toBeTruthy();
+    expect(screen.getByText('1번 「ZSB-001 케이스」부터 끝까지 같은 계정으로 이어 갑니다. 뒤 단계에서 앞 단계와 같은 사전 단계는 건너뜁니다')).toBeTruthy();
 
     다음();
     expect(screen.getByRole('alert').textContent).toBe('빈 칸이 남은 값 연결이 있습니다. 적거나 삭제합니다');

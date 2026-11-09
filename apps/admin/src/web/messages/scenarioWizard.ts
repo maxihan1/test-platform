@@ -115,7 +115,7 @@ export const 시나리오마법사말: Record<string, string> = {
   '이렇게 해 보세요': 'Try this',
   '이 케이스만 따로 실행해 통과하는지 먼저 봅니다': 'First run this case on its own to see whether it passes',
   '넘겨받을 값이 비었는지 「값 연결」에서 확인합니다': 'Check in “Value links” whether the value to pass on is empty',
-  '{번호}번 「{이름}」부터 끝까지 같은 계정으로 이어 갑니다. 뒤 단계의 로그인 사전 단계는 건너뜁니다': 'From #{번호} “{이름}” to the end, the same account carries on. Later login pre-steps are skipped',
+  '{번호}번 「{이름}」부터 끝까지 같은 계정으로 이어 갑니다. 뒤 단계에서 앞 단계와 같은 사전 단계는 건너뜁니다': 'From #{번호} “{이름}” to the end, the same account carries on. Later steps skip pre-steps already run earlier',
   '값 연결 {수}곳 찾음': '{수} value links found',
   '넘길 값이 없습니다. 단계끼리 값을 주고받지 않는 흐름입니다': 'No values to pass. The steps in this flow don’t share values',
   '{번호}번 {이름}': '#{번호} {이름}',
