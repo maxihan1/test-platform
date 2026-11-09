@@ -83,9 +83,30 @@ describe.skipIf(연결 === undefined)('시나리오 저장소', () => {
     ]);
   });
 
+  it('이름만 바꿔 저장하면 이름만 바뀌고 버전은 그대로다', async () => {
+    const { id } = await 만들기(서비스.XSS!, 'XSS 이름만', 'desktop', 부품, 사람);
+    expect(await 고치기(id, { name: 'XSS 새 이름', platform: 'desktop', parts: 부품, baseVersion: 1 }, 딴사람)).toEqual({
+      version: 1,
+    });
+    const 본것 = await 상세(id);
+    expect(본것).toMatchObject({ name: 'XSS 새 이름', version: 1 });
+    expect(본것?.versions).toHaveLength(1);
+    expect(await 고치기(id, { name: 'XSS 늦은 새 이름', platform: 'desktop', parts: 부품, baseVersion: 1 }, 사람)).toEqual({
+      version: 1,
+    });
+    expect((await 상세(id))?.name).toBe('XSS 늦은 새 이름');
+  });
+
+  it('디바이스만 바꿔 저장해도 버전이 오른다', async () => {
+    const { id } = await 만들기(서비스.XSS!, 'XSS 디바이스만', 'desktop', 부품, 사람);
+    expect(await 고치기(id, { name: 'XSS 디바이스만', platform: 'mobile', parts: 부품, baseVersion: 1 }, 사람)).toEqual({
+      version: 2,
+    });
+  });
+
   it('옛 버전을 고쳤으면 STALE_VERSION 과 지금 최신을 준다', async () => {
     const { id } = await 만들기(서비스.XSS!, 'XSS 늦은 저장', 'desktop', 부품, 사람);
-    await 고치기(id, { name: 'a', platform: 'desktop', parts: 부품, baseVersion: 1 }, 사람);
+    await 고치기(id, { name: 'a', platform: 'desktop', parts: 딴부품, baseVersion: 1 }, 사람);
     expect(await 고치기(id, { name: 'b', platform: 'desktop', parts: 부품, baseVersion: 1 }, 사람)).toEqual({
       error: 'STALE_VERSION',
       latest: 2,
@@ -95,7 +116,7 @@ describe.skipIf(연결 === undefined)('시나리오 저장소', () => {
   it('둘이 같은 버전을 동시에 고치면 하나만 된다', async () => {
     const { id } = await 만들기(서비스.XSS!, 'XSS 동시', 'desktop', 부품, 사람);
     const 결과 = await Promise.all([
-      고치기(id, { name: 'a', platform: 'desktop', parts: 부품, baseVersion: 1 }, 사람),
+      고치기(id, { name: 'a', platform: 'mobile', parts: 부품, baseVersion: 1 }, 사람),
       고치기(id, { name: 'b', platform: 'desktop', parts: 딴부품, baseVersion: 1 }, 딴사람),
     ]);
     expect(결과).toEqual(expect.arrayContaining([{ version: 2 }, { error: 'STALE_VERSION', latest: 2 }]));
