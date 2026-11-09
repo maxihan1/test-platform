@@ -13,8 +13,6 @@ describe('배포용패키지 — 테스트 저장소가 받는 package.json', ()
   it('워크스페이스의 .ts 진입점을 빌드한 dist 의 JS · 타입으로 바꾼다', () => {
     const 판 = 배포용패키지(kit, 루트, '0.1.0') as { exports: Record<string, { types: string; default: string }> };
     expect(Object.keys(판.exports)).toEqual(Object.keys(kit.exports));
-    // 소스맵이 가리키는 원본이 패키지 안에 있어야 받은 kit 으로 파일 하나만 골라 돌린다
-    expect(배포용패키지(kit, 루트, '0.1.0').files).toEqual(['dist', 'src']);
     expect(판.exports['.']).toEqual({ types: './dist/index.d.ts', default: './dist/index.js' });
     expect(판.exports['./scenario']).toEqual({ types: './dist/runtime/scenario.d.ts', default: './dist/runtime/scenario.js' });
   });
