@@ -127,7 +127,7 @@ describe('ScenarioBuild 저장', () => {
   });
 
   it('저장본을 열면 지금 건너뛸 수 없는 제목을 빼고, 저장 안 한 변경으로 보여 저장 한 번에 뺀 채 보낸다 (결정 8)', async () => {
-    const 건너뛰던것: ScenarioPart = { ...케이스단계('ZSB-002'), skipSteps: ['로그인한다', '담는다'] };
+    const 건너뛰던것 = { kind: 'case', tcId: 'ZSB-002', params: {}, expected: {}, skipSteps: ['로그인한다', '담는다'] } satisfies ScenarioPart;
     vi.spyOn(scenarioApi, 'detail').mockResolvedValue(상세({ parts: [케이스단계('ZSB-001'), 건너뛰던것] }));
     vi.spyOn(scenarioApi, 'caseParts').mockImplementation(async (tcId) => ({
       ...재료(tcId),
