@@ -1,4 +1,4 @@
-// 시나리오와 버전 표를 읽고 쓴다. 저장마다 버전이 하나 오르고 옛 버전은 고치지 않는다 (SPEC 도메인/시나리오 §3.7 결정 7)
+// 시나리오와 버전 표를 읽고 쓴다. 단계 · 디바이스를 바꾼 저장마다 버전이 하나 오르고 옛 버전은 고치지 않는다 (SPEC 도메인/시나리오 §3.7 결정 7)
 
 import type { ItemStatus, Platform, ScenarioPart } from '@platform/kit';
 import type { Pool, PoolClient } from 'pg';

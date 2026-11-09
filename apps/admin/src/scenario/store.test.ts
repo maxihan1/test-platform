@@ -91,6 +91,10 @@ describe.skipIf(연결 === undefined)('시나리오 저장소', () => {
     const 본것 = await 상세(id);
     expect(본것).toMatchObject({ name: 'XSS 새 이름', version: 1 });
     expect(본것?.versions).toHaveLength(1);
+    expect(await 고치기(id, { name: 'XSS 늦은 새 이름', platform: 'desktop', parts: 부품, baseVersion: 1 }, 사람)).toEqual({
+      version: 1,
+    });
+    expect((await 상세(id))?.name).toBe('XSS 늦은 새 이름');
   });
 
   it('디바이스만 바꿔 저장해도 버전이 오른다', async () => {
