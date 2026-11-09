@@ -276,8 +276,10 @@ describe('ScenarioWizard 시험 실행 · 저장', () => {
     const 칸 = (await screen.findByLabelText('시나리오 이름')) as HTMLInputElement;
     expect(칸.value).toBe('');
     expect(칸.placeholder).toBe('DMA 장바구니');
+    expect(screen.getByText(/비워 두면 흐린 글씨의 후보 이름으로 저장합니다/)).toBeTruthy();
     fireEvent.change(칸, { target: { value: '주문 흐름' } });
     expect(칸.value).toBe('주문 흐름');
+    expect(screen.queryByText(/비워 두면/)).toBeNull();
 
     const 만들기 = vi.spyOn(scenarioApi, 'create').mockResolvedValue({ id: 33, version: 1 });
     fireEvent.change(칸, { target: { value: '' } });

@@ -91,6 +91,7 @@ export function 저장칸(p: Props) {
         />
         <span className="hint" id="scw-name-hint">
           {t('목록과 실행 기록에 보이는 이름입니다')}
+          {p.후보이름 !== null && p.이름.trim() === '' ? ` · ${t('비워 두면 흐린 글씨의 후보 이름으로 저장합니다')}` : ''}
         </span>
       </div>
       <dl className="scw-sum">
