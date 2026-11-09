@@ -254,4 +254,35 @@ describe('ScenarioWizard 시험 실행 · 저장', () => {
     await waitFor(() => expect(window.location.hash).toBe(결과주소(9, 'scenarios')));
     expect(실행).toHaveBeenCalledWith(32, 'stg', 'server');
   });
+
+  it('AI 후보를 골라도 이름 칸은 비어 있고 후보 이름은 흐린 글씨다. 친 글자만 들어가고 비운 채 저장하면 후보 이름이다', async () => {
+    vi.spyOn(scenarioApi, 'suggestFlows').mockResolvedValue({ jobId: 7 });
+    vi.spyOn(scenarioApi, 'flowJob').mockResolvedValue({
+      status: 'DONE',
+      error: null,
+      material: { reqs: 2, cases: 2, links: 0, truncated: false },
+      candidates: [{ name: 'DMA 장바구니', why: '담고 주문까지', reqIds: [], steps: [{ tcId: 'ZSB-001', name: '로그인' }], links: [] }],
+    });
+    render(<ScenarioWizard 띠서비스={서비스('ZSB')} user={사람()} />);
+    fireEvent.click(screen.getByRole('button', { name: /AI 추천으로 시작/ }));
+    다음();
+    fireEvent.click(await screen.findByRole('button', { name: /DMA 장바구니/ }));
+    다음();
+    await screen.findByRole('region', { name: '지금 순서' });
+    다음();
+    다음();
+    다음();
+
+    const 칸 = (await screen.findByLabelText('시나리오 이름')) as HTMLInputElement;
+    expect(칸.value).toBe('');
+    expect(칸.placeholder).toBe('DMA 장바구니');
+    fireEvent.change(칸, { target: { value: '주문 흐름' } });
+    expect(칸.value).toBe('주문 흐름');
+
+    const 만들기 = vi.spyOn(scenarioApi, 'create').mockResolvedValue({ id: 33, version: 1 });
+    fireEvent.change(칸, { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    expect(await screen.findByText('「DMA 장바구니」 시나리오를 저장했습니다 · v1')).toBeTruthy();
+    expect(만들기).toHaveBeenCalledWith(expect.objectContaining({ name: 'DMA 장바구니' }));
+  });
 });

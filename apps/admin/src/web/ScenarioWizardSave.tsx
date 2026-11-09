@@ -85,7 +85,7 @@ export function 저장칸(p: Props) {
           type="text"
           autoComplete="off"
           value={p.이름}
-          placeholder={t('예: 신규 회원 첫 주문')}
+          placeholder={p.후보이름 ?? t('예: 신규 회원 첫 주문')}
           aria-describedby="scw-name-hint"
           onChange={(e) => p.on이름(e.target.value)}
         />
