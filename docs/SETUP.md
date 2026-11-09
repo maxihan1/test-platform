@@ -1097,3 +1097,30 @@ docker compose -p test_platform up -d postgres
 
 - pre-push 는 compose 와 같은 맥 `.env` 의 `POSTGRES_PORT` 를 읽어서 1 · 2 를 하면 같이 옮겨 간다. 「개발 DB(127.0.0.1:…)에 못 붙었다」로 막히면 찍힌 포트와 `docker ps` 의 postgres 포트가 같은지 본다
 - DB 도구나 셸에 `localhost:5433/platform` 을 적어 둔 곳이 있으면 5434 로 바꾼다
+
+## 21. kit 을 테스트 저장소용으로 내기 (2026-11-09 · REPO-F1-02)
+
+데모마켓 · 게임 저장소의 테스트가 Commander 없이 혼자 돌려면 `@platform/kit` 을 패키지로 받아야 한다(공통/6-인프라 「테스트 코드 저장소」 「바뀔 모습」).
+그래서 kit 을 빌드한 JS 와 타입을 공개 저장소 [`maxihan1/platform-kit`](https://github.com/maxihan1/platform-kit) 에 태그로 낸다. `appium-cli` · `control-cli` 를 받는 것과 같은 길이다.
+Commander 자신은 지금처럼 워크스페이스의 `packages/kit` 을 그대로 쓴다 — 이 절은 Commander 실행 · 스캔과 상관없다.
+
+**테스트 저장소에서 받기** — `tests/package.json` 에 한 줄
+```json
+"@platform/kit": "github:maxihan1/platform-kit#v0.1.1",
+"@playwright/test": "1.63.0"
+```
+- Playwright 는 Commander 와 같은 판으로 맞춘다 — kit 이 Playwright 안쪽(실패 사진 표시)을 읽어서 판을 묶어 두었다. 다른 판이면 `npm install` 이 peer 충돌로 멈춘다
+- 앱 케이스가 있으면 `webdriverio`, 게임 케이스가 있으면 `control-cli` 를 더 받는다. 웹 케이스만 있는 저장소는 안 받아도 돈다 — kit 의 타입 파일이 둘을 가리키므로 `tsconfig.json` 에 `"skipLibCheck": true` 를 둔다
+- `playwright.config.ts` 의 project 이름은 `desktop` · `mobile` · `android` 그대로 쓴다. 이름이 다르면 kit 이 「환경을 선언하지 않았다」로 케이스를 건너뛴다
+
+**새 판 내기** — `packages/kit` 을 고친 PR 이 병합된 뒤, 테스트 저장소가 그 변경을 써야 할 때만 (약 1분)
+1. 루트를 최신 main 으로 받는다 — 지금 커밋이 origin/main 에 없거나 `packages/kit` · 루트 `package.json` 에 커밋 안 한 변경이 있으면 스크립트가 거절한다
+2. 다음 번호로 낸다. 지금 판은 `git ls-remote --tags --sort=-v:refname https://github.com/maxihan1/platform-kit | head -1` 로 본다
+   ```bash
+   npx tsx scripts/kit-release.ts 0.1.2
+   ```
+   빌드(`packages/kit/tsconfig.build.json`, 테스트 파일은 뺀다) → 배포용 `package.json` · `README.md` → platform-kit 에 커밋 · 태그 · push 를 한 번에 한다. 커밋 메시지에 낸 Commander 커밋이 남는다
+3. 확인 — `냈습니다 — "@platform/kit": "github:maxihan1/platform-kit#v0.1.2"` 가 찍히면 된 것이다. 테스트 저장소의 `tests/package.json` 판을 올리고 `npm install` 한다
+
+- platform-kit 저장소는 손으로 고치지 않는다 — 다음 판을 낼 때 통째로 덮인다
+- 같은 번호를 두 번 낼 수 없다(「태그가 이미 있습니다」). 잘못 냈으면 다음 번호로 다시 낸다
