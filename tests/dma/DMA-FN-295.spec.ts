@@ -5,7 +5,7 @@ import { 목록으로돌아가기 } from './helpers/cart.helper.js';
 import { 주문서 } from './helpers/checkout-flow.helper.js';
 import { 주문만들기 } from './helpers/order.helper.js';
 import { 주문상세화면 } from './pages/order-detail.page.js';
-import { 로그인화면 } from './pages/login.page.js';
+import { 로그인하기 } from './helpers/login.helper.js';
 import { 상품목록화면 } from './pages/product-list.page.js';
 
 export const spec = defineCase({
@@ -29,12 +29,9 @@ export const spec = defineCase({
 test(spec, async ({ driver, params }) => {
   const 상세 = new 주문상세화면(driver);
   const 목록 = new 상품목록화면(driver);
-  const 로그인창 = new 로그인화면(driver);
 
   await test.step('일반 회원 계정으로 로그인한다', async () => {
-    await 로그인창.열릴때까지();
-    await 로그인창.로그인(params.loginId ?? '', params.loginPassword ?? '');
-    await 목록.열릴때까지();
+    await 로그인하기(driver, params.loginId, params.loginPassword);
   });
 
   await test.step('상품 목록을 확인한다', async () => {

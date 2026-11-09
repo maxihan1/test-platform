@@ -49,10 +49,6 @@ const 만든캐릭터 = new Map<string, { 누구: 캐릭터; 직업: 직업 }>()
 let 들어간: { 누구: 캐릭터; 직업: 직업 } | undefined;
 let 넘겨줄수있음 = false;
 
-export function 들어간캐릭터(): 캐릭터 | undefined {
-  return 들어간?.누구;
-}
-
 export function 게임에들어갔다(아이디: string): void {
   if (!시나리오안()) return;
   들어간 = 만든캐릭터.get(아이디);

@@ -1,4 +1,5 @@
 import { type 앱, type 요소, 글들, 켜졌나 } from '../helpers/app.helper.js';
+import { 로그인화면 } from './login.page.js';
 
 export type 분류 = '전체' | '패션' | '전자기기' | '도서' | '식품';
 
@@ -77,6 +78,7 @@ export class 상품목록화면 {
 
   async 로그아웃누르기(): Promise<void> {
     await this.로그아웃버튼.click();
+    로그인화면.로그아웃했다();
   }
 
   async 분류칩골라졌나(이름: 분류): Promise<boolean> {

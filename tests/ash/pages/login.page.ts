@@ -5,7 +5,19 @@ export class 로그인화면 {
 
   static readonly 창 = '/Boot/BootCanvas/LoginView';
 
+  private static 적은: string | undefined;
+
+  private static 들어온: string | undefined;
+
   constructor(private readonly game: GameDriver) {}
+
+  static 들어온아이디(): string | undefined {
+    return 로그인화면.들어온;
+  }
+
+  static 로그아웃했다(): void {
+    로그인화면.들어온 = undefined;
+  }
 
   static async 열기(game: GameDriver): Promise<로그인화면> {
     await game.waitFor(로그인화면.창, { timeoutMs: 60_000 });
@@ -21,6 +33,7 @@ export class 로그인화면 {
   }
 
   async 아이디적기(아이디: string): Promise<string> {
+    로그인화면.적은 = 아이디;
     return this.game.type('UsernameInput', 아이디);
   }
 
@@ -30,6 +43,7 @@ export class 로그인화면 {
 
   async 로그인누르기(): Promise<void> {
     await this.game.click('LoginButton');
+    로그인화면.들어온 = 로그인화면.적은;
   }
 
   async 가입누르기(): Promise<void> {

@@ -3,7 +3,17 @@ import { type 앱, 칸에적기 } from '../helpers/app.helper.js';
 export class 로그인화면 {
   static readonly 주소 = 'app:.MainActivity/login_id';
 
+  private static 들어온: string | undefined;
+
   constructor(private readonly driver: 앱) {}
+
+  static 들어온아이디(): string | undefined {
+    return 로그인화면.들어온;
+  }
+
+  static 로그아웃했다(): void {
+    로그인화면.들어온 = undefined;
+  }
 
   get 제목() {
     return this.driver.$('id=app_title');
@@ -69,6 +79,7 @@ export class 로그인화면 {
     await this.아이디적기(아이디);
     await this.비밀번호적기(비밀번호);
     await this.로그인누르기();
+    로그인화면.들어온 = 아이디;
   }
 
   async 로그인버튼눌리나(): Promise<boolean> {
