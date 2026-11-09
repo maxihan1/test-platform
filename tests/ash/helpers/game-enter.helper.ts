@@ -1,12 +1,16 @@
 import type { GameDriver } from '@platform/kit';
 
 import { 캐릭터선택화면 } from '../pages/character-select.page.js';
+import { 캐릭터정보창 } from '../pages/character-info.page.js';
 import { 강화창 } from '../pages/enhance.page.js';
+import { GM콘솔 } from '../pages/gm-console.page.js';
+import { 가방창 } from '../pages/inventory.page.js';
+import { 아이템설명창 } from '../pages/item-detail.page.js';
 import { 로그인화면 } from '../pages/login.page.js';
 import { 서버설정창 } from '../pages/server-settings.page.js';
 import { 상점창 } from '../pages/shop.page.js';
 import { 월드화면 } from '../pages/world.page.js';
-import { 게임에들어갔다, 들어간캐릭터 } from './game-state.helper.js';
+import { 게임에들어갔다, 로그인한계정, 로그인했다 } from './game-state.helper.js';
 
 export function 대상서버(): string {
   const 주소 = process.env.PLATFORM_BASE_URL;
@@ -14,7 +18,21 @@ export function 대상서버(): string {
   return 주소.replace(/\/+$/, '');
 }
 
+async function 월드에서나가기(game: GameDriver): Promise<void> {
+  const 월드 = new 월드화면(game);
+  if (!(await 월드.떠있나())) return;
+  for (const 창 of [new 아이템설명창(game), new 가방창(game), new 캐릭터정보창(game), new 상점창(game), new 강화창(game), new GM콘솔(game)]) {
+    if (await 창.떠있나()) await 창.닫기누르기();
+  }
+  await 월드.나가기누르기();
+  await 캐릭터선택화면.열기(game);
+}
+
 export async function 서버맞추기(game: GameDriver): Promise<로그인화면> {
+  await 월드에서나가기(game);
+  const 선택 = new 캐릭터선택화면(game);
+  if (await 선택.떠있나()) await 선택.로그아웃누르기();
+  로그인했다(undefined);
   const 화면 = await 로그인화면.열기(game);
   if (!(await 화면.서버글()).includes(대상서버())) {
     const 창 = await 서버설정창.열기(game);
@@ -26,27 +44,19 @@ export async function 서버맞추기(game: GameDriver): Promise<로그인화면
 }
 
 export async function 로그인하기(game: GameDriver, 누구: { 아이디: string; 비밀번호: string }): Promise<캐릭터선택화면> {
+  await 월드에서나가기(game);
+  const 선택 = new 캐릭터선택화면(game);
+  if ((await 선택.떠있나()) && 로그인한계정() === 누구.아이디) return 선택;
   const 화면 = await 서버맞추기(game);
   await 화면.아이디적기(누구.아이디);
   await 화면.비밀번호적기(누구.비밀번호);
   await 화면.로그인누르기();
-  return 캐릭터선택화면.열기(game);
+  const 다음 = await 캐릭터선택화면.열기(game);
+  로그인했다(누구.아이디);
+  return 다음;
 }
 
 export async function 게임입장(game: GameDriver, 누구: { 아이디: string; 비밀번호: string; 이름: string }): Promise<월드화면> {
-  if (들어간캐릭터()?.아이디 === 누구.아이디) {
-    const 상점 = new 상점창(game);
-    if (await 상점.떠있나()) await 상점.닫기누르기();
-    const 강화 = new 강화창(game);
-    if (await 강화.떠있나()) await 강화.닫기누르기();
-    await new 월드화면(game).나가기누르기();
-    const 다시 = await 캐릭터선택화면.열기(game);
-    await 다시.칸뜰때까지(누구.이름);
-    await 다시.게임시작누르기(누구.이름);
-    const 월드 = await 월드화면.열기(game);
-    게임에들어갔다(누구.아이디);
-    return 월드;
-  }
   const 선택 = await 로그인하기(game, 누구);
   await 선택.칸뜰때까지(누구.이름);
   await 선택.게임시작누르기(누구.이름);

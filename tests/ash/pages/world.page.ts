@@ -20,6 +20,10 @@ export class 월드화면 {
     }
   }
 
+  async 떠있나(): Promise<boolean> {
+    return (await this.game.find('/WorldRoot/HudCanvas/StatusPanel/GoldText')) !== null;
+  }
+
   async 구역글(): Promise<string> {
     return this.game.text('ZoneText');
   }
