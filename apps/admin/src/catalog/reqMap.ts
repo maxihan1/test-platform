@@ -1,7 +1,7 @@
 // 요구사항 표 출처 칸에서 지도 ①(요구 ↔ 케이스)을 뽑아 req_case 의 그 서비스 몫을, 계정이 없어 보류된 요구는 req_hold 를 다시 채운다 (카탈로그 §3.1 「지도」)
 
 import { readFile, stat } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 
 import type { Pool } from 'pg';
 
@@ -16,11 +16,6 @@ export interface 지도줄 {
 }
 
 const 축들: ReadonlySet<string> = new Set(['정상', '경계', '예외', 'UI']);
-
-// 작성 에이전트가 표를 쓰는 자리(docs/cases/<접두사>.md)와 같은 뿌리다 (도메인/작성 §3.6 · 공통/6-인프라 §9)
-export function casesRoot(): string {
-  return process.env.PLATFORM_CASES_DIR ?? resolve(process.cwd(), 'docs', 'cases');
-}
 
 /**
  * 「요구사항」 표에서 (요구 번호, tcId, 축)을 뽑는다. 번호는 원장 대조와 같은 함수로 읽는다 —
@@ -47,16 +42,17 @@ async function db(): Promise<Pool> {
 /**
  * 그 서비스 몫을 지우고 표에서 다시 채운다(사본이라 손으로 안 고친다). 표 파일이 없으면 비운다 — 덮는 것이 없다.
  * req_hold 는 케이스로 덮인 번호도 넣는다 — 「테스트 있음」이 이기는 것은 읽는 쪽이 가린다(prd/held.ts).
+ * 표 뿌리는 그 서비스 저장소를 받아 둔 자리의 `docs/cases` 다 — 작성 에이전트가 표를 쓰는 자리와 같다 (공통/6-인프라 「테스트 코드 저장소」).
  * 뿌리 폴더가 없거나 다른 읽기 오류면 던진다 — 부르는 쪽이 옛 지도를 둔 채 스캔 문제로 남긴다
  */
-export async function 지도채우기(serviceId: number, prefix: string): Promise<number> {
+export async function 지도채우기(serviceId: number, prefix: string, 표뿌리: string): Promise<number> {
   let 표글 = '';
   try {
-    표글 = await readFile(join(casesRoot(), `${prefix}.md`), 'utf8');
+    표글 = await readFile(join(표뿌리, `${prefix}.md`), 'utf8');
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
     // 뿌리가 통째로 없으면 표가 없는 것이 아니라 마운트 · 작업 폴더가 틀린 것이다. 비우면 모든 서비스 지도가 말없이 사라진다
-    await stat(casesRoot());
+    await stat(표뿌리);
   }
   const 줄들 = 지도줄들(표글, prefix);
   const 보류 = [...계정보류읽기(표글)];

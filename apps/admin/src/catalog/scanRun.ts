@@ -7,6 +7,7 @@ import { readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { 칸되는서비스 } from '../auth/permissions.js';
+import { 자기저장소, 저장소자리 } from '../settings/testsRepo.js';
 import type { 사용자 } from '../auth/store.js';
 import { 게임밖요소, 요소지도채우기 } from './elementMap.js';
 import { 지도채우기 } from './reqMap.js';
@@ -70,18 +71,33 @@ export async function runScan(log: 스캔로그, 고르기?: (s: ServiceRow) => 
     // 서비스가 하나도 없으면 훑을 폴더가 없다 — 첫 서비스는 설정에서 만든다 (§8.8)
     const services = (await activeServices()).filter((s) => 고르기 === undefined || 고르기(s));
     const root = testsRoot();
-    // 숨김 · 시스템 항목(.DS_Store · .gitkeep · lost+found) 말고 무엇이 있어야 마운트가 멀쩡하다고 본다. 못 읽으면 모른다로 보고 아무것도 안 내린다
-    const 뿌리찼나 = await readdir(root).then((이름들) => 이름들.some((x) => !x.startsWith('.') && x !== 'lost+found'), () => false);
 
     for (const service of services) {
       const 결과: 서비스결과 = { scannedAt, added: 0, updated: 0, deactivated: 0, duplicates: [], problems: [] };
       서비스별.set(service.prefix, 결과);
-      const 어디 = (file: string): string => join(service.testsDir, file);
+
+      // 서비스의 테스트는 그 서비스 저장소를 받아 둔 자리(<소유자>/<이름>) 아래 tests/<테스트 폴더> 다 (공통/6-인프라 「테스트 코드 저장소」).
+      // 저장소를 아직 안 적은 새 서비스는 훑을 곳이 없다 — 「아직 테스트가 없습니다」로 보인다. 틀린 꼴은 설정이 막기 전의 옛 값이라 알린다
+      const 자리 = 저장소자리(service.testsRepo);
+      if (자리 === null) {
+        if (service.testsRepo.trim() !== '') {
+          결과.problems.push(`${service.prefix} 서비스의 테스트 저장소 주소 ${service.testsRepo}가 https://github.com/<소유자>/<이름> 꼴이 아니라 훑지 않았다`);
+        }
+        continue;
+      }
+      // 처음 받기 전 · 권한이 없어 못 받음 · 저장소 칸을 바꾼 직후에는 자리가 없다. 마운트가 빠진 것처럼 케이스를 지난 스캔 그대로 둔다 (카탈로그 §3.1)
+      if (!(await 있나(join(root, 자리)))) {
+        결과.problems.push(`${service.prefix} 서비스의 테스트 저장소 ${자리}를 아직 받아 오지 못해 케이스를 지난 스캔 그대로 뒀다`);
+        continue;
+      }
+      const 테스트뿌리 = join(root, 자리, 'tests');
+      const 폴더이름 = join(자리, 'tests', service.testsDir);
+      const 어디 = (file: string): string => join(폴더이름, file);
 
       // 지도 ① 은 케이스 파일이 아니라 요구사항 표에서 온다 — 케이스 폴더가 깨지거나 번호가 겹쳐도 따로 갱신한다.
       // 표를 못 읽으면 옛 지도를 남기고 문제로만 알린다 (카탈로그 §3.1 「지도」)
       try {
-        await 지도채우기(service.id, service.prefix);
+        await 지도채우기(service.id, service.prefix, join(root, 자리, 'docs', 'cases'));
       } catch (err) {
         결과.problems.push(
           `${service.prefix} 서비스의 요구사항 표로 지도를 채우지 못했다: ${err instanceof Error ? err.message : String(err)}`,
@@ -91,20 +107,21 @@ export async function runScan(log: 스캔로그, 고르기?: (s: ServiceRow) => 
       // 폴더가 아직 안 채워졌거나 이름이 틀리면 여기서 던진다. 그 서비스만 접고 나머지는 계속 훑는다 —
       // 한 서비스 때문에 다른 서비스의 케이스까지 사라지면 목록이 통째로 거짓말을 한다 (SPEC §3.1)
       let found;
-      const 폴더 = join(root, service.testsDir);
+      const 폴더 = join(root, 폴더이름);
       try {
         found = await scanApart(폴더);
       } catch (err) {
         // 아직 테스트가 없는 새 서비스는 폴더가 없다 — 문제가 아니고 목록이 「아직 테스트가 없습니다」를 보인다 (PRD-F9-19).
-        // 뿌리까지 없으면 마운트가 빠진 것이고, 폴더는 있는데 안의 파일이 사라졌으면 읽기 실패라 알린다 — 둘 다 케이스는 지난 스캔 그대로 둔다
-        if ((err as NodeJS.ErrnoException).code === 'ENOENT' && !(await 있나(폴더)) && (await 있나(root))) {
-          // git 은 빈 폴더를 안 남겨 케이스를 비운 폴더는 사라진다. 뿌리에 다른 폴더가 있으면 마운트는 멀쩡하니 0건으로 저장해 내린다.
-          // 뿌리에 숨김 항목뿐이면 마운트가 덜 된 쪽이 그럴듯해 건드리지 않는다
-          if (!뿌리찼나) continue;
+        // 폴더는 있는데 안의 파일이 사라졌으면 읽기 실패라 알린다 — 케이스는 지난 스캔 그대로 둔다
+        if ((err as NodeJS.ErrnoException).code === 'ENOENT' && !(await 있나(폴더))) {
+          // 빈 폴더는 저장소에 안 남아 케이스를 비운 폴더는 사라진다. 자리의 tests/ 에 다른 것이 있으면 받은 저장소가 멀쩡하니 0건으로 저장해 내린다.
+          // 숨김 · 시스템 항목(.DS_Store · .gitkeep · lost+found)뿐이거나 못 읽으면 붙이기(Commander 자리)가 덜 된 쪽이 그럴듯해 건드리지 않는다
+          const 찼나 = await readdir(테스트뿌리).then((이름들) => 이름들.some((x) => !x.startsWith('.') && x !== 'lost+found'), () => false);
+          if (!찼나) continue;
           found = { specs: [], failures: [], duplicates: [] };
         } else {
           결과.problems.push(
-            `${service.prefix} 서비스의 테스트 폴더 ${service.testsDir}을 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`,
+            `${service.prefix} 서비스의 테스트 폴더 ${폴더이름}을 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`,
           );
           continue;
         }
@@ -136,12 +153,12 @@ export async function runScan(log: 스캔로그, 고르기?: (s: ServiceRow) => 
       결과.deactivated = saved.deactivated;
       // 통째로 내렸으면 알린다 — 일부러 비운 것과 폴더 이름을 잘못 적은 사고를 사람이 가르게
       if (내것.length === 0 && saved.deactivated > 0) {
-        결과.problems.push(`${service.prefix} 서비스의 테스트 폴더 ${service.testsDir}에 케이스가 없어 ${saved.deactivated}건을 비활성으로 내렸다`);
+        결과.problems.push(`${service.prefix} 서비스의 테스트 폴더 ${폴더이름}에 케이스가 없어 ${saved.deactivated}건을 비활성으로 내렸다`);
       }
 
       // 지도 ② 는 케이스 파일에서 오므로 저장한 뒤에 채운다 — 표가 케이스를 외래 키로 건다
       try {
-        await 화면지도채우기(service.id, service.prefix, root, 내것, found.failures.length === 0);
+        await 화면지도채우기(service.id, service.prefix, root, 자리, 내것, found.failures.length === 0);
       } catch (err) {
         결과.problems.push(
           `${service.prefix} 서비스의 화면 파일로 지도를 채우지 못했다: ${err instanceof Error ? err.message : String(err)}`,
@@ -180,7 +197,9 @@ export async function runScan(log: 스캔로그, 고르기?: (s: ServiceRow) => 
  * (작성 §3.6 · PRD-F9-03). 던지지 않는다 — 실패는 스캔 결과의 문제 줄로 남는다
  */
 export function 병합뒤훑기(serviceId: number, log: FastifyBaseLogger): Promise<unknown> {
-  return runScan(log, (s) => s.id === serviceId);
+  // Commander 자리만 바로 훑는다 — 체크아웃을 붙인 자리라 에이전트의 병합 뒤 당기기가 곧 반영이다.
+  // 다른 저장소는 서버의 1분 받아 오기가 받은 뒤 그 서비스를 훑는다. 받기 전에 훑으면 옛 파일로 덮는다 (공통/6-인프라 「받아 오기」)
+  return runScan(log, (s) => s.id === serviceId && 저장소자리(s.testsRepo) === 자기저장소);
 }
 
 /**

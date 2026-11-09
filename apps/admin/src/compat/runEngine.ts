@@ -15,6 +15,7 @@ import { 실행팜토큰 } from '../execution/farmToken.js';
 import { abortRunner, 보낸다 } from '../execution/runner.js';
 import { 저장값을채운다 } from '../execution/savedInput.js';
 import { db } from '../settings/store.js';
+import { 저장소자리 } from '../settings/testsRepo.js';
 import { type 호환성디바이스, 호환성디바이스목록 } from './devices.js';
 import { Chrome켜기, type 팜곳, 글, 설정, 점검기다리기 } from './runCheck.js';
 import { type 실행케이스, 상태들읽기, 실행머리읽기, 케이스들읽기 } from './runRead.js';
@@ -93,13 +94,15 @@ async function 재료읽기(runId: number): Promise<실행재료 | { 까닭: str
       'SELECT tc_id, platforms, param_schema, expected_schema FROM test_case WHERE tc_id = ANY($1::text[]) AND is_active',
       [번호들],
     ),
-    pool.query<{ tc_id: string; file: string; screen_url: string }>(
-      `SELECT cs.tc_id, cs.file, cs.screen_url FROM case_screen cs JOIN test_case t ON t.tc_id = cs.tc_id
+    // case_screen.file 은 그 서비스 저장소 뿌리 기준(tests/<폴더>/pages/…)이라 받아 둔 자리를 앞에 붙여 읽는다 (공통/6-인프라 「테스트 코드 저장소」)
+    pool.query<{ tc_id: string; file: string; screen_url: string; tests_repo: string }>(
+      `SELECT cs.tc_id, cs.file, cs.screen_url, s.tests_repo FROM case_screen cs JOIN test_case t ON t.tc_id = cs.tc_id JOIN service s ON s.id = $2
         WHERE t.is_active AND split_part(cs.tc_id, '-', 1) = $1 AND cs.screen_url IS NOT NULL
         ORDER BY cs.file, cs.tc_id`,
-      [머리.prefix],
+      [머리.prefix, 머리.serviceId],
     ),
   ]);
+  const 자리 = 저장소자리(화면.rows[0]?.tests_repo ?? '') ?? '';
   const 채움 = await 저장값을채운다(
     pool,
     행.rows.map((r) => ({ tcId: r.tc_id, params: {} as Record<string, unknown>, expected: {} as Record<string, unknown> })),
@@ -108,7 +111,7 @@ async function 재료읽기(runId: number): Promise<실행재료 | { 까닭: str
   );
   // 화면 파일 글은 앱 locator · 게임 대상 이름을 찾는 데만 쓴다 — 못 읽으면 빈 글이라 그 화면은 「화면 모름」이 된다
   const 글들 = new Map<string, string>();
-  await Promise.all([...new Set(화면.rows.map((r) => r.file))].map(async (f) => 글들.set(f, await readFile(join(testsRoot(), f.replace(/^tests\//, '')), 'utf8').catch(() => ''))));
+  await Promise.all([...new Set(화면.rows.map((r) => r.file))].map(async (f) => 글들.set(f, await readFile(join(testsRoot(), 자리, f), 'utf8').catch(() => ''))));
   const 파일꼴 = (r: { file: string; screen_url: string }): 화면파일[] => { const key = 주소틀(r.screen_url); return key === null ? [] : [{ file: r.file, key, 글: 글들.get(r.file) ?? '' }]; };
   const 케이스 = new Map<string, 케이스재료>();
   for (const c of 채움) {

@@ -14,7 +14,7 @@ const 표 = (요구줄: string[], 제외줄: string[]) =>
 describe.skipIf(연결 === undefined)('지도채우기 — req_hold', () => {
   let 서비스 = 0;
   let 폴더 = '';
-  const 옛뿌리 = process.env.PLATFORM_CASES_DIR;
+  let 뿌리 = '';
 
   const q = async <T extends object>(sql: string, 값: unknown[] = []) => {
     const { pool } = await import('../db/index.js');
@@ -22,11 +22,11 @@ describe.skipIf(연결 === undefined)('지도채우기 — req_hold', () => {
   };
   const 보류 = async () =>
     (await q<{ req_id: string; role: string }>('SELECT req_id, role FROM req_hold WHERE service_id = $1 ORDER BY req_id, role', [서비스])).rows.map((r) => `${r.req_id} ${r.role}`);
-  const 채우기 = async () => (await import('./reqMap.js')).지도채우기(서비스, 'XHD');
+  const 채우기 = async () => (await import('./reqMap.js')).지도채우기(서비스, 'XHD', 뿌리);
 
   beforeAll(async () => {
     폴더 = await mkdtemp(join(tmpdir(), 'xhd-'));
-    process.env.PLATFORM_CASES_DIR = 폴더;
+    뿌리 = 폴더;
     const s = await q<{ id: string }>(
       `INSERT INTO service (prefix, name, color, tests_repo, tests_dir)
        VALUES ('XHD', '계정 보류 지도 검사', '#888888', 'https://example.com/xhd', 'xhd') RETURNING id`,
@@ -38,8 +38,6 @@ describe.skipIf(연결 === undefined)('지도채우기 — req_hold', () => {
     await q('DELETE FROM req_hold WHERE service_id = $1', [서비스]);
     await q('DELETE FROM req_case WHERE service_id = $1', [서비스]);
     await q('DELETE FROM service WHERE id = $1', [서비스]);
-    if (옛뿌리 === undefined) delete process.env.PLATFORM_CASES_DIR;
-    else process.env.PLATFORM_CASES_DIR = 옛뿌리;
     await rm(폴더, { recursive: true, force: true });
   });
 

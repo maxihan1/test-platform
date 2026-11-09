@@ -140,6 +140,7 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
             hasSlackWebhook: false,
             hasFigmaToken: false,
             testsDir: 'xbx',
+            testsRepo: '',
             crawlExclude: [],
             permissions: { cases: 'write', runs: 실행칸, authoring: 'write' },
           },

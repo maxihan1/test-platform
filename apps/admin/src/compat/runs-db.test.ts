@@ -55,8 +55,8 @@ describe.skipIf(연결 === undefined)('호환성 실행 · 결과 · 판정', { 
   beforeAll(async () => {
     ({ pool } = await import('../db/index.js'));
     폴더 = await mkdtemp(join(tmpdir(), 'xcr-'));
-    await mkdir(join(폴더, 'tests', 'xcr', 'pages'), { recursive: true });
-    await writeFile(join(폴더, 'tests', 'xcr', 'pages', 'home.page.ts'), "static readonly 주소 = 'app:.Main/home'; this.driver.$('id=cart_button')");
+    await mkdir(join(폴더, 'repos', 'o', 'xcr', 'tests', 'xcr', 'pages'), { recursive: true });
+    await writeFile(join(폴더, 'repos', 'o', 'xcr', 'tests', 'xcr', 'pages', 'home.page.ts'), "static readonly 주소 = 'app:.Main/home'; this.driver.$('id=cart_button')");
 
     팜 = http.createServer((req, res) => {
       const json = (code: number, v: object) => res.writeHead(code, { 'content-type': 'application/json' }).end(JSON.stringify({ value: v }));
@@ -104,7 +104,7 @@ describe.skipIf(연결 === undefined)('호환성 실행 · 결과 · 판정', { 
     });
     await new Promise<void>((r) => 팜.listen(0, '127.0.0.1', r));
     await new Promise<void>((r) => 러너.listen(0, '127.0.0.1', r));
-    환경쓰기({ DEVICE_FARM_URL: 주소(팜), RUNNER_URL: 주소(러너), PLATFORM_ARTIFACTS_DIR: 폴더, PLATFORM_TESTS_DIR: join(폴더, 'tests'), DEVICE_FARM_RUN_AS: undefined });
+    환경쓰기({ DEVICE_FARM_URL: 주소(팜), RUNNER_URL: 주소(러너), PLATFORM_ARTIFACTS_DIR: 폴더, PLATFORM_TESTS_DIR: join(폴더, 'repos'), DEVICE_FARM_RUN_AS: undefined });
     Object.assign(설정, { 다시잡기ms: 30, 잡기상한ms: 60_000, 점검간격ms: 30, 점검상한ms: 60_000 });
 
     app = Fastify();
@@ -114,7 +114,7 @@ describe.skipIf(연결 === undefined)('호환성 실행 · 결과 · 판정', { 
 
     const p = await pool.query<{ id: string }>(`INSERT INTO project (name) VALUES ('XCR 프로젝트') RETURNING id`);
     앱 = Number((await pool.query<{ id: string }>(
-      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, project_id, kind) VALUES ('XCR', 'XCR', '#445566', '', 'xcr', $1, 'APP') RETURNING id`,
+      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, project_id, kind) VALUES ('XCR', 'XCR', '#445566', 'https://github.com/o/xcr', 'xcr', $1, 'APP') RETURNING id`,
       [Number(p.rows[0]?.id)],
     )).rows[0]?.id);
     await pool.query(`INSERT INTO service_env (service_id, env, base_url) VALUES ($1, 'qa', 'https://qa.example.com')`, [앱]);

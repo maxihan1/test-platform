@@ -89,21 +89,21 @@ describe('화면지도줄들', () => {
 
   beforeAll(async () => {
     뿌리 = await mkdtemp(join(tmpdir(), 'xcs-'));
-    await mkdir(join(뿌리, 'xcs', 'pages'), { recursive: true });
-    await mkdir(join(뿌리, 'xcs', 'components'), { recursive: true });
+    await mkdir(join(뿌리, 'o', 'r', 'tests', 'xcs', 'pages'), { recursive: true });
+    await mkdir(join(뿌리, 'o', 'r', 'tests', 'xcs', 'components'), { recursive: true });
     await writeFile(
-      join(뿌리, 'xcs', 'pages', 'cart.page.ts'),
+      join(뿌리, 'o', 'r', 'tests', 'xcs', 'pages', 'cart.page.ts'),
       "export class CartPage {\n  static readonly 주소 = '/cart';\n  async 열기() { await this.page.goto('/cart'); }\n  async 주문(n: number) { await this.page.goto(`/cart/${n}/order`); }\n}",
     );
     await writeFile(
-      join(뿌리, 'xcs', 'components', 'site-header.component.ts'),
+      join(뿌리, 'o', 'r', 'tests', 'xcs', 'components', 'site-header.component.ts'),
       "export class SiteHeader {\n  static readonly 주소 = '/';\n  async 홈() { await this.page.goto('/home'); }\n}",
     );
     await writeFile(
-      join(뿌리, 'xcs', 'XCS-001.spec.ts'),
+      join(뿌리, 'o', 'r', 'tests', 'xcs', 'XCS-001.spec.ts'),
       "import { CartPage } from './pages/cart.page.js';\nimport { SiteHeader } from './components/site-header.component.js';",
     );
-    await writeFile(join(뿌리, 'xcs', 'XCS-002.spec.ts'), "import { CartPage } from './pages/cart.page.js';");
+    await writeFile(join(뿌리, 'o', 'r', 'tests', 'xcs', 'XCS-002.spec.ts'), "import { CartPage } from './pages/cart.page.js';");
   });
 
   afterAll(async () => {
@@ -111,8 +111,8 @@ describe('화면지도줄들', () => {
   });
 
   it('케이스마다 화면 파일을 저장소 뿌리 기준 경로로 잇고 주소 · 이동이 여는 다른 주소를 붙인다 — 화면 조각은 값을 적어 둬도 주소가 없다', async () => {
-    const 명세 = (tcId: string) => ({ tcId, filePath: `xcs/${tcId}.spec.ts` }) as CaseSpec;
-    expect(await 화면지도줄들(뿌리, [명세('XCS-001'), 명세('XCS-002')])).toEqual([
+    const 명세 = (tcId: string) => ({ tcId, filePath: `o/r/tests/xcs/${tcId}.spec.ts` }) as CaseSpec;
+    expect(await 화면지도줄들(뿌리, 'o/r', [명세('XCS-001'), 명세('XCS-002')])).toEqual([
       { tcId: 'XCS-001', file: 'tests/xcs/pages/cart.page.ts', screenUrl: '/cart', name: 'CartPage', openUrls: ['/cart/:n/order'] },
       { tcId: 'XCS-001', file: 'tests/xcs/components/site-header.component.ts', screenUrl: null, name: 'SiteHeader', openUrls: [] },
       { tcId: 'XCS-002', file: 'tests/xcs/pages/cart.page.ts', screenUrl: '/cart', name: 'CartPage', openUrls: ['/cart/:n/order'] },
@@ -136,15 +136,15 @@ describe.skipIf(연결 === undefined)('화면지도채우기', () => {
       'SELECT tc_id, file, screen_url, name FROM case_screen WHERE tc_id = ANY($1) ORDER BY tc_id, file',
       [케이스들],
     )).rows.map((r) => `${r.tc_id} ${r.file} ${r.screen_url ?? '-'} ${r.name ?? '-'}`);
-  const 명세 = (tcId: string) => ({ tcId, filePath: `xcs/${tcId}.spec.ts` }) as CaseSpec;
+  const 명세 = (tcId: string) => ({ tcId, filePath: `o/r/tests/xcs/${tcId}.spec.ts` }) as CaseSpec;
   const 채우기 = async (tcIds: string[], 전부읽음 = true) =>
-    (await import('./screenMap.js')).화면지도채우기(서비스, 'XCS', 뿌리, tcIds.map(명세), 전부읽음);
+    (await import('./screenMap.js')).화면지도채우기(서비스, 'XCS', 뿌리, 'o/r', tcIds.map(명세), 전부읽음);
 
   beforeAll(async () => {
     뿌리 = await mkdtemp(join(tmpdir(), 'xcs-db-'));
-    await mkdir(join(뿌리, 'xcs', 'pages'), { recursive: true });
-    await writeFile(join(뿌리, 'xcs', 'pages', 'cart.page.ts'), "export class CartPage {\n  static readonly 주소 = '/cart';\n}");
-    await writeFile(join(뿌리, 'xcs', 'pages', 'login.page.ts'), "export class LoginPage {\n  static readonly 주소 = '/login';\n}");
+    await mkdir(join(뿌리, 'o', 'r', 'tests', 'xcs', 'pages'), { recursive: true });
+    await writeFile(join(뿌리, 'o', 'r', 'tests', 'xcs', 'pages', 'cart.page.ts'), "export class CartPage {\n  static readonly 주소 = '/cart';\n}");
+    await writeFile(join(뿌리, 'o', 'r', 'tests', 'xcs', 'pages', 'login.page.ts'), "export class LoginPage {\n  static readonly 주소 = '/login';\n}");
     const s = await q<{ id: string }>(
       `INSERT INTO service (prefix, name, color, tests_repo, tests_dir)
        VALUES ('XCS', '화면 지도 검사', '#888888', 'https://example.com/xcs', 'xcs') RETURNING id`,
@@ -167,38 +167,38 @@ describe.skipIf(연결 === undefined)('화면지도채우기', () => {
   });
 
   it('스캔마다 그 서비스 몫을 지우고 다시 채운다 — 가져오기를 뺀 화면 · 읽지 않은 케이스는 지도에서 빠진다', async () => {
-    await writeFile(join(뿌리, 'xcs', 'XCS-001.spec.ts'), "import { CartPage } from './pages/cart.page.js';");
-    await writeFile(join(뿌리, 'xcs', 'XCS-002.spec.ts'), "import { LoginPage } from './pages/login.page.js';");
+    await writeFile(join(뿌리, 'o', 'r', 'tests', 'xcs', 'XCS-001.spec.ts'), "import { CartPage } from './pages/cart.page.js';");
+    await writeFile(join(뿌리, 'o', 'r', 'tests', 'xcs', 'XCS-002.spec.ts'), "import { LoginPage } from './pages/login.page.js';");
     expect(await 채우기(케이스들)).toBe(2);
     expect(await 지도()).toEqual(['XCS-001 tests/xcs/pages/cart.page.ts /cart CartPage', 'XCS-002 tests/xcs/pages/login.page.ts /login LoginPage']);
 
-    await writeFile(join(뿌리, 'xcs', 'XCS-001.spec.ts'), "import { LoginPage } from './pages/login.page.js';");
+    await writeFile(join(뿌리, 'o', 'r', 'tests', 'xcs', 'XCS-001.spec.ts'), "import { LoginPage } from './pages/login.page.js';");
     await 채우기(['XCS-001']);
     expect(await 지도()).toEqual(['XCS-001 tests/xcs/pages/login.page.ts /login LoginPage']);
   });
 
   it('케이스 파일을 다 읽지 못한 스캔은 읽은 케이스 몫만 바꾸고 못 읽은 케이스의 줄은 둔다', async () => {
-    await writeFile(join(뿌리, 'xcs', 'XCS-001.spec.ts'), "import { CartPage } from './pages/cart.page.js';");
-    await writeFile(join(뿌리, 'xcs', 'XCS-002.spec.ts'), "import { LoginPage } from './pages/login.page.js';");
+    await writeFile(join(뿌리, 'o', 'r', 'tests', 'xcs', 'XCS-001.spec.ts'), "import { CartPage } from './pages/cart.page.js';");
+    await writeFile(join(뿌리, 'o', 'r', 'tests', 'xcs', 'XCS-002.spec.ts'), "import { LoginPage } from './pages/login.page.js';");
     await 채우기(케이스들);
 
-    await writeFile(join(뿌리, 'xcs', 'XCS-001.spec.ts'), "import { LoginPage } from './pages/login.page.js';");
+    await writeFile(join(뿌리, 'o', 'r', 'tests', 'xcs', 'XCS-001.spec.ts'), "import { LoginPage } from './pages/login.page.js';");
     await 채우기(['XCS-001'], false);
     expect(await 지도()).toEqual(['XCS-001 tests/xcs/pages/login.page.ts /login LoginPage', 'XCS-002 tests/xcs/pages/login.page.ts /login LoginPage']);
   });
 
   it('화면 파일 안 이동이 여는 다른 주소를 open_urls 에 넣는다', async () => {
-    await writeFile(join(뿌리, 'xcs', 'pages', 'edit.page.ts'), "export class EditPage {\n  static readonly 주소 = '/w';\n  async 고치기(n: number) { await this.page.goto(`/w/${n}/edit`); }\n}");
-    await writeFile(join(뿌리, 'xcs', 'XCS-001.spec.ts'), "import { EditPage } from './pages/edit.page.js';");
+    await writeFile(join(뿌리, 'o', 'r', 'tests', 'xcs', 'pages', 'edit.page.ts'), "export class EditPage {\n  static readonly 주소 = '/w';\n  async 고치기(n: number) { await this.page.goto(`/w/${n}/edit`); }\n}");
+    await writeFile(join(뿌리, 'o', 'r', 'tests', 'xcs', 'XCS-001.spec.ts'), "import { EditPage } from './pages/edit.page.js';");
     await 채우기(['XCS-001']);
     const r = await q<{ open_urls: string[] }>('SELECT open_urls FROM case_screen WHERE tc_id = $1', ['XCS-001']);
     expect(r.rows).toEqual([{ open_urls: ['/w/:n/edit'] }]);
   });
 
   it('화면 파일을 못 읽으면 던지고 옛 지도를 그대로 둔다', async () => {
-    await writeFile(join(뿌리, 'xcs', 'XCS-001.spec.ts'), "import { CartPage } from './pages/cart.page.js';");
+    await writeFile(join(뿌리, 'o', 'r', 'tests', 'xcs', 'XCS-001.spec.ts'), "import { CartPage } from './pages/cart.page.js';");
     await 채우기(['XCS-001']);
-    await writeFile(join(뿌리, 'xcs', 'XCS-001.spec.ts'), "import { GonePage } from './pages/gone.page.js';");
+    await writeFile(join(뿌리, 'o', 'r', 'tests', 'xcs', 'XCS-001.spec.ts'), "import { GonePage } from './pages/gone.page.js';");
     await expect(채우기(['XCS-001'])).rejects.toThrow();
     expect(await 지도()).toEqual(['XCS-001 tests/xcs/pages/cart.page.ts /cart CartPage']);
   });

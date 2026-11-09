@@ -62,7 +62,7 @@ const 연결 = process.env.DATABASE_URL;
 describe.skipIf(연결 === undefined)('지도채우기', () => {
   let 서비스 = 0;
   let 폴더 = '';
-  const 옛뿌리 = process.env.PLATFORM_CASES_DIR;
+  let 뿌리 = '';
 
   const q = async <T extends object>(sql: string, 값: unknown[] = []) => {
     const { pool } = await import('../db/index.js');
@@ -73,11 +73,11 @@ describe.skipIf(연결 === undefined)('지도채우기', () => {
       'SELECT req_id, tc_id, axis FROM req_case WHERE service_id = $1 ORDER BY req_id, tc_id',
       [서비스],
     )).rows.map((r) => `${r.req_id} ${r.tc_id} ${r.axis}`);
-  const 채우기 = async () => (await import('./reqMap.js')).지도채우기(서비스, 'XMP');
+  const 채우기 = async () => (await import('./reqMap.js')).지도채우기(서비스, 'XMP', 뿌리);
 
   beforeAll(async () => {
     폴더 = await mkdtemp(join(tmpdir(), 'xmp-'));
-    process.env.PLATFORM_CASES_DIR = 폴더;
+    뿌리 = 폴더;
     const s = await q<{ id: string }>(
       `INSERT INTO service (prefix, name, color, tests_repo, tests_dir)
        VALUES ('XMP', '지도 검사', '#888888', 'https://example.com/xmp', 'xmp') RETURNING id`,
@@ -88,8 +88,6 @@ describe.skipIf(연결 === undefined)('지도채우기', () => {
   afterAll(async () => {
     await q('DELETE FROM req_case WHERE service_id = $1', [서비스]);
     await q('DELETE FROM service WHERE id = $1', [서비스]);
-    if (옛뿌리 === undefined) delete process.env.PLATFORM_CASES_DIR;
-    else process.env.PLATFORM_CASES_DIR = 옛뿌리;
     await rm(폴더, { recursive: true, force: true });
   });
 
@@ -114,11 +112,11 @@ describe.skipIf(연결 === undefined)('지도채우기', () => {
   it('표 뿌리 폴더가 통째로 없으면 마운트가 틀린 것이라 던지고 옛 지도를 그대로 둔다', async () => {
     await writeFile(join(폴더, 'XMP.md'), 표(['| 1 | 정상 | XMP-REQ-001 | XMP-FN-001 |']));
     await 채우기();
-    process.env.PLATFORM_CASES_DIR = join(폴더, '없는-폴더');
+    뿌리 = join(폴더, '없는-폴더');
     try {
       await expect(채우기()).rejects.toThrow();
     } finally {
-      process.env.PLATFORM_CASES_DIR = 폴더;
+      뿌리 = 폴더;
     }
     expect(await 지도()).toEqual(['XMP-REQ-001 XMP-FN-001 정상']);
   });

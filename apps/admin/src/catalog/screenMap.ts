@@ -99,14 +99,17 @@ export function 화면이름(화면글: string): string | null {
   return null;
 }
 
-/** 읽어 낸 케이스마다 가져온 화면 파일과 그 주소 · 이름을 잇는다. `file` 은 저장소 뿌리 기준(`tests/<폴더>/pages/<이름>.page.ts`)이다 */
-export async function 화면지도줄들(root: string, specs: CaseSpec[]): Promise<화면줄[]> {
+/**
+ * 읽어 낸 케이스마다 가져온 화면 파일과 그 주소 · 이름을 잇는다. `file` 은 저장소 뿌리 기준(`tests/<폴더>/pages/<이름>.page.ts`)이다 —
+ * 케이스 경로는 받아 온 저장소들의 뿌리(root) 기준이라 그 서비스 저장소 자리(`<소유자>/<이름>`)를 떼어 적는다(공통/6-인프라 「테스트 코드 저장소」)
+ */
+export async function 화면지도줄들(root: string, 자리: string, specs: CaseSpec[]): Promise<화면줄[]> {
   const 파일들 = new Map<string, Omit<화면줄, 'tcId' | 'file'>>();
   const 줄들: 화면줄[] = [];
   for (const spec of specs) {
-    const 자리 = posix.dirname(spec.filePath.split(sep).join('/'));
+    const 케이스폴더 = posix.dirname(spec.filePath.split(sep).join('/'));
     for (const 상대 of 가져온화면파일(await readFile(join(root, spec.filePath), 'utf8'))) {
-      const 경로 = posix.join(자리, 상대);
+      const 경로 = posix.join(케이스폴더, 상대);
       if (!파일들.has(경로)) {
         const 글 = await readFile(join(root, 경로), 'utf8');
         // 화면 조각은 여러 화면에 나오므로 주소가 없다 — 값을 적어 둬도 넣지 않는다 (공통/4-데이터모델 case_screen)
@@ -114,7 +117,7 @@ export async function 화면지도줄들(root: string, specs: CaseSpec[]): Promi
         const screenUrl = 화면 ? 화면주소(글) : null;
         파일들.set(경로, { screenUrl, name: 화면이름(글), openUrls: 화면 ? 여는주소들(글).filter((u) => u !== screenUrl) : [] });
       }
-      줄들.push({ tcId: spec.tcId, file: `tests/${경로}`, ...파일들.get(경로)! });
+      줄들.push({ tcId: spec.tcId, file: posix.relative(자리, 경로), ...파일들.get(경로)! });
     }
   }
   return 줄들;
@@ -134,10 +137,11 @@ export async function 화면지도채우기(
   serviceId: number,
   prefix: string,
   root: string,
+  자리: string,
   specs: CaseSpec[],
   전부읽음: boolean,
 ): Promise<number> {
-  const 줄들 = await 화면지도줄들(root, specs);
+  const 줄들 = await 화면지도줄들(root, 자리, specs);
 
   const client = await (await db()).connect();
   try {
