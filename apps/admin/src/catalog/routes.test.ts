@@ -15,6 +15,7 @@ describe.skipIf(연결 === undefined)('카탈로그 API', () => {
   let app: FastifyInstance;
   // DB 검사는 한 프로세스에서 차례로 돌아 이 값이 다음 파일로 샌다. 사본 폴더를 가리킨 채 두면 다음 파일이 tests 대신 사본을 훑는다
   const 원래뿌리 = process.env.PLATFORM_TESTS_DIR;
+  let 원래저장소: string | undefined;
 
   beforeAll(async () => {
     // 같은 워커에서 앞서 돈 테스트가 PLATFORM_TESTS_DIR 을 바꿔 두면 엉뚱한 폴더를 훑는다.
@@ -22,12 +23,14 @@ describe.skipIf(연결 === undefined)('카탈로그 API', () => {
     // DEMO-001~013 을 지워(2026-10-27 작성 요청 14683번) 이 검사가 메인에서 빨갰다
     process.env.PLATFORM_TESTS_DIR = resolve(import.meta.dirname, 'fixtures');
 
-    // 스캔은 서비스마다 자기 폴더만 훑는다 (SPEC §9.2). 데모 케이스를 훑으려면 그 서비스가 있어야 한다
+    // 스캔은 서비스마다 자기 저장소 자리의 폴더만 훑는다 (SPEC §9.2 · 공통/6-인프라 「테스트 코드 저장소」). 데모 케이스를 훑으려면 그 서비스가 있어야 한다.
+    // 사본은 자리 o/demo 아래 tests/demo 에 있다. 검사가 끝나면 원래 값으로 돌린다 — 같은 DB 의 DEMO 행은 Commander 자리를 본다
     const { pool } = await import('../db/index.js');
+    원래저장소 = (await pool.query<{ tests_repo: string }>(`SELECT tests_repo FROM service WHERE prefix = 'DEMO'`)).rows[0]?.tests_repo;
     await pool.query(
       `INSERT INTO service (prefix, name, color, tests_repo, tests_dir)
-            VALUES ('DEMO', '데모', '#888888', 'https://example.com/demo', 'demo')
-       ON CONFLICT (prefix) DO UPDATE SET is_active = true, tests_dir = 'demo'`,
+            VALUES ('DEMO', '데모', '#888888', 'https://github.com/o/demo', 'demo')
+       ON CONFLICT (prefix) DO UPDATE SET is_active = true, tests_dir = 'demo', tests_repo = 'https://github.com/o/demo'`,
     );
 
     app = Fastify();
@@ -45,6 +48,7 @@ describe.skipIf(연결 === undefined)('카탈로그 API', () => {
     else process.env.PLATFORM_TESTS_DIR = 원래뿌리;
     await app.close();
     const { pool } = await import('../db/index.js');
+    if (원래저장소 !== undefined) await pool.query(`UPDATE service SET tests_repo = $1 WHERE prefix = 'DEMO'`, [원래저장소]);
     await pool.end();
   });
 
@@ -54,7 +58,7 @@ describe.skipIf(연결 === undefined)('카탈로그 API', () => {
 
     const body = res.json();
     // 건수를 손으로 적으면 케이스를 더할 때마다 여기가 따라오지 못한다. 라우트가 훑는 그 폴더를 직접 센다
-    expect(body.added + body.updated).toBe((await caseFiles(join(testsRoot(), 'demo'))).length);
+    expect(body.added + body.updated).toBe((await caseFiles(join(testsRoot(), 'o', 'demo', 'tests', 'demo'))).length);
     expect(body.duplicates).toEqual([]);
     // 같은 DB를 다른 갈래 테스트도 쓴다. 그쪽이 남긴 서비스의 폴더 사정은 이 검사의 관심사가 아니다 —
     // 데모 스캔이 깨끗했는지만 본다
