@@ -46,8 +46,8 @@ export const 설정말: Record<string, string> = {
   '결제 페이지': 'Payments',
   '테스트 폴더': 'Tests folder',
   '테스트 저장소': 'Tests repository',
-  '작성 요청이 등록한 PR 이 이 저장소 것인지 확인하는 데 씁니다. 비워 두면 작성한 케이스를 반영할 수 없습니다':
-    'Used to check that the PR from an authoring request belongs to this repository. Leave it empty and the cases it wrote cannot be applied',
+  '테스트와 요구사항 표를 두는 GitHub 저장소입니다. AI 가 여기에 테스트 PR 을 등록하고 플랫폼이 1분마다 받아 옵니다. 비워 두면 작성한 케이스를 반영할 수 없습니다':
+    'The GitHub repository that holds the tests and requirement tables. AI opens test PRs here and the platform pulls it every minute. Leave it empty and authored cases cannot be applied',
   '플랫폼이 테스트 스크립트를 읽어 오는 폴더입니다': 'The folder the platform reads test scripts from',
   '탐색 제외 경로': 'Excluded paths',
   '한 줄에 하나씩 /로 시작하게 적습니다. 실제 화면과 대조해 테스트를 만들 때 이 경로와 하위 화면은 탐색하지 않습니다. 비워 두면 모든 화면을 탐색합니다':

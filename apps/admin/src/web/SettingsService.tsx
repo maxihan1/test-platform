@@ -158,7 +158,7 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
               onChange={(e) => setTestsRepo(e.target.value)}
               placeholder="https://github.com/..."
             />
-            <div className="hint">{t('작성 요청이 등록한 PR 이 이 저장소 것인지 확인하는 데 씁니다. 비워 두면 작성한 케이스를 반영할 수 없습니다')}</div>
+            <div className="hint">{t('테스트와 요구사항 표를 두는 GitHub 저장소입니다. AI 가 여기에 테스트 PR 을 등록하고 플랫폼이 1분마다 받아 옵니다. 비워 두면 작성한 케이스를 반영할 수 없습니다')}</div>
           </div>
         </div>
       </구획>
