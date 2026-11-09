@@ -77,6 +77,7 @@ describe.skipIf(연결 === undefined)('지도채우기', () => {
 
   beforeAll(async () => {
     폴더 = await mkdtemp(join(tmpdir(), 'xmp-'));
+    await mkdir(join(폴더, 'docs', 'cases'), { recursive: true });
     뿌리 = 폴더;
     const s = await q<{ id: string }>(
       `INSERT INTO service (prefix, name, color, tests_repo, tests_dir)
@@ -92,25 +93,25 @@ describe.skipIf(연결 === undefined)('지도채우기', () => {
   });
 
   it('스캔마다 그 서비스 몫을 지우고 표에서 다시 채운다 — 표에서 뺀 줄은 지도에서도 빠진다', async () => {
-    await writeFile(join(폴더, 'XMP.md'), 표(['| 1 | 정상 | XMP-REQ-001 · XMP-REQ-002 | XMP-FN-001 |']));
+    await writeFile(join(폴더, 'docs', 'cases', 'XMP.md'), 표(['| 1 | 정상 | XMP-REQ-001 · XMP-REQ-002 | XMP-FN-001 |']));
     expect(await 채우기()).toBe(2);
     expect(await 지도()).toEqual(['XMP-REQ-001 XMP-FN-001 정상', 'XMP-REQ-002 XMP-FN-001 정상']);
 
-    await writeFile(join(폴더, 'XMP.md'), 표(['| 1 | 예외 | XMP-REQ-002 | XMP-FN-003 |']));
+    await writeFile(join(폴더, 'docs', 'cases', 'XMP.md'), 표(['| 1 | 예외 | XMP-REQ-002 | XMP-FN-003 |']));
     await 채우기();
     expect(await 지도()).toEqual(['XMP-REQ-002 XMP-FN-003 예외']);
   });
 
   it('표 파일이 없으면 지도를 비운다', async () => {
-    await writeFile(join(폴더, 'XMP.md'), 표(['| 1 | 정상 | XMP-REQ-001 | XMP-FN-001 |']));
+    await writeFile(join(폴더, 'docs', 'cases', 'XMP.md'), 표(['| 1 | 정상 | XMP-REQ-001 | XMP-FN-001 |']));
     await 채우기();
-    await rm(join(폴더, 'XMP.md'));
+    await rm(join(폴더, 'docs', 'cases', 'XMP.md'));
     expect(await 채우기()).toBe(0);
     expect(await 지도()).toEqual([]);
   });
 
-  it('표 뿌리 폴더가 통째로 없으면 마운트가 틀린 것이라 던지고 옛 지도를 그대로 둔다', async () => {
-    await writeFile(join(폴더, 'XMP.md'), 표(['| 1 | 정상 | XMP-REQ-001 | XMP-FN-001 |']));
+  it('저장소 자리가 통째로 없으면 받아 오기가 빠진 것이라 던지고 옛 지도를 그대로 둔다', async () => {
+    await writeFile(join(폴더, 'docs', 'cases', 'XMP.md'), 표(['| 1 | 정상 | XMP-REQ-001 | XMP-FN-001 |']));
     await 채우기();
     뿌리 = join(폴더, '없는-폴더');
     try {
@@ -121,12 +122,26 @@ describe.skipIf(연결 === undefined)('지도채우기', () => {
     expect(await 지도()).toEqual(['XMP-REQ-001 XMP-FN-001 정상']);
   });
 
-  it('표를 읽다 깨지면 던지고 옛 지도를 그대로 둔다', async () => {
-    await writeFile(join(폴더, 'XMP.md'), 표(['| 1 | 정상 | XMP-REQ-001 | XMP-FN-001 |']));
+  it('저장소 자리는 있는데 docs/cases 가 없으면 아직 표를 안 둔 저장소라 지도를 비운다', async () => {
+    await writeFile(join(폴더, 'docs', 'cases', 'XMP.md'), 표(['| 1 | 정상 | XMP-REQ-001 | XMP-FN-001 |']));
     await 채우기();
-    await rm(join(폴더, 'XMP.md'));
+    const 표없는자리 = await mkdtemp(join(tmpdir(), 'xmp-빈-'));
+    뿌리 = 표없는자리;
+    try {
+      expect(await 채우기()).toBe(0);
+    } finally {
+      뿌리 = 폴더;
+      await rm(표없는자리, { recursive: true, force: true });
+    }
+    expect(await 지도()).toEqual([]);
+  });
+
+  it('표를 읽다 깨지면 던지고 옛 지도를 그대로 둔다', async () => {
+    await writeFile(join(폴더, 'docs', 'cases', 'XMP.md'), 표(['| 1 | 정상 | XMP-REQ-001 | XMP-FN-001 |']));
+    await 채우기();
+    await rm(join(폴더, 'docs', 'cases', 'XMP.md'));
     // 파일 자리에 폴더가 있으면 읽기가 EISDIR 로 깨진다 — 없는 것과 다르다
-    await mkdir(join(폴더, 'XMP.md'));
+    await mkdir(join(폴더, 'docs', 'cases', 'XMP.md'));
     await expect(채우기()).rejects.toThrow();
     expect(await 지도()).toEqual(['XMP-REQ-001 XMP-FN-001 정상']);
   });

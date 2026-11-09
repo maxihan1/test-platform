@@ -97,7 +97,7 @@ export async function runScan(log: 스캔로그, 고르기?: (s: ServiceRow) => 
       // 지도 ① 은 케이스 파일이 아니라 요구사항 표에서 온다 — 케이스 폴더가 깨지거나 번호가 겹쳐도 따로 갱신한다.
       // 표를 못 읽으면 옛 지도를 남기고 문제로만 알린다 (카탈로그 §3.1 「지도」)
       try {
-        await 지도채우기(service.id, service.prefix, join(root, 자리, 'docs', 'cases'));
+        await 지도채우기(service.id, service.prefix, join(root, 자리));
       } catch (err) {
         결과.problems.push(
           `${service.prefix} 서비스의 요구사항 표로 지도를 채우지 못했다: ${err instanceof Error ? err.message : String(err)}`,
