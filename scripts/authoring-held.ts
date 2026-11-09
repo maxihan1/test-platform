@@ -7,6 +7,7 @@ import { 자식거두기 } from './authoring-child.js';
 import type { 사본, 계정 } from './authoring-copy.js';
 import { type 보고손, 친다 } from './authoring-io.js';
 import { 변환환경 } from './authoring-reverse.js';
+import { 저장소뿌리경로 } from './authoring-repo.js';
 
 export interface 보류칸 {
   side: 'params' | 'expected';
@@ -58,7 +59,7 @@ export function 보류목록(명세들: unknown[]): 보류[] {
       tcId: s.tcId,
       // 서버가 300자 넘는 이름을 거절한다 — 이름 하나로 끝내기 전체가 400 이 되지 않게 자른다
       ...(typeof s.name === 'string' ? { name: s.name.slice(0, 300) } : {}),
-      file: `tests/${s.filePath}`,
+      file: 저장소뿌리경로(s.filePath),
       // 머리가 틀린 것은 K13 이 잡는다. 여기서는 사람이 값을 넣는 쪽으로 둔다
       kind: s.held.startsWith('판정 불가') ? 'UNDECIDABLE' : 'ON_HOLD',
       reason: s.held,

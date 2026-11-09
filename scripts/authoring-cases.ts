@@ -14,6 +14,7 @@ import {
 } from '../apps/admin/src/authoring/cases.js';
 import type { 보고손 } from './authoring-io.js';
 import { 글자자르기 } from './authoring-usage.js';
+import { 저장소뿌리경로 } from './authoring-repo.js';
 
 type 바뀜 = Map<string, 'NEW' | 'CHANGED'>;
 
@@ -61,7 +62,7 @@ export function 케이스목록만들기(명세들: unknown[], 재료: 케이스
   const 본것 = new Set<string>();
   for (const s of 명세들) {
     if (!물건인가(s) || typeof s.tcId !== 'string' || typeof s.filePath !== 'string') continue;
-    const file = `tests/${s.filePath}`;
+    const file = 저장소뿌리경로(s.filePath);
     const change = 재료.바뀜.get(file);
     if (change === undefined || 본것.has(s.tcId)) continue;
     const name = typeof s.name === 'string' ? 글자자르기(s.name, 케이스글상한) : '';

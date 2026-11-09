@@ -44,6 +44,10 @@ const 정식케이스 = {
 };
 
 describe('보류목록', () => {
+  it('서버 스캔 꼴(받아 온 자리 기준) filePath 도 저장소 뿌리 기준 file 로 맞춘다', () => {
+    expect(보류목록([{ ...보류케이스, filePath: 'maxihan1/demo-market/tests/market/coupon.spec.ts' }])[0]?.file).toBe('tests/market/coupon.spec.ts');
+  });
+
   it('held 케이스만 골라 칸을 계산한다 — 기본값·비밀값·네 타입 밖 칸은 뺀다', () => {
     expect(보류목록([보류케이스, 정식케이스])).toEqual([
       {

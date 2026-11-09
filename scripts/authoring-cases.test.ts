@@ -63,6 +63,11 @@ describe('케이스목록만들기', () => {
     expect(케이스모양검사(목록)).not.toBeNull();
   });
 
+  it('서버 스캔 꼴(받아 온 자리 기준) filePath 도 저장소 뿌리 기준 file 로 맞춘다', () => {
+    const 목록 = 케이스목록만들기([명세('DEMO-FN-009', 'maxihan1/demo-market/tests/demo/a.spec.ts')], 재료([['tests/demo/a.spec.ts', 'NEW']]));
+    expect(목록[0]?.file).toBe('tests/demo/a.spec.ts');
+  });
+
   it('표에 없는 케이스는 reqs 가 빈 목록이다', () => {
     const 목록 = 케이스목록만들기([명세('DEMO-FN-009', 'demo/a.spec.ts')], 재료([['tests/demo/a.spec.ts', 'NEW']]));
     expect(목록[0]?.reqs).toEqual([]);
