@@ -7,9 +7,9 @@
     "strict": true,
     "skipLibCheck": true,
     "declaration": true,
-    "rootDir": "src",
+    "sourceMap": true,
+    "rootDir": "../../build/kit/src",
     "outDir": "../../build/kit/dist"
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.test.ts"]
+  "include": ["../../build/kit/src/**/*.ts"]
 }

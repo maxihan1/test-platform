@@ -30,7 +30,7 @@ export function 배포용패키지(kit: 패키지, 루트: 패키지, 버전: st
     exports: Object.fromEntries(
       Object.entries(kit.exports).map(([길, src]) => [길, { types: dist(src, '.d.ts'), default: dist(src, '.js') }]),
     ),
-    files: ['dist'],
+    files: ['dist', 'src'],
     dependencies: { zod: 판('zod') },
     // highlight 가 playwright-core 안쪽을 직접 읽어서 판을 Commander 와 똑같이 묶고, 끌어올려 깔지 않는 설치(pnpm)에서도 찾게 따로 적는다
     peerDependencies: {
@@ -46,7 +46,7 @@ export function 배포용패키지(kit: 패키지, 루트: 패키지, 버전: st
 
 const 설명서 = (버전: string) => `# @platform/kit
 
-Test Commander 의 테스트 킷(\`defineCase\` · \`test\` · \`verify\`)을 빌드한 JS 와 타입이에요.
+Test Commander 의 테스트 킷(\`defineCase\` · \`test\` · \`verify\`)을 빌드한 JS 와 타입이에요. 원본 TS(\`src\`)와 소스맵도 같이 담아요.
 테스트 저장소가 Commander 없이 혼자 돌 때 받아요.
 
 \`\`\`json
@@ -58,6 +58,19 @@ Test Commander 의 테스트 킷(\`defineCase\` · \`test\` · \`verify\`)을 �
 
 function 돌린다(명령: string, 인자: string[], cwd?: string): string {
   return execFileSync(명령, 인자, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] }).trim();
+}
+
+/**
+ * 원본 TS 를 패키지 안 src 에 옮겨 두고 소스맵과 같이 빌드한다. Playwright 는 한 파일의 케이스가 모두 확장자가 다른 한 파일을
+ * 가리키면 그 파일을 케이스 파일로 바꿔 적는다 — 등록 줄이 kit 의 .js 면 파일 하나만 골라 돌릴 때 「No tests found」가 난다.
+ * 소스맵이 등록 줄을 패키지 안 src/runtime/test.ts 로 돌려 확장자가 같아진다
+ */
+export function 빌드한다(뿌리: string): string {
+  const 빌드 = join(뿌리, 'build/kit');
+  rmSync(빌드, { recursive: true, force: true });
+  cpSync(join(뿌리, 'packages/kit/src'), join(빌드, 'src'), { recursive: true, filter: (p) => !p.endsWith('.test.ts') });
+  돌린다('npx', ['tsc', '-p', 'packages/kit/tsconfig.build.json'], 뿌리);
+  return 빌드;
 }
 
 function 낸다(버전: string): void {
@@ -76,9 +89,7 @@ function 낸다(버전: string): void {
   const 읽기 = (p: string) => JSON.parse(readFileSync(join(뿌리, p), 'utf8')) as 패키지;
   const 판 = 배포용패키지(읽기('packages/kit/package.json'), 읽기('package.json'), 버전);
 
-  const 빌드 = join(뿌리, 'build/kit');
-  rmSync(빌드, { recursive: true, force: true });
-  돌린다('npx', ['tsc', '-p', 'packages/kit/tsconfig.build.json'], 뿌리);
+  const 빌드 = 빌드한다(뿌리);
   writeFileSync(join(빌드, 'package.json'), `${JSON.stringify(판, null, 2)}\n`);
   writeFileSync(join(빌드, 'README.md'), 설명서(버전));
 
