@@ -17,6 +17,8 @@ export interface CaseSteps {
   r16: boolean;
   /** 도는 차례대로의 단계 제목 — 다 셀 수 없으면 null */
   stepTitles: string[] | null;
+  /** 케이스 몸통이 받는 이름(`page` · `game` · `driver` · `request` …) — E2E AI 흐름 후보가 게임 화면을 여는 케이스를 가린다 (도메인/시나리오 §3.7 결정 15) */
+  fixtures: string[];
 }
 
 interface Found {
@@ -224,6 +226,8 @@ export function caseSteps(text: string): CaseSteps {
   const found: Found[] = [];
   const stack: Found[] = [];
   const fixtures = new Set<string>();
+  // 이름을 바꿔 받아도(`{ game: g }`) 밖에 알리는 것은 fixture 이름이다. 위 fixtures 는 몸통 안의 변수 이름이다
+  const fixtureNames = new Set<string>();
   const { trusted, functions } = pageObjects(sf);
 
   const walk = (node: ts.Node): void => {
@@ -234,6 +238,8 @@ export function caseSteps(text: string): CaseSteps {
       else if (param !== undefined && ts.isObjectBindingPattern(param.name)) {
         for (const e of param.name.elements) {
           if (ts.isIdentifier(e.name)) fixtures.add(e.name.text);
+          const 이름 = e.propertyName ?? e.name;
+          if (ts.isIdentifier(이름)) fixtureNames.add(이름.text);
         }
       }
     }
@@ -307,5 +313,5 @@ export function caseSteps(text: string): CaseSteps {
 
   // 하나라도 셀 수 없으면 통째로 NULL — 일부만 아는 목록은 남은 단계 수를 틀리게 보인다 (카탈로그 §3.1 「단계 제목」)
   const stepTitles = found.every((s) => s.counted) ? found.map((s) => s.title!) : null;
-  return { steps, r16: steps.some((s) => s.skippable), stepTitles };
+  return { steps, r16: steps.some((s) => s.skippable), stepTitles, fixtures: [...fixtureNames] };
 }

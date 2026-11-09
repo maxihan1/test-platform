@@ -17,8 +17,11 @@ export const 요구상한 = 1000;
 export interface 흐름재료 {
   platform: Platform;
   wish: string | null;
+  /** 게임 애플리케이션이다 — 게임 화면 단계가 없는 후보를 버린다. 이 칸이 생기기 전 일은 없다 */
+  game?: boolean;
   reqs: { reqId: string; feature: string; kinds: string[]; text: string }[];
-  cases: { tcId: string; name: string; reqIds: string[]; screens: string[]; normal: boolean; first: string | null }[];
+  /** params 는 입력값 칸 이름 · gameScreen 은 게임 애플리케이션에만 단다 */
+  cases: { tcId: string; name: string; reqIds: string[]; screens: string[]; normal: boolean; first: string | null; params: string[]; gameScreen?: boolean }[];
   links: { from: string; to: string; via: string }[];
   truncated: boolean;
 }
@@ -26,9 +29,19 @@ export interface 흐름재료 {
 export interface 재료원천 {
   platform: Platform;
   wish: string | null;
+  game: boolean;
   prd: { reqId: string; feature: string; text: string }[];
   /** 그 애플리케이션의 활성 기능 테스트 — 디바이스는 여기서 거른다 */
-  케이스들: { tcId: string; name: string; platforms: string[]; techniques: string[]; stepTitles: string[] | null }[];
+  케이스들: {
+    tcId: string;
+    name: string;
+    platforms: string[];
+    techniques: string[];
+    stepTitles: string[] | null;
+    params: string[];
+    /** 케이스 몸통이 받는 이름(catalog/steps.ts) — 게임 애플리케이션만 읽는다. 못 읽었으면 없다 */
+    fixtures?: string[] | undefined;
+  }[];
   /** 케이스마다 지도 ① 요구(종류 포함)와 지도 ② 화면 주소 */
   맥락: ReadonlyMap<string, { reqs: { reqId: string; axis: string }[]; screens: { url: string | null }[] }>;
   /** 케이스 목록의 hasFeatures — 정상 쪽 판정이 팔레트와 같은 기준을 쓴다 */
@@ -54,6 +67,10 @@ export function 재료짓기(원천: 재료원천): 흐름재료 {
       normal: 흐름인가({ reqs: 요구, techniques: c.techniques }, 원천.PRD씀),
       // 첫 절차 제목이 같은 케이스끼리 이으면 뒤 단계가 그 절차(로그인 등)를 건너뛴다 (§3.7 결정 4 「첫 절차 이어받기」)
       first: c.stepTitles?.[0] ?? null,
+      // 입력값을 받는 케이스는 앞 단계가 만든 값을 값 연결로 받아야 이어진다 — AI 가 칸 이름을 짐작하지 않고 고르게 한다
+      params: c.params,
+      // 몸통이 game · driver 를 받아야 게임 화면을 연다. 나머지는 API 만 부른다 (2026-11-09 E2E-F4-03 — ASH 267개 중 218개)
+      ...(원천.game ? { gameScreen: (c.fixtures ?? []).some((f) => f === 'game' || f === 'driver') } : {}),
     };
   });
 
@@ -69,6 +86,7 @@ export function 재료짓기(원천: 재료원천): 흐름재료 {
   return {
     platform: 원천.platform,
     wish: 원천.wish,
+    game: 원천.game,
     reqs: reqs.slice(0, 요구상한),
     cases: cases.slice(0, 케이스상한),
     links: links.slice(0, 연결상한),
@@ -104,15 +122,18 @@ function 빈칸(l: ScenarioLink): ('jsonPath' | 'param')[] {
 
 /**
  * AI 후보를 다듬는다. 재료에 없는 번호 · 한 후보 안에서 겹친 번호를 빼고, 남은 단계가 둘보다 적으면 버린다.
+ * 게임 애플리케이션인데 게임 화면 단계가 하나도 없는 후보도 버린다. 버린 까닭은 `버린까닭` 에 모은다 — 다 버려지면 사유로 띄운다.
  * 값 연결은 지도 제안이 같은 두 단계에 낸 것이 있을 때만 그 JSON 경로(값 주입은 비어 있는 입력값 칸까지)를 채운다. 맞는 제안이 없는 짐작은 버린다
  */
 export function 흐름다듬기(
-  재료: Pick<흐름재료, 'cases' | 'reqs'>,
+  재료: Pick<흐름재료, 'cases' | 'reqs' | 'game'>,
   후보들: readonly AI후보[],
   지도: ReadonlyMap<string, readonly 지도요청[]>,
   입력칸: ReadonlyMap<string, readonly string[]>,
+  버린까닭: Set<string> = new Set(),
 ): 흐름후보[] {
   const 이름 = new Map(재료.cases.map((c) => [c.tcId, c.name]));
+  const 게임화면 = new Set(재료.cases.filter((c) => c.gameScreen === true).map((c) => c.tcId));
   const 요구 = new Set(재료.reqs.map((r) => r.reqId));
   return 후보들.flatMap((후보) => {
     // AI 의 번호(1부터) → 남은 차례(1부터)
@@ -123,11 +144,22 @@ export function 흐름다듬기(
       남은.push(tcId);
       새번호.set(i + 1, 남은.length);
     });
-    if (남은.length < 2) return [];
+    if (남은.length < 2) {
+      버린까닭.add('재료에 있는 케이스가 둘보다 적다');
+      return [];
+    }
+    // API 만 이어 붙인 게임 후보는 E2E 가 아니라 묶음 실행이다 (2026-11-09 E2E-F4-03)
+    if (재료.game === true && !남은.some((tcId) => 게임화면.has(tcId))) {
+      버린까닭.add('게임 화면을 여는 단계가 없다');
+      return [];
+    }
 
     const parts: ScenarioPart[] = 남은.map((tcId) => ({ kind: 'case', tcId, params: {}, expected: {}, skipSteps: [] }));
     // 실행 한도(60분 · 크기)를 넘는 후보는 시험 실행 · 저장이 어차피 거절한다 — 고른 뒤에 막히지 않게 여기서 버린다 (2026-11-08 E2E-F3-05 시험)
-    if (제한시간크기사유(parts).length > 0) return [];
+    if (제한시간크기사유(parts).length > 0) {
+      버린까닭.add('실행 한도(60분 · 크기)를 넘는다');
+      return [];
+    }
     const 제안들 = 값연결제안들(parts, 지도, 입력칸);
     const 쓴 = new Set<값연결제안>();
     const links: 값연결제안[] = [];
