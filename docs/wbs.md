@@ -229,8 +229,7 @@
 **무엇** 결정 넷을 명세에 적고 바뀌는 약속(compose 마운트 · 테스트 폴더 경로 · `/auth/me` testsRepo)을 대기 블록으로 둔다. kit 을 다른 저장소가 받을 수 있게 묶는다.
 - [x] `REPO-F1-01` 명세 + 진행판 줄 — 6-인프라 「테스트 코드 저장소」(받아 오기 · 혼자서도 돎 · 뒤집은 결정) · 작성.md 「케이스를 쓰고 PR 을 올리는 곳」 · 계약 블록 둘(대기)
   - 근거 PR #687 · 2026-11-09 — 끝 검사에서 정한 것: 지금 · 바뀔 모습을 나눠 적음 · 받아 둔 자리 `<소유자>/<이름>` · 주소 꼴 `https://github.com/<소유자>/<이름>`(아니면 작성을 집지 않음) · 바탕 파일은 `tests/` 안 셋 · 검사 CI 는 안 넣고 에이전트가 병합 전에 `--no-held` · 비밀값 이름 검사 · Commander 자리는 받지 않음 · 병합 뒤 훑기는 받은 뒤 · 자리가 없으면 케이스를 내리지 않음 · 비공개 저장소는 서버 `.env` 읽기 열쇠 `TESTS_GITHUB_TOKEN`(사용자 A — 맥이 받아 보내기는 안 고름)
-- [x] `REPO-F1-02` kit 패키지 — `@platform/kit` 을 빌드한 JS · 타입으로 공개 저장소 태그에 낸다(`appium-cli` 와 같은 길 · 새 공개 저장소는 시작 질문) · Commander 는 지금처럼 워크스페이스 kit 을 쓴다 · 태그를 내는 절차
-  - 근거 PR #688 · 2026-11-09 — 새 공개 저장소 `maxihan1/platform-kit` · 받는 줄 `"@platform/kit": "github:maxihan1/platform-kit#v0.1.1"` · 내는 명령 `npx tsx scripts/kit-release.ts <버전>`(main 에 있는 커밋만) · Playwright · playwright-core 는 같은 판으로 묶고 webdriverio · control-cli 는 앱 · 게임 케이스가 있을 때만 받는다 · 바탕 `tsconfig.json` 에 `skipLibCheck` · project 이름 `desktop` · `mobile` · `android`(SETUP §21 — F1-03 바탕 파일이 따른다)
+- [ ] `REPO-F1-02` kit 패키지 — `@platform/kit` 을 빌드한 JS · 타입으로 공개 저장소 태그에 낸다(`appium-cli` 와 같은 길 · 새 공개 저장소는 시작 질문) · Commander 는 지금처럼 워크스페이스 kit 을 쓴다 · 태그를 내는 절차
 
 ### ② 작성 · 받아 오기
 **무엇** 설정 칸의 저장소에 AI 가 쓰고 PR 을 올리고, 서버 · 내 컴퓨터 러너가 그 저장소를 받아 와 스캔 · 실행한다.
