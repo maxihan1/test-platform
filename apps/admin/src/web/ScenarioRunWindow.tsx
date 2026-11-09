@@ -188,9 +188,18 @@ function 장면없음({ data, 머리끝 }: { data: ScenarioRunResult; 머리끝:
         )}
         {머리끝}
       </div>
-      <p className="live-wait">{t('지금은 보여 줄 화면이 없습니다')}</p>
+      <p className="live-wait">{빈칸글(data, t)}</p>
     </section>
   );
+}
+
+// 「보여 줄 화면이 없다」만 쓰면 고장으로 읽힌다 — 왜 비었는지와 어디서 보는지를 적는다.
+// 정식 실행은 디바이스 화면을 안 찍는다: 찍는 동안 단계 명령이 1~1.5초씩 선다 (도메인/실행 §3.2 「정식 실행 화면」)
+function 빈칸글(data: ScenarioRunResult, t: 말): string {
+  if (data.platform === 'desktop') return t('API 만 호출하는 실행이라 보여 줄 화면이 없습니다');
+  return data.vision === undefined
+    ? t('정식 실행이 느려지지 않도록 디바이스 화면은 찍지 않습니다. 디바이스가 할당되면 Device VISION 에서 볼 수 있습니다')
+    : t('정식 실행이 느려지지 않도록 디바이스 화면은 찍지 않습니다. 지금 화면은 Device VISION 에서 볼 수 있습니다');
 }
 
 /** 안 돈 이유 — 안 돈 단계(NOT_RUN — 앞 단계 실패 · 사람이 멈춰 시작도 못 함)는 판정 자리에 `실행 안 함` 이고, 사람이 멈춘 것 · 시간 초과 같은 NA 는 사유를 적는다 */
