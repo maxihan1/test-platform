@@ -27,6 +27,19 @@ function 케이스번호들(parts: ScenarioPart[]): string[] {
   return [...new Set(parts.flatMap((p) => (p.kind === 'case' ? [p.tcId] : [])))];
 }
 
+/**
+ * 저장본을 열 때 지금 건너뛸 수 없는 제목을 뺀다 — 저장 · 시험 실행이 400 으로 거절해 앱 · 게임 단계는 고칠 길이 없었다(결정 8 둘째 줄).
+ * 실행은 이미 그 절차를 돌아 빼도 결과가 같다. 케이스에서 사라진 제목은 저장도 받아 그대로 둔다
+ */
+export function 못건너뛸제목빼기(parts: ScenarioPart[], 재료: 재료들): ScenarioPart[] {
+  return parts.map((p) => {
+    const 케이스 = p.kind === 'case' ? 재료.get(p.tcId) : null;
+    if (p.kind !== 'case' || 케이스 === null || 케이스 === undefined) return p;
+    const 못 = new Set(케이스.steps.filter((s) => !s.skippable).map((s) => s.title));
+    return p.skipSteps.some((t) => 못.has(t)) ? { ...p, skipSteps: p.skipSteps.filter((t) => !못.has(t)) } : p;
+  });
+}
+
 /** 마법사 「조립 화면으로」가 들고 오는 초안 (도메인/시나리오 §8.11 「마법사」) */
 export interface 넘길초안 {
   서비스: string;
@@ -96,7 +109,8 @@ export function useScenarioDraft(id: number | null, 새서비스: string | null,
     set서비스(상세.service);
     set이름(상세.name);
     set디바이스(상세.platform);
-    set단계들(상세.parts);
+    // 저장본은 그대로 찍어 둔다 — 뺀 것이 저장 안 한 변경으로 보여 저장 한 번이면 「확인 필요」가 풀린다
+    set단계들(못건너뛸제목빼기(상세.parts, new Map(읽음)));
     set점검(상세.checks);
     set버전(상세.version);
     set버전들(상세.versions);
