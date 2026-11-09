@@ -2,7 +2,7 @@
 
 import type { Pool, PoolClient } from 'pg';
 
-import { 로그인화면 } from '../perf/pages.js';
+import { 로그인화면 } from '../perf/loginScreen.js';
 import { 상한 } from '../prd/rules.js';
 
 async function db(): Promise<Pool> {

@@ -143,7 +143,7 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
         const edits = 고치기 ? 행의고칠것(집은것.params) : null;
         const 겹침칸 = await 집기겹침칸(집은것);
         // PRD 초안은 자식이 MCP 로 노트 · 이슈를 찾을 프로젝트 번호와 맡은 이슈를 싣는다 (도메인/BTS §7 집기)
-        const 초안칸 = 집은것.kind === 'PRD_DRAFT' ? { draft: await 초안집기칸(서비스, 집은것.env, 집은것.params) } : {};
+        const 초안칸 = 집은것.kind === 'PRD_DRAFT' ? { draft: await 초안집기칸(서비스, 대상칸.target?.env ?? null, 집은것.params) } : {};
         // 수정 AI 는 맡을 때 서버가 읽어 둔 이슈 글과 대상 저장소를 싣는다 — 자식은 BTS 열쇠를 안 갖는다 (도메인/BTS 「수정 AI」).
         // 프로젝트 번호는 자식이 MCP bts_search · note_read 에 넣는다 (2026-11-02 사용자)
         const 수정칸 = 집은것.kind === 'BUGFIX' ? { bugfix: await 수정집기칸읽기(서비스, 집은것.params) } : {};

@@ -67,9 +67,9 @@ describe('초안지시문', () => {
 
   it('에이전트가 미리 로그인했으면 브라우저를 연 뒤 상태 파일을 불러 로그인 뒤 화면도 열게 하고, 직접 로그인 · 쿠키 옮겨 적기는 막는다', () => {
     const 글 = 초안지시문({ 자료, 서비스: 'MKW', 폴더: '/w/data', 화면: true, 로그인상태: '/w/tmp/login-state.json' });
-    expect(글).toContain(`\`${탐침명령} open <TARGET_BASE_URL 값>\``);
+    expect(글).toContain(`\`${탐침명령} open "$TARGET_BASE_URL"\``);
     expect(글).toContain(`\`${탐침명령} state-load /w/tmp/login-state.json\``);
-    expect(글.indexOf('open <TARGET_BASE_URL')).toBeLessThan(글.indexOf('state-load'));
+    expect(글.indexOf('open "$TARGET_BASE_URL"')).toBeLessThan(글.indexOf('state-load'));
     expect(글).toContain('로그인 화면에서 직접 로그인하지 않는다');
     expect(글).toContain('쿠키 값은 어디에도 옮겨 적지 않는다');
     expect(글).not.toContain('로그인이 필요한 화면은 열지 않고 이슈 글로만 쓴다');

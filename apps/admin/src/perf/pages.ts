@@ -3,12 +3,15 @@
 import { z } from 'zod';
 
 import { 대상줄읽기 } from '../authoring/reverse.js';
+import { 로그인화면 } from './loginScreen.js';
 import { 단독시간 } from './pageScript.js';
 import { 페이지판정, type 페이지표본 } from './pageStats.js';
 import { 실행번호글 } from './pdf.js';
 import { 호스트 } from './scenarios.js';
 import * as 표 from './store.js';
 import type { Page, PageRunConfig, PageSetup } from './types.js';
+
+export { 로그인화면 };
 
 // 경로는 대상 서버 주소 뒤에 붙는다 — '/' 로 시작해야 다른 호스트로 새지 않는다
 export const 페이지 = z.object({
@@ -31,22 +34,6 @@ export const 메인: Page = { url: '/', name: '메인', login: false };
 export async function 웹인가(serviceId: number): Promise<boolean> {
   const r = await (await 표.풀()).query<{ kind: string }>('SELECT kind FROM service WHERE id = $1', [serviceId]);
   return r.rows[0]?.kind === 'SCREEN';
-}
-
-/**
- * 화면 기록 · 찾은 화면에서 로그인 화면 경로 하나 — 로그아웃 상태에서 주소나 이름이 로그인인 것.
- * 주소가 로그인 꼴인 줄이 먼저다 — 로그아웃 상태의 /cart 처럼 로그인 창으로 넘겨진 화면도 이름이 「로그인」이라 길이 차례만 보면 그쪽이 뽑힌다
- */
-export async function 로그인화면(serviceId: number, env: string): Promise<string | null> {
-  const r = await (await 표.풀()).query<{ url: string }>(
-    `SELECT url FROM (
-       SELECT url, name FROM screen_record WHERE service_id = $1 AND env = $2 AND state = '로그아웃'
-       UNION SELECT url, name FROM screen_found WHERE service_id = $1 AND env = $2 AND state = '로그아웃'
-     ) t WHERE url LIKE '/%' AND url NOT LIKE '%:n%' AND (url ~* '(log-?in|sign-?in)' OR name LIKE '%로그인%')
-     ORDER BY url !~* '(^|/)(log-?in|sign-?in)($|[/?#.])', length(url), url LIMIT 1`,
-    [serviceId, env],
-  );
-  return r.rows[0]?.url.replace(/ \(구조 다름\)$/, '') ?? null;
 }
 
 /**

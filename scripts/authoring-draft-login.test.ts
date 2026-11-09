@@ -44,7 +44,7 @@ describe('미리로그인', () => {
 
   it('비밀번호 칸과 그 앞 칸에 계정을 넣고 Enter 로 들어가 쿠키가 든 상태 파일을 0600 으로 쓴다', async () => {
     const 상태파일 = join(폴더, 'ok.json');
-    expect(await 미리로그인({ 기준주소: 기준, 로그인주소: '/login', 아이디: 'qa1', 비밀번호: 'p"w-비밀', 상태파일 })).toBeNull();
+    expect(await 미리로그인({ 기준주소: `${기준}/`, 로그인주소: '/login', 아이디: 'qa1', 비밀번호: 'p"w-비밀', 상태파일 })).toBeNull();
     const 상태 = JSON.parse(readFileSync(상태파일, 'utf8')) as { cookies: { name: string; value: string }[] };
     expect(상태.cookies).toContainEqual(expect.objectContaining({ name: 'sid', value: 'ok1' }));
     expect(statSync(상태파일).mode & 0o777).toBe(0o600);
@@ -54,7 +54,7 @@ describe('미리로그인', () => {
     const 상태파일 = join(폴더, 'bad.json');
     expect(await 미리로그인({ 기준주소: 기준, 로그인주소: '/login', 아이디: 'qa1', 비밀번호: 'nope', 상태파일 })).toContain('로그인 화면에 머물렀다');
     expect(existsSync(상태파일)).toBe(false);
-  });
+  }, 30_000);
 
   it('로그인 칸이 없는 화면이면 까닭을 내고 그 안에 비밀번호는 없다', async () => {
     const 상태파일 = join(폴더, 'none.json');

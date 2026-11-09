@@ -40,7 +40,7 @@ export function 탐침PATH(부모: string | undefined): string {
 
 /**
  * 화면을 여는 자식의 대상 서버 칸 — 주소와 탐침 PATH 만. **계정은 넘기지 않는다** — `playwright cli` 로 로그인하면
- * 비밀번호가 명령 인자와 대화에 펼쳐진다. 로그인이 필요한 화면은 이슈 글로만 쓴다 (도메인/BTS 「자식」 · 2026-11-08 사용자)
+ * 비밀번호가 명령 인자와 대화에 펼쳐진다. 로그인 뒤 화면은 에이전트가 미리 로그인해 둔 상태 파일로만 연다 (도메인/BTS 「자식」 · BTS-F5-05)
  */
 export function 초안대상환경(t: 대상, 부모PATH: string | undefined): Record<string, string> {
   const { TARGET_LOGIN_ID: _아이디, TARGET_LOGIN_PASSWORD: _비밀번호, ...주소 } = 대상환경(t);
@@ -124,7 +124,8 @@ async function 초안건(
     // 로그인 뒤 화면도 보게 에이전트가 먼저 로그인해 둔다 — 자식에게는 계정 대신 상태 파일만 간다. 못 하면 로그인 없는 화면만 (BTS-F5-05)
     const 로그인재료 = 화면 ? 미리로그인재료(것.target, 것.draft.loginUrl, 자리.임시) : null;
     let 로그인상태: string | null = null;
-    if (로그인재료 !== null) {
+    // 멈추라 했으면 로그인(길면 1분)을 건너뛴다 — 아래 멈춤 확인이 바로 STOPPED 로 닫는다
+    if (로그인재료 !== null && !박동.멈추라했다()) {
       await 손.단계('PRD 초안 쓰는 중 — 대상 서버에 로그인하는 중');
       const 까닭 = await 미리로그인(로그인재료);
       if (까닭 === null) 로그인상태 = 로그인재료.상태파일;
