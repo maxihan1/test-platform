@@ -19,7 +19,8 @@ describe('배포용패키지 — 테스트 저장소가 받는 package.json', ()
 
   it('Playwright 는 Commander 와 같은 판으로 묶고 앱 · 게임 부품은 고를 수 있게 둔다', () => {
     const 판 = 배포용패키지(kit, 루트, '0.1.0');
-    expect(판.peerDependencies).toMatchObject({ '@playwright/test': 루트.devDependencies['@playwright/test'] });
+    const pw = 루트.devDependencies['@playwright/test'];
+    expect(판.peerDependencies).toMatchObject({ '@playwright/test': pw, 'playwright-core': pw });
     expect(판.peerDependenciesMeta).toEqual({ webdriverio: { optional: true }, 'control-cli': { optional: true } });
     expect(판.dependencies).toEqual({ zod: 루트.dependencies.zod });
   });

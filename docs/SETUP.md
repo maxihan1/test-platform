@@ -1106,21 +1106,21 @@ Commander 자신은 지금처럼 워크스페이스의 `packages/kit` 을 그대
 
 **테스트 저장소에서 받기** — `tests/package.json` 에 한 줄
 ```json
-"@platform/kit": "github:maxihan1/platform-kit#v0.1.0",
+"@platform/kit": "github:maxihan1/platform-kit#v0.1.1",
 "@playwright/test": "1.63.0"
 ```
 - Playwright 는 Commander 와 같은 판으로 맞춘다 — kit 이 Playwright 안쪽(실패 사진 표시)을 읽어서 판을 묶어 두었다. 다른 판이면 `npm install` 이 peer 충돌로 멈춘다
-- 앱 케이스가 있으면 `webdriverio`, 게임 케이스가 있으면 `control-cli` 를 더 받는다. 웹 케이스만 있는 저장소는 안 받아도 돈다
+- 앱 케이스가 있으면 `webdriverio`, 게임 케이스가 있으면 `control-cli` 를 더 받는다. 웹 케이스만 있는 저장소는 안 받아도 돈다 — kit 의 타입 파일이 둘을 가리키므로 `tsconfig.json` 에 `"skipLibCheck": true` 를 둔다
 - `playwright.config.ts` 의 project 이름은 `desktop` · `mobile` · `android` 그대로 쓴다. 이름이 다르면 kit 이 「환경을 선언하지 않았다」로 케이스를 건너뛴다
 
 **새 판 내기** — `packages/kit` 을 고친 PR 이 병합된 뒤, 테스트 저장소가 그 변경을 써야 할 때만 (약 1분)
-1. 루트를 최신 main 으로 받는다 — 커밋 안 한 `packages/kit` 변경이 있으면 스크립트가 거절한다
-2. 다음 번호로 낸다. 지금 판은 `gh api repos/maxihan1/platform-kit/tags --jq '.[0].name'` 으로 본다
+1. 루트를 최신 main 으로 받는다 — 지금 커밋이 origin/main 에 없거나 `packages/kit` · 루트 `package.json` 에 커밋 안 한 변경이 있으면 스크립트가 거절한다
+2. 다음 번호로 낸다. 지금 판은 `git ls-remote --tags --sort=-v:refname https://github.com/maxihan1/platform-kit | head -1` 로 본다
    ```bash
-   npx tsx scripts/kit-release.ts 0.1.1
+   npx tsx scripts/kit-release.ts 0.1.2
    ```
    빌드(`packages/kit/tsconfig.build.json`, 테스트 파일은 뺀다) → 배포용 `package.json` · `README.md` → platform-kit 에 커밋 · 태그 · push 를 한 번에 한다. 커밋 메시지에 낸 Commander 커밋이 남는다
-3. 확인 — `냈습니다 — "@platform/kit": "github:maxihan1/platform-kit#v0.1.1"` 가 찍히면 된 것이다. 테스트 저장소의 `tests/package.json` 판을 올리고 `npm install` 한다
+3. 확인 — `냈습니다 — "@platform/kit": "github:maxihan1/platform-kit#v0.1.2"` 가 찍히면 된 것이다. 테스트 저장소의 `tests/package.json` 판을 올리고 `npm install` 한다
 
 - platform-kit 저장소는 손으로 고치지 않는다 — 다음 판을 낼 때 통째로 덮인다
 - 같은 번호를 두 번 낼 수 없다(「태그가 이미 있습니다」). 잘못 냈으면 다음 번호로 다시 낸다

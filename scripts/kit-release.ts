@@ -32,8 +32,13 @@ export function 배포용패키지(kit: 패키지, 루트: 패키지, 버전: st
     ),
     files: ['dist'],
     dependencies: { zod: 판('zod') },
-    // highlight 가 playwright-core 안쪽을 읽어서 판을 Commander 와 똑같이 묶는다
-    peerDependencies: { '@playwright/test': 판('@playwright/test'), webdriverio: 판('webdriverio'), 'control-cli': 판('control-cli') },
+    // highlight 가 playwright-core 안쪽을 직접 읽어서 판을 Commander 와 똑같이 묶고, 끌어올려 깔지 않는 설치(pnpm)에서도 찾게 따로 적는다
+    peerDependencies: {
+      '@playwright/test': 판('@playwright/test'),
+      'playwright-core': 판('@playwright/test'),
+      webdriverio: 판('webdriverio'),
+      'control-cli': 판('control-cli'),
+    },
     // 앱 · 게임 케이스가 없는 저장소는 둘을 받지 않아도 돈다 — kit 이 쓸 때만 동적으로 import 한다
     peerDependenciesMeta: { webdriverio: { optional: true }, 'control-cli': { optional: true } },
   };
@@ -56,11 +61,18 @@ function 돌린다(명령: string, 인자: string[], cwd?: string): string {
 }
 
 function 낸다(버전: string): void {
-  const 뿌리 = process.cwd();
-  if (돌린다('git', ['status', '--porcelain', '--', 'packages/kit']) !== '') {
-    throw new Error('packages/kit 에 커밋 안 한 변경이 있습니다 — 낸 판과 커밋이 어긋납니다');
+  const 뿌리 = 돌린다('git', ['rev-parse', '--show-toplevel']);
+  // 묶을 판 번호(zod · Playwright …)는 루트 package.json 에서 읽는다
+  if (돌린다('git', ['status', '--porcelain', '--', 'packages/kit', 'package.json'], 뿌리) !== '') {
+    throw new Error('packages/kit · package.json 에 커밋 안 한 변경이 있습니다 — 낸 판과 커밋이 어긋납니다');
   }
-  const 커밋 = 돌린다('git', ['rev-parse', '--short', 'HEAD']);
+  돌린다('git', ['fetch', '-q', 'origin', 'main'], 뿌리);
+  try {
+    돌린다('git', ['merge-base', '--is-ancestor', 'HEAD', 'origin/main'], 뿌리);
+  } catch {
+    throw new Error('지금 커밋이 origin/main 에 없습니다 — kit 을 고친 PR 이 병합된 뒤 main 에서 냅니다');
+  }
+  const 커밋 = 돌린다('git', ['rev-parse', '--short', 'HEAD'], 뿌리);
   const 읽기 = (p: string) => JSON.parse(readFileSync(join(뿌리, p), 'utf8')) as 패키지;
   const 판 = 배포용패키지(읽기('packages/kit/package.json'), 읽기('package.json'), 버전);
 
@@ -71,16 +83,19 @@ function 낸다(버전: string): void {
   writeFileSync(join(빌드, 'README.md'), 설명서(버전));
 
   const 사본 = mkdtempSync(join(tmpdir(), 'platform-kit-'));
-  돌린다('gh', ['repo', 'clone', 저장소, 사본, '--', '-q']);
-  if (돌린다('git', ['tag', '-l', `v${버전}`], 사본) !== '') throw new Error(`v${버전} 태그가 이미 있습니다`);
-  for (const 이름 of readdirSync(사본)) if (이름 !== '.git') rmSync(join(사본, 이름), { recursive: true, force: true });
-  cpSync(빌드, 사본, { recursive: true });
-  돌린다('git', ['add', '-A'], 사본);
-  돌린다('git', ['commit', '-q', '-m', `v${버전} — test-platform ${커밋}`], 사본);
-  돌린다('git', ['tag', `v${버전}`], 사본);
-  // 첫 판은 빈 저장소라 지역 브랜치 이름이 이 맥 설정을 따른다 — 원격은 늘 main 으로 맞춘다
-  돌린다('git', ['push', '-q', 'origin', 'HEAD:main', `v${버전}`], 사본);
-  rmSync(사본, { recursive: true, force: true });
+  try {
+    돌린다('gh', ['repo', 'clone', 저장소, 사본, '--', '-q']);
+    if (돌린다('git', ['tag', '-l', `v${버전}`], 사본) !== '') throw new Error(`v${버전} 태그가 이미 있습니다`);
+    for (const 이름 of readdirSync(사본)) if (이름 !== '.git') rmSync(join(사본, 이름), { recursive: true, force: true });
+    cpSync(빌드, 사본, { recursive: true });
+    돌린다('git', ['add', '-A'], 사본);
+    돌린다('git', ['commit', '-q', '-m', `v${버전} — test-platform ${커밋}`], 사본);
+    돌린다('git', ['tag', `v${버전}`], 사본);
+    // 첫 판은 빈 저장소라 지역 브랜치 이름이 이 맥 설정을 따른다 — 원격은 늘 main 으로 맞춘다
+    돌린다('git', ['push', '-q', 'origin', 'HEAD:main', `v${버전}`], 사본);
+  } finally {
+    rmSync(사본, { recursive: true, force: true });
+  }
   console.log(`냈습니다 — "@platform/kit": "github:${저장소}#v${버전}" (test-platform ${커밋})`);
 }
 
