@@ -68,7 +68,7 @@ describe.skipIf(연결 === undefined)('대상 서버 줄의 테스트 계정', (
         name: 'XFS7A 서비스',
         color: '#112233',
         projectId: await 검사프로젝트(),
-        testsRepo: 'https://example.com/x.git',
+        testsRepo: 'https://github.com/example/x',
         testsDir: 'xfs7a',
         envs: [
           { env: 'qa', baseUrl: 'https://qa.example.com', loginId: 'tester', loginPassword: 원문 },

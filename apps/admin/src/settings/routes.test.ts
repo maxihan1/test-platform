@@ -50,7 +50,7 @@ describe.skipIf(연결 === undefined)('설정 API', () => {
         name: `${prefix} 서비스`,
         color: '#112233',
         projectId: await 검사프로젝트(),
-        testsRepo: 'https://example.com/x.git',
+        testsRepo: 'https://github.com/example/x',
         testsDir: prefix.toLowerCase(),
         envs: [{ env: 'qa', baseUrl: 'https://qa.example.com' }],
         ...더할것,
@@ -67,6 +67,19 @@ describe.skipIf(연결 === undefined)('설정 API', () => {
     const res = await 서비스만들기('XFS4A');
     expect(res.statusCode).toBe(201);
     expect(typeof res.json<{ id: number }>().id).toBe('number');
+  });
+
+  it('테스트 저장소는 https://github.com/<소유자>/<이름> 로 맞춰 저장하고 다른 꼴은 400 이다', async () => {
+    expect((await 서비스만들기('XFS4R', { testsRepo: 'https://github.com/example/demo.git/' })).statusCode).toBe(201);
+    expect((await 목록()).find((s) => s.prefix === 'XFS4R')?.testsRepo).toBe('https://github.com/example/demo');
+
+    const 거절 = await 서비스만들기('XFS4S', { testsRepo: 'git@github.com:example/demo.git' });
+    expect(거절.statusCode).toBe(400);
+    expect(거절.json<{ error: string; detail: string }>()).toMatchObject({ error: 'INVALID_REQUEST', detail: expect.stringContaining('testsRepo') });
+
+    const id = (await 목록()).find((s) => s.prefix === 'XFS4R')?.id;
+    const 고침 = await app.inject({ method: 'PATCH', url: `/api/settings/services/${String(id)}`, payload: { testsRepo: 'https://gitlab.com/a/b' } });
+    expect(고침.statusCode).toBe(400);
   });
 
   async function 프로젝트만들기(이름: string, 만든이?: string): Promise<number> {

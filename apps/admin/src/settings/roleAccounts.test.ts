@@ -68,7 +68,7 @@ describe.skipIf(연결 === undefined)('대상 서버 줄의 역할 계정 · 운
         name: 'XRA 역할 계정',
         color: '#112233',
         projectId: await 검사프로젝트(),
-        testsRepo: 'https://example.com/xra.git',
+        testsRepo: 'https://github.com/example/xra',
         testsDir: 'xra',
         envs: [
           {

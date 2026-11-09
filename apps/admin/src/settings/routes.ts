@@ -16,6 +16,7 @@ import { 게임패키지, 게임패키지거절, 대상서버목록, 역할틀�
 import { 프로젝트만들기, 프로젝트목록, 프로젝트이름고치기 } from './projects.js';
 import { 제외경로정리 } from './rules.js';
 import { 정기실행틀린칸 } from './scheduleCheck.js';
+import { 저장소주소맞추기 } from './testsRepo.js';
 import { 서비스고치기, 서비스만들기, 서비스목록, 설정오류 } from './store.js';
 import { 계정거절, 계정고치기, 계정만들기, 계정목록, 계정수락, 비밀번호다시만들기 } from './users.js';
 
@@ -31,6 +32,14 @@ const 훑지않을경로 = z.array(z.string()).transform((줄들, ctx) => {
   return z.NEVER;
 });
 
+// 작성 에이전트가 이 저장소에 쓰고 서버가 받아 온다 — 한 꼴로 맞춰 저장한다. 빈 칸은 「아직 안 적음」이라 받는다 (공통/6-인프라 「테스트 코드 저장소」)
+const 테스트저장소 = z.string().transform((주소, ctx) => {
+  const 맞춘것 = 저장소주소맞추기(주소);
+  if (맞춘것 !== null) return 맞춘것;
+  ctx.addIssue({ code: 'custom', message: `testsRepo 는 https://github.com/<소유자>/<이름> 꼴이어야 한다: ${주소}` });
+  return z.NEVER;
+});
+
 // 프로젝트 번호는 꼭 받는다. DB 트리거가 같은 이름 프로젝트를 붙이는 것은 fixture 와 add-service.ts 용 대체다 (도메인/인증 §7)
 // 상한은 routeParams.ts 의 정수()와 같다 — 넘으면 Postgres 범위 초과가 잡히지 않은 500 이 된다
 const 프로젝트번호 = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
@@ -42,7 +51,7 @@ const 새서비스 = z.object({
   name: z.string().min(1),
   color: z.string().min(1),
   projectId: 프로젝트번호,
-  testsRepo: z.string(),
+  testsRepo: 테스트저장소,
   testsDir: z.string().min(1),
   envs: 대상서버목록.default([]),
   slackWebhook: z.string().optional(),
@@ -63,7 +72,7 @@ const 서비스수정 = z.object({
   name: z.string().min(1).optional(),
   color: z.string().min(1).optional(),
   projectId: 프로젝트번호.optional(),
-  testsRepo: z.string().optional(),
+  testsRepo: 테스트저장소.optional(),
   testsDir: z.string().min(1).optional(),
   isActive: z.boolean().optional(),
   envs: 대상서버목록.optional(),

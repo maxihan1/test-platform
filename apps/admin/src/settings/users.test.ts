@@ -31,7 +31,7 @@ describe.skipIf(연결 === undefined)('설정 API — 계정', () => {
           name: `${prefix} 서비스`,
           color: '#112233',
           projectId: 프로젝트[prefix],
-          testsRepo: 'https://example.com/x.git',
+          testsRepo: 'https://github.com/example/x',
           testsDir: prefix.toLowerCase(),
           envs: [{ env: 'qa', baseUrl: 'https://qa.example.com' }],
         },

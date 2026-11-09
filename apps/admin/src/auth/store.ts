@@ -43,6 +43,8 @@ export interface 배정서비스 {
   hasFigmaToken: boolean;
   /** 케이스 폴더 이름 (SPEC §6 `service.tests_dir`) */
   testsDir: string;
+  /** 테스트 저장소 주소 (SPEC §6 `service.tests_repo`). 작성 에이전트가 이 저장소에 쓰고 PR 을 올린다 — 화면은 안 읽는다 */
+  testsRepo: string;
   /** 역방향 작성(화면만 · 대조)이 훑지 않을 경로 (SPEC §6 `service.crawl_exclude`). 작성 에이전트가 건을 가져갈 때마다 읽는다 — 화면은 안 읽는다 (도메인/인증 §7) */
   crawlExclude: string[];
   /** 이 서비스가 속한 프로젝트에서 기능마다 가진 칸. admin 은 저장값과 상관없이 전부 `write` (SPEC §3.5 · §7) */
@@ -84,6 +86,8 @@ const 한사람 = `
              'projectId', s.project_id, 'projectName', p.name, 'kind', s.kind,
              'envs', COALESCE(e.envs, '[]'::json),
              'testsDir', s.tests_dir,
+             -- 작성 에이전트가 이 저장소에 쓰고 PR 을 올린다. 설정 API 는 admin 만이라 이 통로로 받는다 (도메인/작성 「케이스를 쓰고 PR 을 올리는 곳」)
+             'testsRepo', s.tests_repo,
              'crawlExclude', s.crawl_exclude,
              -- 권한은 프로젝트에 붙어 있고 그 프로젝트의 애플리케이션 줄마다 같은 값을 채운다 (SPEC 도메인/인증 §3.5).
              -- 칸은 이름을 짚어 담는다. row_to_json 으로 통째로 넣으면 표에 칸이 늘 때 응답이 말없이 불어난다
