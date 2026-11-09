@@ -2,6 +2,7 @@
 
 import type { Pool, PoolClient } from 'pg';
 
+import { 로그인화면 } from '../perf/loginScreen.js';
 import { 상한 } from '../prd/rules.js';
 
 async function db(): Promise<Pool> {
@@ -142,10 +143,12 @@ export interface 초안집기 {
   services: { prefix: string; name: string; kind: string }[];
   issueKeys: string[];
   buildNo: string;
+  /** 화면 기록의 로그인 화면(상대 주소) — 에이전트가 자식을 띄우기 전에 이 화면으로 로그인해 상태 파일을 만든다. 없으면 null (BTS-F5-05) */
+  loginUrl: string | null;
 }
 
 /** 집기 응답의 draft 칸 — 프로젝트 번호 · 그 프로젝트 애플리케이션 · 맡은 이슈 · 배포 빌드 */
-export async function 초안집기칸(서비스: number, params: Record<string, unknown>): Promise<초안집기> {
+export async function 초안집기칸(서비스: number, env: string | null, params: Record<string, unknown>): Promise<초안집기> {
   const r = await (await db()).query<{ project_id: string; prefix: string; name: string; kind: string }>(
     `SELECT s.project_id, s.prefix, s.name, s.kind FROM service s
       WHERE s.project_id = (SELECT project_id FROM service WHERE id = $1) ORDER BY s.prefix`,
@@ -156,6 +159,8 @@ export async function 초안집기칸(서비스: number, params: Record<string, 
     services: r.rows.map(({ prefix, name, kind }) => ({ prefix, name, kind })),
     issueKeys: 맡은키들(params),
     buildNo: typeof params.buildNo === 'string' ? params.buildNo : '',
+    // 성능 페이지 측정과 같은 로그인 화면 찾기다 — 같은 화면을 두 길이 다르게 고르지 않게
+    loginUrl: env === null ? null : await 로그인화면(서비스, env),
   };
 }
 

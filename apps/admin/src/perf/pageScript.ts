@@ -27,6 +27,9 @@ const 디바이스 = {
 // Lighthouse 모바일 기본 — 지연 150ms · 내려받기 1,638.4Kbps · 올리기 750Kbps. k6 throttleNetwork 는 초당 바이트다
 const 망 = { NONE: null, SLOW_4G: { latency: 150, download: 209_715, upload: 96_000 } };
 
+/** 로그인 화면의 아이디 칸 — 비밀번호 칸 바로 앞의 입력 칸. PRD 초안 에이전트의 미리 로그인도 같은 칸을 고른다 (BTS-F5-05) */
+export const 아이디칸 = '//input[@type="password"]/preceding::input[not(@type="hidden") and not(@type="checkbox") and not(@type="radio") and not(@type="submit") and not(@type="button")][1]';
+
 // 브라우저 안에서 도는 셈. CLS 는 세션 창 없이 입력 없는 이동을 모두 더한다
 // ponytail: CLS 세션 창(5초 · 1초 틈) 대신 단순 합 — 한 번 여는 측정이라 차이가 작다. 긴 페이지에서 어긋나면 창을 센다
 const 몸통 = String.raw`
@@ -95,7 +98,7 @@ async function loginCookies() {
   try {
     await page.goto(BASE + PAGE_LOGIN_URL, { waitUntil: 'networkidle', timeout: 30000 });
     const pw = page.locator('input[type="password"]');
-    const id = page.locator('//input[@type="password"]/preceding::input[not(@type="hidden") and not(@type="checkbox") and not(@type="radio") and not(@type="submit") and not(@type="button")][1]');
+    const id = page.locator('${아이디칸}');
     await id.fill(__ENV.ACCOUNT_ID || '');
     await pw.fill(__ENV.ACCOUNT_PW || '');
     await Promise.all([page.waitForNavigation({ timeout: 15000 }).catch(() => null), pw.press('Enter')]);

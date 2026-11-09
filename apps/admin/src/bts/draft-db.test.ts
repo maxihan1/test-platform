@@ -1,4 +1,4 @@
-// PRD 초안 한 바퀴 — 배포가 세우는 초안 요청 · 사람 목록에서 빼기 · 집기 draft 칸 · 결과 통로 · 빈 끝내기 막기 · 에이전트가 꺼지면 다시 세우기 · 사람 다시 실행 막기 (도메인/BTS 「PRD 초안 → 결정 필요」 · §7). DATABASE_URL 이 있을 때만 돈다
+// PRD 초안 한 바퀴 — 배포가 세우는 초안 요청 · 사람 목록에서 빼기 · 집기 draft 칸(로그인 화면 주소) · 결과 통로 · 빈 끝내기 막기 · 에이전트가 꺼지면 다시 세우기 · 사람 다시 실행 막기 (도메인/BTS 「PRD 초안 → 결정 필요」 · §7). DATABASE_URL 이 있을 때만 돈다
 
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -22,7 +22,7 @@ const 사람 = 'xpt-person';
 const 계정들 = [맥, 사람];
 const 접두사들 = ['XPT', 'XPT2', 'XPTB'];
 
-type 집은몸 = { id: number; kind: string; env: string; draft?: { projectId: number; services: { prefix: string; kind: string }[]; issueKeys: string[]; buildNo: string }; target?: { env: string; baseUrl: string }; mcpKey?: string };
+type 집은몸 = { id: number; kind: string; env: string; draft?: { projectId: number; services: { prefix: string; kind: string }[]; issueKeys: string[]; buildNo: string; loginUrl: string | null }; target?: { env: string; baseUrl: string }; mcpKey?: string };
 
 describe.skipIf(연결 === undefined)('PRD 초안 한 바퀴', () => {
   let app: FastifyInstance;
@@ -38,6 +38,7 @@ describe.skipIf(연결 === undefined)('PRD 초안 한 바퀴', () => {
     await q('DELETE FROM authoring_request WHERE service_id = ANY($1)', [앱들]);
     await q('DELETE FROM test_run WHERE service_id = ANY($1)', [앱들]);
     await q('DELETE FROM prd_version WHERE service_id = ANY($1)', [앱들]);
+    await q('DELETE FROM screen_record WHERE service_id = ANY($1)', [앱들]);
     await q('DELETE FROM service_env WHERE service_id = ANY($1)', [앱들]);
     await q('DELETE FROM user_project WHERE username = ANY($1)', [계정들]);
     await q('DELETE FROM app_user WHERE username = ANY($1)', [계정들]);
@@ -73,6 +74,11 @@ describe.skipIf(연결 === undefined)('PRD 초안 한 바퀴', () => {
     await q(
       `INSERT INTO prd_version (service_id, version, items, last_no, source, saved_by, saved_by_name) VALUES ($1, 1, $2, 1, 'PERSON', 'xpt', 'xpt')`,
       [앱.XPT, JSON.stringify([{ reqId: 'XPT-FN-001', feature: '쿠폰', text: '최소 주문 금액은 1만 원이다', basis: [], status: 'CONFIRMED' }])],
+    );
+    // XPT 만 화면 기록에 로그인 화면이 있다 — 초안 에이전트가 먼저 로그인할 주소다(BTS-F5-05)
+    await q(
+      `INSERT INTO screen_record (service_id, env, state, url, name, text_fp, struct_fp, record, crawled_at) VALUES ($1, 'qa', '로그아웃', '/login', '로그인', 'a', 'b', '# /login', now())`,
+      [앱.XPT],
     );
     for (const 이름 of 계정들) {
       await q(
@@ -138,7 +144,7 @@ describe.skipIf(연결 === undefined)('PRD 초안 한 바퀴', () => {
 
   it('집기는 draft 칸 · 대상 서버 · MCP 열쇠를 싣는다', async () => {
     const 집은 = (await 집기('XPT'))!;
-    expect(집은).toMatchObject({ kind: 'PRD_DRAFT', env: 'qa', draft: { projectId: 프로젝트, issueKeys: ['XPQ-1', 'XPQ-2'], buildNo: 'abc1234-202610311200' } });
+    expect(집은).toMatchObject({ kind: 'PRD_DRAFT', env: 'qa', draft: { projectId: 프로젝트, issueKeys: ['XPQ-1', 'XPQ-2'], buildNo: 'abc1234-202610311200', loginUrl: '/login' } });
     expect(집은.draft!.services.map((s) => s.prefix)).toEqual(['XPT', 'XPT2']);
     expect(집은.target).toMatchObject({ env: 'qa', baseUrl: 'https://qa.xpt.test' });
     expect(집은.mcpKey).toMatch(/^mcj_/);
@@ -173,6 +179,7 @@ describe.skipIf(연결 === undefined)('PRD 초안 한 바퀴', () => {
 
   it('에이전트가 꺼져 멈춘 초안은 같은 칸으로 새로 선다', async () => {
     const 집은 = (await 집기('XPT2'))!;
+    expect(집은.draft!.loginUrl).toBeNull();
     expect((await 끝내기(집은.id, 'XPT2', { status: 'STOPPED', stopReason: 'AGENT_RESTART' })).statusCode).toBe(200);
     const 새 = (await q(`SELECT id FROM authoring_request WHERE service_id = $1 AND status = 'PENDING'`, [앱.XPT2])).rows as { id: string }[];
     expect(새).toHaveLength(1);

@@ -11,6 +11,7 @@ import { type 계정, 사본자리, 파일거부사유 } from './authoring-copy.
 import { MCP설정쓰기, 모양보기, 사본치우기, 새집, 자식거두기 } from './authoring-child.js';
 import { 초안몸상한 } from '../apps/admin/src/bts/draft.js';
 import { 결제환경 } from './authoring-billing.js';
+import { 미리로그인, 미리로그인재료 } from './authoring-draft-login.js';
 import { 초안파일, 초안지시문, 값가리기, 비밀섞였나, 요청글, 출력읽기, 탐침명령, 화면보나, type 초안자료 } from './authoring-draft-prompt.js';
 import { type 보고손, 닫으며, 멈춤, 보고손만들기, 부른다, 돌린다, 친다 } from './authoring-io.js';
 import { type 박동, 박동손 } from './authoring-heartbeat.js';
@@ -39,7 +40,7 @@ export function 탐침PATH(부모: string | undefined): string {
 
 /**
  * 화면을 여는 자식의 대상 서버 칸 — 주소와 탐침 PATH 만. **계정은 넘기지 않는다** — `playwright cli` 로 로그인하면
- * 비밀번호가 명령 인자와 대화에 펼쳐진다. 로그인이 필요한 화면은 이슈 글로만 쓴다 (도메인/BTS 「자식」 · 2026-11-08 사용자)
+ * 비밀번호가 명령 인자와 대화에 펼쳐진다. 로그인 뒤 화면은 에이전트가 미리 로그인해 둔 상태 파일로만 연다 (도메인/BTS 「자식」 · BTS-F5-05)
  */
 export function 초안대상환경(t: 대상, 부모PATH: string | undefined): Record<string, string> {
   const { TARGET_LOGIN_ID: _아이디, TARGET_LOGIN_PASSWORD: _비밀번호, ...주소 } = 대상환경(t);
@@ -120,6 +121,16 @@ async function 초안건(
     writeFileSync(join(자리.자료, 초안파일.요청), 요청글({ 자료: 것.draft, 서비스, 종류: 설정?.종류, env: 것.target?.env ?? '', 화면 }));
     writeFileSync(join(자리.자료, 초안파일.PRD), JSON.stringify(값가리기({ version: 판번호, items: 판몸?.items ?? [] }, 비밀들), null, 2));
     const 설정파일 = MCP설정쓰기(자리.임시, 설정글, 자식)!;
+    // 로그인 뒤 화면도 보게 에이전트가 먼저 로그인해 둔다 — 자식에게는 계정 대신 상태 파일만 간다. 못 하면 로그인 없는 화면만 (BTS-F5-05)
+    const 로그인재료 = 화면 ? 미리로그인재료(것.target, 것.draft.loginUrl, 자리.임시) : null;
+    let 로그인상태: string | null = null;
+    // 멈추라 했으면 로그인(길면 1분)을 건너뛴다 — 아래 멈춤 확인이 바로 STOPPED 로 닫는다
+    if (로그인재료 !== null && !박동.멈추라했다()) {
+      await 손.단계('PRD 초안 쓰는 중 — 대상 서버에 로그인하는 중');
+      const 까닭 = await 미리로그인(로그인재료);
+      if (까닭 === null) 로그인상태 = 로그인재료.상태파일;
+      else console.error(`[초안] ${것.id}번 미리 로그인을 못 해 로그인 없는 화면만 본다 — ${까닭}`);
+    }
     if (자식 !== null) {
       for (const 폴더 of [자리.자료, 자리.집, 자리.임시, 자리.gh]) {
         const r = 친다('chown', ['-hR', `${자식.uid}:${자식.gid}`, 폴더], 자리.뿌리);
@@ -146,7 +157,7 @@ async function 초안건(
       (신호) =>
         돌린다(자식 === null ? 'claude' : 'sh', 자식 === null ? 인자 : ['-c', 'umask 077 && exec claude "$@"', 'sh', ...인자], {
           cwd: 자리.자료,
-          input: 초안지시문({ 자료: 것.draft, 서비스, 폴더: 자리.자료, 화면 }),
+          input: 초안지시문({ 자료: 것.draft, 서비스, 폴더: 자리.자료, 화면, 로그인상태 }),
           env: 환경,
           uid: 자식?.uid,
           gid: 자식?.gid,
