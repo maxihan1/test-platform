@@ -18,6 +18,14 @@ if [ -n "$token" ]; then
   GIT_CONFIG_KEY_0=http.https://github.com/.extraheader
   GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$token" | base64 | tr -d '\n')"
   export GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0
+elif command -v gh >/dev/null 2>&1; then
+  # 맥에서 손으로 돌릴 때 — 사람의 gh 로그인을 이 명령에만 빌린다(서버에는 gh 가 없다)
+  GIT_CONFIG_COUNT=2
+  GIT_CONFIG_KEY_0=credential.helper
+  GIT_CONFIG_VALUE_0=
+  GIT_CONFIG_KEY_1=credential.helper
+  GIT_CONFIG_VALUE_1='!gh auth git-credential'
+  export GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0 GIT_CONFIG_KEY_1 GIT_CONFIG_VALUE_1
 fi
 export GIT_TERMINAL_PROMPT=0
 git_() { git -c core.hooksPath=/dev/null -c core.fsmonitor=false "$@"; }

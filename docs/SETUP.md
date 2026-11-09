@@ -418,7 +418,7 @@ npm run authoring-agent
 맥이 병합을 끝내면 **에이전트를 켠 체크아웃에서 `git pull --ff-only origin main` 을 한다** — 저장소 훅과 fsmonitor 는 끄고 당긴다(자식이 써 둔 훅이 맥 권한으로 돌지 않게).
 **이것은 훅만 막는다** — 자식은 `.git/config` 도 쓸 수 있어 다른 설정(`filter`·`core.sshCommand` 등)으로 맥 권한 명령을 걸 수 있다.
 진짜 해법은 자식의 쓰기 범위에서 뿌리 `.git` 을 빼는 것이고 후속이다 (`docs/archive/progress/WS-작성.md` 8회차).
-서버가 그 체크아웃의 `tests/` 를 보므로(`docker-compose.yml` 의 `./tests:/tests:ro`) 사람이 `git pull` 하지 않아도 **새 테스트가 목록에 뜬다** — main 을 받아 온 병합은 서버가 그 서비스를 다시 훑는다(2026-10-12 PRD-F9-03). 못 받아 왔으면 받아 온 뒤 「다시 스캔」을 누른다.
+Commander 저장소에 쓴 테스트는 서버가 그 체크아웃의 `tests/` 를 붙여 보므로(`docker-compose.yml` 의 `./tests:/tests/maxihan1/test-platform/tests:ro`) 사람이 `git pull` 하지 않아도 **새 테스트가 목록에 뜬다**. 다른 테스트 저장소에 쓴 테스트는 서버가 1분마다 받아 온 뒤 훑는다(「22. 테스트 저장소 받아 오기」) — main 을 받아 온 병합은 서버가 그 서비스를 다시 훑는다(2026-10-12 PRD-F9-03). 못 받아 왔으면 받아 온 뒤 「다시 스캔」을 누른다.
 
 - 체크아웃이 `main` 이 아니거나 **고치던 파일이 있으면 건너뛴다** — 터미널에 `[머지] main 을 안 당겼다: …` 가 찍힌다. 그때는 손으로 당긴다.
   추적 안 하는 새 파일(다른 세션이 설치한 스킬 등)은 보지 않는다 — 빨리감기가 건드리지 않는다(2026-10-13 PRD-F9-34)
@@ -600,7 +600,7 @@ Android 앱 · 게임 케이스의 「시험 실행」도 정식 실행처럼 �
 
 **맥에서** (쓸 때마다)
 
-4. 저장소를 main 으로 받아 둔다. 이 러너는 맥의 `./tests` 를 돌린다 — 서버와 케이스가 다르면 옛 케이스가 돌거나 「CASE_NOT_FOUND」다.
+4. `gh auth status` 가 로그인인지 본다. 이 러너는 맥의 `./repos` 에 받아 둔 테스트 저장소를 돌린다 — 처음 도는 케이스의 저장소는 그때 `gh` 로그인으로 받고, 켤 때와 1분마다 새로 받는다(「22. 테스트 저장소 받아 오기」). 로그인이 없으면 비공개 저장소를 못 받아 「CASE_NOT_FOUND」다.
 5. 러너를 켠다. 서버와 같은 토큰을 준다.
    ```bash
    RUNNER_TOKEN=<서버와 같은 값> npm run runner:local
@@ -1126,3 +1126,43 @@ Commander 자신은 지금처럼 워크스페이스의 `packages/kit` 을 그대
 
 - platform-kit 저장소는 손으로 고치지 않는다 — 다음 판을 낼 때 통째로 덮인다
 - 같은 번호를 두 번 낼 수 없다(「태그가 이미 있습니다」). 잘못 냈으면 다음 번호로 다시 낸다
+
+## 22. 테스트 저장소 받아 오기 (2026-11-09 · REPO-F1-03)
+
+서비스마다 설정 › 애플리케이션의 「테스트 저장소」(`https://github.com/<소유자>/<이름>`)에 테스트와 요구사항 표를 둔다. 작성 AI 는 그 저장소에 PR 을 등록하고, 서버는 1분마다 그 저장소를 받아 와 목록을 다시 훑는다.
+무엇을 왜 그렇게 두는지는 SPEC 공통/6-인프라 「테스트 코드 저장소는 서비스마다 설정에서 넣는다」가 정본이다.
+
+```
+./repos                                  ← admin · runner 가 /tests 로 읽는다(읽기 전용)
+  maxihan1/demo-market/tests/dmw/…       ← 서버가 받아 온 저장소(main 의 tests/ · docs/cases/ 만)
+  maxihan1/demo-market/docs/cases/DMW.md
+  maxihan1/test-platform/tests           ← Commander 자기 자리 — 받지 않고 체크아웃의 tests/ · docs/cases 를 붙인다
+```
+
+**서버 — 이 판을 처음 배포할 때 (약 5분)**
+1. 붙일 자리 폴더를 먼저 만들고 배포한다. 받아 오기가 1분마다 만들지만, 그보다 먼저 컨테이너를 다시 띄우면 Docker 가 읽기 전용 `/tests` 안에 만들지 못해 안 뜬다
+   ```bash
+   ssh qahub 'cd /opt/qahub && mkdir -p repos/maxihan1/test-platform/tests repos/maxihan1/test-platform/docs/cases && git pull --ff-only origin main && docker compose up -d --build'
+   ```
+   admin 이 뜨면서 전부 다시 훑는다. 케이스 경로가 `maxihan1/test-platform/tests/todo/…` 꼴로 바뀐다(옛 실행 기록의 실패 코드 발췌는 옛 경로라 안 보일 수 있다)
+2. 확인 — 「테스트 스크립트」 목록에 TODO · DEMO · 데모마켓 케이스가 그대로 보이면 된 것이다. 경고 줄에 「아직 받아 오지 못해」가 뜨면 아래 열쇠를 본다
+
+**비공개 저장소를 쓰면 — 서버 `.env` 에 읽기 열쇠 한 줄 (약 3분, 설치마다 한 번)**
+1. GitHub › Settings › Developer settings › Fine-grained tokens › Generate new token
+   - Repository access: 테스트 저장소들만 고른다(새 저장소를 이으면 여기에 더한다)
+   - Permissions: Contents → **Read-only** 하나만
+2. 서버 `/opt/qahub/.env` 에 `TESTS_GITHUB_TOKEN=github_pat_…` 를 적는다. 다시 띄울 것은 없다 — 받아 오기가 다음 차례에 읽는다
+3. 확인 — 1분 뒤 `ls /opt/qahub/repos/<소유자>` 에 저장소 이름이 보이면 된 것이다
+- 이 열쇠는 호스트의 받아 오기 스크립트만 읽는다. 컨테이너 환경에 싣지 않고 받은 저장소 설정에도 남기지 않는다 — 그 자리는 러너가 AI 가 쓴 케이스를 돌리는 곳이다
+- 비워 두면 공개 저장소만 받는다. 못 받은 저장소의 케이스는 지난 스캔 그대로 남고 목록 경고 줄에 「아직 받아 오지 못해」가 뜬다
+
+**새 테스트 저장소를 이을 때 (약 2분)**
+1. 작성 AI 의 GitHub 계정을 그 저장소에 쓰기 권한으로 한 번 초대한다 — 없으면 PR 등록에서 막혀 그 작성 요청이 실패한다
+2. 비공개면 위 열쇠의 Repository access 에 그 저장소를 더한다
+3. 설정 › 애플리케이션 › 「테스트 저장소」에 `https://github.com/<소유자>/<이름>` 을 적는다. 다른 꼴(SSH 주소 · 다른 호스트)은 저장이 거절된다
+4. 그 저장소의 기본 작업 브랜치는 `main` 이어야 한다 — 서버가 `main` 을 받고 작성 AI 가 `main` 에 PR 을 등록한다
+- 바탕 파일(`tests/package.json` · `playwright.config.ts` · `tsconfig.json`)은 작성 AI 의 첫 PR 이 같이 넣는다. 혼자 돌리는 법은 「21. kit 을 테스트 저장소용으로 내기」
+
+**맥에서**
+- 내 컴퓨터 러너(`npm run runner:local`)는 `./repos` 를 스스로 채운다 — 처음 도는 케이스의 저장소를 `gh` 로그인으로 받고 켤 때와 1분마다 새로 받는다. Commander 저장소도 GitHub 에서 받으므로 맥에서 고친 TODO · DEMO 를 돌리려면 먼저 main 에 병합한다
+- 맥에서 admin 컨테이너까지 띄우면 목록이 보는 `./repos` 는 사람이 채운다 — `sh infra/server/tests-pull.sh` 를 한 번 돌린다(맥의 `gh` 로그인으로 받는다). 다시 받을 때도 같은 명령이다
