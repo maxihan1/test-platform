@@ -1,5 +1,7 @@
 import type { GameDriver } from '@platform/kit';
 
+import { 로그인화면 } from './login.page.js';
+
 export class 캐릭터선택화면 {
   static readonly 주소 = 'game:Boot';
 
@@ -50,6 +52,7 @@ export class 캐릭터선택화면 {
 
   async 로그아웃누르기(): Promise<void> {
     await this.game.click('LogoutButton');
+    로그인화면.로그아웃했다();
   }
 
   async 상태글(): Promise<string> {
