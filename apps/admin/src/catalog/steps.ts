@@ -110,7 +110,7 @@ function rootName(expr: ts.Expression): string | undefined {
   }
 }
 
-// 이 식이 값을 넣는 이름들 — `a = …` · `a.b = …` · `[a] = …` · `a += …` · `a++`. 풀어 넣기의 속성 이름까지 세는 것은 안전한 쪽이다
+// 이 식이 값을 넣는 이름들 — `a = …` · `a.b = …` · `[a] = …` · `a += …` · `a++` · `for (a of …)` · `delete a.b`. 풀어 넣기의 속성 이름까지 세는 것은 안전한 쪽이다
 function 넣는이름들(node: ts.Node): string[] {
   let 왼쪽: ts.Node | undefined;
   if (ts.isBinaryExpression(node) && node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment && node.operatorToken.kind <= ts.SyntaxKind.LastAssignment) {
@@ -120,6 +120,10 @@ function 넣는이름들(node: ts.Node): string[] {
     (node.operator === ts.SyntaxKind.PlusPlusToken || node.operator === ts.SyntaxKind.MinusMinusToken)
   ) {
     왼쪽 = node.operand;
+  } else if ((ts.isForOfStatement(node) || ts.isForInStatement(node)) && !ts.isVariableDeclarationList(node.initializer)) {
+    왼쪽 = node.initializer;
+  } else if (ts.isDeleteExpression(node)) {
+    왼쪽 = node.expression;
   }
   const 이름들: string[] = [];
   const 모으기 = (n: ts.Node): void => {

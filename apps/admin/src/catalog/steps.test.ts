@@ -206,6 +206,8 @@ describe('caseSteps', () => {
       ['풀어서 넣기', 'let 첫째 = \'\';', `[첫째] = await page.getByRole('listitem').allTextContents();`],
       ['더해 넣기', 'let 횟수 = 0;', `횟수 += await page.getByRole('listitem').count();`],
       ['하나 올리기', 'let 횟수 = 0;', `await page.getByRole('textbox').fill('우유');\n    횟수++;`],
+      ['for of 로 넣기', 'let 마지막 = \'\';', `for (마지막 of await page.getByRole('listitem').allTextContents()) {}`],
+      ['속성 지우기', 'const 상태 = { id: \'\' };', `await page.getByRole('textbox').fill('우유');\n    delete 상태.id;`],
     ])('%s', (_, 선언, 본문) => {
       expect(skippable(밖에서(선언, 본문))[0]).toBe(false);
     });

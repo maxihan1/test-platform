@@ -39,7 +39,8 @@ export function 조립부제({ 초안, 쓰나 }: { 초안: 초안; 쓰나: boole
           })}
         </span>
       )}
-      {!초안.바뀜 ? null : <span className="case-tag">{t('저장 안 된 변경 있음')}</span>}
+      {/* 저장본을 열 때 건너뛸 수 없게 된 체크를 빼 바뀜이 되지만, 저장할 수 없는 사람에게는 할 일이 없다 */}
+      {!쓰나 || !초안.바뀜 ? null : <span className="case-tag">{t('저장 안 된 변경 있음')}</span>}
     </>
   );
 }

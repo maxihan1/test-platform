@@ -150,6 +150,16 @@ describe('ScenarioBuild 저장', () => {
     });
   });
 
+  it('저장할 수 없는 사람에게는 저장본을 열 때 뺀 체크로 「저장 안 된 변경 있음」을 띄우지 않는다', async () => {
+    vi.spyOn(scenarioApi, 'detail').mockResolvedValue(상세({ parts: [{ ...케이스단계('ZSB-001'), skipSteps: ['로그인한다'] } as ScenarioPart] }));
+    vi.spyOn(scenarioApi, 'caseParts').mockImplementation(async (tcId) => ({ ...재료(tcId), steps: [{ title: '로그인한다', skippable: false }] }));
+    vi.spyOn(scenarioApi, 'nextCases').mockResolvedValue({ items: [] });
+    render(<ScenarioBuild id={12} 띠서비스={서비스('ZSB')} user={사람('read')} />);
+    await screen.findByLabelText('시나리오 이름');
+
+    expect(screen.queryByText('저장 안 된 변경 있음')).toBeNull();
+  });
+
   it('저장했습니다 줄은 저장 뒤에 다시 고치면 사라진다', async () => {
     await 기존그리기();
     vi.spyOn(scenarioApi, 'update').mockResolvedValue({ version: 4 });
