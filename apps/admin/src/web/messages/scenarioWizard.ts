@@ -100,6 +100,7 @@ export const 시나리오마법사말: Record<string, string> = {
   '값 연결 {수}곳': '{수} value links',
   '예: 신규 회원 첫 주문': 'e.g. First order by a new member',
   '목록과 실행 기록에 보이는 이름입니다': 'This name shows in the list and run history',
+  '비워 두면 흐린 글씨의 후보 이름으로 저장합니다': 'Leave it empty to save with the suggested name shown in gray',
   '{이름} 수정': 'Edit {이름}',
   '안 함': 'Not run',
   '통과 · {서버} · {초}': 'Passed · {서버} · {초}',

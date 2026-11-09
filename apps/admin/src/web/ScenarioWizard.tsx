@@ -72,7 +72,10 @@ export function ScenarioWizard({ 띠서비스, user }: { 띠서비스: ServiceRo
   const 값 = useWizardValues(단계들, 재료);
   const { 보낼 } = 값;
   const 앱들 = user.services.filter((s) => s.projectId === user.services.find((x) => x.prefix === 서비스)?.projectId);
-  const 끝 = useWizardEnd({ 서비스, 디바이스, 이름, 보낼, 앱들, on까닭: set이유 });
+  const 후보이름 = 방법 === 'ai' && 고른후보 !== null ? (흐름.결과?.candidates?.[고른후보]?.name ?? null) : null;
+  // 후보 이름을 칸 값으로 채우면 칸을 눌러 친 글자가 그 뒤에 붙는다(SC-1633) — 칸은 비워 두고 빈 채 저장할 때만 쓴다
+  const 쓸이름 = 이름.trim() === '' ? (후보이름 ?? '') : 이름;
+  const 끝 = useWizardEnd({ 서비스, 디바이스, 이름: 쓸이름, 보낼, 앱들, on까닭: set이유 });
   const { 시험, 저장됨 } = 끝;
 
   const 목록: 마법사단계[] = ['start', ...(방법 === 'ai' ? (['ai'] as const) : []), 'steps', 'values', 'trial', 'save'];
@@ -145,9 +148,6 @@ export function ScenarioWizard({ 띠서비스, user }: { 띠서비스: ServiceRo
     const 새단계 = 후보단계들(후보);
     set단계들(새단계);
     값.후보메모(후보, 새단계);
-    // 이름을 아직 손대지 않았으면 후보 이름으로 채운다 — 앞 후보 이름이 들어 있던 것도 손댄 것이 아니다
-    const 후보이름들 = (흐름.결과?.candidates ?? []).map((c) => c.name);
-    if (이름 === '' || 후보이름들.includes(이름)) set이름(후보.name);
     set케이스줄((앞) => {
       const 다음 = new Map(앞);
       for (const s of 후보.steps) if (!다음.has(s.tcId)) 다음.set(s.tcId, { name: s.name, screens: [] });
@@ -156,7 +156,7 @@ export function ScenarioWizard({ 띠서비스, user }: { 띠서비스: ServiceRo
   }
 
   function 조립화면으로() {
-    초안넘기기({ 서비스, 이름, 디바이스, 단계들: 보낼 });
+    초안넘기기({ 서비스, 이름: 쓸이름, 디바이스, 단계들: 보낼 });
     // 자기 이동에 떠나기 상자를 띄우지 않는다 — 초안은 조립 화면이 들고 간다
     떠나기막기(null);
     window.location.hash = '#/scenarios/new/build';
@@ -255,7 +255,7 @@ export function ScenarioWizard({ 띠서비스, user }: { 띠서비스: ServiceRo
               <저장칸
                 이름={이름}
                 on이름={set이름}
-                후보이름={방법 === 'ai' && 고른후보 !== null ? (흐름.결과?.candidates?.[고른후보]?.name ?? null) : null}
+                후보이름={후보이름}
                 앱={앱들.find((a) => a.prefix === 서비스)?.name ?? 서비스}
                 디바이스={디바이스}
                 단계이름들={보낼.map((p, i) => (p.kind === 'case' ? 이름의(i + 1) : t(종류글[p.kind])))}
