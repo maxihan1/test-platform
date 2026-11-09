@@ -26,6 +26,7 @@ import { type 계정, type 사본, 사본환경, 파일거부사유 } from './au
 import { 모양보기, 사본만들기, 사본치우기, 자식거두기, 트리실제 } from './authoring-child.js';
 import { type 보고손, type 판정기, 다시하며, 돌린다, 진짜main묻기, 친다 } from './authoring-io.js';
 import { 도는번호 } from './authoring-keeping.js';
+import type { 쓸저장소 } from './authoring-repo.js';
 import { 적용 } from './authoring-held-merge.js';
 
 /**
@@ -109,8 +110,7 @@ export function 검사실패글(설명: string, r: { 코드: number | null; 낸�
 export interface 고치기판 {
   판정: 판정기;
   바탕: string;
-  원천: string;
-  원격주소: string;
+  저장소: 쓸저장소;
 }
 
 interface 고칠자리 {
@@ -123,6 +123,8 @@ interface 고칠자리 {
   /** 브랜치 · 커밋의 번호. 다시 적용(RERUN)이면 원본 고치기 행이다 — 같은 author-<뿌리> 를 덮어쓴다 */
   뿌리: number;
   번호: number;
+  /** 대상 저장소면 gh 에 줄 `<소유자>/<이름>`. 자기 저장소는 undefined — 인자가 지금 모양 그대로다 */
+  PR저장소: string | undefined;
 }
 
 /**
@@ -148,12 +150,12 @@ export async function 편집처리(
   let 자리: 사본 | null = null;
   try {
     // 기준은 GitHub 이 말하는 main 이다. 서버 저장소의 origin/main 은 옛 판일 수 있다
-    const 메인 = 진짜main묻기(판.원천);
+    const 메인 = 진짜main묻기(판.저장소.원천);
     if ('까닭' in 메인) return void (await 손.끝내기({ status: 'FAILED', error: 메인.까닭 }));
-    const 만든것 = await 사본만들기(것.id, 판.바탕, 판.원천, 판.원격주소, 메인.sha, 자식);
+    const 만든것 = await 사본만들기(것.id, 판.바탕, 판.저장소, 메인.sha, 자식);
     if ('까닭' in 만든것) return void (await 손.끝내기({ status: 'FAILED', error: 만든것.까닭 }));
     자리 = 만든것.자리;
-    const 고칠 = { 자리, 기준: 메인.sha, 서비스, 폴더, 자식, 판정: 판.판정, 뿌리: 자료출처(것), 번호: 것.id };
+    const 고칠 = { 자리, 기준: 메인.sha, 서비스, 폴더, 자식, 판정: 판.판정, 뿌리: 자료출처(것), 번호: 것.id, PR저장소: 판.저장소.도구 === null ? undefined : 판.저장소.자리 };
     await 고치고올리기(손, 고칠, edits);
   } finally {
     // 못 거뒀으면 손대지 않는다 — 살아 있는 것이 지우는 도중 폴더를 링크로 바꿔 트리 밖을 지우게 할 수 있다
@@ -233,14 +235,14 @@ async function 고치고올리기(손: 보고손, 판: 고칠자리, edits: 고�
   // 재시도 전에 먼저 찾는다 — 만들기가 GitHub 에선 됐는데 답만 잃었으면 또 만들어 PR 이 둘이 된다. 다시 적용은 열린 PR 의 본문을 바꾼다
   const 본문 = 편집PR본문(계산.줄들);
   const PR = await 다시하며('PR 만들기', () => {
-    const 있나 = 트리에서('gh', PR찾기인자(판.뿌리));
+    const 있나 = 트리에서('gh', PR찾기인자(판.뿌리, 판.PR저장소));
     const 있는것 = 있나.ok ? (JSON.parse(있나.낸것 || '[]') as { url: string }[])[0]?.url : undefined;
     if (있는것 !== undefined) {
       // 본문이 고칠 내용의 정본이다 — 옛 본문(옛 값 → 새 값)이 남은 채 끝나면 사람이 틀린 근거로 반영한다
       if (!트리에서('gh', PR본문고치기인자(있는것, 본문)).ok) return { 까닭: 'PR 본문을 고치지 못했다' };
       return { 값: 있는것 };
     }
-    const r = 트리에서('gh', PR만들기인자(판.뿌리, 편집PR제목(판.뿌리, 판.서비스), 본문));
+    const r = 트리에서('gh', PR만들기인자(판.뿌리, 편집PR제목(판.뿌리, 판.서비스), 본문, 판.PR저장소));
     const 주소 = r.낸것.trim().split('\n').pop() ?? '';
     return r.ok && 주소.startsWith('https://') ? { 값: 주소 } : { 까닭: r.까닭 || 'PR 주소가 안 찍혔다' };
   });

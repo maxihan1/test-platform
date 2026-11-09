@@ -10,6 +10,7 @@ import { 기록남기며비우기 } from './authoring-gate3.js';
 import { 저장본넣기 } from './authoring-screens-keep-io.js';
 import { type 보고손, 멈춤, 부른다, 진짜main묻기, 친다 } from './authoring-io.js';
 import { 케이스파일들 } from './authoring-progress.js';
+import type { 쓸저장소 } from './authoring-repo.js';
 import {
   type 보관,
   type 서버답,
@@ -110,7 +111,7 @@ export async function 작업방준비(
   토큰: string,
   서비스: string,
   것: 집은것,
-  판: { 바탕: string; 원천: string; 원격주소: string },
+  판: { 바탕: string; 저장소: 쓸저장소 },
   자식: 계정 | null,
   케이스폴더: string,
   손: 보고손,
@@ -124,7 +125,7 @@ export async function 작업방준비(
     );
     const 멈춘것 = 사슬[0];
     const 자리 = 사본자리(것.id, 판.바탕);
-    if (고른 !== null && 멈춘것 !== undefined && 옮기기(사본자리(고른, 판.바탕).뿌리, 자리.뿌리)) {
+    if (고른 !== null && 멈춘것 !== undefined && 같은저장소(사본자리(고른, 판.바탕), 판.저장소) && 옮기기(사본자리(고른, 판.바탕).뿌리, 자리.뿌리)) {
       const 표시 = 폴더들.get(고른)!;
       // 넘겨받는 동안 훑기가 보면 도는 건이다 — 끝을 먼저 내린다
       보관쓰기(자리, { ...표시, 끝: false });
@@ -150,12 +151,12 @@ export async function 작업방준비(
   }
 
   // 기준은 GitHub 이 말하는 main 이다. 서버 저장소의 origin/main 은 옛 판일 수 있다
-  const 메인 = 진짜main묻기(판.원천);
+  const 메인 = 진짜main묻기(판.저장소.원천);
   if ('까닭' in 메인) {
     await 손.끝내기({ status: 'FAILED', error: 메인.까닭 });
     return null;
   }
-  const 만든것 = await 사본만들기(것.id, 판.바탕, 판.원천, 판.원격주소, 메인.sha, 자식);
+  const 만든것 = await 사본만들기(것.id, 판.바탕, 판.저장소, 메인.sha, 자식);
   if ('까닭' in 만든것) {
     await 손.끝내기({ status: 'FAILED', error: 만든것.까닭 });
     return null;
@@ -165,6 +166,15 @@ export async function 작업방준비(
   보관쓰기(만든것.자리, { 서비스, 기준: 메인.sha, 옛케이스: [...옛케이스], 끝: false });
   if (것.target !== undefined) await 저장본넣기({ 주소기지, 토큰, 번호: 것.id }, 만든것.자리.자료);
   return { 자리: 만든것.자리, 기준: 메인.sha, 옛케이스 };
+}
+
+/**
+ * 보관한 작업방이 지금 설정의 저장소로 만든 것인가. 저장소 칸을 바꾼 뒤 이어서 작성하면 옛 저장소로 push 하고
+ * 새 저장소에서 PR 을 찾아 어긋난다 — 다르면 넘겨받지 않고 처음부터 한다
+ */
+function 같은저장소(보관자리: 사본, 저장소: 쓸저장소): boolean {
+  const r = 친다('git', [`--git-dir=${보관자리.git}`, 'remote', 'get-url', 'origin'], 보관자리.뿌리);
+  return r.ok && r.낸것.trim() === 저장소.원격주소;
 }
 
 /** 서버 상세로 그 요청의 폴더를 남길지 묻는다. 403 은 배정이 빠진 서비스 — 이어갈 길이 없어 없는 것과 같다 */

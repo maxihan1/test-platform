@@ -5,7 +5,7 @@ import { join } from 'node:path';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { 건설정, 나풀기, 새줄보기, 토큰고르기, 토큰모양인가, 토큰읽기, 토큰자리, 토큰저장 } from './authoring-token.js';
+import { 건설정, 나풀기, 새줄보기, 열줄가르기, 토큰고르기, 토큰모양인가, 토큰읽기, 토큰자리, 토큰저장 } from './authoring-token.js';
 
 const 좋은토큰 = `tpa_${'A1b2_-'.repeat(7)}z`;
 const 치울것: string[] = [];
@@ -83,7 +83,7 @@ describe('나풀기 — /api/auth/me 로 이름·서비스·대상 서버·테�
       username: 'mac',
       role: 'member',
       services: [
-        { prefix: 'DEMO', envs: [{ env: 'qa', baseUrl: 'https://qa.x' }], testsDir: 'demo', permissions: { cases: 'read', runs: 'read', authoring: 'write' } },
+        { prefix: 'DEMO', envs: [{ env: 'qa', baseUrl: 'https://qa.x' }], testsDir: 'demo', testsRepo: 'https://github.com/maxihan1/test-platform', permissions: { cases: 'read', runs: 'read', authoring: 'write' } },
         { prefix: 'TODO', testsDir: 'todo-app', permissions: { cases: 'read', runs: 'read', authoring: 'read' } },
       ],
     },
@@ -93,7 +93,7 @@ describe('나풀기 — /api/auth/me 로 이름·서비스·대상 서버·테�
     expect(나풀기(몸)).toEqual({
       username: 'mac',
       서비스들: ['DEMO'],
-      설정표: { DEMO: { 서버들: [{ env: 'qa', baseUrl: 'https://qa.x' }], 폴더: { 폴더: 'demo' }, 제외: [], 게임: false } },
+      설정표: { DEMO: { 서버들: [{ env: 'qa', baseUrl: 'https://qa.x' }], 폴더: { 폴더: 'demo' }, 저장소: { 자리: 'maxihan1/test-platform' }, 제외: [], 게임: false } },
     });
   });
 
@@ -164,17 +164,24 @@ describe('나풀기 — /api/auth/me 로 이름·서비스·대상 서버·테�
   });
 });
 
-describe('건설정 — 건을 가져갈 때 다시 읽은 me 로 훑지 않을 경로만 바꾼다 (BLOCKER 2 · 도메인/인증 §7)', () => {
-  const 켤때 = { 서버들: [{ env: 'qa', baseUrl: 'https://qa.x' }], 폴더: { 폴더: 'demo' }, 제외: ['/old'] };
+describe('건설정 — 건을 가져갈 때 다시 읽은 me 로 훑지 않을 경로 · 테스트 저장소만 바꾼다 (BLOCKER 2 · 도메인/인증 §7)', () => {
+  const 켤때 = { 서버들: [{ env: 'qa', baseUrl: 'https://qa.x' }], 폴더: { 폴더: 'demo' }, 저장소: { 자리: 'maxihan1/test-platform' }, 제외: ['/old'] };
   const 새me = (서비스: unknown[]) => ({ user: { username: 'mac', role: 'member', services: 서비스 } });
 
   it('설정을 바꿨으면 다음 건부터 새 경로를 쓴다 — 대상 서버 · 테스트 폴더는 켤 때 것 그대로', () => {
-    const 몸 = 새me([{ prefix: 'DEMO', envs: [], testsDir: 'other', crawlExclude: ['/daejeon'], permissions: { authoring: 'write' } }]);
+    const 몸 = 새me([{ prefix: 'DEMO', envs: [], testsDir: 'other', testsRepo: 'https://github.com/maxihan1/test-platform', crawlExclude: ['/daejeon'], permissions: { authoring: 'write' } }]);
     expect(건설정(몸, 'DEMO', 켤때)).toEqual({ ...켤때, 제외: ['/daejeon'] });
   });
 
+  it('저장소 칸을 옮겼으면 다음 건부터 새 저장소다 — 켤 때 것으로 두면 옛 저장소에 PR 을 올려 끝내기 대조에서 한 건을 버린다', () => {
+    const 몸 = 새me([{ prefix: 'DEMO', testsDir: 'demo', testsRepo: 'https://github.com/maxihan1/demo-market.git', crawlExclude: [], permissions: { authoring: 'write' } }]);
+    expect(건설정(몸, 'DEMO', 켤때).저장소).toEqual({ 자리: 'maxihan1/demo-market' });
+    const 틀림 = 새me([{ prefix: 'DEMO', testsDir: 'demo', testsRepo: 'git@github.com:maxihan1/demo-market.git', crawlExclude: [], permissions: { authoring: 'write' } }]);
+    expect(건설정(틀림, 'DEMO', 켤때).저장소).toEqual({ 사유: expect.stringContaining('DEMO 의 테스트 저장소') });
+  });
+
   it('비웠으면 빈 목록이다', () => {
-    const 몸 = 새me([{ prefix: 'DEMO', testsDir: 'demo', crawlExclude: [], permissions: { authoring: 'write' } }]);
+    const 몸 = 새me([{ prefix: 'DEMO', testsDir: 'demo', testsRepo: 'https://github.com/maxihan1/test-platform', crawlExclude: [], permissions: { authoring: 'write' } }]);
     expect(건설정(몸, 'DEMO', 켤때).제외).toEqual([]);
   });
 
@@ -189,7 +196,7 @@ describe('건설정 — 건을 가져갈 때 다시 읽은 me 로 훑지 않을 
 
 describe('새줄보기 — 켠 뒤 새로 맡은 애플리케이션 줄을 다시 켜지 않고 연다 (GAME-F2-14)', () => {
   const 맡음 = (...prefix: string[]) => ({
-    user: { username: 'mac', role: 'member', services: prefix.map((p) => ({ prefix: p, testsDir: p.toLowerCase(), permissions: { authoring: 'write' } })) },
+    user: { username: 'mac', role: 'member', services: prefix.map((p) => ({ prefix: p, testsDir: p.toLowerCase(), testsRepo: p === 'BAD' ? '' : 'https://github.com/maxihan1/test-platform', permissions: { authoring: 'write' } })) },
   });
   afterEach(() => {
     vi.useRealTimers();
@@ -205,10 +212,25 @@ describe('새줄보기 — 켠 뒤 새로 맡은 애플리케이션 줄을 다�
     await vi.advanceTimersByTimeAsync(999);
     expect(연것).toEqual([]);
     await vi.advanceTimersByTimeAsync(1);
-    expect(연것).toEqual([['ASH', { 서버들: [], 폴더: { 폴더: 'ash' }, 제외: [], 게임: false }]]);
+    expect(연것).toEqual([['ASH', { 서버들: [], 폴더: { 폴더: 'ash' }, 저장소: { 자리: 'maxihan1/test-platform' }, 제외: [], 게임: false }]]);
     await vi.advanceTimersByTimeAsync(2000);
     expect(연것.map(([서비스]) => 서비스)).toEqual(['ASH']);
     expect([...도는것]).toEqual(['DEMO', 'OLD', 'ASH']);
+  });
+
+  it('테스트 저장소 꼴이 틀린 줄은 안 열고 경고를 한 번만 찍는다 — 설정을 고치면 다음 차례에 연다', async () => {
+    vi.useFakeTimers();
+    const 오류 = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const 연것: string[] = [];
+    let 고침 = false;
+    새줄보기(async () => (고침 ? { user: { ...맡음('BAD').user, services: [{ ...맡음('BAD').user.services[0]!, testsRepo: 'https://github.com/maxihan1/test-platform' }] } } : 맡음('BAD')), new Set(), async (서비스) => void 연것.push(서비스), () => false, 1000);
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(연것).toEqual([]);
+    expect(오류).toHaveBeenCalledTimes(1);
+    expect(String(오류.mock.calls[0]?.[0])).toMatch(/BAD 줄을 안 연다 — BAD 의 테스트 저장소/);
+    고침 = true;
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(연것).toEqual(['BAD']);
   });
 
   it('멈췄으면 읽지 않는다', async () => {
@@ -242,5 +264,14 @@ describe('새줄보기 — 켠 뒤 새로 맡은 애플리케이션 줄을 다�
     await vi.advanceTimersByTimeAsync(1000);
     expect(연것).toEqual([]);
     expect(String(오류.mock.calls[0]?.[0])).toMatch(까닭);
+  });
+});
+
+describe('열줄가르기 — 테스트 저장소 꼴이 틀린 서비스는 집지 않는다 (도메인/작성 「케이스를 쓰고 PR 을 올리는 곳」)', () => {
+  it('저장소가 비었거나 꼴이 틀린 서비스만 빼고 까닭을 단다', () => {
+    const 설정 = (저장소: { 자리: string } | { 사유: string }) => ({ 서버들: [], 폴더: { 폴더: 'x' }, 저장소, 제외: [] });
+    const r = 열줄가르기(['DEMO', 'DMW', 'BAD'], { DEMO: 설정({ 자리: 'maxihan1/test-platform' }), DMW: 설정({ 자리: 'maxihan1/demo-market' }), BAD: 설정({ 사유: 'BAD 의 테스트 저장소 설정이 비었다' }) });
+    expect(r.열것).toEqual(['DEMO', 'DMW']);
+    expect([...r.경고]).toEqual([['BAD', '[작성] BAD 줄을 안 연다 — BAD 의 테스트 저장소 설정이 비었다']]);
   });
 });

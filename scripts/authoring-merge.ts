@@ -15,7 +15,9 @@ import {
   올린파일인자,
   올릴브랜치,
 } from './authoring-chain.js';
-import { 병합직전막힘 } from './authoring-merge-files.js';
+import { 머지끝몸, 바탕보기, 병합뒤상태, 병합직전막힘 } from './authoring-merge-files.js';
+import { 대상병합 } from './authoring-merge-target.js';
+import { 거울차례 } from './authoring-repo-io.js';
 import { type 보고손, type 칠때, type 판정기, 멈춤, 쉬기, 진짜main받기, 친다, 커밋받기 } from './authoring-io.js';
 import { type 반영준비, 반영올리기, 반영작업방, 반영치우기 } from './authoring-held-merge.js';
 import { 겹침보기 } from './authoring-conflicts-io.js';
@@ -81,10 +83,13 @@ export async function 머지처리(
     await 손.끝내기({ status: 'FAILED', error: 남의것 });
     return;
   }
+  // 대상 저장소면 뿌리가 거울이다 — CI 대신 검사 셋을 사본에서 돌리고(authoring-merge-target) 거울에 쓰는 git 은 거울 줄로 세운다
+  const 대상 = 반영 !== undefined && 반영.저장소.도구 !== null;
+  const 줄 = 대상 ? <T>(일: () => Promise<T>) => 거울차례(뿌리, 일) : 한번에하나;
   // 병합은 됐는데 보고만 잃은 경우다. 다시 누른 것을 실패로 닫으면 사람이 헷갈린다.
   // 이 길도 받아 온 뒤 끝낸다 — 안 받아 오면 케이스 고치기의 저장값이 말없이 남아 반영한 기대값을 가린다
   if (pr.state === 'MERGED') {
-    await 당기고끝내기(손, 'MERGED', prUrl, '', 뿌리, 호스트로);
+    await (대상 ? 손.끝내기(머지끝몸('MERGED', prUrl, '', true)) : 당기고끝내기(손, 'MERGED', prUrl, '', 뿌리, 호스트로));
     return;
   }
   if (pr.state !== 'OPEN') {
@@ -109,7 +114,7 @@ export async function 머지처리(
   // 지금 main 과 견줘 겹친 케이스를 보고(고르지 않았으면 여기서 멈춘다), 보류 값 · 고른 것 · main 합치기가 있으면
   // 작업 폴더에서 커밋까지 한다 (작성 §3.6 「★ 보류 케이스」 반영 · 「★ 반영 때 겹침 검사」).
   // 올리기는 초안을 푼 뒤다 — 초안에 올리면 잡을 건너뛴 success 실행이 새 머리에 붙어 검사 없이 병합할 수 있다
-  const 길 = 반영 === undefined ? null : await 겹침보기(손, 반영, pr.headRefOid, 반영.판.원천, 호스트로, 한번에하나);
+  const 길 = 반영 === undefined ? null : await 겹침보기(손, 반영, pr.headRefOid, 뿌리, 호스트로, 줄);
   if (반영 !== undefined && 길 === null) return;
   const 브랜치번호 = Number(pr.headRefName.slice('author-'.length));
   const 작업 = 반영 !== undefined && 길?.길 === '작업방' ? await 반영작업방(손, 반영, 브랜치번호, pr.headRefOid, 길.판) : undefined;
@@ -119,7 +124,7 @@ export async function 머지처리(
   const 이미준비됨 = !pr.isDraft;
   let 이후번호 = 0;
   try {
-    if (pr.isDraft) {
+    if (pr.isDraft && !대상) {
       // 초안일 때 뜬 실행(잡을 건너뛴 채 끝난 것)을 기준으로 잡아 두고 그 뒤 실행만 본다.
       // ★ 못 읽었으면 여기서 멈춘다 — 기준이 0 이 되면 건너뛴 채 success 로 끝난 초안 실행을
       // 새 실행으로 읽어 **검사 없이 병합한다** (2026-09-23 검증이 잡았다)
@@ -140,7 +145,7 @@ export async function 머지처리(
       const 새머리 = await 반영올리기(손, 적은자리, 브랜치번호, pr.headRefOid, prUrl, 뿌리, 작업?.처리줄 ?? null);
       if (새머리 === null) {
         // 보류가 든 PR 이 준비 상태로 남으면 CI 가 빨갛게 돈다 — 풀어 둔 초안을 되돌린다
-        if (pr.isDraft) 친다('gh', ['pr', 'ready', '--undo', prUrl], 뿌리);
+        if (pr.isDraft && !대상) 친다('gh', ['pr', 'ready', '--undo', prUrl], 뿌리);
         return;
       }
       pr.headRefOid = 새머리;
@@ -148,6 +153,7 @@ export async function 머지처리(
   } finally {
     if (적은자리 !== undefined && 반영 !== undefined) await 반영치우기(적은자리, 반영.것.id, 반영.자식);
   }
+  if (대상 && 반영 !== undefined) return 대상병합(손, { url: prUrl, 머리: pr.headRefOid, isDraft: pr.isDraft }, 판정, 반영, 호스트로, 작업?.바뀐것 ?? []);
 
   await 손.단계('CI 기다리는 중');
   const 끝시각 = Date.now() + 전체제한;
@@ -196,6 +202,7 @@ export async function 머지처리(
     머리,
     목록: (기준, 머리sha) => 친다('git', 올린파일인자(기준, 머리sha), 뿌리),
     테스트만: (파일들, 기준) => 판정(파일들, 기준, 뿌리),
+    바탕: 바탕보기((인자) => 친다('git', 인자, 뿌리), false),
   });
   if (막힘 !== null) {
     await 손.끝내기({ status: 'FAILED', error: 막힘 });
@@ -220,15 +227,6 @@ async function 당기고끝내기(손: 보고손, 상태: string, prUrl: string,
         })
       : null;
   await 손.끝내기(머지끝몸(상태, prUrl, 까닭, 당김, 바뀐것));
-}
-
-/** 병합 끝내기 몸 — 당겼는지(`pulled`, 서버가 true 일 때만 저장값을 지운다)와 겹침으로 바뀐 번호(`mergedAs`, 작성 상세의 고리 · 리뷰 M6) */
-export function 머지끝몸(상태: string, prUrl: string, 까닭: string, 당김: boolean | null, 바뀐것: 바뀐것[] = []): Record<string, unknown> {
-  if (상태 === 'MERGED') {
-    const mergedAs = Object.fromEntries(바뀐것.map((b) => [b.옛, '새' in b ? b.새 : null]));
-    return { status: 'DONE', prUrl, result: { pulled: 당김 === true, ...(바뀐것.length > 0 ? { mergedAs } : {}) } };
-  }
-  return { status: 'FAILED', error: `병합이 안 됐다 (${상태}): ${까닭 || '충돌이나 보호 규칙을 봐라'}` };
 }
 
 /**
@@ -281,19 +279,4 @@ function main당기기(뿌리: string, 호스트로: 칠때): boolean {
   const r = 친다호스트(당김인자);
   console.log(r.ok ? '[머지] main 을 당겼다 — 새 테스트가 목록에 뜬다.' : `[머지] main 당기기 실패: ${r.까닭}`);
   return r.ok;
-}
-
-/**
- * 병합 뒤 PR 상태. 병합 명령이 성공(EXIT 0)했으면 상태를 못 읽거나 못 풀어도 병합된 것으로 본다 —
- * 된 병합을 FAILED 로 덮으면 사람이 또 누르고, 그 요청은 끝내 실패로 남는다
- */
-export function 병합뒤상태(병합됨: boolean, 뷰: { ok: boolean; 낸것: string }): string {
-  const 모름 = 병합됨 ? 'MERGED' : '못 읽음';
-  if (!뷰.ok) return 모름;
-  try {
-    return (JSON.parse(뷰.낸것) as { state: string }).state;
-  } catch (e) {
-    console.error(`[머지] 병합 뒤 PR 상태를 못 풀었다: ${e instanceof Error ? e.message : String(e)}`);
-    return 모름;
-  }
 }

@@ -4,7 +4,8 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { 당길까, 당김인자, 머지끝몸, 머지브랜치거부사유, 병합뒤상태, 상태인자, 한번에하나 } from './authoring-merge.js';
+import { 당길까, 당김인자, 머지브랜치거부사유, 상태인자, 한번에하나 } from './authoring-merge.js';
+import { 머지끝몸, 병합뒤상태 } from './authoring-merge-files.js';
 
 describe('머지브랜치거부사유 — 에이전트가 올린 그 PR 만 병합한다', () => {
   it('원본 요청이 올린 author-<번호> 이고 같은 저장소 것이면 통과다', () => {

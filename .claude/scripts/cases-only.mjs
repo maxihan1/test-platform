@@ -14,6 +14,9 @@ export const 케이스파일꼴 = /^tests\/[^/]+\/[A-Z][A-Z0-9]{0,11}-(?:(?:UI|F
 export const 페이지파일꼴 = /^tests\/[^/]+\/pages\/[a-z][a-z0-9-]{0,40}\.page\.ts$/;
 export const 부품파일꼴 = /^tests\/[^/]+\/components\/[a-z][a-z0-9-]{0,40}\.component\.ts$/;
 export const 도우미파일꼴 = /^tests\/[^/]+\/helpers\/[a-z][a-z0-9-]{0,40}\.helper\.ts$/;
+// 대상 저장소의 첫 작성 PR 이 같이 넣는 바탕 파일 — 이름만 정확히 받는다. 없던 것을 정해 둔 꼴로 새로 만들 때만인지는 작성 에이전트가 본다
+// (scripts/authoring-repo-base.ts · 도메인/작성 「케이스를 쓰고 PR 을 올리는 곳」)
+export const 바탕파일이름 = new Set(['tests/package.json', 'tests/playwright.config.ts', 'tests/tsconfig.json']);
 
 /**
  * 파일 목록이 전부 케이스 spec · Page Object · 화면 조각 · 공용 도우미 또는 `docs/cases/*.md` 인가. 폴더가 base 에 있었는지는 묻지 않는다.
@@ -36,6 +39,7 @@ export function 테스트만인가(파일들) {
   return 파일들.every((f) => {
     if (f.split('/').includes('..')) return false;
     if (/^docs\/cases\/[^/]+\.md$/.test(f)) return true;
+    if (바탕파일이름.has(f)) return true;
     return 케이스파일꼴.test(f) || 페이지파일꼴.test(f) || 부품파일꼴.test(f) || 도우미파일꼴.test(f);
   });
 }

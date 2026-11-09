@@ -21,6 +21,7 @@ import { pathToFileURL } from 'node:url';
 import { type 설정, type 설정자리, admin주소, 기다렸다다시인가, 선행검사, 주소안전한가, 집은것인가 } from './authoring-rules.js';
 import { 보관훑기 } from './authoring-keeping.js';
 import { 계정들, 동시상한, 바탕거부사유, 호스트환경 } from './authoring-copy.js';
+import { 자기저장소인가 } from './authoring-repo.js';
 import { 도는자식, 멈춤, 보고손만들기, 부른다, 자리들, 친다, 판정기만들기 } from './authoring-io.js';
 import { 모델설정, 버전뽑기, 업데이트인자, 업데이트할까, 점검통과 } from './authoring-model.js';
 import { 멈춘것닫기 } from './authoring-closing.js';
@@ -34,7 +35,7 @@ import { 닫을PR처리, 수정PR상태처리 } from './authoring-pr-close.js';
 import { 노트일인가 } from './authoring-note-prompt.js';
 import { type 판, 한건처리 } from './authoring-run.js';
 import { 도는일들, 반영줄들, 자리놓을까 } from './authoring-lanes.js';
-import { type 서비스설정, 건설정, 나풀기, 새줄보기, 토큰고르기, 토큰모양인가, 토큰묻기, 토큰읽기, 토큰자리, 토큰저장 } from './authoring-token.js';
+import { type 서비스설정, 건설정, 나풀기, 새줄보기, 열줄가르기, 토큰고르기, 토큰모양인가, 토큰묻기, 토큰읽기, 토큰자리, 토큰저장 } from './authoring-token.js';
 
 // ── 껍데기 ────────────────────────────────────────────────────────────
 // 여기부터는 I/O 다. 판단은 전부 위의 순수 함수에 있고 검사도 거기 붙어 있다.
@@ -230,7 +231,9 @@ async function 돈다(): Promise<number> {
         if (집은것인가(답.status, 답.몸)) {
           const 것 = 답.몸;
           집었나 = true;
-          const 놓나 = 자리놓을까(것);
+          // 대상 저장소 반영은 보류가 없어도 병합 전 검사가 케이스 코드를 돌려 자리 uid 가 있어야 한다 (authoring-repo-io `대상검사`)
+          const 저장소 = 설정표[서비스]?.저장소;
+          const 놓나 = 자리놓을까(것) && (저장소 === undefined || '사유' in 저장소 || 자기저장소인가(저장소.자리, 판.원격주소));
           console.log(`[작성] ${서비스} 의 ${것.id}번을 집었다 (${것.kind}${놓나 ? '' : ` · 자리 ${자리번호}`}).`);
           const 처리 = async (쓸자리: number) => {
             // 노트 고치기는 테스트 저장소도 PR 도 없다 — 서비스 설정도 안 읽는다
@@ -303,10 +306,12 @@ async function 돈다(): Promise<number> {
     }
   };
 
-  console.log(`[작성] 줄을 본다: ${서비스들.join(' · ')} · 동시에 ${켜기.상한}건 — 멈추려면 Ctrl+C.`);
+  const { 열것, 경고 } = 열줄가르기(서비스들, 설정표);
+  for (const 글 of 경고.values()) console.error(글);
+  console.log(`[작성] 줄을 본다: ${열것.join(' · ') || '없음(저장소 설정을 고치면 1분 안에 연다)'} · 동시에 ${켜기.상한}건 — 멈추려면 Ctrl+C.`);
   새줄보기(
     () => 부른다(주소, 토큰, '/auth/me').then((답) => 답.몸),
-    new Set(서비스들),
+    new Set(열것),
     (서비스, 설정) => {
       설정표[서비스] = 설정;
       console.log(`[작성] 새로 맡은 ${서비스} 줄을 본다.`);
@@ -317,7 +322,7 @@ async function 돈다(): Promise<number> {
     },
     () => 멈춤.까닭 !== null,
   );
-  await Promise.all([...서비스들.map(줄돌기), 성능일돌기(주소, 토큰)]);
+  await Promise.all([...열것.map(줄돌기), 성능일돌기(주소, 토큰)]);
   await 일들.다기다리기();
   console.error(`[멈춤] ${멈춤.까닭}`);
   return 1;

@@ -101,8 +101,13 @@ export function 커밋메시지(번호: number, 서비스: string): string {
   return `[WS-작성] ${서비스} 작성 요청 ${번호}번 케이스`;
 }
 
-export function PR만들기인자(번호: number, 제목: string, 본문: string): string[] {
-  return ['pr', 'create', '--draft', '--base', 'main', '--head', 올릴브랜치(번호), '--title', 제목, '--body', 본문];
+/** 저장소를 주면 `--repo` 를 단다 — 대상 저장소는 사본 원격을 짐작하게 두지 않는다. 자기 저장소는 지금 모양 그대로 */
+export function PR만들기인자(번호: number, 제목: string, 본문: string, 저장소?: string): string[] {
+  return ['pr', 'create', '--draft', ...저장소인자(저장소), '--base', 'main', '--head', 올릴브랜치(번호), '--title', 제목, '--body', 본문];
+}
+
+function 저장소인자(저장소: string | undefined): string[] {
+  return 저장소 === undefined ? [] : ['--repo', 저장소];
 }
 
 export function PR준비인자(prUrl: string): string[] {
@@ -262,8 +267,8 @@ export function 닫을RUNNING(
 }
 
 /** push 는 됐는데 PR 만들기가 실패했다 다시 도는 경우. 또 만들면 같은 브랜치에 PR 이 둘이 된다 */
-export function PR찾기인자(번호: number): string[] {
-  return ['pr', 'list', '--head', 올릴브랜치(번호), '--json', 'url'];
+export function PR찾기인자(번호: number, 저장소?: string): string[] {
+  return ['pr', 'list', ...저장소인자(저장소), '--head', 올릴브랜치(번호), '--json', 'url'];
 }
 
 /** 빨간 CI 를 사람이 바로 열어 보게 실패 사유에 싣는 주소 */

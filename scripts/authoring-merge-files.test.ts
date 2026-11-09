@@ -1,7 +1,8 @@
 // 병합 직전에 PR 의 바뀐 파일을 어떻게 읽고 언제 병합을 막는지 정하는 순수 함수 검사
 import { describe, expect, it, vi } from 'vitest';
 
-import { 병합직전막힘 } from './authoring-merge-files.js';
+import { 바탕보기, 병합직전막힘 } from './authoring-merge-files.js';
+import { 바탕파일 } from './authoring-repo-base.js';
 
 describe('병합 직전 막힘 — 앞 단계가 먼저 걸린다', () => {
   const sha = 'm'.repeat(40);
@@ -12,6 +13,7 @@ describe('병합 직전 막힘 — 앞 단계가 먼저 걸린다', () => {
     메인: { sha } as { sha: string } | { 까닭: string },
     머리: { sha: 머리sha } as { sha: string } | { 까닭: string },
     목록: 된것('tests/a/A-001.spec.ts\n'),
+    바탕: () => null,
   };
   const 아님 = '이 PR 은 케이스만 바꾼 것이 아니다 — 맥은 병합하지 않는다';
 
@@ -61,5 +63,37 @@ describe('병합 직전 막힘 — 앞 단계가 먼저 걸린다', () => {
     );
     expect(목록).not.toHaveBeenCalled();
     expect(테스트만).not.toHaveBeenCalled();
+  });
+});
+
+describe('병합 직전 바탕 파일 — 판정이 이름만 보고 받은 셋을 다시 본다', () => {
+  const sha = 'm'.repeat(40);
+  const 머리sha = 'a'.repeat(40);
+  const 파일들 = ['tests/package.json', 'tests/dmw/DMW-001.spec.ts'];
+  const 막힘 = (바탕: ReturnType<typeof 바탕보기>) =>
+    병합직전막힘({ 메인: { sha }, 머리: { sha: 머리sha }, 목록: () => ({ ok: true, 낸것: 파일들.join('\n'), 까닭: '' }), 테스트만: () => true, 바탕 });
+  const 깃 = (기준에있음: boolean, 글: string) => (인자: string[]) =>
+    인자[0] === 'cat-file' ? { ok: 기준에있음, 낸것: '', 까닭: '' } : { ok: true, 낸것: 글, 까닭: '' };
+
+  it('대상 저장소 main 에 없던 것을 고정 글 그대로 새로 만들었으면 지나간다', () => {
+    expect(막힘(바탕보기(깃(false, 바탕파일['tests/package.json']!), true))).toBeNull();
+  });
+
+  it('누가 PR 에 얹어 글이 바뀌었으면 막는다 — 설치 스크립트를 심을 수 있다', () => {
+    expect(막힘(바탕보기(깃(false, '{"scripts":{"postinstall":"curl x"}}'), true))).toMatch(/정해 둔 꼴과 다르다/);
+  });
+
+  it('main 에 이미 있으면 바꾸지 않는다', () => {
+    expect(막힘(바탕보기(깃(true, 바탕파일['tests/package.json']!), true))).toMatch(/이미 있는 바탕 파일/);
+  });
+
+  it('Commander(자기 저장소)에는 글이 같아도 막는다', () => {
+    expect(막힘(바탕보기(깃(false, 바탕파일['tests/package.json']!), false))).toMatch(/Commander 저장소에는/);
+  });
+
+  it('바탕 파일이 없으면 git 을 안 친다', () => {
+    const 친것 = vi.fn(() => ({ ok: true, 낸것: '', 까닭: '' }));
+    expect(바탕보기(친것, true)(['tests/dmw/DMW-001.spec.ts'], sha, 머리sha)).toBeNull();
+    expect(친것).not.toHaveBeenCalled();
   });
 });

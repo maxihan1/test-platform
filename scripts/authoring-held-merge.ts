@@ -18,6 +18,7 @@ import type { 바뀐것 } from './authoring-conflicts-apply.js';
 import { main합치기 } from './authoring-main-merge.js';
 import type { 모델 } from './authoring-model.js';
 import { AI부품합치기 } from './authoring-po-merge.js';
+import type { 쓸저장소 } from './authoring-repo.js';
 import {
   type 보류입력,
   값적기,
@@ -36,7 +37,9 @@ import {
 export interface 반영준비 {
   것: 집은것;
   서비스: string;
-  판: { 바탕: string; 원천: string; 원격주소: string; 모델: 모델 };
+  판: { 바탕: string; 모델: 모델; 계정: { 자식: 계정[]; 호스트: 계정 } | null };
+  /** PR 이 선 저장소 — 대상 저장소면 거울이 원천이고 작업 폴더에 Commander 도구를 얹는다 */
+  저장소: 쓸저장소;
   자식: 계정 | null;
   /** 서비스 설정의 테스트 폴더. 못 받았으면 null — 겹침을 못 본다 */
   폴더: string | null;
@@ -148,7 +151,7 @@ export async function 반영작업방(
   await 손.단계(held !== null ? '보류 값을 적는 중' : '겹친 케이스를 고른 대로 바꾸는 중');
   // 훑기가 도는 반영의 작업방을 지우지 않게 — 3회 실행은 한 시간 훑기 간격에 걸칠 수 있다
   도는번호.add(준비.것.id);
-  const 만든것 = await 사본만들기(준비.것.id, 준비.판.바탕, 준비.판.원천, 준비.판.원격주소, 머리, 준비.자식);
+  const 만든것 = await 사본만들기(준비.것.id, 준비.판.바탕, 준비.저장소, 머리, 준비.자식);
   if ('까닭' in 만든것) {
     도는번호.delete(준비.것.id);
     return 실패(만든것.까닭);

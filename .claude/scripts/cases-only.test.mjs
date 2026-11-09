@@ -80,6 +80,13 @@ test('Page Object 자리라도 꼴이 다르면 거짓 — 이름을 넓게 받�
   }
 });
 
+test('바탕 파일 셋은 tests/ 바로 아래 그 이름일 때만 참 — 대상 저장소 첫 PR 이 같이 싣는다', () => {
+  assert.equal(테스트만인가(['tests/package.json', 'tests/playwright.config.ts', 'tests/tsconfig.json', 'tests/dmw/DMW-001.spec.ts']), true);
+  for (const f of ['package.json', 'playwright.config.ts', 'tests/dmw/package.json', 'tests/package-lock.json', 'tests/Package.json', 'tests/tsconfig.base.json', 'docs/tests/package.json']) {
+    assert.equal(테스트만인가([f]), false, f);
+  }
+});
+
 test('명령줄 — 표준입력 목록과 base 로 판정해 종료 코드를 낸다', () => {
   const 스크립트 = fileURLToPath(new URL('./cases-only.mjs', import.meta.url));
   const 돌린다 = (입력, base) => {

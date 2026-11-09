@@ -6,6 +6,7 @@ import { dirname, join } from 'node:path';
 import { createInterface } from 'node:readline';
 
 import { 제외경로정리 } from '../apps/admin/src/settings/rules.js';
+import { type 저장소설정, 저장소고르기 } from './authoring-repo.js';
 
 /** 홈 아래 한 곳. 저장소 밖이라 커밋에 섞일 일이 없다 */
 export function 토큰자리(집: string): string {
@@ -112,6 +113,8 @@ function 제외고르기(값: unknown): string[] {
 export interface 서비스설정 {
   서버들: 서버[];
   폴더: 폴더자리;
+  /** 케이스를 쓰고 PR 을 올리는 저장소(testsRepo). 꼴이 틀리면 그 서비스 줄을 안 연다 (도메인/작성 「케이스를 쓰고 PR 을 올리는 곳」) */
+  저장소: 저장소설정;
   제외: string[];
   /** 종류 「게임」 — 게임 첫 화면 통로가 실패해도 게임 절 · 게임 지도 · 창 기록 올리기를 붙인다 (도메인/게임 §3.10 「작성 — 한 바퀴」) */
   게임?: boolean;
@@ -128,7 +131,7 @@ export function 나풀기(몸: unknown): { username: string; 서비스들: strin
     | {
         username?: unknown;
         role?: unknown;
-        services?: { prefix: string; kind?: unknown; envs?: 서버[]; testsDir?: unknown; crawlExclude?: unknown; permissions?: { authoring?: unknown } }[];
+        services?: { prefix: string; kind?: unknown; envs?: 서버[]; testsDir?: unknown; testsRepo?: unknown; crawlExclude?: unknown; permissions?: { authoring?: unknown } }[];
       }
     | undefined;
   if (user === undefined || typeof user.username !== 'string' || !Array.isArray(user.services)) {
@@ -144,19 +147,30 @@ export function 나풀기(몸: unknown): { username: string; 서비스들: strin
     username: user.username,
     서비스들: 맡은것.map((s) => s.prefix),
     설정표: Object.fromEntries(
-      맡은것.map((s) => [s.prefix, { 서버들: s.envs ?? [], 폴더: 폴더고르기(s.prefix, s.testsDir), 제외: 제외고르기(s.crawlExclude), 게임: s.kind === 'GAME', ...(typeof s.kind === 'string' && { 종류: s.kind }) }]),
+      맡은것.map((s) => [s.prefix, { 서버들: s.envs ?? [], 폴더: 폴더고르기(s.prefix, s.testsDir), 저장소: 저장소고르기(s.prefix, s.testsRepo), 제외: 제외고르기(s.crawlExclude), 게임: s.kind === 'GAME', ...(typeof s.kind === 'string' && { 종류: s.kind }) }]),
     ),
   };
 }
 
 /**
- * 건을 가져갈 때 다시 읽은 me 로 그 서비스의 훑지 않을 경로만 바꾼다 — 설정을 바꾸면 에이전트를 다시 켜지 않아도 다음 건부터 먹는다.
+ * 건을 가져갈 때 다시 읽은 me 로 그 서비스의 훑지 않을 경로 · 테스트 저장소만 바꾼다 — 설정을 바꾸면 에이전트를 다시 켜지 않아도 다음 건부터 먹는다.
+ * 저장소를 켤 때 것으로 두면 저장소 칸을 옮긴 뒤에도 옛 저장소에 PR 을 올려 끝내기 대조에서 한 건을 통째로 버린다.
  * 못 읽었거나 그 서비스가 빠졌으면 켤 때 것. 대상 서버 · 테스트 폴더는 켤 때 것 그대로다 (SPEC 도메인/인증 §7 · #153)
  */
 export function 건설정(몸: unknown, 서비스: string, 켤때: 서비스설정): 서비스설정 {
   const 새것 = 나풀기(몸);
-  const 제외 = typeof 새것 === 'string' ? undefined : 새것.설정표[서비스]?.제외;
-  return 제외 === undefined ? 켤때 : { ...켤때, 제외 };
+  const 그것 = typeof 새것 === 'string' ? undefined : 새것.설정표[서비스];
+  return 그것 === undefined ? 켤때 : { ...켤때, 제외: 그것.제외, 저장소: 그것.저장소 };
+}
+
+/** 줄을 열 서비스와 막힌 서비스의 경고 줄 — 테스트 저장소 꼴이 틀린 서비스는 집지 않는다. 집은 뒤 끝내기에서 막히면 한 건(최대 120분)을 버린다 */
+export function 열줄가르기(서비스들: string[], 설정표: Record<string, 서비스설정>): { 열것: string[]; 경고: Map<string, string> } {
+  const 경고 = new Map<string, string>();
+  for (const 서비스 of 서비스들) {
+    const 저장소 = 설정표[서비스]?.저장소;
+    if (저장소 !== undefined && '사유' in 저장소) 경고.set(서비스, `[작성] ${서비스} 줄을 안 연다 — ${저장소.사유}`);
+  }
+  return { 열것: 서비스들.filter((s) => !경고.has(s)), 경고 };
 }
 
 /**
@@ -172,6 +186,8 @@ export function 새줄보기(
   멈췄나: () => boolean,
   간격 = 60_000,
 ): void {
+  // 막힌 줄의 경고는 사유가 바뀔 때만 다시 찍는다 — 1분마다 같은 줄이 쌓이면 다른 로그가 묻힌다
+  const 찍은경고 = new Map<string, string>();
   setInterval(() => {
     if (멈췄나()) return;
     읽기().then(
@@ -181,7 +197,13 @@ export function 새줄보기(
           console.error(`[작성] 맡은 애플리케이션을 다시 못 풀었다: ${새것}`);
           return;
         }
-        for (const 서비스 of 새것.서비스들) {
+        const { 열것, 경고 } = 열줄가르기(새것.서비스들, 새것.설정표);
+        for (const [서비스, 글] of 경고) {
+          if (!도는것.has(서비스) && 찍은경고.get(서비스) !== 글) console.error(글);
+          찍은경고.set(서비스, 글);
+        }
+        for (const 서비스 of 열것) {
+          찍은경고.delete(서비스);
           if (멈췄나() || 도는것.has(서비스)) continue;
           도는것.add(서비스);
           열기(서비스, 새것.설정표[서비스]!).catch((err: unknown) => {

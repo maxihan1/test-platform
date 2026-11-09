@@ -59,6 +59,12 @@ describe('gh 인자', () => {
     expect(인자).toEqual(expect.arrayContaining(['--base', 'main', '--head', 'author-7', '--title', '제목', '--body', '본문']));
   });
 
+  it('대상 저장소면 --repo 를 달고 base 는 main 그대로다 — 자기 저장소는 --repo 없이 지금 모양', () => {
+    expect(PR만들기인자(7, '제목', '본문', 'maxihan1/demo-market')).toEqual(['pr', 'create', '--draft', '--repo', 'maxihan1/demo-market', '--base', 'main', '--head', 'author-7', '--title', '제목', '--body', '본문']);
+    expect(PR만들기인자(7, '제목', '본문')).not.toContain('--repo');
+    expect(PR찾기인자(12, 'maxihan1/demo-market')).toEqual(['pr', 'list', '--repo', 'maxihan1/demo-market', '--head', 'author-12', '--json', 'url']);
+  });
+
   it('초안 해제는 pr ready <주소>', () => {
     expect(PR준비인자(주소)).toEqual(['pr', 'ready', 주소]);
   });

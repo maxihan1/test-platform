@@ -6,6 +6,8 @@ import { type 보고손, 부른다 } from './authoring-io.js';
 import { 머지처리 } from './authoring-merge.js';
 import { type 서비스설정 } from './authoring-token.js';
 import { type 판 } from './authoring-run.js';
+import { PR저장소거부사유 } from './authoring-repo.js';
+import { 건저장소 } from './authoring-repo-io.js';
 
 export async function 머지행처리(
   주소기지: string,
@@ -34,5 +36,10 @@ export async function 머지행처리(
   }
   // 브랜치는 author-<뿌리> — 그 전에 선 PR 은 prUrl 을 가진 원본 행(sourceId)의 author-<실행 번호> 다 (§7 「실행 기록」)
   const 반영폴더 = '사유' in 설정.폴더 ? null : 설정.폴더.폴더;
-  await 머지처리(손, 주소, 판.판정, 것.sourceId ?? undefined, 판.원천, 판.호스트로, 요청뿌리, { 것, 서비스, 판, 자식, 폴더: 반영폴더, 고치기 });
+  // PR 이 선 저장소가 원천이다 — 대상 저장소면 거울에서 판정하고 CI 대신 검사 셋을 돌린다 (도메인/작성 「케이스를 쓰고 PR 을 올리는 곳」)
+  const 저장소 = await 건저장소(판, 설정.저장소, 손);
+  if (저장소 === null) return;
+  const 다른저장소 = 저장소.도구 === null ? null : PR저장소거부사유(주소, 저장소.자리);
+  if (다른저장소 !== null) return void (await 손.끝내기({ status: 'FAILED', error: 다른저장소 }));
+  await 머지처리(손, 주소, 판.판정, 것.sourceId ?? undefined, 저장소.원천, 판.호스트로, 요청뿌리, { 것, 서비스, 판, 저장소, 자식, 폴더: 반영폴더, 고치기 });
 }

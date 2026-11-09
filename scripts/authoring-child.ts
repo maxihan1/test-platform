@@ -5,6 +5,7 @@ import { chmodSync, chownSync, existsSync, lstatSync, mkdirSync, readdirSync, re
 import { join } from 'node:path';
 
 import { type 계정, type 사본, type 파일모양, 부품링크, 사본제외, 사본준비, 사본자리 } from './authoring-copy.js';
+import { type 쓸저장소, 대상사본제외, 대상사본준비, 대상펼칠것, 도구에서뺄것, 도구풀기, 풀기 } from './authoring-repo.js';
 import { type 돌린결과, 도는자식, 돌린다, 멈춤, 쉬기, 친다 } from './authoring-io.js';
 import { 자리폴더, 자리폴더열기 } from './authoring-slot.js';
 
@@ -19,14 +20,13 @@ const 빈환경 = { PATH: '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sb
 export async function 사본만들기(
   번호: number,
   바탕: string,
-  원천: string,
-  원격주소: string,
+  저장소: 쓸저장소,
   sha: string,
   자식: 계정 | null,
 ): Promise<{ 자리: 사본 } | { 까닭: string }> {
   const 자리 = 사본자리(번호, 바탕);
   try {
-    const 까닭 = await 만들기(자리, 원천, 원격주소, sha, 자식);
+    const 까닭 = await 만들기(자리, 저장소, sha, 자식);
     if (까닭 === null) return { 자리 };
     사본치우기(자리);
     return { 까닭 };
@@ -36,19 +36,18 @@ export async function 사본만들기(
   }
 }
 
-async function 만들기(자리: 사본, 원천: string, 원격주소: string, sha: string, 자식: 계정 | null): Promise<string | null> {
+async function 만들기(자리: 사본, 저장소: 쓸저장소, sha: string, 자식: 계정 | null): Promise<string | null> {
   rmSync(자리.뿌리, { recursive: true, force: true });
   mkdirSync(자리.뿌리, { recursive: true, mode: 0o755 });
   for (const 폴더 of [자리.트리, 자리.자료, 자리.gh]) mkdirSync(폴더, { mode: 0o700 });
   새집(자리);
 
-  for (const c of 사본준비(자리, 원천, 원격주소, sha)) {
-    const r = await 돌린다(c.명령, c.인자, { cwd: 자리.뿌리, env: process.env, 제한: 300_000 });
-    if (r.코드 !== 0) return `사본을 못 만들었다: ${c.인자.slice(0, 3).join(' ')} — ${첫줄(r)}`;
-  }
+  const 까닭 = 저장소.도구 === null ? await 차례로(자리, 사본준비(자리, 저장소.원천, 저장소.원격주소, sha)) : await 대상트리(자리, 저장소, 저장소.도구, sha);
+  if (까닭 !== null) return 까닭;
   chmodSync(자리.git, 0o700);
-  writeFileSync(join(자리.git, 'info', 'exclude'), 사본제외);
-  const 원천부품 = join(원천, 'node_modules');
+  if (저장소.도구 === null) writeFileSync(join(자리.git, 'info', 'exclude'), 사본제외);
+  // 부품은 Commander 체크아웃의 것이다 — 대상 저장소 거울에는 node_modules 가 없다
+  const 원천부품 = join(저장소.도구?.원천 ?? 저장소.원천, 'node_modules');
   mkdirSync(join(자리.트리, 'node_modules', '@platform'), { recursive: true });
   for (const [대상, 링크] of 부품링크(readdirSync(원천부품), 원천부품, 자리.트리)) symlinkSync(대상, 링크);
 
@@ -65,6 +64,30 @@ async function 만들기(자리: 사본, 원천: string, 원격주소: string, s
     }
   }
   return null;
+}
+
+async function 차례로(자리: 사본, 명령들: { 명령: string; 인자: string[] }[]): Promise<string | null> {
+  for (const c of 명령들) {
+    const r = await 돌린다(c.명령, c.인자, { cwd: 자리.뿌리, env: process.env, 제한: 300_000 });
+    if (r.코드 !== 0) return `사본을 못 만들었다: ${c.인자.slice(0, 3).join(' ')} — ${첫줄(r)}`;
+  }
+  return null;
+}
+
+/**
+ * 대상 저장소 사본 트리 — 두 겹이다. ① Commander 도구(관문 · 검사 · kit · playwright.config)를 풀고 그 tests · docs/cases 를 지운다
+ * ② 대상 저장소의 tests/ · docs/cases/ 만 같은 트리에 푼다. 관문을 서버 실행과 같은 Commander 도구로 돌리려고 겹친다 (도메인/작성 「케이스를 쓰고 PR 을 올리는 곳」)
+ */
+async function 대상트리(자리: 사본, 저장소: 쓸저장소, 도구: { 원천: string; sha: string }, sha: string): Promise<string | null> {
+  const 도구까닭 = await 차례로(자리, 도구풀기(도구, 자리));
+  rmSync(join(자리.뿌리, 'tools.tar'), { force: true });
+  if (도구까닭 !== null) return 도구까닭;
+  for (const 뺄것 of 도구에서뺄것) rmSync(join(자리.트리, 뺄것), { recursive: true, force: true });
+  const 깃까닭 = await 차례로(자리, 대상사본준비(자리, 저장소.원천, 저장소.원격주소, sha));
+  if (깃까닭 !== null) return 깃까닭;
+  writeFileSync(join(자리.git, 'info', 'sparse-checkout'), 대상펼칠것);
+  writeFileSync(join(자리.git, 'info', 'exclude'), 대상사본제외);
+  return 차례로(자리, [풀기(자리, sha)]);
 }
 
 /** 자식의 집과 임시를 새로 만든다. 이어받을 때도 새로 — 앞 실행의 전역 설정·캐시를 물려주지 않는다 */

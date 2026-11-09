@@ -6,21 +6,11 @@ import { join } from 'node:path';
 
 import type { 집은것 } from './authoring-rules.js';
 import { 비밀번호들 } from './authoring-accounts.js';
-import {
-  PR만들기인자,
-  PR찾기인자,
-  PR본문고치기인자,
-  덮어쓸수없는까닭,
-  한줄,
-  비밀섞였나,
-  push실패,
-  커밋메시지,
-  커밋뒤거부사유,
-  커밋수인자,
-  올린파일인자,
-  푸시거부사유,
-  푸시인자,
-} from './authoring-chain.js';
+import { 한줄, 비밀섞였나, 커밋메시지, 커밋뒤거부사유, 커밋수인자, 올린파일인자, 푸시거부사유 } from './authoring-chain.js';
+import { 올리고PR } from './authoring-upload-pr.js';
+import type { 쓸저장소 } from './authoring-repo.js';
+import { 바탕파일거부사유 } from './authoring-repo-base.js';
+import { 바탕파일쓰기 } from './authoring-repo-io.js';
 import { 바뀐파일들, 지운말, 치울새파일들 } from './authoring-status.js';
 import { 끝검사 } from './authoring-gate3.js';
 import { 폰끝검사 } from './authoring-run3-game.js';
@@ -37,7 +27,7 @@ import { 거두며스캔, 보류싣는손 } from './authoring-held.js';
 import { type 케이스재료, 바뀜풀기, 변경상태인자, 케이스싣는손 } from './authoring-cases.js';
 import { 모양보기, 트리실제 } from './authoring-child.js';
 import { type 자료, 자료출처, 화면만인가 } from './authoring-assets.js';
-import { type 보고손, type 판정기, 다시하며, 친다 } from './authoring-io.js';
+import { type 보고손, type 판정기, 친다 } from './authoring-io.js';
 import { type 표시준비물, 표시올리기, 표시준비 } from './authoring-marking.js';
 import { 거절로 } from './authoring-progress.js';
 import { PR본문 } from './authoring-pr-body.js';
@@ -73,6 +63,8 @@ export async function 올리기(
   기준: string,
   자식출력: string,
   원손: 보고손,
+  /** 대상 저장소면 첫 PR 바탕 파일을 싣고 gh 에 --repo 를 준다 (도메인/작성 「케이스를 쓰고 PR 을 올리는 곳」) */
+  저장소: 쓸저장소,
   역: 역방향올리기 | undefined,
   /** 게임은 끝 검사가 앱 경고 대신 폰 돌려 보기 줄을 싣는다 (도메인/게임 §3.10 「작성 — 한 바퀴」 6). 팜토큰은 서버가 앱 화면 응답으로 넘겨 자식 환경에 든 것이다 */
   원장재료: { 값: 원장 | { 없음: string }; 폴더: string; 자식: 계정 | null; 기준: 기준결정; 게임?: boolean; 팜토큰?: string },
@@ -119,21 +111,26 @@ export async function 올리기(
   }
   const 저장줄 = 저장 === null ? [] : [저장.줄];
   if (저장줄.length > 0) console.log(`[작성] ${것.id}번 — ${저장줄[0]}`);
+  const 기준에있나 = (f: string) => 트리에서('git', ['cat-file', '-e', `${기준}:${f}`]).ok;
   const 상태 = 트리에서('git', ['-c', 'core.quotePath=false', 'status', '--porcelain', '-uall']);
   if (!상태.ok) {
     await 손.끝내기(거절(`바뀐 파일을 못 읽었다: ${상태.까닭}`));
     return;
   }
-  const 파일들 = 바뀐파일들(상태.낸것);
+  const 자식파일들 = 바뀐파일들(상태.낸것);
   // 판정 규칙은 cases-only.mjs 가 정본이다. 켤 때 메모리에 고정한 판을 쓴다 — 자식이 파일을 바꿔도 그대로다
   const 테스트만 = (목록: string[]) => 판정(목록, 기준, 자리.트리, 깃);
-  const 거부 = 푸시거부사유(테스트만(파일들), 파일들);
+  const 거부 = 푸시거부사유(테스트만(자식파일들), 자식파일들);
   if (거부 !== null) {
     // 화면만인데 크롤러가 찾은 화면이 모두 PRD 에 있으면 올릴 것이 없는 게 맞다 — 올리기 거절(중단)이 아니라 이어서 작성할 것이 없는 실패다 (PRD-F6-03)
-    const 다덮음 = 파일들.length === 0 && 역 !== undefined && 화면만인가(것, 역.입력자료) ? 화면만다덮음(자리.자료, 원장재료.게임 === true) : null;
+    const 다덮음 = 자식파일들.length === 0 && 역 !== undefined && 화면만인가(것, 역.입력자료) ? 화면만다덮음(자리.자료, 원장재료.게임 === true) : null;
     await 손.끝내기(다덮음 === null ? 거절(거부) : { status: 'FAILED', error: 다덮음사유(다덮음) });
     return;
   }
+  // 대상 저장소 첫 PR 은 바탕 파일을 같이 넣는다 — 자식이 바꾼 것이 있을 때만 · 스캔이 자식 코드를 돈 뒤라 덮은 글이 안 바뀐다
+  const 바탕쓰기 = 저장소.도구 === null ? { 쓴것: [] } : 바탕파일쓰기(자리, 기준에있나);
+  if ('까닭' in 바탕쓰기) return void (await 손.끝내기(거절(바탕쓰기.까닭)));
+  const 파일들 = [...new Set([...자식파일들, ...바탕쓰기.쓴것])];
 
   for (const [인자, 설명] of [
     [['add', '--', ...파일들], '담기'],
@@ -170,6 +167,8 @@ export async function 올리기(
     return;
   }
   const 읽기 = (f: string) => (모양보기(자리.트리, f).종류 === '파일' ? readFileSync(join(자리.트리, f), 'utf8') : '');
+  const 바탕거부 = 바탕파일거부사유(전체, 기준에있나, 읽기, 저장소.도구 !== null); // 판정은 바탕 파일 이름만 봤다 — 기준에 없던 것을 정해 둔 글 그대로인지, Commander 엔 안 넣는지
+  if (바탕거부 !== null) return void (await 손.끝내기(거절(바탕거부)));
   // 원장 대조 — 메모리의 원장 · 올릴 트리의 표와 케이스로 본다. 빠져도 거절하지 않고 셈과 PR 본문 머리에 남긴다 — 케이스 0건만 예외다 (§3.6 「★ 원장」, 2026-09-30 게이트 1)
   const 추적 = 트리에서('git', ['ls-files', '-z', '--', `tests/${원장재료.폴더}`]);
   if (!추적.ok) return void (await 손.끝내기(거절(`원장 대조용 케이스 목록을 못 읽었다: ${추적.까닭}`)));
@@ -238,37 +237,11 @@ export async function 올리기(
     };
   }
 
-  // 훅은 안 돈다(사본환경) — 트리의 훅은 자식이 쓴 것이다. 같은 검사(타입·K 규칙)는 CI 의 가벼운 길이 한다
-  // 요청 하나에 브랜치 하나(author-<뿌리>) — 사람이 올린 커밋이 머리에 있으면 덮어쓰지 않는다 (§7 「실행 기록」)
-  const 올림 = await 다시하며('push', () => {
-    const 남의것 = 덮어쓸수없는까닭(트리에서, 자료출처(것));
-    if (남의것 !== null) return 남의것;
-    const r = 트리에서('git', 푸시인자(자료출처(것)));
-    return r.ok ? { 값: true } : push실패(r);
-  });
-  if ('까닭' in 올림) {
-    await 손.끝내기(거절(사유거르기(`push 가 실패했다: ${올림.까닭}`, 비밀)));
-    return;
-  }
-
-  // 재시도 전에 먼저 찾는다 — 만들기가 GitHub 에선 됐는데 답만 잃었으면 또 만들면 PR 이 둘이 된다
-  const PR = await 다시하며('PR 만들기', () => {
-    const 있나 = 트리에서('gh', PR찾기인자(자료출처(것)));
-    const 있는것 = 있나.ok ? (JSON.parse(있나.낸것 || '[]') as { url: string }[])[0]?.url : undefined;
-    if (있는것 !== undefined) {
-      if (!트리에서('gh', PR본문고치기인자(있는것, 본문글)).ok) console.error(`[작성] ${것.id}번 PR 본문을 못 고쳤다 — 옛 본문이 남는다`);
-      return { 값: 있는것 };
-    }
-    const r = 트리에서('gh', PR만들기인자(자료출처(것), 커밋메시지(자료출처(것), 서비스), 본문글));
-    const 주소 = r.낸것.trim().split('\n').pop() ?? '';
-    return r.ok && 주소.startsWith('https://') ? { 값: 주소 } : { 까닭: r.까닭 || 'PR 주소가 안 찍혔다' };
-  });
-  if ('까닭' in PR) {
-    await 손.끝내기(거절(사유거르기(`PR 을 못 만들었다: ${PR.까닭}`, 비밀)));
-    return;
-  }
+  const PR = await 올리고PR(트리에서, { 번호: 것.id, 뿌리: 자료출처(것), 서비스, 본문: 본문글, PR저장소: 저장소.도구 === null ? undefined : 저장소.자리 });
+  if ('까닭' in PR) return void (await 손.끝내기(거절(사유거르기(PR.까닭, 비밀))));
+  const PR주소 = PR.주소;
   if (역결과 === null || 역 === undefined) {
-    await 손.끝내기({ status: 'DONE', prUrl: PR.값 });
+    await 손.끝내기({ status: 'DONE', prUrl: PR주소 });
     return;
   }
 
@@ -293,7 +266,7 @@ export async function 올리기(
   }
   await 손.끝내기({
     status: 'DONE',
-    prUrl: PR.값,
+    prUrl: PR주소,
     result: { diffs: 보낼차이(표시된) },
     ...(남길말.length === 0 ? {} : { error: 사유거르기(남길말.join(' · '), 비밀) }),
   });
