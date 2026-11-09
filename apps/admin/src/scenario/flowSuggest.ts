@@ -21,7 +21,7 @@ export interface 흐름재료 {
   game?: boolean;
   reqs: { reqId: string; feature: string; kinds: string[]; text: string }[];
   /** params 는 입력값 칸 이름 · gameScreen 은 게임 애플리케이션에만 단다 */
-  cases: { tcId: string; name: string; reqIds: string[]; screens: string[]; normal: boolean; first: string | null; params: string[]; gameScreen?: boolean }[];
+  cases: { tcId: string; name: string; reqIds: string[]; screens: string[]; normal: boolean; params: string[]; gameScreen?: boolean }[];
   links: { from: string; to: string; via: string }[];
   truncated: boolean;
 }
@@ -37,7 +37,6 @@ export interface 재료원천 {
     name: string;
     platforms: string[];
     techniques: string[];
-    stepTitles: string[] | null;
     params: string[];
     /** 케이스 몸통이 받는 이름(catalog/steps.ts) — 게임 애플리케이션만 읽는다. 못 읽었으면 없다 */
     fixtures?: string[] | undefined;
@@ -65,8 +64,6 @@ export function 재료짓기(원천: 재료원천): 흐름재료 {
       // 화면 연결과 같은 틀로 맞춘다 — 그래야 AI 가 케이스 화면과 연결을 이어 읽는다
       screens: [...new Set((m?.screens ?? []).flatMap((s) => (s.url === null ? [] : [주소틀(s.url) ?? s.url])))],
       normal: 흐름인가({ reqs: 요구, techniques: c.techniques }, 원천.PRD씀),
-      // 첫 절차 제목이 같은 케이스끼리 이으면 뒤 단계가 그 절차(로그인 등)를 건너뛴다 (§3.7 결정 4 「첫 절차 이어받기」)
-      first: c.stepTitles?.[0] ?? null,
       // 입력값을 받는 케이스는 앞 단계가 만든 값을 값 연결로 받아야 이어진다 — AI 가 칸 이름을 짐작하지 않고 고르게 한다
       params: c.params,
       // 몸통이 game · driver 를 받아야 게임 화면을 연다. 나머지는 API 만 부른다 (2026-11-09 E2E-F4-03 — ASH 267개 중 218개)

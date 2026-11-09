@@ -35,7 +35,7 @@ const 재료 = (tcId: string): CasePartMaterial => ({
   precondition: [],
   paramSchema: tcId === 'ZSB-002' ? { type: 'object', properties: { orderId: { type: 'string' } } } : { type: 'object', properties: {} },
   expectedSchema: { type: 'object', properties: {} },
-  steps: [{ title: '로그인한다', skippable: true, carry: false }],
+  steps: [{ title: '로그인한다', skippable: true }],
   r16: true,
   unconfirmed: null,
 });

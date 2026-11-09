@@ -6,7 +6,7 @@ import { 원인을가른다, 한줄로자른다 } from '../reporting/failureType
 import type { 항목실패 } from '../reporting/itemFailure.js';
 import { t, type 언어 } from './i18n.js';
 import type { LinkSuggestion, TrialResult } from './scenarioApi.js';
-import { 건너뛸수있나, 빈연결, 이미실행, type 재료들 } from './scenarioView.js';
+import { 빈연결, 이미실행, type 재료들 } from './scenarioView.js';
 
 /** 값을 가져올 단계 번호. 요청 차단은 앞 단계가 없다 */
 export function 가져올번호(l: ScenarioLink): number | null {
@@ -60,7 +60,7 @@ export function 연결상태(parts: ScenarioPart[], 받는번호: number, l: Sce
 export function 이어받기적용(parts: ScenarioPart[], 재료: 재료들, 켬: boolean): ScenarioPart[] {
   return parts.map((p, i) => {
     if (p.kind !== 'case' || p.carryOver === false) return p;
-    const 건너뛸 = 켬 ? (재료.get(p.tcId)?.steps ?? []).filter((s) => 건너뛸수있나(parts, 재료, i + 1, s) && 이미실행(parts, 재료, i + 1, s.title) !== null) : [];
+    const 건너뛸 = 켬 ? (재료.get(p.tcId)?.steps ?? []).filter((s) => s.skippable && 이미실행(parts, 재료, i + 1, s.title) !== null) : [];
     return { ...p, skipSteps: 건너뛸.map((s) => s.title) };
   });
 }
@@ -71,7 +71,7 @@ export function 이어받기처음(parts: ScenarioPart[], 재료: 재료들): nu
   parts.forEach((p, i) => {
     if (p.kind !== 'case' || p.carryOver === false) return;
     for (const s of 재료.get(p.tcId)?.steps ?? []) {
-      if (!건너뛸수있나(parts, 재료, i + 1, s)) continue;
+      if (!s.skippable) continue;
       const 앞 = 이미실행(parts, 재료, i + 1, s.title);
       if (앞 !== null && (처음 === null || 앞 < 처음)) 처음 = 앞;
     }
