@@ -172,6 +172,12 @@ export async function 고치기(
       // 말없이 덮으면 앞사람의 조립이 이력에서 사라진다
       if (고칠것.baseVersion !== 최신) return { error: 'STALE_VERSION' as const, latest: 최신 };
       await c.query('UPDATE scenario SET name = $2 WHERE id = $1', [id, 고칠것.name]);
+      // 이름은 버전에 안 담긴다 — 단계 · 디바이스가 같으면 버전을 올려 봐야 이력에 같은 내용만 쌓인다
+      const 같나 = await c.query(
+        'SELECT 1 FROM scenario_version WHERE scenario_id = $1 AND version = $2 AND platform = $3 AND parts = $4::jsonb',
+        [id, 최신, 고칠것.platform, JSON.stringify(고칠것.parts)],
+      );
+      if ((같나.rowCount ?? 0) > 0) return { version: 최신 };
       await 버전넣기(c, id, 최신 + 1, 고칠것.platform, 고칠것.parts, 사람);
       return { version: 최신 + 1 };
     });

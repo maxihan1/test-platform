@@ -173,7 +173,7 @@ describe.skipIf(연결 === undefined)('시나리오 API', () => {
       app.inject({
         method: 'PUT',
         url: `/api/scenarios/${id}`,
-        payload: { name: 'XSR 고침', platform: 'desktop', parts: [케이스('XSR-001')], baseVersion: 1, ...본문 },
+        payload: { name: 'XSR 고침', platform: 'desktop', parts: [케이스('XSR-001'), { kind: 'wait', ms: 10 }], baseVersion: 1, ...본문 },
       });
     expect((await 고침({ parts: [] })).statusCode).toBe(400);
     const 됨 = await 고침({});
