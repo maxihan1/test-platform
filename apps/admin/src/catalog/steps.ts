@@ -110,6 +110,26 @@ function rootName(expr: ts.Expression): string | undefined {
   }
 }
 
+// 이 식이 값을 넣는 이름들 — `a = …` · `a.b = …` · `[a] = …` · `a += …` · `a++`. 풀어 넣기의 속성 이름까지 세는 것은 안전한 쪽이다
+function 넣는이름들(node: ts.Node): string[] {
+  let 왼쪽: ts.Node | undefined;
+  if (ts.isBinaryExpression(node) && node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment && node.operatorToken.kind <= ts.SyntaxKind.LastAssignment) {
+    왼쪽 = node.left;
+  } else if (
+    (ts.isPrefixUnaryExpression(node) || ts.isPostfixUnaryExpression(node)) &&
+    (node.operator === ts.SyntaxKind.PlusPlusToken || node.operator === ts.SyntaxKind.MinusMinusToken)
+  ) {
+    왼쪽 = node.operand;
+  }
+  const 이름들: string[] = [];
+  const 모으기 = (n: ts.Node): void => {
+    if (ts.isIdentifier(n) && !(ts.isPropertyAccessExpression(n.parent) && n.parent.name === n)) 이름들.push(n.text);
+    n.forEachChild(모으기);
+  };
+  if (왼쪽 !== undefined) 모으기(왼쪽);
+  return 이름들;
+}
+
 function holdsFunction(node: ts.Node): boolean {
   return ts.isFunctionLike(node) || (node.forEachChild((c) => (holdsFunction(c) ? true : undefined)) ?? false);
 }
@@ -265,6 +285,8 @@ export function caseSteps(text: string): CaseSteps {
 
     const current = stack[stack.length - 1];
     if (current !== undefined) {
+      // 절차 밖에서 선언한 이름에 값을 넣는 절차를 건너뛰면 그 이름이 비어 뒤 절차가 빈 값을 읽는다 (결정 4 — ASH-FN-103)
+      if (넣는이름들(node).some((n) => !current.locals.has(n))) current.unsure = true;
       if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name)) {
         if (node.initializer === undefined || !holdsFunction(node.initializer)) current.locals.add(node.name.text);
       } else if (ts.isNewExpression(node)) {

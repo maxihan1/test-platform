@@ -193,6 +193,28 @@ describe('caseSteps', () => {
     expect(skippable(fn)[0]).toBe(false);
   });
 
+  describe('절차 밖에서 선언한 이름에 값을 넣는 절차는 「만들기」로 치지 않는다 — 건너뛰면 뒤 절차가 빈 값을 읽는다', () => {
+    const 밖에서 = (선언: string, 본문: string): string =>
+      R16.replace(`  await test.step('할 일을 만든다'`, `  ${선언}\n  await test.step('할 일을 만든다'`).replace(
+        `await page.getByRole('textbox').fill('우유');`,
+        본문,
+      );
+
+    it.each([
+      ['이름에 바로 넣기', 'let 주문 = \'\';', `주문 = await page.getByRole('textbox').inputValue();`],
+      ['속성에 넣기', 'const 상태 = { id: \'\' };', `상태.id = await page.getByRole('textbox').inputValue();`],
+      ['풀어서 넣기', 'let 첫째 = \'\';', `[첫째] = await page.getByRole('listitem').allTextContents();`],
+      ['더해 넣기', 'let 횟수 = 0;', `횟수 += await page.getByRole('listitem').count();`],
+      ['하나 올리기', 'let 횟수 = 0;', `await page.getByRole('textbox').fill('우유');\n    횟수++;`],
+    ])('%s', (_, 선언, 본문) => {
+      expect(skippable(밖에서(선언, 본문))[0]).toBe(false);
+    });
+
+    it('그 절차 안에서 선언한 이름에 다시 넣는 것은 괜찮다', () => {
+      expect(skippable(밖에서('', `let 값 = '';\n    값 = await page.getByRole('textbox').inputValue();`))[0]).toBe(true);
+    });
+  });
+
   it('제목이 리터럴이 아닌 절차가 끼면 바로 다음 절차로 건너뛰어 고르지 않는다', () => {
     const between = R16.replace(
       `  await test.step('할 일이 한 건인지`,
