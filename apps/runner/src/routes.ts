@@ -13,6 +13,7 @@ import { 팜증적받기를줄세운다, 팜토큰을지운다 } from './farmEvi
 import { registerLive, 장면과돌린다 } from './live.js';
 import { registerPerfDeviceRoutes } from './perfDevice.js';
 import { registerRemote } from './remote.js';
+import { 케이스저장소받기 } from './repoPull.js';
 import { executeScenario, 판뺀부품들, 폰단계가있나, 폰시나리오가도는가 } from './scenario.js';
 import { abortScenario, 시나리오진행 } from './scenarioRunning.js';
 import { 폰값이없다 } from './scenarioGate.js';
@@ -21,6 +22,8 @@ import { abortRequest, appScreenRequest, executeRequest, scenarioRequest, 목록
 const require = createRequire(import.meta.url);
 // 이미지 태그와 라이브러리 버전이 어긋나면 브라우저를 못 찾는다. /health가 그 확인 창구다 (SPEC §9)
 const { version: playwrightVersion } = require('@playwright/test/package.json') as { version: string };
+// 내 컴퓨터 러너(npm run runner:local)만 켠다 — 서버 러너의 /tests 는 읽기 전용이고 호스트가 채운다 (공통/6-인프라 「받아 오기」)
+const 저장소받나 = process.env.PLATFORM_REPOS_PULL === '1';
 
 export function registerRoutes(app: FastifyInstance): void {
   // 토큰 검사를 맨 먼저 건다 — 뒤에 붙는 통로가 모두 그 아래다
@@ -38,6 +41,7 @@ export function registerRoutes(app: FastifyInstance): void {
     }
 
     const req = parsed.data;
+    if (저장소받나) await 케이스저장소받기(testsDir, req.filePath);
     const specPath = resolveSpecPath(testsDir, req.filePath);
     if (specPath === null || !existsSync(specPath)) {
       return reply.code(404).send({ error: 'CASE_NOT_FOUND', detail: req.filePath });
@@ -94,6 +98,7 @@ export function registerRoutes(app: FastifyInstance): void {
         parts.push(part);
         continue;
       }
+      if (저장소받나) await 케이스저장소받기(testsDir, part.filePath);
       const specPath = resolveSpecPath(testsDir, part.filePath);
       if (specPath === null) {
         return reply.code(400).send({ error: 'INVALID_REQUEST', detail: `테스트 뿌리 밖이다: ${part.filePath}` });

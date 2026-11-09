@@ -3,6 +3,8 @@ dist/
 build/
 .env
 artifacts/
+# 서비스마다 받아 온 테스트 저장소(<소유자>/<이름>) — 서버 받아 오기 · 내 컴퓨터 러너가 채운다 (SPEC 공통/6-인프라 「테스트 코드 저장소」)
+/repos/
 playwright-report/
 test-results/
 .DS_Store

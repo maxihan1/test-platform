@@ -65,7 +65,6 @@ services:
       # 걸면 모든 러너 호출에 싣는다. 맥 러너를 터널로 이을 때는 꼭 건다 — 서버의 다른 컨테이너도 터널 끝에 닿는다 (SPEC 도메인/러너 §5.2 「러너 토큰 · 파일 내주기」)
       RUNNER_TOKEN: "${RUNNER_TOKEN:-}"
       PLATFORM_TESTS_DIR: /tests
-      PLATFORM_CASES_DIR: /cases
       PLATFORM_ARTIFACTS_DIR: /artifacts
       # 성능 더미 클라이언트 zip 자리. 부하 에이전트가 받아 root 로 돌리므로 러너가 못 보는 볼륨에 둔다 (SPEC 공통/6 §9 · 리뷰 M16)
       PLATFORM_PERF_DUMMY_DIR: /perf-dummy
@@ -107,8 +106,12 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - ./tests:/tests:ro      # 스캔과 실패 지점 코드 발췌가 소스를 읽는다
-      - ./docs/cases:/cases:ro # 스캔이 요구사항 표 출처 칸에서 지도 ①(요구 ↔ 케이스)을 채운다 (SPEC 도메인/카탈로그 §3.1 「지도」)
+      # 서비스마다 받아 온 테스트 저장소 — <소유자>/<이름>/tests · docs/cases. 호스트의 받아 오기(infra/server/tests-pull.sh)가 채운다 (SPEC 공통/6-인프라 「테스트 코드 저장소」).
+      # 스캔 · 실패 지점 코드 발췌가 소스를 읽고 지도 ①(요구 ↔ 케이스)이 요구사항 표를 읽는다
+      - ./repos:/tests:ro
+      # Commander 자기 자리는 받지 않고 체크아웃을 붙인다. 붙일 자리 폴더는 받아 오기가 미리 만든다 — 없으면 읽기 전용 폴더 안에 못 만들어 컨테이너가 안 뜬다 (docs/SETUP.md §22)
+      - ./tests:/tests/maxihan1/test-platform/tests:ro
+      - ./docs/cases:/tests/maxihan1/test-platform/docs/cases:ro
       # 스크린샷 서빙, 증적 문서 저장. 기본은 이름 붙은 볼륨이다 — 내 컴퓨터 러너로 기기 성능 직접 플레이를 하는 맥은 ./artifacts 를 적어
       # 그 러너가 쓰는 폴더를 같이 본다. 안 그러면 앱 스크린샷이 오류 없이 404 다 (SPEC 공통/6-인프라 §9.2)
       - ${PLATFORM_ARTIFACTS_VOLUME:-artifacts}:/artifacts
@@ -137,7 +140,9 @@ services:
       # admin 의 DEVICE_FARM_TOKEN 과 같은 값이라 비어 있다(사람 PAT 를 넣지 않는다) — admin 이 폰을 잡은 대신 PAT 를 요청마다 farmToken 으로 넘긴다. 이름은 appium-cli 와 같다
       PLATFORM_APPIUM_TOKEN: "${DEVICE_FARM_TOKEN:-}"
     volumes:
-      - ./tests:/tests:ro      # 테스트 소스 읽기 전용 마운트
+      # admin 과 같은 모양이다 — 실행 요청의 filePath(<소유자>/<이름>/tests/…)가 그대로 풀린다
+      - ./repos:/tests:ro
+      - ./tests:/tests/maxihan1/test-platform/tests:ro
       - ${PLATFORM_ARTIFACTS_VOLUME:-artifacts}:/artifacts   # 스크린샷 공유 볼륨 (admin과 같은 값을 본다)
     mem_limit: 4g              # 폭주해도 admin을 끌고 내려가지 않게
     networks: [default]        # admin 하고만. AI 가 쓴 케이스를 돌리므로 postgres 에 못 닿게 한다 (2026-10-23 리뷰 H5)
