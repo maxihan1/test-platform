@@ -2,7 +2,7 @@
 import { execFileSync } from 'node:child_process';
 import { cpSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const 저장소 = 'maxihan1/platform-kit';
@@ -65,11 +65,15 @@ function 돌린다(명령: string, 인자: string[], cwd?: string): string {
  * 가리키면 그 파일을 케이스 파일로 바꿔 적는다 — 등록 줄이 kit 의 .js 면 파일 하나만 골라 돌릴 때 「No tests found」가 난다.
  * 소스맵이 등록 줄을 패키지 안 src/runtime/test.ts 로 돌려 확장자가 같아진다
  */
-export function 빌드한다(뿌리: string): string {
+function 빌드한다(뿌리: string): string {
   const 빌드 = join(뿌리, 'build/kit');
   rmSync(빌드, { recursive: true, force: true });
   cpSync(join(뿌리, 'packages/kit/src'), join(빌드, 'src'), { recursive: true, filter: (p) => !p.endsWith('.test.ts') });
   돌린다('npx', ['tsc', '-p', 'packages/kit/tsconfig.build.json'], 뿌리);
+  const 지도 = JSON.parse(readFileSync(join(빌드, 'dist/runtime/test.js.map'), 'utf8')) as { sources: string[] };
+  if (resolve(빌드, 'dist/runtime', 지도.sources[0] ?? '') !== join(빌드, 'src/runtime/test.ts')) {
+    throw new Error(`test.js 소스맵이 패키지 안 src/runtime/test.ts 를 가리키지 않습니다: ${지도.sources[0]} — 받은 kit 으로 파일 하나만 골라 돌릴 수 없게 됩니다`);
+  }
   return 빌드;
 }
 
