@@ -48,7 +48,7 @@ describe.skipIf(연결 === undefined)('Scout 대화 통로', () => {
     expect(남질문.json()).toEqual({ id: expect.any(Number), ahead: 첫몸.ahead + 1 });
     // 같은 계정이라도 출입증이 다르면 다른 대화다
     const 다른창 = await 판.로그인(판.계정.나);
-    expect((await 열기(다른창)).json()).toEqual({ questions: [] });
+    expect((await 열기(다른창)).json()).toEqual({ questions: [], btsUrl: 'https://bts.chat.test' });
     expect((await 멈추기(다른창, 첫몸.id)).statusCode).toBe(404);
     expect((await 열기(나)).json<{ questions: unknown[] }>().questions).toEqual([
       { id: 첫몸.id, text: '가'.repeat(2000), status: 'QUEUED', createdAt: expect.any(String), answer: '', steps: [], lastSeq: 0 },
@@ -133,7 +133,7 @@ describe.skipIf(연결 === undefined)('Scout 대화 통로', () => {
     const { id } = (await 묻기(나, '초기화될 질문')).json<{ id: number }>();
     await 가져가기();
     expect((await 판.app.inject({ method: 'DELETE', url: `/api/chat?projectId=${String(판.내프로젝트)}`, cookies: 나 })).statusCode).toBe(204);
-    expect((await 열기(나)).json()).toEqual({ questions: [] });
+    expect((await 열기(나)).json()).toEqual({ questions: [], btsUrl: 'https://bts.chat.test' });
     expect((await 사용량줄(id))?.status).toBe('STOPPED');
     expect((await 조각(id, [{ kind: 'TEXT', body: '더' }])).json()).toEqual({ error: 'STOPPED' });
     expect((await 끝(id)).statusCode).toBe(204);
@@ -142,7 +142,7 @@ describe.skipIf(연결 === undefined)('Scout 대화 통로', () => {
     const 다시로그인할것 = await 판.로그인(판.계정.나);
     await 묻기(다시로그인할것, '다시 로그인하면 지워질 질문');
     const 다시 = await 판.app.inject({ method: 'POST', url: '/api/auth/login', cookies: 다시로그인할것, payload: { username: 판.계정.나, password: '챗봇검사-비밀번호' } });
-    expect((await 열기(판.쿠키(다시))).json()).toEqual({ questions: [] });
+    expect((await 열기(판.쿠키(다시))).json()).toEqual({ questions: [], btsUrl: 'https://bts.chat.test' });
     expect((await 판.q(`SELECT count(*)::int AS n FROM chat_question q JOIN chat_conversation c ON c.id = q.conversation_id WHERE q.text = '다시 로그인하면 지워질 질문'`)).rows[0]).toEqual({ n: 0 });
 
     const 남을것 = await 판.로그인(판.계정.나);
@@ -157,7 +157,7 @@ describe.skipIf(연결 === undefined)('Scout 대화 통로', () => {
     const 해시 = (await 판.q('SELECT password_hash FROM app_user WHERE username = $1', [판.계정.남])).rows[0]!.password_hash as string;
     const 옛출입증 = { platform_session: 판.app.encodeSecureSession(판.app.createSecureSession({ username: 판.계정.남, stamp: 비밀번호도장(해시) })) };
     const 첫열기 = await 열기(옛출입증);
-    expect(첫열기.json()).toEqual({ questions: [] });
+    expect(첫열기.json()).toEqual({ questions: [], btsUrl: 'https://bts.chat.test' });
     const 새쿠키 = 판.쿠키(첫열기);
     expect(판.app.decodeSecureSession(새쿠키.platform_session ?? '')?.get('chatKey')).toMatch(/^[A-Za-z0-9_-]{43}$/);
     expect((await 묻기(새쿠키, '옛 출입증 질문')).statusCode).toBe(201);

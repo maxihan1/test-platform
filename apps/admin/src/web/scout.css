@@ -1,0 +1,293 @@
+/* Scout 레이더 버튼 · 채팅창 틀 · 입력 (도메인/챗봇 §8.18 · 시안 FSRcoCUNSiTwd9gCLsCLcr A+ · 휴대폰 ②). 끌기 · 움직임은 SCOUT-F1-06 */
+
+/* 버튼 — 어두운 사각 안에 주황 레이더. 바탕 --on-accent 는 두 벌이 같은 짙은 색이라 어두운 화면에서도 어두운 사각이다 */
+.scout-hud {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 32;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background: var(--on-accent);
+  color: var(--accent);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+
+:root[data-theme='dark'] .scout-hud {
+  border-color: var(--accent);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .scout-hud {
+    border-color: var(--accent);
+  }
+}
+
+.scout-hud.open {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* 진행 알약이 오른쪽 아래를 쓰면 그 위로 비킨다 — 토스트와 같은 꼴(noticeBar.css) */
+body:has(.run-pill) .scout-hud {
+  bottom: 76px;
+}
+
+/* 알림 점은 대표색이 아니라 빨강이다 — 주황 버튼 위에서 대표색 점은 안 보인다 (§8.18 「HUD 버튼」 예외) */
+.scout-dot {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--panel);
+  border-radius: 50%;
+  background: var(--fail);
+}
+
+.scout-tip {
+  position: fixed;
+  right: 20px;
+  bottom: 88px;
+  z-index: 32;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--bg);
+  box-shadow: var(--shadow);
+  font-size: 13px;
+}
+
+body:has(.run-pill) .scout-tip {
+  bottom: 144px;
+}
+
+/* 창 — 버튼 자리에서 화면 안쪽(왼쪽 위)으로 연다. 창이 낮으면 높이를 줄여 위가 잘리지 않게 한다 */
+.scout-win {
+  position: fixed;
+  right: 20px;
+  bottom: 88px;
+  z-index: 32;
+  display: flex;
+  flex-direction: column;
+  width: min(400px, calc(100vw - 40px));
+  height: min(640px, calc(100vh - 104px));
+  overflow: hidden;
+  border: 1px solid var(--line-2);
+  border-radius: 16px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+body:has(.run-pill) .scout-win {
+  bottom: 144px;
+  height: min(640px, calc(100vh - 160px));
+}
+
+.scout-head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 8px 10px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.scout-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--on-accent);
+  color: var(--accent);
+}
+
+.scout-mark svg {
+  width: 18px;
+  height: 18px;
+}
+
+.scout-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.scout-title strong,
+.scout-title small {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.scout-title small {
+  color: var(--ink-muted);
+  font-size: 12px;
+}
+
+.scout-x {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.scout-x:hover {
+  background: var(--well);
+}
+
+.scout-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px;
+}
+
+.scout-comp {
+  display: flex;
+  flex: none;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 10px 10px 6px;
+  border-top: 1px solid var(--line);
+}
+
+.scout-comp textarea {
+  flex: 1;
+  min-height: 40px;
+  max-height: 140px;
+  box-sizing: border-box;
+  padding: 9px 11px;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  resize: none;
+}
+
+.scout-send,
+.scout-stop {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 10px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.scout-send {
+  border: 0;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.scout-send:disabled {
+  background: var(--well);
+  color: var(--chart-2);
+  cursor: default;
+}
+
+.scout-stop {
+  padding: 0 12px;
+  border: 1px solid var(--line-2);
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* 휴대폰 — 전체 화면. 버튼은 아래 탭 위에 서고 「실패 N건 다시 실행」 판(72px) · 진행 알약 위로 비킨다 (토스트와 같은 자리 셈 — noticeBar.css).
+   입력 칸 글자 16px 은 iPhone 이 확대하지 않는 크기다 */
+@media (max-width: 620px) {
+  .scout-hud {
+    right: 16px;
+    bottom: calc(var(--ph-tabs) + 16px);
+  }
+
+  .scout-tip {
+    right: 16px;
+    bottom: calc(var(--ph-tabs) + 84px);
+  }
+
+  body:has(.run-pill) .scout-hud {
+    bottom: calc(var(--ph-tabs) + 72px);
+  }
+
+  body:has(.run-pill) .scout-tip {
+    bottom: calc(var(--ph-tabs) + 140px);
+  }
+
+  body:has(.rerun-dock) .scout-hud {
+    bottom: calc(var(--ph-tabs) + 88px);
+  }
+
+  body:has(.rerun-dock) .scout-tip {
+    bottom: calc(var(--ph-tabs) + 156px);
+  }
+
+  body:has(.rerun-dock):has(.run-pill) .scout-hud {
+    bottom: calc(var(--ph-tabs) + 136px);
+  }
+
+  body:has(.rerun-dock):has(.run-pill) .scout-tip {
+    bottom: calc(var(--ph-tabs) + 204px);
+  }
+
+  .scout-win,
+  body:has(.run-pill) .scout-win {
+    inset: 0;
+    z-index: 50;
+    width: auto;
+    height: auto;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    font-size: 15px;
+  }
+
+  .scout-x {
+    width: 44px;
+    height: 44px;
+  }
+
+  .scout-comp {
+    padding-bottom: 12px;
+  }
+
+  .scout-comp textarea {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .scout-send,
+  .scout-stop {
+    height: 44px;
+    min-width: 44px;
+  }
+}

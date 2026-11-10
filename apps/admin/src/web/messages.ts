@@ -26,6 +26,7 @@ import { 시나리오말 } from './messages/scenario.js';
 import { 시나리오마법사말 } from './messages/scenarioWizard.js';
 import { 설정말 } from './messages/settings.js';
 import { 껍데기말 } from './messages/shell.js';
+import { Scout말 } from './messages/scout.js';
 import { 마법사말 } from './messages/wizard.js';
 
 /** 합치는 차례. 뒤 표가 같은 키를 덮으므로 겹친 키는 영어가 같아야 한다(messages.test.ts) */
@@ -55,6 +56,7 @@ export const 표들: Record<string, string>[] = [
   빌드말,
   CI토큰말,
   BTS말,
+  Scout말,
 ];
 
 export const 말: Record<string, string> = Object.assign({}, ...표들);
