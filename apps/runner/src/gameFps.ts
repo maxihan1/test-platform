@@ -64,11 +64,11 @@ export function FPS를잰다(
     if (연결 === '' || seq === undefined) return;
     try {
       // 연결이 바뀌면(케이스가 다시 열었다) 앞 셈의 기준을 버린다
-      if (상태.연결 !== 연결) Object.assign(상태, { 연결, 이전표시: undefined, 층: undefined });
+      if (상태.연결 !== 연결) Object.assign(상태, { 연결, 이전표시: undefined, 최근표시: undefined, 층: undefined });
       // 앱 층을 못 찾는 동안은 앞에 뜬 앱을 다시 묻는다 — 켜지는 동안 런처가 앞에 있을 수 있다. 앱이 바뀌면 기준도 버린다
       if (상태.층 === undefined) {
         const pkg = await 부른다(연결, 'mobile: getCurrentPackage', []);
-        if (pkg !== 상태.pkg) Object.assign(상태, { pkg, 이전표시: undefined });
+        if (pkg !== 상태.pkg) Object.assign(상태, { pkg, 이전표시: undefined, 최근표시: undefined });
       }
       // perfRead 는 adb 인자(-s 번호 shell 명령 …)로 부른다 — 앞 셋을 떼고 Appium 에 넘긴다
       const adb: Adb = (args) => 부른다(연결, 'mobile: shell', [{ command: args[3], args: args.slice(4) }]);

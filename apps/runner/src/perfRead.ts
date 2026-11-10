@@ -44,12 +44,14 @@ export interface 기록기 {
   이전gfx?: 프레임수 & { sec: number };
   이전cpu?: 틱;
   이전표시?: number;
+  // 끊김은 직전 3프레임 시간과 견준다 — 앞 읽기의 마지막 4 프레임 시각을 들고 간다
+  최근표시?: number[];
   층?: string;
   경고: Set<string>;
 }
 
 /** FPS 를 세는 데 드는 칸만 — 게임 기능 테스트 항목도 표시 시각 셈을 같이 쓴다 (gameFps.ts · WEB-F7-25) */
-export type 프레임상태 = Pick<기록기, 'serial' | 'pkg' | 'intervalSec' | '이전gfx' | '층' | '이전표시' | '경고'>;
+export type 프레임상태 = Pick<기록기, 'serial' | 'pkg' | 'intervalSec' | '이전gfx' | '층' | '이전표시' | '최근표시' | '경고'>;
 
 const 반올림 = (x: number) => Math.round(x * 10) / 10;
 
@@ -68,9 +70,33 @@ async function 안전(r: 프레임상태, 칸: string, 읽기: () => Promise<num
   }
 }
 
+// 끊김 = PerfDog 기준 — 프레임 시간이 직전 3프레임 평균의 2배를 넘고 영화 2프레임(1000/24×2 ≈ 83.3ms)도 넘는다.
+// 멈춤 = 프레임 사이가 0.7초를 넘는다 — 게임은 쉬지 않고 그려서 gfxinfo 와 달리 가만히 있는 것과 굳은 것을 가를 필요가 없다 (2026-11-10 사용자)
+const 끊김바닥ns = (2 * 1e9) / 24;
+const 멈춤ns = 0.7e9;
+
+/** 새 프레임마다 앞 프레임과의 간격을 본다. 앞 시각은 이번에 보인 것과 앞 읽기의 마지막 4개다 */
+export function 끊김멈춤을센다(새것: number[], 앞: number[]): { jankPct: number | null; freezeCount: number } {
+  const 전부 = [...new Set([...앞, ...새것])].sort((a, b) => a - b);
+  let 끊김 = 0;
+  let 멈춤 = 0;
+  for (const t of 새것) {
+    const i = 전부.indexOf(t);
+    if (i < 1) continue;
+    const 이번 = t - (전부[i - 1] as number);
+    if (이번 > 멈춤ns) 멈춤 += 1;
+    if (i < 4) continue;
+    const 평균 = ((전부[i - 1] as number) - (전부[i - 4] as number)) / 3;
+    if (이번 > 2 * 평균 && 이번 > 끊김바닥ns) 끊김 += 1;
+  }
+  return { jankPct: 새것.length === 0 ? null : 반올림((끊김 / 새것.length) * 100), freezeCount: 멈춤 };
+}
+
+type 표시칸 = { fps: number; jankPct: number | null; freezeCount: number };
+
 // 표시 시각을 세는 길 — 게임 · SurfaceView 는 gfxinfo 가 0 이라 이쪽으로 센다. 끝난 간격 안에 새로 찍힌 프레임만 센다.
-// 게임 기능 테스트 항목은 gfxinfo 를 건너뛰고 이것만 부른다(gameFps.ts)
-export async function 표시프레임으로(adb: Adb, r: 프레임상태): Promise<number | null> {
+// 게임 기능 테스트 항목은 gfxinfo 를 건너뛰고 FPS 만 부른다(gameFps.ts)
+export async function 표시프레임칸(adb: Adb, r: 프레임상태): Promise<표시칸 | null> {
   if (r.층 === undefined) r.층 = surfaceView층을찾는다(await sh(adb, r, 'dumpsys', 'SurfaceFlinger', '--list'), r.pkg) ?? undefined;
   if (r.층 === undefined) return null;
   let 읽음: ReturnType<typeof 프레임시각들>;
@@ -89,14 +115,20 @@ export async function 표시프레임으로(adb: Adb, r: 프레임상태): Promi
   const 마지막 = Math.max(...시각);
   const 처음 = Math.min(...시각);
   const 이전 = r.이전표시;
+  const 앞 = r.최근표시 ?? [];
   r.이전표시 = 마지막;
+  r.최근표시 = [...new Set([...앞, ...시각])].sort((a, b) => a - b).slice(-4);
   if (이전 === undefined) return null;
   const 창시작 = 마지막 - r.intervalSec * 1e9;
   // 층마다 최근 127 프레임만 온다 — 칸이 다 찼고 보이는 것이 다 새것인데 간격을 다 못 덮으면 앞이 잘린 것이라 보이는 구간의 빠르기로 센다.
-  // 칸이 덜 찼으면(층이 새로 떴다) 밀려난 프레임이 없으니 그대로 센다
-  if (꽉참 && 처음 > 이전 && 처음 > 창시작 && 마지막 > 처음) return 반올림(((시각.length - 1) * 1e9) / (마지막 - 처음));
+  // 칸이 덜 찼으면(층이 새로 떴다) 밀려난 프레임이 없으니 그대로 센다. 잘렸으면 앞 읽기와 이어지지 않아 끊김 · 멈춤은 보이는 것끼리만 본다
+  if (꽉참 && 처음 > 이전 && 처음 > 창시작 && 마지막 > 처음) return { fps: 반올림(((시각.length - 1) * 1e9) / (마지막 - 처음)), ...끊김멈춤을센다(시각, []) };
   const 새것 = 시각.filter((t) => t > 이전 && t >= 창시작);
-  return 반올림(새것.length / r.intervalSec);
+  return { fps: 반올림(새것.length / r.intervalSec), ...끊김멈춤을센다(새것, [...앞, ...시각.filter((t) => t <= 이전)]) };
+}
+
+export async function 표시프레임으로(adb: Adb, r: 프레임상태): Promise<number | null> {
+  return (await 표시프레임칸(adb, r))?.fps ?? null;
 }
 
 type 프레임칸 = Pick<PerfRow, 'fps' | 'jankPct' | 'freezeCount'>;
@@ -121,8 +153,10 @@ async function fps를읽는다(adb: Adb, r: 프레임상태, sec: number): Promi
   } else if (cur !== null && cur.total > 0) {
     return 없음;
   }
-  // 게임 · SurfaceView 는 gfxinfo 가 0 이라 프리징은 비어 있다(SurfaceFlinger 표시 시각 사이는 가만히 있는 것과 굳은 것을 못 가른다)
-  return { fps: await 안전(r, 'SurfaceFlinger 프레임', () => 표시프레임으로(adb, r)), jankPct: null, freezeCount };
+  // 게임 · SurfaceView 는 gfxinfo 가 0 이라 SurfaceFlinger 표시 시각으로 FPS · 끊김 · 멈춤을 같이 센다
+  const 셈: { 칸: 표시칸 | null } = { 칸: null };
+  const fps = await 안전(r, 'SurfaceFlinger 프레임', async () => (셈.칸 = await 표시프레임칸(adb, r))?.fps ?? null);
+  return { fps, jankPct: 셈.칸?.jankPct ?? null, freezeCount: 셈.칸?.freezeCount ?? freezeCount };
 }
 
 async function cpu를읽는다(adb: Adb, r: 기록기): Promise<number | null> {
