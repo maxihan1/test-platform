@@ -13,7 +13,7 @@ import { 정수 } from '../routeParams.js';
 import { API서버라우트 } from './apiServerRoutes.js';
 import { API칸, API칸오류, API칸지금 } from './apiService.js';
 import { 게임패키지, 게임패키지거절, 대상서버목록, 역할틀림 } from './envBody.js';
-import { 프로젝트만들기, 프로젝트목록, 프로젝트이름고치기 } from './projects.js';
+import { 프로젝트고치기, 프로젝트만들기, 프로젝트목록 } from './projects.js';
 import { 제외경로정리 } from './rules.js';
 import { 정기실행틀린칸 } from './scheduleCheck.js';
 import { 서비스고치기, 서비스만들기, 서비스목록, 설정오류 } from './store.js';
@@ -36,6 +36,8 @@ const 훑지않을경로 = z.array(z.string()).transform((줄들, ctx) => {
 const 프로젝트번호 = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
 
 const 프로젝트이름 = z.object({ name: z.string().trim().min(1) });
+// 대표를 빼면 그대로, null 이면 비운다 (도메인/인증 §7 PATCH /api/settings/projects/:id)
+const 프로젝트고침 = 프로젝트이름.extend({ primaryServiceId: 프로젝트번호.nullable().optional() });
 
 const 새서비스 = z.object({
   prefix: z.string(),
@@ -155,12 +157,12 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
   });
 
   app.patch<{ Params: { id: string } }>('/settings/projects/:id', async (req, reply) => {
-    const parsed = 프로젝트이름.safeParse(req.body);
+    const parsed = 프로젝트고침.safeParse(req.body);
     const id = 정수(req.params.id);
     if (!parsed.success || id === null) {
       return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.success ? req.params.id : parsed.error.message });
     }
-    await 프로젝트이름고치기(id, parsed.data.name);
+    await 프로젝트고치기(id, parsed.data.name, parsed.data.primaryServiceId);
     return { ok: true };
   });
 

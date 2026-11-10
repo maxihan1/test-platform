@@ -134,7 +134,7 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
             name: '실행 검사용',
             color: '#3A5FCD',
             projectId: 1,
-            projectName: '실행 검사용',
+            projectName: '실행 검사용', primary: false,
             kind: 'SCREEN',
             envs: [],
             hasSlackWebhook: false,

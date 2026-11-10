@@ -21,6 +21,8 @@ export interface 배정서비스 {
   /** 속한 프로젝트 (공통/4-데이터모델 「프로젝트 표」). 로그인 뒤 프로젝트 고르기가 배정받은 서비스에서 뽑는다 */
   projectId: number;
   projectName: string;
+  /** 자기 프로젝트의 대표 애플리케이션인가. 화면이 목록 맨 위에 두고 처음 열 앱으로 고른다 (공통/5-화면공통 §8 「왼쪽 줄」) */
+  primary: boolean;
   /** 애플리케이션 종류. 화면이 종류마다 다르게 그린다 (도메인/러너 §5.2 「애플리케이션 종류 「Android 앱」」 종류 표) */
   kind: 'SCREEN' | 'APP' | 'GAME' | 'API';
   /**
@@ -82,6 +84,8 @@ const 한사람 = `
            json_agg(json_build_object(
              'id', s.id, 'prefix', s.prefix, 'name', s.name, 'color', s.color,
              'projectId', s.project_id, 'projectName', p.name, 'kind', s.kind,
+             -- 대표 애플리케이션인가 (공통/4-데이터모델 「대표 애플리케이션」). p 는 s 가 속한 프로젝트라 옮겨 간 대표는 저절로 false 다
+             'primary', p.primary_service_id IS NOT DISTINCT FROM s.id,
              'envs', COALESCE(e.envs, '[]'::json),
              'testsDir', s.tests_dir,
              'crawlExclude', s.crawl_exclude,

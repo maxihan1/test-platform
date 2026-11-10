@@ -7,13 +7,24 @@ import { db, 설정오류, 한묶음 } from './store.js';
 export interface 프로젝트행 {
   id: number;
   name: string;
+  /** 대표 애플리케이션. 다른 프로젝트로 옮겨 간 애플리케이션을 가리키면 null 이다 (공통/4-데이터모델 「대표 애플리케이션」) */
+  primaryServiceId: number | null;
 }
 
 export async function 프로젝트목록(): Promise<프로젝트행[]> {
   const pool = await db();
-  const rows = await pool.query<{ id: string; name: string }>('SELECT id, name FROM project ORDER BY name, id');
+  const rows = await pool.query<{ id: string; name: string; primary_service_id: string | null }>(
+    `SELECT p.id, p.name, s.id AS primary_service_id
+       FROM project p
+       LEFT JOIN service s ON s.id = p.primary_service_id AND s.project_id = p.id
+      ORDER BY p.name, p.id`,
+  );
   // BIGSERIAL 은 pg 가 글자열로 준다. 경계에서 숫자로 바꾼다 (settings/store.ts 와 같은 규약)
-  return rows.rows.map((r) => ({ id: Number(r.id), name: r.name }));
+  return rows.rows.map((r) => ({
+    id: Number(r.id),
+    name: r.name,
+    primaryServiceId: r.primary_service_id === null ? null : Number(r.primary_service_id),
+  }));
 }
 
 /**
@@ -40,8 +51,23 @@ export async function 프로젝트만들기(name: string, 만든이?: string): P
   });
 }
 
-export async function 프로젝트이름고치기(id: number, name: string): Promise<void> {
+/** @param 대표 undefined 면 대표를 그대로 두고, null 이면 비운다 */
+export async function 프로젝트고치기(id: number, name: string, 대표?: number | null): Promise<void> {
   const pool = await db();
-  const rows = await pool.query('UPDATE project SET name = $2 WHERE id = $1', [id, name]);
-  if (rows.rowCount === 0) throw new 설정오류('NOT_FOUND');
+  if (대표 === undefined) {
+    const rows = await pool.query('UPDATE project SET name = $2 WHERE id = $1', [id, name]);
+    if (rows.rowCount === 0) throw new 설정오류('NOT_FOUND');
+    return;
+  }
+  // 남의 프로젝트 애플리케이션을 대표로 두면 어느 목록 맨 위에도 안 뜨는 값이 남는다 — 던지면 한묶음이 이름까지 되돌린다
+  await 한묶음(async (client) => {
+    const rows = await client.query<{ ok: boolean }>(
+      `UPDATE project SET name = $2, primary_service_id = $3
+        WHERE id = $1
+       RETURNING ($3::bigint IS NULL OR EXISTS (SELECT 1 FROM service WHERE id = $3 AND project_id = $1)) AS ok`,
+      [id, name, 대표],
+    );
+    if (rows.rowCount === 0) throw new 설정오류('NOT_FOUND');
+    if (!rows.rows[0]!.ok) throw new 설정오류('PRIMARY_NOT_IN_PROJECT');
+  });
 }

@@ -7,6 +7,7 @@ export type 오류코드 =
   | 'LAST_ADMIN'
   | 'NOT_FOUND'
   | 'PROJECT_NOT_FOUND'
+  | 'PRIMARY_NOT_IN_PROJECT'
   | 'ALREADY_APPROVED'
   | 'APPROVED_USER'
   | 'NOT_APPROVED'
