@@ -109,14 +109,14 @@ export function AuthoringNew({
       case 'guide':
         // API 애플리케이션인지 알아야 다음 단계가 정해진다 — 모른 채 넘기면 단계 띠가 바뀌며 엉뚱한 단계에 선다
         if (문서.대기) return t('불러오는 중입니다');
-        return 가이드.바뀜 && 빈가이드 === false ? t('수정한 가이드 구획을 저장하거나 취소하세요') : null;
+        return 가이드.바뀜 && 빈가이드 === false ? t('수정 중인 가이드를 저장하거나 취소하세요') : null;
       case 'method':
-        return 고른방법 === null ? t('작성 방법을 선택하세요') : null;
+        return 고른방법 === null ? t('작성 방식을 선택하세요') : null;
       case 'material':
         if (문서.대기) return t('불러오는 중입니다');
-        if (거절.size > 0 || 너무많다 || 토큰없는주소) return t('넣은 자료를 확인하세요');
+        if (거절.size > 0 || 너무많다 || 토큰없는주소) return t('첨부한 자료를 확인하세요');
         if (api모드) return 판 === null || 서버 === null ? t('API 문서 버전과 대상 서버를 선택하세요') : null;
-        return 보낼파일.length === 0 && 주소들.length === 0 ? t('기획서 파일이나 피그마 주소를 하나 이상 넣으세요') : null;
+        return 보낼파일.length === 0 && 주소들.length === 0 ? t('PRD 파일 또는 피그마 주소를 1건 이상 입력하세요') : null;
       case 'server':
         return 서버 === null ? t('대상 서버를 선택하세요') : null;
       case 'confirm':
@@ -127,7 +127,7 @@ export function AuthoringNew({
   const 못보낸다 = 단계들.some((s) => 막는이유(s) !== null);
 
   function 사유(err: unknown): string {
-    if (err instanceof ApiError && err.status === 413) return t('파일 하나가 크기 상한을 넘었습니다');
+    if (err instanceof ApiError && err.status === 413) return t('20MB 를 넘는 파일은 업로드할 수 없습니다');
     // 까닭이 세 꼴이 아니면(프록시가 본문을 지운 경우 등) 빈 주소를 단 파일 문장을 지어내지 않고 공통 번역으로 넘긴다
     if (err instanceof ApiError && err.code === 'FIGMA_DENIED' && /^(NO_TOKEN|TOKEN|FILE:.+)$/.test(err.message)) {
       return 피그마거절말(err.message, 운영자, t);
@@ -174,9 +174,9 @@ export function AuthoringNew({
         ? ''
         : await api.discardAuthoring(service, id).then(
             () => '',
-            () => ` ${t('목록에 남은 그 줄은 삭제하세요')}`,
+            () => ` ${t('목록에 남은 요청은 삭제하세요')}`,
           );
-      set오류(`${t('이 요청은 대기열에 들어가지 못했습니다. 새 요청으로 다시 넣으세요')} (${어디})${남은줄}`);
+      set오류(`${t('요청을 접수하지 못했습니다. 다시 요청하세요')} (${어디})${남은줄}`);
       set보내는중(false);
       return;
     }
@@ -201,10 +201,10 @@ export function AuthoringNew({
   const 요약: [string, string][] = [
     [
       t('가이드'),
-      가이드.now === null || 가이드.now.version === 0 ? t('가이드 없이 작성합니다') : t('{가이드} 버전 {버전}을 같이 읽습니다', { 가이드: t(줄.가이드), 버전: 가이드.now.version }),
+      가이드.now === null || 가이드.now.version === 0 ? t('가이드 없음') : t('{가이드} 버전 {버전} 참고', { 가이드: t(줄.가이드), 버전: 가이드.now.version }),
     ],
   ];
-  if (대조칸) 요약.push([t('작성 방법'), 방법이름]);
+  if (대조칸) 요약.push([t('작성 방식'), 방법이름]);
   if (api모드 && 판 !== null) 요약.push([t('API 문서'), t('버전 {버전}', { 버전: 판 })]);
   if (방법값 !== 'screen') {
     const 피그마수 = 주소들.length === 0 ? [] : [t('피그마 {수}건', { 수: 주소들.length })];
@@ -214,12 +214,12 @@ export function AuthoringNew({
   // 확인 단계에서 시작이 꺼졌으면 앞 단계의 까닭을 보인다 — 말없이 꺼져 있으면 무엇을 고칠지 모른다
   const 첫막힘 = 단계들.map(막는이유).find((이유) => 이유 !== null) ?? null;
   const 할일 = api모드
-    ? t('API 문서의 엔드포인트마다 케이스를 작성해 검토용 PR 로 등록합니다')
+    ? t('엔드포인트별로 케이스를 작성해 검토 PR 로 등록합니다')
     : 방법값 === 'both'
-      ? t('기획서 화면을 먼저 작성하고, 반영되면 기획서에 없는 화면을 이어서 작성합니다')
+      ? t('PRD 에 있는 화면을 먼저 작성한 뒤 PRD 에 아직 없는 화면을 이어서 작성합니다')
       : 방법값 === 'screen'
-        ? t('PRD 에 아직 없는 화면만 작성합니다')
-        : t('요구사항마다 케이스를 작성해 검토용 PR 로 등록합니다');
+        ? t('PRD 에 아직 없는 화면의 케이스를 작성합니다')
+        : t('요구사항별로 케이스를 작성해 검토 PR 로 등록합니다');
 
   const 버튼 =
     단계 === 'guide' && 한번에 ? (
@@ -230,7 +230,7 @@ export function AuthoringNew({
           {t('취소')}
         </button>
         <button className="btn ghost" type="button" disabled={가이드.busy || 가이드.바뀜 || 문서.대기} onClick={앞으로}>
-          {t('나중에 쓰기')}
+          {t('건너뛰기')}
         </button>
         <button
           className="btn"
@@ -238,7 +238,7 @@ export function AuthoringNew({
           disabled={!가이드.바뀜 || 가이드.busy || 문서.대기}
           onClick={() => void 가이드.저장(구획들).then((ok) => ok && 앞으로())}
         >
-          {t('저장하고 다음')}
+          {t('저장 후 다음')}
         </button>
       </>
     ) : (
@@ -266,8 +266,8 @@ export function AuthoringNew({
         {단계 === 'guide' ? (
           <>
             <단계머리
-              제목={t(한번에 ? '애플리케이션을 알려 주세요' : '이 가이드를 같이 읽습니다')}
-              설명={t('AI 가 케이스를 작성할 때 참고합니다. 기대 결과는 요구사항에서만 가져옵니다')}
+              제목={t(한번에 ? '애플리케이션 정보 입력' : '가이드 확인')}
+              설명={t('AI 가 케이스를 작성할 때 참고하는 정보입니다. 기대 결과의 근거로는 쓰지 않습니다')}
             />
             {가이드.오류 !== null ? <Failed error={가이드.오류} /> : 가이드.now === null ? <Loading /> : <GuideBody service={service} 가이드={가이드} 쓰나 예={줄.가이드예} 한번에={한번에} />}
           </>
@@ -275,7 +275,7 @@ export function AuthoringNew({
           <방법칸 고른={고른방법} on고름={set고른방법} 화면읽기={줄.화면읽기} />
         ) : 단계 === 'material' ? (
           <>
-            <단계머리 제목={t(api모드 ? '무엇을 보고 작성할까요?' : '기획서와 디자인을 넣어 주세요')} 설명={t('여러 파일을 한 세트로 넣을 수 있습니다')} />
+            <단계머리 제목={t(api모드 ? 'API 문서 · 자료 선택' : 'PRD · 디자인 첨부')} 설명={t('여러 파일을 함께 첨부할 수 있습니다')} />
             {문서.버전들 === null ? null : (
               <ApiDocFields 버전들={문서.버전들} 판={판} on판={set고른판} envs={envs} 서버={서버} on서버={set고른서버} 운영자={운영자} disabled={보내는중} />
             )}
@@ -293,10 +293,10 @@ export function AuthoringNew({
                 {t(이유)} — {이름들.join(' · ')}
               </span>
             ))}
-            {너무많다 ? <span className="error-text">{t('한 요청에 넣을 수 있는 자료 개수를 넘었습니다')}</span> : null}
+            {너무많다 ? <span className="error-text">{t('한 요청에 첨부할 수 있는 자료 수를 넘었습니다')}</span> : null}
           </>
         ) : 단계 === 'server' ? (
-          <서버칸 envs={envs} 서버={서버} on서버={set고른서버} 웹={줄.대조 === 'web'} 시작주소={시작주소} on시작주소={set시작주소} 운영자={운영자} />
+          <서버칸 envs={envs} 서버={서버} on서버={set고른서버} 웹={줄.대조 === 'web'} 화면만={방법값 === 'screen'} 시작주소={시작주소} on시작주소={set시작주소} 운영자={운영자} />
         ) : (
           <확인칸 줄들={요약} 할일={할일} />
         )}

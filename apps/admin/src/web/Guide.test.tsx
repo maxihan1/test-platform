@@ -70,7 +70,7 @@ describe('애플리케이션 가이드 — 시안 GuideA', () => {
     render(<Guide service="MKT" 할수={쓰는사람} />);
     expect(await screen.findByText(/아직 가이드가 없습니다/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: '버전 기록' })).toBeNull();
-    expect(screen.getAllByText('적은 글이 없습니다')).toHaveLength(3);
+    expect(screen.getAllByText('작성된 내용이 없습니다')).toHaveLength(3);
   });
 
   it('구획 셋에 글과 그 구획의 첨부를 나눠 읽기로 보이고 머리에 버전과 첨부 수를 적는다', async () => {
@@ -271,7 +271,7 @@ describe('애플리케이션 가이드 — 시안 GuideA', () => {
     expect(screen.queryByRole('button', { name: '파일 첨부' })).toBeNull();
     expect(screen.queryByRole('button', { name: /제거$/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /수정$/ })).toBeNull();
-    expect(screen.getByText('적은 글이 없습니다')).toBeTruthy();
+    expect(screen.getByText('작성된 내용이 없습니다')).toBeTruthy();
   });
 
   it('버전 기록은 판마다 바뀐 것을 적고, 누르면 그 판을 읽기 전용으로 본다', async () => {
@@ -290,7 +290,7 @@ describe('애플리케이션 가이드 — 시안 GuideA', () => {
     fireEvent.click(screen.getByRole('button', { name: '버전 기록' }));
     const 표 = await screen.findByRole('table');
     expect(within(표).getByText('글 수정 — 정책')).toBeTruthy();
-    expect(within(표).getByText('더함 — 운영 정책.docx · 뺌 — 옛 정책.docx')).toBeTruthy();
+    expect(within(표).getByText('첨부 — 운영 정책.docx · 제거 — 옛 정책.docx')).toBeTruthy();
     expect(within(표).getByText('현재 버전')).toBeTruthy();
 
     fireEvent.click(within(표).getByRole('button', { name: '버전 2 보기' }));

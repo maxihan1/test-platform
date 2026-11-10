@@ -10,12 +10,12 @@ import { use말 } from './i18n.js';
 export type 단계 = 'guide' | 'method' | 'material' | 'server' | 'confirm';
 export type 방법 = 'prd' | 'screen' | 'both';
 
-export const 단계이름: Record<단계, string> = { guide: '가이드', method: '작성 방법', material: '자료', server: '대상 서버', confirm: '확인' };
+export const 단계이름: Record<단계, string> = { guide: '가이드', method: '작성 방식', material: '자료', server: '대상 서버', confirm: '확인' };
 
 export const 방법표: { 값: 방법; 제목: string; 설명: string }[] = [
-  { 값: 'prd', 제목: '기획서로 작성', 설명: 'PRD 파일과 피그마를 읽고 요구사항마다 케이스를 작성합니다' },
-  { 값: 'screen', 제목: '화면을 훑어서 작성', 설명: '기획서 없이 실제 화면을 훑어 PRD 에 아직 없는 화면의 케이스를 작성합니다' },
-  { 값: 'both', 제목: '기획서 + 실제 화면 대조', 설명: '기획서 화면을 먼저 작성하고, 반영되면 기획서에 없는 화면을 이어서 작성합니다' },
+  { 값: 'prd', 제목: 'PRD 기준', 설명: 'PRD · 피그마의 요구사항별로 케이스를 작성합니다' },
+  { 값: 'screen', 제목: '화면 대조', 설명: 'PRD 없이 실제 화면을 탐색해 PRD 에 아직 없는 화면의 케이스를 작성합니다' },
+  { 값: 'both', 제목: 'PRD + 화면 대조', 설명: 'PRD 에 있는 화면을 먼저 작성한 뒤 PRD 에 아직 없는 화면을 이어서 작성합니다' },
 ];
 
 /** 위쪽 막대 — 지난 단계와 지금 단계를 대표색으로 칠한다 */
@@ -57,7 +57,7 @@ export function 방법칸({
   const t = use말();
   return (
     <>
-      <단계머리 제목={t('무엇으로 케이스를 작성할까요?')} 설명={t('기대 결과는 요구사항에서만 가져옵니다. 화면에서 읽은 값은 미확정으로 표시됩니다')} />
+      <단계머리 제목={t('작성 방식 선택')} 설명={t('기대 결과는 PRD 요구사항 기준입니다. 화면에서 가져온 값은 미확정으로 표시됩니다')} />
       <div className="wiz-new-cards">
         {방법표.map((it) => (
           <button key={it.값} type="button" className="wiz-new-card" aria-pressed={고른 === it.값} aria-label={t(it.제목)} onClick={() => on고름(it.값)}>
@@ -107,12 +107,12 @@ export function 파일칸({ 파일들, set파일들, disabled }: { 파일들: Fi
         }}
       >
         <span>
-          {t('파일을 여기로 끌어다 놓거나')}{' '}
+          {t('파일을 끌어다 놓거나')}{' '}
           <button type="button" className="btn ghost small" disabled={disabled} onClick={() => 고르개.current?.click()}>
             {t('파일 첨부')}
           </button>
         </span>
-        <small>{t('PDF · 워드 · 엑셀 · md · txt · csv · 파일 하나 20MB 까지')}</small>
+        <small>{t('PDF · 워드 · 엑셀 · md · txt · csv · 파일당 최대 20MB')}</small>
       </div>
       <input
         ref={고르개}
@@ -156,6 +156,7 @@ export function 서버칸({
   서버,
   on서버,
   웹,
+  화면만,
   시작주소,
   on시작주소,
   운영자,
@@ -165,6 +166,8 @@ export function 서버칸({
   on서버: (값: string) => void;
   /** 웹만 시작 주소가 있다 — 앱 · 게임은 디바이스에서 켠 첫 화면에서 시작한다(보내면 서버가 400 BAD_ENV) */
   웹: boolean;
+  /** 「화면 대조」(PRD 없이 화면만)면 대조할 PRD 가 없어 설명이 다르다 */
+  화면만: boolean;
   시작주소: string;
   on시작주소: (값: string) => void;
   운영자: boolean;
@@ -172,12 +175,12 @@ export function 서버칸({
   const t = use말();
   return (
     <>
-      <단계머리 제목={t('어느 서버의 화면과 대조할까요?')} 설명={t('이 서버의 화면을 읽어 기획서와 대조합니다')} />
+      <단계머리 제목={t('대상 서버 선택')} 설명={t(화면만 ? '이 서버의 화면을 탐색합니다' : '이 서버의 화면과 PRD 를 대조합니다')} />
       {envs.length === 0 ? (
         <span className="error-text">
           {운영자
-            ? t('이 애플리케이션에는 대상 서버가 없습니다. 설정 > 애플리케이션에서 먼저 넣으세요')
-            : t('이 애플리케이션에는 대상 서버가 없습니다. 관리자에게 대상 서버를 넣어 달라고 요청하세요')}
+            ? t('등록된 대상 서버가 없습니다. 설정 > 애플리케이션에서 먼저 등록하세요')
+            : t('등록된 대상 서버가 없습니다. 관리자에게 등록을 요청하세요')}
         </span>
       ) : (
         <>
@@ -207,10 +210,10 @@ export function 서버칸({
               />
               </label>
               {/* 이름표 밖에 둔다 — 안에 두면 칸 이름에 설명까지 섞인다 */}
-              <small>{t('비우면 대상 서버 주소에서 시작합니다')}</small>
+              <small>{t('비워 두면 대상 서버 주소에서 시작합니다')}</small>
             </div>
           ) : (
-            <small className="wiz-new-hint">{t('디바이스에서 앱을 켠 첫 화면에서 시작합니다')}</small>
+            <small className="wiz-new-hint">{t('디바이스에서 앱을 실행한 첫 화면부터 시작합니다')}</small>
           )}
         </>
       )}
@@ -223,7 +226,7 @@ export function 확인칸({ 줄들, 할일 }: { 줄들: [string, string][]; 할�
   const t = use말();
   return (
     <>
-      <단계머리 제목={t('이렇게 작성합니다')} />
+      <단계머리 제목={t('작성 내용 확인')} />
       <dl className="wiz-new-sum">
         {줄들.map(([이름, 값]) => (
           <div key={이름}>
@@ -233,7 +236,7 @@ export function 확인칸({ 줄들, 할일 }: { 줄들: [string, string][]; 할�
         ))}
       </dl>
       <p className="wiz-new-hint">{할일}</p>
-      <p className="wiz-new-hint">{t('시작한 뒤 이 창을 닫아도 작성은 계속됩니다')}</p>
+      <p className="wiz-new-hint">{t('시작 후 창을 닫아도 작성은 계속 진행됩니다')}</p>
     </>
   );
 }

@@ -85,7 +85,7 @@ export function ApiDocVersions({ id, versions, 연버전 }: { id: number; versio
         <h2 id="api-versions-title" className="prd-all-title">
           {t('버전 기록')}
         </h2>
-        <span className="note">{t('옛 버전은 볼 수만 있습니다')}</span>
+        <span className="note">{t('이전 버전은 읽기만 할 수 있습니다')}</span>
       </div>
       <div className="prd-vscroll">
         <table className="prd-vtable">

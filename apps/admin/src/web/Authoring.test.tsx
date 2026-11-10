@@ -114,10 +114,10 @@ describe('피그마 토큰 여부가 새 요청 폼까지 넘어간다', () => {
     render(<Authoring service="PAY" 피그마토큰={false} 할수={() => true} />);
     fireEvent.click(await screen.findByRole('button', { name: '새 작성' }));
     fireEvent.click(screen.getByRole('button', { name: '다음' }));
-    fireEvent.click(screen.getByRole('button', { name: '기획서로 작성' }));
+    fireEvent.click(screen.getByRole('button', { name: 'PRD 기준' }));
     fireEvent.click(screen.getByRole('button', { name: '다음' }));
     fireEvent.change(screen.getByLabelText('피그마 주소'), { target: { value: 'https://www.figma.com/design/A/' } });
-    expect(screen.getByText(/피그마 토큰이 없어 피그마 주소를 받을 수 없습니다/)).toBeTruthy();
+    expect(screen.getByText(/피그마 토큰이 등록되지 않아 피그마 주소를 사용할 수 없습니다/)).toBeTruthy();
   });
 });
 
@@ -203,7 +203,7 @@ describe('목록 다시 읽기가 실패해도 쓰던 새 요청은 남는다 (�
     // 목록 아래 페이지 넘기기에도 「다음」이 있다 — 창 안의 것을 누른다
     const 창 = () => within(screen.getByRole('dialog', { name: '새 작성' }));
     fireEvent.click(창().getByRole('button', { name: '다음' }));
-    fireEvent.click(창().getByRole('button', { name: '기획서로 작성' }));
+    fireEvent.click(창().getByRole('button', { name: 'PRD 기준' }));
     fireEvent.click(창().getByRole('button', { name: '다음' }));
     const 칸 = 창().getByPlaceholderText('한 줄에 하나씩');
     fireEvent.change(칸, { target: { value: 'https://www.figma.com/design/AbC/x' } });
@@ -231,7 +231,7 @@ describe('새 작성 마법사', () => {
     render(<Authoring service="PAY" 할수={() => true} />);
     fireEvent.click(await screen.findByRole('button', { name: '새 작성' }));
     fireEvent.click(screen.getByRole('button', { name: '다음' }));
-    const 카드들 = ['기획서로 작성', '화면을 훑어서 작성', '기획서 + 실제 화면 대조'].map((이름) => screen.getByRole('button', { name: 이름 }));
+    const 카드들 = ['PRD 기준', '화면 대조', 'PRD + 화면 대조'].map((이름) => screen.getByRole('button', { name: 이름 }));
     expect(카드들.map((c) => c.getAttribute('aria-pressed'))).toEqual(['false', 'false', 'false']);
     expect((screen.getByRole('button', { name: '다음' }) as HTMLButtonElement).disabled).toBe(true);
   });
