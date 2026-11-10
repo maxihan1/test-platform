@@ -31,10 +31,10 @@ export function Scout({ projectId, projectName, 휴대폰 }: { projectId: number
   const 칸 = useRef<HTMLTextAreaElement>(null);
   const [알림, set알림] = useState(false);
 
-  // 답이 쓰이는 대로 맨 아래를 보인다
+  // 답이 쓰이는 대로, 그리고 다시 열 때 맨 아래를 보인다
   useEffect(() => {
     if (본문.current !== null) 본문.current.scrollTop = 본문.current.scrollHeight;
-  }, [s.질문들]);
+  }, [s.질문들, 열림]);
 
   useEffect(() => {
     if (열림) 칸.current?.focus();
@@ -54,11 +54,16 @@ export function Scout({ projectId, projectName, 휴대폰 }: { projectId: number
     set알림(false);
   };
 
+  // 처음 읽기가 오기 전에는 보내지 않는다 — 서버의 대화를 모른 채 넣으면 도는 질문과 부딪친다(BUSY)
+  const 보낼수 = s.질문들 !== null && !s.도는중;
   const 보내기 = (보낼글: string) => {
     const 다듬은 = 보낼글.trim();
-    if (다듬은 === '' || s.도는중) return;
+    if (다듬은 === '' || !보낼수) return;
     set글('');
-    void s.묻기(다듬은);
+    // 못 넣었으면 쓴 글을 되돌린다 — 2,000자를 다시 치게 하지 않는다
+    void s.묻기(다듬은).then((넣음) => {
+      if (!넣음) set글((지금) => (지금 === '' ? 보낼글 : 지금));
+    });
   };
 
   const 버튼이름 = 열림 ? t('Scout 닫기') : s.도착 ? t('Scout 열기 · 답 도착') : s.도는중 ? t('Scout 열기 · 답 만드는 중') : t('Scout 열기');
@@ -79,6 +84,7 @@ export function Scout({ projectId, projectName, 휴대폰 }: { projectId: number
       {!열림 ? null : (
         <section className="scout-win" role="dialog" aria-label="Scout">
           <header className="scout-head">
+            {/* 휴대폰 머리에는 레이더 표시가 없다 — 폭이 좁아 이름 · 초기화 · 닫기만 둔다 (시안 휴대폰 ②) */}
             {휴대폰 ? null : <span className="scout-mark">{레이더()}</span>}
             <div className="scout-title">
               <strong>Scout</strong>
@@ -134,8 +140,8 @@ export function Scout({ projectId, projectName, 휴대폰 }: { projectId: number
               value={글}
               onChange={(e) => set글(e.target.value)}
               onKeyDown={(e) => {
-                // 한글 조합 중의 Enter 는 글자를 마무리하는 키다 — 보내지 않는다
-                if (e.key !== 'Enter' || e.shiftKey || e.nativeEvent.isComposing) return;
+                // 한글 조합 중의 Enter 는 글자를 마무리하는 키다 — 보내지 않는다. Safari 는 isComposing 없이 keyCode 229 로만 알린다
+                if (e.key !== 'Enter' || e.shiftKey || e.nativeEvent.isComposing || e.keyCode === 229) return;
                 e.preventDefault();
                 보내기(글);
               }}
@@ -148,7 +154,7 @@ export function Scout({ projectId, projectName, 휴대폰 }: { projectId: number
                 {t('중단§Scout')}
               </button>
             ) : (
-              <button type="button" className="scout-send" aria-label={t('보내기')} disabled={글.trim() === ''} onClick={() => 보내기(글)}>
+              <button type="button" className="scout-send" aria-label={t('보내기')} disabled={글.trim() === '' || !보낼수} onClick={() => 보내기(글)}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M12 19V5M5 12l7-7 7 7" />
                 </svg>

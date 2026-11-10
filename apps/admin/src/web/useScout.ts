@@ -19,13 +19,14 @@ export interface Scout상태 {
   /** 창이 닫힌 동안 답이 끝났다 — HUD 점 (§8.18 ⑤) */
   도착: boolean;
   도는중: boolean;
-  묻기: (글: string) => Promise<void>;
+  /** 넣었으면 true. 못 넣었으면 화면이 쓴 글을 입력 칸에 되돌린다 */
+  묻기: (글: string) => Promise<boolean>;
   중단: () => Promise<void>;
   초기화: () => Promise<void>;
   도착봄: () => void;
 }
 
-/** 창을 처음 열 때 읽는다. 닫아도 이어 받기는 계속한다 — 답이 끝나면 HUD 에 점을 붙여야 해서다 */
+/** 창을 열 때마다 읽는다 — 다른 탭에서 넣은 질문도 보인다. 닫아도 이어 받기는 계속한다 — 답이 끝나면 HUD 에 점을 붙여야 해서다 */
 export function useScout(projectId: number, 열림: boolean): Scout상태 {
   const 언어 = use언어();
   const [질문들, set질문들] = useState<질문[] | null>(null);
@@ -37,6 +38,9 @@ export function useScout(projectId: number, 열림: boolean): Scout상태 {
   const 귀 = useRef<EventSource | null>(null);
   const 열림참조 = useRef(열림);
   열림참조.current = 열림;
+  // 묻기 · 초기화마다 올린다. 그 전에 떠난 읽기의 답은 버린다 — 늦게 온 옛 목록이 방금 넣은 질문을 지우지 않게
+  const 세대 = useRef(0);
+  const 다시읽기 = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const 고치기 = useCallback((id: number, 바꿈: (q: 질문) => 질문) => {
     set질문들((앞것) => 앞것?.map((q) => (q.id === id ? 바꿈(q) : q)) ?? 앞것);
@@ -48,15 +52,17 @@ export function useScout(projectId: number, 열림: boolean): Scout상태 {
   }, []);
 
   const 읽기 = async () => {
+    const 떠날때 = 세대.current;
     try {
       const 받음 = await scoutApi.open(projectId);
+      if (세대.current !== 떠날때) return;
       set질문들(받음.questions);
       setBtsUrl(받음.btsUrl);
       set읽기오류(null);
       const 도는 = 받음.questions.find((q) => !끝났나(q.status));
       if (도는 !== undefined) 잇기(도는.id, 도는.lastSeq);
     } catch (e) {
-      set읽기오류(message(e, 언어));
+      if (세대.current === 떠날때) set읽기오류(message(e, 언어));
     }
   };
 
@@ -77,32 +83,42 @@ export function useScout(projectId: number, 열림: boolean): Scout상태 {
       if (!열림참조.current) set도착(true);
       if (귀.current === es) 끊기();
     });
-    // 404 · 403 처럼 다시 붙어도 소용없는 답이면 EventSource 가 스스로 그만둔다 — 대화를 다시 읽어 지금 상태로 맞춘다
+    // 404 · 403 처럼 다시 붙어도 소용없는 답이면 EventSource 가 스스로 그만둔다 — 3초 뒤 대화를 다시 읽어 지금 상태로 맞춘다.
+    // 바로 다시 읽으면 이어 받기가 계속 거절될 때 읽기 · 붙기를 쉬지 않고 되풀이한다
     es.onerror = () => {
       if (es.readyState !== EventSource.CLOSED || 귀.current !== es) return;
       끊기();
-      void 읽기();
+      다시읽기.current = setTimeout(() => void 읽기(), 3000);
     };
   };
 
-  // 읽기는 그릴 때마다 새로 서서 의존에 넣지 않는다. 못 읽었으면 창을 다시 열 때 다시 읽는다 — 프로젝트가 바뀌면 껍데기가 이 훅째 새로 띄운다(key)
+  // 읽기는 그릴 때마다 새로 서서 의존에 넣지 않는다. 프로젝트가 바뀌면 껍데기가 이 훅째 새로 띄운다(key)
   useEffect(() => {
-    if (열림 && 질문들 === null) void 읽기();
-  }, [열림, 질문들]);
+    if (열림) void 읽기();
+  }, [열림]);
 
-  useEffect(() => 끊기, [끊기]);
+  useEffect(
+    () => () => {
+      끊기();
+      if (다시읽기.current !== null) clearTimeout(다시읽기.current);
+    },
+    [끊기],
+  );
 
   const 묻기 = async (글: string) => {
     set묻기오류(null);
+    세대.current += 1;
     try {
       const { id, ahead } = await scoutApi.ask(projectId, 글);
       set질문들((앞것) => [...(앞것 ?? []), { id, text: 글, status: 'QUEUED', createdAt: new Date().toISOString(), answer: '', steps: [], lastSeq: 0 }]);
       set앞(ahead);
       잇기(id, 0);
+      return true;
     } catch (e) {
       // 다른 탭에서 먼저 물었다 — 그 질문을 보이게 다시 읽는다
-      if (e instanceof ApiError && e.code === 'BUSY') return void (await 읽기());
-      set묻기오류(message(e, 언어));
+      if (e instanceof ApiError && e.code === 'BUSY') await 읽기();
+      else set묻기오류(message(e, 언어));
+      return false;
     }
   };
 
@@ -120,6 +136,7 @@ export function useScout(projectId: number, 열림: boolean): Scout상태 {
 
   const 초기화 = async () => {
     set묻기오류(null);
+    세대.current += 1;
     try {
       await scoutApi.reset(projectId);
       끊기();

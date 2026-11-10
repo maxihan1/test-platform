@@ -43,6 +43,7 @@ import './perfPages.css';
 import './perfDevices.css';
 import './perfRun.css';
 import './scout.css';
+import './scoutAnswer.css';
 
 고른밝기를건다();
 칩움직임을건다();

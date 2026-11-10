@@ -1,0 +1,214 @@
+/* Scout 창 본문 — 처음 열기 · 내 질문 · 진행 줄 · 목록 답 · 끝 상태 (도메인/챗봇 §8.18). 창 틀은 scout.css */
+
+.scout-hello {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.scout-hello h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.scout-hello p {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+
+.scout-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.scout-chip {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--well);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.scout-me {
+  align-self: flex-end;
+  max-width: 82%;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px 14px 4px 14px;
+  background: var(--accent-soft);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.scout-ai {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  gap: 8px;
+  overflow-wrap: anywhere;
+}
+
+.scout-ai p {
+  margin: 0;
+}
+
+.scout-ai code {
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+}
+
+.scout-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 10px 12px;
+  list-style: none;
+  border-radius: 10px;
+  background: var(--well);
+  font-size: 13px;
+}
+
+.scout-steps li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.scout-steps li.done,
+.scout-steps li.wait {
+  color: var(--ink-muted);
+}
+
+.scout-check {
+  flex: none;
+  color: var(--ink-muted);
+}
+
+/* 실행 중 맥박 (DESIGN.md 움직임 원칙 — 되풀이는 이것 하나) */
+.scout-pulse {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-mark);
+  animation: scout-맥박 var(--dur-pulse) ease-in-out infinite;
+}
+
+.scout-pulse.gray {
+  background: var(--chart-2);
+}
+
+@keyframes scout-맥박 {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.scout-fold {
+  display: flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--well);
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.scout-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.scout-list li {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--well);
+  font-size: 13px;
+}
+
+.scout-badge {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.scout-badge.fail {
+  background: var(--fail-soft);
+  color: var(--fail-text);
+}
+
+.scout-badge.pass {
+  background: var(--pass-soft);
+  color: var(--pass-text);
+}
+
+.scout-badge.na {
+  background: var(--na-soft);
+  color: var(--na-text);
+}
+
+.scout-more {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--link);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.scout-ended {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--fail-soft);
+  color: var(--fail-text);
+  font-size: 13px;
+}
+
+/* 사람이 누른 중단은 오류가 아니다 */
+.scout-ended.stopped {
+  background: var(--well);
+  color: var(--ink-muted);
+}
+
+/* 읽기 · 묻기 오류 한 줄 */
+.scout-error {
+  margin: 0;
+  padding: 0 14px 8px;
+  color: var(--fail-text);
+  font-size: 13px;
+}
+
+/* 창 바닥 — 이 프로젝트의 데이터로만 답한다는 한 줄 */
+.scout-scope {
+  flex: none;
+  margin: 0;
+  padding: 0 14px 10px;
+  color: var(--ink-faint);
+  font-size: 11px;
+}

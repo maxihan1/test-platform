@@ -1,9 +1,9 @@
 // Scout 질문 하나 — 내 질문 말풍선 · 대기 · 진행 줄(답이 나오면 접힌다) · 목록 답 · 끝 상태 (도메인/챗봇 §8.18)
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { use말 } from './i18n.js';
-import { 답풀기, 단계글, 배지색, type 글조각, type 단계, type 덩이, type 질문 } from './scoutView.js';
+import { 끝났나, 답풀기, 단계글, 배지색, type 글조각, type 단계, type 덩이, type 질문 } from './scoutView.js';
 
 const 목록상한 = 10;
 
@@ -83,22 +83,25 @@ export function ScoutAnswer({ q, btsUrl, 앞, 다시질문 }: { q: 질문; btsUr
   const t = use말();
   const [펼침, set펼침] = useState(false);
   const 끝 = 끝글[q.status];
+  // 조각이 올 때마다 모든 질문이 다시 그려진다 — 바뀌지 않은 답을 다시 풀지 않는다
+  const 덩이들 = useMemo(() => 답풀기(q.answer, btsUrl), [q.answer, btsUrl]);
   return (
     <>
       <div className="scout-me">{q.text}</div>
       <div className="scout-ai">
-        {q.status === 'QUEUED' && q.steps.length === 0 ? (
+        {/* 앞 수를 모르거나 0 이면 줄 없이 맥박만 — 차례가 온 질문을 「앞에 0건」 으로 세우지 않는다 */}
+        {q.status === 'QUEUED' && q.steps.length === 0 && 앞 !== null && 앞 > 0 ? (
           <ul className="scout-steps" aria-live="polite">
             <li className="wait">
               <span className="scout-pulse gray" aria-hidden="true" />
-              {t('앞에 {수}건 대기 중', { 수: 앞 ?? 0 })}
+              {t('앞에 {수}건 대기 중', { 수: 앞 })}
             </li>
           </ul>
         ) : null}
         {q.answer === '' ? (
           q.steps.length > 0 ? (
             <진행줄 단계들={q.steps} />
-          ) : q.status === 'RUNNING' ? (
+          ) : !끝났나(q.status) && !(q.status === 'QUEUED' && 앞 !== null && 앞 > 0) ? (
             <span className="scout-pulse" aria-hidden="true" />
           ) : null
         ) : q.steps.length === 0 ? null : (
@@ -111,7 +114,7 @@ export function ScoutAnswer({ q, btsUrl, 앞, 다시질문 }: { q: 질문; btsUr
             {펼침 ? <진행줄 단계들={q.steps} /> : null}
           </>
         )}
-        {답풀기(q.answer, btsUrl).map((덩이, i) =>
+        {덩이들.map((덩이, i) =>
           덩이.꼴 === 'para' ? (
             <p key={i}>
               <글들 조각들={덩이.줄} />
@@ -121,7 +124,8 @@ export function ScoutAnswer({ q, btsUrl, 앞, 다시질문 }: { q: 질문; btsUr
           ),
         )}
         {끝 === undefined ? null : (
-          <div className="scout-ended" role="status">
+          // 사람이 누른 중단은 오류가 아니라 회색 상자다. 시간 초과 · 실패만 오류 색이다 (DESIGN.md 원칙 1)
+          <div className={q.status === 'STOPPED' ? 'scout-ended stopped' : 'scout-ended'} role="status">
             <span>{t(끝)}</span>
             {다시질문 === null ? null : (
               <button type="button" className="btn small" onClick={다시질문}>

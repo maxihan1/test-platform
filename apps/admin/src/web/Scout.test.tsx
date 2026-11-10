@@ -171,6 +171,28 @@ describe('Scout 채팅창 (도메인/챗봇 §8.18)', () => {
     screen.getByRole('button', { name: 'Scout 닫기' });
   });
 
+  it('질문을 못 넣으면 오류를 보이고 쓴 글을 입력 칸에 되돌린다', async () => {
+    띄우기();
+    await 열기();
+    vi.mocked(fetch).mockImplementationOnce(async () => new Response(JSON.stringify({ error: 'FORBIDDEN' }), { status: 403 }));
+    const 칸 = await screen.findByRole('textbox', { name: '질문' });
+    fireEvent.change(칸, { target: { value: '긴 질문' } });
+    fireEvent.click(screen.getByRole('button', { name: '보내기' }));
+    await screen.findByRole('alert');
+    expect((칸 as HTMLTextAreaElement).value).toBe('긴 질문');
+  });
+
+  it('창을 닫았다 다시 열면 대화를 다시 읽는다 — 다른 탭에서 넣은 질문도 보인다', async () => {
+    띄우기();
+    await 열기();
+    await screen.findByText('데모마켓 시험 프로젝트에 대해 물어보세요');
+    fireEvent.click(screen.getByRole('button', { name: 'Scout 닫기' }));
+    대화.questions = [질문줄({ text: '다른 탭 질문', answer: '다른 탭 답' })];
+    await 열기();
+    await screen.findByText('다른 탭 답');
+    expect(부른것.filter((p) => p.method === 'GET')).toHaveLength(2);
+  });
+
   it('대화 초기화는 한 번 더 묻지 않고 지우고 처음 열기로 돌아간다', async () => {
     대화.questions = [질문줄({ answer: '실패는 없어요.' })];
     띄우기();
