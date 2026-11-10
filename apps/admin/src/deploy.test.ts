@@ -57,6 +57,7 @@ describe('작성 에이전트 컨테이너(author)', () => {
       'AUTHORING_EFFORT',
       'AUTHORING_FALLBACK_MODEL',
       'AUTHORING_MAX_PARALLEL',
+      'CHAT_MAX_PARALLEL',
       'AUTHORING_CLAUDE_VERSION',
       'AUTHORING_CLAUDE_AUTOUPDATE',
     ]) {
@@ -77,8 +78,8 @@ describe('작성 에이전트 컨테이너(author)', () => {
     expect(author).toMatch(/init:\s*true/);
   });
 
-  it('메모리는 동시 2건 몫이다 — 한 건이 claude + Chromium 3회다', () => {
-    expect(author).toMatch(/mem_limit:\s*8g/);
+  it('메모리는 동시 2건 몫(한 건이 claude + Chromium 3회 4g)에 Scout 두 자리 몫(1g 씩)을 더한다', () => {
+    expect(author).toMatch(/mem_limit:\s*10g/);
   });
 });
 

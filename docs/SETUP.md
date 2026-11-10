@@ -282,6 +282,7 @@ openssl rand -hex 32
 **자식은 따로 된 방에서 돈다** (2026-09-24). 작업마다 컨테이너 안 `/work` 에 사본을 만들고, 자식은 자리마다 다른 uid 로 돌아
 에이전트의 토큰·서버 저장소·다른 서비스의 작업을 못 건드린다. 동시에 도는 작성 수는 `AUTHORING_MAX_PARALLEL`(기본 2 — 모든 서비스를 합친 수)이 막고, 같은 서비스도 이 안에서 나란히 돈다(2026-10-01).
 여러 사람이 한 서비스에 몰려 기다림이 길면 이 값을 올린다 — 한 자리에 메모리 4g 이므로 compose 의 `mem_limit` 도 같이 올린다(명세 공통/6-인프라 설정값 표).
+Scout 챗봇은 이와 따로 `CHAT_MAX_PARALLEL`(기본 2) 자리에서 돈다. 질문이 「앞에 N건 대기 중」으로 오래 서면 올리고, 한 자리에 1g 씩 `mem_limit` 도 올린다.
 반영은 서비스마다 차례로 돌고, 먼저 들어간 케이스와 겹치면 멈춰 사람이 고르게 한다(명세 도메인/작성 §3.6 「★ 반영 때 겹침 검사」).
 **남는 한계** — 자식은 Claude 구독 토큰을 든다(로그인해야 해서). 구독 한도를 사람의 대화형 사용과 나눠 쓰고, 동시에 도는 수만큼 빨리 닳는다.
 **예비 모델(메인은 Sonnet)은 과부하일 때만 넘어간다** — 한도에 걸리면 그 요청이 「Claude 구독 한도에 걸렸다」로 실패한다.
@@ -1056,7 +1057,7 @@ ssh qahub 'cd /opt/qahub && git pull --ff-only origin main && docker compose up 
    docker compose -p test_platform -f docker-compose.yml -f docker-compose.mac.yml --profile authoring up -d --build author perf-agent
    docker compose -p test_platform logs -f author   # [작성] … 로 붙었다 가 뜨면 된 것이다
    ```
-   author 는 맥에서 한 번에 한 건(`AUTHORING_MAX_PARALLEL=1` · 메모리 4g)만 돈다 — 맥용 덧붙임 파일이 정한다.
+   author 는 맥에서 한 번에 한 건(`AUTHORING_MAX_PARALLEL=1`)과 Scout 한 자리(`CHAT_MAX_PARALLEL=1`)만 돈다 · 메모리 5g — 맥용 덧붙임 파일이 정한다.
    **npm 작성 에이전트(`npm run authoring-agent`)는 쓰지 않는다** — 자식 셸이 맥 계정의 파일(운영 서버 ssh 키 포함)에 닿는다. 컨테이너는 `~/.ssh` 를 못 본다
 4. 작성 계정의 비밀번호 로그인을 막는다 — 3번에서 author 가 붙은 걸 본 뒤에 한다. 작성 토큰은 비밀번호를 안 봐서 그대로 붙고, 로그인 화면만 거절한다(`apps/admin/src/auth/identify.ts` · `routes.ts`). 되살릴 때는 admin 이 설정 › 계정에서 비밀번호를 새로 준다
    ```bash

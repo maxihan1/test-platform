@@ -119,6 +119,13 @@ export function 동시상한(env: Record<string, string | undefined>): number | 
   return 수 >= 1 && 수 <= 8 ? 수 : { 까닭: `AUTHORING_MAX_PARALLEL(${값}) 은 1~8 이다` };
 }
 
+/** Scout 챗봇 자리 수 (도메인/챗봇 §3.14 「돌리는 곳」). 자리마다 claude 하나라 메모리(compose mem_limit 1g)와 구독 속도 제한이 이 수에 곱해진다 */
+export function 챗봇상한(env: Record<string, string | undefined>): number | { 까닭: string } {
+  const 값 = env.CHAT_MAX_PARALLEL || '2';
+  const 수 = /^\d+$/.test(값) ? Number(값) : NaN;
+  return 수 >= 1 && 수 <= 8 ? 수 : { 까닭: `CHAT_MAX_PARALLEL(${값}) 은 1~8 이다` };
+}
+
 export interface 계정 {
   uid: number;
   gid: number;
@@ -132,12 +139,15 @@ const 숫자 = (값: string | undefined): number | null => (값 !== undefined &&
  * 자리 k 의 자식은 `AUTHORING_CHILD_UID + k` 다 — 같은 uid 면 동시에 도는 다른 서비스 자식의
  * `/proc/<pid>/environ`(피그마 토큰)·자료·트리를 읽고 쓴다 (2026-09-24 계획 검토 BLOCKER).
  * 칸이 비었는데 그냥 돌면 자식이 root 가 되어 **지금보다 나빠진다** — 그래서 거부한다.
+ * Scout 챗봇 자리 j 는 그 뒤 번호(`AUTHORING_CHILD_UID + 상한 + j`)다 — 같은 uid 면 작성 자식을 거둘 때 챗봇 자식까지 죽고
+ * 서로의 environ · 0600 MCP 설정(mcj_ · mcq_)을 읽는다 (도메인/챗봇 §3.14 「돌리는 곳」). 성능 AI 일은 도구 없이 에이전트 uid 로 돌아 번호를 안 쓴다
  */
 export function 계정들(
   env: Record<string, string | undefined>,
   상한: number,
   지금uid: number,
-): { 자식: 계정[]; 호스트: 계정 } | null | { 까닭: string } {
+  챗봇수 = 0,
+): { 자식: 계정[]; 챗봇: 계정[]; 호스트: 계정 } | null | { 까닭: string } {
   if (지금uid !== 0) return null;
   const 기본 = 숫자(env.AUTHORING_CHILD_UID);
   if (기본 === null) return { 까닭: 'root 로 켰는데 AUTHORING_CHILD_UID 가 없다 — 자식이 root 로 돈다' };
@@ -145,15 +155,16 @@ export function 계정들(
   if (호스트uid === null) return { 까닭: 'root 로 켰는데 HOST_UID 가 없다 — 서버 저장소에 root 소유 파일이 남는다' };
   const 호스트 = { uid: 호스트uid, gid: 숫자(env.HOST_GID) ?? 호스트uid };
   const 자식 = Array.from({ length: 상한 }, (_, k) => ({ uid: 기본 + k, gid: 기본 + k }));
-  const 겹침 = 자식.find((c) => c.uid === 0 || c.uid === 호스트.uid);
+  const 챗봇 = Array.from({ length: 챗봇수 }, (_, j) => ({ uid: 기본 + 상한 + j, gid: 기본 + 상한 + j }));
+  const 겹침 = [...자식, ...챗봇].find((c) => c.uid === 0 || c.uid === 호스트.uid);
   if (겹침 !== undefined) {
     return { 까닭: `자식 uid(${겹침.uid})가 root(0) 나 HOST_UID(${호스트.uid}) 와 겹친다 — AUTHORING_CHILD_UID 를 바꿔라` };
   }
-  const 그룹겹침 = 자식.find((c) => c.gid === 0 || c.gid === 호스트.gid);
+  const 그룹겹침 = [...자식, ...챗봇].find((c) => c.gid === 0 || c.gid === 호스트.gid);
   if (그룹겹침 !== undefined) {
     return { 까닭: `자식 gid(${그룹겹침.gid})가 root(0) 나 HOST_GID(${호스트.gid}) 와 겹친다 — 서버 저장소의 그룹 쓰기 파일에 쓴다` };
   }
-  return { 자식, 호스트 };
+  return { 자식, 챗봇, 호스트 };
 }
 
 /**

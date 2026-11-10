@@ -78,5 +78,9 @@ export function 점검통과(도움말: string): boolean {
     '--json-schema',
     '--no-session-persistence',
     'dontAsk',
+    // Scout 챗봇 자식 — 답 글자 조각 사건 · 사용자 설정을 안 읽는 격리 · 슬래시 명령 끄기 (도메인/챗봇 §3.14 「자식」). --max-turns 는 도움말에 없어 못 본다
+    '--include-partial-messages',
+    '--setting-sources',
+    '--disable-slash-commands',
   ].every((깃발) => 도움말.includes(깃발));
 }

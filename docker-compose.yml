@@ -164,6 +164,7 @@ services:
       # 자식 claude 의 uid. 자리 k 는 이 값 + k 다. 0 이나 HOST_UID 와 겹치면 켜지지 않는다
       AUTHORING_CHILD_UID: "${AUTHORING_CHILD_UID:-20000}"
       AUTHORING_MAX_PARALLEL: "${AUTHORING_MAX_PARALLEL:-2}"   # 늘리면 mem_limit 도 한 건 4g 씩 늘린다
+      CHAT_MAX_PARALLEL: "${CHAT_MAX_PARALLEL:-2}"             # Scout 챗봇 자리 — 늘리면 mem_limit 도 한 자리 1g 씩 늘린다 (도메인/챗봇 §3.14)
       AUTHORING_MODEL: "${AUTHORING_MODEL:-claude-opus-5-5}"    # 메인만 — 보조는 .claude/agents 정의 (2026-10-04)
       AUTHORING_EFFORT: "${AUTHORING_EFFORT:-high}"             # low · medium · high · xhigh · max
       AUTHORING_FALLBACK_MODEL: "${AUTHORING_FALLBACK_MODEL:-sonnet}"   # 과부하·미제공일 때만 넘어간다. none 이면 끈다
@@ -194,7 +195,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks: [authoring]
-    mem_limit: 8g             # 한 건(claude + 관문 3회 Chromium) 4g × 동시 상한(기본 2건 — AUTHORING_MAX_PARALLEL)
+    mem_limit: 10g            # 한 건(claude + 관문 3회 Chromium) 4g × 동시 상한(기본 2건 — AUTHORING_MAX_PARALLEL) + Scout 한 자리 1g × 2(CHAT_MAX_PARALLEL)
     shm_size: 2g              # Chromium 이 /dev/shm 을 넉넉히 쓴다
 
   perf-agent:
