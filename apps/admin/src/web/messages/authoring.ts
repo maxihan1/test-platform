@@ -58,7 +58,7 @@ export const 작성말: Record<string, string> = {
   'PDF · 워드 · 엑셀 · md · txt · csv · 파일 하나 20MB 까지': 'PDF · Word · Excel · md · txt · csv · up to 20MB each',
   '어느 서버의 화면과 대조할까요?': 'Which server should the screens be compared on?',
   '이 서버의 화면을 읽어 기획서와 대조합니다': 'Screens on this server are read and compared with the spec',
-  '비우면 기획서가 말하는 화면에서 시작합니다': 'Leave empty to start from the screen the spec names',
+  '비우면 대상 서버 주소에서 시작합니다': 'Leave empty to start from the target server URL',
   '디바이스에서 앱을 켠 첫 화면에서 시작합니다': 'Starts from the first screen after the app launches on the device',
   '이렇게 작성합니다': 'Here is the plan',
   '가이드 없이 작성합니다': 'Written without a guide',

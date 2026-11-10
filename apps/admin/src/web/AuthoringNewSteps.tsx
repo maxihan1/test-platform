@@ -193,7 +193,7 @@ export function 서버칸({
             </select>
           </div>
           {웹 ? (
-            <div className="authoring-field">
+            <div className="wiz-new-start">
               <label className="authoring-field">
               <span>{t('시작 주소')}</span>
               <input
@@ -207,7 +207,7 @@ export function 서버칸({
               />
               </label>
               {/* 이름표 밖에 둔다 — 안에 두면 칸 이름에 설명까지 섞인다 */}
-              <small>{t('비우면 기획서가 말하는 화면에서 시작합니다')}</small>
+              <small>{t('비우면 대상 서버 주소에서 시작합니다')}</small>
             </div>
           ) : (
             <small className="wiz-new-hint">{t('디바이스에서 앱을 켠 첫 화면에서 시작합니다')}</small>
