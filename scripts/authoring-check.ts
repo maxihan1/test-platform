@@ -1,4 +1,4 @@
-// 빠른 검사 명령 — 빠진 요구 · 타입 · 케이스 형식 · 케이스와 요구 목록 맞춰 보기 · 확인 하나에 값 하나 · 비밀번호 노출 점검을 한 번에 돌리고 틀린 것만 찍는다 (SPEC 도메인/작성 §3.6 「빠른 검사 명령」)
+// 빠른 검사 명령 — 빠진 요구 · 타입 · 케이스 형식 · 케이스와 요구 목록 맞춰 보기 · 확인 하나에 값 하나 · 케이스 모양 · 비밀번호 노출 점검을 한 번에 돌리고 틀린 것만 찍는다 (SPEC 도메인/작성 §3.6 「빠른 검사 명령」)
 // 자식이 검사 명령을 하나씩 부르고 긴 로그를 읽고, 맞춰 보기는 417건을 눈으로 하던 일이다. 비밀번호 점검은 문서의 프로그램을 매번 베껴 만들었다
 // 실행: npm run authoring:check -- 마지막 <원장 사본> <접두사> <폴더> [더 볼 경로…] | 보조 <케이스 파일…> | 비밀번호 <경로…>
 
@@ -16,6 +16,7 @@ import { 명세글, 속성, 읽기 } from './authoring-held-apply.js';
 import { 보류경고 } from './authoring-held-kinds.js';
 import { 비밀자리들, 파일모으기 } from './authoring-secret-spots.js';
 import { 바뀐것 } from './authoring-base-list.js';
+import { type 모양지적, 모양확인들, 문구모양, 코드모양 } from './authoring-case-shape.js';
 import { 묶었나 } from './authoring-one-value.js';
 import { 백틱벗기기, 표읽기 } from './authoring-md-table.js';
 
@@ -27,6 +28,8 @@ export interface 케이스문장 {
   판정: string[];
   /** 실제 값을 배열 · 객체로 묶어 견주는 verify 의 문장 */
   묶은판정: string[];
+  /** 기다림 · 케이스 안 화면 요소 · 문구 꼴 지적 (`authoring-case-shape.ts`) */
+  모양: 모양지적[];
   /** 보류 사유 — 글자일 때만. 남은 보류 경고가 쓴다 */
   held?: string;
 }
@@ -57,13 +60,15 @@ export function 케이스문장읽기(글: string): 케이스문장 | null {
   };
   훑기(sf);
   const held = 글자(속성(명세, 'held')?.initializer);
+  const name = 글자(속성(명세, 'name')?.initializer);
   return {
     tcId,
-    name: 글자(속성(명세, 'name')?.initializer),
+    name,
     전제: 전제식 !== undefined && ts.isArrayLiteralExpression(전제식) ? 전제식.elements.flatMap((e) => 글자(e) ?? []) : [],
     절차,
     판정,
     묶은판정,
+    모양: [...코드모양(sf), ...문구모양({ tcId, name, 판정 })],
     ...(held === null ? {} : { held }),
   };
 }
@@ -211,6 +216,8 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
       결과들.push({ 이름: '케이스와 요구 목록 맞춰 보기', ok: 어긋남.length === 0, 줄들: 어긋남 });
       const 묶음 = 묶은확인들(문장들);
       결과들.push({ 이름: '확인 하나에 값 하나', ok: 묶음.length === 0, 줄들: 묶음 });
+      const 모양 = 모양확인들(문장들);
+      결과들.push({ 이름: '케이스 모양', ok: 모양.length === 0, 줄들: 모양 });
       남은보류(결과들, 보류경고(문장들));
     }
   } else if (모드 === '마지막' && 나머지.length >= 3) {
@@ -237,6 +244,8 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     결과들.push({ 이름: '케이스와 요구 목록 맞춰 보기', ok: 어긋남.length === 0, 줄들: 어긋남, 머리: 볼 === undefined ? 못좁힘 : `이번에 바뀐 케이스 ${볼.size}건만 봤다` });
     const 묶음 = 묶은확인들(문장들, 볼);
     결과들.push({ 이름: '확인 하나에 값 하나', ok: 묶음.length === 0, 줄들: 묶음 });
+    const 모양 = 모양확인들(문장들, 볼);
+    결과들.push({ 이름: '케이스 모양', ok: 모양.length === 0, 줄들: 모양 });
     남은보류(결과들, 보류경고(문장들, 볼));
     // 게임 규칙도 이번에 바뀐 파일만 — 못 읽으면 폴더 전체(화면 객체 · 도우미의 좌표도 본다).
     // 스모크 0건은 폴더를 이번 작성이 다 쓴 때만 센다 — 고친 요구만 다시 쓰는 작성에 앞 작성 케이스를 고치게 하지 않는다
