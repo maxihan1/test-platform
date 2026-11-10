@@ -8,13 +8,14 @@ import { BTS이름 } from './btsName.js';
 import { use말 } from './i18n.js';
 import { 구획 } from './SettingsServiceParts.js';
 
+// Issue Bunker 의 상태 이름과 같은 말을 쓴다 — 두 화면을 오가며 짝을 맞추는 사람이 이름을 옮겨 읽지 않게(2026-11-10 사용자)
 export const 상태단계들: [상태단계, string][] = [
-  ['DEPLOY_WAIT', '배포 대기'],
-  ['QA_REQUEST', 'QA 요청'],
-  ['QA_REVIEW', 'QA 검토'],
-  ['DEV_REQUEST', '개발 요청'],
-  ['CODE_REVIEW', '코드 리뷰'],
-  ['CLOSED', '닫힘'],
+  ['DEPLOY_WAIT', 'Ready to Deploy'],
+  ['QA_REQUEST', 'Ready for QA'],
+  ['QA_REVIEW', 'QA Review'],
+  ['DEV_REQUEST', 'Ready for Dev'],
+  ['CODE_REVIEW', 'In Review'],
+  ['CLOSED', 'Closed'],
 ];
 
 export const 해결단계들: [해결단계, string][] = [
@@ -133,7 +134,7 @@ const 항목이름: Record<BTS설정결과['what'], string> = {
   WEBHOOK: '웹훅',
   RULE_ASSIGNEE: '담당자 변경 규칙',
   RULE_PR: 'PR 병합 규칙',
-  BOARD: '보드 「QA 검토」 칸',
+  BOARD: '보드 「QA Review」 칸',
 };
 
 const 항목쓰임: Record<BTS설정결과['what'], string> = {

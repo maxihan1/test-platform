@@ -79,9 +79,9 @@ describe('설정 › BTS 연결', () => {
     await screen.findByText('Issue Bunker 에서 상태 6개 · 해결 사유 5개를 불러왔습니다');
     expect(불러옴).toHaveBeenCalledWith(3, 'https://bts.example.com', 'qahub-bot');
 
-    const 검토칸 = screen.getByLabelText('QA 검토');
+    const 검토칸 = screen.getByLabelText('QA Review');
     expect(within(검토칸).getByRole('option', { name: 'QA Review' })).toBeTruthy();
-    for (const [이름, 값] of [['배포 대기', 'ready'], ['QA 요청', 'qa-req'], ['QA 검토', 'qa-review'], ['개발 요청', 'todo'], ['코드 리뷰', 'review'], ['닫힘', 'done']] as const) {
+    for (const [이름, 값] of [['Ready to Deploy', 'ready'], ['Ready for QA', 'qa-req'], ['QA Review', 'qa-review'], ['Ready for Dev', 'todo'], ['In Review', 'review'], ['Closed', 'done']] as const) {
       fireEvent.change(screen.getByLabelText(이름), { target: { value: 값 } });
     }
     for (const [이름, 값] of Object.entries({ '화면이 맞음': "Won't Fix", '테스트 문제': 'Test Issue', '흔들림': 'Flaky', '환경 문제': 'Environment', '중복': 'Duplicate' })) {
@@ -106,7 +106,7 @@ describe('설정 › BTS 연결', () => {
     await waitFor(() => expect(불러옴).toHaveBeenCalledWith(3, 'https://bts.example.com', 'qahub-ai'));
     expect(await screen.findByText('연결됨 · DM')).toBeTruthy();
     expect((screen.getByLabelText('「QA Hub AI」 계정 이름') as HTMLInputElement).value).toBe('qahub-ai');
-    fireEvent.change(screen.getByLabelText('QA 검토'), { target: { value: '' } });
+    fireEvent.change(screen.getByLabelText('QA Review'), { target: { value: '' } });
     fireEvent.click(screen.getByRole('button', { name: '저장하고 Issue Bunker 자동 설정' }));
     expect(await screen.findByText('비어 있는 단계가 있습니다. 모든 단계에 Issue Bunker 상태를 선택해 주세요')).toBeTruthy();
     expect(저장).not.toHaveBeenCalled();
