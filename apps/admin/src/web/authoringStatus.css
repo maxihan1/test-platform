@@ -123,19 +123,6 @@
 .status-raw summary { cursor: pointer; }
 .status-raw pre { margin: 4px 0 0; white-space: pre-wrap; }
 
-/* 목록 줄의 할 일 칩 — 판정이 아니라 잉크다. 반영 실패만 실패 색 (DESIGN.md 원칙 1 · ⑫ 점검 11.2) */
-.authoring-todo-chips { display: inline-flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
-.todo-chip { font-size: 12px; padding: 1px 8px; border: 1px solid var(--line-2); border-radius: 999px; color: var(--ink); white-space: nowrap; }
-.todo-chip.fail { border-color: var(--fail); color: var(--fail-text); background: var(--fail-soft); }
-
-/* 목록 한 줄을 통째로 누른다 — 제목 링크를 줄 위로 늘린다. 버튼을 따로 두지 않아도 키보드는 링크 하나로 닿는다 */
-.row.authoring-row { position: relative; }
-.row.authoring-row:hover { background: var(--well); }
-.row.authoring-row .title a { color: var(--ink); text-decoration: none; font-weight: 600; }
-.row.authoring-row .title a::after { content: ''; position: absolute; inset: 0; }
-.row.authoring-row .title a:focus-visible { outline: none; }
-.row.authoring-row:focus-within { outline: 2px solid var(--ink); outline-offset: -2px; }
-
 /* 상세 페이지는 카드들이 제각각 떠 있다. 공용 .screen 의 판을 걷는다 — 판 위에 카드를 또 띄우면 테두리가 겹친다 */
 .screen.authoring-page { background: none; border: 0; box-shadow: none; overflow: visible; }
 
@@ -270,21 +257,3 @@
 .side-by-side ul { margin: 0; padding-left: 18px; font-size: 13px; color: var(--ink-muted); }
 .side-same { background: var(--line); border-radius: 3px; padding: 0 3px; }
 .side-by-side .mono + .mono { margin-left: 6px; }
-
-/* 목록 줄 — [종류] 무슨 테스트 / 결과 / 시작한 곳. 꼬리표는 판정이 아니라 잉크다 (WEB-F6-06 시안 「목록 요청 내용」) */
-.authoring-kind { display: inline-block; margin-right: 8px; padding: 1px 8px; border-radius: 6px; background: var(--line); color: var(--ink); font-size: 12px; font-weight: 600; white-space: nowrap; }
-.title small.authoring-result { color: var(--ink-muted); }
-.title small.authoring-result.fail { color: var(--fail-text); }
-
-/* 목록 옆 「새 작성에 넣는 자료」 판 — 목록이 넓은 칸, 판은 좁은 칸. 좁으면 목록 아래로 쌓인다 (시안 11판 · WEB-F7-16) */
-.auth-cols { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 14px; align-items: start; margin-bottom: 28px; }
-.auth-cols.one { grid-template-columns: minmax(0, 1fr); }
-.auth-cols > .screen { margin-bottom: 0; }
-.auth-cols > .list-screen { align-self: stretch; }
-.auth-inputs { padding: 12px 16px 16px; display: grid; gap: 10px; }
-.auth-inputs h2 { margin: 0; font-size: 14px; font-weight: 600; }
-.auth-inputs h2 span { margin-left: 6px; font-size: 12px; font-weight: 400; color: var(--ink-faint); }
-.auth-inputs ol { margin: 0; padding-left: 18px; display: grid; gap: 8px; color: var(--ink-muted); font-size: 13px; }
-@media (max-width: 900px) {
-  .auth-cols { grid-template-columns: minmax(0, 1fr); flex: none; }
-}

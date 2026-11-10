@@ -12,12 +12,10 @@ import { decideApi } from './decideApi.js';
 import { 탭읽기, type 탭 } from './decideView.js';
 import { Drawer } from './Drawer.js';
 import { AuthoringStartModal } from './AuthoringStartModal.js';
-import { 목록글 } from './authoringStatus.js';
-import { 결과글, 무슨테스트, 시작글, 종류꼬리표 } from './authoringSummary.js';
-import { 반영보임, 줄보임, 칩글, 할일칩들, type 보임 } from './authoringView.js';
+import { 구분글, 단계꼬리, 대상글, 소요시간글, 소요초, 작성자글, 작성일글, 케이스수 } from './authoringSummary.js';
+import { 반영보임, 줄보임, 칩글, 할일칩들 } from './authoringView.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
-import { 종류, 종류이름 } from './kind.js';
 import { use주소조건, 주소조건 } from './leaveGuard.js';
 import { 다음이있나 } from './paging.js';
 import type { 판정 } from './role.js';
@@ -26,70 +24,76 @@ import { Failed, Loading, useAsync } from './ui.js';
 function 표머리() {
   const t = use말();
   return (
-    <div className="rowhead runhead" role="row">
-      <span aria-hidden="true" />
+    <div className="rowhead authoring-head" role="row">
       <span role="columnheader">{t('번호')}</span>
-      <span role="columnheader">{t('요청')}</span>
+      <span role="columnheader">{t('구분')}</span>
+      <span role="columnheader">{t('대상')}</span>
+      <span role="columnheader" className="num">{t('케이스 수')}</span>
+      <span role="columnheader" className="num">{t('소요 시간')}</span>
+      <span role="columnheader">{t('작성자')}</span>
+      <span role="columnheader">{t('작성일')}</span>
       <span role="columnheader">{t('상태')}</span>
-      <span aria-hidden="true" />
     </div>
   );
 }
 
-/** 왼쪽 색 띠. 한눈에 훑기 위한 것이고 판정은 오른쪽 글자가 말한다 (SPEC §8.7 과 같은 규칙). 반영 대기는 판정이 아니다 */
-function 띠색(보: 보임 | 'waiting'): string {
-  if (보 === 'done') return 'var(--pass)';
-  if (보 === 'failed' || 보 === 'stalled') return 'var(--fail)';
-  // 중단은 판정이 아니다 — 사람이나 한도가 멈춘 것이라 판정 색을 쓰지 않는다 (DESIGN.md 「작성 상태」)
-  if (보 === 'stopped') return 'var(--line-2)';
-  return 'var(--na)';
-}
-
-function 작성줄({ 것, 지금, 운영자 }: { 것: AuthoringListRow; 지금: number; 운영자: boolean }) {
+/**
+ * 한 줄 표 — 번호 · 구분 · 대상 · 케이스 수 · 소요 시간 · 작성자 · 작성일 · 상태 (2026-11-10 사용자 시안).
+ * 세 줄 카드가 자리를 많이 써서 칸으로 나눴다. 휴대폰 폭에서는 CSS 가 두 줄로 접는다
+ */
+function 작성줄({ 것, 지금 }: { 것: AuthoringListRow; 지금: number }) {
+  const t = use말();
   const 언어 = use언어();
   const 보 = 줄보임(것, 지금);
-  // 사람 손이 남았으면 상태 대신 할 일 칩을 단다 — 남았는데 초록 「완료」로 보이던 것을 고친다 (점검 11.2 · N2)
+  // 사람 손이 남았으면 상태 대신 할 일을 적는다 — 남았는데 초록 「완료」로 보이던 것을 고친다 (점검 11.2 · N2)
   const 할일 = 할일칩들(것.todo, 언어);
   const 보임 = 반영보임(보, 것.todo.apply);
   // 보이는 번호는 뿌리 하나다 — 줄은 그 요청의 최신 실행이다 (도메인/작성 §7 「실행 기록」)
   const 번호 = 것.rootId ?? 것.id;
-  // 끝나기 전이거나 셀 것이 없으면 지금 상태 글이 둘째 줄이다 (2026-10-26 WEB-F6-06 시작 질문)
-  const 결과 = 결과글(것.summary, 언어);
-  const 종류 = 종류꼬리표(것.summary, 언어);
-  const 제목 = 무슨테스트(것.summary, 언어);
+  const 대상 = 대상글(것.summary, 언어);
+  const 수 = 케이스수(것.summary);
+  const 초 = 소요초(것.summary, 것, 지금);
+  // 초안은 올리는 중이든 올리다 버려졌든 DRAFT 다 — 둘 다에 맞는 말을 쓴다. 업로드 거절은 사람이 세운 중단과 가른다
+  const 상태 =
+    할일.length > 0
+      ? 할일.map((칩) => 칩.글).join(' · ')
+      : 것.status === 'DRAFT'
+        ? t('자료 업로드가 완료되지 않았습니다')
+        : 것.status === 'STOPPED' && 것.stopReason === 'REJECTED'
+          ? t('업로드 거절')
+          : 칩글(것, 보, 언어);
+  // 단계는 따로 둔다 — 휴대폰 폭에서는 대상이 먼저 읽히게 CSS 가 숨긴다
+  const 단계 = 할일.length > 0 ? null : 단계꼬리(것.summary, 것, 보, 언어);
+  // 중단은 판정이 아니다 — 사람이나 한도가 멈춘 것이라 실패 색을 쓰지 않는다 (DESIGN.md 「작성 상태」)
+  const 색 = 할일.some((칩) => 칩.실패) || 보임 === 'failed' || 보임 === 'stalled' ? 'fail' : 할일.length > 0 ? 'todo' : 보임 === 'done' ? 'pass' : 보 === 'running' ? 'run' : 'na';
   return (
     <div className="row authoring-row">
-      <div className="gutter" style={{ background: 띠색(보임) }} />
-      <div className="tcid">#{번호}</div>
-      <div className="title">
-        {/* 제목은 무슨 테스트인가다 — 자료 이름 제목은 무엇을 만들었는지 몰랐다 (도메인/작성 §3.6 「작성 목록 줄」) */}
-        {/* 제목이 종류로 떨어졌으면(끝나기 전 · 자료 없음) 꼬리표를 또 달지 않는다 — 같은 글이 두 번 선다 */}
-        {제목 === 종류 ? null : <span className="authoring-kind">{종류}</span>}
-        <a href={`#/authoring/${String(번호)}`}>{제목}</a>
-        {/* 중단은 판정이 아니다 — 사람이나 한도가 멈춘 것이라 실패 색을 쓰지 않는다 (DESIGN.md 「작성 상태」 · 띠색과 같다) */}
-        <small className={결과?.실패 === true && 것.status !== 'STOPPED' ? 'authoring-result fail' : 'authoring-result'}>{결과?.글 ?? 목록글(것, 언어, 운영자)}</small>
-        <small>{시작글(것.summary, 것, 언어)}</small>
-      </div>
-      <div className="right">
-        {할일.length === 0 ? (
-          칩글(것, 보, 언어)
-        ) : (
-          <span className="authoring-todo-chips">
-            {할일.map((칩) => (
-              <span key={칩.글} className={칩.실패 ? 'todo-chip fail' : 'todo-chip'}>
-                {칩.글}
-              </span>
-            ))}
-          </span>
-        )}
-      </div>
+      <span className="tcid">#{번호}</span>
+      <span className="a-kind">{구분글(것.summary, 언어)}</span>
+      {/* 대상을 모르면(끝나기 전) 「—」만 남는다 — 줄 전체를 누르는 링크라 읽어 줄 이름은 번호로 둔다 */}
+      <a className="a-target" href={`#/authoring/${String(번호)}`} aria-label={대상 === '—' ? `#${String(번호)}` : undefined}>
+        {대상}
+      </a>
+      {/* 넓은 화면에서는 묶음이 없는 것처럼 칸으로 서고(display: contents) 휴대폰에서는 둘째 줄 한 줄이 된다 */}
+      <span className="a-meta">
+        <span className="num a-cases" data-label={t('케이스 수')}>{수 ?? '—'}</span>
+        <span className="num a-took">{초 === null ? '—' : 소요시간글(초, 언어)}</span>
+        <span className="a-who">{작성자글(것.summary, 것)}</span>
+        <span className="a-at">{작성일글(것.createdAt)}</span>
+      </span>
+      <span className="a-state" data-tone={색}>
+        <i aria-hidden="true" />
+        <span>
+          {상태}
+          {단계 === null ? null : <span className="a-step"> · {단계}</span>}
+        </span>
+      </span>
     </div>
   );
 }
 
 export function Authoring({ service, serviceId, envs = [], 피그마토큰 = true, 앱종류, 할수 }: { service: string; serviceId?: number; envs?: EnvRow[]; 피그마토큰?: boolean; 앱종류?: 앱종류; 할수: 판정 }) {
   const t = use말();
-  const 언어 = use언어();
   // 쪽은 주소에 남는다 — 상세에 갔다 뒤로 와도 그 쪽이다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
   const [page, setPage] = useState(() => Math.max(1, Math.floor(Number(주소조건().get('page')) || 1)));
   // 「결정 필요」 — 목록 자리에 결정 목록이 선다. 주소의 todo=1 은 앞 이름 「조치 필요」 때 것을 그대로 쓴다 (도메인/작성 §3.6 「★ 결정 목록」)
@@ -168,8 +172,6 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
         }
       />
 
-      {/* 목록 옆 판 — 무엇을 넣어야 하는지는 종류가 정한다. 결정 목록을 보는 동안은 새 작성과 상관없어 뺀다 (시안 11판 「종류마다 달라지는 칸」 · WEB-F7-16) */}
-      <div className={할일만 ? 'auth-cols one' : 'auth-cols'}>
       <div className="screen list-screen">
         {할일만 || 줄들.error === null ? null : <Failed error={줄들.error} />}
         <div className="toolbar">
@@ -219,7 +221,7 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
             <>
               <표머리 />
               {목록.items.map((것) => (
-                <작성줄 key={것.id} 것={것} 지금={지금} 운영자={할수('설정')} />
+                <작성줄 key={것.id} 것={것} 지금={지금} />
               ))}
             </>
           )}
@@ -237,19 +239,6 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
         )}
           </>
         )}
-      </div>
-      {할일만 ? null : (
-        <aside className="screen auth-inputs" aria-labelledby="auth-inputs-title">
-          <h2 id="auth-inputs-title">
-            {t('새 작성에 넣는 자료')} <span>{종류이름(앱종류, 언어)}</span>
-          </h2>
-          <ol>
-            {종류(앱종류).작성자료.map((줄) => (
-              <li key={줄}>{t(줄)}</li>
-            ))}
-          </ol>
-        </aside>
-      )}
       </div>
 
       {서랍 && 할수('작성요청') ? (

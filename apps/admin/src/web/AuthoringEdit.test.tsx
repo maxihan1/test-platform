@@ -259,7 +259,7 @@ describe('작성 목록의 케이스 고치기 줄', () => {
   it('뿌리 종류로 가른다 — 다시 적용이 최신이어도 고치기 줄이다', async () => {
     줄들.push(줄({
       id: 9, kind: 'RERUN', sourceId: 7, rootId: 7, runCount: 2, rootKind: 'EDIT',
-      summary: 요약({ kind: 'EDIT', what: { tcIds: ['PAY-001', 'PAY-002'], fix: 'EXPECTED' }, result: { casesFixed: 2 }, from: { by: 'CASES' } }),
+      summary: 요약({ kind: 'EDIT', what: { features: ['결제'], tcIds: ['PAY-001', 'PAY-002'], fix: 'EXPECTED' }, result: { casesFixed: 2 }, from: { by: 'CASES' } }),
     }));
     줄들.push(줄({
       id: 8, rootId: 8, runCount: 1, rootKind: 'EDIT', status: 'RUNNING', prUrl: null, finishedAt: null,
@@ -267,11 +267,11 @@ describe('작성 목록의 케이스 고치기 줄', () => {
     }));
     render(<Authoring service="PAY" 할수={() => true} />);
 
-    expect(await screen.findByRole('link', { name: 'PAY-001 외 1건 기대 결과 수정' })).toBeTruthy();
-    expect(screen.getByText('케이스 2건 수정')).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'PAY-003 삭제' })).toBeTruthy();
-    expect(screen.getAllByText('케이스 수정')).toHaveLength(2);
-    expect(screen.getAllByText(/^케이스 목록에서 시작 · /)).toHaveLength(2);
-    expect(screen.getByText('수정 중')).toBeTruthy();
+    // 2026-11-10 한 줄 표 — 구분은 수정, 대상은 고칠 케이스가 걸린 기능(모르면 —), 도는 고치기는 단계를 안 붙인다
+    expect((await screen.findByRole('link', { name: '결제' })).getAttribute('href')).toBe('#/authoring/7');
+    expect(screen.getByRole('link', { name: '#8' }).textContent).toBe('—');
+    expect(screen.getAllByText('수정')).toHaveLength(2);
+    expect(screen.getByText('2')).toBeTruthy();
+    expect([...document.querySelectorAll('[data-tone]')].map((칸) => 칸.textContent)).toContain('수정 중');
   });
 });

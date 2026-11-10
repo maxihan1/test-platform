@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { AuthoringProgress, AuthoringRow } from './api.js';
-import { 다시작성원본, 단계글라벨, 단계자리, 목록글, 시간판 } from './authoringStatus.js';
+import { 다시작성원본, 단계글라벨, 단계자리, 시간판 } from './authoringStatus.js';
 
 const 기준 = Date.parse('2026-09-28T13:20:00Z');
 
@@ -117,30 +117,6 @@ describe('단계글라벨', () => {
   });
 });
 
-describe('목록글', () => {
-  it('올리기 거절로 멈췄으면 거절 까닭 첫 줄을 낸다 — 무엇을 고칠지 목록에서 보인다', () => {
-    expect(
-      목록글(줄({ status: 'STOPPED', stopReason: 'REJECTED', error: '테스트 밖 파일을 고쳤다\n자세히' }), 'ko'),
-    ).toBe('업로드 거절 — 테스트 밖 파일을 고쳤다');
-  });
-
-  it('상태마다 사람이 읽는 한 문장을 낸다', () => {
-    expect(목록글(줄({ status: 'PENDING', startedAt: null }), 'ko')).toBe('작성 순서를 기다리는 중');
-    expect(목록글(줄({ status: 'DRAFT', startedAt: null }), 'ko')).toBe('자료 업로드가 완료되지 않았습니다');
-    expect(목록글(줄({ stage: '케이스를 만드는 중' }), 'ko')).toBe('케이스를 만드는 중');
-    expect(목록글(줄({ stage: null }), 'ko')).toBe('준비');
-  });
-
-  it('끝난 것은 결과를 말한다 — 날것 단계 글(끝)을 보이지 않는다', () => {
-    expect(목록글(줄({ status: 'DONE', stage: '끝', progress: 도는진척 }), 'ko')).toBe('케이스 파일 3개를 만들었습니다');
-    expect(목록글(줄({ status: 'DONE', stage: '끝' }), 'ko')).toBe('케이스를 PR 로 등록했습니다');
-    expect(목록글(줄({ status: 'DONE', kind: 'MERGE', stage: '끝' }), 'ko')).toBe('테스트 반영 완료');
-    expect(목록글(줄({ status: 'STOPPED', stage: '케이스를 만드는 중' }), 'ko')).toBe('케이스 작성 단계에서 중단되었습니다');
-    expect(목록글(줄({ status: 'STOPPED', startedAt: null, stage: null }), 'ko')).toBe('시작 전에 중단되었습니다');
-    expect(목록글(줄({ status: 'FAILED', error: '자료를 못 받았다\n자세히' }), 'ko')).toBe('자료를 못 받았다');
-  });
-});
-
 describe('다시작성원본', () => {
   it('작성이 실패·중단이면 그 요청으로 보낸다 — 화면과 대조한 요청도', () => {
     expect(다시작성원본(줄({ status: 'FAILED' }))).toBe(1);
@@ -168,14 +144,6 @@ describe('케이스 고치기 실행', () => {
   it('작성 단계 막대를 그리지 않는다. 자료 · PRD 읽기 · 케이스 작성을 안 밟는다', () => {
     expect(단계자리(줄({ kind: 'EDIT', params: 고침, stage: '케이스를 고치는 중' }))).toBeNull();
     expect(단계자리(줄({ kind: 'RERUN', sourceId: 3, params: 고침, status: 'DONE' }))).toBeNull();
-  });
-
-  it('목록 줄은 고친 결과 · 멈춘 사실을 고치기 말로 적는다', () => {
-    expect(목록글(줄({ kind: 'EDIT', params: 고침, status: 'DONE' }), 'ko')).toBe('케이스를 수정해 PR 을 만들었습니다');
-    expect(목록글(줄({ kind: 'EDIT', params: 고침, status: 'STOPPED', stopReason: 'AGENT_LOST' }), 'ko')).toBe(
-      '수정 중 중단되었습니다',
-    );
-    expect(목록글(줄({ kind: 'EDIT', params: 고침, status: 'STOPPED', startedAt: null }), 'ko')).toBe('시작 전에 중단되었습니다');
   });
 
   it('다시 적용은 고치기 뿌리로 보낸다', () => {

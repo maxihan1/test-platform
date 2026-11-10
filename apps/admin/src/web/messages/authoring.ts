@@ -2,6 +2,15 @@
 // 여기에 넣은 키는 화면 어딘가가 실제로 써야 한다 — messages.test.ts 가 양방향으로 센다
 
 export const 작성말: Record<string, string> = {
+  // 목록 표 칸 (2026-11-10 사용자 시안)
+  구분: 'Type',
+  대상: 'Target',
+  '케이스 수': 'Cases',
+  작성일: 'Created',
+  '수정§작성 구분': 'Update',
+  '추가§작성 구분': 'Additional',
+  '{시}시간': '{시}h',
+  '{시}시간 {분}분': '{시}h {분}m',
   // 줄의 종류와 상태
   '자료 업로드 중': 'Uploading files',
   '대기 중': 'Queued',
@@ -102,13 +111,6 @@ export const 작성말: Record<string, string> = {
   '보관한 작업 폴더가 없어 처음부터 하는 중': 'No saved work folder, starting from scratch',
   '원본에 차이를 표시하는 중': 'Marking differences on the original',
 
-  // 목록 한 줄 — 날것 단계 글 대신 (authoringStatus.ts 의 목록글)
-  '{단계} 단계에서 중단되었습니다': 'Stopped at {단계}',
-  '테스트 반영 완료': 'Tests merged',
-  '시작 전에 중단되었습니다': 'Stopped before it started',
-  '케이스 파일 {수}개를 만들었습니다': 'Made {수} case files',
-  '케이스를 PR 로 등록했습니다': 'Opened the cases as a PR',
-
   // 다음 단계 (2026-09-28 「해야 할 일」에서 바꿨다 — 고르는 상황에 시키는 말투가 안 맞았다)
   '다음 단계': 'Next steps',
   '작성 응답이 끊겼습니다. 작성 중단을 누른 뒤 이어서 작성하세요':
@@ -173,23 +175,6 @@ export const 작성말: Record<string, string> = {
     'What was made in {분} min is kept so you can continue writing later.',
   '아직 시작 전이라 바로 취소됩니다.': 'It has not started yet, so it is cancelled right away.',
   '목록에서 사라집니다. 통계와 토큰 기록은 남습니다.': 'It disappears from the list. Stats and token records stay.',
-  // 목록 옆 「새 작성에 넣는 자료」 — 종류마다 줄이 다르다 (kind.ts 작성자료 · WEB-F7-16)
-  '새 작성에 넣는 자료': 'What a new request takes',
-  '기획서(docx · pdf)': 'Spec (docx · pdf)',
-  '피그마 화면': 'Figma screens',
-  '실제 화면과 대조 — 크롤러가 대상 서버를 열어 기획서와 다른 화면을 찾습니다':
-    'Compare with the live screen — the crawler opens the target server and finds screens that differ from the spec',
-  '앱 화면 읽기 — Device VISION 에서 디바이스 하나를 할당받아 앱을 설치하고 첫 화면부터 눌러 가며 요소를 읽습니다':
-    'Reading app screens — takes one phone from Device VISION, installs the app and reads elements from the first screen on',
-  '실제 화면과 대조 — 디바이스에서 앱을 눌러 가며 화면을 모아 기획서와 다른 화면을 찾습니다':
-    'Compare with the live screen — taps through the app on a phone to collect screens and finds those that differ from the spec',
-  '실제 화면과 대조 — 디바이스에서 게임 창을 하나씩 열어 기획서와 다른 창을 찾습니다':
-    'Compare with the live screen — opens each game window on a phone and finds the windows that differ from the spec',
-  '기획서 · 확률표': 'Spec · probability table',
-  '게임 화면 읽기 — Device VISION 에서 디바이스 하나를 할당받아 게임을 설치하고 로그인 창부터 창을 하나씩 열어 오브젝트를 읽습니다':
-    'Reading game screens — takes one phone from Device VISION, installs the game and opens each window from login to read its objects',
-  'API 문서 버전 — 지난 버전과 달라진 엔드포인트만 다시 작성합니다': 'API doc version — only endpoints changed since the last version are rewritten',
-  '기획서(있으면)': 'Spec (if any)',
   // 역방향 — 기획서와 실제 화면을 대조한다 (도메인/작성 §3.6 「★ 역방향」)
   '실제 화면과 대조': 'Compare with the live screen',
   '화면과 대조': 'Screen compare',

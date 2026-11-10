@@ -72,6 +72,7 @@ describe.skipIf(연결 === undefined)('작성 목록 summary', () => {
   async function 치우기(): Promise<void> {
     const { pool } = await import('../db/index.js');
     await pool.query('DELETE FROM screen_record WHERE service_id = $1', [서비스]);
+    await pool.query('DELETE FROM req_case WHERE service_id = $1', [서비스]);
     await pool.query('UPDATE authoring_request SET prd_version = NULL WHERE service_id = $1', [서비스]);
     await pool.query('DELETE FROM prd_version WHERE service_id = $1', [서비스]);
     await pool.query('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
@@ -100,7 +101,7 @@ describe.skipIf(연결 === undefined)('작성 목록 summary', () => {
   it('기획서로 작성 — 만든 케이스에 달린 요구의 기능 묶음 많은 차례 셋 · 결과 셈 · 자료 다섯까지', async () => {
     await 판(1, [항목(1, '회원가입', '가'), 항목(2, '회원가입', '나'), 항목(3, '홈', '다'), 항목(4, '공통', '라'), 항목(5, '결제', '마'), 항목(6, '회원가입', '바')]);
     const 뿌리 = await 행({
-      status: 'DONE', prdVersion: 1,
+      status: 'DONE', prdVersion: 1, finishedAt: '2026-10-26T02:12:00Z',
       result: {
         cases: [케이스(1, 'NEW', [1, 2]), 케이스(2, 'NEW', [6, 3]), 케이스(3, 'CHANGED', [4, 5])],
         coverage: { total: 7, cased: 6, held: 0, excluded: {}, missing: ['XWB-REQ-007'], later: [] },
@@ -114,7 +115,7 @@ describe.skipIf(연결 === undefined)('작성 목록 summary', () => {
     expect(요약.kind).toBe('PRD');
     expect(요약.what.features).toEqual(['회원가입', '홈', '공통']);
     expect(요약.what.featuresMore).toBe(1);
-    expect(요약.result).toEqual({ casesMade: 2, casesFixed: 1, reqsCovered: 6, reqsTotal: 7, held: 1, stoppedAt: null });
+    expect(요약.result).toEqual({ casesMade: 2, casesFixed: 1, reqsCovered: 6, reqsTotal: 7, held: 1, stoppedAt: null, tookSec: 4320 });
     expect(요약.from.by).toBe('PERSON');
     expect(요약.from.assets).toEqual([
       { name: '기획서.docx', figma: false },
@@ -152,11 +153,15 @@ describe.skipIf(연결 === undefined)('작성 목록 summary', () => {
     expect(표.get(반영)!.kind).toBe('PRD_APPLY');
     expect(표.get(반영)!.what.reqs).toBe(3);
     expect(표.get(반영)!.from.by).toBe('PRD');
-    expect(표.get(반영)!.result).toEqual({ casesMade: null, casesFixed: null, reqsCovered: null, reqsTotal: null, held: null, stoppedAt: '케이스를 만드는 중' });
+    expect(표.get(반영)!.result).toEqual({ casesMade: null, casesFixed: null, reqsCovered: null, reqsTotal: null, held: null, stoppedAt: '케이스를 만드는 중', tookSec: null });
 
     expect(표.get(결정)!.kind).toBe('DECISION');
     expect(표.get(결정)!.what).toMatchObject({ reqs: 2, screenRight: 1 });
     expect(표.get(결정)!.from).toMatchObject({ by: 'DECISION', decisions: 3 });
+    // 만든 케이스가 아직 없으면 바뀐 요구사항(결정은 화면이 맞음 번호까지)의 기능이 대상이다
+    expect(표.get(반영)!.what.features).toEqual(['회원가입', '홈', '결제']);
+    expect(표.get(결정)!.what.features).toEqual(['회원가입', '홈', '결제']);
+    expect(표.get(시작전)!.what.features).toEqual([]);
 
     expect(표.get(앞선)!.what.reqs).toBe(4);
     expect(표.get(앞선)!.result?.stoppedAt).toBe('준비');
@@ -204,5 +209,21 @@ describe.skipIf(연결 === undefined)('작성 목록 summary', () => {
     expect(표.get(지움)!.what.fix).toBe('DELETE');
     expect(표.get(섞임)!.what.fix).toBeNull();
     expect(표.get(섞임)!.result).toMatchObject({ casesFixed: null, stoppedAt: '케이스를 고치는 중' });
+  });
+
+  it('케이스 고치기의 대상 기능 — 지도 ① 로 요구사항을 찾아 최신 판의 기능 · 지도에 없는 케이스는 세지 않는다', async () => {
+    await 판(1, [항목(1, '옛 이름', '가')]);
+    await 판(2, [항목(1, '로그인', '가'), 항목(2, '로그인', '나'), 항목(3, '장바구니', '다')]);
+    const { pool } = await import('../db/index.js');
+    await pool.query(
+      `INSERT INTO req_case (service_id, req_id, tc_id, axis) VALUES ($1, 'XWB-REQ-001', 'XWB-FN-001', '정상'), ($1, 'XWB-REQ-002', 'XWB-FN-001', '예외'), ($1, 'XWB-REQ-003', 'XWB-FN-002', '정상')`,
+      [서비스],
+    );
+    const 둘 = await 행({ kind: 'EDIT', status: 'PENDING', params: { edits: [{ tcId: 'XWB-FN-001', expected: { a: 1 } }, { tcId: 'XWB-FN-002', delete: true }] } });
+    const 없음 = await 행({ kind: 'EDIT', status: 'PENDING', params: { edits: [{ tcId: 'XWB-FN-009', delete: true }] } });
+
+    const 표 = await 목록요약들(서비스, [둘, 없음]);
+    expect(표.get(둘)!.what.features).toEqual(['로그인', '장바구니']);
+    expect(표.get(없음)!.what.features).toEqual([]);
   });
 });

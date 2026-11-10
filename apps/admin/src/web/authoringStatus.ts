@@ -1,7 +1,6 @@
 // 작성 요청 한 건을 Status 카드의 단계 막대 · 시간 막대로 바꾸는 판단. 그림은 AuthoringStatusCard.tsx (DESIGN.md 「작성 상태」)
 
 import type { AuthoringProgress, AuthoringRow } from './api.js';
-import { 실패글 } from './authoringFailText.js';
 import { 고치기실행인가 } from './authoringView.js';
 import { t, type 언어 } from './i18n.js';
 
@@ -143,32 +142,6 @@ export function 시간판(행: AuthoringRow, 지금: number): 시간 {
     한도 = { 지난ms, 한도ms, 비율: Math.min(1, 지난ms / 한도ms), 늦어도: new Date(자식시작 + 한도ms) };
   }
   return { 시작, 끝, 걸린ms, 한도 };
-}
-
-/**
- * 목록 한 줄의 글. 에이전트의 날것 단계 글(`끝` · 빈 칸)을 그대로 보이지 않는다 —
- * 도는 것은 지금 하는 일, 끝난 것은 결과 한 문장이다 (2026-09-28 사용자 「워딩이 이상하다」)
- */
-export function 목록글(행: Omit<AuthoringRow, 'assets'>, 언어: 언어, 운영자 = false): string {
-  // 올리는 도중에도, 올리다 멈춰 버려진 뒤에도 DRAFT 다 — 둘 다에 맞는 말을 쓴다
-  if (행.status === 'DRAFT') return t('자료 업로드가 완료되지 않았습니다', 언어);
-  if (행.status === 'PENDING') return t('작성 순서를 기다리는 중', 언어);
-  if (행.status === 'RUNNING') return 행.stage === null ? t('준비', 언어) : 단계글라벨(행.stage, 언어);
-  if (행.status === 'FAILED') return 행.error == null ? t('실패', 언어) : 실패글(행.error, 언어, 운영자).글;
-  if (행.status === 'STOPPED') {
-    // 거절은 고칠 것이 까닭에 있다 — 몇 단계에서 멈췄는지보다 그것이 먼저다 (작성 §7 「이어하기」)
-    if (행.stopReason === 'REJECTED' && 행.error) return `${t('업로드 거절', 언어)} — ${실패글(행.error, 언어, 운영자).글}`;
-    if (행.startedAt === null) return t('시작 전에 중단되었습니다', 언어);
-    // 고치기는 단계 막대가 없다 — 「준비 단계에서」라 하면 어디서 멈췄는지 거짓말을 한다
-    if (고치기실행인가(행)) return t('수정 중 중단되었습니다', 언어);
-    const 칸 = 단계자리(행)?.지금 ?? 0;
-    return t('{단계} 단계에서 중단되었습니다', 언어, { 단계: 단계라벨(단계이름들[칸] ?? '준비', 언어) });
-  }
-  if (행.kind === 'MERGE') return t('테스트 반영 완료', 언어);
-  if (고치기실행인가(행)) return t('케이스를 수정해 PR 을 만들었습니다', 언어);
-  return 진척이찼나(행.progress)
-    ? t('케이스 파일 {수}개를 만들었습니다', 언어, { 수: 행.progress.caseFiles })
-    : t('케이스를 PR 로 등록했습니다', 언어);
 }
 
 /**

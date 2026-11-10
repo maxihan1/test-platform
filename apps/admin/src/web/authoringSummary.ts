@@ -1,10 +1,11 @@
-// 작성 목록 줄 · 상세 머리의 summary 를 사람 말로 — 종류 꼬리표 · 무슨 테스트 · 결과 · 시작한 곳 (도메인/작성 §3.6 「작성 목록 줄」)
+// 작성 목록 표의 칸 글 · 상세 머리의 제목을 summary 에서 사람 말로 (도메인/작성 §3.6 「작성 목록 줄」)
 
 import type { 목록요약, 요약종류 } from '../authoring/listSummary.js';
 
+import type { AuthoringRow } from './api.js';
 import { 단계라벨, 단계이름들, 단계칸, 아는단계글 } from './authoringStatus.js';
+import type { 보임 } from './authoringView.js';
 import { t, type 언어 } from './i18n.js';
-import { when } from './ui.js';
 
 const 종류글: Record<요약종류, string> = {
   PRD: '기획서로 작성',
@@ -63,47 +64,77 @@ export function 무슨테스트(s: 목록요약, 언어: 언어): string {
   return 종류꼬리표(s, 언어);
 }
 
-/**
- * 결과 — 끝난 실행만. 0 인 조각은 뺀다. 아무 조각도 없거나 끝나기 전이면 null — 줄은 지금 상태 글을 대신 보인다.
- * 멈춤 · 실패는 실패 색이다
- */
-export function 결과글(s: 목록요약, 언어: 언어): { 글: string; 실패: boolean } | null {
-  const r = s.result;
-  if (r === null) return null;
-  if (r.stoppedAt !== null) {
-    // 고치기는 단계 막대가 없다 — 「준비 단계에서」라 하면 어디서 멈췄는지 거짓말을 한다
-    if (s.kind === 'EDIT') return { 글: t('수정 중 중단', 언어), 실패: true };
-    if (r.stoppedAt === '') return { 글: t('시작 전에 종료', 언어), 실패: true };
-    const 만든 = (r.casesMade ?? 0) > 0 ? t('케이스 {수}건 만듦', 언어, { 수: r.casesMade! }) : t('만든 케이스 없음', 언어);
-    // 칸 표에 없는 단계 글(겹침 보기 · 3회 돌리기 같은)을 첫 칸으로 옮기면 어디서 멈췄는지 거짓말을 한다 — 단계 없이 멈춤만 말한다
-    if (r.stoppedAt !== '준비' && !아는단계글(r.stoppedAt)) return { 글: [t('중간에 종료', 언어), 만든].join(' · '), 실패: true };
-    const 단계 = 단계라벨(단계이름들[단계칸(r.stoppedAt, false)] ?? '준비', 언어);
-    return { 글: [t('{단계} 단계에서 종료', 언어, { 단계 }), 만든].join(' · '), 실패: true };
-  }
-  const 조각 = [
-    (r.casesMade ?? 0) > 0 ? t('케이스 {수}건 만듦', 언어, { 수: r.casesMade! }) : null,
-    (r.casesFixed ?? 0) > 0 ? t('케이스 {수}건 수정', 언어, { 수: r.casesFixed! }) : null,
-    r.reqsTotal !== null && r.reqsCovered !== null && r.reqsTotal > 0 ? t('요구사항 {전체}건 중 {덮음}건', 언어, { 전체: r.reqsTotal, 덮음: r.reqsCovered }) : null,
-    (r.held ?? 0) > 0 ? t('보류 {수}건', 언어, { 수: r.held! }) : null,
-  ].filter((x): x is string => x !== null);
-  return 조각.length === 0 ? null : { 글: 조각.join(' · '), 실패: false };
+/** 구분 — 신규 · 수정 · 추가 셋뿐이다. 「작성」을 붙이지 않고 다시 작성 · 케이스 수정 · 결정 진행은 모두 수정이다 (2026-11-10 사용자 시안) */
+const 구분표: Record<요약종류, string> = {
+  PRD: '신규',
+  API_DOC: '신규',
+  SCREEN_ONLY: '신규',
+  PRD_APPLY: '수정§작성 구분',
+  API_APPLY: '수정§작성 구분',
+  DECISION: '수정§작성 구분',
+  EDIT: '수정§작성 구분',
+  CONTINUE: '추가§작성 구분',
+  UNCOVERED: '추가§작성 구분',
+};
+
+export function 구분글(s: 목록요약, 언어: 언어): string {
+  return t(구분표[s.kind], 언어);
 }
 
-/** 시작한 곳 · 자료 · 요청한 사람 · 시각. 서버가 세운 요청은 요청한 사람이 아니라 앞 뿌리를 적는다 */
-export function 시작글(s: 목록요약, 행: { requestedByName: string; createdAt: string }, 언어: 언어): string {
-  const f = s.from;
-  const 조각: string[] = [];
-  if (f.by === 'PRD') 조각.push(t('PRD 관리에서 시작', 언어));
-  if (f.by === 'AUTO' && f.after !== null) 조각.push(t('#{번호} 다음 · 서버가 자동으로 시작', 언어, { 번호: f.after }));
-  if (f.by === 'CASES') 조각.push(t('케이스 목록에서 시작', 언어));
-  if (f.by === 'DECISION' && f.decisions !== null) 조각.push(t('결정 {수}건', 언어, { 수: f.decisions }));
-  if (s.kind === 'CONTINUE' && f.after !== null) 조각.push(t('#{번호}의 남은 요구사항', 언어, { 번호: f.after }));
-  if (f.assets.length > 0) {
-    조각.push(t('자료 {이름들}', 언어, { 이름들: 셋과나머지(f.assets.map((a) => 자료이름(a, 언어)), f.assetsMore, 언어) }));
-  }
-  if (f.by !== 'AUTO') 조각.push(`${t('요청한 사람', 언어)} ${행.requestedByName}`);
-  조각.push(when(행.createdAt, 언어));
-  return 조각.join(' · ');
+/** 대상 — 반영되는 기능 이름(화면만 다루는 줄은 화면 이름) 셋과 「외 N개」. 모르면 「—」 */
+export function 대상글(s: 목록요약, 언어: 언어): string {
+  const w = s.what;
+  const 화면줄 = s.kind === 'UNCOVERED' || s.kind === 'SCREEN_ONLY';
+  const 이름들 = 화면줄 ? w.screens : w.features;
+  return 이름들.length === 0 ? '—' : 셋과나머지(이름들, 화면줄 ? w.screensMore : w.featuresMore, 언어);
+}
+
+/** 케이스 수 — 만든 것과 수정한 것을 더한다. 끝나기 전이라 모르면 null */
+export function 케이스수(s: 목록요약): number | null {
+  const r = s.result;
+  if (r === null || (r.casesMade === null && r.casesFixed === null)) return null;
+  return (r.casesMade ?? 0) + (r.casesFixed ?? 0);
+}
+
+/** 소요 시간(초) — 끝난 작성은 서버가 잰 값, 도는 작성은 집힌 때부터 지금까지. 반영 실행은 작성 시간이 아니라 재지 않는다 */
+export function 소요초(s: 목록요약, 행: Pick<AuthoringRow, 'kind' | 'status' | 'startedAt'>, 지금: number): number | null {
+  if (s.result !== null && s.result.tookSec !== null) return s.result.tookSec;
+  if (행.kind === 'MERGE' || 행.status !== 'RUNNING' || 행.startedAt === null) return null;
+  return Math.max(0, Math.round((지금 - Date.parse(행.startedAt)) / 1000));
+}
+
+/** 작성은 몇 시간씩 걸려 분 위로 시간을 쓴다 — `45초` · `18분` · `1시간 12분` */
+export function 소요시간글(초: number, 언어: 언어): string {
+  if (초 < 60) return t('{초}초', 언어, { 초 });
+  const 분 = Math.floor(초 / 60);
+  if (분 < 60) return t('{분}분', 언어, { 분 });
+  const 시 = Math.floor(분 / 60);
+  return 분 % 60 === 0 ? t('{시}시간', 언어, { 시 }) : t('{시}시간 {분}분', 언어, { 시, 분: 분 % 60 });
+}
+
+/** 표 안의 작성일 — `2026-11-10 14:22`. 사용자 시간대로 */
+export function 작성일글(iso: string): string {
+  const d = new Date(iso);
+  const 두자리 = (n: number): string => String(n).padStart(2, '0');
+  return `${String(d.getFullYear())}-${두자리(d.getMonth() + 1)}-${두자리(d.getDate())} ${두자리(d.getHours())}:${두자리(d.getMinutes())}`;
+}
+
+/** 작성자 — 서버가 스스로 세운 요청(기획서에 없는 화면)은 사람이 아니라 Agent 다 */
+export function 작성자글(s: 목록요약, 행: Pick<AuthoringRow, 'requestedByName'>): string {
+  return s.from.by === 'AUTO' ? 'Agent' : 행.requestedByName;
+}
+
+/**
+ * 상태 뒤에 붙는 단계 — 작성 중이면 「케이스 작성 3/6」, 실패 · 중단이면 멈춘 단계.
+ * 케이스 수정 · 반영은 단계 막대가 없고, 칸 표에 없는 단계 글은 칸으로 옮기면 거짓말이라 붙이지 않는다
+ */
+export function 단계꼬리(s: 목록요약, 행: Pick<AuthoringRow, 'kind' | 'stage'>, 보: 보임, 언어: 언어): string | null {
+  if (s.kind === 'EDIT' || 행.kind === 'MERGE') return null;
+  const 글 = 보 === 'running' ? (행.stage ?? '준비') : 보 === 'failed' || 보 === 'stopped' ? (s.result?.stoppedAt ?? '') : '';
+  if (글 === '' || (글 !== '준비' && !아는단계글(글))) return null;
+  const 칸 = 단계칸(글 === '준비' ? null : 글, false);
+  const 이름 = 단계라벨(단계이름들[칸] ?? '준비', 언어);
+  return 보 === 'running' ? [이름, `${String(칸 + 1)}/${String(단계이름들.length)}`].join(' ') : 이름;
 }
 
 /**
