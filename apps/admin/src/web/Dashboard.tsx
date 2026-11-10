@@ -3,17 +3,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { 대시보드응답 } from '../reporting/dashboardResults.js';
-import { api, ApiError, type 앱종류 } from './api.js';
+import { api, ApiError } from './api.js';
 import { 날짜글자 } from './dashboardView.js';
-import { 고르개, 조건을요청으로, 조건을주소로, 주소에서조건, type 대시보드조건, type 이동재료 } from './DashboardPick.js';
+import { 앱카드들 } from './DashboardApps.js';
+import { E2E칸, 결정칸 } from './DashboardE2E.js';
 import { 신규실패표 } from './DashboardFail.js';
-import { 서비스별표, 실행중줄, 안내판 } from './DashboardTables.js';
-import { 일별막대, 통과율선 } from './DashboardCharts.js';
-import { 실패히트맵 } from './DashboardHeat.js';
-import { 요구커버리지 } from './DashboardCoverage.js';
-import { 종류칸 } from './DashboardKind.js';
-import { AI품질줄, 검토할것 } from './DashboardReview.js';
-import { 통과율칸, 판칸, 합 } from './DashboardRate.js';
+import { 성능칸 } from './DashboardPerf.js';
+import { 고르개, 조건을요청으로, 조건을주소로, 주소에서조건, type 대시보드조건, type 이동재료 } from './DashboardPick.js';
+import { 실행중줄, 안내판 } from './DashboardTables.js';
+import { 다섯칸 } from './DashboardTop.js';
+import { 추적칸, 케이스칸 } from './DashboardTrace.js';
 import { 실패유형칸 } from './DashboardTypes.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
@@ -34,7 +33,7 @@ const 새로고침간격 = 15_000;
 /**
  * 열 때 집계를 한 번 · 도는 실행이 있으면 15초마다 실행 중 줄만 · 줄에서 빠진 실행이 있으면 집계를 한 번 더.
  * **화면을 갈아엎지 않는다** — 다시 받아도 `loading` 으로 돌아가지 않아 칸이 새로 그려지지 않고 등장 움직임이 다시 안 돈다.
- * 프로젝트 · 서비스 · 기간을 바꾸면 다른 자료라 `loading` 부터 다시 받는다
+ * 프로젝트 · 기간을 바꾸면 다른 자료라 `loading` 부터 다시 받는다
  */
 function use대시보드(시간대: string, 조건: 대시보드조건, 프로젝트: number | null): 읽음 {
   const 언어 = use언어();
@@ -49,7 +48,7 @@ function use대시보드(시간대: string, 조건: 대시보드조건, 프로�
   // 조건을 바꾸면 옛 조건의 응답이 늦게 와 새 응답을 덮을 수 있다. 가장 나중에 보낸 요청의 응답만 받는다
   const 요청번호 = useRef(0);
   const 요청조건 = { ...조건을요청으로(조건), ...(프로젝트 === null ? {} : { project: 프로젝트 }) };
-  const 조건키 = `${프로젝트 ?? ''}:${조건.서비스 ?? ''}:${조건.일}`;
+  const 조건키 = `${프로젝트 ?? ''}:${조건.일}`;
 
   useEffect(() => {
     살아있다.current = true;
@@ -134,92 +133,38 @@ export function Dashboard({
   서비스열기,
   케이스갈수있나,
   설정갈수있나,
-  작성서비스,
   프로젝트,
-  열린서비스 = null,
 }: {
   서비스열기: (serviceId: number) => void;
   케이스갈수있나: boolean;
   /** 정기 실행을 켜는 설정 자리에 갈 수 있나 — 안내 줄에 링크를 단다 (리포팅 §8.12 빈 상태) */
   설정갈수있나: boolean;
-  작성서비스: { id: number; name: string; kind?: 앱종류 }[];
-  /** 헤더에서 고른 프로젝트 번호. 그 안의 애플리케이션만 모은다 (리포팅 §8.12) */
+  /** 고른 프로젝트 번호. 대시보드는 그 프로젝트 안 애플리케이션 전부를 센다 (리포팅 §8.12 「프로젝트 요약」) */
   프로젝트: number | null;
-  /** 왼쪽 애플리케이션 줄에서 고른 애플리케이션 번호. 대시보드는 이것으로 열리고 따라간다 (2026-10-31 시험 d4) */
-  열린서비스?: number | null;
 }) {
   const t = use말();
   const 시간대 = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
-  const [조건, set조건] = useState(주소에서조건(열린서비스));
-  // 기본값(전체 서비스 · 14일)은 주소에 적지 않는다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
-  // 프로젝트를 바꾸면 고른 애플리케이션은 다른 프로젝트 것이라 비운다. 그리는 중에 맞춰야 옛 번호로 한 번 더 받지 않는다
-  const [앞프로젝트, set앞프로젝트] = useState(프로젝트);
-  // 서비스 고르개의 재료는 서버가 준 「그 프로젝트 안에서 볼 수 있는 서비스 전부」다(고른 서비스로는 안 좁힌다). 읽는 동안에는 앞에서 받은 목록을 쓴다
-  const 앞서비스들 = useRef<자료['services']>([]);
-  // 왼쪽 줄에서 애플리케이션을 바꾸면 대시보드도 그것을 본다. 고르개에서 「전체」를 골라 둔 것은 왼쪽 줄이 안 바뀌는 한 그대로다
-  const [앞열린, set앞열린] = useState(열린서비스);
-  // 칸의 고리(가운데 단추로 새 탭에 여는 것 포함)가 바꾼 왼쪽 줄은 따라가지 않는다 — 따라가면 「전체」를 보던 이 탭이 그 애플리케이션으로 좁혀졌다
-  const 고리로연 = useRef<number | null>(null);
-  const 고리로열기 = (번호: number): void => {
-    고리로연.current = 번호;
-    서비스열기(번호);
-  };
-  if (앞프로젝트 !== 프로젝트 || 앞열린 !== 열린서비스) {
-    set앞열린(열린서비스);
-    const 고리것 = 고리로연.current !== null && 고리로연.current === 열린서비스 && 앞프로젝트 === 프로젝트;
-    고리로연.current = null;
-    if (!고리것) set조건((앞) => (앞.서비스 === 열린서비스 ? 앞 : { ...앞, 서비스: 열린서비스 }));
-    if (앞프로젝트 !== 프로젝트) {
-      set앞프로젝트(프로젝트);
-      // 앞 프로젝트의 목록을 남기면 읽는 동안 고르개에 다른 프로젝트 서비스가 떠서 고를 수 있다
-      앞서비스들.current = [];
-    }
-  }
-  use주소조건('#/dashboard', 조건을주소로(조건, 열린서비스));
-  // 고르개에서 애플리케이션 하나를 고르면 왼쪽 줄도 그것으로 바꾼다 — 둘이 다르면 사이드바는 웹인데 대시보드는 앱인 화면이 됐다
-  const 고름 = (새: 대시보드조건): void => {
-    set조건(새);
-    if (새.서비스 !== null && 새.서비스 !== 조건.서비스) 서비스열기(새.서비스);
-  };
-  // 주소가 왼쪽 줄과 다른 애플리케이션을 들고 왔으면(즐겨찾기 · 공유 주소) 왼쪽 줄을 그리로 맞춘다
-  useEffect(() => {
-    if (조건.서비스 !== null && 조건.서비스 !== 열린서비스) 서비스열기(조건.서비스);
-  }, []);
+  const [조건, set조건] = useState(주소에서조건);
+  // 기본값(14일)은 주소에 적지 않는다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
+  use주소조건('#/dashboard', 조건을주소로(조건));
   const 읽음 = use대시보드(시간대, 조건, 프로젝트);
-
-  const 값 = 읽음.종류 === 'data' ? 읽음.값 : null;
-  if (값 !== null) 앞서비스들.current = 값.services;
-  const 서비스들 = 값 === null ? 앞서비스들.current : 값.services;
-  useEffect(() => {
-    // 주소의 서비스가 볼 수 있는 목록에 없으면(권한이 없거나 지워진 번호) 전체로 돌린다 — 빈 현황이 「데이터 없음」으로 읽히지 않게
-    if (값 !== null && 조건.서비스 !== null && !값.services.some((서비스) => 서비스.id === 조건.서비스)) {
-      set조건((앞) => ({ ...앞, 서비스: null }));
-    }
-  }, [값?.services]);
-  // 칸이 다른 화면으로 갈 때 맞출 서비스. 서비스를 고르지 않았어도 볼 수 있는 서비스가 하나뿐이면 그것이다
+  // 칸이 다른 화면으로 갈 때 맞출 서비스. 대시보드는 프로젝트 요약이라 서비스 하나로 못 정하면 아무것도 안 바꾼다
   const 이동: 이동재료 = {
-    서비스번호: 조건.서비스 ?? (서비스들.length === 1 ? (서비스들[0]?.id ?? null) : null),
-    서비스열기: 고리로열기,
+    서비스번호: 읽음.종류 === 'data' && 읽음.값.services.length === 1 ? (읽음.값.services[0]?.id ?? null) : null,
+    서비스열기,
   };
-  const 고른서비스 = 조건.서비스 === null ? undefined : 서비스들.find((서비스) => 서비스.id === 조건.서비스);
   const 부제 =
-    값 === null
+    읽음.종류 !== 'data'
       ? undefined
-      : 고른서비스 === undefined
-        ? t('애플리케이션 {수}개 · 최근 {일}일 · {날짜} 기준', {
-            수: 값.services.length,
-            일: 값.window.days,
-            날짜: 날짜글자(값.window.today),
-          })
-        : t('{이름} · 최근 {일}일 · {날짜} 기준', {
-            이름: 고른서비스.name,
-            일: 값.window.days,
-            날짜: 날짜글자(값.window.today),
-          });
+      : t('애플리케이션 {수}개 · 최근 {일}일 · {날짜} 기준', {
+          수: 읽음.값.project.apps.length,
+          일: 읽음.값.window.days,
+          날짜: 날짜글자(읽음.값.window.today),
+        });
 
   return (
     <>
-      <Head 제목={t('대시보드')} 부제={부제} 행동={<고르개 조건={조건} 서비스들={서비스들} on바뀜={고름} />} />
+      <Head 제목={t('대시보드')} 부제={부제} 행동={<고르개 조건={조건} on바뀜={set조건} />} />
       {읽음.종류 === 'loading' ? (
         <div className="screen">
           <Loading />
@@ -235,54 +180,42 @@ export function Dashboard({
           </div>
         </div>
       ) : (
-        <div className="dash">
-          <실행중줄 목록={읽음.값.running} />
-          <검토할것 값={읽음.값} 이동={이동} 서비스열기={고리로열기} />
-          <AI품질줄 값={읽음.값.aiQuality} />
-          {/* 한 번도 안 돈 서비스에 빈 칸 여섯을 늘어놓지 않는다. 미확정도 통과율 숫자에 들어 있다 */}
-          {합(읽음.값.passRate.current) + 합(읽음.값.passRate.previous) === 0 ? (
-            <안내판 케이스갈수있나={케이스갈수있나} 설정갈수있나={설정갈수있나} />
-          ) : (
-            // 순서는 넓은 화면 기둥 차례다. 좁은 화면 차례는 CSS order 가 옮긴다(DESIGN.md 「대시보드」 「좁은 화면」)
-            <div className={읽음.값.byKind === null ? 'dash-board' : 'dash-board has-kind'}>
-              {/* 칸들은 두 묶음 안에서 왼쪽 · 오른쪽 기둥이 따로 쌓인다 — 한 격자 줄에 두면 짧은 쪽(회귀 0건)이 긴 쪽 높이만큼 비었다 (2026-10-31 시험 d6).
-                  어느 칸을 어느 기둥에 두나는 회귀 0건 · 애플리케이션 하나일 때 두 기둥 높이가 비슷하게 잰 것이다 — 위 묶음 685 · 720px, 아래 묶음 663 · 559px (2026-11-08 재시험 · DESIGN.md 「대시보드」) */}
-              <div className="dash-band">
-                <div className="dash-col">
-                  <신규실패표 값={읽음.값} 이동={이동} />
-                  <서비스별표 값={읽음.값} 서비스열기={고리로열기} />
-                  <판칸 클래스="dash-daily" 제목={t('일별 테스트 결과')} 보조={t('막대 위 숫자는 실패 건수')}>
-                    <일별막대 값={읽음.값} 설정갈수있나={설정갈수있나} 이동={이동} />
-                  </판칸>
-                </div>
-                <div className="dash-col">
-                  <통과율칸 값={읽음.값}>
-                    <통과율선 값={읽음.값} />
-                  </통과율칸>
-                  {읽음.값.byKind === null ? null : <종류칸 칸={읽음.값.byKind} 일={읽음.값.window.days} />}
-                </div>
-              </div>
-              <div className="dash-band">
-                <div className="dash-col">
-                  <판칸 클래스="dash-heat" 제목={t('실패 히트맵')} 보조={t('최근 {일}일 실패가 많은 케이스', { 일: 읽음.값.window.days })}>
-                    <실패히트맵 값={읽음.값} 이동={이동} />
-                  </판칸>
-                  <판칸 클래스="dash-cov" 제목={t('요구사항 커버리지')} 보조={t('마지막 작성 기준')}>
-                    <요구커버리지
-                      값={읽음.값}
-                      서비스열기={고리로열기}
-                      작성서비스={조건.서비스 === null ? 작성서비스 : 작성서비스.filter((서비스) => 서비스.id === 조건.서비스)}
-                    />
-                  </판칸>
-                </div>
-                <div className="dash-col">
-                  <실패유형칸 값={읽음.값} 이동={이동} />
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+        <대시보드판 값={읽음.값} 이동={이동} 케이스갈수있나={케이스갈수있나} 설정갈수있나={설정갈수있나} />
       )}
     </>
+  );
+}
+
+function 대시보드판({ 값, 이동, 케이스갈수있나, 설정갈수있나 }: { 값: 자료; 이동: 이동재료; 케이스갈수있나: boolean; 설정갈수있나: boolean }) {
+  const { project } = 값;
+  // 케이스 · PRD · 시나리오 · 성능 측정 · 결정할 것이 하나도 없는 프로젝트에 빈 칸 여럿을 늘어놓지 않는다 — PRD 초안만 있어도 결정 필요가 다음 할 일이라 칸을 보인다
+  const { perf } = project;
+  const 빈것 =
+    project.apps.every((a) => a.cases.fn + a.cases.ui === 0 && (a.prd?.requirements ?? 0) === 0) &&
+    project.e2e.total === 0 &&
+    [perf.load, perf.pages, perf.app, perf.game].every((x) => x === null) &&
+    project.decisionItems.length === 0;
+  return (
+    <div className="dash">
+      <실행중줄 목록={값.running} />
+      {빈것 ? (
+        <안내판 케이스갈수있나={케이스갈수있나} 설정갈수있나={설정갈수있나} />
+      ) : (
+        <>
+          <다섯칸 요약={project} />
+          <div className="dash-two">
+            <추적칸 요약={project} />
+            <케이스칸 요약={project} />
+          </div>
+          <앱카드들 값={값} 서비스열기={이동.서비스열기} />
+          <E2E칸 값={값} />
+          <성능칸 성능={project.perf} 종류들={new Set(project.apps.map((a) => a.kind))} 실패유형={<실패유형칸 값={값} 이동={이동} />} />
+          <div className="dash-two">
+            <신규실패표 값={값} 이동={이동} />
+            <결정칸 값={값} 서비스열기={이동.서비스열기} />
+          </div>
+        </>
+      )}
+    </div>
   );
 }

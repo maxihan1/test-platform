@@ -8,10 +8,12 @@ import { z } from 'zod';
 import { 볼륨파일읽기 } from '../artifactFile.js';
 import { 칸되는서비스, type 기능 } from '../auth/permissions.js';
 import { 부른이로 } from '../authoring/decisionRoutes.js';
+import type { 결정항목 } from '../authoring/decisionItems.js';
 import { 결정재료읽기 } from '../authoring/decisions.js';
 import { AI품질읽기 } from '../bts/quality.js';
 import { 정수 } from '../routeParams.js';
 import { 대시보드, 대시보드실행중, 좁힌다, 틀린시간대 } from './dashboardResults.js';
+import { 프로젝트요약읽기 } from './dashboardProjectRead.js';
 import { 허용날수 } from './dashboardShape.js';
 import { 실패카드 } from './failures.js';
 import { generate, 형식표 } from './generate.js';
@@ -53,19 +55,33 @@ function 읽기되는서비스번호(req: FastifyRequest, 어느기능: 기능, 
 // 상세(확인 문장 · 실패 까닭)는 수에 안 쓰여 읽지 않는다
 // 한 애플리케이션을 세다 실패하면 그 애플리케이션만 빼고 서버 기록에 남긴다 — 대시보드 전체가 500 으로 멈추지 않게.
 // ponytail: 애플리케이션마다 결정 목록을 통째로 짓는다 — 애플리케이션이 많아 대시보드가 느려지면 수만 세는 질의를 따로 둔다
-async function 결정수들(req: FastifyRequest, 작성서비스: number[], 서비스?: number): Promise<{ serviceId: number; count: number }[]> {
+/** 결정 필요 앞 줄 — 대시보드 「결정 필요」 목록에 앞에서부터 이만큼만 싣는다 */
+export const 결정줄수 = 5;
+
+type 결정줄 = { serviceId: number; kind: string; text: string | null };
+
+// 결정 목록 항목 하나를 한 줄로 — 글이 있는 갈래(확인 필요 · 실패)만 글을 싣고 나머지는 화면이 갈래 이름으로 적는다
+function 한줄(serviceId: number, x: 결정항목): 결정줄 {
+  if (x.kind === 'CHECK') return { serviceId, kind: x.kind, text: x.text };
+  if (x.kind === 'FAIL') return { serviceId, kind: x.kind, text: x.reqs[0]?.text ?? x.tcId };
+  return { serviceId, kind: x.kind, text: null };
+}
+
+async function 결정수들(req: FastifyRequest, 작성서비스: number[], 서비스?: number): Promise<{ counts: { serviceId: number; count: number }[]; lines: 결정줄[] }> {
   const 배정 = (req.user?.services ?? []).filter((s) => 작성서비스.includes(s.id) && (서비스 === undefined || s.id === 서비스));
   const 수들 = await Promise.all(
     배정.map(async (s) => {
       try {
-        return { serviceId: s.id, count: (await 결정재료읽기(s.id, 부른이로(req, s.prefix), false)).목록.count };
+        const 목록 = (await 결정재료읽기(s.id, 부른이로(req, s.prefix), false)).목록;
+        return { serviceId: s.id, count: 목록.count, lines: 목록.items.filter((x) => x.picks.length > 0 && x.needsApply !== true).slice(0, 결정줄수).map((x) => 한줄(s.id, x)) };
       } catch (err) {
         req.log.error({ err, serviceId: s.id }, '[dashboard] counting decisions failed; leaving this application out of 결정 필요');
         return null;
       }
     }),
   );
-  return 수들.filter((x) => x !== null);
+  const 된것 = 수들.filter((x) => x !== null);
+  return { counts: 된것.map(({ serviceId, count }) => ({ serviceId, count })), lines: 된것.flatMap((x) => x.lines).slice(0, 결정줄수) };
 }
 
 export default async function reportingRoutes(app: FastifyInstance): Promise<void> {
@@ -183,7 +199,11 @@ export default async function reportingRoutes(app: FastifyInstance): Promise<voi
     try {
       if (only === 'running') return await 대시보드실행중(tz, 실행서비스, 서비스);
       const 작성서비스 = 읽기되는서비스번호(req, 'authoring', 프로젝트);
-      const [결과, decisions, aiQuality] = await Promise.all([
+      // 프로젝트 요약은 고른 애플리케이션으로 좁히지 않는다 — 대시보드가 프로젝트 요약이다 (§8.12 「프로젝트 요약」)
+      const 요약서비스 = (req.user?.services ?? [])
+        .filter((s) => 실행서비스.includes(s.id))
+        .map((s) => ({ id: s.id, prefix: s.prefix, name: s.name, kind: s.kind }));
+      const [결과, 결정, aiQuality, project] = await Promise.all([
         대시보드(tz, 실행서비스, 작성서비스, { 서비스, 날수 }),
         결정수들(req, 작성서비스, 서비스),
         // 결정 필요 수처럼 깨져도 대시보드 전체를 500 으로 멈추지 않는다 — 줄만 안 보이고 서버 기록에 남는다
@@ -191,8 +211,11 @@ export default async function reportingRoutes(app: FastifyInstance): Promise<voi
           req.log.error({ err }, '[dashboard] counting AI quality failed; leaving the AI quality line out');
           return null;
         }),
+        프로젝트요약읽기(요약서비스, 작성서비스),
       ]);
-      return { ...결과, decisions, aiQuality };
+      // 결정 줄은 프로젝트 요약이라 service 로 좁히지 않는다 — 옛 주소가 service 를 실어 와도 다른 애플리케이션 줄이 사라지지 않게
+      const 프로젝트결정 = 서비스 === undefined ? 결정 : await 결정수들(req, 작성서비스);
+      return { ...결과, decisions: 결정.counts, aiQuality, project: { ...project, decisionItems: 프로젝트결정.lines } };
     } catch (err) {
       if (err instanceof 틀린시간대) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: err.받은값 });
       throw err;
