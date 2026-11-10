@@ -121,7 +121,9 @@ export async function 녹화하기(jobId: number, 줄: 대상줄, 대상: 녹화
     const 줄들 = 남길녹화(줄잇기(await HAR읽기(폴더))).log.entries;
     if (줄들.length === 0) throw new Error('녹화 파일이 없습니다 — 러너가 브라우저를 열지 못했습니다');
     const 계정들: 녹화계정[] = [{ loginId: 줄.loginId, loginPassword: 줄.loginPassword }, ...줄.계정들, ...돈것.계정들];
-    const API비밀 = [...줄.apiAuths.flatMap((a) => [a.clientId, a.clientSecret]), ...(줄.adminKey === null ? [] : [줄.adminKey.value])];
+    // 어드민 키가 `Bearer <토큰>` 꼴이면 토큰만 실려도 가리게 칸 뒤 마디도 넣는다
+    const 키값 = 줄.adminKey?.value;
+    const API비밀 = [...줄.apiAuths.flatMap((a) => [a.clientId, a.clientSecret]), ...(키값 === undefined ? [] : [키값, 키값.slice(키값.lastIndexOf(' ') + 1)])];
     const 표 = 가림표([...돈것.비밀, ...API비밀, ...비밀값모으기(줄들)].filter((v) => v.length >= 4), 계정들);
     const 가린 = 가리기(줄들, 표);
     await writeFile(join(artifactsDir(), 'perf-record', 녹화파일(jobId)), JSON.stringify({ log: { version: '1.2', creator: { name: 'Test Commander', version: '1' }, entries: 가린 } }));

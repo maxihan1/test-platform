@@ -113,7 +113,7 @@ export const 오류말: Record<string, string> = {
   BAD_API_AUTH: 'API 인증 칸이 맞지 않습니다. 이름은 1~20자이고 한 서버 안에서 겹치지 않아야 합니다',
   API_AUTH_SECRET_REQUIRED: '새 API 인증에는 비밀값을 넣어야 합니다',
   NOT_GAME_SERVICE: '어드민 키는 게임 · API 애플리케이션에만 넣을 수 있습니다',
-  BAD_ADMIN_KEY: '어드민 키 칸이 맞지 않습니다. 헤더 이름은 영문 · 숫자 · - 이고 값은 공백 없는 12자 이상이어야 합니다',
+  BAD_ADMIN_KEY: '어드민 키 칸이 맞지 않습니다. 헤더 이름은 영문 · 숫자 · - 이고 값은 12자 이상이며 띄어쓰기는 가운데 한 칸만 넣을 수 있습니다',
   ADMIN_KEY_VALUE_REQUIRED: '새 어드민 키 헤더에는 값을 넣어야 합니다',
 
   // 설정 화면이 쓰던 것. 표를 합쳐 둔다

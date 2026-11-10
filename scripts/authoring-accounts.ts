@@ -34,7 +34,9 @@ export function 비밀번호들(것: {
   /** 머리 이름은 비밀이 아니다 — 값만 가린다 (도메인/게임 §3.10 「케이스 꼴」 어드민 키) */
   adminKey?: Pick<어드민키줄, 'value'>;
 }): string[] {
-  const 모두 = [것.target?.loginPassword, ...(것.accounts ?? []).map((a) => a.loginPassword), ...(것.api?.인증들 ?? []).map((a) => a.clientSecret), 것.adminKey?.value];
+  // 어드민 키가 `Bearer <토큰>` 꼴이면 토큰만 적어도 걸리게 칸 뒤 마디도 넣는다 (도메인/인증 §7 adminKey)
+  const 키값 = 것.adminKey?.value;
+  const 모두 = [것.target?.loginPassword, ...(것.accounts ?? []).map((a) => a.loginPassword), ...(것.api?.인증들 ?? []).map((a) => a.clientSecret), 키값, 키값?.slice(키값.lastIndexOf(' ') + 1)];
   return [...new Set(모두.filter((p): p is string => typeof p === 'string' && p !== ''))].sort((a, b) => b.length - a.length);
 }
 

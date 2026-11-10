@@ -25,6 +25,10 @@ describe('비밀번호들 — 가릴 비밀번호 전부', () => {
     expect(비밀번호들({ accounts: [회원], adminKey: 어드민키 })).toEqual(['game-admin-key-원문-123', 'member-pw']);
   });
 
+  it('어드민 키가 Bearer <토큰> 꼴이면 토큰만 적어도 걸리게 칸 뒤 마디도 든다', () => {
+    expect(비밀번호들({ adminKey: { value: 'Bearer mastodon-token-0001' } })).toEqual(['Bearer mastodon-token-0001', 'mastodon-token-0001']);
+  });
+
   it('긴 것부터 준다 — 짧은 것이 긴 것의 일부여도 긴 것을 먼저 가린다', () => {
     expect(비밀번호들({ target: { loginPassword: 'pass1234' }, accounts: [{ loginPassword: 'pass12345' }] })).toEqual(['pass12345', 'pass1234']);
   });

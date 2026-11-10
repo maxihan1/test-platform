@@ -77,8 +77,9 @@ function bodyArgs<P, E>(
   if (키 === undefined) {
     없는칸.push(['admin', `${tcId}의 대상 서버 줄에 어드민 키가 없어 admin 을 쓸 수 없다 — 설정 › 대상 서버 줄의 어드민 키를 채운다`]);
   }
-  // 비밀값은 처음부터, 받은 토큰은 받는 대로 더해진다. 어드민 키 값도 기록 · 오류 글에서 가린다 (공통/3-공유계약 「게임 테스트 타입」 adminKey)
-  const 비밀 = new Set([...인증들.map((a) => a.clientSecret), ...(키 === undefined ? [] : [키.value])]);
+  // 비밀값은 처음부터, 받은 토큰은 받는 대로 더해진다. 어드민 키 값도 기록 · 오류 글에서 가린다 (공통/3-공유계약 「게임 테스트 타입」 adminKey).
+  // `Bearer <토큰>` 꼴이면 토큰만 따로 나와도 가리게 칸 뒤 마디도 넣는다 (도메인/인증 §7 adminKey)
+  const 비밀 = new Set([...인증들.map((a) => a.clientSecret), ...(키 === undefined ? [] : [키.value, 키.value.slice(키.value.lastIndexOf(' ') + 1)])]);
   // 판 원문이 있으면 request · api(…) 의 모든 응답을 그 판과 견준다 (도메인/API §3.8 「응답 모양 확인」)
   const 감싼 = traced(request, 비밀, 문서);
   const args = {

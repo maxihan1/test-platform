@@ -104,6 +104,20 @@ describe.skipIf(연결 === undefined)('설정 API 의 게임 애플리케이션 
     }
   });
 
+  it('값 가운데 띄어쓰기 한 칸은 받는다 — Authorization: Bearer <토큰> 꼴의 서버', async () => {
+    const 베어러 = `Bearer ${키값}`;
+    const res = await 고친다({ envs: [줄({ header: 'Authorization', value: 베어러 })] });
+    expect(res.statusCode).toBe(200);
+    expect(await 저장된키()).toEqual({ header: 'Authorization', value: 베어러 });
+  });
+
+  it('띄어쓰기가 두 칸이거나 앞뒤에 붙거나 칸 뒤 토큰이 12자보다 짧으면 400 BAD_ADMIN_KEY', async () => {
+    for (const 값 of [`Bearer  ${키값}`, `Bearer ${키값} x`, ` Bearer${키값}`, `Bearer${키값} `, `Bearer\t${키값}`, 'Bearer abcde12345']) {
+      const res = await 고친다({ envs: [줄({ header: 'Authorization', value: 값 })] });
+      expect([res.statusCode, res.json()]).toEqual([400, { error: 'BAD_ADMIN_KEY' }]);
+    }
+  });
+
   it('게임이 아닌 애플리케이션에 어드민 키를 보내면 400 NOT_GAME_SERVICE', async () => {
     const res = await 만든다({ prefix: 화면접두사, kind: 'SCREEN', envs: [줄({ header: 'X-Admin-Key', value: 키값 })] });
     expect(res.statusCode).toBe(400);
