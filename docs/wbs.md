@@ -151,7 +151,8 @@
 **무엇** 조회 도구를 더하고, 대화를 담고 흘려 보내는 통로를 열고, 작성 서버에 챗봇 자리를 둔다.
 - [x] `SCOUT-F1-02` MCP 도구 다섯 + 안내문 — `run_list` · `e2e_result` · `compat_result` · `perf_result` · `issue_list` · 서버 안내문에 고르는 차례 · `run_result` 가 가린 입력값을 내는지 회귀 테스트 · 테스트
   - 근거 PR #703 · 2026-11-11 — 도구는 `apps/admin/src/mcp/scout.ts`(결과 넷 · 등록) · `tools.ts` `최근이슈` · `run_list` page 는 5 까지(성능 목록 통로 200개 상한) · `issue_list` 는 Bunker `GET /api/v1/issues?projectKey&page&size=30`(Spring Page `content` · `totalElements`, 만든 시각 늦은 순) · 키 `mcq_` 는 F1-03(계약 블록 상태 대기)
-- [ ] `SCOUT-F1-03` DB · 서버 대화 통로 — 마이그레이션(대화 · 질문 · 조각 · 사용량) · 출입증 `chatKey` · 질문 넣기 · SSE 이어 받기 · 중단 · 대화 초기화 · 로그아웃 · back-channel 삭제 · 24시간 지난 대화 정리 · 키 `mcq_` · 작성 서버가 가져가는 통로
+- [x] `SCOUT-F1-03` DB · 서버 대화 통로 — 마이그레이션(대화 · 질문 · 조각 · 사용량) · 출입증 `chatKey` · 질문 넣기 · SSE 이어 받기 · 중단 · 대화 초기화 · 로그아웃 · back-channel 삭제 · 24시간 지난 대화 정리 · 키 `mcq_` · 작성 서버가 가져가는 통로
+  - 근거 PR #704 · 2026-11-11 — 표 넷(`db/migrations/20261111000001_chat.sql` — 묻는 사람 칸은 `username` · 사용자 승인) · 화면 통로 `apps/admin/src/chat/routes.ts`(문은 로그인만 · 배정은 라우트 — `routeTable.ts` `배정은라우트가`) · 작성 서버 통로 `chat/agentRoutes.ts` · `agentStore.ts`(claim 응답 `{ question: { id, projectId, projectName, text, history, mcpKey } }` · 조각 1~200개 · TEXT 20,000자 · 지운 질문은 409 STOPPED) · 키 `mcp/questionKey.ts`(Auth 없는 사람은 `BTS_UNAUTHORIZED`) · 다시 로그인하면 앞 대화를 지운다
 - [ ] `SCOUT-F1-04` 작성 서버 챗봇 자리 — `CHAT_MAX_PARALLEL` · 1초 가져가기 · 빈 작업 폴더 · MCP 만 허용 · 지시문(표 금지 · 짧게 · 지어내지 않기 · 조회만) · `stream-json` → 진행 줄 · 답 조각(0.3초 묶음) · 중단 · 2분 · 토큰 기록
 
 ### ③ 화면
