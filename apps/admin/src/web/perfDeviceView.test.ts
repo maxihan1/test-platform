@@ -58,6 +58,7 @@ describe('기기 성능 계산', () => {
     expect(게임.map((칸) => [칸.이름, 칸.값, 칸.보조.join(' · '), 칸.나쁨])).toEqual([
       ['평균 FPS', '41', 'Pixel 7 · 목표 45 이상', true],
       ['프레임 드랍', '3%', 'Galaxy S23', false],
+      ['프리징', '2번', 'Galaxy S23 · 0.7초 넘게 정지', false],
       ['CPU 평균', '48%', 'Pixel 7', false],
       ['메모리 최대', '412MB', 'Galaxy S23', false],
     ]);
