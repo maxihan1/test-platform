@@ -1,4 +1,8 @@
 // Scout 챗봇 자리 — 지시문 · 자식 인자 · stream-json → 조각 · 0.3초 묶음 · 가져가기 → 조각 → 끝 순서 검사
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { 멈춤 } from './authoring-io.js';
@@ -247,6 +251,20 @@ describe('챗봇자리돌기 — 가져가기 → 조각 → 끝', () => {
     const [, 인자, 선택] = vi.mocked(손.돌린다).mock.calls[0]!;
     expect((선택 as { input: string }).input).toContain('어제 실패한 실행 알려줘');
     expect(인자.join(' ')).not.toContain('mcq_');
+  });
+
+  it('자리 폴더는 작성 자식과 같은 AUTHORING_WORK_DIR 아래에 만든다 — root 의 TMPDIR(700) 아래면 자리 uid 가 못 들어가 claude 가 1 로 끝난다', async () => {
+    const 바탕 = mkdtempSync(join(tmpdir(), 'scout-work-'));
+    vi.stubEnv('AUTHORING_WORK_DIR', 바탕);
+    try {
+      const { 손 } = 손만들기([{ status: 200, 몸: { question: 질문 } }], [끝사건()]);
+      await 챗봇자리돌기('http://admin', 'tpa_x', 0, null, 손);
+      const [, , 선택] = vi.mocked(손.돌린다).mock.calls[0]!;
+      expect((선택 as { cwd: string }).cwd.startsWith(`${바탕}/`)).toBe(true);
+    } finally {
+      vi.unstubAllEnvs();
+      rmSync(바탕, { recursive: true, force: true });
+    }
   });
 
   it('조각 보내기가 409 면 자식을 끄고 finish 를 부른다', async () => {

@@ -64,7 +64,8 @@ export function 흘리개(보내기: (조각들: 조각[]) => Promise<'ok' | 'st
 
 /** 질문 하나의 빈 작업 폴더 — cwd(일) · 집 · 임시(MCP 설정)를 자리 uid 만 여는 0700 으로 */
 function 폴더만들기(자식: 계정 | null) {
-  const 뿌리 = mkdtempSync(join(tmpdir(), 'scout-'));
+  // 작성 자식과 같은 바탕(/work, 755) 아래에 둔다 — 컨테이너의 root TMPDIR 는 700 집 안이라 자리 uid 가 못 들어가 claude 가 바로 죽는다 (SCOUT-F1-07 실측)
+  const 뿌리 = mkdtempSync(join(process.env.AUTHORING_WORK_DIR || tmpdir(), 'scout-'));
   // 뿌리는 root 것이라 자리 uid 가 지나갈 수만 있게 연다. 안의 셋은 그 uid 의 0700 이라 다른 자리는 못 연다
   chmodSync(뿌리, 0o711);
   const 자리 = { 뿌리, 일: join(뿌리, '일'), 집: join(뿌리, '집'), 임시: join(뿌리, '임시') };
