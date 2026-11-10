@@ -62,6 +62,9 @@ describe('챗봇지시문', () => {
     expect(글).toContain('(run/FN/12)');
     expect(글).toContain('(case/MKW-FN-001)');
     expect(글).toContain('(issue/DM-12)');
+    expect(글).toContain('[테스트 실행](screen/cases)');
+    expect(글).toContain('runs(실행 기록)');
+    expect(글).toContain('그 일을 하는 화면 링크');
     expect(글).toContain('http 주소나 #/ 주소를 직접 만들지 않고');
   });
 
@@ -275,6 +278,71 @@ describe('챗봇자리돌기 — 가져가기 → 조각 → 끝', () => {
     const 제한 = (vi.mocked(손.돌린다).mock.calls[0]![2] as { 제한: number }).제한;
     expect(제한).toBeGreaterThan(110_000);
     expect(제한).toBeLessThanOrEqual(120_000);
+  });
+
+  it('조각을 끝내 못 보내면 자식을 끄고 FAILED 로 끝낸다 — 글이 빠진 답을 완료로 두지 않는다', async () => {
+    const { 손, 부름 } = 손만들기([{ status: 200, 몸: { question: 질문 } }], [부름사건('t1', 'mcp__qa-hub__run_list', {})]);
+    vi.mocked(손.부른다).mockImplementation(async (_a, _b, 길, 옵션 = {}) => {
+      부름.push({ 길, body: 옵션.body });
+      if (길 === '/chat/agent/claim') {
+        const 처음 = 부름.filter((b) => b.길 === 길).length === 1;
+        if (!처음) 멈춤.까닭 = '검사 끝';
+        return { status: 200, 몸: { question: 처음 ? 질문 : null } };
+      }
+      return { status: 길.endsWith('/chunks') ? 502 : 204, 몸: null };
+    });
+    let 신호: AbortSignal | undefined;
+    vi.mocked(손.돌린다).mockImplementation(async (_m, _i, 선택) => {
+      신호 = 선택.신호;
+      선택.흘림줄?.(부름사건('t1', 'mcp__qa-hub__run_list', {}));
+      await new Promise((r) => setTimeout(r, 10));
+      return { 코드: null, 낸것: '', 오류: '', 시간초과: false, 멈춤으로죽음: true };
+    });
+    await 챗봇자리돌기('http://admin', 'tpa_x', 0, null, 손);
+    expect(부름.filter((b) => b.길.endsWith('/chunks'))).toHaveLength(3);
+    expect(신호?.aborted).toBe(true);
+    expect(부름.find((b) => b.길.endsWith('/finish'))?.body).toMatchObject({ status: 'FAILED', error: expect.stringContaining('조각') });
+  });
+
+  it('자리 uid 를 못 거두면 FAILED 로 알리고 그 자리만 닫는다 — 에이전트 전체를 멈추지 않는다', async () => {
+    const { 손, 부름 } = 손만들기([{ status: 200, 몸: { question: 질문 } }, { status: 200, 몸: { question: 질문 } }], [끝사건()]);
+    vi.mocked(손.거두기).mockResolvedValue(false);
+    await 챗봇자리돌기('http://admin', 'tpa_x', 0, null, 손);
+    expect(손.돌린다).toHaveBeenCalledTimes(1);
+    expect(부름.find((b) => b.길.endsWith('/finish'))?.body).toMatchObject({ status: 'FAILED' });
+    expect(멈춤.까닭).toBeNull();
+  });
+
+  it('가져간 뒤 자식을 못 띄울 만큼 깨지면 FAILED 로 닫는다 · 끝을 이미 보냈으면 다시 안 보낸다', async () => {
+    const { 손, 부름 } = 손만들기([{ status: 200, 몸: { question: 질문 } }], []);
+    vi.mocked(손.돌린다).mockRejectedValue(new Error('spawn EPERM'));
+    await 챗봇자리돌기('http://admin', 'tpa_x', 0, null, 손);
+    expect(부름.filter((b) => b.길.endsWith('/finish')).map((b) => b.body)).toEqual([expect.objectContaining({ status: 'FAILED' })]);
+
+    멈춤.까닭 = null;
+    const 둘째 = 손만들기([{ status: 200, 몸: { question: 질문 } }], [끝사건()]);
+    let 끝부름 = 0;
+    vi.mocked(둘째.손.부른다).mockImplementation(async (_a, _b, 길) => {
+      if (길.endsWith('/finish')) {
+        끝부름 += 1;
+        throw new Error('fetch failed');
+      }
+      if (길 === '/chat/agent/claim') {
+        if (끝부름 > 0) 멈춤.까닭 = '검사 끝';
+        return { status: 200, 몸: { question: 끝부름 > 0 ? null : 질문 } };
+      }
+      return { status: 204, 몸: null };
+    });
+    await 챗봇자리돌기('http://admin', 'tpa_x', 0, null, 둘째.손);
+    expect(끝부름).toBe(1);
+  });
+
+  it('모양이 틀린 질문도 번호가 있으면 바로 FAILED 로 닫는다 · 가져가기 오류 뒤에는 5초 쉰다', async () => {
+    const { 손, 부름 } = 손만들기([{ status: 200, 몸: { question: { id: 9, text: 1 } } }, { status: 502, 몸: null }], []);
+    await 챗봇자리돌기('http://admin', 'tpa_x', 0, null, 손);
+    expect(부름.find((b) => b.길 === '/chat/agent/questions/9/finish')?.body).toMatchObject({ status: 'FAILED' });
+    expect(손.돌린다).not.toHaveBeenCalled();
+    expect(손.쉬기).toHaveBeenCalledWith(5000);
   });
 
   it('거절(401 · 403)이면 이 자리 고리만 끝낸다', async () => {
