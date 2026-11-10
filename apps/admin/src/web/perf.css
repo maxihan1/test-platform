@@ -370,8 +370,12 @@
   color: var(--fail-text);
 }
 
-/* 좁으면 두 칸씩 두 줄 */
+/* 좁으면 두 칸씩 줄을 바꾼다. 칸이 홀수면(게임 성능 다섯 칸) 마지막 칸이 한 줄을 다 쓴다 */
 @media (max-width: 620px) {
+  .num-tiles > div:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
   .perf-panel.num-tiles {
     grid-auto-flow: row;
     grid-template-columns: repeat(2, minmax(0, 1fr));
