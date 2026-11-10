@@ -258,8 +258,8 @@ export const 설정말: Record<string, string> = {
 
   // 정기 실행 구획 (§8.8 · 공통/6-인프라 §9.2)
   '정기 실행': 'Scheduled runs',
-  '매일 정한 시각에 이 애플리케이션의 스크립트를 자동으로 한 번 실행합니다. 대시보드의 통과율과 일별 결과는 이 실행으로 집계됩니다':
-    'Runs this application\'s scripts automatically once a day at the set time. The dashboard pass rate and daily results are based on these runs',
+  '매일 정한 시각에 이 애플리케이션의 스크립트를 자동으로 한 번 실행합니다. 대시보드의 최근 실행 결과와 회귀 실패는 이 실행으로 쌓입니다':
+    'Runs this application\'s scripts automatically once a day at the set time. The dashboard\'s latest results and regressions build up from these runs',
   '매일 실행': 'Run daily',
   '시각': 'Time',
   '{시간대} 기준': '{시간대} time',
