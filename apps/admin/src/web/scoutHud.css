@@ -1,0 +1,279 @@
+/* Scout 레이더 버튼 · 자리 · 열고 닫는 움직임 (도메인/챗봇 §8.18 「HUD 버튼」 · 「PC 창」 · 「휴대폰」 · 「동작 줄이기」).
+   시안 FSRcoCUNSiTwd9gCLsCLcr — HUD 버튼 ③ · 처음 자리는 A(창이 버튼 위) · 옮긴 자리는 A+(창이 버튼 옆) */
+
+/* 자리 — 버튼 · 안내 · PC 창이 같은 값을 쓴다. --hud-y 는 끌어 놓은 높이(화면에서 적는다), --hud-floor 는 내려갈 수 있는 바닥이다.
+   진행 알약(실행 진행)은 오른쪽 아래에 떠서 오른쪽에 선 버튼만 그 위로 비킨다 — 토스트와 같은 자리 셈(noticeBar.css) */
+.scout {
+  display: contents;
+  --hud-x: 20px;
+  --hud-floor: 20px;
+  --hud-b: min(max(var(--hud-y, 0px), var(--hud-floor)), calc(100dvh - 76px));
+}
+
+body:has(.run-pill) .scout:not(.left) {
+  --hud-floor: 76px;
+}
+
+/* 버튼 — 어두운 사각 안에 주황 레이더. 바탕 --on-accent 는 두 벌이 같은 짙은 색이라 어두운 화면에서도 어두운 사각이다 */
+.scout-hud {
+  position: fixed;
+  right: var(--hud-x);
+  bottom: var(--hud-b);
+  z-index: 32;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background: var(--on-accent);
+  color: var(--accent);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  /* 끄는 동안 화면이 같이 밀리지 않게 한다 */
+  touch-action: none;
+}
+
+.scout.left .scout-hud {
+  right: auto;
+  left: var(--hud-x);
+}
+
+:root[data-theme='dark'] .scout-hud {
+  border-color: var(--accent);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .scout-hud {
+    border-color: var(--accent);
+  }
+}
+
+.scout-hud.open {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.scout-hud.dragging {
+  cursor: grabbing;
+}
+
+/* 마우스 올림 — 이름 말풍선. 버튼 안쪽(화면 가운데 쪽)에 선다. 손가락에는 올림이 없어 휴대폰에는 안 뜬다 */
+.scout-name {
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 10px);
+  display: none;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.scout.left .scout-name {
+  right: auto;
+  left: calc(100% + 10px);
+}
+
+@media (hover: hover) {
+  .scout-hud:not(.open, .dragging):hover {
+    background: color-mix(in srgb, var(--on-accent) 85%, var(--ink-muted));
+  }
+
+  .scout-hud:not(.open, .dragging):hover .scout-name {
+    display: block;
+  }
+}
+
+/* 답 만드는 중 — 고리 맥박. DESIGN.md 원칙 4 의 「실행 중 맥박」 과 같은 되풀이(--dur-pulse)다 */
+.scout-ring {
+  position: absolute;
+  inset: -6px;
+  border: 2px solid var(--accent-mark);
+  border-radius: 20px;
+  animation: scout-ring var(--dur-pulse) var(--ease) infinite;
+  pointer-events: none;
+}
+
+@keyframes scout-ring {
+  from {
+    opacity: 0.9;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+}
+
+/* 알림 점은 대표색이 아니라 빨강이다 — 주황 버튼 위에서 대표색 점은 안 보인다 (§8.18 「HUD 버튼」 예외) */
+.scout-dot {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--panel);
+  border-radius: 50%;
+  background: var(--fail);
+}
+
+/* 답 도착 안내 — 처음 자리에서는 버튼 위, 옮긴 자리에서는 버튼 옆(위가 화면 밖일 수 있다) */
+.scout-tip {
+  position: fixed;
+  right: var(--hud-x);
+  bottom: calc(var(--hud-b) + 68px);
+  z-index: 32;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--bg);
+  box-shadow: var(--shadow);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.scout.moved .scout-tip {
+  right: calc(var(--hud-x) + 68px);
+  bottom: calc(var(--hud-b) + 12px);
+}
+
+.scout.moved.left .scout-tip {
+  right: auto;
+  left: calc(var(--hud-x) + 68px);
+}
+
+/* PC 창 — 처음 자리에서는 버튼 위로 연다(시안 A). 창이 낮으면 높이를 줄여 위가 잘리지 않게 한다.
+   transform-origin 은 버튼 가운데다 — 버튼에서 커지고 버튼으로 줄어든다 */
+.scout-win {
+  right: var(--hud-x);
+  bottom: calc(var(--hud-b) + 68px);
+  width: min(400px, calc(100vw - 40px));
+  height: min(640px, calc(100dvh - var(--hud-b) - 84px));
+  transform-origin: calc(100% - 28px) calc(100% + 40px);
+  animation: scout-grow var(--t3) var(--ease);
+}
+
+/* 옮긴 자리에서는 버튼 옆에서 화면 안쪽으로 연다(시안 A+). 아래를 버튼에 맞추되 화면 밖으로 나가면 안으로 당긴다 */
+.scout.moved .scout-win {
+  --win-h: min(640px, calc(100dvh - 32px));
+  --win-b: clamp(16px, var(--hud-b), calc(100dvh - var(--win-h) - 16px));
+  right: calc(var(--hud-x) + 68px);
+  bottom: var(--win-b);
+  width: min(400px, calc(100vw - var(--hud-x) - 84px));
+  height: var(--win-h);
+  transform-origin: calc(100% + 40px) calc(100% - var(--hud-b) + var(--win-b) - 28px);
+}
+
+.scout.moved.left .scout-win {
+  right: auto;
+  left: calc(var(--hud-x) + 68px);
+  transform-origin: -40px calc(100% - var(--hud-b) + var(--win-b) - 28px);
+}
+
+.scout-win.closing {
+  animation: scout-shrink var(--t3) var(--ease) forwards;
+  pointer-events: none;
+}
+
+@keyframes scout-grow {
+  from {
+    opacity: 0;
+    transform: scale(0.15);
+  }
+}
+
+@keyframes scout-shrink {
+  to {
+    opacity: 0;
+    transform: scale(0.15);
+  }
+}
+
+/* 휴대폰 — 버튼은 아래 탭 위에 서고 「실패 N건 다시 실행」 판 · 진행 알약 위로 내려가지 않는다(토스트와 같은 자리 셈).
+   창은 전체 화면이고 버튼에서 올라오고 버튼으로 내려간다. 머리 줄을 끌어내리면(--drag) 그만큼 따라 내려온다 */
+@media (max-width: 620px) {
+  .scout {
+    --hud-x: 16px;
+    --hud-floor: calc(var(--ph-tabs) + 16px);
+  }
+
+  body:has(.run-pill) .scout:not(.left) {
+    --hud-floor: calc(var(--ph-tabs) + 72px);
+  }
+
+  body:has(.rerun-dock) .scout {
+    --hud-floor: calc(var(--ph-tabs) + 88px);
+  }
+
+  body:has(.rerun-dock):has(.run-pill) .scout:not(.left) {
+    --hud-floor: calc(var(--ph-tabs) + 136px);
+  }
+
+  .scout-win,
+  .scout.moved .scout-win,
+  .scout.moved.left .scout-win {
+    inset: 0;
+    width: auto;
+    height: auto;
+    transform: translateY(var(--drag, 0px));
+    animation-name: scout-up;
+    transition: transform var(--t2) var(--ease);
+  }
+
+  .scout-win.closing,
+  .scout.moved .scout-win.closing {
+    animation-name: scout-down;
+  }
+
+  .scout-win.swiping {
+    transition: none;
+  }
+
+  .scout-head {
+    touch-action: none;
+  }
+}
+
+@keyframes scout-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes scout-down {
+  to {
+    transform: translateY(100%);
+  }
+}
+
+/* 「동작 줄이기」면 움직임 없이 서서히 나타나고 사라진다 (§8.18). 화면 전체를 끄는 styles.css 규칙보다 이 자리가 앞선다 — 고리 맥박은 꺼진 채다 */
+@media (prefers-reduced-motion: reduce) {
+  .scout-win,
+  .scout.moved .scout-win {
+    animation: scout-fade-in var(--t3) linear !important;
+  }
+
+  .scout-win.closing,
+  .scout.moved .scout-win.closing {
+    animation: scout-fade-out var(--t3) linear forwards !important;
+  }
+}
+
+@keyframes scout-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes scout-fade-out {
+  to {
+    opacity: 0;
+  }
+}
