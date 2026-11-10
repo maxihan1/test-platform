@@ -139,6 +139,12 @@ export async function 대화읽기(키해시: string, projectId: number): Promis
   }));
 }
 
+/** 그 프로젝트가 이은 Issue Bunker 주소. 화면이 답 글의 이슈 링크(`issue/<키>`)를 그 이슈 주소로 바꾼다 — 안 이었으면 null 이고 이슈 키는 글로 남는다 (§8.18 「답 모양」) */
+export async function BTS주소(projectId: number): Promise<string | null> {
+  const r = await (await db()).query<{ base_url: string }>('SELECT base_url FROM bts_link WHERE project_id = $1', [projectId]);
+  return r.rows[0]?.base_url.replace(/\/+$/, '') ?? null;
+}
+
 /** 질문을 넣는다. 대화가 없으면 만들고 있으면 쓴 시각을 고친다. 그 대화에 도는 질문이 있으면 BUSY */
 export async function 질문넣기(
   키해시: string,

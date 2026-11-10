@@ -5,6 +5,7 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { 사용자 } from '../auth/store.js';
 import { 정수 } from '../routeParams.js';
 import {
+  BTS주소,
   글최대,
   끝난상태,
   대화읽기,
@@ -45,7 +46,8 @@ export default async function chatRoutes(app: FastifyInstance): Promise<void> {
     if (!배정됐나(req.user, projectId)) return reply.code(403).send({ error: 'FORBIDDEN' });
     await 오래된대화지우기();
     await 멈춘질문닫기();
-    return { questions: await 대화읽기(대화키(req), projectId) };
+    const [questions, btsUrl] = await Promise.all([대화읽기(대화키(req), projectId), BTS주소(projectId)]);
+    return { questions, btsUrl };
   });
 
   app.post<{ Body: { projectId?: unknown; text?: unknown } | undefined }>('/chat/questions', async (req, reply) => {
