@@ -22,6 +22,10 @@ export const Scout말: Record<string, string> = {
   '질문을 입력하세요': 'Ask a question',
   보내기: 'Send',
   '중단§Scout': 'Stop',
+  // 🎤 — 들은 말은 칸을 채우기만 한다
+  '음성으로 입력': 'Voice input',
+  '음성 입력 종료': 'Stop voice input',
+  '듣는 중 · 말을 마치면 확인 후 보내세요': 'Listening · check the text before you send it',
   // ③ 대기 · 진행 줄
   '앞에 {수}건 대기 중': '{수} ahead in line',
   '확인한 것 {수}건': '{수} checks',

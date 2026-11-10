@@ -1,83 +1,11 @@
-/* Scout 레이더 버튼 · 채팅창 틀 · 입력 (도메인/챗봇 §8.18 · 시안 FSRcoCUNSiTwd9gCLsCLcr A+ · 휴대폰 ②). 끌기 · 움직임은 SCOUT-F1-06 */
+/* Scout 채팅창 틀 · 입력 · 🎤 (도메인/챗봇 §8.18 · 시안 FSRcoCUNSiTwd9gCLsCLcr A+ · 휴대폰 ②). 버튼 · 자리 · 움직임은 scoutHud.css */
 
-/* 버튼 — 어두운 사각 안에 주황 레이더. 바탕 --on-accent 는 두 벌이 같은 짙은 색이라 어두운 화면에서도 어두운 사각이다 */
-.scout-hud {
-  position: fixed;
-  right: 20px;
-  bottom: 20px;
-  z-index: 32;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  border: 1px solid transparent;
-  border-radius: 16px;
-  background: var(--on-accent);
-  color: var(--accent);
-  box-shadow: var(--shadow);
-  cursor: pointer;
-}
-
-:root[data-theme='dark'] .scout-hud {
-  border-color: var(--accent);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) .scout-hud {
-    border-color: var(--accent);
-  }
-}
-
-.scout-hud.open {
-  background: var(--accent);
-  color: var(--on-accent);
-}
-
-/* 진행 알약이 오른쪽 아래를 쓰면 그 위로 비킨다 — 토스트와 같은 꼴(noticeBar.css) */
-body:has(.run-pill) .scout-hud {
-  bottom: 76px;
-}
-
-/* 알림 점은 대표색이 아니라 빨강이다 — 주황 버튼 위에서 대표색 점은 안 보인다 (§8.18 「HUD 버튼」 예외) */
-.scout-dot {
-  position: absolute;
-  top: 3px;
-  right: 3px;
-  width: 12px;
-  height: 12px;
-  border: 2px solid var(--panel);
-  border-radius: 50%;
-  background: var(--fail);
-}
-
-.scout-tip {
-  position: fixed;
-  right: 20px;
-  bottom: 88px;
-  z-index: 32;
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: var(--ink);
-  color: var(--bg);
-  box-shadow: var(--shadow);
-  font-size: 13px;
-}
-
-body:has(.run-pill) .scout-tip {
-  bottom: 144px;
-}
-
-/* 창 — 버튼 자리에서 화면 안쪽(왼쪽 위)으로 연다. 창이 낮으면 높이를 줄여 위가 잘리지 않게 한다 */
+/* 창 — 자리와 크기는 버튼 자리를 따라 scoutHud.css 가 정한다 */
 .scout-win {
   position: fixed;
-  right: 20px;
-  bottom: 88px;
   z-index: 32;
   display: flex;
   flex-direction: column;
-  width: min(400px, calc(100vw - 40px));
-  height: min(640px, calc(100vh - 104px));
   overflow: hidden;
   border: 1px solid var(--line-2);
   border-radius: 16px;
@@ -86,11 +14,6 @@ body:has(.run-pill) .scout-tip {
   color: var(--ink);
   font-size: 14px;
   line-height: 1.55;
-}
-
-body:has(.run-pill) .scout-win {
-  bottom: 144px;
-  height: min(640px, calc(100vh - 160px));
 }
 
 .scout-head {
@@ -222,49 +145,74 @@ body:has(.run-pill) .scout-win {
   font-weight: 600;
 }
 
-/* 휴대폰 — 전체 화면. 버튼은 아래 탭 위에 서고 「실패 N건 다시 실행」 판(72px) · 진행 알약 위로 비킨다 (토스트와 같은 자리 셈 — noticeBar.css).
-   입력 칸 글자 16px 은 iPhone 이 확대하지 않는 크기다 */
+/* 🎤 — 듣는 동안 칸이 대표색 테두리를 받고 단추가 「음성 입력 종료」 로 바뀐다 (시안 공통 상태 ②) */
+.scout-mic {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.scout-mic:hover {
+  background: var(--well);
+}
+
+.scout-mic.on,
+.scout-mic.on:hover {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.scout-comp textarea.live {
+  border-color: var(--accent-mark);
+  background: var(--accent-soft);
+}
+
+.scout-listen {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px 6px;
+  color: var(--accent-mark);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* 소리 막대 — 듣는 중이라는 표시만이다. 되풀이 움직임은 맥박 · 뼈대 둘뿐이라(DESIGN.md 원칙 4) 움직이지 않는다 */
+.scout-bars {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 14px;
+}
+
+.scout-bars i {
+  display: block;
+  width: 3px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--accent-mark);
+}
+
+.scout-bars i:nth-child(2n) {
+  height: 13px;
+}
+
+.scout-bars i:nth-child(3) {
+  height: 6px;
+}
+
+/* 휴대폰 — 전체 화면(자리는 scoutHud.css). 입력 칸 글자 16px 은 iPhone 이 확대하지 않는 크기다 */
 @media (max-width: 620px) {
-  .scout-hud {
-    right: 16px;
-    bottom: calc(var(--ph-tabs) + 16px);
-  }
-
-  .scout-tip {
-    right: 16px;
-    bottom: calc(var(--ph-tabs) + 84px);
-  }
-
-  body:has(.run-pill) .scout-hud {
-    bottom: calc(var(--ph-tabs) + 72px);
-  }
-
-  body:has(.run-pill) .scout-tip {
-    bottom: calc(var(--ph-tabs) + 140px);
-  }
-
-  body:has(.rerun-dock) .scout-hud {
-    bottom: calc(var(--ph-tabs) + 88px);
-  }
-
-  body:has(.rerun-dock) .scout-tip {
-    bottom: calc(var(--ph-tabs) + 156px);
-  }
-
-  body:has(.rerun-dock):has(.run-pill) .scout-hud {
-    bottom: calc(var(--ph-tabs) + 136px);
-  }
-
-  body:has(.rerun-dock):has(.run-pill) .scout-tip {
-    bottom: calc(var(--ph-tabs) + 204px);
-  }
-
-  .scout-win,
-  body:has(.run-pill) .scout-win {
-    inset: 0;
+  .scout-win {
     z-index: 50;
-    width: auto;
-    height: auto;
     border: 0;
     border-radius: 0;
     box-shadow: none;
@@ -289,5 +237,10 @@ body:has(.run-pill) .scout-win {
   .scout-stop {
     height: 44px;
     min-width: 44px;
+  }
+
+  .scout-mic {
+    width: 44px;
+    height: 44px;
   }
 }

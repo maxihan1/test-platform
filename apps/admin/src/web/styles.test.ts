@@ -42,7 +42,9 @@ describe('화면 토큰 (DESIGN.md)', () => {
     // 없는 토큰을 var() 로 부르면 그 속성이 통째로 무효가 된다 — 오류도 안 나고 조용히 사라진다.
     // 2026-09-21 에 --lift 가 실제로 그랬다. 면이 바탕에서 떠 보이지 않는데 아무도 안 죽는다.
     // 2026-10-07 토큰 교체 때 이 검사가 styles.css 만 읽어서 authoringStatus.css 와 인라인 `var(--rule)` 이 빠져나갔다
-    const 있는것 = new Set(Object.keys(토큰들()));
+    // 화면 원본이 스스로 선언한 지역 변수(CSS `--x:` · 인라인 style `'--x':`)도 정의된 것이다 — Scout 버튼 자리처럼 규칙끼리 값을 나눌 때 쓴다 (SCOUT-F1-06)
+    const 지역 = 화면원본들().flatMap(([, 글]) => [...글.matchAll(/['"]?(--[\w-]+)['"]?\s*:/g)].map((m) => m[1]!));
+    const 있는것 = new Set([...Object.keys(토큰들()), ...지역]);
     const 없는것 = 화면원본들().flatMap(([이름, 글]) =>
       [...new Set([...글.matchAll(/var\((--[\w-]+)/g)].map((m) => m[1]!))]
         .filter((토큰) => !있는것.has(토큰))
