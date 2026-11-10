@@ -123,7 +123,8 @@ describe('애플리케이션 가이드 — 시안 GuideA', () => {
       }),
     );
     expect(await screen.findByText('저장했습니다 (버전 4)')).toBeTruthy();
-    expect(지금).toHaveBeenCalledTimes(2);
+    // 다시 읽기는 그린 뒤에 돈다 — 부하가 크면 알림이 먼저 뜬다
+    await vi.waitFor(() => expect(지금).toHaveBeenCalledTimes(2));
     await vi.waitFor(() => expect(screen.queryByRole('textbox', { name: '정책' })).toBeNull());
   });
 
