@@ -10,7 +10,7 @@ import { artifactsDir, 볼륨파일 } from '../artifactFile.js';
 import { 정수 } from '../routeParams.js';
 import { 기기목록, 시리얼, 측정본문, 측정세우기 } from './devices.js';
 import { 녹화이름 } from './deviceRecorder.js';
-import { 구간묶기, 기기요약하기, 누수의심, 회차메모리 } from './deviceStats.js';
+import { 구간묶기, 기기줄들, 누수의심, 회차메모리 } from './deviceStats.js';
 import { 줄읽기 } from './deviceStore.js';
 import { 한번돌기 } from './engine.js';
 import * as 표 from './store.js';
@@ -60,11 +60,7 @@ export default async function perfDeviceRoutes(app: FastifyInstance): Promise<vo
     const 기기별 = cfg.devices.map((d) => ({ d, 줄: 줄들.filter((r) => r.serial === d.serial) }));
     const 회차들 = 기기별.map(({ d, 줄 }) => ({ serial: d.serial, 회차: 회차메모리(d.serial, 줄) }));
     return {
-      devices: 기기별.map(({ d, 줄 }) => ({
-        serial: d.serial, model: d.model, where: d.where, launchMs: d.launchMs, summary: 기기요약하기(줄),
-        // 판정은 끝까지 잰 실행에서만 싣는다. 숫자를 한 줄도 안 보낸 기기는 목표가 없어도 실패다
-        verdict: 실행?.status === 'DONE' ? (줄.length > 0 && (실행.targets ?? []).filter((t) => t.scope === d.serial).every((t) => t.verdict === 'PASS') ? 'PASS' : 'FAIL') : null,
-      })),
+      devices: 기기줄들(기기별, 실행),
       metrics: 줄들.filter((r) => r.sec >= from).map((r) => ({
         serial: r.serial, sec: r.sec, loop: r.loop, segment: r.segment, fps: r.fps, jankPct: r.jankPct, freezeCount: r.freezeCount, cpu: r.cpu, memMb: r.memMb, tempC: r.tempC, batteryPct: r.batteryPct,
       })),

@@ -171,12 +171,13 @@ describe.skipIf(연결 === undefined)('MCP 창구', () => {
     vi.unstubAllEnvs();
   });
 
-  it('처음 인사와 도구 목록 — 조회 도구 여섯', async () => {
+  it('처음 인사와 도구 목록 — 조회 도구 열하나(Scout 다섯 포함)', async () => {
     const 인사 = await 부르기MCP(내토큰, 'initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'xmc', version: '1' } });
     expect(인사.statusCode).toBe(200);
     expect(인사.json()).toMatchObject({ result: { serverInfo: { name: 'qa-hub' }, instructions: expect.stringContaining('기대값의 근거는 사람이 확정한 PRD 요구 문장뿐이다') } });
     const 목록 = (await 부르기MCP(내토큰, 'tools/list')).json() as 답몸;
-    expect(목록.result!.tools!.map((t) => t.name).sort()).toEqual(['bts_search', 'map_search', 'note_read', 'prd_search', 'run_result', 'run_search']);
+    expect(목록.result!.tools!.map((t) => t.name).sort()).toEqual(['bts_search', 'compat_result', 'e2e_result', 'issue_list', 'map_search', 'note_read', 'perf_result', 'prd_search', 'run_list', 'run_result', 'run_search']);
+    expect(인사.json()).toMatchObject({ result: { instructions: expect.stringContaining('쓰는 쪽은 셋이다') } });
   });
 
   it('PRD 요구 찾기 — 낱말이 든 요구와 덮는 케이스, 배정 밖 애플리케이션은 FORBIDDEN', async () => {

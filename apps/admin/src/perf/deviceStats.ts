@@ -2,6 +2,8 @@
 
 import { z } from 'zod';
 
+import type { DeviceRunConfig } from './types.js';
+
 export const 기기지표들 = ['AVG_FPS', 'LOW1_FPS', 'MAX_TEMP', 'MAX_MEM', 'LAUNCH_MS'] as const;
 export type 기기지표 = (typeof 기기지표들)[number];
 
@@ -131,4 +133,15 @@ export function 구간표별(rows: readonly 기기줄[]): { segment: string; avg
     const fps = 값들(xs.map((x) => x.fps));
     return { segment, avgFps: 한자리(평균(fps)), minFps: fps.length === 0 ? null : Math.min(...fps), maxTempC: 최대(값들(xs.map((x) => x.tempC))) };
   });
+}
+
+type 기기실행 = { status: string; targets: { scope: string; verdict: string }[] | null } | undefined;
+
+/** 디바이스마다 요약과 판정 — 결과 화면(GET /api/perf/runs/:id/devices)과 MCP perf_result 가 같이 쓴다 */
+export function 기기줄들(기기별: { d: DeviceRunConfig['devices'][number]; 줄: Parameters<typeof 기기요약하기>[0] }[], 실행: 기기실행) {
+  return 기기별.map(({ d, 줄 }) => ({
+    serial: d.serial, model: d.model, where: d.where, launchMs: d.launchMs, summary: 기기요약하기(줄),
+    // 판정은 끝까지 잰 실행에서만 싣는다. 숫자를 한 줄도 안 보낸 기기는 목표가 없어도 실패다
+    verdict: 실행?.status === 'DONE' ? (줄.length > 0 && (실행.targets ?? []).filter((t) => t.scope === d.serial).every((t) => t.verdict === 'PASS') ? 'PASS' : 'FAIL') : null,
+  }));
 }
