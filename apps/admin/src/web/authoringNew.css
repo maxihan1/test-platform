@@ -1,0 +1,140 @@
+/* 새 작성 마법사 — 가운데 창 · 위쪽 단계 막대 · 단계 본문 (2026-11-11 사용자 시안 WizardB). 색은 styles.css :root 토큰만 쓴다 */
+
+/* 공용 창(.modal)은 480px 다. 이 창은 칸이 많아 넓힌다 — Modal 에 칸을 더하지 않고 안의 표시로 가른다 */
+.modal:has(> .modal-body > .wiz-new) {
+  max-width: 760px;
+  border-radius: 14px;
+}
+.modal:has(> .modal-body > .wiz-new) .modal-body {
+  font-size: 14px;
+}
+
+.wiz-new {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* 단계 막대 — 칸마다 4px 막대와 이름. 지난 단계 · 지금 단계는 대표색 */
+.wiz-new-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 14px;
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.wiz-new-steps li {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+.wiz-new-steps li > i {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+}
+.wiz-new-steps li.done > i { background: var(--accent-mark); }
+.wiz-new-steps li.done { color: var(--ink-muted); }
+.wiz-new-steps li[aria-current='step'] { color: var(--ink); font-weight: 600; }
+.wiz-new-steps li > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.wiz-new-head h3 { margin: 0; font-size: 19px; font-weight: 600; }
+.wiz-new-head p { margin: 4px 0 0; font-size: 13px; color: var(--ink-muted); }
+
+/* 작성 방법 카드 셋 — 좁으면 아래로 쌓인다 */
+.wiz-new-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+.wiz-new-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 132px;
+  padding: 18px;
+  border: 1px solid var(--line-2);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--t1) var(--ease), background var(--t1) var(--ease);
+}
+.wiz-new-card:hover { border-color: var(--ink-faint); }
+.wiz-new-card strong { font-size: 15px; }
+.wiz-new-card small { font-size: 13px; line-height: 1.6; color: var(--ink-muted); }
+/* 고른 카드 — 테두리 두께가 달라 카드가 흔들리지 않게 그림자로 한 겹 더한다 */
+.wiz-new-card[aria-pressed='true'] {
+  border-color: var(--accent-mark);
+  box-shadow: 0 0 0 1px var(--accent-mark);
+  background: var(--accent-soft);
+}
+
+.wiz-new-note {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--well);
+  font-size: 13px;
+}
+.wiz-new-note small,
+.wiz-new-hint { margin: 0; font-size: 13px; color: var(--ink-muted); }
+
+/* 칸 — 이름표를 위에 얹는다 */
+.wiz-new .authoring-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.wiz-new .authoring-field > span { color: var(--ink-muted); font-size: 13px; font-weight: 600; }
+.wiz-new .authoring-field > small { color: var(--ink-faint); font-size: 12px; }
+.wiz-new textarea,
+.wiz-new .authoring-field input,
+.wiz-new .authoring-field select {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 12px;
+  /* 바탕을 안 적으면 어두운 화면에서 브라우저 기본 회색이 앉는다 — 다른 입력칸과 같은 우묵한 자리다 */
+  background: var(--well);
+  color: var(--ink);
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  font: inherit;
+  min-width: 0;
+}
+.wiz-new textarea { resize: vertical; line-height: 1.6; }
+
+/* 파일 끌어다 놓기 */
+.wiz-new-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 22px 16px;
+  border: 1.5px dashed var(--line-2);
+  border-radius: 12px;
+  background: var(--well);
+  text-align: center;
+}
+.wiz-new-drop.over { border-color: var(--accent-mark); background: var(--accent-soft); }
+.wiz-new-drop small { font-size: 12px; color: var(--ink-faint); }
+
+/* 확인 단계 요약 — 이름 칸 · 값 칸 두 줄 짜임. 좁으면 위아래로 */
+.wiz-new-sum { margin: 0; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 12px; }
+.wiz-new-sum > div { display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 12px 16px; }
+.wiz-new-sum > div + div { border-top: 1px solid var(--line); }
+.wiz-new-sum dt { flex: 0 0 96px; color: var(--ink-muted); font-size: 13px; }
+.wiz-new-sum dd { flex: 1 1 240px; margin: 0; min-width: 0; overflow-wrap: anywhere; }
+
+/* 마법사 1단계의 가이드 구획 — 창 안이라 판 테두리 · 여백을 줄인다 */
+.wiz-new .guide-sec { margin-bottom: 0; padding: 16px 18px; }
+
+/* 「다음」을 막는 까닭 — 단추 왼쪽에 한 줄 */
+.wiz-new-why { margin-right: auto; font-size: 13px; color: var(--ink-muted); }

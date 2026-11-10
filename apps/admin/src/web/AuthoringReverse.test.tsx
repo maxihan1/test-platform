@@ -38,6 +38,12 @@ vi.mock('./api.js', async () => {
   };
 });
 
+vi.mock('./guideApi.js', () => ({
+  guideApi: {
+    now: () => Promise.resolve({ version: 1, intro: '결제 앱', policy: '', rules: '', files: [], savedAt: null, savedByName: null }),
+  },
+}));
+
 const 서버들: EnvRow[] = [
   { env: 'qa', baseUrl: 'https://qa.example.com' },
   { env: 'prod', baseUrl: 'https://example.com' },
@@ -56,39 +62,58 @@ function 폼(envs: EnvRow[] = 서버들, 운영자 = true) {
   return render(<AuthoringNew service="PAY" envs={envs} 운영자={운영자} on넣었다={() => {}} />);
 }
 
-function 대조를켠다() {
-  fireEvent.click(screen.getByLabelText('실제 화면과 대조'));
+const 다음 = () => fireEvent.click(screen.getByRole('button', { name: '다음' }));
+const 다음버튼 = () => screen.getByRole('button', { name: '다음' }) as HTMLButtonElement;
+
+/** 가이드 단계를 넘기고 작성 방법을 고른 뒤 다음 단계로 간다 */
+function 방법을(이름: '기획서로 작성' | '화면을 훑어서 작성' | '기획서 + 실제 화면 대조') {
+  다음();
+  fireEvent.click(screen.getByRole('button', { name: 이름 }));
+  다음();
 }
 
 function 시작주소를적는다(값: string) {
   fireEvent.change(screen.getByLabelText('시작 주소'), { target: { value: 값 } });
 }
 
-function 보내기(): HTMLButtonElement {
-  return screen.getByRole('button', { name: '테스트 작성 시작' }) as HTMLButtonElement;
+function 피그마를적는다(값: string) {
+  fireEvent.change(screen.getByLabelText('피그마 주소'), { target: { value: 값 } });
 }
 
-describe('새 요청 — 실제 화면과 대조', () => {
-  it('대조를 켜기 전에는 대상 서버와 시작 주소 칸이 없다', () => {
+/** 지금 단계에서 확인 단계로 넘어가 시작한다 */
+function 시작한다() {
+  다음();
+  fireEvent.click(screen.getByRole('button', { name: '테스트 작성 시작' }));
+}
+
+describe('새 작성 마법사 — 실제 화면과 대조', () => {
+  it('작성 방법을 고르기 전에는 다음으로 못 가고, 「기획서로 작성」에는 대상 서버 단계가 없다', () => {
     폼();
+    다음();
+    expect(다음버튼().disabled).toBe(true);
+    expect(screen.getByText('작성 방법을 선택하세요')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '기획서로 작성' }));
+    expect(screen.getByRole('button', { name: '기획서로 작성' }).getAttribute('aria-pressed')).toBe('true');
+    expect(within(screen.getByRole('list', { name: '단계' })).queryByText(/대상 서버/)).toBeNull();
+    다음();
     expect(screen.queryByLabelText('대상 서버')).toBeNull();
     expect(screen.queryByLabelText('시작 주소')).toBeNull();
   });
 
-  it('켜면 대상 서버를 전부 보인다 — 계정 없는 줄을 미리 거르지 않는다', () => {
+  it('「화면을 훑어서」는 자료 단계를 건너뛰고 대상 서버를 전부 보인다 — 계정 없는 줄을 미리 거르지 않는다', () => {
     폼();
-    대조를켠다();
+    방법을('화면을 훑어서 작성');
+    expect(screen.queryByLabelText('PRD')).toBeNull();
     const 고르기 = screen.getByLabelText('대상 서버') as HTMLSelectElement;
     expect([...고르기.options].map((o) => o.value)).toEqual(['qa', 'prod']);
     expect(screen.getByLabelText('시작 주소')).toBeTruthy();
   });
 
-  it('시작 주소만 있으면 기획서 없이 보낸다 — 화면만', async () => {
+  it('시작 주소를 적으면 기획서 없이 그 화면부터 보낸다', async () => {
     폼();
-    대조를켠다();
+    방법을('화면을 훑어서 작성');
     시작주소를적는다('  https://qa.example.com/orders  ');
-    expect(보내기().disabled).toBe(false);
-    fireEvent.click(보내기());
+    시작한다();
     await waitFor(() => expect(부름.map((b) => b.무엇)).toEqual(['만들기', '세우기']));
     expect(부름[0]?.값).toEqual({
       service: 'PAY',
@@ -96,78 +121,94 @@ describe('새 요청 — 실제 화면과 대조', () => {
     });
   });
 
-  it('대조면 시작 주소도 자료도 없이 보낸다 — 기획서에 없는 화면만 작성한다', async () => {
+  it('시작 주소도 자료도 없이 보내면 기획서에 없는 화면만 작성한다', async () => {
     폼();
-    expect(보내기().disabled).toBe(true);
-    대조를켠다();
-    expect(보내기().disabled).toBe(false);
-    fireEvent.click(보내기());
+    방법을('화면을 훑어서 작성');
+    다음();
+    expect(screen.getByText('PRD 에 아직 없는 화면만 작성합니다')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '테스트 작성 시작' }));
+    await waitFor(() => expect(부름.map((b) => b.무엇)).toEqual(['만들기', '세우기']));
+    expect(부름[0]?.값).toEqual({ service: 'PAY', body: { kind: 'AUTHOR', figma: [], compare: true, env: 'qa' } });
+  });
+
+  it('「화면을 훑어서」로 바꾸면 앞에서 넣은 파일 · 피그마를 싣지 않는다', async () => {
+    폼();
+    방법을('기획서로 작성');
+    fireEvent.change(screen.getByLabelText('PRD'), { target: { files: [new File(['x'], '기획서.pdf')] } });
+    피그마를적는다('https://www.figma.com/design/AbC/');
+    fireEvent.click(screen.getByRole('button', { name: '이전' }));
+    fireEvent.click(screen.getByRole('button', { name: '화면을 훑어서 작성' }));
+    다음();
+    시작한다();
     await waitFor(() => expect(부름.map((b) => b.무엇)).toEqual(['만들기', '세우기']));
     expect(부름[0]?.값).toEqual({ service: 'PAY', body: { kind: 'AUTHOR', figma: [], compare: true, env: 'qa' } });
   });
 
   it('Android 앱은 대상 서버만 고르고 시작 주소 칸 없이 대조를 보낸다 — 앱을 켠 첫 화면에서 시작한다 (APP-F2-05)', async () => {
     render(<AuthoringNew service="MKA" envs={서버들} 운영자 앱종류="APP" on넣었다={() => {}} />);
-    대조를켠다();
+    방법을('화면을 훑어서 작성');
     expect(screen.getByLabelText('대상 서버')).toBeTruthy();
     expect(screen.queryByLabelText('시작 주소')).toBeNull();
-    fireEvent.click(보내기());
+    expect(screen.getByText('디바이스에서 앱을 켠 첫 화면에서 시작합니다')).toBeTruthy();
+    시작한다();
     await waitFor(() => expect(부름.map((b) => b.무엇)).toEqual(['만들기', '세우기']));
     expect(부름[0]?.값).toEqual({ service: 'MKA', body: { kind: 'AUTHOR', figma: [], compare: true, env: 'qa' } });
   });
 
-  it('대조 칸 설명이 기획서 화면을 먼저 쓰고 없는 화면이 이어진다고 알린다', () => {
+  it('「기획서 + 실제 화면 대조」는 확인 단계에서 기획서 화면을 먼저 쓰고 없는 화면이 이어진다고 알린다', () => {
     폼();
-    대조를켠다();
-    expect(screen.getByText(/기획서가 있으면 기획서 화면을 먼저 작성하고, 반영되면 기획서에 없는 화면을 이어서 작성합니다/)).toBeTruthy();
+    방법을('기획서 + 실제 화면 대조');
+    피그마를적는다('https://www.figma.com/design/AbC/');
+    다음();
+    다음();
+    expect(screen.getByText('기획서 화면을 먼저 작성하고, 반영되면 기획서에 없는 화면을 이어서 작성합니다')).toBeTruthy();
+    expect(screen.getByText('qa')).toBeTruthy();
   });
 
   it('대상 서버를 바꿔 고르면 그 서버로 보낸다', async () => {
     폼();
-    대조를켠다();
+    방법을('화면을 훑어서 작성');
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'prod' } });
     시작주소를적는다('https://example.com/');
-    fireEvent.click(보내기());
+    시작한다();
     await waitFor(() => expect(부름.length).toBeGreaterThan(0));
     expect(부름[0]?.값).toMatchObject({ body: { env: 'prod' } });
   });
 
   it('애플리케이션을 바꾸면 전에 고른 대상 서버가 남지 않는다 — 보이는 서버로 보낸다', async () => {
     const { rerender } = 폼();
-    대조를켠다();
+    방법을('화면을 훑어서 작성');
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'prod' } });
     rerender(<AuthoringNew service="SHOP" envs={[{ env: 'dev', baseUrl: 'https://dev.shop.example.com' }]} on넣었다={() => {}} />);
     expect((screen.getByLabelText('대상 서버') as HTMLSelectElement).value).toBe('dev');
     시작주소를적는다('https://dev.shop.example.com/');
-    fireEvent.click(보내기());
+    시작한다();
     await waitFor(() => expect(부름.length).toBeGreaterThan(0));
     expect(부름[0]?.값).toMatchObject({ service: 'SHOP', body: { env: 'dev' } });
   });
 
-  it('대상 서버가 없는 애플리케이션으로 바꾸면 보낼 수 없다', () => {
+  it('대상 서버가 없는 애플리케이션으로 바꾸면 다음으로 못 간다', () => {
     const { rerender } = 폼();
-    대조를켠다();
-    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'prod' } });
+    방법을('화면을 훑어서 작성');
     rerender(<AuthoringNew service="SHOP" envs={[]} on넣었다={() => {}} />);
-    fireEvent.change(screen.getByLabelText('피그마 주소'), { target: { value: 'https://www.figma.com/design/AbC/' } });
-    expect(보내기().disabled).toBe(true);
+    expect(다음버튼().disabled).toBe(true);
   });
 
-  it('대조를 끄면 대조 칸을 싣지 않는다 — 정방향 그대로', async () => {
+  it('「기획서로 작성」은 대조 칸을 싣지 않는다 — 정방향 그대로', async () => {
     폼();
-    대조를켠다();
-    대조를켠다();
-    fireEvent.change(screen.getByLabelText('피그마 주소'), { target: { value: 'https://www.figma.com/design/AbC/' } });
-    fireEvent.click(보내기());
+    방법을('기획서로 작성');
+    피그마를적는다('https://www.figma.com/design/AbC/');
+    시작한다();
     await waitFor(() => expect(부름.length).toBeGreaterThan(0));
     expect(부름[0]?.값).toEqual({ service: 'PAY', body: { kind: 'AUTHOR', figma: ['https://www.figma.com/design/AbC/'] } });
   });
 
   it('시작 주소를 비우면 키를 싣지 않는다 — 기획서가 말하는 화면에서 시작한다', async () => {
     폼();
-    대조를켠다();
-    fireEvent.change(screen.getByLabelText('피그마 주소'), { target: { value: 'https://www.figma.com/design/AbC/' } });
-    fireEvent.click(보내기());
+    방법을('기획서 + 실제 화면 대조');
+    피그마를적는다('https://www.figma.com/design/AbC/');
+    다음();
+    시작한다();
     await waitFor(() => expect(부름.length).toBeGreaterThan(0));
     expect(부름[0]?.값).toEqual({
       service: 'PAY',
@@ -178,9 +219,9 @@ describe('새 요청 — 실제 화면과 대조', () => {
   it('테스트 계정이 없는 서버면 서버 거절을 사람 말로 보인다', async () => {
     만들기답 = Promise.reject(new ApiError(400, 'BAD_ENV', ''));
     폼();
-    대조를켠다();
+    방법을('화면을 훑어서 작성');
     시작주소를적는다('https://example.com/');
-    fireEvent.click(보내기());
+    시작한다();
     expect(await screen.findByText('이 대상 서버에는 테스트 계정이 없거나 실서비스 서버로 체크돼 있습니다. 설정 > 애플리케이션에서 확인하세요')).toBeTruthy();
   });
 
@@ -188,44 +229,41 @@ describe('새 요청 — 실제 화면과 대조', () => {
     for (const 운영자 of [true, false]) {
       만들기답 = Promise.reject(new ApiError(400, 'BAD_ENV', ''));
       render(<AuthoringNew service="MKA" envs={서버들} 운영자={운영자} 앱종류="APP" on넣었다={() => {}} />);
-      대조를켠다();
-      fireEvent.click(보내기());
+      방법을('화면을 훑어서 작성');
+      시작한다();
       const 뒤 = 운영자 ? '설정 > 애플리케이션에서 확인하세요' : '관리자에게 확인을 요청하세요';
       expect(await screen.findByText(`이 대상 서버에는 디바이스에서 켤 앱(앱 파일 경로나 업로드한 빌드)이 없거나 실서비스 서버로 체크돼 있습니다. ${뒤}`)).toBeTruthy();
       cleanup();
     }
   });
 
-  it('설정 메뉴가 없는 사람에게는 설정 대신 운영자에게 요청하라고 한다 (⑫ 점검 11.3)', async () => {
+  it('설정 메뉴가 없는 사람에게는 설정 대신 관리자에게 요청하라고 한다 (⑫ 점검 11.3)', async () => {
     만들기답 = Promise.reject(new ApiError(400, 'BAD_ENV', ''));
     폼(서버들, false);
-    대조를켠다();
-    fireEvent.click(보내기());
+    방법을('화면을 훑어서 작성');
+    시작한다();
     expect(await screen.findByText('이 대상 서버에는 테스트 계정이 없거나 실서비스 서버로 체크돼 있습니다. 관리자에게 확인을 요청하세요')).toBeTruthy();
     cleanup();
     폼([], false);
-    대조를켠다();
+    방법을('화면을 훑어서 작성');
     expect(screen.getByText('이 애플리케이션에는 대상 서버가 없습니다. 관리자에게 대상 서버를 넣어 달라고 요청하세요')).toBeTruthy();
   });
 
   it('시작 주소가 서버와 다르면 서버 거절을 사람 말로 보인다', async () => {
     만들기답 = Promise.reject(new ApiError(400, 'BAD_START_URL', ''));
     폼();
-    대조를켠다();
+    방법을('화면을 훑어서 작성');
     시작주소를적는다('https://other.example.com/');
-    fireEvent.click(보내기());
-    expect(
-      await screen.findByText('시작 주소는 선택한 대상 서버와 같은 주소(도메인 · 포트)여야 합니다'),
-    ).toBeTruthy();
+    시작한다();
+    expect(await screen.findByText('시작 주소는 선택한 대상 서버와 같은 주소(도메인 · 포트)여야 합니다')).toBeTruthy();
   });
 
-  it('대상 서버가 하나도 없으면 설정으로 안내하고 보낼 수 없다', () => {
+  it('대상 서버가 하나도 없으면 설정으로 안내하고 다음으로 못 간다', () => {
     폼([]);
-    대조를켠다();
+    방법을('화면을 훑어서 작성');
     expect(screen.getByText('이 애플리케이션에는 대상 서버가 없습니다. 설정 > 애플리케이션에서 먼저 넣으세요')).toBeTruthy();
     expect(screen.queryByLabelText('시작 주소')).toBeNull();
-    fireEvent.change(screen.getByLabelText('피그마 주소'), { target: { value: 'https://www.figma.com/design/AbC/' } });
-    expect(보내기().disabled).toBe(true);
+    expect(다음버튼().disabled).toBe(true);
   });
 });
 

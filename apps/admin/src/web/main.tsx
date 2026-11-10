@@ -29,6 +29,7 @@ import './runPrep.css';
 import './prd.css';
 import './apidoc.css';
 import './guide.css';
+import './authoringNew.css';
 import './bts.css';
 import './itemTrace.css';
 import './runEvidence.css';

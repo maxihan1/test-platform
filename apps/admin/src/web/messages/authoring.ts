@@ -29,7 +29,51 @@ export const 작성말: Record<string, string> = {
 
   // 새 요청 폼 — 파일과 피그마 주소를 한 세트로 (도메인/작성 §7 「자료」)
   '새 작성': 'New request',
-  '새 작성 요청': 'New authoring request',
+  // 새 작성 마법사 — 단계 · 머리 · 막는 까닭 (2026-11-11 사용자 시안 WizardB)
+  가이드: 'Guide',
+  '작성 방법': 'Method',
+  확인: 'Review',
+  '애플리케이션을 알려 주세요': 'Tell us about the application',
+  '이 가이드를 같이 읽습니다': 'This guide is read along',
+  'AI 가 케이스를 작성할 때 참고합니다. 기대 결과는 요구사항에서만 가져옵니다':
+    'AI reads it while writing cases. Expected results come only from the requirements',
+  '나중에 쓰기': 'Write later',
+  '저장하고 다음': 'Save and next',
+  '무엇으로 케이스를 작성할까요?': 'What should the cases be written from?',
+  '기대 결과는 요구사항에서만 가져옵니다. 화면에서 읽은 값은 미확정으로 표시됩니다':
+    'Expected results come only from the requirements. Values read from the screen are marked unconfirmed',
+  '기획서로 작성': 'From the spec',
+  'PRD 파일과 피그마를 읽고 요구사항마다 케이스를 작성합니다': 'Reads the PRD files and Figma and writes cases per requirement',
+  '화면을 훑어서 작성': 'By scanning screens',
+  '기획서 없이 실제 화면을 훑어 PRD 에 아직 없는 화면의 케이스를 작성합니다':
+    'Scans the live screens without a spec and writes cases for screens not yet in the PRD',
+  '기획서 + 실제 화면 대조': 'Spec + live screen compare',
+  '기획서 화면을 먼저 작성하고, 반영되면 기획서에 없는 화면을 이어서 작성합니다':
+    'Writes the spec screens first and, once applied, continues with screens the spec does not cover',
+  '무엇을 보고 작성할까요?': 'What should the cases be written from?',
+  '기획서와 디자인을 넣어 주세요': 'Add the spec and designs',
+  '여러 파일을 한 세트로 넣을 수 있습니다': 'Several files can go in as one set',
+  'PRD 파일': 'PRD files',
+  '파일을 여기로 끌어다 놓거나': 'Drop files here or',
+  'PDF · 워드 · 엑셀 · md · txt · csv · 파일 하나 20MB 까지': 'PDF · Word · Excel · md · txt · csv · up to 20MB each',
+  '어느 서버의 화면과 대조할까요?': 'Which server should the screens be compared on?',
+  '이 서버의 화면을 읽어 기획서와 대조합니다': 'Screens on this server are read and compared with the spec',
+  '비우면 기획서가 말하는 화면에서 시작합니다': 'Leave empty to start from the screen the spec names',
+  '디바이스에서 앱을 켠 첫 화면에서 시작합니다': 'Starts from the first screen after the app launches on the device',
+  '이렇게 작성합니다': 'Here is the plan',
+  '가이드 없이 작성합니다': 'Written without a guide',
+  '{가이드} 버전 {버전} 을 같이 읽습니다': 'Reads {가이드} version {버전} too',
+  '피그마 {수}건': '{수} Figma links',
+  'API 문서의 엔드포인트마다 케이스를 작성해 검토용 PR 로 등록합니다': 'Writes cases per API endpoint and opens a review PR',
+  'PRD 에 아직 없는 화면만 작성합니다': 'Writes only screens not yet in the PRD',
+  '요구사항마다 케이스를 작성해 검토용 PR 로 등록합니다': 'Writes cases per requirement and opens a review PR',
+  '시작한 뒤 이 창을 닫아도 작성은 계속됩니다': 'Writing continues even if you close this window after starting',
+  '수정한 가이드 구획을 저장하거나 취소하세요': 'Save or cancel the guide section you edited',
+  '작성 방법을 선택하세요': 'Choose a method',
+  '넣은 자료를 확인하세요': 'Check the materials you added',
+  'API 문서 버전과 대상 서버를 선택하세요': 'Choose the API doc version and target server',
+  '기획서 파일이나 피그마 주소를 하나 이상 넣으세요': 'Add at least one spec file or Figma link',
+  '대상 서버를 선택하세요': 'Choose a target server',
   '피그마 주소': 'Figma links',
   '한 줄에 하나씩': 'One per line',
   '테스트 작성 시작': 'Start writing tests',
@@ -179,8 +223,6 @@ export const 작성말: Record<string, string> = {
   '실제 화면과 대조': 'Compare with the live screen',
   '화면과 대조': 'Screen compare',
   '시작 주소': 'Start URL',
-  '기획서가 있으면 기획서 화면을 먼저 작성하고, 반영되면 기획서에 없는 화면을 이어서 작성합니다. 기획서 없이 보내면 PRD 에 아직 없는 화면만 작성합니다':
-    'With a spec, the spec screens are written first and, once applied, the screens it does not cover follow. Without a spec, only screens not yet in the PRD are written',
   '이 애플리케이션에는 대상 서버가 없습니다. 설정 > 애플리케이션에서 먼저 넣으세요':
     'This application has no target servers. Add one in Settings > Applications first',
   '이 대상 서버에는 테스트 계정이 없거나 실서비스 서버로 체크돼 있습니다. 설정 > 애플리케이션에서 확인하세요':

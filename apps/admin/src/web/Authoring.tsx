@@ -10,7 +10,6 @@ import { AuthoringDecide } from './AuthoringDecide.js';
 import { AuthoringNew } from './AuthoringNew.js';
 import { decideApi } from './decideApi.js';
 import { 탭읽기, type 탭 } from './decideView.js';
-import { Drawer } from './Drawer.js';
 import { AuthoringStartModal } from './AuthoringStartModal.js';
 import { 구분글, 단계꼬리, 대상글, 소요시간글, 소요초, 작성자글, 작성일글, 케이스수 } from './authoringSummary.js';
 import { 반영보임, 줄보임, 칩글, 할일칩들 } from './authoringView.js';
@@ -110,11 +109,9 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
       setPage(Math.max(1, Math.floor(Number(조건.get('page')) || 1)));
     },
   });
-  // 새 요청 폼은 오른쪽 서랍에 둔다 — 요청은 가끔 넣고 목록은 자주 보니 목록이 폭을 다 쓴다 (2026-10-20 사용자 · WEB-F5-04 시안 C)
-  const [서랍, set서랍] = useState(false);
-  const 서랍닫기 = () => {
-    set서랍(false);
-  };
+  // 새 작성은 가운데 창 마법사다 — 목록이 뒤에 보여 지금 어디서 무엇을 하는지 잃지 않는다 (2026-11-11 사용자 시안 WizardB.
+  // 앞 판 2026-10-20 WEB-F5-04 는 오른쪽 서랍 한 폼에 칸이 다 있어 무엇부터 채울지 몰랐다)
+  const [마법사, set마법사] = useState(false);
   // 방금 줄에 세운 요청. 시작 모달이 이것을 보인다 — 닫으면 null
   const [방금, set방금] = useState<number | null>(null);
   // 서비스를 바꾸면 첫 쪽으로. 안 그러면 다른 서비스에서 「없다」를 보여주고 왜인지 말하지 않는다
@@ -149,7 +146,7 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
     return () => clearInterval(timer);
   }, [reload, 할일만]);
 
-  // 같은 조건의 다시 읽기가 실패했으면 받아 둔 목록과 서랍을 그대로 둔다 — 통째로 바꾸면 쓰던 새 요청 폼이 사라진다 (리뷰 L17)
+  // 같은 조건의 다시 읽기가 실패했으면 받아 둔 목록과 마법사를 그대로 둔다 — 통째로 바꾸면 쓰던 새 요청 폼이 사라진다 (리뷰 L17)
   if (!할일만 && 줄들.error !== null && 줄들.data?.물음 !== 물음) return <Failed error={줄들.error} />;
   if (!할일만 && 줄들.data === null) return <Loading />;
   const 목록 = 줄들.data;
@@ -165,7 +162,7 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
         부제={목록 === null ? undefined : t('모두 {건수}건', { 건수: 목록.total })}
         행동={
           할수('작성요청') ? (
-            <button className="btn" type="button" aria-expanded={서랍} aria-controls="authoring-new-drawer" onClick={() => (서랍 ? 서랍닫기() : set서랍(true))}>
+            <button className="btn" type="button" aria-haspopup="dialog" onClick={() => set마법사(true)}>
               {t('새 작성')}
             </button>
           ) : undefined
@@ -241,20 +238,21 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
         )}
       </div>
 
-      {서랍 && 할수('작성요청') ? (
-        <Drawer className="authoring-drawer" id="authoring-new-drawer" aria-labelledby="authoring-new-title" onClose={서랍닫기}>
-          <div className="drawer-head">
-            <h2 id="authoring-new-title">{t('새 작성 요청')}</h2>
-            <button type="button" className="btn ghost icon" aria-label={t('닫기')} onClick={서랍닫기}>
-              ✕
-            </button>
-          </div>
-          <AuthoringNew service={service} serviceId={serviceId} envs={envs} 운영자={할수('설정')} 피그마토큰={피그마토큰} 앱종류={앱종류} on넣었다={(id) => {
-              줄들.reload();
-              서랍닫기();
-              set방금(id);
-            }} />
-        </Drawer>
+      {마법사 && 할수('작성요청') ? (
+        <AuthoringNew
+          service={service}
+          serviceId={serviceId}
+          envs={envs}
+          운영자={할수('설정')}
+          피그마토큰={피그마토큰}
+          앱종류={앱종류}
+          onClose={() => set마법사(false)}
+          on넣었다={(id) => {
+            줄들.reload();
+            set마법사(false);
+            set방금(id);
+          }}
+        />
       ) : null}
 
       {방금 === null ? null : <AuthoringStartModal service={service} id={방금} onClose={() => set방금(null)} />}
