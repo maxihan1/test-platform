@@ -20,7 +20,8 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { type 설정, type 설정자리, admin주소, 기다렸다다시인가, 선행검사, 주소안전한가, 집은것인가 } from './authoring-rules.js';
 import { 보관훑기 } from './authoring-keeping.js';
-import { 계정들, 동시상한, 바탕거부사유, 호스트환경 } from './authoring-copy.js';
+import { 계정들, 동시상한, 바탕거부사유, 챗봇상한, 호스트환경 } from './authoring-copy.js';
+import { 챗봇자리돌기 } from './authoring-chat.js';
 import { 도는자식, 멈춤, 보고손만들기, 부른다, 자리들, 친다, 판정기만들기 } from './authoring-io.js';
 import { 모델설정, 버전뽑기, 업데이트인자, 업데이트할까, 점검통과 } from './authoring-model.js';
 import { 멈춘것닫기 } from './authoring-closing.js';
@@ -70,12 +71,14 @@ const 쉬는시간 = 5000;
 function 켤때검사(env: NodeJS.ProcessEnv) {
   const 상한 = 동시상한(env);
   if (typeof 상한 !== 'number') return 상한;
-  const 계정 = 계정들(env, 상한, process.getuid?.() ?? -1);
+  const 챗봇 = 챗봇상한(env);
+  if (typeof 챗봇 !== 'number') return 챗봇;
+  const 계정 = 계정들(env, 상한, process.getuid?.() ?? -1, 챗봇);
   if (계정 !== null && '까닭' in 계정) return 계정;
   if (env.AUTHORING_CLAUDE_AUTOUPDATE === '1' && 업데이트인자(env.AUTHORING_CLAUDE_VERSION) === null) {
     return { 까닭: `AUTHORING_CLAUDE_VERSION(${env.AUTHORING_CLAUDE_VERSION}) 은 stable · latest · x.y.z 중 하나다` };
   }
-  return { 상한, 계정 };
+  return { 상한, 챗봇, 계정 };
 }
 
 /**
@@ -303,7 +306,7 @@ async function 돈다(): Promise<number> {
     }
   };
 
-  console.log(`[작성] 줄을 본다: ${서비스들.join(' · ')} · 동시에 ${켜기.상한}건 — 멈추려면 Ctrl+C.`);
+  console.log(`[작성] 줄을 본다: ${서비스들.join(' · ')} · 동시에 ${켜기.상한}건 · Scout 자리 ${켜기.챗봇} — 멈추려면 Ctrl+C.`);
   새줄보기(
     () => 부른다(주소, 토큰, '/auth/me').then((답) => 답.몸),
     new Set(서비스들),
@@ -317,7 +320,9 @@ async function 돈다(): Promise<number> {
     },
     () => 멈춤.까닭 !== null,
   );
-  await Promise.all([...서비스들.map(줄돌기), 성능일돌기(주소, 토큰)]);
+  // Scout 자리는 작성 자리 · 성능 AI 일과 따로 돈다. 프로젝트를 가리지 않고 가져간다 (도메인/챗봇 §3.14 결정 17)
+  const 챗봇자리들 = Array.from({ length: 켜기.챗봇 }, (_, j) => 챗봇자리돌기(주소, 토큰, j, 켜기.계정?.챗봇[j] ?? null));
+  await Promise.all([...서비스들.map(줄돌기), 성능일돌기(주소, 토큰), ...챗봇자리들]);
   await 일들.다기다리기();
   console.error(`[멈춤] ${멈춤.까닭}`);
   return 1;

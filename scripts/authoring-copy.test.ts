@@ -17,6 +17,7 @@ import {
   사본준비,
   사본환경,
   저장소이름,
+  챗봇상한,
   파일거부사유,
   호스트환경,
 } from './authoring-copy.js';
@@ -29,6 +30,14 @@ describe('동시상한 — 동시에 도는 작업 수', () => {
     expect(동시상한({ AUTHORING_MAX_PARALLEL: 'lots' })).toEqual({
       까닭: expect.stringContaining('AUTHORING_MAX_PARALLEL'),
     });
+  });
+});
+
+describe('챗봇상한 — Scout 챗봇 자리 수', () => {
+  it('비면 2 다 · 1~8 만 받는다', () => {
+    expect(챗봇상한({})).toBe(2);
+    expect(챗봇상한({ CHAT_MAX_PARALLEL: '4' })).toBe(4);
+    expect(챗봇상한({ CHAT_MAX_PARALLEL: '0' })).toEqual({ 까닭: expect.stringContaining('CHAT_MAX_PARALLEL') });
   });
 });
 
@@ -45,7 +54,29 @@ describe('계정들 — 자리마다 자식 uid 를 따로, 서버 저장소 일
         { uid: 20000, gid: 20000 },
         { uid: 20001, gid: 20001 },
       ],
+      챗봇: [],
       호스트: { uid: 501, gid: 20 },
+    });
+  });
+
+  it('Scout 챗봇 자리 j 는 작성 자리 뒤 번호다 — 작성 자식을 거둘 때 같이 죽지 않고 서로의 MCP 설정을 못 읽는다', () => {
+    expect(계정들(env, 2, 0, 2)).toEqual({
+      자식: [
+        { uid: 20000, gid: 20000 },
+        { uid: 20001, gid: 20001 },
+      ],
+      챗봇: [
+        { uid: 20002, gid: 20002 },
+        { uid: 20003, gid: 20003 },
+      ],
+      호스트: { uid: 501, gid: 20 },
+    });
+  });
+
+  it('챗봇 자리 uid 도 같은 겹침 검사를 받는다', () => {
+    expect(계정들({ ...env, AUTHORING_CHILD_UID: '499' }, 1, 0, 3)).toEqual({ 까닭: expect.stringContaining('501') });
+    expect(계정들({ AUTHORING_CHILD_UID: '20000', HOST_UID: '1000', HOST_GID: '20003' }, 2, 0, 2)).toEqual({
+      까닭: expect.stringContaining('HOST_GID'),
     });
   });
 
@@ -71,6 +102,7 @@ describe('계정들 — 자리마다 자식 uid 를 따로, 서버 저장소 일
   it('HOST_GID 가 비면 HOST_UID 와 같게 둔다', () => {
     expect(계정들({ AUTHORING_CHILD_UID: '20000', HOST_UID: '1000' }, 1, 0)).toEqual({
       자식: [{ uid: 20000, gid: 20000 }],
+      챗봇: [],
       호스트: { uid: 1000, gid: 1000 },
     });
   });
