@@ -306,15 +306,19 @@ describe.skipIf(연결 === undefined)('증적 API', () => {
     }
   });
 
-  it('GET /api/dashboard — 실행 read 인 배정 서비스로 열세 칸을 낸다', async () => {
+  it('GET /api/dashboard — 실행 read 인 배정 서비스로 열네 칸을 낸다', async () => {
     지금사람 = 사람(실행만);
     const res = await app.inject({ method: 'GET', url: '/api/dashboard?tz=Asia%2FSeoul' });
 
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(Object.keys(body).sort()).toEqual(
-      ['window', 'services', 'passRate', 'daily', 'newFailures', 'byService', 'heatmap', 'coverage', 'running', 'unconfirmed', 'failureTypes', 'decisions', 'byKind', 'aiQuality'].sort(),
+      ['window', 'services', 'passRate', 'daily', 'newFailures', 'byService', 'heatmap', 'coverage', 'running', 'unconfirmed', 'failureTypes', 'decisions', 'byKind', 'aiQuality', 'project'].sort(),
     );
+    // 프로젝트 요약은 실행 read 인 애플리케이션마다 한 줄이고, 작성 칸이 없으면 PRD 칸과 결정 줄이 빈다
+    expect(body.project.apps.map((a: { serviceId: number; prd: unknown }) => [a.serviceId, a.prd])).toEqual([[대시보드서비스, null]]);
+    expect(body.project.decisionItems).toEqual([]);
+    expect(Object.keys(body.project).sort()).toEqual(['apps', 'decisionItems', 'e2e', 'perf']);
     // 작성 칸이 없으면 결정 필요 수 · AI 품질을 셀 애플리케이션이 없고, 하나를 고르지 않아 종류별 칸도 없다
     expect(body.decisions).toEqual([]);
     expect(body.byKind).toBeNull();
