@@ -28,6 +28,7 @@ export const Scout말: Record<string, string> = {
   '듣는 중 · 말을 마치면 확인 후 보내세요': 'Listening · check the text before you send it',
   // ③ 대기 · 진행 줄
   '앞에 {수}건 대기 중': '{수} ahead in line',
+  '작성 서버가 꺼져 있어요. 켜지면 바로 답해요': "The authoring server is off. Scout will answer as soon as it's back",
   '확인한 것 {수}건': '{수} checks',
   '실행 #{번호} 결과 확인': 'Checked run #{번호}',
   '실행 #{번호} 결과 확인하는 중': 'Checking run #{번호}',

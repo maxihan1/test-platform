@@ -172,6 +172,23 @@ export async function 질문넣기(
   return { id, ahead: await 앞대기수(id) };
 }
 
+// 작성 서버의 챗봇 자리는 1초마다 가지러 온다 — 이만큼 안 오고 도는 질문도 없으면 꺼졌다고 본다 (§3.14 「대기」 · SCOUT-F1-07)
+const 꺼짐ms = 10_000;
+// ponytail: admin 메모리 — admin 을 여럿 띄우면 다른 프로세스가 받은 가져가기를 모른다. 그때 DB 칸으로 옮긴다.
+// 켜진 때를 첫 값으로 둔다 — admin 이 다시 뜬 뒤 첫 가져가기(길어야 5초)까지 꺼짐으로 보이지 않게
+let 마지막가져가기 = Date.now();
+/** 작성 서버가 가지러 왔다(질문이 없었어도) */
+export function 가져가기봄(지금 = Date.now()): void {
+  마지막가져가기 = 지금;
+}
+
+async function 작성서버꺼졌나(): Promise<boolean> {
+  if (Date.now() - 마지막가져가기 <= 꺼짐ms) return false;
+  // 두 자리가 다 답하는 중이면 가지러 오지 않는다 — 꺼진 게 아니다
+  const r = await (await db()).query(`SELECT 1 FROM chat_question WHERE status = 'RUNNING' LIMIT 1`);
+  return r.rowCount === 0;
+}
+
 async function 앞대기수(id: number): Promise<number> {
   const r = await (await db()).query<{ n: number }>(`SELECT count(*)::int AS n FROM chat_question WHERE status = 'QUEUED' AND id < $1`, [id]);
   return r.rows[0]!.n;
@@ -186,8 +203,11 @@ export async function 질문프로젝트(키해시: string, id: number): Promise
   return r.rows[0] === undefined ? null : Number(r.rows[0].project_id);
 }
 
-/** 이어 받기 한 바퀴 — 상태 · 대기 수 · 그 번호 뒤 조각. 지워진 질문이면 null. 상태를 조각보다 먼저 읽는다 — 끝난 뒤 읽은 조각은 빠짐이 없다 */
-export async function 이어읽기(id: number, after: number): Promise<{ status: 질문상태; ahead: number; 조각들: ({ seq: number } & 조각)[] } | null> {
+/** 이어 받기 한 바퀴 — 상태 · 대기 수 · 작성 서버 꺼짐 · 그 번호 뒤 조각. 지워진 질문이면 null. 상태를 조각보다 먼저 읽는다 — 끝난 뒤 읽은 조각은 빠짐이 없다 */
+export async function 이어읽기(
+  id: number,
+  after: number,
+): Promise<{ status: 질문상태; ahead: number; agentDown: boolean; 조각들: ({ seq: number } & 조각)[] } | null> {
   const pool = await db();
   const 상태 = await pool.query<{ status: 질문상태 }>('SELECT status FROM chat_question WHERE id = $1', [id]);
   const status = 상태.rows[0]?.status;
@@ -197,7 +217,8 @@ export async function 이어읽기(id: number, after: number): Promise<{ status:
     [id, after],
   );
   const 조각들 = r.rows.map((x) => (x.kind === 'TEXT' ? { seq: x.seq, kind: x.kind, body: x.body } : { seq: x.seq, kind: x.kind, body: JSON.parse(x.body) as 단계몸 }));
-  return { status, ahead: status === 'QUEUED' ? await 앞대기수(id) : 0, 조각들 };
+  const 대기 = status === 'QUEUED';
+  return { status, ahead: 대기 ? await 앞대기수(id) : 0, agentDown: 대기 && (await 작성서버꺼졌나()), 조각들 };
 }
 
 /** QUEUED · RUNNING 이면 STOPPED 로 두고 true. 이미 끝났으면 false — 그 출입증의 질문인지는 부르는 쪽이 먼저 본다 */

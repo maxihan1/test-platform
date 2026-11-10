@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { 비밀번호도장 } from '../auth/store.js';
 import { 사용량, 챗봇판차리기, type 챗봇판 } from './dbFixture.js';
+import { 가져가기봄 } from './store.js';
 
 const 연결 = process.env.DATABASE_URL;
 
@@ -105,10 +106,24 @@ describe.skipIf(연결 === undefined)('Scout 대화 통로', () => {
     await 조각(id, [{ kind: 'TEXT', body: '바로 와요' }]);
     await 끝(id);
     const 받은것 = (await 흐름).body;
-    expect(받은것).toContain(`event: wait\ndata: ${JSON.stringify({ ahead: 0 })}`);
+    expect(받은것).toContain(`event: wait\ndata: ${JSON.stringify({ ahead: 0, agentDown: false })}`);
     expect(받은것).toContain(`event: chunk\nid: 1\ndata: ${JSON.stringify({ kind: 'TEXT', body: '바로 와요' })}`);
     expect(받은것.endsWith(`event: end\ndata: ${JSON.stringify({ status: 'DONE' })}\n\n`)).toBe(true);
     expect(Date.now() - 시작).toBeLessThan(5000);
+  });
+
+  it('작성 서버가 10초 넘게 가지러 오지 않고 도는 질문도 없으면 대기 사건에 agentDown 을 싣고, 가져가면 한 번 걷는다', async () => {
+    await 판.q(`UPDATE chat_question SET status = 'DONE' WHERE status IN ('QUEUED', 'RUNNING') AND conversation_id IN (SELECT id FROM chat_conversation WHERE username = ANY($1))`, [[판.계정.나, 판.계정.남]]);
+    const { id } = (await 묻기(나, '꺼졌을 때 질문')).json<{ id: number }>();
+    가져가기봄(Date.now() - 11_000);
+    const 흐름 = 판.app.inject({ method: 'GET', url: `/api/chat/questions/${String(id)}/stream`, cookies: 나 });
+    await new Promise((풀림) => setTimeout(풀림, 300));
+    await 가져가기();
+    await 끝(id);
+    const 받은것 = (await 흐름).body;
+    const 꺼짐 = 받은것.indexOf(`event: wait\ndata: ${JSON.stringify({ ahead: 0, agentDown: true })}`);
+    expect(꺼짐).toBeGreaterThanOrEqual(0);
+    expect(받은것.indexOf(`event: wait\ndata: ${JSON.stringify({ ahead: 0, agentDown: false })}`)).toBeGreaterThan(꺼짐);
   });
 
   it('중단한 질문의 조각은 409 STOPPED 이고 끝 알리기는 상태를 바꾸지 않고 사용량만 적는다', async () => {

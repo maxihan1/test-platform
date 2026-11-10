@@ -5,7 +5,7 @@ import { randomBytes } from 'node:crypto';
 import type { PoolClient } from 'pg';
 
 import { 토큰해시 } from '../auth/agentToken.js';
-import { 글최대, 멈춘질문닫기, 알리기, type 조각 } from './store.js';
+import { 가져가기봄, 글최대, 멈춘질문닫기, 알리기, type 조각 } from './store.js';
 
 async function db() {
   const { pool } = await import('../db/index.js');
@@ -19,6 +19,7 @@ export type 가져간질문 = { id: number; projectId: number; projectName: stri
 
 /** 가장 먼저 들어온 QUEUED 하나를 RUNNING 으로 — 프로젝트를 가리지 않는다(결정 17). 키 mcq_ 는 원문을 이 답에만 싣고 해시를 질문 줄에 둔다 */
 export async function 질문가져가기(claimedBy: string): Promise<가져간질문 | null> {
+  가져가기봄();
   await 멈춘질문닫기();
   const 열쇠 = `mcq_${randomBytes(32).toString('base64url')}`;
   const c = await (await db()).connect();

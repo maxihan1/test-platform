@@ -14,6 +14,8 @@ export interface Scout상태 {
   btsUrl: string | null;
   /** 도는 질문이 대기 중일 때 앞에 선 수. 모르면 null */
   앞: number | null;
+  /** 대기 중인데 작성 서버가 가지러 오지 않는다 (§8.18 ③) */
+  꺼짐: boolean;
   읽기오류: string | null;
   묻기오류: string | null;
   /** 창이 닫힌 동안 답이 끝났다 — HUD 점 (§8.18 ⑤) */
@@ -32,6 +34,7 @@ export function useScout(projectId: number, 열림: boolean): Scout상태 {
   const [질문들, set질문들] = useState<질문[] | null>(null);
   const [btsUrl, setBtsUrl] = useState<string | null>(null);
   const [앞, set앞] = useState<number | null>(null);
+  const [꺼짐, set꺼짐] = useState(false);
   const [읽기오류, set읽기오류] = useState<string | null>(null);
   const [묻기오류, set묻기오류] = useState<string | null>(null);
   const [도착, set도착] = useState(false);
@@ -75,11 +78,16 @@ export function useScout(projectId: number, 열림: boolean): Scout상태 {
       const { kind, body } = JSON.parse(m.data) as { kind: string; body: unknown };
       고치기(id, (q) => 조각붙이기(q, Number(m.lastEventId), kind, body));
     });
-    es.addEventListener('wait', (e) => set앞((JSON.parse((e as MessageEvent<string>).data) as { ahead: number }).ahead));
+    es.addEventListener('wait', (e) => {
+      const { ahead, agentDown } = JSON.parse((e as MessageEvent<string>).data) as { ahead: number; agentDown: boolean };
+      set앞(ahead);
+      set꺼짐(agentDown);
+    });
     es.addEventListener('end', (e) => {
       const { status } = JSON.parse((e as MessageEvent<string>).data) as { status: 질문상태 };
       고치기(id, (q) => ({ ...q, status }));
       set앞(null);
+      set꺼짐(false);
       if (!열림참조.current) set도착(true);
       if (귀.current === es) 끊기();
     });
@@ -112,6 +120,7 @@ export function useScout(projectId: number, 열림: boolean): Scout상태 {
       const { id, ahead } = await scoutApi.ask(projectId, 글);
       set질문들((앞것) => [...(앞것 ?? []), { id, text: 글, status: 'QUEUED', createdAt: new Date().toISOString(), answer: '', steps: [], lastSeq: 0 }]);
       set앞(ahead);
+      set꺼짐(false);
       잇기(id, 0);
       return true;
     } catch (e) {
@@ -147,5 +156,5 @@ export function useScout(projectId: number, 열림: boolean): Scout상태 {
     }
   };
 
-  return { 질문들, btsUrl, 앞, 읽기오류, 묻기오류, 도착, 도는중: 도는것 !== null, 묻기, 중단, 초기화, 도착봄: () => set도착(false) };
+  return { 질문들, btsUrl, 앞, 꺼짐, 읽기오류, 묻기오류, 도착, 도는중: 도는것 !== null, 묻기, 중단, 초기화, 도착봄: () => set도착(false) };
 }
