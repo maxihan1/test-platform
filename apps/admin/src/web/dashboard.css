@@ -523,8 +523,21 @@
   font-weight: 600;
 }
 
-.dash-ah .pre {
+.dash-ah .dash-pre {
   margin-left: auto;
+}
+
+.dash-rate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+}
+
+.dash-rate .num {
+  font-size: 32px;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .dash-kv {
@@ -1016,6 +1029,16 @@
     grid-template-columns: minmax(0, 1fr) auto;
   }
 
+  /* 번호는 이름 위 한 줄로 — 두 칸에 셋을 넣으면 번호가 글자 하나 폭으로 눌린다 */
+  .dash-li > .mono,
+  .dash-scn > .mono {
+    grid-column: 1 / -1;
+  }
+
+  .dash-li.dec {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .dash-li .hide {
     display: none;
   }
@@ -1026,6 +1049,40 @@
   .dash-scn {
     min-height: 46px;
   }
+}
+
+/* 휴대폰 껍데기는 표를 카드 줄로 펴지만(phone.css) 페이지 성능은 숫자 넷이라 표로 둔다 */
+.ph .dash-pg {
+  display: table;
+  width: 100% !important;
+}
+
+.ph .dash-pg thead {
+  display: table-header-group;
+}
+
+.ph .dash-pg tbody {
+  display: table-row-group;
+}
+
+.ph .dash-pg tr {
+  display: table-row;
+  padding: 0;
+}
+
+.ph .dash-pg td {
+  display: table-cell;
+  padding: 10px 0;
+  text-align: right;
+  border-top: 1px solid var(--line);
+}
+
+.ph .dash-pg td:first-child {
+  text-align: left;
+}
+
+.ph .dash-pg td[data-label]::before {
+  content: none;
 }
 
 /* 「움직임 줄이기」 — 다 끄고 끝난 모양을 바로 보인다. 지나가는 점은 숨긴다 */

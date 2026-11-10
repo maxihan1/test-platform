@@ -36,7 +36,7 @@ function 부하그래프({ 줄들, t }: { 줄들: 부하['series']; t: 말 }) {
   const p95들 = 줄들.flatMap((r) => (r.p95Ms === null ? [] : [r.p95Ms]));
   return (
     <>
-      <svg viewBox={`0 0 640 ${높이}`} width="100%" height={높이} role="img" aria-label={t('{초}초 동안 가상 사용자 · 초당 요청 · 95% 응답시간', { 초: 끝 })}>
+      <svg viewBox={`0 0 640 ${높이}`} width="100%" height={높이} preserveAspectRatio="none" role="img" aria-label={t('{초}초 동안 가상 사용자 · 초당 요청 · 95% 응답시간', { 초: 끝 })}>
         <defs>
           <linearGradient id="dash-vg" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="var(--blue-1)" stopOpacity=".28" />

@@ -42,16 +42,16 @@ function 카드({ a, 차례, 흐름, 서비스열기 }: { a: 앱; 차례: number
           <b className="dash-cut">{a.name}</b>
           <span className="dash-lab">{종류이름(a.kind, 언어)}</span>
         </span>
-        <span className="pre mono dash-lab">{a.prefix}</span>
+        <span className="dash-pre mono dash-lab">{a.prefix}</span>
       </div>
       {율 === null ? (
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-          <span className="num" style={{ fontSize: 32, lineHeight: 1, color: 'var(--ink-faint)' }}>—</span>
+        <div className="dash-rate">
+          <span className="num" style={{ color: 'var(--ink-faint)' }}>—</span>
           <span className="dash-lab">{t('아직 실행한 테스트가 없습니다')}</span>
         </div>
       ) : (
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-          <span className="num" style={{ fontSize: 32, lineHeight: 1 }}>
+        <div className="dash-rate">
+          <span className="num">
             <굴림숫자 글={율} 늦춤={0.5 + (차례 % 카드묶음) * 0.12} />%
           </span>
           <span className="dash-lab">
@@ -114,7 +114,7 @@ export function 앱카드들({ 값, 서비스열기 }: { 값: 자료; 서비스�
       </div>
       {남음 > 0 ? (
         <div className="dash-more">
-          <button type="button" className="btn" onClick={() => set보임(보임 + 카드묶음)}>
+          <button type="button" className="btn ghost" onClick={() => set보임(보임 + 카드묶음)}>
             {t('더보기 ({수})', { 수: 남음 })}
           </button>
         </div>
