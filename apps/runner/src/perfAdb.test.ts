@@ -56,6 +56,28 @@ describe('surfaceView층을찾는다', () => {
   it('작은따옴표가 든 이름은 셸에 못 넣어 건너뛴다', () => {
     expect(surfaceView층을찾는다("SurfaceView - com.a.b/x'y#0", 'com.a.b')).toBeNull();
   });
+  it('Android 15 는 줄을 RequestedLayerState 로 감싼다 — 안쪽 이름만 고르고 leash · Background 층은 뺀다', () => {
+    const 감싼목록 = [
+      'RequestedLayerState{dcda017 com.sec.android.app.launcher/com.sec.android.app.launcher.activities.LauncherActivity#100 parentId=98}',
+      'RequestedLayerState{Surface(name=SurfaceView[com.maxihan.anymmo/com.unity3d.player.UnityPlayerGameActivity])/@0x1a2b - animation-leash of window_animation#310 parentId=12}',
+      'RequestedLayerState{Background for SurfaceView[com.maxihan.anymmo/com.unity3d.player.UnityPlayerGameActivity]#305 parentId=300 z=-1}',
+      'RequestedLayerState{SurfaceView[com.maxihan.anymmo/com.unity3d.player.UnityPlayerGameActivity]#303 parentId=300}',
+      'RequestedLayerState{SurfaceView[com.maxihan.anymmo/com.unity3d.player.UnityPlayerGameActivity](BLAST)#304 parentId=303}',
+    ].join('\n');
+    expect(surfaceView층을찾는다(감싼목록, 'com.maxihan.anymmo')).toBe('SurfaceView[com.maxihan.anymmo/com.unity3d.player.UnityPlayerGameActivity](BLAST)#304');
+  });
+  it('parentId 없이 다른 칸이 붙어도 안쪽 이름만 꺼낸다', () => {
+    expect(surfaceView층을찾는다('RequestedLayerState{SurfaceView[com.g.a/com.g.M](BLAST)#304 !handle z=1}', 'com.g.a')).toBe('SurfaceView[com.g.a/com.g.M](BLAST)#304');
+  });
+  it('감싸지 않은 목록에서도 (BLAST) 층을 부모 층보다 먼저 고른다', () => {
+    expect(surfaceView층을찾는다(['SurfaceView[com.g.a/com.g.M]#122', 'SurfaceView[com.g.a/com.g.M](BLAST)#123'].join('\n'), 'com.g.a')).toBe('SurfaceView[com.g.a/com.g.M](BLAST)#123');
+  });
+  it('이름 앞부분만 같은 다른 앱의 층은 고르지 않는다', () => {
+    expect(surfaceView층을찾는다(['SurfaceView[com.a.bc/x.M](BLAST)#9', 'SurfaceView[com.a.b/x.M]#3'].join('\n'), 'com.a.b')).toBe('SurfaceView[com.a.b/x.M]#3');
+  });
+  it('옛 꼴(SurfaceView - 패키지/화면)도 고른다', () => {
+    expect(surfaceView층을찾는다('SurfaceView - com.g.a/com.g.M#0', 'com.g.a')).toBe('SurfaceView - com.g.a/com.g.M#0');
+  });
 });
 
 describe('프레임시각들', () => {

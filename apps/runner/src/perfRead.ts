@@ -81,7 +81,11 @@ export async function 표시프레임으로(adb: Adb, r: 프레임상태): Promi
     throw err;
   }
   const { 시각, 꽉참 } = 읽음;
-  if (시각.length === 0) return null;
+  // 빈 표는 오류 없이 온다 — 앱이 켜지는 동안 고른 층이 아직 버퍼를 안 받는 층일 수 있어 다음 틱에 층을 다시 찾는다
+  if (시각.length === 0) {
+    r.층 = undefined;
+    return null;
+  }
   const 마지막 = Math.max(...시각);
   const 처음 = Math.min(...시각);
   const 이전 = r.이전표시;
