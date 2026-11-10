@@ -26,30 +26,26 @@ afterEach(() => {
 });
 
 describe('실패 유형 칸', () => {
-  it('다섯 유형을 늘 같은 차례로 두고 건수 · 몫 · 실패와 미실행 나눔을 적는다 — 멈춘 것은 따로 한 줄', () => {
+  it('다섯 유형을 늘 같은 차례로 두고 건수와 실패 · 미실행 나눔을 적는다 — 멈춘 것은 따로 한 줄', () => {
     const 칸 = 칸을그린다({ mismatch: [6, 0], notFound: [1, 3] }, 2);
-    expect(칸.classList.contains('dash-flat')).toBe(true);
-    expect(within(칸).getByRole('heading').textContent).toBe('실패 유형 10건');
-    const 줄들 = [...칸.querySelectorAll('.dash-types-list > li')];
-    expect(줄들.map((줄) => 줄.querySelector('.dash-types-head > :first-child')!.textContent)).toEqual([
+    const 줄들 = [...칸.querySelectorAll('.dash-ftr')];
+    expect(줄들.map((줄) => 줄.querySelector('.hd > :first-child')!.textContent)).toEqual([
       '기대 결과 불일치',
       '요소를 찾지 못함',
       '타임아웃',
       '환경 오류',
       '그 밖',
     ]);
-    expect(줄들[0]!.textContent).toContain('60%');
+    expect(줄들[0]!.textContent).toContain('6건');
     expect(within(줄들[1] as HTMLElement).getByRole('img').getAttribute('aria-label')).toBe('실패 1 · 미실행 3');
-    expect(줄들[1]!.textContent).toContain('실패 1 · 미실행 3 — 화면에서 버튼 · 입력 칸을 결국 찾지 못함');
-    expect(줄들[2]!.textContent).toContain('제한 시간 안에 완료되지 않음');
-    expect(줄들[2]!.textContent).not.toContain('실패 0');
+    expect(줄들[1]!.getAttribute('title')).toBe('화면에서 버튼 · 입력 칸을 결국 찾지 못함');
     expect(within(칸).getByText('실행이 중단되어 실행되지 못한 2건은 집계하지 않았습니다')).toBeTruthy();
   });
 
   it('실패 · 미실행이 하나도 없으면 줄 대신 짧게 알린다', () => {
     const 칸 = 칸을그린다({});
     expect(within(칸).getByText('최근 14일 실패 · 미실행이 없습니다')).toBeTruthy();
-    expect(칸.querySelector('.dash-types-list')).toBeNull();
+    expect(칸.querySelector('.dash-ftr')).toBeNull();
     expect(칸.textContent).not.toContain('세지 않았습니다');
   });
 
