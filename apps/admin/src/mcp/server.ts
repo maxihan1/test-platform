@@ -13,9 +13,10 @@ import { 사용자와해시, type 사용자 } from '../auth/store.js';
 import type { 부르기함수 } from '../bts/client.js';
 import { 일열쇠사람 } from './jobKey.js';
 import { 노트읽기 } from './note.js';
+import { 질문열쇠사람, 질문열쇠인가 } from './questionKey.js';
 import { 실행보기, 실행찾기 } from './runs.js';
 import { Scout도구등록 } from './scout.js';
-import { BTS찾기, prd찾기, 글답, 쪽, 지도찾기 } from './tools.js';
+import { BTS찾기, prd찾기, 글답, 쪽, 지도찾기, type BTS주인 } from './tools.js';
 
 export interface MCP설정 {
   부르기?: 부르기함수;
@@ -59,8 +60,8 @@ export const 안내문 = [
 
 const 이름 = z.string().regex(/^[A-Z][A-Z0-9]{0,11}$/).describe('애플리케이션 접두사 (예: MKW)');
 
-/** authSub 는 브라우저 로그인으로 온 사람의 Auth id — 자동 AI(mcj_)는 null 이다 */
-function 서버세우기(사람: 사용자, authSub: string | null, 부르기?: 부르기함수): McpServer {
+/** authSub 는 브라우저 로그인 · Scout 질문(mcq_)으로 온 사람의 Auth id — 자동 AI(mcj_)는 null 이다 (tools.ts BTS주인) */
+function 서버세우기(사람: 사용자, authSub: BTS주인, 부르기?: 부르기함수): McpServer {
   const 서버 = new McpServer({ name: 'qa-hub', version: '1.0.0' }, { instructions: 안내문 });
   const 읽기만 = { readOnlyHint: true, openWorldHint: false } as const;
 
@@ -189,7 +190,7 @@ async function 토큰사람(토큰: { sub: string; sid?: string; iat?: number })
 
 export default async function mcpRoutes(app: FastifyInstance, 설정: MCP설정 = {}): Promise<void> {
   // 열쇠문이 확인한 사람의 Auth id — bts_search 가 그 사람의 대신 PAT 를 받는다. 받은 토큰은 Issue Bunker 로 넘기지 않는다 (MCP 인가 「Token Passthrough」)
-  const 누구 = new WeakMap<FastifyRequest, string>();
+  const 누구 = new WeakMap<FastifyRequest, Exclude<BTS주인, null>>();
 
   // 열쇠는 몸을 읽기 전에 본다 — 열쇠 없는 사람이 보낸 큰 몸이 메모리에 올라간 뒤에야 401 이 나가지 않게 (auth/gate.ts onRequest · bts/inbound.ts 와 같다)
   const 열쇠문 = async (req: FastifyRequest, reply: FastifyReply) => {
@@ -199,6 +200,14 @@ export default async function mcpRoutes(app: FastifyInstance, 설정: MCP설정 
       const 사람 = await 일열쇠사람(열쇠);
       if (사람 === null) return 열쇠없음(reply, true);
       req.user = 사람;
+      return;
+    }
+    // Scout 질문마다 나는 키 — 사람은 질문을 넣은 사람이고 그 질문의 프로젝트로 좁힌다 (questionKey.ts)
+    if (질문열쇠인가(열쇠)) {
+      const 찾은것 = await 질문열쇠사람(열쇠);
+      if (찾은것 === null) return 열쇠없음(reply, true);
+      req.user = 찾은것.사람;
+      누구.set(req, 찾은것.authSub);
       return;
     }
     const sso = SSO설정읽기();

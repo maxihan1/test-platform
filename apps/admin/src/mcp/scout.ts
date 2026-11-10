@@ -17,7 +17,7 @@ import { 성능실행머리, 성능실행목록 } from '../perf/runs.js';
 import type { DeviceRunConfig, PageRunConfig } from '../perf/types.js';
 import { 시나리오결과 } from '../scenario/runRoutes.js';
 import { 카드요약 } from '../web/scenarioView.js';
-import { 글답, 글상한, 막힘, 문막힘, 없음, 자르기, 쪽, 최근이슈, 최대줄, type 도구답 } from './tools.js';
+import { 글답, 글상한, 막힘, 문막힘, 없음, 자르기, 쪽, 최근이슈, 최대줄, type BTS주인, type 도구답 } from './tools.js';
 
 async function db() {
   const { pool } = await import('../db/index.js');
@@ -222,7 +222,7 @@ export async function 성능결과(사람: 사용자, runId: number): Promise<�
 }
 
 /** Scout 가 더한 도구 다섯을 붙인다 — 자동 AI(mcj_)와 사람에게도 같이 열린다. authSub · 부르기는 bts_search 와 같다 (server.ts 서버세우기) */
-export function Scout도구등록(서버: McpServer, 사람: 사용자, authSub: string | null, 부르기?: 부르기함수): void {
+export function Scout도구등록(서버: McpServer, 사람: 사용자, authSub: BTS주인, 부르기?: 부르기함수): void {
   const 읽기만 = { readOnlyHint: true, openWorldHint: false } as const;
   const 번호 = z.number().int().positive();
 

@@ -239,6 +239,14 @@ export const 라우트표: Record<string, 원천> = {
   '/api/perf/ai-jobs/:id/finish': { 종류: '성능AI일', 칸: 'id' },
   // 집기는 라우트가 그 계정이 배정된 애플리케이션의 일만 준다
   '/api/perf/ai-jobs/claim': { 종류: '안매임' },
+  // Scout — 화면 통로는 라우트가 그 프로젝트 배정을 본다(문은 로그인만 · routeTable.ts 배정은라우트가). 작성 서버 통로는 프로젝트를 가리지 않는다 (도메인/챗봇 §7 · 결정 17)
+  '/api/chat': { 종류: '안매임' },
+  '/api/chat/questions': { 종류: '안매임' },
+  '/api/chat/questions/:id/stream': { 종류: '안매임' },
+  '/api/chat/questions/:id/stop': { 종류: '안매임' },
+  '/api/chat/agent/claim': { 종류: '안매임' },
+  '/api/chat/agent/questions/:id/chunks': { 종류: '안매임' },
+  '/api/chat/agent/questions/:id/finish': { 종류: '안매임' },
   // 부하 발생 에이전트는 공용이다. 모니터링 에이전트 목록은 라우트가 프로젝트 권한으로 거른다 (§3.9 「서버 모니터링」)
   '/api/perf/agents': { 종류: '안매임' },
   '/api/perf/agents/:id': { 종류: '안매임' },

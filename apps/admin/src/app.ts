@@ -23,6 +23,8 @@ import { 기본계정만들기 } from './auth/defaultAdmin.js';
 import { 인증등록 } from './auth/gate.js';
 import { 세션등록, 열쇠최소길이 } from './auth/session.js';
 import catalogRoutes from './catalog/routes.js';
+import chatAgentRoutes from './chat/agentRoutes.js';
+import chatRoutes from './chat/routes.js';
 import { pool } from './db/index.js';
 import buildRoutes from './execution/buildRoutes.js';
 import executionRoutes from './execution/routes.js';
@@ -100,6 +102,8 @@ export function buildApp(sessionSecret = process.env.SESSION_SECRET ?? '') {
   app.register(perfRoutes, { prefix: '/api' });
   app.register(compatRoutes, { prefix: '/api' });
   app.register(compatRunRoutes, { prefix: '/api' });
+  app.register(chatRoutes, { prefix: '/api' });
+  app.register(chatAgentRoutes, { prefix: '/api' });
 
   // 대시보드는 /api 밖이다. 문(auth/grafanaGate.ts)을 지난 요청만 Grafana 로 넘어간다 (SPEC 도메인/인증 §7)
   app.register(grafanaProxy);

@@ -3,6 +3,7 @@
 
 import type { FastifyInstance } from 'fastify';
 
+import { 대화키새로, 사람대화지우기, sid대화지우기 } from '../chat/store.js';
 import { 작성계정인가 } from './agentToken.js';
 import { 교환, 로그아웃토큰확인, 시작, type SSO설정, type 로그아웃알림, type 받은사람, type 시작갈래 } from './oidc.js';
 import { 아이디모양, 이름최대 } from './rules.js';
@@ -78,6 +79,8 @@ async function 로그아웃적기(알림: 로그아웃알림): Promise<void> {
     // 출입증은 24시간이면 저절로 끊긴다(session.ts 출입증수명) — 그보다 오래된 행은 지킬 출입증이 없다
     await pool.query("DELETE FROM auth_revoked_sid WHERE revoked_at < now() - interval '25 hours'");
     await pool.query('INSERT INTO auth_revoked_sid (sid) VALUES ($1) ON CONFLICT DO NOTHING', [알림.sid]);
+    // 끊는 출입증의 Scout 대화도 같이 지운다 (도메인/챗봇 §3.14 「대화 수명」)
+    await sid대화지우기(알림.sid);
     return;
   }
   // iat 는 초로 내린 값이다 — 1초를 더해야 알림과 같은 초에 먼저 구운 출입증도 끊긴다 (Auth_platform S24 plan §1).
@@ -86,6 +89,7 @@ async function 로그아웃적기(알림: 로그아웃알림): Promise<void> {
     알림.sub,
     알림.iat + 1,
   ]);
+  await 사람대화지우기(알림.sub, 알림.iat + 1);
 }
 
 // logout_token 하나(1KB 남짓)만 실려 온다
@@ -140,6 +144,7 @@ export default async function ssoRoutes(app: FastifyInstance, opts: { sso: SSO�
     req.session.set('idToken', 사람.idToken);
     if (사람.sid !== undefined) req.session.set('authSid', 사람.sid);
     req.session.set('loginAt', Date.now());
+    req.session.set('chatKey', 대화키새로());
     // Grafana 에서 왔으면 그리로 돌려보낸다. 대시보드 칸이 없는 사람을 보내면 403 JSON 만 보고 멈춰서 앱 첫 화면으로 보낸다
     if (왕복.next !== undefined && (await 사용자와해시(계정.username))?.user.dashboard === 'read') return reply.redirect(왕복.next);
     return reply.redirect(첫화면('ok'));

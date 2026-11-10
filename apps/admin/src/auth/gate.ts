@@ -13,7 +13,7 @@ import { 그라파나문, 그라파나틀인가 } from './grafanaGate.js';
 import { 토큰으로왔나, 확인 } from './identify.js';
 import { 다른출처인가 } from './origin.js';
 import { 칸되는서비스, type 서비스권한 } from './permissions.js';
-import { 필요권한, 토큰통로, type 권한값 } from './routeTable.js';
+import { 배정은라우트가, 필요권한, 토큰통로, type 권한값 } from './routeTable.js';
 import { 케이스의서비스, 라우트표, 번호로, 서비스없음, 자원의서비스, 접두사모양 } from './scope.js';
 import type { 등급, 사용자 } from './store.js';
 
@@ -303,6 +303,8 @@ export function 인증등록(app: FastifyInstance): void {
     // 표에 「안 따짐」으로 적히고 **로그인만 했으면 누구나 통과**한다 —
     // 표를 보면 안전해 보이는데 실제 판정은 이 한 줄이 한다 (2026-09-22 보안 검토가 잡았다)
     if (path.startsWith('/api/auth/')) return;
+    // Scout 화면 통로 — 그 프로젝트 배정을 라우트가 본다 (routeTable.ts 배정은라우트가)
+    if (배정은라우트가.has(`${req.method === 'HEAD' ? 'GET' : req.method} ${path}`)) return;
 
     // 순서는 「배정받은 서비스인가」 다음 「칸이 되는가」다 (SPEC §7) — 칸은 서비스마다 달라서
     // 어느 서비스를 건드리는지 알아야 판정할 수 있다

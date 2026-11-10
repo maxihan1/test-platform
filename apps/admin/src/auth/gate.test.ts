@@ -12,7 +12,7 @@ import { 에이전트토큰만들기 } from './agentToken.js';
 import { 권한이되나, 옛자동규칙, 인증등록 } from './gate.js';
 import { 해시 } from './password.js';
 import { 관리자권한, type 기능, type 서비스권한 } from './permissions.js';
-import { 등급표, 필요권한 } from './routeTable.js';
+import { 등급표, 배정은라우트가, 필요권한 } from './routeTable.js';
 import authRoutes from './routes.js';
 import { 라우트표 } from './scope.js';
 import { 세션등록 } from './session.js';
@@ -728,10 +728,10 @@ describe('등급 표', () => {
     };
   }
 
-  // 문이 등급 판정 앞에서 돌려보내는 자리. 옛 규칙의 값이 쓰인 적이 없다
+  // 문이 등급 판정 앞에서 돌려보내는 자리. 옛 규칙의 값이 쓰인 적이 없다 — Scout 화면 통로는 배정을 라우트가 본다(routeTable.ts 배정은라우트가)
   const 대조할쌍들 = (): { 쌍: string; 메서드: string; 틀: string }[] =>
     소스의쌍들()
-      .filter((쌍) => !(쌍.split(' ')[1] ?? '').startsWith('/api/auth/'))
+      .filter((쌍) => !(쌍.split(' ')[1] ?? '').startsWith('/api/auth/') && !배정은라우트가.has(쌍))
       .map((쌍) => {
         const [메서드 = '', 틀 = ''] = 쌍.split(' ');
         return { 쌍, 메서드, 틀 };
@@ -777,6 +777,9 @@ describe('등급 표', () => {
     'GET /api/notifications': { 기능: 'runs', 까닭: '주소에 기능 접두사가 없다. 도는 실행과 작성 요청을 함께 주며 작성 쪽은 라우트가 작성 read 로 거른다 (notifications/routes.ts)' },
     'POST /api/perf/ai-jobs/claim': { 기능: 'authoring', 까닭: '주소는 성능 아래지만 작성 에이전트가 집는 AI 일이다 — 작성 집기와 같은 무게 (perf/aiRoutes.ts · 도메인/성능 §7)' },
     'POST /api/perf/ai-jobs/:id/finish': { 기능: 'authoring', 까닭: '작성 에이전트가 AI 일 결과를 돌려준다 (perf/aiRoutes.ts)' },
+    'POST /api/chat/agent/claim': { 기능: 'authoring', 까닭: '작성 서버가 Scout 질문을 가져간다 — 성능 AI 일 집기와 같은 무게 (chat/agentRoutes.ts · 도메인/챗봇 §7)' },
+    'POST /api/chat/agent/questions/:id/chunks': { 기능: 'authoring', 까닭: '작성 서버가 Scout 답 조각을 보낸다 (chat/agentRoutes.ts)' },
+    'POST /api/chat/agent/questions/:id/finish': { 기능: 'authoring', 까닭: '작성 서버가 Scout 질문 끝을 알린다 (chat/agentRoutes.ts)' },
   };
   it('표의 기능은 경로 접두사가 정한 기능과 같다 — 접두사예외만 빼고', () => {
     const 경로의기능 = (틀: string): 기능 | null => {

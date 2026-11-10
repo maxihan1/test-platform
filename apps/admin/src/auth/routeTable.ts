@@ -278,6 +278,16 @@ export const 등급표: Record<string, 표값> = {
   // 작성 에이전트가 부른다 — 라우트가 작성 에이전트 계정인지 따로 본다 (§7 「누가 집나」)
   'POST /api/perf/ai-jobs/claim': 작성쓰기,
   'POST /api/perf/ai-jobs/:id/finish': 작성쓰기,
+  // Scout 화면 통로 — 로그인만 보고 그 프로젝트 배정은 라우트가 본다. 기능 칸은 안 본다 — 답에 쓰는 도구가 질문한 사람의 칸으로 따로 본다 (도메인/챗봇 §7 · 아래 배정은라우트가)
+  'GET /api/chat': 안따짐,
+  'DELETE /api/chat': 안따짐,
+  'POST /api/chat/questions': 안따짐,
+  'GET /api/chat/questions/:id/stream': 안따짐,
+  'POST /api/chat/questions/:id/stop': 안따짐,
+  // 작성 서버가 부른다 — 라우트가 작성 에이전트 계정인지 따로 본다(성능 AI 일과 같은 규칙). 가져가기는 프로젝트를 가리지 않는다 (결정 17)
+  'POST /api/chat/agent/claim': 작성쓰기,
+  'POST /api/chat/agent/questions/:id/chunks': 작성쓰기,
+  'POST /api/chat/agent/questions/:id/finish': 작성쓰기,
   // 에이전트 목록은 마법사가 고르므로 실행 read 다. 붙이고 고치고 지우는 일은 admin (§3.9 결정 15)
   'GET /api/perf/agents': 실행읽기,
   'POST /api/perf/agents': 'admin',
@@ -339,10 +349,19 @@ export const 토큰통로 = new Set([
   'GET /api/authoring/requests/:id/game-screen',
   'POST /api/perf/ai-jobs/claim',
   'POST /api/perf/ai-jobs/:id/finish',
+  'POST /api/chat/agent/claim',
+  'POST /api/chat/agent/questions/:id/chunks',
+  'POST /api/chat/agent/questions/:id/finish',
   'GET /api/authoring/requests',
   'GET /api/authoring/requests/:id',
   'GET /api/authoring/requests/:id/assets/:assetId',
 ]);
+
+/**
+ * **문이 로그인만 보고 권한 판정을 건너뛰는 통로** — 그 프로젝트 배정은 라우트가 본다. 권한값이 (기능, 칸) · admin 뿐이라 「배정만」을 적을 값이 없다.
+ * 표에는 「안 따짐」으로 적는다. 여기에 없는 「안 따짐」은 그대로 admin 으로 떨어진다 (도메인/챗봇 §7)
+ */
+export const 배정은라우트가 = new Set(['GET /api/chat', 'DELETE /api/chat', 'POST /api/chat/questions', 'GET /api/chat/questions/:id/stream', 'POST /api/chat/questions/:id/stop']);
 
 export function 필요권한(path: string, method: string): 권한값 {
   // Fastify 는 GET 라우트에 HEAD 를 자동으로 붙인다. 소스에는 그 줄이 없어 표에도 없고,
