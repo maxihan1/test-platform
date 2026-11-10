@@ -56,6 +56,16 @@ describe('surfaceView층을찾는다', () => {
   it('작은따옴표가 든 이름은 셸에 못 넣어 건너뛴다', () => {
     expect(surfaceView층을찾는다("SurfaceView - com.a.b/x'y#0", 'com.a.b')).toBeNull();
   });
+  it('Android 15 는 줄을 RequestedLayerState 로 감싼다 — 안쪽 이름만 고르고 leash · Background 층은 뺀다', () => {
+    const 감싼목록 = [
+      'RequestedLayerState{dcda017 com.sec.android.app.launcher/com.sec.android.app.launcher.activities.LauncherActivity#100 parentId=98}',
+      'RequestedLayerState{Surface(name=SurfaceView[com.maxihan.anymmo/com.unity3d.player.UnityPlayerGameActivity])/@0x1a2b - animation-leash of window_animation#310 parentId=12}',
+      'RequestedLayerState{Background for SurfaceView[com.maxihan.anymmo/com.unity3d.player.UnityPlayerGameActivity]#305 parentId=300 z=-1}',
+      'RequestedLayerState{SurfaceView[com.maxihan.anymmo/com.unity3d.player.UnityPlayerGameActivity]#303 parentId=300}',
+      'RequestedLayerState{SurfaceView[com.maxihan.anymmo/com.unity3d.player.UnityPlayerGameActivity](BLAST)#304 parentId=303}',
+    ].join('\n');
+    expect(surfaceView층을찾는다(감싼목록, 'com.maxihan.anymmo')).toBe('SurfaceView[com.maxihan.anymmo/com.unity3d.player.UnityPlayerGameActivity](BLAST)#304');
+  });
 });
 
 describe('프레임시각들', () => {

@@ -65,10 +65,16 @@ export function gfxinfo를읽는다(out: string): 프레임수 | null {
   return { total: Number(total[1]), janky: Number(janky[1]), uptimeMs: uptime === null ? null : Number(uptime[1]), frozen };
 }
 
-/** `dumpsys SurfaceFlinger --list` 에서 그 패키지가 든 SurfaceView 층 이름. 작은따옴표가 든 이름은 셸에 못 넣어 건너뛴다 */
+/**
+ * `dumpsys SurfaceFlinger --list` 에서 그 패키지가 든 SurfaceView 층 이름 — 버퍼를 받는 (BLAST) 층을 먼저 고른다. 작은따옴표가 든 이름은 셸에 못 넣어 건너뛴다.
+ * Android 15 는 줄을 `RequestedLayerState{<이름> parentId=…}` 로 감싸고 `--latency` 는 안쪽 이름만 받는다 — 감싼 줄을 넘기면 오류 없이 빈 표다.
+ * 「Background for」 층과 애니메이션 leash 는 그리지 않는 층이라 뺀다 (Device VISION `surfaceLayerOf` · TRAPS 2026-11-10 와 같은 규칙)
+ */
 export function surfaceView층을찾는다(out: string, pkg: string): string | null {
-  const 줄 = out.split('\n').map((l) => l.trim());
-  return 줄.find((l) => l.includes(pkg) && l.includes('SurfaceView') && !l.includes("'")) ?? null;
+  const 이름 = (l: string) => /^RequestedLayerState\{(.*?)(?: parentId=\d+.*)?\}$/.exec(l)?.[1] ?? l;
+  const 층들 = out.split('\n').map((l) => 이름(l.trim()))
+    .filter((l) => l.includes(pkg) && l.includes('SurfaceView') && !l.includes("'") && !l.startsWith('Background for') && !l.includes('animation-leash'));
+  return 층들.find((l) => l.includes('(BLAST)')) ?? 층들[0] ?? null;
 }
 
 /** `--latency` 의 둘째 칸(실제 표시 시각, ns). 첫 줄은 갱신 주기, 0 은 아직 안 쓴 칸 · INT64_MAX 는 아직 안 그려진 칸이다.
