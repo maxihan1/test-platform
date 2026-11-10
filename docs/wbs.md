@@ -153,7 +153,8 @@
   - 근거 PR #703 · 2026-11-11 — 도구는 `apps/admin/src/mcp/scout.ts`(결과 넷 · 등록) · `tools.ts` `최근이슈` · `run_list` page 는 5 까지(성능 목록 통로 200개 상한) · `issue_list` 는 Bunker `GET /api/v1/issues?projectKey&page&size=30`(Spring Page `content` · `totalElements`, 만든 시각 늦은 순) · 키 `mcq_` 는 F1-03(계약 블록 상태 대기)
 - [x] `SCOUT-F1-03` DB · 서버 대화 통로 — 마이그레이션(대화 · 질문 · 조각 · 사용량) · 출입증 `chatKey` · 질문 넣기 · SSE 이어 받기 · 중단 · 대화 초기화 · 로그아웃 · back-channel 삭제 · 24시간 지난 대화 정리 · 키 `mcq_` · 작성 서버가 가져가는 통로
   - 근거 PR #704 · 2026-11-11 — 표 넷(`db/migrations/20261111000001_chat.sql` — 묻는 사람 칸은 `username` · 사용자 승인) · 화면 통로 `apps/admin/src/chat/routes.ts`(문은 로그인만 · 배정은 라우트 — `routeTable.ts` `배정은라우트가`) · 작성 서버 통로 `chat/agentRoutes.ts` · `agentStore.ts`(claim 응답 `{ question: { id, projectId, projectName, text, history, mcpKey } }` · 조각 1~200개 · TEXT 20,000자 · 지운 질문은 409 STOPPED) · 키 `mcp/questionKey.ts`(Auth 없는 사람은 `BTS_UNAUTHORIZED`) · 다시 로그인하면 앞 대화를 지운다
-- [ ] `SCOUT-F1-04` 작성 서버 챗봇 자리 — `CHAT_MAX_PARALLEL` · 1초 가져가기 · 빈 작업 폴더 · MCP 만 허용 · 지시문(표 금지 · 짧게 · 지어내지 않기 · 조회만) · `stream-json` → 진행 줄 · 답 조각(0.3초 묶음) · 중단 · 2분 · 토큰 기록
+- [x] `SCOUT-F1-04` 작성 서버 챗봇 자리 — `CHAT_MAX_PARALLEL` · 1초 가져가기 · 빈 작업 폴더 · MCP 만 허용 · 지시문(표 금지 · 짧게 · 지어내지 않기 · 조회만) · `stream-json` → 진행 줄 · 답 조각(0.3초 묶음) · 중단 · 2분 · 토큰 기록
+  - 근거 PR #705 · 2026-11-11 — 링크 꼴 넷 `run/<kind>/<번호>` · `case/<케이스 번호>` · `issue/<이슈 키>` · `screen/<키>`(prd · authoring · cases · scenarios · runs · perf) — 화면(F1-05)이 이 넷만 링크로 바꾼다 · 챗봇 uid `AUTHORING_CHILD_UID + AUTHORING_MAX_PARALLEL + j` · Sonnet 5.5 medium · `--max-turns 8` · 조각 3번 못 보내면 FAILED · author `mem_limit` 10g(맥 5g · Scout 한 자리)
 
 ### ③ 화면
 **무엇** 확정 시안을 그대로 만든다. 답에 표를 그리지 않는다.
