@@ -166,7 +166,7 @@ test(spec, async ({ request, params, expected }) => {
 
 ## 6. 볼 점
 
-1. **케이스 파일에 `page.getBy…` · `page.locator` 가 없다.** 화면은 Page Object 로만 다룬다(UI Test · Functional Test 둘 다 — `two-kinds.md` 「Page Object」). API 케이스만 예외다(`api.md`)
+1. **케이스 파일에 `page.getBy…` · `page.locator` · `page.goto` 가 없고, 요소에서 다시 부른 `getBy…` · `.locator(` 도 없다.** 화면은 Page Object 로만 다룬다(UI Test · Functional Test 둘 다 — `two-kinds.md` 「Page Object」). API 케이스만 예외다(`api.md`)
 2. 주소는 Page Object 의 `static readonly 주소` 에 상대 경로로 둔다. 앞부분은 러너가 실행마다 `PLATFORM_BASE_URL` 로 채운다
 3. 계정은 비밀값 칸(`.meta({ secret: true, account: '<역할>' })`)으로만 받는다. 값은 kit 이 채운다
 4. 사람이 바꿔 볼 입력(검색어)은 입력값 칸으로 연다(`5-inputs.md`). 기대값은 `expected` 에 기본값으로 둔다
