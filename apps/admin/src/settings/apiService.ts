@@ -17,6 +17,9 @@ export const API인증줄 = z.object({
 // 규칙은 아래 API칸오류 가 본다 — 어기면 BAD_ADMIN_KEY 다. 값이 없으면 같은 머리의 옛 값을 잇는다(envs.ts)
 export const 어드민키줄 = z.object({ header: z.string(), value: z.string().optional() });
 
+/** 어드민 키 값 꼴 — 화면 SettingsAdminKey.tsx 의 `어드민키값인가` 와 같은 규칙이다 */
+const 어드민키값인가 = (값: string): boolean => 값.length >= 12 && 값.length <= 500 && /^[\x21-\x7e]+(?: [\x21-\x7e]+)?$/.test(값);
+
 /** 보낸 칸. 종류(kind)는 만들기 스키마에만 있다 — 고치기는 KIND_IMMUTABLE 이다 */
 export const API칸 = {
   apiDocPath: z.string().nullable().optional(),
@@ -67,8 +70,9 @@ export function API칸오류(보낸것: 보낸칸, 지금: 지금칸): string | 
   // 코드 이름은 게임만 받던 때 것이다 — 화면 · 검사가 이 이름을 본다
   const 어드민키들 = (보낸것.envs ?? []).flatMap((e) => (e.adminKey == null ? [] : [e.adminKey]));
   if (어드민키들.length > 0 && !어드민키종류인가(지금.kind)) return 'NOT_GAME_SERVICE';
-  // 머리 이름은 HTTP 토큰 글자만. 값은 머리에 실을 수 있는 글자(공백 · 줄바꿈 · 한글 없음)이고 API 인증 비밀값과 같이 끝 4자리를 보여도 8자 넘게 남게 12자부터다
-  if (어드민키들.some((k) => !/^[A-Za-z0-9-]{1,100}$/.test(k.header.trim()) || (k.value !== undefined && !/^[\x21-\x7e]{12,500}$/.test(k.value)))) {
+  // 머리 이름은 HTTP 토큰 글자만. 값은 머리에 실을 수 있는 글자(줄바꿈 · 한글 없음)이고 API 인증 비밀값과 같이 끝 4자리를 보여도 8자 넘게 남게 12자부터다.
+  // 띄어쓰기는 가운데 한 칸만 받는다 — `Authorization: Bearer <토큰>` 꼴의 서버(Mastodon 등) 때문이다. 앞뒤 · 두 칸은 붙여 넣기 실수라 막는다 (2026-11-10)
+  if (어드민키들.some((k) => !/^[A-Za-z0-9-]{1,100}$/.test(k.header.trim()) || (k.value !== undefined && !어드민키값인가(k.value)))) {
     return 'BAD_ADMIN_KEY';
   }
   const 인증들 = (보낸것.envs ?? []).flatMap((e) => e.apiAuths ?? []);

@@ -89,8 +89,13 @@ describe('게임 애플리케이션 설정 — 어드민 키 (도메인/인증 �
     fireEvent.change(값칸(), { target: { value: 'secret-admin-0001' } });
     expect(screen.getByText('어드민 키 헤더 이름을 입력해 주세요')).toBeTruthy();
     fireEvent.change(머리칸(), { target: { value: 'X-Admin-Key' } });
+    const 값까닭 = '어드민 키 값은 12자 이상 500자 이하로 입력해 주세요. 띄어쓰기는 가운데 한 칸만 넣을 수 있습니다';
     fireEvent.change(값칸(), { target: { value: 'has space 12345' } });
-    expect(screen.getByText('어드민 키 값은 공백 없이 12자 이상 500자 이하로 입력해 주세요')).toBeTruthy();
+    expect(screen.getByText(값까닭)).toBeTruthy();
+    fireEvent.change(값칸(), { target: { value: 'short' } });
+    expect(screen.getByText(값까닭)).toBeTruthy();
+    fireEvent.change(값칸(), { target: { value: 'Bearer secret-admin-0001' } });
+    expect(screen.queryByText(값까닭)).toBeNull();
   });
 
   it('게임이 아닌 애플리케이션에는 칸이 없고 adminKey 를 안 보낸다', async () => {

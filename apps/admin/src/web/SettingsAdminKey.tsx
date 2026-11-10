@@ -42,6 +42,9 @@ export function 어드민키보낼모양(r: 어드민키줄): EnvInput['adminKey
   return { header, ...(새값 === '' ? {} : { value: 새값 }) };
 }
 
+/** 값 꼴. 서버 settings/apiService.ts 의 같은 이름과 같은 규칙이다 — 띄어쓰기는 가운데 한 칸만(`Bearer <토큰>` 꼴 서버) */
+const 어드민키값인가 = (값: string): boolean => 값.length >= 12 && 값.length <= 500 && /^[\x21-\x7e]+(?: [\x21-\x7e]+)?$/.test(값);
+
 /** 저장을 막을 까닭. 서버 settings/apiService.ts `API칸오류` 와 같은 규칙이다 — 서버는 BAD_ADMIN_KEY 하나로만 답해 어느 칸인지 모른다 */
 export function 어드민키못보내는이유(envs: readonly 어드민키줄[], 언어: 언어): string | null {
   const 칸들 = envs.map(지금칸);
@@ -49,8 +52,8 @@ export function 어드민키못보내는이유(envs: readonly 어드민키줄[],
   if (칸들.some((it) => it.header !== '' && !/^[A-Za-z0-9-]{1,100}$/.test(it.header))) {
     return 말('어드민 키 헤더 이름은 영문 · 숫자 · - 로 100자까지입니다', 언어);
   }
-  if (칸들.some((it) => it.새값 !== '' && !/^[\x21-\x7e]{12,500}$/.test(it.새값))) {
-    return 말('어드민 키 값은 공백 없이 12자 이상 500자 이하로 입력해 주세요', 언어);
+  if (칸들.some((it) => it.새값 !== '' && !어드민키값인가(it.새값))) {
+    return 말('어드민 키 값은 12자 이상 500자 이하로 입력해 주세요. 띄어쓰기는 가운데 한 칸만 넣을 수 있습니다', 언어);
   }
   if (envs.some(값필요)) return 말('새 어드민 키는 값을 입력해 주세요. 헤더 이름이나 대상 서버 이름 · 주소를 변경하면 다시 넣어야 합니다', 언어);
   return null;

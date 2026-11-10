@@ -50,7 +50,7 @@ export const 설정API말: Record<string, string> = {
   '이대로 저장하면 이 서버의 어드민 키가 삭제됩니다': 'Saving now removes the admin key for this server',
   '어드민 키 헤더 이름을 입력해 주세요': 'Enter the admin key header name',
   '어드민 키 헤더 이름은 영문 · 숫자 · - 로 100자까지입니다': 'The admin key header name uses letters, digits and - only, up to 100 characters',
-  '어드민 키 값은 공백 없이 12자 이상 500자 이하로 입력해 주세요': 'Enter an admin key value of 12 to 500 characters with no spaces',
+  '어드민 키 값은 12자 이상 500자 이하로 입력해 주세요. 띄어쓰기는 가운데 한 칸만 넣을 수 있습니다': 'Enter an admin key value of 12 to 500 characters. Only one space is allowed, in the middle',
   '새 어드민 키는 값을 입력해 주세요. 헤더 이름이나 대상 서버 이름 · 주소를 변경하면 다시 넣어야 합니다':
     'Enter a value for the new admin key. Changing the header name or the target server name or URL needs it again',
 };
