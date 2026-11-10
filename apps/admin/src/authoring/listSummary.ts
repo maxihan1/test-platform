@@ -36,6 +36,8 @@ export interface 목록요약 {
     reqsTotal: number | null;
     held: number | null;
     stoppedAt: string | null;
+    // 작성 실행이 집힌 때부터 끝날 때까지 초. 반영(MERGE)은 빼고 잰다 — 목록 「소요 시간」 칸 (2026-11-10 사용자 시안)
+    tookSec: number | null;
   } | null;
   from: {
     by: 'PERSON' | 'AUTO' | 'PRD' | 'CASES' | 'DECISION';
@@ -60,6 +62,7 @@ interface 줄 {
   result: unknown;
   prd_version: number | null;
   started_at: Date | null;
+  finished_at: Date | null;
   asset_n: string;
   assets: { name: string; figma: boolean }[];
 }
@@ -103,6 +106,7 @@ function 결과(x: 줄, kind: 요약종류, 고칠것: unknown[] | null): 목록
     held: x.status === 'DONE' ? 보류들(x.result).length : null,
     // 단계 글이 없으면 집힌 뒤면 첫 칸(「준비」), 집히기 전이면 빈 글이다 — 화면이 단계 글을 칸 이름으로, 빈 글을 「시작 전에 멈춤」으로 옮긴다
     stoppedAt: x.status === 'DONE' ? null : (x.stage ?? (x.started_at === null ? '' : '준비')),
+    tookSec: x.started_at === null || x.finished_at === null ? null : Math.round((x.finished_at.getTime() - x.started_at.getTime()) / 1000),
   };
 }
 
@@ -117,13 +121,13 @@ export async function 목록요약들(서비스: number, 뿌리들: number[]): P
     pool.query<줄>(
       `WITH RECURSIVE ${사슬식('id = ANY($1::bigint[])')},
        작성 AS (
-         SELECT DISTINCT ON (사슬.root_id) 사슬.root_id, a.status, a.stage, a.result, a.prd_version, a.started_at
+         SELECT DISTINCT ON (사슬.root_id) 사슬.root_id, a.status, a.stage, a.result, a.prd_version, a.started_at, a.finished_at
            FROM 사슬 JOIN authoring_request a ON a.id = 사슬.id
           WHERE a.kind <> 'MERGE'
           ORDER BY 사슬.root_id, a.id DESC
        )
        SELECT r.id AS root_id, r.kind AS root_kind, r.params AS root_params, r.continue_from, r.compare,
-              작성.status, 작성.stage, 작성.result, 작성.prd_version, 작성.started_at,
+              작성.status, 작성.stage, 작성.result, 작성.prd_version, 작성.started_at, 작성.finished_at,
               (SELECT count(*) FROM authoring_asset s WHERE s.request_id = r.id AND s.role = 'INPUT') AS asset_n,
               (SELECT COALESCE(json_agg(json_build_object('name', y.name, 'figma', y.kind = 'FIGMA') ORDER BY y.position), '[]'::json)
                  FROM (SELECT name, kind, position FROM authoring_asset s
@@ -171,14 +175,16 @@ export async function 목록요약들(서비스: number, 뿌리들: number[]): P
     await Promise.all(
       r.rows
         .filter((x) => { const k = 종류들.get(x.root_id); return k === 'PRD_APPLY' || k === 'DECISION'; })
-        .map(async (x) => [x.root_id, await 바뀐요구수(서비스, x, 판들)] as const),
+        .map(async (x) => [x.root_id, await 바뀐요구들(서비스, x, 판들)] as const),
     ),
   );
+  const 고친기능 = await 고칠케이스기능들(서비스, r.rows.filter((x) => 종류들.get(x.root_id) === 'EDIT'));
   const 결과표 = new Map<number, 목록요약>();
   for (const x of r.rows) {
     const kind = 종류들.get(x.root_id)!;
-    const 기능셈 = new Map<string, number>();
-    for (const item of 요구들(x, 판들)) 기능셈.set(item.feature, (기능셈.get(item.feature) ?? 0) + 1);
+    let 기능셈 = 기능세기(요구들(x, 판들));
+    // 만든 케이스가 아직 없는 수정 줄도 목록 대상 칸에 기능 이름이 서야 한다 — 바뀐 요구사항 · 고칠 케이스의 기능으로 대신 센다 (2026-11-10 사용자 시안)
+    if (기능셈.size === 0) 기능셈 = 바뀐요구.get(x.root_id)?.기능셈 ?? 고친기능.get(x.root_id) ?? 기능셈;
     const 기능 = 많은차례(기능셈);
     const 화면셈 = new Map<string, number>();
     for (const [주소, n] of 화면주소들.get(x.root_id) ?? []) {
@@ -196,7 +202,7 @@ export async function 목록요약들(서비스: number, 뿌리들: number[]): P
         featuresMore: 기능.더,
         screens: 화면.위,
         screensMore: 화면.더,
-        reqs: 바뀐요구.get(x.root_id) ?? 0,
+        reqs: 바뀐요구.get(x.root_id)?.수 ?? 0,
         screenRight: 화면칸들(x.root_params).length,
         tcIds: tcIds.slice(0, 보일수),
         tcMore: Math.max(0, tcIds.length - 보일수),
@@ -220,14 +226,44 @@ function 요구들(x: 줄, 판들: Map<number, PrdItem[]>): PrdItem[] {
 
 /**
  * 반영 요청이 다시 쓴 요구 수 — 그 실행이 읽은 판을 그 실행이 시작하기 직전의 기준 판과 견준 바뀜 · 새 항목(지움은 쓸 테스트가 없다).
- * 화면이 맞음 번호는 따로 센다 — 옮기기가 그 번호를 고친 판으로 읽은 판을 바꾸기 때문이다. 아직 안 집혔으면 모른다(0)
+ * 화면이 맞음 번호는 수에서 따로 센다 — 옮기기가 그 번호를 고친 판으로 읽은 판을 바꾸기 때문이다. 아직 안 집혔으면 모른다(0).
+ * 기능셈은 바뀐 요구사항과 화면이 맞음 번호의 기능 묶음 — 판의 항목 차례로 센다
  */
-async function 바뀐요구수(서비스: number, x: 줄, 판들: Map<number, PrdItem[]>): Promise<number> {
+async function 바뀐요구들(서비스: number, x: 줄, 판들: Map<number, PrdItem[]>): Promise<{ 수: number; 기능셈: Map<string, number> }> {
   const 항목들 = x.prd_version === null ? undefined : 판들.get(x.prd_version);
-  if (항목들 === undefined || x.started_at === null) return 0;
+  if (항목들 === undefined || x.started_at === null) return { 수: 0, 기능셈: new Map() };
   // ponytail: 반영 줄마다 질의 하나(동시에) — 한 쪽에 반영 요청이 몇 줄뿐이다. 많아지면 시각별로 묶어 한 번에 읽는다
   const 기준 = await 기준판(서비스, x.started_at);
   const 차이 = 반영안됨(기준?.items ?? null, 항목들);
   const 화면 = 화면번호들(x.root_params);
-  return new Set([...차이.changed, ...차이.added].filter((번호) => !화면.has(번호))).size;
+  const 바뀜 = new Set([...차이.changed, ...차이.added].filter((번호) => !화면.has(번호)));
+  return { 수: 바뀜.size, 기능셈: 기능세기(항목들.filter((item) => 바뀜.has(item.reqId) || 화면.has(item.reqId))) };
+}
+
+function 기능세기(항목들: PrdItem[]): Map<string, number> {
+  const 셈 = new Map<string, number>();
+  for (const item of 항목들) 셈.set(item.feature, (셈.get(item.feature) ?? 0) + 1);
+  return 셈;
+}
+
+/**
+ * 케이스 고치기 뿌리마다 고칠 케이스가 걸린 기능 묶음 — 지도 ①(req_case)로 요구사항 번호를 찾고 최신 판에서 기능을 읽는다.
+ * 지도에 없는 케이스(요구사항 번호가 없는 UI 케이스 등)는 세지 않는다
+ */
+async function 고칠케이스기능들(서비스: number, 뿌리들: 줄[]): Promise<Map<string, Map<string, number>>> {
+  const 케이스들 = new Map(뿌리들.map((x) => [x.root_id, (행의고칠것(x.root_params) ?? []).map((e) => (e as { tcId: string }).tcId)]));
+  const 모든케이스 = [...new Set([...케이스들.values()].flat())];
+  if (모든케이스.length === 0) return new Map();
+  const pool = await db();
+  const [지도, 판] = await Promise.all([
+    pool.query<{ tc_id: string; req_id: string }>('SELECT DISTINCT tc_id, req_id FROM req_case WHERE service_id = $1 AND tc_id = ANY($2::text[])', [서비스, 모든케이스]),
+    pool.query<{ items: PrdItem[] }>('SELECT items FROM prd_version WHERE service_id = $1 ORDER BY version DESC LIMIT 1', [서비스]),
+  ]);
+  const 항목들 = 판.rows[0]?.items ?? [];
+  const 결과 = new Map<string, Map<string, number>>();
+  for (const [뿌리, tcIds] of 케이스들) {
+    const 번호들 = new Set(지도.rows.filter((m) => tcIds.includes(m.tc_id)).map((m) => m.req_id));
+    결과.set(뿌리, 기능세기(항목들.filter((item) => 번호들.has(item.reqId))));
+  }
+  return 결과;
 }

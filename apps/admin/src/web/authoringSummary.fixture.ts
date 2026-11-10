@@ -14,7 +14,7 @@ export function 요약(덮을것: {
     result:
       덮을것.result == null
         ? null
-        : { casesMade: null, casesFixed: null, reqsCovered: null, reqsTotal: null, held: null, stoppedAt: null, ...덮을것.result },
+        : { casesMade: null, casesFixed: null, reqsCovered: null, reqsTotal: null, held: null, stoppedAt: null, tookSec: null, ...덮을것.result },
     from: { by: 'PERSON', after: null, decisions: null, assets: [], assetsMore: 0, ...덮을것.from },
   };
 }
