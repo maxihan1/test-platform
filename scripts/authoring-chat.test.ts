@@ -1,5 +1,5 @@
 // Scout 챗봇 자리 — 지시문 · 자식 인자 · stream-json → 조각 · 0.3초 묶음 · 가져가기 → 조각 → 끝 순서 검사
-import { mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { 멈춤 } from './authoring-io.js';
 import type { 돌린결과 } from './authoring-spawn.js';
 import { 챗봇인자, 챗봇지시문, 끝몸만들기, 질문풀기, 조각나누기, 조각뽑기, 조각합치기, 턴넘쳤나, type 챗봇질문, type 조각 } from './authoring-chat-prompt.js';
-import { 챗봇자리돌기, 흘리개, type 챗봇손 } from './authoring-chat.js';
+import { 남은챗봇폴더치우기, 챗봇자리돌기, 흘리개, type 챗봇손 } from './authoring-chat.js';
 
 afterEach(() => {
   멈춤.까닭 = null;
@@ -369,5 +369,19 @@ describe('챗봇자리돌기 — 가져가기 → 조각 → 끝', () => {
     await 챗봇자리돌기('http://admin', 'tpa_x', 1, null, 손);
     expect(손.돌린다).not.toHaveBeenCalled();
     expect(멈춤.까닭).toBeNull();
+  });
+});
+
+describe('남은챗봇폴더치우기 — 죽은 자리가 남긴 질문 폴더', () => {
+  it('바탕의 scout- 폴더만 지우고 작성 사본(author-<번호>)은 남긴다. 바탕이 없으면 그냥 지나간다', () => {
+    const 바탕 = mkdtempSync(join(tmpdir(), 'scout-sweep-'));
+    try {
+      for (const 이름 of ['scout-abc', 'scout-def', 'author-12']) mkdirSync(join(바탕, 이름, '집'), { recursive: true });
+      남은챗봇폴더치우기(바탕);
+      expect(['scout-abc', 'scout-def', 'author-12'].map((x) => existsSync(join(바탕, x)))).toEqual([false, false, true]);
+      남은챗봇폴더치우기(join(바탕, '없는-폴더'));
+    } finally {
+      rmSync(바탕, { recursive: true, force: true });
+    }
   });
 });

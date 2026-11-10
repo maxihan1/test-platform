@@ -99,6 +99,7 @@ describe.skipIf(연결 === undefined)('Scout 대화 통로', () => {
   it('이어 받기는 도는 질문을 기다리다가 조각과 끝이 오면 15초 깨움을 기다리지 않고 바로 보낸다', async () => {
     await 판.q(`UPDATE chat_question SET status = 'DONE' WHERE status IN ('QUEUED', 'RUNNING') AND conversation_id IN (SELECT id FROM chat_conversation WHERE username = $1)`, [판.계정.나]);
     const { id } = (await 묻기(나, '기다릴 질문')).json<{ id: number }>();
+    가져가기봄();
     const 시작 = Date.now();
     const 흐름 = 판.app.inject({ method: 'GET', url: `/api/chat/questions/${String(id)}/stream`, cookies: 나 });
     await new Promise((풀림) => setTimeout(풀림, 300));

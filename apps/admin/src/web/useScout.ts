@@ -76,6 +76,8 @@ export function useScout(projectId: number, 열림: boolean): Scout상태 {
     es.addEventListener('chunk', (e) => {
       const m = e as MessageEvent<string>;
       const { kind, body } = JSON.parse(m.data) as { kind: string; body: unknown };
+      // 답이 오고 있으면 켜져 있다 — 다시 붙은 연결은 대기를 벗어난 뒤라 꺼짐을 걷는 wait 를 못 받는다
+      set꺼짐(false);
       고치기(id, (q) => 조각붙이기(q, Number(m.lastEventId), kind, body));
     });
     es.addEventListener('wait', (e) => {
@@ -151,6 +153,7 @@ export function useScout(projectId: number, 열림: boolean): Scout상태 {
       끊기();
       set질문들([]);
       set앞(null);
+      set꺼짐(false);
     } catch (e) {
       set묻기오류(message(e, 언어));
     }

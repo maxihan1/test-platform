@@ -1,6 +1,6 @@
 // 작성 서버의 Scout 챗봇 자리 — 1초마다 질문을 가져가 claude 로 답하고 진행 줄 · 답 조각을 흘려 보낸 뒤 끝과 토큰을 알린다 (도메인/챗봇 §3.14 「돌리는 곳」 · §7)
 
-import { chmodSync, chownSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { chmodSync, chownSync, existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -72,6 +72,12 @@ function 폴더만들기(자식: 계정 | null) {
   for (const 폴더 of [자리.일, 자리.집, 자리.임시]) mkdirSync(폴더, { mode: 0o700 });
   if (자식 !== null) for (const 폴더 of [자리.일, 자리.집, 자리.임시]) chownSync(폴더, 자식.uid, 자식.gid);
   return 자리;
+}
+
+/** 켤 때 앞에서 남은 질문 폴더를 지운다 — 꺼지거나 죽은 자리는 finally 를 못 돌아 MCP 설정(mcq_)이 담긴 폴더가 /work 볼륨에 쌓인다 */
+export function 남은챗봇폴더치우기(바탕: string): void {
+  if (!existsSync(바탕)) return;
+  for (const 이름 of readdirSync(바탕)) if (이름.startsWith('scout-')) rmSync(join(바탕, 이름), { recursive: true, force: true });
 }
 
 /** 지금 답을 쓰고 있는 질문 수 — CLI 자동 최신화가 도는 Scout 자식 아래에서 판을 바꾸지 않게 센다 */

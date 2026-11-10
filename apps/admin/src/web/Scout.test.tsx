@@ -163,8 +163,11 @@ describe('Scout 채팅창 (도메인/챗봇 §8.18)', () => {
     expect(screen.queryByText(/대기 중/)).toBeNull();
     귀.보내기('wait', { ahead: 0, agentDown: false });
     expect(screen.queryByText('작성 서버가 꺼져 있어요. 켜지면 바로 답해요')).toBeNull();
-    귀.보내기('chunk', { kind: 'STEP', body: { tool: 'run_list' } }, 1);
-    screen.getByText('최근 실행 검색하는 중');
+    // 다시 붙은 연결은 걷는 wait 를 못 받는다 — 답 조각이 오면 걷는다
+    귀.보내기('wait', { ahead: 0, agentDown: true });
+    귀.보내기('chunk', { kind: 'TEXT', body: '최근 실행은 3건이에요' }, 1);
+    expect(screen.queryByText('작성 서버가 꺼져 있어요. 켜지면 바로 답해요')).toBeNull();
+    screen.getByText('최근 실행은 3건이에요');
   });
 
   it('창이 닫힌 동안 답이 끝나면 버튼에 점이 붙고 「답이 도착했어요」 가 3초 보인다', async () => {

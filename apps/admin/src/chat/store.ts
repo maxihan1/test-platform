@@ -184,8 +184,11 @@ export function 가져가기봄(지금 = Date.now()): void {
 
 async function 작성서버꺼졌나(): Promise<boolean> {
   if (Date.now() - 마지막가져가기 <= 꺼짐ms) return false;
-  // 두 자리가 다 답하는 중이면 가지러 오지 않는다 — 꺼진 게 아니다
-  const r = await (await db()).query(`SELECT 1 FROM chat_question WHERE status = 'RUNNING' LIMIT 1`);
+  // 두 자리가 다 답하는 중이면 가지러 오지 않는다 — 꺼진 게 아니다. 죽은 작성 서버가 남긴 RUNNING(150초 뒤에야 닫힌다)이
+  // 꺼짐을 가리지 않게 최근 1분 안에 조각이 온(없으면 가져간) 것만 센다 — 도구 하나가 1분을 넘게 조용하면 꺼짐으로 잘못 보인다
+  const r = await (await db()).query(
+    `SELECT 1 FROM chat_question WHERE status = 'RUNNING' AND COALESCE(last_chunk_at, started_at) > now() - interval '60 seconds' LIMIT 1`,
+  );
   return r.rowCount === 0;
 }
 
