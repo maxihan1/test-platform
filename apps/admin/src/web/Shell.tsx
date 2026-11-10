@@ -21,6 +21,7 @@ import { use휴대폰 } from './phone.js';
 import { PhoneShell } from './PhoneShell.js';
 import { 기능보나, 판정을만든다, 할수있나 } from './role.js';
 import { RunWatch } from './RunWatch.js';
+import { Scout } from './Scout.js';
 import { 찾기칸 } from './ShellFind.js';
 import { 로고움직임다시 } from './logoMotion.js';
 import { 집 } from './route.js';
@@ -73,7 +74,14 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
   const 앱과상관없다 = 대시보드인가 || current === '#/password' || current === '#/settings';
   const 본문 = <지금앱칸.Provider value={앱과상관없다 ? null : service}>{children}</지금앱칸.Provider>;
   // 진행 알약 · 진행 창은 화면을 옮겨도 남는다 — 화면이 아니라 틀에 하나 둔다 (도메인/실행 §8.9)
-  const 진행알약 = <RunWatch 판정하기={(접두사) => 판정을만든다(user, 접두사)} />;
+  // Scout 도 화면을 옮겨도 남는다. 띠 애플리케이션이 배정된 것일 때만 선다 — 배정 없이 설정만 여는 사람에게는 묶일 프로젝트가 없다 (도메인/챗봇 §8.18 「서는 곳」).
+  // 프로젝트마다 대화가 따로라 프로젝트가 바뀌면 새로 띄운다
+  const 진행알약 = (
+    <>
+      <RunWatch 판정하기={(접두사) => 판정을만든다(user, 접두사)} />
+      {service === null ? null : <Scout key={service.projectId} projectId={service.projectId} projectName={service.projectName} 휴대폰={휴대폰} />}
+    </>
+  );
   if (휴대폰) {
     return (
       <>
