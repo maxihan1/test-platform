@@ -1,5 +1,6 @@
-// 서비스 가이드 구획 하나 — 글 칸 · 첨부 줄 · 파일 첨부 · 열기 (도메인/작성 §3.6 「★ 서비스 가이드」 · 2026-10-17 시안 A)
-// 변경 기록의 옛 판도 이 조각으로 읽기 전용으로 그린다 — 고치는 손잡이(on글 · on더하기 · on빼기)를 안 넘기면 읽기 전용이다
+// 서비스 가이드 구획 하나 — 글 · 첨부 줄 · 파일 첨부 · 열기 (도메인/작성 §3.6 「★ 서비스 가이드」 · 2026-11-11 시안 GuideA)
+// 변경 기록의 옛 판도 이 조각으로 읽기 전용으로 그린다 — 고치는 손잡이(on글 · on더하기 · on빼기)를 안 넘기면 읽기 전용이다.
+// 수정 단추 · 취소 · 저장은 부르는 쪽(GuideBody)이 머리행동 · 아래로 넣는다
 
 import { useRef, useState } from 'react';
 
@@ -35,6 +36,9 @@ export function GuideSection({
   on빼기,
   busy = false,
   예,
+  수정중 = false,
+  머리행동,
+  아래,
 }: {
   service: string;
   section: 구획;
@@ -46,6 +50,12 @@ export function GuideSection({
   busy?: boolean;
   /** 종류마다 적을 것의 예 — 빈 칸 안내 뒤에 붙인다 */
   예?: string;
+  /** 고치는 중인 구획 — 테두리로 가른다 */
+  수정중?: boolean;
+  /** 제목 줄 오른쪽 (「수정」) */
+  머리행동?: React.ReactNode;
+  /** 구획 맨 아래 오른쪽 (「취소」 · 「저장」) */
+  아래?: React.ReactNode;
 }) {
   const t = use말();
   const 언어 = use언어();
@@ -68,10 +78,13 @@ export function GuideSection({
   }
 
   return (
-    <section className="screen guide-sec" aria-labelledby={제목id}>
-      <h2 id={제목id} className="guide-title">
-        {제목}
-      </h2>
+    <section className={수정중 ? 'screen guide-sec editing' : 'screen guide-sec'} aria-labelledby={제목id}>
+      <div className="guide-head">
+        <h2 id={제목id} className="guide-title">
+          {제목}
+        </h2>
+        {머리행동}
+      </div>
       {on글 === undefined ? (
         글 === '' ? (
           <p className="guide-empty">{t('적은 글이 없습니다')}</p>
@@ -147,9 +160,11 @@ export function GuideSection({
           })}
         </ul>
       )}
-      {on더하기 === undefined ? null : (
-        <div>
-          <button className="btn ghost small" disabled={busy} onClick={() => 고르개.current?.click()}>
+      {on더하기 === undefined && (아래 === undefined || 아래 === null) ? null : (
+        <div className="guide-foot">
+          {on더하기 === undefined ? null : (
+          <>
+          <button className="btn ghost small guide-attach" disabled={busy} onClick={() => 고르개.current?.click()}>
             {t('파일 첨부')}
           </button>
           <input
@@ -164,6 +179,9 @@ export function GuideSection({
               if (file !== undefined) on더하기(file);
             }}
           />
+          </>
+          )}
+          {아래 === undefined || 아래 === null ? null : <span className="guide-actions">{아래}</span>}
         </div>
       )}
     </section>

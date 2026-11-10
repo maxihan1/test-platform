@@ -30,7 +30,7 @@ export const 가이드말: Record<string, string> = {
   '{구획}에 파일 첨부': 'Attach a file to {구획}',
   '제거 확인': 'Confirm remove',
   '{이름} 제거 확인': 'Confirm removing {이름}',
-  '저장하지 않은 변경이 있습니다': 'You have unsaved changes',
+  '{구획} 수정': 'Edit {구획}',
 
   // 버전 기록 — 「버전 기록」 글자는 PRD 표(messages/prd.ts)에 있다
   '옛 버전은 볼 수만 있습니다': 'Earlier versions are view-only',
