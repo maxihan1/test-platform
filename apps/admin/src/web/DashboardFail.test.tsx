@@ -47,7 +47,7 @@ function 그리기(서비스열기 = vi.fn()) {
   vi.spyOn(api, 'run').mockResolvedValue(실행응답());
   vi.spyOn(api, 'failures').mockResolvedValue(쪽([케이스('ZDA-001', '카드로 결제한다', [장치('desktop', 11)])]));
   render(<신규실패표 값={값} 이동={{ 서비스번호: null, 서비스열기 }} />);
-  return screen.getByRole('link', { name: '카드로 결제한다' });
+  return screen.getByRole('link', { name: /카드로 결제한다/ });
 }
 
 afterEach(() => {

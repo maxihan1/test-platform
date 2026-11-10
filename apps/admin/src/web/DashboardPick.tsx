@@ -1,49 +1,32 @@
-// 대시보드 머리의 서비스 · 기간 고르개와 그 조건을 주소(`?service=&days=`)에 남기는 도우미 (도메인/리포팅 §8.12 「서비스 · 기간 고르기」)
+// 대시보드 머리의 기간 고르개와 그 조건을 주소(`?days=`)에 남기는 도우미 (도메인/리포팅 §8.12 「기간 고르기」)
 
 import type { MouseEvent } from 'react';
 
 import type { 대시보드응답 } from '../reporting/dashboardResults.js';
 import { use말 } from './i18n.js';
 import { 주소조건 } from './leaveGuard.js';
-import { 서비스번호꼴 } from './routeService.js';
 
 export const 기간들 = [7, 14, 30] as const;
 export type 기간 = (typeof 기간들)[number];
 export const 기본기간: 기간 = 14;
 
 export interface 대시보드조건 {
-  /** 서비스 번호. null 이면 볼 수 있는 서비스 전체 */
-  서비스: number | null;
   일: 기간;
 }
 
-/**
- * 주소의 조건을 읽는다. 알아볼 수 없는 값은 기본값이다.
- * 기본 애플리케이션은 왼쪽 애플리케이션 줄에서 고른 것이다 — 대시보드 고르개와 왼쪽 줄은 하나다(2026-10-31 시험 d4). 「전체 애플리케이션」은 `service=all` 이다
- */
-export function 주소에서조건(기본서비스: number | null = null): 대시보드조건 {
-  const 주소 = 주소조건();
-  const 서비스글 = 주소.get('service');
-  return {
-    서비스: 서비스글 === 'all' ? null : (서비스번호꼴(서비스글) ?? 기본서비스),
-    일: 기간들.find((일) => String(일) === 주소.get('days')) ?? 기본기간,
-  };
+/** 주소의 조건을 읽는다. 알아볼 수 없는 값은 기본값이다. 대시보드는 프로젝트 요약이라 애플리케이션을 고르지 않는다 (2026-11-10 개편) */
+export function 주소에서조건(): 대시보드조건 {
+  return { 일: 기간들.find((일) => String(일) === 주소조건().get('days')) ?? 기본기간 };
 }
 
 /** 주소에 적을 조건. 기본값은 적지 않는다 */
-export function 조건을주소로(조건: 대시보드조건, 기본서비스: number | null = null): Record<string, string> {
-  return {
-    ...(조건.서비스 === 기본서비스 ? {} : { service: 조건.서비스 === null ? 'all' : String(조건.서비스) }),
-    ...(조건.일 === 기본기간 ? {} : { days: String(조건.일) }),
-  };
+export function 조건을주소로(조건: 대시보드조건): Record<string, string> {
+  return 조건.일 === 기본기간 ? {} : { days: String(조건.일) };
 }
 
 /** 서버에 보내는 조건. 기본값은 빼서 주소가 짧다 */
-export function 조건을요청으로(조건: 대시보드조건): { service?: number; days?: number } {
-  return {
-    ...(조건.서비스 === null ? {} : { service: 조건.서비스 }),
-    ...(조건.일 === 기본기간 ? {} : { days: 조건.일 }),
-  };
+export function 조건을요청으로(조건: 대시보드조건): { days?: number } {
+  return 조건.일 === 기본기간 ? {} : { days: 조건.일 };
 }
 
 /**
@@ -60,44 +43,15 @@ export function 서비스를열며(서비스열기: (serviceId: number) => void,
   };
 }
 
-export function 고르개({
-  조건,
-  서비스들,
-  on바뀜,
-}: {
-  조건: 대시보드조건;
-  /** 아직 모르면 빈 목록. 서비스 고르개는 알 때만 그린다 */
-  서비스들: { id: number; name: string }[];
-  on바뀜: (조건: 대시보드조건) => void;
-}) {
+export function 고르개({ 조건, on바뀜 }: { 조건: 대시보드조건; on바뀜: (조건: 대시보드조건) => void }) {
   const t = use말();
   return (
-    <div className="dash-pick">
-      {서비스들.length === 0 ? null : (
-        <select
-          aria-label={t('애플리케이션')}
-          value={조건.서비스 === null ? '' : String(조건.서비스)}
-          onChange={(e) => on바뀜({ ...조건, 서비스: e.target.value === '' ? null : Number(e.target.value) })}
-        >
-          <option value="">{t('전체 애플리케이션')}</option>
-          {서비스들.map((서비스) => (
-            <option key={서비스.id} value={String(서비스.id)}>
-              {서비스.name}
-            </option>
-          ))}
-        </select>
-      )}
-      <select
-        aria-label={t('기간')}
-        value={String(조건.일)}
-        onChange={(e) => on바뀜({ ...조건, 일: 기간들.find((일) => String(일) === e.target.value) ?? 기본기간 })}
-      >
-        {기간들.map((일) => (
-          <option key={일} value={String(일)}>
-            {t('최근 {일}일', { 일 })}
-          </option>
-        ))}
-      </select>
+    <div className="dash-pick" role="group" aria-label={t('기간')}>
+      {기간들.map((일) => (
+        <button key={일} type="button" className={조건.일 === 일 ? 'on' : undefined} aria-pressed={조건.일 === 일} onClick={() => on바뀜({ 일 })}>
+          {t('{일}일', { 일 })}
+        </button>
+      ))}
     </div>
   );
 }
@@ -113,15 +67,6 @@ export const 이동속성 = (이동?: 이동재료) =>
   이동 === undefined || 이동.서비스번호 === null ? {} : 서비스를열며(이동.서비스열기, 이동.서비스번호);
 
 type 건수 = 대시보드응답['passRate']['current'];
-
-/**
- * 실행 기록의 종류. 대시보드 수는 기능 · UI 를 합쳐 세서 그 칸의 UI 몫으로 가른다 (도메인/리포팅 §8.12 「칸에서 원인으로 내려간다」).
- * 기능 쪽에 보낼 것(실패만 보는 고리면 실패, 아니면 돌린 줄)이 있으면 기능, 없고 UI 쪽에만 있으면 UI 다 — 늘 기능이면 UI 실패로 못 내려갔다
- */
-export function 실행종류(전체: 건수, ui: 건수, 실패만: boolean): 'UI' | 'FN' {
-  const 셈 = (c: 건수): number => (실패만 ? c.fail : c.pass + c.fail + c.notRun);
-  return 셈(ui) > 0 && 셈(ui) === 셈(전체) ? 'UI' : 'FN';
-}
 
 /**
  * 이번 창 전체로 고른 실패한 실행의 종류 — 날 · 서비스에 안 매인 고리(회귀 실패 「더 있습니다」 · 실패 유형)가 쓴다.

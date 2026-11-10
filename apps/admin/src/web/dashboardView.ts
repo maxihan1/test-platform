@@ -1,4 +1,4 @@
-// 대시보드 화면이 쓰는 셈 — 통과율 · 증감 · 도넛 조각 · 시각 글자 · 숫자 올라가기. 화면 글자는 여기서 안 만든다(Dashboard 가 t() 로 만든다)
+// 대시보드 · 실행 요약이 쓰는 셈 — 도넛 조각 · 시각 글자 · 숫자 올라가기. 화면 글자는 여기서 안 만든다(Dashboard 가 t() 로 만든다)
 
 import { useEffect, useRef, useState } from 'react';
 
@@ -7,32 +7,6 @@ import type { 건수 } from '../reporting/dashboardResults.js';
 import type { 언어 } from './i18n.js';
 
 const 합 = (c: 건수): number => c.pass + c.fail + c.notRun;
-
-/**
- * 통과 / (통과 + 실패 + 미실행) 의 정수 퍼센트. 미실행도 분모다 — 빼면 러너가 고장 난 날이 좋아 보인다 (도메인/리포팅 §8.12).
- * 분모가 0 이면 null 이다. 0 으로 내면 「다 실패했다」로 읽힌다
- */
-export function 통과율(c: 건수): number | null {
-  return 몫퍼센트(c.pass, 합(c));
-}
-
-export function 몫퍼센트(수: number, 전체: number): number | null {
-  return 전체 === 0 ? null : Math.round((수 / 전체) * 100);
-}
-
-export interface 증감값 {
-  방향: 'up' | 'down' | 'same';
-  값: number;
-}
-
-/** 화면에 보이는 두 정수의 차이(%p). 어느 쪽이든 비었으면 견줄 것이 없어 null — 보이는 숫자끼리 빼야 눈으로 검산이 된다 */
-export function 증감(현재: 건수, 직전: 건수): 증감값 | null {
-  const 이번 = 통과율(현재);
-  const 앞 = 통과율(직전);
-  if (이번 === null || 앞 === null) return null;
-  const 차 = 이번 - 앞;
-  return { 방향: 차 > 0 ? 'up' : 차 < 0 ? 'down' : 'same', 값: Math.abs(차) };
-}
 
 export interface 조각 {
   종류: 'p' | 'f' | 'n';
@@ -53,16 +27,6 @@ export function 도넛조각(c: 건수): 조각[] {
     시작 += 길이;
   }
   return 결과;
-}
-
-/** 안쪽 얇은 고리는 직전 14일의 통과 몫이다. 직전이 비면 고리를 그리지 않는다 */
-export function 안쪽고리길이(직전: 건수): number | null {
-  const 전체 = 합(직전);
-  return 전체 === 0 ? null : (직전.pass / 전체) * 100;
-}
-
-export function 흐름글자(칸: 'F' | 'P' | 'N'): 'p' | 'f' | 'n' {
-  return 칸 === 'P' ? 'p' : 칸 === 'F' ? 'f' : 'n';
 }
 
 /** `2026-10-07` → `10/7`. 서버가 이미 사용자 시간대로 자른 날 글자라 Date 를 거치지 않는다 */

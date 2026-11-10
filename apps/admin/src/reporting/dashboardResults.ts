@@ -15,6 +15,7 @@ import {
   type 접은줄,
 } from './dashboardShape.js';
 import { 고른종류칸, type 종류칸 } from './dashboardKind.js';
+import type { 프로젝트요약 } from './dashboardProjectRead.js';
 import { 접은줄SQL, 앞판정SQL, 붙지않은한건SQL, 실행중SQL, 커버리지SQL } from './dashboardSql.js';
 import { 원인을가른다, type 원인재료, type 실패유형 } from './failureType.js';
 import { db, 가려서자른다 } from './insights.js';
@@ -124,6 +125,8 @@ export interface 대시보드응답 {
   byKind: 종류칸 | null;
   /** 작성 read 인 범위에 BTS 를 이은 프로젝트가 있을 때만 찬다 — 라우트가 센다 (도메인/BTS 「품질 숫자」) */
   aiQuality: AI품질 | null;
+  /** 프로젝트 요약 — 고른 서비스로 좁히지 않는다. decisionItems 는 결정 필요 앞 줄(라우트가 센다) (§8.12 「프로젝트 요약」) */
+  project: 프로젝트요약 & { decisionItems: { serviceId: number; kind: string; text: string | null }[] };
 }
 
 interface 줄행 {
@@ -256,7 +259,7 @@ export async function 대시보드(
   볼수있는실행ids: number[],
   볼수있는작성ids: number[],
   { 서비스: 고른서비스, 날수 = 창날수 }: { 서비스?: number; 날수?: number } = {},
-): Promise<Omit<대시보드응답, 'decisions' | 'aiQuality'>> {
+): Promise<Omit<대시보드응답, 'decisions' | 'aiQuality' | 'project'>> {
   const 실행서비스ids = 좁힌다(볼수있는실행ids, 고른서비스);
   const 작성서비스ids = 좁힌다(볼수있는작성ids, 고른서비스);
   const pool = await db();

@@ -169,7 +169,7 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
 
       {API종류 ? <API문서구획 경로={apiDocPath} 바꾼경로={setApiDocPath} 기준={apiDocEnv} 바꾼기준={setApiDocEnv} 서버들={서버들} /> : null}
 
-      <구획 제목={t('정기 실행')} 쓰임={t('매일 정한 시각에 이 애플리케이션의 스크립트를 자동으로 한 번 실행합니다. 대시보드의 통과율과 일별 결과는 이 실행으로 집계됩니다')}>
+      <구획 제목={t('정기 실행')} 쓰임={t('매일 정한 시각에 이 애플리케이션의 스크립트를 자동으로 한 번 실행합니다. 대시보드의 최근 실행 결과와 회귀 실패는 이 실행으로 쌓입니다')}>
         <ScheduleFields
           값={schedule}
           저장된={row.schedule ?? null}
