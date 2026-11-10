@@ -59,31 +59,59 @@ afterEach(() => {
 });
 
 const 정책칸 = () => screen.getByRole('textbox', { name: '정책' }) as HTMLTextAreaElement;
-// 저장 단추는 맨 위와 글 칸 아래 둘이다 — 같은 일을 한다
-const 저장버튼 = () => screen.getAllByRole('button', { name: '저장' })[0] as HTMLButtonElement;
+const 구획 = (이름: string) => screen.getByRole('region', { name: 이름 });
+const 수정 = (이름: string) => fireEvent.click(screen.getByRole('button', { name: `${이름} 수정` }));
+// 저장 단추는 고치는 구획 안에 하나씩 있다 (2026-11-11 시안 GuideA)
+const 저장버튼 = (이름 = '정책') => within(구획(이름)).getByRole('button', { name: '저장' }) as HTMLButtonElement;
 
-describe('애플리케이션 가이드 — 시안 A', () => {
+describe('애플리케이션 가이드 — 시안 GuideA', () => {
   it('가이드가 없으면 그렇다고 말하고 버전 기록은 없다', async () => {
     지금.mockResolvedValue(가이드({ version: 0, intro: '', policy: '', rules: '', files: [], savedAt: null, savedByName: null }));
     render(<Guide service="MKT" 할수={쓰는사람} />);
     expect(await screen.findByText(/아직 가이드가 없습니다/)).toBeTruthy();
     expect(screen.queryByRole('button', { name: '버전 기록' })).toBeNull();
-    expect(저장버튼().disabled).toBe(true);
+    expect(screen.getAllByText('적은 글이 없습니다')).toHaveLength(3);
   });
 
-  it('구획 셋에 글과 그 구획의 첨부를 나눠 보이고 머리에 버전과 첨부 수를 적는다', async () => {
+  it('구획 셋에 글과 그 구획의 첨부를 나눠 읽기로 보이고 머리에 버전과 첨부 수를 적는다', async () => {
     render(<Guide service="MKT" 할수={쓰는사람} />);
     expect(await screen.findByText(/버전 3 · 첨부 3건/)).toBeTruthy();
-    const 정책 = screen.getByRole('region', { name: '정책' });
+    const 정책 = 구획('정책');
     expect(within(정책).getByText('운영 정책.docx')).toBeTruthy();
     expect(within(정책).queryByText('애플리케이션 소개서.pdf')).toBeNull();
     expect(within(정책).getAllByText(/86KB/)).toHaveLength(2);
-    expect((screen.getByRole('textbox', { name: '애플리케이션 소개' }) as HTMLTextAreaElement).value).toBe('중고 물품을 사고파는 웹 애플리케이션입니다');
+    expect(within(구획('애플리케이션 소개')).getByText('중고 물품을 사고파는 웹 애플리케이션입니다')).toBeTruthy();
+    expect(screen.queryByRole('textbox')).toBeNull();
+    expect(screen.queryByRole('button', { name: '저장' })).toBeNull();
   });
 
-  it('글을 고치면 저장이 켜지고 지금 버전 위에 세 구획 글을 보낸 뒤 다시 읽는다', async () => {
+  it('「수정」을 누른 구획만 글 칸 · 파일 첨부 · 취소 · 저장이 선다', async () => {
     render(<Guide service="MKT" 할수={쓰는사람} />);
     await screen.findByText(/버전 3/);
+    수정('정책');
+    expect(정책칸()).toBeTruthy();
+    expect(within(구획('정책')).getByRole('button', { name: '파일 첨부' })).toBeTruthy();
+    expect(within(구획('작업 규칙')).queryByRole('textbox')).toBeNull();
+    expect(within(구획('작업 규칙')).queryByRole('button', { name: '파일 첨부' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '정책 수정' })).toBeNull();
+    expect(screen.getByRole('button', { name: '작업 규칙 수정' })).toBeTruthy();
+  });
+
+  it('취소하면 고치던 글을 버리고 읽기로 돌아간다', async () => {
+    render(<Guide service="MKT" 할수={쓰는사람} />);
+    await screen.findByText(/버전 3/);
+    수정('작업 규칙');
+    fireEvent.change(screen.getByRole('textbox', { name: '작업 규칙' }), { target: { value: '버릴 글' } });
+    fireEvent.click(within(구획('작업 규칙')).getByRole('button', { name: '취소' }));
+    expect(screen.queryByRole('textbox')).toBeNull();
+    expect(within(구획('작업 규칙')).getByText('테스트로 만든 주문 이름은 qa- 로 시작합니다')).toBeTruthy();
+    expect(저장).not.toHaveBeenCalled();
+  });
+
+  it('글을 고치면 그 구획의 저장이 켜지고 지금 버전 위에 세 구획 글을 보낸 뒤 다시 읽는다', async () => {
+    render(<Guide service="MKT" 할수={쓰는사람} />);
+    await screen.findByText(/버전 3/);
+    수정('정책');
     expect(저장버튼().disabled).toBe(true);
     fireEvent.change(정책칸(), { target: { value: '결제는 테스트 카드만 씁니다' } });
     fireEvent.click(저장버튼());
@@ -95,13 +123,35 @@ describe('애플리케이션 가이드 — 시안 A', () => {
       }),
     );
     expect(await screen.findByText('저장했습니다 (버전 4)')).toBeTruthy();
-    expect(지금).toHaveBeenCalledTimes(2);
+    // 다시 읽기는 그린 뒤에 돈다 — 부하가 크면 알림이 먼저 뜬다
+    await vi.waitFor(() => expect(지금).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() => expect(screen.queryByRole('textbox', { name: '정책' })).toBeNull());
+  });
+
+  it('한 구획을 저장할 때 다른 구획에서 고치던 글은 싣지 않고 그대로 남긴다', async () => {
+    render(<Guide service="MKT" 할수={쓰는사람} />);
+    await screen.findByText(/버전 3/);
+    수정('정책');
+    수정('작업 규칙');
+    fireEvent.change(정책칸(), { target: { value: '결제는 테스트 카드만 씁니다' } });
+    fireEvent.change(screen.getByRole('textbox', { name: '작업 규칙' }), { target: { value: '아직 쓰는 중' } });
+    fireEvent.click(저장버튼());
+    await vi.waitFor(() =>
+      expect(저장).toHaveBeenCalledWith('MKT', 3, {
+        intro: '중고 물품을 사고파는 웹 애플리케이션입니다',
+        policy: '결제는 테스트 카드만 씁니다',
+        rules: '테스트로 만든 주문 이름은 qa- 로 시작합니다',
+      }),
+    );
+    await screen.findByText('저장했습니다 (버전 4)');
+    expect((screen.getByRole('textbox', { name: '작업 규칙' }) as HTMLTextAreaElement).value).toBe('아직 쓰는 중');
   });
 
   it('다른 사람이 먼저 바꿨으면 까닭을 말하고 판을 다시 읽되 고치던 글은 남긴다', async () => {
     저장.mockRejectedValueOnce(new ApiError(409, 'GUIDE_STALE', ''));
     render(<Guide service="MKT" 할수={쓰는사람} />);
     await screen.findByText(/버전 3/);
+    수정('정책');
     fireEvent.change(정책칸(), { target: { value: '결제는 테스트 카드만 씁니다' } });
     fireEvent.click(저장버튼());
     expect(await screen.findByText(/다른 사람이 먼저 가이드를 변경했습니다/)).toBeTruthy();
@@ -114,10 +164,11 @@ describe('애플리케이션 가이드 — 시안 A', () => {
     지금.mockResolvedValueOnce(가이드()).mockResolvedValue(가이드({ version: 4, intro: '다른 사람이 고친 소개' }));
     render(<Guide service="MKT" 할수={쓰는사람} />);
     await screen.findByText(/버전 3/);
+    수정('정책');
     fireEvent.change(정책칸(), { target: { value: '결제는 테스트 카드만 씁니다' } });
     fireEvent.click(저장버튼());
     await screen.findByText(/버전 4 · 첨부/);
-    expect((screen.getByRole('textbox', { name: '애플리케이션 소개' }) as HTMLTextAreaElement).value).toBe('다른 사람이 고친 소개');
+    expect(within(구획('애플리케이션 소개')).getByText('다른 사람이 고친 소개')).toBeTruthy();
     expect(정책칸().value).toBe('결제는 테스트 카드만 씁니다');
 
     fireEvent.click(저장버튼());
@@ -136,21 +187,24 @@ describe('애플리케이션 가이드 — 시안 A', () => {
     지금.mockResolvedValueOnce(가이드()).mockResolvedValue(가이드({ version: 4, policy: '결제는 테스트 카드만 씁니다' }));
     render(<Guide service="MKT" 할수={쓰는사람} />);
     await screen.findByText(/버전 3/);
-    fireEvent.change(정책칸(), { target: { value: '결제는 테스트 카드만 씁니다' } });
+    수정('정책');
+    fireEvent.change(정책칸(), { target: { value: '결제는 테스트 카드만' } });
     fireEvent.click(저장버튼());
-    const 규칙칸 = () => screen.getByRole('textbox', { name: '작업 규칙' }) as HTMLTextAreaElement;
-    fireEvent.change(규칙칸(), { target: { value: '주문 이름은 qa- 로, 회원 이름은 qa_ 로 시작합니다' } });
+    fireEvent.change(정책칸(), { target: { value: '결제는 테스트 카드만 씁니다' } });
     await act(async () => 끝내기({ version: 4 }));
 
     await screen.findByText(/버전 4 · 첨부/);
-    expect(규칙칸().value).toBe('주문 이름은 qa- 로, 회원 이름은 qa_ 로 시작합니다');
     expect(정책칸().value).toBe('결제는 테스트 카드만 씁니다');
+    expect(저장버튼().disabled).toBe(true);
+    fireEvent.change(정책칸(), { target: { value: '결제는 테스트 카드만 씁니다. 실카드는 금지' } });
     expect(저장버튼().disabled).toBe(false);
   });
 
   it('파일 첨부는 그 구획과 지금 버전으로 보내고, 받지 않는 파일은 보내기 전에 막는다', async () => {
     render(<Guide service="MKT" 할수={쓰는사람} />);
     await screen.findByText(/버전 3/);
+    expect(screen.queryByLabelText('정책에 파일 첨부')).toBeNull();
+    수정('정책');
     const 고르개 = screen.getByLabelText('정책에 파일 첨부');
     const 문서 = new File(['정책'], '환불 정책.docx');
     fireEvent.change(고르개, { target: { files: [문서] } });
@@ -164,6 +218,8 @@ describe('애플리케이션 가이드 — 시안 A', () => {
   it('제거는 그 파일 번호와 지금 버전으로 보낸다', async () => {
     render(<Guide service="MKT" 할수={쓰는사람} />);
     await screen.findByText(/버전 3/);
+    expect(screen.queryByRole('button', { name: '운영 정책.docx 제거' })).toBeNull();
+    수정('정책');
     fireEvent.click(screen.getByRole('button', { name: '운영 정책.docx 제거' }));
     expect(빼기).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: '운영 정책.docx 제거 확인' }));
@@ -173,29 +229,19 @@ describe('애플리케이션 가이드 — 시안 A', () => {
   it('제거는 한 번 더 묻고, 취소하면 아무것도 보내지 않고 다시 제거 단추로 돌아간다 (점검 9.2)', async () => {
     render(<Guide service="MKT" 할수={쓰는사람} />);
     await screen.findByText(/버전 3/);
+    수정('정책');
     fireEvent.click(screen.getByRole('button', { name: '운영 정책.docx 제거' }));
-    const 정책 = screen.getByRole('region', { name: '정책' });
-    fireEvent.click(within(정책).getByRole('button', { name: '취소' }));
+    const 정책 = 구획('정책');
+    fireEvent.click(within(정책).getAllByRole('button', { name: '취소' })[0]!);
     expect(빼기).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: '운영 정책.docx 제거' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: '운영 정책.docx 제거 확인' })).toBeNull();
   });
 
-  it('글 칸 아래에도 저장 단추가 있어 둘 다 같은 일을 한다 (점검 9.3)', async () => {
-    render(<Guide service="MKT" 할수={쓰는사람} />);
-    await screen.findByText(/버전 3/);
-    const 저장들 = screen.getAllByRole('button', { name: '저장' }) as HTMLButtonElement[];
-    expect(저장들).toHaveLength(2);
-    expect(저장들.every((b) => b.disabled)).toBe(true);
-    fireEvent.change(정책칸(), { target: { value: '고친 정책' } });
-    expect(screen.getByText('저장하지 않은 변경이 있습니다')).toBeTruthy();
-    fireEvent.click((screen.getAllByRole('button', { name: '저장' }) as HTMLButtonElement[])[1]!);
-    await vi.waitFor(() => expect(저장).toHaveBeenCalledTimes(1));
-  });
-
   it('글이 길어지면 글 칸이 줄 수만큼 커진다', async () => {
     render(<Guide service="MKT" 할수={쓰는사람} />);
     await screen.findByText(/버전 3/);
+    수정('정책');
     expect(정책칸().rows).toBe(4);
     fireEvent.change(정책칸(), { target: { value: '1\n2\n3\n4\n5\n6' } });
     expect(정책칸().rows).toBe(7);
@@ -224,6 +270,7 @@ describe('애플리케이션 가이드 — 시안 A', () => {
     expect(screen.queryByRole('button', { name: '저장' })).toBeNull();
     expect(screen.queryByRole('button', { name: '파일 첨부' })).toBeNull();
     expect(screen.queryByRole('button', { name: /제거$/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /수정$/ })).toBeNull();
     expect(screen.getByText('적은 글이 없습니다')).toBeTruthy();
   });
 
@@ -260,6 +307,7 @@ describe('애플리케이션 가이드 — 쓰던 글을 두고 떠나기 (점�
   it('글을 고친 채 애플리케이션을 바꾸려 하면 묻고, 떠나기를 눌러야 바꾼다', async () => {
     render(<Guide service="MKT" 할수={쓰는사람} />);
     await screen.findByText(/버전 3/);
+    수정('정책');
     fireEvent.change(정책칸(), { target: { value: '쓰다 만 글' } });
     const 바꾼다 = vi.fn();
     act(() => 버리기전(바꾼다));
@@ -273,9 +321,10 @@ describe('애플리케이션 가이드 — 쓰던 글을 두고 떠나기 (점�
   it('저장한 뒤에는 묻지 않는다', async () => {
     render(<Guide service="MKT" 할수={쓰는사람} />);
     await screen.findByText(/버전 3/);
+    수정('정책');
     fireEvent.change(정책칸(), { target: { value: '저장할 글' } });
     fireEvent.click(저장버튼());
-    await vi.waitFor(() => expect(정책칸().value).not.toBe('저장할 글'));
+    await vi.waitFor(() => expect(screen.queryByRole('textbox', { name: '정책' })).toBeNull());
     // 떠나기 막이를 푸는 effect 가 아직 안 돌았을 수 있다 — 부하가 크면 이 순간에 걸린다
     await act(async () => undefined);
     const 바꾼다 = vi.fn();

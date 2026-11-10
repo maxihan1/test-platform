@@ -27,6 +27,11 @@ vi.mock('./api.js', async () => {
   };
 });
 
+vi.mock('./guideApi.js', () => ({
+  guideApi: {
+    now: () => Promise.resolve({ version: 1, intro: '소개', policy: '', rules: '', files: [], savedAt: null, savedByName: null }),
+  },
+}));
 vi.mock('./decideApi.js', () => ({ decideApi: { list: () => Promise.resolve(결정.목록) } }));
 
 function 줄(덮을것: Partial<AuthoringListRow>): AuthoringListRow {
@@ -108,30 +113,33 @@ describe('피그마 토큰 여부가 새 요청 폼까지 넘어간다', () => {
   it('피그마토큰={false} 면 주소를 적을 때 토큰이 없다고 알린다', async () => {
     render(<Authoring service="PAY" 피그마토큰={false} 할수={() => true} />);
     fireEvent.click(await screen.findByRole('button', { name: '새 작성' }));
+    fireEvent.click(screen.getByRole('button', { name: '다음' }));
+    fireEvent.click(screen.getByRole('button', { name: '기획서로 작성' }));
+    fireEvent.click(screen.getByRole('button', { name: '다음' }));
     fireEvent.change(screen.getByLabelText('피그마 주소'), { target: { value: 'https://www.figma.com/design/A/' } });
     expect(screen.getByText(/피그마 토큰이 없어 피그마 주소를 받을 수 없습니다/)).toBeTruthy();
   });
 });
 
 describe('작성 권한 칸', () => {
-  it('작성 쓰기면 「새 작성」을 눌러 오른쪽 서랍에서 폼을 연다 — 처음에는 목록만 보인다', async () => {
+  it('작성 쓰기면 「새 작성」을 눌러 가운데 창 마법사를 연다 — 처음에는 목록만 보이고 첫 단계는 가이드다', async () => {
     render(<Authoring service="PAY" 할수={() => true} />);
     const 단추 = await screen.findByRole('button', { name: '새 작성' });
-    expect(screen.queryByText('테스트 작성 시작')).toBeNull();
+    expect(screen.queryByRole('dialog', { name: '새 작성' })).toBeNull();
     fireEvent.click(단추);
-    const 서랍 = screen.getByRole('complementary', { name: '새 작성 요청' });
-    expect(within(서랍).getByText('테스트 작성 시작')).toBeTruthy();
-    expect(단추.getAttribute('aria-expanded')).toBe('true');
+    const 창 = screen.getByRole('dialog', { name: '새 작성' });
+    expect(within(창).getByRole('listitem', { current: 'step' }).textContent).toBe('1 가이드');
+    expect(단추.getAttribute('aria-haspopup')).toBe('dialog');
   });
 
-  it('서랍은 ✕ 와 Esc 로 닫힌다', async () => {
+  it('마법사는 첫 단계의 취소와 Esc 로 닫힌다', async () => {
     render(<Authoring service="PAY" 할수={() => true} />);
     fireEvent.click(await screen.findByRole('button', { name: '새 작성' }));
-    fireEvent.click(screen.getByRole('button', { name: '닫기' }));
-    expect(screen.queryByRole('complementary', { name: '새 작성 요청' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '취소' }));
+    expect(screen.queryByRole('dialog', { name: '새 작성' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: '새 작성' }));
     fireEvent.keyDown(document, { key: 'Escape' });
-    expect(screen.queryByRole('complementary', { name: '새 작성 요청' })).toBeNull();
+    expect(screen.queryByRole('dialog', { name: '새 작성' })).toBeNull();
   });
 
   it('작성 읽기면 새 작성 단추도 폼도 없다', async () => {
@@ -186,19 +194,24 @@ describe('작성 목록 쪽은 주소에 남는다 (점검 11.4)', () => {
 });
 
 describe('목록 다시 읽기가 실패해도 쓰던 새 요청은 남는다 (리뷰 L17)', () => {
-  it('5초 다시 읽기가 한 번 실패하면 오류만 보이고 열어 둔 서랍 · 친 피그마 주소는 그대로다', async () => {
+  it('5초 다시 읽기가 한 번 실패하면 오류만 보이고 열어 둔 마법사 · 친 피그마 주소는 그대로다', async () => {
     줄들.push(줄({ id: 3 }));
     vi.useFakeTimers();
     render(<Authoring service="PAY" 할수={() => true} />);
     await vi.waitFor(() => screen.getByRole('button', { name: '새 작성' }));
     fireEvent.click(screen.getByRole('button', { name: '새 작성' }));
-    const 칸 = within(screen.getByRole('complementary', { name: '새 작성 요청' })).getByPlaceholderText('한 줄에 하나씩');
+    // 목록 아래 페이지 넘기기에도 「다음」이 있다 — 창 안의 것을 누른다
+    const 창 = () => within(screen.getByRole('dialog', { name: '새 작성' }));
+    fireEvent.click(창().getByRole('button', { name: '다음' }));
+    fireEvent.click(창().getByRole('button', { name: '기획서로 작성' }));
+    fireEvent.click(창().getByRole('button', { name: '다음' }));
+    const 칸 = 창().getByPlaceholderText('한 줄에 하나씩');
     fireEvent.change(칸, { target: { value: 'https://www.figma.com/design/AbC/x' } });
 
     읽기.실패 = true;
     await vi.advanceTimersByTimeAsync(5_000);
     await vi.waitFor(() => screen.getByText('목록을 못 읽었다'));
-    const 남은칸 = within(screen.getByRole('complementary', { name: '새 작성 요청' })).getByPlaceholderText('한 줄에 하나씩');
+    const 남은칸 = within(screen.getByRole('dialog', { name: '새 작성' })).getByPlaceholderText('한 줄에 하나씩');
     expect((남은칸 as HTMLTextAreaElement).value).toBe('https://www.figma.com/design/AbC/x');
   });
 
@@ -213,11 +226,14 @@ describe('목록 다시 읽기가 실패해도 쓰던 새 요청은 남는다 (�
   });
 });
 
-describe('새 작성 서랍', () => {
-  it('서랍을 열었을 때 「실제 화면과 대조」는 꺼져 있다', async () => {
+describe('새 작성 마법사', () => {
+  it('작성 방법은 처음에 아무것도 선택돼 있지 않아 고르기 전에는 다음으로 못 간다', async () => {
     render(<Authoring service="PAY" 할수={() => true} />);
     fireEvent.click(await screen.findByRole('button', { name: '새 작성' }));
-    expect((screen.getByLabelText('실제 화면과 대조') as HTMLInputElement).checked).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: '다음' }));
+    const 카드들 = ['기획서로 작성', '화면을 훑어서 작성', '기획서 + 실제 화면 대조'].map((이름) => screen.getByRole('button', { name: 이름 }));
+    expect(카드들.map((c) => c.getAttribute('aria-pressed'))).toEqual(['false', 'false', 'false']);
+    expect((screen.getByRole('button', { name: '다음' }) as HTMLButtonElement).disabled).toBe(true);
   });
 });
 

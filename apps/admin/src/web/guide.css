@@ -1,12 +1,24 @@
-/* 「PRD 관리 › 서비스 가이드」 화면 (2026-10-17 시안 A — 구획마다 글 칸 + 첨부). 색은 styles.css :root 토큰만 쓴다 */
+/* 「PRD 관리 › 서비스 가이드」 화면 · 새 작성 마법사 1단계 (2026-11-11 시안 GuideA — 평소에는 읽기, 구획마다 수정). 색은 styles.css :root 토큰만 쓴다 */
 
 .guide-sec {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   margin-bottom: 16px;
-  padding: 20px;
+  padding: 22px 24px;
+  border-radius: 14px;
 }
+/* 고치는 구획은 대표색 테두리로 가른다 — 테두리 두께가 달라 칸이 흔들리지 않게 그림자로 한 겹 더한다 */
+.guide-sec.editing {
+  border-color: var(--accent-mark);
+  box-shadow: 0 0 0 1px var(--accent-mark);
+}
+.guide-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.guide-head .guide-title { flex: 1; min-width: 0; }
 .guide-title {
   margin: 0;
   font-size: 16px;
@@ -16,9 +28,11 @@
   width: 100%;
   box-sizing: border-box;
   resize: vertical;
+  padding: 14px 16px;
+  border-radius: 10px;
   font: inherit;
   font-size: 14px;
-  line-height: 1.6;
+  line-height: 1.75;
 }
 .guide-empty {
   margin: 0;
@@ -31,7 +45,7 @@
   word-break: break-word;
   font: inherit;
   font-size: 14px;
-  line-height: 1.6;
+  line-height: 1.75;
 }
 .guide-open {
   margin-top: 8px;
@@ -68,7 +82,8 @@
   color: var(--ink-muted);
 }
 .guide-name {
-  flex: 1;
+  /* 바탕 폭 140px 아래로는 줄을 바꾼다 — 휴대폰 폭에서 이름이 한 글자씩 세로로 꺾였다 (2026-11-11) */
+  flex: 1 1 140px;
   min-width: 0;
   overflow-wrap: anywhere;
 }
@@ -80,11 +95,16 @@
   margin-top: 16px;
 }
 
-/* 글 칸 아래 저장 단추 — 맨 위 단추와 같은 일을 한다 (점검 9.3) */
-.guide-savebar {
+/* 구획 맨 아래 — 왼쪽 파일 첨부, 오른쪽 취소 · 저장. 좁은 화면에서는 줄을 바꾼다 */
+.guide-foot {
   display: flex;
-  justify-content: flex-end;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
-  margin: 12px 0 24px;
+  gap: 8px;
+}
+.guide-attach { border-style: dashed; }
+.guide-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
 }

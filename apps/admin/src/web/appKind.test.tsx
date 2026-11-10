@@ -2,7 +2,7 @@
 // 애플리케이션 종류 「Android 앱」 화면 검사 (도메인/러너 §5.2 「애플리케이션 종류 「Android 앱」」 종류 표 · APP-F1-16)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, renderHook, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, renderHook, screen } from '@testing-library/react';
 
 import type { ServiceRow, User } from './api.js';
 import { AuthoringNew } from './AuthoringNew.js';
@@ -130,18 +130,22 @@ describe('실행 창 실행 위치', () => {
 });
 
 describe('작성 새 요청', () => {
-  it('Android 앱은 「실제 화면과 대조」와 「앱 화면 읽기」 안내가 같이 서고 피그마 칸은 그대로다 (대조 칸은 APP-F2-05)', () => {
+  it('Android 앱은 작성 방법 단계에 대조 카드와 「앱 화면 읽기」 안내가 같이 서고 피그마 칸은 그대로다 (대조 칸은 APP-F2-05)', () => {
     render(<AuthoringNew service="MKA" envs={[{ env: 'qa', baseUrl: 'https://qa.example.com' }]} 앱종류="APP" on넣었다={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: '다음' }));
 
-    expect(screen.getByLabelText('실제 화면과 대조')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '기획서 + 실제 화면 대조' })).toBeTruthy();
     expect(screen.getByText('앱 화면 읽기')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '기획서로 작성' }));
+    fireEvent.click(screen.getByRole('button', { name: '다음' }));
     expect(screen.getByText('피그마 주소')).toBeTruthy();
   });
 
-  it('웹은 지금처럼 대조 칸이 있고 앱 안내는 없다', () => {
+  it('웹은 지금처럼 대조 카드가 있고 앱 안내는 없다', () => {
     render(<AuthoringNew service="MKW" envs={[{ env: 'qa', baseUrl: 'https://qa.example.com' }]} 앱종류="SCREEN" on넣었다={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: '다음' }));
 
-    expect(screen.getByLabelText('실제 화면과 대조')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '기획서 + 실제 화면 대조' })).toBeTruthy();
     expect(screen.queryByText('앱 화면 읽기')).toBeNull();
   });
 });
