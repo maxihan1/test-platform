@@ -111,8 +111,8 @@ describe.skipIf(연결 === undefined)('설정 API 의 게임 애플리케이션 
     expect(await 저장된키()).toEqual({ header: 'Authorization', value: 베어러 });
   });
 
-  it('띄어쓰기가 두 칸이거나 앞뒤에 붙으면 400 BAD_ADMIN_KEY', async () => {
-    for (const 값 of [`Bearer  ${키값}`, `Bearer ${키값} x`, ` Bearer${키값}`, `Bearer${키값} `, `Bearer\t${키값}`]) {
+  it('띄어쓰기가 두 칸이거나 앞뒤에 붙거나 칸 뒤 토큰이 12자보다 짧으면 400 BAD_ADMIN_KEY', async () => {
+    for (const 값 of [`Bearer  ${키값}`, `Bearer ${키값} x`, ` Bearer${키값}`, `Bearer${키값} `, `Bearer\t${키값}`, 'Bearer abcde12345']) {
       const res = await 고친다({ envs: [줄({ header: 'Authorization', value: 값 })] });
       expect([res.statusCode, res.json()]).toEqual([400, { error: 'BAD_ADMIN_KEY' }]);
     }

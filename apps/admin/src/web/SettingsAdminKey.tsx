@@ -42,8 +42,8 @@ export function 어드민키보낼모양(r: 어드민키줄): EnvInput['adminKey
   return { header, ...(새값 === '' ? {} : { value: 새값 }) };
 }
 
-/** 값 꼴. 서버 settings/apiService.ts 의 같은 이름과 같은 규칙이다 — 띄어쓰기는 가운데 한 칸만(`Bearer <토큰>` 꼴 서버) */
-const 어드민키값인가 = (값: string): boolean => 값.length >= 12 && 값.length <= 500 && /^[\x21-\x7e]+(?: [\x21-\x7e]+)?$/.test(값);
+/** 값 꼴. 서버 settings/apiService.ts 의 같은 이름과 같은 규칙이다 — 띄어쓰기는 가운데 한 칸만(`Bearer <토큰>` 꼴 서버)이고 칸 뒤 토큰도 12자부터다 */
+const 어드민키값인가 = (값: string): boolean => 값.length >= 12 && 값.length <= 500 && /^[\x21-\x7e]+(?: [\x21-\x7e]{12,})?$/.test(값);
 
 /** 저장을 막을 까닭. 서버 settings/apiService.ts `API칸오류` 와 같은 규칙이다 — 서버는 BAD_ADMIN_KEY 하나로만 답해 어느 칸인지 모른다 */
 export function 어드민키못보내는이유(envs: readonly 어드민키줄[], 언어: 언어): string | null {
