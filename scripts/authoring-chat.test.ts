@@ -1,10 +1,14 @@
 // Scout 챗봇 자리 — 지시문 · 자식 인자 · stream-json → 조각 · 0.3초 묶음 · 가져가기 → 조각 → 끝 순서 검사
+import { existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { 멈춤 } from './authoring-io.js';
 import type { 돌린결과 } from './authoring-spawn.js';
 import { 챗봇인자, 챗봇지시문, 끝몸만들기, 질문풀기, 조각나누기, 조각뽑기, 조각합치기, 턴넘쳤나, type 챗봇질문, type 조각 } from './authoring-chat-prompt.js';
-import { 챗봇자리돌기, 흘리개, type 챗봇손 } from './authoring-chat.js';
+import { 남은챗봇폴더치우기, 챗봇자리돌기, 흘리개, type 챗봇손 } from './authoring-chat.js';
 
 afterEach(() => {
   멈춤.까닭 = null;
@@ -249,6 +253,20 @@ describe('챗봇자리돌기 — 가져가기 → 조각 → 끝', () => {
     expect(인자.join(' ')).not.toContain('mcq_');
   });
 
+  it('자리 폴더는 작성 자식과 같은 AUTHORING_WORK_DIR 아래에 만든다 — root 의 TMPDIR(700) 아래면 자리 uid 가 못 들어가 claude 가 1 로 끝난다', async () => {
+    const 바탕 = mkdtempSync(join(tmpdir(), 'scout-work-'));
+    vi.stubEnv('AUTHORING_WORK_DIR', 바탕);
+    try {
+      const { 손 } = 손만들기([{ status: 200, 몸: { question: 질문 } }], [끝사건()]);
+      await 챗봇자리돌기('http://admin', 'tpa_x', 0, null, 손);
+      const [, , 선택] = vi.mocked(손.돌린다).mock.calls[0]!;
+      expect((선택 as { cwd: string }).cwd.startsWith(`${바탕}/`)).toBe(true);
+    } finally {
+      vi.unstubAllEnvs();
+      rmSync(바탕, { recursive: true, force: true });
+    }
+  });
+
   it('조각 보내기가 409 면 자식을 끄고 finish 를 부른다', async () => {
     const { 손, 부름 } = 손만들기([{ status: 200, 몸: { question: 질문 } }], [부름사건('t1', 'mcp__qa-hub__run_list', {})], { 코드: null, 멈춤으로죽음: true });
     vi.mocked(손.부른다).mockImplementation(async (_a, _b, 길, 옵션 = {}) => {
@@ -351,5 +369,19 @@ describe('챗봇자리돌기 — 가져가기 → 조각 → 끝', () => {
     await 챗봇자리돌기('http://admin', 'tpa_x', 1, null, 손);
     expect(손.돌린다).not.toHaveBeenCalled();
     expect(멈춤.까닭).toBeNull();
+  });
+});
+
+describe('남은챗봇폴더치우기 — 죽은 자리가 남긴 질문 폴더', () => {
+  it('바탕의 scout- 폴더만 지우고 작성 사본(author-<번호>)은 남긴다. 바탕이 없으면 그냥 지나간다', () => {
+    const 바탕 = mkdtempSync(join(tmpdir(), 'scout-sweep-'));
+    try {
+      for (const 이름 of ['scout-abc', 'scout-def', 'author-12']) mkdirSync(join(바탕, 이름, '집'), { recursive: true });
+      남은챗봇폴더치우기(바탕);
+      expect(['scout-abc', 'scout-def', 'author-12'].map((x) => existsSync(join(바탕, x)))).toEqual([false, false, true]);
+      남은챗봇폴더치우기(join(바탕, '없는-폴더'));
+    } finally {
+      rmSync(바탕, { recursive: true, force: true });
+    }
   });
 });

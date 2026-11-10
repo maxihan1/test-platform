@@ -84,7 +84,7 @@ describe('Scout 채팅창 (도메인/챗봇 §8.18)', () => {
     expect(귀.url).toBe('/api/chat/questions/41/stream?after=0');
     screen.getByRole('button', { name: '중단' });
 
-    귀.보내기('wait', { ahead: 1 });
+    귀.보내기('wait', { ahead: 1, agentDown: false });
     screen.getByText('앞에 1건 대기 중');
     귀.보내기('chunk', { kind: 'STEP', body: { tool: 'run_result', ref: '12' } }, 1);
     screen.getByText('실행 #12 결과 확인하는 중');
@@ -150,6 +150,24 @@ describe('Scout 채팅창 (도메인/챗봇 §8.18)', () => {
     screen.getByText('답이 2분을 넘어 중단했습니다');
     // 다시 질문은 마지막 질문에만 선다
     expect(screen.getAllByRole('button', { name: '다시 질문' })).toHaveLength(1);
+  });
+
+  it('대기 중에 작성 서버가 꺼졌으면 앞 수 대신 꺼짐을 알리고, 차례가 오면 걷는다', async () => {
+    띄우기();
+    await 열기();
+    fireEvent.click(await screen.findByRole('button', { name: '오늘 실행 결과 요약' }));
+    await screen.findByText('앞에 2건 대기 중');
+    const 귀 = 가짜귀.들[0]!;
+    귀.보내기('wait', { ahead: 0, agentDown: true });
+    screen.getByText('작성 서버가 꺼져 있어요. 켜지면 바로 답해요');
+    expect(screen.queryByText(/대기 중/)).toBeNull();
+    귀.보내기('wait', { ahead: 0, agentDown: false });
+    expect(screen.queryByText('작성 서버가 꺼져 있어요. 켜지면 바로 답해요')).toBeNull();
+    // 다시 붙은 연결은 걷는 wait 를 못 받는다 — 답 조각이 오면 걷는다
+    귀.보내기('wait', { ahead: 0, agentDown: true });
+    귀.보내기('chunk', { kind: 'TEXT', body: '최근 실행은 3건이에요' }, 1);
+    expect(screen.queryByText('작성 서버가 꺼져 있어요. 켜지면 바로 답해요')).toBeNull();
+    screen.getByText('최근 실행은 3건이에요');
   });
 
   it('창이 닫힌 동안 답이 끝나면 버튼에 점이 붙고 「답이 도착했어요」 가 3초 보인다', async () => {

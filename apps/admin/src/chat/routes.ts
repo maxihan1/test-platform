@@ -88,7 +88,7 @@ export default async function chatRoutes(app: FastifyInstance): Promise<void> {
     raw.on('close', () => 끊김.abort());
     if (raw.destroyed || req.raw.socket.destroyed) 끊김.abort();
     const 귀 = 바뀜듣기(id, 끊김.signal);
-    let 보낸대기: number | null = null;
+    let 보낸대기: string | null = null;
     try {
       while (!끊김.signal.aborted) {
         const 지금 = await 이어읽기(id, after);
@@ -101,9 +101,11 @@ export default async function chatRoutes(app: FastifyInstance): Promise<void> {
           raw.write(`event: chunk\nid: ${String(seq)}\ndata: ${JSON.stringify({ kind, body })}\n\n`);
           after = seq;
         }
-        if (지금.status === 'QUEUED' && 지금.ahead !== 보낸대기) {
-          raw.write(`event: wait\ndata: ${JSON.stringify({ ahead: 지금.ahead })}\n\n`);
-          보낸대기 = 지금.ahead;
+        // 대기를 벗어나면 꺼짐 안내를 한 번 걷는다 — 첫 진행 줄이 오기까지 몇 초 「꺼져 있어요」 가 남지 않게
+        const 대기 = JSON.stringify(지금.status === 'QUEUED' ? { ahead: 지금.ahead, agentDown: 지금.agentDown } : { ahead: 0, agentDown: false });
+        if ((지금.status === 'QUEUED' || 보낸대기 !== null) && 대기 !== 보낸대기) {
+          raw.write(`event: wait\ndata: ${대기}\n\n`);
+          보낸대기 = 대기;
         }
         if (끝난상태.has(지금.status)) {
           raw.write(`event: end\ndata: ${JSON.stringify({ status: 지금.status })}\n\n`);

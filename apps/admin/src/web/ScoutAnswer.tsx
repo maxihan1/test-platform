@@ -79,29 +79,32 @@ const 끝글: Partial<Record<질문['status'], string>> = {
   FAILED: '답을 만들지 못했습니다',
 };
 
-export function ScoutAnswer({ q, btsUrl, 앞, 다시질문 }: { q: 질문; btsUrl: string | null; 앞: number | null; 다시질문: (() => void) | null }) {
+export function ScoutAnswer({ q, btsUrl, 앞, 꺼짐, 다시질문 }: { q: 질문; btsUrl: string | null; 앞: number | null; 꺼짐: boolean; 다시질문: (() => void) | null }) {
   const t = use말();
   const [펼침, set펼침] = useState(false);
   const 끝 = 끝글[q.status];
   // 조각이 올 때마다 모든 질문이 다시 그려진다 — 바뀌지 않은 답을 다시 풀지 않는다
   const 덩이들 = useMemo(() => 답풀기(q.answer, btsUrl), [q.answer, btsUrl]);
+  const 대기 = q.status === 'QUEUED' && q.steps.length === 0;
+  // 작성 서버가 꺼졌으면 앞 수보다 그것을 먼저 알린다 — 앞이 0 인데 차례가 안 와 멈춘 것처럼 보였다 (SCOUT-F1-07)
+  const 대기글 = !대기 ? null : 꺼짐 ? t('작성 서버가 꺼져 있어요. 켜지면 바로 답해요') : 앞 !== null && 앞 > 0 ? t('앞에 {수}건 대기 중', { 수: 앞 }) : null;
   return (
     <>
       <div className="scout-me">{q.text}</div>
       <div className="scout-ai">
         {/* 앞 수를 모르거나 0 이면 줄 없이 맥박만 — 차례가 온 질문을 「앞에 0건」 으로 세우지 않는다 */}
-        {q.status === 'QUEUED' && q.steps.length === 0 && 앞 !== null && 앞 > 0 ? (
+        {대기글 !== null ? (
           <ul className="scout-steps" aria-live="polite">
             <li className="wait">
               <span className="scout-pulse gray" aria-hidden="true" />
-              {t('앞에 {수}건 대기 중', { 수: 앞 })}
+              {대기글}
             </li>
           </ul>
         ) : null}
         {q.answer === '' ? (
           q.steps.length > 0 ? (
             <진행줄 단계들={q.steps} />
-          ) : !끝났나(q.status) && !(q.status === 'QUEUED' && 앞 !== null && 앞 > 0) ? (
+          ) : !끝났나(q.status) && 대기글 === null ? (
             <span className="scout-pulse" aria-hidden="true" />
           ) : null
         ) : q.steps.length === 0 ? null : (

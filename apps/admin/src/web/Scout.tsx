@@ -246,7 +246,7 @@ export function Scout({ projectId, projectName, 휴대폰 }: { projectId: number
               </div>
             ) : (
               질문들.map((q) => (
-                <ScoutAnswer key={q.id} q={q} btsUrl={s.btsUrl} 앞={s.앞} 다시질문={q === 마지막 && 끝났나(q.status) ? () => 보내기(q.text) : null} />
+                <ScoutAnswer key={q.id} q={q} btsUrl={s.btsUrl} 앞={s.앞} 꺼짐={s.꺼짐} 다시질문={q === 마지막 && 끝났나(q.status) ? () => 보내기(q.text) : null} />
               ))
             )}
           </div>
