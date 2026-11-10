@@ -30,10 +30,10 @@ describe('새 작성 마법사 1단계 — 가이드 먼저 (2026-11-11 사용�
     render(<AuthoringNew service="PAY" on넣었다={() => {}} />);
     expect(await screen.findByRole('textbox', { name: '애플리케이션 소개' })).toBeTruthy();
     expect(screen.getAllByRole('textbox')).toHaveLength(3);
-    expect(screen.getByText('애플리케이션을 알려 주세요')).toBeTruthy();
-    expect(버튼('저장하고 다음').disabled).toBe(true);
-    fireEvent.click(버튼('나중에 쓰기'));
-    expect(지금단계()).toBe('2 작성 방법');
+    expect(screen.getByText('애플리케이션 정보 입력')).toBeTruthy();
+    expect(버튼('저장 후 다음').disabled).toBe(true);
+    fireEvent.click(버튼('건너뛰기'));
+    expect(지금단계()).toBe('2 작성 방식');
     expect(저장).not.toHaveBeenCalled();
   });
 
@@ -42,9 +42,9 @@ describe('새 작성 마법사 1단계 — 가이드 먼저 (2026-11-11 사용�
     let 닫음 = 0;
     render(<AuthoringNew service="PAY" on넣었다={() => {}} onClose={() => (닫음 += 1)} />);
     fireEvent.change(await screen.findByRole('textbox', { name: '정책' }), { target: { value: '실카드 금지' } });
-    expect(버튼('나중에 쓰기').disabled).toBe(true);
+    expect(버튼('건너뛰기').disabled).toBe(true);
     fireEvent.change(screen.getByRole('textbox', { name: '정책' }), { target: { value: '' } });
-    expect(버튼('나중에 쓰기').disabled).toBe(false);
+    expect(버튼('건너뛰기').disabled).toBe(false);
     fireEvent.click(버튼('취소'));
     expect(닫음).toBe(1);
   });
@@ -53,8 +53,8 @@ describe('새 작성 마법사 1단계 — 가이드 먼저 (2026-11-11 사용�
     지금.mockResolvedValueOnce(빈가이드).mockResolvedValue({ ...빈가이드, version: 1, policy: '실카드는 쓰지 않습니다' });
     render(<AuthoringNew service="PAY" on넣었다={() => {}} />);
     fireEvent.change(await screen.findByRole('textbox', { name: '정책' }), { target: { value: '실카드는 쓰지 않습니다' } });
-    fireEvent.click(버튼('저장하고 다음'));
-    await waitFor(() => expect(지금단계()).toBe('2 작성 방법'));
+    fireEvent.click(버튼('저장 후 다음'));
+    await waitFor(() => expect(지금단계()).toBe('2 작성 방식'));
     expect(저장).toHaveBeenCalledWith('PAY', 0, { intro: '', policy: '실카드는 쓰지 않습니다', rules: '' });
   });
 
@@ -63,13 +63,13 @@ describe('새 작성 마법사 1단계 — 가이드 먼저 (2026-11-11 사용�
     render(<AuthoringNew service="PAY" envs={[{ env: 'qa', baseUrl: 'https://qa.example.com' }]} on넣었다={() => {}} />);
     expect(await screen.findByText('주문 이름은 qa- 로 시작합니다')).toBeTruthy();
     expect(screen.queryByRole('textbox')).toBeNull();
-    expect(screen.queryByRole('button', { name: '나중에 쓰기' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '건너뛰기' })).toBeNull();
     fireEvent.click(버튼('다음'));
-    fireEvent.click(버튼('화면을 훑어서 작성'));
+    fireEvent.click(버튼('화면 대조'));
     fireEvent.click(버튼('다음'));
     fireEvent.click(버튼('다음'));
     expect(지금단계()).toBe('4 확인');
-    expect(screen.getByText('웹 가이드 버전 2을 같이 읽습니다')).toBeTruthy();
+    expect(screen.getByText('웹 가이드 버전 2 참고')).toBeTruthy();
   });
 
   it('있는 가이드의 구획을 고치는 중이면 저장하거나 취소할 때까지 다음으로 못 간다', async () => {
@@ -78,7 +78,7 @@ describe('새 작성 마법사 1단계 — 가이드 먼저 (2026-11-11 사용�
     fireEvent.click(await screen.findByRole('button', { name: '작업 규칙 수정' }));
     fireEvent.change(screen.getByRole('textbox', { name: '작업 규칙' }), { target: { value: '고치는 중' } });
     expect(버튼('다음').disabled).toBe(true);
-    expect(screen.getByText('수정한 가이드 구획을 저장하거나 취소하세요')).toBeTruthy();
+    expect(screen.getByText('수정 중인 가이드를 저장하거나 취소하세요')).toBeTruthy();
     fireEvent.click(within(screen.getByRole('region', { name: '작업 규칙' })).getByRole('button', { name: '취소' }));
     expect(버튼('다음').disabled).toBe(false);
   });

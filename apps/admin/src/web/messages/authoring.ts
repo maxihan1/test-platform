@@ -31,48 +31,49 @@ export const 작성말: Record<string, string> = {
   '새 작성': 'New request',
   // 새 작성 마법사 — 단계 · 머리 · 막는 까닭 (2026-11-11 사용자 시안 WizardB)
   가이드: 'Guide',
-  '작성 방법': 'Method',
+  '작성 방식': 'Method',
   확인: 'Review',
-  '애플리케이션을 알려 주세요': 'Tell us about the application',
-  '이 가이드를 같이 읽습니다': 'This guide is read along',
-  'AI 가 케이스를 작성할 때 참고합니다. 기대 결과는 요구사항에서만 가져옵니다':
+  '애플리케이션 정보 입력': 'Tell us about the application',
+  '가이드 확인': 'This guide is read along',
+  'AI 가 케이스를 작성할 때 참고하는 정보입니다. 기대 결과의 근거로는 쓰지 않습니다':
     'AI reads it while writing cases. Expected results come only from the requirements',
-  '나중에 쓰기': 'Write later',
-  '저장하고 다음': 'Save and next',
-  '무엇으로 케이스를 작성할까요?': 'What should the cases be written from?',
-  '기대 결과는 요구사항에서만 가져옵니다. 화면에서 읽은 값은 미확정으로 표시됩니다':
+  '건너뛰기': 'Write later',
+  '저장 후 다음': 'Save and next',
+  '작성 방식 선택': 'What should the cases be written from?',
+  '기대 결과는 PRD 요구사항 기준입니다. 화면에서 가져온 값은 미확정으로 표시됩니다':
     'Expected results come only from the requirements. Values read from the screen are marked unconfirmed',
-  '기획서로 작성': 'From the spec',
-  'PRD 파일과 피그마를 읽고 요구사항마다 케이스를 작성합니다': 'Reads the PRD files and Figma and writes cases per requirement',
-  '화면을 훑어서 작성': 'By scanning screens',
-  '기획서 없이 실제 화면을 훑어 PRD 에 아직 없는 화면의 케이스를 작성합니다':
+  'PRD 기준': 'PRD based',
+  'PRD · 피그마의 요구사항별로 케이스를 작성합니다': 'Reads the PRD files and Figma and writes cases per requirement',
+  '화면 대조': 'Screen compare',
+  'PRD 없이 실제 화면을 탐색해 PRD 에 아직 없는 화면의 케이스를 작성합니다':
     'Scans the live screens without a spec and writes cases for screens not yet in the PRD',
-  '기획서 + 실제 화면 대조': 'Spec + live screen compare',
-  '기획서 화면을 먼저 작성하고, 반영되면 기획서에 없는 화면을 이어서 작성합니다':
+  'PRD + 화면 대조': 'PRD + screen compare',
+  'PRD 에 있는 화면을 먼저 작성한 뒤 PRD 에 아직 없는 화면을 이어서 작성합니다':
     'Writes the spec screens first and, once applied, continues with screens the spec does not cover',
-  '무엇을 보고 작성할까요?': 'What should the cases be written from?',
-  '기획서와 디자인을 넣어 주세요': 'Add the spec and designs',
-  '여러 파일을 한 세트로 넣을 수 있습니다': 'Several files can go in as one set',
+  'API 문서 · 자료 선택': 'What should the cases be written from?',
+  'PRD · 디자인 첨부': 'Add the spec and designs',
+  '여러 파일을 함께 첨부할 수 있습니다': 'Several files can go in as one set',
   'PRD 파일': 'PRD files',
-  '파일을 여기로 끌어다 놓거나': 'Drop files here or',
-  'PDF · 워드 · 엑셀 · md · txt · csv · 파일 하나 20MB 까지': 'PDF · Word · Excel · md · txt · csv · up to 20MB each',
-  '어느 서버의 화면과 대조할까요?': 'Which server should the screens be compared on?',
-  '이 서버의 화면을 읽어 기획서와 대조합니다': 'Screens on this server are read and compared with the spec',
-  '비우면 대상 서버 주소에서 시작합니다': 'Leave empty to start from the target server URL',
-  '디바이스에서 앱을 켠 첫 화면에서 시작합니다': 'Starts from the first screen after the app launches on the device',
-  '이렇게 작성합니다': 'Here is the plan',
-  '가이드 없이 작성합니다': 'Written without a guide',
-  '{가이드} 버전 {버전}을 같이 읽습니다': 'Reads {가이드} version {버전} too',
+  '파일을 끌어다 놓거나': 'Drop files here or',
+  'PDF · 워드 · 엑셀 · md · txt · csv · 파일당 최대 20MB': 'PDF · Word · Excel · md · txt · csv · up to 20MB each',
+  '대상 서버 선택': 'Which server should the screens be compared on?',
+  '이 서버의 화면을 탐색합니다': 'Screens on this server are explored',
+  '이 서버의 화면과 PRD 를 대조합니다': 'Screens on this server are read and compared with the spec',
+  '비워 두면 대상 서버 주소에서 시작합니다': 'Leave empty to start from the target server URL',
+  '디바이스에서 앱을 실행한 첫 화면부터 시작합니다': 'Starts from the first screen after the app launches on the device',
+  '작성 내용 확인': 'Here is the plan',
+  '가이드 없음': 'Written without a guide',
+  '{가이드} 버전 {버전} 참고': 'Reads {가이드} version {버전} too',
   '피그마 {수}건': '{수} Figma links',
-  'API 문서의 엔드포인트마다 케이스를 작성해 검토용 PR 로 등록합니다': 'Writes cases per API endpoint and opens a review PR',
-  'PRD 에 아직 없는 화면만 작성합니다': 'Writes only screens not yet in the PRD',
-  '요구사항마다 케이스를 작성해 검토용 PR 로 등록합니다': 'Writes cases per requirement and opens a review PR',
-  '시작한 뒤 이 창을 닫아도 작성은 계속됩니다': 'Writing continues even if you close this window after starting',
-  '수정한 가이드 구획을 저장하거나 취소하세요': 'Save or cancel the guide section you edited',
-  '작성 방법을 선택하세요': 'Choose a method',
-  '넣은 자료를 확인하세요': 'Check the materials you added',
+  '엔드포인트별로 케이스를 작성해 검토 PR 로 등록합니다': 'Writes cases per API endpoint and opens a review PR',
+  'PRD 에 아직 없는 화면의 케이스를 작성합니다': 'Writes only screens not yet in the PRD',
+  '요구사항별로 케이스를 작성해 검토 PR 로 등록합니다': 'Writes cases per requirement and opens a review PR',
+  '시작 후 창을 닫아도 작성은 계속 진행됩니다': 'Writing continues even if you close this window after starting',
+  '수정 중인 가이드를 저장하거나 취소하세요': 'Save or cancel the guide section you edited',
+  '작성 방식을 선택하세요': 'Choose a method',
+  '첨부한 자료를 확인하세요': 'Check the materials you added',
   'API 문서 버전과 대상 서버를 선택하세요': 'Choose the API doc version and target server',
-  '기획서 파일이나 피그마 주소를 하나 이상 넣으세요': 'Add at least one spec file or Figma link',
+  'PRD 파일 또는 피그마 주소를 1건 이상 입력하세요': 'Add at least one spec file or Figma link',
   '대상 서버를 선택하세요': 'Choose a target server',
   '피그마 주소': 'Figma links',
   '한 줄에 하나씩': 'One per line',
@@ -82,28 +83,28 @@ export const 작성말: Record<string, string> = {
   // API 애플리케이션의 새 요청 폼 (도메인/작성 §7 「AUTHOR API 문서 판」)
   '버전 {버전} (현재 버전)': 'Version {버전} (current)',
   '버전 {버전}': 'Version {버전}',
-  'API 문서가 아직 없습니다. API 문서 화면에서 먼저 받습니다': 'There is no API doc yet. Fetch one on the API docs screen first',
-  'API 문서 화면으로': 'Go to the API docs screen',
+  'API 문서가 없습니다. API 문서 화면에서 먼저 가져오세요': 'There is no API doc yet. Fetch one on the API docs screen first',
+  'API 문서 화면으로 이동': 'Go to the API docs screen',
   '지원하지 않는 파일입니다. PDF · 워드 · 엑셀 · md · txt · csv 만 업로드할 수 있습니다': 'File type not accepted. Only PDF · Word · Excel · md · txt · csv',
   '지원하지 않는 파일입니다. PDF · 워드 · md · txt 만 업로드할 수 있습니다': 'File type not accepted. Only PDF · Word · md · txt',
-  '이 요청은 대기열에 들어가지 못했습니다. 새 요청으로 다시 넣으세요': 'This request was not queued. Submit a new request',
+  '요청을 접수하지 못했습니다. 다시 요청하세요': 'This request was not queued. Submit a new request',
   '이 요청은 대기열에 들어가지 못했습니다. 삭제하고 새 요청으로 다시 넣으세요': 'This request was not queued. Delete it and submit a new request',
-  '파일 하나가 크기 상한을 넘었습니다': 'The file is larger than the per-file limit',
+  '20MB 를 넘는 파일은 업로드할 수 없습니다': 'The file is larger than the per-file limit',
   '빈 파일은 업로드할 수 없습니다': 'Empty files cannot be uploaded',
-  '피그마 주소 형식이 맞지 않습니다. 피그마 디자인 파일의 링크를 넣으세요 (FigJam은 받지 않습니다)':
+  '피그마 주소 형식이 맞지 않습니다. 피그마 디자인 파일 링크를 입력하세요 (FigJam 은 지원하지 않습니다)':
     'Not a Figma link we accept. Paste a Figma design file link (FigJam is not accepted)',
-  '파일 이름에 쓸 수 없는 글자(따옴표 · 빗금 · ..)가 있습니다': 'The file name has characters that are not allowed (quotes · slashes · ..)',
-  '한 요청에 넣을 수 있는 자료 개수를 넘었습니다': 'Too many attachments for one request',
-  '자료가 하나도 없습니다. 파일이나 피그마 주소를 넣으세요': 'No attachments. Add a file or a Figma link',
+  '파일 이름에 사용할 수 없는 문자(따옴표 · 슬래시 · ..)가 있습니다': 'The file name has characters that are not allowed (quotes · slashes · ..)',
+  '한 요청에 첨부할 수 있는 자료 수를 넘었습니다': 'Too many attachments for one request',
+  '첨부한 자료가 없습니다. 파일 또는 피그마 주소를 입력하세요': 'No attachments. Add a file or a Figma link',
   '요청한 사람만 자료를 업로드할 수 있습니다': 'Only the requester can upload attachments',
   // 피그마를 미리 열어 보기 (도메인/작성 §7 「자료」 「미리 열어 보기」)
-  '이 애플리케이션에는 피그마 토큰이 없어 피그마 주소를 받을 수 없습니다.': 'This application has no Figma token, so Figma links cannot be accepted.',
-  '설정 > 애플리케이션에서 피그마 토큰을 넣으세요': 'Add a Figma token in Settings > Applications',
-  '관리자에게 피그마 토큰을 넣어 달라고 요청하세요': 'Ask an admin to add a Figma token',
-  '피그마가 이 애플리케이션의 토큰을 받아 주지 않습니다. 토큰이 틀렸거나 만료됐거나 읽기 권한이 모자랍니다.': 'Figma does not accept this application’s token. It is wrong, has expired, or lacks read permission.',
-  '설정 > 애플리케이션에서 새 피그마 토큰을 넣으세요': 'Add a new Figma token in Settings > Applications',
-  '관리자에게 새 피그마 토큰을 넣어 달라고 요청하세요': 'Ask an admin to add a new Figma token',
-  '피그마 파일을 열지 못했습니다. 파일이 없거나 이 토큰으로 볼 권한이 없습니다 ({주소})':
+  '피그마 토큰이 등록되지 않아 피그마 주소를 사용할 수 없습니다.': 'This application has no Figma token, so Figma links cannot be accepted.',
+  '설정 > 애플리케이션에서 피그마 토큰을 등록하세요': 'Add a Figma token in Settings > Applications',
+  '관리자에게 피그마 토큰 등록을 요청하세요': 'Ask an admin to add a Figma token',
+  '피그마 토큰 인증에 실패했습니다. 토큰이 잘못됐거나 만료됐거나 읽기 권한이 없습니다.': 'Figma does not accept this application’s token. It is wrong, has expired, or lacks read permission.',
+  '설정 > 애플리케이션에서 피그마 토큰을 다시 등록하세요': 'Add a new Figma token in Settings > Applications',
+  '관리자에게 피그마 토큰 재등록을 요청하세요': 'Ask an admin to add a new Figma token',
+  '피그마 파일을 열지 못했습니다. 파일이 없거나 토큰에 열람 권한이 없습니다 ({주소})':
     'Could not open the Figma file. It does not exist or this token cannot view it ({주소})',
 
   // 상세
@@ -118,9 +119,9 @@ export const 작성말: Record<string, string> = {
 
   // 시작 모달 (DESIGN.md 「모달」 ①)
   '테스트 작성을 시작했습니다': 'Test writing started',
-  '상세 페이지로': 'Open details',
+  '상세 보기': 'Open details',
   '#{번호} 요청이 접수됐습니다.': 'Request #{번호} was accepted.',
-  '창을 닫아도 작성은 계속됩니다. 테스트 작성 목록의 #{번호} 줄을 누르면 언제든 다시 볼 수 있습니다.':
+  '창을 닫아도 작성은 계속 진행됩니다. 테스트 작성 목록에서 #{번호}를 누르면 다시 볼 수 있습니다.':
     'Writing continues after you close this. Click the #{번호} row in the test writing list to see it again any time.',
 
   // Status 카드 (DESIGN.md 「작성 상태」)
@@ -223,13 +224,13 @@ export const 작성말: Record<string, string> = {
   '실제 화면과 대조': 'Compare with the live screen',
   '화면과 대조': 'Screen compare',
   '시작 주소': 'Start URL',
-  '이 애플리케이션에는 대상 서버가 없습니다. 설정 > 애플리케이션에서 먼저 넣으세요':
+  '등록된 대상 서버가 없습니다. 설정 > 애플리케이션에서 먼저 등록하세요':
     'This application has no target servers. Add one in Settings > Applications first',
-  '이 대상 서버에는 테스트 계정이 없거나 실서비스 서버로 체크돼 있습니다. 설정 > 애플리케이션에서 확인하세요':
+  '대상 서버에 테스트 계정이 없거나 실서비스 서버로 지정되어 있습니다. 설정 > 애플리케이션에서 확인하세요':
     'This target server has no test account or is marked as production. Check Settings > Applications',
-  '이 대상 서버에는 디바이스에서 켤 앱(앱 파일 경로나 업로드한 빌드)이 없거나 실서비스 서버로 체크돼 있습니다. 설정 > 애플리케이션에서 확인하세요':
+  '대상 서버에 디바이스에서 실행할 앱(앱 파일 경로 또는 업로드한 빌드)이 없거나 실서비스 서버로 지정되어 있습니다. 설정 > 애플리케이션에서 확인하세요':
     'This target server has no app to launch on the phone (app file path or uploaded build) or is marked as production. Check Settings > Applications',
-  '이 대상 서버에는 디바이스에서 켤 앱(앱 파일 경로나 업로드한 빌드)이 없거나 실서비스 서버로 체크돼 있습니다. 관리자에게 확인을 요청하세요':
+  '대상 서버에 디바이스에서 실행할 앱(앱 파일 경로 또는 업로드한 빌드)이 없거나 실서비스 서버로 지정되어 있습니다. 관리자에게 확인을 요청하세요':
     'This target server has no app to launch on the phone (app file path or uploaded build) or is marked as production. Ask an admin to check',
   '시작 주소는 선택한 대상 서버와 같은 주소(도메인 · 포트)여야 합니다':
     'The start URL must be on the same address (domain · port) as the chosen target server',
@@ -306,11 +307,11 @@ export const 작성말: Record<string, string> = {
 
   // 새 요청 — Android 앱 애플리케이션 (도메인/러너 §5.2 종류 표)
   '앱 화면 읽기': 'Reading app screens',
-  '대상 서버에 앱 파일 경로가 있으면 Device VISION 에서 유휴 디바이스 하나를 할당받아 앱을 설치하고, 첫 화면부터 눌러 가며 요소 주소를 읽습니다. 완료되면 디바이스를 반납합니다':
+  '대상 서버에 앱 파일 경로가 있으면 Device VISION 에서 유휴 디바이스를 할당받아 앱을 설치합니다. 첫 화면부터 화면을 눌러 요소 주소를 읽고, 완료되면 디바이스를 반납합니다':
     'If the target server has an app file path, takes a free phone from Device VISION, installs the app, and taps through from the first screen to read element locators. The phone is released when done',
-  '앱 케이스는 끝 검사에서 디바이스로 실행해 보지 않습니다. 반영 뒤 「테스트 실행」 메뉴에서 실행해 확인합니다':
+  '작성 중에는 앱 케이스를 디바이스에서 실행하지 않습니다. 반영 후 「테스트 실행」 메뉴에서 실행해 확인하세요':
     'App cases are not run on a phone during the final check. Run them from “Test runs” after the merge',
   '게임 화면 읽기': 'Reading game screens',
-  'Device VISION 에서 유휴 디바이스 하나를 할당받아 게임을 설치하고, 로그인 창부터 창을 하나씩 열어 오브젝트 목록을 읽습니다. 완료되면 디바이스를 반납합니다':
+  'Device VISION 에서 유휴 디바이스를 할당받아 게임을 설치합니다. 로그인 창부터 창을 하나씩 열어 오브젝트 목록을 읽고, 완료되면 디바이스를 반납합니다':
     'Takes a free phone from Device VISION, installs the game, and opens each window from the login window on to read its object list. The phone is released when done',
 };

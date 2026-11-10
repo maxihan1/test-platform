@@ -81,7 +81,7 @@ const 다음버튼 = () => screen.getByRole('button', { name: '다음' }) as HTM
 function 자료단계로(화면: ReactElement) {
   render(화면);
   fireEvent.click(다음버튼());
-  fireEvent.click(screen.getByRole('button', { name: '기획서로 작성' }));
+  fireEvent.click(screen.getByRole('button', { name: 'PRD 기준' }));
   fireEvent.click(다음버튼());
 }
 
@@ -182,7 +182,7 @@ describe('새 작성 요청 — 자료 목록', () => {
     자료단계로(<AuthoringNew service="PAY" on넣었다={() => {}} />);
     피그마를적는다('   \n ');
     expect(다음버튼()).toHaveProperty('disabled', true);
-    expect(screen.getByText('기획서 파일이나 피그마 주소를 하나 이상 넣으세요')).toBeTruthy();
+    expect(screen.getByText('PRD 파일 또는 피그마 주소를 1건 이상 입력하세요')).toBeTruthy();
     expect(부름).toHaveLength(0);
   });
 
@@ -217,11 +217,11 @@ describe('새 작성 요청 — 자료 목록', () => {
     파일을고른다('하나.pdf', '둘.docx', '셋.md');
     시작한다();
 
-    await screen.findByText(/이 요청은 대기열에 들어가지 못했습니다\. 새 요청으로 다시 넣으세요/);
+    await screen.findByText(/요청을 접수하지 못했습니다\. 다시 요청하세요/);
     expect(부름.map((b) => b.무엇)).toEqual(['만들기', '업로드', '업로드', '치우기']);
     expect(부름.at(-1)?.값).toEqual({ id: 7 });
     expect(screen.getByText(/\(둘\.docx — /)).toBeTruthy();
-    expect(screen.queryByText(/목록에 남은 그 줄은 삭제하세요/)).toBeNull();
+    expect(screen.queryByText(/목록에 남은 요청은 삭제하세요/)).toBeNull();
     expect(넣었다).toBe(0);
   });
 
@@ -241,7 +241,7 @@ describe('새 작성 요청 — 자료 목록', () => {
     자료단계로(<AuthoringNew service="PAY" on넣었다={() => {}} />);
     파일을고른다('하나.pdf');
     시작한다();
-    expect(await screen.findByText(/목록에 남은 그 줄은 삭제하세요/)).toBeTruthy();
+    expect(await screen.findByText(/목록에 남은 요청은 삭제하세요/)).toBeTruthy();
   });
 
   it('받지 않는 종류를 고르면 보내기 전에 이유를 보이고 버튼을 끈다', () => {
@@ -271,10 +271,10 @@ describe('새 작성 요청 — 자료 목록', () => {
   });
 
   it.each([
-    ['20MB 를 넘는 파일', () => 이파일들을고른다(크기를단파일('큰.pdf', 20 * 1024 * 1024 + 1)), /크기 상한/],
+    ['20MB 를 넘는 파일', () => 이파일들을고른다(크기를단파일('큰.pdf', 20 * 1024 * 1024 + 1)), /20MB 를 넘는 파일/],
     ['0바이트 파일', () => 이파일들을고른다(크기를단파일('빈.pdf', 0)), /빈 파일/],
-    ['이름에 따옴표가 든 파일', () => 파일을고른다('a"b.pdf'), /쓸 수 없는 글자/],
-    ['이름에 ..가 든 파일', () => 파일을고른다('a..b.pdf'), /쓸 수 없는 글자/],
+    ['이름에 따옴표가 든 파일', () => 파일을고른다('a"b.pdf'), /사용할 수 없는 문자/],
+    ['이름에 ..가 든 파일', () => 파일을고른다('a..b.pdf'), /사용할 수 없는 문자/],
     ['점으로 시작하고 확장자가 없는 이름(.md)', () => 파일을고른다('.md'), /지원하지 않는 파일/],
     [
       '파일과 피그마 줄을 합쳐 20을 넘는 것',
@@ -282,7 +282,7 @@ describe('새 작성 요청 — 자료 목록', () => {
         파일을고른다(...Array.from({ length: 18 }, (_, i) => `${i}.pdf`));
         피그마를적는다('https://www.figma.com/design/A/\nhttps://www.figma.com/design/B/\nhttps://www.figma.com/design/C/');
       },
-      /개수를 넘었습니다/,
+      /자료 수를 넘었습니다/,
     ],
   ])('%s 는 보내기 전에 이유를 보이고 버튼을 끈다', (_이름, 고른다, 문구) => {
     자료단계로(<AuthoringNew service="PAY" on넣었다={() => {}} />);
@@ -311,7 +311,7 @@ describe('피그마를 미리 막는다 (점검 11.5)', () => {
     자료단계로(<AuthoringNew service="PAY" 운영자 피그마토큰={false} on넣었다={() => {}} />);
     파일을고른다('기획서.pdf');
     피그마를적는다('https://www.figma.com/design/A/');
-    expect(screen.getByText(/피그마 토큰이 없어 피그마 주소를 받을 수 없습니다\. 설정 > 애플리케이션에서 피그마 토큰을 넣으세요/)).toBeTruthy();
+    expect(screen.getByText(/피그마 토큰이 등록되지 않아 피그마 주소를 사용할 수 없습니다\. 설정 > 애플리케이션에서 피그마 토큰을 등록하세요/)).toBeTruthy();
     expect(다음버튼()).toHaveProperty('disabled', true);
     피그마를적는다('');
     expect(다음버튼()).toHaveProperty('disabled', false);
@@ -320,7 +320,7 @@ describe('피그마를 미리 막는다 (점검 11.5)', () => {
   it('운영자가 아니면 운영자에게 요청하라고 안내한다', () => {
     자료단계로(<AuthoringNew service="PAY" 피그마토큰={false} on넣었다={() => {}} />);
     피그마를적는다('https://www.figma.com/design/A/');
-    expect(screen.getByText(/관리자에게 피그마 토큰을 넣어 달라고 요청하세요/)).toBeTruthy();
+    expect(screen.getByText(/관리자에게 피그마 토큰 등록을 요청하세요/)).toBeTruthy();
   });
 
   it('토큰이 없어도 파일만 올리는 요청은 보낸다 — 피그마 칸은 싣지 않는다', async () => {
@@ -338,9 +338,9 @@ describe('피그마를 미리 막는다 (점검 11.5)', () => {
   });
 
   it.each([
-    ['NO_TOKEN', /토큰이 없어 피그마 주소를 받을 수 없습니다/],
-    ['TOKEN', /토큰이 틀렸거나 만료됐거나 읽기 권한이 모자랍니다\. 관리자에게 새 피그마 토큰을 넣어 달라고 요청하세요/],
-    ['FILE:https://www.figma.com/design/A/', /파일이 없거나 이 토큰으로 볼 권한이 없습니다 \(https:\/\/www\.figma\.com\/design\/A\/\)/],
+    ['NO_TOKEN', /토큰이 등록되지 않아 피그마 주소를 사용할 수 없습니다/],
+    ['TOKEN', /토큰이 잘못됐거나 만료됐거나 읽기 권한이 없습니다\. 관리자에게 피그마 토큰 재등록을 요청하세요/],
+    ['FILE:https://www.figma.com/design/A/', /파일이 없거나 토큰에 열람 권한이 없습니다 \(https:\/\/www\.figma\.com\/design\/A\/\)/],
   ])('서버가 %s 로 거절하면 사람 말로 알리고 줄에 안 세운다', async (까닭, 문구) => {
     만들기답 = Promise.reject(new ApiError(400, 'FIGMA_DENIED', 까닭));
     자료단계로(<AuthoringNew service="PAY" on넣었다={() => {}} />);
@@ -367,7 +367,7 @@ describe('피그마를 미리 막는다 (점검 11.5)', () => {
     피그마를적는다('https://www.figma.com/design/A/');
     시작한다();
 
-    await screen.findByText(/설정 > 애플리케이션에서 새 피그마 토큰을 넣으세요/);
+    await screen.findByText(/설정 > 애플리케이션에서 피그마 토큰을 다시 등록하세요/);
   });
 });
 

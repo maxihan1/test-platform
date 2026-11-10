@@ -43,7 +43,7 @@ export function Guide({ service, 할수 }: { service: string; 할수: 판정 }) 
           )
         }
       />
-      <p className="prd-note">{t('기대 결과는 요구사항(표준 기획서)에서만 옵니다. 가이드는 애플리케이션을 이해하고 테스트를 실행하는 데만 씁니다')}</p>
+      <p className="prd-note">{t('기대 결과는 요구사항(표준 기획서) 기준입니다. 가이드는 애플리케이션 이해와 테스트 실행에만 참고합니다')}</p>
       {기록 ? <GuideVersions service={service} 지금판={now.version} /> : null}
       {/* 메뉴 · 고리 · 서비스 고르개로 떠나도 묻는다 — 앞 판은 창을 닫을 때만 물었다(점검 9.1) */}
       <떠나기상자 막나={상태.바뀜} 버리기도 />

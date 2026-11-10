@@ -88,16 +88,16 @@ describe('새 작성 요청 — API 애플리케이션', () => {
   it('판이 하나도 없으면 안내와 링크를 보이고 시작 단추를 막는다', async () => {
     목록답 = () => Promise.resolve({ docPath: null, docEnv: null, versions: [] });
     await 그린다();
-    expect(await screen.findByText('API 문서가 아직 없습니다. API 문서 화면에서 먼저 받습니다')).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'API 문서 화면으로' }).getAttribute('href')).toBe('#/api/docs');
+    expect(await screen.findByText('API 문서가 없습니다. API 문서 화면에서 먼저 가져오세요')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'API 문서 화면으로 이동' }).getAttribute('href')).toBe('#/api/docs');
     expect(다음버튼().disabled).toBe(true);
   });
 
   it('화면 애플리케이션(NOT_API_SERVICE)이면 지금 폼 그대로다', async () => {
     목록답 = () => Promise.reject(new ApiError(400, 'NOT_API_SERVICE', 'x'));
     await 그린다();
-    expect(screen.getByRole('button', { name: '기획서 + 실제 화면 대조' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: '기획서로 작성' }));
+    expect(screen.getByRole('button', { name: 'PRD + 화면 대조' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'PRD 기준' }));
     fireEvent.click(다음버튼());
     expect(screen.getByLabelText('피그마 주소')).toBeTruthy();
     expect(screen.queryByRole('combobox', { name: 'API 문서' })).toBeNull();
@@ -106,7 +106,7 @@ describe('새 작성 요청 — API 애플리케이션', () => {
   it('그 밖의 오류는 알리되 화면 폼은 쓸 수 있다', async () => {
     목록답 = () => Promise.reject(new Error('망이 끊겼습니다'));
     await 그린다();
-    fireEvent.click(screen.getByRole('button', { name: '기획서로 작성' }));
+    fireEvent.click(screen.getByRole('button', { name: 'PRD 기준' }));
     fireEvent.click(다음버튼());
     expect(await screen.findByText('망이 끊겼습니다')).toBeTruthy();
     expect(screen.getByLabelText('피그마 주소')).toBeTruthy();

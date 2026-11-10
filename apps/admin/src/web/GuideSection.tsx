@@ -87,7 +87,7 @@ export function GuideSection({
       </div>
       {on글 === undefined ? (
         글 === '' ? (
-          <p className="guide-empty">{t('적은 글이 없습니다')}</p>
+          <p className="guide-empty">{t('작성된 내용이 없습니다')}</p>
         ) : (
           <pre className="guide-text">{글}</pre>
         )
@@ -97,7 +97,7 @@ export function GuideSection({
           aria-label={제목}
           rows={Math.max(4, 글.split('\n').length + 1)}
           value={글}
-          placeholder={예 === undefined ? t('문서에 없는 것만 적습니다') : `${t('문서에 없는 것만 적습니다')} — ${t(예)}`}
+          placeholder={예 === undefined ? t('첨부 문서에 없는 내용만 입력하세요') : `${t('첨부 문서에 없는 내용만 입력하세요')} — ${t(예)}`}
           onChange={(e) => on글(e.target.value)}
         />
       )}

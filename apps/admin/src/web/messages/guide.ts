@@ -14,15 +14,15 @@ export const 가이드말: Record<string, string> = {
   '테스트를 작성할 때 참고하는 애플리케이션 설명입니다': 'Application description used as a reference when tests are authored',
   '아직 가이드가 없습니다': 'No guide yet',
   '버전 {버전} · 첨부 {건수}건': 'Version {버전} · {건수} attachments',
-  '기대 결과는 요구사항(표준 기획서)에서만 옵니다. 가이드는 애플리케이션을 이해하고 테스트를 실행하는 데만 씁니다':
+  '기대 결과는 요구사항(표준 기획서) 기준입니다. 가이드는 애플리케이션 이해와 테스트 실행에만 참고합니다':
     'Expected results come only from the requirements (PRD). The guide only helps understand the application and run tests',
 
   // 구획
   '애플리케이션 소개': 'About the application',
   정책: 'Policies',
   '작업 규칙': 'Working rules',
-  '문서에 없는 것만 적습니다': 'Write only what the documents leave out',
-  '적은 글이 없습니다': 'Nothing written',
+  '첨부 문서에 없는 내용만 입력하세요': 'Write only what the documents leave out',
+  '작성된 내용이 없습니다': 'Nothing written',
   열기: 'Open',
   '{이름} 제거': 'Remove {이름}',
   제거: 'Remove',
@@ -33,12 +33,12 @@ export const 가이드말: Record<string, string> = {
   '{구획} 수정': 'Edit {구획}',
 
   // 버전 기록 — 「버전 기록」 글자는 PRD 표(messages/prd.ts)에 있다
-  '옛 버전은 볼 수만 있습니다': 'Earlier versions are view-only',
+  '이전 버전은 읽기만 할 수 있습니다': 'Earlier versions are view-only',
   '변경 사항': 'Changes',
   보기: 'View',
   '글 수정 — {구획}': 'Text edited — {구획}',
-  '더함 — {이름}': 'Added — {이름}',
-  '뺌 — {이름}': 'Removed — {이름}',
+  '첨부 — {이름}': 'Added — {이름}',
+  '제거 — {이름}': 'Removed — {이름}',
   '버전 {버전} 보기': 'View version {버전}',
   '버전 {버전} 읽기 전용': 'Version {버전}, read only',
   // 종류마다 적을 것의 예 — 글 칸 안내 뒤 (kind.ts 가이드예 · WEB-F7-18)

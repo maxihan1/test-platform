@@ -22,7 +22,7 @@ function 그리기() {
   );
   // 가이드 → 작성 방법(기획서로) → 자료 단계
   fireEvent.click(screen.getByRole('button', { name: '다음' }));
-  fireEvent.click(screen.getByRole('button', { name: '기획서로 작성' }));
+  fireEvent.click(screen.getByRole('button', { name: 'PRD 기준' }));
   fireEvent.click(screen.getByRole('button', { name: '다음' }));
 }
 

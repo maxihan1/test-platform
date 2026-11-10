@@ -143,7 +143,7 @@ describe('게임 종류가 그리는 곳 (도메인/러너 §5.2 종류 표 GAME
 
     expect(screen.getByText('게임 화면 읽기')).toBeTruthy();
     expect(screen.queryByText('앱 화면 읽기')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: '화면을 훑어서 작성' }));
+    fireEvent.click(screen.getByRole('button', { name: '화면 대조' }));
     fireEvent.click(screen.getByRole('button', { name: '다음' }));
     expect(screen.getByLabelText('대상 서버')).toBeTruthy();
     expect(screen.queryByLabelText('시작 주소')).toBeNull();

@@ -71,8 +71,8 @@ export function ApiDocFields({
   if (버전들.length === 0) {
     return (
       <div className="authoring-field">
-        <span className="error-text">{t('API 문서가 아직 없습니다. API 문서 화면에서 먼저 받습니다')}</span>
-        <a href="#/api/docs">{t('API 문서 화면으로')}</a>
+        <span className="error-text">{t('API 문서가 없습니다. API 문서 화면에서 먼저 가져오세요')}</span>
+        <a href="#/api/docs">{t('API 문서 화면으로 이동')}</a>
       </div>
     );
   }
@@ -93,8 +93,8 @@ export function ApiDocFields({
         {envs.length === 0 ? (
           <span className="error-text">
             {운영자
-              ? t('이 애플리케이션에는 대상 서버가 없습니다. 설정 > 애플리케이션에서 먼저 넣으세요')
-              : t('이 애플리케이션에는 대상 서버가 없습니다. 관리자에게 대상 서버를 넣어 달라고 요청하세요')}
+              ? t('등록된 대상 서버가 없습니다. 설정 > 애플리케이션에서 먼저 등록하세요')
+              : t('등록된 대상 서버가 없습니다. 관리자에게 등록을 요청하세요')}
           </span>
         ) : (
           <select aria-label={t('대상 서버')} value={서버 ?? ''} disabled={disabled} onChange={(e) => on서버(e.target.value)}>

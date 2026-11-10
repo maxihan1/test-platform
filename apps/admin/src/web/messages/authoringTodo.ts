@@ -13,11 +13,11 @@ export const 작성할일말: Record<string, string> = {
   '화면에서 읽은 기획서': 'Spec read from the screens',
   '차이를 표시한 기획서': 'Spec with differences marked',
   '다시 작성은 작성 쓰기 권한이 있는 사람만 할 수 있습니다.': 'Only someone with authoring write rights can write it again.',
-  '이 대상 서버에는 테스트 계정이 없거나 실서비스 서버로 체크돼 있습니다. 관리자에게 확인을 요청하세요':
+  '대상 서버에 테스트 계정이 없거나 실서비스 서버로 지정되어 있습니다. 관리자에게 확인을 요청하세요':
     'This target server has no test account or is marked as production. Ask an admin to check it',
-  '이 애플리케이션에는 대상 서버가 없습니다. 관리자에게 대상 서버를 넣어 달라고 요청하세요':
+  '등록된 대상 서버가 없습니다. 관리자에게 등록을 요청하세요':
     'This application has no target server. Ask an admin to add one',
-  '목록에 남은 그 줄은 삭제하세요': 'Delete the row left in the list.',
+  '목록에 남은 요청은 삭제하세요': 'Delete the row left in the list.',
   // 에이전트 실패 글을 옮긴 것 (authoringFailText.ts). 에이전트 글의 정본은 scripts/authoring-*.ts 의 끝내기 error
   '작성 도구가 완료되지 않아 결과를 등록하지 않았습니다. 같은 자료로 다시 작성하세요':
     'The writing tool did not exit, so nothing was uploaded. Write again with the same files',
@@ -30,9 +30,9 @@ export const 작성할일말: Record<string, string> = {
   '이미 있는 케이스와 중복되는 케이스가 {1}건입니다. 아래 표에서 선택한 뒤 다시 반영하세요':
     '{1} cases duplicate existing ones. Choose in the table below, then apply again',
   '검사 결과를 읽지 못해 반영을 중단했습니다. 다시 반영하세요': 'Could not read the check results, so applying stopped. Apply again',
-  '피그마 토큰이 없어 피그마 자료를 읽지 못했습니다. 관리자에게 피그마 토큰을 넣어 달라고 요청하세요':
+  '피그마 토큰이 없어 피그마 자료를 읽지 못했습니다. 관리자에게 피그마 토큰 등록을 요청하세요':
     'No Figma token, so the Figma files could not be read. Ask an admin to add a Figma token',
-  '피그마 토큰이 없어 피그마 자료를 읽지 못했습니다. 설정 > 애플리케이션에서 피그마 토큰을 넣으세요':
+  '피그마 토큰이 없어 피그마 자료를 읽지 못했습니다. 설정 > 애플리케이션에서 피그마 토큰을 등록하세요':
     'No Figma token, so the Figma files could not be read. Add one in Settings > Applications',
   '대상 서버 「{1}」은 실서비스 서버라 작성하지 않습니다. 다른 대상 서버로 새 요청을 넣으세요':
     'Target server "{1}" is production, so nothing is written. Send a new request with another target server',

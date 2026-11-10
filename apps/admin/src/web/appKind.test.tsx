@@ -134,9 +134,9 @@ describe('작성 새 요청', () => {
     render(<AuthoringNew service="MKA" envs={[{ env: 'qa', baseUrl: 'https://qa.example.com' }]} 앱종류="APP" on넣었다={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: '다음' }));
 
-    expect(screen.getByRole('button', { name: '기획서 + 실제 화면 대조' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'PRD + 화면 대조' })).toBeTruthy();
     expect(screen.getByText('앱 화면 읽기')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: '기획서로 작성' }));
+    fireEvent.click(screen.getByRole('button', { name: 'PRD 기준' }));
     fireEvent.click(screen.getByRole('button', { name: '다음' }));
     expect(screen.getByText('피그마 주소')).toBeTruthy();
   });
@@ -145,7 +145,7 @@ describe('작성 새 요청', () => {
     render(<AuthoringNew service="MKW" envs={[{ env: 'qa', baseUrl: 'https://qa.example.com' }]} 앱종류="SCREEN" on넣었다={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: '다음' }));
 
-    expect(screen.getByRole('button', { name: '기획서 + 실제 화면 대조' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'PRD + 화면 대조' })).toBeTruthy();
     expect(screen.queryByText('앱 화면 읽기')).toBeNull();
   });
 });

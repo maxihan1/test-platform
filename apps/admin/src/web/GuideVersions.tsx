@@ -14,8 +14,8 @@ function 바뀐것({ changed }: { changed: GuideVersionRow['changed'] }) {
   const t = use말();
   const 줄 = [
     ...changed.sections.map((s) => t('글 수정 — {구획}', { 구획: t(구획이름[s]) })),
-    ...changed.added.map((f) => t('더함 — {이름}', { 이름: f.name })),
-    ...changed.removed.map((f) => t('뺌 — {이름}', { 이름: f.name })),
+    ...changed.added.map((f) => t('첨부 — {이름}', { 이름: f.name })),
+    ...changed.removed.map((f) => t('제거 — {이름}', { 이름: f.name })),
   ];
   return <>{줄.length === 0 ? '—' : 줄.join(' · ')}</>;
 }
@@ -34,7 +34,7 @@ export function GuideVersions({ service, 지금판 }: { service: string; 지금�
         <h2 id="guide-versions-title" className="prd-all-title">
           {t('버전 기록')}
         </h2>
-        <span className="note">{t('옛 버전은 볼 수만 있습니다')}</span>
+        <span className="note">{t('이전 버전은 읽기만 할 수 있습니다')}</span>
       </div>
       {목록.error !== null ? (
         <Failed error={목록.error} />

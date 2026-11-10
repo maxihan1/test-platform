@@ -56,7 +56,7 @@ describe('테스트 작성 시작 모달', () => {
     render(<AuthoringStartModal service="MKT" id={5872} onClose={() => undefined} />);
     expect(screen.getByRole('dialog', { name: '테스트 작성을 시작했습니다' })).toBeTruthy();
     expect(screen.getByText('#5872 요청이 접수됐습니다.')).toBeTruthy();
-    expect(screen.getByText(/창을 닫아도 작성은 계속됩니다/)).toBeTruthy();
+    expect(screen.getByText(/창을 닫아도 작성은 계속 진행됩니다/)).toBeTruthy();
     expect(await screen.findByText('대기 중')).toBeTruthy();
     expect(screen.getByText('작성 순서를 기다리는 중')).toBeTruthy();
   });
@@ -90,7 +90,7 @@ describe('테스트 작성 시작 모달', () => {
   it('상세 페이지로를 누르면 그 요청의 페이지로 가고 닫는다', () => {
     const 닫기 = vi.fn();
     render(<AuthoringStartModal service="MKT" id={5872} onClose={닫기} />);
-    fireEvent.click(screen.getByRole('button', { name: '상세 페이지로' }));
+    fireEvent.click(screen.getByRole('button', { name: '상세 보기' }));
     expect(window.location.hash).toBe('#/authoring/5872');
     expect(닫기).toHaveBeenCalled();
   });
@@ -118,7 +118,7 @@ describe('테스트 작성 시작 모달', () => {
 
   it('단추는 「닫기」 다음 주 단추 「상세 페이지로」 차례다 — 휴대폰에서 주 단추가 맨 아래 (시안 11판 · WEB-F7-18)', () => {
     render(<AuthoringStartModal service="MKT" id={5872} onClose={() => undefined} />);
-    const 단추들 = [...screen.getByRole('dialog').querySelectorAll('button')].map((b) => b.textContent).filter((x) => x === '닫기' || x === '상세 페이지로');
-    expect(단추들).toEqual(['닫기', '상세 페이지로']);
+    const 단추들 = [...screen.getByRole('dialog').querySelectorAll('button')].map((b) => b.textContent).filter((x) => x === '닫기' || x === '상세 보기');
+    expect(단추들).toEqual(['닫기', '상세 보기']);
   });
 });
