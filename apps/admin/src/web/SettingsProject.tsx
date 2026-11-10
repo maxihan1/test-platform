@@ -58,7 +58,8 @@ export function ProjectPanel({
           <label htmlFor="pf-primary">{t('대표 애플리케이션')}</label>
           <select id="pf-primary" value={대표 ?? ''} onChange={(e) => set대표(e.target.value === '' ? null : Number(e.target.value))}>
             <option value="">{t('선택 안 함')}</option>
-            {안의것.map((it) => (
+            {/* 꺼진 애플리케이션은 목록에 안 뜨니 대표로 골라도 보이지 않는다 */}
+            {안의것.filter((it) => it.isActive).map((it) => (
               <option key={it.id} value={it.id}>
                 {it.name} · {it.prefix}
               </option>
@@ -75,7 +76,9 @@ export function ProjectPanel({
           disabled={보내는중}
           onClick={() => {
             if (name.trim() === '') return;
-            void 한다(() => api.updateProject(row.id, { name: name.trim(), primaryServiceId: 대표 }));
+            // 대표는 바꿨을 때만 보낸다 — 이름만 고쳤는데 열 때 읽은 값을 보내면 그사이 다른 사람이 바꾼 대표를 덮는다
+            const 바뀐대표 = 대표 === (row.primaryServiceId ?? null) ? {} : { primaryServiceId: 대표 };
+            void 한다(() => api.updateProject(row.id, { name: name.trim(), ...바뀐대표 }));
           }}
         >
           {t('저장')}

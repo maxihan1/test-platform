@@ -163,7 +163,7 @@ export function 지금자리(name: string, 집: string, 종류?: 'UI' | 'FN' | '
 /**
  * 어느 서비스를 열까.
  *
- * 저장된 것이 배정 목록에 없으면 첫 번째로 돌아간다 — 배정이 빠진 뒤에도 그것을 열면
+ * 저장된 것이 배정 목록에 없으면 첫 프로젝트의 대표(없으면 첫 번째)로 돌아간다 — 배정이 빠진 뒤에도 그것을 열면
  * 서버가 403 을 내고 화면은 이유 없이 비어 보인다.
  */
 export function 고른서비스(저장값: string | null, 배정: ServiceRow[]): ServiceRow | null {

@@ -34,7 +34,7 @@ function 앱(id: number, prefix: string, name: string, projectId: number): Setti
   };
 }
 
-const 서비스들 = [앱(1, 'DEMO', '프론트 페이지', 1), 앱(2, 'DEMOA', '백오피스 어드민', 1), 앱(3, 'HRP', '직원 포털', 2)];
+const 서비스들 = [앱(1, 'DEMO', '프론트 페이지', 1), 앱(2, 'DEMOA', '백오피스 어드민', 1), 앱(3, 'HRP', '직원 포털', 2), { ...앱(4, 'OLD', '옛 페이지', 1), isActive: false }];
 
 describe('프로젝트 고치기', () => {
   it('이름을 바꿔 저장한다', async () => {
@@ -46,10 +46,10 @@ describe('프로젝트 고치기', () => {
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
 
     await waitFor(() => expect(끝).toHaveBeenCalled());
-    expect(고침).toHaveBeenCalledWith(1, { name: '데모몰', primaryServiceId: null });
+    expect(고침).toHaveBeenCalledWith(1, { name: '데모몰' });
   });
 
-  it('대표 애플리케이션은 이 프로젝트의 앱 중에서 고르고 이름과 같이 저장한다', async () => {
+  it('대표 애플리케이션은 이 프로젝트의 켜진 앱 중에서 고르고 이름과 같이 저장한다', async () => {
     const 고침 = vi.spyOn(api, 'updateProject').mockResolvedValue({ ok: true });
     const 끝 = vi.fn();
     render(<ProjectPanel row={프로젝트들[0]!} projects={프로젝트들} services={서비스들} onDone={끝} />);

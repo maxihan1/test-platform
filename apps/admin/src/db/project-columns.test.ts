@@ -68,6 +68,24 @@ describe.skipIf(연결 === undefined)('프로젝트 칸', () => {
     expect(남음.rowCount).toBe(1);
   });
 
+  it('대표 애플리케이션을 다른 프로젝트로 옮기면 옛 프로젝트의 대표 칸이 빈다 — 대표가 아닌 앱을 옮기면 그대로다', async () => {
+    const { pool } = await import('../db/index.js');
+    const 다른곳 = await 만든다('XPJ');
+    const p = await pool.query<{ id: string }>("INSERT INTO project (name) VALUES ('XPJ 묶음') RETURNING id");
+    const 묶음 = Number(p.rows[0]!.id);
+    await 만든다('XPJ2', 'NOTHING', 묶음);
+    await 만든다('XPJ3', 'NOTHING', 묶음);
+    const 번호 = async (prefix: string) => Number((await pool.query<{ id: string }>('SELECT id FROM service WHERE prefix = $1', [prefix])).rows[0]!.id);
+    const 대표 = async () => (await pool.query<{ p: string | null }>('SELECT primary_service_id AS p FROM project WHERE id = $1', [묶음])).rows[0]!.p;
+    await pool.query('UPDATE project SET primary_service_id = $2 WHERE id = $1', [묶음, await 번호('XPJ2')]);
+
+    await pool.query("UPDATE service SET project_id = $1 WHERE prefix = 'XPJ3'", [다른곳]);
+    expect(Number(await 대표())).toBe(await 번호('XPJ2'));
+
+    await pool.query("UPDATE service SET project_id = $1 WHERE prefix = 'XPJ2'", [다른곳]);
+    expect(await 대표()).toBeNull();
+  });
+
   it('프로젝트를 비울 수 없다', async () => {
     const { pool } = await import('../db/index.js');
     await 만든다('XPJ');

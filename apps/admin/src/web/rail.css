@@ -566,6 +566,12 @@
   /* 넘침을 숨기지 않는다 — 숨기면 글자 아래 밑줄이 칸 밖이라 잘린다 */
 }
 
+.side-logo:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 .side-logo b {
   display: inline-block;
   position: relative;

@@ -184,6 +184,10 @@ describe.skipIf(연결 === undefined)('설정 API — 프로젝트', () => {
       payload: { name: 'XPQ 바뀌면 안 됨', primaryServiceId: 서비스번호 },
     });
     expect([거절.statusCode, 거절.json()]).toEqual([400, { error: 'PRIMARY_NOT_IN_PROJECT' }]);
+    const 없는번호 = await app.inject({ method: 'PATCH', url: `/api/settings/projects/${String(남)}`, payload: { name: 'XPQ 남의 프로젝트', primaryServiceId: 999999999 } });
+    expect([없는번호.statusCode, 없는번호.json()]).toEqual([400, { error: 'PRIMARY_NOT_IN_PROJECT' }]);
+    const 없는프로젝트 = await app.inject({ method: 'PATCH', url: '/api/settings/projects/999999999', payload: { name: 'x', primaryServiceId: null } });
+    expect([없는프로젝트.statusCode, 없는프로젝트.json()]).toEqual([404, { error: 'NOT_FOUND' }]);
     const 목록 = async () =>
       (await app.inject({ method: 'GET', url: '/api/settings/projects' })).json<{ items: { id: number; name: string; primaryServiceId: number | null }[] }>().items;
     expect((await 목록()).find((p) => p.id === 남)).toEqual({ id: 남, name: 'XPQ 남의 프로젝트', primaryServiceId: null });

@@ -1431,7 +1431,7 @@ export const api = {
 
   createProject: (name: string) => call<{ id: number }>('/settings/projects', json({ name })),
 
-  updateProject: (id: number, body: { name: string; primaryServiceId: number | null }) =>
+  updateProject: (id: number, body: { name: string; primaryServiceId?: number | null }) =>
     call<{ ok: true }>(`/settings/projects/${id}`, { ...json(body), method: 'PATCH' }),
 
   projectApiServers: (id: number) => call<{ items: SettingsApiServer[] }>(`/settings/projects/${id}/api-servers`),

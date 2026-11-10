@@ -69,7 +69,9 @@ describe('프로젝트 고르기 화면', () => {
     const 대표있음: User = { ...사람, services: [프론트, { ...어드민, primary: true }, 직원포털] };
     render(<ProjectPick user={대표있음} 마지막={직원포털} onPick={고름} onLogout={() => {}} />);
 
-    fireEvent.click(screen.getByRole('button', { name: /데모마켓/ }));
+    const 카드 = screen.getByRole('button', { name: /데모마켓/ });
+    expect(카드.textContent!.indexOf('백오피스 어드민')).toBeLessThan(카드.textContent!.indexOf('프론트 페이지'));
+    fireEvent.click(카드);
 
     expect(고름).toHaveBeenCalledWith('DEMOA');
   });

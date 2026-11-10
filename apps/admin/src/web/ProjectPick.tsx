@@ -2,6 +2,7 @@
 
 import type { ServiceRow, User } from './api.js';
 import { use말 } from './i18n.js';
+import { 종류차례로 } from './kind.js';
 import { 배정프로젝트들, 프로젝트서비스들, 프로젝트첫앱 } from './layout.js';
 
 interface Props {
@@ -29,7 +30,7 @@ export function ProjectPick({ user, 마지막, onPick, onLogout }: Props) {
         <p className="pp-sub">{t('선택한 프로젝트의 애플리케이션만 보입니다. 사이드바 맨 위에서 언제든 변경할 수 있습니다.')}</p>
         <div className="pp-grid">
           {배정프로젝트들(user.services).map((프로젝트) => {
-            const 앱들 = 프로젝트서비스들(프로젝트.id, user.services);
+            const 앱들 = 종류차례로(프로젝트서비스들(프로젝트.id, user.services));
             const 마지막인가 = 마지막?.projectId === 프로젝트.id;
             return (
               <button

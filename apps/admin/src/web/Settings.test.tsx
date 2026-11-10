@@ -163,7 +163,7 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     fireEvent.change(await screen.findByLabelText('프로젝트 이름'), { target: { value: '데모몰' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
 
-    await waitFor(() => expect(고침).toHaveBeenCalledWith(1, { name: '데모몰', primaryServiceId: null }));
+    await waitFor(() => expect(고침).toHaveBeenCalledWith(1, { name: '데모몰' }));
     expect(내재료).toHaveBeenCalled();
   });
 
