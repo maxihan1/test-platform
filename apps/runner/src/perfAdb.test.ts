@@ -66,6 +66,18 @@ describe('surfaceView층을찾는다', () => {
     ].join('\n');
     expect(surfaceView층을찾는다(감싼목록, 'com.maxihan.anymmo')).toBe('SurfaceView[com.maxihan.anymmo/com.unity3d.player.UnityPlayerGameActivity](BLAST)#304');
   });
+  it('parentId 없이 다른 칸이 붙어도 안쪽 이름만 꺼낸다', () => {
+    expect(surfaceView층을찾는다('RequestedLayerState{SurfaceView[com.g.a/com.g.M](BLAST)#304 !handle z=1}', 'com.g.a')).toBe('SurfaceView[com.g.a/com.g.M](BLAST)#304');
+  });
+  it('감싸지 않은 목록에서도 (BLAST) 층을 부모 층보다 먼저 고른다', () => {
+    expect(surfaceView층을찾는다(['SurfaceView[com.g.a/com.g.M]#122', 'SurfaceView[com.g.a/com.g.M](BLAST)#123'].join('\n'), 'com.g.a')).toBe('SurfaceView[com.g.a/com.g.M](BLAST)#123');
+  });
+  it('이름 앞부분만 같은 다른 앱의 층은 고르지 않는다', () => {
+    expect(surfaceView층을찾는다(['SurfaceView[com.a.bc/x.M](BLAST)#9', 'SurfaceView[com.a.b/x.M]#3'].join('\n'), 'com.a.b')).toBe('SurfaceView[com.a.b/x.M]#3');
+  });
+  it('옛 꼴(SurfaceView - 패키지/화면)도 고른다', () => {
+    expect(surfaceView층을찾는다('SurfaceView - com.g.a/com.g.M#0', 'com.g.a')).toBe('SurfaceView - com.g.a/com.g.M#0');
+  });
 });
 
 describe('프레임시각들', () => {

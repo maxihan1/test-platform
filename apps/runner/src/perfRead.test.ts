@@ -88,4 +88,27 @@ describe('한줄을읽는다 — SurfaceFlinger FPS', () => {
     출력 = `16666666\n${[...Array.from({ length: 124 }, () => '0 0 0'), ...새층].join('\n')}\n`;
     expect((await 한줄을읽는다(adb, r, 5)).fps).toBe(0.6);
   });
+
+  it('고른 층이 빈 표를 주면 다음 틱에 층을 다시 찾는다 — 앱이 켜지는 동안 (BLAST) 층이 늦게 뜬다', async () => {
+    let 목록 = `SurfaceView[${앱}/.Main]#3\n`;
+    let 끝초 = 10;
+    const 물은층: string[] = [];
+    const adb: Adb = async (args) => {
+      const 줄 = args.join(' ');
+      if (줄.endsWith(`dumpsys gfxinfo ${앱}`)) return 'Total frames rendered: 0\nJanky frames: 0 (0.00%)\n';
+      if (줄.endsWith('dumpsys SurfaceFlinger --list')) return 목록;
+      if (줄.includes('dumpsys SurfaceFlinger --latency')) {
+        물은층.push(줄);
+        return 줄.includes('(BLAST)') ? latency출력(끝초, 60) : '16666666\n';
+      }
+      return '';
+    };
+    const r = 기록기를만든다(1);
+    await 한줄을읽는다(adb, r, 0);
+    목록 = `SurfaceView[${앱}/.Main]#3\nSurfaceView[${앱}/.Main](BLAST)#4\n`;
+    await 한줄을읽는다(adb, r, 1);
+    끝초 += 1;
+    expect((await 한줄을읽는다(adb, r, 2)).fps).toBe(60);
+    expect(물은층.at(-1)).toContain('(BLAST)#4');
+  });
 });

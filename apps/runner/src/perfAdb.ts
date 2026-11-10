@@ -67,13 +67,15 @@ export function gfxinfo를읽는다(out: string): 프레임수 | null {
 
 /**
  * `dumpsys SurfaceFlinger --list` 에서 그 패키지가 든 SurfaceView 층 이름 — 버퍼를 받는 (BLAST) 층을 먼저 고른다. 작은따옴표가 든 이름은 셸에 못 넣어 건너뛴다.
- * Android 15 는 줄을 `RequestedLayerState{<이름> parentId=…}` 로 감싸고 `--latency` 는 안쪽 이름만 받는다 — 감싼 줄을 넘기면 오류 없이 빈 표다.
- * 「Background for」 층과 애니메이션 leash 는 그리지 않는 층이라 뺀다 (Device VISION `surfaceLayerOf` · TRAPS 2026-11-10 와 같은 규칙)
+ * Android 15 는 줄을 `RequestedLayerState{<이름> parentId=… z=… !handle}` 로 감싸고 `--latency` 는 안쪽 이름만 받는다 — 감싼 줄을 넘기면 오류 없이 빈 표다.
+ * 뒤에 붙는 칸은 부모가 없으면 parentId 없이 오기도 해서 첫 ` 이름=` · ` !` 에서 자른다.
+ * 이름이 `SurfaceView` 로 시작하는 층만 고른다 — 「Background for」 · 애니메이션 leash 같은 감싼 층은 그리지 않는다. 패키지는 `[pkg/` · ` pkg/` 로 맞춰 이름이 앞부분만 같은 다른 앱을 고르지 않는다.
+ * 같은 버그를 Device VISION 도 고쳤다(`packages/control-adb/perf.ts` `surfaceLayerOf`, TRAPS 2026-11-10) — 코드는 따로다
  */
 export function surfaceView층을찾는다(out: string, pkg: string): string | null {
-  const 이름 = (l: string) => /^RequestedLayerState\{(.*?)(?: parentId=\d+.*)?\}$/.exec(l)?.[1] ?? l;
+  const 이름 = (l: string) => (/^RequestedLayerState\{(.*)\}$/.exec(l)?.[1] ?? l).replace(/ (?:!|[A-Za-z]+=).*$/, '');
   const 층들 = out.split('\n').map((l) => 이름(l.trim()))
-    .filter((l) => l.includes(pkg) && l.includes('SurfaceView') && !l.includes("'") && !l.startsWith('Background for') && !l.includes('animation-leash'));
+    .filter((l) => l.startsWith('SurfaceView') && (l.includes(`[${pkg}/`) || l.includes(` ${pkg}/`)) && !l.includes("'"));
   return 층들.find((l) => l.includes('(BLAST)')) ?? 층들[0] ?? null;
 }
 
