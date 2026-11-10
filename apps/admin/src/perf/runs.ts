@@ -21,6 +21,45 @@ function 번호(raw: string, reply: FastifyReply): number | null {
 
 const 바 = (reply: FastifyReply, code: number, error: string, detail?: string) => reply.code(code).send(detail === undefined ? { error } : { error, detail });
 
+// 화면은 줄 전체를 그대로 받는다 — 이름 붙인 칸은 run_list 가 읽는 것만
+type 성능목록칸 = { kind: string; status: string; verdict: string | null; title: string; env: string | null; startedAt: Date | null; measures: unknown; summary: unknown; [칸: string]: unknown };
+type 성능목록줄 = 성능목록칸 & { id: number };
+
+/** 성능 실행 기록 목록 — 화면(GET /api/perf/runs)과 MCP run_list 가 같이 읽는다. 늦은 번호부터 200개 */
+export async function 성능실행목록(serviceId: number, kind: string | null, scenarioId: number | null): Promise<성능목록줄[]> {
+  const r = await (await 표.풀()).query<성능목록칸 & { id: string }>(
+    `SELECT r.id, r.kind, r.status, r.verdict, COALESCE(s.name, '') AS title, r.env, r.test_type AS "testType", r.origin, r.degraded, r.stop_reason AS "stopReason", r.started_at AS "startedAt",
+            CASE WHEN r.started_at IS NULL THEN NULL ELSE EXTRACT(EPOCH FROM COALESCE(r.finished_at, now()) - r.started_at)::int END AS "durationSec",
+            json_build_object('peakVus', r.peak_vus, 'maxTps', r.max_tps, 'p95Ms', r.p95_ms, 'errorRate', r.error_rate) AS summary,
+            CASE r.kind WHEN 'PAGE' THEN json_build_object('lcpAvgMs', pg.lcp)
+                        WHEN 'DEVICE' THEN json_build_object('avgCpu', dv.cpu, 'maxMemMb', dv.mem, 'avgFps', dv.fps, 'jankPct', dv.jank) END AS measures
+       FROM perf_run r LEFT JOIN perf_scenario s ON s.id = r.scenario_id
+       -- 결과 화면 숫자 칸과 같은 셈 — 페이지는 주소마다 마지막 줄의 LCP 평균, 기기는 기기마다 평균을 내고 가장 나쁜 기기 값 (§8.14 「실행 기록」)
+       -- ponytail: 부를 때마다 실행 200개의 1초 숫자를 다 센다. 긴 기기 측정이 쌓여 느려지면 끝날 때 perf_run 에 요약을 적어 두고 그것을 읽는다
+       LEFT JOIN LATERAL (SELECT AVG(x.lcp_ms)::float AS lcp FROM (SELECT DISTINCT ON (url) lcp_ms FROM perf_page_metric WHERE run_id = r.id AND r.kind = 'PAGE' ORDER BY url, id DESC) x) pg ON true
+       LEFT JOIN LATERAL (SELECT MAX(d.cpu) AS cpu, MAX(d.mem) AS mem, MIN(d.fps) AS fps, MAX(d.jank) AS jank
+                            FROM (SELECT AVG(cpu)::float AS cpu, MAX(mem_mb) AS mem, AVG(fps)::float AS fps, AVG(jank_pct)::float AS jank
+                                    FROM perf_device_metric WHERE run_id = r.id AND r.kind = 'DEVICE' GROUP BY serial) d) dv ON true
+      WHERE r.service_id = $1 AND ($2::text IS NULL OR r.kind = $2) AND ($3::bigint IS NULL OR r.scenario_id = $3)
+      ORDER BY r.id DESC LIMIT 200`,
+    [serviceId, kind, scenarioId],
+  );
+  return r.rows.map((x) => ({ ...x, id: Number(x.id) }));
+}
+
+/** 성능 실행 결과 머리 — 화면(GET /api/perf/runs/:id)과 MCP perf_result 가 같이 읽는다. 없으면 undefined */
+export async function 성능실행머리(id: number): Promise<Record<string, unknown> | undefined> {
+  const pool = await 표.풀();
+  const r = await pool.query(
+    `SELECT r.id, r.kind, r.status, r.verdict, r.stop_reason AS "stopReason", r.config, r.targets, r.degraded, r.ai, r.env, r.test_type AS "testType",
+            r.scenario_id AS "scenarioId", svc.prefix AS "servicePrefix", r.created_at AS "createdAt", r.started_at AS "startedAt", r.finished_at AS "finishedAt", r.origin, COALESCE(s.name, '') AS "scenarioName",
+            json_build_object('peakVus', r.peak_vus, 'maxTps', r.max_tps, 'p95Ms', r.p95_ms, 'errorRate', r.error_rate) AS summary
+       FROM perf_run r JOIN service svc ON svc.id = r.service_id LEFT JOIN perf_scenario s ON s.id = r.scenario_id WHERE r.id = $1`,
+    [id],
+  );
+  return r.rows[0] as Record<string, unknown> | undefined;
+}
+
 export default async function perfRunRoutes(app: FastifyInstance): Promise<void> {
   app.post('/perf/runs', async (req, reply) => {
     const p = 실행만들기본문.safeParse(req.body);
@@ -35,38 +74,14 @@ export default async function perfRunRoutes(app: FastifyInstance): Promise<void>
     const serviceId = 정수(req.query.serviceId ?? '');
     const scenarioId = req.query.scenarioId === undefined ? null : 정수(req.query.scenarioId);
     if (serviceId === null || (req.query.scenarioId !== undefined && scenarioId === null)) return 바(reply, 400, 'INVALID_REQUEST', 'serviceId');
-    const r = await (await 표.풀()).query(
-      `SELECT r.id, r.kind, r.status, r.verdict, COALESCE(s.name, '') AS title, r.env, r.test_type AS "testType", r.origin, r.degraded, r.stop_reason AS "stopReason", r.started_at AS "startedAt",
-              CASE WHEN r.started_at IS NULL THEN NULL ELSE EXTRACT(EPOCH FROM COALESCE(r.finished_at, now()) - r.started_at)::int END AS "durationSec",
-              json_build_object('peakVus', r.peak_vus, 'maxTps', r.max_tps, 'p95Ms', r.p95_ms, 'errorRate', r.error_rate) AS summary,
-              CASE r.kind WHEN 'PAGE' THEN json_build_object('lcpAvgMs', pg.lcp)
-                          WHEN 'DEVICE' THEN json_build_object('avgCpu', dv.cpu, 'maxMemMb', dv.mem, 'avgFps', dv.fps, 'jankPct', dv.jank) END AS measures
-         FROM perf_run r LEFT JOIN perf_scenario s ON s.id = r.scenario_id
-         -- 결과 화면 숫자 칸과 같은 셈 — 페이지는 주소마다 마지막 줄의 LCP 평균, 기기는 기기마다 평균을 내고 가장 나쁜 기기 값 (§8.14 「실행 기록」)
-         -- ponytail: 부를 때마다 실행 200개의 1초 숫자를 다 센다. 긴 기기 측정이 쌓여 느려지면 끝날 때 perf_run 에 요약을 적어 두고 그것을 읽는다
-         LEFT JOIN LATERAL (SELECT AVG(x.lcp_ms)::float AS lcp FROM (SELECT DISTINCT ON (url) lcp_ms FROM perf_page_metric WHERE run_id = r.id AND r.kind = 'PAGE' ORDER BY url, id DESC) x) pg ON true
-         LEFT JOIN LATERAL (SELECT MAX(d.cpu) AS cpu, MAX(d.mem) AS mem, MIN(d.fps) AS fps, MAX(d.jank) AS jank
-                              FROM (SELECT AVG(cpu)::float AS cpu, MAX(mem_mb) AS mem, AVG(fps)::float AS fps, AVG(jank_pct)::float AS jank
-                                      FROM perf_device_metric WHERE run_id = r.id AND r.kind = 'DEVICE' GROUP BY serial) d) dv ON true
-        WHERE r.service_id = $1 AND ($2::text IS NULL OR r.kind = $2) AND ($3::bigint IS NULL OR r.scenario_id = $3)
-        ORDER BY r.id DESC LIMIT 200`,
-      [serviceId, req.query.kind ?? null, scenarioId],
-    );
-    return { runs: r.rows.map((x: { id: string }) => ({ ...x, id: Number(x.id) })) };
+    return { runs: await 성능실행목록(serviceId, req.query.kind ?? null, scenarioId) };
   });
 
   app.get<번호경로>('/perf/runs/:id', async (req, reply) => {
     const id = 번호(req.params.id, reply);
     if (id === null) return reply;
     const pool = await 표.풀();
-    const r = await pool.query(
-      `SELECT r.id, r.kind, r.status, r.verdict, r.stop_reason AS "stopReason", r.config, r.targets, r.degraded, r.ai, r.env, r.test_type AS "testType",
-              r.scenario_id AS "scenarioId", svc.prefix AS "servicePrefix", r.created_at AS "createdAt", r.started_at AS "startedAt", r.finished_at AS "finishedAt", r.origin, COALESCE(s.name, '') AS "scenarioName",
-              json_build_object('peakVus', r.peak_vus, 'maxTps', r.max_tps, 'p95Ms', r.p95_ms, 'errorRate', r.error_rate) AS summary
-         FROM perf_run r JOIN service svc ON svc.id = r.service_id LEFT JOIN perf_scenario s ON s.id = r.scenario_id WHERE r.id = $1`,
-      [id],
-    );
-    const run = r.rows[0] as Record<string, unknown> | undefined;
+    const run = await 성능실행머리(id);
     if (run === undefined) return 바(reply, 404, 'NOT_FOUND');
     const 행 = await 표.실행하나(id);
     const prevId = 행 === null || 행.scenarioId === null ? null : await 표.이전실행(행);

@@ -30,6 +30,17 @@ async function 영상들(runId: number, serial: string): Promise<{ serial: strin
   }
 }
 
+type 기기실행 = { status: string; targets: { scope: string; verdict: string }[] | null } | undefined;
+
+/** 디바이스마다 요약과 판정 — 결과 화면(GET /api/perf/runs/:id/devices)과 MCP perf_result 가 같이 쓴다 */
+export function 기기줄들(기기별: { d: DeviceRunConfig['devices'][number]; 줄: Parameters<typeof 기기요약하기>[0] }[], 실행: 기기실행) {
+  return 기기별.map(({ d, 줄 }) => ({
+    serial: d.serial, model: d.model, where: d.where, launchMs: d.launchMs, summary: 기기요약하기(줄),
+    // 판정은 끝까지 잰 실행에서만 싣는다. 숫자를 한 줄도 안 보낸 기기는 목표가 없어도 실패다
+    verdict: 실행?.status === 'DONE' ? (줄.length > 0 && (실행.targets ?? []).filter((t) => t.scope === d.serial).every((t) => t.verdict === 'PASS') ? 'PASS' : 'FAIL') : null,
+  }));
+}
+
 export default async function perfDeviceRoutes(app: FastifyInstance): Promise<void> {
   // 영상을 앞뒤로 넘길 수 있게 Range 를 받는 sendFile 로 내준다 — 팜 증적 영상 통로와 같은 방식
   await app.register(fastifyStatic, { root: artifactsDir(), serve: false });
@@ -60,11 +71,7 @@ export default async function perfDeviceRoutes(app: FastifyInstance): Promise<vo
     const 기기별 = cfg.devices.map((d) => ({ d, 줄: 줄들.filter((r) => r.serial === d.serial) }));
     const 회차들 = 기기별.map(({ d, 줄 }) => ({ serial: d.serial, 회차: 회차메모리(d.serial, 줄) }));
     return {
-      devices: 기기별.map(({ d, 줄 }) => ({
-        serial: d.serial, model: d.model, where: d.where, launchMs: d.launchMs, summary: 기기요약하기(줄),
-        // 판정은 끝까지 잰 실행에서만 싣는다. 숫자를 한 줄도 안 보낸 기기는 목표가 없어도 실패다
-        verdict: 실행?.status === 'DONE' ? (줄.length > 0 && (실행.targets ?? []).filter((t) => t.scope === d.serial).every((t) => t.verdict === 'PASS') ? 'PASS' : 'FAIL') : null,
-      })),
+      devices: 기기줄들(기기별, 실행),
       metrics: 줄들.filter((r) => r.sec >= from).map((r) => ({
         serial: r.serial, sec: r.sec, loop: r.loop, segment: r.segment, fps: r.fps, jankPct: r.jankPct, freezeCount: r.freezeCount, cpu: r.cpu, memMb: r.memMb, tempC: r.tempC, batteryPct: r.batteryPct,
       })),
