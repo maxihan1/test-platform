@@ -1,4 +1,4 @@
-// 설정 화면의 프로젝트 하나 (SPEC 도메인/인증 §8.8). 이름 바꾸기 · 안에 든 애플리케이션 옮기기 · API 서버 이름 — 새로 만드는 일은 마법사(SettingsWizard.tsx)가 한다
+// 설정 화면의 프로젝트 하나 (SPEC 도메인/인증 §8.8). 이름 바꾸기 · 대표 애플리케이션 · 안에 든 애플리케이션 옮기기 · API 서버 이름 — 새로 만드는 일은 마법사(SettingsWizard.tsx)가 한다
 // 지우는 통로는 없다 — 애플리케이션을 모두 옮겨 비면 서버가 알아서 지운다
 
 import { useState } from 'react';
@@ -24,6 +24,7 @@ export function ProjectPanel({
   const t = use말();
   const 언어 = use언어();
   const [name, setName] = useState(row.name);
+  const [대표, set대표] = useState(row.primaryServiceId ?? null);
   const [보내는중, set보내는중] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const 안의것 = services.filter((it) => it.projectId === row.id);
@@ -53,6 +54,18 @@ export function ProjectPanel({
           <label htmlFor="pf-name">{t('프로젝트 이름')}</label>
           <input id="pf-name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('데모마켓')} />
         </div>
+        <div className="field">
+          <label htmlFor="pf-primary">{t('대표 애플리케이션')}</label>
+          <select id="pf-primary" value={대표 ?? ''} onChange={(e) => set대표(e.target.value === '' ? null : Number(e.target.value))}>
+            <option value="">{t('선택 안 함')}</option>
+            {안의것.map((it) => (
+              <option key={it.id} value={it.id}>
+                {it.name} · {it.prefix}
+              </option>
+            ))}
+          </select>
+          <div className="hint">{t('목록 맨 위에 서고 프로젝트를 처음 열 때 이 애플리케이션으로 엽니다')}</div>
+        </div>
       </구획>
 
       {err === null ? null : <div className="err">{err}</div>}
@@ -62,7 +75,7 @@ export function ProjectPanel({
           disabled={보내는중}
           onClick={() => {
             if (name.trim() === '') return;
-            void 한다(() => api.renameProject(row.id, name.trim()));
+            void 한다(() => api.updateProject(row.id, { name: name.trim(), primaryServiceId: 대표 }));
           }}
         >
           {t('저장')}

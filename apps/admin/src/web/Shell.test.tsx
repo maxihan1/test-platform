@@ -135,11 +135,14 @@ describe('세로 껍데기 (SPEC §8)', () => {
     expect(안.queryByLabelText('언어')).toBeNull();
   });
 
-  it('왼쪽 줄 맨 위 로고는 집으로 가는 링크다', () => {
+  it('왼쪽 줄 마크와 사이드바 맨 위 글자 로고는 둘 다 같은 집(대시보드)으로 가는 링크다', () => {
     띄운다(결제);
-    const 로고 = screen.getByRole('link', { name: 'Test Commander 홈' });
-    expect(로고.closest('.rail')).not.toBeNull();
-    expect(로고.getAttribute('href')).toMatch(/^#\//);
+    const 로고들 = screen.getAllByRole('link', { name: 'Test Commander 홈' });
+    const 마크 = 로고들.find((it) => it.closest('.rail') !== null);
+    const 글자 = 로고들.find((it) => it.classList.contains('side-logo'));
+    expect(마크?.getAttribute('href')).toBe('#/dashboard');
+    expect(글자?.getAttribute('href')).toBe('#/dashboard');
+    expect(글자?.textContent).toBe('Test Commander');
   });
 
   it('설정 화면이면 톱니가 지금 자리 표시를 받는다', () => {

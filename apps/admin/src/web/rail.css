@@ -35,6 +35,28 @@
   margin-left: 14px;
 }
 
+/* 펼친 줄 안의 로고 글자 — 덮인 사이드바 로고(.side-logo)와 같은 글꼴 · 같은 자리다(줄 왼쪽에서 70px · 맨 위 12px — 실제 CSS 로 찍어 맞췄다).
+   마크 끝(14 + 32)에서 24px 띄운다. 움직임은 다시 돌리지 않는다 — 펼칠 때마다 밑줄이 그어지면 산만하다. 링크 밑줄은 .rail-logo 에서 끈다 — 밑줄은 부모 링크가 그려서 자식에서는 못 끈다 */
+.rail-logo-name {
+  display: none;
+  align-self: flex-start;
+  margin-left: 24px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.rail-logo-name b {
+  font-weight: inherit;
+  color: var(--accent-mark);
+}
+
+.rail.open .rail-logo-name {
+  display: block;
+}
+
 .rail.open .rail-apps {
   align-items: stretch;
 }
@@ -161,6 +183,7 @@
   display: flex;
   margin-bottom: 10px;
   border-radius: 8px;
+  text-decoration: none;
 }
 
 .rail-logo:focus-visible {
@@ -538,6 +561,7 @@
   font-weight: 700;
   letter-spacing: -0.015em;
   color: var(--ink);
+  text-decoration: none;
   white-space: nowrap;
   /* 넘침을 숨기지 않는다 — 숨기면 글자 아래 밑줄이 칸 밖이라 잘린다 */
 }

@@ -119,9 +119,13 @@ export const 종류키 = (kind: 앱종류 | undefined): 앱종류 => (kind !== u
 
 export const 종류 = (kind: 앱종류 | undefined): 종류줄 => 종류표[종류키(kind)];
 
-/** 위치 판 · 왼쪽 줄 · 휴대폰이 같은 차례로 늘어놓는다 — 같은 사람이 자리마다 다른 차례를 보지 않게. 같은 종류 안은 받은 차례 그대로다 */
+/**
+ * 위치 판 · 왼쪽 줄 · 휴대폰이 같은 차례로 늘어놓는다 — 같은 사람이 자리마다 다른 차례를 보지 않게. 같은 종류 안은 받은 차례 그대로다.
+ * 대표 애플리케이션은 종류와 상관없이 맨 위다 (2026-11-10 사용자 · 공통/5-화면공통 §8 「왼쪽 줄」)
+ */
 export function 종류차례로(목록: readonly ServiceRow[]): ServiceRow[] {
-  return [...목록].sort((a, b) => 종류차례.indexOf(종류키(a.kind)) - 종류차례.indexOf(종류키(b.kind)));
+  const 대표먼저 = (s: ServiceRow) => (s.primary === true ? 0 : 1);
+  return [...목록].sort((a, b) => 대표먼저(a) - 대표먼저(b) || 종류차례.indexOf(종류키(a.kind)) - 종류차례.indexOf(종류키(b.kind)));
 }
 
 /** 기기 성능 화면 이름 — 메뉴가 없는 종류(웹)도 주소로는 열리고 재는 것은 폰 앱이라 「앱 성능」으로 읽는다. 영어 표의 키다 */

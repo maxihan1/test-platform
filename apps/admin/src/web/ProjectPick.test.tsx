@@ -64,6 +64,16 @@ describe('프로젝트 고르기 화면', () => {
     expect(고름).toHaveBeenCalledWith('HRP');
   });
 
+  it('다른 프로젝트에 대표 애플리케이션이 있으면 그 앱으로 연다', () => {
+    const 고름 = vi.fn();
+    const 대표있음: User = { ...사람, services: [프론트, { ...어드민, primary: true }, 직원포털] };
+    render(<ProjectPick user={대표있음} 마지막={직원포털} onPick={고름} onLogout={() => {}} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /데모마켓/ }));
+
+    expect(고름).toHaveBeenCalledWith('DEMOA');
+  });
+
   it('여기서도 로그아웃할 수 있다', () => {
     const 나감 = vi.fn();
     그린다(null, () => {}, 나감);

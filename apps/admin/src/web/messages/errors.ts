@@ -37,6 +37,8 @@ export const 오류영어: Record<string, string> = {
   '한 번에 만들 수 있는 항목 수를 넘었습니다': 'Too many items for one run',
 
   // 설정
+  '이 프로젝트의 애플리케이션만 대표로 지정할 수 있습니다. 다른 사람이 그 애플리케이션을 옮겼을 수 있습니다':
+    'Only an application in this project can be the primary one. Someone may have moved that application',
   '그 프로젝트를 찾지 못했습니다. 다른 사람이 애플리케이션을 모두 옮겨 비었을 수 있습니다':
     'That project was not found. Someone may have moved out all its applications',
   '그 접두사는 이미 다른 애플리케이션이 쓰고 있습니다': 'Another application already uses that prefix',

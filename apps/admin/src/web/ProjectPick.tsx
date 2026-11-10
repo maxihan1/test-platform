@@ -2,7 +2,7 @@
 
 import type { ServiceRow, User } from './api.js';
 import { use말 } from './i18n.js';
-import { 배정프로젝트들, 프로젝트서비스들 } from './layout.js';
+import { 배정프로젝트들, 프로젝트서비스들, 프로젝트첫앱 } from './layout.js';
 
 interface Props {
   user: User;
@@ -36,7 +36,7 @@ export function ProjectPick({ user, 마지막, onPick, onLogout }: Props) {
                 key={프로젝트.id}
                 type="button"
                 className={마지막인가 ? 'pp-card is-last' : 'pp-card'}
-                onClick={() => onPick(마지막인가 ? 마지막.prefix : 앱들[0]!.prefix)}
+                onClick={() => onPick(마지막인가 ? 마지막.prefix : 프로젝트첫앱(프로젝트.id, user.services)!.prefix)}
               >
                 <span className="pp-card-h">
                   <span className="pp-card-name">{프로젝트.name}</span>

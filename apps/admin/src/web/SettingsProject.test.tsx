@@ -38,7 +38,7 @@ const 서비스들 = [앱(1, 'DEMO', '프론트 페이지', 1), 앱(2, 'DEMOA', 
 
 describe('프로젝트 고치기', () => {
   it('이름을 바꿔 저장한다', async () => {
-    const 고침 = vi.spyOn(api, 'renameProject').mockResolvedValue({ ok: true });
+    const 고침 = vi.spyOn(api, 'updateProject').mockResolvedValue({ ok: true });
     const 끝 = vi.fn();
     render(<ProjectPanel row={프로젝트들[0]!} projects={프로젝트들} services={서비스들} onDone={끝} />);
 
@@ -46,7 +46,34 @@ describe('프로젝트 고치기', () => {
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
 
     await waitFor(() => expect(끝).toHaveBeenCalled());
-    expect(고침).toHaveBeenCalledWith(1, '데모몰');
+    expect(고침).toHaveBeenCalledWith(1, { name: '데모몰', primaryServiceId: null });
+  });
+
+  it('대표 애플리케이션은 이 프로젝트의 앱 중에서 고르고 이름과 같이 저장한다', async () => {
+    const 고침 = vi.spyOn(api, 'updateProject').mockResolvedValue({ ok: true });
+    const 끝 = vi.fn();
+    render(<ProjectPanel row={프로젝트들[0]!} projects={프로젝트들} services={서비스들} onDone={끝} />);
+
+    const 고르개 = screen.getByLabelText('대표 애플리케이션') as HTMLSelectElement;
+    expect(고르개.value).toBe('');
+    expect([...고르개.options].map((it) => it.textContent)).toEqual(['선택 안 함', '프론트 페이지 · DEMO', '백오피스 어드민 · DEMOA']);
+    fireEvent.change(고르개, { target: { value: '2' } });
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+
+    await waitFor(() => expect(끝).toHaveBeenCalled());
+    expect(고침).toHaveBeenCalledWith(1, { name: '데모마켓', primaryServiceId: 2 });
+  });
+
+  it('저장된 대표가 고르개에 먼저 서고 「선택 안 함」으로 비울 수 있다', async () => {
+    const 고침 = vi.spyOn(api, 'updateProject').mockResolvedValue({ ok: true });
+    render(<ProjectPanel row={{ ...프로젝트들[0]!, primaryServiceId: 1 }} projects={프로젝트들} services={서비스들} onDone={() => {}} />);
+
+    const 고르개 = screen.getByLabelText('대표 애플리케이션') as HTMLSelectElement;
+    expect(고르개.value).toBe('1');
+    fireEvent.change(고르개, { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+
+    await waitFor(() => expect(고침).toHaveBeenCalledWith(1, { name: '데모마켓', primaryServiceId: null }));
   });
 
   it('이 프로젝트의 애플리케이션만 옮길 곳과 함께 늘어선다', () => {
