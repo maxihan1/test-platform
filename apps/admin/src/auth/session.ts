@@ -18,6 +18,8 @@ declare module '@fastify/secure-session' {
     authSid: string;
     /** SSO 출입증을 구운 시각(ms). 사람 단위로 끊긴 시각(app_user.sessions_valid_after)과 견준다 (identify.ts) */
     loginAt: number;
+    /** Scout 대화 키 — 로그인(비밀번호 · SSO)이 굽는다. 대화는 이 키 + 프로젝트로 나뉘고 DB 에는 해시만 둔다 (도메인/챗봇 §3.14 「대화 수명」) */
+    chatKey: string;
     /** SSO 로그인 왕복 중에만 있다 — authorize 로 보낸 state · nonce · PKCE verifier (sso.ts) */
     sso: 왕복값 & { next?: string };
   }

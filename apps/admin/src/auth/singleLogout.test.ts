@@ -37,6 +37,8 @@ describe.skipIf(연결 === undefined)('한 곳 로그아웃 (S24)', () => {
     const { pool } = await import('../db/index.js');
     await pool.query('DELETE FROM app_user WHERE username = ANY($1)', [계정들]);
     await pool.query('DELETE FROM auth_revoked_sid WHERE sid = ANY($1)', [끊은sid들]);
+    // Scout 대화는 계정과 같이 지워진다. 프로젝트는 애플리케이션이 없어 이름으로 지운다
+    await pool.query(`DELETE FROM project WHERE name = 'XSL 프로젝트'`);
   }
 
   beforeAll(async () => {
@@ -202,5 +204,26 @@ describe.skipIf(연결 === undefined)('한 곳 로그아웃 (S24)', () => {
     const 출입증 = (loginAt: number) => 구운출입증({ username: 'xsl-fresh', method: 'sso', idToken: 'id.x', authSid: 'xsl-sid-live', loginAt });
     expect(await 나(출입증(어제))).toBe(401);
     expect(await 나(출입증(어제 + 60 * 1000))).toBe(200);
+  });
+
+  it('SSO 로그인은 Scout 대화 키를 굽고, back-channel 은 끊는 출입증의 대화를 지운다 — sid 는 그 줄, sid 없으면 끊긴 시각 전에 만든 것', async () => {
+    const 출입증 = await 로그인('xsl-sub-me', 'xsl-me', 'xsl-sid-real');
+    expect(app.decodeSecureSession(출입증.platform_session ?? '')?.get('chatKey')).toMatch(/^[A-Za-z0-9_-]{43}$/);
+
+    const { pool } = await import('../db/index.js');
+    const 프로젝트 = (await pool.query<{ id: string }>(`INSERT INTO project (name) VALUES ('XSL 프로젝트') RETURNING id`)).rows[0]!.id;
+    const iat = Math.floor(Date.now() / 1000) - 20;
+    const 대화 = (키: string, sid: string | null, 만든초: number) =>
+      pool.query('INSERT INTO chat_conversation (session_key, project_id, username, auth_sid, created_at) VALUES ($1, $2, $3, $4, to_timestamp($5))', [키, 프로젝트, 'xsl-me', sid, 만든초]);
+    await 대화('xsl-k-real', 'xsl-sid-real', iat + 100);
+    await 대화('xsl-k-live', 'xsl-sid-live', iat + 100);
+    await 대화('xsl-k-old', null, iat - 5);
+    await 대화('xsl-k-new', null, iat + 5);
+    const 남은키 = async () => (await pool.query<{ session_key: string }>('SELECT session_key FROM chat_conversation WHERE project_id = $1 ORDER BY session_key', [프로젝트])).rows.map((r) => r.session_key);
+
+    await 토큰알리기(await 로그아웃토큰({ sub: 'xsl-sub-me', sid: 'xsl-sid-real' }));
+    expect(await 남은키()).toEqual(['xsl-k-live', 'xsl-k-new', 'xsl-k-old']);
+    await 토큰알리기(await 로그아웃토큰({ sub: 'xsl-sub-me', iat }));
+    expect(await 남은키()).toEqual(['xsl-k-live', 'xsl-k-new']);
   });
 });

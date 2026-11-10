@@ -62,6 +62,7 @@ describe('라우트표', () => {
       'authoring',
       'bts',
       'catalog',
+      'chat',
       'compat',
       'execution',
       'guide',
