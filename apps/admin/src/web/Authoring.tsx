@@ -53,7 +53,15 @@ function 작성줄({ 것, 지금 }: { 것: AuthoringListRow; 지금: number }) {
   const 대상 = 대상글(것.summary, 언어);
   const 수 = 케이스수(것.summary);
   const 초 = 소요초(것.summary, 것, 지금);
-  const 상태 = 할일.length > 0 ? 할일.map((칩) => 칩.글).join(' · ') : 칩글(것, 보, 언어);
+  // 초안은 올리는 중이든 올리다 버려졌든 DRAFT 다 — 둘 다에 맞는 말을 쓴다. 업로드 거절은 사람이 세운 중단과 가른다
+  const 상태 =
+    할일.length > 0
+      ? 할일.map((칩) => 칩.글).join(' · ')
+      : 것.status === 'DRAFT'
+        ? t('자료 업로드가 완료되지 않았습니다')
+        : 것.status === 'STOPPED' && 것.stopReason === 'REJECTED'
+          ? t('업로드 거절')
+          : 칩글(것, 보, 언어);
   // 단계는 따로 둔다 — 휴대폰 폭에서는 대상이 먼저 읽히게 CSS 가 숨긴다
   const 단계 = 할일.length > 0 ? null : 단계꼬리(것.summary, 것, 보, 언어);
   // 중단은 판정이 아니다 — 사람이나 한도가 멈춘 것이라 실패 색을 쓰지 않는다 (DESIGN.md 「작성 상태」)

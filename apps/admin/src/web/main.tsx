@@ -8,6 +8,7 @@ import { 고른밝기를건다 } from './theme.js';
 import { 칩움직임을건다 } from './motion.js';
 import './styles.css';
 import './authoringStatus.css';
+import './authoringList.css';
 import './decide.css';
 import './noticeBar.css';
 import './projectPick.css';

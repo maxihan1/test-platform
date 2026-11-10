@@ -123,65 +123,6 @@
 .status-raw summary { cursor: pointer; }
 .status-raw pre { margin: 4px 0 0; white-space: pre-wrap; }
 
-/* 목록 한 줄 표 — 번호 · 구분 · 대상 · 케이스 수 · 소요 시간 · 작성자 · 작성일 · 상태 (2026-11-10 사용자 시안).
-   세 줄 카드 · 왼쪽 색 띠를 걷었다. 상태는 색 점 하나와 글자다 — 판정 색은 점에만, 글자는 실패 · 통과 · 작성 중만 물들인다 */
-.authoring-head,
-.row.authoring-row {
-  grid-template-columns: 64px 56px minmax(160px, 1.4fr) 72px 88px minmax(72px, 0.6fr) 136px minmax(150px, 1fr);
-  gap: 0 16px;
-  padding: 0 20px;
-}
-.row.authoring-row { position: relative; min-height: 44px; font-size: 13px; }
-.row.authoring-row > *,
-.row.authoring-row .a-meta > * { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.row.authoring-row .a-meta { display: contents; }
-.row.authoring-row .tcid { padding: 0; }
-.authoring-head .num,
-.row.authoring-row .num { text-align: right; font-variant-numeric: tabular-nums; }
-.row.authoring-row .a-kind,
-.row.authoring-row .a-who,
-.row.authoring-row .a-at,
-.row.authoring-row .a-took { color: var(--ink-muted); }
-.row.authoring-row .a-at { font-variant-numeric: tabular-nums; }
-/* 목록 한 줄을 통째로 누른다 — 대상 링크를 줄 위로 늘린다. 버튼을 따로 두지 않아도 키보드는 링크 하나로 닿는다 */
-.row.authoring-row .a-target { color: var(--ink); text-decoration: none; font-weight: 500; }
-.row.authoring-row .a-target::after { content: ''; position: absolute; inset: 0; }
-.row.authoring-row .a-target:focus-visible { outline: none; }
-.row.authoring-row:focus-within { outline: 2px solid var(--ink); outline-offset: -2px; }
-.a-state { display: flex; align-items: center; gap: 8px; color: var(--ink-muted); }
-.a-state > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.a-state > i { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--na); }
-.a-state[data-tone='pass'] { color: var(--pass-text); }
-.a-state[data-tone='pass'] > i { background: var(--pass); }
-.a-state[data-tone='fail'] { color: var(--fail-text); }
-.a-state[data-tone='fail'] > i { background: var(--fail); }
-.a-state[data-tone='run'] { color: var(--link); }
-.a-state[data-tone='run'] > i,
-.a-state[data-tone='todo'] > i { background: var(--accent); }
-.a-state[data-tone='todo'] { color: var(--ink); }
-
-/* 휴대폰 폭 — 머리 줄을 숨기고 한 건을 두 줄로 접는다. 첫 줄 번호 · 구분 · 대상 · 상태, 둘째 줄 케이스 수 · 소요 시간 · 작성자 · 작성일 */
-@media (max-width: 640px) {
-  .authoring-head { display: none; }
-  .row.authoring-row {
-    grid-template-columns: auto auto minmax(0, 1fr) auto;
-    grid-template-areas: 'id kind target state' 'meta meta meta meta';
-    gap: 2px 8px;
-    padding: 9px 14px;
-  }
-  .row.authoring-row .tcid { grid-area: id; }
-  .row.authoring-row .a-kind { grid-area: kind; }
-  .row.authoring-row .a-target { grid-area: target; }
-  /* 대상이 먼저 읽히게 상태 칸은 화면 폭 36% 까지만 · 단계(「· 케이스 작성 3/6」)는 넓은 화면과 상세가 말한다 */
-  .row.authoring-row .a-state { grid-area: state; font-size: 12px; max-width: 36vw; }
-  .row.authoring-row .a-step { display: none; }
-  .row.authoring-row .a-meta { grid-area: meta; display: flex; gap: 6px; font-size: 12px; color: var(--ink-faint); }
-  .row.authoring-row .a-meta > * { flex: none; text-align: left; }
-  .row.authoring-row .a-meta > :last-child { flex: 0 1 auto; }
-  .row.authoring-row .a-meta > * + *::before { content: '·'; margin-right: 6px; }
-  .row.authoring-row .a-cases::before { content: attr(data-label) ' '; }
-}
-
 /* 상세 페이지는 카드들이 제각각 떠 있다. 공용 .screen 의 판을 걷는다 — 판 위에 카드를 또 띄우면 테두리가 겹친다 */
 .screen.authoring-page { background: none; border: 0; box-shadow: none; overflow: visible; }
 

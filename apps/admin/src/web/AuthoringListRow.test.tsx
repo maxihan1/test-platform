@@ -76,6 +76,16 @@ describe('작성 목록 한 줄 표 (도메인/작성 §3.6 「작성 목록 줄
     expect(상태칸('실패 · 자료 · PRD 읽기')?.getAttribute('data-tone')).toBe('fail');
   });
 
+  it('초안은 올리다 버려졌을 수도 있어 「업로드 중」이라 하지 않는다 · 업로드 거절은 사람이 세운 중단과 가른다', async () => {
+    줄들.push(줄({ id: 301, rootId: 301, status: 'DRAFT' }));
+    줄들.push(줄({ id: 302, rootId: 302, status: 'STOPPED', stopReason: 'REJECTED', error: '테스트 밖 파일을 고쳤다', startedAt: '2026-11-10T01:00:00Z' }));
+    render(<Authoring service="PAY" 할수={() => true} />);
+    expect(await screen.findByText('자료 업로드가 완료되지 않았습니다')).toBeTruthy();
+    expect(screen.queryByText('자료 업로드 중')).toBeNull();
+    expect(screen.getByText('업로드 거절')).toBeTruthy();
+    expect(screen.queryByText('중단')).toBeNull();
+  });
+
   it('작성 중이면 상태에 단계와 몇째 칸 · 소요 시간은 집힌 때부터 지금까지', async () => {
     줄들.push(줄({
       id: 201, rootId: 201, status: 'RUNNING', stage: '케이스를 만드는 중',

@@ -171,14 +171,15 @@ export async function 목록요약들(서비스: number, 뿌리들: number[]): P
     for (const x of s.rows) 화면이름.set(x.url, x.name);
   }
 
-  const 바뀐요구 = new Map(
-    await Promise.all(
+  const [바뀐줄들, 고친기능] = await Promise.all([
+    Promise.all(
       r.rows
         .filter((x) => { const k = 종류들.get(x.root_id); return k === 'PRD_APPLY' || k === 'DECISION'; })
         .map(async (x) => [x.root_id, await 바뀐요구들(서비스, x, 판들)] as const),
     ),
-  );
-  const 고친기능 = await 고칠케이스기능들(서비스, r.rows.filter((x) => 종류들.get(x.root_id) === 'EDIT'));
+    고칠케이스기능들(서비스, r.rows.filter((x) => 종류들.get(x.root_id) === 'EDIT')),
+  ]);
+  const 바뀐요구 = new Map(바뀐줄들);
   const 결과표 = new Map<number, 목록요약>();
   for (const x of r.rows) {
     const kind = 종류들.get(x.root_id)!;
@@ -262,7 +263,8 @@ async function 고칠케이스기능들(서비스: number, 뿌리들: 줄[]): Pr
   const 항목들 = 판.rows[0]?.items ?? [];
   const 결과 = new Map<string, Map<string, number>>();
   for (const [뿌리, tcIds] of 케이스들) {
-    const 번호들 = new Set(지도.rows.filter((m) => tcIds.includes(m.tc_id)).map((m) => m.req_id));
+    const 고칠것 = new Set(tcIds);
+    const 번호들 = new Set(지도.rows.filter((m) => 고칠것.has(m.tc_id)).map((m) => m.req_id));
     결과.set(뿌리, 기능세기(항목들.filter((item) => 번호들.has(item.reqId))));
   }
   return 결과;
