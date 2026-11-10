@@ -1057,7 +1057,7 @@ ssh qahub 'cd /opt/qahub && git pull --ff-only origin main && docker compose up 
    docker compose -p test_platform -f docker-compose.yml -f docker-compose.mac.yml --profile authoring up -d --build author perf-agent
    docker compose -p test_platform logs -f author   # [작성] … 로 붙었다 가 뜨면 된 것이다
    ```
-   author 는 맥에서 한 번에 한 건(`AUTHORING_MAX_PARALLEL=1` · 메모리 4g)만 돈다 — 맥용 덧붙임 파일이 정한다.
+   author 는 맥에서 한 번에 한 건(`AUTHORING_MAX_PARALLEL=1`)과 Scout 한 자리(`CHAT_MAX_PARALLEL=1`)만 돈다 · 메모리 5g — 맥용 덧붙임 파일이 정한다.
    **npm 작성 에이전트(`npm run authoring-agent`)는 쓰지 않는다** — 자식 셸이 맥 계정의 파일(운영 서버 ssh 키 포함)에 닿는다. 컨테이너는 `~/.ssh` 를 못 본다
 4. 작성 계정의 비밀번호 로그인을 막는다 — 3번에서 author 가 붙은 걸 본 뒤에 한다. 작성 토큰은 비밀번호를 안 봐서 그대로 붙고, 로그인 화면만 거절한다(`apps/admin/src/auth/identify.ts` · `routes.ts`). 되살릴 때는 admin 이 설정 › 계정에서 비밀번호를 새로 준다
    ```bash
