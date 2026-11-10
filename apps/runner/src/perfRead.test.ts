@@ -149,8 +149,9 @@ describe('끊김멈춤을센다 — 게임 · SurfaceView', () => {
     expect(끊김멈춤을센다([], 고른프레임(0, 4))).toEqual({ jankPct: null, freezeCount: 0 });
   });
 
-  it('앞 프레임이 3개보다 적으면 끊김은 셀 수 있는 프레임부터 센다', () => {
-    expect(끊김멈춤을센다([0, ms(33), ms(400)], []).jankPct).toBe(0);
+  it('직전 3프레임이 없는 프레임은 끊김 분모에 넣지 않는다 — 견줄 프레임이 없으면 비운다', () => {
+    expect(끊김멈춤을센다([0, ms(33), ms(400)], []).jankPct).toBeNull();
+    expect(끊김멈춤을센다([ms(33), ms(66), ms(99), ms(400)], [0]).jankPct).toBe(100);
   });
 });
 
@@ -166,5 +167,49 @@ describe('한줄을읽는다 — 게임 끊김 · 멈춤', () => {
     const 둘째 = 고른프레임(첫간격.at(-1)! + ms(900), 29);
     출력 = 표([...첫간격, ...둘째]);
     expect(await 한줄을읽는다(adb, r, 1)).toMatchObject({ fps: 29, freezeCount: 1, jankPct: 3.4 });
+  });
+});
+
+describe('한줄을읽는다 — 끊김 · 멈춤 가짜를 만들지 않는다', () => {
+  const 게임gfx = () => 'Total frames rendered: 0\nJanky frames: 0 (0.00%)\n';
+
+  it('읽기가 늦어 간격을 건너뛰어도 사이 프레임과 이어서 봐 멈춤으로 세지 않는다', async () => {
+    let 끝초 = 10;
+    const adb = 가짜Adb(게임gfx, () => latency출력(끝초, 60));
+    const r = 기록기를만든다(1);
+    await 한줄을읽는다(adb, r, 0);
+    끝초 = 12;
+    expect(await 한줄을읽는다(adb, r, 2)).toMatchObject({ fps: 60, jankPct: 0, freezeCount: 0 });
+  });
+
+  it('층이 바뀌면 앞 층의 마지막 프레임과 견주지 않는다', async () => {
+    let 층 = 'SurfaceView[com.app.x/.Main](BLAST)#0';
+    let 끝초 = 10;
+    const adb: Adb = async (args) => {
+      const 줄 = args.join(' ');
+      if (줄.endsWith(`dumpsys gfxinfo ${앱}`)) return 게임gfx();
+      if (줄.endsWith('dumpsys SurfaceFlinger --list')) return `${층}\n`;
+      if (줄.includes('dumpsys SurfaceFlinger --latency')) return 줄.includes(층) ? latency출력(끝초, 60) : '16666666\n';
+      return '';
+    };
+    const r = 기록기를만든다(1);
+    await 한줄을읽는다(adb, r, 0);
+    층 = 'SurfaceView[com.app.x/.Main](BLAST)#5';
+    끝초 = 11;
+    expect((await 한줄을읽는다(adb, r, 1)).fps).toBeNull();
+    끝초 = 13;
+    await 한줄을읽는다(adb, r, 2);
+    끝초 = 14;
+    expect((await 한줄을읽는다(adb, r, 3)).freezeCount).toBe(0);
+  });
+
+  it('gfxinfo 로 그린 적 있는 일반 앱이 쉰 간격은 표시 시각의 틈을 멈춤으로 세지 않는다', async () => {
+    let 출력 = latency출력(10, 60);
+    const adb = 가짜Adb(() => 'Total frames rendered: 100\nJanky frames: 0 (0.00%)\nHISTOGRAM: 5ms=100 750ms=0\n', () => 출력);
+    const r = 기록기를만든다(1);
+    await 한줄을읽는다(adb, r, 0);
+    await 한줄을읽는다(adb, r, 1);
+    출력 = latency출력(12, 60).trimEnd() + `\n${14e9 - 5} ${14e9} ${14e9 + 5}\n`;
+    expect(await 한줄을읽는다(adb, r, 2)).toMatchObject({ jankPct: null, freezeCount: 0 });
   });
 });
