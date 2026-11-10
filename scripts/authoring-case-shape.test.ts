@@ -20,6 +20,23 @@ describe('코드모양 — 기다림', () => {
     expect(갈래들(절차(`    await 장바구니.담기.click();\n    await 알림.토스트.waitFor();\n    await verify('담으면 토스트가 뜬다', await 알림.토스트.isVisible(), true);`))).toEqual(['기다림']);
   });
 
+  it('waitForURL · waitForTimeout 은 앵커로 치지 않는다', () => {
+    expect(갈래들(절차(`    await 버튼.click();\n    await page.waitForURL('/cart');\n    await verify('누르면 세 줄이다', await 목록.count(), 3);`))).toEqual(['기다림']);
+  });
+
+  it('앞 절차에서 누르고 다음 절차 첫 줄에서 바로 읽으면 짚는다', () => {
+    const 글 = `test(spec, async () => {\n  await test.step('삭제를 누른다', async () => {\n    await 상세.삭제.click();\n  });\n  await test.step('댓글 수를 확인한다', async () => {\n    await verify('댓글이 0 건이다', await 상세.댓글들.count(), 0);\n  });\n});\n`;
+    expect(갈래들(글)).toEqual(['기다림']);
+  });
+
+  it('기다린 뒤 다시 누르고 읽으면 한 줄만 짚는다 — 「기다린 그 요소」가 아니다', () => {
+    expect(갈래들(절차(`    await 알림.토스트.waitFor();\n    await 닫기.click();\n    await verify('닫으면 토스트가 사라진다', await 알림.토스트.isVisible(), false);`))).toEqual(['기다림']);
+  });
+
+  it('앱의 waitForDisplayed 뒤 같은 요소의 isDisplayed 를 판정하면 짚는다', () => {
+    expect(갈래들(절차(`    await 안내.waitForDisplayed({ timeout: 10_000 });\n    await verify('안내가 뜬다', await 안내.isDisplayed(), true);`))).toEqual(['기다림']);
+  });
+
   it('기다린 결과를 값으로 바꿔 판정하면 넘긴다', () => {
     expect(
       갈래들(절차(`    await 장바구니.담기.click();\n    const 떴다 = await 알림.토스트.waitFor({ timeout: 10_000 }).then(() => true, () => false);\n    await verify('담으면 토스트가 뜬다', 떴다, true);`)),
@@ -43,6 +60,11 @@ describe('문구모양', () => {
   it('기능 케이스 이름에 「~하면」이 없으면 짚는다 — 「화면」의 「면」은 조건이 아니다', () => {
     expect(판정('「인기글」 화면 목록에 글 5건이 보인다', [])).toEqual(['name 「「인기글」 화면 목록에 글 5건이 보인다」']);
     expect(판정('「인기글」에 들어가면 글 5건이 보인다', [])).toEqual([]);
+    expect(판정('한 줄이라도 체크가 빠지면 「전체 선택」도 풀린다', [])).toEqual([]);
+  });
+
+  it('갈래 글자가 없는 옛 번호는 보지 않는다', () => {
+    expect(판정('장바구니 화면에 「삭제」 버튼이 보인다', [], 'MKT-004')).toEqual([]);
   });
 
   it('이름 밖 판정 문장이 조작을 다시 적으면 짚는다 — 이름과 같은 문장 · 결과만 쓴 문장은 넘긴다', () => {
