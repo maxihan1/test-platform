@@ -1,6 +1,6 @@
 // Scout 레이더 버튼 끌기 — 5px 넘게 움직이면 옮기고, 놓으면 가까운 가장자리에 붙이고, 자리를 PC · 휴대폰 따로 기억한다 (도메인/챗봇 §8.18 「HUD 버튼」)
 
-import { useEffect, useRef, useState, type PointerEvent } from 'react';
+import { useRef, useState, type PointerEvent } from 'react';
 
 /** 버튼이 붙은 쪽과 버튼 아래 끝에서 창 아래까지의 거리(px). 아래 탭 · 진행 알약 위로 올리는 일은 CSS 가 한다(scoutHud.css) */
 export type Hud자리 = { 쪽: 'left' | 'right'; y: number };
@@ -38,14 +38,18 @@ const 사이 = (값: number, 아래: number, 위: number) => Math.min(Math.max(�
 
 /** 창이 열려 있는 동안(`막힘`)은 옮기지 않는다 — 창이 버튼 자리에 붙어 있어서다 */
 export function useHud끌기(휴대폰: boolean, 막힘: boolean) {
-  const [자리, set자리] = useState(자리읽기(휴대폰));
+  // 저장소는 처음 한 번만 읽는다 — Scout 는 답 조각마다 다시 그린다
+  const [자리, set자리] = useState(자리읽기.bind(null, 휴대폰));
+  // 창을 좁혀 PC ↔ 휴대폰이 바뀌면 그쪽에 기억한 자리로 옮긴다. 그리는 중에 맞춰 한 번 더 그리지 않는다
+  const [읽은폭, set읽은폭] = useState(휴대폰);
+  if (읽은폭 !== 휴대폰) {
+    set읽은폭(휴대폰);
+    set자리(자리읽기(휴대폰));
+  }
   const [끄는곳, set끄는곳] = useState<{ x: number; y: number } | null>(null);
   // 마지막 자리를 ref 에도 둔다 — 마지막 움직임과 놓기가 한 번에 오면 state 는 아직 앞 값이다
   const 잡음 = useRef<{ x: number; y: number; dx: number; dy: number; 곳: { x: number; y: number } | null } | null>(null);
   const 방금끌었다 = useRef(false);
-
-  // 창을 좁혀 PC ↔ 휴대폰이 바뀌면 그쪽에 기억한 자리로 옮긴다
-  useEffect(() => set자리(자리읽기(휴대폰)), [휴대폰]);
 
   const 놓기 = () => {
     const 잡은 = 잡음.current;
@@ -60,6 +64,8 @@ export function useHud끌기(휴대폰: boolean, 막힘: boolean) {
 
   const 손잡이 = {
     onPointerDown: (e: PointerEvent<HTMLButtonElement>) => {
+      // 손가락으로 끌면 click 이 안 오기도 한다 — 앞 끌기의 표시가 이번 탭을 삼키지 않게 누를 때마다 지운다
+      방금끌었다.current = false;
       if (막힘 || e.button !== 0) return;
       const 상자 = e.currentTarget.getBoundingClientRect();
       잡음.current = { x: e.clientX, y: e.clientY, dx: e.clientX - 상자.left, dy: e.clientY - 상자.top, 곳: null };

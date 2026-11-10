@@ -16,7 +16,9 @@ const 예시들 = ['오늘 실행 결과 요약', '최근 등록된 이슈', '�
 const 닫는시간 = 300;
 // 휴대폰 머리 줄을 이만큼 넘게 끌어내리면 닫는다
 const 쓸기문턱 = 80;
-const 뒤로칸인가 = () => (window.history.state as { scout?: unknown } | null)?.scout === true;
+// 연 칸마다 표를 새로 붙인다 — 새로고침 · 앞으로 가기로 남은 옛 Scout 칸을 지금 연 칸으로 오해하면 닫기가 한 번 헛돈다
+let 칸표 = 0;
+const 뒤로칸인가 = (표: number) => (window.history.state as { scout?: unknown } | null)?.scout === 표;
 
 function 레이더() {
   return (
@@ -45,6 +47,12 @@ export function Scout({ projectId, projectName, 휴대폰 }: { projectId: number
   // 휴대폰 머리 줄을 끌어내린 거리. 놓아서 닫으면 그 자리에서 이어 내려간다
   const [쓸기, set쓸기] = useState<{ 시작: number; dy: number } | null>(null);
   const [쓸어닫음, set쓸어닫음] = useState(0);
+  // 놓기는 마지막 움직임과 한 번에 올 수 있다 — 그때 state 는 앞 값이라 거리를 ref 에도 둔다
+  const 쓸기참조 = useRef<{ 시작: number; dy: number } | null>(null);
+  const 쓸기바꿈 = (값: { 시작: number; dy: number } | null) => {
+    쓸기참조.current = 값;
+    set쓸기(값);
+  };
 
   // 답이 쓰이는 대로, 그리고 다시 열 때 맨 아래를 보인다
   useEffect(() => {
@@ -83,23 +91,26 @@ export function Scout({ projectId, projectName, 휴대폰 }: { projectId: number
   };
 
   // 휴대폰에서 연 창은 뒤로 가기 기록의 한 칸이다 — ⌄ · 쓸기로 닫으면 그 칸을 걷어 뒤로 가기가 한 번 헛돌지 않게 한다
-  const 닫기 = () => (휴대폰 && 뒤로칸인가() ? window.history.back() : 내리기());
+  const 닫기 = () => (휴대폰 && 뒤로칸인가(내칸.current) ? window.history.back() : 내리기());
 
   // 휴대폰은 열 때 뒤로 가기 기록을 하나 쌓는다 (화면공통 §8 「하나를 여는 일은 뒤로 가기 기록을 쌓는다」).
-  // 주소가 그대로라 화면은 다시 그려지지 않는다. 창 안 링크로 화면을 옮기면 창을 내린다 — 전체 화면 창이 새 화면을 덮으면 옮긴 보람이 없다
+  // 주소가 그대로라 화면은 다시 그려지지 않는다. 창 안 링크는 그 칸을 걷고 나서 옮긴다(갈곳) — 전체 화면 창이 새 화면을 덮지 않고, 뒤로 가기가 걷히지 않은 칸에서 헛돌지 않게
+  const 갈곳 = useRef<string | null>(null);
+  const 내칸 = useRef(0);
   useEffect(() => {
     if (!열림 || !휴대폰) return;
-    window.history.pushState({ ...(window.history.state as object | null), scout: true }, '');
+    칸표 += 1;
+    내칸.current = 칸표;
+    window.history.pushState({ ...(window.history.state as object | null), scout: 칸표 }, '');
     const 뒤로 = () => {
-      if (!뒤로칸인가()) 내리기();
+      if (뒤로칸인가(내칸.current)) return;
+      const 옮길곳 = 갈곳.current;
+      갈곳.current = null;
+      내리기(옮길곳 === null);
+      if (옮길곳 !== null) window.location.hash = 옮길곳;
     };
-    const 옮김 = () => 내리기(false);
     window.addEventListener('popstate', 뒤로);
-    window.addEventListener('hashchange', 옮김);
-    return () => {
-      window.removeEventListener('popstate', 뒤로);
-      window.removeEventListener('hashchange', 옮김);
-    };
+    return () => window.removeEventListener('popstate', 뒤로);
   }, [열림, 휴대폰]);
 
   useEffect(
@@ -168,6 +179,14 @@ export function Scout({ projectId, projectName, 휴대폰 }: { projectId: number
           aria-hidden={!열림}
           inert={!열림}
           style={휴대폰 && 내린거리 > 0 ? ({ '--drag': `${내린거리}px` } as CSSProperties) : undefined}
+          onClick={(e) => {
+            // 휴대폰 창 안의 화면 링크 — 연 칸을 먼저 걷고 popstate 에서 옮긴다(위 「갈곳」)
+            const 링크 = (e.target as Element).closest('a[href^="#"]');
+            if (!휴대폰 || 링크 === null || !뒤로칸인가(내칸.current)) return;
+            e.preventDefault();
+            갈곳.current = 링크.getAttribute('href');
+            window.history.back();
+          }}
         >
           <header
             className="scout-head"
@@ -175,21 +194,23 @@ export function Scout({ projectId, projectName, 휴대폰 }: { projectId: number
               // 단추를 누른 것은 쓸기가 아니다
               if (!휴대폰 || !열림 || (e.target as Element).closest('button') !== null) return;
               e.currentTarget.setPointerCapture?.(e.pointerId);
-              set쓸기({ 시작: e.clientY, dy: 0 });
+              쓸기바꿈({ 시작: e.clientY, dy: 0 });
             }}
             onPointerMove={(e) => {
-              if (쓸기 !== null) set쓸기({ 시작: 쓸기.시작, dy: Math.max(0, e.clientY - 쓸기.시작) });
+              const 지금 = 쓸기참조.current;
+              if (지금 !== null) 쓸기바꿈({ 시작: 지금.시작, dy: Math.max(0, e.clientY - 지금.시작) });
             }}
             onPointerUp={() => {
-              if (쓸기 === null) return;
-              set쓸기(null);
+              const 끝 = 쓸기참조.current;
+              if (끝 === null) return;
+              쓸기바꿈(null);
               // 덜 끌었으면 제자리로 돌아간다. 넘겼으면 끈 자리에서 이어 내려간다
-              if (쓸기.dy > 쓸기문턱) {
-                set쓸어닫음(쓸기.dy);
+              if (끝.dy > 쓸기문턱) {
+                set쓸어닫음(끝.dy);
                 닫기();
               }
             }}
-            onPointerCancel={() => set쓸기(null)}
+            onPointerCancel={() => 쓸기바꿈(null)}
           >
             {/* 휴대폰 머리에는 레이더 표시가 없다 — 폭이 좁아 이름 · 초기화 · 닫기만 둔다 (시안 휴대폰 ②) */}
             {휴대폰 ? null : <span className="scout-mark">{레이더()}</span>}

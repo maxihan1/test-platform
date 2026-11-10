@@ -37,6 +37,8 @@ export function ScoutComposer({
           id="scout-q"
           ref={칸}
           className={음성.듣는중 ? 'live' : undefined}
+          // 듣는 동안 들은 말이 칸을 다시 채운다 — 그새 친 글이 덮여 사라지지 않게 듣는 동안은 치지 않는다
+          readOnly={음성.듣는중}
           rows={Math.min(5, 글.split('\n').length)}
           maxLength={글최대}
           placeholder={t('질문을 입력하세요')}

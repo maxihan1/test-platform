@@ -42,12 +42,14 @@ describe('화면 토큰 (DESIGN.md)', () => {
     // 없는 토큰을 var() 로 부르면 그 속성이 통째로 무효가 된다 — 오류도 안 나고 조용히 사라진다.
     // 2026-09-21 에 --lift 가 실제로 그랬다. 면이 바탕에서 떠 보이지 않는데 아무도 안 죽는다.
     // 2026-10-07 토큰 교체 때 이 검사가 styles.css 만 읽어서 authoringStatus.css 와 인라인 `var(--rule)` 이 빠져나갔다
-    // 화면 원본이 스스로 선언한 지역 변수(CSS `--x:` · 인라인 style `'--x':`)도 정의된 것이다 — Scout 버튼 자리처럼 규칙끼리 값을 나눌 때 쓴다 (SCOUT-F1-06)
-    const 지역 = 화면원본들().flatMap(([, 글]) => [...글.matchAll(/['"]?(--[\w-]+)['"]?\s*:/g)].map((m) => m[1]!));
-    const 있는것 = new Set([...Object.keys(토큰들()), ...지역]);
+    // 그 파일이 스스로 선언한 지역 변수(CSS `--x:`)도 정의된 것이다 — Scout 버튼 자리처럼 규칙끼리 값을 나눌 때 쓴다.
+    // 화면 코드가 인라인 style 로 넣는 값(`'--x':`)은 다른 파일에서 쓰이므로 기본값을 단 `var(--x, …)` 일 때만 받는다 — 빠져도 무효가 되지 않는다 (SCOUT-F1-06)
+    const 선언 = (글: string, 꼴: RegExp) => [...글.matchAll(꼴)].map((m) => m[1]!);
+    const 인라인 = new Set(화면원본들().flatMap(([, 글]) => 선언(글, /['"](--[\w-]+)['"]\s*:/g)));
+    const 루트 = new Set(Object.keys(토큰들()));
     const 없는것 = 화면원본들().flatMap(([이름, 글]) =>
-      [...new Set([...글.matchAll(/var\((--[\w-]+)/g)].map((m) => m[1]!))]
-        .filter((토큰) => !있는것.has(토큰))
+      [...new Set([...글.matchAll(/var\((--[\w-]+)(\s*,)?/g)].filter((m) => !(m[2] !== undefined && 인라인.has(m[1]!))).map((m) => m[1]!))]
+        .filter((토큰) => !루트.has(토큰) && !선언(글, /^\s*(--[\w-]+)\s*:/gm).includes(토큰))
         .map((토큰) => `${이름}: ${토큰}`),
     );
     expect(없는것, `:root 에 없는 토큰을 부른다 — ${없는것.join(', ')}`).toEqual([]);

@@ -61,10 +61,25 @@ export function use음성(언어: 언어, 받기: (글: string) => void) {
     };
     귀.current = r;
     set듣는중(true);
-    r.start();
+    try {
+      r.start();
+    } catch (e) {
+      // 마이크가 막힌 자리 · 겹친 시작이면 바로 던진다 — onend 가 안 와 듣는 표시가 남지 않게 거두고 다시 던진다
+      귀.current = null;
+      set듣는중(false);
+      throw e;
+    }
   };
 
-  const 끝 = () => 귀.current?.stop();
+  // 멈춘 뒤에도 브라우저가 마지막 결과를 한 번 더 보낸다 — 보내거나 지운 칸에 그 글이 되살아나지 않게 귀를 먼저 뗀다
+  const 끝 = () => {
+    const r = 귀.current;
+    if (r === null) return;
+    귀.current = null;
+    r.onresult = null;
+    set듣는중(false);
+    r.stop();
+  };
 
   return { 쓸수: 틀 !== null, 듣는중, 시작, 끝 };
 }

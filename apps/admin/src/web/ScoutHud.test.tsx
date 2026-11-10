@@ -53,6 +53,7 @@ beforeEach(() => {
     vi.fn(async (url: string, init?: RequestInit) => {
       if ((init?.method ?? 'GET') === 'GET') return new Response(JSON.stringify(대화), { status: 200 });
       보낸것.push(url);
+      if (url === '/api/chat/questions') return new Response(JSON.stringify({ id: 41, ahead: 0 }), { status: 201 });
       return new Response(null, { status: 204 });
     }),
   );
@@ -169,7 +170,7 @@ describe('열고 닫기', () => {
     const 앞길이 = window.history.length;
     띄우기(true);
     await 열기();
-    expect(window.history.state).toMatchObject({ scout: true });
+    expect(window.history.state?.scout).toEqual(expect.any(Number));
     expect(window.history.length).toBe(앞길이 + 1);
     act(() => window.history.back());
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
@@ -180,13 +181,25 @@ describe('열고 닫기', () => {
     expect(window.history.state?.scout).toBeUndefined();
   });
 
-  it('휴대폰 창 안 링크로 화면을 옮기면 창을 내린다 — 전체 화면 창이 새 화면을 덮지 않게', async () => {
+  it('휴대폰 창 안 링크는 연 칸을 걷고 창을 내린 뒤 그 화면으로 옮긴다 — 뒤로 가기가 헛돌지 않게', async () => {
+    대화.questions = [질문줄({ answer: '[실행 #12](run/UI/12) 결과예요' })];
+    const 앞길이 = window.history.length;
     띄우기(true);
     await 열기();
-    act(() => {
-      window.location.hash = '#/runs/12';
-    });
+    fireEvent.click(await screen.findByRole('link', { name: '실행 #12' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/runs/12'));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(window.history.state?.scout, '새 화면 칸 아래에 Scout 칸이 남지 않는다').toBeUndefined();
+    expect(window.history.length).toBeLessThanOrEqual(앞길이 + 1);
+  });
+
+  it('새로고침 · 앞으로 가기로 남은 옛 Scout 칸을 지금 연 칸으로 보지 않는다 — ⌄ 한 번에 닫힌다', async () => {
+    window.history.pushState({ scout: 999 }, '');
+    띄우기(true);
+    await 열기();
+    fireEvent.click(screen.getByRole('button', { name: '닫기' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(window.history.state?.scout).toBe(999);
   });
 
   it('휴대폰 머리 줄을 80px 넘게 끌어내리면 닫히고, 덜 끌면 제자리다 — 단추를 누른 것은 쓸기가 아니다', async () => {
@@ -232,11 +245,27 @@ describe('🎤 음성 입력 (§8.18 「입력」 · 공통 상태 ②)', () => 
     expect(칸.value).toBe('어제 실패 보여 줘');
     expect(칸.className).toBe('live');
 
+    expect(칸.readOnly, '듣는 동안 친 글은 들은 말에 덮인다').toBe(true);
+
     fireEvent.click(screen.getByRole('button', { name: '음성 입력 종료' }));
     expect(screen.queryByText('듣는 중 · 말을 마치면 확인 후 보내세요')).toBeNull();
     screen.getByRole('button', { name: '음성으로 입력' });
     expect(칸.value).toBe('어제 실패 보여 줘');
     expect(보낸것).toEqual([]);
+  });
+
+  it('보내면 듣기를 멈추고, 멈춘 뒤 늦게 온 결과가 비운 칸을 다시 채우지 않는다', async () => {
+    vi.stubGlobal('webkitSpeechRecognition', 가짜인식기);
+    띄우기();
+    await 열기();
+    fireEvent.click(screen.getByRole('button', { name: '음성으로 입력' }));
+    const 귀 = 가짜인식기.들[0]!;
+    const 늦은결과 = 귀.onresult!;
+    act(() => 늦은결과({ results: [[{ transcript: '최근 이슈' }]] }));
+    fireEvent.keyDown(screen.getByRole('textbox', { name: '질문' }), { key: 'Enter' });
+    await waitFor(() => expect(보낸것).toEqual(['/api/chat/questions']));
+    act(() => 귀.onresult?.({ results: [[{ transcript: '최근 이슈' }]] }));
+    expect(screen.getByRole<HTMLTextAreaElement>('textbox', { name: '질문' }).value).toBe('');
   });
 
   it('이어붙이기 — 빈 칸이면 들은 말만, 상한을 넘기지 않는다', () => {
