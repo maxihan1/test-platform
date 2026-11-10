@@ -82,7 +82,8 @@
   color: var(--ink-muted);
 }
 .guide-name {
-  flex: 1;
+  /* 바탕 폭 140px 아래로는 줄을 바꾼다 — 휴대폰 폭에서 이름이 한 글자씩 세로로 꺾였다 (2026-11-11) */
+  flex: 1 1 140px;
   min-width: 0;
   overflow-wrap: anywhere;
 }

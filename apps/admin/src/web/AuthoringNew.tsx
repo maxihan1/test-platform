@@ -87,7 +87,8 @@ export function AuthoringNew({
     'guide',
     ...(대조칸 ? (['method'] as const) : []),
     ...(방법값 === 'screen' ? [] : (['material'] as const)),
-    ...(대조 ? (['server'] as const) : []),
+    // 방법을 고르기 전에도 대상 서버 칸을 보여 둔다 — 고르는 순간 단계 수가 바뀌면 막대가 흔들린다. 「기획서로」를 고르면 빠진다
+    ...(대조칸 && 고른방법 !== 'prd' ? (['server'] as const) : []),
     'confirm',
   ];
   const 지금 = Math.min(칸, 단계들.length - 1);
@@ -200,7 +201,7 @@ export function AuthoringNew({
   const 요약: [string, string][] = [
     [
       t('가이드'),
-      가이드.now === null || 가이드.now.version === 0 ? t('가이드 없이 작성합니다') : t('{가이드} 버전 {버전} 을 같이 읽습니다', { 가이드: t(줄.가이드), 버전: 가이드.now.version }),
+      가이드.now === null || 가이드.now.version === 0 ? t('가이드 없이 작성합니다') : t('{가이드} 버전 {버전}을 같이 읽습니다', { 가이드: t(줄.가이드), 버전: 가이드.now.version }),
     ],
     ...(대조칸 ? ([[t('작성 방법'), 방법이름]] as [string, string][]) : []),
     ...(api모드 && 판 !== null ? ([[t('API 문서'), t('버전 {버전}', { 버전: 판 })]] as [string, string][]) : []),

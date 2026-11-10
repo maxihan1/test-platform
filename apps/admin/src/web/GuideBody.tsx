@@ -136,7 +136,8 @@ export function GuideBody({ service, 가이드, 쓰나, 예, 한번에 = false }
             예={예}
             files={now.files.filter((f) => f.section === s)}
             busy={가이드.busy}
-            수정중={수정중}
+            // 한꺼번에 쓰는 마법사 1단계는 세 칸이 다 열려 있어 고치는 중 테두리를 두르지 않는다 — 셋 다 주황이면 무겁다
+            수정중={수정중 && !한번에}
             머리행동={
               쓰나 && !수정중 ? (
                 <button className="btn ghost small" aria-label={t('{구획} 수정', { 구획: 이름 })} onClick={() => 가이드.열기(s)}>

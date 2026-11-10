@@ -57,7 +57,7 @@ describe('새 작성 마법사 1단계 — 가이드 먼저 (2026-11-11 사용�
     fireEvent.click(버튼('다음'));
     fireEvent.click(버튼('다음'));
     expect(지금단계()).toBe('4 확인');
-    expect(screen.getByText('웹 가이드 버전 2 을 같이 읽습니다')).toBeTruthy();
+    expect(screen.getByText('웹 가이드 버전 2을 같이 읽습니다')).toBeTruthy();
   });
 
   it('있는 가이드의 구획을 고치는 중이면 저장하거나 취소할 때까지 다음으로 못 간다', async () => {

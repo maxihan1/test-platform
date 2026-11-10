@@ -124,7 +124,7 @@ describe('애플리케이션 가이드 — 시안 GuideA', () => {
     );
     expect(await screen.findByText('저장했습니다 (버전 4)')).toBeTruthy();
     expect(지금).toHaveBeenCalledTimes(2);
-    expect(screen.queryByRole('textbox', { name: '정책' })).toBeNull();
+    await vi.waitFor(() => expect(screen.queryByRole('textbox', { name: '정책' })).toBeNull());
   });
 
   it('한 구획을 저장할 때 다른 구획에서 고치던 글은 싣지 않고 그대로 남긴다', async () => {

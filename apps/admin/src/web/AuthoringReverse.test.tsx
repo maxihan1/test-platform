@@ -90,11 +90,15 @@ describe('새 작성 마법사 — 실제 화면과 대조', () => {
   it('작성 방법을 고르기 전에는 다음으로 못 가고, 「기획서로 작성」에는 대상 서버 단계가 없다', () => {
     폼();
     다음();
+    expect(within(screen.getByRole('list', { name: '단계' })).getAllByRole('listitem')).toHaveLength(5);
     expect(다음버튼().disabled).toBe(true);
     expect(screen.getByText('작성 방법을 선택하세요')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '기획서로 작성' }));
     expect(screen.getByRole('button', { name: '기획서로 작성' }).getAttribute('aria-pressed')).toBe('true');
     expect(within(screen.getByRole('list', { name: '단계' })).queryByText(/대상 서버/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '화면을 훑어서 작성' }));
+    expect(within(screen.getByRole('list', { name: '단계' })).getByText(/대상 서버/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '기획서로 작성' }));
     다음();
     expect(screen.queryByLabelText('대상 서버')).toBeNull();
     expect(screen.queryByLabelText('시작 주소')).toBeNull();

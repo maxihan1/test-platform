@@ -62,7 +62,7 @@ export const 작성말: Record<string, string> = {
   '디바이스에서 앱을 켠 첫 화면에서 시작합니다': 'Starts from the first screen after the app launches on the device',
   '이렇게 작성합니다': 'Here is the plan',
   '가이드 없이 작성합니다': 'Written without a guide',
-  '{가이드} 버전 {버전} 을 같이 읽습니다': 'Reads {가이드} version {버전} too',
+  '{가이드} 버전 {버전}을 같이 읽습니다': 'Reads {가이드} version {버전} too',
   '피그마 {수}건': '{수} Figma links',
   'API 문서의 엔드포인트마다 케이스를 작성해 검토용 PR 로 등록합니다': 'Writes cases per API endpoint and opens a review PR',
   'PRD 에 아직 없는 화면만 작성합니다': 'Writes only screens not yet in the PRD',
