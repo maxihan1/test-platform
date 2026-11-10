@@ -2,7 +2,7 @@
 
 import type { FastifyInstance } from 'fastify';
 
-import { 대화키새로, 대화키해시, 출입증대화지우기 } from '../chat/store.js';
+import { 대화키바꾸기, 대화키해시, 출입증대화지우기 } from '../chat/store.js';
 import { 확인 } from './identify.js';
 import { SSO설정읽기, 로그아웃주소 } from './oidc.js';
 import { 검증, 해시 } from './password.js';
@@ -34,10 +34,13 @@ export default async function authRoutes(app: FastifyInstance): Promise<void> {
   // discovery 는 받아 둔 것을 쓰므로 그 뒤에 Auth 가 꺼졌으면 주소는 나가고 브라우저가 Auth 오류 화면을 본다 — 이 앱 출입증은 이미 지워졌다
   app.post('/auth/logout', async (req, reply) => {
     const idToken = req.session.get('idToken');
-    // 그 출입증의 Scout 질문을 중단하고 대화를 지운다 (도메인/챗봇 §3.14 「대화 수명」)
     const 대화키 = req.session.get('chatKey');
-    if (대화키 !== undefined) await 출입증대화지우기(대화키해시(대화키));
+    // 출입증을 먼저 지운다 — 대화 지우기가 DB 문제로 실패해도 로그아웃은 된다
     req.session.delete();
+    // 그 출입증의 Scout 질문을 중단하고 대화를 지운다 (도메인/챗봇 §3.14 「대화 수명」). 못 지우면 24시간 정리가 지운다
+    if (대화키 !== undefined) {
+      await 출입증대화지우기(대화키해시(대화키)).catch((err: unknown) => req.log.error({ err }, '[chat] 로그아웃한 출입증의 Scout 대화를 못 지웠다 — 24시간 정리에 맡긴다'));
+    }
     if (sso === null || idToken === undefined) return reply.code(204).send();
     try {
       return { redirect: await 로그아웃주소(sso, idToken) };
@@ -79,7 +82,7 @@ export default async function authRoutes(app: FastifyInstance): Promise<void> {
     req.session.set('stamp', 비밀번호도장(찾은것.passwordHash));
     // 앞서 SSO 로 구운 칸이 남아 있으면 SSO 를 다시 켰을 때 이 출입증이 SSO 출입증 행세를 한다
     for (const 칸 of SSO칸들) req.session.set(칸, undefined);
-    req.session.set('chatKey', 대화키새로());
+    await 대화키바꾸기(req.session);
     return { user: 찾은것.user };
   });
 

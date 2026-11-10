@@ -70,8 +70,8 @@
 | **WS-게임** 게임 테스트 (여러 갈래에 걸친다 — 정본은 `spec/도메인/게임`) | `spec/공통/1-제품과-구조` · `spec/공통/3-공유계약` · `spec/공통/4-데이터모델` · `spec/도메인/게임` · `spec/도메인/러너` · `spec/도메인/작성` | 7910줄 |
 | **WS-BTS** BTS 연동 (여러 갈래에 걸친다 — 정본은 `spec/도메인/BTS`) | `spec/공통/1-제품과-구조` · `spec/공통/4-데이터모델` · `spec/도메인/BTS` · `spec/도메인/작성` · `spec/도메인/실행` · `spec/도메인/인증` | 9633줄 |
 | **WS-호환성** 기기 호환성 (여러 갈래에 걸친다 — 정본은 `spec/도메인/호환성`) | `spec/공통/1-제품과-구조` · `spec/공통/4-데이터모델` · `spec/공통/5-화면공통` · `spec/도메인/호환성` · `spec/도메인/러너` · `spec/도메인/실행` · `spec/도메인/인증` | 7810줄 |
-| **WS-챗봇** Scout 챗봇 (여러 갈래에 걸친다 — 정본은 `spec/도메인/챗봇`) | `spec/공통/1-제품과-구조` · `spec/공통/4-데이터모델` · `spec/공통/5-화면공통` · `spec/도메인/챗봇` · `spec/도메인/BTS` · `spec/도메인/인증` · `spec/도메인/작성` | 8630줄 |
-| **WS-0** 골격 · **integration** 통합·병합 | 20장 전부 | 17210줄 |
+| **WS-챗봇** Scout 챗봇 (여러 갈래에 걸친다 — 정본은 `spec/도메인/챗봇`) | `spec/공통/1-제품과-구조` · `spec/공통/4-데이터모델` · `spec/공통/5-화면공통` · `spec/도메인/챗봇` · `spec/도메인/BTS` · `spec/도메인/인증` · `spec/도메인/작성` | 8632줄 |
+| **WS-0** 골격 · **integration** 통합·병합 | 20장 전부 | 17212줄 |
 
 `spec/공통/1-제품과-구조`는 어느 갈래든 읽는다. 용어를 다르게 쓰면 나머지가 전부 어긋난다.
 WS-0 과 integration 은 장을 따로 싣지 않는다 — 전 갈래를 건드리므로 색인을 보고 필요한 장을 직접 연다.
@@ -207,7 +207,7 @@ WS-0 과 integration 은 장을 따로 싣지 않는다 — 전 갈래를 건드
 | [게임](spec/도메인/게임.md) | §3.10 게임 테스트(결정 · 조각 · 게임 연결 · 케이스 꼴 · 확률 세 겹 · 작성 · 창 훑기 · 지도 · 설계 칸 · 결과 · 빌드마다 · 게임 쪽이 준비할 것) · §7 게임 통로 | 362 |
 | [BTS](spec/도메인/BTS.md) | §3.12 BTS 연동(세 바퀴 · 지킬 것 · 결정 · 새 기능 · 버그 · 판정 · 수정 AI · 롤백 · 노트 · MCP · 열쇠 · 고장 모드) · §7 BTS 통로 · §8.15 BTS 화면 | 572 |
 | [호환성](spec/도메인/호환성.md) | §3.13 기기 호환성(결정 · 화면 낱말 · 세트 · 자동 선택 · 점검 상태 · 순차 실행 · 화면 찾기 · 결과 · 판정 · 비전에 기대는 것) · §7 호환성 통로 · §8.17 호환성 화면 | 268 |
-| [챗봇](spec/도메인/챗봇.md) | §3.14 Scout 챗봇(결정 · 막는 법 · 대화 수명 · 돌리는 곳) · §7 챗봇 통로 · §8.18 Scout 화면 | 160 |
+| [챗봇](spec/도메인/챗봇.md) | §3.14 Scout 챗봇(결정 · 막는 법 · 대화 수명 · 돌리는 곳) · §7 챗봇 통로 · §8.18 Scout 화면 | 162 |
 | [작성](spec/도메인/작성.md) | §3.6 · §7 Authoring — 대기줄·작업 단계·머지·자료(파일·피그마)·역방향(화면 대조)·케이스 고치기·반영 때 겹침 검사·테스트 두 갈래·설계 기법·표준 기획서 | 3019 |
 
 ---
@@ -296,7 +296,7 @@ WS-0 과 integration 은 장을 따로 싣지 않는다 — 전 갈래를 건드
 | `game_element` · `game_element_case` (2026-10-22 · GAME-F1-07 반영) | 게임 (`game_element` 은 작성이 올리고 실행 저장이 서버 값 칸을 쓴다 · `game_element_case` 는 스캐너가 채우는 사본) | [도메인/게임](spec/도메인/게임.md) |
 | `app_build` · `service_token` (2026-10-24 · GAME-F1-13 반영) | 실행 (빌드마다 돌리기 — `service_token` 은 설정이 발급하고 문이 확인한다 · 모든 종류가 쓴다) | [도메인/실행](spec/도메인/실행.md) |
 | `bts_link` · `bts_deploy` · `bts_claim` · `bts_issue_case` · `bts_outbox` · `project_note` · `project_note_event` (2026-10-31 · BTS-F1-01 — 다 반영 — `bts_deploy` · `bts_claim` 은 BTS-F5-01) | BTS (`service.code_repos` 는 설정이 쓰고 수정 AI 만 읽는다 · `authoring_request` 종류 PRD_DRAFT · NOTE · BUGFIX 는 작성 표다) | [도메인/BTS](spec/도메인/BTS.md) |
-| `chat_conversation` · `chat_question` · `chat_chunk` · `chat_usage` (2026-11-11 · SCOUT-F1-01 — 반영은 SCOUT-F1-03) | 챗봇 (로그아웃 · Auth back-channel 이 대화를 지운다 — 인증이 챗봇 함수를 부른다) | [도메인/챗봇](spec/도메인/챗봇.md) |
+| `chat_conversation` · `chat_question` · `chat_chunk` · `chat_usage` (2026-11-11 · SCOUT-F1-01 · SCOUT-F1-03 반영) | 챗봇 (로그아웃 · Auth back-channel 이 대화를 지운다 — 인증이 챗봇 함수를 부른다) | [도메인/챗봇](spec/도메인/챗봇.md) |
 | `scenario` · `scenario_version` · `scenario_run_part` · `scenario_run_step` | 시나리오 (`test_run` 은 실행의 것이고 `kind` 로 갈라 쓴다) | [도메인/시나리오](spec/도메인/시나리오.md) |
 
 **계약 파일을 고치는 `contracts` 단위**는 위 표들이 전부 자기 몫이다. 소유 도메인은 그 뒤에 읽고 쓴다.

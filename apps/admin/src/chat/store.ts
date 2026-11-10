@@ -30,26 +30,55 @@ export function 알리기(ids: readonly number[], 대기도 = false): void {
   if (대기도) 신호.emit('대기');
 }
 
-/** 그 질문이 바뀌거나(대기 중이면 대기 줄이 움직이거나) ms 가 지나거나 끊기면 풀린다 */
-export function 바뀜기다리기(id: number, 대기도: boolean, ms: number, 끊김: AbortSignal): Promise<void> {
-  return new Promise((resolve) => {
-    const 이름들 = 대기도 ? [질문신호(id), '대기'] : [질문신호(id)];
-    const 풀기 = () => {
-      clearTimeout(시계);
-      for (const 이름 of 이름들) 신호.off(이름, 풀기);
-      끊김.removeEventListener('abort', 풀기);
-      resolve();
-    };
-    const 시계 = setTimeout(풀기, ms);
-    for (const 이름 of 이름들) 신호.on(이름, 풀기);
-    끊김.addEventListener('abort', 풀기);
-  });
+/**
+ * 그 질문(과 대기 줄)의 신호를 듣기 시작한다. DB 를 읽기 **전에** 불러야 한다 — 읽는 사이에 온 신호도 쌓아 두었다가
+ * 다음 기다리기를 바로 풀어 준다(읽은 뒤에 듣기 시작하면 그 사이 신호를 놓쳐 15초를 잔다).
+ * 기다리기는 신호면 '신호', ms 가 지나면 '시계', 끊기면 '끊김' 으로 풀린다. 다 쓰면 그만으로 귀를 뗀다
+ */
+export function 바뀜듣기(id: number, 끊김: AbortSignal): { 기다리기: (ms: number) => Promise<'신호' | '시계' | '끊김'>; 그만: () => void } {
+  const 이름들 = [질문신호(id), '대기'];
+  let 쌓임 = false;
+  let 깨우기: (() => void) | null = null;
+  const 들음 = () => {
+    쌓임 = true;
+    깨우기?.();
+  };
+  for (const 이름 of 이름들) 신호.on(이름, 들음);
+  끊김.addEventListener('abort', 들음);
+  return {
+    기다리기: (ms) =>
+      new Promise((resolve) => {
+        const 풀기 = (까닭: '신호' | '시계') => {
+          clearTimeout(시계);
+          깨우기 = null;
+          쌓임 = false;
+          resolve(끊김.aborted ? '끊김' : 까닭);
+        };
+        const 시계 = setTimeout(() => 풀기('시계'), ms);
+        if (쌓임 || 끊김.aborted) 풀기('신호');
+        else 깨우기 = () => 풀기('신호');
+      }),
+    그만: () => {
+      for (const 이름 of 이름들) 신호.off(이름, 들음);
+      끊김.removeEventListener('abort', 들음);
+    },
+  };
 }
 
 /** 출입증 대화 키 원문 → 대화 줄의 session_key. DB 에는 해시만 둔다 */
 export const 대화키해시 = (원문: string): string => 토큰해시(원문);
-/** 새 대화 키 — 로그인(비밀번호 · SSO)이 출입증에 굽는다 (§3.14 「대화 수명」) */
+/** 새 대화 키 — 옛 출입증에 칸이 없을 때 한 번 굽는다 (§3.14 「대화 수명」) */
 export const 대화키새로 = (): string => randomBytes(32).toString('base64url');
+
+/**
+ * 로그인(비밀번호 · SSO)이 새 대화 키를 굽는다. 같은 브라우저로 다시 로그인했으면 앞 키의 대화를 지운다 —
+ * 남기면 화면에서 안 보이는 질문이 작성 서버에서 계속 돌고 그 mcq_ 도 산다
+ */
+export async function 대화키바꾸기(session: { get(key: 'chatKey'): string | undefined; set(key: 'chatKey', value: string): void }): Promise<void> {
+  const 앞키 = session.get('chatKey');
+  if (앞키 !== undefined) await 출입증대화지우기(대화키해시(앞키));
+  session.set('chatKey', 대화키새로());
+}
 
 /**
  * 마지막 조각(없으면 가져간 때) 뒤 2분 30초가 지난 RUNNING 을 TIMEOUT 으로 닫는다 — 작성 서버가 죽어 끝을 못 알린 질문이다.
@@ -183,9 +212,12 @@ export async function 질문중단(id: number): Promise<boolean> {
 /** 대화를 지운다 — 질문 · 조각은 같이 지워지고 사용량은 남는다. 도는 질문의 작성 서버는 다음 조각에서 409 를 받는다 */
 async function 대화들지우기(조건: string, 값: unknown[]): Promise<void> {
   // 데이터를 바꾸는 CTE 밖의 SELECT 는 지우기 전 모습을 본다 — 지운 대화의 질문 번호를 거기서 얻어 이어 받기를 깨운다
+  // 도는 질문의 사용량은 여기서 중단으로 닫는다 — 작성 서버가 죽어 끝 알리기가 안 와도 RUNNING 으로 남지 않는다
   const r = await (await db()).query<{ id: string }>(
-    `WITH 지움 AS (DELETE FROM chat_conversation WHERE ${조건} RETURNING id)
-     SELECT q.id FROM chat_question q WHERE q.conversation_id IN (SELECT id FROM 지움)`,
+    `WITH 지움 AS (DELETE FROM chat_conversation WHERE ${조건} RETURNING id),
+     질문 AS (SELECT q.id FROM chat_question q WHERE q.conversation_id IN (SELECT id FROM 지움)),
+     사용량 AS (UPDATE chat_usage SET status = 'STOPPED' WHERE status = 'RUNNING' AND question_id IN (SELECT id FROM 질문))
+     SELECT id FROM 질문`,
     값,
   );
   if (r.rows.length > 0) 알리기(r.rows.map((x) => Number(x.id)), true);

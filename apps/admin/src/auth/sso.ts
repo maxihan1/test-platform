@@ -3,7 +3,7 @@
 
 import type { FastifyInstance } from 'fastify';
 
-import { 대화키새로, 사람대화지우기, sid대화지우기 } from '../chat/store.js';
+import { 대화키바꾸기, 사람대화지우기, sid대화지우기 } from '../chat/store.js';
 import { 작성계정인가 } from './agentToken.js';
 import { 교환, 로그아웃토큰확인, 시작, type SSO설정, type 로그아웃알림, type 받은사람, type 시작갈래 } from './oidc.js';
 import { 아이디모양, 이름최대 } from './rules.js';
@@ -144,7 +144,7 @@ export default async function ssoRoutes(app: FastifyInstance, opts: { sso: SSO�
     req.session.set('idToken', 사람.idToken);
     if (사람.sid !== undefined) req.session.set('authSid', 사람.sid);
     req.session.set('loginAt', Date.now());
-    req.session.set('chatKey', 대화키새로());
+    await 대화키바꾸기(req.session);
     // Grafana 에서 왔으면 그리로 돌려보낸다. 대시보드 칸이 없는 사람을 보내면 403 JSON 만 보고 멈춰서 앱 첫 화면으로 보낸다
     if (왕복.next !== undefined && (await 사용자와해시(계정.username))?.user.dashboard === 'read') return reply.redirect(왕복.next);
     return reply.redirect(첫화면('ok'));

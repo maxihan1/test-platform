@@ -1,6 +1,6 @@
 // Scout 질문마다 나는 MCP 키 mcq_ — 질문을 넣은 사람의 권한을 그 질문의 프로젝트로 좁힌다 (도메인/챗봇 §3.14 결정 4 · BTS §3.12 「열쇠 표」)
 
-import { 토큰해시 } from '../auth/agentToken.js';
+import { 작성계정인가, 토큰해시 } from '../auth/agentToken.js';
 import { 사용자와해시, type 사용자 } from '../auth/store.js';
 
 export const 질문열쇠인가 = (열쇠: string): boolean => 열쇠.startsWith('mcq_');
@@ -14,14 +14,15 @@ export const Auth없는사람 = Symbol('Auth없는사람');
  */
 export async function 질문열쇠사람(열쇠: string): Promise<{ 사람: 사용자; authSub: string | typeof Auth없는사람 } | null> {
   const { pool } = await import('../db/index.js');
-  const r = await pool.query<{ username: string; auth_sub: string | null; project_id: string }>(
-    `SELECT u.username, u.auth_sub, c.project_id
+  const r = await pool.query<{ username: string; auth_sub: string | null; project_id: string; claimed_by: string | null }>(
+    `SELECT u.username, u.auth_sub, c.project_id, q.claimed_by
        FROM chat_question q JOIN chat_conversation c ON c.id = q.conversation_id JOIN app_user u ON u.username = c.username
       WHERE q.mcp_key_hash = $1 AND q.status = 'RUNNING' AND COALESCE(q.last_chunk_at, q.started_at) > now() - interval '150 seconds'`,
     [토큰해시(열쇠)],
   );
   const 행 = r.rows[0];
-  if (행 === undefined) return null;
+  // 가져간 작성 계정이 지금의 작성 계정이 아니면 죽은 키다 — mcj_ 와 같은 판단 (jobKey.ts)
+  if (행 === undefined || 행.claimed_by === null || !작성계정인가(행.claimed_by)) return null;
   const 찾은것 = await 사용자와해시(행.username);
   if (찾은것 === null) return null;
   const projectId = Number(행.project_id);

@@ -7,13 +7,15 @@ import { 작성계정인가 } from '../auth/agentToken.js';
 import { 정수 } from '../routeParams.js';
 import { 조각넣기, 질문가져가기, 질문끝내기 } from './agentStore.js';
 
-const 단계몸 = z.object({ tool: z.string().min(1).max(100), ref: z.string().min(1).max(100).optional() }).strict();
+// NUL 글자는 Postgres TEXT 가 받지 않는다 — 조각 묶음째 500 이 나지 않게 400 으로 돌려보낸다
+const 글 = (최소: number, 최대: number) => z.string().min(최소).max(최대).refine((v) => !v.includes('\u0000'), 'NUL 글자');
+const 단계몸 = z.object({ tool: 글(1, 100), ref: 글(1, 100).optional() }).strict();
 const 조각들 = z
   .object({
     chunks: z
       .array(
         z.discriminatedUnion('kind', [
-          z.object({ kind: z.literal('TEXT'), body: z.string().min(1).max(20_000) }),
+          z.object({ kind: z.literal('TEXT'), body: 글(1, 20_000) }),
           z.object({ kind: z.enum(['STEP', 'STEP_DONE']), body: 단계몸 }),
         ]),
       )
@@ -25,14 +27,14 @@ const 셈 = z.number().int().min(0);
 const 끝 = z
   .object({
     status: z.enum(['DONE', 'TIMEOUT', 'FAILED']),
-    error: z.string().max(1000).optional(),
+    error: 글(0, 1000).optional(),
     usage: z
       .object({
         tokensInput: 셈,
         tokensOutput: 셈,
         tokensCacheRead: 셈,
         tokensCacheWrite: 셈,
-        model: z.string().max(100),
+        model: 글(0, 100),
         toolCalls: 셈.max(2_147_483_647),
         durationMs: 셈.max(2_147_483_647),
       })

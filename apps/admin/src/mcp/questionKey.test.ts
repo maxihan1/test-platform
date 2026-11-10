@@ -65,12 +65,15 @@ describe.skipIf(연결 === undefined)('MCP 질문마다 키 mcq_', () => {
     await 끝(id);
   });
 
-  it('질문이 끝나거나 · 멈춘 지 2분 30초가 지나거나 · 묻는 사람이 꺼지면 · 틀린 키면 401', async () => {
+  it('질문이 끝나거나 · 멈춘 지 2분 30초가 지나거나 · 묻는 사람이 꺼지거나 · 작성 계정이 바뀌면 · 틀린 키면 401', async () => {
     const 첫 = await 묻고가져가기(판.계정.나);
     expect((await 부르기MCP(첫.열쇠, 'tools/list')).statusCode).toBe(200);
     await 판.q('UPDATE app_user SET is_active = false WHERE username = $1', [판.계정.나]);
     expect((await 부르기MCP(첫.열쇠, 'tools/list')).statusCode).toBe(401);
     await 판.q('UPDATE app_user SET is_active = true WHERE username = $1', [판.계정.나]);
+    vi.stubEnv('AUTHORING_AGENT_USER', 'xqk-바뀐-작성계정');
+    expect((await 부르기MCP(첫.열쇠, 'tools/list')).statusCode).toBe(401);
+    vi.stubEnv('AUTHORING_AGENT_USER', 판.계정.작성);
     await 판.q(`UPDATE chat_question SET started_at = now() - interval '151 seconds' WHERE id = $1`, [첫.id]);
     expect((await 부르기MCP(첫.열쇠, 'tools/list')).statusCode).toBe(401);
     await 판.q(`UPDATE chat_question SET started_at = now() WHERE id = $1`, [첫.id]);

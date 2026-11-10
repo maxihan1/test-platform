@@ -12,7 +12,7 @@ import {
   대화키새로,
   대화키해시,
   멈춘질문닫기,
-  바뀜기다리기,
+  바뀜듣기,
   오래된대화지우기,
   이어읽기,
   질문넣기,
@@ -52,7 +52,8 @@ export default async function chatRoutes(app: FastifyInstance): Promise<void> {
     const projectId = typeof req.body?.projectId === 'number' && Number.isSafeInteger(req.body.projectId) && req.body.projectId > 0 ? req.body.projectId : null;
     const text = typeof req.body?.text === 'string' ? req.body.text.trim() : '';
     // 글자 수는 DB 의 char_length 와 같은 셈(코드 포인트)으로 센다
-    if (projectId === null || text === '' || [...text].length > 글최대) return reply.code(400).send({ error: 'INVALID_REQUEST' });
+    // NUL 글자는 Postgres TEXT 가 받지 않는다 — 넣다가 500 이 나지 않게 400 으로 돌려보낸다
+    if (projectId === null || text === '' || [...text].length > 글최대 || text.includes('\u0000')) return reply.code(400).send({ error: 'INVALID_REQUEST' });
     if (!배정됐나(req.user, projectId)) return reply.code(403).send({ error: 'FORBIDDEN' });
     const 넣음 = await 질문넣기(대화키(req), projectId, req.user!.username, req.session.get('authSid') ?? null, text);
     if (넣음 === 'BUSY') return reply.code(409).send({ error: 'BUSY' });
@@ -81,11 +82,13 @@ export default async function chatRoutes(app: FastifyInstance): Promise<void> {
       'x-accel-buffering': 'no',
     });
     const 끊김 = new AbortController();
-    req.raw.on('close', () => 끊김.abort());
+    // 응답 쪽 close 는 연결이 끊길 때 난다. 위 DB 를 기다리는 사이에 이미 끊겼으면 이벤트가 지나갔으니 직접 본다
+    raw.on('close', () => 끊김.abort());
+    if (raw.destroyed || req.raw.socket.destroyed) 끊김.abort();
+    const 귀 = 바뀜듣기(id, 끊김.signal);
     let 보낸대기: number | null = null;
     try {
       while (!끊김.signal.aborted) {
-        await 멈춘질문닫기();
         const 지금 = await 이어읽기(id, after);
         // 대화 초기화 · 로그아웃으로 지워졌다 — 화면에는 중단으로 끝난다
         if (지금 === null) {
@@ -104,13 +107,17 @@ export default async function chatRoutes(app: FastifyInstance): Promise<void> {
           raw.write(`event: end\ndata: ${JSON.stringify({ status: 지금.status })}\n\n`);
           break;
         }
-        await 바뀜기다리기(id, 지금.status === 'QUEUED', 깨움ms, 끊김.signal);
-        if (!끊김.signal.aborted) raw.write(': ping\n\n');
+        // 신호 없이 15초가 지났을 때만 멈춘 질문을 닫아 본다 — 신호마다 표 전체를 고치지 않는다
+        if ((await 귀.기다리기(깨움ms)) === '시계') {
+          raw.write(': ping\n\n');
+          await 멈춘질문닫기();
+        }
       }
     } catch (err) {
       // 머리를 이미 보냈다 — 오류 몸을 못 실으니 로그를 남기고 닫는다. 브라우저는 다시 붙어 Last-Event-ID 부터 이어 받는다
       req.log.error({ err }, '[chat] 이어 받기를 못 했다');
     } finally {
+      귀.그만();
       raw.end();
     }
     return reply;

@@ -36,6 +36,7 @@ describe.skipIf(연결 === undefined)('Scout 대화 통로', () => {
     expect((await 열기(남, 판.남프로젝트)).json()).toEqual({ error: 'FORBIDDEN' });
     expect((await 묻기(나, '   ')).statusCode).toBe(400);
     expect((await 묻기(나, '가'.repeat(2001))).statusCode).toBe(400);
+    expect((await 묻기(나, '널\u0000글자')).statusCode).toBe(400);
     expect((await 묻기(나, '질문', 판.남프로젝트 + 1000)).statusCode).toBe(403);
 
     const 첫 = await 묻기(나, '가'.repeat(2000));
@@ -69,6 +70,7 @@ describe.skipIf(연결 === undefined)('Scout 대화 통로', () => {
     expect((await 조각(id, [{ kind: 'STEP', body: { tool: 'issue_list' } }, { kind: 'STEP_DONE', body: { tool: 'run_list' } }, { kind: 'TEXT', body: '실행은 3건이에요' }])).statusCode).toBe(204);
     expect((await 조각(id, [{ kind: 'STEP', body: '글' }])).statusCode).toBe(400);
     expect((await 조각(id, [])).statusCode).toBe(400);
+    expect((await 조각(id, [{ kind: 'TEXT', body: '널\u0000' }])).statusCode).toBe(400);
 
     const 도는중 = (await 열기(나)).json<{ questions: Record<string, unknown>[] }>().questions.at(-1);
     expect(도는중).toMatchObject({ id, status: 'RUNNING', answer: '최근 실행은 3건이에요', lastSeq: 5, steps: [{ tool: 'run_list', ref: '12', done: true }, { tool: 'issue_list', done: false }] });
@@ -93,9 +95,25 @@ describe.skipIf(연결 === undefined)('Scout 대화 통로', () => {
     expect((await 가져가기())?.history.at(-1)).toEqual({ q: '최근 실행 알려 줘', a: '최근 실행은 3건이에요' });
   });
 
+  it('이어 받기는 도는 질문을 기다리다가 조각과 끝이 오면 15초 깨움을 기다리지 않고 바로 보낸다', async () => {
+    await 판.q(`UPDATE chat_question SET status = 'DONE' WHERE status IN ('QUEUED', 'RUNNING') AND conversation_id IN (SELECT id FROM chat_conversation WHERE username = $1)`, [판.계정.나]);
+    const { id } = (await 묻기(나, '기다릴 질문')).json<{ id: number }>();
+    const 시작 = Date.now();
+    const 흐름 = 판.app.inject({ method: 'GET', url: `/api/chat/questions/${String(id)}/stream`, cookies: 나 });
+    await new Promise((풀림) => setTimeout(풀림, 300));
+    await 가져가기();
+    await 조각(id, [{ kind: 'TEXT', body: '바로 와요' }]);
+    await 끝(id);
+    const 받은것 = (await 흐름).body;
+    expect(받은것).toContain(`event: wait\ndata: ${JSON.stringify({ ahead: 0 })}`);
+    expect(받은것).toContain(`event: chunk\nid: 1\ndata: ${JSON.stringify({ kind: 'TEXT', body: '바로 와요' })}`);
+    expect(받은것.endsWith(`event: end\ndata: ${JSON.stringify({ status: 'DONE' })}\n\n`)).toBe(true);
+    expect(Date.now() - 시작).toBeLessThan(5000);
+  });
+
   it('중단한 질문의 조각은 409 STOPPED 이고 끝 알리기는 상태를 바꾸지 않고 사용량만 적는다', async () => {
-    const 지금 = (await 판.q(`SELECT q.id FROM chat_question q JOIN chat_conversation c ON c.id = q.conversation_id WHERE c.username = $1 AND q.status = 'RUNNING'`, [판.계정.나])).rows;
-    const id = Number(지금[0]!.id);
+    const { id } = (await 묻기(나, '멈출 질문')).json<{ id: number }>();
+    await 가져가기();
     expect((await 멈추기(나, id)).statusCode).toBe(204);
     expect((await 조각(id, [{ kind: 'TEXT', body: '더' }])).json()).toEqual({ error: 'STOPPED' });
     expect((await 끝(id)).statusCode).toBe(204);
@@ -116,9 +134,16 @@ describe.skipIf(연결 === undefined)('Scout 대화 통로', () => {
     await 가져가기();
     expect((await 판.app.inject({ method: 'DELETE', url: `/api/chat?projectId=${String(판.내프로젝트)}`, cookies: 나 })).statusCode).toBe(204);
     expect((await 열기(나)).json()).toEqual({ questions: [] });
+    expect((await 사용량줄(id))?.status).toBe('STOPPED');
     expect((await 조각(id, [{ kind: 'TEXT', body: '더' }])).json()).toEqual({ error: 'STOPPED' });
     expect((await 끝(id)).statusCode).toBe(204);
     expect(await 사용량줄(id)).toEqual({ status: 'STOPPED', tokens_input: '100', tokens_partial: true });
+
+    const 다시로그인할것 = await 판.로그인(판.계정.나);
+    await 묻기(다시로그인할것, '다시 로그인하면 지워질 질문');
+    const 다시 = await 판.app.inject({ method: 'POST', url: '/api/auth/login', cookies: 다시로그인할것, payload: { username: 판.계정.나, password: '챗봇검사-비밀번호' } });
+    expect((await 열기(판.쿠키(다시))).json()).toEqual({ questions: [] });
+    expect((await 판.q(`SELECT count(*)::int AS n FROM chat_question q JOIN chat_conversation c ON c.id = q.conversation_id WHERE q.text = '다시 로그인하면 지워질 질문'`)).rows[0]).toEqual({ n: 0 });
 
     const 남을것 = await 판.로그인(판.계정.나);
     await 묻기(남을것, '남을 질문');
