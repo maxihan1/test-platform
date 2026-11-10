@@ -25,8 +25,8 @@ const 바 = (reply: FastifyReply, code: number, error: string, detail?: string) 
 type 성능목록칸 = { kind: string; status: string; verdict: string | null; title: string; env: string | null; startedAt: Date | null; measures: unknown; summary: unknown; [칸: string]: unknown };
 type 성능목록줄 = 성능목록칸 & { id: number };
 
-/** 성능 실행 기록 목록 — 화면(GET /api/perf/runs)과 MCP run_list 가 같이 읽는다. 늦은 번호부터 200개 */
-export async function 성능실행목록(serviceId: number, kind: string | null, scenarioId: number | null): Promise<성능목록줄[]> {
+/** 성능 실행 기록 목록 — 화면(GET /api/perf/runs)과 MCP run_list 가 같이 읽는다. 늦은 번호부터 200개(run_list 는 그 쪽 끝까지만) */
+export async function 성능실행목록(serviceId: number, kind: string | null, scenarioId: number | null, 몇 = 200): Promise<성능목록줄[]> {
   const r = await (await 표.풀()).query<성능목록칸 & { id: string }>(
     `SELECT r.id, r.kind, r.status, r.verdict, COALESCE(s.name, '') AS title, r.env, r.test_type AS "testType", r.origin, r.degraded, r.stop_reason AS "stopReason", r.started_at AS "startedAt",
             CASE WHEN r.started_at IS NULL THEN NULL ELSE EXTRACT(EPOCH FROM COALESCE(r.finished_at, now()) - r.started_at)::int END AS "durationSec",
@@ -41,8 +41,8 @@ export async function 성능실행목록(serviceId: number, kind: string | null,
                             FROM (SELECT AVG(cpu)::float AS cpu, MAX(mem_mb) AS mem, AVG(fps)::float AS fps, AVG(jank_pct)::float AS jank
                                     FROM perf_device_metric WHERE run_id = r.id AND r.kind = 'DEVICE' GROUP BY serial) d) dv ON true
       WHERE r.service_id = $1 AND ($2::text IS NULL OR r.kind = $2) AND ($3::bigint IS NULL OR r.scenario_id = $3)
-      ORDER BY r.id DESC LIMIT 200`,
-    [serviceId, kind, scenarioId],
+      ORDER BY r.id DESC LIMIT $4`,
+    [serviceId, kind, scenarioId, Math.min(몇, 200)],
   );
   return r.rows.map((x) => ({ ...x, id: Number(x.id) }));
 }

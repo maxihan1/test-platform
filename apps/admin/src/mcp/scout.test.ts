@@ -150,7 +150,7 @@ describe.skipIf(연결 === undefined)('MCP Scout 도구', () => {
          VALUES ('LOAD', $1, $4, 1, 'LOAD', 'qa', '', '{}', $2, $3, 'DONE', 'FAIL', 'MANUAL', '2026-11-01T00:00:05Z', '2026-11-01T00:10:05Z', 900, 0.5) RETURNING id`,
         [
           내앱,
-          JSON.stringify([{ metric: 'P95', op: '<=', value: 500, measured: 900, verdict: 'FAIL' }, { metric: 'TPS', op: '>=', value: 10, measured: 20, verdict: 'PASS' }]),
+          JSON.stringify([{ metric: 'P95', op: '<=', value: 500, measured: 900, verdict: 'FAIL' }, { metric: 'TPS', op: '>=', value: 10, measured: 20, verdict: 'PASS' }, { metric: 'ERROR_RATE', op: '<=', value: 1 }]),
           JSON.stringify({ title: '응답이 느리다', items: ['나'.repeat(3000)] }),
           부하시나리오,
         ],
@@ -252,10 +252,10 @@ describe.skipIf(연결 === undefined)('MCP Scout 도구', () => {
     });
   });
 
-  it('비밀값 — run_result · e2e_result 는 비밀 칸을 ******** 로, 오류 글 속 비밀도 가려 낸다', async () => {
+  it('비밀값 — run_result · 새 도구 넷은 비밀 칸을 ******** 로, 오류 글 속 비밀도 가려 낸다', async () => {
     const 결과 = await 실행보기(나, 실행번호.ui);
     expect(결과).toMatchObject({ ok: true, data: { items: [{ tcId: 'XMT-001', params: { password: '********', 핀: '********', 이름: 'kim' } }] } });
-    const 글 = JSON.stringify([결과, await E2E결과(나, 실행번호.e2e), await 실행목록(나, 프로젝트)]);
+    const 글 = JSON.stringify([결과, await E2E결과(나, 실행번호.e2e), await 실행목록(나, 프로젝트), await 호환성결과보기(나, 실행번호.compat), await 성능결과(나, 실행번호.부하)]);
     expect(글).not.toContain(비밀);
     expect(글).not.toContain('4321');
   });

@@ -10,7 +10,7 @@ import { artifactsDir, 볼륨파일 } from '../artifactFile.js';
 import { 정수 } from '../routeParams.js';
 import { 기기목록, 시리얼, 측정본문, 측정세우기 } from './devices.js';
 import { 녹화이름 } from './deviceRecorder.js';
-import { 구간묶기, 기기요약하기, 누수의심, 회차메모리 } from './deviceStats.js';
+import { 구간묶기, 기기줄들, 누수의심, 회차메모리 } from './deviceStats.js';
 import { 줄읽기 } from './deviceStore.js';
 import { 한번돌기 } from './engine.js';
 import * as 표 from './store.js';
@@ -28,17 +28,6 @@ async function 영상들(runId: number, serial: string): Promise<{ serial: strin
   } catch {
     return [];
   }
-}
-
-type 기기실행 = { status: string; targets: { scope: string; verdict: string }[] | null } | undefined;
-
-/** 디바이스마다 요약과 판정 — 결과 화면(GET /api/perf/runs/:id/devices)과 MCP perf_result 가 같이 쓴다 */
-export function 기기줄들(기기별: { d: DeviceRunConfig['devices'][number]; 줄: Parameters<typeof 기기요약하기>[0] }[], 실행: 기기실행) {
-  return 기기별.map(({ d, 줄 }) => ({
-    serial: d.serial, model: d.model, where: d.where, launchMs: d.launchMs, summary: 기기요약하기(줄),
-    // 판정은 끝까지 잰 실행에서만 싣는다. 숫자를 한 줄도 안 보낸 기기는 목표가 없어도 실패다
-    verdict: 실행?.status === 'DONE' ? (줄.length > 0 && (실행.targets ?? []).filter((t) => t.scope === d.serial).every((t) => t.verdict === 'PASS') ? 'PASS' : 'FAIL') : null,
-  }));
 }
 
 export default async function perfDeviceRoutes(app: FastifyInstance): Promise<void> {

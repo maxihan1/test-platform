@@ -1,4 +1,4 @@
-// Scout 챗봇이 쓰는 MCP 결과 도구 넷 — 실행 기록 검색 · E2E · 호환성 · 성능 결과. 화면이 읽는 함수를 감싸고 같은 통로 칸으로 문판정을 부른다 (도메인/챗봇 §3.14 · 도메인/BTS §7 「MCP」)
+// Scout 챗봇이 쓰는 MCP 도구 다섯의 등록과 결과 도구 넷(실행 기록 검색 · E2E · 호환성 · 성능 결과 — 최근 이슈는 tools.ts). 화면이 읽는 함수를 감싸고 같은 통로 칸으로 문판정을 부른다 (도메인/챗봇 §3.14 · 도메인/BTS §7 「MCP」)
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
@@ -10,11 +10,10 @@ import type { 사용자 } from '../auth/store.js';
 import type { 부르기함수 } from '../bts/client.js';
 import { 호환성결과 } from '../compat/runView.js';
 import { listRuns } from '../execution/queries.js';
-import { 기기줄들 } from '../perf/deviceRoutes.js';
+import { 기기줄들 } from '../perf/deviceStats.js';
 import { 줄읽기 } from '../perf/deviceStore.js';
 import { 페이지줄읽기 } from '../perf/pages.js';
 import { 성능실행머리, 성능실행목록 } from '../perf/runs.js';
-import * as 성능표 from '../perf/store.js';
 import type { DeviceRunConfig, PageRunConfig } from '../perf/types.js';
 import { 시나리오결과 } from '../scenario/runRoutes.js';
 import { 카드요약 } from '../web/scenarioView.js';
@@ -51,6 +50,7 @@ export async function 실행목록(사람: 사용자, projectId: number, kind?: 
   const 몇 = (page + 1) * 최대줄 + 1;
   const 고름 = (k: 실행종류) => kind === undefined || kind === k;
   const 묶음: Promise<목록줄[]>[] = [];
+  // ponytail: 화면 목록 함수를 그대로 써서 집계 · 직전 대비까지 같이 센다. 느려지면 머리 칸만 읽는 질의를 따로 둔다
   for (const s of 실행앱) {
     if (고름('UI') || 고름('FN')) {
       const 종류 = kind === 'UI' ? 'ui' : kind === 'FN' ? 'fn' : 'case';
@@ -71,7 +71,7 @@ export async function 실행목록(사람: 사용자, projectId: number, kind?: 
   if (kind === undefined || 성능종류 !== null) {
     for (const s of 성능앱) {
       묶음.push(
-        성능실행목록(s.id, 성능종류, null).then((줄) =>
+        성능실행목록(s.id, 성능종류, null, 몇).then((줄) =>
           줄.map((x) => ({
             kind: `PERF_${x.kind}` as 실행종류,
             runId: x.id,
@@ -140,8 +140,8 @@ export async function E2E결과(사람: 사용자, runId: number): Promise<도�
         seq: p.seq,
         kind: p.kind,
         tcId: p.tcId,
-        // 케이스 부품은 케이스 이름, API · 대기 · 모킹 부품은 조립 화면 카드 글
-        name: p.tcName ?? 카드요약(p.part, undefined, 'ko'),
+        // 케이스 부품은 케이스 이름(지워져 이름이 없으면 번호), API · 대기 · 모킹 부품은 조립 화면 카드 글
+        name: p.tcName ?? (p.kind === 'case' ? p.tcId : 카드요약(p.part, undefined, 'ko')),
         status: p.status,
         durationMs: p.durationMs,
         failure: p.failure,
@@ -155,7 +155,8 @@ export async function E2E결과(사람: 사용자, runId: number): Promise<도�
 export async function 호환성결과보기(사람: 사용자, runId: number): Promise<도구답> {
   const 문 = await 번호문(사람, '실행', runId, '/api/compat-runs/:runId');
   if (문 !== null) return 문;
-  const 결과 = await 호환성결과(runId);
+  // 요약만 — 미커버 화면 셈은 이 도구가 안 싣는다
+  const 결과 = await 호환성결과(runId, new Map(), true);
   if (결과 === null) return 없음(`${String(runId)} 은 호환성 실행이 아니다`);
   return {
     ok: true,
@@ -180,8 +181,9 @@ type 목표 = { metric: string; scope?: string; op?: string; value?: number; mea
 export async function 성능결과(사람: 사용자, runId: number): Promise<도구답> {
   const 문 = await 번호문(사람, '성능실행', runId, '/api/perf/runs/:id');
   if (문 !== null) return 문;
-  const [run, 행] = await Promise.all([성능실행머리(runId), 성능표.실행하나(runId)]);
-  if (run === undefined || 행 === null) return 없음(String(runId));
+  const run = await 성능실행머리(runId);
+  if (run === undefined) return 없음(String(runId));
+  const 행 = run as { kind: 'LOAD' | 'PAGE' | 'DEVICE'; config: unknown };
   const ai = run.ai as { title?: unknown; items?: unknown } | null;
   const 머리칸 = {
     runId,
@@ -194,7 +196,8 @@ export async function 성능결과(사람: 사용자, runId: number): Promise<�
     startedAt: run.startedAt,
     finishedAt: run.finishedAt,
     summary: run.summary,
-    targets: ((run.targets ?? []) as 목표[]).filter((t) => t.verdict !== 'PASS'),
+    // 판정 전(도는 중 · 멈춤)의 목표는 verdict 가 없다 — 넘은 것만 싣는다
+    targets: ((run.targets ?? []) as 목표[]).filter((t) => t.verdict === 'FAIL'),
     ai: ai === null ? null : 자르기(JSON.stringify({ title: ai.title, items: ai.items }), AI글상한),
     link: `#/perf/runs/${String(runId)}`,
   };
@@ -213,7 +216,7 @@ export async function 성능결과(사람: 사용자, runId: number): Promise<�
     const 줄들 = await 줄읽기(runId);
     const 기기별 = (행.config as unknown as DeviceRunConfig).devices.map((d) => ({ d, 줄: 줄들.filter((r) => r.serial === d.serial) }));
     const 실행 = { status: String(run.status), targets: run.targets as { scope: string; verdict: string }[] | null };
-    return { ok: true, data: { ...머리칸, devices: 기기줄들(기기별, 실행).slice(0, 최대줄) } };
+    return { ok: true, data: { ...머리칸, devices: 기기줄들(기기별, 실행).slice(0, 최대줄), ...(기기별.length > 최대줄 && { truncated: true }) } };
   }
   return { ok: true, data: 머리칸 };
 }
@@ -226,7 +229,7 @@ export function Scout도구등록(서버: McpServer, 사람: 사용자, authSub:
   서버.registerTool(
     'run_list',
     {
-      description: `실행 기록 검색 — 프로젝트 애플리케이션들의 최근 실행을 일곱 종류(UI · FN · SCENARIO · COMPAT · PERF_LOAD · PERF_PAGE · PERF_DEVICE) 섞어 시작 시각 늦은 것부터 30줄. 줄마다 kind · runId · 제목 · 애플리케이션 · 상태 · 대상 서버 · 시각과 목록 화면 숫자(summary). kind 로 한 종류만 고른다. 다음이 있으면 truncated — page 를 올린다(${String(실행목록최대쪽)} 까지). 실행 하나는 kind 에 맞는 결과 도구로 본다`,
+      description: `실행 기록 검색 — 프로젝트 애플리케이션들의 최근 실행을 일곱 종류(UI · FN · SCENARIO · COMPAT · PERF_LOAD · PERF_PAGE · PERF_DEVICE) 섞어 시작 시각 늦은 것부터 30줄. 줄마다 kind · runId · 제목 · 애플리케이션 · 상태 · 대상 서버 · 시각과 목록 화면 숫자(summary). kind 로 한 종류만 고른다. 다음이 있으면 truncated — page 를 올린다(${String(실행목록최대쪽)} 까지 — 그 쪽에서도 truncated 면 더 오래된 실행은 실행 기록 화면에서 본다). 실행 하나는 kind 에 맞는 결과 도구로 본다`,
       inputSchema: {
         projectId: 번호.describe('Test Commander 프로젝트 번호'),
         kind: z.enum(실행종류들).optional(),

@@ -1,4 +1,4 @@
-// MCP 조회 도구 셋(노트 읽기는 mcp/note.ts · 실행 둘은 mcp/runs.ts) — 화면 통로와 같은 판정(문판정)을 거친 뒤 같은 질의를 읽는다 (도메인/BTS §3.12 「맥락 — MCP 조회 도구」 · §7 「MCP」)
+// MCP 조회 도구 넷(PRD · 지도 · BTS 찾기 · 최근 이슈 — 노트 읽기는 mcp/note.ts · 실행 둘은 mcp/runs.ts · Scout 결과 넷은 mcp/scout.ts)과 도구들이 같이 쓰는 답 꼴 · 상한 — 화면 통로와 같은 판정(문판정)을 거친 뒤 같은 질의를 읽는다 (도메인/BTS §3.12 「맥락 — MCP 조회 도구」 · §7 「MCP」)
 
 import { z } from 'zod';
 
