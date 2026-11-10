@@ -37,6 +37,18 @@ describe('새 작성 마법사 1단계 — 가이드 먼저 (2026-11-11 사용�
     expect(저장).not.toHaveBeenCalled();
   });
 
+  it('가이드가 빈 1단계에도 「취소」가 있고, 글을 적으면 「나중에 쓰기」가 꺼진다 — 적은 글이 말없이 사라지지 않게', async () => {
+    지금.mockResolvedValue(빈가이드);
+    let 닫음 = 0;
+    render(<AuthoringNew service="PAY" on넣었다={() => {}} onClose={() => (닫음 += 1)} />);
+    fireEvent.change(await screen.findByRole('textbox', { name: '정책' }), { target: { value: '실카드 금지' } });
+    expect(버튼('나중에 쓰기').disabled).toBe(true);
+    fireEvent.change(screen.getByRole('textbox', { name: '정책' }), { target: { value: '' } });
+    expect(버튼('나중에 쓰기').disabled).toBe(false);
+    fireEvent.click(버튼('취소'));
+    expect(닫음).toBe(1);
+  });
+
   it('비어 있던 가이드에 적고 「저장하고 다음」을 누르면 세 구획을 버전 0 위에 저장하고 넘어간다', async () => {
     지금.mockResolvedValueOnce(빈가이드).mockResolvedValue({ ...빈가이드, version: 1, policy: '실카드는 쓰지 않습니다' });
     render(<AuthoringNew service="PAY" on넣었다={() => {}} />);

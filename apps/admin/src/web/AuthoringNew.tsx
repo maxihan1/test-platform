@@ -203,13 +203,16 @@ export function AuthoringNew({
       t('가이드'),
       가이드.now === null || 가이드.now.version === 0 ? t('가이드 없이 작성합니다') : t('{가이드} 버전 {버전}을 같이 읽습니다', { 가이드: t(줄.가이드), 버전: 가이드.now.version }),
     ],
-    ...(대조칸 ? ([[t('작성 방법'), 방법이름]] as [string, string][]) : []),
-    ...(api모드 && 판 !== null ? ([[t('API 문서'), t('버전 {버전}', { 버전: 판 })]] as [string, string][]) : []),
-    ...(방법값 === 'screen'
-      ? []
-      : ([[t('자료'), [...보낼파일.map((f) => f.name), ...(주소들.length === 0 ? [] : [t('피그마 {수}건', { 수: 주소들.length })])].join(' · ') || '—']] as [string, string][])),
-    ...((대조 || api모드) && 서버 !== null ? ([[t('대상 서버'), 대조 && 줄.대조 === 'web' && 주소 !== '' ? `${서버} · ${주소}` : 서버]] as [string, string][]) : []),
   ];
+  if (대조칸) 요약.push([t('작성 방법'), 방법이름]);
+  if (api모드 && 판 !== null) 요약.push([t('API 문서'), t('버전 {버전}', { 버전: 판 })]);
+  if (방법값 !== 'screen') {
+    const 피그마수 = 주소들.length === 0 ? [] : [t('피그마 {수}건', { 수: 주소들.length })];
+    요약.push([t('자료'), [...보낼파일.map((f) => f.name), ...피그마수].join(' · ') || '—']);
+  }
+  if ((대조 || api모드) && 서버 !== null) 요약.push([t('대상 서버'), 대조 && 줄.대조 === 'web' && 주소 !== '' ? `${서버} · ${주소}` : 서버]);
+  // 확인 단계에서 시작이 꺼졌으면 앞 단계의 까닭을 보인다 — 말없이 꺼져 있으면 무엇을 고칠지 모른다
+  const 첫막힘 = 단계들.map(막는이유).find((이유) => 이유 !== null) ?? null;
   const 할일 = api모드
     ? t('API 문서의 엔드포인트마다 케이스를 작성해 검토용 PR 로 등록합니다')
     : 방법값 === 'both'
@@ -221,13 +224,18 @@ export function AuthoringNew({
   const 버튼 =
     단계 === 'guide' && 한번에 ? (
       <>
-        <button className="btn ghost" type="button" disabled={가이드.busy} onClick={앞으로}>
+        {/* 적은 글이 있으면 「나중에 쓰기」를 끈다 — 눌렀다면 저장 안 된 글이 말없이 사라진다. 비우면 다시 켜진다.
+            API 문서를 읽는 동안은 둘 다 끈다 — 다음 단계가 정해지지 않았다 (위 막는이유 'guide') */}
+        <button className="btn ghost wiz-new-left" type="button" onClick={닫기}>
+          {t('취소')}
+        </button>
+        <button className="btn ghost" type="button" disabled={가이드.busy || 가이드.바뀜 || 문서.대기} onClick={앞으로}>
           {t('나중에 쓰기')}
         </button>
         <button
           className="btn"
           type="button"
-          disabled={!가이드.바뀜 || 가이드.busy}
+          disabled={!가이드.바뀜 || 가이드.busy || 문서.대기}
           onClick={() => void 가이드.저장(구획들).then((ok) => ok && 앞으로())}
         >
           {t('저장하고 다음')}
@@ -235,7 +243,7 @@ export function AuthoringNew({
       </>
     ) : (
       <>
-        {막힘 === null || 단계 === 'confirm' ? null : <span className="wiz-new-why">{막힘}</span>}
+        {(단계 === 'confirm' ? 첫막힘 : 막힘) === null ? null : <span className="wiz-new-why">{단계 === 'confirm' ? 첫막힘 : 막힘}</span>}
         <button className="btn ghost" type="button" disabled={보내는중} onClick={지금 === 0 ? 닫기 : () => set칸(지금 - 1)}>
           {지금 === 0 ? t('취소') : t('이전')}
         </button>
@@ -294,7 +302,8 @@ export function AuthoringNew({
         )}
         {오류 === null ? null : <span className="error-text">{오류}</span>}
       </div>
-      <떠나기상자 막나={파일들.length > 0 || 피그마.trim() !== '' || 시작주소.trim() !== '' || 가이드.바뀜} />
+      {/* 고른 방법이 보낼 값만 센다 — 「화면을 훑어서」로 바꾼 뒤의 파일처럼 안 보낼 값으로 묻지 않는다 */}
+      <떠나기상자 막나={보낼파일.length > 0 || 주소들.length > 0 || (대조 && 줄.대조 === 'web' && 주소 !== '') || 가이드.바뀜} />
     </Modal>
   );
 }

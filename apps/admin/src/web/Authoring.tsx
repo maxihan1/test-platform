@@ -240,6 +240,8 @@ export function Authoring({ service, serviceId, envs = [], 피그마토큰 = tru
 
       {마법사 && 할수('작성요청') ? (
         <AuthoringNew
+          // 애플리케이션이 바뀌면 새로 그린다 — 앞 애플리케이션의 가이드 글을 들고 있다가 새 애플리케이션에 저장하지 않게
+          key={service}
           service={service}
           serviceId={serviceId}
           envs={envs}
