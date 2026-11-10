@@ -109,7 +109,8 @@ export interface 결과칸 {
 type 결과기기 = 기기결과['devices'][number];
 
 /**
- * 결과 화면 위 숫자 칸 줄 — 앱은 CPU · 메모리 · 앱 실행 시간 · 프리징, 게임은 FPS · 프레임 드랍 · CPU · 메모리 (시안 11판 「앱 성능 · 게임 성능」 · WEB-F7-16).
+ * 결과 화면 위 숫자 칸 줄 — 앱은 CPU · 메모리 · 앱 실행 시간 · 프리징, 게임은 FPS · 프레임 드랍 · 프리징 · CPU · 메모리 (시안 11판 「앱 성능 · 게임 성능」 · WEB-F7-16).
+ * 게임 프리징은 표시 시각 사이 0.7초를 재게 된 뒤 더했다(2026-11-10 사용자).
  * 시안의 「화면 멈춤」은 QA 현장 말 「프리징」으로 적었다(WEB-F7-26 사용자). 기기가 여럿이면 가장 나쁜 기기의 값이다 — 한 대라도 넘으면 넘은 것이다
  */
 export function 결과칸들(게임: boolean, 결과: Pick<기기결과, 'devices' | 'metrics'>, 목표들: readonly 기기목표[], t: 말): 결과칸[] {
@@ -135,9 +136,9 @@ export function 결과칸들(게임: boolean, 결과: Pick<기기결과, 'device
   const 퍼센트 = (n: number) => `${String(한자리(n))}%`;
   const cpu = 칸('CPU 평균', (d) => d.summary.avgCpu, true, 퍼센트);
   const 메모리 = 칸('메모리 최대', (d) => d.summary.maxMemMb, true, 메모리글자, 'MAX_MEM');
-  if (게임) return [칸('평균 FPS', (d) => d.summary.avgFps, false, (n) => String(한자리(n)), 'AVG_FPS'), 칸('프레임 드랍', (d) => 드랍(d.serial), true, 퍼센트), cpu, 메모리];
   const 프리징 = 칸('프리징', (d) => d.summary.freezeCount, true, (n) => t('{수}번', { 수: n }));
   프리징.보조.push(t('0.7초 넘게 정지'));
+  if (게임) return [칸('평균 FPS', (d) => d.summary.avgFps, false, (n) => String(한자리(n)), 'AVG_FPS'), 칸('프레임 드랍', (d) => 드랍(d.serial), true, 퍼센트), 프리징, cpu, 메모리];
   return [cpu, 메모리, 칸('앱 실행 시간', (d) => d.launchMs, true, (n) => 값글자('LAUNCH_MS', n, t), 'LAUNCH_MS'), 프리징];
 }
 
