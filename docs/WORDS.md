@@ -128,5 +128,6 @@ API 가 주는 값은 바꾸지 않는다(CLAUDE.md §3) — 그런 키는 검�
 | Test Commander | QA Hub | 테스트 지휘 — 이 저장소 |
 | Device VISION | 디바이스 팜 · 팜 | 디바이스 관제 |
 | Issue Bunker | BTS | 이슈 트래킹 |
+| Scout | AI 도우미 (시안의 옛 이름) | Test Commander 안의 조회 전용 챗봇 (2026-11-10 사용자 — 정찰병 · 둘러보고 보고만 한다, 도메인/챗봇 §3.14). 화면에서도 영어 이름 그대로 쓰고 옮기지 않는다 |
 
 코드 식별자 · 환경 변수 · DB 이름(`BTS_URLS` · `bts_*`)은 바꾸지 않는다.
