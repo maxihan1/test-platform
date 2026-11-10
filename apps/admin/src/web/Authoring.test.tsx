@@ -70,11 +70,12 @@ describe('작성 줄 목록', () => {
     expect(await screen.findByText('아직 작성을 요청한 기록이 없습니다')).toBeTruthy();
   });
 
-  it('줄마다 요청자와 작업 단계가 보인다', async () => {
-    줄들.push(줄({ status: 'RUNNING', stage: '케이스 2건째', stageAt: new Date().toISOString() }));
+  it('줄마다 작성자와 작업 단계가 보인다 — 칸 표에 없는 단계 글은 칸으로 옮기지 않는다', async () => {
+    줄들.push(줄({ id: 1, status: 'RUNNING', stage: '케이스를 만드는 중', stageAt: new Date().toISOString() }));
+    줄들.push(줄({ id: 2, status: 'RUNNING', stage: '케이스 2건째', stageAt: new Date().toISOString() }));
     render(<Authoring service="PAY" 할수={() => true} />);
-    expect(await screen.findByText(/케이스 2건째/)).toBeTruthy();
-    expect(screen.getByText(/테스터/)).toBeTruthy();
+    expect(await screen.findAllByText('테스터')).toHaveLength(2);
+    expect([...document.querySelectorAll('[data-tone]')].map((칸) => 칸.textContent)).toEqual(['작성 중 · 케이스 작성 3/6', '작성 중']);
   });
 
   it('신호가 오래 끊긴 줄은 작성 중이 아니라 응답 없음으로 보인다', async () => {
@@ -147,22 +148,20 @@ describe('작성 권한 칸', () => {
     expect(screen.queryByText('기획서를 넣으면 여기에 줄이 생깁니다')).toBeNull();
   });
 
-  it('남은 요구를 이어 작성한 요청 줄은 원본을 평문으로 적는다 — 줄 전체가 고리라 안에 고리를 두지 않는다', async () => {
+  it('남은 요구를 이어 작성한 요청 줄은 구분이 추가다 — 줄 전체가 고리라 안에 고리를 두지 않는다', async () => {
     줄들.push(줄({ id: 5901, rootId: 5901, continueFrom: 5873, runCount: 1, summary: 요약({ kind: 'CONTINUE', from: { after: 5873 } }) }));
     render(<Authoring service="PAY" 할수={() => true} />);
-    const 첫 = await screen.findByText(/#5873의 남은 요구사항/);
-    expect(첫.textContent).toContain('#5873의 남은 요구');
-    expect(첫.closest('a')).toBe(null);
-    expect(screen.getAllByText('남은 요구사항 이어 작성')).toHaveLength(1);
+    expect((await screen.findByText('추가')).closest('a')).toBe(null);
+    expect(screen.getAllByRole('link').filter((a) => a.getAttribute('href')?.startsWith('#/authoring/'))).toHaveLength(1);
   });
 
-  it('대조 병합 뒤 서버가 세운 기획서에 없는 화면 요청 줄은 종류 꼬리표와 앞 뿌리 번호를 단다 — 요청한 사람은 안 적는다', async () => {
-    줄들.push(줄({ id: 5920, rootId: 5920, uncoveredOf: 5901, runCount: 1, summary: 요약({ kind: 'UNCOVERED', from: { by: 'AUTO', after: 5901 } }) }));
+  it('대조 병합 뒤 서버가 세운 미검증 화면 요청 줄은 구분이 추가 · 대상은 화면 이름 · 작성자는 Agent 다', async () => {
+    줄들.push(줄({ id: 5920, rootId: 5920, uncoveredOf: 5901, runCount: 1, summary: 요약({ kind: 'UNCOVERED', what: { screens: ['이용약관'] }, from: { by: 'AUTO', after: 5901 } }) }));
     render(<Authoring service="PAY" 할수={() => true} />);
-    const 꼬리 = await screen.findByText(/#5901 다음 · 서버가 자동으로 시작/);
-    expect(꼬리.closest('a')).toBe(null);
-    expect(꼬리.textContent).not.toContain('요청한 사람');
-    expect(screen.getAllByText('기획서에 없는 화면')).toHaveLength(1);
+    expect(await screen.findByText('이용약관')).toBeTruthy();
+    expect(screen.getByText('추가')).toBeTruthy();
+    expect(screen.getByText('Agent')).toBeTruthy();
+    expect(screen.queryByText('테스터')).toBeNull();
   });
 });
 
@@ -223,19 +222,17 @@ describe('새 작성 서랍', () => {
 });
 
 describe('작성 목록 줄 할 일 (⑫ 점검 11.2 · N2) — 줄 내용은 AuthoringListRow.test.tsx', () => {
-  it('사람 손이 남은 줄은 초록 완료 대신 할 일 칩을 단다', async () => {
+  it('사람 손이 남은 줄은 초록 완료 대신 할 일을 적는다', async () => {
     줄들.push(줄({ id: 7001, rootId: 7001, status: 'DONE', todo: { heldOpen: 3, conflictsOpen: 0, apply: 'WAITING' } }));
     render(<Authoring service="PAY" 할수={() => true} />);
-    expect(await screen.findByText('입력 필요 3')).toBeTruthy();
-    expect(screen.getByText('반영 대기')).toBeTruthy();
+    expect((await screen.findByText('입력 필요 3 · 반영 대기')).closest('[data-tone]')?.getAttribute('data-tone')).toBe('todo');
     expect(screen.queryByText('완료')).toBeNull();
   });
 
   it('반영이 실패한 줄은 그냥 「실패」가 아니라 「반영 실패」다 — 상세와 같은 말', async () => {
     줄들.push(줄({ id: 5880, rootId: 5873, kind: 'MERGE', status: 'FAILED', todo: { heldOpen: 0, conflictsOpen: 2, apply: 'FAILED' } }));
     render(<Authoring service="PAY" 할수={() => true} />);
-    expect((await screen.findByText('반영 실패')).className).toContain('fail');
-    expect(screen.getByText('중복 2')).toBeTruthy();
+    expect((await screen.findByText('반영 실패 · 중복 2')).closest('[data-tone]')?.getAttribute('data-tone')).toBe('fail');
   });
 
   it('반영까지 끝난 줄만 「반영 완료」다', async () => {

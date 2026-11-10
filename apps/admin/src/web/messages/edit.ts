@@ -32,8 +32,6 @@ export const 고치기말: Record<string, string> = {
   '케이스 수정': 'Case change',
   '수정 중': 'Changing',
   '다시 적용': 'Re-apply',
-  '수정 중 중단되었습니다': 'Stopped while changing',
-  '케이스를 수정해 PR 을 만들었습니다': 'Changed the cases and created a PR',
   '수정할 내용': 'Changes',
   삭제: 'Delete',
   확정: 'Confirm',
