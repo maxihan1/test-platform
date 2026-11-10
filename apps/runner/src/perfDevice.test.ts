@@ -153,7 +153,7 @@ describe('측정 시작 · 조회 · 중지', () => {
     const { recId } = (await 시작(app, { ...시작본문, intervalSec: 1 })).json<{ recId: string }>();
     const { rows } = await 줄수를기다린다(app, recId, 2);
     expect(rows[0]?.fps).toBeNull();
-    expect(rows[1]).toMatchObject({ fps: 60, jankPct: null });
+    expect(rows[1]).toMatchObject({ fps: 60, jankPct: 0, freezeCount: 0 });
     await app.inject({ method: 'POST', url: `/perf/device/${recId}/stop` });
   });
 
