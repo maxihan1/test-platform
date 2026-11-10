@@ -114,6 +114,10 @@ export function 왼쪽줄({
           <rect width="28" height="28" rx="8" fill="var(--accent)" />
           <path className="rail-check" pathLength={1} d="M8 14.5l4 4 8-9" fill="none" stroke="var(--on-accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
+        {/* 펼친 줄이 사이드바 맨 위 줄을 덮어도 제품 이름이 남게 같은 글자를 같은 자리에 둔다 (2026-11-10 사용자 「로고가 가려지니 어색하다」 · rail.css) */}
+        <span className="rail-logo-name" aria-hidden="true">
+          Test <b>Commander</b>
+        </span>
       </a>
       <애플리케이션줄 user={user} service={service} onService={onService} 새로만들기={새로만들기} />
       <span className="rail-gap" />

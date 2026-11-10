@@ -307,6 +307,11 @@ describe('고른 애플리케이션', () => {
     expect(고른서비스(null, [결제, 회원])?.prefix).toBe('PAY');
   });
 
+  it('저장된 것이 없으면 첫 프로젝트의 대표 애플리케이션을 연다 — 다른 프로젝트의 대표로 건너뛰지 않는다', () => {
+    expect(고른서비스(null, [결제, { ...회원, primary: true }])?.prefix).toBe('MEM');
+    expect(고른서비스(null, [결제, 회원, { ...정산, primary: true }])?.prefix).toBe('PAY');
+  });
+
   it('배정이 빠진 애플리케이션이 저장돼 있으면 남의 것을 열지 않고 첫 번째로 돌아간다', () => {
     expect(고른서비스('PAY', [회원])?.prefix).toBe('MEM');
   });

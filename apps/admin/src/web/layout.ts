@@ -163,12 +163,19 @@ export function 지금자리(name: string, 집: string, 종류?: 'UI' | 'FN' | '
 /**
  * 어느 서비스를 열까.
  *
- * 저장된 것이 배정 목록에 없으면 첫 번째로 돌아간다 — 배정이 빠진 뒤에도 그것을 열면
+ * 저장된 것이 배정 목록에 없으면 첫 프로젝트의 대표(없으면 첫 번째)로 돌아간다 — 배정이 빠진 뒤에도 그것을 열면
  * 서버가 403 을 내고 화면은 이유 없이 비어 보인다.
  */
 export function 고른서비스(저장값: string | null, 배정: ServiceRow[]): ServiceRow | null {
   const 찾은것 = 배정.find((service) => service.prefix === 저장값);
-  return 찾은것 ?? 배정[0] ?? null;
+  const 첫것 = 배정[0];
+  return 찾은것 ?? (첫것 === undefined ? null : 프로젝트첫앱(첫것.projectId, 배정));
+}
+
+/** 프로젝트를 처음 열 때의 애플리케이션 — 대표가 있으면 대표, 없으면 받은 차례의 첫 번째 (공통/5-화면공통 §8 「왼쪽 줄」 「차례」) */
+export function 프로젝트첫앱(projectId: number, 배정: ServiceRow[]): ServiceRow | null {
+  const 안의것 = 프로젝트서비스들(projectId, 배정);
+  return 안의것.find((service) => service.primary === true) ?? 안의것[0] ?? null;
 }
 
 export interface 프로젝트 {

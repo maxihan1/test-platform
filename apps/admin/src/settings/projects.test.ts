@@ -61,7 +61,7 @@ describe.skipIf(연결 === undefined)('설정 API — 프로젝트', () => {
     const { id } = res.json<{ id: number }>();
     const 목록 = await app.inject({ method: 'GET', url: '/api/settings/projects' });
     expect(목록.statusCode).toBe(200);
-    expect(목록.json<{ items: { id: number; name: string }[] }>().items).toContainEqual({ id, name: 'XPQ 데모마켓' });
+    expect(목록.json<{ items: { id: number; name: string }[] }>().items).toContainEqual({ id, name: 'XPQ 데모마켓', primaryServiceId: null });
   });
 
   it('이름이 비었거나 공백뿐이면 400 이다', async () => {
@@ -86,7 +86,7 @@ describe.skipIf(연결 === undefined)('설정 API — 프로젝트', () => {
     const 고침 = await app.inject({ method: 'PATCH', url: `/api/settings/projects/${String(id)}`, payload: { name: ' XPQ 새 이름 ' } });
     expect([고침.statusCode, 고침.json()]).toEqual([200, { ok: true }]);
     const 목록 = await app.inject({ method: 'GET', url: '/api/settings/projects' });
-    expect(목록.json<{ items: { id: number; name: string }[] }>().items).toContainEqual({ id, name: 'XPQ 새 이름' });
+    expect(목록.json<{ items: { id: number; name: string }[] }>().items).toContainEqual({ id, name: 'XPQ 새 이름', primaryServiceId: null });
 
     const 없음 = await app.inject({ method: 'PATCH', url: '/api/settings/projects/999999999', payload: { name: 'x' } });
     expect([없음.statusCode, 없음.json()]).toEqual([404, { error: 'NOT_FOUND' }]);
@@ -154,6 +154,46 @@ describe.skipIf(연결 === undefined)('설정 API — 프로젝트', () => {
     const 찾은것 = await 사용자와해시(계정);
     expect(찾은것?.user.services).toHaveLength(1);
     expect(찾은것?.user.services[0]).toMatchObject({ id: 서비스번호, projectId: 줄.projectId, projectName: 줄.projectName, kind: 'SCREEN' });
+  });
+
+  it('대표 애플리케이션을 고르면 목록과 me 에 실리고, null 이면 비우고, 빼고 보내면 그대로다', async () => {
+    const 줄 = (await 서비스목록()).find((s) => s.id === 서비스번호)!;
+    const 고침 = (payload: object) => app.inject({ method: 'PATCH', url: `/api/settings/projects/${String(줄.projectId)}`, payload });
+    const 대표 = async () =>
+      (await app.inject({ method: 'GET', url: '/api/settings/projects' }))
+        .json<{ items: { id: number; primaryServiceId: number | null }[] }>()
+        .items.find((p) => p.id === 줄.projectId)?.primaryServiceId;
+
+    expect((await 고침({ name: 줄.projectName, primaryServiceId: 서비스번호 })).statusCode).toBe(200);
+    expect(await 대표()).toBe(서비스번호);
+    expect((await 사용자와해시(계정))?.user.services[0]).toMatchObject({ id: 서비스번호, primary: true });
+
+    expect((await 고침({ name: 줄.projectName })).statusCode).toBe(200);
+    expect(await 대표()).toBe(서비스번호);
+
+    expect((await 고침({ name: 줄.projectName, primaryServiceId: null })).statusCode).toBe(200);
+    expect(await 대표()).toBeNull();
+    expect((await 사용자와해시(계정))?.user.services[0]?.primary).toBe(false);
+  });
+
+  it('다른 프로젝트의 애플리케이션은 대표가 될 수 없고 이름도 안 바뀐다. 옮겨 간 대표는 목록에서 null 이다', async () => {
+    const 남 = (await 프로젝트만들기('XPQ 남의 프로젝트')).json<{ id: number }>().id;
+    const 거절 = await app.inject({
+      method: 'PATCH',
+      url: `/api/settings/projects/${String(남)}`,
+      payload: { name: 'XPQ 바뀌면 안 됨', primaryServiceId: 서비스번호 },
+    });
+    expect([거절.statusCode, 거절.json()]).toEqual([400, { error: 'PRIMARY_NOT_IN_PROJECT' }]);
+    const 없는번호 = await app.inject({ method: 'PATCH', url: `/api/settings/projects/${String(남)}`, payload: { name: 'XPQ 남의 프로젝트', primaryServiceId: 999999999 } });
+    expect([없는번호.statusCode, 없는번호.json()]).toEqual([400, { error: 'PRIMARY_NOT_IN_PROJECT' }]);
+    const 없는프로젝트 = await app.inject({ method: 'PATCH', url: '/api/settings/projects/999999999', payload: { name: 'x', primaryServiceId: null } });
+    expect([없는프로젝트.statusCode, 없는프로젝트.json()]).toEqual([404, { error: 'NOT_FOUND' }]);
+    const 목록 = async () =>
+      (await app.inject({ method: 'GET', url: '/api/settings/projects' })).json<{ items: { id: number; name: string; primaryServiceId: number | null }[] }>().items;
+    expect((await 목록()).find((p) => p.id === 남)).toEqual({ id: 남, name: 'XPQ 남의 프로젝트', primaryServiceId: null });
+
+    await (await pool()).query('UPDATE project SET primary_service_id = $2 WHERE id = $1', [남, 서비스번호]);
+    expect((await 목록()).find((p) => p.id === 남)?.primaryServiceId).toBeNull();
   });
 
   it('애플리케이션을 옮기면 옮겨 간 프로젝트의 권한을 따르고, 비게 된 프로젝트의 권한 줄은 같이 지워진다', async () => {

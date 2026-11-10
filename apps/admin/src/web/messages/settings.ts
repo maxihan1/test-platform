@@ -217,6 +217,8 @@ export const 설정말: Record<string, string> = {
   '그런 프로젝트가 없습니다': 'No such project',
   '새 프로젝트': 'New project',
   '프로젝트 이름': 'Project name',
+  '대표 애플리케이션': 'Primary application',
+  '목록 맨 위에 서고 프로젝트를 처음 열 때 이 애플리케이션으로 엽니다': 'Shown at the top of the list and opened first when you open the project',
   '데모마켓': 'Demo Market',
   '프로젝트 하나에 애플리케이션 여럿이 들어갑니다. 권한은 프로젝트마다 줍니다':
     'A project holds several applications. Permissions are given per project',

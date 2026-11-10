@@ -155,7 +155,7 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
   });
 
   it('프로젝트 이름을 바꾸면 프로젝트 · 애플리케이션 · 계정을 다시 읽고 껍데기 재료도 다시 읽는다', async () => {
-    const 고침 = vi.spyOn(api, 'renameProject').mockResolvedValue({ ok: true });
+    const 고침 = vi.spyOn(api, 'updateProject').mockResolvedValue({ ok: true });
     const 내재료 = vi.fn();
     vi.spyOn(api, 'settingsServices').mockResolvedValue({ items: [서비스] });
     vi.spyOn(api, 'settingsUsers').mockResolvedValue({ items: [계정] });
@@ -163,7 +163,7 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     fireEvent.change(await screen.findByLabelText('프로젝트 이름'), { target: { value: '데모몰' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
 
-    await waitFor(() => expect(고침).toHaveBeenCalledWith(1, '데모몰'));
+    await waitFor(() => expect(고침).toHaveBeenCalledWith(1, { name: '데모몰' }));
     expect(내재료).toHaveBeenCalled();
   });
 

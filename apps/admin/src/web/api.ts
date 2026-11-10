@@ -579,6 +579,8 @@ export interface ServiceRow {
   /** 이 애플리케이션이 속한 프로젝트. 로그인 뒤 프로젝트 고르기가 여기서 프로젝트를 뽑는다 (도메인/인증 §7) */
   projectId: number;
   projectName: string;
+  /** 자기 프로젝트의 대표 애플리케이션인가 — 목록 맨 위 · 처음 열 앱 (공통/5-화면공통 §8 「왼쪽 줄」). 선택으로 둔 건 기존 화면 검사의 가짜 응답 때문이다 — 없으면 대표가 아니다 */
+  primary?: boolean;
   /** 실행 설정의 대상 서버 드롭다운이 읽는다. 화면이 이 값을 받을 통로가 여기뿐이다 (SPEC §8.2) */
   envs: EnvRow[];
   /** Slack 칸을 그릴지. 주소 자체는 오지 않는다 (SPEC §7) */
@@ -891,6 +893,8 @@ export interface 배정 {
 export interface SettingsProject {
   id: number;
   name: string;
+  /** 대표 애플리케이션. 없으면 null (공통/4-데이터모델 「대표 애플리케이션」). 선택으로 둔 건 기존 화면 검사의 가짜 응답 때문이다 — 없으면 대표가 없다 */
+  primaryServiceId?: number | null;
 }
 
 /** 설정 › 프로젝트 › API 서버 한 줄 — 케이스가 부른 호스트와 붙은 이름 (도메인/인증 §7 `…/api-servers`) */
@@ -1427,8 +1431,8 @@ export const api = {
 
   createProject: (name: string) => call<{ id: number }>('/settings/projects', json({ name })),
 
-  renameProject: (id: number, name: string) =>
-    call<{ ok: true }>(`/settings/projects/${id}`, { ...json({ name }), method: 'PATCH' }),
+  updateProject: (id: number, body: { name: string; primaryServiceId?: number | null }) =>
+    call<{ ok: true }>(`/settings/projects/${id}`, { ...json(body), method: 'PATCH' }),
 
   projectApiServers: (id: number) => call<{ items: SettingsApiServer[] }>(`/settings/projects/${id}/api-servers`),
 
