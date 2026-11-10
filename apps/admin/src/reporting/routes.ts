@@ -73,7 +73,7 @@ async function 결정수들(req: FastifyRequest, 작성서비스: number[], 서�
     배정.map(async (s) => {
       try {
         const 목록 = (await 결정재료읽기(s.id, 부른이로(req, s.prefix), false)).목록;
-        return { serviceId: s.id, count: 목록.count, lines: 목록.items.slice(0, 결정줄수).map((x) => 한줄(s.id, x)) };
+        return { serviceId: s.id, count: 목록.count, lines: 목록.items.filter((x) => x.picks.length > 0 && x.needsApply !== true).slice(0, 결정줄수).map((x) => 한줄(s.id, x)) };
       } catch (err) {
         req.log.error({ err, serviceId: s.id }, '[dashboard] counting decisions failed; leaving this application out of 결정 필요');
         return null;
@@ -213,7 +213,9 @@ export default async function reportingRoutes(app: FastifyInstance): Promise<voi
         }),
         프로젝트요약읽기(요약서비스, 작성서비스),
       ]);
-      return { ...결과, decisions: 결정.counts, aiQuality, project: { ...project, decisionItems: 결정.lines } };
+      // 결정 줄은 프로젝트 요약이라 service 로 좁히지 않는다 — 옛 주소가 service 를 실어 와도 다른 애플리케이션 줄이 사라지지 않게
+      const 프로젝트결정 = 서비스 === undefined ? 결정 : await 결정수들(req, 작성서비스);
+      return { ...결과, decisions: 결정.counts, aiQuality, project: { ...project, decisionItems: 프로젝트결정.lines } };
     } catch (err) {
       if (err instanceof 틀린시간대) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: err.받은값 });
       throw err;

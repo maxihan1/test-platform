@@ -139,17 +139,17 @@ export async function 프로젝트요약읽기(서비스들: 볼서비스[], 작
   const 종류 = new Map(서비스들.map((s) => [s.id, s.kind]));
   const 기기실행 = (k: 앱종류) => 성능.filter((r) => r.kind === 'DEVICE' && 종류.get(Number(r.service_id)) === k);
   const [게임숫자들, 앱최근, 부하최근] = await Promise.all([
-    Promise.all(기기실행('GAME').map((r) => 기기숫자(r, 이름.get(Number(r.service_id)) ?? ''))),
+    Promise.all(기기실행('GAME').map(async (r) => [Number(r.service_id), await 기기숫자(r, 이름.get(Number(r.service_id)) ?? '')] as const)),
     (async () => { const r = 가장최근(기기실행('APP')); return r === null ? null : 기기숫자(r, 이름.get(Number(r.service_id)) ?? ''); })(),
     (async () => { const r = 가장최근(성능.filter((x) => x.kind === 'LOAD')); return r === null ? null : 부하숫자(r, 이름.get(Number(r.service_id)) ?? ''); })(),
   ]);
   const 페이지최근 = 가장최근(페이지실행);
+  const 게임표 = new Map(게임숫자들);
 
   const apps = 서비스들.map((s, i): 앱요약 => {
     const 내케이스 = 케이스.rows.filter((c) => c.tc_id.split('-')[0] === s.prefix).map((c) => ({ tcId: c.tc_id, platforms: c.platforms }));
     const 내페이지 = 페이지실행.find((r) => Number(r.service_id) === s.id);
     const 느린 = (내페이지 === undefined ? [] : 페이지들.get(Number(내페이지.id)) ?? []).filter((x) => x.lcpMs !== null).sort((a, b) => b.lcpMs! - a.lcpMs!)[0];
-    const 내게임 = 게임숫자들.find((g) => 기기실행('GAME').some((r) => Number(r.id) === g.runId && Number(r.service_id) === s.id));
     const 내부하 = 성능.find((r) => r.kind === 'LOAD' && Number(r.service_id) === s.id);
     const prd = PRD들[i];
     return {
@@ -159,7 +159,7 @@ export async function 프로젝트요약읽기(서비스들: 볼서비스[], 작
       scenarios: 시나리오들[i]?.length ?? 0,
       extra: {
         pageLcp: 느린 === undefined ? null : { url: 느린.url, ms: 느린.lcpMs! },
-        fps: 내게임?.avgFps ?? null,
+        fps: 게임표.get(s.id)?.avgFps ?? null,
         p95Ms: 내부하?.p95_ms ?? null,
       },
     };
@@ -182,7 +182,7 @@ export async function 프로젝트요약읽기(서비스들: 볼서비스[], 작
         rows: 페이지들.get(Number(페이지최근.id)) ?? [],
       },
       app: 앱최근,
-      game: 게임숫자들.reduce<기기요약줄 | null>((a, b) => (a === null || b.runId > a.runId ? b : a), null),
+      game: [...게임표.values()].reduce<기기요약줄 | null>((a, b) => (a === null || b.runId > a.runId ? b : a), null),
     },
   };
 }

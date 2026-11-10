@@ -30,7 +30,8 @@ function 카드({ a, 차례, 흐름, 서비스열기 }: { a: 앱; 차례: number
   const t = use말();
   const 언어 = use언어();
   const 전체 = 합(a.last);
-  const 율 = 퍼센트(a.last.pass, 전체);
+  // 케이스는 있어도 한 번도 안 돌렸으면(전부 미실행) 「0.0%」 대신 안내다
+  const 율 = a.last.pass + a.last.fail === 0 ? null : 퍼센트(a.last.pass, 전체);
   const [이름, 값] = 한줄(a, t);
   return (
     <a className="dash-panel dash-app dash-rise" href="#/cases" style={떠오름(8 + (차례 % 카드묶음))} {...서비스를열며(서비스열기, a.serviceId)}>

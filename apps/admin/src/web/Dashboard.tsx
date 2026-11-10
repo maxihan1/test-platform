@@ -188,8 +188,13 @@ export function Dashboard({
 
 function 대시보드판({ 값, 이동, 케이스갈수있나, 설정갈수있나 }: { 값: 자료; 이동: 이동재료; 케이스갈수있나: boolean; 설정갈수있나: boolean }) {
   const { project } = 값;
-  // 케이스도 실행도 없는 프로젝트에 빈 칸 여럿을 늘어놓지 않는다
-  const 빈것 = project.apps.every((a) => a.cases.fn + a.cases.ui === 0) && project.e2e.total === 0 && project.perf.load === null;
+  // 케이스 · PRD · 시나리오 · 성능 측정 · 결정할 것이 하나도 없는 프로젝트에 빈 칸 여럿을 늘어놓지 않는다 — PRD 초안만 있어도 결정 필요가 다음 할 일이라 칸을 보인다
+  const { perf } = project;
+  const 빈것 =
+    project.apps.every((a) => a.cases.fn + a.cases.ui === 0 && (a.prd?.requirements ?? 0) === 0) &&
+    project.e2e.total === 0 &&
+    [perf.load, perf.pages, perf.app, perf.game].every((x) => x === null) &&
+    project.decisionItems.length === 0;
   return (
     <div className="dash">
       <실행중줄 목록={값.running} />

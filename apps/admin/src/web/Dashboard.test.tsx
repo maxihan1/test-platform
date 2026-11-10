@@ -254,8 +254,8 @@ describe('맨 위 다섯 칸', () => {
     expect(within(칸들).getByText('10')).toBeTruthy();
     expect(within(칸들).getByText('14')).toBeTruthy();
     expect(칸들.textContent).toContain('기능 12 · UI 2');
-    // 케이스마다 마지막 결과 — 통과 11 / 14
-    expect(within(칸들).getByText('78.6')).toBeTruthy();
+    // 케이스마다 마지막 결과 — 통과 11 / 14 = 78.57 을 내린다
+    expect(within(칸들).getByText('78.5')).toBeTruthy();
     expect(칸들.textContent).toContain('통과율 · 실패 2');
     expect(within(칸들).getByText('50.0')).toBeTruthy();
     expect(칸들.textContent).toContain('통과 1 · 실패 1 · 시나리오 3개');
@@ -326,8 +326,8 @@ describe('애플리케이션 카드', () => {
     expect(screen.queryByRole('button', { name: /더보기/ })).toBeNull();
   });
 
-  it('실행한 테스트가 없는 애플리케이션은 숫자 대신 안내다', async () => {
-    읽기를(응답({ project: 요약({ apps: [앱하나(1, 'ZDA 결제', 'SCREEN', { last: 건(0, 0, 0) })] }) }));
+  it('실행한 테스트가 없는 애플리케이션은 숫자 대신 안내다 — 케이스가 다 미실행이어도 같다', async () => {
+    읽기를(응답({ project: 요약({ apps: [앱하나(1, 'ZDA 결제', 'SCREEN', { last: 건(0, 0, 5) })] }) }));
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
     const 카드 = (await screen.findByText('ZDA 결제', { selector: '.dash-app b' })).closest('a')!;
     expect(카드.textContent).toContain('아직 실행한 테스트가 없습니다');
@@ -417,9 +417,10 @@ describe('비어 있을 때', () => {
       newFailures: [],
       byService: [],
       project: 요약({
-        apps: [앱하나(1, 'ZDA 결제', 'SCREEN', { cases: { fn: 0, ui: 0 }, last: 건(0, 0, 0) })],
+        apps: [앱하나(1, 'ZDA 결제', 'SCREEN', { prd: null, cases: { fn: 0, ui: 0 }, last: 건(0, 0, 0) })],
         e2e: { pass: 0, fail: 0, notRun: 0, total: 0, recent: [] },
         perf: { load: null, pages: null, app: null, game: null },
+        decisionItems: [],
       }),
     });
 
@@ -429,6 +430,14 @@ describe('비어 있을 때', () => {
     expect(await screen.findByText('아직 테스트가 없습니다')).toBeTruthy();
     expect(screen.getByRole('link', { name: '케이스 보기' }).getAttribute('href')).toBe('#/cases');
     for (const 제목 of ['회귀 실패', '요구사항 추적 (RTM)', '성능 테스트']) expect(screen.queryByRole('heading', { name: 제목 })).toBeNull();
+  });
+
+  it('케이스가 없어도 PRD 나 결정할 것이 있으면 안내 대신 칸을 보인다 — 결정 필요가 다음 할 일이다', async () => {
+    const 빈것 = 빈응답();
+    읽기를({ ...빈것, project: { ...빈것.project, apps: [앱하나(1, 'ZDA 결제', 'SCREEN', { cases: { fn: 0, ui: 0 }, last: 건(0, 0, 0) })] } });
+    render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
+    expect(await screen.findByRole('heading', { name: '요구사항 추적 (RTM)' })).toBeTruthy();
+    expect(screen.queryByText('아직 테스트가 없습니다')).toBeNull();
   });
 
   it('케이스 자리가 없는 사람에게는 「케이스 보기」 단추를 두지 않는다', async () => {

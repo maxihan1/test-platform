@@ -9,7 +9,8 @@ type 셈 = { pass: number; fail: number; notRun: number };
 
 /** 천 단위 쉼표. 언어마다 다른 꼴이면 같은 숫자가 다르게 굴러 「1.234」로 읽힌다 */
 export const 수글 = (n: number): string => n.toLocaleString('en-US');
-export const 퍼센트 = (분자: number, 분모: number): string | null => (분모 === 0 ? null : ((분자 * 100) / 분모).toFixed(1));
+/** 소수 한 자리에서 내린다 — 덜 덮었는데(99.96%) 「100.0」으로 읽히지 않게 */
+export const 퍼센트 = (분자: number, 분모: number): string | null => (분모 === 0 ? null : (Math.floor((분자 * 1000) / 분모) / 10).toFixed(1));
 export const 합 = (c: 셈): number => c.pass + c.fail + c.notRun;
 export const 더하기 = (셈들: 셈[]): 셈 =>
   셈들.reduce((a, b) => ({ pass: a.pass + b.pass, fail: a.fail + b.fail, notRun: a.notRun + b.notRun }), { pass: 0, fail: 0, notRun: 0 });

@@ -51,7 +51,7 @@ export function 신규실패표({ 값, 이동 }: { 값: 자료; 이동: 이동�
       <div className="dash-h2">
         <h2>{t('회귀 실패')}</h2>
         <b className="num" style={{ fontSize: 20, color: 묶음.length > 0 ? 'var(--fail-text)' : undefined }}>
-          {묶음.length}
+          {더 > 0 ? `${String(묶음.length)}+` : 묶음.length}
         </b>
         <span className="dash-lab dash-r">{t('이전 실행에서는 통과했던 케이스 · 최근 {일}일', { 일: 값.window.days })}</span>
       </div>

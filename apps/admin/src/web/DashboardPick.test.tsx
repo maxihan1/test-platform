@@ -189,6 +189,8 @@ describe('칸에서 내려가기', () => {
     const { unmount } = render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
     const 칸 = (await screen.findByRole('heading', { name: '회귀 실패' })).closest('section')!;
     expect(within(칸).getByText(/10건 더 있습니다/)).toBeTruthy();
+    // 잘린 목록이면 머리 수 뒤에 「+」 — 줄 수만 적으면 전체보다 적게 읽힌다
+    expect(칸.querySelector('.num')!.textContent).toBe('2+');
     expect(within(칸).getByRole('link', { name: '실행 기록에서 보기' }).getAttribute('href')).toBe('#/runs/fn?state=failed&days=14');
     unmount();
     vi.spyOn(api, 'dashboard').mockResolvedValue(응답({ byService: 응답().byService.map((서비스) => ({ ...서비스, newFailureCount: 2 })) }) as never);
