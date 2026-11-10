@@ -7,7 +7,7 @@ export type Hud자리 = { 쪽: 'left' | 'right'; y: number };
 
 const 크기 = 56;
 const 끌기문턱 = 5;
-const 열쇠 = (휴대폰: boolean) => `scout-hud:${휴대폰 ? 'phone' : 'pc'}`;
+const 열쇠 = (휴대폰: boolean) => (휴대폰 ? 'scout-hud:phone' : 'scout-hud:pc');
 
 /** 놓은 자리에서 가까운 가장자리. 높이는 그대로 둔다 */
 export function 붙일자리(왼쪽: number, 위: number, 창폭: number, 창높이: number): Hud자리 {
@@ -38,7 +38,7 @@ const 사이 = (값: number, 아래: number, 위: number) => Math.min(Math.max(�
 
 /** 창이 열려 있는 동안(`막힘`)은 옮기지 않는다 — 창이 버튼 자리에 붙어 있어서다 */
 export function useHud끌기(휴대폰: boolean, 막힘: boolean) {
-  const [자리, set자리] = useState<Hud자리 | null>(() => 자리읽기(휴대폰));
+  const [자리, set자리] = useState(자리읽기(휴대폰));
   const [끄는곳, set끄는곳] = useState<{ x: number; y: number } | null>(null);
   // 마지막 자리를 ref 에도 둔다 — 마지막 움직임과 놓기가 한 번에 오면 state 는 아직 앞 값이다
   const 잡음 = useRef<{ x: number; y: number; dx: number; dy: number; 곳: { x: number; y: number } | null } | null>(null);
