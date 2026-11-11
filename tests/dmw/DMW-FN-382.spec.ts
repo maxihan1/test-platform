@@ -1,6 +1,5 @@
 import { defineCase, test, verify } from '@platform/kit';
 
-import { 새창묶음 } from './helpers/common-tools.helper.js';
 import { 장바구니담기, 장바구니비우기, 옵션없는상품 } from './helpers/data.helper.js';
 import { 요청로그인한일회용회원, 주문요청, 주문취소요청 } from './helpers/board-tools.helper.js';
 
@@ -15,7 +14,6 @@ export const spec = defineCase({
 });
 
 test(spec, async ({ page, request }) => {
-  const 손님 = await 새창묶음(page);
   let 주문번호 = '';
 
   try {
@@ -36,11 +34,12 @@ test(spec, async ({ page, request }) => {
     });
 
     await test.step('로그인 없이 POST /api/orders/{id}/cancel 을 부른다', async () => {
-      const 응답 = await 주문취소요청(손님.request, 주문번호);
+      const 보기 = (await (await page.request.get('/api/session')).json()) as { user: unknown };
+      await verify('이 요청은 로그인하지 않았다', 보기.user, null, { blocker: true });
+      const 응답 = await 주문취소요청(page.request, 주문번호);
       await verify('로그인 없이 주문 취소 API 를 부르면 401 로 응답한다', 응답.status(), 401);
     });
   } finally {
-    await 손님.close();
     await 장바구니비우기(request);
   }
 });
