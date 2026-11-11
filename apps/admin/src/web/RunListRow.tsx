@@ -100,6 +100,8 @@ export function 실행줄({ run, 고름, on고르기 }: { run: RunListRow; 고�
           </span>
         )}
         {미확정 === '' ? null : <span className="unconf-line">{미확정}</span>}
+        {/* 처음 실패 뒤 Issue Bunker 「테스트 수정」으로 고쳐 통과한 케이스 — 통과 · 실패 숫자는 처음 실행 그대로 둔다 (도메인/BTS §8.15 B) */}
+        {(run.autoFixed ?? 0) === 0 ? null : <span className="fix-tag">{t('자동 수정 {수}', { 수: run.autoFixed ?? 0 })}</span>}
         {/* 견줄 앞이 없거나 도는 중이면 change 가 null 이라 꼬리표가 없다 (도메인/실행 §7 `GET /api/runs`) */}
         {run.change == null || run.change.newFail + run.change.stillFail + 해결 === 0 ? null : (
           <span className="run-tags">

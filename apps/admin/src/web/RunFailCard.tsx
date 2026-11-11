@@ -79,7 +79,8 @@ export function 실패카드({
 
   // 접고 펴는 것은 브라우저가 한다. 편 카드는 주소에 남아 돌아와도 펼쳐 선다. 쪽을 넘기면 다른 카드라 다시 접혀 선다 (실행 §8.3 「실패 카드는 접어 둔다」)
   return (
-    <article className="fc-card">
+    // 자동 수정 카드는 고치기 전 실패 원인 글을 흐리게 줄 긋는다 — 지운 것이 아니라 고치기 전 기록이다 (도메인/BTS §8.15 B)
+    <article className={c.autoFix == null ? 'fc-card' : 'fc-card fc-fixed'}>
       <details
         className="fc-fold"
         ref={접이}
@@ -90,14 +91,14 @@ export function 실패카드({
       >
         <summary className="fc-sum">
           <div className="fc-head">
-            <Verdict status="FAIL" />
+            {c.autoFix == null ? <Verdict status="FAIL" /> : <span className="fix-tag">{t('수정 후 통과')}</span>}
             <span className="mono fc-tc">{c.tcId}</span>
             {/* 카드 하나의 유형은 디바이스 차례로 첫 깨진 디바이스의 처음 실패한 회차 것이다 — 서버가 그 차례로 싣는다 (실행 §8.3) */}
             <실패이유 failure={머리이유} />
             {머리변화 === null ? null : <span className="fc-tag">{머리변화}</span>}
             <판정꼬리표 judgment={c.judgment} />
             <다시돌림꼬리표 tcId={c.tcId} 결과={다시돌림} />
-            <디바이스꼬리표 tcId={c.tcId} items={items} />
+            <디바이스꼬리표 tcId={c.tcId} items={items} 통과로바뀐={c.autoFix == null ? [] : [...깨진]} />
           </div>
           <h3 className="fc-name-h">{c.tcName}</h3>
           {미확정사유 === null ? null : (

@@ -86,6 +86,7 @@ describe.skipIf(연결 === undefined)('실행 기록 자동 수정 표시', () =
     expect(받은.items[0]!.autoFix).toMatchObject({
       issueKey: 'MQA-168',
       issueUrl: 'https://bts.example.com/issues/MQA-168',
+      movedBy: 'QA 맥시',
       prUrl: 'https://github.com/o/r/pull/713',
       merge: 'AUTO',
       rerunId: 처음,

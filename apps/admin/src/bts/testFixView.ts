@@ -123,6 +123,8 @@ export const 자동수정실행빼기 = ` AND NOT EXISTS (SELECT 1 FROM ${통과
 export interface 카드자동수정 {
   issueKey: string;
   issueUrl: string;
+  /** 「테스트 수정」으로 옮긴 BTS 사람 이름 */
+  movedBy: string | null;
   prUrl: string | null;
   merge: 'AUTO' | 'PERSON' | null;
   /** 사람이 화면에서 찾는 실행 — 서랍 「확인」 · 이슈 댓글 「RUN N」 과 같다 */
@@ -138,6 +140,7 @@ export async function 카드자동수정들(runId: number): Promise<Map<string, 
     await pool.query<{
       tc_id: string;
       issue_key: string;
+      moved_by: string | null;
       pr_url: string | null;
       merge: 'AUTO' | 'PERSON' | null;
       rerun_id: string | null;
@@ -145,7 +148,7 @@ export async function 카드자동수정들(runId: number): Promise<Map<string, 
       updated_at: Date;
       base_url: string;
     }>(
-      `SELECT DISTINCT ON (f.tc_id) f.tc_id, f.issue_key, f.pr_url, f.merge, f.rerun_id, f.updated_at, l.base_url,
+      `SELECT DISTINCT ON (f.tc_id) f.tc_id, f.issue_key, f.moved_by, f.pr_url, f.merge, f.rerun_id, f.updated_at, l.base_url,
               CASE WHEN r.origin = 'SINGLE' THEN COALESCE(r.rerun_of, r.run_id) ELSE r.run_id END AS shown_run
          FROM ${통과줄} LEFT JOIN test_run r ON r.run_id = f.rerun_id
         WHERE f.state = 'PASSED' AND f.failed_run = $1 AND f.env = (SELECT env FROM test_run WHERE run_id = $1)
@@ -169,6 +172,7 @@ export async function 카드자동수정들(runId: number): Promise<Map<string, 
       {
         issueKey: x.issue_key,
         issueUrl: `${x.base_url.replace(/\/+$/, '')}/issues/${encodeURIComponent(x.issue_key)}`,
+        movedBy: x.moved_by,
         prUrl: x.pr_url,
         merge: x.merge,
         rerunId: x.shown_run === null ? null : Number(x.shown_run),

@@ -1,6 +1,6 @@
 // 실패 카드 머리의 꼬리표 — 판정을 남겼나 · 다시 돌린 결과 · 디바이스마다의 판정 (도메인/실행 §8.3 · 점검 2.17 · 2.24)
 
-import type { FailureJudgment, RunItemSummary } from './api.js';
+import type { FailureJudgment, Platform, RunItemSummary } from './api.js';
 import { 회차요약 } from './group.js';
 import { use말 } from './i18n.js';
 import { 실행기록주소 } from './route.js';
@@ -11,7 +11,7 @@ import type { 다시돌린결과 } from './useRerunResults.js';
  * 디바이스가 둘 이상인 실행에서 디바이스마다 이 케이스의 판정 (실행 §8.3 표 2번 줄).
  * 디바이스 칩으로 걸러도 모든 디바이스를 적는다 — 「PC 에서만 깨졌나」를 펼치지 않고 보려는 칸이다
  */
-export function 디바이스꼬리표({ tcId, items }: { tcId: string; items: RunItemSummary[] }) {
+export function 디바이스꼬리표({ tcId, items, 통과로바뀐 = [] }: { tcId: string; items: RunItemSummary[]; 통과로바뀐?: Platform[] }) {
   const t = use말();
   // 실제로 돈 디바이스로 센다 — 칩 칸(실행디바이스들)은 PC 만 돌아도 모바일 칸을 두어 꼬리표가 하나짜리에도 붙었다
   const 돈 = 돈디바이스들(items);
@@ -25,7 +25,15 @@ export function 디바이스꼬리표({ tcId, items }: { tcId: string; items: Ru
     <span className="fc-devs">
       {칸들.map(({ p, 판정 }) => (
         <span key={p} className="fc-dev">
-          {t(PLATFORM_LABEL[p])} <Verdict status={판정} />
+          {t(PLATFORM_LABEL[p])}{' '}
+          {/* 자동 수정 카드에서 실패였던 디바이스만 「실패 → 통과」 — 통과하던 디바이스는 그대로다 (도메인/BTS §8.15 B) */}
+          {통과로바뀐.includes(p) ? (
+            <>
+              <Verdict status="FAIL" /> → <Verdict status="PASS" />
+            </>
+          ) : (
+            <Verdict status={판정} />
+          )}
         </span>
       ))}
     </span>

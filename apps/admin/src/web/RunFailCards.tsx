@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { api, type Platform, type RunItemSummary, type 실패유형묶음 } from './api.js';
+import { api, type FailureCase, type Platform, type RunItemSummary, type 실패유형묶음 } from './api.js';
 import { 실패유형이름 } from './DashboardTypes.js';
 import { 카드찾기 } from './failureFind.js';
 import { use말 } from './i18n.js';
@@ -35,6 +35,9 @@ interface Props {
 
 const 권한없음: 판정 = () => false;
 
+// 자동 수정으로 통과한 카드는 판정할 것이 없다 — 이미 고쳐 통과했다 (도메인/BTS §8.15 B)
+const 안본카드 = (c: FailureCase): boolean => c.judgment === null && c.autoFix == null;
+
 export function RunFailCards(props: Props) {
   const t = use말();
   // 항목이 없으면 실패도 없다. 통로를 부르지 않는다
@@ -49,10 +52,14 @@ function 카드목록({ runId, env, items, platform, 권한 = 권한없음, 유�
   const 보기 = props.보기 ?? 내보기;
   const 바꾸기 = props.바꾸기 ?? ((바꿀: 보기바꿈) => set내보기((앞) => 바꾼보기(앞, 바꿀)));
   // 디바이스를 고르면 보기가 1쪽으로 푼다(runResultView 디바이스고른보기) — 이 목록은 그때 새로 선다
-  const { 카드쪽: 쪽, 유형: 고른유형, 안본것만 } = 보기;
+  const { 카드쪽: 쪽, 유형: 고른유형, 안본것만, 자동수정만 } = 보기;
   // 돌아오면 마지막에 편 카드로 화면을 옮긴다 — 링크로 온 카드가 있으면 그것. 한 번 옮기면 비운다 — 칩을 껐다 켜 카드가 다시 설 때마다 화면이 뛰면 안 된다
   const 맞출 = useRef(열카드 ?? 보기.열린.at(-1));
-  const 응답 = useAsync(() => api.failures(runId, 쪽, platform === 'ALL' ? undefined : platform), [runId, 쪽, platform]);
+  const 고른디바이스 = platform === 'ALL' ? undefined : platform;
+  const 응답 = useAsync(
+    () => (자동수정만 ? api.failures(runId, 쪽, 고른디바이스, true) : api.failures(runId, 쪽, 고른디바이스)),
+    [runId, 쪽, platform, 자동수정만],
+  );
   const 머리 = useRef<HTMLHeadingElement>(null);
   const 넘김 = useRef(false);
 
@@ -101,10 +108,11 @@ function 카드목록({ runId, env, items, platform, 권한 = 권한없음, 유�
     (c) =>
       (유형칸 === null || 유형칸.tcIds.includes(c.tcId)) &&
       (변화 === null || c.devices.some((d) => d.change === 변화)) &&
-      (!안본것만 || c.judgment === null),
+      (!안본것만 || 안본카드(c)),
   );
   const 받은카드 = 응답.data.items;
-  const 안본수 = 응답.data.items.filter((c) => c.judgment === null).length;
+  const 안본수 = 응답.data.items.filter(안본카드).length;
+  const 자동수정수 = 응답.data.autoFixCount ?? 0;
   // 변화 · 판정 거르개는 이 쪽 안에서만 거른다 — 카드 통로에 그 조건이 없다(계약 밖). 유형은 전체 수를 알아 따로 안내한다
   const 이쪽만거름 = (변화 !== null || 안본것만) && (쪽 > 1 || 더있나);
 
@@ -156,6 +164,12 @@ function 카드목록({ runId, env, items, platform, 권한 = 권한없음, 유�
         <button type="button" className="chip" aria-pressed={안본것만} onClick={() => 바꾸기({ 안본것만: !안본것만 })}>
           {t('판정 안 한 카드')} <b className="num">{안본수}</b>
         </button>
+        {/* 이미 고쳐 통과한 카드만 — 쪽이 여럿이어도 서버가 거른다(?autoFix=1). 0 이면 안 그리되 켠 채면 풀 길을 남긴다 (도메인/BTS §8.15 B) */}
+        {자동수정수 === 0 && !자동수정만 ? null : (
+          <button type="button" className="chip" aria-pressed={자동수정만} onClick={() => 바꾸기({ 자동수정만: !자동수정만, 카드쪽: 1, 열린: [] })}>
+            {t('자동 수정')} <b className="num">{자동수정수}</b>
+          </button>
+        )}
       </div>
       {!이쪽만거름 ? null : <p className="hint">{t('필터 결과는 이 페이지 카드 안에서만 보입니다 — 다른 페이지도 확인하세요')}</p>}
       {유형칸 === null || 보일카드.length === 유형칸.count ? null : (

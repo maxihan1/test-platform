@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 
 import type { FailureBts, FailureCase, FailureJudgment } from './api.js';
 import { BTS이름 } from './btsName.js';
+import { RunFailFix } from './RunFailFix.js';
 import { decideApi } from './decideApi.js';
 import { use말, use언어 } from './i18n.js';
 import { show } from './ItemSteps.js';
@@ -72,6 +73,8 @@ export function RunFailJudge({ c, runId, 권한, on남김 }: Props) {
   // 무엇을 지금 화면 쪽으로 고치는지 창 안에서 보고 고르게 한다 — 카드의 대표 디바이스가 처음 깨진 확인 하나
   const 깨진확인 = c.devices[0]?.item.steps.flatMap((s) => s.assertions).find((a) => a.status === 'FAIL') ?? null;
   // BTS 를 이은 프로젝트는 판정을 BTS 에서만 한다 — 판정 줄은 그 이슈 고리이고 「화면이 맞음으로 바꾸기」가 없다 (도메인/BTS §8.15)
+  // 자동 수정으로 통과한 카드는 판정 줄 대신 자동 수정 한 줄이다 — 이미 고쳐 통과해 판정할 것이 없다 (도메인/BTS §8.15 B)
+  if (c.autoFix != null) return <RunFailFix fix={c.autoFix} />;
   if (c.bts !== undefined) return <BTS판정 칸={c.bts} />;
 
   async function 화면이맞음() {
