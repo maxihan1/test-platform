@@ -10,6 +10,7 @@ import { BTS부르기, type 부르기함수 } from './client.js';
 import { BTS요청자 } from './close.js';
 import { type 걸린까닭, 걸린까닭읽기, 댓글한번 } from './testFix.js';
 import { 그만두기, 이슈확인, type 이슈자리 } from './testFixIssue.js';
+import { 사람확인글 } from './testFixView.js';
 
 const 까닭글: Record<걸린까닭, string> = {
   EXPECTED_CHANGED: '기대값이 바뀌었어요',
@@ -90,7 +91,7 @@ export async function 테스트수정병합판정(
     if (세움.error === 'RUN_ACTIVE' || 세움.error === 'NOT_LATEST') return { 끝: null };
     return 사람에게([막힘글[세움.error] ?? '자동 반영을 세우지 못했어요']);
   });
-  if (판정.끝 === 'PERSON') await 댓글한번(판정.projectId, 판정.issueKey, `사람 확인이 필요해요 — ${판정.까닭.join(' · ')}\n${prUrl}`);
+  if (판정.끝 === 'PERSON') await 댓글한번(판정.projectId, 판정.issueKey, `${사람확인글} — ${판정.까닭.join(' · ')}\n${prUrl}`);
   return 판정.끝;
 }
 
@@ -114,5 +115,5 @@ export async function 자동반영실패(뿌리번호: number): Promise<void> {
     `SELECT project_id, issue_key, pr_url FROM bts_test_fix WHERE request_id = $1 AND state = 'WAIT_MERGE' AND merge = 'AUTO' AND pr_url IS NOT NULL`,
     [뿌리번호],
   );
-  for (const 줄 of 줄들.rows) await 댓글한번(Number(줄.project_id), 줄.issue_key, `사람 확인이 필요해요 — 자동 반영이 실패했어요\n${줄.pr_url}`);
+  for (const 줄 of 줄들.rows) await 댓글한번(Number(줄.project_id), 줄.issue_key, `${사람확인글} — 자동 반영이 실패했어요\n${줄.pr_url}`);
 }

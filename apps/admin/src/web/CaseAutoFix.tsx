@@ -81,7 +81,7 @@ export function 자동수정상자({ tcId }: { tcId: string }) {
               {줄.rerunId === null ? null : (
                 <>
                   {' '}
-                  (<a href={`#/runs/${줄.rerunId}`}>RUN {줄.rerunId}</a>)
+                  ({줄.rerunPage ? <a href={`#/runs/${줄.rerunId}`}>RUN {줄.rerunId}</a> : `RUN ${줄.rerunId}`})
                 </>
               )}
             </dd>

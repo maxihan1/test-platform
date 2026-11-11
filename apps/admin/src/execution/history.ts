@@ -74,7 +74,8 @@ export async function caseHistory(
   }>(
     `SELECT i.history_id, i.run_id, r.title AS run_title, i.platform, i.status, i.duration_ms,
             i.started_at, i.finished_at, r.origin, r.rerun_of, count(*) OVER ()::int AS total,
-            EXISTS (SELECT 1 FROM bts_test_fix f WHERE f.rerun_id = i.run_id AND f.tc_id = i.tc_id) AS after_fix
+            EXISTS (SELECT 1 FROM bts_test_fix f JOIN bts_link l ON l.project_id = f.project_id
+                     WHERE f.rerun_id = i.run_id AND f.tc_id = i.tc_id) AS after_fix
        FROM run_item i JOIN test_run r ON r.run_id = i.run_id
       WHERE i.tc_id = $1 AND ($2::text IS NULL OR i.platform = $2)
       ORDER BY i.started_at DESC, i.history_id DESC

@@ -47,6 +47,7 @@ const 상세 = (더: Partial<자동수정상세> = {}): 자동수정상세 => ({
   merge: 'AUTO',
   prUrl: 'https://github.com/o/r/pull/713',
   rerunId: 21109,
+  rerunPage: true,
   reason: null,
   needsPerson: false,
   devices: [

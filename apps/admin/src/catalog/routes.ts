@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { type Platform, TECHNIQUES, type Technique } from '@platform/kit/types';
 
 import { 칸되는서비스 } from '../auth/permissions.js';
+import { 케이스의서비스 } from '../auth/scope.js';
 import { 자동수정상세읽기 } from '../bts/testFixView.js';
 import { 맥락조건읽기, 모르는종류, type 맥락글 } from './context.js';
 import { renderCatalogXlsx } from './export.js';
@@ -158,11 +159,14 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
     },
   );
 
-  app.get<{ Params: { tcId: string } }>('/catalog/cases/:tcId', async (req, reply) => {
+  app.get<{ Params: { tcId: string }; Querystring: { autoFix?: string } }>('/catalog/cases/:tcId', async (req, reply) => {
     const found = await findCase(req.params.tcId);
     if (found === null) return reply.code(404).send({ error: 'CASE_NOT_FOUND', detail: req.params.tcId });
-    // 서랍 「자동 수정 기록」 — 목록 줄의 autoFix 보다 칸이 많다 (도메인/BTS §7 · §8.15 「자동 수정 표시」 A)
-    return { ...found, autoFix: await 자동수정상세읽기(found.tcId) };
+    // 서랍 「자동 수정 기록」은 ?autoFix=1 로 부를 때만 — 실행 창 · 시나리오가 케이스마다 부르는데 쓰지 않는다.
+    // 디바이스마다 결과가 실려 (실행, read) 가 없으면 null 이다 — 목록이 판정을 안 내는 것과 같은 까닭 (도메인/BTS §7)
+    if (스모크읽기(req.query.autoFix) !== true) return found;
+    const 결과본다 = 칸되는서비스(req.user?.services ?? [], 'runs', 'read').includes(케이스의서비스(found.tcId) ?? '');
+    return { ...found, autoFix: 결과본다 ? await 자동수정상세읽기(found.tcId) : null };
   });
 
   // null 은 코드 값으로 되돌리기. 비활성 케이스도 고친다 — 다음 스캔에 살아날 수 있다

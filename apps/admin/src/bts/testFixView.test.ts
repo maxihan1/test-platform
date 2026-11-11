@@ -17,14 +17,15 @@ describe.skipIf(연결 === undefined)('자동 수정 표시 재료', () => {
   let 프로젝트 = 0;
   let 부모 = 0;
   let 한건 = 0;
+  let 새실행 = 0;
 
-  const 실행넣기 = async (service: 'XQV' | 'XQVN', tcId: string, 항목: { platform: string; status: string }[], rerunOf: number | null = null) => {
+  const 실행넣기 = async (service: 'XQV' | 'XQVN', tcId: string, 항목: { platform: string; status: string }[], rerunOf: number | null = null, origin?: string) => {
     const runId = Number(
       (
         await pool.query<{ run_id: string }>(
           `INSERT INTO test_run (title, triggered_by, status, env, service_id, service_name, tests_repo, base_url, rerun_of, origin)
            VALUES ('XQV 실행', 'xqv', 'FINISHED', 'qa', $1, $2, '', 'https://qa.xqv.test', $3, $4) RETURNING run_id`,
-          [서비스[service], service, rerunOf, rerunOf === null ? 'MANUAL' : 'SINGLE'],
+          [서비스[service], service, rerunOf, origin ?? (rerunOf === null ? 'MANUAL' : 'SINGLE')],
         )
       ).rows[0]!.run_id,
     );
@@ -52,7 +53,7 @@ describe.skipIf(연결 === undefined)('자동 수정 표시 재료', () => {
     );
   };
 
-  const 목록 = (service: string, autoFix?: boolean) => listCases({ service, q: '', activeOnly: true, page: 1, pageSize: 50, autoFix });
+  const 목록 = (service: string, autoFix?: boolean) => listCases({ service, q: '', activeOnly: true, page: 1, pageSize: 50, autoFix, 마지막: { 판정: () => 'NA' } });
 
   beforeAll(async () => {
     pool = new Pool({ connectionString: 연결 });
@@ -89,6 +90,10 @@ describe.skipIf(연결 === undefined)('자동 수정 표시 재료', () => {
       `INSERT INTO bts_outbox (project_id, kind, issue_key, payload) VALUES ($1, 'COMMENT', 'MQA-21', $2)`,
       [프로젝트, { body: '사람 확인이 필요해요 — 기대값이 바뀌었어요\nhttps://github.com/o/r/pull/9' }],
     );
+    // 003 — 처음 실패가 반복 실행이라 바퀴가 새 RERUN 실행을 걸었고 수정 후에도 실패
+    const 반복 = await 실행넣기('XQV', 'XQV-FN-003', [{ platform: 'desktop', status: 'FAIL' }]);
+    새실행 = await 실행넣기('XQV', 'XQV-FN-003', [{ platform: 'desktop', status: 'FAIL' }], 반복, 'RERUN');
+    await 줄넣기('XQV', 'XQV-FN-003', 'FAILED', { rerun: 새실행, reason: 'PC 에서 통과하지 못했어요' });
     // BTS 를 안 이은 프로젝트의 줄은 보이지 않는다
     await 줄넣기('XQVN', 'XQVN-FN-001', 'PASSED');
   });
@@ -107,7 +112,7 @@ describe.skipIf(연결 === undefined)('자동 수정 표시 재료', () => {
   it('목록 줄마다 가장 늦은 줄 · 통과한 케이스만 센다', async () => {
     const 받은 = await 목록('XQV');
     const 줄 = new Map(받은.items.map((c) => [c.tcId, c.autoFix?.state ?? null]));
-    expect(Object.fromEntries(줄)).toEqual({ 'XQV-FN-001': 'PASSED', 'XQV-FN-002': 'WAIT_MERGE', 'XQV-FN-003': null });
+    expect(Object.fromEntries(줄)).toEqual({ 'XQV-FN-001': 'PASSED', 'XQV-FN-002': 'WAIT_MERGE', 'XQV-FN-003': 'FAILED' });
     expect(받은.autoFixCount).toBe(1);
   });
 
@@ -115,6 +120,16 @@ describe.skipIf(연결 === undefined)('자동 수정 표시 재료', () => {
     const 받은 = await 목록('XQV', true);
     expect(받은.items.map((c) => c.tcId)).toEqual(['XQV-FN-001']);
     expect(받은.autoFixCount).toBe(1);
+  });
+
+  it('실행 read 가 없어 판정을 안 받으면 자동 수정도 싣지 않고 거르지 않는다 — 통과 여부도 판정이다', async () => {
+    const 받은 = await listCases({ service: 'XQV', q: '', activeOnly: true, page: 1, pageSize: 50, autoFix: true });
+    expect(받은.items.map((c) => [c.tcId, c.autoFix])).toEqual([
+      ['XQV-FN-001', null],
+      ['XQV-FN-002', null],
+      ['XQV-FN-003', null],
+    ]);
+    expect(받은.autoFixCount).toBe(0);
   });
 
   it('BTS 를 안 이은 프로젝트는 칸이 null · 셈이 0 이다', async () => {
@@ -134,6 +149,7 @@ describe.skipIf(연결 === undefined)('자동 수정 표시 재료', () => {
       merge: 'AUTO',
       prUrl: 'https://github.com/o/r/pull/713',
       rerunId: 부모,
+      rerunPage: true,
       needsPerson: false,
       devices: [{ platform: 'desktop', status: 'PASS' }, { platform: 'mobile', status: 'PASS' }],
     });
@@ -141,7 +157,10 @@ describe.skipIf(연결 === undefined)('자동 수정 표시 재료', () => {
 
   it('병합 기다리는 줄에 「사람 확인이 필요해요」 댓글이 있으면 needsPerson', async () => {
     expect(await 자동수정상세읽기('XQV-FN-002')).toMatchObject({ state: 'WAIT_MERGE', needsPerson: true, rerunId: null, devices: [] });
-    expect(await 자동수정상세읽기('XQV-FN-003')).toBeNull();
+  });
+
+  it('반복 실행에 걸린 새 RERUN 실행은 그 실행 자신이 화면에서 찾는 실행이다 — 처음 실패한 실행이 아니다', async () => {
+    expect(await 자동수정상세읽기('XQV-FN-003')).toMatchObject({ state: 'FAILED', rerunId: 새실행, rerunPage: true, reason: 'PC 에서 통과하지 못했어요' });
   });
 
   it('이력 줄 — 바퀴가 다시 돌린 한 건만 「수정 후」', async () => {
@@ -152,5 +171,12 @@ describe.skipIf(연결 === undefined)('자동 수정 표시 재료', () => {
       [부모, false],
       [부모, false],
     ]);
+  });
+
+  it('BTS 연결을 끊으면 이력의 「수정 후」도 사라진다 — 목록 · 서랍과 같이', async () => {
+    await pool.query('DELETE FROM bts_link WHERE project_id = $1', [프로젝트]);
+    const 이력 = await caseHistory('XQV-FN-001', undefined, 1, 20);
+    expect(이력.items.every((r) => !r.afterFix)).toBe(true);
+    expect(await 자동수정상세읽기('XQV-FN-001')).toBeNull();
   });
 });

@@ -131,7 +131,7 @@ export interface CaseQuery extends 맥락조건 {
   smoke?: boolean;
   // 마지막 결과 (카탈로그 §7 `?last=`). 없으면 (실행, read) 가 없는 것이다 — 거르지도 세지도 않는다
   마지막?: { 판정: 판정함수; last?: ItemStatus };
-  // 가장 늦은 테스트 수정 줄이 PASSED 인 케이스만 (도메인/BTS §7 `?autoFix=1`)
+  // 가장 늦은 테스트 수정 줄이 PASSED 인 케이스만 (도메인/BTS §7 `?autoFix=1`). 마지막이 없으면(실행 read 없음) 무시한다 — 통과 여부도 판정이다
   autoFix?: boolean;
 }
 
@@ -190,7 +190,7 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
                          AND ($2::text IS NULL OR (tc_id ~ '-UI-[0-9]{3}$') = ($2 = 'UI'))) AS has`,
       [`${query.service}-%`, query.kind ?? null, query.activeOnly],
     ),
-    자동수정목록(query.service),
+    query.마지막 === undefined ? new Map<string, 자동수정줄>() : 자동수정목록(query.service),
   ]);
   // 순서가 기능 묶음 차례라 SQL 이 쪽을 못 자른다. 조건에 맞는 번호만 먼저 받고, 묶어 줄 세운 뒤 그 쪽 줄만 다시 읽는다
   const 맞은번호 = await pool.query<{ tc_id: string; platforms: Platform[] }>(

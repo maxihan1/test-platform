@@ -80,8 +80,10 @@ export interface 자동수정상세 extends 자동수정줄 {
   summary: string | null;
   merge: 'AUTO' | 'PERSON' | null;
   prUrl: string | null;
-  /** 사람이 화면에서 찾는 실행 — 붙은 한 건이면 붙은 실행 */
+  /** 사람이 화면에서 찾는 실행 — 붙은 한 건이면 붙은 실행 · 새 RERUN 실행이면 그 실행 */
   rerunId: number | null;
+  /** 결과 화면이 있나 — 붙을 곳이 없던 한 건은 번호만 */
+  rerunPage: boolean;
   reason: string | null;
   needsPerson: boolean;
   devices: { platform: Platform; status: ItemStatus }[];
@@ -1234,8 +1236,8 @@ export const api = {
 
   caseOf: (tcId: string) => call<CaseRow>(`/catalog/cases/${encodeURIComponent(tcId)}`),
 
-  /** 같은 케이스 상세에서 「자동 수정 기록」 재료만 읽는다 — 목록 줄의 autoFix 보다 칸이 많다 (도메인/BTS §7) */
-  caseFix: (tcId: string) => call<{ autoFix: 자동수정상세 | null }>(`/catalog/cases/${encodeURIComponent(tcId)}`),
+  /** 같은 케이스 상세에 ?autoFix=1 을 붙여 「자동 수정 기록」 재료를 싣는다 — 목록 줄의 autoFix 보다 칸이 많다 (도메인/BTS §7) */
+  caseFix: (tcId: string) => call<{ autoFix?: 자동수정상세 | null }>(`/catalog/cases/${encodeURIComponent(tcId)}?autoFix=1`),
 
   // 지금 보는 서비스 것만 받는다 — 다른 서비스의 경고가 목록에 섞이지 않게 (도메인/카탈로그 §7)
   lastScan: (service: string) => call<LastScan | null>(`/catalog/scan?service=${encodeURIComponent(service)}`),

@@ -351,7 +351,7 @@ AI 품질은 따로 시험하지 않고 사람이 고른 결과로 센다 — �
 - Jira 등 다른 BTS — 연결 자리(`apps/admin/src/bts/`)만 하나로 모아 둔다
 - BTS 바깥 알림 종류 늘리기 · 빌드마다 BTS 버전 만들기 · 「배운 것」을 노트로 옮기기(2차)
 
-#### 계약 — 블록이 있는 곳 (BTS-F1 ~ F8 블록은 반영 완료 2026-11-01 · BTS-F10 은 4-데이터모델 BTS-F10-03 블록 반영 완료 2026-11-11 · §7 「테스트 수정 바퀴」 블록은 대기 — 설정 두 줄 · 알림 받기 · 끝내기 testFix 칸 넷만 반영)
+#### 계약 — 블록이 있는 곳 (BTS-F1 ~ F8 블록은 반영 완료 2026-11-01 · BTS-F10 은 4-데이터모델 BTS-F10-03 블록 반영 완료 2026-11-11 · §7 「테스트 수정 바퀴」 블록은 대기 — 줄마다 붙은 반영 표시가 정본이다)
 
 - DB 표 · 칸 — [공통/4-데이터모델.md](../공통/4-데이터모델.md) §6 「BTS 연동 표」(진행판 줄마다 블록 하나)
 - kit `PrdItem.fromIssues` — [공통/3-공유계약.md](../공통/3-공유계약.md) 「표준 기획서 타입」
@@ -572,13 +572,13 @@ POST /mcp
 #   — 알림 받기 줄과 이 칸의 summary · reruns · BAD_RESULT 는 반영 완료 (2026-11-11, apps/admin/src/bts/testFix.ts · inbound.ts · authoring/agentRoutes.ts · scripts/authoring-test-fix.ts — BTS-F10-04). autoMerge · held 는 반영 완료 (2026-11-11, apps/admin/src/bts/testFix.ts · testFixMerge.ts · authoring/agentRoutes.ts · scripts/authoring-test-fix.ts — BTS-F10-05)
 # 기능 테스트 목록 GET /api/catalog/cases 의 items[] 에 칸 하나 (F10-07 · 카탈로그.md §7)
 #   autoFix: { issueKey, state, at } | null — 그 케이스의 가장 늦은 bts_test_fix 줄(대상 서버 상관없이 · at 은 그 줄이 마지막으로 바뀐 때). 화면은 state 가 PASSED 일 때만 「자동 수정」 표시를 단다
-#   응답 최상위 autoFixCount — 가장 늦은 줄이 PASSED 인 케이스 수(탭 「자동 수정 N」 · last · autoFix 를 뺀 조건으로 센다) · 거르기 ?autoFix=1 도 같은 기준이다(표시 · 탭 · 거르기가 어긋나지 않게). 엑셀 GET /api/catalog/export 도 ?autoFix=1 을 받는다. BTS 연결이 없는 프로젝트는 칸이 늘 null · 0 이다
-# 케이스 상세 GET /api/catalog/cases/:tcId 에 칸 하나 (F10-07)
-#   autoFix: { issueKey, issueUrl, movedBy, summary, merge: 'AUTO' | 'PERSON' | null, prUrl, rerunId, state, reason, at, needsPerson, devices: [{ platform, status }] } | null — 가장 늦은 줄 하나
-#   — rerunId 는 사람이 화면에서 찾는 실행이다(붙은 한 건이면 붙은 실행 — 이슈 댓글 「RUN N」 과 같다 · 위 「테스트 수정 바퀴」 5). devices 는 bts_test_fix.rerun_id(한 건 실행 자신) 의 그 케이스 항목
+#   응답 최상위 autoFixCount — 가장 늦은 줄이 PASSED 인 케이스 수(탭 「자동 수정 N」 · last · autoFix 를 뺀 조건으로 센다) · 거르기 ?autoFix=1 도 같은 기준이다(표시 · 탭 · 거르기가 어긋나지 않게). 엑셀 GET /api/catalog/export 도 ?autoFix=1 을 받는다. BTS 연결이 없는 프로젝트는 칸이 늘 null · 0 이다. 그 서비스의 (실행, read) 가 없으면 칸 · 셈 · 거르기도 last 처럼 무시한다(null · 0 · 안 거름) — 통과 여부도 판정이다(카탈로그 §7 `?last=`)
+# 케이스 상세 GET /api/catalog/cases/:tcId?autoFix=1 에 칸 하나 (F10-07 — ?autoFix=1 일 때만 싣는다. 실행 창 · 시나리오가 케이스마다 부르는데 쓰지 않는다. (실행, read) 가 없으면 null)
+#   autoFix: { issueKey, issueUrl, movedBy, summary, merge: 'AUTO' | 'PERSON' | null, prUrl, rerunId, state, reason, at, rerunPage, needsPerson, devices: [{ platform, status }] } | null — 가장 늦은 줄 하나
+#   — rerunId 는 사람이 화면에서 찾는 실행이다(붙은 한 건이면 붙은 실행 · 새 RERUN 실행이면 그 실행 — 이슈 댓글 「RUN N」 과 같다 · 위 「테스트 수정 바퀴」 5). rerunPage 는 그 실행에 결과 화면이 있나(붙을 곳이 없던 한 건은 false — 서랍이 번호만 보인다). devices 는 bts_test_fix.rerun_id(한 건 실행 자신) 의 그 케이스 항목
 #   — needsPerson 은 병합을 기다리는 줄에 「사람 확인이 필요해요 — …」 댓글(다음 줄이 그 PR 주소)을 넣었나다 — 자동 병합에 걸렸거나 자동 반영이 실패했다. 서랍 상태 줄이 이것으로 갈린다
-#   서랍 「실행 기록」 줄을 주는 응답(GET /api/cases/:tcId/history)의 줄마다 afterFix: boolean — 그 실행(한 건 실행 자신의 번호 · 이력은 바꿔 끼우지 않는다)이 그 케이스 bts_test_fix 줄의 rerun_id 면 true
-#   — 위 세 줄은 반영 완료 (2026-11-11, apps/admin/src/bts/testFixView.ts · catalog/store.ts · catalog/routes.ts · execution/history.ts · web/CaseAutoFix.tsx — BTS-F10-07)
+#   서랍 「실행 기록」 줄을 주는 응답(GET /api/cases/:tcId/history)의 줄마다 afterFix: boolean — 그 실행(한 건 실행 자신의 번호 · 이력은 바꿔 끼우지 않는다)이 그 케이스 bts_test_fix 줄의 rerun_id 면 true(BTS 연결이 없으면 늘 false)
+#   — 위 F10-07 줄들(목록 · 상세 · 이력)은 반영 완료 (2026-11-11, apps/admin/src/bts/testFixView.ts · catalog/store.ts · catalog/routes.ts · execution/history.ts · web/CaseAutoFix.tsx — BTS-F10-07)
 # 실행 기록 실패 카드 GET /api/runs/:runId/failures 의 items[] 에 칸 하나 (F10-08 · 리포팅.md §7)
 #   autoFix: { issueKey, issueUrl, prUrl, merge, rerunId, at, devices: [{ platform, status }] } | null — 그 카드(실행 · tcId · 대상 서버)를 `failed_run`(카드가 서는 실행 — 한 건 실행으로 올린 이슈는 붙는 실행인 부모)으로 가진 PASSED 줄
 #   응답 최상위 autoFixCount · 거르기 ?autoFix=1. 「판정 안 한 카드」 셈과 「실패 N건 다시 실행」 대상에서 그 카드를 뺀다
