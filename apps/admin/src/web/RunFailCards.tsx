@@ -172,7 +172,8 @@ function 카드목록({ runId, env, items, platform, 권한 = 권한없음, 유�
         )}
       </div>
       {!이쪽만거름 ? null : <p className="hint">{t('필터 결과는 이 페이지 카드 안에서만 보입니다 — 다른 페이지도 확인하세요')}</p>}
-      {유형칸 === null || 보일카드.length === 유형칸.count ? null : (
+      {/* 「자동 수정」을 켠 동안은 받은 카드가 이미 걸러져 유형 전체 수와 견줄 수 없다 */}
+      {유형칸 === null || 자동수정만 || 보일카드.length === 유형칸.count ? null : (
         <p className="hint">{t('이 페이지에 {보인}건 · 이 유형 전체 {전체}건 — 나머지는 다른 페이지에 있습니다', { 보인: 보일카드.length, 전체: 유형칸.count })}</p>
       )}
 

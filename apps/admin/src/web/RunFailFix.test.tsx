@@ -4,10 +4,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-import { api, type FailureBts, type RunListRow, type 카드자동수정 } from './api.js';
+import type { FailureBts, RunListRow, 카드자동수정 } from './api.js';
 import { 실패다시실행 } from './RerunFailed.js';
-import { RunResult } from './RunResult.js';
-import { 끝난응답, RUN_ID as 결과실행, 실행, 실행까지 } from './RunResult.fixture.js';
+import { 실행 } from './RunResult.fixture.js';
 import { RUN_ID, 그리기, 장치, 줄, 쪽, 케이스 } from './RunFailCards.fixture.js';
 import { 실행줄 } from './RunListRow.js';
 
@@ -24,6 +23,7 @@ const 고침: 카드자동수정 = {
   prUrl: 'https://github.com/o/r/pull/713',
   merge: 'AUTO',
   rerunId: 21109,
+  rerunPage: true,
   at: '2026-11-11T03:00:00.000Z',
   devices: [
     { platform: 'desktop', status: 'PASS' },
@@ -55,6 +55,23 @@ describe('「수정 후 통과」 카드', () => {
     expect(screen.queryByRole('link', { name: 'Issue Bunker MQA-168 에서 확인 중' })).toBeNull();
   });
 
+  it('다시 실행에서 통과하지 않은 디바이스는 「실패 → 통과」가 아니다 · 결과 화면이 없는 실행은 번호만', async () => {
+    그리기(
+      쪽([
+        케이스('ZZI-0001', '주문 API 401', [장치('desktop', 1), 장치('mobile', 2)], {
+          autoFix: { ...고침, rerunPage: false, devices: [{ platform: 'desktop', status: 'PASS' }] },
+        }),
+      ]),
+      [줄(1, 'ZZI-0001', 'desktop', 'FAIL'), 줄(2, 'ZZI-0001', 'mobile', 'FAIL')],
+    );
+    await screen.findByText('주문 API 401');
+    const 칩 = document.querySelector('.fc-devs')?.textContent ?? '';
+    expect(칩).toMatch(/PC\s*실패\s*→\s*통과/);
+    expect(칩).not.toMatch(/모바일\s*실패\s*→/);
+    expect(screen.queryByRole('link', { name: 'RUN 21109' })).toBeNull();
+    expect(document.querySelector('.fc-body')?.textContent).toContain('RUN 21109 PC 통과');
+  });
+
   it('「판정 안 한 카드」 셈에서 빠지고, 「자동 수정 N」을 누르면 서버가 거른 쪽을 다시 받는다', async () => {
     const { 부름 } = 둘();
     expect((await screen.findByRole('button', { name: /판정 안 한 카드/ })).textContent).toContain('1');
@@ -69,23 +86,12 @@ describe('「수정 후 통과」 카드', () => {
   });
 });
 
-describe('실패가 0 이어도 자동 수정이 있으면 카드 칸이 선다', () => {
-  it('붙은 한 건이 통과로 바꿔 끼운 실행 — counts.fail 0 · autoFixed 1', async () => {
-    vi.spyOn(api, 'insights').mockResolvedValue(null as never);
-    const 부름 = vi.spyOn(api, 'failures').mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20, autoFixCount: 0 });
-    vi.spyOn(api, 'run').mockResolvedValue({ ...끝난응답, counts: { ...끝난응답.counts, fail: 0 }, autoFixed: 1 });
-    render(<RunResult runId={결과실행} 판정하기={() => 실행까지} />);
-    await waitFor(() => expect(부름).toHaveBeenCalled());
-  });
-});
-
 describe('실패 다시 실행', () => {
-  it('자동 수정으로 통과한 케이스는 다시 돌릴 실패에서 뺀다', async () => {
-    vi.spyOn(api, 'failures').mockResolvedValue(쪽([케이스('ZZI-0001', '주문 API 401', [장치('mobile', 2)], { autoFix: 고침 })]));
+  it('자동 수정으로 통과한 케이스는 다시 돌릴 실패에서 뺀다', () => {
     render(
-      <실패다시실행 runId={20914} items={[줄(1, 'ZZI-0001', 'mobile', 'FAIL'), 줄(2, 'ZZI-0002', 'desktop', 'FAIL')]} env="qa" 된다 자동수정수={1} />,
+      <실패다시실행 runId={20914} items={[줄(1, 'ZZI-0001', 'mobile', 'FAIL'), 줄(2, 'ZZI-0002', 'desktop', 'FAIL')]} env="qa" 된다 자동수정={['ZZI-0001']} />,
     );
-    expect(await screen.findByRole('button', { name: '실패 1건 다시 실행' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '실패 1건 다시 실행' })).toBeTruthy();
   });
 });
 

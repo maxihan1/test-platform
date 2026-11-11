@@ -102,11 +102,15 @@ describe.skipIf(연결 === undefined)('실행 기록 자동 수정 표시', () =
     expect([받은.total, 받은.autoFixCount]).toEqual([1, 1]);
   });
 
-  it('실행 상세 · 목록 줄의 autoFixed — 통과 · 실패 숫자는 바꿔 끼운 그대로다', async () => {
-    const 상세 = await findRun(처음);
-    expect([상세!.autoFixed, 상세!.counts.fail]).toEqual([1, 1]);
+  it('실행 상세 · 목록은 처음 실행 숫자 그대로 — 고친 케이스가 통과 줄에 또 서지 않는다', async () => {
+    const 상세 = (await findRun(처음))!;
+    expect([상세.autoFixedCases, 상세.counts.fail]).toEqual([['XQW-FN-001'], 2]);
+    expect(상세.items.filter((i) => i.tcId === 'XQW-FN-001').map((i) => [i.platform, i.status])).toEqual([
+      ['desktop', 'PASS'],
+      ['mobile', 'FAIL'],
+    ]);
     const 목록 = await listRuns('XQW', 1, 20, { kind: 'case' });
-    expect(목록.items.map((r) => [r.runId, 'autoFixed' in r ? r.autoFixed : null])).toEqual([[처음, 1]]);
+    expect(목록.items.map((r) => [r.runId, r.counts.fail, 'autoFixed' in r ? r.autoFixed : null])).toEqual([[처음, 2, 1]]);
   });
 
   it('BTS 연결을 끊으면 표시가 사라지고 카드도 바꿔 끼운 결과로 돌아간다', async () => {
@@ -114,6 +118,7 @@ describe.skipIf(연결 === undefined)('실행 기록 자동 수정 표시', () =
     const 받은 = await 실패카드(처음, 1);
     expect(받은.items.map((c) => [c.tcId, c.autoFix])).toEqual([['XQW-FN-002', null]]);
     expect(받은.autoFixCount).toBe(0);
-    expect((await findRun(처음))!.autoFixed).toBe(0);
+    const 상세 = (await findRun(처음))!;
+    expect([상세.autoFixedCases, 상세.counts.fail]).toEqual([[], 1]);
   });
 });

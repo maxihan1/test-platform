@@ -30,7 +30,7 @@ export function RunFailFix({ fix }: { fix: 카드자동수정 }) {
         {fix.rerunId === null ? null : (
           <>
             {' → '}
-            <a href={`#/runs/${fix.rerunId}`}>RUN {fix.rerunId}</a>{' '}
+            {fix.rerunPage ? <a href={`#/runs/${fix.rerunId}`}>RUN {fix.rerunId}</a> : `RUN ${fix.rerunId}`}{' '}
             {fix.devices.map((d) => `${t(PLATFORM_LABEL[d.platform])} ${t(판정말[d.status])}`).join(' · ')}
           </>
         )}{' '}

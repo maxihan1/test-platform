@@ -496,6 +496,8 @@ export interface 카드자동수정 {
   prUrl: string | null;
   merge: 'AUTO' | 'PERSON' | null;
   rerunId: number | null;
+  /** 그 실행에 결과 화면이 있나 — 없으면 번호만 보인다 */
+  rerunPage: boolean;
   at: string;
   devices: { platform: Platform; status: ItemStatus }[];
 }
@@ -1299,7 +1301,7 @@ export const api = {
   },
 
   run: (runId: number) =>
-    call<RunSummary & { items: RunItemSummary[]; evidence: EvidenceRow[]; apiDocVersion?: number | null; apiDocNote?: 'DIFFERS' | 'FETCH_FAILED' | null; installedApps?: 폰에깔린앱[]; mobileDevices?: string[]; autoFixed?: number }>(
+    call<RunSummary & { items: RunItemSummary[]; evidence: EvidenceRow[]; apiDocVersion?: number | null; apiDocNote?: 'DIFFERS' | 'FETCH_FAILED' | null; installedApps?: 폰에깔린앱[]; mobileDevices?: string[]; autoFixedCases?: string[] }>(
       `/runs/${runId}`,
     ),
 

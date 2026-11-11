@@ -111,8 +111,6 @@ export function 끝난결과(props: Props) {
   // 통로는 실패가 있을 때만 부른다. 0건이면 부를 까닭이 없다 (§8.3)
   const 카드구획 = 판정 === 'ALL' || 판정 === 'FAIL';
   const 줄구획 = !(판정 === 'FAIL' || (판정 === 'ALL' && 줄들.length === 0));
-  // 붙은 한 건이 통과로 바꿔 끼워 실패가 0 이어도 「수정 후 통과」 카드는 선다 (도메인/BTS §8.15 B)
-  const 카드없음 = data.counts.fail === 0 && (data.autoFixed ?? 0) === 0;
 
   const 본문 = (
     <>
@@ -144,7 +142,7 @@ export function 끝난결과(props: Props) {
 
         {/* 카드가 길면 키보드 · 화면 읽기로 통과 줄까지 카드 수만큼 탭해야 한다. 주소가 `#/` 로 가는 앱이라
             `#id` 링크 대신 버튼으로 포커스를 옮긴다. 보이는 건 포커스가 왔을 때뿐이다 */}
-        {!카드구획 || !줄구획 || 카드없음 ? null : (
+        {!카드구획 || !줄구획 || data.counts.fail === 0 ? null : (
           <button
             type="button"
             className="btn small ghost skip-link"
@@ -157,7 +155,7 @@ export function 끝난결과(props: Props) {
           </button>
         )}
 
-        {!카드구획 ? null : 카드없음 ? (
+        {!카드구획 ? null : data.counts.fail === 0 ? (
           <p className="empty">{t('실패한 케이스가 없습니다')}</p>
         ) : (
           <section className="rr-sec">

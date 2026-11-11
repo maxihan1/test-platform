@@ -16,7 +16,7 @@ import { 가린값들 } from '../web/mask.js';
 import { 가린다, 항목비밀 } from './trial.js';
 import { runSummary, 거르는조건, 시나리오칸, type 시나리오실행줄, type 실행거르개, type 실행집계 } from './runSummary.js';
 
-import { 자동수정수들 } from '../bts/testFixView.js';
+import { 자동수정실행빼기, 자동수정케이스들 } from '../bts/testFixView.js';
 import { 호환성요약들, type 호환성요약 } from '../compat/runView.js';
 
 import { 종류조건 } from './runKind.js';
@@ -83,7 +83,7 @@ export async function listRuns(
   const rows = await pool.query<Parameters<typeof to시나리오줄>[0] & RawFailCases & { devices: string[]; mobile_devices: string[] }>(
     `SELECT ${RUN_COLUMNS}${시나리오 ? 시나리오칸 : `, ${FAIL_CASE_COLUMNS}, ${DEVICE_COLUMN}`}, count(*) OVER ()::int AS grand_total
        FROM test_run r
-       LEFT JOIN LATERAL ${지금항목('o.run_id = r.run_id')} i ON true
+       LEFT JOIN LATERAL ${지금항목('o.run_id = r.run_id', 자동수정실행빼기)} i ON true
       WHERE r.service_id = (SELECT id FROM service WHERE prefix = $3) ${조건.where}
       GROUP BY r.run_id
       ${조건.having}
@@ -97,7 +97,7 @@ export async function listRuns(
   const [summary, 대비, 자동수정] = await Promise.all([
     runSummary(service, 거르개),
     시나리오 ? new Map<number, never>() : 직전대비수(번호들),
-    시나리오 || 거르개.kind === 'compat' ? new Map<number, number>() : 자동수정수들(번호들),
+    시나리오 || 거르개.kind === 'compat' ? new Map<number, string[]>() : 자동수정케이스들(번호들),
   ]);
   const 머리 = { total: rows.rows[0]?.grand_total ?? 0, page, pageSize, summary };
   if (시나리오) return { items: rows.rows.map(to시나리오줄), ...머리 };
@@ -125,7 +125,7 @@ export async function listRuns(
       failCases: toFailCases(r),
       change: 대비.get(Number(r.run_id)) ?? null,
       // 처음 실패 뒤 Issue Bunker 「테스트 수정」으로 고쳐 통과한 케이스 수 — 통과 · 실패 숫자는 그대로 둔다 (도메인/BTS §8.15 B)
-      autoFixed: 자동수정.get(Number(r.run_id)) ?? 0,
+      autoFixed: 자동수정.get(Number(r.run_id))?.length ?? 0,
       devices: r.devices,
       mobileDevices: r.mobile_devices,
     })),
@@ -199,12 +199,12 @@ export interface 폰에깔린앱 {
 
 export async function findRun(
   runId: number,
-): Promise<(RunSummary & RunApiDoc & { items: (RunItemSummary & { rerun: 다시실행칸 | null })[]; evidence: EvidenceSummary[]; installedApps: 폰에깔린앱[]; mobileDevices: string[]; autoFixed: number }) | null> {
+): Promise<(RunSummary & RunApiDoc & { items: (RunItemSummary & { rerun: 다시실행칸 | null })[]; evidence: EvidenceSummary[]; installedApps: 폰에깔린앱[]; mobileDevices: string[]; autoFixedCases: string[] }) | null> {
   const pool = await db();
   // 시나리오 실행은 run_item 이 없어 케이스 모양이 비어 나온다. 번호가 맞아도 없는 실행으로 본다 (도메인/시나리오 §3.7 결정 10)
   // 폰 모델은 목록 줄과 같은 칸이다 — 화면이 「실패 다시 실행」 창에 그 실행의 모바일 실행 위치를 미리 고른다 (도메인/실행 §8.10)
   const runs = await pool.query<RawRun & { api_doc_version: number | null; api_doc_note: RunApiDoc['apiDocNote']; mobile_devices: string[] }>(
-    `SELECT ${RUN_COLUMNS}, r.api_doc_version, r.api_doc_note, ${DEVICE_COLUMN} FROM test_run r LEFT JOIN LATERAL ${지금항목('o.run_id = r.run_id')} i ON true
+    `SELECT ${RUN_COLUMNS}, r.api_doc_version, r.api_doc_note, ${DEVICE_COLUMN} FROM test_run r LEFT JOIN LATERAL ${지금항목('o.run_id = r.run_id', 자동수정실행빼기)} i ON true
       WHERE r.run_id = $1 AND ${종류조건('case')} GROUP BY r.run_id`,
     [runId],
   );
@@ -213,7 +213,7 @@ export async function findRun(
 
   // 한 건 실행이 덮은 항목은 그 한 건 항목으로 바꿔 끼워 싣는다 — 원래 결과는 rerun.original 로 연다 (도메인/실행 §7)
   const items = await pool.query<RawItem & 다시실행원재료>(
-    `SELECT ${ITEM_COLUMNS}, ${다시실행칸들} FROM ${지금항목('o.run_id = $1')} i ORDER BY tc_id, platform`,
+    `SELECT ${ITEM_COLUMNS}, ${다시실행칸들} FROM ${지금항목('o.run_id = $1', 자동수정실행빼기)} i ORDER BY tc_id, platform`,
     [runId],
   );
   // 둘 다 못 읽은 폰은 뺀다 — 견줄 것이 없다. 빌드 번호가 없는 실행은 견줄 상대가 없어 읽지 않는다(도는 동안 화면이 이 통로를 거듭 부른다)
@@ -232,8 +232,8 @@ export async function findRun(
     apiDocVersion: row.api_doc_version,
     apiDocNote: row.api_doc_note,
     items: items.rows.map((r) => ({ ...toItem(r), rerun: 다시실행칸으로(r) })),
-    // 붙은 한 건이 통과로 바꿔 끼우면 실패가 0 이 되어도 「수정 후 통과」 카드를 그려야 한다 — 결과 화면이 이것으로 카드 칸을 연다 (도메인/BTS §8.15 B)
-    autoFixed: (await 자동수정수들([runId])).get(runId) ?? 0,
+    // 「수정 후 통과」 카드의 케이스 — 항목은 고치기 전 결과라 [실패 N건 다시 실행]이 이것을 뺀다 (도메인/BTS §8.15 B)
+    autoFixedCases: (await 자동수정케이스들([runId])).get(runId) ?? [],
     evidence: await 증적목록(runId),
     installedApps: 깔린.rows.map((r) => ({ appVersion: r.app_version, appBuild: r.app_build })),
     mobileDevices: row.mobile_devices,

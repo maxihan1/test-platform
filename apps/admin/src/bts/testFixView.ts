@@ -116,7 +116,8 @@ const 통과줄 = `bts_test_fix f JOIN service s ON s.id = f.service_id JOIN bts
 
 /**
  * 끼울 한 건 실행 `sr` 에 더하는 조건 — 자동 수정으로 통과한 다시 실행은 빼고 고치기 전 결과를 본다.
- * 붙은 한 건이 통과로 바꿔 끼우면 실패 카드가 사라져 「수정 후 통과」 카드를 세울 수 없다
+ * 붙은 한 건이 통과로 바꿔 끼우면 실패 카드가 사라져 「수정 후 통과」 카드를 세울 수 없고, 실행의 통과 · 실패 숫자도 처음 기록과 달라진다(§8.15 B).
+ * 실패 카드 · 실행 목록 · 실행 상세가 같이 건다 — 하나만 걸면 같은 케이스가 카드와 통과 줄에 두 번 선다
  */
 export const 자동수정실행빼기 = ` AND NOT EXISTS (SELECT 1 FROM ${통과줄} WHERE f.state = 'PASSED' AND f.rerun_id = sr.run_id)`;
 
@@ -129,6 +130,8 @@ export interface 카드자동수정 {
   merge: 'AUTO' | 'PERSON' | null;
   /** 사람이 화면에서 찾는 실행 — 서랍 「확인」 · 이슈 댓글 「RUN N」 과 같다 */
   rerunId: number | null;
+  /** 그 실행에 결과 화면이 있나 — 붙을 곳이 없던 한 건은 번호만 보인다(상세와 같다) */
+  rerunPage: boolean;
   at: string;
   devices: { platform: Platform; status: ItemStatus }[];
 }
@@ -145,11 +148,13 @@ export async function 카드자동수정들(runId: number): Promise<Map<string, 
       merge: 'AUTO' | 'PERSON' | null;
       rerun_id: string | null;
       shown_run: string | null;
+      has_page: boolean;
       updated_at: Date;
       base_url: string;
     }>(
       `SELECT DISTINCT ON (f.tc_id) f.tc_id, f.issue_key, f.moved_by, f.pr_url, f.merge, f.rerun_id, f.updated_at, l.base_url,
-              CASE WHEN r.origin = 'SINGLE' THEN COALESCE(r.rerun_of, r.run_id) ELSE r.run_id END AS shown_run
+              CASE WHEN r.origin = 'SINGLE' THEN COALESCE(r.rerun_of, r.run_id) ELSE r.run_id END AS shown_run,
+              NOT (r.origin = 'SINGLE' AND r.rerun_of IS NULL) AS has_page
          FROM ${통과줄} LEFT JOIN test_run r ON r.run_id = f.rerun_id
         WHERE f.state = 'PASSED' AND f.failed_run = $1 AND f.env = (SELECT env FROM test_run WHERE run_id = $1)
         ${차례}`,
@@ -176,6 +181,7 @@ export async function 카드자동수정들(runId: number): Promise<Map<string, 
         prUrl: x.pr_url,
         merge: x.merge,
         rerunId: x.shown_run === null ? null : Number(x.shown_run),
+        rerunPage: x.has_page === true,
         at: x.updated_at.toISOString(),
         devices: 기기들.filter((d) => d.run_id === x.rerun_id && d.tc_id === x.tc_id).map((d) => ({ platform: d.platform, status: d.status })),
       },
@@ -183,13 +189,17 @@ export async function 카드자동수정들(runId: number): Promise<Map<string, 
   );
 }
 
-/** 실행 줄 「자동 수정 N」 — 그 실행을 처음 실패로 가진 통과 케이스 수. 카드의 autoFixCount 와 같게 케이스로 센다(같은 케이스를 두 번 고쳐도 카드는 하나) */
-export async function 자동수정수들(runIds: number[]): Promise<Map<number, number>> {
+/**
+ * 실행마다 그 실행을 처음 실패로 가진 통과 케이스 — 카드처럼 케이스 · 대상 서버로 가른다(같은 케이스를 두 번 고쳐도 하나).
+ * 목록 줄 「자동 수정 N」은 수, 실행 상세는 [실패 N건 다시 실행]에서 뺄 케이스로 쓴다
+ */
+export async function 자동수정케이스들(runIds: number[]): Promise<Map<number, string[]>> {
   if (runIds.length === 0) return new Map();
-  const rows = await (await db()).query<{ failed_run: string; n: number }>(
-    `SELECT f.failed_run, count(DISTINCT f.tc_id)::int AS n FROM ${통과줄}
+  const rows = await (await db()).query<{ failed_run: string; tcs: string[] }>(
+    `SELECT f.failed_run, array_agg(DISTINCT f.tc_id ORDER BY f.tc_id) AS tcs
+       FROM ${통과줄} JOIN test_run t ON t.run_id = f.failed_run AND t.env = f.env
       WHERE f.state = 'PASSED' AND f.failed_run = ANY($1::bigint[]) GROUP BY f.failed_run`,
     [runIds],
   );
-  return new Map(rows.rows.map((r) => [Number(r.failed_run), r.n]));
+  return new Map(rows.rows.map((r) => [Number(r.failed_run), r.tcs]));
 }

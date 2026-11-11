@@ -79,7 +79,7 @@ const 실패행들SQL = `
 
 export async function 실패카드(runId: number, page: number, platform?: Platform, 자동수정만 = false): Promise<FailureCards> {
   const pool = await db();
-  const 비교 = await compareWithPrevious(runId);
+  const [비교, 자동수정] = await Promise.all([compareWithPrevious(runId), 카드자동수정들(runId)]);
   const 변화표 = new Map<string, 카드변화>();
   for (const c of 비교.케이스들) {
     if (c.판정 === '새로깨짐' || c.판정 === '계속깨짐') 변화표.set(`${c.tcId}|${c.platform}`, c.판정);
@@ -104,7 +104,6 @@ export async function 실패카드(runId: number, page: number, platform?: Platf
     status: r.status,
   }));
 
-  const 자동수정 = await 카드자동수정들(runId);
   const 카드들 = 케이스로묶는다(모양, 변화표, platform);
   const autoFixCount = 카드들.filter((c) => 자동수정.has(c.tcId)).length;
   const 쪽 = 쪽을자른다(자동수정만 ? 카드들.filter((c) => 자동수정.has(c.tcId)) : 카드들, page);

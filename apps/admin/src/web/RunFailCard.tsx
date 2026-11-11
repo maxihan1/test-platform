@@ -62,6 +62,8 @@ export function 실패카드({
     on맞춤?.();
   }, []);
   const 깨진 = new Set(c.devices.map((d) => d.platform));
+  // 「실패 → 통과」는 다시 실행에서 그 디바이스가 실제로 통과했을 때만 — 다시 실행이 그 디바이스를 안 돌렸으면 그대로 실패다
+  const 통과로바뀐 = [...깨진].filter((p) => c.autoFix?.devices.some((d) => d.platform === p && d.status === 'PASS') === true);
   // 디바이스를 거른 동안에는 그 디바이스만 낸다. 깨진 디바이스는 서버가 카드에 안 실었어도 접힌 줄에 넣지 않는다 —
   // 실패가 「통과 · 미실행」 줄처럼 접혀 보이면 안 된다
   const 나머지 = 디바이스순서.flatMap((칸디바이스) => {
@@ -98,7 +100,7 @@ export function 실패카드({
             {머리변화 === null ? null : <span className="fc-tag">{머리변화}</span>}
             <판정꼬리표 judgment={c.judgment} />
             <다시돌림꼬리표 tcId={c.tcId} 결과={다시돌림} />
-            <디바이스꼬리표 tcId={c.tcId} items={items} 통과로바뀐={c.autoFix == null ? [] : [...깨진]} />
+            <디바이스꼬리표 tcId={c.tcId} items={items} 통과로바뀐={통과로바뀐} />
           </div>
           <h3 className="fc-name-h">{c.tcName}</h3>
           {미확정사유 === null ? null : (

@@ -351,7 +351,7 @@ AI 품질은 따로 시험하지 않고 사람이 고른 결과로 센다 — �
 - Jira 등 다른 BTS — 연결 자리(`apps/admin/src/bts/`)만 하나로 모아 둔다
 - BTS 바깥 알림 종류 늘리기 · 빌드마다 BTS 버전 만들기 · 「배운 것」을 노트로 옮기기(2차)
 
-#### 계약 — 블록이 있는 곳 (BTS-F1 ~ F8 블록은 반영 완료 2026-11-01 · BTS-F10 은 4-데이터모델 BTS-F10-03 블록 반영 완료 2026-11-11 · §7 「테스트 수정 바퀴」 블록은 대기 — 줄마다 붙은 반영 표시가 정본이다)
+#### 계약 — 블록이 있는 곳 (BTS-F1 ~ F8 블록은 반영 완료 2026-11-01 · BTS-F10 은 4-데이터모델 BTS-F10-03 블록 반영 완료 2026-11-11 · §7 「테스트 수정 바퀴」 블록도 반영 완료 2026-11-11(BTS-F10-08) — 줄마다 붙은 반영 표시가 정본이다)
 
 - DB 표 · 칸 — [공통/4-데이터모델.md](../공통/4-데이터모델.md) §6 「BTS 연동 표」(진행판 줄마다 블록 하나)
 - kit `PrdItem.fromIssues` — [공통/3-공유계약.md](../공통/3-공유계약.md) 「표준 기획서 타입」
@@ -580,11 +580,13 @@ POST /mcp
 #   서랍 「실행 기록」 줄을 주는 응답(GET /api/cases/:tcId/history)의 줄마다 afterFix: boolean — 그 실행(한 건 실행 자신의 번호 · 이력은 바꿔 끼우지 않는다)이 그 케이스 bts_test_fix 줄의 rerun_id 면 true(BTS 연결이 없으면 늘 false)
 #   — 위 F10-07 줄들(목록 · 상세 · 이력)은 반영 완료 (2026-11-11, apps/admin/src/bts/testFixView.ts · catalog/store.ts · catalog/routes.ts · execution/history.ts · web/CaseAutoFix.tsx — BTS-F10-07)
 # 실행 기록 실패 카드 GET /api/runs/:runId/failures 의 items[] 에 칸 하나 (F10-08 · 리포팅.md §7)
-#   autoFix: { issueKey, issueUrl, movedBy, prUrl, merge, rerunId, at, devices: [{ platform, status }] } | null — 그 카드(실행 · tcId · 대상 서버)를 `failed_run`(카드가 서는 실행 — 한 건 실행으로 올린 이슈는 붙는 실행인 부모)으로 가진 PASSED 줄(케이스마다 가장 늦은 것)
-#   — rerunId · devices 는 상세(위 F10-07)와 같은 뜻이다. movedBy 는 카드 한 줄의 「옮긴 사람」(2026-11-11 F10-08 — 처음 꼴에 없어 더했다)
+#   autoFix: { issueKey, issueUrl, movedBy, prUrl, merge, rerunId, rerunPage, at, devices: [{ platform, status }] } | null — 그 카드(실행 · tcId · 대상 서버)를 `failed_run`(카드가 서는 실행 — 한 건 실행으로 올린 이슈는 붙는 실행인 부모)으로 가진 PASSED 줄(케이스마다 가장 늦은 것)
+#   — rerunId · rerunPage · devices 는 상세(위 F10-07)와 같은 뜻이다. movedBy 는 카드 한 줄의 「옮긴 사람」(2026-11-11 F10-08 — 처음 꼴에 없어 더했다)
 #   — 카드는 자동 수정의 다시 실행을 빼고 본 결과로 선다. 붙은 한 건이 통과로 바꿔 끼우면 실패 카드가 사라지므로 고치기 전 실패로 「수정 후 통과」 카드를 세운다(BTS 연결이 없으면 빼지 않는다 — 카드도 없다)
 #   응답 최상위 autoFixCount(?autoFix 를 뺀 조건의 자동 수정 카드 수) · 거르기 ?autoFix=1(1 이 아닌 값은 조용히 버린다). 「판정 안 한 카드」 셈과 「실패 N건 다시 실행」 대상에서 그 카드를 뺀다(화면 몫)
-# 실행 기록 목록 GET /api/runs 줄 · 실행 상세 GET /api/runs/:runId 에 autoFixed: number — 그 실행을 처음 실패로 가진 PASSED 줄의 케이스 수(같은 케이스를 두 번 고쳐도 카드처럼 하나 · 0 이면 화면이 안 그린다). 상세 칸은 fail 이 0 이어도 카드 칸을 열려고 더했다 (F10-08)
+# 실행 기록 목록 GET /api/runs 줄에 autoFixed: number · 실행 상세 GET /api/runs/:runId 에 autoFixedCases: string[] — 그 실행을 처음 실패로 가진 PASSED 줄의 케이스(대상 서버도 같은 것 · 같은 케이스를 두 번 고쳐도 카드처럼 하나 · 0 이면 화면이 안 그린다). 상세 칸은 [실패 N건 다시 실행]에서 뺄 케이스다 (F10-08)
+#   — 실행 목록 · 상세의 counts · failCases · items · state=failed · summary 도 카드처럼 자동 수정의 다시 실행을 빼고 본다(실행.md §3.2 표). 하나만 빼면 같은 케이스가 카드와 「통과 · 미실행」 줄에 두 번 서고, 숫자가 처음 기록과 달라진다(아래 §8.15 B)
+#   — 한계: 자동 수정 뒤 사람이 같은 실행에 한 건을 또 붙여 통과시키면 카드는 그 결과로 사라지지만 autoFixed 는 남는다 — 드물어 맞추지 않는다
 # 테스트 작성 목록 GET /api/authoring/requests 줄 — testFix 줄은 summary.kind 'TEST_FIX'(구분 「자동 수정」 — 도메인/작성 §7 「목록 줄 summary」), 작성자(requestedByName)는 뿌리를 보낸 사람 「Issue Bunker <키>」다. 운영 화면이 「맥시」로 보인 것은 목록 줄이 사슬의 최신 행(사람이 누른 반영)의 이름을 실은 버그였다 (F10-08)
 #   — 위 F10-08 줄들은 반영 완료 (2026-11-11, apps/admin/src/bts/testFixView.ts · reporting/failures.ts · execution/queries.ts · execution/single.ts · authoring/listSummary.ts · authoring/history.ts · web/RunFailFix.tsx · RunFailCards.tsx · RerunFailed.tsx · RunListRow.tsx — BTS-F10-08)
 ```
@@ -694,7 +696,7 @@ POST /mcp
 - 카드 머리 실패 표시 대신 「수정 후 통과」 · 실패 원인 글은 흐리게 줄을 긋는다(지운 것이 아니라 고치기 전 기록이다) · 디바이스 칩은 실패였던 것만 「실패 → 통과」
 - 카드 안 판정 줄 자리에 자동 수정 한 줄 — 옮긴 사람 · 이슈 · PR(자동 반영 · 사람이 반영) · 다시 실행 고리 · 날짜
 - 위 거르기에 「자동 수정 N」(`autoFixCount` · 0 이면 안 그린다 · 누르면 서버가 거른다 — 주소 `autofix=1`). 「판정 안 한 카드」 셈과 [실패 N건 다시 실행]에서 이 카드를 뺀다 — 이미 고쳐 통과했다
-- 붙은 한 건 실행이 통과로 바꿔 끼워 그 실행의 실패가 0 이어도 카드 칸이 선다(실행 상세 `autoFixed`) — 「실패한 케이스가 없습니다」로 끝나면 고친 기록을 실행 화면에서 못 찾는다
+- 자동 수정의 다시 실행은 실행 목록 · 결과 화면 · 카드가 모두 빼고 본다 — 붙은 한 건이 통과로 바꿔 끼우면 실패 카드가 사라져 고친 기록을 실행 화면에서 못 찾고, 같은 케이스가 카드와 통과 줄에 두 번 서지 않게 한다
 - 왼쪽 실행 목록 줄의 판정 칸에 「자동 수정 N」 한 줄(`autoFixed` · 0 이면 안 그린다). 통과 · 실패 숫자는 처음 실행 그대로다 — 숫자를 바꾸면 그 실행의 기록이 거짓이 된다
 - 항목 상세(`#/runs/<번호>/items/<번호>`)의 판정 줄도 같은 부품이다
 
