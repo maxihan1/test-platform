@@ -93,7 +93,11 @@ async function 세우기(
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT DO NOTHING RETURNING id`,
       [연결.projectId, issueKey, 서비스, x.tc_id, x.env, x.first_run, 옮긴.이름, 옮긴.id],
     );
-    if (줄.rows[0] === undefined) continue;
+    // 앞 SELECT 와 사이에 다른 알림이 같은 테스트를 막 맡았다 — 고유 색인이 막았다
+    if (줄.rows[0] === undefined) {
+      결과.기록만.push(`${x.tc_id} — 같은 테스트를 다른 알림이 막 맡았다`);
+      continue;
+    }
     줄들.push(Number(줄.rows[0].id));
     건들.push({ runId, tcId: x.tc_id, env: x.env });
   }
@@ -115,7 +119,8 @@ export async function 테스트수정처리(연결: 닫기연결, 이슈: BTS이
   const 수정 = (await pool.query<{ fix: string | null }>("SELECT status_map->>'TEST_FIX' AS fix FROM bts_link WHERE project_id = $1", [연결.projectId])).rows[0]?.fix ?? '';
   // 짝을 비운 연결은 바퀴가 안 돈다
   if (수정 === '') return 결과;
-  if (알림.from === 수정 && 알림.to !== 수정) {
+  // 늦게 다시 온 「떠남」 알림이 그사이 다시 옮겨 와 새로 선 줄을 놓지 않게 지금 상태도 본다
+  if (알림.from === 수정 && 알림.to !== 수정 && 이슈.state !== 수정) {
     await pool.query(
       `UPDATE bts_test_fix SET state = 'GAVE_UP', reason = '사람이 이슈를 옮겼어요', updated_at = now() WHERE project_id = $1 AND issue_key = $2 AND state = ANY($3)`,
       [연결.projectId, 이슈.key, 도는상태],
@@ -135,9 +140,7 @@ export async function 테스트수정처리(연결: 닫기연결, 이슈: BTS이
   }
   // BTS 는 잠금 밖에서 부른다 — 기다리는 동안 그 애플리케이션의 기획서 잠금을 쥐지 않게
   const 자리 = { baseUrl: 연결.baseUrl, 봇: 연결.봇 };
-  const 옮긴 = await 옮긴사람(자리, 이슈.key, 수정, 부르기);
-  const 글 = await 이슈글읽기(자리, 이슈.key, 부르기);
-  const 봇번호 = await 내번호(자리, 부르기);
+  const [옮긴, 글] = await Promise.all([옮긴사람(자리, 이슈.key, 수정, 부르기), 이슈글읽기(자리, 이슈.key, 부르기)]);
   const 다른이슈 = new Set<string>();
   for (const 서비스 of 서비스들) {
     const 세움 = await 잠그고(서비스, (손) => 세우기(손, 연결, 이슈.key, 서비스, 옮긴, 글, 결과));
@@ -145,7 +148,9 @@ export async function 테스트수정처리(연결: 닫기연결, 이슈: BTS이
     for (const k of 세움.다른이슈) 다른이슈.add(k);
   }
   for (const k of 다른이슈) await 댓글한번(연결.projectId, 이슈.key, `이 테스트는 ${k} 에서 이미 수정 중이에요`);
-  if (결과.요청들.length > 0) await 보낼줄넣기({ projectId: 연결.projectId, kind: 'ASSIGN', issueKey: 이슈.key, payload: { assigneeId: 봇번호 } });
+  // 담당자는 이 이슈에 도는 줄이 있으면 늘 넣는다 — 줄을 세운 뒤 깨져 다시 온 알림도 담당자를 바꾼다. 이미 그 사람이면 보낼 줄이 건너뛴다(outbox.ts)
+  const 도나 = await pool.query('SELECT 1 FROM bts_test_fix WHERE project_id = $1 AND issue_key = $2 AND state = ANY($3) LIMIT 1', [연결.projectId, 이슈.key, 도는상태]);
+  if ((도나.rowCount ?? 0) > 0) await 보낼줄넣기({ projectId: 연결.projectId, kind: 'ASSIGN', issueKey: 이슈.key, payload: { assigneeId: await 내번호(자리, 부르기) } });
   return 결과;
 }
 
@@ -192,23 +197,34 @@ export async function 테스트수정PR열림(요청: { serviceId: number; param
   const 프로젝트 = await BTS이은프로젝트(요청.serviceId);
   if (프로젝트 === null) return false;
   const pool = await db();
-  const 보냈나 = await pool.query(
-    `SELECT 1 FROM bts_outbox WHERE project_id = $1 AND kind = 'COMMENT' AND issue_key = $2 AND strpos(payload->>'body', $3) > 0`,
-    [프로젝트, issueKey, prUrl],
-  );
-  if ((보냈나.rowCount ?? 0) > 0) return false;
+  // 단계마다 따로 한 번만 한다 — 중간에 깨진 뒤 같은 PR 로 또 끝나면 남은 단계만 이어 간다
   const 요약 = await 요약가리기(뿌리번호, 요약읽기(결과));
-  const 줄들 = await pool.query(
-    `UPDATE bts_test_fix SET pr_url = $2, summary = $3, state = 'WAIT_MERGE', updated_at = now() WHERE request_id = $1 AND state = 'FIXING' RETURNING id`,
+  await pool.query(
+    `UPDATE bts_test_fix SET pr_url = $2, summary = $3, state = 'WAIT_MERGE', updated_at = now() WHERE request_id = $1 AND state = 'FIXING'`,
     [뿌리번호, prUrl, 요약 === '' ? null : 요약],
   );
-  const 번호 = /\/pull\/(\d+)/.exec(prUrl)?.[1];
-  const 머리 = `테스트 수정 PR ${번호 === undefined ? '' : `#${번호} `}을 열었어요`;
-  await 보낼줄넣기({ projectId: 프로젝트, kind: 'COMMENT', issueKey, payload: { body: `${요약 === '' ? 머리 : `${머리} — ${요약}`}\n${prUrl}` } });
+  // 주소 뒤가 줄 끝이거나 글 끝일 때만 같은 PR 이다 — …/pull/1 이 …/pull/12 댓글에 걸리지 않게
+  const 보냈나 = async (kind: 'COMMENT' | 'FIELD') =>
+    ((
+      await pool.query(
+        `SELECT 1 FROM bts_outbox WHERE project_id = $1 AND kind = $4 AND issue_key = $2
+            AND (strpos(payload::text, '"' || $3 || '"') > 0 OR strpos(payload->>'body', $3 || E'\n') > 0 OR right(payload->>'body', length($3)) = $3)`,
+        [프로젝트, issueKey, prUrl, kind],
+      )
+    ).rowCount ?? 0) > 0;
+  let 넣음 = false;
+  if (!(await 보냈나('COMMENT'))) {
+    const 번호 = /\/pull\/(\d+)/.exec(prUrl)?.[1];
+    const 머리 = `테스트 수정 PR ${번호 === undefined ? '' : `#${번호} `}을 열었어요`;
+    await 보낼줄넣기({ projectId: 프로젝트, kind: 'COMMENT', issueKey, payload: { body: `${요약 === '' ? 머리 : `${머리} — ${요약}`}\n${prUrl}` } });
+    넣음 = true;
+  }
   // 필드는 바퀴의 줄이 있을 때만 — 자동 설정이 필드를 못 만든 연결은 건너뛴다. 댓글 뒤에 넣는다: 쓰기 문이 막아(403) 그만둬도 댓글은 이미 갔다
   const 필드 = (await pool.query<{ test_fix_field: string | null }>('SELECT test_fix_field FROM bts_link WHERE project_id = $1', [프로젝트])).rows[0]?.test_fix_field ?? null;
-  if ((줄들.rowCount ?? 0) > 0 && 필드 !== null && 필드 !== '') {
+  const 줄있나 = ((await pool.query('SELECT 1 FROM bts_test_fix WHERE request_id = $1 AND pr_url = $2 LIMIT 1', [뿌리번호, prUrl])).rowCount ?? 0) > 0;
+  if (줄있나 && 필드 !== null && 필드 !== '' && !(await 보냈나('FIELD'))) {
     await 보낼줄넣기({ projectId: 프로젝트, kind: 'FIELD', issueKey, payload: { customFields: { [필드]: prUrl } } });
+    넣음 = true;
   }
-  return true;
+  return 넣음;
 }

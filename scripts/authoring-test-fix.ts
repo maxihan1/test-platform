@@ -38,9 +38,9 @@ export function 다시돌림글(돌림: 다시돌림): string {
 
 const 요약상한 = 500;
 
-/** 자식 결과 요약의 `테스트 고침: BTS <키> · … · 고친 곳 <한 줄>` 들에서 고친 곳만 — 이슈 댓글에 실린다(tpx-author apply.md §7) */
+/** 자식 결과 요약의 `테스트 고침: BTS <키> · … · 고친 곳 <한 줄>` 들에서 고친 곳만 — 이슈 댓글에 실린다(tpx-author apply.md §7). 목록 기호 · 들여쓰기로 적어도 읽는다 */
 export function 고친곳읽기(자식출력: string): string {
-  const 곳들 = [...자식출력.matchAll(/^테스트 고침: BTS .*?· 고친 곳:?\s*(.+)$/gm)].map((m) => m[1]!.trim()).filter((t) => t !== '');
+  const 곳들 = [...자식출력.matchAll(/^[\s>*-]*테스트 고침: BTS .*?· 고친 곳:?\s*(.+)$/gm)].map((m) => m[1]!.trim()).filter((t) => t !== '');
   return 곳들.join(' · ').slice(0, 요약상한);
 }
 

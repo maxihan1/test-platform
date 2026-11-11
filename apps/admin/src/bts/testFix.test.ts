@@ -114,8 +114,10 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 맡기', ()
     expect(await 줄('DM-1')).toEqual([expect.objectContaining({ tc_id: 'XQF-FN-001', state: 'FIXING', moved_by: 'QA 김', moved_by_id: 'u-qa', request_id: String(id) })]);
     expect(await 짝열림('DM-1')).toBe(true);
     expect(await 보낼것('DM-1')).toEqual([{ kind: 'ASSIGN', payload: { assigneeId: 'bot-1' } }]);
+    // 다시 온 알림은 새로 세우지 않고 담당자만 다시 넣는다 — 줄을 세운 뒤 깨졌어도 담당자가 바뀌게(이미 그 사람이면 보낼 줄이 건너뛴다)
     expect(await 테스트수정처리(이은(), 이슈('DM-1'), 옮김, 답())).toEqual({ 요청들: [], 기록만: [] });
     expect(await 줄('DM-1')).toHaveLength(1);
+    expect((await 보낼것('DM-1')).map((r) => r.kind)).toEqual(['ASSIGN', 'ASSIGN']);
   });
 
   it('알림이 그 상태로 옮긴 것이 아니거나 다시 읽은 이슈가 그 상태가 아니면 아무것도 안 한다', async () => {
@@ -171,17 +173,21 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 맡기', ()
     const 주소 = 'https://github.com/o/r/pull/77';
     expect(await 테스트수정PR열림(고침, 뿌리, 주소, { testFix: { summary: '새 창 대신 지금 page.request 를 써요', reruns: 3 } })).toBe(true);
     expect(await 줄('DM-1')).toEqual([expect.objectContaining({ state: 'WAIT_MERGE', pr_url: 주소, summary: '새 창 대신 지금 page.request 를 써요' })]);
-    expect((await 보낼것('DM-1')).slice(1)).toEqual([
+    expect((await 보낼것('DM-1')).filter((r) => r.kind !== 'ASSIGN')).toEqual([
       { kind: 'COMMENT', payload: { body: `테스트 수정 PR #77 을 열었어요 — 새 창 대신 지금 page.request 를 써요\n${주소}` } },
       { kind: 'FIELD', payload: { customFields: { qahub_test_fix_pr: 주소 } } },
     ]);
     expect(await 테스트수정PR열림(고침, 뿌리, 주소, { testFix: { summary: '다시', reruns: 3 } })).toBe(false);
+    // 앞 PR 주소가 뒤 PR 주소의 앞부분이어도 다른 PR 이다
+    expect(await 테스트수정PR열림(고침, 0, 'https://github.com/o/r/pull/7', null)).toBe(true);
     expect(await 테스트수정PR열림({ serviceId: 서비스, params: { prdApply: true } }, 뿌리, 주소, null)).toBe(false);
     expect(await 테스트수정PR열림({ serviceId: 서비스, params: { testFix: { issueKey: 'DM-9' } } }, 0, 'https://github.com/o/r/pull/78', null)).toBe(true);
     expect(await 보낼것('DM-9')).toEqual([{ kind: 'COMMENT', payload: { body: '테스트 수정 PR #78 을 열었어요\nhttps://github.com/o/r/pull/78' } }]);
   });
 
-  it('이슈가 「테스트 수정」을 떠나면 그 이슈의 도는 줄을 놓는다', async () => {
+  it('이슈가 「테스트 수정」을 떠나면 그 이슈의 도는 줄을 놓는다 — 늦게 온 떠남 알림이라 지금 다시 그 상태면 그대로 둔다', async () => {
+    await 테스트수정처리(이은(), 이슈('DM-1'), { from: 'fix', to: 'qa_review' }, 답());
+    expect(await 줄('DM-1')).toEqual([expect.objectContaining({ state: 'WAIT_MERGE' })]);
     await 테스트수정처리(이은(), 이슈('DM-1', 'qa_review'), { from: 'fix', to: 'qa_review' }, 답());
     expect(await 줄('DM-1')).toEqual([expect.objectContaining({ state: 'GAVE_UP', reason: '사람이 이슈를 옮겼어요' })]);
   });
