@@ -37,6 +37,13 @@ function 성능줄({ 성능 }: { 성능: 성능칸 | undefined }) {
   );
 }
 
+/** 계정 때문에 테스트를 못 쓴 요구의 줄 글 — 추적칸과 목록 줄이 같이 쓴다 */
+export function 보류글(t: ReturnType<typeof use말>, 보류: 줄보류): string {
+  return 보류.미등록.length > 0
+    ? t('보류 — {역할} 계정 미등록', { 역할: 보류.미등록.join(' · ') })
+    : t('보류 — {역할} 계정 등록됨 · 이어 작성 전', { 역할: 보류.등록됨.join(' · ') });
+}
+
 export function 추적칸({ reqId, 추적, 보류, 성능, 케이스보나 }: { reqId: string; 추적: 추적; 보류: 줄보류 | null; 성능?: 성능칸 | undefined; 케이스보나: boolean }) {
   const t = use말();
   const 전체 = 추적.기능.length + 추적.UI.length;
@@ -44,11 +51,7 @@ export function 추적칸({ reqId, 추적, 보류, 성능, 케이스보나 }: { 
     return (
       <span className="prd-trace">
         <span className="case-tag prd-uncovered">
-          {보류 === null
-            ? t('미작성')
-            : 보류.미등록.length > 0
-              ? t('보류 — {역할} 계정 미등록', { 역할: 보류.미등록.join(' · ') })
-              : t('보류 — {역할} 계정 등록됨 · 이어 작성 전', { 역할: 보류.등록됨.join(' · ') })}
+          {보류 === null ? t('미작성') : 보류글(t, 보류)}
         </span>
         <성능줄 성능={성능} />
       </span>

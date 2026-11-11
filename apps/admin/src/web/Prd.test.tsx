@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from './api.js';
@@ -15,6 +15,7 @@ const { 지금, 워드 } = vi.hoisted(() => ({
 
 vi.mock('./prdApi.js', () => ({ prdApi: { now: 지금, wordExport: 워드, apis: () => Promise.resolve({ apis: [] }) } }));
 
+const 서랍 = () => screen.getByRole('complementary');
 const 쓰는사람: 판정 = () => true;
 const 보는사람: 판정 = () => false;
 
@@ -59,29 +60,15 @@ describe('PRD 관리 — 머리와 할 일 칸', () => {
   });
 
 
-  it('묶음 전체가 같은 꼬리면 같은 숫자를 되풀이하지 않고 「모두」 로 줄인다 (점검 N9)', async () => {
+  it('묶음 이름표에 건수와 미작성 · 보류 수를 단다 (펴고 접는 머리는 없다)', async () => {
     지금.mockResolvedValue(판({ items: [판().items[1]!] }));
     render(<Prd service="MKT" 할수={쓰는사람} />);
-    const 묶음 = await screen.findByRole('button', { name: /회원가입/ });
-    expect(묶음.textContent).toContain('1건 · 모두 확인 필요 · 모두 미작성');
-    expect(묶음.textContent).not.toContain('확인 필요 1건');
+    await screen.findByRole('button', { name: /MKT-REQ-032/ });
+    const 이름표 = document.querySelector('.toc-label')!.textContent!;
+    expect(이름표).toContain('회원가입');
+    expect(이름표).toContain('1건');
+    expect(이름표).toContain('미작성 1');
   });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   it('확인 필요 · 반영 안 됨 · PRD 에 없는 화면 카드와 일괄 확정 · 반영 단추는 이제 없다 (결정 필요 한 곳으로 옮겼다)', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
@@ -89,10 +76,9 @@ describe('PRD 관리 — 머리와 할 일 칸', () => {
     expect(screen.queryByRole('region', { name: /^확인 필요 \d|반영 안 됨|PRD 에 없는 화면|케이스가 안 거친 API/ })).toBeNull();
     expect(screen.queryByText('확인할 요구도 테스트에 반영할 요구도 없습니다')).toBeNull();
     expect(screen.queryByRole('button', { name: /확정|테스트에 반영/ })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: /로그인/ }));
-    fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-032|MKT-REQ-040/ }));
+    fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-040/ }));
     expect(screen.queryByRole('button', { name: '이 요구만 확정' })).toBeNull();
-    expect(screen.getByRole('button', { name: '수정' })).toBeTruthy();
+    expect(within(서랍()).getByRole('button', { name: '수정' })).toBeTruthy();
   });
 
   it('작성 쓰기가 없으면 고르기 · 확정 · 더하기 · 고치기가 아예 없다', async () => {
@@ -101,7 +87,6 @@ describe('PRD 관리 — 머리와 할 일 칸', () => {
     expect(screen.queryAllByRole('checkbox')).toEqual([]);
     expect(screen.queryByRole('button', { name: /확정/ })).toBeNull();
     expect(screen.queryByRole('button', { name: '요구사항 추가' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: /회원가입/ }));
     fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-031/ }));
     expect(screen.getByText('설계 미리보기')).toBeTruthy();
     expect(screen.queryByRole('button', { name: '수정' })).toBeNull();
@@ -109,57 +94,115 @@ describe('PRD 관리 — 머리와 할 일 칸', () => {
 });
 
 describe('PRD 관리 — 전체 요구', () => {
-  it('기능 묶음으로 접혀 있고 묶음 머리에 건수와 확인 필요를 단다', async () => {
+  it('묶음이 처음부터 다 펼쳐져 있고, 줄마다 번호 · 테스트 수 · 꼬리표를 한 줄에 단다', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
-    const 로그인 = await screen.findByRole('button', { name: /로그인/ });
-    expect(로그인.textContent).toContain('2건 · 확인 필요 1건');
-    expect(로그인.getAttribute('aria-expanded')).toBe('false');
-    expect(screen.queryByRole('button', { name: /MKT-REQ-041/ })).toBeNull();
+    const 잠금줄 = await screen.findByRole('button', { name: /MKT-REQ-041/ });
+    expect(screen.getAllByRole('button').filter((b) => b.hasAttribute('aria-expanded') && /MKT-REQ/.test(b.textContent ?? ''))).toEqual([]);
+    for (const 번호 of ['031', '032', '040', '041']) expect(screen.getByRole('button', { name: new RegExp(`MKT-REQ-${번호}`) })).toBeTruthy();
+    expect(잠금줄.textContent).toContain('사람이 수정');
+    expect(잠금줄.textContent).not.toContain('반영 안 됨');
+    const 로그인 = [...document.querySelectorAll('.toc-label')].find((el) => el.textContent?.includes('로그인'))!;
+    expect(로그인.textContent).toContain('2건');
+    expect(screen.queryByRole('complementary')).toBeNull();
+  });
+
+  it('줄을 누르면 서랍이 열려 근거와 판정 함수가 계산한 설계 미리보기를 보이고, 다시 누르면 닫힌다', async () => {
+    render(<Prd service="MKT" 할수={쓰는사람} />);
+    const 줄 = await screen.findByRole('button', { name: /MKT-REQ-031/ });
+    fireEvent.click(줄);
+    expect(줄.getAttribute('aria-pressed')).toBe('true');
+    expect(within(서랍()).getByText('원문: 「아이디: 영문 소문자·숫자 4~12자」')).toBeTruthy();
+    expect(['3자', '4자', '12자', '13자'].every((값) => within(서랍()).getByText(값))).toBe(true);
+    expect(within(서랍()).getByText('동등 분할')).toBeTruthy();
+    fireEvent.click(줄);
+    expect(screen.queryByRole('complementary')).toBeNull();
+  });
+
+  it('상세 닫기 단추로 서랍을 닫는다', async () => {
+    render(<Prd service="MKT" 할수={쓰는사람} />);
+    fireEvent.click(await screen.findByRole('button', { name: /MKT-REQ-031/ }));
+    fireEvent.click(within(서랍()).getByRole('button', { name: '상세 닫기' }));
+    expect(screen.queryByRole('complementary')).toBeNull();
+  });
+
+  it('왼쪽 목차의 묶음을 누르면 그 묶음으로 가고 지금 보는 묶음이 표시된다', async () => {
+    render(<Prd service="MKT" 할수={쓰는사람} />);
+    const 목차 = await screen.findByRole('navigation', { name: '기능 묶음 목차' });
+    const 회원가입 = within(목차).getByRole('button', { name: /^회원가입/ });
+    const 로그인 = within(목차).getByRole('button', { name: /^로그인/ });
+    fireEvent.click(회원가입);
+    expect(회원가입.getAttribute('aria-current')).toBe('true');
+    expect(로그인.getAttribute('aria-current')).toBeNull();
     fireEvent.click(로그인);
-    const 줄 = screen.getByRole('button', { name: /MKT-REQ-041/ });
-    expect(줄.textContent).not.toContain('반영 안 됨');
-    expect(줄.textContent).toContain('사람이 수정');
+    expect(로그인.getAttribute('aria-current')).toBe('true');
+    expect(회원가입.getAttribute('aria-current')).toBeNull();
   });
 
-  it('줄을 펴면 근거와 판정 함수가 계산한 설계 미리보기를 보인다', async () => {
+  it('묶음이 하나뿐이면 목차를 그리지 않는다', async () => {
+    지금.mockResolvedValue(판({ items: 판().items.slice(0, 2) }));
     render(<Prd service="MKT" 할수={쓰는사람} />);
-    fireEvent.click(await screen.findByRole('button', { name: /회원가입/ }));
-    fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-031/ }));
-    expect(screen.getByText('원문: 「아이디: 영문 소문자·숫자 4~12자」')).toBeTruthy();
-    expect(['3자', '4자', '12자', '13자'].every((값) => screen.getByText(값))).toBe(true);
-    expect(screen.getByText('동등 분할')).toBeTruthy();
+    await screen.findByRole('button', { name: /MKT-REQ-031/ });
+    expect(screen.queryByRole('navigation', { name: '기능 묶음 목차' })).toBeNull();
   });
 
-  it('찾는 동안은 맞은 묶음을 다 펴고, 없으면 그렇게 말한다', async () => {
+  it('상태 칩을 누르면 그 줄만 남고, 다시 누르거나 「전체」를 누르면 풀린다', async () => {
+    render(<Prd service="MKT" 할수={쓰는사람} />);
+    await screen.findByRole('button', { name: /MKT-REQ-031/ });
+    expect(screen.getByRole('button', { name: '전체 4' }).getAttribute('aria-pressed')).toBe('true');
+    expect((screen.getByRole('button', { name: '실패 0' }) as HTMLButtonElement).disabled).toBe(true);
+    const 미작성 = screen.getByRole('button', { name: '미작성 4' });
+    fireEvent.click(screen.getByRole('button', { name: '확인 필요 2' }));
+    expect(screen.queryByRole('button', { name: /MKT-REQ-031/ })).toBeNull();
+    expect(screen.getByRole('button', { name: /MKT-REQ-032/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /MKT-REQ-040/ })).toBeTruthy();
+    fireEvent.click(미작성);
+    expect(미작성.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(미작성);
+    expect(screen.getByRole('button', { name: /MKT-REQ-031/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '확인 필요 2' }));
+    fireEvent.click(screen.getByRole('button', { name: '전체 4' }));
+    expect(screen.getByRole('button', { name: /MKT-REQ-031/ })).toBeTruthy();
+  });
+
+  it('미작성 칩은 테스트가 없는 줄만 남긴다 — 테스트가 있는 줄은 빠진다', async () => {
+    지금.mockResolvedValue(판({ cases: { 'MKT-REQ-031': [{ tcId: 'MKT-FN-001', axis: '정상', techniques: [], platforms: ['desktop'] }] } }));
+    render(<Prd service="MKT" 할수={쓰는사람} />);
+    await screen.findByRole('button', { name: /MKT-REQ-031/ });
+    fireEvent.click(screen.getByRole('button', { name: '미작성 3' }));
+    expect(screen.queryByRole('button', { name: /MKT-REQ-031/ })).toBeNull();
+    expect(screen.getAllByRole('button', { name: /MKT-REQ-0\d\d/ })).toHaveLength(3);
+  });
+
+  it('찾으면 맞은 줄만 남기고, 없으면 그렇게 말한다', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
     const 칸 = await screen.findByRole('textbox', { name: '요구사항 문장 · 번호 검색' });
     fireEvent.change(칸, { target: { value: '잠긴다' } });
     expect(screen.getByRole('button', { name: /MKT-REQ-041/ })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /회원가입/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /MKT-REQ-031/ })).toBeNull();
     fireEvent.change(칸, { target: { value: '없는 말' } });
     expect(screen.getByText('찾는 요구사항이 없습니다')).toBeTruthy();
   });
 
-
-  it('케이스 목록의 요구 번호에서 오면 그 묶음과 줄을 편 채로 열고 그 줄에 초점을 둔다 (도메인/카탈로그 §8.1 「맥락」)', async () => {
+  it('케이스 목록의 요구 번호에서 오면 그 줄의 서랍이 열려 있고 그 줄에 초점을 둔다 (도메인/카탈로그 §8.1 「맥락」)', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} 여기="MKT-REQ-041" />);
     const 줄 = await screen.findByRole('button', { name: /MKT-REQ-041/ });
-    expect(줄.getAttribute('aria-expanded')).toBe('true');
-    expect(줄.closest('.prd-item')?.classList.contains('prd-here')).toBe(true);
+    expect(줄.getAttribute('aria-pressed')).toBe('true');
+    expect(줄.classList.contains('prd-open')).toBe(true);
     expect(document.activeElement).toBe(줄);
-    expect(screen.queryByRole('button', { name: /MKT-REQ-031/ })).toBeNull();
+    expect(within(서랍()).getByText('원문: 「5회 연속 실패 시 10분 잠금」')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /MKT-REQ-031/ }).getAttribute('aria-pressed')).toBe('false');
   });
 
-  it('지금 판에 없는 번호로 오면 아무것도 펴지 않는다', async () => {
+  it('지금 판에 없는 번호로 오면 아무 서랍도 열지 않는다', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} 여기="MKT-REQ-999" />);
-    expect((await screen.findByRole('button', { name: /로그인/ })).getAttribute('aria-expanded')).toBe('false');
+    await screen.findByRole('button', { name: /MKT-REQ-031/ });
+    expect(screen.queryByRole('complementary')).toBeNull();
   });
 
   it('로그인 묶음의 두 근거를 다 보인다 — 문서끼리 달라 확인 필요가 된 항목', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
-    fireEvent.click(await screen.findByRole('button', { name: /로그인/ }));
-    fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-040/ }));
-    for (const b of 로그인실패.basis) expect(screen.getByText(`원문: 「${b.quote}」`)).toBeTruthy();
+    fireEvent.click(await screen.findByRole('button', { name: /MKT-REQ-040/ }));
+    for (const b of 로그인실패.basis) expect(within(서랍()).getByText(`원문: 「${b.quote}」`)).toBeTruthy();
   });
 });
 

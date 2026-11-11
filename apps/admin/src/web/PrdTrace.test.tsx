@@ -61,10 +61,15 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const 줄of = (reqId: string) => screen.getByRole('button', { name: new RegExp(reqId) }).closest('.prd-line') as HTMLElement;
+const 줄of = (reqId: string) => screen.getByRole('button', { name: new RegExp(reqId) });
+const 서랍 = () => screen.getByRole('complementary');
+const 열기 = (reqId: string) => {
+  fireEvent.click(줄of(reqId));
+  return 서랍();
+};
 
 describe('PRD 관리 — 요구사항 추적표 칸', () => {
-  it('요구마다 기능 · UI 건수 고리 · 마지막 결과를 달고, 테스트가 없으면 「미작성」이다', async () => {
+  it('줄마다 테스트 수 · 결과 꼬리표를 달고, 서랍에 기능 · UI 건수 고리와 마지막 결과를 보인다', async () => {
     const 부름 = vi.spyOn(api, 'lastByCase').mockResolvedValue({
       items: [
         결과('MKT-FN-001', 'desktop', 'PASS'),
@@ -75,23 +80,26 @@ describe('PRD 관리 — 요구사항 추적표 칸', () => {
       ],
     });
     render(<Prd service="MKT" 할수={보는사람} 결과보나 케이스보나 />);
-    const 회원가입 = await screen.findByRole('button', { name: /회원가입/ });
-    await vi.waitFor(() => expect(회원가입.textContent).toContain('미작성 1건 · 실패 1건'));
+    const 아이디줄 = await screen.findByRole('button', { name: /MKT-REQ-031/ });
+    // 기기 한쪽만 깨져도 그 케이스는 실패다 — 케이스 목록과 같은 규칙
+    await vi.waitFor(() => expect(아이디줄.querySelector('.prd-res .verdict')?.className).toBe('verdict v-fail'));
     expect(부름).toHaveBeenCalledOnce();
-    fireEvent.click(회원가입);
+    expect(아이디줄.querySelector('.prd-tests')?.textContent).toBe('기능 2 · UI 1');
+    expect(아이디줄.querySelector('.prd-res')?.textContent).toBe('실패');
+    expect(줄of('MKT-REQ-032').querySelector('.prd-res')?.textContent).toBe('미작성');
+    expect(줄of('MKT-REQ-032').querySelector('.prd-tests')?.textContent).toBe('테스트 없음');
+    expect(줄of('MKT-REQ-040').querySelector('.prd-res .verdict')?.className).toBe('verdict v-pass');
+    expect(줄of('MKT-REQ-041').querySelector('.prd-res .verdict')?.className).toBe('verdict v-na');
 
-    const 아이디 = 줄of('MKT-REQ-031');
+    const 아이디 = 열기('MKT-REQ-031');
     expect(within(아이디).getByRole('link', { name: '기능 2건' }).getAttribute('href')).toBe('#/cases/fn/req/MKT-REQ-031');
     expect(within(아이디).getByRole('link', { name: 'UI 1건' }).getAttribute('href')).toBe('#/cases/ui/req/MKT-REQ-031');
-    // 기기 한쪽만 깨져도 그 케이스는 실패다 — 케이스 목록과 같은 규칙
     expect(within(아이디).getByText('실패 1 / 3').className).toBe('verdict v-fail');
     // 실패 숫자를 누르면 실패한 케이스만 거른 목록이 열린다 (점검 8.7)
     expect(within(아이디).getByText('실패 1 / 3').getAttribute('href')).toBe('#/cases/fn/req/MKT-REQ-031?last=FAIL');
-    expect(within(줄of('MKT-REQ-032')).getByText('미작성')).toBeTruthy();
-
-    fireEvent.click(screen.getByRole('button', { name: /로그인/ }));
-    expect(within(줄of('MKT-REQ-040')).getByText('통과').className).toBe('verdict v-pass');
-    expect(within(줄of('MKT-REQ-041')).getByText('미실행').className).toBe('verdict v-na');
+    expect(열기('MKT-REQ-032').querySelector('.prd-trace')?.textContent).toBe('미작성');
+    expect(열기('MKT-REQ-040').querySelector('.prd-trace .verdict')?.textContent).toBe('통과');
+    expect(열기('MKT-REQ-041').querySelector('.prd-trace .verdict')?.className).toBe('verdict v-na');
   });
 
   it('실패가 UI 케이스에만 있으면 실패 숫자가 UI 목록으로 연다 (점검 8.7)', async () => {
@@ -99,8 +107,8 @@ describe('PRD 관리 — 요구사항 추적표 칸', () => {
       items: [결과('MKT-FN-001', 'desktop', 'PASS'), 결과('MKT-FN-002', 'desktop', 'PASS'), 결과('MKT-UI-001', 'desktop', 'FAIL')],
     });
     render(<Prd service="MKT" 할수={보는사람} 결과보나 케이스보나 />);
-    fireEvent.click(await screen.findByRole('button', { name: /회원가입/ }));
-    const 아이디 = 줄of('MKT-REQ-031');
+    await screen.findByRole('button', { name: /MKT-REQ-031/ });
+    const 아이디 = 열기('MKT-REQ-031');
     await vi.waitFor(() => expect(within(아이디).getByText('실패 1 / 3').getAttribute('href')).toBe('#/cases/ui/req/MKT-REQ-031?last=FAIL'));
   });
 
@@ -109,8 +117,8 @@ describe('PRD 관리 — 요구사항 추적표 칸', () => {
       items: [결과('MKT-FN-001', 'desktop', 'FAIL'), 결과('MKT-FN-002', 'desktop', 'PASS'), 결과('MKT-UI-001', 'desktop', 'FAIL')],
     });
     render(<Prd service="MKT" 할수={보는사람} 결과보나 케이스보나 />);
-    fireEvent.click(await screen.findByRole('button', { name: /회원가입/ }));
-    const 아이디 = 줄of('MKT-REQ-031');
+    await screen.findByRole('button', { name: /MKT-REQ-031/ });
+    const 아이디 = 열기('MKT-REQ-031');
     await vi.waitFor(() => expect(within(아이디).getByText('실패 2 / 3').getAttribute('href')).toBe('#/cases/fn/req/MKT-REQ-031?last=FAIL'));
     expect(within(아이디).getByText('UI 실패 1건 보기').getAttribute('href')).toBe('#/cases/ui/req/MKT-REQ-031?last=FAIL');
   });
@@ -118,15 +126,15 @@ describe('PRD 관리 — 요구사항 추적표 칸', () => {
   it('케이스 read 가 없으면 실패 숫자도 고리가 아니다', async () => {
     vi.spyOn(api, 'lastByCase').mockResolvedValue({ items: [결과('MKT-FN-001', 'desktop', 'FAIL')] });
     render(<Prd service="MKT" 할수={보는사람} 결과보나 />);
-    fireEvent.click(await screen.findByRole('button', { name: /회원가입/ }));
-    const 아이디 = 줄of('MKT-REQ-031');
+    await screen.findByRole('button', { name: /MKT-REQ-031/ });
+    const 아이디 = 열기('MKT-REQ-031');
     await vi.waitFor(() => expect(within(아이디).getByText(/^실패 \d+ \/ 3$/).tagName).toBe('SPAN'));
   });
 
-  it('줄을 펴면 종류 · 기법 숫자를 설계 미리보기 앞에 보인다', async () => {
+  it('서랍을 열면 종류 · 기법 숫자를 설계 미리보기 앞에 보인다', async () => {
     render(<Prd service="MKT" 할수={보는사람} />);
-    fireEvent.click(await screen.findByRole('button', { name: /회원가입/ }));
-    fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-031/ }));
+    await screen.findByRole('button', { name: /MKT-REQ-031/ });
+    열기('MKT-REQ-031');
     const 구획 = screen.getByRole('heading', { name: '테스트' }).closest('section') as HTMLElement;
     expect([...구획.querySelectorAll('.prd-kv span')].map((x) => x.textContent)).toEqual([
       '정상 1',
@@ -142,11 +150,12 @@ describe('PRD 관리 — 요구사항 추적표 칸', () => {
   it('실행 read 가 없으면 결과를 부르지 않고, 케이스 read 가 없으면 건수가 글자뿐이다', async () => {
     const 부름 = vi.spyOn(api, 'lastByCase');
     render(<Prd service="MKT" 할수={보는사람} />);
-    fireEvent.click(await screen.findByRole('button', { name: /회원가입/ }));
-    const 아이디 = 줄of('MKT-REQ-031');
+    await screen.findByRole('button', { name: /MKT-REQ-031/ });
+    const 아이디 = 열기('MKT-REQ-031');
     expect(within(아이디).getByText('기능 2건').tagName).toBe('SPAN');
     expect(within(아이디).queryByRole('link')).toBeNull();
     expect(아이디.querySelector('.verdict')).toBeNull();
+    expect(줄of('MKT-REQ-031').querySelector('.verdict')).toBeNull();
     expect(부름).not.toHaveBeenCalled();
   });
 
@@ -154,8 +163,8 @@ describe('PRD 관리 — 요구사항 추적표 칸', () => {
     vi.spyOn(api, 'lastByCase').mockRejectedValue(new ApiError(500, 'INTERNAL', 'DB 연결이 끊겼습니다'));
     render(<Prd service="MKT" 할수={보는사람} 결과보나 케이스보나 />);
     expect(await screen.findByText(/^마지막 결과를 못 읽었습니다 — /)).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: /회원가입/ }));
     expect(줄of('MKT-REQ-031').querySelector('.verdict')).toBeNull();
+    expect(열기('MKT-REQ-031').querySelector('.verdict')).toBeNull();
   });
 
   it('성능 목표가 있는 요구는 개수와 최근 판정을, 목표가 없는 요구는 아무것도 안 단다', async () => {
@@ -170,22 +179,21 @@ describe('PRD 관리 — 요구사항 추적표 칸', () => {
       }),
     );
     render(<Prd service="MKT" 할수={보는사람} />);
-    fireEvent.click(await screen.findByRole('button', { name: /회원가입/ }));
-    fireEvent.click(screen.getByRole('button', { name: /^로그인/ }));
+    await screen.findByRole('button', { name: /MKT-REQ-031/ });
 
-    const 아이디 = 줄of('MKT-REQ-031');
+    const 아이디 = 열기('MKT-REQ-031');
     const 실패 = within(아이디).getByText('실패', { selector: '.prd-perf *' });
     expect(아이디.querySelector('.prd-perf')!.textContent).toContain('성능 목표 2개');
     expect(실패.tagName).toBe('A');
     expect(실패.getAttribute('href')).toBe('#/perf/runs/12');
     expect(실패.className).toContain('v-fail');
 
-    const 미실행 = 줄of('MKT-REQ-040').querySelector('.prd-perf .verdict')!;
+    const 미실행 = 열기('MKT-REQ-040').querySelector('.prd-perf .verdict')!;
     expect(미실행.textContent).toBe('미실행');
     expect(미실행.tagName).toBe('SPAN');
 
-    expect(줄of('MKT-REQ-041').querySelector('.prd-perf a')!.className).toContain('v-pass');
-    expect(줄of('MKT-REQ-032').querySelector('.prd-perf')).toBeNull();
+    expect(열기('MKT-REQ-041').querySelector('.prd-perf a')!.className).toContain('v-pass');
+    expect(열기('MKT-REQ-032').querySelector('.prd-perf')).toBeNull();
   });
 
   it('추적표 엑셀은 보기 권한으로 받고 서버가 준 이름으로 저장한다', async () => {
