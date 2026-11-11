@@ -179,6 +179,24 @@ describe.skipIf(연결 === undefined)('Issue Bunker 보낼 줄', () => {
     expect(부른것.map((b) => b.method)).toEqual(['GET']);
   });
 
+  it('필드 쓰기 — 보내기 직전에 판을 읽어 좁은 필드 길로 보내고, 쓰기 문이 아직 막으면(403) 그 줄만 그만두고 뒤 댓글은 간다', async () => {
+    부른것.length = 0;
+    답 = (경로) => (경로.endsWith('/custom-fields') ? { status: 200, json: {} } : { status: 200, json: { data: { version: 4, currentStateKey: 'fix' } } });
+    await 보낼줄넣기({ projectId: 프로젝트, kind: 'FIELD', issueKey: 'XBY-12', payload: { customFields: { qahub_test_fix_pr: 'https://github.com/o/r/pull/9' } } });
+    expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 1, 다시: 0, 멈춤: 0 });
+    expect(부른것.map((b) => [b.method, b.경로, b.몸])).toEqual([
+      ['GET', '/api/v1/issues/XBY-12', undefined],
+      ['PATCH', '/api/v1/issues/XBY-12/custom-fields', { customFields: { qahub_test_fix_pr: 'https://github.com/o/r/pull/9' }, expectedVersion: 4 }],
+    ]);
+    부른것.length = 0;
+    답 = (경로) => (경로.endsWith('/custom-fields') ? { status: 403, json: null } : { status: 200, json: { data: { version: 4 } } });
+    await 보낼줄넣기({ projectId: 프로젝트, kind: 'FIELD', issueKey: 'XBY-13', payload: { customFields: { qahub_test_fix_pr: 'https://github.com/o/r/pull/9' } } });
+    await 보낼줄넣기({ projectId: 프로젝트, kind: 'COMMENT', issueKey: 'XBY-13', payload: { body: 'PR 을 열었어요' } });
+    expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 0, 다시: 0, 멈춤: 1 });
+    expect(await 보낼줄점검(부르기)).toEqual({ 보냄: 1, 다시: 0, 멈춤: 0 });
+    expect(부른것.map((b) => [b.method, b.경로])).toContainEqual(['POST', '/api/v1/issues/XBY-13/comments']);
+  });
+
   it('등록이 닿으면 짝을 적고 「QA 검토」로 옮기고 캡처를 올린다 · 첨부 목록은 BTS 몸에 안 싣는다', async () => {
     const p = await pool();
     const 폴더 = await realpath(await mkdtemp(join(tmpdir(), 'xby-')));

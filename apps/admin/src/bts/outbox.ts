@@ -14,7 +14,7 @@ async function db(): Promise<Pool> {
   return pool;
 }
 
-export type 보낼종류 = 'CREATE' | 'COMMENT' | 'TRANSITION' | 'ASSIGN';
+export type 보낼종류 = 'CREATE' | 'COMMENT' | 'TRANSITION' | 'ASSIGN' | 'FIELD';
 
 export interface 보낼줄 {
   projectId: number;
@@ -42,12 +42,14 @@ export async function 보낼줄넣기(줄: 보낼줄): Promise<number | null> {
 
 export const 최대횟수 = 5;
 
-// BTS 이슈 API — 만들기 · 댓글 · 상태 옮기기 · 담당자 (BTS IssueController · CommentController)
+// BTS 이슈 API — 만들기 · 댓글 · 상태 옮기기 · 담당자 · 사용자 정의 필드 (BTS IssueController · CommentController)
 const 갈곳 = {
   CREATE: () => ['POST', '/api/v1/issues'],
   COMMENT: (key: string) => ['POST', `/api/v1/issues/${encodeURIComponent(key)}/comments`],
   TRANSITION: (key: string) => ['POST', `/api/v1/issues/${encodeURIComponent(key)}/transition`],
   ASSIGN: (key: string) => ['PATCH', `/api/v1/issues/${encodeURIComponent(key)}/assignee`],
+  // 「QA Hub AI」 쓰기 문이 이 좁은 길만 연다(BTS-F10-02). 열리기 전 BTS 는 403 — 그 줄만 그만두고 뒤 댓글은 간다
+  FIELD: (key: string) => ['PATCH', `/api/v1/issues/${encodeURIComponent(key)}/custom-fields`],
 } as const;
 
 interface 집은줄 {
@@ -99,8 +101,8 @@ async function 하나보내기(줄: 집은줄, 부르기: 부르기함수): Prom
   try {
     const 자리 = { baseUrl: 줄.base_url, 봇: 줄.bot_username ?? '' };
     let 보낼몸 = 몸;
-    // 판 번호 없이 넣은 옮기기(재검증 통과 닫기 — deployFlow.ts) · 담당자 바꾸기(수정 AI — bugfix.ts)는 보내기 직전에 이슈의 지금 판을 읽는다 — 넣을 때 읽으면 보낼 때 낡는다
-    const 판읽음 = (줄.kind === 'TRANSITION' || 줄.kind === 'ASSIGN') && (몸 as { expectedVersion?: unknown }).expectedVersion === undefined;
+    // 판 번호 없이 넣은 옮기기(재검증 통과 닫기 — deployFlow.ts) · 담당자 바꾸기(수정 AI — bugfix.ts) · 필드 쓰기(테스트 수정 — testFix.ts)는 보내기 직전에 이슈의 지금 판을 읽는다 — 넣을 때 읽으면 보낼 때 낡는다
+    const 판읽음 = (줄.kind === 'TRANSITION' || 줄.kind === 'ASSIGN' || 줄.kind === 'FIELD') && (몸 as { expectedVersion?: unknown }).expectedVersion === undefined;
     if (판읽음) {
       const 읽음 = await 부르기(자리, 'GET', `/api/v1/issues/${encodeURIComponent(줄.issue_key!)}`);
       const 실패 = 상태로(읽음.status);

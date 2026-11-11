@@ -258,8 +258,8 @@ describe.skipIf(연결 === undefined)('실패 → Issue Bunker 등록', () => {
     expect((await 실패카드(부모, 1)).items.map((c) => [c.tcId, c.bts?.state])).toEqual([['XBF-005', 'SENDING']]);
   });
 
-  it('테스트 문제 · 화면이 맞음으로 닫힌 테스트도 고친 작성이 병합될 때까지 올리지 않는다 — 환경 문제는 다시 올린다', async () => {
-    for (const [tcId, 사유, 넣음] of [['XBF-007', 'TEST_PROBLEM', 0], ['XBF-008', 'SCREEN_RIGHT', 0], ['XBF-010', 'ENV', 1]] as const) {
+  it('화면이 맞음으로 닫힌 테스트도 고친 작성이 병합될 때까지 올리지 않는다 — 환경 문제 · 테스트 문제(고침을 세우지 않는다)는 다시 올린다', async () => {
+    for (const [tcId, 사유, 넣음] of [['XBF-007', 'TEST_PROBLEM', 1], ['XBF-008', 'SCREEN_RIGHT', 0], ['XBF-010', 'ENV', 1]] as const) {
       await pool.query(
         `INSERT INTO bts_issue_case (project_id, issue_key, service_id, tc_id, env, closed_at, resolution) VALUES ($1, $2, $3, $4, 'qa', now(), $5)`,
         [프로젝트, `DM-${tcId}`, 서비스, tcId, 사유],

@@ -15,6 +15,7 @@ import { 정수 } from '../routeParams.js';
 import { 이슈읽기, type BTS이슈, type 부르기함수 } from './client.js';
 import { 수정맡기 } from './bugfix.js';
 import { 닫기처리 } from './close.js';
+import { 테스트수정처리 } from './testFix.js';
 
 async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
@@ -38,7 +39,8 @@ export function 서명맞나(비밀: string, 몸: Buffer, 서명: string): boole
 const 알림몸 = z.object({
   event: z.string(),
   deliveryId: z.string().min(1).max(100),
-  data: z.object({ issueKey: z.string().min(1).max(100) }).passthrough(),
+  // 상태 키 둘은 issue.transitioned 만 싣는다 — 「테스트 수정」으로 옮김 · 떠남을 가른다(testFix.ts)
+  data: z.object({ issueKey: z.string().min(1).max(100), fromState: z.string().max(200).optional(), toState: z.string().max(200).optional() }).passthrough(),
 }).passthrough();
 
 const 받는알림 = new Set(['issue.created', 'issue.transitioned']);
@@ -64,7 +66,7 @@ export interface 알림연결 {
 
 /**
  * 받은 알림을 처리한다 — 알림 본문을 믿지 않고 이슈를 BTS 에서 다시 읽는다. 처리할 것이 없으면 null.
- * 다시 읽기나 뒤 처리(닫기 사유 — close.ts)가 깨지면 그 알림을 잊고 던진다 — 라우트가 503 을 내 BTS 가 같은 알림을 다시 보내게.
+ * 다시 읽기나 뒤 처리(닫기 사유 — close.ts · 테스트 수정 — testFix.ts)가 깨지면 그 알림을 잊고 던진다 — 라우트가 503 을 내 BTS 가 같은 알림을 다시 보내게.
  * 뒤 처리는 DB 상태로 한 번만 하므로 다시 와도 겹치지 않는다
  */
 export async function BTS알림처리(연결: 알림연결, 몸: unknown, 부르기?: 부르기함수): Promise<BTS이슈 | null> {
@@ -78,9 +80,11 @@ export async function BTS알림처리(연결: 알림연결, 몸: unknown, 부르
     const 이슈 = await 이슈읽기({ baseUrl: 연결.baseUrl, 봇: 연결.봇 }, 꼴.data.data.issueKey, 부르기);
     // 이슈가 「QA 요청」을 떠나면 맡음을 놓는다 — 다시 「QA 요청」에 오면 다음 배포가 새로 맡는다(결정 4)
     await 맡음놓기(연결.projectId, 이슈);
-    const 닫음 = await 닫기처리(연결, 이슈, 부르기);
+    const 닫음 = await 닫기처리(연결, 이슈);
     // 닫기만 하고 요청을 못 세운 케이스 — 사람의 판정이 QA Hub 에 닿지 않은 까닭을 남긴다(outbox.ts 처럼 서버 기록으로)
     for (const 까닭 of 닫음.기록만) console.error(`[bts] ${이슈.key} 를 닫았지만 작성 요청을 못 세웠다: ${까닭}`);
+    const 수정 = await 테스트수정처리(연결, 이슈, { from: 꼴.data.data.fromState, to: 꼴.data.data.toState }, 부르기);
+    for (const 까닭 of 수정.기록만) console.error(`[bts] ${이슈.key} 를 「테스트 수정」으로 맡았지만 고침을 못 세웠다: ${까닭}`);
     await 이슈노트사건(연결.projectId, 꼴.data.event, 이슈);
     return 이슈;
   } catch (err) {
