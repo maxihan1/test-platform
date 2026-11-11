@@ -571,11 +571,14 @@ POST /mcp
 #   — autoMerge · held 는 둘이 같이 온다. 둘 다 없으면 앞 판 에이전트로 보고 받되 자동 병합하지 않는다(held ['NOT_MEASURED'])
 #   — 알림 받기 줄과 이 칸의 summary · reruns · BAD_RESULT 는 반영 완료 (2026-11-11, apps/admin/src/bts/testFix.ts · inbound.ts · authoring/agentRoutes.ts · scripts/authoring-test-fix.ts — BTS-F10-04). autoMerge · held 는 반영 완료 (2026-11-11, apps/admin/src/bts/testFix.ts · testFixMerge.ts · authoring/agentRoutes.ts · scripts/authoring-test-fix.ts — BTS-F10-05)
 # 기능 테스트 목록 GET /api/catalog/cases 의 items[] 에 칸 하나 (F10-07 · 카탈로그.md §7)
-#   autoFix: { issueKey, state, at } | null — 그 케이스의 가장 늦은 bts_test_fix 줄(대상 서버 상관없이). 화면은 state 가 PASSED 일 때만 「자동 수정」 표시를 단다
-#   응답 최상위 autoFixCount — 가장 늦은 줄이 PASSED 인 케이스 수(탭 「자동 수정 N」) · 거르기 ?autoFix=1 도 같은 기준이다(표시 · 탭 · 거르기가 어긋나지 않게). BTS 연결이 없는 프로젝트는 칸이 늘 null · 0 이다
+#   autoFix: { issueKey, state, at } | null — 그 케이스의 가장 늦은 bts_test_fix 줄(대상 서버 상관없이 · at 은 그 줄이 마지막으로 바뀐 때). 화면은 state 가 PASSED 일 때만 「자동 수정」 표시를 단다
+#   응답 최상위 autoFixCount — 가장 늦은 줄이 PASSED 인 케이스 수(탭 「자동 수정 N」 · last · autoFix 를 뺀 조건으로 센다) · 거르기 ?autoFix=1 도 같은 기준이다(표시 · 탭 · 거르기가 어긋나지 않게). 엑셀 GET /api/catalog/export 도 ?autoFix=1 을 받는다. BTS 연결이 없는 프로젝트는 칸이 늘 null · 0 이다
 # 케이스 상세 GET /api/catalog/cases/:tcId 에 칸 하나 (F10-07)
-#   autoFix: { issueKey, issueUrl, movedBy, summary, merge: 'AUTO' | 'PERSON' | null, prUrl, rerunId, state, reason, at, devices: [{ platform, status }] } | null — 가장 늦은 줄 하나
-#   서랍 「실행 기록」 줄을 주는 응답의 줄마다 afterFix: boolean — 그 실행이 어느 bts_test_fix 줄의 rerun_id 면 true
+#   autoFix: { issueKey, issueUrl, movedBy, summary, merge: 'AUTO' | 'PERSON' | null, prUrl, rerunId, state, reason, at, needsPerson, devices: [{ platform, status }] } | null — 가장 늦은 줄 하나
+#   — rerunId 는 사람이 화면에서 찾는 실행이다(붙은 한 건이면 붙은 실행 — 이슈 댓글 「RUN N」 과 같다 · 위 「테스트 수정 바퀴」 5). devices 는 bts_test_fix.rerun_id(한 건 실행 자신) 의 그 케이스 항목
+#   — needsPerson 은 병합을 기다리는 줄에 「사람 확인이 필요해요 — …」 댓글(다음 줄이 그 PR 주소)을 넣었나다 — 자동 병합에 걸렸거나 자동 반영이 실패했다. 서랍 상태 줄이 이것으로 갈린다
+#   서랍 「실행 기록」 줄을 주는 응답(GET /api/cases/:tcId/history)의 줄마다 afterFix: boolean — 그 실행(한 건 실행 자신의 번호 · 이력은 바꿔 끼우지 않는다)이 그 케이스 bts_test_fix 줄의 rerun_id 면 true
+#   — 위 세 줄은 반영 완료 (2026-11-11, apps/admin/src/bts/testFixView.ts · catalog/store.ts · catalog/routes.ts · execution/history.ts · web/CaseAutoFix.tsx — BTS-F10-07)
 # 실행 기록 실패 카드 GET /api/runs/:runId/failures 의 items[] 에 칸 하나 (F10-08 · 리포팅.md §7)
 #   autoFix: { issueKey, issueUrl, prUrl, merge, rerunId, at, devices: [{ platform, status }] } | null — 그 카드(실행 · tcId · 대상 서버)를 `failed_run`(카드가 서는 실행 — 한 건 실행으로 올린 이슈는 붙는 실행인 부모)으로 가진 PASSED 줄
 #   응답 최상위 autoFixCount · 거르기 ?autoFix=1. 「판정 안 한 카드」 셈과 「실패 N건 다시 실행」 대상에서 그 카드를 뺀다
@@ -652,7 +655,7 @@ POST /mcp
 
 #### 자동 수정 표시 (BTS-F10-07 · F10-08 · 2026-11-11 사용자 「a+b」 — 시안 2판)
 
-테스트 수정 바퀴(§3.12)로 통과한 테스트를 두 화면에서 보인다. 재료는 `bts_test_fix` 의 PASSED 줄이다(§7 「테스트 수정 바퀴」). 표시 색은 파랑 한 가지다 — 통과(초록) · 실패(빨강) · 주 행동(주황)과 겹치지 않게. 낱말은 「자동 수정」 · 「수정 후 통과」 · 「수정 후」([docs/WORDS.md](../../WORDS.md) — 「수정」이 표준 말 · 「고치기」 금지).
+테스트 수정 바퀴(§3.12)로 통과한 테스트를 두 화면에서 보인다. 재료는 `bts_test_fix` 의 PASSED 줄이다(§7 「테스트 수정 바퀴」). 표시 색은 파랑 한 가지다 — 통과(초록) · 실패(빨강) · 주 행동(주황)과 겹치지 않게. 낱말은 「자동 수정」 · 「수정 후 통과」 · 「수정 후」([docs/WORDS.md](../../WORDS.md) — 「수정」이 표준 말 · 「고치기」 금지). PR 을 저장소에 넣는 일은 화면에서 「반영」이다(「자동 반영」 · 「사람이 반영」 — WORDS 가 「병합」을 막는다 · 2026-11-11 BTS-F10-07 에서 시안 글 「병합」을 바꿨다).
 시안 https://claude.ai/artifact/QBAENb3p67tz91ZwtRhpdG (A · B · C 가운데 A+B, C 에서는 작성 목록 줄 하나만 가져온다)
 
 **A · 테스트 실행 › 기능 테스트 목록과 서랍** (F10-07 · `web/` 케이스 목록 — [카탈로그.md](카탈로그.md) §8.1)
@@ -664,15 +667,15 @@ POST /mcp
 │                                   │ 자동 수정 기록          11월 11일 │ │
 │                                   │ 요청  QA 맥시 · Issue Bunker MQA-168 「테스트 수정」 │
 │                                   │ 수정  새 창을 만들던 요청을 열린 페이지로 바꿨어요 │
-│                                   │ 병합  자동 병합 · 변경 내용 보기 (PR #713) │
+│                                   │ 반영  자동 반영 · 변경 내용 보기 (PR #713) │
 │                                   │ 확인  실제 폰 Chrome 통과 · PC 통과 (RUN 21109) │
 │                                   │ 요구사항 · 설계 기법 · 사전 조건 · 시험 절차 … │
 │                                   │ 실행 기록  RUN 21109 · 한 건 실행 [통과][수정 후] │
 ```
 
-- 케이스명 옆 표시 「자동 수정」 — 가장 늦은 줄이 PASSED 일 때만. 마우스를 올리면 「Issue Bunker MQA-168 · 11월 11일 · 실제 폰에서 통과 확인」
+- 케이스명 옆 표시 「자동 수정」 — 가장 늦은 줄이 PASSED 일 때만. 마우스를 올리면 「Issue Bunker MQA-168 · 11월 11일 · 수정 후 다시 실행에서 통과」(목록 줄은 디바이스를 모른다 — 디바이스마다는 서랍 「확인」)
 - 마지막 결과 탭 줄 끝에 「자동 수정 N」 탭(`autoFixCount` · 0 이면 안 그린다). 누르면 그 케이스만 거른다(`?autoFix=1` — 주소에 남는다)
-- 서랍 맨 위(요구사항 위)에 「자동 수정 기록」 상자 — 요청(옮긴 사람 · 이슈 고리) · 수정(`summary`) · 병합(「자동 병합」 또는 「사람이 병합」 · PR 고리) · 확인(디바이스마다 통과 · 실행 고리). PASSED 가 아닌 가장 늦은 줄이면 같은 자리에 지금 상태 한 줄 — 「테스트를 수정하는 중」 · 「병합을 기다리는 중」(`merge` 가 `AUTO` 면 「자동 병합하는 중」 · 「사람 확인이 필요해요」 댓글을 단 줄이면 「병합을 기다리는 중 — 사람 확인이 필요해요」) · 「다시 실행하는 중」 · 「수정 후에도 실패했어요 · RUN N」 · 「그만뒀어요 · <까닭>」
+- 서랍 맨 위(요구사항 위)에 「자동 수정 기록」 상자 — 요청(옮긴 사람 · 이슈 고리) · 수정(`summary`) · 반영(「자동 반영」 또는 「사람이 반영」 · PR 고리) · 확인(디바이스마다 통과 · 실행 고리 — 디바이스 이름은 목록과 같은 PC · 모바일 · Android 앱이다. 실제 폰 Chrome 인지는 실행 화면에서 본다). PASSED 가 아닌 가장 늦은 줄이면 같은 자리에 지금 상태 한 줄 — 「테스트를 수정하는 중」 · 「반영을 기다리는 중」(`merge` 가 `AUTO` 면 「자동 반영하는 중」 · 「사람 확인이 필요해요」 댓글을 단 줄(`needsPerson`)이면 「반영을 기다리는 중 — 사람 확인이 필요해요」) · 「다시 실행하는 중」 · 「수정 후에도 실패했어요 · RUN N」 · 「그만뒀어요 · <까닭>」
 - 서랍 실행 기록 줄 가운데 다시 실행(`afterFix`) 줄에 「수정 후」 표시
 - BTS 연결이 없는 프로젝트는 표시 · 탭 · 상자가 없다(지킬 것 1)
 
@@ -682,11 +685,11 @@ POST /mcp
 │ [판정 안 한 카드 13] [자동 수정 1]                                   │
 │ ▸ [수정 후 통과] DMW-FN-378 [그 밖] ~~Error: 실제 폰 Chrome 은 …~~   PC 통과 · 모바일 실패 → 통과 │
 │ 로그인 없이 주문 API 를 부르면 401 로 응답한다                         │
-│ 테스트 수정 요청으로 자동 수정했어요 — QA 맥시 · MQA-168 → PR #713 자동 병합 → RUN 21109 실제 폰 · PC 통과 (11월 11일) │
+│ 테스트 수정 요청으로 자동 수정했어요 — QA 맥시 · MQA-168 → PR #713 자동 반영 → RUN 21109 실제 폰 · PC 통과 (11월 11일) │
 ```
 
 - 카드 머리 실패 표시 대신 「수정 후 통과」 · 실패 원인 글은 흐리게 줄을 긋는다(지운 것이 아니라 고치기 전 기록이다) · 디바이스 칩은 실패였던 것만 「실패 → 통과」
-- 카드 안 판정 줄 자리에 자동 수정 한 줄 — 옮긴 사람 · 이슈 · PR(자동 병합 · 사람이 병합) · 다시 실행 고리 · 날짜
+- 카드 안 판정 줄 자리에 자동 수정 한 줄 — 옮긴 사람 · 이슈 · PR(자동 반영 · 사람이 반영) · 다시 실행 고리 · 날짜
 - 위 거르기에 「자동 수정 N」(`autoFixCount`). 「판정 안 한 카드」 셈과 [실패 N건 다시 실행]에서 이 카드를 뺀다 — 이미 고쳐 통과했다
 - 왼쪽 실행 목록 줄의 판정 칸에 「자동 수정 N」 한 줄(`autoFixed` · 0 이면 안 그린다). 통과 · 실패 숫자는 처음 실행 그대로다 — 숫자를 바꾸면 그 실행의 기록이 거짓이 된다
 - 항목 상세(`#/runs/<번호>/items/<번호>`)의 판정 줄도 같은 부품이다
