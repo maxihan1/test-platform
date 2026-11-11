@@ -85,6 +85,10 @@ type 적용결과 = { items: PrdItem[]; lastNo: number; changes: 판변경[]; �
 
 const 합친키 = (앞: string[] | undefined, 뒤: string[]) => [...new Set([...(앞 ?? []), ...뒤])];
 
+/** 문장에 이름이 든 판의 기능 묶음. 「주문」과 「주문 내역」이 다 들면 긴 쪽이다 */
+const 든묶음 = (판: ReadonlyMap<string, PrdItem>, 문장: string): string | undefined =>
+  [...new Set([...판.values()].map((x) => x.feature))].filter((f) => 문장.includes(f)).sort((a, b) => b.length - a.length)[0];
+
 /**
  * 고른 초안들을 판에 차례로 넣는다. 체크한 줄은 확정으로 들어가고(추가 · 수정 · 삭제),
  * 체크 안 한 「화면만 보고 적음」(sure: false) 줄은 버리지 않고 확인 필요로 남긴다 — 추가는 그 문장으로, 수정 · 삭제는 요구 문장을 그대로 두고 확인 필요만 단다.
@@ -105,8 +109,9 @@ export function 초안적용(지금: PrdItem[], lastNo: number, 접두사: strin
         마지막 += 1;
         const reqId = 새번호(접두사, 마지막);
         if (reqId === null) return { error: 'BAD_PICK', detail: key };
-        // 기능 이름은 이슈 제목 — 사람이 PRD 관리에서 고친다(시작 질문). PRD 의 기능 이름 상한에 맞춰 자른다
-        const feature = (제목.get(줄.issueKeys[0]!) ?? 줄.issueKeys[0]!).slice(0, 상한.기능묶음);
+        // 요구 문장에 든 지금 판의 기능 묶음에 넣는다 — 이슈 제목을 묶음 이름으로 쓰면 PRD 목차에 문장이 묶음으로 섰다(DMO-REQ-141 · 도메인/작성 §3.6 「목차」 규칙 3).
+        // 맞는 묶음이 없을 때만 이슈 제목이고, 목차가 「정리 필요」로 띄워 사람이 옮긴다. PRD 의 기능 이름 상한에 맞춰 자른다
+        const feature = (든묶음(판, 줄.text) ?? 제목.get(줄.issueKeys[0]!) ?? 줄.issueKeys[0]!).slice(0, 상한.기능묶음);
         판.set(reqId, { reqId, feature, text: 줄.text, basis: [근거], status: 고름 ? 'CONFIRMED' : 'NEEDS_CHECK', ...(고름 ? {} : { checkSince: 시각 }), byPerson: true, fromIssues: 줄.issueKeys });
         바뀜('ADD', reqId, 줄.text);
         continue;
