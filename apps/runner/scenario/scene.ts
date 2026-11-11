@@ -1,6 +1,6 @@
 // E2E 실행의 장면 자리 하나 — 웹 단계는 그 탭에, 앱 · 게임 단계는 폰(Appium)에 장면을 걸고 단계가 바뀌면 앞 것을 끈다 (SPEC 도메인/러너 §5.2 「테스트 모드 — 실시간 장면」)
 
-import { 장면걸기, 폰장면걸기, type 장면, type 폰찍개 } from '@platform/kit/scenario';
+import { 장면걸기, 폰장면걸기, type 게임자리읽개, type 장면, type 폰찍개 } from '@platform/kit/scenario';
 import type { Page } from '@playwright/test';
 
 export function 장면자리() {
@@ -31,10 +31,10 @@ export function 장면자리() {
     },
     // 거는 사이 단계가 닫혔으면(한도에 걸려 끊김) 건 것을 바로 끈다 — 아무도 안 끄는 찍기가 시나리오 끝까지 남지 않게.
     // 정식 실행도 찍는다 — Appium 찍기가 그 단계 명령을 잠깐 세우지만 2026-11-11 사용자가 정식 실행에도 폰 화면을 보이게 했다 (SPEC 도메인/실행 §3.2)
-    async 폰에(driver: 폰찍개, 닫혔나: () => boolean): Promise<void> {
+    async 폰에(driver: 폰찍개, 닫혔나: () => boolean, 게임?: 게임자리읽개): Promise<void> {
       if (폰중 || 닫혔나()) return;
       폰중 = true;
-      const 건 = await 폰장면걸기(driver);
+      const 건 = await 폰장면걸기(driver, undefined, undefined, 게임);
       if (!폰중 || 닫혔나()) {
         await 건?.끄기();
         return;

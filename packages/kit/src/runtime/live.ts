@@ -6,7 +6,7 @@ import { dirname } from 'node:path';
 
 import type { Page } from '@playwright/test';
 
-import { 상자쓰개, 웹요소따라가기, 폰상자읽개, type 폰자리읽개 } from './liveBox.js';
+import { 게임상자읽개, 상자쓰개, 웹요소따라가기, 폰상자읽개, type 게임자리읽개, type 폰자리읽개 } from './liveBox.js';
 
 // 긴 변 800px(Playwright 기본)에 품질 70 — 글자 많은 화면도 한 장 70KB 안팎이다(2026-11-03 실측, 품질 90 은 107KB)
 const 품질 = 70;
@@ -189,7 +189,7 @@ export interface 폰찍개 extends 폰자리읽개 {
  * 앱 · 게임 단계의 장면 — Appium 으로 폰 화면을 찍어(PNG) 같은 파일에 덮어 쓰고 1초 쉬었다 다시 찍는다 (SPEC 도메인/러너 §5.2 「테스트 모드 — 실시간 장면」 · 2026-11-05 사용자).
  * ponytail: 같은 Appium 세션이라 찍는 동안 단계 명령이 기다린다(게임은 한 장 1.5초쯤) — 단계가 눈에 띄게 느려지면 VISION 화면 통로(H.264)를 받아 그리는 쪽으로
  */
-export async function 폰장면걸기(driver: 폰찍개, 파일 = process.env.PLATFORM_LIVE_FILE, 쉼ms = 폰쉼ms): Promise<장면 | undefined> {
+export async function 폰장면걸기(driver: 폰찍개, 파일 = process.env.PLATFORM_LIVE_FILE, 쉼ms = 폰쉼ms, 게임?: 게임자리읽개): Promise<장면 | undefined> {
   if (!파일) return undefined;
   try {
     await mkdir(dirname(파일), { recursive: true });
@@ -201,6 +201,8 @@ export async function 폰장면걸기(driver: 폰찍개, 파일 = process.env.PL
   const 쓰개 = 장면쓰개(파일, 0);
   const 상자 = 상자쓰개(파일);
   const 자리읽기 = 폰상자읽개(driver);
+  // 게임 단계는 오브젝트가 Appium 요소가 아니다 — 게임 SDK 에 자리를 묻는다
+  const 게임자리 = 게임 === undefined ? undefined : 게임상자읽개(게임);
   let 멈춤 = false;
   let 깨우기 = () => {};
   let 알림 = false;
@@ -210,7 +212,7 @@ export async function 폰장면걸기(driver: 폰찍개, 파일 = process.env.PL
         const 장 = Buffer.from(await driver.takeScreenshot(), 'base64');
         if (!멈춤) 쓰개.받기(장);
         // 찍은 뒤 자리를 읽는다 — 장면과 윤곽이 거의 같은 순간이다
-        const 윤곽 = 멈춤 ? null : await 자리읽기(장);
+        const 윤곽 = 멈춤 ? null : ((await 게임자리?.()) ?? (await 자리읽기(장)));
         if (!멈춤) await 상자.쓴다(윤곽);
       } catch (err) {
         // 앱이 넘어가는 중이거나 연결이 닫히는 중일 수 있다 — 장면은 보는 것일 뿐이라 한 번만 알리고 다음 장을 다시 찍어 본다

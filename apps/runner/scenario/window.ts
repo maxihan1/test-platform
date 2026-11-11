@@ -154,7 +154,7 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
       const 폰쪽: 단계쪽 = async () => {
         if (설정.폰 === undefined) throw new Error('이 실행에는 폰 연결이 없다');
         const { driver, game } = await 설정.폰.얻기();
-        await 장면.폰에(driver, () => 닫음);
+        await 장면.폰에(driver, () => 닫음, game);
         return { driver, ...(game && { game }), ...(설정.adminKey && { adminKey: 설정.adminKey }), platform: 'android' };
       };
       return {

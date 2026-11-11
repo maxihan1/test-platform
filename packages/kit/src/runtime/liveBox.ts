@@ -5,7 +5,8 @@ import { rename, rm, writeFile } from 'node:fs/promises';
 
 import type { Page } from '@playwright/test';
 
-import { 지금다룬요소 } from './highlight.js';
+import { 게임원본, type KitGame } from './game.js';
+import { 지금게임대상, 지금다룬요소, type 게임대상 } from './highlight.js';
 
 /** 장면 그림에 대한 비율(0~1) — 그림 크기가 바뀌어도 화면이 그대로 겹친다 */
 export interface 비율상자 {
@@ -138,7 +139,7 @@ function png크기(장: Buffer): { width: number; height: number } | null {
 /**
  * 앱 — 찍은 폰 장면에 대해 지금 다루는 요소 번호의 자리를 읽는다. 장면마다 다시 읽는다 — 스크롤 · 키보드로 요소가 움직인다.
  * 비율은 실패 사진 표시(highlight.ts 앱사진)와 같이 「장면 가로 / 창 가로」 배율 하나로 바꾼다 — 창 높이는 시스템 막대를 빼고 올 수 있어 세로를 창으로 나누면 아래로 밀린다.
- * 창 크기는 장면 크기가 바뀔 때(회전)만 다시 묻는다. 게임 단계는 요소가 Appium 요소가 아니라 윤곽이 없다(control-cli 가 오브젝트 자리를 안 준다)
+ * 창 크기는 장면 크기가 바뀔 때(회전)만 다시 묻는다. 게임 오브젝트는 Appium 요소가 아니라 여기서 안 다룬다 — 아래 게임상자읽개가 게임 SDK 에 묻는다
  */
 export function 폰상자읽개(driver: 폰자리읽개): (장: Buffer) => Promise<비율상자 | null> {
   let 창: { width: number; height: number } | undefined;
@@ -160,4 +161,40 @@ export function 폰상자읽개(driver: 폰자리읽개): (장: Buffer) => Promi
       return null;
     }
   };
+}
+
+/** 게임 오브젝트 자리를 묻는 데 쓰는 것만 — control-cli 의 Game 이 맞는다. caps 는 ping 이 받아 둔 SDK 명령 목록이다 */
+export interface 게임자리읽개 {
+  caps?: string[];
+  find(target: string, o?: { camera?: string }): Promise<{ rect?: [number, number, number, number]; screen?: [number, number] } | null>;
+}
+
+// 같은 오브젝트는 3초마다만 다시 묻는다 — 묻기도 팜을 거치는 게임 명령이라 케이스 명령과 같은 길을 쓴다
+const 같은게임대상다시ms = 3_000;
+// 게임이 장면을 불러오느라 바쁘면 find 가 오래 걸린다 — 장면 찍기를 세우지 않게 2초만 기다린다
+const 게임자리기다림ms = 2_000;
+
+/**
+ * 게임 — 지금 다루는 오브젝트 주소를 control-cli `find` 로 물어 그 `rect` 를 `screen` 비율로 바꾼다. SDK 가 caps 에 `rect` 를 알릴 때만이다(control-cli 0.8.0 부터 —
+ * 옛 SDK 를 넣은 게임은 물어도 사각형이 없다). 게임 좌표는 왼쪽 아래가 0 이라 위아래를 뒤집는다.
+ * ponytail: 게임 화면이 폰 화면 전체라고 본다 — 게임이 화면 일부에만 그리면 윤곽이 그만큼 어긋난다. 그런 게임이 생기면 SDK screenshot 으로 장면을 찍는다
+ */
+export function 게임상자읽개(감싼것: 게임자리읽개, 지금 = Date.now): () => Promise<비율상자 | null> {
+  // 감싼 연결로 물으면 그 물음이 케이스가 다룬 것으로 적힌다 — 원본으로 묻는다
+  const game = 게임원본(감싼것 as KitGame) as 게임자리읽개;
+  let 앞: { 대상: 게임대상; 때: number; 상자: 비율상자 | null } | undefined;
+  return async () => {
+    const 대상 = 지금게임대상();
+    if (대상 === undefined || game.caps?.includes('rect') !== true) return null;
+    if (앞 !== undefined && 앞.대상 === 대상 && 지금() - 앞.때 < 같은게임대상다시ms) return 앞.상자;
+    const 묻기 = game.find(대상.대상, 대상.camera === undefined ? {} : { camera: 대상.camera }).catch(() => null);
+    const 찾음 = await Promise.race([묻기, new Promise<null>((끝) => setTimeout(() => 끝(null), 게임자리기다림ms).unref())]);
+    const 상자 = 찾음?.rect === undefined || 찾음.screen === undefined ? null : 게임비율(찾음.rect, 찾음.screen);
+    앞 = { 대상, 때: 지금(), 상자 };
+    return 상자;
+  };
+}
+
+function 게임비율([x, y, w, h]: [number, number, number, number], [가로, 세로]: [number, number]): 비율상자 | null {
+  return 비율로({ x, y: 세로 - (y + h), width: w, height: h }, { width: 가로, height: 세로 });
 }
