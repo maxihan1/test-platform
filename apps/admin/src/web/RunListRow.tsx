@@ -8,7 +8,7 @@ import { use말, use언어 } from './i18n.js';
 import { 종류키 } from './kind.js';
 import { 시간글자 } from './remainText.js';
 import { 시작빌드글 } from './RunBuild.js';
-import { 도는중, 상태라벨, 실행자이름 } from './runState.js';
+import { 도는중, 상태라벨, 실행자이름, 준비실패 } from './runState.js';
 import { PLATFORM_LABEL, when, 디바이스순서 } from './ui.js';
 import { 그중미확정글 } from './unconfirmed.js';
 
@@ -18,6 +18,8 @@ import { 그중미확정글 } from './unconfirmed.js';
  */
 export function 띠색(run: Pick<RunListRow, 'status' | 'counts'>): string {
   if (run.counts.fail > 0) return 'var(--fail)';
+  // 준비 실패는 판정이 없다 — 실패 색이 아니라 중립이다 (도메인/실행 §3.2 「실행 전 준비」 「화면 · 집계」)
+  if (run.status === 준비실패) return 'var(--na)';
   if (도는중(run.status)) return 'var(--accent-mark)';
   if (run.counts.na > 0 || run.status === 'ABORTED') return 'var(--na)';
   return 'var(--pass)';

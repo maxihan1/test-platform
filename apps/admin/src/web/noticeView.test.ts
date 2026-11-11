@@ -97,6 +97,12 @@ describe('끝난 줄', () => {
     expect(줄.모양).toBe('pass');
   });
 
+  it('준비 실패 실행은 준비에 실패했다고 적고 판정 색을 쓰지 않는다', () => {
+    const 줄 = 끝난줄만들기(끝난실행(2130, { pass: 0, na: 4 }, { status: 'PREP_FAILED' }), 'ko');
+    expect(끝난글(줄).startsWith('RUN 2130 테스트 데이터 준비에 실패했습니다 · ')).toBe(true);
+    expect(줄.모양).toBe('halt');
+  });
+
   it('사람이 중단한 실행은 중단됐다고 적고 판정 색을 쓰지 않는다', () => {
     const 줄 = 끝난줄만들기(끝난실행(2121, {}, { status: 'ABORTED' }), 'ko');
     expect(줄.머리).toBe('RUN 2121 실행이 중단됐습니다');

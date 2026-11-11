@@ -116,9 +116,10 @@ export async function 시나리오결과(runId: number) {
     started_at: Date;
     finished_at: Date | null;
     device: DeviceInfo | null;
+    prep_note: string | null;
   }>(
     `SELECT r.scenario_id, r.scenario_version, r.status, v.platform, s.prefix,
-            r.title, r.env, r.base_url, r.triggered_by, r.triggered_by_name, r.started_at, r.finished_at, r.device
+            r.title, r.env, r.base_url, r.triggered_by, r.triggered_by_name, r.started_at, r.finished_at, r.device, r.prep_note
        FROM test_run r
        JOIN service s ON s.id = r.service_id
        JOIN scenario_version v ON v.scenario_id = r.scenario_id AND v.version = r.scenario_version
@@ -201,6 +202,8 @@ export async function 시나리오결과(runId: number) {
     triggeredByName: 행.triggered_by_name,
     startedAt: 행.started_at.toISOString(),
     finishedAt: 행.finished_at?.toISOString() ?? null,
+    // 준비 실패 까닭 — 서버가 가린 뒤 300자로 넣은 값이라 글자째 가리기에 안 넣는다 (도메인/실행 §3.2 「실행 전 준비」)
+    prepNote: 행.prep_note,
     // 앱 · 게임 단계가 있는 시나리오만 찬다 — 폰 연결이 하나라 시나리오에 한 벌이다 (§3.7 결정 16)
     device: 행.device,
     // 러너 볼륨을 훑는 일이라 폰을 쓴 시나리오만 본다 — 웹 시나리오의 결과 · 증적마다 러너를 두드리지 않게

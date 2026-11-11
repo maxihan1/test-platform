@@ -66,7 +66,7 @@ export interface 끝난줄 {
   서비스: string;
   접두사: string;
   종류: 'run' | 'authoring';
-  /** 판정 색 아이콘을 고른다 — 실패가 있으면 fail, 사람이 멈췄으면 halt(판정이 아니라 중립), 아니면 pass */
+  /** 판정 색 아이콘을 고른다 — 실패가 있으면 fail, 사람이 멈췄거나 준비가 실패했으면 halt(판정이 아니라 중립), 아니면 pass */
   모양: 'pass' | 'fail' | 'halt';
   머리: string;
   /** 머리 뒤에 ` · ` 로 이어 붙이는 덧말 */
@@ -129,11 +129,17 @@ export function 끝난줄만들기(n: NoticeRecent, 언어: 언어): 끝난줄 {
     const 미확정 = 그중미확정글(counts, 언어);
     if (미확정 !== '') 집계.push(미확정);
     const 멈춤 = n.status === 'ABORTED';
+    // 준비 실패는 판정이 없다 — 미실행 수만 있고 모양은 중립이다 (도메인/실행 §3.2 「실행 전 준비」)
+    const 준비실패 = n.status === 'PREP_FAILED';
     return {
       ...바탕,
       종류: 'run',
-      모양: 멈춤 ? 'halt' : counts.fail > 0 ? 'fail' : 'pass',
-      머리: t(멈춤 ? 'RUN {번호} 실행이 중단됐습니다' : 'RUN {번호} 실행이 완료되었습니다', 언어, { 번호: n.runId }),
+      모양: 멈춤 || 준비실패 ? 'halt' : counts.fail > 0 ? 'fail' : 'pass',
+      머리: t(
+        준비실패 ? 'RUN {번호} 테스트 데이터 준비에 실패했습니다' : 멈춤 ? 'RUN {번호} 실행이 중단됐습니다' : 'RUN {번호} 실행이 완료되었습니다',
+        언어,
+        { 번호: n.runId },
+      ),
       집계,
       확인필요: 0,
       열기라벨: t('결과 보기', 언어),
