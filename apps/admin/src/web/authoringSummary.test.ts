@@ -18,6 +18,11 @@ describe('무슨 테스트', () => {
     expect(무슨테스트(요약({ kind: 'EDIT', what: { tcIds: ['A-FN-001', 'A-FN-002', 'A-FN-003'], tcMore: 4 } }), 'ko')).toBe('A-FN-001 외 6건 수정');
   });
 
+  it('Issue Bunker 테스트 수정은 첫 번호와 나머지 수', () => {
+    expect(무슨테스트(요약({ kind: 'TEST_FIX', what: { tcIds: ['DMW-FN-120'] } }), 'ko')).toBe('DMW-FN-120 테스트 수정');
+    expect(무슨테스트(요약({ kind: 'TEST_FIX', what: { tcIds: ['A-FN-001', 'A-FN-002', 'A-FN-003'], tcMore: 2 } }), 'ko')).toBe('A-FN-001 외 4건 테스트 수정');
+  });
+
   it('끝나기 전이라 모르면 처음 자료 이름(피그마는 「Figma 디자인」), 자료도 없으면 종류', () => {
     expect(무슨테스트(요약({ from: { assets: [{ name: 'https://www.figma.com/design/x', figma: true }, { name: 'a.pdf', figma: false }], assetsMore: 1 } }), 'ko')).toBe('Figma 디자인 외 2개');
     expect(무슨테스트(요약({ kind: 'PRD_APPLY' }), 'ko')).toBe('변경된 요구사항 다시 작성');
@@ -30,6 +35,7 @@ describe('목록 표 칸 (2026-11-10 사용자 시안)', () => {
     expect(구분글(요약({ kind: 'SCREEN_ONLY' }), 'ko')).toBe('신규');
     for (const kind of ['PRD_APPLY', 'API_APPLY', 'DECISION', 'EDIT'] as const) expect(구분글(요약({ kind }), 'ko')).toBe('수정');
     expect(구분글(요약({ kind: 'CONTINUE' }), 'ko')).toBe('추가');
+    expect(구분글(요약({ kind: 'TEST_FIX' }), 'ko')).toBe('자동 수정');
     expect(구분글(요약({ kind: 'UNCOVERED' }), 'en')).toBe('Additional');
   });
 

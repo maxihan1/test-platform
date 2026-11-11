@@ -195,12 +195,13 @@ export async function 한쪽(입력: {
       SELECT DISTINCT ON (사슬.root_id) 사슬.root_id, count(*) OVER (PARTITION BY 사슬.root_id) AS run_count,
              (SELECT r.continue_from FROM authoring_request r WHERE r.id = 사슬.root_id) AS root_continue_from,
              (SELECT r.kind FROM authoring_request r WHERE r.id = 사슬.root_id) AS root_kind,
+             (SELECT r.requested_by_name FROM authoring_request r WHERE r.id = 사슬.root_id) AS root_by_name,
              (SELECT r.params->'uncoveredOf' FROM authoring_request r WHERE r.id = 사슬.root_id) AS root_uncovered_of, ${요약칸들}
         FROM 사슬 JOIN authoring_request a ON a.id = 사슬.id
        ORDER BY 사슬.root_id, a.id DESC
     )`;
 
-  type 줄 = Omit<행, 'spec_text'> & { root_id: string; run_count: string; root_continue_from: string | null; root_kind: 요청['kind']; root_uncovered_of: unknown };
+  type 줄 = Omit<행, 'spec_text'> & { root_id: string; run_count: string; root_continue_from: string | null; root_kind: 요청['kind']; root_by_name: string; root_uncovered_of: unknown };
   let 줄들: 줄[];
   let 전체: number;
   let 할일들: Awaited<ReturnType<typeof 할일칸>>;
@@ -237,6 +238,8 @@ export async function 한쪽(입력: {
         rootId: Number(x.root_id),
         runCount: Number(x.run_count),
         rootKind: x.root_kind,
+        // 작성자는 뿌리를 보낸 사람 — 최신 행은 반영을 누른 사람일 수 있다
+        requestedByName: x.root_by_name,
         uncoveredOf: 밖화면뿌리(x.root_uncovered_of),
         // 줄은 모두 이 서비스의 살아 있는 뿌리라 요약이 늘 있다
         summary: 줄요약.get(Number(x.root_id))!,

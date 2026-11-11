@@ -13,7 +13,7 @@ import { 기준판 } from '../prd/store.js';
 import { 반영안됨, 화면번호들, 화면칸들 } from '../prd/rules.js';
 import { db } from './store.js';
 
-export type 요약종류 = 'PRD' | 'API_DOC' | 'UNCOVERED' | 'SCREEN_ONLY' | 'CONTINUE' | 'PRD_APPLY' | 'API_APPLY' | 'DECISION' | 'EDIT';
+export type 요약종류 = 'PRD' | 'API_DOC' | 'UNCOVERED' | 'SCREEN_ONLY' | 'CONTINUE' | 'PRD_APPLY' | 'API_APPLY' | 'DECISION' | 'EDIT' | 'TEST_FIX';
 
 export interface 목록요약 {
   kind: 요약종류;
@@ -67,6 +67,13 @@ interface 줄 {
   assets: { name: string; figma: boolean }[];
 }
 
+/** 테스트 수정이 고칠 케이스 번호 — 같은 케이스가 실행마다 올 수 있어 중복을 뺀다 */
+function 수정케이스들(p: Record<string, unknown>): string[] {
+  const 줄들 = (p.testFix as { cases?: unknown }).cases;
+  if (!Array.isArray(줄들)) return [];
+  return [...new Set(줄들.flatMap((c) => (typeof (c as { tcId?: unknown } | null)?.tcId === 'string' ? [(c as { tcId: string }).tcId] : [])))];
+}
+
 /** 많은 차례로 셋과 나머지 수. 같으면 처음 나온 차례 — Map 은 넣은 차례를 지킨다 */
 function 많은차례(셈: Map<string, number>): { 위: string[]; 더: number } {
   const 줄들 = [...셈.entries()].sort((a, b) => b[1] - a[1]);
@@ -76,6 +83,8 @@ function 많은차례(셈: Map<string, number>): { 위: string[]; 더: number } 
 function 종류(x: 줄, api: boolean): 요약종류 {
   const p = x.root_params;
   if (x.root_kind === 'EDIT') return 'EDIT';
+  // Issue Bunker 테스트 수정은 결정(decision)도 같이 달고 오지만 목록에서는 따로 보인다
+  if (typeof p.testFix === 'object' && p.testFix !== null) return 'TEST_FIX';
   if (p.prdApply === true) return 결정수(p.decision) === null ? 'PRD_APPLY' : 'DECISION';
   if (p.apiApply !== undefined) return 'API_APPLY';
   if (밖화면뿌리(p.uncoveredOf) !== null) return 'UNCOVERED';
@@ -194,7 +203,7 @@ export async function 목록요약들(서비스: number, 뿌리들: number[]): P
     }
     const 화면 = 많은차례(화면셈);
     const 고칠것 = kind === 'EDIT' ? 행의고칠것(x.root_params) : null;
-    const tcIds = (고칠것 ?? []).map((e) => (e as { tcId: string }).tcId);
+    const tcIds = kind === 'TEST_FIX' ? 수정케이스들(x.root_params) : (고칠것 ?? []).map((e) => (e as { tcId: string }).tcId);
     const 지우기수 = (고칠것 ?? []).filter((e) => (e as { delete?: unknown }).delete === true).length;
     결과표.set(Number(x.root_id), {
       kind,

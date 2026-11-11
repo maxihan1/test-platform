@@ -157,4 +157,6 @@ export const 작성할일말: Record<string, string> = {
   '삭제§목록 줄': 'deleted',
   '수정§목록 줄': 'changed',
   '{번호} 외 {수}건 {무엇}': '{번호} and {수} more {무엇}',
+  '{번호} 외 {수}건 테스트 수정': '{번호} and {수} more test fixes',
+  '{번호} 테스트 수정': '{번호} test fix',
 };
