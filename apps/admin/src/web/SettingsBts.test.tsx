@@ -50,11 +50,12 @@ const 목록 = {
     { key: 'todo', name: 'To Do' },
     { key: 'review', name: 'In Review' },
     { key: 'done', name: 'Done' },
+    { key: 'test-fix', name: '테스트 수정' },
   ],
   resolutions: Object.values(해결).map((name) => ({ name })),
 };
 
-const 다됨 = (['WEBHOOK', 'RULE_ASSIGNEE', 'RULE_PR', 'BOARD'] as const).map((what) => ({ what, ok: true }));
+const 다됨 = (['WEBHOOK', 'RULE_ASSIGNEE', 'RULE_PR', 'BOARD', 'TEST_FIX_FIELD'] as const).map((what) => ({ what, ok: true }));
 
 function 그리기(연결: BTS연결) {
   vi.spyOn(btsApi, 'get').mockResolvedValue(연결);
@@ -62,7 +63,7 @@ function 그리기(연결: BTS연결) {
 }
 
 describe('설정 › BTS 연결', () => {
-  it('처음 연결 — 적은 「QA Hub AI」 계정 이름으로 상태를 불러와 고르고, 저장하면 자동 설정까지 하고 넷이 ✓ 로 선다', async () => {
+  it('처음 연결 — 적은 「QA Hub AI」 계정 이름으로 상태를 불러와 고르고, 저장하면 자동 설정까지 하고 다섯이 ✓ 로 선다', async () => {
     const 불러옴 = vi.spyOn(btsApi, 'choices').mockResolvedValue(목록);
     const 저장 = vi.spyOn(btsApi, 'save').mockResolvedValue({ ok: true });
     const 설정 = vi.spyOn(btsApi, 'setup').mockResolvedValue({ items: 다됨 });
@@ -76,7 +77,7 @@ describe('설정 › BTS 연결', () => {
     fireEvent.change(이름칸, { target: { value: ' qahub-bot ' } });
     expect(불러옴).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Issue Bunker 에서 불러오기' }));
-    await screen.findByText('Issue Bunker 에서 상태 6개 · 해결 사유 5개를 불러왔습니다');
+    await screen.findByText('Issue Bunker 에서 상태 7개 · 해결 사유 5개를 불러왔습니다');
     expect(불러옴).toHaveBeenCalledWith(3, 'https://bts.example.com', 'qahub-bot');
 
     const 검토칸 = screen.getByLabelText('QA Review');
@@ -95,7 +96,29 @@ describe('설정 › BTS 연결', () => {
     await waitFor(() => expect(설정).toHaveBeenCalledWith(3));
     expect(저장).toHaveBeenCalledWith(3, { baseUrl: 'https://bts.example.com', btsProject: 'DM', botUsername: 'qahub-bot', statusMap: 상태, resolutionMap: 해결 });
     expect(저장소).toHaveBeenCalledWith(11, { codeRepos: [{ name: '화면', url: 'https://github.com/acme/web' }] });
-    await waitFor(() => expect(document.querySelectorAll('.bts-checks li.ok')).toHaveLength(4));
+    await waitFor(() => expect(document.querySelectorAll('.bts-checks li.ok')).toHaveLength(5));
+    expect(screen.getByText('이슈 필드 「테스트 수정 PR」')).toBeTruthy();
+  });
+
+  it('테스트 수정 고르개는 맨 위가 「선택 안 함」이고 비워도 저장된다 · 비었을 때만 상태를 만들라는 줄이 선다', async () => {
+    vi.spyOn(btsApi, 'choices').mockResolvedValue(목록);
+    const 저장 = vi.spyOn(btsApi, 'save').mockResolvedValue({ ok: true });
+    vi.spyOn(btsApi, 'setup').mockResolvedValue({ items: 다됨 });
+    그리기({ ...이은연결, statusMap: { ...상태, TEST_FIX: 'test-fix' } });
+    const 안내 = 'Issue Bunker 에서 상태 7개 · 해결 사유 5개를 불러왔습니다';
+    await screen.findByText(안내);
+
+    const 칸 = screen.getByLabelText('테스트 수정') as HTMLSelectElement;
+    expect(칸.value).toBe('test-fix');
+    expect(칸.options[0]?.text).toBe('선택 안 함');
+    const 줄 = 'Issue Bunker 워크플로에 상태를 만든 뒤 여기서 선택합니다';
+    expect(screen.queryByText(new RegExp(줄))).toBeNull();
+
+    fireEvent.change(칸, { target: { value: '' } });
+    expect(screen.getByText(new RegExp(줄))).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '저장하고 Issue Bunker 자동 설정' }));
+    await waitFor(() => expect(저장).toHaveBeenCalled());
+    expect(저장.mock.calls[0]![1].statusMap).toEqual({ ...상태, TEST_FIX: '' });
   });
 
   it('이은 프로젝트는 저장한 계정 이름을 칸에 그대로 보이고 그 이름으로 바로 불러온다 · 비운 단계가 있으면 저장하지 않는다', async () => {

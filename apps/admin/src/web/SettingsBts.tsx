@@ -1,10 +1,10 @@
 // 설정 › 프로젝트 › BTS 연결 화면 (SPEC 도메인/BTS §8.15 · 시안 B 3판 2026-10-31). 연결 정보 → BTS 자동 설정 → 배포 스크립트 한 줄
-// BTS 쪽(웹훅 · 규칙 둘 · 보드 칸)은 누른 사람의 대신 PAT 로 서버가 만든다 — 사람이 값을 옮겨 적지 않는다(2026-10-31 사용자 「자동으로 설정하면 되잖아」)
+// BTS 쪽(웹훅 · 규칙 둘 · 보드 칸 · 이슈 필드)은 누른 사람의 대신 PAT 로 서버가 만든다 — 사람이 값을 옮겨 적지 않는다(2026-10-31 사용자 「자동으로 설정하면 되잖아」)
 
 import { useEffect, useState } from 'react';
 
 import { api, ApiError, type SettingsProject, type SettingsServiceRow } from './api.js';
-import { btsApi, type BTS고를목록, type BTS설정결과, type BTS연결, type 상태단계, type 해결단계 } from './btsApi.js';
+import { btsApi, type BTS고를목록, type BTS설정결과, type BTS연결, type 해결단계 } from './btsApi.js';
 import { BTS이름 } from './btsName.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
@@ -99,7 +99,7 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
         baseUrl: baseUrl.trim(),
         btsProject: btsProject.trim(),
         botUsername: botUsername.trim(),
-        statusMap: 상태 as Record<상태단계, string>,
+        statusMap: 상태,
         resolutionMap: 해결 as Record<해결단계, string>,
       });
       // 고친 애플리케이션만 보낸다 — 빈 줄은 빼고 보낸다(서버는 이름 · 주소가 빈 줄을 거절한다)
@@ -192,7 +192,7 @@ function 연결화면({ row, 앱들, 지금, 다시, onDone }: { row: SettingsPr
       />
       <코드저장소구획 앱들={앱들} 저장소={저장소} 바꾼다={(앱, 줄) => set저장소((전) => ({ ...전, [앱]: 줄 }))} />
 
-      <구획 제목={t('2 · {bts} 자동 설정', { bts: BTS이름 })} 쓰임={t('내 통합계정 권한으로 {bts} 에 아래 넷을 만듭니다. 이미 있으면 생성하지 않고 수정합니다', { bts: BTS이름 })}>
+      <구획 제목={t('2 · {bts} 자동 설정', { bts: BTS이름 })} 쓰임={t('내 통합계정 권한으로 {bts} 에 아래 항목을 만듭니다. 이미 있으면 생성하지 않고 수정합니다', { bts: BTS이름 })}>
         <자동설정결과 결과={결과} />
       </구획>
       {오류 === null ? null : (
