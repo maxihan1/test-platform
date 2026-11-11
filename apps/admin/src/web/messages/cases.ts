@@ -84,6 +84,9 @@ export const 케이스말: Record<string, string> = {
   '창': 'Window',
   '창 조각': 'Window part',
   '실패 {건수}': '{건수} failed',
+  // 목록 왼쪽 목차 (ListToc.tsx · 2026-11-11 시안 B)
+  '기능 묶음 목차': 'Feature contents',
+  '정리 필요': 'Needs tidying',
   'PRD 에 연결되지 않은 케이스': 'Not linked to the PRD',
   '앞 페이지에서 이어짐': 'Continued from the previous page',
   '이것만 보기': 'Show only this',

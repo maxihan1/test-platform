@@ -2,7 +2,7 @@ import type { PrdItem } from '@platform/kit';
 import { describe, expect, it } from 'vitest';
 
 import { 직접근거, 로그인역할 } from '../prd/rules.js';
-import { 고친판, 고치기검사, 묶음들, 판차이 } from './prdView.js';
+import { 고친판, 고치기검사, 묶음들, 묶음이름문제, 판차이 } from './prdView.js';
 
 const 항목 = (reqId: string, feature: string, 덮을것: Partial<PrdItem> = {}): PrdItem => ({
   reqId,
@@ -20,6 +20,37 @@ describe('기능 묶음', () => {
       ['회원가입', ['MKT-REQ-001', 'MKT-REQ-003']],
       ['로그인', ['MKT-REQ-002']],
     ]);
+  });
+});
+
+describe('목차 정리 필요', () => {
+  const 화면만 = { basis: [{ from: '화면', ref: '/write', quote: '제목 50자' }] };
+  const 이슈 = { basis: [{ from: 'DMQ-3', quote: 'DMQ-3 설명' }], fromIssues: ['DMQ-3'] };
+
+  it('기획서 제목 꼴이면 문제 없다', () => {
+    const 판 = [항목('MKT-REQ-001', '회원가입')];
+    expect(묶음이름문제('회원가입', 판, 판)).toBeNull();
+  });
+
+  it('30자 넘는 이름 · 문장 꼴 이름을 잡는다', () => {
+    const 긴 = '가'.repeat(31);
+    expect(묶음이름문제(긴, [항목('MKT-REQ-001', 긴)], [])).toBe('long');
+    const 문장 = '운영툴 쿠폰 안내를 「보냈습니다」로 바꾼다';
+    expect(묶음이름문제(문장, [항목('MKT-REQ-001', 문장, 이슈)], [])).toBe('sentence');
+    expect(묶음이름문제('쿠폰 안내를 바꾼다', [항목('MKT-REQ-001', '쿠폰 안내를 바꾼다', 이슈)], [])).toBe('sentence');
+  });
+
+  it('기획서에서 온 항목이 있는 판에서 화면 · 이슈만 근거인 묶음은 제목에 없는 이름이다', () => {
+    const 판 = [항목('MKT-REQ-001', '글쓰기 · 수정'), 항목('MKT-REQ-002', '글쓰기', 화면만), 항목('MKT-REQ-003', '알림', 이슈)];
+    expect(묶음이름문제('글쓰기', [판[1]!], 판)).toBe('noHeading');
+    expect(묶음이름문제('알림', [판[2]!], 판)).toBe('noHeading');
+    expect(묶음이름문제('글쓰기 · 수정', [판[0]!], 판)).toBeNull();
+  });
+
+  it('기획서 없이 화면만 · 직접 쓴 판은 제목을 견주지 않는다', () => {
+    const 판 = [항목('MKT-REQ-001', '글쓰기', 화면만), 항목('MKT-REQ-002', '공지', { basis: 직접근거('공지') })];
+    expect(묶음이름문제('글쓰기', [판[0]!], 판)).toBeNull();
+    expect(묶음이름문제('공지', [판[1]!], 판)).toBeNull();
   });
 });
 

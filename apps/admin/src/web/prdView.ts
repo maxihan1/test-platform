@@ -2,7 +2,7 @@
 
 import type { PrdItem } from '@platform/kit';
 
-import { 상한 } from '../prd/rules.js';
+import { 상한, 직접작성, 화면에서 } from '../prd/rules.js';
 import type { PrdItemDraft } from './prdApi.js';
 
 /** 기능 묶음으로 접는다. 묶음 차례는 판에 처음 나온 차례다 — 옮기기가 원본 차례대로 싣는다 */
@@ -10,6 +10,23 @@ export function 묶음들(items: PrdItem[]): { feature: string; items: PrdItem[]
   const 표 = new Map<string, PrdItem[]>();
   for (const x of items) 표.set(x.feature, [...(표.get(x.feature) ?? []), x]);
   return [...표].map(([feature, 줄들]) => ({ feature, items: 줄들 }));
+}
+
+export type 이름문제 = 'long' | 'sentence' | 'noHeading';
+
+/** 기획서 같은 자료에서 온 근거인가 — 화면 · 직접 작성 · 그 항목을 낸 이슈 키는 기획서 제목을 주지 않는다 */
+const 문서근거 = (x: PrdItem) => x.basis.some((b) => b.from !== 화면에서 && b.from !== 직접작성 && !(x.fromIssues ?? []).some((키) => b.from.includes(키)));
+
+/**
+ * 목차 규칙 4 — 묶음 이름이 기획서 제목 꼴이 아니면 「정리 필요」 (도메인/작성 §8.x 「목차」).
+ * 기획서에서 온 항목이 판에 하나도 없으면(화면만 · 직접 작성) 「제목에 없음」은 안 본다 — 고를 제목이 없다
+ */
+export function 묶음이름문제(feature: string, 묶음항목: PrdItem[], 판: PrdItem[]): 이름문제 | null {
+  if (feature.length > 30) return 'long';
+  // 낫표 · 따옴표가 들었거나 「~다」로 끝나면 문장이다. 글자는 코드로 적는다 — 그대로 두면 소스 훑개가 따옴표를 문자열 시작으로 읽는다(messages.test)
+  if (/[「」“”\x22]/.test(feature) || /다[.!]?$/.test(feature.trim())) return 'sentence';
+  if (판.some(문서근거) && !묶음항목.some(문서근거)) return 'noHeading';
+  return null;
 }
 
 /** 고른 것 · 편 것 모음에서 값 하나를 넣고 뺀다 */
