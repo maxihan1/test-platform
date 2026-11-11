@@ -30,9 +30,20 @@ export const { PNG } = createRequire(import.meta.url)('playwright-core/lib/utils
 const 빨강 = [229, 72, 77] as const;
 const 흰색 = [255, 255, 255] as const;
 
+// 실시간 장면의 윤곽이 읽는 「지금 다루는 요소」 — 장면을 찍는 쪽은 단계 문맥 밖이라 프로세스 전역에 둔다.
+// kit 이 두 방식(E2E 고정 spec 의 import · 케이스 파일의 require)으로 따로 올라와도 같은 값을 보게 globalThis 에 둔다 (scenario/wire.ts 머리)
+const 지금칸 = Symbol.for('platform.kit.지금요소');
+type 전역칸 = { [지금칸]?: Locator | string };
+
+/** 케이스가 마지막으로 다룬 요소 — 웹은 Locator, 앱은 Appium 요소 번호. 찾기를 시작했거나 page 에서 바로 부른 것이면 없다 (liveBox.ts) */
+export function 지금다룬요소(): Locator | string | undefined {
+  return (globalThis as 전역칸)[지금칸];
+}
+
 function 적는다(요소: Locator | string | undefined): void {
   const scope = stepScope.getStore();
   if (scope) scope.마지막요소 = 요소;
+  (globalThis as 전역칸)[지금칸] = 요소;
 }
 
 const 감싼것 = new WeakMap<object, object>();

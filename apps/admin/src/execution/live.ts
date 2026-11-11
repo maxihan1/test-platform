@@ -8,6 +8,9 @@ import { 정수 } from '../routeParams.js';
 
 import { runnerUrl, 러너머리 } from './runnerAddr.js';
 
+const 상자머리 = 'x-live-box';
+const 상자꼴 = /^[\d.]+,[\d.]+,[\d.]+,[\d.]+$/;
+
 // 화면은 앞 물음이 끝나야 다음을 묻는다. 잠든 러너에 오래 매달리지 않되, 폰 PNG(수 MB)가 느린 길(터널)로 와도 다 받을 만큼 둔다
 const 제한ms = 5_000;
 
@@ -30,6 +33,9 @@ export async function 장면을건넨다(reply: FastifyReply, 열쇠: string): P
   if (!res.ok) throw new Error(`러너가 장면을 ${res.status}로 거절했다: ${await res.text()}`);
   // 앱 · 게임 폰 장면은 PNG 다 — 러너가 붙인 형식을 따르고 그 밖은 JPEG 로 본다
   const 형식 = res.headers.get('content-type') === 'image/png' ? 'image/png' : 'image/jpeg';
+  // 케이스가 지금 다루는 요소의 자리(장면에 대한 비율 넷) — 화면이 그 위에 윤곽을 그린다. 러너가 꼴을 거른 것을 그대로 넘긴다 (도메인/러너 §5.2 「요소 윤곽」)
+  const 상자 = res.headers.get(상자머리);
+  if (상자 !== null && 상자꼴.test(상자)) reply.header(상자머리, 상자);
   return reply.header('cache-control', 'no-store').type(형식).send(Buffer.from(await res.arrayBuffer()));
 }
 
