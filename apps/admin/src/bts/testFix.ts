@@ -55,7 +55,7 @@ async function 봇번호(자리: BTS자리, 부르기: 부르기함수): Promise
 }
 
 /** 같은 글이 그 이슈에 이미 들어갔으면 다시 안 넣는다 — 재기동 뒤 같은 알림이 와도 댓글이 겹치지 않게 */
-async function 댓글한번(projectId: number, issueKey: string, body: string): Promise<void> {
+export async function 댓글한번(projectId: number, issueKey: string, body: string): Promise<void> {
   const 있음 = await (await db()).query(`SELECT 1 FROM bts_outbox WHERE project_id = $1 AND kind = 'COMMENT' AND issue_key = $2 AND payload->>'body' = $3`, [projectId, issueKey, body]);
   if ((있음.rowCount ?? 0) === 0) await 보낼줄넣기({ projectId, kind: 'COMMENT', issueKey, payload: { body } });
 }
@@ -171,8 +171,20 @@ export async function 테스트수정처리(연결: 닫기연결, 이슈: BTS이
 
 const 요약상한 = 500;
 
-// 작성 에이전트 끝내기 result.testFix — 고친 곳 한 줄 · 마지막 전체 돌려 보기에서 실제로 돈 횟수. 자동 병합 판정 칸은 BTS-F10-05 가 더한다 (도메인/BTS §7)
-const 결과틀 = z.object({ summary: z.string().max(요약상한), reruns: z.number().int().min(0) });
+export const 걸린까닭들 = ['EXPECTED_CHANGED', 'VERIFY_FEWER', 'MUTATION_MISSED', 'NOT_MEASURED'] as const;
+export type 걸린까닭 = (typeof 걸린까닭들)[number];
+
+// 작성 에이전트 끝내기 result.testFix — 고친 곳 한 줄 · 마지막 전체 돌려 보기에서 실제로 돈 횟수 · 자동 병합 판정 (도메인/BTS §7).
+// autoMerge · held 는 둘이 같이 오고 autoMerge 는 held 가 빌 때만 true — 판정 칸 없이 온 앞 판 에이전트는 「재지 못함」으로 친다(걸린까닭읽기)
+const 결과틀 = z
+  .object({ summary: z.string().max(요약상한), reruns: z.number().int().min(0), autoMerge: z.boolean().optional(), held: z.array(z.enum(걸린까닭들)).max(걸린까닭들.length).optional() })
+  .refine((v) => (v.held === undefined ? v.autoMerge === undefined : v.autoMerge === (v.held.length === 0)));
+
+/** 자동 병합에 걸린 까닭 — 빈 배열이면 자동 병합한다. 판정 칸이 없거나 꼴이 틀리면 「재지 못함」 (도메인/BTS §3.12 「테스트 수정 바퀴」 3) */
+export function 걸린까닭읽기(결과: unknown): 걸린까닭[] {
+  const r = 결과틀.safeParse((결과 as { testFix?: unknown } | null)?.testFix);
+  return r.success && r.data.held !== undefined ? [...new Set(r.data.held)] : ['NOT_MEASURED'];
+}
 
 /** 「테스트 수정」 고침 줄(params.testFix — 재실행 · 이어서 작성은 원본 것을 물려받는다)이고 꼴이 맞을 때만 */
 export function 테스트수정결과맞나(params: unknown, 값: unknown): boolean {
@@ -215,7 +227,8 @@ export async function 테스트수정PR열림(요청: { serviceId: number; param
   // 단계마다 따로 한 번만 한다 — 중간에 깨진 뒤 같은 PR 로 또 끝나면 남은 단계만 이어 간다
   const 요약 = await 요약가리기(뿌리번호, 요약읽기(결과));
   await pool.query(
-    `UPDATE bts_test_fix SET pr_url = $2, summary = $3, state = 'WAIT_MERGE', updated_at = now() WHERE request_id = $1 AND state = 'FIXING'`,
+    // 병합 전 재실행 · 이어서 작성이 다른 PR 로 끝났으면 그 PR 로 바꾼다 — 안 바꾸면 자동 병합 판정(testFixMerge.ts)이 새 PR 의 줄을 못 찾는다
+    `UPDATE bts_test_fix SET pr_url = $2, summary = $3, state = 'WAIT_MERGE', updated_at = now() WHERE request_id = $1 AND (state = 'FIXING' OR (state = 'WAIT_MERGE' AND merge IS NULL))`,
     [뿌리번호, prUrl, 요약 === '' ? null : 요약],
   );
   // 주소 뒤가 줄 끝이거나 글 끝일 때만 같은 PR 이다 — …/pull/1 이 …/pull/12 댓글에 걸리지 않게

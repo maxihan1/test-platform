@@ -5,7 +5,7 @@ import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { BTS이슈, 부르기함수 } from './client.js';
-import { 테스트수정PR열림, 테스트수정결과맞나, 테스트수정처리 } from './testFix.js';
+import { 걸린까닭읽기, 테스트수정PR열림, 테스트수정결과맞나, 테스트수정처리 } from './testFix.js';
 
 describe('테스트 수정 끝내기 결과 꼴', () => {
   it('testFix 줄이고 고친 곳 · 다시 돌린 횟수가 꼴에 맞을 때만', () => {
@@ -15,6 +15,21 @@ describe('테스트 수정 끝내기 결과 꼴', () => {
     expect(테스트수정결과맞나(고침줄, { summary: '기다리기를 고쳤어요', reruns: -1 })).toBe(false);
     expect(테스트수정결과맞나(고침줄, { summary: 'x'.repeat(501), reruns: 3 })).toBe(false);
     expect(테스트수정결과맞나(고침줄, { reruns: 3 })).toBe(false);
+  });
+
+  it('자동 병합 판정은 둘이 같이 오고 autoMerge 는 걸린 까닭이 빌 때만 true — 판정 칸이 없거나 틀리면 「재지 못함」', () => {
+    const 고침줄 = { testFix: { issueKey: 'DM-1', cases: [], note: '' } };
+    const 몸 = { summary: '기다리기를 고쳤어요', reruns: 3 };
+    expect(테스트수정결과맞나(고침줄, { ...몸, autoMerge: true, held: [] })).toBe(true);
+    expect(테스트수정결과맞나(고침줄, { ...몸, autoMerge: false, held: ['VERIFY_FEWER'] })).toBe(true);
+    expect(테스트수정결과맞나(고침줄, { ...몸, autoMerge: true, held: ['VERIFY_FEWER'] })).toBe(false);
+    expect(테스트수정결과맞나(고침줄, { ...몸, autoMerge: false, held: [] })).toBe(false);
+    expect(테스트수정결과맞나(고침줄, { ...몸, autoMerge: true })).toBe(false);
+    expect(테스트수정결과맞나(고침줄, { ...몸, autoMerge: false, held: ['SLOW'] })).toBe(false);
+    expect(걸린까닭읽기({ testFix: { ...몸, autoMerge: true, held: [] } })).toEqual([]);
+    expect(걸린까닭읽기({ testFix: { ...몸, autoMerge: false, held: ['MUTATION_MISSED', 'MUTATION_MISSED'] } })).toEqual(['MUTATION_MISSED']);
+    expect(걸린까닭읽기({ testFix: 몸 })).toEqual(['NOT_MEASURED']);
+    expect(걸린까닭읽기(null)).toEqual(['NOT_MEASURED']);
   });
 });
 

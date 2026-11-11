@@ -5,6 +5,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import { 작성계정인가 } from '../auth/agentToken.js';
 import { 테스트수정PR열림, 테스트수정결과맞나 } from '../bts/testFix.js';
+import { 반영한사람적기, 테스트수정병합판정 } from '../bts/testFixMerge.js';
 import { 수정PR주소인가, 수정집기칸읽기 } from '../bts/bugfix.js';
 import { 수정끝내기틀림, 수정끝냄 } from '../bts/bugfixRoutes.js';
 import { 초안다시세우기, 초안집기칸, 초안있나 } from '../bts/draft.js';
@@ -280,6 +281,7 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
       if (됨 && status === 'DONE' && 행.kind === 'MERGE') {
         await 반영뒤저장값(손, 행, 결과칸.pulled);
         await 기획서밖화면세우기(손, 뿌리번호);
+        await 반영한사람적기(손, 뿌리번호, 행.requestedBy);
       }
       // 노트 밖 작성이 끝나면 노트 사건 — 같은 트랜잭션이라 끝내기가 롤백되면 사건도 안 남는다 (도메인/BTS 「맥락 — 프로젝트 노트」)
       if (됨 && status === 'DONE' && 행.serviceId !== null && 행.kind !== 'PRD_DRAFT') {
@@ -306,9 +308,12 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
     // 수정 AI 도 사람 작성 목록 · 알림 밖이다 — BTS 이슈에서 본다
     if (행.kind === 'BUGFIX') return 수정끝냄({ ...행, serviceId: 서비스 }, 멈춤이유, error, app.log);
     끝냈다고알림(행, 뿌리번호, 멈춤이유, app.log);
-    // BTS 「테스트 수정」으로 세운 작성이 PR 을 열었으면 그 이슈에 필드 · 댓글 — 보낼 줄에 넣기만 하고 기다리지 않는다 (도메인/BTS 「테스트 수정 바퀴」 2)
+    // BTS 「테스트 수정」으로 세운 작성이 PR 을 열었으면 그 이슈에 필드 · 댓글, 그 뒤에 자동 병합 판정 — 보낼 줄에 넣기만 하고 기다리지 않는다 (도메인/BTS 「테스트 수정 바퀴」 2 · 3).
+    // 판정은 댓글 뒤다 — 「사람 확인이 필요해요」가 「PR 을 열었어요」보다 먼저 가지 않게
     if (status === 'DONE' && typeof prUrl === 'string' && 행.kind !== 'MERGE') {
-      void 테스트수정PR열림({ ...행, serviceId: 서비스 }, 뿌리번호, prUrl, 결과).catch((err: unknown) => app.log.error(`[bts] ${String(행.id)}번 테스트 수정 PR 알림을 못 넣었다: ${String(err)}`));
+      void 테스트수정PR열림({ ...행, serviceId: 서비스 }, 뿌리번호, prUrl, 결과)
+        .then(() => ((행.params as { testFix?: unknown } | null)?.testFix === undefined ? null : 테스트수정병합판정(행.id, 서비스, 뿌리번호, prUrl, 결과)))
+        .catch((err: unknown) => app.log.error(`[bts] ${String(행.id)}번 테스트 수정 PR 알림 · 병합 판정을 못 했다: ${String(err)}`));
     }
     // 병합한 테스트가 「PRD 관리」 · 목록에 바로 보이게 그 서비스를 다시 훑는다 (PRD-F9-03). main 을 못 받아 왔으면 훑어도 옛 파일이다.
     // 기다리지 않는다 — 큰 서비스는 훑기가 에이전트의 30초 제한을 넘겨, 이미 끝난 보고를 다시 보내게 된다
