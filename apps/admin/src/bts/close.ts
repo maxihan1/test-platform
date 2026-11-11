@@ -1,4 +1,4 @@
-// BTS 에서 닫힌 이슈의 닫기 사유를 받아 QA Hub 가 할 일을 한다 — 화면이 맞음 · 테스트 문제는 작성 요청, 흔들림 · 환경 · 중복은 기록만 (도메인/BTS 「판정은 BTS 에서」)
+// BTS 에서 닫힌 이슈의 닫기 사유를 받아 QA Hub 가 할 일을 한다 — 화면이 맞음은 작성 요청, 테스트 문제 · 흔들림 · 환경 · 중복은 기록만 (도메인/BTS 「판정은 BTS 에서」)
 // 같은 알림이 다시 와도 한 번만 한다 — 닫히지 않은 짝 줄을 닫는 UPDATE 가 돌려준 줄에만 일을 건다(알림 기억은 재기동 때 잊는다 — BTS-F3-02 시작 질문)
 
 import type { Pool, PoolClient } from 'pg';
@@ -8,8 +8,7 @@ import { 줄세우기 } from '../authoring/store.js';
 import { 화면이맞음채우기 } from '../prd/screenRight.js';
 import { 잠그고 } from '../prd/store.js';
 import { BTS부르기, type BTS이슈, type BTS자리, type 부르기함수 } from './client.js';
-import { BTS이은프로젝트, type 상태짝, type 해결짝 } from './link.js';
-import { 보낼줄넣기 } from './outbox.js';
+import { type 상태짝, type 해결짝 } from './link.js';
 
 async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
@@ -26,13 +25,13 @@ export function 사유찾기(짝: Partial<해결짝>, 이름: string | null): �
 }
 
 /** 작성 요청에 남길 BTS 쪽 이름 — 이 요청을 사람 대신 BTS 의 판정이 세웠다 */
-const BTS요청자 = (issueKey: string) => ({ 누가: 'bts', 이름: `Issue Bunker ${issueKey}` });
+export const BTS요청자 = (issueKey: string) => ({ 누가: 'bts', 이름: `Issue Bunker ${issueKey}` });
 
 // 자식이 읽을 이슈 글 상한 — 프롬프트가 아니라 자료 파일로 가지만 params 에 실리므로 크게 두지 않는다
 const 글상한 = 8000;
 
 /**
- * 테스트 문제로 닫힌 이슈의 글 · 댓글 — 자식이 무엇이 테스트 문제였는지 읽는다.
+ * 이슈의 글 · 댓글 — 「테스트 수정」 고침(testFix.ts)과 수정 AI 의 자식이 무엇이 틀렸는지 읽는다.
  * BTS 가 바쁘거나 닿지 않으면(5xx · 408 · 429 · 끊김) 던진다 — 알림을 다시 받게. 권한 · 없음 같은 4xx 는 다시 받아도 같아 글 없이 간다(자식은 케이스를 다시 돌려 본다)
  */
 export async function 이슈글읽기(자리: BTS자리, issueKey: string, 부르기: 부르기함수 = BTS부르기): Promise<string> {
@@ -69,7 +68,7 @@ async function 짝닫기(손: Pick<PoolClient, 'query'>, projectId: number, issu
  * 그 케이스가 실제로 실패한 실행 — 처음 올린 실행이 실패를 담았으면 그것, 아니면 거기 붙은 한 건 실행 가운데 실패한 가장 늦은 것.
  * 한 건 실행으로 올린 이슈는 짝 줄이 부모 실행을 가리키고 부모에서는 통과했을 수 있다(failReport.ts 「카드가 부모 자리에 선다」)
  */
-async function 실패한실행(손: Pick<PoolClient, 'query'>, 첫실행: number, tcId: string): Promise<number | null> {
+export async function 실패한실행(손: Pick<PoolClient, 'query'>, 첫실행: number, tcId: string): Promise<number | null> {
   const r = await 손.query<{ run_id: string }>(
     `SELECT r.run_id FROM test_run r
       WHERE (r.run_id = $1 OR (r.rerun_of = $1 AND r.origin = 'SINGLE'))
@@ -81,7 +80,7 @@ async function 실패한실행(손: Pick<PoolClient, 'query'>, 첫실행: number
 }
 
 /** 뒤 요청은 그때 열린 작성 전부를 기다린다 — 결정 진행이 세우는 요청과 같은 차례(authoring/decisionRun.ts) */
-async function 반영요청세우기(손: PoolClient, 서비스: number, issueKey: string, 값: Record<string, unknown>): Promise<number> {
+export async function 반영요청세우기(손: PoolClient, 서비스: number, issueKey: string, 값: Record<string, unknown>): Promise<number> {
   const 열린 = await 열린작성(서비스, 손);
   return 줄세우기({ 서비스, kind: 'AUTHOR', 기획서: null, 값: { prdApply: true, ...값, decision: { after: 열린, count: 1 } }, ...BTS요청자(issueKey) }, 손);
 }
@@ -101,10 +100,10 @@ export interface 닫기연결 {
 /**
  * 다시 읽은 이슈가 닫기 사유를 달았으면 그 사유대로 한다. 세운 작성 요청 번호들을 돌려준다.
  * 화면이 맞음 — 지금 「화면이 맞음」 다시 작성(사람이 판정했으므로 고친 요구는 확정 · byPerson). 첫 실패 실행이 지워졌거나 덮는 요구가 없으면 그 케이스는 기록만.
- * 테스트 문제 — 테스트만 다시 쓰는 작성(PRD 그대로). 이슈 글 · 댓글을 닫힐 때 한 번 읽어 요청에 담는다. PR 이 서면 이슈에 댓글(테스트고침댓글).
- * 흔들림 · 환경 문제 · 중복 — 기록만. 흔들림은 그 케이스를 고친 작성이 병합될 때까지 다음 실패를 올리지 않는다(failReport.ts)
+ * 테스트 문제 · 흔들림 · 환경 문제 · 중복 — 기록만. 테스트를 고치려면 이슈를 닫지 않고 「테스트 수정」으로 옮긴다(testFix.ts · 2026-11-11 결정 23).
+ * 흔들림은 그 케이스를 고친 작성이 병합될 때까지 다음 실패를 올리지 않는다(failReport.ts)
  */
-export async function 닫기처리(연결: 닫기연결, 이슈: BTS이슈, 부르기: 부르기함수 = BTS부르기): Promise<닫기결과> {
+export async function 닫기처리(연결: 닫기연결, 이슈: BTS이슈): Promise<닫기결과> {
   const 없음: 닫기결과 = { 요청들: [], 기록만: [] };
   const pool = await db();
   const 짝 = (await pool.query<{ resolution_map: 해결짝; status_map: Partial<상태짝> }>('SELECT resolution_map, status_map FROM bts_link WHERE project_id = $1', [연결.projectId])).rows[0];
@@ -121,12 +120,10 @@ export async function 닫기처리(연결: 닫기연결, 이슈: BTS이슈, 부�
     )
   ).rows.map((r) => Number(r.service_id));
   if (서비스들.length === 0) return 없음;
-  if (사유 !== 'SCREEN_RIGHT' && 사유 !== 'TEST_PROBLEM') {
+  if (사유 !== 'SCREEN_RIGHT') {
     for (const 서비스 of 서비스들) await 짝닫기(pool, 연결.projectId, 이슈.key, 서비스, 사유);
     return 없음;
   }
-  // 글은 잠금 밖에서 읽는다 — BTS 를 기다리는 동안 그 애플리케이션의 기획서 잠금을 쥐지 않게
-  const 글 = 사유 === 'TEST_PROBLEM' ? await 이슈글읽기({ baseUrl: 연결.baseUrl, 봇: 연결.봇 }, 이슈.key, 부르기) : '';
   const 결과: 닫기결과 = { 요청들: [], 기록만: [] };
   for (const 서비스 of 서비스들) {
     const 번호 = await 잠그고(서비스, async (손) => {
@@ -140,7 +137,6 @@ export async function 닫기처리(연결: 닫기연결, 이슈: BTS이슈, 부�
         else 건들.push({ runId, tcId: x.tc_id, env: x.env });
       }
       if (건들.length === 0) return null;
-      if (사유 === 'TEST_PROBLEM') return 반영요청세우기(손, 서비스, 이슈.key, { testFix: { issueKey: 이슈.key, cases: 건들, note: 글 } });
       const at = new Date().toISOString();
       const 칸들 = [];
       for (const x of 건들) {
@@ -153,27 +149,4 @@ export async function 닫기처리(연결: 닫기연결, 이슈: BTS이슈, 부�
     if (번호 !== null) 결과.요청들.push(번호);
   }
   return 결과;
-}
-
-/** 테스트 문제로 세운 작성이 초안 PR 을 열면 이슈에 「테스트 수정 PR #N」 댓글 — 보낼 줄로 보낸다. 테스트 고침 요청이 아니면 아무것도 안 한다 */
-export async function 테스트고침댓글(요청: { serviceId: number; params: unknown }, prUrl: string): Promise<boolean> {
-  const 고침 = (요청.params as { testFix?: { issueKey?: unknown } } | null)?.testFix;
-  if (typeof 고침?.issueKey !== 'string') return false;
-  const 프로젝트 = await BTS이은프로젝트(요청.serviceId);
-  // 그사이 연결을 끊었으면 보내지 않는다 — 그 프로젝트는 다시 QA Hub 안에서 돈다
-  if (프로젝트 === null) return false;
-  // 재실행 · 이어서 작성이 같은 PR 로 끝나도 댓글은 한 번
-  const 보냈나 = await (await db()).query(
-    `SELECT 1 FROM bts_outbox WHERE project_id = $1 AND kind = 'COMMENT' AND issue_key = $2 AND strpos(payload->>'body', $3) > 0`,
-    [프로젝트, 고침.issueKey, prUrl],
-  );
-  if ((보냈나.rowCount ?? 0) > 0) return false;
-  const 번호 = /\/pull\/(\d+)/.exec(prUrl)?.[1];
-  await 보낼줄넣기({
-    projectId: 프로젝트,
-    kind: 'COMMENT',
-    issueKey: 고침.issueKey,
-    payload: { body: `테스트 수정 PR ${번호 === undefined ? '' : `#${번호} `}— ${prUrl}\nTest Commander 가 테스트만 수정한 검토용 PR 을 열었습니다. 병합은 사람이 합니다` },
-  });
-  return true;
 }

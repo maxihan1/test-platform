@@ -63,7 +63,8 @@ const 기록상한 = 5;
 // 풀기가 멈추면(볼륨 읽기가 안 돌아오는 것 같은) 줄 끝이 안 온다 — 그때도 등록은 나가야 한다
 const trace기다림상한ms = 5 * 60_000;
 
-const 안올릴사유 = new Set(['FLAKY', 'TEST_PROBLEM', 'SCREEN_RIGHT']);
+// 테스트 문제로 닫으면 고침을 세우지 않아 기다릴 병합이 없다 — 다음 실패를 다시 올린다(2026-11-11 결정 23). 고침은 「테스트 수정」 바퀴가 맡는다
+const 안올릴사유 = new Set(['FLAKY', 'SCREEN_RIGHT']);
 
 /** trace 를 다 풀었을 때만 실패한 요청 · 콘솔 오류를 준다. 값은 적재 때 이미 가렸다(execution/traceIngest.ts) */
 async function 기록읽기(pool: Pool, historyId: number): Promise<{ 네트워크: string[] | null; 콘솔: string[] | null }> {
@@ -222,7 +223,7 @@ export async function 실패등록(runId: number, 기다림상한ms = trace기�
     for (const c of 쪽.items) {
       if (그것만 !== null && !그것만.has(c.tcId)) continue;
       const 짝 = (await pool.query<{ issue_key: string; open: boolean; resolution: string | null; released: boolean }>(짝SQL, [서비스, c.tcId, 실행.env])).rows[0];
-      // 흔들림 · 테스트 문제 · 화면이 맞음으로 닫힌 테스트는 다음 실패부터 올리지 않는다 — 사람이 판정했고 테스트를 고칠 일만 남았다.
+      // 흔들림 · 화면이 맞음으로 닫힌 테스트는 다음 실패부터 올리지 않는다 — 사람이 판정했고 테스트를 고칠 일만 남았다.
       // 그 케이스를 고친 작성이 병합되면 다시 올린다(도메인/BTS 「판정은 BTS 에서」)
       if (짝 !== undefined && !짝.open && 안올릴사유.has(짝.resolution ?? '') && !짝.released) continue;
       const 댓글 = 짝 !== undefined && 짝.open;

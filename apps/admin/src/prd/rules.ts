@@ -122,7 +122,7 @@ export function 화면번호들(params: Record<string, unknown>): Map<string, st
 }
 
 /**
- * 그 요청의 「화면이 맞음」 칸 · BTS 「테스트 문제」 칸(testFix.cases)에 실린 실행 · 케이스인가 — 에이전트가 받을 수 있는 실패 trace 는 이 짝뿐이다
+ * 그 요청의 「화면이 맞음」 칸 · BTS 「테스트 수정」 칸(testFix.cases)에 실린 실행 · 케이스인가 — 에이전트가 받을 수 있는 실패 trace 는 이 짝뿐이다
  */
 export function 화면이맞음건인가(params: Record<string, unknown>, runId: number, tcId: string): boolean {
   const 고침 = (params.testFix as { cases?: unknown } | undefined)?.cases;

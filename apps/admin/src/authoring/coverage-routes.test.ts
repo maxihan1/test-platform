@@ -83,6 +83,13 @@ describe.skipIf(연결 === undefined)('셈 — 끝내기와 상세', () => {
     expect((await 칸읽기(id)).status).toBe('RUNNING');
   });
 
+  it('「테스트 수정」 줄이 아닌데 result.testFix 를 실으면 400 BAD_RESULT 이고 행은 도는 중 그대로다', async () => {
+    const id = await 넣기();
+    const res = await 끝내기(id, { status: 'DONE', result: { testFix: { summary: '기다리기를 고쳤어요', reruns: 3 } } });
+    expect([res.statusCode, res.json()]).toEqual([400, { error: 'BAD_RESULT', detail: 'testFix' }]);
+    expect((await 칸읽기(id)).status).toBe('RUNNING');
+  });
+
   it('DONE 이면 칸 다섯에 옮기고 상세가 셈을 그대로 싣는다', async () => {
     const id = await 넣기();
     expect((await 끝내기(id, { status: 'DONE', result: { coverage: 셈 } })).statusCode).toBe(200);

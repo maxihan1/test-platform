@@ -4,7 +4,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import { 작성계정인가 } from '../auth/agentToken.js';
-import { 테스트고침댓글 } from '../bts/close.js';
+import { 테스트수정PR열림, 테스트수정결과맞나 } from '../bts/testFix.js';
 import { 수정PR주소인가, 수정집기칸읽기 } from '../bts/bugfix.js';
 import { 수정끝내기틀림, 수정끝냄 } from '../bts/bugfixRoutes.js';
 import { 초안다시세우기, 초안집기칸, 초안있나 } from '../bts/draft.js';
@@ -239,7 +239,7 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
     const 결과 = req.body?.result;
     const 결과칸 =
       typeof 결과 === 'object' && 결과 !== null
-        ? (결과 as { held?: unknown; heldUnknown?: unknown; coverage?: unknown; pulled?: unknown; conflicts?: unknown; cases?: unknown })
+        ? (결과 as { held?: unknown; heldUnknown?: unknown; coverage?: unknown; pulled?: unknown; conflicts?: unknown; cases?: unknown; testFix?: unknown })
         : {};
     const 보류 = 결과칸.held === undefined ? [] : 보류모양검사(결과칸.held);
     if (보류 === null || (결과칸.heldUnknown !== undefined && 결과칸.heldUnknown !== true)) {
@@ -250,6 +250,8 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
     if (결과칸.coverage !== undefined && 셈 === null) return reply.code(400).send({ error: 'BAD_COVERAGE' });
     if (!끝내기겹침맞나(행.kind, status, 결과칸.conflicts)) return reply.code(400).send({ error: 'BAD_CONFLICTS' });
     if (!끝내기케이스맞나(행.kind, status, 행.params, 결과칸.cases, req.query.service)) return reply.code(400).send({ error: 'BAD_CASES' });
+    // 고친 곳 · 다시 돌린 횟수는 「테스트 수정」 고침 줄만 싣는다 — 남의 줄에 실리면 이슈 댓글이 엉뚱한 글을 단다 (도메인/BTS §7 「테스트 수정 바퀴」)
+    if (결과칸.testFix !== undefined && !테스트수정결과맞나(행.params, 결과칸.testFix)) return reply.code(400).send({ error: 'BAD_RESULT', detail: 'testFix' });
     // PRD 초안은 결과 통로(bts/draftRoutes.ts)로 초안을 먼저 올려야 끝난다 — 빈 DONE 이면 카드가 설 자리가 없다
     if (행.kind === 'PRD_DRAFT' && status === 'DONE' && !초안있나(행.result)) return reply.code(400).send({ error: 'BAD_DRAFT', detail: 'draft' });
     // 끝내기의 result 는 저장된 result 를 덮는다 — 초안 줄은 결과 통로로만 싣는다
@@ -304,9 +306,9 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
     // 수정 AI 도 사람 작성 목록 · 알림 밖이다 — BTS 이슈에서 본다
     if (행.kind === 'BUGFIX') return 수정끝냄({ ...행, serviceId: 서비스 }, 멈춤이유, error, app.log);
     끝냈다고알림(행, 뿌리번호, 멈춤이유, app.log);
-    // BTS 「테스트 문제」로 세운 작성이 PR 을 열었으면 그 이슈에 댓글 — 보낼 줄에 넣기만 하고 기다리지 않는다 (도메인/BTS 「판정은 BTS 에서」)
+    // BTS 「테스트 수정」으로 세운 작성이 PR 을 열었으면 그 이슈에 필드 · 댓글 — 보낼 줄에 넣기만 하고 기다리지 않는다 (도메인/BTS 「테스트 수정 바퀴」 2)
     if (status === 'DONE' && typeof prUrl === 'string' && 행.kind !== 'MERGE') {
-      void 테스트고침댓글({ ...행, serviceId: 서비스 }, prUrl).catch((err: unknown) => app.log.error(`[bts] ${String(행.id)}번 테스트 고침 댓글을 못 넣었다: ${String(err)}`));
+      void 테스트수정PR열림({ ...행, serviceId: 서비스 }, 뿌리번호, prUrl, 결과).catch((err: unknown) => app.log.error(`[bts] ${String(행.id)}번 테스트 수정 PR 알림을 못 넣었다: ${String(err)}`));
     }
     // 병합한 테스트가 「PRD 관리」 · 목록에 바로 보이게 그 서비스를 다시 훑는다 (PRD-F9-03). main 을 못 받아 왔으면 훑어도 옛 파일이다.
     // 기다리지 않는다 — 큰 서비스는 훑기가 에이전트의 30초 제한을 넘겨, 이미 끝난 보고를 다시 보내게 된다
