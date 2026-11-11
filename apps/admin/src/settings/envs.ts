@@ -1,4 +1,4 @@
-// 대상 서버 줄 저장 — 계정 · 역할 계정 · 운영 서버 표시 · API 인증 · 어드민 키를 env 이름으로 이어받는다 (도메인/인증 §7 「envs[] 한 줄」)
+// 대상 서버 줄 저장 — 계정 · 역할 계정 · 운영 서버 표시 · API 인증 · 어드민 키 · 준비 주소를 env 이름으로 이어받는다 (도메인/인증 §7 「envs[] 한 줄」)
 // store.ts 가 300줄에 닿아 뗐다. 작성 집기 · 실행 채우기도 역할계정읽기 로 같은 칸을 읽는다
 
 import type { 역할계정 } from '@platform/kit/accounts';
@@ -8,6 +8,7 @@ import type { PoolClient } from 'pg';
 import type { 서비스판정 } from '../../../../scripts/authoring-crawl-viewport.js';
 
 import { 설정오류 } from './errors.js';
+import { type 준비입력, 준비이어받기, 준비읽기 } from './prep.js';
 import { 운영이름인가 } from './roles.js';
 
 // 응답 한 줄. 비밀번호는 되돌려 보여주지 않는다 — 웹훅·피그마 토큰과 같은 규칙 (SPEC 도메인/인증 §7)
@@ -28,6 +29,8 @@ export interface 대상서버 {
   apiAuths: { name: string; tokenUrl: string; clientId: string; clientSecretLast4: string }[];
   /** 게임 서버 어드민 API 머리. 값은 끝 4자리만 싣는다 (도메인/게임 §3.10 「케이스 꼴」) */
   adminKey: { header: string; valueLast4: string } | null;
+  /** 실행 전 준비 주소. 값은 끝 4자리만 싣는다 (도메인/실행 §3.2 「실행 전 준비」) */
+  prep: { url: string; header: string; valueLast4: string; timeoutSec: number } | null;
 }
 
 /** service_env.api_auths 한 줄. 비밀값 원문이다 — 러너 · 작성 에이전트까지만 간다 */
@@ -63,6 +66,7 @@ export interface 대상서버입력 {
   appPath?: string | null;
   apiAuths?: API인증입력[];
   adminKey?: { header: string; value?: string } | null;
+  prep?: 준비입력 | null;
 }
 
 function 계정칸(보낸것: string | null | undefined, 옛것: string | null): string | null {
@@ -158,25 +162,28 @@ export async function 대상서버넣기(client: PoolClient, serviceId: number, 
     app_path: string | null;
     api_auths: unknown;
     admin_key: unknown;
-  }>('SELECT env, base_url, login_id, login_password, is_prod, role_accounts, viewport_kind, viewport_judged_at, app_path, api_auths, admin_key FROM service_env WHERE service_id = $1', [serviceId]);
+    prep: unknown;
+  }>('SELECT env, base_url, login_id, login_password, is_prod, role_accounts, viewport_kind, viewport_judged_at, app_path, api_auths, admin_key, prep FROM service_env WHERE service_id = $1', [serviceId]);
   const 옛계정 = new Map(옛것.rows.map((r) => [r.env, r]));
   await client.query('DELETE FROM service_env WHERE service_id = $1', [serviceId]);
-  for (const { env, baseUrl, loginId, loginPassword, isProd, accounts, appPath, apiAuths, adminKey } of envs) {
+  for (const { env, baseUrl, loginId, loginPassword, isProd, accounts, appPath, apiAuths, adminKey, prep } of envs) {
     // 이름이 같은 줄만 이어받는다. 이름을 바꾸면 새 줄이라 계정을 다시 넣는다 (SPEC 도메인/인증 §7)
     const 전 = 옛계정.get(env);
     const 주소바뀜 = 전 !== undefined && 전.base_url !== baseUrl;
     const 키 = 어드민키이어받기(adminKey, 어드민키읽기(전?.admin_key), 주소바뀜);
+    // 운영 표시를 잃으면 크롤러가 운영으로 간다 — 키가 없으면 옛 값 그대로, 새 줄이면 마이그레이션과 같은 이름 규칙이다
+    const 실서비스 = isProd ?? 전?.is_prod ?? 운영이름인가(env);
+    const 준비값 = 준비이어받기(prep, 준비읽기(전?.prep), 실서비스);
     await client.query(
-      `INSERT INTO service_env (service_id, env, base_url, login_id, login_password, is_prod, role_accounts, viewport_kind, viewport_judged_at, app_path, api_auths, admin_key)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+      `INSERT INTO service_env (service_id, env, base_url, login_id, login_password, is_prod, role_accounts, viewport_kind, viewport_judged_at, app_path, api_auths, admin_key, prep)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
       [
         serviceId,
         env,
         baseUrl,
         계정칸(loginId, 전?.login_id ?? null),
         계정칸(loginPassword, 전?.login_password ?? null),
-        // 운영 표시를 잃으면 크롤러가 운영으로 간다 — 키가 없으면 옛 값 그대로, 새 줄이면 마이그레이션과 같은 이름 규칙이다
-        isProd ?? 전?.is_prod ?? 운영이름인가(env),
+        실서비스,
         JSON.stringify(역할계정이어받기(accounts, 역할계정읽기(전?.role_accounts))),
         // 화면 크기 판정은 크롤러가 정한다 — 설정 저장으로 잃지 않는다. 주소를 바꾸면 다른 서버라 다음 크롤까지 비운다 (PRD-F10-07)
         전?.base_url === baseUrl ? 전.viewport_kind : null,
@@ -185,6 +192,7 @@ export async function 대상서버넣기(client: PoolClient, serviceId: number, 
         계정칸(typeof appPath === 'string' ? appPath.trim() : appPath, 전?.app_path ?? null),
         JSON.stringify(API인증이어받기(apiAuths, API인증읽기(전?.api_auths), 주소바뀜)),
         키 === null ? null : JSON.stringify(키),
+        준비값 === null ? null : JSON.stringify(준비값),
       ],
     );
     // 화면별 차이도 옛 서버 것이다 — 남기면 새 판정 옆에 옛 서버 화면이 섞여 보인다 (PRD-F10-08 코드 검토)
@@ -210,6 +218,9 @@ export const 대상서버칸식 = `json_build_object(
                  FROM jsonb_array_elements(e.api_auths) WITH ORDINALITY AS a(v, n)),
   'adminKey', CASE WHEN e.admin_key IS NULL THEN NULL
                    ELSE json_build_object('header', e.admin_key->>'header', 'valueLast4', right(e.admin_key->>'value', 4)) END,
+  'prep', CASE WHEN e.prep IS NULL THEN NULL
+               ELSE json_build_object('url', e.prep->>'url', 'header', e.prep->>'header', 'valueLast4', right(e.prep->>'value', 4),
+                                      'timeoutSec', CASE WHEN jsonb_typeof(e.prep->'timeoutSec') = 'number' THEN round((e.prep->>'timeoutSec')::numeric)::int ELSE 120 END) END,
   'accounts', (SELECT COALESCE(json_agg(json_build_object(
                   'role', a.v->>'role', 'loginId', a.v->>'loginId',
                   'hasLoginPassword', COALESCE(a.v->>'loginPassword', '') <> '') ORDER BY a.n), '[]')

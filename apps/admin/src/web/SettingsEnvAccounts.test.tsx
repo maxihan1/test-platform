@@ -54,6 +54,7 @@ describe('대상 서버 줄의 역할 계정 · 실서비스 서버 (도메인/�
       loginId: 'member',
       isProd: false,
       accounts: [{ role: '관리자', loginId: 'admin' }],
+      prep: null,
     });
   });
 

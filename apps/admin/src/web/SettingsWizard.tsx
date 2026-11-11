@@ -9,6 +9,7 @@ import { api, ApiError, type SettingsProject, type SettingsServiceRow } from './
 import { t as 말, use말, use언어, type 언어 } from './i18n.js';
 import { 떠나기상자 } from './leaveGuard.js';
 import { 어드민키못보내는이유 } from './SettingsAdminKey.js';
+import { 준비못보내는이유 } from './SettingsPrep.js';
 import { API인증못보내는이유 } from './SettingsApiAuths.js';
 import { API문서못보내는이유 } from './SettingsApiService.js';
 import { 보낼모양 } from './SettingsEnvs.js';
@@ -48,7 +49,8 @@ export function 막는이유(st: 단계, v: 마법사값, 새프로젝트: boole
       return (
         서비스못보내는이유({ 새것: false, prefix: v.prefix, name: v.name, testsDir: v.testsDir, envs: v.envs, 제외: '' }, 언어) ??
         (v.kind === 'API' ? API인증못보내는이유(v.envs, 언어) : null) ??
-        (어드민키종류인가(v.kind) ? 어드민키못보내는이유(v.envs, 언어) : null)
+        (어드민키종류인가(v.kind) ? 어드민키못보내는이유(v.envs, 언어) : null) ??
+        준비못보내는이유(v.envs, 언어)
       );
     case 'apidoc':
       return API문서못보내는이유({ 경로: v.apiDocPath, 기준: v.apiDocEnv, 서버들: 서버들(v) }, 언어);

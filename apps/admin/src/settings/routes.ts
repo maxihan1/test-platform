@@ -13,6 +13,7 @@ import { 정수 } from '../routeParams.js';
 import { API서버라우트 } from './apiServerRoutes.js';
 import { API칸, API칸오류, API칸지금 } from './apiService.js';
 import { 게임패키지, 게임패키지거절, 대상서버목록, 역할틀림 } from './envBody.js';
+import { 준비틀림 } from './prep.js';
 import { 프로젝트고치기, 프로젝트만들기, 프로젝트목록 } from './projects.js';
 import { 제외경로정리 } from './rules.js';
 import { 정기실행틀린칸 } from './scheduleCheck.js';
@@ -180,6 +181,7 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
       return reply.code(400).send({ error: 'PREFIX_SHAPE', detail: parsed.data.prefix });
     }
     if (역할틀림(parsed.data.envs)) return reply.code(400).send({ error: 'BAD_ROLE' });
+    if (준비틀림(parsed.data.envs)) return reply.code(400).send({ error: 'BAD_PREP' });
     if (게임패키지(parsed.data.kind, parsed.data.envs)) return reply.code(400).send(게임패키지거절);
     const API오류 = API칸오류(parsed.data, { kind: parsed.data.kind, apiDocEnv: null, envs: [] });
     if (API오류 !== null) return reply.code(400).send({ error: API오류 });
@@ -202,6 +204,7 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
         return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
       }
       if (역할틀림(parsed.data.envs)) return reply.code(400).send({ error: 'BAD_ROLE' });
+      if (준비틀림(parsed.data.envs)) return reply.code(400).send({ error: 'BAD_PREP' });
       const id = 정수(req.params.id);
       if (id === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.params.id });
       const 틀린칸 = await 정기실행틀린칸(id, parsed.data);

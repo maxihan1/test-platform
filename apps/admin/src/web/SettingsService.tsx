@@ -10,6 +10,7 @@ import { use말, use언어, type 언어 } from './i18n.js';
 import { 떠나기상자 } from './leaveGuard.js';
 import { 서비스못보내는이유, 설정오류문장, 제외경로값, 피그마설정주소 } from './settingsView.js';
 import { 어드민키못보내는이유 } from './SettingsAdminKey.js';
+import { 준비못보내는이유 } from './SettingsPrep.js';
 import { API인증못보내는이유 } from './SettingsApiAuths.js';
 import { API문서구획, API문서못보내는이유, 종류칸 } from './SettingsApiService.js';
 import { CI토큰구획 } from './SettingsCiTokens.js';
@@ -62,7 +63,8 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
   const 못보내는이유 =
     서비스못보내는이유({ 새것: false, prefix: row.prefix, name, testsDir, envs, 제외, 정기실행: schedule }, 언어) ??
     (API종류 ? (API문서못보내는이유({ 경로: apiDocPath, 기준: apiDocEnv, 서버들 }, 언어) ?? API인증못보내는이유(envs, 언어)) : null) ??
-    (어드민키종류 ? 어드민키못보내는이유(envs, 언어) : null);
+    (어드민키종류 ? 어드민키못보내는이유(envs, 언어) : null) ??
+    준비못보내는이유(envs, 언어);
 
   async function 보낸다() {
     if (못보내는이유 !== null) return;
