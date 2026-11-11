@@ -144,7 +144,8 @@ export async function runSummary(service: string, 거르개: 실행거르개): P
                 extract(epoch FROM (r.finished_at - r.started_at)) * 1000 AS duration
            FROM test_run r
            LEFT JOIN LATERAL ${지금항목('o.run_id = r.run_id', 자동수정실행빼기)} i ON true
-          WHERE r.service_id = (SELECT id FROM service WHERE prefix = $1) ${조건.where}
+          -- 준비 실패 실행은 판정이 없어 성공 · 실패 · 평균 시간에 안 든다 (도메인/실행 §3.2 「실행 전 준비」 「화면 · 집계」)
+          WHERE r.service_id = (SELECT id FROM service WHERE prefix = $1) AND r.status <> 'PREP_FAILED' ${조건.where}
           GROUP BY r.run_id, r.started_at, r.finished_at
           ${조건.having}
        ) 실행마다`,

@@ -20,10 +20,10 @@ export async function 직전대비수(runIds: number[]): Promise<Map<number, 직
        CROSS JOIN LATERAL (
          SELECT q.run_id FROM test_run q
           WHERE q.service_id = r.service_id AND q.env = r.env AND q.started_at < r.started_at
-            AND q.status <> 'RUNNING' AND q.kind = r.kind AND ${스모크건너뛰기식('q', 'r')}
+            AND q.status NOT IN ('RUNNING', 'PREP_FAILED') AND q.kind = r.kind AND ${스모크건너뛰기식('q', 'r')}
           ORDER BY q.started_at DESC
           LIMIT 1) p
-      WHERE r.run_id = ANY($1::bigint[]) AND r.status <> 'RUNNING' AND r.kind IN ('UI','FN')`,
+      WHERE r.run_id = ANY($1::bigint[]) AND r.status NOT IN ('RUNNING', 'PREP_FAILED') AND r.kind IN ('UI','FN')`,
     [runIds],
   );
   if (짝.rows.length === 0) return new Map();

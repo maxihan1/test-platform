@@ -90,7 +90,7 @@ async function db(): Promise<Pool> {
   return pool;
 }
 
-type RunStatus = 'RUNNING' | 'FINISHED' | 'ABORTED';
+type RunStatus = 'RUNNING' | 'FINISHED' | 'ABORTED' | 'PREP_FAILED';
 
 interface RawRun {
   run_id: string;
@@ -161,6 +161,9 @@ export function 기기글(d: DeviceInfo): string {
 /** 비밀값은 화면과 문서에서만 가린다. DB 에는 평문 그대로다 (SPEC §4.1) */
 const 가림 = '********';
 
+// 준비 실패로 닫힌 항목 — 데이터 준비가 안 된 것이지 서비스 결함이 아니다 (도메인/실행 §3.2 「실행 전 준비」)
+const 준비실패사유 = '테스트 데이터 준비에 실패해 수행되지 않았습니다';
+
 // 검수처가 읽을 한 문장이다. 「40건 중 12건 돌았고 28건은 이래서 못 돌았다」가 증적으로 성립해야 한다 (SPEC §8.4)
 const 미실행사유: Record<RunStatus, string> = {
   // 아래 미실행사유를찾는다() 의 error 갈래와 같은 문장이다. 사람이 멈춘 것인지
@@ -169,6 +172,7 @@ const 미실행사유: Record<RunStatus, string> = {
   RUNNING: '아직 실행 중입니다',
   // 러너 결과를 저장하다 실패한 행이 여기로 온다. 증적이 그 상태를 숨기면 안 된다
   FINISHED: '실행이 완료되었지만 결과가 기록되지 않았습니다',
+  PREP_FAILED: 준비실패사유,
 };
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -256,6 +260,7 @@ function 미실행사유를찾는다(row: RawItem, 실행상태: RunStatus): str
     // DB 가 구분하지 못하므로 구분하는 척하지 않는다 (SPEC §6)
     return '실행이 중단되어 수행되지 않았습니다';
   }
+  if (row.status === 'NA' && isPlainObject(row.error) && row.error.message === 'PREP_FAILED') return 준비실패사유;
   // 아무도 안 닫은 행. 러너 결과를 저장하다 실패했거나 프로세스가 도중에 죽었다
   if (row.finished_at === null) return 미실행사유[실행상태];
   // 그 밖의 NA 는 돌다가 판정을 못 낸 것이지 안 돈 것이 아니다. 손대지 않는다

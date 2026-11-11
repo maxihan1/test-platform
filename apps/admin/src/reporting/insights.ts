@@ -221,7 +221,7 @@ export async function compareWithPrevious(runId: number): Promise<비교> {
   // 시나리오 실행은 run_item 이 없어 고르면 모든 케이스가 「빠졌다」로 뜬다 (도메인/시나리오 §3.7 결정 10)
   const 앞 = await pool.query<{ run_id: string; started_at: Date; base_url: string }>(
     `SELECT p.run_id, p.started_at, p.base_url FROM test_run p JOIN test_run c ON c.run_id = $1
-     WHERE p.service_id = c.service_id AND p.env = c.env AND p.started_at < c.started_at AND p.status <> 'RUNNING'
+     WHERE p.service_id = c.service_id AND p.env = c.env AND p.started_at < c.started_at AND p.status NOT IN ('RUNNING', 'PREP_FAILED')
        AND p.kind = c.kind AND ${스모크건너뛰기식('p', 'c')}
      ORDER BY p.started_at DESC
      LIMIT 1`,

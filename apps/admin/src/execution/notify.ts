@@ -24,6 +24,8 @@ interface NotifyRow {
   na: number;
   // 위 셋에 이미 들어 있는 항목 중 미확정인 수 — 「그중 미확정 N건」 (SPEC 실행 §3.2)
   unconfirmed: number;
+  /** 준비 실패 까닭 — status PREP_FAILED 일 때만 찬다(가린 뒤 300자). 없는 행은 undefined 로 둬도 된다 */
+  prep_note?: string | null;
 }
 
 interface FailedCase {
@@ -35,7 +37,7 @@ interface FailedCase {
 
 // 「보낼 생각이 없었던 것」과 「보내려다 실패한 것」을 가르려면 notify_slack 과 notified_at 이 둘 다 필요하다 (§6)
 const TARGET = `
-  SELECT r.title, r.status, r.env, r.service_name, r.triggered_by, r.triggered_by_name,
+  SELECT r.title, r.status, r.env, r.service_name, r.triggered_by, r.triggered_by_name, r.prep_note,
          s.slack_webhook,
          EXTRACT(EPOCH FROM (r.finished_at - r.started_at)) * 1000 AS duration_ms,
          count(i.history_id) FILTER (WHERE i.status = 'PASS')::int AS pass,
@@ -54,6 +56,8 @@ const TARGET = `
 // 미확정도 가르지 않는다 — 미확정 항목은 통과·실패·미실행으로 그대로 세고 머리에는 변형이 없다 (SPEC 실행 §3.2)
 function 머리글(run: NotifyRow): string {
   if (run.status === 'ABORTED') return '[중단]';
+  // 데이터 준비가 안 된 것은 서비스 결함이 아니다 — [실패]로 알리지 않는다 (도메인/실행 §3.2 「실행 전 준비」)
+  if (run.status === 'PREP_FAILED') return '[준비 실패]';
   return run.fail + run.na > 0 ? '[실패]' : '[통과]';
 }
 
@@ -76,6 +80,10 @@ export function 본문(run: NotifyRow, 실패: FailedCase[], publicUrl: string, 
     `${머리} ${run.service_name} · RUN ${runId} · ${run.title}`,
     `통과 ${run.pass} · 실패 ${run.fail} · 미실행 ${run.na}${미확정꼬리(run)} · ${걸린시간(run.duration_ms)} · 대상 서버 ${run.env} · 실행자 ${실행자}`,
   ];
+
+  if (run.status === 'PREP_FAILED') {
+    줄.push('', `테스트 데이터 준비에 실패해 테스트를 실행하지 않았습니다${run.prep_note == null ? '' : ` · ${run.prep_note}`}`);
+  }
 
   // 숫자만 보여주면 사람이 결국 목록을 뒤져야 한다. 다섯을 넘으면 앞의 다섯만 적는다.
   // tc_id 차례 하나로 적고 미확정 항목에만 꼬리를 단다

@@ -42,12 +42,12 @@ export const 지금항목 = (조건: string, 한건조건 = ''): string => `(
    WHERE ${조건})`;
 
 /**
- * 판정이 된 항목만 거르는 조건 — 멈춰서 안 돌고 닫힌 항목(NA · error ABORTED)은 판정이 아니다. 넣으면 통과였던 케이스가 멈춘 실행 하나로 「미실행」이 된다.
+ * 판정이 된 항목만 거르는 조건 — 멈춰서 안 돌고 닫힌 항목(NA · error ABORTED)과 준비 실패로 안 돈 항목(NA · error PREP_FAILED)은 판정이 아니다. 넣으면 통과였던 케이스가 멈춘 실행 하나로 「미실행」이 된다.
  * 「케이스마다 최근 실행」을 고르는 질의는 모두 이 조건을 건다 (execution/history.ts lastByCase · authoring/decisionReads.ts)
  */
 export const 멈춰닫힌항목아님 = (별칭 = ''): string => {
   const 앞 = 별칭 === '' ? '' : `${별칭}.`;
-  return `NOT (${앞}status = 'NA' AND ${앞}error->>'message' = 'ABORTED')`;
+  return `NOT (${앞}status = 'NA' AND ${앞}error->>'message' IN ('ABORTED', 'PREP_FAILED'))`;
 };
 
 /** 덮인 항목에 붙는 칸 (도메인/실행 §7 `GET /api/runs/:runId` items[].rerun) */

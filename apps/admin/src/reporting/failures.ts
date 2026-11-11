@@ -62,7 +62,7 @@ const 최근흐름SQL = `
            ROW_NUMBER() OVER (PARTITION BY i.tc_id, i.platform ORDER BY r.started_at DESC, r.run_id DESC) AS n
     FROM test_run t
     JOIN test_run r ON r.service_id = t.service_id AND r.env = t.env AND r.kind = t.kind
-                   AND r.status <> 'RUNNING' AND (r.run_id = t.run_id OR (r.started_at < t.started_at AND ${스모크건너뛰기식('r', 't')}))
+                   AND r.status NOT IN ('RUNNING', 'PREP_FAILED') AND (r.run_id = t.run_id OR (r.started_at < t.started_at AND ${스모크건너뛰기식('r', 't')}))
     JOIN LATERAL ${지금항목('o.run_id = r.run_id')} i ON true
     WHERE t.run_id = $1
       AND (i.tc_id, i.platform) IN (SELECT * FROM unnest($2::text[], $3::text[]))
