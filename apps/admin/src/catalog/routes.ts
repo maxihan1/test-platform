@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { type Platform, TECHNIQUES, type Technique } from '@platform/kit/types';
 
 import { 칸되는서비스 } from '../auth/permissions.js';
+import { 자동수정상세읽기 } from '../bts/testFixView.js';
 import { 맥락조건읽기, 모르는종류, type 맥락글 } from './context.js';
 import { renderCatalogXlsx } from './export.js';
 import { 엑셀자료, 한국시각 } from './exportData.js';
@@ -66,7 +67,7 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
   app.get<{ Querystring: { service?: string } }>('/catalog/scan', async (req) => 마지막보기(req.user, req.query.service || undefined));
 
   app.get<{
-    Querystring: { service?: string; q?: string; platform?: string; active?: string; page?: string; kind?: string; technique?: string; last?: string; smoke?: string } & 맥락글;
+    Querystring: { service?: string; q?: string; platform?: string; active?: string; page?: string; kind?: string; technique?: string; last?: string; smoke?: string; autoFix?: string } & 맥락글;
   }>(
     '/catalog/cases',
     async (req, reply) => {
@@ -99,6 +100,8 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
         technique,
         smoke: 스모크읽기(req.query.smoke),
         마지막: 결과본다 ? { 판정: 판정으로(await 기기별결과(service)), last } : undefined,
+        // 스모크와 같이 1 만 켠다 — 모르는 값은 조용히 버린다 (도메인/BTS §7 `?autoFix=1`)
+        autoFix: 스모크읽기(req.query.autoFix) === true,
         page: Math.max(1, Number(req.query.page ?? 1) || 1),
         pageSize: PAGE_SIZE,
       });
@@ -157,7 +160,8 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
   app.get<{ Params: { tcId: string } }>('/catalog/cases/:tcId', async (req, reply) => {
     const found = await findCase(req.params.tcId);
     if (found === null) return reply.code(404).send({ error: 'CASE_NOT_FOUND', detail: req.params.tcId });
-    return found;
+    // 서랍 「자동 수정 기록」 — 목록 줄의 autoFix 보다 칸이 많다 (도메인/BTS §7 · §8.15 「자동 수정 표시」 A)
+    return { ...found, autoFix: await 자동수정상세읽기(found.tcId) };
   });
 
   // null 은 코드 값으로 되돌리기. 비활성 케이스도 고친다 — 다음 스캔에 살아날 수 있다
