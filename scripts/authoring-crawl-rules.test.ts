@@ -299,9 +299,11 @@ describe('크롤역할들 — 크롤러가 로그인해 훑을 역할 (PRD-F9-30
     const 계정 = JSON.stringify([
       { baseUrl: 'https://site.test', role: '일회용 · 암호 변경' },
       { baseUrl: 'https://site.test', role: '일회용·탈퇴' },
+      { baseUrl: 'https://site.test', role: '일회용ㆍ2단계 인증' },
       { baseUrl: 'https://site.test', role: '관리자' },
+      { baseUrl: 'https://site.test', role: '일회용품 관리자' },
     ]);
-    expect(크롤역할들(계정, 출처)).toEqual(['일반 회원', '관리자']);
+    expect(크롤역할들(계정, 출처)).toEqual(['일반 회원', '관리자', '일회용품 관리자']);
   });
 });
 
