@@ -17,8 +17,11 @@ export const API인증줄 = z.object({
 // 규칙은 아래 API칸오류 가 본다 — 어기면 BAD_ADMIN_KEY 다. 값이 없으면 같은 머리의 옛 값을 잇는다(envs.ts)
 export const 어드민키줄 = z.object({ header: z.string(), value: z.string().optional() });
 
-/** 어드민 키 값 꼴 — 화면 SettingsAdminKey.tsx 의 `어드민키값인가` 와 같은 규칙이다 */
-const 어드민키값인가 = (값: string): boolean => 값.length >= 12 && 값.length <= 500 && /^[\x21-\x7e]+(?: [\x21-\x7e]{12,})?$/.test(값);
+/** 어드민 키 값 꼴 — 화면 SettingsAdminKey.tsx 의 `어드민키값인가` 와 같은 규칙이다. 준비 주소의 비밀 헤더 값도 이 규칙이다(prep.ts) */
+export const 어드민키값인가 = (값: string): boolean => 값.length >= 12 && 값.length <= 500 && /^[\x21-\x7e]+(?: [\x21-\x7e]{12,})?$/.test(값);
+
+/** 머리 이름 꼴 — HTTP 토큰 글자만. 앞뒤 공백은 뗀 뒤에 본다 */
+export const 머리이름인가 = (이름: string): boolean => /^[A-Za-z0-9-]{1,100}$/.test(이름);
 
 /** 보낸 칸. 종류(kind)는 만들기 스키마에만 있다 — 고치기는 KIND_IMMUTABLE 이다 */
 export const API칸 = {
@@ -73,7 +76,7 @@ export function API칸오류(보낸것: 보낸칸, 지금: 지금칸): string | 
   // 머리 이름은 HTTP 토큰 글자만. 값은 머리에 실을 수 있는 글자(줄바꿈 · 한글 없음)이고 API 인증 비밀값과 같이 끝 4자리를 보여도 8자 넘게 남게 12자부터다.
   // 띄어쓰기는 가운데 한 칸만 받는다 — `Authorization: Bearer <토큰>` 꼴의 서버(Mastodon 등) 때문이다. 앞뒤 · 두 군데는 붙여 넣기 실수라 막는다.
   // 칸 뒤 토큰도 12자부터다 — `Bearer ` 가 12자를 채우면 끝 4자리가 토큰을 거의 다 보인다 (2026-11-10)
-  if (어드민키들.some((k) => !/^[A-Za-z0-9-]{1,100}$/.test(k.header.trim()) || (k.value !== undefined && !어드민키값인가(k.value)))) {
+  if (어드민키들.some((k) => !머리이름인가(k.header.trim()) || (k.value !== undefined && !어드민키값인가(k.value)))) {
     return 'BAD_ADMIN_KEY';
   }
   const 인증들 = (보낸것.envs ?? []).flatMap((e) => e.apiAuths ?? []);
