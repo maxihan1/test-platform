@@ -172,8 +172,9 @@ export async function 테스트수정처리(연결: 닫기연결, 이슈: BTS이
   const 나 = (도나.rowCount ?? 0) > 0 ? await 봇번호(자리, 부르기) : null;
   if (나 !== null) await 보낼줄넣기({ projectId: 연결.projectId, kind: 'ASSIGN', issueKey: 이슈.key, payload: { assigneeId: 나 } });
   // 맡았는데 하나도 못 세웠으면(첫 실행이 지워짐 등) 「테스트 수정」에 그대로 두지 않고 되돌린다 — 아무도 안 고치는 이슈가 남지 않게 (「테스트 수정 바퀴」 5)
-  // 막 맡은 다른 알림이 있으면 그쪽이 돈다. 같은 알림이 다시 와 아직 안 보낸 되돌리기가 있으면 또 넣지 않는다
-  if ((도나.rowCount ?? 0) === 0 && 다른이슈.size === 0 && 결과.기록만.length > 0 && !결과.기록만.some((g) => g.endsWith(막맡음))) {
+  // 막 맡은 다른 알림이 있으면 그쪽이 돈다. 같은 알림이 다시 와 아직 안 보낸 되돌리기가 있으면 또 넣지 않는다.
+  // 다른 이슈가 고치는 테스트와 섞였어도 되돌린다 — 이 이슈에서 도는 고침이 없다
+  if ((도나.rowCount ?? 0) === 0 && 결과.기록만.some((g) => !g.endsWith(막맡음)) && !결과.기록만.some((g) => g.endsWith(막맡음))) {
     const 기다림 = await pool.query(`SELECT 1 FROM bts_outbox WHERE project_id = $1 AND issue_key = $2 AND kind = 'COMMENT' AND state = 'PENDING' AND payload->>'body' = $3`, [
       연결.projectId,
       이슈.key,

@@ -136,10 +136,15 @@ export async function 걸기(줄: 줄, 부르기: 부르기함수): Promise<void
 
 const 디바이스이름 = (platform: string, real: boolean): string => (platform === 'desktop' ? 'PC' : platform === 'android' ? 'Android 앱' : real ? '실제 폰' : '모바일');
 
-/** 다시 실행 결과로 가는 고리 — 한 건 실행은 결과 화면이 없어 붙은 실행 화면으로 건다 */
-function 실행고리(실행: string, 붙은: string | null): string {
+/**
+ * 댓글의 「RUN N」 과 다음 줄 고리 — 사람이 화면에서 찾을 수 있는 실행이다. 붙은 한 건은 붙은 실행(그 화면에 결과가 바꿔 끼워진다),
+ * 붙을 곳이 없던 한 건은 결과 화면이 없어 번호만, 반복 실행에 걸려 새로 선 실행은 그 실행이다
+ */
+function 실행표시(실행: { run_id: string; origin: string; rerun_of: string | null }): string {
+  const 한건 = 실행.origin === 'SINGLE';
+  const 번호 = 한건 ? (실행.rerun_of ?? 실행.run_id) : 실행.run_id;
   const 주소 = (process.env.PLATFORM_PUBLIC_URL ?? '').replace(/\/+$/, '');
-  return 주소 === '' ? '' : `\n${주소}/#/runs/${붙은 ?? 실행}`;
+  return 주소 === '' || (한건 && 실행.rerun_of === null) ? `RUN ${번호}` : `RUN ${번호}\n${주소}/#/runs/${번호}`;
 }
 
 /** 「테스트 문제」 해결 상태의 Issue Bunker 번호 — 연결은 이름을 적어 둔다. 못 닿으면 '다시', 못 찾으면 null(해결 상태 없이 옮긴다) */
@@ -170,7 +175,8 @@ export async function 끝보기(줄: 줄, 부르기: 부르기함수): Promise<v
   if (줄.state !== 'RERUNNING') return;
   const pool = await db();
   const 실행 =
-    줄.rerun_id === null ? undefined : (await pool.query<{ status: string; rerun_of: string | null }>('SELECT status, rerun_of FROM test_run WHERE run_id = $1', [줄.rerun_id])).rows[0];
+    줄.rerun_id === null ? undefined : (await pool.query<{ run_id: string; status: string; origin: string; rerun_of: string | null }>('SELECT run_id, status, origin, rerun_of FROM test_run WHERE run_id = $1', [줄.rerun_id]))
+          .rows[0];
   if (실행?.status === 'RUNNING') return;
   const 항목 =
     실행 === undefined
@@ -188,11 +194,9 @@ export async function 끝보기(줄: 줄, 부르기: 부르기함수): Promise<v
   };
   if (통과 && (await 이슈잠그고(줄.project_id, 줄.issue_key, 기다림))) return;
   if (!(await 이어가나(줄, 부르기))) return;
-  const 번호 = 줄.rerun_id ?? '';
   const 디바이스 = [...new Set(항목.filter((i) => 통과 || i.status !== 'PASS').map((i) => 디바이스이름(i.platform, i.real)))].join(' · ');
-  const 고리 = 실행 === undefined ? '' : 실행고리(번호, 실행.rerun_of);
   if (!통과) {
-    return 되돌리기(줄, 실행 === undefined || 항목.length === 0 ? '다시 실행 기록이 없어 확인하지 못했어요' : `${디바이스} 에서 통과하지 못했어요 · RUN ${번호}${고리}`);
+    return 되돌리기(줄, 실행 === undefined || 항목.length === 0 ? '다시 실행 기록이 없어 확인하지 못했어요' : `${디바이스} 에서 통과하지 못했어요 · ${실행표시(실행)}`);
   }
   const 해결 = await 해결번호(줄, 부르기);
   if (해결 === '다시') return;
@@ -205,7 +209,7 @@ export async function 끝보기(줄: 줄, 부르기: 부르기함수): Promise<v
     await 줄넣기(손, 줄.project_id, 'TRANSITION', 줄.issue_key, {
       toStatusKey: 줄.status_map?.CLOSED ?? '',
       ...(해결 !== null && { resolutionId: 해결 }),
-      comment: `${디바이스} 에서 통과했어요 · RUN ${번호}${고리}`,
+      comment: `${디바이스} 에서 통과했어요 · ${실행 === undefined ? '' : 실행표시(실행)}`,
     });
   });
 }

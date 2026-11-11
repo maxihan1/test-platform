@@ -19,6 +19,8 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 다시 실�
   let 프로젝트 = 0;
   let 서비스 = 0;
   const 팜 = process.env.DEVICE_FARM_URL;
+  const 앞공개 = process.env.PLATFORM_PUBLIC_URL;
+  const 공개 = 'https://commander.xqr.test';
 
   /** 이슈 상태 · 해결 상태 목록을 주는 가짜 Issue Bunker */
   const 답 = (상태 = 'fix', 코드 = 200): 부르기함수 => async (_자리, _method, 경로) => {
@@ -84,6 +86,7 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 다시 실�
   ];
 
   beforeAll(async () => {
+    process.env.PLATFORM_PUBLIC_URL = 공개;
     pool = new Pool({ connectionString: 연결 });
     프로젝트 = Number((await pool.query<{ id: string }>(`INSERT INTO project (name) VALUES ('XQR 프로젝트') RETURNING id`)).rows[0]!.id);
     서비스 = Number(
@@ -121,6 +124,8 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 다시 실�
     await pool.query('DELETE FROM service_env WHERE service_id = $1', [서비스]);
     await pool.query('DELETE FROM service WHERE id = $1', [서비스]);
     await pool.end();
+    if (앞공개 === undefined) delete process.env.PLATFORM_PUBLIC_URL;
+    else process.env.PLATFORM_PUBLIC_URL = 앞공개;
   });
 
   it('반영이 끝나면 처음 실패한 실행에 붙여 실패 디바이스와 통과 디바이스를 실제 폰으로 다시 돌리고, 다 통과하면 「닫힘 · 테스트 문제」로 닫는다', async () => {
@@ -148,13 +153,13 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 다시 실�
 
   it('통과 판정 전에 이슈를 다시 읽어 「테스트 수정」일 때만 닫는다 — 못 닿으면 다음 점검에서, 닫으면 짝 줄을 테스트 문제로', async () => {
     const id = Number((await pool.query<{ id: string }>(`SELECT id FROM bts_test_fix WHERE issue_key = 'DM-1' AND project_id = $1`, [프로젝트])).rows[0]!.id);
-    const 다시 = Number((await 줄(id)).rerun_id);
+    const 붙은 = (await pool.query<{ rerun_of: string }>('SELECT rerun_of FROM test_run WHERE run_id = $1', [(await 줄(id)).rerun_id])).rows[0]!.rerun_of;
     await 테스트수정점검(답('fix', 503));
     expect((await 줄(id)).state).toBe('RERUNNING');
     await 테스트수정점검(답());
     expect((await 줄(id)).state).toBe('PASSED');
     expect(await 보낼것('DM-1')).toEqual([
-      { kind: 'TRANSITION', payload: { toStatusKey: 'closed', resolutionId: 'r-test', comment: `실제 폰 · PC 에서 통과했어요 · RUN ${String(다시)}` } },
+      { kind: 'TRANSITION', payload: { toStatusKey: 'closed', resolutionId: 'r-test', comment: `실제 폰 · PC 에서 통과했어요 · RUN ${붙은}\n${공개}/#/runs/${붙은}` } },
     ]);
     expect((await pool.query(`SELECT closed_at IS NOT NULL AS closed, resolution FROM bts_issue_case WHERE issue_key = 'DM-1' AND project_id = $1`, [프로젝트])).rows[0]).toEqual({
       closed: true,
@@ -172,8 +177,10 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 다시 실�
     // 바퀴의 다시 실행은 실행 끝 실패 등록이 건너뛴다 — 열린 이슈에 「또 실패」 댓글이 되돌리기 댓글과 같이 달리지 않게
     expect(await 실패등록(다시, 0)).toBe(0);
     await 테스트수정실행뒤(다시, 답());
-    expect(await 줄(id)).toMatchObject({ state: 'FAILED', reason: `PC 에서 통과하지 못했어요 · RUN ${String(다시)}` });
-    expect(await 보낼것('DM-2')).toEqual(되돌림(`PC 에서 통과하지 못했어요 · RUN ${String(다시)}`));
+    // 한 건 실행은 결과 화면이 없어 붙은 실행 번호 · 화면으로 알린다
+    const 까닭 = `PC 에서 통과하지 못했어요 · RUN ${String(실패)}\n${공개}/#/runs/${String(실패)}`;
+    expect(await 줄(id)).toMatchObject({ state: 'FAILED', reason: 까닭 });
+    expect(await 보낼것('DM-2')).toEqual(되돌림(까닭));
 
     const 옮김 = await 바퀴('DM-3', 'XQR-FN-003', 실패, { 반영: true });
     await 다시실행걸기(옮김, 답('qa_review'));
@@ -223,5 +230,52 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 다시 실�
     await 자동반영실패(뿌리);
     expect(await 보낼것('DM-7')).toEqual([{ kind: 'COMMENT', payload: { body: '사람 확인이 필요해요 — 자동 반영이 실패했어요\nhttps://github.com/o/r/pull/007' } }]);
     expect((await 줄(자동)).state).toBe('WAIT_MERGE');
+  });
+
+  it('한 이슈에 테스트가 둘이면 먼저 통과한 줄은 기다리고 마지막 줄이 한 번 닫는다', async () => {
+    const 실패 = await 실행넣기([
+      { tcId: 'XQR-FN-009', platform: 'desktop', status: 'FAIL' },
+      { tcId: 'XQR-FN-010', platform: 'desktop', status: 'FAIL' },
+    ]);
+    const 앞 = await 바퀴('DM-9', 'XQR-FN-009', 실패, { 반영: true });
+    await pool.query(`INSERT INTO bts_issue_case (project_id, issue_key, service_id, tc_id, env, first_run) VALUES ($1, 'DM-9', $2, 'XQR-FN-010', 'qa', $3)`, [프로젝트, 서비스, 실패]);
+    const 뒤 = Number(
+      (
+        await pool.query<{ id: string }>(
+          `INSERT INTO bts_test_fix (project_id, issue_key, service_id, tc_id, env, failed_run, moved_by_id, request_id, state)
+           SELECT project_id, issue_key, service_id, 'XQR-FN-010', env, failed_run, moved_by_id, request_id, 'WAIT_MERGE' FROM bts_test_fix WHERE id = $1 RETURNING id`,
+          [앞],
+        )
+      ).rows[0]!.id,
+    );
+    const 통과실행 = async (id: number, tcId: string) => {
+      const run = await 실행넣기([{ tcId, platform: 'desktop', status: 'PASS' }]);
+      await pool.query(`UPDATE bts_test_fix SET state = 'RERUNNING', rerun_id = $2 WHERE id = $1`, [id, run]);
+      return run;
+    };
+    const 앞실행 = await 통과실행(앞, 'XQR-FN-009');
+    const 뒤실행 = await 통과실행(뒤, 'XQR-FN-010');
+    await 테스트수정실행뒤(앞실행, 답());
+    expect((await 줄(앞)).state).toBe('PASSED');
+    expect(await 보낼것('DM-9')).toEqual([]);
+    await 테스트수정실행뒤(뒤실행, 답());
+    expect((await 줄(뒤)).state).toBe('PASSED');
+    expect(await 보낼것('DM-9')).toEqual([
+      { kind: 'TRANSITION', payload: { toStatusKey: 'closed', resolutionId: 'r-test', comment: `PC 에서 통과했어요 · RUN ${String(뒤실행)}\n${공개}/#/runs/${String(뒤실행)}` } },
+    ]);
+    expect((await pool.query(`SELECT count(*)::int AS n FROM bts_issue_case WHERE issue_key = 'DM-9' AND project_id = $1 AND closed_at IS NULL`, [프로젝트])).rows[0]).toEqual({ n: 0 });
+  });
+
+  it('판정 전에 Issue Bunker 에 못 닿아 넘긴 줄은 점검이 다시 판정해 반영을 세운다 — 반영을 한 번 세운 사슬은 다시 판정하지 않는다', async () => {
+    const 실패 = await 실행넣기([{ tcId: 'XQR-FN-011', platform: 'desktop', status: 'FAIL' }]);
+    const id = await 바퀴('DM-11', 'XQR-FN-011', 실패);
+    const 뿌리 = (await pool.query<{ request_id: string }>('SELECT request_id FROM bts_test_fix WHERE id = $1', [id])).rows[0]!.request_id;
+    await pool.query(`UPDATE authoring_request SET result = $2 WHERE id = $1`, [뿌리, { testFix: { summary: '', reruns: 3, autoMerge: true, held: [] } }]);
+    await 테스트수정점검(답());
+    const 머지 = async () => (await pool.query(`SELECT requested_by FROM authoring_request WHERE kind = 'MERGE' AND source_id = $1`, [뿌리])).rows;
+    expect(await 머지()).toEqual([{ requested_by: 'bts' }]);
+    await pool.query(`UPDATE bts_test_fix SET merge = NULL WHERE id = $1`, [id]);
+    await 테스트수정점검(답());
+    expect(await 머지()).toHaveLength(1);
   });
 });
