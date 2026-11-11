@@ -22,7 +22,7 @@ export { 반영요청인가, 테스트고침읽기, 화면이맞음읽기 } from
 export { 테스트고침싣는손 } from './authoring-test-fix.js';
 
 /**
- * 자식을 띄우기 전 — 화면이 맞음 · 테스트 고침(BTS 테스트 문제) 건마다 그 실행의 실패 trace 요약(서버가 가린 몇 줄)을 자료 폴더 traces/ 로 받는다. 받은 개수를 돌려준다.
+ * 자식을 띄우기 전 — 화면이 맞음 · 테스트 고침(BTS 테스트 수정) 건마다 그 실행의 실패 trace 요약(서버가 가린 몇 줄)을 자료 폴더 traces/ 로 받는다. 받은 개수를 돌려준다.
  * 가리지 않은 zip 은 받지 않는다 — 자료 폴더는 자식이 셸로 연다. 못 받아도 작성은 간다 — 자식은 그 케이스를 다시 돌려 본다 (§3.6 「관문이 빨개지면」)
  */
 export async function 실패trace받기(서버: 서버, 것: { id: number; params?: unknown }, 자료: string): Promise<number> {

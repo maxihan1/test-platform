@@ -199,7 +199,7 @@ export function 원장과남은번호(입력: {
   옮긴몸?: unknown;
   /** 이번 집기 accounts 의 역할 이름 — 이 역할의 「계정 미등록」 번호가 남은 번호에 든다 */
   등록역할?: Set<string>;
-  /** 반영 요청이면 지금 판 번호와 기준 판 · (화면이 맞음이면) 요청의 screenRight · (BTS 테스트 문제면) 요청의 testFix */
+  /** 반영 요청이면 지금 판 번호와 기준 판 · (화면이 맞음이면) 요청의 screenRight · (BTS 테스트 수정이면) 요청의 testFix */
   반영?: { 지금판: number; 기준판: { version: number; items: PrdItem[] } | null; 화면이맞음?: 화면이맞음요청[] | null; 테스트고침?: 테스트고침요청 | null };
   /** API 애플리케이션 판의 API 줄 (도메인/API §3.8 「작성」 「원장」) */
   api?: readonly 원장항목[];

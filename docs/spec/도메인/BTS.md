@@ -341,7 +341,7 @@ AI 품질은 따로 시험하지 않고 사람이 고른 결과로 센다 — �
 - Jira 등 다른 BTS — 연결 자리(`apps/admin/src/bts/`)만 하나로 모아 둔다
 - BTS 바깥 알림 종류 늘리기 · 빌드마다 BTS 버전 만들기 · 「배운 것」을 노트로 옮기기(2차)
 
-#### 계약 — 블록이 있는 곳 (BTS-F1 ~ F8 블록은 반영 완료 2026-11-01 · BTS-F10 은 4-데이터모델 BTS-F10-03 블록 반영 완료 2026-11-11 · §7 「테스트 수정 바퀴」 블록은 대기 — 설정 두 줄만 반영)
+#### 계약 — 블록이 있는 곳 (BTS-F1 ~ F8 블록은 반영 완료 2026-11-01 · BTS-F10 은 4-데이터모델 BTS-F10-03 블록 반영 완료 2026-11-11 · §7 「테스트 수정 바퀴」 블록은 대기 — 설정 두 줄 · 알림 받기 · 끝내기 summary · reruns 만 반영)
 
 - DB 표 · 칸 — [공통/4-데이터모델.md](../공통/4-데이터모델.md) §6 「BTS 연동 표」(진행판 줄마다 블록 하나)
 - kit `PrdItem.fromIssues` — [공통/3-공유계약.md](../공통/3-공유계약.md) 「표준 기획서 타입」
@@ -558,6 +558,7 @@ POST /mcp
 #   testFix: { autoMerge: boolean, held: ('EXPECTED_CHANGED' | 'VERIFY_FEWER' | 'MUTATION_MISSED' | 'NOT_MEASURED')[], summary: string, reruns: number }
 #   — autoMerge 는 held 가 비었을 때만 true. summary 는 고친 곳 한 줄(PR 본문 「테스트 고침」 줄과 같다 · 500자) · reruns 는 마지막 전체 돌려 보기(PR 본문 「3번 돌려 보기」)에서 실제 돈 횟수
 #   — testFix 줄이 아닌데 실으면 400 BAD_RESULT { detail: 'testFix' }. testFix 줄인데 없으면 자동 병합하지 않는다(held ['NOT_MEASURED']로 친다)
+#   — 알림 받기 줄과 이 칸의 summary · reruns · BAD_RESULT 는 반영 완료 (2026-11-11, apps/admin/src/bts/testFix.ts · inbound.ts · authoring/agentRoutes.ts · scripts/authoring-test-fix.ts — BTS-F10-04). autoMerge · held 는 F10-05
 # 기능 테스트 목록 GET /api/catalog/cases 의 items[] 에 칸 하나 (F10-07 · 카탈로그.md §7)
 #   autoFix: { issueKey, state, at } | null — 그 케이스의 가장 늦은 bts_test_fix 줄(대상 서버 상관없이). 화면은 state 가 PASSED 일 때만 「자동 수정」 표시를 단다
 #   응답 최상위 autoFixCount — 가장 늦은 줄이 PASSED 인 케이스 수(탭 「자동 수정 N」) · 거르기 ?autoFix=1 도 같은 기준이다(표시 · 탭 · 거르기가 어긋나지 않게). BTS 연결이 없는 프로젝트는 칸이 늘 null · 0 이다
