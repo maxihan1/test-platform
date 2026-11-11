@@ -6,7 +6,6 @@ import { z } from 'zod';
 
 import { 가린다, 긴것부터, 항목비밀 } from '../execution/trial.js';
 import { 잠그고 } from '../prd/store.js';
-import { 내번호 } from './bugfixOwner.js';
 import { BTS부르기, type BTS이슈, type BTS자리, type 부르기함수 } from './client.js';
 import { 반영요청세우기, 실패한실행, 이슈글읽기, type 닫기결과, type 닫기연결 } from './close.js';
 import { BTS이은프로젝트 } from './link.js';
@@ -34,10 +33,25 @@ const 다시받을 = (s: number) => s >= 500 || s === 408 || s === 429;
 export async function 옮긴사람(자리: BTS자리, issueKey: string, 상태키: string, 부르기: 부르기함수 = BTS부르기): Promise<{ id: string | null; 이름: string | null }> {
   const r = await 부르기(자리, 'GET', `/api/v1/issues/${encodeURIComponent(issueKey)}/changelog?page=0&size=50`);
   if (다시받을(r.status)) throw new Error(`Issue Bunker 이슈 ${issueKey} 변경 기록을 못 읽었다 (${String(r.status)})`);
+  if (r.status !== 200) console.error(`[bts] ${issueKey} 변경 기록을 못 읽어 옮긴 사람 없이 맡는다 (${String(r.status)})`);
   const 줄들 = r.status === 200 ? ((r.json as { content?: unknown } | null)?.content ?? []) : [];
   type 줄 = { actorId?: unknown; actorName?: unknown; items?: { field?: unknown; toValue?: unknown }[] };
   const 찾은 = (Array.isArray(줄들) ? (줄들 as 줄[]) : []).find((g) => (g.items ?? []).some((i) => i.field === 'status' && i.toValue === 상태키));
   return { id: typeof 찾은?.actorId === 'string' ? 찾은.actorId : null, 이름: typeof 찾은?.actorName === 'string' ? 찾은.actorName : null };
+}
+
+/**
+ * 「QA Hub AI」 자신의 BTS 사람 번호 — 담당자로 넣는다. 바쁘면 던지고(알림을 다시 받게), 권한 · 없음 같은 4xx 면 null — 담당자 바꾸기만 건너뛴다.
+ * 수정 AI 의 내번호(bugfixOwner.ts)는 4xx 도 던진다 — 거기선 담당 신호를 놓치면 안 돼서다
+ */
+async function 봇번호(자리: BTS자리, 부르기: 부르기함수): Promise<string | null> {
+  const r = await 부르기(자리, 'GET', '/api/v1/users/me/whoami');
+  if (다시받을(r.status)) throw new Error(`Issue Bunker whoami 를 못 읽었다 (${String(r.status)})`);
+  const 몸 = r.json as { userId?: unknown; data?: { userId?: unknown } } | null;
+  const id = 몸?.userId ?? 몸?.data?.userId;
+  if (r.status === 200 && typeof id === 'string') return id;
+  console.error(`[bts] 「QA Hub AI」 번호를 못 읽어 담당자를 안 바꾼다 (${String(r.status)})`);
+  return null;
 }
 
 /** 같은 글이 그 이슈에 이미 들어갔으면 다시 안 넣는다 — 재기동 뒤 같은 알림이 와도 댓글이 겹치지 않게 */
@@ -150,7 +164,8 @@ export async function 테스트수정처리(연결: 닫기연결, 이슈: BTS이
   for (const k of 다른이슈) await 댓글한번(연결.projectId, 이슈.key, `이 테스트는 ${k} 에서 이미 수정 중이에요`);
   // 담당자는 이 이슈에 도는 줄이 있으면 늘 넣는다 — 줄을 세운 뒤 깨져 다시 온 알림도 담당자를 바꾼다. 이미 그 사람이면 보낼 줄이 건너뛴다(outbox.ts)
   const 도나 = await pool.query('SELECT 1 FROM bts_test_fix WHERE project_id = $1 AND issue_key = $2 AND state = ANY($3) LIMIT 1', [연결.projectId, 이슈.key, 도는상태]);
-  if ((도나.rowCount ?? 0) > 0) await 보낼줄넣기({ projectId: 연결.projectId, kind: 'ASSIGN', issueKey: 이슈.key, payload: { assigneeId: await 내번호(자리, 부르기) } });
+  const 나 = (도나.rowCount ?? 0) > 0 ? await 봇번호(자리, 부르기) : null;
+  if (나 !== null) await 보낼줄넣기({ projectId: 연결.projectId, kind: 'ASSIGN', issueKey: 이슈.key, payload: { assigneeId: 나 } });
   return 결과;
 }
 

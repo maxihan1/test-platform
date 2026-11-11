@@ -46,7 +46,7 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 맡기', ()
   const 짝열림 = async (key: string) => (await pool.query<{ open: boolean }>('SELECT closed_at IS NULL AS open FROM bts_issue_case WHERE issue_key = $1', [key])).rows[0]?.open;
 
   const 답 = (기록: number | null = 200): 부르기함수 => async (_자리, _method, 경로) => {
-    if (경로.endsWith('/whoami')) return { status: 200, json: { userId: 'bot-1' } };
+    if (경로.endsWith('/whoami')) return 기록 === 404 ? { status: 403, json: null } : { status: 200, json: { userId: 'bot-1' } };
     if (경로.includes('/changelog')) {
       return 기록 === 200
         ? {
@@ -134,6 +134,10 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 맡기', ()
     const { 요청들 } = await 테스트수정처리(이은(), 이슈('DM-2'), 옮김, 답(403));
     expect(요청들).toHaveLength(1);
     expect(await 줄('DM-2')).toEqual([expect.objectContaining({ moved_by: null, moved_by_id: null, state: 'FIXING' })]);
+    expect(await 보낼것('DM-2')).toEqual([{ kind: 'ASSIGN', payload: { assigneeId: 'bot-1' } }]);
+    // whoami 가 4xx 면 담당자 바꾸기만 건너뛴다 — 알림을 503 으로 끝없이 되돌리지 않는다
+    expect(await 테스트수정처리(이은(), 이슈('DM-2'), 옮김, 답(404))).toEqual({ 요청들: [], 기록만: [] });
+    expect(await 보낼것('DM-2')).toHaveLength(1);
   });
 
   it('사람이 올린 이슈는 맡지 않고 한 번만 알린다 · 다른 이슈가 이미 고치는 테스트는 그 이슈 키를 알린다', async () => {

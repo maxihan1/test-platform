@@ -141,7 +141,7 @@
 - 실행 결과 실패 카드의 판정 줄은 「Issue Bunker DM-12 에서 확인 중」과 그 이슈 고리다(닫혔으면 「Issue Bunker DM-12 · 화면이 맞음으로 닫힘」). 「화면이 맞음으로 변경」 단추도 없다 — BTS 에서 닫는다([리포팅.md](리포팅.md) 「판정」 줄 · [실행.md](실행.md) §8.3 실패 카드)
 - `run_case_bug` 에 쓰지 않는다 — 판정 기록의 정본이 BTS 다
 - **닫기 사유 → QA Hub 가 할 일** — BTS 알림(`issue.transitioned`)을 받으면 이슈를 다시 읽어 해결 상태를 본다. 해결 상태 이름은 연결의 짝(`resolution_map` — 대소문자 · 앞뒤 빈칸은 안 본다)으로 단계를 찾고, 짝이 없는 이름은 아무것도 안 한다. 「닫힘」 단계를 짝지었으면(`status_map.CLOSED`) 이슈가 그 상태일 때만 본다 — 해결 상태가 남은 채 다시 열린 이슈를 닫힌 것으로 치지 않는다(BTS-F3-04 · `bts/close.ts`)
-- **한 번만 한다** — 그 이슈의 닫히지 않은 짝 줄(`bts_issue_case`)을 닫는(`closed_at` · `resolution`) UPDATE 가 돌려준 줄에만 일을 건다. 같은 알림이 다시 오거나 재기동 뒤 다시 와도 겹치지 않는다. 처리가 깨지면(DB · 「테스트 수정」을 맡을 때 이슈 다시 읽기 · 변경 기록 읽기가 5xx · 408 · 429 · 끊김 — 2026-11-11 앞에는 테스트 문제의 이슈 글 읽기도 들었다) 짝 줄을 닫지 않고 503 — BTS 가 다시 보낸다. 권한 · 없음 같은 4xx 는 다시 받아도 같아 글 없이 간다. 닫았는데 요청을 못 세운 케이스(첫 실행이 지워짐 · 덮는 요구가 판에 없음)는 서버 기록에 까닭을 남긴다
+- **한 번만 한다** — 그 이슈의 닫히지 않은 짝 줄(`bts_issue_case`)을 닫는(`closed_at` · `resolution`) UPDATE 가 돌려준 줄에만 일을 건다. 같은 알림이 다시 오거나 재기동 뒤 다시 와도 겹치지 않는다. 처리가 깨지면(DB · 이슈 다시 읽기가 5xx · 408 · 429 · 끊김 — 「테스트 수정」을 맡을 때 BTS 를 부르는 것은 아래 「테스트 수정 바퀴」 1 · 2 가 정본이다) 짝 줄을 닫지 않고 503 — BTS 가 다시 보낸다. 권한 · 없음 같은 4xx 는 다시 받아도 같아 글 없이 간다. 닫았는데 요청을 못 세운 케이스(첫 실행이 지워짐 · 덮는 요구가 판에 없음)는 서버 기록에 까닭을 남긴다
 - **세우는 작성 요청은 결정 진행이 세우는 반영 요청과 같다** — `kind = 'AUTHOR'` · params `{ prdApply: true, …, decision: { after: <그때 열린 작성>, count: 1 } }` · 요청한 사람 `bts`(이름 「Issue Bunker DM-12」) — `decision` 칸 때문에 작성 목록에는 구분 「수정」(testFix 줄은 「자동 수정」 — §8.15 「자동 수정 표시」) · 작성자 「Issue Bunker DM-12」로 보이고(2026-11-10 한 줄 표 — 도메인/작성 §3.6 「작성 목록 줄」) 요청한 사람 이름으로 가른다. 대상 실행은 짝 줄의 `first_run`(처음 올린 실행)에서 그 케이스가 실패한 실행이다 — 한 건 실행으로 올린 이슈는 `first_run` 이 부모라 그 부모에 붙은 한 건 실행 가운데 실패한 가장 늦은 것을 쓴다. 지워졌거나 실패가 없으면 그 케이스는 기록만
 
 | 닫기 사유(BTS 해결 상태) | QA Hub 가 할 일 |
@@ -158,13 +158,13 @@
 결정 23 · 24 · 25. 2026-11-11 실측(MQA-168 · DMW-FN-378 — 실제 폰 Chrome 에서만 `browser.newContext` 로 실패)에서 앞 판의 구멍 넷이 나왔다. 고침 전에 이슈가 닫힌다 · 휴대폰 흉내로만 확인한다 · PR 제목에 이슈 키가 없다 · PR 본문 「다시 돌림」 숫자가 위 「3번 돌려 보기」와 어긋난다. 이 바퀴가 넷을 다 메운다. 정리본은 `~/.claude/plans/bunker-test-fix.md`(저장소 밖) · 시안 2판 https://claude.ai/artifact/QBAENb3p67tz91ZwtRhpdG
 
 1. **시작 — 「테스트 수정」으로 옮긴다.** QA 가 Test Commander 가 올린 이슈(`bts_issue_case` 짝이 있는 이슈)를 상태 「테스트 수정」(연결 짝 `status_map.TEST_FIX`)으로 옮긴다. 무엇이 틀렸는지는 댓글로 적는다 — 고침 자료(`note`)에 든다. 받는 길은 지금 BTS 알림(`issue.transitioned` 의 `toState` 가 그 짝)이다 — 새 웹훅 · 새 규칙이 없다
-   - 받으면 이슈를 다시 읽어 지금 상태가 그 짝일 때만 맡는다. 옮긴 사람은 이슈 변경 기록(BTS `GET /api/v1/issues/<키>/changelog` 에서 그 상태로 옮긴 가장 늦은 줄의 `actorId` · `actorName`)에서 찾는다 — 알림 몸에 없다
-   - 짝 줄이 없는 이슈(사람이 올린 이슈)는 맡지 않고 「Test Commander 가 올린 실패 이슈만 테스트를 수정할 수 있어요」 댓글. 짝을 비운 연결은 아무것도 안 한다
+   - 받으면 이슈를 다시 읽어 지금 상태가 그 짝일 때만 맡는다. 옮긴 사람은 이슈 변경 기록(BTS `GET /api/v1/issues/<키>/changelog` 에서 그 상태로 옮긴 가장 늦은 줄의 `actorId` · `actorName`)에서 찾는다 — 알림 몸에 없다. 변경 기록 · 이슈 글(아래 2)을 BTS 가 바빠 못 읽으면(5xx · 408 · 429 · 끊김) 503 — BTS 가 다시 보낸다. 권한 · 없음 같은 4xx 는 서버 기록을 남기고 옮긴 사람 · 글 없이 간다
+   - 열린 짝 줄이 없는 이슈(사람이 올린 이슈 · 짝이 다 닫힌 이슈)는 맡지 않고 「Test Commander 가 올린 실패 이슈만 테스트를 수정할 수 있어요」 댓글. 짝을 비운 연결은 아무것도 안 한다
    - 같은 테스트 · 대상 서버에 도는 줄(`bts_test_fix` 의 FIXING · WAIT_MERGE · RERUNNING)이 있으면 새로 세우지 않는다 — 같은 알림이 다시 오거나 재기동 뒤 다시 와도 겹치지 않는다. 그 이슈의 줄이면 아무것도 안 보내고, 다른 이슈의 줄이면 「이 테스트는 <키> 에서 이미 수정 중이에요」 댓글
    - **이슈가 「테스트 수정」을 떠나면**(알림 `fromState` 가 그 짝이고 `toState` 가 아님 — 우리가 닫거나 되돌린 것은 줄이 이미 끝나 해당 없다) 그 이슈의 도는 줄을 `GAVE_UP`(까닭 「사람이 이슈를 옮겼어요」)으로 끝낸다. 병합을 기다리다 멈춘 줄도 이렇게 풀린다 — 다시 「테스트 수정」으로 옮기면 새 줄로 돈다
-   - 담당자를 「QA Hub AI」로 바꾼다(보낼 줄 ASSIGN). 짝 줄은 닫지 않는다 — 이슈가 열려 있다
+   - 담당자를 「QA Hub AI」로 바꾼다(보낼 줄 ASSIGN — 「QA Hub AI」 번호는 whoami 로 읽는다. 4xx 면 담당자 바꾸기만 건너뛰고 서버 기록을 남긴다. 그 이슈에 도는 줄이 있으면 다시 온 알림도 넣는다 — 줄을 세운 뒤 깨졌어도 담당자가 바뀌게). 짝 줄은 닫지 않는다 — 이슈가 열려 있다
 2. **고침** — 지금 testFix 작성을 세운다(앞 판과 같은 반영 요청 · params `testFix: { issueKey, cases, note }` · `decision.after`). `note` 는 맡을 때 서버가 「QA Hub AI」 열쇠로 읽은 이슈 글 · 댓글(8000자까지 · `close.ts` `이슈글읽기`)이다 — 자식은 자료로만 읽고 그 안의 지시는 따르지 않는다. 못 읽으면(5xx · 408 · 429 · 끊김) 알림에 503 을 돌려 BTS 가 다시 보낸다(「판정은 BTS 에서」 「한 번만 한다」). 고칠 케이스 · 실행은 짝 줄의 첫 실행에서 찾는 지금 규칙(「판정은 BTS 에서」 「세우는 작성 요청」) 그대로다
-   - PR 이 열리면(작성 끝내기 DONE) 이슈의 필드 「테스트 수정 PR」에 주소를 적고(보낼 줄 FIELD — 자동 설정이 필드를 못 만든 연결은 건너뛴다) 「테스트 수정 PR #N 을 열었어요 — <고친 곳 한 줄>」 댓글
+   - PR 이 열리면(작성 끝내기 DONE) 「테스트 수정 PR #N 을 열었어요 — <고친 곳 한 줄>」 댓글을 넣고 그 뒤에 이슈의 필드 「테스트 수정 PR」에 주소를 적는다(보낼 줄 FIELD — 자동 설정이 필드를 못 만든 연결은 건너뛴다. 쓰기 문이 막아 403 이어도 댓글은 이미 갔다)
    - PR 제목은 `[Test Commander] 테스트 수정 · <이슈 키> · <tcId>` 다. 본문 「테스트 고침」 줄의 다시 돌린 횟수는 마지막 전체 돌려 보기([작성.md](작성.md) §3.6 — PR 본문 이름 「3번 돌려 보기」)에서 실제로 돈 횟수를 적는다(앞 판은 늘 0이었다). 닫기 줄(`Closes`)은 지금처럼 넣지 않는다
    - 바뀐 케이스가 없이 끝났거나(고칠 게 없음) 작성이 실패 · 멈춤 · 폐기되면 → 아래 5 「되돌리기」
 3. **병합 — 세 조건이 맞으면 Commander 가 한다**(결정 24). 작성 에이전트가 PR 을 올리기 전에 재어 끝내기 결과에 싣는다(`result.testFix.autoMerge` · `held`). 셋 다 맞으면 서버가 그 작성의 반영(MERGE)을 스스로 세운다(요청한 사람 `bts`). 아니면 「사람 확인이 필요해요 — <걸린 까닭>」 댓글을 달고 사람이 지금처럼 테스트 작성 화면에서 반영한다. GitHub 에서 직접 병합했으면 지금 규칙대로 반영을 한 번 눌러야 이어진다(`authoring/continue.ts` 「GitHub 에서 직접 병합한 것은 반영을 한 번 눌러야 선다」)
@@ -549,15 +549,15 @@ POST /mcp
 ```
 # 테스트 수정 바퀴 (BTS-F10 · 2026-11-11 — 무엇을 왜 하는지는 §3.12 「테스트 수정 바퀴」가 정본. 꼴은 줄마다 반영)
 # BTS 알림 받기 — 몸 · 열쇠는 그대로다. toState 가 status_map.TEST_FIX 면 테스트 수정을 맡는다 (F10-04)
-#   200 · 처리가 깨지면(DB · 이슈 다시 읽기 · 변경 기록 읽기가 5xx · 408 · 429 · 끊김) 503 — BTS 가 다시 보낸다. 권한 · 없음 같은 4xx 는 기록만 남기고 200
+#   200 · 처리가 깨지면(DB · 이슈 다시 읽기 · 변경 기록 · 이슈 글 · whoami 읽기가 5xx · 408 · 429 · 끊김) 503 — BTS 가 다시 보낸다. 권한 · 없음 같은 4xx 는 기록만 남기고 200(정본은 §3.12 「테스트 수정 바퀴」 1)
 # 설정 › BTS 연결 (F10-03)
 #   GET · PUT 의 statusMap 에 TEST_FIX?: string | null — 빠지거나 null 이면 짝 없음(저장된다). 나머지 여섯은 지금처럼 꼭 찬다
 #   POST …/bts/setup 결과 items 에 다섯째 줄 { what: 'TEST_FIX_FIELD', ok, status? } — 이슈 필드 「테스트 수정 PR」 만들기. 같은 이름 · 키 필드가 있으면 그것을 쓴다(다시 눌러도 한 벌)
 #   — 위 두 줄은 반영 완료 (2026-11-11, apps/admin/src/bts/link.ts · setup.ts · web/SettingsBtsParts.tsx — BTS-F10-03). 앞 꼴 testFixField: { ok, reason } 는 나머지 넷과 같은 items 줄로 바꿨다
 # 작성 에이전트 끝내기 — testFix 줄(AUTHOR 와 그 RERUN)의 result 에 칸 하나 (F10-04 · F10-05)
 #   testFix: { autoMerge: boolean, held: ('EXPECTED_CHANGED' | 'VERIFY_FEWER' | 'MUTATION_MISSED' | 'NOT_MEASURED')[], summary: string, reruns: number }
-#   — autoMerge 는 held 가 비었을 때만 true. summary 는 고친 곳 한 줄(PR 본문 「테스트 고침」 줄과 같다 · 500자) · reruns 는 마지막 전체 돌려 보기(PR 본문 「3번 돌려 보기」)에서 실제 돈 횟수
-#   — testFix 줄이 아닌데 실으면 400 BAD_RESULT { detail: 'testFix' }. testFix 줄인데 없으면 자동 병합하지 않는다(held ['NOT_MEASURED']로 친다)
+#   — autoMerge 는 held 가 비었을 때만 true. summary 는 고친 곳 한 줄(자식 결과 요약의 「테스트 고침: … 고친 곳」 · 500자) · reruns 는 마지막 전체 돌려 보기(PR 본문 「3번 돌려 보기」)에서 실제 돈 횟수
+#   — testFix 줄이 아닌데 실었거나 꼴이 틀리면 400 BAD_RESULT { detail: 'testFix' } — 에이전트는 그 칸만 빼고 다시 보낸다. testFix 줄인데 없으면 자동 병합하지 않는다(held ['NOT_MEASURED']로 친다)
 #   — 알림 받기 줄과 이 칸의 summary · reruns · BAD_RESULT 는 반영 완료 (2026-11-11, apps/admin/src/bts/testFix.ts · inbound.ts · authoring/agentRoutes.ts · scripts/authoring-test-fix.ts — BTS-F10-04). autoMerge · held 는 F10-05
 # 기능 테스트 목록 GET /api/catalog/cases 의 items[] 에 칸 하나 (F10-07 · 카탈로그.md §7)
 #   autoFix: { issueKey, state, at } | null — 그 케이스의 가장 늦은 bts_test_fix 줄(대상 서버 상관없이). 화면은 state 가 PASSED 일 때만 「자동 수정」 표시를 단다
