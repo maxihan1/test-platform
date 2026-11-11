@@ -1,17 +1,77 @@
 // 케이스 목록 표머리 — 칸 이름과 「보이는 케이스 전체 선택」. CaseListParts 가 300줄을 넘어 뗐다 (2026-10-05 · PR #159)
 // 아래 쪽 넘기기는 2026-11-11 시안 B 에서 걷었다 — 목록이 스크롤로 이어 받는다(useCasePages.ts)
 
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from 'react';
 
 import { use말 } from './i18n.js';
+import type { 판정 } from './role.js';
+import { 기다림글자 } from './ui.js';
+
+/**
+ * 케이스 목록 화면 머리의 단추 — 「다운로드 ▾」 · 「⋯ › 케이스 목록 새로고침」 · 주 실행 단추 (도메인/카탈로그 §8.1 · 2026-11-11 시안 B).
+ * 머리는 늘 조건 기준이다 — 고른 것의 실행은 고르기 바에만 있다(2026-10-30 WEB-F7-08). CaseList 가 300줄을 넘어 뗐다
+ */
+export function 목록머리행동({
+  전체,
+  걸렀나,
+  테스트만,
+  할수,
+  엑셀,
+  새로고침중,
+  on새로고침,
+  모으는중,
+  on실행,
+  실행단추,
+}: {
+  전체: number;
+  걸렀나: boolean;
+  테스트만: boolean;
+  할수: 판정;
+  엑셀: { 받기: () => void; 받는중: boolean };
+  새로고침중: boolean;
+  on새로고침: () => void;
+  모으는중: boolean;
+  on실행: () => void;
+  실행단추: RefObject<HTMLButtonElement | null>;
+}) {
+  const t = use말();
+  // 이름이 무엇을 거는지 말한다 — 거른 것이 없으면 전부, 있으면 걸러진 것만 (앞 판 「조건에 맞는 N건 실행」은 길고 딱딱했다)
+  const 실행글 = 걸렀나
+    ? t(테스트만 ? '검색 결과 시험 실행 ({건수})' : '검색 결과 실행 ({건수})', { 건수: 전체 })
+    : t(테스트만 ? '전체 시험 실행 ({건수})' : '전체 실행 ({건수})', { 건수: 전체 });
+  return (
+    <>
+      <머리메뉴 글={<><기다림글자 중={엑셀.받는중} 평소={t('다운로드')} 기다림={t('만드는 중')} /><span aria-hidden="true"> ▾</span></>} 막힘={엑셀.받는중 || 전체 === 0}>
+        <button type="button" className="btn ghost small" onClick={엑셀.받기}>
+          {t('엑셀 ({건수}건)', { 건수: 전체 })}
+        </button>
+      </머리메뉴>
+      {/* 가끔 쓰는 일이라 「⋯」 안에 둔다 — 앞 판은 머리 맨 앞의 「다시 스캔」이었다 */}
+      {!할수('다시스캔') ? null : (
+        <머리메뉴 글={새로고침중 ? t('새로고침하는 중') : '⋯'} 이름={새로고침중 ? undefined : t('다른 작업')} 막힘={새로고침중}>
+          <button type="button" className="btn ghost small" onClick={on새로고침}>
+            {t('케이스 목록 새로고침')}
+          </button>
+        </머리메뉴>
+      )}
+      {!할수('테스트실행') ? null : (
+        <button className="btn" ref={실행단추} onClick={on실행} disabled={모으는중 || 전체 === 0}>
+          {실행글}
+        </button>
+      )}
+    </>
+  );
+}
 
 /**
  * 화면 머리의 접힌 메뉴 — 「다운로드 ▾」 · 「⋯」. 자주 안 쓰는 일을 주 단추 옆에서 걷어 낸다 (2026-11-11 시안 B).
- * 항목을 누르거나 메뉴 밖을 누르면 닫힌다
+ * 항목을 누르거나 메뉴 밖을 누르거나 Esc 를 누르거나 키보드 초점이 메뉴 밖으로 나가면 닫힌다. 단추가 막히면(받는 중) 펼친 것도 접는다
  */
 export function 머리메뉴({ 글, 이름, 막힘 = false, children }: { 글: ReactNode; 이름?: string; 막힘?: boolean; children: ReactNode }) {
-  const [열림, set열림] = useState(false);
+  const [펼침, set열림] = useState(false);
+  const 열림 = 펼침 && !막힘;
   const 자리 = useRef<HTMLSpanElement>(null);
+  const 단추 = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (!열림) return;
     const 밖 = (e: MouseEvent) => {
@@ -21,8 +81,21 @@ export function 머리메뉴({ 글, 이름, 막힘 = false, children }: { 글: R
     return () => document.removeEventListener('mousedown', 밖);
   }, [열림]);
   return (
-    <span className="case-menu" ref={자리}>
-      <button type="button" className="btn ghost" aria-expanded={열림} aria-haspopup="true" aria-label={이름} disabled={막힘} onClick={() => set열림(!열림)}>
+    <span
+      className="case-menu"
+      ref={자리}
+      onKeyDown={(e) => {
+        if (e.key !== 'Escape' || !열림) return;
+        // 열린 서랍의 Esc 까지 닫지 않게 여기서 멈춘다
+        e.stopPropagation();
+        set열림(false);
+        단추.current?.focus();
+      }}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) set열림(false);
+      }}
+    >
+      <button type="button" ref={단추} className="btn ghost" aria-expanded={열림} aria-haspopup="true" aria-label={이름} disabled={막힘} onClick={() => set열림(!열림)}>
         {글}
       </button>
       {열림 ? (

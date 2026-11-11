@@ -1,4 +1,4 @@
-// 목록 왼쪽 기능 묶음 목차 — PRD 관리 요구사항 · 테스트 실행 두 목록이 같이 쓴다 (도메인/작성 §8.x 「목차」 · 도메인/카탈로그 §8.1 「목차」)
+// 목록 왼쪽 기능 묶음 목차 — PRD 관리 요구사항 · 테스트 실행 두 목록이 같이 쓴다 (도메인/작성 §3.6 「목차」 · 도메인/카탈로그 §8.1 「맥락」)
 // 펼치고 접던 묶음 머리를 걷어 낸 자리다(2026-11-11 시안 B). 휴대폰에서는 목록 위 가로 칩 줄이 된다(listToc.css)
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
@@ -51,9 +51,21 @@ export function use목차위치(상자: RefObject<HTMLElement | null>, 다시: u
       set지금(찾음);
     };
     재기();
-    // 스크롤은 거품이 안 올라 잡기로 듣는다 — 상자든 페이지든 구르면 다시 잰다
-    document.addEventListener('scroll', 재기, { passive: true, capture: true });
-    return () => document.removeEventListener('scroll', 재기, { capture: true });
+    // 스크롤은 거품이 안 올라 잡기로 듣는다 — 상자든 페이지든 구르면 다시 잰다.
+    // 재는 일은 한 화면 틀에 한 번이다 — 사건마다 묶음 전부의 자리를 읽으면 굴릴 때 버벅인다(2026-11-11 코드 리뷰)
+    let 틀 = 0;
+    const 예약 = () => {
+      if (틀 !== 0) return;
+      틀 = requestAnimationFrame(() => {
+        틀 = 0;
+        재기();
+      });
+    };
+    document.addEventListener('scroll', 예약, { passive: true, capture: true });
+    return () => {
+      cancelAnimationFrame(틀);
+      document.removeEventListener('scroll', 예약, { capture: true });
+    };
   }, [상자, 다시]);
 
   /** 그 묶음이 지금 그려져 있으면 상자를 굴려 맨 위에 세우고 true. 없으면(아직 안 받은 쪽) false */

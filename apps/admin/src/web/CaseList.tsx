@@ -15,7 +15,7 @@ import { 결과탭들, 고른조건칩들, use필터조건들, 필터판 } from 
 import { 목록끝, use목차따라가기 } from './CaseListMore.js';
 import { Empty, 목록부제 } from './CaseListNotes.js';
 import { 고르기띠, 고르기바 } from './CaseListPick.js';
-import { 머리메뉴, 표머리 } from './CaseListHead.js';
+import { 목록머리행동, 표머리 } from './CaseListHead.js';
 import { 찾기폼, 케이스줄 } from './CaseListParts.js';
 import { 기능묶음들, 덩어리들 } from './caseGroups.js';
 import { Head } from './Head.js';
@@ -27,7 +27,7 @@ import type { 글자표 } from './pickRun.js';
 import { 테스트만인가, type 판정 } from './role.js';
 import { RunPickModal } from './RunPickModal.js';
 import { use실행끝남 } from './runWatchStore.js';
-import { Failed, Loading, message, useAsync, 기다림글자 } from './ui.js';
+import { Failed, Loading, message, useAsync } from './ui.js';
 import { use이어받기 } from './useCasePages.js';
 import { useRunPick, 쪽상한 } from './useRunPick.js';
 
@@ -138,11 +138,6 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
     // 실행 권한이 없으면 머리 단추가 없다 — 보이는 케이스 전체 선택으로 보낸다
     (실행단추.current ?? document.querySelector<HTMLInputElement>('.rowhead .pick input'))?.focus();
   }
-  // 이름이 무엇을 거는지 말한다 — 거른 것이 없으면 전부, 있으면 걸러진 것만 (2026-11-11 시안 B · 앞 판 「조건에 맞는 N건 실행」은 길고 딱딱했다)
-  const 실행글 = 검색.건조건
-    ? t(테스트만 ? '검색 결과 시험 실행 ({건수})' : '검색 결과 실행 ({건수})', { 건수: 전체 })
-    : t(테스트만 ? '전체 시험 실행 ({건수})' : '전체 실행 ({건수})', { 건수: 전체 });
-
   return (
     <>
       {/* 저장 뒤 비운 칸은 빈 표라 고친 것이 아니다 */}
@@ -154,27 +149,18 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
         제목={kind === 'UI' ? t('UI 테스트') : t('기능 테스트')}
         부제={<목록부제 전체={cases.data?.total ?? null} 미확정={cases.data?.unconfirmed} scan={scan.data} error={notice ?? scan.error} 모으는중={뽑기.모으는중} />}
         행동={
-          <>
-            <머리메뉴 글={<><기다림글자 중={엑셀.받는중} 평소={t('다운로드')} 기다림={t('만드는 중')} /><span aria-hidden="true"> ▾</span></>} 막힘={엑셀.받는중 || 전체 === 0}>
-              <button type="button" className="btn ghost small" onClick={엑셀.받기}>
-                {t('엑셀 ({건수}건)', { 건수: 전체 })}
-              </button>
-            </머리메뉴>
-            {/* 가끔 쓰는 일이라 「⋯」 안에 둔다 — 앞 판은 머리 맨 앞의 「다시 스캔」이었다 */}
-            {!할수('다시스캔') ? null : (
-              <머리메뉴 글={scanning ? t('새로고침하는 중') : '⋯'} 이름={scanning ? undefined : t('다른 작업')} 막힘={scanning}>
-                <button type="button" className="btn ghost small" onClick={() => void rescan()}>
-                  {t('케이스 목록 새로고침')}
-                </button>
-              </머리메뉴>
-            )}
-            {/* 머리는 늘 조건 기준이다. 고른 것의 실행은 고르기 바에만 있다 (도메인/카탈로그 §8.1 · 2026-10-30 WEB-F7-08) */}
-            {!할수('테스트실행') ? null : (
-              <button className="btn" ref={실행단추} onClick={() => void 뽑기.조건모으기()} disabled={뽑기.모으는중 || 전체 === 0}>
-                {실행글}
-              </button>
-            )}
-          </>
+          <목록머리행동
+            전체={전체}
+            걸렀나={검색.건조건}
+            테스트만={테스트만}
+            할수={할수}
+            엑셀={엑셀}
+            새로고침중={scanning}
+            on새로고침={() => void rescan()}
+            모으는중={뽑기.모으는중}
+            on실행={() => void 뽑기.조건모으기()}
+            실행단추={실행단추}
+          />
         }
       />
 
@@ -195,7 +181,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
             <묶음목차 칸들={목차} 지금={따라가기.지금} on가기={따라가기.가기} />
             {/* `case-rows` — 목록 폭이 좁으면 줄을 쌓는 규칙(styles.css)을 이 상자에만 건다 */}
             <div className="rows-scroll case-rows" ref={상자}>
-              {cases.data === null && cases.error !== null ? (
+              {cases.error !== null ? (
                 <Failed error={cases.error} />
               ) : cases.data === null ? (
                 <Loading />
@@ -230,10 +216,10 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
                       on풀기={풀기}
                     />
                   )}
-                  {덩어리들(보일것, cases.data.groups, 요구쓰나).map((덩어리) => {
+                  {덩어리들(보일것, cases.data.groups, 요구쓰나).map((덩어리, 차례) => {
                     const 칸 = 목차칸.get(덩어리.열쇠);
                     return (
-                      <section key={덩어리.열쇠} {...목차자리(덩어리.열쇠)}>
+                      <section key={덩어리.열쇠 + String.fromCharCode(0) + String(차례)} {...목차자리(덩어리.열쇠)}>
                         {/* PRD 를 안 쓰는 서비스는 이름표 없이 줄만 선다 — 「기능 묶음 없음」 한 줄을 버린다 */}
                         {!요구쓰나 ? null : (
                           <div className="toc-label">
@@ -278,10 +264,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
               거는중={뽑기.거는중}
               onClose={뽑기.닫기}
               on값고침={뽑기.사유지우기}
-              on다시읽기={(tcId) => {
-                void 뽑기.다시읽기(tcId);
-                void cases.reload();
-              }}
+              on다시읽기={(tcId) => void Promise.all([뽑기.다시읽기(tcId), cases.reload()])}
               onRun={(요청) => void 뽑기.실행걸기(요청)}
               정식={!테스트만}
             />

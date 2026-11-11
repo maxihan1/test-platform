@@ -22,10 +22,14 @@ export function 쪽합치기(쪽들: CasePage[]): CasePage {
 export function use이어받기(조건: CaseQuery, 열쇠: string) {
   const 언어 = use언어();
   const [쪽들, set쪽들] = useState<CasePage[] | null>(null);
+  // 첫 쪽 · 다시 읽기 실패는 목록을 대신하고(error), 더 받기 실패는 목록 끝 한 줄이다(더오류) — 갈라야 다시 받는 길이 맞는다
   const [error, setError] = useState<string | null>(null);
+  const [더오류, set더오류] = useState<string | null>(null);
   const [받는중, set받는중] = useState(false);
   const 받는중ref = useRef(false);
   const 차수 = useRef(0);
+  // 들고 있는 쪽들이 어느 차수의 것인가 — 조건을 바꾼 뒤 새 첫 쪽이 오기 전에는 더 받지 않는다. 옛 조건 쪽 뒤에 새 조건 쪽이 붙었다(2026-11-11 코드 리뷰)
+  const 쪽차수 = useRef(0);
   const 지금조건 = useRef(조건);
   지금조건.current = 조건;
   const 지금쪽들 = useRef(쪽들);
@@ -38,8 +42,11 @@ export function use이어받기(조건: CaseQuery, 열쇠: string) {
       try {
         const 받은 = await Promise.all(Array.from({ length: 쪽수 }, (_, i) => api.cases({ ...지금조건.current, page: i + 1 })));
         if (이차수 !== 차수.current) return false;
+        쪽차수.current = 이차수;
+        지금쪽들.current = 받은;
         set쪽들(받은);
         setError(null);
+        set더오류(null);
         return true;
       } catch (err) {
         if (이차수 === 차수.current) setError(message(err, 언어));
@@ -55,11 +62,11 @@ export function use이어받기(조건: CaseQuery, 열쇠: string) {
 
   const 더있나 = 쪽들 !== null && 다음이있나(쪽들.at(-1)!);
 
-  /** 다음 쪽 하나를 붙인다. 받는 중이거나 더 없으면 하지 않는다 */
+  /** 다음 쪽 하나를 붙인다. 받는 중이거나 더 없거나 조건을 바꿔 새 첫 쪽을 기다리는 중이면 하지 않는다 */
   const 더받기 = useCallback(async (): Promise<boolean> => {
     const 지금 = 지금쪽들.current;
     // 스크롤 사건은 한 번에 여럿 온다 — 상태가 그려지기 전이라 받는 중인지는 ref 로 본다
-    if (지금 === null || 받는중ref.current || !다음이있나(지금.at(-1)!)) return false;
+    if (지금 === null || 받는중ref.current || 쪽차수.current !== 차수.current || !다음이있나(지금.at(-1)!)) return false;
     const 이차수 = 차수.current;
     받는중ref.current = true;
     set받는중(true);
@@ -69,9 +76,10 @@ export function use이어받기(조건: CaseQuery, 열쇠: string) {
       const 붙인 = [...지금, 다음];
       지금쪽들.current = 붙인;
       set쪽들(붙인);
+      set더오류(null);
       return true;
     } catch (err) {
-      if (이차수 === 차수.current) setError(message(err, 언어));
+      if (이차수 === 차수.current) set더오류(message(err, 언어));
       return false;
     } finally {
       받는중ref.current = false;
@@ -82,6 +90,7 @@ export function use이어받기(조건: CaseQuery, 열쇠: string) {
   return {
     data: 쪽들 === null ? null : 쪽합치기(쪽들),
     error,
+    더오류,
     받는중,
     더있나,
     더받기,

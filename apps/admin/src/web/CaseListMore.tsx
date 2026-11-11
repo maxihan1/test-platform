@@ -7,7 +7,7 @@ import { use말 } from './i18n.js';
 import { use목차위치 } from './ListToc.js';
 
 interface 이어받는목록 {
-  error: string | null;
+  더오류: string | null;
   받는중: boolean;
   더있나: boolean;
   더받기: () => Promise<boolean>;
@@ -32,9 +32,9 @@ export function 목록끝({ 받은, 전체, 목록 }: { 받은: number; 전체: 
 
   return (
     <div className="list-end" ref={끝}>
-      {목록.error !== null ? (
+      {목록.더오류 !== null ? (
         <>
-          <span className="list-end-bad">{목록.error}</span>{' '}
+          <span className="list-end-bad">{목록.더오류}</span>{' '}
           <button type="button" className="linklike" onClick={() => void 더받기()}>
             {t('다시 불러오기')}
           </button>
@@ -59,12 +59,12 @@ export function use목차따라가기(상자: RefObject<HTMLElement | null>, 목
   const [찾는, set찾는] = useState<string | null>(null);
   useEffect(() => {
     if (찾는 === null) return;
-    if (위치.가기(찾는) || !목록.더있나 || 목록.error !== null) {
+    if (위치.가기(찾는) || !목록.더있나 || 목록.더오류 !== null) {
       set찾는(null);
       return;
     }
     if (!목록.받는중) void 목록.더받기();
-  }, [찾는, 받은, 목록.더있나, 목록.받는중, 목록.error]);
+  }, [찾는, 받은, 목록.더있나, 목록.받는중, 목록.더오류]);
   return {
     지금: 찾는 ?? 위치.지금,
     가기: (열쇠: string) => {

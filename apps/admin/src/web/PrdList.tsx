@@ -205,6 +205,7 @@ export function PrdList({
                 const 실패수 = 상태들.filter((s) => s.실패).length;
                 const 미작성수 = 상태들.filter((s) => s.미작성).length;
                 const 보류수 = 상태들.filter((s) => s.보류).length;
+                const 확인수 = 상태들.filter((s) => s.확인).length;
                 return (
                   <section key={g.feature} {...목차자리(g.feature)}>
                     <div className="toc-label">
@@ -213,6 +214,7 @@ export function PrdList({
                       {실패수 === 0 ? null : <span className="toc-fail">{t('실패 {건수}', { 건수: 실패수 })}</span>}
                       {미작성수 === 0 ? null : <span>{t('미작성 {건수}', { 건수: 미작성수 })}</span>}
                       {보류수 === 0 ? null : <span>{t('보류 {건수}', { 건수: 보류수 })}</span>}
+                      {확인수 === 0 ? null : <span>{t('확인 필요 {건수}', { 건수: 확인수 })}</span>}
                       {문제.get(g.feature) === null ? null : <span className="toc-fix">{t('정리 필요')}</span>}
                     </div>
                     {g.items.map((x) => (

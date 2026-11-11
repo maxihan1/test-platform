@@ -103,6 +103,7 @@ describe('PRD 관리 — 전체 요구', () => {
     expect(잠금줄.textContent).not.toContain('반영 안 됨');
     const 로그인 = [...document.querySelectorAll('.toc-label')].find((el) => el.textContent?.includes('로그인'))!;
     expect(로그인.textContent).toContain('2건');
+    expect(로그인.textContent).toMatch(/확인 필요 [1-9]/);
     expect(screen.queryByRole('complementary')).toBeNull();
   });
 
