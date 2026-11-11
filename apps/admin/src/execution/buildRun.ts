@@ -89,7 +89,9 @@ export async function 스모크뒤(runId: number, 로그: 로그 = 콘솔): Prom
     if (스모크.rows.some((s) => s.status === 'RUNNING')) return;
     // 실패 · 해당 없음 · 멈춤이 하나라도 있으면 회귀는 안 돈다. 알림은 실행 끝 Slack 이 이미 보냈다
     if (스모크.rows.some((s) => s.status !== 'FINISHED' || s.안통과)) {
-      로그.info(`[build ${행.build_no}] ${행.prefix} 스모크가 통과하지 못해 회귀를 돌리지 않는다`);
+      // 준비 실패는 빌드가 깨진 것이 아니다 — 로그를 가른다 (도메인/실행 §3.2 「실행 전 준비」)
+      const 까닭 = 스모크.rows.some((s) => s.status === 'PREP_FAILED') ? '테스트 데이터 준비가 실패해' : '스모크가 통과하지 못해';
+      로그.info(`[build ${행.build_no}] ${행.prefix} ${까닭} 회귀를 돌리지 않는다`);
       return;
     }
     const 회귀 = await pool.query('SELECT 1 FROM test_run WHERE build_id = $1 AND build_stage = $2', [buildId, 'FULL']);

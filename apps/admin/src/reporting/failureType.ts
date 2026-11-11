@@ -49,8 +49,8 @@ const 게임시간초과 = /초 안에 (뜨지 |사라지지 |「.*」이 되지
 export function 원인을가른다(재료: 원인재료): 원인 {
   const 항목 = 재료.itemMessage.replace(색코드, '');
   const 글 = `${항목}\n${재료.stepMessage.replace(색코드, '')}`;
-  // STOPPED 는 사람이 멈춘 E2E 부품이다 — ABORTED 와 같은 갈래로 센다 (도메인/시나리오 §8.11)
-  if (재료.status === 'NA' && /^(ABORTED|STOPPED)\b/.test(항목)) return 'stopped';
+  // STOPPED 는 사람이 멈춘 E2E 부품이다 — ABORTED 와 같은 갈래로 센다 (도메인/시나리오 §8.11). 준비 실패로 안 돈 항목도 결함이 아니라 같은 갈래다 (도메인/실행 §3.2 「실행 전 준비」)
+  if (재료.status === 'NA' && /^(ABORTED|STOPPED|PREP_FAILED)\b/.test(항목)) return 'stopped';
   if (재료.assertFailed) return 'mismatch';
   if (연결끊김.test(글) || 게임연결끊김.test(글) || 인증못함.test(글) || (재료.status === 'NA' && 러너사유.test(항목))) return 'environment';
   if ((요소대기.test(글) && !요소찾음.test(글)) || 게임요소없음.test(글)) return 'notFound';

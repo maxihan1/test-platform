@@ -68,7 +68,7 @@ export async function 준비를부른다(준비: 준비, 본문: object, 끊김:
       return { ok: true };
     }
     const 글 = await res.text().catch(() => '');
-    return { ok: false, 끊김: false, note: 까닭(`HTTP ${String(res.status)} · ${글.slice(0, 2000)}`, 준비) };
+    return { ok: false, 끊김: false, note: 까닭(`HTTP ${String(res.status)} · ${글}`, 준비) };
   } catch (err) {
     if (끊김.aborted) return { ok: false, 끊김: true };
     if (한도.aborted) return { ok: false, 끊김: false, note: `시간 초과 ${String(준비.timeoutSec)}초` };

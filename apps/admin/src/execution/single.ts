@@ -153,9 +153,9 @@ export async function 시작방식정하기<기본 extends string>(
   if (다시 !== undefined) {
     if (await 반복실행인가(client, 다시)) return { origin: 'RERUN', rerunOf: 다시, attachedTo: null };
     // 대상 서버 · 모바일 실행 위치를 바꿔 다시 돌렸거나 스모크면 그 실행을 고치지 않는다 — qa 에서 깨진 것은 qa 에서 다시 통과해야 고친 것이다.
-    // 그때는 rerunOf 가 없을 때처럼 이번 대상 서버 · 실행 위치에서 붙을 곳을 고른다
+    // 그때는 rerunOf 가 없을 때처럼 이번 대상 서버 · 실행 위치에서 붙을 곳을 고른다. 준비 실패 실행도 판정이 없어 붙지 않는다(결과 칸이 항목을 안 그린다 — 실행 §3.2 「실행 전 준비」)
     const r = await client.query(
-      `SELECT 1 FROM test_run WHERE run_id = $1 AND env = $2 AND build_stage IS DISTINCT FROM 'SMOKE' AND ${같은위치('$1', 3)}`,
+      `SELECT 1 FROM test_run WHERE run_id = $1 AND env = $2 AND build_stage IS DISTINCT FROM 'SMOKE' AND status <> 'PREP_FAILED' AND ${같은위치('$1', 3)}`,
       [다시, 재료.env, 위치값(재료.platforms, 재료.실제폰)],
     );
     if ((r.rowCount ?? 0) > 0) return { origin: 'SINGLE', rerunOf: 다시, attachedTo: 다시 };

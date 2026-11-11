@@ -168,7 +168,12 @@ export async function dispatch(runId: number, items: PendingItem[]): Promise<voi
   // 돌리기 전에 대상 서버 줄의 준비 주소를 한 번 부른다 — 같은 준비 주소의 실행이 도는 중이면 끝날 때까지 기다린다.
   // 실패하면 항목을 안 돌리고 PREP_FAILED 로 닫는다. 아래 뒷일(스모크 판정 · 알림 · Issue Bunker)은 끝난 실행처럼 그대로 탄다 (도메인/실행 §3.2 「실행 전 준비」)
   const 준비 = await 준비하고돌린다(runId, () => 멈춘실행.has(runId), 항목을돌린다);
-  if (준비.결과 === '실패') await 준비실패로닫는다(runId, 준비.note);
+  if (준비.결과 === '실패') {
+    // 닫기가 깨져도 아래 뒷일은 탄다. 실행은 RUNNING 으로 남고 재기동 복구가 닫는다
+    await 준비실패로닫는다(runId, 준비.note).catch((err: unknown) => {
+      console.error(`[execution] 실행 ${runId}을 준비 실패로 닫지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+    });
+  }
   // 멈춘 실행은 ABORTED 로 이미 닫혔다. finishRun 은 RUNNING 만 건드리므로 그대로 둬도 되지만,
   // 표시를 남겨 두면 다음 실행의 같은 번호에서 오판할 수 있어 여기서 치운다
   멈춘실행.delete(runId);

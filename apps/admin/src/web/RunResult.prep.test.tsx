@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+// 준비 실패 실행의 결과 칸 · 실행 기록 줄 색을 본다 (도메인/실행 §3.2 「실행 전 준비」 「화면 · 집계」)
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
