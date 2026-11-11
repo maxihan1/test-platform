@@ -4,7 +4,8 @@
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { 사람반영적기, 테스트수정병합판정 } from './testFixMerge.js';
+import { 테스트수정PR열림 } from './testFix.js';
+import { 반영한사람적기, 테스트수정병합판정 } from './testFixMerge.js';
 
 const 연결 = process.env.DATABASE_URL;
 
@@ -71,19 +72,22 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 자동 병�
     expect(await 댓글들('DM-1')).toEqual([]);
   });
 
-  it('걸리면 반영을 세우지 않고 까닭을 적어 「사람 확인이 필요해요」 — 사람이 반영하면 PERSON', async () => {
+  it('걸리면 반영을 세우지 않고 까닭을 적어 「사람 확인이 필요해요」(같은 글은 한 번) — 반영이 끝나면 세운 사람대로 PERSON · AUTO', async () => {
     const { id, 주소 } = await 고침('DM-2', 'XQG-FN-002');
+    expect(await 테스트수정병합판정(id, 서비스, id, 주소, 판정(false, ['EXPECTED_CHANGED', 'MUTATION_MISSED']))).toBe('PERSON');
     expect(await 테스트수정병합판정(id, 서비스, id, 주소, 판정(false, ['EXPECTED_CHANGED', 'MUTATION_MISSED']))).toBe('PERSON');
     expect(await 머지들(id)).toEqual([]);
     expect(await 줄(id)).toEqual({ merge: null, held: ['EXPECTED_CHANGED', 'MUTATION_MISSED'] });
     expect(await 댓글들('DM-2')).toEqual([`사람 확인이 필요해요 — 기대값이 바뀌었어요 · 일부러 고장 내 보기에서 못 잡은 고장이 있어요\n${주소}`]);
     const 손 = await pool.connect();
     try {
-      await 사람반영적기(손, id);
+      await 반영한사람적기(손, id, 'xqg-admin');
+      expect((await 줄(id)).merge).toBe('PERSON');
+      await 반영한사람적기(손, id, 'bts');
+      expect((await 줄(id)).merge).toBe('AUTO');
     } finally {
       손.release();
     }
-    expect((await 줄(id)).merge).toBe('PERSON');
   });
 
   it('판정 칸이 없으면 「재지 못함」 · 조건이 맞아도 반영이 막히면 그 까닭으로 사람에게 · 기다리는 줄이 없으면 아무것도 안 한다', async () => {
@@ -95,5 +99,14 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 자동 병�
     expect(await 머지들(막힘.id)).toEqual([]);
     expect(await 댓글들('DM-4')).toEqual([`사람 확인이 필요해요 — 보류 케이스가 몇 건인지 모르는 작성이에요\n${막힘.주소}`]);
     expect(await 테스트수정병합판정(막힘.id, 서비스, 막힘.id, 'https://github.com/o/r/pull/999', 판정(true, []))).toBeNull();
+  });
+
+  it('병합 전 다시 돈 실행이 다른 PR 로 끝나면 줄이 그 PR 로 바뀌어 새 PR 로 판정한다', async () => {
+    const { id } = await 고침('DM-5', 'XQG-FN-005');
+    const 새주소 = 'https://github.com/o/r/pull/905';
+    await pool.query('UPDATE authoring_request SET pr_url = $2 WHERE id = $1', [id, 새주소]);
+    await 테스트수정PR열림({ serviceId: 서비스, params: { testFix: { issueKey: 'DM-5' } } }, id, 새주소, null);
+    expect(await 테스트수정병합판정(id, 서비스, id, 새주소, 판정(true, []))).toBe('AUTO');
+    expect((await pool.query<{ pr_url: string }>('SELECT pr_url FROM bts_test_fix WHERE request_id = $1', [id])).rows[0]!.pr_url).toBe(새주소);
   });
 });

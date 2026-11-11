@@ -55,7 +55,7 @@ async function 봇번호(자리: BTS자리, 부르기: 부르기함수): Promise
 }
 
 /** 같은 글이 그 이슈에 이미 들어갔으면 다시 안 넣는다 — 재기동 뒤 같은 알림이 와도 댓글이 겹치지 않게 */
-async function 댓글한번(projectId: number, issueKey: string, body: string): Promise<void> {
+export async function 댓글한번(projectId: number, issueKey: string, body: string): Promise<void> {
   const 있음 = await (await db()).query(`SELECT 1 FROM bts_outbox WHERE project_id = $1 AND kind = 'COMMENT' AND issue_key = $2 AND payload->>'body' = $3`, [projectId, issueKey, body]);
   if ((있음.rowCount ?? 0) === 0) await 보낼줄넣기({ projectId, kind: 'COMMENT', issueKey, payload: { body } });
 }
@@ -227,7 +227,8 @@ export async function 테스트수정PR열림(요청: { serviceId: number; param
   // 단계마다 따로 한 번만 한다 — 중간에 깨진 뒤 같은 PR 로 또 끝나면 남은 단계만 이어 간다
   const 요약 = await 요약가리기(뿌리번호, 요약읽기(결과));
   await pool.query(
-    `UPDATE bts_test_fix SET pr_url = $2, summary = $3, state = 'WAIT_MERGE', updated_at = now() WHERE request_id = $1 AND state = 'FIXING'`,
+    // 병합 전 재실행 · 이어서 작성이 다른 PR 로 끝났으면 그 PR 로 바꾼다 — 안 바꾸면 자동 병합 판정(testFixMerge.ts)이 새 PR 의 줄을 못 찾는다
+    `UPDATE bts_test_fix SET pr_url = $2, summary = $3, state = 'WAIT_MERGE', updated_at = now() WHERE request_id = $1 AND (state = 'FIXING' OR (state = 'WAIT_MERGE' AND merge IS NULL))`,
     [뿌리번호, prUrl, 요약 === '' ? null : 요약],
   );
   // 주소 뒤가 줄 끝이거나 글 끝일 때만 같은 PR 이다 — …/pull/1 이 …/pull/12 댓글에 걸리지 않게
