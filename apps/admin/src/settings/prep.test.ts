@@ -53,6 +53,7 @@ describe('준비 주소 칸 규칙 (도메인/인증 §7 envs[] prep)', () => {
 
   it('실서비스 서버 줄에 준비가 남으면 PREP_ON_PROD 다 — 키를 안 보내 옛 값이 남아도 같다', () => {
     expect(오류코드(() => 준비이어받기({ ...옛것 }, null, true))).toBe('PREP_ON_PROD');
+    expect(오류코드(() => 준비이어받기({ url: 'https://other.example.com/prep', header: 'X-Prep-Key' }, null, true))).toBe('PREP_ON_PROD');
     expect(오류코드(() => 준비이어받기(undefined, 옛것, true))).toBe('PREP_ON_PROD');
     expect(준비이어받기(null, 옛것, true)).toBeNull();
     expect(준비이어받기(undefined, null, true)).toBeNull();

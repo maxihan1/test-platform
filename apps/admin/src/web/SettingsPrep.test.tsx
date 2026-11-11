@@ -58,6 +58,7 @@ describe('테스트 데이터 준비 칸', () => {
     render(<EnvEditor envs={줄들} onChange={vi.fn()} />);
     expect(screen.getByText('실서비스 서버에는 테스트 데이터 준비를 넣을 수 없습니다')).toBeTruthy();
     expect(screen.queryByLabelText('대상 서버 1 준비 주소')).toBeNull();
+    expect(screen.getByText('이대로 저장하면 이 서버의 테스트 데이터 준비가 삭제됩니다')).toBeTruthy();
     expect(보낼모양(줄들)[0]!.prep).toBeNull();
   });
 

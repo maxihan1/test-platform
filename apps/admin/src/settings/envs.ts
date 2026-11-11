@@ -220,7 +220,7 @@ export const 대상서버칸식 = `json_build_object(
                    ELSE json_build_object('header', e.admin_key->>'header', 'valueLast4', right(e.admin_key->>'value', 4)) END,
   'prep', CASE WHEN e.prep IS NULL THEN NULL
                ELSE json_build_object('url', e.prep->>'url', 'header', e.prep->>'header', 'valueLast4', right(e.prep->>'value', 4),
-                                      'timeoutSec', COALESCE((e.prep->>'timeoutSec')::int, 120)) END,
+                                      'timeoutSec', CASE WHEN jsonb_typeof(e.prep->'timeoutSec') = 'number' THEN round((e.prep->>'timeoutSec')::numeric)::int ELSE 120 END) END,
   'accounts', (SELECT COALESCE(json_agg(json_build_object(
                   'role', a.v->>'role', 'loginId', a.v->>'loginId',
                   'hasLoginPassword', COALESCE(a.v->>'loginPassword', '') <> '') ORDER BY a.n), '[]')

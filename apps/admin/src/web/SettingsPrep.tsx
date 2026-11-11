@@ -5,6 +5,7 @@ import { 운영이름인가 } from '../settings/roles.js';
 
 import type { EnvInput, EnvRow } from './api.js';
 import { t as 말, use말, type 언어 } from './i18n.js';
+import { 어드민키값인가, 헤더이름인가 } from './SettingsAdminKey.js';
 
 /** 편집 중인 준비 칸. 새값이 null 이면 저장된 값을 잇는다(•••• 끝4) */
 export interface 준비편집 {
@@ -43,20 +44,17 @@ export function 준비보낼모양(r: 준비줄): EnvInput['prep'] {
   return { url: p.url.trim(), header: p.header.trim(), ...(값 === '' ? {} : { value: 값 }), timeoutSec: Number(p.timeoutSec) };
 }
 
-/** 값 꼴. 서버 settings/apiService.ts `어드민키값인가` 와 같은 규칙이다 */
-const 값꼴 = (값: string): boolean => 값.length >= 12 && 값.length <= 500 && /^[\x21-\x7e]+(?: [\x21-\x7e]{12,})?$/.test(값);
-
 /** 저장을 막을 까닭. 서버 settings/prep.ts `준비틀림` 과 같은 규칙이다 — 서버는 BAD_PREP 하나로만 답해 어느 칸인지 모른다 */
 export function 준비못보내는이유(envs: readonly 준비줄[], 언어: 언어): string | null {
   const 보낼것 = envs.flatMap((r) => {
     const 모양 = 준비보낼모양(r);
     return 모양 == null ? [] : [{ r, 모양, 시간: 편집(r).timeoutSec.trim() }];
   });
-  if (보낼것.some(({ 모양 }) => !/^https?:\/\/\S+$/.test(모양.url) || 모양.url.length > 1000)) {
+  if (보낼것.some(({ 모양 }) => !/^https?:\/\/\S+$/i.test(모양.url) || 모양.url.length > 1000)) {
     return 말('준비 주소는 http(s) 주소로 1000자까지 입력해 주세요', 언어);
   }
-  if (보낼것.some(({ 모양 }) => !/^[A-Za-z0-9-]{1,100}$/.test(모양.header))) return 말('준비 헤더 이름은 영문 · 숫자 · - 로 100자까지입니다', 언어);
-  if (보낼것.some(({ 모양 }) => 모양.value !== undefined && !값꼴(모양.value))) {
+  if (보낼것.some(({ 모양 }) => !헤더이름인가(모양.header))) return 말('준비 헤더 이름은 영문 · 숫자 · - 로 100자까지입니다', 언어);
+  if (보낼것.some(({ 모양 }) => 모양.value !== undefined && !어드민키값인가(모양.value))) {
     return 말('준비 헤더 값은 12자 이상 500자 이하로 입력해 주세요. 띄어쓰기는 가운데 한 칸만 넣을 수 있습니다', 언어);
   }
   if (보낼것.some(({ 시간 }) => !/^\d+$/.test(시간) || Number(시간) < 10 || Number(시간) > 600)) {
@@ -73,11 +71,14 @@ export function 준비칸({ 줄: r, 번호, 고친다 }: { 줄: 준비줄; 번�
   const t = use말();
   const p = 편집(r);
   const 끝넷 = r.prep?.valueLast4 ?? null;
+  // 저장된 준비가 이번 저장으로 지워지나 — 닫음 · 실서비스 체크 · 세 칸 비우기 어느 길이든 알린다
+  const 지워짐 = r.prep != null && 준비보낼모양(r) === null ? <div className="hint">{t('이대로 저장하면 이 서버의 테스트 데이터 준비가 삭제됩니다')}</div> : null;
   if (실서비스(r)) {
     return (
       <div className="set-env-login">
         <span className="field-label">{t('테스트 데이터 준비')}</span>
         <span className="hint">{t('실서비스 서버에는 테스트 데이터 준비를 넣을 수 없습니다')}</span>
+        {지워짐}
       </div>
     );
   }
@@ -93,7 +94,7 @@ export function 준비칸({ 줄: r, 번호, 고친다 }: { 줄: 준비줄; 번�
         >
           +
         </button>
-        {r.prep != null ? <div className="hint">{t('이대로 저장하면 이 서버의 테스트 데이터 준비가 삭제됩니다')}</div> : null}
+        {지워짐}
       </div>
     );
   }
@@ -161,6 +162,7 @@ export function 준비칸({ 줄: r, 번호, 고친다 }: { 줄: 준비줄; 번�
       >
         −
       </button>
+      {지워짐}
     </div>
   );
 }

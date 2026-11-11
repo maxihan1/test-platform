@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { 머리이름인가, 어드민키값인가 } from './apiService.js';
 import { 설정오류 } from './errors.js';
 
-// 칸 하나하나의 규칙은 아래 준비틀림 이 본다 — 어기면 INVALID_REQUEST 가 아니라 BAD_PREP 다
+// 칸 하나하나의 규칙은 아래 준비틀림 이 본다 — 어기면 BAD_PREP 다. 꼴이 틀리면(글자 timeoutSec · url 없음) 어드민 키처럼 INVALID_REQUEST 다
 export const 준비줄 = z.object({
   url: z.string(),
   header: z.string(),
@@ -27,7 +27,7 @@ export interface 준비 {
 export const 기본준비시간 = 120;
 
 const 준비칸틀림 = (p: 준비입력): boolean =>
-  !/^https?:\/\/\S+$/.test(p.url.trim()) ||
+  !/^https?:\/\/\S+$/i.test(p.url.trim()) ||
   p.url.trim().length > 1000 ||
   !머리이름인가(p.header.trim()) ||
   (p.value !== undefined && !어드민키값인가(p.value)) ||
@@ -42,7 +42,7 @@ export function 준비읽기(값: unknown): 준비 | null {
   if (typeof 값 !== 'object' || 값 === null) return null;
   const { url, header, value, timeoutSec } = 값 as Record<string, unknown>;
   return typeof url === 'string' && typeof header === 'string' && typeof value === 'string'
-    ? { url, header, value, timeoutSec: typeof timeoutSec === 'number' ? timeoutSec : 기본준비시간 }
+    ? { url, header, value, timeoutSec: typeof timeoutSec === 'number' ? Math.round(timeoutSec) : 기본준비시간 }
     : null;
 }
 
@@ -52,9 +52,9 @@ export function 준비읽기(값: unknown): 준비 | null {
  * 실서비스 서버 줄에 남으면 400 PREP_ON_PROD — 키를 안 보내 옛 값이 남는 경우도 같다. 데이터를 지우고 되돌리는 주소라서다
  */
 export function 준비이어받기(보낸것: 준비입력 | null | undefined, 옛것: 준비 | null, 실서비스: boolean): 준비 | null {
-  const 남길것 = 보낸것 === undefined ? 옛것 : 보낸것 === null ? null : 준비만들기(보낸것, 옛것);
-  if (남길것 !== null && 실서비스) throw new 설정오류('PREP_ON_PROD');
-  return 남길것;
+  // 실서비스 줄을 값 확인보다 먼저 본다 — 값이 없어도 까닭은 「실서비스 서버라 못 넣는다」다
+  if (실서비스 && (보낸것 != null || (보낸것 === undefined && 옛것 !== null))) throw new 설정오류('PREP_ON_PROD');
+  return 보낸것 === undefined ? 옛것 : 보낸것 === null ? null : 준비만들기(보낸것, 옛것);
 }
 
 function 준비만들기(보낸: 준비입력, 옛것: 준비 | null): 준비 {
