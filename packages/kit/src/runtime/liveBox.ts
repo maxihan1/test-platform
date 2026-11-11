@@ -5,7 +5,7 @@ import { rename, rm, writeFile } from 'node:fs/promises';
 
 import type { Page } from '@playwright/test';
 
-import { 지금다룬요소 } from './highlight.js';
+import { 지금게임대상, 지금다룬요소 } from './highlight.js';
 
 /** 장면 그림에 대한 비율(0~1) — 그림 크기가 바뀌어도 화면이 그대로 겹친다 */
 export interface 비율상자 {
@@ -159,5 +159,28 @@ export function 폰상자읽개(driver: 폰자리읽개): (장: Buffer) => Promi
       // 사라진 요소 · 닫히는 연결 — 이 장면에는 윤곽이 없다
       return null;
     }
+  };
+}
+
+/** 게임 오브젝트 자리를 묻는 데 쓰는 것만 — control-cli 의 Game 이 맞는다. caps 는 ping 이 받아 둔 SDK 명령 목록이다 */
+export interface 게임자리읽개 {
+  caps?: string[];
+  find(target: string): Promise<{ rect?: [number, number, number, number]; screen?: [number, number] } | null>;
+}
+
+/**
+ * 게임 — 지금 다루는 오브젝트 주소를 control-cli `find` 로 물어 그 `rect` 를 `screen` 비율로 바꾼다. SDK 가 caps 에 `rect` 를 알릴 때만이다(control-cli 0.8.0 부터 —
+ * 옛 SDK 를 넣은 게임은 물어도 사각형이 없다). 게임 좌표는 왼쪽 아래가 0 이라 위아래를 뒤집는다.
+ * ponytail: 게임 화면이 폰 화면 전체라고 본다 — 게임이 화면 일부에만 그리면 윤곽이 그만큼 어긋난다. 그런 게임이 생기면 SDK screenshot 으로 장면을 찍는다
+ */
+export function 게임상자읽개(game: 게임자리읽개): () => Promise<비율상자 | null> {
+  return async () => {
+    const 대상 = 지금게임대상();
+    if (대상 === undefined || game.caps?.includes('rect') !== true) return null;
+    const 찾음 = await game.find(대상).catch(() => null);
+    if (찾음?.rect === undefined || 찾음.screen === undefined) return null;
+    const [x, y, w, h] = 찾음.rect;
+    const [가로, 세로] = 찾음.screen;
+    return 비율로({ x, y: 세로 - (y + h), width: w, height: h }, { width: 가로, height: 세로 });
   };
 }

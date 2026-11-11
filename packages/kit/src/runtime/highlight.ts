@@ -40,9 +40,22 @@ export function 지금다룬요소(): Locator | string | undefined {
   return (globalThis as 전역칸)[지금칸];
 }
 
+// 게임 단계가 지금 다루는 오브젝트 주소 — 앱 요소 번호와 섞이지 않게 칸을 따로 둔다 (game.ts 게임을지켜본다 · liveBox.ts)
+const 게임칸 = Symbol.for('platform.kit.지금게임대상');
+type 게임전역칸 = { [게임칸]?: string };
+
+export function 지금게임대상(): string | undefined {
+  return (globalThis as 게임전역칸)[게임칸];
+}
+
+export function 게임대상을적는다(대상: string): void {
+  (globalThis as 게임전역칸)[게임칸] = 대상;
+}
+
 /** 절차가 끝나면 놓는다 — 다음 절차 전 · E2E 부품 사이에 끝난 요소의 윤곽이 남아 아직 다루는 것처럼 읽히지 않게 (step.ts) */
 export function 요소를놓는다(): void {
   (globalThis as 전역칸)[지금칸] = undefined;
+  (globalThis as 게임전역칸)[게임칸] = undefined;
 }
 
 function 적는다(요소: Locator | string | undefined): void {

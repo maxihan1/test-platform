@@ -7,7 +7,7 @@ import { basename } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import type { APIRequest, APIRequestContext, Browser, Page } from '@playwright/test';
-import type { ScenarioCaseInput } from '@platform/kit/scenario';
+import { 게임원본, type ScenarioCaseInput } from '@platform/kit/scenario';
 
 import { 기준바꾸기, 기준읽기, 쿠키더하기, 응답듣기, 이어주기걸기 } from './browser.js';
 import { 주소의, type CasePart, type 미룬삭제, type 부품상태, type 상태, type 이음 } from './links.js';
@@ -154,7 +154,7 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
       const 폰쪽: 단계쪽 = async () => {
         if (설정.폰 === undefined) throw new Error('이 실행에는 폰 연결이 없다');
         const { driver, game } = await 설정.폰.얻기();
-        await 장면.폰에(driver, () => 닫음);
+        await 장면.폰에(driver, () => 닫음, game === undefined ? undefined : 게임원본(game));
         return { driver, ...(game && { game }), ...(설정.adminKey && { adminKey: 설정.adminKey }), platform: 'android' };
       };
       return {

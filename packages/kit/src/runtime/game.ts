@@ -8,6 +8,7 @@ import { isDeepStrictEqual } from 'node:util';
 import type { Game, Link, WaitOptions } from 'control-cli';
 
 import { runDir } from './artifacts.js';
+import { 게임대상을적는다 } from './highlight.js';
 import { FARM_EVIDENCE_DIR, GAME_ERRORS_FILE, GAME_TREE_FILE } from './protocol.js';
 
 type Env = Record<string, string | undefined>;
@@ -90,14 +91,44 @@ export async function openGame(
   const 끝 = Date.now() + 켜짐.timeoutMs;
   for (;;) {
     try {
+      // ping 이 caps 를 받아 둔다 — 실시간 장면 윤곽이 「rect 를 주는 SDK 인가」를 본다 (liveBox.ts 게임상자읽개)
       await game.ping();
-      return 드라이버;
+      return 게임을지켜본다(드라이버);
     } catch (err) {
       // 원문을 남겨야 실패 유형이 「환경 오류」로 가른다 (reporting/failureType.ts)
       if (/HTTP 4(?!08|29)\d\d/.test(글(err)) || Date.now() >= 끝) throw new Error(`게임이 ${켜짐.timeoutMs / 1000}초 안에 답하지 않았습니다 — ${글(err)}`);
       await 쉬기(켜짐.intervalMs);
     }
   }
+}
+
+// 첫 인자가 오브젝트 주소인 명령 — 케이스가 지금 누르거나 확인하는 오브젝트로 적는다 (실시간 장면 윤곽 · 도메인/러너 §5.2 「요소 윤곽」)
+const 대상명령 = new Set([
+  'find', 'parent', 'click', 'drag', 'type', 'text', 'get', 'setText', 'set', 'callMethod', 'pointer',
+  'waitFor', 'waitForProp', 'waitForValue', 'components', 'members', 'longPress', 'mouseMove', 'touchDown',
+]);
+const 원본들 = new WeakMap<object, KitGame>();
+
+/** 감싼 게임 연결의 원본 — 실시간 장면이 자리를 물을 때 쓴다. 감싼 것으로 물으면 그 물음이 케이스가 다룬 것으로 적힌다 */
+export function 게임원본(game: KitGame): KitGame {
+  return 원본들.get(game) ?? game;
+}
+
+function 게임을지켜본다(game: KitGame): KitGame {
+  const 판 = new Proxy(game, {
+    get(t, key) {
+      const 값 = Reflect.get(t, key, t) as unknown;
+      if (typeof 값 !== 'function') return 값;
+      const 함수 = 값 as (...a: unknown[]) => unknown;
+      if (typeof key !== 'string' || !대상명령.has(key)) return 함수.bind(t);
+      return (...args: unknown[]) => {
+        if (typeof args[0] === 'string') 게임대상을적는다(args[0]);
+        return 함수.apply(t, args);
+      };
+    },
+  });
+  원본들.set(판, game);
+  return 판;
 }
 
 /**

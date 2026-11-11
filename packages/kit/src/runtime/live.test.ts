@@ -67,6 +67,21 @@ describe('폰장면걸기', () => {
     expect(existsSync(파일)).toBe(false);
   });
 
+  it('게임 단계는 찍을 때마다 게임 SDK 에 지금 오브젝트 자리를 물어 윤곽 자리 파일에 쓴다', async () => {
+    const 파일 = join(폴더, 'live', '0b7e2c1a-0000-4000-8000-00000000000b.jpg');
+    const takeScreenshot = vi.fn(async () => PNG.toString('base64'));
+    const find = vi.fn(async () => ({ rect: [0, 50, 50, 50] as [number, number, number, number], screen: [100, 100] as [number, number] }));
+    (globalThis as Record<symbol, unknown>)[Symbol.for('platform.kit.지금게임대상')] = 'Hero';
+
+    const 장면 = await 폰장면걸기({ takeScreenshot }, 파일, 10, { caps: ['rect'], find });
+    await vi.waitFor(() => expect(readFileSync(`${파일}.box`, 'utf8')).toBe('0.0000,0.0000,0.5000,0.5000'));
+    await 장면?.끄기();
+    (globalThis as Record<symbol, unknown>)[Symbol.for('platform.kit.지금게임대상')] = undefined;
+
+    expect(find).toHaveBeenCalledWith('Hero');
+    expect(existsSync(`${파일}.box`)).toBe(false);
+  });
+
   it('찍기가 매달려도 끄기는 2초 안에 끝나고 파일을 지운다 — 단계 한도 실패를 더 늦추지 않는다', async () => {
     const 파일 = join(폴더, 'live', '0b7e2c1a-0000-4000-8000-000000000006.jpg');
     const takeScreenshot = vi.fn<() => Promise<string>>().mockResolvedValueOnce(PNG.toString('base64')).mockReturnValue(new Promise<string>(() => {}));
