@@ -14,6 +14,7 @@ import { 잡기를늘린다, 팜주소, 팜폰으로 } from './farm.js';
 import { 실행팜토큰 } from './farmToken.js';
 import { notifyRun } from './notify.js';
 import { Chrome차례, 폰차례 } from './phone.js';
+import { 준비를끊는다, 준비실패로닫는다, 준비하고돌린다 } from './prep.js';
 import { callRunner, na, type 잡은폰 } from './runner.js';
 import { finishItem, finishRun, type PendingItem } from './store.js';
 import { trace적재를맡긴다 } from './traceIngest.js';
@@ -60,6 +61,8 @@ const 멈춘실행 = new Set<number>();
 
 export function markAborted(runId: number): void {
   멈춘실행.add(runId);
+  // 준비 차례를 기다리거나 준비 요청이 가는 중이면 끊는다 — 실행은 abortRun 이 이미 ABORTED 로 닫았다
+  준비를끊는다(runId);
 }
 
 async function runOne(runId: number, item: PendingItem, 잡은폰?: 잡은폰): Promise<void> {
@@ -150,16 +153,22 @@ export async function dispatch(runId: number, items: PendingItem[]): Promise<voi
   // android 는 전역 상한 밖의 디바이스 줄이다. 같은 디바이스에 연결 둘이 겹치면 뒤 연결이 앞을 가로채고,
   // 전역 상한은 컨테이너 러너의 CPU 를 지키는 값이라 그 러너에서 돌지 않는 앱 항목이 자리를 쓸 이유가 없다 (SPEC 실행 §3.2)
   const 게임들 = items.filter(게임인가);
-  await Promise.all([
-    ...[...케이스줄.values()].map(async (줄) => {
-      for (const item of 줄) {
-        // 실제 폰 모바일 항목은 Chrome 줄 → 동시성 자리 차례다 — 줄에서 기다리는 동안 웹 실행 자리를 묶지 않게 (도메인/실행 §3.2 「모바일 웹 실행 위치」)
-        const 돌기 = () => enqueue(() => runOne(runId, item));
-        await (item.platform === 'android' ? 폰차례(() => runOne(runId, item)) : item.실제폰 === true ? Chrome차례(돌기) : 돌기());
-      }
-    }),
-    ...(게임들.length > 0 ? [게임실행(runId, 게임들)] : []),
-  ]);
+  const 항목을돌린다 = async (): Promise<void> => {
+    await Promise.all([
+      ...[...케이스줄.values()].map(async (줄) => {
+        for (const item of 줄) {
+          // 실제 폰 모바일 항목은 Chrome 줄 → 동시성 자리 차례다 — 줄에서 기다리는 동안 웹 실행 자리를 묶지 않게 (도메인/실행 §3.2 「모바일 웹 실행 위치」)
+          const 돌기 = () => enqueue(() => runOne(runId, item));
+          await (item.platform === 'android' ? 폰차례(() => runOne(runId, item)) : item.실제폰 === true ? Chrome차례(돌기) : 돌기());
+        }
+      }),
+      ...(게임들.length > 0 ? [게임실행(runId, 게임들)] : []),
+    ]);
+  };
+  // 돌리기 전에 대상 서버 줄의 준비 주소를 한 번 부른다 — 같은 준비 주소의 실행이 도는 중이면 끝날 때까지 기다린다.
+  // 실패하면 항목을 안 돌리고 PREP_FAILED 로 닫는다. 아래 뒷일(스모크 판정 · 알림 · Issue Bunker)은 끝난 실행처럼 그대로 탄다 (도메인/실행 §3.2 「실행 전 준비」)
+  const 준비 = await 준비하고돌린다(runId, () => 멈춘실행.has(runId), 항목을돌린다);
+  if (준비.결과 === '실패') await 준비실패로닫는다(runId, 준비.note);
   // 멈춘 실행은 ABORTED 로 이미 닫혔다. finishRun 은 RUNNING 만 건드리므로 그대로 둬도 되지만,
   // 표시를 남겨 두면 다음 실행의 같은 번호에서 오판할 수 있어 여기서 치운다
   멈춘실행.delete(runId);
