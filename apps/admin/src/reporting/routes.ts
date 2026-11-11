@@ -157,7 +157,7 @@ export default async function reportingRoutes(app: FastifyInstance): Promise<voi
   });
 
   // 실행 결과 화면의 실패 카드 재료 (도메인/리포팅 §7). insights 처럼 상세 응답과 따로 둔다
-  app.get<{ Params: { runId: string }; Querystring: { page?: unknown; platform?: unknown } }>(
+  app.get<{ Params: { runId: string }; Querystring: { page?: unknown; platform?: unknown; autoFix?: unknown } }>(
     '/runs/:runId/failures',
     async (req, reply) => {
       const runId = 정수(req.params.runId);
@@ -174,7 +174,8 @@ export default async function reportingRoutes(app: FastifyInstance): Promise<voi
       if (상태 === 'SINGLE') return reply.code(404).send({ error: 'SINGLE_RUN', detail: req.params.runId });
       // 도는 중이면 실패가 아직 다 안 모였다 — 카드 재료는 끝나야 사실이 된다
       if (상태 === 'RUNNING') return reply.code(409).send({ error: 'RUN_NOT_FINISHED', detail: 상태 });
-      return 실패카드(runId, page, platform.data);
+      // 1 이 아닌 값은 조용히 버린다 — 카탈로그 ?autoFix 와 같다 (도메인/BTS §7)
+      return 실패카드(runId, page, platform.data, req.query.autoFix === '1');
     },
   );
 

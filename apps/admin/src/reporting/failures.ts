@@ -3,6 +3,7 @@
 import type { DeviceInfo, ElementCheck, FpsSample, ItemStatus, Platform } from '@platform/kit';
 
 import { BTS카드칸들, type BTS카드칸 } from '../bts/card.js';
+import { 자동수정실행빼기, 카드자동수정들, type 카드자동수정 } from '../bts/testFixView.js';
 import { 팜증적목록, type 팜파일 } from '../execution/farmEvidence.js';
 import { findItem } from '../execution/queries.js';
 import { 최근몇건 } from '../execution/history.js';
@@ -38,6 +39,8 @@ export interface FailureCase {
   judgment: 판정;
   /** BTS 를 이은 프로젝트만 칸이 있다. 보낼 줄이 없는 케이스(흔들림으로 닫혀 안 올림)는 null (도메인/BTS §7) */
   bts?: BTS카드칸 | null;
+  /** Issue Bunker 「테스트 수정」으로 고쳐 다시 실행에서 통과한 카드 — 「수정 후 통과」 (도메인/BTS §7 · §8.15 「자동 수정 표시」 B) */
+  autoFix: 카드자동수정 | null;
 }
 
 export interface FailureCards {
@@ -45,6 +48,8 @@ export interface FailureCards {
   total: number;
   page: number;
   pageSize: number;
+  /** 자동 수정 카드 수 — 거르기 「자동 수정 N」. ?autoFix 를 뺀 조건으로 센다 */
+  autoFixCount: number;
 }
 
 // 같은 서비스 · env · 종류의 끝난 실행을 이번 실행까지 모아 실행마다 회차를 접고, 쌍마다 새 것부터 최근몇건만 남긴다.
@@ -66,12 +71,13 @@ const 최근흐름SQL = `
   WHERE x.n <= $4
   ORDER BY x.tc_id, x.platform, x.n`;
 
-// 지금 결과다 — 다시 돌려 통과한 케이스는 카드가 되지 않는다 (도메인/실행 §3.2)
+// 지금 결과다 — 다시 돌려 통과한 케이스는 카드가 되지 않는다 (도메인/실행 §3.2).
+// 자동 수정의 다시 실행만은 빼고 본다 — 고치기 전 실패를 「수정 후 통과」 카드로 세운다 (도메인/BTS §8.15 B)
 const 실패행들SQL = `
   SELECT i.history_id, i.tc_id, i.tc_name, i.platform, i.attempt, i.status, ${다시실행칸들}
-  FROM ${지금항목('o.run_id = $1')} i`;
+  FROM ${지금항목('o.run_id = $1', 자동수정실행빼기)} i`;
 
-export async function 실패카드(runId: number, page: number, platform?: Platform): Promise<FailureCards> {
+export async function 실패카드(runId: number, page: number, platform?: Platform, 자동수정만 = false): Promise<FailureCards> {
   const pool = await db();
   const 비교 = await compareWithPrevious(runId);
   const 변화표 = new Map<string, 카드변화>();
@@ -98,7 +104,10 @@ export async function 실패카드(runId: number, page: number, platform?: Platf
     status: r.status,
   }));
 
-  const 쪽 = 쪽을자른다(케이스로묶는다(모양, 변화표, platform), page);
+  const 자동수정 = await 카드자동수정들(runId);
+  const 카드들 = 케이스로묶는다(모양, 변화표, platform);
+  const autoFixCount = 카드들.filter((c) => 자동수정.has(c.tcId)).length;
+  const 쪽 = 쪽을자른다(자동수정만 ? 카드들.filter((c) => 자동수정.has(c.tcId)) : 카드들, page);
   const 쌍들 = 쪽.items.flatMap((c) => c.devices.map((d) => ({ tcId: c.tcId, platform: d.platform })));
 
   const 흐름 = new Map<string, ItemStatus[]>();
@@ -137,6 +146,7 @@ export async function 실패카드(runId: number, page: number, platform?: Platf
       reqs: 요구표.get(c.tcId) ?? [],
       judgment: 판정표.get(c.tcId) ?? null,
       ...(bts표 !== null && { bts: bts표.get(c.tcId) ?? null }),
+      autoFix: 자동수정.get(c.tcId) ?? null,
       devices: await Promise.all(
         c.devices.map(async ({ firstFailedHistoryId, ...나머지 }): Promise<FailureDevice> => {
           const rerun = 다시실행들.get(firstFailedHistoryId) ?? null;
@@ -160,5 +170,5 @@ export async function 실패카드(runId: number, page: number, platform?: Platf
     })),
   );
 
-  return { ...쪽, items };
+  return { ...쪽, items, autoFixCount };
 }

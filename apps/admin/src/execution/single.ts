@@ -19,7 +19,8 @@ async function db(): Promise<Pool> {
  * 바꿔 끼우는 서브질의의 OFFSET 0 은 끌어올리기를 막는다 — 끌어올려지면 (n.r).* 가 칸마다 CASE 를 다시 푼다
  */
 // ponytail: 원래 항목마다 붙은 한 건을 부분 색인(test_run_single_of)으로 한 번 찾는다 — 한 건이 드물어 빈 탐색이다. 창이 수십만 항목으로 커져 느리면 붙은 한 건을 먼저 모아 잇는다
-export const 지금항목 = (조건: string): string => `(
+// 한건조건은 끼울 한 건 실행 `sr` 에 더 거는 조건이다 — 실패 카드가 자동 수정의 다시 실행을 빼고 고치기 전 결과를 본다(reporting/failures.ts)
+export const 지금항목 = (조건: string, 한건조건 = ''): string => `(
   SELECT (n.r).*, d.run_id AS rerun_run_id, d.finished_at AS rerun_finished_at, d.누가 AS rerun_by,
          CASE WHEN d.run_id IS NULL THEN NULL ELSE o.history_id END AS orig_history_id,
          CASE WHEN d.run_id IS NULL THEN NULL ELSE o.status END AS orig_status,
@@ -30,7 +31,7 @@ export const 지금항목 = (조건: string): string => `(
         FROM test_run sr JOIN run_item s ON s.run_id = sr.run_id
        WHERE sr.origin = 'SINGLE' AND sr.rerun_of = o.run_id
          AND s.tc_id = o.tc_id AND s.platform = o.platform
-         AND s.finished_at IS NOT NULL AND s.status IN ('PASS', 'FAIL')
+         AND s.finished_at IS NOT NULL AND s.status IN ('PASS', 'FAIL')${한건조건}
        ORDER BY s.finished_at DESC, s.history_id DESC
        LIMIT 1
     ) d ON true

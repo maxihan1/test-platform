@@ -140,7 +140,7 @@ describe.skipIf(연결 === undefined)('실패 카드 통로', () => {
 
     expect(res.statusCode).toBe(200);
     const body = res.json();
-    expect(Object.keys(body).sort()).toEqual(['items', 'page', 'pageSize', 'total']);
+    expect(Object.keys(body).sort()).toEqual(['autoFixCount', 'items', 'page', 'pageSize', 'total']);
     expect(body).toMatchObject({ total: 2, page: 1, pageSize: 카드쪽크기 });
     expect(body.items.map((c: { tcId: string }) => c.tcId)).toEqual(['XFCR-001', 'XFCR-002']);
   });

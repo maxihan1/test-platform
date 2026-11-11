@@ -16,6 +16,7 @@ import { 가린값들 } from '../web/mask.js';
 import { 가린다, 항목비밀 } from './trial.js';
 import { runSummary, 거르는조건, 시나리오칸, type 시나리오실행줄, type 실행거르개, type 실행집계 } from './runSummary.js';
 
+import { 자동수정수들 } from '../bts/testFixView.js';
 import { 호환성요약들, type 호환성요약 } from '../compat/runView.js';
 
 import { 종류조건 } from './runKind.js';
@@ -92,9 +93,11 @@ export async function listRuns(
   );
 
   // 시나리오는 견주기가 없어 change 를 싣지 않는다
-  const [summary, 대비] = await Promise.all([
+  const 번호들 = rows.rows.map((r) => Number(r.run_id));
+  const [summary, 대비, 자동수정] = await Promise.all([
     runSummary(service, 거르개),
-    시나리오 ? new Map<number, never>() : 직전대비수(rows.rows.map((r) => Number(r.run_id))),
+    시나리오 ? new Map<number, never>() : 직전대비수(번호들),
+    시나리오 || 거르개.kind === 'compat' ? new Map<number, number>() : 자동수정수들(번호들),
   ]);
   const 머리 = { total: rows.rows[0]?.grand_total ?? 0, page, pageSize, summary };
   if (시나리오) return { items: rows.rows.map(to시나리오줄), ...머리 };
@@ -121,6 +124,8 @@ export async function listRuns(
       ...toRun(r),
       failCases: toFailCases(r),
       change: 대비.get(Number(r.run_id)) ?? null,
+      // 처음 실패 뒤 Issue Bunker 「테스트 수정」으로 고쳐 통과한 케이스 수 — 통과 · 실패 숫자는 그대로 둔다 (도메인/BTS §8.15 B)
+      autoFixed: 자동수정.get(Number(r.run_id)) ?? 0,
       devices: r.devices,
       mobileDevices: r.mobile_devices,
     })),
@@ -194,7 +199,7 @@ export interface 폰에깔린앱 {
 
 export async function findRun(
   runId: number,
-): Promise<(RunSummary & RunApiDoc & { items: (RunItemSummary & { rerun: 다시실행칸 | null })[]; evidence: EvidenceSummary[]; installedApps: 폰에깔린앱[]; mobileDevices: string[] }) | null> {
+): Promise<(RunSummary & RunApiDoc & { items: (RunItemSummary & { rerun: 다시실행칸 | null })[]; evidence: EvidenceSummary[]; installedApps: 폰에깔린앱[]; mobileDevices: string[]; autoFixed: number }) | null> {
   const pool = await db();
   // 시나리오 실행은 run_item 이 없어 케이스 모양이 비어 나온다. 번호가 맞아도 없는 실행으로 본다 (도메인/시나리오 §3.7 결정 10)
   // 폰 모델은 목록 줄과 같은 칸이다 — 화면이 「실패 다시 실행」 창에 그 실행의 모바일 실행 위치를 미리 고른다 (도메인/실행 §8.10)
@@ -227,6 +232,8 @@ export async function findRun(
     apiDocVersion: row.api_doc_version,
     apiDocNote: row.api_doc_note,
     items: items.rows.map((r) => ({ ...toItem(r), rerun: 다시실행칸으로(r) })),
+    // 붙은 한 건이 통과로 바꿔 끼우면 실패가 0 이 되어도 「수정 후 통과」 카드를 그려야 한다 — 결과 화면이 이것으로 카드 칸을 연다 (도메인/BTS §8.15 B)
+    autoFixed: (await 자동수정수들([runId])).get(runId) ?? 0,
     evidence: await 증적목록(runId),
     installedApps: 깔린.rows.map((r) => ({ appVersion: r.app_version, appBuild: r.app_build })),
     mobileDevices: row.mobile_devices,
