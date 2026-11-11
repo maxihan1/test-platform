@@ -1,126 +1,52 @@
-// 케이스 목록 줄 사이에 끼울 묶음 머리(기능 묶음 > 화면 · 엔드포인트 > 화면 조각)를 짓는다 (도메인/카탈로그 §8.1 「맥락」)
-// 차례는 서버가 정한다 — 화면은 받은 줄 차례 그대로 이웃끼리 자리가 바뀌는 곳에 머리를 끼울 뿐이다 (§8.1 「목록 화면이 지킬 것 셋」)
-
-import { useState } from 'react';
+// 케이스 목록을 기능 묶음 덩어리로 가르고 왼쪽 목차 칸을 짓는다 (도메인/카탈로그 §8.1 「맥락」)
+// 2026-11-11 시안 B — 앞 판은 기능 묶음 › 화면 › 화면 조각 세 단 머리를 줄 사이에 끼워 접고 폈다. 화면 · 화면 조각은 상세 서랍으로 갔다
+// 차례는 서버가 정한다 — 화면은 받은 줄 차례 그대로 이웃끼리 묶음이 바뀌는 곳에서 덩어리를 가를 뿐이다 (§8.1 「목록 화면이 지킬 것 셋」)
 
 import type { CaseGroup, CaseRow } from './api.js';
-import type { 묶음자리 } from './CaseListFilter.js';
-
-export interface 묶음머리 {
-  단: 1 | 2 | 3;
-  열쇠: string;
-  /** 1단은 기능 묶음 이름(없으면 null), 2 · 3단은 화면 파일 경로 — API 애플리케이션의 2단은 엔드포인트 `POST /api/orders` */
-  값: string | null;
-  /** 그 묶음 화면의 주소(2 · 3단) — 이름이 없으면 이것, 이것도 없으면 파일 이름을 보인다 */
-  주소: string | null;
-  /** 그 묶음 화면 · 화면 조각 파일의 클래스 이름(2 · 3단) — 있으면 주소 · 파일 이름 대신 보인다 (PRD-F9-18) */
-  화면이름: string | null;
-  조각이름: string | null;
-  tcIds: string[];
-  /** 이 묶음의 앞 케이스가 앞 쪽에 있다 */
-  이어짐: boolean;
-  조건: 묶음자리;
-  /** 펴고 접는 데 같이 따르는 위 묶음들의 열쇠 */
-  위: string[];
-}
-
-export type 목록칸 = { 머리: 묶음머리; 위: string[] } | { row: CaseRow; 위: string[] };
 
 /** 파일 경로에서 이름만 — `tests/mkt/pages/signup.page.ts` → `signup` */
 export function 파일이름(file: string): string {
   return (file.split('/').at(-1) ?? file).replace(/\.(page|component)\.ts$/, '');
 }
 
-export const 번호들 = (rows: CaseRow[]): ReadonlySet<string> => new Set(rows.map((row) => row.tcId));
+/** 묶음이 없는 케이스의 목차 열쇠 — 기능 묶음 이름은 빈 글자일 수 없다(PRD 상한 검사) */
+export const 묶음없음열쇠 = '';
+const 열쇠of = (feature: string | null) => feature ?? 묶음없음열쇠;
 
-const 열쇠 = (...조각: (string | null | undefined)[]) => 조각.map((x) => x ?? '').join('\u0000');
+export interface 묶음덩어리 {
+  열쇠: string;
+  /** 기능 묶음 이름. null 은 PRD 에 연결되지 않은 케이스다 */
+  feature: string | null;
+  rows: CaseRow[];
+}
 
-/**
- * 접은 머리 — 쪽을 넘겨도 남는다(같은 묶음이 다음 쪽으로 이어진다).
- * 「모두 접기」는 이 쪽이 아니라 서버가 준 기능 묶음 전부를 접는다 — 다음 쪽에서 펴진 묶음이 다시 나오지 않게
- */
-export function use묶음접기(groups: CaseGroup[] | undefined, 묶음보임: boolean) {
-  const [접은, set접은] = useState<ReadonlySet<string>>(new Set());
-  const 첫단 = 묶음보임 ? [...new Set((groups ?? []).map((g) => 열쇠('f', g.feature)))] : [];
-  const 다접었나 = 첫단.length > 0 && 첫단.every((k) => 접은.has(k));
-  return {
-    접은,
-    /** 기능 묶음 머리가 있다 — 「모두 접기」 버튼을 둔다 */
-    묶음있나: 첫단.length > 0,
-    다접었나,
-    뒤집기: (키: string) =>
-      set접은((전) => {
-        const 다음 = new Set(전);
-        if (!다음.delete(키)) 다음.add(키);
-        return 다음;
-      }),
-    모두: () => set접은(다접었나 ? new Set() : new Set(첫단)),
-    비우기: () => set접은(new Set()),
-  };
+/** 조건에 맞는 전부(쪽 밖까지)의 기능 묶음 — 목차 차례 · 건수다. 서버 번호표는 화면 · 조각으로 잘게 나뉘어 와서 기능 묶음으로 모은다 */
+export function 기능묶음들(groups: CaseGroup[] | undefined, 묶음보임: boolean): { 열쇠: string; feature: string | null; tcIds: string[] }[] {
+  if (!묶음보임 || groups === undefined) return [];
+  const 표 = new Map<string, { 열쇠: string; feature: string | null; tcIds: string[] }>();
+  for (const g of groups) {
+    const 열쇠 = 열쇠of(g.feature);
+    const 칸 = 표.get(열쇠) ?? { 열쇠, feature: g.feature, tcIds: [] };
+    칸.tcIds.push(...g.tcIds);
+    표.set(열쇠, 칸);
+  }
+  return [...표.values()];
 }
 
 /**
- * 쪽의 줄 사이에 머리를 끼운다.
- * 기능 묶음 머리는 서비스가 PRD 를 쓸 때만(묶음보임 — 서버 hasFeatures) — PRD 가 없는 서비스에서 「기능 묶음 없음」 머리 하나만 서면 줄 하나를 버린다.
- * 지금 조건에 걸린 묶음으로 가르면 「기능 묶음 없음」만 보기에서 머리가 사라진다.
- * 건수는 쪽이 아니라 서버가 준 묶음 번호표 전부로 센다 — 마지막 결과 칩도 서버가 걸러 번호표가 그것을 따른다 (2026-10-19 ⑫)
+ * 받은 줄을 기능 묶음 덩어리로 가른다. 서비스가 PRD 를 안 쓰면(묶음보임 — 서버 hasFeatures) 덩어리 하나에 이름표 없이 선다.
+ * 번호표에 없는 줄(받는 사이 스캔으로 생긴 줄)은 앞 덩어리에 붙인다 — 이름표 없는 덩어리가 중간에 서면 위 묶음 것으로 읽힌다
  */
-export function 줄과머리(
-  rows: CaseRow[],
-  groups: CaseGroup[] | undefined,
-  이쪽번호: ReadonlySet<string>,
-  묶음보임: boolean,
-): 목록칸[] {
-  if (groups === undefined || groups.length === 0) return rows.map((row) => ({ row, 위: [] }));
-  const 자리 = new Map<string, CaseGroup>();
-  for (const g of groups) for (const id of g.tcIds) 자리.set(id, g);
-  const 모으기 = (같나: (g: CaseGroup) => boolean) =>
-    groups.filter(같나).flatMap((g) => g.tcIds);
-
-  const 칸들: 목록칸[] = [];
-  let 앞: CaseGroup | undefined;
+export function 덩어리들(rows: CaseRow[], groups: CaseGroup[] | undefined, 묶음보임: boolean): 묶음덩어리[] {
+  if (!묶음보임 || groups === undefined || groups.length === 0) return rows.length === 0 ? [] : [{ 열쇠: 묶음없음열쇠, feature: null, rows }];
+  const 자리 = new Map<string, string | null>();
+  for (const g of groups) for (const id of g.tcIds) 자리.set(id, g.feature);
+  const 덩어리: 묶음덩어리[] = [];
   for (const row of rows) {
-    const g = 자리.get(row.tcId);
-    if (g === undefined) {
-      칸들.push({ row, 위: [] });
-      continue;
-    }
-    const f = 묶음보임 ? 열쇠('f', g.feature) : null;
-    // API 애플리케이션은 화면 자리에 엔드포인트가 선다 — 한 케이스에 둘이 같이 오지 않는다 (도메인/카탈로그 §8.1 「맥락」)
-    const 끝점 = g.endpoint ?? null;
-    const s = g.screen !== null ? 열쇠('s', g.feature, g.screen) : 끝점 === null ? null : 열쇠('e', g.feature, 끝점);
-    const p = g.part === null ? null : 열쇠('p', g.feature, g.screen, g.endpoint, g.part);
-    const 머리 = (단: 1 | 2 | 3, 키: string, 값: string | null, ids: string[], 조건: 묶음자리, 위: string[]): 묶음머리 => ({
-      단,
-      열쇠: 키,
-      값,
-      주소: 단 === 1 ? null : g.screenUrl,
-      화면이름: 단 === 1 ? null : (g.screenName ?? null),
-      조각이름: 단 === 3 ? (g.partName ?? null) : null,
-      tcIds: ids,
-      이어짐: ids[0] !== undefined && !이쪽번호.has(ids[0]),
-      조건,
-      위,
-    });
-    const 새묶음 = 앞 === undefined || 앞.feature !== g.feature;
-    const 새화면 = 새묶음 || 앞!.screen !== g.screen || (앞!.endpoint ?? null) !== 끝점;
-    const 새조각 = 새화면 || 앞!.part !== g.part;
-    const feature = g.feature ?? '';
-    const 끼우기 = (m: 묶음머리) => 칸들.push({ 머리: m, 위: m.위 });
-    if (f !== null && 새묶음) 끼우기(머리(1, f, g.feature, 모으기((x) => x.feature === g.feature), { feature }, []));
-    if (s !== null && 새화면) {
-      const ids = 모으기((x) => x.feature === g.feature && x.screen === g.screen && (x.endpoint ?? null) === 끝점);
-      const 조건 = g.screen === null ? { feature, endpoint: 끝점! } : { feature, screen: g.screen };
-      끼우기(머리(2, s, g.screen ?? 끝점, ids, 조건, f === null ? [] : [f]));
-    }
-    if (p !== null && 새조각) {
-      const ids = 모으기((x) => x.feature === g.feature && x.screen === g.screen && (x.endpoint ?? null) === 끝점 && x.part === g.part);
-      // 화면 없이 조각만 쓰는 자리는 「화면 없음」(빈 글자)까지 건다 — 빼면 같은 조각을 쓰는 다른 화면 케이스까지 걸린다
-      const 조건 = { feature, screen: g.screen ?? '', ...(끝점 === null ? {} : { endpoint: 끝점 }), part: g.part! };
-      끼우기(머리(3, p, g.part, ids, 조건, [f, s].filter((x) => x !== null)));
-    }
-    칸들.push({ row, 위: [f, s, p].filter((x) => x !== null) });
-    앞 = g;
+    const 앞 = 덩어리.at(-1);
+    const feature = 자리.has(row.tcId) ? 자리.get(row.tcId)! : (앞?.feature ?? null);
+    if (앞 !== undefined && 앞.feature === feature) 앞.rows.push(row);
+    else 덩어리.push({ 열쇠: 열쇠of(feature), feature, rows: [row] });
   }
-  return 칸들;
+  return 덩어리;
 }

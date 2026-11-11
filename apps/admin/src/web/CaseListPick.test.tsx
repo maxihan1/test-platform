@@ -56,8 +56,8 @@ async function 그리기(cases: (page: number) => CasePage = (page) => (page ===
   return 스파이;
 }
 
-const 고르기칸 = () => screen.getAllByRole('checkbox', { name: /^(?!이 페이지 전체).* 선택$/ }) as HTMLInputElement[];
-const 머리칸 = () => screen.getByRole('checkbox', { name: '이 페이지 전체 선택' });
+const 고르기칸 = () => screen.getAllByRole('checkbox', { name: /^(?!보이는 케이스 전체).* 선택$/ }) as HTMLInputElement[];
+const 머리칸 = () => screen.getByRole('checkbox', { name: '보이는 케이스 전체 선택' });
 const 띠 = () => document.querySelector('.pick-band');
 const 바 = () => screen.getByRole('toolbar', { name: '선택한 케이스' });
 const 바글 = () => 바().querySelector('span')?.textContent;
@@ -68,7 +68,7 @@ describe('「모두 고르기」 띠', () => {
     expect(띠()).toBeNull();
 
     fireEvent.click(머리칸());
-    expect(띠()?.textContent).toContain('이 페이지 2건을 모두 선택했습니다');
+    expect(띠()?.textContent).toContain('보이는 2건을 모두 선택했습니다');
     expect(바글()).toBe('2건 선택');
 
     스파이.mockClear();
@@ -122,15 +122,16 @@ describe('「모두 고르기」 띠', () => {
     expect(바글()).toBe('2건 선택');
   });
 
-  it('모두 고른 채 다음 쪽으로 가면 그 쪽 줄도 고른 모양이고 바는 그대로다', async () => {
+  it('모두 고른 채 「더 보기」로 다음 쪽을 붙이면 붙은 줄도 고른 모양이고 앞 줄이 남고 바는 그대로다', async () => {
     await 그리기();
     fireEvent.click(머리칸());
     fireEvent.click(screen.getByRole('button', { name: '조건에 맞는 3건 모두 선택' }));
 
-    fireEvent.click(screen.getByRole('button', { name: '다음' }));
+    fireEvent.click(screen.getByRole('button', { name: '3건 중 2건 · 더 보기' }));
     await screen.findByText('ZPK-003');
 
-    expect(고르기칸().map((칸) => 칸.checked)).toEqual([true]);
+    expect(screen.getByText('ZPK-001')).toBeTruthy();
+    expect(고르기칸().map((칸) => 칸.checked)).toEqual([true, true, true]);
     expect((머리칸() as HTMLInputElement).checked).toBe(true);
     expect(바글()).toBe('조건에 맞는 3건 모두 선택');
   });

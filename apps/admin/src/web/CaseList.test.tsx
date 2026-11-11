@@ -89,15 +89,17 @@ describe('CaseList 종류 (화면공통 §8 하위 메뉴 · PR #132)', () => {
   });
 });
 
-const 고르기칸 = () => screen.getAllByRole('checkbox', { name: /^(?!이 페이지 전체).* 선택$/ });
-const 머리칸 = () => screen.getByRole('checkbox', { name: '이 페이지 전체 선택' }) as HTMLInputElement;
-const 실행버튼 = () => screen.getByRole('button', { name: /^조건에 맞는 \d+건 실행$/ });
+const 고르기칸 = () => screen.getAllByRole('checkbox', { name: /^(?!보이는 케이스 전체).* 선택$/ });
+const 머리칸 = () => screen.getByRole('checkbox', { name: '보이는 케이스 전체 선택' }) as HTMLInputElement;
+const 실행버튼 = () => screen.getByRole('button', { name: /^전체 실행 \(\d+\)$/ });
 const 모달실행 = () => within(screen.getByRole('dialog')).getByRole('button', { name: '실행' });
 const 고르기바 = () => screen.getByRole('toolbar', { name: '선택한 케이스' });
 const 바글 = () => screen.queryByRole('toolbar', { name: '선택한 케이스' })?.querySelector('span')?.textContent ?? null;
 const 바실행 = () => within(고르기바()).getByRole('button', { name: '모두 실행' });
 
-const 전체실행글 = '조건에 맞는 3건 실행';
+const 전체실행글 = '전체 실행 (3)';
+const 검색실행버튼 = () => screen.getByRole('button', { name: /^검색 결과 실행 \(\d+\)$/ });
+const 더보기 = (전체: number, 받은: number) => screen.getByRole('button', { name: `${String(전체)}건 중 ${String(받은)}건 · 더 보기` });
 const 결과칩 = (글: string) => screen.getByRole('button', { name: new RegExp(`^${글} \\d+$`) });
 const 끝질의 = (스파이: { mock: { calls: [CaseQuery][] } }) => 스파이.mock.calls.at(-1)![0];
 
@@ -136,14 +138,16 @@ describe('CaseList 마지막 결과 칩', () => {
     expect(document.querySelector('.toolbar .filter-label')?.textContent).not.toBe('마지막 결과');
   });
 
-  it('칩을 누르면 api.cases 를 last 를 실어 첫 쪽부터 다시 부르고 주소에도 남는다', async () => {
+  it('칩을 누르면 api.cases 를 last 를 실어 첫 쪽부터 다시 부르고 붙였던 쪽은 버리며 주소에도 남는다', async () => {
     const { 스파이 } = await 그리기();
-    fireEvent.click(screen.getByRole('button', { name: '다음' }));
-    await waitFor(() => expect(끝질의(스파이).page).toBe(2));
+    fireEvent.click(더보기(3, 2));
+    await screen.findByText('ZPK-003');
+    expect(끝질의(스파이).page).toBe(2);
 
     fireEvent.click(결과칩('실패'));
 
     await waitFor(() => expect(끝질의(스파이)).toMatchObject({ last: 'FAIL', page: 1 }));
+    await waitFor(() => expect(screen.queryByText('ZPK-003')).toBeNull());
     expect(결과칩('실패').getAttribute('aria-pressed')).toBe('true');
     expect(window.location.hash).toContain('last=FAIL');
   });
@@ -303,14 +307,14 @@ describe('CaseList 여러 건 고르기', () => {
     expect(머리칸().indeterminate).toBe(false);
   });
 
-  it('아무것도 안 고르면 버튼 글자가 「조건에 맞는 N건 실행」이고 N 은 응답의 total 이다', async () => {
+  it('아무것도 안 고르면 버튼 글자가 「전체 실행 (N)」이고 N 은 응답의 total 이다', async () => {
     await 그리기();
     expect(실행버튼().textContent).toBe(전체실행글);
   });
 
   it('조건을 걸면 N 이 그 조건에 맞는 total 로 바뀐다 — 「전체」라고 말하지 않는다', async () => {
     await 그리기((page) => Promise.resolve(page === 1 ? { ...쪽1, total: 7 } : 쪽2));
-    expect(실행버튼().textContent).toBe('조건에 맞는 7건 실행');
+    expect(실행버튼().textContent).toBe('전체 실행 (7)');
   });
 
   it('고르면 고르기 바에 고른 수가 뜨고 머리 단추는 조건 기준 그대로다', async () => {
@@ -345,7 +349,7 @@ describe('CaseList 여러 건 고르기', () => {
     expect(document.activeElement).toBe(실행버튼());
   });
 
-  it('조건에 맞는 건 실행을 누르면 마지막 쪽까지 쪽마다 받아 모은다', async () => {
+  it('전체 실행을 누르면 마지막 쪽까지 쪽마다 받아 모은다', async () => {
     const { 스파이 } = await 그리기();
     스파이.mockClear();
 
@@ -363,7 +367,7 @@ describe('CaseList 여러 건 고르기', () => {
     await waitFor(() => expect(끝질의(스파이).last).toBe('FAIL'));
     스파이.mockClear();
 
-    fireEvent.click(실행버튼());
+    fireEvent.click(검색실행버튼());
 
     await screen.findByRole('dialog');
     expect(스파이.mock.calls.map(([q]) => q.last)).toEqual(['FAIL', 'FAIL']);
@@ -836,7 +840,7 @@ describe('CaseList 오른쪽 상세 칸 (⑫ 시안 A · 점검 7.12 · ⑬-2 �
     expect(바글()).toBe('1건 선택');
   });
 
-  it('이 쪽에 없는 케이스가 열려 있으면 칸을 안 그리지만 주소는 남겨 돌아오면 다시 열린다', async () => {
+  it('아직 안 받은 쪽의 케이스가 열려 있으면 칸을 안 그리지만 주소는 남겨 「더 보기」로 받으면 열린다', async () => {
     window.location.hash = '#/cases/fn?case=ZPK-003';
     모킹(쪽주기);
     render(<CaseList kind="FN" service="ZPK" 할수={전부된다} 결과보나 />);
@@ -845,8 +849,9 @@ describe('CaseList 오른쪽 상세 칸 (⑫ 시안 A · 점검 7.12 · ⑬-2 �
     expect(칸()).toBeNull();
     expect(window.location.hash).toContain('case=ZPK-003');
 
-    fireEvent.click(screen.getByRole('button', { name: '다음' }));
+    fireEvent.click(더보기(3, 2));
     await screen.findByRole('button', { name: 'ZPK-003 케이스' });
+    expect(screen.getByText('ZPK-001')).toBeTruthy();
     expect(within(칸()!).getByRole('heading', { name: 'ZPK-003 케이스' })).toBeTruthy();
   });
 
@@ -884,9 +889,11 @@ describe('CaseList 화면 머리 (2026-09-22)', () => {
     const 머리 = container.querySelector('.head');
     expect(머리).not.toBeNull();
     expect(머리?.querySelector('h1')?.textContent).toBe('테스트 실행 › 기능 테스트');
-    // 「다시 스캔」과 실행 버튼은 이 화면에서 가장 흔한 다음 행동이라 머리에 선다
-    expect(머리?.textContent).toContain('다시 스캔');
-    expect(머리?.textContent).toContain('실행');
+    // 자주 안 쓰는 일은 「다운로드 ▾」 · 「⋯」 메뉴로 걷고 실행 버튼만 머리에 바로 선다
+    expect(머리?.textContent).not.toContain('다시 스캔');
+    expect(within(머리 as HTMLElement).getByRole('button', { name: '다운로드' }).getAttribute('aria-haspopup')).toBe('true');
+    expect(within(머리 as HTMLElement).getByRole('button', { name: '다른 작업' }).getAttribute('aria-haspopup')).toBe('true');
+    expect(within(머리 as HTMLElement).getByRole('button', { name: 전체실행글 })).toBeTruthy();
   });
 
   it('머리가 본문 면 바깥에 선다', async () => {
@@ -902,11 +909,28 @@ describe('CaseList 권한 칸', () => {
   const 스캔빼고: 판정 = (무엇) => 무엇 !== '다시스캔';
   const 실행빼고: 판정 = (무엇) => 무엇 !== '실행' && 무엇 !== '테스트실행';
 
-  it('케이스 읽기면 머리에 다시 스캔이 없다', async () => {
+  it('케이스 읽기면 머리에 「⋯」 메뉴가 없다', async () => {
     모킹(쪽주기);
     render(<CaseList kind="FN" service="ZPK" 할수={스캔빼고} 결과보나 />);
     await screen.findByText('ZPK-001');
-    expect(screen.queryByRole('button', { name: '다시 스캔' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '다른 작업' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '케이스 목록 새로고침' })).toBeNull();
+  });
+
+  it('케이스 쓰기면 「⋯」 메뉴 안 「케이스 목록 새로고침」이 스캔을 걸고 목록을 다시 읽는다', async () => {
+    const 스파이 = 모킹(쪽주기);
+    const 스캔 = vi.spyOn(api, 'rescan').mockResolvedValue({ added: 0, updated: 0, deactivated: 0, duplicates: [] } as never);
+    render(<CaseList kind="FN" service="ZPK" 할수={전부된다} 결과보나 />);
+    await screen.findByText('ZPK-001');
+    expect(screen.queryByRole('button', { name: '케이스 목록 새로고침' })).toBeNull();
+    const 앞 = 스파이.mock.calls.length;
+
+    fireEvent.click(screen.getByRole('button', { name: '다른 작업' }));
+    fireEvent.click(screen.getByRole('button', { name: '케이스 목록 새로고침' }));
+
+    await waitFor(() => expect(스캔).toHaveBeenCalledWith('ZPK'));
+    await waitFor(() => expect(스파이.mock.calls.length).toBeGreaterThan(앞));
+    expect(screen.queryByRole('button', { name: '케이스 목록 새로고침' })).toBeNull();
   });
 
   it('케이스 읽기면 빈 목록에도 스캔 버튼이 없다', async () => {
@@ -920,7 +944,7 @@ describe('CaseList 권한 칸', () => {
     모킹(쪽주기);
     render(<CaseList kind="FN" service="ZPK" 할수={실행빼고} 결과보나 />);
     await screen.findByText('ZPK-001');
-    expect(screen.queryByRole('button', { name: /(전체|건) 실행$/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^(전체|검색 결과) (시험 )?실행 \(/ })).toBeNull();
     fireEvent.click(고르기칸()[0]!);
     expect(within(고르기바()).queryByRole('button', { name: /실행/ })).toBeNull();
   });
@@ -989,14 +1013,15 @@ describe('CaseList 설계 기법 (도메인/카탈로그 §8.1 「설계 기법�
   const 기법 = (글: string) => 판칩누르기('설계 기법', 글);
   const 마지막질의 = (스파이: ReturnType<typeof 모킹>) => 스파이.mock.calls.at(-1)?.[0];
 
-  it('고르면 kit 원문 값으로 다시 부르고 첫 쪽으로 간다', async () => {
+  it('고르면 kit 원문 값으로 다시 부르고 첫 쪽부터 다시 받는다 — 붙였던 쪽은 버린다', async () => {
     const { 스파이 } = await 그리기();
-    fireEvent.click(screen.getByRole('button', { name: '다음' }));
+    fireEvent.click(더보기(3, 2));
     await waitFor(() => expect(마지막질의(스파이)?.page).toBe(2));
 
     기법('경계값 분석');
 
     await waitFor(() => expect(마지막질의(스파이)).toEqual(expect.objectContaining({ technique: '경계값 분석', page: 1 })));
+    await waitFor(() => expect(screen.queryByText('ZPK-003')).toBeNull());
   });
 
   it('기법 없음은 none 으로 묻는다', async () => {
@@ -1044,7 +1069,7 @@ describe('CaseList 설계 기법 (도메인/카탈로그 §8.1 「설계 기법�
     판닫기();
     스파이.mockClear();
 
-    fireEvent.click(실행버튼());
+    fireEvent.click(검색실행버튼());
 
     await screen.findByRole('dialog');
     expect(스파이.mock.calls.map(([q]) => q.technique)).toEqual(['경계값 분석', '경계값 분석']);
@@ -1080,6 +1105,6 @@ describe('한 건 실행이 끝나면 (2026-10-31 시험 f17)', () => {
     const 앞결과 = 마지막.mock.calls.length;
     끝났다고알린다(20978);
     await waitFor(() => expect(스파이.mock.calls.length).toBeGreaterThan(앞목록));
-    expect(마지막.mock.calls.length).toBeGreaterThan(앞결과);
+    await waitFor(() => expect(마지막.mock.calls.length).toBeGreaterThan(앞결과));
   });
 });

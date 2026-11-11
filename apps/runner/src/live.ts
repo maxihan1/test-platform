@@ -30,7 +30,8 @@ export async function 장면과돌린다<T>(live: string | undefined, 돌리기:
     return await 돌리기();
   } finally {
     도는열쇠.delete(live);
-    for (const 파일 of [장면파일(live), `${장면파일(live)}.tmp`]) {
+    // 윤곽 자리(.box)도 같이 — 실제 폰 Chrome 은 영상을 마치느라 장면 파일을 남기고 끝난다 (kit liveBox.ts)
+    for (const 파일 of [장면파일(live), `${장면파일(live)}.tmp`, `${장면파일(live)}.box`, `${장면파일(live)}.box.tmp`]) {
       await rm(파일, { force: true }).catch((err: unknown) => console.warn(`[runner] 장면 파일을 못 지웠다 (${파일}): ${err instanceof Error ? err.message : String(err)}`));
     }
   }
@@ -38,6 +39,15 @@ export async function 장면과돌린다<T>(live: string | undefined, 돌리기:
 
 export async function 장면폴더를비운다(): Promise<void> {
   await rm(장면폴더(), { recursive: true, force: true });
+}
+
+export const 상자머리 = 'x-live-box';
+// 「x,y,w,h」 장면에 대한 비율 넷. 꼴이 아니면 버린다 — 자식이 쓴 글이 그대로 머리글로 나가지 않게
+const 상자꼴 = /^0(\.\d{1,4})?,0(\.\d{1,4})?,[01](\.\d{1,4})?,[01](\.\d{1,4})?$/;
+
+async function 상자읽기(장면: string): Promise<string | null> {
+  const 글 = await readFile(`${장면}.box`, 'utf8').catch(() => null);
+  return 글 !== null && 상자꼴.test(글) ? 글 : null;
 }
 
 // 모르는 열쇠 · 끝난 실행은 404, 첫 장면 전은 204. 도는 열쇠는 요청 검사에서 UUID 만 받았으니 경로가 밖으로 안 샌다
@@ -52,6 +62,9 @@ export function registerLive(app: FastifyInstance): void {
       if ((err as NodeJS.ErrnoException).code === 'ENOENT') return reply.code(204).send();
       throw new Error(`장면 파일을 못 읽었다 (${key}): ${err instanceof Error ? err.message : String(err)}`);
     }
+    // 케이스가 지금 다루는 요소의 자리 — 화면이 장면 위에 윤곽을 그린다. 없으면 머리글이 없다 (§5.2 「요소 윤곽」)
+    const 상자 = await 상자읽기(장면파일(key));
+    if (상자 !== null) reply.header(상자머리, 상자);
     // 앱 · 게임 폰 장면은 Appium 이 주는 PNG 그대로다 (§5.2 「테스트 모드 — 실시간 장면」)
     return reply.header('cache-control', 'no-store').type(장[0] === 0x89 ? 'image/png' : 'image/jpeg').send(장);
   });

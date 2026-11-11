@@ -172,7 +172,24 @@ describe('정식 실행 진행 창 — 화면 카드 (시안 A ⑤)', () => {
     expect(가상!.textContent).toContain('가상 디바이스 · iPhone 14');
   });
 
-  it('장면을 안 찍는 항목(Android 앱 · API)은 장면 대신 안내를 두고 장면 통로를 묻지 않는다', () => {
+  it('앱 · 게임 항목도 폰 장면을 폰 모양 칸에 그리고 Device VISION 링크는 그대로 둔다', async () => {
+    const 받기 = vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'frame', 그림: new Blob(['png'], { type: 'image/png' }) });
+    render(
+      <RunProgressModal
+        data={실행([항목(3, 'android')])}
+        진행목록={[절차(3, { live: true, vision: { url: 'https://vision.example.test/#phone=a3' } })]}
+        onClose={() => {}}
+      />,
+    );
+    await 흘리기();
+
+    expect(받기).toHaveBeenCalledWith('/api/runs/128/items/3/live');
+    expect(document.querySelector('.live-shot.lc-phone img')?.getAttribute('src')).toBe('blob:1');
+    expect(screen.getByRole('link', { name: 'Device VISION ↗' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '크게 보기' })).toBeTruthy();
+  });
+
+  it('장면 열쇠가 없는 항목(옛 실행 · admin 이 다시 뜸)은 장면 대신 안내를 두고 장면 통로를 묻지 않는다', () => {
     const 받기 = vi.spyOn(장면통로, '받기');
     render(
       <RunProgressModal

@@ -79,10 +79,12 @@ const API종류 = new Set(['fetch', 'xhr', 'api']);
 const 글본문 = /json|text|xml|javascript|x-www-form-urlencoded/i;
 // 케이스가 남기는 증적 사진이다. 사람의 조작이 아니다
 const 뺄조작 = new Set(['Screenshot']);
-// E2E 러너가 부품마다 부르는 창 열기 · 닫기 · 모킹 응답이다. 케이스의 조작이 아니다 — 부른 자리(첫 stack 칸)로 가른다 (도메인/시나리오 §7 「실패 기록」)
+// E2E 러너가 부품마다 부르는 창 열기 · 닫기 · 모킹 응답이다. 케이스의 조작이 아니다 — 부른 자리(첫 stack 칸)로 가른다 (도메인/시나리오 §7 「실패 기록」).
+// 실시간 장면의 윤곽 자리 읽기(kit liveBox.ts 의 boundingBox)도 같다 — 0.25초마다 부르는 것이 조작 목록을 덮는다 (도메인/러너 §5.2 「요소 윤곽」)
 const 러너가부름 = (l: 줄): boolean => {
   const 첫칸 = Array.isArray(l.stack) ? 객체(l.stack[0]) : {};
-  return (글(첫칸.file) ?? '').replaceAll('\\', '/').includes('/apps/runner/scenario/');
+  const 곳 = (글(첫칸.file) ?? '').replaceAll('\\', '/');
+  return 곳.includes('/apps/runner/scenario/') || /\/kit\/src\/runtime\/liveBox\.[cm]?[jt]s$/.test(곳);
 };
 
 /**

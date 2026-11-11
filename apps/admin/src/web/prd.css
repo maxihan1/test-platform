@@ -66,7 +66,7 @@
   padding: 5px 16px;
   font-size: 13px;
 }
-.prd-detail .prd-apis li {
+.prd-drawer .prd-apis li {
   padding-inline: 0;
 }
 .prd-apis .prd-id {
@@ -109,107 +109,221 @@
   white-space: nowrap;
 }
 
-/* 전체 요구 */
+/* 전체 요구 — 왼쪽 목차 + 한 줄 목록 + 오른쪽 서랍 (2026-11-11 시안 B). 목차 · 이름표는 listToc.css */
 .prd-all-title {
   margin: 0;
   font-size: 14px;
   font-weight: 600;
 }
+/* 위 카드들이 높아도 목록이 눌려 사라지지 않게 한다 — 모자라면 본문 칸이 스크롤한다 */
+.screen.prd-all {
+  min-height: 280px;
+}
+.prd-all > .prd-note {
+  margin: 0;
+  padding: 8px 24px;
+  border-bottom: 1px solid var(--line);
+}
+.prd-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.prd-chip {
+  border: 1px solid var(--line-2);
+  background: var(--panel);
+  color: var(--ink-muted);
+  border-radius: 999px;
+  padding: 4px 11px;
+  font: inherit;
+  font-size: 13px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.prd-chip:hover:not(:disabled) {
+  background: var(--well);
+}
+.prd-chip[aria-pressed='true'] {
+  background: var(--accent-soft);
+  border-color: var(--accent-mark);
+  color: var(--ink);
+}
+.prd-chip:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.prd-chip-fail:not(:disabled) {
+  color: var(--fail-text);
+}
+.prd-chip:focus-visible,
+.prd-row:focus-visible {
+  outline: 2px solid var(--accent-mark);
+  outline-offset: -2px;
+}
 .toolbar .prd-find {
   flex: 1 1 220px;
   max-width: 360px;
   min-width: 0;
+  margin-left: auto;
 }
-.prd-group {
-  border-bottom: 1px solid var(--line);
-}
-.prd-group:last-child {
-  border-bottom: 0;
-}
-.prd-ghead,
+/* 한 줄 = 요구 하나. 번호 · 문장(한 줄로 자름) · 테스트 수 · 결과 꼬리표 */
 .prd-row {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr) minmax(0, 14rem) 64px;
+  grid-template-areas: 'id sent tests res';
+  align-items: center;
+  gap: 10px;
   width: 100%;
+  min-height: 36px;
+  padding: 0 14px;
+  position: relative;
   background: transparent;
   border: 0;
+  border-bottom: 1px solid var(--line);
   color: var(--ink);
   font: inherit;
+  font-size: 13.5px;
   text-align: left;
   cursor: pointer;
 }
-.prd-ghead {
-  display: flex;
-  gap: 10px;
-  align-items: baseline;
-  padding: 10px 24px;
-}
-.prd-ghead b {
-  font-weight: 600;
-}
-.prd-gcount {
-  color: var(--ink-faint);
-  font-size: 12.5px;
-}
-.prd-ghead:hover,
 .prd-row:hover {
   background: var(--well);
 }
-.prd-ghead:focus-visible,
-.prd-row:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: -2px;
-}
-.prd-caret {
-  color: var(--ink-muted);
-  font-size: 13px;
-  transition: transform var(--t2) var(--ease);
-}
-[aria-expanded='true'] > .prd-caret {
-  transform: rotate(90deg);
-}
-.prd-item {
-  border-top: 1px solid var(--line);
-}
-/* 케이스 목록의 요구 번호에서 왔다 — 그 줄을 한 단계 밝은 면으로 (도메인/카탈로그 §8.1 「맥락」) */
-.prd-here {
+/* 연 줄은 고른 줄 색이다. 케이스 목록의 요구 번호에서 와도 이 줄이 열려 있다 (도메인/카탈로그 §8.1 「맥락」) */
+.prd-row.prd-open {
   background: var(--accent-soft);
 }
-.prd-row {
-  display: grid;
-  grid-template-columns: 112px minmax(0, 1fr) auto 14px;
-  gap: 4px 12px;
-  align-items: start;
-  padding: 9px 24px 9px 44px;
-  font-size: 13.5px;
+.prd-row.prd-open::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--accent-mark);
 }
-.prd-tags {
+.prd-row .prd-id {
+  grid-area: id;
+}
+.prd-sent {
+  grid-area: sent;
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
-/* .case-tag 는 케이스 이름 옆에 붙으려고 왼쪽 여백을 갖는다. 여기서는 gap 이 띄운다 */
-.prd-tags .case-tag {
+.prd-clip {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.prd-sent .case-tag {
+  flex: none;
   margin-left: 0;
 }
-
-/* 펼친 줄 — 근거 · 설계 미리보기 · 고치기 */
-.prd-detail,
+.prd-sent .prd-plain {
+  flex: none;
+}
+.prd-tests {
+  grid-area: tests;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+  font-size: 12px;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+.prd-res {
+  grid-area: res;
+  justify-self: end;
+}
+.prd-res .case-tag {
+  margin-left: 0;
+}
 .prd-new {
   background: var(--well);
-  padding: 12px 24px 14px 44px;
+  padding: 12px 24px 14px 24px;
   display: grid;
   gap: 12px;
-}
-.prd-new {
-  padding-left: 24px;
   border-bottom: 1px solid var(--line);
 }
-.prd-detail h3,
-.prd-new h3 {
+.prd-new h3,
+.prd-drawer h3 {
   margin: 0 0 6px;
   font-size: 12px;
   font-weight: 600;
   color: var(--ink-faint);
+}
+
+/* 요구 하나의 서랍 — 폭은 drawer.css 의 공용 서랍을 따른다 */
+.prd-drawer {
+  display: flex;
+  flex-direction: column;
+}
+.prd-drawer-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.prd-drawer-x {
+  margin-left: auto;
+}
+.prd-drawer-body {
+  flex: 1;
+  padding: 16px;
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+.prd-drawer-body > .prd-note {
+  margin: 0;
+}
+.prd-big {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.prd-drawer-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+}
+.prd-warn {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px dashed var(--line-2);
+  border-radius: 8px;
+  font-size: 13px;
+}
+.prd-name {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.prd-fixlist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+}
+.prd-drawer select {
+  width: 100%;
+}
+.prd-drawer .prd-basis-row {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.prd-drawer .prd-basis-row input:nth-child(3) {
+  grid-column: 1 / 3;
 }
 .prd-basis {
   display: grid;
@@ -341,31 +455,21 @@
   margin-left: 6px;
 }
 
-/* 줄 끝 추적표 칸 — 줄 버튼 밖에 선다(버튼 안에는 고리를 못 넣는다). 줄 전체가 한 덩어리로 밝아진다
-   (도메인/작성 §3.6 「메뉴가 곧 요구사항 추적표다」 · 2026-10-11 시안 A) */
-.prd-line {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 10rem;
-}
-.prd-line:hover {
-  background: var(--well);
-}
+/* 서랍 안 추적표 칸 — 연결된 케이스 수 고리 · 마지막 결과 · 보류 · 미작성 (도메인/작성 §3.6 「메뉴가 곧 요구사항 추적표다」) */
 .prd-trace {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 3px;
-  padding: 9px 24px 9px 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 14px;
   font-size: 12.5px;
 }
 .prd-trace .case-tag {
   margin-left: 0;
 }
-/* 성능 목표 한 줄 — 케이스 칸 아래에 같은 오른쪽 끝으로 선다 */
+/* 성능 목표 한 줄 */
 .prd-perf {
   display: inline-flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
   align-items: center;
   gap: 6px;
   color: var(--ink-muted);
@@ -374,9 +478,6 @@
 .prd-uncovered {
   color: var(--ink);
   border-color: var(--ink-faint);
-}
-.prd-gfail {
-  color: var(--fail-text);
 }
 .prd-kv {
   display: flex;
@@ -396,43 +497,28 @@
   color: var(--ink);
 }
 
-@media (max-width: 860px) {
+/* 휴대폰 — 줄은 두 줄이다. 위에 문장(두 줄까지), 아래에 번호 · 테스트 수 · 결과 */
+@media (max-width: 620px) {
   .prd-row {
-    grid-template-columns: minmax(0, 1fr) 14px;
-    padding-left: 24px;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'sent sent sent'
+      'id tests res';
+    gap: 4px 8px;
+    padding: 8px 12px;
   }
-  .prd-line {
-    grid-template-columns: minmax(0, 1fr);
+  .prd-clip {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-height: 1.4;
   }
-  .prd-trace {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 6px 12px;
-    padding: 0 24px 9px;
-  }
-  .prd-row > .prd-caret {
-    grid-column: 2;
-    grid-row: 1;
-  }
-  .prd-row > .prd-text,
-  .prd-row > .prd-tags {
-    grid-column: 1;
-  }
-  .prd-tags {
-    justify-content: flex-start;
-  }
-  .prd-detail {
-    padding-left: 24px;
+  .prd-tests {
+    text-align: left;
   }
   .prd-form-hint {
     margin-left: 0;
-  }
-  .prd-basis-row {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  }
-  .prd-basis-row input:nth-child(3) {
-    grid-column: 1 / 3;
   }
 }
 

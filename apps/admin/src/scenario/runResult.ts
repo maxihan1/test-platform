@@ -34,7 +34,7 @@ export async function 시나리오분배(runId: number, 요청: ScenarioExecuteR
     enqueue(async () => {
       // 줄에서 기다리는 사이 멈췄다 — 실행은 이미 닫혔고 폰도 대상 서버도 건드리지 않는다
       if (상태.멈춤) return;
-      const 열쇠 = 시나리오화면.연다(runId, 창단계있나(요청, 폰));
+      const 열쇠 = 시나리오화면.연다(runId, 창단계있나(요청));
       const 실은 = 열쇠 === undefined ? 요청 : { ...요청, live: 열쇠 };
       let 응답: ScenarioExecuteResponse;
       try {
@@ -60,12 +60,10 @@ export async function 시나리오분배(runId: number, 요청: ScenarioExecuteR
   }
 }
 
-// 브라우저를 여는 단계는 웹 케이스뿐이다 — API 호출 · 모킹 · 기다리기 · 앱 · 게임 단계와 API 애플리케이션 케이스(판이 실린다)는 창을 안 연다.
-// 빼지 않으면 장면이 안 오는 빈 칸이 끝까지 「기다리는 중」으로 남는다.
-// 실제 폰 Chrome 실행도 뺀다 — 러너가 그 탭에 증거 영상 녹화(scenario/realPhone.ts)를 먼저 걸어 장면 녹화를 또 걸면 영상이 잘린다. 카드에는 VISION 링크가 선다
-export function 창단계있나(요청: Pick<ScenarioExecuteRequest, 'parts'>, 폰?: 시나리오폰): boolean {
-  if (폰 === 'chrome') return false;
-  return 요청.parts.some((p) => p.kind === 'case' && p.appStep !== true && p.apiDoc === undefined);
+// 화면이 있는 단계는 케이스 단계뿐이다 — 웹은 브라우저 탭, 앱 · 게임은 폰(Appium)을 찍는다. API 호출 · 모킹 · 기다리기와 API 애플리케이션 케이스(판이 실린다)는 화면이 없다.
+// 빼지 않으면 장면이 안 오는 빈 칸이 끝까지 「기다리는 중」으로 남는다. 실제 폰 Chrome 실행은 러너가 증거 영상과 장면을 한 호출로 건다(scenario/realPhone.ts) (도메인/실행 §3.2)
+export function 창단계있나(요청: Pick<ScenarioExecuteRequest, 'parts'>): boolean {
+  return 요청.parts.some((p) => p.kind === 'case' && p.apiDoc === undefined);
 }
 
 const 빠진부품 = '러너가 이 단계 결과를 돌려주지 않았다';

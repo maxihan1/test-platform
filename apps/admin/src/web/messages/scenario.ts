@@ -248,10 +248,7 @@ export const 시나리오말: Record<string, string> = {
   '진행 중인 단계는 즉시 중단하고 남은 단계는 실행하지 않습니다': 'The running step stops now and the remaining steps will not run',
   '지금은 보여 줄 화면이 없습니다': 'There is no screen to show right now',
   'API 만 호출하는 실행이라 보여 줄 화면이 없습니다': 'This run only calls APIs, so there is no screen to show',
-  '정식 실행이 느려지지 않도록 디바이스 화면은 찍지 않습니다. 디바이스가 할당되면 Device VISION 에서 볼 수 있습니다':
-    'Full runs do not capture the device screen so they stay fast. Once a device is assigned, you can watch it in Device VISION',
-  '정식 실행이 느려지지 않도록 디바이스 화면은 찍지 않습니다. 지금 화면은 Device VISION 에서 볼 수 있습니다':
-    'Full runs do not capture the device screen so they stay fast. You can watch the current screen in Device VISION',
+  '지금 화면은 Device VISION 에서 볼 수 있습니다': 'You can watch the current screen in Device VISION',
   'SC-{번호} 더 보기': 'More for SC-{번호}',
   '닫으면 시험 실행을 멈춥니다': 'Closing stops the trial run',
   '계속 보기': 'Keep watching',

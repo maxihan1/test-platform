@@ -172,7 +172,7 @@ function 어디서도는지(data: ScenarioRunResult, t: 말): string {
   return `${t(PLATFORM_LABEL[data.platform])} · ${어디}`;
 }
 
-/** 웹 단계가 없는 실행 — 보여 줄 장면은 없고 폰을 잡았으면 Device VISION 링크만 선다 */
+/** 장면 열쇠가 없는 실행 — 보여 줄 장면은 없고 폰을 잡았으면 Device VISION 링크만 선다 */
 function 장면없음({ data, 머리끝 }: { data: ScenarioRunResult; 머리끝: React.ReactNode }) {
   const t = use말();
   return (
@@ -194,12 +194,9 @@ function 장면없음({ data, 머리끝 }: { data: ScenarioRunResult; 머리끝:
 }
 
 // 「보여 줄 화면이 없다」만 쓰면 고장으로 읽힌다 — 왜 비었는지와 어디서 보는지를 적는다.
-// 정식 실행은 디바이스 화면을 안 찍는다: 찍는 동안 단계 명령이 1~1.5초씩 선다 (도메인/실행 §3.2 「정식 실행 화면」)
+// 장면 열쇠는 화면이 있는 케이스 단계가 있으면 늘 싣는다(2026-11-11 — 앱 · 게임도). 그래서 열쇠가 없으면 API 만 부르는 실행이거나 admin 이 다시 떠 열쇠를 잃은 것이다 (도메인/실행 §3.2)
 function 빈칸글(data: ScenarioRunResult, t: 말): string {
-  if (data.platform === 'desktop') return t('API 만 호출하는 실행이라 보여 줄 화면이 없습니다');
-  return data.vision === undefined
-    ? t('정식 실행이 느려지지 않도록 디바이스 화면은 찍지 않습니다. 디바이스가 할당되면 Device VISION 에서 볼 수 있습니다')
-    : t('정식 실행이 느려지지 않도록 디바이스 화면은 찍지 않습니다. 지금 화면은 Device VISION 에서 볼 수 있습니다');
+  return data.vision === undefined ? t('API 만 호출하는 실행이라 보여 줄 화면이 없습니다') : t('지금 화면은 Device VISION 에서 볼 수 있습니다');
 }
 
 /** 안 돈 이유 — 안 돈 단계(NOT_RUN — 앞 단계 실패 · 사람이 멈춰 시작도 못 함)는 판정 자리에 `실행 안 함` 이고, 사람이 멈춘 것 · 시간 초과 같은 NA 는 사유를 적는다 */

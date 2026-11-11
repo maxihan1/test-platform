@@ -16,7 +16,7 @@ export const 앱테스트 = () =>
     appSession: async ({}, use, testInfo) => {
       // 여는 중인 약속을 쥐어야 한다. 새 폰은 첫 연결에 도우미 앱을 깔아 오래 걸려, 열리는 도중 제한 시간이 오면 Appium 이 뒤늦게 세션을 만든다
       let opening: Promise<AppSide> | undefined;
-      // 테스트 모드의 폰 장면 — 연 직후 걸고 닫기 전에 끈다. 정식 실행은 장면 파일이 없어 안 걸린다
+      // 폰 장면 — 연 직후 걸고 닫기 전에 끈다. 러너가 장면 파일을 준 실행(테스트 모드 · 정식 실행)에만 걸린다
       let 폰장면: 장면 | undefined;
       // 기기 정보는 연 직후 한 번 남긴다 — 리포터가 결과 줄 device 로 싣는다 (도메인/리포팅 §8.4 · APP-F1-05)
       const 열고남긴다 = async (): Promise<AppSide> => {

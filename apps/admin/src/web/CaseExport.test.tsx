@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 케이스 목록의 「이 결과 엑셀로」 버튼과 받는 통로 검사 (도메인/카탈로그 §8.1)
+// 케이스 목록 머리의 「다운로드 ▾」 메뉴 안 「엑셀 (N건)」 단추와 받는 통로 검사 (도메인/카탈로그 §8.1)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -34,15 +34,20 @@ function 그리기(total: number) {
   render(<CaseList kind="FN" service="XCX" 할수={() => true} 결과보나 />);
 }
 
-describe('케이스 목록 — 이 결과 엑셀로', () => {
-  it('버튼에 목록 응답의 total 이 붙는다', async () => {
+const 메뉴열기 = async () => fireEvent.click(await screen.findByRole('button', { name: '다운로드' }));
+
+describe('케이스 목록 — 다운로드 › 엑셀', () => {
+  it('메뉴는 닫혀 있다가 열면 엑셀 단추에 목록 응답의 total 이 붙는다', async () => {
     그리기(6);
-    expect(await screen.findByRole('button', { name: '이 결과 엑셀로 (6건)' })).toHaveProperty('disabled', false);
+    await screen.findByText('XCX-001');
+    expect(screen.queryByRole('button', { name: /^엑셀/ })).toBeNull();
+    await 메뉴열기();
+    expect(screen.getByRole('button', { name: '엑셀 (6건)' })).toHaveProperty('disabled', false);
   });
 
-  it('0건이면 누를 수 없다', async () => {
+  it('0건이면 메뉴 단추를 누를 수 없다', async () => {
     그리기(0);
-    expect(await screen.findByRole('button', { name: '이 결과 엑셀로 (0건)' })).toHaveProperty('disabled', true);
+    expect(await screen.findByRole('button', { name: '다운로드' })).toHaveProperty('disabled', true);
   });
 
   it('지금 건 조건으로 받고, 받는 동안 막고, 다 받으면 파일을 내려준다', async () => {
@@ -56,7 +61,8 @@ describe('케이스 목록 — 이 결과 엑셀로', () => {
 
     fireEvent.change(await screen.findByPlaceholderText('케이스 이름이나 ID로 검색'), { target: { value: '로그인' } });
     fireEvent.click(screen.getByRole('button', { name: '검색' }));
-    fireEvent.click(await screen.findByRole('button', { name: '이 결과 엑셀로 (6건)' }));
+    await 메뉴열기();
+    fireEvent.click(screen.getByRole('button', { name: '엑셀 (6건)' }));
 
     expect(받기).toHaveBeenCalledWith(expect.objectContaining({ service: 'XCX', q: '로그인' }));
     expect(screen.getByRole('button', { name: '만드는 중' })).toHaveProperty('disabled', true);
@@ -65,7 +71,7 @@ describe('케이스 목록 — 이 결과 엑셀로', () => {
     await waitFor(() => expect(누름).toHaveBeenCalledOnce());
     expect(만들기).toHaveBeenCalledOnce();
     expect((누름.mock.contexts[0] as HTMLAnchorElement).download).toBe('XCX-테스트케이스-2026-09-29.xlsx');
-    expect(screen.getByRole('button', { name: '이 결과 엑셀로 (6건)' })).toHaveProperty('disabled', false);
+    expect(screen.getByRole('button', { name: '다운로드' })).toHaveProperty('disabled', false);
   });
 
   it('거절당하면 목록 위에 알림 한 줄을 띄우고 옮기지 않는다', async () => {
@@ -73,7 +79,8 @@ describe('케이스 목록 — 이 결과 엑셀로', () => {
     vi.spyOn(api, 'caseExport').mockRejectedValue(new ApiError(403, 'FORBIDDEN', 'cases:read', []));
     const 누름 = vi.spyOn(HTMLAnchorElement.prototype, 'click');
 
-    fireEvent.click(await screen.findByRole('button', { name: '이 결과 엑셀로 (6건)' }));
+    await 메뉴열기();
+    fireEvent.click(screen.getByRole('button', { name: '엑셀 (6건)' }));
 
     expect((await screen.findByRole('alert')).textContent).toBe('이 애플리케이션에서 케이스 읽기 권한이 없습니다');
     expect(누름).not.toHaveBeenCalled();

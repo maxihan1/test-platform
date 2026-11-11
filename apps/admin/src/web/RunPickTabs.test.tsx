@@ -52,7 +52,7 @@ async function 그리기(줄들: CaseRow[]) {
   vi.spyOn(api, 'cases').mockResolvedValue(쪽);
   render(<CaseList kind="FN" service="ZPT" 할수={() => true} 결과보나 />);
   await screen.findByText(줄들[0]!.tcId);
-  for (const 칸 of screen.getAllByRole('checkbox', { name: /^(?!이 페이지 전체).* 선택$/ })) fireEvent.click(칸);
+  for (const 칸 of screen.getAllByRole('checkbox', { name: /^(?!보이는 케이스 전체).* 선택$/ })) fireEvent.click(칸);
 }
 
 const 바 = () => within(screen.getByRole('toolbar', { name: '선택한 케이스' }));
