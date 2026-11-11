@@ -280,7 +280,7 @@ BTS-F6-01 반영 2026-10-31 — 서버 `apps/admin/src/bts/bugfix.ts` · `bugfix
 #### 설정 · 고장 대응
 
 - 처음 설정은 「설정 › Issue Bunker 연결」 한 화면(§8.15) — 프로젝트 짝짓기 · 「QA Hub AI」 계정 이름 · 회사마다 다른 BTS 상태 · 해결 사유 ↔ 단계 짝짓기(BTS 에서 목록을 불러와 고른다) · 애플리케이션별 코드 저장소 · **BTS 자동 설정** · `deploy.sh` 한 줄 복사
-- **BTS 쪽 설정은 QA Hub 가 만든다** (2026-10-31 BTS-F3-05 사용자 「자동으로 설정하면 되잖아」 · 「통합계정이잖아」) — 웹훅 하나(이슈 생성 · 상태 전환 → `POST /api/bts/events/:projectId`, 서명 비밀은 QA Hub 가 만들어 넣는다) · 자동화 규칙 둘(담당자 변경 · PR 병합 → 웹훅 호출, 머리에 `btr_`) · 보드마다 「QA 검토」 상태가 든 칸이 없으면 칸 하나 · 이슈 필드 「테스트 수정 PR」(링크 · BTS 사용자 정의 필드 — 없으면 만들고 그 번호를 `bts_link.test_fix_field` 에 적는다 · 2026-11-11 BTS-F10 — 테스트 수정 바퀴 2). 누른 운영 계정의 대신 PAT 로 부른다(2026-11-04 S25)(「열쇠 표」). 다시 눌러도 한 벌이다 — 웹훅은 주소, 규칙은 이름(`QA Hub · 담당자 변경` · `QA Hub · PR 병합`)으로 찾아 고친다. 하나가 막혀도 나머지는 만든다
+- **BTS 쪽 설정은 QA Hub 가 만든다** (2026-10-31 BTS-F3-05 사용자 「자동으로 설정하면 되잖아」 · 「통합계정이잖아」) — 웹훅 하나(이슈 생성 · 상태 전환 → `POST /api/bts/events/:projectId`, 서명 비밀은 QA Hub 가 만들어 넣는다) · 자동화 규칙 둘(담당자 변경 · PR 병합 → 웹훅 호출, 머리에 `btr_`) · 보드마다 「QA 검토」 상태가 든 칸이 없으면 칸 하나 · 이슈 필드 「테스트 수정 PR」(링크 · BTS 사용자 정의 필드 — 이름 「테스트 수정 PR」이나 키 `qahub_test_fix_pr` 인 필드가 없으면 만들고 그 키를 `bts_link.test_fix_field` 에 적는다 — 이슈 값은 필드 키로 쓴다 · 2026-11-11 BTS-F10 — 테스트 수정 바퀴 2). 누른 운영 계정의 대신 PAT 로 부른다(2026-11-04 S25)(「열쇠 표」). 다시 눌러도 한 벌이다 — 웹훅은 주소, 규칙은 이름(`QA Hub · 담당자 변경` · `QA Hub · PR 병합`)으로 찾아 고친다. 하나가 막혀도 나머지는 만든다
 - 권한 — 웹훅은 BTS 시스템 관리자, 규칙은 그 프로젝트 자동화 관리(기본 프로젝트 관리자 · 멤버여야 한다), 보드 칸은 그 프로젝트 만들기 권한. BTS 는 사설 주소 · localhost 로 가는 웹훅을 거절해 QA Hub 공개 주소(`PLATFORM_PUBLIC_URL`)가 있어야 한다. PR 병합 규칙은 BTS 프로젝트에 GitHub 연결(BTS 「Git 웹훅」)이 있어야 돈다 — 그 연결은 QA Hub 가 만들지 않는다
 - 이 화면에서 사람 손이 남는 것은 `deploy.sh` 한 줄이다 — 회사 배포 서버에 있어 QA Hub 가 못 고친다. 거기 들어갈 토큰(`pdk_`)은 프로젝트 전용이다. 사람 토큰을 두면 그 사람이 나갈 때 배포 신호가 끊긴다
 - **자동 설정 밖** — 아래는 QA Hub 를 부르지 않고 BTS 안에서 상태만 바꾸는 규칙이라 사람이 BTS 에서 만든다(자동화 동작 「상태 바꾸기」는 BTS-F2-01 이 BTS 에 더한다 · 데모마켓 것도 그 줄이 동작을 더한 뒤 만든다 — 2026-10-31 BTS-F5-02 시작 질문)
@@ -341,7 +341,7 @@ AI 품질은 따로 시험하지 않고 사람이 고른 결과로 센다 — �
 - Jira 등 다른 BTS — 연결 자리(`apps/admin/src/bts/`)만 하나로 모아 둔다
 - BTS 바깥 알림 종류 늘리기 · 빌드마다 BTS 버전 만들기 · 「배운 것」을 노트로 옮기기(2차)
 
-#### 계약 — 블록이 있는 곳 (BTS-F1 ~ F8 블록은 반영 완료 2026-11-01 · BTS-F10 블록 둘은 대기 — §7 「테스트 수정 바퀴」 · 4-데이터모델 BTS-F10-03)
+#### 계약 — 블록이 있는 곳 (BTS-F1 ~ F8 블록은 반영 완료 2026-11-01 · BTS-F10 은 4-데이터모델 BTS-F10-03 블록 반영 완료 2026-11-11 · §7 「테스트 수정 바퀴」 블록은 대기 — 설정 두 줄만 반영)
 
 - DB 표 · 칸 — [공통/4-데이터모델.md](../공통/4-데이터모델.md) §6 「BTS 연동 표」(진행판 줄마다 블록 하나)
 - kit `PrdItem.fromIssues` — [공통/3-공유계약.md](../공통/3-공유계약.md) 「표준 기획서 타입」
@@ -552,7 +552,8 @@ POST /mcp
 #   200 · 처리가 깨지면(DB · 이슈 다시 읽기 · 변경 기록 읽기가 5xx · 408 · 429 · 끊김) 503 — BTS 가 다시 보낸다. 권한 · 없음 같은 4xx 는 기록만 남기고 200
 # 설정 › BTS 연결 (F10-03)
 #   GET · PUT 의 statusMap 에 TEST_FIX?: string | null — 빠지거나 null 이면 짝 없음(저장된다). 나머지 여섯은 지금처럼 꼭 찬다
-#   POST …/bts/setup 결과에 testFixField: { ok, reason } — 이슈 필드 「테스트 수정 PR」 만들기. 같은 이름 필드가 있으면 그것을 쓴다(다시 눌러도 한 벌)
+#   POST …/bts/setup 결과 items 에 다섯째 줄 { what: 'TEST_FIX_FIELD', ok, status? } — 이슈 필드 「테스트 수정 PR」 만들기. 같은 이름 · 키 필드가 있으면 그것을 쓴다(다시 눌러도 한 벌)
+#   — 위 두 줄은 반영 완료 (2026-11-11, apps/admin/src/bts/link.ts · setup.ts · web/SettingsBtsParts.tsx — BTS-F10-03). 앞 꼴 testFixField: { ok, reason } 는 나머지 넷과 같은 items 줄로 바꿨다
 # 작성 에이전트 끝내기 — testFix 줄(AUTHOR 와 그 RERUN)의 result 에 칸 하나 (F10-04 · F10-05)
 #   testFix: { autoMerge: boolean, held: ('EXPECTED_CHANGED' | 'VERIFY_FEWER' | 'MUTATION_MISSED' | 'NOT_MEASURED')[], summary: string, reruns: number }
 #   — autoMerge 는 held 가 비었을 때만 true. summary 는 고친 곳 한 줄(PR 본문 「테스트 고침」 줄과 같다 · 500자) · reruns 는 마지막 전체 돌려 보기(PR 본문 「3번 돌려 보기」)에서 실제 돈 횟수
@@ -572,7 +573,7 @@ POST /mcp
 
 ```
 [계약 변경 필요]
-대상:    Admin API — 설정 › BTS 연결 statusMap.TEST_FIX · setup testFixField · 작성 끝내기 result.testFix · GET /api/catalog/cases(·/:tcId) autoFix · autoFixCount · ?autoFix · 서랍 실행 기록 afterFix · GET /api/runs/:runId/failures autoFix · autoFixCount · ?autoFix · GET /api/runs autoFixed · 작성 목록 구분 「자동 수정」
+대상:    Admin API — 설정 › BTS 연결 statusMap.TEST_FIX · setup items 「TEST_FIX_FIELD」 줄 · 작성 끝내기 result.testFix · GET /api/catalog/cases(·/:tcId) autoFix · autoFixCount · ?autoFix · 서랍 실행 기록 afterFix · GET /api/runs/:runId/failures autoFix · autoFixCount · ?autoFix · GET /api/runs autoFixed · 작성 목록 구분 「자동 수정」
 현재:    「테스트 문제」로 닫으면 고침 PR 만 열리고 고친 사실이 Commander 화면 어디에도 없다
 제안:    위 「테스트 수정 바퀴」 꼴
 이유:    도메인/BTS §3.12 결정 23 · 24 · 25 (2026-11-11 사용자 — 기획 대화 · 시안 2판 A+B · BTS-F10-01 시작 질문 승인)
@@ -603,7 +604,7 @@ POST /mcp
 ```
 
 - 상태 매핑은 BTS 에서 불러온 고르개다 — 상태는 키, 해결 사유는 이름을 저장한다. 「테스트 수정」 고르개만 맨 위에 「선택 안 함」이 있다 — 고르지 않으면 「테스트 수정을 쓰려면 Issue Bunker 워크플로에 상태를 만든 뒤 여기서 선택합니다」 한 줄(2026-11-11 BTS-F10-03). 이은 프로젝트는 열 때 저장한 계정 이름으로 바로 불러온다. 못 불러오면 까닭 한 줄과 글 칸으로 물러선다. 저장해 둔 값이 목록에 없어도 고르개에 남는다
-- [저장하고 BTS 자동 설정] 하나로 연결 저장(BTS 를 한 번 불러 프로젝트 키를 확인 — 실패면 저장 안 됨 · 까닭 한 줄) → 바뀐 애플리케이션의 코드 저장소 → 자동 설정(§3.12 「설정 · 고장 대응」). 결과는 다섯(2026-11-11 이슈 필드 「테스트 수정 PR」을 더했다)마다 ✓ · ✕ 와 까닭(권한 없음 · 접속하지 못함 · 실패 (코드)). 웹훅이 권한 없음이면 「웹훅은 Issue Bunker 시스템 관리자만 만들 수 있습니다 …」 한 줄
+- [저장하고 BTS 자동 설정] 하나로 연결 저장(BTS 를 한 번 불러 프로젝트 키를 확인 — 실패면 저장 안 됨 · 까닭 한 줄) → 바뀐 애플리케이션의 코드 저장소 → 자동 설정(§3.12 「설정 · 고장 대응」). 결과는 항목(2026-11-11 이슈 필드 「테스트 수정 PR」을 더했다)마다 ✓ · ✕ 와 까닭(권한 없음 · 접속하지 못함 · 실패 (코드)). 웹훅이 권한 없음이면 「웹훅은 Issue Bunker 시스템 관리자만 만들 수 있습니다 …」 한 줄
 - 「QA Hub AI 계정 이름」은 보통 글 칸이다(가리지 않는다 · 자리 표시 `qahub-ai`) — Issue Bunker 에서 「QA Hub AI」로 쓰는 Auth 계정의 이름(username)을 적는다. 비밀이 아니라 저장한 값을 그대로 보인다(2026-11-04 S25 — 앞 판은 가린 `pat_…` 칸)
 - 누른 계정이 Auth 에 안 묶였거나 대신 PAT 를 못 받으면 「Auth 계정으로 로그인한 운영 계정이어야 BTS 자동 설정을 할 수 있습니다」(NO_PERSONAL_TOKEN — 앞 판 문구는 내 메뉴 「통합계정 토큰」을 가리켰다)
 - 배포 알림 토큰 원문은 발급 직후 한 번만 보인다(CI 토큰 구획과 같다 — [인증.md](인증.md) §8.8 「CI 토큰」). 원문은 그 자리에서 `deploy.sh` 한 줄에 들어가고, 아니면 `<배포 알림 토큰>` 자리로 남는다. 주소는 publicUrl, 없으면 브라우저 주소

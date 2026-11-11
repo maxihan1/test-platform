@@ -40,6 +40,8 @@ describe.skipIf(연결 === undefined)('BTS 자동 설정', () => {
   let 내토큰: string | undefined = 'pat_admin';
   let 웹훅답 = 200;
   let 규칙답 = 200;
+  let 필드답 = 200;
+  const 필드들: { key: string; name: string; fieldType: string }[] = [];
   const 웹훅들: { id: string; url: string; version: number }[] = [];
   const 규칙: { id: string; name: string; version: number }[] = [];
   const 칸들: Record<string, { columnId: string; states: { key: string }[] }[]> = {};
@@ -68,6 +70,12 @@ describe.skipIf(연결 === undefined)('BTS 자동 설정', () => {
         return { status: 201, json: {} };
       }
       return { status: 200, json: {} };
+    }
+    if (경로.endsWith('/custom-fields')) {
+      if (필드답 !== 200) return { status: 필드답, json: null };
+      if (method === 'GET') return { status: 200, json: { data: 필드들 } };
+      필드들.push({ key: (몸 as { key: string }).key, name: (몸 as { name: string }).name, fieldType: (몸 as { fieldType: string }).fieldType });
+      return { status: 201, json: {} };
     }
     if (경로 === '/api/v1/statuses') return { status: 200, json: { data: [{ key: 'qa-review', name: 'QA Review' }] } };
     if (경로 === '/api/v1/resolutions') return { status: 200, json: { data: [] } };
@@ -128,6 +136,7 @@ describe.skipIf(연결 === undefined)('BTS 자동 설정', () => {
     내토큰 = 'pat_admin';
     웹훅답 = 200;
     규칙답 = 200;
+    필드답 = 200;
   });
 
   afterAll(async () => {
@@ -172,6 +181,7 @@ describe.skipIf(연결 === undefined)('BTS 자동 설정', () => {
       { what: 'RULE_ASSIGNEE', ok: true },
       { what: 'RULE_PR', ok: true },
       { what: 'BOARD', ok: true },
+      { what: 'TEST_FIX_FIELD', ok: true },
     ]);
     expect(new Set(부른것.map((it) => it.열쇠))).toEqual(new Set(['pat_admin']));
 
@@ -195,6 +205,13 @@ describe.skipIf(연결 === undefined)('BTS 자동 설정', () => {
     expect(칸들.b1).toHaveLength(1);
     expect(칸들.b2).toHaveLength(2);
     expect(부른것.find((it) => it.경로 === '/api/v1/boards/b2/columns')?.몸).toEqual({ name: 'QA Review', stateKeys: ['qa-review'] });
+
+    expect(부른것.find((it) => it.method === 'POST' && it.경로 === '/api/v1/projects/XBJ/custom-fields')?.몸).toMatchObject({
+      key: 'qahub_test_fix_pr',
+      name: '테스트 수정 PR',
+      fieldType: 'URL',
+    });
+    expect((await p.query('SELECT test_fix_field FROM bts_link WHERE project_id = $1', [프로젝트])).rows[0]).toEqual({ test_fix_field: 'qahub_test_fix_pr' });
   });
 
   it('다시 누르면 웹훅은 version 을 실어 고치고 규칙은 PATCH 로 고친다 — 새로 만들지 않는다', async () => {
@@ -206,6 +223,42 @@ describe.skipIf(연결 === undefined)('BTS 자동 설정', () => {
     expect(웹훅들).toHaveLength(1);
     expect(규칙).toHaveLength(2);
     expect(칸들.b2).toHaveLength(2);
+    expect(필드들).toHaveLength(1);
+  });
+
+  it('사람이 만든 같은 이름 필드가 있으면 그 키를 적는다 · 필드 권한이 없으면 그것만 ✕ 이고 적어 둔 키는 그대로다', async () => {
+    const p = await pool();
+    필드들.splice(0, 필드들.length, { key: 'test_fix_pr', name: '테스트 수정 PR', fieldType: 'URL' });
+    expect((await 누르기()).json().items.at(-1)).toEqual({ what: 'TEST_FIX_FIELD', ok: true });
+    expect(부른것.some((it) => it.method === 'POST' && it.경로.endsWith('/custom-fields'))).toBe(false);
+    expect((await p.query('SELECT test_fix_field FROM bts_link WHERE project_id = $1', [프로젝트])).rows[0]).toEqual({ test_fix_field: 'test_fix_pr' });
+
+    필드답 = 403;
+    expect((await 누르기()).json().items.at(-1)).toEqual({ what: 'TEST_FIX_FIELD', ok: false, status: 403 });
+    expect((await p.query('SELECT test_fix_field FROM bts_link WHERE project_id = $1', [프로젝트])).rows[0]).toEqual({ test_fix_field: 'test_fix_pr' });
+  });
+
+  it('같은 이름이어도 링크 꼴이 아니면 안 쓰고 우리 키로 만든다 · 다른 BTS 프로젝트로 바꾸면 앞 키를 지운다', async () => {
+    const p = await pool();
+    const 키 = async () => (await p.query('SELECT test_fix_field FROM bts_link WHERE project_id = $1', [프로젝트])).rows[0];
+    필드들.splice(0, 필드들.length, { key: 'note', name: '테스트 수정 PR', fieldType: 'SHORT_TEXT' });
+    expect((await 누르기()).json().items.at(-1)).toEqual({ what: 'TEST_FIX_FIELD', ok: true });
+    expect(await 키()).toEqual({ test_fix_field: 'qahub_test_fix_pr' });
+    const 본 = { baseUrl: 'https://bts.example.com', botUsername: 'qahub-ai', statusMap: 상태, resolutionMap: 해결 };
+    await app.inject({ method: 'PUT', url: `/api/settings/projects/${프로젝트}/bts`, payload: { ...본, btsProject: 'XBJ' } });
+    expect(await 키()).toEqual({ test_fix_field: 'qahub_test_fix_pr' });
+    await app.inject({ method: 'PUT', url: `/api/settings/projects/${프로젝트}/bts`, payload: { ...본, btsProject: 'XBJ2' } });
+    expect(await 키()).toEqual({ test_fix_field: null });
+    await app.inject({ method: 'PUT', url: `/api/settings/projects/${프로젝트}/bts`, payload: { ...본, btsProject: 'XBJ' } });
+  });
+
+  it('테스트 수정 짝만 비워도 저장된다 — 빠짐 · null · 빈 값은 짝 없음이고 고르면 그 키가 남는다', async () => {
+    const 저장 = (TEST_FIX: unknown) =>
+      app.inject({ method: 'PUT', url: `/api/settings/projects/${프로젝트}/bts`, payload: { baseUrl: 'https://bts.example.com', btsProject: 'XBJ', botUsername: 'qahub-ai', statusMap: { ...상태, TEST_FIX }, resolutionMap: 해결 } });
+    for (const [값, 기대] of [[undefined, 상태], [null, 상태], [' ', 상태], ['TF', { ...상태, TEST_FIX: 'TF' }], [undefined, 상태]] as const) {
+      expect((await 저장(값)).statusCode).toBe(200);
+      expect((await app.inject({ method: 'GET', url: `/api/settings/projects/${프로젝트}/bts` })).json().statusMap).toEqual(기대);
+    }
   });
 
   it('웹훅 권한이 없으면 그것만 ✕ · 규칙 목록을 못 읽으면 규칙 토큰을 안 바꾼다', async () => {
@@ -219,6 +272,7 @@ describe.skipIf(연결 === undefined)('BTS 자동 설정', () => {
       { what: 'RULE_ASSIGNEE', ok: false, status: 403 },
       { what: 'RULE_PR', ok: false, status: 403 },
       { what: 'BOARD', ok: true },
+      { what: 'TEST_FIX_FIELD', ok: true },
     ]);
     expect((await p.query<{ rule_token_hash: string }>('SELECT rule_token_hash FROM bts_link WHERE project_id = $1', [프로젝트])).rows[0]!.rule_token_hash).toBe(앞토큰);
   });
