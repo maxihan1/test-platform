@@ -169,7 +169,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
         <div className="screen list-screen">
           {/* 표 위는 한 줄이다 — 결과 탭 · 고른 조건 칩 · 찾기 · 필터 단추. 조건은 필터 판에 접는다 (도메인/카탈로그 §8.1 「검색 조건」 · 2026-10-30 WEB-F7-07) */}
           <div className="toolbar">
-            <결과탭들 결과={결과} 건수={cases.data?.lastCounts} on결과={검색.on결과} />
+            <결과탭들 결과={결과} 건수={cases.data?.lastCounts} on결과={검색.on결과} 자동수정={{ 눌림: 검색.자동수정, 수: cases.data?.autoFixCount ?? 0, on누르기: 검색.on자동수정 }} />
             <고른조건칩들 조건들={필터조건들} />
             <걸린칩들 검색={검색} />
             <찾기폼 typed={검색.typed} 건조건={검색.건조건} onTyped={검색.setTyped} onSearch={() => 검색.search(검색.typed)} onClear={검색.조건지우기} />

@@ -20,6 +20,8 @@ export interface HistoryRow {
   /** 한 건 실행이면 SINGLE 이고 rerunOf 가 붙은 실행(없으면 null)이다 — 이력은 바꿔 끼우지 않는다 (도메인/실행 §7 history) */
   origin: 시작방식;
   rerunOf: number | null;
+  /** 테스트 수정 바퀴가 수정 뒤 다시 돌린 실행(bts_test_fix.rerun_id — 한 건 실행 자신의 번호)이면 true. 서랍 「수정 후」 표시 (도메인/BTS §8.15 「자동 수정 표시」 A) */
+  afterFix: boolean;
 }
 
 export interface LastResult {
@@ -67,10 +69,13 @@ export async function caseHistory(
     finished_at: Date | null;
     origin: 시작방식;
     rerun_of: string | null;
+    after_fix: boolean;
     total: number;
   }>(
     `SELECT i.history_id, i.run_id, r.title AS run_title, i.platform, i.status, i.duration_ms,
-            i.started_at, i.finished_at, r.origin, r.rerun_of, count(*) OVER ()::int AS total
+            i.started_at, i.finished_at, r.origin, r.rerun_of, count(*) OVER ()::int AS total,
+            EXISTS (SELECT 1 FROM bts_test_fix f JOIN bts_link l ON l.project_id = f.project_id
+                     WHERE f.rerun_id = i.run_id AND f.tc_id = i.tc_id) AS after_fix
        FROM run_item i JOIN test_run r ON r.run_id = i.run_id
       WHERE i.tc_id = $1 AND ($2::text IS NULL OR i.platform = $2)
       ORDER BY i.started_at DESC, i.history_id DESC
@@ -90,6 +95,7 @@ export async function caseHistory(
       finishedAt: iso(row.finished_at),
       origin: row.origin,
       rerunOf: row.rerun_of === null ? null : Number(row.rerun_of),
+      afterFix: row.after_fix,
     })),
     total: rows.rows[0]?.total ?? 0,
     page,

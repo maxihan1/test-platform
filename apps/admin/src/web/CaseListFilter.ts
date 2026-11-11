@@ -1,4 +1,4 @@
-// 케이스 목록의 검색 조건 상태 — 찾기 · 디바이스 · 표시 · 마지막 결과 · 설계 기법 · 종류 · 스모크 · API 서버 · 요구 번호 (SPEC §8.1 「검색 조건」 표가 정본)
+// 케이스 목록의 검색 조건 상태 — 찾기 · 디바이스 · 표시 · 마지막 결과(와 「자동 수정」 탭) · 설계 기법 · 종류 · 스모크 · API 서버 · 요구 번호 (SPEC §8.1 「검색 조건」 표가 정본)
 // 쪽 번호는 없다 — 목록이 스크롤로 이어 받는다(useCasePages.ts · 2026-11-11 시안 B)
 // CaseList 가 300줄에 닿아 상태만 떼어 냈다. 고른 것 · 고친 값 · 그리는 일은 CaseList 에 남는다
 // 조건은 주소에 남는다 — 상세 · 실행 결과에 갔다 뒤로 와도 그대로다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
@@ -32,6 +32,8 @@ export function use검색조건(service: string, kind: 'UI' | 'FN', 처음요구
   const [활성만, set활성만] = useState(처음.get('all') !== '1');
   // 판정은 실행 쪽 함수가 주고 카탈로그가 그것으로 거른다 — 쪽 안에서만 거르면 2쪽의 실패가 안 보였다 (도메인/카탈로그 §7 `?last=`)
   const [결과, set결과] = useState<ItemStatus | 'ALL'>(() => 고른값(처음.get('last'), ['PASS', 'FAIL', 'NA'] as const, 'ALL'));
+  // 「자동 수정」 탭 — 결과 탭과 같은 줄이라 둘 중 하나만 눌린다 (도메인/BTS §8.15 「자동 수정 표시」 A)
+  const [자동수정, set자동수정] = useState(처음.get('autoFix') === '1' && 처음.get('last') === null);
   // 종류를 바꾸면 목록이 새로 그려져(main.tsx key) 이것도 비워진다 — UI 목록에 보이지 않는 거르기가 남지 않는다
   const [기법, set기법] = useState<기법고름>(() => (kind === 'FN' ? 고른값(처음.get('tech'), 기법고름들, 'ALL') : 'ALL'));
   // 종류 칩은 기능 목록에만 있다 — UI 목록은 전부 UI 라 거를 것이 없다
@@ -50,6 +52,7 @@ export function use검색조건(service: string, kind: 'UI' | 'FN', 처음요구
     ...(디바이스 === 'ALL' ? {} : { dev: 디바이스 }),
     ...(활성만 ? {} : { all: '1' }),
     ...(결과 === 'ALL' ? {} : { last: 결과 }),
+    ...(자동수정 ? { autoFix: '1' } : {}),
     ...(기법 === 'ALL' ? {} : { tech: 기법 }),
     ...(축 === 'ALL' ? {} : { axis: 축 }),
     ...(스모크 ? { smoke: '1' } : {}),
@@ -71,6 +74,7 @@ export function use검색조건(service: string, kind: 'UI' | 'FN', 처음요구
     ...(서버 === null ? {} : { apiServer: 서버 }),
     ...(요구 === null ? {} : { req: 요구 }),
     ...(결과 === 'ALL' ? {} : { last: 결과 }),
+    ...(자동수정 ? { autoFix: true } : {}),
   };
 
   return {
@@ -80,6 +84,7 @@ export function use검색조건(service: string, kind: 'UI' | 'FN', 처음요구
     디바이스,
     활성만,
     결과,
+    자동수정,
     기법,
     축,
     스모크,
@@ -88,10 +93,18 @@ export function use검색조건(service: string, kind: 'UI' | 'FN', 처음요구
     열린,
     set열린,
     조건,
-    건조건: q !== '' || 디바이스 !== 'ALL' || !활성만 || 결과 !== 'ALL' || 기법 !== 'ALL' || 축 !== 'ALL' || 스모크 || 서버 !== null || 요구 !== null,
+    건조건: q !== '' || 디바이스 !== 'ALL' || !활성만 || 결과 !== 'ALL' || 자동수정 || 기법 !== 'ALL' || 축 !== 'ALL' || 스모크 || 서버 !== null || 요구 !== null,
     on디바이스: set디바이스,
     on활성만: set활성만,
-    on결과: set결과,
+    on결과(값: ItemStatus | 'ALL') {
+      set결과(값);
+      set자동수정(false);
+    },
+    /** 다시 누르면 푼다 — 실행 읽기가 없으면 결과 탭(「전체」)이 없어 풀 자리가 이것뿐이다 */
+    on자동수정() {
+      set결과('ALL');
+      set자동수정(!자동수정);
+    },
     on기법: set기법,
     on축: set축,
     on스모크: set스모크,
@@ -112,6 +125,7 @@ export function use검색조건(service: string, kind: 'UI' | 'FN', 처음요구
       set디바이스('ALL');
       set활성만(true);
       set결과('ALL');
+      set자동수정(false);
       set기법('ALL');
       set축('ALL');
       set스모크(false);

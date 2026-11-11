@@ -4,6 +4,7 @@ import type { Pool } from 'pg';
 
 import type { CaseSpec, ItemStatus, Platform, Technique } from '@platform/kit';
 
+import { 자동수정목록, type 자동수정줄 } from '../bts/testFixView.js';
 import { 미확정사유SQL } from '../prd/unconfirmed.js';
 import { API서버세기, 맥락, 맥락거르기, 요구로찾기, 줄세우기, type CaseContext, type CaseGroup, type 맥락조건 } from './context.js';
 import { 맥락읽기 } from './contextRead.js';
@@ -109,7 +110,8 @@ function literal(term: string): string {
 }
 
 // 목록 · 엑셀의 줄은 맥락(기능 묶음 · 요구 · 화면)을 단다. 단건(findCase)은 안 단다 — 실행 창 · 시나리오가 부르는데 쓰지 않는다
-export type CaseListItem = CaseRow & CaseContext;
+// autoFix — 그 케이스의 가장 늦은 테스트 수정 줄. 화면은 PASSED 일 때만 「자동 수정」을 단다 (도메인/BTS §8.15 「자동 수정 표시」 A)
+export type CaseListItem = CaseRow & CaseContext & { autoFix: 자동수정줄 | null };
 
 export interface CaseQuery extends 맥락조건 {
   // 보고 있는 서비스의 접두사. test_case에는 서비스 칸이 없다 — 번호가 이미 서비스를 말한다 (SPEC §1 · §6)
@@ -129,6 +131,8 @@ export interface CaseQuery extends 맥락조건 {
   smoke?: boolean;
   // 마지막 결과 (카탈로그 §7 `?last=`). 없으면 (실행, read) 가 없는 것이다 — 거르지도 세지도 않는다
   마지막?: { 판정: 판정함수; last?: ItemStatus };
+  // 가장 늦은 테스트 수정 줄이 PASSED 인 케이스만 (도메인/BTS §7 `?autoFix=1`). 마지막이 없으면(실행 read 없음) 무시한다 — 통과 여부도 판정이다
+  autoFix?: boolean;
 }
 
 export interface LastCounts {
@@ -160,13 +164,15 @@ export interface CaseList {
   lastCounts: LastCounts | null;
   // 서비스의 케이스가 부른 호스트에 붙은 이름마다 하나 — apiServer 를 뺀 조건에 맞은 케이스 수(칩 건수). 이름이 없으면 [] (카탈로그 §7 · §8.1 「API 서버」)
   apiServers: { name: string; count: number }[];
+  // 가장 늦은 테스트 수정 줄이 PASSED 인 케이스 수 — last · autoFix 를 뺀 조건으로 센다(탭 「자동 수정 N」 · 도메인/BTS §7)
+  autoFixCount: number;
 }
 
 export async function listCases(query: CaseQuery): Promise<CaseList> {
   const pool = await db();
   // ponytail: 쪽마다 그 서비스 맥락(판 · 지도 ① ②)과 맞은 번호 전부를 다시 읽고 줄 세운다 — 「전체 실행」이 쪽을 돌면 쪽 수만큼 되풀이한다.
   // 케이스 수천 건에서 느려지면 맥락표를 스캔 · 판 저장 때 갈아 끼우는 캐시로 둔다
-  const [표, 요약, 앱] = await Promise.all([
+  const [표, 요약, 앱, 수정] = await Promise.all([
     맥락읽기(query.service),
     // 미확정 요약은 검색 조건 · 쪽과 상관없어 같이 띄운다
     pool.query<{ count: string }>(
@@ -184,6 +190,7 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
                          AND ($2::text IS NULL OR (tc_id ~ '-UI-[0-9]{3}$') = ($2 = 'UI'))) AS has`,
       [`${query.service}-%`, query.kind ?? null, query.activeOnly],
     ),
+    query.마지막 === undefined ? new Map<string, 자동수정줄>() : 자동수정목록(query.service),
   ]);
   // 순서가 기능 묶음 차례라 SQL 이 쪽을 못 자른다. 조건에 맞는 번호만 먼저 받고, 묶어 줄 세운 뒤 그 쪽 줄만 다시 읽는다
   const 맞은번호 = await pool.query<{ tc_id: string; platforms: Platform[] }>(
@@ -218,7 +225,8 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
   const 판정 = 마지막 === undefined ? null : new Map(서버뺀.map((id) => [id, 마지막.판정(id, 기기.get(id) ?? [])]));
   const 셈 = (s: ItemStatus) => 맞은.filter((id) => 판정?.get(id) === s).length;
   const lastCounts = 판정 === null ? null : { total: 맞은.length, pass: 셈('PASS'), fail: 셈('FAIL'), na: 셈('NA') };
-  const 마지막맞나 = (id: string) => 마지막?.last === undefined || 판정?.get(id) === 마지막.last;
+  const 수정통과 = (id: string) => 수정.get(id)?.state === 'PASSED';
+  const 마지막맞나 = (id: string) => (마지막?.last === undefined || 판정?.get(id) === 마지막.last) && (query.autoFix !== true || 마지막 === undefined || 수정통과(id));
   const { 차례, groups } = 줄세우기(맞은.filter(마지막맞나), 표);
   // 칩 이름은 글자 · 디바이스 · 종류 · 활성 여부 · 기법에 드는 케이스가 부른 것만 — 숨긴 비활성 케이스의 이름이 0건 칩으로 남지 않게. 맥락 조건(묶음 · 요구)으로 0건이 된 이름은 남긴다
   const 이름들 = [...new Set(맞은번호.rows.flatMap((r) => 표.get(r.tc_id)?.apiServers ?? []))].sort((a, b) => a.localeCompare(b));
@@ -226,7 +234,7 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
   const 읽은 = 이쪽.length === 0 ? [] : (await pool.query<RawRow>(`SELECT ${COLUMNS} FROM ${FROM} WHERE tc_id = ANY($1::text[])`, [이쪽])).rows;
   const 행 = new Map(읽은.map((r) => [r.tc_id, r]));
   // 두 번 읽는 사이에 사라진 줄은 뺀다 — 다음 스캔 · 새로 고침이 맞춘다
-  const items = 이쪽.flatMap((id) => (행.has(id) ? [{ ...toCase(행.get(id)!), ...맥락(표, id) }] : []));
+  const items = 이쪽.flatMap((id) => (행.has(id) ? [{ ...toCase(행.get(id)!), ...맥락(표, id), autoFix: 수정.get(id) ?? null }] : []));
 
   return {
     items,
@@ -241,6 +249,7 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
     hasApp: 앱.rows[0]?.has === true,
     lastCounts,
     apiServers: API서버세기(서버뺀.filter(마지막맞나), 표, 이름들),
+    autoFixCount: 맞은.filter(수정통과).length,
   };
 }
 

@@ -42,6 +42,7 @@ export function 실행이력칸({ 묶음 }: { 묶음: 이력묶음[] | null | un
                       {줄.붙은 === null ? t('한 건 실행') : t('RUN {번호}에 다시 실행으로 붙음', { 번호: 줄.붙은 })}
                     </span>
                   )}
+                  {줄.수정후 ? <span className="fix-tag">{t('수정 후')}</span> : null}
                 </td>
                 <td>{줄.디바이스들.map((p) => t(PLATFORM_LABEL[p])).join(' · ')}</td>
                 <td className="dhist-n">

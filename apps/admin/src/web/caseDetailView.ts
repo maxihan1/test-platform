@@ -43,6 +43,8 @@ export interface 이력묶음 {
   붙은: number | null;
   /** 아직 안 끝난 항목이 있다. 도는 한 건은 이 줄에서 진행 창을 다시 연다 */
   도는중: boolean;
+  /** 테스트 수정 바퀴가 수정 뒤 다시 돌린 실행 — 「수정 후」 (도메인/BTS §8.15 「자동 수정 표시」 A) */
+  수정후: boolean;
 }
 
 export function 실행마다묶기(이력: HistoryRow[]): 이력묶음[] {
@@ -60,6 +62,7 @@ export function 실행마다묶기(이력: HistoryRow[]): 이력묶음[] {
       한건: 줄.origin === 'SINGLE',
       붙은: 줄.rerunOf ?? null,
       도는중: false,
+      수정후: 줄.afterFix === true,
     };
     if (!것.디바이스들.includes(줄.platform)) 것.디바이스들.push(줄.platform);
     것.회수 += 1;

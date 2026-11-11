@@ -75,6 +75,11 @@ export function when(iso: string | null, 언어: 언어): string {
   }).format(new Date(iso));
 }
 
+/** 「11월 11일」 꼴 — 연도 · 시각 없이 날만 (도메인/BTS §8.15 「자동 수정 표시」) */
+export function 월일(iso: string, 언어: 언어): string {
+  return new Intl.DateTimeFormat(언어 === 'en' ? 'en-US' : 'ko-KR', { month: 'long', day: 'numeric' }).format(new Date(iso));
+}
+
 export function message(err: unknown, 언어: 언어): string {
   // 서버가 낸 코드를 사람 말로 옮긴다. 모르는 코드면 서버가 준 설명이 그대로 남는다.
   // 안 옮기면 SERVICE_FORBIDDEN 이 화면에 접두사 글자 하나(`XFS3B`)로 뜬다

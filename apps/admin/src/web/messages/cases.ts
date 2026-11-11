@@ -174,4 +174,28 @@ export const 케이스말: Record<string, string> = {
   '테스트 작성에서 앱 기획서를 넣으면 AI 가 Device VISION 디바이스로 앱 화면을 읽고 케이스를 만듭니다':
     'Add an app PRD in Authoring and AI reads the app screens on a Device VISION phone to write cases',
   '테스트 작성으로': 'Go to Authoring',
+
+  // Issue Bunker 테스트 수정 바퀴로 통과한 케이스 (도메인/BTS §8.15 「자동 수정 표시」 A)
+  '자동 수정': 'Auto-fixed',
+  'Issue Bunker {키} · {날짜} · 수정 후 다시 실행에서 통과': 'Issue Bunker {키} · {날짜} · passed on rerun after the fix',
+  '수정 후': 'After fix',
+  '자동 수정 기록': 'Auto-fix record',
+  '자동 수정 기록을 불러오지 못했습니다': 'Could not load the auto-fix record',
+  '요청§자동수정': 'Requested',
+  '「테스트 수정」': '“Test fix”',
+  '수정§자동수정': 'Fix',
+  '반영§자동수정': 'Applied',
+  '자동 반영': 'Applied automatically',
+  '사람이 반영': 'Applied by a person',
+  '변경 내용 보기': 'View changes',
+  '확인§자동수정': 'Verified',
+  '테스트를 수정하는 중': 'Fixing the test',
+  '반영을 기다리는 중': 'Waiting to apply',
+  '반영을 기다리는 중 — 사람 확인이 필요해요': 'Waiting to apply — needs a person to check',
+  '자동 반영하는 중': 'Applying automatically',
+  '다시 실행하는 중': 'Rerunning',
+  '수정 후에도 실패했어요': 'Still failed after the fix',
+  '수정 후에도 실패했어요 · RUN {번호}': 'Still failed after the fix · RUN {번호}',
+  '그만뒀어요': 'Stopped',
+  '그만뒀어요 · {까닭}': 'Stopped · {까닭}',
 };
