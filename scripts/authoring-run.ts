@@ -35,7 +35,7 @@ import { 기준목록이름 } from './authoring-base-list.js';
 import { API떼기, API반영줄, API원장항목, API점검, API환경, 판파일쓰기 } from './authoring-api.js';
 import { 화면지도준비 } from './authoring-covered.js';
 import { 앞결과, 옮기기올리기, 판받기 } from './authoring-prd-io.js';
-import { 반영요청인가, 실패trace받기, 안옮김뒤, 테스트고침읽기, 화면이맞음읽기 } from './authoring-screen-right.js';
+import { 반영요청인가, 실패trace받기, 안옮김뒤, 테스트고침싣는손, 테스트고침읽기, 화면이맞음읽기 } from './authoring-screen-right.js';
 
 /** 켤 때 정해 두고 모든 건이 같이 쓰는 것 */
 export interface 판 {
@@ -293,7 +293,7 @@ async function 사본에서(
   const 게임줄 = 게임화면 === undefined ? [] : [...(await 게임올리기({ 주소기지, 토큰, 번호: 것.id }, 자리.자료, 비밀번호들(것))), ...안다룬요소줄(자리.자료, join(자리.트리, 'tests', 케이스자리), 비밀번호들(것))]; // 훑은 창 · 게임 지도 · 안 다룬 요소 — 못 올려도 PR 은 간다
   // 보류 케이스와 원장 셈은 자식의 말이 아니라 코드에서 계산해 끝내기에 싣는다 — 싣는 손은 올리기가 건다 (작성 §3.6)
   await 올리기(
-    자리, 것, 서비스, 판.판정, 기준, 풀린.글, 손,
+    자리, 것, 서비스, 판.판정, 기준, 풀린.글, 테스트고침싣는손(손, 것, () => ({ 자식출력: 풀린.글, 결과폴더: 자리.임시, 비밀: 비밀번호들(것) })),
     역방향 === undefined ? undefined : { 주소기지, 토큰, 자식, 입력자료: 자료들 },
     { 값: 옮김.원장, 폴더: 케이스자리, 자식, 기준: 옮김.기준, 게임: 설정.게임 === true, 팜토큰: 앱화면?.탐색?.token }, 단계, [...API반영줄(것.api), ...옮김.줄, ...게임줄],
   );
