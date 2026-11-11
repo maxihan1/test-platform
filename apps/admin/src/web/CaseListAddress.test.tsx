@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 케이스 목록의 검색 조건 · 쪽이 주소에 남는다 — 상세에 갔다 뒤로 와도 그대로다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
+// 케이스 목록의 검색 조건이 주소에 남는다(쪽 번호는 없다 — 이어 받는다) — 상세에 갔다 뒤로 와도 그대로다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -50,11 +50,11 @@ async function 그리기(주소: string) {
 const 처음조건 = (스파이: { mock: { calls: [CaseQuery][] } }) => 스파이.mock.calls[0]![0];
 
 describe('케이스 목록 조건을 주소에서 읽는다', () => {
-  it('주소의 조건과 쪽으로 처음부터 부르고 찾기 칸 · 결과 탭 · 고른 조건 칩 · 필터 판이 그 조건을 보인다', async () => {
+  it('주소의 조건으로 처음부터 부르고 옛 주소의 쪽 번호는 읽지 않으며 찾기 칸 · 결과 탭 · 고른 조건 칩 · 필터 판이 그 조건을 보인다', async () => {
     const 조건 = new URLSearchParams({ q: '로그인', page: '3', dev: 'mobile', all: '1', last: 'FAIL', tech: '경계값 분석', axis: '경계' });
     const 스파이 = await 그리기(`#/cases/fn?${조건}`);
 
-    expect(처음조건(스파이)).toMatchObject({ q: '로그인', page: 3, platform: 'mobile', active: false, technique: '경계값 분석', axis: '경계', last: 'FAIL' });
+    expect(처음조건(스파이)).toMatchObject({ q: '로그인', page: 1, platform: 'mobile', active: false, technique: '경계값 분석', axis: '경계', last: 'FAIL' });
     expect((screen.getByPlaceholderText('케이스 이름이나 ID로 검색') as HTMLInputElement).value).toBe('로그인');
     expect(screen.getByRole('button', { name: '실패 7' }).getAttribute('aria-pressed')).toBe('true');
     expect([...document.querySelectorAll('.filter-on')].map((el) => el.firstChild?.textContent)).toEqual(['표시 전체', '종류 경계', '설계 기법 경계값 분석', '디바이스 모바일']);
@@ -80,11 +80,12 @@ describe('케이스 목록 조건을 주소에서 읽는다', () => {
     expect(조건.last).toBeUndefined();
   });
 
-  it('묶음 조건은 이름까지 주소에서 되살려 칩으로 보인다', async () => {
+  it('옛 주소의 묶음 조건(g · gs · gn)은 읽지 않는다 — 묶음은 왼쪽 목차로 고른다', async () => {
     const 스파이 = await 그리기(`#/cases/fn?${new URLSearchParams({ g: '회원가입', gs: 'tests/zca/pages/signup.page.ts', gn: '회원가입 › /signup' })}`);
 
-    expect(처음조건(스파이)).toMatchObject({ feature: '회원가입', screen: 'tests/zca/pages/signup.page.ts' });
-    expect(screen.getByRole('button', { name: '회원가입 › /signup 조건 풀기' })).toBeTruthy();
+    expect(처음조건(스파이)).not.toHaveProperty('feature');
+    expect(처음조건(스파이)).not.toHaveProperty('screen');
+    expect(screen.queryByRole('button', { name: /조건 풀기/ })).toBeNull();
   });
 });
 
@@ -94,15 +95,16 @@ describe('케이스 목록 조건을 주소에 쓴다', () => {
     expect(window.location.hash).toBe('#/cases/fn?service=ZCA');
   });
 
-  it('필터 판 · 쪽을 바꾸면 방문 기록을 쌓지 않고 지금 주소를 고치고, 조건 초기화면 조건이 빠진다', async () => {
-    await 그리기('#/cases/fn');
+  it('필터 판을 바꾸면 방문 기록을 쌓지 않고 지금 주소를 고치고, 「더 보기」로 붙여도 주소에 쪽이 안 붙고, 조건 초기화면 조건이 빠진다', async () => {
+    const 스파이 = await 그리기('#/cases/fn');
     const 길이 = window.history.length;
 
     판칩누르기('디바이스', '모바일');
     expect(window.location.hash).toBe('#/cases/fn?dev=mobile&service=ZCA');
     판닫기();
-    fireEvent.click(await screen.findByRole('button', { name: '다음' }));
-    expect(window.location.hash).toBe('#/cases/fn?page=2&dev=mobile&service=ZCA');
+    fireEvent.click(await screen.findByRole('button', { name: '120건 중 1건 · 더 보기' }));
+    await waitFor(() => expect(스파이.mock.calls.at(-1)![0].page).toBe(2));
+    expect(window.location.hash).toBe('#/cases/fn?dev=mobile&service=ZCA');
     expect(window.history.length).toBe(길이);
 
     fireEvent.click(screen.getByRole('button', { name: '조건 초기화' }));

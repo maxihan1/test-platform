@@ -39,31 +39,36 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const 줄of = (reqId: string) => screen.getByRole('button', { name: new RegExp(reqId) }).closest('.prd-line') as HTMLElement;
+const 줄of = (reqId: string) => screen.getByRole('button', { name: new RegExp(reqId) });
 
 describe('PRD 관리 — 보류', () => {
   it('테스트가 없고 계정이 없는 요구는 줄에 역할을 적고 나머지는 「미작성」이다', async () => {
     render(<Prd service="MKT" 할수={보는사람} />);
-    fireEvent.click(await screen.findByRole('button', { name: /회원가입/ }));
+    await screen.findByRole('button', { name: /MKT-REQ-031/ });
     expect(within(줄of('MKT-REQ-031')).getByText('보류 — 관리자 계정 미등록')).toBeTruthy();
     expect(within(줄of('MKT-REQ-032')).getByText('보류 — 관리자 계정 미등록')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: /로그인/ }));
     expect(within(줄of('MKT-REQ-040')).getByText('미작성')).toBeTruthy();
   });
 
   it('그 역할 계정을 모두 넣었으면 「등록됨 · 이어 작성 전」이라고 적는다', async () => {
     지금.mockResolvedValue(판({ held: 보류({ reqs: { 'MKT-REQ-031': ['판매자'] } }) }));
     render(<Prd service="MKT" 할수={보는사람} />);
-    fireEvent.click(await screen.findByRole('button', { name: /회원가입/ }));
+    await screen.findByRole('button', { name: /MKT-REQ-031/ });
     expect(within(줄of('MKT-REQ-031')).getByText('보류 — 판매자 계정 등록됨 · 이어 작성 전')).toBeTruthy();
   });
 
-  it('묶음 머리에 보류와 미작성을 따로 센다', async () => {
+  it('묶음 이름표와 맨 위 칩이 보류와 미작성을 따로 센다', async () => {
     render(<Prd service="MKT" 할수={보는사람} />);
-    const 회원가입 = await screen.findByRole('button', { name: /회원가입/ });
-    expect(회원가입.textContent).toContain('2건 · 확인 필요 1건 · 모두 보류');
-    expect(회원가입.textContent).not.toContain('미작성');
-    expect((await screen.findByRole('button', { name: /로그인/ })).textContent).toContain('모두 미작성');
+    await screen.findByRole('button', { name: /MKT-REQ-031/ });
+    const 이름표 = (이름: string) => [...document.querySelectorAll('.toc-label')].find((el) => el.textContent?.startsWith(이름))!.textContent!;
+    expect(이름표('회원가입')).toContain('보류 2');
+    expect(이름표('회원가입')).not.toContain('미작성');
+    expect(이름표('로그인')).toContain('미작성 2');
+    expect(screen.getByRole('button', { name: '보류 2' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '미작성 2' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '보류 2' }));
+    expect(screen.queryByRole('button', { name: /MKT-REQ-040/ })).toBeNull();
+    expect(screen.getByRole('button', { name: /MKT-REQ-032/ })).toBeTruthy();
   });
 
   it('보류가 없으면 카드를 그리지 않는다', async () => {

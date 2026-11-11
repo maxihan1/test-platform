@@ -1,9 +1,7 @@
-// 목록 줄 사이 묶음 머리 — 이웃끼리 자리가 바뀌는 곳에만 끼우고 건수는 쪽이 아니라 묶음 번호표로 센다 (도메인/카탈로그 §8.1 「맥락」)
-
 import { describe, expect, it } from 'vitest';
 
 import type { CaseGroup, CaseRow } from './api.js';
-import { 줄과머리, 파일이름, type 목록칸 } from './caseGroups.js';
+import { 기능묶음들, 덩어리들, 파일이름 } from './caseGroups.js';
 
 const 줄 = (tcId: string): CaseRow => ({
   tcId,
@@ -17,64 +15,43 @@ const 줄 = (tcId: string): CaseRow => ({
   scannedAt: '2026-10-11T00:00:00.000Z',
 });
 const 화면 = 'tests/x/pages/signup.page.ts';
-const 조각 = 'tests/x/components/terms.component.ts';
 const 묶음들: CaseGroup[] = [
   { feature: '회원가입', screen: null, screenUrl: null, part: null, tcIds: ['X-001'] },
   { feature: '회원가입', screen: 화면, screenUrl: '/signup', part: null, tcIds: ['X-002', 'X-003'] },
-  { feature: '회원가입', screen: 화면, screenUrl: '/signup', part: 조각, tcIds: ['X-004'] },
+  { feature: '주문', screen: null, screenUrl: null, part: null, tcIds: ['X-004'] },
   { feature: null, screen: null, screenUrl: null, part: null, tcIds: ['X-005'] },
 ];
-const 모양 = (칸들: 목록칸[]) =>
-  칸들.map((칸) => ('row' in 칸 ? 칸.row.tcId : `${'#'.repeat(칸.머리.단)} ${칸.머리.값 ?? '없음'} ${칸.머리.tcIds.length}${칸.머리.이어짐 ? ' 이어짐' : ''}`));
+const 모양 = (rows: CaseRow[], 보임 = true) => 덩어리들(rows, 묶음들, 보임).map((d) => `${d.feature ?? '없음'}: ${d.rows.map((r) => r.tcId).join(' ')}`);
 
-describe('줄과머리', () => {
-  it('기능 묶음 > 화면 > 화면 조각 머리를 자리가 바뀌는 곳에 끼우고 건수는 아래 묶음까지 전부다', () => {
-    const 받은 = ['X-001', 'X-002', 'X-003', 'X-004', 'X-005'];
-    expect(모양(줄과머리(받은.map(줄), 묶음들, new Set(받은), true))).toEqual([
-      '# 회원가입 4', 'X-001', `## ${화면} 3`, 'X-002', 'X-003', `### ${조각} 1`, 'X-004', '# 없음 1', 'X-005',
+describe('덩어리들', () => {
+  it('화면 · 화면 조각으로 나뉜 번호표도 기능 묶음 한 덩어리로 가른다', () => {
+    expect(모양(['X-001', 'X-002', 'X-003', 'X-004', 'X-005'].map(줄))).toEqual(['회원가입: X-001 X-002 X-003', '주문: X-004', '없음: X-005']);
+  });
+
+  it('번호표에 없는 줄은 앞 덩어리에 붙는다', () => {
+    expect(모양(['X-004', 'X-999'].map(줄))).toEqual(['주문: X-004 X-999']);
+  });
+
+  it('PRD 를 안 쓰는 서비스는 이름표 없는 덩어리 하나다', () => {
+    expect(모양(['X-001', 'X-004'].map(줄), false)).toEqual(['없음: X-001 X-004']);
+    expect(덩어리들([], 묶음들, false)).toEqual([]);
+  });
+});
+
+describe('기능묶음들', () => {
+  it('쪽 밖까지 기능 묶음마다 번호를 모은다 — 목차 건수다', () => {
+    expect(기능묶음들(묶음들, true).map((g) => [g.feature, g.tcIds.length])).toEqual([
+      ['회원가입', 3],
+      ['주문', 1],
+      [null, 1],
     ]);
+    expect(기능묶음들(묶음들, false)).toEqual([]);
   });
+});
 
-  it('앞 케이스가 앞 쪽에 있으면 「이어짐」 — 머리는 이 쪽 첫 줄 앞에 다시 선다', () => {
-    const 이쪽 = ['X-003', 'X-004', 'X-005'];
-    expect(모양(줄과머리(이쪽.map(줄), 묶음들, new Set(이쪽), true)).slice(0, 3)).toEqual(['# 회원가입 4 이어짐', `## ${화면} 3 이어짐`, 'X-003']);
-  });
-
-  it('줄과 머리는 접을 때 따를 위 묶음 열쇠를 들고 · 「이것만 보기」 조건은 묶인 자리 그대로다', () => {
-    const 칸들 = 줄과머리(['X-004'].map(줄), 묶음들, new Set(['X-004']), true);
-    const 머리들 = 칸들.flatMap((칸) => ('row' in 칸 ? [] : [칸.머리]));
-    expect(머리들.map((m) => m.조건)).toEqual([{ feature: '회원가입' }, { feature: '회원가입', screen: 화면 }, { feature: '회원가입', screen: 화면, part: 조각 }]);
-    expect(칸들.at(-1)!.위).toEqual(머리들.map((m) => m.열쇠));
-    expect(머리들[2]!.위).toEqual([머리들[0]!.열쇠, 머리들[1]!.열쇠]);
-  });
-
-  it('애플리케이션이 PRD 를 안 쓰면 묶음 머리를 안 세우고 · 쓰면 「기능 묶음 없음」만 걸러도 세운다 · 번호표가 없으면 머리 없이 그대로다', () => {
-    const 묶음없음: CaseGroup[] = [{ feature: null, screen: null, screenUrl: null, part: null, tcIds: ['X-001', 'X-002'] }];
-    expect(모양(줄과머리(['X-001', 'X-002'].map(줄), 묶음없음, new Set(), false))).toEqual(['X-001', 'X-002']);
-    expect(모양(줄과머리(['X-001', 'X-002'].map(줄), 묶음없음, new Set(['X-001', 'X-002']), true))).toEqual(['# 없음 2', 'X-001', 'X-002']);
-    expect(모양(줄과머리(['X-001'].map(줄), undefined, new Set(), true))).toEqual(['X-001']);
-  });
-
-  it('화면 없이 조각만 쓰는 자리는 「이것만 보기」에 화면 없음(빈 글자)까지 건다', () => {
-    const 조각만: CaseGroup[] = [{ feature: '회원가입', screen: null, screenUrl: null, part: 조각, tcIds: ['X-009'] }];
-    const 머리들 = 줄과머리([줄('X-009')], 조각만, new Set(['X-009']), true).flatMap((칸) => ('row' in 칸 ? [] : [칸.머리]));
-    expect(머리들.map((m) => m.조건)).toEqual([{ feature: '회원가입' }, { feature: '회원가입', screen: '', part: 조각 }]);
-  });
-
-  it('API 애플리케이션은 화면 자리에 엔드포인트 머리가 서고 · 「이것만 보기」 조건은 그 엔드포인트다', () => {
-    const 끝점묶음: CaseGroup[] = [
-      { feature: '주문', screen: null, screenUrl: null, part: null, endpoint: null, tcIds: ['A-001'] },
-      { feature: '주문', screen: null, screenUrl: null, part: null, endpoint: 'POST /api/orders', tcIds: ['A-002', 'A-003'] },
-      { feature: '주문', screen: null, screenUrl: null, part: null, endpoint: 'GET /api/orders/:n', tcIds: ['A-004'] },
-    ];
-    const 받은 = ['A-001', 'A-002', 'A-003', 'A-004'];
-    const 칸들 = 줄과머리(받은.map(줄), 끝점묶음, new Set(받은), true);
-    expect(모양(칸들)).toEqual(['# 주문 4', 'A-001', '## POST /api/orders 2', 'A-002', 'A-003', '## GET /api/orders/:n 1', 'A-004']);
-    const 머리들 = 칸들.flatMap((칸) => ('row' in 칸 ? [] : [칸.머리]));
-    expect(머리들[1]!.조건).toEqual({ feature: '주문', endpoint: 'POST /api/orders' });
-  });
-
-  it('파일이름은 경로와 꼬리를 뗀다', () => {
-    expect([파일이름(화면), 파일이름(조각)]).toEqual(['signup', 'terms']);
+describe('파일이름', () => {
+  it('화면 파일 경로에서 이름만 뽑는다', () => {
+    expect(파일이름(화면)).toBe('signup');
+    expect(파일이름('tests/x/components/terms.component.ts')).toBe('terms');
   });
 });
