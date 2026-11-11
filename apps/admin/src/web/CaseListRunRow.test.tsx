@@ -105,14 +105,14 @@ describe('케이스 줄의 디바이스마다 ▶ 실행', () => {
     await 그리기((무엇) => 무엇 !== '실행' && 무엇 !== '테스트실행');
 
     expect(screen.queryByRole('button', { name: /^ZPK-00\d .* 실행$/ })).toBeNull();
-    expect(screen.queryByRole('button', { name: /조건에 맞는/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^전체 (시험 )?실행 \(/ })).toBeNull();
   });
 
   it('실행 테스트만이면 줄 · 머리 단추가 시험 실행이고 창에는 「시험 실행」만 있다', async () => {
     await 그리기((무엇) => 무엇 !== '실행');
 
     expect(screen.queryByRole('button', { name: 'ZPK-001 PC 실행' })).toBeNull();
-    expect(screen.getByRole('button', { name: '조건에 맞는 2건 시험 실행' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '전체 시험 실행 (2)' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'ZPK-001 PC 시험 실행' }));
 
     const 창 = within(await screen.findByRole('dialog', { name: '케이스 1건 시험 실행' }));
