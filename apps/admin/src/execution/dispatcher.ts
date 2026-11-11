@@ -7,6 +7,7 @@ import type { ExecuteResponse } from '@platform/kit';
 import { 실행문서견주기 } from '../apidoc/runCompare.js';
 import { 배포실행뒤 } from '../bts/deployFlow.js';
 import { 실패등록 } from '../bts/failReport.js';
+import { 테스트수정실행뒤 } from '../bts/testFixRerun.js';
 
 import { 스모크뒤 } from './buildRun.js';
 import { 잡기를늘린다, 팜주소, 팜폰으로 } from './farm.js';
@@ -177,6 +178,13 @@ export async function dispatch(runId: number, items: PendingItem[]): Promise<voi
     await 배포실행뒤(runId);
   } catch (err) {
     console.error(`[execution] 실행 ${runId} 뒤 Issue Bunker 배포 판정 · 재검증을 못 했다: ${err instanceof Error ? err.message : String(err)}`);
+  }
+
+  // Issue Bunker 「테스트 수정」 바퀴의 다시 실행이면 이슈를 닫거나 「QA 검토」로 되돌린다. 깨지면 60초 점검이 다시 한다 (도메인/BTS 「테스트 수정 바퀴」 5)
+  try {
+    await 테스트수정실행뒤(runId);
+  } catch (err) {
+    console.error(`[execution] 실행 ${runId} 뒤 Issue Bunker 테스트 수정 판정을 못 했다: ${err instanceof Error ? err.message : String(err)}`);
   }
 
   // 알림 전송이 실패해도 실행은 실패가 아니다. 실행은 이미 끝났고 결과는 test_run 에 남아 있다 (SPEC §8.9)

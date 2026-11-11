@@ -1,13 +1,15 @@
 // BTS 「테스트 수정」 고침 PR 의 병합 — 세 조건이 맞으면 Commander 가 반영을 세우고, 아니면 이슈에 「사람 확인이 필요해요」 (도메인/BTS §3.12 「테스트 수정 바퀴」 3 · 결정 24)
 // 반영은 사람 통로와 같은 머지세우기를 요청한 사람 `bts` 로 부른다 — 보류 · 겹침 · 최신 실행 판정을 따로 두지 않는다
 
-import type { PoolClient } from 'pg';
+import type { Pool, PoolClient } from 'pg';
 
 import { 머지세우기 } from '../authoring/merge.js';
 import { 뿌리잠그고 } from '../authoring/history.js';
 import { 한건 } from '../authoring/store.js';
+import { BTS부르기, type 부르기함수 } from './client.js';
 import { BTS요청자 } from './close.js';
 import { type 걸린까닭, 걸린까닭읽기, 댓글한번 } from './testFix.js';
+import { 그만두기, 이슈확인, type 이슈자리 } from './testFixIssue.js';
 
 const 까닭글: Record<걸린까닭, string> = {
   EXPECTED_CHANGED: '기대값이 바뀌었어요',
@@ -24,6 +26,11 @@ const 막힘글: Record<string, string> = {
   BAD_ENV: '반영할 대상 서버를 고르지 못했어요',
 };
 
+async function db(): Promise<Pool> {
+  const { pool } = await import('../db/index.js');
+  return pool;
+}
+
 type 판정끝 = { 끝: 'AUTO' | null } | { 끝: 'PERSON'; projectId: number; issueKey: string; 까닭: string[] };
 
 /**
@@ -32,8 +39,33 @@ type 판정끝 = { 끝: 'AUTO' | null } | { 끝: 'PERSON'; projectId: number; is
  * 도는 실행이 있거나 뒤에 실행이 더 있으면 그 PR 은 옛것이라 넘긴다 — 뒤 실행이 끝날 때 다시 판정한다.
  * 줄 적기와 반영 세우기는 뿌리 잠금 안에서 — 사이에 사람 반영이 끼어 같은 PR 에 반영이 둘 서지 않게
  */
-export async function 테스트수정병합판정(요청번호: number, 서비스: number, 뿌리번호: number, prUrl: string, 결과: unknown): Promise<'AUTO' | 'PERSON' | null> {
+export async function 테스트수정병합판정(
+  요청번호: number,
+  서비스: number,
+  뿌리번호: number,
+  prUrl: string,
+  결과: unknown,
+  부르기: 부르기함수 = BTS부르기,
+): Promise<'AUTO' | 'PERSON' | null> {
   const 걸림 = 걸린까닭읽기(결과);
+  // 반영을 세우기 전에 이슈를 다시 읽는다 — 사람이 옮겼으면 그만, Issue Bunker 에 못 닿으면 60초 점검이 다시 판정한다(testFixRerun.ts) (「테스트 수정 바퀴」 6)
+  if (걸림.length === 0) {
+    const 줄 = (
+      await (await db()).query<이슈자리 & { id: string }>(
+        `SELECT f.id, f.issue_key, l.base_url, l.bot_username, l.status_map
+           FROM bts_test_fix f LEFT JOIN bts_link l ON l.project_id = f.project_id
+          WHERE f.request_id = $1 AND f.pr_url = $2 AND f.state = 'WAIT_MERGE' AND f.merge IS NULL`,
+        [뿌리번호, prUrl],
+      )
+    ).rows[0];
+    if (줄 === undefined) return null;
+    const 확인 = await 이슈확인(줄, 부르기);
+    if (확인 === '다시') return null;
+    if (확인 !== '이어감') {
+      await 그만두기(줄.id, 확인.그만);
+      return null;
+    }
+  }
   const 판정 = await 뿌리잠그고(뿌리번호, async (손): Promise<판정끝> => {
     const 줄 = (
       await 손.query<{ project_id: string; issue_key: string }>(
@@ -70,4 +102,16 @@ export async function 반영한사람적기(손: PoolClient, 뿌리번호: numbe
     뿌리번호,
     반영요청자 === BTS요청자('').누가 ? 'AUTO' : 'PERSON',
   ]);
+}
+
+/**
+ * Commander 가 세운 반영이 실패 · 멈춤으로 끝나면 「사람 확인이 필요해요 — 자동 반영이 실패했어요」(같은 글은 한 번).
+ * 줄은 병합 기다림 그대로라 사람이 테스트 작성 화면에서 반영하면 다시 실행으로 이어진다 — 되돌리면 PR 을 고쳐 반영해도 이슈가 안 닫힌다
+ */
+export async function 자동반영실패(뿌리번호: number): Promise<void> {
+  const 줄들 = await (await db()).query<{ project_id: string; issue_key: string; pr_url: string }>(
+    `SELECT project_id, issue_key, pr_url FROM bts_test_fix WHERE request_id = $1 AND state = 'WAIT_MERGE' AND merge = 'AUTO' AND pr_url IS NOT NULL`,
+    [뿌리번호],
+  );
+  for (const 줄 of 줄들.rows) await 댓글한번(Number(줄.project_id), 줄.issue_key, `사람 확인이 필요해요 — 자동 반영이 실패했어요\n${줄.pr_url}`);
 }

@@ -10,6 +10,7 @@ import { BTS부르기, type BTS이슈, type BTS자리, type 부르기함수 } fr
 import { 반영요청세우기, 실패한실행, 이슈글읽기, type 닫기결과, type 닫기연결 } from './close.js';
 import { BTS이은프로젝트 } from './link.js';
 import { 보낼줄넣기 } from './outbox.js';
+import { 도는상태, 되돌림넣기 } from './testFixIssue.js';
 
 async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
@@ -21,8 +22,6 @@ export interface 알림상태 {
   from?: string;
   to?: string;
 }
-
-export const 도는상태 = ['FIXING', 'WAIT_MERGE', 'RERUNNING'];
 
 const 다시받을 = (s: number) => s >= 500 || s === 408 || s === 429;
 
@@ -130,7 +129,12 @@ async function 세우기(
 export async function 테스트수정처리(연결: 닫기연결, 이슈: BTS이슈, 알림: 알림상태, 부르기: 부르기함수 = BTS부르기): Promise<닫기결과> {
   const 결과: 닫기결과 = { 요청들: [], 기록만: [] };
   const pool = await db();
-  const 수정 = (await pool.query<{ fix: string | null }>("SELECT status_map->>'TEST_FIX' AS fix FROM bts_link WHERE project_id = $1", [연결.projectId])).rows[0]?.fix ?? '';
+  const 짝 = (
+    await pool.query<{ fix: string | null; review: string | null }>("SELECT status_map->>'TEST_FIX' AS fix, status_map->>'QA_REVIEW' AS review FROM bts_link WHERE project_id = $1", [
+      연결.projectId,
+    ])
+  ).rows[0];
+  const 수정 = 짝?.fix ?? '';
   // 짝을 비운 연결은 바퀴가 안 돈다
   if (수정 === '') return 결과;
   // 늦게 다시 온 「떠남」 알림이 그사이 다시 옮겨 와 새로 선 줄을 놓지 않게 지금 상태도 본다
@@ -166,6 +170,10 @@ export async function 테스트수정처리(연결: 닫기연결, 이슈: BTS이
   const 도나 = await pool.query('SELECT 1 FROM bts_test_fix WHERE project_id = $1 AND issue_key = $2 AND state = ANY($3) LIMIT 1', [연결.projectId, 이슈.key, 도는상태]);
   const 나 = (도나.rowCount ?? 0) > 0 ? await 봇번호(자리, 부르기) : null;
   if (나 !== null) await 보낼줄넣기({ projectId: 연결.projectId, kind: 'ASSIGN', issueKey: 이슈.key, payload: { assigneeId: 나 } });
+  // 맡았는데 하나도 못 세웠으면(첫 실행이 지워짐 등) 「테스트 수정」에 그대로 두지 않고 되돌린다 — 아무도 안 고치는 이슈가 남지 않게 (「테스트 수정 바퀴」 5)
+  if ((도나.rowCount ?? 0) === 0 && 다른이슈.size === 0 && 결과.기록만.length > 0) {
+    await 되돌림넣기(pool, 연결.projectId, 이슈.key, 짝?.review ?? '', 옮긴.id, '테스트를 수정하지 못했어요 — 처음 실패한 실행이 지워졌거나 그 실행에 이 테스트의 실패 기록이 없어요');
+  }
   return 결과;
 }
 

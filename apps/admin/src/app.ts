@@ -18,6 +18,7 @@ import btsDeployRoutes from './bts/deploy.js';
 import { 늦은이슈켜기 } from './bts/deployLate.js';
 import btsInboundRoutes from './bts/inbound.js';
 import { 보낼줄켜기 } from './bts/outbox.js';
+import { 테스트수정켜기 } from './bts/testFixRerun.js';
 import btsLinkRoutes from './bts/routes.js';
 import { 기본계정만들기 } from './auth/defaultAdmin.js';
 import { 인증등록 } from './auth/gate.js';
@@ -146,6 +147,8 @@ if (열쇠바이트 < 열쇠최소길이) {
     성능엔진켜기(app);
     // BTS 로 보낼 줄을 1분마다 보낸다. 같은 까닭으로 기동 경로에만 둔다 (도메인/BTS 결정 17)
     보낼줄켜기(app);
+    // 「테스트 수정」 바퀴의 다음 단계를 1분마다 찾는다. 같은 까닭으로 기동 경로에만 둔다 (도메인/BTS 「테스트 수정 바퀴」 6)
+    테스트수정켜기(app);
     // 배포 뒤 늦게 「QA 요청」에 온 이슈를 1분마다 찾는다. 같은 까닭으로 기동 경로에만 둔다 (도메인/BTS 「새 기능 바퀴」 5)
     늦은이슈켜기(app);
     return app.listen({ port, host: '0.0.0.0' });
