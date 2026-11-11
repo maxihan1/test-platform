@@ -8,6 +8,26 @@ import { describe, expect, it } from 'vitest';
 
 import { 줄프롬프트 } from './authoring-prompt.js';
 
+describe('줄프롬프트 — 대상 서버 목록의 계정 줄 (도메인/작성 §3.6 「★ 역할별 계정」)', () => {
+  const 서버들 = [
+    { env: 'dev', baseUrl: 'https://dev.mkt.test' },
+    { env: 'qa', baseUrl: 'https://qa.mkt.test' },
+  ];
+  const 계정 = { env: 'qa', baseUrl: 'https://qa.mkt.test', role: '일반 회원', loginId: 'u', loginPassword: 'p' };
+
+  it('정방향이면 집기 계정의 줄에만 돌려 볼 주소라고 붙인다', () => {
+    const 글 = 줄프롬프트({ id: 1, kind: 'AUTHOR', specText: '본문', accounts: [계정] }, 'MKT', [], { 폴더: 'mkt', 서버들 });
+    expect(글).toContain('  - qa — https://qa.mkt.test (테스트 계정이 이 서버 것이다');
+    expect(글).toContain('  - dev — https://dev.mkt.test\n');
+  });
+
+  it('계정이 없거나 대조 행이면 붙이지 않는다', () => {
+    expect(줄프롬프트({ id: 1, kind: 'AUTHOR', specText: '본문' }, 'MKT', [], { 폴더: 'mkt', 서버들 })).not.toContain('테스트 계정이 이 서버 것이다');
+    const 대조 = { env: 'qa', baseUrl: 'https://qa.mkt.test', startUrl: null, loginId: 'u', loginPassword: 'p' };
+    expect(줄프롬프트({ id: 1, kind: 'AUTHOR', specText: '본문', accounts: [계정], target: 대조 }, 'MKT', [], { 폴더: 'mkt', 서버들 })).not.toContain('테스트 계정이 이 서버 것이다');
+  });
+});
+
 describe('줄프롬프트 — 원장 절 (도메인/작성 §3.6 「★ 원장」)', () => {
   const 것 = { id: 1, kind: 'AUTHOR' as const, specText: '본문' };
 
