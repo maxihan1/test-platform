@@ -7,6 +7,7 @@ import { type Browser, chromium, type Page } from '@playwright/test';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { 장면걸기, 장면쓰개, 폰장면걸기 } from './live.js';
+import { 게임대상을적는다, 요소를놓는다 } from './highlight.js';
 
 let 폴더 = '';
 
@@ -71,14 +72,16 @@ describe('폰장면걸기', () => {
     const 파일 = join(폴더, 'live', '0b7e2c1a-0000-4000-8000-00000000000b.jpg');
     const takeScreenshot = vi.fn(async () => PNG.toString('base64'));
     const find = vi.fn(async () => ({ rect: [0, 50, 50, 50] as [number, number, number, number], screen: [100, 100] as [number, number] }));
-    (globalThis as Record<symbol, unknown>)[Symbol.for('platform.kit.지금게임대상')] = 'Hero';
+    게임대상을적는다({ 대상: 'Hero' });
+    try {
+      const 장면 = await 폰장면걸기({ takeScreenshot }, 파일, 10, { caps: ['rect'], find });
+      await vi.waitFor(() => expect(readFileSync(`${파일}.box`, 'utf8')).toBe('0.0000,0.0000,0.5000,0.5000'));
+      await 장면?.끄기();
+    } finally {
+      요소를놓는다();
+    }
 
-    const 장면 = await 폰장면걸기({ takeScreenshot }, 파일, 10, { caps: ['rect'], find });
-    await vi.waitFor(() => expect(readFileSync(`${파일}.box`, 'utf8')).toBe('0.0000,0.0000,0.5000,0.5000'));
-    await 장면?.끄기();
-    (globalThis as Record<symbol, unknown>)[Symbol.for('platform.kit.지금게임대상')] = undefined;
-
-    expect(find).toHaveBeenCalledWith('Hero');
+    expect(find).toHaveBeenCalledWith('Hero', {});
     expect(existsSync(`${파일}.box`)).toBe(false);
   });
 

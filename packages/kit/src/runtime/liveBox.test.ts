@@ -14,8 +14,8 @@ const 다룬다 = (요소: unknown): void => {
   (globalThis as Record<symbol, unknown>)[지금칸] = 요소;
 };
 const 게임칸 = Symbol.for('platform.kit.지금게임대상');
-const 게임을다룬다 = (대상: string | undefined): void => {
-  (globalThis as Record<symbol, unknown>)[게임칸] = 대상;
+const 게임을다룬다 = (대상: string | undefined, camera?: string): void => {
+  (globalThis as Record<symbol, unknown>)[게임칸] = 대상 === undefined ? undefined : { 대상, ...(camera !== undefined && { camera }) };
 };
 
 let 폴더 = '';
@@ -99,17 +99,38 @@ describe('폰상자읽개', () => {
 });
 
 describe('게임상자읽개', () => {
+  const 사각형 = { rect: [108, 2040, 540, 120] as [number, number, number, number], screen: [1080, 2400] as [number, number] };
+
   it('SDK 가 rect 를 알리면 지금 오브젝트의 rect 를 화면 비율로 바꾸고 위아래를 뒤집는다 — 게임 좌표는 왼쪽 아래가 0 이다', async () => {
-    const find = vi.fn(async () => ({ rect: [108, 2040, 540, 120] as [number, number, number, number], screen: [1080, 2400] as [number, number] }));
+    const find = vi.fn(async () => 사각형);
     const 읽기 = 게임상자읽개({ caps: ['find', 'rect'], find });
 
     게임을다룬다('/Canvas/StartButton');
     expect(await 읽기()).toEqual(근사(0.1, 0.1, 0.5, 0.05));
-    expect(find).toHaveBeenCalledWith('/Canvas/StartButton');
+    expect(find).toHaveBeenCalledWith('/Canvas/StartButton', {});
+  });
+
+  it('케이스가 정한 카메라로 묻고, 같은 오브젝트는 3초마다만 다시 묻는다 — 묻기도 팜을 거치는 게임 명령이다', async () => {
+    let 지금 = 0;
+    const find = vi.fn(async () => 사각형);
+    const 읽기 = 게임상자읽개({ caps: ['rect'], find }, () => 지금);
+
+    게임을다룬다('Enemy', '/MinimapCam');
+    await 읽기();
+    지금 = 2_999;
+    await 읽기();
+    expect(find).toHaveBeenCalledTimes(1);
+    expect(find).toHaveBeenCalledWith('Enemy', { camera: '/MinimapCam' });
+    지금 = 3_000;
+    await 읽기();
+    expect(find).toHaveBeenCalledTimes(2);
+    게임을다룬다('Hero');
+    await 읽기();
+    expect(find).toHaveBeenCalledTimes(3);
   });
 
   it('옛 SDK(caps 에 rect 없음) · 다루는 오브젝트 없음 · 못 찾음 · 사각형 없는 답이면 윤곽이 없다', async () => {
-    const find = vi.fn(async () => ({ rect: [0, 0, 10, 10] as [number, number, number, number], screen: [100, 100] as [number, number] }));
+    const find = vi.fn(async () => 사각형);
     게임을다룬다('Hero');
     expect(await 게임상자읽개({ caps: ['find'], find })()).toBeNull();
     expect(await 게임상자읽개({ find })()).toBeNull();

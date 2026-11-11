@@ -3,7 +3,7 @@
 import { test as base } from '@playwright/test';
 
 import { closeApp, type AppDriver } from './app.js';
-import { 게임원본, 게임증적을남긴다, type KitGame } from './game.js';
+import { 게임증적을남긴다, type KitGame } from './game.js';
 import { 폰장면걸기, type 장면 } from './live.js';
 import { 폰을연다 } from './phone.js';
 import { DEVICE_ATTACHMENT } from './protocol.js';
@@ -29,8 +29,8 @@ export const 앱테스트 = () =>
             console.error(`[kit] 기기 정보를 남기지 못했다: ${err instanceof Error ? err.message : String(err)}`);
           }
         }
-        // 게임 항목이면 게임 SDK 에 오브젝트 자리를 물어 윤곽을 그린다 — 감싸지 않은 연결로 물어야 그 물음이 케이스가 다룬 것으로 안 적힌다
-        폰장면 = await 폰장면걸기(side.driver, undefined, undefined, side.game === undefined ? undefined : 게임원본(side.game));
+        // 게임 항목이면 게임 SDK 에 오브젝트 자리를 물어 윤곽을 그린다
+        폰장면 = await 폰장면걸기(side.driver, undefined, undefined, side.game);
         return side;
       };
       await use({ open: () => (opening ??= 열고남긴다()) });

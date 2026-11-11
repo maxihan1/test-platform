@@ -42,13 +42,18 @@ export function 지금다룬요소(): Locator | string | undefined {
 
 // 게임 단계가 지금 다루는 오브젝트 주소 — 앱 요소 번호와 섞이지 않게 칸을 따로 둔다 (game.ts 게임을지켜본다 · liveBox.ts)
 const 게임칸 = Symbol.for('platform.kit.지금게임대상');
-type 게임전역칸 = { [게임칸]?: string };
+/** 오브젝트 주소와, 케이스가 월드 오브젝트를 비출 카메라를 정했으면 그 카메라 — 같은 카메라로 자리를 물어야 윤곽이 맞는다 */
+export interface 게임대상 {
+  대상: string;
+  camera?: string;
+}
+type 게임전역칸 = { [게임칸]?: 게임대상 };
 
-export function 지금게임대상(): string | undefined {
+export function 지금게임대상(): 게임대상 | undefined {
   return (globalThis as 게임전역칸)[게임칸];
 }
 
-export function 게임대상을적는다(대상: string): void {
+export function 게임대상을적는다(대상: 게임대상): void {
   (globalThis as 게임전역칸)[게임칸] = 대상;
 }
 

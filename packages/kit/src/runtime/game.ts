@@ -14,10 +14,11 @@ import { FARM_EVIDENCE_DIR, GAME_ERRORS_FILE, GAME_TREE_FILE } from './protocol.
 type Env = Record<string, string | undefined>;
 
 /**
- * 몸통의 game. 꼴의 정본은 control-cli 의 Game 에서 ping · tree · tap(좌표)을 뺀 것에 kit 의 waitForValue 하나를 더한 것이다 (공통/3-공유계약 「게임 테스트 타입」).
+ * 몸통의 game. 꼴의 정본은 control-cli 의 Game 의 아홉 메서드(find · click · drag · type · text · get · waitFor · layout · errors)에 kit 의 waitForValue 하나를 더한 것이다 (공통/3-공유계약 「게임 테스트 타입」).
+ * 고른 것만 낸다 — control-cli 0.7 부터 좌표를 받는 명령(findAt · swipe · 좌표 터치 · call)이 생겼는데 케이스는 좌표를 쓰지 않는다(도메인/게임 결정 4). 0.8 로 올려도 케이스가 쓰는 꼴은 그대로다
  * waitForValue — 「값이 될 때까지」. SDK 에 기다리기 명령이 없어 get 을 waitFor 와 같은 간격 · 한도로 되풀이한다 (도메인/게임 §3.10 「케이스 꼴」 기다림)
  */
-export type GameDriver = Omit<Game, 'ping' | 'tree' | 'tap'> & {
+export type GameDriver = Pick<Game, 'find' | 'click' | 'drag' | 'type' | 'text' | 'get' | 'waitFor' | 'layout' | 'errors'> & {
   waitForValue(target: string, prop: string, value: unknown, options?: Pick<WaitOptions, 'timeoutMs'>): Promise<void>;
 };
 export type KitGame = Game & Pick<GameDriver, 'waitForValue'>;
@@ -105,7 +106,7 @@ export async function openGame(
 // 첫 인자가 오브젝트 주소인 명령 — 케이스가 지금 누르거나 확인하는 오브젝트로 적는다 (실시간 장면 윤곽 · 도메인/러너 §5.2 「요소 윤곽」)
 const 대상명령 = new Set([
   'find', 'parent', 'click', 'drag', 'type', 'text', 'get', 'setText', 'set', 'callMethod', 'pointer',
-  'waitFor', 'waitForProp', 'waitForValue', 'components', 'members', 'longPress', 'mouseMove', 'touchDown',
+  'waitFor', 'waitForProp', 'waitForValue', 'components', 'members', 'longPress', 'mouseMove', 'touchDown', 'layout',
 ]);
 const 원본들 = new WeakMap<object, KitGame>();
 
@@ -122,7 +123,11 @@ function 게임을지켜본다(game: KitGame): KitGame {
       const 함수 = 값 as (...a: unknown[]) => unknown;
       if (typeof key !== 'string' || !대상명령.has(key)) return 함수.bind(t);
       return (...args: unknown[]) => {
-        if (typeof args[0] === 'string') 게임대상을적는다(args[0]);
+        const 옵션 = args.find((a, i) => i > 0 && typeof a === 'object' && a !== null) as { camera?: unknown; gone?: unknown } | undefined;
+        // 사라지길 기다리는 오브젝트는 다루는 것이 아니다 — 그 자리에 윤곽을 두면 누르는 것처럼 읽힌다
+        if (typeof args[0] === 'string' && 옵션?.gone !== true) {
+          게임대상을적는다({ 대상: args[0], ...(typeof 옵션?.camera === 'string' && { camera: 옵션.camera }) });
+        }
         return 함수.apply(t, args);
       };
     },
