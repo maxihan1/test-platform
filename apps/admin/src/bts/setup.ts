@@ -145,15 +145,17 @@ async function 필드(자리: BTS자리, 부르기: 부르기함수, 줄: 연결
   const 경로 = `/api/v1/projects/${encodeURIComponent(줄.bts_project)}/custom-fields`;
   const r = await 부르기(자리, 'GET', 경로);
   if (r.status !== 200) return r.status;
-  const 목록 = (r.json as { data?: { key: string; name: string }[] } | null)?.data ?? [];
-  let 키 = 목록.find((f) => f.key === 필드키 || f.name === 필드이름)?.key;
+  const 목록 = (r.json as { data?: { key: string; name: string; fieldType: string }[] } | null)?.data ?? [];
+  // 우리 키가 먼저다. 사람이 만든 같은 이름 필드는 링크 꼴일 때만 쓴다 — 글 · 고르기 꼴엔 PR 주소를 못 적는다(리뷰)
+  let 키 = (목록.find((f) => f.key === 필드키) ?? 목록.find((f) => f.name === 필드이름 && f.fieldType === 'URL'))?.key;
   if (키 === undefined) {
     const 만듦 = await 부르기(자리, 'POST', 경로, { key: 필드키, name: 필드이름, fieldType: 'URL', description: 'Test Commander 가 테스트를 수정한 PR 주소를 적습니다' });
     if (!됐나(만듦.status)) return 만듦.status;
     키 = 필드키;
   }
-  await (await db()).query('UPDATE bts_link SET test_fix_field = $2 WHERE project_id = $1', [projectId, 키]);
-  return 200;
+  // 그 사이 다른 운영자가 연결을 끊었으면 적은 곳이 없다 — 규칙과 같이 409 로 ✕ 를 보인다(리뷰)
+  const 적음 = await (await db()).query('UPDATE bts_link SET test_fix_field = $2 WHERE project_id = $1', [projectId, 키]);
+  return 적음.rowCount === 1 ? 200 : 409;
 }
 
 /**

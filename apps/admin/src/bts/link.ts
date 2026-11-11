@@ -166,6 +166,8 @@ export async function BTS연결저장(projectId: number, 입력: BTS연결입력
      ON CONFLICT (project_id) DO UPDATE
         SET base_url = EXCLUDED.base_url, bts_project = EXCLUDED.bts_project, bot_username = EXCLUDED.bot_username,
             webhook_secret = EXCLUDED.webhook_secret, status_map = EXCLUDED.status_map, resolution_map = EXCLUDED.resolution_map,
+            -- 다른 BTS · 프로젝트로 바꾸면 앞 프로젝트의 필드 키는 거기 없다 — 지우고 자동 설정이 다시 찾게 한다(리뷰)
+            test_fix_field = CASE WHEN bts_link.base_url = EXCLUDED.base_url AND bts_link.bts_project = EXCLUDED.bts_project THEN bts_link.test_fix_field END,
             updated_by = EXCLUDED.updated_by, updated_at = now()`,
     [projectId, 입력.baseUrl, 입력.btsProject, 입력.botUsername, webhookSecret, 입력.statusMap, 입력.resolutionMap, 누가],
   );
