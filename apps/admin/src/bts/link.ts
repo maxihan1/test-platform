@@ -19,8 +19,18 @@ async function db(): Promise<Pool> {
 // 빈 이름도 받아 둔다 — 짝이 빈 단계는 모양 오류가 아니라 MAP_INCOMPLETE 로 알린다(화면이 그 단계를 짚는다)
 const 이름 = z.string().trim().max(200).default('');
 export const 상태짝틀 = z
-  .object({ DEPLOY_WAIT: 이름, QA_REQUEST: 이름, QA_REVIEW: 이름, DEV_REQUEST: 이름, CODE_REVIEW: 이름, CLOSED: 이름 })
-  .strict();
+  .object({
+    DEPLOY_WAIT: 이름,
+    QA_REQUEST: 이름,
+    QA_REVIEW: 이름,
+    DEV_REQUEST: 이름,
+    CODE_REVIEW: 이름,
+    CLOSED: 이름,
+    // 테스트 수정만 비어도 된다 — 비우면 바퀴가 안 돈다. 앞서 이은 연결이 저장 불가로 깨지지 않게 (도메인/BTS 「짝지을 이름」 · BTS-F10-03)
+    TEST_FIX: z.string().trim().max(200).nullish(),
+  })
+  .strict()
+  .transform(({ TEST_FIX, ...나머지 }): 상태짝 => (TEST_FIX ? { ...나머지, TEST_FIX } : 나머지));
 export const 해결짝틀 = z.object({ SCREEN_RIGHT: 이름, TEST_PROBLEM: 이름, FLAKY: 이름, ENV: 이름, DUPLICATE: 이름 }).strict();
 
 // 애플리케이션 코드 저장소 한 줄. 수정 AI 가 clone 할 주소라 https 만 받는다 (도메인/BTS §7 「애플리케이션 코드 저장소」)
@@ -30,7 +40,7 @@ export const 코드저장소 = z.object({
 });
 export type 코드저장소줄 = z.infer<typeof 코드저장소>;
 
-export type 상태짝 = z.infer<typeof 상태짝틀>;
+export type 상태짝 = Record<'DEPLOY_WAIT' | 'QA_REQUEST' | 'QA_REVIEW' | 'DEV_REQUEST' | 'CODE_REVIEW' | 'CLOSED', string> & { TEST_FIX?: string };
 export type 해결짝 = z.infer<typeof 해결짝틀>;
 
 export interface 열쇠정보 {

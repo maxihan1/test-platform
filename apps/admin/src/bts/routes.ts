@@ -42,6 +42,7 @@ const 목록본문 = z.object({ baseUrl: 주소틀, botUsername: 봇이름틀 })
 /** deploy.sh 한 줄 · BTS 웹훅에 넣을 QA Hub 주소. 브라우저를 연 주소(localhost)는 밖에서 닿지 않는다 — 비었으면 화면이 그것으로 물러선다(serviceTokens.ts 와 같다) */
 export const 공개주소 = (): string | null => (process.env.PLATFORM_PUBLIC_URL ?? '').replace(/\/+$/, '') || null;
 
+// 테스트 수정은 짝을 비워도 된다 — 상태짝틀이 빈 값을 칸째 뺀다
 const 짝이빈가 = (m: Record<string, string>): boolean => Object.values(m).some((v) => v === '');
 
 const 저장코드 = {

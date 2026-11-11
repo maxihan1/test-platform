@@ -225,6 +225,18 @@ describe.skipIf(연결 === undefined)('설정 API — BTS 연결', () => {
     expect(행).toEqual({ bot_username: 'qahub-bot', webhook_secret: 'sec' });
   });
 
+  it('테스트 수정 짝만 비워도 저장된다 — 빠짐 · null · 빈 값은 짝 없음이고 고르면 그 키가 남는다', async () => {
+    for (const 빈값 of [undefined, null, ' ']) {
+      const res = await 저장(본문({ botUsername: 'qahub-bot', statusMap: { ...상태, TEST_FIX: 빈값 } }));
+      expect(res.statusCode).toBe(200);
+      expect((await 읽기()).statusMap).toEqual(상태);
+    }
+    expect((await 저장(본문({ botUsername: 'qahub-bot', statusMap: { ...상태, TEST_FIX: 'TEST_FIX_KEY' } }))).statusCode).toBe(200);
+    expect((await 읽기()).statusMap).toEqual({ ...상태, TEST_FIX: 'TEST_FIX_KEY' });
+    expect((await 저장(본문({ botUsername: 'qahub-bot', statusMap: 상태 }))).statusCode).toBe(200);
+    expect((await 읽기()).statusMap).toEqual(상태);
+  });
+
   it('끝 「/」 · 대문자 호스트만 다른 주소는 같은 주소로 친다 · 물음표 붙은 주소는 받지 않는다', async () => {
     expect((await 저장(본문({ baseUrl: 'https://BTS.example.com/', btsProject: 'DM2', botUsername: 'qahub-bot' }))).statusCode).toBe(200);
     expect((await 읽기()).baseUrl).toBe('https://bts.example.com');

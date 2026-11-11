@@ -1,4 +1,4 @@
-// 설정 › BTS 연결의 [저장하고 BTS 자동 설정] — 누른 사람의 대신 PAT 로 BTS 에 웹훅 · 자동화 규칙 둘 · 보드 「QA 검토」 칸을 만든다 (도메인/BTS §7 「BTS 자동 설정」 · BTS-F3-05)
+// 설정 › BTS 연결의 [저장하고 BTS 자동 설정] — 누른 사람의 대신 PAT 로 BTS 에 웹훅 · 자동화 규칙 둘 · 보드 「QA 검토」 칸 · 이슈 필드 「테스트 수정 PR」을 만든다 (도메인/BTS §7 「BTS 자동 설정」 · BTS-F3-05)
 // 사람이 값을 옮겨 적지 않게 한다(2026-10-31 사용자 「자동으로 설정하면 되잖아」 · 「통합계정이잖아」). 다시 눌러도 두 벌 만들지 않는다 — 웹훅은 주소, 규칙은 이름으로 찾아 고친다
 
 import type { Pool } from 'pg';
@@ -15,7 +15,7 @@ async function db(): Promise<Pool> {
   return pool;
 }
 
-export type 설정항목 = 'WEBHOOK' | 'RULE_ASSIGNEE' | 'RULE_PR' | 'BOARD';
+export type 설정항목 = 'WEBHOOK' | 'RULE_ASSIGNEE' | 'RULE_PR' | 'BOARD' | 'TEST_FIX_FIELD';
 
 /** status 는 BTS 가 준 상태 코드 — 0 은 닿지 않음. 화면이 403 을 「권한 없음」으로 읽는다 */
 export interface 설정결과 {
@@ -136,6 +136,26 @@ async function 보드(자리: BTS자리, 부르기: 부르기함수, 줄: 연결
   return 200;
 }
 
+// 이슈 값은 필드 키로 적는다(BTS UpdateIssueRequest.customFields). 사람이 만든 같은 이름 필드가 있으면 그 키를 쓴다
+const 필드키 = 'qahub_test_fix_pr';
+const 필드이름 = '테스트 수정 PR';
+
+/** 이슈 필드 「테스트 수정 PR」(링크)을 찾거나 만들어 그 키를 bts_link.test_fix_field 에 적는다 — 테스트 수정 바퀴가 PR 주소를 여기에 쓴다 (도메인/BTS 「테스트 수정 바퀴」 2) */
+async function 필드(자리: BTS자리, 부르기: 부르기함수, 줄: 연결, projectId: number): Promise<number> {
+  const 경로 = `/api/v1/projects/${encodeURIComponent(줄.bts_project)}/custom-fields`;
+  const r = await 부르기(자리, 'GET', 경로);
+  if (r.status !== 200) return r.status;
+  const 목록 = (r.json as { data?: { key: string; name: string }[] } | null)?.data ?? [];
+  let 키 = 목록.find((f) => f.key === 필드키 || f.name === 필드이름)?.key;
+  if (키 === undefined) {
+    const 만듦 = await 부르기(자리, 'POST', 경로, { key: 필드키, name: 필드이름, fieldType: 'URL', description: 'Test Commander 가 테스트를 수정한 PR 주소를 적습니다' });
+    if (!됐나(만듦.status)) return 만듦.status;
+    키 = 필드키;
+  }
+  await (await db()).query('UPDATE bts_link SET test_fix_field = $2 WHERE project_id = $1', [projectId, 키]);
+  return 200;
+}
+
 /**
  * 누른 운영 계정의 대신 PAT — 그 계정 auth_sub 로 Auth 에서 받는다(2026-11-04 S25 · 도메인/BTS 「열쇠 표」).
  * Auth 에 안 묶인 계정 · 못 받음은 undefined(화면 NO_PERSONAL_TOKEN). 서버 몫 계정으로 물러서지 않는다 —
@@ -152,7 +172,7 @@ export async function 누른사람PAT(username: string): Promise<string | undefi
 }
 
 /**
- * @param 사람토큰 누른 사람의 대신 PAT(누른사람PAT). 웹훅은 BTS 시스템 관리자, 규칙은 그 프로젝트 자동화 관리, 보드 칸은 만들기 권한이 든다
+ * @param 사람토큰 누른 사람의 대신 PAT(누른사람PAT). 웹훅은 BTS 시스템 관리자, 규칙은 그 프로젝트 자동화 관리, 보드 칸은 만들기, 이슈 필드는 필드 관리 권한이 든다
  * @param 바탕 BTS 가 부를 QA Hub 공개 주소 — BTS 는 사설 주소 · localhost 를 거절한다
  */
 export async function BTS자동설정(
@@ -165,10 +185,11 @@ export async function BTS자동설정(
   const 줄 = (await (await db()).query<연결>('SELECT bts_project, base_url, webhook_secret, status_map FROM bts_link WHERE project_id = $1', [projectId])).rows[0];
   if (줄 === undefined) return 'NOT_LINKED';
   const 자리: BTS자리 = { baseUrl: 줄.base_url, pat: 사람토큰 };
-  const [웹훅결과, 규칙결과, 보드결과] = await Promise.all([
+  const [웹훅결과, 규칙결과, 보드결과, 필드결과] = await Promise.all([
     해본다('WEBHOOK', () => 웹훅(자리, 부르기, 줄, `${바탕}/api/bts/events/${projectId}`)),
     규칙들(자리, 부르기, 줄, projectId, 누가, 바탕),
     해본다('BOARD', () => 보드(자리, 부르기, 줄)),
+    해본다('TEST_FIX_FIELD', () => 필드(자리, 부르기, 줄, projectId)),
   ]);
-  return [웹훅결과, ...규칙결과, 보드결과];
+  return [웹훅결과, ...규칙결과, 보드결과, 필드결과];
 }
