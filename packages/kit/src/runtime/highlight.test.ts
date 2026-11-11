@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { AppDriver } from './app.js';
 import { stepScope, type RunScope, type StepScope } from './context.js';
-import { PNG, 앱을지켜본다, 웹사진, 웹을지켜본다, 표시를그린다 } from './highlight.js';
+import { PNG, 앱을지켜본다, 요소를놓는다, 웹사진, 웹을지켜본다, 지금다룬요소, 표시를그린다 } from './highlight.js';
 import { runStep } from './step.js';
 import { verify } from './verify.js';
 
@@ -183,6 +183,27 @@ describe('앱 — 마지막으로 다룬 요소 번호', () => {
       쏜다('command', { command: 'executeScript', endpoint: '/session/s/execute/sync', body: { script: 'mobile: shell', args: [{ command: 'dumpsys' }] } });
     });
     expect(그대로.마지막요소).toBe('a');
+  });
+
+  it('실시간 장면 윤곽의 자리 읽기(getElementRect)는 다룬 요소로 적지 않는다 — 찾는 중을 앞 요소로 되돌리지 않게', () => {
+    const { driver, 쏜다 } = 가짜폰();
+    앱을지켜본다(driver);
+    const 찾는중 = 절차안(() => {
+      쏜다('command', { command: 'getElementText', endpoint: '/session/s/element/a/text' });
+      쏜다('command', { command: 'findElement', endpoint: '/session/s/element' });
+      쏜다('command', { command: 'getElementRect', endpoint: '/session/s/element/a/rect' });
+    });
+    expect(찾는중.마지막요소).toBeUndefined();
+    expect(지금다룬요소()).toBeUndefined();
+  });
+
+  it('지금 다룬 요소를 절차 밖(실시간 장면)에서도 읽고, 놓으면 비운다', () => {
+    const { driver, 쏜다 } = 가짜폰();
+    앱을지켜본다(driver);
+    절차안(() => 쏜다('command', { command: 'getElementText', endpoint: '/session/s/element/z/text' }));
+    expect(지금다룬요소()).toBe('z');
+    요소를놓는다();
+    expect(지금다룬요소()).toBeUndefined();
   });
 });
 

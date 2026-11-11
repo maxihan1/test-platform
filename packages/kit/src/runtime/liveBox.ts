@@ -24,8 +24,10 @@ interface 자리 {
 
 const 글 = (err: unknown): string => (err instanceof Error ? err.message : String(err));
 
-// 웹 요소 자리를 다시 읽는 틈 — 화면이 장면을 0.25초마다 묻는다
+// 웹 요소 자리를 다시 볼지 묻는 틈 — 화면이 장면을 0.25초마다 묻는다
 const 따라가기간격ms = 250;
+// 같은 요소는 1초마다만 다시 읽는다 — 읽기도 trace 에 남고 실제 폰은 터널을 오간다. 스크롤로 움직인 요소는 1초 안에 따라간다
+const 같은요소다시ms = 1_000;
 // 자리 읽기가 오래 걸리면 버린다 — 사라지는 요소를 기다리느라 윤곽이 늦게 따라오지 않게
 const 자리기다림ms = 200;
 
@@ -87,17 +89,24 @@ export function 상자쓰개(장면파일: string): 상자쓰개 {
 export function 웹요소따라가기(page: Page, 창크기: () => { width: number; height: number } | null, 쓰개: 상자쓰개): () => Promise<void> {
   let 멈춤 = false;
   let 깨우기 = () => {};
+  // 장면이 안 와 직접 찍는 실제 폰 Chrome 은 창 크기를 알려 줄 장면이 없다 — 한 번 물어 둔다
+  let 물은창: { width: number; height: number } | null | undefined;
+  let 앞요소: unknown;
+  let 앞읽은때 = 0;
   const 돌기 = (async () => {
     while (!멈춤 && !page.isClosed()) {
       const 요소 = 지금다룬요소();
-      const 창 = 창크기();
-      let 상자: 비율상자 | null = null;
-      if (typeof 요소 === 'object' && 창 !== null && 요소.page() === page) {
-        const 읽은 = await 요소.first().boundingBox({ timeout: 자리기다림ms }).catch(() => null);
-        상자 = 읽은 === null ? null : 비율로(읽은, 창);
+      if (typeof 요소 !== 'object' || 요소.page() !== page) {
+        await 쓰개.쓴다(null);
+      } else if (요소 !== 앞요소 || Date.now() - 앞읽은때 >= 같은요소다시ms) {
+        if (창크기() === null && 물은창 === undefined) 물은창 = await page.evaluate(() => ({ width: innerWidth, height: innerHeight })).catch(() => null);
+        const 창 = 창크기() ?? 물은창 ?? null;
+        const 읽은 = 창 === null ? null : await 요소.first().boundingBox({ timeout: 자리기다림ms }).catch(() => null);
+        if (멈춤) break;
+        await 쓰개.쓴다(읽은 === null || 창 === null ? null : 비율로(읽은, 창));
+        앞읽은때 = Date.now();
       }
-      if (멈춤) break;
-      await 쓰개.쓴다(상자);
+      앞요소 = 요소;
       await new Promise<void>((끝) => {
         const 타이머 = setTimeout(끝, 따라가기간격ms);
         깨우기 = () => {
@@ -120,24 +129,35 @@ export interface 폰자리읽개 {
   getWindowRect?(): Promise<{ width: number; height: number }>;
 }
 
+// PNG 머리(IHDR)의 가로 · 세로 — 그림을 풀지 않고 읽는다
+function png크기(장: Buffer): { width: number; height: number } | null {
+  if (장.length < 24 || 장[0] !== 0x89) return null;
+  return { width: 장.readUInt32BE(16), height: 장.readUInt32BE(20) };
+}
+
 /**
- * 앱 — 지금 다루는 요소 번호의 자리를 읽는다. 같은 요소면 다시 안 묻는다 — 묻는 것도 Appium 명령이라 단계 명령을 세운다.
- * 게임 단계는 요소가 Appium 요소가 아니라 윤곽이 없다(control-cli 가 오브젝트 자리를 안 준다)
+ * 앱 — 찍은 폰 장면에 대해 지금 다루는 요소 번호의 자리를 읽는다. 장면마다 다시 읽는다 — 스크롤 · 키보드로 요소가 움직인다.
+ * 비율은 실패 사진 표시(highlight.ts 앱사진)와 같이 「장면 가로 / 창 가로」 배율 하나로 바꾼다 — 창 높이는 시스템 막대를 빼고 올 수 있어 세로를 창으로 나누면 아래로 밀린다.
+ * 창 크기는 장면 크기가 바뀔 때(회전)만 다시 묻는다. 게임 단계는 요소가 Appium 요소가 아니라 윤곽이 없다(control-cli 가 오브젝트 자리를 안 준다)
  */
-export function 폰상자읽개(driver: 폰자리읽개): () => Promise<비율상자 | null> {
+export function 폰상자읽개(driver: 폰자리읽개): (장: Buffer) => Promise<비율상자 | null> {
   let 창: { width: number; height: number } | undefined;
-  let 앞: { id: string; 상자: 비율상자 | null } | undefined;
-  return async () => {
+  let 창을물은가로: number | undefined;
+  return async (장) => {
     const 요소 = 지금다룬요소();
-    if (typeof 요소 !== 'string' || driver.getElementRect === undefined || driver.getWindowRect === undefined) return null;
-    if (앞?.id === 요소) return 앞.상자;
+    const 그림 = png크기(장);
+    if (typeof 요소 !== 'string' || 그림 === null || driver.getElementRect === undefined || driver.getWindowRect === undefined) return null;
     try {
-      창 ??= await driver.getWindowRect();
-      앞 = { id: 요소, 상자: 비율로(await driver.getElementRect(요소), 창) };
+      if (창 === undefined || 창을물은가로 !== 그림.width) {
+        창 = await driver.getWindowRect();
+        창을물은가로 = 그림.width;
+      }
+      const 배 = 창.width > 0 ? 그림.width / 창.width : 1;
+      const 자리 = await driver.getElementRect(요소);
+      return 비율로({ x: 자리.x * 배, y: 자리.y * 배, width: 자리.width * 배, height: 자리.height * 배 }, 그림);
     } catch {
-      // 사라진 요소 — 같은 번호를 다시 묻지 않는다
-      앞 = { id: 요소, 상자: null };
+      // 사라진 요소 · 닫히는 연결 — 이 장면에는 윤곽이 없다
+      return null;
     }
-    return 앞.상자;
   };
 }

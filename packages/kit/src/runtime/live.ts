@@ -210,7 +210,7 @@ export async function 폰장면걸기(driver: 폰찍개, 파일 = process.env.PL
         const 장 = Buffer.from(await driver.takeScreenshot(), 'base64');
         if (!멈춤) 쓰개.받기(장);
         // 찍은 뒤 자리를 읽는다 — 장면과 윤곽이 거의 같은 순간이다
-        const 윤곽 = 멈춤 ? null : await 자리읽기();
+        const 윤곽 = 멈춤 ? null : await 자리읽기(장);
         if (!멈춤) await 상자.쓴다(윤곽);
       } catch (err) {
         // 앱이 넘어가는 중이거나 연결이 닫히는 중일 수 있다 — 장면은 보는 것일 뿐이라 한 번만 알리고 다음 장을 다시 찍어 본다

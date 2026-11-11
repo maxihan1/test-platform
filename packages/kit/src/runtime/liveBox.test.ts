@@ -54,25 +54,42 @@ describe('상자쓰개', () => {
   });
 });
 
+// PNG 머리만 있는 장면 — 가로 · 세로는 IHDR 자리(16 · 20바이트)에 있다
+const png = (width: number, height: number): Buffer => {
+  const 장 = Buffer.alloc(24);
+  장[0] = 0x89;
+  장.writeUInt32BE(width, 16);
+  장.writeUInt32BE(height, 20);
+  return 장;
+};
+
 describe('폰상자읽개', () => {
-  it('지금 요소 번호의 자리를 창 비율로 읽고 같은 요소는 다시 안 묻는다 — 묻는 것도 Appium 명령이다', async () => {
-    const getElementRect = vi.fn(async () => ({ x: 108, y: 240, width: 540, height: 120 }));
-    const getWindowRect = vi.fn(async () => ({ width: 1080, height: 2400 }));
+  it('장면마다 요소 자리를 다시 읽고(스크롤 · 키보드로 움직인다) 창 크기는 장면 크기가 바뀔 때만 묻는다', async () => {
+    const getElementRect = vi.fn().mockResolvedValueOnce({ x: 108, y: 240, width: 540, height: 120 }).mockResolvedValueOnce({ x: 108, y: 480, width: 540, height: 120 });
+    const getWindowRect = vi.fn(async () => ({ width: 1080, height: 2274 }));
     const 읽기 = 폰상자읽개({ getElementRect, getWindowRect });
 
     다룬다('el-1');
-    expect(await 읽기()).toEqual(근사(0.1, 0.1, 0.5, 0.05));
-    expect(await 읽기()).toEqual(근사(0.1, 0.1, 0.5, 0.05));
-    expect(getElementRect).toHaveBeenCalledTimes(1);
+    expect(await 읽기(png(1080, 2400))).toEqual(근사(0.1, 0.1, 0.5, 0.05));
+    expect(await 읽기(png(1080, 2400))).toEqual(근사(0.1, 0.2, 0.5, 0.05));
+    expect(getElementRect).toHaveBeenCalledTimes(2);
     expect(getWindowRect).toHaveBeenCalledTimes(1);
   });
 
-  it('요소가 없거나(찾는 중 · 게임) 사라졌으면 윤곽이 없다', async () => {
+  it('세로는 창 높이가 아니라 장면 높이로 나눈다 — 창이 시스템 막대를 빼고 와도 아래로 밀리지 않는다', async () => {
+    const 읽기 = 폰상자읽개({ getElementRect: async () => ({ x: 0, y: 2000, width: 1080, height: 200 }), getWindowRect: async () => ({ width: 1080, height: 2274 }) });
+
+    다룬다('el-bottom');
+    expect(await 읽기(png(1080, 2400))).toEqual(근사(0, 2000 / 2400, 1, 200 / 2400));
+  });
+
+  it('요소가 없거나(찾는 중 · 게임) 사라졌거나 PNG 가 아니면 윤곽이 없다', async () => {
     const 읽기 = 폰상자읽개({ getElementRect: async () => Promise.reject(new Error('stale')), getWindowRect: async () => ({ width: 1, height: 1 }) });
 
-    expect(await 읽기()).toBeNull();
+    expect(await 읽기(png(1, 1))).toBeNull();
     다룬다('el-gone');
-    expect(await 읽기()).toBeNull();
+    expect(await 읽기(png(1, 1))).toBeNull();
+    expect(await 읽기(Buffer.from([0xff, 0xd8]))).toBeNull();
   });
 });
 

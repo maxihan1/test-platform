@@ -40,6 +40,11 @@ export function 지금다룬요소(): Locator | string | undefined {
   return (globalThis as 전역칸)[지금칸];
 }
 
+/** 절차가 끝나면 놓는다 — 다음 절차 전 · E2E 부품 사이에 끝난 요소의 윤곽이 남아 아직 다루는 것처럼 읽히지 않게 (step.ts) */
+export function 요소를놓는다(): void {
+  (globalThis as 전역칸)[지금칸] = undefined;
+}
+
 function 적는다(요소: Locator | string | undefined): void {
   const scope = stepScope.getStore();
   if (scope) scope.마지막요소 = 요소;
@@ -105,6 +110,8 @@ export function 앱을지켜본다(driver: AppDriver): AppDriver {
   const 폰 = driver as unknown as { on?: (event: string, fn: (e: 명령기록) => void) => void };
   if (typeof 폰.on !== 'function') return driver;
   폰.on('command', (e: 명령기록) => {
+    // 자리 읽기는 실시간 장면의 윤곽(liveBox.ts)이 1초마다 보낸다 — 케이스가 다룬 것으로 적으면 방금 비운 「찾는 중」을 앞 요소로 되돌린다
+    if (e.command === 'getElementRect') return;
     if (e.command.startsWith('findElement')) {
       적는다(undefined);
       return;
