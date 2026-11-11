@@ -27,13 +27,13 @@ export const 해결단계들: [해결단계, string][] = [
 ];
 
 /** 목록을 불러왔으면 고르개, 못 불러왔으면 글 칸 — 상태는 키, 해결 사유는 이름을 저장한다. 저장해 둔 값이 목록에 없어도 고르개에 남긴다 */
-function 고르는칸({ id, 값, 고를것, 바꾼다 }: { id: string; 값: string; 고를것: { 값: string; 이름: string }[] | null; 바꾼다: (v: string) => void }) {
+function 고르는칸({ id, 값, 고를것, 바꾼다, 빈이름 = '선택하세요' }: { id: string; 값: string; 고를것: { 값: string; 이름: string }[] | null; 바꾼다: (v: string) => void; 빈이름?: string }) {
   const t = use말();
   if (고를것 === null) return <input id={id} type="text" value={값} onChange={(e) => 바꾼다(e.target.value)} />;
   const 있나 = 값 === '' || 고를것.some((it) => it.값 === 값);
   return (
     <select id={id} value={값} onChange={(e) => 바꾼다(e.target.value)}>
-      <option value="">{t('선택하세요')}</option>
+      <option value="">{t(빈이름)}</option>
       {있나 ? null : <option value={값}>{값}</option>}
       {고를것.map((it) => (
         <option key={it.값} value={it.값}>
@@ -79,6 +79,14 @@ export function 상태매핑구획(p: {
             <고르는칸 id={`bts-s-${단계}`} 값={p.상태[단계] ?? ''} 고를것={상태목록} 바꾼다={(v) => p.상태바꿈(단계, v)} />
           </div>
         ))}
+        {/* 테스트 수정만 비워도 된다 — 사람이 워크플로에 상태를 만들어야 쓰는 바퀴라서다 (도메인/BTS 「짝지을 이름」 · BTS-F10-03) */}
+        <div className="field">
+          <label htmlFor="bts-s-TEST_FIX">{t('테스트 수정')}</label>
+          <고르는칸 id="bts-s-TEST_FIX" 값={p.상태.TEST_FIX ?? ''} 고를것={상태목록} 바꾼다={(v) => p.상태바꿈('TEST_FIX', v)} 빈이름="선택 안 함" />
+          {(p.상태.TEST_FIX ?? '').trim() === '' ? (
+            <small className="hint">{t('테스트 수정을 쓰려면 {bts} 워크플로에 상태를 만든 뒤 여기서 선택합니다', { bts: BTS이름 })}</small>
+          ) : null}
+        </div>
       </div>
       <h4 className="bts-sub">{t('해결 사유')}</h4>
       <div className="bts-pair">
@@ -135,6 +143,7 @@ const 항목이름: Record<BTS설정결과['what'], string> = {
   RULE_ASSIGNEE: '담당자 변경 규칙',
   RULE_PR: 'PR 병합 규칙',
   BOARD: '보드 「QA Review」 칸',
+  TEST_FIX_FIELD: '이슈 필드 「테스트 수정 PR」',
 };
 
 const 항목쓰임: Record<BTS설정결과['what'], string> = {
@@ -142,6 +151,7 @@ const 항목쓰임: Record<BTS설정결과['what'], string> = {
   RULE_ASSIGNEE: '담당자가 변경되면 Test Commander 를 호출합니다',
   RULE_PR: 'PR 이 병합되면 Test Commander 를 부릅니다',
   BOARD: '실패로 등록한 이슈가 이 칸에 들어갑니다',
+  TEST_FIX_FIELD: '테스트를 수정한 PR 주소를 이슈에 적습니다',
 };
 
 /** 결과가 없으면(아직 안 눌렀으면) 넷을 이름과 쓰임만 보인다. 막힌 것만 ✕ 와 까닭 */

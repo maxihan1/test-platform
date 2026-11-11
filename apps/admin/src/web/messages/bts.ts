@@ -26,6 +26,8 @@ export const BTS말: Record<string, string> = {
   '{bts} 에서 상태 {상태}개 · 해결 사유 {해결}개를 불러왔습니다': 'Loaded {상태} statuses · {해결} resolutions from {bts}',
   '상태': 'Status',
   '해결 사유': 'Resolution',
+  '테스트 수정': 'Test fix',
+  '테스트 수정을 쓰려면 {bts} 워크플로에 상태를 만든 뒤 여기서 선택합니다': 'To use test fixes, create the status in the {bts} workflow and select it here',
   '화면이 맞음': 'Screen is right',
   '테스트 문제': 'Test problem',
   '흔들림': 'Flaky',
@@ -42,12 +44,14 @@ export const BTS말: Record<string, string> = {
 
   // 2 · 자동 설정
   '2 · {bts} 자동 설정': '2 · Set up {bts} automatically',
-  '내 통합계정 권한으로 {bts} 에 아래 넷을 만듭니다. 이미 있으면 생성하지 않고 수정합니다':
-    'Creates the four items below in {bts} with your unified account permissions. Existing ones are updated, not duplicated',
+  '내 통합계정 권한으로 {bts} 에 아래 다섯 가지를 만듭니다. 이미 있으면 생성하지 않고 수정합니다':
+    'Creates the five items below in {bts} with your unified account permissions. Existing ones are updated, not duplicated',
   '웹훅': 'Webhook',
   '담당자 변경 규칙': 'Assignee change rule',
   'PR 병합 규칙': 'PR merge rule',
   '보드 「QA Review」 칸': 'Board "QA Review" column',
+  '이슈 필드 「테스트 수정 PR」': 'Issue field "Test fix PR"',
+  '테스트를 수정한 PR 주소를 이슈에 적습니다': 'Writes the test fix PR link on the issue',
   '이슈 생성 · 상태 변경을 Test Commander 로 보냅니다': 'Sends issue creation · status changes to Test Commander',
   '담당자가 변경되면 Test Commander 를 호출합니다': 'Calls Test Commander when the assignee changes',
   'PR 이 병합되면 Test Commander 를 부릅니다': 'Calls Test Commander when a PR is merged',

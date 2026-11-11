@@ -2,7 +2,7 @@
 
 import { call, json } from './api.js';
 
-export type 상태단계 = 'DEPLOY_WAIT' | 'QA_REQUEST' | 'QA_REVIEW' | 'DEV_REQUEST' | 'CODE_REVIEW' | 'CLOSED';
+export type 상태단계 = 'DEPLOY_WAIT' | 'QA_REQUEST' | 'QA_REVIEW' | 'DEV_REQUEST' | 'CODE_REVIEW' | 'CLOSED' | 'TEST_FIX';
 export type 해결단계 = 'SCREEN_RIGHT' | 'TEST_PROBLEM' | 'FLAKY' | 'ENV' | 'DUPLICATE';
 
 export interface BTS연결 {
@@ -11,7 +11,7 @@ export interface BTS연결 {
   btsProject: string | null;
   /** 「QA Hub AI」 Auth 계정 이름 — 비밀이 아니다. S25 전에 이은 연결은 null */
   botUsername: string | null;
-  /** 상태 단계 → BTS 상태 키 */
+  /** 상태 단계 → BTS 상태 키. TEST_FIX 만 없어도 된다(테스트 수정 바퀴를 안 쓴다) */
   statusMap: Partial<Record<상태단계, string>>;
   /** 해결 단계 → BTS 해결 사유 이름 */
   resolutionMap: Partial<Record<해결단계, string>>;
@@ -26,7 +26,7 @@ export interface BTS고를목록 {
   resolutions: { name: string }[];
 }
 
-export type 설정항목 = 'WEBHOOK' | 'RULE_ASSIGNEE' | 'RULE_PR' | 'BOARD';
+export type 설정항목 = 'WEBHOOK' | 'RULE_ASSIGNEE' | 'RULE_PR' | 'BOARD' | 'TEST_FIX_FIELD';
 
 export interface BTS설정결과 {
   what: 설정항목;
@@ -41,7 +41,7 @@ export const btsApi = {
   get: (projectId: number) => call<BTS연결>(바탕(projectId)),
   save: (
     projectId: number,
-    body: { baseUrl: string; btsProject: string; botUsername: string; statusMap: Record<상태단계, string>; resolutionMap: Record<해결단계, string> },
+    body: { baseUrl: string; btsProject: string; botUsername: string; statusMap: Partial<Record<상태단계, string>>; resolutionMap: Record<해결단계, string> },
   ) => call<{ ok: true }>(바탕(projectId), { ...json(body), method: 'PUT' }),
   remove: (projectId: number) => call<void>(바탕(projectId), { method: 'DELETE' }),
   choices: (projectId: number, baseUrl: string, botUsername: string) => call<BTS고를목록>(`${바탕(projectId)}/choices`, json({ baseUrl, botUsername })),
