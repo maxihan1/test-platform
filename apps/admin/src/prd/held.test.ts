@@ -131,14 +131,16 @@ describe.skipIf(연결 === undefined)('PRD 보류 칸', () => {
     }
   });
 
-  it('Android 앱은 대조가 아닌 뿌리도 앱 줄 계정으로 이어 작성이 열린다 — 웹 정방향 뿌리는 그대로 안 열린다', async () => {
+  it('웹 정방향 뿌리는 일반 회원 계정이 있는 첫 줄로, Android 앱은 앱 줄 계정으로 이어 작성이 열린다 — 앱 줄이 없으면 안 열린다', async () => {
     const { 뿌리 } = await 판.원본({ coverage: 다덮은셈 });
     await 보류넣기([['XHC-REQ-001', '관리자']]);
-    expect((await 판.상세(뿌리)).canContinue).toBe(false);
-    expect((await 보류읽기(판.서비스)).continueFrom).toBe(null);
+    expect((await 판.상세(뿌리)).canContinue).toBe(true);
+    expect((await 보류읽기(판.서비스)).continueFrom).toBe(뿌리);
     await q(`UPDATE service SET kind = 'APP' WHERE id = $1`, [판.서비스]);
-    await q(`UPDATE service_env SET app_path = '/apk/xhc.apk' WHERE service_id = $1`, [판.서비스]);
     try {
+      expect((await 판.상세(뿌리)).canContinue).toBe(false);
+      expect((await 보류읽기(판.서비스)).continueFrom).toBe(null);
+      await q(`UPDATE service_env SET app_path = '/apk/xhc.apk' WHERE service_id = $1`, [판.서비스]);
       expect((await 판.상세(뿌리)).canContinue).toBe(true);
       expect((await 보류읽기(판.서비스)).continueFrom).toBe(뿌리);
     } finally {
@@ -151,10 +153,9 @@ describe.skipIf(연결 === undefined)('PRD 보류 칸', () => {
     const { 뿌리 } = await 판.원본({ coverage: 다덮은셈 });
     await q(`UPDATE authoring_request SET env = 'qa' WHERE id = $1`, [뿌리]);
     await 보류넣기([['XHC-REQ-001', '관리자']]);
-    expect((await 판.상세(뿌리)).canContinue).toBe(false);
-    await q(`UPDATE service SET kind = 'API' WHERE id = $1`, [판.서비스]);
     await q(`UPDATE service_env SET login_id = NULL, login_password = NULL WHERE service_id = $1`, [판.서비스]);
     try {
+      await q(`UPDATE service SET kind = 'API' WHERE id = $1`, [판.서비스]);
       expect((await 판.상세(뿌리)).canContinue).toBe(true);
       expect((await 보류읽기(판.서비스)).continueFrom).toBe(뿌리);
     } finally {

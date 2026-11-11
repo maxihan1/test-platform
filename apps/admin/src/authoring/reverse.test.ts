@@ -308,11 +308,11 @@ describe.skipIf(연결 === undefined)('역방향 작성 요청', () => {
       }
     });
 
-    it('정방향 행이면 target · accounts 키가 없다', async () => {
+    it('정방향 행이면 target 은 없고 accounts 는 계정이 빈 줄을 건너뛴 첫 줄 것이다', async () => {
       await 하나만세운다({ kind: 'AUTHOR' });
-      const 키들 = Object.keys((await 집기()).json());
-      expect(키들).not.toContain('target');
-      expect(키들).not.toContain('accounts');
+      const r = (await 집기()).json<{ accounts?: { env: string }[] }>();
+      expect('target' in r).toBe(false);
+      expect(r.accounts?.map((x) => x.env)).toEqual(['broken']);
     });
 
     it('만든 뒤 대상 서버 줄이 지워지면 target 은 있고 서버·계정 칸이 null 이다', async () => {
