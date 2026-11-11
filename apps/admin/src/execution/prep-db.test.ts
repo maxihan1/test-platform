@@ -72,11 +72,11 @@ describe.skipIf(연결 === undefined)('실행 전 준비', () => {
     await shared.end();
   });
 
-  it('준비 주소는 끝의 / 를 뗀 열쇠로 읽고 실행의 애플리케이션 · 대상 서버 · 시작 방식을 싣는다', async () => {
+  it('준비 주소는 끝의 / 를 뗀 열쇠로 읽고 실행의 애플리케이션 · 대상 서버 · 시작 방식을 싣는다 — 케이스 하나는 한 건 실행이다', async () => {
     const { runId } = await 실행만들기();
     const 읽음 = await 부를준비들(runId);
     expect(읽음.env).toBe('qa');
-    expect(읽음.origin).toBe('MANUAL');
+    expect(읽음.origin).toBe('SINGLE');
     expect(읽음.준비들).toHaveLength(1);
     expect(읽음.준비들[0]!.service).toBe('XPX');
     expect(읽음.준비들[0]!.열쇠.endsWith('/prep')).toBe(true);

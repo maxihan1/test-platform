@@ -94,7 +94,7 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 다시 실�
         .rows[0]!.id,
     );
     await pool.query(`INSERT INTO service_env (service_id, env, base_url) VALUES ($1, 'qa', 'https://qa.xqr.test')`, [서비스]);
-    for (const tcId of ['XQR-FN-001', 'XQR-FN-002', 'XQR-FN-008']) {
+    for (const tcId of ['XQR-FN-001', 'XQR-FN-002', 'XQR-FN-008', 'XQR-FN-012']) {
       await pool.query(
         `INSERT INTO test_case (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema)
          VALUES ($1, $1, '["desktop","mobile"]', '[]', 'xqr/a.spec.ts', '{"type":"object","properties":{}}', '{"type":"object","properties":{}}')`,
@@ -120,7 +120,7 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 다시 실�
     await pool.query('DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = $1)', [서비스]);
     await pool.query('DELETE FROM test_run WHERE service_id = $1 AND rerun_of IS NOT NULL', [서비스]);
     await pool.query('DELETE FROM test_run WHERE service_id = $1', [서비스]);
-    await pool.query(`DELETE FROM test_case WHERE tc_id IN ('XQR-FN-001', 'XQR-FN-002', 'XQR-FN-008')`);
+    await pool.query(`DELETE FROM test_case WHERE tc_id IN ('XQR-FN-001', 'XQR-FN-002', 'XQR-FN-008', 'XQR-FN-012')`);
     await pool.query('DELETE FROM service_env WHERE service_id = $1', [서비스]);
     await pool.query('DELETE FROM service WHERE id = $1', [서비스]);
     await pool.end();
@@ -189,8 +189,8 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 다시 실�
   });
 
   it('다시 실행이 준비 실패로 끝나면 「테스트 데이터 준비에 실패해」 까닭과 준비 실패 까닭 한 줄로 되돌린다', async () => {
-    const 실패 = await 실행넣기([{ tcId: 'XQR-FN-002', platform: 'desktop', status: 'FAIL' }]);
-    const id = await 바퀴('DM-12', 'XQR-FN-002', 실패, { 반영: true });
+    const 실패 = await 실행넣기([{ tcId: 'XQR-FN-012', platform: 'desktop', status: 'FAIL' }]);
+    const id = await 바퀴('DM-12', 'XQR-FN-012', 실패, { 반영: true });
     await 다시실행걸기(id, 답());
     const 다시 = Number((await 줄(id)).rerun_id);
     await pool.query(`UPDATE run_item SET status = 'NA', error = '{"message":"PREP_FAILED"}', finished_at = now() WHERE run_id = $1`, [다시]);
