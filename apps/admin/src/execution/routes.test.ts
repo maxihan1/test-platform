@@ -49,6 +49,7 @@ describe.skipIf(연결 === undefined)('진행 조회', () => {
   let 내항목 = 0;
   let 남의항목 = 0;
   const 러너장면 = new Map<string, Buffer>();
+  const 러너상자 = new Map<string, string>();
 
   async function 실행만든다(title: string): Promise<number> {
     const row = await pool.query<{ run_id: string }>(
@@ -103,7 +104,11 @@ describe.skipIf(연결 === undefined)('진행 조회', () => {
     // 러너가 쥔 장면 — 열쇠마다 한 장. 없는 열쇠는 러너처럼 404 다
     가짜러너.get<{ Params: { key: string } }>('/live/:key', async (req, reply) => {
       const 장 = 러너장면.get(req.params.key);
-      return 장 === undefined ? reply.code(404).send({}) : reply.type('image/jpeg').send(장);
+      if (장 === undefined) return reply.code(404).send({});
+      // 윤곽 자리가 있으면 러너처럼 머리글로 싣는다
+      const 상자 = 러너상자.get(req.params.key);
+      if (상자 !== undefined) reply.header('x-live-box', 상자);
+      return reply.type('image/jpeg').send(장);
     });
     await 가짜러너.listen({ port: 0, host: '127.0.0.1' });
     const addr = 가짜러너.server.address();
@@ -229,13 +234,18 @@ describe.skipIf(연결 === undefined)('진행 조회', () => {
       expect(한장.headers['content-type']).toBe('image/jpeg');
       expect(한장.headers['cache-control']).toBe('no-store');
       expect([...한장.rawPayload]).toEqual([0xff, 0xd8, 0xff, 0xd9]);
+      expect(한장.headers['x-live-box']).toBeUndefined();
+      // 케이스가 다루는 요소 자리 — 러너가 준 비율 넷을 그대로 넘겨 화면이 윤곽을 그린다
+      러너상자.set(열쇠, '0.1000,0.2000,0.3000,0.0500');
+      expect((await 장면(내실행, 내항목)).headers['x-live-box']).toBe('0.1000,0.2000,0.3000,0.0500');
       expect((await 장면(남의실행, 내항목)).json()).toEqual({ error: 'LIVE_NOT_FOUND', detail: String(내항목) });
     } finally {
       항목화면을닫는다(내항목);
       러너장면.clear();
+      러너상자.clear();
     }
     expect((await 장면(내실행, 내항목)).statusCode).toBe(404);
-    // 장면을 안 찍는 항목(android · API 애플리케이션)도 404 다
+    // 장면을 안 찍는 항목(API 애플리케이션)도 404 다
     항목화면을연다(내항목, false);
     try {
       expect((await 장면(내실행, 내항목)).statusCode).toBe(404);

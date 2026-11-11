@@ -106,7 +106,7 @@ describe('callRunner', () => {
     expect(항목화면(42)).toBeUndefined();
   });
 
-  it('API 케이스 · android 항목은 장면 열쇠를 안 싣는다 — 잡은 폰 링크는 도는 동안만 단다', async () => {
+  it('API 케이스는 장면 열쇠를 안 싣고, android 항목은 열쇠와 잡은 폰 링크를 도는 동안만 단다', async () => {
     const 받은것: ExecuteRequest[] = [];
     const 도는중: ({ 열쇠?: string; vision?: string } | undefined)[] = [];
     await 띄운다((body) => {
@@ -119,10 +119,11 @@ describe('callRunner', () => {
     await callRunner(7, 항목);
     await callRunner(7, { ...항목, platform: 'android' }, () => false, { udid: 'R3', 토큰: undefined, 화면: 'https://vision.example.com/#phone=R3' });
 
-    expect(받은것.map((b) => b.live)).toEqual([undefined, undefined]);
+    expect(받은것[0]!.live).toBeUndefined();
+    expect(받은것[1]!.live).toMatch(/^[0-9a-f-]{36}$/);
     // 보낸 항목은 실행 · 제한 · 보낸 때를 같이 든다 — 러너가 첫 단계를 알리기 전에도 진행 응답이 싣는다 (점검표 B2)
     const 보냄 = { runId: 7, timeoutMs: 5000, 보낸때: expect.any(Number) };
-    expect(도는중).toEqual([{ 보냄 }, { 보냄, vision: 'https://vision.example.com/#phone=R3' }]);
+    expect(도는중).toEqual([{ 보냄 }, { 보냄, 열쇠: 받은것[1]!.live, vision: 'https://vision.example.com/#phone=R3' }]);
     expect(항목화면(42)).toBeUndefined();
   });
 

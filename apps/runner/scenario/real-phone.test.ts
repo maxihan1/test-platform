@@ -133,6 +133,19 @@ describe('실제 폰 Chrome 실측 (브라우저)', () => {
     expect(existsSync(join(runDir('93', '94'), 'phone-video.webm'))).toBe(false);
   }, 90_000);
 
+  it('시나리오 정식 실행에 장면 열쇠가 오면 증거 영상과 장면을 같이 받는다 — 진행 화면 카드에 폰 Chrome 화면이 뜬다', async () => {
+    const 열쇠 = '0b7e2c1a-0000-4000-8000-00000000000a';
+    const 단계 = (tcId: string) => ({ kind: 'case' as const, tcId, params: {}, expected: {}, skipSteps: [], filePath: join(폴더, `${tcId}.spec.ts`) });
+    const 결과 = await executeScenario({
+      runId: 98, platform: 'mobile', baseUrl: 주소, timeoutMs: 60_000, live: 열쇠,
+      parts: [단계('XRP-001'), 단계('XRP-002')], ...폰칸(),
+    });
+
+    expect(결과.parts.map((p) => p.status)).toEqual(['PASS', 'FAIL']);
+    expect(statSync(join(runDir('98', 'scenario'), 'farm', 'video-1.webm')).size).toBeGreaterThan(0);
+    expect(readFileSync(join(산출물, 'live', `${열쇠}.jpg`)).subarray(0, 3)).toEqual(Buffer.from([0xff, 0xd8, 0xff]));
+  }, 90_000);
+
   it('시나리오 — 웹 단계가 폰 Chrome 탭 하나로 이어 돌고, 기기 칸 · 통과 못 한 정식 실행의 증적이 시나리오에 한 벌 온다', async () => {
     const 단계 = (tcId: string) => ({ kind: 'case' as const, tcId, params: {}, expected: {}, skipSteps: [], filePath: join(폴더, `${tcId}.spec.ts`) });
     const 결과 = await executeScenario({

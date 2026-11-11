@@ -60,6 +60,16 @@ describe('trace를푼다', () => {
     ]);
   });
 
+  it('실시간 장면의 윤곽 자리 읽기(kit liveBox)는 케이스 조작이 아니라 뺀다', async () => {
+    const 윤곽 = j(
+      { type: 'before', callId: 'pw:api@8', method: 'pw:api', class: 'Test', title: 'Bounding box', startTime: 320, stack: [{ file: '/app/packages/kit/src/runtime/liveBox.ts', line: 90 }] },
+      { type: 'after', callId: 'pw:api@8', endTime: 321 },
+    );
+    const 풀림 = await trace를푼다(await zip({ ...기본, 'test.trace': `${테스트}\n${윤곽}` }), { 본문: false });
+
+    expect(풀림.actions.map((a) => a.title)).toEqual(['Navigate', 'Click getByRole(button)']);
+  });
+
   it('잘 온 이미지 · 글꼴은 버리고 API · 이동 · 실패(4xx · 5xx · 끊김)는 남긴다 — 준비 중 · 정리 줄은 단계 밖이다', async () => {
     const 풀림 = await trace를푼다(
       await zip({

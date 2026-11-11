@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { StepResult } from '../types.js';
 import { runScope, type RunScope } from './context.js';
+import { 지금다룬요소 } from './highlight.js';
 import { recordHttpTrace, traced } from './http.js';
 import { runStep, step } from './step.js';
 import { verify } from './verify.js';
@@ -37,6 +38,17 @@ describe('runStep', () => {
     expect(emitted[0].assertions).toHaveLength(1);
     expect(emitted[0].durationMs).toBeTypeOf('number');
     expect(emitted[0].screenshotPath).toBeUndefined();
+  });
+
+  it('절차가 끝나면 다루던 요소를 놓는다 — 다음 절차 전 실시간 장면에 끝난 요소의 윤곽이 남지 않게', async () => {
+    const { run } = makeRun();
+    const 지금칸 = Symbol.for('platform.kit.지금요소');
+
+    await runStep(run, '버튼을 누른다', async () => {
+      (globalThis as Record<symbol, unknown>)[지금칸] = 'el-7';
+    });
+
+    expect(지금다룬요소()).toBeUndefined();
   });
 
   it('절차를 시작한 시각을 싣는다 — 호환성이 찍힌 화면의 단계를 찾는다', async () => {

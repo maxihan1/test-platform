@@ -3,6 +3,7 @@
 import type { ItemStatus, ShapeCheck, StepResult } from '../types.js';
 import { callerLine } from './callsite.js';
 import { runScope, stepScope, type RunScope, type StepScope } from './context.js';
+import { 요소를놓는다 } from './highlight.js';
 import { 알린다 } from './progress.js';
 import { BlockerStop } from './verify.js';
 
@@ -61,6 +62,7 @@ export async function runStep(
     }
   } finally {
     if (run.phase) run.phase.inStep--;
+    요소를놓는다();
   }
 
   const durationMs = Date.now() - startedAt;

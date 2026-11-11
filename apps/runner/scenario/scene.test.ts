@@ -4,6 +4,7 @@ import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import type { Page } from '@playwright/test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { 장면자리 } from './scene.js';
@@ -46,13 +47,28 @@ describe('장면자리', () => {
     expect(takeScreenshot).not.toHaveBeenCalled();
   });
 
-  it('정식 실행(늦추기 값이 빔)에는 폰 장면을 걸지 않는다 — 찍는 동안 단계 명령이 선다', async () => {
-    vi.stubEnv('PLATFORM_LIVE_FILE', join(tmpdir(), 'scn-scene-formal.jpg'));
+  it('정식 실행(늦추기 값이 빔)에도 폰 장면을 건다 — 진행 화면 카드에 폰 화면을 띄운다', async () => {
+    폴더 = mkdtempSync(join(tmpdir(), 'scn-scene-'));
+    vi.stubEnv('PLATFORM_LIVE_FILE', join(폴더, 'live', '0b7e2c1a-0000-4000-8000-000000000008.jpg'));
     vi.stubEnv('PLATFORM_SLOW_MO', '');
-    const takeScreenshot = vi.fn(async () => '');
+    const takeScreenshot = vi.fn(async () => Buffer.from([0x89, 0x50, 0x4e, 0x47]).toString('base64'));
+    const 자리 = 장면자리();
 
-    await 장면자리().폰에({ takeScreenshot }, () => false);
+    await 자리.폰에({ takeScreenshot }, () => false);
+    await 자리.끄기();
 
-    expect(takeScreenshot).not.toHaveBeenCalled();
+    expect(takeScreenshot).toHaveBeenCalled();
+  });
+
+  it('창을 열 때 이미 건 탭에는 다시 걸지 않는다 — screencast 는 탭마다 하나다', async () => {
+    vi.stubEnv('PLATFORM_LIVE_FILE', join(tmpdir(), 'scn-scene-phone.jpg'));
+    const start = vi.fn(async () => undefined);
+    const 탭 = { screencast: { start }, isClosed: () => false, once: () => undefined, off: () => undefined } as unknown as Page;
+    const 자리 = 장면자리();
+
+    자리.이미건탭(탭);
+    await 자리.탭에(탭);
+
+    expect(start).not.toHaveBeenCalled();
   });
 });

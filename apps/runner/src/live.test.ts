@@ -122,6 +122,27 @@ describe('GET /live/:key', () => {
     await 돌림;
   });
 
+  it('요소 윤곽 자리(.box)가 있으면 x-live-box 머리글로 싣고, 꼴이 틀리면 버리고, 끝나면 지운다', async () => {
+    const 잡음 = 붙잡는다({ status: 'PASS', durationMs: 0 } as ExecuteResponse);
+    vi.mocked(execute).mockImplementation(잡음.대기);
+    const app = 서버();
+    const 돌림 = app.inject({ method: 'POST', url: '/execute', payload: 케이스요청() });
+    await vi.waitFor(() => expect(execute).toHaveBeenCalled());
+    const 파일 = 장면환경(열쇠, true).PLATFORM_LIVE_FILE;
+    mkdirSync(dirname(파일), { recursive: true });
+    writeFileSync(파일, 장면);
+
+    expect((await 장면읽기(app)).headers['x-live-box']).toBeUndefined();
+    writeFileSync(`${파일}.box`, '0.1000,0.2500,0.5000,1.0000');
+    expect((await 장면읽기(app)).headers['x-live-box']).toBe('0.1000,0.2500,0.5000,1.0000');
+    writeFileSync(`${파일}.box`, '0.1\r\nset-cookie: x');
+    expect((await 장면읽기(app)).headers['x-live-box']).toBeUndefined();
+
+    잡음.끝내기();
+    await 돌림;
+    expect(existsSync(`${파일}.box`)).toBe(false);
+  });
+
   it('실행이 던져도 열쇠를 닫는다 — 끝난 실행의 장면을 계속 내지 않는다', async () => {
     vi.mocked(execute).mockRejectedValue(new Error('자식을 못 띄웠다'));
     const app = 서버();
@@ -163,14 +184,6 @@ describe('장면 열쇠 입구 검사', () => {
     expect(executeScenario).not.toHaveBeenCalled();
   });
 
-  it('android 정식 실행에 열쇠가 오면 400 이다 — Appium 찍기는 단계를 세운다', async () => {
-    const res = await 서버().inject({ method: 'POST', url: '/execute', payload: 케이스요청({ runId: 12, historyId: 34, platform: 'android' }) });
-
-    expect(res.statusCode).toBe(400);
-    expect(res.json().detail).toContain('장면 열쇠');
-    expect(execute).not.toHaveBeenCalled();
-  });
-
   it('E2E 정식 실행의 열쇠는 받아 실행에 넘긴다', async () => {
     vi.mocked(executeScenario).mockResolvedValue({ status: 'PASS', durationMs: 0, parts: [] });
 
@@ -180,7 +193,7 @@ describe('장면 열쇠 입구 검사', () => {
     expect(executeScenario).toHaveBeenCalledWith(expect.objectContaining({ runId: 12, live: 열쇠 }));
   });
 
-  it.each(['desktop', 'mobile'])('%s 정식 실행의 열쇠는 받아 실행에 넘긴다', async (platform) => {
+  it.each(['desktop', 'mobile', 'android'])('%s 정식 실행의 열쇠는 받아 실행에 넘긴다 — 앱 · 게임도 진행 창 카드에 폰 화면을 띄운다', async (platform) => {
     vi.mocked(execute).mockResolvedValue({ status: 'PASS', durationMs: 0 } as ExecuteResponse);
 
     const res = await 서버().inject({ method: 'POST', url: '/execute', payload: 케이스요청({ runId: 12, historyId: 34, platform }) });
