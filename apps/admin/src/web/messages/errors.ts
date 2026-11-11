@@ -152,5 +152,8 @@ export const 오류영어: Record<string, string> = {
   '어드민 키는 게임 · API 애플리케이션에만 넣을 수 있습니다': 'Admin keys can only be set on game and API applications',
   '어드민 키 칸이 맞지 않습니다. 헤더 이름은 영문 · 숫자 · - 이고 값은 12자 이상이며 띄어쓰기는 가운데 한 칸만 넣을 수 있습니다': 'Admin key is invalid. The header name uses letters, digits and -, and the value needs 12+ characters with at most one space in the middle',
   '새 어드민 키 헤더에는 값을 넣어야 합니다': 'A new admin key header needs a value',
+  '테스트 데이터 준비 칸이 맞지 않습니다. 주소는 http(s) 이고 헤더 이름은 영문 · 숫자 · - 이며 값은 12자 이상, 시간 한도 범위는 10~600초입니다':
+    'Test data setup is invalid. The URL is http(s), the header name uses letters, digits and -, the value needs 12+ characters and the time limit is 10–600 seconds',
+  '준비 주소나 헤더 이름을 변경하면 헤더 값을 다시 넣어야 합니다': 'Changing the setup URL or header name needs the header value again',
   '새 API 인증에는 비밀값을 넣어야 합니다': 'A new API auth needs a client secret',
 };

@@ -212,7 +212,7 @@ describe('대상 서버 줄의 테스트 계정 (도메인/인증 §8.8)', () =>
 
     await waitFor(() => expect(고침).toHaveBeenCalledTimes(1));
     const 보낸줄 = 고침.mock.calls[0]?.[1]?.envs?.[0];
-    expect(보낸줄).toEqual({ env: 'qa', baseUrl: 'https://qa.example.com', loginId: 'tester' });
+    expect(보낸줄).toEqual({ env: 'qa', baseUrl: 'https://qa.example.com', loginId: 'tester', prep: null });
   });
 
   it('비밀번호는 값 대신 설정됨으로 보이고, 변경하면 새 값을 보낸다', async () => {
@@ -259,6 +259,7 @@ describe('대상 서버 줄의 테스트 계정 (도메인/인증 §8.8)', () =>
       isProd: false,
       accounts: [],
       appPath: null,
+      prep: null,
     });
   });
 

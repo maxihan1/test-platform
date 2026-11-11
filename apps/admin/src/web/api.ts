@@ -589,6 +589,8 @@ export interface EnvRow {
   apiAuths?: { name: string; tokenUrl: string; clientId: string; clientSecretLast4: string }[];
   /** 서버 어드민 API 머리 (도메인/게임 §3.10 · 도메인/API §3.8). 값은 끝 4자리만 온다. 게임 · API 종류 애플리케이션만 담긴다 — 설정 화면만 받는다 (GAME-F1-07) */
   adminKey?: { header: string; valueLast4: string } | null;
+  /** 실행 전 테스트 데이터 준비 주소 (도메인/실행 §3.2 「실행 전 준비」). 값은 끝 4자리만 온다 — 설정 화면만 받는다 (SEED-F1-02) */
+  prep?: { url: string; header: string; valueLast4: string; timeoutSec: number } | null;
 }
 
 /** 설정 「화면 크기」 의 화면별 차이 — PC 와 모바일이 다른 화면만 앞 200장까지 오고 전체 수(differ) · 같은 화면 수(same)는 따로 온다 (도메인/인증 §7) */
@@ -616,6 +618,8 @@ export interface EnvInput {
   apiAuths?: { name: string; tokenUrl: string; clientId: string; clientSecret?: string }[];
   /** 키가 없으면 유지 · null 이면 지운다. value 가 없으면 같은 env · 같은 header 의 옛 값을 서버가 이어받는다. baseUrl 이 바뀌면 키가 없어도 안 잇는다 (도메인/인증 §7) */
   adminKey?: { header: string; value?: string } | null;
+  /** 키가 없으면 유지 · null 이면 삭제한다. value 가 없으면 같은 env · url · header 의 옛 값을 서버가 이어받는다. 실서비스 서버 줄은 400 PREP_ON_PROD (도메인/인증 §7) */
+  prep?: { url: string; header: string; value?: string; timeoutSec?: number } | null;
 }
 
 // 맨 위 띠의 서비스 목록이 이것이다. 배정받은 것만 온다 (SPEC §7 · §8)
