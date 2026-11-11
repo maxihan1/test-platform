@@ -67,10 +67,11 @@ function 첫단계전글({ 항목, 절차 }: 도는것, t: 말): string {
   return 절차?.vision === undefined ? t('사용할 디바이스를 찾는 중') : t('앱을 여는 중');
 }
 
-function 장면({ runId, historyId, 폰 }: { runId: number; historyId: number; 폰: boolean }) {
+function 장면({ runId, historyId, 폰, 앱폰, 기다림글 }: { runId: number; historyId: number; 폰: boolean; 앱폰: boolean; 기다림글: string }) {
   const t = use말();
-  const { 그림, 못닿음 } = use장면(api.itemLive(runId, historyId), true, false);
-  if (그림 === null) return <p className="live-wait">{못닿음 ? t('실행 서버와 연결이 끊겼습니다. 다시 연결하는 중입니다') : t('브라우저를 여는 중')}</p>;
+  // 앱 · 게임 항목은 Appium 폰 장면(1초 간격)이라 묻는 간격도 그에 맞춘다
+  const { 그림, 못닿음 } = use장면(api.itemLive(runId, historyId), true, 앱폰);
+  if (그림 === null) return <p className="live-wait">{못닿음 ? t('실행 서버와 연결이 끊겼습니다. 다시 연결하는 중입니다') : 기다림글}</p>;
   return (
     <div className={폰 ? 'live-shot lc-phone' : 'live-shot'}>
       <img src={그림} alt={t('지금 화면')} />
@@ -107,10 +108,10 @@ function 카드({ runId, 것, 크게, on크게 }: { runId: number; 것: 도는�
       </div>
       <div className="lc-scene">
         {화면있음 ? (
-          <장면 runId={runId} historyId={항목.historyId} 폰={항목.platform !== 'desktop'} />
+          <장면 runId={runId} historyId={항목.historyId} 폰={항목.platform !== 'desktop'} 앱폰={항목.platform === 'android'} 기다림글={첫단계전글(것, t)} />
         ) : (
-          // 정식 실행은 앱 폰 장면을 찍지 않는다 — 폰 화면은 VISION 링크가 연다 (도메인/실행 §3.2 「정식 실행 화면」).
-          // 단계가 이미 도는데 장면이 없으면 admin 이 다시 떠 장면 열쇠를 잃은 것이다 — 「여는 중」이라 하면 멈춘 것처럼 읽힌다
+          // 장면 열쇠가 없는 항목이다 — admin 이 다시 떠 열쇠를 잃었거나 열쇠를 안 만든 옛 실행이다. 폰을 잡았으면 VISION 링크가 그 화면을 연다.
+          // 단계가 이미 도는데 장면이 없을 때 「여는 중」이라 하면 멈춘 것처럼 읽힌다
           <p className="live-wait">
             {절차?.vision !== undefined ? t('디바이스 화면은 Device VISION 에서 봅니다') : 지금단계 === null ? 첫단계전글(것, t) : t('지금은 보여 줄 화면이 없습니다')}
           </p>

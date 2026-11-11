@@ -163,14 +163,6 @@ describe('장면 열쇠 입구 검사', () => {
     expect(executeScenario).not.toHaveBeenCalled();
   });
 
-  it('android 정식 실행에 열쇠가 오면 400 이다 — Appium 찍기는 단계를 세운다', async () => {
-    const res = await 서버().inject({ method: 'POST', url: '/execute', payload: 케이스요청({ runId: 12, historyId: 34, platform: 'android' }) });
-
-    expect(res.statusCode).toBe(400);
-    expect(res.json().detail).toContain('장면 열쇠');
-    expect(execute).not.toHaveBeenCalled();
-  });
-
   it('E2E 정식 실행의 열쇠는 받아 실행에 넘긴다', async () => {
     vi.mocked(executeScenario).mockResolvedValue({ status: 'PASS', durationMs: 0, parts: [] });
 
@@ -180,7 +172,7 @@ describe('장면 열쇠 입구 검사', () => {
     expect(executeScenario).toHaveBeenCalledWith(expect.objectContaining({ runId: 12, live: 열쇠 }));
   });
 
-  it.each(['desktop', 'mobile'])('%s 정식 실행의 열쇠는 받아 실행에 넘긴다', async (platform) => {
+  it.each(['desktop', 'mobile', 'android'])('%s 정식 실행의 열쇠는 받아 실행에 넘긴다 — 앱 · 게임도 진행 창 카드에 폰 화면을 띄운다', async (platform) => {
     vi.mocked(execute).mockResolvedValue({ status: 'PASS', durationMs: 0 } as ExecuteResponse);
 
     const res = await 서버().inject({ method: 'POST', url: '/execute', payload: 케이스요청({ runId: 12, historyId: 34, platform }) });

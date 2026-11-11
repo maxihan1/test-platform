@@ -52,7 +52,27 @@ describe('E2E 화면 카드', () => {
     expect(document.querySelector('.lc-tag')?.textContent).toBe('가상 디바이스 · iPhone 14');
   });
 
-  it('실제 폰 Chrome 실행은 Device VISION 링크만 서고 장면을 묻지 않는다', async () => {
+  it('실제 폰 Chrome 실행은 폰 Chrome 장면을 「실제 디바이스」 폰 칸에 그린다', async () => {
+    vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'frame', 그림: new Blob(['jpeg']) });
+
+    render(<E2E화면카드 runId={77} platform="mobile" live vision={{ url: 'https://vision.example.com/#phone=s1' }} />);
+    await 흘리기();
+
+    expect(document.querySelector('.live-shot.lc-phone img')).not.toBeNull();
+    expect(document.querySelector('.lc-tag')?.textContent).toBe('실제 디바이스');
+  });
+
+  it('앱 · 게임 단계의 폰 장면(PNG)은 「실제 디바이스」 폰 칸에 그린다', async () => {
+    vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'frame', 그림: new Blob(['png'], { type: 'image/png' }) });
+
+    render(<E2E화면카드 runId={77} platform="android" live vision={{ url: 'https://vision.example.com/#phone=s1' }} />);
+    await 흘리기();
+
+    expect(document.querySelector('.live-shot.lc-phone img')).not.toBeNull();
+    expect(document.querySelector('.lc-tag')?.textContent).toBe('실제 디바이스');
+  });
+
+  it('장면 열쇠가 없는 실행(admin 이 다시 뜸)은 Device VISION 링크만 서고 장면을 묻지 않는다', async () => {
     const 받기 = vi.spyOn(장면통로, '받기');
 
     render(<E2E화면카드 runId={77} platform="mobile" live={false} vision={{ url: 'https://vision.example.com/#phone=s1' }} />);

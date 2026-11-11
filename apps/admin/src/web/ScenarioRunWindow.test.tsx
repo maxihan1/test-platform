@@ -101,21 +101,21 @@ describe('E2E 정식 실행 창 — 도는 중', () => {
     expect(첫.querySelector('.t')?.textContent).toBe('기다리는 중');
   });
 
-  it('장면이 없는 실행은 장면 칸 대신 안내를 두고 폰을 잡았으면 이름과 VISION 링크가 선다', async () => {
+  it('장면 열쇠가 없는 실행은 장면 칸 대신 안내를 두고 폰을 잡았으면 이름과 VISION 링크가 선다', async () => {
     vi.spyOn(scenarioApi, 'result').mockResolvedValue(결과({ live: false, platform: 'android', vision: { url: 'https://vision.example/#p', name: 'Pixel 8' } }));
     vi.spyOn(scenarioApi, 'step').mockResolvedValue(null);
     그리기();
 
-    expect(await screen.findByText('정식 실행이 느려지지 않도록 디바이스 화면은 찍지 않습니다. 지금 화면은 Device VISION 에서 볼 수 있습니다')).toBeTruthy();
+    expect(await screen.findByText('지금 화면은 Device VISION 에서 볼 수 있습니다')).toBeTruthy();
     expect(screen.getByText('Pixel 8')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Device VISION 에서 보기 ↗' }).getAttribute('href')).toBe('https://vision.example/#p');
   });
 
-  it('디바이스를 할당받기 전이면 할당되면 볼 수 있다고 알리고 API 만 부르는 실행은 그 까닭을 적는다', async () => {
+  it('폰도 장면도 없는 실행은 API 만 부르는 실행이라 화면이 없다고 적는다', async () => {
     vi.spyOn(scenarioApi, 'step').mockResolvedValue(null);
     vi.spyOn(scenarioApi, 'result').mockResolvedValue(결과({ live: false, platform: 'android' }));
     그리기();
-    expect(await screen.findByText('정식 실행이 느려지지 않도록 디바이스 화면은 찍지 않습니다. 디바이스가 할당되면 Device VISION 에서 볼 수 있습니다')).toBeTruthy();
+    expect(await screen.findByText('API 만 호출하는 실행이라 보여 줄 화면이 없습니다')).toBeTruthy();
     cleanup();
 
     vi.spyOn(scenarioApi, 'result').mockResolvedValue(결과({ live: false, platform: 'desktop' }));

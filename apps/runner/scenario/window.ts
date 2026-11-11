@@ -177,6 +177,7 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
       걸린 = mocks;
       // 디바이스(화면 크기 · 사용자 에이전트) · baseURL 은 Playwright 가 프로젝트 use 로 채운다 (playwright/lib/index.js runBeforeCreateBrowserContext). 폰 Chrome 은 기본 창을 쓴다
       const 폰창 = 설정.실제폰 && (await 폰창을연다(browser, 설정.baseUrl, 설정.실제폰.영상));
+      if (폰창 && 폰창.장면걸림) 장면.이미건탭(폰창.탭);
       const context = 폰창?.context ?? (await 원래창({}));
       const 창request = context.request;
       let 탭 = 폰창?.탭 ?? (await context.newPage());
