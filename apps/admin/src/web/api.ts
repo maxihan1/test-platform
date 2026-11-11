@@ -192,6 +192,8 @@ export interface RunSummary {
   rerunOf?: number | null;
   /** 실행에 고정한 빌드 번호(CI 가 준 글자). 빌드를 받은 적 없는 줄이면 null (도메인/실행 §3.11 「빌드는 실행에 고정한다」) */
   buildNo?: string | null;
+  /** 준비 실패(status PREP_FAILED) 까닭 한 줄. 그 밖에는 null — 옛 가짜 응답을 안 고치려고 선택으로 둔다 (도메인/실행 §3.2 「실행 전 준비」) */
+  prepNote?: string | null;
   startedAt: string;
   finishedAt: string | null;
   counts: RunCounts;

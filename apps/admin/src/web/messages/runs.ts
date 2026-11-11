@@ -8,6 +8,7 @@ export const 실행말: Record<string, string> = {
   '진행 중': 'Running',
   '완료': 'Finished',
   '중단': 'Aborted',
+  '준비 실패': 'Prep failed',
   '중단§버튼': 'Stop',
   '중단하는 중': 'Stopping…',
   '통과': 'Passed',
@@ -284,6 +285,7 @@ export const 실행말: Record<string, string> = {
   '미점검 화면 {수}': '{수} unchecked screens',
   '{수}단계': '{수} steps',
   'RUN {번호} 실행이 완료되었습니다': 'RUN {번호} finished',
+  'RUN {번호} 테스트 데이터 준비에 실패했습니다': 'RUN {번호} could not prepare test data',
   'RUN {번호} 실행이 중단됐습니다': 'RUN {번호} was aborted',
   '{끝난} / {전체} 완료': '{끝난} / {전체} done',
   // 정식 실행 진행 창 ⑤ (도메인/실행 §8.16 · RunLiveLeft · RunLiveCards)
@@ -297,6 +299,7 @@ export const 실행말: Record<string, string> = {
   'RUN {번호} 진행 보기 · {끝난} / {전체} 완료': 'Show RUN {번호} progress · {끝난} / {전체} done',
   '{케이스} 실행 중': '{케이스} running',
   '{케이스} 실행이 완료되었습니다': '{케이스} finished',
+  '{케이스} 테스트 데이터 준비에 실패했습니다': '{케이스} could not prepare test data',
   '{케이스} 실행이 중단됐습니다': '{케이스} was aborted',
   '{케이스} 진행 보기 · {끝난} / {전체} 완료': 'Show {케이스} progress · {끝난} / {전체} done',
   // 남은 시간 (remainText.ts) — 실행 진행 상자와 알림 줄이 같이 쓴다
@@ -312,6 +315,8 @@ export const 실행말: Record<string, string> = {
 
   // 돌지 못한 항목의 사유 (§8.3)
   '사용자가 중단': 'Stopped by user',
+  '테스트 데이터 준비 실패': 'Test data prep failed',
+  '테스트 데이터 준비에 실패해 테스트를 실행하지 않았습니다': 'Test data prep failed, so no tests were run',
   '제한 시간 초과': 'Timed out',
   '테스트 실행기에 닿지 못했습니다': 'Could not reach the test runner',
   // 서버가 저장해 둔 옛 낱말(러너)을 화면 낱말로 바꾸는 runState.ts 의 짝이다

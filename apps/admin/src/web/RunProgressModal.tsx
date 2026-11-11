@@ -10,7 +10,7 @@ import { RunDoneItems } from './RunDoneItems.js';
 import { 기록띠, 화면카드들 } from './RunLiveCards.js';
 import { 진행왼쪽, 셈알약 } from './RunLiveLeft.js';
 import { type RunDetail, 진행상황 } from './runProgress.js';
-import { 도는중 } from './runState.js';
+import { 도는중, 준비실패 } from './runState.js';
 import { 걸린글 } from './trialView.js';
 import { 그중미확정글 } from './unconfirmed.js';
 
@@ -57,9 +57,11 @@ function 제목(data: RunDetail, 언어: 언어): string {
   const 케이스 = 한건이름(data);
   if (케이스 !== null) {
     if (도는중(data.status)) return t('{케이스} 실행 중', 언어, { 케이스 });
+    if (data.status === 준비실패) return t('{케이스} 테스트 데이터 준비에 실패했습니다', 언어, { 케이스 });
     return data.status === 'ABORTED' ? t('{케이스} 실행이 중단됐습니다', 언어, { 케이스 }) : t('{케이스} 실행이 완료되었습니다', 언어, { 케이스 });
   }
   if (도는중(data.status)) return t('RUN {번호} 실행 중', 언어, { 번호: data.runId });
+  if (data.status === 준비실패) return t('RUN {번호} 테스트 데이터 준비에 실패했습니다', 언어, { 번호: data.runId });
   // 사람이 끊어서 끝난 것과 끝까지 돌아서 끝난 것은 같은 말로 알리지 않는다 (SPEC §3.2)
   return data.status === 'ABORTED'
     ? t('RUN {번호} 실행이 중단됐습니다', 언어, { 번호: data.runId })

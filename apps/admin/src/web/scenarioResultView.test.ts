@@ -80,6 +80,12 @@ describe('멈춘단계글자 · E2E띠색', () => {
     expect(E2E띠색(줄({ verdict: 'NA' }))).toBe('var(--na)');
     expect(E2E띠색(줄({ verdict: null }))).toBe('var(--line-2)');
   });
+
+  it('준비 실패 실행은 판정이 없다 — 「1번에서 종료」 대신 「준비 실패」이고 판정 색을 안 쓴다', () => {
+    expect(접은판정([{ status: 'NA' }, { status: 'NA' }], 'PREP_FAILED')).toBeNull();
+    expect(멈춘단계글자(줄({ status: 'PREP_FAILED', stoppedAt: 1, verdict: 'NA' }), 'ko')).toBe('준비 실패');
+    expect(E2E띠색(줄({ status: 'PREP_FAILED', verdict: 'NA' }))).toBe('var(--line-2)');
+  });
 });
 
 describe('멈춘사유글자', () => {

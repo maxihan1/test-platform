@@ -105,6 +105,8 @@ export interface ScenarioRunResult {
   triggeredByName: string | null;
   startedAt: string;
   finishedAt: string | null;
+  /** 준비 실패(status PREP_FAILED) 까닭 한 줄. 그 밖에는 null — 옛 응답에는 없다 (도메인/실행 §3.2 「실행 전 준비」) */
+  prepNote?: string | null;
   parts: ScenarioRunPart[];
   /** 폰 모델 · Android 판 — 앱 · 게임 단계가 있고 폰 연결이 열렸을 때만 찬다. 폰 연결이 하나라 시나리오에 한 벌이다 (도메인/시나리오 §3.7 결정 16) */
   device?: DeviceInfo | null;

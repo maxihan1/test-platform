@@ -2,6 +2,7 @@
 
 import type { Pool } from 'pg';
 
+import { 준비를끊는다 } from '../execution/prep.js';
 import { abortScenarioRunner } from '../execution/scenarioRunner.js';
 
 import type { 시험상태 } from './trialAbort.js';
@@ -62,6 +63,8 @@ export async function 시나리오실행을멈춘다(runId: number): Promise<{ a
   if (!상태.보냄) {
     // 보냈는지 보고 멈춤을 적는 사이에 await 가 없다 — 보내는 길이 멈춤을 한 번 더 본다
     상태.멈춤 = true;
+    // 준비 차례를 기다리거나 준비 요청이 가는 중이면 끊는다 — 늦게 온 준비 답은 버려진다 (도메인/실행 §3.2 「실행 전 준비」)
+    준비를끊는다(runId);
     return (await 보내기전에닫는다(runId)) ? { aborted: 1 } : null;
   }
   // 러너가 끊었다고 해야 멈춘 것이다 — 「멈춤」을 admin 이 먼저 적으면 답이 오는 중이던 다 통과한 실행도 ABORTED 로 닫혔다 (WEB-F9-14 끝 검사).

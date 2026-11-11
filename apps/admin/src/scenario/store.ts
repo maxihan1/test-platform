@@ -93,7 +93,7 @@ export async function 목록(serviceId: number): Promise<목록줄[]> {
             (SELECT ${미확정SQL('p')} FROM scenario_run_part p WHERE p.run_id = r.run_id) AS unconfirmed
        FROM scenario sc ${최신버전}
        LEFT JOIN LATERAL (SELECT run_id, status, finished_at FROM test_run
-                           WHERE kind = 'SCENARIO' AND scenario_id = sc.id ORDER BY run_id DESC LIMIT 1) r ON true
+                           WHERE kind = 'SCENARIO' AND scenario_id = sc.id AND status <> 'PREP_FAILED' ORDER BY run_id DESC LIMIT 1) r ON true
       WHERE sc.service_id = $1 AND sc.is_active
       ORDER BY sc.id`,
     [serviceId],

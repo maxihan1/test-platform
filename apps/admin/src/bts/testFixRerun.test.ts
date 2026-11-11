@@ -94,7 +94,7 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 다시 실�
         .rows[0]!.id,
     );
     await pool.query(`INSERT INTO service_env (service_id, env, base_url) VALUES ($1, 'qa', 'https://qa.xqr.test')`, [서비스]);
-    for (const tcId of ['XQR-FN-001', 'XQR-FN-002', 'XQR-FN-008']) {
+    for (const tcId of ['XQR-FN-001', 'XQR-FN-002', 'XQR-FN-008', 'XQR-FN-012']) {
       await pool.query(
         `INSERT INTO test_case (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema)
          VALUES ($1, $1, '["desktop","mobile"]', '[]', 'xqr/a.spec.ts', '{"type":"object","properties":{}}', '{"type":"object","properties":{}}')`,
@@ -120,7 +120,7 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 다시 실�
     await pool.query('DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = $1)', [서비스]);
     await pool.query('DELETE FROM test_run WHERE service_id = $1 AND rerun_of IS NOT NULL', [서비스]);
     await pool.query('DELETE FROM test_run WHERE service_id = $1', [서비스]);
-    await pool.query(`DELETE FROM test_case WHERE tc_id IN ('XQR-FN-001', 'XQR-FN-002', 'XQR-FN-008')`);
+    await pool.query(`DELETE FROM test_case WHERE tc_id IN ('XQR-FN-001', 'XQR-FN-002', 'XQR-FN-008', 'XQR-FN-012')`);
     await pool.query('DELETE FROM service_env WHERE service_id = $1', [서비스]);
     await pool.query('DELETE FROM service WHERE id = $1', [서비스]);
     await pool.end();
@@ -186,6 +186,19 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 다시 실�
     await 다시실행걸기(옮김, 답('qa_review'));
     expect(await 줄(옮김)).toMatchObject({ state: 'GAVE_UP', reason: '사람이 이슈를 옮겼어요', rerun_id: null });
     expect(await 보낼것('DM-3')).toEqual([]);
+  });
+
+  it('다시 실행이 준비 실패로 끝나면 「테스트 데이터 준비에 실패해」 까닭과 준비 실패 까닭 한 줄로 되돌린다', async () => {
+    const 실패 = await 실행넣기([{ tcId: 'XQR-FN-012', platform: 'desktop', status: 'FAIL' }]);
+    const id = await 바퀴('DM-12', 'XQR-FN-012', 실패, { 반영: true });
+    await 다시실행걸기(id, 답());
+    const 다시 = Number((await 줄(id)).rerun_id);
+    await pool.query(`UPDATE run_item SET status = 'NA', error = '{"message":"PREP_FAILED"}', finished_at = now() WHERE run_id = $1`, [다시]);
+    await pool.query(`UPDATE test_run SET status = 'PREP_FAILED', prep_note = 'HTTP 503 · seed down' WHERE run_id = $1`, [다시]);
+    await 테스트수정실행뒤(다시, 답());
+    const 까닭 = '테스트 데이터 준비에 실패해 확인하지 못했어요. 고친 테스트는 반영됐어요 — 준비가 되면 그 테스트를 다시 실행해 주세요\nHTTP 503 · seed down';
+    expect(await 줄(id)).toMatchObject({ state: 'FAILED', reason: 까닭 });
+    expect(await 보낼것('DM-12')).toEqual(되돌림(까닭));
   });
 
   it('한 건 실행에서 실패해 올린 이슈도 다시 실행을 건다 — 한 건에는 붙일 수 없어 붙을 곳은 실행 쪽이 고른다', async () => {

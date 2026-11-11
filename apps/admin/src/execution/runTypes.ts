@@ -35,6 +35,8 @@ export interface RunSummary {
   rerunOf: number | null;
   /** 실행을 만들 때 고정한 빌드 번호. 그 줄에 빌드가 없었으면 null (도메인/실행 §3.11) */
   buildNo: string | null;
+  /** 준비 실패(status PREP_FAILED) 까닭 한 줄 — 가린 뒤 300자. 준비에 성공했거나 준비 주소가 없으면 null (도메인/실행 §3.2 「실행 전 준비」) */
+  prepNote: string | null;
   /** 그 실행에 든 디바이스, desktop → mobile → android 차례 */
   platforms: Platform[];
   startedAt: string;
