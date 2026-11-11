@@ -1,7 +1,7 @@
 // 목록 왼쪽 기능 묶음 목차 — PRD 관리 요구사항 · 테스트 실행 두 목록이 같이 쓴다 (도메인/작성 §8.x 「목차」 · 도메인/카탈로그 §8.1 「목차」)
 // 펼치고 접던 묶음 머리를 걷어 낸 자리다(2026-11-11 시안 B). 휴대폰에서는 목록 위 가로 칩 줄이 된다(listToc.css)
 
-import { useCallback, useEffect, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 
 import { use말 } from './i18n.js';
 
@@ -27,6 +27,8 @@ const 묶음칸들 = (상자: HTMLElement) => [...상자.querySelectorAll<HTMLEl
  */
 export function use목차위치(상자: RefObject<HTMLElement | null>, 다시: unknown) {
   const [지금, set지금] = useState<string | null>(null);
+  // 목차에서 마지막으로 누른 묶음 — 끝 가까운 묶음은 바닥까지 굴려도 이름표가 맨 위에 못 닿아 위 묶음이 지금으로 잡혔다(2026-11-11 미리보기)
+  const 누른 = useRef<string | null>(null);
   useEffect(() => {
     const el = 상자.current;
     if (el === null) return;
@@ -34,13 +36,18 @@ export function use목차위치(상자: RefObject<HTMLElement | null>, 다시: u
       const 머리 = 머리높이(el);
       el.style.setProperty('--toc-top', `${String(머리)}px`);
       // 휴대폰에서는 상자가 아니라 페이지가 구른다 — 상자 위가 화면 밖으로 나가면 화면 맨 위를 선으로 쓴다
-      const 선 = Math.max(el.getBoundingClientRect().top, 0) + 머리 + 4;
+      const 상자위 = el.getBoundingClientRect().top;
+      const 선 = Math.max(상자위, 0) + 머리 + 4;
       const 칸들 = 묶음칸들(el);
       let 찾음 = 칸들[0]?.dataset.toc ?? null;
       for (const 칸 of 칸들) {
         if (칸.getBoundingClientRect().top > 선) break;
         찾음 = 칸.dataset.toc ?? null;
       }
+      // 바닥에 닿았고 누른 묶음이 보이면 그 묶음이 지금이다
+      const 바닥 = el.scrollHeight > el.clientHeight + 1 && el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+      const 누른칸 = 칸들.find((칸) => 칸.dataset.toc === 누른.current);
+      if (바닥 && 누른칸 !== undefined && 누른칸.getBoundingClientRect().top < 상자위 + el.clientHeight) 찾음 = 누른.current;
       set지금(찾음);
     };
     재기();
@@ -55,6 +62,7 @@ export function use목차위치(상자: RefObject<HTMLElement | null>, 다시: u
       const el = 상자.current;
       const 칸 = el === null ? undefined : 묶음칸들(el).find((x) => x.dataset.toc === 열쇠);
       if (el === null || 칸 === undefined) return false;
+      누른.current = 열쇠;
       // 상자가 안 구르면(휴대폰 — 페이지가 구른다) 페이지를 굴린다
       if (el.scrollHeight > el.clientHeight + 1) el.scrollTop += 칸.getBoundingClientRect().top - el.getBoundingClientRect().top - 머리높이(el);
       else 칸.scrollIntoView?.({ block: 'start' });

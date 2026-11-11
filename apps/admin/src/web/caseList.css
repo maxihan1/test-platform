@@ -494,3 +494,58 @@ button.smoke-chip:focus-visible {
     -webkit-box-orient: vertical;
   }
 }
+
+/* 좁은 목록(목차 옆이라 1024px 창에서도 걸린다) — 세 단 대신 두 단: 번호 · 결과가 한 줄, 이름이 그 아래 (2026-11-11 시안 B) */
+@container caselist (max-width: 660px) {
+  .row.pickable.case-line {
+    grid-template-columns: 4px 20px minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+  }
+
+  .row.pickable.case-line .tcid {
+    grid-column: 3;
+    grid-row: 1;
+    padding: 8px 0 0;
+  }
+
+  .row.pickable.case-line .right {
+    grid-column: 4;
+    grid-row: 1;
+    padding: 4px 12px 0 0;
+  }
+
+  .row.pickable.case-line .title {
+    grid-column: 3 / -1;
+    grid-row: 2;
+    padding: 2px 12px 8px 0;
+  }
+}
+
+/* 휴대폰 — 이름 두 줄이 위, 번호와 디바이스별 결과가 아래 한 줄. 줄의 ▶ 는 숨기고 서랍의 「실행」으로 돈다 —
+   손가락 크기(44px) ▶ 두 개가 줄을 150px 로 늘렸다(2026-11-11 미리보기) */
+@media (max-width: 620px) {
+  .row.pickable.case-line .title {
+    grid-column: 3 / -1;
+    grid-row: 1;
+    padding: 10px 12px 2px 0;
+  }
+
+  .row.pickable.case-line .tcid {
+    grid-row: 2;
+    padding: 0 0 10px;
+    align-self: center;
+  }
+
+  .row.pickable.case-line .right {
+    grid-row: 2;
+    padding: 0 12px 10px 0;
+  }
+
+  .row.pickable.case-line .device-run {
+    display: none;
+  }
+
+  .row.pickable.case-line .pick {
+    padding-top: 12px;
+  }
+}
