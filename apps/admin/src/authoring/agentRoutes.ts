@@ -5,7 +5,8 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import { 작성계정인가 } from '../auth/agentToken.js';
 import { 테스트수정PR열림, 테스트수정결과맞나 } from '../bts/testFix.js';
-import { 반영한사람적기, 테스트수정병합판정 } from '../bts/testFixMerge.js';
+import { 반영한사람적기, 자동반영실패, 테스트수정병합판정 } from '../bts/testFixMerge.js';
+import { 테스트수정반영뒤 } from '../bts/testFixRerun.js';
 import { 수정PR주소인가, 수정집기칸읽기 } from '../bts/bugfix.js';
 import { 수정끝내기틀림, 수정끝냄 } from '../bts/bugfixRoutes.js';
 import { 초안다시세우기, 초안집기칸, 초안있나 } from '../bts/draft.js';
@@ -314,6 +315,10 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
       void 테스트수정PR열림({ ...행, serviceId: 서비스 }, 뿌리번호, prUrl, 결과)
         .then(() => ((행.params as { testFix?: unknown } | null)?.testFix === undefined ? null : 테스트수정병합판정(행.id, 서비스, 뿌리번호, prUrl, 결과)))
         .catch((err: unknown) => app.log.error(`[bts] ${String(행.id)}번 테스트 수정 PR 알림 · 병합 판정을 못 했다: ${String(err)}`));
+    }
+    // 「테스트 수정」 고침의 반영이 끝나면 다시 실행, Commander 가 세운 반영이 실패하면 사람에게 — 기다리지 않는다 (도메인/BTS 「테스트 수정 바퀴」 3 · 4)
+    if (행.kind === 'MERGE') {
+      void (status === 'DONE' ? 테스트수정반영뒤(뿌리번호) : 자동반영실패(뿌리번호)).catch((err: unknown) => app.log.error(`[bts] ${String(행.id)}번 반영 뒤 테스트 수정 단계를 못 했다: ${String(err)}`));
     }
     // 병합한 테스트가 「PRD 관리」 · 목록에 바로 보이게 그 서비스를 다시 훑는다 (PRD-F9-03). main 을 못 받아 왔으면 훑어도 옛 파일이다.
     // 기다리지 않는다 — 큰 서비스는 훑기가 에이전트의 30초 제한을 넘겨, 이미 끝난 보고를 다시 보내게 된다

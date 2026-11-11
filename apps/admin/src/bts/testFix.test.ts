@@ -204,6 +204,17 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 맡기', ()
     expect(await 보낼것('DM-9')).toEqual([{ kind: 'COMMENT', payload: { body: '테스트 수정 PR #78 을 열었어요\nhttps://github.com/o/r/pull/78' } }]);
   });
 
+  it('맡았는데 고침을 하나도 못 세웠으면(첫 실행이 지워짐) 옮긴 사람에게 까닭과 함께 되돌린다', async () => {
+    await pool.query(`INSERT INTO bts_issue_case (project_id, issue_key, service_id, tc_id, env, first_run) VALUES ($1, 'DM-8', $2, 'XQF-FN-006', 'qa', NULL)`, [프로젝트, 서비스]);
+    const { 요청들, 기록만 } = await 테스트수정처리(이은(), 이슈('DM-8'), 옮김, 답());
+    expect(요청들).toEqual([]);
+    expect(기록만).toEqual(['XQF-FN-006 — 처음 등록한 실행이 삭제됐다']);
+    expect(await 보낼것('DM-8')).toEqual([
+      { kind: 'ASSIGN', payload: { assigneeId: 'u-qa' } },
+      { kind: 'COMMENT', payload: { body: '테스트를 수정하지 못했어요 — 처음 실패한 실행이 지워졌거나 그 실행에 이 테스트의 실패 기록이 없어요' } },
+    ]);
+  });
+
   it('이슈가 「테스트 수정」을 떠나면 그 이슈의 도는 줄을 놓는다 — 늦게 온 떠남 알림이라 지금 다시 그 상태면 그대로 둔다', async () => {
     await 테스트수정처리(이은(), 이슈('DM-1'), { from: 'fix', to: 'qa_review' }, 답());
     expect(await 줄('DM-1')).toEqual([expect.objectContaining({ state: 'WAIT_MERGE' })]);

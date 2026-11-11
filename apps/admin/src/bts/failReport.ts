@@ -205,6 +205,8 @@ export async function 실패등록(runId: number, 기다림상한ms = trace기�
   const pool = await db();
   const 실행 = (await pool.query<실행행>(실행SQL, [runId])).rows[0];
   if (실행 === undefined) return 0;
+  // 「테스트 수정」 바퀴의 다시 실행은 올리지 않는다 — 끝 판정이 닫거나 되돌린다. 올리면 「또 실패」 댓글과 되돌리기 댓글이 같이 달린다 (도메인/BTS 「테스트 수정 바퀴」 4)
+  if (((await pool.query('SELECT 1 FROM bts_test_fix WHERE rerun_id = $1 LIMIT 1', [runId])).rowCount ?? 0) > 0) return 0;
   // trace 풀기 · 팜 증적 받기를 기다리는 마감은 하나다 — 실행 끝에서 길어야 상한만큼 늦는다
   const 마감 = Date.now() + 기다림상한ms;
   // trace 는 실행과 따로 한 줄로 푼다. 실행이 막 끝나면 마지막 항목들이 아직 줄에 있어 이슈에 네트워크 · 콘솔이 빠진다 — 지금 줄 끝까지 기다린다.

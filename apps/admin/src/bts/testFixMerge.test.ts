@@ -4,6 +4,7 @@
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import type { 부르기함수 } from './client.js';
 import { 테스트수정PR열림 } from './testFix.js';
 import { 반영한사람적기, 테스트수정병합판정 } from './testFixMerge.js';
 
@@ -13,6 +14,8 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 자동 병�
   let pool: Pool;
   let 프로젝트 = 0;
   let 서비스 = 0;
+  /** 반영을 세우기 전에 다시 읽는 이슈 — 지금 상태만 준다 */
+  const 답 = (상태 = 'fix', 코드 = 200): 부르기함수 => async () => (코드 === 200 ? { status: 200, json: { data: { currentStateKey: 상태 } } } : { status: 코드, json: null });
   const 판정 = (autoMerge: boolean, held: string[]) => ({ testFix: { summary: '기다리기를 고쳤어요', reruns: 3, autoMerge, held } });
 
   /** 끝난 고침 작성 하나와 그 PR 을 기다리는 바퀴 줄 하나 — 요청 번호를 돌려준다 */
@@ -64,10 +67,10 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 자동 병�
 
   it('세 조건이 맞으면 반영을 Issue Bunker 이름으로 세우고 AUTO 를 적는다 — 또 끝나도 한 번', async () => {
     const { id, 주소 } = await 고침('DM-1', 'XQG-FN-001');
-    expect(await 테스트수정병합판정(id, 서비스, id, 주소, 판정(true, []))).toBe('AUTO');
+    expect(await 테스트수정병합판정(id, 서비스, id, 주소, 판정(true, []), 답())).toBe('AUTO');
     expect(await 머지들(id)).toEqual([{ requested_by: 'bts', requested_by_name: 'Issue Bunker DM-1' }]);
     expect(await 줄(id)).toEqual({ merge: 'AUTO', held: [] });
-    expect(await 테스트수정병합판정(id, 서비스, id, 주소, 판정(true, []))).toBeNull();
+    expect(await 테스트수정병합판정(id, 서비스, id, 주소, 판정(true, []), 답())).toBeNull();
     expect(await 머지들(id)).toHaveLength(1);
     expect(await 댓글들('DM-1')).toEqual([]);
   });
@@ -95,10 +98,10 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 자동 병�
     expect(await 테스트수정병합판정(앞판.id, 서비스, 앞판.id, 앞판.주소, { testFix: { summary: '', reruns: 3 } })).toBe('PERSON');
     expect(await 댓글들('DM-3')).toEqual([`사람 확인이 필요해요 — 자동 병합 조건을 재지 못했어요\n${앞판.주소}`]);
     const 막힘 = await 고침('DM-4', 'XQG-FN-004', { heldUnknown: true });
-    expect(await 테스트수정병합판정(막힘.id, 서비스, 막힘.id, 막힘.주소, 판정(true, []))).toBe('PERSON');
+    expect(await 테스트수정병합판정(막힘.id, 서비스, 막힘.id, 막힘.주소, 판정(true, []), 답())).toBe('PERSON');
     expect(await 머지들(막힘.id)).toEqual([]);
     expect(await 댓글들('DM-4')).toEqual([`사람 확인이 필요해요 — 보류 케이스가 몇 건인지 모르는 작성이에요\n${막힘.주소}`]);
-    expect(await 테스트수정병합판정(막힘.id, 서비스, 막힘.id, 'https://github.com/o/r/pull/999', 판정(true, []))).toBeNull();
+    expect(await 테스트수정병합판정(막힘.id, 서비스, 막힘.id, 'https://github.com/o/r/pull/999', 판정(true, []), 답())).toBeNull();
   });
 
   it('병합 전 다시 돈 실행이 다른 PR 로 끝나면 줄이 그 PR 로 바뀌어 새 PR 로 판정한다', async () => {
@@ -106,7 +109,20 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 자동 병�
     const 새주소 = 'https://github.com/o/r/pull/905';
     await pool.query('UPDATE authoring_request SET pr_url = $2 WHERE id = $1', [id, 새주소]);
     await 테스트수정PR열림({ serviceId: 서비스, params: { testFix: { issueKey: 'DM-5' } } }, id, 새주소, null);
-    expect(await 테스트수정병합판정(id, 서비스, id, 새주소, 판정(true, []))).toBe('AUTO');
+    expect(await 테스트수정병합판정(id, 서비스, id, 새주소, 판정(true, []), 답())).toBe('AUTO');
     expect((await pool.query<{ pr_url: string }>('SELECT pr_url FROM bts_test_fix WHERE request_id = $1', [id])).rows[0]!.pr_url).toBe(새주소);
+  });
+
+  it('반영을 세우기 전에 이슈를 다시 읽는다 — 못 닿으면 그대로 두고(60초 점검이 다시 판정), 사람이 옮겼으면 줄을 놓는다', async () => {
+    const { id, 주소 } = await 고침('DM-6', 'XQG-FN-006');
+    expect(await 테스트수정병합판정(id, 서비스, id, 주소, 판정(true, []), 답('fix', 503))).toBeNull();
+    expect(await 머지들(id)).toEqual([]);
+    expect((await pool.query<{ state: string }>('SELECT state FROM bts_test_fix WHERE request_id = $1', [id])).rows[0]!.state).toBe('WAIT_MERGE');
+    expect(await 테스트수정병합판정(id, 서비스, id, 주소, 판정(true, []), 답('qa_review'))).toBeNull();
+    expect(await 머지들(id)).toEqual([]);
+    expect((await pool.query<{ state: string; reason: string }>('SELECT state, reason FROM bts_test_fix WHERE request_id = $1', [id])).rows[0]).toEqual({
+      state: 'GAVE_UP',
+      reason: '사람이 이슈를 옮겼어요',
+    });
   });
 });
