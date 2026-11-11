@@ -141,7 +141,8 @@
 - [x] `BTS-F10-01` 명세 · 진행판 — 결정 23 · 24 · 25 · 「테스트 수정 바퀴」 · 「테스트 문제」 바로 닫기는 기록만 · 통로 · 표 · 화면 「자동 수정 표시」 계약 블록(대기)
   - 근거 PR #716 · 2026-11-11 — 도메인/BTS 결정 23 · 24 · 25 · 「테스트 수정 바퀴」 8항 · §7 · §8.15 「자동 수정 표시」 A · B · 4-데이터모델 BTS-F10-03(`bts_test_fix` · `test_fix_field` · 보낼 줄 FIELD) · 작성 장 머지 등급 예외 · 구분 「자동 수정」. 계약 블록 둘 대기. 코드 검사 10건 · 명세 검사 11건 반영
 - [ ] `BTS-F10-02` (Issue Bunker 저장소) 「QA Hub AI」 쓰기 문에 이슈 필드 쓰기 열기 — BTS 저장소에서 연다
-- [ ] `BTS-F10-03` 연결 짝 `TEST_FIX`(비어도 저장) · 자동 설정이 「테스트 수정 PR」 필드를 만든다 · 마이그레이션(`bts_test_fix` · `bts_link.test_fix_field` · 보낼 줄 FIELD) · 설정 화면 고르개 「선택 안 함」
+- [x] `BTS-F10-03` 연결 짝 `TEST_FIX`(비어도 저장) · 자동 설정이 「테스트 수정 PR」 필드를 만든다 · 마이그레이션(`bts_test_fix` · `bts_link.test_fix_field` · 보낼 줄 FIELD) · 설정 화면 고르개 「선택 안 함」
+  - 근거 PR #717 · 2026-11-11 — `20261111000002_bts_test_fix.sql` · `bts/link.ts`(TEST_FIX 비면 칸째 뺀다 · BTS 프로젝트를 바꾸면 필드 키를 지운다) · `bts/setup.ts`(키 `qahub_test_fix_pr` 또는 같은 이름 링크 필드 · 결과 items 다섯째 줄 `TEST_FIX_FIELD`) · 설정 화면 「테스트 수정」 고르개. `test_fix_field` 는 BTS 필드 키다(이슈 값은 키로 쓴다). 데이터모델 블록 반영 완료 · §7 블록은 설정 두 줄만 반영. FIELD 보내기는 F10-04. 코드 검사 10건(고침 4) · 명세 검사 사소 3건 고침
 - [ ] `BTS-F10-04` 「테스트 수정」 알림 → 맡기(다시 읽기 · 변경 기록으로 옮긴 사람 · 담당자 QA Hub AI) → testFix 작성 → PR 이 열리면 필드 · 댓글 · 「테스트 문제」 바로 닫기는 기록만 · PR 제목 `[Test Commander] 테스트 수정 · <키> · <tcId>` · 본문 다시 돌림 숫자 · 에이전트 끝내기 `result.testFix.summary · reruns` · 작성 에이전트 글(`.claude/skills/tpx-author/references/apply.md` §7 · `scripts/authoring-apply.ts` 테스트고침절)의 「「테스트 문제」로 닫았다 · 닫힐 때 읽은 글」을 「테스트 수정」으로
 - [ ] `BTS-F10-05` 자동 병합 판정 — 에이전트가 세 조건(기대값 · 확인 문장 수 · 고장 내 보기)을 재어 `result.testFix.autoMerge · held` · 맞으면 서버가 반영을 세운다 · 아니면 「사람 확인이 필요해요」 댓글 · 사람 반영도 이어진다
 - [ ] `BTS-F10-06` 다시 실행 → 끝 — 반영 DONE 에 한 건 실행(처음 실패 디바이스 + 통과 디바이스 · 실제 폰이면 vision) → 다 통과면 「닫힘 · 테스트 문제」 + 댓글 · 아니면 「QA 검토」 + 옮긴 사람 · 팜 꺼짐 · 고칠 게 없음 · 작성 실패 · 폐기 되돌리기 · 단계마다 이슈 다시 읽기(GAVE_UP)
