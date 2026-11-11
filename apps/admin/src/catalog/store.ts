@@ -226,7 +226,7 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
   const 셈 = (s: ItemStatus) => 맞은.filter((id) => 판정?.get(id) === s).length;
   const lastCounts = 판정 === null ? null : { total: 맞은.length, pass: 셈('PASS'), fail: 셈('FAIL'), na: 셈('NA') };
   const 수정통과 = (id: string) => 수정.get(id)?.state === 'PASSED';
-  const 마지막맞나 = (id: string) => (마지막?.last === undefined || 판정?.get(id) === 마지막.last) && (query.autoFix !== true || 수정통과(id));
+  const 마지막맞나 = (id: string) => (마지막?.last === undefined || 판정?.get(id) === 마지막.last) && (query.autoFix !== true || 마지막 === undefined || 수정통과(id));
   const { 차례, groups } = 줄세우기(맞은.filter(마지막맞나), 표);
   // 칩 이름은 글자 · 디바이스 · 종류 · 활성 여부 · 기법에 드는 케이스가 부른 것만 — 숨긴 비활성 케이스의 이름이 0건 칩으로 남지 않게. 맥락 조건(묶음 · 요구)으로 0건이 된 이름은 남긴다
   const 이름들 = [...new Set(맞은번호.rows.flatMap((r) => 표.get(r.tc_id)?.apiServers ?? []))].sort((a, b) => a.localeCompare(b));
