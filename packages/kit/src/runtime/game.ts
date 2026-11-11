@@ -8,15 +8,17 @@ import { isDeepStrictEqual } from 'node:util';
 import type { Game, Link, WaitOptions } from 'control-cli';
 
 import { runDir } from './artifacts.js';
+import { 게임대상을적는다 } from './highlight.js';
 import { FARM_EVIDENCE_DIR, GAME_ERRORS_FILE, GAME_TREE_FILE } from './protocol.js';
 
 type Env = Record<string, string | undefined>;
 
 /**
- * 몸통의 game. 꼴의 정본은 control-cli 의 Game 에서 ping · tree · tap(좌표)을 뺀 것에 kit 의 waitForValue 하나를 더한 것이다 (공통/3-공유계약 「게임 테스트 타입」).
+ * 몸통의 game. 꼴의 정본은 control-cli 의 Game 의 아홉 메서드(find · click · drag · type · text · get · waitFor · layout · errors)에 kit 의 waitForValue 하나를 더한 것이다 (공통/3-공유계약 「게임 테스트 타입」).
+ * 고른 것만 낸다 — control-cli 0.7 부터 좌표를 받는 명령(findAt · swipe · 좌표 터치 · call)이 생겼는데 케이스는 좌표를 쓰지 않는다(도메인/게임 결정 4). 0.8 로 올려도 케이스가 쓰는 꼴은 그대로다
  * waitForValue — 「값이 될 때까지」. SDK 에 기다리기 명령이 없어 get 을 waitFor 와 같은 간격 · 한도로 되풀이한다 (도메인/게임 §3.10 「케이스 꼴」 기다림)
  */
-export type GameDriver = Omit<Game, 'ping' | 'tree' | 'tap'> & {
+export type GameDriver = Pick<Game, 'find' | 'click' | 'drag' | 'type' | 'text' | 'get' | 'waitFor' | 'layout' | 'errors'> & {
   waitForValue(target: string, prop: string, value: unknown, options?: Pick<WaitOptions, 'timeoutMs'>): Promise<void>;
 };
 export type KitGame = Game & Pick<GameDriver, 'waitForValue'>;
@@ -90,14 +92,48 @@ export async function openGame(
   const 끝 = Date.now() + 켜짐.timeoutMs;
   for (;;) {
     try {
+      // ping 이 caps 를 받아 둔다 — 실시간 장면 윤곽이 「rect 를 주는 SDK 인가」를 본다 (liveBox.ts 게임상자읽개)
       await game.ping();
-      return 드라이버;
+      return 게임을지켜본다(드라이버);
     } catch (err) {
       // 원문을 남겨야 실패 유형이 「환경 오류」로 가른다 (reporting/failureType.ts)
       if (/HTTP 4(?!08|29)\d\d/.test(글(err)) || Date.now() >= 끝) throw new Error(`게임이 ${켜짐.timeoutMs / 1000}초 안에 답하지 않았습니다 — ${글(err)}`);
       await 쉬기(켜짐.intervalMs);
     }
   }
+}
+
+// 첫 인자가 오브젝트 주소인 명령 — 케이스가 지금 누르거나 확인하는 오브젝트로 적는다 (실시간 장면 윤곽 · 도메인/러너 §5.2 「요소 윤곽」)
+const 대상명령 = new Set([
+  'find', 'parent', 'click', 'drag', 'type', 'text', 'get', 'setText', 'set', 'callMethod', 'pointer',
+  'waitFor', 'waitForProp', 'waitForValue', 'components', 'members', 'longPress', 'mouseMove', 'touchDown', 'layout',
+]);
+const 원본들 = new WeakMap<object, KitGame>();
+
+/** 감싼 게임 연결의 원본 — 실시간 장면이 자리를 물을 때 쓴다. 감싼 것으로 물으면 그 물음이 케이스가 다룬 것으로 적힌다 */
+export function 게임원본(game: KitGame): KitGame {
+  return 원본들.get(game) ?? game;
+}
+
+function 게임을지켜본다(game: KitGame): KitGame {
+  const 판 = new Proxy(game, {
+    get(t, key) {
+      const 값 = Reflect.get(t, key, t) as unknown;
+      if (typeof 값 !== 'function') return 값;
+      const 함수 = 값 as (...a: unknown[]) => unknown;
+      if (typeof key !== 'string' || !대상명령.has(key)) return 함수.bind(t);
+      return (...args: unknown[]) => {
+        const 옵션 = args.find((a, i) => i > 0 && typeof a === 'object' && a !== null) as { camera?: unknown; gone?: unknown } | undefined;
+        // 사라지길 기다리는 오브젝트는 다루는 것이 아니다 — 그 자리에 윤곽을 두면 누르는 것처럼 읽힌다
+        if (typeof args[0] === 'string' && 옵션?.gone !== true) {
+          게임대상을적는다({ 대상: args[0], ...(typeof 옵션?.camera === 'string' && { camera: 옵션.camera }) });
+        }
+        return 함수.apply(t, args);
+      };
+    },
+  });
+  원본들.set(판, game);
+  return 판;
 }
 
 /**

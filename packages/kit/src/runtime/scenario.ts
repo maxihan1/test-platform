@@ -16,6 +16,8 @@ export { SCENARIO_CLEANUP_MARKER, SCENARIO_DEVICE_MARKER, SCENARIO_PART_MARKER }
 export type { ScenarioPhase };
 // 테스트 모드 장면 — 고정 spec 이 첫 탭에 건다. 케이스 단독 실행은 test() 가 page 에 건다 (도메인/러너 §5.2 「테스트 모드 — 실시간 장면」)
 export { 장면걸기, 폰장면걸기, type 장면, type 폰찍개 } from './live.js';
+// 게임 단계의 윤곽 — 게임 SDK 에 오브젝트 자리를 묻는 연결의 꼴 (liveBox.ts 게임상자읽개)
+export type { 게임자리읽개 } from './liveBox.js';
 
 // 웹 단계는 page, 앱 · 게임 단계는 driver(게임이면 game 도)를 받는다. 둘 다 없으면 부품이 실패한다 (도메인/시나리오 §3.7 결정 16)
 export interface ScenarioCaseInput {

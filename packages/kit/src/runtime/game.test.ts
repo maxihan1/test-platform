@@ -7,7 +7,8 @@ import { join } from 'node:path';
 import { Game, type Link } from 'control-cli';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { 게임증적을남긴다, gameLink, openGame, 팜원점 } from './game.js';
+import { 게임원본, 게임증적을남긴다, gameLink, openGame, 팜원점 } from './game.js';
+import { 요소를놓는다, 지금게임대상 } from './highlight.js';
 
 describe('팜원점', () => {
   it('/wd/hub 를 떼고 주소 안 계정을 Basic 머리로 옮긴다', () => {
@@ -73,6 +74,24 @@ describe('openGame', () => {
     const link: Link = async (c) => (c.cmd === 'get' ? { ok: false, error: '켜진 오브젝트 중에 Popup 이 없습니다' } : { ok: true });
     const game = await openGame({}, link, 안쉼);
     await expect(game.waitForValue('Popup', 'Text.text', '100', { timeoutMs: 0 })).rejects.toThrow('(마지막: 켜진 오브젝트 중에 Popup 이 없습니다)');
+  });
+
+  it('케이스가 다룬 오브젝트 주소를 적고, 감싸지 않은 원본으로 물은 것은 안 적는다 — 실시간 장면 윤곽이 그 오브젝트를 짚는다', async () => {
+    const link: Link = async (c) => (c.cmd === 'find' ? { ok: true, found: true, path: '/UI/Start' } : { ok: true, caps: ['ping', 'find', 'find-all', 'touch-down', 'click', 'wait-for', 'rect'] });
+    const game = await openGame({}, link, 안쉼);
+
+    await game.click('StartButton');
+    expect(지금게임대상()).toEqual({ 대상: 'StartButton' });
+    await 게임원본(game).find('Other');
+    expect(지금게임대상()).toEqual({ 대상: 'StartButton' });
+    await game.click('Enemy', { camera: '/MinimapCam' });
+    expect(지금게임대상()).toEqual({ 대상: 'Enemy', camera: '/MinimapCam' });
+    // 사라지길 기다리는 것은 다루는 것이 아니다
+    await game.waitFor('LoadingSpinner', { gone: true, timeoutMs: 1 }).catch(() => undefined);
+    expect(지금게임대상()).toEqual({ 대상: 'Enemy', camera: '/MinimapCam' });
+    expect(게임원본(game).caps).toContain('rect');
+    요소를놓는다();
+    expect(지금게임대상()).toBeUndefined();
   });
 
   it('디바이스 팜이 잠깐 막는 429 는 기다린다', async () => {
