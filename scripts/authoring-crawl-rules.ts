@@ -257,11 +257,16 @@ export function 크롤역할들(계정글: string | undefined, 출처: string): 
   const 역할들 = (Array.isArray(줄들) ? 줄들 : []).flatMap((a: unknown) => {
     const x = (typeof a === 'object' && a !== null ? a : {}) as { role?: unknown; baseUrl?: unknown };
     if (typeof x.role !== 'string' || x.role.trim() === '' || 주소출처(x.baseUrl) !== 출처) return [];
+    // 일회용 역할은 화면이 일반 회원과 같고, 크롤러가 누르는 버튼이 그 계정을 바꾼다 (도메인/작성 §3.6 「★ 테스트 데이터」 · SEED-F1-04)
+    if (일회용역할.test(x.role)) return [];
     // 서버 화면 기록 상태 규칙에 안 맞는 역할은 안 돈다 — 올리면 그 상태 줄이 다 거절되고 done 까지 통째로 400 이 된다
     return 상태인가(`로그인:${x.role.trim()}`) ? [x.role.trim()] : [];
   });
   return [...new Set([기본역할, ...역할들])];
 }
+
+// 가운뎃점은 자판마다 다른 글자가 들어온다(· ㆍ ・ •) — 역할 이름은 자유 글자라 비슷한 꼴도 같이 거른다. 「일회용품 관리자」는 일회용 역할이 아니다
+const 일회용역할 = /^\s*일회용(?:\s|[·ㆍ・•])/;
 
 // login 은 머리만 맞으면(`/loginForm`), auth 는 낱말로만(`/authors` 는 아니다)
 const 로그인주소 = /(?:^|[/_.\-])(?:log-?in|sign-?in)|(?:^|\/)auth(?=$|[/_.\-])|로그인/i;

@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import { 원장뽑기 } from './authoring-ledger.js';
-import { tcId들, 사람이뺀번호, 셈글, 원장대조, 제외종류 } from './authoring-ledger-check.js';
+import { tcId들, 사람이뺀번호, 셈글, 원장대조, 제외종류, 환경한계 } from './authoring-ledger-check.js';
 import { 원장판정 } from './authoring-ledger-verdict.js';
 
 const 옛표 = readFileSync(new URL('./fixtures/ledger/mkt-5877.md', import.meta.url), 'utf8');
@@ -95,14 +95,22 @@ describe('원장대조', () => {
     expect(r.형식오류).toEqual(['제외 줄 「REQ-A-1」 — 「만들 수 없는 응답」은 API 줄에만 쓴다']);
   });
 
-  it('「환경 한계」는 자식도 쓰고, 사유가 정해 둔 여섯 한계로 시작해야 한다', () => {
+  it('「환경 한계」는 자식도 쓰고, 사유가 정해 둔 머리로 시작해야 한다', () => {
     const 넷 = [...원장, { 번호: 'REQ-A-4', 자료: 'a', 지문: '0000000000000000' }];
     const r = 원장대조(넷, 표([], ['| REQ-A-1 | 환경 한계 | 앱 응답 늦추기 — 앱이 부르는 응답을 붙잡을 길이 없다 |', '| REQ-A-2 | 환경 한계 | 시계 넘기기 — 14일 |', '| REQ-A-3 | 환경 한계 | 데이터가 없다 |', '| REQ-A-4 | 환경 한계 | 시계 넘기기 |']), {
       에이전트: true,
     });
     expect(r.셈).toEqual({ 총: 4, 케이스: 0, 제외: { '환경 한계': 2 }, 빠짐: 2 });
-    const 꼴 = '「환경 한계」 사유는 「<앱 응답 늦추기 · 서버 세션만 끊기 · 서버 전체 초기화 · 케이스 한도를 넘는 기다림 · 게임 서버 다시 켜기 · 시계 넘기기> — <한 문장>」 꼴이다';
+    const 꼴 = `「환경 한계」 사유는 「<${환경한계.join(' · ')}> — <한 문장>」 꼴이다`;
     expect(r.형식오류).toEqual([`제외 줄 「REQ-A-3」 — ${꼴}`, `제외 줄 「REQ-A-4」 — ${꼴}`]);
+  });
+
+  it('테스트 데이터 머리 셋(호출 한도 채우기 · 바깥 서비스 · 메일 읽기)도 받는다 (SEED-F1-04)', () => {
+    const r = 원장대조(원장, 표([], ['| REQ-A-1 | 환경 한계 | 호출 한도 채우기 — 로그인 5분 25회를 넘기면 잠긴다 |', '| REQ-A-2 | 환경 한계 | 바깥 서비스 — 다른 서버와의 연합 |', '| REQ-A-3 | 환경 한계 | 메일 읽기 — 가입 확인 링크 |']), {
+      에이전트: true,
+    });
+    expect(r.형식오류).toEqual([]);
+    expect(r.셈).toEqual({ 총: 3, 케이스: 0, 제외: { '환경 한계': 3 }, 빠짐: 0 });
   });
 
   it('사람 세션은 「사람이 뺌」을 쓸 수 있다', () => {

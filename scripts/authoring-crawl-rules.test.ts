@@ -294,6 +294,17 @@ describe('크롤역할들 — 크롤러가 로그인해 훑을 역할 (PRD-F9-30
     expect(크롤역할들(undefined, 출처)).toEqual(['일반 회원']);
     expect(크롤역할들('깨짐', 출처)).toEqual(['일반 회원']);
   });
+
+  it('「일회용 · <동작>」 역할로는 안 돈다 — 누르는 버튼이 그 계정을 바꾼다 (SEED-F1-04)', () => {
+    const 계정 = JSON.stringify([
+      { baseUrl: 'https://site.test', role: '일회용 · 암호 변경' },
+      { baseUrl: 'https://site.test', role: '일회용·탈퇴' },
+      { baseUrl: 'https://site.test', role: '일회용ㆍ2단계 인증' },
+      { baseUrl: 'https://site.test', role: '관리자' },
+      { baseUrl: 'https://site.test', role: '일회용품 관리자' },
+    ]);
+    expect(크롤역할들(계정, 출처)).toEqual(['일반 회원', '관리자', '일회용품 관리자']);
+  });
 });
 
 describe('로그인풀렸나 — 로그인 판에서 로그인 화면으로 튕겼나', () => {
