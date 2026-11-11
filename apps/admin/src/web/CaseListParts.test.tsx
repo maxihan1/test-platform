@@ -141,8 +141,8 @@ describe('케이스 줄의 이름 버튼 (점검 7.12)', () => {
   });
 });
 
-describe('케이스 줄의 판정 흐름', () => {
-  it('디바이스마다 따로 그린다 — 한 줄로 뭉개지 않는다', () => {
+describe('케이스 줄의 디바이스 결과', () => {
+  it('디바이스마다 결과를 따로 그리고 최근 5회 막대는 줄에 없다', () => {
     const 두디바이스: CaseRow = { ...케이스({} as unknown as JsonSchema), platforms: ['desktop', 'mobile'] };
     const 마지막 = {
       'ZZC-001:desktop': {
@@ -167,9 +167,10 @@ describe('케이스 줄의 판정 흐름', () => {
       />,
     );
 
-    const 흐름들 = container.querySelectorAll('.device .spark');
-    expect(흐름들).toHaveLength(2);
-    expect([...흐름들[1]!.querySelectorAll('i')].map((el) => el.className)).toEqual(['f', 'e', 'e', 'e', 'e']);
+    const 디바이스들 = [...container.querySelectorAll('.device')];
+    expect(디바이스들.map((el) => el.querySelector('.device-name')?.textContent)).toEqual(['PC', '모바일']);
+    expect(디바이스들.map((el) => el.querySelector('a')?.getAttribute('href'))).toEqual(['#/runs/1/items/1', '#/runs/1/items/2']);
+    expect(container.querySelector('.spark')).toBeNull();
   });
 });
 
@@ -191,24 +192,24 @@ describe('표머리 (SPEC §8.1)', () => {
     expect(이름들).toEqual(['TC ID', '케이스명', '마지막 결과']);
   });
 
-  // 표 부모 없는 row 는 행 이름을 내용으로 계산해 「이 쪽 전체 선택」을 두 번 읽었다 (진행판 WEB-F2-15)
+  // 표 부모 없는 row 는 행 이름을 내용으로 계산해 「보이는 케이스 전체 선택」을 두 번 읽었다 (진행판 WEB-F2-15)
   it('표머리에는 표 부모 없는 행 역할이 없다 — 화면 읽기가 전체 선택을 한 번만 읽는다', () => {
     render(<표머리 고름상태="none" on모두고르기={vi.fn()} />);
     expect(screen.queryByRole('row')).toBeNull();
     expect(screen.queryAllByRole('columnheader')).toHaveLength(0);
-    expect(screen.getAllByRole('checkbox', { name: '이 페이지 전체 선택' })).toHaveLength(1);
+    expect(screen.getAllByRole('checkbox', { name: '보이는 케이스 전체 선택' })).toHaveLength(1);
   });
 
-  it('쌓인 줄에서 보일 「이 쪽 전체 선택」 글이 있고 화면 읽기에는 체크박스 이름 하나만 읽힌다 (PR #159)', () => {
+  it('쌓인 줄에서 보일 「보이는 케이스 전체 선택」 글이 있고 화면 읽기에는 체크박스 이름 하나만 읽힌다 (PR #159)', () => {
     const { container } = render(<표머리 고름상태="none" on모두고르기={vi.fn()} />);
 
     const 글 = container.querySelector('.pick-all');
-    expect(글?.textContent).toBe('이 페이지 전체 선택');
+    expect(글?.textContent).toBe('보이는 케이스 전체 선택');
     expect(글?.getAttribute('aria-hidden')).toBe('true');
-    expect(screen.getAllByRole('checkbox', { name: '이 페이지 전체 선택' })).toHaveLength(1);
+    expect(screen.getAllByRole('checkbox', { name: '보이는 케이스 전체 선택' })).toHaveLength(1);
   });
 
-  it('「이 쪽 전체 선택」 글을 눌러도 고른다 — 라벨처럼 보이는 글이 안 눌리면 20px 네모만 노리게 된다', () => {
+  it('「보이는 케이스 전체 선택」 글을 눌러도 고른다 — 라벨처럼 보이는 글이 안 눌리면 20px 네모만 노리게 된다', () => {
     const on모두고르기 = vi.fn();
     const { container } = render(<표머리 고름상태="none" on모두고르기={on모두고르기} />);
 
@@ -234,30 +235,13 @@ describe('설계 기법 (도메인/카탈로그 §8.1 「설계 기법」)', () 
       />,
     );
 
-  it('기법은 케이스명 옆이 아니라 아래 작은 줄에 「설계 기법」 글자와 같이 선다', () => {
+  it('줄에는 설계 기법 글자도 태그도 없다 — 상세 서랍에서 본다. 미확정 배지는 제목 옆에 남는다', () => {
     const { container } = 줄그린다(['경계값 분석', '상태 전이']);
 
-    const 작은줄 = container.querySelector('.title small');
-    expect(작은줄?.textContent).toContain('설계 기법');
-    expect([...(작은줄?.querySelectorAll('.tech-tag') ?? [])].map((el) => el.textContent)).toEqual(['경계값 분석', '상태 전이']);
-    expect(container.querySelectorAll('.tech-tag')).toHaveLength(2);
-    expect(container.querySelector('.title > .case-tag')?.textContent).toBe('미확정');
-  });
-
-  // 가운뎃점으로 이으면 덩어리가 다음 줄로 넘어갈 때 그 줄이 점으로 시작했다 (진행판 WEB-F2-14)
-  it('「설계 기법」 글자와 태그는 한 덩어리이고 작은 줄 어디에도 가운뎃점이 없다', () => {
-    const { container } = 줄그린다(['경계값 분석', '상태 전이']);
-
-    const 덩어리 = container.querySelector('.title small .tech-line');
-    expect(덩어리?.textContent).toBe('설계 기법 경계값 분석상태 전이');
-    expect(덩어리?.querySelectorAll('.tech-tag')).toHaveLength(2);
-    expect(container.querySelector('.title small')?.textContent).not.toContain('·');
-  });
-
-  it('기법이 없으면 「설계 기법」 글자도 태그도 없다', () => {
-    const { container } = 줄그린다([]);
-    expect(container.querySelector('.title small')?.textContent).not.toContain('설계 기법');
     expect(container.querySelector('.tech-tag')).toBeNull();
+    expect(container.querySelector('small')).toBeNull();
+    expect(container.textContent).not.toContain('설계 기법');
+    expect(container.querySelector('.title > .case-tag')?.textContent).toBe('미확정');
   });
 
   // 기법 낱말은 kit 에서 오므로 소스 훑기(messages.test.ts)만으로는 번역이 빠진 것을 못 잡는다

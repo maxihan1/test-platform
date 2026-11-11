@@ -38,56 +38,57 @@ beforeEach(() => {
 
 afterEach(() => cleanup());
 
-async function 펴서고치기(묶음: RegExp, 번호: RegExp) {
+const 서랍 = () => screen.getByRole('complementary');
+
+async function 펴서고치기(번호: RegExp) {
   render(<Prd service="MKT" 할수={쓰는사람} />);
-  fireEvent.click(await screen.findByRole('button', { name: 묶음 }));
-  fireEvent.click(screen.getByRole('button', { name: 번호 }));
-  fireEvent.click(screen.getByRole('button', { name: '수정' }));
+  fireEvent.click(await screen.findByRole('button', { name: 번호 }));
+  fireEvent.click(within(서랍()).getByRole('button', { name: '수정' }));
 }
 
 describe('PRD 관리 — 쓴 것을 버리기 전에 묻기 (점검 8.4)', () => {
-  it('고치던 줄에 쓴 것이 있으면 다른 줄 고치기 · 그 묶음 접기도 묻고, 찾기 글자는 그 줄을 걸러 내지 않는다', async () => {
-    await 펴서고치기(/회원가입/, /MKT-REQ-031/);
+  it('고치던 줄에 쓴 것이 있으면 다른 줄을 열기 전에 묻고, 찾기 글자는 그 줄을 걸러 내지 않는다', async () => {
+    await 펴서고치기(/MKT-REQ-031/);
     fireEvent.change(screen.getByLabelText('요구사항 문장'), { target: { value: '쓰다 만 글' } });
 
-    fireEvent.click(screen.getByRole('button', { name: /^회원가입/ }));
+    fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-032/ }));
     expect(screen.getByRole('dialog', { name: '저장 안 된 변경 있음' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '머무르기' }));
+    expect((screen.getByLabelText('요구사항 문장') as HTMLTextAreaElement).value).toBe('쓰다 만 글');
 
     fireEvent.change(screen.getByRole('textbox', { name: '요구사항 문장 · 번호 검색' }), { target: { value: '잠긴다' } });
+    expect(screen.getByRole('button', { name: /MKT-REQ-031/ })).toBeTruthy();
     expect((screen.getByLabelText('요구사항 문장') as HTMLTextAreaElement).value).toBe('쓰다 만 글');
 
     fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-041/ }));
-    fireEvent.click(screen.getByRole('button', { name: '수정' }));
     expect(screen.getByRole('dialog', { name: '저장 안 된 변경 있음' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '저장하지 않고 떠나기' }));
+    expect(screen.queryByLabelText('요구사항 문장')).toBeNull();
+    fireEvent.click(within(서랍()).getByRole('button', { name: '수정' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
     expect(screen.getAllByLabelText('요구사항 문장')).toHaveLength(1);
   });
 
-  it('찾기로 펴진 묶음에서 고치다 찾기 글자를 지워도 그 묶음은 펴진 채 쓴 글이 남는다', async () => {
-    render(<Prd service="MKT" 할수={쓰는사람} />);
-    const 찾기 = await screen.findByRole('textbox', { name: '요구사항 문장 · 번호 검색' });
-    fireEvent.change(찾기, { target: { value: '잠긴다' } });
-    fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-041/ }));
-    fireEvent.click(screen.getByRole('button', { name: '수정' }));
+  it('고치던 글이 있을 때 서랍을 닫아도 먼저 묻는다', async () => {
+    await 펴서고치기(/MKT-REQ-031/);
     fireEvent.change(screen.getByLabelText('요구사항 문장'), { target: { value: '쓰다 만 글' } });
-
-    fireEvent.change(찾기, { target: { value: '' } });
-    expect((screen.getByLabelText('요구사항 문장') as HTMLTextAreaElement).value).toBe('쓰다 만 글');
-    expect(screen.getByRole('button', { name: /^로그인/ }).getAttribute('aria-expanded')).toBe('true');
+    fireEvent.click(within(서랍()).getByRole('button', { name: '상세 닫기' }));
+    expect(screen.getByRole('dialog', { name: '저장 안 된 변경 있음' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '저장하지 않고 떠나기' }));
+    expect(screen.queryByRole('complementary')).toBeNull();
   });
 
-  it('안 고친 줄은 다른 줄을 고치기 시작해도 묻지 않는다', async () => {
-    await 펴서고치기(/회원가입/, /MKT-REQ-031/);
+  it('안 고친 줄은 다른 줄을 열어도 묻지 않는다', async () => {
+    await 펴서고치기(/MKT-REQ-031/);
     fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-032/ }));
-    fireEvent.click(screen.getByRole('button', { name: '수정' }));
+    fireEvent.click(within(서랍()).getByRole('button', { name: '수정' }));
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 });
 
 describe('PRD 관리 — 고치기', () => {
   it('고친 요구는 번호를 그대로 두고 판 전체를 지금 판 번호와 함께 보낸다', async () => {
-    await 펴서고치기(/회원가입/, /MKT-REQ-032/);
+    await 펴서고치기(/MKT-REQ-032/);
     fireEvent.change(screen.getByLabelText('요구사항 문장'), { target: { value: '아이디 칸에는 12자까지 들어간다' } });
     fireEvent.change(screen.getByLabelText('상태'), { target: { value: 'CONFIRMED' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
@@ -101,17 +102,17 @@ describe('PRD 관리 — 고치기', () => {
   });
 
   it('요구 문장을 고쳐 저장하면 그 줄 아래에 결정 필요로 가는 고리가 한 번 뜬다', async () => {
-    await 펴서고치기(/회원가입/, /MKT-REQ-031/);
+    await 펴서고치기(/MKT-REQ-031/);
     fireEvent.change(screen.getByLabelText('요구사항 문장'), { target: { value: '아이디는 영문 소문자·숫자 4~14자이다' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
     const 고리 = await screen.findByRole('link', { name: '테스트 작성 › 결정 필요에서 테스트를 다시 만들 수 있어요 →' });
     expect(고리.getAttribute('href')).toBe('#/authoring?todo=1');
-    expect(고리.closest('.prd-item')?.id).toBe('prd-item-MKT-REQ-031');
+    expect(서랍().contains(고리)).toBe(true);
     expect(screen.getAllByRole('link', { name: /테스트를 다시 만들 수 있어요/ })).toHaveLength(1);
   });
 
   it('상태만 바꾸거나 지우는 저장에는 고리가 안 뜬다', async () => {
-    await 펴서고치기(/회원가입/, /MKT-REQ-032/);
+    await 펴서고치기(/MKT-REQ-032/);
     fireEvent.change(screen.getByLabelText('상태'), { target: { value: 'CONFIRMED' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
     await screen.findByText('저장했습니다 (버전 13)');
@@ -127,15 +128,15 @@ describe('PRD 관리 — 고치기', () => {
 
   it('저장이 실패하면 고리가 안 뜬다', async () => {
     저장.mockRejectedValueOnce(new ApiError(409, 'PRD_STALE', ''));
-    await 펴서고치기(/회원가입/, /MKT-REQ-031/);
+    await 펴서고치기(/MKT-REQ-031/);
     fireEvent.change(screen.getByLabelText('요구사항 문장'), { target: { value: '고치다 만 글' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
     await screen.findByRole('alert');
     expect(screen.queryByRole('link', { name: /테스트를 다시 만들 수 있어요/ })).toBeNull();
   });
 
-  it('고치던 줄을 접으면 먼저 묻고, 버리고 접은 뒤 다시 펴면 고치기 전 모습이다', async () => {
-    await 펴서고치기(/회원가입/, /MKT-REQ-031/);
+  it('고치던 줄을 다시 눌러 닫으면 먼저 묻고, 버리고 닫은 뒤 다시 열면 고치기 전 모습이다', async () => {
+    await 펴서고치기(/MKT-REQ-031/);
     fireEvent.change(screen.getByLabelText('요구사항 문장'), { target: { value: '버릴 글' } });
     fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-031/ }));
     expect(screen.getByRole('dialog', { name: '저장 안 된 변경 있음' })).toBeTruthy();
@@ -151,7 +152,7 @@ describe('PRD 관리 — 고치기', () => {
   });
 
   it('빈 칸은 보내지 않고 어느 칸인지 말한다', async () => {
-    await 펴서고치기(/회원가입/, /MKT-REQ-031/);
+    await 펴서고치기(/MKT-REQ-031/);
     fireEvent.change(screen.getByLabelText('요구사항 문장'), { target: { value: '   ' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
     expect(screen.getByText('요구사항 문장을 적습니다')).toBeTruthy();
@@ -159,7 +160,7 @@ describe('PRD 관리 — 고치기', () => {
   });
 
   it('출처를 더하고 빼며, 비운 원본 번호는 키째 빼고 보낸다', async () => {
-    await 펴서고치기(/로그인/, /MKT-REQ-041/);
+    await 펴서고치기(/MKT-REQ-041/);
     fireEvent.click(screen.getByRole('button', { name: '출처 추가' }));
     const 이름칸 = screen.getAllByLabelText('자료 이름');
     expect(이름칸).toHaveLength(2);
@@ -171,7 +172,7 @@ describe('PRD 관리 — 고치기', () => {
   });
 
   it('지우기는 그 자리에서 한 번 더 묻고, 확인하면 그 요구를 뺀 판을 보낸다', async () => {
-    await 펴서고치기(/로그인/, /MKT-REQ-040/);
+    await 펴서고치기(/MKT-REQ-040/);
     fireEvent.click(screen.getByRole('button', { name: '이 요구사항 삭제' }));
     expect(저장).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: '삭제 확인' }));
@@ -225,7 +226,7 @@ describe('PRD 관리 — 고치기', () => {
 
   it('저장이 실패하면 고치던 칸 옆에 까닭을 띄우고 쓴 글은 그대로 둔다 (점검 8.3)', async () => {
     저장.mockRejectedValueOnce(new ApiError(409, 'PRD_STALE', ''));
-    await 펴서고치기(/회원가입/, /MKT-REQ-032/);
+    await 펴서고치기(/MKT-REQ-032/);
     fireEvent.change(screen.getByLabelText('요구사항 문장'), { target: { value: '고치던 글' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
     const 칸 = screen.getByLabelText('요구사항 문장').closest('form')!;

@@ -42,6 +42,20 @@ describe('초안적용', () => {
     expect(r2.items.find((x) => x.reqId === 'MKW-REQ-003')!.basis[0]!.from.length).toBeLessThanOrEqual(상한.근거자리);
   });
 
+  it('요구 문장에 지금 판의 기능 묶음 이름이 들었으면 이슈 제목이 아니라 그 묶음에 넣는다 — 긴 이름이 먼저다', () => {
+    const 판: PrdItem[] = [...지금, { reqId: 'MKW-REQ-009', feature: '주문', text: '주문은 결제 뒤에 만든다', basis: [{ from: '기획서', quote: '결제' }], status: 'CONFIRMED' }];
+    const r = 초안적용(판, 9, 'MKW', [{ key: 'draft:7', card: 카드([줄({ text: '“주문 내역” 화면에서 「1개월」 버튼을 누르면 최근 1개월 주문만 보인다' })]), picked: new Set([0]) }], 시각);
+    if ('error' in r) throw new Error(r.detail);
+    expect(r.items.find((x) => x.reqId === 'MKW-REQ-010')?.feature).toBe('주문 내역');
+  });
+
+  it('한 글자 묶음 이름은 문장 속 다른 낱말(「홈페이지」)에 걸리지 않는다 — 이슈 제목으로 간다', () => {
+    const 판: PrdItem[] = [...지금, { reqId: 'MKW-REQ-009', feature: '홈', text: '홈은 배너를 보인다', basis: [{ from: '기획서', quote: '배너' }], status: 'CONFIRMED' }];
+    const r = 초안적용(판, 9, 'MKW', [{ key: 'draft:7', card: 카드([줄({ text: '홈페이지 맨 위 배너를 누르면 이벤트로 간다' })]), picked: new Set([0]) }], 시각);
+    if ('error' in r) throw new Error(r.detail);
+    expect(r.items.find((x) => x.reqId === 'MKW-REQ-010')?.feature).toBe('장바구니 쿠폰 중복 적용 막기');
+  });
+
   it('제목이 없는 이슈의 추가 줄은 이슈 키가 기능 이름이다', () => {
     const r = 적용([줄({ issueKeys: ['DM-14'] })], [0]);
     if ('error' in r) throw new Error(r.detail);

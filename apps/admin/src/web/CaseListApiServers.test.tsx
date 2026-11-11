@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 케이스 목록의 API 서버 — 줄 태그 · 칩 줄 · 거르기 · 사라진 이름 (도메인/카탈로그 §8.1 「API 서버」, 시안 A)
+// 케이스 목록의 API 서버 — 상세 서랍 구획 · 칩 줄 · 거르기 · 사라진 이름 (도메인/카탈로그 §8.1 「API 서버」, 시안 A)
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -65,13 +65,22 @@ const 서버줄 = () => within(판조건('API 서버'));
 const 마지막조건 = (스파이: { mock: { calls: [CaseQuery][] } }) => 스파이.mock.calls.at(-1)![0];
 
 describe('API 서버 꼬리표', () => {
-  it('줄 아래에 이름 태그가 서고, 부른 서버가 없는 케이스에는 안 선다', async () => {
+  it('줄에는 이름 태그가 없고, 상세 서랍을 열면 「API 서버」 구획에 서며, 부른 서버가 없는 케이스에는 구획이 없다', async () => {
     그리기();
+    vi.spyOn(api, 'caseHistory').mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20 });
+    vi.spyOn(api, 'item').mockRejectedValue(new Error('절차 없음'));
     const 줄 = (await screen.findByText('ZAS-FN-001')).closest('.row')!;
-    expect(within(줄 as HTMLElement).getByText('API 서버')).toBeTruthy();
-    expect([...줄.querySelectorAll('.tech-tag')].map((el) => el.textContent)).toEqual(['결제', '인증']);
-    const 빈줄 = screen.getByText('ZAS-FN-002').closest('.row')!;
-    expect(빈줄.querySelector('.tech-tag')).toBeNull();
+    expect(줄.querySelector('.tech-tag')).toBeNull();
+    expect(within(줄 as HTMLElement).queryByText('API 서버')).toBeNull();
+
+    fireEvent.click(within(줄 as HTMLElement).getByRole('button', { name: 'ZAS-FN-001 케이스' }));
+    const 칸 = await screen.findByRole('complementary');
+    const 구획 = [...칸.querySelectorAll('.dsec')].find((el) => el.querySelector('.dlabel')?.textContent === 'API 서버')!;
+    expect([...구획.querySelectorAll('.tech-tag')].map((el) => el.textContent)).toEqual(['결제', '인증']);
+
+    fireEvent.click(within(screen.getByText('ZAS-FN-002').closest('.row') as HTMLElement).getByRole('button', { name: 'ZAS-FN-002 케이스' }));
+    await waitFor(() => expect(screen.getByRole('complementary').querySelector('h2')?.textContent).toBe('ZAS-FN-002 케이스'));
+    expect([...screen.getByRole('complementary').querySelectorAll('.dlabel')].map((el) => el.textContent)).not.toContain('API 서버');
   });
 
   it('필터 판의 API 서버 줄은 「전체」와 이름마다 건수를 단 칩이다 — 처음에는 전체가 눌려 있다', async () => {
