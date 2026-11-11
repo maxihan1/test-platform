@@ -3,6 +3,7 @@
 
 import { z } from 'zod';
 
+import { 머리이름인가, 어드민키값인가 } from './headerRules.js';
 import { 어드민키종류인가 } from './roles.js';
 import { db } from './store.js';
 
@@ -17,11 +18,6 @@ export const API인증줄 = z.object({
 // 규칙은 아래 API칸오류 가 본다 — 어기면 BAD_ADMIN_KEY 다. 값이 없으면 같은 머리의 옛 값을 잇는다(envs.ts)
 export const 어드민키줄 = z.object({ header: z.string(), value: z.string().optional() });
 
-/** 어드민 키 값 꼴 — 화면 SettingsAdminKey.tsx 의 `어드민키값인가` 와 같은 규칙이다. 준비 주소의 비밀 헤더 값도 이 규칙이다(prep.ts) */
-export const 어드민키값인가 = (값: string): boolean => 값.length >= 12 && 값.length <= 500 && /^[\x21-\x7e]+(?: [\x21-\x7e]{12,})?$/.test(값);
-
-/** 머리 이름 꼴 — HTTP 토큰 글자만. 앞뒤 공백은 뗀 뒤에 본다 */
-export const 머리이름인가 = (이름: string): boolean => /^[A-Za-z0-9-]{1,100}$/.test(이름);
 
 /** 보낸 칸. 종류(kind)는 만들기 스키마에만 있다 — 고치기는 KIND_IMMUTABLE 이다 */
 export const API칸 = {

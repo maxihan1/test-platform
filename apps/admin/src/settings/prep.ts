@@ -3,7 +3,7 @@
 
 import { z } from 'zod';
 
-import { 머리이름인가, 어드민키값인가 } from './apiService.js';
+import { 머리이름인가, 어드민키값인가 } from './headerRules.js';
 import { 설정오류 } from './errors.js';
 
 // 칸 하나하나의 규칙은 아래 준비틀림 이 본다 — 어기면 BAD_PREP 다. 꼴이 틀리면(글자 timeoutSec · url 없음) 어드민 키처럼 INVALID_REQUEST 다
