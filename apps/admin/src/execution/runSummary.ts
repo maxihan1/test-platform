@@ -7,6 +7,7 @@ import { 미확정SQL, 접은판정SQL } from '../scenario/verdict.js';
 
 import type { RunSummary } from './runTypes.js';
 import { 종류조건, type 목록종류 } from './runKind.js';
+import { 자동수정실행빼기 } from '../bts/testFixView.js';
 import { 지금항목 } from './single.js';
 import type { 시작방식 } from './runOrigin.js';
 
@@ -142,7 +143,7 @@ export async function runSummary(service: string, 거르개: 실행거르개): P
                 -- 도는 실행은 끝난 시각이 없다. NULL 이면 avg·count 가 알아서 뺀다
                 extract(epoch FROM (r.finished_at - r.started_at)) * 1000 AS duration
            FROM test_run r
-           LEFT JOIN LATERAL ${지금항목('o.run_id = r.run_id')} i ON true
+           LEFT JOIN LATERAL ${지금항목('o.run_id = r.run_id', 자동수정실행빼기)} i ON true
           WHERE r.service_id = (SELECT id FROM service WHERE prefix = $1) ${조건.where}
           GROUP BY r.run_id, r.started_at, r.finished_at
           ${조건.having}

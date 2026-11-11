@@ -16,14 +16,16 @@ export interface 결과보기 {
   카드쪽: number;
   유형: 실패유형 | null;
   안본것만: boolean;
+  /** 「자동 수정 N」 — Issue Bunker 테스트 수정으로 통과한 카드만. 서버가 거른다(?autoFix=1) */
+  자동수정만: boolean;
   /** 펼친 카드의 케이스 번호. 편 차례다 — 돌아오면 마지막에 편 카드로 화면을 옮긴다 */
   열린: string[];
 }
 
-export const 처음보기: 결과보기 = { 판정: 'ALL', device: 'ALL', 변화: null, 쪽: 1, 카드쪽: 1, 유형: null, 안본것만: false, 열린: [] };
+export const 처음보기: 결과보기 = { 판정: 'ALL', device: 'ALL', 변화: null, 쪽: 1, 카드쪽: 1, 유형: null, 안본것만: false, 자동수정만: false, 열린: [] };
 
 /** 이 화면이 주소에 쓰는 칸. 실행 기록은 고른 실행(`run`)에 딸린 칸으로 넘긴다 */
-export const 결과칸들 = ['status', 'device', 'change', 'rowpage', 'cardpage', 'cause', 'unjudged', 'open'] as const;
+export const 결과칸들 = ['status', 'device', 'change', 'rowpage', 'cardpage', 'cause', 'unjudged', 'autofix', 'open'] as const;
 
 const 판정들: readonly ItemStatus[] = ['PASS', 'FAIL', 'NA'];
 const 유형들: readonly 실패유형[] = ['mismatch', 'notFound', 'timeout', 'environment', 'other'];
@@ -47,6 +49,7 @@ export function 보기읽기(조건: URLSearchParams): 결과보기 {
     카드쪽: 쪽번호(조건.get('cardpage')),
     유형: 고른것(조건.get('cause'), 유형들) ?? null,
     안본것만: 조건.get('unjudged') === '1',
+    자동수정만: 조건.get('autofix') === '1',
     열린: tc === null || tc === '' || 열린.includes(tc) ? 열린 : [...열린, tc],
   };
 }
@@ -61,6 +64,7 @@ export function 보기조건(보기: 결과보기): Record<string, string> {
     ...(보기.카드쪽 === 1 ? {} : { cardpage: String(보기.카드쪽) }),
     ...(보기.유형 === null ? {} : { cause: 보기.유형 }),
     ...(보기.안본것만 ? { unjudged: '1' } : {}),
+    ...(보기.자동수정만 ? { autofix: '1' } : {}),
     ...(보기.열린.length === 0 ? {} : { open: 보기.열린.join(',') }),
   };
 }
@@ -73,7 +77,7 @@ export const 바꾼보기 = (앞: 결과보기, 바꿀: 보기바꿈): 결과보
 export const 판정고른보기 = (판정: ItemStatus | 'ALL'): Partial<결과보기> => ({ 판정, 쪽: 1 });
 
 /** 디바이스를 고르면 카드도 다른 카드가 서니 카드 쪽 · 칩 · 펼침까지 처음으로 */
-export const 디바이스고른보기 = (device: Platform | 'ALL'): Partial<결과보기> => ({ device, 쪽: 1, 카드쪽: 1, 유형: null, 안본것만: false, 열린: [] });
+export const 디바이스고른보기 = (device: Platform | 'ALL'): Partial<결과보기> => ({ device, 쪽: 1, 카드쪽: 1, 유형: null, 안본것만: false, 자동수정만: false, 열린: [] });
 
 /**
  * 실행 기록 결과 칸의 보기. 그 보기가 어느 실행 것인지 같이 든다 — 보이는 실행이 바뀌면(다른 줄을 고름 · 거르개 · 쪽으로 맨 위 줄이 바뀜 ·

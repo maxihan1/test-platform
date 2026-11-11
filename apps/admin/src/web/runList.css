@@ -255,3 +255,9 @@
     bottom: calc(var(--ph-tabs) + 84px);
   }
 }
+
+/* 자동 수정 카드의 고치기 전 실패 원인 — 지운 것이 아니라 고치기 전 기록이라 흐리게 줄만 긋는다 (도메인/BTS §8.15 「자동 수정 표시」 B) */
+.fc-card.fc-fixed .fc-head .fail-reason {
+  text-decoration: line-through;
+  color: var(--ink-muted);
+}

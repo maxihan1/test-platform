@@ -53,6 +53,8 @@ export type RunListRow = RunSummary & {
   devices: string[];
   /** 실제 폰 Chrome 에서 돈 모바일 항목의 폰 모델, 글자 차례. 서버 흉내뿐이면 빈 배열 (실행 §3.2 「모바일 웹 실행 위치」) */
   mobileDevices: string[];
+  /** 처음 실패 뒤 Issue Bunker 「테스트 수정」으로 고쳐 통과한 케이스 수. BTS 를 안 이었으면 0 (도메인/BTS §7 · §8.15 B) */
+  autoFixed: number;
 };
 
 export interface RunItemSummary {

@@ -45,7 +45,7 @@ async function 편다() {
 
 describe('주소 칸 읽고 쓰기', () => {
   it('쓴 조건을 다시 읽으면 같은 보기다 — 기본값은 적지 않는다', () => {
-    const 보기 = { 판정: 'FAIL', device: 'mobile', 변화: '새로깨짐', 쪽: 2, 카드쪽: 3, 유형: 'timeout', 안본것만: true, 열린: ['A-FN-001', 'A-FN-002'] } as const;
+    const 보기 = { 판정: 'FAIL', device: 'mobile', 변화: '새로깨짐', 쪽: 2, 카드쪽: 3, 유형: 'timeout', 안본것만: true, 자동수정만: true, 열린: ['A-FN-001', 'A-FN-002'] } as const;
     const 조건 = new URLSearchParams(보기조건({ ...보기, 열린: [...보기.열린] }));
 
     expect(보기읽기(조건)).toEqual(보기);

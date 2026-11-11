@@ -62,6 +62,8 @@ export function 실패카드({
     on맞춤?.();
   }, []);
   const 깨진 = new Set(c.devices.map((d) => d.platform));
+  // 「실패 → 통과」는 다시 실행에서 그 디바이스가 실제로 통과했을 때만 — 다시 실행이 그 디바이스를 안 돌렸으면 그대로 실패다
+  const 통과로바뀐 = [...깨진].filter((p) => c.autoFix?.devices.some((d) => d.platform === p && d.status === 'PASS') === true);
   // 디바이스를 거른 동안에는 그 디바이스만 낸다. 깨진 디바이스는 서버가 카드에 안 실었어도 접힌 줄에 넣지 않는다 —
   // 실패가 「통과 · 미실행」 줄처럼 접혀 보이면 안 된다
   const 나머지 = 디바이스순서.flatMap((칸디바이스) => {
@@ -79,7 +81,8 @@ export function 실패카드({
 
   // 접고 펴는 것은 브라우저가 한다. 편 카드는 주소에 남아 돌아와도 펼쳐 선다. 쪽을 넘기면 다른 카드라 다시 접혀 선다 (실행 §8.3 「실패 카드는 접어 둔다」)
   return (
-    <article className="fc-card">
+    // 자동 수정 카드는 고치기 전 실패 원인 글을 흐리게 줄 긋는다 — 지운 것이 아니라 고치기 전 기록이다 (도메인/BTS §8.15 B)
+    <article className={c.autoFix == null ? 'fc-card' : 'fc-card fc-fixed'}>
       <details
         className="fc-fold"
         ref={접이}
@@ -90,14 +93,14 @@ export function 실패카드({
       >
         <summary className="fc-sum">
           <div className="fc-head">
-            <Verdict status="FAIL" />
+            {c.autoFix == null ? <Verdict status="FAIL" /> : <span className="fix-tag">{t('수정 후 통과')}</span>}
             <span className="mono fc-tc">{c.tcId}</span>
             {/* 카드 하나의 유형은 디바이스 차례로 첫 깨진 디바이스의 처음 실패한 회차 것이다 — 서버가 그 차례로 싣는다 (실행 §8.3) */}
             <실패이유 failure={머리이유} />
             {머리변화 === null ? null : <span className="fc-tag">{머리변화}</span>}
             <판정꼬리표 judgment={c.judgment} />
             <다시돌림꼬리표 tcId={c.tcId} 결과={다시돌림} />
-            <디바이스꼬리표 tcId={c.tcId} items={items} />
+            <디바이스꼬리표 tcId={c.tcId} items={items} 통과로바뀐={통과로바뀐} />
           </div>
           <h3 className="fc-name-h">{c.tcName}</h3>
           {미확정사유 === null ? null : (

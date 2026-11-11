@@ -17,6 +17,7 @@ const 종류글: Record<요약종류, string> = {
   API_APPLY: '변경된 API 다시 작성',
   DECISION: '결정 진행',
   EDIT: '케이스 수정',
+  TEST_FIX: '테스트 수정',
 };
 
 export function 종류꼬리표(s: 목록요약, 언어: 언어): string {
@@ -59,6 +60,10 @@ export function 무슨테스트(s: 목록요약, 언어: 언어): string {
     const 나머지 = w.tcIds.length - 1 + w.tcMore;
     return 나머지 > 0 ? t('{번호} 외 {수}건 {무엇}', 언어, { 번호: w.tcIds[0]!, 수: 나머지, 무엇 }) : [w.tcIds[0]!, 무엇].join(' ');
   }
+  if (s.kind === 'TEST_FIX' && w.tcIds.length > 0) {
+    const 나머지 = w.tcIds.length - 1 + w.tcMore;
+    return 나머지 > 0 ? t('{번호} 외 {수}건 테스트 수정', 언어, { 번호: w.tcIds[0]!, 수: 나머지 }) : t('{번호} 테스트 수정', 언어, { 번호: w.tcIds[0]! });
+  }
   const 자료 = s.from.assets;
   if (자료.length > 0) return 셋과나머지(자료.slice(0, 1).map((a) => 자료이름(a, 언어)), 자료.length - 1 + s.from.assetsMore, 언어);
   return 종류꼬리표(s, 언어);
@@ -73,6 +78,7 @@ const 구분표: Record<요약종류, string> = {
   API_APPLY: '수정§작성 구분',
   DECISION: '수정§작성 구분',
   EDIT: '수정§작성 구분',
+  TEST_FIX: '자동 수정',
   CONTINUE: '추가§작성 구분',
   UNCOVERED: '추가§작성 구분',
 };

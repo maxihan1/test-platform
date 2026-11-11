@@ -211,6 +211,21 @@ describe.skipIf(연결 === undefined)('작성 목록 summary', () => {
     expect(표.get(섞임)!.result).toMatchObject({ casesFixed: null, stoppedAt: '케이스를 고치는 중' });
   });
 
+  it('Issue Bunker 테스트 수정 — 결정이 같이 있어도 TEST_FIX 이고 번호는 중복 없이 셋과 나머지 · 시작한 곳은 결정', async () => {
+    const 수정 = await 행({
+      status: 'DONE',
+      params: {
+        prdApply: true,
+        decision: { after: [], count: 1 },
+        testFix: { issueKey: 'DM-1', cases: ['001', '001', '002', '003', '004'].map((n) => ({ runId: 1, tcId: `XWB-FN-${n}`, env: 'qa' })), note: '' },
+      },
+    });
+    const 표 = await 목록요약들(서비스, [수정]);
+    expect(표.get(수정)!.kind).toBe('TEST_FIX');
+    expect(표.get(수정)!.what).toMatchObject({ tcIds: ['XWB-FN-001', 'XWB-FN-002', 'XWB-FN-003'], tcMore: 1 });
+    expect(표.get(수정)!.from.by).toBe('DECISION');
+  });
+
   it('케이스 고치기의 대상 기능 — 지도 ① 로 요구사항을 찾아 최신 판의 기능 · 지도에 없는 케이스는 세지 않는다', async () => {
     await 판(1, [항목(1, '옛 이름', '가')]);
     await 판(2, [항목(1, '로그인', '가'), 항목(2, '로그인', '나'), 항목(3, '장바구니', '다')]);

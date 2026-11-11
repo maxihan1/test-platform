@@ -272,6 +272,25 @@ describe.skipIf(연결 === undefined)('작성 대기줄', () => {
       expect(쪽.items.every((r) => !('specText' in r))).toBe(true);
     });
 
+    it('작성자는 뿌리를 보낸 사람이다 — 반영을 다른 사람이 눌러도 줄의 작성자는 바뀌지 않는다', async () => {
+      const { pool } = await import('../db/index.js');
+      const 뿌리 = await pool.query<{ id: string }>(
+        `INSERT INTO authoring_request (service_id, kind, requested_by, requested_by_name, status)
+         VALUES ($1, 'AUTHOR', 'xwa-bunker', 'Issue Bunker DM-1', 'DONE') RETURNING id`,
+        [서비스],
+      );
+      const 뿌리번호 = Number(뿌리.rows[0]!.id);
+      await pool.query(
+        `INSERT INTO authoring_request (service_id, kind, source_id, requested_by, requested_by_name, status)
+         VALUES ($1, 'MERGE', $2, 'xwa-person', '맥시', 'DONE')`,
+        [서비스, 뿌리번호],
+      );
+      const 쪽 = await 한쪽({ 서비스: 서비스, 쪽: 1 });
+      const 줄 = 쪽.items.find((r) => r.rootId === 뿌리번호);
+      expect(줄?.kind).toBe('MERGE');
+      expect(줄?.requestedByName).toBe('Issue Bunker DM-1');
+    });
+
     it('상태로 거르면 그것만 나온다', async () => {
       const 쪽 = await 한쪽({ 서비스: 서비스, 상태: 'PENDING', 쪽: 1 });
       expect(쪽.items.every((r) => r.status === 'PENDING')).toBe(true);

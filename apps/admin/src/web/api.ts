@@ -209,6 +209,8 @@ export type RunListRow = RunSummary & {
   devices?: string[];
   /** 실제 폰 Chrome 에서 돈 모바일 항목의 폰 모델 — 비면 그 실행의 모바일은 서버 흉내다 (도메인/실행 §3.2 「모바일 웹 실행 위치」) */
   mobileDevices?: string[];
+  /** 처음 실패 뒤 Issue Bunker 「테스트 수정」으로 고쳐 통과한 케이스 수 — 판정 칸 「자동 수정 N」 (도메인/BTS §8.15 B) */
+  autoFixed?: number;
 };
 
 /** 모바일 웹 실행 위치 — 서버 러너의 iPhone 14 흉내 · Device VISION 실제 폰 Chrome (도메인/실행 §3.2 「모바일 웹 실행 위치」) */
@@ -482,6 +484,22 @@ export interface FailureCase {
   judgment: FailureJudgment;
   /** BTS 를 이은 프로젝트만 칸이 있다. null 이면 올리지 않은 케이스(흔들림으로 닫힘) (도메인/BTS §7) */
   bts?: FailureBts | null;
+  /** Issue Bunker 「테스트 수정」으로 고쳐 다시 실행에서 통과한 카드 — 「수정 후 통과」 (도메인/BTS §7 · §8.15 B). 앞 판 서버는 칸이 없다 */
+  autoFix?: 카드자동수정 | null;
+}
+
+/** 실패 카드의 자동 수정 칸 — rerunId 는 사람이 화면에서 찾는 실행, devices 는 다시 실행의 디바이스마다 결과 */
+export interface 카드자동수정 {
+  issueKey: string;
+  issueUrl: string;
+  movedBy: string | null;
+  prUrl: string | null;
+  merge: 'AUTO' | 'PERSON' | null;
+  rerunId: number | null;
+  /** 그 실행에 결과 화면이 있나 — 없으면 번호만 보인다 */
+  rerunPage: boolean;
+  at: string;
+  devices: { platform: Platform; status: ItemStatus }[];
 }
 
 /** 실패 카드의 BTS 등록 상태 — state 는 그 카드의 등록 줄 상태다 */
@@ -1283,7 +1301,7 @@ export const api = {
   },
 
   run: (runId: number) =>
-    call<RunSummary & { items: RunItemSummary[]; evidence: EvidenceRow[]; apiDocVersion?: number | null; apiDocNote?: 'DIFFERS' | 'FETCH_FAILED' | null; installedApps?: 폰에깔린앱[]; mobileDevices?: string[] }>(
+    call<RunSummary & { items: RunItemSummary[]; evidence: EvidenceRow[]; apiDocVersion?: number | null; apiDocNote?: 'DIFFERS' | 'FETCH_FAILED' | null; installedApps?: 폰에깔린앱[]; mobileDevices?: string[]; autoFixedCases?: string[] }>(
       `/runs/${runId}`,
     ),
 
@@ -1309,8 +1327,11 @@ export const api = {
   item: (runId: number, historyId: number) => call<RunItemPage>(`/runs/${runId}/items/${historyId}`),
 
   /** 끝난 실행의 확정 실패를 케이스 카드로 쪽 단위로 준다. 디바이스 거르기는 서버가 한다 (SPEC §7) */
-  failures: (runId: number, page: number, platform?: Platform) =>
-    call<Paged<FailureCase>>(`/runs/${runId}/failures?page=${page}${platform === undefined ? '' : `&platform=${platform}`}`),
+  /** 자동수정만 이면 「수정 후 통과」 카드만 — autoFixCount 는 그 조건을 뺀 셈이다 (도메인/BTS §7) */
+  failures: (runId: number, page: number, platform?: Platform, 자동수정만 = false) =>
+    call<Paged<FailureCase> & { autoFixCount?: number }>(
+      `/runs/${runId}/failures?page=${page}${platform === undefined ? '' : `&platform=${platform}`}${자동수정만 ? '&autoFix=1' : ''}`,
+    ),
   /** 그만둔 BTS 등록을 처음부터 다시 보낸다 (도메인/BTS §7) */
   resendBts: (runId: number, tcId: string, env: string) => call<void>(`/runs/${runId}/bts/resend`, json({ tcId, env })),
 
