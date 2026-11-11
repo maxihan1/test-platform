@@ -29,8 +29,7 @@ export const 앱테스트 = () =>
             console.error(`[kit] 기기 정보를 남기지 못했다: ${err instanceof Error ? err.message : String(err)}`);
           }
         }
-        // 게임 항목이면 게임 SDK 에 오브젝트 자리를 물어 윤곽을 그린다
-        폰장면 = await 폰장면걸기(side.driver, undefined, undefined, side.game);
+        폰장면 = await 폰장면걸기(side.driver);
         return side;
       };
       await use({ open: () => (opening ??= 열고남긴다()) });

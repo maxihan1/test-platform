@@ -12,7 +12,6 @@ const game = vi.hoisted(() => ({
   isGame: (env: Record<string, string | undefined>) => env.PLATFORM_ENGINE === 'GAME',
   openGame: vi.fn(),
   게임증적을남긴다: vi.fn(),
-  게임원본: <T>(g: T): T => g,
 }));
 
 vi.mock('@playwright/test', () => ({
