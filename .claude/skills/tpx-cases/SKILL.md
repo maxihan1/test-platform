@@ -71,6 +71,7 @@ LLM 출력은 비결정적이다. 같은 기획서를 두 번 넣으면 두 번 
 | §5 케이스 작성 — R11~R14 · R16 | `references/5-writing.md` | `.spec.ts` 를 쓰기 전 |
 | §5 흔들리지 않게 쓰기 — 기다리기 · 데이터 고르기 · 날짜 값 | `references/5-stable.md` | `.spec.ts` 를 쓰기 전 |
 | §5 입력값 칸 — 실행 때 바꿀 수 있게 | `references/5-inputs.md` | `.spec.ts` 를 쓰기 전 |
+| §2 · §5 테스트 데이터 — 시드는 이름으로 · 일회용 역할 계정 · 탈퇴는 마지막 확인 직전까지 · 환경 한계 머리 셋 | `references/5-data.md` | 표를 쓰기 전(제외를 정할 때) · `.spec.ts` 를 쓰기 전 |
 | §5 케이스 작성 — 화면 묶음이 여럿이면 (서브에이전트 팬아웃) | `.claude/skills/tpx-author/references/fanout.md` | 표를 얼리고 tcId 를 다 매긴 뒤(작성 에이전트는 `npm run ledger:number`) · 화면 묶음 둘 이상 · 케이스 8건 이상 |
 | §1~§5 API 애플리케이션 — 건너뛰는 단계 · 근거 둘 · API 원장 줄 · 케이스 꼴 · 네거티브 묶음 · API 도우미 | `references/api.md` | 프롬프트에 `--- API 문서 ---` 절이 있을 때 표를 쓰기 전 |
 | §2 · §5 게임 애플리케이션 — 케이스 꼴 · 창 화면 객체 · 상태 도우미 · 확인 수단 · 스모크 · 배치 확인 | `references/game.md` | 프롬프트에 `--- 게임 화면 ---` 절이 있을 때 표를 쓰기 전(화면 읽기는 `tpx-author` `references/game.md`) |
