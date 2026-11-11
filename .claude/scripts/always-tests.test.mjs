@@ -45,6 +45,7 @@ const 면제 = new Map([
   ['apps/runner/scenario/real-phone.test.ts', '테스트가 만든 임시 산출 폴더의 팜 증적(logcat)만 읽는다 (2026-11-03 09919a76 — PR #605 에서 더함)'],
   ['packages/kit/src/runtime/live.test.ts', '테스트가 만든 임시 폴더에 쓴 실시간 화면 사진만 읽는다 (2026-11-03 — PR #605 에서 더함)'],
   ['scripts/authoring-draft-login.test.ts', '테스트가 만든 임시 폴더에 쓴 로그인 상태 파일만 읽는다 (2026-11-09 4ec24c3b — PR #697 에서 더함)'],
+  ['packages/kit/src/runtime/liveBox.test.ts', '테스트가 만든 임시 폴더에 쓴 요소 윤곽 파일(.box)만 읽는다 (2026-11-11 8b8d103d — PR #719 에서 더함)'],
 ]);
 
 function 테스트파일들(폴더) {
