@@ -235,7 +235,7 @@ describe.skipIf(연결 === undefined)('진행 조회', () => {
       러너장면.clear();
     }
     expect((await 장면(내실행, 내항목)).statusCode).toBe(404);
-    // 장면을 안 찍는 항목(android · API 애플리케이션)도 404 다
+    // 장면을 안 찍는 항목(API 애플리케이션)도 404 다
     항목화면을연다(내항목, false);
     try {
       expect((await 장면(내실행, 내항목)).statusCode).toBe(404);
