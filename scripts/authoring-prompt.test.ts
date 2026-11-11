@@ -21,6 +21,11 @@ describe('줄프롬프트 — 대상 서버 목록의 계정 줄 (도메인/작�
     expect(글).toContain('  - dev — https://dev.mkt.test\n');
   });
 
+  it('계정이 여러 줄 것이면(반영 행) 붙이지 않는다', () => {
+    const 두줄 = [계정, { ...계정, env: 'dev', baseUrl: 'https://dev.mkt.test' }];
+    expect(줄프롬프트({ id: 1, kind: 'AUTHOR', specText: '본문', accounts: 두줄 }, 'MKT', [], { 폴더: 'mkt', 서버들 })).not.toContain('테스트 계정이 이 서버 것이다');
+  });
+
   it('계정이 없거나 대조 행이면 붙이지 않는다', () => {
     expect(줄프롬프트({ id: 1, kind: 'AUTHOR', specText: '본문' }, 'MKT', [], { 폴더: 'mkt', 서버들 })).not.toContain('테스트 계정이 이 서버 것이다');
     const 대조 = { env: 'qa', baseUrl: 'https://qa.mkt.test', startUrl: null, loginId: 'u', loginPassword: 'p' };

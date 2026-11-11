@@ -5,7 +5,7 @@ import { 어드민키역할 } from '@platform/kit/accounts';
 
 import { type 대상, 비밀최소 } from './authoring-reverse.js';
 
-/** 집기 응답의 `accounts` 한 줄 (도메인/작성 §7 claim). 대조 · 값을 채운 보류 머지 · 반영 행에만 온다 */
+/** 집기 응답의 `accounts` 한 줄 (도메인/작성 §7 claim). 대조 · 정방향 작성(종류마다 고른 줄) · 값을 채운 보류 머지 · 반영 행에 온다 */
 export interface 계정줄 {
   env: string;
   baseUrl: string | null;

@@ -17,14 +17,21 @@ describe.skipIf(연결 === undefined)('웹 애플리케이션 정방향 작성 �
   let 서비스 = 0;
   const 부르는이 = `${접두사.toLowerCase()}-에이전트`;
 
-  async function 하나만세운다(params: Record<string, unknown> = {}): Promise<void> {
+  async function 하나만세운다(kind: 'AUTHOR' | 'RERUN' | 'MERGE' = 'AUTHOR'): Promise<void> {
     const { pool } = await import('../db/index.js');
     await pool.query(`UPDATE authoring_request SET status = 'FAILED' WHERE service_id = $1 AND status IN ('PENDING', 'RUNNING')`, [서비스]);
-    await pool.query(
-      `INSERT INTO authoring_request (service_id, kind, params, requested_by, requested_by_name, status)
-       VALUES ($1, 'AUTHOR', $2, $3, '웹 검사', 'PENDING')`,
-      [서비스, JSON.stringify(params), 부르는이],
-    );
+    const 넣기 = (종류: string, 상태: string, 원본: string | null) =>
+      pool.query<{ id: string }>(
+        `INSERT INTO authoring_request (service_id, kind, source_id, requested_by, requested_by_name, status)
+         VALUES ($1, $2, $3, $4, '웹 검사', $5) RETURNING id`,
+        [서비스, 종류, 원본, 부르는이, 상태],
+      );
+    if (kind === 'AUTHOR') {
+      await 넣기('AUTHOR', 'PENDING', null);
+      return;
+    }
+    const 뿌리 = (await 넣기('AUTHOR', 'DONE', null)).rows[0]!.id;
+    await 넣기(kind, 'PENDING', 뿌리);
   }
 
   const 집기 = async () =>
@@ -87,9 +94,14 @@ describe.skipIf(연결 === undefined)('웹 애플리케이션 정방향 작성 �
     expect('accounts' in (await 집기())).toBe(false);
   });
 
-  it('반영 행은 정방향 작성 줄 고르기 없이 운영 아닌 줄 전부를 그대로 싣는다', async () => {
-    await 하나만세운다({ prdApply: true });
-    expect((await 집기()).accounts?.map((x) => x.env)).toEqual(['qa', 'qa', 'stg', 'stg']);
+  it('다시 작성 행도 같은 줄의 계정을 싣는다', async () => {
+    await 하나만세운다('RERUN');
+    expect((await 집기()).accounts?.map((x) => x.env)).toEqual(['qa', 'qa']);
+  });
+
+  it('보류 입력이 없는 머지 행은 계정을 안 싣는다 — 돌릴 케이스가 없다', async () => {
+    await 하나만세운다('MERGE');
+    expect('accounts' in (await 집기())).toBe(false);
   });
 
   it('이어 작성은 웹 정방향 뿌리면 계정 있는 첫 줄, 대조 뿌리면 그 줄로 계정을 센다', async () => {
