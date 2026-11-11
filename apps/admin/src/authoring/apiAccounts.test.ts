@@ -96,6 +96,6 @@ describe.skipIf(연결 === undefined)('API 애플리케이션 작성 집기 acco
   it('이어 작성은 API 뿌리의 대상 서버 줄로 계정을 센다 — 실서비스 서버 줄이면 없다', async () => {
     expect(await 계정줄env(서비스, { 대조env: null, 뿌리env: 'qa' }, 'API')).toBe('qa');
     expect(await 계정줄env(서비스, { 대조env: null, 뿌리env: 'live' }, 'API')).toBe(null);
-    expect(await 계정줄env(서비스, { 대조env: null, 뿌리env: 'qa' }, 'SCREEN')).toBe(null);
+    expect(await 계정줄env(서비스, { 대조env: null, 뿌리env: null }, 'API')).toBe(null);
   });
 });

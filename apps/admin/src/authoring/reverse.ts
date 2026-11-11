@@ -140,11 +140,22 @@ export const 폰앱종류 = ['APP', 'GAME'];
 export const 폰앱인가 = (kind: string | null | undefined): boolean => 폰앱종류.includes(kind ?? '');
 
 /**
- * 대조 없이 대상 서버 줄 하나의 계정 · 어드민 키로 작성하는 종류 — 앱 · 게임은 앱 줄, API 는 요청 env 줄(env 가 있어야 한다).
+ * 대조 없이 대상 서버 줄 하나의 계정 · 어드민 키로 작성하는 종류 — 앱 · 게임은 앱 줄, API 는 요청 env 줄(env 가 있어야 한다),
+ * 웹은 요청 env 줄 · 없으면 일반 회원 계정이 있는 첫 줄(실서비스 서버 줄 제외 · 2026-11-11 사용자 「모든 기능에 로그인」 — 정방향 웹이 로그인 뒤 요구를 전부 `계정 미등록` 으로 뺐다).
  * 집기(집기대상칸) · 이어 작성(계정줄env) · 「PRD 관리」 이어 작성 뿌리(held.ts)가 같이 본다 — 어긋나면 화면은 열리는데 서버가 막는다
  */
-export const 줄로작성종류 = [...폰앱종류, 'API'];
-export const 줄로작성하나 = (kind: string | null | undefined, env: string | null): boolean => 폰앱인가(kind) || (kind === 'API' && env !== null);
+export const 줄로작성종류 = [...폰앱종류, 'API', 'SCREEN'];
+export const 줄로작성하나 = (kind: string | null | undefined, env: string | null): boolean =>
+  폰앱인가(kind) || (kind === 'API' && env !== null) || kind === 'SCREEN';
+
+/**
+ * 줄로작성하나 가 참일 때 계정을 받을 줄 — 앱 · 게임은 앱 줄, 그 밖은 요청 env 줄, env 가 없으면(웹 정방향) 일반 회원 계정이 있는 첫 줄(env 순).
+ * 「실서비스 서버」 줄은 고르지 않는다 — 계정이 빈 줄을 먼저 고르면 계정을 넣은 줄이 있어도 하나도 안 실린다
+ */
+export function 계정줄고르기(kind: string | null | undefined, 줄들: 대상줄[], env: string | null): 대상줄 | undefined {
+  if (폰앱인가(kind)) return 앱줄고르기(줄들, env);
+  return env === null ? 줄들.find(계정있는줄) : 줄들.find((j) => !j.isProd && j.env === env);
+}
 
 /** 집기 응답 target 한 벌 — 운영 줄이면 계정이 비고 isProd 가 붙는다 */
 export function 집기대상(env: string, 원줄: 대상줄 | null, startUrl: string | null): 대상 {
@@ -199,7 +210,7 @@ export interface 집기어드민키 extends 어드민키 {
  *
  * accounts 는 자식 · 3회 실행이 갈 줄의 계정이다 (§3.6 「★ 역할별 계정」) — 대조 행은 그 줄, 값을 채운 보류가 있는 머지는
  * `머지env`(머지집기칸 의 target) 줄, 반영 행(`params.prdApply` — 화면이 맞음 포함)은 운영 아닌 줄 전부.
- * Android 앱 · 게임은 어느 행이든 앱 줄(`앱줄고르기`)을, API 는 작성 행의 대상 서버 줄을 맨 앞에 둔다.
+ * Android 앱 · 게임은 어느 행이든 앱 줄(`앱줄고르기`)을, API 는 작성 행의 대상 서버 줄을 맨 앞에 둔다. 웹은 작성 · 다시 작성 행만 그 줄(`계정줄고르기`)을 싣는다.
  * adminKey 는 게임 · API 의 그 맨 앞 줄 키다 — 작성 AI 가 상태 도우미 · 어드민 API 를 불러 보고 케이스를 돌려 볼 때 kit 이 몸통 admin 의 머리로 쓴다
  */
 export async function 집기대상칸(
@@ -218,11 +229,13 @@ export async function 집기대상칸(
     행.params.prdApply === true
       ? (await 대상줄들읽기(서비스)).filter((z) => !z.isProd)
       : [줄, 머지줄].filter((z): z is 대상줄 => z !== null);
-  // 정방향 Android 앱 · 게임 · API 는 대조 줄이 없어 이 길이 아니면 AI 가 로그인할 계정을 받을 곳이 없다 (2026-10-22 · 2026-11-03 사용자).
+  // 정방향 Android 앱 · 게임 · API · 웹은 대조 줄이 없어 이 길이 아니면 AI 가 로그인할 계정을 받을 곳이 없다 (2026-10-22 · 2026-11-03 · 2026-11-11 사용자).
   // 앱 대조는 요청 env 가 곧 앱 줄이라(앱줄고르기가 그 줄을 먼저 고른다) 같은 줄이 한 번만 실린다 (§3.6 「앱 · 게임 역방향」 8)
   // 앞줄(앱은 앱 줄, API 는 작성 행의 대상 서버 줄)을 맨 앞에 둔다 — 자식은 첫 「일반 회원」으로 로그인하는데 반영 · 머지 행은 다른 줄도 싣는다
   const 종류 = (await 문서설정읽기(서비스))?.kind;
-  const 앞줄 = 줄로작성하나(종류, 행.env) ? 앱줄고르기(await 대상줄들읽기(서비스), 행.env) : undefined;
+  // 웹은 작성 · 다시 작성 행에만 — 머지 · 케이스 고치기 · PRD 초안은 위에서 고른 줄만 싣는다. 대조 · 반영 행은 같은 줄이 이미 실려 있어 차례만 바뀐다 (§3.6 「★ 역할별 계정」 표 「작성 · 반영 때」)
+  const 웹작성행 = 행.kind === 'AUTHOR' || 행.kind === 'RERUN';
+  const 앞줄 = 줄로작성하나(종류, 행.env) && (종류 !== 'SCREEN' || 웹작성행) ? 계정줄고르기(종류, await 대상줄들읽기(서비스), 행.env) : undefined;
   const 줄들 = 앞줄 === undefined ? 그밖 : [앞줄, ...그밖.filter((z) => z.env !== 앞줄.env)];
   const accounts = 실을계정(줄들);
   // 앞줄만 — 계정 · 게임 첫 화면과 같은 서버라야 도우미가 AI 가 로그인한 그 캐릭터를 바꾼다. 앞줄은 「실서비스 서버」가 아니다(앱줄고르기)
