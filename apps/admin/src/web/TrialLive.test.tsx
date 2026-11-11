@@ -208,40 +208,6 @@ describe('장면칸', () => {
 });
 
 describe('장면통로.받기', () => {
-  it('요소 자리가 오면 장면 위에 같은 비율로 윤곽을 겹치고, 끝나면 마지막 화면에는 윤곽을 남기지 않는다', async () => {
-    vi.spyOn(장면통로, '받기').mockResolvedValue({ 종류: 'frame', 그림: new Blob(['jpeg']), 상자: { x: 0.5, y: 0.25, w: 0.25, h: 0.05 } });
-    const { rerender } = render(<장면칸 주소={주소} 도는중 vision={null} />);
-    await 흘리기();
-    const 그림칸 = document.querySelector('.live-shot img') as HTMLImageElement;
-    Object.defineProperty(그림칸, 'naturalWidth', { value: 800 });
-    Object.defineProperty(그림칸, 'naturalHeight', { value: 450 });
-    await act(async () => {
-      그림칸.dispatchEvent(new Event('load'));
-    });
-
-    const 윤곽 = document.querySelector('.live-shot svg.live-box rect');
-    expect(document.querySelector('.live-shot svg.live-box')?.getAttribute('viewBox')).toBe('0 0 800 450');
-    expect([윤곽?.getAttribute('x'), 윤곽?.getAttribute('y'), 윤곽?.getAttribute('width'), 윤곽?.getAttribute('height')]).toEqual(['400', '112.5', '200', '22.5']);
-
-    rerender(<장면칸 주소={주소} 도는중={false} vision={null} />);
-    expect(document.querySelector('.live-box')).toBeNull();
-  });
-
-  it('장면 머리글의 요소 자리(x-live-box)를 읽고, 꼴이 틀리거나 범위 밖이면 버린다', async () => {
-    const 상자 = async (값: string | null) => {
-      const 머리 = new Headers(값 === null ? {} : { 'x-live-box': 값 });
-      vi.stubGlobal('fetch', vi.fn(async () => new Response(new Uint8Array([0xff, 0xd8]), { status: 200, headers: 머리 })));
-      const 답 = await 장면통로.받기(주소);
-      return 답.종류 === 'frame' ? 답.상자 : 'x';
-    };
-
-    expect(await 상자('0.1000,0.2000,0.3000,0.0500')).toEqual({ x: 0.1, y: 0.2, w: 0.3, h: 0.05 });
-    expect(await 상자(null)).toBeUndefined();
-    expect(await 상자('0.1,0.2,0.3')).toBeUndefined();
-    expect(await 상자('0.1,0.2,1.5,0.1')).toBeUndefined();
-    vi.unstubAllGlobals();
-  });
-
   it('응답 번호를 장면 · 없음 · 못 닿음 · 끝으로 가른다', async () => {
     const 답 = async (res: Response | Error) => {
       vi.stubGlobal('fetch', vi.fn(async () => (res instanceof Error ? Promise.reject(res) : res)));

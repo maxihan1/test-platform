@@ -6,8 +6,6 @@ import { dirname } from 'node:path';
 
 import type { Page } from '@playwright/test';
 
-import { 게임상자읽개, 상자쓰개, 웹요소따라가기, 폰상자읽개, type 게임자리읽개, type 폰자리읽개 } from './liveBox.js';
-
 // 긴 변 800px(Playwright 기본)에 품질 70 — 글자 많은 화면도 한 장 70KB 안팎이다(2026-11-03 실측, 품질 90 은 107KB)
 const 품질 = 70;
 // 장면은 1초에 40장쯤 온다. 화면은 0.25초마다 읽으니 0.1초에 한 번만 쓴다
@@ -138,16 +136,13 @@ export async function 장면걸기(page: Page, 파일 = process.env.PLATFORM_LIV
   const 쓰개 = 파일 ? 장면쓰개(파일) : undefined;
   let 받음 = false;
   let 걸림 = true;
-  // 윤곽 자리를 장면 크기에 대한 비율로 적을 창 크기. 실제 폰 Chrome 은 viewportSize 가 비어 첫 장면이 알려 준다
-  let 창크기 = page.viewportSize();
   try {
     for (const 곳 of [파일, 영상]) if (곳) await mkdir(dirname(곳), { recursive: true });
     await page.screencast.start({
       ...(쓰개 !== undefined && {
         quality: 품질,
-        onFrame: ({ data, viewportWidth, viewportHeight }: { data: Buffer; viewportWidth: number; viewportHeight: number }) => {
+        onFrame: ({ data }: { data: Buffer }) => {
           받음 = true;
-          창크기 = { width: viewportWidth, height: viewportHeight };
           쓰개.받기(data);
         },
       }),
@@ -160,12 +155,9 @@ export async function 장면걸기(page: Page, 파일 = process.env.PLATFORM_LIV
     if (!걸림 && 쓰개 === undefined) return undefined;
   }
   const 받침멈추기 = 쓰개 === undefined ? undefined : 찍어받친다(page, 쓰개, () => 받음, 틈);
-  const 상자 = 파일 ? 상자쓰개(파일) : undefined;
-  const 따라멈추기 = 상자 === undefined ? undefined : 웹요소따라가기(page, () => 창크기, 상자);
   // 누른 곳 표시(page.screencast.showActions)는 걸지 않는다 — Playwright 가 동작마다 「Click getByRole(…)」 영어 제목을 장면에 찍고
   // 제목만 끄는 설정이 없다(1.63 — fontSize 0 은 무시된다). 화살표도 같이 사라진다 (2026-11-06 사용자 · WEB-F9-14 · 점검표 B20 · 러너 §5.2 「테스트 모드 — 실시간 장면」)
   const 멈추기 = async (): Promise<void> => {
-    await 따라멈추기?.();
     await 받침멈추기?.();
     if (걸림 && !page.isClosed()) await page.screencast.stop().catch((err: unknown) => console.warn(`[kit] 테스트 모드 장면을 못 멈췄다: ${글(err)}`));
     걸림 = false;
@@ -175,13 +167,12 @@ export async function 장면걸기(page: Page, 파일 = process.env.PLATFORM_LIV
     async 끄기() {
       await 멈추기();
       await 쓰개?.닫기();
-      await 상자?.닫기();
     },
   };
 }
 
-/** Appium 연결에서 장면을 찍고 윤곽 자리를 읽는 데 쓰는 것만 — webdriverio 의 driver 가 맞는다 */
-export interface 폰찍개 extends 폰자리읽개 {
+/** Appium 연결에서 장면을 찍는 데 쓰는 것만 — webdriverio 의 driver 가 맞는다 */
+export interface 폰찍개 {
   takeScreenshot(): Promise<string>;
 }
 
@@ -189,7 +180,7 @@ export interface 폰찍개 extends 폰자리읽개 {
  * 앱 · 게임 단계의 장면 — Appium 으로 폰 화면을 찍어(PNG) 같은 파일에 덮어 쓰고 1초 쉬었다 다시 찍는다 (SPEC 도메인/러너 §5.2 「테스트 모드 — 실시간 장면」 · 2026-11-05 사용자).
  * ponytail: 같은 Appium 세션이라 찍는 동안 단계 명령이 기다린다(게임은 한 장 1.5초쯤) — 단계가 눈에 띄게 느려지면 VISION 화면 통로(H.264)를 받아 그리는 쪽으로
  */
-export async function 폰장면걸기(driver: 폰찍개, 파일 = process.env.PLATFORM_LIVE_FILE, 쉼ms = 폰쉼ms, 게임?: 게임자리읽개): Promise<장면 | undefined> {
+export async function 폰장면걸기(driver: 폰찍개, 파일 = process.env.PLATFORM_LIVE_FILE, 쉼ms = 폰쉼ms): Promise<장면 | undefined> {
   if (!파일) return undefined;
   try {
     await mkdir(dirname(파일), { recursive: true });
@@ -199,10 +190,6 @@ export async function 폰장면걸기(driver: 폰찍개, 파일 = process.env.PL
   }
   // 한 장 찍는 데 1초 안팎이라 쓰기 간격은 따로 두지 않는다
   const 쓰개 = 장면쓰개(파일, 0);
-  const 상자 = 상자쓰개(파일);
-  const 자리읽기 = 폰상자읽개(driver);
-  // 게임 단계는 오브젝트가 Appium 요소가 아니다 — 게임 SDK 에 자리를 묻는다
-  const 게임자리 = 게임 === undefined ? undefined : 게임상자읽개(게임);
   let 멈춤 = false;
   let 깨우기 = () => {};
   let 알림 = false;
@@ -211,9 +198,6 @@ export async function 폰장면걸기(driver: 폰찍개, 파일 = process.env.PL
       try {
         const 장 = Buffer.from(await driver.takeScreenshot(), 'base64');
         if (!멈춤) 쓰개.받기(장);
-        // 찍은 뒤 자리를 읽는다 — 장면과 윤곽이 거의 같은 순간이다
-        const 윤곽 = 멈춤 ? null : ((await 게임자리?.()) ?? (await 자리읽기(장)));
-        if (!멈춤) await 상자.쓴다(윤곽);
       } catch (err) {
         // 앱이 넘어가는 중이거나 연결이 닫히는 중일 수 있다 — 장면은 보는 것일 뿐이라 한 번만 알리고 다음 장을 다시 찍어 본다
         if (!알림 && !멈춤) console.warn(`[kit] 테스트 모드 폰 장면을 못 찍었다: ${글(err)}`);
@@ -236,7 +220,6 @@ export async function 폰장면걸기(driver: 폰찍개, 파일 = process.env.PL
       // 찍던 장은 끝까지 안 기다린다 — 매달린 Appium 명령 뒤에 줄 선 찍기가 단계 한도 실패를 더 늦추지 않게. 늦게 온 장은 멈춤을 보고 버린다
       await Promise.race([돌기, new Promise((끝) => setTimeout(끝, 끄기기다림ms))]);
       await 쓰개.닫기();
-      await 상자.닫기();
     },
   };
 }

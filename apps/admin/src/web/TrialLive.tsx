@@ -4,33 +4,14 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { use말 } from './i18n.js';
 
-/** 케이스가 지금 누르거나 확인하는 요소의 자리 — 장면 그림에 대한 비율(0~1) (도메인/러너 §5.2 「요소 윤곽」) */
-export interface 장면상자 {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
-
-export type 장면답 = { 종류: 'frame'; 그림: Blob; 상자?: 장면상자 } | { 종류: 'empty' } | { 종류: 'gone' } | { 종류: 'unreachable' };
-
-// 「x,y,w,h」 비율 넷. 꼴이 틀리거나 범위 밖이면 윤곽을 안 그린다
-function 상자읽기(글: string | null): 장면상자 | undefined {
-  const 수들 = (글 ?? '').split(',').map(Number);
-  if (수들.length !== 4 || 수들.some((n) => !Number.isFinite(n) || n < 0 || n > 1)) return undefined;
-  const [x, y, w, h] = 수들 as [number, number, number, number];
-  return { x, y, w, h };
-}
+export type 장면답 = { 종류: 'frame'; 그림: Blob } | { 종류: 'empty' } | { 종류: 'gone' } | { 종류: 'unreachable' };
 
 /** 검사가 바꿔 끼우게 객체에 둔다 */
 export const 장면통로 = {
   async 받기(주소: string): Promise<장면답> {
     try {
       const res = await fetch(주소, { cache: 'no-store', credentials: 'same-origin' });
-      if (res.status === 200) {
-        const 상자 = 상자읽기(res.headers.get('x-live-box'));
-        return { 종류: 'frame', 그림: await res.blob(), ...(상자 !== undefined && { 상자 }) };
-      }
+      if (res.status === 200) return { 종류: 'frame', 그림: await res.blob() };
       // 자리를 기다리는 중이거나 폰을 여는 중이라 아직 장면이 없다
       if (res.status === 204) return { 종류: 'empty' };
       // 404 는 끝난 시험이라 러너가 장면을 버렸다. 401 · 403 은 다시 물어도 같은 답이고, 로그인으로 보내는 일은 같이 도는 결과 묻기(call)가 한다
@@ -51,7 +32,6 @@ const 못닿을때간격 = 2000;
 
 export function use장면(주소: string | null, 도는중: boolean, 앱폰: boolean) {
   const [그림, set그림] = useState<string | null>(null);
-  const [상자, set상자] = useState<장면상자 | null>(null);
   // 마지막 그림이 Appium 폰 장면(PNG)인가 — 섞인 E2E 의 앱 · 게임 단계도 폰 칸 이름과 1초 간격을 쓴다
   const [폰그림, set폰그림] = useState(false);
   // 마지막 답이 「장면 없음」이었나 — E2E 는 앱 · 게임 단계를 열고 폰 장면이 오기 전까지 장면이 없다
@@ -83,7 +63,6 @@ export function use장면(주소: string | null, 도는중: boolean, 앱폰: boo
         if (지금그림.current !== null) URL.revokeObjectURL(지금그림.current);
         지금그림.current = 새;
         set그림(새);
-        set상자(답.상자 ?? null);
         폰장 = 앱폰 || 답.그림.type === 'image/png';
         set폰그림(폰장);
       }
@@ -97,26 +76,7 @@ export function use장면(주소: string | null, 도는중: boolean, 앱폰: boo
     };
   }, [주소, 도는중, 앱폰]);
 
-  // 끝난 실행의 마지막 장면에는 윤곽을 안 남긴다 — 멈춘 순간 다루던 요소가 결과처럼 읽힌다
-  return { 그림, 상자: 도는중 ? 상자 : null, 폰그림, 비었나, 못닿음: 못닿음 && 도는중 };
-}
-
-/**
- * 장면 그림과 그 위의 요소 윤곽. 그림은 object-fit: contain 이라 칸보다 작으면 가운데 놓인다 —
- * 겹친 SVG 도 같은 비율로 맞춰(xMidYMid meet) 윤곽이 그림과 함께 움직인다. 선 굵기는 크기와 상관없이 3px 이다
- */
-export function 장면그림({ 그림, 상자, alt }: { 그림: string; 상자: 장면상자 | null; alt: string }) {
-  const [크기, set크기] = useState<{ w: number; h: number } | null>(null);
-  return (
-    <>
-      <img src={그림} alt={alt} onLoad={(e) => set크기({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })} />
-      {상자 === null || 크기 === null || 크기.w === 0 ? null : (
-        <svg className="live-box" viewBox={`0 0 ${크기.w} ${크기.h}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-          <rect x={상자.x * 크기.w} y={상자.y * 크기.h} width={상자.w * 크기.w} height={상자.h * 크기.h} vectorEffect="non-scaling-stroke" />
-        </svg>
-      )}
-    </>
-  );
+  return { 그림, 폰그림, 비었나, 못닿음: 못닿음 && 도는중 };
 }
 
 interface Props {
@@ -151,7 +111,7 @@ interface Props {
 export function 장면칸({ 주소, 도는중, vision, 부제, 폰만: 앱폰 = false, 모바일웹 = false, 늦춤글 = true, 뼈대 = false, 폰이름 = null, 머리끝 }: Props) {
   const t = use말();
   const 실제폰웹 = 모바일웹 && vision !== null;
-  const { 그림, 상자, 폰그림, 비었나, 못닿음 } = use장면(주소, 도는중, 앱폰);
+  const { 그림, 폰그림, 비었나, 못닿음 } = use장면(주소, 도는중, 앱폰);
   const 폰칸 = 앱폰 || 실제폰웹 || 폰그림;
   if (!도는중 && 그림 === null) return null;
   // 섞인 E2E 의 앱 단계를 열고 첫 폰 장면이 오기 전 — 마지막 웹 장면을 흐리게 둔다. E2E 는 창 하나라 웹 장면이 한 번 온 뒤의 「장면 없음」은 폰 단계뿐이다.
@@ -191,7 +151,7 @@ export function 장면칸({ 주소, 도는중, vision, 부제, 폰만: 앱폰 = 
         </p>
       ) : (
         <div className={폰단계 ? 'live-shot dim' : 'live-shot'}>
-          <장면그림 그림={그림} 상자={폰단계 ? null : 상자} alt={!도는중 ? t('종료된 순간의 화면') : 폰칸 ? t('디바이스의 지금 화면') : t('서버 브라우저의 지금 화면')} />
+          <img src={그림} alt={!도는중 ? t('종료된 순간의 화면') : 폰칸 ? t('디바이스의 지금 화면') : t('서버 브라우저의 지금 화면')} />
           {폰단계 ? <p className="live-over">{t('지금은 앱 단계라 디바이스에서 실행 중입니다')}</p> : null}
         </div>
       )}

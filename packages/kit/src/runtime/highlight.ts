@@ -30,43 +30,9 @@ export const { PNG } = createRequire(import.meta.url)('playwright-core/lib/utils
 const 빨강 = [229, 72, 77] as const;
 const 흰색 = [255, 255, 255] as const;
 
-// 실시간 장면의 윤곽이 읽는 「지금 다루는 요소」 — 장면을 찍는 쪽은 단계 문맥 밖이라 프로세스 전역에 둔다.
-// kit 이 두 방식(E2E 고정 spec 의 import · 케이스 파일의 require)으로 따로 올라와도 같은 값을 보게 globalThis 에 둔다 (scenario/wire.ts 머리)
-const 지금칸 = Symbol.for('platform.kit.지금요소');
-type 전역칸 = { [지금칸]?: Locator | string };
-
-/** 케이스가 마지막으로 다룬 요소 — 웹은 Locator, 앱은 Appium 요소 번호. 찾기를 시작했거나 page 에서 바로 부른 것이면 없다 (liveBox.ts) */
-export function 지금다룬요소(): Locator | string | undefined {
-  return (globalThis as 전역칸)[지금칸];
-}
-
-// 게임 단계가 지금 다루는 오브젝트 주소 — 앱 요소 번호와 섞이지 않게 칸을 따로 둔다 (game.ts 게임을지켜본다 · liveBox.ts)
-const 게임칸 = Symbol.for('platform.kit.지금게임대상');
-/** 오브젝트 주소와, 케이스가 월드 오브젝트를 비출 카메라를 정했으면 그 카메라 — 같은 카메라로 자리를 물어야 윤곽이 맞는다 */
-export interface 게임대상 {
-  대상: string;
-  camera?: string;
-}
-type 게임전역칸 = { [게임칸]?: 게임대상 };
-
-export function 지금게임대상(): 게임대상 | undefined {
-  return (globalThis as 게임전역칸)[게임칸];
-}
-
-export function 게임대상을적는다(대상: 게임대상): void {
-  (globalThis as 게임전역칸)[게임칸] = 대상;
-}
-
-/** 절차가 끝나면 놓는다 — 다음 절차 전 · E2E 부품 사이에 끝난 요소의 윤곽이 남아 아직 다루는 것처럼 읽히지 않게 (step.ts) */
-export function 요소를놓는다(): void {
-  (globalThis as 전역칸)[지금칸] = undefined;
-  (globalThis as 게임전역칸)[게임칸] = undefined;
-}
-
 function 적는다(요소: Locator | string | undefined): void {
   const scope = stepScope.getStore();
   if (scope) scope.마지막요소 = 요소;
-  (globalThis as 전역칸)[지금칸] = 요소;
 }
 
 const 감싼것 = new WeakMap<object, object>();
@@ -128,8 +94,6 @@ export function 앱을지켜본다(driver: AppDriver): AppDriver {
   const 폰 = driver as unknown as { on?: (event: string, fn: (e: 명령기록) => void) => void };
   if (typeof 폰.on !== 'function') return driver;
   폰.on('command', (e: 명령기록) => {
-    // 자리 읽기는 실시간 장면의 윤곽(liveBox.ts)이 1초마다 보낸다 — 케이스가 다룬 것으로 적으면 방금 비운 「찾는 중」을 앞 요소로 되돌린다
-    if (e.command === 'getElementRect') return;
     if (e.command.startsWith('findElement')) {
       적는다(undefined);
       return;

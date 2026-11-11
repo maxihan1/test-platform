@@ -6,7 +6,7 @@ import { api, type 항목진행 } from './api.js';
 import { use말, use언어, type 언어 } from './i18n.js';
 import type { RunDetail, 도는것 } from './runProgress.js';
 import { 시간글자 } from './remainText.js';
-import { use장면, 장면그림 } from './TrialLive.js';
+import { use장면 } from './TrialLive.js';
 import { PLATFORM_LABEL } from './ui.js';
 
 // 동시에 도는 항목이 기본 둘(EXECUTION_CONCURRENCY)이라 카드도 둘까지다. 넘는 것은 왼쪽 「진행 중」 줄에만 선다
@@ -70,11 +70,11 @@ function 첫단계전글({ 항목, 절차 }: 도는것, t: 말): string {
 function 장면({ runId, historyId, 폰, 앱폰, 기다림글 }: { runId: number; historyId: number; 폰: boolean; 앱폰: boolean; 기다림글: string }) {
   const t = use말();
   // 앱 · 게임 항목은 Appium 폰 장면(1초 간격)이라 묻는 간격도 그에 맞춘다
-  const { 그림, 상자, 못닿음 } = use장면(api.itemLive(runId, historyId), true, 앱폰);
+  const { 그림, 못닿음 } = use장면(api.itemLive(runId, historyId), true, 앱폰);
   if (그림 === null) return <p className="live-wait">{못닿음 ? t('실행 서버와 연결이 끊겼습니다. 다시 연결하는 중입니다') : 기다림글}</p>;
   return (
     <div className={폰 ? 'live-shot lc-phone' : 'live-shot'}>
-      <장면그림 그림={그림} 상자={상자} alt={t('지금 화면')} />
+      <img src={그림} alt={t('지금 화면')} />
     </div>
   );
 }

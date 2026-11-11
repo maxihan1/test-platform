@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 
 import { use말 } from './i18n.js';
 import { scenarioApi } from './scenarioApi.js';
-import { use장면, 장면그림 } from './TrialLive.js';
+import { use장면 } from './TrialLive.js';
 import { PLATFORM_LABEL } from './ui.js';
 
 type 말 = ReturnType<typeof use말>;
@@ -26,7 +26,7 @@ function 기기글(platform: Platform, 폰그림: boolean, 앱폰본적: boolean
 /** 보일 것이 없으면(화면 있는 단계 없음 · 폰 안 잡음 · 끝남) 아무것도 안 그린다 */
 export function E2E화면카드({ runId, platform, live, vision }: { runId: number; platform: Platform; live: boolean; vision?: { url: string } }) {
   const t = use말();
-  const { 그림, 상자, 폰그림, 비었나, 못닿음 } = use장면(live ? scenarioApi.runLive(runId) : null, true, false);
+  const { 그림, 폰그림, 비었나, 못닿음 } = use장면(live ? scenarioApi.runLive(runId) : null, true, false);
   // 앱 · 게임 단계의 폰 장면(PNG)을 한 번이라도 봤나 — 그 뒤 웹 장면은 흉내다
   const [앱폰본적, set앱폰본적] = useState(false);
   useEffect(() => {
@@ -56,7 +56,7 @@ export function E2E화면카드({ runId, platform, live, vision }: { runId: numb
             <p className="live-wait">{못닿음 ? t('실행 서버와 연결이 끊겼습니다. 다시 연결하는 중입니다') : t('화면을 기다리고 있습니다')}</p>
           ) : (
             <div className={['live-shot', platform === 'mobile' || 폰그림 ? 'lc-phone' : '', 폰기다림 ? 'dim' : ''].filter(Boolean).join(' ')}>
-              <장면그림 그림={그림} 상자={폰기다림 ? null : 상자} alt={t('지금 화면')} />
+              <img src={그림} alt={t('지금 화면')} />
               {폰기다림 ? <p className="live-over">{t('지금은 앱 단계라 디바이스에서 실행 중입니다')}</p> : null}
             </div>
           )}
