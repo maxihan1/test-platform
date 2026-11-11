@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import ts from 'typescript';
 
 import { 테스트고침읽기 } from './authoring-apply.js';
+import { 바뀐것 } from './authoring-base-list.js';
 import { type 돌린판, 끝기록꼴, 돌린기록들, 판들읽기 } from './authoring-gate3.js';
 import type { 보고손 } from './authoring-io.js';
 import { 사유거르기 } from './authoring-reverse.js';
@@ -51,11 +52,34 @@ export function 고친곳읽기(자식출력: string): string {
 
 export type 걸린까닭 = 'EXPECTED_CHANGED' | 'VERIFY_FEWER' | 'MUTATION_MISSED' | 'NOT_MEASURED';
 
-/** 기대값 칸을 꼴만 다르게 쓴 것(줄바꿈 · 끝 쉼표)은 같은 값으로 본다 */
-const 꼴풀기 = (n: ts.Node, sf: ts.SourceFile) => ts.createPrinter({ removeComments: true }).printNode(ts.EmitHint.Unspecified, n, sf).replace(/\s+/g, ' ').replace(/,(\s*[\]}])/g, '$1');
+/** 기대값 칸을 꼴만 다르게 쓴 것(줄바꿈 · 주석 · 끝 쉼표)은 같은 값으로 본다 — 낱말로 끊어 견주므로 글자 안의 쉼표 · 빈칸은 그대로다 */
+function 꼴풀기(n: ts.Node, sf: ts.SourceFile): string {
+  const 훑개 = ts.createScanner(ts.ScriptTarget.Latest, true, ts.LanguageVariant.Standard, n.getText(sf));
+  const 낱: string[] = [];
+  for (let t = 훑개.scan(); t !== ts.SyntaxKind.EndOfFileToken; t = 훑개.scan()) 낱.push(훑개.getTokenText());
+  return 낱.filter((x, i) => !(x === ',' && [']', '}', ')'].includes(낱[i + 1] ?? ''))).join(' ');
+}
+
+/** 화면 요소 찾기 · 누르기 같은 부르기의 인자(옵션 객체 칸 포함)인 글자 · 숫자 — 기대값이 아니라 요소 주소 · 데이터라 고쳐도 된다 */
+function 부르기인자인가(n: ts.Node): boolean {
+  let p = n.parent;
+  if (ts.isPropertyAssignment(p) && ts.isObjectLiteralExpression(p.parent)) p = p.parent.parent;
+  return ts.isCallExpression(p) || ts.isNewExpression(p);
+}
+
+/** 실제 값 칸(둘째 인자) 안에서 견주는 값 — `합계 === 300` · `slot === 'Weapon'` 처럼 기대값을 실제 값 쪽에 쓴 케이스가 있다 */
+function 견주는값들(n: ts.Node | undefined, sf: ts.SourceFile): string[] {
+  const 값: string[] = [];
+  const 훑기 = (x: ts.Node): void => {
+    if ((ts.isStringLiteralLike(x) || ts.isNumericLiteral(x)) && !부르기인자인가(x)) 값.push(`값 ${꼴풀기(x, sf)}`);
+    ts.forEachChild(x, 훑기);
+  };
+  if (n !== undefined) 훑기(n);
+  return 값;
+}
 
 /**
- * 케이스 파일의 판정 — verify 문장 수와 기대값 칸들(verify 셋째 · verify.element 넷째 · verify.rates 셋째와 허용 오차), defineCase 의 expected.
+ * 케이스 파일의 판정 — verify 문장 수와 기대값 칸들(verify 셋째 · verify.element 넷째 · verify.rates 셋째와 허용 오차, 그리고 실제 값 칸 안의 견주는 값), defineCase 의 expected.
  * defineCase 가 없으면 못 읽은 것이다
  */
 export function 판정읽기(글: string): { 수: number; 기대값: string[]; expected: string } | null {
@@ -69,7 +93,7 @@ export function 판정읽기(글: string): { 수: number; 기대값: string[]; e
       const 칸 = ts.isIdentifier(e) && e.text === 'verify' ? [2] : ts.isPropertyAccessExpression(e) && ts.isIdentifier(e.expression) && e.expression.text === 'verify' ? { element: [3], rates: [2, 3] }[e.name.text] : undefined;
       if (칸 !== undefined) {
         수 += 1;
-        기대값.push(칸.map((i) => (n.arguments[i] === undefined ? '' : 꼴풀기(n.arguments[i]!, sf))).join(' ⟂ '));
+        기대값.push(칸.map((i) => (n.arguments[i] === undefined ? '' : 꼴풀기(n.arguments[i]!, sf))).join(' ⟂ '), ...견주는값들(n.arguments[칸[0]! - 1], sf));
       }
       if (ts.isIdentifier(e) && e.text === 'defineCase' && n.arguments[0] !== undefined && ts.isObjectLiteralExpression(n.arguments[0])) {
         const 칸값 = n.arguments[0].properties.find((p) => ts.isPropertyAssignment(p) && p.name.getText(sf) === 'expected');
@@ -92,10 +116,12 @@ export function 고장줄읽기(자식출력: string, tcId: string): { 고장: n
 /**
  * 자동 병합 세 조건(도메인/BTS §3.12 「테스트 수정 바퀴」 3) — 걸린 까닭들. 비면 자동 병합한다.
  * 기대값은 고치기 전 것이 하나도 빠지거나 바뀌지 않아야 한다(확인을 더한 것은 괜찮다) · 확인 문장 수는 줄지 않아야 한다 ·
- * 고장 내 보기는 고장을 하나 이상 내 그 자리 문장이 다 빨개졌어야 한다. 고치기 전 · 뒤 파일이나 고장 줄이 없으면 「재지 못함」
+ * 고장 내 보기는 고장을 하나 이상 내 그 자리 문장이 다 빨개졌어야 한다. 고치기 전 · 뒤 파일이나 고장 줄이 없거나 빨강이 고장보다 많으면(숫자가 틀림) 「재지 못함」.
+ * 고친 케이스 파일 말고 다른 테스트 파일(다른 케이스 · 화면 부품)도 바뀌었으면(`바뀐` — tests 아래 바뀐 파일 · 못 읽었으면 null) 그것은 재지 않으므로 「재지 못함」
  */
-export function 자동병합재기(건들: readonly { tcId: string; 앞: string | null; 뒤: string | null }[], 자식출력: string): 걸린까닭[] {
+export function 자동병합재기(건들: readonly { tcId: string; 앞: string | null; 뒤: string | null }[], 자식출력: string, 바뀐: readonly string[] | null): 걸린까닭[] {
   const 걸림 = new Set<걸린까닭>();
+  if (바뀐 === null || 바뀐.some((f) => !건들.some((건) => f.endsWith(`/${건.tcId}.spec.ts`)))) 걸림.add('NOT_MEASURED');
   for (const 건 of 건들) {
     const 앞 = 건.앞 === null ? null : 판정읽기(건.앞);
     const 뒤 = 건.뒤 === null ? null : 판정읽기(건.뒤);
@@ -110,10 +136,16 @@ export function 자동병합재기(건들: readonly { tcId: string; 앞: string 
       if (뒤.수 < 앞.수) 걸림.add('VERIFY_FEWER');
     }
     const 고장 = 고장줄읽기(자식출력, 건.tcId);
-    if (고장 === undefined) 걸림.add('NOT_MEASURED');
+    if (고장 === undefined || 고장.빨강 > 고장.고장) 걸림.add('NOT_MEASURED');
     else if (고장.고장 < 1 || 고장.빨강 < 고장.고장) 걸림.add('MUTATION_MISSED');
   }
   return [...걸림].sort();
+}
+
+/** 기준과 견줘 바뀐 tests 아래 파일들 — 못 읽었으면 null */
+export function 고친테스트파일들(트리: string, 기준목록경로: string): string[] | null {
+  const r = 바뀐것(트리, 기준목록경로);
+  return Array.isArray(r) ? r : null;
 }
 
 /**
@@ -136,20 +168,26 @@ export function 고치기전후(기준목록글: string, 트리: string, 깃: (�
 export function 테스트고침싣는손(
   손: 보고손,
   것: { params?: unknown },
-  재료: () => { 자식출력: string; 결과폴더: string; 비밀: readonly string[]; 파일: (tcId: string) => { 앞: string | null; 뒤: string | null } },
+  재료: () => {
+    자식출력: string;
+    결과폴더: string;
+    비밀: readonly string[];
+    파일: (tcId: string) => { 앞: string | null; 뒤: string | null };
+    바뀐: () => readonly string[] | null;
+  },
 ): 보고손 {
   return {
     ...손,
     끝내기: (몸) => {
       const 고침 = 테스트고침읽기(것);
       if (몸.status !== 'DONE' || 고침 === null || 고침 === undefined) return 손.끝내기(몸);
-      const { 자식출력, 결과폴더, 비밀, 파일 } = 재료();
+      const { 자식출력, 결과폴더, 비밀, 파일, 바뀐 } = 재료();
       const 곳 = 고친곳읽기(자식출력);
       const summary = 사유거르기(곳, 비밀) === 곳 ? 곳 : '';
       const 결과 = typeof 몸.result === 'object' && 몸.result !== null ? (몸.result as Record<string, unknown>) : {};
       const tcIds = [...new Set(고침.cases.map((x) => x.tcId))];
       const reruns = 다시돌림세기(결과폴더, tcIds).횟수;
-      const held = 자동병합재기(tcIds.map((tcId) => ({ tcId, ...파일(tcId) })), 자식출력);
+      const held = 자동병합재기(tcIds.map((tcId) => ({ tcId, ...파일(tcId) })), 자식출력, 바뀐());
       return 손.끝내기({ ...몸, result: { ...결과, testFix: { summary, reruns, autoMerge: held.length === 0, held } } });
     },
   };

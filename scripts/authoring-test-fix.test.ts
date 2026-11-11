@@ -102,6 +102,7 @@ describe('다시 돌린 횟수 · 끝내기 result.testFix', () => {
         결과폴더: 폴더,
         비밀: ['pw-1234'],
         파일: () => ({ 앞: 케이스(), 뒤: 글 === 'pw-1234 로 로그인' ? null : 케이스() }),
+        바뀐: () => ['tests/x/X-FN-001.spec.ts'],
       });
       await 테스트고침싣는손(손, { params: { testFix: 고침 } }, 재료('기다리기를 고쳤어요')).끝내기({ status: 'DONE', prUrl: 'p', result: { held: [] } });
       await 테스트고침싣는손(손, { params: { testFix: 고침 } }, 재료('pw-1234 로 로그인')).끝내기({ status: 'DONE', prUrl: 'p' });
@@ -121,17 +122,25 @@ describe('다시 돌린 횟수 · 끝내기 result.testFix', () => {
   it('자동 병합 세 조건 — 기대값 그대로 · 확인 문장 수 그대로 · 고장 내 보기가 고장마다 그 자리를 빨갛게 했을 때만 비고, 못 재면 「재지 못함」', () => {
     const 고장 = '테스트 고침 고장 내 보기: X-FN-001 · 고장 2 · 그 자리 빨강 2';
     const 건 = (뒤: string | null, 앞: string | null = 케이스()) => [{ tcId: 'X-FN-001', 앞, 뒤 }];
-    expect(자동병합재기(건(케이스({ 기다리기: "await page.getByRole('button', { name: '주문' }).click();" })), 고장)).toEqual([]);
-    expect(자동병합재기(건(케이스({ 끝쉼표: true })), 고장)).toEqual([]);
-    expect(자동병합재기(건(케이스({ 더: true })), 고장)).toEqual([]);
-    expect(자동병합재기(건(케이스({ 기대: "'주문 완료됨'" })), 고장)).toEqual(['EXPECTED_CHANGED']);
-    expect(자동병합재기(건(케이스({ expected: '{ 합계: 1 }' })), 고장)).toEqual(['EXPECTED_CHANGED']);
-    expect(자동병합재기(건(케이스({ 덜: true })), 고장)).toEqual(['EXPECTED_CHANGED', 'VERIFY_FEWER']);
-    expect(자동병합재기(건(케이스()), '테스트 고침 고장 내 보기: X-FN-001 · 고장 2 · 그 자리 빨강 1')).toEqual(['MUTATION_MISSED']);
-    expect(자동병합재기(건(케이스()), '테스트 고침 고장 내 보기: X-FN-001 · 고장 0 · 그 자리 빨강 0')).toEqual(['MUTATION_MISSED']);
-    expect(자동병합재기(건(케이스()), '테스트 고침 고장 내 보기: X-FN-002 · 고장 2 · 그 자리 빨강 2')).toEqual(['NOT_MEASURED']);
-    expect(자동병합재기(건(케이스(), null), 고장)).toEqual(['NOT_MEASURED']);
-    expect(자동병합재기(건('const x = 1;'), 고장)).toEqual(['NOT_MEASURED']);
+    const 케이스만 = ['tests/x/X-FN-001.spec.ts'];
+    expect(자동병합재기(건(케이스({ 기다리기: "await page.getByRole('button', { name: '주문' }).click();" })), 고장, 케이스만)).toEqual([]);
+    expect(자동병합재기(건(케이스({ 끝쉼표: true })), 고장, 케이스만)).toEqual([]);
+    expect(자동병합재기(건(케이스({ 더: true })), 고장, 케이스만)).toEqual([]);
+    expect(자동병합재기(건(케이스({ 기대: "'주문 완료됨'" })), 고장, 케이스만)).toEqual(['EXPECTED_CHANGED']);
+    expect(자동병합재기(건(케이스({ expected: '{ 합계: 1 }' })), 고장, 케이스만)).toEqual(['EXPECTED_CHANGED']);
+    expect(자동병합재기(건(케이스({ 덜: true })), 고장, 케이스만)).toEqual(['EXPECTED_CHANGED', 'VERIFY_FEWER']);
+    expect(자동병합재기(건(케이스({ 상태: "page.getByRole('alert', { name: '알림' })" })), 고장, 케이스만)).toEqual([]);
+    expect(자동병합재기(건(케이스({ 합계: 350 })), 고장, 케이스만)).toEqual(['EXPECTED_CHANGED']);
+    expect(자동병합재기(건(케이스({ 기대: "'목록: a ]'" }), 케이스({ 기대: "'목록: a, ]'" })), 고장, 케이스만)).toEqual(['EXPECTED_CHANGED']);
+    expect(자동병합재기(건(케이스()), '테스트 고침 고장 내 보기: X-FN-001 · 고장 2 · 그 자리 빨강 1', 케이스만)).toEqual(['MUTATION_MISSED']);
+    expect(자동병합재기(건(케이스()), '테스트 고침 고장 내 보기: X-FN-001 · 고장 0 · 그 자리 빨강 0', 케이스만)).toEqual(['MUTATION_MISSED']);
+    expect(자동병합재기(건(케이스()), '테스트 고침 고장 내 보기: X-FN-002 · 고장 2 · 그 자리 빨강 2', 케이스만)).toEqual(['NOT_MEASURED']);
+    expect(자동병합재기(건(케이스(), null), 고장, 케이스만)).toEqual(['NOT_MEASURED']);
+    expect(자동병합재기(건('const x = 1;'), 고장, 케이스만)).toEqual(['NOT_MEASURED']);
+    expect(자동병합재기(건(케이스()), '테스트 고침 고장 내 보기: X-FN-001 · 고장 2 · 그 자리 빨강 3', 케이스만)).toEqual(['NOT_MEASURED']);
+    expect(자동병합재기(건(케이스()), 고장, [...케이스만, 'tests/x/pages/order.page.ts'])).toEqual(['NOT_MEASURED']);
+    expect(자동병합재기(건(케이스()), 고장, null)).toEqual(['NOT_MEASURED']);
+    expect(자동병합재기(건(케이스()), 고장, [])).toEqual([]);
   });
 
   it('고장 줄은 그 케이스의 마지막 줄을 읽는다 — 목록 기호로 적어도 읽는다', () => {
@@ -155,13 +164,14 @@ describe('다시 돌린 횟수 · 끝내기 result.testFix', () => {
   });
 });
 
-function 케이스(바꿈: { 기다리기?: string; 기대?: string; expected?: string; 끝쉼표?: boolean; 더?: boolean; 덜?: boolean } = {}): string {
+function 케이스(바꿈: { 기다리기?: string; 기대?: string; 상태?: string; 합계?: number; expected?: string; 끝쉼표?: boolean; 더?: boolean; 덜?: boolean } = {}): string {
   return [
     "import { defineCase, test, verify } from '@platform/kit';",
     `export const spec = defineCase({ tcId: 'X-FN-001', name: '주문', precondition: [], expected: ${바꿈.expected ?? '{ 합계: 3 }'} });`,
     'test(spec, async ({ page }) => {',
     `  ${바꿈.기다리기 ?? "await page.getByText('주문').click();"}`,
-    `  await verify('주문이 끝난다', await page.getByRole('status').innerText(), ${바꿈.기대 ?? "'주문 완료'"});`,
+    `  await verify('주문이 끝난다', await ${바꿈.상태 ?? "page.getByRole('status')"}.innerText(), ${바꿈.기대 ?? "'주문 완료'"});`,
+    `  await verify('합계가 300 이다', Number(await page.getByTestId('합계').innerText()) === ${바꿈.합계 ?? 300}, true);`,
     바꿈.덜 === true ? '' : `  await verify.element('합계가 맞다', 'total', 3, ${바꿈.끝쉼표 === true ? '{\n    합계: 3,\n  }' : '{ 합계: 3 }'});`,
     바꿈.더 === true ? "  await verify('영수증이 보인다', await page.getByText('영수증').isVisible(), true);" : '',
     '});',
