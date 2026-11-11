@@ -44,8 +44,8 @@ export const BTS말: Record<string, string> = {
 
   // 2 · 자동 설정
   '2 · {bts} 자동 설정': '2 · Set up {bts} automatically',
-  '내 통합계정 권한으로 {bts} 에 아래 다섯 가지를 만듭니다. 이미 있으면 생성하지 않고 수정합니다':
-    'Creates the five items below in {bts} with your unified account permissions. Existing ones are updated, not duplicated',
+  '내 통합계정 권한으로 {bts} 에 아래 항목을 만듭니다. 이미 있으면 생성하지 않고 수정합니다':
+    'Creates the items below in {bts} with your unified account permissions. Existing ones are updated, not duplicated',
   '웹훅': 'Webhook',
   '담당자 변경 규칙': 'Assignee change rule',
   'PR 병합 규칙': 'PR merge rule',

@@ -573,7 +573,7 @@ POST /mcp
 
 ```
 [계약 변경 필요]
-대상:    Admin API — 설정 › BTS 연결 statusMap.TEST_FIX · setup testFixField · 작성 끝내기 result.testFix · GET /api/catalog/cases(·/:tcId) autoFix · autoFixCount · ?autoFix · 서랍 실행 기록 afterFix · GET /api/runs/:runId/failures autoFix · autoFixCount · ?autoFix · GET /api/runs autoFixed · 작성 목록 구분 「자동 수정」
+대상:    Admin API — 설정 › BTS 연결 statusMap.TEST_FIX · setup items 「TEST_FIX_FIELD」 줄 · 작성 끝내기 result.testFix · GET /api/catalog/cases(·/:tcId) autoFix · autoFixCount · ?autoFix · 서랍 실행 기록 afterFix · GET /api/runs/:runId/failures autoFix · autoFixCount · ?autoFix · GET /api/runs autoFixed · 작성 목록 구분 「자동 수정」
 현재:    「테스트 문제」로 닫으면 고침 PR 만 열리고 고친 사실이 Commander 화면 어디에도 없다
 제안:    위 「테스트 수정 바퀴」 꼴
 이유:    도메인/BTS §3.12 결정 23 · 24 · 25 (2026-11-11 사용자 — 기획 대화 · 시안 2판 A+B · BTS-F10-01 시작 질문 승인)
@@ -604,7 +604,7 @@ POST /mcp
 ```
 
 - 상태 매핑은 BTS 에서 불러온 고르개다 — 상태는 키, 해결 사유는 이름을 저장한다. 「테스트 수정」 고르개만 맨 위에 「선택 안 함」이 있다 — 고르지 않으면 「테스트 수정을 쓰려면 Issue Bunker 워크플로에 상태를 만든 뒤 여기서 선택합니다」 한 줄(2026-11-11 BTS-F10-03). 이은 프로젝트는 열 때 저장한 계정 이름으로 바로 불러온다. 못 불러오면 까닭 한 줄과 글 칸으로 물러선다. 저장해 둔 값이 목록에 없어도 고르개에 남는다
-- [저장하고 BTS 자동 설정] 하나로 연결 저장(BTS 를 한 번 불러 프로젝트 키를 확인 — 실패면 저장 안 됨 · 까닭 한 줄) → 바뀐 애플리케이션의 코드 저장소 → 자동 설정(§3.12 「설정 · 고장 대응」). 결과는 다섯(2026-11-11 이슈 필드 「테스트 수정 PR」을 더했다)마다 ✓ · ✕ 와 까닭(권한 없음 · 접속하지 못함 · 실패 (코드)). 웹훅이 권한 없음이면 「웹훅은 Issue Bunker 시스템 관리자만 만들 수 있습니다 …」 한 줄
+- [저장하고 BTS 자동 설정] 하나로 연결 저장(BTS 를 한 번 불러 프로젝트 키를 확인 — 실패면 저장 안 됨 · 까닭 한 줄) → 바뀐 애플리케이션의 코드 저장소 → 자동 설정(§3.12 「설정 · 고장 대응」). 결과는 항목(2026-11-11 이슈 필드 「테스트 수정 PR」을 더했다)마다 ✓ · ✕ 와 까닭(권한 없음 · 접속하지 못함 · 실패 (코드)). 웹훅이 권한 없음이면 「웹훅은 Issue Bunker 시스템 관리자만 만들 수 있습니다 …」 한 줄
 - 「QA Hub AI 계정 이름」은 보통 글 칸이다(가리지 않는다 · 자리 표시 `qahub-ai`) — Issue Bunker 에서 「QA Hub AI」로 쓰는 Auth 계정의 이름(username)을 적는다. 비밀이 아니라 저장한 값을 그대로 보인다(2026-11-04 S25 — 앞 판은 가린 `pat_…` 칸)
 - 누른 계정이 Auth 에 안 묶였거나 대신 PAT 를 못 받으면 「Auth 계정으로 로그인한 운영 계정이어야 BTS 자동 설정을 할 수 있습니다」(NO_PERSONAL_TOKEN — 앞 판 문구는 내 메뉴 「통합계정 토큰」을 가리켰다)
 - 배포 알림 토큰 원문은 발급 직후 한 번만 보인다(CI 토큰 구획과 같다 — [인증.md](인증.md) §8.8 「CI 토큰」). 원문은 그 자리에서 `deploy.sh` 한 줄에 들어가고, 아니면 `<배포 알림 토큰>` 자리로 남는다. 주소는 publicUrl, 없으면 브라우저 주소
