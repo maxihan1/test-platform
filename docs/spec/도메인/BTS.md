@@ -168,10 +168,13 @@
    - PR 제목은 `[Test Commander] 테스트 수정 · <이슈 키> · <tcId>` 다. 본문 「테스트 고침」 줄의 다시 돌린 횟수는 마지막 전체 돌려 보기([작성.md](작성.md) §3.6 — PR 본문 이름 「3번 돌려 보기」)에서 실제로 돈 횟수를 적는다(앞 판은 늘 0이었다). 닫기 줄(`Closes`)은 지금처럼 넣지 않는다
    - 바뀐 케이스가 없이 끝났거나(고칠 게 없음) 작성이 실패 · 멈춤 · 폐기되면 → 아래 5 「되돌리기」
 3. **병합 — 세 조건이 맞으면 Commander 가 한다**(결정 24). 작성 에이전트가 PR 을 올리기 전에 재어 끝내기 결과에 싣는다(`result.testFix.autoMerge` · `held`). 셋 다 맞으면 서버가 그 작성의 반영(MERGE)을 스스로 세운다(요청한 사람 `bts`). 아니면 「사람 확인이 필요해요 — <걸린 까닭>」 댓글을 달고 사람이 지금처럼 테스트 작성 화면에서 반영한다. GitHub 에서 직접 병합했으면 지금 규칙대로 반영을 한 번 눌러야 이어진다(`authoring/continue.ts` 「GitHub 에서 직접 병합한 것은 반영을 한 번 눌러야 선다」)
-   - **기대값 그대로** — 고친 케이스의 `verify` 기대값(세 번째 인자)과 `expected` 가 고치기 전과 같다
+   - **기대값 그대로** — 고친 케이스의 `verify` 기대값(세 번째 인자 · `verify.element` 는 네 번째 · `verify.rates` 는 세 번째와 허용 오차)과 `expected` 가 고치기 전과 같다. 고치기 전 기대값이 하나도 빠지거나 바뀌지 않으면 된다 — 확인을 더한 것은 괜찮다. 줄바꿈 · 끝 쉼표만 다른 것은 같은 값이다. 고치기 전 파일은 기준 커밋의 그 케이스 파일(`tests/<폴더>/<tcId>.spec.ts`)이다
    - **확인 문장 수 그대로** — 고친 케이스의 `verify` 문장 수가 줄지 않았다(같거나 늘었다)
-   - **고장 내 보기 통과** — 지금 부수기([작성.md](작성.md) §3.6 — PR 본문 이름 「일부러 고장 내 보기」)가 고친 케이스에서 고장마다 그 자리 문장을 빨갛게 했다
-   - 셋 가운데 하나라도 못 쟀으면(고치기 전 파일을 못 읽음 · 고장 내 보기를 안 돌림) 자동 병합하지 않는다 — 까닭은 「재지 못함」
+   - **고장 내 보기 통과** — 지금 부수기([작성.md](작성.md) §3.6 — PR 본문 이름 「일부러 고장 내 보기」)가 고친 케이스에서 고장마다 그 자리 문장을 빨갛게 했다. 부수기는 자식이 돌리므로 자식이 고친 케이스마다 결과 요약에 `테스트 고침 고장 내 보기: <tcId> · 고장 <N> · 그 자리 빨강 <M>` 한 줄을 적고(`tpx-author` `references/apply.md` §7) 에이전트가 N 이 1 이상이고 M 이 N 과 같을 때만 통과로 친다
+   - 셋 가운데 하나라도 못 쟀으면(고치기 전 파일을 못 읽음 · 고장 내 보기 줄이 없음) 자동 병합하지 않는다 — 까닭은 「재지 못함」
+   - 판정은 PR 이 열린 댓글 · 필드(위 2) 뒤에 한다. 걸린 까닭은 줄의 `held` 에 적는다. 댓글 꼴은 `사람 확인이 필요해요 — <까닭> · <까닭>` 다음 줄에 PR 주소다. 까닭 말은 「기대값이 바뀌었어요」 · 「확인 문장이 줄었어요」 · 「일부러 고장 내 보기에서 못 잡은 고장이 있어요」 · 「자동 병합 조건을 재지 못했어요」
+   - 셋 다 맞아도 반영 판정(보류 케이스 · 겹치는 케이스 · 대상 서버 — [작성.md](작성.md) §7 「Authoring 머지」)이 막으면 그 까닭으로 같은 댓글을 단다. 그 작성에 도는 실행이 있거나 뒤 실행이 더 있으면 아무것도 안 한다 — 뒤 실행이 끝날 때 다시 판정한다
+   - 줄의 `merge` — 서버가 반영을 세우면 그때 `AUTO`, 사람이 세운 반영이 끝나면 그때 `PERSON` 이다(비어 있는 채 반영이 끝났으면 사람이 한 것이다)
 4. **다시 실행** — 반영이 DONE 이 되면 서버가 그 케이스 한 건 실행을 건다(처음 실패한 실행에 붙는 한 건 실행 — [실행.md](실행.md) §7). 디바이스는 처음 실패한 디바이스와 그 실행에서 통과한 디바이스 둘 다다(DMW-FN-378 이면 모바일 + PC — 실패한 것만 고치다 통과하던 쪽을 깨뜨리지 않았는지 본다). 처음 실패가 실제 폰 Chrome(Device VISION)이었으면 `mobileOn: 'vision'` 이다. 실행자는 `bts`(이름 「Issue Bunker <키>」)
    - 이 실행은 실행 끝 실패 등록(위 「버그 바퀴」)을 하지 않는다 — 끝 판정은 아래 5 가 한다. 안 하면 실패 때 「또 실패」 댓글과 되돌리기 댓글이 같이 달린다(어느 줄의 `rerun_id` 인 실행은 건너뛴다)
    - 디바이스 팜이 꺼져 실제 폰을 못 잡으면(`FARM_OFF`) 실행을 걸지 않고 되돌린다 — 까닭 「실제 폰을 못 잡아 확인하지 못했어요」. 폰이 다른 실행에 쓰이는 중이면 보통 실행처럼 기다린다
@@ -341,7 +344,7 @@ AI 품질은 따로 시험하지 않고 사람이 고른 결과로 센다 — �
 - Jira 등 다른 BTS — 연결 자리(`apps/admin/src/bts/`)만 하나로 모아 둔다
 - BTS 바깥 알림 종류 늘리기 · 빌드마다 BTS 버전 만들기 · 「배운 것」을 노트로 옮기기(2차)
 
-#### 계약 — 블록이 있는 곳 (BTS-F1 ~ F8 블록은 반영 완료 2026-11-01 · BTS-F10 은 4-데이터모델 BTS-F10-03 블록 반영 완료 2026-11-11 · §7 「테스트 수정 바퀴」 블록은 대기 — 설정 두 줄 · 알림 받기 · 끝내기 summary · reruns 만 반영)
+#### 계약 — 블록이 있는 곳 (BTS-F1 ~ F8 블록은 반영 완료 2026-11-01 · BTS-F10 은 4-데이터모델 BTS-F10-03 블록 반영 완료 2026-11-11 · §7 「테스트 수정 바퀴」 블록은 대기 — 설정 두 줄 · 알림 받기 · 끝내기 testFix 칸 넷만 반영)
 
 - DB 표 · 칸 — [공통/4-데이터모델.md](../공통/4-데이터모델.md) §6 「BTS 연동 표」(진행판 줄마다 블록 하나)
 - kit `PrdItem.fromIssues` — [공통/3-공유계약.md](../공통/3-공유계약.md) 「표준 기획서 타입」
@@ -558,7 +561,8 @@ POST /mcp
 #   testFix: { autoMerge: boolean, held: ('EXPECTED_CHANGED' | 'VERIFY_FEWER' | 'MUTATION_MISSED' | 'NOT_MEASURED')[], summary: string, reruns: number }
 #   — autoMerge 는 held 가 비었을 때만 true. summary 는 고친 곳 한 줄(자식 결과 요약의 「테스트 고침: … 고친 곳」 · 500자) · reruns 는 마지막 전체 돌려 보기(PR 본문 「3번 돌려 보기」)에서 실제 돈 횟수
 #   — testFix 줄이 아닌데 실었거나 꼴이 틀리면 400 BAD_RESULT { detail: 'testFix' } — 에이전트는 그 칸만 빼고 다시 보낸다. testFix 줄인데 없으면 자동 병합하지 않는다(held ['NOT_MEASURED']로 친다)
-#   — 알림 받기 줄과 이 칸의 summary · reruns · BAD_RESULT 는 반영 완료 (2026-11-11, apps/admin/src/bts/testFix.ts · inbound.ts · authoring/agentRoutes.ts · scripts/authoring-test-fix.ts — BTS-F10-04). autoMerge · held 는 F10-05
+#   — autoMerge · held 는 둘이 같이 온다. 둘 다 없으면 앞 판 에이전트로 보고 받되 자동 병합하지 않는다(held ['NOT_MEASURED'])
+#   — 알림 받기 줄과 이 칸의 summary · reruns · BAD_RESULT 는 반영 완료 (2026-11-11, apps/admin/src/bts/testFix.ts · inbound.ts · authoring/agentRoutes.ts · scripts/authoring-test-fix.ts — BTS-F10-04). autoMerge · held 는 반영 완료 (2026-11-11, apps/admin/src/bts/testFix.ts · testFixMerge.ts · authoring/agentRoutes.ts · scripts/authoring-test-fix.ts — BTS-F10-05)
 # 기능 테스트 목록 GET /api/catalog/cases 의 items[] 에 칸 하나 (F10-07 · 카탈로그.md §7)
 #   autoFix: { issueKey, state, at } | null — 그 케이스의 가장 늦은 bts_test_fix 줄(대상 서버 상관없이). 화면은 state 가 PASSED 일 때만 「자동 수정」 표시를 단다
 #   응답 최상위 autoFixCount — 가장 늦은 줄이 PASSED 인 케이스 수(탭 「자동 수정 N」) · 거르기 ?autoFix=1 도 같은 기준이다(표시 · 탭 · 거르기가 어긋나지 않게). BTS 연결이 없는 프로젝트는 칸이 늘 null · 0 이다
