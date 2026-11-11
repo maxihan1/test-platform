@@ -39,7 +39,7 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 다시 실�
       await pool.query(
         `INSERT INTO run_item (run_id, tc_id, platform, tc_name, params, expected, status, duration_ms, finished_at, file_path, param_schema, expected_schema, timeout_ms, device)
          VALUES ($1, $2, $3, '검사', '{}', '{}', $4, 100, now(), 'tests/xqr/a.spec.ts', '{}', '{}', 300000, $5)`,
-        [runId, i.tcId, i.platform, i.status, i.device ?? null],
+        [runId, i.tcId, i.platform, i.status, i.device === undefined ? null : JSON.stringify({ serial: i.device })],
       );
     }
     return runId;
@@ -59,7 +59,7 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 다시 실�
       ).rows[0]!.id,
     );
     if (끝.반영 === true) {
-      await pool.query(`INSERT INTO authoring_request (service_id, kind, source_id, params, requested_by, status) VALUES ($1, 'MERGE', $2, '{}', 'bts', 'DONE')`, [서비스, 뿌리]);
+      await pool.query(`INSERT INTO authoring_request (service_id, kind, source_id, params, requested_by, requested_by_name, status) VALUES ($1, 'MERGE', $2, '{}', 'bts', 'Issue Bunker', 'DONE')`, [서비스, 뿌리]);
     }
     await pool.query(`INSERT INTO bts_issue_case (project_id, issue_key, service_id, tc_id, env, first_run) VALUES ($1, $2, $3, $4, 'qa', $5)`, [프로젝트, key, 서비스, tcId, 실패실행]);
     return Number(
@@ -141,7 +141,7 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 다시 실�
     await 다시실행걸기(id, 답());
     expect((await pool.query('SELECT 1 FROM test_run WHERE rerun_of = $1', [실패])).rowCount).toBe(1);
 
-    await pool.query(`UPDATE run_item SET status = 'PASS', finished_at = now(), device = CASE WHEN platform = 'mobile' THEN 'R3CX' END WHERE run_id = $1`, [다시]);
+    await pool.query(`UPDATE run_item SET status = 'PASS', finished_at = now(), device = CASE WHEN platform = 'mobile' THEN '{"serial": "R3CX"}'::jsonb END WHERE run_id = $1`, [다시]);
     await pool.query(`UPDATE test_run SET status = 'FINISHED' WHERE run_id = $1`, [다시]);
   });
 
@@ -187,7 +187,7 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 다시 실�
     await 다시실행걸기(id, 답());
     expect((await 줄(id)).state).toBe('WAIT_MERGE');
     await pool.query(
-      `INSERT INTO authoring_request (service_id, kind, source_id, params, requested_by, status) SELECT $1, 'MERGE', request_id, '{}', 'bts', 'DONE' FROM bts_test_fix WHERE id = $2`,
+      `INSERT INTO authoring_request (service_id, kind, source_id, params, requested_by, requested_by_name, status) SELECT $1, 'MERGE', request_id, '{}', 'bts', 'Issue Bunker', 'DONE' FROM bts_test_fix WHERE id = $2`,
       [서비스, id],
     );
     await 테스트수정점검(답());
