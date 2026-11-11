@@ -18,7 +18,7 @@ import btsDeployRoutes from './bts/deploy.js';
 import { 늦은이슈켜기 } from './bts/deployLate.js';
 import btsInboundRoutes from './bts/inbound.js';
 import { 보낼줄켜기 } from './bts/outbox.js';
-import { 테스트수정켜기 } from './bts/testFixRerun.js';
+import { 테스트수정켜기 } from './bts/testFixSweep.js';
 import btsLinkRoutes from './bts/routes.js';
 import { 기본계정만들기 } from './auth/defaultAdmin.js';
 import { 인증등록 } from './auth/gate.js';

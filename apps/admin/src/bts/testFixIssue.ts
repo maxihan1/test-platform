@@ -12,6 +12,9 @@ async function db(): Promise<Pool> {
 
 type 질의 = Pick<PoolClient, 'query'>;
 
+/** Issue Bunker 가 잠깐 바쁜 답 — 다시 부르면 될 수 있다. 나머지 4xx 는 다시 불러도 같다 */
+export const 다시받을 = (status: number): boolean => status >= 500 || status === 408 || status === 429;
+
 /** 끝나지 않은 줄 — 한 테스트 · 한 대상 서버에 하나뿐이다(bts_test_fix 부분 고유 색인) */
 export const 도는상태 = ['FIXING', 'WAIT_MERGE', 'RERUNNING'];
 
@@ -32,7 +35,7 @@ export async function 이슈확인(자리: 이슈자리, 부르기: 부르기함
   if (자리.base_url === null || 수정 === '') return { 그만: 'Issue Bunker 연결에서 「테스트 수정」 상태를 뺐어요' };
   try {
     const r = await 부르기({ baseUrl: 자리.base_url, 봇: 자리.bot_username ?? '' }, 'GET', `/api/v1/issues/${encodeURIComponent(자리.issue_key)}`);
-    if (r.status >= 500 || r.status === 408 || r.status === 429) return '다시';
+    if (다시받을(r.status)) return '다시';
     // 권한 · 없음은 다시 읽어도 같다 — 이어 갈 수 없으니 그만둔다
     if (r.status !== 200) return { 그만: `Issue Bunker 이슈를 읽지 못했어요 (${String(r.status)})` };
     const 지금 = (r.json as { data?: { currentStateKey?: unknown } } | null)?.data?.currentStateKey;

@@ -7,7 +7,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 import type { 부르기함수 } from './client.js';
 import { 실패등록 } from './failReport.js';
 import { 자동반영실패 } from './testFixMerge.js';
-import { 다시실행걸기, 테스트수정실행뒤, 테스트수정점검 } from './testFixRerun.js';
+import { 다시실행걸기, 테스트수정실행뒤 } from './testFixRerun.js';
+import { 테스트수정점검 } from './testFixSweep.js';
 
 vi.mock('../execution/dispatcher.js', () => ({ dispatch: vi.fn(async () => undefined) }));
 
@@ -90,7 +91,7 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 다시 실�
         .rows[0]!.id,
     );
     await pool.query(`INSERT INTO service_env (service_id, env, base_url) VALUES ($1, 'qa', 'https://qa.xqr.test')`, [서비스]);
-    for (const tcId of ['XQR-FN-001', 'XQR-FN-002']) {
+    for (const tcId of ['XQR-FN-001', 'XQR-FN-002', 'XQR-FN-008']) {
       await pool.query(
         `INSERT INTO test_case (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema)
          VALUES ($1, $1, '["desktop","mobile"]', '[]', 'xqr/a.spec.ts', '{"type":"object","properties":{}}', '{"type":"object","properties":{}}')`,
@@ -116,7 +117,7 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 다시 실�
     await pool.query('DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = $1)', [서비스]);
     await pool.query('DELETE FROM test_run WHERE service_id = $1 AND rerun_of IS NOT NULL', [서비스]);
     await pool.query('DELETE FROM test_run WHERE service_id = $1', [서비스]);
-    await pool.query(`DELETE FROM test_case WHERE tc_id IN ('XQR-FN-001', 'XQR-FN-002')`);
+    await pool.query(`DELETE FROM test_case WHERE tc_id IN ('XQR-FN-001', 'XQR-FN-002', 'XQR-FN-008')`);
     await pool.query('DELETE FROM service_env WHERE service_id = $1', [서비스]);
     await pool.query('DELETE FROM service WHERE id = $1', [서비스]);
     await pool.end();
@@ -178,6 +179,17 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 다시 실�
     await 다시실행걸기(옮김, 답('qa_review'));
     expect(await 줄(옮김)).toMatchObject({ state: 'GAVE_UP', reason: '사람이 이슈를 옮겼어요', rerun_id: null });
     expect(await 보낼것('DM-3')).toEqual([]);
+  });
+
+  it('한 건 실행에서 실패해 올린 이슈도 다시 실행을 건다 — 한 건에는 붙일 수 없어 붙을 곳은 실행 쪽이 고른다', async () => {
+    const 부모 = await 실행넣기([{ tcId: 'XQR-FN-008', platform: 'desktop', status: 'PASS' }]);
+    const 한건 = await 실행넣기([{ tcId: 'XQR-FN-008', platform: 'desktop', status: 'FAIL' }]);
+    await pool.query(`UPDATE test_run SET origin = 'SINGLE', rerun_of = $2 WHERE run_id = $1`, [한건, 부모]);
+    const id = await 바퀴('DM-8', 'XQR-FN-008', 한건, { 반영: true });
+    await 다시실행걸기(id, 답());
+    const 걸린 = await 줄(id);
+    expect(걸린.state).toBe('RERUNNING');
+    expect((await pool.query('SELECT origin FROM test_run WHERE run_id = $1', [걸린.rerun_id])).rows[0]).toEqual({ origin: 'SINGLE' });
   });
 
   it('반영 전이면 기다리고, 실제 폰이 필요한데 디바이스 팜이 없으면 실행 없이 되돌린다', async () => {

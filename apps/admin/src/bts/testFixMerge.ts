@@ -50,19 +50,20 @@ export async function 테스트수정병합판정(
   const 걸림 = 걸린까닭읽기(결과);
   // 반영을 세우기 전에 이슈를 다시 읽는다 — 사람이 옮겼으면 그만, Issue Bunker 에 못 닿으면 60초 점검이 다시 판정한다(testFixRerun.ts) (「테스트 수정 바퀴」 6)
   if (걸림.length === 0) {
-    const 줄 = (
+    const 줄들 = (
       await (await db()).query<이슈자리 & { id: string }>(
         `SELECT f.id, f.issue_key, l.base_url, l.bot_username, l.status_map
            FROM bts_test_fix f LEFT JOIN bts_link l ON l.project_id = f.project_id
           WHERE f.request_id = $1 AND f.pr_url = $2 AND f.state = 'WAIT_MERGE' AND f.merge IS NULL`,
         [뿌리번호, prUrl],
       )
-    ).rows[0];
-    if (줄 === undefined) return null;
-    const 확인 = await 이슈확인(줄, 부르기);
+    ).rows;
+    if (줄들[0] === undefined) return null;
+    const 확인 = await 이슈확인(줄들[0], 부르기);
     if (확인 === '다시') return null;
+    // 한 요청이 테스트 여럿을 고쳤으면 줄이 여럿이다 — 같은 이슈라 다 놓는다
     if (확인 !== '이어감') {
-      await 그만두기(줄.id, 확인.그만);
+      for (const 줄 of 줄들) await 그만두기(줄.id, 확인.그만);
       return null;
     }
   }

@@ -10,7 +10,7 @@ import { BTS부르기, type BTS이슈, type BTS자리, type 부르기함수 } fr
 import { 반영요청세우기, 실패한실행, 이슈글읽기, type 닫기결과, type 닫기연결 } from './close.js';
 import { BTS이은프로젝트 } from './link.js';
 import { 보낼줄넣기 } from './outbox.js';
-import { 도는상태, 되돌림넣기 } from './testFixIssue.js';
+import { 다시받을, 도는상태, 되돌림넣기 } from './testFixIssue.js';
 
 async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
@@ -22,8 +22,6 @@ export interface 알림상태 {
   from?: string;
   to?: string;
 }
-
-const 다시받을 = (s: number) => s >= 500 || s === 408 || s === 429;
 
 /**
  * 이슈를 「테스트 수정」으로 옮긴 사람 — 변경 기록(최근 것부터)에서 상태가 그 키로 바뀐 가장 늦은 줄. 알림 몸에 없다.
@@ -58,6 +56,9 @@ export async function 댓글한번(projectId: number, issueKey: string, body: st
   const 있음 = await (await db()).query(`SELECT 1 FROM bts_outbox WHERE project_id = $1 AND kind = 'COMMENT' AND issue_key = $2 AND payload->>'body' = $3`, [projectId, issueKey, body]);
   if ((있음.rowCount ?? 0) === 0) await 보낼줄넣기({ projectId, kind: 'COMMENT', issueKey, payload: { body } });
 }
+
+const 막맡음 = '같은 테스트를 다른 알림이 막 맡았다';
+const 못세움글 = '테스트를 수정하지 못했어요 — 처음 실패한 실행이 지워졌거나 그 실행에 이 테스트의 실패 기록이 없어요';
 
 interface 짝줄 {
   tc_id: string;
@@ -171,8 +172,14 @@ export async function 테스트수정처리(연결: 닫기연결, 이슈: BTS이
   const 나 = (도나.rowCount ?? 0) > 0 ? await 봇번호(자리, 부르기) : null;
   if (나 !== null) await 보낼줄넣기({ projectId: 연결.projectId, kind: 'ASSIGN', issueKey: 이슈.key, payload: { assigneeId: 나 } });
   // 맡았는데 하나도 못 세웠으면(첫 실행이 지워짐 등) 「테스트 수정」에 그대로 두지 않고 되돌린다 — 아무도 안 고치는 이슈가 남지 않게 (「테스트 수정 바퀴」 5)
-  if ((도나.rowCount ?? 0) === 0 && 다른이슈.size === 0 && 결과.기록만.length > 0) {
-    await 되돌림넣기(pool, 연결.projectId, 이슈.key, 짝?.review ?? '', 옮긴.id, '테스트를 수정하지 못했어요 — 처음 실패한 실행이 지워졌거나 그 실행에 이 테스트의 실패 기록이 없어요');
+  // 막 맡은 다른 알림이 있으면 그쪽이 돈다. 같은 알림이 다시 와 아직 안 보낸 되돌리기가 있으면 또 넣지 않는다
+  if ((도나.rowCount ?? 0) === 0 && 다른이슈.size === 0 && 결과.기록만.length > 0 && !결과.기록만.some((g) => g.endsWith(막맡음))) {
+    const 기다림 = await pool.query(`SELECT 1 FROM bts_outbox WHERE project_id = $1 AND issue_key = $2 AND kind = 'COMMENT' AND state = 'PENDING' AND payload->>'body' = $3`, [
+      연결.projectId,
+      이슈.key,
+      못세움글,
+    ]);
+    if ((기다림.rowCount ?? 0) === 0) await 되돌림넣기(pool, 연결.projectId, 이슈.key, 짝?.review ?? '', 옮긴.id, 못세움글);
   }
   return 결과;
 }

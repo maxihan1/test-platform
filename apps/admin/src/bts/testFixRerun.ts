@@ -1,23 +1,21 @@
 // BTS 「테스트 수정」 바퀴의 뒤 절반 — 반영이 끝나면 다시 실행을 걸고, 끝나면 이슈를 닫거나 「QA 검토」로 되돌린다 (도메인/BTS §3.12 「테스트 수정 바퀴」 4 · 5 · 6)
-// 60초 점검이 단계를 다시 찾는다 — 따로 적어 둔 할 일 없이 줄 상태와 작성 · 실행 기록만 본다. 반영 끝 · 실행 끝 알림을 놓쳤거나 Issue Bunker 에 못 닿은 단계가 여기서 이어진다
+// 반영 끝(agentRoutes) · 실행 끝(dispatcher)이 부르고, 놓쳤거나 Issue Bunker 에 못 닿은 단계는 60초 점검(testFixSweep.ts)이 다시 부른다
 
 import type { Platform } from '@platform/kit';
-import type { FastifyInstance } from 'fastify';
 import type { Pool, PoolClient } from 'pg';
 
-import { 사슬식, 최신식 } from '../authoring/chainSql.js';
+import { 사슬식 } from '../authoring/chainSql.js';
 import { 팜을본다 } from '../execution/location.js';
 import { BTS부르기, type 부르기함수 } from './client.js';
 import { BTS요청자, 실패한실행 } from './close.js';
-import { 테스트수정병합판정 } from './testFixMerge.js';
-import { 그만두기, 도는상태, 되돌림넣기, 이슈잠그고, 이슈확인, 줄넣기, type 이슈자리 } from './testFixIssue.js';
+import { 그만두기, 다시받을, 도는상태, 되돌림넣기, 이슈잠그고, 이슈확인, 줄넣기, type 이슈자리 } from './testFixIssue.js';
 
 async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
   return pool;
 }
 
-interface 줄 extends 이슈자리 {
+export interface 줄 extends 이슈자리 {
   id: string;
   project_id: string;
   tc_id: string;
@@ -33,7 +31,7 @@ interface 줄 extends 이슈자리 {
   resolution_map: Record<string, string> | null;
 }
 
-async function 줄읽기(id: number | string): Promise<줄 | undefined> {
+export async function 줄읽기(id: number | string): Promise<줄 | undefined> {
   return (
     await (await db()).query<줄>(
       `SELECT f.id, f.project_id, f.issue_key, f.tc_id, f.env, f.failed_run, f.moved_by_id, f.request_id, f.pr_url, f.merge, f.held, f.rerun_id, f.state,
@@ -45,7 +43,7 @@ async function 줄읽기(id: number | string): Promise<줄 | undefined> {
 }
 
 /** 끝을 적고 「QA 검토」로 되돌린다. 같은 이슈의 다른 도는 줄도 놓는다 — 되돌린 이슈를 그 줄이 뒤늦게 닫지 않게 */
-async function 되돌리기(줄: 줄, 까닭: string): Promise<void> {
+export async function 되돌리기(줄: 줄, 까닭: string): Promise<void> {
   await 이슈잠그고(줄.project_id, 줄.issue_key, async (손) => {
     const 끝 = await 손.query(`UPDATE bts_test_fix SET state = 'FAILED', reason = $2, updated_at = now() WHERE id = $1 AND state = ANY($3)`, [줄.id, 까닭, 도는상태]);
     if (끝.rowCount !== 1) return;
@@ -58,7 +56,7 @@ async function 되돌리기(줄: 줄, 까닭: string): Promise<void> {
 }
 
 /** 다음 단계 전 다시 읽기 — 이어 갈 때만 true. 사람이 옮겼으면 줄을 놓는다 */
-async function 이어가나(줄: 줄, 부르기: 부르기함수): Promise<boolean> {
+export async function 이어가나(줄: 줄, 부르기: 부르기함수): Promise<boolean> {
   const 확인 = await 이슈확인(줄, 부르기);
   if (확인 === '이어감') return true;
   if (확인 !== '다시') await 그만두기(줄.id, 확인.그만);
@@ -84,7 +82,7 @@ interface 실행재료 {
  * 처음 실패한 디바이스와 그 실행에서 통과한 디바이스 — 실패한 쪽만 고치다 통과하던 쪽을 깨뜨리지 않았는지 같이 본다. 처음 실패가 실제 폰이면 실제 폰으로.
  * 입력값은 비워 케이스 저장값으로 채운다(실행 창의 한 건 실행과 같다)
  */
-// ponytail: 한 건 실행으로 올린 이슈는 실패가 붙은 실행(부모)이 아니라 한 건 실행에 있어 rerunOf 를 못 싣는다 — 그때는 붙을 곳을 실행 쪽이 고른다(execution/single.ts)
+// ponytail: 실패가 한 건 실행에 있으면 rerunOf 를 못 싣는다(한 건에는 못 붙는다 — execution/runOrigin.ts) — 그때는 붙을 곳을 실행 쪽이 고른다(execution/single.ts)
 async function 실행재료(줄: 줄): Promise<실행재료 | null> {
   if (줄.failed_run === null) return null;
   const pool = await db();
@@ -97,17 +95,22 @@ async function 실행재료(줄: 줄): Promise<실행재료 | null> {
     )
   ).rows;
   const 실제폰 = 항목.some((i) => i.platform === 'mobile' && i.status === 'FAIL' && i.real);
+  const 한건 = (await pool.query<{ origin: string }>('SELECT origin FROM test_run WHERE run_id = $1', [실패])).rows[0]?.origin === 'SINGLE';
   return {
     items: [{ tcId: 줄.tc_id, platforms: [...new Set(항목.map((i) => i.platform))], params: {}, expected: {} }],
     mobileOn: 실제폰 ? 'vision' : 'server',
-    ...(실패 === Number(줄.failed_run) && { rerunOf: 실패 }),
+    ...(!한건 && { rerunOf: 실패 }),
   };
 }
 
 /** 반영이 끝난 줄에 한 건 실행을 건다 — 실행자는 Issue Bunker 이름. 반영 끝 알림과 60초 점검이 같이 와도 줄을 먼저 차지한 쪽만 건다 */
 export async function 다시실행걸기(id: number | string, 부르기: 부르기함수 = BTS부르기): Promise<void> {
   const 줄 = await 줄읽기(id);
-  if (줄?.state !== 'WAIT_MERGE' || 줄.request_id === null || !(await 반영끝났나(줄.request_id))) return;
+  if (줄 !== undefined) await 걸기(줄, 부르기);
+}
+
+export async function 걸기(줄: 줄, 부르기: 부르기함수): Promise<void> {
+  if (줄.state !== 'WAIT_MERGE' || 줄.request_id === null || !(await 반영끝났나(줄.request_id))) return;
   if (!(await 이어가나(줄, 부르기))) return;
   const pool = await db();
   const 차지 = await pool.query(`UPDATE bts_test_fix SET state = 'RERUNNING', updated_at = now() WHERE id = $1 AND state = 'WAIT_MERGE'`, [줄.id]);
@@ -145,7 +148,7 @@ async function 해결번호(줄: 줄, 부르기: 부르기함수): Promise<strin
   if (이름 === '' || 줄.base_url === null) return null;
   try {
     const r = await 부르기({ baseUrl: 줄.base_url, 봇: 줄.bot_username ?? '' }, 'GET', '/api/v1/resolutions');
-    if (r.status >= 500 || r.status === 408 || r.status === 429) return '다시';
+    if (다시받을(r.status)) return '다시';
     const 찾은 = ((r.json as { data?: { id?: unknown; name?: unknown }[] } | null)?.data ?? []).find((d) => typeof d.name === 'string' && d.name.trim().toLowerCase() === 이름);
     if (typeof 찾은?.id !== 'string') console.error(`[bts] ${줄.issue_key} — 해결 상태 「${이름}」 번호를 못 찾아 해결 상태 없이 닫는다 (${String(r.status)})`);
     return typeof 찾은?.id === 'string' ? 찾은.id : null;
@@ -160,7 +163,11 @@ async function 해결번호(줄: 줄, 부르기: 부르기함수): Promise<strin
  */
 export async function 다시실행끝(id: number | string, 부르기: 부르기함수 = BTS부르기): Promise<void> {
   const 줄 = await 줄읽기(id);
-  if (줄?.state !== 'RERUNNING') return;
+  if (줄 !== undefined) await 끝보기(줄, 부르기);
+}
+
+export async function 끝보기(줄: 줄, 부르기: 부르기함수): Promise<void> {
+  if (줄.state !== 'RERUNNING') return;
   const pool = await db();
   const 실행 =
     줄.rerun_id === null ? undefined : (await pool.query<{ status: string; rerun_of: string | null }>('SELECT status, rerun_of FROM test_run WHERE run_id = $1', [줄.rerun_id])).rows[0];
@@ -203,57 +210,6 @@ export async function 다시실행끝(id: number | string, 부르기: 부르기�
   });
 }
 
-/** 고침 작성이 PR 없이 끝났거나 실패 · 멈춤 · 폐기됐으면 그 까닭. 아직 돌거나 PR 을 열었으면 null */
-async function 작성끝까닭(줄: 줄): Promise<string | null> {
-  if (줄.request_id === null) return '테스트 수정 작성이 지워졌어요';
-  const r = (
-    await (await db()).query<{ discarded: boolean; kind: string; status: string; pr_url: string | null }>(
-      `WITH RECURSIVE ${사슬식('id = $1')}
-       SELECT (SELECT discarded_at IS NOT NULL FROM authoring_request WHERE id = $1) AS discarded, a.kind, a.status, a.pr_url
-         FROM authoring_request a WHERE a.id = ${최신식('사슬')}`,
-      [줄.request_id],
-    )
-  ).rows[0];
-  if (r === undefined) return null;
-  if (r.discarded) return '테스트 수정 작성을 폐기했어요';
-  // PR 을 연 뒤의 재실행 실패는 PR 이 그대로라 사람이 반영할 수 있다 — 되돌리지 않는다
-  if (줄.state !== 'FIXING') return null;
-  if (r.status === 'FAILED') return '테스트 수정 작성이 실패했어요';
-  if (r.status === 'STOPPED') return '테스트 수정 작성이 멈췄어요';
-  if (r.status === 'DONE' && r.kind !== 'MERGE' && r.pr_url === null) return '고칠 곳을 찾지 못했어요';
-  return null;
-}
-
-/** 고침 작성이 PR 없이 끝났으면 되돌린다 */
-async function 작성끝살피기(줄: 줄, 부르기: 부르기함수): Promise<boolean> {
-  const 까닭 = await 작성끝까닭(줄);
-  if (까닭 === null) return false;
-  if (await 이어가나(줄, 부르기)) await 되돌리기(줄, 까닭);
-  return true;
-}
-
-/**
- * 판정 전에 Issue Bunker 에 못 닿아 넘긴 줄을 다시 판정한다 — 끝난 그 PR 의 작성이 있고, 사람 확인 댓글도 자동 반영도 없을 때만.
- * 도는 실행 · 뒤 실행 때문에 넘긴 줄도 여기 걸리지만 판정이 다시 넘긴다
- */
-async function 판정다시(줄: 줄, 부르기: 부르기함수): Promise<void> {
-  if (줄.merge !== null || 줄.held.length > 0 || 줄.pr_url === null || 줄.request_id === null) return;
-  const pool = await db();
-  const 댓글 = await pool.query(
-    `SELECT 1 FROM bts_outbox WHERE project_id = $1 AND issue_key = $2 AND kind = 'COMMENT'
-        AND starts_with(payload->>'body', '사람 확인이 필요해요') AND right(payload->>'body', length($3)) = $3`,
-    [줄.project_id, 줄.issue_key, 줄.pr_url],
-  );
-  if ((댓글.rowCount ?? 0) > 0) return;
-  const 끝 = (
-    await pool.query<{ id: string; service_id: string; result: unknown }>(
-      `SELECT id, service_id, result FROM authoring_request WHERE pr_url = $1 AND status = 'DONE' AND kind <> 'MERGE' ORDER BY id DESC LIMIT 1`,
-      [줄.pr_url],
-    )
-  ).rows[0];
-  if (끝 !== undefined) await 테스트수정병합판정(Number(끝.id), Number(끝.service_id), Number(줄.request_id), 줄.pr_url, 끝.result, 부르기);
-}
-
 /** 반영이 끝나면(작성 에이전트 끝내기 · MERGE DONE) 그 작성의 병합 기다림 줄마다 다시 실행 */
 export async function 테스트수정반영뒤(뿌리번호: number, 부르기: 부르기함수 = BTS부르기): Promise<void> {
   const 줄들 = await (await db()).query<{ id: string }>(`SELECT id FROM bts_test_fix WHERE request_id = $1 AND state = 'WAIT_MERGE'`, [뿌리번호]);
@@ -264,45 +220,4 @@ export async function 테스트수정반영뒤(뿌리번호: number, 부르기: 
 export async function 테스트수정실행뒤(runId: number, 부르기: 부르기함수 = BTS부르기): Promise<void> {
   const 줄들 = await (await db()).query<{ id: string }>(`SELECT id FROM bts_test_fix WHERE rerun_id = $1 AND state = 'RERUNNING'`, [runId]);
   for (const { id } of 줄들.rows) await 다시실행끝(id, 부르기);
-}
-
-/**
- * 도는 줄마다 다음 단계를 찾아 한다. 다시 실행을 막 차지했는데 실행 번호를 못 적은 줄(그사이 admin 이 꺼짐)은 2분 뒤 끝 판정이 「기록 없음」으로 되돌린다.
- * 한 줄이 깨져도 다음 줄은 본다
- */
-export async function 테스트수정점검(부르기: 부르기함수 = BTS부르기): Promise<void> {
-  const 줄들 = await (await db()).query<{ id: string }>(
-    `SELECT f.id FROM bts_test_fix f LEFT JOIN test_run r ON r.run_id = f.rerun_id
-      WHERE f.state IN ('FIXING', 'WAIT_MERGE')
-         OR (f.state = 'RERUNNING' AND r.status IS DISTINCT FROM 'RUNNING' AND (f.rerun_id IS NOT NULL OR f.updated_at < now() - interval '2 minutes'))
-      ORDER BY f.id`,
-  );
-  for (const { id } of 줄들.rows) {
-    try {
-      const 줄 = await 줄읽기(id);
-      if (줄 === undefined) continue;
-      if (줄.state === 'RERUNNING') await 다시실행끝(id, 부르기);
-      else if (!(await 작성끝살피기(줄, 부르기)) && 줄.state === 'WAIT_MERGE') {
-        await 다시실행걸기(id, 부르기);
-        await 판정다시(줄, 부르기);
-      }
-    } catch (err) {
-      console.error(`[bts] 테스트 수정 줄 ${id} 점검이 깨졌다: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  }
-}
-
-/** admin 이 뜰 때 건다(app.ts 기동 경로) — 보낼줄켜기(outbox.ts)와 같은 틀 */
-export function 테스트수정켜기(app: FastifyInstance): void {
-  let 도는중 = false;
-  const 점검 = setInterval(() => {
-    if (도는중) return;
-    도는중 = true;
-    void 테스트수정점검()
-      .catch((err: unknown) => app.log.error(`[bts] 테스트 수정 점검이 깨졌다: ${err instanceof Error ? err.message : String(err)}`))
-      .finally(() => {
-        도는중 = false;
-      });
-  }, 60_000);
-  app.addHook('onClose', async () => clearInterval(점검));
 }
