@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from './api.js';
@@ -188,7 +188,7 @@ describe('PRD 관리 — 전체 요구', () => {
     const 줄 = await screen.findByRole('button', { name: /MKT-REQ-041/ });
     expect(줄.getAttribute('aria-pressed')).toBe('true');
     expect(줄.classList.contains('prd-open')).toBe(true);
-    expect(document.activeElement).toBe(줄);
+    await waitFor(() => expect(document.activeElement).toBe(줄));
     expect(within(서랍()).getByText('원문: 「5회 연속 실패 시 10분 잠금」')).toBeTruthy();
     expect(screen.getByRole('button', { name: /MKT-REQ-031/ }).getAttribute('aria-pressed')).toBe('false');
   });

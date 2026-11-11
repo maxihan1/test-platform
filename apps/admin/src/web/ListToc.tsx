@@ -33,7 +33,8 @@ export function use목차위치(상자: RefObject<HTMLElement | null>, 다시: u
     const 재기 = () => {
       const 머리 = 머리높이(el);
       el.style.setProperty('--toc-top', `${String(머리)}px`);
-      const 선 = el.getBoundingClientRect().top + 머리 + 4;
+      // 휴대폰에서는 상자가 아니라 페이지가 구른다 — 상자 위가 화면 밖으로 나가면 화면 맨 위를 선으로 쓴다
+      const 선 = Math.max(el.getBoundingClientRect().top, 0) + 머리 + 4;
       const 칸들 = 묶음칸들(el);
       let 찾음 = 칸들[0]?.dataset.toc ?? null;
       for (const 칸 of 칸들) {
@@ -43,8 +44,9 @@ export function use목차위치(상자: RefObject<HTMLElement | null>, 다시: u
       set지금(찾음);
     };
     재기();
-    el.addEventListener('scroll', 재기, { passive: true });
-    return () => el.removeEventListener('scroll', 재기);
+    // 스크롤은 거품이 안 올라 잡기로 듣는다 — 상자든 페이지든 구르면 다시 잰다
+    document.addEventListener('scroll', 재기, { passive: true, capture: true });
+    return () => document.removeEventListener('scroll', 재기, { capture: true });
   }, [상자, 다시]);
 
   /** 그 묶음이 지금 그려져 있으면 상자를 굴려 맨 위에 세우고 true. 없으면(아직 안 받은 쪽) false */
@@ -53,7 +55,9 @@ export function use목차위치(상자: RefObject<HTMLElement | null>, 다시: u
       const el = 상자.current;
       const 칸 = el === null ? undefined : 묶음칸들(el).find((x) => x.dataset.toc === 열쇠);
       if (el === null || 칸 === undefined) return false;
-      el.scrollTop += 칸.getBoundingClientRect().top - el.getBoundingClientRect().top - 머리높이(el);
+      // 상자가 안 구르면(휴대폰 — 페이지가 구른다) 페이지를 굴린다
+      if (el.scrollHeight > el.clientHeight + 1) el.scrollTop += 칸.getBoundingClientRect().top - el.getBoundingClientRect().top - 머리높이(el);
+      else 칸.scrollIntoView?.({ block: 'start' });
       set지금(열쇠);
       return true;
     },

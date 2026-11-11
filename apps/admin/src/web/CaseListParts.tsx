@@ -3,14 +3,12 @@
 // 빈 목록 안내 · 스캔 결과 줄은 CaseListNotes.tsx 로 갔다 (2026-10-01 — 이 파일도 300줄을 넘었다)
 
 import type { CaseRow, ItemStatus, Platform } from './api.js';
-import { 케이스맥락 } from './CaseListContext.js';
 import { 스모크칩 } from './CaseSmoke.js';
 import { keyOf, type LastMap, 마지막판정 } from './catalogView.js';
 import { use지금앱 } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { 종류 } from './kind.js';
 import { 아이콘 } from './icons.js';
-import { 판정흐름 } from './Summary.js';
 import { PLATFORM_LABEL, seconds, STATUS_COLOR, Verdict, when } from './ui.js';
 
 // 빈 목록 안내도 같은 말을 쓴다. 두 벌을 두면 칩과 안내가 서로 다른 이름으로 같은 것을 부른다
@@ -73,8 +71,6 @@ export function 케이스줄({
   테스트만 = false,
   on열기,
   on스모크,
-  요구보나 = false,
-  요구쓰나 = false,
 }: {
   row: CaseRow;
   마지막: LastMap;
@@ -90,17 +86,14 @@ export function 케이스줄({
   on열기: (tcId: string) => void;
   /** 스모크 칩을 고칠 수 있을 때만 온다(cases write) — 없으면 켜진 칩만 글자로 보인다 */
   on스모크?: () => Promise<unknown>;
-  /** 작성 보기 권한 — 없으면 요구 번호가 「PRD 관리」 고리가 아니라 글자다 (도메인/카탈로그 §8.1 「맥락」) */
-  요구보나?: boolean;
-  /** 서비스가 PRD 를 쓴다 — 안 쓰면 「연결된 요구 없음」을 줄마다 달지 않는다 */
-  요구쓰나?: boolean;
 }) {
   const 디바이스이름 = 종류(use지금앱()?.kind).디바이스칩;
   const t = use말();
   const 언어 = use언어();
 
   return (
-    <div className={열림 ? 'row pickable row-open' : 'row pickable'}>
+    // 한 건이 한 줄이다 — 요구 · 종류 · 화면 · 설계 기법 · 최근 5회는 상세 서랍에서 본다 (2026-11-11 시안 B · 앞 판은 세 줄이라 한 화면에 4건이었다)
+    <div className={열림 ? 'row pickable case-line row-open' : 'row pickable case-line'}>
       <div className="gutter" style={{ background: STATUS_COLOR[마지막판정(row, 마지막)] }} />
       {/* 고르는 칸은 왼쪽 거터 칸 안이다. 줄 내용 쪽 첫 요소로 두면 목록이 좁아
           줄이 쌓일 때 케이스명 위에 체크박스만 홀로 한 줄이 된다 (SPEC §8.1).
@@ -132,8 +125,6 @@ export function 케이스줄({
         {/* 사유는 상세 칸 맨 위에 적는다. 줄에는 배지와 말풍선만 — 판정 색은 쓰지 않는다 (도메인/카탈로그 §8.1) */}
         {typeof row.unconfirmed === 'string' ? <span className="case-tag" title={row.unconfirmed}>{t('미확정')}</span> : null}
         <스모크칩 row={row} on바뀜={on스모크} />
-        {/* 기법은 이름 옆이 아니라 아래 작은 줄에 — 이름 옆이면 기법이 둘일 때 둘째 태그가 다음 줄로 밀린다 (도메인/카탈로그 §8.1) */}
-        <케이스맥락 row={row} 요구보나={요구보나} 요구쓰나={요구쓰나} />
       </div>
       <div className="right">
         <div className="devices">
@@ -167,9 +158,6 @@ export function 케이스줄({
                     </button>
                   )}
                 </div>
-                {/* 흐름은 디바이스마다다. 줄에 하나만 두면 PC 와 모바일이 한 줄로 뭉개진다 */}
-                {/* 줄에는 배지와 막대만 — 개수는 막대에 올린 글 · 화면 읽기가 말한다 (2026-11-06 사용자 · 시험 D9) */}
-                {result === undefined ? null : <판정흐름 recent={result.recent} 글자없이 />}
               </div>
             );
           })}

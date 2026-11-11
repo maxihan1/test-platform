@@ -6,11 +6,19 @@ export const 케이스말: Record<string, string> = {
   '테스트 실행': 'Test runs',
   '불러오는 중입니다': 'Loading…',
   '모두 {건수}건': '{건수} in total',
-  '스캔하는 중': 'Scanning…',
-  '다시 스캔': 'Rescan',
-  '조건에 맞는 {건수}건 실행': 'Run {건수} matching',
-  '조건에 맞는 {건수}건 시험 실행': 'Trial run {건수} matching',
-  '{번호} / {전체}페이지': 'Page {번호} of {전체}',
+  // 머리 실행 단추 — 거른 것이 없으면 전부, 있으면 걸러진 것만 (2026-11-11 시안 B)
+  '전체 실행 ({건수})': 'Run all ({건수})',
+  '전체 시험 실행 ({건수})': 'Trial run all ({건수})',
+  '검색 결과 실행 ({건수})': 'Run results ({건수})',
+  '검색 결과 시험 실행 ({건수})': 'Trial run results ({건수})',
+  '케이스 목록 새로고침': 'Refresh case list',
+  '새로고침하는 중': 'Refreshing…',
+  '다른 작업': 'More actions',
+  '엑셀 ({건수}건)': 'Excel ({건수})',
+  // 목록 끝 이어 불러오기 (CaseListMore.tsx)
+  '{전체}건 중 {수}건 · 더 보기': '{수} of {전체} · Show more',
+  '불러오는 중': 'Loading…',
+  '다시 불러오기': 'Load again',
   '상세 닫기': 'Close details',
   'RUN {번호} · {때}': 'RUN {번호} · {때}',
   '이 값으로 실행': 'Run with these values',
@@ -22,7 +30,6 @@ export const 케이스말: Record<string, string> = {
   'RUN {번호}에 다시 실행으로 붙음': 'Attached to RUN {번호} as a rerun',
   '이력을 불러오지 못했습니다': 'Could not load the history',
   '{회수}번 · 실패 {실패} · 통과 {통과}': '{회수} attempts · {실패} failed · {통과} passed',
-  '이 결과 엑셀로 ({건수}건)': 'Export these to Excel ({건수})',
   '만드는 중': 'Building…',
   '케이스 목록을 모으는 중입니다. 다 모을 때까지 실행 버튼을 누를 수 없습니다':
     'Collecting the case list. Run stays disabled until it finishes.',
@@ -88,9 +95,6 @@ export const 케이스말: Record<string, string> = {
   '기능 묶음 목차': 'Feature contents',
   '정리 필요': 'Needs tidying',
   'PRD 에 연결되지 않은 케이스': 'Not linked to the PRD',
-  '앞 페이지에서 이어짐': 'Continued from the previous page',
-  '이것만 보기': 'Show only this',
-  '{이름}만 보기': 'Show only {이름}',
   '연결된 요구사항 없음': 'No linked requirement',
   'PRD 관리에서 보기': 'Open in PRD',
   'PRD 에 없는 번호예요': 'Not in the PRD',
@@ -105,9 +109,6 @@ export const 케이스말: Record<string, string> = {
   '실행': 'Run',
 
   // 쪽 넘기기
-  '이전': 'Previous',
-  '다음': 'Next',
-  '{번호}페이지': 'Page {번호}',
 
   // 빈 목록 세 갈래
   '아직 케이스를 불러오지 않았습니다': 'No cases loaded yet',
@@ -126,9 +127,9 @@ export const 케이스말: Record<string, string> = {
   // 케이스 상세 펼침
   '사전 조건': 'Preconditions',
   '입력값': 'Inputs',
-  '이 페이지 전체 선택': 'Select all on this page',
+  '보이는 케이스 전체 선택': 'Select all loaded',
   // 여러 건 고르기 — 표 위 띠와 고르기 바 (2026-10-30 WEB-F7-08)
-  '이 페이지 {수}건을 모두 선택했습니다': 'All {수} on this page are selected',
+  '보이는 {수}건을 모두 선택했습니다': 'All {수} loaded are selected',
   '조건에 맞는 {전체}건 모두 선택': 'Select all {전체} matching',
   '조건에 맞는 {전체}건을 모두 선택했습니다': 'All {전체} matching are selected',
   '선택 해제': 'Clear selection',

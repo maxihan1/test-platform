@@ -13,6 +13,7 @@ import type { Platform, Technique } from '@platform/kit/types';
 
 import { api, type CaseRow, type HistoryRow } from './api.js';
 import { 코드기본값고치기 } from './CaseEdit.js';
+import { 케이스자리 } from './CaseListContext.js';
 import { Drawer } from './Drawer.js';
 import { 오류없음, 채운글자, type 줄글자 } from './caseValues.js';
 import { keyOf, type LastMap } from './catalogView.js';
@@ -168,6 +169,7 @@ export function CaseDetail({
           <기법태그들 기법들={기법들} />
         </div>
       )}
+      <케이스자리 row={row} />
 
       {row.precondition.length === 0 ? null : (
         <div className="dsec">

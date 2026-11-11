@@ -1,93 +1,16 @@
-// 케이스 목록의 맥락 조각 — 묶음 머리 줄 · 줄 아래 요구 줄과 작은 줄 · 걸린 묶음 칩 (도메인/카탈로그 §8.1 「맥락」, 시안 A)
-// 줄 하나를 그리는 케이스줄(CaseListParts)이 300줄에 닿아 맥락 부분을 여기로 뗐다
+// 케이스 목록의 맥락 조각 — 요구 줄 · 상세 서랍의 화면 · API 서버 구획 · 걸린 요구 칩 (도메인/카탈로그 §8.1 「맥락」)
+// 2026-11-11 시안 B — 줄 아래 두 줄(요구 · 종류 · 화면 · 설계 기법)과 묶음 머리 줄을 걷었다. 한 건이 한 줄이고 맥락은 상세 서랍에서 본다
 
-import type { CaseRow, 앱종류, 케이스축 } from './api.js';
-import { 기법태그들 } from './CaseDetail.js';
-import type { 묶음자리, 묶음조건 } from './CaseListFilter.js';
-import { 파일이름, type 묶음머리 } from './caseGroups.js';
+import type { CaseRow } from './api.js';
+import { 파일이름 } from './caseGroups.js';
 import { use말 } from './i18n.js';
-import { 종류 } from './kind.js';
 import { PRD항목주소 } from './route.js';
 
 /** 화면 파일 클래스 이름을 읽기 좋게 — `게시판목록화면` → `게시판목록 화면` (PRD-F9-18) */
 export const 화면이름글 = (이름: string): string => 이름.replace(/(?<=\S)(?=화면$)/, ' ');
 
-const 화면글 = (머리: 묶음머리, file: string) => (머리.화면이름 === null ? (머리.주소 ?? 파일이름(file)) : 화면이름글(머리.화면이름));
-const 조각글 = (머리: 묶음머리, file: string) => (머리.조각이름 === null ? 파일이름(file) : 화면이름글(머리.조각이름));
-
-/** 머리 이름 — 기능 묶음 이름 · 화면 이름(없으면 주소 · 파일 이름) · 화면 조각 이름(없으면 파일 이름) */
-export function 머리이름(머리: 묶음머리, 없음글: string): string {
-  if (머리.단 === 1) return 머리.값 ?? 없음글;
-  if (머리.단 === 2 && 머리.조건.endpoint !== undefined) return 머리.조건.endpoint;
-  if (머리.단 === 2) return 화면글(머리, 머리.값 ?? '');
-  return 조각글(머리, 머리.값 ?? '');
-}
-
-/** 「이것만 보기」로 건 조건 칩의 글 — 위 묶음까지 `회원가입 › /signup › terms` */
-function 묶음글(머리: 묶음머리, 없음글: string): string {
-  const { feature, screen, part, endpoint } = 머리.조건;
-  return [feature === '' ? 없음글 : feature, screen === undefined || screen === '' ? null : 화면글(머리, screen), endpoint ?? null, part === undefined ? null : 조각글(머리, part)]
-    .filter((x) => x !== null)
-    .join(' › ');
-}
-
-function 같은묶음(걸린: 묶음조건 | null, 조건: 묶음자리): boolean {
-  return 걸린 !== null && 걸린.feature === 조건.feature && 걸린.screen === 조건.screen && 걸린.part === 조건.part && 걸린.endpoint === 조건.endpoint;
-}
-
-export function 묶음머리줄({
-  머리,
-  접힘,
-  실패한,
-  걸린,
-  on접기,
-  on이것만,
-  앱종류,
-}: {
-  머리: 묶음머리;
-  접힘: boolean;
-  /** 서비스 전체에서 마지막 결과가 실패인 케이스 */
-  실패한: ReadonlySet<string>;
-  /** 지금 건 묶음 조건 — 이 머리와 같으면 「이것만 보기」를 다시 두지 않는다 */
-  걸린: 묶음조건 | null;
-  on접기: () => void;
-  on이것만: (조건: 묶음조건) => void;
-  앱종류?: 앱종류;
-}) {
-  const t = use말();
-  const [화면말, 조각말] = 종류(앱종류).묶음말;
-  const 없음글 = t('기능 묶음 없음');
-  const 이름 = 머리이름(머리, 없음글);
-  // 화면 · 화면 조각은 위 묶음까지 붙인 이름 — 같은 화면이 두 기능 묶음 아래 설 수 있다
-  const 긴이름 = 묶음글(머리, 없음글);
-  const 실패수 = 머리.tcIds.filter((id) => 실패한.has(id)).length;
-  return (
-    <div className={`grp g${머리.단}`}>
-      <button type="button" className="grp-toggle" aria-expanded={!접힘} onClick={on접기}>
-        <span className="grp-caret" aria-hidden="true">
-          ▸
-        </span>
-        <span className="grp-name">{이름}</span>
-        {머리.단 === 1 ? null : <span className="grp-kind">{t(머리.단 === 2 ? 화면말 : 조각말)}</span>}
-        <span className="grp-count">
-          {t('{건수}건', { 건수: 머리.tcIds.length })}
-          {실패수 === 0 ? null : <> · <b>{t('실패 {건수}', { 건수: 실패수 })}</b></>}
-          {머리.단 === 1 && 머리.값 === null ? <> · {t('PRD 에 연결되지 않은 케이스')}</> : null}
-          {머리.이어짐 ? <> · {t('앞 페이지에서 이어짐')}</> : null}
-        </span>
-      </button>
-      {같은묶음(걸린, 머리.조건) ? null : (
-        // 이름에 묶음을 넣는다 — 「이것만 보기」가 줄마다 같은 글이라 화면 읽기로는 어느 묶음인지 모른다
-        <button type="button" className="grp-only" aria-label={t('{이름}만 보기', { 이름: 긴이름 })} onClick={() => on이것만({ ...머리.조건, 이름: 긴이름 })}>
-          {t('이것만 보기')}
-        </button>
-      )}
-    </div>
-  );
-}
-
 /**
- * 요구 줄 — 첫 요구 번호 · 요구 문장 · 외 N건. E2E 단계 추가 탭도 같은 줄을 쓴다 (도메인/시나리오 §8.11).
+ * 요구 줄 — 첫 요구 번호 · 요구 문장 · 외 N건. E2E 단계 추가 탭이 쓴다 (도메인/시나리오 §8.11).
  * 요구보나가 거짓이면 번호가 고리 없는 글자다
  */
 export function 요구줄({ row, 요구보나, 요구쓰나 }: { row: CaseRow; 요구보나: boolean; 요구쓰나: boolean }) {
@@ -115,73 +38,55 @@ export function 요구줄({ row, 요구보나, 요구쓰나 }: { row: CaseRow; �
 }
 
 /**
- * 케이스명 아래 맥락 두 줄 — 요구 줄과 작은 줄.
- * 작은 줄은 덩어리마다 통째로 넘어간다. 가운뎃점으로 잇지 않는다 — 다음 줄이 점으로 시작했다 (진행판 WEB-F2-14)
+ * 상세 서랍의 화면 · API 서버 구획 — 줄에서 뺀 맥락이다. API 애플리케이션은 화면 자리에 엔드포인트가 선다.
+ * 화면 이름을 못 읽었으면 주소, 그것도 없으면 파일 이름이다. 주소는 마우스를 올리면 보인다
  */
-export function 케이스맥락({ row, 요구보나, 요구쓰나 }: { row: CaseRow; 요구보나: boolean; 요구쓰나: boolean }) {
+export function 케이스자리({ row }: { row: CaseRow }) {
   const t = use말();
-  // UI 목록은 전부 UI 라 종류를 안 적는다
-  const 축들 = [...new Set((row.reqs ?? []).map((r) => r.axis))].filter((a): a is Exclude<케이스축, 'UI'> => a !== 'UI');
+  const 화면들 = row.screens ?? [];
+  const 끝점들 = row.endpoints ?? [];
+  const 서버들 = row.apiServers ?? [];
   return (
     <>
-      <요구줄 row={row} 요구보나={요구보나} 요구쓰나={요구쓰나} />
-      <small className="case-meta">
-        {축들.map((a) => (
-          <span className="axis-tag" key={a}>
-            {t(a)}
-          </span>
-        ))}
-        {(row.screens ?? []).map((s) => (
-          <span className="case-screen" key={s.file} title={s.url ?? undefined}>
-            {s.name == null ? (s.url ?? 파일이름(s.file)) : 화면이름글(s.name)}
-          </span>
-        ))}
-        {(row.endpoints ?? []).map((e) => (
-          <span className="case-screen" key={e}>
-            {e}
-          </span>
-        ))}
-        {row.techniques?.length ? (
-          <span className="tech-line">
-            {t('설계 기법')} <기법태그들 기법들={row.techniques} />
-          </span>
-        ) : null}
-        {/* API 서버 이름도 같은 태그다 — 판정 색이 아니라 설명 정보다 (도메인/카탈로그 §8.1 「API 서버」) */}
-        {row.apiServers?.length ? (
-          <span className="tech-line">
-            {t('API 서버')}{' '}
-            {row.apiServers.map((이름) => (
+      {화면들.length + 끝점들.length === 0 ? null : (
+        <div className="dsec">
+          <div className="dlabel">{끝점들.length > 0 && 화면들.length === 0 ? t('엔드포인트') : t('화면')}</div>
+          <div className="case-where">
+            {화면들.map((s) => (
+              <span className="case-screen" key={s.file} title={s.url ?? undefined}>
+                {s.name == null ? (s.url ?? 파일이름(s.file)) : 화면이름글(s.name)}
+              </span>
+            ))}
+            {끝점들.map((e) => (
+              <span className="case-screen" key={e}>
+                {e}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+      {/* API 서버 이름은 판정 색이 아니라 설명 정보다 (도메인/카탈로그 §8.1 「API 서버」) */}
+      {서버들.length === 0 ? null : (
+        <div className="dsec">
+          <div className="dlabel">{t('API 서버')}</div>
+          <div className="case-where">
+            {서버들.map((이름) => (
               <span className="tech-tag" key={이름}>
                 {이름}
               </span>
             ))}
-          </span>
-        ) : null}
-        {/* 지원 디바이스는 안 적는다 — 마지막 결과 칸이 디바이스마다 이름을 달아 한 줄에 두 번 나왔다(점검 7.12) */}
-      </small>
+          </div>
+        </div>
+      )}
     </>
   );
 }
 
-/** 걸린 묶음 · 요구 번호 — 표 위 줄에 칩으로 보이고 ✕ 로 푼다. 필터 판의 조건 칩은 CaseListFilterBar 가 그린다 */
-export function 걸린칩들({
-  검색,
-}: {
-  검색: {
-    묶음: 묶음조건 | null;
-    on묶음: (값: 묶음조건 | null) => void;
-    요구: string | null;
-    요구지우기: () => void;
-  };
-}) {
+/** 걸린 요구 번호 — 표 위 줄에 칩으로 보이고 ✕ 로 푼다. 필터 판의 조건 칩은 CaseListFilterBar 가 그린다 */
+export function 걸린칩들({ 검색 }: { 검색: { 요구: string | null; 요구지우기: () => void } }) {
   const t = use말();
   // 주소의 요구 번호는 검색 조건 훅이 같이 뺀다(CaseListFilter use주소조건)
-  return (
-    <>
-      {검색.묶음 === null ? null : <걸린칩 글={검색.묶음.이름} on풀기={() => 검색.on묶음(null)} />}
-      {검색.요구 === null ? null : <걸린칩 글={t('요구사항 {번호}', { 번호: 검색.요구 })} on풀기={검색.요구지우기} />}
-    </>
-  );
+  return 검색.요구 === null ? null : <걸린칩 글={t('요구사항 {번호}', { 번호: 검색.요구 })} on풀기={검색.요구지우기} />;
 }
 
 export function 걸린칩({ 글, on풀기 }: { 글: string; on풀기: () => void }) {

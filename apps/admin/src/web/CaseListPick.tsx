@@ -16,7 +16,7 @@ import type { useRunPick } from './useRunPick.js';
 const 웹디바이스: Platform[] = ['desktop', 'mobile'];
 
 /**
- * 머리 네모로 이 쪽을 다 고르면 표 위에 선다. 쪽을 넘기지 않고 조건에 맞는 전부로 넓힌다.
+ * 머리 네모로 받은 줄을 다 고르면 표 위에 선다. 끝까지 내리지 않고 조건에 맞는 전부로 넓힌다.
  * 넓히기 전부터 상한을 말한다 — 모두 고른 뒤에야 단추가 잠기면 사람은 까닭을 모른다
  */
 export function 고르기띠({
@@ -50,7 +50,7 @@ export function 고르기띠({
     <div className="pick-band">
       <p>
         {/* 알리는 것은 문장만이다 — 띠 전체를 알림 칸으로 두면 바뀔 때마다 단추 글자까지 다시 읽힌다 */}
-        <span role="status">{모두 ? t('조건에 맞는 {전체}건을 모두 선택했습니다', { 전체 }) : t('이 페이지 {수}건을 모두 선택했습니다', { 수: 보일수 })}</span>{' '}
+        <span role="status">{모두 ? t('조건에 맞는 {전체}건을 모두 선택했습니다', { 전체 }) : t('보이는 {수}건을 모두 선택했습니다', { 수: 보일수 })}</span>{' '}
         <button type="button" className="linklike" onClick={모두 ? on풀기 : on모두}>
           {모두 ? t('선택 해제') : t('조건에 맞는 {전체}건 모두 선택', { 전체 })}
         </button>
