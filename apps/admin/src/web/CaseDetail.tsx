@@ -18,6 +18,7 @@ import { Drawer } from './Drawer.js';
 import { 오류없음, 채운글자, type 줄글자 } from './caseValues.js';
 import { keyOf, type LastMap } from './catalogView.js';
 import { 이력열쇠, 실행마다묶기, 처음디바이스, type 상세기억 } from './caseDetailView.js';
+import { 자동수정상자 } from './CaseAutoFix.js';
 import { 실행이력칸 } from './CaseHistory.js';
 import { 실패이유 } from './FailureWhy.js';
 import { Form } from './Form.js';
@@ -141,6 +142,7 @@ export function CaseDetail({
         </button>
       </div>
 
+      {row.autoFix == null ? null : <자동수정상자 tcId={row.tcId} />}
       {/* 왜 미확정인지가 목록과 상세 어디에도 없었다(점검 7.4). 줄에는 배지만, 사유는 여기 맨 위다 */}
       {typeof row.unconfirmed === 'string' ? (
         <p className="case-unconfirmed">

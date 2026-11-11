@@ -9,7 +9,7 @@ import { use지금앱 } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { 종류 } from './kind.js';
 import { 아이콘 } from './icons.js';
-import { PLATFORM_LABEL, seconds, STATUS_COLOR, Verdict, when } from './ui.js';
+import { PLATFORM_LABEL, seconds, STATUS_COLOR, Verdict, when, 월일 } from './ui.js';
 
 // 빈 목록 안내도 같은 말을 쓴다. 두 벌을 두면 칩과 안내가 서로 다른 이름으로 같은 것을 부른다
 export const 결과라벨: Record<ItemStatus | 'ALL', string> = {
@@ -124,6 +124,12 @@ export function 케이스줄({
         </button>
         {/* 사유는 상세 칸 맨 위에 적는다. 줄에는 배지와 말풍선만 — 판정 색은 쓰지 않는다 (도메인/카탈로그 §8.1) */}
         {typeof row.unconfirmed === 'string' ? <span className="case-tag" title={row.unconfirmed}>{t('미확정')}</span> : null}
+        {/* 테스트 수정 바퀴로 고쳐 다시 통과한 케이스 — 가장 늦은 줄이 통과일 때만 (도메인/BTS §8.15 「자동 수정 표시」 A) */}
+        {row.autoFix?.state === 'PASSED' ? (
+          <span className="fix-tag" title={t('Issue Bunker {키} · {날짜} · 수정 후 다시 실행에서 통과', { 키: row.autoFix.issueKey, 날짜: 월일(row.autoFix.at, 언어) })}>
+            {t('자동 수정')}
+          </span>
+        ) : null}
         <스모크칩 row={row} on바뀜={on스모크} />
       </div>
       <div className="right">

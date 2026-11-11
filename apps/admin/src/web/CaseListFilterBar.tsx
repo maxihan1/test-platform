@@ -113,18 +113,44 @@ export function use필터조건들(
   return 조건들;
 }
 
-/** 마지막 결과 — 결과 탭. 수는 쪽이 아니라 서버가 last 를 뺀 조건으로 센 전부다. 실행 read 가 없으면 null 이고 탭도 안 그린다 (도메인/카탈로그 §7) */
-export function 결과탭들({ 결과, 건수, on결과 }: { 결과: ItemStatus | 'ALL'; 건수: CasePage['lastCounts']; on결과: (값: ItemStatus | 'ALL') => void }) {
+/**
+ * 마지막 결과 — 결과 탭. 수는 쪽이 아니라 서버가 last 를 뺀 조건으로 센 전부다. 실행 read 가 없으면 null 이고 탭도 안 그린다 (도메인/카탈로그 §7).
+ * 줄 끝 「자동 수정 N」 은 테스트 수정 바퀴로 통과한 케이스다 — 0 이면 안 그리되 눌린 채면 남긴다(풀 자리가 없어진다) (도메인/BTS §8.15 「자동 수정 표시」 A)
+ */
+export function 결과탭들({
+  결과,
+  건수,
+  on결과,
+  자동수정,
+}: {
+  결과: ItemStatus | 'ALL';
+  건수: CasePage['lastCounts'];
+  on결과: (값: ItemStatus | 'ALL') => void;
+  자동수정: { 눌림: boolean; 수: number; on누르기: () => void };
+}) {
   const t = use말();
-  if (건수 == null) return null;
+  const 수정탭 =
+    자동수정.수 === 0 && !자동수정.눌림 ? null : (
+      <button type="button" className="result-tab tab-fix" aria-pressed={자동수정.눌림} onClick={자동수정.on누르기}>
+        {t('자동 수정')} <span className="chip-n">{자동수정.수}</span>
+      </button>
+    );
+  if (건수 == null) return 수정탭 === null ? null : <span className="result-tabs">{수정탭}</span>;
   const 수 = { ALL: 건수.total, PASS: 건수.pass, FAIL: 건수.fail, NA: 건수.na };
   return (
     <span className="result-tabs" role="group" aria-label={t('마지막 결과')}>
       {결과칩.map((값) => (
-        <button type="button" className={값 === 'FAIL' && 건수.fail > 0 ? 'result-tab tab-fail' : 'result-tab'} key={값} aria-pressed={결과 === 값} onClick={() => on결과(값)}>
+        <button
+          type="button"
+          className={값 === 'FAIL' && 건수.fail > 0 ? 'result-tab tab-fail' : 'result-tab'}
+          key={값}
+          aria-pressed={!자동수정.눌림 && 결과 === 값}
+          onClick={() => on결과(값)}
+        >
           {t(결과라벨[값])} <span className="chip-n">{수[값]}</span>
         </button>
       ))}
+      {수정탭}
     </span>
   );
 }

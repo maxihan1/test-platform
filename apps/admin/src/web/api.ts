@@ -61,6 +61,30 @@ export interface CaseRow {
   /** 스모크 — 실제로 쓰는 값(사람이 고친 값, 없으면 코드 값)과 사람이 고친 값. 이 칸 전 가짜 응답을 안 고치려고 선택으로 둔다 (도메인/카탈로그 §7 · 실행 §3.11) */
   smoke?: boolean;
   smokeSet?: boolean | null;
+  /** 가장 늦은 테스트 수정 줄 — state 가 PASSED 일 때만 「자동 수정」 표시. BTS 를 안 이었으면 null · 이 칸 전 가짜 응답은 없다 (도메인/BTS §7) */
+  autoFix?: 자동수정줄 | null;
+}
+
+export type 바퀴상태 = 'FIXING' | 'WAIT_MERGE' | 'RERUNNING' | 'PASSED' | 'FAILED' | 'GAVE_UP';
+
+export interface 자동수정줄 {
+  issueKey: string;
+  state: 바퀴상태;
+  at: string;
+}
+
+/** 서랍 「자동 수정 기록」 — 서버 bts/testFixView.ts 와 같은 꼴 (도메인/BTS §7) */
+export interface 자동수정상세 extends 자동수정줄 {
+  issueUrl: string;
+  movedBy: string | null;
+  summary: string | null;
+  merge: 'AUTO' | 'PERSON' | null;
+  prUrl: string | null;
+  /** 사람이 화면에서 찾는 실행 — 붙은 한 건이면 붙은 실행 */
+  rerunId: number | null;
+  reason: string | null;
+  needsPerson: boolean;
+  devices: { platform: Platform; status: ItemStatus }[];
 }
 
 /** 지도 ① 의 축 칸 — 서버 `catalog/context.ts` 와 같은 넷. 값 목록은 주소에서 읽은 조건을 거를 때 쓴다 */
@@ -122,6 +146,8 @@ export interface CasePage extends Paged<CaseRow> {
   lastCounts?: { total: number; pass: number; fail: number; na: number } | null;
   /** API 서버 칩 — 이름마다 하나, 건수는 apiServer 를 뺀 조건에 맞은 케이스 수. 이름이 없으면 [] 라 칩 줄을 안 그린다 (도메인/카탈로그 §7) */
   apiServers?: { name: string; count: number }[];
+  /** 가장 늦은 테스트 수정 줄이 통과한 케이스 수 — 탭 「자동 수정 N」, 0 이면 탭을 안 그린다 (도메인/BTS §7) */
+  autoFixCount?: number;
 }
 
 export interface LastScan {
@@ -501,6 +527,8 @@ export interface HistoryRow {
   /** SINGLE 줄은 한 건 실행이고 rerunOf 가 붙은 실행(없으면 null)이다. 옛 가짜 응답을 안 고치려고 선택으로 둔다 */
   origin?: RunSummary['origin'];
   rerunOf?: number | null;
+  /** 테스트 수정 바퀴가 수정 뒤 다시 돌린 실행이면 true — 「수정 후」 표시 (도메인/BTS §8.15 「자동 수정 표시」 A) */
+  afterFix?: boolean;
 }
 
 export interface ParamSetRow {
@@ -1151,6 +1179,8 @@ export interface CaseQuery {
   last?: ItemStatus;
   /** 스모크만(true) · 스모크 아닌 것만(false). 없으면 안 거른다 (도메인/카탈로그 §7 `?smoke=`) */
   smoke?: boolean;
+  /** 가장 늦은 테스트 수정 줄이 통과한 케이스만 — 탭 「자동 수정 N」 (도메인/BTS §7 `?autoFix=1`) */
+  autoFix?: boolean;
 }
 
 // 목록과 엑셀이 같은 조건을 쓴다 — 두 벌이면 버튼 건수와 받은 파일 건수가 갈린다
@@ -1169,6 +1199,7 @@ function 케이스조건(query: CaseQuery): URLSearchParams {
   }
   if (query.last !== undefined) params.set('last', query.last.toLowerCase());
   if (query.smoke !== undefined) params.set('smoke', query.smoke ? '1' : '0');
+  if (query.autoFix === true) params.set('autoFix', '1');
   return params;
 }
 
@@ -1202,6 +1233,9 @@ export const api = {
   caseExport: (query: CaseQuery) => 파일받기(`/catalog/export?${케이스조건(query).toString()}`),
 
   caseOf: (tcId: string) => call<CaseRow>(`/catalog/cases/${encodeURIComponent(tcId)}`),
+
+  /** 같은 케이스 상세에서 「자동 수정 기록」 재료만 읽는다 — 목록 줄의 autoFix 보다 칸이 많다 (도메인/BTS §7) */
+  caseFix: (tcId: string) => call<{ autoFix: 자동수정상세 | null }>(`/catalog/cases/${encodeURIComponent(tcId)}`),
 
   // 지금 보는 서비스 것만 받는다 — 다른 서비스의 경고가 목록에 섞이지 않게 (도메인/카탈로그 §7)
   lastScan: (service: string) => call<LastScan | null>(`/catalog/scan?service=${encodeURIComponent(service)}`),

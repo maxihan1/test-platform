@@ -290,6 +290,46 @@ button.smoke-chip:focus-visible {
   color: var(--fail-text);
 }
 
+/* 자동 수정은 파랑 한 가지다 — 통과(초록) · 실패(빨강) · 주 행동(주황)과 겹치지 않게 (도메인/BTS §8.15 「자동 수정 표시」) */
+.result-tab.tab-fix .chip-n,
+.fix-tag {
+  color: var(--blue-1);
+}
+
+.fix-tag {
+  display: inline-block;
+  white-space: nowrap;
+  vertical-align: middle;
+  margin-left: 6px;
+  font-size: 11.5px;
+  padding: 2px 8px;
+  border: 1px solid var(--blue-3);
+  background: var(--blue-soft);
+}
+
+/* 서랍 맨 위 「자동 수정 기록」 상자 — 왼쪽 파랑 띠 하나로 다른 칸과 가른다 */
+.fix-box {
+  border-left: 3px solid var(--blue-1);
+  background: var(--blue-soft);
+  padding: 10px 12px;
+}
+
+.fix-box dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 6px 0 0;
+}
+
+.fix-box dt {
+  color: var(--ink-muted);
+}
+
+.fix-box dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 /* 필터 단추와 판. 판은 단추 오른쪽 모서리에서 열린다 — 자리(top · right · 높이 상한)는 열 때 단추를 재서 CaseListFilterBar 가 준다.
    absolute 로 두면 목록 판(.screen)의 overflow: hidden 에 잘려 낮은 창에서 아래 단추가 안 보였다 */
 
