@@ -1,0 +1,395 @@
+/* 안정화 지표 메인 — 시안 6판 A6 · A6m (도메인/안정화 §8.19). 그래프 움직임은 대시보드 것(dash-draw · dash-fade · dash-rise)을 같이 쓴다.
+   상태 칩 색은 DESIGN.md 원칙 1 의 예외다 — 신규 대표색 · 증가 실패색 · 재발 파랑 · 기존 회색. 값은 토큰이라 어두운 화면도 따라간다 */
+.stab {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 1100px;
+  margin-bottom: 28px;
+  min-width: 0;
+}
+
+.stab .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.stab-panel {
+  min-width: 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.stab-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 18px 20px 0;
+}
+
+.stab-top h2 {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.stab-lab {
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.stab-faint {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.stab-pick {
+  height: 36px;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+}
+
+.stab-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.stab-chip.new {
+  background: var(--accent-soft);
+  color: var(--link);
+}
+
+.stab-chip.up {
+  background: var(--fail-soft);
+  color: var(--fail-text);
+}
+
+.stab-chip.re {
+  background: var(--blue-soft);
+  color: var(--blue-1);
+}
+
+.stab-chip.old {
+  background: var(--na-soft);
+  color: var(--na-text);
+}
+
+/* AI 실행 요약 */
+.stab-aitag {
+  padding: 2px 9px;
+  font-size: 11.5px;
+  color: var(--ink-muted);
+  background: var(--well);
+  border-radius: 999px;
+}
+
+.stab-headline {
+  margin: 12px 20px 4px;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.stab-wait {
+  margin: 0;
+  padding: 14px 20px 18px;
+  color: var(--ink-muted);
+}
+
+.stab-ai3 {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 0.8fr);
+  margin-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.stab-ai2 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  border-top: 1px solid var(--line);
+}
+
+.stab-ai3 > .stab-blk + .stab-blk,
+.stab-ai2 > .stab-blk + .stab-blk {
+  border-left: 1px solid var(--line);
+}
+
+.stab-blk {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 16px 18px;
+  line-height: 1.5;
+}
+
+.stab-blk.row {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.stab-blk h3 {
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.stab-li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.stab-big {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.stab-dist {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.stab-dist > div {
+  display: grid;
+  grid-template-columns: minmax(44px, auto) minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 8px;
+}
+
+.stab-dist > div.zero {
+  color: var(--ink-faint);
+}
+
+.stab-track {
+  height: 8px;
+  overflow: hidden;
+  background: var(--well);
+  border-radius: 4px;
+}
+
+.stab-track i {
+  display: block;
+  height: 8px;
+  background: var(--blue-2);
+  border-radius: 4px;
+}
+
+/* 잔여 오류 추이 */
+.stab-seg {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+}
+
+.stab-seg button {
+  min-height: 30px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.stab-seg button.on {
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--accent-soft);
+}
+
+.stab-k {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 14px 20px 0;
+}
+
+.stab-k.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.stab-k > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  background: var(--well);
+  border-radius: 6px;
+}
+
+.stab-k .v {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+}
+
+.stab-chart {
+  padding: 14px 12px 0;
+}
+
+.stab-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.stab-legend {
+  padding: 0 8px 18px;
+}
+
+/* 오류 목록 */
+.stab-scroll {
+  overflow-x: auto;
+}
+
+.stab-table {
+  width: 100%;
+  margin-top: 8px;
+  border-collapse: collapse;
+}
+
+.stab-table th {
+  padding: 10px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--line);
+}
+
+.stab-table td {
+  padding: 12px 16px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--line);
+}
+
+.stab-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.stab-table .mono,
+.stab-cards .mono {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 12.5px;
+  word-break: break-all;
+}
+
+/* 줄 제목 링크는 잉크다 — 이름마다 대표색이면 목록 왼쪽에 오렌지 기둥이 선다 (공통/5-화면공통 §8 「대표색」 「링크」) */
+.stab-table td a {
+  color: var(--ink);
+}
+
+.stab-cards {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stab-cards a {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  color: inherit;
+  text-decoration: none;
+  border-top: 1px solid var(--line);
+}
+
+.stab-card-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.stab-empty {
+  padding: 8px 0 18px;
+}
+
+.stab-empty .stab-faint {
+  margin: 0 20px;
+}
+
+/* 휴대폰 — 판은 한 줄로 쌓고 숫자 칸은 두 줄 둘씩 (§8.19 「휴대폰」 · A6m) */
+@media (max-width: 620px) {
+  .stab {
+    gap: 14px;
+  }
+
+  .stab-top {
+    padding: 14px 14px 0;
+  }
+
+  .stab-headline {
+    margin: 10px 14px 14px;
+    font-size: 16px;
+  }
+
+  .stab-ai3,
+  .stab-ai2 {
+    grid-template-columns: minmax(0, 1fr);
+    margin-top: 0;
+    border-top: 0;
+  }
+
+  .stab-ai3 > .stab-blk,
+  .stab-ai2 > .stab-blk {
+    padding: 12px 14px;
+    border-top: 1px solid var(--line);
+    border-left: 0 !important;
+  }
+
+  .stab-gap {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+  }
+
+  .stab-big {
+    font-size: 20px;
+  }
+
+  .stab-k,
+  .stab-k.three {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 10px 14px 0;
+  }
+
+  .stab-k .v {
+    font-size: 20px;
+  }
+
+  .stab-chart {
+    padding: 12px 8px 0;
+  }
+
+  .stab-legend {
+    padding: 0 6px 14px;
+  }
+
+  .stab-cards a {
+    min-height: 44px;
+  }
+}

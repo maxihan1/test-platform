@@ -78,6 +78,12 @@ describe('애플리케이션을 바꿀 때 주소', () => {
     expect(서비스바꾼주소('#/dashboard?service=12', 'MEM', 'PAY')).toBe('#/dashboard?service=12');
   });
 
+  it('안정화 지표는 앞 애플리케이션의 실행 번호를 떼고 창만 남긴다 — 남으면 새 애플리케이션 화면이 404 로 빈다', () => {
+    expect(서비스바꾼주소('#/stability?run=3044', 'MEM', 'PAY')).toBe('#/stability');
+    expect(서비스바꾼주소('#/stability?run=3044&days=30', 'MEM', 'PAY')).toBe('#/stability?days=30');
+    expect(서비스바꾼주소('#/stability', 'MEM', 'PAY')).toBe('#/stability');
+  });
+
   it('설정은 보던 애플리케이션의 자리면 따라가고, 설정 메뉴로 다른 것을 골라 둔 자리는 그대로 둔다', () => {
     expect(서비스바꾼주소('#/settings/MEM', 'MEM', 'PAY')).toBe('#/settings/PAY');
     expect(서비스바꾼주소('#/settings/mem', 'MEM', 'PAY')).toBe('#/settings/PAY');

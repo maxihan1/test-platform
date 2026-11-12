@@ -60,7 +60,7 @@ export const 요약읽기 = (output: unknown): 요약결과 | null => {
 };
 
 type 일상태 = 'QUEUED' | 'RUNNING' | 'DONE' | 'FAILED';
-const 빈요약 = { headline: null, changes: null, features: null, verified: null, trend: null };
+const 빈요약 = { headline: null, changes: null, features: null, verified: null, trend: null, finishedAt: null };
 
 export async function 안정화보기(앱: 애플리케이션행, runId: number | null, days: 7 | 30) {
   const pool = await db();
@@ -117,7 +117,7 @@ export async function 안정화보기(앱: 애플리케이션행, runId: number 
           [앱.id, env],
         )
       : null,
-    고른.ai_job_id === null ? null : pool.query<{ status: 일상태; output: unknown }>('SELECT status, output FROM perf_ai_job WHERE id = $1', [고른.ai_job_id]),
+    고른.ai_job_id === null ? null : pool.query<{ status: 일상태; output: unknown; finished_at: Date | null }>('SELECT status, output, finished_at FROM perf_ai_job WHERE id = $1', [고른.ai_job_id]),
   ]);
   const 이전케이스 = new Map((이전줄?.rows ?? []).map((r) => [Number(r.error_id), r.cases]));
   const resolved = 지금해결 === null ? 고른.resolved : Number(지금해결.rows[0]!.n);
@@ -130,7 +130,7 @@ export async function 안정화보기(앱: 애플리케이션행, runId: number 
   // 작성 에이전트가 쥐고 죽은 일은 성능 통로처럼 20분 뒤 닫는다 — 화면이 「작성 중」에 묶이지 않게. 성능 쪽 파일은 쓸 때만 불러온다
   if (일줄?.status === 'RUNNING') {
     await (await import('../perf/ai.js')).오래된일닫기();
-    일줄 = (await pool.query<{ status: 일상태; output: unknown }>('SELECT status, output FROM perf_ai_job WHERE id = $1', [고른.ai_job_id])).rows[0];
+    일줄 = (await pool.query<{ status: 일상태; output: unknown; finished_at: Date | null }>('SELECT status, output, finished_at FROM perf_ai_job WHERE id = $1', [고른.ai_job_id])).rows[0];
   }
   if (일줄 !== undefined) {
     const 읽은 = 일줄.status === 'DONE' ? 요약읽기(일줄.output) : null;
@@ -149,6 +149,8 @@ export async function 안정화보기(앱: 애플리케이션행, runId: number 
         features: 읽은.features.map((f) => ({ name: f.name, errorCases: new Set(f.tcIds.filter((t) => 오류케이스들.has(t))).size })),
         verified: 읽은.verified,
         trend: 읽은.trend,
+        // 요약 판 오른쪽 위 「AI 작성 · 11-12 03:42」 (§8.19 · STAB-F1-08 시작 질문 승인)
+        finishedAt: 일줄.finished_at?.toISOString() ?? null,
       };
   }
 

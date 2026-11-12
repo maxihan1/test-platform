@@ -43,6 +43,8 @@ export type Route =
   /** 성능 테스트 › 실행 기록과 실행 한 건(도는 중이면 실행 중, 끝났으면 결과 — 같은 주소) */
   | { name: 'perfRuns' }
   | { name: 'perfRun'; runId: number }
+  /** 안정화 지표. run — 날짜 고르개로 고른 집계 줄(`?run=`). 없으면 가장 최근 집계 (도메인/안정화 §8.19) */
+  | { name: 'stability'; run?: number; days?: 30 }
   /** reqId — 케이스 목록의 요구 번호에서 왔다. 그 항목을 펴서 보인다 */
   | { name: 'prd'; reqId?: string }
   | { name: 'prdGuide' }
@@ -193,6 +195,17 @@ export function route(hash: string): Route {
     if (parts.length === 3 && /^\d{1,10}$/.test(parts[2]!)) return { name: 'perfRun', runId: Number(parts[2]) };
   }
 
+  if (parts[0] === 'stability' && parts.length === 1) {
+    // 고른 날과 30일 창은 주소에 남는다 — 다른 화면에 다녀와도 풀리지 않게 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
+    const 조건 = new URLSearchParams(hash.split('?')[1] ?? '');
+    const 번호 = 조건.get('run');
+    return {
+      name: 'stability',
+      ...(번호 !== null && /^\d{1,10}$/.test(번호) ? { run: Number(번호) } : {}),
+      ...(조건.get('days') === '30' ? { days: 30 as const } : {}),
+    };
+  }
+
   if (parts[0] === 'runs') {
     if (parts.length === 1) return { name: 'runs', kind: 'FN' };
     // 호환성은 케이스 실행 목록과 줄 모양이 달라 따로 선다 — 실행종류에 넣지 않는다 (도메인/호환성 §8.17 ⑤)
@@ -237,6 +250,8 @@ export const 기능자리: Partial<Record<Route['name'], 기능>> = {
   perfPages: 'runs',
   perfDevices: 'runs',
   perfRuns: 'runs',
+  // 안정화 지표도 실행 칸을 쓴다 (도메인/인증 §7 「등급으로 갈리는 자리」 안정화 두 줄)
+  stability: 'runs',
   // 호환성은 실행 칸을 쓴다 (도메인/호환성 §7). 세트 주소는 `?service=` 로 그 세트의 애플리케이션을 담는다
   compatSets: 'runs',
   compatSet: 'runs',

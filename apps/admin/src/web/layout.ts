@@ -118,6 +118,8 @@ export function 자리목록(user: User, prefix: string | null, 언어: 언어):
       ],
     });
   }
+  // 성능 테스트 다음 · 그래프 앞. 웹 · Android 앱 · 게임만 선다 — API 는 세는 로그가 없다 (도메인/안정화 §3.15 결정 7 · 13)
+  if (기능보나(user, prefix, 'runs') && !API) 목록.push({ 이름: t('안정화 지표', 언어), 해시: '#/stability', 아이콘: 'stability' });
   if (user.dashboard === 'read') 목록.push({ 이름: t('그래프(Grafana)', 언어), 해시: 그래프주소, 아이콘: 'graph', 바깥: true });
   if (할수있나(user, prefix, '설정')) 목록.push({ 이름: t('설정', 언어), 해시: '#/settings', 아이콘: 'settings' });
   return 목록;
@@ -149,6 +151,7 @@ export function 지금자리(name: string, 집: string, 종류?: 'UI' | 'FN' | '
   if (name === 'perfPages') return '#/perf/pages';
   if (name === 'perfDevices') return '#/perf/devices';
   if (name === 'perfRuns' || name === 'perfRun') return '#/perf/runs';
+  if (name === 'stability') return '#/stability';
   if (name === 'compatSets' || name === 'compatSet') return '#/compat';
   // 결과는 실행 기록에서 들어온 자리다
   if (name === 'compatRuns' || name === 'compatRun') return '#/runs/compat';

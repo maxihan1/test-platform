@@ -38,6 +38,7 @@ import { RunResult } from './RunResult.js';
 import { RunWindow } from './RunWindow.js';
 import { PerfDevices } from './PerfDevices.js';
 import { PerfPages } from './PerfPages.js';
+import { Stability } from './Stability.js';
 import { PerfRun } from './PerfRun.js';
 import { PerfRunList } from './PerfRunList.js';
 import { PerfScenarioList } from './PerfScenarioList.js';
@@ -193,6 +194,10 @@ function Screen({
     case 'perfRun':
       // 번호마다 새로 그린다 — 다시 실행으로 새 번호 주소로 오면 앞 실행의 숫자가 남지 않게
       return <PerfRun key={current.runId} runId={current.runId} 판정하기={(접두사) => 판정을만든다(user, 접두사)} />;
+    case 'stability':
+      // API 는 메뉴가 없다 — 주소로 와도 안내만 한다 (도메인/안정화 §8.19 「자리」). 애플리케이션 · 주소의 날 · 창마다 새로 그린다 — 메뉴를 다시 누르면(`#/stability`) 가장 최근 날로 돌아가야 한다
+      if (service?.kind === 'API') return <div className="empty">{t('API 애플리케이션은 안정화 지표를 집계하지 않습니다')}</div>;
+      return service === null ? <div className="empty">{t('애플리케이션을 먼저 선택해 주세요')}</div> : <Stability key={`${prefix}:${String(current.run ?? '')}:${String(current.days ?? 7)}`} service={service} run={current.run} days={current.days ?? 7} />;
     case 'run':
       // 주소로 바로 오는 화면이라 띠와 다른 서비스의 실행일 수 있다 — 그 실행의 칸으로 가른다
       return <RunResult runId={current.runId} 판정하기={(접두사) => 판정을만든다(user, 접두사)} />;
@@ -393,8 +398,8 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
     고른서비스를적는다(접두사);
     setPrefix(접두사);
     const 갈곳 = 서비스바꾼주소(window.location.hash, 열린접두사, 접두사);
-    // 설정은 자리가 주소의 길이라 화면이 새 자리로 다시 그려져야 한다
-    (route(갈곳).name === 'settings' ? 주소덮기 : 주소고치기)(갈곳);
+    // 설정은 자리가 주소의 길이라 화면이 새 자리로 다시 그려져야 한다. 안정화 지표도 앞 애플리케이션의 실행 번호를 뗀 주소로 다시 그린다
+    (['settings', 'stability'].includes(route(갈곳).name) ? 주소덮기 : 주소고치기)(갈곳);
   };
 
   if (프로젝트묻기 && 배정프로젝트들(상태.user.services).length > 1) {
