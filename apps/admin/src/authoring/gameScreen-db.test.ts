@@ -44,6 +44,7 @@ describe.skipIf(연결 === undefined)('게임 첫 화면 · 게임 화면 기록
     await q('DELETE FROM screen_found WHERE service_id = $1', [서비스]);
     await q('DELETE FROM screen_record WHERE service_id = $1', [서비스]);
     await q('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
+    await q('DELETE FROM app_build WHERE service_id = $1', [서비스]);
     await q('DELETE FROM service_env WHERE service_id = $1', [서비스]);
   };
 
@@ -78,6 +79,35 @@ describe.skipIf(연결 === undefined)('게임 첫 화면 · 게임 화면 기록
     for (const [이름, 값] of [['AUTHORING_AGENT_USER', 원래.에이전트], ['DEVICE_FARM_URL', 원래.팜]] as const) {
       if (값 === undefined) delete process.env[이름];
       else process.env[이름] = 값;
+    }
+  });
+
+  it('app-link 는 폰을 잡지 않고 앱 줄의 링크만 준다 — 앱이 없으면 null, 올린 빌드는 부를 때 새로 만든 서명 링크다', async () => {
+    await 줄들([['dev', null, false]]);
+    expect(await 받기(await 요청넣기(), 'app-link')).toEqual({ app: null });
+
+    await 치우기();
+    await 줄들([['dev', null, false], ['qa', 'https://builds/qa.apk', false]]);
+    const id = await 요청넣기();
+    expect(await 받기(id, 'app-link')).toEqual({ app: 'https://builds/qa.apk' });
+
+    vi.stubEnv('PLATFORM_PUBLIC_URL', 'https://qahub.xgs.test');
+    vi.stubEnv('SESSION_SECRET', 'xgs-session-secret');
+    try {
+      const 올리기 = async (번호: string, 언제: string) =>
+        Number((await q<{ id: string }>(`INSERT INTO app_build (service_id, env, build_no, file_path, uploaded_by, uploaded_at) VALUES ($1, 'qa', $2, '/tmp/xgs.apk', 'xgs', now() - $3::interval) RETURNING id`, [서비스, 번호, 언제])).rows[0]!.id);
+      const 첫빌드 = await 올리기('xgs-1', '1 hour');
+      const { app: 링크 } = (await 받기(id, 'app-link')) as { app: string };
+      expect(링크).toMatch(new RegExp(`^https://qahub\\.xgs\\.test/api/builds/${첫빌드}/apk\\?exp=\\d+&sig=`));
+      expect(Number(/exp=(\d+)/.exec(링크)?.[1]) * 1000).toBeGreaterThan(Date.now() + 60 * 60_000);
+
+      // 도중에 새 빌드가 올라와도 시작 때의 빌드를 준다. 그 빌드가 없거나 다른 애플리케이션 것이면 최신 빌드다
+      const 새빌드 = await 올리기('xgs-2', '0 seconds');
+      expect((await 받기(id, `app-link?build=${첫빌드}`)).app).toContain(`/api/builds/${첫빌드}/apk?`);
+      expect((await 받기(id, 'app-link')).app).toContain(`/api/builds/${새빌드}/apk?`);
+      expect((await 받기(id, 'app-link?build=999999999')).app).toContain(`/api/builds/${새빌드}/apk?`);
+    } finally {
+      vi.unstubAllEnvs();
     }
   });
 

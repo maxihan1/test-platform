@@ -89,15 +89,22 @@ export function 앱탐색주소(appPath: string | null, 팜: string | undefined,
 
 const 비움 = { screen: null, reason: null };
 
+/**
+ * 작성 에이전트에 줄 앱 — app-screen 과 app-link 가 같은 줄 · 같은 규칙으로 고른다. 줄은 집기 계정 · 대상 서버와 같은 규칙(앱줄고르기)이고
+ * 그 줄의 최신 빌드가 앱 파일 경로보다 앞선다 (도메인/실행 §3.11)
+ */
+async function 작성앱파일(행: { serviceId: number; env: string | null }, 고정?: number): Promise<string | null> {
+  const 줄 = 앱줄고르기(await 대상줄들읽기(행.serviceId), 행.env);
+  return 줄 === undefined ? null : 깔앱파일(행.serviceId, 줄.env, 줄.appPath, 고정);
+}
+
 export default async function appScreenAgentRoutes(app: FastifyInstance): Promise<void> {
   // 게임은 앱 화면을 안 읽는다 — Unity 화면은 Appium 에게 빈 판 하나다. 게임 첫 화면은 아래 game-screen 이 준다 (도메인/게임 §3.10 「작성 — 한 바퀴」 앱 규칙과 다른 곳)
   const 읽어준다 = (게임만: boolean, 곳: 읽을곳, 칸: 'appium' | 'game') => async (req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     const 행 = await 도는집은요청(req, reply);
     if (행 === null) return reply;
     if ((await 게임서비스인가(행.serviceId)) !== 게임만) return { ...비움, [칸]: null };
-    // 줄은 집기 계정 · 대상 서버와 같은 규칙으로 고르고(앱줄고르기), 그 줄의 최신 빌드가 앱 파일 경로보다 앞선다 (도메인/실행 §3.11)
-    const 줄 = 앱줄고르기(await 대상줄들읽기(행.serviceId), 행.env);
-    const appPath = 줄 === undefined ? null : await 깔앱파일(행.serviceId, 줄.env, 줄.appPath);
+    const appPath = await 작성앱파일(행);
     // 게임은 앱 파일이 없으면 켤 게임이 없다 — 앱처럼 「앱 없는 서비스」로 비우면 AI 가 까닭을 모른다
     if (게임만 && appPath === null) return { screen: null, reason: '대상 서버 줄에 게임 앱 파일 경로가 없다', game: null };
     const 팜 = 팜주소();
@@ -110,4 +117,12 @@ export default async function appScreenAgentRoutes(app: FastifyInstance): Promis
   };
   app.get('/authoring/requests/:id/app-screen', 읽어준다(false, 앱길, 'appium'));
   app.get('/authoring/requests/:id/game-screen', 읽어준다(true, 게임길, 'game'));
+  // 링크만 — 서명 링크는 길어야 2시간이라 작성 동안 에이전트가 30분마다 다시 받아 자식의 링크 파일에 갈아 끼운다. 폰을 안 잡고 러너도 안 부른다 (§7 「앱 화면 통로」 app-link)
+  // build 는 에이전트가 시작 때 받은 링크의 빌드 번호다 — 그 빌드가 남았으면 같은 빌드로 다시 서명한다(케이스를 쓴 빌드와 돌려 보는 빌드가 같게)
+  app.get('/authoring/requests/:id/app-link', async (req: FastifyRequest<{ Params: { id: string }; Querystring: { build?: string } }>, reply: FastifyReply) => {
+    const 행 = await 도는집은요청(req, reply);
+    if (행 === null) return reply;
+    const 고정 = /^\d{1,12}$/.test(req.query.build ?? '') ? Number(req.query.build) : undefined;
+    return { app: await 작성앱파일(행, 고정) };
+  });
 }

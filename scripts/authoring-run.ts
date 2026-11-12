@@ -26,7 +26,7 @@ import { 거절로, 끝낼상태, 자식제한, 진척누적기, 진척재기 } 
 import { type 박동, 박동손 } from './authoring-heartbeat.js';
 import { type 서비스설정 } from './authoring-token.js';
 import { 먼저가리기 } from './authoring-masking.js';
-import { 게임화면받기, 앱화면받기, 잡은폰놓기, 탐색환경 } from './authoring-app-screen.js';
+import { 게임화면받기, 앱링크갈기, 앱화면받기, 잡은폰놓기, 탐색환경 } from './authoring-app-screen.js';
 import { 게임자료환경 } from './authoring-check-game.js';
 import { 게임올리기, 게임준비, 안다룬요소줄 } from './authoring-game.js';
 import { type 바꾸기, 가이드받기, 가이드폴더 } from './authoring-guide.js';
@@ -227,7 +227,7 @@ async function 사본에서(
     // 기준 SHA 의 tests 목록 — 돌려 보기 명령이 에이전트 끝 검사와 같은 기준(기준과의 차이)으로 닿은 케이스를 고른다 (§3.6 「돌려 보기 명령」)
     ...(자식 === null ? {} : { HOME: 자리.집, TMPDIR: 자리.임시 }), AUTHORING_GATE3_DIR: 자리.임시, AUTHORING_BASE_LIST: join(자리.자료, 기준목록이름),
     // 역방향 — 대상 서버·테스트 계정은 환경 변수로만. 프롬프트·인자에는 값을 안 싣는다 (§7 ★)
-    ...(것.target === undefined ? {} : 대상환경(것.target)), ...계정환경(것.accounts, (글) => console.log(`[작성] ${것.id}번 ${글}`)), ...탐색환경(앱화면),
+    ...(것.target === undefined ? {} : 대상환경(것.target)), ...계정환경(것.accounts, (글) => console.log(`[작성] ${것.id}번 ${글}`)), ...탐색환경(앱화면, 자리.자료),
     ...(것.api === undefined ? {} : API환경(것.api, 자리.자료)), // API 대상 서버 · 인증 · 판 파일도 환경 변수로만 (도메인/API §3.8 「API 인증」)
     ...(설정.게임 === true ? { [게임자료환경]: 자리.자료 } : {}), // 빠른 검사가 게임 지도(game-map.txt · game-elements.json)로 케이스 요소를 본다 (도메인/게임 §3.10 「작성 — 한 바퀴」 4)
   };
@@ -256,11 +256,12 @@ async function 사본에서(
   );
   // 크레딧 키가 있으면 크레딧으로 먼저 — 일하다 떨어지면 같은 작업 폴더에서 구독으로 이어 띄운다 (authoring-billing).
   // 이어받은 실행이면 앞 까닭(올리기 거절 글 등)을 그대로 넘긴다 — 자식이 그것부터 고쳐야 한다
+  const 링크끄기 = 앱링크갈기({ 주소기지, 토큰 }, 것.id, 자리.자료, 앱화면); // 서명 링크는 2시간이다 — 자식이 도는 동안 갈아 끼운다 (§3.6 「앱 화면」)
   const { 돌린것, 크레딧으로, 앞낸것 } = await 크레딧먼저(process.env[크레딧키이름] || undefined, 띄운다, (글) => console.log(`[작성] ${것.id}번 ${사유거르기(글, 비밀번호들(것))}`), {
     멈추라했다: 박동.멈추라했다,
     거두기: async () => (await 자식거두기(자식)) && (await 잡은폰놓기(자리.트리, 앱화면, 것.id), true),
     띄운다: () => 띄운다(undefined, 방.이어하기 ?? { 번호: 것.id, 이유: 'CREDIT', 까닭: null }),
-  });
+  }).finally(링크끄기);
   const 단계 = 누적.단계표(); // 거절 · 시간초과 · 멈춤 · 끊김에도 남게 어떤 return · 사용량보고보다 먼저 (AUT-F3-21)
   console.log(`[작성] ${것.id}번 단계 시각\n${단계 || '단계 표지 없음'}`);
   // 에이전트가 거절로 멈추는 중이면 자식을 죽인 것이다 — 서버도 받아 주지 않으니 보고하지 않는다
