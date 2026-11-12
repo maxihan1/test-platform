@@ -13,6 +13,11 @@ export class 도메인차단확인화면 {
     this.취소 = page.getByRole('link', { name: '취소' });
   }
 
+  async 정지하기(): Promise<void> {
+    await this.정지.click();
+    await this.page.waitForURL(/\/admin\/instances/);
+  }
+
   제목(도메인: string): Locator {
     return this.page.getByRole('heading', { name: `${도메인} 도메인 차단 확인`, level: 1 });
   }

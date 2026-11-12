@@ -8,7 +8,7 @@ import { 이메일바꾸기화면 } from './pages/change-email.page.js';
 
 export const spec = defineCase({
   tcId: 'MTO-FN-468',
-  name: '「새 이메일」을 적고 「이메일 바꾸기」를 누르면 「이메일이 성공적으로 변경되었습니다!」가 보인다',
+  name: '「새 이메일」을 적고 「이메일 바꾸기」를 누르면 계정 상세로 돌아가 「이메일이 성공적으로 변경되었습니다!」가 보인다',
   precondition: ['Owner(qa_admin) 계정으로 로그인해 있다', '케이스가 만든 이메일 미확인 계정이 있다'],
   params: z.object({
     loginId: z.string().describe('Owner 아이디').optional().meta({ secret: true }),
@@ -21,6 +21,7 @@ test(spec, async ({ page, params }) => {
   const 상세 = new 계정상세화면(page);
   const 이메일 = new 이메일바꾸기화면(page);
   let 계정: 일회용계정 | undefined;
+  let 새이메일 = '';
 
   try {
 
@@ -39,9 +40,17 @@ test(spec, async ({ page, params }) => {
       const 아이디 = 계정?.아이디 ?? '';
       await 상세.이메일바꾸기.click();
       await 이메일.그려질때까지();
-      await 이메일.이메일바꾸기(`${아이디}b@maxihan.com`);
-      const 떴다 = await 이메일.알림.글('이메일이 성공적으로 변경되었습니다!').waitFor({ timeout: 10_000 }).then(() => true, () => false);
-      await verify('「새 이메일」을 적고 「이메일 바꾸기」를 누르면 「이메일이 성공적으로 변경되었습니다!」가 보인다', 떴다, true);
+      새이메일 = `${아이디}b@maxihan.com`;
+      await 이메일.이메일바꾸기(새이메일);
+      const 떴다 = await verify('「이메일이 성공적으로 변경되었습니다!」가 보인다', await 이메일.알림.글('이메일이 성공적으로 변경되었습니다!').waitFor({ timeout: 10_000 }).then(() => true, () => false), true);
+      const 돌아옴 = await verify('계정 상세로 돌아간다', await 상세.카운터.isVisible(), true);
+      await verify('「새 이메일」을 적고 「이메일 바꾸기」를 누르면 계정 상세로 돌아가 「이메일이 성공적으로 변경되었습니다!」가 보인다', 떴다 && 돌아옴, true);
+    });
+
+    await test.step('돌아온 계정 상세에서 「확인되지 않은 이메일 주소」를 확인한다', async () => {
+      const 보임 = await verify('「확인되지 않은 이메일 주소」 줄이 보인다', await 상세.미확인이메일칸.waitFor({ timeout: 10_000 }).then(() => true, () => false), true);
+      const 글 = 보임 ? (await 상세.미확인이메일칸.innerText()).trim() : '';
+      await verify('「확인되지 않은 이메일 주소」에 새 이메일이 보인다', 글, 새이메일);
     });
 
   } finally {

@@ -9,7 +9,7 @@ import { 계정관계화면 } from './pages/account-relationships.page.js';
 
 export const spec = defineCase({
   tcId: 'MTO-UI-371',
-  name: '계정 상세에서 「팔로워」를 누르면 「@qa_user2의 관계」 화면이 열린다',
+  name: '계정 상세에서 「팔로워」를 누르면 「qa_user2의 관계」 화면에 「위치」 필터가 보인다',
   precondition: ['Owner(qa_admin) 계정으로 로그인해 있다', '조치 대상 qa_user2 가 제재 없는 상태다'],
   params: z.object({
     loginId: z.string().describe('Owner 아이디').optional().meta({ secret: true }),
@@ -38,8 +38,10 @@ test(spec, async ({ page, params }) => {
 
     await test.step('qa_user2 계정 상세에서 카운터 「팔로워」를 누른다', async () => {
       await 상세.카운터링크('팔로워').click();
-      await 관계.제목.waitFor();
-      await verify('계정 상세에서 「팔로워」를 누르면 「@qa_user2의 관계」 화면이 열린다', await 관계.제목글(), '@qa_user2의 관계');
+      await 관계.관계필터.waitFor();
+      const 제목 = await verify('「qa_user2의 관계」 화면이 열린다', await 관계.제목글(), 'qa_user2의 관계');
+      const 필터 = await verify('「위치」 필터가 보인다', await 관계.위치필터.isVisible(), true);
+      await verify('계정 상세에서 「팔로워」를 누르면 「qa_user2의 관계」 화면에 「위치」 필터가 보인다', 제목 && 필터, true);
     });
 
   } finally {
