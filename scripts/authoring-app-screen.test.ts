@@ -5,7 +5,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { 게임화면받기, 게임화면파일, 앱화면받기, 앱화면파일, 잡은폰놓기, 탐색환경 } from './authoring-app-screen.js';
+import { 게임화면받기, 게임화면파일, 앱링크갈기, 앱링크파일, 앱화면받기, 앱화면파일, 잡은폰놓기, 탐색환경 } from './authoring-app-screen.js';
 import { 줄프롬프트 } from './authoring-prompt.js';
 
 const 서버 = { 주소기지: 'http://admin:3000', 토큰: 't' };
@@ -76,6 +76,51 @@ describe('앱화면받기', () => {
   });
 });
 
+describe('앱 링크 갈아 끼우기 — 서명 링크는 2시간이라 작성 동안 다시 받는다 (도메인/작성 §3.6 「앱 화면」 「링크 갈아 끼우기」)', () => {
+  const 탐색 = { url: 'http://host.docker.internal:4723/wd/hub', app: 'https://qa.test/api/builds/1/apk?exp=1&sig=old' };
+  afterEach(() => vi.useRealTimers());
+
+  it('첫 화면을 받으면 링크를 링크 파일에 쓰고, 탐색이 없으면 앞 실행의 파일도 지운다', async () => {
+    서버가({ screen: null, reason: '디바이스 팜에 빈 폰이 없습니다', appium: 탐색 });
+    await 앱화면받기(서버, 7, 자료);
+    expect(readFileSync(앱링크파일(자료), 'utf8')).toBe(탐색.app);
+
+    서버가({ screen: null, reason: null });
+    await 앱화면받기(서버, 7, 자료);
+    expect(existsSync(앱링크파일(자료))).toBe(false);
+  });
+
+  it('30분마다 app-link 를 불러 파일을 새 링크로 바꾸고, 못 받으면 앞 링크를 두고, 끄면 더 안 부른다', async () => {
+    vi.useFakeTimers();
+    writeFileSync(앱링크파일(자료), 탐색.app);
+    const 부름 = 서버가({ app: 'https://qa.test/api/builds/1/apk?exp=2&sig=new' });
+    const 끄기 = 앱링크갈기(서버, 7, 자료, { 글: 'x', 탐색 });
+
+    await vi.advanceTimersByTimeAsync(29 * 60_000);
+    expect(부름).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect((부름.mock.calls[0] as unknown as [string])[0]).toBe('http://admin:3000/api/authoring/requests/7/app-link');
+    expect(readFileSync(앱링크파일(자료), 'utf8')).toBe('https://qa.test/api/builds/1/apk?exp=2&sig=new');
+
+    서버가({ error: 'NOT_RUNNING' }, 409);
+    await vi.advanceTimersByTimeAsync(30 * 60_000);
+    expect(readFileSync(앱링크파일(자료), 'utf8')).toBe('https://qa.test/api/builds/1/apk?exp=2&sig=new');
+
+    끄기();
+    const 뒤 = 서버가({ app: 'https://qa.test/api/builds/1/apk?exp=3&sig=late' });
+    await vi.advanceTimersByTimeAsync(60 * 60_000);
+    expect(뒤).not.toHaveBeenCalled();
+  });
+
+  it('탐색이 없으면(앱 · 팜 없음) 부르지 않는다', async () => {
+    vi.useFakeTimers();
+    const 부름 = 서버가({ app: 'x' });
+    앱링크갈기(서버, 7, 자료, { 글: 'x' })();
+    await vi.advanceTimersByTimeAsync(60 * 60_000);
+    expect(부름).not.toHaveBeenCalled();
+  });
+});
+
 describe('눌러 가며 읽기 — 탐색 주소 · 폰 놓기 (도메인/작성 §3.6 「앱 화면」 「눌러 가며 읽기」)', () => {
   const 탐색 = { url: 'http://host.docker.internal:4723/wd/hub', app: 'http://files/app.apk' };
 
@@ -95,12 +140,12 @@ describe('눌러 가며 읽기 — 탐색 주소 · 폰 놓기 (도메인/작성
 
     expect(옛것).toEqual({ 글: 앱화면파일(자료) });
     expect(팜없음).toEqual({ 못읽음: '디바이스 팜(DEVICE_FARM_URL)이 연결되어 있지 않다' });
-    expect(탐색환경(옛것)).toEqual({});
-    expect(탐색환경(undefined)).toEqual({});
+    expect(탐색환경(옛것, 자료)).toEqual({});
+    expect(탐색환경(undefined, 자료)).toEqual({});
   });
 
-  it('환경값은 appium-cli 가 읽는 이름이다 — 폰 번호는 안 준다', () => {
-    expect(탐색환경({ 글: 'x', 탐색 })).toEqual({ PLATFORM_APPIUM_URL: 탐색.url, PLATFORM_APP: 탐색.app });
+  it('환경값은 appium-cli 가 읽는 이름이다 — 폰 번호는 안 주고 갈아 끼울 링크 파일 자리를 준다', () => {
+    expect(탐색환경({ 글: 'x', 탐색 }, 자료)).toEqual({ PLATFORM_APPIUM_URL: 탐색.url, PLATFORM_APP: 탐색.app, AUTHORING_APP_FILE: 앱링크파일(자료) });
   });
 
   it('서버가 준 팜 토큰을 탐색에 담아 자식의 PLATFORM_APPIUM_TOKEN 으로 넘긴다 — 빈 값은 안 담는다', async () => {
@@ -110,9 +155,9 @@ describe('눌러 가며 읽기 — 탐색 주소 · 폰 놓기 (도메인/작성
     const 빈것 = await 앱화면받기(서버, 7, 자료);
 
     expect(게임).toEqual({ 못읽음: '디바이스 팜에 빈 폰이 없습니다', 탐색: { ...탐색, token: 'pat_dlg' }, 게임: true });
-    expect(탐색환경(게임)).toEqual({ PLATFORM_APPIUM_URL: 탐색.url, PLATFORM_APP: 탐색.app, PLATFORM_APPIUM_TOKEN: 'pat_dlg' });
+    expect(탐색환경(게임, 자료)).toEqual({ PLATFORM_APPIUM_URL: 탐색.url, PLATFORM_APP: 탐색.app, AUTHORING_APP_FILE: 앱링크파일(자료), PLATFORM_APPIUM_TOKEN: 'pat_dlg' });
     expect(빈것).toEqual({ 못읽음: '디바이스 팜에 빈 폰이 없습니다', 탐색 });
-    expect(탐색환경(빈것)).not.toHaveProperty('PLATFORM_APPIUM_TOKEN');
+    expect(탐색환경(빈것, 자료)).not.toHaveProperty('PLATFORM_APPIUM_TOKEN');
   });
 
   it('AI 가 잡은 폰이 작업 폴더에 남아 있으면 팜에서 놓는다', async () => {

@@ -114,6 +114,20 @@ export function 앱케이스말(앱: readonly string[], 폴더: string, env: Nod
   return `[돌려 보기] 앱 케이스 ${앱.length}건은 ${까닭} — ${앱.join(' · ')}`;
 }
 
+/**
+ * 폰에 깔 앱 — 에이전트가 30분마다 갈아 끼우는 링크 파일(AUTHORING_APP_FILE)이 먼저다. 자식 환경의 PLATFORM_APP 은 시작 때 받은 서명 링크라
+ * 2시간 안에 403 이 된다 (도메인/작성 §3.6 「앱 화면」 「링크 갈아 끼우기」 — 11-12 MTA #15303 이 앱 케이스 455개 가운데 2개만 폰에서 돌렸다)
+ */
+export function 폰앱링크(env: NodeJS.ProcessEnv): string | undefined {
+  let 링크 = '';
+  try {
+    링크 = env.AUTHORING_APP_FILE ? readFileSync(env.AUTHORING_APP_FILE, 'utf8').trim() : '';
+  } catch {
+    // 파일이 아직 없으면(옛 에이전트 · 쓰기 실패) 시작 때 받은 링크로 간다
+  }
+  return 링크 || env.PLATFORM_APP;
+}
+
 function 돌리기(트리: string, 결과폴더: string, 이름: string, 파일들: readonly string[], 폰환경값: Record<string, string>, 상한: number, env: NodeJS.ProcessEnv): Promise<number> {
   const 로그 = openSync(join(결과폴더, `${이름}.log`), 'w');
   const 인자 = ['playwright', 'test', ...파일들.map((f) => `tests/${f}`), '--project=android', '--workers=1', '--repeat-each=1', `--global-timeout=${Math.round(상한)}`, '--reporter=line,json'];
@@ -184,7 +198,7 @@ export async function 폰실행(갈래: 폰갈래, 폴더: string | undefined, �
     const 번호꼴 = new RegExp(`^${기록}-(\\d+)\\.json$`);
     const 이름 = `${기록}-${Math.max(0, ...readdirSync(결과폴더).map((n) => Number(번호꼴.exec(n)?.[1] ?? 0))) + 1}`;
     로그 = join(결과폴더, `${이름}.log`);
-    await 돌리기(트리, 결과폴더, 이름, 이번, 폰환경(갈래, 폰), 예산, { ...env, PLATFORM_BASE_URL: 주소 });
+    await 돌리기(트리, 결과폴더, 이름, 이번, 폰환경(갈래, 폰), 예산, { ...env, PLATFORM_BASE_URL: 주소, PLATFORM_APP: 폰앱링크(env) });
   }
   const 뒤 = 읽기();
   const 남은 = 폰할일(대상, 뒤.찾기);
