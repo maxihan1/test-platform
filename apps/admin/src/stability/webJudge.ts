@@ -47,7 +47,7 @@ function 첫화면(대상주소: string): string {
  */
 export function 웹항목오류(콘솔: readonly 콘솔줄[], 네트워크: readonly 네트워크줄[], 예외축: boolean, 대상주소: string): 센오류[] {
   const 기본화면 = 첫화면(대상주소);
-  const 이동 = 네트워크.filter((n) => n.resourceType === 'document').sort((a, b) => a.ord - b.ord);
+  const 이동 = 네트워크.filter((n) => n.resourceType === 'document').sort((a, b) => a.atMs - b.atMs || a.ord - b.ord);
   const 화면 = (앞인가: (n: 네트워크줄) => boolean): string => 이동.filter(앞인가).at(-1)?.url ?? 기본화면;
   const 실패 = 네트워크.filter(실패인가);
   const 실패주소 = new Set(실패.map((n) => n.url));
@@ -70,7 +70,8 @@ export function 웹항목오류(콘솔: readonly 콘솔줄[], 네트워크: read
   }
   if (!예외축) {
     for (const n of [...실패].sort((a, b) => a.ord - b.ord)) {
-      const page = 화면((d) => d.ord < n.ord);
+      // 콘솔 줄과 같은 시각 기준 — 같은 실패의 네트워크 줄과 콘솔 줄이 다른 화면으로 갈리지 않게. 이동 줄 자신은 그 앞 화면에 둔다
+      const page = 화면((d) => d.ord !== n.ord && d.atMs <= n.atMs);
       넣기(웹네트워크지문(n.status, n.method, n.url, page), n.seq, page, `${n.method.toUpperCase()} ${n.url} → ${n.status ?? n.failure}`);
     }
   }

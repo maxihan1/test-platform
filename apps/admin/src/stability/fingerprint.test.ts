@@ -11,6 +11,11 @@ describe('메시지틀', () => {
     expect(메시지틀('GET https://a.com/x?page=2&q=검색 실패')).toBe('GET https://a.com/x?* 실패');
   });
 
+  it('줄임표는 따옴표로 보지 않고 코드 조각의 물음표는 그대로 둔다', () => {
+    expect(메시지틀(`Can't load 'avatar' — it's gone`)).toBe(`Can't load '*' — it's gone`);
+    expect(메시지틀('a?.b is undefined')).toBe('a?.b is undefined');
+  });
+
   it('200자에서 자른다', () => {
     expect(메시지틀('가'.repeat(300))).toHaveLength(200);
   });
@@ -76,6 +81,11 @@ describe('앱크래시지문', () => {
     expect(a.title).toBe('NullPointerException · Foo.bind');
   });
 
+  it('익명 클래스 · 람다 번호가 빌드마다 바뀌어도 같은 지문이다', () => {
+    const a = 앱크래시지문('org.joinmastodon.android', 'java.lang.NullPointerException', 프레임);
+    expect(앱크래시지문('org.joinmastodon.android', 'java.lang.NullPointerException', 프레임.map((x) => x.replace('Bar$1', 'Bar$2'))).fingerprint).toBe(a.fingerprint);
+  });
+
   it('앱 프레임이 없으면 맨 위 셋을 쓴다', () => {
     expect(앱크래시지문('com.other', 'java.lang.IllegalStateException', 프레임).title).toBe('IllegalStateException · Handler.dispatchMessage');
   });
@@ -102,6 +112,10 @@ describe('게임예외지문', () => {
     expect(a.title).toBe('NullReferenceException · ClientCharacter.OnAnimEvent');
     expect(게임예외지문('NullReferenceException: 다른 메시지', 스택.replace('0x00012', '0x00099').replace(':20', ':21')).fingerprint).toBe(a.fingerprint);
     expect(게임예외지문('ArgumentException: x', 스택).fingerprint).not.toBe(a.fingerprint);
+  });
+
+  it('`:` 가 없는 메시지도 값만 다르면 같은 지문이다', () => {
+    expect(게임예외지문('Index 17 out of range', 스택).fingerprint).toBe(게임예외지문('Index 23 out of range', 스택).fingerprint);
   });
 });
 

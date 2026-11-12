@@ -22,8 +22,10 @@ export function 메시지틀(글: string): string {
   return 글
     .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '*')
     .replace(/\b[0-9a-f]{17,}\b/gi, '*')
-    .replace(/"[^"\n]*"|'[^'\n]*'|`[^`\n]*`/g, (m) => `${m[0]}*${m[0]}`)
-    .replace(/\?[^\s"'`]+/g, '?*')
+    // 글자 바로 뒤의 ' 는 줄임표(can't · it's)라 따옴표로 보지 않는다
+    .replace(/"[^"\n]*"|(?<!\w)'[^'\n]*'|`[^`\n]*`/g, (m) => `${m[0]}*${m[0]}`)
+    // 주소의 물음표만 — 경로(/) 뒤에 온 것. a?.b 같은 코드 조각은 그대로 둔다
+    .replace(/(\/[^\s?"'`]*)\?[^\s"'`]+/g, '$1?*')
     .replace(/\d+/g, '*')
     .slice(0, 200);
 }
@@ -67,6 +69,8 @@ export function 웹네트워크지문(status: number | null, method: string, url
 // `at com.x.Foo.bar(Foo.kt:42)` · `Unity.BossRoom.ClientCharacter.OnAnimEvent (System.String id) [0x0001] in <…>:0` → 이름만. 줄 번호 · 파일 · 인자를 뺀다
 const 프레임이름 = (줄: string): string => 줄.trim().replace(/^at\s+/, '').split(/\s*[([]/, 1)[0]!.trim();
 const 끝두칸 = (이름: string): string => 이름.split('.').slice(-2).join('.');
+// 컴파일러가 붙이는 번호(익명 클래스 Foo$1 · 람다 $$ExternalSyntheticLambda3 · C# <Run>b__12_0)는 빌드마다 바뀌어 지문 재료에서만 접는다
+const 번호접기 = (이름: string): string => 이름.replace(/\d+/g, '*');
 const 프레임셋 = (줄들: readonly string[], 고르기: (이름: string) => boolean): string[] => {
   const 이름들 = 줄들.map(프레임이름).filter((x) => x !== '');
   const 고른 = 이름들.filter(고르기);
@@ -79,7 +83,7 @@ export function 앱크래시지문(패키지: string, 예외클래스: string, �
   const 짧은예외 = 예외클래스.split('.').at(-1)!;
   return {
     source: 'APP_CRASH',
-    fingerprint: 해시(예외클래스, ...프레임),
+    fingerprint: 해시(예외클래스, ...프레임.map(번호접기)),
     title: 프레임.length === 0 ? 짧은예외 : `${짧은예외} · ${끝두칸(프레임[0]!)}`,
     message: 예외클래스,
   };
@@ -99,11 +103,12 @@ const 엔진프레임 = /^(?:UnityEngine|UnityEditor|System|Mono)\./;
 
 /** 예외 이름(메시지의 `:` 앞) + 엔진 프레임을 뺀 맨 위 셋(네임스페이스 뺀 클래스.메서드) */
 export function 게임예외지문(메시지: string, 스택: string): 지문 {
-  const 이름 = 메시지.split(':', 1)[0]!.trim();
+  // `:` 가 없는 메시지는 통째로 이름이 되므로 값을 틀로 접는다
+  const 이름 = 메시지틀(메시지.split(':', 1)[0]!.trim());
   const 프레임 = 프레임셋(스택.split('\n'), (x) => !엔진프레임.test(x)).map(끝두칸);
   return {
     source: 'GAME_EXCEPTION',
-    fingerprint: 해시(이름, ...프레임),
+    fingerprint: 해시(이름, ...프레임.map(번호접기)),
     title: 프레임.length === 0 ? 이름 : `${이름} · ${프레임[0]}`,
     message: 메시지틀(메시지),
   };
