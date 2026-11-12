@@ -39,6 +39,7 @@ import { RunWindow } from './RunWindow.js';
 import { PerfDevices } from './PerfDevices.js';
 import { PerfPages } from './PerfPages.js';
 import { Stability } from './Stability.js';
+import { StabilityDetail } from './StabilityDetail.js';
 import { PerfRun } from './PerfRun.js';
 import { PerfRunList } from './PerfRunList.js';
 import { PerfScenarioList } from './PerfScenarioList.js';
@@ -198,6 +199,9 @@ function Screen({
       // API 는 메뉴가 없다 — 주소로 와도 안내만 한다 (도메인/안정화 §8.19 「자리」). 애플리케이션 · 주소의 날 · 창마다 새로 그린다 — 메뉴를 다시 누르면(`#/stability`) 가장 최근 날로 돌아가야 한다
       if (service?.kind === 'API') return <div className="empty">{t('API 애플리케이션은 안정화 지표를 집계하지 않습니다')}</div>;
       return service === null ? <div className="empty">{t('애플리케이션을 먼저 선택해 주세요')}</div> : <Stability key={`${prefix}:${String(current.run ?? '')}:${String(current.days ?? 7)}`} service={service} run={current.run} days={current.days ?? 7} />;
+    case 'stabilityError':
+      // 번호 · 고른 날마다 새로 그린다 — 앞 오류의 견본 쪽 · 보내는 중 표시가 남지 않게. 버튼은 띠 애플리케이션의 실행 칸으로 가른다(서버가 오류의 애플리케이션으로 다시 막는다)
+      return <StabilityDetail key={`${String(current.id)}:${String(current.run ?? '')}`} id={current.id} run={current.run} 쓰나={할수('실행')} />;
     case 'run':
       // 주소로 바로 오는 화면이라 띠와 다른 서비스의 실행일 수 있다 — 그 실행의 칸으로 가른다
       return <RunResult runId={current.runId} 판정하기={(접두사) => 판정을만든다(user, 접두사)} />;

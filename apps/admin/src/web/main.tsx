@@ -44,6 +44,7 @@ import './perf.css';
 import './perfPages.css';
 import './perfDevices.css';
 import './stability.css';
+import './stabilityDetail.css';
 import './perfRun.css';
 import './scout.css';
 import './scoutHud.css';
