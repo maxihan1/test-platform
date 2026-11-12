@@ -25,6 +25,7 @@ import { findItem, findRun, listRuns, serviceExists } from './queries.js';
 import { abortRun, createRun, recoverRunning, RunInputError, unfinishedItems } from './store.js';
 import { validate } from './validate.js';
 import { trace기록을읽는다, 밀린trace를푼다 } from './traceIngest.js';
+import { 빠진집계를한다 } from '../stability/aggregate.js';
 import { 팜영상경로, 팜증적경로, 팜증적목록 } from './farmEvidence.js';
 import { 목록종류읽기 } from './runKind.js';
 import { 시작방식거르개 } from './runOrigin.js';
@@ -73,6 +74,14 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
     })
     .catch((err: unknown) => {
       app.log.error(`[execution] 못 푼 trace 를 다시 찾다가 깨졌다: ${err instanceof Error ? err.message : String(err)}`);
+    })
+    // trace 를 다시 줄에 넣은 뒤에 — 집계가 그 풀기를 기다린다. 꺼지기 전에 못 한 안정화 집계를 시작 차례로 한다 (도메인/안정화 §3.15 「집계」)
+    .then(() => 빠진집계를한다())
+    .then((n) => {
+      if (n > 0) app.log.warn(`[stability] 재기동 전에 집계 안 된 정기 실행 ${n}건을 다시 본다`);
+    })
+    .catch((err: unknown) => {
+      app.log.error(`[stability] 빠진 안정화 집계를 찾다가 깨졌다: ${err instanceof Error ? err.message : String(err)}`);
     });
 
   app.post('/runs', async (req, reply) => {

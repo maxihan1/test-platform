@@ -25,6 +25,7 @@ export interface 네트워크줄 {
 export interface 센오류 extends 지문 {
   hits: number;
   seq: number | null; // 그 항목에서 처음 난 단계
+  atMs: number; // 처음 난 시각(테스트 시작부터) — 견본 시각
   page: string; // 화면 주소 — 웹 줄은 trace 풀기가 이미 가렸다
   sample: string;
 }
@@ -53,26 +54,26 @@ export function 웹항목오류(콘솔: readonly 콘솔줄[], 네트워크: read
   const 실패주소 = new Set(실패.map((n) => n.url));
 
   const 모음 = new Map<string, 센오류>();
-  const 넣기 = (지: 지문, seq: number | null, page: string, sample: string): void => {
+  const 넣기 = (지: 지문, seq: number | null, atMs: number, page: string, sample: string): void => {
     const 있던 = 모음.get(지.fingerprint);
     if (있던 !== undefined) {
       있던.hits += 1;
       return;
     }
-    모음.set(지.fingerprint, { ...지, hits: 1, seq, page, sample: sample.slice(0, 견본상한) });
+    모음.set(지.fingerprint, { ...지, hits: 1, seq, atMs, page, sample: sample.slice(0, 견본상한) });
   };
 
   for (const c of [...콘솔].sort((a, b) => a.ord - b.ord)) {
     if (c.level !== 'pageerror' && c.level !== 'error') continue;
     if (c.level === 'error' && (c.text.startsWith('Failed to load resource') || (c.url !== null && 실패주소.has(c.url)))) continue;
     const page = 화면((n) => n.atMs <= c.atMs);
-    넣기(웹콘솔지문(c.level, c.text, page), c.seq, page, c.text);
+    넣기(웹콘솔지문(c.level, c.text, page), c.seq, c.atMs, page, c.text);
   }
   if (!예외축) {
     for (const n of [...실패].sort((a, b) => a.ord - b.ord)) {
       // 콘솔 줄과 같은 시각 기준 — 같은 실패의 네트워크 줄과 콘솔 줄이 다른 화면으로 갈리지 않게. 이동 줄 자신은 그 앞 화면에 둔다
       const page = 화면((d) => d.ord !== n.ord && d.atMs <= n.atMs);
-      넣기(웹네트워크지문(n.status, n.method, n.url, page), n.seq, page, `${n.method.toUpperCase()} ${n.url} → ${n.status ?? n.failure}`);
+      넣기(웹네트워크지문(n.status, n.method, n.url, page), n.seq, n.atMs, page, `${n.method.toUpperCase()} ${n.url} → ${n.status ?? n.failure}`);
     }
   }
   return [...모음.values()];
