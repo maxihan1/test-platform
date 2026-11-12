@@ -6,7 +6,7 @@ import type { ReadableStream as 웹스트림 } from 'node:stream/web';
 import { basename, dirname, join, resolve } from 'node:path';
 
 import fastifyStatic from '@fastify/static';
-import { APPIUM_SESSION_ID_FILE, FARM_EVIDENCE_DIR, runDir } from '@platform/kit';
+import { APPIUM_SESSION_ID_FILE, FARM_EVIDENCE_DIR, GAME_ERRORS_FILE, runDir } from '@platform/kit';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 
 import { 정수 } from '../routeParams.js';
@@ -69,6 +69,21 @@ export async function 팜logcat있음(runId: number, historyId: number): Promise
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') return false;
     throw new Error(`폰 logcat 이 있는지 보지 못했다: ${err instanceof Error ? err.message : String(err)}`);
   }
+}
+
+/**
+ * kit 이 남긴 게임 오류 파일 — 안정화 집계가 읽는다. 이 볼륨에 있는 것만 본다(logcat 과 같은 까닭 — 다른 기계 러너 것을 받아 오면 분모가 날마다 흔들린다).
+ * 없으면 null — 기록 없음 (도메인/안정화 §3.15 「집계」 분모)
+ */
+export async function 게임오류읽기(runId: number, historyId: number): Promise<string | null> {
+  const 곳 = join(폴더(runId, historyId), GAME_ERRORS_FILE);
+  try {
+    await access(곳);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return null;
+    throw new Error(`게임 오류 파일이 있는지 보지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+  }
+  return (await 볼륨파일읽기(곳)).toString('utf8');
 }
 
 /**

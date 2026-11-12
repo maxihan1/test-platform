@@ -51,9 +51,9 @@ const 묶음SQL = `
 export async function 집계한다(runId: number, 상한ms?: number, 간격ms = 살펴보는간격ms): Promise<집계결과> {
   const pool = await db();
   const 묶음 = (await pool.query<묶음행>(묶음SQL, [runId])).rows;
-  // 웹 · Android 앱만 센다 — 게임은 STAB-F1-05 가 더하고 API 는 메뉴가 없다(결정 13)
+  // 웹 · Android 앱 · 게임만 센다 — API 는 메뉴가 없다(결정 13)
   const 종류 = 묶음[0]?.service_kind;
-  if (종류 !== 'SCREEN' && 종류 !== 'APP') return '대상 아님';
+  if (종류 !== 'SCREEN' && 종류 !== 'APP' && 종류 !== 'GAME') return '대상 아님';
   // 뒤에 끝나는 실행이 다시 부른다
   if (묶음.some((r) => r.status === 'RUNNING')) return '기다림';
   // 중단 · 준비 실패가 하나라도 있으면 그날 점을 비운다 — 반쪽 분모로 점이 튀지 않게
@@ -72,9 +72,10 @@ export async function 집계한다(runId: number, 상한ms?: number, 간격ms = 
   if ((막힘.rowCount ?? 0) > 0) return '건너뜀';
 
   let 모음: 수집;
-  if (종류 === 'APP') {
+  if (종류 === 'APP' || 종류 === 'GAME') {
+    // 게임 오류 파일은 kit 이 항목 안에서 남겨 이미 있다 — 러너가 응답 뒤에 받는 logcat 만 기다린다
     await logcat을기다린다(pool, 번호들, 상한ms ?? 앱기다림상한ms, 간격ms);
-    모음 = await 앱수집(pool, Number(머리.service_id), 머리.env, 번호들);
+    모음 = await 앱수집(pool, Number(머리.service_id), 머리.env, 번호들, 종류 === 'GAME');
   } else {
     await trace를기다린다(pool, 번호들, 상한ms ?? 웹기다림상한ms, 간격ms);
     모음 = await 웹수집(pool, Number(머리.service_id), 번호들);
