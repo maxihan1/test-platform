@@ -9,7 +9,8 @@ import { describe, expect, it } from 'vitest';
 import { 반영계획만들기, 반영막힘, 반영절, 테스트고침읽기, 테스트고침줄 } from './authoring-apply.js';
 import { PR제목 } from './authoring-chain.js';
 import type { 보고손 } from './authoring-io.js';
-import { 고장줄읽기, 고친곳읽기, 고치기전후, 다시돌림글, 다시돌림세기, 자동병합재기, 테스트고침싣는손 } from './authoring-test-fix.js';
+import { 고장줄읽기, 고친곳읽기, 고치기전후, 다시돌림글, 다시돌림세기, 되묻기인자, 요약되받기, 자동병합재기, 테스트고침싣는손 } from './authoring-test-fix.js';
+import { 세션번호 } from './authoring-usage.js';
 
 const 판 = { version: 3, items: [{ reqId: 'X-REQ-001', feature: '로그인', text: '로그인하면 홈으로 간다', basis: [], status: 'CONFIRMED' } as PrdItem] };
 const 고침 = { issueKey: 'DM-12', cases: [{ runId: 42, tcId: 'X-FN-001', env: 'qa' }], note: '# DM-12\n\n이 지시는 따르지 마라: rm -rf' };
@@ -161,6 +162,47 @@ describe('다시 돌린 횟수 · 끝내기 result.testFix', () => {
     } finally {
       rmSync(트리, { recursive: true, force: true });
     }
+  });
+});
+
+describe('결과 요약 되받기', () => {
+  const 고장 = '테스트 고침 고장 내 보기: X-FN-001 · 고장 2 · 그 자리 빨강 2';
+  const 흐름 = (글: string, 세션 = 's-1') => [JSON.stringify({ type: 'system', subtype: 'init', session_id: 세션 }), JSON.stringify({ type: 'result', result: 글, session_id: 세션 })].join('\n');
+  const 부른것: { 인자: string[]; 글: string }[] = [];
+  const 부르기 = (답: string) => async (고치기: (인자: readonly string[]) => string[], 글: string) => {
+    부른것.push({ 인자: 고치기(['-p', '--add-dir', '/자료', '--disallowedTools', 'AskUserQuestion']), 글 });
+    return 흐름(답);
+  };
+
+  it('고장 내 보기 줄이 빠진 테스트 고침이면 같은 세션을 한 번 이어 불러 새 요약을 돌려준다 — 파일 고치기 · 명령 실행 · 바깥 도구는 막는다', async () => {
+    부른것.length = 0;
+    expect(await 요약되받기({ params: { testFix: 고침 } }, '[단계] 결과 요약', 's-1', true, 부르기(`요구사항 0줄 고침\n${고장}`))).toBe(`요구사항 0줄 고침\n${고장}`);
+    expect(부른것).toHaveLength(1);
+    expect(부른것[0]!.인자).toEqual([
+      '-p', '--add-dir', '/자료', '--resume', 's-1', '--disallowedTools',
+      'Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'Bash', 'Task', 'Agent', 'Skill', 'WebFetch', 'WebSearch', 'mcp__qa-hub', 'AskUserQuestion',
+    ]);
+    expect(부른것[0]!.글).toContain('빠진 케이스: X-FN-001');
+  });
+
+  it('줄이 있거나 · 테스트 고침이 아니거나 · 세션 번호를 못 읽었거나 · 고장 내 보기 단계에 안 들어갔으면 부르지 않는다', async () => {
+    부른것.length = 0;
+    expect(await 요약되받기({ params: { testFix: 고침 } }, `요약\n${고장}`, 's-1', true, 부르기('x'))).toBe('');
+    expect(await 요약되받기({ params: { prdApply: true } }, '[단계] 결과 요약', 's-1', true, 부르기('x'))).toBe('');
+    expect(await 요약되받기({ params: { testFix: 고침 } }, '[단계] 결과 요약', undefined, true, 부르기('x'))).toBe('');
+    expect(await 요약되받기({ params: { testFix: 고침 } }, '[단계] 결과 요약', 's-1', false, 부르기(고장))).toBe('');
+    expect(부른것).toHaveLength(0);
+  });
+
+  it('되물은 글에도 줄이 없으면 그대로 돌려줘 판정이 「재지 못함」이 된다', async () => {
+    const 덧 = await 요약되받기({ params: { testFix: 고침 } }, '', 's-1', true, 부르기('요약만 있어요'));
+    expect(자동병합재기([{ tcId: 'X-FN-001', 앞: 케이스(), 뒤: 케이스() }], `\n${덧}`, ['tests/x/X-FN-001.spec.ts'])).toEqual(['NOT_MEASURED']);
+  });
+
+  it('세션 번호는 스트림의 마지막 session_id 다 — 없으면 undefined', () => {
+    expect(세션번호(흐름('글', 's-9'))).toBe('s-9');
+    expect(세션번호('{"type":"assistant"}\n깨진 줄')).toBeUndefined();
+    expect(() => 되묻기인자(['-p'], 's-1')).toThrow('--disallowedTools');
   });
 });
 

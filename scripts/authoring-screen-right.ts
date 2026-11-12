@@ -19,7 +19,7 @@ import { 다시돌림글, 다시돌림세기 } from './authoring-test-fix.js';
 
 // authoring-run.ts 가 300줄이라 가져오는 줄을 늘리지 않으려고 여기서 다시 내보낸다
 export { 반영요청인가, 테스트고침읽기, 화면이맞음읽기 } from './authoring-apply.js';
-export { 테스트고침싣는손 } from './authoring-test-fix.js';
+export { 테스트고침싣는손, 요약되받기 } from './authoring-test-fix.js';
 
 /**
  * 자식을 띄우기 전 — 화면이 맞음 · 테스트 고침(BTS 테스트 수정) 건마다 그 실행의 실패 trace 요약(서버가 가린 몇 줄)을 자료 폴더 traces/ 로 받는다. 받은 개수를 돌려준다.

@@ -41,7 +41,18 @@ type 이벤트 = {
   total_cost_usd?: number;
   modelUsage?: Record<string, 모델사용>;
   usage?: 턴사용;
+  session_id?: string;
 };
+
+/** 자식 claude 세션 번호 — 같은 대화를 `--resume` 으로 이어 부를 때 쓴다(authoring-test-fix 요약되받기). 못 읽으면 undefined */
+export function 세션번호(낸것: string): string | undefined {
+  let 번호: string | undefined;
+  for (const 줄 of 낸것.split('\n')) {
+    const s = 읽기(줄)?.session_id;
+    if (typeof s === 'string' && s !== '') 번호 = s;
+  }
+  return 번호;
+}
 
 export function 읽기(줄: string): 이벤트 | null {
   try {
