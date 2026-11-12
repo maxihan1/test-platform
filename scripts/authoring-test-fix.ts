@@ -11,6 +11,7 @@ import { 바뀐것 } from './authoring-base-list.js';
 import { type 돌린판, 끝기록꼴, 돌린기록들, 판들읽기 } from './authoring-gate3.js';
 import type { 보고손 } from './authoring-io.js';
 import { 사유거르기 } from './authoring-reverse.js';
+import { 흐름풀기 } from './authoring-usage.js';
 
 const 기기이름: Record<string, string> = { desktop: 'PC', mobile: '휴대폰', android: '폰' };
 
@@ -191,4 +192,42 @@ export function 테스트고침싣는손(
       return 손.끝내기({ ...몸, result: { ...결과, testFix: { summary, reruns, autoMerge: held.length === 0, held } } });
     },
   };
+}
+
+/** 되물을 때 막는 도구 — 파일 고치기 · 명령 실행 · 보조 AI · 스킬 · 바깥 부르기 · QA Hub 조회. 검사가 끝난 케이스를 요약 받는 사이에 바꾸지 못하게 */
+const 되묻기막을것 = ['Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'Bash', 'Task', 'Agent', 'Skill', 'WebFetch', 'WebSearch', 'mcp__qa-hub'];
+
+/** 같은 자식 세션을 이어 부르는 claude 인자 — `--resume` 과 막을 도구를 `--disallowedTools` 자리에 끼운다(가변 인자라 그 자리가 아니면 뒤 것을 삼킨다) */
+export function 되묻기인자(인자: readonly string[], 세션: string): string[] {
+  const 자리 = 인자.indexOf('--disallowedTools');
+  if (자리 < 0) throw new Error('클로드인자에 --disallowedTools 가 없어 되물을 깃발을 끼울 자리가 없다');
+  return [...인자.slice(0, 자리), '--resume', 세션, '--disallowedTools', ...되묻기막을것, ...인자.slice(자리 + 1)];
+}
+
+/** 빠진 케이스를 짚어 결과 요약만 다시 달라는 말 — 다시 하지 말고 이미 한 일로 적게 한다. 안 했으면 고장 0 이라 「못 잡은 고장」으로 사람에게 간다 */
+export function 되묻기글(빠진: readonly string[]): string {
+  return [
+    '결과 요약 없이 끝났거나 `테스트 고침 고장 내 보기` 줄이 빠졌어요. 파일을 고치거나 명령을 다시 돌리지 말고, 이미 한 일로 결과 요약만 처음부터 다시 적어 주세요.',
+    `고친 케이스마다 \`테스트 고침 고장 내 보기: <tcId> · 고장 <N> · 그 자리 빨강 <M>\` 한 줄을 꼭 넣어요(빠진 케이스: ${빠진.join(' · ')}). 고장 내 보기를 하지 않았으면 고장 0 으로 적어요.`,
+  ].join('\n');
+}
+
+/**
+ * 테스트 고침 자식이 결과 요약을 빠뜨리고 끝났으면(고장 내 보기 줄이 없는 케이스가 있으면) 같은 세션을 한 번 이어 불러 요약만 다시 받는다 —
+ * BTS-F10-09 시험(MQA-169 · PR #732)에서 자식이 「[단계] 결과 요약」 표지만 찍고 끝나 자동 반영이 「재지 못함」이었다 (도메인/BTS §3.12 「테스트 수정 바퀴」 3).
+ * 돌려준 글은 새 결과 요약이다(처음부터 다시 적게 한다 — 붙이면 두 벌). 되묻지 않았으면 빈 글. 그래도 줄이 없으면 판정이 「재지 못함」 그대로다.
+ * 고장 내 보기 단계(`[단계] 일부러 고장 내 보기` 표지)에 들어가지 않은 자식은 되묻지 않는다 — 안 한 고장 숫자를 지어 적으면 자동 반영이 된다
+ */
+export async function 요약되받기(
+  것: { params?: unknown },
+  자식글: string,
+  세션: string | undefined,
+  고장단계: boolean,
+  부르기: (인자고치기: (인자: readonly string[]) => string[], 글: string) => Promise<string>,
+): Promise<string> {
+  const 고침 = 테스트고침읽기(것);
+  if (고침 === null || 고침 === undefined || 세션 === undefined || !고장단계) return '';
+  const 빠진 = [...new Set(고침.cases.map((x) => x.tcId))].filter((tcId) => 고장줄읽기(자식글, tcId) === undefined);
+  if (빠진.length === 0) return '';
+  return 흐름풀기(await 부르기((인자) => 되묻기인자(인자, 세션), 되묻기글(빠진))).글;
 }

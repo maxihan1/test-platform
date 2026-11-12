@@ -193,7 +193,7 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 맡기', ()
     expect(await 테스트수정PR열림(고침, 뿌리, 주소, { testFix: { summary: '새 창 대신 지금 page.request 를 써요', reruns: 3 } })).toBe(true);
     expect(await 줄('DM-1')).toEqual([expect.objectContaining({ state: 'WAIT_MERGE', pr_url: 주소, summary: '새 창 대신 지금 page.request 를 써요' })]);
     expect((await 보낼것('DM-1')).filter((r) => r.kind !== 'ASSIGN')).toEqual([
-      { kind: 'COMMENT', payload: { body: `테스트 수정 PR #77 을 열었어요 — 새 창 대신 지금 page.request 를 써요\n${주소}` } },
+      { kind: 'COMMENT', payload: { body: `테스트 수정 PR 을 열었어요 — 새 창 대신 지금 page.request 를 써요\n${주소}` } },
       { kind: 'FIELD', payload: { customFields: { qahub_test_fix_pr: 주소 } } },
     ]);
     expect(await 테스트수정PR열림(고침, 뿌리, 주소, { testFix: { summary: '다시', reruns: 3 } })).toBe(false);
@@ -201,7 +201,7 @@ describe.skipIf(연결 === undefined)('Issue Bunker 테스트 수정 맡기', ()
     expect(await 테스트수정PR열림(고침, 0, 'https://github.com/o/r/pull/7', null)).toBe(true);
     expect(await 테스트수정PR열림({ serviceId: 서비스, params: { prdApply: true } }, 뿌리, 주소, null)).toBe(false);
     expect(await 테스트수정PR열림({ serviceId: 서비스, params: { testFix: { issueKey: 'DM-9' } } }, 0, 'https://github.com/o/r/pull/78', null)).toBe(true);
-    expect(await 보낼것('DM-9')).toEqual([{ kind: 'COMMENT', payload: { body: '테스트 수정 PR #78 을 열었어요\nhttps://github.com/o/r/pull/78' } }]);
+    expect(await 보낼것('DM-9')).toEqual([{ kind: 'COMMENT', payload: { body: '테스트 수정 PR 을 열었어요\nhttps://github.com/o/r/pull/78' } }]);
   });
 
   it('맡았는데 고침을 하나도 못 세웠으면(첫 실행이 지워짐) 옮긴 사람에게 까닭과 함께 되돌린다', async () => {
