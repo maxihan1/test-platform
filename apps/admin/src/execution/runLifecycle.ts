@@ -15,8 +15,8 @@ async function db(): Promise<Pool> {
 }
 
 const INSERT_STEP = `
-  INSERT INTO run_item_step (history_id, seq, title, status, duration_ms, assertions, line, screenshot_path, http_trace, error, shape_checks)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+  INSERT INTO run_item_step (history_id, seq, title, status, duration_ms, assertions, line, screenshot_path, http_trace, error, shape_checks, started_at)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
   ON CONFLICT (history_id, seq) DO NOTHING`;
 
 function stepValues(historyId: number, step: StepResult): unknown[] {
@@ -32,6 +32,8 @@ function stepValues(historyId: number, step: StepResult): unknown[] {
     step.httpTrace === undefined ? null : JSON.stringify(step.httpTrace),
     step.error === undefined ? null : JSON.stringify(step.error),
     step.shapeChecks === undefined ? null : JSON.stringify(step.shapeChecks),
+    // 안정화 지표가 게임 오류 시각으로 단계를 맞춘다 (도메인/안정화 §3.15 「지문」 단계)
+    step.startedAt ?? null,
   ];
 }
 
