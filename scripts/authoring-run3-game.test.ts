@@ -1,5 +1,5 @@
 // 돌려 보기 폰 갈래 검사 — 잡은 폰 읽기 · 돌릴 게임 · 앱 케이스 고르기 · 끝 검사 줄 · 폰 없이 끝나는 길 · 앱 서버 닿음 (도메인/게임 §3.10 「작성 — 한 바퀴」 6 · 도메인/작성 §3.6 「앱 화면」)
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -139,6 +139,28 @@ describe('폰실행 — 폰에서 돌릴 수 없으면 Playwright 를 띄우기 
     const 오류 = vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(await 폰실행('게임', 'g', 트리, { AUTHORING_GATE3_DIR: 결과폴더, AUTHORING_BASE_LIST: 기준목록(트리), AUTHORING_GAME_DIR: 트리, PLATFORM_APPIUM_URL: 'http://farm.test/wd/hub', PLATFORM_APP: '/apk/g.apk' })).toBe(2);
     expect(오류.mock.calls.at(-1)?.[0]).toMatch(/앱 줄을 모른다/);
+  });
+
+  it('에이전트가 갈아 끼운 링크 파일이 있으면 시작 때 받은 옛 링크 대신 그 링크로 깐다', async () => {
+    const { 트리, 결과폴더 } = 트리만들기();
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    const 가짜 = join(트리, 'bin');
+    mkdirSync(가짜);
+    writeFileSync(join(가짜, 'npx'), `#!/bin/sh\nprintf %s "$PLATFORM_APP" > "$AUTHORING_GATE3_DIR/app.txt"\n`, { mode: 0o755 });
+    mkdirSync(join(트리, '.appium-cli'));
+    writeFileSync(join(트리, '.appium-cli', 'held'), 'R3CR10TCVCD\n');
+    const 링크파일 = join(트리, 'app-link.txt');
+    const env = {
+      PATH: `${가짜}:${process.env.PATH ?? ''}`, AUTHORING_GATE3_DIR: 결과폴더, AUTHORING_BASE_LIST: 기준목록(트리), AUTHORING_APP_FILE: 링크파일,
+      PLATFORM_APPIUM_URL: 'http://farm.test/wd/hub', PLATFORM_APP: 'https://qa.test/api/builds/1/apk?exp=1&sig=old', PLATFORM_BASE_URL: 'http://qa.g.test',
+    };
+
+    await 폰실행('앱', 'g', 트리, env);
+    expect(readFileSync(join(결과폴더, 'app.txt'), 'utf8')).toBe(env.PLATFORM_APP);
+
+    writeFileSync(링크파일, 'https://qa.test/api/builds/1/apk?exp=2&sig=new\n');
+    await 폰실행('앱', 'g', 트리, env);
+    expect(readFileSync(join(결과폴더, 'app.txt'), 'utf8')).toBe('https://qa.test/api/builds/1/apk?exp=2&sig=new');
   });
 
   it('이번에 닿은 게임 케이스가 없으면 폰 없이 0', async () => {

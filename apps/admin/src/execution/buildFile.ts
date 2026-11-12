@@ -135,8 +135,11 @@ export function 앱칸(빌드: 빌드행 | null, appPath: string | null): { app?
  * 케이스 테스트 실행 · 작성처럼 실행 기록을 안 남기는 쪽이 깔 앱 파일 — 그 줄 최신 빌드의 서명 주소 · 회사 저장소 주소, 없으면 app_path.
  * 서명 주소를 못 만들면(바깥 주소가 비었다) 던진다 — 옛 app_path 로 물러서면 정식 실행(미실행으로 닫힘)과 다른 빌드로 케이스를 쓰고 아무도 모른다
  */
-export async function 깔앱파일(serviceId: number, env: string, appPath: string | null): Promise<string | null> {
-  const 빌드 = await 최신빌드(await db(), serviceId, env);
+export async function 깔앱파일(serviceId: number, env: string, appPath: string | null, 고정?: number): Promise<string | null> {
+  const pool = await db();
+  // 작성 링크 갈아 끼우기(app-link ?build=)는 시작 때의 빌드를 끝까지 깐다 — 지워졌거나 그 줄 것이 아니면 최신 빌드로 간다 (도메인/작성 §7 「앱 화면 통로」)
+  const 남았나 = 고정 !== undefined && ((await pool.query('SELECT 1 FROM app_build WHERE id = $1 AND service_id = $2 AND env = $3 AND file_path IS NOT NULL', [고정, serviceId, env])).rowCount ?? 0) > 0;
+  const 빌드: 빌드행 | null = 남았나 && 고정 !== undefined ? { id: 고정, buildNo: String(고정), hasFile: true, appUrl: null } : await 최신빌드(pool, serviceId, env);
   if (빌드?.appUrl != null) return 빌드.appUrl;
   if (빌드?.hasFile !== true) return appPath;
   const 주소 = 서명주소(빌드.id);

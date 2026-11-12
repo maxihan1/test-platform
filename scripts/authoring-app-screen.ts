@@ -1,7 +1,7 @@
 // 앱 · 게임 첫 화면을 자료 폴더에 받아 둔다 — AI 가 러너에 닿지 않고 요소 주소를 고르게 (도메인/작성 §3.6 「앱 화면」 · §7 「앱 화면 통로」 · 도메인/게임 §7 「게임 첫 화면」)
 // 기대값의 근거가 아니다 — 자식 지침(tpx-author references/app.md · game.md)이 그렇게 읽는다
 
-import { lstatSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { lstatSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { 인증헤더 } from './authoring-io.js';
@@ -22,6 +22,8 @@ const 게임곳: 받을곳 = { 길: 'game-screen', 파일: 'game-screen.txt', �
 
 export const 앱화면파일 = (자료: string): string => join(자료, 앱곳.파일);
 export const 게임화면파일 = (자료: string): string => join(자료, 게임곳.파일);
+/** 폰에 깔 앱 링크 — 자식의 폰 돌려 보기 · appium-cli · control-cli open 이 PLATFORM_APP 대신 읽는다. 에이전트가 자식이 도는 동안 갈아 끼운다(앱링크갈기) */
+export const 앱링크파일 = (자료: string): string => join(자료, 'app-link.txt');
 
 /**
  * 자식을 띄우기 전에 부른다. 앱이 없는 서비스(경로가 없음)는 undefined — 프롬프트에 아무 절도 안 더한다.
@@ -42,6 +44,7 @@ export async function 게임화면받기(서버: { 주소기지: string; 토큰:
 async function 화면받기(서버: { 주소기지: string; 토큰: string }, 번호: number, 자료: string, 곳: 받을곳): Promise<앱화면 | undefined> {
   // 이어받은 자료 폴더에는 앞 실행이 받은 화면이 남아 있다. 이번에 못 읽었는데 옛 화면이 보이면 안 된다
   rmSync(join(자료, 곳.파일), { force: true });
+  rmSync(앱링크파일(자료), { force: true });
   try {
     const 답 = await fetch(`${서버.주소기지}/api/authoring/requests/${String(번호)}/${곳.길}`, {
       headers: 인증헤더(서버.토큰),
@@ -50,6 +53,8 @@ async function 화면받기(서버: { 주소기지: string; 토큰: string }, �
     const 몸 = (await 답.json().catch(() => null)) as Record<string, unknown> | null;
     if (!답.ok) return 로그만(번호, 곳, `서버 ${답.status}`);
     const 탐색 = 탐색읽기(몸?.[곳.칸]);
+    // 못 쓰면 자식은 시작 때 받은 PLATFORM_APP 으로 간다 — 2시간 안에는 같은 링크다
+    if (탐색.탐색 !== undefined && !링크쓰기(앱링크파일(자료), 탐색.탐색.app)) console.error(`[작성] ${번호}번 — 앱 링크 파일을 못 썼다(시작 때 받은 링크로 간다)`);
     if (typeof 몸?.screen === 'string') {
       // 로그인 직전 화면이라 계정 값은 없다. 그래도 「비밀번호: 값」 꼴은 가린다 — 서비스 가이드와 같은 손
       writeFileSync(join(자료, 곳.파일), 비밀번호꼴가리기(몸.screen), { mode: 0o644 });
@@ -75,10 +80,59 @@ function 탐색읽기(v: unknown): { 탐색?: 앱탐색 } {
  * 자식 환경값 — appium-cli · control-cli 가 읽는 이름 그대로. 폰 번호는 안 준다(AI 가 hold 로 빈 폰을 잡는다).
  * 서버가 준 토큰은 이 컨테이너의 PLATFORM_APPIUM_TOKEN 을 덮는다 — AI 가 서버와 같은 주인으로 잡아야 팜이 받는다 (러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」)
  */
-export function 탐색환경(앱: 앱화면 | undefined): Record<string, string> {
+export function 탐색환경(앱: 앱화면 | undefined, 자료: string): Record<string, string> {
   if (앱?.탐색 === undefined) return {};
   const { url, app, token } = 앱.탐색;
-  return { PLATFORM_APPIUM_URL: url, PLATFORM_APP: app, ...(token !== undefined && { PLATFORM_APPIUM_TOKEN: token }) };
+  return { PLATFORM_APPIUM_URL: url, PLATFORM_APP: app, AUTHORING_APP_FILE: 앱링크파일(자료), ...(token !== undefined && { PLATFORM_APPIUM_TOKEN: token }) };
+}
+
+// 서명 링크는 받을 때 1~2시간 남는다(admin execution/buildFile.ts 서명주소). 30분마다 갈면 파일의 링크는 늘 30분 넘게 남는다
+const 링크갈기_ms = 30 * 60_000;
+
+/**
+ * 자식이 도는 동안 앱 링크를 GET …/app-link 로 다시 받아 링크 파일에 갈아 끼운다 — 끄는 함수를 돌려준다 (§3.6 「앱 화면」 「링크 갈아 끼우기」).
+ * 작성은 2~3시간이라 시작 때 받은 링크가 도중에 403 이 된다(11-12 MTA #15303). 못 받으면 앞 링크를 그대로 둔다. 탐색이 없으면(앱 · 팜 없음) 안 부른다
+ */
+export function 앱링크갈기(서버: { 주소기지: string; 토큰: string }, 번호: number, 자료: string, 앱: 앱화면 | undefined): () => void {
+  if (앱?.탐색 === undefined) return () => undefined;
+  // 시작 때 받은 빌드를 끝까지 깐다 — 도중에 새 빌드가 올라와도 케이스를 쓴 빌드와 돌려 보는 빌드가 같아야 한다. 그 빌드가 지워졌으면 서버가 최신 빌드를 준다
+  const 빌드 = /\/api\/builds\/(\d+)\/apk\?/.exec(앱.탐색.app)?.[1];
+  const 주소 = `${서버.주소기지}/api/authoring/requests/${String(번호)}/app-link${빌드 === undefined ? '' : `?build=${빌드}`}`;
+  // 첫 화면을 받은 뒤 자식을 띄우기까지(자료 · 원장 준비)도 시간이 간다 — 띄울 때 한 번 받고 30분마다 받는다
+  void 링크받아쓰기(주소, 서버.토큰, 번호, 자료);
+  const 타이머 = setInterval(() => void 링크받아쓰기(주소, 서버.토큰, 번호, 자료), 링크갈기_ms);
+  return () => clearInterval(타이머);
+}
+
+async function 링크받아쓰기(주소: string, 토큰: string, 번호: number, 자료: string): Promise<void> {
+  let 까닭: string;
+  try {
+    const 답 = await fetch(주소, { headers: 인증헤더(토큰), signal: AbortSignal.timeout(30_000) });
+    const 몸 = (await 답.json().catch(() => null)) as { app?: unknown } | null;
+    if (답.ok && 몸?.app === null) 까닭 = '앱 줄에 앱이 없어졌다(설정 › 대상 서버의 앱 파일 경로 · 빌드)';
+    else if (!답.ok || typeof 몸?.app !== 'string' || 몸.app === '') 까닭 = `서버 ${답.status}`;
+    else if (링크쓰기(앱링크파일(자료), 몸.app)) return;
+    else 까닭 = '파일을 못 썼다';
+  } catch (err) {
+    까닭 = err instanceof Error ? err.name : '알 수 없는 오류';
+  }
+  console.error(`[작성] ${번호}번 — 앱 링크를 새로 못 받아 앞 링크를 둔다: ${까닭}`);
+}
+
+/**
+ * root 가 자식 폴더에 쓴다 — 자식이 심은 링크를 따라가지 않게 새 이름에 `wx` 로 쓰고 이름을 바꿔 한 번에 갈아 끼운다.
+ * 지우고 다시 쓰면 그 사이에 `cat` 하는 자식이 빈 링크를 본다
+ */
+function 링크쓰기(파일: string, 링크: string): boolean {
+  const 임시 = `${파일}.${String(process.pid)}.${String(Date.now())}`;
+  try {
+    writeFileSync(임시, 링크, { mode: 0o644, flag: 'wx' });
+    renameSync(임시, 파일);
+    return true;
+  } catch {
+    rmSync(임시, { force: true });
+    return false;
+  }
 }
 
 // 지침이 잡는 시간으로 정한 30분(references/app.md §5 · game.md 「폰 잡기」). 그보다 오래된 기록의 잡기는 팜이 이미 풀었다 —

@@ -685,6 +685,7 @@ describe('등급 표', () => {
     ['GET /api/authoring/requests/:id/guide/files/:fileId', 'operator'],
     ['GET /api/authoring/requests/:id/app-screen', 'operator'],
     ['GET /api/authoring/requests/:id/game-screen', 'operator'],
+    ['GET /api/authoring/requests/:id/app-link', 'operator'],
     // 닫을 PR 목록도 작성 에이전트의 일이다 (도메인/BTS §7 「닫을 PR」)
     ['GET /api/authoring/requests/closing', 'operator'],
     ['GET /api/authoring/requests/bugfix-prs', 'operator'],
