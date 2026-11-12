@@ -57,8 +57,8 @@ export default async function stabilityRoutes(app: FastifyInstance): Promise<voi
   app.post<{ Params: { id: string } }>('/stability/errors/:id/issue', async (req, reply) => {
     const id = 정수(req.params.id);
     if (id === null) return 잘못(reply, '오류 번호가 틀렸습니다');
-    if ((await 오류읽기(id)) === undefined) return 없음(reply);
     const 결과 = await 등록줄넣기(id);
+    if (결과 === 'NOT_FOUND') return 없음(reply);
     return 결과 === 'PENDING' ? reply.code(202).send({ state: 'PENDING' }) : reply.code(409).send({ error: 결과 });
   });
 }

@@ -3,7 +3,7 @@
 import type { Pool } from 'pg';
 
 import type { 상태 } from './state.js';
-import { 요약읽기, 이전집계 } from './view.js';
+import { 요약읽기 } from './view.js';
 
 async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
@@ -25,6 +25,7 @@ export interface 오류행 {
   issue_key: string | null;
   project_id: string;
   service_name: string;
+  prefix: string;
   base_url: string | null;
   bts_project: string | null;
 }
@@ -33,7 +34,7 @@ export async function 오류읽기(errorId: number): Promise<오류행 | undefin
   return (
     await (await db()).query<오류행>(
       `SELECT e.id, e.service_id, e.env, e.title, e.message, e.source, e.first_run_id, to_char(e.first_day, 'YYYY-MM-DD') AS first_day, e.first_build_no,
-              e.resolved_at, e.confirmed_run_id, e.issue_key, s.project_id, s.name AS service_name, l.base_url, l.bts_project
+              e.resolved_at, e.confirmed_run_id, e.issue_key, s.project_id, s.name AS service_name, s.prefix, l.base_url, l.bts_project
          FROM stab_error e JOIN service s ON s.id = e.service_id LEFT JOIN bts_link l ON l.project_id = s.project_id
         WHERE e.id = $1`,
       [errorId],
@@ -66,10 +67,16 @@ export async function 오류상세(e: 오류행, runId: number | null) {
   const 번호 = Number(이번.run_id);
   const serviceId = Number(e.service_id);
 
-  const [이전, 발생, 견본, 추이, 기다림, 요약들] = await Promise.all([
-    이전집계(pool, serviceId, e.env, 번호),
+  const [이전횟수, 발생, 견본, 추이, 기다림, 포기, 요약] = await Promise.all([
+    pool
+      .query<{ hits: number }>(
+        `SELECT x.hits FROM stab_run_error x
+          WHERE x.error_id = $1 AND x.run_id = (SELECT run_id FROM stab_run WHERE service_id = $2 AND env = $3 AND run_id < $4 ORDER BY run_id DESC LIMIT 1)`,
+        [errorId, serviceId, e.env, 번호],
+      )
+      .then((r) => r.rows[0]?.hits ?? 0),
     pool.query<{ tc_id: string; name: string; status: string; seq: number | null; crash: boolean; history_id: string; run_id: string | null; device: string | null }>(
-      `SELECT o.tc_id, COALESCE(c.name, i.tc_name, o.tc_id) AS name, o.item_status AS status, o.seq, o.crash, o.history_id, i.run_id, o.device
+      `SELECT o.tc_id, COALESCE(i.tc_name, c.name, o.tc_id) AS name, o.item_status AS status, o.seq, o.crash, o.history_id, i.run_id, o.device
          FROM stab_occurrence o LEFT JOIN run_item i ON i.history_id = o.history_id LEFT JOIN test_case c ON c.tc_id = o.tc_id
         WHERE o.run_id = $1 AND o.error_id = $2 ORDER BY o.tc_id, o.history_id`,
       [번호, errorId],
@@ -85,27 +92,23 @@ export async function 오류상세(e: 오류행, runId: number | null) {
       [serviceId, e.env, 이번.day, errorId],
     ),
     pool.query(등록기다림SQL, [errorId]),
-    // 신규 · 증가 · 재발은 그 실행 요약, 기존은 그 종류의 가장 최근 요약 (§3.15 「상세의 AI 요약」)
+    // 마지막 등록이 포기됐으면 까닭을 보인다 — 다시 누를 수 있다 (BTS §3.12 「버그 바퀴」)
+    pool.query<{ state: string; last_error: string | null }>(
+      `SELECT state, last_error FROM bts_outbox WHERE kind = 'STAB_CREATE' AND (payload->>'stabErrorId')::bigint = $1 ORDER BY id DESC LIMIT 1`,
+      [errorId],
+    ),
+    // 신규 · 증가 · 재발은 그 실행 요약, 기존은 그 종류가 든 가장 최근 요약 — 요약의 errors 에 이 번호가 든 일만 고른다 (§3.15 「상세의 AI 요약」)
     pool.query<{ run_id: string; output: unknown }>(
-      `SELECT x.run_id, j.output FROM stab_run_error x JOIN stab_run r ON r.run_id = x.run_id JOIN perf_ai_job j ON j.id = r.ai_job_id
-        WHERE x.error_id = $1 AND j.status = 'DONE' AND x.run_id <= $2 ${이번.state === 'ONGOING' ? '' : 'AND x.run_id = $2'}
-        ORDER BY x.run_id DESC LIMIT 30`,
-      [errorId, 번호],
+      `SELECT r.run_id, j.output FROM stab_run r JOIN perf_ai_job j ON j.id = r.ai_job_id
+        WHERE r.service_id = $3 AND r.env = $4 AND j.status = 'DONE' AND r.run_id <= $2 ${이번.state === 'ONGOING' ? '' : 'AND r.run_id = $2'}
+          AND j.output->'errors' @> jsonb_build_array(jsonb_build_object('errorId', $1::bigint))
+        ORDER BY r.run_id DESC LIMIT 1`,
+      [errorId, 번호, serviceId, e.env],
     ),
   ]);
-  const 이전횟수 =
-    이전 === undefined
-      ? 0
-      : ((await pool.query<{ hits: number }>('SELECT hits FROM stab_run_error WHERE run_id = $1 AND error_id = $2', [이전.run_id, errorId])).rows[0]?.hits ?? 0);
 
-  let ai: { headline: string; impact: string; previous: string; cause: string; runId: number } | null = null;
-  for (const r of 요약들.rows) {
-    const 찾은 = 요약읽기(r.output)?.errors.find((x) => x.errorId === errorId);
-    if (찾은 !== undefined) {
-      ai = { headline: 찾은.headline, impact: 찾은.impact, previous: 찾은.previous, cause: 찾은.cause, runId: Number(r.run_id) };
-      break;
-    }
-  }
+  const 찾은 = 요약.rows[0] === undefined ? undefined : 요약읽기(요약.rows[0].output)?.errors.find((x) => x.errorId === errorId);
+  const ai = 찾은 === undefined ? null : { headline: 찾은.headline, impact: 찾은.impact, previous: 찾은.previous, cause: 찾은.cause, runId: Number(요약.rows[0]!.run_id) };
 
   // 케이스 단위 — 한 케이스가 디바이스 · 반복으로 여러 항목이면 그 항목이 다 통과일 때만 「판정은 통과」다
   const 케이스판정 = new Map<string, boolean>();
@@ -115,6 +118,7 @@ export async function 오류상세(e: 오류행, runId: number | null) {
   for (const o of 발생.rows) if (o.device !== null) 디바이스별.set(o.device, (디바이스별.get(o.device) ?? new Set()).add(o.tc_id));
 
   const 바탕 = e.base_url?.replace(/\/+$/, '') ?? null;
+  const 마지막 = 포기.rows[0];
   return {
     id: errorId,
     title: e.title,
@@ -131,7 +135,11 @@ export async function 오류상세(e: 오류행, runId: number | null) {
         ? { key: e.issue_key, url: 바탕 === null ? null : `${바탕}/issues/${encodeURIComponent(e.issue_key)}` }
         : (기다림.rowCount ?? 0) > 0
           ? { state: 'PENDING' as const }
-          : null,
+          : 마지막?.state === 'GAVE_UP'
+            ? { state: 'GAVE_UP' as const, reason: 마지막.last_error }
+            : null,
+    // 프로젝트가 Issue Bunker 를 잇지 않았으면 화면이 등록 버튼을 숨긴다 (§3.15 「Issue Bunker 등록」)
+    btsLinked: 바탕 !== null,
     ai,
     kpis: {
       cases: 이번.cases,

@@ -3,6 +3,7 @@
 import type { Pool } from 'pg';
 import { z } from 'zod';
 
+import { 묶음SQL } from './aggregate.js';
 import type { 상태 } from './state.js';
 
 async function db(): Promise<Pool> {
@@ -47,7 +48,7 @@ export interface 집계줄 {
 }
 const 집계칸 = `run_id, env, to_char(day, 'YYYY-MM-DD') AS day, build_no, cases, error_cases, pass_error_cases, crashes, residual, new_errors, resolved, confirmed, ai_job_id`;
 
-export const 이전집계 = async (pool: Pool, serviceId: number, env: string, runId: number): Promise<집계줄 | undefined> =>
+const 이전집계 = async (pool: Pool, serviceId: number, env: string, runId: number): Promise<집계줄 | undefined> =>
   (await pool.query<집계줄>(`SELECT ${집계칸} FROM stab_run WHERE service_id = $1 AND env = $2 AND run_id < $3 ORDER BY run_id DESC LIMIT 1`, [serviceId, env, runId])).rows[0];
 
 // 화면 목록 차례 — 신규 · 증가 · 재발 · 기존 (§7)
@@ -100,13 +101,8 @@ export async function 안정화보기(앱: 애플리케이션행, runId: number 
     ),
     이전집계(pool, 앱.id, env, 번호),
     pool.query<{ run_id: string }>('SELECT run_id FROM stab_run WHERE service_id = $1 AND env = $2 ORDER BY run_id DESC LIMIT 1', [앱.id, env]),
-    // 묶음의 실행 번호 둘(UI · 기능) — 실행 줄이 지워졌으면 집계 줄 번호 하나다
-    pool.query<{ run_id: string }>(
-      `SELECT run_id FROM test_run
-        WHERE service_id = $1 AND env = $2 AND origin = 'SCHEDULED' AND kind IN ('UI', 'FN') AND run_id <= $3
-          AND (started_at AT TIME ZONE $4)::date = $5::date ORDER BY run_id`,
-      [앱.id, env, 번호, 앱.scheduleTz ?? 'UTC', 고른.day],
-    ),
+    // 묶음의 실행 번호 둘(UI · 기능) — 집계와 같은 묶음 정의를 쓴다. 실행 줄이 지워졌으면 집계 줄 번호 하나다
+    pool.query<{ run_id: string }>(묶음SQL, [번호]),
     pool.query<{ run_id: string; day: string; residual: number; new_errors: number; build_no: string | null }>(
       `SELECT run_id, to_char(day, 'YYYY-MM-DD') AS day, residual, new_errors, build_no FROM stab_run
         WHERE service_id = $1 AND env = $2 AND day > $3::date - $4::int AND day <= $3::date ORDER BY day, run_id`,
@@ -122,34 +118,28 @@ export async function 안정화보기(앱: 애플리케이션행, runId: number 
     pool.query<{ tc_id: string }>('SELECT DISTINCT tc_id FROM stab_occurrence WHERE run_id = $1', [번호]),
   ]);
 
-  const 이전케이스 = new Map<number, number>();
-  if (이전 !== undefined) {
-    for (const r of (await pool.query<{ error_id: string; cases: number }>('SELECT error_id, cases FROM stab_run_error WHERE run_id = $1', [이전.run_id])).rows) {
-      이전케이스.set(Number(r.error_id), r.cases);
-    }
-  }
-  // 가장 최근 실행이면 「해결」은 지금 값이다 — 집계 뒤에 누른 해결 처리가 바로 보이게 (§3.15 「숫자 칸 「해결」」)
-  const resolved =
+  const [이전줄, 지금해결, 일] = await Promise.all([
+    이전 === undefined ? null : pool.query<{ error_id: string; cases: number }>('SELECT error_id, cases FROM stab_run_error WHERE run_id = $1', [이전.run_id]),
+    // 가장 최근 실행이면 「해결」은 지금 값이다 — 집계 뒤에 누른 해결 처리가 바로 보이게 (§3.15 「숫자 칸 「해결」」)
     Number(최신.rows[0]?.run_id) === 번호
-      ? Number(
-          (
-            await pool.query<{ n: string }>(
-              'SELECT count(*) AS n FROM stab_error WHERE service_id = $1 AND env = $2 AND resolved_at IS NOT NULL AND confirmed_run_id IS NULL',
-              [앱.id, env],
-            )
-          ).rows[0]!.n,
+      ? pool.query<{ n: string }>(
+          'SELECT count(*) AS n FROM stab_error WHERE service_id = $1 AND env = $2 AND resolved_at IS NOT NULL AND confirmed_run_id IS NULL',
+          [앱.id, env],
         )
-      : 고른.resolved;
-  const runIds = 묶음.rows.map((r) => Number(r.run_id));
+      : null,
+    고른.ai_job_id === null ? null : pool.query<{ status: 일상태; output: unknown }>('SELECT status, output FROM perf_ai_job WHERE id = $1', [고른.ai_job_id]),
+  ]);
+  const 이전케이스 = new Map((이전줄?.rows ?? []).map((r) => [Number(r.error_id), r.cases]));
+  const resolved = 지금해결 === null ? 고른.resolved : Number(지금해결.rows[0]!.n);
+  const runIds = 묶음.rows.map((r) => Number(r.run_id)).filter((n) => n <= 번호);
 
   const 상태들 = new Map(목록.rows.map((r) => [Number(r.id), r.state]));
   const 오류케이스들 = new Set(오류케이스.rows.map((r) => r.tc_id));
   let summary: { status: 일상태; [k: string]: unknown } | null = null;
-  if (고른.ai_job_id !== null) {
-    const 일 = (await pool.query<{ status: 일상태; output: unknown }>('SELECT status, output FROM perf_ai_job WHERE id = $1', [고른.ai_job_id])).rows[0];
-    const 읽은 = 일?.status === 'DONE' ? 요약읽기(일.output) : null;
-    if (일 === undefined) summary = null;
-    else if (일.status !== 'DONE') summary = { status: 일.status, ...빈요약 };
+  const 일줄 = 일?.rows[0];
+  if (일줄 !== undefined) {
+    const 읽은 = 일줄.status === 'DONE' ? 요약읽기(일줄.output) : null;
+    if (일줄.status !== 'DONE') summary = { status: 일줄.status, ...빈요약 };
     else if (읽은 === null) summary = { status: 'FAILED', ...빈요약 };
     else
       summary = {

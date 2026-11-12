@@ -227,7 +227,7 @@ describe.skipIf(연결 === undefined)('안정화 지표 통로', { timeout: 60_0
 
   it('상세 — 항목이 실제로 돈 실행(UI) · 숫자 넷 · 견본 · 추이 · 요약 · 기존 종류는 가장 최근 요약', async () => {
     const d = await 읽기(`/api/stability/errors/${String(오류.신규)}`);
-    expect(d).toMatchObject({ id: 오류.신규, state: 'NEW', firstRunId: 실행.fn2, issue: null, runId: 실행.fn2 });
+    expect(d).toMatchObject({ id: 오류.신규, state: 'NEW', firstRunId: 실행.fn2, issue: null, btsLinked: true, runId: 실행.fn2 });
     expect(d.occurrences).toEqual([
       { tcId: 'XSY-UI-001', name: 'XSY-UI-001 이름', status: 'PASS', seq: 3, crash: false, historyId: expect.any(Number), runId: 실행.ui2 },
     ]);
@@ -284,5 +284,24 @@ describe.skipIf(연결 === undefined)('안정화 지표 통로', { timeout: 60_0
     expect((await 부르기('xsy-writer', 'POST', url)).json()).toEqual({ error: 'ALREADY_REGISTERED' });
 
     expect((await 부르기('xsy-writer', 'POST', `/api/stability/errors/${String(오류.남의)}/issue`)).json()).toEqual({ error: 'BTS_NOT_LINKED' });
+    expect((await 부르기('xsy-writer', 'POST', '/api/stability/errors/999999999/issue')).statusCode).toBe(404);
+  });
+
+  it('Issue Bunker 등록이 포기되면 까닭을 보이고 다시 누를 수 있다 · 견본의 ``` 는 울타리를 닫지 않는다', async () => {
+    await pool.query("UPDATE stab_sample SET text = 'a ``` b ```` c' WHERE error_id = $1", [오류.신규]);
+    const url = `/api/stability/errors/${String(오류.기존)}/issue`;
+    expect((await 부르기('xsy-writer', 'POST', url)).statusCode).toBe(202);
+    await pool.query("UPDATE bts_outbox SET next_at = now() WHERE project_id = $1 AND kind = 'STAB_CREATE'", [프로젝트]);
+    await 보낼줄점검(async () => ({ status: 400, json: null }), async () => 200);
+    expect((await 읽기(`/api/stability/errors/${String(오류.기존)}`)).issue).toEqual({ state: 'GAVE_UP', reason: 'Issue Bunker 가 요청을 거절했습니다 (400)' });
+    expect((await 부르기('xsy-writer', 'POST', url)).statusCode).toBe(202);
+
+    const { 등록본문 } = await import('./issue.js');
+    const { 오류읽기, 오류상세 } = await import('./detail.js');
+    const e = (await 오류읽기(오류.신규))!;
+    const 본문 = 등록본문(e, (await 오류상세(e, null))!, 'https://tc.xsy.test');
+    expect(본문).toContain('`````\na ``` b ```` c\n`````');
+    expect(본문).toContain('https://tc.xsy.test/#/stability/errors/');
+    expect(본문).toContain('?service=XSY');
   });
 });
