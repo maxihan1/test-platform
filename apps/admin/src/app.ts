@@ -49,6 +49,7 @@ import btsRollbackRoutes from './bts/rollbackRoutes.js';
 import btsQualityRoutes from './bts/qualityRoutes.js';
 import compatRoutes from './compat/routes.js';
 import compatRunRoutes from './compat/runRoutes.js';
+import stabilityRoutes from './stability/routes.js';
 import reportingRoutes from './reporting/routes.js';
 import scenarioRoutes from './scenario/routes.js';
 import scenarioRunRoutes from './scenario/runRoutes.js';
@@ -103,6 +104,7 @@ export function buildApp(sessionSecret = process.env.SESSION_SECRET ?? '') {
   app.register(perfRoutes, { prefix: '/api' });
   app.register(compatRoutes, { prefix: '/api' });
   app.register(compatRunRoutes, { prefix: '/api' });
+  app.register(stabilityRoutes, { prefix: '/api' });
   app.register(chatRoutes, { prefix: '/api' });
   app.register(chatAgentRoutes, { prefix: '/api' });
 

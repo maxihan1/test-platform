@@ -73,6 +73,7 @@ describe('라우트표', () => {
       'reporting',
       'scenario',
       'settings',
+      'stability',
     ]);
     expect(라우트들.length).toBeGreaterThan(20);
 
