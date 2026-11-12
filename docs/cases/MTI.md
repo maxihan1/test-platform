@@ -10,9 +10,9 @@
 | 4 | 정상 | 토큰이 없다 | GET /oauth/authorize 를 토큰 없이 부른다 | GET /oauth/authorize 를 토큰 없이 부르면 응답 코드가 200 이다 | MTI-REQ-003 · API GET /oauth/authorize 200 | MTI-FN-004 | 2026-11-11 |
 | 5 | 정상 | 토큰이 없다 | POST /oauth/token 을 토큰 없이 부른다 | POST /oauth/token 을 토큰 없이 부르면 응답 코드가 200 이다 | MTI-REQ-004 · API POST /oauth/token 200 | MTI-FN-005 | 2026-11-11 |
 | 6 | 정상 | 토큰이 없다 | POST /oauth/revoke 를 토큰 없이 부른다 | POST /oauth/revoke 를 토큰 없이 부르면 응답 코드가 200 이다 | MTI-REQ-005 · API POST /oauth/revoke 200 | MTI-FN-006 | 2026-11-11 |
-| 7 | 정상 | 일반 회원 토큰이 있다 | GET /oauth/userinfo 를 일반 회원 토큰으로 부른다 | GET /oauth/userinfo 를 일반 회원 토큰으로 부르면 응답 코드가 200 이다 | MTI-REQ-006 · API GET /oauth/userinfo 200 | MTI-FN-007 | 2026-11-11 |
+| 7 | 정상 | 일반 회원 토큰이 있다 | GET /oauth/userinfo 를 일반 회원 토큰으로 부른다 | GET /oauth/userinfo 를 일반 회원 토큰으로 부르면 응답 코드가 200 이다 | MTI-REQ-006 · API GET /oauth/userinfo 200 | 제거함(MTI-FN-007) | 2026-11-11 |
 | 8 | 예외 | 요청에 토큰이 없다 | GET /oauth/userinfo 를 토큰 없이 부른다 | GET /oauth/userinfo 를 토큰 없이 부르면 응답 코드가 401 이다 | MTI-REQ-006 · API GET /oauth/userinfo 401 | MTI-FN-008 | 2026-11-11 |
-| 9 | 정상 | 일반 회원 토큰이 있다 | POST /oauth/userinfo 를 일반 회원 토큰으로 부른다 | POST /oauth/userinfo 를 일반 회원 토큰으로 부르면 응답 코드가 200 이다 | MTI-REQ-007 | MTI-FN-009 | 2026-11-11 |
+| 9 | 정상 | 일반 회원 토큰이 있다 | POST /oauth/userinfo 를 일반 회원 토큰으로 부른다 | POST /oauth/userinfo 를 일반 회원 토큰으로 부르면 응답 코드가 200 이다 | MTI-REQ-007 | 제거함(MTI-FN-009) | 2026-11-11 |
 | 10 | 예외 | 요청에 토큰이 없다 | POST /oauth/userinfo 를 토큰 없이 부른다 | POST /oauth/userinfo 를 토큰 없이 부르면 응답 코드가 401 이다 | MTI-REQ-007 | MTI-FN-010 | 2026-11-11 |
 | 11 | 정상 | 토큰이 없다 | GET /.well-known/oauth-authorization-server 를 토큰 없이 부른다 | GET /.well-known/oauth-authorization-server 를 토큰 없이 부르면 응답 코드가 200 이다 | MTI-REQ-008 · API GET /.well-known/oauth-authorization-server 200 | MTI-FN-011 | 2026-11-11 |
 | 12 | 정상 | 쓰기 범위 시험 앱 토큰이 있다 | POST /api/v1/accounts 를 쓰기 범위 시험 앱 토큰으로 부른다 | POST /api/v1/accounts 를 쓰기 범위 시험 앱 토큰으로 부르면 응답 코드가 200 이다 | MTI-REQ-009 · API POST /api/v1/accounts 200 | MTI-FN-012 | 2026-11-11 |
@@ -37,13 +37,13 @@
 | 31 | 예외 | 요청에 토큰이 없다 | GET /api/v1/emails/check_confirmation 을 토큰 없이 부른다 | GET /api/v1/emails/check_confirmation 을 토큰 없이 부르면 응답 코드가 401 이다 | MTI-REQ-018 | MTI-FN-031 | 2026-11-11 |
 | 32 | 정상 | 일반 회원 토큰이 있다 | GET /api/v1/annual_reports 를 일반 회원 토큰으로 부른다 | GET /api/v1/annual_reports 를 일반 회원 토큰으로 부르면 응답 코드가 200 이다 | MTI-REQ-019 · API GET /api/v1/annual_reports 200 | MTI-FN-032 | 2026-11-11 |
 | 33 | 예외 | 요청에 토큰이 없다 | GET /api/v1/annual_reports 를 토큰 없이 부른다 | GET /api/v1/annual_reports 를 토큰 없이 부르면 응답 코드가 401 이다 | MTI-REQ-019 · API GET /api/v1/annual_reports 401 | MTI-FN-033 | 2026-11-11 |
-| 34 | 정상 | 일반 회원 토큰이 있다 | GET /api/v1/annual_reports/{year} 를 일반 회원 토큰으로 부른다 | GET /api/v1/annual_reports/{year} 를 일반 회원 토큰으로 부르면 응답 코드가 200 이다 | MTI-REQ-020 · API GET /api/v1/annual_reports/{year} 200 | MTI-FN-034 | 2026-11-11 |
+| 34 | 정상 | 일반 회원 토큰이 있다 | GET /api/v1/annual_reports/{year} 를 일반 회원 토큰으로 부른다 | GET /api/v1/annual_reports/{year} 를 일반 회원 토큰으로 부르면 응답 코드가 200 이다 | MTI-REQ-020 · API GET /api/v1/annual_reports/{year} 200 | 제거함(MTI-FN-034) | 2026-11-11 |
 | 35 | 예외 | 요청에 토큰이 없다 | GET /api/v1/annual_reports/{year} 를 토큰 없이 부른다 | GET /api/v1/annual_reports/{year} 를 토큰 없이 부르면 응답 코드가 401 이다 | MTI-REQ-020 · API GET /api/v1/annual_reports/{year} 401 | MTI-FN-035 | 2026-11-11 |
 | 36 | 예외 | 일반 회원 토큰이 있다 | GET /api/v1/annual_reports/{year} 를 없는 연도로 부른다 | GET /api/v1/annual_reports/{year} 를 없는 연도로 부른 응답 코드가 404 다 | MTI-REQ-020 · API GET /api/v1/annual_reports/{year} 404 | MTI-FN-035 | 2026-11-11 |
 | 37 | 정상 | 일반 회원 토큰이 있다 | GET /api/v1/annual_reports/{year}/state 를 일반 회원 토큰으로 부른다 | GET /api/v1/annual_reports/{year}/state 를 일반 회원 토큰으로 부르면 응답 코드가 200 이다 | MTI-REQ-021 · API GET /api/v1/annual_reports/{year}/state 200 | MTI-FN-036 | 2026-11-11 |
 | 38 | 예외 | 요청에 토큰이 없다 | GET /api/v1/annual_reports/{year}/state 를 토큰 없이 부른다 | GET /api/v1/annual_reports/{year}/state 를 토큰 없이 부르면 응답 코드가 401 이다 | MTI-REQ-021 · API GET /api/v1/annual_reports/{year}/state 401 | MTI-FN-037 | 2026-11-11 |
 | 39 | 예외 | 일반 회원 토큰이 있다 | GET /api/v1/annual_reports/{year}/state 를 없는 연도로 부른다 | GET /api/v1/annual_reports/{year}/state 를 없는 연도로 부른 응답 코드가 404 다 | MTI-REQ-021 · API GET /api/v1/annual_reports/{year}/state 404 | MTI-FN-037 | 2026-11-11 |
-| 40 | 정상 | 일반 회원 토큰이 있다 | POST /api/v1/annual_reports/{year}/read 를 일반 회원 토큰으로 부른다 | POST /api/v1/annual_reports/{year}/read 를 일반 회원 토큰으로 부르면 응답 코드가 200 이다 | MTI-REQ-022 · API POST /api/v1/annual_reports/{year}/read 200 | MTI-FN-038 | 2026-11-11 |
+| 40 | 정상 | 일반 회원 토큰이 있다 | POST /api/v1/annual_reports/{year}/read 를 일반 회원 토큰으로 부른다 | POST /api/v1/annual_reports/{year}/read 를 일반 회원 토큰으로 부르면 응답 코드가 200 이다 | MTI-REQ-022 · API POST /api/v1/annual_reports/{year}/read 200 | 제거함(MTI-FN-038) | 2026-11-11 |
 | 41 | 예외 | 요청에 토큰이 없다 | POST /api/v1/annual_reports/{year}/read 를 토큰 없이 부른다 | POST /api/v1/annual_reports/{year}/read 를 토큰 없이 부르면 응답 코드가 401 이다 | MTI-REQ-022 · API POST /api/v1/annual_reports/{year}/read 401 | MTI-FN-039 | 2026-11-11 |
 | 42 | 예외 | 일반 회원 토큰이 있다 | POST /api/v1/annual_reports/{year}/read 를 없는 연도로 부른다 | POST /api/v1/annual_reports/{year}/read 를 없는 연도로 부른 응답 코드가 404 다 | MTI-REQ-022 · API POST /api/v1/annual_reports/{year}/read 404 | MTI-FN-039 | 2026-11-11 |
 | 43 | 정상 | 일반 회원 토큰이 있다 | POST /api/v1/annual_reports/{year}/generate 를 일반 회원 토큰으로 부른다 | POST /api/v1/annual_reports/{year}/generate 를 일반 회원 토큰으로 부르면 응답 코드가 200 이다 | MTI-REQ-023 · API POST /api/v1/annual_reports/{year}/generate 200 | MTI-FN-040 | 2026-11-11 |
@@ -452,7 +452,7 @@
 | 446 | 정상 | 일반 회원 토큰이 있다 | DELETE /api/v1/collections/{collection_id}/items/{id} 를 일반 회원 토큰으로 부른다 | DELETE /api/v1/collections/{collection_id}/items/{id} 를 일반 회원 토큰으로 부르면 응답 코드가 200 이다 | MTI-REQ-192 · API DELETE /api/v1/collections/{collection_id}/items/{id} 200 | MTI-FN-356 | 2026-11-11 |
 | 447 | 예외 | 요청에 토큰이 없다 | DELETE /api/v1/collections/{collection_id}/items/{id} 를 토큰 없이 부른다 | DELETE /api/v1/collections/{collection_id}/items/{id} 를 토큰 없이 부르면 응답 코드가 401 이다 | MTI-REQ-192 · API DELETE /api/v1/collections/{collection_id}/items/{id} 401 | MTI-FN-357 | 2026-11-11 |
 | 448 | 예외 | 일반 회원 토큰이 있다 | DELETE /api/v1/collections/{collection_id}/items/{id} 를 없는 번호로 부른다 | DELETE /api/v1/collections/{collection_id}/items/{id} 를 없는 번호로 부른 응답 코드가 404 다 | MTI-REQ-192 · API DELETE /api/v1/collections/{collection_id}/items/{id} 404 | MTI-FN-357 | 2026-11-11 |
-| 449 | 정상 | 일반 회원 토큰이 있다 | POST /api/v1/collections/{collection_id}/items/{id}/revoke 를 일반 회원 토큰으로 부른다 | POST /api/v1/collections/{collection_id}/items/{id}/revoke 를 일반 회원 토큰으로 부르면 응답 코드가 200 이다 | MTI-REQ-193 · API POST /api/v1/collections/{collection_id}/items/{id}/revoke 200 | MTI-FN-358 | 2026-11-11 |
+| 449 | 정상 | 일반 회원 토큰이 있다 | POST /api/v1/collections/{collection_id}/items/{id}/revoke 를 일반 회원 토큰으로 부른다 | POST /api/v1/collections/{collection_id}/items/{id}/revoke 를 일반 회원 토큰으로 부르면 응답 코드가 200 이다 | MTI-REQ-193 · API POST /api/v1/collections/{collection_id}/items/{id}/revoke 200 | 제거함(MTI-FN-358) | 2026-11-11 |
 | 450 | 예외 | 요청에 토큰이 없다 | POST /api/v1/collections/{collection_id}/items/{id}/revoke 를 토큰 없이 부른다 | POST /api/v1/collections/{collection_id}/items/{id}/revoke 를 토큰 없이 부르면 응답 코드가 401 이다 | MTI-REQ-193 · API POST /api/v1/collections/{collection_id}/items/{id}/revoke 401 | MTI-FN-359 | 2026-11-11 |
 | 451 | 예외 | 일반 회원 토큰이 있다 | POST /api/v1/collections/{collection_id}/items/{id}/revoke 를 없는 번호로 부른다 | POST /api/v1/collections/{collection_id}/items/{id}/revoke 를 없는 번호로 부른 응답 코드가 404 다 | MTI-REQ-193 · API POST /api/v1/collections/{collection_id}/items/{id}/revoke 404 | MTI-FN-359 | 2026-11-11 |
 | 452 | 정상 | 토큰이 없다 | GET /api/v2/instance 를 토큰 없이 부른다 | GET /api/v2/instance 를 토큰 없이 부르면 응답 코드가 200 이다 | MTI-REQ-194 · API GET /api/v2/instance 200 | MTI-FN-360 | 2026-11-11 |
@@ -678,11 +678,11 @@
 | 672 | 예외 | 요청에 토큰이 없다 | POST /api/v1/admin/trends/statuses/{id}/reject 를 토큰 없이 부른다 | POST /api/v1/admin/trends/statuses/{id}/reject 를 토큰 없이 부르면 응답 코드가 401 이다 | MTI-REQ-271 | MTI-FN-493 | 2026-11-11 |
 | 673 | 예외 | 일반 회원 토큰이 있다 | POST /api/v1/admin/trends/statuses/{id}/reject 를 관리 범위가 없는 일반 회원 토큰으로 부른다 | POST /api/v1/admin/trends/statuses/{id}/reject 를 일반 회원 토큰으로 부른 응답 코드가 403 이다 | MTI-REQ-271 | MTI-FN-493 | 2026-11-11 |
 | 674 | 예외 | 어드민 키가 있다 | POST /api/v1/admin/trends/statuses/{id}/reject 를 없는 번호로 부른다 | POST /api/v1/admin/trends/statuses/{id}/reject 를 없는 번호로 부른 응답 코드가 404 다 | MTI-REQ-271 | MTI-FN-493 | 2026-11-11 |
-| 675 | 정상 | 어드민 키가 있다 | POST /api/v1/admin/trends/links/publishers/{id}/approve 를 어드민 키로 부른다 | POST /api/v1/admin/trends/links/publishers/{id}/approve 를 어드민 키로 부르면 응답 코드가 200 이다 | MTI-REQ-272 | MTI-FN-494 | 2026-11-11 |
+| 675 | 정상 | 어드민 키가 있다 | POST /api/v1/admin/trends/links/publishers/{id}/approve 를 어드민 키로 부른다 | POST /api/v1/admin/trends/links/publishers/{id}/approve 를 어드민 키로 부르면 응답 코드가 200 이다 | MTI-REQ-272 | 제거함(MTI-FN-494) | 2026-11-11 |
 | 676 | 예외 | 요청에 토큰이 없다 | POST /api/v1/admin/trends/links/publishers/{id}/approve 를 토큰 없이 부른다 | POST /api/v1/admin/trends/links/publishers/{id}/approve 를 토큰 없이 부르면 응답 코드가 401 이다 | MTI-REQ-272 | MTI-FN-495 | 2026-11-11 |
 | 677 | 예외 | 일반 회원 토큰이 있다 | POST /api/v1/admin/trends/links/publishers/{id}/approve 를 관리 범위가 없는 일반 회원 토큰으로 부른다 | POST /api/v1/admin/trends/links/publishers/{id}/approve 를 일반 회원 토큰으로 부른 응답 코드가 403 이다 | MTI-REQ-272 | MTI-FN-495 | 2026-11-11 |
 | 678 | 예외 | 어드민 키가 있다 | POST /api/v1/admin/trends/links/publishers/{id}/approve 를 없는 번호로 부른다 | POST /api/v1/admin/trends/links/publishers/{id}/approve 를 없는 번호로 부른 응답 코드가 404 다 | MTI-REQ-272 | MTI-FN-495 | 2026-11-11 |
-| 679 | 정상 | 어드민 키가 있다 | POST /api/v1/admin/trends/links/publishers/{id}/reject 를 어드민 키로 부른다 | POST /api/v1/admin/trends/links/publishers/{id}/reject 를 어드민 키로 부르면 응답 코드가 200 이다 | MTI-REQ-273 | MTI-FN-496 | 2026-11-11 |
+| 679 | 정상 | 어드민 키가 있다 | POST /api/v1/admin/trends/links/publishers/{id}/reject 를 어드민 키로 부른다 | POST /api/v1/admin/trends/links/publishers/{id}/reject 를 어드민 키로 부르면 응답 코드가 200 이다 | MTI-REQ-273 | 제거함(MTI-FN-496) | 2026-11-11 |
 | 680 | 예외 | 요청에 토큰이 없다 | POST /api/v1/admin/trends/links/publishers/{id}/reject 를 토큰 없이 부른다 | POST /api/v1/admin/trends/links/publishers/{id}/reject 를 토큰 없이 부르면 응답 코드가 401 이다 | MTI-REQ-273 | MTI-FN-497 | 2026-11-11 |
 | 681 | 예외 | 일반 회원 토큰이 있다 | POST /api/v1/admin/trends/links/publishers/{id}/reject 를 관리 범위가 없는 일반 회원 토큰으로 부른다 | POST /api/v1/admin/trends/links/publishers/{id}/reject 를 일반 회원 토큰으로 부른 응답 코드가 403 이다 | MTI-REQ-273 | MTI-FN-497 | 2026-11-11 |
 | 682 | 예외 | 어드민 키가 있다 | POST /api/v1/admin/trends/links/publishers/{id}/reject 를 없는 번호로 부른다 | POST /api/v1/admin/trends/links/publishers/{id}/reject 를 없는 번호로 부른 응답 코드가 404 다 | MTI-REQ-273 | MTI-FN-497 | 2026-11-11 |
@@ -695,7 +695,7 @@
 | 689 | 정상 | 어드민 키가 있다 | POST /api/v1/admin/retention 을 어드민 키로 부른다 | POST /api/v1/admin/retention 을 어드민 키로 부르면 응답 코드가 200 이다 | MTI-REQ-276 · API POST /api/v1/admin/retention 200 | MTI-FN-502 | 2026-11-11 |
 | 690 | 예외 | 요청에 토큰이 없다 | POST /api/v1/admin/retention 을 토큰 없이 부른다 | POST /api/v1/admin/retention 을 토큰 없이 부르면 응답 코드가 401 이다 | MTI-REQ-276 · API POST /api/v1/admin/retention 401 | MTI-FN-503 | 2026-11-11 |
 | 691 | 예외 | 일반 회원 토큰이 있다 | POST /api/v1/admin/retention 을 관리 범위가 없는 일반 회원 토큰으로 부른다 | POST /api/v1/admin/retention 을 일반 회원 토큰으로 부른 응답 코드가 403 이다 | MTI-REQ-276 · API POST /api/v1/admin/retention 403 | MTI-FN-503 | 2026-11-11 |
-| 692 | 정상 | 일반 회원 토큰이 있다 | GET /api/v1_alpha/async_refreshes/{id} 를 일반 회원 토큰으로 부른다 | GET /api/v1_alpha/async_refreshes/{id} 를 일반 회원 토큰으로 부르면 응답 코드가 200 이다 | MTI-REQ-277 · API GET /api/v1_alpha/async_refreshes/{id} 200 | MTI-FN-504 | 2026-11-11 |
+| 692 | 정상 | 일반 회원 토큰이 있다 | GET /api/v1_alpha/async_refreshes/{id} 를 일반 회원 토큰으로 부른다 | GET /api/v1_alpha/async_refreshes/{id} 를 일반 회원 토큰으로 부르면 응답 코드가 200 이다 | MTI-REQ-277 · API GET /api/v1_alpha/async_refreshes/{id} 200 | 제거함(MTI-FN-504) | 2026-11-11 |
 | 693 | 예외 | 요청에 토큰이 없다 | GET /api/v1_alpha/async_refreshes/{id} 를 토큰 없이 부른다 | GET /api/v1_alpha/async_refreshes/{id} 를 토큰 없이 부르면 응답 코드가 401 이다 | MTI-REQ-277 · API GET /api/v1_alpha/async_refreshes/{id} 401 | MTI-FN-505 | 2026-11-11 |
 | 694 | 예외 | 일반 회원 토큰이 있다 | GET /api/v1_alpha/async_refreshes/{id} 를 없는 번호로 부른다 | GET /api/v1_alpha/async_refreshes/{id} 를 없는 번호로 부른 응답 코드가 404 다 | MTI-REQ-277 · API GET /api/v1_alpha/async_refreshes/{id} 404 | MTI-FN-505 | 2026-11-11 |
 | 695 | 정상 | 토큰이 없다 | GET /.well-known/oauth-authorization-server 를 부른다 | GET /.well-known/oauth-authorization-server 를 부르면 Cache-Control 에 max-age=900 이 있다 | MTI-REQ-278 | MTI-FN-506 | 2026-11-11 |
@@ -809,7 +809,7 @@
 | 803 | 예외 | 쓰기 범위 시험 앱 토큰이 있다 | 비밀번호 7자로 POST /api/v1/accounts 를 부른다 | 비밀번호 7자로 가입하면 details.password 첫 오류가 ERR_TOO_SHORT 다 | MTI-REQ-371 | MTI-FN-580 | 2026-11-11 |
 | 804 | 경계 | 쓰기 범위 시험 앱 토큰이 있다 | 이메일 320자로 가입한다 | 이메일 320자로 가입하면 응답 코드가 200 이다 | MTI-REQ-372 | MTI-FN-581 | 2026-11-11 |
 | 805 | 경계 | 쓰기 범위 시험 앱 토큰이 있다 | 이메일 321자로 가입한다 | 이메일 321자 가입의 응답 코드가 422 다 | MTI-REQ-372 | MTI-FN-581 | 2026-11-11 |
-| 806 | 예외 | 가입이 닫힌 서버다 | 가입이 닫힌 서버에 POST /api/v1/accounts 를 부른다 | 가입이 닫힌 서버에 가입하면 응답 코드가 403 이다 | MTI-REQ-373 · 보류 — 가입 닫기 설정 | MTI-FN-582 | 2026-11-11 |
+| 806 | 예외 | 가입이 닫힌 서버다 | 가입이 닫힌 서버에 POST /api/v1/accounts 를 부른다 | 가입이 닫힌 서버에 가입하면 응답 코드가 403 이다 | MTI-REQ-373 · 보류 — 가입 닫기 설정 | 제거함(MTI-FN-582) | 2026-11-11 |
 | 807 | 예외 | 쓰기 범위 시험 앱 토큰이 있다 | 이미 있는 사용자명 qa_user1 로 가입한다 | 이미 있는 사용자명으로 가입하면 details.username 첫 오류가 ERR_TAKEN 이다 | MTI-REQ-374 · API POST /api/v1/accounts 422 | MTI-FN-583 | 2026-11-11 |
 | 808 | 예외 | 쓰기 범위 시험 앱 토큰이 있다 | 예약어 사용자명 admin 으로 가입한다 | 예약어 사용자명으로 가입하면 details.username 첫 오류가 ERR_RESERVED 다 | MTI-REQ-375 | MTI-FN-584 | 2026-11-11 |
 | 809 | 예외 | 쓰기 범위 시험 앱 토큰이 있다 | agreement 를 false 로 가입한다 | agreement 를 false 로 가입하면 details.agreement 첫 오류가 ERR_ACCEPTED 다 | MTI-REQ-376 | MTI-FN-585 | 2026-11-11 |
@@ -822,7 +822,7 @@
 | 816 | 예외 | 어드민 키가 있다 | 승인 대기 계정 newbie_wait 를 GET /api/v1/accounts/{id} 로 부른다 | 승인 대기 계정 조회의 응답 코드가 404 다 | MTI-REQ-381 | MTI-FN-590 | 2026-11-11 |
 | 817 | 예외 | 일반 회원 토큰이 있다 | 일반 회원이 자기 계정을 POST /api/v1/accounts/{id}/follow 로 팔로우한다 | 나 자신을 팔로우하면 응답 코드가 403 이다 | MTI-REQ-382 · API POST /api/v1/accounts/{id}/follow 403 | MTI-FN-591 | 2026-11-11 |
 | 818 | 예외 | 일반 회원 토큰이 있다 | 일반 회원이 자기 계정을 POST /api/v1/accounts/{id}/follow 로 팔로우한다 | 오류 문구가 「본인의 계정을 팔로우할 수는 없습니다」 다 | MTI-REQ-382 | MTI-FN-591 | 2026-11-11 |
-| 819 | 예외 | 팔로잉이 7,500명인 계정이 있다 | 팔로잉 7,500명인 계정으로 POST /api/v1/accounts/{id}/follow 를 부른다 | 팔로잉 7,500명에서 팔로우하면 응답 코드가 422 다 | MTI-REQ-383 · API POST /api/v1/accounts/{id}/follow 422 · 보류 — 팔로잉 7,500명 | MTI-FN-592 | 2026-11-11 |
+| 819 | 예외 | 팔로잉이 7,500명인 계정이 있다 | 팔로잉 7,500명인 계정으로 POST /api/v1/accounts/{id}/follow 를 부른다 | 팔로잉 7,500명에서 팔로우하면 응답 코드가 422 다 | MTI-REQ-383 · API POST /api/v1/accounts/{id}/follow 422 · 보류 — 팔로잉 7,500명 | 제거함(MTI-FN-592) | 2026-11-11 |
 | 820 | 예외 | 일반 회원이 troll_kim 을 차단해 두었다 | 일반 회원 토큰으로 GET /api/v1/accounts/{troll_kim}/statuses 를 부른다 | 차단한 상대의 글 목록을 부르면 404 이거나 빈 목록이다 | MTI-REQ-384 | MTI-FN-593 | 2026-11-11 |
 | 821 | 정상 | 두 번째 사용자가 잠긴 계정 yuna_locked 의 승인된 팔로워다 | 두 번째 사용자 토큰으로 yuna_locked 의 private 글을 GET /api/v1/statuses/{id} 로 부른다 | 팔로워 토큰으로 private 글을 부르면 응답 코드가 200 이다 | MTI-REQ-385 | MTI-FN-594 | 2026-11-11 |
 | 822 | 정상 | 일반 회원이 쓴 글이 있다 | DELETE /api/v1/statuses/{id} 로 글을 지운다 | 글을 지우면 응답의 text 가 쓴 글과 같다 | MTI-REQ-386 | MTI-FN-595 | 2026-11-11 |
@@ -845,8 +845,8 @@
 | 839 | 경계 | 일반 회원 토큰이 있다 | 미디어 4개를 붙여 글을 쓴다 | 미디어 4개를 붙여 글을 쓰면 응답 코드가 200 이다 | MTI-REQ-401 | MTI-FN-609 | 2026-11-11 |
 | 840 | 경계 | 일반 회원 토큰이 있다 | 미디어 5개를 붙여 글을 쓴다 | 미디어 5개 글의 응답 코드가 422 다 | MTI-REQ-401 | MTI-FN-609 | 2026-11-11 |
 | 841 | 예외 | 일반 회원 토큰이 있다 | 미디어 5개를 붙여 POST /api/v1/statuses 를 부른다 | 미디어 5개를 붙여 쓰면 오류 문구가 「최대 4개까지 첨부할 수 있습니다」 다 | MTI-REQ-401 | MTI-FN-610 | 2026-11-11 |
-| 842 | 예외 | 일반 회원 토큰이 있다 | 사진과 동영상을 함께 붙여 글을 쓴다 | 사진과 동영상을 섞어 붙이면 응답 코드가 422 다 | MTI-REQ-402 · 보류 — 시험 동영상 파일 | MTI-FN-611 | 2026-11-11 |
-| 843 | 예외 | 일반 회원 토큰이 있다 | 처리가 끝나지 않은 미디어를 붙여 글을 쓴다 | 처리 중인 미디어를 붙이면 응답 코드가 422 다 | MTI-REQ-403 · 보류 — 처리 중 미디어 | MTI-FN-612 | 2026-11-11 |
+| 842 | 예외 | 일반 회원 토큰이 있다 | 사진과 동영상을 함께 붙여 글을 쓴다 | 사진과 동영상을 섞어 붙이면 응답 코드가 422 다 | MTI-REQ-402 · 보류 — 시험 동영상 파일 | 제거함(MTI-FN-611) | 2026-11-11 |
+| 843 | 예외 | 일반 회원 토큰이 있다 | 처리가 끝나지 않은 미디어를 붙여 글을 쓴다 | 처리 중인 미디어를 붙이면 응답 코드가 422 다 | MTI-REQ-403 · 보류 — 처리 중 미디어 | 제거함(MTI-FN-612) | 2026-11-11 |
 | 844 | 예외 | 일반 회원 토큰이 있다 | 미디어와 설문을 함께 붙여 글을 쓴다 | 미디어와 설문을 함께 붙이면 응답 코드가 200 이 아니다 | MTI-REQ-404 | MTI-FN-613 | 2026-11-11 |
 | 845 | 예외 | 일반 회원 토큰이 있다 | 없는 media_ids 로 글을 쓴다 | 없는 미디어를 붙이면 응답 코드가 422 다 | MTI-REQ-405 | MTI-FN-614 | 2026-11-11 |
 | 846 | 예외 | 두 번째 사용자가 올린 미디어가 있다 | 일반 회원이 남의 media_ids 로 글을 쓴다 | 남의 미디어를 붙인 글의 오류 문구에 「찾을 수 없거나 이미 다른 게시물에 첨부되었습니다」 가 있다 | MTI-REQ-405 | MTI-FN-614 | 2026-11-11 |
@@ -884,14 +884,14 @@
 | 878 | 경계 | 일반 회원 토큰이 있다 | 설명 10,000자로 그림을 올린다 | 설명 10,000자로 그림을 올리면 응답 코드가 200 이다 | MTI-REQ-426 | MTI-FN-634 | 2026-11-11 |
 | 879 | 경계 | 일반 회원 토큰이 있다 | 설명 10,001자로 그림을 올린다 | 설명 10,001자 그림 올리기의 응답 코드가 422 다 | MTI-REQ-426 | MTI-FN-634 | 2026-11-11 |
 | 880 | 예외 | 일반 회원 토큰이 있다 | 16 MiB 를 넘는 그림 파일을 올린다 | 16 MiB 를 넘는 그림을 올리면 응답 코드가 200 이 아니다 | MTI-REQ-427 | MTI-FN-635 | 2026-11-11 |
-| 881 | 예외 | 일반 회원 토큰이 있다 | 해상도 곱이 33,177,600 을 넘는 그림을 올린다 | 해상도 곱이 33,177,600 을 넘는 그림을 올리면 응답 코드가 200 이 아니다 | MTI-REQ-428 · 보류 — 큰 해상도 그림 | MTI-FN-636 | 2026-11-11 |
-| 882 | 예외 | 일반 회원 토큰이 있다 | 99 MiB 를 넘는 동영상을 올린다 | 99 MiB 를 넘는 동영상을 올리면 응답 코드가 200 이 아니다 | MTI-REQ-429 · 보류 — 시험 동영상 파일 | MTI-FN-637 | 2026-11-11 |
+| 881 | 예외 | 일반 회원 토큰이 있다 | 해상도 곱이 33,177,600 을 넘는 그림을 올린다 | 해상도 곱이 33,177,600 을 넘는 그림을 올리면 응답 코드가 200 이 아니다 | MTI-REQ-428 · 보류 — 큰 해상도 그림 | 제거함(MTI-FN-636) | 2026-11-11 |
+| 882 | 예외 | 일반 회원 토큰이 있다 | 99 MiB 를 넘는 동영상을 올린다 | 99 MiB 를 넘는 동영상을 올리면 응답 코드가 200 이 아니다 | MTI-REQ-429 · 보류 — 시험 동영상 파일 | 제거함(MTI-FN-637) | 2026-11-11 |
 | 883 | 예외 | 일반 회원 토큰이 있다 | 글자 파일을 POST /api/v1/media 로 올린다 | 지원하지 않는 형식을 올리면 응답 코드가 422 다 | MTI-REQ-430 · API POST /api/v1/media 422 | MTI-FN-638 | 2026-11-11 |
 | 884 | 예외 | 일반 회원 토큰이 있다 | 글자 파일을 POST /api/v1/media 로 올린다 | 오류 문구가 「File type of uploaded media could not be verified」 다 | MTI-REQ-430 | MTI-FN-638 | 2026-11-11 |
-| 885 | 예외 | 일반 회원 토큰이 있다 | 썸네일 처리에 실패하는 파일을 올린다 | 썸네일 처리가 실패하면 응답 코드가 500 이다 | MTI-REQ-431 · 보류 — 썸네일 실패 | MTI-FN-639 | 2026-11-11 |
+| 885 | 예외 | 일반 회원 토큰이 있다 | 썸네일 처리에 실패하는 파일을 올린다 | 썸네일 처리가 실패하면 응답 코드가 500 이다 | MTI-REQ-431 · 보류 — 썸네일 실패 | 제거함(MTI-FN-639) | 2026-11-11 |
 | 886 | 예외 | 일반 회원 토큰이 있다 | 글에 붙은 미디어를 DELETE /api/v1/media/{id} 로 지운다 | 글에 붙은 미디어를 지우면 응답 코드가 422 다 | MTI-REQ-432 · API DELETE /api/v1/media/{id} 422 | MTI-FN-640 | 2026-11-11 |
 | 887 | 예외 | 일반 회원 토큰이 있다 | 글에 붙은 미디어를 DELETE /api/v1/media/{id} 로 지운다 | 오류 문구가 「Media attachment is currently used by a status」 다 | MTI-REQ-432 | MTI-FN-640 | 2026-11-11 |
-| 888 | 예외 | 일반 회원 토큰이 있다 | 처리에 실패한 미디어를 조회한다 | 처리에 실패한 미디어를 조회하면 응답 코드가 422 다 | MTI-REQ-433 · 보류 — 처리 실패 미디어 | MTI-FN-641 | 2026-11-11 |
+| 888 | 예외 | 일반 회원 토큰이 있다 | 처리에 실패한 미디어를 조회한다 | 처리에 실패한 미디어를 조회하면 응답 코드가 422 다 | MTI-REQ-433 · 보류 — 처리 실패 미디어 | 제거함(MTI-FN-641) | 2026-11-11 |
 | 889 | 예외 | 일반 회원이 올린 미디어가 있다 | 두 번째 사용자 토큰으로 남의 미디어를 GET /api/v1/media/{id} 로 부른다 | 남의 미디어를 조회하면 응답 코드가 404 다 | MTI-REQ-434 · API GET /api/v1/media/{id} 404 | MTI-FN-642 | 2026-11-11 |
 | 890 | 예외 | 일반 회원이 글에 붙인 미디어가 있다 | 글에 붙은 미디어를 PUT /api/v1/media/{id} 로 고친다 | 글에 붙은 미디어 수정의 응답 코드가 404 다 | MTI-REQ-434 · API PUT /api/v1/media/{id} 404 | MTI-FN-642 | 2026-11-11 |
 | 891 | 예외 | 일반 회원이 쓴 단일 선택 설문에 두 번째 사용자가 투표해 두었다 | 두 번째 사용자가 같은 설문에 다시 투표한다 | 단일 선택 설문에 다시 투표하면 응답 코드가 422 다 | MTI-REQ-435 · API POST /api/v1/polls/{id}/votes 422 | MTI-FN-643 | 2026-11-11 |
@@ -904,8 +904,8 @@
 | 898 | 예외 | 일반 회원이 direct 로 쓴 설문 글이 있다 | 두 번째 사용자가 볼 수 없는 그 설문에 투표한다 | 보이지 않는 글의 설문에 투표하면 응답 코드가 404 다 | MTI-REQ-440 · API POST /api/v1/polls/{id}/votes 404 | MTI-FN-647 | 2026-11-11 |
 | 899 | 정상 | 토큰이 없다 | GET /api/v1/timelines/public?remote=true 를 토큰 없이 부른다 | 연합 타임라인을 토큰 없이 부르면 응답 코드가 200 이다 | MTI-REQ-441 | MTI-FN-648 | 2026-11-11 |
 | 900 | 정상 | 토큰이 없다 | GET /api/v1/timelines/tag/오늘의사진?local=true 를 토큰 없이 부른다 | 토큰 없이 받은 로컬 해시태그 타임라인의 응답 코드가 200 이다 | MTI-REQ-441 | MTI-FN-648 | 2026-11-11 |
-| 901 | 예외 | 일반 회원 토큰이 있다 | 같은 마커를 동시에 두 번 저장한다 | 마커 저장이 충돌하면 응답 코드가 409 다 | MTI-REQ-442 · 보류 — 마커 충돌 | MTI-FN-649 | 2026-11-11 |
-| 902 | 경계 | 홈 타임라인이 빈 계정 토큰이 있다 | 홈 타임라인이 빈 계정으로 GET /api/v1/timelines/home 을 부른다 | 홈 타임라인이 비어 있으면 200 과 빈 배열이 온다 | MTI-REQ-443 · 보류 — 홈이 빈 계정 | MTI-FN-650 | 2026-11-11 |
+| 901 | 예외 | 일반 회원 토큰이 있다 | 같은 마커를 동시에 두 번 저장한다 | 마커 저장이 충돌하면 응답 코드가 409 다 | MTI-REQ-442 · 보류 — 마커 충돌 | 제거함(MTI-FN-649) | 2026-11-11 |
+| 902 | 경계 | 홈 타임라인이 빈 계정 토큰이 있다 | 홈 타임라인이 빈 계정으로 GET /api/v1/timelines/home 을 부른다 | 홈 타임라인이 비어 있으면 200 과 빈 배열이 온다 | MTI-REQ-443 · 보류 — 홈이 빈 계정 | 제거함(MTI-FN-650) | 2026-11-11 |
 | 903 | 정상 | 일반 회원 토큰이 있다 | 일반 회원 토큰으로 GET /api/v1/notifications?limit=80 을 부른다 | 알림 목록을 부르면 모든 알림의 type 이 정해진 종류 가운데 하나다 | MTI-REQ-444 | MTI-FN-651 | 2026-11-11 |
 | 904 | 정상 | 일반 회원 토큰이 있다 | 일반 회원 토큰으로 푸시 구독을 두 번 만든다 | 푸시 구독을 두 번 만들면 조회한 구독의 endpoint 가 두 번째 것이다 | MTI-REQ-445 | MTI-FN-652 | 2026-11-11 |
 | 905 | 예외 | 두 번째 사용자 토큰이 있다 | 구독이 없는 두 번째 사용자 토큰으로 GET /api/v1/push/subscription 을 부른다 | 구독이 없는데 조회하면 응답 코드가 404 다 | MTI-REQ-446 · API GET /api/v1/push/subscription 404 | MTI-FN-653 | 2026-11-11 |
@@ -941,13 +941,13 @@
 | 935 | 정상 | 일반 회원 토큰이 있다 | category=spam 으로 rule_ids[] 를 넣어 신고한다 | violation 이 아닌 신고에 rule_ids 를 넣으면 신고의 rule_ids 가 비어 있다 | MTI-REQ-464 | MTI-FN-673 | 2026-11-11 |
 | 936 | 예외 | 일반 회원의 리스트 「개발 소식」이 있다 | 두 번째 사용자 토큰으로 일반 회원의 리스트를 GET /api/v1/lists/{id} 로 부른다 | 남의 리스트를 부르면 응답 코드가 404 다 | MTI-REQ-465 · API GET /api/v1/lists/{id} 404 | MTI-FN-674 | 2026-11-11 |
 | 937 | 예외 | 일반 회원의 필터 「스포일러」가 있다 | 두 번째 사용자 토큰으로 일반 회원의 필터를 GET /api/v2/filters/{id} 로 부른다 | 남의 필터 조회의 응답 코드가 404 다 | MTI-REQ-465 · API GET /api/v2/filters/{id} 404 | MTI-FN-674 | 2026-11-11 |
-| 938 | 예외 | 컬렉션 주인에게 차단당한 계정 토큰이 있다 | 차단당한 계정 토큰으로 GET /api/v1/collections/{id} 를 부른다 | 주인에게 차단당한 계정이 컬렉션을 조회하면 응답 코드가 403 이다 | MTI-REQ-466 · 보류 — 차단당한 계정 | MTI-FN-675 | 2026-11-11 |
+| 938 | 예외 | 컬렉션 주인에게 차단당한 계정 토큰이 있다 | 차단당한 계정 토큰으로 GET /api/v1/collections/{id} 를 부른다 | 주인에게 차단당한 계정이 컬렉션을 조회하면 응답 코드가 403 이다 | MTI-REQ-466 · 보류 — 차단당한 계정 | 제거함(MTI-FN-675) | 2026-11-11 |
 | 939 | 정상 | 토큰이 없다 | 토큰 없이 GET /api/v1/accounts/{qa_user1}/collections 를 부른다 | 본인이 아닌 채로 컬렉션 목록을 부르면 모든 컬렉션의 discoverable 이 true 다 | MTI-REQ-467 | MTI-FN-676 | 2026-11-11 |
 | 940 | 경계 | 일반 회원 토큰이 있다 | 이름 40자로 컬렉션을 만든다 | 컬렉션 이름 40자로 만들면 응답 코드가 200 이다 | MTI-REQ-468 | MTI-FN-677 | 2026-11-11 |
 | 941 | 경계 | 일반 회원 토큰이 있다 | 이름 41자로 컬렉션을 만든다 | 컬렉션 이름 41자 만들기의 응답 코드가 422 다 | MTI-REQ-468 · API POST /api/v1/collections 422 | MTI-FN-677 | 2026-11-11 |
 | 942 | 경계 | 일반 회원 토큰이 있다 | 설명 100자로 컬렉션을 만든다 | 컬렉션 설명 100자로 만들면 응답 코드가 200 이다 | MTI-REQ-469 | MTI-FN-678 | 2026-11-11 |
 | 943 | 경계 | 일반 회원 토큰이 있다 | 설명 101자로 컬렉션을 만든다 | 컬렉션 설명 101자 만들기의 응답 코드가 422 다 | MTI-REQ-469 | MTI-FN-678 | 2026-11-11 |
-| 944 | 경계 | 컬렉션에 넣을 계정이 26개 있다 | 컬렉션에 26번째 계정을 더한다 | 컬렉션에 계정 26개째를 더하면 응답 코드가 422 다 | MTI-REQ-470 · API POST /api/v1/collections/{collection_id}/items 422 · 보류 — 넣을 계정 26개 | MTI-FN-679 | 2026-11-11 |
+| 944 | 경계 | 컬렉션에 넣을 계정이 26개 있다 | 컬렉션에 26번째 계정을 더한다 | 컬렉션에 계정 26개째를 더하면 응답 코드가 422 다 | MTI-REQ-470 · API POST /api/v1/collections/{collection_id}/items 422 · 보류 — 넣을 계정 26개 | 제거함(MTI-FN-679) | 2026-11-11 |
 | 945 | 경계 | 두 번째 사용자 토큰이 있다 | 두 번째 사용자가 컬렉션 10개째를 만든다 | 컬렉션 10개째를 만들면 응답 코드가 200 이다 | MTI-REQ-471 | MTI-FN-680 | 2026-11-11 |
 | 946 | 경계 | 두 번째 사용자 토큰이 있다 | 두 번째 사용자가 컬렉션 11개째를 만든다 | 컬렉션 11개째 만들기의 응답 코드가 422 다 | MTI-REQ-471 | MTI-FN-680 | 2026-11-11 |
 | 947 | 정상 | 토큰이 없다 | GET /api/v1_alpha/collections/{id} 를 토큰 없이 부른다 | 옛 경로 /api/v1_alpha/collections/{id} 를 부르면 응답 코드가 200 이다 | MTI-REQ-472 | MTI-FN-681 | 2026-11-11 |
@@ -964,7 +964,7 @@
 | 958 | 정상 | 토큰이 없다 | GET /api/v2/instance 로 타임라인 접근 설정을 읽는다 | 인스턴스 정보를 부르면 configuration.timelines_access.live_feeds.local 이 public 이다 | MTI-REQ-482 | MTI-FN-691 | 2026-11-11 |
 | 959 | 정상 | 토큰이 없다 | GET /api/v2/instance 로 도메인과 언어를 읽는다 | 인스턴스 정보를 부르면 domain 이 mastodon.maxihan.com 이다 | MTI-REQ-483 | MTI-FN-692 | 2026-11-11 |
 | 960 | 정상 | 토큰이 없다 | GET /api/v2/instance 로 스트리밍 주소를 읽는다 | 인스턴스 정보를 부르면 configuration.urls.streaming 이 wss://mastodon.maxihan.com 이다 | MTI-REQ-484 | MTI-FN-693 | 2026-11-11 |
-| 961 | 정상 | 일반 회원 토큰이 있다 | GET /api/v1/streaming 으로 WebSocket 을 열고 user 스트림을 구독한다 | WebSocket 을 열어 user 스트림을 구독하면 연결이 열린다 | MTI-REQ-485 · 보류 — WebSocket 도구 | MTI-FN-694 | 2026-11-11 |
+| 961 | 정상 | 일반 회원 토큰이 있다 | GET /api/v1/streaming 으로 WebSocket 을 열고 user 스트림을 구독한다 | WebSocket 을 열어 user 스트림을 구독하면 연결이 열린다 | MTI-REQ-485 · 보류 — WebSocket 도구 | 제거함(MTI-FN-694) | 2026-11-11 |
 | 962 | 예외 | read:accounts 범위만 가진 시험 앱 토큰이 있다 | read:accounts 범위 토큰으로 GET /api/v1/streaming/public 을 부른다 | 범위가 모자란 토큰으로 스트림을 열면 오류 문구가 「Access token does not have the required scopes」 다 | MTI-REQ-488 | MTI-FN-695 | 2026-11-11 |
 | 963 | 정상 | 토큰이 없다 | GET /api/v1/streaming/health 의 본문을 읽는다 | GET /api/v1/streaming/health 를 부르면 본문이 OK 다 | MTI-REQ-490 | MTI-FN-696 | 2026-11-11 |
 | 964 | 예외 | 토큰이 없다 | 토큰 없이 GET /api/v1/streaming/public 을 연다 | 토큰 없이 공개 스트림을 열면 응답 코드가 401 이다 | MTI-REQ-491 | MTI-FN-697 | 2026-11-11 |
@@ -974,7 +974,7 @@
 | 968 | 예외 | 토큰이 없다 | GET /api/v1/search?q=hana 를 부른다 | GET /api/v1/search 의 응답 코드가 404 다 | MTI-REQ-498 | MTI-FN-700 | 2026-11-11 |
 | 969 | 예외 | 일반 회원 토큰이 있다 | 일반 회원 토큰으로 GET /api/v1/timelines/direct 를 부른다 | GET /api/v1/timelines/direct 의 응답 코드가 404 다 | MTI-REQ-498 | MTI-FN-700 | 2026-11-11 |
 | 970 | 예외 | 일반 회원 토큰이 있다 | 일반 회원 토큰으로 POST /api/v1/accounts/{hana_photo}/email_subscriptions 를 부른다 | 이메일 구독을 부르면 서버 오류(5xx) 없이 응답한다 | MTI-REQ-499 | MTI-FN-701 | 2026-11-11 |
-| 971 | 정상 | 일반 회원 토큰이 있다 | 일반 회원 토큰으로 GET /api/v1/timelines/direct 를 부른다 | API 문서대로 GET /api/v1/timelines/direct 를 부르면 응답 코드가 200 이다 | API GET /api/v1/timelines/direct 200 · 보류 — 자료 어긋남 | MTI-FN-702 | 2026-11-11 |
+| 971 | 정상 | 일반 회원 토큰이 있다 | 일반 회원 토큰으로 GET /api/v1/timelines/direct 를 부른다 | API 문서대로 GET /api/v1/timelines/direct 를 부르면 응답 코드가 200 이다 | API GET /api/v1/timelines/direct 200 · 보류 — 자료 어긋남 | 제거함(MTI-FN-702) | 2026-11-11 |
 
 ## 제외
 
