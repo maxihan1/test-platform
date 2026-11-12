@@ -50,6 +50,10 @@ describe('팜증적목록', () => {
   it('받은 것이 없으면 빈 목록이다', async () => {
     expect(await 팜증적목록(3, 10)).toEqual([]);
   });
+
+  it('통과 항목이면 logcat 을 뺀다 — 정기 실행 통과 항목의 logcat 은 안정화 지표 몫이다', async () => {
+    expect((await 팜증적목록(3, 9, true)).map((f) => f.name)).toEqual(['video-2.mp4', 'video-10.mp4']);
+  });
 });
 
 describe('GET /api/runs/:runId/items/:historyId/farm/:name', () => {
@@ -153,6 +157,14 @@ describe('팜기록글', () => {
 
   it('받은 것이 없으면 null 이다', async () => {
     expect(await 팜기록글(3, 10)).toBeNull();
+  });
+
+  it('통과 항목에 logcat 만 있으면 증적에 적지 않는다', async () => {
+    const 곳 = join(runDir('3', '12'), FARM_EVIDENCE_DIR);
+    mkdirSync(곳, { recursive: true });
+    writeFileSync(join(곳, 'logcat.txt'), '줄');
+    expect(await 팜기록글(3, 12, true)).toBeNull();
+    expect(await 팜기록글(3, 12)).toBe('logcat.txt — 실행 화면의 이 항목에서 받는다');
   });
 
   it('실제 폰 Chrome 항목의 .webm 도 화면 영상으로 센다', async () => {

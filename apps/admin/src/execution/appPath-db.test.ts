@@ -111,6 +111,24 @@ describe.skipIf(연결 === undefined)('대상 서버 앱 파일 경로', () => {
     }
   });
 
+  it('정기 실행만 android 항목에 안정화 표시를 싣는다 — 러너가 통과 항목 logcat 을 받는다', async () => {
+    await 저장({ env: 'qa', baseUrl: 'https://qa.example.com', appPath: '/apk/qa.apk' });
+    const 만든다 = async (origin: 'MANUAL' | 'SCHEDULED') =>
+      (
+        await createRun({
+          origin,
+          triggeredBy: 'tester',
+          env: 'qa',
+          items: [
+            { tcId: 'XAP-001', platforms: ['android'], params: {}, expected: {} },
+            { tcId: 'XAP-002', platforms: ['desktop'], params: {}, expected: {} },
+          ],
+        })
+      ).items.map((i) => i.stability);
+    expect(await 만든다('SCHEDULED')).toEqual([true, undefined]);
+    expect(await 만든다('MANUAL')).toEqual([undefined, undefined]);
+  });
+
   it('앱 경로가 빈 줄이면 싣지 않는다 — 러너가 자기 환경값을 쓴다', async () => {
     await 저장({ env: 'qa', baseUrl: 'https://qa.example.com', appPath: null });
     const { items } = await createRun({

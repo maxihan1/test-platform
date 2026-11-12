@@ -4,9 +4,11 @@ import { setTimeout as 잠깐 } from 'node:timers/promises';
 
 import type { Pool } from 'pg';
 
+import { 팜logcat있음, 팜증적받는중 } from '../execution/farmEvidence.js';
 import { trace줄끝 } from '../execution/traceIngest.js';
 
-import { 집계를저장한다 } from './save.js';
+import { 앱수집 } from './appCollect.js';
+import { 집계를저장한다, type 수집 } from './save.js';
 import { 웹수집 } from './webCollect.js';
 
 async function db(): Promise<Pool> {
@@ -16,6 +18,8 @@ async function db(): Promise<Pool> {
 
 /** 웹 trace 풀기는 서버 전체 하나씩이라 다른 실행이 밀리면 오래 걸린다 — 시간으로 짧게 끊으면 바쁜 날만 분모가 줄어 추이가 흔들린다 */
 export const 웹기다림상한ms = 2 * 60 * 60 * 1000;
+/** 팜 파일 하나 받기 상한 10분에 여유를 더했다 — 러너가 못 받으면 logcat 이 영영 안 생긴다 */
+export const 앱기다림상한ms = 15 * 60 * 1000;
 const 살펴보는간격ms = 15_000;
 
 export type 집계결과 = '대상 아님' | '기다림' | '건너뜀' | '집계함';
@@ -43,12 +47,13 @@ const 묶음SQL = `
                            AND (r.started_at AT TIME ZONE 이.tz)::date = 이.day
    ORDER BY r.run_id`;
 
-/** 실행 하나가 끝날 때마다 부른다. 묶음의 마지막 실행이 끝났을 때만 집계한다 */
-export async function 집계한다(runId: number, 상한ms = 웹기다림상한ms, 간격ms = 살펴보는간격ms): Promise<집계결과> {
+/** 실행 하나가 끝날 때마다 부른다. 묶음의 마지막 실행이 끝났을 때만 집계한다. 상한을 안 주면 종류마다의 기다림 상한이다 */
+export async function 집계한다(runId: number, 상한ms?: number, 간격ms = 살펴보는간격ms): Promise<집계결과> {
   const pool = await db();
   const 묶음 = (await pool.query<묶음행>(묶음SQL, [runId])).rows;
-  // 1차는 웹만 센다 — 앱 · 게임은 STAB-F1-04 · 05 가 더하고 API 는 메뉴가 없다(결정 13)
-  if (묶음.length === 0 || 묶음[0]!.service_kind !== 'SCREEN') return '대상 아님';
+  // 웹 · Android 앱만 센다 — 게임은 STAB-F1-05 가 더하고 API 는 메뉴가 없다(결정 13)
+  const 종류 = 묶음[0]?.service_kind;
+  if (종류 !== 'SCREEN' && 종류 !== 'APP') return '대상 아님';
   // 뒤에 끝나는 실행이 다시 부른다
   if (묶음.some((r) => r.status === 'RUNNING')) return '기다림';
   // 중단 · 준비 실패가 하나라도 있으면 그날 점을 비운다 — 반쪽 분모로 점이 튀지 않게
@@ -66,8 +71,14 @@ export async function 집계한다(runId: number, 상한ms = 웹기다림상한m
   ]);
   if ((막힘.rowCount ?? 0) > 0) return '건너뜀';
 
-  await trace를기다린다(pool, 번호들, 상한ms, 간격ms);
-  const 모음 = await 웹수집(pool, Number(머리.service_id), 번호들);
+  let 모음: 수집;
+  if (종류 === 'APP') {
+    await logcat을기다린다(pool, 번호들, 상한ms ?? 앱기다림상한ms, 간격ms);
+    모음 = await 앱수집(pool, Number(머리.service_id), 머리.env, 번호들);
+  } else {
+    await trace를기다린다(pool, 번호들, 상한ms ?? 웹기다림상한ms, 간격ms);
+    모음 = await 웹수집(pool, Number(머리.service_id), 번호들);
+  }
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -121,6 +132,30 @@ async function trace를기다린다(pool: Pool, 번호들: number[], 상한ms: n
       if (그래도 > 0) return 기록없음(그래도, '풀 일이 줄에 없다');
       return;
     }
+  }
+}
+
+/**
+ * android 항목마다 logcat 이 생기거나 러너가 받기를 끝낼 때까지. 통과 못 한 항목은 받기를 끝내면(못 받았어도) 세션 번호 파일을 지운다 —
+ * 번호 파일도 logcat 도 없으면 더 기다려도 안 생긴다(연결을 못 열었거나 다른 기계 러너). 통과 항목은 「영상 보기」 몫으로 번호 파일이 남아 logcat 만 본다
+ */
+async function logcat을기다린다(pool: Pool, 번호들: number[], 상한ms: number, 간격ms: number): Promise<void> {
+  const 항목 = (
+    await pool.query<{ run_id: string; history_id: string }>("SELECT run_id, history_id FROM run_item WHERE run_id = ANY($1) AND platform = 'android'", [번호들])
+  ).rows.map((r) => [Number(r.run_id), Number(r.history_id)] as const);
+  const 마감 = Date.now() + 상한ms;
+  for (;;) {
+    // 15초마다 항목 전부를 보므로 이 볼륨의 파일만 본다 — 터널 너머 러너까지 물으면 한 바퀴가 간격보다 길어진다. 번호 파일도 이 볼륨만 본다
+    const 남은 = (
+      await Promise.all(항목.map(async ([runId, h]) => (!(await 팜logcat있음(runId, h)) && (await 팜증적받는중(runId, h)) ? [h] : [])))
+    ).flat();
+    if (남은.length === 0) return;
+    const 남은시간 = 마감 - Date.now();
+    if (남은시간 <= 0) {
+      console.warn(`[stability] 실행 ${번호들.join(' · ')} — logcat 이 없는 항목 ${String(남은.length)}건은 기록 없음으로 센다(기다림 상한)`);
+      return;
+    }
+    await 잠깐(Math.min(간격ms, 남은시간), undefined, { ref: false });
   }
 }
 

@@ -335,7 +335,7 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
       platform: row.platform,
       device: row.device === null ? null : 기기글(row.device),
       // 실제 폰에서 돈 모바일 항목도 러너가 폰 영상 · logcat 을 받아 둔다 — 기기 칸이 찬 것이 그 표시다
-      farm: row.platform === 'android' || row.device !== null ? await 팜기록글(돈실행, Number(row.history_id)) : null,
+      farm: row.platform === 'android' || row.device !== null ? await 팜기록글(돈실행, Number(row.history_id), row.status === 'PASS') : null,
       attempt: row.attempt,
       status: 못돈사유 === null ? row.status : ('NOT_RUN' as const),
       // 중단 처리가 박아 넣은 duration_ms 0 은 「0밀리초 걸렸다」가 아니라 「안 돌았다」다

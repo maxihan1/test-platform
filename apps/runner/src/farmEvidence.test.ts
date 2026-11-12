@@ -15,6 +15,9 @@ vi.mock('./farmUiCheck.js', async (원본) => ({
   점검결과를기다린다: (...a: unknown[]) => 점검결과를기다린다(...a),
 }));
 
+const logcat만받는다 = vi.fn();
+vi.mock('./farmLogcat.js', () => ({ logcat만받는다: (...a: unknown[]) => logcat만받는다(...a) }));
+
 const { 팜증적받기를줄세운다, 팜증적을받는다, 팜토큰을지운다 } = await import('./farmEvidence.js');
 
 let 임시: string;
@@ -30,6 +33,8 @@ beforeEach(() => {
   farmArtifacts.mockReset();
   점검결과를기다린다.mockReset();
   점검결과를기다린다.mockResolvedValue(undefined);
+  logcat만받는다.mockReset();
+  logcat만받는다.mockResolvedValue(undefined);
   farmArtifacts.mockResolvedValue({ files: [], errors: [] });
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
 });
@@ -88,6 +93,31 @@ describe('팜증적을받는다', () => {
     await 팜증적을받는다(3, 9, 'PASS');
     expect(farmArtifacts).not.toHaveBeenCalled();
     expect(existsSync(idFile())).toBe(true);
+  });
+
+  it('정기 실행 통과 항목은 영상 없이 logcat 하나만 받고 번호 파일을 남긴다 — 안정화 지표가 통과 항목의 크래시를 센다', async () => {
+    await 팜증적을받는다(3, 9, 'PASS', 'pat_kim', undefined, true);
+    expect(logcat만받는다).toHaveBeenCalledWith(폴더(), 'http://farm:4723/wd/hub', 'sess-1', 'pat_kim');
+    expect(farmArtifacts).not.toHaveBeenCalled();
+    expect(existsSync(idFile())).toBe(true);
+  });
+
+  it('정기 실행 항목이 아니면 통과 항목 logcat 을 받지 않는다', async () => {
+    await 팜증적을받는다(3, 9, 'PASS');
+    expect(logcat만받는다).not.toHaveBeenCalled();
+  });
+
+  it('통과 항목 logcat 받기가 던져도 알리기만 하고 번호 파일은 남긴다', async () => {
+    logcat만받는다.mockRejectedValue(new Error('HTTP 404'));
+    await 팜증적을받는다(3, 9, 'PASS', undefined, undefined, true);
+    await vi.waitFor(() => expect(console.error).toHaveBeenCalledWith(expect.stringContaining('통과 항목의 logcat 을 받지 못했다')));
+    expect(existsSync(idFile())).toBe(true);
+  });
+
+  it('정기 실행 실패 항목은 지금처럼 영상 · logcat 을 다 받는다', async () => {
+    await 팜증적을받는다(3, 9, 'FAIL', undefined, undefined, true);
+    expect(farmArtifacts).toHaveBeenCalledTimes(1);
+    expect(logcat만받는다).not.toHaveBeenCalled();
   });
 
   it('호환성 항목은 통과해도 AI 점검 결과를 기다려 받고, 번호 파일은 남긴다', async () => {

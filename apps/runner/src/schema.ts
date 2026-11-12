@@ -66,6 +66,8 @@ export const executeRequest = z.object({
   engine: z.literal('GAME').optional(),
   // 호환성 실행 항목 — 안 적으면 z.object 가 버려 팜 AI 점검이 안 켜진다 (도메인/호환성 §7 「러너 · kit」)
   uiCheck: z.literal(true).optional(),
+  // 정기 실행 android 항목 — 안 적으면 z.object 가 버려 통과 항목 logcat 을 안 받는다 (도메인/안정화 §3.15 결정 3)
+  stability: z.literal(true).optional(),
   adminKey,
   apiAuths,
   apiDoc,
