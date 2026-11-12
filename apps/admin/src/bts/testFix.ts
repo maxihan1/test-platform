@@ -229,7 +229,7 @@ async function 요약가리기(뿌리번호: number, 요약: string): Promise<st
 }
 
 /**
- * 테스트 고침 작성이 PR 을 열면 — 그 줄을 「병합 기다림」으로 두고, 이슈에 「테스트 수정 PR #N 을 열었어요 — <고친 곳>」 댓글과 필드 「테스트 수정 PR」.
+ * 테스트 고침 작성이 PR 을 열면 — 그 줄을 「병합 기다림」으로 두고, 이슈에 「테스트 수정 PR 을 열었어요 — <고친 곳>」 + PR 주소 댓글과 필드 「테스트 수정 PR」.
  * 재실행 · 이어서 작성이 같은 PR 로 또 끝나도 한 번이다. 테스트 고침 요청이 아니거나 그사이 연결을 끊었으면 아무것도 안 한다.
  * 바퀴 전에 세운 요청(「테스트 문제」로 닫아 세운 것)은 줄이 없어 댓글만 간다
  */
@@ -258,8 +258,8 @@ export async function 테스트수정PR열림(요청: { serviceId: number; param
     ).rowCount ?? 0) > 0;
   let 넣음 = false;
   if (!(await 보냈나('COMMENT'))) {
-    const 번호 = /\/pull\/(\d+)/.exec(prUrl)?.[1];
-    const 머리 = `테스트 수정 PR ${번호 === undefined ? '' : `#${번호} `}을 열었어요`;
+    // 번호는 아래 줄 주소에 보인다 — 머리에 「#729 을」처럼 넣으면 조사가 숫자 읽기와 어긋난다(BTS-F10-09 시험)
+    const 머리 = '테스트 수정 PR 을 열었어요';
     await 보낼줄넣기({ projectId: 프로젝트, kind: 'COMMENT', issueKey, payload: { body: `${요약 === '' ? 머리 : `${머리} — ${요약}`}\n${prUrl}` } });
     넣음 = true;
   }
