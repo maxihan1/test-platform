@@ -153,7 +153,7 @@ async function logcat을기다린다(pool: Pool, 번호들: number[], 상한ms: 
     if (남은.length === 0) return;
     const 남은시간 = 마감 - Date.now();
     if (남은시간 <= 0) {
-      console.warn(`[stability] 실행 ${번호들.join(' · ')} — logcat 이 없는 항목 ${String(남은.length)}건은 기록 없음으로 센다(기다림 상한)`);
+      console.warn(`[stability] 실행 ${번호들.join(' · ')} — logcat 이 없는 항목 ${String(남은.length)}건은 logcat 없이 센다(기다림 상한 — 앱은 기록 없음 · 게임은 게임 오류 파일만)`);
       return;
     }
     await 잠깐(Math.min(간격ms, 남은시간), undefined, { ref: false });

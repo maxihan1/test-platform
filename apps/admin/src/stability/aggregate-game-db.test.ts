@@ -95,18 +95,21 @@ describe.skipIf(연결 === undefined)('안정화 게임 집계', () => {
     const fn = await 실행('qa', 'FN', '2001-05-01T18:00:00Z');
     await 항목(ui, 'XGX-UI-001', 'PASS', 머리, null);
     await 항목(fn, 'XGX-FN-001', 'PASS', 예외('2001-05-01T18:00:12.000Z'), 크래시);
-    // 게임 오류 파일이 없는 항목은 기록 없음 — logcat 이 있어도 분모에서 빠진다
-    await 항목(fn, 'XGX-FN-002', 'PASS', null, 크래시);
+    // 게임이 크래시로 죽어 게임 오류 파일을 못 남겨도 logcat 이 있으면 기록이고 그 크래시를 센다
+    await 항목(fn, 'XGX-FN-002', 'FAIL', null, 크래시);
+    // 둘 다 없는 항목은 기록 없음 — 분모에서 빠진다
+    await 항목(fn, 'XGX-FN-003', 'PASS', null, null);
 
     expect(await 집계(fn)).toBe('집계함');
-    expect(await 집계줄(fn)).toMatchObject({ cases: 2, error_cases: 1, pass_error_cases: 1, crashes: 1, residual: 2, new_errors: 2 });
+    expect(await 집계줄(fn)).toMatchObject({ cases: 3, error_cases: 2, pass_error_cases: 1, crashes: 2, residual: 2, new_errors: 2 });
     const 종류 = (await pool.query("SELECT id, source, title FROM stab_error WHERE service_id = $1 AND env = 'qa' ORDER BY source", [서비스])).rows;
     expect(종류).toMatchObject([
       { source: 'APP_CRASH', title: 'IllegalStateException · Main.onCreate' },
       { source: 'GAME_EXCEPTION', title: 'NullReferenceException · ClientCharacter.OnAnimEvent' },
     ]);
     const 발생 = (await pool.query('SELECT tc_id, hits, crash, seq FROM stab_occurrence WHERE error_id = $1', [종류[1]!.id])).rows;
-    expect(발생).toEqual([{ tc_id: 'XGX-FN-001', hits: 1, crash: false, seq: 2 }]);
+    // 같은 항목 logcat 에 크래시가 있어 「크래시 연결」이다
+    expect(발생).toEqual([{ tc_id: 'XGX-FN-001', hits: 1, crash: true, seq: 2 }]);
     const 견본 = (await pool.query<{ text: string }>('SELECT text FROM stab_sample WHERE error_id = $1', [종류[1]!.id])).rows;
     expect(견본[0]?.text).toContain('Exception: NullReferenceException: token ********');
   });
@@ -118,5 +121,7 @@ describe.skipIf(연결 === undefined)('안정화 게임 집계', () => {
     expect(await 집계줄(fn)).toMatchObject({ cases: 1, crashes: 0, residual: 1 });
     const 발생 = (await pool.query("SELECT o.seq FROM stab_occurrence o JOIN stab_error e ON e.id = o.error_id WHERE e.service_id = $1 AND e.env = 'qa2'", [서비스])).rows;
     expect(발생).toEqual([{ seq: null }]);
+    const 연결 = (await pool.query("SELECT o.crash FROM stab_occurrence o JOIN stab_error e ON e.id = o.error_id WHERE e.service_id = $1 AND e.env = 'qa2'", [서비스])).rows;
+    expect(연결).toEqual([{ crash: false }]);
   });
 });

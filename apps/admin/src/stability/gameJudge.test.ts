@@ -40,6 +40,19 @@ describe('게임항목오류', () => {
     expect(인자!.seq).toBeNull();
   });
 
+  it('빈 메시지 머리 줄도 읽고, 스택 안의 머리 꼴 줄은 새 오류로 읽지 않는다', () => {
+    const 글 = ['# 게임 오류 1개', '', '#1 2026-11-12T03:00:05.000Z Exception:', 스택, '#01 pc 0x00012 Error: libil2cpp.so', ''].join('\n');
+    const 오류 = 게임항목오류(글, 단계);
+    expect(오류).toHaveLength(1);
+    expect(오류[0]!.seq).toBe(1);
+    expect(오류[0]!.견본).toContain('#01 pc 0x00012 Error: libil2cpp.so');
+  });
+
+  it('옛 SDK 의 지역 시각은 단계를 맞추지 않는다', () => {
+    const 글 = ['# 게임 오류 1개', '', '#1 2026-11-12 03:00:05 Exception: X', 스택, ''].join('\n');
+    expect(게임항목오류(글, 단계)[0]!.seq).toBeNull();
+  });
+
   it('머리 줄만 있는 파일은 오류가 없다', () => {
     expect(게임항목오류('# 게임 Exception 0개 — 통과 항목이라 Exception 만 남겼습니다\n', 단계)).toEqual([]);
   });

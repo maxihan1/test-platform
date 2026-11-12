@@ -29,7 +29,7 @@ const 디바이스 = (d: DeviceInfo | null): string | null => (d === null ? null
 
 /**
  * 묶음(실행 번호들)의 android 항목을 모은다. 앱은 logcat 파일이 없는 항목이 기록 없음이라 분모에서도 뺀다.
- * 게임은 게임 오류 파일이 기록이고 그 Exception 도 센다 — logcat 만 없으면 그 항목의 크래시 · ANR 만 0 이다 (§3.15 「분모」)
+ * 게임은 게임 오류 파일이나 logcat 중 하나라도 있으면 기록이고 Exception 도 센다 — logcat 만 없으면 그 항목의 크래시 · ANR 만 0 이다 (§3.15 「분모」)
  */
 export async function 앱수집(pool: Pool, serviceId: number, env: string, runIds: readonly number[], 게임 = false): Promise<수집> {
   const 항목 = (
@@ -56,6 +56,19 @@ export async function 앱수집(pool: Pool, serviceId: number, env: string, runI
     console.warn(`[stability] 실행 ${runIds.join(' · ')} — 앱 패키지 이름을 몰라 크래시 · ANR 을 가르지 못했다(기기 정보 appPackage · 대상 서버 앱 경로가 비었다)`);
   }
 
+  // 게임 오류 시각을 단계 시작 시각에 맞춘다 — 시각이 없는 단계(이 칸 전 기록)는 빠진다 (§3.15 「지문」 단계)
+  const 단계 = new Map<number, { seq: number; startedAt: string | null }[]>();
+  if (게임) {
+    const 줄들 = await pool.query<{ history_id: string; seq: number; started_at: Date | null }>(
+      'SELECT history_id, seq, started_at FROM run_item_step WHERE history_id = ANY($1)',
+      [항목.map((i) => i.history_id)],
+    );
+    for (const s of 줄들.rows) {
+      const h = Number(s.history_id);
+      단계.set(h, [...(단계.get(h) ?? []), { seq: s.seq, startedAt: s.started_at?.toISOString() ?? null }]);
+    }
+  }
+
   const 판정 = new Map<string, boolean>();
   const 오류 = new Map<string, 모은오류>();
   let crashes = 0;
@@ -65,11 +78,9 @@ export async function 앱수집(pool: Pool, serviceId: number, env: string, runI
     const runId = Number(i.run_id);
     const h = Number(i.history_id);
     const 게임글 = 게임 ? await 게임오류읽기(runId, h) : null;
-    if (게임 && 게임글 === null) continue;
-    const 있음 = await 팜logcat있음(runId, h);
-    if (!게임 && !있음) continue;
-    const 글 = 있음 ? await 팜logcat읽기(runId, h) : null;
-    if (!게임 && 글 === null) continue;
+    const 글 = (await 팜logcat있음(runId, h)) ? await 팜logcat읽기(runId, h) : null;
+    // 게임은 둘 중 하나만 있어도 기록이다 — 게임이 크래시로 죽으면 kit 이 게임 오류 파일을 못 남겨도 logcat 에 그 크래시가 있다 (§3.15 결정 14 · 「분모」)
+    if (글 === null && 게임글 === null) continue;
     판정.set(i.tc_id, true);
     const device = 디바이스(i.device);
     // 견본은 넣을 때 그 항목 값의 비밀값을 글자째 가린다 — Issue Bunker 실패 본문의 logcat 줄과 같은 가림
@@ -80,16 +91,14 @@ export async function 앱수집(pool: Pool, serviceId: number, env: string, runI
       자리.견본.push({ historyId: h, tcId: i.tc_id, text: 가린다(견본, 비밀) as string, page: null, device, at: i.began_at });
       오류.set(지문.fingerprint, 자리);
     };
-    for (const e of 글 === null ? [] : 앱항목오류(글, 패키지(i))) {
+    const 앱오류 = 글 === null ? [] : 앱항목오류(글, 패키지(i));
+    for (const e of 앱오류) {
       crashes += e.hits;
       넣는다(e.지문, e.견본, null, e.hits, true);
     }
     if (게임글 !== null) {
-      // 오류 시각을 단계 시작 시각에 맞춘다 — 시각이 없는 단계(이 칸 전 기록)는 빠진다 (§3.15 「지문」 단계)
-      const 단계들 = (
-        await pool.query<{ seq: number; started_at: Date | null }>('SELECT seq, started_at FROM run_item_step WHERE history_id = $1', [h])
-      ).rows.map((s) => ({ seq: s.seq, startedAt: s.started_at?.toISOString() ?? null }));
-      for (const e of 게임항목오류(게임글, 단계들)) 넣는다(e.지문, e.견본, e.seq, e.hits, false);
+      // 같은 항목에 크래시 · ANR 도 남았으면 「크래시 연결」이다 (공통/4 stab_occurrence.crash)
+      for (const e of 게임항목오류(게임글, 단계.get(h) ?? [])) 넣는다(e.지문, e.견본, e.seq, e.hits, 앱오류.length > 0);
     }
   }
   // 케이스 판정은 그 케이스의 항목 전부로 — 기록 없는 항목이 실패여도 판정은 실패다
