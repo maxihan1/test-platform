@@ -27,6 +27,7 @@ export type 원천 =
   | { 종류: '성능AI일'; 칸: string } // params[칸] 이 perf_ai_job 번호다
   | { 종류: '성능더미클라이언트'; 칸: string } // params[칸] 이 perf_dummy_client 번호다
   | { 종류: '호환성세트'; 칸: string } // params[칸] 이 compat_set 번호다. 치운 세트도 그 애플리케이션이다
+  | { 종류: '안정화오류'; 칸: string } // params[칸] 이 stab_error 번호다. 그 오류의 애플리케이션으로 본다
   | { 종류: '시험'; 칸: string }; // params[칸] 이 시험 실행 번호다. 메모리 보관소가 시작한 사람에게만 서비스를 알려 준다
 
 /**
@@ -237,6 +238,11 @@ export const 라우트표: Record<string, 원천> = {
   '/api/compat-devices': { 종류: '안매임' },
   '/api/perf/devices/measure': { 종류: '질의번호', 칸: 'serviceId' },
   '/api/perf/ai-jobs/:id': { 종류: '성능AI일', 칸: 'id' },
+  // 안정화 지표 — 메인은 ?service= 번호, 오류는 그 오류의 애플리케이션 (도메인/안정화 §7 · 인증 §7 안정화 두 줄)
+  '/api/stability': { 종류: '질의번호', 칸: 'service' },
+  '/api/stability/errors/:id': { 종류: '안정화오류', 칸: 'id' },
+  '/api/stability/errors/:id/resolve': { 종류: '안정화오류', 칸: 'id' },
+  '/api/stability/errors/:id/issue': { 종류: '안정화오류', 칸: 'id' },
   '/api/perf/ai-jobs/:id/finish': { 종류: '성능AI일', 칸: 'id' },
   // 집기는 라우트가 그 계정이 배정된 애플리케이션의 일만 준다
   '/api/perf/ai-jobs/claim': { 종류: '안매임' },
@@ -280,7 +286,7 @@ export function 케이스의서비스(tcId: unknown): string | null {
   return 접두사모양.test(접두사) ? 접두사 : null;
 }
 
-export type 찾을것 = { 종류: '실행' | '증적' | '입력값묶음' | '작성요청' | '시나리오' | '서비스' | '성능시나리오' | '성능실행' | '성능AI일' | '성능더미클라이언트' | '호환성세트'; 번호: number };
+export type 찾을것 = { 종류: '실행' | '증적' | '입력값묶음' | '작성요청' | '시나리오' | '서비스' | '성능시나리오' | '성능실행' | '성능AI일' | '성능더미클라이언트' | '호환성세트' | '안정화오류'; 번호: number };
 
 /** 번호 칸은 **라우트와 같은 엄격함**으로 읽는다. 느슨하면 문과 라우트가 다른 값을 본다 */
 export function 번호로(값: unknown): number | null {
@@ -314,6 +320,7 @@ const 질의: Record<찾을것['종류'], string> = {
   성능AI일: 'SELECT s.prefix FROM perf_ai_job j JOIN service s ON s.id = j.service_id WHERE j.id = $1',
   성능더미클라이언트: 'SELECT s.prefix FROM perf_dummy_client d JOIN service s ON s.id = d.service_id WHERE d.id = $1',
   호환성세트: 'SELECT s.prefix FROM compat_set c JOIN service s ON s.id = c.service_id WHERE c.id = $1',
+  안정화오류: 'SELECT s.prefix FROM stab_error e JOIN service s ON s.id = e.service_id WHERE e.id = $1',
 };
 
 /**

@@ -785,7 +785,7 @@ describe('등급 표', () => {
   it('표의 기능은 경로 접두사가 정한 기능과 같다 — 접두사예외만 빼고', () => {
     const 경로의기능 = (틀: string): 기능 | null => {
       if (/^\/api\/(catalog|cases|param-sets)(\/|$)/.test(틀)) return 'cases';
-      if (/^\/api\/(runs|evidence|screenshots|scenarios|scenario-trials|perf|compat-sets|compat-devices|compat-runs)(\/|$)/.test(틀)) return 'runs';
+      if (/^\/api\/(runs|evidence|screenshots|scenarios|scenario-trials|perf|compat-sets|compat-devices|compat-runs|stability)(\/|$)/.test(틀)) return 'runs';
       // API 문서는 애플리케이션 번호 아래지만 작성 기능이다 (도메인/API §7)
       if (/^\/api\/(authoring|prd|guide)(\/|$)/.test(틀) || /^\/api\/services\/:id\/api-/.test(틀)) return 'authoring';
       return null;

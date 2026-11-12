@@ -36,7 +36,7 @@ interface 묶음행 {
 }
 
 // 정기 실행은 하루 한 번이라 그날(정기 실행 시간대) 같은 애플리케이션 · 대상 서버의 정기 UI · 기능 실행이 곧 한 묶음이다
-const 묶음SQL = `
+export const 묶음SQL = `
   WITH 이 AS (
     SELECT r.service_id, r.env, s.kind AS service_kind, COALESCE(s.schedule_tz, 'UTC') AS tz,
            (r.started_at AT TIME ZONE COALESCE(s.schedule_tz, 'UTC'))::date AS day

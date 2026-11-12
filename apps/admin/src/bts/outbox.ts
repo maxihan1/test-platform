@@ -14,7 +14,9 @@ async function db(): Promise<Pool> {
   return pool;
 }
 
-export type 보낼종류 = 'CREATE' | 'COMMENT' | 'TRANSITION' | 'ASSIGN' | 'FIELD';
+// STAB_CREATE 는 안정화 오류 종류 등록이다 — 보내는 길은 CREATE 와 같고 짝 대신 stab_error.issue_key 를 채운다 (도메인/안정화 §3.15 「Issue Bunker 등록」)
+export type 보낼종류 = 'CREATE' | 'COMMENT' | 'TRANSITION' | 'ASSIGN' | 'FIELD' | 'STAB_CREATE';
+const 만들기인가 = (kind: 보낼종류): boolean => kind === 'CREATE' || kind === 'STAB_CREATE';
 
 export interface 보낼줄 {
   projectId: number;
@@ -45,6 +47,7 @@ export const 최대횟수 = 5;
 // BTS 이슈 API — 만들기 · 댓글 · 상태 옮기기 · 담당자 · 사용자 정의 필드 (BTS IssueController · CommentController)
 const 갈곳 = {
   CREATE: () => ['POST', '/api/v1/issues'],
+  STAB_CREATE: () => ['POST', '/api/v1/issues'],
   COMMENT: (key: string) => ['POST', `/api/v1/issues/${encodeURIComponent(key)}/comments`],
   TRANSITION: (key: string) => ['POST', `/api/v1/issues/${encodeURIComponent(key)}/transition`],
   ASSIGN: (key: string) => ['PATCH', `/api/v1/issues/${encodeURIComponent(key)}/assignee`],
@@ -93,11 +96,12 @@ function 상태로(status: number): 결과 | null {
 async function 하나보내기(줄: 집은줄, 부르기: 부르기함수): Promise<결과> {
   // 연결을 끊었으면 보낼 곳이 없다 — 줄은 남기고 멈춘다(맡은 이슈 · 짝 기록처럼)
   if (줄.base_url === null) return { 상태: 'GAVE_UP', 까닭: 'Issue Bunker 연결이 없습니다' };
-  if (줄.kind !== 'CREATE' && 줄.issue_key === null) return { 상태: 'GAVE_UP', 까닭: '보낼 이슈 키가 없습니다' };
+  if (!만들기인가(줄.kind) && 줄.issue_key === null) return { 상태: 'GAVE_UP', 까닭: '보낼 이슈 키가 없습니다' };
   const [method, 경로] = 갈곳[줄.kind](줄.issue_key ?? '');
-  // 첨부 목록은 QA Hub 몫이라 BTS 몸에서 뺀다 — 만든 뒤 따로 올린다
-  const 몸 =
-    줄.kind === 'CREATE' ? Object.fromEntries(Object.entries(줄.payload as Record<string, unknown>).filter(([k]) => k !== 'attachments')) : 줄.payload;
+  // 첨부 목록 · 안정화 오류 번호는 QA Hub 몫이라 BTS 몸에서 뺀다 — 첨부는 만든 뒤 따로 올린다
+  const 몸 = 만들기인가(줄.kind)
+    ? Object.fromEntries(Object.entries(줄.payload as Record<string, unknown>).filter(([k]) => k !== 'attachments' && k !== 'stabErrorId'))
+    : 줄.payload;
   try {
     const 자리 = { baseUrl: 줄.base_url, 봇: 줄.bot_username ?? '' };
     let 보낼몸 = 몸;
@@ -125,7 +129,7 @@ async function 하나보내기(줄: 집은줄, 부르기: 부르기함수): Prom
     if (판읽음 && r.status === 409) return { 상태: 'RETRY', 까닭: 'Issue Bunker 이슈 버전이 그사이 변경되었습니다 (409)' };
     const 실패 = 상태로(r.status);
     if (실패 !== null) return 실패;
-    if (줄.kind !== 'CREATE') return { 상태: 'SENT' };
+    if (!만들기인가(줄.kind)) return { 상태: 'SENT' };
     const data = (r.json as { data?: { key?: unknown } & Partial<만든이슈> } | null)?.data;
     const key = data?.key;
     // 키가 없으면 짝(bts_issue_case)을 못 지어 다음 실패가 이슈를 또 만든다 — 보낸 것으로 치지 않고 사람에게 보인다
@@ -208,6 +212,11 @@ export async function 보낼줄점검(
             [줄.project_id, 끝.issueKey, 줄.service_id, 줄.tc_id, 줄.env, 줄.run_id],
           );
         }
+        // 안정화 등록은 짝을 짓지 않는다 — 지으면 그 케이스의 다음 실패 댓글이 이 이슈에 붙는다
+        const 오류번호 = Number((줄.payload as { stabErrorId?: unknown }).stabErrorId);
+        if (줄.kind === 'STAB_CREATE' && 끝.issueKey && Number.isSafeInteger(오류번호)) {
+          await 연결.query('UPDATE stab_error SET issue_key = $2 WHERE id = $1', [오류번호, 끝.issueKey]);
+        }
         await 연결.query('COMMIT');
       } catch (err) {
         await 연결.query('ROLLBACK');
@@ -215,7 +224,7 @@ export async function 보낼줄점검(
       } finally {
         연결.release();
       }
-      if (줄.kind === 'CREATE' && 끝.issueKey) await 만든뒤(줄, 끝.issueKey, 끝.만든, 부르기, 올리기);
+      if (만들기인가(줄.kind) && 끝.issueKey) await 만든뒤(줄, 끝.issueKey, 끝.만든, 부르기, 올리기);
       continue;
     }
     const 그만 = 끝.상태 === 'GAVE_UP' || 줄.tries + 1 >= 최대횟수;
