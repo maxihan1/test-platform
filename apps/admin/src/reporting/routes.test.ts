@@ -54,6 +54,7 @@ describe.skipIf(연결 === undefined)('증적 API', () => {
           envs: [],
           hasSlackWebhook: false,
           hasFigmaToken: false,
+          btsUrl: null,
           testsDir: 'xdr',
           crawlExclude: [],
           permissions,

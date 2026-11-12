@@ -49,6 +49,8 @@ export interface 배정서비스 {
   crawlExclude: string[];
   /** 이 서비스가 속한 프로젝트에서 기능마다 가진 칸. admin 은 저장값과 상관없이 전부 `write` (SPEC §3.5 · §7) */
   permissions: 서비스권한;
+  /** 프로젝트가 이은 Issue Bunker 주소(끝 `/` 없음). 사이드바 「결함 관리 ↗」가 연다 — 안 이었으면 null 이고 메뉴가 없다 (공통/5-화면공통 §8 「자리 목록」) */
+  btsUrl: string | null;
 }
 
 export interface 사용자 {
@@ -95,7 +97,9 @@ const 한사람 = `
                'cases', up.perm_cases, 'runs', up.perm_runs, 'authoring', up.perm_authoring),
              -- 주소가 아니라 있는지만 낸다 (SPEC §7)
              'hasSlackWebhook', s.slack_webhook IS NOT NULL AND s.slack_webhook <> '',
-             'hasFigmaToken', s.figma_token IS NOT NULL AND s.figma_token <> ''
+             'hasFigmaToken', s.figma_token IS NOT NULL AND s.figma_token <> '',
+             -- Scout 이슈 링크와 같은 값이다(chat/store.ts 의 BTS주소) — 끝 / 를 떼어 화면이 경로를 그대로 붙인다
+             'btsUrl', rtrim(b.base_url, '/')
            ) ORDER BY s.prefix) FILTER (WHERE s.id IS NOT NULL),
            '[]'
          ) AS services
@@ -104,6 +108,8 @@ const 한사람 = `
     LEFT JOIN service s ON s.project_id = up.project_id AND s.is_active
     LEFT JOIN project p ON p.id = s.project_id
     LEFT JOIN 서버 e ON e.service_id = s.id
+    -- 프로젝트마다 한 줄(project_id 가 기본 키)이라 행이 불어나지 않는다
+    LEFT JOIN bts_link b ON b.project_id = s.project_id
    WHERE u.username = $1 AND u.is_active AND (u.is_approved OR $2)
    GROUP BY u.username, u.display_name, u.role, u.password_hash, u.perm_dashboard, u.must_change_password, u.is_approved, u.sessions_valid_after`;
 
