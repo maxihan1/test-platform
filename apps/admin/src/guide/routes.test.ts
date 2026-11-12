@@ -70,8 +70,10 @@ describe.skipIf(연결 === undefined)('서비스 가이드 API', () => {
     await 치우기();
     await q('DELETE FROM service WHERE id = $1', [서비스]);
     await rm(뿌리, { recursive: true, force: true });
-    process.env.PLATFORM_ARTIFACTS_DIR = 원래.뿌리;
-    process.env.AUTHORING_AGENT_USER = 원래.맥;
+    for (const [이름, 값] of [['PLATFORM_ARTIFACTS_DIR', 원래.뿌리], ['AUTHORING_AGENT_USER', 원래.맥]] as const) {
+      if (값 === undefined) delete process.env[이름];
+      else process.env[이름] = 값;
+    }
   });
 
   it('가이드가 없으면 판 0 · 빈 글 · 빈 파일이고 빈 글 저장은 판을 안 만든다', async () => {
