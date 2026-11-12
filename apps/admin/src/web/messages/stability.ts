@@ -1,4 +1,4 @@
-// 안정화 지표 화면 글자의 영어. 키는 한국어 원문이다 (도메인/안정화 §8.19). 「신규」 · 「해결」 · 「실행」 · 「상태」 · 「이전 실행」 · 「이전 실행 대비」 · 「케이스 보기」는 다른 표에 있다
+// 안정화 지표 화면 글자의 영어. 키는 한국어 원문이다 (도메인/안정화 §8.19). 「신규」 · 「해결」 · 「실행」 · 「상태」 · 「이전 실행」 · 「이전 실행 대비」 · 「케이스 보기」 · 「케이스 {수}건」 · 「{수}건」 · 「오류」 · 「기간」은 다른 표에 있다
 
 export const 안정화말: Record<string, string> = {
   // 메뉴 · 머리
@@ -6,7 +6,6 @@ export const 안정화말: Record<string, string> = {
   'API 애플리케이션은 안정화 지표를 집계하지 않습니다': 'Stability is not tracked for API applications',
   '정기 실행 꺼짐': 'Scheduled run off',
   '정기 실행 · 매일 {시각}': 'Scheduled run · Daily {시각}',
-  '케이스 {수}건': '{수} cases',
   '빌드 #{빌드}': 'Build #{빌드}',
   '실행 날짜': 'Run date',
   '정기 실행 기록이 없습니다': 'No scheduled runs yet',
@@ -30,12 +29,10 @@ export const 안정화말: Record<string, string> = {
 
   // 잔여 오류 추이
   '잔여 오류 추이': 'Remaining errors over time',
-  기간: 'Period',
   '{수}일': '{수} days',
   '오류 발생 케이스': 'Cases with errors',
   '잔여 오류': 'Remaining errors',
   크래시: 'Crashes',
-  '{수}건': '{수}',
   '{수}종': '{수} types',
   '이전 실행 없음': 'No previous run',
   '이전 실행 {수}건': 'Previous run {수}',
@@ -54,7 +51,6 @@ export const 안정화말: Record<string, string> = {
   // 오류 목록
   '오류 목록': 'Errors',
   '이 실행에는 오류가 없습니다': 'No errors in this run',
-  오류: 'Error',
   '최초 발생': 'First seen',
   '최초 발생 {날}': 'First seen {날}',
   '발생 케이스': 'Cases',

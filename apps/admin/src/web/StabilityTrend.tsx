@@ -69,7 +69,7 @@ function 그래프({ 점들, t }: { 점들: 안정화응답['trend']; t: 말 }) 
         <g fill="var(--ink-faint)" fontSize={휴대폰 ? 10.5 : 11} textAnchor="end" style={글자}>
           {그림.눈금.map((눈) => (
             <text key={눈.값} x={틀.왼 - 띄움 - (휴대폰 ? 6 : 8)} y={눈.y + 4}>
-              {Number.isInteger(눈.값) ? 눈.값 : 눈.값.toFixed(1)}
+              {눈.값}
             </text>
           ))}
         </g>

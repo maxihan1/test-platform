@@ -72,9 +72,9 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-async function 그리기(답: 안정화응답 = 응답(), run?: number) {
+async function 그리기(답: 안정화응답 = 응답(), run?: number, days: 7 | 30 = 7) {
   const 부르기 = vi.spyOn(stabilityApi, 'main').mockResolvedValue(답);
-  render(<Stability service={앱} run={run} />);
+  render(<Stability service={앱} run={run} days={days} />);
   await screen.findByRole('heading', { name: /안정화 지표/ });
   await waitFor(() => expect(부르기).toHaveBeenCalled());
   return 부르기;
@@ -96,7 +96,7 @@ describe('안정화 지표 메인', () => {
     expect(within(판).getByText('신규')).toBeTruthy();
     expect(within(판).getByText('7건')).toBeTruthy();
     expect(within(판).getByRole('link', { name: '케이스 보기' })).toHaveProperty('hash', '#/runs/3044');
-    expect(within(판).getByText(/^AI 작성 · \d\d-\d\d \d\d:\d\d · 최근 7일 기준$/)).toBeTruthy();
+    expect(within(판).getByText('AI 작성 · 11-12 12:42 · 최근 7일 기준')).toBeTruthy();
   });
 
   it('요약을 쓰는 중이면 판에 그 한 줄만 서고 숫자 · 목록은 그대로다', async () => {
@@ -138,11 +138,25 @@ describe('안정화 지표 메인', () => {
     expect(window.location.hash).toBe('#/stability?run=3040');
     fireEvent.click(screen.getByRole('button', { name: '30일' }));
     await waitFor(() => expect(부르기).toHaveBeenLastCalledWith(7, 3040, 30));
+    expect(window.location.hash).toBe('#/stability?run=3040&days=30');
   });
 
-  it('주소의 실행으로 처음부터 연다', async () => {
-    const 부르기 = await 그리기(응답(), 3040);
-    expect(부르기).toHaveBeenCalledWith(7, 3040, 7);
+  it('주소의 실행 · 창으로 처음부터 연다', async () => {
+    const 부르기 = await 그리기(응답(), 3040, 30);
+    expect(부르기).toHaveBeenCalledWith(7, 3040, 30);
+  });
+
+  it('날짜 고르개 — 목록 밖의 옛 실행도 고른 날로 보이고, 같은 날이 둘이면 실행 번호로 가른다', async () => {
+    const 옛실행 = { ...응답().run!, runId: 2000, day: '2026-09-01' };
+    await 그리기(응답({ run: 옛실행, runs: [{ runId: 3044, day: '2026-11-12' }, { runId: 3041, day: '2026-11-12' }] }));
+    const 고르개 = (await screen.findByRole('combobox', { name: '실행 날짜' })) as HTMLSelectElement;
+    expect(고르개.value).toBe('2000');
+    expect([...고르개.options].map((o) => o.textContent)).toEqual(['11-12 · #3044', '11-12 · #3041', '09-01']);
+  });
+
+  it('AI 작성 시각은 정기 실행 시간대로 쓴다 — 실행 날짜와 어긋나지 않게', async () => {
+    await 그리기(응답({ summary: { ...응답().summary!, finishedAt: '2026-11-11T18:42:00Z' } }));
+    expect(await screen.findByText('AI 작성 · 11-12 03:42 · 최근 7일 기준')).toBeTruthy();
   });
 
   it('집계 줄이 없으면 빈 화면 안내, 오류가 없는 실행은 목록에 한 줄', async () => {

@@ -91,6 +91,8 @@ describe('route', () => {
     expect(route('#/stability')).toEqual({ name: 'stability' });
     expect(route('#/stability?run=3044')).toEqual({ name: 'stability', run: 3044 });
     expect(route('#/stability?run=x')).toEqual({ name: 'stability' });
+    expect(route('#/stability?run=3044&days=30')).toEqual({ name: 'stability', run: 3044, days: 30 });
+    expect(route('#/stability?days=14')).toEqual({ name: 'stability' });
     expect(route('#/perf/pages/3').name).toBe('unknown');
     expect(route('#/perf/devices')).toEqual({ name: 'perfDevices' });
     expect(route('#/perf/devices?run=40')).toEqual({ name: 'perfDevices', run: 40 });

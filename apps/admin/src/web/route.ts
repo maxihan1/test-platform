@@ -44,7 +44,7 @@ export type Route =
   | { name: 'perfRuns' }
   | { name: 'perfRun'; runId: number }
   /** 안정화 지표. run — 날짜 고르개로 고른 집계 줄(`?run=`). 없으면 가장 최근 집계 (도메인/안정화 §8.19) */
-  | { name: 'stability'; run?: number }
+  | { name: 'stability'; run?: number; days?: 30 }
   /** reqId — 케이스 목록의 요구 번호에서 왔다. 그 항목을 펴서 보인다 */
   | { name: 'prd'; reqId?: string }
   | { name: 'prdGuide' }
@@ -196,8 +196,14 @@ export function route(hash: string): Route {
   }
 
   if (parts[0] === 'stability' && parts.length === 1) {
-    const 번호 = new URLSearchParams(hash.split('?')[1] ?? '').get('run');
-    return 번호 !== null && /^\d{1,10}$/.test(번호) ? { name: 'stability', run: Number(번호) } : { name: 'stability' };
+    // 고른 날과 30일 창은 주소에 남는다 — 다른 화면에 다녀와도 풀리지 않게 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
+    const 조건 = new URLSearchParams(hash.split('?')[1] ?? '');
+    const 번호 = 조건.get('run');
+    return {
+      name: 'stability',
+      ...(번호 !== null && /^\d{1,10}$/.test(번호) ? { run: Number(번호) } : {}),
+      ...(조건.get('days') === '30' ? { days: 30 as const } : {}),
+    };
   }
 
   if (parts[0] === 'runs') {

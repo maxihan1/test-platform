@@ -38,28 +38,46 @@ function 부제({ 응답, t }: { 응답: 안정화응답; t: 말 }) {
   );
 }
 
-export function Stability({ service, run }: { service: ServiceRow; run: number | undefined }) {
+/**
+ * 날짜 고르개. 목록은 가장 최근 집계에서 30일이라 주소로 연 더 옛 실행은 목록에 없다 — 그 실행을 맨 아래 하나 더 둔다(안 그러면 고르개가 엉뚱한 날을 보인다).
+ * 같은 날 집계가 둘 이상이면(대상 서버가 둘) 실행 번호를 붙여 가른다
+ */
+function 날고르개({ 응답, 고름, t }: { 응답: 안정화응답; 고름: (번호: number) => void; t: 말 }) {
+  const run = 응답.run!;
+  const 줄들 = 응답.runs.some((r) => r.runId === run.runId) ? 응답.runs : [...응답.runs, { runId: run.runId, day: run.day }];
+  const 겹친날 = new Set(줄들.filter((r, i) => 줄들.findIndex((x) => x.day === r.day) !== i).map((r) => r.day));
+  return (
+    <select className="stab-pick" aria-label={t('실행 날짜')} value={run.runId} onChange={(e) => 고름(Number(e.target.value))}>
+      {줄들.map((r) => (
+        <option key={r.runId} value={r.runId}>
+          {겹친날.has(r.day) ? `${날글자(r.day)} · #${String(r.runId)}` : 날글자(r.day)}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+export function Stability({ service, run, days }: { service: ServiceRow; run: number | undefined; days: 7 | 30 }) {
   const t = use말();
   const [고른, set고른] = useState<number | null>(run ?? null);
-  const [기간, set기간] = useState<7 | 30>(7);
+  const [기간, set기간] = useState<7 | 30>(days);
   const { data, error } = useAsync(() => stabilityApi.main(service.id, 고른, 기간), [service.id, 고른, 기간]);
 
+  // 다른 화면에 다녀와도 고른 날 · 창이 남는다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」). 다시 그리지 않으려고 기록을 쌓지 않고 고친다
+  const 주소남기기 = (번호: number | null, 창: 7 | 30) => {
+    const 조건 = [...(번호 === null ? [] : [`run=${String(번호)}`]), ...(창 === 30 ? ['days=30'] : [])];
+    주소고치기(조건.length === 0 ? '#/stability' : `#/stability?${조건.join('&')}`);
+  };
   const 날고르기 = (번호: number) => {
     set고른(번호);
-    // 다른 화면에 다녀와도 고른 날이 남는다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
-    주소고치기(`#/stability?run=${String(번호)}`);
+    주소남기기(번호, 기간);
+  };
+  const 창고르기 = (창: 7 | 30) => {
+    set기간(창);
+    주소남기기(고른, 창);
   };
 
-  const 고르개 =
-    data === null || data.runs.length === 0 || data.run === null ? undefined : (
-      <select className="stab-pick" aria-label={t('실행 날짜')} value={data.run.runId} onChange={(e) => 날고르기(Number(e.target.value))}>
-        {data.runs.map((r) => (
-          <option key={r.runId} value={r.runId}>
-            {날글자(r.day)}
-          </option>
-        ))}
-      </select>
-    );
+  const 고르개 = data === null || data.run === null ? undefined : <날고르개 응답={data} 고름={날고르기} t={t} />;
 
   return (
     <div className="stab">
@@ -75,8 +93,8 @@ export function Stability({ service, run }: { service: ServiceRow; run: number |
         </section>
       ) : (
         <>
-          <요약판 요약={data.summary} run={data.run} />
-          <추이판 응답={data} 기간={기간} on기간={set기간} />
+          <요약판 요약={data.summary} run={data.run} tz={data.schedule?.tz} />
+          <추이판 응답={data} 기간={기간} on기간={창고르기} />
           <오류목록판 줄들={data.errors} runId={data.run.runId} day={data.run.day} 이전있나={data.run.previous !== null} />
         </>
       )}

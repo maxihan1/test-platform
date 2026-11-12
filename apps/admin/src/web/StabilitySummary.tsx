@@ -4,7 +4,7 @@ import { use말 } from './i18n.js';
 import { use휴대폰 } from './phone.js';
 import type { 집계실행, 실행요약 } from './stabilityApi.js';
 import { 상태칩 } from './StabilityErrors.js';
-import { 작성시각글 } from './stabilityView.js';
+import { 작성시각 } from './stabilityView.js';
 
 type 말 = ReturnType<typeof use말>;
 
@@ -24,21 +24,23 @@ function 기능막대({ 줄들, t }: { 줄들: NonNullable<실행요약['feature
   );
 }
 
-export function 요약판({ 요약, run }: { 요약: 실행요약 | null; run: 집계실행 }) {
+export function 요약판({ 요약, run, tz }: { 요약: 실행요약 | null; run: 집계실행; tz: string | undefined }) {
   const t = use말();
   const 휴대폰 = use휴대폰();
   // 요약 일이 없는 옛 집계 줄은 판을 숨긴다. 에이전트가 쓰는 중이거나 실패했으면 판 자리에 그 한 줄이다 (§3.15 「AI 실행 요약」)
   if (요약 === null) return null;
+  const 끝 = 요약.finishedAt === null ? null : 작성시각(요약.finishedAt, tz);
   const 머리 = (
     <div className="stab-top">
       <h2 id="stab-ai">{t('AI 실행 요약')}</h2>
       {요약.status === 'DONE' ? (
         <span className="stab-aitag">
-          {요약.finishedAt === null
+          {/* 휴대폰은 시각만이다 (시안 A6m) */}
+          {끝 === null
             ? t('AI 작성 · 최근 7일 기준')
             : 휴대폰
-              ? t('AI 작성 · {시각}', { 시각: 작성시각글(요약.finishedAt).slice(6) })
-              : t('AI 작성 · {시각} · 최근 7일 기준', { 시각: 작성시각글(요약.finishedAt) })}
+              ? t('AI 작성 · {시각}', { 시각: 끝.시각 })
+              : t('AI 작성 · {시각} · 최근 7일 기준', { 시각: `${끝.날} ${끝.시각}` })}
         </span>
       ) : null}
     </div>

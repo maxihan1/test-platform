@@ -297,6 +297,11 @@
   word-break: break-all;
 }
 
+/* 줄 제목 링크는 잉크다 — 이름마다 대표색이면 목록 왼쪽에 오렌지 기둥이 선다 (공통/5-화면공통 §8 「대표색」 「링크」) */
+.stab-table td a {
+  color: var(--ink);
+}
+
 .stab-cards {
   margin: 6px 0 0;
   padding: 0;
