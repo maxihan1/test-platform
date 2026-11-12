@@ -28,13 +28,13 @@ const 차례 = new Intl.Collator('en', { numeric: true });
 
 /**
  * 없으면 빈 목록이다 — 통과 항목 · 브라우저 항목 · 팜이 아닌 Appium · 아직 받는 중. 'scenario' 는 E2E 시나리오 한 벌이다 (도메인/시나리오 §3.7 결정 16).
- * 통과 항목이면 logcat 을 뺀다 — 정기 실행 통과 항목의 logcat 은 안정화 지표 몫이고 화면에는 지금처럼 「영상 보기」만 보인다 (도메인/안정화 §7 러너 블록)
+ * 통과 항목이면 logcat · 게임 오류 파일을 뺀다 — 정기 실행 통과 항목의 것은 안정화 지표 몫이고 화면에는 지금처럼 「영상 보기」만 보인다 (도메인/안정화 §7 러너 · kit 블록)
  */
 export async function 팜증적목록(runId: number, historyId: number | 'scenario', 통과 = false): Promise<팜파일[]> {
   const 곳 = 폴더(runId, historyId);
   // 정식 실행을 터널로 이은 맥 러너가 돌렸으면 그 러너의 것도 합친다 — 이름과 크기만 받고 내용은 내려받을 때 받는다 (SPEC 공통/3 §5.3 「러너 여러 대」).
   // 바로가기 · 폴더는 볼륨목록이 뺀다 — 통로가 이 목록에 있는 이름만 내준다
-  return (await 볼륨목록(곳)).filter((f) => !(통과 && f.name === 'logcat.txt')).sort((a, b) => 차례.compare(a.name, b.name));
+  return (await 볼륨목록(곳)).filter((f) => !(통과 && (f.name === 'logcat.txt' || f.name === GAME_ERRORS_FILE))).sort((a, b) => 차례.compare(a.name, b.name));
 }
 
 /** 증적 문서용 한 줄. 문서에는 영상을 넣을 수 없어 어디서 보는지만 적는다. 받은 것이 없으면 null */
