@@ -163,6 +163,7 @@ async function 항목을보낸다(
     ...(item.apiAuths !== undefined && { apiAuths: item.apiAuths }),
     ...(item.engine !== undefined && { engine: item.engine }),
     ...(item.adminKey !== undefined && { adminKey: item.adminKey }),
+    ...(item.stability !== undefined && { stability: item.stability }),
     ...(열쇠 !== undefined && { live: 열쇠 }),
     ...판,
   };

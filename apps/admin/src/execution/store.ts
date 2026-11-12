@@ -98,6 +98,8 @@ export interface PendingItem {
   adminKey?: 어드민키;
   // mobile 항목을 실행 창 「실행 위치」에서 고른 Device VISION 실제 폰 Chrome 에서 돌린다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)
   실제폰?: true;
+  // 정기 실행 android 항목 — 러너가 통과해도 logcat 을 받아 안정화 지표가 크래시 · ANR 을 센다 (도메인/안정화 §3.15 결정 3)
+  stability?: true;
 }
 
 // tcId 접두사가 곧 서비스다. 요청이 서비스를 따로 싣게 두면 번호와 서비스가 어긋날 수 있다 (SPEC §7)
@@ -314,6 +316,7 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
             ...(인증들.length > 0 && { apiAuths: 인증들 }),
             ...엔진칸(found서비스.kind, platform, 어드민키읽기(found서비스.admin_key)),
             ...(platform === 'mobile' && 실제폰 && { 실제폰: true as const }),
+            ...(platform === 'android' && origin === 'SCHEDULED' && { stability: true as const }),
           });
         }
       }

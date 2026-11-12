@@ -221,7 +221,7 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
     const found = await findItem(runId, historyId);
     if (found === null) return reply.code(404).send({ error: 'RUN_ITEM_NOT_FOUND', detail: req.params.historyId });
     // 실패 카드도 findItem 을 쓴다. 세 기록은 상세에만 싣는다 — 가림은 넣을 때 이미 했다
-    return { ...found, trace: await trace기록을읽는다(historyId), farm: await 팜증적목록(runId, historyId) };
+    return { ...found, trace: await trace기록을읽는다(historyId), farm: await 팜증적목록(runId, historyId, found.status === 'PASS') };
   });
 
   app.get<{ Params: { tcId: string }; Querystring: { platform?: string; page?: string } }>(
