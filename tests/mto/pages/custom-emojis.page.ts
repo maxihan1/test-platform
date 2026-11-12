@@ -22,6 +22,7 @@ export class 커스텀에모지화면 {
   readonly 목록에서제거: Locator;
   readonly 에모지줄들: Locator;
   readonly 빈결과: Locator;
+  readonly 권한없음안내: Locator;
 
   constructor(private readonly page: Page) {
     this.제목 = page.getByRole('heading', { name: '커스텀 에모지', level: 1 });
@@ -41,6 +42,7 @@ export class 커스텀에모지화면 {
     this.목록에서제거 = page.getByRole('button', { name: '목록에서 제거' });
     this.에모지줄들 = page.locator('.batch-table__row');
     this.빈결과 = page.getByText('아무 것도 없습니다!');
+    this.권한없음안내 = page.getByText('이 작업을 수행할 권한이 없습니다').first();
   }
 
   async 열기(): Promise<void> {

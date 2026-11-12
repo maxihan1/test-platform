@@ -33,6 +33,14 @@ export class 웹훅화면 {
     return this.page.getByRole('link', { name: 주소 });
   }
 
+  수정링크(주소: string): Locator {
+    return this.웹훅줄(주소).getByRole('link', { name: '엔드포인트 수정' });
+  }
+
+  삭제링크(주소: string): Locator {
+    return this.웹훅줄(주소).getByRole('link', { name: '삭제' });
+  }
+
   활성화표시(주소: string): Locator {
     return this.웹훅줄(주소).getByText('활성화됨', { exact: true });
   }

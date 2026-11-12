@@ -7,12 +7,14 @@ export class 역할변경화면 {
   readonly 역할선택: Locator;
   readonly 역할관리링크: Locator;
   readonly 저장: Locator;
+  readonly 우선순위초과오류: Locator;
 
   constructor(private readonly page: Page) {
     this.제목 = page.getByRole('heading', { level: 1 }).first();
     this.역할선택 = page.getByRole('combobox').first();
     this.역할관리링크 = page.getByRole('link', { name: '역할 관리' });
     this.저장 = page.getByRole('button', { name: '변경 사항을 저장' });
+    this.우선순위초과오류 = page.getByText('당신의 현재 역할보다 높을 수 없습니다').first();
   }
 
   async 그려질때까지(): Promise<void> {

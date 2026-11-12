@@ -34,6 +34,10 @@ export class 웹훅폼화면 {
     await this.주소칸.waitFor();
   }
 
+  async 이벤트누르기(이름: string): Promise<void> {
+    await this.이벤트(이름).click({ force: true });
+  }
+
   async 적기(주소: string, 이벤트들: string[], 템플릿?: string): Promise<void> {
     await this.주소칸.fill(주소);
     for (const 이름 of 이벤트들) await this.이벤트(이름).check();
