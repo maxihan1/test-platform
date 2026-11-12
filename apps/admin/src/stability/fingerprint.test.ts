@@ -81,6 +81,12 @@ describe('앱크래시지문', () => {
     expect(a.title).toBe('NullPointerException · Foo.bind');
   });
 
+  it('예외 줄의 메시지는 지문에 안 넣고 message 칸에 틀로 남긴다', () => {
+    const a = 앱크래시지문('org.joinmastodon.android', 'java.lang.IndexOutOfBoundsException: Index 3 out of bounds', 프레임);
+    expect(a.fingerprint).toBe(앱크래시지문('org.joinmastodon.android', 'java.lang.IndexOutOfBoundsException: Index 9 out of bounds', 프레임).fingerprint);
+    expect(a.message).toBe('java.lang.IndexOutOfBoundsException: Index * out of bounds');
+  });
+
   it('익명 클래스 · 람다 번호가 빌드마다 바뀌어도 같은 지문이다', () => {
     const a = 앱크래시지문('org.joinmastodon.android', 'java.lang.NullPointerException', 프레임);
     expect(앱크래시지문('org.joinmastodon.android', 'java.lang.NullPointerException', 프레임.map((x) => x.replace('Bar$1', 'Bar$2'))).fingerprint).toBe(a.fingerprint);

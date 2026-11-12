@@ -77,15 +77,16 @@ const 프레임셋 = (줄들: readonly string[], 고르기: (이름: string) => 
   return (고른.length > 0 ? 고른 : 이름들).slice(0, 3);
 };
 
-/** 예외 클래스 + 앱 패키지로 시작하는 프레임 셋(없으면 맨 위 셋). 프레임 줄은 logcat 의 `at …` 줄 그대로 받는다 */
-export function 앱크래시지문(패키지: string, 예외클래스: string, 프레임줄: readonly string[]): 지문 {
+/** 예외 클래스 + 앱 패키지로 시작하는 프레임 셋(없으면 맨 위 셋). 예외 줄(`java.lang.X: 메시지`)과 프레임 줄(`at …`)은 logcat 그대로 받는다 */
+export function 앱크래시지문(패키지: string, 예외줄: string, 프레임줄: readonly string[]): 지문 {
+  const 예외클래스 = 예외줄.split(':', 1)[0]!.trim();
   const 프레임 = 프레임셋(프레임줄, (x) => x.startsWith(`${패키지}.`));
   const 짧은예외 = 예외클래스.split('.').at(-1)!;
   return {
     source: 'APP_CRASH',
     fingerprint: 해시(예외클래스, ...프레임.map(번호접기)),
     title: 프레임.length === 0 ? 짧은예외 : `${짧은예외} · ${끝두칸(프레임[0]!)}`,
-    message: 예외클래스,
+    message: 메시지틀(예외줄.trim()),
   };
 }
 
