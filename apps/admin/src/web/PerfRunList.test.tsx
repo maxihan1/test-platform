@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 성능 테스트 › 실행 기록 표 검사 (도메인/성능 §8.14 · 시안 A)
+// 실행 기록 › 성능 표 검사 (도메인/성능 §8.14 · 시안 A)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -61,7 +61,7 @@ async function 그리기(runs = 줄들, 앱: ServiceRow | null = null) {
 describe('성능 실행 기록 표', () => {
   it('줄마다 번호 고리 · 정기 꼬리표 · 판정 · 숫자 · 이전 실행 대비를 보인다', async () => {
     const { container } = await 그리기();
-    expect(container.querySelector('h1')!.textContent).toContain('성능 테스트');
+    expect(container.querySelector('h1')!.textContent).toContain('실행 기록 › 성능');
     expect(container.querySelector('h1')!.textContent).toContain('실행 기록');
 
     const 열 = (번호: string) => screen.getByRole('link', { name: 번호 }).closest('tr')!;

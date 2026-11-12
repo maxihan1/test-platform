@@ -173,7 +173,7 @@ export function ScenarioWizard({ 띠서비스, user }: { 띠서비스: ServiceRo
       <div ref={큰틀} className="wz-main">
         <div className="wz-top">
           <span>
-            {t('E2E 시나리오')} › {t('새 시나리오')}
+            {t('E2E 테스트')} › {t('새 시나리오')}
           </span>
           <button type="button" className="btn ghost" onClick={조립화면으로}>
             {t('조립 화면으로')}

@@ -1,4 +1,4 @@
-// 테스트 실행 › 호환성 — 세트 목록 (도메인/호환성 §8.17 ①). 줄 끝 「실행」은 시작 확인 창(CompatStart)을 연다
+// 호환성 테스트 — 세트 목록 (도메인/호환성 §8.17 ①). 줄 끝 「실행」은 시작 확인 창(CompatStart)을 연다
 
 import { useState } from 'react';
 
@@ -61,8 +61,7 @@ export function CompatSets({ serviceId, service, envs, 쓰나 }: { serviceId: nu
   return (
     <>
       <Head
-        위치={t('테스트 실행')}
-        제목={t('호환성')}
+        제목={t('호환성 테스트')}
         부제={t('Device VISION 디바이스별로 테스트 실행 화면을 AI 가 점검해 UI 결함을 찾습니다')}
         행동={
           쓰나 ? (

@@ -1,5 +1,7 @@
 // 휴대폰 「전체」 메뉴판 안 조각 — 지금 프로젝트의 애플리케이션 칸 격자와 자리 목록 전부 (SPEC 공통/5-화면공통 §8 「휴대폰 화면」 「전체 메뉴판」). PhoneShell 이 300줄을 넘어 떼어 냈다
 
+import { Fragment } from 'react';
+
 import type { ServiceRow, User } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { 아이콘 } from './icons.js';
@@ -39,35 +41,39 @@ export function 메뉴목록({ 자리들, current, 닫기 }: { 자리들: 자리
   const t = use말();
   return (
     <nav className="sheet-menu">
-      {자리들.map((it) =>
-        it.바깥 === true ? (
-          <a key={it.해시} className="sheet-row" href={it.해시} target="_blank" rel="noreferrer" onClick={닫기}>
-            <아이콘 이름={it.아이콘} />
-            {it.이름}
-            <span className="sheet-ext">↗</span>
-          </a>
-        ) : it.하위 === undefined ? (
-          <a key={it.해시} className="sheet-row" href={it.해시} onClick={닫기} {...지금이면(current === it.해시)}>
-            <아이콘 이름={it.아이콘} />
-            {it.이름}
-          </a>
-        ) : (
-          <div key={it.해시} role="group" aria-label={it.이름}>
-            <span className="sheet-row sheet-group">
+      {자리들.map((it, i) => (
+        <Fragment key={it.해시}>
+          {/* PC 사이드바와 같은 QA 단계 구분선 제목 (화면공통 §8 「자리 목록」 「단계 구분선」) */}
+          {it.단계 !== undefined && it.단계 !== 자리들[i - 1]?.단계 ? <div className="sheet-stage">{it.단계}</div> : null}
+          {it.바깥 === true ? (
+            <a className="sheet-row" href={it.해시} target="_blank" rel="noreferrer" onClick={닫기}>
               <아이콘 이름={it.아이콘} />
               {it.이름}
-            </span>
-            <div className="sheet-subs">
-              {it.하위.map((하) => (
-                <a key={하.해시} href={하.해시} aria-label={하.라벨} onClick={닫기} {...지금이면(current === 하.해시)}>
-                  {하.이름}
-                  {하.신규 === true ? <span className="side-new">{t('신규')}</span> : null}
-                </a>
-              ))}
+              <span className="sheet-ext">↗</span>
+            </a>
+          ) : it.하위 === undefined ? (
+            <a className="sheet-row" href={it.해시} onClick={닫기} {...지금이면(current === it.해시)}>
+              <아이콘 이름={it.아이콘} />
+              {it.이름}
+            </a>
+          ) : (
+            <div role="group" aria-label={it.이름}>
+              <span className="sheet-row sheet-group">
+                <아이콘 이름={it.아이콘} />
+                {it.이름}
+              </span>
+              <div className="sheet-subs">
+                {it.하위.map((하) => (
+                  <a key={하.해시} href={하.해시} aria-label={하.라벨} onClick={닫기} {...지금이면(current === 하.해시)}>
+                    {하.이름}
+                    {하.신규 === true ? <span className="side-new">{t('신규')}</span> : null}
+                  </a>
+                ))}
+              </div>
             </div>
-          </div>
-        ),
-      )}
+          )}
+        </Fragment>
+      ))}
     </nav>
   );
 }

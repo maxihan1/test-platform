@@ -366,6 +366,28 @@ a.sheet-row[aria-current='page'] {
   font-size: 13px;
 }
 
+/* PC 사이드바와 같은 QA 단계 구분선 제목 (화면공통 §8 「자리 목록」 「단계 구분선」) */
+.sheet-stage {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 8px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-faint);
+}
+
+.sheet-stage:first-child {
+  margin-top: 0;
+}
+
+.sheet-stage::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
 .sheet-ext {
   margin-left: auto;
   color: var(--ink-faint);

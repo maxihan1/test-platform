@@ -1,6 +1,6 @@
 // 메뉴 아이콘 — 패키지 없이 SVG 를 직접 둔다 (DESIGN.md 원칙 5). 글자를 대신하지 않고 곁에 선다
 
-export type 아이콘이름 = 'dashboard' | 'cases' | 'prd' | 'api' | 'authoring' | 'scenarios' | 'runs' | 'perf' | 'stability' | 'graph' | 'settings' | 'run' | 'bell' | 'person' | 'desktop' | 'web' | 'phone' | 'game' | 'sun' | 'moon' | 'search' | 'chev' | 'project' | 'menu';
+export type 아이콘이름 = 'dashboard' | 'cases' | 'prd' | 'api' | 'authoring' | 'scenarios' | 'runs' | 'perf' | 'stability' | 'compat' | 'defect' | 'graph' | 'settings' | 'run' | 'bell' | 'person' | 'desktop' | 'web' | 'phone' | 'game' | 'sun' | 'moon' | 'search' | 'chev' | 'project' | 'menu';
 
 // 24 격자 · 선 1.8 · 둥근 끝. 색은 글자를 따른다(currentColor) — 지금 자리면 글자와 같이 밝아진다
 const 그림: Record<아이콘이름, React.ReactNode> = {
@@ -68,6 +68,20 @@ const 그림: Record<아이콘이름, React.ReactNode> = {
   ),
   // 맥박 선 — 정기 실행마다 오류가 오르내리는 것을 본다
   stability: <path d="M3 12h4l2-5 4 10 2-5h6" />,
+  // 크기가 다른 폰 두 대 — 디바이스마다 화면을 견준다 (도메인/호환성 §8.17)
+  compat: (
+    <>
+      <rect x="3" y="4" width="8" height="14" rx="1.5" />
+      <rect x="13" y="6" width="8" height="14" rx="1.5" />
+    </>
+  ),
+  // 벌레 — 결함 관리(Issue Bunker)로 가는 자리 (화면공통 §8 「자리 목록」)
+  defect: (
+    <>
+      <path d="M8 9a4 4 0 0 1 8 0v5a4 4 0 0 1-8 0z" />
+      <path d="M4 12h4M16 12h4M5 7l3 2M19 7l-3 2M5 18l3-2M19 18l-3-2" />
+    </>
+  ),
   // 막대 — Grafana 의 운영 지표
   graph: (
     <>

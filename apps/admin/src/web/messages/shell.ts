@@ -4,7 +4,11 @@
 export const 껍데기말: Record<string, string> = {
   // 애플리케이션 줄 맨 아래 「+」 (화면공통 §8 「껍데기」 · 2026-10-29)
   '애플리케이션 추가': 'Add application',
-  // 자리 목록
+  // 자리 목록 — QA 단계 구분선 넷 (화면공통 §8 「자리 목록」 · 2026-11-12)
+  '품질 현황': 'Quality overview',
+  '테스트 설계': 'Test design',
+  '테스트 수행': 'Test execution',
+  '결과 분석': 'Results',
   대시보드: 'Dashboard',
   // 영어는 못 박는다 (화면공통 §8 「자리 목록」)
   'PRD 관리': 'PRD',
@@ -12,6 +16,14 @@ export const 껍데기말: Record<string, string> = {
   // 영어는 못 박는다 (화면공통 §8 「자리 목록」)
   'E2E 시나리오': 'E2E scenarios',
   '실행 기록': 'Run history',
+  // 테스트 종류 메뉴 (2026-11-12 — 앞 이름 「테스트 실행」 · 「E2E 시나리오」 · 「테스트 실행 › 호환성」)
+  '기능 · UI 테스트': 'Functional · UI tests',
+  'E2E 테스트': 'E2E tests',
+  '호환성 테스트': 'Compatibility tests',
+  // 실행 기록 › 성능 — 성능 테스트 결과 (2026-11-12 성능 테스트 아래에서 옮겨 왔다)
+  성능: 'Performance',
+  // Issue Bunker 로 가는 바깥 자리
+  '결함 관리': 'Defects',
   // 영어는 이 자리를 만든 PR 이 정한다 (화면공통 §8 「자리 목록」 · PERF-F1-05)
   '성능 테스트': 'Performance',
   시나리오: 'Scenarios',

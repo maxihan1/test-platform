@@ -81,7 +81,7 @@ export function ScenarioList({ service, kind, envs, 할수 }: { service: string;
   return (
     <>
       <Head
-        제목={t('E2E 시나리오')}
+        제목={t('E2E 테스트')}
         부제={t('기능 테스트 스크립트를 차례로 실행해 흐름이 끊기지 않는지 확인합니다')}
         행동={새시나리오}
       />

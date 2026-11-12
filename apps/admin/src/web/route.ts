@@ -27,7 +27,7 @@ export type Route =
   | { name: 'scenarioNew' }
   | { name: 'scenarioNewBuild' }
   | { name: 'scenario'; id: number }
-  /** 테스트 실행 › 호환성 — 세트 목록과 세트 하나. 새 세트는 `new` 다 (도메인/호환성 §8.17) */
+  /** 호환성 테스트 — 세트 목록과 세트 하나. 새 세트는 `new` 다 (도메인/호환성 §8.17) */
   | { name: 'compatSets' }
   | { name: 'compatSet'; id: number | 'new' }
   /** 실행 기록 › 호환성과 실행 하나의 결과(도는 중이면 실행 창이 같이 뜬다) (도메인/호환성 §8.17 ④ · ⑤) */
@@ -40,7 +40,7 @@ export type Route =
   /** 성능 테스트 › 페이지 성능. run — 실행 기록에서 넘어온 페이지 측정 번호(`?run=`). 없으면 가장 최근 측정 */
   | { name: 'perfPages'; run?: number }
   | { name: 'perfDevices'; run?: number }
-  /** 성능 테스트 › 실행 기록과 실행 한 건(도는 중이면 실행 중, 끝났으면 결과 — 같은 주소) */
+  /** 실행 기록 › 성능과 실행 한 건(도는 중이면 실행 중, 끝났으면 결과 — 같은 주소) */
   | { name: 'perfRuns' }
   | { name: 'perfRun'; runId: number }
   /** 안정화 지표. run — 날짜 고르개로 고른 집계 줄(`?run=`). 없으면 가장 최근 집계 (도메인/안정화 §8.19) */

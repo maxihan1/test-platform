@@ -142,10 +142,11 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
     <>
       {/* 저장 뒤 비운 칸은 빈 표라 고친 것이 아니다 */}
       <떠나기상자 막나={Object.values(글자).some((it) => Object.keys({ ...it?.params, ...it?.expected }).length > 0)} />
-      {/* 화면 제목은 메뉴 이름이다 — 「테스트 실행 › 기능 테스트」로 누른 하위 메뉴까지 보인다 (2026-10-19 · 10-20 사용자) */}
+      {/* 화면 제목은 메뉴 이름이다 — 「기능 · UI 테스트 › 기능 테스트」로 누른 하위 메뉴까지 보인다 (2026-10-19 · 10-20 사용자).
+          API 애플리케이션은 메뉴가 하위 없는 「기능 테스트」 한 줄이라 묶음 이름이 없다 (화면공통 §8 「자리 목록」 · 2026-11-12) */}
       <Head
         클래스="case-head"
-        위치={t('테스트 실행')}
+        위치={앱종류 === 'API' ? undefined : t('기능 · UI 테스트')}
         제목={kind === 'UI' ? t('UI 테스트') : t('기능 테스트')}
         부제={<목록부제 전체={cases.data?.total ?? null} 미확정={cases.data?.unconfirmed} scan={scan.data} error={notice ?? scan.error} 모으는중={뽑기.모으는중} />}
         행동={

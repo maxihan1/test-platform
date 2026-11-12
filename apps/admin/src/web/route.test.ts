@@ -75,7 +75,7 @@ describe('route', () => {
     expect(route('#/runs/e2e')).toEqual({ name: 'runs', kind: 'E2E' });
   });
 
-  // 자리 `E2E 시나리오` (화면공통 §8 「자리 목록」 · 도메인/시나리오 §8.11)
+  // 자리 `E2E 테스트` (화면공통 §8 「자리 목록」 · 도메인/시나리오 §8.11)
   it('시나리오 목록 · 새 시나리오 · 시나리오 한 건', () => {
     expect(route('#/scenarios')).toEqual({ name: 'scenarios' });
     expect(route('#/scenarios/new')).toEqual({ name: 'scenarioNew' });
@@ -106,7 +106,7 @@ describe('route', () => {
     expect(route('#/scenarios/12')).toEqual({ name: 'scenario', id: 12 });
   });
 
-  // 자리 `테스트 실행 › 호환성` (도메인/호환성 §8.17)
+  // 자리 `호환성 테스트` (도메인/호환성 §8.17)
   it('호환성 세트 목록 · 새 세트 · 세트 한 건. 애플리케이션 칸(?service=)은 화면을 고르지 않는다', () => {
     expect(route('#/compat')).toEqual({ name: 'compatSets' });
     expect(route('#/compat/new?service=MKA')).toEqual({ name: 'compatSet', id: 'new' });

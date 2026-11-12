@@ -2196,6 +2196,35 @@ input[type='file']::file-selector-button {
   height: 12px;
 }
 
+/* QA 단계 구분선 제목 — 작은 회색 글자 뒤로 선이 뻗는다. 누르지 못한다 (화면공통 §8 「자리 목록」 「단계 구분선」 · 2026-11-12 사용자) */
+.side .side-stage {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 8px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-faint);
+}
+
+.side .side-stage:first-child {
+  margin-top: 2px;
+}
+
+.side .side-stage::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+/* 접으면 글자는 숨고 선만 남는다 — 단계가 바뀌는 자리는 접어도 보인다 */
+.folded .side .side-stage {
+  font-size: 0;
+  gap: 0;
+  margin: 8px 4px;
+}
+
 .side .side-nav a[data-open] .side-chev {
   transform: rotate(90deg);
 }

@@ -205,7 +205,7 @@ describe('전체 메뉴판', () => {
 
   it('메뉴를 누르면 판이 닫힌다', () => {
     띄운다('#/runs/fn');
-    fireEvent.click(within(전체판()).getByRole('link', { name: 'E2E 시나리오' }));
+    fireEvent.click(within(전체판()).getByRole('link', { name: 'E2E 테스트' }));
     expect(screen.queryByRole('dialog', { name: '전체 메뉴' })).toBeNull();
   });
 
