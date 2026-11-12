@@ -21,7 +21,7 @@ import { 머지행처리 } from './authoring-merge-row.js';
 import { 고치기실행인가, 편집처리 } from './authoring-edit.js';
 import { 자료받기 } from './authoring-marking.js';
 import { 올리기 } from './authoring-upload.js';
-import { 사용량보고, 흐름풀기 } from './authoring-usage.js';
+import { 사용량보고, 세션번호, 흐름풀기 } from './authoring-usage.js';
 import { 거절로, 끝낼상태, 자식제한, 진척누적기, 진척재기 } from './authoring-progress.js';
 import { type 박동, 박동손 } from './authoring-heartbeat.js';
 import { type 서비스설정 } from './authoring-token.js';
@@ -36,7 +36,7 @@ import { 고친테스트파일들, 고치기전후 } from './authoring-test-fix.
 import { API떼기, API반영줄, API원장항목, API점검, API환경, 판파일쓰기 } from './authoring-api.js';
 import { 화면지도준비 } from './authoring-covered.js';
 import { 앞결과, 옮기기올리기, 판받기 } from './authoring-prd-io.js';
-import { 반영요청인가, 실패trace받기, 안옮김뒤, 테스트고침싣는손, 테스트고침읽기, 화면이맞음읽기 } from './authoring-screen-right.js';
+import { 반영요청인가, 실패trace받기, 안옮김뒤, 요약되받기, 테스트고침싣는손, 테스트고침읽기, 화면이맞음읽기 } from './authoring-screen-right.js';
 
 /** 켤 때 정해 두고 모든 건이 같이 쓰는 것 */
 export interface 판 {
@@ -236,10 +236,11 @@ async function 사본에서(
   // 진척 — 케이스는 자식 시작 뒤 새로 생긴 것만, 화면은 역방향만 센다. limitSec 0 — 전체 상한이 없어 화면이 시간 막대를 안 그린다 (작성 §7)
   const 누적 = 진척누적기(0, { 비밀번호들: 비밀번호들(것), figmaToken: 것.figmaToken, 팜토큰: 앱화면?.탐색?.token ?? process.env.PLATFORM_APPIUM_TOKEN });
   const 재기 = 진척재기(누적, 자리.트리, 케이스자리, 역방향 === undefined ? undefined : join(자리.자료, 'screens'), 방.옛케이스);
-  const 띄운다 = (키: string | undefined, 이어하기 = 방.이어하기) => 박동.자식동안(재기, (신호) =>
-    돌린다(자식 === null ? 'claude' : 'sh', 자식 === null ? 인자 : ['-c', 'umask 077 && exec claude "$@"', 'sh', ...인자], {
+  // 되묻기(요약되받기)는 같은 자리 · 환경으로 인자 · 프롬프트만 바꿔 띄운다
+  const 띄운다 = (키: string | undefined, 이어하기 = 방.이어하기, 되묻기?: { 인자: string[]; 글: string }) => 박동.자식동안(재기, (신호) =>
+    돌린다(자식 === null ? 'claude' : 'sh', 자식 === null ? (되묻기?.인자 ?? 인자) : ['-c', 'umask 077 && exec claude "$@"', 'sh', ...(되묻기?.인자 ?? 인자)], {
       cwd: 자리.트리,
-      input: 줄프롬프트({ ...것, specText: 가림.본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들: 설정.서버들 }, 역방향, 이어하기, 원장.입력, 원장.이어작성, join(자리.자료, 'resume-memo.md'), 옮긴다 ? { ...기획서.입력, 원본: 원장.원본입력, 자료폴더: 자리.자료 } : undefined, 원장.반영, { 판: 가이드판, 글: join(가이드폴더(자리.자료), 'guide.md') }, 앱화면, 자리.자료),
+      input: 되묻기?.글 ?? 줄프롬프트({ ...것, specText: 가림.본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들: 설정.서버들 }, 역방향, 이어하기, 원장.입력, 원장.이어작성, join(자리.자료, 'resume-memo.md'), 옮긴다 ? { ...기획서.입력, 원본: 원장.원본입력, 자료폴더: 자리.자료 } : undefined, 원장.반영, { 판: 가이드판, 글: join(가이드폴더(자리.자료), 'guide.md') }, 앱화면, 자리.자료),
       env: 결제환경(환경, 키),
       uid: 자식?.uid,
       gid: 자식?.gid,
@@ -292,6 +293,13 @@ async function 사본에서(
     return void (await 손.끝내기(거절로(사유거르기(옮김.거절, 비밀번호들(것)))));
   }
   const 게임줄 = 게임화면 === undefined ? [] : [...(await 게임올리기({ 주소기지, 토큰, 번호: 것.id }, 자리.자료, 비밀번호들(것))), ...안다룬요소줄(자리.자료, join(자리.트리, 'tests', 케이스자리), 비밀번호들(것))]; // 훑은 창 · 게임 지도 · 안 다룬 요소 — 못 올려도 PR 은 간다
+  // 테스트 고침 자식이 요약을 빠뜨렸으면 같은 세션을 한 번 되묻는다. ponytail: 되물은 몫 토큰은 안 센다(서버가 사용량을 한 번만 받는다) — 세려면 사용량보고 앞으로 옮긴다
+  const 되물은 = await 요약되받기(것, 풀린.글, 세션번호(돌린것.낸것), async (고치기, 글) => {
+    const r = await 띄운다(undefined, undefined, { 인자: 고치기(인자), 글 });
+    if (!(await 자식거두기(자식))) throw new Error(`${String(것.id)}번 되물은 자식이 남긴 프로세스를 거두지 못했다 — 올리지 않는다`);
+    return r.낸것;
+  });
+  if (되물은 !== '') 풀린.글 += `\n${되물은}`;
   // 보류 케이스와 원장 셈은 자식의 말이 아니라 코드에서 계산해 끝내기에 싣는다 — 싣는 손은 올리기가 건다 (작성 §3.6)
   await 올리기(
     자리, 것, 서비스, 판.판정, 기준, 풀린.글, 테스트고침싣는손(손, 것, () => ({ 자식출력: 풀린.글, 결과폴더: 자리.임시, 비밀: 비밀번호들(것), 파일: (tcId) => 고치기전후(기준목록.낸것, 자리.트리, 깃, tcId), 바뀐: () => 고친테스트파일들(자리.트리, join(자리.자료, 기준목록이름)) })),
