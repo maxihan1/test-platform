@@ -110,4 +110,11 @@ export default async function appScreenAgentRoutes(app: FastifyInstance): Promis
   };
   app.get('/authoring/requests/:id/app-screen', 읽어준다(false, 앱길, 'appium'));
   app.get('/authoring/requests/:id/game-screen', 읽어준다(true, 게임길, 'game'));
+  // 링크만 — 서명 링크는 길어야 2시간이라 작성 동안 에이전트가 30분마다 다시 받아 자식의 링크 파일에 갈아 끼운다. 폰을 안 잡고 러너도 안 부른다 (§7 「앱 화면 통로」 app-link)
+  app.get('/authoring/requests/:id/app-link', async (req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+    const 행 = await 도는집은요청(req, reply);
+    if (행 === null) return reply;
+    const 줄 = 앱줄고르기(await 대상줄들읽기(행.serviceId), 행.env);
+    return { app: 줄 === undefined ? null : await 깔앱파일(행.serviceId, 줄.env, 줄.appPath) };
+  });
 }

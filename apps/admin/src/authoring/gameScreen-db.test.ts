@@ -44,6 +44,7 @@ describe.skipIf(연결 === undefined)('게임 첫 화면 · 게임 화면 기록
     await q('DELETE FROM screen_found WHERE service_id = $1', [서비스]);
     await q('DELETE FROM screen_record WHERE service_id = $1', [서비스]);
     await q('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
+    await q('DELETE FROM app_build WHERE service_id = $1', [서비스]);
     await q('DELETE FROM service_env WHERE service_id = $1', [서비스]);
   };
 
@@ -79,6 +80,24 @@ describe.skipIf(연결 === undefined)('게임 첫 화면 · 게임 화면 기록
       if (값 === undefined) delete process.env[이름];
       else process.env[이름] = 값;
     }
+  });
+
+  it('app-link 는 폰을 잡지 않고 앱 줄의 링크만 준다 — 앱이 없으면 null, 올린 빌드는 부를 때 새로 만든 서명 링크다', async () => {
+    await 줄들([['dev', null, false]]);
+    expect(await 받기(await 요청넣기(), 'app-link')).toEqual({ app: null });
+
+    await 치우기();
+    await 줄들([['dev', null, false], ['qa', 'https://builds/qa.apk', false]]);
+    const id = await 요청넣기();
+    expect(await 받기(id, 'app-link')).toEqual({ app: 'https://builds/qa.apk' });
+
+    vi.stubEnv('PLATFORM_PUBLIC_URL', 'https://qahub.xgs.test');
+    vi.stubEnv('SESSION_SECRET', 'xgs-session-secret');
+    await q(`INSERT INTO app_build (service_id, env, build_no, file_path, uploaded_by) VALUES ($1, 'qa', 'xgs-1', '/tmp/xgs-1.apk', 'xgs')`, [서비스]);
+    const { app: 링크 } = (await 받기(id, 'app-link')) as { app: string };
+    vi.unstubAllEnvs();
+    expect(링크).toMatch(/^https:\/\/qahub\.xgs\.test\/api\/builds\/\d+\/apk\?exp=\d+&sig=/);
+    expect(Number(/exp=(\d+)/.exec(링크)?.[1]) * 1000).toBeGreaterThan(Date.now() + 60 * 60_000);
   });
 
   it('게임은 game-screen 이 앱 줄의 앱 파일로 읽으러 가고 app-screen 은 비운다', async () => {
