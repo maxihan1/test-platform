@@ -364,6 +364,7 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
         title: '로그인 API를 호출한다',
         status: 'PASS',
         durationMs: 312,
+        startedAt: '2026-11-12T03:00:15.000Z',
         assertions: [{ statement: '응답 코드가 정상이다', status: 'PASS', actual: 200, expected: 200 }],
       },
       {
@@ -397,11 +398,13 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
     const historyId = run.items[0]!.historyId;
     await finishItem(historyId, { ...결과, historyId });
 
-    const rows = await pool.query<{ seq: number; title: string; assertions: unknown; line: number | null; screenshot_path: string | null }>(
-      'SELECT seq, title, assertions, line, screenshot_path FROM run_item_step WHERE history_id = $1 ORDER BY seq',
+    const rows = await pool.query<{ seq: number; title: string; assertions: unknown; line: number | null; screenshot_path: string | null; started_at: Date | null }>(
+      'SELECT seq, title, assertions, line, screenshot_path, started_at FROM run_item_step WHERE history_id = $1 ORDER BY seq',
       [historyId],
     );
     expect(rows.rows).toHaveLength(2);
+    expect(rows.rows[0]?.started_at?.toISOString()).toBe('2026-11-12T03:00:15.000Z');
+    expect(rows.rows[1]?.started_at).toBeNull();
     expect(rows.rows[1]?.assertions).toEqual([
       { statement: '토큰이 발급된다', status: 'FAIL', actual: false, expected: true, blocker: true },
     ]);

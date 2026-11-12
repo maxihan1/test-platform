@@ -141,6 +141,30 @@ describe('게임증적을남긴다', () => {
     await expect(readdir(join(곳, 'runs', '0'))).rejects.toThrow();
   });
 
+  it('정기 실행 통과 항목은 오브젝트 목록 없이 Exception 만 남기고, 시각은 occurredAt 을 앞세우고 메시지를 한 줄로 접는다', async () => {
+    const 오류 = [
+      { seq: 1, time: '12:00:01', occurredAt: '2026-11-12T03:00:01.000Z', type: 'Error', message: '경고성 오류', stack: 'at A()' },
+      { seq: 2, time: '12:00:02', occurredAt: '2026-11-12T03:00:02.000Z', type: 'Exception', message: 'NullReferenceException: 첫 줄\n둘째 줄', stack: 'at B()' },
+    ];
+    await 게임증적을남긴다(게임(오류), '7', '46', 0, { 통과: true });
+
+    const 폴더 = join(곳, 'runs', '7', '46', 'farm');
+    expect(await readdir(폴더)).toEqual(['game-errors.txt']);
+    expect(await readFile(join(폴더, 'game-errors.txt'), 'utf8')).toBe(
+      ['# 게임 Exception 1개 — 통과 항목이라 Exception 만 남겼습니다', '', '#2 2026-11-12T03:00:02.000Z Exception: NullReferenceException: 첫 줄 둘째 줄', 'at B()', ''].join('\n'),
+    );
+  });
+
+  it('정기 실행은 오류가 없어도 머리 줄만 있는 파일을 만든다 — 실패 항목은 모든 종류를 남긴다', async () => {
+    await 게임증적을남긴다(게임([]), '7', '47', 0, { 통과: true });
+    expect(await readFile(join(곳, 'runs', '7', '47', 'farm', 'game-errors.txt'), 'utf8')).toBe('# 게임 Exception 0개 — 통과 항목이라 Exception 만 남겼습니다\n');
+
+    await 게임증적을남긴다(게임([{ seq: 1, time: 't', type: 'Error', message: 'm', stack: 's' }]), '7', '48', 0, { 통과: false });
+    const 폴더 = join(곳, 'runs', '7', '48', 'farm');
+    expect((await readdir(폴더)).sort()).toEqual(['game-errors.txt', 'game-tree.txt']);
+    expect(await readFile(join(폴더, 'game-errors.txt'), 'utf8')).toContain('#1 t Error: m');
+  });
+
   it('게임이 답하지 않아도 던지지 않는다 — 이미 난 판정을 덮지 않는다', async () => {
     const 죽은게임 = new Game(async () => {
       throw new Error('게임이 20초 안에 답하지 않았습니다');

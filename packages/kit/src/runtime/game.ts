@@ -106,7 +106,9 @@ export async function openGame(
  * 오브젝트 목록은 케이스가 쓰는 주소(경로) 그대로라 「이름이 바뀌었나 · 창이 안 열렸나」를 바로 본다. 무엇이 실패해도 던지지 않는다 — 이미 난 판정을 덮지 않는다
  */
 // since — E2E 시나리오는 단계 사이에 게임을 다시 켜지 않아, 그 단계가 시작할 때 받아 둔 last 를 넘겨 그 단계 몫만 남긴다 (도메인/시나리오 §3.7 결정 16)
-export async function 게임증적을남긴다(game: Game, runId: string, historyId: string, since = 0): Promise<void> {
+// 안정화 — 정기 실행(PLATFORM_STABILITY=1)이면 통과 항목도 오류 파일을 남긴다. 통과면 오브젝트 목록은 빼고 Exception 만 남기고,
+// 오류가 없어도 머리 줄만 있는 파일을 만든다 — 안정화 집계가 「못 읽음」과 「없음」을 가른다 (도메인/안정화 §3.15 결정 3 · 「집계」 분모)
+export async function 게임증적을남긴다(game: Game, runId: string, historyId: string, since = 0, 안정화?: { 통과: boolean }): Promise<void> {
   // 내 컴퓨터 테스트 실행은 admin 이 이 폴더를 못 본다
   if (runId === '0') return;
   const { flatten } = await import('control-cli');
@@ -121,22 +123,24 @@ export async function 게임증적을남긴다(game: Game, runId: string, histor
       console.error(`[kit] 게임 증적 ${이름} 을 남기지 못했다: ${글(err)}`);
     }
   };
-  await 남긴다(GAME_TREE_FILE, async () => {
+  if (안정화?.통과 !== true) await 남긴다(GAME_TREE_FILE, async () => {
     const t = await game.tree();
     const 줄들 = flatten(t.tree).map(
       (e) => `${e.path}${e.node.text === undefined ? '' : ` ${JSON.stringify(e.node.text)}`}${e.node.interactable === false ? ' 잠김' : ''}`,
     );
     return [`# 장면 ${t.scene} · 화면 ${t.screen[0]}×${t.screen[1]} · 켜진 오브젝트 ${줄들.length}개`, ...줄들, ''].join('\n');
   });
-  // 항목마다 앱을 다시 켜서(appCapabilities) 0 부터 읽으면 이 케이스 동안의 것만 온다. 없으면 파일을 안 만든다
+  // 항목마다 앱을 다시 켜서(appCapabilities) 0 부터 읽으면 이 케이스 동안의 것만 온다. 없으면 파일을 안 만든다(안정화는 머리 줄만)
   await 남긴다(GAME_ERRORS_FILE, async () => {
     const r = await game.errors(since);
-    if (r.errors.length === 0) return null;
+    const 오류 = 안정화?.통과 === true ? r.errors.filter((e) => e.type === 'Exception') : r.errors;
+    if (오류.length === 0 && 안정화 === undefined) return null;
     const 머리 = [
-      `# 게임 오류 ${r.errors.length}개`,
+      안정화?.통과 === true ? `# 게임 Exception ${오류.length}개 — 통과 항목이라 Exception 만 남겼습니다` : `# 게임 오류 ${오류.length}개`,
       ...(r.dropped ? [`# 앞의 ${r.dropped}개는 게임이 들고 있는 수(200)를 넘겨 밀려났습니다`] : []),
       ...(r.restarted ? ['# 케이스 도중 게임이 다시 켜졌습니다'] : []),
     ];
-    return [...머리, ...r.errors.map((e) => `\n#${e.seq} ${e.time} ${e.type}: ${e.message}\n${e.stack}`), ''].join('\n');
+    // 시각은 SDK 0.7 부터 오는 UTC occurredAt 을 앞세운다 — 안정화 집계가 단계를 맞춘다. 메시지는 한 줄로 접어 다음 줄부터가 스택이 되게 한다
+    return [...머리, ...오류.map((e) => `\n#${e.seq} ${e.occurredAt ?? e.time} ${e.type}: ${e.message.replace(/\s*\n\s*/g, ' ')}\n${e.stack}`), ''].join('\n');
   });
 }

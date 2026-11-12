@@ -98,8 +98,19 @@ describe('게임 항목', () => {
 
     await 돌린다({}, 'failed');
 
-    expect(game.게임증적을남긴다).toHaveBeenCalledWith(게임, '0', '0');
+    expect(game.게임증적을남긴다).toHaveBeenCalledWith(게임, '0', '0', 0, undefined);
     expect(차례).toEqual(['증적', '닫기']);
+  });
+
+  it('정기 실행이면 통과 항목도 게임 증적을 남긴다 — 안정화 지표 몫', async () => {
+    process.env.PLATFORM_STABILITY = '1';
+    try {
+      test(spec, async () => {});
+      await 돌린다({});
+      expect(game.게임증적을남긴다).toHaveBeenCalledWith(게임, '0', '0', 0, { 통과: true });
+    } finally {
+      delete process.env.PLATFORM_STABILITY;
+    }
   });
 
   it('게임에 못 붙으면 Appium 연결을 닫고 그 오류로 실패한다', async () => {

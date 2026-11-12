@@ -238,3 +238,39 @@ describe('execute 가 자식에게 넘기는 팜 AI 점검 켜기 (COMPAT-F1-03)
     expect(받은값()).toBe('');
   });
 });
+
+describe('execute 가 자식에게 넘기는 안정화 켜기 (STAB-F1-05)', () => {
+  let 폴더: string;
+  let 옛값: string | undefined;
+
+  beforeEach(() => {
+    폴더 = mkdtempSync(join(tmpdir(), 'runner-stability-'));
+    옛값 = process.env.PLATFORM_STABILITY;
+    process.env.PLATFORM_STABILITY = '1';
+    스크립트.지금 = `printf %s "$PLATFORM_STABILITY" > '${join(폴더, 'stab.txt')}'`;
+  });
+
+  afterEach(() => {
+    if (옛값 === undefined) delete process.env.PLATFORM_STABILITY;
+    else process.env.PLATFORM_STABILITY = 옛값;
+    rmSync(폴더, { recursive: true, force: true });
+  });
+
+  const 요청 = (platform: ExecuteRequest['platform'], stability?: true): ExecuteRequest => ({
+    runId: 5, historyId: 14, tcId: 'GAM-001', platform, filePath: 'a.spec.ts', baseUrl: '', params: {}, expected: {}, timeoutMs: 10_000,
+    ...(stability !== undefined && { stability }),
+  });
+  const 받은값 = () => readFileSync(join(폴더, 'stab.txt'), 'utf8');
+
+  it('정기 실행 앱 · 게임 항목이면 켠다', async () => {
+    await execute(요청('android', true), 'a.spec.ts');
+    expect(받은값()).toBe('1');
+  });
+
+  it('요청에 없거나 브라우저 항목이면 비운다 — 러너를 켠 셸의 값을 물려받지 않는다', async () => {
+    await execute(요청('android'), 'a.spec.ts');
+    expect(받은값()).toBe('');
+    await execute(요청('desktop', true), 'a.spec.ts');
+    expect(받은값()).toBe('');
+  });
+});

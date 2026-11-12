@@ -30,7 +30,8 @@ export const APPIUM_SESSION_ID_FILE = 'appium-session-id';
 // 러너가 받은 팜 증적을 두는 실행 폴더 안 하위 폴더. admin 이 같은 이름으로 찾는다
 export const FARM_EVIDENCE_DIR = 'farm';
 
-// 통과 못 한 게임 항목에 kit 이 위 폴더로 남기는 두 파일 — 실패 순간 켜진 오브젝트 목록 · 케이스 동안 난 게임 오류 (도메인/게임 §3.10 「실행 결과」)
+// 통과 못 한 게임 항목에 kit 이 위 폴더로 남기는 두 파일 — 실패 순간 켜진 오브젝트 목록 · 케이스 동안 난 게임 오류 (도메인/게임 §3.10 「실행 결과」).
+// 정기 실행은 통과 항목도 오류 파일을 남기고 admin 안정화 집계가 읽는다 (도메인/안정화 §3.15 결정 3)
 export const GAME_TREE_FILE = 'game-tree.txt';
 export const GAME_ERRORS_FILE = 'game-errors.txt';
 
