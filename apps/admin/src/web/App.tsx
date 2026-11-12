@@ -38,6 +38,7 @@ import { RunResult } from './RunResult.js';
 import { RunWindow } from './RunWindow.js';
 import { PerfDevices } from './PerfDevices.js';
 import { PerfPages } from './PerfPages.js';
+import { Stability } from './Stability.js';
 import { PerfRun } from './PerfRun.js';
 import { PerfRunList } from './PerfRunList.js';
 import { PerfScenarioList } from './PerfScenarioList.js';
@@ -193,6 +194,10 @@ function Screen({
     case 'perfRun':
       // 번호마다 새로 그린다 — 다시 실행으로 새 번호 주소로 오면 앞 실행의 숫자가 남지 않게
       return <PerfRun key={current.runId} runId={current.runId} 판정하기={(접두사) => 판정을만든다(user, 접두사)} />;
+    case 'stability':
+      // API 는 메뉴가 없다 — 주소로 와도 안내만 한다 (도메인/안정화 §8.19 「자리」). 애플리케이션마다 새로 그려 앞 애플리케이션의 고른 날이 남지 않게
+      if (service?.kind === 'API') return <div className="empty">{t('API 애플리케이션은 안정화 지표를 집계하지 않습니다')}</div>;
+      return service === null ? <div className="empty">{t('애플리케이션을 먼저 선택해 주세요')}</div> : <Stability key={prefix} service={service} run={current.run} />;
     case 'run':
       // 주소로 바로 오는 화면이라 띠와 다른 서비스의 실행일 수 있다 — 그 실행의 칸으로 가른다
       return <RunResult runId={current.runId} 판정하기={(접두사) => 판정을만든다(user, 접두사)} />;
