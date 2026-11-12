@@ -4,7 +4,7 @@ import type { DeviceInfo } from '@platform/kit';
 import type { Pool } from 'pg';
 
 import { 거를패키지 } from '../execution/farm.js';
-import { 팜logcat읽기 } from '../execution/farmEvidence.js';
+import { 팜logcat읽기, 팜logcat있음 } from '../execution/farmEvidence.js';
 import { 가린다, 항목비밀 } from '../execution/trial.js';
 
 import { 앱항목오류 } from './appJudge.js';
@@ -56,6 +56,9 @@ export async function 앱수집(pool: Pool, serviceId: number, env: string, runI
   const 오류 = new Map<string, 모은오류>();
   let crashes = 0;
   for (const i of 항목) {
+    // 이 볼륨에 있는 것만 읽는다 — 읽기는 없으면 터널 너머 러너에서 받아 오는데, 기다림은 이 볼륨만 봐서
+    // 그 러너가 집계 전에 받았느냐에 따라 같은 케이스가 분모에 들어갔다 빠졌다 한다 (§3.15 「분모」 다른 기계의 러너)
+    if (!(await 팜logcat있음(Number(i.run_id), Number(i.history_id)))) continue;
     const 글 = await 팜logcat읽기(Number(i.run_id), Number(i.history_id));
     if (글 === null) continue;
     판정.set(i.tc_id, true);

@@ -50,7 +50,7 @@ export async function 팜기록글(runId: number, historyId: number, 통과 = fa
 }
 
 // ponytail: 통째로 읽는다 — 1분 연결이 2MB 안팎이다. 수백 MB 가 되면 줄 단위로 흘려 읽는다
-/** 러너가 받아 둔 폰 logcat. 없으면 null — 통과 항목 · 팜이 아닌 Appium · 받기 실패 · 아직 받는 중 */
+/** 러너가 받아 둔 폰 logcat. 없으면 null — 통과 항목(정기 실행 빼고) · 팜이 아닌 Appium · 받기 실패 · 아직 받는 중 */
 export async function 팜logcat읽기(runId: number, historyId: number): Promise<string | null> {
   try {
     return (await 볼륨파일읽기(join(폴더(runId, historyId), 'logcat.txt'))).toString('utf8');
