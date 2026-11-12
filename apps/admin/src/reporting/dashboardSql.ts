@@ -40,7 +40,7 @@ export const 접은줄SQL = `
            to_char((r.started_at AT TIME ZONE $2::text)::date, 'YYYY-MM-DD') AS day, r.started_at,
            COALESCE(r.finished_at, r.started_at) AS finished_at
     FROM test_run r
-    WHERE r.service_id = ANY($1::bigint[]) AND r.status <> 'RUNNING' AND ${종류조건('case', 'r')} AND r.origin <> 'SINGLE'
+    WHERE r.service_id = ANY($1::bigint[]) AND r.status NOT IN ('RUNNING', 'PREP_FAILED') AND ${종류조건('case', 'r')} AND r.origin <> 'SINGLE'
       AND (r.started_at AT TIME ZONE $2::text)::date >= $3::date
   )
   SELECT t.run_id, t.service_id, t.service_name, t.env, t.kind, t.day, t.started_at, t.finished_at,
@@ -85,7 +85,7 @@ export const 앞판정SQL = `
   CROSS JOIN LATERAL (
     SELECT p.run_id FROM test_run p
     WHERE p.service_id = c.service_id AND p.env = c.env AND p.kind = c.kind
-      AND p.status <> 'RUNNING' AND p.started_at < c.started_at AND ${스모크건너뛰기식('p', 'c')}
+      AND p.status NOT IN ('RUNNING', 'PREP_FAILED') AND p.started_at < c.started_at AND ${스모크건너뛰기식('p', 'c')}
     ORDER BY p.started_at DESC
     LIMIT 1) prev
   JOIN LATERAL ${지금항목('o.run_id = prev.run_id')} i ON true

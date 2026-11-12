@@ -43,13 +43,16 @@ export function 어드민키보낼모양(r: 어드민키줄): EnvInput['adminKey
 }
 
 /** 값 꼴. 서버 settings/apiService.ts 의 같은 이름과 같은 규칙이다 — 띄어쓰기는 가운데 한 칸만(`Bearer <토큰>` 꼴 서버)이고 칸 뒤 토큰도 12자부터다 */
-const 어드민키값인가 = (값: string): boolean => 값.length >= 12 && 값.length <= 500 && /^[\x21-\x7e]+(?: [\x21-\x7e]{12,})?$/.test(값);
+export const 어드민키값인가 = (값: string): boolean => 값.length >= 12 && 값.length <= 500 && /^[\x21-\x7e]+(?: [\x21-\x7e]{12,})?$/.test(값);
+
+/** 헤더 이름 꼴 — 서버 settings/apiService.ts `머리이름인가` 와 같은 규칙이다. 준비 칸(SettingsPrep.tsx)도 쓴다 */
+export const 헤더이름인가 = (이름: string): boolean => /^[A-Za-z0-9-]{1,100}$/.test(이름);
 
 /** 저장을 막을 까닭. 서버 settings/apiService.ts `API칸오류` 와 같은 규칙이다 — 서버는 BAD_ADMIN_KEY 하나로만 답해 어느 칸인지 모른다 */
 export function 어드민키못보내는이유(envs: readonly 어드민키줄[], 언어: 언어): string | null {
   const 칸들 = envs.map(지금칸);
   if (칸들.some((it) => it.header === '' && it.새값 !== '')) return 말('어드민 키 헤더 이름을 입력해 주세요', 언어);
-  if (칸들.some((it) => it.header !== '' && !/^[A-Za-z0-9-]{1,100}$/.test(it.header))) {
+  if (칸들.some((it) => it.header !== '' && !헤더이름인가(it.header))) {
     return 말('어드민 키 헤더 이름은 영문 · 숫자 · - 로 100자까지입니다', 언어);
   }
   if (칸들.some((it) => it.새값 !== '' && !어드민키값인가(it.새값))) {

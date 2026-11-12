@@ -4,12 +4,13 @@ import type { ScenarioLink } from '@platform/kit';
 
 import type { ItemStatus } from './api.js';
 import { t, type 언어 } from './i18n.js';
-import { 시간초과 } from './runState.js';
+import { 시간초과, 준비실패 } from './runState.js';
 import type { ScenarioRunPart, ScenarioRunRow } from './scenarioApi.js';
 
 /** 도는 동안 부품은 전부 NA 라 부품만 보면 틀리게 나온다. 판정은 끝난 뒤에만 낸다 */
 export function 접은판정(parts: { status: ItemStatus }[], status: string): ItemStatus | null {
-  if (status === 'RUNNING') return null;
+  // 준비 실패는 아무 단계도 안 돈 「판정 없음」이다 (도메인/시나리오 §3.7 결정 9 표 PREP_FAILED)
+  if (status === 'RUNNING' || status === 준비실패) return null;
   if (parts.length > 0 && parts.every((p) => p.status === 'PASS')) return 'PASS';
   return parts.some((p) => p.status === 'FAIL') ? 'FAIL' : 'NA';
 }
@@ -63,6 +64,8 @@ export function 멈춘사유글자(message: string, 언어: 언어): string {
 
 export function 멈춘단계글자(줄: ScenarioRunRow, 언어: 언어): string {
   if (줄.status === 'RUNNING') return '';
+  // 부품은 전부 안 돈 것이라 「1번에서 종료」가 서면 거짓이다
+  if (줄.status === 준비실패) return t('준비 실패', 언어);
   if (줄.stoppedAt !== null) return t('{번호}번에서 종료', 언어, { 번호: 줄.stoppedAt });
   // 단계 기록 없이 닫힌 실행도 stoppedAt 이 비어 있다 — 판정 칩 「미실행」 아래 「모두 통과」가 서면 거짓이다
   return 줄.verdict === 'PASS' ? t('모두 통과', 언어) : '';
@@ -70,7 +73,7 @@ export function 멈춘단계글자(줄: ScenarioRunRow, 언어: 언어): string 
 
 /** 판정이 아닌 것(도는 중 · 판정 없음)에는 판정 색을 안 쓴다. 미확정이 섞여도 통과는 통과 색이다 */
 export function E2E띠색(줄: ScenarioRunRow): string {
-  if (줄.status === 'RUNNING') return 'var(--line-2)';
+  if (줄.status === 'RUNNING' || 줄.status === 준비실패) return 'var(--line-2)';
   if (줄.verdict === 'PASS') return 'var(--pass)';
   if (줄.verdict === 'FAIL') return 'var(--fail)';
   if (줄.verdict === 'NA') return 'var(--na)';

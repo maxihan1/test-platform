@@ -11,6 +11,7 @@ import { prdApi } from './prdApi.js';
 import { 어드민키보낼모양, 어드민키칸, 어드민키편집으로, type 어드민키편집 } from './SettingsAdminKey.js';
 import { API인증보낼모양, API인증줄로, API인증칸들, type API인증줄, 서버주소바뀜 } from './SettingsApiAuths.js';
 import { 비밀번호칸, 역할계정칸들, 역할보낼모양, 역할줄로, type 역할줄 } from './SettingsEnvAccounts.js';
+import { 준비보낼모양, 준비칸, 준비편집으로, type 준비편집 } from './SettingsPrep.js';
 import { useAsync } from './ui.js';
 
 /**
@@ -36,6 +37,8 @@ export interface 줄 extends EnvRow {
   API인증들: API인증줄[];
   /** 어드민 키 편집 상태. 게임 · API 종류 애플리케이션만 그리고 보낸다 (도메인/게임 §3.10 · 도메인/API §3.8) */
   어드민?: 어드민키편집;
+  /** 테스트 데이터 준비 편집 상태. 모든 종류가 그리고 보낸다 (도메인/실행 §3.2 「실행 전 준비」) */
+  준비?: 준비편집;
 }
 
 let 줄번호 = 0;
@@ -46,7 +49,7 @@ function 새줄키(): string {
 }
 
 export const 줄로 = (envs: EnvRow[]): 줄[] =>
-  envs.map((it) => ({ ...it, key: 새줄키(), 원래키: it.env, 원래서버주소: it.baseUrl, 새비밀번호: null, 역할들: 역할줄로(it.accounts ?? []), API인증들: API인증줄로(it.apiAuths ?? []), 어드민: 어드민키편집으로(it.adminKey) }));
+  envs.map((it) => ({ ...it, key: 새줄키(), 원래키: it.env, 원래서버주소: it.baseUrl, 새비밀번호: null, 역할들: 역할줄로(it.accounts ?? []), API인증들: API인증줄로(it.apiAuths ?? []), 어드민: 어드민키편집으로(it.adminKey), 준비: 준비편집으로(it.prep) }));
 
 /**
  * 서버로 보낼 줄. **아이디는 받은 대로 되돌려 보내고 비밀번호는 새로 넣었을 때만 싣는다** —
@@ -71,6 +74,8 @@ export const 보낼모양 = (줄들: 줄[], api = false, 어드민키 = false): 
       ...(appPath !== undefined ? { appPath } : 새줄 ? { appPath: null } : {}),
       ...(api ? { apiAuths: API인증들.map(API인증보낼모양) } : {}),
       ...(어드민키 ? { adminKey: 어드민키보낼모양(줄) } : {}),
+      // 늘 싣는다 — 새 줄이 키를 빼면 같은 이름의 옛 준비가 되살아나고, 실서비스 서버 줄은 null 이어야 저장된다
+      prep: 준비보낼모양(줄),
     };
   });
 
@@ -174,6 +179,7 @@ export function EnvEditor(p: { envs: 줄[]; onChange: (next: 줄[]) => void; 접
               }}
               고친다={(역할들) => onChange(envs.map((v, k) => (k === i ? { ...v, 역할들 } : v)))}
             />
+            <준비칸 줄={it} 번호={i + 1} 고친다={(준비) => onChange(envs.map((v, k) => (k === i ? { ...v, 준비 } : v)))} />
             {어드민키 ? <어드민키칸 줄={it} 번호={i + 1} 고친다={(어드민) => onChange(envs.map((v, k) => (k === i ? { ...v, 어드민 } : v)))} /> : null}
             {api ? (
               <API인증칸들
@@ -200,6 +206,7 @@ export function EnvEditor(p: { envs: 줄[]; onChange: (next: 줄[]) => void; 접
           <>
             <div className="hint">{t('테스트 계정은 실행과 테스트 작성에서 로그인할 때 사용합니다. 실서비스 서버로 체크하면 테스트 작성과 화면 탐색 대상에서 제외됩니다')}</div>
             <div className="hint">{t('앱 파일 경로는 Android 앱 · 게임 케이스를 실행할 때 설치할 apk 입니다. Device VISION 이 실행 중인 PC 의 파일 경로나 http(s) 주소를 적고, 비우면 테스트 실행기를 켤 때 준 PLATFORM_APP 을 씁니다')}</div>
+            <div className="hint">{t('테스트 데이터 준비 주소는 실행할 때마다 먼저 호출해 테스트 데이터를 처음 상태로 초기화합니다. 같은 주소를 넣은 애플리케이션은 한 번에 하나씩 실행합니다')}</div>
             {스토어앱 ? <div className="hint">{t('APK 가 없으면 Device VISION 디바이스에 스토어로 설치해 둔 앱의 패키지 이름을 적습니다')}</div> : null}
             {어드민키 ? (
               <div className="hint">{t('어드민 키는 서버 어드민 API 에 헤더로 실어 보냅니다. 케이스가 재화 지급 같은 상태를 만들 때 씁니다. 값은 끝 4자리만 보이고, 두 칸을 비우고 저장하면 삭제됩니다')}</div>

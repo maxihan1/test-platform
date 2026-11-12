@@ -47,6 +47,13 @@ describe('실행 상태', () => {
     expect(상태라벨('RUNNING', 'ko')).toBe('진행 중');
     expect(상태라벨('FINISHED', 'ko')).toBe('완료');
     expect(상태라벨('ABORTED', 'ko')).toBe('중단');
+    expect(상태라벨('PREP_FAILED', 'ko')).toBe('준비 실패');
+    expect(상태라벨('PREP_FAILED', 'en')).toBe('Prep failed');
+  });
+
+  it('준비 실패는 도는 중이 아니고, 그 항목의 사유는 「테스트 데이터 준비 실패」다', () => {
+    expect(도는중('PREP_FAILED')).toBe(false);
+    expect(미실행사유({ message: 'PREP_FAILED' }, 'ko')).toBe('테스트 데이터 준비 실패');
   });
 
   it('모르는 상태는 그 글자를 그대로 보여준다. 지어내면 무엇이 일어났는지 숨긴다', () => {

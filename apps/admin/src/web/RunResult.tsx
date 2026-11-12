@@ -20,7 +20,8 @@ import { PAGE_SIZE, 끝난결과, 디바이스칩, 실패먼저, 쪽넘김 } fro
 import { 결과줄 } from './RunResultRow.js';
 import { 다른빌드알림, 시작빌드글 } from './RunBuild.js';
 import { ScenarioResult } from './ScenarioResult.js';
-import { 끝났다고알릴까, 도는중, 멈출수있나, 본것으로적는다, 상태라벨, 실행자이름 } from './runState.js';
+import { RunPrepFailed } from './RunPrepFailed.js';
+import { 끝났다고알릴까, 도는중, 멈출수있나, 본것으로적는다, 상태라벨, 실행자이름, 준비실패 } from './runState.js';
 import { Failed, Loading, PLATFORM_LABEL, STATUS_LABEL, useAsync, when, 실행디바이스들 } from './ui.js';
 import { 그중미확정글 } from './unconfirmed.js';
 import { useRunProgress } from './useRunProgress.js';
@@ -302,6 +303,8 @@ function 케이스결과({
           {/* 결과 칸에서는 이 자리만 스크롤한다 — 위 필터·증적 버튼은 고정이다 (2026-09-22 ②) */}
           {칸안 ? <div className="rows-scroll">{결과목록}</div> : 결과목록}
         </div>
+      ) : data.status === 준비실패 ? (
+        <RunPrepFailed prepNote={data.prepNote} 칸안={칸안} />
       ) : (
         <끝난결과
           data={data}

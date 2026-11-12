@@ -8,6 +8,7 @@ import { 오래된빌드치우기 } from '../execution/buildFile.js';
 import { aql글 } from './aql.js';
 import { BTS부르기, type 부르기함수 } from './client.js';
 import { 초안세우기 } from './draft.js';
+import { 보류글 } from './holdComment.js';
 import { 보낼줄넣기 } from './outbox.js';
 
 async function db(): Promise<Pool> {
@@ -180,11 +181,10 @@ export async function 맡기(deployId: number, late: boolean, 부르기: 부르�
 }
 
 /** 스모크가 깨진 배포 — 「QA 요청」 이슈마다 보류 댓글. 이슈는 「QA 요청」에 남아 다음 배포가 다시 잡는다(결정 5) */
-async function 보류댓글(projectId: number, buildNo: string, 깨진앱: string[], 부르기: 부르기함수): Promise<void> {
+async function 보류댓글(projectId: number, body: string, 부르기: 부르기함수): Promise<void> {
   const 연결 = await 연결읽기(projectId);
   if (연결 === undefined) return;
   const { 이슈 } = await QA요청이슈(연결, 부르기);
-  const body = `스모크 실패 — 보류 · 빌드 ${buildNo}\n스모크가 실패한 애플리케이션: ${깨진앱.join(', ')}\n이슈는 「QA 요청」에 그대로 두고 다음 배포에서 다시 확인합니다`;
   for (const { key } of 이슈) await 보낼줄넣기({ projectId, kind: 'COMMENT', issueKey: key, payload: { body } });
 }
 
@@ -201,20 +201,21 @@ export async function 배포판정(deployId: number, 부르기: 부르기함수 
     [deployId],
   )).rows[0];
   if (배포?.state !== 'SMOKE') return;
-  const 스모크 = (await pool.query<{ status: string; prefix: string; 안통과: boolean }>(
-    `SELECT t.status, s.prefix, EXISTS (SELECT 1 FROM run_item i WHERE i.run_id = t.run_id AND i.status <> 'PASS') AS "안통과"
+  const 스모크 = (await pool.query<{ status: string; prefix: string; prep_note: string | null; 안통과: boolean }>(
+    `SELECT t.status, s.prefix, t.prep_note, EXISTS (SELECT 1 FROM run_item i WHERE i.run_id = t.run_id AND i.status <> 'PASS') AS "안통과"
        FROM test_run t JOIN service s ON s.id = t.service_id
       WHERE t.run_id = ANY($1::bigint[]) AND t.build_stage = 'SMOKE'`,
     [배포.run_ids],
   )).rows;
   if (스모크.some((s) => s.status === 'RUNNING')) return;
-  const 깨진앱 = [...new Set(스모크.filter((s) => s.status !== 'FINISHED' || s.안통과).map((s) => s.prefix))];
-  const 다음 = 배포.새배포 || 깨진앱.length > 0 ? 'HELD' : 'CLAIMED';
+  const 준비실패 = 스모크.filter((s) => s.status === 'PREP_FAILED').map((s) => ({ prefix: s.prefix, note: s.prep_note }));
+  const 깨진앱 = [...new Set(스모크.filter((s) => s.status !== 'PREP_FAILED' && (s.status !== 'FINISHED' || s.안통과)).map((s) => s.prefix))];
+  const 다음 = 배포.새배포 || 깨진앱.length > 0 || 준비실패.length > 0 ? 'HELD' : 'CLAIMED';
   const 옮김 = await pool.query("UPDATE bts_deploy SET state = $2 WHERE id = $1 AND state = 'SMOKE'", [deployId, 다음]);
   if (옮김.rowCount !== 1 || 배포.새배포) return;
   const projectId = Number(배포.project_id);
   try {
-    if (다음 === 'HELD') await 보류댓글(projectId, 배포.build_no, 깨진앱, 부르기);
+    if (다음 === 'HELD') await 보류댓글(projectId, 보류글(배포.build_no, 깨진앱, 준비실패), 부르기);
     else await 맡기(deployId, false, 부르기);
   } catch (err) {
     // BTS 에 못 닿으면 이 배포는 맡음 없이 끝난다. 이슈가 「QA 요청」에 남아 다음 배포가 다시 잡는다

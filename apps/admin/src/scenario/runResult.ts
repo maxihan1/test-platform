@@ -7,6 +7,7 @@ import { enqueue } from '../execution/dispatcher.js';
 import { 실행팜토큰 } from '../execution/farmToken.js';
 import { 시나리오화면 } from '../execution/live.js';
 import { Chrome차례, 폰차례 } from '../execution/phone.js';
+import { 준비실패로닫는다, 준비하고돌린다 } from '../execution/prep.js';
 import { 기기칸 } from '../execution/runLifecycle.js';
 import { jsonb에맞춘다 } from '../jsonbText.js';
 
@@ -54,7 +55,13 @@ export async function 시나리오분배(runId: number, 요청: ScenarioExecuteR
       await 결과저장(runId, 응답, 응답.error?.message === 'ABORTED');
     });
   try {
-    await (폰 === undefined ? 돌기() : 폰 === 'chrome' ? Chrome차례(돌기) : 폰차례(돌기));
+    // 줄에 서기 전에 준비 주소마다 차례를 잡고 한 번씩 부른다 — 실패하면 부품을 안 돌리고 머리 PREP_FAILED 로 닫는다 (도메인/실행 §3.2 「실행 전 준비」)
+    const 준비 = await 준비하고돌린다(runId, () => 상태.멈춤, () => (폰 === undefined ? 돌기() : 폰 === 'chrome' ? Chrome차례(돌기) : 폰차례(돌기)));
+    if (준비.결과 === '실패') {
+      // 닫은 뒤 누른 멈추기가 보내기 전 닫기를 다시 하지 않게 — 닫기는 RUNNING 조건이라 덮지는 않는다
+      상태.멈춤 = true;
+      await 준비실패로닫는다(runId, 준비.note);
+    }
   } finally {
     실행상태를지운다(runId);
   }

@@ -33,7 +33,7 @@ export async function E2E요약(runId: number): Promise<E2E요약줄[]> {
        FROM scenario s
        LEFT JOIN LATERAL (
          SELECT t.run_id, t.started_at FROM test_run t
-          WHERE t.kind = 'SCENARIO' AND t.scenario_id = s.id AND t.status <> 'RUNNING'
+          WHERE t.kind = 'SCENARIO' AND t.scenario_id = s.id AND t.status NOT IN ('RUNNING', 'PREP_FAILED')
           ORDER BY t.run_id DESC LIMIT 1) r ON true
        LEFT JOIN scenario_run_part p ON p.run_id = r.run_id
       WHERE s.is_active AND s.service_id = (SELECT service_id FROM test_run WHERE run_id = $1 AND ${종류조건('case', '')})

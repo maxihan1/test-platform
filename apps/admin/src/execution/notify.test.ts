@@ -56,6 +56,13 @@ describe('본문', () => {
     expect(본문(멈춘것, [], '', 2111).split('\n')[0]).toContain('[중단]');
   });
 
+  it('준비 실패 실행은 [실패]가 아니라 [준비 실패]이고 까닭 한 줄을 단다', () => {
+    const 준비실패 = { ...실행, status: 'PREP_FAILED', pass: 0, fail: 0, na: 4, prep_note: 'HTTP 500 · seed failed' };
+    const 줄 = 본문(준비실패, [], '', 2111).split('\n');
+    expect(줄[0]).toBe('[준비 실패] 결제 서비스 · RUN 2111 · 결제 회귀');
+    expect(줄).toContain('테스트 데이터 준비에 실패해 테스트를 실행하지 않았습니다 · HTTP 500 · seed failed');
+  });
+
   it('집계와 대상 서버와 실행자를 한 줄에 적는다', () => {
     const 둘째줄 = 본문(실행, 실패하나, '', 2111).split('\n')[1];
     expect(둘째줄).toBe('통과 8 · 실패 1 · 미실행 1 · 12분 04초 · 대상 서버 qa · 실행자 김철수');

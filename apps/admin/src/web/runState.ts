@@ -25,6 +25,8 @@ export function 상태라벨(status: string, 언어: 언어): string {
   if (status === 'FINISHED') return t('완료', 언어);
   // 사람이 끊어서 끝난 것과 끝까지 돌아서 끝난 것은 증적에서 구분돼야 한다 (SPEC §3.2)
   if (status === 'ABORTED') return t('중단', 언어);
+  // 데이터 준비가 안 돼 아무것도 안 돌았다 — 판정이 없는 실행이다 (도메인/실행 §3.2 「실행 전 준비」)
+  if (status === 준비실패) return t('준비 실패', 언어);
   return status;
 }
 
@@ -38,6 +40,9 @@ export function 상태라벨(status: string, 언어: 언어): string {
 export function 멈출수있나(status: string, 할수: 판정): boolean {
   return 도는중(status) && 할수('멈춤');
 }
+
+/** 서버가 준비 실패 실행과 그 항목을 이 값으로 닫는다 (`execution/prep.ts` 의 `준비실패로닫는다`) */
+export const 준비실패 = 'PREP_FAILED';
 
 /** 서버가 사람의 중단을 이 값으로 저장한다 (`store.ts` 의 `CLOSE_UNFINISHED`) */
 const 사람이멈춤 = 'ABORTED';
@@ -60,6 +65,7 @@ export function 미실행사유(error: { message: string } | null, 언어: 언�
   // Playwright 는 글에 색 코드를 섞는다. 2026-11-06 WEB-F9-14 전 기록은 러너가 안 걷고 저장했다 — 걷지 않으면 「테스트 실행기에 닿지 못했습니다」로 보였다(점검표 B3)
   const 글 = error.message.replace(/\u001b\[[0-9;]*m/g, '');
   if (글 === 사람이멈춤) return t('사용자가 중단', 언어);
+  if (글 === 준비실패) return t('테스트 데이터 준비 실패', 언어);
   // Playwright 테스트 제한 시간 초과도 사람에게는 같은 말이다. 러너의 TIMEOUT(러너가 끊음)과 값은 다르게 둔다 — trace 사유가 그 값으로 갈린다
   if (글 === 시간초과 || /^Test timeout of \d+ms exceeded/.test(글)) return t('제한 시간 초과', 언어);
   // 한국어 문장이면 서버가 사람이 읽으라고 넣은 것이다. 영문·기호로 시작하면 원문 오류다.

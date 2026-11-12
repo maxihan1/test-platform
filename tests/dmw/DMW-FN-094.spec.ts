@@ -1,7 +1,8 @@
 import { defineCase, test, verify } from '@platform/kit';
+import type { Page } from '@playwright/test';
 
 import { 일회용회원만들기 } from './helpers/account.helper.js';
-import { 로그인쿠키만료일수, 브라우저다시열기 } from './helpers/member-tools.helper.js';
+import { 로그인쿠키만료일수 } from './helpers/member-tools.helper.js';
 import { 안내창막기 } from './helpers/page-setup.helper.js';
 import { 홈화면 } from './pages/home.page.js';
 import { 로그인화면 } from './pages/login.page.js';
@@ -14,6 +15,14 @@ export const spec = defineCase({
   params: null,
   expected: null,
 });
+
+async function 브라우저닫았다열기(page: Page): Promise<void> {
+  const 창 = page.context();
+  const 오래가는쿠키들 = (await 창.cookies()).filter((쿠키) => 쿠키.expires > 0);
+  await page.evaluate(() => sessionStorage.clear());
+  await 창.clearCookies();
+  await 창.addCookies(오래가는쿠키들);
+}
 
 test(spec, async ({ page, request }) => {
   const 로그인 = new 로그인화면(page);
@@ -37,13 +46,8 @@ test(spec, async ({ page, request }) => {
   });
 
   await test.step('브라우저를 닫았다 다시 열고 홈 화면을 연다', async () => {
-    const 다시연 = await 브라우저다시열기(page);
-    try {
-      const 새홈 = new 홈화면(다시연.새쪽);
-      await 새홈.열기();
-      await verify('「로그인 상태 유지」를 켜고 로그인하면 브라우저를 닫았다 열어도 머리글에 「로그아웃」이 보인다', await 새홈.머리.로그아웃.isVisible(), true);
-    } finally {
-      await 다시연.닫기();
-    }
+    await 브라우저닫았다열기(page);
+    await 홈.열기();
+    await verify('「로그인 상태 유지」를 켜고 로그인하면 브라우저를 닫았다 열어도 머리글에 「로그아웃」이 보인다', await 홈.머리.로그아웃.isVisible(), true);
   });
 });

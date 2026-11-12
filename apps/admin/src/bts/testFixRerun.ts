@@ -175,7 +175,7 @@ export async function 끝보기(줄: 줄, 부르기: 부르기함수): Promise<v
   if (줄.state !== 'RERUNNING') return;
   const pool = await db();
   const 실행 =
-    줄.rerun_id === null ? undefined : (await pool.query<{ run_id: string; status: string; origin: string; rerun_of: string | null }>('SELECT run_id, status, origin, rerun_of FROM test_run WHERE run_id = $1', [줄.rerun_id]))
+    줄.rerun_id === null ? undefined : (await pool.query<{ run_id: string; status: string; origin: string; rerun_of: string | null; prep_note: string | null }>('SELECT run_id, status, origin, rerun_of, prep_note FROM test_run WHERE run_id = $1', [줄.rerun_id]))
           .rows[0];
   if (실행?.status === 'RUNNING') return;
   const 항목 =
@@ -194,6 +194,11 @@ export async function 끝보기(줄: 줄, 부르기: 부르기함수): Promise<v
   };
   if (통과 && (await 이슈잠그고(줄.project_id, 줄.issue_key, 기다림))) return;
   if (!(await 이어가나(줄, 부르기))) return;
+  // 고친 테스트가 틀린 것이 아니라 데이터 준비가 안 됐다 — 스스로 다시 걸지 않는다. 준비 주소가 꺼져 있으면 60초마다 실행이 쌓인다 (도메인/BTS 「테스트 수정 바퀴」 5)
+  if (실행?.status === 'PREP_FAILED') {
+    const 까닭 = '테스트 데이터 준비에 실패해 확인하지 못했어요. 고친 테스트는 반영됐어요 — 준비가 되면 그 테스트를 다시 실행해 주세요';
+    return 되돌리기(줄, 실행.prep_note === null ? 까닭 : `${까닭}\n${실행.prep_note}`);
+  }
   const 디바이스 = [...new Set(항목.filter((i) => 통과 || i.status !== 'PASS').map((i) => 디바이스이름(i.platform, i.real)))].join(' · ');
   if (!통과) {
     return 되돌리기(줄, 실행 === undefined || 항목.length === 0 ? '다시 실행 기록이 없어 확인하지 못했어요' : `${디바이스} 에서 통과하지 못했어요 · ${실행표시(실행)}`);

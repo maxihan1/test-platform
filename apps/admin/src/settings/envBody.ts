@@ -4,6 +4,7 @@ import { 앱파일값인가, 패키지이름인가 } from '@platform/kit/protoco
 import { z } from 'zod';
 
 import { API인증줄, 어드민키줄 } from './apiService.js';
+import { 준비줄 } from './prep.js';
 import { 역할까닭찾기 } from './roles.js';
 
 // 테스트 계정 칸은 키가 없으면 기존 값을 유지하고 null·빈 글자면 지운다. 역할 계정 · 운영 서버 표시도 키가 없으면 유지한다
@@ -26,6 +27,8 @@ const 대상서버 = z.object({
   appPath: z.string().max(1000).refine(앱파일값인가, 'appPath 는 파일 경로나 http(s) 주소여야 합니다').nullable().optional(),
   apiAuths: z.array(API인증줄).optional(),
   adminKey: 어드민키줄.nullable().optional(),
+  // 실행 전 준비 주소 — 모든 종류가 받는다. 칸 규칙은 prep.ts 준비틀림(400 BAD_PREP), 이어받기 · 실서비스 거절은 저장(envs.ts)이 본다
+  prep: 준비줄.nullable().optional(),
 });
 
 // 게임은 SDK 를 넣은 QA 빌드(APK)라야 돈다 — 같은 칸이 받는 스토어 앱 패키지 이름은 게임 줄에서 막는다 (러너 §5.2 「플레이스토어 앱 — 패키지 이름」)

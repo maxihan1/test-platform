@@ -10,7 +10,7 @@ import { use말, use언어 } from './i18n.js';
 import { 주소조건 } from './leaveGuard.js';
 import type { 판정하기 } from './runJudge.js';
 import { 케이스서비스 } from './role.js';
-import { 실행자이름 } from './runState.js';
+import { 실행자이름, 준비실패 } from './runState.js';
 import { scenarioApi } from './scenarioApi.js';
 import { FailGuide, RerunButton, useRerun, 멈춘단계, type 들어온곳 } from './ScenarioResultNext.js';
 import { E2E화면카드 } from './ScenarioLiveCard.js';
@@ -158,6 +158,12 @@ export function ScenarioResult({
             </p>
             <E2E화면카드 runId={runId} platform={data.platform} live={data.live === true} vision={data.vision} />
           </>
+        )}
+        {data.status !== 준비실패 ? null : (
+          <p className="hint" role="status">
+            {t('테스트 데이터 준비에 실패해 테스트를 실행하지 않았습니다')}
+            {data.prepNote == null ? null : <> · {data.prepNote}</>}
+          </p>
         )}
         {멈춘 === null ? null : (
           <FailGuide scenarioId={data.scenarioId} part={멈춘} 쓰나={쓰나} 다시실행={다시실행} env={data.env} />

@@ -15,6 +15,14 @@ vi.mock('./notify.js', () => ({ notifyRun: vi.fn(async () => undefined) }));
 vi.mock('./traceIngest.js', () => ({ trace적재를맡긴다: vi.fn(async () => undefined) }));
 vi.mock('../apidoc/runCompare.js', () => ({ 실행문서견주기: vi.fn(async () => undefined) }));
 vi.mock('./farmToken.js', () => ({ 실행팜토큰: vi.fn(async () => undefined) }));
+vi.mock('./prep.js', () => ({
+  준비를끊는다: vi.fn(),
+  준비실패로닫는다: vi.fn(async () => true),
+  준비하고돌린다: vi.fn(async (_runId: number, _멈췄나: () => boolean, 돌리기: () => Promise<void>) => {
+    await 돌리기();
+    return { 결과: '돎' };
+  }),
+}));
 
 function 관찰기(): { 시작: () => void; 끝: () => void; 최대: () => number } {
   let 지금 = 0;

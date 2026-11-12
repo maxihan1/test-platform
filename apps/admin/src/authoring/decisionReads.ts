@@ -93,7 +93,7 @@ export async function 판정없는실패들(서비스: number): Promise<실패�
               min(i.history_id) FILTER (WHERE i.status = 'FAIL') AS history_id,
               (array_agg(COALESCE(i.rerun_run_id, i.run_id) ORDER BY i.history_id) FILTER (WHERE i.status = 'FAIL'))[1] AS item_run_id
          FROM test_run r JOIN LATERAL ${지금항목('o.run_id = r.run_id')} i ON true
-        WHERE r.service_id = $1 AND ${종류조건('case', 'r')} AND r.status <> 'RUNNING' AND r.origin <> 'SINGLE' AND i.finished_at IS NOT NULL
+        WHERE r.service_id = $1 AND ${종류조건('case', 'r')} AND r.status NOT IN ('RUNNING', 'PREP_FAILED') AND r.origin <> 'SINGLE' AND i.finished_at IS NOT NULL
           AND ${멈춰닫힌항목아님('i')}
         GROUP BY i.tc_id, r.run_id, r.finished_at
      ), 최근 AS (
