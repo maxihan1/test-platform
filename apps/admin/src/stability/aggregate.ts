@@ -4,7 +4,7 @@ import { setTimeout as 잠깐 } from 'node:timers/promises';
 
 import type { Pool } from 'pg';
 
-import { 팜증적목록, 팜증적받는중 } from '../execution/farmEvidence.js';
+import { 팜logcat있음, 팜증적받는중 } from '../execution/farmEvidence.js';
 import { trace줄끝 } from '../execution/traceIngest.js';
 
 import { 앱수집 } from './appCollect.js';
@@ -145,11 +145,10 @@ async function logcat을기다린다(pool: Pool, 번호들: number[], 상한ms: 
   ).rows.map((r) => [Number(r.run_id), Number(r.history_id)] as const);
   const 마감 = Date.now() + 상한ms;
   for (;;) {
-    const 남은: number[] = [];
-    for (const [runId, h] of 항목) {
-      const 받음 = (await 팜증적목록(runId, h)).some((f) => f.name === 'logcat.txt');
-      if (!받음 && (await 팜증적받는중(runId, h))) 남은.push(h);
-    }
+    // 15초마다 항목 전부를 보므로 이 볼륨의 파일만 본다 — 터널 너머 러너까지 물으면 한 바퀴가 간격보다 길어진다. 번호 파일도 이 볼륨만 본다
+    const 남은 = (
+      await Promise.all(항목.map(async ([runId, h]) => (!(await 팜logcat있음(runId, h)) && (await 팜증적받는중(runId, h)) ? [h] : [])))
+    ).flat();
     if (남은.length === 0) return;
     const 남은시간 = 마감 - Date.now();
     if (남은시간 <= 0) {

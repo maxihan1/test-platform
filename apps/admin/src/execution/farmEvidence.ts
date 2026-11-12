@@ -60,6 +60,17 @@ export async function 팜logcat읽기(runId: number, historyId: number): Promise
   }
 }
 
+/** 러너가 이 볼륨에 logcat 을 받아 두었나 — 안정화 집계가 15초마다 항목 전부를 묻는다. 내용은 안 읽는다 */
+export async function 팜logcat있음(runId: number, historyId: number): Promise<boolean> {
+  try {
+    await access(join(폴더(runId, historyId), 'logcat.txt'));
+    return true;
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return false;
+    throw new Error(`폰 logcat 이 있는지 보지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
 /**
  * 러너가 이 항목의 팜 증적을 아직 받는 중인가. 통과 못 한 항목은 받기를 끝내면(못 받았어도) 연결 번호 파일을 지운다(러너 farmEvidence.ts).
  * 이 볼륨만 본다 — 볼륨파일로 물으면 맥 러너의 번호 파일을 받아 와 이 볼륨에 남아 늘 받는 중이 된다

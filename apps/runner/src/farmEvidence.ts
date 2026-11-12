@@ -62,9 +62,10 @@ export async function 팜증적을받는다(
   }
   // 통과한 정식 실행 항목은 영상을 받지 않고 번호만 남긴다 — 「영상 보기」를 누를 때 admin 이 받는다
   if (runId !== 0 && status === 'PASS' && sessionId !== '') {
-    // 정기 실행 항목은 logcat 하나만 받는다 — 통과해도 앱이 속으로 죽은 크래시 · ANR 을 안정화 지표가 센다 (도메인/안정화 §3.15 결정 3)
+    // 정기 실행 항목은 logcat 하나만 받는다 — 통과해도 앱이 속으로 죽은 크래시 · ANR 을 안정화 지표가 센다 (도메인/안정화 §3.15 결정 3).
+    // 받기 줄을 기다리지 않는다 — 작은 파일 하나지만 ready 기다림(15초)이 통과 항목마다 쌓이면 실패 항목 영상이 그만큼 늦게 뜬다
     if (안정화 === true && raw !== undefined && raw !== '') {
-      await logcat만받는다(폴더, raw, sessionId, 요청토큰 ?? process.env.PLATFORM_APPIUM_TOKEN).catch((err: unknown) => 알림('통과 항목의 logcat 을 받지 못했다', err));
+      logcat만받는다(폴더, raw, sessionId, 요청토큰 ?? process.env.PLATFORM_APPIUM_TOKEN).catch((err: unknown) => 알림('통과 항목의 logcat 을 받지 못했다', err));
     }
     return;
   }

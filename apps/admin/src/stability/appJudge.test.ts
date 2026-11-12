@@ -57,6 +57,15 @@ describe('앱항목오류', () => {
     expect(오류!.견본.split('\n')).toHaveLength(3);
   });
 
+  it('남의 줄이 스무 줄 넘게 끼어도 ANR 의 Reason 을 찾아 지문이 같다', () => {
+    const 머리 = 줄(1000, 'E', 'ActivityManager', 'ANR in org.joinmastodon.android (org.joinmastodon.android/.MainActivity)', 1100);
+    const 까닭 = 줄(1000, 'E', 'ActivityManager', 'Reason: Input dispatching timed out', 1100);
+    const 끼인 = Array.from({ length: 30 }, (_, k) => 줄(2000 + k, 'I', 'chatty', 'uid=1000 expire 3 lines'));
+    const [조용한] = 앱항목오류([머리, 까닭].join('\n'), 앱);
+    const [바쁜] = 앱항목오류([머리, ...끼인, 까닭].join('\n'), 앱);
+    expect(바쁜?.지문.fingerprint).toBe(조용한?.지문.fingerprint);
+  });
+
   it('일반 E 줄 · 네이티브 크래시는 세지 않고, 패키지를 모르면 아무것도 세지 않는다', () => {
     const 글 = [줄(4321, 'E', 'OkHttp', 'timeout'), 줄(4321, 'F', 'libc', 'Fatal signal 11 (SIGSEGV)'), ...크래시(4321)].join('\n');
     expect(앱항목오류(글, 앱)).toHaveLength(1);

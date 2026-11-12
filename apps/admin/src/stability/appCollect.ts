@@ -36,10 +36,19 @@ export async function 앱수집(pool: Pool, serviceId: number, env: string, runI
       [runIds],
     )
   ).rows;
-  // 앱 파일이 APK 주소면 서버는 패키지를 모른다 — 연결이 연 패키지(kit 기기 정보)와 대상 서버 줄의 패키지 이름을 같이 쓴다
+  // 앱 파일이 APK 주소면 서버는 패키지를 모른다 — 항목은 자기 연결이 연 패키지(kit 기기 정보)로 가른다.
+  // 그것이 없는 항목(기기 정보를 못 읽음)만 대상 서버 줄의 패키지 이름, 그것도 없으면 묶음의 다른 항목이 연 패키지로 가른다.
+  // 묶음 전체를 늘 합치면 다른 앱(설정 등)을 연 케이스 하나 때문에 그 앱 크래시까지 이 애플리케이션 것으로 센다
   const 앱경로 = (await pool.query<{ app_path: string | null }>('SELECT app_path FROM service_env WHERE service_id = $1 AND env = $2', [serviceId, env])).rows[0]?.app_path;
-  const 패키지들 = new Set([...항목.map((i) => i.device?.appPackage), 거를패키지(앱경로)].filter((p): p is string => typeof p === 'string' && p !== ''));
-  if (패키지들.size === 0 && 항목.length > 0) {
+  const 글자 = (p: string | null | undefined): p is string => typeof p === 'string' && p !== '';
+  const 경로패키지 = 거를패키지(앱경로);
+  const 묶음패키지 = new Set(항목.map((i) => i.device?.appPackage).filter(글자));
+  const 패키지 = (i: 항목행): ReadonlySet<string> => {
+    const 자기 = i.device?.appPackage;
+    if (글자(자기)) return new Set([자기]);
+    return 글자(경로패키지) ? new Set([경로패키지]) : 묶음패키지;
+  };
+  if (묶음패키지.size === 0 && !글자(경로패키지) && 항목.length > 0) {
     console.warn(`[stability] 실행 ${runIds.join(' · ')} — 앱 패키지 이름을 몰라 크래시 · ANR 을 가르지 못했다(기기 정보 appPackage · 대상 서버 앱 경로가 비었다)`);
   }
 
@@ -54,7 +63,7 @@ export async function 앱수집(pool: Pool, serviceId: number, env: string, runI
     const device = 디바이스(i.device);
     // 견본은 넣을 때 그 항목 값의 비밀값을 글자째 가린다 — Issue Bunker 실패 본문의 logcat 줄과 같은 가림
     const 비밀 = 항목비밀(i);
-    for (const e of 앱항목오류(글, 패키지들)) {
+    for (const e of 앱항목오류(글, 패키지(i))) {
       crashes += e.hits;
       const 자리 = 오류.get(e.지문.fingerprint) ?? { 지문: e.지문, 발생: [], 견본: [] };
       자리.발생.push({ historyId: h, tcId: i.tc_id, itemStatus: i.status, seq: null, hits: e.hits, crash: true, device });

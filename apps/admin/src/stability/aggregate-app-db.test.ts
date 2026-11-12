@@ -117,6 +117,14 @@ describe.skipIf(연결 === undefined)('안정화 앱 집계', () => {
     expect(await 집계줄(fn)).toMatchObject({ crashes: 1, residual: 1 });
   });
 
+  it('항목은 자기 연결이 연 패키지로 가른다 — 다른 앱을 연 케이스가 있어도 그 앱 크래시를 남의 항목에서 세지 않는다', async () => {
+    const fn = await 실행('qa5', 'FN', '2001-05-05T18:00:00Z');
+    await 항목(fn, 'XAN-FN-001', 'PASS', 크래시('com.android.settings'));
+    await 항목(fn, 'XAN-FN-002', 'PASS', '', false, { ...폰, appPackage: 'com.android.settings' });
+    expect(await 집계(fn)).toBe('집계함');
+    expect(await 집계줄(fn)).toMatchObject({ cases: 2, crashes: 0, residual: 0 });
+  });
+
   it('번호 파일만 있고 logcat 이 아직 없는 통과 항목은 상한까지 기다리고, 그동안 생기면 센다', async () => {
     const fn = await 실행('qa3', 'FN', '2001-05-03T18:00:00Z');
     const h = await 항목(fn, 'XAN-FN-001', 'PASS', null, true);

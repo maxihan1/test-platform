@@ -14,8 +14,10 @@ const 줄꼴 = /^\d\d-\d\d \d\d:\d\d:\d\d\.\d+\s+(\d+)\s+(\d+)\s+[VDIWEFA]\s+([^
 const 프로세스줄 = /^Process: ([^,\s]+), PID:/;
 // `ANR in com.x (com.x/.MainActivity)` — 괄호 안 화면은 없을 수 있다
 const ANR줄 = /^ANR in (\S+)(?: \(([^)]+)\))?/;
-// ANR 덩어리는 이 줄 수 안에서 Reason 을 찾는다 — 뒤로 CPU 사용량 줄이 수십 줄 붙는다
+// ANR 덩어리는 같은 스레드 줄 이만큼에서 Reason 을 찾는다 — 뒤로 CPU 사용량 줄이 수십 줄 붙는다
 const ANR덩어리 = 20;
+// ponytail: 같은 스레드 줄을 찾느라 훑는 원래 줄 상한 — 남의 줄이 이보다 많이 끼면 Reason 을 놓친다
+const ANR훑기 = 500;
 
 interface 줄 { pid: string; tid: string; 태그: string; 글: string; 원문: string }
 
@@ -70,7 +72,8 @@ export function 앱항목오류(logcat: string, 패키지들: ReadonlySet<string
     if (l.태그 !== 'ActivityManager') return;
     const m = ANR줄.exec(l.글);
     if (m === null || !패키지들.has(패키지만(m[1]!))) return;
-    const 뒤 = 줄들.slice(i, i + ANR덩어리).filter((x) => x.tid === l.tid && x.태그 === l.태그);
+    // 남의 줄이 끼어도 Reason 을 놓치지 않게 같은 스레드 줄을 먼저 고른 뒤 센다 — 놓치면 같은 ANR 이 날마다 다른 지문이 된다
+    const 뒤 = 줄들.slice(i, i + ANR훑기).filter((x) => x.tid === l.tid && x.태그 === l.태그).slice(0, ANR덩어리);
     const 끝 = 뒤.findIndex((x, k) => k > 0 && ANR줄.test(x.글));
     const 덩어리 = 끝 === -1 ? 뒤 : 뒤.slice(0, 끝);
     const 까닭 = 덩어리.map((x) => /^Reason: (.*)$/.exec(x.글)?.[1]).find((r) => r !== undefined) ?? '';

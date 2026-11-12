@@ -110,7 +110,7 @@ describe('팜증적을받는다', () => {
   it('통과 항목 logcat 받기가 던져도 알리기만 하고 번호 파일은 남긴다', async () => {
     logcat만받는다.mockRejectedValue(new Error('HTTP 404'));
     await 팜증적을받는다(3, 9, 'PASS', undefined, undefined, true);
-    expect(console.error).toHaveBeenCalledWith(expect.stringContaining('통과 항목의 logcat 을 받지 못했다'));
+    await vi.waitFor(() => expect(console.error).toHaveBeenCalledWith(expect.stringContaining('통과 항목의 logcat 을 받지 못했다')));
     expect(existsSync(idFile())).toBe(true);
   });
 
