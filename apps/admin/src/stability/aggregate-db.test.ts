@@ -217,15 +217,31 @@ describe.skipIf(연결 === undefined)('안정화 웹 집계', () => {
     ]);
   });
 
-  it('다시 켜질 때 24시간 안에 끝난 정기 실행 중 집계 줄이 없는 것만 고른다', async () => {
-    const 최근 = await 실행('qa5', 'FN', new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString());
-    const 오래된 = await 실행('qa5', 'FN', '2001-07-01T18:00:00Z');
-    const 했던 = await 실행('qa5', 'UI', new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString());
-    await pool.query("INSERT INTO stab_run (run_id, service_id, env, day, cases, error_cases, pass_error_cases, residual, new_errors, resolved, confirmed) VALUES ($1, $2, 'qa5', '2001-07-01', 0, 0, 0, 0, 0, 0, 0)", [했던, 서비스]);
+  it('trace 상태 줄이 끝내 안 서는 항목은 풀 일이 줄에 없으면 상한까지 안 기다리고 기록 없음으로 센다', async () => {
+    const 실 = await 실행('qa6', 'FN', '2001-08-01T18:00:00Z');
+    await 콘솔(await 항목(실, 'XAG-FN-001', 'PASS'), 'pageerror', 'TypeError: F');
+    await 항목(실, 'XAG-FN-002', 'NA', null);
+    const 앞 = Date.now();
+    expect(await (await import('./aggregate.js')).집계한다(실, 60_000, 10)).toBe('집계함');
+    expect(Date.now() - 앞).toBeLessThan(10_000);
+    expect(await 집계줄(실)).toMatchObject({ cases: 1, residual: 1 });
+  });
+
+  it('다시 켜질 때 24시간 안에 끝난 정기 실행 중 자기 묶음의 집계 줄이 없는 것만 고른다', async () => {
+    const 두시간전 = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    const 최근 = await 실행('qa7', 'FN', 두시간전);
+    const 오래된 = await 실행('qa7', 'FN', '2001-07-01T18:00:00Z');
+    const 앞실행 = await 실행('qa8', 'UI', 두시간전);
+    const 뒤실행 = await 실행('qa8', 'FN', 두시간전);
+    await pool.query(
+      "INSERT INTO stab_run (run_id, service_id, env, day, cases, error_cases, pass_error_cases, residual, new_errors, resolved, confirmed) VALUES ($1, $2, 'qa8', '2001-07-01', 0, 0, 0, 0, 0, 0, 0)",
+      [뒤실행, 서비스],
+    );
 
     const 후보 = await (await import('./aggregate.js')).빠진집계후보();
     expect(후보).toContain(최근);
     expect(후보).not.toContain(오래된);
-    expect(후보).not.toContain(했던);
+    expect(후보).not.toContain(앞실행);
+    expect(후보).not.toContain(뒤실행);
   });
 });

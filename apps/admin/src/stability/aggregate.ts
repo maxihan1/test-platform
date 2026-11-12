@@ -4,6 +4,8 @@ import { setTimeout as 잠깐 } from 'node:timers/promises';
 
 import type { Pool } from 'pg';
 
+import { trace줄끝 } from '../execution/traceIngest.js';
+
 import { 집계를저장한다 } from './save.js';
 import { 웹수집 } from './webCollect.js';
 
@@ -94,8 +96,8 @@ export async function 집계한다(runId: number, 상한ms = 웹기다림상한m
 /** 모든 항목에 trace 상태 줄이 설 때까지. 상한을 넘긴 항목은 기록 없음으로 센다 */
 async function trace를기다린다(pool: Pool, 번호들: number[], 상한ms: number, 간격ms: number): Promise<void> {
   const 마감 = Date.now() + 상한ms;
-  for (;;) {
-    const 남은 = Number(
+  const 남은수 = async (): Promise<number> =>
+    Number(
       (
         await pool.query<{ n: string }>(
           `SELECT count(*) AS n FROM run_item i
@@ -104,13 +106,21 @@ async function trace를기다린다(pool: Pool, 번호들: number[], 상한ms: n
         )
       ).rows[0]!.n,
     );
-    const 남은시간 = 마감 - Date.now();
+  const 기록없음 = (n: number, 까닭: string): void =>
+    console.warn(`[stability] 실행 ${번호들.join(' · ')} — trace 상태 줄이 없는 항목 ${String(n)}건은 기록 없음으로 센다(${까닭})`);
+  for (;;) {
+    const 남은 = await 남은수();
     if (남은 === 0) return;
-    if (남은시간 <= 0) {
-      console.warn(`[stability] 실행 ${번호들.join(' · ')} — trace 를 못 푼 항목 ${String(남은)}건은 기록 없음으로 센다`);
+    const 남은시간 = 마감 - Date.now();
+    if (남은시간 <= 0) return 기록없음(남은, '기다림 상한');
+    // 묶음이 다 끝났으면 항목의 풀기는 이미 줄에 들어갔다 — 줄이 비었는데도 상태 줄이 없으면 앞으로도 안 선다
+    // (결과 저장이 깨져 미실행으로 닫힌 항목 · 재기동 때 zip 이 없던 항목). 상한까지 묶여 다른 집계를 막지 않게 바로 끝낸다
+    const 줄이빔 = await Promise.race([trace줄끝().then(() => true), 잠깐(Math.min(간격ms, 남은시간), false, { ref: false })]);
+    if (줄이빔) {
+      const 그래도 = await 남은수();
+      if (그래도 > 0) return 기록없음(그래도, '풀 일이 줄에 없다');
       return;
     }
-    await 잠깐(Math.min(간격ms, 남은시간), undefined, { ref: false });
   }
 }
 
@@ -128,13 +138,14 @@ export function 안정화집계를맡긴다(runId: number): Promise<void> {
   return 일;
 }
 
-/** 24시간 안에 끝난 정기 실행 중 집계 줄이 없는 것 — 시작 차례. 묶음의 앞 실행도 나오지만 집계한다 가 묶음째 걸러 한 번만 한다 */
+/** 24시간 안에 끝난 정기 실행 중 자기 묶음의 집계 줄이 없는 것 — 시작 차례. 묶음 실행 둘이 다 나와도 집계한다 가 묶음째 걸러 한 번만 한다 */
 export async function 빠진집계후보(): Promise<number[]> {
   const pool = await db();
   const r = await pool.query<{ run_id: string }>(
     `SELECT r.run_id FROM test_run r
       WHERE r.origin = 'SCHEDULED' AND r.kind IN ('UI', 'FN') AND r.status = 'FINISHED' AND r.finished_at > now() - interval '24 hours'
-        AND NOT EXISTS (SELECT 1 FROM stab_run s WHERE s.run_id = r.run_id)
+        -- 자기 묶음(번호가 같거나 뒤)이 집계됐으면 뺀다 — 묶음의 앞 실행은 집계 줄 번호가 아니라서 그대로 두면 재기동마다 다시 나온다
+        AND NOT EXISTS (SELECT 1 FROM stab_run s WHERE s.service_id = r.service_id AND s.env = r.env AND s.run_id >= r.run_id)
       ORDER BY r.started_at, r.run_id`,
   );
   return r.rows.map((row) => Number(row.run_id));
