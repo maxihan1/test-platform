@@ -58,6 +58,8 @@ export function 서비스바꾼주소(주소: string, 앞: string | null, 접두
   if (지금.name === 'settings') return 지금.자리?.toUpperCase() === 앞 ? `#/settings/${encodeURIComponent(접두사)}` : 주소;
   // 안정화 지표의 실행 번호(`run=`)는 앞 애플리케이션 것이다 — 남으면 새 애플리케이션 화면이 404 로 빈다. 창(`days=`)은 애플리케이션과 상관없어 남긴다 (도메인/안정화 §8.19 「머리」)
   if (지금.name === 'stability') return 지금.days === 30 ? '#/stability?days=30' : '#/stability';
+  // 오류 상세도 앞 애플리케이션의 오류다 — 새 애플리케이션의 안정화 지표로 간다
+  if (지금.name === 'stabilityError') return '#/stability';
   const 자리 = 주소.indexOf('?');
   if (자리 === -1 || 지금.name === 'dashboard') return 주소;
   const 조건 = new URLSearchParams(주소.slice(자리 + 1));

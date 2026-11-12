@@ -1,0 +1,310 @@
+/* 안정화 지표 오류 상세 — 시안 6판 Detail6 · Detail6m (도메인/안정화 §8.19 「상세」). 판 · 칩 · 요약 칸은 stability.css 것을 같이 쓴다 */
+/* 위 여백은 다른 화면 머리(.head)와 같다 */
+.stab-crumb {
+  padding-top: 16px;
+}
+
+/* 판 높이를 맞춰 늘리지 않는다 — 스택 트레이스가 짧으면 판 아래가 비어 보였다 */
+.stab-dsplit {
+  align-items: flex-start;
+}
+
+.stab-crumb a {
+  color: var(--link);
+}
+
+.stab-back {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 14px;
+  color: var(--link);
+}
+
+.stab-dhead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.stab-dtitle {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.stab-dmeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.stab-dmeta a {
+  color: var(--link);
+}
+
+.stab-dtitle h1 {
+  margin: 2px 0 0;
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.45;
+  word-break: break-all;
+}
+
+.stab-detail .mono {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+.stab-dtitle p {
+  margin: 0;
+}
+
+.stab-act-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.stab-act-wrap p {
+  margin: 0;
+}
+
+.stab-act {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.stab-done {
+  padding: 8px 4px;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+a.stab-done {
+  color: var(--link);
+}
+
+/* AI 요약 세 칸은 같은 폭이다 (Detail6) */
+.stab-ai3.even {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.stab-unver {
+  display: block;
+  margin-top: 8px;
+}
+
+.stab-dk {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.stab-dk.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.stab-dk > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px;
+}
+
+.stab-dk .v {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.stab-dk .stab-faint {
+  align-self: flex-start;
+  padding: 1px 8px;
+  color: var(--ink-muted);
+  background: var(--well);
+  border-radius: 999px;
+}
+
+.stab-occ {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stab-occ li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--line);
+}
+
+.stab-occ .mono {
+  font-size: 12.5px;
+}
+
+.stab-occ-name {
+  flex: 1;
+  min-width: 200px;
+}
+
+.stab-dsplit {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.stab-dstack {
+  flex: 3 1 480px;
+}
+
+.stab-dside {
+  display: flex;
+  flex: 2 1 300px;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.stab-pager {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stab-stack {
+  margin: 12px 20px 0;
+  padding: 12px 14px;
+  overflow-x: auto;
+  font-size: 12.5px;
+  line-height: 1.7;
+  white-space: pre;
+  background: var(--well);
+  border-radius: 6px;
+}
+
+.stab-from {
+  margin: 8px 20px 18px;
+  word-break: break-all;
+}
+
+.stab-devs {
+  margin: 0;
+  padding: 10px 20px 18px;
+  list-style: none;
+  line-height: 1.7;
+}
+
+.stab-devs li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* 휴대폰 — 판은 한 줄로 쌓고 숫자 칸은 두 줄 둘씩, 두 버튼은 아래 탭 바로 위에 붙는다 (Detail6m) */
+@media (max-width: 620px) {
+  .stab-dtitle h1 {
+    font-size: 16px;
+  }
+
+  /* AI 요약 세 칸은 줄마다 이름 · 글이다 (Detail6m) */
+  .stab-ai3.even {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .stab-ai3.even > .stab-blk {
+    flex-direction: row;
+    align-items: baseline;
+  }
+
+  .stab-ai3.even h3 {
+    width: 64px;
+  }
+
+  .stab-unver {
+    display: inline;
+    margin: 0;
+  }
+
+  .stab-unver::before {
+    content: ' · ';
+  }
+
+  .stab-dk,
+  .stab-dk.three {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .stab-dk > div {
+    padding: 12px 14px;
+  }
+
+  .stab-dk .v {
+    font-size: 22px;
+  }
+
+  .stab-dk .stab-faint {
+    padding: 0;
+    background: none;
+  }
+
+  .stab-occ li {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 12px 14px;
+  }
+
+  .stab-occ-name {
+    min-width: 0;
+  }
+
+  .stab-stack {
+    margin: 10px 14px 0;
+    font-size: 11.5px;
+  }
+
+  .stab-from {
+    margin: 8px 14px 14px;
+  }
+
+  .stab-devs {
+    padding: 8px 14px 14px;
+  }
+
+  .stab-act-wrap {
+    position: fixed;
+    right: 0;
+    bottom: var(--ph-tabs);
+    left: 0;
+    z-index: 25;
+    align-items: stretch;
+    padding: 10px 14px;
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+  }
+
+  .stab-act > * {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    min-height: 46px;
+    justify-content: center;
+    text-align: center;
+  }
+
+  /* 붙은 판 높이(위아래 10 · 버튼 46 · 선 1)만큼 본문 끝을 더 띄운다 — 마지막 판이 버튼 밑에 깔리지 않게 */
+  .main:has(.stab-act-wrap) {
+    padding-bottom: 72px;
+  }
+}

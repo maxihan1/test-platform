@@ -45,6 +45,8 @@ export type Route =
   | { name: 'perfRun'; runId: number }
   /** 안정화 지표. run — 날짜 고르개로 고른 집계 줄(`?run=`). 없으면 가장 최근 집계 (도메인/안정화 §8.19) */
   | { name: 'stability'; run?: number; days?: 30 }
+  /** 안정화 지표 오류 상세. run — 목록에서 고른 날의 집계 줄(`?run=`). 없으면 그 종류가 남은 가장 최근 실행 (도메인/안정화 §8.19 「상세」) */
+  | { name: 'stabilityError'; id: number; run?: number }
   /** reqId — 케이스 목록의 요구 번호에서 왔다. 그 항목을 펴서 보인다 */
   | { name: 'prd'; reqId?: string }
   | { name: 'prdGuide' }
@@ -206,6 +208,11 @@ export function route(hash: string): Route {
     };
   }
 
+  if (parts[0] === 'stability' && parts[1] === 'errors' && parts.length === 3 && /^\d{1,10}$/.test(parts[2]!)) {
+    const 번호 = new URLSearchParams(hash.split('?')[1] ?? '').get('run');
+    return { name: 'stabilityError', id: Number(parts[2]), ...(번호 !== null && /^\d{1,10}$/.test(번호) ? { run: Number(번호) } : {}) };
+  }
+
   if (parts[0] === 'runs') {
     if (parts.length === 1) return { name: 'runs', kind: 'FN' };
     // 호환성은 케이스 실행 목록과 줄 모양이 달라 따로 선다 — 실행종류에 넣지 않는다 (도메인/호환성 §8.17 ⑤)
@@ -252,6 +259,7 @@ export const 기능자리: Partial<Record<Route['name'], 기능>> = {
   perfRuns: 'runs',
   // 안정화 지표도 실행 칸을 쓴다 (도메인/인증 §7 「등급으로 갈리는 자리」 안정화 두 줄)
   stability: 'runs',
+  stabilityError: 'runs',
   // 호환성은 실행 칸을 쓴다 (도메인/호환성 §7). 세트 주소는 `?service=` 로 그 세트의 애플리케이션을 담는다
   compatSets: 'runs',
   compatSet: 'runs',

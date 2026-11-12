@@ -151,7 +151,7 @@ export function 지금자리(name: string, 집: string, 종류?: 'UI' | 'FN' | '
   if (name === 'perfPages') return '#/perf/pages';
   if (name === 'perfDevices') return '#/perf/devices';
   if (name === 'perfRuns' || name === 'perfRun') return '#/perf/runs';
-  if (name === 'stability') return '#/stability';
+  if (name === 'stability' || name === 'stabilityError') return '#/stability';
   if (name === 'compatSets' || name === 'compatSet') return '#/compat';
   // 결과는 실행 기록에서 들어온 자리다
   if (name === 'compatRuns' || name === 'compatRun') return '#/runs/compat';

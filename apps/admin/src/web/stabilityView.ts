@@ -1,6 +1,6 @@
 // 안정화 지표 화면의 판단 — 상태 칩 · 발생 케이스 글 · 추이 그래프 좌표. 그림은 Stability*.tsx (도메인/안정화 §8.19)
 
-import type { 추이점 } from './stabilityApi.js';
+import type { 오류상세, 추이점 } from './stabilityApi.js';
 
 /** `2026-11-12` → `11-12`. 서버가 정기 실행 시간대로 굳힌 날이라 Date 를 거치지 않는다 (§3.15 「하루의 경계」) */
 export const 날글자 = (day: string): string => day.slice(5);
@@ -48,6 +48,35 @@ export interface 그림틀 {
 /** 시안 6판 A6 · A6m 의 그림 크기 */
 export const PC틀: 그림틀 = { 폭: 960, 높이: 244, 왼: 60, 오른: 876, 위: 20, 바닥: 190, 막대폭: 16 };
 export const 폰틀: 그림틀 = { 폭: 360, 높이: 214, 왼: 34, 오른: 320, 위: 16, 바닥: 166, 막대폭: 12 };
+/** 상세 「발생 케이스 추이」 — PC · 휴대폰 같은 크기다(Detail6 · Detail6m). 오른쪽은 마지막 값(`4건`)을 쓸 자리를 남긴다 */
+export const 상세틀: 그림틀 = { 폭: 360, 높이: 124, 왼: 34, 오른: 316, 위: 16, 바닥: 96, 막대폭: 0 };
+
+/** 상세 7일 점을 추이 그림 재료로 — 발생 케이스를 선으로만 그린다 */
+export const 상세점들 = (trend: 오류상세['trend']): 추이점[] =>
+  trend.map((p, i) => ({ day: p.day, runId: i, residual: p.cases, newErrors: 0, buildNo: null, buildChanged: false }));
+
+export interface 발생케이스 {
+  tcId: string;
+  name: string;
+  /** 그 케이스의 발생 항목이 다 통과면 통과다 — 디바이스 · 반복으로 항목이 여럿이면 하나라도 실패면 실패 (§7 passCases 와 같은 셈) */
+  통과: boolean;
+  /** 오류가 난 단계 번호들. 모르면(앱 logcat) 빈 목록이다 */
+  단계: number[];
+  크래시: boolean;
+}
+
+/** 발생 항목을 케이스 하나에 한 줄로 묶는다. 서버가 케이스 번호 차례로 준다 (§8.19 「발생 케이스 · 단계」) */
+export function 케이스로묶기(줄들: 오류상세['occurrences']): 발생케이스[] {
+  const 묶음 = new Map<string, 발생케이스>();
+  for (const o of 줄들) {
+    const 있던 = 묶음.get(o.tcId) ?? { tcId: o.tcId, name: o.name, 통과: true, 단계: [], 크래시: false };
+    있던.통과 &&= o.status === 'PASS';
+    있던.크래시 ||= o.crash;
+    if (o.seq !== null && !있던.단계.includes(o.seq)) 있던.단계.push(o.seq);
+    묶음.set(o.tcId, 있던);
+  }
+  return [...묶음.values()].map((c) => ({ ...c, 단계: [...c.단계].sort((a, b) => a - b) }));
+}
 
 export interface 추이그림 {
   눈금: { 값: number; y: number }[];

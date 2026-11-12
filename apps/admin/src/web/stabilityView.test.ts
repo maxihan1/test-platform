@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { 추이점 } from './stabilityApi.js';
-import { PC틀, 날짜보임, 최초발생글, 추이그림, 케이스글 } from './stabilityView.js';
+import { PC틀, 날짜보임, 최초발생글, 추이그림, 케이스글, 케이스로묶기 } from './stabilityView.js';
 
 const 점 = (day: string, residual: number, newErrors: number): 추이점 => ({ day, runId: Number(day.slice(8)), residual, newErrors, buildNo: null, buildChanged: false });
 
@@ -52,5 +52,18 @@ describe('추이 그래프', () => {
     expect(서른.at(-1)).toBe(29);
     expect(서른.length).toBeLessThanOrEqual(8);
     expect([0, 1, 2, 3, 4, 5, 6].filter((i) => 날짜보임(i, 7, true))).toEqual([0, 3, 6]);
+  });
+});
+
+describe('상세 발생 케이스 묶기', () => {
+  const 줄 = (tcId: string, status: string, seq: number | null, crash = false) => ({ tcId, name: tcId, status, seq, crash, historyId: 1, runId: 3044 });
+
+  it('케이스 하나에 한 줄 — 항목이 하나라도 실패면 실패, 단계는 겹치지 않게 차례로, 크래시는 하나라도', () => {
+    expect(
+      케이스로묶기([줄('ARG-FN-031', 'PASS', 3), 줄('ARG-FN-031', 'PASS', 2), 줄('ARG-FN-031', 'PASS', 3), 줄('ARG-FN-112', 'PASS', 3), 줄('ARG-FN-112', 'FAIL', null, true)]),
+    ).toEqual([
+      { tcId: 'ARG-FN-031', name: 'ARG-FN-031', 통과: true, 단계: [2, 3], 크래시: false },
+      { tcId: 'ARG-FN-112', name: 'ARG-FN-112', 통과: false, 단계: [3], 크래시: true },
+    ]);
   });
 });
