@@ -1,5 +1,5 @@
 // 앱 첫 화면 받아 두기 검사 — 파일로 남기고 · 앱 없는 서비스는 아무것도 안 바꾸고 · 못 읽어도 작성은 가고 · 프롬프트 절을 싣는다
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -90,21 +90,25 @@ describe('앱 링크 갈아 끼우기 — 서명 링크는 2시간이라 작성 
     expect(existsSync(앱링크파일(자료))).toBe(false);
   });
 
-  it('30분마다 app-link 를 불러 파일을 새 링크로 바꾸고, 못 받으면 앞 링크를 두고, 끄면 더 안 부른다', async () => {
+  it('띄울 때 한 번 · 30분마다 같은 빌드 번호로 app-link 를 불러 파일을 새 링크로 바꾸고, 못 받으면 앞 링크를 두고, 끄면 더 안 부른다', async () => {
     vi.useFakeTimers();
     writeFileSync(앱링크파일(자료), 탐색.app);
-    const 부름 = 서버가({ app: 'https://qa.test/api/builds/1/apk?exp=2&sig=new' });
+    서버가({ app: 'https://qa.test/api/builds/1/apk?exp=2&sig=new' });
     const 끄기 = 앱링크갈기(서버, 7, 자료, { 글: 'x', 탐색 });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(readFileSync(앱링크파일(자료), 'utf8')).toBe('https://qa.test/api/builds/1/apk?exp=2&sig=new');
 
+    const 부름 = 서버가({ app: 'https://qa.test/api/builds/1/apk?exp=3&sig=new' });
     await vi.advanceTimersByTimeAsync(29 * 60_000);
     expect(부름).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(60_000);
-    expect((부름.mock.calls[0] as unknown as [string])[0]).toBe('http://admin:3000/api/authoring/requests/7/app-link');
-    expect(readFileSync(앱링크파일(자료), 'utf8')).toBe('https://qa.test/api/builds/1/apk?exp=2&sig=new');
+    expect((부름.mock.calls[0] as unknown as [string])[0]).toBe('http://admin:3000/api/authoring/requests/7/app-link?build=1');
+    expect(readFileSync(앱링크파일(자료), 'utf8')).toBe('https://qa.test/api/builds/1/apk?exp=3&sig=new');
 
     서버가({ error: 'NOT_RUNNING' }, 409);
     await vi.advanceTimersByTimeAsync(30 * 60_000);
-    expect(readFileSync(앱링크파일(자료), 'utf8')).toBe('https://qa.test/api/builds/1/apk?exp=2&sig=new');
+    expect(readFileSync(앱링크파일(자료), 'utf8')).toBe('https://qa.test/api/builds/1/apk?exp=3&sig=new');
+    expect(readdirSync(자료)).toEqual(['app-link.txt']);
 
     끄기();
     const 뒤 = 서버가({ app: 'https://qa.test/api/builds/1/apk?exp=3&sig=late' });

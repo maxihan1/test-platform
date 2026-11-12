@@ -1,11 +1,10 @@
 // 앱 · 게임 첫 화면을 자료 폴더에 받아 둔다 — AI 가 러너에 닿지 않고 요소 주소를 고르게 (도메인/작성 §3.6 「앱 화면」 · §7 「앱 화면 통로」 · 도메인/게임 §7 「게임 첫 화면」)
 // 기대값의 근거가 아니다 — 자식 지침(tpx-author references/app.md · game.md)이 그렇게 읽는다
 
-import { lstatSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { lstatSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { 인증헤더 } from './authoring-io.js';
-import { 새로쓰기 } from './authoring-ledger-io.js';
 import { 비밀번호꼴가리기 } from './authoring-prd.js';
 
 /**
@@ -55,7 +54,7 @@ async function 화면받기(서버: { 주소기지: string; 토큰: string }, �
     if (!답.ok) return 로그만(번호, 곳, `서버 ${답.status}`);
     const 탐색 = 탐색읽기(몸?.[곳.칸]);
     // 못 쓰면 자식은 시작 때 받은 PLATFORM_APP 으로 간다 — 2시간 안에는 같은 링크다
-    if (탐색.탐색 !== undefined && !새로쓰기(앱링크파일(자료), 탐색.탐색.app)) console.error(`[작성] ${번호}번 — 앱 링크 파일을 못 썼다(시작 때 받은 링크로 간다)`);
+    if (탐색.탐색 !== undefined && !링크쓰기(앱링크파일(자료), 탐색.탐색.app)) console.error(`[작성] ${번호}번 — 앱 링크 파일을 못 썼다(시작 때 받은 링크로 간다)`);
     if (typeof 몸?.screen === 'string') {
       // 로그인 직전 화면이라 계정 값은 없다. 그래도 「비밀번호: 값」 꼴은 가린다 — 서비스 가이드와 같은 손
       writeFileSync(join(자료, 곳.파일), 비밀번호꼴가리기(몸.screen), { mode: 0o644 });
@@ -96,22 +95,44 @@ const 링크갈기_ms = 30 * 60_000;
  */
 export function 앱링크갈기(서버: { 주소기지: string; 토큰: string }, 번호: number, 자료: string, 앱: 앱화면 | undefined): () => void {
   if (앱?.탐색 === undefined) return () => undefined;
-  const 타이머 = setInterval(() => void 링크받아쓰기(서버, 번호, 자료), 링크갈기_ms);
+  // 시작 때 받은 빌드를 끝까지 깐다 — 도중에 새 빌드가 올라와도 케이스를 쓴 빌드와 돌려 보는 빌드가 같아야 한다. 그 빌드가 지워졌으면 서버가 최신 빌드를 준다
+  const 빌드 = /\/api\/builds\/(\d+)\/apk\?/.exec(앱.탐색.app)?.[1];
+  const 주소 = `${서버.주소기지}/api/authoring/requests/${String(번호)}/app-link${빌드 === undefined ? '' : `?build=${빌드}`}`;
+  // 첫 화면을 받은 뒤 자식을 띄우기까지(자료 · 원장 준비)도 시간이 간다 — 띄울 때 한 번 받고 30분마다 받는다
+  void 링크받아쓰기(주소, 서버.토큰, 번호, 자료);
+  const 타이머 = setInterval(() => void 링크받아쓰기(주소, 서버.토큰, 번호, 자료), 링크갈기_ms);
   return () => clearInterval(타이머);
 }
 
-async function 링크받아쓰기(서버: { 주소기지: string; 토큰: string }, 번호: number, 자료: string): Promise<void> {
+async function 링크받아쓰기(주소: string, 토큰: string, 번호: number, 자료: string): Promise<void> {
   let 까닭: string;
   try {
-    const 답 = await fetch(`${서버.주소기지}/api/authoring/requests/${String(번호)}/app-link`, { headers: 인증헤더(서버.토큰), signal: AbortSignal.timeout(30_000) });
+    const 답 = await fetch(주소, { headers: 인증헤더(토큰), signal: AbortSignal.timeout(30_000) });
     const 몸 = (await 답.json().catch(() => null)) as { app?: unknown } | null;
-    if (!답.ok || typeof 몸?.app !== 'string' || 몸.app === '') 까닭 = `서버 ${답.status}`;
-    else if (새로쓰기(앱링크파일(자료), 몸.app)) return;
+    if (답.ok && 몸?.app === null) 까닭 = '앱 줄에 앱이 없어졌다(설정 › 대상 서버의 앱 파일 경로 · 빌드)';
+    else if (!답.ok || typeof 몸?.app !== 'string' || 몸.app === '') 까닭 = `서버 ${답.status}`;
+    else if (링크쓰기(앱링크파일(자료), 몸.app)) return;
     else 까닭 = '파일을 못 썼다';
   } catch (err) {
     까닭 = err instanceof Error ? err.name : '알 수 없는 오류';
   }
   console.error(`[작성] ${번호}번 — 앱 링크를 새로 못 받아 앞 링크를 둔다: ${까닭}`);
+}
+
+/**
+ * root 가 자식 폴더에 쓴다 — 자식이 심은 링크를 따라가지 않게 새 이름에 `wx` 로 쓰고 이름을 바꿔 한 번에 갈아 끼운다.
+ * 지우고 다시 쓰면 그 사이에 `cat` 하는 자식이 빈 링크를 본다
+ */
+function 링크쓰기(파일: string, 링크: string): boolean {
+  const 임시 = `${파일}.${String(process.pid)}.${String(Date.now())}`;
+  try {
+    writeFileSync(임시, 링크, { mode: 0o644, flag: 'wx' });
+    renameSync(임시, 파일);
+    return true;
+  } catch {
+    rmSync(임시, { force: true });
+    return false;
+  }
 }
 
 // 지침이 잡는 시간으로 정한 30분(references/app.md §5 · game.md 「폰 잡기」). 그보다 오래된 기록의 잡기는 팜이 이미 풀었다 —

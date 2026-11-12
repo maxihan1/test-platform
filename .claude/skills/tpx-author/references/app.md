@@ -58,7 +58,7 @@
 
 ```bash
 npx appium-cli hold --minutes 30                 # 빈 폰 하나를 잡는다 — --udid 를 주지 않는다
-npx appium-cli -s=probe open --udid "$(cat .appium-cli/held)" --app "$(cat "$AUTHORING_APP_FILE")" --cap appium:disableIdLocatorAutocompletion=true   # 잡은 그 폰에서 앱을 띄우고 첫 화면을 파일로 — --app 은 늘 링크 파일에서 읽는다(아래), --url 은 주지 않는다(환경값이 있다). --cap 은 케이스 실행(kit)과 같은 id 찾기 설정이다
+npx appium-cli -s=probe open --udid "$(cat .appium-cli/held)" --app "$(cat "$AUTHORING_APP_FILE" 2>/dev/null || printf %s "$PLATFORM_APP")" --cap appium:disableIdLocatorAutocompletion=true   # 잡은 그 폰에서 앱을 띄우고 첫 화면을 파일로 — --app 은 늘 링크 파일에서 읽는다(아래), --url 은 주지 않는다(환경값이 있다). --cap 은 케이스 실행(kit)과 같은 id 찾기 설정이다
 npx appium-cli -s=probe find --regex "로그인|가입"
 npx appium-cli -s=probe tap '~로그인'             # Ran: await driver.$('~로그인').click() + 새 화면 경로
 npx appium-cli -s=probe fill e5 "${TARGET_LOGIN_ID:-$(node -p 'JSON.parse(process.env.PLATFORM_ACCOUNTS || "[]").find((a) => a.role === "일반 회원")?.loginId ?? ""')}"

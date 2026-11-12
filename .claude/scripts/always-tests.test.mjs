@@ -44,6 +44,7 @@ const 면제 = new Map([
   ['apps/runner/src/realPhone.test.ts', '테스트가 만든 임시 폴더에 옮긴 폰 로그 · 영상만 읽는다 (2026-11-03 09919a76 — PR #605 에서 더함)'],
   ['apps/runner/scenario/real-phone.test.ts', '테스트가 만든 임시 산출 폴더의 팜 증적(logcat)만 읽는다 (2026-11-03 09919a76 — PR #605 에서 더함)'],
   ['packages/kit/src/runtime/live.test.ts', '테스트가 만든 임시 폴더에 쓴 실시간 화면 사진만 읽는다 (2026-11-03 — PR #605 에서 더함)'],
+  ['scripts/authoring-run3-game.test.ts', '가짜 npx 가 임시 폴더에 쓴 앱 링크 값만 읽는다 (2026-11-12 PR #746)'],
   ['scripts/authoring-draft-login.test.ts', '테스트가 만든 임시 폴더에 쓴 로그인 상태 파일만 읽는다 (2026-11-09 4ec24c3b — PR #697 에서 더함)'],
 ]);
 

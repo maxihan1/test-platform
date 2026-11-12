@@ -3,7 +3,7 @@
 // 돌려 보기 명령(authoring-run3)이 `게임` · `앱` · `앱서버` 모드를 여기로 넘긴다 — 여기서 그 파일을 import 하지 않는다(그쪽 맨 위 await 와 엮이면 서로 기다린다)
 
 import { spawn } from 'node:child_process';
-import { closeSync, lstatSync, openSync, readdirSync, readFileSync } from 'node:fs';
+import { closeSync, existsSync, lstatSync, openSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { type 돌린판, 돌린기록들, 앱케이스나누기, 케이스파일읽기, 살필케이스, 판들읽기 } from './authoring-gate3.js';
@@ -114,17 +114,10 @@ export function 앱케이스말(앱: readonly string[], 폴더: string, env: Nod
   return `[돌려 보기] 앱 케이스 ${앱.length}건은 ${까닭} — ${앱.join(' · ')}`;
 }
 
-/**
- * 폰에 깔 앱 — 에이전트가 30분마다 갈아 끼우는 링크 파일(AUTHORING_APP_FILE)이 먼저다. 자식 환경의 PLATFORM_APP 은 시작 때 받은 서명 링크라
- * 2시간 안에 403 이 된다 (도메인/작성 §3.6 「앱 화면」 「링크 갈아 끼우기」 — 11-12 MTA #15303 이 앱 케이스 455개 가운데 2개만 폰에서 돌렸다)
- */
+/** 폰에 깔 앱 — 에이전트가 30분마다 갈아 끼우는 링크 파일(AUTHORING_APP_FILE)이 시작 때 받은 PLATFORM_APP(2시간 안에 403)보다 먼저다 (도메인/작성 §3.6 「링크 갈아 끼우기」) */
 export function 폰앱링크(env: NodeJS.ProcessEnv): string | undefined {
-  let 링크 = '';
-  try {
-    링크 = env.AUTHORING_APP_FILE ? readFileSync(env.AUTHORING_APP_FILE, 'utf8').trim() : '';
-  } catch {
-    // 파일이 아직 없으면(옛 에이전트 · 쓰기 실패) 시작 때 받은 링크로 간다
-  }
+  const 파일 = env.AUTHORING_APP_FILE;
+  const 링크 = 파일 && existsSync(파일) ? readFileSync(파일, 'utf8').trim() : '';
   return 링크 || env.PLATFORM_APP;
 }
 

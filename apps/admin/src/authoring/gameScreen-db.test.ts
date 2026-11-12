@@ -93,11 +93,22 @@ describe.skipIf(연결 === undefined)('게임 첫 화면 · 게임 화면 기록
 
     vi.stubEnv('PLATFORM_PUBLIC_URL', 'https://qahub.xgs.test');
     vi.stubEnv('SESSION_SECRET', 'xgs-session-secret');
-    await q(`INSERT INTO app_build (service_id, env, build_no, file_path, uploaded_by) VALUES ($1, 'qa', 'xgs-1', '/tmp/xgs-1.apk', 'xgs')`, [서비스]);
-    const { app: 링크 } = (await 받기(id, 'app-link')) as { app: string };
-    vi.unstubAllEnvs();
-    expect(링크).toMatch(/^https:\/\/qahub\.xgs\.test\/api\/builds\/\d+\/apk\?exp=\d+&sig=/);
-    expect(Number(/exp=(\d+)/.exec(링크)?.[1]) * 1000).toBeGreaterThan(Date.now() + 60 * 60_000);
+    try {
+      const 올리기 = async (번호: string, 언제: string) =>
+        Number((await q<{ id: string }>(`INSERT INTO app_build (service_id, env, build_no, file_path, uploaded_by, uploaded_at) VALUES ($1, 'qa', $2, '/tmp/xgs.apk', 'xgs', now() - $3::interval) RETURNING id`, [서비스, 번호, 언제])).rows[0]!.id);
+      const 첫빌드 = await 올리기('xgs-1', '1 hour');
+      const { app: 링크 } = (await 받기(id, 'app-link')) as { app: string };
+      expect(링크).toMatch(new RegExp(`^https://qahub\\.xgs\\.test/api/builds/${첫빌드}/apk\\?exp=\\d+&sig=`));
+      expect(Number(/exp=(\d+)/.exec(링크)?.[1]) * 1000).toBeGreaterThan(Date.now() + 60 * 60_000);
+
+      // 도중에 새 빌드가 올라와도 시작 때의 빌드를 준다. 그 빌드가 없거나 다른 애플리케이션 것이면 최신 빌드다
+      const 새빌드 = await 올리기('xgs-2', '0 seconds');
+      expect((await 받기(id, `app-link?build=${첫빌드}`)).app).toContain(`/api/builds/${첫빌드}/apk?`);
+      expect((await 받기(id, 'app-link')).app).toContain(`/api/builds/${새빌드}/apk?`);
+      expect((await 받기(id, 'app-link?build=999999999')).app).toContain(`/api/builds/${새빌드}/apk?`);
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it('게임은 game-screen 이 앱 줄의 앱 파일로 읽으러 가고 app-screen 은 비운다', async () => {
