@@ -122,6 +122,10 @@ describe.skipIf(연결 === undefined)('안정화 웹 집계', () => {
       confirmed: 0,
     });
     expect(new Date((await 집계줄(fn)).day).getDate()).toBe(11);
+    // 같은 트랜잭션에서 AI 실행 요약 일을 세운다
+    expect((await pool.query('SELECT kind, status, input, created_by, run_id FROM perf_ai_job WHERE id = $1', [(await 집계줄(fn)).ai_job_id])).rows).toEqual([
+      { kind: 'STAB_SUMMARY', status: 'QUEUED', input: { runId: fn }, created_by: '스케줄러', run_id: null },
+    ]);
     expect(await 상태들(fn)).toEqual({
       "TypeError · Cannot read properties of undefined (reading '*')": { state: 'NEW', cases: 2, 재발전해결: false },
       'HTTP 500 · GET /api/items/:n': { state: 'NEW', cases: 1, 재발전해결: false },

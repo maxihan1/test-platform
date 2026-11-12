@@ -12,6 +12,7 @@ import { 지금판 } from '../prd/store.js';
 import { 정수 } from '../routeParams.js';
 import { 집기왔다, 흐름결과다듬기, 흐름일닫기 } from '../scenario/flowJob.js';
 import { 상세 as E2E상세 } from '../scenario/store.js';
+import { 요약재료 } from '../stability/summary.js';
 import { 분석끝내기 } from './analysis.js';
 import { 결과다듬기, 끝내기, 오래된일닫기, 일만들기, 일하나, 집기 } from './ai.js';
 import { 팜기기재료 } from './devices.js';
@@ -201,8 +202,8 @@ export default async function perfAiRoutes(app: FastifyInstance): Promise<void> 
     const id = 정수(req.params.id);
     if (id === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.params.id });
     let job = await 일하나(id);
-    // 흐름 후보는 시나리오 통로 하나로만 읽는다 — 권한도 그쪽 칸이다 (도메인/시나리오 §7 「마법사 통로」)
-    if (job === null || job.kind === 'SUGGEST_FLOWS') return reply.code(404).send({ error: 'NOT_FOUND' });
+    // 흐름 후보는 시나리오 통로, 안정화 요약은 안정화 통로로만 읽는다 — 권한도 그쪽 칸이다 (도메인/시나리오 §7 「마법사 통로」 · 도메인/안정화 §7)
+    if (job === null || job.kind === 'SUGGEST_FLOWS' || job.kind === 'STAB_SUMMARY') return reply.code(404).send({ error: 'NOT_FOUND' });
     // 닫기는 표를 훑는다 — 화면이 5초마다 묻는 매번이 아니라 그 일이 도는 중일 때만 한다
     if (job.status === 'RUNNING') {
       await 오래된일닫기();
@@ -218,8 +219,17 @@ export default async function perfAiRoutes(app: FastifyInstance): Promise<void> 
     // 꺼짐 판정을 먼저 갱신해야 이 집기가 닫기에서 자기 애플리케이션의 대기 흐름 일을 꺼진 것으로 보지 않는다
     집기왔다(접두사들);
     await 흐름일닫기();
-    const job = await 집기(접두사들);
-    return { job };
+    const 집은 = await 집기(접두사들);
+    if (집은 === null) return { job: null };
+    const { serviceId, ...job } = 집은;
+    if (job.kind !== 'STAB_SUMMARY') return { job };
+    // 안정화 요약 재료는 가져갈 때 만든다 — 못 만들면 그 일을 실패로 닫고 다음 일은 다음 집기가 준다
+    const 재료 = await 요약재료(job.id, serviceId, job.input).catch((e: unknown) => ({ error: `요약 재료를 만들지 못했다: ${e instanceof Error ? e.message : String(e)}` }));
+    if ('error' in 재료) {
+      await 끝내기(job.id, 재료);
+      return { job: null };
+    }
+    return { job: { ...job, input: 재료.input } };
   });
 
   app.post<번호경로>('/perf/ai-jobs/:id/finish', async (req, reply) => {

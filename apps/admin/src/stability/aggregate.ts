@@ -9,6 +9,7 @@ import { trace줄끝 } from '../execution/traceIngest.js';
 
 import { 앱수집 } from './appCollect.js';
 import { 집계를저장한다, type 수집 } from './save.js';
+import { 요약일세우기 } from './summary.js';
 import { 웹수집 } from './webCollect.js';
 
 async function db(): Promise<Pool> {
@@ -95,6 +96,8 @@ export async function 집계한다(runId: number, 상한ms?: number, 간격ms = 
       },
       모음,
     );
+    // 오류가 없는 날도 세운다 — 「오류 없음」도 한 줄 결론이다
+    await 요약일세우기(client, Number(머리.service_id), 끝번호);
     await client.query('COMMIT');
   } catch (err) {
     await client.query('ROLLBACK');

@@ -3,12 +3,13 @@
 import type { PoolClient } from 'pg';
 import { z } from 'zod';
 
+import { 요약거르기, 요약모양, type 요약재료뼈대 } from '../stability/summaryShape.js';
 import { 시리얼 } from './devices.js';
 import { 페이지 } from './pages.js';
 import { 목표, 트랜잭션 } from './scenarios.js';
 import { 풀 } from './store.js';
 
-export type AI일종류 = 'DRAFT_RECORD' | 'DRAFT_SWAGGER' | 'DRAFT_FILE' | 'SUGGEST_LOAD' | 'SUGGEST_TARGETS' | 'SUGGEST_PAGES' | 'SUGGEST_DEVICES' | 'ANALYZE_RUN' | 'SUGGEST_FLOWS';
+export type AI일종류 = 'DRAFT_RECORD' | 'DRAFT_SWAGGER' | 'DRAFT_FILE' | 'SUGGEST_LOAD' | 'SUGGEST_TARGETS' | 'SUGGEST_PAGES' | 'SUGGEST_DEVICES' | 'ANALYZE_RUN' | 'SUGGEST_FLOWS' | 'STAB_SUMMARY';
 
 // 피크 시간은 1시간으로 둔다 (PERF-F1-04 시작 질문). 스트레스 테스트의 최대는 피크의 5배가 기본이다 (§3.9 「부하 설정」)
 export const 피크분 = 60;
@@ -81,6 +82,8 @@ const 출력: Record<AI일종류, z.ZodType> = {
       }).refine((l) => l.fromSeq < l.toSeq, '가져올 단계가 받는 단계보다 앞이어야 합니다')).max(30).default([]),
     })).min(1).max(3),
   }),
+  // 안정화 AI 실행 요약 (도메인/안정화 §3.15 「AI 실행 요약」). 화면 읽기와 같은 정의다
+  STAB_SUMMARY: 요약모양,
 };
 
 /** 피크 동시 사용자 = 일 방문자 × 피크 집중률 × 평균 체류 시간(분) ÷ 피크 시간(분). 셋 중 하나라도 없으면 null — 화면이 묻는다 */
@@ -121,6 +124,7 @@ export function 결과다듬기(kind: string, input: unknown, output: unknown): 
       .slice(0, 20);
     return { output: { ...값, markers: 남김 } };
   }
+  if (kind === 'STAB_SUMMARY') return { output: 요약거르기(값 as z.infer<typeof 요약모양>, input as 요약재료뼈대) };
   return { output: 값 };
 }
 
@@ -161,17 +165,17 @@ export async function 녹화끝(jobId: number, 결과: { input: unknown } | { er
 }
 
 /** 그 애플리케이션들의 가장 오래된 대기 일 하나를 집는다. 흐름 후보는 사람이 화면 앞에서 기다려 먼저 준다 (도메인/시나리오 §3.7 결정 15) */
-export async function 집기(접두사들: string[]): Promise<{ id: number; kind: string; input: unknown } | null> {
-  const r = await (await 풀()).query<{ id: string; kind: string; input: unknown }>(
+export async function 집기(접두사들: string[]): Promise<{ id: number; kind: string; serviceId: number; input: unknown } | null> {
+  const r = await (await 풀()).query<{ id: string; kind: string; service_id: string; input: unknown }>(
     `UPDATE perf_ai_job SET status = 'RUNNING', claimed_at = now()
       WHERE id = (SELECT j.id FROM perf_ai_job j JOIN service s ON s.id = j.service_id
                    WHERE j.status = 'QUEUED' AND s.prefix = ANY($1::text[])
                    ORDER BY j.kind = 'SUGGEST_FLOWS' DESC, j.id LIMIT 1 FOR UPDATE OF j SKIP LOCKED)
-      RETURNING id, kind, input`,
+      RETURNING id, kind, service_id, input`,
     [접두사들],
   );
   const row = r.rows[0];
-  return row === undefined ? null : { id: Number(row.id), kind: row.kind, input: row.input };
+  return row === undefined ? null : { id: Number(row.id), kind: row.kind, serviceId: Number(row.service_id), input: row.input };
 }
 
 /** 집힌 일만 끝낸다. 끝났거나 집히지 않은 일이면 false. 손을 주면 그 연결(트랜잭션)에서 한다 */

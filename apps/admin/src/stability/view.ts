@@ -1,10 +1,9 @@
 // 안정화 지표 메인 응답 — 날짜 고르개 · 고른 실행 숫자 · 이전 실행 · 일별 추이 · 오류 목록 · AI 실행 요약 읽기 (도메인/안정화 §7 GET /api/stability)
 
 import type { Pool } from 'pg';
-import { z } from 'zod';
-
 import { 묶음SQL } from './aggregate.js';
 import type { 상태 } from './state.js';
+import { 요약모양, type 요약결과 } from './summaryShape.js';
 
 async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
@@ -54,16 +53,7 @@ const 이전집계 = async (pool: Pool, serviceId: number, env: string, runId: n
 // 화면 목록 차례 — 신규 · 증가 · 재발 · 기존 (§7)
 const 상태차례 = "CASE x.state WHEN 'NEW' THEN 1 WHEN 'UP' THEN 2 WHEN 'REOPENED' THEN 3 ELSE 4 END";
 
-/** AI 실행 요약 결과 — 모양은 끝 알리기가 본다(STAB-F1-07). 여기서는 읽을 수 있는 것만 읽고 아니면 실패로 보인다 */
-const 요약모양 = z.object({
-  headline: z.string(),
-  changes: z.array(z.object({ errorId: z.number(), text: z.string() })),
-  features: z.array(z.object({ name: z.string(), tcIds: z.array(z.string()) })),
-  verified: z.string(),
-  trend: z.string(),
-  errors: z.array(z.object({ errorId: z.number(), headline: z.string(), impact: z.string(), previous: z.string(), cause: z.string() })),
-});
-export type 요약결과 = z.infer<typeof 요약모양>;
+/** AI 실행 요약 결과 — 끝 알리기와 같은 모양으로 읽는다. 못 읽으면 실패로 보인다 */
 export const 요약읽기 = (output: unknown): 요약결과 | null => {
   const r = 요약모양.safeParse(output);
   return r.success ? r.data : null;

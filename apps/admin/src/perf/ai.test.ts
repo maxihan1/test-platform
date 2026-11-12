@@ -72,4 +72,24 @@ describe('결과 다듬기', () => {
     expect(결과다듬기('ANALYZE_RUN', {}, { title: '제목', items: ['가'.repeat(501)] })).toHaveProperty('error');
     expect(결과다듬기('ANALYZE_RUN', {}, { title: '', items: ['항목'] })).toHaveProperty('error');
   });
+  it('안정화 요약은 재료에 없는 번호와 기존 종류를 버리고 모양이 틀리면 까닭을 준다', () => {
+    const 재료 = { errors: [{ errorId: 1, state: 'NEW' }, { errorId: 2, state: 'ONGOING' }], cases: [{ tcId: 'A-001' }, { tcId: 'A-002' }] };
+    const 요약 = {
+      headline: '신규 오류 1종',
+      changes: [{ errorId: 1, text: '홈 TypeError' }, { errorId: 2, text: '기존' }, { errorId: 9, text: '없는 것' }],
+      features: [{ name: '홈', tcIds: ['A-001', 'Z-999'] }],
+      verified: '해결 확인 없음',
+      trend: '잔여 오류 그대로',
+      errors: [
+        { errorId: 1, headline: '홈 첫 화면 오류', impact: '1건', previous: '이전에 없음', cause: '빈 값으로 보입니다' },
+        { errorId: 2, headline: '기존', impact: '-', previous: '-', cause: '-' },
+      ],
+    };
+    expect(결과다듬기('STAB_SUMMARY', 재료, 요약)).toEqual({
+      output: { ...요약, changes: [요약.changes[0]], features: [{ name: '홈', tcIds: ['A-001'] }], errors: [요약.errors[0]] },
+    });
+    expect(결과다듬기('STAB_SUMMARY', 재료, { ...요약, headline: '가'.repeat(121) })).toHaveProperty('error');
+    expect(결과다듬기('STAB_SUMMARY', 재료, { ...요약, changes: Array.from({ length: 6 }, () => 요약.changes[0]) })).toHaveProperty('error');
+    expect(결과다듬기('STAB_SUMMARY', 재료, { ...요약, trend: undefined })).toHaveProperty('error');
+  });
 });
