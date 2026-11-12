@@ -91,5 +91,6 @@ describe('결과 다듬기', () => {
     expect(결과다듬기('STAB_SUMMARY', 재료, { ...요약, headline: '가'.repeat(121) })).toHaveProperty('error');
     expect(결과다듬기('STAB_SUMMARY', 재료, { ...요약, changes: Array.from({ length: 6 }, () => 요약.changes[0]) })).toHaveProperty('error');
     expect(결과다듬기('STAB_SUMMARY', 재료, { ...요약, trend: undefined })).toHaveProperty('error');
+    expect(결과다듬기('STAB_SUMMARY', { runId: 1 }, 요약)).toEqual({ error: '요약 재료가 굳기 전의 일입니다' });
   });
 });

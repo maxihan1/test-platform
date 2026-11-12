@@ -1,4 +1,4 @@
-// 안정화 AI 실행 요약 일 — 가져갈 때 재료 굳히기 · 끝 알리기 거르기 · 모양 틀림 · 집계 줄 없는 일 · 성능 통로 404 (DB 접속이 있을 때만 돈다)
+// 안정화 AI 실행 요약 일 — 가져갈 때 재료 굳히기 · 끝 알리기 거르기 · 모양 틀림 · 집계 줄 없는 일 · 오래 쥔 일 닫기 · 성능 통로 404 (DB 접속이 있을 때만 돈다)
 import Fastify, { type FastifyInstance } from 'fastify';
 import type { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -204,7 +204,7 @@ describe.skipIf(연결 === undefined)('안정화 AI 실행 요약 일', { timeou
     expect((await 일(id)).status).toBe('FAILED');
   });
 
-  it('집계 줄이 없는 일은 가져갈 때 실패로 닫고 넘기지 않는다', async () => {
+  it('집계 줄이 없는 일은 가져갈 때 실패로 닫고 다음 일을 준다', async () => {
     const id = Number(
       (
         await pool.query<{ id: string }>(
@@ -213,7 +213,17 @@ describe.skipIf(연결 === undefined)('안정화 AI 실행 요약 일', { timeou
         )
       ).rows[0]!.id,
     );
-    expect(await 집기()).toBeNull();
+    const 다음 = await 세우기();
+    expect((await 집기())?.id).toBe(다음);
     expect(await 일(id)).toMatchObject({ status: 'FAILED', error: '실행 999999999 의 집계 줄이 없습니다' });
+  });
+
+  it('작성 에이전트가 쥐고 20분 넘게 못 끝낸 요약은 화면을 읽을 때 실패로 닫는다', async () => {
+    const id = await 세우기();
+    await pool.query(`UPDATE perf_ai_job SET status = 'RUNNING', claimed_at = now() - interval '30 minutes' WHERE id = $1`, [id]);
+    const { 안정화보기, 애플리케이션읽기 } = await import('./view.js');
+    const 보기 = await 안정화보기((await 애플리케이션읽기(앱))!, 실행.fn, 7);
+    expect(보기?.summary).toMatchObject({ status: 'FAILED', headline: null });
+    expect((await 일(id)).status).toBe('FAILED');
   });
 });

@@ -219,17 +219,16 @@ export default async function perfAiRoutes(app: FastifyInstance): Promise<void> 
     // 꺼짐 판정을 먼저 갱신해야 이 집기가 닫기에서 자기 애플리케이션의 대기 흐름 일을 꺼진 것으로 보지 않는다
     집기왔다(접두사들);
     await 흐름일닫기();
-    const 집은 = await 집기(접두사들);
-    if (집은 === null) return { job: null };
-    const { serviceId, ...job } = 집은;
-    if (job.kind !== 'STAB_SUMMARY') return { job };
-    // 안정화 요약 재료는 가져갈 때 만든다 — 못 만들면 그 일을 실패로 닫고 다음 일은 다음 집기가 준다
-    const 재료 = await 요약재료(job.id, serviceId, job.input).catch((e: unknown) => ({ error: `요약 재료를 만들지 못했다: ${e instanceof Error ? e.message : String(e)}` }));
-    if ('error' in 재료) {
+    // 안정화 요약 재료는 가져갈 때 만든다 — 못 만들면 그 일을 실패로 닫고 다음 일을 집는다
+    for (;;) {
+      const 집은 = await 집기(접두사들);
+      if (집은 === null) return { job: null };
+      const { serviceId, ...job } = 집은;
+      if (job.kind !== 'STAB_SUMMARY') return { job };
+      const 재료 = await 요약재료(job.id, serviceId, job.input).catch((e: unknown) => ({ error: `요약 재료를 만들지 못했다: ${e instanceof Error ? e.message : String(e)}` }));
+      if (!('error' in 재료)) return { job: { ...job, input: 재료.input } };
       await 끝내기(job.id, 재료);
-      return { job: null };
     }
-    return { job: { ...job, input: 재료.input } };
   });
 
   app.post<번호경로>('/perf/ai-jobs/:id/finish', async (req, reply) => {

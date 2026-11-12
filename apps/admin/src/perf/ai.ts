@@ -124,7 +124,12 @@ export function 결과다듬기(kind: string, input: unknown, output: unknown): 
       .slice(0, 20);
     return { output: { ...값, markers: 남김 } };
   }
-  if (kind === 'STAB_SUMMARY') return { output: 요약거르기(값 as z.infer<typeof 요약모양>, input as 요약재료뼈대) };
+  if (kind === 'STAB_SUMMARY') {
+    // 재료는 가져갈 때 굳는다 — 굳기 전에 관리 서버가 다시 켜진 일은 거를 재료가 없다
+    const 재료 = input as Partial<요약재료뼈대> | null;
+    if (!Array.isArray(재료?.errors) || !Array.isArray(재료.cases)) return { error: '요약 재료가 굳기 전의 일입니다' };
+    return { output: 요약거르기(값 as z.infer<typeof 요약모양>, 재료 as 요약재료뼈대) };
+  }
   return { output: 값 };
 }
 

@@ -10,7 +10,7 @@ async function db(): Promise<Pool> {
 export const 재료종류상한 = 30;
 export const 재료케이스상한 = 500;
 export const 견본앞자 = 1500;
-// ponytail: 종류 하나에 발생이 수백 건이면 재료가 프롬프트 한도를 넘는다 — 앞 50건만 싣고 잘렸다고 알린다. 명세가 수를 정하면 그 값으로 바꾼다
+// 종류 하나에 발생이 수백 건이면 재료가 프롬프트 한도를 넘는다 — 앞 50건만 싣고 잘렸다고 알린다(도메인/안정화 §3.15 「재료」)
 export const 종류발생상한 = 50;
 
 /** 집계 저장과 같은 트랜잭션에서 부른다 — 집계 줄과 요약 일이 같이 생기거나 같이 없다 */
@@ -54,13 +54,16 @@ export async function 요약재료(jobId: number, serviceId: number, input: unkn
       [runId, 번호들],
     ),
     pool.query<{ id: string; title: string }>('SELECT id, title FROM stab_error WHERE confirmed_run_id = $1 ORDER BY id', [runId]),
-    pool.query<{ tc_id: string; tc_name: string }>('SELECT DISTINCT ON (tc_id) tc_id, tc_name FROM run_item WHERE run_id = ANY($1) ORDER BY tc_id, history_id DESC LIMIT $2', [
-      run.runIds,
-      재료케이스상한 + 1,
-    ]),
+    // 500건에서 자를 때 오류가 난 케이스를 먼저 싣는다 — 빠지면 그 기능의 오류 발생 케이스가 0 으로 보인다
+    pool.query<{ tc_id: string; tc_name: string }>(
+      `SELECT c.tc_id, c.tc_name FROM (SELECT DISTINCT ON (tc_id) tc_id, tc_name FROM run_item WHERE run_id = ANY($1) ORDER BY tc_id, history_id DESC) c
+        ORDER BY EXISTS (SELECT 1 FROM stab_occurrence o WHERE o.run_id = $2 AND o.tc_id = c.tc_id) DESC, c.tc_id LIMIT $3`,
+      [run.runIds, runId, 재료케이스상한 + 1],
+    ),
   ]);
   const 시각 = new Map(해결시각.rows.map((r) => [Number(r.error_id), r.at?.toISOString() ?? null]));
-  const 견본글 = new Map(견본.rows.map((r) => [Number(r.error_id), r.text.slice(0, 견본앞자)]));
+  // 글자 단위로 자른다 — UTF-16 으로 자르면 이모지 같은 글자가 반쪽으로 남는다
+  const 견본글 = new Map(견본.rows.map((r) => [Number(r.error_id), [...r.text].slice(0, 견본앞자).join('')]));
   const 발생들 = new Map<number, { tcId: string; seq: number | null }[]>();
   for (const r of 발생.rows) {
     const 줄 = 발생들.get(Number(r.error_id)) ?? [];

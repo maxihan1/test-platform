@@ -126,7 +126,12 @@ export async function 안정화보기(앱: 애플리케이션행, runId: number 
   const 상태들 = new Map(목록.rows.map((r) => [Number(r.id), r.state]));
   const 오류케이스들 = new Set(오류케이스.rows.map((r) => r.tc_id));
   let summary: { status: 일상태; [k: string]: unknown } | null = null;
-  const 일줄 = 일?.rows[0];
+  let 일줄 = 일?.rows[0];
+  // 작성 에이전트가 쥐고 죽은 일은 성능 통로처럼 20분 뒤 닫는다 — 화면이 「작성 중」에 묶이지 않게. 성능 쪽 파일은 쓸 때만 불러온다
+  if (일줄?.status === 'RUNNING') {
+    await (await import('../perf/ai.js')).오래된일닫기();
+    일줄 = (await pool.query<{ status: 일상태; output: unknown }>('SELECT status, output FROM perf_ai_job WHERE id = $1', [고른.ai_job_id])).rows[0];
+  }
   if (일줄 !== undefined) {
     const 읽은 = 일줄.status === 'DONE' ? 요약읽기(일줄.output) : null;
     if (일줄.status !== 'DONE') summary = { status: 일줄.status, ...빈요약 };
