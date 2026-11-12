@@ -7,6 +7,8 @@ export class 서버상세화면 {
   readonly 도메인차단수정: Locator;
   readonly 도메인차단취소: Locator;
   readonly 최근감사기록: Locator;
+  readonly 감사기록전체보기: Locator;
+  readonly 퍼지: Locator;
   readonly 중재참고사항: Locator;
   readonly 가용성: Locator;
   readonly 정책칸: Locator;
@@ -17,6 +19,8 @@ export class 서버상세화면 {
     this.도메인차단수정 = page.getByRole('link', { name: '도메인 차단 수정' });
     this.도메인차단취소 = page.getByRole('link', { name: '도메인 차단 취소' });
     this.최근감사기록 = page.getByRole('heading', { name: '최근 감사 기록', level: 3 });
+    this.감사기록전체보기 = page.getByRole('link', { name: '감사 기록 전체 보기' });
+    this.퍼지 = page.getByRole('link', { name: '퍼지', exact: true });
     this.중재참고사항 = page.getByRole('heading', { name: '중재 참고사항', level: 3 });
     this.가용성 = page.getByRole('heading', { name: '가용성', level: 3 });
     this.정책칸 = page.getByRole('row').filter({ has: page.getByRole('rowheader', { name: '정책' }) }).getByRole('cell');

@@ -33,5 +33,7 @@ test(spec, async ({ page, params }) => {
     const 묶음 = await verify('「관리」 묶음에 메뉴가 보인다', await 관리.묶음메뉴들('관리').first().isVisible(), true);
     const 보이지않음 = await verify('「관리」 묶음에 「FASP」가 보이지 않는다', await 관리.묶음메뉴('관리', 'FASP').isVisible(), false);
     await verify('실험 기능이 꺼진 서버의 사이드바 「관리」 묶음에는 「FASP」가 보이지 않는다', 묶음 && 보이지않음, true);
+    const 아래쪽 = (await 관리.사이드바.맨위메뉴이름들()).slice(-3).join(', ');
+    await verify('사이드바 「로그아웃」 바로 위에 「Sidekiq」 · 「PgHero」가 보인다', 아래쪽, 'Sidekiq, PgHero, 로그아웃');
   });
 });

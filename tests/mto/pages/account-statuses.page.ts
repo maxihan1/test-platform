@@ -35,6 +35,10 @@ export class 계정게시물화면 {
     return this.게시물행들.first().getByRole('link', { name: /^\d{4}년/ });
   }
 
+  게시물시각링크(게시물번호: string): Locator {
+    return this.게시물행들.locator(`a.detailed-status__datetime[href$="/statuses/${게시물번호}"]`);
+  }
+
   async 제목글(): Promise<string> {
     return (await this.제목.innerText()).trim();
   }

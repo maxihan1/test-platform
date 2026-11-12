@@ -9,7 +9,7 @@ import { 관리화면 } from './pages/admin.page.js';
 
 export const spec = defineCase({
   tcId: 'MTO-FN-521',
-  name: '경고 프리셋을 만들고 지운 뒤 「감사 로그」를 열면 맨 위 줄이 경고 프리셋 기록이 아니다',
+  name: '경고 프리셋을 만들고 지운 뒤 「감사 로그」를 열면 경고 프리셋 기록이 보이지 않는다',
   precondition: ['Owner(qa_admin) 계정으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('Owner 아이디').optional().meta({ secret: true }),
@@ -34,8 +34,7 @@ test(spec, async ({ page, params }) => {
       await 경고프리셋만들기(page, 제목, 'MTO 시험 경고 본문');
       await 경고프리셋정리(page, 제목);
       await 감사.열기();
-      const 줄 = (await 감사.맨위줄().innerText()).replace(/\s+/g, ' ');
-      await verify('경고 프리셋을 만들고 지운 뒤 「감사 로그」를 열면 맨 위 줄이 경고 프리셋 기록이 아니다', 줄.includes('프리셋'), false);
+      await verify('경고 프리셋을 만들고 지운 뒤 「감사 로그」를 열면 경고 프리셋 기록이 보이지 않는다', await 감사.글이든줄('프리셋').count(), 0);
     });
   } finally {
     await 경고프리셋정리(page, 제목);
