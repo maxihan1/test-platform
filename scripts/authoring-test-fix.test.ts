@@ -174,24 +174,28 @@ describe('결과 요약 되받기', () => {
     return 흐름(답);
   };
 
-  it('고장 내 보기 줄이 빠진 테스트 고침이면 같은 세션을 한 번 이어 불러 그 글을 돌려준다 — 파일 고치기 · 명령 실행은 막는다', async () => {
+  it('고장 내 보기 줄이 빠진 테스트 고침이면 같은 세션을 한 번 이어 불러 새 요약을 돌려준다 — 파일 고치기 · 명령 실행 · 바깥 도구는 막는다', async () => {
     부른것.length = 0;
-    expect(await 요약되받기({ params: { testFix: 고침 } }, '[단계] 결과 요약', 's-1', 부르기(`요구사항 0줄 고침\n${고장}`))).toBe(`요구사항 0줄 고침\n${고장}`);
+    expect(await 요약되받기({ params: { testFix: 고침 } }, '[단계] 결과 요약', 's-1', true, 부르기(`요구사항 0줄 고침\n${고장}`))).toBe(`요구사항 0줄 고침\n${고장}`);
     expect(부른것).toHaveLength(1);
-    expect(부른것[0]!.인자).toEqual(['-p', '--add-dir', '/자료', '--resume', 's-1', '--disallowedTools', 'Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'Bash', 'Task', 'Agent', 'AskUserQuestion']);
+    expect(부른것[0]!.인자).toEqual([
+      '-p', '--add-dir', '/자료', '--resume', 's-1', '--disallowedTools',
+      'Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'Bash', 'Task', 'Agent', 'Skill', 'WebFetch', 'WebSearch', 'mcp__qa-hub', 'AskUserQuestion',
+    ]);
     expect(부른것[0]!.글).toContain('빠진 케이스: X-FN-001');
   });
 
-  it('줄이 있거나 · 테스트 고침이 아니거나 · 세션 번호를 못 읽었으면 부르지 않는다', async () => {
+  it('줄이 있거나 · 테스트 고침이 아니거나 · 세션 번호를 못 읽었거나 · 고장 내 보기 단계에 안 들어갔으면 부르지 않는다', async () => {
     부른것.length = 0;
-    expect(await 요약되받기({ params: { testFix: 고침 } }, `요약\n${고장}`, 's-1', 부르기('x'))).toBe('');
-    expect(await 요약되받기({ params: { prdApply: true } }, '[단계] 결과 요약', 's-1', 부르기('x'))).toBe('');
-    expect(await 요약되받기({ params: { testFix: 고침 } }, '[단계] 결과 요약', undefined, 부르기('x'))).toBe('');
+    expect(await 요약되받기({ params: { testFix: 고침 } }, `요약\n${고장}`, 's-1', true, 부르기('x'))).toBe('');
+    expect(await 요약되받기({ params: { prdApply: true } }, '[단계] 결과 요약', 's-1', true, 부르기('x'))).toBe('');
+    expect(await 요약되받기({ params: { testFix: 고침 } }, '[단계] 결과 요약', undefined, true, 부르기('x'))).toBe('');
+    expect(await 요약되받기({ params: { testFix: 고침 } }, '[단계] 결과 요약', 's-1', false, 부르기(고장))).toBe('');
     expect(부른것).toHaveLength(0);
   });
 
   it('되물은 글에도 줄이 없으면 그대로 돌려줘 판정이 「재지 못함」이 된다', async () => {
-    const 덧 = await 요약되받기({ params: { testFix: 고침 } }, '', 's-1', 부르기('요약만 있어요'));
+    const 덧 = await 요약되받기({ params: { testFix: 고침 } }, '', 's-1', true, 부르기('요약만 있어요'));
     expect(자동병합재기([{ tcId: 'X-FN-001', 앞: 케이스(), 뒤: 케이스() }], `\n${덧}`, ['tests/x/X-FN-001.spec.ts'])).toEqual(['NOT_MEASURED']);
   });
 

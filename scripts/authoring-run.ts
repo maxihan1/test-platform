@@ -16,7 +16,7 @@ import { 자식환경 } from './authoring-chain.js';
 import { type 계정, 사본환경 } from './authoring-copy.js';
 import { MCP설정쓰기, 사본치우기, 자식거두기, 자식빈환경 } from './authoring-child.js';
 import { type 작업방, 도는번호, 보관하기, 작업방준비 } from './authoring-keeping.js';
-import { type 보고손, type 칠때, type 판정기, 거절글, 닫으며, 돌린다, 멈춤, 보고손만들기, 부른다, 친다 } from './authoring-io.js';
+import { type 보고손, type 돌린결과, type 칠때, type 판정기, 거절글, 닫으며, 돌린다, 멈춤, 보고손만들기, 부른다, 친다 } from './authoring-io.js';
 import { 머지행처리 } from './authoring-merge-row.js';
 import { 고치기실행인가, 편집처리 } from './authoring-edit.js';
 import { 자료받기 } from './authoring-marking.js';
@@ -293,13 +293,14 @@ async function 사본에서(
     return void (await 손.끝내기(거절로(사유거르기(옮김.거절, 비밀번호들(것)))));
   }
   const 게임줄 = 게임화면 === undefined ? [] : [...(await 게임올리기({ 주소기지, 토큰, 번호: 것.id }, 자리.자료, 비밀번호들(것))), ...안다룬요소줄(자리.자료, join(자리.트리, 'tests', 케이스자리), 비밀번호들(것))]; // 훑은 창 · 게임 지도 · 안 다룬 요소 — 못 올려도 PR 은 간다
-  // 테스트 고침 자식이 요약을 빠뜨렸으면 같은 세션을 한 번 되묻는다. ponytail: 되물은 몫 토큰은 안 센다(서버가 사용량을 한 번만 받는다) — 세려면 사용량보고 앞으로 옮긴다
-  const 되물은 = await 요약되받기(것, 풀린.글, 세션번호(돌린것.낸것), async (고치기, 글) => {
-    const r = await 띄운다(undefined, undefined, { 인자: 고치기(인자), 글 });
-    if (!(await 자식거두기(자식))) throw new Error(`${String(것.id)}번 되물은 자식이 남긴 프로세스를 거두지 못했다 — 올리지 않는다`);
-    return r.낸것;
-  });
-  if (되물은 !== '') 풀린.글 += `\n${되물은}`;
+  // 테스트 고침 자식이 요약을 빠뜨렸으면 같은 세션을 한 번 되묻는다 — 고장 내 보기 단계에 들어간 자식만(안 했으면 숫자를 지어 적는다). 멈춤 · 거절 · 거두기 실패는 위처럼 끝낸다.
+  // ponytail: 되물은 몫 토큰은 안 센다(서버가 사용량을 한 번만 받는다) — 세려면 사용량보고 앞으로 옮긴다
+  let 되물음: 돌린결과 | undefined;
+  const 되물은 = await 요약되받기(것, 풀린.글, 세션번호(돌린것.낸것), 단계.includes('일부러 고장 내 보기'), async (고치기, 글) => (되물음 = await 띄운다(undefined, undefined, { 인자: 고치기(인자), 글 })).낸것);
+  if (멈춤.까닭 !== null) return;
+  if (되물음 !== undefined && !(await 자식거두기(자식))) return void (await 손.끝내기({ status: 'FAILED', error: '자식이 남긴 프로세스를 거두지 못했다 — 올리지 않는다' }));
+  if (되물음?.멈춤으로죽음 === true) return void (await 손.끝내기(끝낼상태(되물음, false) ?? {}));
+  if (되물음?.코드 === 0 && !되물음.시간초과 && 되물은 !== '' && !한도걸렸나(되물은, 되물음.오류)) 풀린.글 = 되물은; // 요약을 처음부터 다시 적게 했다 — 붙이면 두 벌이 된다
   // 보류 케이스와 원장 셈은 자식의 말이 아니라 코드에서 계산해 끝내기에 싣는다 — 싣는 손은 올리기가 건다 (작성 §3.6)
   await 올리기(
     자리, 것, 서비스, 판.판정, 기준, 풀린.글, 테스트고침싣는손(손, 것, () => ({ 자식출력: 풀린.글, 결과폴더: 자리.임시, 비밀: 비밀번호들(것), 파일: (tcId) => 고치기전후(기준목록.낸것, 자리.트리, 깃, tcId), 바뀐: () => 고친테스트파일들(자리.트리, join(자리.자료, 기준목록이름)) })),
