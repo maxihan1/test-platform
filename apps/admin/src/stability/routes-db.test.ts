@@ -117,7 +117,7 @@ describe.skipIf(연결 === undefined)('안정화 지표 통로', { timeout: 60_0
     const 일 = Number(
       (
         await pool.query<{ id: string }>(
-          `INSERT INTO perf_ai_job (kind, service_id, input, status, output) VALUES ('STAB_SUMMARY', $1, '{}', 'DONE', $2) RETURNING id`,
+          `INSERT INTO perf_ai_job (kind, service_id, input, status, output, finished_at) VALUES ('STAB_SUMMARY', $1, '{}', 'DONE', $2, '2026-11-11T03:42:00Z') RETURNING id`,
           [앱, JSON.stringify({ headline: '임시' })],
         )
       ).rows[0]!.id,
@@ -212,6 +212,7 @@ describe.skipIf(연결 === undefined)('안정화 지표 통로', { timeout: 60_0
       features: [{ name: '홈', errorCases: 1 }],
       verified: '1종 해결 확인',
       trend: '잔여 오류 그대로',
+      finishedAt: '2026-11-11T03:42:00.000Z',
     });
   });
 
