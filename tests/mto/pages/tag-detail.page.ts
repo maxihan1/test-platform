@@ -46,6 +46,10 @@ export class 해시태그상세화면 {
     await this.저장.waitFor();
   }
 
+  async 스크립트다불러올때까지(): Promise<void> {
+    await this.page.waitForLoadState('load');
+  }
+
   async 저장누르기(): Promise<void> {
     await this.저장.click();
   }

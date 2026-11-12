@@ -22,6 +22,8 @@ export class 역할폼화면 {
   readonly 칸오류들: Locator;
   readonly 우선순위초과오류: Locator;
   readonly 안전하지않음오류: Locator;
+  readonly 자기역할변경오류: Locator;
+  readonly 가진권한초과오류: Locator;
 
   constructor(private readonly page: Page) {
     this.제목 = page.getByRole('heading', { level: 1 });
@@ -40,6 +42,8 @@ export class 역할폼화면 {
     this.오류안내 = this.알림.모두.filter({ hasText: /^\s*오류가 발생했습니다/ });
     this.칸오류들 = page.locator('.error');
     this.우선순위초과오류 = page.getByText('당신의 현재 역할보다 높을 수 없습니다').first();
+    this.자기역할변경오류 = page.getByText('당신의 현재 역할을 변경할 수 없습니다').first();
+    this.가진권한초과오류 = page.getByText('당신의 현재 역할이 가지고 있지 않은 권한은 포함할 수 없습니다').first();
     this.안전하지않음오류 = page.getByText('기본 역할로 사용하기에 안전하지 않은 권한을 포함하고 있습니다').first();
   }
 
@@ -62,6 +66,28 @@ export class 역할폼화면 {
 
   권한전체(권한이름: string): Locator {
     return this.page.getByRole('checkbox', { name: new RegExp(`^${권한이름}( |$)`) });
+  }
+
+  async 우선순위실어저장하기(값: number): Promise<void> {
+    await this.이름.waitFor();
+    await this.이름.evaluate((칸, 우선순위) => {
+      const 폼 = 칸.closest('form');
+      if (폼 === null) throw new Error('역할 폼을 찾지 못했다');
+      const 숨은칸 = 칸.ownerDocument.createElement('input');
+      숨은칸.type = 'hidden';
+      숨은칸.name = 'user_role[position]';
+      숨은칸.value = String(우선순위);
+      폼.appendChild(숨은칸);
+    }, 값);
+    await this.저장.click();
+  }
+
+  async 막힌권한켜고추가하기(이름: string, 권한이름: string): Promise<void> {
+    await this.이름.fill(이름);
+    const 상자 = this.권한전체(권한이름);
+    await 상자.evaluate((칸) => 칸.removeAttribute('disabled'));
+    await 상자.check();
+    await this.추가제출.click();
   }
 
   async 추가하기(이름: string, 우선순위: number, 권한이름들: string[]): Promise<void> {
