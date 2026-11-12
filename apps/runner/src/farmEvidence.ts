@@ -1,4 +1,4 @@
-// 통과하지 못한 android 항목의 팜 증적(화면 영상 · logcat)과 호환성 항목의 AI 점검 결과를 실행 폴더로 받는다 (SPEC 러너 §5.2 「디바이스 팜 접속 방식」)
+// 통과하지 못한 android 항목의 팜 증적(화면 영상 · logcat), 호환성 항목의 AI 점검 결과, 정기 실행 통과 항목의 logcat 을 실행 폴더로 받는다 (SPEC 러너 §5.2 「디바이스 팜 접속 방식」)
 
 import { mkdir, readdir, readFile, rename, rm } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -7,6 +7,7 @@ import type { ItemStatus } from '@platform/kit';
 import { APPIUM_SESSION_ID_FILE, FARM_EVIDENCE_DIR, runDir } from '@platform/kit';
 import { farmArtifacts } from 'appium-cli';
 
+import { logcat만받는다 } from './farmLogcat.js';
 import { UI_CHECK_FILE, 점검결과를기다린다, 점검화면이름 } from './farmUiCheck.js';
 
 /**
@@ -26,11 +27,11 @@ const 알림 = (말: string, err: unknown): void =>
 // ponytail: 러너 하나에 받기 하나씩 — 실패가 몰리면 뒤 항목 증적이 늦게 뜬다. 늦으면 팜 PC 쪽에서 나란히 받는다
 let 줄: Promise<void> = Promise.resolve();
 
-/** 응답 뒤에 부른다. 실패가 몰려도 큰 영상을 한꺼번에 받지 않게 앞 받기가 끝난 뒤에 받는다. uiCheck 면 AI 점검 결과도 받는다 */
-export function 팜증적받기를줄세운다(runId: number, historyId: number | string, status: ItemStatus, 토큰?: string, uiCheck?: true): void {
+/** 응답 뒤에 부른다. 실패가 몰려도 큰 영상을 한꺼번에 받지 않게 앞 받기가 끝난 뒤에 받는다. uiCheck 면 AI 점검 결과도, stability 면 통과해도 logcat 을 받는다 */
+export function 팜증적받기를줄세운다(runId: number, historyId: number | string, status: ItemStatus, 토큰?: string, uiCheck?: true, stability?: true): void {
   // 점검 결과를 그만 받는 때는 항목이 끝난 때부터 잰다 — 앞 받기가 밀려도 admin 의 60분과 어긋나지 않게
   const 점검 = uiCheck === true ? { 끝난때: Date.now() } : undefined;
-  줄 = 줄.then(() => 팜증적을받는다(runId, historyId, status, 토큰, 점검));
+  줄 = 줄.then(() => 팜증적을받는다(runId, historyId, status, 토큰, 점검, stability));
 }
 
 /**
@@ -40,7 +41,7 @@ export function 팜증적받기를줄세운다(runId: number, historyId: number 
  */
 // 토큰은 그 연결을 연 것이어야 한다 — 팜은 남의 연결 증적을 없는 것처럼 404 로 답한다 (러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」)
 export async function 팜증적을받는다(
-  runId: number, historyId: number | string, status: ItemStatus, 요청토큰?: string, 점검?: { 끝난때: number },
+  runId: number, historyId: number | string, status: ItemStatus, 요청토큰?: string, 점검?: { 끝난때: number }, 안정화?: true,
 ): Promise<void> {
   const 폴더 = runDir(String(runId), String(historyId));
   const idFile = join(폴더, APPIUM_SESSION_ID_FILE);
@@ -59,8 +60,14 @@ export async function 팜증적을받는다(
     점검결과를기다린다(폴더, raw, sessionId, 요청토큰 ?? process.env.PLATFORM_APPIUM_TOKEN, 점검.끝난때)
       .catch((err: unknown) => 알림('AI 점검 결과를 받지 못했다', err));
   }
-  // 통과한 정식 실행 항목은 받지 않고 번호만 남긴다 — 「영상 보기」를 누를 때 admin 이 받는다
-  if (runId !== 0 && status === 'PASS' && sessionId !== '') return;
+  // 통과한 정식 실행 항목은 영상을 받지 않고 번호만 남긴다 — 「영상 보기」를 누를 때 admin 이 받는다
+  if (runId !== 0 && status === 'PASS' && sessionId !== '') {
+    // 정기 실행 항목은 logcat 하나만 받는다 — 통과해도 앱이 속으로 죽은 크래시 · ANR 을 안정화 지표가 센다 (도메인/안정화 §3.15 결정 3)
+    if (안정화 === true && raw !== undefined && raw !== '') {
+      await logcat만받는다(폴더, raw, sessionId, 요청토큰 ?? process.env.PLATFORM_APPIUM_TOKEN).catch((err: unknown) => 알림('통과 항목의 logcat 을 받지 못했다', err));
+    }
+    return;
+  }
   try {
     // 케이스 테스트 실행(runId 0)은 내 컴퓨터 러너라 admin 이 이 폴더를 못 본다
     if (runId === 0 || status === 'PASS' || sessionId === '' || raw === undefined || raw === '') return;

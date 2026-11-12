@@ -67,6 +67,7 @@ export interface ExecuteRequest {
   apiAuths?: ApiAuth[];         // 그 대상 서버 줄의 API 인증 전부. API 종류 애플리케이션 케이스만 (도메인/API §3.8 · API-F1-04)
   apiDoc?: ApiDocRef;           // 그 케이스의 판. CaseSpec.apiDoc 이 있을 때만 (도메인/API §3.8 · API-F1-05)
   recordHar?: { jobId: number }; // 성능 시나리오 녹화 — 오면 HAR 를 남긴다. jobId 는 기다리는 perf_ai_job 번호. 기록 · 증적에 안 남는다 (공통/3-공유계약 「성능 테스트 타입」)
+  stability?: true;             // 정기 실행의 android 항목(Android 앱 · 게임)만. 러너가 통과해도 팜 logcat 하나를 받는다 — 안정화 지표가 통과 항목의 크래시 · ANR 도 센다 (도메인/안정화 §3.15 결정 3 · STAB-F1-04)
   uiCheck?: true;               // 호환성 실행 항목만. historyId 는 compat_run_case.id. android 면 kit 이 Appium 연결 capability 에 farm:uiCheck: true 를 넣고 러너가 통과해도 ui-check.json · ui-*.png 를 받는다. 모바일 웹 항목에는 안 싣는다 — admin 이 Chrome 을 켤 때 점검을 켜고 결과도 받는다 (도메인/호환성 §7 「러너 · kit」)
   live?: string;                // 장면 열쇠(UUID — 테스트 실행은 그 시험의 trialId · 정식 실행은 항목마다 새것). 오면 마지막 장면을 GET /live/:key 로 낸다. 테스트 실행(runId 0)이면 동작마다 1초 쉬고(누른 곳 표시는 2026-11-06 WEB-F9-14 에 뺐다), 정식 실행은 장면만 찍는다 · 정식 실행 android 도 폰 장면을 찍는다(2026-11-11 — 앞 판은 400) (도메인/러너 §5.2 「테스트 모드 — 실시간 장면」)
 }
@@ -128,6 +129,7 @@ export interface DeviceInfo {
   // 앱 versionCode — 빌드마다 바뀌어 실행의 빌드 번호와 견준다(versionName 은 빌드마다 안 바뀌는 일이 많다). 이 칸 전 기록에는 없다 (도메인/실행 §3.11)
   appBuild?: string | null;
   browser?: string | null;      // 실제 폰 mobile 항목의 Chrome 판 (예: 156.0.7339.51). 앱 항목에는 없다 (도메인/러너 §5.2 「모바일 웹 — 실제 폰 Chrome」 · TMO-F4-02)
+  appPackage?: string | null;   // 연결이 연 앱 패키지 이름(연결 응답의 appPackage). 앱 파일이 APK 주소여도 admin 이 logcat 에서 그 앱의 크래시 · ANR 만 가른다. 이 칸 전 기록에는 없다 (도메인/안정화 §3.15 「무엇을 세나」 · STAB-F1-04)
 }
 
 // kit이 절차를 시작할 때 stdout으로 흘리는 것. 아직 흐른 시간이 없어 칸을 만들지 않는다

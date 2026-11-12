@@ -116,7 +116,7 @@ export async function readDevice(driver: AppDriver): Promise<DeviceInfo> {
   const 칸 = (이름: string): string | null => 글자(caps[이름]) ?? 글자(caps[`appium:${이름}`]);
   const pkg = 칸('appPackage');
   // 앱 이름이 응답에 없으면 묻지 않는다 — 앞에 뜬 앱(런처 · 권한 창)에 물으면 남의 판이 증적에 박힌다
-  if (pkg === null) return { model: 칸('deviceModel'), osVersion: 칸('platformVersion'), appVersion: null, appBuild: null };
+  if (pkg === null) return { model: 칸('deviceModel'), osVersion: 칸('platformVersion'), appVersion: null, appBuild: null, appPackage: null };
   let appVersion: string | null = null;
   let appBuild: string | null = null;
   try {
@@ -126,7 +126,7 @@ export async function readDevice(driver: AppDriver): Promise<DeviceInfo> {
   } catch (err) {
     console.error(`[kit] 앱 판을 읽지 못했다 — Appium 을 --allow-insecure=uiautomator2:adb_shell 로 켜야 한다: ${err instanceof Error ? err.message : String(err)}`);
   }
-  return { model: 칸('deviceModel'), osVersion: 칸('platformVersion'), appVersion, appBuild };
+  return { model: 칸('deviceModel'), osVersion: 칸('platformVersion'), appVersion, appBuild, appPackage: pkg };
 }
 
 export function captureApp(driver: AppDriver, seq: number, 요소?: unknown): Promise<string | undefined> {
