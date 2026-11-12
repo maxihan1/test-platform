@@ -60,7 +60,7 @@ describe.skipIf(연결 === undefined)('안정화 AI 실행 요약 일', { timeou
       `INSERT INTO app_user (username, display_name, password_hash, role, is_approved, must_change_password) VALUES ($1, $1, $2, 'member', true, false)`,
       [에이전트, await 해시('열려라참깨')],
     );
-    await pool.query(`INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring) VALUES ($1, $2, 'read', 'none', 'write')`, [에이전트, 프로젝트]);
+    await pool.query(`INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring) VALUES ($1, $2, 'read', 'read', 'write')`, [에이전트, 프로젝트]);
     const res = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username: 에이전트, password: '열려라참깨' } });
     쿠키 = (res.headers['set-cookie'] as string).split(';')[0] ?? '';
 
