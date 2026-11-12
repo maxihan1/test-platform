@@ -26,7 +26,7 @@ afterEach(() => {
 
 describe('logcat만받는다', () => {
   it('산출물 목록에서 logcat.txt 만 받아 farm/logcat.txt 에 두고 영상은 부르지 않는다', async () => {
-    const fetch = vi.fn(async (주소: string) => {
+    const fetch = vi.fn(async (주소: string, _설정?: RequestInit) => {
       if (주소 === 목록주소) {
         return 답({ ready: true, files: [{ name: 'video-1.mp4', url: '/wd/hub/api/sessions/sess-1/files/video-1.mp4' }, { name: 'logcat.txt', url: '/wd/hub/api/sessions/sess-1/files/logcat.txt' }] });
       }
