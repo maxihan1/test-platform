@@ -169,8 +169,9 @@
 
 ### ② 서버 · 러너 · kit
 **무엇** 표를 만들고, 웹 · 앱 · 게임 로그를 센 규칙대로 묶어 저장하고, 상태 · 추이 · AI 요약 통로를 연다.
-- [ ] `STAB-F1-02` 표 + 판정 · 지문 · 상태 함수 — 마이그레이션(`stab_run` · `stab_error` · `stab_run_error` · `stab_occurrence` · `stab_sample` · `perf_ai_job` 종류 `STAB_SUMMARY`) · 「센다 / 안 센다」 판정 · 메시지 틀 · 지문(웹 · 앱 · 게임) · 상태 차례(신규 · 재발 · 증가 · 기존) 순수 함수 + 단위 테스트
-- [ ] `STAB-F1-03` 웹 집계 — 정기 실행이 끝나면 trace 풀기를 기다려(상한 15분) `run_console` · `run_network` → 판정 → 지문 → 상태 → 저장 · 분모 · 예외 축 빼기 · 메아리 줄 · 견본 셋 · 관리 서버 다시 켜질 때 빠진 집계
+- [x] `STAB-F1-02` 표 + 판정 · 지문 · 상태 함수 — 마이그레이션(`stab_run` · `stab_error` · `stab_run_error` · `stab_occurrence` · `stab_sample` · `perf_ai_job` 종류 `STAB_SUMMARY`) · 「센다 / 안 센다」 판정 · 메시지 틀 · 지문(웹 · 앱 · 게임) · 상태 차례(신규 · 재발 · 증가 · 기존) 순수 함수 + 단위 테스트
+  - 근거 PR #743 · 2026-11-12 — 함수는 `apps/admin/src/stability/`(`fingerprint.ts` · `webJudge.ts` · `state.ts`). 다음 줄이 알 것: 앱 크래시 지문은 logcat 의 예외 줄 · `at` 줄을 그대로 받는다(F1-04 가 덩어리를 잘라 넘긴다) · 프레임 이름의 숫자(익명 클래스 · 람다 번호)는 지문 재료에서만 접는다 · 웹 화면 주소는 시각(`at_ms`) 기준 · pageerror 는 첫 줄만 본다(WebKit · Firefox 스택은 첫 줄에 메시지가 없다 — 지금 대상은 Chromium) · `net::ERR_ABORTED` 도 명세대로 「요청 끊김」으로 센다(시험에서 많으면 명세를 다시 본다)
+- [ ] `STAB-F1-03` 웹 집계 — 정기 실행이 끝나면 trace 풀기를 기다려(상한은 §3.15 「집계」) `run_console` · `run_network` → 판정 → 지문 → 상태 → 저장 · 분모 · 예외 축 빼기 · 메아리 줄 · 견본 셋 · 관리 서버 다시 켜질 때 빠진 집계
 - [ ] `STAB-F1-04` 앱 집계 — kit `ExecuteRequest.stability` · admin 이 정기 실행 Android 앱 · 게임 항목에 싣기 · 러너가 통과 항목도 logcat 하나 받기 · FATAL EXCEPTION · ANR 고르기 · 크래시 칸 · 디바이스 칸
 - [ ] `STAB-F1-05` 게임 집계 — kit `PLATFORM_STABILITY` · 통과 항목도 게임 오류 파일(Exception 만 · 오류 없어도 머리 줄) · 게임 스택 지문 · 오류 시각으로 단계 맞추기
 - [ ] `STAB-F1-06` 상태 · 추이 · API — `GET /api/stability` · `GET /api/stability/errors/:id` · 해결 처리 · 해결 확인 · 일별 추이(정기 실행 시간대) · 이전 실행 비교 · Issue Bunker 등록(보내기 줄) · 라우트표 두 줄
