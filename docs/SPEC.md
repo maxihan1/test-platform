@@ -306,7 +306,7 @@ WS-0 과 integration 은 장을 따로 싣지 않는다 — 전 갈래를 건드
 | `app_build` · `service_token` (2026-10-24 · GAME-F1-13 반영) | 실행 (빌드마다 돌리기 — `service_token` 은 설정이 발급하고 문이 확인한다 · 모든 종류가 쓴다) | [도메인/실행](spec/도메인/실행.md) |
 | `bts_link` · `bts_deploy` · `bts_claim` · `bts_issue_case` · `bts_outbox` · `project_note` · `project_note_event` (2026-10-31 · BTS-F1-01 — 다 반영 — `bts_deploy` · `bts_claim` 은 BTS-F5-01) | BTS (`service.code_repos` 는 설정이 쓰고 수정 AI 만 읽는다 · `authoring_request` 종류 PRD_DRAFT · NOTE · BUGFIX 는 작성 표다) | [도메인/BTS](spec/도메인/BTS.md) |
 | `chat_conversation` · `chat_question` · `chat_chunk` · `chat_usage` (2026-11-11 · SCOUT-F1-01 · SCOUT-F1-03 반영) | 챗봇 (로그아웃 · Auth back-channel 이 대화를 지운다 — 인증이 챗봇 함수를 부른다) | [도메인/챗봇](spec/도메인/챗봇.md) |
-| `stab_run` · `stab_error` · `stab_run_error` · `stab_occurrence` · `stab_sample` (2026-11-12 · STAB-F1-01 대기) | 안정화 (`run_console` · `run_network` · `run_trace` · `run_item` · `req_case` 를 SQL 로 읽기만 한다 · AI 요약은 성능의 `perf_ai_job` 에 종류 `STAB_SUMMARY` 로 세운다) | [도메인/안정화](spec/도메인/안정화.md) |
+| `stab_run` · `stab_error` · `stab_run_error` · `stab_occurrence` · `stab_sample` (2026-11-12 · STAB-F1-02 반영) | 안정화 (`run_console` · `run_network` · `run_trace` · `run_item` · `req_case` 를 SQL 로 읽기만 한다 · AI 요약은 성능의 `perf_ai_job` 에 종류 `STAB_SUMMARY` 로 세운다) | [도메인/안정화](spec/도메인/안정화.md) |
 | `scenario` · `scenario_version` · `scenario_run_part` · `scenario_run_step` | 시나리오 (`test_run` 은 실행의 것이고 `kind` 로 갈라 쓴다) | [도메인/시나리오](spec/도메인/시나리오.md) |
 
 **계약 파일을 고치는 `contracts` 단위**는 위 표들이 전부 자기 몫이다. 소유 도메인은 그 뒤에 읽고 쓴다.
