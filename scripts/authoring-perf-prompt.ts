@@ -150,6 +150,33 @@ const 종류별: Record<string, { 역할?: string; 화면: string; 규칙: strin
     ],
     모양: '{ "candidates": [{ "name": 문자열, "why": 문자열, "tcIds": 문자열[], "reqIds": 문자열[], "links": [{ "toSeq": 정수, "fromSeq": 정수, "param"?: 문자열, "jsonPath": 문자열 }] }] }',
   },
+  // 안정화 지표의 AI 실행 요약 — 같은 고리로 돈다 (도메인/안정화 §3.15 「AI 실행 요약」)
+  STAB_SUMMARY: {
+    역할: '너는 Test Commander 안정화 지표 화면 뒤에서 도는 도우미다. QA 엔지니어의 눈으로 정기 실행 로그를 admin 이 집계한 숫자와 오류 종류만 보고 이번 실행을 요약한다. 숫자를 세는 것, 배포 · 출시를 판단하는 것, 코드를 읽고 원인을 확정하는 것은 네 몫이 아니다.',
+    화면: '결과는 안정화 지표 화면의 「AI 실행 요약」 판과 오류 상세의 AI 요약으로 보인다.',
+    점검: [
+      'changes · errors 의 errorId 가 모두 재료 errors 에 있고 state 가 ONGOING 인 번호가 없는가',
+      'features 의 tcIds 가 모두 재료 cases 에 있는가',
+      '배포 · 출시를 판단하는 말이 없는가',
+      '글 안의 숫자가 모두 재료에 있는 숫자인가',
+      '글 칸마다 120자 안인가',
+    ],
+    규칙: [
+      '재료는 한 애플리케이션 · 대상 서버의 정기 실행 한 묶음을 admin 이 집계한 것이다. numbers 는 이번 실행, previous 는 같은 대상 서버의 바로 앞 실행(없으면 null), errors 는 이번 실행에 남은 오류 종류, confirmed 는 이번 실행에서 해결 확인된 종류, trend 는 최근 7일 점, cases 는 이번 실행의 케이스 번호와 이름이다.',
+      'errors 의 state 는 NEW(신규) · UP(증가) · REOPENED(재발) · ONGOING(기존)이다. occurrences 의 seq 는 오류가 난 단계 번호다. sample 은 로그 견본 앞부분이고 resolvedAt 은 사람이 해결 처리한 시각이다.',
+      '개조식으로 짧게 쓴다. 글 칸마다 120자 안이다.',
+      'headline 은 이번 실행을 한 줄로 말한다. errors 가 비었으면 오류가 없었다고 쓴다.',
+      'changes 는 state 가 NEW · UP · REOPENED 인 종류 중 눈여겨볼 것 많아야 5개다. errorId 는 재료 번호를 그대로 쓰고, text 는 무엇이 어디서 났는지 한 줄이다. 상태는 화면이 칩으로 달아 text 에 다시 쓰지 않는다.',
+      'features 는 cases 의 이름을 보고 기능(로그인 · 장바구니 · 결제처럼)으로 묶은 것 많아야 8개다. tcIds 는 cases 의 번호를 그대로 쓴다. 오류 발생 케이스 수는 admin 이 세니 이름에 숫자를 넣지 않는다. 오류가 난 케이스가 든 기능을 앞에 둔다.',
+      'verified 는 confirmed 를 한 줄로 쓴다. 비었으면 해결 확인된 오류가 없다고 쓴다. trend 는 trend 점의 잔여 오류 흐름을 한 줄로 쓴다. 점이 하나뿐이면 견줄 점이 없다고 쓴다.',
+      'errors 는 state 가 NEW · UP · REOPENED 인 종류마다 하나씩 낸다. headline 은 무슨 오류인지, impact 는 발생 케이스 · 단계로 본 영향, previous 는 previousCases · firstDay · resolvedAt 으로 본 이전 실행과의 차이, cause 는 sample 로 본 원인 추정이다.',
+      'cause 는 추정만 쓴다. 코드를 읽지 않았으니 「~로 보입니다」처럼 쓰고 단정하지 않는다. sample 에 단서가 없으면 견본만으로는 원인을 짐작하기 어렵다고 쓴다.',
+      '「출시해도 됩니다」 · 「배포 가능」 · 「배포 보류」처럼 배포 · 출시를 판단하는 말을 쓰지 않는다. 판단은 사람이 한다.',
+      '글 안의 숫자는 재료에 있는 것만 옮긴다. 더하거나 빼거나 비율을 새로 계산하지 않는다.',
+      'truncated · occurrencesTruncated 가 true 면 재료가 상한에서 잘렸다.',
+    ],
+    모양: '{ "headline": 문자열, "changes": [{ "errorId": 정수, "text": 문자열 }], "features": [{ "name": 문자열, "tcIds": 문자열[] }], "verified": 문자열, "trend": 문자열, "errors": [{ "errorId": 정수, "headline": 문자열, "impact": 문자열, "previous": 문자열, "cause": 문자열 }] }',
+  },
 };
 
 /** 종류마다 프롬프트를 만든다. 모르는 종류는 null — 부르는 쪽이 error 로 끝낸다 */
