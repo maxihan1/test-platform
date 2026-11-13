@@ -70,7 +70,14 @@ export interface 칩 {
   의심: number;
 }
 
-function 회차칩(o: 회차, 세트: 세트): 칩 {
+/** 정한 시각에 같은 프로젝트의 다른 회차가 돌고 있었나 — 그때만 「앞 세트 대기」다. 늦은 까닭이 1분 점검 간격 · 재기동이면 대기가 아니다.
+ *  ponytail: 받은 기간 밖(어제 시작해 자정을 넘긴) 회차는 못 본다 — 그런 대기는 대기로 안 그린다 */
+function 기다렸나(o: 회차, 회차들: readonly 회차[]): boolean {
+  const 정한 = Date.parse(o.plannedAt);
+  return 회차들.some((p) => p.id !== o.id && p.startedAt !== null && Date.parse(p.startedAt) <= 정한 && (p.finishedAt === null || Date.parse(p.finishedAt) > 정한));
+}
+
+function 회차칩(o: 회차, 세트: 세트, 기다림: boolean): 칩 {
   const 정한분 = 시간대로(new Date(o.plannedAt), 세트.tz).분;
   // 앞 세트를 기다리다 자정을 넘겨 시작할 수 있다 — 회차 날(plannedOn) 0시부터 센다
   const 그날분 = (iso: string) => {
@@ -85,7 +92,7 @@ function 회차칩(o: 회차, 세트: 세트): 칩 {
     정한분,
     시작분,
     끝분: o.finishedAt === null ? 시작분 + (세트.avgMinutes ?? 0) : 그날분(o.finishedAt),
-    대기분: o.startedAt === null ? 0 : Math.max(0, Math.round((Date.parse(o.startedAt) - Date.parse(o.plannedAt)) / 60_000)),
+    대기분: o.startedAt === null || !기다림 ? 0 : Math.max(0, Math.round((Date.parse(o.startedAt) - Date.parse(o.plannedAt)) / 60_000)),
     상태,
     회차: o,
     실패: o.runs.filter((r) => r.kind !== 'COMPAT').reduce((n, r) => n + r.failed, 0),
@@ -106,7 +113,7 @@ export function 칩들(세트들: readonly 세트[], 회차들: readonly 회차[
     const 세트 = 세트표.get(o.setId);
     있음.add(`${String(o.setId)}|${o.plannedOn}`);
     if (세트 === undefined || o.state === 'SKIPPED') continue;
-    넣기(회차칩(o, 세트));
+    넣기(회차칩(o, 세트, 기다렸나(o, 회차들)));
   }
   for (const 세트 of 세트들) {
     if (!세트.isOn) continue;
@@ -158,6 +165,32 @@ export function 시간범위(칸들: readonly 칩[]): [number, number] | null {
   const 처음 = Math.min(...칸들.map((c) => Math.min(c.정한분, c.시작분)));
   const 끝 = Math.max(...칸들.map((c) => Math.max(c.끝분, c.시작분 + 30)));
   return [Math.floor(처음 / 60), Math.ceil(끝 / 60)];
+}
+
+/** 주 · 일 보기에서 시간이 걸치는 막대를 옆으로 나눈다 — 안 나누면 늦은 막대가 앞 막대를 덮어 세트 하나가 사라진다.
+ *  막대는 최소 높이가 있어 `최소분` 보다 짧아도 그만큼 자리를 차지한다. 들어온 차례대로 [몇째 줄, 줄 수] 를 돌려준다 */
+export function 나란히(칸들: readonly { 시작분: number; 끝분: number }[], 최소분: number): { 줄: number; 줄수: number }[] {
+  const 끝 = (c: { 시작분: number; 끝분: number }) => Math.max(c.끝분, c.시작분 + 최소분);
+  const 차례 = 칸들.map((_, i) => i).sort((a, b) => 칸들[a]!.시작분 - 칸들[b]!.시작분);
+  const 답 = 칸들.map(() => ({ 줄: 0, 줄수: 1 }));
+  let 묶음: number[] = [];
+  let 줄끝: number[] = [];
+  const 닫기 = () => {
+    for (const i of 묶음) 답[i]!.줄수 = 줄끝.length;
+    묶음 = [];
+    줄끝 = [];
+  };
+  for (const i of 차례) {
+    const c = 칸들[i]!;
+    if (줄끝.length > 0 && 줄끝.every((e) => e <= c.시작분)) 닫기();
+    const 빈줄 = 줄끝.findIndex((e) => e <= c.시작분);
+    const 줄 = 빈줄 === -1 ? 줄끝.length : 빈줄;
+    줄끝[줄] = 끝(c);
+    답[i]!.줄 = 줄;
+    묶음.push(i);
+  }
+  닫기();
+  return 답;
 }
 
 /** 실행 결과로 가는 주소 — 호환성은 따로 선다 (route.ts) */

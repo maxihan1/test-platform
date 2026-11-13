@@ -5,7 +5,21 @@
 .sched-wiz .authoring-field input,
 .sched-wiz select { min-width: 0; }
 
-.sched-wiz-search { width: 100%; }
+/* 탭 · 고르개 · 전체 · 검색 · 목록 · 담은 것이 붙어 보이지 않게 띄운다 */
+.sched-wiz-pick { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.sched-wiz-pick > .sched-seg { align-self: flex-start; }
+
+/* 검색 칸도 이름 칸과 같은 우묵한 자리다 — 안 적으면 type=search 는 공통 입력칸 규칙에 안 걸려 브라우저 기본 상자로 보인다 */
+.sched-wiz-search {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--well);
+  color: var(--ink);
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  font: inherit;
+}
 
 .sched-wiz-cases {
   list-style: none;

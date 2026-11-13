@@ -183,6 +183,8 @@ describe('정기 실행 세트 마법사', () => {
     expect((within(창()).getByRole('textbox') as HTMLInputElement).value).toBe('결제 회귀');
     다음();
     await within(창()).findByText('담은 테스트 1개');
+    expect((within(창()).getByRole('combobox') as HTMLSelectElement).value).toBe('MKT');
+    expect((within(창()).getByRole('checkbox', { name: /전체 382건/u }) as HTMLInputElement).checked).toBe(true);
     다음();
     expect((within(창()).getByRole('combobox', { name: 'MKT 대상 서버' }) as HTMLSelectElement).value).toBe('stg');
     다음();

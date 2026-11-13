@@ -2,7 +2,7 @@
 // 정기 실행 화면 검사 — 세트 카드 · 달력 · 칸 창 · 끄기 · 빈 상태 (도메인/정기실행 §8.20)
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 import type { ServiceRow } from './api.js';
 import { Sched } from './Sched.js';
@@ -156,6 +156,51 @@ describe('정기 실행 화면', () => {
     차리기([세트하나({ id: 1, name: '출시 전 점검', at: '01:00', days: [1], avgMinutes: 170, last: null }), 세트하나({ id: 2, at: '02:00', days: [1], last: null })]);
     render(<Sched service={앱} 앱들={[앱, 앱]} 쓰나 />);
     expect((await screen.findAllByRole('button', { name: /결제 회귀\s*대기 · 03:50쯤 시작/u })).length).toBeGreaterThan(0);
+  });
+
+  it('일 보기에서 1분 차이로 걸치는 두 세트 막대는 서로 덮지 않고 나란히 선다', async () => {
+    차리기([세트하나({ id: 1, at: '17:49', days: [5], avgMinutes: null, last: null }), 세트하나({ id: 2, name: '웹 전체 회귀', at: '17:50', days: [5], avgMinutes: null, last: null })]);
+    render(<Sched service={앱} 앱들={[앱, 앱]} 쓰나 />);
+    await screen.findAllByRole('button', { name: /웹 전체 회귀\s*17:50 예정/u });
+    fireEvent.click(screen.getByRole('button', { name: '일' }));
+    const 막대 = await waitFor(() => {
+      const 둘 = Array.from(document.querySelectorAll<HTMLElement>('.sched-blk'));
+      expect(둘).toHaveLength(2);
+      return 둘;
+    });
+    expect(막대.map((b) => b.style.left)).toEqual(['calc(4px + 0 * (100% - 8px))', 'calc(4px + 0.5 * (100% - 8px))']);
+  });
+
+  it('일 보기의 대기 점선은 막대와 글자가 겹치지 않을 만큼 기다렸을 때만 그린다', async () => {
+    const 앞 = 회차하나({ id: 1, setId: 1, plannedOn: '2026-11-13', plannedAt: '2026-11-13T00:00:00Z', startedAt: '2026-11-13T00:00:30Z', finishedAt: '2026-11-13T00:02:00Z', verdict: 'PASS', runs: [] });
+    const 뒤 = (시작: string) => 회차하나({ id: 2, setId: 2, plannedOn: '2026-11-13', plannedAt: '2026-11-13T00:01:00Z', startedAt: 시작, finishedAt: '2026-11-13T00:59:00Z', verdict: 'PASS', runs: [] });
+    const 세트들 = [세트하나({ id: 1, at: '09:00', days: [5], last: null }), 세트하나({ id: 2, name: '웹 전체 회귀', at: '09:01', days: [5], last: null })];
+    const 점선수 = async (시작: string, 앞끝: string) => {
+      차리기(세트들, [{ ...앞, finishedAt: 앞끝 }, 뒤(시작)]);
+      const { unmount } = render(<Sched service={앱} 앱들={[앱, 앱]} 쓰나 />);
+      fireEvent.click(await screen.findByRole('button', { name: '일' }));
+      await screen.findByRole('button', { name: /웹 전체 회귀 · 대기/u });
+      const 수 = document.querySelectorAll('.sched-ghost').length;
+      unmount();
+      return 수;
+    };
+    expect(await 점선수('2026-11-13T00:02:05Z', '2026-11-13T00:02:00Z')).toBe(0);
+    expect(await 점선수('2026-11-13T00:40:00Z', '2026-11-13T00:40:00Z')).toBe(1);
+  });
+
+  it('오늘이 보이는 동안 1분마다 세트 · 회차를 다시 읽는다 — 시작한 회차가 「예정」으로 남지 않게', async () => {
+    vi.useRealTimers();
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] });
+    vi.setSystemTime(new Date('2026-11-13T01:30:00Z'));
+    차리기([세트하나()]);
+    render(<Sched service={앱} 앱들={[앱, 앱]} 쓰나 />);
+    await screen.findByRole('button', { name: /결제 회귀/u, pressed: false });
+    expect(schedApi.calendar).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      vi.advanceTimersByTime(60_000);
+    });
+    expect(schedApi.calendar).toHaveBeenCalledTimes(2);
+    expect(schedApi.sets).toHaveBeenCalledTimes(2);
   });
 
   it('끄기는 세트를 끄고 다시 읽는다. 읽기만 하는 사람에게는 단추가 없다', async () => {

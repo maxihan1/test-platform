@@ -6,7 +6,7 @@ import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import type { 세트, 회차실행 } from './schedApi.js';
 import { 세트색, 종류글, 짧은날, 요일글 } from './SchedCards.js';
-import { 날더하기, 시각글, 시간범위, 실행주소, 월칸들, 주시작, type 칩 } from './schedView.js';
+import { 나란히, 날더하기, 시각글, 시간범위, 실행주소, 월칸들, 주시작, type 칩 } from './schedView.js';
 
 type 말 = ReturnType<typeof use말>;
 export type 보기 = 'month' | 'week' | 'day';
@@ -174,22 +174,30 @@ function 월보기({ 기준, 오늘, 세트들, 표, on열기, on날 }: 달력�
 
 /** 한 시간 높이 — 35분 막대에도 두 줄(시각 · 이름 / 결과)이 들어간다. schedCal.css `.sched-col` 줄 간격과 같다 */
 const 칸높이 = 56;
+/** 막대 최소 높이 — 시각 · 이름 한 줄은 늘 보이게 */
+const 막대최소 = 34;
+/** 점선 글자 높이 — 대기가 짧아 막대가 이보다 가까우면 점선 글자가 막대 글자를 덮어 점선을 안 그린다(막대에 「대기」가 있다) */
+const 점선글높이 = 18;
+/** 걸치는 막대끼리 칸 너비를 나눠 쓴다 — 양옆 4px 은 schedCal.css `.sched-blk` 와 같다 */
+const 옆자리 = ({ 줄, 줄수 }: { 줄: number; 줄수: number }) =>
+  줄수 === 1 ? {} : { left: `calc(4px + (100% - 8px) * ${String(줄 / 줄수)})`, right: 'auto', width: `calc((100% - 8px) / ${String(줄수)} - 2px)` };
 
 /** 세로 시간 줄 하나 — 지난 칸은 걸린 시간만큼 막대, 기다렸으면 정한 시각에 점선 (§8.20 「주 · 일 보기」) */
 function 시간칸({ 줄, 범위, 세트들, on열기 }: { 줄: 칩[]; 범위: [number, number]; 세트들: readonly 세트[]; on열기: (c: 칩) => void }) {
   const t = use말();
   // 펼친 시간보다 앞선 칸은 없다(시간범위) — 그래도 위로 넘치지 않게 0 에서 멈춘다
   const 위 = (분: number) => Math.max(0, ((분 - 범위[0] * 60) / 60) * 칸높이);
+  const 자리 = 나란히(줄, (막대최소 / 칸높이) * 60);
   return (
     <div className="sched-col" style={{ height: (범위[1] - 범위[0]) * 칸높이 }}>
-      {줄.map((c) => (
+      {줄.map((c, i) => (
         <Fragment key={c.세트.id}>
-          {c.대기분 > 0 ? (
-            <div className="sched-ghost" style={{ top: 위(c.정한분) }}>
+          {c.대기분 > 0 && 위(c.시작분) - 위(c.정한분) >= 점선글높이 ? (
+            <div className="sched-ghost" style={{ top: 위(c.정한분), ...옆자리(자리[i]!) }}>
               <span>{t('{시각} {이름} 예정', { 시각: 시각글(c.정한분), 이름: c.세트.name })}</span>
             </div>
           ) : null}
-          <button type="button" className={`sched-blk ${c.상태}`} style={{ top: 위(c.시작분), height: Math.max(34, ((c.끝분 - c.시작분) / 60) * 칸높이 - 2), borderLeftColor: 세트색(세트들, c.세트.id) }} onClick={() => on열기(c)}>
+          <button type="button" className={`sched-blk ${c.상태}`} style={{ top: 위(c.시작분), height: Math.max(막대최소, ((c.끝분 - c.시작분) / 60) * 칸높이 - 2), ...옆자리(자리[i]!), borderLeftColor: 세트색(세트들, c.세트.id) }} onClick={() => on열기(c)}>
             <b>{시각글(c.시작분)}</b> {c.세트.name} · {칩글(c, t)}
           </button>
         </Fragment>
