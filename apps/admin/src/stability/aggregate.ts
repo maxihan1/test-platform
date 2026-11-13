@@ -45,11 +45,13 @@ interface 묶음행 {
 export const 묶음SQL = `
   WITH 이 AS (
     SELECT r.service_id, r.env, s.kind AS service_kind, z.tz, r.sched_occurrence_id AS occ, o.state AS occ_state,
-           (SELECT count(*) FROM sched_set_item i WHERE i.set_id = o.set_id AND i.kind IN ('UI', 'FN'))::int AS occ_lines,
+           -- 돌릴 케이스가 없어 실행이 안 선 줄(NO_CASE — UI 케이스가 없는 애플리케이션)은 빼고 센다. 앞 판도 그 종류 실행을 안 만들고 집계했다
+           ((SELECT count(*) FROM sched_set_item i WHERE i.set_id = o.set_id AND i.kind IN ('UI', 'FN'))
+            - (SELECT count(*) FROM jsonb_array_elements(o.notes) n WHERE n->>'reason' = 'NO_CASE' AND n->>'kind' IN ('UI', 'FN')))::int AS occ_lines,
            COALESCE(o.planned_on, (r.started_at AT TIME ZONE z.tz)::date) AS day
       FROM test_run r JOIN service s ON s.id = r.service_id
       CROSS JOIN LATERAL (SELECT COALESCE((SELECT b.tz FROM sched_set b JOIN sched_set_item bi ON bi.set_id = b.id
-                                            WHERE b.is_base AND bi.service_id = r.service_id ORDER BY b.id LIMIT 1), 'UTC') AS tz) z
+                                            WHERE b.is_base AND bi.service_id = r.service_id ORDER BY b.is_on DESC, b.id LIMIT 1), 'UTC') AS tz) z
       LEFT JOIN sched_occurrence o ON o.id = r.sched_occurrence_id
       LEFT JOIN sched_set st ON st.id = o.set_id
      WHERE r.run_id = $1 AND r.origin = 'SCHEDULED' AND r.kind IN ('UI', 'FN') AND (r.sched_occurrence_id IS NULL OR st.is_base))

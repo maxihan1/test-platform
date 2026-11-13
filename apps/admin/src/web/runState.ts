@@ -112,7 +112,7 @@ export function 끝났다고알릴까(그것: { 전: string; 후: string; runId:
  * 인증 이전 실행에는 확인된 실행자가 없다. 이름 칸이 비어 있는 것이 그 표시다.
  * **값을 지어내 채우지 않는다** — 모르는 것은 모른다고 적는 것이 기록이다.
  *
- * 정기 실행은 따로 가르지 않는다. `execution/scheduled.ts` 가 이름을 `스케줄러` 로 박아 넣는다.
+ * 정기 실행은 따로 가르지 않는다. `sched/make.ts` 가 이름을 `스케줄러` 로 박아 넣는다.
  * 빌드 실행은 서버가 CI 토큰을 만든 사람 이름을 그대로 박는다 — 그 사람이 누른 것으로 읽히지 않게 「빌드」를 붙인다 (도메인/실행 §3.11)
  */
 export function 실행자이름(run: { triggeredBy: string; triggeredByName: string | null; origin?: string }, 언어: 언어): string {

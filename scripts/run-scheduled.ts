@@ -28,7 +28,8 @@ async function main(): Promise<void> {
     const 세트 = await pool.query('SELECT 1 FROM sched_set WHERE id = $1', [id]);
     if (세트.rowCount === 0) throw new Error(`세트 ${String(id)} 이 없다. 정기 실행 화면의 세트 번호를 확인해라`);
     if (r.rows[0] === undefined) throw new Error(`세트 ${String(id)} 은 오늘 회차가 이미 있다. 정기 실행 달력에서 그 회차를 봐라`);
-    console.log(`회차 ${r.rows[0].id} 을 세웠다. 1분 안에 관리 서버가 프로젝트 줄 차례대로 시작한다`);
+    // 그날 하나라 정한 시각의 회차는 이것으로 갈음한다 — 모르고 기다리지 않게 말해 둔다
+    console.log(`회차 ${r.rows[0].id} 을 세웠다. 1분 안에 관리 서버가 프로젝트 줄 차례대로 시작한다. 오늘 정한 시각의 회차는 이것으로 갈음한다`);
   } catch (err) {
     console.error(err);
     process.exitCode = 1;

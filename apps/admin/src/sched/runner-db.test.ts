@@ -139,6 +139,18 @@ describe.skipIf(연결 === undefined)('정기 실행 1분 점검', { timeout: 60
     expect(await 회차줄(occ)).toEqual({ state: 'DONE', cur_seq: 2, notes: [{ kind: 'UI', service: 'XKR', reason: 'ENV_GONE' }] });
   });
 
+  it('이미 시작한 회차는 도중에 세트를 고쳐도 시작할 때의 줄로 이어 간다', async () => {
+    const setId = await 세트('XKR 도중 고침', { 줄: ['FN', 'UI'] });
+    const occ = await 회차(setId, 'RUNNING', { curSeq: 1 });
+    const runId = await 실행(occ, 'RUNNING');
+    await 정기실행점검(조용히, 옛날);
+    await pool.query('DELETE FROM sched_set_item WHERE set_id = $1', [setId]);
+    await pool.query("INSERT INTO sched_set_item (set_id, seq, kind, service_id) VALUES ($1, 1, 'UI', $2), ($1, 2, 'FN', $2), ($1, 3, 'FN', $2)", [setId, 앱]);
+    await pool.query("UPDATE test_run SET status = 'FINISHED' WHERE run_id = $1", [runId]);
+    await 정기실행점검(조용히, 옛날);
+    expect(await 회차줄(occ)).toEqual({ state: 'DONE', cur_seq: 2, notes: [{ kind: 'UI', service: 'XKR', reason: 'ENV_GONE' }] });
+  });
+
   it('시작하고 6시간이 지나면 도는 실행은 두고 회차를 닫는다', async () => {
     const occ = await 회차(await 세트('XKR 오래'), 'RUNNING', { curSeq: 1, started: new Date(Date.now() - 7 * 3_600_000).toISOString() });
     const runId = await 실행(occ, 'RUNNING');

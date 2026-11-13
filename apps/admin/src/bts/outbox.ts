@@ -1,5 +1,5 @@
 // BTS 로 보낼 것을 「보낼 줄」 표에 넣고 60초마다 보낸다 — 1분 간격 5번 · 4xx 는 바로 멈춤 · 재기동 뒤 이어감 (도메인/BTS 결정 17)
-// 틀은 정기 실행(execution/scheduled.ts)이다. 줄이 DB 에 있어 admin 이 다시 떠도 보낼 것을 잃지 않는다
+// 틀은 정기 실행 1분 점검(sched/runner.ts)이다. 줄이 DB 에 있어 admin 이 다시 떠도 보낼 것을 잃지 않는다
 
 import type { FastifyInstance } from 'fastify';
 import type { Pool } from 'pg';

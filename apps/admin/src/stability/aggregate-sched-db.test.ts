@@ -107,6 +107,15 @@ describe.skipIf(연결 === undefined)('안정화 집계 — 정기 실행 회차
     expect(await 집계줄(fn)).toBeUndefined();
   });
 
+  it('돌릴 케이스가 없어 실행이 안 선 줄은 빠진 줄로 세지 않는다 — UI 케이스가 없어도 그날 점을 찍는다', async () => {
+    const 기준 = await 세트('XSD 기능만 회귀', true);
+    await pool.query("INSERT INTO sched_set_item (set_id, seq, kind, service_id) VALUES ($1, 1, 'FN', $2), ($1, 2, 'UI', $2)", [기준, 서비스]);
+    const 회 = await 회차(기준, '2001-08-10', 'DONE');
+    await pool.query(`UPDATE sched_occurrence SET notes = '[{"kind":"UI","service":"XSD","reason":"NO_CASE"}]' WHERE id = $1`, [회]);
+    const fn = await 실행('qa7', 'FN', '2001-08-09T18:00:00Z', 회);
+    expect(await 집계(fn)).toBe('집계함');
+  });
+
   it('다시 켜질 때 기준이 아닌 세트의 회차 실행은 빠진 집계 후보가 아니다', async () => {
     const 두시간전 = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
     const 보통 = await 세트('XSD 낮 점검', false);

@@ -10,7 +10,7 @@ DECLARE
   번 INT;
   세트번호 BIGINT;
 BEGIN
-  FOR s IN SELECT id, project_id, name, kind, schedule_at, schedule_tz, schedule_env, schedule_last FROM service WHERE schedule_at IS NOT NULL ORDER BY id LOOP
+  FOR s IN SELECT id, project_id, name, kind, is_active, schedule_at, schedule_tz, schedule_env, schedule_last FROM service WHERE schedule_at IS NOT NULL ORDER BY id LOOP
     -- 이름이 겹치면 뒤에 (2) · (3) … 을 붙인다
     이름 := s.name || ' 전체 회귀';
     번 := 1;
@@ -18,8 +18,11 @@ BEGIN
       번 := 번 + 1;
       이름 := s.name || ' 전체 회귀 (' || 번 || ')';
     END LOOP;
-    INSERT INTO sched_set (project_id, name, at, tz, days, is_base, created_by)
-    VALUES (s.project_id, 이름, s.schedule_at, s.schedule_tz, '{0,1,2,3,4,5,6}', true, '스케줄러')
+    -- 비활성 애플리케이션은 꺼 둔 채 옮긴다 — 옛 점검도 돌리지 않았고, 켜 두면 날마다 빈 회차가 달력을 채운다
+    INSERT INTO sched_set (project_id, name, at, tz, days, is_on, is_base, created_by)
+    -- 마법사에서 이미 기준을 정한 애플리케이션은 기준 세트가 둘이 되지 않게 보통 세트로 옮긴다 (§3.16 「애플리케이션마다 하나」)
+    VALUES (s.project_id, 이름, s.schedule_at, s.schedule_tz, '{0,1,2,3,4,5,6}', s.is_active,
+            NOT EXISTS (SELECT 1 FROM sched_set b JOIN sched_set_item bi ON bi.set_id = b.id WHERE b.is_base AND bi.service_id = s.id), '스케줄러')
     RETURNING id INTO 세트번호;
     INSERT INTO sched_set_item (set_id, seq, kind, service_id) VALUES (세트번호, 1, 'FN', s.id);
     -- API 애플리케이션에는 UI 테스트가 없다
@@ -42,10 +45,12 @@ ALTER TABLE service DROP COLUMN schedule_at, DROP COLUMN schedule_tz, DROP COLUM
 
 -- migrate:down
 
--- 칸만 되살리고 기준 세트의 시각 · 시간대 · 대상 서버를 다시 적는다. 옮긴 세트는 지우지 않는다(회차 · 실행이 가리킨다)
+-- 칸을 되살려 옮긴 기준 세트의 시각 · 시간대 · 대상 서버를 다시 적고 옮긴 세트를 지운다 — 남기면 다시 올릴 때 「(2)」 세트가 하나 더 선다.
+-- 회차는 세트와 같이 지워지고 실행의 회차 번호는 빈다. 대상 서버가 실서비스로 바뀌었어도 그대로 적는다(옛 칸은 검사가 없었다)
 ALTER TABLE service ADD COLUMN schedule_at TIME, ADD COLUMN schedule_tz TEXT, ADD COLUMN schedule_env TEXT, ADD COLUMN schedule_last TIMESTAMPTZ;
 UPDATE service sv SET schedule_at = st.at, schedule_tz = st.tz, schedule_env = e.env
   FROM sched_set st JOIN sched_set_item i ON i.set_id = st.id AND i.seq = 1 JOIN sched_set_env e ON e.set_id = st.id AND e.service_id = i.service_id
- WHERE st.is_base AND i.service_id = sv.id;
+ WHERE st.created_by = '스케줄러' AND i.service_id = sv.id;
+DELETE FROM sched_set WHERE created_by = '스케줄러';
 ALTER TABLE service ADD CONSTRAINT service_schedule_all_or_none
   CHECK ((schedule_at IS NULL) = (schedule_tz IS NULL) AND (schedule_at IS NULL) = (schedule_env IS NULL));

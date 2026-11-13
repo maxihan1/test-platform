@@ -32,7 +32,8 @@ async function 케이스실행(x: 줄, prefix: string, env: string, 회차: 회�
   const 고른 = x.tcIds === null ? null : new Set(x.tcIds);
   const 담을 = 목록.items.filter((c) => tcId종류(c.tcId) === x.kind && (고른 === null || 고른.has(c.tcId)));
   // 팜이 없으면 앱 케이스를 돌릴 곳이 없다 (공통/6-인프라 §9.2)
-  const { 남은 } = 앱케이스를뺀다(담을, process.env);
+  const { 남은, 뺀수 } = 앱케이스를뺀다(담을, process.env);
+  if (뺀수 > 0) 로그(`[sched] ${prefix} android 케이스 ${String(뺀수)}건은 뺐다 — Device VISION(DEVICE_FARM_URL)이 연결되어 있지 않다`);
   if (남은.length === 0) return { reason: 'NO_CASE' };
   const { runId, items } = await createRun({
     origin: 'SCHEDULED',
