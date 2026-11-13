@@ -38,6 +38,7 @@ import { RunResult } from './RunResult.js';
 import { RunWindow } from './RunWindow.js';
 import { PerfDevices } from './PerfDevices.js';
 import { PerfPages } from './PerfPages.js';
+import { Sched } from './Sched.js';
 import { Stability } from './Stability.js';
 import { StabilityDetail } from './StabilityDetail.js';
 import { PerfRun } from './PerfRun.js';
@@ -195,6 +196,13 @@ function Screen({
     case 'perfRun':
       // 번호마다 새로 그린다 — 다시 실행으로 새 번호 주소로 오면 앞 실행의 숫자가 남지 않게
       return <PerfRun key={current.runId} runId={current.runId} 판정하기={(접두사) => 판정을만든다(user, 접두사)} />;
+    case 'sched':
+      // 프로젝트 공통이라 띠의 애플리케이션은 프로젝트를 고르는 데만 쓴다. 프로젝트마다 새로 그려 앞 프로젝트의 고른 세트가 남지 않게 (도메인/정기실행 §8.20)
+      return service === null ? (
+        <div className="empty">{t('애플리케이션을 먼저 선택해 주세요')}</div>
+      ) : (
+        <Sched key={service.projectId} service={service} 앱수={user.services.filter((s) => s.projectId === service.projectId).length} 쓰나={할수('실행')} />
+      );
     case 'stability':
       // API 는 메뉴가 없다 — 주소로 와도 안내만 한다 (도메인/안정화 §8.19 「자리」). 애플리케이션 · 주소의 날 · 창마다 새로 그린다 — 메뉴를 다시 누르면(`#/stability`) 가장 최근 날로 돌아가야 한다
       if (service?.kind === 'API') return <div className="empty">{t('API 애플리케이션은 안정화 지표를 집계하지 않습니다')}</div>;

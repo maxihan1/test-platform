@@ -7,7 +7,6 @@ import { 인증등록 } from '../auth/gate.js';
 import { 해시 } from '../auth/password.js';
 import authRoutes from '../auth/routes.js';
 import { 세션등록 } from '../auth/session.js';
-import schedRoutes from './routes.js';
 
 const 연결 = process.env.DATABASE_URL;
 
@@ -74,7 +73,7 @@ describe.skipIf(연결 === undefined)('정기 실행 세트 통로', { timeout: 
     세션등록(app, 'xks-검사용-세션-열쇠-32글자를-넘긴다-넉넉히');
     인증등록(app);
     await app.register(authRoutes, { prefix: '/api' });
-    await app.register(schedRoutes, { prefix: '/api' });
+    await app.register((await import('./routes.js')).default, { prefix: '/api' });
     await app.ready();
 
     프로젝트 = Number((await pool.query<{ id: string }>("INSERT INTO project (name) VALUES ('XKS 프로젝트') RETURNING id")).rows[0]!.id);

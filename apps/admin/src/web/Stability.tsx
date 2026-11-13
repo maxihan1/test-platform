@@ -89,7 +89,7 @@ export function Stability({ service, run, days }: { service: ServiceRow; run: nu
       ) : data.run === null ? (
         <section className="stab-panel stab-empty">
           <p className="stab-headline">{t('정기 실행 기록이 없습니다')}</p>
-          <p className="stab-faint">{t('설정에서 정기 실행을 켜면 매일 집계합니다')}</p>
+          <p className="stab-faint">{t('정기 실행 메뉴에서 안정화 기준 세트를 정하면 매일 집계합니다')}</p>
         </section>
       ) : (
         <>

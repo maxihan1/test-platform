@@ -162,7 +162,7 @@ describe('안정화 지표 메인', () => {
   it('집계 줄이 없으면 빈 화면 안내, 오류가 없는 실행은 목록에 한 줄', async () => {
     await 그리기(응답({ runs: [], run: null, summary: null, trend: [], errors: [] }));
     expect(await screen.findByText('정기 실행 기록이 없습니다')).toBeTruthy();
-    expect(screen.getByText('설정에서 정기 실행을 켜면 매일 집계합니다')).toBeTruthy();
+    expect(screen.getByText('정기 실행 메뉴에서 안정화 기준 세트를 정하면 매일 집계합니다')).toBeTruthy();
     expect(screen.queryByRole('combobox')).toBeNull();
     cleanup();
     await 그리기(응답({ errors: [] }));

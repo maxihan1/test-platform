@@ -88,6 +88,9 @@ describe('route', () => {
     expect(route('#/perf/pages?run=12')).toEqual({ name: 'perfPages', run: 12 });
     expect(route('#/perf/pages?run=1x')).toEqual({ name: 'perfPages' });
     // 안정화 지표 날짜 고르개도 `?run=` 이다 (도메인/안정화 §8.19 「머리」)
+    // 정기 실행은 프로젝트 공통 한 화면이다 (도메인/정기실행 §8.20)
+    expect(route('#/sched')).toEqual({ name: 'sched' });
+    expect(route('#/sched/3').name).toBe('unknown');
     expect(route('#/stability')).toEqual({ name: 'stability' });
     expect(route('#/stability?run=3044')).toEqual({ name: 'stability', run: 3044 });
     expect(route('#/stability?run=x')).toEqual({ name: 'stability' });
