@@ -125,7 +125,8 @@ export default async function appScreenAgentRoutes(app: FastifyInstance): Promis
     if (행 === null) return reply;
     const 고정 = /^\d{1,12}$/.test(req.query.build ?? '') ? Number(req.query.build) : undefined;
     const 링크 = await 작성앱파일(행, 고정);
-    const 토큰 = 링크 === null || 팜주소() === undefined ? undefined : await 서버팜토큰();
+    // 링크가 없어도(도중에 앱 줄이 바뀜) 준다 — 잡은 폰은 그 토큰으로 놓아야 한다
+    const 토큰 = 팜주소() === undefined ? undefined : await 서버팜토큰();
     return { app: 링크, ...(토큰 !== undefined && { token: 토큰 }) };
   });
 }

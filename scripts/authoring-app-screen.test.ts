@@ -235,15 +235,31 @@ describe('눌러 가며 읽기 — 탐색 주소 · 폰 놓기 (도메인/작성
     expect(new Headers(부름.mock.calls[0]?.[1].headers).get('authorization')).toBe('Bearer pat_dlg');
   });
 
-  it('갈아 끼운 토큰 파일이 있으면 시작 때 토큰 대신 그것으로 놓는다 — 시작 때 것은 3시간 뒤 401 이다', async () => {
+  it('갈아 끼운 토큰으로 놓는다 — 시작 때 것은 3시간 뒤 401 이다. 자식이 바꿔 둔 파일은 믿지 않는다', async () => {
+    vi.useFakeTimers();
+    const 앱 = { 글: 'x', 탐색: { ...탐색, token: 'pat_dlg' } };
+    서버가({ app: 탐색.app, token: 'pat_fresh_0002' });
+    const 끄기 = 앱링크갈기(서버, 7, 자료, 앱);
+    await vi.advanceTimersByTimeAsync(0);
+    끄기();
+    vi.useRealTimers();
     mkdirSync(join(자료, '.appium-cli'));
     writeFileSync(join(자료, '.appium-cli', 'held'), 'R3CR10TCVCD\n');
-    writeFileSync(팜토큰파일(자료), 'pat_fresh_0002\n');
+    writeFileSync(팜토큰파일(자료), 'pat_child_wrote\n');
     const 부름 = vi.fn(async (_주소: string, _설정: RequestInit) => new Response('{"released":true}', { status: 200 }));
 
-    await 잡은폰놓기(자료, { 글: 'x', 탐색: { ...탐색, token: 'pat_dlg' } }, 7, 부름 as unknown as typeof fetch, Date.now(), 자료);
+    await 잡은폰놓기(자료, 앱, 7, 부름 as unknown as typeof fetch, Date.now(), 자료);
 
     expect(new Headers(부름.mock.calls[0]?.[1].headers).get('authorization')).toBe('Bearer pat_fresh_0002');
+  });
+
+  it('첫 화면 때 토큰을 못 받은 작성은 app-link 가 토큰을 줘도 갈아 끼우지 않는다 — 자식은 컨테이너 토큰으로 잡았다', async () => {
+    vi.useFakeTimers();
+    서버가({ app: 탐색.app, token: 'pat_late_00003' });
+    const 끄기 = 앱링크갈기(서버, 8, 자료, { 글: 'x', 탐색 });
+    await vi.advanceTimersByTimeAsync(0);
+    끄기();
+    expect(existsSync(팜토큰파일(자료))).toBe(false);
   });
 
   it('놓은 뒤 기록을 지운다 — 이어하기가 같은 폴더로 다시 끝나도 두 번 놓지 않는다', async () => {

@@ -111,7 +111,7 @@ describe.skipIf(연결 === undefined)('게임 첫 화면 · 게임 화면 기록
     }
   });
 
-  it('app-link 는 팜이 붙고 앱이 있으면 서버 몫 팜 토큰도 같이 준다 — 팜이 없거나 앱이 없으면 token 칸이 없다', async () => {
+  it('app-link 는 팜이 붙었으면 서버 몫 팜 토큰도 같이 준다 — 앱이 없어져도 준다(잡은 폰을 놓아야 한다) · 팜이 없으면 token 칸이 없다', async () => {
     await 줄들([['qa', 'https://builds/qa.apk', false]]);
     const id = await 요청넣기();
     vi.mocked(서버팜토큰).mockClear();
@@ -126,11 +126,11 @@ describe.skipIf(연결 === undefined)('게임 첫 화면 · 게임 화면 기록
 
       await 치우기();
       await 줄들([['qa', null, false]]);
-      vi.mocked(서버팜토큰).mockClear();
-      expect(await 받기(await 요청넣기(), 'app-link')).toEqual({ app: null });
-      expect(서버팜토큰).not.toHaveBeenCalled();
+      vi.mocked(서버팜토큰).mockResolvedValueOnce('pat_xgs_late');
+      expect(await 받기(await 요청넣기(), 'app-link')).toEqual({ app: null, token: 'pat_xgs_late' });
     } finally {
       vi.unstubAllEnvs();
+      vi.mocked(서버팜토큰).mockClear();
     }
   });
 
