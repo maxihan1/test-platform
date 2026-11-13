@@ -1,7 +1,7 @@
 // 정기 실행 세트 마법사의 계산 — 담은 줄 열쇠 · 실행을 만드는 애플리케이션 · 기준 세트 꼴 · 겹치는 세트 · 보낼 본문 (도메인/정기실행 §3.16 · §7 · §8.20)
 
 import type { 세트, 세트본문, 줄종류 } from './schedApi.js';
-import { 다음날들, 도는날인가, 분 } from './schedView.js';
+import { 다음날들, 도는날인가, 분, 시간대로 } from './schedView.js';
 
 export type 담은줄 = 세트['items'][number];
 export type 반복 = 'daily' | 'days' | 'once';
@@ -82,7 +82,14 @@ export function 겹치는세트들(세트들: readonly 세트[], 나: { id: numb
 }
 
 /** 확인 단계의 다음 실행 셋 — 저장한 그날 지난 시각이면 다음 날부터다 (§3.16 「저장한 그날」) */
-export const 다음실행들 = (v: 마법사값, tz: string, 지금: Date) => 다음날들({ isOn: true, tz, at: v.at, days: 보낼days(v), onceOn: v.반복 === 'once' ? v.onceOn : null }, 지금, 3);
+export function 다음실행들(v: 마법사값, tz: string, 지금: Date): string[] {
+  // 「한 번만」은 날짜 하나를 바로 견준다 — 1년 넘게 앞선 날짜도 지난 날로 읽지 않게
+  if (v.반복 === 'once') {
+    const 오늘 = 시간대로(지금, tz);
+    return v.onceOn > 오늘.날 || (v.onceOn === 오늘.날 && 분(v.at) > 오늘.분) ? [v.onceOn] : [];
+  }
+  return 다음날들({ isOn: true, tz, at: v.at, days: 보낼days(v), onceOn: null }, 지금, 3);
+}
 
 /** POST · PUT 본문 (§7). tz 는 만들 때만 싣는다 */
 export function 본문(v: 마법사값, 실행앱: readonly string[]): 세트본문 {

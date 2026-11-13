@@ -113,13 +113,26 @@ export function Sched({ service, 앱들, 쓰나 }: { service: ServiceRow; 앱들
   ) : null;
   const 창 =
     마법사 === null ? null : (
-      <SchedWizard projectId={service.projectId} 세트={마법사.세트} 세트들={세트들} 앱들={앱들} onClose={() => set마법사(null)} on저장={저장됨} />
+      <SchedWizard
+        projectId={service.projectId}
+        세트={마법사.세트}
+        세트들={세트들}
+        앱들={앱들}
+        // 저장이 일부만 되고 닫혔을 수 있다(만든 뒤 기준 정하기가 실패) — 닫을 때 목록을 다시 읽는다
+        onClose={() => {
+          set마법사(null);
+          void 세트목록.reload();
+        }}
+        on저장={저장됨}
+      />
     );
 
   const 부제 = t('{프로젝트} 프로젝트 · 애플리케이션 {수}개의 세트를 한 달력에 모았습니다', { 프로젝트: service.projectName, 수: 앱들.length });
+  // 목록을 읽기 전에는 「+ 신규 세트」를 세우지 않는다 — 그 자리에는 창이 안 서서 눌러도 반응이 없다
+  const 빈머리 = <Head 제목={t('정기 실행')} 부제={부제} />;
   const 머리 = <Head 제목={t('정기 실행')} 부제={부제} 행동={신규단추} />;
-  if (세트목록.error !== null) return (<div className="sched">{머리}<Failed error={세트목록.error} /></div>);
-  if (세트목록.data === null) return (<div className="sched">{머리}<Loading /></div>);
+  if (세트목록.error !== null) return (<div className="sched">{빈머리}<Failed error={세트목록.error} /></div>);
+  if (세트목록.data === null) return (<div className="sched">{빈머리}<Loading /></div>);
   if (세트들.length === 0)
     return (
       <div className="sched">

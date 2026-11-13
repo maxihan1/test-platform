@@ -85,7 +85,7 @@ describe('정기 실행 세트 마법사', () => {
     차리기([세트하나({ isBase: true })]);
     const 만들기 = vi.spyOn(schedApi, 'create').mockResolvedValue({ id: 9 });
     render(<Sched service={앱들[0]!} 앱들={앱들} 쓰나 />);
-    fireEvent.click(await screen.findByRole('button', { name: '+ 신규 세트' }));
+    fireEvent.click((await screen.findAllByRole('button', { name: '+ 신규 세트' }))[0]!);
 
     expect(within(창()).getByText('세트 이름을 입력해 주세요')).toBeTruthy();
     fireEvent.change(within(창()).getByRole('textbox'), { target: { value: '결제 회귀' } });
@@ -137,7 +137,7 @@ describe('정기 실행 세트 마법사', () => {
     const 만들기 = vi.spyOn(schedApi, 'create').mockResolvedValue({ id: 9 });
     const 기준 = vi.spyOn(schedApi, 'setBase').mockResolvedValue({});
     render(<Sched service={앱들[0]!} 앱들={앱들} 쓰나 />);
-    fireEvent.click(await screen.findByRole('button', { name: '+ 신규 세트' }));
+    fireEvent.click((await screen.findAllByRole('button', { name: '+ 신규 세트' }))[0]!);
     fireEvent.change(within(창()).getByRole('textbox'), { target: { value: '웹 회귀' } });
     다음();
     fireEvent.change(await within(창()).findByPlaceholderText('번호 · 이름으로 검색'), { target: { value: '로그' } });
@@ -158,7 +158,7 @@ describe('정기 실행 세트 마법사', () => {
   it('케이스 read 가 없으면 「전체」만 보이고 검색 칸이 없다', async () => {
     차리기([]);
     render(<Sched service={앱들[0]!} 앱들={[앱('MKT', { permissions: { cases: 'none', runs: 'write', authoring: 'none' } })]} 쓰나 />);
-    fireEvent.click(await screen.findByRole('button', { name: '+ 신규 세트' }));
+    fireEvent.click((await screen.findAllByRole('button', { name: '+ 신규 세트' }))[0]!);
     fireEvent.change(within(창()).getByRole('textbox'), { target: { value: '웹 회귀' } });
     다음();
     fireEvent.change(await within(창()).findByRole('combobox'), { target: { value: 'MKT' } });
@@ -200,7 +200,7 @@ describe('정기 실행 세트 마법사', () => {
     const { ApiError } = await import('./api.js');
     vi.spyOn(schedApi, 'create').mockRejectedValue(new ApiError(400, 'INVALID_REQUEST', 'NAME_TAKEN'));
     render(<Sched service={앱들[0]!} 앱들={앱들} 쓰나 />);
-    fireEvent.click(await screen.findByRole('button', { name: '+ 신규 세트' }));
+    fireEvent.click((await screen.findAllByRole('button', { name: '+ 신규 세트' }))[0]!);
     fireEvent.change(within(창()).getByRole('textbox'), { target: { value: '웹 회귀' } });
     다음();
     fireEvent.click(await within(창()).findByRole('checkbox', { name: /전체 12건/u }));
@@ -209,6 +209,39 @@ describe('정기 실행 세트 마법사', () => {
     다음();
     fireEvent.click(within(창()).getByRole('button', { name: '저장' }));
     expect(await within(창()).findByText('같은 이름의 세트가 이미 있습니다')).toBeTruthy();
+  });
+
+  it('기준 체크를 켠 뒤 기준 꼴이 아닌 줄을 담으면 체크가 숨고 저장을 막지 않으며 기준도 정하지 않는다', async () => {
+    차리기([]);
+    const 만들기 = vi.spyOn(schedApi, 'create').mockResolvedValue({ id: 9 });
+    const 기준 = vi.spyOn(schedApi, 'setBase').mockResolvedValue({});
+    render(<Sched service={앱들[0]!} 앱들={앱들} 쓰나 />);
+    fireEvent.click((await screen.findAllByRole('button', { name: '+ 신규 세트' }))[0]!);
+    fireEvent.change(within(창()).getByRole('textbox'), { target: { value: '웹 회귀' } });
+    다음();
+    fireEvent.click(await within(창()).findByRole('checkbox', { name: /전체 12건/u }));
+    다음();
+    다음();
+    다음();
+    fireEvent.click(within(창()).getByRole('checkbox', { name: /안정화 지표에 씁니다/u }));
+    fireEvent.click(within(창()).getByRole('button', { name: /2\. 담을 테스트/u }));
+    fireEvent.click(within(창()).getByRole('tab', { name: 'E2E 테스트' }));
+    fireEvent.click(within(창()).getByRole('checkbox', { name: /주문 → 어드민 확인/u }));
+    다음();
+    다음();
+    다음();
+    expect(within(창()).queryByRole('checkbox', { name: /안정화 지표에 씁니다/u })).toBeNull();
+    fireEvent.click(within(창()).getByRole('button', { name: '저장' }));
+    await waitFor(() => expect(만들기).toHaveBeenCalled());
+    expect(기준).not.toHaveBeenCalled();
+  });
+
+  it('달력의 앞으로의 칸 창에서 「세트 수정」으로 마법사를 연다', async () => {
+    차리기([세트하나()]);
+    render(<Sched service={앱들[0]!} 앱들={앱들} 쓰나 />);
+    fireEvent.click((await screen.findAllByRole('button', { name: /결제 회귀\s*02:00 예정/u }))[0]!);
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: '세트 수정' }));
+    expect(await screen.findByRole('dialog', { name: '세트 수정' })).toBeTruthy();
   });
 
   it('읽기만 하는 사람에게는 「+ 신규 세트」 · 「수정」이 없다', async () => {

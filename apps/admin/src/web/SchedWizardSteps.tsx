@@ -35,7 +35,7 @@ export function 서버단계({ 실행앱, 앱들, envs, on서버, 섞임 }: { �
         })}
       </ul>
       {섞임 ? <p className="sched-wiz-hint">{t('섞인 단계는 시작 애플리케이션 서버와 같은 이름의 서버로 갑니다')}</p> : null}
-      <p className="sched-wiz-hint">{t('정기 실행은 사람 없이 실행되어 실서비스 서버는 선택할 수 없습니다')}</p>
+      <p className="sched-wiz-hint">{t('정기 실행은 사람 없이 실행되어 실서비스 서버를 선택하면 저장할 때 막힙니다')}</p>
     </>
   );
 }

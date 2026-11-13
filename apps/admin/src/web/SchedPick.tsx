@@ -1,6 +1,6 @@
 // 정기 실행 마법사 2단계 「담을 테스트」 — 기능 · UI · E2E · 호환성 탭, 애플리케이션 선택, 케이스 검색 · 체크, 담은 테스트 목록 (도메인/정기실행 §8.20)
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { api, type ServiceRow } from './api.js';
 import { use말 } from './i18n.js';
@@ -21,7 +21,13 @@ export function 줄글(x: 담은줄, t: 말): string {
 function 케이스목록({ 앱, kind, 줄, on줄 }: { 앱: string; kind: 'FN' | 'UI'; 줄: 담은줄 | undefined; on줄: (tcIds: string[] | null) => void }) {
   const t = use말();
   const [q, setQ] = useState('');
-  const 쪽 = useAsync(() => api.cases({ service: 앱, kind, q: q.trim() === '' ? undefined : q.trim(), page: 1 }), [앱, kind, q]);
+  // 글자마다 묻지 않고 입력이 0.3초 멈추면 묻는다
+  const [찾을, set찾을] = useState('');
+  useEffect(() => {
+    const 타이머 = setTimeout(() => set찾을(q.trim()), 300);
+    return () => clearTimeout(타이머);
+  }, [q]);
+  const 쪽 = useAsync(() => api.cases({ service: 앱, kind, q: 찾을 === '' ? undefined : 찾을, page: 1 }), [앱, kind, 찾을]);
   const 전체 = 줄?.tcIds === null;
   const 고른 = new Set(줄?.tcIds ?? []);
   const 누름 = (tcId: string) => {
@@ -68,7 +74,7 @@ export function 담기단계({ 후, 앱들, items, onItems }: { 후: 후보; 앱
     onItems(tcIds === undefined ? 남은 : [...남은, { kind, service, tcIds, label: '' }]);
   };
   // 케이스 목록 통로는 케이스 read 가 있어야 한다 — 없으면 「전체」만 (§3.16 「세트」)
-  const 케이스보나 = 앱들.find((s) => s.prefix === 앱)?.permissions.cases !== 'none';
+  const 케이스보나 = (앱들.find((s) => s.prefix === 앱)?.permissions.cases ?? 'none') !== 'none';
   const 지금줄 = items.find((y) => 줄열쇠(y) === `${탭}|${앱 ?? ''}`);
 
   return (
@@ -112,6 +118,8 @@ export function 담기단계({ 후, 앱들, items, onItems }: { 후: 후보; 앱
               <label>
                 <input type="checkbox" checked={열쇠들.has(`E2E|${String(s.id)}`)} onChange={() => 넣기({ kind: 'E2E', service: s.service, tcIds: null, scenarioId: s.id, label: s.name })} />
                 {s.name}
+                {/* 저장은 되고 돌 때 빠진다(§3.16 「돌 때 빠지는 줄」) — 담기 전에 알린다 */}
+                {s.runnable ? null : <span className="sched-tag">{t('실행 불가')}</span>}
                 {s.path.map((p) => (
                   <span key={p} className="sched-tag">
                     {p}

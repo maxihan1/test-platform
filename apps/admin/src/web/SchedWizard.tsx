@@ -7,7 +7,7 @@ import { 단계머리 } from './AuthoringNewSteps.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import { schedApi, type 세트 } from './schedApi.js';
-import { 짧은날 } from './SchedCards.js';
+import { 반복글, 짧은날 } from './SchedCards.js';
 import { 담기단계, 줄글 } from './SchedPick.js';
 import { 다른기준있나, 겹치는세트들, 기준꼴, 다음실행들, 보낼days, 본문, 섞인E2E있나, 실행앱들, 처음값, type 덮을값 } from './schedForm.js';
 import { 서버단계, 언제단계, 확인단계 } from './SchedWizardSteps.js';
@@ -62,9 +62,13 @@ export function SchedWizard({
   );
   const days = 보낼days(v);
   const onceOn = v.반복 === 'once' ? v.onceOn : null;
+  // 지난 「한 번만」 막기는 켜고 끔과 상관없이 보고, 화면에 보이는 다음 실행 · 달력 이동은 꺼진 세트면 없다
   const 다음 = 다음실행들(v, tz, new Date());
+  const 켜짐 = 세트?.isOn ?? true;
+  const 보일다음 = 켜짐 ? 다음 : [];
   const 기준앱 = 기준꼴(v.items, days);
   const 원래기준 = 세트?.isBase === true;
+  const 원래기준앱 = 세트 === null ? null : 기준꼴(세트.items, 세트.days);
   // 꼴이 맞고 다른 기준이 없으면 체크가 선다. 원래 기준이면 꼴이 어긋나도 서서 풀 수 있게 한다 (§3.16 「기준 정하기 · 풀기」)
   const 기준칸 = 원래기준 || (기준앱 !== null && !다른기준있나(세트들, 기준앱, 세트?.id ?? null));
   // 날짜 · 시각을 그대로 둔 「한 번만」은 지났어도 이름 · 담은 테스트만 고칠 수 있다 (§7 PUT)
@@ -83,7 +87,11 @@ export function SchedWizard({
         if (v.반복 === 'days' && v.days.length === 0) return t('요일을 하나 이상 선택해 주세요');
         return v.반복 === 'once' && 다음.length === 0 && !그대로 ? t('이미 지난 날짜 · 시각입니다') : null;
       default:
-        return v.기준 && 기준앱 === null ? t('안정화 기준 세트는 한 애플리케이션의 기능 · UI 테스트만 담고 매일 또는 요일로 반복합니다') : null;
+        // 체크가 숨은 동안은 막는 근거로 쓰지 않는다 — 풀 칸이 없는데 저장이 막힌다
+        if (!v.기준 || !기준칸) return null;
+        if (기준앱 === null) return t('안정화 기준 세트는 한 애플리케이션의 기능 · UI 테스트만 담고 매일 또는 요일로 반복합니다');
+        // 서버는 기준 세트의 애플리케이션을 갈아 끼우는 고치기를 BASE_SET_SHAPE 로 막는다 (§7 PUT)
+        return 원래기준 && 기준앱 !== 원래기준앱 ? t('안정화 기준 세트의 애플리케이션은 변경할 수 없습니다. 「안정화 지표에 씁니다」를 해제해 주세요') : null;
     }
   }
   const 막힘 = 막는이유(칸);
@@ -103,7 +111,11 @@ export function SchedWizard({
       } else {
         // 기준을 먼저 풀어야 꼴 밖으로 고친 본문이 BASE_SET_SHAPE 에 안 걸린다
         if (원래기준 && !v.기준) await schedApi.setBase(만든번호, false);
-        await schedApi.update(만든번호, 몸);
+        await schedApi.update(만든번호, 몸).catch(async (err: unknown) => {
+          // 고치기가 거절되면 먼저 푼 기준을 되살린다 — 저장이 실패했는데 기준만 풀린 채 남지 않게
+          if (원래기준 && !v.기준) await schedApi.setBase(만든번호, true);
+          throw err;
+        });
         if (!원래기준 && 기준켜기) await schedApi.setBase(만든번호, true);
       }
     } catch (err) {
@@ -112,16 +124,15 @@ export function SchedWizard({
       set보내는중(false);
       return;
     }
-    on저장(몸.name, 다음[0] ?? null, v.at);
+    on저장(몸.name, 보일다음[0] ?? null, v.at);
   }
 
-  const 반복글 = v.반복 === 'once' ? t('{날} 한 번', { 날: 짧은날(v.onceOn) }) : v.반복 === 'daily' ? t('매일') : t('요일 선택');
   const 요약: [string, string][] = [
     [t('세트 이름'), v.name.trim()],
     [t('담은 테스트'), v.items.map((x) => `${x.service} ${줄글(x, t)}`).join(' · ')],
     [t('대상 서버'), 실행앱.map((p) => `${p} ${envs[p] ?? '—'}`).join(' · ')],
-    [t('언제'), `${반복글} ${v.at} (${tz})`],
-    [t('다음 실행'), 다음.map(짧은날).join(' · ') || '—'],
+    [t('언제'), [반복글({ days, onceOn }, t, 언어), v.at, `(${tz})`].join(' ')],
+    [t('다음 실행'), 보일다음.map(짧은날).join(' · ') || '—'],
     [t('알림'), v.items.some((x) => x.kind === 'FN' || x.kind === 'UI') ? t('기능 · UI 실행마다 Slack 으로 보냅니다') : t('보내지 않습니다')],
   ];
 

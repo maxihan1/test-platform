@@ -14,7 +14,7 @@ export const 세트색 = (세트들: readonly 세트[], id: number) => 점색[Ma
 export const 짧은날 = (날: string) => `${String(Number(날.slice(5, 7)))}/${String(Number(날.slice(8, 10)))}`;
 export const 요일글 = (날: string, 언어: string) => new Intl.DateTimeFormat(언어, { weekday: 'short', timeZone: 'UTC' }).format(new Date(`${날}T00:00:00Z`));
 
-export function 반복글(세트: 세트, t: 말, 언어: string): string {
+export function 반복글(세트: Pick<세트, 'days' | 'onceOn'>, t: 말, 언어: string): string {
   if (세트.onceOn !== null) return t('{날} 한 번', { 날: 짧은날(세트.onceOn) });
   const 요일들 = [...(세트.days ?? [])].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7));
   if (요일들.length === 7) return t('매일');
