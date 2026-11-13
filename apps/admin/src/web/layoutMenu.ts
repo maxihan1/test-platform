@@ -26,16 +26,13 @@ export interface 하위자리 {
   이름: string;
   해시: string;
   라벨: string;
-  /** 이름 곁의 `신규` 꼬리표 (도메인/호환성 §8.17 「메뉴」) */
-  신규?: boolean;
 }
 
 /** 묶음 이름을 단 하위 하나 — 같은 글자(「기능 테스트」)가 두 묶음에 나와 읽어 주는 이름에 묶음을 붙인다 */
-const 하위하나 = (묶음: string, 글: string, 해시: string, 언어: 언어, 신규?: true): 하위자리 => ({
+const 하위하나 = (묶음: string, 글: string, 해시: string, 언어: 언어): 하위자리 => ({
   이름: t(글, 언어),
   해시,
   라벨: `${묶음} · ${t(글, 언어)}`,
-  ...(신규 === undefined ? {} : { 신규 }),
 });
 
 /**
@@ -118,7 +115,7 @@ export function 자리목록(user: User, prefix: string | null, 언어: 언어):
         ...(API ? [] : [하위하나(기록, 'UI 테스트', '#/runs/ui', 언어)]),
         // E2E 는 돌린 기록에만 있다. 시나리오는 케이스가 아니라 케이스 목록에 없다 (도메인/실행 §8.7)
         하위하나(기록, 'E2E', '#/runs/e2e', 언어),
-        ...(API ? [] : [하위하나(기록, '호환성', '#/runs/compat', 언어, true)]),
+        ...(API ? [] : [하위하나(기록, '호환성', '#/runs/compat', 언어)]),
         하위하나(기록, '성능', '#/perf/runs', 언어),
       ],
     });
@@ -126,8 +123,10 @@ export function 자리목록(user: User, prefix: string | null, 언어: 언어):
     if (!API) 목록.push({ 이름: t('안정화 지표', 언어), 해시: '#/stability', 아이콘: 'stability', 단계: 결과 });
   }
   // Issue Bunker 를 이은 프로젝트에만 선다 — 결함은 거기서 관리한다. 바깥 제품이라 새 탭이다 (2026-11-12 사용자).
-  // 서버도 https:// 만 저장하지만(bts/link.ts) href 에 그대로 꽂는 값이라 여기서 한 번 더 거른다
-  if (고른?.btsUrl?.startsWith('https://') === true) 목록.push({ 이름: t('결함 관리', 언어), 해시: 고른.btsUrl, 아이콘: 'defect', 바깥: true, 단계: 결과 });
+  // 서버도 https:// 만 저장하지만(bts/link.ts) href 에 그대로 꽂는 값이라 여기서 한 번 더 거른다.
+  // 기능 칸(케이스 · 작성 · 실행)이 하나도 없으면 세우지 않는다 — 이 줄만 남으면 「권한을 받지 않았습니다」 안내(layout.ts 빈띠사유)가 사라진다
+  const 칸있음 = 기능보나(user, prefix, 'cases') || 기능보나(user, prefix, 'authoring') || 실행;
+  if (칸있음 && 고른?.btsUrl?.startsWith('https://') === true) 목록.push({ 이름: t('결함 관리', 언어), 해시: 고른.btsUrl, 아이콘: 'defect', 바깥: true, 단계: 결과 });
   if (user.dashboard === 'read') 목록.push({ 이름: t('그래프(Grafana)', 언어), 해시: 그래프주소, 아이콘: 'graph', 바깥: true, 단계: 결과 });
   if (할수있나(user, prefix, '설정')) 목록.push({ 이름: t('설정', 언어), 해시: '#/settings', 아이콘: 'settings' });
   return 목록;

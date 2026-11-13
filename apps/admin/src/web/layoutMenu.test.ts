@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ServiceRow, User } from './api.js';
-import { 자리목록 } from './layout.js';
+import { 빈띠사유, 자리목록 } from './layout.js';
 
 const 기본: ServiceRow = {
   id: 1,
@@ -73,13 +73,13 @@ describe('종류별 자리 목록', () => {
     expect(자리들.find((자리) => 자리.이름 === '성능 테스트')?.하위?.map((하위) => 하위.해시)).toEqual(['#/perf/scenarios', '#/perf/devices']);
   });
 
-  it('호환성은 실행 칸을 쓴다 — 실행을 못 보는 사람에게는 메뉴도 기록도 없고, 실행 기록 › 호환성에는 신규 꼬리표가 붙는다', () => {
+  it('호환성은 실행 칸을 쓴다 — 실행을 못 보는 사람에게는 메뉴도 기록도 없고, 메뉴에 신규 꼬리표는 없다', () => {
     const 이름들 = (runs: 'none' | 'read') => 자리목록(사람({ kind: 'APP', permissions: { cases: 'read', runs, authoring: 'none' } }), 'PAY', 'ko').map((자리) => 자리.이름);
     // 그래프는 사람의 dashboard 칸이라 남는다 (도메인/인증 §3.5)
     expect(이름들('none')).toEqual(['기능 · UI 테스트', '그래프(Grafana)']);
     const 자리들 = 자리목록(사람({ kind: 'APP' }), 'PAY', 'ko');
     expect(자리들.find((자리) => 자리.이름 === '호환성 테스트')).toMatchObject({ 해시: '#/compat', 단계: '테스트 수행' });
-    expect(자리들.find((자리) => 자리.이름 === '실행 기록')?.하위?.find((하위) => 하위.이름 === '호환성')).toEqual({ 이름: '호환성', 해시: '#/runs/compat', 라벨: '실행 기록 · 호환성', 신규: true });
+    expect(자리들.find((자리) => 자리.이름 === '실행 기록')?.하위?.find((하위) => 하위.이름 === '호환성')).toEqual({ 이름: '호환성', 해시: '#/runs/compat', 라벨: '실행 기록 · 호환성' });
   });
 
   it('Issue Bunker 를 이은 프로젝트에만 결함 관리 ↗ 가 안정화 지표 다음 · 그래프 앞에 서고 새 탭으로 연다', () => {
@@ -92,6 +92,12 @@ describe('종류별 자리 목록', () => {
     const 자리들 = 자리목록(사람({ btsUrl: 'https://bunker.example.com' }), 'PAY', 'ko');
     expect(자리들.map((자리) => 자리.이름).slice(-3)).toEqual(['안정화 지표', '결함 관리', '그래프(Grafana)']);
     expect(자리들.find((자리) => 자리.이름 === '결함 관리')).toEqual({ 이름: '결함 관리', 해시: 'https://bunker.example.com', 아이콘: 'defect', 바깥: true, 단계: '결과 분석' });
+  });
+
+  it('기능 칸이 다 none 이면 Bunker 를 이었어도 결함 관리가 없고 「권한을 받지 않았습니다」 안내가 그대로 뜬다', () => {
+    const 칸없음: User = { ...사람({ btsUrl: 'https://bunker.example.com', permissions: { cases: 'none', runs: 'none', authoring: 'none' } }), dashboard: 'none' };
+    expect(자리목록(칸없음, 'PAY', 'ko')).toEqual([]);
+    expect(빈띠사유(칸없음, 'PAY', 'ko')?.무엇).toBe('권한을 받지 않았습니다. 관리자에게 요청하세요');
   });
 
   it('종류를 모르면 웹으로 읽는다 — 기기 성능이 없다', () => {

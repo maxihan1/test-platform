@@ -148,7 +148,8 @@ export function PhoneShell({ user, service, onService, 언어, on언어, onLogou
           </a>
         )}
         {실행기록 === undefined ? null : (
-          <a href={실행기록.해시} {...지금이면(아래인가(current, '#/runs'))}>
+          // 실행 기록 › 성능(#/perf/runs)은 주소가 #/runs 아래가 아니다 — 하위 주소도 이 탭의 자리다 (화면공통 §8 「자리 목록」 · 2026-11-12)
+          <a href={실행기록.해시} {...지금이면(아래인가(current, '#/runs') || (실행기록.하위 ?? []).some((하) => 하.해시 === current))}>
             <아이콘 이름="runs" />
             {실행기록.이름}
           </a>

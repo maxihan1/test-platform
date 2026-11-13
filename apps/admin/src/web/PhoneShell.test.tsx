@@ -95,6 +95,17 @@ describe('휴대폰 껍데기', () => {
     expect(within(탭()).getByRole('link', { name: /작성/ }).getAttribute('aria-current')).toBe('page');
   });
 
+  it('실행 기록 › 성능(#/perf/runs)도 실행 기록 탭이 지금 자리다 — 주소가 #/runs 아래가 아니어도 하위다', () => {
+    띄운다('#/perf/runs');
+    expect(within(탭()).getByRole('link', { name: '실행 기록' }).getAttribute('aria-current')).toBe('page');
+  });
+
+  it('전체 메뉴판에도 QA 단계 구분선 제목이 단계의 첫 메뉴 위에 선다', () => {
+    띄운다('#/cases/fn');
+    const 제목들 = [...전체판().querySelectorAll('.sheet-stage')].map((it) => it.textContent);
+    expect(제목들).toEqual(['품질 현황', '테스트 설계', '테스트 수행', '결과 분석']);
+  });
+
   it('알림 종은 위 줄에 선다 — 누르면 알림 서랍이 열린다', async () => {
     띄운다('#/runs/fn');
     const 위 = screen.getByRole('banner');

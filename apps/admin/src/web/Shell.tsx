@@ -209,7 +209,6 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
  * 묶음 링크는 묶음 자리로 간다 — 종류를 모르는 상세(실행 결과 등)에서 「지금 자리」라고 하면 다른 곳을 가리켜 aria-current 를 안 받는다 (2026-10-02 검사 지적)
  */
 function 메뉴묶음({ 자리: 묶음, current }: { 자리: 자리; current: string }) {
-  const t = use말();
   const 하위 = 묶음.하위 ?? [];
   // 「PRD 관리 › API 문서」 처럼 하위 주소가 묶음 주소 아래가 아니어도 그 하위가 지금이면 펼친다
   const 펼침 = current === 묶음.해시 || current.startsWith(`${묶음.해시}/`) || 하위.some((it) => it.해시 === current);
@@ -228,7 +227,6 @@ function 메뉴묶음({ 자리: 묶음, current }: { 자리: 자리; current: st
         : 하위.map((it) => (
             <a key={it.해시} className="side-sub" href={it.해시} aria-label={it.라벨} {...(current === it.해시 ? { 'aria-current': 'page' as const } : {})}>
               {it.이름}
-              {it.신규 === true ? <span className="side-new">{t('신규')}</span> : null}
             </a>
           ))}
     </div>

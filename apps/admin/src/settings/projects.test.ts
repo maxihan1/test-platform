@@ -166,8 +166,12 @@ describe.skipIf(연결 === undefined)('설정 API — 프로젝트', () => {
        VALUES ($1, 'https://bts.xpq.test/', 'XPQ', 'xpq-bot', 's', '{}', '{}', 'xpq')`,
       [줄.projectId],
     );
-    expect((await 사용자와해시(계정))?.user.services[0]?.btsUrl).toBe('https://bts.xpq.test');
-    await p.query('DELETE FROM bts_link WHERE project_id = $1', [줄.projectId]);
+    try {
+      expect((await 사용자와해시(계정))?.user.services[0]?.btsUrl).toBe('https://bts.xpq.test');
+    } finally {
+      // 실패해도 지운다 — 남으면 같은 프로젝트를 쓰는 뒤 검사가 Bunker 를 이은 채로 시작한다
+      await p.query('DELETE FROM bts_link WHERE project_id = $1', [줄.projectId]);
+    }
   });
 
   it('대표 애플리케이션을 고르면 목록과 me 에 실리고, null 이면 비우고, 빼고 보내면 그대로다', async () => {

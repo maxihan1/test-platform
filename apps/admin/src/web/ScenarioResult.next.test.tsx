@@ -90,7 +90,7 @@ describe('돌아갈 곳', () => {
   it('목록에서 오면 E2E 시나리오, 조립 화면에서 오면 그 시나리오로 돌아간다', async () => {
     window.location.hash = '#/runs/77?from=scenarios';
     연다(결과());
-    expect((await screen.findByRole('link', { name: '← E2E 시나리오' })).getAttribute('href')).toBe('#/scenarios');
+    expect((await screen.findByRole('link', { name: '← E2E 테스트' })).getAttribute('href')).toBe('#/scenarios');
     cleanup();
     window.location.hash = '#/runs/77?from=scenario';
     연다(결과());

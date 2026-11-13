@@ -1,4 +1,4 @@
-/* 테스트 실행 › 호환성 — 세트 목록 · 세트 · 디바이스 선택 상자 · 케이스 추가 (도메인/호환성 §8.17 · 시안 FSGHPH6CyRpaa6hdaWtVYE). 색은 토큰만 쓴다 */
+/* 호환성 테스트 — 세트 목록 · 세트 · 디바이스 선택 상자 · 케이스 추가 (도메인/호환성 §8.17 · 시안 FSGHPH6CyRpaa6hdaWtVYE). 색은 토큰만 쓴다 */
 
 .compat-faint {
   color: var(--ink-faint);
@@ -86,8 +86,7 @@
 .compat-bad,
 .compat-idle,
 .compat-busy,
-.compat-off,
-.side-new {
+.compat-off {
   display: inline-block;
   padding: 1px 8px;
   border-radius: 999px;
@@ -112,7 +111,7 @@
   font-weight: 600;
 }
 
-/* 디바이스 상태 · 신규 꼬리표는 판정도 대표색 자리도 아니다(공통/5-화면공통 §8 「대표색」) — 잉크 테두리 · 회색 바탕으로만 가른다 */
+/* 디바이스 상태는 판정도 대표색 자리도 아니다(공통/5-화면공통 §8 「대표색」) — 잉크 테두리 · 회색 바탕으로만 가른다 */
 .compat-idle {
   border: 1px solid var(--ink-muted);
   color: var(--ink);
@@ -121,15 +120,6 @@
 .compat-busy {
   background: var(--well);
   color: var(--ink-muted);
-}
-
-.side-new {
-  margin-left: 6px;
-  padding: 0 6px;
-  border: 1px solid var(--ink-muted);
-  color: var(--ink);
-  font-size: 11px;
-  font-weight: 600;
 }
 
 .compat-scr {
