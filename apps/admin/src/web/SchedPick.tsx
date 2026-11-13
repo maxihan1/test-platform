@@ -1,4 +1,4 @@
-// 정기 실행 마법사 2단계 「담을 테스트」 — 기능 · UI · E2E · 호환성 탭, 애플리케이션 선택, 케이스 검색 · 체크, 담은 테스트 목록 (도메인/정기실행 §8.20)
+// 정기 실행 마법사 2단계 「테스트 선택」 — 기능 · UI · E2E · 호환성 탭, 애플리케이션 선택, 케이스 검색 · 체크, 선택한 테스트 목록 (도메인/정기실행 §8.20)
 
 import { useEffect, useState } from 'react';
 
@@ -80,7 +80,7 @@ export function 담기단계({ 후, 앱들, items, onItems }: { 후: 후보; 앱
 
   return (
     <div className="sched-wiz-pick">
-      <div className="sched-seg" role="tablist" aria-label={t('담을 테스트')}>
+      <div className="sched-seg" role="tablist" aria-label={t('테스트 선택')}>
         {(['FN', 'UI', 'E2E', 'COMPAT'] as const).map((k) => (
           <button key={k} type="button" role="tab" aria-selected={탭 === k} aria-pressed={탭 === k} onClick={() => set탭(k)}>
             {t(탭이름[k])}
@@ -106,7 +106,7 @@ export function 담기단계({ 후, 앱들, items, onItems }: { 후: 후보; 앱
             <input type="checkbox" checked={지금줄?.tcIds === null} onChange={(e) => 케이스줄(탭, 앱, e.target.checked ? null : undefined)} />
             <span>
               <strong>{t('전체 {수}건', { 수: 탭 === 'FN' ? 앱정보.fn : 앱정보.ui })}</strong>
-              <small>{t('실행할 때의 활성 케이스 전부입니다. 신규 케이스도 들어갑니다')}</small>
+              <small>{t('실행 시점의 활성 케이스 전체(이후 추가된 케이스 포함)')}</small>
             </span>
           </label>
           {케이스보나 ? <케이스목록 key={`${탭}|${앱}`} 앱={앱} kind={탭} 줄={지금줄} on줄={(ids) => 케이스줄(탭, 앱, ids ?? undefined)} /> : null}
@@ -147,8 +147,8 @@ export function 담기단계({ 후, 앱들, items, onItems }: { 후: 후보; 앱
           {후.compatSets.every((c) => c.service !== 앱) ? <li className="sched-wiz-hint">{t('이 애플리케이션에 호환성 세트가 없습니다')}</li> : null}
         </ul>
       ) : null}
-      <section className="sched-wiz-basket" aria-label={t('담은 테스트')}>
-        <h4>{t('담은 테스트 {수}개', { 수: items.length })}</h4>
+      <section className="sched-wiz-basket" aria-label={t('선택한 테스트')}>
+        <h4>{t('선택한 테스트 {수}개', { 수: items.length })}</h4>
         <ul>
           {items.map((x) => (
             <li key={줄열쇠(x)}>

@@ -1,4 +1,4 @@
-// 정기 실행 세트 마법사 — 가운데 창 다섯 단계(세트 이름 → 담을 테스트 → 대상 서버 → 언제 → 확인). 신규 · 수정이 같은 창이다 (도메인/정기실행 §8.20 「마법사」)
+// 정기 실행 세트 마법사 — 가운데 창 다섯 단계(세트 이름 → 테스트 선택 → 대상 서버 → 실행 주기 → 확인). 신규 · 수정이 같은 창이다 (도메인/정기실행 §8.20 「마법사」)
 
 import { useState } from 'react';
 
@@ -14,7 +14,7 @@ import { 서버단계, 언제단계, 확인단계 } from './SchedWizardSteps.js'
 import { 시간대로 } from './schedView.js';
 import { Failed, Loading, message, useAsync, 기다림글자 } from './ui.js';
 
-const 단계들 = ['세트 이름', '담을 테스트', '대상 서버', '언제', '확인'] as const;
+const 단계들 = ['세트 이름', '테스트 선택', '대상 서버', '실행 주기', '확인'] as const;
 const 서버말: Record<string, string> = {
   NAME_TAKEN: '같은 이름의 세트가 이미 있습니다',
   PAST_ONCE: '이미 지난 날짜 · 시각입니다',
@@ -80,7 +80,7 @@ export function SchedWizard({
         if (v.name.trim() === '') return t('세트 이름을 입력해 주세요');
         return 세트들.some((s) => s.id !== 세트?.id && s.name === v.name.trim()) ? t('같은 이름의 세트가 이미 있습니다') : null;
       case 1:
-        return v.items.length === 0 ? t('담을 테스트를 하나 이상 선택해 주세요') : null;
+        return v.items.length === 0 ? t('테스트를 하나 이상 선택해 주세요') : null;
       case 2:
         return 실행앱.some((p) => envs[p] === undefined) ? t('대상 서버를 선택해 주세요') : null;
       case 3:
@@ -91,7 +91,7 @@ export function SchedWizard({
         if (!v.기준 || !기준칸) return null;
         if (기준앱 === null) return t('안정화 기준 세트는 한 애플리케이션의 기능 · UI 테스트만 담고 매일 또는 요일로 반복합니다');
         // 서버는 기준 세트의 애플리케이션을 갈아 끼우는 고치기를 BASE_SET_SHAPE 로 막는다 (§7 PUT)
-        return 원래기준 && 기준앱 !== 원래기준앱 ? t('안정화 기준 세트의 애플리케이션은 변경할 수 없습니다. 「안정화 지표에 씁니다」를 해제해 주세요') : null;
+        return 원래기준 && 기준앱 !== 원래기준앱 ? t('안정화 기준 세트의 애플리케이션은 변경할 수 없습니다. 「안정화 지표에 사용」 체크를 해제해 주세요') : null;
     }
   }
   const 막힘 = 막는이유(칸);
@@ -129,11 +129,11 @@ export function SchedWizard({
 
   const 요약: [string, string][] = [
     [t('세트 이름'), v.name.trim()],
-    [t('담은 테스트'), v.items.map((x) => `${x.service} ${줄글(x, t)}`).join(' · ')],
+    [t('선택한 테스트'), v.items.map((x) => `${x.service} ${줄글(x, t)}`).join(' · ')],
     [t('대상 서버'), 실행앱.map((p) => `${p} ${envs[p] ?? '—'}`).join(' · ')],
-    [t('언제'), [반복글({ days, onceOn }, t, 언어), v.at, `(${tz})`].join(' ')],
+    [t('실행 주기'), [반복글({ days, onceOn }, t, 언어), v.at, `(${tz})`].join(' ')],
     [t('다음 실행'), 보일다음.map(짧은날).join(' · ') || '—'],
-    [t('알림'), v.items.some((x) => x.kind === 'FN' || x.kind === 'UI') ? t('기능 · UI 실행마다 Slack 으로 보냅니다') : t('보내지 않습니다')],
+    [t('알림'), v.items.some((x) => x.kind === 'FN' || x.kind === 'UI') ? t('기능 · UI 실행 결과 Slack 전송') : t('전송 안 함')],
   ];
 
   const 버튼 = (

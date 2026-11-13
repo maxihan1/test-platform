@@ -81,7 +81,7 @@ afterEach(() => {
 });
 
 describe('정기 실행 세트 마법사', () => {
-  it('신규 세트 — 빈 칸은 「다음」을 막고, 담고 고른 것으로 만든 뒤 달력을 다음 실행 날짜로 옮긴다', async () => {
+  it('신규 세트 — 빈 칸은 「다음」을 막고, 선택한 테스트로 만든 뒤 달력을 다음 실행 날짜로 옮긴다', async () => {
     차리기([세트하나({ isBase: true })]);
     const 만들기 = vi.spyOn(schedApi, 'create').mockResolvedValue({ id: 9 });
     render(<Sched service={앱들[0]!} 앱들={앱들} 쓰나 />);
@@ -93,16 +93,16 @@ describe('정기 실행 세트 마법사', () => {
     fireEvent.change(within(창()).getByRole('textbox'), { target: { value: '출시 전 점검' } });
     다음();
 
-    expect(within(창()).getByText('담을 테스트를 하나 이상 선택해 주세요')).toBeTruthy();
+    expect(within(창()).getByText('테스트를 하나 이상 선택해 주세요')).toBeTruthy();
     fireEvent.click(await within(창()).findByRole('checkbox', { name: /전체 12건/u }));
     fireEvent.change(within(창()).getByRole('combobox'), { target: { value: 'MKT' } });
     expect(await within(창()).findByText('전체 382건')).toBeTruthy();
     fireEvent.click(within(창()).getByRole('tab', { name: 'E2E 테스트' }));
     fireEvent.click(within(창()).getByRole('checkbox', { name: /주문 → 어드민 확인/u }));
-    expect(within(창()).getByText('담은 테스트 2개')).toBeTruthy();
+    expect(within(창()).getByText('선택한 테스트 2개')).toBeTruthy();
     다음();
 
-    expect(within(창()).getByText('섞인 단계는 시작 애플리케이션 서버와 같은 이름의 서버로 갑니다')).toBeTruthy();
+    expect(within(창()).getByText('다른 애플리케이션 단계는 시작 애플리케이션과 같은 이름의 대상 서버에서 실행합니다')).toBeTruthy();
     fireEvent.change(within(창()).getByRole('combobox', { name: 'MKT 대상 서버' }), { target: { value: 'stg' } });
     다음();
 
@@ -110,11 +110,11 @@ describe('정기 실행 세트 마법사', () => {
     expect(within(창()).getByText('요일을 하나 이상 선택해 주세요')).toBeTruthy();
     fireEvent.click(within(창()).getByRole('button', { name: '매일' }));
     fireEvent.change(within(창()).getByLabelText(/시각/u), { target: { value: '02:20' } });
-    expect(within(창()).getByText('「결제 회귀」(02:00 · 지난 실행 평균 35분)와 시간이 겹칠 수 있습니다. 겹치면 먼저 시작한 세트가 완료된 뒤 이어서 시작합니다')).toBeTruthy();
+    expect(within(창()).getByText('「결제 회귀」(02:00 · 평균 소요 35분)와 시간이 겹칠 수 있습니다. 겹치면 먼저 시작한 세트가 완료된 뒤 실행합니다')).toBeTruthy();
     다음();
 
     expect(within(창()).getByText('11/14 · 11/15 · 11/16')).toBeTruthy();
-    expect(within(창()).queryByRole('checkbox', { name: /안정화 지표에 씁니다/u })).toBeNull();
+    expect(within(창()).queryByRole('checkbox', { name: /안정화 지표에 사용/u })).toBeNull();
     fireEvent.click(within(창()).getByRole('button', { name: '저장' }));
     await waitFor(() =>
       expect(만들기).toHaveBeenCalledWith({
@@ -132,7 +132,7 @@ describe('정기 실행 세트 마법사', () => {
     await waitFor(() => expect(schedApi.calendar).toHaveBeenLastCalledWith(10, '2026-10-26', '2026-12-06'));
   });
 
-  it('케이스를 검색해 직접 선택하면 번호로 담고, 기준 꼴이면 「안정화 지표에 씁니다」로 기준을 정한다', async () => {
+  it('케이스를 검색해 직접 선택하면 번호로 담고, 기준 꼴이면 「안정화 지표에 사용」으로 기준을 정한다', async () => {
     차리기([]);
     const 만들기 = vi.spyOn(schedApi, 'create').mockResolvedValue({ id: 9 });
     const 기준 = vi.spyOn(schedApi, 'setBase').mockResolvedValue({});
@@ -149,7 +149,7 @@ describe('정기 실행 세트 마법사', () => {
     다음();
     다음();
     다음();
-    fireEvent.click(within(창()).getByRole('checkbox', { name: /안정화 지표에 씁니다/u }));
+    fireEvent.click(within(창()).getByRole('checkbox', { name: /안정화 지표에 사용/u }));
     fireEvent.click(within(창()).getByRole('button', { name: '저장' }));
     await waitFor(() => expect(기준).toHaveBeenCalledWith(9, true));
     expect(만들기.mock.calls[0]![0].items).toEqual([{ kind: 'FN', service: 'MKT', tcIds: ['MKT-FN-001', 'MKT-FN-002'] }]);
@@ -182,14 +182,14 @@ describe('정기 실행 세트 마법사', () => {
     expect(screen.getByRole('dialog', { name: '세트 수정' })).toBeTruthy();
     expect((within(창()).getByRole('textbox') as HTMLInputElement).value).toBe('결제 회귀');
     다음();
-    await within(창()).findByText('담은 테스트 1개');
+    await within(창()).findByText('선택한 테스트 1개');
     expect((within(창()).getByRole('combobox') as HTMLSelectElement).value).toBe('MKT');
     expect((within(창()).getByRole('checkbox', { name: /전체 382건/u }) as HTMLInputElement).checked).toBe(true);
     다음();
     expect((within(창()).getByRole('combobox', { name: 'MKT 대상 서버' }) as HTMLSelectElement).value).toBe('stg');
     다음();
     다음();
-    const 기준칸 = within(창()).getByRole('checkbox', { name: /안정화 지표에 씁니다/u }) as HTMLInputElement;
+    const 기준칸 = within(창()).getByRole('checkbox', { name: /안정화 지표에 사용/u }) as HTMLInputElement;
     expect(기준칸.checked).toBe(true);
     fireEvent.click(기준칸);
     fireEvent.click(within(창()).getByRole('button', { name: '저장' }));
@@ -225,14 +225,14 @@ describe('정기 실행 세트 마법사', () => {
     다음();
     다음();
     다음();
-    fireEvent.click(within(창()).getByRole('checkbox', { name: /안정화 지표에 씁니다/u }));
-    fireEvent.click(within(창()).getByRole('button', { name: /2\. 담을 테스트/u }));
+    fireEvent.click(within(창()).getByRole('checkbox', { name: /안정화 지표에 사용/u }));
+    fireEvent.click(within(창()).getByRole('button', { name: /2\. 테스트 선택/u }));
     fireEvent.click(within(창()).getByRole('tab', { name: 'E2E 테스트' }));
     fireEvent.click(within(창()).getByRole('checkbox', { name: /주문 → 어드민 확인/u }));
     다음();
     다음();
     다음();
-    expect(within(창()).queryByRole('checkbox', { name: /안정화 지표에 씁니다/u })).toBeNull();
+    expect(within(창()).queryByRole('checkbox', { name: /안정화 지표에 사용/u })).toBeNull();
     fireEvent.click(within(창()).getByRole('button', { name: '저장' }));
     await waitFor(() => expect(만들기).toHaveBeenCalled());
     expect(기준).not.toHaveBeenCalled();

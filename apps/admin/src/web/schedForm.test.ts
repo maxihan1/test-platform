@@ -44,7 +44,7 @@ describe('겹치는세트들', () => {
     expect(겹치는세트들([세트하나()], { id: 1, at: '02:00', days: [1], onceOn: null, avgMinutes: null })).toEqual([]);
   });
 
-  it('「한 번만」은 그 날짜의 요일로 견준다 — 2026-11-16 은 월요일이다', () => {
+  it('「1회」는 그 날짜의 요일로 견준다 — 2026-11-16 은 월요일이다', () => {
     expect(겹치는세트들([세트하나()], { id: null, at: '02:00', days: null, onceOn: '2026-11-16', avgMinutes: null })).toHaveLength(1);
     expect(겹치는세트들([세트하나()], { id: null, at: '02:00', days: null, onceOn: '2026-11-15', avgMinutes: null })).toHaveLength(0);
   });
@@ -96,7 +96,7 @@ describe('다음실행들', () => {
     expect(다음실행들({ ...처음값(null, '2026-11-13'), at: '11:00' }, 'Asia/Seoul', 지금)[0]).toBe('2026-11-13');
   });
 
-  it('지난 「한 번만」은 다음 실행이 없다', () => {
+  it('지난 「1회」는 다음 실행이 없다', () => {
     expect(다음실행들({ ...처음값(null, '2026-11-13'), 반복: 'once', onceOn: '2026-11-13', at: '09:00' }, 'Asia/Seoul', 지금)).toEqual([]);
   });
 });

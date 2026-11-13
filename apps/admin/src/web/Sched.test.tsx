@@ -85,7 +85,7 @@ describe('정기 실행 화면', () => {
     차리기([세트하나({ isBase: true })]);
     render(<Sched service={앱} 앱들={[앱, 앱]} 쓰나 />);
     const 카드 = (await screen.findByRole('button', { name: /결제 회귀/u, pressed: false })).closest('li')!;
-    expect(screen.getByText('데모마켓 프로젝트 · 애플리케이션 2개의 세트를 한 달력에 모았습니다')).toBeTruthy();
+    expect(screen.getByText('데모마켓 프로젝트 · 애플리케이션 2개 공통 일정')).toBeTruthy();
     expect(카드.textContent).toContain('안정화 기준');
     expect(카드.textContent).toContain('평일 02:00 · 다음 11/16');
     expect(카드.textContent).toContain('MKT + ADM · 기능 · E2E');
@@ -155,7 +155,7 @@ describe('정기 실행 화면', () => {
   it('앞 세트가 길면 뒤 세트 예정에 대기와 예상 시작을 단다', async () => {
     차리기([세트하나({ id: 1, name: '출시 전 점검', at: '01:00', days: [1], avgMinutes: 170, last: null }), 세트하나({ id: 2, at: '02:00', days: [1], last: null })]);
     render(<Sched service={앱} 앱들={[앱, 앱]} 쓰나 />);
-    expect((await screen.findAllByRole('button', { name: /결제 회귀\s*대기 · 03:50쯤 시작/u })).length).toBeGreaterThan(0);
+    expect((await screen.findAllByRole('button', { name: /결제 회귀\s*대기 · 03:50 시작 예상/u })).length).toBeGreaterThan(0);
   });
 
   it('일 보기에서 1분 차이로 걸치는 두 세트 막대는 서로 덮지 않고 나란히 선다', async () => {
@@ -220,6 +220,6 @@ describe('정기 실행 화면', () => {
     차리기([]);
     render(<Sched service={앱} 앱들={[앱, 앱]} 쓰나 />);
     expect(await screen.findByText('아직 세트가 없습니다')).toBeTruthy();
-    expect(screen.getByText('이미 만든 테스트를 선택해 정해진 시각에 실행합니다')).toBeTruthy();
+    expect(screen.getByText('작성한 테스트를 세트로 묶어 정해진 시각에 자동으로 실행합니다')).toBeTruthy();
   });
 });

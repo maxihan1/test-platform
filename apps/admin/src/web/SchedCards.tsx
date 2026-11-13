@@ -15,7 +15,7 @@ export const 짧은날 = (날: string) => `${String(Number(날.slice(5, 7)))}/${
 export const 요일글 = (날: string, 언어: string) => new Intl.DateTimeFormat(언어, { weekday: 'short', timeZone: 'UTC' }).format(new Date(`${날}T00:00:00Z`));
 
 export function 반복글(세트: Pick<세트, 'days' | 'onceOn'>, t: 말, 언어: string): string {
-  if (세트.onceOn !== null) return t('{날} 한 번', { 날: 짧은날(세트.onceOn) });
+  if (세트.onceOn !== null) return t('{날} 1회', { 날: 짧은날(세트.onceOn) });
   const 요일들 = [...(세트.days ?? [])].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7));
   if (요일들.length === 7) return t('매일');
   if (요일들.join() === '1,2,3,4,5') return t('평일');
@@ -56,7 +56,7 @@ function 카드({ 세트, 색, 고름, 지금, 쓰나, on고르기, on날보기,
         </span>
       </button>
       {마지막 === null ? (
-        <span className="sched-meta">{t('아직 실행한 적이 없습니다')}</span>
+        <span className="sched-meta">{t('실행 기록 없음')}</span>
       ) : (
         <span className="sched-meta">
           {t('마지막 {날}', { 날: 짧은날(시간대로(new Date(마지막.plannedAt), 세트.tz).날) })} {/* 판정할 실행이 없고 의심만 있으면 결과 없이 의심 수만 (§3.16 「회차의 결과」) */}
