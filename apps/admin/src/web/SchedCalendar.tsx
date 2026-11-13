@@ -18,7 +18,7 @@ const 시간글 = (분: number, t: 말) => {
 
 /** 칸 글자 — 통과 · 실패 N · 실행 중 · 결과 없음 · <시각> 예정 · <시각>쯤 시작 */
 export function 결과글(c: 칩, t: 말): string {
-  if (c.상태 === 'plan') return c.대기분 > 0 ? t('{시각}쯤 시작', { 시각: 시각글(c.시작분) }) : t('{시각} 예정', { 시각: 시각글(c.정한분) });
+  if (c.상태 === 'plan') return c.대기분 > 0 ? t('{시각} 시작 예상', { 시각: 시각글(c.시작분) }) : t('{시각} 예정', { 시각: 시각글(c.정한분) });
   if (c.상태 === 'running') return t('실행 중');
   if (c.상태 === 'pass') return t('통과');
   if (c.상태 === 'fail') return t('실패 {수}', { 수: c.실패 });
@@ -32,7 +32,7 @@ const 칩글 = (c: 칩, t: 말) =>
 /** 기다린 칸의 한 줄 — 지난 것은 실제 시작, 앞으로의 것은 예상 */
 function 대기글(c: 칩, t: 말): string | null {
   if (c.대기분 === 0) return null;
-  if (c.상태 === 'plan') return t('{정한} 예정 · 앞 세트가 완료되면 시작 · {시작}쯤 예상', { 정한: 시각글(c.정한분), 시작: 시각글(c.시작분) });
+  if (c.상태 === 'plan') return t('{정한} 예정 · 앞 세트 완료 후 시작({시작} 예상)', { 정한: 시각글(c.정한분), 시작: 시각글(c.시작분) });
   return t('{정한} 예정 → {시작} 시작 · 앞 세트 대기 {대기}', { 정한: 시각글(c.정한분), 시작: 시각글(c.시작분), 대기: 시간글(c.대기분, t) });
 }
 
@@ -89,7 +89,7 @@ function 칸설명({ c, t }: { c: 칩; t: 말 }) {
       <p className="sched-meta">
         {실행있나(c)
           ? t('{날} {시각} 시작 · 실행 {수}개', { 날: 짧은날(c.날), 시각: 시각글(c.시작분), 수: c.회차!.runs.length })
-          : t('{날} {시각}에 실행 예정입니다', { 날: 짧은날(c.날), 시각: 시각글(c.정한분) })}
+          : t('{날} {시각} 실행 예정', { 날: 짧은날(c.날), 시각: 시각글(c.정한분) })}
       </p>
     </>
   );
@@ -223,7 +223,7 @@ function 주보기({ 기준, 오늘, 세트들, 표, on열기 }: 달력속성) {
   const 언어 = use언어();
   const 날들 = Array.from({ length: 7 }, (_, i) => 날더하기(주시작(기준), i));
   const 범위 = 시간범위(날들.flatMap((날) => 표.get(날) ?? []));
-  if (범위 === null) return <p className="sched-none">{t('이 기간에 실행할 세트가 없습니다')}</p>;
+  if (범위 === null) return <p className="sched-none">{t('이 기간에 예정된 세트가 없습니다')}</p>;
   return (
     <div className="sched-week">
       <span />
@@ -245,7 +245,7 @@ function 일보기({ 기준, 세트들, 표, on열기 }: 달력속성) {
   const t = use말();
   const 줄 = 표.get(기준) ?? [];
   const 범위 = 시간범위(줄);
-  if (범위 === null) return <p className="sched-none">{t('이날 실행할 세트가 없습니다')}</p>;
+  if (범위 === null) return <p className="sched-none">{t('이날 예정된 세트가 없습니다')}</p>;
   return (
     <div className="sched-dayv">
       <div className="sched-tl">

@@ -136,7 +136,7 @@ export function Sched({ service, 앱들, 쓰나 }: { service: ServiceRow; 앱들
       />
     );
 
-  const 부제 = t('{프로젝트} 프로젝트 · 애플리케이션 {수}개의 세트를 한 달력에 모았습니다', { 프로젝트: service.projectName, 수: 앱들.length });
+  const 부제 = t('{프로젝트} 프로젝트 · 애플리케이션 {수}개 공통 일정', { 프로젝트: service.projectName, 수: 앱들.length });
   // 목록을 읽기 전에는 「+ 신규 세트」를 세우지 않는다 — 그 자리에는 창이 안 서서 눌러도 반응이 없다
   const 빈머리 = <Head 제목={t('정기 실행')} 부제={부제} />;
   const 머리 = <Head 제목={t('정기 실행')} 부제={부제} 행동={신규단추} />;
@@ -148,7 +148,7 @@ export function Sched({ service, 앱들, 쓰나 }: { service: ServiceRow; 앱들
         {머리}
         <section className="sched-empty">
           <h2>{t('아직 세트가 없습니다')}</h2>
-          <p>{t('이미 만든 테스트를 선택해 정해진 시각에 실행합니다')}</p>
+          <p>{t('작성한 테스트를 세트로 묶어 정해진 시각에 자동으로 실행합니다')}</p>
           {신규단추}
         </section>
         {창}

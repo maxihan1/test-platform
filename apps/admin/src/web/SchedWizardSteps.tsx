@@ -34,13 +34,13 @@ export function 서버단계({ 실행앱, 앱들, envs, on서버, 섞임 }: { �
           );
         })}
       </ul>
-      {섞임 ? <p className="sched-wiz-hint">{t('섞인 단계는 시작 애플리케이션 서버와 같은 이름의 서버로 갑니다')}</p> : null}
-      <p className="sched-wiz-hint">{t('정기 실행은 사람 없이 실행되어 실서비스 서버를 선택하면 저장할 때 막힙니다')}</p>
+      {섞임 ? <p className="sched-wiz-hint">{t('다른 애플리케이션 단계는 시작 애플리케이션과 같은 이름의 대상 서버에서 실행합니다')}</p> : null}
+      <p className="sched-wiz-hint">{t('정기 실행에는 실서비스 서버를 선택할 수 없습니다')}</p>
     </>
   );
 }
 
-const 반복이름: Record<반복, string> = { daily: '매일', days: '요일 선택', once: '한 번만' };
+const 반복이름: Record<반복, string> = { daily: '매일', days: '요일 선택', once: '1회' };
 
 export function 언제단계({ v, on값, tz, 겹침, 호환성 }: { v: 마법사값; on값: (덮: 덮을값) => void; tz: string; 겹침: readonly 세트[]; 호환성: boolean }) {
   const t = use말();
@@ -78,11 +78,11 @@ export function 언제단계({ v, on값, tz, 겹침, 호환성 }: { v: 마법사
       {겹침.map((s) => (
         <p key={s.id} className="sched-wiz-note">
           {s.avgMinutes === null
-            ? t('「{이름}」({시각})와 시간이 겹칠 수 있습니다. 겹치면 먼저 시작한 세트가 완료된 뒤 이어서 시작합니다', { 이름: s.name, 시각: s.at })
-            : t('「{이름}」({시각} · 지난 실행 평균 {분}분)와 시간이 겹칠 수 있습니다. 겹치면 먼저 시작한 세트가 완료된 뒤 이어서 시작합니다', { 이름: s.name, 시각: s.at, 분: s.avgMinutes })}
+            ? t('「{이름}」({시각})와 시간이 겹칠 수 있습니다. 겹치면 먼저 시작한 세트가 완료된 뒤 실행합니다', { 이름: s.name, 시각: s.at })
+            : t('「{이름}」({시각} · 평균 소요 {분}분)와 시간이 겹칠 수 있습니다. 겹치면 먼저 시작한 세트가 완료된 뒤 실행합니다', { 이름: s.name, 시각: s.at, 분: s.avgMinutes })}
         </p>
       ))}
-      {호환성 ? <p className="sched-wiz-note">{t('호환성 테스트가 들어 있습니다. 디바이스를 한 대씩 실행하고 AI 점검까지 완료해야 해서 2~3시간 걸릴 수 있습니다')}</p> : null}
+      {호환성 ? <p className="sched-wiz-note">{t('호환성 테스트는 디바이스별로 차례대로 실행한 뒤 AI 점검까지 진행해 2~3시간 걸릴 수 있습니다')}</p> : null}
     </>
   );
 }
@@ -103,8 +103,8 @@ export function 확인단계({ 줄들, 기준칸, 기준, on기준 }: { 줄들: 
         <label className="sched-wiz-all">
           <input type="checkbox" checked={기준} onChange={(e) => on기준(e.target.checked)} />
           <span>
-            <strong>{t('안정화 지표에 씁니다')}</strong>
-            <small>{t('애플리케이션마다 세트 하나가 안정화 기준입니다. 안정화 지표는 이 세트의 실행만 집계합니다')}</small>
+            <strong>{t('안정화 지표에 사용')}</strong>
+            <small>{t('안정화 기준 세트는 애플리케이션당 하나입니다. 안정화 지표는 이 세트의 실행 결과만 집계합니다')}</small>
           </span>
         </label>
       ) : null}
