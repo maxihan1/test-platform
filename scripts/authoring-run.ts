@@ -26,7 +26,7 @@ import { 거절로, 끝낼상태, 자식제한, 진척누적기, 진척재기 } 
 import { type 박동, 박동손 } from './authoring-heartbeat.js';
 import { type 서비스설정 } from './authoring-token.js';
 import { 먼저가리기 } from './authoring-masking.js';
-import { 게임화면받기, 앱링크갈기, 앱화면받기, 잡은폰놓기, 탐색환경 } from './authoring-app-screen.js';
+import { 게임화면받기, 받은팜토큰, 앱링크갈기, 앱화면받기, 잡은폰놓기, 탐색환경 } from './authoring-app-screen.js';
 import { 게임자료환경 } from './authoring-check-game.js';
 import { 게임올리기, 게임준비, 안다룬요소줄 } from './authoring-game.js';
 import { type 바꾸기, 가이드받기, 가이드폴더 } from './authoring-guide.js';
@@ -234,7 +234,7 @@ async function 사본에서(
   const 역방향 = 것.target === undefined ? undefined : { 화면만: 화면만인가(것, 자료들), 산출물폴더: join(자리.자료, 'out'), 제외: 설정.제외, 앱: 설정.종류 === 'APP', 게임: 설정.게임 === true };
   const 인자 = MCP붙이기(클로드인자(자리.자료, 판.모델, 자리.임시), MCP설정쓰기(자리.임시, MCP설정글(주소기지, 것.mcpKey), 자식));
   // 진척 — 케이스는 자식 시작 뒤 새로 생긴 것만, 화면은 역방향만 센다. limitSec 0 — 전체 상한이 없어 화면이 시간 막대를 안 그린다 (작성 §7)
-  const 누적 = 진척누적기(0, { 비밀번호들: 비밀번호들(것), figmaToken: 것.figmaToken, 팜토큰: 앱화면?.탐색?.token ?? process.env.PLATFORM_APPIUM_TOKEN });
+  const 누적 = 진척누적기(0, { 비밀번호들: 비밀번호들(것), figmaToken: 것.figmaToken, 팜토큰: 앱화면?.탐색?.token ?? process.env.PLATFORM_APPIUM_TOKEN, 팜토큰들: 받은팜토큰 });
   const 재기 = 진척재기(누적, 자리.트리, 케이스자리, 역방향 === undefined ? undefined : join(자리.자료, 'screens'), 방.옛케이스);
   // 되묻기(요약되받기)는 같은 자리 · 환경으로 인자 · 프롬프트만 바꿔 띄운다
   const 띄운다 = (키: string | undefined, 이어하기 = 방.이어하기, 되묻기?: { 인자: string[]; 글: string }) => 박동.자식동안(재기, (신호) =>
@@ -259,7 +259,7 @@ async function 사본에서(
   const 링크끄기 = 앱링크갈기({ 주소기지, 토큰 }, 것.id, 자리.자료, 앱화면); // 서명 링크는 2시간이다 — 자식이 도는 동안 갈아 끼운다 (§3.6 「앱 화면」)
   const { 돌린것, 크레딧으로, 앞낸것 } = await 크레딧먼저(process.env[크레딧키이름] || undefined, 띄운다, (글) => console.log(`[작성] ${것.id}번 ${사유거르기(글, 비밀번호들(것))}`), {
     멈추라했다: 박동.멈추라했다,
-    거두기: async () => (await 자식거두기(자식)) && (await 잡은폰놓기(자리.트리, 앱화면, 것.id), true),
+    거두기: async () => (await 자식거두기(자식)) && (await 잡은폰놓기(자리.트리, 앱화면, 것.id, fetch, Date.now(), 자리.자료), true),
     띄운다: () => 띄운다(undefined, 방.이어하기 ?? { 번호: 것.id, 이유: 'CREDIT', 까닭: null }),
   }).finally(링크끄기);
   const 단계 = 누적.단계표(); // 거절 · 시간초과 · 멈춤 · 끊김에도 남게 어떤 return · 사용량보고보다 먼저 (AUT-F3-21)
@@ -272,7 +272,7 @@ async function 사본에서(
   const 풀린 = 안떴다 ? 흐름풀기(돌린것.낸것) : await 사용량보고({ 주소기지, 토큰 }, 서비스, 것.id, 돌린것.낸것, 앞낸것 ?? undefined);
   // 검사 전에 자식이 남긴 것을 전부 죽인다 — 살아 있으면 검사한 뒤에 파일을 바꿔치기한다
   if (!(await 자식거두기(자식))) return void (await 손.끝내기({ status: 'FAILED', error: '자식이 남긴 프로세스를 거두지 못했다 — 올리지 않는다' }));
-  await 잡은폰놓기(자리.트리, 앱화면, 것.id); // AI 가 release 를 잊었으면 — 거둔 뒤라야 살아남은 자식이 다시 잡지 못한다 (§3.6 「앱 화면」)
+  await 잡은폰놓기(자리.트리, 앱화면, 것.id, fetch, Date.now(), 자리.자료); // AI 가 release 를 잊었으면 — 거둔 뒤라야 살아남은 자식이 다시 잡지 못한다 (§3.6 「앱 화면」)
   if (안떴다) {
     // 자식 stderr 에 계정 원문이 섞일 수 있다 — 사유는 화면과 서버 기록에 남는다
     const 끝줄 = 돌린것.오류.trim().split('\n').pop() ?? '';
@@ -306,6 +306,6 @@ async function 사본에서(
   await 올리기(
     자리, 것, 서비스, 판.판정, 기준, 풀린.글, 테스트고침싣는손(손, 것, () => ({ 자식출력: 풀린.글, 결과폴더: 자리.임시, 비밀: 비밀번호들(것), 파일: (tcId) => 고치기전후(기준목록.낸것, 자리.트리, 깃, tcId), 바뀐: () => 고친테스트파일들(자리.트리, join(자리.자료, 기준목록이름)) })),
     역방향 === undefined ? undefined : { 주소기지, 토큰, 자식, 입력자료: 자료들 },
-    { 값: 옮김.원장, 폴더: 케이스자리, 자식, 기준: 옮김.기준, 게임: 설정.게임 === true, 팜토큰: 앱화면?.탐색?.token }, 단계, [...API반영줄(것.api), ...옮김.줄, ...게임줄],
+    { 값: 옮김.원장, 폴더: 케이스자리, 자식, 기준: 옮김.기준, 게임: 설정.게임 === true, 팜토큰: 앱화면?.탐색?.token, 팜토큰들: 받은팜토큰 }, 단계, [...API반영줄(것.api), ...옮김.줄, ...게임줄],
   );
 }

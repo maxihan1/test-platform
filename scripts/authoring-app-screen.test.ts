@@ -1,11 +1,12 @@
 // 앱 첫 화면 받아 두기 검사 — 파일로 남기고 · 앱 없는 서비스는 아무것도 안 바꾸고 · 못 읽어도 작성은 가고 · 프롬프트 절을 싣는다
+import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { 게임화면받기, 게임화면파일, 앱링크갈기, 앱링크파일, 앱화면받기, 앱화면파일, 잡은폰놓기, 탐색환경 } from './authoring-app-screen.js';
+import { 게임화면받기, 게임화면파일, 받은팜토큰, 앱링크갈기, 앱링크파일, 앱화면받기, 앱화면파일, 잡은폰놓기, 탐색환경, 팜토큰파일 } from './authoring-app-screen.js';
 import { 줄프롬프트 } from './authoring-prompt.js';
 
 const 서버 = { 주소기지: 'http://admin:3000', 토큰: 't' };
@@ -116,6 +117,36 @@ describe('앱 링크 갈아 끼우기 — 서명 링크는 2시간이라 작성 
     expect(뒤).not.toHaveBeenCalled();
   });
 
+  it('대신 PAT 는 3시간이라 app-link 가 준 팜 토큰을 토큰 파일에 갈아 끼우고 가릴 목록에 넣는다 — 링크를 못 받아도 토큰은 바꾼다', async () => {
+    vi.useFakeTimers();
+    서버가({ screen: null, reason: null, appium: { ...탐색, token: 'pat_first_0001' } });
+    await 앱화면받기(서버, 7, 자료);
+    expect(readFileSync(팜토큰파일(자료), 'utf8')).toBe('pat_first_0001');
+
+    서버가({ app: null, token: 'pat_second_002' });
+    const 끄기 = 앱링크갈기(서버, 7, 자료, { 글: 'x', 탐색: { ...탐색, token: 'pat_first_0001' } });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(readFileSync(팜토큰파일(자료), 'utf8')).toBe('pat_second_002');
+    expect(readFileSync(앱링크파일(자료), 'utf8')).toBe(탐색.app);
+    expect([...받은팜토큰]).toEqual(expect.arrayContaining(['pat_first_0001', 'pat_second_002']));
+
+    서버가({ app: 'https://qa.test/api/builds/1/apk?exp=9&sig=new' });
+    await vi.advanceTimersByTimeAsync(30 * 60_000);
+    expect(readFileSync(팜토큰파일(자료), 'utf8')).toBe('pat_second_002');
+    끄기();
+  });
+
+  it('자식의 node 는 뜰 때 토큰 파일을 PLATFORM_APPIUM_TOKEN 에 얹는다 — 파일이 없으면 시작 때 환경값 그대로다', () => {
+    const 앱 = { 글: 'x', 탐색: { ...탐색, token: 'pat_start_0001' } };
+    const 환경 = { ...process.env, ...탐색환경(앱, 자료, '--max-old-space-size=512') };
+    const 읽기 = () => execFileSync(process.execPath, ['-e', 'process.stdout.write(process.env.PLATFORM_APPIUM_TOKEN ?? "")'], { env: 환경, encoding: 'utf8' });
+
+    expect(환경.NODE_OPTIONS).toMatch(/^--max-old-space-size=512 --import=file:\/\/.+\/authoring-farm-token\.mjs$/);
+    expect(읽기()).toBe('pat_start_0001');
+    writeFileSync(팜토큰파일(자료), 'pat_fresh_0002\n');
+    expect(읽기()).toBe('pat_fresh_0002');
+  });
+
   it('탐색이 없으면(앱 · 팜 없음) 부르지 않는다', async () => {
     vi.useFakeTimers();
     const 부름 = 서버가({ app: 'x' });
@@ -159,9 +190,13 @@ describe('눌러 가며 읽기 — 탐색 주소 · 폰 놓기 (도메인/작성
     const 빈것 = await 앱화면받기(서버, 7, 자료);
 
     expect(게임).toEqual({ 못읽음: '디바이스 팜에 빈 폰이 없습니다', 탐색: { ...탐색, token: 'pat_dlg' }, 게임: true });
-    expect(탐색환경(게임, 자료)).toEqual({ PLATFORM_APPIUM_URL: 탐색.url, PLATFORM_APP: 탐색.app, AUTHORING_APP_FILE: 앱링크파일(자료), PLATFORM_APPIUM_TOKEN: 'pat_dlg' });
+    expect(탐색환경(게임, 자료, '')).toEqual({
+      PLATFORM_APPIUM_URL: 탐색.url, PLATFORM_APP: 탐색.app, AUTHORING_APP_FILE: 앱링크파일(자료), PLATFORM_APPIUM_TOKEN: 'pat_dlg',
+      AUTHORING_FARM_TOKEN_FILE: 팜토큰파일(자료), NODE_OPTIONS: expect.stringMatching(/^--import=file:\/\/.+\/authoring-farm-token\.mjs$/),
+    });
     expect(빈것).toEqual({ 못읽음: '디바이스 팜에 빈 폰이 없습니다', 탐색 });
     expect(탐색환경(빈것, 자료)).not.toHaveProperty('PLATFORM_APPIUM_TOKEN');
+    expect(탐색환경(빈것, 자료)).not.toHaveProperty('NODE_OPTIONS');
   });
 
   it('AI 가 잡은 폰이 작업 폴더에 남아 있으면 팜에서 놓는다', async () => {
@@ -198,6 +233,33 @@ describe('눌러 가며 읽기 — 탐색 주소 · 폰 놓기 (도메인/작성
     vi.unstubAllEnvs();
 
     expect(new Headers(부름.mock.calls[0]?.[1].headers).get('authorization')).toBe('Bearer pat_dlg');
+  });
+
+  it('갈아 끼운 토큰으로 놓는다 — 시작 때 것은 3시간 뒤 401 이다. 자식이 바꿔 둔 파일은 믿지 않는다', async () => {
+    vi.useFakeTimers();
+    const 앱 = { 글: 'x', 탐색: { ...탐색, token: 'pat_dlg' } };
+    서버가({ app: 탐색.app, token: 'pat_fresh_0002' });
+    const 끄기 = 앱링크갈기(서버, 7, 자료, 앱);
+    await vi.advanceTimersByTimeAsync(0);
+    끄기();
+    vi.useRealTimers();
+    mkdirSync(join(자료, '.appium-cli'));
+    writeFileSync(join(자료, '.appium-cli', 'held'), 'R3CR10TCVCD\n');
+    writeFileSync(팜토큰파일(자료), 'pat_child_wrote\n');
+    const 부름 = vi.fn(async (_주소: string, _설정: RequestInit) => new Response('{"released":true}', { status: 200 }));
+
+    await 잡은폰놓기(자료, 앱, 7, 부름 as unknown as typeof fetch, Date.now(), 자료);
+
+    expect(new Headers(부름.mock.calls[0]?.[1].headers).get('authorization')).toBe('Bearer pat_fresh_0002');
+  });
+
+  it('첫 화면 때 토큰을 못 받은 작성은 app-link 가 토큰을 줘도 갈아 끼우지 않는다 — 자식은 컨테이너 토큰으로 잡았다', async () => {
+    vi.useFakeTimers();
+    서버가({ app: 탐색.app, token: 'pat_late_00003' });
+    const 끄기 = 앱링크갈기(서버, 8, 자료, { 글: 'x', 탐색 });
+    await vi.advanceTimersByTimeAsync(0);
+    끄기();
+    expect(existsSync(팜토큰파일(자료))).toBe(false);
   });
 
   it('놓은 뒤 기록을 지운다 — 이어하기가 같은 폴더로 다시 끝나도 두 번 놓지 않는다', async () => {

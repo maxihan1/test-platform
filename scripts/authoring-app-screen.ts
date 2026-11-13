@@ -1,8 +1,9 @@
 // 앱 · 게임 첫 화면을 자료 폴더에 받아 둔다 — AI 가 러너에 닿지 않고 요소 주소를 고르게 (도메인/작성 §3.6 「앱 화면」 · §7 「앱 화면 통로」 · 도메인/게임 §7 「게임 첫 화면」)
 // 기대값의 근거가 아니다 — 자식 지침(tpx-author references/app.md · game.md)이 그렇게 읽는다
 
-import { lstatSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { 인증헤더 } from './authoring-io.js';
 import { 비밀번호꼴가리기 } from './authoring-prd.js';
@@ -24,6 +25,15 @@ export const 앱화면파일 = (자료: string): string => join(자료, 앱곳.�
 export const 게임화면파일 = (자료: string): string => join(자료, 게임곳.파일);
 /** 폰에 깔 앱 링크 — 자식의 폰 돌려 보기 · appium-cli · control-cli open 이 PLATFORM_APP 대신 읽는다. 에이전트가 자식이 도는 동안 갈아 끼운다(앱링크갈기) */
 export const 앱링크파일 = (자료: string): string => join(자료, 'app-link.txt');
+/** 팜 토큰 — 서버 몫 대신 PAT 는 3시간이라 링크와 같이 갈아 끼운다. 자식의 node 는 뜰 때 미리 읽기 모듈(authoring-farm-token.mjs)로 이 파일을 읽는다 */
+export const 팜토큰파일 = (자료: string): string => join(자료, 'farm-token.txt');
+const 팜토큰읽기모듈 = pathToFileURL(join(import.meta.dirname, 'authoring-farm-token.mjs')).href;
+/** 이 에이전트가 받아 자식에게 준 팜 토큰 — 진척 · 올릴 것에서 가린다. 자리 여럿 것이 섞여도 더 가릴 뿐이다 */
+export const 받은팜토큰 = new Set<string>();
+// ponytail: 오래된 것부터 버리는 상한 하나. 서버 몫 토큰은 한 시간쯤에 하나 바뀌니 50개면 이틀 치다 — 끝난 토큰은 새어도 못 쓴다
+const 받은팜토큰_상한 = 50;
+/** 작성(자료 폴더)마다 마지막으로 갈아 끼운 토큰 — 남긴 폰 놓기가 쓴다. 자식이 바꿀 수 있는 파일은 다시 읽지 않는다 */
+const 최신팜토큰 = new Map<string, string>();
 
 /**
  * 자식을 띄우기 전에 부른다. 앱이 없는 서비스(경로가 없음)는 undefined — 프롬프트에 아무 절도 안 더한다.
@@ -45,6 +55,8 @@ async function 화면받기(서버: { 주소기지: string; 토큰: string }, �
   // 이어받은 자료 폴더에는 앞 실행이 받은 화면이 남아 있다. 이번에 못 읽었는데 옛 화면이 보이면 안 된다
   rmSync(join(자료, 곳.파일), { force: true });
   rmSync(앱링크파일(자료), { force: true });
+  rmSync(팜토큰파일(자료), { force: true });
+  최신팜토큰.delete(자료);
   try {
     const 답 = await fetch(`${서버.주소기지}/api/authoring/requests/${String(번호)}/${곳.길}`, {
       headers: 인증헤더(서버.토큰),
@@ -55,6 +67,7 @@ async function 화면받기(서버: { 주소기지: string; 토큰: string }, �
     const 탐색 = 탐색읽기(몸?.[곳.칸]);
     // 못 쓰면 자식은 시작 때 받은 PLATFORM_APP 으로 간다 — 2시간 안에는 같은 링크다
     if (탐색.탐색 !== undefined && !링크쓰기(앱링크파일(자료), 탐색.탐색.app)) console.error(`[작성] ${번호}번 — 앱 링크 파일을 못 썼다(시작 때 받은 링크로 간다)`);
+    if (탐색.탐색?.token !== undefined) 토큰쓰기(번호, 자료, 탐색.탐색.token);
     if (typeof 몸?.screen === 'string') {
       // 로그인 직전 화면이라 계정 값은 없다. 그래도 「비밀번호: 값」 꼴은 가린다 — 서비스 가이드와 같은 손
       writeFileSync(join(자료, 곳.파일), 비밀번호꼴가리기(몸.screen), { mode: 0o644 });
@@ -80,10 +93,17 @@ function 탐색읽기(v: unknown): { 탐색?: 앱탐색 } {
  * 자식 환경값 — appium-cli · control-cli 가 읽는 이름 그대로. 폰 번호는 안 준다(AI 가 hold 로 빈 폰을 잡는다).
  * 서버가 준 토큰은 이 컨테이너의 PLATFORM_APPIUM_TOKEN 을 덮는다 — AI 가 서버와 같은 주인으로 잡아야 팜이 받는다 (러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」)
  */
-export function 탐색환경(앱: 앱화면 | undefined, 자료: string): Record<string, string> {
+export function 탐색환경(앱: 앱화면 | undefined, 자료: string, 부모NODE_OPTIONS = process.env.NODE_OPTIONS): Record<string, string> {
   if (앱?.탐색 === undefined) return {};
   const { url, app, token } = 앱.탐색;
-  return { PLATFORM_APPIUM_URL: url, PLATFORM_APP: app, AUTHORING_APP_FILE: 앱링크파일(자료), ...(token !== undefined && { PLATFORM_APPIUM_TOKEN: token }) };
+  // 서버가 토큰을 줬을 때만 파일로 갈아 끼운다 — 없으면(SSO 를 끈 설치) 이 컨테이너의 PLATFORM_APPIUM_TOKEN 그대로다
+  // 미리 읽기 모듈이 없으면(다른 판 체크아웃) 자식의 node 가 전부 못 뜬다 — 그때는 갈아 끼우기 없이 시작 때 토큰으로 간다
+  const 토큰칸: Record<string, string> = token === undefined ? {} : !existsSync(fileURLToPath(팜토큰읽기모듈)) ? { PLATFORM_APPIUM_TOKEN: token } : {
+    PLATFORM_APPIUM_TOKEN: token,
+    AUTHORING_FARM_TOKEN_FILE: 팜토큰파일(자료),
+    NODE_OPTIONS: [부모NODE_OPTIONS, `--import=${팜토큰읽기모듈}`].filter((v) => v !== undefined && v !== '').join(' '),
+  };
+  return { PLATFORM_APPIUM_URL: url, PLATFORM_APP: app, AUTHORING_APP_FILE: 앱링크파일(자료), ...토큰칸 };
 }
 
 // 서명 링크는 받을 때 1~2시간 남는다(admin execution/buildFile.ts 서명주소). 30분마다 갈면 파일의 링크는 늘 30분 넘게 남는다
@@ -99,16 +119,20 @@ export function 앱링크갈기(서버: { 주소기지: string; 토큰: string }
   const 빌드 = /\/api\/builds\/(\d+)\/apk\?/.exec(앱.탐색.app)?.[1];
   const 주소 = `${서버.주소기지}/api/authoring/requests/${String(번호)}/app-link${빌드 === undefined ? '' : `?build=${빌드}`}`;
   // 첫 화면을 받은 뒤 자식을 띄우기까지(자료 · 원장 준비)도 시간이 간다 — 띄울 때 한 번 받고 30분마다 받는다
-  void 링크받아쓰기(주소, 서버.토큰, 번호, 자료);
-  const 타이머 = setInterval(() => void 링크받아쓰기(주소, 서버.토큰, 번호, 자료), 링크갈기_ms);
+  // 첫 화면 때 토큰을 받은 작성만 갈아 끼운다 — 그때 못 받았으면 자식은 컨테이너 토큰으로 잡았고 파일을 읽지도 않는다(놓기도 그 토큰이라야 한다)
+  const 토큰도 = 앱.탐색.token !== undefined;
+  void 링크받아쓰기(주소, 서버.토큰, 번호, 자료, 토큰도);
+  const 타이머 = setInterval(() => void 링크받아쓰기(주소, 서버.토큰, 번호, 자료, 토큰도), 링크갈기_ms);
   return () => clearInterval(타이머);
 }
 
-async function 링크받아쓰기(주소: string, 토큰: string, 번호: number, 자료: string): Promise<void> {
+async function 링크받아쓰기(주소: string, 토큰: string, 번호: number, 자료: string, 토큰도: boolean): Promise<void> {
   let 까닭: string;
   try {
     const 답 = await fetch(주소, { headers: 인증헤더(토큰), signal: AbortSignal.timeout(30_000) });
-    const 몸 = (await 답.json().catch(() => null)) as { app?: unknown } | null;
+    const 몸 = (await 답.json().catch(() => null)) as { app?: unknown; token?: unknown } | null;
+    // 토큰은 링크와 따로 갈아 끼운다 — 앱 줄이 바뀌어 링크를 못 받아도 잡은 폰은 놓아야 한다
+    if (토큰도 && 답.ok && typeof 몸?.token === 'string' && 몸.token !== '') 토큰쓰기(번호, 자료, 몸.token);
     if (답.ok && 몸?.app === null) 까닭 = '앱 줄에 앱이 없어졌다(설정 › 대상 서버의 앱 파일 경로 · 빌드)';
     else if (!답.ok || typeof 몸?.app !== 'string' || 몸.app === '') 까닭 = `서버 ${답.status}`;
     else if (링크쓰기(앱링크파일(자료), 몸.app)) return;
@@ -117,6 +141,14 @@ async function 링크받아쓰기(주소: string, 토큰: string, 번호: number
     까닭 = err instanceof Error ? err.name : '알 수 없는 오류';
   }
   console.error(`[작성] ${번호}번 — 앱 링크를 새로 못 받아 앞 링크를 둔다: ${까닭}`);
+}
+
+function 토큰쓰기(번호: number, 자료: string, 토큰: string): void {
+  받은팜토큰.delete(토큰);
+  받은팜토큰.add(토큰);
+  for (const 옛것 of 받은팜토큰) if (받은팜토큰.size > 받은팜토큰_상한) 받은팜토큰.delete(옛것);
+  최신팜토큰.set(자료, 토큰);
+  if (!링크쓰기(팜토큰파일(자료), 토큰)) console.error(`[작성] ${번호}번 — 팜 토큰 파일을 못 썼다(앞 토큰으로 간다)`);
 }
 
 /**
@@ -146,7 +178,7 @@ const 폰번호꼴 = /^[A-Za-z0-9._:-]{1,64}$/;
  * 자식이 쓴 파일이다 — 링크는 따라가지 않고(root 가 남의 파일을 읽어 로그 · 주소에 싣는다) 폰 번호 꼴만 받는다. 본 기록은 지운다(이어하기가 같은 폴더를 쓴다).
  * 실패해도 던지지 않는다 — 잡기는 시간이 끝나면 팜이 스스로 푼다
  */
-export async function 잡은폰놓기(트리: string, 앱: 앱화면 | undefined, 번호: number, 부르기: typeof fetch = fetch, 지금 = Date.now()): Promise<void> {
+export async function 잡은폰놓기(트리: string, 앱: 앱화면 | undefined, 번호: number, 부르기: typeof fetch = fetch, 지금 = Date.now(), 자료?: string): Promise<void> {
   if (앱?.탐색 === undefined) return;
   const 폴더 = join(트리, 앱.게임 === true ? '.control-cli' : '.appium-cli');
   const 기록 = join(폴더, 'held');
@@ -164,8 +196,8 @@ export async function 잡은폰놓기(트리: string, 앱: 앱화면 | undefined
   if (!폰번호꼴.test(serial)) return void console.error(`[작성] ${번호}번 — 잡은 폰 기록이 폰 번호 꼴이 아니라 놓지 않는다`);
   const 팜 = 앱.탐색.url.replace(/\/wd\/hub\/?$/, '');
   try {
-    // AI 는 자식 환경의 PLATFORM_APPIUM_TOKEN(서버가 준 토큰 — 없으면 이 컨테이너 것)으로 잡았다. 잡은 사람과 같은 토큰이라야 팜이 놓아 준다
-    const 토큰 = 앱.탐색.token ?? process.env.PLATFORM_APPIUM_TOKEN;
+    // AI 는 자식 환경의 PLATFORM_APPIUM_TOKEN(서버가 준 토큰 — 갈아 끼운 파일 것, 없으면 이 컨테이너 것)으로 잡았다. 잡은 계정과 같아야 팜이 놓아 준다
+    const 토큰 = (자료 === undefined ? undefined : 최신팜토큰.get(자료)) ?? 앱.탐색.token ?? process.env.PLATFORM_APPIUM_TOKEN;
     const res = await 부르기(`${팜}/api/devices/${encodeURIComponent(serial)}/hold`, {
       method: 'DELETE',
       headers: 토큰 ? { authorization: `Bearer ${토큰}` } : {},
