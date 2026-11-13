@@ -122,7 +122,8 @@ export function 저장문제(새줄: readonly 줄[], 새고름: 서버고름, �
       if (x.kind === 'UI' && a.kind === 'API') return 줄글(seq, 'API 애플리케이션에는 UI 테스트가 없습니다');
     }
     if (x.tcIds !== null && a !== undefined) {
-      const 있던 = new Set(옛줄?.tcIds ?? []);
+      // 같은 애플리케이션의 기능 줄이 둘일 수 있다 — 짝 하나가 아니라 같은 옛 줄 전부의 번호와 견준다
+      const 있던 = new Set(옛?.줄들.filter((o) => 같은줄(o, x)).flatMap((o) => o.tcIds ?? []) ?? []);
       const 모름 = x.tcIds.filter((t) => !있던.has(t) && (!t.startsWith(`${a.prefix}-`) || tcId종류(t) !== x.kind || !재.살아있는케이스.has(t)));
       if (모름.length > 0) return 줄글(seq, `고를 수 없는 케이스입니다 (${모름.join(', ')})`);
     }

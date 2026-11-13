@@ -40,6 +40,7 @@ async function 회차실행들(회차번호: readonly number[]): Promise<Map<num
       ORDER BY r.run_id`,
     [회차번호],
   );
+  // ponytail: 의심 화면 수 하나를 얻으려고 호환성 결과를 실행마다 다 센다 — 달력이 느려지면 칸 판정을 집계 쿼리 하나로 옮긴다
   const 호환 = await 호환성요약들(r.rows.filter((x) => x.kind === 'COMPAT').map((x) => Number(x.run_id)));
   const 표 = new Map<number, 회차실행[]>();
   for (const x of r.rows) {
@@ -55,9 +56,12 @@ async function 회차실행들(회차번호: readonly number[]): Promise<Map<num
   return 표;
 }
 
-/** 회차의 결과 — 기능 · UI · E2E 실행에 실패가 하나라도 있으면 FAIL, 판정할 실행이 없으면 NONE (§3.16 「회차의 결과」) */
+/**
+ * 회차의 결과 — 기능 · UI · E2E 실행에 실패가 하나라도 있으면 FAIL, 판정할 실행이 없으면 NONE (§3.16 「회차의 결과」).
+ * 통과도 실패도 없는 실행(러너가 죽어 항목이 다 NA · 판정 안 된 E2E)은 판정할 실행으로 안 센다 — 그것만으로 「통과」가 되지 않게
+ */
 const 회차판정 = (runs: readonly 회차실행[]): 판정 => {
-  const 판정할 = runs.filter((x) => x.kind !== 'COMPAT');
+  const 판정할 = runs.filter((x) => x.kind !== 'COMPAT' && x.passed + x.failed > 0);
   if (판정할.length === 0) return 'NONE';
   return 판정할.some((x) => x.failed > 0) ? 'FAIL' : 'PASS';
 };
@@ -93,7 +97,7 @@ export async function 회차들(projectId: number, from: string, to: string) {
 
 export interface 지난결과 {
   avgMinutes: number | null;
-  last: { occurrenceId: number; plannedAt: string; startedAt: string | null; verdict: 판정; suspects: number; runIds: number[] } | null;
+  last: { occurrenceId: number; state: 'RUNNING' | 'DONE'; plannedAt: string; startedAt: string | null; verdict: 판정; suspects: number; runIds: number[] } | null;
 }
 
 /** 세트마다 끝난 회차 최근 다섯의 평균 시간과 마지막 회차(도는 중 포함) — 달력 대기 예상 · 마법사 겹침 안내 · 세트 카드 */
@@ -107,8 +111,8 @@ export async function 지난결과들(setIds: readonly number[]): Promise<Map<nu
         WHERE n <= 5 GROUP BY set_id`,
       [setIds],
     ),
-    pool.query<{ id: string; set_id: string; planned_at: Date; started_at: Date | null }>(
-      `SELECT DISTINCT ON (set_id) id, set_id, planned_at, started_at FROM sched_occurrence
+    pool.query<{ id: string; set_id: string; state: 'RUNNING' | 'DONE'; planned_at: Date; started_at: Date | null }>(
+      `SELECT DISTINCT ON (set_id) id, set_id, state, planned_at, started_at FROM sched_occurrence
         WHERE set_id = ANY($1::bigint[]) AND state IN ('RUNNING','DONE') ORDER BY set_id, planned_at DESC`,
       [setIds],
     ),
@@ -121,7 +125,7 @@ export async function 지난결과들(setIds: readonly number[]): Promise<Map<nu
     const runs = o === undefined ? [] : (실행.get(Number(o.id)) ?? []);
     return [id, {
       avgMinutes: 평균표.get(id) ?? null,
-      last: o === undefined ? null : { occurrenceId: Number(o.id), plannedAt: o.planned_at.toISOString(), startedAt: o.started_at?.toISOString() ?? null, verdict: 회차판정(runs), suspects: 의심수(runs), runIds: runs.map((x) => x.runId) },
+      last: o === undefined ? null : { occurrenceId: Number(o.id), state: o.state, plannedAt: o.planned_at.toISOString(), startedAt: o.started_at?.toISOString() ?? null, verdict: 회차판정(runs), suspects: 의심수(runs), runIds: runs.map((x) => x.runId) },
     }];
   }));
 }

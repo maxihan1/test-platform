@@ -26,7 +26,7 @@ describe.skipIf(연결 === undefined)('정기 실행 세트 통로', { timeout: 
 
   const 부르기 = (누구: string, method: 'GET' | 'POST' | 'PUT' | 'PATCH', url: string, payload?: object) =>
     app.inject({ method, url, headers: { cookie: 쿠키.get(누구) ?? '' }, ...(payload === undefined ? {} : { payload }) });
-  const 내일 = () => new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+  const 내일 = () => new Date(Date.now() + 2 * 86_400_000).toISOString().slice(0, 10);
   const 기본 = () => ({
     projectId: 프로젝트,
     name: '출시 전 점검',
@@ -122,8 +122,7 @@ describe.skipIf(연결 === undefined)('정기 실행 세트 통로', { timeout: 
 
   afterAll(async () => {
     await 치우기();
-    // 남은 애플리케이션이 없는 프로젝트는 트리거가 같이 지운다
-    await pool.query('DELETE FROM service WHERE id = ANY($1::bigint[])', [[...앱.values()]]);
+    await pool.query('DELETE FROM service WHERE id = ANY($1::bigint[])', [[...앱.values()]]); // 빈 프로젝트는 트리거가 지운다
     await app.close();
   });
 
@@ -154,15 +153,27 @@ describe.skipIf(연결 === undefined)('정기 실행 세트 통로', { timeout: 
     expect(await 거절({ ...몸, name: 'd', envs: [{ service: 'XKS', env: 'live' }, { service: 'XKSA', env: 'qa' }] })).toContain('실서비스');
     expect(await 거절({ ...몸, name: 'e', envs: [{ service: 'XKS', env: 'qa' }] })).toContain('XKSA 의 대상 서버가 빠졌습니다');
     expect(await 거절({ ...몸, name: 'f', days: null, onceOn: '2020-01-01' })).toBe('PAST_ONCE');
-    expect(await 거절({ ...몸, name: 'g', days: [], onceOn: undefined })).toBeTruthy();
+    expect(await 거절({ ...몸, name: 'g', days: [], onceOn: undefined })).toContain('days: ');
+    expect(await 거절({ ...몸, name: 'g2', days: null, onceOn: '2026-13-01' })).toContain('onceOn: 날짜는 YYYY-MM-DD 입니다');
+    expect(await 거절({ ...몸, name: 'g3', items: [{ kind: 'FN', service: 'XKS', tcIds: null }, { kind: 'FN', service: 'XKS', tcIds: [] }] })).toContain('items.2.tcIds: ');
     // stage 는 시작 애플리케이션에만 있어 지나가는 XKSM 에 같은 이름 줄이 없다
     expect(await 거절({ ...몸, name: 'h', envs: [{ service: 'XKS', env: 'stage' }, { service: 'XKSA', env: 'qa' }] })).toContain('지나가는 애플리케이션');
     expect(await 거절({ ...몸, name: 'i', items: [{ kind: 'FN', service: 'XKS', tcIds: ['XKS-FN-003', 'XKS-UI-001'] }] })).toContain('XKS-FN-003, XKS-UI-001');
     expect(await 거절({ ...몸, tz: 'Mars/Base' })).toBe('tz: Mars/Base');
+    await pool.query('UPDATE compat_set SET is_active = false WHERE id = $1', [호환성세트]);
+    try {
+      expect(await 거절({ ...몸, name: 'j' })).toContain('없는 호환성 세트');
+    } finally {
+      await pool.query('UPDATE compat_set SET is_active = true WHERE id = $1', [호환성세트]);
+    }
     await 만들기({ ...몸, name: '이름 겹침' });
     expect(await 거절({ ...몸, name: '이름 겹침' })).toBe('NAME_TAKEN');
-    // 내일의 한 번만은 받는다
-    await 만들기({ ...몸, name: '한 번만', days: null, onceOn: 내일() });
+    // 내일의 한 번만은 받는다. 이미 돈 한 번만도 날짜 · 시각을 그대로 두면 고칠 수 있다
+    const 한번 = await 만들기({ ...몸, name: '한 번만', days: null, onceOn: 내일() });
+    await pool.query("UPDATE sched_set SET once_on = '2020-01-01' WHERE id = $1", [한번]);
+    const { projectId: _p, tz: _t, ...고침 } = { ...몸, name: '한 번만 고침', days: null, onceOn: '2020-01-01' };
+    expect((await 부르기('xks-writer', 'PUT', `/api/sched/sets/${한번}`, 고침)).statusCode).toBe(200);
+    expect(await 거절({ ...고침, at: '03:00' }, 'PUT', `/api/sched/sets/${한번}`)).toBe('PAST_ONCE');
   });
 
   it('고칠 때 이미 있던 빠진 줄은 받고, 새로 넣는 고를 수 없는 케이스는 거절한다', async () => {
@@ -174,6 +185,11 @@ describe.skipIf(연결 === undefined)('정기 실행 세트 통로', { timeout: 
       expect((await 부르기('xks-writer', 'PUT', `/api/sched/sets/${id}`, 고침)).statusCode).toBe(200);
       expect(await 세트읽기(id)).toMatchObject({ name: '고르기 2', at: '03:00', days: [0], tz: 'Asia/Seoul' });
       expect(await 거절({ ...고침, items: [{ kind: 'FN', service: 'XKS', tcIds: ['XKS-FN-001', 'XKS-FN-003'] }] }, 'PUT', `/api/sched/sets/${id}`)).toContain('XKS-FN-003');
+      // 같은 애플리케이션의 기능 줄이 둘이어도 이미 있던 번호는 받는다
+      const 둘 = { ...고침, items: [{ kind: 'FN', service: 'XKS', tcIds: null }, ...고침.items] };
+      expect((await 부르기('xks-writer', 'PUT', `/api/sched/sets/${id}`, 둘)).statusCode).toBe(200);
+      expect((await 부르기('xks-writer', 'PUT', `/api/sched/sets/${id}`, 둘)).statusCode).toBe(200);
+      expect((await 부르기('xks-writer', 'PUT', `/api/sched/sets/${id}`, 고침)).statusCode).toBe(200);
       // 줄의 케이스가 다 빠지면 그 줄이 통째로 빠진다
       await pool.query("UPDATE test_case SET is_active = false WHERE tc_id = 'XKS-FN-001'");
       expect(await 세트읽기(id)).toMatchObject({ skipped: [{ seq: 1, reason: 'CASES_GONE' }], missing: { cases: 2, tests: 0 } });
@@ -234,6 +250,12 @@ describe.skipIf(연결 === undefined)('정기 실행 세트 통로', { timeout: 
     };
     const 기능 = await 실행('FN', ['PASS', 'FAIL', 'NA']);
     const ui = await 실행('UI', ['PASS']);
+    // 항목이 다 NA 인 실행만 있으면 통과가 아니라 판정 없음이다
+    await pool.query("UPDATE run_item SET status = 'NA' WHERE run_id = ANY($1::bigint[])", [[기능, ui]]);
+    await pool.query("UPDATE sched_occurrence SET state = 'RUNNING' WHERE id = $1", [회차]);
+    expect(await 세트읽기(id)).toMatchObject({ last: { occurrenceId: 회차, state: 'RUNNING', verdict: 'NONE' } });
+    await pool.query("UPDATE sched_occurrence SET state = 'DONE' WHERE id = $1", [회차]);
+    await pool.query("UPDATE run_item SET status = CASE tc_id WHEN 'XKS-FN-002' THEN 'FAIL' WHEN 'XKS-FN-003' THEN 'NA' ELSE 'PASS' END WHERE run_id = ANY($1::bigint[])", [[기능, ui]]);
 
     const res = await 부르기('xks-reader', 'GET', `/api/sched/calendar?projectId=${프로젝트}&from=2026-11-01&to=2026-11-30`);
     expect(res.statusCode, res.body).toBe(200);
@@ -246,7 +268,7 @@ describe.skipIf(연결 === undefined)('정기 실행 세트 통로', { timeout: 
       ],
       notes: [{ kind: 'E2E', service: 'XKS', reason: 'SCENARIO_ARCHIVED' }],
     });
-    expect(await 세트읽기(id)).toMatchObject({ avgMinutes: 30, last: { occurrenceId: 회차, verdict: 'FAIL', runIds: [기능, ui] } });
+    expect(await 세트읽기(id)).toMatchObject({ avgMinutes: 30, last: { occurrenceId: 회차, state: 'DONE', verdict: 'FAIL', runIds: [기능, ui] } });
 
     expect((await 부르기('xks-reader', 'GET', `/api/sched/calendar?projectId=${프로젝트}&from=2026-11-01&to=2027-01-15`)).statusCode).toBe(400);
   });
@@ -267,6 +289,7 @@ describe.skipIf(연결 === undefined)('정기 실행 세트 통로', { timeout: 
   it('보기는 그 프로젝트의 실행 read, 쓰기는 write — 다른 프로젝트 사람은 못 본다', async () => {
     const id = await 만들기({ ...기본(), name: '권한' });
     expect((await 부르기('xks-reader', 'POST', '/api/sched/sets', { ...기본(), name: '읽기만' })).statusCode).toBe(403);
+    expect((await 부르기('xks-other', 'GET', `/api/sched/sets?projectId=${프로젝트}`)).json()).toEqual({ error: 'FORBIDDEN', need: 'runs:read' });
     expect((await 부르기('xks-reader', 'PATCH', `/api/sched/sets/${id}`, { isOn: false })).statusCode).toBe(403);
     expect((await 부르기('xks-none', 'GET', `/api/sched/sets?projectId=${프로젝트}`)).statusCode).toBe(403);
     expect((await 부르기('xks-other', 'GET', `/api/sched/sets/${id}`)).statusCode).toBe(403);

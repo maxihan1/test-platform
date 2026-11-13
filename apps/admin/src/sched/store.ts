@@ -160,15 +160,24 @@ export async function 세트쓰기(대상: { projectId: number; tz: string } | {
  * 켜고 끄기 · 기준 정하기. 저장한 때도 새로 찍는다 — 켠 그날 이미 지난 시각에 돌지 않게 한다(§3.16 「저장한 그날」).
  * 끄면 줄에 서서 기다리던 회차도 빠진다(§3.16 「켜고 끈다」)
  */
-export async function 세트바꾸기(id: number, 바꿀: { isOn?: boolean; isBase?: boolean }, 사람: string): Promise<void> {
+export async function 세트바꾸기(id: number, projectId: number, 바꿀: { isOn?: boolean; isBase?: boolean }, 사람: string, 기준검사?: () => Promise<boolean>): Promise<boolean> {
   const c = await pool.connect();
   try {
     await c.query('BEGIN');
+    // 기준 정하기는 프로젝트마다 한 줄로 세운다 — 앞 사람이 넣고 끝낸 뒤에 검사해야 같은 애플리케이션의 기준이 둘이 안 된다
+    if (기준검사 !== undefined) {
+      await c.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`sched_base:${projectId}`]);
+      if (!(await 기준검사())) {
+        await c.query('ROLLBACK');
+        return false;
+      }
+    }
     await c.query('UPDATE sched_set SET is_on = COALESCE($2, is_on), is_base = COALESCE($3, is_base), updated_by = $4, updated_at = now() WHERE id = $1', [
       id, 바꿀.isOn ?? null, 바꿀.isBase ?? null, 사람,
     ]);
     if (바꿀.isOn === false) await c.query("UPDATE sched_occurrence SET state = 'SKIPPED', finished_at = now() WHERE set_id = $1 AND state = 'QUEUED'", [id]);
     await c.query('COMMIT');
+    return true;
   } catch (err) {
     await c.query('ROLLBACK');
     throw err;
