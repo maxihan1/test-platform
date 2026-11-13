@@ -170,9 +170,10 @@
 
 ### ② 서버
 **무엇** 표를 만들어 옛 정기 실행을 옮기고, 세트 통로를 열고, 1분 점검을 세트 회차로 바꿔 단다.
-- [ ] `SCHED-F1-02` 표 + 안정화 거르기 — 마이그레이션(`sched_set` · `sched_set_item` · `sched_set_env` · `sched_occurrence` · `test_run.sched_occurrence_id`) · 안정화 집계는 기준 세트 회차와 회차 번호가 빈 옛 정기 실행만 · 회차 실행의 묶음은 회차 번호 · 하루는 `planned_on` (옮기기는 F1-04)
+- [x] `SCHED-F1-02` 표 + 안정화 거르기 — 마이그레이션(`sched_set` · `sched_set_item` · `sched_set_env` · `sched_occurrence` · `test_run.sched_occurrence_id`) · 안정화 집계는 기준 세트 회차와 회차 번호가 빈 옛 정기 실행만 · 회차 실행의 묶음은 회차 번호 · 하루는 `planned_on` (옮기기는 F1-04)
+  - 근거 PR #758 · 2026-11-13 — 다음 줄이 알 것: 회차 실행 집계는 회차가 `DONE` 이 될 때까지 「기다림」이라 F1-04 의 1분 점검이 기준 세트 회차를 닫을 때 `안정화집계를맡긴다(회차 실행 하나)` 를 불러야 한다 · 회차가 세트의 기능 · UI 줄보다 실행을 적게 만들고 닫히면 그날은 건너뛴다 · 옛 `service.schedule_tz` 를 지우면 `stability/aggregate.ts` 묶음 쿼리(옛 갈래)와 `view.ts` 도 고친다 · 프로젝트가 지워지면 회차 번호가 비어 그 실행이 옛 정기 실행처럼 보인다(명세의 `ON DELETE SET NULL` 그대로 · 드물어 그대로 둠)
 - [ ] `SCHED-F1-03` 세트 통로 — `GET` · `POST` · `PUT` · `PATCH /api/sched/sets` · `GET /api/sched/calendar` · `GET /api/sched/candidates`(프로젝트 E2E 시나리오 · 호환성 세트 · 활성 케이스 수) · 검사(400 사유) · 빠진 케이스 수 · 평균 시간 · 권한 두 줄 · 라우트표
-- [ ] `SCHED-F1-04` 회차 돌리기 + 바꿔 달기 — 1분 점검이 회차를 세우고 프로젝트마다 하나씩 · 세트 안 줄도 차례대로(`cur_seq`) · 기능 · UI(전체 / 고른 번호) · E2E · 호환성 실행(「실행」 단추의 길을 함수로 떼기 · `SCHEDULED` · 실행자 스케줄러 · 제목 「정기 · <세트 이름> · 」) · 돌 때 빠지는 줄 · 6시간 상한 · 재기동 이어 가기 · 통과 항목 logcat 은 기준 세트만 · 옮기기 마이그레이션(오늘 이미 돈 것은 DONE 회차) · 옛 점검 끄기 · 설정 「정기 실행」 구획 · 설정 API `schedule` 칸 걷기 · 옛 `service.schedule_*` 칸 지우기 · `run-scheduled.ts <세트 번호>` · `docs/SETUP.md` 「정기 실행은 설정 화면에서 켠다」 줄
+- [ ] `SCHED-F1-04` 회차 돌리기 + 바꿔 달기 — 1분 점검이 회차를 세우고 프로젝트마다 하나씩 · 세트 안 줄도 차례대로(`cur_seq`) · 기능 · UI(전체 / 고른 번호) · E2E · 호환성 실행(「실행」 단추의 길을 함수로 떼기 · `SCHEDULED` · 실행자 스케줄러 · 제목 「정기 · <세트 이름> · 」) · 돌 때 빠지는 줄 · 6시간 상한 · 재기동 이어 가기 · 통과 항목 logcat 은 기준 세트만 · 기준 세트 회차를 닫을 때 `안정화집계를맡긴다`(회차 실행 하나) — 회차가 도는 동안 집계는 기다리기만 한다(F1-02) · 옮기기 마이그레이션(오늘 이미 돈 것은 DONE 회차) · 옛 점검 끄기 · 설정 「정기 실행」 구획 · 설정 API `schedule` 칸 걷기 · 옛 `service.schedule_*` 칸 지우기 · `run-scheduled.ts <세트 번호>` · `docs/SETUP.md` 「정기 실행은 설정 화면에서 켠다」 줄 · 옛 칸을 지우면 `stability/aggregate.ts` 묶음 쿼리 · `stability/view.ts` 의 `schedule_tz` 읽기도 같이 걷는다
 
 ### ③ 화면
 **무엇** 시안 B 대로 메뉴 · 달력 · 마법사를 만든다.
