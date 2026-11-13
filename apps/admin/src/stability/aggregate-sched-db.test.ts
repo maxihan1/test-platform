@@ -84,17 +84,38 @@ describe.skipIf(연결 === undefined)('안정화 집계 — 정기 실행 회차
   it('기준 세트 회차는 회차가 끝난 뒤 같은 회차의 UI · 기능 실행을 묶고 하루는 회차 날짜다', async () => {
     const 기준 = await 세트('XSD 전체 회귀', true);
     const 회 = await 회차(기준, '2001-03-10', 'RUNNING');
-    // 앞 세트를 기다리다 그날 서울 자정을 넘겨 시작했다(서울 3월 11일 00:30 · 00:40)
-    const fn = await 실행('qa', 'FN', '2001-03-10T15:30:00Z', 회);
+    // 앞 세트를 기다리다 자정을 넘겨 3월 11일에 시작했다 — 이 애플리케이션의 옛 시간대(UTC)로도 다른 날이다
+    const fn = await 실행('qa', 'FN', '2001-03-11T00:30:00Z', 회);
     // 줄이 차례대로라 UI 실행이 서기 전에 기능 실행이 먼저 끝난다 — 회차가 돌고 있으면 기다린다
     expect(await 집계(fn)).toBe('기다림');
-    const ui = await 실행('qa', 'UI', '2001-03-10T15:40:00Z', 회);
+    const ui = await 실행('qa', 'UI', '2001-03-11T00:40:00Z', 회);
     expect(await 집계(ui)).toBe('기다림');
 
     await pool.query("UPDATE sched_occurrence SET state = 'DONE' WHERE id = $1", [회]);
     expect(await 집계(ui)).toBe('집계함');
     expect(await 집계줄(ui)).toEqual({ day: '2001-03-10' });
     expect(await 집계줄(fn)).toBeUndefined();
+  });
+
+  it('회차가 기준 세트의 기능 · UI 줄을 다 못 만들고 닫혔으면 그날 점을 비운다', async () => {
+    const 기준 = await 세트('XSD 반쪽 회귀', true);
+    await pool.query("INSERT INTO sched_set_item (set_id, seq, kind, service_id) VALUES ($1, 1, 'FN', $2), ($1, 2, 'UI', $2)", [기준, 서비스]);
+    // 기능 실행이 6시간을 넘겨 회차가 먼저 닫히고 UI 실행은 안 섰다
+    const 회 = await 회차(기준, '2001-06-10', 'DONE');
+    const fn = await 실행('qa4', 'FN', '2001-06-09T18:00:00Z', 회);
+    expect(await 집계(fn)).toBe('건너뜀');
+    expect(await 집계줄(fn)).toBeUndefined();
+  });
+
+  it('다시 켜질 때 기준이 아닌 세트의 회차 실행은 빠진 집계 후보가 아니다', async () => {
+    const 두시간전 = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    const 보통 = await 세트('XSD 낮 점검', false);
+    const 기준 = await 세트('XSD 낮 회귀', true);
+    const 보통실행 = await 실행('qa5', 'FN', 두시간전, await 회차(보통, '2001-07-10', 'DONE'));
+    const 기준실행 = await 실행('qa6', 'FN', 두시간전, await 회차(기준, '2001-07-10', 'DONE'));
+    const 후보 = await (await import('./aggregate.js')).빠진집계후보();
+    expect(후보).not.toContain(보통실행);
+    expect(후보).toContain(기준실행);
   });
 
   it('기준이 아닌 세트의 회차 실행은 세지 않는다', async () => {
