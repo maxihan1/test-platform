@@ -201,7 +201,7 @@ function Screen({
       return service === null ? (
         <div className="empty">{t('애플리케이션을 먼저 선택해 주세요')}</div>
       ) : (
-        <Sched key={service.projectId} service={service} 앱수={user.services.filter((s) => s.projectId === service.projectId).length} 쓰나={할수('실행')} />
+        <Sched key={service.projectId} service={service} 앱들={user.services.filter((s) => s.projectId === service.projectId)} 쓰나={할수('실행')} />
       );
     case 'stability':
       // API 는 메뉴가 없다 — 주소로 와도 안내만 한다 (도메인/안정화 §8.19 「자리」). 애플리케이션 · 주소의 날 · 창마다 새로 그린다 — 메뉴를 다시 누르면(`#/stability`) 가장 최근 날로 돌아가야 한다

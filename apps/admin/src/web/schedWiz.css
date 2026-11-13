@@ -1,0 +1,56 @@
+/* 정기 실행 세트 마법사 — 담을 테스트 · 대상 서버 · 언제 · 확인 (도메인/정기실행 §8.20 「마법사」). 창 · 단계 막대는 authoringNew.css 의 .wiz-new 를 같이 쓴다. 색은 styles.css :root 토큰만 */
+
+.sched-wiz .wiz-new-steps li > button { padding: 0; text-align: left; font-size: 12px; }
+.sched-wiz input[type='search'],
+.sched-wiz .authoring-field input,
+.sched-wiz select { min-width: 0; }
+
+.sched-wiz-search { width: 100%; }
+
+.sched-wiz-cases {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.sched-wiz-cases li { padding: 6px 10px; border-bottom: 1px solid var(--line); }
+.sched-wiz-cases li:last-child { border-bottom: 0; }
+.sched-wiz-cases label { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+.sched-wiz-all {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.sched-wiz-all > span { display: flex; flex-direction: column; gap: 2px; }
+.sched-wiz-all small,
+.sched-wiz-hint { margin: 0; font-size: 12.5px; color: var(--ink-muted); }
+
+.sched-wiz-basket h4 { margin: 0 0 6px; font-size: 13px; }
+.sched-wiz-basket ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.sched-wiz-basket li { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.sched-wiz-basket li > span:nth-child(2) { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.sched-wiz-envs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.sched-wiz-envs li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+
+.sched-wiz-days { display: flex; flex-wrap: wrap; gap: 6px; }
+.sched-wiz-days button[aria-pressed='true'] { border-color: var(--accent-mark); background: var(--accent-soft); }
+
+/* 겹침 · 호환성 안내 — 노란 토큰이 없어 --well 바탕 (§8.20 4단계) */
+.sched-wiz-note { margin: 0; padding: 8px 12px; border-radius: 8px; background: var(--well); font-size: 13px; }
+
+.sched-wiz-sum { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.sched-wiz-sum > div { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 12px; }
+.sched-wiz-sum dt { color: var(--ink-muted); font-size: 13px; }
+.sched-wiz-sum dd { margin: 0; overflow-wrap: anywhere; }
+
+/* 저장 뒤 화면 머리 아래 한 줄 (§8.20 5단계) */
+.sched-saved { margin: 0 0 12px; padding: 8px 12px; border-radius: 8px; background: var(--well); font-size: 13px; }
+.sched-empty .btn { margin-top: 14px; }

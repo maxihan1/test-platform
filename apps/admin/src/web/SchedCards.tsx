@@ -30,7 +30,7 @@ export function 판정알약({ 판정, t }: { 판정: 'PASS' | 'FAIL' | 'NONE' |
   return <span className={`sched-pill ${모양}`}>{t(글)}</span>;
 }
 
-function 카드({ 세트, 색, 고름, 지금, 쓰나, on고르기, on날보기, on켜기 }: { 세트: 세트; 색: string; 고름: boolean; 지금: Date; 쓰나: boolean; on고르기: () => void; on날보기: (날: string) => void; on켜기: () => void }) {
+function 카드({ 세트, 색, 고름, 지금, 쓰나, on고르기, on날보기, on켜기, on수정 }: { 세트: 세트; 색: string; 고름: boolean; 지금: Date; 쓰나: boolean; on고르기: () => void; on날보기: (날: string) => void; on켜기: () => void; on수정: () => void }) {
   const t = use말();
   const 언어 = use언어();
   const 다음 = 다음날(세트, 지금);
@@ -69,9 +69,12 @@ function 카드({ 세트, 색, 고름, 지금, 쓰나, on고르기, on날보기,
       )}
       {세트.missing.cases > 0 ? <span className="sched-missing">{t('빠진 케이스 {수}건', { 수: 세트.missing.cases })}</span> : null}
       {세트.missing.tests > 0 ? <span className="sched-missing">{t('빠진 테스트 {수}개', { 수: 세트.missing.tests })}</span> : null}
-      {/* 읽기만 하는 사람에게는 흐리게도 두지 않는다 (공통/5-화면공통 §8). 「수정」은 마법사와 같이 선다(SCHED-F1-06) */}
+      {/* 읽기만 하는 사람에게는 흐리게도 두지 않는다 (공통/5-화면공통 §8) */}
       {쓰나 ? (
         <span className="sched-card-acts">
+          <button type="button" className="btn small ghost" onClick={on수정}>
+            {t('수정')}
+          </button>
           <button type="button" className="btn small ghost" onClick={on켜기}>
             {세트.isOn ? t('끄기') : t('켜기')}
           </button>
@@ -89,6 +92,7 @@ export function 세트카드들({
   on고르기,
   on날보기,
   on켜기,
+  on수정,
 }: {
   세트들: readonly 세트[];
   고른: number | null;
@@ -97,6 +101,7 @@ export function 세트카드들({
   on고르기: (id: number | null) => void;
   on날보기: (날: string) => void;
   on켜기: (세트: 세트) => void;
+  on수정: (세트: 세트) => void;
 }) {
   const t = use말();
   return (
@@ -121,6 +126,7 @@ export function 세트카드들({
             on고르기={() => on고르기(고른 === s.id ? null : s.id)}
             on날보기={on날보기}
             on켜기={() => on켜기(s)}
+            on수정={() => on수정(s)}
           />
         ))}
       </ul>
