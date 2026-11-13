@@ -16,7 +16,6 @@ import { 게임패키지, 게임패키지거절, 대상서버목록, 역할틀�
 import { 준비틀림 } from './prep.js';
 import { 프로젝트고치기, 프로젝트만들기, 프로젝트목록 } from './projects.js';
 import { 제외경로정리 } from './rules.js';
-import { 정기실행틀린칸 } from './scheduleCheck.js';
 import { 서비스고치기, 서비스만들기, 서비스목록, 설정오류 } from './store.js';
 import { 계정거절, 계정고치기, 계정만들기, 계정목록, 계정수락, 비밀번호다시만들기 } from './users.js';
 
@@ -55,13 +54,6 @@ const 새서비스 = z.object({
   ...API칸,
 });
 
-// 시간대는 DB 이름표라 스키마 밖에서 본다 — 대시보드 tz 와 같은 검사다 (도메인/인증 §7 「정기 실행」 계약 변경 블록)
-const 정기실행 = z.object({
-  at: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
-  tz: z.string().min(1),
-  env: z.string().min(1),
-});
-
 const 서비스수정 = z.object({
   name: z.string().min(1).optional(),
   color: z.string().min(1).optional(),
@@ -73,7 +65,8 @@ const 서비스수정 = z.object({
   slackWebhook: z.string().optional(),
   figmaToken: z.string().optional(),
   crawlExclude: 훑지않을경로.optional(),
-  schedule: 정기실행.nullable().optional(),
+  // 정기 실행은 프로젝트 공통 세트로 옮겨 갔다. 안 막으면 zod 가 모르는 칸으로 버려 저장된 것처럼 보인다 (도메인/정기실행 §7, SCHED-F1-04)
+  schedule: z.never().optional(),
   codeRepos: z.array(코드저장소).max(10).optional(),
   ...API칸,
 });
@@ -207,8 +200,6 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
       if (준비틀림(parsed.data.envs)) return reply.code(400).send({ error: 'BAD_PREP' });
       const id = 정수(req.params.id);
       if (id === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.params.id });
-      const 틀린칸 = await 정기실행틀린칸(id, parsed.data);
-      if (틀린칸 !== null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: 틀린칸 });
       const 지금 = await API칸지금(id);
       if (지금 !== null && 게임패키지(지금.kind, parsed.data.envs)) return reply.code(400).send(게임패키지거절);
       const API오류 = 지금 === null ? null : API칸오류(parsed.data, 지금);

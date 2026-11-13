@@ -107,6 +107,15 @@ describe.skipIf(연결 === undefined)('안정화 집계 — 정기 실행 회차
     expect(await 집계줄(fn)).toBeUndefined();
   });
 
+  it('돌릴 케이스가 없어 실행이 안 선 줄은 빠진 줄로 세지 않는다 — UI 케이스가 없어도 그날 점을 찍는다', async () => {
+    const 기준 = await 세트('XSD 기능만 회귀', true);
+    await pool.query("INSERT INTO sched_set_item (set_id, seq, kind, service_id) VALUES ($1, 1, 'FN', $2), ($1, 2, 'UI', $2)", [기준, 서비스]);
+    const 회 = await 회차(기준, '2001-08-10', 'DONE');
+    await pool.query(`UPDATE sched_occurrence SET notes = '[{"kind":"UI","service":"XSD","reason":"NO_CASE"}]' WHERE id = $1`, [회]);
+    const fn = await 실행('qa7', 'FN', '2001-08-09T18:00:00Z', 회);
+    expect(await 집계(fn)).toBe('집계함');
+  });
+
   it('다시 켜질 때 기준이 아닌 세트의 회차 실행은 빠진 집계 후보가 아니다', async () => {
     const 두시간전 = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
     const 보통 = await 세트('XSD 낮 점검', false);
@@ -133,7 +142,7 @@ describe.skipIf(연결 === undefined)('안정화 집계 — 정기 실행 회차
     // 같은 날 · 같은 대상 서버에서 아직 도는 회차 실행이 있어도 옛 묶음은 기다리지 않는다
     await 실행('qa3', 'UI', '2001-05-10T18:30:00Z', 회, 'RUNNING');
     expect(await 집계(옛)).toBe('집계함');
-    // 옛 갈래의 하루는 정기 실행 시간대 — 이 애플리케이션은 비어 UTC
-    expect(await 집계줄(옛)).toEqual({ day: '2001-05-10' });
+    // 옛 갈래의 하루는 그 애플리케이션 기준 세트의 시간대(Asia/Seoul) — 18:00Z 는 다음 날 03:00 이다
+    expect(await 집계줄(옛)).toEqual({ day: '2001-05-11' });
   });
 });

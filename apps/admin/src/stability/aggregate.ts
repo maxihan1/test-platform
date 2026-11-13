@@ -40,13 +40,18 @@ interface 묶음행 {
 }
 
 // 회차 실행은 같은 회차의 UI · 기능 실행이 한 묶음이고 하루는 회차 날짜다 — 앞 세트를 기다리다 자정을 넘겨 시작해도 두 날이 섞이지 않는다.
-// 안정화 기준 세트의 회차만 센다. 회차 번호가 빈 옛 정기 실행은 그날(정기 실행 시간대) 같은 애플리케이션 · 대상 서버의 정기 UI · 기능 실행이 한 묶음이다 (도메인/정기실행 §3.16 「안정화 기준 세트」)
+// 안정화 기준 세트의 회차만 센다. 회차 번호가 빈 옛 정기 실행은 그날 같은 애플리케이션 · 대상 서버의 정기 UI · 기능 실행이 한 묶음이다 (도메인/정기실행 §3.16 「안정화 기준 세트」).
+// 옛 정기 실행의 하루는 그 애플리케이션 기준 세트의 시간대다 — 옛 service.schedule_tz 가 옮겨 간 곳이고, 기준 세트가 없으면 UTC 다
 export const 묶음SQL = `
   WITH 이 AS (
-    SELECT r.service_id, r.env, s.kind AS service_kind, COALESCE(s.schedule_tz, 'UTC') AS tz, r.sched_occurrence_id AS occ, o.state AS occ_state,
-           (SELECT count(*) FROM sched_set_item i WHERE i.set_id = o.set_id AND i.kind IN ('UI', 'FN'))::int AS occ_lines,
-           COALESCE(o.planned_on, (r.started_at AT TIME ZONE COALESCE(s.schedule_tz, 'UTC'))::date) AS day
+    SELECT r.service_id, r.env, s.kind AS service_kind, z.tz, r.sched_occurrence_id AS occ, o.state AS occ_state,
+           -- 돌릴 케이스가 없어 실행이 안 선 줄(NO_CASE — UI 케이스가 없는 애플리케이션)은 빼고 센다. 앞 판도 그 종류 실행을 안 만들고 집계했다
+           ((SELECT count(*) FROM sched_set_item i WHERE i.set_id = o.set_id AND i.kind IN ('UI', 'FN'))
+            - (SELECT count(*) FROM jsonb_array_elements(o.notes) n WHERE n->>'reason' = 'NO_CASE' AND n->>'kind' IN ('UI', 'FN')))::int AS occ_lines,
+           COALESCE(o.planned_on, (r.started_at AT TIME ZONE z.tz)::date) AS day
       FROM test_run r JOIN service s ON s.id = r.service_id
+      CROSS JOIN LATERAL (SELECT COALESCE((SELECT b.tz FROM sched_set b JOIN sched_set_item bi ON bi.set_id = b.id
+                                            WHERE b.is_base AND bi.service_id = r.service_id ORDER BY b.is_on DESC, b.id LIMIT 1), 'UTC') AS tz) z
       LEFT JOIN sched_occurrence o ON o.id = r.sched_occurrence_id
       LEFT JOIN sched_set st ON st.id = o.set_id
      WHERE r.run_id = $1 AND r.origin = 'SCHEDULED' AND r.kind IN ('UI', 'FN') AND (r.sched_occurrence_id IS NULL OR st.is_base))

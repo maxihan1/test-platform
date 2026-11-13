@@ -10,6 +10,9 @@ export class 호환성실행오류 extends Error {
   }
 }
 
+/** 정기 실행 세트의 회차가 만든 실행 — 시작 방식 SCHEDULED · 제목에 세트 이름 · 회차 번호 (도메인/정기실행 §3.16 「실행 만들기」) */
+export type 정기회차 = { occurrenceId: number; setName: string };
+
 export interface 박제케이스 {
   tcId: string;
   name: string;
@@ -24,6 +27,7 @@ export async function 실행세우기(
   env: string,
   사람: { username: string; displayName: string },
   케이스들: readonly 박제케이스[],
+  정기?: 정기회차,
 ): Promise<number> {
   const c = await (await db()).connect();
   try {
@@ -36,9 +40,14 @@ export async function 실행세우기(
     const 머리 = 줄.rows[0];
     if (머리 === undefined) throw new 호환성실행오류('ENV_NOT_FOUND', `${env} 대상 서버가 없습니다`);
     const r = await c.query<{ run_id: string }>(
-      `INSERT INTO test_run (title, service_id, service_name, tests_repo, triggered_by, triggered_by_name, env, base_url, status, origin, kind, compat_set_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'RUNNING', 'MANUAL', 'COMPAT', $9) RETURNING run_id`,
-      [set.name, set.serviceId, 머리.name, 머리.tests_repo, 사람.username, 사람.displayName, env, 머리.base_url, set.id],
+      `INSERT INTO test_run (title, service_id, service_name, tests_repo, triggered_by, triggered_by_name, env, base_url, status, origin, kind, compat_set_id, sched_occurrence_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'RUNNING', $10, 'COMPAT', $9, $11) RETURNING run_id`,
+      [
+        정기 === undefined ? set.name : `정기 · ${정기.setName} · ${set.name}`,
+        set.serviceId, 머리.name, 머리.tests_repo, 사람.username, 사람.displayName, env, 머리.base_url, set.id,
+        정기 === undefined ? 'MANUAL' : 'SCHEDULED',
+        정기?.occurrenceId ?? null,
+      ],
     );
     const runId = Number(r.rows[0]?.run_id);
     // 원격 접기가 없어 폴더블도 상태 하나다 — 점검 상태 = 디바이스 (§3.13 「디바이스 · 점검 상태」)

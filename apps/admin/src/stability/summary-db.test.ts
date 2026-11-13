@@ -8,6 +8,7 @@ import { 해시 } from '../auth/password.js';
 import authRoutes from '../auth/routes.js';
 import { 세션등록 } from '../auth/session.js';
 import perfRoutes from '../perf/routes.js';
+import { 기준세트세우기, 기준세트지우기 } from './schedFixture.js';
 import { 견본앞자, 요약일세우기 } from './summary.js';
 
 const 연결 = process.env.DATABASE_URL;
@@ -50,12 +51,13 @@ describe.skipIf(연결 === undefined)('안정화 AI 실행 요약 일', { timeou
     앱 = Number(
       (
         await pool.query<{ id: string }>(
-          `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, project_id, schedule_at, schedule_tz, schedule_env)
-           VALUES ('XSZ', 'XSZ 웹', '#3A5FCD', '', 'xsz', $1, '03:00', 'Asia/Seoul', 'qa') RETURNING id`,
+          `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, project_id)
+           VALUES ('XSZ', 'XSZ 웹', '#3A5FCD', '', 'xsz', $1) RETURNING id`,
           [프로젝트],
         )
       ).rows[0]!.id,
     );
+    await 기준세트세우기(pool, 앱);
     await pool.query(
       `INSERT INTO app_user (username, display_name, password_hash, role, is_approved, must_change_password) VALUES ($1, $1, $2, 'member', true, false)`,
       [에이전트, await 해시('열려라참깨')],
@@ -132,6 +134,7 @@ describe.skipIf(연결 === undefined)('안정화 AI 실행 요약 일', { timeou
     await pool.query('DELETE FROM stab_error WHERE service_id = $1', [앱]);
     await pool.query('DELETE FROM user_project WHERE username = $1', [에이전트]);
     await pool.query('DELETE FROM app_user WHERE username = $1', [에이전트]);
+    await 기준세트지우기(pool, 앱);
     await pool.query('DELETE FROM service WHERE id = $1', [앱]);
     process.env.AUTHORING_AGENT_USER = 원래맥;
     await app.close();

@@ -19,6 +19,8 @@ describe.skipIf(연결 === undefined)('대상 서버 앱 파일 경로', () => {
     await pool.query(`DELETE FROM test_run WHERE service_id = ${서비스번호}`);
     await pool.query('DELETE FROM test_case WHERE tc_id = ANY($1)', [번호들]);
     await pool.query(`DELETE FROM service_env WHERE service_id = ${서비스번호}`);
+    // 세트 · 회차는 같이 지워진다
+    await pool.query("DELETE FROM sched_set WHERE name = 'XAP 세트'");
     await pool.query("DELETE FROM service WHERE prefix = 'XAP'");
   }
 
@@ -111,22 +113,39 @@ describe.skipIf(연결 === undefined)('대상 서버 앱 파일 경로', () => {
     }
   });
 
-  it('정기 실행만 android 항목에 안정화 표시를 싣는다 — 러너가 통과 항목 logcat 을 받는다', async () => {
+  it('안정화 기준 세트 회차의 실행만 android 항목에 안정화 표시를 싣는다 — 러너가 통과 항목 logcat 을 받는다', async () => {
     await 저장({ env: 'qa', baseUrl: 'https://qa.example.com', appPath: '/apk/qa.apk' });
-    const 만든다 = async (origin: 'MANUAL' | 'SCHEDULED') =>
+    const 회차 = Number(
+      (
+        await pool.query(
+          `WITH s AS (INSERT INTO sched_set (project_id, name, at, tz, days, created_by)
+                      SELECT project_id, 'XAP 세트', '03:00', 'UTC', '{0,1,2,3,4,5,6}', 'tester' FROM service WHERE id = $1 RETURNING id)
+           INSERT INTO sched_occurrence (set_id, planned_on, planned_at, state) SELECT id, '2001-01-01', '2001-01-01T03:00Z', 'RUNNING' FROM s RETURNING id`,
+          [서비스],
+        )
+      ).rows[0].id,
+    );
+    const 만든다 = async (origin: 'MANUAL' | 'SCHEDULED', base?: boolean) =>
       (
         await createRun({
           origin,
           triggeredBy: 'tester',
           env: 'qa',
+          ...(base !== undefined && { sched: { occurrenceId: 회차, setName: 'XAP 세트', base } }),
           items: [
             { tcId: 'XAP-001', platforms: ['android'], params: {}, expected: {} },
             { tcId: 'XAP-002', platforms: ['desktop'], params: {}, expected: {} },
           ],
         })
       ).items.map((i) => i.stability);
-    expect(await 만든다('SCHEDULED')).toEqual([true, undefined]);
+    expect(await 만든다('SCHEDULED', true)).toEqual([true, undefined]);
+    expect(await 만든다('SCHEDULED', false)).toEqual([undefined, undefined]);
     expect(await 만든다('MANUAL')).toEqual([undefined, undefined]);
+    const 제목 = await pool.query<{ title: string; sched_occurrence_id: string }>(
+      'SELECT title, sched_occurrence_id FROM test_run WHERE service_id = $1 AND sched_occurrence_id IS NOT NULL ORDER BY run_id LIMIT 1',
+      [서비스],
+    );
+    expect(제목.rows[0]).toEqual({ title: '정기 · XAP 세트 · 기능 전체 2건', sched_occurrence_id: String(회차) });
   });
 
   it('앱 경로가 빈 줄이면 싣지 않는다 — 러너가 자기 환경값을 쓴다', async () => {

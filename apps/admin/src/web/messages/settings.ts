@@ -258,19 +258,9 @@ export const 설정말: Record<string, string> = {
   '비활성화하면 애플리케이션 선택 목록에서 사라집니다. 실행 기록과 스크립트는 그대로 보관됩니다':
     'Once deactivated, it disappears from the application picker. Run history and scripts are kept',
 
-  // 정기 실행 구획 (§8.8 · 공통/6-인프라 §9.2)
+  // 성능 · 정기 실행 화면과 같이 쓴다
   '정기 실행': 'Scheduled runs',
-  '매일 정한 시각에 이 애플리케이션의 스크립트를 자동으로 한 번 실행합니다. 대시보드의 최근 실행 결과와 회귀 실패는 이 실행으로 쌓입니다':
-    'Runs this application\'s scripts automatically once a day at the set time. The dashboard\'s latest results and regressions build up from these runs',
-  '매일 실행': 'Run daily',
   '시각': 'Time',
-  '{시간대} 기준': '{시간대} time',
-  '정한 시각부터 1시간 안에 사용 중인 스크립트를 UI·기능 테스트로 한 번씩 실행하고 Slack 웹훅이 있으면 결과를 알립니다. 그 시간에 서버가 꺼져 있으면 그날은 건너뜁니다':
-    'Within an hour of the set time, active scripts run once as a UI test and a functional test, and results go to Slack if a webhook is set. If the server is down during that hour, the day is skipped',
-  '마지막 정기 실행': 'Last scheduled run',
-  '아직 실행한 적이 없습니다': 'Has not run yet',
-  '정기 실행 시각을 입력해 주세요': 'Enter the scheduled run time',
-  '정기 실행의 대상 서버를 대상 서버 목록에서 선택합니다': 'Pick the scheduled run target server from the target server list',
 
   // 화면 크기 구획 (§8.8 · PRD-F10-08)
   '화면 크기': 'Screen size',
