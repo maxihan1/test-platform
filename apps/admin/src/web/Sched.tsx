@@ -1,6 +1,6 @@
 // 정기 실행 화면 — 왼쪽 세트 카드 · 오른쪽 월 · 주 · 일 달력. 프로젝트 공통이다 (도메인/정기실행 §8.20 · 시안 B)
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import type { ServiceRow } from './api.js';
 import { Head } from './Head.js';
@@ -63,6 +63,15 @@ export function Sched({ service, 앱들, 쓰나 }: { service: ServiceRow; 앱들
   // 다시 읽을 때마다 새로 잰다 — 창을 오래 열어 둬도 지난 시각을 「예정」으로 그리지 않게
   const 지금 = useMemo(() => new Date(), [세트목록.data, 회차목록.data]);
   const 오늘 = 시간대로(지금, 브라우저시간대()).날;
+  // 오늘이 보이는 동안 1분마다 다시 읽는다 — 회차는 서버의 1분 점검이 세우고 닫아서, 안 읽으면 시작한 회차가 「예정」으로 남는다
+  const 오늘보임 = from <= 오늘 && 오늘 <= to;
+  const 세트다시 = 세트목록.reload;
+  const 회차다시 = 회차목록.reload;
+  useEffect(() => {
+    if (!오늘보임) return undefined;
+    const 타이머 = setInterval(() => void Promise.all([세트다시(), 회차다시()]), 60_000);
+    return () => clearInterval(타이머);
+  }, [오늘보임, 세트다시, 회차다시]);
 
   const 세트들 = 세트목록.data?.items ?? [];
   const 표 = useMemo(() => {

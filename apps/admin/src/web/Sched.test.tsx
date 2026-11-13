@@ -2,7 +2,7 @@
 // 정기 실행 화면 검사 — 세트 카드 · 달력 · 칸 창 · 끄기 · 빈 상태 (도메인/정기실행 §8.20)
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 import type { ServiceRow } from './api.js';
 import { Sched } from './Sched.js';
@@ -186,6 +186,21 @@ describe('정기 실행 화면', () => {
     };
     expect(await 점선수('2026-11-13T00:02:05Z', '2026-11-13T00:02:00Z')).toBe(0);
     expect(await 점선수('2026-11-13T00:40:00Z', '2026-11-13T00:40:00Z')).toBe(1);
+  });
+
+  it('오늘이 보이는 동안 1분마다 세트 · 회차를 다시 읽는다 — 시작한 회차가 「예정」으로 남지 않게', async () => {
+    vi.useRealTimers();
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] });
+    vi.setSystemTime(new Date('2026-11-13T01:30:00Z'));
+    차리기([세트하나()]);
+    render(<Sched service={앱} 앱들={[앱, 앱]} 쓰나 />);
+    await screen.findByRole('button', { name: /결제 회귀/u, pressed: false });
+    expect(schedApi.calendar).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      vi.advanceTimersByTime(60_000);
+    });
+    expect(schedApi.calendar).toHaveBeenCalledTimes(2);
+    expect(schedApi.sets).toHaveBeenCalledTimes(2);
   });
 
   it('끄기는 세트를 끄고 다시 읽는다. 읽기만 하는 사람에게는 단추가 없다', async () => {
