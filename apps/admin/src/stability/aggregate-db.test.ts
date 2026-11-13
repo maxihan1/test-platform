@@ -2,6 +2,8 @@
 import type { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { 기준세트세우기, 기준세트지우기 } from './schedFixture.js';
+
 const 연결 = process.env.DATABASE_URL;
 
 describe.skipIf(연결 === undefined)('안정화 웹 집계', () => {
@@ -21,16 +23,19 @@ describe.skipIf(연결 === undefined)('안정화 웹 집계', () => {
     const { pool: 풀 } = await import('../db/index.js');
     pool = 풀;
     const s = await pool.query<{ id: string }>(
-      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, schedule_at, schedule_tz, schedule_env)
-       VALUES ('XAG', 'XAG 안정화 집계 검사용', '#3A5FCD', '', 'xag', '03:00', 'Asia/Seoul', 'qa')
+      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir)
+       VALUES ('XAG', 'XAG 안정화 집계 검사용', '#3A5FCD', '', 'xag')
        ON CONFLICT (prefix) DO UPDATE SET is_active = true RETURNING id`,
     );
     서비스 = Number(s.rows[0]!.id);
+    await 기준세트지우기(pool, 서비스);
+    await 기준세트세우기(pool, 서비스);
     await 치우기();
   });
 
   afterAll(async () => {
     await 치우기();
+    await 기준세트지우기(pool, 서비스);
     await pool.query('DELETE FROM service WHERE id = $1', [서비스]);
   });
 

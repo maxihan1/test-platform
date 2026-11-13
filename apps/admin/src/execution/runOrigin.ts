@@ -13,6 +13,8 @@ export interface 제목재료 {
   rerunOf?: number;
   /** 빌드로 시작한 실행만 — 제목 머리에 빌드 번호와 스모크를 단다 */
   build?: { no: string; stage: 'SMOKE' | 'FULL' };
+  /** 정기 실행 세트가 만든 실행만 — 「정기 · 」 뒤에 세트 이름을 끼운다 (도메인/정기실행 §3.16 「실행 만들기」) */
+  setName?: string;
   kind: 케이스종류;
   /** 담긴 케이스 — 번호 차례, 겹치지 않게 */
   케이스들: { tcId: string; name: string }[];
@@ -32,7 +34,8 @@ export function 자동제목(재료: 제목재료): string {
       ? `${첫.tcId} ${첫.name}`
       : `${첫.tcId} 외 ${String(n - 1)}건`;
   if (재료.origin === 'BUILD' && 재료.build !== undefined) return `빌드 ${재료.build.no} · ${재료.build.stage === 'SMOKE' ? '스모크 · ' : ''}${몸}`;
-  return 재료.origin === 'SCHEDULED' ? `정기 · ${몸}` : 몸;
+  if (재료.origin !== 'SCHEDULED') return 몸;
+  return 재료.setName === undefined ? `정기 · ${몸}` : `정기 · ${재료.setName} · ${몸}`;
 }
 
 /** 그 종류의 활성 케이스를 전부 담았고 꺼진 케이스가 섞이지 않았으면 「전체」다 */

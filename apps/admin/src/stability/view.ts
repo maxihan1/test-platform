@@ -22,7 +22,12 @@ export interface 애플리케이션행 {
 export async function 애플리케이션읽기(serviceId: number): Promise<애플리케이션행 | null> {
   const r = (
     await (await db()).query<{ kind: string; project_id: string; name: string; at: string | null; schedule_tz: string | null }>(
-      "SELECT kind, project_id, name, to_char(schedule_at, 'HH24:MI') AS at, schedule_tz FROM service WHERE id = $1 AND is_active",
+      // 정기 실행 시각은 켜 둔 안정화 기준 세트의 것이다 — 안정화는 그 세트 회차만 센다 (도메인/정기실행 §3.16 「안정화 기준 세트」)
+      `SELECT s.kind, s.project_id, s.name, to_char(b.at, 'HH24:MI') AS at, b.tz AS schedule_tz
+         FROM service s
+         LEFT JOIN LATERAL (SELECT st.at, st.tz FROM sched_set st JOIN sched_set_item i ON i.set_id = st.id
+                             WHERE st.is_base AND st.is_on AND i.service_id = s.id ORDER BY st.id LIMIT 1) b ON true
+        WHERE s.id = $1 AND s.is_active`,
       [serviceId],
     )
   ).rows[0];

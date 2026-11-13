@@ -66,13 +66,15 @@ interface 판정 {
 
 // 폰은 앱 · 게임 단계가 있거나 실제 폰을 고른 모바일 시나리오일 때만 — 분배가 팜에서 폰을 잡는다 (결정 16 · 「모바일 시나리오를 실제 폰에서 돌릴 때」)
 type 실행 = { runId: number; 요청: ScenarioExecuteRequest; 폰?: 시나리오폰 };
+/** 정기 실행 세트의 회차가 만든 실행 — 시작 방식 SCHEDULED · 제목에 세트 이름 · 회차 번호 (도메인/정기실행 §3.16 「실행 만들기」) */
+export type 정기회차 = { occurrenceId: number; setName: string };
 
-export async function 실행만들기(id: number, env: string, 사람: 저장하는사람, mobileOn: 'server' | 'vision' = 'server'): Promise<실행> {
+export async function 실행만들기(id: number, env: string, 사람: 저장하는사람, mobileOn: 'server' | 'vision' = 'server', 정기?: 정기회차): Promise<실행> {
   // 판정(케이스 파일 읽기 · pool 연결)은 트랜잭션 밖에서 먼저 한다. 연결 하나를 쥔 채 pool 에서 또 꺼내면
   // 동시 요청이 풀 크기만큼 올 때 교착한다. 그 사이 새 버전이 저장됐으면 새 버전으로 처음부터 다시 한다
   // 누가 쉬지 않고 저장하면 끝나지 않으므로 세 번에서 멈춘다 — 사람이 다시 누르면 된다
   for (let 번 = 0; 번 < 3; 번 += 1) {
-    const 결과 = await 잠그고만들기(id, env, 사람, mobileOn, await 미리판정(id));
+    const 결과 = await 잠그고만들기(id, env, 사람, mobileOn, await 미리판정(id), 정기);
     if (결과 !== null) return 결과;
   }
   throw new 시나리오실행오류('NOT_RUNNABLE', '실행하는 사이 시나리오가 계속 새로 저장됐다. 다시 눌러 달라');
@@ -98,7 +100,7 @@ async function 미리판정(id: number): Promise<판정 | undefined> {
 }
 
 // 판정한 버전이 잠근 뒤의 최신과 다르면 null — 부른 쪽이 다시 판정한다
-async function 잠그고만들기(id: number, env: string, 사람: 저장하는사람, mobileOn: 'server' | 'vision', 판정: 판정 | undefined): Promise<실행 | null> {
+async function 잠그고만들기(id: number, env: string, 사람: 저장하는사람, mobileOn: 'server' | 'vision', 판정: 판정 | undefined, 정기?: 정기회차): Promise<실행 | null> {
   const c = await (await db()).connect();
   try {
     await c.query('BEGIN');
@@ -173,9 +175,14 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
 
     const run = await c.query<{ run_id: string }>(
       `INSERT INTO test_run (title, triggered_by, triggered_by_name, status, env, service_id, service_name, tests_repo,
-                             base_url, notify_slack, kind, scenario_id, scenario_version)
-       VALUES ($1, $2, $3, 'RUNNING', $4, $5, $6, $7, $8, false, 'SCENARIO', $9, $10) RETURNING run_id`,
-      [행.name, 사람.username, 사람.displayName, env, 행.service_id, 행.service_name, 행.tests_repo, baseUrl, id, 행.version],
+                             base_url, notify_slack, kind, scenario_id, scenario_version, origin, sched_occurrence_id)
+       VALUES ($1, $2, $3, 'RUNNING', $4, $5, $6, $7, $8, false, 'SCENARIO', $9, $10, $11, $12) RETURNING run_id`,
+      [
+        정기 === undefined ? 행.name : `정기 · ${정기.setName} · ${행.name}`,
+        사람.username, 사람.displayName, env, 행.service_id, 행.service_name, 행.tests_repo, baseUrl, id, 행.version,
+        정기 === undefined ? 'MANUAL' : 'SCHEDULED',
+        정기?.occurrenceId ?? null,
+      ],
     );
     const runId = Number(run.rows[0]!.run_id);
 

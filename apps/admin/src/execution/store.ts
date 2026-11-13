@@ -73,6 +73,8 @@ export interface CreateRunInput {
   notifySlack?: boolean;
   // 모바일 웹 실행 위치. 고르개가 없는 시작(정기 · 빌드)은 서버 흉내다 (도메인/실행 §3.2 「모바일 웹 실행 위치」)
   mobileOn?: 'server' | 'vision';
+  // 정기 실행 세트의 회차가 만든 실행만. 제목에 세트 이름 · 실행에 회차 번호를 달고, 통과 항목 logcat 은 안정화 기준 세트만 받는다 (도메인/정기실행 §3.16 「실행 만들기」)
+  sched?: { occurrenceId: number; setName: string; base: boolean };
   items: RunItemInput[];
 }
 
@@ -244,6 +246,7 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
       origin,
       ...(rerunOf === null ? {} : { rerunOf }),
       ...(input.build === undefined ? {} : { build: { no: input.build.no, stage: input.build.stage } }),
+      ...(input.sched === undefined ? {} : { setName: input.sched.setName }),
       prefix,
       kind,
       케이스들: tcIds.map((tcId) => ({ tcId, name: cases.get(tcId)!.name })),
@@ -252,8 +255,8 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
     // 서비스 이름·저장소·대상 주소는 실행 하나에 하나뿐인 사실이라 test_run에 박제한다 (SPEC §6)
     const run = await client.query<{ run_id: string }>(
       `INSERT INTO test_run (title, triggered_by, triggered_by_name, status, env, service_id, service_name, tests_repo, base_url, notify_slack, kind, origin, rerun_of,
-                             build_id, build_no, build_stage)
-       VALUES ($1, $2, $3, 'RUNNING', $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING run_id`,
+                             build_id, build_no, build_stage, sched_occurrence_id)
+       VALUES ($1, $2, $3, 'RUNNING', $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING run_id`,
       [
         title,
         input.triggeredBy,
@@ -272,6 +275,7 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
         빌드?.id ?? null,
         빌드?.buildNo ?? null,
         input.build?.stage ?? null,
+        input.sched?.occurrenceId ?? null,
       ],
     );
     const runId = Number(run.rows[0]!.run_id);
@@ -316,7 +320,7 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
             ...(인증들.length > 0 && { apiAuths: 인증들 }),
             ...엔진칸(found서비스.kind, platform, 어드민키읽기(found서비스.admin_key)),
             ...(platform === 'mobile' && 실제폰 && { 실제폰: true as const }),
-            ...(platform === 'android' && origin === 'SCHEDULED' && { stability: true as const }),
+            ...(platform === 'android' && input.sched?.base === true && { stability: true as const }),
           });
         }
       }

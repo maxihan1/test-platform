@@ -7,6 +7,8 @@ import { FARM_EVIDENCE_DIR, GAME_ERRORS_FILE, runDir } from '@platform/kit';
 import type { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { 기준세트세우기, 기준세트지우기 } from './schedFixture.js';
+
 const 연결 = process.env.DATABASE_URL;
 
 describe.skipIf(연결 === undefined)('안정화 게임 집계', () => {
@@ -28,16 +30,19 @@ describe.skipIf(연결 === undefined)('안정화 게임 집계', () => {
     const { pool: 풀 } = await import('../db/index.js');
     pool = 풀;
     const s = await pool.query<{ id: string }>(
-      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, kind, schedule_at, schedule_tz, schedule_env)
-       VALUES ('XGX', 'XGX 안정화 게임 집계 검사용', '#3A5FCD', '', 'xgx', 'GAME', '03:00', 'Asia/Seoul', 'qa')
+      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, kind)
+       VALUES ('XGX', 'XGX 안정화 게임 집계 검사용', '#3A5FCD', '', 'xgx', 'GAME')
        ON CONFLICT (prefix) DO UPDATE SET is_active = true RETURNING id`,
     );
     서비스 = Number(s.rows[0]!.id);
+    await 기준세트지우기(pool, 서비스);
+    await 기준세트세우기(pool, 서비스);
     await 치우기();
   });
 
   afterAll(async () => {
     await 치우기();
+    await 기준세트지우기(pool, 서비스);
     await pool.query('DELETE FROM service WHERE id = $1', [서비스]);
     if (앞폴더 === undefined) delete process.env.PLATFORM_ARTIFACTS_DIR;
     else process.env.PLATFORM_ARTIFACTS_DIR = 앞폴더;

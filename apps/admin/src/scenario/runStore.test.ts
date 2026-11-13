@@ -123,6 +123,8 @@ describe.skipIf(연결 === undefined)('시나리오 실행 만들기', () => {
   afterAll(async () => {
     await 치우기표();
     await q('DELETE FROM test_case WHERE tc_id = ANY($1)', [번호들]);
+    // 세트 · 회차는 같이 지워진다
+    await q("DELETE FROM sched_set WHERE name = 'XSE 세트'");
     await q('DELETE FROM service WHERE id = $1', [서비스]);
     await rm(뿌리, { recursive: true, force: true });
     if (원래뿌리 === undefined) delete process.env.PLATFORM_TESTS_DIR;
@@ -228,6 +230,23 @@ describe.skipIf(연결 === undefined)('시나리오 실행 만들기', () => {
       deleteStatuses: [{ host: 'xse.example', path: '/api/me', status: 204 }],
     });
     expect(요청.parts[1]).not.toHaveProperty('filePath');
+  });
+
+  it('정기 실행 회차가 만들면 시작 방식 SCHEDULED · 세트 이름 제목 · 회차 번호를 단다', async () => {
+    const { id } = await 만들기(서비스, 'XSE 정기 흐름', 'desktop', [{ kind: 'wait', ms: 10 }], 사람);
+    const 회차 = Number(
+      (
+        await q<{ id: string }>(
+          `WITH st AS (INSERT INTO sched_set (project_id, name, at, tz, days, created_by)
+                       SELECT project_id, 'XSE 세트', '03:00', 'UTC', '{0,1,2,3,4,5,6}', 'xse' FROM service WHERE id = $1 RETURNING id)
+           INSERT INTO sched_occurrence (set_id, planned_on, planned_at, state) SELECT id, '2001-01-01', '2001-01-01T03:00Z', 'RUNNING' FROM st RETURNING id`,
+          [서비스],
+        )
+      ).rows[0]!.id,
+    );
+    const { runId } = await 실행만들기(id, 'qa', { username: '스케줄러', displayName: '스케줄러' }, 'server', { occurrenceId: 회차, setName: 'XSE 세트' });
+    const run = (await q('SELECT origin, title, sched_occurrence_id, triggered_by FROM test_run WHERE run_id = $1', [runId])).rows[0];
+    expect(run).toEqual({ origin: 'SCHEDULED', title: '정기 · XSE 세트 · XSE 정기 흐름', sched_occurrence_id: String(회차), triggered_by: '스케줄러' });
   });
 
   it('없는 시나리오는 NOT_FOUND 다', async () => {

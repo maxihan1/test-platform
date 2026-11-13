@@ -1,11 +1,11 @@
-// 설정 화면의 서비스 하나 (SPEC §8.8). 기본 정보 · 대상 서버 · API 문서 · 정기 실행 · 실행 알림 · 테스트 작성 · 화면 크기 · 서비스 비활성화 구획
+// 설정 화면의 서비스 하나 (SPEC §8.8). 기본 정보 · 대상 서버 · API 문서 · 실행 알림 · 테스트 작성 · 화면 크기 · 서비스 비활성화 구획
 // 지우지 않는다 — 비활성으로 내릴 뿐이다. 지우면 그 서비스로 돌린 과거 증적이 흔들린다
 
 import { useState } from 'react';
 
 import { 어드민키종류인가 } from '../settings/roles.js';
 
-import { api, ApiError, type ScheduleSetting, type SettingsServiceRow } from './api.js';
+import { api, ApiError, type SettingsServiceRow } from './api.js';
 import { use말, use언어, type 언어 } from './i18n.js';
 import { 떠나기상자 } from './leaveGuard.js';
 import { 서비스못보내는이유, 설정오류문장, 제외경로값, 피그마설정주소 } from './settingsView.js';
@@ -16,7 +16,6 @@ import { API문서구획, API문서못보내는이유, 종류칸 } from './Setti
 import { CI토큰구획 } from './SettingsCiTokens.js';
 import { CrawlExcludeField } from './SettingsCrawlExclude.js';
 import { EnvEditor, 보낼모양, 줄로, type 줄 } from './SettingsEnvs.js';
-import { ScheduleFields } from './SettingsSchedule.js';
 import { 구획, 비밀칸, 접두사칸, 프로젝트칸 } from './SettingsServiceParts.js';
 import { ViewportSection } from './SettingsViewport.js';
 import { message } from './ui.js';
@@ -49,19 +48,18 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
   // 빈 글자와 「안 건드림」은 다르다. null 이면 서버에 아예 안 보낸다 (지금 것을 그대로 둔다)
   const [webhook, setWebhook] = useState<string | null>(null);
   const [figma, setFigma] = useState<string | null>(null);
-  const [schedule, setSchedule] = useState<ScheduleSetting | null>(row.schedule ?? null);
   const [보내는중, set보내는중] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [비활성확인, set비활성확인] = useState(false);
   // 적다 만 것이 있으면 설정 메뉴 · 다른 화면으로 떠나기 전에 묻는다(점검 14.1). 처음 그린 값과 견준다
-  const 지금칸 = JSON.stringify({ name, testsRepo, testsDir, envs, 제외, webhook, figma, schedule, apiDocPath, apiDocEnv });
+  const 지금칸 = JSON.stringify({ name, testsRepo, testsDir, envs, 제외, webhook, figma, apiDocPath, apiDocEnv });
   const [처음칸] = useState(지금칸);
   // 저장한 칸. 칸이 새로 읽은 값으로 다시 그려지기 전에도(다시 읽기 실패 포함) 저장한 것을 두고는 묻지 않는다
   const [보낸칸, set보낸칸] = useState<string | null>(null);
 
   const 서버들 = envs.map((it) => it.env).filter((env) => env !== '');
   const 못보내는이유 =
-    서비스못보내는이유({ 새것: false, prefix: row.prefix, name, testsDir, envs, 제외, 정기실행: schedule }, 언어) ??
+    서비스못보내는이유({ 새것: false, prefix: row.prefix, name, testsDir, envs, 제외 }, 언어) ??
     (API종류 ? (API문서못보내는이유({ 경로: apiDocPath, 기준: apiDocEnv, 서버들 }, 언어) ?? API인증못보내는이유(envs, 언어)) : null) ??
     (어드민키종류 ? 어드민키못보내는이유(envs, 언어) : null) ??
     준비못보내는이유(envs, 언어);
@@ -74,8 +72,6 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
       // API 칸은 API 종류만 보낸다 — 화면 종류가 보내면 서버가 400 NOT_API_SERVICE 를 낸다
       const API칸 = API종류 ? { apiDocPath: apiDocPath === '' ? null : apiDocPath, apiDocEnv: apiDocEnv === '' ? null : apiDocEnv } : {};
       // 접두사 · 종류는 안 보낸다. 보내면 서버가 400 PREFIX_IMMUTABLE · KIND_IMMUTABLE 을 낸다 (SPEC §8.8)
-      // 정기 실행은 고쳤을 때만 보낸다 — 「안 보내면 그대로」라 그사이 다른 사람이 바꾼 것을 덮지 않는다
-      const 정기바뀜 = JSON.stringify(schedule) !== JSON.stringify(row.schedule ?? null);
       await api.updateService(row.id, {
         name,
         testsRepo,
@@ -85,7 +81,6 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
         ...API칸,
         ...(webhook === null ? {} : { slackWebhook: webhook }),
         ...(figma === null ? {} : { figmaToken: figma }),
-        ...(정기바뀜 ? { schedule } : {}),
       });
       set보낸칸(지금칸);
       onDone(row.prefix, true);
@@ -170,16 +165,6 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: Props) {
       </구획>
 
       {API종류 ? <API문서구획 경로={apiDocPath} 바꾼경로={setApiDocPath} 기준={apiDocEnv} 바꾼기준={setApiDocEnv} 서버들={서버들} /> : null}
-
-      <구획 제목={t('정기 실행')} 쓰임={t('매일 정한 시각에 이 애플리케이션의 스크립트를 자동으로 한 번 실행합니다. 대시보드의 최근 실행 결과와 회귀 실패는 이 실행으로 쌓입니다')}>
-        <ScheduleFields
-          값={schedule}
-          저장된={row.schedule ?? null}
-          바꾼다={setSchedule}
-          대상서버들={서버들}
-          마지막={row.lastScheduled ?? null}
-        />
-      </구획>
 
       <구획 제목={t('실행 알림')} 쓰임={t('실행할 때 「완료 시 Slack 알림」을 켜면 이 채널로 결과를 보냅니다')}>
         <비밀칸 id="sf-hook" 이름={t('Slack 웹훅')} 설정됨={row.hasSlackWebhook}

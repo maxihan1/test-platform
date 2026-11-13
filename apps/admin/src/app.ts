@@ -29,7 +29,7 @@ import chatRoutes from './chat/routes.js';
 import { pool } from './db/index.js';
 import buildRoutes from './execution/buildRoutes.js';
 import executionRoutes from './execution/routes.js';
-import { 정기실행켜기 } from './execution/scheduled.js';
+import { 정기실행켜기 } from './sched/runner.js';
 import trialRoutes from './execution/trialRoutes.js';
 import grafanaProxy from './grafana/proxy.js';
 import mcpRoutes from './mcp/server.js';
@@ -145,7 +145,7 @@ if (열쇠바이트 < 열쇠최소길이) {
     // 비밀번호는 찍지 않는다 — 값은 SETUP.md 에 있고, 로그는 여러 사람이 본다
     if (만들었나) console.log('기본 계정 admin 을 만들었다. 첫 로그인에서 비밀번호를 바꿔야 한다 (SPEC §9.2)');
     const app = buildApp();
-    // 서비스 설정에서 켠 정기 실행을 1분마다 본다. 기동 경로에만 둔다 — buildApp 을 부르는 검사가 진짜 실행을 만들지 않게 (SPEC 공통/6-인프라 §9.2)
+    // 정기 실행 세트의 회차를 1분마다 본다. 기동 경로에만 둔다 — buildApp 을 부르는 검사가 진짜 실행을 만들지 않게 (도메인/정기실행 §3.16)
     정기실행켜기(app);
     // 성능 실행을 1초마다 살핀다(대기열 · 끊김 · 자동 중단). 같은 까닭으로 기동 경로에만 둔다 (도메인/성능 §3.9)
     성능엔진켜기(app);

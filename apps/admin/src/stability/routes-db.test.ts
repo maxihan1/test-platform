@@ -53,11 +53,17 @@ describe.skipIf(연결 === undefined)('안정화 지표 통로', { timeout: 60_0
     앱 = Number(
       (
         await pool.query<{ id: string }>(
-          `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, project_id, schedule_at, schedule_tz, schedule_env)
-           VALUES ('XSY', 'XSY 웹', '#3A5FCD', '', 'xsy', $1, '03:00', 'Asia/Seoul', 'qa') RETURNING id`,
+          `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, project_id)
+           VALUES ('XSY', 'XSY 웹', '#3A5FCD', '', 'xsy', $1) RETURNING id`,
           [프로젝트],
         )
       ).rows[0]!.id,
+    );
+    await pool.query(
+      `WITH st AS (INSERT INTO sched_set (project_id, name, at, tz, days, is_base, created_by)
+                   VALUES ($1, 'XSY 웹 전체 회귀', '03:00', 'Asia/Seoul', '{0,1,2,3,4,5,6}', true, '스케줄러') RETURNING id)
+       INSERT INTO sched_set_item (set_id, seq, kind, service_id) SELECT id, 1, 'FN', $2 FROM st`,
+      [프로젝트, 앱],
     );
     API앱 = Number(
       (
@@ -187,6 +193,7 @@ describe.skipIf(연결 === undefined)('안정화 지표 통로', { timeout: 60_0
     await pool.query('DELETE FROM user_project WHERE username = ANY($1)', [계정들]);
     await pool.query('DELETE FROM app_user WHERE username = ANY($1)', [계정들]);
     // bts_outbox · bts_link 는 project 와 같이, 빈 project 는 트리거가 지운다
+    await pool.query('DELETE FROM sched_set WHERE project_id = $1', [프로젝트]);
     await pool.query('DELETE FROM service WHERE id = ANY($1)', [[앱, API앱]]);
     await app.close();
   });

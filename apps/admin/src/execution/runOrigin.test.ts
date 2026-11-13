@@ -18,6 +18,7 @@ describe('자동 제목', () => {
   it('정기는 앞에 「정기 · 」를 붙이고 실패 다시는 원래 실행 번호를 적는다', () => {
     expect(자동제목({ origin: 'SCHEDULED', kind: 'FN', 케이스들: 케이스(382), 전체: true })).toBe('정기 · 기능 전체 382건');
     expect(자동제목({ origin: 'SCHEDULED', kind: 'FN', 케이스들: 케이스(340), 전체: false })).toBe('정기 · MKT-FN-014 외 339건');
+    expect(자동제목({ origin: 'SCHEDULED', setName: '출시 전 점검', kind: 'FN', 케이스들: 케이스(382), 전체: true })).toBe('정기 · 출시 전 점검 · 기능 전체 382건');
     expect(자동제목({ origin: 'RERUN', rerunOf: 20914, kind: 'FN', 케이스들: 케이스(7), 전체: false })).toBe('RUN 20914의 실패 7건 다시');
     expect(자동제목({ origin: 'RERUN', rerunOf: 20914, kind: 'FN', 케이스들: 케이스(1), 전체: true })).toBe('RUN 20914의 실패 1건 다시');
   });
