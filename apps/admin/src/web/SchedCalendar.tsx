@@ -176,6 +176,8 @@ function 월보기({ 기준, 오늘, 세트들, 표, on열기, on날 }: 달력�
 const 칸높이 = 56;
 /** 막대 최소 높이 — 시각 · 이름 한 줄은 늘 보이게 */
 const 막대최소 = 34;
+/** 점선 글자 높이 — 대기가 짧아 막대가 이보다 가까우면 점선 글자가 막대 글자를 덮어 점선을 안 그린다(막대에 「대기」가 있다) */
+const 점선글높이 = 18;
 /** 걸치는 막대끼리 칸 너비를 나눠 쓴다 — 양옆 4px 은 schedCal.css `.sched-blk` 와 같다 */
 const 옆자리 = ({ 줄, 줄수 }: { 줄: number; 줄수: number }) =>
   줄수 === 1 ? {} : { left: `calc(4px + (100% - 8px) * ${String(줄 / 줄수)})`, right: 'auto', width: `calc((100% - 8px) / ${String(줄수)} - 2px)` };
@@ -190,8 +192,8 @@ function 시간칸({ 줄, 범위, 세트들, on열기 }: { 줄: 칩[]; 범위: [
     <div className="sched-col" style={{ height: (범위[1] - 범위[0]) * 칸높이 }}>
       {줄.map((c, i) => (
         <Fragment key={c.세트.id}>
-          {c.대기분 > 0 ? (
-            <div className="sched-ghost" style={{ top: 위(c.정한분) }}>
+          {c.대기분 > 0 && 위(c.시작분) - 위(c.정한분) >= 점선글높이 ? (
+            <div className="sched-ghost" style={{ top: 위(c.정한분), ...옆자리(자리[i]!) }}>
               <span>{t('{시각} {이름} 예정', { 시각: 시각글(c.정한분), 이름: c.세트.name })}</span>
             </div>
           ) : null}
