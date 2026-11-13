@@ -158,6 +158,19 @@ describe('정기 실행 화면', () => {
     expect((await screen.findAllByRole('button', { name: /결제 회귀\s*대기 · 03:50쯤 시작/u })).length).toBeGreaterThan(0);
   });
 
+  it('일 보기에서 1분 차이로 걸치는 두 세트 막대는 서로 덮지 않고 나란히 선다', async () => {
+    차리기([세트하나({ id: 1, at: '17:49', days: [5], avgMinutes: null, last: null }), 세트하나({ id: 2, name: '웹 전체 회귀', at: '17:50', days: [5], avgMinutes: null, last: null })]);
+    render(<Sched service={앱} 앱들={[앱, 앱]} 쓰나 />);
+    await screen.findAllByRole('button', { name: /웹 전체 회귀\s*17:50 예정/u });
+    fireEvent.click(screen.getByRole('button', { name: '일' }));
+    const 막대 = await waitFor(() => {
+      const 둘 = Array.from(document.querySelectorAll<HTMLElement>('.sched-blk'));
+      expect(둘).toHaveLength(2);
+      return 둘;
+    });
+    expect(막대.map((b) => b.style.left)).toEqual(['calc(4px + 0 * (100% - 8px))', 'calc(4px + 0.5 * (100% - 8px))']);
+  });
+
   it('끄기는 세트를 끄고 다시 읽는다. 읽기만 하는 사람에게는 단추가 없다', async () => {
     차리기([세트하나()]);
     const 끄기 = vi.spyOn(schedApi, 'setOn').mockResolvedValue({});

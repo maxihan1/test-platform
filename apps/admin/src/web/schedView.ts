@@ -160,5 +160,31 @@ export function 시간범위(칸들: readonly 칩[]): [number, number] | null {
   return [Math.floor(처음 / 60), Math.ceil(끝 / 60)];
 }
 
+/** 주 · 일 보기에서 시간이 걸치는 막대를 옆으로 나눈다 — 안 나누면 늦은 막대가 앞 막대를 덮어 세트 하나가 사라진다.
+ *  막대는 최소 높이가 있어 `최소분` 보다 짧아도 그만큼 자리를 차지한다. 들어온 차례대로 [몇째 줄, 줄 수] 를 돌려준다 */
+export function 나란히(칸들: readonly Pick<칩, '시작분' | '끝분'>[], 최소분: number): { 줄: number; 줄수: number }[] {
+  const 끝 = (c: Pick<칩, '시작분' | '끝분'>) => Math.max(c.끝분, c.시작분 + 최소분);
+  const 차례 = 칸들.map((_, i) => i).sort((a, b) => 칸들[a]!.시작분 - 칸들[b]!.시작분);
+  const 답 = 칸들.map(() => ({ 줄: 0, 줄수: 1 }));
+  let 묶음: number[] = [];
+  let 줄끝: number[] = [];
+  const 닫기 = () => {
+    for (const i of 묶음) 답[i]!.줄수 = 줄끝.length;
+    묶음 = [];
+    줄끝 = [];
+  };
+  for (const i of 차례) {
+    const c = 칸들[i]!;
+    if (줄끝.length > 0 && 줄끝.every((e) => e <= c.시작분)) 닫기();
+    const 빈줄 = 줄끝.findIndex((e) => e <= c.시작분);
+    const 줄 = 빈줄 === -1 ? 줄끝.length : 빈줄;
+    줄끝[줄] = 끝(c);
+    답[i]!.줄 = 줄;
+    묶음.push(i);
+  }
+  닫기();
+  return 답;
+}
+
 /** 실행 결과로 가는 주소 — 호환성은 따로 선다 (route.ts) */
 export const 실행주소 = (kind: string, runId: number) => (kind === 'COMPAT' ? `#/compat/runs/${String(runId)}` : `#/runs/${String(runId)}`);
