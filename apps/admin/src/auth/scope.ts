@@ -243,6 +243,11 @@ export const 라우트표: Record<string, 원천> = {
   '/api/stability/errors/:id': { 종류: '안정화오류', 칸: 'id' },
   '/api/stability/errors/:id/resolve': { 종류: '안정화오류', 칸: 'id' },
   '/api/stability/errors/:id/issue': { 종류: '안정화오류', 칸: 'id' },
+  // 정기 실행 세트는 프로젝트에 속한다 — 그 프로젝트의 실행 칸은 라우트가 본다 (sched/routes.ts 프로젝트칸)
+  '/api/sched/sets': { 종류: '안매임' },
+  '/api/sched/sets/:id': { 종류: '안매임' },
+  '/api/sched/calendar': { 종류: '안매임' },
+  '/api/sched/candidates': { 종류: '안매임' },
   '/api/perf/ai-jobs/:id/finish': { 종류: '성능AI일', 칸: 'id' },
   // 집기는 라우트가 그 계정이 배정된 애플리케이션의 일만 준다
   '/api/perf/ai-jobs/claim': { 종류: '안매임' },

@@ -72,6 +72,7 @@ describe('라우트표', () => {
       'projectNote',
       'reporting',
       'scenario',
+      'sched',
       'settings',
       'stability',
     ]);
