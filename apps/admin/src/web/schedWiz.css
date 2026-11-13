@@ -1,4 +1,4 @@
-/* 정기 실행 세트 마법사 — 담을 테스트 · 대상 서버 · 언제 · 확인 (도메인/정기실행 §8.20 「마법사」). 창 · 단계 막대는 authoringNew.css 의 .wiz-new 를 같이 쓴다. 색은 styles.css :root 토큰만 */
+/* 정기 실행 세트 마법사 — 테스트 선택 · 대상 서버 · 실행 주기 · 확인 (도메인/정기실행 §8.20 「마법사」). 창 · 단계 막대는 authoringNew.css 의 .wiz-new 를 같이 쓴다. 색은 styles.css :root 토큰만 */
 
 .sched-wiz .wiz-new-steps li > button { padding: 0; text-align: left; font-size: 12px; }
 .sched-wiz input[type='search'],

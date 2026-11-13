@@ -53,7 +53,7 @@ export function 기준꼴(items: readonly Pick<담은줄, 'kind' | 'service'>[],
   return items[0]!.service;
 }
 
-/** 이 애플리케이션에 다른 기준 세트가 이미 있나 — 있으면 「안정화 지표에 씁니다」가 서지 않는다 (§7 baseable) */
+/** 이 애플리케이션에 다른 기준 세트가 이미 있나 — 있으면 「안정화 지표에 사용」이 서지 않는다 (§7 baseable) */
 export const 다른기준있나 = (세트들: readonly 세트[], 앱: string, 내번호: number | null) =>
   세트들.some((s) => s.isBase && s.id !== 내번호 && 기준꼴(s.items, s.days) === 앱);
 

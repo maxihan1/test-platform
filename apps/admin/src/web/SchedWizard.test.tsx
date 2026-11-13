@@ -81,7 +81,7 @@ afterEach(() => {
 });
 
 describe('정기 실행 세트 마법사', () => {
-  it('신규 세트 — 빈 칸은 「다음」을 막고, 담고 고른 것으로 만든 뒤 달력을 다음 실행 날짜로 옮긴다', async () => {
+  it('신규 세트 — 빈 칸은 「다음」을 막고, 선택한 테스트로 만든 뒤 달력을 다음 실행 날짜로 옮긴다', async () => {
     차리기([세트하나({ isBase: true })]);
     const 만들기 = vi.spyOn(schedApi, 'create').mockResolvedValue({ id: 9 });
     render(<Sched service={앱들[0]!} 앱들={앱들} 쓰나 />);

@@ -1,4 +1,4 @@
-// 정기 실행 마법사 3 · 4 · 5단계 본문 — 대상 서버 · 언제 · 확인. 값과 저장은 SchedWizard 가 든다 (도메인/정기실행 §8.20 「마법사」)
+// 정기 실행 마법사 3 · 4 · 5단계 본문 — 대상 서버 · 실행 주기 · 확인. 값과 저장은 SchedWizard 가 든다 (도메인/정기실행 §8.20 「마법사」)
 
 import type { ServiceRow } from './api.js';
 import { use말, use언어 } from './i18n.js';
@@ -35,7 +35,7 @@ export function 서버단계({ 실행앱, 앱들, envs, on서버, 섞임 }: { �
         })}
       </ul>
       {섞임 ? <p className="sched-wiz-hint">{t('다른 애플리케이션 단계는 시작 애플리케이션과 같은 이름의 대상 서버에서 실행합니다')}</p> : null}
-      <p className="sched-wiz-hint">{t('정기 실행에는 실서비스 서버를 선택할 수 없습니다')}</p>
+      <p className="sched-wiz-hint">{t('실서비스 서버를 선택하면 저장되지 않습니다')}</p>
     </>
   );
 }

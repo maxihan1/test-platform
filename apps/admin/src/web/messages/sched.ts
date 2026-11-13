@@ -74,7 +74,7 @@ export const 정기실행말: Record<string, string> = {
   '{앱} 대상 서버': '{앱} target server',
   '이 애플리케이션에 대상 서버가 없습니다. 설정에서 추가해 주세요': 'This application has no target server. Add one in Settings',
   '다른 애플리케이션 단계는 시작 애플리케이션과 같은 이름의 대상 서버에서 실행합니다': 'Steps on other applications run on the target server with the same name as the starting application’s',
-  '정기 실행에는 실서비스 서버를 선택할 수 없습니다': 'Production servers cannot be used for scheduled runs',
+  '실서비스 서버를 선택하면 저장되지 않습니다': 'Saving fails if you select a production server',
   '안정화 기준 세트의 애플리케이션은 변경할 수 없습니다. 「안정화 지표에 사용」 체크를 해제해 주세요': 'A stability baseline set cannot move to another application. Clear "Use for stability metrics" first',
   '요일 선택': 'Chosen days',
   요일: 'Days',
