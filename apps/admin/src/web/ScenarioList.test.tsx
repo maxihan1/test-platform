@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// E2E 시나리오 목록 화면 검사 (도메인/시나리오 §8.11 · 실행 §8.7)
+// E2E 테스트(시나리오 목록) 화면 검사 (도메인/시나리오 §8.11 · 실행 §8.7)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -90,7 +90,7 @@ describe('ScenarioList 머리 · 표머리', () => {
     await screen.findByText(/ZSM 시나리오 1/);
 
     const 머리 = container.querySelector('.head');
-    expect(머리?.querySelector('h1')?.textContent).toBe('E2E 시나리오');
+    expect(머리?.querySelector('h1')?.textContent).toBe('E2E 테스트');
     expect(머리?.querySelector('.head-meta')?.textContent).toBe(
       '기능 테스트 스크립트를 차례로 실행해 흐름이 끊기지 않는지 확인합니다',
     );

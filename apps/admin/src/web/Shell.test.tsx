@@ -125,7 +125,7 @@ describe('세로 껍데기 (SPEC §8)', () => {
     const 안 = within(document.querySelector('.side-col') as HTMLElement);
     expect(안.getByRole('button', { name: '검색' })).toBeTruthy();
     expect(안.getByRole('button', { name: '데모마켓 › 결제 애플리케이션 · 변경' })).toBeTruthy();
-    // 설정은 자리 목록에서 빠져 톱니로 갔다. 하위는 지금 자리가 든 묶음(테스트 실행)만 펼친다
+    // 설정은 자리 목록에서 빠져 톱니로 갔다. 하위는 지금 자리가 든 묶음(기능 · UI 테스트)만 펼친다
     const 메뉴 = 자리목록(사람, 결제.prefix, 'ko').filter((자리) => 자리.해시 !== '#/settings');
     const 펼친하위 = 메뉴.find((자리) => 자리.해시 === '#/cases')?.하위?.length ?? 0;
     expect(within(자리nav()).getAllByRole('link')).toHaveLength(메뉴.length + 펼친하위);
@@ -202,7 +202,7 @@ describe('사이드바 접기', () => {
     띄운다(결제);
     // 안 보이게 하려고 display:none 을 쓰면 탭 대상에서 빠진다.
     // 흐리게 두지 않는다는 규칙(SPEC §8)은 등급 이야기고, 접기는 사람이 되돌릴 수 있는 상태다
-    expect(screen.getByRole('link', { name: '테스트 실행' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: '기능 · UI 테스트' })).toBeTruthy();
     사이드바접음을적는다(false);
   });
 });
@@ -220,9 +220,9 @@ describe('사이드바 하위 메뉴 (화면공통 §8 · PR #132)', () => {
 
   it('지금 자리가 든 묶음만 펼친다 — 다른 묶음은 접히고 묶음 링크는 그대로 첫 하위로 간다 (2026-10-30)', () => {
     띄운다(결제, 'ko', () => {}, '#/runs/ui');
-    expect(screen.queryByRole('link', { name: '테스트 실행 · UI 테스트' })).toBeNull();
-    expect(screen.queryByRole('link', { name: '테스트 실행 · 기능 테스트' })).toBeNull();
-    const 접힌묶음 = screen.getByRole('link', { name: '테스트 실행' });
+    expect(screen.queryByRole('link', { name: '기능 · UI 테스트 · UI 테스트' })).toBeNull();
+    expect(screen.queryByRole('link', { name: '기능 · UI 테스트 · 기능 테스트' })).toBeNull();
+    const 접힌묶음 = screen.getByRole('link', { name: '기능 · UI 테스트' });
     expect(접힌묶음.hasAttribute('data-open')).toBe(false);
     expect(접힌묶음.getAttribute('href')).toBe('#/cases');
     expect(접힌묶음.querySelector('.side-chev')).not.toBeNull();
@@ -256,7 +256,7 @@ describe('사이드바 하위 메뉴 (화면공통 §8 · PR #132)', () => {
   it('접혀도 하위 메뉴에 키보드로 닿는다 — 지우지 않고 글자만 숨긴다', () => {
     사이드바접음을적는다(true);
     띄운다(결제, 'ko', () => {}, '#/cases/ui');
-    expect(screen.getByRole('link', { name: '테스트 실행 · UI 테스트' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: '기능 · UI 테스트 · UI 테스트' })).toBeTruthy();
     사이드바접음을적는다(false);
   });
 });

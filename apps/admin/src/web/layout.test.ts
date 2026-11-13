@@ -83,29 +83,29 @@ describe('자리 목록', () => {
   const 이름들 = (user: User, prefix: string | null) => 자리목록(user, prefix, 'ko').map((자리) => 자리.이름);
 
   it('설정은 운영 계정에게만 뜬다. 흐리게가 아니라 아예 없다', () => {
-    expect(이름들(운영, 'PAY')).toEqual(['대시보드', 'PRD 관리', '테스트 작성', '테스트 실행', 'E2E 시나리오', '실행 기록', '성능 테스트', '안정화 지표', '그래프(Grafana)', '설정']);
+    expect(이름들(운영, 'PAY')).toEqual(['대시보드', 'PRD 관리', '테스트 작성', '기능 · UI 테스트', 'E2E 테스트', '호환성 테스트', '성능 테스트', '실행 기록', '안정화 지표', '그래프(Grafana)', '설정']);
   });
 
   it('운영이 아닌 사람에게 설정 자리는 없다', () => {
-    expect(이름들(김, 'PAY')).toEqual(['대시보드', 'PRD 관리', '테스트 작성', '테스트 실행', 'E2E 시나리오', '실행 기록', '성능 테스트', '안정화 지표', '그래프(Grafana)']);
-    expect(이름들(김, 'MEM')).toEqual(['대시보드', 'PRD 관리', '테스트 작성', '테스트 실행', 'E2E 시나리오', '실행 기록', '성능 테스트', '안정화 지표', '그래프(Grafana)']);
+    expect(이름들(김, 'PAY')).toEqual(['대시보드', 'PRD 관리', '테스트 작성', '기능 · UI 테스트', 'E2E 테스트', '호환성 테스트', '성능 테스트', '실행 기록', '안정화 지표', '그래프(Grafana)']);
+    expect(이름들(김, 'MEM')).toEqual(['대시보드', 'PRD 관리', '테스트 작성', '기능 · UI 테스트', 'E2E 테스트', '호환성 테스트', '성능 테스트', '실행 기록', '안정화 지표', '그래프(Grafana)']);
   });
 
   it('고른 애플리케이션에서 none 인 기능은 자리가 없다. 애플리케이션을 바꾸면 자리도 바뀐다', () => {
-    expect(이름들(김, 'SET')).toEqual(['대시보드', 'PRD 관리', '테스트 작성', 'E2E 시나리오', '실행 기록', '성능 테스트', '안정화 지표', '그래프(Grafana)']);
+    expect(이름들(김, 'SET')).toEqual(['대시보드', 'PRD 관리', '테스트 작성', 'E2E 테스트', '호환성 테스트', '성능 테스트', '실행 기록', '안정화 지표', '그래프(Grafana)']);
     const 작성없음 = 사람('member', [{ ...회원, permissions: { cases: 'read', runs: 'read', authoring: 'none' } }]);
-    expect(이름들(작성없음, 'MEM')).toEqual(['대시보드', '테스트 실행', 'E2E 시나리오', '실행 기록', '성능 테스트', '안정화 지표', '그래프(Grafana)']);
+    expect(이름들(작성없음, 'MEM')).toEqual(['대시보드', '기능 · UI 테스트', 'E2E 테스트', '호환성 테스트', '성능 테스트', '실행 기록', '안정화 지표', '그래프(Grafana)']);
   });
 
-  // 시나리오는 실행 칸을 쓴다 (도메인/시나리오 §7) — 실행이 none 이면 만드는 곳도 돌린 기록도 없다
-  it('E2E 시나리오 자리는 실행 칸을 본다', () => {
+  // 시나리오 · 호환성 · 성능은 실행 칸을 쓴다 (도메인/시나리오 §7) — 실행이 none 이면 만드는 곳도 돌린 기록도 없다
+  it('E2E 테스트 · 호환성 테스트 · 성능 테스트 · 실행 기록 자리는 실행 칸을 본다', () => {
     const 실행없음 = 사람('member', [{ ...회원, permissions: { cases: 'read', runs: 'none', authoring: 'read' } }]);
-    expect(이름들(실행없음, 'MEM')).toEqual(['PRD 관리', '테스트 작성', '테스트 실행', '그래프(Grafana)']);
+    expect(이름들(실행없음, 'MEM')).toEqual(['PRD 관리', '테스트 작성', '기능 · UI 테스트', '그래프(Grafana)']);
   });
 
   it('그래프는 사람의 대시보드 칸을 본다. 애플리케이션과 상관없다', () => {
     const 대시보드없음 = 사람('member', [결제], 'none');
-    expect(이름들(대시보드없음, 'PAY')).toEqual(['대시보드', 'PRD 관리', '테스트 작성', '테스트 실행', 'E2E 시나리오', '실행 기록', '성능 테스트', '안정화 지표']);
+    expect(이름들(대시보드없음, 'PAY')).toEqual(['대시보드', 'PRD 관리', '테스트 작성', '기능 · UI 테스트', 'E2E 테스트', '호환성 테스트', '성능 테스트', '실행 기록', '안정화 지표']);
   });
 
   // 대시보드는 배정 서비스 전체의 실행 칸을 본다 — 고른 서비스가 아니다 (화면공통 §8 · 도메인/리포팅 §8.12)
@@ -113,7 +113,7 @@ describe('자리 목록', () => {
     const 실행없는쪽 = { ...회원, permissions: { cases: 'read' as const, runs: 'none' as const, authoring: 'none' as const } };
     const 사람둘 = 사람('member', [실행없는쪽, 결제]);
     expect(자리목록(사람둘, 'MEM', 'ko')[0]).toMatchObject({ 이름: '대시보드', 해시: '#/dashboard', 아이콘: 'dashboard' });
-    expect(이름들(사람둘, 'MEM')).toEqual(['대시보드', '테스트 실행', '그래프(Grafana)']);
+    expect(이름들(사람둘, 'MEM')).toEqual(['대시보드', '기능 · UI 테스트', '그래프(Grafana)']);
   });
 
   it('실행 read 애플리케이션이 없으면 대시보드 자리가 없다', () => {
@@ -143,30 +143,31 @@ describe('자리 목록', () => {
     expect(지금자리('prdGuide', '#/cases')).toBe('#/prd/guide');
   });
 
-  it('성능 테스트 하위는 시나리오 · 페이지 성능 · 실행 기록 차례다 (웹)', () => {
+  // 성능 결과는 2026-11-12 에 실행 기록 › 성능으로 옮겼다 — 성능 테스트 아래에는 만드는 곳만 남는다
+  it('성능 테스트 하위는 부하 테스트 · 페이지 성능 차례다 (웹)', () => {
     expect(자리목록(김, 'MEM', 'ko').find((자리) => 자리.이름 === '성능 테스트')?.하위).toEqual([
       { 이름: '부하 테스트', 해시: '#/perf/scenarios', 라벨: '성능 테스트 · 부하 테스트' },
       { 이름: '페이지 성능', 해시: '#/perf/pages', 라벨: '성능 테스트 · 페이지 성능' },
-      { 이름: '실행 기록', 해시: '#/perf/runs', 라벨: '성능 테스트 · 실행 기록' },
     ]);
   });
 
-  it('Android 앱 · API 애플리케이션에는 페이지 성능이 없고 부하 테스트 · 실행 기록은 늘 있다', () => {
+  it('Android 앱 · API 애플리케이션에는 페이지 성능이 없다. 부하 테스트뿐인 API 는 하위 없이 한 줄이다', () => {
     const 앱 = { ...회원, kind: 'APP' as const };
     const API = { ...결제, kind: 'API' as const };
     const 하위해시 = (user: User, prefix: string) => 자리목록(user, prefix, 'ko').find((자리) => 자리.이름 === '성능 테스트')?.하위?.map((it) => it.해시);
-    expect(하위해시(사람('member', [앱]), 'MEM')).toEqual(['#/perf/scenarios', '#/perf/devices', '#/perf/runs']);
-    expect(하위해시(사람('member', [API]), 'PAY')).toEqual(['#/perf/scenarios', '#/perf/runs']);
+    expect(하위해시(사람('member', [앱]), 'MEM')).toEqual(['#/perf/scenarios', '#/perf/devices']);
+    expect(하위해시(사람('member', [API]), 'PAY')).toBeUndefined();
+    expect(자리목록(사람('member', [API]), 'PAY', 'ko').find((자리) => 자리.이름 === '성능 테스트')?.해시).toBe('#/perf/scenarios');
     // 웹을 고르면 같은 사람에게도 선다 — 고른 애플리케이션의 종류를 본다
     expect(하위해시(사람('member', [앱, 결제]), 'PAY')).toContain('#/perf/pages');
   });
 
-  it('기기 성능은 Android 앱 · 게임에만 선다. 웹 · API 에는 없다. 자리는 페이지 성능 다음 · 실행 기록 앞이다', () => {
+  it('기기 성능은 Android 앱 · 게임에만 선다. 웹 · API 에는 없다. 자리는 부하 테스트 다음이다', () => {
     const 하위 = (kind: ServiceRow['kind']) => 자리목록(사람('member', [{ ...결제, kind }]), 'PAY', 'ko').find((자리) => 자리.이름 === '성능 테스트')?.하위;
-    expect(하위('SCREEN')?.map((it) => it.해시)).toEqual(['#/perf/scenarios', '#/perf/pages', '#/perf/runs']);
+    expect(하위('SCREEN')?.map((it) => it.해시)).toEqual(['#/perf/scenarios', '#/perf/pages']);
     expect(하위('APP')?.find((it) => it.해시 === '#/perf/devices')).toEqual({ 이름: '앱 성능', 해시: '#/perf/devices', 라벨: '성능 테스트 · 앱 성능' });
     expect(하위('GAME')?.find((it) => it.해시 === '#/perf/devices')?.이름).toBe('게임 성능');
-    expect(하위('API')?.map((it) => it.해시)).toEqual(['#/perf/scenarios', '#/perf/runs']);
+    expect(하위('API')).toBeUndefined();
     expect(지금자리('perfDevices', '#/cases')).toBe('#/perf/devices');
   });
 
@@ -194,13 +195,12 @@ describe('자리 목록', () => {
 
   // 사이드바 하위 메뉴 — 늘 펼쳐 둔다 (화면공통 §8 「자리 목록」 · 2026-10-02 사용자 시안 A · PR #132)
   // 묶음을 누르면 기능 화면이 열린다 — 첫 하위가 기능이어야 누른 자리와 열린 화면이 맞는다 (2026-10-20 사용자)
-  it('테스트 실행과 실행 기록이 기능 테스트 · UI 테스트 하위를 품는다 · 둘 다 호환성도 선다', () => {
+  it('기능 · UI 테스트와 실행 기록이 기능 테스트 · UI 테스트 하위를 품는다 · 실행 기록에는 E2E · 호환성 · 성능도 선다', () => {
     const 자리들 = 자리목록(김, 'MEM', 'ko');
     const 하위 = (이름: string) => 자리들.find((자리) => 자리.이름 === 이름)?.하위?.map((h) => [h.이름, h.해시, h.라벨]);
-    expect(하위('테스트 실행')).toEqual([
-      ['기능 테스트', '#/cases/fn', '테스트 실행 · 기능 테스트'],
-      ['UI 테스트', '#/cases/ui', '테스트 실행 · UI 테스트'],
-      ['호환성', '#/compat', '테스트 실행 · 호환성'],
+    expect(하위('기능 · UI 테스트')).toEqual([
+      ['기능 테스트', '#/cases/fn', '기능 · UI 테스트 · 기능 테스트'],
+      ['UI 테스트', '#/cases/ui', '기능 · UI 테스트 · UI 테스트'],
     ]);
     // E2E 는 실행 기록에만 있다 — 케이스 목록에는 시나리오가 없다 (도메인/실행 §8.7)
     expect(하위('실행 기록')).toEqual([
@@ -208,9 +208,11 @@ describe('자리 목록', () => {
       ['UI 테스트', '#/runs/ui', '실행 기록 · UI 테스트'],
       ['E2E', '#/runs/e2e', '실행 기록 · E2E'],
       ['호환성', '#/runs/compat', '실행 기록 · 호환성'],
+      ['성능', '#/perf/runs', '실행 기록 · 성능'],
     ]);
     expect(자리들.find((자리) => 자리.이름 === '테스트 작성')?.하위).toBeUndefined();
-    expect(자리들.find((자리) => 자리.이름 === 'E2E 시나리오')?.하위).toBeUndefined();
+    expect(자리들.find((자리) => 자리.이름 === 'E2E 테스트')?.하위).toBeUndefined();
+    expect(자리들.find((자리) => 자리.이름 === '호환성 테스트')?.하위).toBeUndefined();
   });
 
   it('목록은 종류까지 지금 자리다 · 종류를 모르는 상세는 묶음이다', () => {
@@ -224,7 +226,7 @@ describe('자리 목록', () => {
     expect(지금자리('setup', '#/cases')).toBe('#/cases');
   });
 
-  it('시나리오 한 건과 새 시나리오는 E2E 시나리오 자리다. 목록에서 들어온 자리다', () => {
+  it('시나리오 한 건과 새 시나리오는 E2E 테스트 자리다. 성능 결과는 실행 기록 › 성능 자리다. 목록에서 들어온 자리다', () => {
     expect(지금자리('scenarios', '#/cases')).toBe('#/scenarios');
     expect(지금자리('scenarioNew', '#/cases')).toBe('#/scenarios');
     expect(지금자리('perfScenario', '#/cases')).toBe('#/perf/scenarios');
@@ -234,7 +236,7 @@ describe('자리 목록', () => {
     expect(지금자리('scenario', '#/cases')).toBe('#/scenarios');
   });
 
-  it('호환성 세트 목록 · 세트 한 건은 테스트 실행 › 호환성 자리다', () => {
+  it('호환성 세트 목록 · 세트 한 건은 호환성 테스트 자리다', () => {
     expect(지금자리('compatSets', '#/cases')).toBe('#/compat');
     expect(지금자리('compatSet', '#/cases')).toBe('#/compat');
   });

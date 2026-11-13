@@ -80,12 +80,12 @@ async function 그리기(cases: (page: number) => Promise<CasePage> = 쪽주기)
 }
 
 describe('CaseList 종류 (화면공통 §8 하위 메뉴 · PR #132)', () => {
-  it('고른 종류로 부르고 제목에 「테스트 실행 › 종류」로 위치를 적는다', async () => {
+  it('고른 종류로 부르고 제목에 「기능 · UI 테스트 › 종류」로 위치를 적는다', async () => {
     const 스파이 = 모킹(쪽주기);
     render(<CaseList kind="UI" service="ZPK" 할수={전부된다} 결과보나 />);
     await screen.findByText('ZPK-001');
     expect(스파이).toHaveBeenCalledWith(expect.objectContaining({ service: 'ZPK', kind: 'UI' }));
-    expect(screen.getByRole('heading', { level: 1, name: '테스트 실행 › UI 테스트' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: '기능 · UI 테스트 › UI 테스트' })).toBeTruthy();
   });
 });
 
@@ -888,7 +888,7 @@ describe('CaseList 화면 머리 (2026-09-22)', () => {
 
     const 머리 = container.querySelector('.head');
     expect(머리).not.toBeNull();
-    expect(머리?.querySelector('h1')?.textContent).toBe('테스트 실행 › 기능 테스트');
+    expect(머리?.querySelector('h1')?.textContent).toBe('기능 · UI 테스트 › 기능 테스트');
     // 자주 안 쓰는 일은 「다운로드 ▾」 · 「⋯」 메뉴로 걷고 실행 버튼만 머리에 바로 선다
     expect(머리?.textContent).not.toContain('다시 스캔');
     expect(within(머리 as HTMLElement).getByRole('button', { name: '다운로드' }).getAttribute('aria-haspopup')).toBe('true');

@@ -20,7 +20,7 @@ export function RunHead({ run, 앞, 덧, 행동 }: { run: 실행상세; 앞?: Re
   ];
   return (
     <Head
-      위치={t('성능 테스트')}
+      위치={t('실행 기록')}
       제목={`${run.scenarioName} ${run.code}`}
       부제={
         <>

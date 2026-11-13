@@ -1,4 +1,4 @@
-// 테스트 실행 › 호환성 › 세트 — 만들기와 고치기가 같은 화면이다 (도메인/호환성 §8.17 ②). 구획은 CompatSetParts.tsx
+// 호환성 테스트 › 세트 — 만들기와 고치기가 같은 화면이다 (도메인/호환성 §8.17 ②). 구획은 CompatSetParts.tsx
 
 import { useEffect, useRef, useState } from 'react';
 
@@ -139,7 +139,7 @@ export function CompatSet({ id, serviceId, service, kind, envs, 쓰나 }: { id: 
     <>
       <떠나기상자 막나={쓰나 && 바뀜} />
       <Head
-        위치={t('테스트 실행 › 호환성')}
+        위치={t('호환성 테스트')}
         제목={id === 'new' ? t('새 호환성 세트') : 저장본.name}
         행동={
           쓰나 ? (

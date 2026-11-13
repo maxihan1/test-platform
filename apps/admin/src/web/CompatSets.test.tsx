@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 테스트 실행 › 호환성 세트 목록 검사 (도메인/호환성 §8.17 ①)
+// 호환성 테스트 세트 목록 검사 (도메인/호환성 §8.17 ①)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -38,7 +38,7 @@ async function 그리기(sets: CompatSetRow[], 쓰나 = true, envs = [{ env: 'st
     uncovered: [],
   });
   render(<CompatSets envs={envs} serviceId={7} service="MKA" 쓰나={쓰나} />);
-  await screen.findByText('호환성');
+  await screen.findByText('호환성 테스트');
   return { 미리셈 };
 }
 

@@ -1,9 +1,7 @@
-// 테스트 실행 › 호환성 화면 글자의 영어. 키는 한국어 원문이다 (도메인/호환성 §8.17)
+// 호환성 테스트 화면 글자의 영어. 키는 한국어 원문이다 (도메인/호환성 §8.17)
 
 export const 호환성말: Record<string, string> = {
   // 메뉴 · 머리
-  신규: 'New',
-  '테스트 실행 › 호환성': 'Run tests › Compatibility',
   'Device VISION 디바이스별로 테스트 실행 화면을 AI 가 점검해 UI 결함을 찾습니다': 'AI checks the test-run screens on each Device VISION device to find UI defects',
   'API 애플리케이션에는 호환성 점검이 없습니다': 'API applications have no compatibility check',
 

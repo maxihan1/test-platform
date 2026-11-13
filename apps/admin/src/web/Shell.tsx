@@ -1,7 +1,7 @@
 // 왼쪽 줄 · 사이드바 · 본문 · 푸터 (SPEC §8). 모든 화면이 이 안에 들어간다
 // 지금 어느 서비스를 보고 있는지가 늘 보여야 한다 — 엉뚱한 서비스에서 실행을 누르는 사고를 막는 장치가 이것 하나다
 
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 
 import type { ServiceRow, User } from './api.js';
 import {
@@ -141,21 +141,25 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
         <위치카드 user={user} service={service} onService={onService} 새로만들기={할수있나(user, service?.prefix ?? null, '설정')} />
         <찾기칸 자리들={자리들} prefix={service?.prefix ?? null} 케이스볼수있나={기능보나(user, service?.prefix ?? null, 'cases')} />
         <nav className="side-nav">
-          {메뉴들.map((자리) =>
-            자리.바깥 === true ? (
-              <a key={자리.해시} href={자리.해시} target="_blank" rel="noreferrer">
-                <아이콘 이름={자리.아이콘} />
-                {자리.이름} ↗
-              </a>
-            ) : 자리.하위 === undefined ? (
-              <a key={자리.해시} href={자리.해시} {...(current === 자리.해시 ? { 'aria-current': 'page' as const } : {})}>
-                <아이콘 이름={자리.아이콘} />
-                {자리.이름}
-              </a>
-            ) : (
-              <메뉴묶음 key={자리.해시} 자리={자리} current={current} />
-            ),
-          )}
+          {메뉴들.map((자리, i) => (
+            <Fragment key={자리.해시}>
+              {/* QA 단계가 바뀌는 자리 위에 구분선 제목 — 누르지 못한다. 접으면 글자는 숨고 선만 남는다 (화면공통 §8 「자리 목록」 「단계 구분선」) */}
+              {자리.단계 !== undefined && 자리.단계 !== 메뉴들[i - 1]?.단계 ? <div className="side-stage">{자리.단계}</div> : null}
+              {자리.바깥 === true ? (
+                <a href={자리.해시} target="_blank" rel="noreferrer">
+                  <아이콘 이름={자리.아이콘} />
+                  {자리.이름} ↗
+                </a>
+              ) : 자리.하위 === undefined ? (
+                <a href={자리.해시} {...(current === 자리.해시 ? { 'aria-current': 'page' as const } : {})}>
+                  <아이콘 이름={자리.아이콘} />
+                  {자리.이름}
+                </a>
+              ) : (
+                <메뉴묶음 자리={자리} current={current} />
+              )}
+            </Fragment>
+          ))}
         </nav>
         {/* 바닥 — 오른쪽 끝에 밝게 · 어둡게 하나 */}
         <div className="side-foot">
@@ -205,7 +209,6 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
  * 묶음 링크는 묶음 자리로 간다 — 종류를 모르는 상세(실행 결과 등)에서 「지금 자리」라고 하면 다른 곳을 가리켜 aria-current 를 안 받는다 (2026-10-02 검사 지적)
  */
 function 메뉴묶음({ 자리: 묶음, current }: { 자리: 자리; current: string }) {
-  const t = use말();
   const 하위 = 묶음.하위 ?? [];
   // 「PRD 관리 › API 문서」 처럼 하위 주소가 묶음 주소 아래가 아니어도 그 하위가 지금이면 펼친다
   const 펼침 = current === 묶음.해시 || current.startsWith(`${묶음.해시}/`) || 하위.some((it) => it.해시 === current);
@@ -224,7 +227,6 @@ function 메뉴묶음({ 자리: 묶음, current }: { 자리: 자리; current: st
         : 하위.map((it) => (
             <a key={it.해시} className="side-sub" href={it.해시} aria-label={it.라벨} {...(current === it.해시 ? { 'aria-current': 'page' as const } : {})}>
               {it.이름}
-              {it.신규 === true ? <span className="side-new">{t('신규')}</span> : null}
             </a>
           ))}
     </div>

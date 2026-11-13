@@ -203,7 +203,7 @@ export const 시나리오말: Record<string, string> = {
   '{번호}번 단계에서 실패했습니다': 'Failed at step {번호}',
   '{번호}번 단계 「{이름}」에서 실패했습니다': 'Failed at step {번호} "{이름}"',
   '{번호}번 단계 수정': 'Edit step {번호}',
-  '← E2E 시나리오': '← E2E scenarios',
+  '← E2E 테스트': '← E2E tests',
   '← SC-{번호} 시나리오': '← Scenario SC-{번호}',
   '{번호}번 단계 케이스가 비활성입니다 · {tcId}': 'The case in step {번호} is inactive · {tcId}',
   '{번호}번 단계에서 건너뛰게 둔 사전 단계를 이제 건너뛸 수 없습니다': 'Step {번호} skips a setup step that can no longer be skipped',

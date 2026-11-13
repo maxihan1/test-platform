@@ -1,4 +1,4 @@
-// 성능 테스트 › 실행 기록 — 표 하나. 번호를 누르면 도는 중이면 실행 중 화면, 끝났으면 결과 화면이 열린다 (도메인/성능 §8.14 · 시안 A)
+// 실행 기록 › 성능 — 표 하나. 번호를 누르면 도는 중이면 실행 중 화면, 끝났으면 결과 화면이 열린다 (도메인/성능 §8.14 · 시안 A)
 
 import { useEffect, useState } from 'react';
 
@@ -63,8 +63,8 @@ export function PerfRunList({ serviceId }: { serviceId: number }) {
   return (
     <>
       <Head
-        위치={t('성능 테스트')}
-        제목={t('실행 기록')}
+        위치={t('실행 기록')}
+        제목={t('성능')}
         행동={
           <div className="perf-row">
             <label className="perf-field perf-inline">

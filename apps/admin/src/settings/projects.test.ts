@@ -156,6 +156,24 @@ describe.skipIf(연결 === undefined)('설정 API — 프로젝트', () => {
     expect(찾은것?.user.services[0]).toMatchObject({ id: 서비스번호, projectId: 줄.projectId, projectName: 줄.projectName, kind: 'SCREEN' });
   });
 
+  it('/auth/me 의 애플리케이션 줄에 프로젝트가 이은 Issue Bunker 주소가 실리고, 안 이었으면 null 이다', async () => {
+    const p = await pool();
+    const 줄 = (await 서비스목록()).find((s) => s.id === 서비스번호)!;
+    expect((await 사용자와해시(계정))?.user.services[0]?.btsUrl).toBeNull();
+
+    await p.query(
+      `INSERT INTO bts_link (project_id, base_url, bts_project, bot_username, webhook_secret, status_map, resolution_map, updated_by)
+       VALUES ($1, 'https://bts.xpq.test/', 'XPQ', 'xpq-bot', 's', '{}', '{}', 'xpq')`,
+      [줄.projectId],
+    );
+    try {
+      expect((await 사용자와해시(계정))?.user.services[0]?.btsUrl).toBe('https://bts.xpq.test');
+    } finally {
+      // 실패해도 지운다 — 남으면 같은 프로젝트를 쓰는 뒤 검사가 Bunker 를 이은 채로 시작한다
+      await p.query('DELETE FROM bts_link WHERE project_id = $1', [줄.projectId]);
+    }
+  });
+
   it('대표 애플리케이션을 고르면 목록과 me 에 실리고, null 이면 비우고, 빼고 보내면 그대로다', async () => {
     const 줄 = (await 서비스목록()).find((s) => s.id === 서비스번호)!;
     const 고침 = (payload: object) => app.inject({ method: 'PATCH', url: `/api/settings/projects/${String(줄.projectId)}`, payload });

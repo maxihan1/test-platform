@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 테스트 실행 › 호환성 › 세트 · 디바이스 선택 상자 검사 (도메인/호환성 §8.17 ② · ②-1)
+// 호환성 테스트 › 세트 · 디바이스 선택 상자 검사 (도메인/호환성 §8.17 ② · ②-1)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';

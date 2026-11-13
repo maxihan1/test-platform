@@ -128,7 +128,7 @@ export function ScenarioResult({
         <>
           <div className="scn-back">
             {어디서 === 'scenarios' ? (
-              <a href="#/scenarios">{t('← E2E 시나리오')}</a>
+              <a href="#/scenarios">{t('← E2E 테스트')}</a>
             ) : 어디서 === 'scenario' ? (
               <a href={`#/scenarios/${data.scenarioId}`}>{t('← SC-{번호} 시나리오', { 번호: data.scenarioId })}</a>
             ) : (
