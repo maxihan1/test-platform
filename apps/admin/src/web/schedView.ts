@@ -162,8 +162,8 @@ export function 시간범위(칸들: readonly 칩[]): [number, number] | null {
 
 /** 주 · 일 보기에서 시간이 걸치는 막대를 옆으로 나눈다 — 안 나누면 늦은 막대가 앞 막대를 덮어 세트 하나가 사라진다.
  *  막대는 최소 높이가 있어 `최소분` 보다 짧아도 그만큼 자리를 차지한다. 들어온 차례대로 [몇째 줄, 줄 수] 를 돌려준다 */
-export function 나란히(칸들: readonly Pick<칩, '시작분' | '끝분'>[], 최소분: number): { 줄: number; 줄수: number }[] {
-  const 끝 = (c: Pick<칩, '시작분' | '끝분'>) => Math.max(c.끝분, c.시작분 + 최소분);
+export function 나란히(칸들: readonly { 시작분: number; 끝분: number }[], 최소분: number): { 줄: number; 줄수: number }[] {
+  const 끝 = (c: { 시작분: number; 끝분: number }) => Math.max(c.끝분, c.시작분 + 최소분);
   const 차례 = 칸들.map((_, i) => i).sort((a, b) => 칸들[a]!.시작분 - 칸들[b]!.시작분);
   const 답 = 칸들.map(() => ({ 줄: 0, 줄수: 1 }));
   let 묶음: number[] = [];
