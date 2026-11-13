@@ -111,6 +111,29 @@ describe.skipIf(연결 === undefined)('게임 첫 화면 · 게임 화면 기록
     }
   });
 
+  it('app-link 는 팜이 붙고 앱이 있으면 서버 몫 팜 토큰도 같이 준다 — 팜이 없거나 앱이 없으면 token 칸이 없다', async () => {
+    await 줄들([['qa', 'https://builds/qa.apk', false]]);
+    const id = await 요청넣기();
+    vi.mocked(서버팜토큰).mockClear();
+    expect(await 받기(id, 'app-link')).toEqual({ app: 'https://builds/qa.apk' });
+    expect(서버팜토큰).not.toHaveBeenCalled();
+
+    vi.stubEnv('DEVICE_FARM_URL', 'http://farm.xgs.test');
+    try {
+      vi.mocked(서버팜토큰).mockResolvedValueOnce('pat_xgs_new');
+      expect(await 받기(id, 'app-link')).toEqual({ app: 'https://builds/qa.apk', token: 'pat_xgs_new' });
+      expect(await 받기(id, 'app-link')).toEqual({ app: 'https://builds/qa.apk' });
+
+      await 치우기();
+      await 줄들([['qa', null, false]]);
+      vi.mocked(서버팜토큰).mockClear();
+      expect(await 받기(await 요청넣기(), 'app-link')).toEqual({ app: null });
+      expect(서버팜토큰).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it('게임은 game-screen 이 앱 줄의 앱 파일로 읽으러 가고 app-screen 은 비운다', async () => {
     await 줄들([['dev', null, false], ['qa', 'https://builds/qa.apk', false]]);
     const id = await 요청넣기();

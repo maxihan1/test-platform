@@ -24,6 +24,7 @@ import {
 import { 바뀐파일들, 지운말, 치울새파일들 } from './authoring-status.js';
 import { 끝검사 } from './authoring-gate3.js';
 import { 폰끝검사 } from './authoring-run3-game.js';
+import { 받은팜토큰 } from './authoring-app-screen.js';
 import { type 계정, type 사본, 사본환경, 파일거부사유 } from './authoring-copy.js';
 import { 바뀐틀읽기, 산출물읽기, 화면만다덮음 } from './authoring-upload-reverse.js';
 import { 저장본올리기 } from './authoring-screens-keep-io.js';
@@ -201,7 +202,7 @@ export async function 올리기(
   // 사유에 토큰을 싣지 않는다 — 사유는 화면과 서버 기록에 남는다
   // 팜 토큰도 자식 환경에 있다(PLATFORM_APPIUM_TOKEN — 서버가 준 대신 PAT, 없으면 이 컨테이너 것 · 러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」). 저장소가 공개라 올라가면 그대로 공개된다
   const 올릴글 = [본문글, ...전체.map(읽기)];
-  const 섞인것 = 비밀섞였나(올릴글, 것.figmaToken) ? '피그마 토큰' : [원장재료.팜토큰, process.env.PLATFORM_APPIUM_TOKEN].some((t) => 비밀섞였나(올릴글, t)) ? 'Device VISION 토큰' : null;
+  const 섞인것 = 비밀섞였나(올릴글, 것.figmaToken) ? '피그마 토큰' : [원장재료.팜토큰, process.env.PLATFORM_APPIUM_TOKEN, ...받은팜토큰].some((t) => 비밀섞였나(올릴글, t)) ? 'Device VISION 토큰' : null;
   if (섞인것 !== null) {
     await 손.끝내기(거절(`올릴 파일이나 PR 본문에 ${섞인것}이 들어 있다 — 올리지 않는다`));
     return;

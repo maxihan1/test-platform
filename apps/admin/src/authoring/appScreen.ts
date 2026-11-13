@@ -119,10 +119,13 @@ export default async function appScreenAgentRoutes(app: FastifyInstance): Promis
   app.get('/authoring/requests/:id/game-screen', 읽어준다(true, 게임길, 'game'));
   // 링크만 — 서명 링크는 길어야 2시간이라 작성 동안 에이전트가 30분마다 다시 받아 자식의 링크 파일에 갈아 끼운다. 폰을 안 잡고 러너도 안 부른다 (§7 「앱 화면 통로」 app-link)
   // build 는 에이전트가 시작 때 받은 링크의 빌드 번호다 — 그 빌드가 남았으면 같은 빌드로 다시 서명한다(케이스를 쓴 빌드와 돌려 보는 빌드가 같게)
+  // 팜 토큰도 같이 준다 — 대신 PAT 는 3시간이라 시작 때 것 하나로는 긴 작성 도중에 401 이다(11-14 MTA #15375). 서버는 2시간 아래로 남으면 새로 받는다
   app.get('/authoring/requests/:id/app-link', async (req: FastifyRequest<{ Params: { id: string }; Querystring: { build?: string } }>, reply: FastifyReply) => {
     const 행 = await 도는집은요청(req, reply);
     if (행 === null) return reply;
     const 고정 = /^\d{1,12}$/.test(req.query.build ?? '') ? Number(req.query.build) : undefined;
-    return { app: await 작성앱파일(행, 고정) };
+    const 링크 = await 작성앱파일(행, 고정);
+    const 토큰 = 링크 === null || 팜주소() === undefined ? undefined : await 서버팜토큰();
+    return { app: 링크, ...(토큰 !== undefined && { token: 토큰 }) };
   });
 }
