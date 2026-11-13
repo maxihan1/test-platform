@@ -1,6 +1,7 @@
 // 정기 실행 화면이 서버를 부르는 호출 · 응답 모양 (도메인/정기실행 §7)
 
 import { call, json } from './api.js';
+import type { 후보 } from './schedForm.js';
 
 export type 줄종류 = 'FN' | 'UI' | 'E2E' | 'COMPAT';
 export type 회차판정 = 'PASS' | 'FAIL' | 'NONE';
@@ -58,4 +59,20 @@ export const schedApi = {
     call<{ occurrences: 회차[] }>(`/sched/calendar?projectId=${String(projectId)}&from=${from}&to=${to}`),
   setOn: (id: number, isOn: boolean) =>
     call<unknown>(`/sched/sets/${String(id)}`, { ...json({ isOn }), method: 'PATCH' }),
+  /** 안정화 기준 정하기 · 풀기 (§3.16 「기준 정하기 · 풀기」) */
+  setBase: (id: number, isBase: boolean) =>
+    call<unknown>(`/sched/sets/${String(id)}`, { ...json({ isBase }), method: 'PATCH' }),
+  candidates: (projectId: number) => call<후보>(`/sched/candidates?projectId=${String(projectId)}`),
+  create: (body: 세트본문 & { projectId: number; tz: string }) => call<{ id: number }>('/sched/sets', json(body)),
+  update: (id: number, body: 세트본문) => call<unknown>(`/sched/sets/${String(id)}`, { ...json(body), method: 'PUT' }),
 };
+
+/** POST · PUT 본문 (§7) — items 한 줄은 종류마다 칸이 다르다 */
+export interface 세트본문 {
+  name: string;
+  at: string;
+  days?: number[];
+  onceOn?: string;
+  items: { kind: 줄종류; service?: string; tcIds?: string[] | null; scenarioId?: number; compatSetId?: number }[];
+  envs: { service: string; env: string }[];
+}

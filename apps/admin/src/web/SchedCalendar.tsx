@@ -95,10 +95,23 @@ function 칸설명({ c, t }: { c: 칩; t: 말 }) {
   );
 }
 
-export function 칸창({ c, onClose }: { c: 칩; onClose: () => void }) {
+/** on수정 은 앞으로의 칸 · 실행 write 일 때만 온다 — 없으면 단추를 안 세운다 (§8.20 「칸 창」) */
+export function 칸창({ c, onClose, on수정 }: { c: 칩; onClose: () => void; on수정?: () => void }) {
   const t = use말();
+  const 버튼 = (
+    <>
+      {on수정 === undefined ? null : (
+        <button type="button" className="btn ghost" onClick={on수정}>
+          {t('세트 수정')}
+        </button>
+      )}
+      <button type="button" className="btn" onClick={onClose}>
+        {t('닫기')}
+      </button>
+    </>
+  );
   return (
-    <Modal 제목={c.세트.name} onClose={onClose} 버튼={<button type="button" className="btn" onClick={onClose}>{t('닫기')}</button>}>
+    <Modal 제목={c.세트.name} onClose={onClose} 버튼={버튼}>
       <div className="sched-pop">
         <span className={`sched-pill ${c.상태}`}>{결과글(c, t)}</span>
         <칸설명 c={c} t={t} />

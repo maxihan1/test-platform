@@ -35,18 +35,22 @@ export function 시간대로(시각: Date, tz: string): { 날: string; 분: numb
   return { 날: `${조각.year}-${조각.month}-${조각.day}`, 분: Number(조각.hour) * 60 + Number(조각.minute) };
 }
 
-export const 도는날인가 = (세트: 세트, 날: string) => (세트.onceOn !== null ? 세트.onceOn === 날 : (세트.days ?? []).includes(요일(날)));
+export const 도는날인가 = (세트: Pick<세트, 'days' | 'onceOn'>, 날: string) => (세트.onceOn !== null ? 세트.onceOn === 날 : (세트.days ?? []).includes(요일(날)));
 
-/** 다음에 돌 날. 꺼졌거나 「한 번만」이 지났으면 null. 오늘 시각이 이미 지났으면 다음 날부터다 (§3.16 「저장한 그날」) */
-export function 다음날(세트: 세트, 지금: Date): string | null {
-  if (!세트.isOn) return null;
+type 반복꼴 = Pick<세트, 'isOn' | 'tz' | 'at' | 'days' | 'onceOn'>;
+
+/** 앞으로 돌 날 수개. 꺼졌거나 「한 번만」이 지났으면 빈 목록. 오늘 시각이 이미 지났으면 다음 날부터다 (§3.16 「저장한 그날」) */
+export function 다음날들(세트: 반복꼴, 지금: Date, 수: number): string[] {
+  if (!세트.isOn) return [];
   const 오늘 = 시간대로(지금, 세트.tz);
-  for (let i = 0; i < 371; i++) {
+  const 날들: string[] = [];
+  for (let i = 0; i < 371 && 날들.length < 수; i++) {
     const 날 = 날더하기(오늘.날, i);
-    if (도는날인가(세트, 날) && !(i === 0 && 분(세트.at) <= 오늘.분)) return 날;
+    if (도는날인가(세트, 날) && !(i === 0 && 분(세트.at) <= 오늘.분)) 날들.push(날);
   }
-  return null;
+  return 날들;
 }
+export const 다음날 = (세트: 반복꼴, 지금: Date): string | null => 다음날들(세트, 지금, 1)[0] ?? null;
 
 export type 칩상태 = 'pass' | 'fail' | 'none' | 'running' | 'plan';
 

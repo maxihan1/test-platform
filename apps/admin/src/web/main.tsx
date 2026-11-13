@@ -47,6 +47,7 @@ import './stability.css';
 import './sched.css';
 import './schedCal.css';
 import './schedRuns.css';
+import './schedWiz.css';
 import './stabilityDetail.css';
 import './perfRun.css';
 import './scout.css';

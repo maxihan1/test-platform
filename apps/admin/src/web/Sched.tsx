@@ -7,8 +7,9 @@ import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { schedApi, type 세트 } from './schedApi.js';
 import { 기간, 달력, 칸창, type 보기 } from './SchedCalendar.js';
-import { 세트카드들 } from './SchedCards.js';
+import { 세트카드들, 짧은날 } from './SchedCards.js';
 import { 날더하기, 시간대로, 실행주소, 주시작, 칩들, type 칩 } from './schedView.js';
+import { SchedWizard } from './SchedWizard.js';
 import { Failed, Loading, useAsync } from './ui.js';
 
 const 보기키 = 'sched-view';
@@ -43,7 +44,7 @@ function 옮기기(보기: 보기, 기준: string, 쪽: 1 | -1): string {
   return 날더하기(기준, (보기 === 'week' ? 7 : 1) * 쪽);
 }
 
-export function Sched({ service, 앱수, 쓰나 }: { service: ServiceRow; 앱수: number; 쓰나: boolean }) {
+export function Sched({ service, 앱들, 쓰나 }: { service: ServiceRow; 앱들: readonly ServiceRow[]; 쓰나: boolean }) {
   const t = use말();
   const 언어 = use언어();
   const [보기, set보기] = useState(처음보기);
@@ -51,6 +52,9 @@ export function Sched({ service, 앱수, 쓰나 }: { service: ServiceRow; 앱수
   const [고른, set고른] = useState(null as number | null);
   const [열린, set열린] = useState(null as 칩 | null);
   const [오류, set오류] = useState(null as string | null);
+  // 열린 마법사 — 세트가 null 이면 신규 (§8.20 「마법사」)
+  const [마법사, set마법사] = useState(null as { 세트: 세트 | null } | null);
+  const [저장말, set저장말] = useState(null as string | null);
   const [from, to] = 기간(보기, 기준);
   const 세트목록 = useAsync(() => schedApi.sets(service.projectId), [service.projectId]);
   // 받은 기간을 같이 들고 있는다 — 다른 달로 넘긴 직후 앞 달 회차로 새 달을 그리지 않게
@@ -95,10 +99,40 @@ export function Sched({ service, 앱수, 쓰나 }: { service: ServiceRow; 앱수
     }
   };
 
-  const 부제 = t('{프로젝트} 프로젝트 · 애플리케이션 {수}개의 세트를 한 달력에 모았습니다', { 프로젝트: service.projectName, 수: 앱수 });
-  const 머리 = <Head 제목={t('정기 실행')} 부제={부제} />;
-  if (세트목록.error !== null) return (<div className="sched">{머리}<Failed error={세트목록.error} /></div>);
-  if (세트목록.data === null) return (<div className="sched">{머리}<Loading /></div>);
+  // 저장하면 창을 닫고 달력을 다음 실행 날짜로 옮긴다 (§8.20 5단계)
+  const 저장됨 = (이름: string, 다음: string | null, at: string) => {
+    set마법사(null);
+    if (다음 !== null) set기준(다음);
+    set저장말(다음 === null ? t('「{이름}」 세트를 저장했습니다', { 이름 }) : t('「{이름}」 세트를 저장했습니다 · 다음 실행 {날} {시각}', { 이름, 날: 짧은날(다음), 시각: at }));
+    void Promise.all([세트목록.reload(), 회차목록.reload()]);
+  };
+  const 신규단추 = 쓰나 ? (
+    <button type="button" className="btn" onClick={() => set마법사({ 세트: null })}>
+      {t('+ 신규 세트')}
+    </button>
+  ) : null;
+  const 창 =
+    마법사 === null ? null : (
+      <SchedWizard
+        projectId={service.projectId}
+        세트={마법사.세트}
+        세트들={세트들}
+        앱들={앱들}
+        // 저장이 일부만 되고 닫혔을 수 있다(만든 뒤 기준 정하기가 실패) — 닫을 때 목록을 다시 읽는다
+        onClose={() => {
+          set마법사(null);
+          void 세트목록.reload();
+        }}
+        on저장={저장됨}
+      />
+    );
+
+  const 부제 = t('{프로젝트} 프로젝트 · 애플리케이션 {수}개의 세트를 한 달력에 모았습니다', { 프로젝트: service.projectName, 수: 앱들.length });
+  // 목록을 읽기 전에는 「+ 신규 세트」를 세우지 않는다 — 그 자리에는 창이 안 서서 눌러도 반응이 없다
+  const 빈머리 = <Head 제목={t('정기 실행')} 부제={부제} />;
+  const 머리 = <Head 제목={t('정기 실행')} 부제={부제} 행동={신규단추} />;
+  if (세트목록.error !== null) return (<div className="sched">{빈머리}<Failed error={세트목록.error} /></div>);
+  if (세트목록.data === null) return (<div className="sched">{빈머리}<Loading /></div>);
   if (세트들.length === 0)
     return (
       <div className="sched">
@@ -106,7 +140,9 @@ export function Sched({ service, 앱수, 쓰나 }: { service: ServiceRow; 앱수
         <section className="sched-empty">
           <h2>{t('아직 세트가 없습니다')}</h2>
           <p>{t('이미 만든 테스트를 선택해 정해진 시각에 실행합니다')}</p>
+          {신규단추}
         </section>
+        {창}
       </div>
     );
 
@@ -114,8 +150,13 @@ export function Sched({ service, 앱수, 쓰나 }: { service: ServiceRow; 앱수
     <div className="sched">
       {머리}
       {오류 === null ? null : <Failed error={오류} />}
+      {저장말 === null ? null : (
+        <p className="sched-saved" role="status">
+          {저장말}
+        </p>
+      )}
       <div className="sched-body">
-        <세트카드들 세트들={세트들} 고른={고른} 지금={지금} 쓰나={쓰나} on고르기={set고른} on날보기={날보기} on켜기={(s) => void 켜기(s)} />
+        <세트카드들 세트들={세트들} 고른={고른} 지금={지금} 쓰나={쓰나} on고르기={set고른} on날보기={날보기} on켜기={(s) => void 켜기(s)} on수정={(s) => set마법사({ 세트: s })} />
         <div className="sched-main">
           <div className="sched-bar">
             <div className="sched-seg" role="group" aria-label={t('보기')}>
@@ -145,7 +186,21 @@ export function Sched({ service, 앱수, 쓰나 }: { service: ServiceRow; 앱수
           </div>
         </div>
       </div>
-      {열린 === null ? null : <칸창 c={열린} onClose={() => set열린(null)} />}
+      {열린 === null ? null : (
+        <칸창
+          c={열린}
+          onClose={() => set열린(null)}
+          on수정={
+            쓰나 && 열린.상태 === 'plan'
+              ? () => {
+                  set열린(null);
+                  set마법사({ 세트: 열린.세트 });
+                }
+              : undefined
+          }
+        />
+      )}
+      {창}
     </div>
   );
 }
