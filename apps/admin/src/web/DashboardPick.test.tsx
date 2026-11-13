@@ -11,7 +11,7 @@ import { 실행목록주소, 조건을주소로, 주소에서조건, 창실패�
 
 const 시간대 = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const 건 = (pass: number, fail: number, notRun: number) => ({ pass, fail, notRun });
-const 기본재료 = { 케이스갈수있나: true, 설정갈수있나: false, 프로젝트: null };
+const 기본재료 = { 케이스갈수있나: true, 세트만들수있나: false, 프로젝트: null };
 
 function 신규(runId: number, tcId: string, serviceId: number, kind: 'UI' | 'FN') {
   return {

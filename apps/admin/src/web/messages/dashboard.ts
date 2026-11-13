@@ -60,7 +60,7 @@ export const 대시보드말: Record<string, string> = {
   // 실행 0
   '아직 실행한 테스트가 없습니다': 'No tests have run yet',
   '하루 한 번 정기 실행을 켜 두면 결과가 날마다 쌓여 추이가 보입니다': 'Turn on a daily scheduled run and results build up into a trend',
-  '설정에서 정기 실행 켜기': 'Turn on scheduled runs in Settings',
+  '정기 실행 세트 만들기': 'Create a scheduled run set',
   '케이스 보기': 'View cases',
 
   // 실패 이유 읽기 (2026-10-19 ⑫-3 · 도메인/실행 §8.3)

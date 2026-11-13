@@ -46,6 +46,7 @@ export function 지금자리(name: string, 집: string, 종류?: 'UI' | 'FN' | '
   if (name === 'perfPages') return '#/perf/pages';
   if (name === 'perfDevices') return '#/perf/devices';
   if (name === 'perfRuns' || name === 'perfRun') return '#/perf/runs';
+  if (name === 'sched') return '#/sched';
   if (name === 'stability' || name === 'stabilityError') return '#/stability';
   if (name === 'compatSets' || name === 'compatSet') return '#/compat';
   // 결과는 실행 기록에서 들어온 자리다
@@ -118,12 +119,13 @@ export function 배정서비스접두사(serviceId: number, 배정: ServiceRow[]
 export function 대시보드재료(
   user: User,
   prefix: string | null,
-): { 케이스갈수있나: boolean; 설정갈수있나: boolean; 프로젝트: number | null } {
+): { 케이스갈수있나: boolean; 세트만들수있나: boolean; 프로젝트: number | null } {
   // 대시보드는 헤더에서 고른 프로젝트 안만 모은다 (도메인/리포팅 §8.12). 고른 애플리케이션이 없으면 프로젝트를 안 가린다
   const 프로젝트 = user.services.find((서비스) => 서비스.prefix === prefix)?.projectId ?? null;
   return {
     케이스갈수있나: 기능보나(user, prefix, 'cases'),
-    설정갈수있나: 할수있나(user, prefix, '설정'),
+    // 정기 실행 세트는 실행 write 가 만든다 (도메인/정기실행 §3.16 결정 7 · 리포팅 §8.12 빈 상태)
+    세트만들수있나: 할수있나(user, prefix, '실행'),
     프로젝트,
   };
 }

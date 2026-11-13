@@ -44,6 +44,8 @@ export type Route =
   | { name: 'perfRuns' }
   | { name: 'perfRun'; runId: number }
   /** 안정화 지표. run — 날짜 고르개로 고른 집계 줄(`?run=`). 없으면 가장 최근 집계 (도메인/안정화 §8.19) */
+  /** 정기 실행 — 프로젝트 공통 세트 · 달력 (도메인/정기실행 §8.20) */
+  | { name: 'sched' }
   | { name: 'stability'; run?: number; days?: 30 }
   /** 안정화 지표 오류 상세. run — 목록에서 고른 날의 집계 줄(`?run=`). 없으면 그 종류가 남은 가장 최근 실행 (도메인/안정화 §8.19 「상세」) */
   | { name: 'stabilityError'; id: number; run?: number }
@@ -197,6 +199,8 @@ export function route(hash: string): Route {
     if (parts.length === 3 && /^\d{1,10}$/.test(parts[2]!)) return { name: 'perfRun', runId: Number(parts[2]) };
   }
 
+  if (parts[0] === 'sched' && parts.length === 1) return { name: 'sched' };
+
   if (parts[0] === 'stability' && parts.length === 1) {
     // 고른 날과 30일 창은 주소에 남는다 — 다른 화면에 다녀와도 풀리지 않게 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
     const 조건 = new URLSearchParams(hash.split('?')[1] ?? '');
@@ -259,6 +263,8 @@ export const 기능자리: Partial<Record<Route['name'], 기능>> = {
   perfRuns: 'runs',
   // 안정화 지표도 실행 칸을 쓴다 (도메인/인증 §7 「등급으로 갈리는 자리」 안정화 두 줄)
   stability: 'runs',
+  // 정기 실행도 실행 칸을 쓴다 — 프로젝트의 칸은 서버가 다시 본다 (도메인/정기실행 §7)
+  sched: 'runs',
   stabilityError: 'runs',
   // 호환성은 실행 칸을 쓴다 (도메인/호환성 §7). 세트 주소는 `?service=` 로 그 세트의 애플리케이션을 담는다
   compatSets: 'runs',

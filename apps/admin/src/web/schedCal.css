@@ -1,0 +1,276 @@
+/* 정기 실행 달력 — 보기 고르개 · 월 · 주 · 일 · 칸 창 · 빈 상태 (도메인/정기실행 §8.20 「달력」). 짜임 · 세트 카드는 sched.css */
+/* 머리 줄 — 보기 고르개 · 앞뒤 · 오늘 */
+.sched-bar,
+.sched-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.sched-nav {
+  gap: 6px;
+}
+
+.sched-nav strong {
+  min-width: 150px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.sched-seg {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+}
+
+.sched-seg button {
+  padding: 6px 14px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.sched-seg button[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--panel);
+  font-weight: 600;
+}
+
+.sched-cal {
+  overflow-x: auto;
+}
+
+.sched-none {
+  margin: 0;
+  padding: 24px;
+  color: var(--ink-muted);
+}
+
+/* 월 — 칸마다 세트 셋까지, 넘치면 +N */
+.sched-month {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(110px, 1fr));
+  min-width: 770px;
+}
+
+.sched-wd {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  background: var(--well);
+  color: var(--ink-faint);
+  font-size: 12px;
+}
+
+.sched-day {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 108px;
+  padding: 6px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+}
+
+.sched-day:nth-child(7n) {
+  border-right: 0;
+}
+
+.sched-n {
+  font-size: 12px;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.sched-day.out .sched-n {
+  opacity: 0.4;
+}
+
+.sched-day.today .sched-n {
+  align-self: flex-start;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.sched-ev {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  padding: 3px 6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: var(--na-soft);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sched-ev-name {
+  flex: 1 0 2.5em;
+  min-width: 2.5em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sched-ev-r {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.sched-ev.pass,
+.sched-blk.pass {
+  background: var(--pass-soft);
+  color: var(--pass-text);
+}
+
+.sched-ev.fail,
+.sched-blk.fail {
+  background: var(--fail-soft);
+  color: var(--fail-text);
+  font-weight: 600;
+}
+
+.sched-ev.plan,
+.sched-ev.running {
+  background: transparent;
+  border: 1px dashed var(--line);
+  color: var(--ink-muted);
+}
+
+/* 주 · 일 — 세로 시간 줄 */
+.sched-week {
+  display: grid;
+  grid-template-columns: 56px repeat(7, minmax(100px, 1fr));
+  min-width: 756px;
+}
+
+.sched-hd {
+  padding: 8px;
+  border-bottom: 1px solid var(--line);
+  background: var(--well);
+  color: var(--ink-faint);
+  font-size: 12px;
+  text-align: center;
+}
+
+.sched-hd.today {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.sched-hours span {
+  display: block;
+  padding: 0 6px;
+  color: var(--ink-faint);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.sched-col {
+  position: relative;
+  border-left: 1px solid var(--line);
+  background-image: linear-gradient(var(--line) 1px, transparent 1px);
+  background-size: 100% 56px;
+}
+
+.sched-blk {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  overflow: hidden;
+  padding: 3px 6px;
+  border: 0;
+  border-left: 3px solid;
+  border-radius: 6px;
+  background: var(--na-soft);
+  color: var(--ink);
+  font: inherit;
+  font-size: 11.5px;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sched-blk.plan,
+.sched-blk.running {
+  background: var(--panel);
+  color: var(--ink-muted);
+  outline: 1px dashed var(--na);
+  outline-offset: -1px;
+}
+
+.sched-ghost {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  z-index: 1;
+  border-top: 2px dashed var(--na);
+}
+
+.sched-ghost span {
+  position: absolute;
+  top: -1px;
+  right: 4px;
+  padding: 0 4px;
+  background: var(--panel);
+  color: var(--ink-faint);
+  font-size: 10.5px;
+}
+
+.sched-dayv {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+}
+
+.sched-tl {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  border-right: 1px solid var(--line);
+}
+
+.sched-daylist {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 14px;
+  min-width: 0;
+}
+
+.sched-daylist h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+
+@media (max-width: 860px) {
+  .sched-dayv {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sched-tl {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+}

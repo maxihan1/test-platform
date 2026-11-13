@@ -9,7 +9,7 @@ export const 안정화말: Record<string, string> = {
   '빌드 #{빌드}': 'Build #{빌드}',
   '실행 날짜': 'Run date',
   '정기 실행 기록이 없습니다': 'No scheduled runs yet',
-  '설정에서 정기 실행을 켜면 매일 집계합니다': 'Turn on the scheduled run in Settings to track it daily',
+  '정기 실행 메뉴에서 안정화 기준 세트를 정하면 매일 집계합니다': 'Mark a set as the stability baseline in Scheduled runs to track it daily',
 
   // AI 실행 요약
   'AI 실행 요약': 'AI run summary',

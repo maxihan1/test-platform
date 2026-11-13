@@ -11,7 +11,7 @@ import { Dashboard } from './Dashboard.js';
 const 시간대 = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 /** main.tsx 가 사람의 권한에서 뽑아 넘기는 재료 — 케이스 자리가 있는 사람 */
-const 기본재료 = { 케이스갈수있나: true, 설정갈수있나: false, 프로젝트: null };
+const 기본재료 = { 케이스갈수있나: true, 세트만들수있나: false, 프로젝트: null };
 
 function 건(pass: number, fail: number, notRun: number) {
   return { pass, fail, notRun };
@@ -447,14 +447,14 @@ describe('비어 있을 때', () => {
     expect(screen.queryByRole('link', { name: '케이스 보기' })).toBeNull();
   });
 
-  it('설정에 갈 수 있는 사람에게만 정기 실행을 켜는 자리로 가는 링크를 단다', async () => {
+  it('세트를 만들 수 있는 사람에게만 정기 실행 메뉴로 가는 링크를 단다', async () => {
     읽기를(빈응답());
-    const { unmount } = render(<Dashboard 서비스열기={() => {}} {...기본재료} 설정갈수있나 />);
-    expect((await screen.findByRole('link', { name: '설정에서 정기 실행 켜기' })).getAttribute('href')).toBe('#/settings');
+    const { unmount } = render(<Dashboard 서비스열기={() => {}} {...기본재료} 세트만들수있나 />);
+    expect((await screen.findByRole('link', { name: '정기 실행 세트 만들기' })).getAttribute('href')).toBe('#/sched');
     unmount();
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
     await screen.findByText('아직 테스트가 없습니다');
-    expect(screen.queryByRole('link', { name: '설정에서 정기 실행 켜기' })).toBeNull();
+    expect(screen.queryByRole('link', { name: '정기 실행 세트 만들기' })).toBeNull();
   });
 });
 
