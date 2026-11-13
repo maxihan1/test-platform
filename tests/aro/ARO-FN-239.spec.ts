@@ -1,0 +1,74 @@
+import { defineCase, test, verify } from '@platform/kit';
+import { z } from 'zod';
+
+import { 대상준비, 시험계정, 시험사유, 채운사유 } from './helpers/sanction.helper.js';
+import { 글자, 적용중제재풀기, 제재걸기 } from './helpers/ops-api.helper.js';
+import { 유저화면 } from './pages/users.page.js';
+
+export const spec = defineCase({
+  tcId: 'ARO-FN-239',
+  name: '정지 사유를 비우고 「정지」를 누르면 토스트 「사유를 1~200자로 입력하세요」가 뜬다',
+  precondition: ['운영자 계정으로 로그인해 있다'],
+  techniques: ['경계값 분석'],
+  params: z.object({
+    loginId: z.string().describe('운영자 아이디').optional().meta({ secret: true }),
+    loginPassword: z.string().describe('운영자 비밀번호').optional().meta({ secret: true }),
+    최소글자수: z.number().int().min(1).max(200).describe('정지 사유로 적을 글자 수 — 1~200').default(1),
+    한도글자수: z.number().int().min(1).max(200).describe('정지 사유로 적을 글자 수 — 1~200').default(200),
+    초과글자수: z.number().int().min(201).describe('API 로 보낼 정지 사유 글자 수 — 201 이상').default(201),
+  }),
+  expected: null,
+});
+
+test(spec, async ({ page, params }) => {
+  const 화면 = new 유저화면(page);
+  let 계정 = 0;
+
+  try {
+    await test.step('운영자 계정으로 로그인하고 대상 계정의 제재를 풀어 둔다', async () => {
+      계정 = await 대상준비(page, params.loginId, params.loginPassword);
+    });
+
+    await test.step('「유저 · 제재」에서 대상 계정 줄을 확인한다', async () => {
+      await 화면.열기(`?q=${시험계정}`);
+      await verify('대상 계정 줄에 「정지」 버튼이 보인다', await 화면.줄버튼(시험계정, '정지').isVisible(), true, { blocker: true });
+    });
+
+    await test.step('정지 창 사유를 비우고 「정지」를 누른다', async () => {
+      await 화면.제재창열기(시험계정, '정지');
+      await 화면.창.누르기('정지');
+      const 떴다 = await 화면.알림.뜰때까지('사유를 1~200자로 입력하세요');
+      await verify('정지 사유를 비우고 「정지」를 누르면 토스트 「사유를 1~200자로 입력하세요」가 뜬다', 떴다, true);
+    });
+
+    await test.step('정지 창 사유에 1자를 적고 「정지」를 누른다', async () => {
+      await 화면.제재창열기(시험계정, '정지');
+      await 화면.제재사유칸.fill(글자(params.최소글자수));
+      await verify('정지 창 사유 칸에 적은 글자 수가 그대로 들어 있다', (await 화면.제재사유칸.inputValue()).length, params.최소글자수, { blocker: true });
+      await 화면.창.누르기('정지');
+      const 처리됨 = await 화면.알림.뜰때까지(`${시험계정} 정지 처리했습니다`);
+      await verify('사유 1자로 건 정지는 처리된다', 처리됨, true);
+    });
+
+    await test.step('정지 창 사유에 200자를 적고 「정지」를 누른다', async () => {
+      await 적용중제재풀기(page, 계정);
+      await 화면.새로고침();
+      await 화면.제재창열기(시험계정, '정지');
+      await 화면.제재사유칸.fill(채운사유(시험사유('ARO-FN-239'), params.한도글자수));
+      await verify('정지 창 사유 칸에 적은 글자 수가 그대로 들어 있다', (await 화면.제재사유칸.inputValue()).length, params.한도글자수, { blocker: true });
+      await 화면.창.누르기('정지');
+      const 처리됨 = await 화면.알림.뜰때까지(`${시험계정} 정지 처리했습니다`);
+      await verify('사유 200자로 건 정지는 처리된다', 처리됨, true);
+    });
+
+    await test.step('API 로 사유 201자인 정지를 보낸다', async () => {
+      await 적용중제재풀기(page, 계정);
+      const 응답 = await 제재걸기(page, 계정, { type: 'SUSPEND', reason: 채운사유(시험사유('ARO-FN-239'), params.초과글자수), endsAt: new Date(Date.now() + 3_600_000).toISOString() });
+      const 코드 = await verify('응답 코드가 400 이다', 응답.status, 400);
+      const 문구 = await verify('거절 문구가 「사유를 1~200자로 입력하세요」다', 응답.body.message, '사유를 1~200자로 입력하세요');
+      await verify('사유 201자인 정지는 「사유를 1~200자로 입력하세요」로 거절된다', 코드 && 문구, true);
+    });
+  } finally {
+    if (계정 > 0) await 적용중제재풀기(page, 계정);
+  }
+});
