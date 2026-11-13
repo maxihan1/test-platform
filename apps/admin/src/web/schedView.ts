@@ -8,7 +8,7 @@ export function 날더하기(날: string, n: number): string {
   d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
 }
-const 날차 = (앞: string, 뒤: string) => Math.round((Date.parse(`${뒤}T00:00:00Z`) - Date.parse(`${앞}T00:00:00Z`)) / 86_400_000);
+export const 날차 = (앞: string, 뒤: string) => Math.round((Date.parse(`${뒤}T00:00:00Z`) - Date.parse(`${앞}T00:00:00Z`)) / 86_400_000);
 /** 0(일) ~ 6(토) — 세트줄 days 와 같은 셈 */
 export const 요일 = (날: string) => new Date(`${날}T00:00:00Z`).getUTCDay();
 export const 분 = (at: string) => {
@@ -17,10 +17,18 @@ export const 분 = (at: string) => {
 };
 export const 시각글 = (n: number) => `${String(Math.floor(n / 60) % 24).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`;
 
+// 시간대마다 하나 — 달력 한 장에 칸마다 부르므로 만들어 둔 것을 다시 쓴다
+const 시간대틀 = new Map<string, Intl.DateTimeFormat>();
+
 /** 그 시간대의 날짜와 하루 안의 분. 세트 시각이 세트 시간대 기준이라(§3.16 결정 6) 칸도 그 시간대로 가른다 */
 export function 시간대로(시각: Date, tz: string): { 날: string; 분: number } {
+  let 틀 = 시간대틀.get(tz);
+  if (틀 === undefined) {
+    틀 = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+    시간대틀.set(tz, 틀);
+  }
   const 조각 = Object.fromEntries(
-    new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+    틀
       .formatToParts(시각)
       .map((p) => [p.type, p.value]),
   );
@@ -111,13 +119,17 @@ export function 칩들(세트들: readonly 세트[], 회차들: readonly 회차[
     // ponytail: 세트마다 시간대가 달라도 하루 안 분으로 줄 세운다 — 한 프로젝트가 여러 시간대를 섞으면 대기 예상이 어긋난다
     let 앞끝 = 0;
     for (const c of 줄) {
+      // 이 칸의 날 0시부터 센 지금 — 어제부터 줄 선 회차면 1440 을 넘는다
+      const 오늘 = 시간대로(지금, c.세트.tz);
+      const 지금분 = 오늘.분 + 1440 * 날차(날, 오늘.날);
       if (c.상태 === 'plan') {
-        const 오늘 = 시간대로(지금, c.세트.tz);
         // 줄에 서서 기다리는 회차는 지금보다 앞서 시작할 수 없다
-        const 지금분 = c.회차 !== null && 날 === 오늘.날 ? 오늘.분 : 0;
-        c.시작분 = Math.max(c.정한분, 앞끝, 지금분);
+        c.시작분 = Math.max(c.정한분, 앞끝, c.회차 !== null ? 지금분 : 0);
         c.대기분 = c.시작분 - c.정한분;
         c.끝분 = c.시작분 + (c.세트.avgMinutes ?? 0);
+      } else if (c.상태 === 'running') {
+        // 평균보다 오래 도는 중이면 적어도 지금까지는 돈다 — 뒤 칸이 그보다 앞서 시작한다고 그리지 않게
+        c.끝분 = Math.max(c.끝분, 지금분);
       }
       앞끝 = Math.max(앞끝, c.끝분);
     }

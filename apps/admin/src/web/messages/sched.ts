@@ -25,6 +25,7 @@ export const 정기실행말: Record<string, string> = {
   기능: 'Functional',
   '결과 없음': 'No result',
   '의심 {수}': '{수} suspect',
+  '의심 없음': 'No suspects',
   // 달력
   보기: 'View',
   월: 'Month',

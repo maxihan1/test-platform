@@ -42,6 +42,8 @@
 }
 
 .sched-run-name {
+  color: var(--ink);
+  text-decoration: none;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -53,7 +55,11 @@
   gap: 8px;
 }
 
-.sched-runs a {
+.sched-run-name:hover {
+  text-decoration: underline;
+}
+
+.sched-run-end a {
   color: var(--link);
   font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12.5px;
@@ -61,7 +67,7 @@
   white-space: nowrap;
 }
 
-.sched-runs a:hover {
+.sched-run-end a:hover {
   text-decoration: underline;
 }
 

@@ -102,6 +102,29 @@ describe('칩들', () => {
   });
 });
 
+describe('도는 · 줄 선 회차의 예상', () => {
+  const 회차 = (덮: Partial<회차>): 회차 => ({
+    id: 20, setId: 1, plannedOn: '2026-11-13', plannedAt: '2026-11-12T17:00:00Z', startedAt: null, finishedAt: null,
+    state: 'QUEUED', verdict: 'NONE', suspects: 0, runs: [], notes: [], ...덮,
+  });
+
+  it('평균보다 오래 도는 회차 뒤의 예정은 지금 이후로 밀린다', () => {
+    const 앞 = 세트하나({ id: 1, at: '09:00', avgMinutes: 30 });
+    const 뒤 = 세트하나({ id: 2, at: '10:45', avgMinutes: 30 });
+    const 칸 = 칩들([앞, 뒤], [회차({ setId: 1, plannedAt: '2026-11-13T00:00:00Z', startedAt: '2026-11-13T00:00:00Z', state: 'RUNNING' })], '2026-11-13', '2026-11-13', 지금).get('2026-11-13')!;
+    expect(칸.map((c) => [c.세트.id, c.시작분])).toEqual([
+      [1, 540],
+      [2, 645],
+    ]);
+    expect(칸[0]!.끝분).toBe(630);
+  });
+
+  it('어제부터 줄 선 회차는 지금보다 앞서 시작할 수 없다', () => {
+    const 칸 = 칩들([세트하나()], [회차({ plannedOn: '2026-11-12', plannedAt: '2026-11-11T17:00:00Z' })], '2026-11-12', '2026-11-12', 지금).get('2026-11-12')!;
+    expect(칸[0]!.시작분).toBe(1440 + 630);
+  });
+});
+
 describe('시간범위', () => {
   it('칸이 있는 시간대만 펼친다', () => {
     const 칸 = 칩들([세트하나({ at: '01:00', avgMinutes: 170 })], [], '2026-11-20', '2026-11-20', 지금).get('2026-11-20')!;

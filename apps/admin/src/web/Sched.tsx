@@ -46,16 +46,19 @@ function 옮기기(보기: 보기, 기준: string, 쪽: 1 | -1): string {
 export function Sched({ service, 앱수, 쓰나 }: { service: ServiceRow; 앱수: number; 쓰나: boolean }) {
   const t = use말();
   const 언어 = use언어();
-  const 지금 = useMemo(() => new Date(), []);
-  const 오늘 = useMemo(() => 시간대로(지금, 브라우저시간대()).날, [지금]);
   const [보기, set보기] = useState(처음보기);
-  const [기준, set기준] = useState(오늘);
+  const [기준, set기준] = useState(() => 시간대로(new Date(), 브라우저시간대()).날);
   const [고른, set고른] = useState(null as number | null);
   const [열린, set열린] = useState(null as 칩 | null);
   const [오류, set오류] = useState(null as string | null);
   const [from, to] = 기간(보기, 기준);
   const 세트목록 = useAsync(() => schedApi.sets(service.projectId), [service.projectId]);
-  const 회차목록 = useAsync(() => schedApi.calendar(service.projectId, from, to), [service.projectId, from, to]);
+  // 받은 기간을 같이 들고 있는다 — 다른 달로 넘긴 직후 앞 달 회차로 새 달을 그리지 않게
+  const 회차목록 = useAsync(async () => ({ from, to, ...(await schedApi.calendar(service.projectId, from, to)) }), [service.projectId, from, to]);
+  const 회차맞음 = 회차목록.data?.from === from && 회차목록.data.to === to;
+  // 다시 읽을 때마다 새로 잰다 — 창을 오래 열어 둬도 지난 시각을 「예정」으로 그리지 않게
+  const 지금 = useMemo(() => new Date(), [세트목록.data, 회차목록.data]);
+  const 오늘 = 시간대로(지금, 브라우저시간대()).날;
 
   const 세트들 = 세트목록.data?.items ?? [];
   const 표 = useMemo(() => {
@@ -136,7 +139,9 @@ export function Sched({ service, 앱수, 쓰나 }: { service: ServiceRow; 앱수
             </div>
           </div>
           <div className="sched-cal">
-            {회차목록.error !== null ? <Failed error={회차목록.error} /> : <달력 보기={보기} 기준={기준} 오늘={오늘} 세트들={세트들} 표={표} on열기={열기} on날={날보기} />}
+            {회차목록.error === null ? null : <Failed error={회차목록.error} />}
+            {회차목록.error === null && !회차맞음 ? <Loading /> : null}
+            {회차목록.error === null && 회차맞음 ? <달력 보기={보기} 기준={기준} 오늘={오늘} 세트들={세트들} 표={표} on열기={열기} on날={날보기} /> : null}
           </div>
         </div>
       </div>

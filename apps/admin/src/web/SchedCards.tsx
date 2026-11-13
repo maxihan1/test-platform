@@ -59,7 +59,8 @@ function 카드({ 세트, 색, 고름, 지금, 쓰나, on고르기, on날보기,
         <span className="sched-meta">{t('아직 실행한 적이 없습니다')}</span>
       ) : (
         <span className="sched-meta">
-          {t('마지막 {날}', { 날: 짧은날(시간대로(new Date(마지막.plannedAt), 세트.tz).날) })} <판정알약 판정={마지막.state === 'RUNNING' ? 'RUNNING' : 마지막.verdict} t={t} />
+          {t('마지막 {날}', { 날: 짧은날(시간대로(new Date(마지막.plannedAt), 세트.tz).날) })} {/* 판정할 실행이 없고 의심만 있으면 결과 없이 의심 수만 (§3.16 「회차의 결과」) */}
+          {마지막.verdict === 'NONE' && 마지막.suspects > 0 && 마지막.state === 'DONE' ? null : <판정알약 판정={마지막.state === 'RUNNING' ? 'RUNNING' : 마지막.verdict} t={t} />}
           {마지막.suspects > 0 ? <span className="sched-pill sus">{t('의심 {수}', { 수: 마지막.suspects })}</span> : null}{' '}
           <button type="button" className="sched-link" onClick={() => on날보기(시간대로(new Date(마지막.plannedAt), 세트.tz).날)}>
             {t('결과 →')}

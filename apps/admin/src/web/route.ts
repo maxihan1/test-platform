@@ -44,9 +44,9 @@ export type Route =
   | { name: 'perfRuns' }
   | { name: 'perfRun'; runId: number }
   /** 안정화 지표. run — 날짜 고르개로 고른 집계 줄(`?run=`). 없으면 가장 최근 집계 (도메인/안정화 §8.19) */
+  | { name: 'stability'; run?: number; days?: 30 }
   /** 정기 실행 — 프로젝트 공통 세트 · 달력 (도메인/정기실행 §8.20) */
   | { name: 'sched' }
-  | { name: 'stability'; run?: number; days?: 30 }
   /** 안정화 지표 오류 상세. run — 목록에서 고른 날의 집계 줄(`?run=`). 없으면 그 종류가 남은 가장 최근 실행 (도메인/안정화 §8.19 「상세」) */
   | { name: 'stabilityError'; id: number; run?: number }
   /** reqId — 케이스 목록의 요구 번호에서 왔다. 그 항목을 펴서 보인다 */

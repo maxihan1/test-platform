@@ -96,8 +96,8 @@
   align-self: flex-start;
   padding: 0 7px;
   border-radius: 999px;
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--ink);
+  color: var(--panel);
 }
 
 .sched-ev {

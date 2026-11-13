@@ -111,6 +111,17 @@ describe('정기 실행 화면', () => {
     expect(within(창).getByText('의심 3')).toBeTruthy();
   });
 
+  it('판정할 실행이 없는 칸은 결과 없이 의심 수만, 도는 호환성 실행은 실행 중이다', async () => {
+    const 호환 = { ...회차하나().runs[1]!, status: 'RUNNING' };
+    차리기([세트하나()], [회차하나({ verdict: 'NONE', suspects: 3, runs: [호환, { ...호환, runId: 4703, status: 'FINISHED', suspects: 0 }] })]);
+    render(<Sched service={앱} 앱수={1} 쓰나 />);
+    fireEvent.click(await screen.findByRole('button', { name: /결제 회귀\s*의심 3$/u }));
+    const 창 = await screen.findByRole('dialog');
+    expect(within(창).getByText('실행 중')).toBeTruthy();
+    expect(within(창).getByText('의심 없음')).toBeTruthy();
+    expect(within(창).queryByText('결과 없음')).toBeNull();
+  });
+
   it('실행이 하나인 지난 칸은 창 없이 그 실행으로 간다', async () => {
     차리기([세트하나()], [회차하나({ runs: [회차하나().runs[0]!] })]);
     render(<Sched service={앱} 앱수={1} 쓰나 />);
