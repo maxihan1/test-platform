@@ -59,10 +59,11 @@ function 케이스목록({ 앱, kind, 줄, on줄 }: { 앱: string; kind: 'FN' | 
 
 export function 담기단계({ 후, 앱들, items, onItems }: { 후: 후보; 앱들: readonly ServiceRow[]; items: 담은줄[]; onItems: (items: 담은줄[]) => void }) {
   const t = use말();
-  const [탭, set탭] = useState<줄종류>('FN');
+  // 수정으로 열면 첫 줄의 탭 · 애플리케이션부터 보인다 — 안 그러면 담은 것이 없는 것처럼 빈 체크가 보인다
+  const [탭, set탭] = useState<줄종류>(items[0]?.kind ?? 'FN');
   // UI 탭에는 API 애플리케이션이 없다 (§3.16 결정 2)
   const 고를앱들 = 후.services.filter((s) => 탭 !== 'UI' || s.kind !== 'API');
-  const [고른앱, set고른앱] = useState<string | null>(null);
+  const [고른앱, set고른앱] = useState<string | null>(items[0]?.service ?? null);
   const 앱 = 고를앱들.some((s) => s.prefix === 고른앱) ? 고른앱! : (고를앱들[0]?.prefix ?? null);
   const 앱정보 = 후.services.find((s) => s.prefix === 앱);
   const 열쇠들 = new Set(items.map(줄열쇠));
