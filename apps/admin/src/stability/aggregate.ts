@@ -34,18 +34,23 @@ interface 묶음행 {
   env: string;
   service_kind: string;
   day: string;
+  occ_state: string | null;
 }
 
-// 정기 실행은 하루 한 번이라 그날(정기 실행 시간대) 같은 애플리케이션 · 대상 서버의 정기 UI · 기능 실행이 곧 한 묶음이다
+// 회차 실행은 같은 회차의 UI · 기능 실행이 한 묶음이고 하루는 회차 날짜다 — 앞 세트를 기다리다 자정을 넘겨 시작해도 두 날이 섞이지 않는다.
+// 안정화 기준 세트의 회차만 센다. 회차 번호가 빈 옛 정기 실행은 그날(정기 실행 시간대) 같은 애플리케이션 · 대상 서버의 정기 UI · 기능 실행이 한 묶음이다 (도메인/정기실행 §3.16 「안정화 기준 세트」)
 export const 묶음SQL = `
   WITH 이 AS (
-    SELECT r.service_id, r.env, s.kind AS service_kind, COALESCE(s.schedule_tz, 'UTC') AS tz,
-           (r.started_at AT TIME ZONE COALESCE(s.schedule_tz, 'UTC'))::date AS day
+    SELECT r.service_id, r.env, s.kind AS service_kind, COALESCE(s.schedule_tz, 'UTC') AS tz, r.sched_occurrence_id AS occ, o.state AS occ_state,
+           COALESCE(o.planned_on, (r.started_at AT TIME ZONE COALESCE(s.schedule_tz, 'UTC'))::date) AS day
       FROM test_run r JOIN service s ON s.id = r.service_id
-     WHERE r.run_id = $1 AND r.origin = 'SCHEDULED' AND r.kind IN ('UI', 'FN'))
-  SELECT r.run_id, r.status, r.started_at, r.build_no, 이.service_id, 이.env, 이.service_kind, to_char(이.day, 'YYYY-MM-DD') AS day
+      LEFT JOIN sched_occurrence o ON o.id = r.sched_occurrence_id
+      LEFT JOIN sched_set st ON st.id = o.set_id
+     WHERE r.run_id = $1 AND r.origin = 'SCHEDULED' AND r.kind IN ('UI', 'FN') AND (r.sched_occurrence_id IS NULL OR st.is_base))
+  SELECT r.run_id, r.status, r.started_at, r.build_no, 이.service_id, 이.env, 이.service_kind, to_char(이.day, 'YYYY-MM-DD') AS day, 이.occ_state
     FROM 이 JOIN test_run r ON r.service_id = 이.service_id AND r.env = 이.env AND r.origin = 'SCHEDULED' AND r.kind IN ('UI', 'FN')
-                           AND (r.started_at AT TIME ZONE 이.tz)::date = 이.day
+                           AND (CASE WHEN 이.occ IS NULL THEN r.sched_occurrence_id IS NULL AND (r.started_at AT TIME ZONE 이.tz)::date = 이.day
+                                     ELSE r.sched_occurrence_id = 이.occ END)
    ORDER BY r.run_id`;
 
 /** 실행 하나가 끝날 때마다 부른다. 묶음의 마지막 실행이 끝났을 때만 집계한다. 상한을 안 주면 종류마다의 기다림 상한이다 */
@@ -55,8 +60,8 @@ export async function 집계한다(runId: number, 상한ms?: number, 간격ms = 
   // 웹 · Android 앱 · 게임만 센다 — API 는 메뉴가 없다(결정 13)
   const 종류 = 묶음[0]?.service_kind;
   if (종류 !== 'SCREEN' && 종류 !== 'APP' && 종류 !== 'GAME') return '대상 아님';
-  // 뒤에 끝나는 실행이 다시 부른다
-  if (묶음.some((r) => r.status === 'RUNNING')) return '기다림';
+  // 뒤에 끝나는 실행이 다시 부른다. 회차는 줄을 차례대로 돌려 기능 실행이 끝날 때 UI 실행이 아직 없을 수 있다 — 회차를 닫는 점검이 다시 부른다
+  if (묶음.some((r) => r.status === 'RUNNING') || 묶음.some((r) => r.occ_state === 'QUEUED' || r.occ_state === 'RUNNING')) return '기다림';
   // 중단 · 준비 실패가 하나라도 있으면 그날 점을 비운다 — 반쪽 분모로 점이 튀지 않게
   if (묶음.some((r) => r.status !== 'FINISHED')) return '건너뜀';
 
