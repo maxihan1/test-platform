@@ -2,10 +2,12 @@
 // 배정과 권한(실행 read)은 문(auth/gate.ts)이 이미 봤다. 여기서는 번호 · 질의 모양만 본다
 
 import type { FastifyInstance, FastifyReply } from 'fastify';
+import { z } from 'zod';
 
 import { 볼륨파일읽기 } from '../artifactFile.js';
 import { 정수 } from '../routeParams.js';
 import { PDF로 } from './generate.js';
+import { 리스크고치기, 리스크일닫기 } from './qaReportAi.js';
 import { QA리포트를승인한다 } from './qaReportApprove.js';
 import { 문서재료읽기, 리포트읽기, 사진심은 } from './qaReportDoc.js';
 import { renderQaReportDocx } from './qaReportDocx.js';
@@ -14,6 +16,7 @@ import { renderQaReportHtml } from './qaReportHtml.js';
 const 잘못 = (reply: FastifyReply, detail: string) => reply.code(400).send({ error: 'INVALID_REQUEST', detail });
 const 없음 = (reply: FastifyReply) => reply.code(404).send({ error: 'NOT_FOUND' });
 const 쪽크기 = 50;
+const 고칠글 = z.object({ text: z.string().trim().min(1).max(4000) });
 
 async function db() {
   const { pool } = await import('../db/index.js');
@@ -87,8 +90,23 @@ export default async function qaReportRoutes(app: FastifyInstance): Promise<void
   app.get<{ Params: { id: string } }>('/qa-reports/:id', async (req, reply) => {
     const id = 정수(req.params.id);
     if (id === null) return 잘못(reply, '리포트 번호가 틀렸습니다');
+    // 꺼진 에이전트를 기다리는 AI 일을 닫는다 — 화면이 「AI 문단을 만들지 못했습니다」를 보고 승인으로 넘어가게
+    await 리스크일닫기();
     const 읽음 = await 리포트읽기(await db(), id);
     return 읽음 === null ? 없음(reply) : 읽음.응답;
+  });
+
+  // 남은 리스크 문단을 사람이 고친다. 처음 글은 남는다. 승인한 버전은 못 고친다 (§3.17 「남은 리스크 — AI」)
+  app.patch<{ Params: { id: string } }>('/qa-reports/:id/ai', async (req, reply) => {
+    const id = 정수(req.params.id);
+    if (id === null) return 잘못(reply, '리포트 번호가 틀렸습니다');
+    const p = 고칠글.safeParse(req.body);
+    if (!p.success) return 잘못(reply, p.error.message);
+    const 나 = req.user!;
+    const r = await 리스크고치기(id, p.data.text, 나.displayName || 나.username);
+    if (r === 'NOT_FOUND') return 없음(reply);
+    if (r === 'APPROVED') return reply.code(409).send({ error: 'APPROVED' });
+    return r;
   });
 
   // 승인 전 버전은 받을 때마다 만든다. 승인한 버전의 PDF 는 굳힌 파일 그대로 — 다시 그리면 지문이 안 맞는다 (§3.17 결정 13)

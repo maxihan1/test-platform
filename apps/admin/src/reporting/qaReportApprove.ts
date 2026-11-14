@@ -9,6 +9,7 @@ import type { Pool, PoolClient } from 'pg';
 import { artifactsDir } from '../artifactFile.js';
 import { 묶음잠금, 리포트방아쇠, 잠근채다시만든다 } from './qaReport.js';
 import { PDF로 } from './generate.js';
+import { 리스크일닫기 } from './qaReportAi.js';
 import { 문서재료읽기, 리포트읽기, 사진심은, 사후승인, type 리포트응답 } from './qaReportDoc.js';
 import { renderQaReportHtml } from './qaReportHtml.js';
 
@@ -69,6 +70,8 @@ interface 굳힐것 {
 export async function QA리포트를승인한다(pool: Pool, id: number, 승인자: { username: string; name: string }): Promise<승인결과> {
   const 처음 = (await pool.query<{ bundle_key: string }>('SELECT bundle_key FROM qa_report WHERE id = $1', [id])).rows[0];
   if (처음 === undefined) return { 됨: false, code: 404, error: 'NOT_FOUND' };
+  // 에이전트가 쥐고 죽었거나 꺼져 안 가져간 AI 일을 먼저 닫는다 — 안 닫으면 AI_PENDING 에 묶여 승인하지 못한다
+  await 리스크일닫기();
   // ponytail: 세 번 — 그리는 동안 실행이 계속 끝나는 묶음이면 「진행 중」으로 돌려보낸다
   for (let 번 = 0; 번 < 3; 번 += 1) {
     const 앞 = await 묶음잠금(pool, 처음.bundle_key, (c) => 굳힐재료(pool, c, id, 승인자));
@@ -106,7 +109,7 @@ async function 굳힐재료(pool: Pool, c: PoolClient, id: number, 승인자: { 
   if (q.service_id === null) return { 됨: false, code: 403, error: 'FORBIDDEN' };
   const 앞검사 = await 막는것(c, id, 승인자.username);
   if ('됨' in 앞검사) return 앞검사;
-  if ((await 잠근채다시만든다(pool, c, 리포트방아쇠({ ...q, service_id: q.service_id }))) === null) return { 됨: false, code: 403, error: 'FORBIDDEN' };
+  if ((await 잠근채다시만든다(pool, c, 리포트방아쇠({ ...q, service_id: q.service_id }), false)) === null) return { 됨: false, code: 403, error: 'FORBIDDEN' };
   const 뒤검사 = await 막는것(c, id, 승인자.username);
   if ('됨' in 뒤검사) return 뒤검사;
   // 이 트랜잭션이 고친 줄을 읽는다. 승인 시각은 누른 때(이 트랜잭션 시각)이고 PDF 의 승인 칸 · approved_at 이 같은 값이다

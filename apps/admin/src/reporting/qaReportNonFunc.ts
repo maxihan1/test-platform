@@ -133,7 +133,7 @@ async function 성능읽기(pool: Pool, perfRunIds: number[]): Promise<성능재
   );
 }
 
-async function 안정화읽기(pool: Pool, runIds: number[], buildNo: string | null): Promise<안정화재료 | null> {
+export async function 안정화읽기(pool: Pool, runIds: number[], buildNo: string | null): Promise<안정화재료 | null> {
   // 첫 장 안정화 줄과 같은 줄 — 이 버전이 담은 정기 실행의 마지막 집계 줄
   const 줄 = (
     await pool.query<{ run_id: string; ai_job_id: string | null }>('SELECT run_id, ai_job_id FROM stab_run WHERE run_id = ANY($1::bigint[]) ORDER BY day DESC, run_id DESC LIMIT 1', [runIds])

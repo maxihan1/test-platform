@@ -46,6 +46,7 @@ interface 리포트행 {
   performers: string[];
   summary: 첫장;
   ai: 리포트AI;
+  ai_status: string | null;
   approved_by: string | null;
   approved_name: string | null;
   approved_at: Date | null;
@@ -64,7 +65,7 @@ export async function 사후승인(pool: Pool | PoolClient, runIds: readonly (st
 
 /** 리포트 한 버전 — 응답과 함께 문서가 쓸 애플리케이션 번호 · 승인 때 굳힌 PDF 경로를 낸다 */
 export async function 리포트읽기(pool: Pool | PoolClient, id: number): Promise<{ 응답: 리포트응답; serviceId: number | null; pdfPath: string | null } | null> {
-  const q = (await pool.query<리포트행>('SELECT q.*, s.prefix FROM qa_report q LEFT JOIN service s ON s.id = q.service_id WHERE q.id = $1', [id])).rows[0];
+  const q = (await pool.query<리포트행>('SELECT q.*, s.prefix, j.status AS ai_status FROM qa_report q LEFT JOIN service s ON s.id = q.service_id LEFT JOIN perf_ai_job j ON j.id = q.ai_job_id WHERE q.id = $1', [id])).rows[0];
   if (q === undefined) return null;
   const 버전들 = (
     await pool.query<{ id: string; version: number; approved_at: Date | null }>('SELECT id, version, approved_at FROM qa_report WHERE bundle_key = $1 ORDER BY version', [q.bundle_key])
@@ -84,7 +85,8 @@ export async function 리포트읽기(pool: Pool | PoolClient, id: number): Prom
       version: q.version,
       versions: 버전들.map((v) => ({ id: Number(v.id), version: v.version, approvedAt: v.approved_at?.toISOString() ?? null })),
       summary: q.summary,
-      ai: q.ai,
+      // 실패는 저장하지 않고 일 상태로 낸다 — 오래 쥔 일 닫기 · 재료 실패도 리포트를 고치지 않고 「만들지 못했습니다」가 선다
+      ai: q.ai ?? (q.ai_status === 'FAILED' ? { failed: true } : null),
       runIds: q.run_ids.map(Number),
       perfRunIds: q.perf_run_ids.map(Number),
       performers: q.performers,

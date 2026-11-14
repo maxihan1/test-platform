@@ -290,6 +290,7 @@ export const 등급표: Record<string, 표값> = {
   'GET /api/perf/runs/:id/qa-report': 실행읽기,
   // 승인은 칸이 아니라 admin 이다. 수행자는 admin 이어도 못 한다 — 라우트가 본다 (도메인/인증 §7 · 리포팅 §3.17 결정 11)
   'POST /api/qa-reports/:id/approve': 'admin',
+  'PATCH /api/qa-reports/:id/ai': 실행쓰기,
   // 정기 실행 세트 (인증 §7 「등급으로 갈리는 자리」 정기 실행 두 줄 · 도메인/정기실행 §7). 문은 어딘가의 실행 칸만 보고, 그 프로젝트의 칸은 라우트가 본다
   'GET /api/sched/sets': 실행읽기,
   'GET /api/sched/sets/:id': 실행읽기,

@@ -3,6 +3,7 @@
 
 import type { SecRow } from '../perf/judge.js';
 import type { 실패유형 } from './failureType.js';
+import { 묶음머리 } from './qaReportAiShape.js';
 import type { 리포트응답 } from './qaReportDoc.js';
 import type { 까닭, 테스트줄 } from './qaReportChanges.js';
 import type { 안정화출처, 안정화줄, 첫장 } from './qaReportSummary.js';
@@ -289,8 +290,18 @@ function 남은리스크(r: 리포트응답): 덩이[] {
       : 'failed' in a
         ? [{ 꼴: '글', 글: 'AI 문단을 만들지 못했습니다', 결: '흐림' }]
         : [
-            { 꼴: '글', 글: `AI 작성${a.editedBy === null ? '' : ` · 수정됨 · ${a.editedBy} · ${a.editedAt === null ? '' : 시각(a.editedAt)}`}`, 결: '흐림' },
-            { 꼴: '글', 글: a.current },
+            // AI 가 못 써 사람이 처음부터 쓴 글은 「AI 작성」이 아니다
+            {
+              꼴: '글',
+              글: `${a.first === '' ? '직접 작성' : 'AI 작성'}${a.editedBy === null ? '' : `${a.first === '' ? '' : ' · 수정됨'} · ${a.editedBy} · ${a.editedAt === null ? '' : 시각(a.editedAt)}`}`,
+              결: '흐림',
+            },
+            // 글은 줄마다 덩이 하나 — 문단 하나에 넣으면 줄바꿈이 사라진다. 「기능 리스크」 · 「비기능 리스크」 줄은 작은 머리다
+            ...a.current
+              .split('\n')
+              .map((줄) => 줄.trim())
+              .filter((줄) => 줄 !== '')
+              .map((줄): 덩이 => (줄 === 묶음머리.functional || 줄 === 묶음머리.nonFunctional ? { 꼴: '글', 글: 줄, 결: '머리' } : { 꼴: '글', 글: 줄 })),
           ];
   return [{ 꼴: '절', 글: '남은 리스크', 상자: 'AI' }, ...몸];
 }

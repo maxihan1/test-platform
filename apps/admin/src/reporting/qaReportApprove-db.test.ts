@@ -50,6 +50,7 @@ describe.skipIf(연결 === undefined)('QA 리포트 승인', { timeout: 60_000 }
         )
       ).rows[0]!.run_id,
     );
+  const AI끝 = () => pool.query(`UPDATE perf_ai_job SET status = 'DONE' WHERE service_id = $1 AND kind = 'REPORT_RISK' AND status IN ('QUEUED', 'RUNNING')`, [앱]);
   const 항목 = (runId: number) =>
     pool.query(
       `INSERT INTO run_item (run_id, tc_id, platform, tc_name, file_path, timeout_ms, precondition, params, expected, param_schema, expected_schema, status, duration_ms, finished_at)
@@ -90,6 +91,7 @@ describe.skipIf(연결 === undefined)('QA 리포트 승인', { timeout: 60_000 }
     첫실행 = await 실행만들기({});
     await 항목(첫실행);
     expect(await QA리포트를다시만든다({ runId: 첫실행 })).toBe('새 버전');
+    await AI끝();
   });
 
   afterAll(async () => {
@@ -176,6 +178,7 @@ describe.skipIf(연결 === undefined)('QA 리포트 승인', { timeout: 60_000 }
     const 다시 = await 실행만들기({ 누가: 'xqp-member' });
     await 항목(다시);
     expect(await QA리포트를다시만든다({ runId: 다시 })).toBe('새 버전');
+    await AI끝();
     const v2 = await 마지막();
     expect(v2.version).toBe(2);
     expect(await 승인전줄('xqp-admin')).toEqual([expect.objectContaining({ reportId: Number(v2.id), version: 2 })]);

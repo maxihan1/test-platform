@@ -12,6 +12,9 @@ import { 지금판 } from '../prd/store.js';
 import { 정수 } from '../routeParams.js';
 import { 집기왔다, 흐름결과다듬기, 흐름일닫기 } from '../scenario/flowJob.js';
 import { 상세 as E2E상세 } from '../scenario/store.js';
+import { 리스크열쇠내기 } from '../mcp/jobKey.js';
+import { 리스크끝내기, 리스크재료 } from '../reporting/qaReportAi.js';
+import type { 리스크결과 } from '../reporting/qaReportAiShape.js';
 import { 요약재료 } from '../stability/summary.js';
 import { 분석끝내기 } from './analysis.js';
 import { 결과다듬기, 끝내기, 오래된일닫기, 일만들기, 일하나, 집기 } from './ai.js';
@@ -202,8 +205,9 @@ export default async function perfAiRoutes(app: FastifyInstance): Promise<void> 
     const id = 정수(req.params.id);
     if (id === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.params.id });
     let job = await 일하나(id);
-    // 흐름 후보는 시나리오 통로, 안정화 요약은 안정화 통로로만 읽는다 — 권한도 그쪽 칸이다 (도메인/시나리오 §7 「마법사 통로」 · 도메인/안정화 §7)
-    if (job === null || job.kind === 'SUGGEST_FLOWS' || job.kind === 'STAB_SUMMARY') return reply.code(404).send({ error: 'NOT_FOUND' });
+    // 흐름 후보는 시나리오 통로, 안정화 요약은 안정화 통로, 남은 리스크는 QA 리포트 통로로만 읽는다 — 권한도 그쪽 칸이다
+    // (도메인/시나리오 §7 「마법사 통로」 · 도메인/안정화 §7 · 도메인/리포팅 §7 「QA 리포트 통로」)
+    if (job === null || job.kind === 'SUGGEST_FLOWS' || job.kind === 'STAB_SUMMARY' || job.kind === 'REPORT_RISK') return reply.code(404).send({ error: 'NOT_FOUND' });
     // 닫기는 표를 훑는다 — 화면이 5초마다 묻는 매번이 아니라 그 일이 도는 중일 때만 한다
     if (job.status === 'RUNNING') {
       await 오래된일닫기();
@@ -219,15 +223,23 @@ export default async function perfAiRoutes(app: FastifyInstance): Promise<void> 
     // 꺼짐 판정을 먼저 갱신해야 이 집기가 닫기에서 자기 애플리케이션의 대기 흐름 일을 꺼진 것으로 보지 않는다
     집기왔다(접두사들);
     await 흐름일닫기();
-    // 안정화 요약 재료는 가져갈 때 만든다 — 못 만들면 그 일을 실패로 닫고 다음 일을 집는다
+    // 안정화 요약 · 남은 리스크 재료는 가져갈 때 만든다 — 못 만들면 그 일을 실패로 닫고 다음 일을 집는다
     for (;;) {
       const 집은 = await 집기(접두사들);
       if (집은 === null) return { job: null };
       const { serviceId, ...job } = 집은;
-      if (job.kind !== 'STAB_SUMMARY') return { job };
-      const 재료 = await 요약재료(job.id, serviceId, job.input).catch((e: unknown) => ({ error: `요약 재료를 만들지 못했다: ${e instanceof Error ? e.message : String(e)}` }));
-      if (!('error' in 재료)) return { job: { ...job, input: 재료.input } };
-      await 끝내기(job.id, 재료);
+      if (job.kind !== 'STAB_SUMMARY' && job.kind !== 'REPORT_RISK') return { job };
+      const 재료 = await (job.kind === 'STAB_SUMMARY' ? 요약재료(job.id, serviceId, job.input) : 리스크재료(job.id, job.input)).catch((e: unknown) => ({
+        error: `재료를 만들지 못했다: ${e instanceof Error ? e.message : String(e)}`,
+      }));
+      if ('error' in 재료) {
+        await 끝내기(job.id, 재료);
+        continue;
+      }
+      if (job.kind === 'STAB_SUMMARY') return { job: { ...job, input: 재료.input } };
+      // 남은 리스크만 MCP 읽기 도구를 연다 — 열쇠는 이 일이 RUNNING 인 동안만 산다. 못 내면 도구 없이 재료만으로 쓴다
+      const mcpKey = await 리스크열쇠내기(job.id);
+      return { job: { ...job, input: 재료.input, ...(mcpKey !== null && { mcpKey }) } };
     }
   });
 
@@ -251,7 +263,14 @@ export default async function perfAiRoutes(app: FastifyInstance): Promise<void> 
       if ('error' in 흐름) return (await 끝내기(id, 흐름)) ? reply.code(204).send() : reply.code(409).send({ error: 'NOT_RUNNING' });
       다듬은 = 흐름;
     }
-    const 닫음 = !('error' in 다듬은) && job.kind === 'ANALYZE_RUN' && job.runId !== null ? await 분석끝내기(id, job.runId, 다듬은.output) : await 끝내기(id, 다듬은);
+    const 닫음 =
+      'error' in 다듬은
+        ? await 끝내기(id, 다듬은)
+        : job.kind === 'ANALYZE_RUN' && job.runId !== null
+          ? await 분석끝내기(id, job.runId, 다듬은.output)
+          : job.kind === 'REPORT_RISK'
+            ? await 리스크끝내기(id, 다듬은.output as 리스크결과 & { text: string })
+            : await 끝내기(id, 다듬은);
     if (!닫음) return reply.code(409).send({ error: 'NOT_RUNNING' });
     // 모양이 틀린 결과는 일을 FAILED 로 닫고 에이전트에게도 까닭을 돌려준다
     return 'error' in 다듬은 ? reply.code(400).send({ error: 'INVALID_OUTPUT', detail: 다듬은.error }) : reply.code(204).send();
