@@ -1,9 +1,10 @@
 // QA 리포트 한 버전 읽기와 문서 재료 — 첫 장(summary) · 기능 · UI 항목(첫 장과 같은 실행) · 요구사항 추적 · 화면 · E2E 시나리오 (도메인/리포팅 §3.17)
 
-import type { Pool } from 'pg';
+import type { Pool, PoolClient } from 'pg';
 
 import { 지금판 } from '../prd/store.js';
 import { collectRun, type EvidenceItem } from './collect.js';
+import { 심은절차들 } from './generate.js';
 import { collectScenario, type E2E증적 } from './collectScenario.js';
 import { 고른시나리오실행들, 고른실행들 } from './qaReportCases.js';
 import { 비기능재료읽기, type 비기능재료 } from './qaReportNonFunc.js';
@@ -56,7 +57,7 @@ interface 리포트행 {
 const 번호 = (v: string | null): number | null => (v === null ? null : Number(v));
 
 /** 리포트 한 버전 — 응답과 함께 문서가 쓸 애플리케이션 번호 · 승인 때 굳힌 PDF 경로를 낸다 */
-export async function 리포트읽기(pool: Pool, id: number): Promise<{ 응답: 리포트응답; serviceId: number | null; pdfPath: string | null } | null> {
+export async function 리포트읽기(pool: Pool | PoolClient, id: number): Promise<{ 응답: 리포트응답; serviceId: number | null; pdfPath: string | null } | null> {
   const q = (await pool.query<리포트행>('SELECT q.*, s.prefix FROM qa_report q LEFT JOIN service s ON s.id = q.service_id WHERE q.id = $1', [id])).rows[0];
   if (q === undefined) return null;
   const 버전들 = (
@@ -155,4 +156,21 @@ export async function 문서재료읽기(pool: Pool, 읽음: { 응답: 리포트
   ]);
   const 시나리오 = 시나리오들.filter((d): d is E2E증적 => d !== null);
   return { 리포트: 응답, 항목, 종류, 요구, 화면, 시나리오, 비기능 };
+}
+
+// 사진은 문서 안에 심는다(증적과 같다 — generate.ts). UI 구획은 실패 항목의 사진만 싣는다 (§3.17 결정 8 「UI = 화면별(실패만 사진)」)
+export async function 사진심은(재료: 문서재료): Promise<문서재료> {
+  const 항목 = await Promise.all(
+    재료.항목.map(async (i) => {
+      const 뺀다 = 재료.종류.get(i.tcId) === 'UI' && i.status !== 'FAIL';
+      return { ...i, steps: 뺀다 ? i.steps.map((x) => ({ ...x, screenshotPath: null })) : await 심은절차들(i.steps) };
+    }),
+  );
+  const 시나리오 = await Promise.all(
+    재료.시나리오.map(async (doc) => ({
+      ...doc,
+      parts: await Promise.all(doc.parts.map(async (d) => (d.item === null ? d : { ...d, item: { ...d.item, steps: await 심은절차들(d.item.steps) } }))),
+    })),
+  );
+  return { ...재료, 항목, 시나리오 };
 }

@@ -715,6 +715,8 @@ describe('등급 표', () => {
     ['POST /api/bts/rules', 'admin'],
     // 프로젝트 배포 신호도 사람 판정 밖이다 — 배포 열쇠(pdk_)가 문이다 (도메인/BTS §7)
     ['POST /api/projects/:projectId/deploys', 'admin'],
+    // QA 리포트 승인은 admin 이다 — 만든 사람과 승인한 사람이 달라야 한다 (도메인/리포팅 §3.17 결정 11)
+    ['POST /api/qa-reports/:id/approve', 'admin'],
   ]);
   const 옛높이 = { viewer: 0, operator: 1, admin: 2 } as const;
   type 옛등급 = keyof typeof 옛높이;

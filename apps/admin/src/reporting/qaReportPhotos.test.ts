@@ -7,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { EvidenceItem } from './collect.js';
 import type { 문서재료 } from './qaReportDoc.js';
-import { 사진심은 } from './qaReportRoutes.js';
+import { 사진심은 } from './qaReportDoc.js';
 
 const 앞폴더 = process.env.PLATFORM_ARTIFACTS_DIR;
 let 폴더 = '';
