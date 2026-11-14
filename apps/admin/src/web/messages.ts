@@ -21,6 +21,7 @@ import { 성능기기말 } from './messages/perfDevices.js';
 import { 성능페이지말 } from './messages/perfPages.js';
 import { 성능실행말 } from './messages/perfRun.js';
 import { 안정화말 } from './messages/stability.js';
+import { QA리포트말 } from './messages/qaReport.js';
 import { 정기실행말 } from './messages/sched.js';
 import { 기획서말 } from './messages/prd.js';
 import { 실행말 } from './messages/runs.js';
@@ -60,6 +61,7 @@ export const 표들: Record<string, string>[] = [
   BTS말,
   Scout말,
   안정화말,
+  QA리포트말,
   정기실행말,
 ];
 
