@@ -1,10 +1,21 @@
 // QA 리포트 화면이 서버를 부르는 호출 · 응답 모양 (도메인/리포팅 §7 「QA 리포트 통로」)
 
+import type { 프로젝트리포트응답 } from '../reporting/qaProjectReportShape.js';
 import type { 리포트응답 } from '../reporting/qaReportDoc.js';
 import { call, json } from './api.js';
 import type { 값들 } from './i18n.js';
 
-export type { 리포트응답 };
+export type { 리포트응답, 프로젝트리포트응답 };
+
+/** GET /api/qa-project-reports 의 한 줄 */
+export interface 프로젝트리포트줄 {
+  id: number;
+  from: string;
+  to: string;
+  origin: 'MANUAL' | 'SCHEDULED';
+  createdBy: string;
+  createdAt: string;
+}
 export type 리포트형식 = 'PDF' | 'HTML' | 'DOCX';
 
 export type 리포트종류 = 'FN' | 'UI' | 'E2E' | 'COMPAT' | 'PERF';
@@ -55,9 +66,18 @@ export const qaReportApi = {
   get: (id: number) => call<리포트응답>(`/qa-reports/${String(id)}`),
   approve: (id: number) => call<{ approval: 리포트응답['approval'] }>(`/qa-reports/${String(id)}/approve`, { method: 'POST' }),
   saveAi: (id: number, text: string) => call<{ ai: 리포트응답['ai'] }>(`/qa-reports/${String(id)}/ai`, { ...json({ text }), method: 'PATCH' }),
+  projectList: (projectId: number, page: number) =>
+    call<{ items: 프로젝트리포트줄[]; total: number }>(`/qa-project-reports?projectId=${String(projectId)}${page > 1 ? `&page=${String(page)}` : ''}`),
+  projectCreate: (projectId: number, from: string, to: string, tz: string) =>
+    call<{ id: number }>('/qa-project-reports', { ...json({ projectId, from, to, tz }), method: 'POST' }),
+  projectGet: (id: number) => call<프로젝트리포트응답>(`/qa-project-reports/${String(id)}`),
+  projectSaveAi: (id: number, text: string) => call<{ ai: 프로젝트리포트응답['ai'] }>(`/qa-project-reports/${String(id)}/ai`, { ...json({ text }), method: 'PATCH' }),
   /** 이 실행이 든 리포트의 마지막 버전 — 아직 어느 리포트에도 안 들었으면 404 */
   ofRun: (runId: number) => call<{ id: number }>(`/runs/${String(runId)}/qa-report`),
 };
 
 /** 내려받기 · 화면 안 문서 주소. 엑셀은 통로가 아직 400 이라 형식에 없다 (§7 「QA 리포트 통로」) */
 export const 리포트파일주소 = (id: number, 형식: 리포트형식): string => `/api/qa-reports/${String(id)}/file?format=${형식}`;
+
+/** 프로젝트 리포트 파일 — 엑셀은 없다(PDF · 워드, 화면 안 보기는 HTML) (§3.17 「내는 형식」) */
+export const 프로젝트파일주소 = (id: number, 형식: 리포트형식): string => `/api/qa-project-reports/${String(id)}/file?format=${형식}`;

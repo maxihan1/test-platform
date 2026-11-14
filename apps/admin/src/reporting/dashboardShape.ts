@@ -1,6 +1,7 @@
 // 앱 대시보드 숫자(통과율 · 일별 · 서비스별 · 회귀 실패 · 히트맵)를 접은 줄에서 만드는 순수 함수
 
 import { 히트맵을만든다, type 히트맵줄 } from './dashboardHeat.js';
+import { 날짜더하기 } from './day.js';
 import { 유형을센다, type 원인, type 유형셈, type 실패유형 } from './failureType.js';
 import { 판정표, type 변화 as 판정변화 } from './insights.js';
 
@@ -106,11 +107,8 @@ export interface 집계 {
   실패유형: 유형셈;
 }
 
-// 날짜를 더하는 곳은 여기 하나다. UTC 로 계산하면 서머타임이 날짜를 건너뛰게 만들지 못한다
-export function 날짜더하기(day: string, 일수: number): string {
-  const [y, m, d] = day.split('-').map(Number);
-  return new Date(Date.UTC(y ?? 0, (m ?? 1) - 1, (d ?? 1) + 일수)).toISOString().slice(0, 10);
-}
+// 날짜를 더하는 곳은 day.ts 하나다 — 화면도 부르는 프로젝트 리포트 날짜 셈(qaProjectReportShape.ts)이 이 파일의 DB 질의를 끌고 가지 않게 떼었다
+export { 날짜더하기 } from './day.js';
 
 const 빈셈 = (): 셈 => ({ 통과: 0, 실패: 0, 미실행: 0 });
 const 새항목 = (id: number, name: string): { 칸: 서비스칸; 마지막: Map<number, 셈> } => ({

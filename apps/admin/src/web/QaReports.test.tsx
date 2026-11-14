@@ -4,7 +4,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
-import type { ServiceRow } from './api.js';
+import { ApiError, type ServiceRow } from './api.js';
 import { qaReportApi, type 리포트줄 } from './qaReportApi.js';
 import { QaReports } from './QaReports.js';
 
@@ -146,11 +146,62 @@ describe('QA 리포트 › 끝 검사에서 나온 가장자리', () => {
 describe('QA 리포트 › 탭', () => {
   it('탭 둘은 주소다. 프로젝트 탭은 애플리케이션 목록을 부르지 않는다', () => {
     const 부름 = vi.spyOn(qaReportApi, 'list');
+    vi.spyOn(qaReportApi, 'projectList').mockReturnValue(new Promise(() => undefined));
     render(<QaReports service={앱} tab="project" />);
     const 탭줄 = within(screen.getByRole('navigation', { name: '리포트 종류' }));
     expect(탭줄.getByRole('link', { name: '애플리케이션' }).getAttribute('href')).toBe('#/qa-reports');
     expect(탭줄.getByRole('link', { name: '프로젝트' }).getAttribute('aria-current')).toBe('page');
     expect(screen.getByText('데모마켓 프로젝트의 모든 애플리케이션을 기간 단위로 묶어 보여 줍니다')).toBeTruthy();
     expect(부름).not.toHaveBeenCalled();
+  });
+});
+
+describe('QA 리포트 › 프로젝트 탭', () => {
+  it('그 프로젝트의 리포트를 최근 차례로 보이고, 줄은 앱 안 리포트 보기로 간다', async () => {
+    const 부름 = vi.spyOn(qaReportApi, 'projectList').mockResolvedValue({
+      items: [
+        { id: 5, from: '2026-11-10', to: '2026-11-14', origin: 'SCHEDULED', createdBy: '스케줄러', createdAt: '2026-11-14T09:00:00Z' },
+        { id: 4, from: '2026-11-01', to: '2026-11-14', origin: 'MANUAL', createdBy: '김하늘', createdAt: '2026-11-14T04:20:00Z' },
+      ],
+      total: 2,
+    });
+    render(<QaReports service={앱} tab="project" />);
+    const 줄들 = await screen.findAllByRole('listitem');
+    expect(부름).toHaveBeenCalledWith(10, 1);
+    expect(within(줄들[0]!).getByText('11/10 ~ 11/14')).toBeTruthy();
+    expect(within(줄들[0]!).getByText('자동')).toBeTruthy();
+    expect(within(줄들[1]!).getByText('직접 만듦 · 김하늘')).toBeTruthy();
+    expect(within(줄들[0]!).getByRole('link').getAttribute('href')).toBe('#/qa-reports/project/5');
+    // 쓰기 권한이 없으면 만들기 단추가 없다
+    expect(screen.queryByRole('button', { name: '리포트 만들기' })).toBeNull();
+  });
+
+  it('리포트 만들기 — 이번 주 · 이번 달 · 직접 선택한 기간을 이 브라우저 시간대로 보내고 새 리포트로 간다', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-15T03:00:00Z'));
+    vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({ timeZone: 'Asia/Seoul' } as Intl.ResolvedDateTimeFormatOptions);
+    vi.spyOn(qaReportApi, 'projectList').mockResolvedValue({ items: [], total: 0 });
+    const 만들기 = vi.spyOn(qaReportApi, 'projectCreate').mockResolvedValue({ id: 9 });
+    render(<QaReports service={앱} tab="project" 쓰나 />);
+    fireEvent.click(await screen.findByRole('button', { name: '리포트 만들기' }));
+    expect(screen.getByText('2026-11-09 ~ 2026-11-15 · 기간은 92일까지 선택할 수 있습니다')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '이번 달' }));
+    expect(screen.getByText('2026-11-01 ~ 2026-11-15 · 기간은 92일까지 선택할 수 있습니다')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '직접 선택' }));
+    fireEvent.change(screen.getByLabelText('시작일'), { target: { value: '2026-10-01' } });
+    fireEvent.click(screen.getByRole('button', { name: '만들기' }));
+    await waitFor(() => expect(window.location.hash).toBe('#/qa-reports/project/9'));
+    expect(만들기).toHaveBeenCalledWith(10, '2026-10-01', '2026-11-15', 'Asia/Seoul');
+    vi.useRealTimers();
+  });
+
+  it('서버가 기간을 거절하면 까닭을 보이고 창을 둔다', async () => {
+    vi.spyOn(qaReportApi, 'projectList').mockResolvedValue({ items: [], total: 0 });
+    vi.spyOn(qaReportApi, 'projectCreate').mockRejectedValue(new ApiError(400, 'INVALID_REQUEST', '기간은 92일까지입니다'));
+    render(<QaReports service={앱} tab="project" 쓰나 />);
+    fireEvent.click(await screen.findByRole('button', { name: '리포트 만들기' }));
+    fireEvent.click(screen.getByRole('button', { name: '만들기' }));
+    expect((await screen.findByRole('alert')).textContent).toContain('기간은 92일까지입니다');
+    expect(screen.getByRole('button', { name: '만들기' })).toBeTruthy();
   });
 });

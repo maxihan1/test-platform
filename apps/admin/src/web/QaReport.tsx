@@ -43,7 +43,7 @@ function 승인못하는까닭(r: 리포트응답, 나: string): string | null {
 }
 
 /** 문서 높이에 iframe 을 맞춘다 — 안에서 따로 스크롤하면 휴대폰에서 화면 스크롤과 엉킨다. 사진이 늦게 오면 높이가 또 바뀐다 */
-function 문서칸({ id }: { id: number }) {
+export function 문서칸({ src }: { src: string }) {
   const t = use말();
   const 틀 = useRef<HTMLIFrameElement>(null);
   const [실음, set실음] = useState(false);
@@ -71,7 +71,7 @@ function 문서칸({ id }: { id: number }) {
         ref={틀}
         className="qar-doc"
         title={t('리포트 본문')}
-        src={리포트파일주소(id, 'HTML')}
+        src={src}
         sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
         onLoad={맞춘다}
       />
@@ -145,14 +145,15 @@ function 승인칸({ r, 나, 관리자, on바뀜 }: { r: 리포트응답; 나: s
   );
 }
 
-function 문장수정({ r, on바뀜 }: { r: 리포트응답; on바뀜: () => void }) {
+/** 리스크 문단 고치기 — 애플리케이션 리포트 「남은 리스크」 · 프로젝트 리포트 「지난 리포트 대비 리스크」가 같이 쓴다 */
+export function 문장수정({ ai, 저장하기, 단추, 이름, on바뀜 }: { ai: 리포트응답['ai']; 저장하기: (글: string) => Promise<unknown>; 단추: string; 이름: string; on바뀜: () => void }) {
   const t = use말();
   const 언어 = use언어();
   const [열림, set열림] = useState(false);
   const [글, set글] = useState('');
   const [중, set중] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
-  const 지금글 = r.ai !== null && !('failed' in r.ai) ? r.ai.current : '';
+  const 지금글 = ai !== null && !('failed' in ai) ? ai.current : '';
 
   if (!열림) {
     return (
@@ -165,7 +166,7 @@ function 문장수정({ r, on바뀜 }: { r: 리포트응답; on바뀜: () => voi
           set열림(true);
         }}
       >
-        {t('남은 리스크 문장 수정')}
+        {단추}
       </button>
     );
   }
@@ -173,7 +174,7 @@ function 문장수정({ r, on바뀜 }: { r: 리포트응답; on바뀜: () => voi
     set중(true);
     set오류(null);
     try {
-      await qaReportApi.saveAi(r.id, 글);
+      await 저장하기(글);
       set열림(false);
       on바뀜();
     } catch (e) {
@@ -184,7 +185,7 @@ function 문장수정({ r, on바뀜 }: { r: 리포트응답; on바뀜: () => voi
   };
   return (
     <div className="qar-edit">
-      <label htmlFor="qar-ai">{t('남은 리스크')}</label>
+      <label htmlFor="qar-ai">{이름}</label>
       {/* 「기능 리스크」 · 「비기능 리스크」 줄은 묶음 머리다. 줄마다 「- 」로 쓰면 문서가 목록으로 그린다 */}
       <textarea id="qar-ai" value={글} maxLength={4000} rows={10} onChange={(e) => set글(e.target.value)} />
       <p className="hint">{t('AI 가 처음 쓴 글은 따로 남고 리포트에는 수정한 글이 들어갑니다')}</p>
@@ -269,10 +270,19 @@ export function QaReport({ id, user }: { id: number; user: User }) {
       <div className="qar-panel">
         <승인칸 r={r} 나={user.username} 관리자={user.role === 'admin'} on바뀜={다시} />
         {/* 승인된 버전은 서버가 409 로 막는다 — 단추를 안 그린다 */}
-        {쓰나 && !승인됨 ? <문장수정 key={`${String(r.id)}:${r.updatedAt}`} r={r} on바뀜={다시} /> : null}
+        {쓰나 && !승인됨 ? (
+          <문장수정
+            key={`${String(r.id)}:${r.updatedAt}`}
+            ai={r.ai}
+            저장하기={(글) => qaReportApi.saveAi(r.id, 글)}
+            단추={t('남은 리스크 문장 수정')}
+            이름={t('남은 리스크')}
+            on바뀜={다시}
+          />
+        ) : null}
       </div>
       {/* 판이 바뀌면 칸을 새로 그린다 — 다시 싣는 동안 「불러오는 중」이 다시 보이게 */}
-      <문서칸 key={판} id={r.id} />
+      <문서칸 key={판} src={리포트파일주소(r.id, 'HTML')} />
     </div>
   );
 }

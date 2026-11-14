@@ -1,7 +1,7 @@
 // 프로젝트 QA 리포트의 굳힌 숫자(body) 꼴과 날짜 셈 — 서버 모으기 · 문서 · 화면이 같이 쓰는 순수 함수 (도메인/리포팅 §3.17 「프로젝트 QA 리포트 — 기간 상태」 · §7)
 // 화면이 이 파일을 부른다 — zod · DB 를 끌어오는 모듈을 import 하지 않는다
 
-import { 날짜더하기 } from './dashboardShape.js';
+import { 날짜더하기 } from './day.js';
 import type { 리스크글저장 } from './qaReportAi.js';
 
 export { 날짜더하기 };
@@ -130,6 +130,9 @@ export interface 프로젝트리포트응답 {
   createdAt: string;
 }
 
+/** 'YYYY-MM-DD' → 「11/14」 — 문서와 화면이 같이 쓴다 */
+export const 짧은날 = (d: string): string => `${String(Number(d.slice(5, 7)))}/${String(Number(d.slice(8, 10)))}`;
+
 const 날짜꼴 = /^\d{4}-\d{2}-\d{2}$/;
 const 날짜인가 = (d: string): boolean => 날짜꼴.test(d) && 날짜더하기(d, 0) === d;
 
@@ -161,7 +164,7 @@ export function 회차수(세트: { days: number[] | null; onceOn: string | null
 }
 
 /** 만들기 창의 빠른 기간 — 이번 주는 월요일부터 오늘, 이번 달은 1일부터 오늘 */
-export function 빠른기간(오늘: string, 꼴: '주' | '달'): { from: string; to: string } {
-  if (꼴 === '달') return { from: `${오늘.slice(0, 8)}01`, to: 오늘 };
+export function 빠른기간(오늘: string, 꼴: 'week' | 'month'): { from: string; to: string } {
+  if (꼴 === 'month') return { from: `${오늘.slice(0, 8)}01`, to: 오늘 };
   return { from: 날짜더하기(오늘, -((요일(오늘) + 6) % 7)), to: 오늘 };
 }

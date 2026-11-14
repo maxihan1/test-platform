@@ -385,3 +385,55 @@
   color: var(--ink-faint);
   font-size: 12px;
 }
+
+/* 프로젝트 탭 — 설명 한 줄과 「리포트 만들기」, 그 아래 기간 선택 칸 (§8.21 「프로젝트 탭」 · QAR-F1-11) */
+.qar-proj-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+
+.qar-make {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.qar-make .hint {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+.qar-dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+}
+
+.qar-dates label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.qar-dates input {
+  min-height: 36px;
+  font: inherit;
+  font-size: 13px;
+}
+
+@media (max-width: 620px) {
+  .qar-proj-head .btn {
+    width: 100%;
+  }
+
+  .qar-dates input {
+    min-height: 44px;
+  }
+}

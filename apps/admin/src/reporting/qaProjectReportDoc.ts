@@ -4,7 +4,7 @@
 import { 문단, 워드파일 } from '../prd/docx.js';
 import { 문서판 } from './html.js';
 import { 안전 } from './htmlItem.js';
-import type { 프로젝트리포트응답, 프로젝트몸 } from './qaProjectReportShape.js';
+import { 짧은날, type 프로젝트리포트응답, type 프로젝트몸 } from './qaProjectReportShape.js';
 import { 덩이로 as 워드덩이, 흐린글색 } from './qaReportDocx.js';
 import { 리포트스타일, 첫장 } from './qaReportHtml.js';
 import { 시각, type 덩이, type 표줄 } from './qaReportText.js';
@@ -13,8 +13,6 @@ import { 결과글, 종류이름, 품질특성 } from './qaReportWords.js';
 
 type 몸 = 프로젝트몸;
 
-/** 'YYYY-MM-DD' → 「11/14」 */
-export const 짧은날 = (d: string): string => `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`;
 const 판정글 = (v: { pass: number; fail: number; notRun: number }) => `통과 ${v.pass} · 실패 ${v.fail} · 미실행 ${v.notRun}`;
 const 비율 = (a: number, b: number) => (b === 0 ? '—' : `${Math.round((a / b) * 1000) / 10}%`);
 const 요일이름 = ['일', '월', '화', '수', '목', '금', '토'];
