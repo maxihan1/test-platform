@@ -3,7 +3,6 @@
 // 판단은 authoring-held-apply · authoring-conflicts-apply 의 순수 함수에 있다. authoring-merge 가 300줄을 넘지 않게 뗐다
 
 import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import type { 집은것 } from './authoring-rules.js';
@@ -220,7 +219,7 @@ async function 보류관문(
   const 환경 = 관문환경(자리, 준비.자식, 준비);
   const 관문들: [string, string[], string, number][] = [
     // 이 앱 폴더만 — PR 브랜치의 package.json 이 아니라 배포된 이 스크립트가 범위를 정해 이미 쓴 PR 에도 먹는다. 폴더를 못 받았으면 옛대로 전체
-    준비.폴더 ? ['npx', 앱tsc인자(자리.트리, tmpdir(), 준비.폴더), '타입 검사', 600_000] : ['npm', ['run', 'typecheck'], '타입 검사', 600_000],
+    준비.폴더 ? ['npx', 앱tsc인자(자리.트리, 자리.뿌리, 준비.폴더), '타입 검사', 600_000] : ['npm', ['run', 'typecheck'], '타입 검사', 600_000],
     ['npm', ['run', 'check:tests', '--', '--no-held'], '케이스 규칙 검사', 600_000],
   ];
   if (채운파일.length > 0) {
