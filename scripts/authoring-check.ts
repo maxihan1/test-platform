@@ -16,7 +16,7 @@ import { 명세글, 속성, 읽기 } from './authoring-held-apply.js';
 import { 보류경고 } from './authoring-held-kinds.js';
 import { 비밀자리들, 파일모으기 } from './authoring-secret-spots.js';
 import { 바뀐것 } from './authoring-base-list.js';
-import { 맡은tsconfig, 앱tsc인자 } from './authoring-typecheck.js';
+import { tsc인자, 앱tsc인자 } from './authoring-typecheck.js';
 import { type 모양지적, 모양확인들, 문구모양, 코드모양 } from './authoring-case-shape.js';
 import { 묶었나 } from './authoring-one-value.js';
 import { 백틱벗기기, 표읽기 } from './authoring-md-table.js';
@@ -188,7 +188,7 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     const 케이스파일 = 맡은.filter((f) => f.endsWith('.spec.ts'));
     const 형식대상 = 맡은.filter((f) => f.startsWith('tests/') && f.endsWith('.ts'));
     const [tsc, 형식] = await Promise.all([
-      돌린다(트리, 'npx', ['tsc', '--noEmit', '-p', 맡은tsconfig(트리, 자리, 맡은)], 로그('tsc')),
+      돌린다(트리, 'npx', tsc인자(트리, 자리, 맡은), 로그('tsc')),
       // 맡은 파일만 넘긴다 — 저장소 전체(1,112건)는 한 번에 중간값 106초 · 5분 한도에 끊기기도 했다(PRD-F14-04). 겹침(K2)만 나머지 tcId 를 글자로 견준다.
       // 빈 목록을 넘기면 저장소 전체를 보므로 넘길 것이 없으면 안 돈다. 화면 파일만 맡아도 K7 · K15 는 본다
       형식대상.length > 0 ? 돌린다(트리, 'npm', ['run', '-s', 'check:tests', '--', ...형식대상], 로그('tests')) : Promise.resolve(null),
