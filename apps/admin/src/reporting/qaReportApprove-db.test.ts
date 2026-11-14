@@ -110,8 +110,10 @@ describe.skipIf(연결 === undefined)('QA 리포트 승인', { timeout: 60_000 }
 
   it('admin 이 아니거나 배정 밖이거나 수행자면 승인하지 못하고, 승인 전 줄도 승인할 수 있는 admin 에게만 선다', async () => {
     const v1 = Number((await 마지막()).id);
-    expect((await 승인('xqp-member', v1)).statusCode).toBe(403);
-    expect((await 승인('xqp-outsider', v1)).statusCode).toBe(403);
+    expect((await 승인('xqp-member', v1)).json()).toEqual({ error: 'FORBIDDEN', need: 'admin' });
+    const 밖 = await 승인('xqp-outsider', v1);
+    expect(밖.statusCode).toBe(403);
+    expect(밖.json()).toMatchObject({ error: 'SERVICE_FORBIDDEN' });
     const 본인 = await 승인('xqp-doer', v1);
     expect(본인.statusCode).toBe(403);
     expect(본인.json()).toEqual({ error: 'SELF_APPROVAL' });
@@ -125,11 +127,15 @@ describe.skipIf(연결 === undefined)('QA 리포트 승인', { timeout: 60_000 }
 
   it('묶음에 도는 실행이 있거나 AI 일이 안 끝났으면 승인하지 못한다', async () => {
     const v1 = Number((await 마지막()).id);
+    // 시작만 하고 다시 만들기는 안 돌았다 — 첫 장의 「진행 중」은 0 이어도 지금 표에서 센다
     const 도는 = await 실행만들기({ status: 'RUNNING', 누가: 'xqp-admin-아님' });
-    await QA리포트를다시만든다({ runId: 첫실행 });
-    expect((await 승인('xqp-admin', v1)).json()).toEqual({ error: 'RUNNING' });
     expect(await 승인전줄('xqp-admin')).toEqual([]);
+    expect((await 승인('xqp-admin', v1)).json()).toEqual({ error: 'RUNNING' });
     await pool.query('DELETE FROM test_run WHERE run_id = $1', [도는]);
+    // 붙은 한 건 실행이 도는 중이어도 막는다 — 끝나면 붙은 결과가 바뀔 수 있다
+    const 도는한건 = await 실행만들기({ origin: 'SINGLE', status: 'RUNNING', rerunOf: 첫실행, 누가: 'xqp-admin' });
+    expect((await 승인('xqp-admin', v1)).json()).toEqual({ error: 'RUNNING' });
+    await pool.query('DELETE FROM test_run WHERE run_id = $1', [도는한건]);
 
     const 일 = (await pool.query<{ id: string }>(`INSERT INTO perf_ai_job (kind, service_id, input, status) VALUES ('REPORT_RISK', $1, '{}', 'QUEUED') RETURNING id`, [앱])).rows[0]!.id;
     await pool.query('UPDATE qa_report SET ai_job_id = $1 WHERE id = $2', [일, v1]);
@@ -176,5 +182,34 @@ describe.skipIf(연결 === undefined)('QA 리포트 승인', { timeout: 60_000 }
     // 버전 2 의 수행자는 둘이다 — xqp-doer 는 버전 2 도 승인하지 못한다
     expect((await 승인('xqp-doer', Number(v2.id))).json()).toEqual({ error: 'SELF_APPROVAL' });
     expect((await 승인('xqp-admin', Number(v2.id))).statusCode).toBe(200);
+  });
+
+  it('더 새 버전이 있으면 NOT_LATEST · 애플리케이션을 지운 리포트는 아무도 승인하지 못한다 · 빌드 없는 정기 실행은 알리지 않는다', async () => {
+    const 정기 = Number(
+      (
+        await pool.query<{ run_id: string }>(
+          `INSERT INTO test_run (title, service_name, tests_repo, triggered_by, env, base_url, status, service_id, kind, origin, started_at, finished_at)
+           VALUES ('XQP 정기', 'XQP 웹', '', 'scheduler', 'qa', 'https://qa.xqp.test', 'FINISHED', $1, 'FN', 'SCHEDULED', now() - interval '1 hour', now()) RETURNING run_id`,
+          [앱],
+        )
+      ).rows[0]!.run_id,
+    );
+    await 항목(정기);
+    expect(await QA리포트를다시만든다({ runId: 정기 })).toBe('새 버전');
+    const 정기리포트 = Number((await pool.query<{ id: string }>(`SELECT id FROM qa_report WHERE bundle_key = $1`, [`R:${String(정기)}`])).rows[0]!.id);
+    expect((await 승인전줄('xqp-admin')).map((x) => x.reportId)).not.toContain(정기리포트);
+
+    // 승인 전 버전 위에 더 새 버전이 서는 길은 없다 — 표에 직접 세워 마지막 버전 검사를 본다
+    await pool.query(
+      `INSERT INTO qa_report (bundle_key, service_id, service_name, env, run_id, version, summary, approved_by, approved_at, pdf_path, pdf_sha256)
+       VALUES ($1, $2, 'XQP 웹', 'qa', $3, 2, '{}', 'xqp-admin', now(), '/x.pdf', 'ab')`,
+      [`R:${String(정기)}`, 앱, 정기],
+    );
+    expect((await 승인('xqp-admin', 정기리포트)).json()).toEqual({ error: 'NOT_LATEST' });
+    await pool.query(`DELETE FROM qa_report WHERE bundle_key = $1 AND version = 2`, [`R:${String(정기)}`]);
+
+    await pool.query('UPDATE qa_report SET service_id = NULL WHERE id = $1', [정기리포트]);
+    expect((await 승인('xqp-admin', 정기리포트)).json()).toEqual({ error: 'FORBIDDEN', need: 'admin' });
+    await pool.query('DELETE FROM qa_report WHERE id = $1', [정기리포트]);
   });
 });

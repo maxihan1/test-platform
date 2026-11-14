@@ -56,6 +56,12 @@ interface 리포트행 {
 
 const 번호 = (v: string | null): number | null => (v === null ? null : Number(v));
 
+/** 그 빌드의 배포보다 늦게 승인했으면 사후 승인이다. 배포가 없으면 붙이지 않는다 (§3.17 「첫 장」 승인) — 굳힐 PDF 와 GET 응답이 같이 쓴다 */
+export async function 사후승인(pool: Pool | PoolClient, runIds: readonly (string | number)[], 승인때: Date): Promise<boolean> {
+  const 배포 = (await pool.query<{ at: Date | null }>('SELECT min(created_at) AS at FROM bts_deploy WHERE run_ids && $1::bigint[]', [runIds])).rows[0]?.at ?? null;
+  return 배포 !== null && 승인때 > 배포;
+}
+
 /** 리포트 한 버전 — 응답과 함께 문서가 쓸 애플리케이션 번호 · 승인 때 굳힌 PDF 경로를 낸다 */
 export async function 리포트읽기(pool: Pool | PoolClient, id: number): Promise<{ 응답: 리포트응답; serviceId: number | null; pdfPath: string | null } | null> {
   const q = (await pool.query<리포트행>('SELECT q.*, s.prefix FROM qa_report q LEFT JOIN service s ON s.id = q.service_id WHERE q.id = $1', [id])).rows[0];
@@ -65,9 +71,7 @@ export async function 리포트읽기(pool: Pool | PoolClient, id: number): Prom
   ).rows;
   let approval: 리포트응답['approval'] = null;
   if (q.approved_at !== null) {
-    // 그 빌드의 배포보다 늦게 승인했으면 사후 승인이다. 배포가 없으면 붙이지 않는다 (§3.17 「첫 장」 승인)
-    const 배포 = (await pool.query<{ at: Date | null }>('SELECT min(created_at) AS at FROM bts_deploy WHERE run_ids && $1::bigint[]', [q.run_ids])).rows[0]?.at ?? null;
-    approval = { by: q.approved_by!, byName: q.approved_name, at: q.approved_at.toISOString(), late: 배포 !== null && q.approved_at > 배포, sha256: q.pdf_sha256 };
+    approval = { by: q.approved_by!, byName: q.approved_name, at: q.approved_at.toISOString(), late: await 사후승인(pool, q.run_ids, q.approved_at), sha256: q.pdf_sha256 };
   }
   return {
     응답: {

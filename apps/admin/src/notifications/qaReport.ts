@@ -1,7 +1,7 @@
 // 알림의 「승인 전 QA 리포트」 줄 — 그 리포트를 지금 승인할 수 있는 admin 에게만, 승인 전 리포트 하나에 한 줄 (도메인/리포팅 §3.17 「승인 전 알림」)
 // 읽음 표시가 없다 — 승인되면 줄이 사라지고, 승인 뒤 버전이 오르면 그 버전으로 다시 선다
 
-import { 승인막힘 } from '../reporting/qaReportApprove.js';
+import { 막는일SQL, 승인막힘 } from '../reporting/qaReportApprove.js';
 import type { NoticeService, 보이는서비스 } from './store.js';
 
 export type 승인전줄 = NoticeService & {
@@ -13,6 +13,9 @@ export type 승인전줄 = NoticeService & {
   version: number;
   updatedAt: string;
 };
+
+// 알림의 끝난 줄(recent)과 같은 상한이다
+const 상한 = 50;
 
 async function db() {
   const { pool } = await import('../db/index.js');
@@ -32,19 +35,22 @@ export async function 승인전알림(username: string, 서비스들: 보이는�
     perf_run_id: string | null;
     version: number;
     performers: string[];
-    running: number | null;
+    running: number;
     ai_pending: boolean;
     updated_at: Date;
   }>(
-    `SELECT q.id, q.service_id, q.build_no, q.run_id, q.perf_run_id, q.version, q.performers, q.updated_at,
-            (q.summary->'overview'->>'running')::int AS running, COALESCE(j.status IN ('QUEUED', 'RUNNING'), false) AS ai_pending
-       FROM qa_report q LEFT JOIN perf_ai_job j ON j.id = q.ai_job_id
+    // 빌드 없는 정기 실행 하나의 리포트는 알리지 않는다 — 매일 하나씩 쌓이고, 내보낼 빌드가 없어 승인을 기다리는 일이 아니다(승인은 된다)
+    `SELECT q.id, q.service_id, q.build_no, q.run_id, q.perf_run_id, q.version, q.performers, q.updated_at, ${막는일SQL}
+       FROM qa_report q
       WHERE q.service_id = ANY($1) AND q.approved_at IS NULL
-      ORDER BY q.updated_at DESC, q.id DESC`,
+        AND NOT (q.build_no IS NULL AND (EXISTS (SELECT 1 FROM test_run t WHERE t.run_id = q.run_id AND t.origin = 'SCHEDULED')
+                                      OR EXISTS (SELECT 1 FROM perf_run p WHERE p.id = q.perf_run_id AND p.origin = 'SCHEDULED')))
+      ORDER BY q.updated_at DESC, q.id DESC
+      LIMIT ${상한}`,
     [서비스들.map((s) => s.id)],
   );
   return r.rows
-    .filter((q) => 승인막힘(username, { running: q.running ?? 0, aiPending: q.ai_pending, performers: q.performers }) === null)
+    .filter((q) => 승인막힘(username, { running: q.running, aiPending: q.ai_pending, performers: q.performers }) === null)
     .map((q) => {
       const s = 맵.get(Number(q.service_id))!;
       return {
