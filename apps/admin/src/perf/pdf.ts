@@ -30,12 +30,12 @@ export interface 결과문서 {
   txs: { tx: string; requests: number; errors: number; hist: number[] }[];
 }
 
-const 유형글: Record<string, string> = { LOAD: '부하 테스트', STRESS: '스트레스 테스트', SPIKE: '스파이크 테스트', SOAK: '내구성 테스트' };
-const 지표글: Record<Target['metric'], string> = { P95: '95% 응답시간', ERROR_RATE: '에러율', TPS: 'TPS' };
-const 근거글: Record<Target['source'], string> = { PRD: '기획서', AI: 'AI 추천', MANUAL: '직접 입력' };
-const 판정글 = (v: 'PASS' | 'FAIL' | null, status: string) => (v === 'PASS' ? '통과' : v === 'FAIL' ? '실패' : status === 'ERROR' ? '오류' : '중단');
+export const 유형글: Record<string, string> = { LOAD: '부하 테스트', STRESS: '스트레스 테스트', SPIKE: '스파이크 테스트', SOAK: '내구성 테스트' };
+export const 지표글: Record<Target['metric'], string> = { P95: '95% 응답시간', ERROR_RATE: '에러율', TPS: 'TPS' };
+export const 근거글: Record<Target['source'], string> = { PRD: '기획서', AI: 'AI 추천', MANUAL: '직접 입력' };
+export const 판정글 = (v: 'PASS' | 'FAIL' | null, status: string) => (v === 'PASS' ? '통과' : v === 'FAIL' ? '실패' : status === 'ERROR' ? '오류' : '중단');
 
-function 값글(metric: Target['metric'], v: number | null): string {
+export function 값글(metric: Target['metric'], v: number | null): string {
   if (v === null) return '—';
   if (metric === 'P95') return `${(v / 1000).toFixed(1)}초`;
   if (metric === 'ERROR_RATE') return `${v.toFixed(2)}%`;
@@ -43,7 +43,7 @@ function 값글(metric: Target['metric'], v: number | null): string {
 }
 
 // 1초 숫자를 10초 칸으로 묶은 꺾은선 둘(가상 사용자 · 95% 응답시간). 바깥 자원 없이 SVG 로 그린다
-function 추이(rows: SecRow[]): string {
+export function 추이(rows: SecRow[]): string {
   const total = rows.filter((r) => r.tx === '');
   if (total.length === 0) return '<p>숫자가 없습니다</p>';
   const 칸 = new Map<number, { vus: number; hist: number[] }>();

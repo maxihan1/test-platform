@@ -1,6 +1,7 @@
 // QA 리포트 첫 장을 글 덩이(제목 · 문단 · 표)로 짓는다 — HTML · PDF(qaReportHtml.ts)와 워드(qaReportDocx.ts)가 같은 글을 그린다 (도메인/리포팅 §3.17 「첫 장 — 시안 B 차례」)
 // 빈 값을 무엇으로 적을지(「견줄 이전 빌드 없음」 · 「Issue Bunker 미연결」 …)는 여기 한 곳에서 정한다. 형식마다 따로 정하면 HTML 과 워드가 다른 말을 한다
 
+import type { SecRow } from '../perf/judge.js';
 import type { 실패유형 } from './failureType.js';
 import type { 리포트응답 } from './qaReportDoc.js';
 import type { 까닭, 테스트줄 } from './qaReportChanges.js';
@@ -16,10 +17,23 @@ export type 덩이 =
   /** 상자 — 남은 리스크는 AI 상자, 승인은 점선 상자로 절 몸을 감싼다(HTML) */
   | { 꼴: '절'; 글: string; 상자?: 'AI' | '승인' }
   | { 꼴: '소절'; 글: string }
-  | { 꼴: '글'; 글: string; 결?: '흐림' | '강조' }
-  | { 꼴: '표'; 머리: string[]; 줄: 표줄[]; /** 이 칸의 줄은 「<케이스> <판정>」 — HTML 은 판정을 색 칩으로 그린다 */ 판정칸?: number }
+  /** 「비기능 검증」 구분 머리 — 기능 구획과 비기능 구획 사이 띠 */
+  | { 꼴: '구분'; 글: string }
+  /** 머리 = 소절 아래 작은 머리(「AI 분석」 · 「트랜잭션별 결과」) */
+  | { 꼴: '글'; 글: string; 결?: '흐림' | '강조' | '머리' }
+  | {
+      꼴: '표';
+      머리: string[];
+      줄: 표줄[];
+      /** 이 칸의 줄은 「<케이스> <판정>」 — HTML 은 판정을 색 칩으로 그린다 */
+      판정칸?: number;
+      /** 호환성 디바이스 × 화면 격자 — 칸 글(격자칸)마다 색을 입힌다 */
+      격자?: true;
+    }
   /** E2E 흐름 한 줄 — HTML 은 단계 알약, 워드는 「→」 로 이은 글 */
-  | { 꼴: '흐름'; 단계: { 글: string; 판정: string }[] };
+  | { 꼴: '흐름'; 단계: { 글: string; 판정: string }[] }
+  /** 성능 시간대별 추이 — HTML · PDF 는 성능 PDF 와 같은 그림, 워드는 그림 대신 안내 한 줄 */
+  | { 꼴: '추이'; rows: SecRow[] };
 
 /** 문서 안 시각은 한 꼴이다 — 받는 사람마다 시간대가 달라 UTC 로 적고 그렇다고 밝힌다 */
 export const 시각 = (iso: string): string => `${iso.slice(0, 16).replace('T', ' ')} UTC`;
@@ -28,7 +42,7 @@ export const 종류이름 = { FN: '기능', UI: 'UI', E2E: 'E2E', COMPAT: '호�
 export const 품질특성 = { COMPATIBILITY: '호환성', PERFORMANCE_EFFICIENCY: '성능 효율성', RELIABILITY: '신뢰성' } as const;
 export const 디바이스이름: Record<string, string> = { desktop: 'PC', mobile: '모바일', android: 'Android 앱' };
 
-const 출처이름: Record<안정화출처, string> = {
+export const 출처이름: Record<안정화출처, string> = {
   WEB_PAGEERROR: '페이지 오류',
   WEB_CONSOLE: '콘솔 오류',
   WEB_NETWORK: '네트워크 오류',
@@ -49,6 +63,24 @@ const 원인이름: Record<실패유형 | 'stopped' | 'prepFailed', string> = {
 };
 const 분류이름 = { PRODUCT: '제품 결함', TEST: '테스트 문제', ENV: '환경', UNCLASSIFIED: '미분류' } as const;
 const 짧은커밋 = (c: string | null): string => (c === null ? '기록 없음' : c.slice(0, 7));
+
+/** 「비기능 검증」 구획의 빈 값 문구 — 첫 장과 같이 여기 한 곳에서 정한다 (QAR-F1-06) */
+export const 빈글 = {
+  모든화면이상없음: '모든 화면 이상 없음',
+  성능목표없음: '판정한 성능 목표가 없습니다',
+  AI분석없음: 'AI 분석이 아직 없습니다',
+  추이숫자없음: '숫자가 없습니다',
+  추이워드: '시간대별 추이 그림은 PDF 에 있습니다',
+  오류종류없음: '신규 · 증가 · 재발 오류 없음',
+  변화없음: '신규 · 증가 · 재발 없음',
+  AI요약없음: 'AI 요약 없음',
+  AI요약작성중: 'AI 요약 작성 중',
+  AI요약실패: 'AI 요약을 만들지 못했습니다',
+  기록없음: '—',
+} as const;
+
+/** 호환성 격자 칸 글 — 판정 전 의심 · 판정한 결함이 「UI 결함 의심 칸」이다(§3.17 결과 요약). 디바이스가 안 지난 화면은 빈글.기록없음 */
+export const 격자칸 = { OK: '이상 없음', PENDING: '결함 의심', CONFIRMED: '결함', NOT_DEFECT: '결함 아님', UNCHECKED: '미점검' } as const;
 
 /** 승인한 버전의 HTML · 워드에 다는 말 — 받을 때 다시 만들어 굳힌 PDF 와 지도 · 판이 다를 수 있다 (§3.17 「묶음 · 버전」 승인된 버전의 기준 문서) */
 export const 승인뒤다시 = '승인한 기준 문서는 굳힌 PDF 입니다. 이 파일은 받을 때 다시 만들었습니다';

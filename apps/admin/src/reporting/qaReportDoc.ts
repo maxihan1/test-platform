@@ -6,6 +6,7 @@ import { 지금판 } from '../prd/store.js';
 import { collectRun, type EvidenceItem } from './collect.js';
 import { collectScenario, type E2E증적 } from './collectScenario.js';
 import { 고른시나리오실행들, 고른실행들 } from './qaReportCases.js';
+import { 비기능재료읽기, type 비기능재료 } from './qaReportNonFunc.js';
 import type { 첫장 } from './qaReportSummary.js';
 
 export type 리포트AI = { first: string; current: string; editedBy: string | null; editedAt: string | null } | { failed: true } | null;
@@ -107,6 +108,8 @@ export interface 문서재료 {
   /** UI 구획 — 케이스가 거친 화면(지도 ②의 화면 주소, 없으면 화면 파일) */
   화면: Map<string, string[]>;
   시나리오: E2E증적[];
+  /** 「비기능 검증」 구획 — 호환성 격자 · 성능 목표 · 안정화 오류 종류 */
+  비기능: 비기능재료;
 }
 
 /** 리포트 한 버전을 문서로 그릴 재료. 지도 · 판은 받는 때 것이고 첫 장은 만든 때 굳힌 값이다 */
@@ -148,5 +151,6 @@ export async function 문서재료읽기(pool: Pool, 읽음: { 응답: 리포트
   const 시나리오 = (await Promise.all((await 고른시나리오실행들(pool, 응답.runIds)).map((runId) => collectScenario(runId)))).filter(
     (d): d is E2E증적 => d !== null,
   );
-  return { 리포트: 응답, 항목, 종류, 요구, 화면, 시나리오 };
+  const 비기능 = await 비기능재료읽기(pool, 응답);
+  return { 리포트: 응답, 항목, 종류, 요구, 화면, 시나리오, 비기능 };
 }

@@ -1,10 +1,11 @@
-// QA 리포트 첫 장 뒤 종류별 구획의 글 — 기능 = 요구사항 추적표 · UI = 화면별 · E2E = 흐름 한 줄 · 「비기능 검증」 구분 머리 (도메인/리포팅 §3.17 「종류별 구획」)
+// QA 리포트 첫 장 뒤 종류별 구획의 글 — 기능 = 요구사항 추적표 · UI = 화면별 · E2E = 흐름 한 줄 · 그 뒤 「비기능 검증」(qaReportSectionsNonFunc.ts) (도메인/리포팅 §3.17 「종류별 구획」)
 // 케이스 카드(HTML · PDF)와 케이스 목록 표(워드)는 이 머리 뒤에 형식마다 붙는다
 
 import type { EvidenceItem } from './collect.js';
 import type { E2E단계, E2E증적 } from './collectScenario.js';
 import type { 문서재료 } from './qaReportDoc.js';
-import { 결과글, 디바이스이름, 종류이름, 품질특성, type 덩이, type 표줄 } from './qaReportText.js';
+import { 비기능구획 } from './qaReportSectionsNonFunc.js';
+import { 디바이스이름, 종류이름, type 덩이, type 표줄 } from './qaReportText.js';
 
 export interface 구획 {
   머리: 덩이[];
@@ -117,18 +118,7 @@ export function 구획들(재료: 문서재료): 구획[] {
       })),
     });
   }
-  // 비기능 — 돈 종류(호환성 · 성능)와 늘 서는 안정화. 구획 안 격자 · 목표 표 · 오류 종류는 QAR-F1-06 이 채운다
-  const 비기능 = summary.results.nonFunctional.filter((x) => x.kind === 'STAB' || summary.kinds.includes(x.kind));
-  if (비기능.length > 0) {
-    구획.push({
-      머리: [
-        { 꼴: '절', 글: '비기능 검증' },
-        ...비기능.flatMap((x): 덩이[] => [
-          { 꼴: '소절', 글: `${x.kind === 'STAB' ? '안정화 · 오류 종류' : 종류이름[x.kind]} — ${품질특성[x.quality]}` },
-          { 꼴: '글', 글: 결과글(x) },
-        ]),
-      ],
-    });
-  }
+  const 비기능 = 비기능구획(summary.kinds, summary.results.nonFunctional, 재료.비기능);
+  if (비기능.length > 0) 구획.push({ 머리: 비기능 });
   return 구획;
 }
