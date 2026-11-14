@@ -1,4 +1,4 @@
--- 성능 AI 일 중 QA 리포트 남은 리스크(REPORT_RISK)에만 나는 MCP 열쇠(mcj_)의 해시 (docs/spec/공통/4-데이터모델.md 「성능 AI 일」 · 도메인/리포팅 §3.17 「남은 리스크 — AI」 · QAR-F1-08)
+-- 성능 AI 일 중 QA 리포트 남은 리스크(REPORT_RISK)에만 나는 MCP 열쇠(mcj_)의 해시 (docs/spec/공통/4-데이터모델.md 「성능 테스트 표」 perf_ai_job · 도메인/리포팅 §3.17 「남은 리스크 — AI」 · QAR-F1-08)
 
 -- migrate:up
 
