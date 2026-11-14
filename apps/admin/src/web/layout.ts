@@ -1,6 +1,7 @@
 // 맨 위 띠 · 자리 목록이 쓰는 규칙 (SPEC §8). 화면 조각은 Shell.tsx, 판단은 여기
 // 한 번에 한 서비스만 본다 — 여러 서비스가 한 목록에 섞이면 엉뚱한 쪽에서 실행을 누르는 사고가 난다
 
+import type { 승인볼앱 } from './DashboardQaReport.js';
 import type { ServiceRow, User } from './api.js';
 import { 기본언어, t, type 언어 } from './i18n.js';
 import { 자리목록 } from './layoutMenu.js';
@@ -120,10 +121,15 @@ export function 배정서비스접두사(serviceId: number, 배정: ServiceRow[]
 export function 대시보드재료(
   user: User,
   prefix: string | null,
-): { 케이스갈수있나: boolean; 세트만들수있나: boolean; 프로젝트: number | null } {
+): { 케이스갈수있나: boolean; 세트만들수있나: boolean; 프로젝트: number | null; 승인볼앱들: 승인볼앱[] | null } {
   // 대시보드는 헤더에서 고른 프로젝트 안만 모은다 (도메인/리포팅 §8.12). 고른 애플리케이션이 없으면 프로젝트를 안 가린다
   const 프로젝트 = user.services.find((서비스) => 서비스.prefix === prefix)?.projectId ?? null;
   return {
+    // 「QA 리포트 · 승인 전」 칸은 승인하는 사람(관리자)에게만 선다 (도메인/리포팅 §8.21 「다른 화면의 고리」)
+    승인볼앱들:
+      user.role !== 'admin'
+        ? null
+        : user.services.filter((s) => 프로젝트 === null || s.projectId === 프로젝트).map((s) => ({ id: s.id, prefix: s.prefix, name: s.name })),
     케이스갈수있나: 기능보나(user, prefix, 'cases'),
     // 정기 실행 세트는 실행 write 가 만든다 (도메인/정기실행 §3.16 결정 7 · 리포팅 §8.12 빈 상태)
     세트만들수있나: 할수있나(user, prefix, '실행'),

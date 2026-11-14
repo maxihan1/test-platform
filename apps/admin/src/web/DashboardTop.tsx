@@ -1,5 +1,7 @@
 // 대시보드 맨 위 다섯 칸과 굴리는 숫자 — PRD · 테스트 케이스 · 최근 실행 결과 · E2E · 성능 (도메인/리포팅 §8.12 「프로젝트 요약」)
 
+import type { ReactNode } from 'react';
+
 import type { 대시보드응답 } from '../reporting/dashboardResults.js';
 import { use말 } from './i18n.js';
 import { 아이콘, type 아이콘이름 } from './icons.js';
@@ -50,9 +52,26 @@ export function 굴림숫자({ 글, 늦춤 = 0 }: { 글: string; 늦춤?: number
   );
 }
 
-function 칸({ 차례, 그림, 이름, 값, 단위, 보조 }: { 차례: number; 그림: 아이콘이름; 이름: string; 값: string | null; 단위?: string; 보조: string }) {
-  return (
-    <div className="dash-panel dash-stat dash-rise" style={떠오름(차례)}>
+export function 칸({
+  차례,
+  그림,
+  이름,
+  값,
+  단위,
+  보조,
+  링크,
+}: {
+  차례: number;
+  그림: 아이콘이름;
+  이름: string;
+  값: string | null;
+  단위?: string;
+  보조: string;
+  /** 누르면 갈 곳 — 주면 칸 전체가 링크다 */
+  링크?: { href: string; onClick?: () => void };
+}) {
+  const 몸 = (
+    <>
       <span className="ic" aria-hidden="true">
         <아이콘 이름={그림} />
       </span>
@@ -62,11 +81,21 @@ function 칸({ 차례, 그림, 이름, 값, 단위, 보조 }: { 차례: number; 
         {값 === null || 단위 === undefined ? null : <small>{단위}</small>}
       </span>
       <span className="dash-lab">{보조}</span>
+    </>
+  );
+  return 링크 === undefined ? (
+    <div className="dash-panel dash-stat dash-rise" style={떠오름(차례)}>
+      {몸}
     </div>
+  ) : (
+    <a className="dash-panel dash-stat dash-rise dash-go" style={떠오름(차례)} href={링크.href} onClick={링크.onClick}>
+      {몸}
+    </a>
   );
 }
 
-export function 다섯칸({ 요약 }: { 요약: 요약 }) {
+/** 덧칸 — 관리자에게만 서는 여섯째 칸(QA 리포트 승인 전). 있으면 한 줄이 여섯 칸이다 */
+export function 다섯칸({ 요약, 덧칸 }: { 요약: 요약; 덧칸?: ReactNode }) {
   const t = use말();
   const PRD있는 = 요약.apps.flatMap((a) => (a.prd === null ? [] : [a.prd]));
   const 기능 = 요약.apps.reduce((n, a) => n + a.cases.fn, 0);
@@ -75,7 +104,7 @@ export function 다섯칸({ 요약 }: { 요약: 요약 }) {
   const { e2e } = 요약;
   const 부하 = 요약.perf.load;
   return (
-    <section className="dash-stats" aria-label={t('프로젝트 요약')}>
+    <section className={덧칸 === undefined ? 'dash-stats' : 'dash-stats six'} aria-label={t('프로젝트 요약')}>
       <div className="dash-track" aria-hidden="true" />
       <칸
         차례={0}
@@ -119,6 +148,7 @@ export function 다섯칸({ 요약 }: { 요약: 요약 }) {
               })
         }
       />
+      {덧칸}
     </section>
   );
 }

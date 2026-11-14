@@ -39,4 +39,8 @@ export const QA리포트말: Record<string, string> = {
   '실행 {수}개': '{수} runs',
   '기능 검증': 'Functional testing',
   '비기능 검증': 'Non-functional testing',
+  // 대시보드 칸 (DashboardQaReport.tsx)
+  'QA 리포트 · 승인 전': 'QA reports · Not approved',
+  '승인 전 리포트 없음': 'No reports awaiting approval',
+  건: 'reports',
 };
