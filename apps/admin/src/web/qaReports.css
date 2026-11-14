@@ -111,13 +111,16 @@
   overflow-wrap: anywhere;
 }
 
-/* 상태 칩 — 시안대로 승인 전은 대표색 옅은 바탕, 승인됨은 통과 옅은 바탕. 꽉 찬 배지는 쓰지 않는다 */
+/* 상태 칩 — 승인은 판정이 아니라 판정 색(통과 · 실패)도 대표색도 쓰지 않는다 (DESIGN.md 원칙 1 · 화면공통 §8 「대표색은 이 자리에만」).
+   손이 가야 하는 「승인 전」만 진한 테두리 · 굵은 글자로 한 단계 올린다 */
 .qar-state {
   flex: 0 1 auto;
   font-size: 12.5px;
   line-height: 1.6;
-  padding: 2px 9px;
+  padding: 1px 9px;
+  border: 1px solid var(--line-2);
   border-radius: 999px;
+  color: var(--ink-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -125,14 +128,9 @@
 }
 
 .qar-state.wait {
-  background: var(--accent-soft);
-  color: var(--link);
+  border-color: var(--ink-faint);
+  color: var(--ink);
   font-weight: 600;
-}
-
-.qar-state.ok {
-  background: var(--pass-soft);
-  color: var(--pass-text);
 }
 
 .qar-meta {

@@ -109,6 +109,38 @@ describe('QA 리포트 › 애플리케이션 탭', () => {
   });
 });
 
+describe('QA 리포트 › 끝 검사에서 나온 가장자리', () => {
+  it('아직 다 돌기 전인 줄은 끝난 시각 대신 진행 중만 보이고, 모르는 종류 값이 와도 화면이 서 있다', async () => {
+    vi.spyOn(qaReportApi, 'list').mockResolvedValue({ items: [줄({ finishedAt: null, running: 2, kinds: ['FN', 'API' as 'FN'] })], total: 1 });
+    render(<QaReports service={앱} tab="app" />);
+    const 한줄 = within(await screen.findByRole('listitem'));
+    expect(한줄.getByText('qa · 버전 1')).toBeTruthy();
+    expect(한줄.queryByText(/마지막 실행/)).toBeNull();
+    expect(한줄.getByText('진행 중')).toBeTruthy();
+    expect(한줄.getByText('API')).toBeTruthy();
+  });
+
+  it('두 번째 쪽이 비어도 이전으로 돌아갈 단추가 있다', async () => {
+    const 부름 = vi
+      .spyOn(qaReportApi, 'list')
+      .mockResolvedValueOnce({ items: Array.from({ length: 50 }, (_, i) => 줄({ id: i + 1, buildNo: String(i + 1) })), total: 50 })
+      .mockResolvedValueOnce({ items: [], total: 50 });
+    render(<QaReports service={앱} tab="app" />);
+    fireEvent.click(await screen.findByRole('button', { name: '다음' }));
+    await waitFor(() => expect(부름).toHaveBeenLastCalledWith('DMW', { page: 2 }));
+    expect(await screen.findByRole('button', { name: '이전' })).toBeTruthy();
+    expect(screen.queryByText('아직 QA 리포트가 없습니다')).toBeNull();
+  });
+
+  it('대상 서버가 하나뿐이면 고르개가 없으니 주소의 대상 서버로 거르지 않는다', async () => {
+    window.location.hash = '#/qa-reports?env=qa';
+    const 부름 = vi.spyOn(qaReportApi, 'list').mockResolvedValue({ items: [], total: 0 });
+    render(<QaReports service={{ ...앱, envs: [앱.envs[0]!] }} tab="app" />);
+    await screen.findByText('아직 QA 리포트가 없습니다');
+    expect(부름).toHaveBeenLastCalledWith('DMW', { page: 1 });
+  });
+});
+
 describe('QA 리포트 › 탭', () => {
   it('탭 둘은 주소다. 프로젝트 탭은 애플리케이션 목록을 부르지 않는다', () => {
     const 부름 = vi.spyOn(qaReportApi, 'list');

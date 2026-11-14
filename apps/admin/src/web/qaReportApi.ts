@@ -16,7 +16,7 @@ export interface 리포트줄 {
   kinds: 리포트종류[];
   /** 묶음에서 아직 도는 실행 수 */
   running: number;
-  /** 마지막 실행이 끝난 시각. 다 돌기 전이면 null */
+  /** 묶음에서 끝난 실행 가운데 마지막 시각. 아직 도는 실행이 있어도 하나라도 끝났으면 차 있다 — 끝난 실행이 없을 때만 null. 다 끝났는지는 running 으로 본다 */
   finishedAt: string | null;
   approvedBy: string | null;
   approvedAt: string | null;

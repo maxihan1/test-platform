@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 import type { ServiceRow } from './api.js';
 import { Head } from './Head.js';
-import { use말, use언어 } from './i18n.js';
+import { use말, use언어, type 언어 } from './i18n.js';
 import { use주소조건, 주소조건 } from './leaveGuard.js';
 import { 다음이있나 } from './paging.js';
 import { qaReportApi, 쪽크기, type 리포트종류, type 리포트줄 } from './qaReportApi.js';
@@ -22,8 +22,7 @@ export function 리포트이름(줄: Pick<리포트줄, 'buildNo' | 'runId' | 'p
   return `PRF-${String(줄.perfRunId ?? 0).padStart(4, '0')}`;
 }
 
-function 줄하나({ 줄, t }: { 줄: 리포트줄; t: 말 }) {
-  const 언어 = use언어();
+function 줄하나({ 줄, t, 언어 }: { 줄: 리포트줄; t: 말; 언어: 언어 }) {
   const 승인됨 = 줄.approvedAt !== null;
   return (
     // ponytail: 리포트 보기 화면(QAR-F1-10)이 서기 전까지 HTML 문서를 새 탭으로 연다. 10 이 `#/qa-reports/<번호>` 로 바꾼다
@@ -35,12 +34,15 @@ function 줄하나({ 줄, t }: { 줄: 리포트줄; t: 말 }) {
           <span className={승인됨 ? 'qar-state ok' : 'qar-state wait'}>{승인됨 ? t('승인됨 · {승인자}', { 승인자: 줄.approvedBy ?? '' }) : t('승인 전')}</span>
         </span>
         <span className="qar-meta">
-          {줄.env} · {t('버전 {버전}', { 버전: 줄.version })} · {t('마지막 실행 {시각}', { 시각: when(줄.finishedAt, 언어) })}
+          {줄.env} · {t('버전 {버전}', { 버전: 줄.version })}
+          {/* 아직 다 돌기 전이면 끝난 시각이 없다 — 빈 칸 대신 아래 「진행 중」이 말한다 */}
+          {줄.finishedAt === null ? null : <> · {t('마지막 실행 {시각}', { 시각: when(줄.finishedAt, 언어) })}</>}
         </span>
         <span className="qar-kinds">
           {줄.kinds.map((k) => (
             <span key={k} className="qar-kind">
-              {t(종류이름[k])}
+              {/* 저장된 첫 장 재료라 모르는 종류가 올 수 있다 — 그 값 그대로 둔다 */}
+              {종류이름[k] === undefined ? k : t(종류이름[k])}
             </span>
           ))}
           {줄.running > 0 ? <span className="qar-kind running">{t('진행 중')}</span> : null}
@@ -51,11 +53,14 @@ function 줄하나({ 줄, t }: { 줄: 리포트줄; t: 말 }) {
 }
 
 function 애플리케이션탭({ service, t }: { service: ServiceRow; t: 말 }) {
+  const 언어 = use언어();
   const [처음] = useState(주소조건);
-  // 다른 애플리케이션에서 넘어온 대상 서버는 이 애플리케이션에 없을 수 있다 — 없으면 전체로 본다
+  // 고르개는 대상 서버가 둘 이상일 때만 선다 — 고르개가 없는데 주소의 값으로 거르면 사람이 풀 길이 없다.
+  // 다른 애플리케이션에서 넘어온 대상 서버도 이 애플리케이션에 없을 수 있다 — 둘 다 전체로 본다
+  const 서버고르나 = service.envs.length > 1;
   const [env, setEnv] = useState(() => {
     const 값 = 처음.get('env') ?? '';
-    return service.envs.some((e) => e.env === 값) ? 값 : '';
+    return 서버고르나 && service.envs.some((e) => e.env === 값) ? 값 : '';
   });
   const [승인, set승인] = useState<승인거르개>(() => {
     const 값 = 처음.get('approved');
@@ -94,7 +99,7 @@ function 애플리케이션탭({ service, t }: { service: ServiceRow; t: 말 }) 
             </button>
           ))}
         </div>
-        {service.envs.length > 1 ? (
+        {서버고르나 ? (
           <label className="qar-env">
             <span className="filter-label">{t('대상 서버')}</span>
             <select
@@ -118,7 +123,7 @@ function 애플리케이션탭({ service, t }: { service: ServiceRow; t: 말 }) 
         <Failed error={목록.error} />
       ) : 목록.data === null ? (
         <Loading />
-      ) : 목록.data.items.length === 0 ? (
+      ) : 목록.data.items.length === 0 && page === 1 ? (
         거른 ? (
           <div className="empty">{t('조건에 맞는 리포트가 없습니다')}</div>
         ) : (
@@ -132,7 +137,7 @@ function 애플리케이션탭({ service, t }: { service: ServiceRow; t: 말 }) 
           <p className="qar-count">{t('리포트 {수}건', { 수: 목록.data.total })}</p>
           <ul className="qar-list">
             {목록.data.items.map((줄) => (
-              <줄하나 key={줄.id} 줄={줄} t={t} />
+              <줄하나 key={줄.id} 줄={줄} t={t} 언어={언어} />
             ))}
           </ul>
           {page === 1 && !다음이있나({ items: 목록.data.items, pageSize: 쪽크기 }) ? null : (
