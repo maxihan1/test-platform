@@ -2,11 +2,13 @@
 
 import type { Pool, PoolClient } from 'pg';
 
-import { 끝내기, 오래된일닫기 } from '../perf/ai.js';
-import { 꺼졌나 } from '../scenario/flowJob.js';
 import { 묶음잠금 } from './qaReport.js';
 import type { 리스크결과 } from './qaReportAiShape.js';
 import { 안정화읽기 } from './qaReportNonFunc.js';
+
+// 성능 AI 일 · 흐름 후보 모듈은 쓸 때 불러온다 — 성능 실행 저장(perf/store.ts)이 QA 리포트를 부르고 perf/ai.ts 가 성능 시나리오를 불러 고리가 생긴다
+const 성능AI = () => import('../perf/ai.js');
+const 흐름일 = () => import('../scenario/flowJob.js');
 
 async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
@@ -116,7 +118,7 @@ async function 한트랜잭션<T>(일: (c: PoolClient) => Promise<T>): Promise<T
  */
 export async function 리스크끝내기(jobId: number, 결과: 리스크결과 & { text: string }): Promise<boolean> {
   return 한트랜잭션(async (c) => {
-    if (!(await 끝내기(jobId, { output: 결과 }, c))) return false;
+    if (!(await (await 성능AI()).끝내기(jobId, { output: 결과 }, c))) return false;
     const 글: 리스크글저장 = { first: 결과.text, current: 결과.text, editedBy: null, editedAt: null };
     // 글이 바뀌면 문서도 바뀐다 — 다시 만든 때와 같이 updated_at 을 올려 승인이 그리는 사이 바뀐 것을 안다
     await c.query(
@@ -153,7 +155,8 @@ export async function 리스크고치기(id: number, text: string, 고친이: st
 
 /** 오래 쥔 일과, 꺼진 에이전트를 기다리는 리스크 일을 닫는다 — 리포트 보기 · 승인 때 부른다. 안 닫으면 승인이 AI_PENDING 에 묶인다 */
 export async function 리스크일닫기(): Promise<void> {
-  await 오래된일닫기();
+  await (await 성능AI()).오래된일닫기();
+  const { 꺼졌나 } = await 흐름일();
   const pool = await db();
   const r = await pool.query<{ id: string; prefix: string }>(
     `SELECT j.id, s.prefix FROM perf_ai_job j JOIN service s ON s.id = j.service_id
