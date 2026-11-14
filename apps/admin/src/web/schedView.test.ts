@@ -14,6 +14,7 @@ const 세트하나 = (덮: Partial<세트> = {}): 세트 => ({
   onceOn: null,
   isOn: true,
   isBase: false,
+  report: null,
   items: [],
   envs: [],
   skipped: [],
@@ -58,6 +59,7 @@ describe('다음날', () => {
 describe('칩들', () => {
   const 지난회차 = (덮: Partial<회차> = {}): 회차 => ({
     id: 9,
+    reportId: null,
     setId: 1,
     plannedOn: '2026-11-12',
     plannedAt: '2026-11-11T17:00:00Z',
@@ -112,7 +114,7 @@ describe('칩들', () => {
 describe('도는 · 줄 선 회차의 예상', () => {
   const 회차 = (덮: Partial<회차>): 회차 => ({
     id: 20, setId: 1, plannedOn: '2026-11-13', plannedAt: '2026-11-12T17:00:00Z', startedAt: null, finishedAt: null,
-    state: 'QUEUED', verdict: 'NONE', suspects: 0, runs: [], notes: [], ...덮,
+    state: 'QUEUED', verdict: 'NONE', suspects: 0, reportId: null, runs: [], notes: [], ...덮,
   });
 
   it('평균보다 오래 도는 회차 뒤의 예정은 지금 이후로 밀린다', () => {

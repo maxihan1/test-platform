@@ -2,7 +2,7 @@
 
 import { use말, use언어 } from './i18n.js';
 import type { 세트 } from './schedApi.js';
-import { 다음날, 시간대로 } from './schedView.js';
+import { 다음날, 시간대로, 프로젝트리포트주소 } from './schedView.js';
 
 type 말 = ReturnType<typeof use말>;
 
@@ -23,6 +23,9 @@ export function 반복글(세트: Pick<세트, 'days' | 'onceOn'>, t: 말, 언�
   return t('매주 {요일}', { 요일: 요일들.map((d) => 요일글(`2026-11-0${String(d === 0 ? 8 : d + 1)}`, 언어)).join('·') });
 }
 
+/** 리포트 일정이 담는 기간 (§3.16 「리포트 일정」) — 손으로 만드는 「이번 주」 · 「이번 달」과 같은 셈이다 */
+export const 리포트기간글: Record<'WEEK' | 'MONTH', string> = { WEEK: '프로젝트 전체 · 이번 주(월요일부터)', MONTH: '프로젝트 전체 · 이번 달(1일부터)' };
+
 export const 종류글: Record<string, string> = { FN: '기능', UI: 'UI', E2E: 'E2E', SCENARIO: 'E2E', COMPAT: '호환성' };
 
 export function 판정알약({ 판정, t }: { 판정: 'PASS' | 'FAIL' | 'NONE' | 'RUNNING'; t: 말 }) {
@@ -38,12 +41,13 @@ function 카드({ 세트, 색, 고름, 지금, 쓰나, on고르기, on날보기,
   const 종류들 = [...new Set(세트.items.map((x) => t(종류글[x.kind]!)))];
   const 마지막 = 세트.last;
   return (
-    <li className={`sched-card${고름 ? ' focus' : ''}${세트.isOn ? '' : ' off'}`}>
+    <li className={`sched-card${고름 ? ' focus' : ''}${세트.isOn ? '' : ' off'}${세트.report === null ? '' : ' rep'}`}>
       <button type="button" className="sched-card-pick" aria-pressed={고름} onClick={on고르기}>
         <span className="sched-card-name">
           <i className="sched-dot" style={{ background: 색 }} aria-hidden="true" />
           {세트.name}
           {세트.isBase ? <span className="sched-tag">{t('안정화 기준')}</span> : null}
+          {세트.report === null ? null : <span className="sched-tag rep">{t('리포트§달력')}</span>}
           {세트.isOn ? null : <span className="sched-tag">{t('꺼짐')}</span>}
         </span>
         <span className="sched-meta">
@@ -51,11 +55,21 @@ function 카드({ 세트, 색, 고름, 지금, 쓰나, on고르기, on날보기,
           {다음 === null ? null : ' · '}
           {다음 === null ? null : t('다음 {날}', { 날: 짧은날(다음) })}
         </span>
-        <span className="sched-meta">
-          {앱들.join(' + ')} · {종류들.join(' · ')}
-        </span>
+        <span className="sched-meta">{세트.report === null ? `${앱들.join(' + ')} · ${종류들.join(' · ')}` : t(리포트기간글[세트.report])}</span>
       </button>
-      {마지막 === null ? (
+      {마지막 !== null && 세트.report !== null ? (
+        // 리포트 일정은 판정 대신 만든 리포트로 간다
+        <span className="sched-meta">
+          {t('마지막 {날}', { 날: 짧은날(시간대로(new Date(마지막.plannedAt), 세트.tz).날) })}{' '}
+          {마지막.reportId === null ? (
+            <판정알약 판정={마지막.state === 'RUNNING' ? 'RUNNING' : 'NONE'} t={t} />
+          ) : (
+            <a className="sched-link" href={프로젝트리포트주소(마지막.reportId)}>
+              {t('리포트 →')}
+            </a>
+          )}
+        </span>
+      ) : 마지막 === null ? (
         <span className="sched-meta">{t('실행 기록 없음')}</span>
       ) : (
         <span className="sched-meta">

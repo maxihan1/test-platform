@@ -5,6 +5,7 @@ import type { 후보 } from './schedForm.js';
 
 export type 줄종류 = 'FN' | 'UI' | 'E2E' | 'COMPAT';
 export type 회차판정 = 'PASS' | 'FAIL' | 'NONE';
+export type 리포트기간 = 'WEEK' | 'MONTH';
 
 /** 세트줄 (§7 GET /api/sched/sets) */
 export interface 세트 {
@@ -17,12 +18,14 @@ export interface 세트 {
   onceOn: string | null;
   isOn: boolean;
   isBase: boolean;
+  /** 리포트 일정이면 담을 기간 — 그때 items · envs 는 비었다 (§3.16 「리포트 일정」) */
+  report: 리포트기간 | null;
   items: { kind: 줄종류; service: string; tcIds: string[] | null; scenarioId?: number; compatSetId?: number; label: string }[];
   envs: { service: string; env: string }[];
   skipped: { seq: number; reason: string }[];
   missing: { cases: number; tests: number };
   avgMinutes: number | null;
-  last: { occurrenceId: number; state: 'RUNNING' | 'DONE'; plannedAt: string; startedAt: string | null; verdict: 회차판정; suspects: number; runIds: number[] } | null;
+  last: { occurrenceId: number; state: 'RUNNING' | 'DONE'; plannedAt: string; startedAt: string | null; verdict: 회차판정; suspects: number; runIds: number[]; reportId: number | null } | null;
   baseable: boolean;
 }
 
@@ -49,6 +52,8 @@ export interface 회차 {
   state: 'QUEUED' | 'RUNNING' | 'DONE' | 'SKIPPED';
   verdict: 회차판정;
   suspects: number;
+  /** 리포트 일정 회차가 만든 프로젝트 리포트 */
+  reportId: number | null;
   runs: 회차실행[];
   notes: { kind: string | null; service: string | null; reason: string }[];
 }
@@ -75,4 +80,5 @@ export interface 세트본문 {
   onceOn?: string;
   items: { kind: 줄종류; service?: string; tcIds?: string[] | null; scenarioId?: number; compatSetId?: number }[];
   envs: { service: string; env: string }[];
+  report?: 리포트기간;
 }

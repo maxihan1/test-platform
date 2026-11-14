@@ -32,6 +32,7 @@ const 세트하나 = (덮: Partial<세트> = {}): 세트 => ({
   onceOn: null,
   isOn: true,
   isBase: false,
+  report: null,
   items: [{ kind: 'FN', service: 'MKT', tcIds: null, label: '기능 전체' }],
   envs: [{ service: 'MKT', env: 'stg' }],
   skipped: [],

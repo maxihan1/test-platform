@@ -156,6 +156,18 @@
   color: var(--ink-muted);
 }
 
+/* 리포트 일정 칸 — 지난 칸은 파란 칩, 앞으로의 칸은 파란 점선 (§8.20 「리포트 일정」) */
+.sched-ev.report,
+.sched-blk.report {
+  background: var(--blue-soft);
+  color: var(--blue-1);
+}
+
+.sched-ev.plan.rep {
+  border-color: var(--blue-1);
+  color: var(--blue-1);
+}
+
 /* 주 · 일 — 세로 시간 줄 */
 .sched-week {
   display: grid;
@@ -217,6 +229,11 @@
   color: var(--ink-muted);
   outline: 1px dashed var(--na);
   outline-offset: -1px;
+}
+
+.sched-blk.plan.rep {
+  color: var(--blue-1);
+  outline-color: var(--blue-1);
 }
 
 .sched-ghost {

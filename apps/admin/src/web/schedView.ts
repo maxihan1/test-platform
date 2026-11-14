@@ -52,7 +52,7 @@ export function 다음날들(세트: 반복꼴, 지금: Date, 수: number): stri
 }
 export const 다음날 = (세트: 반복꼴, 지금: Date): string | null => 다음날들(세트, 지금, 1)[0] ?? null;
 
-export type 칩상태 = 'pass' | 'fail' | 'none' | 'running' | 'plan';
+export type 칩상태 = 'pass' | 'fail' | 'none' | 'running' | 'plan' | 'report';
 
 /** 달력의 칸 하나 — 세트가 그날 한 번 도는 것. 분은 그날 0시부터(자정을 넘기면 1440 을 넘는다) */
 export interface 칩 {
@@ -85,7 +85,9 @@ function 회차칩(o: 회차, 세트: 세트, 기다림: boolean): 칩 {
     return x.분 + 1440 * 날차(o.plannedOn, x.날);
   };
   const 시작분 = o.startedAt === null ? 정한분 : 그날분(o.startedAt);
-  const 상태: 칩상태 = o.state === 'QUEUED' ? 'plan' : o.state === 'RUNNING' ? 'running' : o.verdict === 'PASS' ? 'pass' : o.verdict === 'FAIL' ? 'fail' : 'none';
+  // 리포트 일정 회차는 판정 대신 만든 리포트다 — 못 만들었으면 결과 없음 (§3.16 「리포트 일정」)
+  const 끝난것: 칩상태 = 세트.report !== null ? (o.reportId === null ? 'none' : 'report') : o.verdict === 'PASS' ? 'pass' : o.verdict === 'FAIL' ? 'fail' : 'none';
+  const 상태: 칩상태 = o.state === 'QUEUED' ? 'plan' : o.state === 'RUNNING' ? 'running' : 끝난것;
   return {
     세트,
     날: o.plannedOn,
@@ -192,6 +194,9 @@ export function 나란히(칸들: readonly { 시작분: number; 끝분: number }
   닫기();
   return 답;
 }
+
+/** 리포트 일정 회차가 만든 프로젝트 리포트 주소 */
+export const 프로젝트리포트주소 = (id: number) => `#/qa-reports/project/${String(id)}`;
 
 /** 실행 결과로 가는 주소 — 호환성은 따로 선다 (route.ts) */
 export const 실행주소 = (kind: string, runId: number) => (kind === 'COMPAT' ? `#/compat/runs/${String(runId)}` : `#/runs/${String(runId)}`);

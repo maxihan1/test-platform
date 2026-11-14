@@ -75,7 +75,8 @@ export function 겹치는세트들(세트들: readonly 세트[], 나: { id: numb
   const 내시작 = 분(나.at);
   const 내끝 = 내시작 + (나.avgMinutes ?? 0);
   return 세트들.filter((s) => {
-    if (s.id === 나.id || !s.isOn || !같은날있나(s, 나)) return false;
+    // 리포트 일정은 몇 초면 끝나 겹침 안내에 넣지 않는다
+    if (s.id === 나.id || !s.isOn || s.report !== null || !같은날있나(s, 나)) return false;
     const 시작 = 분(s.at);
     return 시작 <= 내끝 && 내시작 <= 시작 + (s.avgMinutes ?? 0);
   });
