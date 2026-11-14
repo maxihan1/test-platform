@@ -31,7 +31,7 @@ interface 리포트행 {
   run_id: string | null;
   perf_run_id: string | null;
   version: number;
-  summary: { kinds?: string[]; overview?: { running?: number } };
+  summary: { kinds?: string[]; overview?: { running?: number; finishedAt?: string | null } };
   approved_by: string | null;
   approved_name: string | null;
   approved_at: Date | null;
@@ -79,6 +79,7 @@ export default async function qaReportRoutes(app: FastifyInstance): Promise<void
         version: q.version,
         kinds: q.summary.kinds ?? [],
         running: q.summary.overview?.running ?? 0,
+        finishedAt: q.summary.overview?.finishedAt ?? null,
         approvedBy: q.approved_name ?? q.approved_by,
         approvedAt: q.approved_at?.toISOString() ?? null,
         updatedAt: q.updated_at.toISOString(),

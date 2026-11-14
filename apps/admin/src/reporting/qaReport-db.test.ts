@@ -222,13 +222,16 @@ describe.skipIf(연결 === undefined)('QA 리포트 빌드 묶기', { timeout: 6
   it('읽기 통로 — 목록은 묶음마다 마지막 버전 · 상세 · 실행이 든 리포트 · 남의 프로젝트는 막힌다', async () => {
     const 목록 = await 부르기('xqb-reader', '/api/qa-reports?service=XQB&env=qa');
     expect(목록.statusCode, 목록.body).toBe(200);
-    const 줄 = (목록.json() as { items: { id: number; buildNo: string | null; version: number; kinds: string[] }[]; total: number }).items.find((i) => i.buildNo === '1.0:1');
+    const 줄 = (목록.json() as { items: { id: number; buildNo: string | null; version: number; kinds: string[]; finishedAt: string | null }[]; total: number }).items.find((i) => i.buildNo === '1.0:1');
     expect(줄).toMatchObject({ version: 2, kinds: ['FN', 'UI', 'PERF'] });
     expect((await 부르기('xqb-reader', '/api/qa-reports?service=XQB&approved=true')).json()).toMatchObject({ total: 0 });
 
     const 상세 = await 부르기('xqb-reader', `/api/qa-reports/${String(줄!.id)}`);
     expect(상세.statusCode, 상세.body).toBe(200);
     expect(상세.json()).toMatchObject({ version: 2, approval: null, versions: [{ version: 1 }, { version: 2, approvedAt: null }] });
+    // 목록 줄의 「마지막 실행 시각」은 그 버전을 만든 때 굳힌 개요의 끝난 시각이다 — updatedAt 은 AI 글을 고쳐도 바뀐다
+    expect(줄!.finishedAt).toBe((상세.json() as { summary: { overview: { finishedAt: string | null } } }).summary.overview.finishedAt);
+    expect(줄!.finishedAt).toEqual(expect.any(String));
     const v1 = (상세.json() as { versions: { id: number }[] }).versions[0]!.id;
     expect((await 부르기('xqb-reader', `/api/qa-reports/${String(v1)}`)).json()).toMatchObject({ approval: { by: 'xqb-admin', late: false, sha256: 'ab' } });
 
