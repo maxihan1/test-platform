@@ -134,7 +134,9 @@ export function 결과다듬기(kind: string, input: unknown, output: unknown): 
     return { output: 요약거르기(값 as z.infer<typeof 요약모양>, 재료 as 요약재료뼈대) };
   }
   if (kind === 'REPORT_RISK') {
-    if ((input as { summary?: unknown } | null)?.summary === undefined) return { error: '리스크 재료가 굳기 전의 일입니다' };
+    // 애플리케이션 리포트 재료는 summary, 프로젝트 리포트 재료는 body 다 (도메인/리포팅 §3.17)
+    const 재료 = input as { summary?: unknown; body?: unknown } | null;
+    if (재료?.summary === undefined && 재료?.body === undefined) return { error: '리스크 재료가 굳기 전의 일입니다' };
     return 리스크거르기(값 as 리스크결과);
   }
   return { output: 값 };

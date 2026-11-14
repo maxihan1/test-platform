@@ -258,16 +258,17 @@ export async function 대시보드(
   tz: string,
   볼수있는실행ids: number[],
   볼수있는작성ids: number[],
-  { 서비스: 고른서비스, 날수 = 창날수 }: { 서비스?: number; 날수?: number } = {},
+  { 서비스: 고른서비스, 날수 = 창날수, 끝 }: { 서비스?: number; 날수?: number; 끝?: string } = {},
 ): Promise<Omit<대시보드응답, 'decisions' | 'aiQuality' | 'project'>> {
   const 실행서비스ids = 좁힌다(볼수있는실행ids, 고른서비스);
   const 작성서비스ids = 좁힌다(볼수있는작성ids, 고른서비스);
   const pool = await db();
   await 시간대확인(pool, tz);
 
-  const 오늘 = (
-    await pool.query<{ today: string }>(`SELECT to_char((now() AT TIME ZONE $1::text)::date, 'YYYY-MM-DD') AS today`, [tz])
-  ).rows[0]!.today;
+  // 끝 — 프로젝트 QA 리포트가 지난 기간을 셀 때 그 기간 마지막 날을 「오늘」 자리에 둔다 (§3.17 「프로젝트 QA 리포트」)
+  const 오늘 =
+    끝 ??
+    (await pool.query<{ today: string }>(`SELECT to_char((now() AT TIME ZONE $1::text)::date, 'YYYY-MM-DD') AS today`, [tz])).rows[0]!.today;
   const 줄들 = await 줄읽기(pool, 실행서비스ids, tz, 오늘, 날수);
   const 이번시작 = 날짜더하기(오늘, -(날수 - 1));
   const [앞판정들, running, coverage, 서비스, 한건] = await Promise.all([

@@ -201,11 +201,37 @@ const 종류별: Record<string, { 역할?: string; 화면: string; 규칙: strin
     모양: '{ "functional": [{ "text": 문자열, "refs": 문자열[] }], "nonFunctional": [{ "text": 문자열, "refs": 문자열[] }] }',
     예: '{ "functional": [{ "text": "결제 실패 2건이 아직 판정 전이라 결함인지 테스트 문제인지 모릅니다", "refs": ["DMK-FN-012", "DMK-FN-013"] }], "nonFunctional": [] }',
   },
+  // 프로젝트 QA 리포트의 지난 리포트 대비 리스크 — 같은 REPORT_RISK 일에 projectReportId 가 실려 온다 (도메인/리포팅 §3.17 「프로젝트 QA 리포트」)
+  REPORT_RISK_PROJECT: {
+    역할: '너는 Test Commander 프로젝트 QA 리포트 뒤에서 도는 도우미다. QA 엔지니어의 눈으로 프로젝트 하나의 기간 상태 숫자를 보고, 지난 프로젝트 리포트와 견줘 새로 생기거나 바뀐 리스크를 쓴다. 숫자를 세는 것, 배포 · 출시를 판단하는 것은 네 몫이 아니다.',
+    화면: '결과는 프로젝트 QA 리포트 「지난 리포트 대비 리스크」 칸에 「AI 작성」 표시와 함께 보이고 PDF · 워드에도 실린다. PM · 경영진이 읽고, 사람이 고칠 수 있다.',
+    점검: [
+      'refs 가 모두 재료나 도구 결과에서 본 번호인가',
+      '배포 · 출시를 판단하는 말이 없는가',
+      '글 안의 숫자가 모두 재료에 있는 숫자인가',
+      '줄마다 「신규」 · 「계속」 · 「해소」 가운데 하나로 시작하는가',
+    ],
+    규칙: [
+      '재료 body 는 admin 이 센 이번 기간 숫자다. apps 는 애플리케이션마다 기간 안 판정(runs) · 회귀 실패(newFailures) · 마지막 애플리케이션 리포트 결과 요약(last.results — functional 은 기능 · UI · E2E, nonFunctional 은 호환성 · 성능 · 안정화) · 열린 결함, deploys 는 배포, changes 는 배포에 든 변경과 확인한 수, coverage 는 요구사항 커버리지, defects 는 결함 추이, nonFunctional 은 성능 목표 판정 · 안정화(passErrorCases 는 판정은 통과했지만 오류가 난 케이스), blocked 는 멈춘 실행 · 준비 실패 · 성능 오류다. previous 는 지난 프로젝트 리포트의 숫자와 그때 쓴 리스크 글(risks)이고 null 이면 처음 리포트다. truncated 가 true 면 배열이 100개에서 잘렸다.',
+      '줄마다 지난 리포트 대비 상태를 글 맨 앞에 쓴다 — 「신규 · 」(이번에 처음 보인 것) · 「계속 · 」(지난번에도 있던 것) · 「해소 · 」(지난 리포트 risks 에 있었는데 이번 숫자로는 사라진 것). previous 가 null 이면 모두 「신규 · 」다.',
+      'functional 은 기능 · UI · E2E 실패 · 회귀 실패 · 확인하지 못한 변경 · 커버리지 하락 · 막힌 것에서 나온 리스크다. nonFunctional 은 호환성 의심 · 성능 목표 미달 · 안정화(판정은 통과했지만 오류가 난 케이스 · 크래시 · 신규 · 재발 오류)에서 나온 리스크다.',
+      '리스크마다 한 줄로 쓰고 큰 것부터 묶음마다 많아야 5줄이다. refs 에 애플리케이션 접두사 · 빌드 번호 · Issue Bunker 이슈 키 · 실행 번호(「RUN 123」 꼴)를 단다. refs 는 admin 이 줄 끝에 괄호로 붙이니 text 에 다시 쓰지 않는다.',
+      '묶음에 쓸 것이 없으면 빈 배열로 둔다. admin 이 「확인된 리스크 없음」을 적는다.',
+      'MCP 도구(qa-hub)가 열려 있으면 근거를 확인할 때만 쓴다 — run_result(runId) 로 실패 단계 · 오류를, bts_search(projectId: 재료 projectId, issueKey) 로 이슈 제목 · 상태를 본다. btsLinked 가 false 면 bts_search 를 부르지 않는다. 열 번 안쪽으로 부르고, 도구가 없거나 거절하면 재료만으로 쓴다.',
+      '원인은 단정하지 않는다. 「~로 보입니다」처럼 쓴다.',
+      '「배포 가능」 · 「배포 보류」 · 「출시해도 됩니다」 · go/no-go 처럼 배포 · 출시를 판단하는 말을 쓰지 않는다. 판단은 사람이 한다.',
+      '글 안의 숫자는 재료에 있는 것만 옮긴다. 더하거나 빼거나 비율을 새로 계산하지 않는다.',
+    ],
+    모양: '{ "functional": [{ "text": 문자열, "refs": 문자열[] }], "nonFunctional": [{ "text": 문자열, "refs": 문자열[] }] }',
+    예: '{ "functional": [{ "text": "신규 · 웹 결제 회귀 실패 2건이 이번 기간에 처음 나왔습니다", "refs": ["DMW", "빌드 124"] }], "nonFunctional": [{ "text": "계속 · API 95% 응답 시간 목표 미달이 지난 기간에 이어 남았습니다", "refs": ["DMA"] }] }',
+  },
 };
 
 /** 종류마다 프롬프트를 만든다. 모르는 종류는 null — 부르는 쪽이 error 로 끝낸다 */
 export function 성능프롬프트(kind: string, input: unknown): string | null {
-  const 하나 = 종류별[kind];
+  // 프로젝트 리포트의 리스크 일은 종류가 같고 재료가 다르다 — 재료에 프로젝트 리포트 번호가 있으면 그 판을 쓴다
+  const 프로젝트인가 = kind === 'REPORT_RISK' && typeof (input as { projectReportId?: unknown } | null)?.projectReportId === 'number';
+  const 하나 = 종류별[프로젝트인가 ? 'REPORT_RISK_PROJECT' : kind];
   if (하나 === undefined) return null;
   const 모양글 = kind.startsWith('DRAFT_') ? `\n${트랜잭션모양}\n` : '\n';
   return [

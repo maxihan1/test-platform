@@ -5,7 +5,8 @@ import { 묶음머리 } from './qaReportAiShape.js';
 import type { 리포트응답 } from './qaReportDoc.js';
 import { 시각, type 덩이 } from './qaReportText.js';
 
-export function 남은리스크(r: 리포트응답): 덩이[] {
+/** 프로젝트 QA 리포트도 같은 글을 「지난 리포트 대비 리스크」 제목으로 쓴다 */
+export function 남은리스크(r: Pick<리포트응답, 'ai'>, 제목 = '남은 리스크'): 덩이[] {
   const a = r.ai;
   const 몸: 덩이[] =
     a === null
@@ -26,7 +27,7 @@ export function 남은리스크(r: 리포트응답): 덩이[] {
               .filter((줄) => 줄 !== '')
               .map((줄): 덩이 => (줄 === 묶음머리.functional || 줄 === 묶음머리.nonFunctional ? { 꼴: '글', 글: 줄, 결: '머리' } : { 꼴: '글', 글: 줄 })),
           ];
-  return [{ 꼴: '절', 글: '남은 리스크', 상자: 'AI' }, ...몸];
+  return [{ 꼴: '절', 글: 제목, 상자: 'AI' }, ...몸];
 }
 
 export function 승인(r: 리포트응답): 덩이[] {

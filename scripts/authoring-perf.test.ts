@@ -53,6 +53,14 @@ describe('성능프롬프트', () => {
     expect(글).toContain('추천 · 예시 값은 규칙이 허락한 자리에만');
   });
 
+  it('리스크 일에 프로젝트 리포트 번호가 있으면 지난 리포트 대비 판을 쓴다 — 없으면 빌드 판', () => {
+    const 프로젝트 = 성능프롬프트('REPORT_RISK', { projectReportId: 3, body: {} })!;
+    expect(프로젝트.split('\n')[0]).toContain('너는 Test Commander 프로젝트 QA 리포트 뒤에서 도는 도우미다');
+    expect(프로젝트).toContain('「신규 · 」');
+    expect(프로젝트).toContain('배포 · 출시를 판단하는 말이 없는가');
+    expect(성능프롬프트('REPORT_RISK', { reportId: 3, summary: {} })).toContain('빌드 하나의 QA 리포트 첫 장 재료');
+  });
+
   it('초안 종류만 트랜잭션 모양을 적는다', () => {
     expect(성능프롬프트('DRAFT_RECORD', 재료)).toContain('Transaction = {');
     expect(성능프롬프트('SUGGEST_LOAD', 재료)).not.toContain('Transaction = {');

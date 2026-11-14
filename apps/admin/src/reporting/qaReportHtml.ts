@@ -10,7 +10,7 @@ import type { 문서재료 } from './qaReportDoc.js';
 import { 구획들 } from './qaReportSections.js';
 import { 격자칸, 리포트제목, 빈글, 승인뒤다시, 첫장글, 시각, type 덩이 } from './qaReportText.js';
 
-const 리포트스타일 = `<style>
+export const 리포트스타일 = `<style>
 .cover{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; border-bottom:2px solid var(--ink); padding-bottom:12px; margin-bottom:8px; }
 .cover .kicker{ font-size:12px; font-weight:600; color:var(--chrome); letter-spacing:.04em; }
 .cover h1{ font-size:21px; font-weight:600; line-height:1.35; margin-top:2px; }
@@ -129,7 +129,8 @@ function 표(d: Extract<덩이, { 꼴: '표' }>): string[] {
   // 짧은 글만 든 열(구분 · 출처 · 판정 전)은 줄을 안 바꾼다 — 폰 폭에서 「신/규」처럼 한 글자씩 꺾였다
   const 짧은열 = (i: number) => d.머리.length > 0 && 본줄.length > 0 && (d.머리[i] ?? '').length <= 7 && 본줄.every((z) => (z.칸[i] ?? '').length <= 7);
   const n = (i: number) => (숫자열(i) ? ' class="n"' : 짧은열(i) ? ' class="s"' : '');
-  const 칸 = (글: string, i: number) => {
+  const 칸 = (글: string, i: number, 고리?: string | null) => {
+    if (고리 !== undefined && 고리 !== null) return `<td${n(i)}><a href="${안전(고리)}" target="_blank" rel="noreferrer">${안전(글)}</a></td>`;
     if (i === d.판정칸) return `<td>${글.split('\n').map(판정줄).join('')}</td>`;
     if (d.격자 === true && i > 0) return `<td class="${격자꼴[글] ?? ''}">${안전(글)}</td>`;
     return `<td${n(i)}>${수강조(안전(글))}</td>`;
@@ -140,14 +141,14 @@ function 표(d: Extract<덩이, { 꼴: '표' }>): string[] {
     '<tbody>',
     // 묶음 머리 줄은 한 칸이 표 폭 전부를 덮는다
     ...d.줄.map((z) =>
-      z.결 === '묶음' ? `<tr class="group"><td colspan="${폭}">${안전(z.칸[0] ?? '')}</td></tr>` : `<tr${z.결 === '강조' ? ' class="emph"' : ''}>${z.칸.map(칸).join('')}</tr>`,
+      z.결 === '묶음' ? `<tr class="group"><td colspan="${폭}">${안전(z.칸[0] ?? '')}</td></tr>` : `<tr${z.결 === '강조' ? ' class="emph"' : ''}>${z.칸.map((글, i) => 칸(글, i, z.고리?.[i])).join('')}</tr>`,
     ),
     '</tbody>',
     '</table></div>',
   ];
 }
 
-function 덩이로(d: 덩이, 절꼴 = 'sec'): string[] {
+export function 덩이로(d: 덩이, 절꼴 = 'sec'): string[] {
   switch (d.꼴) {
     case '절':
       return [`<h2 class="${절꼴}">${안전(d.글)}</h2>`];
@@ -173,7 +174,7 @@ function 덩이로(d: 덩이, 절꼴 = 'sec'): string[] {
 }
 
 // 남은 리스크는 AI 상자, 승인은 점선 상자 — 절 머리 뒤 덩이들을 다음 절까지 감싼다
-function 첫장(덩이들: 덩이[]): string[] {
+export function 첫장(덩이들: 덩이[]): string[] {
   const 줄: string[] = [];
   let 상자: string | null = null;
   for (const d of 덩이들) {
