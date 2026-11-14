@@ -4,13 +4,18 @@ import { describe, expect, it, vi } from 'vitest';
 import type { AppDriver } from './app.js';
 import { 폰에파일넣기 } from './phoneMedia.js';
 
-function 가짜폰(scanMedia: 'ok' | 'fail' = 'ok') {
+function 가짜폰(scanMedia: 'ok' | 'fail' = 'ok', 셸실패: string[] = []) {
   const 부름: { 명령: string; 값: unknown }[] = [];
   const driver = {
     pushFile: vi.fn(async (경로: string, 글: string) => void 부름.push({ 명령: 'push', 값: { 경로, 크기: Buffer.from(글, 'base64').length } })),
     execute: vi.fn(async (명령: string, 값: unknown) => {
       부름.push({ 명령, 값 });
       if (명령 === 'mobile: scanMedia' && scanMedia === 'fail') throw new Error('Unknown mobile command');
+      const 셸 = (값 as { command?: string }).command;
+      if (명령 === 'mobile: shell' && 셸 !== undefined && 셸실패.includes(셸)) {
+        셸실패.splice(셸실패.indexOf(셸), 1);
+        throw new Error(`adb_shell 이 꺼졌다(${셸})`);
+      }
       return '';
     }),
   };
@@ -45,12 +50,34 @@ describe('폰에파일넣기', () => {
     expect(부름[1]).toEqual({ 명령: 'mobile: shell', 값: { command: 'truncate', args: ['-s', String(99 * 1024 * 1024), 파일.경로] } });
   });
 
-  it('바탕보다 작은 크기 · 정수가 아닌 크기 · 경로를 흔드는 확장자는 보내기 전에 던진다', async () => {
+  it('바탕보다 작은 크기 · 정수가 아닌 크기는 보내기 전에 던진다', async () => {
     const { driver } = 가짜폰();
     await expect(폰에파일넣기(driver, '사진', { 크기: 10 })).rejects.toThrow('크기는');
     await expect(폰에파일넣기(driver, '영상', { 크기: 1.5e6 + 0.5 })).rejects.toThrow('크기는');
-    await expect(폰에파일넣기(driver, '파일', { 확장자: '../x' })).rejects.toThrow('확장자는');
     expect(driver.pushFile).not.toHaveBeenCalled();
+  });
+
+  it('늘리기가 실패하면 넣은 작은 파일을 지우고 까닭을 붙여 던진다 — 사진첩에 남기지 않는다', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { driver, 부름 } = 가짜폰('ok', ['truncate']);
+    await expect(폰에파일넣기(driver, '영상', { 크기: 99 * 1024 * 1024 })).rejects.toThrow('못 늘렸다');
+    const 경로 = (부름[0]?.값 as { 경로: string }).경로;
+    expect(부름.slice(1)).toEqual([
+      { 명령: 'mobile: shell', 값: { command: 'truncate', args: ['-s', String(99 * 1024 * 1024), 경로] } },
+      { 명령: 'mobile: shell', 값: { command: 'rm', args: ['-f', 경로] } },
+      { 명령: 'mobile: scanMedia', 값: { remotePath: 경로 } },
+    ]);
+  });
+
+  it('지우기가 실패해도 던지지 않는다 — 케이스 결과를 가리지 않고, 다음 부름에서 다시 지운다', async () => {
+    const 오류 = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { driver, 부름 } = 가짜폰('ok', ['rm']);
+    const 파일 = await 폰에파일넣기(driver, '사진');
+    await expect(파일.지우기()).resolves.toBeUndefined();
+    expect(오류.mock.calls[0]?.[0]).toContain('못 지웠다');
+    await 파일.지우기();
+    expect(부름.filter((b) => (b.값 as { command?: string }).command === 'rm')).toHaveLength(2);
+    expect(부름.at(-1)).toEqual({ 명령: 'mobile: scanMedia', 값: { remotePath: 파일.경로 } });
   });
 
   it('mobile: scanMedia 가 없으면 미디어 훑기 방송으로 물러선다', async () => {

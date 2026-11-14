@@ -11,7 +11,7 @@ export interface 폰파일 {
   지우기(): Promise<void>;
 }
 
-// 저장소에 사진 파일을 두지 않는다 — 64x64 단색 PNG 와 1초 64x64 H.264 MP4(moov 가 앞에 있어 뒤를 늘려도 읽힌다)를 글자로 싣는다
+// 저장소에 사진 파일을 두지 않는다 — 64x64 단색 PNG 와 1초 64x64 H.264 MP4(moov 가 앞에 있어 뒤를 0 으로 늘려도 읽힌다 — 2026-11-14 ffprobe 로 5MB 로 늘린 파일이 h264 1초로 읽혔다)를 글자로 싣는다
 const 사진글 =
   'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAACXBIWXMAAAABAAAAAQBPJcTWAAAAZElEQVR4nO3PQQ3AIADAQEhQhRkU42kieFyW9BS0c587/mzpgFcNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaA1oDWgNaB+bdgJkBVFcyAAAAABJRU5ErkJggg==';
 const 영상글 =
@@ -28,19 +28,23 @@ const 자리: Record<폰파일종류, { 폴더: string; 확장자: string; 글: 
  * 파일은 늘 작게 보낸다 — 디바이스 팜이 받는 요청 본문 상한이 64MB 라(base64 로 늘어난다) 큰 파일을 그대로 못 싣는다.
  * 사진첩 · 영상 목록에 바로 보이게 미디어 훑기를 부른다. 케이스는 `finally` 에서 `지우기()` 를 부른다 — 남기면 다음 케이스의 사진첩에 섞인다
  */
-export async function 폰에파일넣기(driver: AppDriver, 종류: 폰파일종류, 선택: { 크기?: number; 확장자?: string } = {}): Promise<폰파일> {
+export async function 폰에파일넣기(driver: AppDriver, 종류: 폰파일종류, 선택: { 크기?: number } = {}): Promise<폰파일> {
   const 틀 = 자리[종류];
   const 바탕크기 = Buffer.from(틀.글, 'base64').length;
   if (선택.크기 !== undefined && (!Number.isInteger(선택.크기) || 선택.크기 < 바탕크기)) {
     throw new Error(`폰에파일넣기: ${종류} 크기는 ${String(바탕크기)}바이트 이상 정수다 — ${String(선택.크기)}`);
   }
-  const 확장자 = 선택.확장자 ?? 틀.확장자;
-  if (!/^[a-z0-9]{1,8}$/.test(확장자)) throw new Error(`폰에파일넣기: 확장자는 영문 소문자 · 숫자 8자까지다 — ${확장자}`);
-  const 이름 = `qa-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}.${확장자}`;
+  const 이름 = `qa-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}.${틀.확장자}`;
   const 경로 = `${틀.폴더}/${이름}`;
   await driver.pushFile(경로, 틀.글);
   if (선택.크기 !== undefined && 선택.크기 > 바탕크기) {
-    await driver.execute('mobile: shell', { command: 'truncate', args: ['-s', String(선택.크기), 경로] });
+    try {
+      await driver.execute('mobile: shell', { command: 'truncate', args: ['-s', String(선택.크기), 경로] });
+    } catch (err) {
+      // 넣은 작은 파일을 남기면 다음 케이스 사진첩에 섞인다 — 지우고 까닭을 붙여 던진다
+      await 지운다(driver, 경로);
+      throw new Error(`폰에파일넣기: ${경로} 를 ${String(선택.크기)}바이트로 못 늘렸다(Appium adb_shell 허용 · 폰 저장 공간) — ${글(err)}`);
+    }
   }
   await 훑기(driver, 경로);
   let 지움 = false;
@@ -49,20 +53,36 @@ export async function 폰에파일넣기(driver: AppDriver, 종류: 폰파일종
     이름,
     지우기: async () => {
       if (지움) return;
-      지움 = true;
-      await driver.execute('mobile: shell', { command: 'rm', args: ['-f', 경로] });
-      await 훑기(driver, 경로);
+      지움 = await 지운다(driver, 경로);
     },
   };
 }
 
-// 미디어 훑기는 UiAutomator2 의 mobile: scanMedia 가 먼저다 — 못 하면(옛 드라이버) 방송으로 부른다. 둘 다 안 되면 사진첩에 늦게 보일 뿐이라 던지지 않는다
+const 글 = (err: unknown): string => (err instanceof Error ? err.message : String(err));
+
+// 지우기는 케이스의 finally 에서 돈다 — 던지면 케이스의 진짜 결과(통과 · 판정 실패)를 가린다. 기록만 남기고, 못 지웠으면 다음 부름에서 다시 지운다
+async function 지운다(driver: AppDriver, 경로: string): Promise<boolean> {
+  try {
+    await driver.execute('mobile: shell', { command: 'rm', args: ['-f', 경로] });
+  } catch (err) {
+    console.error(`[kit] 폰에 넣은 ${경로} 를 못 지웠다 — 다음 케이스 사진첩에 남을 수 있다: ${글(err)}`);
+    return false;
+  }
+  await 훑기(driver, 경로);
+  return true;
+}
+
+// 미디어 훑기는 UiAutomator2 의 mobile: scanMedia 가 먼저다 — 없으면(2026-11-14 팜 Appium 판) 훑기 방송으로 부른다. 방송은 Android 10 부터 공식으로는 막혔지만
+// 팜 폰 R3CR10TCVCD 에서 사진첩에 보이는 것을 확인했다. 둘 다 안 되면 사진첩에 늦게 보일 뿐이라 던지지 않고 두 까닭을 다 남긴다
 async function 훑기(driver: AppDriver, 경로: string): Promise<void> {
+  let 첫까닭: string;
   try {
     await driver.execute('mobile: scanMedia', { remotePath: 경로 });
-  } catch {
-    await driver
-      .execute('mobile: shell', { command: 'am', args: ['broadcast', '-a', 'android.intent.action.MEDIA_SCANNER_SCAN_FILE', '-d', `file://${경로}`] })
-      .catch((err: unknown) => console.error(`[kit] 미디어 훑기를 못 불렀다(사진첩에 늦게 보일 수 있다): ${err instanceof Error ? err.message : String(err)}`));
+    return;
+  } catch (err) {
+    첫까닭 = 글(err);
   }
+  await driver
+    .execute('mobile: shell', { command: 'am', args: ['broadcast', '-a', 'android.intent.action.MEDIA_SCANNER_SCAN_FILE', '-d', `file://${경로}`] })
+    .catch((err: unknown) => console.error(`[kit] 미디어 훑기를 못 불렀다(사진첩에 늦게 보일 수 있다) — scanMedia: ${첫까닭.slice(0, 120)} · 방송: ${글(err)}`));
 }
