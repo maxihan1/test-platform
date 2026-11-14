@@ -14,6 +14,7 @@ export interface 구획 {
   시나리오?: { 머리: 덩이[]; doc: E2E증적 }[];
 }
 
+const 실행없음: 덩이 = { 꼴: '글', 글: '실행한 케이스 없음' };
 const 판정말 = { PASS: '통과', FAIL: '실패', NA: '미실행', NOT_RUN: '미실행' } as const;
 
 // 화면 결과 줄의 거터 색과 같은 규칙이다 — 하나라도 실패면 실패, 전부 통과면 통과, 나머지 미실행 (web/RunResultRow.tsx worst)
@@ -40,10 +41,11 @@ export function 케이스목록(items: EvidenceItem[]): 덩이 {
     .map((들) => ({
       칸: [`${들[0]!.tcId} ${들[0]!.tcName}`, 디바이스이름[들[0]!.platform] ?? 들[0]!.platform, 판정말[가장나쁜(들)], 들.find((i) => i.notRunReason !== null)?.notRunReason ?? '—'],
     }));
-  return 줄.length === 0 ? { 꼴: '글', 글: '실행한 케이스 없음' } : { 꼴: '표', 머리: ['케이스', '디바이스', '판정', '사유'], 줄, 판정칸: 2 };
+  return 줄.length === 0 ? 실행없음 : { 꼴: '표', 머리: ['케이스', '디바이스', '판정', '사유'], 줄, 판정칸: 2 };
 }
 
 function 요구사항추적표(재료: 문서재료, items: EvidenceItem[]): 덩이[] {
+  if (items.length === 0) return [{ 꼴: '소절', 글: '요구사항 추적표' }, 실행없음];
   const 판정 = new Map(케이스판정(items).map((c) => [c.tcId, c]));
   const 걸린 = new Set<string>();
   const 줄: 표줄[] = 재료.요구.flatMap((r) => {
@@ -62,9 +64,11 @@ function 요구사항추적표(재료: 문서재료, items: EvidenceItem[]): 덩
 }
 
 function 화면별(재료: 문서재료, items: EvidenceItem[]): 덩이[] {
+  if (items.length === 0) return [{ 꼴: '소절', 글: '화면별' }, 실행없음];
   const 화면 = new Map<string, string[]>();
   for (const c of 케이스판정(items)) {
-    for (const 곳 of 재료.화면.get(c.tcId) ?? ['화면 기록 없음']) 화면.set(곳, [...(화면.get(곳) ?? []), `${c.tcId} ${c.판정}`]);
+    // 화면 파일 둘이 같은 주소를 가리켜도 케이스는 그 화면에 한 번만 선다
+    for (const 곳 of new Set(재료.화면.get(c.tcId) ?? ['화면 기록 없음'])) 화면.set(곳, [...(화면.get(곳) ?? []), `${c.tcId} ${c.판정}`]);
   }
   return [
     { 꼴: '소절', 글: '화면별' },

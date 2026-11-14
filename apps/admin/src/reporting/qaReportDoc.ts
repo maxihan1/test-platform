@@ -110,36 +110,29 @@ export interface 문서재료 {
 }
 
 /** 리포트 한 버전을 문서로 그릴 재료. 지도 · 판은 받는 때 것이고 첫 장은 만든 때 굳힌 값이다 */
-export async function 문서재료읽기(pool: Pool, id: number): Promise<{ 재료: 문서재료; pdfPath: string | null } | null> {
-  const 읽음 = await 리포트읽기(pool, id);
-  if (읽음 === null) return null;
+export async function 문서재료읽기(pool: Pool, 읽음: { 응답: 리포트응답; serviceId: number | null }): Promise<문서재료> {
   const { 응답 } = 읽음;
-
   const 고른 = await 고른실행들(pool, 응답.runIds);
   const 종류 = new Map(고른.map((g) => [g.tcId, g.kind]));
-  const 실행별 = new Map<number, Set<string>>();
-  for (const g of 고른) 실행별.set(g.runId, (실행별.get(g.runId) ?? new Set()).add(`${g.tcId}\u0000${g.platform}`));
-  const 항목 = (
-    await Promise.all(
-      [...실행별].map(async ([runId, 열쇠]) =>
-        ((await collectRun(runId, true))?.items ?? []).filter((i) => 열쇠.has(`${i.tcId}\u0000${i.platform}`)),
-      ),
-    )
-  ).flat();
+  const 실행별 = new Map<number, string[]>();
+  for (const g of 고른) 실행별.set(g.runId, [...(실행별.get(g.runId) ?? []), `${g.tcId} ${g.platform}`]);
+  // 고른 케이스 × 디바이스만 읽는다 — 다시 돈 실행에서 몇 건만 고른 경우가 흔해 실행 전부를 읽으면 대부분 버린다
+  const 항목 = (await Promise.all([...실행별].map(async ([runId, 열쇠]) => (await collectRun(runId, 열쇠))?.items ?? []))).flat();
 
   const tcIds = [...종류.keys()];
   const 요구: 요구추적줄[] = [];
   const 화면 = new Map<string, string[]>();
+  // 화면 기록은 케이스 번호로 읽어 애플리케이션이 지워진 리포트도 그린다. 지도 ① · 판은 애플리케이션에 붙어 있어 그때는 비운다
+  const 화면행 = await pool.query<{ tc_id: string; 곳: string }>('SELECT tc_id, COALESCE(screen_url, file) AS 곳 FROM case_screen WHERE tc_id = ANY($1) ORDER BY 곳', [
+    tcIds.filter((t) => 종류.get(t) === 'UI'),
+  ]);
+  for (const r of 화면행.rows) 화면.set(r.tc_id, [...(화면.get(r.tc_id) ?? []), r.곳]);
   if (읽음.serviceId !== null && tcIds.length > 0) {
-    const 기능 = tcIds.filter((t) => 종류.get(t) === 'FN');
-    const [판, 지도, 화면행] = await Promise.all([
+    const [판, 지도] = await Promise.all([
       지금판(읽음.serviceId),
       pool.query<{ req_id: string; tc_id: string }>('SELECT DISTINCT req_id, tc_id FROM req_case WHERE service_id = $1 AND tc_id = ANY($2) ORDER BY req_id, tc_id', [
         읽음.serviceId,
-        기능,
-      ]),
-      pool.query<{ tc_id: string; 곳: string }>('SELECT tc_id, COALESCE(screen_url, file) AS 곳 FROM case_screen WHERE tc_id = ANY($1) ORDER BY 곳', [
-        tcIds.filter((t) => 종류.get(t) === 'UI'),
+        tcIds.filter((t) => 종류.get(t) === 'FN'),
       ]),
     ]);
     const 문장 = new Map((판?.items ?? []).map((x) => [x.reqId, x.text]));
@@ -150,11 +143,10 @@ export async function 문서재료읽기(pool: Pool, id: number): Promise<{ 재�
       요구표.set(r.req_id, 줄);
     }
     요구.push(...요구표.values());
-    for (const r of 화면행.rows) 화면.set(r.tc_id, [...(화면.get(r.tc_id) ?? []), r.곳]);
   }
 
   const 시나리오 = (await Promise.all((await 고른시나리오실행들(pool, 응답.runIds)).map((runId) => collectScenario(runId)))).filter(
     (d): d is E2E증적 => d !== null,
   );
-  return { 재료: { 리포트: 응답, 항목, 종류, 요구, 화면, 시나리오 }, pdfPath: 읽음.pdfPath };
+  return { 리포트: 응답, 항목, 종류, 요구, 화면, 시나리오 };
 }

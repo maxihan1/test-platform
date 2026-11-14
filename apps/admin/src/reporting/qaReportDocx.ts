@@ -4,15 +4,16 @@
 import { 문단, 칸, 워드파일 } from '../prd/docx.js';
 import type { 문서재료 } from './qaReportDoc.js';
 import { 구획들, 단계목록, 케이스목록 } from './qaReportSections.js';
-import { 리포트제목, 첫장글, 시각, type 덩이 } from './qaReportText.js';
+import { 리포트제목, 승인뒤다시, 첫장글, 시각, type 덩이 } from './qaReportText.js';
 
 // A4 에 여백 1인치면 글 폭이 9026 트윕이다 — 칸 수대로 나눈다. 두 칸 표(개요)는 이름 칸을 좁게 둔다
 const 글폭 = 9026;
 const 머리바탕 = 'F1EFEB';
 const 묶음바탕 = 'F1EEE5';
-const 강조바탕 = 'F6E4DF';
+// 강조는 판정이 아니라 「먼저 볼 것」이라 판정 빨강을 쓰지 않는다 (HTML 과 같은 노랑)
+const 강조바탕 = 'FBF0D9';
 const 흐린글색 = '5F5B55';
-const 강조글색 = '9B2418';
+const 강조글색 = '7A5208';
 
 function 폭들(수: number): number[] {
   if (수 === 2) return [2000, 글폭 - 2000];
@@ -55,7 +56,7 @@ function 덩이로(d: 덩이): string {
     case '표':
       return 표(d);
     case '흐름':
-      return 문단(d.단계.map((s) => `${s.글} ${s.판정}`).join(' → '));
+      return 문단(d.단계.map((s) => `${s.글} · ${s.판정}`).join(' → '));
   }
 }
 
@@ -64,6 +65,7 @@ export function renderQaReportDocx(재료: 문서재료): Promise<Buffer> {
   const 몸 = [
     문단(리포트제목(r), { 꼴: 'Title' }),
     문단(`버전 ${r.version} · ${r.approval === null ? '승인 전' : '승인됨'} · ${시각(r.updatedAt)} 기준`, { 꾸밈: `<w:color w:val="${흐린글색}"/>` }),
+    ...(r.approval === null ? [] : [문단(승인뒤다시, { 꾸밈: `<w:color w:val="${흐린글색}"/>` })]),
     ...첫장글(r).map(덩이로),
     ...구획들(재료).flatMap((g) => [
       ...g.머리.map(덩이로),

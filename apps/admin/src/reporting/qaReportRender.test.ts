@@ -70,7 +70,7 @@ describe('QA 리포트 HTML', () => {
     expect(html).toContain('<span>XQ-FN-001</span><span class="chip c-fail">실패</span>');
     expect(html).toContain('요구사항에 안 걸린 케이스');
     expect(html).toContain('/login');
-    expect(html).toContain('<span class="st">1 XQ-FN-001 이름</span><span class="ar">→</span><span class="st f">2 XQ-FN-002 이름 ✕</span><span class="ar">→</span><span class="st n">3 XQ-FN-003 이름 · 실행 안 함</span>');
+    expect(html).toContain('<span class="st">1 XQ-FN-001 이름 · 통과</span><span class="ar">→</span><span class="st f">2 XQ-FN-002 이름 · 실패</span><span class="ar">→</span><span class="st n">3 XQ-FN-003 이름 · 실행 안 함</span>');
     expect(html).toContain('통과 1 · <span class="t-fail">실패 1</span>');
     expect(html).toMatch(/<section class="card">[\s\S]*XQ-FN-001/);
     expect(html).toContain('진행 중인 실행 1개');
@@ -93,7 +93,7 @@ describe('QA 리포트 워드', () => {
   it('첫 장 · 구획 머리 · 케이스 목록 · E2E 단계를 글로 싣는다', async () => {
     const zip = await JSZip.loadAsync(await renderQaReportDocx(재료()));
     const 몸 = await zip.file('word/document.xml')!.async('string');
-    for (const 글 of ['QA 리포트 — 빌드 2.0', '2. 결과 요약', '비기능 검증', '요구사항 추적표', 'XQ-FN-001 XQ-FN-001 이름', '구매 흐름', '1 XQ-FN-001 이름 통과 → 2 XQ-FN-002 이름 실패 → 3 XQ-FN-003 이름 실행 안 함', '로그인 &lt;필수&gt;']) expect(몸).toContain(글);
+    for (const 글 of ['QA 리포트 — 빌드 2.0', '2. 결과 요약', '비기능 검증', '요구사항 추적표', 'XQ-FN-001 XQ-FN-001 이름', '구매 흐름', '1 XQ-FN-001 이름 · 통과 → 2 XQ-FN-002 이름 · 실패 → 3 XQ-FN-003 이름 · 실행 안 함', '로그인 &lt;필수&gt;']) expect(몸).toContain(글);
     expect(몸).toContain('w:gridSpan');
   });
 });

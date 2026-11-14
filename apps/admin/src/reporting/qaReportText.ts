@@ -13,7 +13,8 @@ export interface 표줄 {
 }
 
 export type 덩이 =
-  | { 꼴: '절'; 글: string }
+  /** 상자 — 남은 리스크는 AI 상자, 승인은 점선 상자로 절 몸을 감싼다(HTML) */
+  | { 꼴: '절'; 글: string; 상자?: 'AI' | '승인' }
   | { 꼴: '소절'; 글: string }
   | { 꼴: '글'; 글: string; 결?: '흐림' | '강조' }
   | { 꼴: '표'; 머리: string[]; 줄: 표줄[]; /** 이 칸의 줄은 「<케이스> <판정>」 — HTML 은 판정을 색 칩으로 그린다 */ 판정칸?: number }
@@ -48,6 +49,9 @@ const 원인이름: Record<실패유형 | 'stopped' | 'prepFailed', string> = {
 };
 const 분류이름 = { PRODUCT: '제품 결함', TEST: '테스트 문제', ENV: '환경', UNCLASSIFIED: '미분류' } as const;
 const 짧은커밋 = (c: string | null): string => (c === null ? '기록 없음' : c.slice(0, 7));
+
+/** 승인한 버전의 HTML · 워드에 다는 말 — 받을 때 다시 만들어 굳힌 PDF 와 지도 · 판이 다를 수 있다 (§3.17 「묶음 · 버전」 승인된 버전의 기준 문서) */
+export const 승인뒤다시 = '승인한 기준 문서는 굳힌 PDF 입니다. 이 파일은 받을 때 다시 만들었습니다';
 
 /** 문서 제목 — 빌드가 없으면 실행 하나가 리포트 하나다 */
 export function 리포트제목(r: 리포트응답): string {
@@ -90,7 +94,7 @@ export function 안정화글(s: 안정화줄 | null): string {
     .join('\n');
 }
 
-/** 결과 요약 한 줄의 결과 칸 — 비기능 구획 머리(qaReportHtmlKinds.ts)도 같은 글을 다시 싣는다 */
+/** 결과 요약 한 줄의 결과 칸 — 비기능 구획 머리(qaReportSections.ts)도 같은 글을 다시 싣는다 */
 export function 결과글(x: 첫장['results']['functional'][number] | 첫장['results']['nonFunctional'][number]): string {
   if (x.result === null) return x.kind === 'STAB' ? 안정화글(null) : '이번 빌드에 실행 없음';
   switch (x.kind) {
@@ -222,7 +226,9 @@ function 실패분류(s: 첫장): 덩이[] {
   const f = s.failures;
   const 덩이들: 덩이[] = [{ 꼴: '절', 글: '실패 분류' }];
   if (f.counts.UNCLASSIFIED > 0) 덩이들.push({ 꼴: '글', 글: `판정이 필요한 실패 ${f.counts.UNCLASSIFIED}건`, 결: '강조' });
-  덩이들.push({ 꼴: '표', 머리: ['분류', '건수'], 줄: (['PRODUCT', 'TEST', 'ENV', 'UNCLASSIFIED'] as const).map((k) => ({ 칸: [분류이름[k], `${f.counts[k]}건`] })) });
+  // 네 분류를 한 줄로 — 두 칸 세로 표는 이름과 숫자 사이가 벌어져 읽기 어렵다
+  const 분류들 = ['PRODUCT', 'TEST', 'ENV', 'UNCLASSIFIED'] as const;
+  덩이들.push({ 꼴: '표', 머리: 분류들.map((k) => 분류이름[k]), 줄: [{ 칸: 분류들.map((k) => `${f.counts[k]}건`) }] });
   if (f.items.length === 0) 덩이들.push({ 꼴: '글', 글: '통과하지 못한 케이스 없음' });
   else
     덩이들.push({
@@ -252,13 +258,13 @@ function 남은리스크(r: 리포트응답): 덩이[] {
             { 꼴: '글', 글: `AI 작성${a.editedBy === null ? '' : ` · 수정됨 · ${a.editedBy} · ${a.editedAt === null ? '' : 시각(a.editedAt)}`}`, 결: '흐림' },
             { 꼴: '글', 글: a.current },
           ];
-  return [{ 꼴: '절', 글: '남은 리스크' }, ...몸];
+  return [{ 꼴: '절', 글: '남은 리스크', 상자: 'AI' }, ...몸];
 }
 
 function 승인(r: 리포트응답): 덩이[] {
   const a = r.approval;
   return [
-    { 꼴: '절', 글: '승인' },
+    { 꼴: '절', 글: '승인', 상자: '승인' },
     a === null
       ? { 꼴: '글', 글: '승인 전', 결: '강조' }
       : { 꼴: '글', 글: `승인됨 · ${a.byName ?? a.by} · ${시각(a.at)} · 버전 ${r.version}${a.late ? ' · 사후 승인' : ''}`, 결: '강조' },

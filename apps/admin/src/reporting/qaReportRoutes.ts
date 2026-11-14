@@ -43,7 +43,7 @@ const 형식들 = {
 } as const;
 
 // 사진은 문서 안에 심는다(증적과 같다 — generate.ts). UI 구획은 실패 항목의 사진만 싣는다 (§3.17 결정 8 「UI = 화면별(실패만 사진)」)
-async function 사진심은(재료: 문서재료): Promise<문서재료> {
+export async function 사진심은(재료: 문서재료): Promise<문서재료> {
   const 항목 = await Promise.all(
     재료.항목.map(async (i) => {
       const 뺀다 = 재료.종류.get(i.tcId) === 'UI' && i.status !== 'FAIL';
@@ -115,25 +115,24 @@ export default async function qaReportRoutes(app: FastifyInstance): Promise<void
     // 엑셀은 이 통로가 아직 내지 않는다 — 진행판 QAR 줄 어디에도 안 실려 있다
     if (형식 !== 'PDF' && 형식 !== 'HTML' && 형식 !== 'DOCX') return 잘못(reply, 'format 은 PDF · HTML · DOCX 중 하나입니다');
     const pool = await db();
-    const 굳힌 = (await pool.query<{ version: number; pdf_path: string | null }>('SELECT version, pdf_path FROM qa_report WHERE id = $1', [id])).rows[0];
-    if (굳힌 === undefined) return 없음(reply);
+    const 읽음 = await 리포트읽기(pool, id);
+    if (읽음 === null) return 없음(reply);
     const f = 형식들[형식];
     // 이름에는 번호 · 버전 · 형식만 넣는다 — ASCII 뿐이라 헤더가 깨지지 않는다(증적 이름과 같은 까닭 — routes.ts)
     const 보낸다 = (파일: Buffer | string) =>
-      reply.type(f.mime).header('content-disposition', `${f.펼침}; filename="qa-report-${id}-v${굳힌.version}.${f.ext}"`).send(파일);
+      reply.type(f.mime).header('content-disposition', `${f.펼침}; filename="qa-report-${id}-v${읽음.응답.version}.${f.ext}"`).send(파일);
 
-    if (형식 === 'PDF' && 굳힌.pdf_path !== null) {
+    if (형식 === 'PDF' && 읽음.pdfPath !== null) {
       try {
-        return 보낸다(await 볼륨파일읽기(굳힌.pdf_path));
+        return 보낸다(await 볼륨파일읽기(읽음.pdfPath));
       } catch (err) {
         // 다시 그려 내면 승인 지문과 다른 파일이 나간다 — 내지 않고 까닭을 남긴다
-        throw new Error(`리포트 ${id} 의 승인 PDF 를 읽지 못했다: ${굳힌.pdf_path}`, { cause: err });
+        throw new Error(`리포트 ${id} 의 승인 PDF 를 읽지 못했다: ${읽음.pdfPath}`, { cause: err });
       }
     }
-    const 읽음 = await 문서재료읽기(pool, id);
-    if (읽음 === null) return 없음(reply);
-    if (형식 === 'DOCX') return 보낸다(await renderQaReportDocx(읽음.재료));
-    const html = renderQaReportHtml(await 사진심은(읽음.재료), 형식);
+    const 재료 = await 문서재료읽기(pool, 읽음);
+    if (형식 === 'DOCX') return 보낸다(await renderQaReportDocx(재료));
+    const html = renderQaReportHtml(await 사진심은(재료), 형식);
     return 보낸다(형식 === 'HTML' ? html : await PDF로(html));
   });
 
