@@ -3,6 +3,7 @@
 import type { Pool } from 'pg';
 
 import { 기능재료읽기, type 실패갈래, type 실패줄, type 케이스계획, type 판정셈 } from './qaReportCases.js';
+import { 변경사항을센다, type 변경사항 } from './qaReportChanges.js';
 
 export type 리포트종류 = 'FN' | 'UI' | 'E2E' | 'COMPAT' | 'PERF';
 /** 출처별 발생 케이스. 게임의 크래시는 logcat 의 크래시 · ANR 을 합친 것이다(안정화 §3.15 결정 14) */
@@ -48,6 +49,8 @@ export interface 첫장 {
   plan: { cases: 케이스계획[]; e2e: string[]; compat: string[]; perf: string[] };
   failures: { counts: Record<실패갈래, number>; items: 실패줄[] };
   previous: { buildNo: string; reportId: number | null } | null;
+  /** 빌드 없는 리포트는 null — 변경 사항 절을 그리지 않는다 */
+  changes: 변경사항 | null;
 }
 
 export interface 묶음 {
@@ -217,6 +220,11 @@ export async function 첫장을센다(pool: Pool, b: 묶음): Promise<{ summary:
     ...(성능셈 === null ? [] : (['PERF'] as const)),
   ];
   const 저장소 = 실행.at(-1)?.tests_repo;
+  const previous = await 이전빌드(pool, b, 첫시작);
+  const changes =
+    b.buildNo === null
+      ? null
+      : await 변경사항을센다(pool, { serviceId: b.serviceId, env: b.env, runIds: b.runIds, firstStartedAt: 첫시작, lastStartedAt: 시작들.at(-1) ?? 첫시작, previousBuildNo: previous?.buildNo ?? null });
   return {
     performers: 수행자.map((p) => p.username),
     summary: {
@@ -236,7 +244,8 @@ export async function 첫장을센다(pool: Pool, b: 묶음): Promise<{ summary:
       results: { functional: (['FN', 'UI', 'E2E'] as const).map((kind) => ({ kind, result: 기능.results[kind] })), nonFunctional: 비기능 },
       plan,
       failures: { counts, items: 기능.failures },
-      previous: await 이전빌드(pool, b, 첫시작),
+      previous,
+      changes,
     },
   };
 }
