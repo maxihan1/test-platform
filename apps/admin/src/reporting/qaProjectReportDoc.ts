@@ -72,15 +72,17 @@ function 앱상태(b: 몸): 덩이[] {
     { 꼴: '절', 글: '애플리케이션별 상태' },
     {
       꼴: '표',
-      머리: ['애플리케이션', '빌드', '기간 판정 (기능 · UI)', '회귀 실패', '열린 결함', '리포트'],
+      // 폰 폭에서 표 안이 옆으로 넘치지 않게 칸을 셋으로 — 빌드 · 회귀 실패 · 결함 · 리포트는 한 칸에 줄을 바꿔 적는다
+      머리: ['애플리케이션', '기간 판정 (기능 · UI)', '빌드 · 결함 · 리포트'],
       줄: b.apps.map((a) => ({
         칸: [
           a.name,
-          a.builds.length === 0 ? '—' : a.builds.length === 1 ? a.builds[0]! : `${a.builds[0]!} ~ ${a.builds.at(-1)!}`,
-          판정글(a.runs),
-          String(a.newFailures),
-          a.openDefects === null ? '—' : String(a.openDefects),
-          a.reports === 0 ? '없음' : `${a.reports}건${a.unapproved > 0 ? ` (승인 전 ${a.unapproved})` : ''}`,
+          `${판정글(a.runs)}\n회귀 실패 ${a.newFailures} · 해결 ${a.resolved}`,
+          [
+            `빌드 ${a.builds.length === 0 ? '없음' : a.builds.length === 1 ? a.builds[0]! : `${a.builds[0]!} ~ ${a.builds.at(-1)!}`}`,
+            ...(a.openDefects === null ? [] : [`열린 결함 ${a.openDefects}`]),
+            `리포트 ${a.reports === 0 ? '없음' : `${a.reports}건${a.unapproved > 0 ? ` (승인 전 ${a.unapproved})` : ''}`}`,
+          ].join('\n'),
         ],
       })),
     },
@@ -93,7 +95,8 @@ function 이번기간(b: 몸): 덩이[] {
   const 커버 = b.coverage.map((c) => {
     const 끝 = c.points.at(-1) ?? c.start;
     const 글 = (p: { cased: number; total: number } | null | undefined) => (p == null ? '—' : 비율(p.cased, p.total));
-    return `${c.name} ${글(c.start)} → ${글(끝)}${c.points.length === 0 ? ' (기간 안 작성 없음)' : ''}`;
+    if (끝 === null) return `${c.name} 기록 없음`;
+    return c.points.length === 0 ? `${c.name} ${글(끝)} (기간 안 작성 없음)` : `${c.name} ${글(c.start)} → ${글(끝)}`;
   });
   return [
     { 꼴: '절', 글: '이번 기간' },
@@ -135,8 +138,8 @@ function 비기능품질(b: 몸): 덩이[] {
               { 꼴: '글', 글: '성능 효율성 · 성능 목표 달성 추이', 결: '머리' },
               {
                 꼴: '표',
-                머리: ['날짜', '실행', '종류', '통과', '미달'],
-                줄: a.perf.map((p) => ({ 칸: [짧은날(p.day), `PRF-${String(p.runId).padStart(4, '0')}`, 성능종류[p.kind], String(p.pass), String(p.fail)] })),
+                머리: ['날짜', '실행', '성능 목표'],
+                줄: a.perf.map((p) => ({ 칸: [짧은날(p.day), `PRF-${String(p.runId).padStart(4, '0')} · ${성능종류[p.kind]}`, `통과 ${p.pass} · 미달 ${p.fail}`] })),
               },
             ];
       const s = a.stab;
@@ -147,9 +150,10 @@ function 비기능품질(b: 몸): 덩이[] {
               { 꼴: '글', 글: '신뢰성 · 안정화 (판정은 통과했지만 오류가 난 케이스)', 결: '머리' },
               {
                 꼴: '표',
-                머리: ['날짜', '오류 발생 케이스', '비율', '크래시', '잔여 오류'],
+                // 웹은 크래시 칸이 없다 — 그 칸을 빼 폰 폭에 넷 아래로 둔다
+                머리: ['날짜', '오류 발생 케이스', ...(a.kind === 'SCREEN' ? [] : ['크래시']), '잔여 오류'],
                 줄: s.days.map((x) => ({
-                  칸: [짧은날(x.day), `${x.passErrorCases} / ${x.cases}`, 비율(x.passErrorCases, x.cases), x.crashes === null ? '—' : String(x.crashes), String(x.residual)],
+                  칸: [짧은날(x.day), `${x.passErrorCases} / ${x.cases} (${비율(x.passErrorCases, x.cases)})`, ...(a.kind === 'SCREEN' ? [] : [x.crashes === null ? '—' : String(x.crashes)]), String(x.residual)],
                 })),
               },
               { 꼴: '글', 글: `기간 안 신규 ${s.newErrors} · 재발 ${s.reopened} · 해결 확인 ${s.confirmed} — 날마다의 오류 종류는 안정화 지표 화면에서 봅니다`, 결: '흐림' },
