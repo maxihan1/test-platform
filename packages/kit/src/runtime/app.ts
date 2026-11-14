@@ -29,6 +29,9 @@ export function appCapabilities(env: Env): Record<string, string | boolean | num
     'appium:automationName': 'UiAutomator2',
     // 꾸러미 이름 없는 resource-id 를 쓰는 앱도 id= 로 찾게 한다. 긴 꼴(com.shop:id/x)은 그대로 찾는다 (§5.2 「앱 실행」)
     'appium:disableIdLocatorAutocompletion': true,
+    // 명령마다 화면이 멈추길 기다리는 한도. 기본 10초면 계속 움직이는 화면(Mastodon 첫 화면)에서 명령마다 10초를 다 써
+    // 케이스 하나가 60초 늘었다. 0 은 화면 전환 중에 누를 수 있어 1초로 둔다 (§5.2 「앱 실행」, 2026-11-15)
+    'appium:settings[waitForIdleTimeout]': 1000,
   };
   const app = required(env, 'PLATFORM_APP');
   // 스토어로 깐 앱은 APK 가 없어 깔지 않고 켠다. noReset 을 안 줘 연결 때 앱 데이터를 지운다 — APK 를 새로 깔 때처럼 로그아웃 상태로 시작한다 (§5.2 「플레이스토어 앱 — 패키지 이름」)

@@ -116,6 +116,7 @@ describe('앱화면을읽는다', () => {
           platformName: 'Android',
           'appium:automationName': 'UiAutomator2',
           'appium:disableIdLocatorAutocompletion': true,
+          'appium:settings[waitForIdleTimeout]': 1000,
           'appium:app': '/apk/dev.apk',
           'appium:udid': 'R5CT',
         },
