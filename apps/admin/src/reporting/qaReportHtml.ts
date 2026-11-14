@@ -51,6 +51,7 @@ const 리포트스타일 = `<style>
 .flow .ar{ color:var(--ink-faint); }
 .box-ai{ border:1px solid var(--rule); border-radius:6px; background:var(--chip); padding:10px 14px; }
 .box-ai .qa-p.faint:first-child{ font-weight:600; color:var(--chrome); }
+.box-ai .qa-p{ word-break:keep-all; overflow-wrap:anywhere; }
 .box-sign{ border:1.5px dashed var(--ink-faint); border-radius:6px; padding:12px 14px; }
 .box-sign .qa-p.emph{ color:var(--ink); background:none; padding:0; font-size:14px; }
 .first-page{ break-after:page; }
