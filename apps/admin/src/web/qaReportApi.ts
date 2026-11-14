@@ -32,6 +32,13 @@ export interface 리포트조건 {
 /** 한 쪽 줄 수 — 서버가 정한다(§7 「한 쪽 50줄」) */
 export const 쪽크기 = 50;
 
+/** 줄 이름 — 빌드 번호, 빌드 없는 실행 하나면 `RUN 812`, 성능 실행 하나면 성능 실행 화면의 `PRF-0012` 꼴 (§8.21 「애플리케이션 탭」) */
+export function 리포트이름(줄: Pick<리포트줄, 'buildNo' | 'runId' | 'perfRunId'>, t: (키: string, 값?: Record<string, string | number>) => string): string {
+  if (줄.buildNo !== null) return t('빌드 {빌드}', { 빌드: 줄.buildNo });
+  if (줄.runId !== null) return `RUN ${String(줄.runId)}`;
+  return `PRF-${String(줄.perfRunId ?? 0).padStart(4, '0')}`;
+}
+
 export const qaReportApi = {
   list: (service: string, 조건: 리포트조건) => {
     const q = new URLSearchParams({ service });
