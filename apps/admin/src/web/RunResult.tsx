@@ -216,7 +216,7 @@ function 케이스결과({
               {t('실행 중단')}
             </button>
           )}
-            <리포트열기 리포트={리포트} />
+          <리포트열기 리포트={리포트} />
             <증적만들기버튼들 칸={증적칸} />
             {running ? null : (
               <실패다시실행 runId={data.runId} items={data.items} env={data.env} 시작={data.startedAt} 된다={실행판정(판정하기, data)('실행')} 자동수정={data.autoFixedCases} on걸었다={on새실행} />

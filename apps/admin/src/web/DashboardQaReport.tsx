@@ -19,14 +19,11 @@ function use승인전수(앱들: readonly 승인볼앱[]): { 앱: 승인볼앱; 
   useEffect(() => {
     let 살아있다 = true;
     set수들(null);
-    Promise.all(앱들.map((앱) => qaReportApi.list(앱.prefix, { approved: false }).then((r) => ({ 앱, 수: r.total }))))
-      .then((x) => {
-        if (살아있다) set수들(x);
-      })
-      .catch((e: unknown) => {
-        // 칸 하나가 못 서도 대시보드는 선다 — 숫자 자리에 「—」가 남는다
-        console.error('[dashboard] could not count QA reports awaiting approval', e);
-      });
+    // 애플리케이션 하나가 실패해도 나머지 수는 보인다 — 실패한 것만 콘솔에 남긴다
+    void Promise.allSettled(앱들.map((앱) => qaReportApi.list(앱.prefix, { approved: false }).then((r) => ({ 앱, 수: r.total })))).then((결과들) => {
+      for (const x of 결과들) if (x.status === 'rejected') console.error('[dashboard] could not count QA reports awaiting approval', x.reason);
+      if (살아있다) set수들(결과들.flatMap((x) => (x.status === 'fulfilled' ? [x.value] : [])));
+    });
     return () => {
       살아있다 = false;
     };

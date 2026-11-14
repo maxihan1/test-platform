@@ -277,7 +277,7 @@ export const 기능자리: Partial<Record<Route['name'], 기능>> = {
   sched: 'runs',
   // QA 리포트도 실행 칸을 쓴다 (도메인/인증 §7 「등급으로 갈리는 자리」 QA 리포트 줄들)
   qaReports: 'runs',
-  qaReport: 'runs',
+  // 리포트 하나(qaReport)는 그 리포트의 애플리케이션이 따로 있어 띠로 가르지 않는다 — 알림 · 공유 주소로 다른 애플리케이션 리포트를 연다. 서버가 다시 막는다
   stabilityError: 'runs',
   // 호환성은 실행 칸을 쓴다 (도메인/호환성 §7). 세트 주소는 `?service=` 로 그 세트의 애플리케이션을 담는다
   compatSets: 'runs',

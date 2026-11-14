@@ -45,6 +45,13 @@ describe('대시보드 QA 리포트 · 승인 전 칸', () => {
     expect(열기).not.toHaveBeenCalled();
   });
 
+  it('애플리케이션 하나가 실패해도 나머지 수는 보인다', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    vi.spyOn(qaReportApi, 'list').mockImplementation((service) => (service === 'DMA' ? Promise.reject(new Error('boom')) : Promise.resolve({ items: [], total: 2 })));
+    render(<승인전칸 차례={5} 앱들={앱들} 서비스열기={vi.fn()} />);
+    expect(await screen.findByText('데모마켓 웹 2 · 데모마켓 API 2')).toBeTruthy();
+  });
+
   it('칸은 관리자에게만 선다 — 고른 프로젝트의 애플리케이션을 센다', () => {
     const 앱 = (id: number, prefix: string, projectId: number) => ({ id, prefix, name: prefix, projectId, permissions: { cases: 'write', runs: 'write', authoring: 'write' } });
     const 사람 = (role: 'admin' | 'member') =>

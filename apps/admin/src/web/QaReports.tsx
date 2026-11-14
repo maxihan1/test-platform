@@ -7,13 +7,13 @@ import { Head } from './Head.js';
 import { use말, use언어, type 언어 } from './i18n.js';
 import { use주소조건, 주소조건 } from './leaveGuard.js';
 import { 다음이있나 } from './paging.js';
-import { qaReportApi, 리포트이름, 쪽크기, type 리포트종류, type 리포트줄 } from './qaReportApi.js';
+import { 종류이름 } from '../reporting/qaReportWords.js';
+import { qaReportApi, 리포트이름, 쪽크기, type 리포트줄 } from './qaReportApi.js';
 import { Failed, Loading, useAsync, when } from './ui.js';
 
 type 말 = ReturnType<typeof use말>;
 type 승인거르개 = '' | 'false' | 'true';
 
-const 종류이름: Record<리포트종류, string> = { FN: '기능', UI: 'UI', E2E: 'E2E', COMPAT: '호환성', PERF: '성능' };
 
 function 줄하나({ 줄, t, 언어 }: { 줄: 리포트줄; t: 말; 언어: 언어 }) {
   const 승인됨 = 줄.approvedAt !== null;

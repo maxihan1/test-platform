@@ -43,7 +43,7 @@ function 승인못하는까닭(r: 리포트응답, 나: string): string | null {
 }
 
 /** 문서 높이에 iframe 을 맞춘다 — 안에서 따로 스크롤하면 휴대폰에서 화면 스크롤과 엉킨다. 사진이 늦게 오면 높이가 또 바뀐다 */
-function 문서칸({ id, 판 }: { id: number; 판: number }) {
+function 문서칸({ id }: { id: number }) {
   const t = use말();
   const 틀 = useRef<HTMLIFrameElement>(null);
   const [실음, set실음] = useState(false);
@@ -68,7 +68,6 @@ function 문서칸({ id, 판 }: { id: number; 판: number }) {
       {실음 ? null : <Loading />}
       {/* 스크립트는 막고(리포트 HTML 에는 스크립트가 없다) 같은 출처만 열어 높이를 읽는다. 문서 안 링크(PR · 사진)는 새 탭으로 나간다 */}
       <iframe
-        key={판}
         ref={틀}
         className="qar-doc"
         title={t('리포트 본문')}
@@ -272,7 +271,8 @@ export function QaReport({ id, user }: { id: number; user: User }) {
         {/* 승인된 버전은 서버가 409 로 막는다 — 단추를 안 그린다 */}
         {쓰나 && !승인됨 ? <문장수정 key={`${String(r.id)}:${r.updatedAt}`} r={r} on바뀜={다시} /> : null}
       </div>
-      <문서칸 id={r.id} 판={판} />
+      {/* 판이 바뀌면 칸을 새로 그린다 — 다시 싣는 동안 「불러오는 중」이 다시 보이게 */}
+      <문서칸 key={판} id={r.id} />
     </div>
   );
 }
