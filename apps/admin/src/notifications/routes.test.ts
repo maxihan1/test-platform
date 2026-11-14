@@ -332,6 +332,6 @@ describe.skipIf(연결 === undefined)('알림 통로', () => {
     await 치우기();
     await 실행('XNT', { title: 'XNT 실행' });
     배정 = {};
-    expect(await 알림()).toEqual({ running: [], recent: [] });
+    expect(await 알림()).toEqual({ running: [], recent: [], approvals: [] });
   });
 });
