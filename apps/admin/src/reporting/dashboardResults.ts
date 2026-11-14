@@ -240,6 +240,9 @@ async function 앞판정읽기(pool: Pool, runIds: number[]): Promise<Map<number
   return 결과;
 }
 
+/** 시각을 그 시간대의 'YYYY-MM-DD' 로 — sv-SE 꼴이 곧 그 꼴이다 */
+const 그날 = (t: Date, tz: string): string => new Intl.DateTimeFormat('sv-SE', { timeZone: tz }).format(t);
+
 // 고른 서비스가 볼 수 있는 목록에 없으면 빈 목록이 된다 — 남의 서비스 번호를 줘도 아무것도 안 읽힌다
 export const 좁힌다 = (ids: number[], 서비스: number | undefined): number[] => (서비스 === undefined ? ids : ids.filter((id) => id === 서비스));
 
@@ -269,7 +272,8 @@ export async function 대시보드(
   const 오늘 =
     끝 ??
     (await pool.query<{ today: string }>(`SELECT to_char((now() AT TIME ZONE $1::text)::date, 'YYYY-MM-DD') AS today`, [tz])).rows[0]!.today;
-  const 줄들 = await 줄읽기(pool, 실행서비스ids, tz, 오늘, 날수);
+  // 끝날 뒤 줄은 버린다 — 지난 기간을 셀 때 그 뒤 실행이 「마지막 판정」이 되어 회귀 실패를 해결로 바꾸면 안 된다(질의는 아래 끝이 없다)
+  const 줄들 = (await 줄읽기(pool, 실행서비스ids, tz, 오늘, 날수)).filter((줄) => 줄.day <= 오늘);
   const 이번시작 = 날짜더하기(오늘, -(날수 - 1));
   const [앞판정들, running, coverage, 서비스, 한건] = await Promise.all([
     앞판정읽기(pool, [...new Set(줄들.filter((줄) => 줄.day >= 이번시작 && 줄.day <= 오늘).map((줄) => 줄.runId))]),
@@ -300,7 +304,7 @@ export async function 대시보드(
     오늘,
     서비스목록.filter((s) => 실행서비스ids.includes(s.id)),
     날수,
-    한건.rows.map((r) => ({
+    한건.rows.filter((r) => 그날(r.finished_at, tz) <= 오늘).map((r) => ({
       serviceId: Number(r.service_id),
       env: r.env,
       runId: Number(r.run_id),
