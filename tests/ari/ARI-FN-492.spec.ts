@@ -6,10 +6,9 @@ export const spec = defineCase({
   tcId: 'ARI-FN-492',
   name: '틀린 고정 운영 키로 GET /opsapi/summary 를 부르면 401 이다',
   apiDoc: 2,
-  held: '보류 — 고정 운영 키 헤더 이름을 케이스에 적을 수 없다',
   precondition: ['대상 서버에 접근할 수 있다'],
   params: z.object({
-    키헤더이름: z.string().describe('고정 운영 키 헤더 이름'),
+    키헤더이름: z.string().describe('고정 운영 키 헤더 이름').default('X-Admin-Key'),
   }),
   expected: z.object({
     응답코드: z.number().describe('응답 코드').default(401),
