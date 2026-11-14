@@ -336,3 +336,52 @@
     min-height: 44px;
   }
 }
+
+/* 실행 결과 화면 맨 위 QA 리포트 한 줄 띠 (§8.21 「다른 화면의 고리」 · 시안 A). 이 실행의 요약 띠보다 한 단계 낮게 — 테두리만 */
+.rqa {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  min-width: 0;
+}
+
+.rqa-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 14px;
+}
+
+.rqa-head .qar-state {
+  max-width: none;
+}
+
+.rqa-meta {
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+.rqa-cells {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-muted);
+  overflow-wrap: anywhere;
+}
+
+.rqa-cells b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.rqa-grp {
+  color: var(--ink-faint);
+  font-size: 12px;
+}

@@ -32,4 +32,11 @@ export const QA리포트말: Record<string, string> = {
   '남은 리스크': 'Remaining risks',
   'AI 가 처음 쓴 글은 따로 남고 리포트에는 수정한 글이 들어갑니다': "The AI's original text is kept separately; the report shows your edited text",
   워드: 'Word',
+  // 실행 결과 화면의 고리 (RunQaReport.tsx)
+  'QA 리포트 열기': 'Open QA report',
+  'QA 리포트 결과 요약': 'QA report summary',
+  '{이름} QA 리포트': '{이름} QA report',
+  '실행 {수}개': '{수} runs',
+  '기능 검증': 'Functional testing',
+  '비기능 검증': 'Non-functional testing',
 };

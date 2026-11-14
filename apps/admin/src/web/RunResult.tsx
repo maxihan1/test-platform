@@ -21,6 +21,7 @@ import { 결과줄 } from './RunResultRow.js';
 import { 다른빌드알림, 시작빌드글 } from './RunBuild.js';
 import { ScenarioResult } from './ScenarioResult.js';
 import { RunPrepFailed } from './RunPrepFailed.js';
+import { use실행리포트, 리포트띠, 리포트열기 } from './RunQaReport.js';
 import { 끝났다고알릴까, 도는중, 멈출수있나, 본것으로적는다, 상태라벨, 실행자이름, 준비실패 } from './runState.js';
 import { Failed, Loading, PLATFORM_LABEL, STATUS_LABEL, useAsync, when, 실행디바이스들 } from './ui.js';
 import { 그중미확정글 } from './unconfirmed.js';
@@ -119,6 +120,8 @@ function 케이스결과({
   // `NA` 로 읽혀 앞 실행이 깨졌던 것이 전부 「고쳐짐」으로 보인다. 실패해도 결과는 그대로 선다 (도메인/실행 §8.3)
   const 끝났나 = data !== null && !running;
   const 견줌 = useAsync<비교 | null>(() => (끝났나 ? api.insights(runId) : Promise.resolve(null)), [runId, 끝났나]);
+  // 이 실행이 든 빌드의 QA 리포트 — 머리 버튼과 맨 위 띠가 나눠 쓴다 (도메인/리포팅 §8.21 「다른 화면의 고리」)
+  const 리포트 = use실행리포트(runId, 끝났나);
 
   if (run.error !== null) return <Failed error={run.error} />;
   if (data === null) return <Loading />;
@@ -213,6 +216,7 @@ function 케이스결과({
               {t('실행 중단')}
             </button>
           )}
+            <리포트열기 리포트={리포트} />
             <증적만들기버튼들 칸={증적칸} />
             {running ? null : (
               <실패다시실행 runId={data.runId} items={data.items} env={data.env} 시작={data.startedAt} 된다={실행판정(판정하기, data)('실행')} 자동수정={data.autoFixedCases} on걸었다={on새실행} />
@@ -266,6 +270,8 @@ function 케이스결과({
           행동={행동}
         />
       )}
+
+      <리포트띠 리포트={리포트} />
 
       {running ? (
         <div className={칸안 ? 'screen pane-results' : 'screen'}>
