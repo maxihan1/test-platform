@@ -2,6 +2,7 @@
 
 import type { Pool, PoolClient } from 'pg';
 
+import { 리스크일세울까, 리스크일세우기, type 리스크글저장 } from './qaReportAi.js';
 import { 첫장을센다, type 묶음 } from './qaReportSummary.js';
 
 async function db(): Promise<Pool> {
@@ -134,8 +135,12 @@ export function 리포트방아쇠(q: { bundle_key: string; service_id: string; 
   return { key: q.bundle_key, serviceId: Number(q.service_id), env: q.env, buildNo: q.build_no, runId: null, perfRunId: null, scheduled: false };
 }
 
-/** 잠금을 잡은 트랜잭션 안에서 다시 만든다. 애플리케이션이 지워졌으면 null */
-export async function 잠근채다시만든다(pool: Pool, c: PoolClient, t: 방아쇠): Promise<다시만든결과 | null> {
+/**
+ * 잠금을 잡은 트랜잭션 안에서 다시 만든다. 애플리케이션이 지워졌으면 null.
+ * 다시 만든 뒤 도는 실행이 없으면 남은 리스크 AI 일을 세운다(§3.17 「남은 리스크 — AI」). 승인이 부를 때는 세우지 않는다 —
+ * 세우면 그 일이 승인을 막는다(AI_PENDING). 승인 직전 판정이 바꾼 숫자는 첫 장에 들고 AI 글은 앞 재료로 쓴 그대로다
+ */
+export async function 잠근채다시만든다(pool: Pool, c: PoolClient, t: 방아쇠, AI세우기 = true): Promise<다시만든결과 | null> {
   const 서비스 = (await c.query<{ prefix: string; kind: 묶음['serviceKind'] }>('SELECT prefix, kind FROM service WHERE id = $1', [t.serviceId])).rows[0];
   if (서비스 === undefined) return null;
   const 버전들 = (
@@ -177,10 +182,11 @@ export async function 잠근채다시만든다(pool: Pool, c: PoolClient, t: 방
     ).rows[0]?.같음;
     if (같음 === true) return '그대로';
   }
+  const 일도된다 = AI세우기 && summary.overview.running === 0;
   if (새로) {
-    await c.query(
+    const 새줄 = await c.query<{ id: string }>(
       `INSERT INTO qa_report (bundle_key, service_id, service_name, env, build_no, run_id, perf_run_id, version, run_ids, perf_run_ids, performers, summary)
-       VALUES ($6, $7, $5, $8, $9, $10, $11, $12, $1, $2, $3, $4)`,
+       VALUES ($6, $7, $5, $8, $9, $10, $11, $12, $1, $2, $3, $4) RETURNING id`,
       [
         ...값,
         t.key,
@@ -192,12 +198,27 @@ export async function 잠근채다시만든다(pool: Pool, c: PoolClient, t: 방
         (마지막?.version ?? 0) + 1,
       ],
     );
+    if (일도된다) await 리스크일세우기(c, { id: 새줄.rows[0]!.id, serviceId: t.serviceId, 앞일: null });
     return '새 버전';
   }
+  const 앞것 = (
+    await c.query<{ 같음: boolean; ai: 리스크글저장 | null; ai_job_id: string | null; 실패: boolean }>(
+      `SELECT q.summary = $1::jsonb AS 같음, q.ai, q.ai_job_id, COALESCE(j.status = 'FAILED', false) AS 실패
+         FROM qa_report q LEFT JOIN perf_ai_job j ON j.id = q.ai_job_id WHERE q.id = $2`,
+      [값[3], 마지막!.id],
+    )
+  ).rows[0]!;
   await c.query('UPDATE qa_report SET run_ids = $1, perf_run_ids = $2, performers = $3, summary = $4, service_name = $5, updated_at = now() WHERE id = $6', [
     ...값,
     마지막!.id,
   ]);
+  if (일도된다 && 리스크일세울까({ running: 0, 같은첫장: 앞것.같음, ai: 앞것.ai, aiJobId: 앞것.ai_job_id, 앞일실패: 앞것.실패 })) {
+    await 리스크일세우기(c, { id: 마지막!.id, serviceId: t.serviceId, 앞일: 앞것.ai_job_id });
+  } else if (!AI세우기 && !앞것.같음 && 앞것.ai !== null && 앞것.ai.editedBy === null) {
+    // 승인이 다시 만들어 첫 장이 바뀌었는데 AI 글은 앞 재료로 썼다. 승인이 깨지면 다음 다시 만들기가 「첫 장이 같다」로 보고 넘어가니
+    // 일 번호를 비워 다음 다시 만들기가 새로 맡기게 한다 — 승인이 되면 그 버전은 더 안 바뀌어 상관없다
+    await c.query('UPDATE qa_report SET ai_job_id = NULL WHERE id = $1', [마지막!.id]);
+  }
   return '고침';
 }
 

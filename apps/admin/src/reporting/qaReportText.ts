@@ -6,6 +6,7 @@ import type { 실패유형 } from './failureType.js';
 import type { 리포트응답 } from './qaReportDoc.js';
 import type { 까닭, 테스트줄 } from './qaReportChanges.js';
 import type { 안정화출처, 안정화줄, 첫장 } from './qaReportSummary.js';
+import { 남은리스크, 승인 } from './qaReportTextEnd.js';
 
 export interface 표줄 {
   칸: string[];
@@ -279,31 +280,6 @@ function 실패분류(s: 첫장): 덩이[] {
       })),
     });
   return 덩이들;
-}
-
-function 남은리스크(r: 리포트응답): 덩이[] {
-  const a = r.ai;
-  const 몸: 덩이[] =
-    a === null
-      ? [{ 꼴: '글', 글: 'AI 문단이 아직 없습니다', 결: '흐림' }]
-      : 'failed' in a
-        ? [{ 꼴: '글', 글: 'AI 문단을 만들지 못했습니다', 결: '흐림' }]
-        : [
-            { 꼴: '글', 글: `AI 작성${a.editedBy === null ? '' : ` · 수정됨 · ${a.editedBy} · ${a.editedAt === null ? '' : 시각(a.editedAt)}`}`, 결: '흐림' },
-            { 꼴: '글', 글: a.current },
-          ];
-  return [{ 꼴: '절', 글: '남은 리스크', 상자: 'AI' }, ...몸];
-}
-
-function 승인(r: 리포트응답): 덩이[] {
-  const a = r.approval;
-  return [
-    { 꼴: '절', 글: '승인', 상자: '승인' },
-    a === null
-      ? { 꼴: '글', 글: '승인 전', 결: '강조' }
-      : { 꼴: '글', 글: `승인됨 · ${a.byName ?? a.by} · ${시각(a.at)} · 버전 ${r.version}${a.late ? ' · 사후 승인' : ''}`, 결: '강조' },
-    { 꼴: '글', 글: '승인은 「이 리포트의 시험 범위와 결과를 확인했다」는 뜻이다. 이 리포트의 수행자는 승인하지 못한다', 결: '흐림' },
-  ];
 }
 
 /** 첫 장 — 개요 → 결과 요약 → 변경 사항 → 계획 대비 차이 → 실패 분류 → 남은 리스크 → 승인 (§3.17 결정 5). 절에 차례 번호를 단다(시안 B) */

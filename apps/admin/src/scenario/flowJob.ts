@@ -47,13 +47,18 @@ export async function 꺼졌나(prefix: string, 지금 = Date.now()): Promise<bo
 }
 
 /** 집고 오래 쥔 일과, 꺼진 에이전트를 기다리는 흐름 추천 대기 일을 닫는다. 집기 · 맡기기 · 결과 보기 때마다 부른다 */
-export async function 흐름일닫기(): Promise<void> {
+export function 흐름일닫기(): Promise<void> {
+  return 대기일닫기('SUGGEST_FLOWS', 대기닫기분);
+}
+
+/** 그 종류의 대기 일 가운데 이만큼 기다렸고 집을 에이전트가 꺼진 것을 닫는다 — QA 리포트 남은 리스크 일도 같은 판정으로 닫는다(reporting/qaReportAi.ts) */
+export async function 대기일닫기(kind: 'SUGGEST_FLOWS' | 'REPORT_RISK', 분: number): Promise<void> {
   await 오래된일닫기();
   const pool = await db();
   const r = await pool.query<{ id: string; prefix: string }>(
     `SELECT j.id, s.prefix FROM perf_ai_job j JOIN service s ON s.id = j.service_id
-      WHERE j.kind = 'SUGGEST_FLOWS' AND j.status = 'QUEUED' AND j.created_at < now() - make_interval(mins => $1)`,
-    [대기닫기분],
+      WHERE j.kind = $2 AND j.status = 'QUEUED' AND j.created_at < now() - make_interval(mins => $1)`,
+    [분, kind],
   );
   for (const x of r.rows) {
     if (!(await 꺼졌나(x.prefix))) continue;

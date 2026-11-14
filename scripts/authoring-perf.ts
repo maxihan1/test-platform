@@ -1,6 +1,6 @@
 // 작성 에이전트가 성능 AI 일을 한 자리에서 하나씩 집어 claude 로 돌리고 결과를 돌려주는 고리 (SPEC 도메인/성능 §7 「AI 일」)
 
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -8,6 +8,7 @@ import { 자식환경 } from './authoring-chain.js';
 import { 돌린다, 멈춤, 부른다, 쉬기 } from './authoring-io.js';
 import { 모델설정, 모델인자 } from './authoring-model.js';
 import { 답에서JSON, 성능프롬프트 } from './authoring-perf-prompt.js';
+import { MCP설정글 } from './authoring-rules.js';
 
 export { 답에서JSON, 성능프롬프트 };
 
@@ -15,6 +16,15 @@ export { 답에서JSON, 성능프롬프트 };
 // 막을 목록이 아니라 빈 허용 목록이다 — 막을 목록은 새 도구 이름이 생기면 뚫린다
 const 도구없음 = ['--tools', '', '--strict-mcp-config', '--disable-slash-commands'];
 const 제한 = 15 * 60_000;
+// 예외는 QA 리포트 남은 리스크 하나다 — 읽기 도구 셋만 이름으로 연다. 재료에 남이 쓴 글(이슈 제목)이 들어도 쓰는 도구가 없어 바꿀 것이 없다
+// (도메인/리포팅 §3.17 「남은 리스크 — AI」). 사용자 설정은 안 읽는다 — 거기 넓은 허용이 있으면 허용 목록이 무력해진다(authoring-draft.ts 와 같다)
+export const 리스크도구 = ['mcp__qa-hub__map_search', 'mcp__qa-hub__run_result', 'mcp__qa-hub__bts_search'];
+
+/** claude 도구 인자. MCP 설정 파일이 있으면 읽기 도구 셋만, 없으면 아무것도 */
+export function 성능도구인자(설정파일: string | null): string[] {
+  if (설정파일 === null) return 도구없음;
+  return ['--tools', '', '--disable-slash-commands', '--setting-sources', 'project,local', '--strict-mcp-config', '--mcp-config', 설정파일, '--allowedTools', 리스크도구.join(',')];
+}
 
 export interface 성능손 {
   부른다: typeof 부른다;
@@ -27,12 +37,14 @@ export interface 성능일 {
   id: number;
   kind: string;
   input: unknown;
+  /** REPORT_RISK 일에만 오는 MCP 열쇠 — 일이 RUNNING 인 동안만 산다 */
+  mcpKey?: string;
 }
 
 type 끝몸 = { output: Record<string, unknown> } | { error: string };
 
 /** 일 하나를 돌려 서버에 보낼 몸을 만든다. 실패는 던지지 않고 error 로 낸다 — 서버가 그 일을 FAILED 로 닫는다 */
-export async function 성능일하기(일: 성능일, 손: 성능손 = 기본손, 신호?: AbortSignal): Promise<끝몸> {
+export async function 성능일하기(일: 성능일, 손: 성능손 = 기본손, 신호?: AbortSignal, 주소?: string): Promise<끝몸> {
   const 프롬프트 = 성능프롬프트(일.kind, 일.input);
   if (프롬프트 === null) return { error: `이 에이전트가 모르는 일: ${일.kind}` };
   const 모델 = 모델설정(process.env);
@@ -40,7 +52,11 @@ export async function 성능일하기(일: 성능일, 손: 성능손 = 기본손
   // 도구를 막아도 cwd 는 비워 둔다 — 저장소 파일이 프롬프트에 섞이지 않게
   const 폴더 = mkdtempSync(join(tmpdir(), 'authoring-perf-'));
   try {
-    const 답 = await 손.돌린다('claude', ['-p', ...모델인자(모델), '--output-format', 'text', ...도구없음], {
+    // 열쇠는 남은 리스크 일에만 온다. 다른 종류에 열쇠가 섞여 와도 도구를 열지 않는다
+    const 설정글 = 일.kind === 'REPORT_RISK' && 주소 !== undefined ? MCP설정글(주소, 일.mcpKey) : undefined;
+    const 설정파일 = 설정글 === undefined ? null : join(폴더, 'mcp.json');
+    if (설정파일 !== null) writeFileSync(설정파일, 설정글!, { mode: 0o600 });
+    const 답 = await 손.돌린다('claude', ['-p', ...모델인자(모델), '--output-format', 'text', ...성능도구인자(설정파일)], {
       cwd: 폴더,
       env: 자식환경(process.env, 폴더),
       input: 프롬프트,
@@ -68,7 +84,7 @@ export async function 성능일돌기(주소: string, 토큰: string, 신호?: A
       const 일 = (답.몸 as { job?: 성능일 | null } | null)?.job;
       if (일 != null) {
         console.log(`[성능] ${일.id}번을 집었다 (${일.kind}).`);
-        const 끝 = await 손.부른다(주소, 토큰, `/perf/ai-jobs/${일.id}/finish`, { method: 'POST', body: await 성능일하기(일, 손, 신호) });
+        const 끝 = await 손.부른다(주소, 토큰, `/perf/ai-jobs/${일.id}/finish`, { method: 'POST', body: await 성능일하기(일, 손, 신호, 주소) });
         // 모양이 틀리면 서버가 그 일을 FAILED 로 두고 400 을 준다. 로그만 남기고 넘어간다
         if (끝.status !== 204) console.error(`[성능] ${일.id}번 끝내기가 ${끝.status} 를 냈다.`);
         continue;

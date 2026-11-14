@@ -3,13 +3,14 @@
 import type { PoolClient } from 'pg';
 import { z } from 'zod';
 
+import { 리스크거르기, 리스크모양, type 리스크결과 } from '../reporting/qaReportAiShape.js';
 import { 요약거르기, 요약모양, type 요약재료뼈대 } from '../stability/summaryShape.js';
 import { 시리얼 } from './devices.js';
 import { 페이지 } from './pages.js';
 import { 목표, 트랜잭션 } from './scenarios.js';
 import { 풀 } from './store.js';
 
-export type AI일종류 = 'DRAFT_RECORD' | 'DRAFT_SWAGGER' | 'DRAFT_FILE' | 'SUGGEST_LOAD' | 'SUGGEST_TARGETS' | 'SUGGEST_PAGES' | 'SUGGEST_DEVICES' | 'ANALYZE_RUN' | 'SUGGEST_FLOWS' | 'STAB_SUMMARY';
+export type AI일종류 = 'DRAFT_RECORD' | 'DRAFT_SWAGGER' | 'DRAFT_FILE' | 'SUGGEST_LOAD' | 'SUGGEST_TARGETS' | 'SUGGEST_PAGES' | 'SUGGEST_DEVICES' | 'ANALYZE_RUN' | 'SUGGEST_FLOWS' | 'STAB_SUMMARY' | 'REPORT_RISK';
 
 // 피크 시간은 1시간으로 둔다 (PERF-F1-04 시작 질문). 스트레스 테스트의 최대는 피크의 5배가 기본이다 (§3.9 「부하 설정」)
 export const 피크분 = 60;
@@ -84,6 +85,8 @@ const 출력: Record<AI일종류, z.ZodType> = {
   }),
   // 안정화 AI 실행 요약 (도메인/안정화 §3.15 「AI 실행 요약」). 화면 읽기와 같은 정의다
   STAB_SUMMARY: 요약모양,
+  // QA 리포트 남은 리스크 (도메인/리포팅 §3.17 「남은 리스크 — AI」). 두 묶음을 admin 이 개조식 글 하나로 짓는다
+  REPORT_RISK: 리스크모양,
 };
 
 /** 피크 동시 사용자 = 일 방문자 × 피크 집중률 × 평균 체류 시간(분) ÷ 피크 시간(분). 셋 중 하나라도 없으면 null — 화면이 묻는다 */
@@ -129,6 +132,10 @@ export function 결과다듬기(kind: string, input: unknown, output: unknown): 
     const 재료 = input as Partial<요약재료뼈대> | null;
     if (!Array.isArray(재료?.errors) || !Array.isArray(재료.cases)) return { error: '요약 재료가 굳기 전의 일입니다' };
     return { output: 요약거르기(값 as z.infer<typeof 요약모양>, 재료 as 요약재료뼈대) };
+  }
+  if (kind === 'REPORT_RISK') {
+    if ((input as { summary?: unknown } | null)?.summary === undefined) return { error: '리스크 재료가 굳기 전의 일입니다' };
+    return 리스크거르기(값 as 리스크결과);
   }
   return { output: 값 };
 }

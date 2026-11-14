@@ -2,8 +2,9 @@
 
 import { randomBytes } from 'node:crypto';
 
-import { 작성계정인가, 토큰해시 } from '../auth/agentToken.js';
+import { 작성계정이름, 작성계정인가, 토큰해시 } from '../auth/agentToken.js';
 import { 사용자와해시, type 사용자 } from '../auth/store.js';
+import { 일제한분 } from '../perf/ai.js';
 
 async function db() {
   const { pool } = await import('../db/index.js');
@@ -38,16 +39,34 @@ export async function 일열쇠내기(요청: { id: number; kind: string; source
 }
 
 /**
+ * QA 리포트 남은 리스크 일(perf_ai_job REPORT_RISK)을 가져갈 때 열쇠를 낸다 — 성능 AI 일 가운데 이 일만 MCP 를 연다 (도메인/리포팅 §3.17 「남은 리스크 — AI」).
+ * 방금 집혀 RUNNING 인 그 종류 줄이 아니면 null
+ */
+export async function 리스크열쇠내기(jobId: number): Promise<string | null> {
+  const 열쇠 = `mcj_${randomBytes(32).toString('base64url')}`;
+  const 넣음 = await (await db()).query(
+    `UPDATE perf_ai_job SET mcp_key_hash = $2 WHERE id = $1 AND kind = 'REPORT_RISK' AND status = 'RUNNING' AND claimed_at IS NOT NULL`,
+    [jobId, 토큰해시(열쇠)],
+  );
+  return 넣음.rowCount === 1 ? 열쇠 : null;
+}
+
+/**
  * 그 열쇠로 들어온 요청의 사람 — 집은 작성 계정의 권한을 쓰되 배정을 그 줄의 프로젝트로 좁힌다.
- * 줄이 RUNNING 이 아니거나 집은 계정이 지금의 작성 계정이 아니거나 꺼졌으면 null
+ * 줄이 RUNNING 이 아니거나 집은 계정이 지금의 작성 계정이 아니거나 꺼졌으면 null.
+ * 작성 요청 줄에 없으면 남은 리스크 일 줄을 본다 — 성능 AI 일은 집은 계정 칸이 없고 집기를 작성 계정만 하니 지금의 작성 계정이다
  */
 export async function 일열쇠사람(열쇠: string): Promise<사용자 | null> {
   const pool = await db();
   // 노트 고치기 줄은 서비스 칸이 비고 프로젝트 칸이 찬다
   const r = await pool.query<{ claimed_by: string | null; project_id: string | null }>(
     `SELECT 줄.claimed_by, COALESCE(줄.project_id, s.project_id) AS project_id FROM authoring_request 줄 LEFT JOIN service s ON s.id = 줄.service_id
-      WHERE 줄.mcp_key_hash = $1 AND 줄.status = 'RUNNING'`,
-    [토큰해시(열쇠)],
+      WHERE 줄.mcp_key_hash = $1 AND 줄.status = 'RUNNING'
+     UNION ALL
+     SELECT $2::text, s.project_id FROM perf_ai_job j JOIN service s ON s.id = j.service_id
+      WHERE j.mcp_key_hash = $1 AND j.kind = 'REPORT_RISK' AND j.status = 'RUNNING' AND j.claimed_at > now() - make_interval(mins => $3)`,
+    // 집은 계정 칸이 없어 지금의 작성 계정으로 본다 — 계정을 바꾸면 도는 일의 열쇠가 새 계정으로 넘어가니 집은 뒤 일 제한 시간까지만 산다
+    [토큰해시(열쇠), 작성계정이름(), 일제한분],
   );
   const 행 = r.rows[0];
   if (행 === undefined || 행.claimed_by === null || 행.project_id === null || !작성계정인가(행.claimed_by)) return null;

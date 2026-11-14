@@ -218,6 +218,7 @@ export const 라우트표: Record<string, 원천> = {
   '/api/qa-reports/:id': { 종류: 'QA리포트', 칸: 'id' },
   '/api/qa-reports/:id/file': { 종류: 'QA리포트', 칸: 'id' },
   '/api/qa-reports/:id/approve': { 종류: 'QA리포트', 칸: 'id' },
+  '/api/qa-reports/:id/ai': { 종류: 'QA리포트', 칸: 'id' },
   '/api/perf/runs/:id/series': { 종류: '성능실행', 칸: 'id' },
   '/api/perf/runs/:id/hosts': { 종류: '성능실행', 칸: 'id' },
   '/api/perf/runs/:id/events': { 종류: '성능실행', 칸: 'id' },

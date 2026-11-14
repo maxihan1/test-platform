@@ -177,6 +177,30 @@ const 종류별: Record<string, { 역할?: string; 화면: string; 규칙: strin
     ],
     모양: '{ "headline": 문자열, "changes": [{ "errorId": 정수, "text": 문자열 }], "features": [{ "name": 문자열, "tcIds": 문자열[] }], "verified": 문자열, "trend": 문자열, "errors": [{ "errorId": 정수, "headline": 문자열, "impact": 문자열, "previous": 문자열, "cause": 문자열 }] }',
   },
+  // QA 리포트 첫 장의 남은 리스크 — 이 일만 MCP 읽기 도구 셋을 연다 (도메인/리포팅 §3.17 「남은 리스크 — AI」)
+  REPORT_RISK: {
+    역할: '너는 Test Commander QA 리포트 뒤에서 도는 도우미다. QA 엔지니어의 눈으로 빌드 하나의 QA 리포트 첫 장 재료를 보고 「남은 리스크」를 쓴다. 숫자를 세는 것, 실패를 결함 · 테스트 문제로 가르는 것, 배포 · 출시를 판단하는 것은 네 몫이 아니다.',
+    화면: '결과는 QA 리포트 첫 장 「남은 리스크」 칸에 「AI 작성」 표시와 함께 보이고 PDF · 워드에도 실린다. 감사인 · QA · 개발이 읽고, 사람이 고칠 수 있다.',
+    점검: [
+      'refs 가 모두 재료나 도구 결과에서 본 번호인가',
+      '배포 · 출시를 판단하는 말이 없는가',
+      '글 안의 숫자가 모두 재료에 있는 숫자인가',
+      'text 마다 120자 안이고 묶음마다 5줄 안인가',
+    ],
+    규칙: [
+      '재료 summary 는 admin 이 센 첫 장이다. results 는 결과 요약(functional 은 기능 · UI · E2E, nonFunctional 은 호환성 · 성능 · 안정화이고 result 가 null 이면 그 종류 실행이 없다), changes 는 앞 빌드 대비 변경 사항, plan 은 계획 대비 안 돈 것, failures 는 실패 분류(PRODUCT 제품 결함 · TEST 테스트 문제 · ENV 환경 · UNCLASSIFIED 판정이 필요한 실패), previous 는 견준 앞 빌드다. stability.errors 는 이 빌드의 신규 · 증가 · 재발 오류 종류다. truncated 가 true 면 배열이 100개에서 잘렸다.',
+      'functional 은 기능 · UI · E2E 실패, 판정이 필요한 실패, 계획 대비 안 돈 것, 변경 사항(기대 결과가 바뀐 테스트 · 바뀐 요구사항 · 테스트가 확인하지 않은 제품 변경)에서 나온 리스크다.',
+      'nonFunctional 은 호환성 의심 화면, 성능 목표 미달, 안정화(판정은 통과했지만 오류가 난 케이스 · 신규 · 재발 오류)에서 나온 리스크다.',
+      '리스크마다 한 줄로 쓰고 큰 것부터 묶음마다 많아야 5줄이다. refs 에 근거가 된 케이스 번호 · Issue Bunker 이슈 키 · 실행 번호(「RUN 123」 꼴)를 단다. refs 는 admin 이 줄 끝에 괄호로 붙이니 text 에 다시 쓰지 않는다.',
+      '묶음에 쓸 것이 없으면 빈 배열로 둔다. admin 이 「확인된 리스크 없음」을 적는다.',
+      'MCP 도구(qa-hub)가 열려 있으면 근거를 확인할 때만 쓴다 — map_search(service: 재료 service, tcId) 로 실패 케이스가 덮는 요구를, run_result(runId) 로 실패 단계 · 오류를, bts_search(projectId: 재료 projectId, issueKey) 로 이슈 제목 · 상태를 본다. btsLinked 가 false 면 bts_search 를 부르지 않는다. 열 번 안쪽으로 부르고, 도구가 없거나 거절하면 재료만으로 쓴다.',
+      '원인은 단정하지 않는다. 코드를 읽지 않았으니 「~로 보입니다」처럼 쓴다.',
+      '「배포 가능」 · 「배포 보류」 · 「출시해도 됩니다」 · go/no-go 처럼 배포 · 출시를 판단하는 말을 쓰지 않는다. 판단은 사람이 승인 칸에서 한다.',
+      '글 안의 숫자는 재료에 있는 것만 옮긴다. 더하거나 빼거나 비율을 새로 계산하지 않는다.',
+    ],
+    모양: '{ "functional": [{ "text": 문자열, "refs": 문자열[] }], "nonFunctional": [{ "text": 문자열, "refs": 문자열[] }] }',
+    예: '{ "functional": [{ "text": "결제 실패 2건이 아직 판정 전이라 결함인지 테스트 문제인지 모릅니다", "refs": ["DMK-FN-012", "DMK-FN-013"] }], "nonFunctional": [] }',
+  },
 };
 
 /** 종류마다 프롬프트를 만든다. 모르는 종류는 null — 부르는 쪽이 error 로 끝낸다 */
