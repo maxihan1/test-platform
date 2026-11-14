@@ -1,0 +1,40 @@
+import { defineCase, test, verify } from '@platform/kit';
+import { z } from 'zod';
+
+import { 문구가보이나, 서버 } from './helpers/app.helper.js';
+import { 가입값만들기, 가입양식까지, 가입양식채우기, 오류글끝누르기, 크롬주소글 } from './helpers/onboarding.helper.js';
+import { 가입양식화면 } from './pages/signup-form.page.js';
+import { 시작화면 } from './pages/start.page.js';
+
+export const spec = defineCase({
+  tcId: 'MTA-FN-078',
+  name: '이메일 서버 오류 ERR_TAKEN면 「이미 사용 중인 이메일 주소입니다. 혹시 비밀번호를 잊으셨나요?」가 보이고 링크는 https://<서버>/auth/password/new로 간다',
+  platforms: ['android'],
+  techniques: ['동등 분할'],
+  precondition: ['앱에 로그인한 계정이 없다'],
+  params: z.object({
+    loginId: z.string().describe('일반 회원 이메일').optional().meta({ secret: true }),
+    loginPassword: z.string().describe('일반 회원 비밀번호').optional().meta({ secret: true }),
+  }),
+  expected: null,
+});
+
+test(spec, async ({ driver, params }) => {
+  const 시작 = new 시작화면(driver);
+  const 양식 = new 가입양식화면(driver);
+
+  await test.step('앱 시작 화면을 확인한다', async () => {
+    await verify('시작 화면에 「로그인」 버튼이 보인다', await 시작.떴나(), true, { blocker: true });
+  });
+  await test.step('가입 경로에서 우리 서버를 고르고 가입 양식을 연다', async () => {
+    await verify('가입 양식이 보인다', await 가입양식까지(driver), true, { blocker: true });
+  });
+  await test.step('가입 양식 이메일에 일반 회원의 이메일을 적고 「다음」을 누른다', async () => {
+    await 가입양식채우기(양식, 가입값만들기({ 이메일: params.loginId ?? '' }));
+    await 양식.다음누르기();
+    const 안내 = await verify('「이미 사용 중인 이메일 주소입니다. 혹시 비밀번호를 잊으셨나요?」가 보인다', await 문구가보이나(driver, '이미 사용 중인 이메일 주소입니다. 혹시 비밀번호를 잊으셨나요?', 15_000), true);
+    await 오류글끝누르기(driver, '이미 사용 중인 이메일 주소입니다');
+    const 링크 = await verify('링크가 서버의 비밀번호 찾기 주소로 간다', (await 크롬주소글(driver)).includes(서버 + '/auth/password/new'), true);
+    await verify('이메일 서버 오류 ERR_TAKEN면 「이미 사용 중인 이메일 주소입니다. 혹시 비밀번호를 잊으셨나요?」가 보이고 링크는 https://<서버>/auth/password/new로 간다', 안내 && 링크, true);
+  }, { capture: true });
+});
