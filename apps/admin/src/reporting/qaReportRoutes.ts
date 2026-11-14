@@ -5,8 +5,9 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 
 import { 볼륨파일읽기 } from '../artifactFile.js';
 import { 정수 } from '../routeParams.js';
-import { PDF로, 심은절차들 } from './generate.js';
-import { 문서재료읽기, 리포트읽기, type 문서재료 } from './qaReportDoc.js';
+import { PDF로 } from './generate.js';
+import { QA리포트를승인한다 } from './qaReportApprove.js';
+import { 문서재료읽기, 리포트읽기, 사진심은 } from './qaReportDoc.js';
 import { renderQaReportDocx } from './qaReportDocx.js';
 import { renderQaReportHtml } from './qaReportHtml.js';
 
@@ -41,23 +42,6 @@ const 형식들 = {
   HTML: { ext: 'html', mime: 'text/html; charset=utf-8', 펼침: 'inline' },
   DOCX: { ext: 'docx', mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 펼침: 'attachment' },
 } as const;
-
-// 사진은 문서 안에 심는다(증적과 같다 — generate.ts). UI 구획은 실패 항목의 사진만 싣는다 (§3.17 결정 8 「UI = 화면별(실패만 사진)」)
-export async function 사진심은(재료: 문서재료): Promise<문서재료> {
-  const 항목 = await Promise.all(
-    재료.항목.map(async (i) => {
-      const 뺀다 = 재료.종류.get(i.tcId) === 'UI' && i.status !== 'FAIL';
-      return { ...i, steps: 뺀다 ? i.steps.map((x) => ({ ...x, screenshotPath: null })) : await 심은절차들(i.steps) };
-    }),
-  );
-  const 시나리오 = await Promise.all(
-    재료.시나리오.map(async (doc) => ({
-      ...doc,
-      parts: await Promise.all(doc.parts.map(async (d) => (d.item === null ? d : { ...d, item: { ...d.item, steps: await 심은절차들(d.item.steps) } }))),
-    })),
-  );
-  return { ...재료, 항목, 시나리오 };
-}
 
 export default async function qaReportRoutes(app: FastifyInstance): Promise<void> {
   app.get<{ Querystring: Record<string, unknown> }>('/qa-reports', async (req, reply) => {
@@ -134,6 +118,16 @@ export default async function qaReportRoutes(app: FastifyInstance): Promise<void
     if (형식 === 'DOCX') return 보낸다(await renderQaReportDocx(재료));
     const html = renderQaReportHtml(await 사진심은(재료), 형식);
     return 보낸다(형식 === 'HTML' ? html : await PDF로(html));
+  });
+
+  // admin 이고 그 애플리케이션에 배정됐는지는 문이 봤다. 수행자 · 버전 · 도는 실행 · AI 일은 승인 함수가 잠금 안에서 본다 (§3.17 결정 11 · 13)
+  app.post<{ Params: { id: string } }>('/qa-reports/:id/approve', async (req, reply) => {
+    const id = 정수(req.params.id);
+    if (id === null) return 잘못(reply, '리포트 번호가 틀렸습니다');
+    const 나 = req.user!;
+    const r = await QA리포트를승인한다(await db(), id, { username: 나.username, name: 나.displayName });
+    if (!r.됨) return reply.code(r.code).send(r.error === 'FORBIDDEN' ? { error: r.error, need: 'admin' } : { error: r.error });
+    return { approval: r.approval };
   });
 
   // 한 건 실행은 붙은 실행으로 센다 — 그 실행이 든 리포트다. 빌드가 다른 한 건은 어느 묶음에도 안 든다 (§3.17 「묶음 · 버전」)

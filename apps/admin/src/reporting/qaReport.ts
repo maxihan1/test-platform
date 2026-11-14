@@ -15,7 +15,7 @@ export type 대상 = { runId: number } | { perfRunId: number };
 export const 묶음열쇠 = (b: { serviceId: number; env: string; buildNo: string | null; runId?: number; perfRunId?: number }): string =>
   b.buildNo !== null ? `B:${b.serviceId}:${encodeURIComponent(b.env)}:${encodeURIComponent(b.buildNo)}` : b.runId !== undefined ? `R:${b.runId}` : `P:${b.perfRunId}`;
 
-interface 방아쇠 {
+export interface 방아쇠 {
   key: string;
   serviceId: number;
   env: string;
@@ -103,81 +103,102 @@ export function 담을실행(줄들: 실행줄[], 앞: readonly string[], 세운
 }
 
 /** 한 묶음을 다시 만든다. 묶음 열쇠로 트랜잭션 잠금을 잡고 그 안에서 마지막 버전을 다시 읽는다 — 실행 둘이 같이 끝나도 버전이 둘 서지 않는다 */
-export async function QA리포트를다시만든다(대: 대상): Promise<'없음' | '그대로' | '고침' | '새 버전'> {
+export async function QA리포트를다시만든다(대: 대상): Promise<다시만든결과> {
   const pool = await db();
   const t = await 방아쇠읽기(pool, 대);
   if (t === null) return '없음';
-  const 서비스 = (await pool.query<{ prefix: string; kind: 묶음['serviceKind'] }>('SELECT prefix, kind FROM service WHERE id = $1', [t.serviceId])).rows[0];
-  if (서비스 === undefined) return '없음';
+  return 묶음잠금(pool, t.key, async (c) => (await 잠근채다시만든다(pool, c, t)) ?? '없음');
+}
 
+export type 다시만든결과 = '없음' | '그대로' | '고침' | '새 버전';
+
+/** 묶음 열쇠로 트랜잭션 잠금을 잡고 일을 한다. 다시 만들기와 승인이 같은 잠금을 쓴다 (§3.17 「다시 만들기와 승인은 묶음마다 하나씩 돈다」) */
+export async function 묶음잠금<T>(pool: Pool, key: string, 일: (c: PoolClient) => Promise<T>): Promise<T> {
   const c = await pool.connect();
   try {
     await c.query('BEGIN');
-    await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [t.key]);
-    const 버전들 = (
-      await c.query<버전줄>('SELECT id, version, approved_at, created_at, run_ids, perf_run_ids FROM qa_report WHERE bundle_key = $1 ORDER BY version DESC LIMIT 2', [t.key])
-    ).rows;
-    const 마지막 = 버전들[0];
-    if (마지막?.approved_at != null) {
-      const 담음 = t.runId !== null ? 마지막.run_ids.includes(String(t.runId)) : 마지막.perf_run_ids.includes(String(t.perfRunId));
-      if (t.scheduled || 담음) {
-        await c.query('COMMIT');
-        return '그대로';
-      }
-    }
-    // 승인 전 버전은 그 앞 버전이 담은 것을 이어 담는다. 승인한 버전 위에는 지금 세우는 새 버전이다
-    const 새로 = 마지막 === undefined || 마지막.approved_at !== null;
-    const 앞 = 새로 ? 마지막 : 버전들[1];
-    // 새 버전의 created_at 도 이 트랜잭션의 now() 라 같은 시계로 견준다
-    const 지금 = (await c.query<{ n: Date }>('SELECT now() AS n')).rows[0]!.n;
-    const 세운때 = 앞 === undefined ? null : 새로 ? 지금 : 마지막.created_at;
-    const { 실행, 성능 } = await 묶음실행들(c, t);
-    const runIds = 담을실행(실행, 앞?.run_ids ?? [], 세운때);
-    const perfRunIds = 담을실행(성능, 앞?.perf_run_ids ?? [], 세운때);
-    if (runIds.length + perfRunIds.length === 0) {
-      await c.query('COMMIT');
-      return '그대로';
-    }
-    const { summary, performers } = await 첫장을센다(pool, {
-      serviceId: t.serviceId,
-      prefix: 서비스.prefix,
-      serviceKind: 서비스.kind,
-      env: t.env,
-      buildNo: t.buildNo,
-      runIds,
-      perfRunIds,
-      running: [...실행, ...성능].filter((r) => !r.finished).length,
-    });
-    const 값 = [runIds, perfRunIds, performers, JSON.stringify(summary), summary.overview.serviceName];
-    if (새로) {
-      await c.query(
-        `INSERT INTO qa_report (bundle_key, service_id, service_name, env, build_no, run_id, perf_run_id, version, run_ids, perf_run_ids, performers, summary)
-         VALUES ($6, $7, $5, $8, $9, $10, $11, $12, $1, $2, $3, $4)`,
-        [
-          ...값,
-          t.key,
-          t.serviceId,
-          t.env,
-          t.buildNo,
-          t.key.startsWith('R:') ? Number(t.key.slice(2)) : null,
-          t.key.startsWith('P:') ? Number(t.key.slice(2)) : null,
-          (마지막?.version ?? 0) + 1,
-        ],
-      );
-    } else {
-      await c.query(
-        'UPDATE qa_report SET run_ids = $1, perf_run_ids = $2, performers = $3, summary = $4, service_name = $5, updated_at = now() WHERE id = $6',
-        [...값, 마지막!.id],
-      );
-    }
+    await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [key]);
+    const 값 = await 일(c);
     await c.query('COMMIT');
-    return 새로 ? '새 버전' : '고침';
+    return 값;
   } catch (err) {
     await c.query('ROLLBACK');
     throw err;
   } finally {
     c.release();
   }
+}
+
+/** 승인이 부를 때의 방아쇠 — 끝난 실행 없이 그 묶음의 마지막 버전을 새 재료로 덮는다 */
+export function 리포트방아쇠(q: { bundle_key: string; service_id: string; env: string; build_no: string | null }): 방아쇠 {
+  return { key: q.bundle_key, serviceId: Number(q.service_id), env: q.env, buildNo: q.build_no, runId: null, perfRunId: null, scheduled: false };
+}
+
+/** 잠금을 잡은 트랜잭션 안에서 다시 만든다. 애플리케이션이 지워졌으면 null */
+export async function 잠근채다시만든다(pool: Pool, c: PoolClient, t: 방아쇠): Promise<다시만든결과 | null> {
+  const 서비스 = (await c.query<{ prefix: string; kind: 묶음['serviceKind'] }>('SELECT prefix, kind FROM service WHERE id = $1', [t.serviceId])).rows[0];
+  if (서비스 === undefined) return null;
+  const 버전들 = (
+    await c.query<버전줄>('SELECT id, version, approved_at, created_at, run_ids, perf_run_ids FROM qa_report WHERE bundle_key = $1 ORDER BY version DESC LIMIT 2', [t.key])
+  ).rows;
+  const 마지막 = 버전들[0];
+  if (마지막?.approved_at != null) {
+    const 담음 = t.runId !== null ? 마지막.run_ids.includes(String(t.runId)) : 마지막.perf_run_ids.includes(String(t.perfRunId));
+    if (t.scheduled || 담음) return '그대로';
+  }
+  // 승인 전 버전은 그 앞 버전이 담은 것을 이어 담는다. 승인한 버전 위에는 지금 세우는 새 버전이다
+  const 새로 = 마지막 === undefined || 마지막.approved_at !== null;
+  const 앞 = 새로 ? 마지막 : 버전들[1];
+  // 새 버전의 created_at 도 이 트랜잭션의 now() 라 같은 시계로 견준다
+  const 지금 = (await c.query<{ n: Date }>('SELECT now() AS n')).rows[0]!.n;
+  const 세운때 = 앞 === undefined ? null : 새로 ? 지금 : 마지막.created_at;
+  const { 실행, 성능 } = await 묶음실행들(c, t);
+  const runIds = 담을실행(실행, 앞?.run_ids ?? [], 세운때);
+  const perfRunIds = 담을실행(성능, 앞?.perf_run_ids ?? [], 세운때);
+  if (runIds.length + perfRunIds.length === 0) return '그대로';
+  const { summary, performers } = await 첫장을센다(pool, {
+    serviceId: t.serviceId,
+    prefix: 서비스.prefix,
+    serviceKind: 서비스.kind,
+    env: t.env,
+    buildNo: t.buildNo,
+    runIds,
+    perfRunIds,
+    running: [...실행, ...성능].filter((r) => !r.finished).length,
+  });
+  const 값 = [runIds, perfRunIds, performers, JSON.stringify(summary), summary.overview.serviceName];
+  // 승인 뒤 한 건 실행이 붙은 결과를 안 바꿨으면 버전을 올리지 않는다 — 같은 실행 · 같은 첫 장이면 승인한 버전이 그대로 맞다 (§3.17 「한 건 실행」)
+  if (새로 && 마지막 !== undefined) {
+    const 같음 = (
+      await c.query<{ 같음: boolean }>(
+        'SELECT run_ids = $1::bigint[] AND perf_run_ids = $2::bigint[] AND performers = $3::text[] AND summary = $4::jsonb AS 같음 FROM qa_report WHERE id = $5',
+        [...값.slice(0, 4), 마지막.id],
+      )
+    ).rows[0]?.같음;
+    if (같음 === true) return '그대로';
+  }
+  if (새로) {
+    await c.query(
+      `INSERT INTO qa_report (bundle_key, service_id, service_name, env, build_no, run_id, perf_run_id, version, run_ids, perf_run_ids, performers, summary)
+       VALUES ($6, $7, $5, $8, $9, $10, $11, $12, $1, $2, $3, $4)`,
+      [
+        ...값,
+        t.key,
+        t.serviceId,
+        t.env,
+        t.buildNo,
+        t.key.startsWith('R:') ? Number(t.key.slice(2)) : null,
+        t.key.startsWith('P:') ? Number(t.key.slice(2)) : null,
+        (마지막?.version ?? 0) + 1,
+      ],
+    );
+    return '새 버전';
+  }
+  await c.query('UPDATE qa_report SET run_ids = $1, perf_run_ids = $2, performers = $3, summary = $4, service_name = $5, updated_at = now() WHERE id = $6', [
+    ...값,
+    마지막!.id,
+  ]);
+  return '고침';
 }
 
 // 한 번에 하나 — 실행이 몰려 끝나도 연결을 여럿 붙들지 않는다. 앞 일이 깨져도 줄은 계속 돈다

@@ -4,6 +4,7 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 
 import { 칸되는서비스, type 기능 } from '../auth/permissions.js';
+import { 승인전알림 } from './qaReport.js';
 import { 알림, type 보이는서비스 } from './store.js';
 
 // 서비스에 안 매인다. 문은 「배정 중 하나라도 실행 read」만 보므로 경계는 여기서 가른다 —
@@ -15,5 +16,11 @@ function 읽기되는서비스(req: FastifyRequest, 어느기능: 기능): 보�
 }
 
 export default async function notificationRoutes(app: FastifyInstance): Promise<void> {
-  app.get('/notifications', async (req) => 알림(읽기되는서비스(req, 'runs'), 읽기되는서비스(req, 'authoring')));
+  app.get('/notifications', async (req) => {
+    const 나 = req.user;
+    // 승인 전 QA 리포트 줄은 admin 만 받는다 — 승인이 admin 일이다 (도메인/리포팅 §3.17 결정 11). 배정된 애플리케이션 전부가 대상이다
+    const 승인할곳 = 나?.role === 'admin' ? 나.services.map((s) => ({ id: s.id, prefix: s.prefix, name: s.name })) : [];
+    const [본, approvals] = await Promise.all([알림(읽기되는서비스(req, 'runs'), 읽기되는서비스(req, 'authoring')), 승인전알림(나?.username ?? '', 승인할곳)]);
+    return { ...본, approvals };
+  });
 }

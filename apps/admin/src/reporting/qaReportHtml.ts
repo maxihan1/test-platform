@@ -193,6 +193,7 @@ export function renderQaReportHtml(재료: 문서재료, format: 'HTML' | 'PDF')
   const r = 재료.리포트;
   const 카드 = 카드묶음(재료.항목, format);
   const 승인됨 = r.approval !== null;
+  // 승인한 버전의 PDF 는 승인 때 한 번 굳힌 그 파일이 기준 문서다 — 「받을 때 다시 만들었다」는 HTML 에만 단다
   const 구획 = 구획들(재료).flatMap((g) => [
     ...g.머리.flatMap((d) => 덩이로(d, 'sec part')),
     ...(g.케이스 === undefined ? [] : 카드.구획((tcId) => 재료.종류.get(tcId) === g.케이스)),
@@ -207,7 +208,7 @@ export function renderQaReportHtml(재료: 문서재료, format: 'HTML' | 'PDF')
     // 승인 전 버전은 다시 만들 때마다 바뀐다 — 문서 전체에 옅게 깔아 어느 때 것인지 보이게 한다 (§3.17 「묶음 · 버전」)
     ...(승인됨 ? [] : [`<div class="draft-mark">승인 전</div>`]),
     `<header class="cover">`,
-    `  <div><div class="kicker">애플리케이션 QA 리포트</div><h1>${안전(리포트제목(r))}</h1><div class="when">버전 ${r.version} · ${안전(시각(r.updatedAt))} 기준</div>${승인됨 ? `<div class="redo">${안전(승인뒤다시)}</div>` : ''}</div>`,
+    `  <div><div class="kicker">애플리케이션 QA 리포트</div><h1>${안전(리포트제목(r))}</h1><div class="when">버전 ${r.version} · ${안전(시각(r.updatedAt))} 기준</div>${승인됨 && format === 'HTML' ? `<div class="redo">${안전(승인뒤다시)}</div>` : ''}</div>`,
     `  <span class="state ${승인됨 ? 'ok' : 'draft'}">${승인됨 ? '승인됨' : '승인 전'}</span>`,
     `</header>`,
     `<section class="first-page">`,
