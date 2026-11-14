@@ -1,0 +1,41 @@
+import { defineCase, test, verify } from '@platform/kit';
+import { z } from 'zod';
+
+import { 토스트 } from './components/toast.component.js';
+import { 로그인하기 } from './helpers/login.helper.js';
+import { 홈화면 } from './pages/home.page.js';
+import { 앱정보화면 } from './pages/set-about.page.js';
+import { 설정화면 } from './pages/settings.page.js';
+
+export const spec = defineCase({
+  tcId: 'MTA-FN-518',
+  name: '「미디어 캐시 지우기」를 누르면 토스트 「미디어 캐시 지워짐」이 보인다',
+  platforms: ['android'],
+  precondition: ['일반 회원(qa_user1)으로 로그인해 있다'],
+  params: z.object({
+    loginId: z.string().describe('일반 회원 이메일').optional().meta({ secret: true }),
+    loginPassword: z.string().describe('일반 회원 비밀번호').optional().meta({ secret: true }),
+  }),
+  expected: null,
+});
+
+test(spec, async ({ driver, params }) => {
+  const 홈 = new 홈화면(driver);
+  const 설정 = new 설정화면(driver);
+  const 정보 = new 앱정보화면(driver);
+  const 알림창 = new 토스트(driver);
+
+  await test.step('일반 회원으로 로그인해 홈을 연다', async () => {
+    await 로그인하기(driver, params.loginId, params.loginPassword);
+    await verify('홈에 글쓰기 버튼이 보인다', await 홈.떴나(), true, { blocker: true });
+  });
+  await test.step('설정에서 「Mastodon에 대해」를 연다', async () => {
+    await 설정.열기();
+    await 설정.줄누르기('Mastodon에 대해');
+    await verify('「Mastodon에 대해」 화면에 「추가 설정」 줄이 보인다', await 정보.떴나(), true, { blocker: true });
+  });
+  await test.step('「미디어 캐시 지우기」를 누른다', async () => {
+    await 정보.줄누르기('미디어 캐시 지우기');
+    await verify('「미디어 캐시 지우기」를 누르면 토스트 「미디어 캐시 지워짐」이 보인다', (await 알림창.글()).includes('미디어 캐시 지워짐'), true);
+  }, { capture: true });
+});
