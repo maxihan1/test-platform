@@ -6,6 +6,7 @@ import type { Pool } from 'pg';
 
 import { 팜logcat있음, 팜증적받는중 } from '../execution/farmEvidence.js';
 import { trace줄끝 } from '../execution/traceIngest.js';
+import { QA리포트를맡긴다 } from '../reporting/qaReport.js';
 
 import { 앱수집 } from './appCollect.js';
 import { 집계를저장한다, type 수집 } from './save.js';
@@ -182,7 +183,10 @@ let 줄: Promise<unknown> = Promise.resolve();
 
 export function 안정화집계를맡긴다(runId: number): Promise<void> {
   const 일 = 줄.then(() => 집계한다(runId)).then(
-    () => undefined,
+    // 집계 줄은 실행이 끝나고 한참 뒤에 선다 — 그 빌드의 승인 전 QA 리포트 안정화 줄을 채우게 한 번 더 다시 만든다 (도메인/리포팅 §3.17 「안정화 줄」)
+    (결과) => {
+      if (결과 === '집계함') void QA리포트를맡긴다({ runId });
+    },
     (err: unknown) => {
       console.error(`[stability] 실행 ${String(runId)} 을 안정화 지표에 집계하지 못했다: ${err instanceof Error ? err.message : String(err)}`);
     },

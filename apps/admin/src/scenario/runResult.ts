@@ -10,6 +10,7 @@ import { Chrome차례, 폰차례 } from '../execution/phone.js';
 import { 준비실패로닫는다, 준비하고돌린다 } from '../execution/prep.js';
 import { 기기칸 } from '../execution/runLifecycle.js';
 import { jsonb에맞춘다 } from '../jsonbText.js';
+import { QA리포트를맡긴다 } from '../reporting/qaReport.js';
 
 import { type 시나리오폰, 팜폰으로돌린다 } from './phone.js';
 import { 실행상태를연다, 실행상태를지운다 } from './runAbort.js';
@@ -64,6 +65,8 @@ export async function 시나리오분배(runId: number, 요청: ScenarioExecuteR
     }
   } finally {
     실행상태를지운다(runId);
+    // 결과 저장 · 보내기 전 멈춤 · 준비 실패 어느 끝이든 여기를 지난다 (도메인/리포팅 §3.17 결정 4)
+    void QA리포트를맡긴다({ runId });
   }
 }
 

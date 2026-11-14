@@ -5,6 +5,7 @@ import type { ElementCheck, ExecuteResponse, FpsSample, Platform, StepResult } f
 import type { Pool } from 'pg';
 
 import { jsonb에맞춘다 } from '../jsonbText.js';
+import { QA리포트를맡긴다 } from '../reporting/qaReport.js';
 
 import { 게임결과를넣는다 } from './gameResult.js';
 
@@ -221,6 +222,7 @@ export async function recoverRunning(): Promise<number> {
       "UPDATE test_run SET status = 'ABORTED', finished_at = now() WHERE run_id = $1 AND status = 'RUNNING'",
       [Number(row.run_id)],
     );
+    void QA리포트를맡긴다({ runId: Number(row.run_id) });
   }
   return running.rowCount ?? 0;
 }

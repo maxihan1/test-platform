@@ -51,6 +51,7 @@ import compatRoutes from './compat/routes.js';
 import compatRunRoutes from './compat/runRoutes.js';
 import stabilityRoutes from './stability/routes.js';
 import schedRoutes from './sched/routes.js';
+import qaReportRoutes from './reporting/qaReportRoutes.js';
 import reportingRoutes from './reporting/routes.js';
 import scenarioRoutes from './scenario/routes.js';
 import scenarioRunRoutes from './scenario/runRoutes.js';
@@ -94,6 +95,7 @@ export function buildApp(sessionSecret = process.env.SESSION_SECRET ?? '') {
   app.register(appScreenAgentRoutes, { prefix: '/api' });
   app.register(trialRoutes, { prefix: '/api' });
   app.register(reportingRoutes, { prefix: '/api' });
+  app.register(qaReportRoutes, { prefix: '/api' });
   app.register(scenarioRoutes, { prefix: '/api' });
   app.register(scenarioRunRoutes, { prefix: '/api' });
   app.register(scenarioTrialRoutes, { prefix: '/api' });

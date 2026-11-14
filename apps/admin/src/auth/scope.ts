@@ -28,6 +28,7 @@ export type 원천 =
   | { 종류: '성능더미클라이언트'; 칸: string } // params[칸] 이 perf_dummy_client 번호다
   | { 종류: '호환성세트'; 칸: string } // params[칸] 이 compat_set 번호다. 치운 세트도 그 애플리케이션이다
   | { 종류: '안정화오류'; 칸: string } // params[칸] 이 stab_error 번호다. 그 오류의 애플리케이션으로 본다
+  | { 종류: 'QA리포트'; 칸: string } // params[칸] 이 qa_report 번호다. 애플리케이션을 지워 칸이 빈 리포트는 admin 만 본다(gate.ts)
   | { 종류: '시험'; 칸: string }; // params[칸] 이 시험 실행 번호다. 메모리 보관소가 시작한 사람에게만 서비스를 알려 준다
 
 /**
@@ -211,6 +212,10 @@ export const 라우트표: Record<string, 원천> = {
   '/api/perf/scenarios/:id/schedule': { 종류: '성능시나리오', 칸: 'id' },
   '/api/perf/runs': { 종류: '질의번호', 칸: 'serviceId' },
   '/api/perf/runs/:id': { 종류: '성능실행', 칸: 'id' },
+  '/api/perf/runs/:id/qa-report': { 종류: '성능실행', 칸: 'id' },
+  '/api/runs/:runId/qa-report': { 종류: '실행', 칸: 'runId' },
+  '/api/qa-reports': { 종류: '질의' },
+  '/api/qa-reports/:id': { 종류: 'QA리포트', 칸: 'id' },
   '/api/perf/runs/:id/series': { 종류: '성능실행', 칸: 'id' },
   '/api/perf/runs/:id/hosts': { 종류: '성능실행', 칸: 'id' },
   '/api/perf/runs/:id/events': { 종류: '성능실행', 칸: 'id' },
@@ -291,7 +296,7 @@ export function 케이스의서비스(tcId: unknown): string | null {
   return 접두사모양.test(접두사) ? 접두사 : null;
 }
 
-export type 찾을것 = { 종류: '실행' | '증적' | '입력값묶음' | '작성요청' | '시나리오' | '서비스' | '성능시나리오' | '성능실행' | '성능AI일' | '성능더미클라이언트' | '호환성세트' | '안정화오류'; 번호: number };
+export type 찾을것 = { 종류: '실행' | '증적' | '입력값묶음' | '작성요청' | '시나리오' | '서비스' | '성능시나리오' | '성능실행' | '성능AI일' | '성능더미클라이언트' | '호환성세트' | '안정화오류' | 'QA리포트'; 번호: number };
 
 /** 번호 칸은 **라우트와 같은 엄격함**으로 읽는다. 느슨하면 문과 라우트가 다른 값을 본다 */
 export function 번호로(값: unknown): number | null {
@@ -326,6 +331,7 @@ const 질의: Record<찾을것['종류'], string> = {
   성능더미클라이언트: 'SELECT s.prefix FROM perf_dummy_client d JOIN service s ON s.id = d.service_id WHERE d.id = $1',
   호환성세트: 'SELECT s.prefix FROM compat_set c JOIN service s ON s.id = c.service_id WHERE c.id = $1',
   안정화오류: 'SELECT s.prefix FROM stab_error e JOIN service s ON s.id = e.service_id WHERE e.id = $1',
+  QA리포트: 'SELECT s.prefix FROM qa_report q LEFT JOIN service s ON s.id = q.service_id WHERE q.id = $1',
 };
 
 /**
