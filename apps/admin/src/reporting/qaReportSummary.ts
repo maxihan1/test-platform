@@ -4,6 +4,7 @@ import type { Pool } from 'pg';
 
 import { 기능재료읽기, type 실패갈래, type 실패줄, type 케이스계획, type 판정셈 } from './qaReportCases.js';
 import { 변경사항을센다, type 변경사항 } from './qaReportChanges.js';
+import { 고른호환성실행들 } from './qaReportNonFunc.js';
 
 export type 리포트종류 = 'FN' | 'UI' | 'E2E' | 'COMPAT' | 'PERF';
 /** 출처별 발생 케이스. 게임의 크래시는 logcat 의 크래시 · ANR 을 합친 것이다(안정화 §3.15 결정 14) */
@@ -172,18 +173,12 @@ export async function 첫장을센다(pool: Pool, b: 묶음): Promise<{ summary:
 
   // 호환성 · 성능은 세트 · 시나리오마다 마지막 실행 하나로 센다 — 다시 돌린 실행까지 더하면 같은 화면 · 목표가 두 번 든다
   const 마지막만 = <T,>(줄들: T[], 열쇠: (r: T) => string): T[] => [...new Map(줄들.map((r) => [열쇠(r), r])).values()];
-  const 호환성실행 = (
-    await pool.query<{ run_id: string; compat_set_id: string }>(
-      `SELECT DISTINCT ON (compat_set_id) run_id, compat_set_id FROM test_run
-        WHERE run_id = ANY($1::bigint[]) AND kind = 'COMPAT' ORDER BY compat_set_id, started_at DESC, run_id DESC`,
-      [b.runIds],
-    )
-  ).rows;
+  const 호환성실행 = await 고른호환성실행들(pool, b.runIds);
   let 호환성: { devices: number; screens: number; suspect: number } | null = null;
   if (호환성실행.length > 0) {
     // 호환성 결과 모듈은 엔진 · 팜까지 끌고 와 실행 끝 자리에서 고리가 생긴다 — 쓸 때만 부른다
     const { 호환성요약들 } = await import('../compat/runView.js');
-    const 요약 = [...(await 호환성요약들(호환성실행.map((r) => Number(r.run_id)))).values()];
+    const 요약 = [...(await 호환성요약들(호환성실행)).values()];
     호환성 = 요약.reduce((a, s) => ({ devices: a.devices + s.devices, screens: a.screens + s.screens, suspect: a.suspect + s.confirmed + s.pending }), { devices: 0, screens: 0, suspect: 0 });
   }
   const 성능마지막 = 마지막만(성능, (r) => `${r.kind}:${r.scenario_id ?? ''}`);
