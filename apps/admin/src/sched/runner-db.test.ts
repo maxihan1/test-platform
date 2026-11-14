@@ -72,6 +72,8 @@ describe.skipIf(연결 === undefined)('정기 실행 1분 점검', { timeout: 60
 
   beforeEach(async () => {
     await pool.query('DELETE FROM qa_project_report WHERE project_id = $1', [프로젝트]);
+    // 리포트 일정이 세운 남은 리스크 AI 일 — 가리킬 리포트가 지워졌으니 같이 치운다
+    await pool.query('DELETE FROM perf_ai_job WHERE service_id = $1', [앱]);
     await pool.query('DELETE FROM test_run WHERE service_id = $1', [앱]);
     // 담은 줄 · 대상 서버 · 회차는 세트와 같이 지워진다
     await pool.query('DELETE FROM sched_set WHERE project_id = $1', [프로젝트]);
@@ -79,6 +81,7 @@ describe.skipIf(연결 === undefined)('정기 실행 1분 점검', { timeout: 60
 
   afterAll(async () => {
     await pool.query('DELETE FROM qa_project_report WHERE project_id = $1', [프로젝트]);
+    await pool.query('DELETE FROM perf_ai_job WHERE service_id = $1', [앱]);
     await pool.query('DELETE FROM compat_run_case WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = $1)', [앱]);
     await pool.query('DELETE FROM compat_run_device WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = $1)', [앱]);
     await pool.query('DELETE FROM test_run WHERE service_id = $1', [앱]);
@@ -204,5 +207,24 @@ describe.skipIf(연결 === undefined)('정기 실행 1분 점검', { timeout: 60
     await 점검.정기실행점검(조용히, 옛날);
     expect((await 회차줄(occ)).state).toBe('DONE');
     expect(await 리포트()).toHaveLength(1);
+  });
+
+  it('리포트를 못 만들면 시작하고 10분까지는 회차를 열어 두고, 그 뒤에는 오류 원문 없이 까닭을 남기고 닫는다', async () => {
+    // 모르는 시간대라 숫자 모으기가 거절된다. 꺼 두어야 회차 세우기(켜진 세트만 시간대를 푼다)가 안 깨진다 — 도는 회차는 꺼도 민다
+    const setId = Number(
+      (
+        await pool.query<{ id: string }>(
+          `INSERT INTO sched_set (project_id, name, at, tz, days, created_by, updated_at, report, is_on)
+           VALUES ($1, 'XKR 깨진 리포트', '03:00', 'Mars/Olympus', '{5}', 'xkr', '2000-01-01T00:00Z', 'WEEK', false) RETURNING id`,
+          [프로젝트],
+        )
+      ).rows[0]!.id,
+    );
+    const occ = await 회차(setId, 'RUNNING');
+    await 점검.정기실행점검(조용히, 옛날);
+    expect(await 회차줄(occ)).toMatchObject({ state: 'RUNNING', notes: [] });
+    await pool.query("UPDATE sched_occurrence SET started_at = now() - interval '11 minutes' WHERE id = $1", [occ]);
+    await 점검.정기실행점검(조용히, 옛날);
+    expect(await 회차줄(occ)).toMatchObject({ state: 'DONE', notes: [{ kind: null, service: null, reason: '리포트를 만들지 못했습니다' }] });
   });
 });

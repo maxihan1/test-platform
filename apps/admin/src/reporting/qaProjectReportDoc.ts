@@ -180,7 +180,10 @@ export function 다음예정(b: Pick<몸, 'upcoming'>): 덩이[] {
   const u = b.upcoming;
   // 리포트 일정은 회차 수 대신 다음 날짜를 싣는다 — 시안 ④ 「다음 주간 리포트 11/21 18:00 자동」 (QAR-F1-12)
   const 세트 = u.sets.filter((s) => (s.report ?? null) === null);
-  const 리포트 = u.sets.filter((s) => (s.report ?? null) !== null);
+  const 리포트 = u.sets.flatMap((s) => {
+    const 날 = (s.report ?? null) === null ? null : 첫회차날(s, u.from, u.to);
+    return 날 === null ? [] : [{ ...s, 날 }];
+  });
   return [
     { 꼴: '절', 글: '다음 기간 예정' },
     { 꼴: '글', 글: `${u.from} ~ ${u.to}`, 결: '흐림' },
@@ -192,7 +195,7 @@ export function 다음예정(b: Pick<몸, 'upcoming'>): 덩이[] {
       : [{
           꼴: '표' as const,
           머리: ['리포트 일정', '담을 기간', '다음 자동'],
-          줄: 리포트.map((s) => ({ 칸: [s.name, s.report === 'MONTH' ? '이번 달' : '이번 주', `${짧은날(첫회차날(s, u.from, u.to) ?? u.from)} ${s.at} (${s.tz})`] })),
+          줄: 리포트.map((s) => ({ 칸: [s.name, s.report === 'MONTH' ? '이번 달' : '이번 주', `${짧은날(s.날)} ${s.at} (${s.tz})`] })),
         }]),
   ];
 }

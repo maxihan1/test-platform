@@ -9,7 +9,7 @@ import { schedApi, type 리포트기간, type 세트 } from './schedApi.js';
 import { 다음실행들, 보낼days, 처음값, type 덮을값 } from './schedForm.js';
 import { 리포트기간글 } from './SchedCards.js';
 import { 언제단계 } from './SchedWizardSteps.js';
-import { 시간대로, 프로젝트리포트주소, type 칩 } from './schedView.js';
+import { 시간대로, 요일, 프로젝트리포트주소, type 칩 } from './schedView.js';
 import { message, 기다림글자 } from './ui.js';
 
 const 서버말: Record<string, string> = {
@@ -48,6 +48,15 @@ export function SchedReport({
 
   const days = 보낼days(v);
   const 다음 = 다음실행들(v, tz, new Date());
+  // 기본 이름 그대로면 기간을 바꿀 때 이름도 따라 바꾼다 — 월간 일정이 「주간」 이름으로 저장되지 않게
+  const 기본이름: Record<리포트기간, string> = { WEEK: t('주간 QA 리포트'), MONTH: t('월간 QA 리포트') };
+  const 기간고르기 = (k: 리포트기간) => {
+    if (v.name === 기본이름[기간]) 값({ name: 기본이름[k] });
+    set기간(k);
+  };
+  // 기간은 만드는 날까지라 월요일(이번 주) · 1일(이번 달)에 만들면 하루치다 — 알리기만 한다
+  const 첫날인가 = (날: string) => (기간 === 'WEEK' ? 요일(날) === 1 : 날.endsWith('-01'));
+  const 하루치 = v.반복 === 'daily' || (v.반복 === 'days' && 기간 === 'WEEK' && v.days.includes(1)) || (v.반복 === 'once' && 첫날인가(v.onceOn));
   // 날짜 · 시각을 그대로 둔 「1회」는 지났어도 이름 · 기간만 고칠 수 있다 (§7 PUT)
   const 그대로 = 세트 !== null && 세트.onceOn !== null && 세트.onceOn === v.onceOn && 세트.at === v.at && v.반복 === 'once';
   const 막힘 =
@@ -101,12 +110,13 @@ export function SchedReport({
           <span>{t('담을 기간')}</span>
           <div className="sched-seg" role="group" aria-label={t('담을 기간')}>
             {(['WEEK', 'MONTH'] as const).map((k) => (
-              <button key={k} type="button" aria-pressed={기간 === k} onClick={() => set기간(k)}>
+              <button key={k} type="button" aria-pressed={기간 === k} onClick={() => 기간고르기(k)}>
                 {t(기간이름[k])}
               </button>
             ))}
           </div>
           <small>{t('만드는 날까지 · 이번 주는 월요일부터, 이번 달은 1일부터입니다')}</small>
+          {하루치 ? <p className="sched-wiz-note">{t('월요일(이번 주) · 1일(이번 달)에 만들면 그날 하루치만 담깁니다')}</p> : null}
         </div>
         <div className="authoring-field">
           <span>{t('실행 주기')}</span>

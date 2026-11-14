@@ -248,6 +248,7 @@ describe('정기 실행 화면', () => {
     const 창 = await screen.findByRole('dialog');
     expect((within(창).getByRole('textbox') as HTMLInputElement).value).toBe('주간 QA 리포트');
     fireEvent.click(within(창).getByRole('button', { name: '이번 달' }));
+    expect((within(창).getByRole('textbox') as HTMLInputElement).value).toBe('월간 QA 리포트');
     fireEvent.change(within(창).getByRole('textbox'), { target: { value: '결제 회귀' } });
     expect(within(창).getByText('같은 이름의 세트가 이미 있습니다')).toBeTruthy();
     fireEvent.change(within(창).getByRole('textbox'), { target: { value: '월간 QA 리포트' } });

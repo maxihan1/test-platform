@@ -61,9 +61,9 @@ function 카드({ 세트, 색, 고름, 지금, 쓰나, on고르기, on날보기,
         // 리포트 일정은 판정 대신 만든 리포트로 간다
         <span className="sched-meta">
           {t('마지막 {날}', { 날: 짧은날(시간대로(new Date(마지막.plannedAt), 세트.tz).날) })}{' '}
-          {마지막.reportId === null ? (
-            <판정알약 판정={마지막.state === 'RUNNING' ? 'RUNNING' : 'NONE'} t={t} />
-          ) : (
+          {마지막.reportId === null && 마지막.state === 'RUNNING' ? <판정알약 판정="RUNNING" t={t} /> : null}
+          {마지막.reportId === null && 마지막.state !== 'RUNNING' ? <span className="sched-pill none">{t('리포트 없음')}</span> : null}
+          {마지막.reportId === null ? null : (
             <a className="sched-link" href={프로젝트리포트주소(마지막.reportId)}>
               {t('리포트 →')}
             </a>
