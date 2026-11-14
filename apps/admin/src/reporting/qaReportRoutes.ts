@@ -3,7 +3,12 @@
 
 import type { FastifyInstance, FastifyReply } from 'fastify';
 
+import { 볼륨파일읽기 } from '../artifactFile.js';
 import { 정수 } from '../routeParams.js';
+import { PDF로, 심은절차들 } from './generate.js';
+import { 문서재료읽기, 리포트읽기, type 문서재료 } from './qaReportDoc.js';
+import { renderQaReportDocx } from './qaReportDocx.js';
+import { renderQaReportHtml } from './qaReportHtml.js';
 
 const 잘못 = (reply: FastifyReply, detail: string) => reply.code(400).send({ error: 'INVALID_REQUEST', detail });
 const 없음 = (reply: FastifyReply) => reply.code(404).send({ error: 'NOT_FOUND' });
@@ -16,26 +21,43 @@ async function db() {
 
 interface 리포트행 {
   id: string;
-  bundle_key: string;
   prefix: string | null;
   env: string;
   build_no: string | null;
   run_id: string | null;
   perf_run_id: string | null;
   version: number;
-  run_ids: string[];
-  perf_run_ids: string[];
-  performers: string[];
   summary: { kinds?: string[]; overview?: { running?: number } };
-  ai: unknown;
   approved_by: string | null;
   approved_name: string | null;
   approved_at: Date | null;
-  pdf_sha256: string | null;
   updated_at: Date;
 }
 
 const 번호 = (v: string | null): number | null => (v === null ? null : Number(v));
+
+const 형식들 = {
+  PDF: { ext: 'pdf', mime: 'application/pdf', 펼침: 'inline' },
+  HTML: { ext: 'html', mime: 'text/html; charset=utf-8', 펼침: 'inline' },
+  DOCX: { ext: 'docx', mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 펼침: 'attachment' },
+} as const;
+
+// 사진은 문서 안에 심는다(증적과 같다 — generate.ts). UI 구획은 실패 항목의 사진만 싣는다 (§3.17 결정 8 「UI = 화면별(실패만 사진)」)
+export async function 사진심은(재료: 문서재료): Promise<문서재료> {
+  const 항목 = await Promise.all(
+    재료.항목.map(async (i) => {
+      const 뺀다 = 재료.종류.get(i.tcId) === 'UI' && i.status !== 'FAIL';
+      return { ...i, steps: 뺀다 ? i.steps.map((x) => ({ ...x, screenshotPath: null })) : await 심은절차들(i.steps) };
+    }),
+  );
+  const 시나리오 = await Promise.all(
+    재료.시나리오.map(async (doc) => ({
+      ...doc,
+      parts: await Promise.all(doc.parts.map(async (d) => (d.item === null ? d : { ...d, item: { ...d.item, steps: await 심은절차들(d.item.steps) } }))),
+    })),
+  );
+  return { ...재료, 항목, 시나리오 };
+}
 
 export default async function qaReportRoutes(app: FastifyInstance): Promise<void> {
   app.get<{ Querystring: Record<string, unknown> }>('/qa-reports', async (req, reply) => {
@@ -81,35 +103,37 @@ export default async function qaReportRoutes(app: FastifyInstance): Promise<void
   app.get<{ Params: { id: string } }>('/qa-reports/:id', async (req, reply) => {
     const id = 정수(req.params.id);
     if (id === null) return 잘못(reply, '리포트 번호가 틀렸습니다');
+    const 읽음 = await 리포트읽기(await db(), id);
+    return 읽음 === null ? 없음(reply) : 읽음.응답;
+  });
+
+  // 승인 전 버전은 받을 때마다 만든다. 승인한 버전의 PDF 는 굳힌 파일 그대로 — 다시 그리면 지문이 안 맞는다 (§3.17 결정 13)
+  app.get<{ Params: { id: string }; Querystring: Record<string, unknown> }>('/qa-reports/:id/file', async (req, reply) => {
+    const id = 정수(req.params.id);
+    if (id === null) return 잘못(reply, '리포트 번호가 틀렸습니다');
+    const 형식 = req.query.format;
+    // 엑셀은 이 통로가 아직 내지 않는다 — 진행판 QAR 줄 어디에도 안 실려 있다
+    if (형식 !== 'PDF' && 형식 !== 'HTML' && 형식 !== 'DOCX') return 잘못(reply, 'format 은 PDF · HTML · DOCX 중 하나입니다');
     const pool = await db();
-    const q = (await pool.query<리포트행>('SELECT q.*, s.prefix FROM qa_report q LEFT JOIN service s ON s.id = q.service_id WHERE q.id = $1', [id])).rows[0];
-    if (q === undefined) return 없음(reply);
-    const 버전들 = (
-      await pool.query<{ id: string; version: number; approved_at: Date | null }>('SELECT id, version, approved_at FROM qa_report WHERE bundle_key = $1 ORDER BY version', [q.bundle_key])
-    ).rows;
-    let approval = null;
-    if (q.approved_at !== null) {
-      // 그 빌드의 배포보다 늦게 승인했으면 사후 승인이다. 배포가 없으면 붙이지 않는다 (§3.17 「첫 장」 승인)
-      const 배포 = (await pool.query<{ at: Date | null }>('SELECT min(created_at) AS at FROM bts_deploy WHERE run_ids && $1::bigint[]', [q.run_ids])).rows[0]?.at ?? null;
-      approval = { by: q.approved_by, byName: q.approved_name, at: q.approved_at.toISOString(), late: 배포 !== null && q.approved_at > 배포, sha256: q.pdf_sha256 };
+    const 읽음 = await 리포트읽기(pool, id);
+    if (읽음 === null) return 없음(reply);
+    const f = 형식들[형식];
+    // 이름에는 번호 · 버전 · 형식만 넣는다 — ASCII 뿐이라 헤더가 깨지지 않는다(증적 이름과 같은 까닭 — routes.ts)
+    const 보낸다 = (파일: Buffer | string) =>
+      reply.type(f.mime).header('content-disposition', `${f.펼침}; filename="qa-report-${id}-v${읽음.응답.version}.${f.ext}"`).send(파일);
+
+    if (형식 === 'PDF' && 읽음.pdfPath !== null) {
+      try {
+        return 보낸다(await 볼륨파일읽기(읽음.pdfPath));
+      } catch (err) {
+        // 다시 그려 내면 승인 지문과 다른 파일이 나간다 — 내지 않고 까닭을 남긴다
+        throw new Error(`리포트 ${id} 의 승인 PDF 를 읽지 못했다: ${읽음.pdfPath}`, { cause: err });
+      }
     }
-    return {
-      id: Number(q.id),
-      service: q.prefix,
-      env: q.env,
-      buildNo: q.build_no,
-      runId: 번호(q.run_id),
-      perfRunId: 번호(q.perf_run_id),
-      version: q.version,
-      versions: 버전들.map((v) => ({ id: Number(v.id), version: v.version, approvedAt: v.approved_at?.toISOString() ?? null })),
-      summary: q.summary,
-      ai: q.ai,
-      runIds: q.run_ids.map(Number),
-      perfRunIds: q.perf_run_ids.map(Number),
-      performers: q.performers,
-      approval,
-      updatedAt: q.updated_at.toISOString(),
-    };
+    const 재료 = await 문서재료읽기(pool, 읽음);
+    if (형식 === 'DOCX') return 보낸다(await renderQaReportDocx(재료));
+    const html = renderQaReportHtml(await 사진심은(재료), 형식);
+    return 보낸다(형식 === 'HTML' ? html : await PDF로(html));
   });
 
   // 한 건 실행은 붙은 실행으로 센다 — 그 실행이 든 리포트다. 빌드가 다른 한 건은 어느 묶음에도 안 든다 (§3.17 「묶음 · 버전」)

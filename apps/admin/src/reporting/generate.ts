@@ -56,7 +56,7 @@ async function 심는다(경로: string): Promise<string | null> {
 
 // 원본 모델은 그대로 둔다 — 엑셀은 같은 모델의 경로 글자를 그대로 써야 한다 (SPEC §8.4 「스크린샷은 경로만」).
 // 같은 파일이면 base64 도 같으므로 재현 불변식은 그대로다 (SPEC §3.3)
-async function 심은절차들(steps: EvidenceStep[]): Promise<EvidenceStep[]> {
+export async function 심은절차들(steps: EvidenceStep[]): Promise<EvidenceStep[]> {
   return Promise.all(
     steps.map(async (s) => ({ ...s, screenshotPath: s.screenshotPath === null ? null : await 심는다(s.screenshotPath) })),
   );
@@ -65,7 +65,12 @@ async function 심은절차들(steps: EvidenceStep[]): Promise<EvidenceStep[]> {
 // HTML 을 그대로 찍는다 — 별도 PDF 레이아웃을 두면 화면과 문서가 갈린다 (SPEC §8.4).
 // 브라우저 기동은 실행과 같은 대기줄에 태운다. 서로 다른 실행의 PDF 를 동시에 누르면
 // 부분 유일 인덱스가 못 막아 Chromium 이 여러 개 뜬다 — 대상 서버는 2코어다 (SPEC §9)
-function 찍는다(html: string, 파일경로: string): Promise<void> {
+async function 찍는다(html: string, 파일경로: string): Promise<void> {
+  await writeFile(파일경로, await PDF로(html));
+}
+
+/** QA 리포트(qaReportRoutes.ts)도 같은 대기줄 · 같은 찍기로 PDF 를 낸다 */
+export function PDF로(html: string): Promise<Buffer> {
   return enqueue(async () => {
     const browser = await chromium.launch();
     try {
@@ -75,7 +80,7 @@ function 찍는다(html: string, 파일경로: string): Promise<void> {
       // load 는 글꼴 준비를 안 기다린다. 안 기다리면 대체 글꼴로 찍혀 §3.3 의
       // 「오늘 뽑든 한 달 뒤에 뽑든 글자 하나까지 같다」가 가끔 깨진다 (SPEC §8.4)
       await page.evaluate(() => document.fonts.ready);
-      await writeFile(파일경로, await page.pdf({ format: 'A4', printBackground: true }));
+      return await page.pdf({ format: 'A4', printBackground: true });
     } finally {
       // 여기서 안 닫으면 실패할 때마다 Chromium 프로세스가 남는다
       await browser.close();

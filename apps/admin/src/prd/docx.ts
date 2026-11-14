@@ -30,11 +30,11 @@ function 런(글: string, 꾸밈 = ''): string {
   return `<w:r>${꾸밈 === '' ? '' : `<w:rPr>${꾸밈}</w:rPr>`}${속}</w:r>`;
 }
 
-function 문단(글: string, { 꼴, 꾸밈 }: { 꼴?: string; 꾸밈?: string } = {}): string {
+export function 문단(글: string, { 꼴, 꾸밈 }: { 꼴?: string; 꾸밈?: string } = {}): string {
   return `<w:p>${꼴 === undefined ? '' : `<w:pPr><w:pStyle w:val="${꼴}"/></w:pPr>`}${런(글, 꾸밈)}</w:p>`;
 }
 
-function 칸(폭: number, 속: string, 바탕?: string): string {
+export function 칸(폭: number, 속: string, 바탕?: string): string {
   const 칠 = 바탕 === undefined ? '' : `<w:shd w:val="clear" w:color="auto" w:fill="${바탕}"/>`;
   return `<w:tc><w:tcPr><w:tcW w:w="${String(폭)}" w:type="dxa"/>${칠}</w:tcPr>${속}</w:tc>`;
 }
@@ -118,6 +118,8 @@ const 스타일 =
   '<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:after="80"/></w:pPr><w:rPr><w:b/><w:sz w:val="36"/></w:rPr></w:style>' +
   // 제목 1 이어야 워드 탐색 창에 기능 묶음이 차례로 뜬다
   '<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:pPr><w:keepNext/><w:spacing w:before="360" w:after="120"/><w:outlineLvl w:val="0"/></w:pPr><w:rPr><w:b/><w:sz w:val="28"/></w:rPr></w:style>' +
+  // QA 리포트(reporting/qaReportDocx.ts)의 구획 안 소제목
+  '<w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:basedOn w:val="Normal"/><w:pPr><w:keepNext/><w:spacing w:before="200" w:after="80"/><w:outlineLvl w:val="1"/></w:pPr><w:rPr><w:b/><w:sz w:val="22"/></w:rPr></w:style>' +
   '</w:styles>';
 
 const 종류표 =
@@ -144,7 +146,14 @@ export async function 워드만들기(자료: 워드자료, 비밀번호들: str
     문단(머리글, { 꾸밈: `<w:color w:val="${흐린글색}"/>` }) +
     묶음들(items)
       .map((g) => 문단(g.feature, { 꼴: 'Heading1' }) + 표(g.items))
-      .join('') +
+      .join('');
+  return 워드파일(몸);
+}
+
+/** 문서 몸(문단 · 표 XML)을 A4 워드 파일로 싼다 — QA 리포트도 같은 판을 쓴다 */
+export function 워드파일(속: string): Promise<Buffer> {
+  const 몸 =
+    속 +
     '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr>';
   const zip = new JSZip();
   zip.file('[Content_Types].xml', 종류표);

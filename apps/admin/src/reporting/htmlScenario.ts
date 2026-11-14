@@ -70,13 +70,17 @@ function 단계(d: E2E단계): string[] {
 }
 
 export function renderScenarioHtml(doc: E2E증적, options: RenderOptions): string {
+  return 문서판(`${doc.header.serviceName} E2E 리포트 — RUN ${doc.runId}`, [...머리말(doc.header, options.generatedAt), ...시나리오몸(doc)]);
+}
+
+/** 머리말 밖의 몸 — QA 리포트 E2E 구획(qaReportHtml.ts)이 시나리오마다 다시 쓴다. 그때는 「단계별 결과」를 소제목으로 낮춘다 */
+export function 시나리오몸(doc: E2E증적, 머리 = (글: string) => `<h2 class="sec">${글}</h2>`): string[] {
   const 미확정 = doc.unconfirmed ? 칩('미확정') : '';
-  return 문서판(`${doc.header.serviceName} E2E 리포트 — RUN ${doc.runId}`, [
-    ...머리말(doc.header, options.generatedAt),
+  return [
     `<section class="band"><div class="card-head"><span class="tc-id">SC-${doc.scenarioId}</span><span class="tc-name">${안전(doc.header.title)}</span>${칩(`v${doc.version}`)}${칩(디바이스[doc.platform])}${doc.verdict === null ? '' : 판정(doc.verdict)}${미확정}</div></section>`,
-    `<h2 class="sec">단계별 결과</h2>`,
+    머리('단계별 결과'),
     ...doc.parts.flatMap(단계),
     // 판정에는 안 든다 — 마지막 단계 뒤에 한 줄씩 (도메인/시나리오 §3.7 결정 12)
     ...(doc.정리.length === 0 ? [] : [`<section class="stage">`, ...doc.정리.map((글) => `  <div class="pre">${안전(글)}</div>`), `</section>`]),
-  ]);
+  ];
 }

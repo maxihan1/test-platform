@@ -62,7 +62,7 @@ interface 접은행 {
 // 실행 안의 회차는 대시보드와 같이 접는다(reporting/dashboardSql.ts — 전부 통과 · 하나라도 실패 · 나머지 미실행).
 // 멈춤 · 준비 실패로 안 돌고 닫힌 항목만 있는 실행은 판정이 난 앞 실행을 덮지 않는다 — 뒤에 멈춘 실행 하나로 통과가 미실행이 되면 안 된다(execution/single.ts 멈춰닫힌항목아님).
 // 한 건 실행은 붙은 실행과 빌드가 같을 때만 덮는다 — 다음 빌드에서 고쳐진 결과가 앞 빌드에 「통과」로 들면 안 된다 (§3.17 「묶음 · 버전」)
-const 접기SQL = `
+const 고르기CTE = `
   WITH 항목 AS (
     SELECT r.run_id, r.kind, r.started_at, i.tc_id, i.tc_name, i.platform, i.status, i.unconfirmed, i.history_id, i.error
       FROM test_run r
@@ -71,7 +71,8 @@ const 접기SQL = `
   ), 고른 AS (
     SELECT DISTINCT ON (kind, tc_id, platform) run_id, kind, tc_id, platform
       FROM 항목 ORDER BY kind, tc_id, platform, ${멈춰닫힌항목아님()} DESC, started_at DESC, run_id DESC
-  )
+  )`;
+const 접기SQL = `${고르기CTE}
   SELECT h.run_id, h.kind, h.tc_id, h.platform, max(h.tc_name) AS tc_name,
          ${접은판정SQL('h')} AS verdict, bool_or(h.unconfirmed IS NOT NULL) AS unconfirmed,
          (array_agg(h.history_id ORDER BY h.status = 'FAIL' DESC, h.history_id) FILTER (WHERE h.status <> 'PASS'))[1] AS rep,
@@ -79,6 +80,22 @@ const 접기SQL = `
     FROM 고른 g JOIN 항목 h USING (run_id, kind, tc_id, platform)
    GROUP BY h.run_id, h.kind, h.tc_id, h.platform
    ORDER BY h.kind, h.tc_id, h.platform`;
+
+// 시나리오마다 마지막 실행 하나 — 멈춤 · 준비 실패는 앞 실행을 덮지 않는다
+const 시나리오고르기SQL = `
+  SELECT DISTINCT ON (scenario_id) run_id, scenario_id FROM test_run
+   WHERE run_id = ANY($1::bigint[]) AND kind = 'SCENARIO' ORDER BY scenario_id, status NOT IN ('PREP_FAILED', 'ABORTED') DESC, started_at DESC, run_id DESC`;
+
+/** 시나리오마다 이 빌드의 결과를 낸 실행 번호 — 시나리오 번호 차례 */
+export async function 고른시나리오실행들(pool: Pool, runIds: number[]): Promise<number[]> {
+  return (await pool.query<{ run_id: string }>(시나리오고르기SQL, [runIds])).rows.map((r) => Number(r.run_id));
+}
+
+/** 케이스 × 디바이스마다 이 빌드의 결과를 낸 실행 — 문서 구획(qaReportDoc.ts)이 첫 장 숫자와 같은 항목을 그리게 한다 */
+export async function 고른실행들(pool: Pool, runIds: number[]): Promise<{ runId: number; kind: 'FN' | 'UI'; tcId: string; platform: string }[]> {
+  const r = await pool.query<{ run_id: string; kind: 'FN' | 'UI'; tc_id: string; platform: string }>(`${고르기CTE} SELECT run_id, kind, tc_id, platform FROM 고른`, [runIds]);
+  return r.rows.map((g) => ({ runId: Number(g.run_id), kind: g.kind, tcId: g.tc_id, platform: g.platform }));
+}
 
 // 원인 규칙의 재료 — 대시보드 원인식과 같은 값(확인 문장 실패 · 첫 절차 오류)이다
 const 절차SQL = `
@@ -124,9 +141,7 @@ export async function 기능재료읽기(pool: Pool, 묶음: 묶음재료): Prom
 
   const e2e = (
     await pool.query<{ run_id: string; scenario_id: string; verdict: 'PASS' | 'FAIL' | 'NA'; unconfirmed: boolean }>(
-      `WITH 고른 AS (
-         SELECT DISTINCT ON (scenario_id) run_id, scenario_id FROM test_run
-          WHERE run_id = ANY($1::bigint[]) AND kind = 'SCENARIO' ORDER BY scenario_id, status NOT IN ('PREP_FAILED', 'ABORTED') DESC, started_at DESC, run_id DESC)
+      `WITH 고른 AS (${시나리오고르기SQL})
        SELECT g.run_id, g.scenario_id, ${접은판정SQL('p')} AS verdict, ${미확정SQL('p')} AS unconfirmed
          FROM 고른 g LEFT JOIN scenario_run_part p ON p.run_id = g.run_id
         GROUP BY g.run_id, g.scenario_id`,
