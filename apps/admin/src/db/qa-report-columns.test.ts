@@ -76,11 +76,16 @@ describe.skipIf(연결 === undefined)('QA 리포트 표', () => {
     expect(프.rows).toEqual([{ project_id: null }]);
   });
 
-  it('프로젝트 리포트 기간은 92일까지만 받는다', async () => {
-    await expect(
-      q(`INSERT INTO qa_project_report (project_name, period_from, period_to, tz, origin, body, created_by)
-         VALUES ('XQA 프로젝트', '2026-01-01', '2026-04-02', 'Asia/Seoul', 'MANUAL', '{}', 'xqa')`),
-    ).rejects.toThrow(/check constraint/);
+  it('프로젝트 리포트 기간은 양 끝을 넣어 92일까지만 받는다', async () => {
+    const 기간 = (to: string) =>
+      q(
+        `INSERT INTO qa_project_report (project_name, period_from, period_to, tz, origin, body, created_by)
+         VALUES ('XQA 프로젝트', '2026-01-01', $1, 'Asia/Seoul', 'MANUAL', '{}', 'xqa')`,
+        [to],
+      );
+    await 기간('2026-04-02');
+    await expect(기간('2026-04-03')).rejects.toThrow(/check constraint/);
+    await expect(기간('2025-12-31')).rejects.toThrow(/check constraint/);
   });
 
   it('실행 항목 테스트 버전 칸 · 성능 실행 빌드 칸이 있고 비어도 된다', async () => {
