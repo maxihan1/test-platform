@@ -1,8 +1,8 @@
 // 작성 관문 타입 검사 범위 — 앱 폴더만 보는 tsconfig 와 그 tsc 가 실제로 남의 앱을 안 읽는지
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -38,6 +38,13 @@ describe('앱tsc인자', () => {
     expect(인자[3]?.startsWith(자리)).toBe(true);
     const 설정 = (await import(인자[3] as string, { with: { type: 'json' } })) as { default: unknown };
     expect(설정.default).toEqual({ extends: join(트리, 'tsconfig.json'), include: [join(트리, 'tests', 'aaa'), join(트리, 'packages', 'kit', 'src', 'index.ts')] });
+  });
+
+  it('tsconfig 를 담은 폴더는 남도 읽을 수 있다 — 관문은 자식 uid 로 tsc 를 돌린다', () => {
+    const 트리 = 트리만들기();
+    const 인자 = 앱tsc인자(트리, join(트리, '임시'), 'aaa');
+    expect(statSync(dirname(인자[3] as string)).mode & 0o005).toBe(0o005);
+    expect(statSync(인자[3] as string).mode & 0o004).toBe(0o004);
   });
 
   it('그 앱은 통과하고 오류가 있는 남의 앱은 안 읽는다 · 그 앱에 오류가 있으면 잡는다 · 빈 폴더는 통과한다', () => {
