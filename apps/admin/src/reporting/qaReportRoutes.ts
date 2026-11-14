@@ -46,17 +46,19 @@ export default async function qaReportRoutes(app: FastifyInstance): Promise<void
     const 쪽 = page === undefined ? 1 : typeof page === 'string' ? 정수(page) : null;
     if (쪽 === null) return 잘못(reply, 'page 번호가 틀렸습니다');
     const 승인 = approved === undefined ? null : approved === 'true';
-    // 묶음마다 마지막 버전 한 줄. 차례는 마지막 실행이 끝난 시각(만든 때 굳힌 개요) 내림차순 — 도는 묶음은 끝난 시각이 없어 맨 앞이다
-    const r = await (await db()).query<리포트행 & { total: string }>(
-      `WITH 마지막 AS (
-         SELECT DISTINCT ON (q.bundle_key) q.*, s.prefix FROM qa_report q JOIN service s ON s.id = q.service_id
-          WHERE s.prefix = $1 AND ($2::text IS NULL OR q.env = $2) ORDER BY q.bundle_key, q.version DESC)
-       SELECT *, count(*) OVER () AS total FROM 마지막
-        WHERE $3::boolean IS NULL OR (approved_at IS NOT NULL) = $3
-        ORDER BY summary->'overview'->>'finishedAt' DESC NULLS FIRST, id DESC
-        LIMIT ${쪽크기} OFFSET $4`,
-      [service, env ?? null, 승인, (쪽 - 1) * 쪽크기],
-    );
+    // 묶음마다 마지막 버전 한 줄. 차례는 마지막 실행이 끝난 시각(만든 때 굳힌 개요) 내림차순
+    const 마지막SQL = `
+      WITH 마지막 AS (
+        SELECT DISTINCT ON (q.bundle_key) q.*, s.prefix FROM qa_report q JOIN service s ON s.id = q.service_id
+         WHERE s.prefix = $1 AND ($2::text IS NULL OR q.env = $2) ORDER BY q.bundle_key, q.version DESC)
+      SELECT * FROM 마지막 WHERE $3::boolean IS NULL OR (approved_at IS NOT NULL) = $3`;
+    const pool = await db();
+    const 값 = [service, env ?? null, 승인];
+    const [r, 수] = await Promise.all([
+      pool.query<리포트행>(`${마지막SQL} ORDER BY summary->'overview'->>'finishedAt' DESC, id DESC LIMIT ${쪽크기} OFFSET $4`, [...값, (쪽 - 1) * 쪽크기]),
+      // 마지막 쪽을 넘긴 쪽도 전체 수는 맞아야 한다 — 쪽 안의 창 함수로 세면 0 이 된다
+      pool.query<{ n: string }>(`SELECT count(*) AS n FROM (${마지막SQL}) x`, 값),
+    ]);
     return {
       items: r.rows.map((q) => ({
         id: Number(q.id),
@@ -72,7 +74,7 @@ export default async function qaReportRoutes(app: FastifyInstance): Promise<void
         approvedAt: q.approved_at?.toISOString() ?? null,
         updatedAt: q.updated_at.toISOString(),
       })),
-      total: Number(r.rows[0]?.total ?? 0),
+      total: Number(수.rows[0]!.n),
     };
   });
 
@@ -110,12 +112,14 @@ export default async function qaReportRoutes(app: FastifyInstance): Promise<void
     };
   });
 
-  // 한 건 실행은 붙은 실행으로 센다 — 그 실행이 든 리포트다 (§3.17 「묶음 · 버전」)
+  // 한 건 실행은 붙은 실행으로 센다 — 그 실행이 든 리포트다. 빌드가 다른 한 건은 어느 묶음에도 안 든다 (§3.17 「묶음 · 버전」)
   app.get<{ Params: { runId: string } }>('/runs/:runId/qa-report', async (req, reply) => {
     const runId = 정수(req.params.runId);
     if (runId === null) return 잘못(reply, '실행 번호가 틀렸습니다');
     const r = await (await db()).query<{ id: string }>(
-      `SELECT q.id FROM test_run t JOIN qa_report q ON q.run_ids @> ARRAY[CASE WHEN t.origin = 'SINGLE' THEN t.rerun_of ELSE t.run_id END]
+      `SELECT q.id FROM test_run t LEFT JOIN test_run a ON a.run_id = t.rerun_of
+         JOIN qa_report q ON q.run_ids @> ARRAY[CASE WHEN t.origin <> 'SINGLE' THEN t.run_id
+                                                     WHEN t.status <> 'RUNNING' AND t.build_no IS NOT DISTINCT FROM a.build_no THEN t.rerun_of END]
         WHERE t.run_id = $1 ORDER BY q.version DESC LIMIT 1`,
       [runId],
     );

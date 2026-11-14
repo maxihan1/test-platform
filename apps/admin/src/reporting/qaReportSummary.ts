@@ -145,7 +145,8 @@ export async function 첫장을센다(pool: Pool, b: 묶음): Promise<{ summary:
   const 시작들 = [...실행.map((r) => r.started_at), ...성능.map((r) => r.s)].sort((x, y) => x.getTime() - y.getTime());
   const 끝들 = [...실행, ...성능].flatMap((r) => (r.finished_at === null ? [] : [r.finished_at])).sort((x, y) => x.getTime() - y.getTime());
   const 첫시작 = 시작들[0] ?? new Date();
-  const 마지막 = [...실행, ...성능].at(-1);
+  // 머리의 이름 · 주소는 케이스 실행의 마지막 박제가 먼저다 — 성능 실행에는 이름 박제가 없다
+  const 마지막 = 실행.at(-1) ?? 성능.at(-1);
 
   // 사람 수행자 — 정기 · 빌드 실행은 그 사람이 누른 것이 아니다. 이 묶음에 센 한 건 실행의 실행자도 든다 (§3.17 「수행자」)
   const 수행자 = (

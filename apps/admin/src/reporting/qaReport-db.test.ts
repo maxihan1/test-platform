@@ -18,10 +18,10 @@ describe.skipIf(연결 === undefined)('QA 리포트 빌드 묶기', { timeout: 6
   let pool: Pool;
   let 앱 = 0;
   let 남의앱 = 0;
-  const 계정들 = ['xqb-reader', 'xqb-other'];
+  const 계정들 = ['xqb-reader', 'xqb-other', 'xqb-admin'];
   const 케이스들 = ['XQB-FN-001', 'XQB-FN-002', 'XQB-FN-003', 'XQB-FN-004', 'XQB-UI-001', 'XQB-UI-002'];
   const 쿠키 = new Map<string, string>();
-  const 실행 = { 앞빌드: 0, 기능: 0, 정기UI: 0 };
+  const 실행 = { 앞빌드: 0, 기능: 0, 정기UI: 0, 남의빌드: 0 };
 
   const 부르기 = (누구: string, url: string) => app.inject({ method: 'GET', url, headers: { cookie: 쿠키.get(누구) ?? '' } });
   const 리포트 = async (bundle: string) =>
@@ -67,6 +67,8 @@ describe.skipIf(연결 === undefined)('QA 리포트 빌드 묶기', { timeout: 6
       const res = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username, password: '열려라참깨' } });
       쿠키.set(username, (res.headers['set-cookie'] as string).split(';')[0] ?? '');
     }
+    await pool.query(`INSERT INTO app_user (username, display_name, password_hash, role, is_approved, must_change_password) VALUES ('xqb-admin', 'xqb-admin', $1, 'admin', true, false)`, [await 해시('열려라참깨')]);
+    쿠키.set('xqb-admin', ((await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username: 'xqb-admin', password: '열려라참깨' } })).headers['set-cookie'] as string).split(';')[0] ?? '');
 
     // 앞 빌드 1.0.0 · 이번 빌드 1.0:1 — 빌드 번호의 ':' 는 묶음 열쇠에서 감싼다
     실행.앞빌드 = await 실행만들기({ kind: 'FN', build: '1.0.0', origin: 'MANUAL', by: 'xqb-a', 시작: '2026-11-10T01:00:00Z' });
@@ -96,7 +98,7 @@ describe.skipIf(연결 === undefined)('QA 리포트 빌드 묶기', { timeout: 6
   });
 
   afterAll(async () => {
-    await pool.query('DELETE FROM qa_report WHERE service_id = ANY($1)', [[앱, 남의앱]]);
+    await pool.query("DELETE FROM qa_report WHERE service_id = ANY($1) OR bundle_key = 'R:-1'", [[앱, 남의앱]]);
     await pool.query('DELETE FROM perf_run WHERE service_id = $1', [앱]);
     await pool.query('DELETE FROM run_case_bug WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = $1)', [앱]);
     await pool.query('DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = $1)', [앱]);
@@ -158,7 +160,7 @@ describe.skipIf(연결 === undefined)('QA 리포트 빌드 묶기', { timeout: 6
     await 항목(정기, 'XQB-FN-001', 'PASS');
     expect(await QA리포트를다시만든다({ runId: 정기 })).toBe('그대로');
     // 다른 빌드에서 돈 한 건 실행은 이 묶음에 안 든다
-    const 남의빌드 = await 실행만들기({ kind: 'FN', build: '1.0.2', origin: 'SINGLE', by: 'xqb-c', 시작: '2026-11-13T04:00:00Z', rerunOf: 실행.기능 });
+    const 남의빌드 = (실행.남의빌드 = await 실행만들기({ kind: 'FN', build: '1.0.2', origin: 'SINGLE', by: 'xqb-c', 시작: '2026-11-13T04:00:00Z', rerunOf: 실행.기능 }));
     expect(await QA리포트를다시만든다({ runId: 남의빌드 })).toBe('없음');
     const 한건 = await 실행만들기({ kind: 'FN', build: '1.0:1', origin: 'SINGLE', by: 'xqb-c', 시작: '2026-11-13T05:00:00Z', rerunOf: 실행.기능 });
     await 항목(한건, 'XQB-FN-001', 'PASS');
@@ -180,6 +182,14 @@ describe.skipIf(연결 === undefined)('QA 리포트 빌드 묶기', { timeout: 6
     const v2 = (await 리포트(열쇠()))[1]!;
     expect(v2.run_ids.map(Number)).not.toContain(도는);
     expect(v2.summary.overview.running).toBe(1);
+  });
+
+  it('뒤에 준비 실패로 안 돈 실행은 앞 실행의 판정을 덮지 않는다', async () => {
+    const 준비실패 = await 실행만들기({ kind: 'FN', build: '1.0:1', origin: 'MANUAL', by: 'xqb-a', 시작: '2026-11-13T09:00:00Z', status: 'PREP_FAILED' });
+    await 항목(준비실패, 'XQB-FN-002', 'NA', 'PREP_FAILED');
+    expect(await QA리포트를다시만든다({ runId: 준비실패 })).toBe('고침');
+    const v2 = (await 리포트(열쇠()))[1]!;
+    expect(v2.summary.results.functional[0]).toEqual({ kind: 'FN', result: { pass: 1, fail: 1, notRun: 1, unconfirmed: 0 } });
   });
 
   it('같은 빌드 성능 실행도 묶음에 들고 목표 통과 · 미달을 센다', async () => {
@@ -224,8 +234,15 @@ describe.skipIf(연결 === undefined)('QA 리포트 빌드 묶기', { timeout: 6
 
     expect((await 부르기('xqb-reader', `/api/runs/${String(실행.기능)}/qa-report`)).json()).toEqual({ id: 줄!.id });
     expect((await 부르기('xqb-reader', `/api/runs/${String(실행.앞빌드)}/qa-report`)).statusCode).toBe(404);
+    // 빌드가 다른 한 건 실행은 붙은 실행의 리포트에 안 든다
+    expect((await 부르기('xqb-reader', `/api/runs/${String(실행.남의빌드)}/qa-report`)).statusCode).toBe(404);
     expect((await 부르기('xqb-other', `/api/qa-reports/${String(줄!.id)}`)).statusCode).toBe(403);
     expect((await 부르기('xqb-other', '/api/qa-reports?service=XQB')).statusCode).toBe(403);
     expect((await 부르기('xqb-reader', '/api/qa-reports?service=XQB&approved=yes')).statusCode).toBe(400);
+
+    // 애플리케이션을 지워 칸이 빈 리포트는 admin 만 번호로 연다
+    const 빈칸 = Number((await pool.query<{ id: string }>(`INSERT INTO qa_report (bundle_key, service_name, env, run_id, summary) VALUES ('R:-1', '지운 앱', 'qa', -1, '{}') RETURNING id`)).rows[0]!.id);
+    expect((await 부르기('xqb-reader', `/api/qa-reports/${String(빈칸)}`)).statusCode).toBe(403);
+    expect((await 부르기('xqb-admin', `/api/qa-reports/${String(빈칸)}`)).statusCode).toBe(200);
   });
 });

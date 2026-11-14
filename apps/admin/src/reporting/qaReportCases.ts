@@ -3,7 +3,7 @@
 import type { Pool } from 'pg';
 
 import { tcId종류 } from '../catalog/rules.js';
-import { 지금항목 } from '../execution/single.js';
+import { 멈춰닫힌항목아님, 지금항목 } from '../execution/single.js';
 import { 미확정SQL, 접은판정SQL } from '../scenario/verdict.js';
 import { 판정들 } from './failReqs.js';
 import { 원인을가른다, type 원인 } from './failureType.js';
@@ -34,7 +34,8 @@ export interface 케이스계획 {
   planned: number;
   ran: number;
   notIncluded: { tcId: string; name: string }[];
-  notRun: { tcId: string; name: string; platform: string; cause: 원인 }[];
+  /** 원인 규칙의 「멈춤」(stopped)에서 준비 실패만 prepFailed 로 가른다 — 계획 대비 차이는 둘을 따로 적는다 */
+  notRun: { tcId: string; name: string; platform: string; cause: 원인 | 'prepFailed' }[];
 }
 
 export interface 기능재료 {
@@ -59,6 +60,7 @@ interface 접은행 {
 
 // 같은 케이스 × 디바이스가 묶음의 여러 실행에 들면 가장 늦게 시작한 실행 것이 이 빌드의 결과다(다시 돌린 결과가 앞 결과를 덮는다).
 // 실행 안의 회차는 대시보드와 같이 접는다(reporting/dashboardSql.ts — 전부 통과 · 하나라도 실패 · 나머지 미실행).
+// 멈춤 · 준비 실패로 안 돌고 닫힌 항목만 있는 실행은 판정이 난 앞 실행을 덮지 않는다 — 뒤에 멈춘 실행 하나로 통과가 미실행이 되면 안 된다(execution/single.ts 멈춰닫힌항목아님).
 // 한 건 실행은 붙은 실행과 빌드가 같을 때만 덮는다 — 다음 빌드에서 고쳐진 결과가 앞 빌드에 「통과」로 들면 안 된다 (§3.17 「묶음 · 버전」)
 const 접기SQL = `
   WITH 항목 AS (
@@ -68,7 +70,7 @@ const 접기SQL = `
      WHERE r.run_id = ANY($1::bigint[]) AND r.kind IN ('UI', 'FN')
   ), 고른 AS (
     SELECT DISTINCT ON (kind, tc_id, platform) run_id, kind, tc_id, platform
-      FROM 항목 ORDER BY kind, tc_id, platform, started_at DESC, run_id DESC
+      FROM 항목 ORDER BY kind, tc_id, platform, ${멈춰닫힌항목아님()} DESC, started_at DESC, run_id DESC
   )
   SELECT h.run_id, h.kind, h.tc_id, h.platform, max(h.tc_name) AS tc_name,
          ${접은판정SQL('h')} AS verdict, bool_or(h.unconfirmed IS NOT NULL) AS unconfirmed,
@@ -124,7 +126,7 @@ export async function 기능재료읽기(pool: Pool, 묶음: 묶음재료): Prom
     await pool.query<{ run_id: string; scenario_id: string; verdict: 'PASS' | 'FAIL' | 'NA'; unconfirmed: boolean }>(
       `WITH 고른 AS (
          SELECT DISTINCT ON (scenario_id) run_id, scenario_id FROM test_run
-          WHERE run_id = ANY($1::bigint[]) AND kind = 'SCENARIO' ORDER BY scenario_id, started_at DESC, run_id DESC)
+          WHERE run_id = ANY($1::bigint[]) AND kind = 'SCENARIO' ORDER BY scenario_id, status NOT IN ('PREP_FAILED', 'ABORTED') DESC, started_at DESC, run_id DESC)
        SELECT g.run_id, g.scenario_id, ${접은판정SQL('p')} AS verdict, ${미확정SQL('p')} AS unconfirmed
          FROM 고른 g LEFT JOIN scenario_run_part p ON p.run_id = g.run_id
         GROUP BY g.run_id, g.scenario_id`,
@@ -145,7 +147,7 @@ export async function 기능재료읽기(pool: Pool, 묶음: 묶음재료): Prom
       notIncluded: 계획.filter((c) => !돈.has(c.tc_id)).map((c) => ({ tcId: c.tc_id, name: c.name })),
       notRun: 접은
         .filter((r) => r.kind === kind && r.verdict === 'NA')
-        .map((r) => ({ tcId: r.tc_id, name: r.tc_name, platform: r.platform, cause: 원인들.get(r) ?? 'other' })),
+        .map((r) => ({ tcId: r.tc_id, name: r.tc_name, platform: r.platform, cause: /^PREP_FAILED\b/.test(r.rep_message ?? '') ? 'prepFailed' : (원인들.get(r) ?? 'other') })),
     };
   });
 

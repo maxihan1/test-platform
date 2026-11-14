@@ -67,7 +67,7 @@ async function 묶음실행들(c: PoolClient, t: 방아쇠): Promise<{ 실행: �
   const 실행 = (
     await c.query<실행줄>(
       `SELECT run_id::text AS id, status <> 'RUNNING' AS finished, origin = 'SCHEDULED' AS scheduled, finished_at FROM test_run
-        WHERE origin <> 'SINGLE' AND ${곳 || 'run_id = $1'}`,
+        WHERE origin <> 'SINGLE' AND kind IN ('UI', 'FN', 'SCENARIO', 'COMPAT') AND ${곳 || 'run_id = $1'}`,
       곳 === '' ? [하나('R:')] : 값,
     )
   ).rows;
