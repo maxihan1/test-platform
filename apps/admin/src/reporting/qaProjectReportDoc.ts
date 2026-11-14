@@ -4,7 +4,7 @@
 import { 문단, 워드파일 } from '../prd/docx.js';
 import { 문서판 } from './html.js';
 import { 안전 } from './htmlItem.js';
-import { 짧은날, type 프로젝트리포트응답, type 프로젝트몸 } from './qaProjectReportShape.js';
+import { 짧은날, 첫회차날, type 프로젝트리포트응답, type 프로젝트몸 } from './qaProjectReportShape.js';
 import { 덩이로 as 워드덩이, 흐린글색 } from './qaReportDocx.js';
 import { 리포트스타일, 첫장 } from './qaReportHtml.js';
 import { 시각, type 덩이, type 표줄 } from './qaReportText.js';
@@ -176,14 +176,24 @@ function 막힌것(b: 몸): 덩이[] {
   ];
 }
 
-function 다음예정(b: 몸): 덩이[] {
+export function 다음예정(b: Pick<몸, 'upcoming'>): 덩이[] {
   const u = b.upcoming;
+  // 리포트 일정은 회차 수 대신 다음 날짜를 싣는다 — 시안 ④ 「다음 주간 리포트 11/21 18:00 자동」 (QAR-F1-12)
+  const 세트 = u.sets.filter((s) => (s.report ?? null) === null);
+  const 리포트 = u.sets.filter((s) => (s.report ?? null) !== null);
   return [
     { 꼴: '절', 글: '다음 기간 예정' },
     { 꼴: '글', 글: `${u.from} ~ ${u.to}`, 결: '흐림' },
-    u.sets.length === 0
+    세트.length === 0
       ? { 꼴: '글', 글: '이 기간에 도는 정기 실행 세트 없음', 결: '흐림' }
-      : { 꼴: '표', 머리: ['정기 실행 세트', '반복', '회차'], 줄: u.sets.map((s) => ({ 칸: [s.name, `${반복글(s)} (${s.tz})`, `${s.runs}회`] })) },
+      : { 꼴: '표', 머리: ['정기 실행 세트', '반복', '회차'], 줄: 세트.map((s) => ({ 칸: [s.name, `${반복글(s)} (${s.tz})`, `${s.runs}회`] })) },
+    ...(리포트.length === 0
+      ? []
+      : [{
+          꼴: '표' as const,
+          머리: ['리포트 일정', '담을 기간', '다음 자동'],
+          줄: 리포트.map((s) => ({ 칸: [s.name, s.report === 'MONTH' ? '이번 달' : '이번 주', `${짧은날(첫회차날(s, u.from, u.to) ?? u.from)} ${s.at} (${s.tz})`] })),
+        }]),
   ];
 }
 

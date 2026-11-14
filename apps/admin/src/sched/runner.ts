@@ -4,6 +4,7 @@
 import type { FastifyInstance } from 'fastify';
 
 import { pool } from '../db/index.js';
+import { 빠른기간 } from '../reporting/qaProjectReportShape.js';
 import { 안정화집계를맡긴다 } from '../stability/aggregate.js';
 import { 줄앱 } from './check.js';
 import { 줄돌리기 } from './make.js';
@@ -90,10 +91,32 @@ async function 닫기(id: number, 말: 남길말 | null): Promise<void> {
 }
 
 /**
+ * 리포트 일정 회차 — 프로젝트 QA 리포트 하나를 만들고 닫는다. 기간은 회차 날까지의 이번 주 · 이번 달, 시간대는 세트 것이다.
+ * 만들고 닫기 전에 서버가 꺼졌으면 이미 있는 리포트를 두고 닫기만 한다 (§3.16 「리포트 일정」)
+ */
+async function 리포트회차(occ: { id: number; planned_on: string }, set: 세트 & { report: 'WEEK' | 'MONTH' }, 로그: 로그): Promise<void> {
+  const 있음 = await pool.query('SELECT 1 FROM qa_project_report WHERE sched_occurrence_id = $1', [occ.id]);
+  let 말: 남길말 | null = null;
+  if (있음.rowCount === 0) {
+    try {
+      // 리포팅 모듈은 성능 모듈과 고리가 있어 쓸 때 부른다
+      const { 프로젝트리포트만들기 } = await import('../reporting/qaProjectReport.js');
+      const 기간 = 빠른기간(occ.planned_on, set.report === 'MONTH' ? 'month' : 'week');
+      const id = await 프로젝트리포트만들기(set.projectId, { ...기간, tz: set.tz }, 'SCHEDULED', '스케줄러', occ.id);
+      로그.info(`[sched] 리포트 일정 ${set.name} 회차 ${String(occ.id)} → 프로젝트 리포트 ${String(id)}`);
+    } catch (err) {
+      로그.error(`[sched] 리포트 일정 ${set.name} 회차 ${String(occ.id)} 리포트를 만들지 못했다: ${글(err)}`);
+      말 = { kind: null, service: null, reason: `리포트를 만들지 못했습니다: ${글(err)}` };
+    }
+  }
+  await 닫기(occ.id, 말);
+}
+
+/**
  * 도는 회차 하나를 한 걸음 민다. cur_seq 는 실행을 만들었거나 건너뛴 마지막 줄이다 — 그 줄의 실행은 회차의 가장 최근 실행이다.
  * 실행이 아직 돌면 기다리고, 끝났으면 다음 줄을 만든다. 빠지거나 못 만든 줄은 까닭을 남기고 바로 다음 줄로 간다 (§3.16 「줄 차례로」)
  */
-async function 회차밀기(occ: { id: number; set_id: number; cur_seq: number | null; 넘김: boolean }, 로그: 로그): Promise<boolean> {
+async function 회차밀기(occ: { id: number; set_id: number; planned_on: string; cur_seq: number | null; 넘김: boolean }, 로그: 로그): Promise<boolean> {
   // 도는 실행은 멈추지 않는다. 실행 하나가 끝나지 않아 프로젝트의 정기 실행이 다 멈추는 것을 막는다 (§3.16 「회차 상한」)
   if (occ.넘김) {
     await 닫기(occ.id, { kind: null, service: null, reason: '6시간이 지나 다음 세트를 이어 돌렸습니다' });
@@ -101,6 +124,11 @@ async function 회차밀기(occ: { id: number; set_id: number; cur_seq: number |
   }
   const 기억 = 회차기억.get(occ.id) ?? { set: (await 세트들읽기({ id: occ.set_id }))[0]!, 만든: 0 };
   회차기억.set(occ.id, 기억);
+  const { report } = 기억.set;
+  if (report !== null) {
+    await 리포트회차(occ, { ...기억.set, report }, 로그);
+    return true;
+  }
   const 지난줄 = Math.max(occ.cur_seq ?? 0, 기억.만든);
   if (지난줄 > 0) {
     const 최근 = await pool.query<{ status: string }>('SELECT status FROM test_run WHERE sched_occurrence_id = $1 ORDER BY run_id DESC LIMIT 1', [occ.id]);
@@ -133,12 +161,13 @@ export async function 정기실행점검(로그: 로그, 지금: Date | null = n
   for (let 바퀴 = 0; 바퀴 < 3; 바퀴 += 1) {
     let 닫힘 = false;
     await 회차시작();
-    const 도는 = await pool.query<{ id: string; set_id: string; cur_seq: number | null; 넘김: boolean }>(
-      "SELECT id, set_id, cur_seq, started_at < now() - interval '6 hours' AS 넘김 FROM sched_occurrence WHERE state = 'RUNNING' ORDER BY planned_at, set_id",
+    const 도는 = await pool.query<{ id: string; set_id: string; planned_on: string; cur_seq: number | null; 넘김: boolean }>(
+      `SELECT id, set_id, to_char(planned_on, 'YYYY-MM-DD') AS planned_on, cur_seq, started_at < now() - interval '6 hours' AS 넘김
+         FROM sched_occurrence WHERE state = 'RUNNING' ORDER BY planned_at, set_id`,
     );
     for (const o of 도는.rows) {
       try {
-        닫힘 = (await 회차밀기({ id: Number(o.id), set_id: Number(o.set_id), cur_seq: o.cur_seq, 넘김: o.넘김 }, 로그)) || 닫힘;
+        닫힘 = (await 회차밀기({ id: Number(o.id), set_id: Number(o.set_id), planned_on: o.planned_on, cur_seq: o.cur_seq, 넘김: o.넘김 }, 로그)) || 닫힘;
       } catch (err) {
         // 한 회차가 깨져도 다른 프로젝트 회차는 돈다. 다음 점검이 같은 줄을 다시 본다
         로그.error(`[sched] 회차 ${o.id} 를 밀지 못했다: ${글(err)}`);

@@ -30,10 +30,16 @@ async function 한트랜잭션<T>(일: (c: PoolClient) => Promise<T>): Promise<T
 }
 
 /**
- * 숫자를 모아 굳히고 AI 일을 세운다. AI 일 표는 애플리케이션 칸이 꼭 차야 해서 대표 애플리케이션(꺼졌거나 비면 활성 애플리케이션 중 번호가 가장 작은 것)으로 세운다.
+ * 숫자를 모아 굳히고 AI 일을 세운다. 정기 실행 리포트 일정이 만들면 그 회차 번호를 단다 — 회차 하나에 하나는 유일 인덱스가 막는다 (정기실행 §3.16 「리포트 일정」). AI 일 표는 애플리케이션 칸이 꼭 차야 해서 대표 애플리케이션(꺼졌거나 비면 활성 애플리케이션 중 번호가 가장 작은 것)으로 세운다.
  * 활성 애플리케이션이 없으면 일을 안 세운다 — 읽을 때 「AI 문단을 만들지 못했습니다」다
  */
-export async function 프로젝트리포트만들기(projectId: number, 기간: { from: string; to: string; tz: string }, origin: 'MANUAL' | 'SCHEDULED', 만든이: string): Promise<number> {
+export async function 프로젝트리포트만들기(
+  projectId: number,
+  기간: { from: string; to: string; tz: string },
+  origin: 'MANUAL' | 'SCHEDULED',
+  만든이: string,
+  회차번호: number | null = null,
+): Promise<number> {
   const pool = await db();
   // 숫자는 잠금 밖에서 모은다(길다). 지난 리포트는 프로젝트 줄을 잠근 뒤 읽는다 — 둘이 동시에 만들어도 같은 지난 리포트를 가리켜 사슬이 갈라지지 않게
   const 숫자 = await 프로젝트숫자(pool, projectId, 기간, null);
@@ -50,9 +56,9 @@ export async function 프로젝트리포트만들기(projectId: number, 기간: 
     const id = Number(
       (
         await c.query<{ id: string }>(
-          `INSERT INTO qa_project_report (project_id, project_name, period_from, period_to, tz, origin, body, created_by)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
-          [projectId, 몸.project.name, 기간.from, 기간.to, 기간.tz, origin, JSON.stringify(몸), 만든이],
+          `INSERT INTO qa_project_report (project_id, project_name, period_from, period_to, tz, origin, body, created_by, sched_occurrence_id)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+          [projectId, 몸.project.name, 기간.from, 기간.to, 기간.tz, origin, JSON.stringify(몸), 만든이, 회차번호],
         )
       ).rows[0]!.id,
     );

@@ -1,4 +1,4 @@
-// 정기 실행 세트 통로를 실제 DB 로 본다 — 저장 규칙 · 400 사유 · 빠진 줄 · 기준 세트 · 달력 · 후보 · 프로젝트 권한
+// 정기 실행 세트 통로를 실제 DB 로 본다 — 저장 규칙 · 400 사유 · 빠진 줄 · 기준 세트 · 달력 · 후보 · 프로젝트 권한 · 리포트 일정
 import Fastify, { type FastifyInstance } from 'fastify';
 import type { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -55,6 +55,7 @@ describe.skipIf(연결 === undefined)('정기 실행 세트 통로', { timeout: 
 
   const 치우기 = async () => {
     const 번호 = [...앱.values()];
+    await pool.query('DELETE FROM qa_project_report WHERE project_id = ANY($1::bigint[])', [[프로젝트, 남의프로젝트]]);
     await pool.query('DELETE FROM sched_set WHERE project_id = ANY($1::bigint[])', [[프로젝트, 남의프로젝트]]);
     await pool.query('DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = ANY($1::bigint[]))', [번호]);
     await pool.query('DELETE FROM test_run WHERE service_id = ANY($1::bigint[])', [번호]);
@@ -270,6 +271,37 @@ describe.skipIf(연결 === undefined)('정기 실행 세트 통로', { timeout: 
     expect(await 세트읽기(id)).toMatchObject({ avgMinutes: 30, last: { occurrenceId: 회차, state: 'DONE', verdict: 'FAIL', runIds: [기능, ui] } });
 
     expect((await 부르기('xks-reader', 'GET', `/api/sched/calendar?projectId=${프로젝트}&from=2026-11-01&to=2027-01-15`)).statusCode).toBe(400);
+  });
+
+  it('리포트 일정은 담은 테스트 · 대상 서버 없이 저장하고, 세트와 서로 바꾸지 못하고, 달력 · 카드가 만든 리포트를 가리킨다', async () => {
+    const 일정 = { projectId: 프로젝트, name: '주간 QA 리포트', at: '18:00', tz: 'Asia/Seoul', days: [5], items: [], envs: [], report: 'WEEK' };
+    const id = await 만들기(일정);
+    expect(await 세트읽기(id)).toMatchObject({ name: '주간 QA 리포트', report: 'WEEK', items: [], envs: [], baseable: false, last: null });
+    expect(await 거절({ ...일정, name: '담은 리포트', items: [{ kind: 'FN', service: 'XKS', tcIds: null }] })).toMatch(/^report: /);
+    expect(await 거절({ ...일정, name: '빈 세트', report: undefined })).toBe('items: 담은 테스트가 없습니다');
+    const { projectId: _p, tz: _t, ...고침 } = 일정;
+    expect(await 거절({ ...고침, report: undefined, items: 기본().items, envs: 기본().envs }, 'PUT', `/api/sched/sets/${id}`)).toBe('report: 리포트 일정을 세트로 바꾸지 못합니다');
+    const 세트 = await 만들기({ ...기본(), name: '바꿀 세트' });
+    expect(await 거절({ ...고침, name: '바꿀 세트' }, 'PUT', `/api/sched/sets/${세트}`)).toBe('report: 세트를 리포트 일정으로 바꾸지 못합니다');
+    const 고친 = await 부르기('xks-writer', 'PUT', `/api/sched/sets/${id}`, { ...고침, report: 'MONTH' });
+    expect(고친.statusCode, 고친.body).toBe(200);
+
+    const 회차 = Number(
+      (await pool.query<{ id: string }>(
+        `INSERT INTO sched_occurrence (set_id, planned_on, planned_at, state, started_at, finished_at) VALUES ($1, '2026-11-13', '2026-11-13T09:00:00Z', 'DONE', '2026-11-13T09:00:00Z', '2026-11-13T09:00:05Z') RETURNING id`,
+        [id],
+      )).rows[0]!.id,
+    );
+    const 리포트 = Number(
+      (await pool.query<{ id: string }>(
+        `INSERT INTO qa_project_report (project_id, project_name, period_from, period_to, tz, origin, body, created_by, sched_occurrence_id)
+         VALUES ($1, 'XKS 프로젝트', '2026-11-01', '2026-11-13', 'Asia/Seoul', 'SCHEDULED', '{}', '스케줄러', $2) RETURNING id`,
+        [프로젝트, 회차],
+      )).rows[0]!.id,
+    );
+    const res = await 부르기('xks-reader', 'GET', `/api/sched/calendar?projectId=${프로젝트}&from=2026-11-01&to=2026-11-30`);
+    expect((res.json() as { occurrences: { id: number }[] }).occurrences.find((o) => o.id === 회차)).toMatchObject({ verdict: 'NONE', runs: [], reportId: 리포트 });
+    expect(await 세트읽기(id)).toMatchObject({ report: 'MONTH', last: { occurrenceId: 회차, verdict: 'NONE', reportId: 리포트 } });
   });
 
   it('후보는 프로젝트 애플리케이션의 활성 케이스 수 · 시나리오 · 호환성 세트다', async () => {

@@ -180,8 +180,8 @@ export async function 프로젝트숫자(pool: Pool, projectId: number, 기간: 
     비기능(pool, 값),
     프.bts ? Bunker(pool, [projectId, from, to, tz, ids]) : null,
     막힘(pool, 값),
-    pool.query<{ name: string; at: string; tz: string; days: number[] | null; once_on: string | null }>(
-      `SELECT name, to_char(at, 'HH24:MI') AS at, tz, days, to_char(once_on, 'YYYY-MM-DD') AS once_on FROM sched_set WHERE project_id = $1 AND is_on ORDER BY at, name`,
+    pool.query<{ name: string; at: string; tz: string; days: number[] | null; once_on: string | null; report: 'WEEK' | 'MONTH' | null }>(
+      `SELECT name, to_char(at, 'HH24:MI') AS at, tz, days, to_char(once_on, 'YYYY-MM-DD') AS once_on, report FROM sched_set WHERE project_id = $1 AND is_on ORDER BY at, name`,
       [projectId],
     ),
   ]);
@@ -258,7 +258,7 @@ export async function 프로젝트숫자(pool: Pool, projectId: number, 기간: 
     upcoming: {
       ...다음,
       sets: 세트들.rows
-        .map((x) => ({ name: x.name, at: x.at, tz: x.tz, days: x.days, onceOn: x.once_on, runs: 회차수({ days: x.days, onceOn: x.once_on }, 다음.from, 다음.to) }))
+        .map((x) => ({ name: x.name, at: x.at, tz: x.tz, days: x.days, onceOn: x.once_on, runs: 회차수({ days: x.days, onceOn: x.once_on }, 다음.from, 다음.to), report: x.report }))
         .filter((x) => x.runs > 0),
     },
     appendix: 앱들

@@ -1,4 +1,4 @@
-// 정기 실행 1분 점검을 실제 DB 로 본다 — 회차 세우기 · 프로젝트마다 하나씩 · 줄 차례 · 빠진 줄 · 6시간 상한 · 호환성 실행의 정기 칸
+// 정기 실행 1분 점검을 실제 DB 로 본다 — 회차 세우기 · 프로젝트마다 하나씩 · 줄 차례 · 빠진 줄 · 6시간 상한 · 호환성 실행의 정기 칸 · 리포트 일정
 import type { Pool } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
@@ -71,12 +71,14 @@ describe.skipIf(연결 === undefined)('정기 실행 1분 점검', { timeout: 60
   });
 
   beforeEach(async () => {
+    await pool.query('DELETE FROM qa_project_report WHERE project_id = $1', [프로젝트]);
     await pool.query('DELETE FROM test_run WHERE service_id = $1', [앱]);
     // 담은 줄 · 대상 서버 · 회차는 세트와 같이 지워진다
     await pool.query('DELETE FROM sched_set WHERE project_id = $1', [프로젝트]);
   });
 
   afterAll(async () => {
+    await pool.query('DELETE FROM qa_project_report WHERE project_id = $1', [프로젝트]);
     await pool.query('DELETE FROM compat_run_case WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = $1)', [앱]);
     await pool.query('DELETE FROM compat_run_device WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = $1)', [앱]);
     await pool.query('DELETE FROM test_run WHERE service_id = $1', [앱]);
@@ -170,5 +172,37 @@ describe.skipIf(연결 === undefined)('정기 실행 1분 점검', { timeout: 60
       title: '정기 · XKR 호환 · XKR 호환성',
       sched_occurrence_id: String(occ),
     });
+  });
+
+  it('리포트 일정 회차는 회차 날까지의 이번 주 프로젝트 리포트를 스케줄러 이름으로 하나 만들고 닫는다 — 다시 밀어도 또 만들지 않는다', async () => {
+    const setId = Number(
+      (
+        await pool.query<{ id: string }>(
+          `INSERT INTO sched_set (project_id, name, at, tz, days, created_by, updated_at, report)
+           VALUES ($1, 'XKR 주간 리포트', '03:00', 'Asia/Seoul', '{5}', 'xkr', '2000-01-01T00:00Z', 'WEEK') RETURNING id`,
+          [프로젝트],
+        )
+      ).rows[0]!.id,
+    );
+    // 서울 2001-05-11(금) 03:00 회차 — 이번 주는 05-07(월)부터
+    const occ = await 회차(setId, 'QUEUED');
+    await 점검.정기실행점검(조용히, 옛날);
+    expect(await 회차줄(occ)).toMatchObject({ state: 'DONE', notes: [] });
+    const 리포트 = async () =>
+      (
+        await pool.query(
+          `SELECT to_char(period_from, 'YYYY-MM-DD') AS period_from, to_char(period_to, 'YYYY-MM-DD') AS period_to, tz, origin, created_by, sched_occurrence_id
+             FROM qa_project_report WHERE project_id = $1`,
+          [프로젝트],
+        )
+      ).rows;
+    expect(await 리포트()).toEqual([
+      { period_from: '2001-05-07', period_to: '2001-05-11', tz: 'Asia/Seoul', origin: 'SCHEDULED', created_by: '스케줄러', sched_occurrence_id: String(occ) },
+    ]);
+    // 리포트를 만들고 회차를 닫기 전에 서버가 꺼졌던 것처럼 되돌린다
+    await pool.query("UPDATE sched_occurrence SET state = 'RUNNING', finished_at = NULL WHERE id = $1", [occ]);
+    await 점검.정기실행점검(조용히, 옛날);
+    expect((await 회차줄(occ)).state).toBe('DONE');
+    expect(await 리포트()).toHaveLength(1);
   });
 });
