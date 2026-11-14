@@ -3,7 +3,7 @@
 // 실행: npm run authoring:check -- 마지막 <원장 사본> <접두사> <폴더> [더 볼 경로…] | 보조 <케이스 파일…> | 비밀번호 <경로…>
 
 import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -16,6 +16,7 @@ import { 명세글, 속성, 읽기 } from './authoring-held-apply.js';
 import { 보류경고 } from './authoring-held-kinds.js';
 import { 비밀자리들, 파일모으기 } from './authoring-secret-spots.js';
 import { 바뀐것 } from './authoring-base-list.js';
+import { 맡은tsconfig, 앱tsc인자 } from './authoring-typecheck.js';
 import { type 모양지적, 모양확인들, 문구모양, 코드모양 } from './authoring-case-shape.js';
 import { 묶었나 } from './authoring-one-value.js';
 import { 백틱벗기기, 표읽기 } from './authoring-md-table.js';
@@ -158,15 +159,6 @@ function 남은보류(결과들: 결과[], 줄들: string[]): void {
   if (줄들.length > 0) 결과들.push({ 이름: '남은 보류', ok: true, 경고: true, 줄들 });
 }
 
-/** 맡은 파일만 타입 검사하는 임시 tsconfig — 저장소 전체는 한 번에 1.2GB 라 서브에이전트 넷이 겹치면 Docker 상자(4.8GB)를 다 쓴다. 100건이면 약 320MB(2026-10-19 실측).
- * 맡은 파일이 가져다 쓰는 것만 따라간다 — 남의 케이스는 안 본다. Page Object 는 주인이 하나고 더하기만 해서(`fanout.md` §3) 남의 케이스가 깨질 일이 없고, 저장소 전체는 자식이 합친 뒤 한 번 본다 */
-function 맡은tsconfig(트리: string, 자리: string, 파일들: readonly string[]): string {
-  mkdirSync(자리, { recursive: true });
-  const 길 = join(자리, `tsconfig-${process.pid}.json`);
-  writeFileSync(길, JSON.stringify({ extends: join(트리, 'tsconfig.json'), include: 파일들.map((f) => resolve(트리, f)) }));
-  return 길;
-}
-
 export async function 실행(인자: string[], 트리 = process.cwd(), env: NodeJS.ProcessEnv = process.env): Promise<number> {
   const [모드, ...나머지] = 인자;
   const 자리 = env.AUTHORING_GATE3_DIR || tmpdir();
@@ -223,12 +215,13 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
   } else if (모드 === '마지막' && 나머지.length >= 3) {
     const [원장, 접두사, 폴더, ...더] = 나머지 as [string, string, string, ...string[]];
     const 표 = join('docs', 'cases', `${접두사}.md`);
-    // 서로 기대지 않아 나란히 돈다 — 자식 혼자 도는 자리라 타입 검사 1.2GB · 형식 검사 0.4GB 가 겹쳐도 된다
+    // 서로 기대지 않아 나란히 돈다 — 자식 혼자 도는 자리라 타입 검사 · 형식 검사가 겹쳐도 된다
     // 원장이 없는 작성은 관문 0 을 건너뛴다 — 통과가 아니라 「건너뜀」으로 적는다(6-gates.md 관문 0)
     const 원장없음 = { ok: true, 줄들: ['원장 없음 — 대조를 건너뛴다'] };
     const [원장검사, tsc, 형식] = await Promise.all([
       원장 === '없음' ? Promise.resolve(원장없음) : 돌린다(트리, 'npm', ['run', '-s', 'check:ledger', '--', 원장, 표, '--tests', `tests/${폴더}`, '--agent'], 로그('ledger')),
-      돌린다(트리, 'npx', ['tsc', '--noEmit'], 로그('tsc')),
+      // 저장소 전체가 아니라 이 앱 폴더만 — 전체는 테스트가 쌓여 작성 서버 node 힙을 넘었다(authoring-typecheck.ts)
+      돌린다(트리, 'npx', 앱tsc인자(트리, 자리, 폴더), 로그('tsc')),
       돌린다(트리, 'npm', ['run', '-s', 'check:tests'], 로그('tests')),
     ]);
     const 원장머리 = 원장검사.줄들.find((l) => l.startsWith('원장:') || l.startsWith('원장 없음'));
