@@ -1,6 +1,6 @@
 # ARI 요구별 케이스 목록
 
-**덮는 범위** — 원장: 요구 406 → 케이스 270 · 제외 136(환경 한계 10 · 계정 미등록 126) · 빠짐 0 · 번호 가족 ARI-NEW 267 · API 139
+**덮는 범위** — 원장: 요구 406 → 케이스 386 · 제외 20(사람이 뺌 4 · 계정 미등록 1 · 환경 한계 10 · 만들 수 없는 응답 5) · 빠짐 0 · 번호 가족 ARI-REQ 267 · API 139
 
 ## 요구사항
 
@@ -305,6 +305,112 @@
 | 297 | 정상 | 케이스가 가입한 일회용 회원이 있다 | 일회용 회원으로 웹 로그인한 채 GET /Account/Logout 을 부른다 | 로그인한 채 GET /Account/Logout 을 부르면 홈으로 이동하고 그 뒤 대시보드는 로그인 화면으로 보낸다 | ARI-REQ-264 | ARI-FN-349 | 2026-11-13 |
 | 298 | 정상 | 「두 번째 플레이어」 계정이 있다 | 「두 번째 플레이어」에 제재를 걸고 푼 뒤 GET /opsapi/users/{id} 를 부른다 | 제재를 걸고 풀면 계정 상세 sanctions 에 그 제재가 releasedAt 과 함께 남아 있다 | ARI-REQ-265 | ARI-FN-350 | 2026-11-13 |
 | 299 | 정상 | 대상 서버 줄에 고정 운영 키가 있다 | [QA] 공지를 만들고 삭제한 뒤 공지를 하나 더 만든다 | 공지를 삭제한 뒤 하나 더 만들면 삭제한 번호보다 큰 번호가 매겨진다 | ARI-REQ-266 | ARI-FN-351 | 2026-11-13 |
+| 300 | 예외 | 「두 번째 플레이어」 계정이 있다 | 서버 토큰으로 「두 번째 플레이어」 계정에 캐릭터를 만들고 저장한 뒤 그 계정의 캐릭터 목록을 부른다 | 서버 토큰으로 다른 계정의 캐릭터 행을 만들고 저장하고 읽으면 모두 200 이다 | ARI-REQ-015 | ARI-FN-021 | 2026-11-14 |
+| 301 | 정상 | 「게임 서버」 계정이 있다 | 맞는 공유 비밀로 POST /api/serverlogin 을 불러 받은 토큰 본문을 읽는다 | 게임 서버 토큰을 열면 sharedSecret 칸에 보낸 공유 비밀이 그대로 들어 있다 | ARI-REQ-016 | ARI-FN-022 | 2026-11-14 |
+| 302 | 정상 | 「게임 서버」 계정이 있다 | 서버 토큰으로 POST /api/getguilds 와 POST /api/getaccountrestrictions 를 부른다 | 게임 서버 토큰으로 데이터 API 와 getaccountrestrictions 를 부르면 200 이다 | ARI-REQ-018 | ARI-FN-025 | 2026-11-14 |
+| 303 | 예외 | 「게임 서버」 계정이 있다 | 서버 토큰으로 GET /opsapi/summary 를 부른다 | 게임 서버 토큰으로 /opsapi/* 를 부르면 401 이고 본문이 비어 있다 | ARI-REQ-019 | ARI-FN-027 | 2026-11-14 |
+| 304 | 정상 | 「게임 서버」 계정이 있다 | 서버 토큰으로 POST /api/createguild 를 부른다 | 데이터 API 로 길드를 만들면 200 과 { "id": <번호> } 가 돌아온다 | ARI-REQ-031 | ARI-FN-042 | 2026-11-14 |
+| 305 | 정상 | 「게임 서버」 계정이 있다 | 서버 토큰으로 POST /api/getguilds 를 부른다 | 길드 목록 응답은 200 과 { "guilds": [ ... ] } 꼴이다 | ARI-REQ-031 | ARI-FN-042 | 2026-11-14 |
+| 306 | 정상 | 「게임 서버」 계정이 있다 | 서버 토큰으로 만든 길드를 POST /api/saveguild 로 저장한 뒤 POST /api/deleteguild 로 삭제한다 | 길드 저장과 삭제 응답은 둘 다 본문 없는 200 이다 | ARI-REQ-031 | ARI-FN-042 | 2026-11-14 |
+| 307 | 예외 | 「게임 서버」 계정이 있다 | 같은 이름의 캐릭터를 두 번 만든다 | 이름 중복으로 서비스가 실패하면 400 이고 본문은 제목 Bad Request · 상태 400 인 problem 형식이다 | ARI-REQ-036 | ARI-FN-050 | 2026-11-14 |
+| 308 | 예외 | 「게임 서버」 계정이 있다 | 서버 토큰으로 없는 길드 번호에 POST /api/saveguild 를 부른다 | 데이터 API 에서 대상 번호가 없으면 404 가 아니라 400 과 본문 「Error occured on server.  See server logs for more details.」이다 | ARI-REQ-037 | ARI-FN-052 | 2026-11-14 |
+| 309 | 정상 | 「게임 서버」 계정이 있다 | 맞는 공유 비밀로 POST /api/serverlogin 을 부른다 | 맞는 공유 비밀로 POST /api/serverlogin 을 부르면 200 과 accountId 0 · 서버 토큰이 돌아온다 | ARI-REQ-040 · API POST /api/serverlogin 200 | ARI-FN-056 | 2026-11-14 |
+| 310 | 정상 | 「게임 서버」 계정이 있다 | 서버 토큰으로 새 이름의 캐릭터를 POST /api/createplayercharacter 로 만든다 | 새 이름으로 POST /api/createplayercharacter 를 부르면 200 과 새 캐릭터 번호 id 가 돌아온다 | ARI-REQ-050 · API POST /api/createplayercharacter 200 | ARI-FN-074 | 2026-11-14 |
+| 311 | 정상 | 「게임 서버」 계정이 있다 | 만든 캐릭터의 계정 번호로 POST /api/getplayercharacters 를 부른다 | 만든 캐릭터가 그 계정의 캐릭터 목록에 보인다 | ARI-REQ-050 | ARI-FN-074 | 2026-11-14 |
+| 312 | 예외 | 「게임 서버」 계정이 있다 | 이미 있는 캐릭터와 같은 이름으로 POST /api/createplayercharacter 를 부른다 | 이미 있는 캐릭터 이름으로 다시 만들면 400 으로 실패한다 | ARI-REQ-051 · API POST /api/createplayercharacter 400 | ARI-FN-076 | 2026-11-14 |
+| 313 | 예외 | 「게임 서버」 계정이 있다 | 「Aria」로 시작하는 이름의 캐릭터를 만든 뒤 같은 이름을 소문자로 바꿔 만든다 | 「Aria」가 있을 때 「aria」로 캐릭터를 만들면 400 으로 실패한다 | ARI-REQ-052 | ARI-FN-078 | 2026-11-14 |
+| 314 | 정상 | 「게임 서버」 계정이 있다 | 캐릭터를 만든 뒤 POST /api/getfriendlists 를 부른다 | 캐릭터를 만들면 그 캐릭터의 친구 목록이 saveData 빈 문자열로 같이 생긴다 | ARI-REQ-053 | ARI-FN-079 | 2026-11-14 |
+| 315 | 정상 | 「게임 서버」 계정이 있다 | 빈 이름으로 캐릭터를 만든다 | 빈 이름으로 캐릭터를 만들면 200 이고 캐릭터 목록에 빈 이름 그대로 보인다 | ARI-REQ-054 | ARI-FN-080 | 2026-11-14 |
+| 316 | 정상 | 「게임 서버」 계정이 있다 | 100자 이름으로 캐릭터를 만든다 | 100자 이름도 막히지 않고 캐릭터 목록에 그대로 보인다 | ARI-REQ-054 | ARI-FN-080 | 2026-11-14 |
+| 317 | 정상 | 「게임 서버」 계정이 있다 | 「<>&%/」가 든 이름으로 캐릭터를 만든다 | 금지 문자가 든 이름도 막히지 않고 캐릭터 목록에 그대로 보인다 | ARI-REQ-054 | ARI-FN-080 | 2026-11-14 |
+| 318 | 정상 | 「게임 서버」 계정이 있다 | 없는 계정 번호로 캐릭터를 만든다 | 없는 계정 번호로 캐릭터를 만들면 막히지 않고 200 과 id 가 돌아온다 | ARI-REQ-055 | ARI-FN-081 | 2026-11-14 |
+| 319 | 정상 | 「게임 서버」 계정이 있다 | 만든 캐릭터를 다른 이름과 저장 데이터로 POST /api/saveplayercharacter 한다 | 캐릭터를 저장하면 200 이고 이름과 저장 데이터가 보낸 값으로 바뀐다 | ARI-REQ-056 · API POST /api/saveplayercharacter 200 | ARI-FN-082 | 2026-11-14 |
+| 320 | 예외 | 「게임 서버」 계정이 있다 | 없는 캐릭터 번호로 POST /api/saveplayercharacter 를 부른다 | 없는 캐릭터 번호로 저장하면 400 과 본문 「Error occured on server.  See server logs for more details.」이다 | ARI-REQ-057 · API POST /api/saveplayercharacter 400 | ARI-FN-084 | 2026-11-14 |
+| 321 | 예외 | 「게임 서버」 계정이 있다 | 다른 계정 번호로 만든 캐릭터를 서버 토큰으로 저장한다 | 남의 캐릭터 번호로 저장하면 막히지 않고 200 이다 | ARI-REQ-058 | ARI-FN-086 | 2026-11-14 |
+| 322 | 정상 | 「게임 서버」 계정이 있다 | 캐릭터 둘을 만든 뒤 하나를 다른 캐릭터의 이름으로 저장한다 | 다른 캐릭터가 쓰는 이름으로 저장하면 막히지 않고 200 이다 | ARI-REQ-059 | ARI-FN-087 | 2026-11-14 |
+| 323 | 정상 | 「게임 서버」 계정이 있다 | 만든 캐릭터를 POST /api/deleteplayercharacter 로 삭제한다 | 캐릭터를 삭제하면 200 이고 그 캐릭터가 목록에서 사라진다 | ARI-REQ-060 · API POST /api/deleteplayercharacter 200 | ARI-FN-088 | 2026-11-14 |
+| 324 | 정상 | 「게임 서버」 계정이 있다 | 삭제한 뒤 POST /api/getfriendlists 를 부른다 | 삭제한 캐릭터의 친구 목록도 같이 사라진다 | ARI-REQ-060 | ARI-FN-088 | 2026-11-14 |
+| 325 | 예외 | 「게임 서버」 계정이 있다 | 없는 캐릭터 번호로 POST /api/deleteplayercharacter 를 부른다 | 없는 캐릭터 번호로 삭제하면 400 과 본문 「Error occured on server.  See server logs for more details.」이다 | ARI-REQ-061 · API POST /api/deleteplayercharacter 400 | ARI-FN-090 | 2026-11-14 |
+| 326 | 정상 | 「게임 서버」 계정이 있다 | 친구 목록이 없는 캐릭터를 POST /api/deleteplayercharacter 로 삭제한다 | 친구 목록이 없는 캐릭터를 삭제하면 캐릭터만 삭제된 채 400 이다 | ARI-REQ-062 · 보류 — 친구 목록 없는 캐릭터를 만드는 API 가 없다 | ARI-FN-524 | 2026-11-14 |
+| 327 | 정상 | 「게임 서버」 계정이 있다 | 우편을 받은 캐릭터를 삭제한 뒤 그 캐릭터 번호로 POST /api/getmailmessages 를 부른다 | 우편을 받은 캐릭터를 삭제하면 그 캐릭터의 우편은 그대로 남는다 | ARI-REQ-063 | ARI-FN-092 | 2026-11-14 |
+| 328 | 정상 | 「게임 서버」 계정이 있다 | 아이템 인스턴스를 가진 캐릭터를 삭제한 뒤 POST /api/getiteminstances 를 부른다 | 삭제한 캐릭터의 아이템 인스턴스가 목록에 남아 있다 | ARI-REQ-063 | ARI-FN-092 | 2026-11-14 |
+| 329 | 정상 | 「게임 서버」 계정이 있다 | 길드에 든 캐릭터를 삭제한 뒤 POST /api/getguilds 를 부른다 | 삭제한 캐릭터가 길드 저장 데이터의 멤버로 남아 있다 | ARI-REQ-063 | ARI-FN-092 | 2026-11-14 |
+| 330 | 정상 | 「게임 서버」 계정이 있다 | 시험용 계정 번호로 캐릭터 둘을 만든 뒤 POST /api/getplayercharacters 를 부른다 | 계정 번호로 캐릭터 목록을 부르면 200 과 그 계정의 캐릭터 둘이 돌아온다 | ARI-REQ-064 · API POST /api/getplayercharacters 200 | ARI-FN-093 | 2026-11-14 |
+| 331 | 정상 | 「게임 서버」 계정이 있다 | 캐릭터가 하나도 없는 계정 번호로 POST /api/getplayercharacters 를 부른다 | 캐릭터가 없는 계정 번호로 목록을 부르면 200 과 { "playerCharacters": [] } 이다 | ARI-REQ-065 | ARI-FN-094 | 2026-11-14 |
+| 332 | 정상 | 「일반 회원」 계정이 있다 | 서버 토큰으로 「일반 회원」 계정 번호의 캐릭터 목록을 부른다 | 서버 토큰으로 남의 계정 번호의 캐릭터 목록을 부르면 200 과 그 계정의 캐릭터가 돌아온다 | ARI-REQ-066 | ARI-FN-095 | 2026-11-14 |
+| 333 | 정상 | 「게임 서버」 계정이 있다 | 서로 다른 계정 번호로 캐릭터를 하나씩 만든 뒤 POST /api/getallplayercharacters 를 부른다 | 모든 캐릭터 목록을 부르면 200 과 서로 다른 계정에 만든 캐릭터 둘이 다 들어 있다 | ARI-REQ-067 · API POST /api/getallplayercharacters 200 | ARI-FN-096 | 2026-11-14 |
+| 334 | 예외 | 「게임 서버」 계정이 있다 | 서버 토큰으로 AccountId 에 글자를 넣어 POST /api/getplayercharacters 를 부른다 | AccountId 에 글자를 넣어 캐릭터 목록을 부르면 400 이다 | API POST /api/getplayercharacters 400 | ARI-FN-530 | 2026-11-14 |
+| 335 | 정상 | 「게임 서버」 계정이 있다 | 서버 토큰으로 저장 데이터를 넣어 POST /api/createguild 를 부른다 | 저장 데이터를 넣어 길드를 만들면 200 과 새 길드 번호 id 가 돌아온다 | ARI-REQ-068 · API POST /api/createguild 200 | ARI-FN-097 | 2026-11-14 |
+| 336 | 정상 | 「게임 서버」 계정이 있다 | 만든 뒤 POST /api/getguilds 를 부른다 | 만든 길드 번호가 길드 목록에 보인다 | ARI-REQ-068 | ARI-FN-097 | 2026-11-14 |
+| 337 | 정상 | 「게임 서버」 계정이 있다 | 만든 길드를 다른 저장 데이터로 POST /api/saveguild 한다 | 길드를 저장하면 200 이고 목록의 그 길드 saveData 가 보낸 값으로 바뀐다 | ARI-REQ-069 · API POST /api/saveguild 200 | ARI-FN-098 | 2026-11-14 |
+| 338 | 정상 | 「게임 서버」 계정이 있다 | 만든 길드를 POST /api/deleteguild 로 삭제한다 | 길드를 삭제하면 200 이고 그 번호가 길드 목록에서 사라진다 | ARI-REQ-070 · API POST /api/deleteguild 200 | ARI-FN-099 | 2026-11-14 |
+| 339 | 정상 | 「게임 서버」 계정이 있다 | 길드 둘을 만든 뒤 POST /api/getguilds 를 부른다 | 길드 목록을 부르면 200 과 만든 길드 둘이 다 들어 있다 | ARI-REQ-071 · API POST /api/getguilds 200 | ARI-FN-100 | 2026-11-14 |
+| 340 | 정상 | 「게임 서버」 계정이 있다 | 같은 GuildName 을 넣은 길드를 두 번 만든다 | 같은 이름의 길드를 두 번 만들면 막히지 않고 둘 다 200 이다 | ARI-REQ-072 | ARI-FN-101 | 2026-11-14 |
+| 341 | 정상 | 「게임 서버」 계정이 있다 | GuildName 을 넣은 길드를 만든 뒤 POST /api/getguilds 를 부른다 | 길드 목록을 받아 보면 그 길드의 name 칸은 빈 문자열이다 | ARI-REQ-073 | ARI-FN-102 | 2026-11-14 |
+| 342 | 정상 | 「게임 서버」 계정이 있다 | GuildName 을 넣은 길드를 만든 뒤 POST /api/getguilds 를 부른다 | 길드 이름은 saveData 안의 GuildName 에만 들어 있다 | ARI-REQ-073 | ARI-FN-102 | 2026-11-14 |
+| 343 | 예외 | 「게임 서버」 계정이 있다 | 없는 길드 번호로 POST /api/saveguild 를 부른다 | 없는 길드 번호로 저장하면 400 과 본문 「Error occured on server.  See server logs for more details.」이다 | ARI-REQ-074 · API POST /api/saveguild 400 | ARI-FN-104 | 2026-11-14 |
+| 344 | 예외 | 「게임 서버」 계정이 있다 | 없는 길드 번호로 POST /api/deleteguild 를 부른다 | 없는 길드 번호로 삭제한 응답도 400 과 본문 「Error occured on server.  See server logs for more details.」이다 | ARI-REQ-074 · API POST /api/deleteguild 400 | ARI-FN-104 | 2026-11-14 |
+| 345 | 정상 | 「게임 서버」 계정이 있다 | 캐릭터 저장 데이터에 길드 번호를 넣은 뒤 그 길드를 삭제하고 캐릭터를 읽는다 | 길드를 삭제하면 멤버 캐릭터 저장 데이터의 길드 소속은 그대로 남는다 | ARI-REQ-075 | ARI-FN-105 | 2026-11-14 |
+| 346 | 예외 | 「게임 서버」 계정이 있다 | 서버 토큰으로 SaveData 에 숫자를 넣어 POST /api/createguild 를 부른다 | SaveData 에 숫자를 넣어 길드를 만들면 400 이다 | API POST /api/createguild 400 | ARI-FN-525 | 2026-11-14 |
+| 347 | 정상 | 「게임 서버」 계정이 있다 | 만든 캐릭터의 친구 목록을 다른 저장 데이터로 POST /api/savefriendlist 한다 | 친구 목록을 저장하면 200 이고 그 캐릭터 친구 목록의 saveData 가 보낸 값으로 바뀐다 | ARI-REQ-076 · API POST /api/savefriendlist 200 | ARI-FN-106 | 2026-11-14 |
+| 348 | 정상 | 「게임 서버」 계정이 있다 | 캐릭터 둘을 만든 뒤 POST /api/getfriendlists 를 부른다 | 친구 목록 전체를 부르면 200 과 만든 캐릭터 둘의 친구 목록이 다 들어 있다 | ARI-REQ-077 · API POST /api/getfriendlists 200 | ARI-FN-107 | 2026-11-14 |
+| 349 | 예외 | 「게임 서버」 계정이 있다 | 없는 캐릭터 번호로 POST /api/savefriendlist 를 부른다 | 친구 목록이 없는 캐릭터 번호로 저장하면 400 과 본문 「Error occured on server.  See server logs for more details.」이다 | ARI-REQ-078 · API POST /api/savefriendlist 400 | ARI-FN-109 | 2026-11-14 |
+| 350 | 예외 | 「게임 서버」 계정이 있다 | 없는 캐릭터 번호를 친구로 넣어 POST /api/savefriendlist 를 부른다 | 없는 캐릭터를 친구로 넣어 저장하면 막히지 않고 200 이다 | ARI-REQ-079 | ARI-FN-111 | 2026-11-14 |
+| 351 | 정상 | 「게임 서버」 계정이 있다 | 서버 토큰으로 저장 데이터를 넣어 POST /api/createauctionitem 을 부른다 | 경매 물품을 만들면 200 과 새 번호 id 가 돌아온다 | ARI-REQ-080 · API POST /api/createauctionitem 200 | ARI-FN-112 | 2026-11-14 |
+| 352 | 정상 | 「게임 서버」 계정이 있다 | 만든 뒤 POST /api/getauctionitems 를 부른다 | 만든 경매 물품 번호가 목록에 보인다 | ARI-REQ-080 | ARI-FN-112 | 2026-11-14 |
+| 353 | 정상 | 「게임 서버」 계정이 있다 | 만든 경매 물품을 다른 저장 데이터로 POST /api/saveauctionitem 한다 | 경매 물품을 저장하면 200 이고 목록의 saveData 가 보낸 값으로 바뀐다 | ARI-REQ-081 · API POST /api/saveauctionitem 200 | ARI-FN-113 | 2026-11-14 |
+| 354 | 정상 | 「게임 서버」 계정이 있다 | 만든 경매 물품을 POST /api/deleteauctionitem 으로 삭제한다 | 경매 물품을 삭제하면 200 이고 목록에서 사라진다 | ARI-REQ-082 · API POST /api/deleteauctionitem 200 | ARI-FN-114 | 2026-11-14 |
+| 355 | 정상 | 「게임 서버」 계정이 있다 | 경매 물품 둘을 만든 뒤 POST /api/getauctionitems 를 부른다 | 경매 물품 목록을 부르면 200 과 만든 물품 둘이 다 들어 있다 | ARI-REQ-083 · API POST /api/getauctionitems 200 | ARI-FN-115 | 2026-11-14 |
+| 356 | 예외 | 「게임 서버」 계정이 있다 | 없는 경매 물품 번호로 POST /api/saveauctionitem 을 부른다 | 없는 경매 물품 번호로 저장하면 400 과 본문 「Error occured on server.  See server logs for more details.」이다 | ARI-REQ-084 · API POST /api/saveauctionitem 400 | ARI-FN-117 | 2026-11-14 |
+| 357 | 예외 | 「게임 서버」 계정이 있다 | 없는 경매 물품 번호로 POST /api/deleteauctionitem 을 부른다 | 없는 경매 물품 번호로 삭제한 응답도 400 과 본문 「Error occured on server.  See server logs for more details.」이다 | ARI-REQ-084 · API POST /api/deleteauctionitem 400 | ARI-FN-117 | 2026-11-14 |
+| 358 | 정상 | 「게임 서버」 계정이 있다 | 가격을 음수로 넣은 저장 데이터로 경매 물품을 만든다 | 가격이 음수인 경매 물품을 만들면 막히지 않고 목록에 그대로 저장된다 | ARI-REQ-085 | ARI-FN-118 | 2026-11-14 |
+| 359 | 예외 | 「게임 서버」 계정이 있다 | 같은 저장 데이터로 경매 물품을 두 번 만든다 | 같은 경매 물품을 두 번 등록하면 막히지 않고 서로 다른 번호 둘이 생긴다 | ARI-REQ-086 | ARI-FN-120 | 2026-11-14 |
+| 360 | 예외 | 「게임 서버」 계정이 있다 | 서버 토큰으로 SaveData 에 숫자를 넣어 POST /api/createauctionitem 을 부른다 | SaveData 에 숫자를 넣어 경매 물품을 만들면 400 이다 | API POST /api/createauctionitem 400 | ARI-FN-527 | 2026-11-14 |
+| 361 | 정상 | 「게임 서버」 계정이 있다 | 새 ItemInstanceId 로 POST /api/createiteminstance 를 부른다 | 새 ItemInstanceId 로 아이템 인스턴스를 만들면 200 과 id 가 돌아온다 | ARI-REQ-087 · API POST /api/createiteminstance 200 | ARI-FN-121 | 2026-11-14 |
+| 362 | 정상 | 「게임 서버」 계정이 있다 | 만든 뒤 POST /api/getiteminstances 를 부른다 | 만든 아이템 인스턴스가 목록에 보인다 | ARI-REQ-087 | ARI-FN-121 | 2026-11-14 |
+| 363 | 정상 | 「게임 서버」 계정이 있다 | 만든 아이템 인스턴스를 다른 저장 데이터로 POST /api/saveiteminstance 한다 | 아이템 인스턴스를 저장하면 200 이고 목록의 saveData 가 보낸 값으로 바뀐다 | ARI-REQ-088 · API POST /api/saveiteminstance 200 | ARI-FN-122 | 2026-11-14 |
+| 364 | 정상 | 「게임 서버」 계정이 있다 | 만든 아이템 인스턴스를 ItemInstanceId 로 POST /api/deleteiteminstance 한다 | ItemInstanceId 로 삭제하면 200 이고 그 아이템 인스턴스가 목록에서 사라진다 | ARI-REQ-089 · API POST /api/deleteiteminstance 200 | ARI-FN-123 | 2026-11-14 |
+| 365 | 정상 | 「게임 서버」 계정이 있다 | 아이템 인스턴스 둘을 만든 뒤 POST /api/getiteminstances 를 부른다 | 아이템 인스턴스 목록을 부르면 200 과 만든 둘이 다 들어 있다 | ARI-REQ-090 · API POST /api/getiteminstances 200 | ARI-FN-124 | 2026-11-14 |
+| 366 | 정상 | 「게임 서버」 계정이 있다 | 같은 ItemInstanceId 로 POST /api/createiteminstance 를 두 번 부른다 | 같은 ItemInstanceId 로 두 번 만들면 막히지 않고 그 번호의 행이 둘 생긴다 | ARI-REQ-091 | ARI-FN-125 | 2026-11-14 |
+| 367 | 정상 | 「게임 서버」 계정이 있다 | 같은 ItemInstanceId 행 둘을 만든 뒤 그 번호로 저장한다 | 같은 ItemInstanceId 행이 둘일 때 저장하면 첫 행에만 적용된다 | ARI-REQ-092 | ARI-FN-126 | 2026-11-14 |
+| 368 | 정상 | 「게임 서버」 계정이 있다 | 같은 ItemInstanceId 행 둘을 만든 뒤 그 번호로 삭제한다 | 삭제도 첫 행에만 적용되고 둘째 행은 남는다 | ARI-REQ-092 | ARI-FN-126 | 2026-11-14 |
+| 369 | 예외 | 「게임 서버」 계정이 있다 | 없는 ItemInstanceId 로 POST /api/saveiteminstance 를 부른다 | 없는 ItemInstanceId 로 저장하면 400 과 본문 「Error occured on server.  See server logs for more details.」이다 | ARI-REQ-093 · API POST /api/saveiteminstance 400 | ARI-FN-128 | 2026-11-14 |
+| 370 | 예외 | 「게임 서버」 계정이 있다 | 없는 ItemInstanceId 로 POST /api/deleteiteminstance 를 부른다 | 없는 ItemInstanceId 로 삭제한 응답도 400 과 본문 「Error occured on server.  See server logs for more details.」이다 | ARI-REQ-093 · API POST /api/deleteiteminstance 400 | ARI-FN-128 | 2026-11-14 |
+| 371 | 정상 | 「게임 서버」 계정이 있다 | 없는 아이템 이름과 품질을 넣은 저장 데이터로 아이템 인스턴스를 만든다 | 없는 아이템 이름 · 품질로 만들면 막히지 않고 200 이다 | ARI-REQ-094 | ARI-FN-129 | 2026-11-14 |
+| 372 | 예외 | 「게임 서버」 계정이 있다 | 서버 토큰으로 ItemInstanceId 에 글자를 넣어 POST /api/createiteminstance 를 부른다 | ItemInstanceId 에 글자를 넣어 아이템 인스턴스를 만들면 400 이다 | API POST /api/createiteminstance 400 | ARI-FN-529 | 2026-11-14 |
+| 373 | 정상 | 「게임 서버」 계정이 있다 | 만든 캐릭터에게 POST /api/createmailmessage 로 우편을 만든다 | 받는 캐릭터에게 우편을 만들면 200 과 id 가 돌아온다 | ARI-REQ-095 · API POST /api/createmailmessage 200 | ARI-FN-130 | 2026-11-14 |
+| 374 | 정상 | 「게임 서버」 계정이 있다 | 만든 뒤 그 캐릭터 번호로 POST /api/getmailmessages 를 부른다 | 만든 우편이 받는 캐릭터의 우편 목록에 보인다 | ARI-REQ-095 | ARI-FN-130 | 2026-11-14 |
+| 375 | 정상 | 「게임 서버」 계정이 있다 | 만든 우편을 다른 저장 데이터로 POST /api/savemailmessage 한다 | 우편을 저장하면 200 이고 그 우편의 saveData 가 보낸 값으로 바뀐다 | ARI-REQ-096 · API POST /api/savemailmessage 200 | ARI-FN-131 | 2026-11-14 |
+| 376 | 정상 | 「게임 서버」 계정이 있다 | 만든 우편을 POST /api/deletemailmessage 로 삭제한다 | 우편을 삭제하면 200 이고 그 우편이 목록에서 사라진다 | ARI-REQ-097 · API POST /api/deletemailmessage 200 | ARI-FN-132 | 2026-11-14 |
+| 377 | 정상 | 「게임 서버」 계정이 있다 | 우편 둘을 받은 캐릭터 번호로 POST /api/getmailmessages 를 부른다 | 캐릭터 번호로 우편 목록을 부르면 200 과 그 캐릭터가 받은 우편 둘이 돌아온다 | ARI-REQ-098 · API POST /api/getmailmessages 200 | ARI-FN-133 | 2026-11-14 |
+| 378 | 정상 | 「게임 서버」 계정이 있다 | 만든 우편 번호로 POST /api/getmailmessage 를 부른다 | 우편 번호로 한 통을 부르면 200 과 그 우편의 id · playerCharacterId · saveData 가 돌아온다 | ARI-REQ-099 · API POST /api/getmailmessage 200 | ARI-FN-134 | 2026-11-14 |
+| 379 | 예외 | 「게임 서버」 계정이 있다 | 없는 우편 번호로 POST /api/savemailmessage 를 부른다 | 없는 우편 번호로 저장하면 400 과 본문 「Error occured on server.  See server logs for more details.」이다 | ARI-REQ-100 · API POST /api/savemailmessage 400 | ARI-FN-136 | 2026-11-14 |
+| 380 | 예외 | 「게임 서버」 계정이 있다 | 없는 우편 번호로 POST /api/deletemailmessage 를 부른다 | 없는 우편 번호로 삭제하면 400 과 본문 「Delete mail message failed.  Message not found.」이다 | ARI-REQ-101 · API POST /api/deletemailmessage 400 | ARI-FN-138 | 2026-11-14 |
+| 381 | 예외 | 「게임 서버」 계정이 있다 | 없는 우편 번호로 POST /api/getmailmessage 를 부른다 | 없는 우편 번호로 한 통을 조회하면 400 과 본문 「Mail message not found.」이다 | ARI-REQ-102 · API POST /api/getmailmessage 400 | ARI-FN-140 | 2026-11-14 |
+| 382 | 정상 | 「게임 서버」 계정이 있다 | 우편이 없는 캐릭터 번호로 POST /api/getmailmessages 를 부른다 | 우편이 없는 캐릭터의 우편 목록을 부르면 200 과 { "mailMessages": [] } 이다 | ARI-REQ-103 | ARI-FN-141 | 2026-11-14 |
+| 383 | 정상 | 「게임 서버」 계정이 있다 | 없는 캐릭터 번호를 받는 캐릭터로 넣어 POST /api/createmailmessage 를 부른다 | 없는 받는 캐릭터 번호로 우편을 만들면 막히지 않고 200 과 id 가 돌아온다 | ARI-REQ-104 | ARI-FN-142 | 2026-11-14 |
+| 384 | 예외 | 「게임 서버」 계정이 있다 | 다른 캐릭터에게 간 우편을 서버 토큰으로 조회한다 | 남의 우편을 조회하면 막히지 않고 200 이다 | ARI-REQ-105 | ARI-FN-144 | 2026-11-14 |
+| 385 | 예외 | 「게임 서버」 계정이 있다 | 다른 캐릭터에게 간 우편을 서버 토큰으로 삭제한다 | 남의 우편 삭제도 막히지 않고 200 이다 | ARI-REQ-105 | ARI-FN-144 | 2026-11-14 |
+| 386 | 정상 | 「게임 서버」 계정이 있다 | 요금 -1 · 첨부 100칸 · 제목 1,000자인 저장 데이터로 우편을 만든다 | 우편 요금 · 첨부 개수 · 제목 길이를 크게 넣으면 막히지 않고 200 이다 | ARI-REQ-106 | ARI-FN-145 | 2026-11-14 |
+| 387 | 정상 | 「두 번째 플레이어」 계정이 있다 | 「두 번째 플레이어」에게 아이템을 지급한 뒤 그 우편의 첨부를 모두 빼고 POST /api/savemailmessage 한다 | 운영 지급 우편을 첨부를 뺀 채 저장하면 지급 기록의 우편 상태가 TAKEN 이 된다 | ARI-REQ-107 | ARI-FN-146 | 2026-11-14 |
+| 388 | 정상 | 「두 번째 플레이어」 계정이 있다 | 「두 번째 플레이어」에게 지급한 우편을 POST /api/deletemailmessage 로 삭제한다 | 운영 지급 우편을 삭제하면 지급 기록의 우편 상태가 TAKEN 또는 DELETED_BY_PLAYER 가 된다 | ARI-REQ-108 | ARI-FN-147 | 2026-11-14 |
+| 389 | 정상 | 「게임 서버」 계정이 있다 | 접속 중이 아닌 시험용 캐릭터에게 우편 번호와 재화 첨부를 비운 저장 데이터로 POST /api/createmailmessage 를 부른 뒤 그 우편을 읽는다 | 접속 중이 아닌 캐릭터에게 createmailmessage 로 우편을 보내면 서버가 저장 데이터에 우편 번호를 채워 넣지 않는다 | ARI-REQ-109 | ARI-FN-148 | 2026-11-14 |
+| 390 | 예외 | 「게임 서버」 계정이 있다 | 서버 토큰으로 PlayerCharacterId 에 글자를 넣어 POST /api/getmailmessages 를 부른다 | PlayerCharacterId 에 글자를 넣어 우편 목록을 부르면 400 이다 | API POST /api/getmailmessages 400 | ARI-FN-526 | 2026-11-14 |
+| 391 | 예외 | 「게임 서버」 계정이 있다 | 서버 토큰으로 PlayerCharacterId 에 글자를 넣어 POST /api/createmailmessage 를 부른다 | PlayerCharacterId 에 글자를 넣어 우편을 만들면 400 이다 | API POST /api/createmailmessage 400 | ARI-FN-528 | 2026-11-14 |
+| 392 | 정상 | 「두 번째 플레이어」 계정이 있다 | 「두 번째 플레이어」 계정 번호로 POST /api/getaccountrestrictions 를 부른다 | 계정 번호로 제한 상태를 부르면 200 과 물어본 accountId · 정지 · 채팅 금지 · 점검 차단 칸이 돌아온다 | ARI-REQ-117 · API POST /api/getaccountrestrictions 200 | ARI-FN-156 | 2026-11-14 |
+| 393 | 정상 | 「두 번째 플레이어」 계정이 있다 | 「두 번째 플레이어」에 끝 시각을 정한 정지를 건 뒤 POST /api/getaccountrestrictions 를 부른다 | 끝 시각을 정해 정지를 걸면 suspended 가 참이다 | ARI-REQ-118 | ARI-FN-157 | 2026-11-14 |
+| 394 | 정상 | 「두 번째 플레이어」 계정이 있다 | 「두 번째 플레이어」에 끝 시각을 정한 정지를 건 뒤 POST /api/getaccountrestrictions 를 부른다 | suspendedUntil 이 건 끝 시각과 같다 | ARI-REQ-118 | ARI-FN-157 | 2026-11-14 |
+| 395 | 정상 | 「두 번째 플레이어」 계정이 있다 | 「두 번째 플레이어」에 끝 시각을 정한 정지를 건 뒤 POST /api/getaccountrestrictions 를 부른다 | suspendReason 이 건 사유와 같다 | ARI-REQ-118 | ARI-FN-157 | 2026-11-14 |
+| 396 | 정상 | 「두 번째 플레이어」 계정이 있다 | 「두 번째 플레이어」에 끝 시각 없이 정지를 건 뒤 POST /api/getaccountrestrictions 를 부른다 | 끝이 없는 정지의 suspendedUntil 은 null 이다 | ARI-REQ-118 | ARI-FN-157 | 2026-11-14 |
+| 397 | 정상 | 「두 번째 플레이어」 계정이 있다 | 「두 번째 플레이어」에 끝 시각을 정한 채팅 금지를 건 뒤 POST /api/getaccountrestrictions 를 부른다 | 끝 시각을 정해 채팅 금지를 걸면 chatMuted 가 참이다 | ARI-REQ-119 | ARI-FN-158 | 2026-11-14 |
+| 398 | 정상 | 「두 번째 플레이어」 계정이 있다 | 「두 번째 플레이어」에 끝 시각을 정한 채팅 금지를 건 뒤 POST /api/getaccountrestrictions 를 부른다 | chatMutedUntil 이 건 끝 시각과 같다 | ARI-REQ-119 | ARI-FN-158 | 2026-11-14 |
+| 399 | 정상 | 「두 번째 플레이어」 계정이 있다 | 「두 번째 플레이어」에 끝 시각을 정한 채팅 금지를 건 뒤 POST /api/getaccountrestrictions 를 부른다 | chatMuteReason 이 건 사유와 같다 | ARI-REQ-119 | ARI-FN-158 | 2026-11-14 |
+| 400 | 정상 | 대상 서버 줄에 고정 운영 키가 있다 | 점검을 켠 채 허용 목록에 없는 「두 번째 플레이어」 계정 번호로 POST /api/getaccountrestrictions 를 부른다 | 점검 중 허용 목록에 없는 계정의 제한 상태를 부르면 maintenanceBlocked 가 참이다 | ARI-REQ-120 | ARI-FN-159 | 2026-11-14 |
+| 401 | 정상 | 「일반 회원」 계정이 있다 | 없는 계정 번호와 「일반 회원」 계정 번호로 POST /api/getaccountrestrictions 를 부른다 | 없는 계정 번호로 제한 상태를 부르면 200 이고 제재 없는 계정과 같은 응답이다 | ARI-REQ-123 | ARI-FN-164 | 2026-11-14 |
+| 402 | 정상 | 「두 번째 플레이어」 계정이 있다 | 「두 번째 플레이어」 캐릭터에게 골드를 지급한 뒤 그 우편의 첨부 아이템 인스턴스를 읽는다 | 재화를 지급하면 우편 첨부에 System Currency Loot Item 이 들어 있다 | ARI-REQ-156 | ARI-FN-206 | 2026-11-14 |
+| 403 | 정상 | 「두 번째 플레이어」 계정이 있다 | 아이템 둘을 지급하고 첨부 하나만 뺀 채 우편을 저장한 뒤 그 지급을 회수한다 | 일부를 가져간 우편을 회수하면 지급 기록의 우편 상태가 PARTLY_RECALLED 다 | ARI-REQ-172 | ARI-FN-229 | 2026-11-14 |
+| 404 | 정상 | 「두 번째 플레이어」 계정이 있다 | 아이템 둘을 지급하고 첨부 하나만 뺀 채 우편을 저장한 뒤 그 지급을 회수한다 | 일부를 가져간 우편은 회수한 뒤에도 남아 있다 | ARI-REQ-172 | ARI-FN-229 | 2026-11-14 |
+| 405 | 정상 | 「게임 서버」 계정이 있다 | JSON 이 아닌 글자를 SaveData 로 넣어 길드를 만든 뒤 POST /api/getguilds 를 부른다 | JSON 이 아닌 글자를 SaveData 로 저장하면 보낸 글자 그대로 돌려준다 | ARI-REQ-267 | ARI-FN-352 | 2026-11-14 |
 
 ## 제외
 
@@ -316,133 +422,12 @@
 | ARI-REQ-005 | 환경 한계 | 게임 서버 다시 켜기 — API 서버 설정을 비운 채 다시 띄워야 한다 |
 | ARI-REQ-008 | 환경 한계 | 게임 서버 다시 켜기 — API 서버 설정을 바꿔 다시 띄워야 한다 |
 | ARI-REQ-011 | 환경 한계 | 시계 넘기기 — 만료 뒤 1분 오차를 보려면 서버 시계를 앞으로 돌려야 한다 |
-| ARI-REQ-015 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-016 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-018 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-019 | 계정 미등록 | 게임 서버 |
 | ARI-REQ-022 | 환경 한계 | 게임 서버 다시 켜기 — API 서버 설정을 바꿔 다시 띄워야 한다 |
 | ARI-REQ-023 | 환경 한계 | 게임 서버 다시 켜기 — API 서버 설정을 바꿔 다시 띄워야 한다 |
-| ARI-REQ-031 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-036 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-037 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-040 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-050 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-051 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-052 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-053 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-054 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-055 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-056 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-057 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-058 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-059 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-060 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-061 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-062 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-063 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-064 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-065 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-066 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-067 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-068 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-069 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-070 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-071 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-072 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-073 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-074 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-075 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-076 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-077 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-078 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-079 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-080 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-081 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-082 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-083 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-084 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-085 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-086 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-087 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-088 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-089 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-090 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-091 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-092 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-093 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-094 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-095 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-096 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-097 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-098 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-099 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-100 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-101 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-102 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-103 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-104 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-105 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-106 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-107 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-108 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-109 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-117 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-118 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-119 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-120 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-123 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-156 | 계정 미등록 | 게임 서버 |
-| ARI-REQ-172 | 계정 미등록 | 게임 서버 |
 | ARI-REQ-190 | 환경 한계 | 서버 전체 초기화 — 점검 설정을 처음 상태로 되돌려야 한다 |
 | ARI-REQ-213 | 환경 한계 | 케이스 한도를 넘는 기다림 — 10분 동안 아무 요청 없이 기다려야 한다 |
-| ARI-REQ-267 | 계정 미등록 | 게임 서버 |
-| API POST /api/getguilds 200 | 계정 미등록 | 게임 서버 |
-| API POST /api/getguilds 400 | 계정 미등록 | 게임 서버 |
-| API POST /api/saveguild 200 | 계정 미등록 | 게임 서버 |
-| API POST /api/saveguild 400 | 계정 미등록 | 게임 서버 |
-| API POST /api/createguild 200 | 계정 미등록 | 게임 서버 |
-| API POST /api/createguild 400 | 계정 미등록 | 게임 서버 |
-| API POST /api/deleteguild 200 | 계정 미등록 | 게임 서버 |
-| API POST /api/deleteguild 400 | 계정 미등록 | 게임 서버 |
-| API POST /api/serverlogin 200 | 계정 미등록 | 게임 서버 |
-| API POST /api/getfriendlists 200 | 계정 미등록 | 게임 서버 |
-| API POST /api/getfriendlists 400 | 계정 미등록 | 게임 서버 |
-| API POST /api/getmailmessage 200 | 계정 미등록 | 게임 서버 |
-| API POST /api/getmailmessage 400 | 계정 미등록 | 게임 서버 |
-| API POST /api/savefriendlist 200 | 계정 미등록 | 게임 서버 |
-| API POST /api/savefriendlist 400 | 계정 미등록 | 게임 서버 |
-| API POST /api/getauctionitems 200 | 계정 미등록 | 게임 서버 |
-| API POST /api/getauctionitems 400 | 계정 미등록 | 게임 서버 |
-| API POST /api/getmailmessages 200 | 계정 미등록 | 게임 서버 |
-| API POST /api/getmailmessages 400 | 계정 미등록 | 게임 서버 |
-| API POST /api/saveauctionitem 200 | 계정 미등록 | 게임 서버 |
-| API POST /api/saveauctionitem 400 | 계정 미등록 | 게임 서버 |
-| API POST /api/savemailmessage 200 | 계정 미등록 | 게임 서버 |
-| API POST /api/savemailmessage 400 | 계정 미등록 | 게임 서버 |
-| API POST /api/getiteminstances 200 | 계정 미등록 | 게임 서버 |
-| API POST /api/getiteminstances 400 | 계정 미등록 | 게임 서버 |
-| API POST /api/saveiteminstance 200 | 계정 미등록 | 게임 서버 |
-| API POST /api/saveiteminstance 400 | 계정 미등록 | 게임 서버 |
-| API POST /api/createauctionitem 200 | 계정 미등록 | 게임 서버 |
-| API POST /api/createauctionitem 400 | 계정 미등록 | 게임 서버 |
-| API POST /api/createmailmessage 200 | 계정 미등록 | 게임 서버 |
-| API POST /api/createmailmessage 400 | 계정 미등록 | 게임 서버 |
-| API POST /api/deleteauctionitem 200 | 계정 미등록 | 게임 서버 |
-| API POST /api/deleteauctionitem 400 | 계정 미등록 | 게임 서버 |
-| API POST /api/deletemailmessage 200 | 계정 미등록 | 게임 서버 |
-| API POST /api/deletemailmessage 400 | 계정 미등록 | 게임 서버 |
-| API POST /api/createiteminstance 200 | 계정 미등록 | 게임 서버 |
-| API POST /api/createiteminstance 400 | 계정 미등록 | 게임 서버 |
-| API POST /api/deleteiteminstance 200 | 계정 미등록 | 게임 서버 |
-| API POST /api/deleteiteminstance 400 | 계정 미등록 | 게임 서버 |
-| API POST /api/getplayercharacters 200 | 계정 미등록 | 게임 서버 |
-| API POST /api/getplayercharacters 400 | 계정 미등록 | 게임 서버 |
-| API POST /api/saveplayercharacter 200 | 계정 미등록 | 게임 서버 |
-| API POST /api/saveplayercharacter 400 | 계정 미등록 | 게임 서버 |
-| API POST /api/createplayercharacter 200 | 계정 미등록 | 게임 서버 |
-| API POST /api/createplayercharacter 400 | 계정 미등록 | 게임 서버 |
-| API POST /api/deleteplayercharacter 200 | 계정 미등록 | 게임 서버 |
-| API POST /api/deleteplayercharacter 400 | 계정 미등록 | 게임 서버 |
-| API POST /api/getaccountrestrictions 200 | 계정 미등록 | 게임 서버 |
-| API POST /api/getallplayercharacters 200 | 계정 미등록 | 게임 서버 |
-| API POST /api/getallplayercharacters 400 | 계정 미등록 | 게임 서버 |
+| API POST /api/getguilds 400 | 만들 수 없는 응답 | 본문을 읽지 않는 목록 API 라 400 을 낼 입력이 없다 |
+| API POST /api/getfriendlists 400 | 만들 수 없는 응답 | 본문을 읽지 않는 목록 API 라 400 을 낼 입력이 없다 |
+| API POST /api/getauctionitems 400 | 만들 수 없는 응답 | 본문을 읽지 않는 목록 API 라 400 을 낼 입력이 없다 |
+| API POST /api/getiteminstances 400 | 만들 수 없는 응답 | 본문을 읽지 않는 목록 API 라 400 을 낼 입력이 없다 |
+| API POST /api/getallplayercharacters 400 | 만들 수 없는 응답 | 본문을 읽지 않는 목록 API 라 400 을 낼 입력이 없다 |
