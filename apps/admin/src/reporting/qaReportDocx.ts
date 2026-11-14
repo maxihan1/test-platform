@@ -12,7 +12,7 @@ const 머리바탕 = 'F1EFEB';
 const 묶음바탕 = 'F1EEE5';
 // 강조는 판정이 아니라 「먼저 볼 것」이라 판정 빨강을 쓰지 않는다 (HTML 과 같은 노랑)
 const 강조바탕 = 'FBF0D9';
-const 흐린글색 = '5F5B55';
+export const 흐린글색 = '5F5B55';
 const 강조글색 = '7A5208';
 // 판정한 결함만 판정 빨강 — HTML 증적 종이 색의 --fail 과 같다
 const 실패글색 = '9B2418';
@@ -52,7 +52,7 @@ function 표(d: Extract<덩이, { 꼴: '표' }>): string {
   );
 }
 
-function 덩이로(d: 덩이): string {
+export function 덩이로(d: 덩이): string {
   switch (d.꼴) {
     case '절':
       return 문단(d.글, { 꼴: 'Heading1' });

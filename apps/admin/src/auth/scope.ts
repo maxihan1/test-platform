@@ -219,6 +219,11 @@ export const 라우트표: Record<string, 원천> = {
   '/api/qa-reports/:id/file': { 종류: 'QA리포트', 칸: 'id' },
   '/api/qa-reports/:id/approve': { 종류: 'QA리포트', 칸: 'id' },
   '/api/qa-reports/:id/ai': { 종류: 'QA리포트', 칸: 'id' },
+  // 프로젝트 QA 리포트는 프로젝트에 속한다 — 그 프로젝트의 실행 칸은 라우트가 본다 (reporting/qaProjectReportRoutes.ts)
+  '/api/qa-project-reports': { 종류: '안매임' },
+  '/api/qa-project-reports/:id': { 종류: '안매임' },
+  '/api/qa-project-reports/:id/file': { 종류: '안매임' },
+  '/api/qa-project-reports/:id/ai': { 종류: '안매임' },
   '/api/perf/runs/:id/series': { 종류: '성능실행', 칸: 'id' },
   '/api/perf/runs/:id/hosts': { 종류: '성능실행', 칸: 'id' },
   '/api/perf/runs/:id/events': { 종류: '성능실행', 칸: 'id' },

@@ -8,6 +8,7 @@ import { use말, use언어, type 언어 } from './i18n.js';
 import { use주소조건, 주소조건 } from './leaveGuard.js';
 import { 다음이있나 } from './paging.js';
 import { 종류이름 } from '../reporting/qaReportWords.js';
+import { QaProjectReports } from './QaProjectReports.js';
 import { qaReportApi, 리포트이름, 쪽크기, type 리포트줄 } from './qaReportApi.js';
 import { Failed, Loading, useAsync, when } from './ui.js';
 
@@ -149,7 +150,7 @@ function 애플리케이션탭({ service, t }: { service: ServiceRow; t: 말 }) 
   );
 }
 
-export function QaReports({ service, tab }: { service: ServiceRow; tab: 'app' | 'project' }) {
+export function QaReports({ service, tab, 쓰나 = false }: { service: ServiceRow; tab: 'app' | 'project'; 쓰나?: boolean }) {
   const t = use말();
   const 탭들 = [
     { 값: 'app', 이름: t('애플리케이션'), 주소: '#/qa-reports' },
@@ -169,11 +170,7 @@ export function QaReports({ service, tab }: { service: ServiceRow; tab: 'app' | 
       {tab === 'app' ? (
         <애플리케이션탭 service={service} t={t} />
       ) : (
-        // 프로젝트 리포트 목록 · 만들기는 QAR-F1-11 이 이 자리에 단다
-        <div className="empty">
-          {t('프로젝트 리포트가 없습니다')}
-          <small>{t('{프로젝트} 프로젝트의 모든 애플리케이션을 기간 단위로 묶어 보여 줍니다', { 프로젝트: service.projectName })}</small>
-        </div>
+        <QaProjectReports service={service} 쓰나={쓰나} />
       )}
     </div>
   );

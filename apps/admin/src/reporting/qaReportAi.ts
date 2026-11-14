@@ -67,6 +67,8 @@ export function 줄이기(v: unknown, 표: { 잘림: boolean }): unknown {
  * 부르는 쪽이 일을 실패로 닫는다
  */
 export async function 리스크재료(jobId: number, input: unknown): Promise<{ input: Record<string, unknown> } | { error: string }> {
+  const projectReportId = (input as { projectReportId?: unknown } | null)?.projectReportId;
+  if (typeof projectReportId === 'number') return 프로젝트리스크재료(jobId, projectReportId);
   const reportId = (input as { reportId?: unknown } | null)?.reportId;
   if (typeof reportId !== 'number') return { error: '리스크 일에 리포트 번호가 없습니다' };
   const pool = await db();
@@ -94,6 +96,41 @@ export async function 리스크재료(jobId: number, input: unknown): Promise<{ 
     summary: 줄이기(q.summary, 표),
     // 이 빌드의 신규 · 증가 · 재발 오류 종류(종류별 구획 「안정화 · 오류 종류」와 같은 줄) — 웹 · 앱 · 게임만 있다
     stability: 안정화 === null ? null : { errors: 줄이기(안정화.errors, 표) },
+    truncated: 표.잘림,
+  };
+  await pool.query('UPDATE perf_ai_job SET input = $2 WHERE id = $1', [jobId, JSON.stringify(재료)]);
+  return { input: 재료 };
+}
+
+/**
+ * 프로젝트 QA 리포트의 재료 — 이 리포트의 굳힌 숫자와 지난 프로젝트 리포트의 숫자 · 리스크 글. AI 는 둘을 견줘 새로 생기거나 바뀐 리스크를 쓴다 (§3.17 「프로젝트 QA 리포트」 AI 문단)
+ * 사람이 이미 고쳤거나 다른 일을 가리키면 까닭을 낸다
+ */
+async function 프로젝트리스크재료(jobId: number, id: number): Promise<{ input: Record<string, unknown> } | { error: string }> {
+  const pool = await db();
+  type 줄 = { id: string; project_id: string | null; project_name: string; period_from: string; period_to: string; body: { btsLinked?: boolean; previous?: { id: number } | null }; ai: 리스크글저장 | null };
+  const 읽기 = async (번호: number, 조건: string, 값: unknown[]) =>
+    (
+      await pool.query<줄>(
+        `SELECT id, project_id, project_name, to_char(period_from, 'YYYY-MM-DD') AS period_from, to_char(period_to, 'YYYY-MM-DD') AS period_to, body, ai
+           FROM qa_project_report WHERE id = $1 ${조건}`,
+        [번호, ...값],
+      )
+    ).rows[0];
+  const r = await 읽기(id, `AND ai_job_id = $2 AND (ai IS NULL OR ai->>'editedBy' IS NULL)`, [jobId]);
+  if (r === undefined) return { error: '이 일을 가리키는 프로젝트 리포트가 없습니다 — 사람이 문단을 고쳤습니다' };
+  const 앞번호 = r.body.previous?.id;
+  const 앞 = 앞번호 === undefined ? undefined : await 읽기(앞번호, '', []);
+  const 표 = { 잘림: false };
+  const 재료 = {
+    projectReportId: id,
+    projectId: r.project_id === null ? null : Number(r.project_id),
+    projectName: r.project_name,
+    btsLinked: r.body.btsLinked === true,
+    period: { from: r.period_from, to: r.period_to },
+    body: 줄이기(r.body, 표),
+    // 지난 리포트 — 견줄 숫자와 그때 쓴(사람이 고쳤으면 고친) 리스크 글
+    previous: 앞 === undefined ? null : { id: Number(앞.id), period: { from: 앞.period_from, to: 앞.period_to }, body: 줄이기(앞.body, 표), risks: 앞.ai?.current ?? null },
     truncated: 표.잘림,
   };
   await pool.query('UPDATE perf_ai_job SET input = $2 WHERE id = $1', [jobId, JSON.stringify(재료)]);
@@ -128,6 +165,8 @@ export async function 리스크끝내기(jobId: number, 결과: 리스크결과 
       `UPDATE qa_report SET ai = $2, updated_at = now() WHERE ai_job_id = $1 AND approved_at IS NULL AND (ai IS NULL OR ai->>'editedBy' IS NULL)`,
       [jobId, JSON.stringify(글)],
     );
+    // 프로젝트 리포트도 같은 일 종류다 — 일 번호로 가리키는 줄에만 쓴다
+    await c.query(`UPDATE qa_project_report SET ai = $2 WHERE ai_job_id = $1 AND (ai IS NULL OR ai->>'editedBy' IS NULL)`, [jobId, JSON.stringify(글)]);
     return true;
   });
 }
