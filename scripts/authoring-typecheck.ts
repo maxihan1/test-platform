@@ -1,6 +1,6 @@
 // 작성 관문의 타입 검사 범위 — 저장소 전체 대신 맡은 경로(앱 테스트 폴더 · 맡은 파일)만 보는 임시 tsconfig 를 만든다
 
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 /**
@@ -9,7 +9,10 @@ import { join, resolve } from 'node:path';
  */
 export function tsc인자(트리: string, 자리: string, 경로들: readonly string[]): string[] {
   mkdirSync(자리, { recursive: true });
-  const 길 = join(mkdtempSync(join(자리, 'tsc-')), 'tsconfig.json');
+  const 폴더 = mkdtempSync(join(자리, 'tsc-'));
+  // mkdtemp 는 0700 이다 — 반영 · 고치기 관문은 에이전트가 만들고 자식 uid 가 tsc 를 돌려 못 읽었다(TS5058, 2026-11-14 MTW 반영). 읽기만 연다
+  chmodSync(폴더, 0o755);
+  const 길 = join(폴더, 'tsconfig.json');
   writeFileSync(길, JSON.stringify({ extends: join(트리, 'tsconfig.json'), include: 경로들.map((f) => resolve(트리, f)) }), { flag: 'wx' });
   return ['tsc', '--noEmit', '-p', 길];
 }
