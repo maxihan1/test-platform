@@ -27,6 +27,7 @@ import { 모양보기, 사본만들기, 사본치우기, 자식거두기, 트리
 import { type 보고손, type 판정기, 다시하며, 돌린다, 진짜main묻기, 친다 } from './authoring-io.js';
 import { 도는번호 } from './authoring-keeping.js';
 import { 적용 } from './authoring-held-merge.js';
+import { 앱tsc인자 } from './authoring-typecheck.js';
 
 /**
  * 고치기 실행인가. edits 모양이 틀린 케이스 고치기 행도 여기로 와 실패로 닫힌다 —
@@ -192,12 +193,13 @@ async function 고치고올리기(손: 보고손, 판: 고칠자리, edits: 고�
   // 케이스는 돌리지 않는다 — 기대값이 기획 기준이면 지금 화면이 틀려 실패할 수 있고, 그 실패가 곧 버그 신호다 (게이트 0)
   await 손.단계('검사하는 중');
   const 환경 = 검사환경(process.env, 자리, 판.자식 !== null);
-  const 검사들: [string[], string][] = [
-    [['run', 'typecheck'], '타입 검사'],
-    [['run', 'check:tests', '--', '--no-held'], '케이스 규칙 검사'],
+  const 검사들: [string, string[], string][] = [
+    // 고친 앱 폴더만 — 저장소 전체는 작성 서버 node 힙을 넘는다(authoring-typecheck.ts)
+    ['npx', 앱tsc인자(자리.트리, 자리.임시, 판.폴더), '타입 검사'],
+    ['npm', ['run', 'check:tests', '--', '--no-held'], '케이스 규칙 검사'],
   ];
-  for (const [인자, 설명] of 검사들) {
-    const r = await 돌린다('npm', 인자, { cwd: 자리.트리, env: 환경, uid: 판.자식?.uid, gid: 판.자식?.gid, 제한: 600_000 });
+  for (const [명령, 인자, 설명] of 검사들) {
+    const r = await 돌린다(명령, 인자, { cwd: 자리.트리, env: 환경, uid: 판.자식?.uid, gid: 판.자식?.gid, 제한: 600_000 });
     if (r.코드 !== 0) return 실패(검사실패글(설명, r));
   }
 

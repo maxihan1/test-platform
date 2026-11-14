@@ -18,6 +18,7 @@ import type { 바뀐것 } from './authoring-conflicts-apply.js';
 import { main합치기 } from './authoring-main-merge.js';
 import type { 모델 } from './authoring-model.js';
 import { AI부품합치기 } from './authoring-po-merge.js';
+import { 앱tsc인자 } from './authoring-typecheck.js';
 import {
   type 보류입력,
   값적기,
@@ -217,7 +218,8 @@ async function 보류관문(
   const 채운파일 = [...쓸.쓰기.keys()].filter((f) => f.endsWith('.spec.ts'));
   const 환경 = 관문환경(자리, 준비.자식, 준비);
   const 관문들: [string, string[], string, number][] = [
-    ['npm', ['run', 'typecheck'], '타입 검사', 600_000],
+    // 이 앱 폴더만 — PR 브랜치의 package.json 이 아니라 배포된 이 스크립트가 범위를 정해 이미 쓴 PR 에도 먹는다. 폴더를 못 받았으면 옛대로 전체
+    준비.폴더 ? ['npx', 앱tsc인자(자리.트리, 자리.임시, 준비.폴더), '타입 검사', 600_000] : ['npm', ['run', 'typecheck'], '타입 검사', 600_000],
     ['npm', ['run', 'check:tests', '--', '--no-held'], '케이스 규칙 검사', 600_000],
   ];
   if (채운파일.length > 0) {
