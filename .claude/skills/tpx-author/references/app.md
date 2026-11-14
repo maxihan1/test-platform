@@ -37,6 +37,15 @@
 - 본문 인자는 `{ driver }` 다 — `page` 가 없다.
 - **화면을 거치는 케이스는 앱 화면 파일 `pages/<화면>.page.ts` 를 쓴다** (2026-11-04 APP-F2-05) — 생성자가 `driver` 를 받고, `static readonly 주소` 는 그 화면의 앱 화면 열쇠(`app:<activity>/<이름표>`) 글자 그대로다. 열쇠는 §6 crawl 목록의 `주소` 칸이나 `npx appium-cli -s=probe screen` 이 찍은 것만 옮긴다 — 지어내지 않는다. 스캔이 이 값으로 케이스와 화면 기록을 잇는다(`tpx-cases` `two-kinds.md` 「Page Object」)
 - 기대값은 기획서 문장에서만 온다. 주석 금지 같은 `tests/**` 규칙은 브라우저 케이스와 같다.
+- **폰에 사진 · 영상 · 파일이 있어야 하는 케이스는 보류하지 않고 넣는다** (2026-11-14) — `import { 폰에파일넣기 } from '@platform/kit'` 로 준비 단계에서 넣고 `finally` 에서 지운다. 파일 고르기 화면에서는 돌려받은 `이름`(`qa-…`)으로 고른다. 크기 경계(예: 99MB 영상)는 `{ 크기: 99 * 1024 * 1024 }` 다. 정본은 SPEC 공통/2-명세선언 「Android 앱 케이스」 「폰에 파일 넣기」
+  ```ts
+  const 사진 = await 폰에파일넣기(driver, '사진');
+  try {
+    await new ComposePage(driver).사진첨부(사진.이름);
+  } finally {
+    await 사진.지우기();
+  }
+  ```
 
 ## 4. 서버에 닿는지 먼저 · 다 쓰면 잡은 폰에서 1번씩
 
