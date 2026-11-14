@@ -54,6 +54,8 @@ function 덩이로(d: 덩이): string {
       return 문단(d.글, { 꾸밈: d.결 === '흐림' ? `<w:color w:val="${흐린글색}"/>` : d.결 === '강조' ? `<w:b/><w:color w:val="${강조글색}"/>` : '' });
     case '표':
       return 표(d);
+    case '흐름':
+      return 문단(d.단계.map((s) => `${s.글} ${s.판정}`).join(' → '));
   }
 }
 

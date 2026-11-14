@@ -107,9 +107,10 @@ describe.skipIf(연결 === undefined)('QA 리포트 파일', { timeout: 60_000 }
     expect(res.headers['content-type']).toContain('text/html');
     expect(res.headers['content-disposition']).toBe(`inline; filename="qa-report-${리포트}-v1.html"`);
     expect(res.body).toContain('통과 2 · 실패 0 · 미실행 0');
-    expect(res.body).toContain('XQE-FN-001 통과');
-    expect(res.body).toContain('XQE-FN-002 통과');
-    expect(res.body).not.toContain('XQE-FN-002 실패');
+    const 칩 = (tc: string, 판정: string, 꼴: string) => `<span>${tc}</span><span class="chip ${꼴}">${판정}</span>`;
+    expect(res.body).toContain(칩('XQE-FN-001', '통과', 'c-pass'));
+    expect(res.body).toContain(칩('XQE-FN-002', '통과', 'c-pass'));
+    expect(res.body).not.toContain(칩('XQE-FN-002', '실패', 'c-fail'));
     expect(res.body).toContain('견줄 이전 빌드 없음');
     expect(res.body).toContain('Issue Bunker 미연결');
   });
