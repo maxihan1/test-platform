@@ -69,9 +69,10 @@ const 의심수 = (runs: readonly 회차실행[]) => runs.reduce((n, x) => n + (
 
 /** 달력 — 기간 안 프로젝트 세트들의 회차. 앞으로의 예정은 화면이 세트줄로 그린다 */
 export async function 회차들(projectId: number, from: string, to: string) {
-  const r = await pool.query<{ id: string; set_id: string; planned_on: string; planned_at: Date; started_at: Date | null; finished_at: Date | null; state: string; notes: unknown[] }>(
-    `SELECT o.id, o.set_id, to_char(o.planned_on, 'YYYY-MM-DD') AS planned_on, o.planned_at, o.started_at, o.finished_at, o.state, o.notes
+  const r = await pool.query<{ id: string; set_id: string; planned_on: string; planned_at: Date; started_at: Date | null; finished_at: Date | null; state: string; notes: unknown[]; report_id: string | null }>(
+    `SELECT o.id, o.set_id, to_char(o.planned_on, 'YYYY-MM-DD') AS planned_on, o.planned_at, o.started_at, o.finished_at, o.state, o.notes, pr.id AS report_id
        FROM sched_occurrence o JOIN sched_set s ON s.id = o.set_id
+       LEFT JOIN qa_project_report pr ON pr.sched_occurrence_id = o.id
       WHERE s.project_id = $1 AND o.planned_on BETWEEN $2::date AND $3::date
       ORDER BY o.planned_at, o.set_id`,
     [projectId, from, to],
@@ -89,6 +90,7 @@ export async function 회차들(projectId: number, from: string, to: string) {
       state: x.state,
       verdict: 회차판정(runs),
       suspects: 의심수(runs),
+      reportId: x.report_id === null ? null : Number(x.report_id),
       runs,
       notes: x.notes,
     };
@@ -97,7 +99,7 @@ export async function 회차들(projectId: number, from: string, to: string) {
 
 export interface 지난결과 {
   avgMinutes: number | null;
-  last: { occurrenceId: number; state: 'RUNNING' | 'DONE'; plannedAt: string; startedAt: string | null; verdict: 판정; suspects: number; runIds: number[] } | null;
+  last: { occurrenceId: number; state: 'RUNNING' | 'DONE'; plannedAt: string; startedAt: string | null; verdict: 판정; suspects: number; runIds: number[]; reportId: number | null } | null;
 }
 
 /** 세트마다 끝난 회차 최근 다섯의 평균 시간과 마지막 회차(도는 중 포함) — 달력 대기 예상 · 마법사 겹침 안내 · 세트 카드 */
@@ -111,9 +113,10 @@ export async function 지난결과들(setIds: readonly number[]): Promise<Map<nu
         WHERE n <= 5 GROUP BY set_id`,
       [setIds],
     ),
-    pool.query<{ id: string; set_id: string; state: 'RUNNING' | 'DONE'; planned_at: Date; started_at: Date | null }>(
-      `SELECT DISTINCT ON (set_id) id, set_id, state, planned_at, started_at FROM sched_occurrence
-        WHERE set_id = ANY($1::bigint[]) AND state IN ('RUNNING','DONE') ORDER BY set_id, planned_at DESC`,
+    pool.query<{ id: string; set_id: string; state: 'RUNNING' | 'DONE'; planned_at: Date; started_at: Date | null; report_id: string | null }>(
+      `SELECT DISTINCT ON (o.set_id) o.id, o.set_id, o.state, o.planned_at, o.started_at, pr.id AS report_id
+         FROM sched_occurrence o LEFT JOIN qa_project_report pr ON pr.sched_occurrence_id = o.id
+        WHERE o.set_id = ANY($1::bigint[]) AND o.state IN ('RUNNING','DONE') ORDER BY o.set_id, o.planned_at DESC`,
       [setIds],
     ),
   ]);
@@ -125,7 +128,7 @@ export async function 지난결과들(setIds: readonly number[]): Promise<Map<nu
     const runs = o === undefined ? [] : (실행.get(Number(o.id)) ?? []);
     return [id, {
       avgMinutes: 평균표.get(id) ?? null,
-      last: o === undefined ? null : { occurrenceId: Number(o.id), state: o.state, plannedAt: o.planned_at.toISOString(), startedAt: o.started_at?.toISOString() ?? null, verdict: 회차판정(runs), suspects: 의심수(runs), runIds: runs.map((x) => x.runId) },
+      last: o === undefined ? null : { occurrenceId: Number(o.id), state: o.state, plannedAt: o.planned_at.toISOString(), startedAt: o.started_at?.toISOString() ?? null, verdict: 회차판정(runs), suspects: 의심수(runs), runIds: runs.map((x) => x.runId), reportId: o.report_id === null ? null : Number(o.report_id) },
     }];
   }));
 }

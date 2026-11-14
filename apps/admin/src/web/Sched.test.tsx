@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 정기 실행 화면 검사 — 세트 카드 · 달력 · 칸 창 · 끄기 · 빈 상태 (도메인/정기실행 §8.20)
+// 정기 실행 화면 검사 — 세트 카드 · 달력 · 칸 창 · 끄기 · 빈 상태 · 리포트 일정 (도메인/정기실행 §8.20)
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -30,6 +30,7 @@ const 세트하나 = (덮: Partial<세트> = {}): 세트 => ({
   onceOn: null,
   isOn: true,
   isBase: false,
+  report: null,
   items: [
     { kind: 'FN', service: 'MKT', tcIds: ['MKT-FN-033'], label: 'MKT-FN-033' },
     { kind: 'E2E', service: 'ADM', tcIds: null, scenarioId: 3, label: '주문 → 어드민 확인' },
@@ -38,13 +39,14 @@ const 세트하나 = (덮: Partial<세트> = {}): 세트 => ({
   skipped: [],
   missing: { cases: 2, tests: 0 },
   avgMinutes: 35,
-  last: { occurrenceId: 9, state: 'DONE', plannedAt: '2026-11-11T17:00:00Z', startedAt: '2026-11-11T17:00:00Z', verdict: 'FAIL', suspects: 0, runIds: [4701, 4702] },
+  last: { occurrenceId: 9, state: 'DONE', plannedAt: '2026-11-11T17:00:00Z', startedAt: '2026-11-11T17:00:00Z', verdict: 'FAIL', suspects: 0, runIds: [4701, 4702], reportId: null },
   baseable: false,
   ...덮,
 });
 
 const 회차하나 = (덮: Partial<회차> = {}): 회차 => ({
   id: 9,
+  reportId: null,
   setId: 1,
   plannedOn: '2026-11-12',
   plannedAt: '2026-11-11T17:00:00Z',
@@ -221,5 +223,39 @@ describe('정기 실행 화면', () => {
     render(<Sched service={앱} 앱들={[앱, 앱]} 쓰나 />);
     expect(await screen.findByText('아직 세트가 없습니다')).toBeTruthy();
     expect(screen.getByText('작성한 테스트를 세트로 묶어 정해진 시각에 자동으로 실행합니다')).toBeTruthy();
+  });
+
+  it('리포트 일정 — 카드는 담을 기간 · 마지막 리포트로 가는 고리, 지난 칸은 그 리포트로 바로 간다', async () => {
+    const 일정 = 세트하나({ id: 2, name: '주간 QA 리포트', at: '18:00', days: [5], report: 'WEEK', items: [], envs: [], missing: { cases: 0, tests: 0 },
+      last: { occurrenceId: 30, state: 'DONE', plannedAt: '2026-11-06T09:00:00Z', startedAt: '2026-11-06T09:00:00Z', verdict: 'NONE', suspects: 0, runIds: [], reportId: 77 } });
+    차리기([일정], [회차하나({ id: 30, setId: 2, plannedOn: '2026-11-06', plannedAt: '2026-11-06T09:00:00Z', verdict: 'NONE', runs: [], reportId: 77 })]);
+    render(<Sched service={앱} 앱들={[앱]} 쓰나 />);
+    const 카드 = (await screen.findByRole('button', { name: /주간 QA 리포트/u, pressed: false })).closest('li')!;
+    expect(카드.textContent).toContain('리포트');
+    expect(카드.textContent).toContain('매주 금 18:00 · 다음 11/13');
+    expect(카드.textContent).toContain('프로젝트 전체 · 이번 주(월요일부터)');
+    expect(within(카드).getByRole('link', { name: '리포트 →' }).getAttribute('href')).toBe('#/qa-reports/project/77');
+    expect(screen.getAllByRole('button', { name: /주간 QA 리포트\s*18:00 예정/u }).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole('button', { name: /주간 QA 리포트\s*리포트$/u }));
+    expect(window.location.hash).toBe('#/qa-reports/project/77');
+  });
+
+  it('「+ 리포트 일정」은 한 장 창으로 이름 · 담을 기간 · 실행 주기를 받아 담은 테스트 없이 저장한다', async () => {
+    차리기([세트하나()]);
+    const 만들기 = vi.spyOn(schedApi, 'create').mockResolvedValue({ id: 3 });
+    render(<Sched service={앱} 앱들={[앱]} 쓰나 />);
+    fireEvent.click(await screen.findByRole('button', { name: '+ 리포트 일정' }));
+    const 창 = await screen.findByRole('dialog');
+    expect((within(창).getByRole('textbox') as HTMLInputElement).value).toBe('주간 QA 리포트');
+    fireEvent.click(within(창).getByRole('button', { name: '이번 달' }));
+    expect((within(창).getByRole('textbox') as HTMLInputElement).value).toBe('월간 QA 리포트');
+    fireEvent.change(within(창).getByRole('textbox'), { target: { value: '결제 회귀' } });
+    expect(within(창).getByText('같은 이름의 세트가 이미 있습니다')).toBeTruthy();
+    fireEvent.change(within(창).getByRole('textbox'), { target: { value: '월간 QA 리포트' } });
+    await act(async () => {
+      fireEvent.click(within(창).getByRole('button', { name: '저장' }));
+    });
+    expect(만들기).toHaveBeenCalledWith({ name: '월간 QA 리포트', at: '18:00', days: [5], items: [], envs: [], report: 'MONTH', projectId: 10, tz: expect.any(String) as string });
+    expect(await screen.findByText('「월간 QA 리포트」 리포트 일정을 저장했습니다 · 다음 11/13 18:00')).toBeTruthy();
   });
 });

@@ -72,6 +72,18 @@
   opacity: 0.6;
 }
 
+/* 리포트 일정 — 테스트 세트와 갈라 보이게 점선 · 파랑. 판정 색은 쓰지 않는다 (§8.20 「리포트 일정」) */
+.sched-card.rep {
+  border-style: dashed;
+  border-color: var(--line-2);
+}
+
+.sched-tag.rep {
+  border-color: var(--blue-1);
+  background: var(--blue-soft);
+  color: var(--blue-1);
+}
+
 .sched-card-pick {
   display: flex;
   flex-direction: column;

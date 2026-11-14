@@ -23,15 +23,22 @@ const 줄모양 = z.object({
   scenarioId: z.number().int().positive().optional(),
   compatSetId: z.number().int().positive().optional(),
 });
-const 고치기본문 = z.object({
+const 본문칸 = z.object({
   name: z.string().trim().min(1).max(100),
   at: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, '시각은 HH:MM 입니다'),
   days: z.array(z.number().int().min(0).max(6)).min(1).max(7).nullable().optional(),
   onceOn: 날짜.nullable().optional(),
-  items: z.array(줄모양).min(1, '담은 테스트가 없습니다').max(50),
+  items: z.array(줄모양).max(50),
   envs: z.array(z.object({ service: z.string(), env: z.string().min(1) })).max(50),
+  report: z.enum(['WEEK', 'MONTH']).optional(),
 });
-const 만들기본문 = 고치기본문.extend({ projectId: z.number().int().positive(), tz: z.string().min(1) });
+/** 리포트 일정은 담은 테스트 · 대상 서버가 없고, 세트는 담은 테스트가 하나 이상이다 (§3.16 「리포트 일정」 · §7 POST) */
+const 담은것 = (b: z.infer<typeof 본문칸>, ctx: z.RefinementCtx) => {
+  if (b.report === undefined && b.items.length === 0) ctx.addIssue({ code: 'custom', path: ['items'], message: '담은 테스트가 없습니다' });
+  if (b.report !== undefined && (b.items.length > 0 || b.envs.length > 0)) ctx.addIssue({ code: 'custom', path: ['report'], message: '리포트 일정은 담은 테스트 · 대상 서버가 없습니다' });
+};
+const 고치기본문 = 본문칸.superRefine(담은것);
+const 만들기본문 = 본문칸.extend({ projectId: z.number().int().positive(), tz: z.string().min(1) }).superRefine(담은것);
 const 바꾸기본문 = z.object({ isOn: z.boolean().optional(), isBase: z.boolean().optional() }).refine((b) => b.isOn !== undefined || b.isBase !== undefined, 'isOn · isBase 중 하나는 보냅니다');
 
 const 잘못 = (reply: FastifyReply, detail: string) => reply.code(400).send({ error: 'INVALID_REQUEST', detail });
@@ -59,6 +66,7 @@ function 세트줄(s: 세트, 재: 재료, 지난: Awaited<ReturnType<typeof 지
     onceOn: s.onceOn,
     isOn: s.isOn,
     isBase: s.isBase,
+    report: s.report,
     items: s.줄들.map((x) => ({
       kind: x.kind,
       service: 줄앱(x, 재)?.prefix ?? 앱이름(x.serviceId),
@@ -115,6 +123,11 @@ async function 검사(b: 본문, projectId: number, tz: string, 옛: 세트 | nu
   // 이미 돈 「한 번만」 세트의 이름 · 담은 테스트만 고치는 것은 받는다 — 날짜 · 시각을 바꿀 때만 본다
   const 그대로 = 옛 !== null && 옛.onceOn === onceOn && 옛.at === b.at;
   if (onceOn !== null && !그대로 && (await 지났나(onceOn, b.at, tz))) return 'PAST_ONCE';
+  const report = b.report ?? null;
+  // 세트 ↔ 리포트 일정을 바꾸면 지난 회차의 실행 · 리포트가 다른 꼴의 줄을 가리킨다
+  if (옛 !== null && (옛.report === null) !== (report === null)) return report === null ? 'report: 리포트 일정을 세트로 바꾸지 못합니다' : 'report: 세트를 리포트 일정으로 바꾸지 못합니다';
+  const 정리days = days === null ? null : [...new Set(days)].sort((x, y) => x - y);
+  if (report !== null) return { name: b.name, at: b.at, days: 정리days, onceOn, report, 줄들: [], 고름: new Map() };
   // 줄이 가리키는 번호를 먼저 읽어야 E2E · 호환성의 애플리케이션을 안다 — 애플리케이션 칸은 판정 재료를 읽은 뒤 채운다
   const 미리 = b.items.map((x): 줄 => ({ kind: x.kind, serviceId: 0, tcIds: x.tcIds ?? null, scenarioId: x.scenarioId ?? null, compatSetId: x.compatSetId ?? null }));
   const 재 = await 재료읽기(projectId, [...미리, ...(옛?.줄들 ?? [])]);
@@ -128,7 +141,7 @@ async function 검사(b: 본문, projectId: number, tz: string, 옛: 세트 | nu
   const 문제 = 저장문제(줄들, 고름, 옛 === null ? null : { 줄들: 옛.줄들, 고름: 옛.고름 }, 재);
   if (문제 !== null) return 문제;
   if (옛?.isBase === true && 기준앱(줄들, days) !== 기준앱(옛.줄들, 옛.days)) return 'BASE_SET_SHAPE';
-  return { name: b.name, at: b.at, days: days === null ? null : [...new Set(days)].sort((x, y) => x - y), onceOn, 줄들, 고름 };
+  return { name: b.name, at: b.at, days: 정리days, onceOn, report: null, 줄들, 고름 };
 }
 
 async function 세트하나(id: number): Promise<세트 | null> {

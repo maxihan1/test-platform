@@ -1,8 +1,8 @@
 // 프로젝트 QA 리포트 날짜 셈 · 문서 글 도우미
 import { describe, expect, it } from 'vitest';
 
-import { 바뀐날글, 반복글 } from './qaProjectReportDoc.js';
-import { 기간까닭, 날수, 다음기간, 빠른기간, 회차수 } from './qaProjectReportShape.js';
+import { 다음예정, 바뀐날글, 반복글 } from './qaProjectReportDoc.js';
+import { 기간까닭, 날수, 다음기간, 빠른기간, 첫회차날, 회차수 } from './qaProjectReportShape.js';
 
 describe('프로젝트 QA 리포트 기간', () => {
   it('양 끝을 넣어 92일까지 · 오늘까지 · 날짜 꼴만 받는다', () => {
@@ -34,5 +34,24 @@ describe('프로젝트 QA 리포트 기간', () => {
     expect(반복글({ at: '10:00', days: null, onceOn: '2026-11-20' })).toBe('11/20 한 번 10:00');
     const 점 = [7, 6, 6, 6, 4].map((값, i) => ({ day: `2026-11-1${String(i)}`, 값 }));
     expect(바뀐날글(점)).toBe('11/10 7 → 11/11 6 → 11/14 4');
+  });
+
+  it('다음 기간 예정은 테스트 세트 표와 리포트 일정 표를 따로 두고, 리포트 일정은 다음 날짜 · 시각을 싣는다', () => {
+    expect(첫회차날({ days: [5], onceOn: null }, '2026-11-17', '2026-11-23')).toBe('2026-11-20');
+    expect(첫회차날({ days: null, onceOn: '2026-12-01' }, '2026-11-17', '2026-11-23')).toBeNull();
+    const 덩이들 = 다음예정({
+      upcoming: {
+        from: '2026-11-17',
+        to: '2026-11-23',
+        sets: [
+          { name: '전체 회귀', at: '02:00', tz: 'Asia/Seoul', days: [0, 1, 2, 3, 4, 5, 6], onceOn: null, runs: 7 },
+          { name: '주간 QA 리포트', at: '18:00', tz: 'Asia/Seoul', days: [5], onceOn: null, runs: 1, report: 'WEEK' },
+        ],
+      },
+    });
+    expect(덩이들.filter((d) => d.꼴 === '표')).toEqual([
+      { 꼴: '표', 머리: ['정기 실행 세트', '반복', '회차'], 줄: [{ 칸: ['전체 회귀', '매일 02:00 (Asia/Seoul)', '7회'] }] },
+      { 꼴: '표', 머리: ['리포트 일정', '담을 기간', '다음 자동'], 줄: [{ 칸: ['주간 QA 리포트', '이번 주', '11/20 18:00 (Asia/Seoul)'] }] },
+    ]);
   });
 });

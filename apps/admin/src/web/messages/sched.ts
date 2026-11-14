@@ -92,4 +92,22 @@ export const 정기실행말: Record<string, string> = {
   '안정화 지표에 사용': 'Use for stability metrics',
   '안정화 기준 세트는 애플리케이션당 하나입니다. 안정화 지표는 이 세트의 실행 결과만 집계합니다':
     'Each application has one stability baseline set. Stability metrics count only this set’s results',
+  // 리포트 일정 (QAR-F1-12) — 「이번 주」 · 「이번 달」 · 「이름」 · 「이름을 입력해 주세요」는 다른 표에 있다
+  '+ 리포트 일정': '+ Report schedule',
+  '리포트 일정': 'Report schedule',
+  '리포트 일정 수정': 'Edit report schedule',
+  '리포트§달력': 'Report',
+  '리포트 →': 'Report →',
+  '리포트 없음': 'No report',
+  '프로젝트 전체 · 이번 주(월요일부터)': 'Whole project · This week (from Monday)',
+  '프로젝트 전체 · 이번 달(1일부터)': 'Whole project · This month (from the 1st)',
+  '주간 QA 리포트': 'Weekly QA report',
+  '월간 QA 리포트': 'Monthly QA report',
+  '월요일(이번 주) · 1일(이번 달)에 만들면 그날 하루치만 담깁니다': 'Made on a Monday (this week) or the 1st (this month), it covers only that day',
+  '담을 기간': 'Period',
+  '만드는 날까지 · 이번 주는 월요일부터, 이번 달은 1일부터입니다': 'Up to the day it is made · This week starts on Monday, this month on the 1st',
+  '다른 세트가 실행 중이면 완료된 뒤 만듭니다': 'If another set is running, the report is made after it completes',
+  '{날} {시각} 시작': 'Started {날} {시각}',
+  '「{이름}」 리포트 일정을 저장했습니다': 'Saved report schedule "{이름}"',
+  '「{이름}」 리포트 일정을 저장했습니다 · 다음 {날} {시각}': 'Saved report schedule "{이름}" · Next {날} {시각}',
 };

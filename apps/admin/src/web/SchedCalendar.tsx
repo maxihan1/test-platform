@@ -6,6 +6,7 @@ import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import type { 세트, 회차실행 } from './schedApi.js';
 import { 세트색, 종류글, 짧은날, 요일글 } from './SchedCards.js';
+import { 리포트줄 } from './SchedReport.js';
 import { 나란히, 날더하기, 시각글, 시간범위, 실행주소, 월칸들, 주시작, type 칩 } from './schedView.js';
 
 type 말 = ReturnType<typeof use말>;
@@ -22,6 +23,7 @@ export function 결과글(c: 칩, t: 말): string {
   if (c.상태 === 'running') return t('실행 중');
   if (c.상태 === 'pass') return t('통과');
   if (c.상태 === 'fail') return t('실패 {수}', { 수: c.실패 });
+  if (c.상태 === 'report') return t('리포트§달력');
   // 판정할 실행이 없으면 결과 없이 의심 화면 수만 보인다 (§3.16 「회차의 결과」) — 호환성만 담은 세트
   return c.의심 > 0 ? t('의심 {수}', { 수: c.의심 }) : t('결과 없음');
 }
@@ -49,6 +51,7 @@ function 실행알약({ r, t }: { r: 회차실행; t: 말 }) {
 
 /** 실행 줄 · 앞으로의 칸은 담은 테스트 줄 — 칸 창과 일 보기가 같이 쓴다 */
 function 칸줄들({ c, t }: { c: 칩; t: 말 }) {
+  if (c.세트.report !== null) return <리포트줄 c={c} />;
   if (!실행있나(c))
     return (
       <ul className="sched-runs">
@@ -87,7 +90,9 @@ function 칸설명({ c, t }: { c: 칩; t: 말 }) {
     <>
       {대기 === null ? null : <p className="sched-wait">{대기}</p>}
       <p className="sched-meta">
-        {실행있나(c)
+        {c.세트.report !== null && 실행있나(c)
+          ? t('{날} {시각} 시작', { 날: 짧은날(c.날), 시각: 시각글(c.시작분) })
+          : 실행있나(c)
           ? t('{날} {시각} 시작 · 실행 {수}개', { 날: 짧은날(c.날), 시각: 시각글(c.시작분), 수: c.회차!.runs.length })
           : t('{날} {시각} 실행 예정', { 날: 짧은날(c.날), 시각: 시각글(c.정한분) })}
       </p>
@@ -102,7 +107,7 @@ export function 칸창({ c, onClose, on수정 }: { c: 칩; onClose: () => void; 
     <>
       {on수정 === undefined ? null : (
         <button type="button" className="btn ghost" onClick={on수정}>
-          {t('세트 수정')}
+          {c.세트.report === null ? t('세트 수정') : t('리포트 일정 수정')}
         </button>
       )}
       <button type="button" className="btn" onClick={onClose}>
@@ -124,7 +129,7 @@ export function 칸창({ c, onClose, on수정 }: { c: 칩; onClose: () => void; 
 function 칩단추({ c, 색, on열기 }: { c: 칩; 색: string; on열기: (c: 칩) => void }) {
   const t = use말();
   return (
-    <button type="button" className={`sched-ev ${c.상태}`} onClick={() => on열기(c)}>
+    <button type="button" className={`sched-ev ${c.상태}${c.세트.report === null ? '' : ' rep'}`} onClick={() => on열기(c)}>
       <i className="sched-dot" style={{ background: 색 }} aria-hidden="true" />
       <span className="sched-ev-name">{c.세트.name}</span>
       <span className="sched-ev-r">{칩글(c, t)}</span>
@@ -197,7 +202,7 @@ function 시간칸({ 줄, 범위, 세트들, on열기 }: { 줄: 칩[]; 범위: [
               <span>{t('{시각} {이름} 예정', { 시각: 시각글(c.정한분), 이름: c.세트.name })}</span>
             </div>
           ) : null}
-          <button type="button" className={`sched-blk ${c.상태}`} style={{ top: 위(c.시작분), height: Math.max(막대최소, ((c.끝분 - c.시작분) / 60) * 칸높이 - 2), ...옆자리(자리[i]!), borderLeftColor: 세트색(세트들, c.세트.id) }} onClick={() => on열기(c)}>
+          <button type="button" className={`sched-blk ${c.상태}${c.세트.report === null ? '' : ' rep'}`} style={{ top: 위(c.시작분), height: Math.max(막대최소, ((c.끝분 - c.시작분) / 60) * 칸높이 - 2), ...옆자리(자리[i]!), borderLeftColor: 세트색(세트들, c.세트.id) }} onClick={() => on열기(c)}>
             <b>{시각글(c.시작분)}</b> {c.세트.name} · {칩글(c, t)}
           </button>
         </Fragment>

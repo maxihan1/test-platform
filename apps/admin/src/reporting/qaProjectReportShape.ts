@@ -88,6 +88,8 @@ export interface 정기세트줄 {
   onceOn: string | null;
   /** 다음 기간에 설 회차 수 */
   runs: number;
+  /** 리포트 일정이면 담을 기간(QAR-F1-12). 그 전에 만든 리포트 body 에는 칸이 없다 — 없으면 테스트 세트다 */
+  report?: 'WEEK' | 'MONTH' | null;
 }
 
 export interface 프로젝트몸 {
@@ -153,6 +155,12 @@ export const 다음기간 = (from: string, to: string): { from: string; to: stri
 
 /** 요일(0 일 ~ 6 토) — 날짜 글자만 보고 센다 */
 const 요일 = (d: string): number => new Date(`${d}T00:00:00Z`).getUTCDay();
+
+/** 세트 하나가 기간 안에 처음 설 날 — 없으면 null */
+export function 첫회차날(세트: { days: number[] | null; onceOn: string | null }, from: string, to: string): string | null {
+  for (let d = from; d <= to; d = 날짜더하기(d, 1)) if (회차수(세트, d, d) > 0) return d;
+  return null;
+}
 
 /** 세트 하나가 기간 안에 설 회차 수 — 한 번만 도는 세트는 그날이 들면 1 */
 export function 회차수(세트: { days: number[] | null; onceOn: string | null }, from: string, to: string): number {

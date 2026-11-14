@@ -18,15 +18,20 @@ export interface 세트 {
   onceOn: string | null;
   isOn: boolean;
   isBase: boolean;
+  /** 리포트 일정이면 담을 기간 — 그때 줄 · 고름은 비었다 (§3.16 「리포트 일정」) */
+  report: 리포트기간 | null;
   줄들: 줄[];
   고름: 서버고름;
 }
+
+export type 리포트기간 = 'WEEK' | 'MONTH';
 
 export interface 세트몸 {
   name: string;
   at: string;
   days: number[] | null;
   onceOn: string | null;
+  report: 리포트기간 | null;
   줄들: 줄[];
   고름: 서버고름;
 }
@@ -35,11 +40,11 @@ export interface 세트몸 {
 export async function 세트들읽기(where: { projectId: number } | { id: number }): Promise<세트[]> {
   const 조건 = 'id' in where ? 's.id = $1' : 's.project_id = $1';
   const r = await pool.query<{
-    id: string; project_id: string; name: string; at: string; tz: string; days: number[] | null; once_on: string | null; is_on: boolean; is_base: boolean;
+    id: string; project_id: string; name: string; at: string; tz: string; days: number[] | null; once_on: string | null; is_on: boolean; is_base: boolean; report: 리포트기간 | null;
     items: { kind: 줄종류; service_id: number; tc_ids: string[] | null; scenario_id: number | null; compat_set_id: number | null }[];
     envs: { service_id: number; env: string }[];
   }>(
-    `SELECT s.id, s.project_id, s.name, to_char(s.at, 'HH24:MI') AS at, s.tz, s.days, to_char(s.once_on, 'YYYY-MM-DD') AS once_on, s.is_on, s.is_base,
+    `SELECT s.id, s.project_id, s.name, to_char(s.at, 'HH24:MI') AS at, s.tz, s.days, to_char(s.once_on, 'YYYY-MM-DD') AS once_on, s.is_on, s.is_base, s.report,
             COALESCE((SELECT json_agg(json_build_object('kind', i.kind, 'service_id', i.service_id, 'tc_ids', i.tc_ids,
                                                         'scenario_id', i.scenario_id, 'compat_set_id', i.compat_set_id) ORDER BY i.seq)
                         FROM sched_set_item i WHERE i.set_id = s.id), '[]') AS items,
@@ -57,6 +62,7 @@ export async function 세트들읽기(where: { projectId: number } | { id: numbe
     onceOn: x.once_on,
     isOn: x.is_on,
     isBase: x.is_base,
+    report: x.report,
     줄들: x.items.map((i) => ({ kind: i.kind, serviceId: Number(i.service_id), tcIds: i.tc_ids, scenarioId: i.scenario_id === null ? null : Number(i.scenario_id), compatSetId: i.compat_set_id === null ? null : Number(i.compat_set_id) })),
     고름: new Map(x.envs.map((e) => [Number(e.service_id), e.env])),
   }));
@@ -129,12 +135,12 @@ export async function 세트쓰기(대상: { projectId: number; tz: string } | {
     const r =
       'id' in 대상
         ? await c.query<{ id: string }>(
-            'UPDATE sched_set SET name = $2, at = $3, days = $4, once_on = $5, updated_by = $6, updated_at = now() WHERE id = $1 RETURNING id',
-            [대상.id, 몸.name, 몸.at, 몸.days, 몸.onceOn, 사람],
+            'UPDATE sched_set SET name = $2, at = $3, days = $4, once_on = $5, report = $7, updated_by = $6, updated_at = now() WHERE id = $1 RETURNING id',
+            [대상.id, 몸.name, 몸.at, 몸.days, 몸.onceOn, 사람, 몸.report],
           )
         : await c.query<{ id: string }>(
-            'INSERT INTO sched_set (project_id, name, at, tz, days, once_on, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
-            [대상.projectId, 몸.name, 몸.at, 대상.tz, 몸.days, 몸.onceOn, 사람],
+            'INSERT INTO sched_set (project_id, name, at, tz, days, once_on, created_by, report) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id',
+            [대상.projectId, 몸.name, 몸.at, 대상.tz, 몸.days, 몸.onceOn, 사람, 몸.report],
           );
     const id = Number(r.rows[0]!.id);
     await c.query('DELETE FROM sched_set_item WHERE set_id = $1', [id]);

@@ -8,7 +8,8 @@ import { use말, use언어 } from './i18n.js';
 import { schedApi, type 세트 } from './schedApi.js';
 import { 기간, 달력, 칸창, type 보기 } from './SchedCalendar.js';
 import { 세트카드들, 짧은날 } from './SchedCards.js';
-import { 날더하기, 시간대로, 실행주소, 주시작, 칩들, type 칩 } from './schedView.js';
+import { SchedReport } from './SchedReport.js';
+import { 날더하기, 시간대로, 실행주소, 주시작, 칩들, 프로젝트리포트주소, type 칩 } from './schedView.js';
 import { SchedWizard } from './SchedWizard.js';
 import { Failed, Loading, useAsync } from './ui.js';
 
@@ -52,8 +53,8 @@ export function Sched({ service, 앱들, 쓰나 }: { service: ServiceRow; 앱들
   const [고른, set고른] = useState(null as number | null);
   const [열린, set열린] = useState(null as 칩 | null);
   const [오류, set오류] = useState(null as string | null);
-  // 열린 마법사 — 세트가 null 이면 신규 (§8.20 「마법사」)
-  const [마법사, set마법사] = useState(null as { 세트: 세트 | null } | null);
+  // 열린 마법사 — 세트가 null 이면 신규 (§8.20 「마법사」). 리포트 일정이면 마법사 대신 한 장 창이다 (§8.20 「리포트 일정」)
+  const [마법사, set마법사] = useState(null as { 세트: 세트 | null; 리포트?: boolean } | null);
   const [저장말, set저장말] = useState(null as string | null);
   const [from, to] = 기간(보기, 기준);
   const 세트목록 = useAsync(() => schedApi.sets(service.projectId), [service.projectId]);
@@ -94,6 +95,11 @@ export function Sched({ service, 앱들, 쓰나 }: { service: ServiceRow; 앱들
   };
   // 지난 칸에 실행이 하나면 창 없이 그 실행으로 간다 (§8.20 「칸 창」)
   const 열기 = (c: 칩) => {
+    // 리포트 일정이 만든 칸은 그 프로젝트 리포트로 바로 간다
+    if (c.회차?.reportId != null) {
+      window.location.hash = 프로젝트리포트주소(c.회차.reportId);
+      return;
+    }
     const 실행 = c.회차?.runs ?? [];
     if (c.상태 !== 'plan' && 실행.length === 1) window.location.hash = 실행주소(실행[0]!.kind, 실행[0]!.runId);
     else set열린(c);
@@ -110,18 +116,28 @@ export function Sched({ service, 앱들, 쓰나 }: { service: ServiceRow; 앱들
 
   // 저장하면 창을 닫고 달력을 다음 실행 날짜로 옮긴다 (§8.20 5단계)
   const 저장됨 = (이름: string, 다음: string | null, at: string) => {
+    const 리포트 = 마법사?.리포트 === true || 마법사?.세트?.report != null;
     set마법사(null);
     if (다음 !== null) set기준(다음);
-    set저장말(다음 === null ? t('「{이름}」 세트를 저장했습니다', { 이름 }) : t('「{이름}」 세트를 저장했습니다 · 다음 실행 {날} {시각}', { 이름, 날: 짧은날(다음), 시각: at }));
+    if (리포트)
+      set저장말(다음 === null ? t('「{이름}」 리포트 일정을 저장했습니다', { 이름 }) : t('「{이름}」 리포트 일정을 저장했습니다 · 다음 {날} {시각}', { 이름, 날: 짧은날(다음), 시각: at }));
+    else set저장말(다음 === null ? t('「{이름}」 세트를 저장했습니다', { 이름 }) : t('「{이름}」 세트를 저장했습니다 · 다음 실행 {날} {시각}', { 이름, 날: 짧은날(다음), 시각: at }));
     void Promise.all([세트목록.reload(), 회차목록.reload()]);
   };
   const 신규단추 = 쓰나 ? (
-    <button type="button" className="btn" onClick={() => set마법사({ 세트: null })}>
-      {t('+ 신규 세트')}
-    </button>
+    <>
+      <button type="button" className="btn ghost" onClick={() => set마법사({ 세트: null, 리포트: true })}>
+        {t('+ 리포트 일정')}
+      </button>
+      <button type="button" className="btn" onClick={() => set마법사({ 세트: null })}>
+        {t('+ 신규 세트')}
+      </button>
+    </>
   ) : null;
   const 창 =
-    마법사 === null ? null : (
+    마법사 === null ? null : 마법사.리포트 === true || 마법사.세트?.report != null ? (
+      <SchedReport projectId={service.projectId} 세트={마법사.세트} 세트들={세트들} onClose={() => set마법사(null)} on저장={저장됨} />
+    ) : (
       <SchedWizard
         projectId={service.projectId}
         세트={마법사.세트}
