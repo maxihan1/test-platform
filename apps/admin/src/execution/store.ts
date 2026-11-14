@@ -16,6 +16,7 @@ import { 대상서버계정, 저장값을채운다 } from './savedInput.js';
 import { 실행종류 } from './runKind.js';
 import { 다시실행사유, 제목을짓는다 } from './runOrigin.js';
 import { 시작방식정하기 } from './single.js';
+import { 케이스지문, 테스트커밋 } from './testVersion.js';
 
 // 사람이 읽을 자리에서는 PC·모바일로 쓴다. desktop·mobile은 코드와 러너 사이에서만 쓰는 이름이다
 const PLATFORM_LABEL: Record<Platform, string> = { desktop: 'PC', mobile: '모바일', android: 'Android 앱' };
@@ -141,8 +142,8 @@ interface CaseRow {
 // 나중에 읽으면 그날 무엇으로 돌렸는지가 달라진다 (SPEC §3.3 · §6)
 const INSERT_ITEM = `
   INSERT INTO run_item (run_id, tc_id, platform, tc_name, precondition, params, expected, status,
-                        file_path, param_schema, expected_schema, timeout_ms, attempt, unconfirmed)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, 'NA', $8, $9, $10, $11, $12, $13)
+                        file_path, param_schema, expected_schema, timeout_ms, attempt, unconfirmed, tests_commit, case_sha256)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, 'NA', $8, $9, $10, $11, $12, $13, $14, $15)
   RETURNING history_id`;
 
 export async function createRun(input: CreateRunInput): Promise<{ runId: number; attachedTo: number | null; items: PendingItem[] }> {
@@ -284,6 +285,9 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
     // 채운 값도 run_item 에 박제된다 — 계정이 나중에 바뀌어도 지난 실행은 그대로다 (도메인/실행 §3.2)
     const 계정들 = await 대상서버계정(client, Number(found서비스.id), input.env);
     const 채운항목 = await 저장값을채운다(client, input.items, cases, 계정들);
+    // 테스트 버전도 박제한다 — QA 리포트가 앞 빌드와 케이스 신규 · 수정 · 삭제를 견준다 (도메인/리포팅 §3.17 「변경 사항」)
+    const 커밋 = await 테스트커밋();
+    const 지문들 = new Map(await Promise.all([...cases.values()].map(async (c) => [c.tc_id, await 케이스지문(c.file_path)] as const)));
 
     const items: PendingItem[] = [];
     for (const item of 채운항목) {
@@ -306,6 +310,8 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
             timeoutMs,
             attempt,
             spec.unconfirmed,
+            커밋,
+            지문들.get(item.tcId) ?? null,
           ]);
           items.push({
             historyId: Number(row.rows[0]!.history_id),
