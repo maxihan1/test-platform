@@ -5,7 +5,9 @@ import { join, resolve } from 'node:path';
 
 /**
  * 맡은 경로만 타입 검사하는 `npx` 인자. 맡은 파일이 가져다 쓰는 것(kit · 자기 도우미 · Page Object)은 tsc 가 따라가 같이 본다.
- * tsconfig 는 새로 만든 폴더 안에 쓴다 — 자리가 자식 uid 의 임시 폴더여도 미리 심은 링크를 따라 쓰지 않고, 같은 pid 끼리 겹치지 않는다
+ * tsconfig 는 새로 만든 폴더 안에 쓴다 — 같은 pid 끼리 겹치지 않는다. **자리는 자식이 남의 폴더를 바꿔 끼울 수 없는 곳이어야 한다** —
+ * 자식 자신의 임시 폴더(자식이 직접 돌 때)나 에이전트의 tmpdir(sticky /tmp — 반영 · 고치기 관문). 에이전트가 자식 uid 의 임시 폴더에 쓰면
+ * 만들고 권한을 여는 사이에 자식이 링크로 바꿔 끼워 root 가 엉뚱한 곳 권한을 바꿀 수 있다
  */
 export function tsc인자(트리: string, 자리: string, 경로들: readonly string[]): string[] {
   mkdirSync(자리, { recursive: true });
@@ -14,6 +16,8 @@ export function tsc인자(트리: string, 자리: string, 경로들: readonly st
   chmodSync(폴더, 0o755);
   const 길 = join(폴더, 'tsconfig.json');
   writeFileSync(길, JSON.stringify({ extends: join(트리, 'tsconfig.json'), include: 경로들.map((f) => resolve(트리, f)) }), { flag: 'wx' });
+  // umask 가 077 이면 만들 때 준 모드가 가려진다 — 따로 연다. 폴더는 막 만든 root 것이라 남이 바꿔 끼울 수 없다
+  chmodSync(길, 0o644);
   return ['tsc', '--noEmit', '-p', 길];
 }
 

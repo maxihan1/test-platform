@@ -44,6 +44,7 @@ describe('앱tsc인자', () => {
     const 트리 = 트리만들기();
     const 인자 = 앱tsc인자(트리, join(트리, '임시'), 'aaa');
     expect(statSync(dirname(인자[3] as string)).mode & 0o005).toBe(0o005);
+    expect(statSync(인자[3] as string).mode & 0o004).toBe(0o004);
   });
 
   it('그 앱은 통과하고 오류가 있는 남의 앱은 안 읽는다 · 그 앱에 오류가 있으면 잡는다 · 빈 폴더는 통과한다', () => {
