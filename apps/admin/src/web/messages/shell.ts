@@ -108,6 +108,7 @@ export const 껍데기말: Record<string, string> = {
   '볼 수 있는 애플리케이션 전체 · 최근 7일': 'All applications you can see · last 7 days',
   '최근 7일 동안 종료된 실행과 작성이 없습니다': 'No runs or authoring finished in the last 7 days',
   '조건에 맞는 알림이 없습니다': 'No matching notifications',
+  '{이름} QA 리포트 · 승인 전': '{이름} QA report · Not approved',
   방금: 'Just now',
   '{분}분 전': '{분}m ago',
   '{시간}시간 전': '{시간}h ago',

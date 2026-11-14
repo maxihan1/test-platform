@@ -309,9 +309,22 @@ export type NoticeRecent =
       prdNeedsCheck: number;
     });
 
+/** 그 리포트를 지금 승인할 수 있는 admin 에게만 오는 「승인 전 QA 리포트」 줄 — 새것 먼저 (도메인/리포팅 §3.17 「승인 전 알림」) */
+export type NoticeApproval = NoticeService & {
+  kind: 'qa_report';
+  reportId: number;
+  buildNo: string | null;
+  runId: number | null;
+  perfRunId: number | null;
+  version: number;
+  updatedAt: string;
+};
+
 export interface NoticeResponse {
   running: NoticeRunning[];
   recent: NoticeRecent[];
+  /** 칸이 서기 전 서버의 응답에는 없다 — 읽을 때 `?? []` */
+  approvals?: NoticeApproval[];
 }
 
 // 그 실행으로 만든 증적 문서 (SPEC §7 · §8.4). status 는 PENDING | READY | FAILED

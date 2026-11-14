@@ -11,6 +11,7 @@ import { 신규실패표 } from './DashboardFail.js';
 import { 성능칸 } from './DashboardPerf.js';
 import { 고르개, 조건을요청으로, 조건을주소로, 주소에서조건, type 대시보드조건, type 이동재료 } from './DashboardPick.js';
 import { 실행중줄, 안내판 } from './DashboardTables.js';
+import { 승인전칸, type 승인볼앱 } from './DashboardQaReport.js';
 import { 다섯칸 } from './DashboardTop.js';
 import { 추적칸, 케이스칸 } from './DashboardTrace.js';
 import { 실패유형칸 } from './DashboardTypes.js';
@@ -134,6 +135,7 @@ export function Dashboard({
   케이스갈수있나,
   세트만들수있나,
   프로젝트,
+  승인볼앱들 = null,
 }: {
   서비스열기: (serviceId: number) => void;
   케이스갈수있나: boolean;
@@ -141,6 +143,8 @@ export function Dashboard({
   세트만들수있나: boolean;
   /** 고른 프로젝트 번호. 대시보드는 그 프로젝트 안 애플리케이션 전부를 센다 (리포팅 §8.12 「프로젝트 요약」) */
   프로젝트: number | null;
+  /** 관리자면 승인 전 QA 리포트를 셀 애플리케이션들, 아니면 null(칸이 없다) */
+  승인볼앱들?: 승인볼앱[] | null;
 }) {
   const t = use말();
   const 시간대 = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
@@ -180,13 +184,25 @@ export function Dashboard({
           </div>
         </div>
       ) : (
-        <대시보드판 값={읽음.값} 이동={이동} 케이스갈수있나={케이스갈수있나} 세트만들수있나={세트만들수있나} />
+        <대시보드판 값={읽음.값} 이동={이동} 케이스갈수있나={케이스갈수있나} 세트만들수있나={세트만들수있나} 승인볼앱들={승인볼앱들} />
       )}
     </>
   );
 }
 
-function 대시보드판({ 값, 이동, 케이스갈수있나, 세트만들수있나 }: { 값: 자료; 이동: 이동재료; 케이스갈수있나: boolean; 세트만들수있나: boolean }) {
+function 대시보드판({
+  값,
+  이동,
+  케이스갈수있나,
+  세트만들수있나,
+  승인볼앱들,
+}: {
+  값: 자료;
+  이동: 이동재료;
+  케이스갈수있나: boolean;
+  세트만들수있나: boolean;
+  승인볼앱들: 승인볼앱[] | null;
+}) {
   const { project } = 값;
   // 케이스 · PRD · 시나리오 · 성능 측정 · 결정할 것이 하나도 없는 프로젝트에 빈 칸 여럿을 늘어놓지 않는다 — PRD 초안만 있어도 결정 필요가 다음 할 일이라 칸을 보인다
   const { perf } = project;
@@ -202,7 +218,7 @@ function 대시보드판({ 값, 이동, 케이스갈수있나, 세트만들수�
         <안내판 케이스갈수있나={케이스갈수있나} 세트만들수있나={세트만들수있나} />
       ) : (
         <>
-          <다섯칸 요약={project} />
+          <다섯칸 요약={project} 덧칸={승인볼앱들 === null ? undefined : <승인전칸 차례={5} 앱들={승인볼앱들} 서비스열기={이동.서비스열기} />} />
           <div className="dash-two">
             <추적칸 요약={project} />
             <케이스칸 요약={project} />

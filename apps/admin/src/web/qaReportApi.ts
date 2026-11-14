@@ -1,6 +1,11 @@
 // QA 리포트 화면이 서버를 부르는 호출 · 응답 모양 (도메인/리포팅 §7 「QA 리포트 통로」)
 
-import { call } from './api.js';
+import type { 리포트응답 } from '../reporting/qaReportDoc.js';
+import { call, json } from './api.js';
+import type { 값들 } from './i18n.js';
+
+export type { 리포트응답 };
+export type 리포트형식 = 'PDF' | 'HTML' | 'DOCX';
 
 export type 리포트종류 = 'FN' | 'UI' | 'E2E' | 'COMPAT' | 'PERF';
 
@@ -32,6 +37,13 @@ export interface 리포트조건 {
 /** 한 쪽 줄 수 — 서버가 정한다(§7 「한 쪽 50줄」) */
 export const 쪽크기 = 50;
 
+/** 줄 이름 — 빌드 번호, 빌드 없는 실행 하나면 `RUN 812`, 성능 실행 하나면 성능 실행 화면의 `PRF-0012` 꼴 (§8.21 「애플리케이션 탭」) */
+export function 리포트이름(줄: Pick<리포트줄, 'buildNo' | 'runId' | 'perfRunId'>, t: (키: string, 값?: 값들) => string): string {
+  if (줄.buildNo !== null) return t('빌드 {빌드}', { 빌드: 줄.buildNo });
+  if (줄.runId !== null) return `RUN ${String(줄.runId)}`;
+  return `PRF-${String(줄.perfRunId ?? 0).padStart(4, '0')}`;
+}
+
 export const qaReportApi = {
   list: (service: string, 조건: 리포트조건) => {
     const q = new URLSearchParams({ service });
@@ -40,4 +52,12 @@ export const qaReportApi = {
     if (조건.page !== undefined && 조건.page > 1) q.set('page', String(조건.page));
     return call<{ items: 리포트줄[]; total: number }>(`/qa-reports?${q.toString()}`);
   },
+  get: (id: number) => call<리포트응답>(`/qa-reports/${String(id)}`),
+  approve: (id: number) => call<{ approval: 리포트응답['approval'] }>(`/qa-reports/${String(id)}/approve`, { method: 'POST' }),
+  saveAi: (id: number, text: string) => call<{ ai: 리포트응답['ai'] }>(`/qa-reports/${String(id)}/ai`, { ...json({ text }), method: 'PATCH' }),
+  /** 이 실행이 든 리포트의 마지막 버전 — 아직 어느 리포트에도 안 들었으면 404 */
+  ofRun: (runId: number) => call<{ id: number }>(`/runs/${String(runId)}/qa-report`),
 };
+
+/** 내려받기 · 화면 안 문서 주소. 엑셀은 통로가 아직 400 이라 형식에 없다 (§7 「QA 리포트 통로」) */
+export const 리포트파일주소 = (id: number, 형식: 리포트형식): string => `/api/qa-reports/${String(id)}/file?format=${형식}`;

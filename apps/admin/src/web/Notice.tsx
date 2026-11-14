@@ -7,6 +7,7 @@ import { api, ApiError, 알림바뀜, type NoticeRecent, type NoticeResponse } f
 import { use말, use언어 } from './i18n.js';
 import { 아이콘 } from './icons.js';
 import { NoticeDrawer } from './NoticeDrawer.js';
+import { 승인안읽은수, 승인열쇠 } from './noticeApproval.js';
 import { 읽음들, 읽음바뀜, 읽음으로적는다, 읽음정리 } from './noticeRead.js';
 import { 끝난글, 끝난줄만들기, 보일줄들, 새소식, 안읽은수, 읽음열쇠, type 끝난줄, type 도는줄, type 줄 as 줄타입 } from './noticeView.js';
 import { use지켜봄 } from './runWatchStore.js';
@@ -224,7 +225,7 @@ export function Notice({ 줄숨김, 서비스바꿈, 버튼자리 }: { 줄숨김
   // 서버 목록(7일)에 없는 열쇠는 지운다 — 읽음 목록이 끝없이 커지지 않게
   useEffect(() => {
     if (답 === null) return;
-    읽음정리(new Set(답.recent.map(읽음열쇠)));
+    읽음정리(new Set([...답.recent.map(읽음열쇠), ...(답.approvals ?? []).map(승인열쇠)]));
     set읽음(읽음들());
   }, [답]);
 
@@ -232,7 +233,8 @@ export function Notice({ 줄숨김, 서비스바꿈, 버튼자리 }: { 줄숨김
 
   const 지금 = Date.now();
   const { 줄들, 넘친수 } = 답 === null || 줄숨김 ? { 줄들: [], 넘친수: 0 } : 보일줄들(답, 읽음, 지금, 언어, 보는실행, 창실행들);
-  const 안읽음 = 답 === null ? 0 : 안읽은수(답.recent, 읽음);
+  const 승인전 = 답?.approvals ?? [];
+  const 안읽음 = 답 === null ? 0 : 안읽은수(답.recent, 읽음) + 승인안읽은수(승인전, 읽음);
 
   const 닫는다 = () => {
     set열림(false);
@@ -277,7 +279,7 @@ export function Notice({ 줄숨김, 서비스바꿈, 버튼자리 }: { 줄숨김
         {토스트줄 === null ? '' : 끝난글(토스트줄)}
       </p>
       {토스트줄 === null ? null : <토스트 key={토스트줄.열쇠} 줄={토스트줄} on닫음={set토스트줄} 바꿈={서비스바꿈} />}
-      {!열림 || 답 === null ? null : <NoticeDrawer recent={답.recent} 읽음={읽음} 지금={지금} onClose={닫는다} on읽음={읽음으로적는다} 서비스바꿈={서비스바꿈} />}
+      {!열림 || 답 === null ? null : <NoticeDrawer recent={답.recent} approvals={승인전} 읽음={읽음} 지금={지금} onClose={닫는다} on읽음={읽음으로적는다} 서비스바꿈={서비스바꿈} />}
     </>
   );
 }

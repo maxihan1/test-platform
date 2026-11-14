@@ -2,14 +2,17 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import type { NoticeRecent } from './api.js';
+import type { NoticeApproval, NoticeRecent } from './api.js';
 import { use말, use언어 } from './i18n.js';
+import { 서랍승인목록, 승인안읽은수, 승인열쇠, 승인줄만들기 } from './noticeApproval.js';
 import { 거르개, 끝난줄만들기, 서랍목록, 상대시각, 안읽은수, 읽음열쇠 } from './noticeView.js';
 import { use휴대폰 } from './phone.js';
 import { 손잡이, use끌어닫기 } from './Sheet.js';
 
 interface Props {
   recent: NoticeRecent[];
+  /** 승인 전 QA 리포트 — 끝난 줄들 앞에 선다 */
+  approvals: NoticeApproval[];
   읽음: ReadonlySet<string>;
   지금: number;
   onClose: () => void;
@@ -18,7 +21,7 @@ interface Props {
   서비스바꿈: (접두사: string) => void;
 }
 
-export function NoticeDrawer({ recent, 읽음, 지금, onClose, on읽음, 서비스바꿈 }: Props) {
+export function NoticeDrawer({ recent, approvals, 읽음, 지금, onClose, on읽음, 서비스바꿈 }: Props) {
   const t = use말();
   const 언어 = use언어();
   const [고른거르개, set거르개] = useState<거르개>('all');
@@ -40,8 +43,9 @@ export function NoticeDrawer({ recent, 읽음, 지금, onClose, on읽음, 서비
     return () => document.removeEventListener('keydown', 누름);
   }, [onClose]);
 
-  const 안읽음 = 안읽은수(recent, 읽음);
+  const 안읽음 = 안읽은수(recent, 읽음) + 승인안읽은수(approvals, 읽음);
   const 목록 = 서랍목록(recent, 읽음, 고른거르개);
+  const 승인목록 = 서랍승인목록(approvals, 읽음, 고른거르개);
   const 칩들: [거르개, string][] = [
     ['all', t('전체')],
     ['run', t('실행')],
@@ -54,7 +58,7 @@ export function NoticeDrawer({ recent, 읽음, 지금, onClose, on읽음, 서비
       {휴대폰 ? <손잡이 끌기={끌기} /> : null}
       <div className="nt-drawer-head">
         <h2>{t('알림')}</h2>
-        <button className="btn ghost" onClick={() => on읽음(recent.map(읽음열쇠))} disabled={안읽음 === 0}>
+        <button className="btn ghost" onClick={() => on읽음([...recent.map(읽음열쇠), ...approvals.map(승인열쇠)])} disabled={안읽음 === 0}>
           {t('모두 읽음으로')}
         </button>
         <button ref={닫기} className="nt-x" aria-label={t('닫기')} onClick={onClose}>
@@ -70,10 +74,36 @@ export function NoticeDrawer({ recent, 읽음, 지금, onClose, on읽음, 서비
         ))}
       </div>
 
-      {목록.length === 0 ? (
-        <p className="nt-empty">{recent.length === 0 ? t('최근 7일 동안 종료된 실행과 작성이 없습니다') : t('조건에 맞는 알림이 없습니다')}</p>
+      {목록.length + 승인목록.length === 0 ? (
+        <p className="nt-empty">{recent.length + approvals.length === 0 ? t('최근 7일 동안 종료된 실행과 작성이 없습니다') : t('조건에 맞는 알림이 없습니다')}</p>
       ) : (
         <ul className="nt-list">
+          {승인목록.map((a) => {
+            const 줄 = 승인줄만들기(a, 언어);
+            return (
+              <li key={줄.열쇠} className={읽음.has(줄.열쇠) ? 'nt-item' : 'nt-item unread'}>
+                <a
+                  className="nt-item-link"
+                  href={줄.열기}
+                  onClick={() => {
+                    // 리포트 화면의 머리 · 목록으로 돌아가기는 사이드바 애플리케이션을 따른다 — 그 리포트의 애플리케이션으로 맞춘다
+                    서비스바꿈(a.prefix);
+                    on읽음([줄.열쇠]);
+                    onClose();
+                  }}
+                >
+                  <span className="nt-dot" aria-hidden="true" />
+                  <span className="nt-item-body">
+                    <span className="nt-item-title">{줄.머리}</span>
+                    <span className="nt-item-sub">{줄.서비스}</span>
+                  </span>
+                  <time className="nt-item-time" dateTime={줄.갱신때}>
+                    {상대시각(줄.갱신때, 지금, 언어)}
+                  </time>
+                </a>
+              </li>
+            );
+          })}
           {목록.map((n) => {
             const 줄 = 끝난줄만들기(n, 언어);
             const 안읽었나 = !읽음.has(줄.열쇠);

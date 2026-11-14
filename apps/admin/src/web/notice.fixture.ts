@@ -1,6 +1,6 @@
 // 알림 검사들이 같이 쓰는 가짜 재료 (noticeView.test.ts · Notice.test.tsx)
 
-import type { NoticeRecent, NoticeRunning, RunCounts } from './api.js';
+import type { NoticeApproval, NoticeRecent, NoticeRunning, RunCounts } from './api.js';
 
 const 서비스 = { serviceId: 1, prefix: 'PAY', serviceName: '결제 애플리케이션' };
 
@@ -67,6 +67,11 @@ export function 끝난실행(runId: number, counts: Partial<RunCounts> = {}, 덮
     finishedAt: 방금(),
     ...덮을것,
   };
+}
+
+/** 승인 전 QA 리포트 줄 — 기본은 빌드 124 */
+export function 승인전(reportId: number, 덮을것: Partial<NoticeApproval> = {}): NoticeApproval {
+  return { ...서비스, kind: 'qa_report', reportId, buildNo: '124', runId: null, perfRunId: null, version: 1, updatedAt: 전에(10), ...덮을것 };
 }
 
 export function 끝난작성(requestId: number, 덮을것: Partial<Extract<NoticeRecent, { kind: 'authoring' }>> = {}): NoticeRecent {

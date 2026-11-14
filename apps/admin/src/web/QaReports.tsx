@@ -7,27 +7,19 @@ import { Head } from './Head.js';
 import { use말, use언어, type 언어 } from './i18n.js';
 import { use주소조건, 주소조건 } from './leaveGuard.js';
 import { 다음이있나 } from './paging.js';
-import { qaReportApi, 쪽크기, type 리포트종류, type 리포트줄 } from './qaReportApi.js';
+import { 종류이름 } from '../reporting/qaReportWords.js';
+import { qaReportApi, 리포트이름, 쪽크기, type 리포트줄 } from './qaReportApi.js';
 import { Failed, Loading, useAsync, when } from './ui.js';
 
 type 말 = ReturnType<typeof use말>;
 type 승인거르개 = '' | 'false' | 'true';
 
-const 종류이름: Record<리포트종류, string> = { FN: '기능', UI: 'UI', E2E: 'E2E', COMPAT: '호환성', PERF: '성능' };
-
-/** 줄 이름 — 빌드 번호, 빌드 없는 실행 하나면 `RUN 812`, 성능 실행 하나면 성능 실행 화면의 `PRF-0012` 꼴 (§8.21 「애플리케이션 탭」) */
-export function 리포트이름(줄: Pick<리포트줄, 'buildNo' | 'runId' | 'perfRunId'>, t: 말): string {
-  if (줄.buildNo !== null) return t('빌드 {빌드}', { 빌드: 줄.buildNo });
-  if (줄.runId !== null) return `RUN ${String(줄.runId)}`;
-  return `PRF-${String(줄.perfRunId ?? 0).padStart(4, '0')}`;
-}
 
 function 줄하나({ 줄, t, 언어 }: { 줄: 리포트줄; t: 말; 언어: 언어 }) {
   const 승인됨 = 줄.approvedAt !== null;
   return (
-    // ponytail: 리포트 보기 화면(QAR-F1-10)이 서기 전까지 HTML 문서를 새 탭으로 연다. 10 이 `#/qa-reports/<번호>` 로 바꾼다
     <li>
-      <a className="qar-row" href={`/api/qa-reports/${String(줄.id)}/file?format=HTML`} target="_blank" rel="noreferrer">
+      <a className="qar-row" href={`#/qa-reports/${String(줄.id)}`}>
         <span className="qar-row-top">
           <b className="qar-name">{리포트이름(줄, t)}</b>
           {/* 상태를 색으로만 말하지 않는다 — 글자가 먼저다 */}

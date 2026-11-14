@@ -91,11 +91,13 @@ describe('route', () => {
     // 정기 실행은 프로젝트 공통 한 화면이다 (도메인/정기실행 §8.20)
     expect(route('#/sched')).toEqual({ name: 'sched' });
     expect(route('#/sched/3').name).toBe('unknown');
-    // QA 리포트는 화면 안 탭 둘이 주소다 (도메인/리포팅 §8.21 「자리」). 리포트 하나(`#/qa-reports/<번호>`)는 QAR-F1-10 이 연다
+    // QA 리포트는 화면 안 탭 둘이 주소다 (도메인/리포팅 §8.21 「자리」). 리포트 하나는 `#/qa-reports/<번호>` 다
     expect(route('#/qa-reports')).toEqual({ name: 'qaReports', tab: 'app' });
     expect(route('#/qa-reports?env=qa&approved=false')).toEqual({ name: 'qaReports', tab: 'app' });
     expect(route('#/qa-reports/project')).toEqual({ name: 'qaReports', tab: 'project' });
     expect(route('#/qa-reports/other').name).toBe('unknown');
+    expect(route('#/qa-reports/31')).toEqual({ name: 'qaReport', id: 31 });
+    expect(route('#/qa-reports/12345678901').name).toBe('unknown');
     expect(route('#/stability')).toEqual({ name: 'stability' });
     expect(route('#/stability?run=3044')).toEqual({ name: 'stability', run: 3044 });
     expect(route('#/stability?run=x')).toEqual({ name: 'stability' });
