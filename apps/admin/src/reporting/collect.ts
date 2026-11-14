@@ -293,7 +293,8 @@ export function 돈항목사유(
   return 원문 === undefined ? null : 한줄로자른다(가린다(원문, 비밀) as string);
 }
 
-export async function collectRun(runId: number): Promise<EvidenceDocument | null> {
+/** 같은빌드만 — 붙은 실행과 빌드가 다른 한 건 실행은 덮지 않는다. QA 리포트 구획이 첫 장 숫자와 같은 결과를 그리게 한다 (도메인/리포팅 §3.17 「묶음 · 버전」) */
+export async function collectRun(runId: number, 같은빌드만 = false): Promise<EvidenceDocument | null> {
   const pool = await db();
   // 시나리오 실행은 run_item 이 없어 케이스 모양이 비어 나온다. 번호가 맞아도 없는 실행으로 본다 (도메인/시나리오 §3.7 결정 10)
   const runs = await pool.query<RawRun>(
@@ -308,7 +309,7 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
   // 지금 결과로 읽는다 — 한 건 실행이 덮은 자리는 다시 돈 항목이다. 줄 차례는 원래 항목 차례를 지킨다
   const items = await pool.query<RawItem & 다시실행원재료>(
     `SELECT ${지금열}, ${다시실행칸들}
-       FROM ${지금항목('o.run_id = $1')} i ORDER BY COALESCE(i.orig_history_id, i.history_id)`,
+       FROM ${지금항목('o.run_id = $1', 같은빌드만 ? ' AND sr.build_no IS NOT DISTINCT FROM (SELECT build_no FROM test_run WHERE run_id = $1)' : '')} i ORDER BY COALESCE(i.orig_history_id, i.history_id)`,
     [runId],
   );
   const 원래들 = await 원래항목읽기(pool, items.rows);

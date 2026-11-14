@@ -252,27 +252,48 @@ export function 문서판(제목: string, 몸: string[]): string {
   ].join('\n');
 }
 
-export function renderHtml(doc: EvidenceDocument, options: RenderOptions): string {
-  const h = doc.header;
-  const 실패들: 케이스[] = [];
-  const 줄들: 케이스[] = [];
-  for (const c of 케이스로(doc.items)) (c.펼침.length > 0 ? 실패들 : 줄들).push(c);
-
-  return 문서판(`${h.serviceName} 리포트 — RUN ${doc.runId}`, [
-    ...머리말(h, options.generatedAt),
-    ...요약(doc.items),
-    `<h2 class="sec">실패 케이스 ${실패들.length}건</h2>`,
-    ...(실패들.length === 0 ? [`<p class="none">실패한 케이스가 없습니다</p>`] : 실패들.flatMap((c) => 카드(c, options.format))),
+// 실패 카드 → 통과 · 미실행 줄. 증적은 h2, QA 리포트 구획은 그 아래 h3 으로 건다
+function 카드와줄(케이스들: 케이스[], format: RenderOptions['format'], 머리: (글: string) => string): string[] {
+  const 실패들 = 케이스들.filter((c) => c.펼침.length > 0);
+  const 줄들 = 케이스들.filter((c) => c.펼침.length === 0);
+  return [
+    머리(`실패 케이스 ${실패들.length}건`),
+    ...(실패들.length === 0 ? [`<p class="none">실패한 케이스가 없습니다</p>`] : 실패들.flatMap((c) => 카드(c, format))),
     // 미확정도 따로 묶지 않고 제자리에 섞는다 — 줄마다 「미확정 · 사유」가 꼬리표 구실을 한다 (도메인/리포팅 · 실행 §3.2)
     ...(줄들.length === 0
       ? []
       : [
-          `<h2 class="sec">통과 · 미실행 케이스 ${줄들.length}건</h2>`,
-          ...줄들.flatMap((c) => 접힌줄(options.format, 줄글(c), `c-${c.차례}`, () => c.칸들.flatMap((k) => 펼친항목(k, options.format)))),
+          머리(`통과 · 미실행 케이스 ${줄들.length}건`),
+          ...줄들.flatMap((c) => 접힌줄(format, 줄글(c), `c-${c.차례}`, () => c.칸들.flatMap((k) => 펼친항목(k, format)))),
         ]),
+  ];
+}
+
+// 실패 카드가 먼저 서야 부록 차례가 증적과 같다
+function PDF부록(케이스들: 케이스[]): string[] {
+  const 차례 = [...케이스들.filter((c) => c.펼침.length > 0), ...케이스들.filter((c) => c.펼침.length === 0)];
+  return [...부록(차례), ...원래결과부록(차례.flatMap((c) => c.칸들.map((k) => ({ 머리: 케이스머리(c), k })))), ...원문부록(차례)];
+}
+
+export function renderHtml(doc: EvidenceDocument, options: RenderOptions): string {
+  const 케이스들 = 케이스로(doc.items);
+  return 문서판(`${doc.header.serviceName} 리포트 — RUN ${doc.runId}`, [
+    ...머리말(doc.header, options.generatedAt),
+    ...요약(doc.items),
+    ...카드와줄(케이스들, options.format, (글) => `<h2 class="sec">${글}</h2>`),
     ...E2E요약절(options.e2e ?? []),
-    ...(options.format === 'PDF'
-      ? [...부록([...실패들, ...줄들]), ...원래결과부록([...실패들, ...줄들].flatMap((c) => c.칸들.map((k) => ({ 머리: 케이스머리(c), k })))), ...원문부록([...실패들, ...줄들])]
-      : []),
+    ...(options.format === 'PDF' ? PDF부록(케이스들) : []),
   ]);
+}
+
+/**
+ * QA 리포트 구획 — 여러 실행에서 고른 항목을 증적과 같은 카드 · 줄로 그린다 (도메인/리포팅 §3.17 「종류별 구획」).
+ * 부록 고리 번호(c- · i- · t-)가 문서 하나에서 겹치지 않게 모든 항목을 한 번에 센다. 부록은 문서 끝에 한 번만 붙인다
+ */
+export function 카드묶음(items: EvidenceItem[], format: RenderOptions['format']): { 구획: (고름: (tcId: string) => boolean) => string[]; 부록: string[] } {
+  const 케이스들 = 케이스로(items);
+  return {
+    구획: (고름) => 카드와줄(케이스들.filter((c) => 고름(c.tcId)), format, (글) => `<h3 class="sub">${글}</h3>`),
+    부록: format === 'PDF' ? PDF부록(케이스들) : [],
+  };
 }
