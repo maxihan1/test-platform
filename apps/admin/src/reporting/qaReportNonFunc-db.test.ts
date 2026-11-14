@@ -11,7 +11,7 @@ describe.skipIf(연결 === undefined)('QA 리포트 비기능 재료', { timeout
   let 앱 = 0;
   const 실행 = { 앞: 0, 뒤: 0 };
   const 성능 = { 앞: 0, 뒤: 0 };
-  const 오류 = { 신규: 0, 증가: 0, 재발: 0, 기존: 0, 앞날증가: 0 };
+  const 오류 = { 신규: 0, 증가: 0, 재발: 0, 기존: 0, 앞날증가: 0, 빌드안재발: 0 };
 
   const 실행만들기 = async (시작: string) =>
     Number(
@@ -59,6 +59,7 @@ describe.skipIf(연결 === undefined)('QA 리포트 비기능 재료', { timeout
     오류.재발 = await 종류만들기('xqn-re', '다시 난 오류', '2.0');
     오류.기존 = await 종류만들기('xqn-old', '그대로인 오류', '2.0');
     오류.앞날증가 = await 종류만들기('xqn-prev-up', '앞날에만 늘었던 오류', '2.0');
+    오류.빌드안재발 = await 종류만들기('xqn-same-build-re', '이 빌드에서 났다가 해결 뒤 다시 난 오류', '3.0');
     const 요약 = {
       headline: '콘솔 오류가 하루 사이 늘었습니다',
       changes: [{ errorId: 오류.증가, text: '장바구니에서 늘었습니다' }],
@@ -88,6 +89,8 @@ describe.skipIf(연결 === undefined)('QA 리포트 비기능 재료', { timeout
     await 줄(실행.뒤, 오류.증가, 'UP', 4);
     await 줄(실행.뒤, 오류.재발, 'REOPENED', 2);
     await 줄(실행.뒤, 오류.기존, 'ONGOING', 1);
+    await 줄(실행.앞, 오류.빌드안재발, 'NEW', 1);
+    await 줄(실행.뒤, 오류.빌드안재발, 'REOPENED', 1);
     await pool.query(`INSERT INTO stab_occurrence (run_id, error_id, history_id, tc_id, item_status, hits, crash) VALUES ($1, $2, 1, 'XQN-UI-001', 'PASS', 1, false)`, [실행.뒤, 오류.증가]);
 
     성능.앞 = await 성능만들기('2026-11-12T02:00:00Z', 3100);
@@ -105,18 +108,19 @@ describe.skipIf(연결 === undefined)('QA 리포트 비기능 재료', { timeout
 
   const 읽기 = (buildNo: string | null) => 비기능재료읽기(pool, { runIds: [실행.앞, 실행.뒤], perfRunIds: [성능.앞, 성능.뒤], buildNo });
 
-  it('신규는 이 빌드에서 처음 난 종류, 증가 · 재발은 마지막 집계 줄 상태로 고르고 기존 · 앞날에만 늘었던 종류는 뺀다', async () => {
+  it('증가 · 재발은 마지막 집계 줄 상태가 먼저고, 그 밖에 이 빌드에서 처음 난 종류는 신규다. 기존 · 앞날에만 늘었던 종류는 뺀다', async () => {
     const { 안정화 } = await 읽기('3.0');
     expect(안정화?.errors.map((e) => [e.state, e.title, e.cases, e.issueKey])).toEqual([
       ['NEW', '이 빌드에서 처음 난 오류', 1, null],
       ['UP', '늘어난 오류', 4, 'XQN-7'],
       ['REOPENED', '다시 난 오류', 2, null],
+      ['REOPENED', '이 빌드에서 났다가 해결 뒤 다시 난 오류', 1, null],
     ]);
   });
 
   it('빌드 없는 리포트는 마지막 줄에서 신규인 종류만 신규다', async () => {
     const { 안정화 } = await 읽기(null);
-    expect(안정화?.errors.map((e) => e.state)).toEqual(['UP', 'REOPENED']);
+    expect(안정화?.errors.map((e) => e.state)).toEqual(['UP', 'REOPENED', 'REOPENED']);
   });
 
   it('AI 실행 요약은 마지막 집계 줄의 일을 그대로 싣고 상태 · 기능별 숫자는 서버가 단다', async () => {

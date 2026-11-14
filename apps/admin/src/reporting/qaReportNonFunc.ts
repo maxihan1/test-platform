@@ -76,7 +76,7 @@ async function 호환성읽기(pool: Pool, runIds: number[]): Promise<호환성�
   if (고른.length === 0) return [];
   // 호환성 결과 모듈은 엔진 · 팜까지 끌고 온다 — 쓸 때만 부른다(첫 장 셈과 같다)
   const { 호환성결과 } = await import('../compat/runView.js');
-  const 캐시 = new Map();
+  const 캐시: NonNullable<Parameters<typeof 호환성결과>[1]> = new Map();
   const 결과 = await Promise.all(고른.map((id) => 호환성결과(id, 캐시, true)));
   return 결과.flatMap((x) =>
     x === null
@@ -95,7 +95,7 @@ async function 호환성읽기(pool: Pool, runIds: number[]): Promise<호환성�
 }
 
 async function 성능읽기(pool: Pool, perfRunIds: number[]): Promise<성능재료[]> {
-  // 첫 장 셈(qaReportSummary.ts 마지막만)과 같은 규칙 — 같은 종류 · 시나리오는 가장 늦게 시작한 실행 하나
+  // 첫 장 셈(qaReportSummary.ts 마지막만)과 같은 규칙 — 같은 종류 · 시나리오는 가장 늦게 시작한 실행 하나. 한쪽을 고치면 다른 쪽도 고친다
   const r = await pool.query<{
     id: string; kind: 성능재료['kind']; title: string | null; test_type: string | null; status: string; verdict: 'PASS' | 'FAIL' | null; stop_reason: string | null;
     started_at: Date | null; peak_vus: number | null; ai: 성능재료['ai']; targets: 성능목표[] | null; config: { devices?: { serial: string; model: string }[] };
@@ -127,8 +127,7 @@ async function 성능읽기(pool: Pool, perfRunIds: number[]): Promise<성능재
         ai: x.ai,
         targets: x.targets ?? [],
         devices: new Map((x.config.devices ?? []).map((d) => [d.serial, d.model])),
-        rows: 부하 ? await 표.초읽기(id, 0, 2 ** 31 - 1, ['']) : [],
-        txs: 부하 ? await 표.트랜잭션합계(id) : [],
+        ...(부하 ? await Promise.all([표.초읽기(id, 0, 2 ** 31 - 1, ['']), 표.트랜잭션합계(id)]).then(([rows, txs]) => ({ rows, txs })) : { rows: [], txs: [] }),
       };
     }),
   );
@@ -140,8 +139,8 @@ async function 안정화읽기(pool: Pool, runIds: number[], buildNo: string | n
     await pool.query<{ run_id: string; ai_job_id: string | null }>('SELECT run_id, ai_job_id FROM stab_run WHERE run_id = ANY($1::bigint[]) ORDER BY day DESC, run_id DESC LIMIT 1', [runIds])
   ).rows[0];
   if (줄 === undefined) return null;
-  // 신규는 이 빌드에서 처음 난 종류(앞 날 집계에서 신규였어도 든다), 증가 · 재발은 마지막 줄의 상태다 (§3.17 「종류별 구획」 안정화)
-  const 오류 = await pool.query<{ state: string | null; title: string; source: string; first_day: string; first_build_no: string | null; cases: number; issue_key: string | null }>(
+  // 증가 · 재발은 마지막 줄의 상태다. 그 밖에 이 빌드에서 처음 난 종류는 신규다(앞 날 집계에서 신규였어도 든다) — 안정화 화면 · 첫 장 재발 셈과 같게 마지막 줄 상태가 먼저다 (§3.17 「QAR-F1-06 이 정한 것」)
+  const 오류 = await pool.query<{ state: 'NEW' | 'UP' | 'REOPENED' | 'ONGOING' | null; title: string; source: string; first_day: string; first_build_no: string | null; cases: number; issue_key: string | null }>(
     `SELECT l.state, e.title, e.source, to_char(e.first_day, 'YYYY-MM-DD') AS first_day, e.first_build_no, e.issue_key,
             COALESCE(l.cases, (SELECT max(x.cases) FROM stab_run_error x WHERE x.error_id = e.id AND x.run_id = ANY($2::bigint[])))::int AS cases
        FROM stab_error e LEFT JOIN stab_run_error l ON l.error_id = e.id AND l.run_id = $1
@@ -152,7 +151,7 @@ async function 안정화읽기(pool: Pool, runIds: number[], buildNo: string | n
   const 차례 = { NEW: 0, UP: 1, REOPENED: 2 } as const;
   const errors = 오류.rows
     .map((e) => ({
-      state: buildNo !== null && e.first_build_no === buildNo ? ('NEW' as const) : (e.state as 'UP' | 'REOPENED' | 'NEW'),
+      state: e.state === 'UP' || e.state === 'REOPENED' ? e.state : ('NEW' as const),
       title: e.title,
       source: e.source,
       firstDay: e.first_day,
@@ -164,7 +163,12 @@ async function 안정화읽기(pool: Pool, runIds: number[], buildNo: string | n
 
   let summary: 안정화재료['summary'] = null;
   if (줄.ai_job_id !== null) {
-    const 일 = (await pool.query<{ status: 'QUEUED' | 'RUNNING' | 'DONE' | 'FAILED'; output: unknown }>('SELECT status, output FROM perf_ai_job WHERE id = $1', [줄.ai_job_id])).rows[0];
+    let 일 = (await pool.query<{ status: 'QUEUED' | 'RUNNING' | 'DONE' | 'FAILED'; output: unknown }>('SELECT status, output FROM perf_ai_job WHERE id = $1', [줄.ai_job_id])).rows[0];
+    // 작성 에이전트가 쥐고 죽은 일은 안정화 화면처럼 20분 뒤 닫는다 — 리포트가 「작성 중」에 묶여 굳지 않게 (stability/view.ts)
+    if (일?.status === 'RUNNING') {
+      await (await import('../perf/ai.js')).오래된일닫기();
+      일 = (await pool.query<{ status: 'QUEUED' | 'RUNNING' | 'DONE' | 'FAILED'; output: unknown }>('SELECT status, output FROM perf_ai_job WHERE id = $1', [줄.ai_job_id])).rows[0];
+    }
     if (일 !== undefined) {
       const 결과 = 일.status === 'DONE' ? (요약모양.safeParse(일.output).data ?? null) : null;
       // 안정화 화면과 같이 — 상태 칩은 그 줄의 상태로 달고, 기능별 숫자는 AI 가 아니라 서버가 센다 (stability/view.ts)

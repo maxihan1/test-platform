@@ -2,7 +2,7 @@
 // 글은 qaReportText.ts · qaReportSections.ts 가 지었다. 여기서는 모양만 입히고, 실리는 글은 하나도 빠짐없이 안전() 을 거친다
 // 모양은 시안 B(문서 차례 — 번호 붙은 절 · 표 · 흐름 알약 · AI 상자 · 점선 승인 상자)를 증적 종이 색(htmlStyle.ts)으로 옮겼다. 증적 카드가 같은 문서에 들어가 색이 둘이면 안 된다
 
-import { 추이 } from '../perf/pdf.js';
+import { 추이 } from '../perf/pdfText.js';
 import { 카드묶음, 문서판 } from './html.js';
 import { 안전 } from './htmlItem.js';
 import { 시나리오몸 } from './htmlScenario.js';

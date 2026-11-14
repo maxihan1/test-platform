@@ -2,7 +2,7 @@
 // 구획마다 머리에 품질 특성 이름(ISO/IEC 25010)과 결과 요약 같은 글 한 줄을 단다. 빈 값 문구는 qaReportText.ts 의 빈글
 
 import { percentile } from '../perf/hist.js';
-import { 값글 as 부하값글, 근거글, 실행번호글, 유형글, 지표글 as 부하지표글, 판정글 } from '../perf/pdf.js';
+import { 값글 as 부하값글, 근거글, 실행번호글, 유형글, 지표글 as 부하지표글, 판정글 } from '../perf/pdfText.js';
 import type { 비기능재료, 성능목표, 성능재료, 호환성재료, 안정화재료 } from './qaReportNonFunc.js';
 import type { 첫장 } from './qaReportSummary.js';
 import { 격자칸, 결과글, 빈글, 시각, 종류이름, 출처이름, 품질특성, type 덩이, type 표줄 } from './qaReportText.js';
@@ -54,7 +54,7 @@ function 호환성세트(s: 호환성재료): 덩이[] {
   for (const r of s.rows)
     for (const c of r.cells.filter((x) => x.value === 'UNCHECKED')) {
       const 열쇠 = `${c.seq}\u0000${c.reason ?? ''}`;
-      미점검.set(열쇠, { seq: c.seq, 까닭: c.reason ?? '까닭 기록 없음', 수: (미점검.get(열쇠)?.수 ?? 0) + 1 });
+      미점검.set(열쇠, { seq: c.seq, 까닭: c.reason ?? 빈글.까닭없음, 수: (미점검.get(열쇠)?.수 ?? 0) + 1 });
     }
   if (미점검.size > 0) {
     덩이들.push({ 꼴: '글', 글: '미점검 까닭', 결: '머리' });
@@ -93,14 +93,15 @@ function 목표값글(metric: string, v: number | null): string {
 }
 
 function 대상글(r: 성능재료, t: 성능목표): string {
-  if (r.kind === 'DEVICE') return t.scope === undefined ? '전체' : `${r.devices.get(t.scope) ?? t.scope} (${t.scope})`;
-  return t.scope === undefined || t.scope === '' ? '전체' : t.scope;
+  if (t.scope === undefined || t.scope === '') return '전체';
+  return r.kind === 'DEVICE' ? `${r.devices.get(t.scope) ?? t.scope} (${t.scope})` : t.scope;
 }
 
 const 성능종류이름 = { LOAD: '서버 부하', PAGE: '페이지 성능', DEVICE: '기기 성능' } as const;
 
 function 성능실행(r: 성능재료): 덩이[] {
-  const 판정 = 판정글(r.verdict, r.status);
+  // 도는 중인 실행은 판정이 비어 성능 PDF 글자로는 「중단」이 된다 — 승인 전 리포트는 도는 실행도 담는다
+  const 판정 = ['QUEUED', 'SMOKE', 'RUNNING'].includes(r.status) ? 빈글.진행중 : 판정글(r.verdict, r.status);
   const 덩이들: 덩이[] = [
     { 꼴: '소절', 글: `${실행번호글(r.id)} ${r.title === '' ? 성능종류이름[r.kind] : r.title}` },
     {
@@ -125,7 +126,7 @@ function 성능실행(r: 성능재료): 덩이[] {
   );
   덩이들.push({ 꼴: '글', 글: 'AI 분석', 결: '머리' });
   덩이들.push(r.ai === null ? { 꼴: '글', 글: 빈글.AI분석없음, 결: '흐림' } : { 꼴: '글', 글: [r.ai.title, ...r.ai.items.map((i) => `· ${i}`)].join('\n') });
-  // 시간대별 추이 · 트랜잭션별은 서버 부하에만 있다 — 성능 PDF 가 싣던 차례 그대로
+  // 시간대별 추이 · 트랜잭션별은 서버 부하에만 있다. 성능 PDF 는 AI 분석이 맨 앞이지만 리포트는 목표 표를 먼저 둔다(이 구획이 답하는 것이 목표 달성이라)
   if (r.kind === 'LOAD') {
     덩이들.push({ 꼴: '글', 글: '시간대별 추이', 결: '머리' }, { 꼴: '추이', rows: r.rows });
     if (r.txs.length > 0) {

@@ -58,8 +58,11 @@ const 비기능: 비기능재료 = {
       txs: [{ tx: 'POST /cart', requests: 1200, errors: 12, hist: [] }],
     },
     {
-      id: 8, kind: 'DEVICE', title: '', testType: null, status: 'DONE', verdict: 'PASS', stopReason: null, startedAt: null, peakVus: null, ai: null,
-      targets: [{ metric: 'AVG_FPS', scope: 'R3CT', op: '>=', value: 45, measured: 52.3, verdict: 'PASS', source: 'MANUAL' }],
+      id: 8, kind: 'DEVICE', title: '', testType: null, status: 'RUNNING', verdict: null, stopReason: null, startedAt: null, peakVus: null, ai: null,
+      targets: [
+        { metric: 'AVG_FPS', scope: 'R3CT', op: '>=', value: 45, measured: 52.3, verdict: 'PASS', source: 'MANUAL' },
+        { metric: 'MAX_MEM', scope: '', op: '<=', value: 1536, measured: null, verdict: 'FAIL', source: 'MANUAL' },
+      ],
       devices: new Map([['R3CT', 'SM-S918N']]),
       rows: [],
       txs: [],
@@ -157,6 +160,8 @@ describe('QA 리포트 HTML', () => {
     expect(칸글(html)).toContain('<td>POST /cart</td><td>1,200</td><td>1.00%</td>');
     expect(html).toContain('PRF-0008 기기 성능');
     expect(칸글(html)).toContain('<td>평균 FPS</td><td>SM-S918N (R3CT)</td><td>≥ 45.0 FPS</td><td>52.3 FPS</td>');
+    expect(칸글(html)).toContain('<td>메모리 최대</td><td>전체</td>');
+    expect(html).toContain('기기 성능 · 판정 진행 중');
   });
 
   it('안정화는 세 겹 머리 뒤에 신규 · 증가 · 재발 오류 종류와 AI 실행 요약을 그대로 싣는다', () => {

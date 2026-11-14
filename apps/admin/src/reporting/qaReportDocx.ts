@@ -14,6 +14,8 @@ const 묶음바탕 = 'F1EEE5';
 const 강조바탕 = 'FBF0D9';
 const 흐린글색 = '5F5B55';
 const 강조글색 = '7A5208';
+// 판정한 결함만 판정 빨강 — HTML 증적 종이 색의 --fail 과 같다
+const 실패글색 = '9B2418';
 
 function 폭들(수: number): number[] {
   if (수 === 2) return [2000, 글폭 - 2000];
@@ -37,7 +39,7 @@ function 표(d: Extract<덩이, { 꼴: '표' }>): string {
       // 호환성 격자 — 의심 칸은 노랑 바탕, 판정한 결함은 굵게 (HTML 과 같은 규칙)
       const 격자칸꼴 = (c: string, i: number) =>
         d.격자 === true && i > 0 && c === 격자칸.PENDING ? 칸(폭[i]!, 문단(c, { 꾸밈: `<w:b/><w:color w:val="${강조글색}"/>` }), 강조바탕)
-        : d.격자 === true && i > 0 && c === 격자칸.CONFIRMED ? 칸(폭[i]!, 문단(c, { 꾸밈: '<w:b/>' }), 바탕)
+        : d.격자 === true && i > 0 && c === 격자칸.CONFIRMED ? 칸(폭[i]!, 문단(c, { 꾸밈: `<w:b/><w:color w:val="${실패글색}"/>` }), 바탕)
         : 칸(폭[i]!, 문단(c), 바탕);
       return `<w:tr>${z.칸.map(격자칸꼴).join('')}</w:tr>`;
     })
@@ -57,7 +59,8 @@ function 덩이로(d: 덩이): string {
     case '소절':
       return 문단(d.글, { 꼴: 'Heading2' });
     case '구분':
-      return 문단(d.글, { 꼴: 'Heading1' });
+      // 띠는 제목 단계가 아니다 — 아래 호환성 · 성능 · 안정화가 기능 · UI · E2E 와 같은 Heading1 이라 띠까지 Heading1 이면 탐색 창에서 한 단으로 늘어선다
+      return 문단(`━━ ${d.글} ━━`, { 꾸밈: `<w:b/><w:color w:val="${강조글색}"/>` });
     case '글':
       return 문단(d.글, { 꾸밈: d.결 === '흐림' ? `<w:color w:val="${흐린글색}"/>` : d.결 === '강조' ? `<w:b/><w:color w:val="${강조글색}"/>` : d.결 === '머리' ? '<w:b/>' : '' });
     case '추이':

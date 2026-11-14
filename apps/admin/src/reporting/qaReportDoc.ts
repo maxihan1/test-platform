@@ -148,9 +148,11 @@ export async function 문서재료읽기(pool: Pool, 읽음: { 응답: 리포트
     요구.push(...요구표.values());
   }
 
-  const 시나리오 = (await Promise.all((await 고른시나리오실행들(pool, 응답.runIds)).map((runId) => collectScenario(runId)))).filter(
-    (d): d is E2E증적 => d !== null,
-  );
-  const 비기능 = await 비기능재료읽기(pool, 응답);
+  // 비기능 재료는 시나리오 증적과 서로 안 기대 같이 읽는다
+  const [시나리오들, 비기능] = await Promise.all([
+    고른시나리오실행들(pool, 응답.runIds).then((ids) => Promise.all(ids.map((runId) => collectScenario(runId)))),
+    비기능재료읽기(pool, 응답),
+  ]);
+  const 시나리오 = 시나리오들.filter((d): d is E2E증적 => d !== null);
   return { 리포트: 응답, 항목, 종류, 요구, 화면, 시나리오, 비기능 };
 }
