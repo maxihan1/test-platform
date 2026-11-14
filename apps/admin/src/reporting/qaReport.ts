@@ -202,17 +202,22 @@ export async function 잠근채다시만든다(pool: Pool, c: PoolClient, t: 방
     return '새 버전';
   }
   const 앞것 = (
-    await c.query<{ 같음: boolean; ai: 리스크글저장 | null; ai_job_id: string | null }>('SELECT summary = $1::jsonb AS 같음, ai, ai_job_id FROM qa_report WHERE id = $2', [
-      값[3],
-      마지막!.id,
-    ])
+    await c.query<{ 같음: boolean; ai: 리스크글저장 | null; ai_job_id: string | null; 실패: boolean }>(
+      `SELECT q.summary = $1::jsonb AS 같음, q.ai, q.ai_job_id, COALESCE(j.status = 'FAILED', false) AS 실패
+         FROM qa_report q LEFT JOIN perf_ai_job j ON j.id = q.ai_job_id WHERE q.id = $2`,
+      [값[3], 마지막!.id],
+    )
   ).rows[0]!;
   await c.query('UPDATE qa_report SET run_ids = $1, perf_run_ids = $2, performers = $3, summary = $4, service_name = $5, updated_at = now() WHERE id = $6', [
     ...값,
     마지막!.id,
   ]);
-  if (일도된다 && 리스크일세울까({ running: 0, 같은첫장: 앞것.같음, ai: 앞것.ai, aiJobId: 앞것.ai_job_id })) {
+  if (일도된다 && 리스크일세울까({ running: 0, 같은첫장: 앞것.같음, ai: 앞것.ai, aiJobId: 앞것.ai_job_id, 앞일실패: 앞것.실패 })) {
     await 리스크일세우기(c, { id: 마지막!.id, serviceId: t.serviceId, 앞일: 앞것.ai_job_id });
+  } else if (!AI세우기 && !앞것.같음 && 앞것.ai !== null && 앞것.ai.editedBy === null) {
+    // 승인이 다시 만들어 첫 장이 바뀌었는데 AI 글은 앞 재료로 썼다. 승인이 깨지면 다음 다시 만들기가 「첫 장이 같다」로 보고 넘어가니
+    // 일 번호를 비워 다음 다시 만들기가 새로 맡기게 한다 — 승인이 되면 그 버전은 더 안 바뀌어 상관없다
+    await c.query('UPDATE qa_report SET ai_job_id = NULL WHERE id = $1', [마지막!.id]);
   }
   return '고침';
 }

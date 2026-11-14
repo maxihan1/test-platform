@@ -28,11 +28,14 @@ export const 배열상한 = 100;
 // 맡긴 뒤 이만큼 아무도 안 가져가고 에이전트가 꺼져 있으면 실패로 닫는다 — 그 일이 승인을 막는다(AI_PENDING)
 const 대기닫기분 = 5;
 
-/** 다시 만든 뒤 새 일을 세울까. 도는 실행이 있으면 다음 끝에서, 사람이 고친 글이 있으면 다시 맡기지 않는다 */
-export function 리스크일세울까(r: { running: number; 같은첫장: boolean; ai: 리스크글저장 | null; aiJobId: string | null }): boolean {
+/**
+ * 다시 만든 뒤 새 일을 세울까. 도는 실행이 있으면 다음 끝에서, 사람이 고친 글이 있으면 다시 맡기지 않는다.
+ * 앞 일이 실패했으면 첫 장이 같아도 다시 맡긴다 — 에이전트가 꺼져 닫힌 일이 「만들지 못했습니다」로 굳지 않게
+ */
+export function 리스크일세울까(r: { running: number; 같은첫장: boolean; ai: 리스크글저장 | null; aiJobId: string | null; 앞일실패: boolean }): boolean {
   if (r.running > 0) return false;
   if (r.ai?.editedBy != null) return false;
-  return !r.같은첫장 || r.aiJobId === null;
+  return !r.같은첫장 || r.aiJobId === null || r.앞일실패;
 }
 
 /** 묶음 잠금 안에서 부른다. 앞 일이 아직 대기면 닫고, 그 버전의 AI 글은 비운다 — 앞 일의 결과는 쓰지 않는다 */
@@ -140,7 +143,13 @@ export async function 리스크고치기(id: number, text: string, 고친이: st
   const 열쇠 = (await pool.query<{ bundle_key: string }>('SELECT bundle_key FROM qa_report WHERE id = $1', [id])).rows[0]?.bundle_key;
   if (열쇠 === undefined) return 'NOT_FOUND';
   return 묶음잠금(pool, 열쇠, async (c) => {
-    const q = (await c.query<{ ai: 리스크글저장 | null; ai_job_id: string | null; approved: boolean }>('SELECT ai, ai_job_id, approved_at IS NOT NULL AS approved FROM qa_report WHERE id = $1', [id])).rows[0]!;
+    // 줄을 잠그고 읽는다 — 끝내기는 묶음 잠금 밖에서 돌아, 읽은 뒤 AI 처음 글이 들어오면 빈 처음 글로 덮게 된다
+    const q = (
+      await c.query<{ ai: 리스크글저장 | null; ai_job_id: string | null; approved: boolean }>(
+        'SELECT ai, ai_job_id, approved_at IS NOT NULL AS approved FROM qa_report WHERE id = $1 FOR UPDATE',
+        [id],
+      )
+    ).rows[0]!;
     if (q.approved) return 'APPROVED';
     const at = (await c.query<{ n: Date }>('SELECT now() AS n')).rows[0]!.n;
     const 글: 리스크글저장 = { first: q.ai?.first ?? '', current: text, editedBy: 고친이, editedAt: at.toISOString() };
@@ -155,16 +164,5 @@ export async function 리스크고치기(id: number, text: string, 고친이: st
 
 /** 오래 쥔 일과, 꺼진 에이전트를 기다리는 리스크 일을 닫는다 — 리포트 보기 · 승인 때 부른다. 안 닫으면 승인이 AI_PENDING 에 묶인다 */
 export async function 리스크일닫기(): Promise<void> {
-  await (await 성능AI()).오래된일닫기();
-  const { 꺼졌나 } = await 흐름일();
-  const pool = await db();
-  const r = await pool.query<{ id: string; prefix: string }>(
-    `SELECT j.id, s.prefix FROM perf_ai_job j JOIN service s ON s.id = j.service_id
-      WHERE j.kind = 'REPORT_RISK' AND j.status = 'QUEUED' AND j.created_at < now() - make_interval(mins => $1)`,
-    [대기닫기분],
-  );
-  for (const x of r.rows) {
-    if (!(await 꺼졌나(x.prefix))) continue;
-    await pool.query(`UPDATE perf_ai_job SET status = 'FAILED', error = '작성 에이전트가 꺼져 있다', finished_at = now() WHERE id = $1 AND status = 'QUEUED'`, [x.id]);
-  }
+  await (await 흐름일()).대기일닫기('REPORT_RISK', 대기닫기분);
 }

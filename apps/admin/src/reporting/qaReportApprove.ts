@@ -52,7 +52,8 @@ export const 막는일SQL = `
   + (SELECT count(*) FROM perf_run p
       WHERE p.status NOT IN ('DONE', 'STOPPED', 'ERROR') AND q.build_no IS NOT NULL
         AND p.service_id = q.service_id AND p.env = q.env AND p.build_no = q.build_no)::int AS running,
-  COALESCE((SELECT j.status IN ('QUEUED', 'RUNNING') FROM perf_ai_job j WHERE j.id = q.ai_job_id), false) AS ai_pending`;
+  COALESCE((SELECT j.status IN ('QUEUED', 'RUNNING') FROM perf_ai_job j WHERE j.id = q.ai_job_id), false)
+    AND q.ai->>'editedBy' IS NULL AS ai_pending`;
 
 interface 굳힐것 {
   응답: 리포트응답 & { approval: NonNullable<리포트응답['approval']> };

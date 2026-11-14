@@ -4,6 +4,7 @@ import { randomBytes } from 'node:crypto';
 
 import { 작성계정이름, 작성계정인가, 토큰해시 } from '../auth/agentToken.js';
 import { 사용자와해시, type 사용자 } from '../auth/store.js';
+import { 일제한분 } from '../perf/ai.js';
 
 async function db() {
   const { pool } = await import('../db/index.js');
@@ -63,8 +64,9 @@ export async function 일열쇠사람(열쇠: string): Promise<사용자 | null>
       WHERE 줄.mcp_key_hash = $1 AND 줄.status = 'RUNNING'
      UNION ALL
      SELECT $2::text, s.project_id FROM perf_ai_job j JOIN service s ON s.id = j.service_id
-      WHERE j.mcp_key_hash = $1 AND j.kind = 'REPORT_RISK' AND j.status = 'RUNNING' AND j.claimed_at IS NOT NULL`,
-    [토큰해시(열쇠), 작성계정이름()],
+      WHERE j.mcp_key_hash = $1 AND j.kind = 'REPORT_RISK' AND j.status = 'RUNNING' AND j.claimed_at > now() - make_interval(mins => $3)`,
+    // 집은 계정 칸이 없어 지금의 작성 계정으로 본다 — 계정을 바꾸면 도는 일의 열쇠가 새 계정으로 넘어가니 집은 뒤 일 제한 시간까지만 산다
+    [토큰해시(열쇠), 작성계정이름(), 일제한분],
   );
   const 행 = r.rows[0];
   if (행 === undefined || 행.claimed_by === null || 행.project_id === null || !작성계정인가(행.claimed_by)) return null;

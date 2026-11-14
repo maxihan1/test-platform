@@ -90,9 +90,13 @@ export default async function qaReportRoutes(app: FastifyInstance): Promise<void
   app.get<{ Params: { id: string } }>('/qa-reports/:id', async (req, reply) => {
     const id = 정수(req.params.id);
     if (id === null) return 잘못(reply, '리포트 번호가 틀렸습니다');
-    // 꺼진 에이전트를 기다리는 AI 일을 닫는다 — 화면이 「AI 문단을 만들지 못했습니다」를 보고 승인으로 넘어가게
-    await 리스크일닫기();
-    const 읽음 = await 리포트읽기(await db(), id);
+    const pool = await db();
+    let 읽음 = await 리포트읽기(pool, id);
+    // 이 리포트의 AI 일이 기다리는 중일 때만 꺼진 에이전트 · 오래 쥔 일을 닫는다 — 화면이 「AI 문단을 만들지 못했습니다」를 보고 승인으로 넘어가게
+    if (읽음?.aiPending === true) {
+      await 리스크일닫기();
+      읽음 = await 리포트읽기(pool, id);
+    }
     return 읽음 === null ? 없음(reply) : 읽음.응답;
   });
 

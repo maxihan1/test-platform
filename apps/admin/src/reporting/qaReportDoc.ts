@@ -64,7 +64,10 @@ export async function 사후승인(pool: Pool | PoolClient, runIds: readonly (st
 }
 
 /** 리포트 한 버전 — 응답과 함께 문서가 쓸 애플리케이션 번호 · 승인 때 굳힌 PDF 경로를 낸다 */
-export async function 리포트읽기(pool: Pool | PoolClient, id: number): Promise<{ 응답: 리포트응답; serviceId: number | null; pdfPath: string | null } | null> {
+export async function 리포트읽기(
+  pool: Pool | PoolClient,
+  id: number,
+): Promise<{ 응답: 리포트응답; serviceId: number | null; pdfPath: string | null; aiPending: boolean } | null> {
   const q = (await pool.query<리포트행>('SELECT q.*, s.prefix, j.status AS ai_status FROM qa_report q LEFT JOIN service s ON s.id = q.service_id LEFT JOIN perf_ai_job j ON j.id = q.ai_job_id WHERE q.id = $1', [id])).rows[0];
   if (q === undefined) return null;
   const 버전들 = (
@@ -95,6 +98,7 @@ export async function 리포트읽기(pool: Pool | PoolClient, id: number): Prom
     },
     serviceId: 번호(q.service_id),
     pdfPath: q.pdf_path,
+    aiPending: q.ai_status === 'QUEUED' || q.ai_status === 'RUNNING',
   };
 }
 

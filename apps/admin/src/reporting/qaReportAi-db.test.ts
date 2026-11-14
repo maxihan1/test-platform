@@ -12,6 +12,7 @@ import perfRoutes from '../perf/routes.js';
 import { 집기기록지우기 } from '../scenario/flowJob.js';
 import { QA리포트를다시만든다 } from './qaReport.js';
 import { 리스크일닫기 } from './qaReportAi.js';
+import { 막는일SQL } from './qaReportApprove.js';
 import qaReportRoutes from './qaReportRoutes.js';
 
 const 연결 = process.env.DATABASE_URL;
@@ -151,15 +152,28 @@ describe.skipIf(연결 === undefined)('QA 리포트 남은 리스크 AI 일', { 
     expect(답.json()).toMatchObject({ error: 'INVALID_OUTPUT' });
     expect(await 일상태(집은.id)).toMatchObject({ status: 'FAILED' });
     expect((await 부르기('xql-reader', 'GET', `/api/qa-reports/${지금.id}`)).json()).toMatchObject({ ai: { failed: true } });
+
+    // 앞 일이 실패했으면 첫 장이 같아도 다음 다시 만들기가 다시 맡긴다
+    await QA리포트를다시만든다({ runId: 새 });
+    const 다시 = (await 리포트()).ai_job_id;
+    expect(다시).not.toBe(String(집은.id));
+    expect(await 일상태(다시!)).toMatchObject({ status: 'QUEUED' });
   });
 
   it('사람이 고치면 처음 글은 남고, 그 뒤로는 다시 만들어도 맡기지 않는다. 실행 write 가 없으면 403 · 승인한 버전은 409', async () => {
     const id = (await 리포트()).id;
     expect((await 부르기('xql-reader', 'PATCH', `/api/qa-reports/${id}/ai`, { text: '고친 글' })).statusCode).toBe(403);
     expect((await 부르기('xql-writer', 'PATCH', `/api/qa-reports/${id}/ai`, { text: '  ' })).statusCode).toBe(400);
+    // 에이전트가 이미 가져가 도는 일 — 고친 뒤에는 그 결과를 안 쓰니 승인을 막지 않는다
+    const 도는일 = (await 리포트()).ai_job_id!;
+    await pool.query(`UPDATE perf_ai_job SET status = 'RUNNING', claimed_at = now() WHERE id = $1`, [도는일]);
+    const 막힘 = async () => (await pool.query<{ ai_pending: boolean }>(`SELECT ${막는일SQL} FROM qa_report q WHERE q.id = $1`, [id])).rows[0]!.ai_pending;
+    expect(await 막힘()).toBe(true);
     const 답 = await 부르기('xql-writer', 'PATCH', `/api/qa-reports/${id}/ai`, { text: '기능 리스크\n- 직접 쓴 줄' });
     expect(답.statusCode).toBe(200);
     expect(답.json()).toMatchObject({ ai: { first: '', current: '기능 리스크\n- 직접 쓴 줄', editedBy: 'xql-writer 이름' } });
+    expect(await 막힘()).toBe(false);
+    await pool.query(`UPDATE perf_ai_job SET status = 'FAILED' WHERE id = $1`, [도는일]);
 
     const 새 = await 실행만들기();
     await 항목(새, 'PASS');

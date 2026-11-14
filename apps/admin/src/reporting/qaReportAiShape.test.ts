@@ -13,10 +13,20 @@ describe('남은 리스크 결과', () => {
   });
 
   it('배포 판단 말이 섞이면 받지 않는다', () => {
-    for (const 글 of ['이대로 배포 가능합니다', '출시 보류를 권합니다', 'go/no-go 판단: no-go']) {
+    for (const 글 of [
+      '이대로 배포 가능합니다',
+      '출시 보류를 권합니다',
+      'go/no-go 판단: no-go',
+      '배포를 보류하는 것이 좋겠습니다',
+      '출시는 권장하지 않습니다',
+      '배포를 진행해도 됩니다',
+      '출시를 권합니다',
+    ]) {
       expect(리스크거르기({ functional: [{ text: 글, refs: [] }], nonFunctional: [] })).toEqual({ error: '배포 판단 말이 들어 있습니다' });
     }
-    expect('error' in 리스크거르기({ functional: [{ text: '배포 뒤 확인한 사람이 없습니다', refs: [] }], nonFunctional: [] })).toBe(false);
+    for (const 글 of ['배포 뒤 확인한 사람이 없습니다', '배포 가능성 점검이 안 됐습니다', 'Casino go 화면 오류']) {
+      expect('error' in 리스크거르기({ functional: [{ text: 글, refs: [] }], nonFunctional: [] })).toBe(false);
+    }
   });
 
   it('묶음마다 10줄 · 줄마다 300자를 넘거나 묶음이 빠지면 모양이 틀렸다', () => {
@@ -28,12 +38,14 @@ describe('남은 리스크 결과', () => {
 
 describe('남은 리스크 일', () => {
   const 글 = { first: 'a', current: 'a', editedBy: null, editedAt: null };
-  it('도는 실행이 없을 때, 첫 장이 바뀌었거나 일이 없을 때만 세운다. 사람이 고친 글이 있으면 안 세운다', () => {
-    expect(리스크일세울까({ running: 0, 같은첫장: false, ai: 글, aiJobId: '1' })).toBe(true);
-    expect(리스크일세울까({ running: 0, 같은첫장: true, ai: null, aiJobId: null })).toBe(true);
-    expect(리스크일세울까({ running: 0, 같은첫장: true, ai: 글, aiJobId: '1' })).toBe(false);
-    expect(리스크일세울까({ running: 1, 같은첫장: false, ai: null, aiJobId: null })).toBe(false);
-    expect(리스크일세울까({ running: 0, 같은첫장: false, ai: { ...글, editedBy: '이', editedAt: 'x' }, aiJobId: '1' })).toBe(false);
+  it('도는 실행이 없을 때, 첫 장이 바뀌었거나 일이 없거나 앞 일이 실패했을 때만 세운다. 사람이 고친 글이 있으면 안 세운다', () => {
+    const 앞 = { running: 0, 같은첫장: true, ai: 글, aiJobId: '1', 앞일실패: false };
+    expect(리스크일세울까({ ...앞, 같은첫장: false })).toBe(true);
+    expect(리스크일세울까({ ...앞, ai: null, aiJobId: null })).toBe(true);
+    expect(리스크일세울까({ ...앞, ai: null, 앞일실패: true })).toBe(true);
+    expect(리스크일세울까(앞)).toBe(false);
+    expect(리스크일세울까({ ...앞, running: 1, 같은첫장: false })).toBe(false);
+    expect(리스크일세울까({ ...앞, 같은첫장: false, ai: { ...글, editedBy: '이', editedAt: 'x' } })).toBe(false);
   });
 
   it('재료 배열은 100개에서 자르고 잘렸다고 표시한다', () => {
