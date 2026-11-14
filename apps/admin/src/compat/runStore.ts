@@ -1,5 +1,6 @@
 // 호환성 실행의 DB 쪽 — 실행 세우기 · 점검 상태 · 케이스 한 번 · 점검 화면 · 판정 · 중단 · 다시 켜기 정리 (도메인/호환성 §3.13 「실행」 · 데이터모델 「호환성 표」)
 
+import { QA리포트를맡긴다 } from '../reporting/qaReport.js';
 import { db } from '../settings/store.js';
 import type { 상태줄, 케이스줄 } from './result.js';
 import type { 점검상태, 화면줄 } from './uiCheck.js';
@@ -182,13 +183,15 @@ export async function 빈점검닫기(runId: number): Promise<void> {
 
 /** 다 돌고 점검이 다 끝나면 끝낸다 — 끝내기는 호환성 몫이다(finishRun 은 run_item 이 없어 곧바로 끝낸다). 중단된 실행은 안 건드린다 */
 export async function 실행끝내기(runId: number): Promise<void> {
-  await (await db()).query(
+  const r = await (await db()).query(
     `UPDATE test_run SET status = 'FINISHED', finished_at = now()
       WHERE run_id = $1 AND status = 'RUNNING'
         AND NOT EXISTS (SELECT 1 FROM compat_run_device WHERE run_id = $1 AND state IN ('WAIT', 'RUNNING', 'CHECKING'))
         AND NOT EXISTS (SELECT 1 FROM compat_run_case WHERE run_id = $1 AND check_state = 'checking')`,
     [runId],
   );
+  // 이번에 끝냈을 때만 — 여러 번 불려도 한 번 다시 만든다 (도메인/리포팅 §3.17 결정 4)
+  if ((r.rowCount ?? 0) > 0) void QA리포트를맡긴다({ runId });
 }
 
 /**
@@ -211,6 +214,7 @@ export async function 실행멈추기(runId: number, 까닭: string): Promise<{ 
     );
     await c.query(`UPDATE test_run SET status = 'ABORTED', finished_at = now() WHERE run_id = $1`, [runId]);
     await c.query('COMMIT');
+    void QA리포트를맡긴다({ runId });
     return { held: 잡음.rows.map((x) => x.held_serial) };
   } catch (err) {
     await c.query('ROLLBACK');

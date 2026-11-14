@@ -8,6 +8,7 @@ import { 실행문서견주기 } from '../apidoc/runCompare.js';
 import { 배포실행뒤 } from '../bts/deployFlow.js';
 import { 실패등록 } from '../bts/failReport.js';
 import { 테스트수정실행뒤 } from '../bts/testFixRerun.js';
+import { QA리포트를맡긴다 } from '../reporting/qaReport.js';
 import { 안정화집계를맡긴다 } from '../stability/aggregate.js';
 
 import { 스모크뒤 } from './buildRun.js';
@@ -182,6 +183,8 @@ export async function dispatch(runId: number, items: PendingItem[]): Promise<voi
   await finishRun(runId);
   // 정기 실행이면 안정화 지표에 집계한다. trace 풀기를 길게(2시간까지) 기다려 안 기다린다 — 깨져도 줄이 로그만 남긴다 (도메인/안정화 §3.15 「집계」)
   void 안정화집계를맡긴다(runId);
+  // 그 빌드 묶음의 승인 전 QA 리포트를 다시 만든다 — 깨져도 줄이 로그만 남긴다 (도메인/리포팅 §3.17 결정 4)
+  void QA리포트를맡긴다({ runId });
 
   // 빌드 스모크의 마지막 실행이 다 통과했으면 회귀를 건다. 실패해도 이 실행은 이미 끝났다 (도메인/실행 §3.11)
   try {

@@ -2,6 +2,7 @@
 
 import type { Pool, PoolClient } from 'pg';
 
+import { QA리포트를맡긴다 } from '../reporting/qaReport.js';
 import type { 기기판정줄 } from './deviceStats.js';
 import type { SecRow } from './judge.js';
 import type { 페이지목표줄 } from './pageStats.js';
@@ -178,6 +179,8 @@ export async function 끝쓰기(runId: number, v: 끝값): Promise<boolean> {
       v.p95 === null ? null : Math.round(v.p95), v.errorRate === null ? null : Math.round(v.errorRate * 1000) / 1000, v.degraded],
   );
   await 에이전트풀기(runId);
+  // 성능 실행도 그 빌드 묶음의 QA 리포트에 든다 — 끝난 자리가 여럿이라 닫는 이 한 곳에서 부른다 (도메인/리포팅 §3.17 결정 4)
+  if ((r.rowCount ?? 0) > 0) void QA리포트를맡긴다({ perfRunId: runId });
   return (r.rowCount ?? 0) > 0;
 }
 

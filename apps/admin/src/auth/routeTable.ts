@@ -282,6 +282,11 @@ export const 등급표: Record<string, 표값> = {
   'GET /api/stability/errors/:id': 실행읽기,
   'POST /api/stability/errors/:id/resolve': 실행쓰기,
   'POST /api/stability/errors/:id/issue': 실행쓰기,
+  // 애플리케이션 QA 리포트 보기 (인증 §7 「등급으로 갈리는 자리」 QA 리포트 보기 · 받기 · 도메인/리포팅 §7 「QA 리포트 통로」)
+  'GET /api/qa-reports': 실행읽기,
+  'GET /api/qa-reports/:id': 실행읽기,
+  'GET /api/runs/:runId/qa-report': 실행읽기,
+  'GET /api/perf/runs/:id/qa-report': 실행읽기,
   // 정기 실행 세트 (인증 §7 「등급으로 갈리는 자리」 정기 실행 두 줄 · 도메인/정기실행 §7). 문은 어딘가의 실행 칸만 보고, 그 프로젝트의 칸은 라우트가 본다
   'GET /api/sched/sets': 실행읽기,
   'GET /api/sched/sets/:id': 실행읽기,
