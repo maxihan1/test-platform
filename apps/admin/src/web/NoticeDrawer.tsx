@@ -86,6 +86,8 @@ export function NoticeDrawer({ recent, approvals, 읽음, 지금, onClose, on읽
                   className="nt-item-link"
                   href={줄.열기}
                   onClick={() => {
+                    // 리포트 화면의 머리 · 목록으로 돌아가기는 사이드바 애플리케이션을 따른다 — 그 리포트의 애플리케이션으로 맞춘다
+                    서비스바꿈(a.prefix);
                     on읽음([줄.열쇠]);
                     onClose();
                   }}

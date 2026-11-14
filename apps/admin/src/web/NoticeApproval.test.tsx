@@ -17,11 +17,13 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+const 바꿈 = vi.fn();
+
 function 띄운다(답: NoticeResponse) {
   vi.spyOn(api, 'notifications').mockResolvedValue(답);
   render(
     <언어함 value="ko">
-      <Notice 줄숨김={false} 서비스바꿈={vi.fn()} />
+      <Notice 줄숨김={false} 서비스바꿈={바꿈} />
     </언어함>,
   );
 }
@@ -55,12 +57,13 @@ describe('알림 서랍의 승인 전 QA 리포트', () => {
     expect(서랍.getByText('빌드 124 QA 리포트 · 승인 전')).toBeTruthy();
   });
 
-  it('누르면 리포트 보기로 가고 읽음 열쇠가 적히며 서랍이 닫힌다', async () => {
+  it('누르면 그 애플리케이션으로 바꿔 리포트 보기로 가고 읽음 열쇠가 적히며 서랍이 닫힌다', async () => {
     const 서랍 = await 연다({ running: [], recent: [], approvals: [승인전(7)] }, '안 읽은 알림 1건');
     const 링크 = 서랍.getByRole('link');
     expect(링크.getAttribute('href')).toBe('#/qa-reports/7');
     fireEvent.click(링크);
     expect(읽음들().has('qa_report:7')).toBe(true);
+    expect(바꿈).toHaveBeenCalledWith('PAY');
     expect(screen.queryByRole('complementary', { name: '알림' })).toBeNull();
     expect(document.querySelector('.nt-badge')).toBeNull();
   });

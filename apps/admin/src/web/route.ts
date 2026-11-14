@@ -49,6 +49,8 @@ export type Route =
   | { name: 'sched' }
   /** 결과 분석 › QA 리포트 — 화면 안 탭 둘이 주소다(`#/qa-reports` · `#/qa-reports/project`) (도메인/리포팅 §8.21 「자리」) */
   | { name: 'qaReports'; tab: 'app' | 'project' }
+  /** QA 리포트 하나 — 버전마다 번호가 달라 주소가 곧 버전이다 (도메인/리포팅 §8.21 「자리」) */
+  | { name: 'qaReport'; id: number }
   /** 안정화 지표 오류 상세. run — 목록에서 고른 날의 집계 줄(`?run=`). 없으면 그 종류가 남은 가장 최근 실행 (도메인/안정화 §8.19 「상세」) */
   | { name: 'stabilityError'; id: number; run?: number }
   /** reqId — 케이스 목록의 요구 번호에서 왔다. 그 항목을 펴서 보인다 */
@@ -206,6 +208,7 @@ export function route(hash: string): Route {
   if (parts[0] === 'qa-reports') {
     if (parts.length === 1) return { name: 'qaReports', tab: 'app' };
     if (parts.length === 2 && parts[1] === 'project') return { name: 'qaReports', tab: 'project' };
+    if (parts.length === 2 && /^\d{1,10}$/.test(parts[1]!)) return { name: 'qaReport', id: Number(parts[1]) };
   }
 
   if (parts[0] === 'stability' && parts.length === 1) {
@@ -274,6 +277,7 @@ export const 기능자리: Partial<Record<Route['name'], 기능>> = {
   sched: 'runs',
   // QA 리포트도 실행 칸을 쓴다 (도메인/인증 §7 「등급으로 갈리는 자리」 QA 리포트 줄들)
   qaReports: 'runs',
+  qaReport: 'runs',
   stabilityError: 'runs',
   // 호환성은 실행 칸을 쓴다 (도메인/호환성 §7). 세트 주소는 `?service=` 로 그 세트의 애플리케이션을 담는다
   compatSets: 'runs',

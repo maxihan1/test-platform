@@ -39,6 +39,7 @@ import { RunWindow } from './RunWindow.js';
 import { PerfDevices } from './PerfDevices.js';
 import { PerfPages } from './PerfPages.js';
 import { Sched } from './Sched.js';
+import { QaReport } from './QaReport.js';
 import { QaReports } from './QaReports.js';
 import { Stability } from './Stability.js';
 import { StabilityDetail } from './StabilityDetail.js';
@@ -207,6 +208,9 @@ function Screen({
     case 'qaReports':
       // 애플리케이션마다 새로 그린다 — 앞 애플리케이션의 대상 서버 거르개 · 쪽이 남지 않게 (도메인/리포팅 §8.21)
       return service === null ? <div className="empty">{t('애플리케이션을 먼저 선택해 주세요')}</div> : <QaReports key={`${prefix}:${current.tab}`} service={service} tab={current.tab} />;
+    case 'qaReport':
+      // 리포트는 제 애플리케이션을 안다 — 사이드바 애플리케이션과 달라도 연다. 권한은 서버가 리포트의 애플리케이션으로 본다
+      return <QaReport key={current.id} id={current.id} user={user} />;
     case 'stability':
       // API 는 메뉴가 없다 — 주소로 와도 안내만 한다 (도메인/안정화 §8.19 「자리」). 애플리케이션 · 주소의 날 · 창마다 새로 그린다 — 메뉴를 다시 누르면(`#/stability`) 가장 최근 날로 돌아가야 한다
       if (service?.kind === 'API') return <div className="empty">{t('API 애플리케이션은 안정화 지표를 집계하지 않습니다')}</div>;

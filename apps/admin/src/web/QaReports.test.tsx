@@ -76,6 +76,8 @@ describe('QA 리포트 › 애플리케이션 탭', () => {
     // 성능 실행 하나는 성능 실행 화면의 번호 꼴이다
     expect(셋!.getByText('PRF-0012')).toBeTruthy();
     expect(screen.getByText('리포트 3건')).toBeTruthy();
+    // 줄을 누르면 앱 안 리포트 보기로 간다
+    expect(첫!.getByRole('link').getAttribute('href')).toBe('#/qa-reports/1');
   });
 
   it('승인 상태 · 대상 서버로 거르면 서버에 그 조건을 넘기고 주소에 남긴다', async () => {

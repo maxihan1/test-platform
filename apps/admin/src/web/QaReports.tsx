@@ -18,9 +18,8 @@ const 종류이름: Record<리포트종류, string> = { FN: '기능', UI: 'UI', 
 function 줄하나({ 줄, t, 언어 }: { 줄: 리포트줄; t: 말; 언어: 언어 }) {
   const 승인됨 = 줄.approvedAt !== null;
   return (
-    // ponytail: 리포트 보기 화면(QAR-F1-10)이 서기 전까지 HTML 문서를 새 탭으로 연다. 10 이 `#/qa-reports/<번호>` 로 바꾼다
     <li>
-      <a className="qar-row" href={`/api/qa-reports/${String(줄.id)}/file?format=HTML`} target="_blank" rel="noreferrer">
+      <a className="qar-row" href={`#/qa-reports/${String(줄.id)}`}>
         <span className="qar-row-top">
           <b className="qar-name">{리포트이름(줄, t)}</b>
           {/* 상태를 색으로만 말하지 않는다 — 글자가 먼저다 */}
