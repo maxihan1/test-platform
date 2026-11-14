@@ -44,6 +44,7 @@ import './perf.css';
 import './perfPages.css';
 import './perfDevices.css';
 import './stability.css';
+import './qaReports.css';
 import './sched.css';
 import './schedCal.css';
 import './schedRuns.css';

@@ -1,6 +1,6 @@
 // 메뉴 아이콘 — 패키지 없이 SVG 를 직접 둔다 (DESIGN.md 원칙 5). 글자를 대신하지 않고 곁에 선다
 
-export type 아이콘이름 = 'dashboard' | 'cases' | 'prd' | 'api' | 'authoring' | 'scenarios' | 'runs' | 'perf' | 'stability' | 'sched' | 'compat' | 'defect' | 'graph' | 'settings' | 'run' | 'bell' | 'person' | 'desktop' | 'web' | 'phone' | 'game' | 'sun' | 'moon' | 'search' | 'chev' | 'project' | 'menu';
+export type 아이콘이름 = 'dashboard' | 'cases' | 'prd' | 'api' | 'authoring' | 'scenarios' | 'runs' | 'perf' | 'stability' | 'report' | 'sched' | 'compat' | 'defect' | 'graph' | 'settings' | 'run' | 'bell' | 'person' | 'desktop' | 'web' | 'phone' | 'game' | 'sun' | 'moon' | 'search' | 'chev' | 'project' | 'menu';
 
 // 24 격자 · 선 1.8 · 둥근 끝. 색은 글자를 따른다(currentColor) — 지금 자리면 글자와 같이 밝아진다
 const 그림: Record<아이콘이름, React.ReactNode> = {
@@ -68,6 +68,13 @@ const 그림: Record<아이콘이름, React.ReactNode> = {
   ),
   // 맥박 선 — 정기 실행마다 오류가 오르내리는 것을 본다
   stability: <path d="M3 12h4l2-5 4 10 2-5h6" />,
+  // 접힌 귀퉁이 문서와 줄 — 빌드마다 낸 QA 리포트 (도메인/리포팅 §8.21)
+  report: (
+    <>
+      <path d="M6 3h8l4 4v14H6z" />
+      <path d="M14 3v4h4M9 12h6M9 16h6" />
+    </>
+  ),
   // 달력 — 정한 날에 도는 세트
   sched: (
     <>
