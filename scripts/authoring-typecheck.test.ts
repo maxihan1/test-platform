@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { 앱tsc인자 } from './authoring-typecheck.js';
+import { 관문tsc인자, 앱tsc인자 } from './authoring-typecheck.js';
 
 const 치울것: string[] = [];
 afterEach(() => {
@@ -57,4 +57,13 @@ describe('앱tsc인자', () => {
     // 마지막 케이스를 지워 빈 폴더여도 「입력 없음」으로 실패하지 않는다
     expect(tsc('ccc').status).toBe(0);
   }, 60_000);
+});
+
+describe('관문tsc인자', () => {
+  it('tsconfig 를 에이전트 tmpdir 이 아니라 사본 뿌리 안 새 폴더에 둔다 — 자식 uid 가 내려갈 수 있는 자리다', () => {
+    const 뿌리 = mkdtempSync(join(tmpdir(), 'tc-root-'));
+    치울것.push(뿌리);
+    const 인자 = 관문tsc인자({ 트리: join(뿌리, 'tree'), 뿌리 }, 'aaa');
+    expect(dirname(dirname(인자[3] as string))).toBe(뿌리);
+  });
 });
