@@ -112,7 +112,7 @@ export default async function qaProjectReportRoutes(app: FastifyInstance): Promi
     const f = 형식들[형식];
     const 보낸다 = (파일: Buffer | string) => reply.type(f.mime).header('content-disposition', `${f.펼침}; filename="qa-project-report-${id}.${f.ext}"`).send(파일);
     if (형식 === 'DOCX') return 보낸다(await renderProjectReportDocx(읽음.응답));
-    const html = renderProjectReportHtml(읽음.응답);
+    const html = renderProjectReportHtml(읽음.응답, 형식);
     return 보낸다(형식 === 'HTML' ? html : await PDF로(html));
   });
 }

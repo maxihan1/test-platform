@@ -119,7 +119,7 @@ function 결함추이(b: 몸): 덩이[] {
   const d = b.defects;
   return [
     절,
-    { 꼴: '글', 글: `신규 ${d.opened} · 해결 ${d.closed} · 열린 결함 ${d.days[0]?.open ?? 0} → ${d.days.at(-1)?.open ?? 0}` },
+    { 꼴: '글', 글: `신규 ${d.opened} · 해결 ${d.closed} · 열린 결함 ${d.start} → ${d.days.at(-1)?.open ?? d.start}` },
     { 꼴: '글', 글: `날마다 그날 끝에 열린 결함: ${바뀐날글(d.days.map((x) => ({ day: x.day, 값: x.open })))}`, 결: '흐림' },
   ];
 }
@@ -198,7 +198,7 @@ function 부록(b: 몸): 덩이[] {
       줄: b.appendix.flatMap((a) =>
         a.reports.map((r) => ({
           칸: [a.name, r.buildNo !== null ? `빌드 ${r.buildNo}` : r.runId !== null ? `RUN ${r.runId}` : `PRF-${String(r.perfRunId ?? 0).padStart(4, '0')}`, `버전 ${r.version}`, r.approved ? '승인됨' : '승인 전'],
-          // 화면 안 리포트 보기 주소 — 같은 출처라 HTML 에서 바로 열린다
+          // 화면 안 리포트 보기 주소 — 같은 출처라 HTML 에서 바로 열린다. PDF 는 출처가 없어 renderProjectReportHtml 이 걷는다
           고리: [null, `/#/qa-reports/${String(r.id)}`, null, null],
         })),
       ),
@@ -221,14 +221,16 @@ export function 프로젝트리포트글(r: 프로젝트리포트응답): 덩이
   ].map((d) => (d.꼴 === '절' ? { ...d, 글: `${++번호}. ${d.글}` } : d));
 }
 
-export function renderProjectReportHtml(r: 프로젝트리포트응답): string {
+export function renderProjectReportHtml(r: 프로젝트리포트응답, format: 'HTML' | 'PDF' = 'HTML'): string {
   const 제목 = 프로젝트리포트제목(r);
+  // PDF 는 앱 밖에서 열려 상대 주소 링크가 아무 데도 안 간다 — 글만 남긴다
+  const 덩이들 = 프로젝트리포트글(r).map((d) => (format === 'PDF' && d.꼴 === '표' ? { ...d, 줄: d.줄.map(({ 고리: _, ...z }) => z) } : d));
   return 문서판(제목, [
     리포트스타일,
     `<header class="cover">`,
     `  <div><div class="kicker">프로젝트 QA 리포트</div><h1>${안전(제목)}</h1><div class="when">${안전(시각(r.createdAt))} 기준 집계</div></div>`,
     `</header>`,
-    ...첫장(프로젝트리포트글(r)),
+    ...첫장(덩이들),
   ]);
 }
 

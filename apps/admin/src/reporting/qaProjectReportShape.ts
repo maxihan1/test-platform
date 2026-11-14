@@ -104,8 +104,8 @@ export interface 프로젝트몸 {
   changes: { issues: number; confirmed: number } | null;
   /** 요구사항 커버리지 — 기간 시작 때 값(start)과 기간 안 작성 완료마다 한 점 */
   coverage: { serviceId: number; name: string; start: 커버리지점 | null; points: 커버리지점[] }[];
-  /** 결함 추이 — 날마다 그날 끝에 열린 이슈 수. 미연결이면 null */
-  defects: { opened: number; closed: number; days: { day: string; open: number }[] } | null;
+  /** 결함 추이 — start 는 기간 시작 때 열린 수, days 는 날마다 그날 끝에 열린 수. 켜진 애플리케이션 이슈만. 미연결이면 null */
+  defects: { opened: number; closed: number; start: number; days: { day: string; open: number }[] } | null;
   nonFunctional: 비기능줄[];
   /** 진행을 막은 것 — 0 인 애플리케이션은 안 싣는다 */
   blocked: { serviceId: number; name: string; aborted: number; prepFailed: number; perfErrors: number }[];

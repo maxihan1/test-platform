@@ -78,7 +78,11 @@ describe.skipIf(연결 === undefined)('프로젝트 QA 리포트', { timeout: 12
     await 항목(끝난, 'XQJ-FN-001', 'PASS');
     await 항목(끝난, 'XQJ-FN-002', 'FAIL');
     await 실행('ABORTED', '2026-11-04T10:00:00+09:00');
-    await 항목(await 실행('FINISHED', '2026-10-20T10:00:00+09:00'), 'XQJ-FN-001', 'FAIL');
+    const 앞 = await 실행('FINISHED', '2026-10-20T10:00:00+09:00');
+    await 항목(앞, 'XQJ-FN-001', 'FAIL');
+    await 항목(앞, 'XQJ-FN-002', 'PASS');
+    // 기간 뒤에 고쳐 통과한 실행 — 지난 기간 리포트의 회귀 실패 · 해결 셈에 들면 안 된다
+    await 항목(await 실행('FINISHED', '2026-11-10T10:00:00+09:00'), 'XQJ-FN-002', 'PASS');
 
     // 애플리케이션 리포트 — 기간 안 하나(승인 전), 기간 밖 하나
     const 리포트 = (열쇠: string, build: string, 끝: string) =>
@@ -88,6 +92,16 @@ describe.skipIf(연결 === undefined)('프로젝트 QA 리포트', { timeout: 12
       );
     await 리포트('B:XQJ:qa:1.0', '1.0', '2026-11-03T02:00:00Z');
     await 리포트('B:XQJ:qa:0.9', '0.9', '2026-10-20T02:00:00Z');
+    // 버전 1 을 승인한 뒤 버전 2(승인 전)가 선 묶음 — 부록은 승인한 버전 1 을 가리킨다
+    await pool.query(
+      `INSERT INTO qa_report (bundle_key, service_id, service_name, env, build_no, version, summary, approved_by, approved_at, pdf_path, pdf_sha256)
+       VALUES ('B:XQJ:qa:1.1', $1, 'XQJ 웹', 'qa', '1.1', 1, $2, 'xqj-admin', now(), 'x.pdf', 'aa')`,
+      [앱, JSON.stringify({ overview: { startedAt: '2026-11-05T02:00:00Z', finishedAt: '2026-11-05T02:00:00Z' }, results: { functional: [], nonFunctional: [] } })],
+    );
+    await pool.query(
+      `INSERT INTO qa_report (bundle_key, service_id, service_name, env, build_no, version, summary) VALUES ('B:XQJ:qa:1.1', $1, 'XQJ 웹', 'qa', '1.1', 2, $2)`,
+      [앱, JSON.stringify({ overview: { startedAt: '2026-11-05T02:00:00Z', finishedAt: '2026-11-06T02:00:00Z' }, results: { functional: [{ kind: 'FN', result: { pass: 1, fail: 1, notRun: 0, unconfirmed: 0 } }], nonFunctional: [] } })],
+    );
 
     // 성능 목표 둘 통과 · 하나 미달, 안정화 하루
     await pool.query(
@@ -113,6 +127,10 @@ describe.skipIf(연결 === undefined)('프로젝트 QA 리포트', { timeout: 12
       )
     ).rows[0]!.id;
     await pool.query(`INSERT INTO bts_claim (project_id, issue_key, deploy_id, issue_type, released_at) VALUES ($1, 'XQJ-1', $2, 'TASK', '2026-11-03T10:00:00+09:00')`, [프로젝트, 배포]);
+    await pool.query(`INSERT INTO bts_issue_case (project_id, issue_key, service_id, tc_id, env, created_at) VALUES ($1, 'XQJ-3', $2, 'XQJ-FN-001', 'qa', '2026-10-30T12:00:00+09:00')`, [
+      프로젝트,
+      앱,
+    ]);
     await pool.query(`INSERT INTO bts_issue_case (project_id, issue_key, service_id, tc_id, env, created_at) VALUES ($1, 'XQJ-2', $2, 'XQJ-FN-002', 'qa', '2026-11-03T12:00:00+09:00')`, [
       프로젝트,
       앱,
@@ -157,19 +175,23 @@ describe.skipIf(연결 === undefined)('프로젝트 QA 리포트', { timeout: 12
     expect(r).toMatchObject({ projectName: 'XQJ 프로젝트', from: 기간.from, to: 기간.to, origin: 'MANUAL', createdBy: 'xqj-writer 이름', ai: null });
     const b = r.body;
     expect(b.apps).toHaveLength(1);
-    expect(b.apps[0]).toMatchObject({ prefix: 'XQJ', runs: { pass: 1, fail: 1, notRun: 0 }, builds: ['1.0'], reports: 1, unapproved: 1, openDefects: 1 });
+    expect(b.apps[0]).toMatchObject({ prefix: 'XQJ', runs: { pass: 1, fail: 1, notRun: 0 }, newFailures: 1, resolved: 1, builds: ['1.0', '1.1'], reports: 2, unapproved: 2, openDefects: 2 });
+    expect(b.apps[0]!.last).toMatchObject({ buildNo: '1.1', version: 2, approved: false });
     expect(b.apps[0]!.last?.results.functional[0]).toMatchObject({ kind: 'FN', result: { pass: 1, fail: 1 } });
     expect(b.passRate.current).toEqual({ pass: 1, fail: 1, notRun: 0 });
     expect(b.daily).toHaveLength(7);
     expect(b.deploys).toMatchObject({ count: 1, rollbacks: 0 });
     expect(b.changes).toEqual({ issues: 1, confirmed: 1 });
-    expect(b.defects?.opened).toBe(1);
-    expect(b.defects?.days.map((d) => d.open)).toEqual([0, 0, 1, 1, 1, 1, 1]);
+    expect(b.defects).toMatchObject({ opened: 1, start: 1 });
+    expect(b.defects?.days.map((d) => d.open)).toEqual([1, 1, 2, 2, 2, 2, 2]);
     expect(b.nonFunctional[0]!.perf).toEqual([expect.objectContaining({ day: '2026-11-05', kind: 'PAGE', pass: 2, fail: 1 })]);
     expect(b.nonFunctional[0]!.stab).toMatchObject({ days: [{ day: '2026-11-05', passErrorCases: 2, cases: 40, crashes: null, residual: 4 }], confirmed: 1 });
     expect(b.blocked).toEqual([{ serviceId: 앱, name: 'XQJ 웹', aborted: 1, prepFailed: 0, perfErrors: 0 }]);
     expect(b.upcoming).toMatchObject({ from: '2026-11-08', to: '2026-11-14', sets: [{ name: 'XQJ 회귀', runs: 7 }] });
-    expect(b.appendix[0]!.reports).toEqual([expect.objectContaining({ buildNo: '1.0', approved: false })]);
+    expect(b.appendix[0]!.reports).toEqual([
+      expect.objectContaining({ buildNo: '1.0', approved: false }),
+      expect.objectContaining({ buildNo: '1.1', version: 1, approved: true }),
+    ]);
     expect(b.previous).toBeNull();
   });
 

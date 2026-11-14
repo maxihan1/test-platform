@@ -28,14 +28,18 @@ async function 앱리포트들(pool: Pool, 값: unknown[]) {
   const r = await pool.query<{
     id: string; service_id: string; build_no: string | null; run_id: string | null; perf_run_id: string | null; version: number; approved: boolean;
     started: string | null; results: NonNullable<앱줄['last']>['results'];
+    approved_id: string | null; approved_version: number | null;
   }>(
     `WITH 마지막 AS (
        SELECT DISTINCT ON (q.bundle_key) q.* FROM qa_report q WHERE q.service_id = ANY($1::bigint[]) ORDER BY q.bundle_key, q.version DESC)
-     SELECT id, service_id, build_no, run_id, perf_run_id, version, approved_at IS NOT NULL AS approved,
-            summary->'overview'->>'startedAt' AS started, summary->'results' AS results
-       FROM 마지막
-      WHERE ${기간안("COALESCE((summary->'overview'->>'finishedAt')::timestamptz, updated_at)")}
-      ORDER BY COALESCE((summary->'overview'->>'finishedAt')::timestamptz, updated_at), id`,
+     SELECT m.id, m.service_id, m.build_no, m.run_id, m.perf_run_id, m.version, m.approved_at IS NOT NULL AS approved,
+            m.summary->'overview'->>'startedAt' AS started, m.summary->'results' AS results, 승.id AS approved_id, 승.version AS approved_version
+       FROM 마지막 m
+       -- 부록은 승인된 버전을 가리킨다 — 승인 뒤 다시 실행으로 버전 2(승인 전)가 섰어도 승인한 버전 1 이 기준 문서다 (§3.17 「프로젝트 QA 리포트」 부록)
+       LEFT JOIN LATERAL (SELECT a.id, a.version FROM qa_report a WHERE a.bundle_key = m.bundle_key AND a.approved_at IS NOT NULL
+                           ORDER BY a.version DESC LIMIT 1) 승 ON true
+      WHERE ${기간안("COALESCE((m.summary->'overview'->>'finishedAt')::timestamptz, m.updated_at)")}
+      ORDER BY COALESCE((m.summary->'overview'->>'finishedAt')::timestamptz, m.updated_at), m.id`,
     값,
   );
   return r.rows;
@@ -69,7 +73,7 @@ async function 비기능(pool: Pool, 값: unknown[]) {
               (SELECT count(*) FROM jsonb_array_elements(COALESCE(r.targets, '[]')) t WHERE t->>'verdict' = 'PASS')::int AS pass,
               (SELECT count(*) FROM jsonb_array_elements(COALESCE(r.targets, '[]')) t WHERE t->>'verdict' = 'FAIL')::int AS fail
          FROM perf_run r
-        WHERE r.service_id = ANY($1::bigint[]) AND r.verdict IS NOT NULL AND ${기간안('r.started_at')}
+        WHERE r.service_id = ANY($1::bigint[]) AND r.verdict IS NOT NULL AND ${기간안('COALESCE(r.started_at, r.created_at)')}
         ORDER BY r.started_at, r.id`,
       값,
     ),
@@ -96,12 +100,13 @@ async function 비기능(pool: Pool, 값: unknown[]) {
   return { 성능: 성능.rows, 안정화: 안정화.rows, 오류: 오류.rows };
 }
 
+/** 값 = [프로젝트, from, to, tz, 켜진 애플리케이션 번호들] — 꺼진 애플리케이션의 이슈는 안 센다 */
 async function Bunker(pool: Pool, 값: unknown[]) {
   const 끝시각 = (await pool.query<{ t: Date }>(`SELECT (($1::date + 1)::timestamp AT TIME ZONE $2::text) AS t`, [값[2], 값[3]])).rows[0]!.t;
   const [배포, 변경, 결함날, 결함수, 열린] = await Promise.all([
     pool.query<{ build_no: string; at: Date; rollback: boolean }>(
       `SELECT build_no, created_at AS at, rollback FROM bts_deploy WHERE project_id = $1 AND ${기간안('created_at')} ORDER BY created_at`,
-      값,
+      값.slice(0, 4),
     ),
     // 변경 확인 — 기간 안 배포(롤백 빼고)에 든 이슈 가운데 「QA 요청」을 떠난(QA Hub 가 맡음을 놓은) 이슈
     pool.query<{ issues: number; confirmed: number }>(
@@ -109,21 +114,21 @@ async function Bunker(pool: Pool, 값: unknown[]) {
               count(DISTINCT c.issue_key) FILTER (WHERE c.released_at < ${끝})::int AS confirmed
          FROM bts_claim c JOIN bts_deploy d ON d.id = c.deploy_id
         WHERE d.project_id = $1 AND NOT d.rollback AND ${기간안('d.created_at')}`,
-      값,
+      값.slice(0, 4),
     ),
     // 날마다 그날 끝에 열린 이슈 — 한 이슈에 테스트가 여럿 붙어 키로 센다
     pool.query<{ day: string; open: number }>(
       `SELECT to_char(d, 'YYYY-MM-DD') AS day,
               (SELECT count(DISTINCT i.issue_key) FROM bts_issue_case i
-                WHERE i.project_id = $1 AND i.created_at < ((d::date + 1)::timestamp AT TIME ZONE $4::text)
+                WHERE i.project_id = $1 AND i.service_id = ANY($5::bigint[]) AND i.created_at < ((d::date + 1)::timestamp AT TIME ZONE $4::text)
                   AND (i.closed_at IS NULL OR i.closed_at >= ((d::date + 1)::timestamp AT TIME ZONE $4::text)))::int AS open
-         FROM generate_series($2::date, $3::date, interval '1 day') AS g(d)
+         FROM generate_series($2::date - 1, $3::date, interval '1 day') AS g(d)
         ORDER BY d`,
       값,
     ),
     pool.query<{ opened: number; closed: number }>(
-      `SELECT (SELECT count(DISTINCT issue_key) FROM bts_issue_case WHERE project_id = $1 AND ${기간안('created_at')})::int AS opened,
-              (SELECT count(DISTINCT issue_key) FROM bts_issue_case WHERE project_id = $1 AND ${기간안('closed_at')})::int AS closed`,
+      `SELECT (SELECT count(DISTINCT issue_key) FROM bts_issue_case WHERE project_id = $1 AND service_id = ANY($5::bigint[]) AND ${기간안('created_at')})::int AS opened,
+              (SELECT count(DISTINCT issue_key) FROM bts_issue_case WHERE project_id = $1 AND service_id = ANY($5::bigint[]) AND ${기간안('closed_at')})::int AS closed`,
       값,
     ),
     pool.query<{ service_id: string; n: number }>(
@@ -134,15 +139,19 @@ async function Bunker(pool: Pool, 값: unknown[]) {
       [값[0], 끝시각],
     ),
   ]);
-  return { 배포: 배포.rows, 변경: 변경.rows[0]!, 결함날: 결함날.rows, 결함수: 결함수.rows[0]!, 열린: new Map(열린.rows.map((x) => [Number(x.service_id), x.n])) };
+  // 첫 줄은 기간 앞날 끝 — 기간 시작 때 열린 수다
+  return { 배포: 배포.rows, 변경: 변경.rows[0]!, 결함시작: 결함날.rows[0]?.open ?? 0, 결함날: 결함날.rows.slice(1), 결함수: 결함수.rows[0]!, 열린: new Map(열린.rows.map((x) => [Number(x.service_id), x.n])) };
 }
+
+// 막힌 것은 실행 종류 넷 다 센다 — E2E · 호환성 실행이 멈춰도 그 기간 시험이 막힌 것이다 (§3.17 「QAR-F1-11 이 정한 것」 막힌 것)
+const 막힘종류 = `('UI', 'FN', 'SCENARIO', 'COMPAT')`;
 
 async function 막힘(pool: Pool, 값: unknown[]) {
   const r = await pool.query<{ service_id: string; aborted: number; prep_failed: number; perf_errors: number }>(
     `SELECT s.id AS service_id,
-            (SELECT count(*) FROM test_run t WHERE t.service_id = s.id AND t.status = 'ABORTED' AND ${기간안('t.started_at')})::int AS aborted,
-            (SELECT count(*) FROM test_run t WHERE t.service_id = s.id AND t.status = 'PREP_FAILED' AND ${기간안('t.started_at')})::int AS prep_failed,
-            (SELECT count(*) FROM perf_run p WHERE p.service_id = s.id AND p.status = 'ERROR' AND ${기간안('p.created_at')})::int AS perf_errors
+            (SELECT count(*) FROM test_run t WHERE t.service_id = s.id AND t.kind IN ${막힘종류} AND t.status = 'ABORTED' AND ${기간안('t.started_at')})::int AS aborted,
+            (SELECT count(*) FROM test_run t WHERE t.service_id = s.id AND t.kind IN ${막힘종류} AND t.status = 'PREP_FAILED' AND ${기간안('t.started_at')})::int AS prep_failed,
+            (SELECT count(*) FROM perf_run p WHERE p.service_id = s.id AND p.status = 'ERROR' AND ${기간안('COALESCE(p.started_at, p.created_at)')})::int AS perf_errors
        FROM service s WHERE s.id = ANY($1::bigint[]) ORDER BY s.id`,
     값,
   );
@@ -169,7 +178,7 @@ export async function 프로젝트숫자(pool: Pool, projectId: number, 기간: 
     앱리포트들(pool, 값),
     커버리지(pool, 값),
     비기능(pool, 값),
-    프.bts ? Bunker(pool, [projectId, from, to, tz]) : null,
+    프.bts ? Bunker(pool, [projectId, from, to, tz, ids]) : null,
     막힘(pool, 값),
     pool.query<{ name: string; at: string; tz: string; days: number[] | null; once_on: string | null }>(
       `SELECT name, to_char(at, 'HH24:MI') AS at, tz, days, to_char(once_on, 'YYYY-MM-DD') AS once_on FROM sched_set WHERE project_id = $1 AND is_on ORDER BY at, name`,
@@ -223,7 +232,7 @@ export async function 프로젝트숫자(pool: Pool, projectId: number, 기간: 
         const 앞 = 내것.find((c) => c.앞);
         return { serviceId: s.id, name: s.name, start: 앞 === undefined ? null : 점(앞), points: 내것.filter((c) => !c.앞).map(점) };
       }),
-    defects: 벙커 === null ? null : { opened: 벙커.결함수.opened, closed: 벙커.결함수.closed, days: 벙커.결함날 },
+    defects: 벙커 === null ? null : { opened: 벙커.결함수.opened, closed: 벙커.결함수.closed, start: 벙커.결함시작, days: 벙커.결함날 },
     nonFunctional: 앱들.map((s) => {
       const 하루들 = 비.안정화.filter((x) => Number(x.service_id) === s.id);
       const 오류 = 비.오류.find((x) => Number(x.service_id) === s.id);
@@ -253,7 +262,13 @@ export async function 프로젝트숫자(pool: Pool, projectId: number, 기간: 
         .filter((x) => x.runs > 0),
     },
     appendix: 앱들
-      .map((s) => ({ serviceId: s.id, name: s.name, reports: 리포트들.filter((r) => Number(r.service_id) === s.id).map(고리) }))
+      .map((s) => ({
+        serviceId: s.id,
+        name: s.name,
+        reports: 리포트들
+          .filter((r) => Number(r.service_id) === s.id)
+          .map((r) => (r.approved_id === null ? 고리(r) : { ...고리(r), id: Number(r.approved_id), version: r.approved_version ?? r.version, approved: true })),
+      }))
       .filter((a) => a.reports.length > 0),
     previous: 앞리포트,
   };

@@ -35,15 +35,18 @@ async function 한트랜잭션<T>(일: (c: PoolClient) => Promise<T>): Promise<T
  */
 export async function 프로젝트리포트만들기(projectId: number, 기간: { from: string; to: string; tz: string }, origin: 'MANUAL' | 'SCHEDULED', 만든이: string): Promise<number> {
   const pool = await db();
-  const 앞 = (
-    await pool.query<{ id: string; period_from: string; period_to: string }>(
-      `SELECT id, to_char(period_from, 'YYYY-MM-DD') AS period_from, to_char(period_to, 'YYYY-MM-DD') AS period_to
-         FROM qa_project_report WHERE project_id = $1 ORDER BY created_at DESC, id DESC LIMIT 1`,
-      [projectId],
-    )
-  ).rows[0];
-  const 몸 = await 프로젝트숫자(pool, projectId, 기간, 앞 === undefined ? null : { id: Number(앞.id), from: 앞.period_from, to: 앞.period_to });
+  // 숫자는 잠금 밖에서 모은다(길다). 지난 리포트는 프로젝트 줄을 잠근 뒤 읽는다 — 둘이 동시에 만들어도 같은 지난 리포트를 가리켜 사슬이 갈라지지 않게
+  const 숫자 = await 프로젝트숫자(pool, projectId, 기간, null);
   return 한트랜잭션(async (c) => {
+    await c.query('SELECT 1 FROM project WHERE id = $1 FOR UPDATE', [projectId]);
+    const 앞 = (
+      await c.query<{ id: string; period_from: string; period_to: string }>(
+        `SELECT id, to_char(period_from, 'YYYY-MM-DD') AS period_from, to_char(period_to, 'YYYY-MM-DD') AS period_to
+           FROM qa_project_report WHERE project_id = $1 ORDER BY created_at DESC, id DESC LIMIT 1`,
+        [projectId],
+      )
+    ).rows[0];
+    const 몸: 프로젝트몸 = { ...숫자, previous: 앞 === undefined ? null : { id: Number(앞.id), from: 앞.period_from, to: 앞.period_to } };
     const id = Number(
       (
         await c.query<{ id: string }>(
@@ -62,8 +65,9 @@ export async function 프로젝트리포트만들기(projectId: number, 기간: 
     ).rows[0];
     if (대표 !== undefined) {
       const 일 = await c.query<{ id: string }>(
-        `INSERT INTO perf_ai_job (kind, service_id, input, status, created_by) VALUES ('REPORT_RISK', $1, $2, 'QUEUED', '스케줄러') RETURNING id`,
-        [대표.id, JSON.stringify({ projectReportId: id })],
+        `INSERT INTO perf_ai_job (kind, service_id, input, status, created_by) VALUES ('REPORT_RISK', $1, $2, 'QUEUED', $3) RETURNING id`,
+        // 손으로 만든 리포트의 일은 만든 사람이 세운 것이다
+        [대표.id, JSON.stringify({ projectReportId: id }), origin === 'MANUAL' ? 만든이 : '스케줄러'],
       );
       await c.query('UPDATE qa_project_report SET ai_job_id = $1 WHERE id = $2', [일.rows[0]!.id, id]);
     }
