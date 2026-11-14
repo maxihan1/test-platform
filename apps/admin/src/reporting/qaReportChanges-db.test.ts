@@ -57,6 +57,8 @@ describe.skipIf(연결 === undefined)('QA 리포트 변경 사항', { timeout: 6
         [tc],
       );
     }
+    // 더 앞 빌드 0.9 에서만 돈 006 은 이번 빌드에 다시 돌아도 신규가 아니다
+    await 항목(await 실행만들기('0.9', '2026-10-25T01:00:00Z'), 'XQC-FN-006', { sha: 'f', commit: 'c0' });
     // 앞 빌드 1.0 — 003 은 이번 빌드 전에 지워졌다(test_case 에 없다)
     실행.앞 = await 실행만들기('1.0', '2026-11-01T01:00:00Z');
     await 항목(실행.앞, 'XQC-FN-001', { sha: 'a', commit: 'c1', expected: { 문구: '환영합니다' } });
@@ -68,6 +70,7 @@ describe.skipIf(연결 === undefined)('QA 리포트 변경 사항', { timeout: 6
     await 항목(실행.이번, 'XQC-FN-001', { sha: 'a', commit: 'c2', expected: { 문구: '반갑습니다' } });
     await 항목(실행.이번, 'XQC-FN-002', { sha: 'b2', commit: 'c2', status: 'FAIL' });
     await 항목(실행.이번, 'XQC-FN-004', { sha: 'd', commit: 'c2' });
+    await 항목(실행.이번, 'XQC-FN-006', { sha: 'f', commit: 'c2' });
     await pool.query(`INSERT INTO run_case_bug (run_id, tc_id, marked_by, marked_by_name) VALUES ($1, 'XQC-FN-002', 'xqc-b', '판정한 사람')`, [실행.이번]);
 
     // PRD 판 — 앞 빌드 때 1판, 이번 빌드 때 2판

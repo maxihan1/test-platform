@@ -70,12 +70,12 @@ interface 항목줄 {
   started_at: Date;
 }
 
-// 케이스마다 그 빌드에서 가장 늦게 시작한 실행의 항목 하나. 테스트 버전이 찍힌 항목을 먼저 고른다
+// 케이스마다 그 빌드에서 가장 늦게 시작한 실행의 항목 하나 — 그 빌드의 결과를 낸 테스트가 그것이다
 const 항목SQL = (곳: string) => `
   SELECT DISTINCT ON (i.tc_id) i.tc_id, i.tc_name, i.case_sha256, i.tests_commit, i.expected, r.started_at
     FROM test_run r JOIN run_item i ON i.run_id = r.run_id
    WHERE r.kind IN ('UI', 'FN') AND ${곳}
-   ORDER BY i.tc_id, (i.case_sha256 IS NOT NULL) DESC, r.started_at DESC, r.run_id DESC, i.history_id`;
+   ORDER BY i.tc_id, r.started_at DESC, r.run_id DESC, i.history_id`;
 
 const 마지막커밋 = (줄들: 항목줄[]): string | null =>
   줄들.filter((r) => r.tests_commit !== null).sort((a, b) => b.started_at.getTime() - a.started_at.getTime())[0]?.tests_commit ?? null;
@@ -102,7 +102,8 @@ async function 제품(pool: Pool, b: 견줄묶음): Promise<변경사항['produc
     )
   ).rows;
   const 키들 = 이슈.map((i) => i.issue_key);
-  // PR 은 Issue Bunker 규칙 웹훅이 보낸 「PR 병합」 노트 사건에 이미 있다. 제목은 Bunker 에서 다시 읽고, 못 읽으면 노트 사건에 남은 제목을 쓴다
+  // PR 은 Issue Bunker 규칙 웹훅이 보낸 「PR 병합」 노트 사건에 이미 있다. 제목도 노트 사건에 남은 것을 먼저 쓰고, 없는 이슈만 Bunker 에서 읽는다 —
+  // 리포트는 묶음 잠금 안에서 만들어 Bunker 를 이슈마다 부르면 그동안 잠금을 쥔다
   const 사건 = (
     await pool.query<{ kind: string; k: string; summary: string | null; n: string | null; url: string | null; title: string | null }>(
       `SELECT kind, payload->>'issueKey' AS k, payload->>'summary' AS summary, payload->>'prNumber' AS n, payload->>'prUrl' AS url, payload->>'prTitle' AS title
@@ -111,17 +112,21 @@ async function 제품(pool: Pool, b: 견줄묶음): Promise<변경사항['produc
       [연결.project_id, 키들],
     )
   ).rows;
+  const 노트제목 = new Map(사건.flatMap((e) => (e.kind !== 'PR_MERGED' && e.summary ? [[e.k, e.summary] as const] : [])));
+  const 빈키 = 키들.filter((k) => !노트제목.has(k));
   // 실행 끝 자리에서 고리가 생기지 않게 쓸 때만 부른다(qaReportSummary.ts 의 호환성 결과와 같다)
-  const { 이슈읽기 } = await import('../bts/client.js');
+  const { 이슈읽기 } = 빈키.length === 0 ? { 이슈읽기: null } : await import('../bts/client.js');
   const 자리 = { baseUrl: 연결.base_url, 봇: 연결.bot_username ?? '' };
-  const 제목들 = await Promise.all(키들.map((k) => 이슈읽기(자리, k).then((x) => (x.summary === '' ? null : x.summary), () => null)));
+  const 읽은제목 = new Map(
+    await Promise.all(빈키.map(async (k) => [k, await 이슈읽기!(자리, k).then((x) => (x.summary === '' ? null : x.summary), () => null)] as const)),
+  );
   return {
     linked: true,
     deploys: 배포.map((d) => ({ buildNo: d.build_no, at: d.created_at.toISOString() })),
-    issues: 이슈.map((i, n) => ({
+    issues: 이슈.map((i) => ({
       key: i.issue_key,
       type: i.issue_type,
-      title: 제목들[n] ?? 사건.filter((e) => e.k === i.issue_key && e.kind !== 'PR_MERGED' && e.summary).at(-1)?.summary ?? null,
+      title: 노트제목.get(i.issue_key) ?? 읽은제목.get(i.issue_key) ?? null,
       prs: [...new Map(사건.filter((e) => e.k === i.issue_key && e.kind === 'PR_MERGED' && e.url).map((e) => [e.url!, { number: Number(e.n), url: e.url!, title: e.title ?? '' }])).values()],
     })),
   };
@@ -146,7 +151,7 @@ async function 요구사항(pool: Pool, serviceId: number, 앞때: Date, 이번�
   };
 }
 
-/** 앞 빌드 첫 실행 뒤 · 이번 빌드 마지막 실행 전에 병합된 작성 요청에서 케이스마다 가장 늦은 것 */
+/** 앞 빌드 마지막 실행 시작 뒤 · 이번 빌드 마지막 실행 시작까지 병합된 작성 요청에서 케이스마다 가장 늦은 것 */
 async function 까닭들(pool: Pool, serviceId: number, tcIds: string[], 부터: Date, 까지: Date): Promise<Map<string, 까닭>> {
   if (tcIds.length === 0) return new Map();
   const 목록 = (칸: string) => `jsonb_array_elements(CASE WHEN jsonb_typeof(${칸}) = 'array' THEN ${칸} ELSE '[]'::jsonb END)`;
@@ -177,7 +182,7 @@ async function 까닭들(pool: Pool, serviceId: number, tcIds: string[], 부터:
   );
 }
 
-async function 테스트(pool: Pool, b: 견줄묶음 & { previousBuildNo: string }, 앞때: Date): Promise<NonNullable<변경사항['tests']>> {
+async function 테스트(pool: Pool, b: 견줄묶음 & { previousBuildNo: string }, 앞마지막: Date): Promise<NonNullable<변경사항['tests']>> {
   const 이번 = (await pool.query<항목줄>(항목SQL('r.run_id = ANY($1::bigint[])'), [b.runIds])).rows;
   const 앞 = (
     await pool.query<항목줄>(항목SQL("r.service_id = $1 AND r.env = $2 AND r.build_no = $3 AND r.origin <> 'SINGLE' AND r.status <> 'RUNNING'"), [
@@ -193,7 +198,17 @@ async function 테스트(pool: Pool, b: 견줄묶음 & { previousBuildNo: string
   const 살아있는 = new Set(
     (await pool.query<{ tc_id: string }>('SELECT tc_id FROM test_case WHERE tc_id = ANY($1) AND is_active', [앞.map((r) => r.tc_id)])).rows.map((r) => r.tc_id),
   );
-  const added = 이번.filter((r) => !앞표.has(r.tc_id));
+  // 앞 빌드에 안 돌았어도 그 전에 돈 적이 있으면 새 케이스가 아니다 — 앞 빌드가 스모크 일부만 돌았을 수 있다
+  const 돈적있는 = new Set(
+    (
+      await pool.query<{ tc_id: string }>(
+        `SELECT DISTINCT i.tc_id FROM test_run r JOIN run_item i ON i.run_id = r.run_id
+          WHERE r.service_id = $1 AND r.env = $2 AND r.started_at < $3 AND i.tc_id = ANY($4) AND r.run_id <> ALL($5::bigint[])`,
+        [b.serviceId, b.env, b.firstStartedAt, 이번.filter((r) => !앞표.has(r.tc_id)).map((r) => r.tc_id), b.runIds],
+      )
+    ).rows.map((r) => r.tc_id),
+  );
+  const added = 이번.filter((r) => !앞표.has(r.tc_id) && !돈적있는.has(r.tc_id));
   // 이번 빌드에 안 돈 케이스는 지워졌을 때만 삭제다 — 살아 있는데 안 돈 것은 「계획 대비 차이」가 적는다
   const removed = 앞.filter((r) => !이번표.has(r.tc_id) && !살아있는.has(r.tc_id));
   const modified = 이번.flatMap((r) => {
@@ -203,7 +218,7 @@ async function 테스트(pool: Pool, b: 견줄묶음 & { previousBuildNo: string
     const expected = JSON.stringify(p.expected) !== JSON.stringify(r.expected);
     return file || expected ? [{ r, file, expected }] : [];
   });
-  const 이유 = await 까닭들(pool, b.serviceId, [...added, ...removed, ...modified.map((m) => m.r)].map((r) => r.tc_id), 앞때, b.lastStartedAt);
+  const 이유 = await 까닭들(pool, b.serviceId, [...added, ...removed, ...modified.map((m) => m.r)].map((r) => r.tc_id), 앞마지막, b.lastStartedAt);
   const 줄 = (r: 항목줄): 테스트줄 => ({ tcId: r.tc_id, name: r.tc_name, reason: 이유.get(r.tc_id) ?? null });
   return {
     recorded: true,
@@ -219,32 +234,32 @@ async function 확인한케이스(pool: Pool, runIds: number[]): Promise<변경�
   const 실패 = (await pool.query<{ run_id: string; tc_id: string }>("SELECT DISTINCT run_id, tc_id FROM run_item WHERE run_id = ANY($1::bigint[]) AND status = 'FAIL'", [runIds])).rows;
   const 실행별 = new Map<number, string[]>();
   for (const f of 실패) 실행별.set(Number(f.run_id), [...(실행별.get(Number(f.run_id)) ?? []), f.tc_id]);
-  const 줄들: 변경사항['confirmed'] = [];
-  for (const [runId, tcIds] of 실행별) {
-    for (const [tcId, p] of await 판정들(runId, tcIds)) {
-      if (p !== null) 줄들.push({ tcId, runId, verdict: p.kind === 'BUG' ? 'BUG' : 'SCREEN_RIGHT', byName: p.byName, at: p.at });
-    }
-  }
+  const 판정묶음 = await Promise.all([...실행별].map(async ([runId, tcIds]) => ({ runId, 판정: await 판정들(runId, tcIds) })));
+  const 줄들: 변경사항['confirmed'] = 판정묶음.flatMap(({ runId, 판정 }) =>
+    [...판정].flatMap(([tcId, p]) => (p === null ? [] : [{ tcId, runId, verdict: p.kind === 'BUG' ? ('BUG' as const) : ('SCREEN_RIGHT' as const), byName: p.byName, at: p.at }])),
+  );
   return 줄들.sort((a, b) => a.at.localeCompare(b.at) || a.tcId.localeCompare(b.tcId));
 }
 
 /** 빌드 묶음의 변경 사항. 요구사항 · 테스트는 앞 빌드가 있어야 견주고, 제품 · 확인한 케이스는 이번 빌드만 본다 */
 export async function 변경사항을센다(pool: Pool, b: 견줄묶음): Promise<변경사항> {
-  const 앞때 =
+  // 앞 빌드의 첫 실행 시작(PRD 버전을 읽는 때)과 마지막 실행 시작(까닭을 찾기 시작하는 때)
+  const 앞빌드 =
     b.previousBuildNo === null
       ? null
       : ((
-          await pool.query<{ s: Date | null }>(
-            `SELECT min(s) AS s FROM (
+          await pool.query<{ s: Date | null; e: Date | null }>(
+            `SELECT min(s) AS s, max(s) AS e FROM (
                SELECT started_at AS s FROM test_run WHERE service_id = $1 AND env = $2 AND build_no = $3 AND origin <> 'SINGLE'
                UNION ALL SELECT COALESCE(started_at, created_at) FROM perf_run WHERE service_id = $1 AND env = $2 AND build_no = $3) x`,
             [b.serviceId, b.env, b.previousBuildNo],
           )
-        ).rows[0]?.s ?? null);
+        ).rows[0] ?? null);
+  const 앞때 = 앞빌드?.s ?? null;
   return {
     product: await 제품(pool, b),
     requirements: 앞때 === null ? null : await 요구사항(pool, b.serviceId, 앞때, b.firstStartedAt),
-    tests: 앞때 === null || b.previousBuildNo === null ? null : await 테스트(pool, { ...b, previousBuildNo: b.previousBuildNo }, 앞때),
+    tests: 앞때 === null || b.previousBuildNo === null ? null : await 테스트(pool, { ...b, previousBuildNo: b.previousBuildNo }, 앞빌드?.e ?? 앞때),
     confirmed: await 확인한케이스(pool, b.runIds),
   };
 }
