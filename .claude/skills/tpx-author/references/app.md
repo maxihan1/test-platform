@@ -82,6 +82,9 @@ npx appium-cli -s=probe find --regex "로그인|가입"
 npx appium-cli -s=probe tap '~로그인'             # Ran: await driver.$('~로그인').click() + 새 화면 경로
 npx appium-cli -s=probe fill e5 "${TARGET_LOGIN_ID:-$(node -p 'JSON.parse(process.env.PLATFORM_ACCOUNTS || "[]").find((a) => a.role === "일반 회원")?.loginId ?? ""')}"
 npx appium-cli -s=probe generate-locator e8
+npx appium-cli -s=probe long-press '~상품 카드'    # 길게 누르기 → Ran: await 길게누르기(driver, '~상품 카드'). 두 번 누르기는 double-tap
+npx appium-cli -s=probe wait '~주문 완료'          # 뜰 때까지(--gone 은 사라질 때까지 · --text "글자" · --timeout ms). 못 뜨면 종료 코드 1
+npx appium-cli -s=probe toast                     # 지금부터 뜨는 토스트 · 스낵바 글 — 누른 바로 뒤에. tap · long-press · double-tap 출력 끝의 `Toast: 「글」` 줄도 같다
 npx appium-cli -s=probe close
 npx appium-cli release                           # 반드시 — 놓아야 팜이 깐 앱 · 앱 데이터를 지우고 정식 실행이 폰을 잡는다
 ```
