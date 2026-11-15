@@ -215,14 +215,15 @@ export async function 폰실행(갈래: 폰갈래, 폴더: string | undefined, �
     );
   const 빈폰들 = ((await 폰목록(팜, 빈폰질의(앱))) ?? []).map((p) => p.serial).filter((p) => p !== 폰);
   const 미리 = 일고르기([...(주폰 === null ? [] : [주폰]), ...빈폰들]);
-  const 덤 = await 덤폰잡기(팜, 덤폰수(미리, 계정들, 주폰), 빈폰들, CLI폴더);
-  const 폰들 = [...(주폰 === null ? [] : [주폰]), ...덤];
   const 시작 = Date.now();
   const 돈판수 = () => [...폰판들(결과폴더, 갈래).values()].flat().reduce((합, p) => 합 + p.상태들.length, 0);
   const 앞판수 = 돈판수();
   let 묶음들: ReturnType<typeof 묶음짜기> = [];
   const 로그들: string[] = [];
   const 끊긴폰들: string[] = [];
+  // 잡은 뒤로는 무엇이 던져도 놓는다 — 놓기를 놓쳐도 held-<번호> 기록으로 에이전트가 끝에 놓는다
+  const 덤 = await 덤폰잡기(팜, 덤폰수(미리, 계정들, 주폰), 빈폰들, CLI폴더);
+  const 폰들 = [...(주폰 === null ? [] : [주폰]), ...덤];
   try {
     if (폰들.length === 0) {
       console.error(`${머리} 잡은 폰 ${폰} 이 끊겼고 빈 폰도 없다 — \`npx ${도구} release\` 뒤 \`hold --minutes 30\` 으로 다시 잡고 부른다`);

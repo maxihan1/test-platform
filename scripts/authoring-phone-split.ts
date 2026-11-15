@@ -233,12 +233,15 @@ export async function 덤폰잡기(팜: 팜, 몇: number, 빈폰들: readonly st
   const 잡은: string[] = [];
   for (const 폰 of 빈폰들) {
     if (잡은.length >= 몇) break;
+    // 기록을 먼저 쓴다 — 잡은 뒤 쓰다 실패하면 아무도 모르는 잡기가 30분 남는다
+    const 기록 = join(폴더, `held-${폰}`);
     try {
+      writeFileSync(기록, 폰);
       await 팜부르기(팜, 'POST', `/api/devices/${encodeURIComponent(폰)}/hold`, { minutes: 30 });
-      writeFileSync(join(폴더, `held-${폰}`), 폰);
       잡은.push(폰);
     } catch {
       // 다른 실행이 먼저 잡았거나 정리 중이다 — 다음 폰
+      rmSync(기록, { force: true });
     }
   }
   return 잡은;
