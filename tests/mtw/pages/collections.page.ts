@@ -11,7 +11,7 @@ export class 컬렉션목록화면 {
   constructor(private readonly page: Page) {
     this.제목 = page.getByRole('main').getByRole('heading', { level: 1 });
     this.항목들 = page.getByRole('main').getByRole('article');
-    this.빈안내 = page.getByText('아직 컬렉션을 만들지 않았습니다.');
+    this.빈안내 = page.getByRole('main').getByRole('heading', { name: '좋아하는 계정을 남들에게 소개하세요' });
     this.새컬렉션 = page.getByRole('main').getByRole('link', { name: '새 컬렉션' });
   }
 

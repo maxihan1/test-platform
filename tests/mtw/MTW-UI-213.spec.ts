@@ -6,7 +6,7 @@ import { 컬렉션만들기화면 } from './pages/collection-new.page.js';
 
 export const spec = defineCase({
   tcId: 'MTW-UI-213',
-  name: '새 컬렉션 둘째 단계에 계정 수 「/25개」 표시가 보인다',
+  name: '새 컬렉션 첫 단계에 계정을 하나 넣으면 계정 수 「계정 1/25개」가 보인다',
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 이메일').optional().meta({ secret: true }),
@@ -24,11 +24,8 @@ test(spec, async ({ page, params }) => {
     await verify('새 컬렉션 화면에 「새 컬렉션」 제목이 보인다', await 화면.제목.isVisible(), true, { blocker: true });
   });
 
-  await test.step('새 컬렉션 첫 단계에 이름을 넣고 「계속」을 누른다', async () => {
+  await test.step('새 컬렉션 첫 단계에서 계정을 하나 넣는다', async () => {
     await 화면.계정더하기('hana_photo');
-    await 화면.계속.click();
-    await 화면.기본정보.waitFor();
-    const 보인다 = await 화면.최대안내.waitFor({ timeout: 10_000 }).then(() => true, () => false);
-    await verify('새 컬렉션 둘째 단계에 계정 수 「/25개」 표시가 보인다', 보인다, true);
+    await verify('새 컬렉션 첫 단계에 계정을 하나 넣으면 계정 수 「계정 1/25개」가 보인다', await 화면.계정수.innerText(), '계정 1/25개');
   });
 });

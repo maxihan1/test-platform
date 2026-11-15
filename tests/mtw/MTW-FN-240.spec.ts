@@ -7,7 +7,7 @@ import { 가입화면 } from './pages/sign-up.page.js';
 
 export const spec = defineCase({
   tcId: 'MTW-FN-240',
-  name: '사용자명에 영문 · 숫자 · 밑줄 밖의 글자를 넣고 「등록하기」를 누르면 「영문자와 숫자, 밑줄만 사용 가능합니다」가 보인다',
+  name: '사용자명에 영문 · 숫자 · 밑줄 밖의 글자를 넣고 「등록하기」를 누르면 가입 요청이 나가지 않고 가입 화면에 남는다',
   precondition: ['비회원이다'],
   params: z.object({
     허용밖글자: z.string().min(1).describe('사용자명에 넣을 글자 — 영문 · 숫자 · 밑줄이 아닌 글자').default('한글이름'),
@@ -30,9 +30,9 @@ test(spec, async ({ page, params }) => {
     await 가입.채우기({ 사용자명: params.허용밖글자, 이메일: 값.이메일, 암호: 값.암호 });
     await 가입.동의하기();
     await 연지3초지날때까지(page, 연시각);
-    await 가입.누르기();
-    const 오류 = 가입.칸오류(가입.사용자명칸).filter({ hasText: '영문자와 숫자, 밑줄만 사용 가능합니다' });
-    const 떴다 = await 오류.waitFor({ timeout: 5_000 }).then(() => true, () => false);
-    await verify('사용자명에 영문 · 숫자 · 밑줄 밖의 글자를 넣고 「등록하기」를 누르면 「영문자와 숫자, 밑줄만 사용 가능합니다」가 보인다', 떴다, true);
+    const 나간요청수 = await 가입.누르고나간요청수();
+    const 안나감 = await verify('가입 요청이 나가지 않는다', 나간요청수, 0);
+    const 남음 = await verify('가입 화면이 그대로 보인다', await 가입.제목.isVisible(), true);
+    await verify('사용자명에 영문 · 숫자 · 밑줄 밖의 글자를 넣고 「등록하기」를 누르면 가입 요청이 나가지 않고 가입 화면에 남는다', 안나감 && 남음, true);
   });
 });

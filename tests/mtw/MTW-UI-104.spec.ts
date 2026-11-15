@@ -30,7 +30,7 @@ test(spec, async ({ page, params }) => {
   });
 
   await test.step('공지 배너의 「공지사항 보기/숨기기」를 누른다', async () => {
-    await 홈.공지토글.click();
+    await 홈.공지접기();
     const 접혔다 = await 홈.공지내용.waitFor({ timeout: 10_000 }).then(() => true, () => false);
     await verify('「공지사항 보기/숨기기」로 공지가 접힌다', 접혔다, true);
   });

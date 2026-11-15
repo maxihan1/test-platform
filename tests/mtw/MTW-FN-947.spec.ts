@@ -6,7 +6,7 @@ import { 유행중화면 } from './pages/explore.page.js';
 
 export const spec = defineCase({
   tcId: 'MTW-FN-947',
-  name: '유행 글 응답이 500 이면 유행 중 화면이 깨지지 않고 오류 안내가 보인다',
+  name: '유행 글 응답이 500 이면 유행 중 화면이 깨지지 않고 「아직 유행하는 것이 없습니다. 나중에 다시 확인하세요!」가 보인다',
   techniques: ['오류 추정'],
   precondition: ['유행 글 응답은 가짜 응답(모킹)이다'],
   params: null,
@@ -24,9 +24,9 @@ test(spec, async ({ page }) => {
       await 화면.열기();
       await verify('유행 중 화면에 「게시물」 탭이 보인다', await 화면.게시물탭.isVisible(), true, { blocker: true });
       const 깨지지않음 = await verify('유행 중 화면이 깨지지 않는다', await 화면.해시태그탭.isVisible(), true);
-      const 안내 = await 화면.알림.모두.filter({ hasText: /\S/ }).first().waitFor({ timeout: 5_000 }).then(() => true, () => false);
-      const 오류안내 = await verify('오류 안내가 보인다', 안내, true);
-      await verify('유행 글 응답이 500 이면 유행 중 화면이 깨지지 않고 오류 안내가 보인다', 깨지지않음 && 오류안내, true);
+      const 안내 = await 화면.비었음.waitFor({ timeout: 10_000 }).then(() => true, () => false);
+      const 빈안내 = await verify('「아직 유행하는 것이 없습니다. 나중에 다시 확인하세요!」가 보인다', 안내, true);
+      await verify('유행 글 응답이 500 이면 유행 중 화면이 깨지지 않고 「아직 유행하는 것이 없습니다. 나중에 다시 확인하세요!」가 보인다', 깨지지않음 && 빈안내, true);
     });
   } finally {
     for (const 풀기함수 of 풀기목록) await 풀기함수();

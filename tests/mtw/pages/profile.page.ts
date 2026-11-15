@@ -38,6 +38,7 @@ export class 프로필화면 {
   readonly 팔로우하기버튼: Locator;
   readonly 차단해제확인: Locator;
   readonly 사용불가: Locator;
+  readonly 없는주소안내: Locator;
 
   constructor(private readonly page: Page) {
     this.메뉴 = new 오른쪽메뉴(page);
@@ -46,7 +47,7 @@ export class 프로필화면 {
     this.표시이름 = this.머리.getByRole('heading', { level: 1 });
     this.핸들 = this.머리.getByRole('button', { name: /이것은 무엇을 의미하나요/ });
     this.팔로우버튼 = this.머리.getByRole('button', { name: /^(팔로우|팔로우 요청|맞팔로우|언팔로우|요청 취소|차단 해제|뮤트 해제)$/ });
-    this.더보기 = this.머리.getByRole('button', { name: /^(Menu|메뉴|더 보기)$/ });
+    this.더보기 = this.머리.getByRole('button', { name: /^(Menu|메뉴|더 보기)$/ }).first();
     this.글목록 = page.getByRole('main').getByRole('feed');
     this.돌아가기 = page.getByRole('main').getByRole('button', { name: '돌아가기' });
     this.핸들안내 = page.getByRole('heading', { name: '핸들은 이메일과 비슷합니다' });
@@ -72,6 +73,7 @@ export class 프로필화면 {
     this.차단해제확인 = this.확인창.getByRole('button', { name: '차단 해제' });
     this.팔로우하기버튼 = this.머리.getByRole('button', { name: /^(팔로우|팔로우 요청)$/ });
     this.사용불가 = page.getByText('프로필 사용 불가');
+    this.없는주소안내 = page.getByText('찾으려는 페이지가 존재하지 않습니다.').first();
   }
 
   async 열기(아이디: string): Promise<void> {

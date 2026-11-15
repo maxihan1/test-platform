@@ -25,7 +25,7 @@ test(spec, async ({ page, params }) => {
 
   await test.step('일반 회원으로 로그인하고 홈을 연다', async () => {
     await 로그인하기(page, params.loginId, params.loginPassword);
-    await 홈.열기();
+    await 홈.열고설정받기();
     await verify('홈에 작성 상자가 보인다', await 홈.작성.본문.isVisible(), true, { blocker: true });
   });
 
@@ -52,7 +52,7 @@ test(spec, async ({ page, params }) => {
     });
 
     await test.step('설문 항목을 하나만 채우고 「게시」를 누른다', async () => {
-      await 홈.열기();
+      await 홈.열고설정받기();
       await 홈.작성.쓰기('설문 항목 하나 확인');
       await 홈.작성.설문.click();
       await 글쓰기.항목채우기(1, '하나뿐인 항목');

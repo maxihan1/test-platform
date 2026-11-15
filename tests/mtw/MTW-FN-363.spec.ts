@@ -27,7 +27,7 @@ test(spec, async ({ page, params }) => {
 
   await test.step('일반 회원으로 로그인하고 홈을 연다', async () => {
     await 로그인하기(page, params.loginId, params.loginPassword);
-    await 홈.열기();
+    await 홈.열고설정받기();
     await verify('홈에 작성 상자가 보인다', await 홈.작성.본문.isVisible(), true, { blocker: true });
   });
 

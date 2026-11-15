@@ -35,6 +35,7 @@ test(spec, async ({ page, params }) => {
     await 목록.링크('좋아하는 사진가').click();
     await 상세.그려질때까지();
     await 상세.메뉴열기();
+    await 상세.펼침.항목('컬렉션 지우기').waitFor();
     await verify('내 컬렉션을 열면 「이 컬렉션 신고」가 보이지 않는다', await 상세.펼침.항목('이 컬렉션 신고').isVisible(), false);
   });
 });

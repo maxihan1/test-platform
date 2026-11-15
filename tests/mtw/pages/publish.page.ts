@@ -130,6 +130,10 @@ export class 작성화면 {
     await this.작성.파일칸.setInputFiles(파일);
   }
 
+  async 인용풀릴때까지(): Promise<boolean> {
+    return this.인용취소.first().waitFor({ state: 'detached', timeout: 5_000 }).then(() => true, () => false);
+  }
+
   async 대체텍스트창열기(): Promise<void> {
     await this.첨부썸네일들.first().click();
     await this.대체텍스트칸.waitFor();

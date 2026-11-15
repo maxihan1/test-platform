@@ -23,6 +23,7 @@ export class 홈화면 {
   readonly 공지배너: Locator;
   readonly 공지토글: Locator;
   readonly 공지내용: Locator;
+  readonly 공지숨기기: Locator;
   readonly 불러오는중: Locator;
   readonly 빈안내: Locator;
   readonly 준비중제목: Locator;
@@ -48,7 +49,8 @@ export class 홈화면 {
     this.공지배너 = page.getByRole('main').getByRole('button', { name: /^공지사항 (보기|숨기기)$/ });
     this.공지내용 = page.getByRole('main').getByRole('button', { name: '공지사항 보기', exact: true });
     this.공지토글 = this.공지배너;
-    this.불러오는중 = page.getByRole('progressbar', { name: '불러오는 중…' });
+    this.공지숨기기 = page.getByRole('main').getByRole('button', { name: '공지사항 숨기기', exact: true });
+    this.불러오는중 = page.getByRole('progressbar', { name: '불러오는 중...' }).first();
     this.빈안내 = page.getByText('당신의 홈 타임라인은 비어있습니다! 더 많은 사람을 팔로우하여 채워보세요.');
     this.준비중제목 = page.getByText('홈 피드를 준비 중입니다…');
     this.준비중안내 = page.getByText('잠시 기다려주세요.');
@@ -102,6 +104,20 @@ export class 홈화면 {
   async 열기(): Promise<void> {
     await this.page.goto(홈화면.주소);
     await this.그려질때까지();
+  }
+
+  async 열고설정받기(): Promise<void> {
+    const 설정 = this.page.waitForResponse((r) => r.url().includes('/api/v2/instance'), { timeout: 15_000 }).catch(() => undefined);
+    await this.열기();
+    await 설정;
+  }
+
+  async 공지접기(): Promise<void> {
+    if (await this.공지내용.isVisible()) {
+      await this.공지토글.click();
+      await this.공지숨기기.waitFor();
+    }
+    await this.공지숨기기.click();
   }
 
   async 주소만열기(): Promise<void> {

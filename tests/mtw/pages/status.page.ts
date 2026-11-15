@@ -25,6 +25,7 @@ export class 글상세화면 {
   readonly 부스트수링크: Locator;
   readonly 인용수링크: Locator;
   readonly 마음수링크: Locator;
+  readonly 편집됨단추: Locator;
   readonly 수정됨: Locator;
   readonly 투표버튼: Locator;
   readonly 투표마감: Locator;
@@ -53,7 +54,8 @@ export class 글상세화면 {
     this.부스트수링크 = this.본글.getByRole('link', { name: /부스트$/ });
     this.인용수링크 = this.본글.getByRole('link', { name: /인용$/ });
     this.마음수링크 = this.본글.getByRole('link', { name: /마음에 들어함$/ });
-    this.수정됨 = this.본글.getByText(/\d+번 수정됨/);
+    this.편집됨단추 = this.본글.getByRole('button', { name: /마지막으로 편집됨/ });
+    this.수정됨 = page.getByText(/^\d+ 번 수정됨$/);
     this.투표버튼 = this.본글.getByRole('button', { name: '투표', exact: true });
     this.투표마감 = this.본글.getByText(/명 · 마감/);
     this.투표함표시 = this.본글.getByRole('img', { name: '이 답변에 투표함' });

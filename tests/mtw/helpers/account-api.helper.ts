@@ -145,3 +145,31 @@ export async function 컬렉션번호API(page: Page, 이름: string): Promise<st
   if (찾음 === undefined) throw new Error(`컬렉션 「${이름}」을 못 찾았다`);
   return 찾음.id;
 }
+
+export async function 공개표시이름(page: Page, 아이디: string): Promise<string> {
+  const 응답 = await page.request.get(`/api/v1/accounts/lookup?acct=${encodeURIComponent(아이디)}`);
+  if (!응답.ok()) throw new Error(`계정 조회 실패 ${String(응답.status())} — ${아이디}`);
+  return ((await 응답.json()) as { display_name: string }).display_name;
+}
+
+function 정규식글자(글: string): string {
+  return 글.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+export function 이름이든글식(이름: string, 뒷글: string): RegExp {
+  const 변형글자 = String.fromCodePoint(0xfe0f);
+  const 이름조각 = [...이름.split(변형글자).join('')].map((글자) => `${정규식글자(글자)}\\uFE0F?`);
+  return new RegExp(`${이름조각.join('')} ${정규식글자(뒷글)}`);
+}
+
+export async function 내컬렉션번호들API(page: Page): Promise<string[]> {
+  const 나 = await 내계정API(page);
+  const 목록 = await 몸<{ collections: { id: string }[] }>(await apiGet(page, `/api/v1/accounts/${나.id}/collections`));
+  return 목록.collections.map((컬렉션) => 컬렉션.id);
+}
+
+export async function 새로생긴컬렉션지우기API(page: Page, 앞번호들: string[]): Promise<string[]> {
+  const 새것 = (await 내컬렉션번호들API(page)).filter((번호) => !앞번호들.includes(번호));
+  for (const 번호 of 새것) await apiDelete(page, `/api/v1/collections/${번호}`);
+  return 새것;
+}

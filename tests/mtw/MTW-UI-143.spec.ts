@@ -28,7 +28,7 @@ test(spec, async ({ page, params }) => {
   });
 
   await test.step('hana_photo 글 상세를 연다', async () => {
-    const 글 = await 글찾기API(page, 'hana_photo', '4.7 의 인용');
+    const 글 = await 글찾기API(page, 'hana_photo', '숲에서 만난 큰 거미');
     await 상세.열기(글경로(글));
     const 돌아가기 = await verify('「돌아가기」가 보인다', await 상세.돌아가기.isVisible(), true);
     const 펼치기 = await verify('「모두 펼치기」가 보인다', await 상세.모두펼치기.isVisible(), true);

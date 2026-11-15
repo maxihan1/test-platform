@@ -7,15 +7,31 @@ export class 계정설정화면 {
 
   readonly 틀: 설정틀;
   readonly 제목: Locator;
+  readonly 비활성배너: Locator;
 
   constructor(private readonly page: Page) {
     this.틀 = new 설정틀(page);
     this.제목 = page.getByRole('main').getByRole('heading', { level: 1 });
+    this.비활성배너 = page.getByText(/리다이렉트 중이기 때문에 비활성 상태입니다/);
   }
 
   async 열기(경로: string): Promise<void> {
     await this.page.goto(경로);
     await this.제목.waitFor();
+  }
+
+  async 홈열기(): Promise<void> {
+    await this.page.goto('/home');
+    await this.제목.waitFor();
+  }
+
+  async 리디렉션풀기(): Promise<void> {
+    await this.열기('/settings/migration');
+    const 취소 = this.링크(/리디렉트 취소하기|리디렉션 취소/).or(this.버튼(/리디렉트 취소하기|리디렉션 취소/)).first();
+    if (await 취소.isVisible()) {
+      await 취소.click();
+      await this.제목.waitFor();
+    }
   }
 
   글(문구: string | RegExp): Locator {

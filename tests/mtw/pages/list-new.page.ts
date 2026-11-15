@@ -5,7 +5,6 @@ export class 리스트만들기화면 {
 
   readonly 제목: Locator;
   readonly 이름칸: Locator;
-  readonly 새이름라벨: Locator;
   readonly 답글선택: Locator;
   readonly 홈에서숨기기: Locator;
   readonly 만들기: Locator;
@@ -13,7 +12,6 @@ export class 리스트만들기화면 {
   constructor(private readonly page: Page) {
     this.제목 = page.getByRole('main').getByRole('heading', { name: '리스트 만들기', level: 1 });
     this.이름칸 = page.getByRole('main').getByRole('textbox', { name: '리스트 이름' });
-    this.새이름라벨 = page.getByRole('main').getByRole('textbox', { name: '새 리스트 이름' });
     this.답글선택 = page.getByRole('main').getByRole('combobox', { name: /답글/ });
     this.홈에서숨기기 = page.getByRole('main').getByRole('checkbox', { name: /구성원을 홈에서 숨기기/ });
     this.만들기 = page.getByRole('main').getByRole('button', { name: '만들기' });

@@ -6,6 +6,7 @@ import { 내계정API } from './helpers/api.helper.js';
 import { 리스트지우기API, 리스트채우기API } from './helpers/account-api.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 표식 } from './helpers/page-setup.helper.js';
+import { 컬렉션만들기화면 } from './pages/collection-new.page.js';
 
 export const spec = defineCase({
   tcId: 'MTW-FN-885',
@@ -19,6 +20,7 @@ export const spec = defineCase({
 });
 
 test(spec, async ({ page, params }) => {
+  const 컬렉션화면 = new 컬렉션만들기화면(page);
   let 리스트들: string[] = [];
   const 태그들: string[] = [];
   const 컬렉션들: string[] = [];
@@ -47,7 +49,7 @@ test(spec, async ({ page, params }) => {
       await verify('추천 해시태그 한도 초과에는 「추천 해시태그 최대 개수를 초과합니다」가 돌아온다', (await 응답.text()).includes('추천 해시태그 최대 개수를 초과합니다'), true);
     });
 
-    await test.step('관리자 컬렉션을 한도까지 채운 뒤 하나 더 API 로 만든다', async () => {
+    await test.step('관리자 컬렉션을 한도까지 채운 뒤 새 컬렉션 화면을 연다', async () => {
       const 나 = await 내계정API(page);
       const 기존 = await 몸<{ collections: { id: string }[] }>(await apiGet(page, `/api/v1/accounts/${나.id}/collections`));
       const 이름 = 표식('col');
@@ -55,8 +57,8 @@ test(spec, async ({ page, params }) => {
         const 만듦 = await 몸<{ collection: { id: string } }>(await apiPost(page, '/api/v1/collections', { name: `${이름}${String(순서)}`, description: '', discoverable: true, sensitive: false, account_ids: [], language: 'ko' }));
         컬렉션들.push(만듦.collection.id);
       }
-      const 응답 = await apiPost(page, '/api/v1/collections', { name: `${이름}over`, description: '', discoverable: true, sensitive: false, account_ids: [], language: 'ko' });
-      await verify('컬렉션 한도 초과에는 「컬렉션의 최대 개수에 도달하였습니다」가 돌아온다', (await 응답.text()).includes('컬렉션의 최대 개수에 도달하였습니다'), true);
+      await 컬렉션화면.열기();
+      await verify('컬렉션 한도 초과에는 「컬렉션의 최대 개수에 도달하였습니다」가 보인다', await 컬렉션화면.한도안내.isVisible(), true);
     });
   } finally {
     await 리스트지우기API(page, 리스트들);
