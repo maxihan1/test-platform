@@ -8,7 +8,8 @@ import type { Browser } from '@playwright/test';
 import { 칸줄, 누르기, 모바일견주기, 보기, 읽기, 열기, 창수, 확인창누르기, 후보모으기, type 본것 } from './authoring-crawl-page.js';
 import { type 누름종류, 누를까, 누름키, 로그아웃인가, 연결이름, 탈퇴말인가, 탈퇴주소인가 } from './authoring-crawl-press.js';
 import { 걸러진까닭, 글자지문, 둘째장볼까, 로그인풀렸나, 부모키, 빼는주소인가, 주소고르기, 지문, 틀키 } from './authoring-crawl-rules.js';
-import { type 들은API, type 인자, type 연결, type 판, API더하기, API듣기, 로그인돌리기, 새쪽, 폴더이름 } from './authoring-crawl-session.js';
+import { 창남기기 } from './authoring-crawl-motion.js';
+import { type 들은API, type 인자, type 연결, type 판, API더하기, API듣기, 뜬창, 로그인돌리기, 새쪽, 폴더이름 } from './authoring-crawl-session.js';
 import type { 상태 } from './authoring-screens-keep.js';
 
 const 간격 = 1_000; // 운영 서버도 돈다 — 한 장씩, 1초 이상 띄운다
@@ -100,6 +101,7 @@ export async function 한상태(브라우저: Browser, 상태: 상태, a: 인자
     판.본.push({
       상태, 틀: 앞지문.length === 0 ? 틀 : `${틀} (구조 다름)`, 주소: 요청, 최종: 본.최종, 이름: 본.제목, 파일, 시작: 시작틀.has(틀),
       지문: 이지문, 글자지문: 글자지문(파일글), 짧음: 본.구조.length < 200, 로그인풀림: 풀림, 입력칸: 본.입력칸, 링크수: 본.링크.length,
+      ...(본.움직임 === undefined ? {} : { 움직임: [...본.움직임] }),
     });
     if (풀림) return '풀림';
     if (!a.따라가기) return 'ok';
@@ -161,6 +163,7 @@ export async function 한상태(브라우저: Browser, 상태: 상태, a: 인자
     const 제틀 = 틀키(일.주소);
     const 눌러보기 = async (): Promise<number | null> => {
       들은.clear(); // 이제부터 들은 것은 이 누르기가 부른 API 다 — 누른 화면 몫이다
+      뜬창.get(쪽)?.splice(0);
       const 전창 = await 창수(쪽);
       const i = (await 후보모으기(쪽).catch(() => [])).findIndex((x) => 누름키(x, 일.틀) === 일.키 && 누를까(x, 상황, 쪽.url()));
       return i >= 0 && (await 누르기(쪽, i)) ? 전창 : null;
@@ -180,6 +183,7 @@ export async function 한상태(브라우저: Browser, 상태: 상태, a: 인자
     if (전창 === null) return 'ok';
     판.누름++;
     const 창 = 일.탈퇴 ? '탈퇴' : await 확인창누르기(쪽, 전창);
+    창남기기(쪽, 판.본[일.본번], 연결이름(일.종류, 일.이름));
     const 뒤 = 쪽.url();
     그대로 = 뒤 === 일.주소 && 창 === '없음';
     await 쉬기(간격); // 누르기도 서버를 두드린다 — 한 번에 1초 이상 띄운다
@@ -245,6 +249,7 @@ export async function 한상태(브라우저: Browser, 상태: 상태, a: 인자
       연주소.add(주소);
       그대로 = false;
       들은.clear();
+      뜬창.get(쪽)?.splice(0);
       const 본 = await 보기(쪽, 주소);
       await 쉬기(간격);
       if (본 === '건너뜀') continue;
@@ -256,7 +261,9 @@ export async function 한상태(브라우저: Browser, 상태: 상태, a: 인자
       // 다른 주소에서 뺄 경로로 넘겨졌으면(리다이렉트) 그 화면도 남기지 않는다
       if (빼는주소인가(본.최종, a.뺄)) continue;
       const 앞수 = 판.본.length;
-      if ((await 남기기(주소, 틀, 본)) === 'ok') {
+      const 결과 = await 남기기(주소, 틀, 본);
+      창남기기(쪽, 판.본.length > 앞수 ? 판.본[앞수] : undefined, null);
+      if (결과 === 'ok') {
         // 링크로 연 새 화면만 모바일로도 연다 — 못 열면 null(판정에서 빠진다). 누른 뒤 열린 화면은 안 연다(모바일 칸이 없다)
         if (판.본.length > 앞수) {
           판.본.at(-1)!.모바일 = await 모바일견주기(모바일.쪽, 주소, 본);

@@ -39,6 +39,26 @@ npx playwright cli -s=probe close
 역방향 화면 기록의 `## 부르는 API` 절(크롤러가 그 화면을 열고 누를 때 들은 API · 본 상태)도 같은 쓰임이다(2026-10-23 PRD-F14-05).
 그 화면이 늘 부르는 API 를 알면 `requests` 를 안 쳐도 기다릴 응답(R13)이 정해진다. 지도에 없거나 조작이 다르면 지금처럼 `requests` 로 본다. **지도도 기대값의 근거가 아니다**(R10) — 기다릴 것 · 가르기에만 쓴다. 정본은 명세 작성 §3.6 「서비스 지도」
 
+### ★ 화면이 어떻게 움직이나 — 쓰기 전에 읽는다 (2026-11-15)
+
+「무엇이 있나」만 보고 쓰면 돌려 보다 깨진 뒤에야 안다. 역방향은 화면 기록 `## 움직임` 절(크롤러가 화면을 열 때 잰 것 — 정본 명세 작성 §3.6 「화면 기록과 크롤러」 「움직임」)을 읽고, 정방향(크롤 파일 없음)은 화면을 연 뒤 아래 `eval` 한 번으로 거의 같은 것을 본다 — 안쪽 링크는 스냅샷에서 카드 안 링크로 보고, 덮개는 크롤러보다 넓게 잡히니 머리 띠 · 메뉴는 걸러 읽는다.
+
+| 줄 | 뜻 | 케이스에서 |
+|---|---|---|
+| `늦게 채워짐: … link 「첫 글」` | 막 떴을 때 없고 응답이 다 온 뒤 붙은 요소 | 그 요소나 그것을 채우는 응답을 앵커로 기다린다(R13 · 「부르는 API」) |
+| `굴림: 쪽 — … 굴리면 줄이 붙는다(20→40)` · `영역 「…」` | 화면 아래로 넘치거나 따로 굴리는 영역 · 굴리면 늘어나는 목록 | 찾는 줄이 처음 범위 밖이면 끌어와 읽는다. 개수는 한 번에 세지 않는다 |
+| `… 첫 줄이 바뀐다(가상 목록)` | 보이는 줄만 DOM 에 있는 목록 | `5-stable.md` 「웹 — 뜨는 창 · 화면 밖 요소」 의 가상 목록 규칙 |
+| `덮개: 「쿠키를 씁니다」 · 화면의 18% · 버튼 「수락」` | 열자마자 화면을 덮는 띠 · 공지 · 창 | 케이스 중간에 닫지 않고 서비스 도우미 한 곳에 등록한다(같은 절) |
+| `안쪽 링크: 「카드 글」 안에 「#태그」` | 누르는 자리 안에 또 누르는 자리 | 카드를 누를 때 안쪽 링크가 아닌 자리를 고른다 — 글 영역 · 시각 링크 |
+| `같은 이름: 버튼 「등록」 3개` | 이름만으로는 하나로 안 좁혀지는 요소 | 감싼 영역(폼 · 창 · 줄)으로 좁힌다. `nth()` 는 아래 규칙대로만 |
+| `확인 창: confirm 「정말 지울까요?」 ← 버튼 「삭제」` | 누르면 브라우저 확인 창이 뜬다 | 누르기 **전에** `page.once('dialog', …)` 를 건다 — 안 걸면 Playwright 가 바로 닫아 「취소」로 돈다 |
+
+```bash
+npx playwright cli -s=probe --raw eval "JSON.stringify({ 높이배: Math.round(document.documentElement.scrollHeight / innerHeight * 10) / 10, 영역: [...document.querySelectorAll('body *')].filter(e => /(auto|scroll)/.test(getComputedStyle(e).overflowY) && e.scrollHeight > e.clientHeight + 20 && e.clientHeight > 100).map(e => e.getAttribute('aria-label') || e.id || e.tagName).slice(0, 3), 덮개: [...document.querySelectorAll('body *')].filter(e => getComputedStyle(e).position === 'fixed' && !e.matches('header,nav') && e.getClientRects().length).map(e => e.innerText.trim().slice(0, 30)).filter(Boolean).slice(0, 3), 같은이름: Object.entries([...document.querySelectorAll('a[href],button,[role=button]')].filter(e => e.getClientRects().length).reduce((m, e) => { const k = e.innerText.trim().slice(0, 30); if (k) m[k] = (m[k] || 0) + 1; return m; }, {})).filter(([, n]) => n > 1) })"
+```
+
+늦게 채워짐은 `requests` 로(조작 전 · 뒤), 확인 창은 누른 뒤 cli 가 알리는 창 상태로 본다.
+
 입력 칸 속성은 `eval` 한 번으로 다 읽는다 — 스냅샷 글로 필수 · 글자 수를 짐작하지 않는다. 한도가 없으면 `null` 이다(크롤러 `# 입력칸:` 줄과 같은 뜻).
 
 ```bash

@@ -45,6 +45,8 @@ export interface 본화면 extends 목록항목 {
   링크수: number;
   /** 모바일로 견준 차이 — 링크로 연 화면만. 못 열었으면 null (PRD-F10-07) */
   모바일?: 화면차이 | null;
+  /** 크롤 파일 머리 「움직임」 줄 — API 줄과 같이 다 돈 뒤에 끼운다 */
+  움직임?: string[];
 }
 export interface 연결 { to: string; via: string }
 export interface 판 {
@@ -130,6 +132,9 @@ export function API더하기(몫: Map<number, 들은API>, 본번: number, 들은
 // 실행의 mobile 프로젝트(playwright.config.ts)와 같은 기기 — 크롤러는 chromium 이라 화면 크기 · 터치 · UA 만 흉내 낸다 (PRD-F10-07)
 const { defaultBrowserType: _, ...아이폰 } = devices['iPhone 14'];
 
+/** 쪽마다 뜬 브라우저 확인 창(종류 「글」) — 크롤러가 누른 것과 묶어 그 화면 「움직임」에 남기고 비운다 */
+export const 뜬창 = new WeakMap<Page, string[]>();
+
 /** 쪽 하나 — 상태 파일이 없으면 로그아웃이다. 모바일이면 실행 모바일과 같은 기기 크기 · UA 로 연다 */
 export async function 새쪽(브라우저: Browser, 상태파일: string | undefined, 모바일 = false): Promise<{ 맥락: BrowserContext; 쪽: Page }> {
   const 맥락 = await 브라우저.newContext({ ...(모바일 ? 아이폰 : {}), ...(상태파일 === undefined ? {} : { storageState: 상태파일 }) });
@@ -137,7 +142,12 @@ export async function 새쪽(브라우저: Browser, 상태파일: string | undef
   await 맥락.route('**/*', (r) => (['image', 'font', 'media'].includes(r.request().resourceType()) ? r.abort() : r.continue()));
   const 쪽 = await 맥락.newPage();
   // 브라우저 확인 창은 늘 취소한다 — 탈퇴 · 삭제의 마지막 확인일 수 있다. 떠나기 확인만 받아 다음 화면으로 간다
-  쪽.on('dialog', (d) => void (d.type() === 'beforeunload' ? d.accept() : d.dismiss()).catch(() => undefined));
+  // 모바일 견주기 쪽은 누르지 않는다 — 담아 둘 곳을 안 만들어 쌓이지 않게
+  if (!모바일) 뜬창.set(쪽, []);
+  쪽.on('dialog', (d) => {
+    if (d.type() !== 'beforeunload') 뜬창.get(쪽)?.push(`${d.type()} 「${d.message().replace(/\s+/g, ' ').slice(0, 60)}」`);
+    void (d.type() === 'beforeunload' ? d.accept() : d.dismiss()).catch(() => undefined);
+  });
   // 누르기는 한 쪽에서만 — 스크립트가 띄운 새 창은 닫는다
   맥락.on('page', (p) => void p.close().catch(() => undefined));
   return { 맥락, 쪽 };
