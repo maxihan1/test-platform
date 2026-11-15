@@ -24,8 +24,8 @@ export async function 키누르기(driver: AppDriver, 키: 폰키): Promise<void
 export async function 포커스칸에치기(driver: AppDriver, 글: string): Promise<void> {
   네이티브전용(driver, '포커스칸에치기');
   if (글 === '') throw new Error('포커스칸에치기 — 칠 글이 비었다');
-  // 폰이 못 받으면 false 가 온다 — 조용히 넘기면 빈 칸으로 다음 단계가 돈다
-  if ((await driver.execute('mobile: type', { text: 글 })) === false) throw new Error('포커스칸에치기 — 폰이 글을 받지 않았다. 칸을 먼저 눌러 포커스를 준다');
+  // UiAutomator2 는 보냈으면 true, 못 보냈으면 false 를 준다 — true 가 아니면 조용히 넘기지 않는다(빈 칸으로 다음 단계가 돈다)
+  if ((await driver.execute('mobile: type', { text: 글 })) !== true) throw new Error('포커스칸에치기 — 폰이 글을 받지 않았다. 칸을 먼저 눌러 포커스를 준다');
 }
 
 /** 칸의 글을 지운다 — 지운 뒤 빈 칸인지는 케이스가 verify 로 본다 */
@@ -36,10 +36,12 @@ export async function 칸비우기(칸: 앱요소): Promise<void> {
 /** 클립보드 글 — 복사 단추를 누른 뒤 무엇이 복사됐는지. 웹뷰 구간 안에서도 부른다(UiAutomator2 는 웹 맥락의 mobile: 명령도 직접 받는다) */
 export async function 클립보드읽기(driver: AppDriver): Promise<string> {
   const 읽은 = await driver.execute('mobile: getClipboard', {});
-  return Buffer.from(String(읽은 ?? ''), 'base64').toString('utf8');
+  // 글이 아닌 답을 base64 로 풀면 엉뚱한 글이 되어 판정이 헷갈린다
+  if (typeof 읽은 !== 'string') throw new Error(`클립보드읽기 — 폰이 클립보드 글 대신 다른 것을 줬다: ${JSON.stringify(읽은)}`);
+  return Buffer.from(읽은, 'base64').toString('utf8');
 }
 
-/** 클립보드에 글을 넣는다 — 붙여 넣기 케이스의 준비. 팜이 폰을 돌려받을 때 클립보드를 비워 되돌리지 않는다 */
+/** 클립보드에 글을 넣는다 — 붙여 넣기 케이스의 준비. 팜은 폰을 놓을 때 클립보드를 비우지만 잡은 동안은 남아, 복사 단추를 보는 케이스는 누르기 전에 다른 글을 넣어 둔다(tpx-author app.md §3) */
 export async function 클립보드쓰기(driver: AppDriver, 글: string): Promise<void> {
   await driver.execute('mobile: setClipboard', { content: Buffer.from(글, 'utf8').toString('base64'), contentType: 'plaintext' });
 }

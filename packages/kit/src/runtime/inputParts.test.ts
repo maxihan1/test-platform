@@ -55,6 +55,7 @@ describe('포커스칸에치기', () => {
 
   it('폰이 글을 안 받거나 칠 글이 비면 던진다 — 빈 칸으로 다음 단계가 돌지 않게', async () => {
     await expect(포커스칸에치기(가짜폰({ 'mobile: type': false }).driver, '123456')).rejects.toThrow('폰이 글을 받지 않았다');
+    await expect(포커스칸에치기(가짜폰().driver, '123456')).rejects.toThrow('폰이 글을 받지 않았다');
     const 폰 = 가짜폰();
     await expect(포커스칸에치기(폰.driver, '')).rejects.toThrow('칠 글이 비었다');
     expect(폰.보낸).toEqual([]);
@@ -80,9 +81,10 @@ describe('클립보드', () => {
     ]);
   });
 
-  it('빈 클립보드는 빈 글이다', async () => {
+  it('빈 클립보드는 빈 글이고, 글이 아닌 답은 던진다', async () => {
     expect(await 클립보드읽기(가짜폰({ 'mobile: getClipboard': '' }).driver)).toBe('');
-    expect(await 클립보드읽기(가짜폰().driver)).toBe('');
+    await expect(클립보드읽기(가짜폰().driver)).rejects.toThrow('클립보드 글 대신 다른 것을 줬다');
+    await expect(클립보드읽기(가짜폰({ 'mobile: getClipboard': { error: 'x' } }).driver)).rejects.toThrow('{"error":"x"}');
   });
 });
 
