@@ -158,12 +158,13 @@ export async function 웹사진(page: Page, path: string, 요소: Locator | unde
   await page.screenshot({ path, mask: [요소], maskColor: 웹덮개색 }).catch(() => page.screenshot({ path }));
 }
 
-export async function 앱사진(driver: AppDriver, path: string, 요소: string | undefined): Promise<void> {
+// 놓인자리 — 요소 번호 대신 이미 아는 자리(창 기준 · getElementRect 와 같은 꼴). 웹뷰 안 요소는 웹 맥락에서 읽어 옮긴 자리를 준다
+export async function 앱사진(driver: AppDriver, path: string, 요소: string | undefined, 놓인자리?: 상자): Promise<void> {
   await driver.saveScreenshot(path);
-  if (요소 === undefined) return;
+  if (요소 === undefined && 놓인자리 === undefined) return;
   try {
     // 요소 자리와 사진은 둘 다 실제 화소다. 창 크기를 못 읽으면 그대로 1배로 본다
-    const [자리, 창] = await Promise.all([driver.getElementRect(요소), driver.getWindowRect().catch(() => undefined)]);
+    const [자리, 창] = await Promise.all([놓인자리 ?? driver.getElementRect(요소!), driver.getWindowRect().catch(() => undefined)]);
     const png = PNG.sync.read(await readFile(path));
     const 배 = 창 !== undefined && 창.width > 0 ? png.width / 창.width : 1;
     표시를그린다(png, { x: 자리.x * 배, y: 자리.y * 배, width: 자리.width * 배, height: 자리.height * 배 });
