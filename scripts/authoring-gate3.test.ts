@@ -77,6 +77,19 @@ describe('마지막 전체 돌려 보기 경고 (작성 §3.6 · 2026-10-26 사�
     expect(끝돌려보기경고([보조(결과({ 'mkt/A.spec.ts': 셋 }))], 수정('mkt/A.spec.ts'))).toMatch(/마지막 전체 돌려 보기에서 빠진 파일 1개/);
   });
 
+  it('같은 확인 문장으로 두 번 빨개 2회로 끝낸 파일은 따로 세고, 일부러 안 늦춘 마지막 1번을 「늦추지 않고 돈 파일」로 세지 않는다', () => {
+    const 빨강 = (덧: { startTime?: string; slowApi?: boolean }) =>
+      JSON.stringify({
+        config: { workers: 1, metadata: { slowApi: 덧.slowApi ?? true } },
+        stats: { startTime: 덧.startTime ?? 시작 },
+        suites: [{ file: 'mkt/A.spec.ts', specs: [{ tests: [{ projectName: 'desktop', status: 'unexpected', results: [{ duration: 1000, error: { message: 'Error: 검증 실패: 금액이 49,999원이다\n    at x' } }] }] }] }],
+      });
+    const 경고 = 끝돌려보기경고([보조(빨강({})), 끝(빨강({ startTime: 뒤, slowApi: false }))], 수정('mkt/A.spec.ts'));
+    expect(경고).toMatch(/같은 확인 문장으로 두 번 빨개 3번을 안 채운 파일 1개/);
+    expect(경고).toMatch(/실패 1회/);
+    expect(경고).not.toMatch(/늦추지 않고 돈 파일/);
+  });
+
   it('마지막 1번만 있고 3번 다 초록인 기록이 없으면 경고', () => {
     expect(끝돌려보기경고([끝(결과({ 'mkt/A.spec.ts': 하나 }))], 수정('mkt/A.spec.ts'))).toMatch(/3번 다 초록인 기록이 없는 파일 1개/);
   });
