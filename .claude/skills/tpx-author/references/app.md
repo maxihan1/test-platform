@@ -82,10 +82,16 @@ npx appium-cli -s=probe find --regex "로그인|가입"
 npx appium-cli -s=probe tap '~로그인'             # Ran: await driver.$('~로그인').click() + 새 화면 경로
 npx appium-cli -s=probe fill e5 "${TARGET_LOGIN_ID:-$(node -p 'JSON.parse(process.env.PLATFORM_ACCOUNTS || "[]").find((a) => a.role === "일반 회원")?.loginId ?? ""')}"
 npx appium-cli -s=probe generate-locator e8
+npx appium-cli -s=probe long-press '~상품 카드'    # 길게 누르기 → Ran: await 길게누르기(driver, '~상품 카드'). 두 번 누르기는 double-tap
+npx appium-cli -s=probe wait '~주문 완료'          # 뜰 때까지(--gone 은 사라질 때까지 · --text "글자" · --timeout ms). 못 뜨면 종료 코드 1
+npx appium-cli -s=probe toast                     # 지금부터 뜨는 토스트 · 스낵바 글. 못 보면 종료 코드 1
 npx appium-cli -s=probe close
 npx appium-cli release                           # 반드시 — 놓아야 팜이 깐 앱 · 앱 데이터를 지우고 정식 실행이 폰을 잡는다
 ```
 
+- **길게 누르기 · 두 번 누르기 · 기다리기 · 토스트** (2026-11-15) — `Ran:` 줄은 `tap` 과 같이 케이스에 옮긴다. `Ran: // 주소 없음 …(좌표 …)` 가 나오면 CLI 가 좌표를 누른 것이라 케이스 주소는 §2 로 따로 정하고 폰 돌려 보기로 맞는지 본다.
+  - `wait` 의 `Ran:` 줄(`뜰때까지` · `사라질때까지`)은 케이스에서 **던지지 않고 참 · 거짓을 준다** — 받은 값을 `verify` 하거나 다음 줄의 앵커로 쓴다. `id=` 는 화면 글의 id 를 글자 그대로 적는다(`id=com.shop:id/order_done`).
+  - 토스트는 누르기 출력 끝의 `Toast: 「글」` 줄을 먼저 본다 — 누른 뒤 `toast` 를 따로 부르면 짧은 토스트는 이미 사라져 「못 봤다」가 나온다(토스트가 없다는 뜻이 아니다). 보이는 것은 글뿐이다 — 케이스의 `토스트글` 선택자는 그 글을 스냅샷에서 찾아 `snackbar_text` id 면 그 id, 없으면 `//android.widget.Toast` 로 고른다. **본 글은 기대값의 근거가 아니다.**
 - **잡았으면 끝에 반드시 `close` → `release`.** 실패하든 멈추든 작성을 끝내기 전에 놓는다. 에이전트가 끝에 남은 잡기를 놓지만 그때까지 앱 정식 실행이 그 폰을 못 쓴다.
 - **작업 폴더(처음 띄워진 자리)에서만 부르고 `--minutes 30` 그대로 잡는다.** 잡은 폰 번호가 그 폴더의 `.appium-cli/` 에 남아야 에이전트가 끝에 확인한다 — 다른 폴더로 `cd` 해서 부르면 놓기를 잊었을 때 아무도 못 놓는다.
 - **메인 세션만, 한 번에 하나.** 서브에이전트에 맡기지 않는다 — 폰이 한 대면 session 이 서로 가로챈다. 필요한 화면을 먼저 추려 한 번 잡은 동안 다 읽고 놓는다. 30분 안에 끝낸다.
