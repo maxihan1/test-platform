@@ -1,7 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 
 import { type 캐릭터 } from './helpers/api.helper.js';
-import { 강화기록수, 강화기록이멈출때까지, 누르고결과뜰때까지, 지난시간 } from './helpers/enhance-lock.helper.js';
+import { 강화기록수, 강화기록이멈출때까지, 강화버튼풀릴때까지, 누르고결과뜰때까지, 지난시간 } from './helpers/enhance-lock.helper.js';
 import { 게임입장 } from './helpers/game-enter.helper.js';
 import { 가방읽기, 골드주기, 새캐릭터, 아이템주기, 캐릭터지우기 } from './helpers/game-state.helper.js';
 import { 강화창 } from './pages/enhance.page.js';
@@ -48,7 +48,7 @@ test(spec, async ({ game, admin }) => {
     });
     await test.step('강화 창에서 「강화하기」를 누르고 강화 결과가 뜨자마자 다시 누른다', async () => {
       const 창 = new 강화창(game);
-      await new Promise((깨운다) => setTimeout(깨운다, 1_500));
+      await verify('앞 강화의 잠금이 풀려 「강화하기」를 누를 수 있다', await 강화버튼풀릴때까지(창), true, { blocker: true });
       const 앞 = await 강화기록수(admin, 누구!);
       const 뜬때 = await 누르고결과뜰때까지(창);
       await 창.강화누르기();

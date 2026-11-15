@@ -51,3 +51,12 @@ export async function 누르고결과뜰때까지(창: 강화창): Promise<결�
 export function 지난시간(뜬때: 결과뜬때): number {
   return Date.now() - 뜬때.가장일찍;
 }
+
+export async function 강화버튼풀릴때까지(창: 강화창, 한도 = 5_000): Promise<boolean> {
+  const 끝 = Date.now() + 한도;
+  for (;;) {
+    if ((await 창.강화버튼())?.interactable === true) return true;
+    if (Date.now() >= 끝) return false;
+    await 쉰다(100);
+  }
+}
