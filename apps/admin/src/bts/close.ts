@@ -80,38 +80,40 @@ export async function 실패한실행(손: Pick<PoolClient, 'query'>, 첫실행:
 }
 
 /** 뒤 요청은 그때 열린 작성 전부를 기다린다 — 결정 진행이 세우는 요청과 같은 차례(authoring/decisionRun.ts) */
-export async function 반영요청세우기(손: PoolClient, 서비스: number, issueKey: string, 값: Record<string, unknown>): Promise<number> {
+export async function 반영요청세우기(손: PoolClient, 서비스: number, issueKey: string, 값: Record<string, unknown>, count = 1): Promise<number> {
   const 열린 = await 열린작성(서비스, 손);
-  return 줄세우기({ 서비스, kind: 'AUTHOR', 기획서: null, 값: { prdApply: true, ...값, decision: { after: 열린, count: 1 } }, ...BTS요청자(issueKey) }, 손);
+  return 줄세우기({ 서비스, kind: 'AUTHOR', 기획서: null, 값: { prdApply: true, ...값, decision: { after: 열린, count } }, ...BTS요청자(issueKey) }, 손);
 }
 
 /**
- * 화면이 맞음 — 같은 앱에 아직 안 집힌(PENDING) 「화면이 맞음」 요청이 있으면 그 screenRight 에 이어 붙이고 그 번호를, 없으면 새로 세운다.
- * 이슈 여럿을 이어 닫을 때 이슈마다 다시 작성 · PR 이 하나씩 서지 않게(2026-11-15 사용자 — MTW 49건). 이미 든 케이스는 겹쳐 넣지 않는다.
- * 그 줄을 FOR UPDATE 로 잡고 PENDING 일 때만 고친다 — 그 사이 에이전트가 집었으면 건드리지 않고 새로 세운다
+ * 화면이 맞음 — 같은 앱에 Bunker 가 세운 아직 안 집힌(PENDING) 「화면이 맞음」 요청이 있으면 그 screenRight 에 이어 붙이고 그 번호를, 없으면 새로 세운다.
+ * 이슈 여럿을 이어 닫을 때 이슈마다 다시 작성 · PR 이 하나씩 서지 않게(2026-11-15 사용자 — MTW 49건). 사람이 결정 진행으로 세운 요청에는 안 붙인다.
+ * 같은 (실행 · 케이스)는 겹쳐 넣지 않고 decision.count 는 든 케이스 수다(결정 진행의 고른 수와 같은 단위).
+ * 그 줄을 FOR UPDATE 로 잡고 PENDING 일 때만 고친다 — 고친 줄이 없으면(그 사이 집혔으면) 새로 세운다
  */
-async function 화면이맞음붙이거나세우기(손: PoolClient, 서비스: number, issueKey: string, 칸들: { tcId: string }[]): Promise<number> {
+async function 화면이맞음붙이거나세우기(손: PoolClient, 서비스: number, issueKey: string, 칸들: { runId: number; tcId: string }[]): Promise<number> {
   const 대기 = (
-    await 손.query<{ id: string; params: { screenRight: { tcId: string }[]; decision?: { count?: number } } }>(
+    await 손.query<{ id: string; params: { screenRight: { runId: number; tcId: string }[] } }>(
       `SELECT id, params FROM authoring_request
-        WHERE service_id = $1 AND kind = 'AUTHOR' AND status = 'PENDING' AND discarded_at IS NULL
+        WHERE service_id = $1 AND kind = 'AUTHOR' AND status = 'PENDING' AND discarded_at IS NULL AND requested_by = $2
           AND params->>'prdApply' = 'true' AND jsonb_typeof(params->'screenRight') = 'array'
         ORDER BY id DESC LIMIT 1 FOR UPDATE`,
-      [서비스],
+      [서비스, BTS요청자(issueKey).누가],
     )
   ).rows[0];
-  if (대기 === undefined) return 반영요청세우기(손, 서비스, issueKey, { screenRight: 칸들 });
-  const 있던 = new Set(대기.params.screenRight.map((x) => x.tcId));
-  const 새것 = 칸들.filter((x) => !있던.has(x.tcId));
-  if (새것.length > 0) {
-    await 손.query(
-      `UPDATE authoring_request
-          SET params = jsonb_set(jsonb_set(params, '{screenRight}', (params->'screenRight') || $2::jsonb), '{decision,count}', to_jsonb($3::int), true)
-        WHERE id = $1 AND status = 'PENDING'`,
-      [대기.id, JSON.stringify(새것), (대기.params.decision?.count ?? 대기.params.screenRight.length) + 새것.length],
-    );
-  }
-  return Number(대기.id);
+  if (대기 === undefined) return 반영요청세우기(손, 서비스, issueKey, { screenRight: 칸들 }, 칸들.length);
+  const 열쇠 = (x: { runId: number; tcId: string }) => `${String(x.runId)}:${x.tcId}`;
+  const 있던 = new Set(대기.params.screenRight.map(열쇠));
+  const 새것 = 칸들.filter((x) => !있던.has(열쇠(x)));
+  if (새것.length === 0) return Number(대기.id);
+  const 고침 = await 손.query(
+    `UPDATE authoring_request
+        SET params = jsonb_set(jsonb_set(params, '{screenRight}', (params->'screenRight') || $2::jsonb),
+                               '{decision}', COALESCE(params->'decision', '{}'::jsonb) || jsonb_build_object('count', $3::int))
+      WHERE id = $1 AND status = 'PENDING'`,
+    [대기.id, JSON.stringify(새것), 대기.params.screenRight.length + 새것.length],
+  );
+  return 고침.rowCount === 1 ? Number(대기.id) : 반영요청세우기(손, 서비스, issueKey, { screenRight: 칸들 }, 칸들.length);
 }
 
 /** 세운 작성 요청 번호들과, 닫기만 하고 요청을 못 세운 케이스(까닭) — 받는 쪽이 로그에 남긴다 */

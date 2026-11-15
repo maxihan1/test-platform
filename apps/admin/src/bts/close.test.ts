@@ -132,6 +132,13 @@ describe.skipIf(연결 === undefined)('Issue Bunker 닫기 사유 처리', () =>
     await 짝넣기('DM-8', 'XBC-FN-001');
     await 닫기처리({ projectId: 프로젝트, ...자리 }, 이슈('DM-8', 'Works as designed'));
     expect(((await 요청(첫!)).params as { screenRight: unknown[] }).screenRight).toHaveLength(2);
+    // 사람이 결정 진행으로 세운 요청에는 붙이지 않는다
+    await pool.query(`UPDATE authoring_request SET requested_by = 'xbc' WHERE id = $1`, [첫]);
+    await 짝넣기('DM-10', 'XBC-FN-002');
+    const { 요청들: [사람것옆] } = await 닫기처리({ projectId: 프로젝트, ...자리 }, 이슈('DM-10', 'Works as designed'));
+    expect(사람것옆).not.toBe(첫);
+    await pool.query('DELETE FROM authoring_request WHERE id = $1', [사람것옆]);
+    await pool.query(`UPDATE authoring_request SET requested_by = 'bts' WHERE id = $1`, [첫]);
     // 에이전트가 집은 뒤에는 그 요청을 건드리지 않고 새로 세운다
     await pool.query(`UPDATE authoring_request SET status = 'RUNNING' WHERE id = $1`, [첫]);
     await 짝넣기('DM-9', 'XBC-FN-002');
