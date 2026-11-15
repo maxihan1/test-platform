@@ -9,7 +9,7 @@ import type { Pool } from 'pg';
 import { 미확정사유SQL } from '../prd/unconfirmed.js';
 import { API인증읽기, type 어드민키, 어드민키읽기 } from '../settings/envs.js';
 
-import { 실행빌드, 앱칸 } from './buildFile.js';
+import { 실행빌드, 앞빌드, 앱칸 } from './buildFile.js';
 import { 엔진칸 } from './engineField.js';
 import { DEFAULT_TIMEOUT_MS, 선언밖디바이스 } from './location.js';
 import { 대상서버계정, 저장값을채운다 } from './savedInput.js';
@@ -94,6 +94,9 @@ export interface PendingItem {
   app?: string;
   // 실행에 고정한 빌드가 올린 APK 면 app 대신 번호만 — 서명 주소는 폰을 잡은 뒤 만든다 (도메인/실행 §3.11)
   buildId?: number;
+  // 앞 빌드 — app · buildId 와 같은 꼴(회사 저장소 주소면 주소, 올린 APK 면 번호). 실행 앱이 빌드일 때만 (도메인/러너 §5.2 「범용 앱 부품」 APP-F3-08)
+  previousApp?: string;
+  previousBuildId?: number;
   // 그 대상 서버 줄의 API 인증. 설정이 API 애플리케이션에만 넣게 하므로 있으면 API 케이스다 (도메인/API §3.8)
   apiAuths?: ApiAuth[];
   // engine 은 게임 애플리케이션의 android 항목만 (도메인/게임 §3.10 결정 6). adminKey 는 게임 · API 항목에 그 대상 서버 줄의 어드민 키 원문
@@ -243,6 +246,8 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
     });
     // 실행은 끝까지 만들 때의 빌드를 깐다 — 뒤에 새 빌드가 와도 바뀌지 않는다 (도메인/실행 §3.11)
     const 빌드 = await 실행빌드(client, Number(found서비스.id), input.env, input.build?.id);
+    // 옛판에서올리기 가 깔 앞 빌드 — 실행 빌드 바로 앞에 그 줄에 올린 빌드다 (도메인/러너 §5.2 「범용 앱 부품」 APP-F3-08)
+    const 앞 = 빌드 === null ? null : await 앞빌드(client, Number(found서비스.id), input.env, 빌드.id);
     const title = await 제목을짓는다(client, {
       origin,
       ...(rerunOf === null ? {} : { rerunOf }),
@@ -322,7 +327,7 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
             params: item.params,
             expected: item.expected,
             timeoutMs,
-            ...(platform === 'android' && 앱칸(빌드, found서비스.app_path)),
+            ...(platform === 'android' && 앱칸(빌드, found서비스.app_path, 앞)),
             ...(인증들.length > 0 && { apiAuths: 인증들 }),
             ...엔진칸(found서비스.kind, platform, 어드민키읽기(found서비스.admin_key)),
             ...(platform === 'mobile' && 실제폰 && { 실제폰: true as const }),

@@ -16,7 +16,7 @@ import authRoutes from '../auth/routes.js';
 import { 세션등록 } from '../auth/session.js';
 import serviceTokenRoutes from '../settings/serviceTokens.js';
 
-import { 보관개수, 서명주소 } from './buildFile.js';
+import { 깔앞앱파일, 보관개수, 서명주소 } from './buildFile.js';
 import buildRoutes from './buildRoutes.js';
 import { 스모크뒤 } from './buildRun.js';
 import { dispatch } from './dispatcher.js';
@@ -246,5 +246,21 @@ describe.skipIf(연결 === undefined)('빌드마다 돌리기', { timeout: 60_00
     await rm(자리);
     await symlink('/etc/hosts', 자리);
     expect((await app.inject({ method: 'GET', url: `${주소.pathname}${주소.search}` })).statusCode).toBe(404);
+  });
+
+  it('다음 APK 의 실행 항목에는 그 줄의 바로 앞 빌드 번호가 같이 실린다 (APP-F3-08)', async () => {
+    const 원문 = await 토큰('XBA');
+    const z = new JSZip();
+    z.file('AndroidManifest.xml', 'x');
+    z.file('classes.dex', 'x');
+    const 몸 = await z.generateAsync({ type: 'nodebuffer' });
+    const 앞 = await pool.query<{ id: string }>("SELECT id FROM app_build WHERE service_id = $1 AND env = 'qa' ORDER BY uploaded_at DESC, id DESC LIMIT 1", [서비스.XBA]);
+    vi.mocked(dispatch).mockClear();
+    const res = await app.inject({ method: 'POST', url: '/api/builds?env=qa&buildNo=89', headers: { authorization: `Bearer ${원문}`, 'content-type': 'application/octet-stream' }, payload: 몸 });
+    expect(res.statusCode).toBe(201);
+    const { buildId } = res.json<{ buildId: number }>();
+    expect(vi.mocked(dispatch).mock.calls[0]![1]).toEqual([expect.objectContaining({ tcId: 'XBA-FN-001', buildId, previousBuildId: Number(앞.rows[0]!.id) })]);
+    // 케이스 테스트 실행도 같은 앞 빌드를 서명 주소로 싣는다
+    expect(await 깔앞앱파일(서비스.XBA!, 'qa')).toContain(`/api/builds/${앞.rows[0]!.id}/apk?exp=`);
   });
 });

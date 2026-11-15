@@ -160,6 +160,7 @@ async function 항목을보낸다(
     expected: item.expected,
     timeoutMs: item.timeoutMs,
     ...(item.app !== undefined && { app: item.app }),
+    ...(item.previousApp !== undefined && { previousApp: item.previousApp }),
     ...(item.apiAuths !== undefined && { apiAuths: item.apiAuths }),
     ...(item.engine !== undefined && { engine: item.engine }),
     ...(item.adminKey !== undefined && { adminKey: item.adminKey }),
@@ -177,7 +178,9 @@ async function 항목을보낸다(
   const 보낸다폰 = async (udid: string, 토큰: string | undefined): Promise<ExecuteResponse> => {
     const 멈춘 = 멈춤();
     if (멈춘 !== null) return 멈춘;
-    const 폰body: ExecuteRequest = { ...body, udid, ...(토큰 !== undefined && { farmToken: 토큰 }) };
+    // 앞 빌드도 이 설치 한 번에만 쓰는 서명 주소다. 못 만들면 빼고 보낸다 — 옛판에서올리기 만 「앞 빌드가 없다」로 던진다
+    const 앞 = item.previousBuildId === undefined ? null : 서명주소(item.previousBuildId);
+    const 폰body: ExecuteRequest = { ...body, udid, ...(토큰 !== undefined && { farmToken: 토큰 }), ...(앞 !== null && { previousApp: 앞 }) };
     if (item.buildId === undefined) return 보낸다(item, 폰body);
     // 올린 APK 는 폰을 잡은 뒤 서명 주소를 만든다 — 저장하지 않고 이 설치 한 번에만 쓴다 (도메인/실행 §3.11)
     const app = 서명주소(item.buildId);

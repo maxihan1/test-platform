@@ -70,6 +70,39 @@ describe('execute 가 자식에게 넘기는 앱 파일', () => {
   });
 });
 
+describe('execute 가 자식에게 넘기는 앞 빌드 (APP-F3-08)', () => {
+  let 폴더: string;
+
+  beforeEach(() => {
+    폴더 = mkdtempSync(join(tmpdir(), 'runner-prev-'));
+    process.env.PLATFORM_APP_PREVIOUS = '/runner/셸에-남은.apk';
+    스크립트.지금 = `printf %s "\${PLATFORM_APP_PREVIOUS-없음}" > '${join(폴더, 'prev.txt')}'`;
+  });
+
+  afterEach(() => {
+    delete process.env.PLATFORM_APP_PREVIOUS;
+    rmSync(폴더, { recursive: true, force: true });
+  });
+
+  const 요청 = (platform: ExecuteRequest['platform'], previousApp?: string): ExecuteRequest => ({
+    runId: 5, historyId: 15, tcId: 'AND-001', platform, filePath: 'a.spec.ts', baseUrl: '', params: {}, expected: {}, timeoutMs: 10_000,
+    ...(previousApp !== undefined && { previousApp }),
+  });
+  const 받은값 = () => readFileSync(join(폴더, 'prev.txt'), 'utf8');
+
+  it('앱 항목이면 요청이 실은 앞 빌드를 넘긴다', async () => {
+    await execute(요청('android', 'https://admin/api/builds/6/apk?exp=1&sig=s'), 'a.spec.ts');
+    expect(받은값()).toBe('https://admin/api/builds/6/apk?exp=1&sig=s');
+  });
+
+  it('요청에 없거나 브라우저 항목이면 빼고 넘긴다 — 러너를 켠 셸의 값을 물려받지 않는다', async () => {
+    await execute(요청('android'), 'a.spec.ts');
+    expect(받은값()).toBe('없음');
+    await execute(요청('desktop', '/apk/old.apk'), 'a.spec.ts');
+    expect(받은값()).toBe('없음');
+  });
+});
+
 describe('execute 가 자식에게 넘기는 폰 번호 (APP-F1-10)', () => {
   let 폴더: string;
   let 옛값: string | undefined;

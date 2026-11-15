@@ -65,6 +65,14 @@ describe('android 항목이 깔 앱', () => {
     expect(앱칸({ id: 3, buildNo: '3', hasFile: false, appUrl: null }, '/apk/qa.apk')).toEqual({ app: '/apk/qa.apk' });
     expect(앱칸(null, null)).toEqual({});
   });
+
+  it('앞 빌드도 같은 꼴로 싣는다 — 실행 앱이 빌드일 때만 (APP-F3-08)', () => {
+    const 올린 = { id: 4, buildNo: '4', hasFile: true, appUrl: null };
+    const 저장소 = { id: 5, buildNo: '5', hasFile: false, appUrl: 'https://s3.test/b.apk' };
+    expect(앱칸({ id: 6, buildNo: '6', hasFile: true, appUrl: null }, null, 올린)).toEqual({ buildId: 6, previousBuildId: 4 });
+    expect(앱칸({ id: 6, buildNo: '6', hasFile: false, appUrl: 'https://s3.test/c.apk' }, null, 저장소)).toEqual({ app: 'https://s3.test/c.apk', previousApp: 'https://s3.test/b.apk' });
+    expect(앱칸({ id: 6, buildNo: '6', hasFile: false, appUrl: null }, '/apk/qa.apk', 올린)).toEqual({ app: '/apk/qa.apk' });
+  });
 });
 
 describe('APK 판별', () => {
