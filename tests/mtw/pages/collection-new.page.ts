@@ -34,6 +34,11 @@ export class 컬렉션만들기화면 {
     await this.검색칸.or(this.한도안내).waitFor();
   }
 
+  async 편집열기(번호: string): Promise<void> {
+    await this.page.goto(`/collections/${번호}/edit`);
+    await this.검색칸.waitFor();
+  }
+
   async 계정검색(검색어: string): Promise<void> {
     await this.검색칸.fill(검색어);
   }

@@ -168,6 +168,22 @@ export async function 내컬렉션번호들API(page: Page): Promise<string[]> {
   return 목록.collections.map((컬렉션) => 컬렉션.id);
 }
 
+export async function 계정채운컬렉션만들기API(page: Page, 이름: string, 개수: number): Promise<{ 번호: string; 넣은수: number }> {
+  const 나 = await 내계정API(page);
+  const 만든것 = await 몸<{ collection?: { id: string }; id?: string }>(await apiPost(page, '/api/v1/collections', { name: 이름, description: '계정 한도 확인', sensitive: false, discoverable: false }));
+  const 번호 = 만든것.collection?.id ?? 만든것.id ?? '';
+  if (번호 === '') throw new Error('컬렉션을 만들지 못했다');
+  const 후보 = await 몸<{ id: string; username: string }[]>(await apiGet(page, '/api/v1/directory?local=true&limit=80'));
+  for (let 번째 = 1; 번째 <= 20; 번째 += 1) 후보.push(await 계정찾기API(page, `qa_feat_${String(번째).padStart(2, '0')}`));
+  let 넣은수 = 0;
+  for (const 계정 of 후보) {
+    if (넣은수 >= 개수) break;
+    if (계정.id === 나.id || /^(qa_user|tc_)/.test(계정.username)) continue;
+    if ((await apiPost(page, `/api/v1/collections/${번호}/items`, { account_id: 계정.id })).ok()) 넣은수 += 1;
+  }
+  return { 번호, 넣은수 };
+}
+
 export async function 새로생긴컬렉션지우기API(page: Page, 앞번호들: string[]): Promise<string[]> {
   const 새것 = (await 내컬렉션번호들API(page)).filter((번호) => !앞번호들.includes(번호));
   for (const 번호 of 새것) await apiDelete(page, `/api/v1/collections/${번호}`);
