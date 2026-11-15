@@ -56,7 +56,7 @@ beforeEach(() => {
   app.closeApp.mockReset().mockResolvedValue(undefined);
 });
 
-function androidSpec(extra: { held?: string } = {}) {
+function androidSpec(extra: { held?: string; keepAppData?: boolean } = {}) {
   return defineCase({
     tcId: 'DEMO-A01',
     name: '앱 케이스',
@@ -142,6 +142,17 @@ describe('test', () => {
     const args = body.mock.calls[0][0] as { driver: unknown; page: unknown };
     expect(args.driver).toBe(driver);
     expect(() => args.page).toThrow('DEMO-A01은 Android 앱 케이스라 page 가 없다 — driver 를 쓴다');
+  });
+
+  it('데이터 남기기를 고른 케이스만 그 설정으로 연결을 연다', async () => {
+    test(androidSpec({ keepAppData: true }), vi.fn());
+    await runApp('android');
+    expect(app.openApp.mock.calls.at(-1)?.[1]).toEqual({ keepData: true });
+
+    pw.appRegistered.length = 0;
+    test(androidSpec(), vi.fn());
+    await runApp('android');
+    expect(app.openApp.mock.calls.at(-1)?.[1]).toEqual({ keepData: false });
   });
 
   it('fixture 정리가 열린 연결을 닫고 안 열렸으면 건드리지 않는다', async () => {

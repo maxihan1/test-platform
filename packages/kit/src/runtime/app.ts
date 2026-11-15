@@ -23,7 +23,12 @@ function required(env: Env, name: string): string {
   return value;
 }
 
-export function appCapabilities(env: Env): Record<string, string | boolean | number> {
+/** 케이스가 고르는 연결 설정 — 지금은 「데이터 남기고 시작」 하나다 (도메인/러너 §5.2) */
+export interface AppOpenOptions {
+  keepData?: boolean;
+}
+
+export function appCapabilities(env: Env, options: AppOpenOptions = {}): Record<string, string | boolean | number> {
   const caps: Record<string, string | boolean | number> = {
     platformName: 'Android',
     'appium:automationName': 'UiAutomator2',
@@ -37,6 +42,10 @@ export function appCapabilities(env: Env): Record<string, string | boolean | num
   if (env.PLATFORM_DEVICE_UDID) caps['appium:udid'] = env.PLATFORM_DEVICE_UDID;
   // 게임은 실행 하나 동안 폰을 쥐고 한 번만 깐다 — 항목마다 데이터는 두고 앱만 다시 켠다. 상태는 케이스가 어드민 API 로 맞춘다 (도메인/게임 §3.10 「게임 연결」).
   // 게임 명령은 Appium 을 거치지 않아, 기본 60초면 Appium 명령이 뜸한 긴 절차(확률 대량 시도) 도중 연결이 끊긴다
+  // 데이터 남기기를 고른 앱 케이스 — 앞 케이스의 로그인을 이어 쓰고 앱만 다시 켠다. 폰을 놓으면 팜이 데이터를 지워, 한 번 잡고 이어 도는 작성 폰 돌려 보기에서만 이어진다 (도메인/러너 §5.2 「데이터 남기고 시작」)
+  if (options.keepData === true) {
+    Object.assign(caps, { 'appium:noReset': true, 'appium:forceAppLaunch': true, 'appium:shouldTerminateApp': true });
+  }
   if (env.PLATFORM_ENGINE === 'GAME') {
     Object.assign(caps, {
       'appium:noReset': true,
@@ -53,10 +62,10 @@ export function appCapabilities(env: Env): Record<string, string | boolean | num
   return caps;
 }
 
-export async function openApp(env: Env): Promise<AppDriver> {
+export async function openApp(env: Env, options: AppOpenOptions = {}): Promise<AppDriver> {
   // 연결을 열기 전에 두 값을 다 확인해야 반쯤 열린 세션이 남지 않는다
   const url = new URL(required(env, 'PLATFORM_APPIUM_URL'));
-  const capabilities = appCapabilities(env);
+  const capabilities = appCapabilities(env, options);
   // 브라우저 케이스가 쓰지도 않는 부품을 싣지 않으려고 쓸 때 불러온다
   const { remote } = await import('webdriverio');
   const token = env.PLATFORM_APPIUM_TOKEN;

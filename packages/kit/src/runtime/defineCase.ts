@@ -33,11 +33,20 @@ export interface DefineCaseInput<P extends CaseSchema, E extends CaseSchema> {
   elements?: string[];
   // 빌드마다 먼저 도는 핵심 경로 케이스 (도메인/게임 §3.10 「빌드마다 돌리기」)
   smoke?: boolean;
+  // 앱 케이스만 · 연결 때 앱 데이터를 지우지 않고 앱만 다시 켠다 — 앞 케이스의 로그인을 이어 쓴다. 안 적으면 지우고 시작한다 (도메인/러너 §5.2 「데이터 남기고 시작」)
+  keepAppData?: boolean;
 }
 
 // 선언에 쓴 zod 스키마 원본. 실행 시점에 주입값을 검증하려면 JSON Schema가 아니라 원본이 필요하다.
 // 명세 객체에 직접 달면 스캐너가 JSON으로 내보낼 때 딸려 나가므로 바깥에 따로 보관한다
 const schemas = new WeakMap<CaseSpec, { params: CaseSchema; expected: CaseSchema }>();
+
+// 연결 설정만 고르는 값이라 명세(스캐너 JSON · DB)에 싣지 않는다 — schemas 와 같은 까닭으로 바깥에 둔다
+const keepers = new WeakSet<CaseSpec>();
+
+export function keepsAppData(spec: CaseSpec): boolean {
+  return keepers.has(spec);
+}
 
 export function schemasOf(spec: CaseSpec): { params: CaseSchema; expected: CaseSchema } {
   return schemas.get(spec) ?? { params: null, expected: null };
@@ -65,6 +74,11 @@ export function defineCase<P extends CaseSchema, E extends CaseSchema>(
   // 앱 케이스는 브라우저 러너가 아닌 Appium 러너로 가므로 한 선언에 섞으면 어느 러너로 보낼지 정할 수 없다
   if (input.platforms?.includes('android') && input.platforms.length > 1) {
     throw new Error(`${input.tcId}: android 는 다른 디바이스와 함께 선언하지 않는다`);
+  }
+
+  // 브라우저 케이스에는 지울 앱 데이터가 없다 — 적어 두면 읽는 사람이 로그인이 남는 줄 안다
+  if (input.keepAppData === true && !input.platforms?.includes('android')) {
+    throw new Error(`${input.tcId}: keepAppData 는 android 케이스에만 단다`);
   }
 
   if (input.apiDoc !== undefined) {
@@ -96,6 +110,7 @@ export function defineCase<P extends CaseSchema, E extends CaseSchema>(
   if (input.smoke === true) spec.smoke = true;
 
   schemas.set(spec, { params: input.params, expected: input.expected });
+  if (input.keepAppData === true) keepers.add(spec);
 
   return spec;
 }

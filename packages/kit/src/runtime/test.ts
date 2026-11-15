@@ -9,7 +9,7 @@ import { captureApp, type AppDriver } from './app.js';
 import { 앱테스트 } from './appFixture.js';
 import { saveShot } from './artifacts.js';
 import { runScope, type RunScope } from './context.js';
-import type { CaseHandle } from './defineCase.js';
+import { keepsAppData, type CaseHandle } from './defineCase.js';
 import { 게임증적을남긴다, isGame, type GameDriver } from './game.js';
 import { 앱을지켜본다, 웹사진, 웹을지켜본다 } from './highlight.js';
 import { traced } from './http.js';
@@ -256,7 +256,7 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
   if (appTest) {
     appTest(spec.name, async ({ request, appSession }, testInfo) => {
       const inputs = prepare(testInfo);
-      const side = await appSession.open();
+      const side = await appSession.open({ keepData: keepsAppData(spec) });
       await execute(testInfo, request, side, (seq, 요소) => captureApp(side.driver, seq, 요소), inputs);
     });
     return;

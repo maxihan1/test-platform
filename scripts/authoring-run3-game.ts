@@ -34,6 +34,24 @@ export function 폰할일(대상: Record<string, number>, 판들: (파일: strin
 }
 
 /**
+ * 이번에 돌릴 묶음 — 앱 데이터를 남기는 케이스(`keepAppData: true`)가 남아 있으면 그것들만, 다 돌았으면 나머지.
+ * 지우고 시작하는 케이스가 사이에 끼면 그다음 케이스가 다시 로그인한다 (도메인/러너 §5.2 「데이터 남기고 시작」)
+ */
+export function 폰차례(할일: readonly string[], 남기나: (파일: string) => boolean): string[] {
+  const 남기는 = 할일.filter(남기나);
+  return 남기는.length > 0 ? 남기는 : [...할일];
+}
+
+/** 케이스 파일이 데이터 남기기를 골랐나 — 선언 줄만 본다(kit 을 불러 돌리면 케이스마다 수 초가 든다). 못 읽으면 지우는 쪽으로 본다 */
+export function 데이터남기나(트리: string, 파일: string): boolean {
+  try {
+    return /^\s*keepAppData:\s*true\b/m.test(readFileSync(join(트리, 'tests', 파일), 'utf8'));
+  } catch {
+    return false;
+  }
+}
+
+/**
  * AI 가 `npx control-cli hold`(게임) · `npx appium-cli hold`(앱)로 잡은 폰 번호 — 작업 폴더 `.<도구>/held`. 없거나 꼴이 아니면 null.
  * 자식이 쓴 파일이지만 이 명령도 자식이 돌린다 — 링크만 따라가지 않는다(에이전트의 잡은폰놓기와 같은 검사)
  */
@@ -180,7 +198,8 @@ export async function 폰실행(갈래: 폰갈래, 폴더: string | undefined, �
     return { 찾기: (파일: string) => 판들.get(파일), 시간들: [...판들.values()].flat().flatMap((p) => p.시간들) };
   };
   const 앞 = 읽기();
-  const 할일 = 폰할일(대상, 앞.찾기);
+  const 전체할일 = 폰할일(대상, 앞.찾기);
+  const 할일 = 폰차례(전체할일, (f) => 데이터남기나(트리, f));
   const 시작 = Date.now();
   let 이번: string[] = [];
   let 로그 = '';
@@ -197,7 +216,7 @@ export async function 폰실행(갈래: 폰갈래, 폴더: string | undefined, �
   const 남은 = 폰할일(대상, 뒤.찾기);
   const 빨강 = 빨간폰케이스(대상, 뒤.찾기);
   console.log(`${머리} 폰 ${폰} · ${갈래} 케이스 ${Object.keys(대상).length}건 가운데 이번 ${이번.length}건 · ${Math.round((Date.now() - 시작) / 1000)}초 · 기록 ${결과폴더}`);
-  if (이번.length > 0 && 남은.length === 할일.length) {
+  if (이번.length > 0 && 남은.length === 전체할일.length) {
     console.log(`돌렸지만 끝난 케이스가 없다 — 로그를 본다: ${로그}`);
     return 2;
   }

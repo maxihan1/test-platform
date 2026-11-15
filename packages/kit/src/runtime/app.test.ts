@@ -55,6 +55,15 @@ describe('appCapabilities', () => {
     expect('appium:noReset' in caps).toBe(false);
   });
 
+  it('케이스가 데이터 남기기를 골랐으면 앱 데이터를 두고 앱만 다시 켠다 — 안 고르면 지금처럼 지운다', () => {
+    const caps = appCapabilities({ PLATFORM_APP: '/tmp/a.apk' }, { keepData: true });
+    expect(caps).toMatchObject({ 'appium:noReset': true, 'appium:forceAppLaunch': true, 'appium:shouldTerminateApp': true });
+    // 게임 기본값(연결 오래 쥐기)은 앱에 안 딸려 온다
+    expect('appium:newCommandTimeout' in caps).toBe(false);
+    expect(appCapabilities({ PLATFORM_APP: 'com.shop.app' }, { keepData: true })['appium:noReset']).toBe(true);
+    expect('appium:noReset' in appCapabilities({ PLATFORM_APP: '/tmp/a.apk' }, { keepData: false })).toBe(false);
+  });
+
   it('PLATFORM_APP 이 없으면 던진다', () => {
     expect(() => appCapabilities({})).toThrow('Android 앱 케이스를 돌리려면 PLATFORM_APP 이 필요하다');
   });
