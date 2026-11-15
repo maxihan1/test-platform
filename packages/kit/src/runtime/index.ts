@@ -9,4 +9,3 @@ export { RESULT_MARKER, PROGRESS_MARKER, APPIUM_SESSION_FILE, APPIUM_SESSION_ID_
 export { runDir } from './artifacts.js';
 export { 진행줄 } from './progress.js';
 export { 폰에파일넣기, type 폰파일, type 폰파일종류 } from './phoneMedia.js';
-export { 권한창답하기, 글자들, 길게누르기, 될때까지, 두번누르기, 뜰때까지, 먼저뜨는것, 보이나, 사라질때까지, 스크롤해서찾기, 앱다시켜기, 움직이는화면에서, 칸에적기, 키보드완료, 토스트글, type 권한답, type 앱요소 } from './appParts.js';

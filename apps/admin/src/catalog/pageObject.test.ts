@@ -113,6 +113,13 @@ describe('checkNonCase', () => {
     expect(checkNonCase('mkt/pages/login.page.ts', `import type { CaseSpec } from '@platform/kit';\n${깨끗한글}`)).toEqual([]);
   });
 
+  it('kit 공용 부품은 값으로 가져와도 된다 — 그 입구에는 판정 · 절차가 없다. 통째로는 안 된다', () => {
+    expect(checkNonCase('mta/helpers/login.helper.ts', `import { 먼저뜨는것, 로그인이어쓰기 } from '@platform/kit/parts';\n${깨끗한글}`)).toEqual([]);
+    expect(checkNonCase('mta/helpers/login.helper.ts', `import * as 부품 from '@platform/kit/parts';\n${깨끗한글}`).map((x) => x.rule)).toEqual(['K7']);
+    expect(checkNonCase('mta/helpers/login.helper.ts', `import { verify } from '@platform/kit';\n${깨끗한글}`).map((x) => x.rule)).toContain('K7');
+    expect(checkNonCase('mta/helpers/login.helper.ts', `import { 뜰때까지 } from '@platform/kit/runtime';\n${깨끗한글}`).map((x) => x.rule)).toEqual(['K7']);
+  });
+
   it('tests 아래 JS 파일은 K7 이다 — 검사를 안 받고 import 로 풀린다', () => {
     expect(checkNonCase('mkt/pages/login.page.js', 'export class LoginPage {}\n').map((x) => [x.rule, x.line])).toEqual([['K7', 1]]);
   });

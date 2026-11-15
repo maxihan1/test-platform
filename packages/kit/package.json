@@ -12,6 +12,7 @@
     "./app": "./src/runtime/app.ts",
     "./game": "./src/runtime/game.ts",
     "./scenario": "./src/runtime/scenario.ts",
-    "./protocol": "./src/runtime/protocol.ts"
+    "./protocol": "./src/runtime/protocol.ts",
+    "./parts": "./src/parts.ts"
   }
 }
