@@ -29,6 +29,17 @@
   - **찾는 데 쓴 글자를 그 요소의 판정 기대값으로 쓰지 않는다** — 늘 맞는 판정이 된다. 주소는 앱 화면 파일에 둔다
   - **쓰기 전에 CLI 로 먼저 센다** (2026-11-15 APP-F3-03) — 절에 `appium-cli` 줄이 있으면 `npx appium-cli -s=probe count '<주소>'` 를 부른다. `Count: 1 — 하나만 맞는다` 이고 그 아래 줄의 ref 가 노린 요소일 때만 쓴다. 겹치면 다른 부모 · 글자를 고른다. **부모 id 가 하나뿐인지는 따로 센다** — `count 'id=<부모 id>'` 도 `Count: 1` 이어야 한다(UiAutomator 가 `childSelector` 꼴은 첫 부모 안만 찾아 겹쳐도 1 로 셀 수 있다). 순서 꼴은 늘 하나만 맞으니 `count` 로는 ref 가 노린 요소인지만 본다 — `instance` 를 0 · 1 · 2 로 바꿔 가며 ref 가 맞는 수를 찾되, 굴리는 목록 안이면 순서 꼴을 쓰지 않는다(위). 맞는지는 그래도 §4 의 폰 1번 돌려 보기로 한 번 더 본다. appium-cli 가 찍는 「text= 로 찾지 않는다」는 부모 없는 글자 찾기를 말한다 — 이 꼴과 아래 뜨는 창 꼴은 된다. 폰에서 안 돈 케이스가 이 꼴을 쓰면 결과 요약에 `부모 꼴 주소 미확인 — <tcId>` 를 적는다
   - **뜨는 창(팝업 메뉴 · 드롭다운)은 예외다** (2026-11-15) — 열린 창의 항목에 id · 이름표가 없고 **그 창 안에** id 있는 조상도 없으면 `android=new UiSelector().className("<화면 글의 클래스 그대로>").text("<글자>")` 로 찾는다(예: 홈 드롭다운 「목록」 — `className("android.widget.TextView").text("목록")`). 화면 글에 그 창의 요소만 보일 때만 쓴다(포커스를 가져가는 창 — 자동 완성 제안처럼 아래 화면 글자가 같이 보이면 안 된다). 창을 연 바로 뒤 그 항목이 보일 때까지 기다리고, 창 안에서 하나뿐인 글자만 쓰고, 굴려야 보이는 긴 목록 창 · 닫힌 창에는 쓰지 않는다. 찾는 데 쓴 글자를 판정 기대값으로 쓰지 않고, 폰에서 안 돌았으면 결과 요약에 `뜨는 창 주소 미확인 — <tcId>` 를 적는다(정본 SPEC ⑧)
+  - **앱 안 웹 화면(웹뷰)은 웹 케이스 순서로 찾는다** (2026-11-15 APP-F3-04 — 정본 SPEC 공통/2-명세선언 「Android 앱 케이스」 「범용 앱」) — `import { 웹뷰에서 } from '@platform/kit'` 의 `웹뷰에서(driver, async () => { … })` 구간 안에서만 쓴다. 구간 안 요소의 WebdriverIO 꼴은 이 순서다. 앞 꼴로 하나만 맞으면 뒤로 가지 않는다
+    1. testid — `driver.$('[data-testid="구매"]')`
+    2. 이름(role · label) — `driver.$('aria/구매하기')`. WebdriverIO 가 이름표 · label · placeholder · title · alt · 글로 찾는다
+    3. placeholder — `driver.$('input[placeholder="쿠폰 코드"]')`
+    4. 글 — `driver.$('button=구매하기')`(태그=글. 글에 큰따옴표가 들면 못 쓴다)
+    5. CSS — `driver.$('#pay')` · `driver.$('input[name="qty"]')`
+    6. XPath — 맨 끝이다. 웹 케이스처럼 까닭을 용어 사전에 남긴다
+
+    주소는 §5 의 `context` 로 웹 맥락에 들어가 `generate-locator wN` 이 고른 것을 옮기고, 손으로 지은 것은 `count` 로 하나만 맞는지 본다. 구간 안에서는 기다리기를 `await driver.$('…').waitForDisplayed({ timeout: 10000 })`, 지금 보이나를 `isDisplayed()`, 넣기를 `setValue` 로 쓴다. 네이티브 주소(`~` · `id=` · `android=`)와 네이티브 전용 부품(`뜰때까지` · `사라질때까지` · `보이나` · `먼저뜨는것` · `스크롤해서찾기` · `키보드완료` · `길게누르기` · `토스트글` · `권한창답하기` · `앱다시켜기`)은 구간 안에서 쓰지 않는다 — kit 이 「웹 맥락에서는 못 쓴다」로 던진다. `switchContext` 를 케이스에 직접 쓰지 않는다 — 구간이 끝나면(던져도) kit 이 네이티브로 되돌린다. 단계 사진 · 실패한 요소 표시는 kit 이 폰 화면 전체로 남긴다. 웹 화면에서 읽은 글도 기대값의 근거가 아니다
+    - `contexts` 에 `WEBVIEW_…` 가 없으면 앱이 웹뷰 디버깅을 안 켠 빌드다 — 웹뷰 안도 위 네이티브 규칙(이름표 → id → 부모 꼴)으로만 찾고, 그것으로 안 되면 결과 요약 `판정 불가·보류` 줄에 `앱 — <요구 번호> — 웹뷰 맥락 없음` 을 적는다
+    - `웹뷰에서` 는 첫 웹뷰 맥락으로 들어간다. 화면에 웹뷰가 둘 이상이면(앱 웹뷰와 Chrome 맞춤 탭이 같이 뜸) 폰 돌려 보기(§4)로 맞는 화면에 들어가는지 본다. 폰에서 안 돈 웹뷰 케이스는 결과 요약에 `웹뷰 주소 미확인 — <tcId>` 를 적는다
   - XPath · 좌표 · 부모 없는 `text=` 는 쓰지 않는다 — 뜨는 창 항목도 `text=` 만은 안 되고 위 클래스+글자 꼴만 쓴다. 이것까지 안 되면 그 케이스는 쓰지 말고 결과 요약 `판정 불가·보류` 줄에 `앱 — <요구 번호> — 주소 없음(요소 설명)` 을 적는다.
 - 첫 화면에 없는 요소(다른 화면의 것)는 주소를 지어내지 않는다. 절에 `appium-cli` 줄이 있으면 §5 대로 눌러 가서 읽는다. 그 줄이 없거나 눌러 가도 못 찾으면 그 요소가 필요한 케이스는 쓰지 말고 결과 요약 `판정 불가·보류` 줄에 `앱 — <요구 번호> — 첫 화면에 없음(요소 설명)` 을 적는다.
 
@@ -90,6 +101,10 @@ npx appium-cli -s=probe wait-any '~로그인' 'id=com.shop:id/home'   # 먼저 �
 npx appium-cli -s=probe visible '~쿠폰 배너'        # 기다리지 않고 지금 보이나 → Ran: await 보이나(driver, '~쿠폰 배너')
 npx appium-cli -s=probe scroll-to '리뷰'           # 굴려야 보이는 요소 → Ran: await 스크롤해서찾기(driver, '리뷰')
 npx appium-cli -s=probe info                      # 앱이 떠 있나 · 지금 화면 · 키보드 · 폰 기종 · 배터리
+npx appium-cli -s=probe contexts                  # 앱 안 웹 화면(웹뷰) 맥락 — WEBVIEW_… 가 없으면 웹뷰 디버깅을 안 켠 빌드다(§2)
+npx appium-cli -s=probe context WEBVIEW_com.shop  # 웹 맥락으로 — 웹 화면 줄은 [ref=wN]
+npx appium-cli -s=probe generate-locator w3       # driver.$('aria/구매하기') — §2 웹뷰 순서로 그 요소 하나만 맞는 주소. tap · fill · wait · visible · count 도 웹 맥락에서 돈다
+npx appium-cli -s=probe context NATIVE_APP        # 네이티브로 돌아온다
 npx appium-cli -s=probe close
 npx appium-cli release                           # 반드시 — 놓아야 팜이 깐 앱 · 앱 데이터를 지우고 정식 실행이 폰을 잡는다
 ```
@@ -102,6 +117,7 @@ npx appium-cli release                           # 반드시 — 놓아야 팜�
   - 화면 줄의 `선택됨`(고른 탭) · `포커스`(입력을 받는 칸)는 지금 상태를 읽는 데만 쓴다 — 기대값의 근거가 아니다(§2)
   - `settings` 는 탐색에서만 쓴다. 계속 움직이는 화면에서 명령마다 10초씩 걸리면 `settings waitForIdleTimeout=1000` 으로 확인해 보되, 케이스에는 `Ran:` 줄이 알려 주는 `움직이는화면에서` 구간으로 쓴다(`tpx-cases` `5-stable.md` 「앱(Appium) — 공용 부품을 쓴다」). **확인한 바로 뒤 `settings waitForIdleTimeout=10000` 으로 되돌린다** — 낮춘 채 다른 화면으로 가면 반쯤 뜬 화면을 읽어 있는 요소를 「없음」으로 본다
   - `info` 와 `screenshot <ref|선택자>`(요소만 찍기)는 보는 데만 쓴다 — `Ran:` 줄이 없다. `info` 괄호 안의 `driver.queryAppState` · `driver.isKeyboardShown` 은 같은 값을 읽는 WebdriverIO 한 줄일 뿐 케이스 판정의 근거가 아니다(§2)
+- **웹뷰** (2026-11-15 APP-F3-04) — 웹 맥락 출력의 `Ran:` 줄은 WebdriverIO 한 줄이다 — 케이스에서는 `웹뷰에서` 구간 안에 옮긴다(§2). `context` 의 `Ran:` 줄은 구간을 쓰라는 알림일 뿐 옮길 코드가 아니다. `Ran: // 주소 없음 …(ref 로 눌렀다)` 는 CLI 가 화면에 단 표로 누른 것이라 케이스에 못 쓴다 — §2 웹뷰 순서로 따로 짓고 `count` 로 하나만 맞는지 본다. 웹 맥락에서는 `swipe` · `scroll-to` · `long-press` · `double-tap` · `wait-any` · `toast` · `hide-keyboard` · `app` · `crawl` 이 막힌다 — `context NATIVE_APP` 으로 돌아가서 쓴다. 웹 맥락의 `fill` 은 `--submit` 을 받지 않는다 — 보내기 단추를 `tap` 한다
 - **잡았으면 끝에 반드시 `close` → `release`.** 실패하든 멈추든 작성을 끝내기 전에 놓는다. 에이전트가 끝에 남은 잡기를 놓지만 그때까지 앱 정식 실행이 그 폰을 못 쓴다.
 - **작업 폴더(처음 띄워진 자리)에서만 부르고 `--minutes 30` 그대로 잡는다.** 잡은 폰 번호가 그 폴더의 `.appium-cli/` 에 남아야 에이전트가 끝에 확인한다 — 다른 폴더로 `cd` 해서 부르면 놓기를 잊었을 때 아무도 못 놓는다.
 - **메인 세션만, 한 번에 하나.** 서브에이전트에 맡기지 않는다 — 폰이 한 대면 session 이 서로 가로챈다. 필요한 화면을 먼저 추려 한 번 잡은 동안 다 읽고 놓는다. 30분 안에 끝낸다.
