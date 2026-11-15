@@ -303,6 +303,8 @@ describe('앱 · 게임 단계가 있는 시나리오', () => {
       });
       // admin 이 누른 사람 토큰으로 폰을 잡았으면 그 토큰이다
       expect(폰환경({ ...앱, farmToken: 'pat_kim' }).PLATFORM_APPIUM_TOKEN).toBe('pat_kim');
+      // 앞 빌드는 시나리오 요청에 칸이 없어 늘 빈 값으로 덮는다 — 셸 값을 물려받으면 옛판에서올리기 가 엉뚱한 판을 깐다 (APP-F3-08)
+      for (const 요청 of [앱, 웹만]) expect(Object.entries(폰환경(요청))).toContainEqual(['PLATFORM_APP_PREVIOUS', undefined]);
       expect(폰환경({ ...웹만, farmToken: 'pat_kim' }).PLATFORM_APPIUM_TOKEN).toBeUndefined();
       // 앱 단계가 없으면 팜 토큰 · 어드민 키를 안 넘긴다 — 러너를 켠 셸의 값도 덮는다
       expect(폰환경(웹만)).toEqual({
