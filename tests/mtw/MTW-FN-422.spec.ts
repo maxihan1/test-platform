@@ -48,9 +48,13 @@ test(spec, async ({ page, params }) => {
       await 응답;
       await 프로필.열기(아이디);
       await 프로필.고정모두보기.click();
-      const 고정글 = 프로필.글(글표식).filter({ hasText: '고정됨' });
-      await 고정글.nth(4).waitFor({ timeout: 10_000 }).catch(() => undefined);
-      await verify('고정 글이 5개가 되도록 고정하면 프로필에 고정 글 5개가 보인다', await 고정글.count(), 5);
+      let 고정수 = 0;
+      for (let 번째 = 1; 번째 <= 5; 번째 += 1) {
+        const 카드 = 프로필.글(`고정 한도 확인 ${String(번째)} ${글표식}`).first();
+        await 카드.scrollIntoViewIfNeeded();
+        if (await 카드.filter({ hasText: '고정됨' }).waitFor({ timeout: 5_000 }).then(() => true, () => false)) 고정수 += 1;
+      }
+      await verify('고정 글이 5개가 되도록 고정하면 프로필에 고정 글 5개가 보인다', 고정수, 5);
     });
 
     await test.step('여섯째 글을 고정한다', async () => {
