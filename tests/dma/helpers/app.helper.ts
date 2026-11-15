@@ -1,4 +1,5 @@
 import type { CaseBodyArgs } from '@platform/kit';
+import { 앱비우기, 인자로켜기 } from '@platform/kit/parts';
 
 export type 앱 = CaseBodyArgs<unknown, unknown>['driver'];
 export type 요소 = WebdriverIO.Element;
@@ -13,11 +14,7 @@ export async function 앱다시켜기(driver: 앱): Promise<void> {
 }
 
 export async function 서버주소로켜기(driver: 앱, 주소: string): Promise<void> {
-  await driver.terminateApp(앱꾸러미);
-  await driver.execute('mobile: startActivity', {
-    component: `${앱꾸러미}/.MainActivity`,
-    extras: [['s', 'server', 주소]],
-  });
+  await 인자로켜기(driver, { server: 주소 });
 }
 
 export async function 앱이앞에있나(driver: 앱): Promise<boolean> {
@@ -96,7 +93,5 @@ export function 첫일요일(오늘: Date): Date {
 }
 
 export async function 서버값없이켜기(driver: 앱): Promise<void> {
-  await driver.terminateApp(앱꾸러미);
-  await driver.execute('mobile: clearApp', { appId: 앱꾸러미 });
-  await driver.activateApp(앱꾸러미);
+  await 앱비우기(driver);
 }
