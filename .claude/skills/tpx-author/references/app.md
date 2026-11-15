@@ -37,7 +37,7 @@
     5. CSS — `driver.$('#pay')` · `driver.$('input[name="qty"]')`
     6. XPath — 맨 끝이다. 웹 케이스처럼 까닭을 용어 사전에 남긴다
 
-    주소는 §5 의 `context` 로 웹 맥락에 들어가 `generate-locator wN` 이 고른 것을 옮기고, 손으로 지은 것은 `count` 로 하나만 맞는지 본다. 구간 안에서는 기다리기를 `await driver.$('…').waitForDisplayed({ timeout: 10000 })`, 지금 보이나를 `isDisplayed()`, 넣기를 `setValue` 로 쓴다. 네이티브 주소(`~` · `id=` · `android=`)와 네이티브 전용 부품(`뜰때까지` · `사라질때까지` · `보이나` · `먼저뜨는것` · `스크롤해서찾기` · `키보드완료` · `길게누르기` · `토스트글` · `권한창답하기` · `권한상태에서` · `알림창열기` · `앱다시켜기`)은 구간 안에서 쓰지 않는다 — kit 이 「웹 맥락에서는 못 쓴다」로 던진다. `switchContext` 를 케이스에 직접 쓰지 않는다 — 구간이 끝나면(던져도) kit 이 네이티브로 되돌린다. 단계 사진 · 실패한 요소 표시는 kit 이 폰 화면 전체로 남긴다. 웹 화면에서 읽은 글도 기대값의 근거가 아니다
+    주소는 §5 의 `context` 로 웹 맥락에 들어가 `generate-locator wN` 이 고른 것을 옮기고, 손으로 지은 것은 `count` 로 하나만 맞는지 본다. 구간 안에서는 기다리기를 `await driver.$('…').waitForDisplayed({ timeout: 10000 })`, 지금 보이나를 `isDisplayed()`, 넣기를 `setValue` 로 쓴다. 네이티브 주소(`~` · `id=` · `android=`)와 네이티브 전용 부품(`뜰때까지` · `사라질때까지` · `보이나` · `먼저뜨는것` · `스크롤해서찾기` · `키보드완료` · `길게누르기` · `토스트글` · `권한창답하기` · `권한상태에서` · `알림창열기` · `앱다시켜기` · `요소안에서밀기` · `끌어놓기` · `벌리기` · `오므리기`)은 구간 안에서 쓰지 않는다 — kit 이 「웹 맥락에서는 못 쓴다」로 던진다. `switchContext` 를 케이스에 직접 쓰지 않는다 — 구간이 끝나면(던져도) kit 이 네이티브로 되돌린다. 단계 사진 · 실패한 요소 표시는 kit 이 폰 화면 전체로 남긴다. 웹 화면에서 읽은 글도 기대값의 근거가 아니다
     - `contexts` 에 `WEBVIEW_…` 가 없으면 앱이 웹뷰 디버깅을 안 켠 빌드다 — 웹뷰 안도 위 네이티브 규칙(이름표 → id → 부모 꼴)으로만 찾고, 그것으로 안 되면 결과 요약 `판정 불가·보류` 줄에 `앱 — <요구 번호> — 웹뷰 맥락 없음` 을 적는다
     - `웹뷰에서` 는 시험 대상 앱의 웹뷰(`WEBVIEW_<꾸러미>`)로 들어가고, 없으면 첫 웹뷰로 들어간다(Chrome 맞춤 탭 등). 한 앱 안에 웹 페이지가 둘 이상이면 폰 돌려 보기(§4)로 맞는 페이지에 들어가는지 본다. 폰에서 안 돈 웹뷰 케이스는 결과 요약에 `웹뷰 주소 미확인 — <tcId>` 를 적는다
   - XPath · 좌표 · 부모 없는 `text=` 는 쓰지 않는다 — 뜨는 창 항목도 `text=` 만은 안 되고 위 클래스+글자 꼴만 쓴다. 이것까지 안 되면 그 케이스는 쓰지 말고 결과 요약 `판정 불가·보류` 줄에 `앱 — <요구 번호> — 주소 없음(요소 설명)` 을 적는다.
@@ -64,6 +64,11 @@
   - 알림 창은 `알림창열기(driver)` 로 내리고, 푸시는 그 요소를 네이티브 주소로 누른다. 닫기는 `driver.back()` 이다
   - 공유 창 · 사진 · 파일 고르개 · 다른 앱(Chrome · 소셜 로그인 · 결제) 화면의 요소도 §2 네이티브 주소 규칙으로 찾고, 그 주소는 서비스 도우미 파일에 모은다(폰 기종 · OS 판마다 달라 한 곳만 고친다). **폰에 원래 깔린 앱의 데이터 · 설정 · 계정은 바꾸지 않는다** — 읽고, 고르고, 돌아오는 데까지다. 케이스가 끝나기 전에 `driver.activateApp('<시험 대상 앱 꾸러미>')` 로 시험 대상 앱을 다시 앞에 둔다
   - 폰에서 안 돈 케이스가 위 셋(권한 구간 · 알림 창 · 다른 앱 화면)을 쓰면 결과 요약에 `시스템 화면 미확인 — <tcId>` 를 적는다
+- **요소 안 손동작도 케이스에 쓴다** (2026-11-16 APP-F3-06 — 정본 SPEC 공통/2-명세선언 「Android 앱 케이스」 「범용 앱」 「요소가 없는 자리는 누르지 않는다」). 부품은 `@platform/kit/parts` 에서 가져오고 전부 요소 주소(§2)를 받는다
+  - 가로 상품 줄 · 밀어서 삭제 · 아래 시트 · 슬라이더 · 날짜 · 숫자 고르개는 `요소안에서밀기(driver, '<그 요소 주소>', '위' | '아래' | '왼쪽' | '오른쪽')` 다. 방향은 손가락이 가는 쪽이다(왼쪽으로 밀면 오른쪽 항목이 보인다). 화면 전체 `driver.swipe` 는 목록을 굴릴 때만 쓰고, 굴려서 찾기는 `스크롤해서찾기` 다
+  - 끌어 놓기는 `끌어놓기(driver, '<집을 요소>', '<놓을 요소>')` — 놓을 요소의 가운데에 놓는다. 지도 · 사진 확대 축소는 `벌리기` · `오므리기(driver, '<요소>')` 다
+  - 좌표는 쓰지 않는다. 지도 · 그림판처럼 요소가 없는 자리를 눌러야 하면 보류다(`앱 — <요구 번호> — 요소 없는 자리`)
+  - 폰에서 안 돈 케이스가 손동작 부품을 쓰면 결과 요약에 `손동작 미확인 — <tcId>` 를 적는다
 
 ## 4. 서버에 닿는지 먼저 · 다 쓰면 잡은 폰에서 1번씩
 
@@ -100,6 +105,10 @@ npx appium-cli -s=probe tap '~로그인'             # Ran: await driver.$('~로
 npx appium-cli -s=probe fill e5 "${TARGET_LOGIN_ID:-$(node -p 'JSON.parse(process.env.PLATFORM_ACCOUNTS || "[]").find((a) => a.role === "일반 회원")?.loginId ?? ""')}"
 npx appium-cli -s=probe generate-locator e8
 npx appium-cli -s=probe long-press '~상품 카드'    # 길게 누르기 → Ran: await 길게누르기(driver, '~상품 카드'). 두 번 누르기는 double-tap
+npx appium-cli -s=probe swipe-in '~추천 상품' left  # 그 요소 안에서만 민다(up · down · left · right) → Ran: await 요소안에서밀기(driver, '~추천 상품', '왼쪽')
+npx appium-cli -s=probe drag e7 e9                # 앞 요소를 뒤 요소 가운데로 끈다 → Ran: await 끌어놓기(driver, '<집을>', '<놓을>')
+npx appium-cli -s=probe pinch-open '~지도'         # 두 손가락 벌리기(pinch-close 는 오므리기) → Ran: await 벌리기(driver, '~지도')
+npx appium-cli -s=probe tap-xy 540 1200           # 좌표 누르기 — 눌러 보기만. Ran 줄은 주석뿐이라 케이스에 못 옮긴다
 npx appium-cli -s=probe wait '~주문 완료'          # 뜰 때까지(--gone 은 사라질 때까지 · --text "글자" · --timeout ms). 못 뜨면 종료 코드 1
 npx appium-cli -s=probe toast                     # 지금부터 뜨는 토스트 · 스낵바 글. 못 보면 종료 코드 1
 npx appium-cli -s=probe count 'android=new UiSelector().resourceId("com.shop:id/tags").childSelector(new UiSelector().text("할인"))'   # Count: 1 — 하나만 맞는다 + 맞은 자리의 ref (§2)
@@ -127,7 +136,8 @@ npx appium-cli release                           # 반드시 — 놓아야 팜�
   - 화면 줄의 `선택됨`(고른 탭) · `포커스`(입력을 받는 칸)는 지금 상태를 읽는 데만 쓴다 — 기대값의 근거가 아니다(§2)
   - `settings` 는 탐색에서만 쓴다. 계속 움직이는 화면에서 명령마다 10초씩 걸리면 `settings waitForIdleTimeout=1000` 으로 확인해 보되, 케이스에는 `Ran:` 줄이 알려 주는 `움직이는화면에서` 구간으로 쓴다(`tpx-cases` `5-stable.md` 「앱(Appium) — 공용 부품을 쓴다」). **확인한 바로 뒤 `settings waitForIdleTimeout=10000` 으로 되돌린다** — 낮춘 채 다른 화면으로 가면 반쯤 뜬 화면을 읽어 있는 요소를 「없음」으로 본다
   - `info` 와 `screenshot <ref|선택자>`(요소만 찍기)는 보는 데만 쓴다 — `Ran:` 줄이 없다. `info` 괄호 안의 `driver.queryAppState` · `driver.isKeyboardShown` 은 같은 값을 읽는 WebdriverIO 한 줄일 뿐 케이스 판정의 근거가 아니다(§2)
-- **웹뷰** (2026-11-15 APP-F3-04) — 웹 맥락 출력의 `Ran:` 줄은 WebdriverIO 한 줄이다 — 케이스에서는 `웹뷰에서` 구간 안에 옮긴다(§2). `context` 의 `Ran:` 줄은 구간을 쓰라는 알림일 뿐 옮길 코드가 아니다. `Ran: // 주소 없음 …(ref 로 눌렀다)` 는 CLI 가 화면에 단 표로 누른 것이라 케이스에 못 쓴다 — §2 웹뷰 순서로 따로 짓고 `count` 로 하나만 맞는지 본다. 웹 맥락에서는 `swipe` · `scroll-to` · `long-press` · `double-tap` · `wait-any` · `toast` · `hide-keyboard` · `app` · `crawl` 이 막힌다 — `context NATIVE_APP` 으로 돌아가서 쓴다. 웹 맥락의 `fill` 은 `--submit` 을 받지 않는다 — 보내기 단추를 `tap` 한다
+- **웹뷰** (2026-11-15 APP-F3-04) — 웹 맥락 출력의 `Ran:` 줄은 WebdriverIO 한 줄이다 — 케이스에서는 `웹뷰에서` 구간 안에 옮긴다(§2). `context` 의 `Ran:` 줄은 구간을 쓰라는 알림일 뿐 옮길 코드가 아니다. `Ran: // 주소 없음 …(ref 로 눌렀다)` 는 CLI 가 화면에 단 표로 누른 것이라 케이스에 못 쓴다 — §2 웹뷰 순서로 따로 짓고 `count` 로 하나만 맞는지 본다. 웹 맥락에서는 `swipe` · `swipe-in` · `drag` · `pinch-open` · `pinch-close` · `tap-xy` · `scroll-to` · `long-press` · `double-tap` · `wait-any` · `toast` · `hide-keyboard` · `app` · `crawl` 이 막힌다 — `context NATIVE_APP` 으로 돌아가서 쓴다. 웹 맥락의 `fill` 은 `--submit` 을 받지 않는다 — 보내기 단추를 `tap` 한다
+- **손동작** (2026-11-16 APP-F3-06) — `swipe-in` · `drag` · `pinch-open` · `pinch-close` 의 `Ran:` 줄은 kit 부품이라 그대로 옮긴다(쓰는 법은 §3 「요소 안 손동작」). 주소 없는 ref 를 주면 화면 글의 자리로 움직이고 `Ran: // 주소 없음 …` 을 낸다 — 케이스 주소는 §2 로 따로 짓는다. `tap-xy` 는 요소가 없는 자리를 눌러 보는 데만 쓴다 — 그 자리가 필요한 케이스는 보류다. 밀어서 삭제처럼 손동작 뒤에 뜬 토스트도 출력 끝 `Toast: 「글」` 줄로 보인다. 웹 맥락에서는 다섯 다 막힌다
 - **시스템 화면 · 다른 앱** (2026-11-15 APP-F3-05) — 화면이 시험 대상 앱이 아니면(권한 창 · 알림 창 · 공유 창 · 고르개 · Chrome) 출력 끝에 `- 앞 앱: <꾸러미>` 줄이 붙는다. 그 화면도 `snapshot` · `tap` 으로 읽고 누르고, 다 보면 `app front` 로 돌아온다. 쓰는 법은 §3 「권한 · 알림 창 · 다른 앱」이다.
   - 권한 창 단추를 `tap` 하면 `Ran:` 이 `권한창답하기(driver, '허용' | '거부')` 다 — 그대로 옮긴다. 「이번만 허용」을 눌렀으면 알림 줄이 붙는다 — 부품은 「앱 사용 중에만 허용」을 먼저 누르니 그 차이가 판정에 걸리면 폰 돌려 보기로 본다
   - `permission grant|revoke` 의 `Ran:` 줄은 구간을 쓰라는 알림이다 — §3 대로 `권한상태에서` 구간으로 쓴다. **탐색에서 바꾼 권한은 그 화면을 다 본 바로 뒤 출력의 `되돌린다:` 명령으로 되돌린다** — 남기면 같은 연결로 읽는 다음 화면이 바뀐 권한으로 보인다. 권한은 시험 대상 앱 것만 바뀐다
