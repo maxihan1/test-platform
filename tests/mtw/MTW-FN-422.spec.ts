@@ -47,8 +47,8 @@ test(spec, async ({ page, params }) => {
       await 상세.펼침.항목(/^고정$/).click();
       await 응답;
       await 프로필.열기(아이디);
+      await 프로필.고정모두보기.click();
       const 고정글 = 프로필.글(글표식).filter({ hasText: '고정됨' });
-      await 고정글.first().waitFor();
       await 고정글.nth(4).waitFor({ timeout: 10_000 }).catch(() => undefined);
       await verify('고정 글이 5개가 되도록 고정하면 프로필에 고정 글 5개가 보인다', await 고정글.count(), 5);
     });

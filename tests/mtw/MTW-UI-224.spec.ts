@@ -45,7 +45,7 @@ test(spec, async ({ page, params }) => {
 
   await test.step('hana_photo 프로필 「⋯」의 「계정 신고」를 누른다', async () => {
     await 프로필.더보기열기();
-    await 프로필.펼침.항목(/^계정 신고$/).click();
+    await 프로필.펼침.키로누르기(/^계정 신고$/);
     const 떴다 = await 신고.제목.waitFor({ timeout: 10_000 }).then(() => true, () => false);
     await verify('프로필 「⋯」의 「계정 신고」도 신고 창을 띄운다', 떴다, true);
     await 신고.닫기누르기();

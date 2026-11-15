@@ -11,6 +11,12 @@ export class 펼침메뉴 {
     return this.상자.getByRole('button', { name: 이름 }).or(this.상자.getByRole('link', { name: 이름 }));
   }
 
+  async 키로누르기(이름: string | RegExp): Promise<void> {
+    const 칸 = this.항목(이름);
+    await 칸.focus();
+    await 칸.page().keyboard.press('Enter');
+  }
+
   async 열릴때까지(): Promise<void> {
     await this.상자.first().waitFor();
   }
