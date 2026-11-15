@@ -2,6 +2,7 @@
 // 판정(verify) · 절차(test · test.step) · 선언(defineCase)을 여기로 내보내지 않는다 — 도우미에 판정을 숨길 길이 생기고 E2E 「만들기」 판별이 그 금지를 믿는다
 
 export {
+  권한상태에서,
   권한창답하기,
   글자들,
   길게누르기,
@@ -12,12 +13,14 @@ export {
   보이나,
   사라질때까지,
   스크롤해서찾기,
+  알림창열기,
   앱다시켜기,
   움직이는화면에서,
   칸에적기,
   키보드완료,
   토스트글,
   type 권한답,
+  type 바꿀권한,
   type 앱요소,
 } from './runtime/appParts.js';
 export { 웹뷰에서 } from './runtime/webview.js';
