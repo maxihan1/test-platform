@@ -23,5 +23,6 @@ export {
   type 바꿀권한,
   type 앱요소,
 } from './runtime/appParts.js';
+export { 끌어놓기, 벌리기, 오므리기, 요소안에서밀기, type 미는방향 } from './runtime/gestureParts.js';
 export { 웹뷰에서 } from './runtime/webview.js';
 export { 로그인이어쓰기, type 로그인이어쓰기설정 } from './runtime/webParts.js';
