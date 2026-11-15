@@ -37,7 +37,7 @@
     5. CSS — `driver.$('#pay')` · `driver.$('input[name="qty"]')`
     6. XPath — 맨 끝이다. 웹 케이스처럼 까닭을 용어 사전에 남긴다
 
-    주소는 §5 의 `context` 로 웹 맥락에 들어가 `generate-locator wN` 이 고른 것을 옮기고, 손으로 지은 것은 `count` 로 하나만 맞는지 본다. 구간 안에서는 기다리기를 `await driver.$('…').waitForDisplayed({ timeout: 10000 })`, 지금 보이나를 `isDisplayed()`, 넣기를 `setValue` 로 쓴다. 네이티브 주소(`~` · `id=` · `android=`)와 네이티브 전용 부품(`뜰때까지` · `사라질때까지` · `보이나` · `먼저뜨는것` · `스크롤해서찾기` · `키보드완료` · `길게누르기` · `토스트글` · `권한창답하기` · `권한상태에서` · `알림창열기` · `앱다시켜기` · `요소안에서밀기` · `끌어놓기` · `벌리기` · `오므리기`)은 구간 안에서 쓰지 않는다 — kit 이 「웹 맥락에서는 못 쓴다」로 던진다. `switchContext` 를 케이스에 직접 쓰지 않는다 — 구간이 끝나면(던져도) kit 이 네이티브로 되돌린다. 단계 사진 · 실패한 요소 표시는 kit 이 폰 화면 전체로 남긴다. 웹 화면에서 읽은 글도 기대값의 근거가 아니다
+    주소는 §5 의 `context` 로 웹 맥락에 들어가 `generate-locator wN` 이 고른 것을 옮기고, 손으로 지은 것은 `count` 로 하나만 맞는지 본다. 구간 안에서는 기다리기를 `await driver.$('…').waitForDisplayed({ timeout: 10000 })`, 지금 보이나를 `isDisplayed()`, 넣기를 `setValue` 로 쓴다. 네이티브 주소(`~` · `id=` · `android=`)와 네이티브 전용 부품(`뜰때까지` · `사라질때까지` · `보이나` · `먼저뜨는것` · `스크롤해서찾기` · `키보드완료` · `길게누르기` · `토스트글` · `권한창답하기` · `권한상태에서` · `알림창열기` · `앱다시켜기` · `요소안에서밀기` · `끌어놓기` · `벌리기` · `오므리기` · `키누르기` · `포커스칸에치기`)은 구간 안에서 쓰지 않는다 — kit 이 「웹 맥락에서는 못 쓴다」로 던진다. `switchContext` 를 케이스에 직접 쓰지 않는다 — 구간이 끝나면(던져도) kit 이 네이티브로 되돌린다. 단계 사진 · 실패한 요소 표시는 kit 이 폰 화면 전체로 남긴다. 웹 화면에서 읽은 글도 기대값의 근거가 아니다
     - `contexts` 에 `WEBVIEW_…` 가 없으면 앱이 웹뷰 디버깅을 안 켠 빌드다 — 웹뷰 안도 위 네이티브 규칙(이름표 → id → 부모 꼴)으로만 찾고, 그것으로 안 되면 결과 요약 `판정 불가·보류` 줄에 `앱 — <요구 번호> — 웹뷰 맥락 없음` 을 적는다
     - `웹뷰에서` 는 시험 대상 앱의 웹뷰(`WEBVIEW_<꾸러미>`)로 들어가고, 없으면 첫 웹뷰로 들어간다(Chrome 맞춤 탭 등). 한 앱 안에 웹 페이지가 둘 이상이면 폰 돌려 보기(§4)로 맞는 페이지에 들어가는지 본다. 폰에서 안 돈 웹뷰 케이스는 결과 요약에 `웹뷰 주소 미확인 — <tcId>` 를 적는다
   - XPath · 좌표 · 부모 없는 `text=` 는 쓰지 않는다 — 뜨는 창 항목도 `text=` 만은 안 되고 위 클래스+글자 꼴만 쓴다. 이것까지 안 되면 그 케이스는 쓰지 말고 결과 요약 `판정 불가·보류` 줄에 `앱 — <요구 번호> — 주소 없음(요소 설명)` 을 적는다.
@@ -69,6 +69,13 @@
   - 끌어 놓기는 `끌어놓기(driver, '<집을 요소>', '<놓을 요소>')` — 놓을 요소의 가운데에 놓는다. 놓을 요소는 끌기 전에 화면에 보여야 한다(끌기 시작해야 뜨는 휴지통 막대 같은 자리는 못 쓴다 — 보류 `앱 — <요구 번호> — 끌 때만 뜨는 자리`). 지도 · 사진 확대 축소는 `벌리기` · `오므리기(driver, '<요소>')` 다
   - 좌표는 쓰지 않는다. 지도 · 그림판처럼 요소가 없는 자리를 눌러야 하면 보류다(`앱 — <요구 번호> — 요소 없는 자리`)
   - 폰에서 안 돈 케이스가 손동작 부품을 쓰면 결과 요약에 `손동작 미확인 — <tcId>` 를 적는다
+- **입력 — 칸 비우기 · 폰 키 · 여러 칸 인증번호 · 클립보드** (2026-11-16 APP-F3-07 — 정본 SPEC 러너 §5.2 「범용 앱 부품」). 부품은 `@platform/kit/parts` 에서 가져온다
+  - 칸에 넣기는 지금처럼 `칸에적기(칸, 값)`, 비우기만 할 때는 `칸비우기(칸)` 다. 입력칸의 완료 · 검색은 `키보드완료(driver)`, 뒤로는 `driver.back()` 그대로다
+  - 폰 키는 `키누르기(driver, '홈' | '최근 앱' | '지우기' | '탭' | '붙여 넣기')` 다. 홈 · 최근 앱으로 앱을 뒤로 보냈으면 다음 줄에서 `driver.activateApp(꾸러미)` 로 돌아온다
+  - 인증번호 여섯 칸처럼 칠 때마다 다음 칸으로 넘어가는 화면 · 앱이 그린 키패드는 첫 칸을 누른 뒤 `포커스칸에치기(driver, 값)` 로 한 번에 친다 — `setValue` 는 한 칸에 다 넣는다. 그 밖의 칸은 누르지 않고 `칸에적기` 다(`tpx-cases` `5-stable.md` 「입력 칸」)
+  - 복사 단추를 누른 뒤 무엇이 복사됐는지는 `클립보드읽기(driver)` 로 읽어 `verify` 한다. 붙여 넣기는 `클립보드쓰기(driver, 값)` → 칸 누르기 → `키누르기(driver, '붙여 넣기')` 다
+  - 값은 기획서 · 입력값 칸에서 쓴다. 웹뷰 구간 안에서는 `키누르기` · `포커스칸에치기` 를 못 쓴다(클립보드 둘은 된다). 날짜 · 숫자 고르개는 위 「요소 안 손동작」대로다
+  - 폰에서 안 돈 케이스가 `키누르기` · `포커스칸에치기` · 클립보드 부품을 쓰면 결과 요약에 `입력 미확인 — <tcId>` 를 적는다
 
 ## 4. 서버에 닿는지 먼저 · 다 쓰면 잡은 폰에서 1번씩
 
@@ -109,6 +116,10 @@ npx appium-cli -s=probe swipe-in '~추천 상품' left  # 그 요소 안에서�
 npx appium-cli -s=probe drag e7 e9                # 앞 요소를 뒤 요소 가운데로 끈다 → Ran: await 끌어놓기(driver, '<집을>', '<놓을>')
 npx appium-cli -s=probe pinch-open '~지도'         # 두 손가락 벌리기(pinch-close 는 오므리기) → Ran: await 벌리기(driver, '~지도')
 npx appium-cli -s=probe tap-xy 540 1200           # 좌표 누르기 — 눌러 보기만. Ran 줄은 주석뿐이라 케이스에 못 옮긴다
+npx appium-cli -s=probe clear '~검색'             # 칸을 비운다 → Ran: await 칸비우기(await driver.$('~검색').getElement())
+npx appium-cli -s=probe press home                # 폰 키(home · recent · delete · tab · paste) → Ran: await 키누르기(driver, '홈')
+npx appium-cli -s=probe type 123456               # 포커스 칸에 키를 하나씩(첫 칸을 먼저 tap) → Ran: await 포커스칸에치기(driver, '123456')
+npx appium-cli -s=probe clipboard                 # 클립보드 읽기(write <글> 은 쓰기) → Ran: await 클립보드읽기(driver) · Clipboard: 「글」
 npx appium-cli -s=probe wait '~주문 완료'          # 뜰 때까지(--gone 은 사라질 때까지 · --text "글자" · --timeout ms). 못 뜨면 종료 코드 1
 npx appium-cli -s=probe toast                     # 지금부터 뜨는 토스트 · 스낵바 글. 못 보면 종료 코드 1
 npx appium-cli -s=probe count 'android=new UiSelector().resourceId("com.shop:id/tags").childSelector(new UiSelector().text("할인"))'   # Count: 1 — 하나만 맞는다 + 맞은 자리의 ref (§2)
@@ -136,8 +147,9 @@ npx appium-cli release                           # 반드시 — 놓아야 팜�
   - 화면 줄의 `선택됨`(고른 탭) · `포커스`(입력을 받는 칸)는 지금 상태를 읽는 데만 쓴다 — 기대값의 근거가 아니다(§2)
   - `settings` 는 탐색에서만 쓴다. 계속 움직이는 화면에서 명령마다 10초씩 걸리면 `settings waitForIdleTimeout=1000` 으로 확인해 보되, 케이스에는 `Ran:` 줄이 알려 주는 `움직이는화면에서` 구간으로 쓴다(`tpx-cases` `5-stable.md` 「앱(Appium) — 공용 부품을 쓴다」). **확인한 바로 뒤 `settings waitForIdleTimeout=10000` 으로 되돌린다** — 낮춘 채 다른 화면으로 가면 반쯤 뜬 화면을 읽어 있는 요소를 「없음」으로 본다
   - `info` 와 `screenshot <ref|선택자>`(요소만 찍기)는 보는 데만 쓴다 — `Ran:` 줄이 없다. `info` 괄호 안의 `driver.queryAppState` · `driver.isKeyboardShown` 은 같은 값을 읽는 WebdriverIO 한 줄일 뿐 케이스 판정의 근거가 아니다(§2)
-- **웹뷰** (2026-11-15 APP-F3-04) — 웹 맥락 출력의 `Ran:` 줄은 WebdriverIO 한 줄이다 — 케이스에서는 `웹뷰에서` 구간 안에 옮긴다(§2). `context` 의 `Ran:` 줄은 구간을 쓰라는 알림일 뿐 옮길 코드가 아니다. `Ran: // 주소 없음 …(ref 로 눌렀다)` 는 CLI 가 화면에 단 표로 누른 것이라 케이스에 못 쓴다 — §2 웹뷰 순서로 따로 짓고 `count` 로 하나만 맞는지 본다. 웹 맥락에서는 `swipe` · `swipe-in` · `drag` · `pinch-open` · `pinch-close` · `tap-xy` · `scroll-to` · `long-press` · `double-tap` · `wait-any` · `toast` · `hide-keyboard` · `app` · `crawl` 이 막힌다 — `context NATIVE_APP` 으로 돌아가서 쓴다. 웹 맥락의 `fill` 은 `--submit` 을 받지 않는다 — 보내기 단추를 `tap` 한다
+- **웹뷰** (2026-11-15 APP-F3-04) — 웹 맥락 출력의 `Ran:` 줄은 WebdriverIO 한 줄이다 — 케이스에서는 `웹뷰에서` 구간 안에 옮긴다(§2). `context` 의 `Ran:` 줄은 구간을 쓰라는 알림일 뿐 옮길 코드가 아니다. `Ran: // 주소 없음 …(ref 로 눌렀다)` 는 CLI 가 화면에 단 표로 누른 것이라 케이스에 못 쓴다 — §2 웹뷰 순서로 따로 짓고 `count` 로 하나만 맞는지 본다. 웹 맥락에서는 `swipe` · `swipe-in` · `drag` · `pinch-open` · `pinch-close` · `tap-xy` · `press` · `type` · `scroll-to` · `long-press` · `double-tap` · `wait-any` · `toast` · `hide-keyboard` · `app` · `crawl` 이 막힌다 — `context NATIVE_APP` 으로 돌아가서 쓴다. 웹 맥락의 `fill` 은 `--submit` 을 받지 않는다 — 보내기 단추를 `tap` 한다
 - **손동작** (2026-11-16 APP-F3-06) — `swipe-in` · `drag` · `pinch-open` · `pinch-close` 의 `Ran:` 줄은 kit 부품이라 그대로 옮긴다(쓰는 법은 §3 「요소 안 손동작」). 주소 없는 ref 를 주면 화면 글의 자리로 움직이고 `Ran: // 주소 없음 …` 을 낸다 — 케이스 주소는 §2 로 따로 짓는다. `tap-xy` 는 요소가 없는 자리를 눌러 보는 데만 쓴다 — 그 자리가 필요한 케이스는 보류다. 밀어서 삭제처럼 손동작 뒤에 뜬 토스트도 출력 끝 `Toast: 「글」` 줄로 보인다. 웹 맥락에서는 다섯 다 막힌다
+- **입력** (2026-11-16 APP-F3-07) — `clear` · `press` · `type` · `clipboard` 의 `Ran:` 줄은 kit 부품이라 그대로 옮긴다(쓰는 법은 §3 「입력」). `type` · `clipboard write` 의 `Ran:` 줄은 친 글을 그대로 찍는다 — 케이스에는 값을 기획서 · 입력값 칸에서 쓰고 계정 값은 옮기지 않는다(아래 `fill` 과 같다). `Clipboard: 「글」` 은 기대값의 근거가 아니다(§2). 웹 맥락에서는 `press` · `type` 이 막히고 `clear` · `clipboard` 는 돈다
 - **시스템 화면 · 다른 앱** (2026-11-15 APP-F3-05) — 화면이 시험 대상 앱이 아니면(권한 창 · 알림 창 · 공유 창 · 고르개 · Chrome) 출력 끝에 `- 앞 앱: <꾸러미>` 줄이 붙는다. 그 화면도 `snapshot` · `tap` 으로 읽고 누르고, 다 보면 `app front` 로 돌아온다. 쓰는 법은 §3 「권한 · 알림 창 · 다른 앱」이다.
   - 권한 창 단추를 `tap` 하면 `Ran:` 이 `권한창답하기(driver, '허용' | '거부')` 다 — 그대로 옮긴다. 「이번만 허용」을 눌렀으면 알림 줄이 붙는다 — 부품은 「앱 사용 중에만 허용」을 먼저 누르니 그 차이가 판정에 걸리면 폰 돌려 보기로 본다
   - `permission grant|revoke` 의 `Ran:` 줄은 구간을 쓰라는 알림이다 — §3 대로 `권한상태에서` 구간으로 쓴다. **탐색에서 바꾼 권한은 그 화면을 다 본 바로 뒤 출력의 `되돌린다:` 명령으로 되돌린다** — 남기면 같은 연결로 읽는 다음 화면이 바뀐 권한으로 보인다. 권한은 시험 대상 앱 것만 바뀐다
