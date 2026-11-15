@@ -2,7 +2,7 @@
 
 import { test as base } from '@playwright/test';
 
-import { closeApp, type AppDriver } from './app.js';
+import { closeApp, type AppDriver, type AppOpenOptions } from './app.js';
 import { 게임증적을남긴다, type KitGame } from './game.js';
 import { 폰장면걸기, type 장면 } from './live.js';
 import { 폰을연다 } from './phone.js';
@@ -12,15 +12,15 @@ export type AppSide = { driver: AppDriver; game?: KitGame };
 
 // 케이스마다 만든다 — 앞 판처럼 defineTest 가 부를 때 extend 한다
 export const 앱테스트 = () =>
-  base.extend<{ appSession: { open(): Promise<AppSide> } }>({
+  base.extend<{ appSession: { open(options?: AppOpenOptions): Promise<AppSide> } }>({
     appSession: async ({}, use, testInfo) => {
       // 여는 중인 약속을 쥐어야 한다. 새 폰은 첫 연결에 도우미 앱을 깔아 오래 걸려, 열리는 도중 제한 시간이 오면 Appium 이 뒤늦게 세션을 만든다
       let opening: Promise<AppSide> | undefined;
       // 폰 장면 — 연 직후 걸고 닫기 전에 끈다. 러너가 장면 파일을 준 실행(테스트 모드 · 정식 실행)에만 걸린다
       let 폰장면: 장면 | undefined;
       // 기기 정보는 연 직후 한 번 남긴다 — 리포터가 결과 줄 device 로 싣는다 (도메인/리포팅 §8.4 · APP-F1-05)
-      const 열고남긴다 = async (): Promise<AppSide> => {
-        const { device, ...side } = await 폰을연다(process.env);
+      const 열고남긴다 = async (options?: AppOpenOptions): Promise<AppSide> => {
+        const { device, ...side } = await 폰을연다(process.env, options);
         // 여기서 던지면 열린 연결을 아무도 못 닫는다(opening 이 실패로 끝난다). 남기지 못한 것만 알린다
         if (device !== undefined) {
           try {
@@ -32,7 +32,7 @@ export const 앱테스트 = () =>
         폰장면 = await 폰장면걸기(side.driver);
         return side;
       };
-      await use({ open: () => (opening ??= 열고남긴다()) });
+      await use({ open: (options) => (opening ??= 열고남긴다(options)) });
       if (opening === undefined) return;
       let side: AppSide;
       try {

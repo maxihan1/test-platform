@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
-import { defineCase, schemasOf } from './defineCase.js';
+import { defineCase, keepsAppData, schemasOf } from './defineCase.js';
 
 beforeAll(() => {
   // filePath는 테스트 루트 기준 상대 경로다. 이 파일이 루트인 셈 치고 검사한다
@@ -67,6 +67,15 @@ describe('defineCase', () => {
         expected: null,
       }),
     ).toThrow('DEMO-005: android 는 다른 디바이스와 함께 선언하지 않는다');
+  });
+
+  it('keepAppData 는 android 케이스에만 달고 명세(스캐너 JSON)에는 안 싣는다', () => {
+    const 기본 = { name: '앱 케이스', precondition: [], params: null, expected: null };
+    const 남김 = defineCase({ ...기본, tcId: 'DEMO-030', platforms: ['android'], keepAppData: true });
+    expect(keepsAppData(남김)).toBe(true);
+    expect('keepAppData' in 남김).toBe(false);
+    expect(keepsAppData(defineCase({ ...기본, tcId: 'DEMO-031', platforms: ['android'] }))).toBe(false);
+    expect(() => defineCase({ ...기본, tcId: 'DEMO-032', keepAppData: true })).toThrow('DEMO-032: keepAppData 는 android 케이스에만 단다');
   });
 
   it('apiDoc 을 주면 명세에 싣고, 안 주면 키가 없다', () => {
