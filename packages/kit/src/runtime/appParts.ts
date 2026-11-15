@@ -164,13 +164,19 @@ async function 권한바꾸기(driver: AppDriver, 꾸러미: string, 줌: string
       throw new Error(`권한을 ${action === 'grant' ? '못 줬다' : '못 뺐다'}(${이름들.join(' · ')}) — ${오류글(err)}`);
     }
   }
-  if (뺌.length > 0) await driver.activateApp(꾸러미);
+  // pm 은 앱을 비동기로 끈다 — 바로 켜면 아직 살아 있던 앱이 앞에 왔다가 꺼진다. terminateApp 이 꺼질 때까지 기다린다
+  if (뺌.length > 0) {
+    await driver.terminateApp(꾸러미);
+    await driver.activateApp(꾸러미);
+  }
 }
 
 /**
  * 이 구간에서만 시험 대상 앱의 권한을 창 없이 주거나 빼고, 끝나면(던져도) 앞 권한으로 되돌린다 — 연결 하나를 이어 쓰는 길(E2E 앱 단계 ·
  * keepAppData 케이스)에서 바꾼 권한이 뒤로 넘어가지 않게. 되돌리기는 구간 전에 있던 것과 다른 권한만 바꾼다.
- * 되돌리기에 실패하면 던진다(할일이 이미 던졌으면 그 오류에 까닭을 덧붙인다) — 조용히 넘기면 다음 케이스가 바뀐 권한으로 돈다
+ * 되돌리기에 실패하면 던진다(할일이 이미 던졌으면 그 오류에 까닭을 덧붙인다) — 조용히 넘기면 다음 케이스가 바뀐 권한으로 돈다.
+ * 구간에서 새로 준 권한을 되돌려 빼면 구간 뒤에도 앱이 꺼졌다 켜진다.
+ * ponytail: 준 · 안 줌만 되돌린다 — 「다시 묻지 않음」 같은 권한 꼬리표는 pm 이 바꾼 채 남는다. 이어 쓰는 연결에서 권한 창이 달라지면 꼬리표까지 되돌린다
  */
 export async function 권한상태에서<값>(driver: AppDriver, 바꿀: 바꿀권한, 할일: () => Promise<값>): Promise<값> {
   네이티브전용(driver, '권한상태에서');
@@ -179,6 +185,9 @@ export async function 권한상태에서<값>(driver: AppDriver, 바꿀: 바꿀�
   if (준다.length + 뺀다.length === 0) throw new Error('권한상태에서 — 준다 · 뺀다 가운데 하나는 적어야 한다');
   const 겹침 = 준다.filter((이름) => 뺀다.includes(이름));
   if (겹침.length > 0) throw new Error(`권한상태에서 — 같은 권한을 주고 뺄 수 없다: ${겹침.join(' · ')}`);
+  // 줄인 이름(CAMERA)은 앱 권한 목록에 없어 빼기에서 조용히 빠진다 — 손대기 전에 막는다
+  const 줄인 = [...준다, ...뺀다].filter((이름) => !이름.includes('.'));
+  if (줄인.length > 0) throw new Error(`권한상태에서 — 권한은 온 이름(android.permission.…)으로 적는다: ${줄인.join(' · ')}`);
   // 시험 대상 앱의 것만 — 앞에 온 다른 앱의 권한을 바꾸지 않게 지금 화면의 꾸러미를 쓰지 않는다
   const caps = driver.capabilities as Record<string, unknown> | undefined;
   const 꾸러미 = caps?.appPackage ?? caps?.['appium:appPackage'];
@@ -197,7 +206,11 @@ export async function 권한상태에서<값>(driver: AppDriver, 바꿀: 바꿀�
     try {
       await 되돌리기();
     } catch (되돌림오류) {
-      if (err instanceof Error) err.message += ` (권한도 못 되돌렸다 — ${오류글(되돌림오류)})`;
+      const 덧 = ` (권한도 못 되돌렸다 — ${오류글(되돌림오류)})`;
+      if (!(err instanceof Error)) throw new Error(`${String(err)}${덧}`);
+      // 보고가 stack 을 찍는 길도 있어 둘 다 고친다 — stack 은 만들 때 글이 굳는다
+      err.message += 덧;
+      if (err.stack !== undefined) err.stack = `${err.stack}\n${덧.trim()}`;
     }
     throw err;
   }
