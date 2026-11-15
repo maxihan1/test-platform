@@ -94,6 +94,8 @@
 | 칸에 적는다 · 키보드를 내린다 | `칸에적기(칸, 값)` · `키보드완료(driver)` — 아래 「입력 칸」 줄 |
 | 토스트 글 | `토스트글(driver, 상자 주소)` — 아래 「토스트 글은 한 번에」 줄. 시스템 토스트는 `//android.widget.Toast` |
 | 권한 창 | `권한창답하기(driver, '허용' \| '거부')` — 뜨면 답하고 `true`, 안 뜨면 `false` |
+| 권한을 준 · 뺀 상태에서 | `권한상태에서(driver, { 준다: [...], 뺀다: [...] }, async () => { … })` — 시험 대상 앱의 권한을 창 없이 바꾸고 구간이 끝나면 되돌린다. 이름은 `android.permission.…` 온 이름 |
+| 알림 창 · 푸시 | `알림창열기(driver)` 로 내리고 푸시 요소를 누른다. 닫기는 `driver.back()`, 시험 대상 앱으로 돌아오기는 `driver.activateApp(꾸러미)` |
 | 빠르게 두 번 · 길게 누르기 · 앱 다시 켜기 | `두번누르기(칸)` · `길게누르기(driver, 주소)` · `앱다시켜기(driver, 꾸러미)` |
 | 여러 요소의 글 | `글자들(driver, 주소)` |
 | 앱 안 웹 화면(웹뷰) | `웹뷰에서(driver, async () => { … })` — 안에서는 웹 주소와 WebdriverIO(`waitForDisplayed` · `isDisplayed` · `setValue`)로 쓰고 위 네이티브 부품은 못 쓴다(`tpx-author` `app.md` §2) |
