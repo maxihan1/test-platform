@@ -1,6 +1,6 @@
 // Playwright의 test를 감싼 래퍼. 케이스 명세와 주입된 입력값을 본문에 넘기고 절차 결과를 리포터로 흘린다 (SPEC §4)
 
-import { test as base, type APIRequestContext, type Locator, type Page, type TestInfo } from '@playwright/test';
+import { test as base, type APIRequestContext, type Page, type TestInfo } from '@playwright/test';
 
 import type { ApiAuth, StepResult } from '../types.js';
 import { api만들기, 어드민도구, 어드민키, 인증목록 } from './apiAuth.js';
@@ -8,7 +8,7 @@ import { 판읽기 } from './apiShape.js';
 import { captureApp, type AppDriver } from './app.js';
 import { 앱테스트 } from './appFixture.js';
 import { saveShot } from './artifacts.js';
-import { runScope, type RunScope } from './context.js';
+import { runScope, type RunScope, type 짚을요소 } from './context.js';
 import { keepsAppData, type CaseHandle } from './defineCase.js';
 import { 게임증적을남긴다, isGame, type GameDriver } from './game.js';
 import { 앱을지켜본다, 웹사진, 웹을지켜본다 } from './highlight.js';
@@ -38,10 +38,10 @@ export interface CaseBodyArgs<P, E> {
 export type CaseBody<P, E> = (args: CaseBodyArgs<P, E>) => Promise<void> | void;
 
 
-async function capture(page: Page, seq: number, 요소?: Locator | string): Promise<string | undefined> {
+async function capture(page: Page, seq: number, 요소?: 짚을요소): Promise<string | undefined> {
   // 화면을 연 적이 없는 케이스는 찍어봐야 흰 그림만 남는다
   if (page.isClosed() || page.url() === 'about:blank') return undefined;
-  return saveShot(seq, (path) => 웹사진(page, path, typeof 요소 === 'object' ? 요소 : undefined));
+  return saveShot(seq, (path) => 웹사진(page, path, typeof 요소 === 'object' && !('웹' in 요소) ? 요소 : undefined));
 }
 
 // desktop·mobile은 코드 안에서만 쓰는 값이다. 사람이 읽는 자리에는 PC·모바일로 적는다 (SPEC §8)

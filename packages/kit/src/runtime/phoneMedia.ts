@@ -1,5 +1,6 @@
 // 앱 케이스가 폰 사진첩 · 다운로드에 사진 · 영상 · 파일을 넣고 끝나면 지운다 — 글쓰기 첨부처럼 폰에 둔 미디어가 필요한 앱 기능을 준비한다 (SPEC 공통/2-명세선언 「Android 앱 케이스」 「폰에 파일 넣기」)
 import type { AppDriver } from './app.js';
+import { 네이티브에서 } from './webview.js';
 
 export type 폰파일종류 = '사진' | '영상' | '파일';
 
@@ -26,9 +27,14 @@ const 자리: Record<폰파일종류, { 폴더: string; 확장자: string; 글: 
 /**
  * 폰에 파일 하나를 넣는다. `크기`(바이트)를 주면 폰 안에서 그 크기까지 뒤를 0 으로 채운다 — 업로드 크기 한도 같은 경계를 맞출 때 쓴다.
  * 파일은 늘 작게 보낸다 — 디바이스 팜이 받는 요청 본문 상한이 64MB 라(base64 로 늘어난다) 큰 파일을 그대로 못 싣는다.
- * 사진첩 · 영상 목록에 바로 보이게 미디어 훑기를 부른다. 케이스는 `finally` 에서 `지우기()` 를 부른다 — 남기면 다음 케이스의 사진첩에 섞인다
+ * 사진첩 · 영상 목록에 바로 보이게 미디어 훑기를 부른다. 케이스는 `finally` 에서 `지우기()` 를 부른다 — 남기면 다음 케이스의 사진첩에 섞인다.
+ * 웹뷰 구간 안에서 불러도 폰 명령이라 잠깐 네이티브로 가서 넣고 지운다(웹 화면의 파일 올리기 준비)
  */
-export async function 폰에파일넣기(driver: AppDriver, 종류: 폰파일종류, 선택: { 크기?: number } = {}): Promise<폰파일> {
+export function 폰에파일넣기(driver: AppDriver, 종류: 폰파일종류, 선택: { 크기?: number } = {}): Promise<폰파일> {
+  return 네이티브에서(driver, () => 넣는다(driver, 종류, 선택));
+}
+
+async function 넣는다(driver: AppDriver, 종류: 폰파일종류, 선택: { 크기?: number }): Promise<폰파일> {
   const 틀 = 자리[종류];
   const 바탕크기 = Buffer.from(틀.글, 'base64').length;
   if (선택.크기 !== undefined && (!Number.isInteger(선택.크기) || 선택.크기 < 바탕크기)) {
@@ -53,7 +59,11 @@ export async function 폰에파일넣기(driver: AppDriver, 종류: 폰파일종
     이름,
     지우기: async () => {
       if (지움) return;
-      지움 = await 지운다(driver, 경로);
+      // 맥락을 오가다 실패해도 finally 에서 던지지 않는다 — 지운다 와 같은 까닭
+      지움 = await 네이티브에서(driver, () => 지운다(driver, 경로)).catch((err: unknown) => {
+        console.error(`[kit] 폰에 넣은 ${경로} 를 못 지웠다 — 다음 케이스 사진첩에 남을 수 있다: ${글(err)}`);
+        return false;
+      });
     },
   };
 }

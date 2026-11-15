@@ -7,7 +7,8 @@ import { createRequire } from 'node:module';
 import type { Locator, Page } from '@playwright/test';
 
 import type { AppDriver } from './app.js';
-import { stepScope } from './context.js';
+import { stepScope, type 짚을요소 } from './context.js';
+import { 웹맥락이름 } from './webview.js';
 
 export interface 상자 {
   x: number;
@@ -30,7 +31,7 @@ export const { PNG } = createRequire(import.meta.url)('playwright-core/lib/utils
 const 빨강 = [229, 72, 77] as const;
 const 흰색 = [255, 255, 255] as const;
 
-function 적는다(요소: Locator | string | undefined): void {
+function 적는다(요소: 짚을요소 | undefined): void {
   const scope = stepScope.getStore();
   if (scope) scope.마지막요소 = 요소;
 }
@@ -76,7 +77,7 @@ export function 웹을지켜본다(page: Page): Page {
 }
 
 const 지켜보는폰 = new WeakSet<object>();
-const W3C요소 = 'element-6066-11e4-a52e-4f735466cecf';
+export const W3C요소 = 'element-6066-11e4-a52e-4f735466cecf';
 const 요소주소 = /\/element\/([^/]+)\//;
 interface 명령기록 {
   command: string;
@@ -91,6 +92,11 @@ interface 명령기록 {
 export function 앱을지켜본다(driver: AppDriver): AppDriver {
   if (지켜보는폰.has(driver)) return driver;
   지켜보는폰.add(driver);
+  // 웹뷰 구간 안의 요소 번호는 그 웹 맥락에서만 자리를 읽는다 — 사진이 구간 밖에서 찍혀도 들어가 읽게 맥락을 같이 적는다
+  const 번호 = (id: string): 짚을요소 => {
+    const 웹 = 웹맥락이름(driver);
+    return 웹 === undefined ? id : { 웹, id };
+  };
   const 폰 = driver as unknown as { on?: (event: string, fn: (e: 명령기록) => void) => void };
   if (typeof 폰.on !== 'function') return driver;
   폰.on('command', (e: 명령기록) => {
@@ -100,18 +106,18 @@ export function 앱을지켜본다(driver: AppDriver): AppDriver {
     }
     const id = 요소주소.exec(e.endpoint ?? '')?.[1];
     if (id !== undefined) {
-      적는다(decodeURIComponent(id));
+      적는다(번호(decodeURIComponent(id)));
       return;
     }
     // 요소 번호를 실어 보내는 손짓 명령(driver.execute('mobile: clickGesture', { elementId }))도 그 요소를 다룬 것이다
     const 실은번호 = (e.body?.args?.[0] as { elementId?: unknown } | undefined)?.elementId;
-    if (typeof 실은번호 === 'string') 적는다(실은번호);
+    if (typeof 실은번호 === 'string') 적는다(번호(실은번호));
   });
   폰.on('result', (e: 명령기록) => {
     if (e.command !== 'findElement' && e.command !== 'findElementFromElement') return;
     const 값 = e.result?.value as Record<string, unknown> | undefined;
     const id = 값?.[W3C요소] ?? 값?.ELEMENT;
-    if (typeof id === 'string') 적는다(id);
+    if (typeof id === 'string') 적는다(번호(id));
   });
   return driver;
 }
@@ -158,12 +164,13 @@ export async function 웹사진(page: Page, path: string, 요소: Locator | unde
   await page.screenshot({ path, mask: [요소], maskColor: 웹덮개색 }).catch(() => page.screenshot({ path }));
 }
 
-export async function 앱사진(driver: AppDriver, path: string, 요소: string | undefined): Promise<void> {
+// 놓인자리 — 요소 번호 대신 이미 아는 자리(창 기준 · getElementRect 와 같은 꼴). 웹뷰 안 요소는 웹 맥락에서 읽어 옮긴 자리를 준다
+export async function 앱사진(driver: AppDriver, path: string, 요소: string | undefined, 놓인자리?: 상자): Promise<void> {
   await driver.saveScreenshot(path);
-  if (요소 === undefined) return;
+  if (요소 === undefined && 놓인자리 === undefined) return;
   try {
     // 요소 자리와 사진은 둘 다 실제 화소다. 창 크기를 못 읽으면 그대로 1배로 본다
-    const [자리, 창] = await Promise.all([driver.getElementRect(요소), driver.getWindowRect().catch(() => undefined)]);
+    const [자리, 창] = await Promise.all([놓인자리 ?? driver.getElementRect(요소!), driver.getWindowRect().catch(() => undefined)]);
     const png = PNG.sync.read(await readFile(path));
     const 배 = 창 !== undefined && 창.width > 0 ? png.width / 창.width : 1;
     표시를그린다(png, { x: 자리.x * 배, y: 자리.y * 배, width: 자리.width * 배, height: 자리.height * 배 });

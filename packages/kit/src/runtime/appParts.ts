@@ -2,6 +2,7 @@
 // dma · mta 도우미에서 서비스와 상관없는 것만 옮겼다. 앱 고유의 주소(id) · 화면 흐름은 여전히 서비스 폴더의 도우미가 맡는다
 
 import type { AppDriver } from './app.js';
+import { 네이티브에서, 네이티브전용 } from './webview.js';
 
 export type 앱요소 = WebdriverIO.Element;
 export type 권한답 = '허용' | '거부';
@@ -28,16 +29,19 @@ export function 될때까지(driver: AppDriver, 조건: () => Promise<boolean>, 
   return 참거짓(driver.waitUntil(조건, { timeout: 시간, interval: 300 }));
 }
 
-export function 뜰때까지(driver: AppDriver, 선택자: string, 시간 = 10_000): Promise<boolean> {
+export async function 뜰때까지(driver: AppDriver, 선택자: string, 시간 = 10_000): Promise<boolean> {
+  네이티브전용(driver, '뜰때까지');
   return 참거짓(driver.$(선택자).waitForDisplayed({ timeout: 시간 }));
 }
 
-export function 사라질때까지(driver: AppDriver, 선택자: string, 시간 = 10_000): Promise<boolean> {
+export async function 사라질때까지(driver: AppDriver, 선택자: string, 시간 = 10_000): Promise<boolean> {
+  네이티브전용(driver, '사라질때까지');
   return 참거짓(driver.$(선택자).waitForDisplayed({ timeout: 시간, reverse: true }));
 }
 
 /** 기다리지 않고 지금 보이는지만 본다 — 없는 요소에 isDisplayed 를 물으면 던지는 판이 있어 있는지부터 본다 */
 export async function 보이나(driver: AppDriver, 선택자: string): Promise<boolean> {
+  네이티브전용(driver, '보이나');
   const 요소 = driver.$(선택자);
   return (await 요소.isExisting()) && (await 요소.isDisplayed());
 }
@@ -47,6 +51,8 @@ export async function 보이나(driver: AppDriver, 선택자: string): Promise<b
  * 시작할 때 화면이 정해져 있지 않은 케이스(데이터 남기고 시작 · E2E 이어 돌기)가 「로그인 화면인가 홈인가」를 가를 때 쓴다
  */
 export async function 먼저뜨는것<이름 extends string>(driver: AppDriver, 후보: Record<이름, string>, 시간 = 30_000): Promise<이름 | undefined> {
+  // 안의 보이나 가 던지면 될때까지 가 삼켜 「안 떴다」가 된다 — 먼저 막는다
+  네이티브전용(driver, '먼저뜨는것');
   let 찾은: 이름 | undefined;
   await 될때까지(
     driver,
@@ -72,6 +78,7 @@ export async function 글자들(driver: AppDriver, 선택자: string): Promise<s
 
 /** 굴려야 보이는 요소 — 굴릴 수 있는 첫 목록을 그 글자가 보일 때까지 굴린다. 화면 밖 요소는 찾기부터 실패한다 */
 export async function 스크롤해서찾기(driver: AppDriver, 글자: string): Promise<앱요소> {
+  네이티브전용(driver, '스크롤해서찾기');
   const 선택자 = `android=new UiScrollable(new UiSelector().scrollable(true).instance(0)).scrollIntoView(new UiSelector().textContains(${JSON.stringify(글자)}))`;
   // 한 번만 묻는다 — 이 선택자는 물을 때마다 목록을 처음부터 굴려, 되풀이해 기다리면 없는 글자에 케이스 제한 시간을 다 쓴다
   const 요소 = await driver.$(선택자).getElement();
@@ -87,6 +94,7 @@ export async function 칸에적기(칸: 앱요소, 값: string): Promise<void> {
 
 /** 키보드의 완료 · 이동 단추 — 키보드를 뒤로 가기로 내리면 화면이 닫히는 앱이 있다 */
 export async function 키보드완료(driver: AppDriver): Promise<void> {
+  네이티브전용(driver, '키보드완료');
   await driver.execute('mobile: performEditorAction', { action: 'done' });
 }
 
@@ -98,6 +106,7 @@ export async function 두번누르기(칸: 앱요소): Promise<void> {
 }
 
 export async function 길게누르기(driver: AppDriver, 선택자: string, 누르는시간 = 1200): Promise<void> {
+  네이티브전용(driver, '길게누르기');
   const 요소 = await driver.$(선택자).getElement();
   await 요소.waitForDisplayed({ timeout: 10_000 });
   await driver.execute('mobile: longClickGesture', { elementId: 요소.elementId, duration: 누르는시간 });
@@ -105,6 +114,8 @@ export async function 길게누르기(driver: AppDriver, 선택자: string, 누�
 
 /** 데이터는 두고 앱만 껐다 켠다 */
 export async function 앱다시켜기(driver: AppDriver, 꾸러미: string): Promise<void> {
+  // 앱을 끄면 웹뷰 맥락도 사라진다
+  네이티브전용(driver, '앱다시켜기');
   await driver.terminateApp(꾸러미);
   await driver.activateApp(꾸러미);
 }
@@ -114,6 +125,7 @@ export async function 앱다시켜기(driver: AppDriver, 꾸러미: string): Pro
  * 안 뜬 것을 실패로 볼지는 부른 쪽이 정한다
  */
 export async function 권한창답하기(driver: AppDriver, 답: 권한답, 시간 = 5_000): Promise<boolean> {
+  네이티브전용(driver, '권한창답하기');
   const 뜬것 = await 먼저뜨는것(driver, Object.fromEntries(권한단추[답].map((선택자) => [선택자, 선택자])), 시간);
   if (뜬것 === undefined) return false;
   await driver.$(뜬것).click();
@@ -125,6 +137,7 @@ export async function 권한창답하기(driver: AppDriver, 답: 권한답, 시�
  * `선택자` 는 토스트 상자다(앱이 그린 토스트는 그 id, 시스템 토스트는 `//android.widget.Toast`)
  */
 export async function 토스트글(driver: AppDriver, 선택자: string, 시간 = 15_000): Promise<string> {
+  네이티브전용(driver, '토스트글');
   let 글 = '';
   await 될때까지(
     driver,
@@ -152,13 +165,14 @@ export async function 토스트글(driver: AppDriver, 선택자: string, 시간 
 export async function 움직이는화면에서<값>(driver: AppDriver, 할일: () => Promise<값>, 기다림 = 1000): Promise<값> {
   // 겹쳐 쓰면 안쪽이 끝날 때 바깥 구간의 값으로 돌아가야 한다
   const 앞 = 지금멈춤.get(driver) ?? 멈춤기본;
-  await driver.updateSettings({ waitForIdleTimeout: 기다림 });
+  // 웹뷰 구간 안에서 불러도 UiAutomator2 설정이다 — 잠깐 네이티브로 가서 바꾼다
+  await 네이티브에서(driver, () => driver.updateSettings({ waitForIdleTimeout: 기다림 }));
   지금멈춤.set(driver, 기다림);
   try {
     return await 할일();
   } finally {
     지금멈춤.set(driver, 앞);
     // 본문이 연결 끊김으로 던졌으면 되돌리기도 던진다 — 원래 실패 까닭을 덮지 않는다
-    await driver.updateSettings({ waitForIdleTimeout: 앞 }).catch((err: unknown) => console.error(`[kit] 화면 멈춤 기다림을 되돌리지 못했다: ${err instanceof Error ? err.message : String(err)}`));
+    await 네이티브에서(driver, () => driver.updateSettings({ waitForIdleTimeout: 앞 })).catch((err: unknown) => console.error(`[kit] 화면 멈춤 기다림을 되돌리지 못했다: ${err instanceof Error ? err.message : String(err)}`));
   }
 }

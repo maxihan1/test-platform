@@ -10,6 +10,7 @@ import type { DeviceInfo } from '../types.js';
 import { runDir, saveShot } from './artifacts.js';
 import { 앱사진 } from './highlight.js';
 import { APPIUM_SESSION_FILE, APPIUM_SESSION_ID_FILE, 패키지이름인가 } from './protocol.js';
+import { 웹뷰사진, 웹맥락인가, 웹요소인가 } from './webview.js';
 
 export type AppDriver = Browser;
 
@@ -139,5 +140,8 @@ export async function readDevice(driver: AppDriver): Promise<DeviceInfo> {
 }
 
 export function captureApp(driver: AppDriver, seq: number, 요소?: unknown): Promise<string | undefined> {
-  return saveShot(seq, (path) => 앱사진(driver, path, typeof 요소 === 'string' ? 요소 : undefined));
+  const id = typeof 요소 === 'string' ? 요소 : undefined;
+  const 웹 = 웹요소인가(요소) ? 요소 : undefined;
+  // 웹뷰 구간 안이거나 웹뷰 요소를 짚으면 폰 화면 전체를 네이티브로 찍고 웹 요소 자리를 옮긴다 — 웹 맥락 사진은 웹뷰 안만 나온다 (도메인/러너 §5.2 「범용 앱 부품」)
+  return saveShot(seq, (path) => (웹맥락인가(driver) || 웹 !== undefined ? 웹뷰사진(driver, path, 웹) : 앱사진(driver, path, id)));
 }

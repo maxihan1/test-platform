@@ -20,4 +20,5 @@ export {
   type 권한답,
   type 앱요소,
 } from './runtime/appParts.js';
+export { 웹뷰에서 } from './runtime/webview.js';
 export { 로그인이어쓰기, type 로그인이어쓰기설정 } from './runtime/webParts.js';
