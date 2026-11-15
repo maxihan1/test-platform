@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import type { AppDriver } from './app.js';
-import { 권한창답하기, 두번누르기, 먼저뜨는것, 스크롤해서찾기, 움직이는화면에서, 칸에적기, 토스트글, type 앱요소 } from './appParts.js';
+import { 권한상태에서, 권한창답하기, 두번누르기, 먼저뜨는것, 스크롤해서찾기, 알림창열기, 움직이는화면에서, 칸에적기, 토스트글, type 앱요소 } from './appParts.js';
 
 /** 선택자마다 보이는지 · 글을 정해 주는 가짜 폰. waitUntil 은 시간 안에 몇 번 되풀이하다 못 되면 던진다 */
 function 가짜폰(화면: () => Record<string, string | (() => string)>) {
@@ -128,5 +128,112 @@ describe('칸에적기 · 두번누르기', () => {
     await expect(두번누르기(한번만 as unknown as 앱요소)).resolves.toBeUndefined();
     const 둘다 = { click: vi.fn().mockRejectedValue(new Error('요소 없음')) };
     await expect(두번누르기(둘다 as unknown as 앱요소)).rejects.toThrow('요소 없음');
+  });
+});
+
+const 카메라 = 'android.permission.CAMERA';
+const 위치 = 'android.permission.ACCESS_FINE_LOCATION';
+const 알림 = 'android.permission.POST_NOTIFICATIONS';
+
+/** 권한을 기억하는 가짜 폰 — 막을 동작(grant · revoke)을 주면 그 동작을 거절한다 */
+function 권한폰(처음: string[], 막을: { action?: string; 번째?: number } = {}) {
+  const 줌 = new Set(처음);
+  const 기록 = [] as string[];
+  let 바꾼수 = 0;
+  const driver = {
+    capabilities: { appPackage: 'com.shop' },
+    execute: async (script: string, arg: { type?: string; permissions?: string[]; appPackage?: string; action?: string }) => {
+      if (script === 'mobile: openNotifications') return void 기록.push('알림 창');
+      if (script === 'mobile: getPermissions') {
+        if (arg.type !== 'granted' || arg.appPackage !== 'com.shop') throw new Error(`엉뚱한 물음 ${arg.type} ${arg.appPackage}`);
+        return [...줌];
+      }
+      바꾼수++;
+      if (arg.action === 막을.action && (막을.번째 === undefined || 막을.번째 === 바꾼수)) throw new Error('pm 이 막혔다');
+      기록.push(`${arg.action} ${arg.permissions!.join(',')} @${arg.appPackage}`);
+      for (const 이름 of arg.permissions!) (arg.action === 'grant' ? 줌.add(이름) : 줌.delete(이름));
+    },
+    terminateApp: async (꾸러미: string) => void 기록.push(`끄기 ${꾸러미}`),
+    activateApp: async (꾸러미: string) => void 기록.push(`켜기 ${꾸러미}`),
+  } as unknown as AppDriver;
+  return { driver, 기록, 줌 };
+}
+
+describe('알림창열기', () => {
+  it('알림 창을 내린다', async () => {
+    const 폰 = 권한폰([]);
+    await 알림창열기(폰.driver);
+    expect(폰.기록).toEqual(['알림 창']);
+  });
+});
+
+describe('권한상태에서', () => {
+  it('구간 안에서만 시험 대상 앱의 권한을 주고 빼고, 끝나면 바뀐 것만 되돌린다 — 준 권한을 뺄 때마다 꺼진 앱을 다시 켠다', async () => {
+    const 폰 = 권한폰([위치, 알림]);
+    const 값 = await 권한상태에서(폰.driver, { 준다: [카메라, 알림], 뺀다: [위치] }, async () => {
+      expect([...폰.줌].sort()).toEqual([카메라, 알림].sort());
+      return '지도 화면';
+    });
+    expect(값).toBe('지도 화면');
+    expect([...폰.줌].sort()).toEqual([위치, 알림].sort());
+    expect(폰.기록).toEqual([
+      `grant ${카메라},${알림} @com.shop`,
+      `revoke ${위치} @com.shop`,
+      '끄기 com.shop',
+      '켜기 com.shop',
+      `grant ${위치} @com.shop`,
+      `revoke ${카메라} @com.shop`,
+      '끄기 com.shop',
+      '켜기 com.shop',
+    ]);
+  });
+
+  it('안 준 권한을 빼는 것은 바꿀 것이 없어 앱을 끄고 켜지 않는다', async () => {
+    const 폰 = 권한폰([]);
+    await 권한상태에서(폰.driver, { 뺀다: [카메라] }, async () => undefined);
+    expect(폰.기록).toEqual([]);
+  });
+
+  it('할일이 던져도 되돌리고 그 오류를 그대로 던진다', async () => {
+    const 폰 = 권한폰([]);
+    await expect(
+      권한상태에서(폰.driver, { 준다: [카메라] }, async () => {
+        throw new Error('사진 버튼이 없다');
+      }),
+    ).rejects.toThrow(/^사진 버튼이 없다$/);
+    expect([...폰.줌]).toEqual([]);
+  });
+
+  it('주기가 막히면 어떤 권한을 못 줬는지 실어 던진다', async () => {
+    const 폰 = 권한폰([], { action: 'grant' });
+    const 할일 = vi.fn();
+    await expect(권한상태에서(폰.driver, { 준다: [카메라] }, 할일)).rejects.toThrow(`권한을 못 줬다(${카메라}) — pm 이 막혔다`);
+    expect(할일).not.toHaveBeenCalled();
+  });
+
+  it('되돌리기가 막히면 던지고, 할일이 이미 던졌으면 그 오류에 까닭을 덧붙인다', async () => {
+    await expect(권한상태에서(권한폰([], { action: 'revoke' }).driver, { 준다: [카메라] }, async () => '끝')).rejects.toThrow(
+      `권한을 구간 전으로 못 되돌렸다 — 권한을 못 뺐다(${카메라}) — pm 이 막혔다`,
+    );
+    await expect(
+      권한상태에서(권한폰([], { action: 'revoke' }).driver, { 준다: [카메라] }, async () => {
+        throw new Error('사진 버튼이 없다');
+      }),
+    ).rejects.toThrow(`사진 버튼이 없다 (권한도 못 되돌렸다 — 권한을 못 뺐다(${카메라}) — pm 이 막혔다)`);
+    await expect(
+      권한상태에서(권한폰([], { action: 'revoke' }).driver, { 준다: [카메라] }, async () => {
+        throw '글로 던짐';
+      }),
+    ).rejects.toThrow(`글로 던짐 (권한도 못 되돌렸다 — 권한을 못 뺐다(${카메라}) — pm 이 막혔다)`);
+  });
+
+  it('바꿀 것이 없거나 같은 권한을 주고 빼거나 연결에 꾸러미가 없으면 손대기 전에 던진다', async () => {
+    const 폰 = 권한폰([]);
+    await expect(권한상태에서(폰.driver, {}, async () => undefined)).rejects.toThrow('준다 · 뺀다 가운데 하나는');
+    await expect(권한상태에서(폰.driver, { 준다: [카메라], 뺀다: [카메라] }, async () => undefined)).rejects.toThrow('같은 권한을 주고 뺄 수 없다');
+    await expect(권한상태에서(폰.driver, { 뺀다: ['ACCESS_FINE_LOCATION'] }, async () => undefined)).rejects.toThrow('온 이름(android.permission.…)으로 적는다: ACCESS_FINE_LOCATION');
+    const 꾸러미없음 = { ...폰.driver, capabilities: {} } as unknown as AppDriver;
+    await expect(권한상태에서(꾸러미없음, { 준다: [카메라] }, async () => undefined)).rejects.toThrow('시험 대상 앱 꾸러미(appPackage)가 없다');
+    expect(폰.기록).toEqual([]);
   });
 });

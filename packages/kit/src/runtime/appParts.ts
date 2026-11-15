@@ -132,6 +132,96 @@ export async function 권한창답하기(driver: AppDriver, 답: 권한답, 시�
   return true;
 }
 
+/** 알림 창을 내린다 — 닫기는 `driver.back()`, 시험 대상 앱을 다시 앞에 두기는 `driver.activateApp(꾸러미)` 그대로다. 푸시는 그 요소를 네이티브 주소로 누른다 */
+export async function 알림창열기(driver: AppDriver): Promise<void> {
+  네이티브전용(driver, '알림창열기');
+  await driver.execute('mobile: openNotifications');
+}
+
+/** 권한 이름은 온 이름(`android.permission.CAMERA`)이다 */
+export interface 바꿀권한 {
+  준다?: string[];
+  뺀다?: string[];
+}
+
+const 오류글 = (err: unknown): string => (err instanceof Error ? err.message : String(err));
+
+async function 준권한(driver: AppDriver, 꾸러미: string): Promise<Set<string>> {
+  try {
+    return new Set((await driver.execute('mobile: getPermissions', { type: 'granted', appPackage: 꾸러미 })) as string[]);
+  } catch (err) {
+    throw new Error(`권한을 못 읽었다 — ${오류글(err)}`);
+  }
+}
+
+// 준 권한을 빼면 Android 가 앱 프로세스를 끈다 — 다시 켜야 할일 · 다음 단계가 앱 화면에서 돈다
+async function 권한바꾸기(driver: AppDriver, 꾸러미: string, 줌: string[], 뺌: string[]): Promise<void> {
+  for (const [action, 이름들] of [['grant', 줌], ['revoke', 뺌]] as const) {
+    if (이름들.length === 0) continue;
+    try {
+      await driver.execute('mobile: changePermissions', { permissions: 이름들, appPackage: 꾸러미, action });
+    } catch (err) {
+      throw new Error(`권한을 ${action === 'grant' ? '못 줬다' : '못 뺐다'}(${이름들.join(' · ')}) — ${오류글(err)}`);
+    }
+  }
+  // pm 은 앱을 비동기로 끈다 — 바로 켜면 아직 살아 있던 앱이 앞에 왔다가 꺼진다. terminateApp 이 꺼질 때까지 기다린다
+  if (뺌.length > 0) {
+    await driver.terminateApp(꾸러미);
+    await driver.activateApp(꾸러미);
+  }
+}
+
+/**
+ * 이 구간에서만 시험 대상 앱의 권한을 창 없이 주거나 빼고, 끝나면(던져도) 앞 권한으로 되돌린다 — 연결 하나를 이어 쓰는 길(E2E 앱 단계 ·
+ * keepAppData 케이스)에서 바꾼 권한이 뒤로 넘어가지 않게. 되돌리기는 구간 전에 있던 것과 다른 권한만 바꾼다.
+ * 되돌리기에 실패하면 던진다(할일이 이미 던졌으면 그 오류에 까닭을 덧붙인다) — 조용히 넘기면 다음 케이스가 바뀐 권한으로 돈다.
+ * 구간에서 새로 준 권한을 되돌려 빼면 구간 뒤에도 앱이 꺼졌다 켜진다.
+ * ponytail: 준 · 안 줌만 되돌린다 — 「다시 묻지 않음」 같은 권한 꼬리표는 pm 이 바꾼 채 남는다. 이어 쓰는 연결에서 권한 창이 달라지면 꼬리표까지 되돌린다
+ */
+export async function 권한상태에서<값>(driver: AppDriver, 바꿀: 바꿀권한, 할일: () => Promise<값>): Promise<값> {
+  네이티브전용(driver, '권한상태에서');
+  const 준다 = 바꿀.준다 ?? [];
+  const 뺀다 = 바꿀.뺀다 ?? [];
+  if (준다.length + 뺀다.length === 0) throw new Error('권한상태에서 — 준다 · 뺀다 가운데 하나는 적어야 한다');
+  const 겹침 = 준다.filter((이름) => 뺀다.includes(이름));
+  if (겹침.length > 0) throw new Error(`권한상태에서 — 같은 권한을 주고 뺄 수 없다: ${겹침.join(' · ')}`);
+  // 줄인 이름(CAMERA)은 앱 권한 목록에 없어 빼기에서 조용히 빠진다 — 손대기 전에 막는다
+  const 줄인 = [...준다, ...뺀다].filter((이름) => !이름.includes('.'));
+  if (줄인.length > 0) throw new Error(`권한상태에서 — 권한은 온 이름(android.permission.…)으로 적는다: ${줄인.join(' · ')}`);
+  // 시험 대상 앱의 것만 — 앞에 온 다른 앱의 권한을 바꾸지 않게 지금 화면의 꾸러미를 쓰지 않는다
+  const caps = driver.capabilities as Record<string, unknown> | undefined;
+  const 꾸러미 = caps?.appPackage ?? caps?.['appium:appPackage'];
+  if (typeof 꾸러미 !== 'string' || 꾸러미 === '') throw new Error('권한상태에서 — 연결 설정에 시험 대상 앱 꾸러미(appPackage)가 없다');
+  const 있던 = await 준권한(driver, 꾸러미);
+  const 되돌리기 = async (): Promise<void> => {
+    const 지금 = await 준권한(driver, 꾸러미);
+    const 바뀐 = [...준다, ...뺀다].filter((이름) => 지금.has(이름) !== 있던.has(이름));
+    await 권한바꾸기(driver, 꾸러미, 바뀐.filter((이름) => 있던.has(이름)), 바뀐.filter((이름) => !있던.has(이름)));
+  };
+  let 값: 값;
+  try {
+    await 권한바꾸기(driver, 꾸러미, 준다, 뺀다.filter((이름) => 있던.has(이름)));
+    값 = await 할일();
+  } catch (err) {
+    try {
+      await 되돌리기();
+    } catch (되돌림오류) {
+      const 덧 = ` (권한도 못 되돌렸다 — ${오류글(되돌림오류)})`;
+      if (!(err instanceof Error)) throw new Error(`${String(err)}${덧}`);
+      // 보고가 stack 을 찍는 길도 있어 둘 다 고친다 — stack 은 만들 때 글이 굳는다
+      err.message += 덧;
+      if (err.stack !== undefined) err.stack = `${err.stack}\n${덧.trim()}`;
+    }
+    throw err;
+  }
+  try {
+    await 되돌리기();
+  } catch (err) {
+    throw new Error(`권한을 구간 전으로 못 되돌렸다 — ${오류글(err)}`);
+  }
+  return 값;
+}
+
 /**
  * 토스트 글 — 뜰 때까지 되풀이해 읽고 시간 안에 못 읽으면 빈 글. 토스트는 읽는 사이에 사라져 요소가 낡으므로 읽기 실패는 다시 읽는다.
  * `선택자` 는 토스트 상자다(앱이 그린 토스트는 그 id, 시스템 토스트는 `//android.widget.Toast`)
