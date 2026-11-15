@@ -32,7 +32,7 @@
 절에 `npx control-cli` 줄이 있으면 디바이스 팜 폰에서 게임을 직접 눌러 가며 읽는다. 명령 목록은 `npx control-cli help` 다.
 
 ```bash
-npx control-cli hold --minutes 30        # 빈 폰 하나를 잡는다 — --udid 를 주지 않는다
+npx control-cli hold --minutes 30        # 빈 폰 하나를 잡는다 — --udid 를 주지 않는다(폰 돌려 보기의 「폰 차이」 케이스를 살필 때만 그 폰 번호)
 npx control-cli -s=g open --app "$(cat "$AUTHORING_APP_FILE" 2>/dev/null || printf %s "$PLATFORM_APP")"   # 잡은 폰에 게임을 깔고 켠 뒤 첫 화면을 파일로 — 게임 링크는 2시간짜리라 에이전트가 30분마다 갈아 끼우는 이 파일에서 읽는다(환경의 PLATFORM_APP 은 시작 때 링크). --url 은 주지 않는다(환경값이 있다)
 npx control-cli -s=g snapshot            # 줄인 트리 파일 + 스크린샷
 npx control-cli -s=g click LoginButton   # Ran: await game.click('LoginButton') + 새 화면 파일

@@ -1,12 +1,12 @@
-// 돌려 보기 폰 갈래 검사 — 잡은 폰 읽기 · 돌릴 게임 · 앱 케이스 고르기 · 끝 검사 줄 · 폰 없이 끝나는 길 · 앱 서버 닿음 (도메인/게임 §3.10 「작성 — 한 바퀴」 6 · 도메인/작성 §3.6 「앱 화면」)
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+// 돌려 보기 폰 갈래 검사 — 잡은 폰 읽기 · 돌릴 게임 · 앱 케이스 고르기 · 끝 검사 줄 · 폰 없이 끝나는 길 (도메인/게임 §3.10 「작성 — 한 바퀴」 6 · 도메인/작성 §3.6 「앱 화면」)
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { 기록남기며비우기, 끝검사줄들 } from './authoring-gate3.js';
-import { nc답읽기, 데이터남기나, 빨간폰케이스, 앱서버확인, 앱줄주소, 앱케이스말, 잡은폰, 폰끝검사, 폰실행, 폰에서볼자리, 폰차례, 폰할일 } from './authoring-run3-game.js';
+import { 데이터남기나, 앱줄주소, 앱케이스말, 잡은폰, 폰끝검사, 폰실행, 폰차례, 폰판정들 } from './authoring-run3-game.js';
 
 const 게임케이스 = `defineCase({ tcId: 'G-FN-001', platforms: ['android'] }, async ({ game }) => { await game.click('Start'); });`;
 const 웹케이스 = `defineCase({ tcId: 'G-FN-002', platforms: ['desktop'] }, async ({ page }) => { await page.goto('/'); });`;
@@ -42,16 +42,15 @@ function 트리만들기(): { 트리: string; 결과폴더: string } {
   return { 트리, 결과폴더 };
 }
 
-describe('폰할일 · 빨간폰케이스 — 고친 뒤 폰에서 돈 기록으로 고른다', () => {
-  it('고친 뒤 기록이 없으면 돌리고, 빨강이어도 돌았으면 끝이다', () => {
-    const 기록 = new Map([['g/A.spec.ts', [판(100, 'unexpected')]], ['g/B.spec.ts', [판(50, 'expected')]]]);
-    expect(폰할일({ 'g/A.spec.ts': 90, 'g/B.spec.ts': 90, 'g/C.spec.ts': 90 }, (f) => 기록.get(f))).toEqual(['g/B.spec.ts', 'g/C.spec.ts']);
-    expect(빨간폰케이스({ 'g/A.spec.ts': 90, 'g/B.spec.ts': 90 }, (f) => 기록.get(f))).toEqual([{ 파일: 'g/A.spec.ts', 오류: '골드가 0 이다' }]);
-  });
-
-  it('빨강은 고친 뒤 가장 늦은 기록으로 본다 — 고쳐서 다시 초록이면 빨강이 아니다', () => {
-    const 기록 = new Map([['g/A.spec.ts', [판(100, 'unexpected'), 판(200, 'expected')]]]);
-    expect(빨간폰케이스({ 'g/A.spec.ts': 90 }, (f) => 기록.get(f))).toEqual([]);
+describe('폰판정들 — 고친 뒤 폰에서 돈 기록으로 판정한다', () => {
+  it('고친 뒤 기록이 없으면 안돎, 같은 폰 · 계정으로 다시 돌아 초록이면 초록, 고치기 전 기록은 안 본다', () => {
+    const 기록 = new Map([['g/A.spec.ts', [판(100, 'unexpected')]], ['g/B.spec.ts', [판(50, 'expected')]], ['g/D.spec.ts', [판(100, 'unexpected'), 판(200, 'expected')]]]);
+    expect(폰판정들({ 'g/A.spec.ts': 90, 'g/B.spec.ts': 90, 'g/C.spec.ts': 90, 'g/D.spec.ts': 90 }, 기록).map(([f, p]) => [f, p.상태])).toEqual([
+      ['g/A.spec.ts', '빨강'],
+      ['g/B.spec.ts', '안돎'],
+      ['g/C.spec.ts', '안돎'],
+      ['g/D.spec.ts', '초록'],
+    ]);
   });
 });
 
@@ -190,6 +189,92 @@ describe('폰실행 — 폰에서 돌릴 수 없으면 Playwright 를 띄우기 
     expect(readFileSync(join(결과폴더, 'app.txt'), 'utf8')).toBe('https://qa.test/api/builds/1/apk?exp=2&sig=new');
   });
 
+  it('폰마다 계정이 있으면 빈 폰을 더 잡아 나눠 돌고, 한 폰에서만 빨간 케이스는 같은 계정으로 다른 폰에서 다시 돌려 폰 차이로 가른다', async () => {
+    const { 트리, 결과폴더 } = 트리만들기();
+    writeFileSync(join(트리, 'tests', 'g', 'G-FN-003.spec.ts'), 게임케이스.replace('G-FN-001', 'G-FN-003'));
+    const 말 = vi.spyOn(console, 'log').mockImplementation(() => {});
+    // 가짜 Playwright — 받은 케이스마다 결과를 쓰고, 폰 번호 · 일반 회원 아이디를 남긴다. red-<폰> 파일에 적힌 케이스는 그 폰에서 빨갛다
+    const 가짜 = join(트리, 'bin');
+    mkdirSync(가짜);
+    writeFileSync(
+      join(가짜, 'pw.mjs'),
+      `import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+const 폰 = process.env.PLATFORM_DEVICE_UDID;
+const 빨강 = existsSync(process.env.AUTHORING_GATE3_DIR + '/red-' + 폰) ? readFileSync(process.env.AUTHORING_GATE3_DIR + '/red-' + 폰, 'utf8') : '';
+const 아이디 = JSON.parse(process.env.PLATFORM_ACCOUNTS).find((a) => a.role === '일반 회원').loginId;
+const 파일들 = process.argv.slice(2).filter((a) => a.startsWith('tests/')).map((a) => a.slice(6));
+appendFileSync(process.env.AUTHORING_GATE3_DIR + '/runs.txt', 폰 + ' ' + 아이디 + ' ' + 파일들.join(',') + '\\n');
+writeFileSync(process.env.PLAYWRIGHT_JSON_OUTPUT_FILE, JSON.stringify({ config: {}, stats: { startTime: new Date().toISOString() }, suites: 파일들.map((file) => ({ file, specs: [{ tests: [{ projectName: 'android', status: 빨강.includes(file) ? 'unexpected' : 'expected', results: [{ duration: 1000, ...(빨강.includes(file) ? { error: { message: '로그인 승인 화면을 못 찾았다' } } : {}) }] }] }] })) }));
+`,
+    );
+    writeFileSync(join(가짜, 'npx'), `#!/bin/sh\nshift\nshift\nexec node "${join(가짜, 'pw.mjs')}" "$@"\n`, { mode: 0o755 });
+    mkdirSync(join(트리, '.appium-cli'));
+    writeFileSync(join(트리, '.appium-cli', 'held'), 'R3CR10TCVCD\n');
+    writeFileSync(join(결과폴더, 'red-RF9R408GKRR'), 'g/G-FN-003.spec.ts');
+    const 잡힘 = new Set<string>();
+    const 팜 = vi.fn(async (주소: string, 설정?: RequestInit) => {
+      if (주소.endsWith('/api/devices/acquire')) {
+        if (잡힘.has('RF9R408GKRR')) return new Response('{"refused":"빈 폰 없음"}', { status: 409 });
+        잡힘.add('RF9R408GKRR');
+        return new Response(JSON.stringify({ held: { serial: 'RF9R408GKRR' } }), { status: 200 });
+      }
+      const 폰 = /devices\/([^/]+)\/hold/.exec(주소)?.[1];
+      if (폰 !== undefined && 설정?.method === 'DELETE') {
+        잡힘.delete(폰);
+        return new Response('{}', { status: 200 });
+      }
+      const 폰들 = [
+        { serial: 'R3CR10TCVCD', state: 'OCCUPIED', marketName: 'Galaxy S21+ 5G' },
+        { serial: 'RF9R408GKRR', state: 잡힘.has('RF9R408GKRR') ? 'OCCUPIED' : 'IDLE', marketName: 'Galaxy A32' },
+      ];
+      return new Response(JSON.stringify({ value: { devices: 주소.includes('status=idle') ? 폰들.filter((p) => p.state === 'IDLE') : 폰들 } }), { status: 200 });
+    });
+    const env = {
+      PATH: `${가짜}:${process.env.PATH ?? ''}`, AUTHORING_GATE3_DIR: 결과폴더, AUTHORING_BASE_LIST: 기준목록(트리),
+      PLATFORM_APPIUM_URL: 'http://farm.test/wd/hub', PLATFORM_APP: '/apk/g.apk',
+      PLATFORM_ACCOUNTS: JSON.stringify([
+        { baseUrl: 'http://qa.g.test', role: '일반 회원', loginId: 'qa_user1', loginPassword: 'pw-123456' },
+        { baseUrl: 'http://qa.g.test', role: '일반 회원 2', loginId: 'qa_par2', loginPassword: 'pw-654321' },
+      ]),
+    };
+
+    expect(await 폰실행('앱', 'g', 트리, env, 팜 as unknown as typeof fetch)).toBe(3);
+    expect(readFileSync(join(결과폴더, 'runs.txt'), 'utf8').trim().split('\n').sort()).toEqual(['R3CR10TCVCD qa_user1 g/G-FN-001.spec.ts', 'RF9R408GKRR qa_par2 g/G-FN-003.spec.ts']);
+    expect(잡힘.size).toBe(0);
+    expect(existsSync(join(트리, '.appium-cli', 'held-RF9R408GKRR'))).toBe(false);
+
+    expect(await 폰실행('앱', 'g', 트리, env, 팜 as unknown as typeof fetch)).toBe(1);
+    expect(readFileSync(join(결과폴더, 'runs.txt'), 'utf8').trim().split('\n').at(-1)).toBe('R3CR10TCVCD qa_par2 g/G-FN-003.spec.ts');
+    expect(말.mock.calls.map((c) => String(c[0])).join('\n')).toMatch(/폰 차이 1건[\s\S]*G-FN-003\.spec\.ts \(Galaxy A32 RF9R408GKRR 에서만 빨강\): 로그인 승인 화면을 못 찾았다/);
+    expect(폰끝검사(결과폴더, 트리, 'g', ['tests/g/G-FN-001.spec.ts', 'tests/g/G-FN-003.spec.ts'], '앱')).toEqual(['⚠️ 폰마다 결과가 다른 앱 케이스 1개 — g/G-FN-003.spec.ts(RF9R408GKRR 에서만 빨강)']);
+  });
+
+  it('도중에 끊긴 폰의 기록은 버리고, 폰마다 계정이 없으면 한 대로 돈다', async () => {
+    const { 트리, 결과폴더 } = 트리만들기();
+    const 말 = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const 가짜 = join(트리, 'bin');
+    mkdirSync(가짜);
+    writeFileSync(join(가짜, 'npx'), `#!/bin/sh\nfor a; do case "$a" in tests/*) f="\${a#tests/}";; esac; done\nprintf '{"config":{},"stats":{"startTime":"%s"},"suites":[{"file":"%s","specs":[{"tests":[{"projectName":"android","status":"unexpected","results":[{"duration":1000,"error":{"message":"세션이 끊겼다"}}]}]}]}]}' "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" "$f" > "$PLAYWRIGHT_JSON_OUTPUT_FILE"\n`, { mode: 0o755 });
+    mkdirSync(join(트리, '.appium-cli'));
+    writeFileSync(join(트리, '.appium-cli', 'held'), 'R3CR10TCVCD\n');
+    let 뽑힘 = false;
+    const 팜 = vi.fn(async (주소: string) => {
+      const 폰들 = [{ serial: 'R3CR10TCVCD', state: 뽑힘 ? 'OFFLINE' : 'OCCUPIED' }];
+      뽑힘 = 주소.endsWith('/api/devices?status=idle') || 뽑힘;
+      return new Response(JSON.stringify({ value: { devices: 주소.includes('status=idle') ? [] : 폰들 } }), { status: 200 });
+    });
+    const env = {
+      PATH: `${가짜}:${process.env.PATH ?? ''}`, AUTHORING_GATE3_DIR: 결과폴더, AUTHORING_BASE_LIST: 기준목록(트리),
+      PLATFORM_APPIUM_URL: 'http://farm.test/wd/hub', PLATFORM_APP: '/apk/g.apk', PLATFORM_BASE_URL: 'http://qa.g.test',
+    };
+
+    expect(await 폰실행('앱', 'g', 트리, env, 팜 as unknown as typeof fetch)).toBe(3);
+    const 찍힌 = 말.mock.calls.map((c) => String(c[0])).join('\n');
+    expect(찍힌).toMatch(/폰 한 대로 돈다/);
+    expect(찍힌).toMatch(/도중에 끊긴 폰 R3CR10TCVCD — 그 폰 기록은 버렸다/);
+    expect(폰끝검사(결과폴더, 트리, 'g', ['tests/g/G-FN-001.spec.ts'], '앱')).toEqual(['⚠️ 폰에서 돌려 보지 않은 앱 케이스 1개 — g/G-FN-001.spec.ts']);
+  });
+
   it('이번에 닿은 게임 케이스가 없으면 폰 없이 0', async () => {
     const { 트리, 결과폴더 } = 트리만들기();
     rmSync(join(트리, 'tests', 'g', 'G-FN-001.spec.ts'));
@@ -233,59 +318,5 @@ describe('앱케이스말 — 마지막 돌려 보기가 앱 케이스를 뺄 �
     expect(앱케이스말(['g/A.spec.ts'], 'g', { AUTHORING_GAME_DIR: '/자료' })).toMatch(/authoring:run -- 게임 g/);
     expect(앱케이스말(['g/A.spec.ts'], 'g', { PLATFORM_APPIUM_URL: 'http://farm.test/wd/hub', PLATFORM_APP: '/apk/a.apk' })).toMatch(/authoring:run -- 앱 g/);
     expect(앱케이스말(['g/A.spec.ts'], 'g', {})).toBe('[돌려 보기] 앱 케이스 1건은 폰이 없어 안 돌린다 — g/A.spec.ts');
-  });
-});
-
-describe('폰에서볼자리 — 맥의 서버는 팜이 이은 폰의 127.0.0.1 로 본다', () => {
-  it('localhost · host.docker.internal 은 127.0.0.1 같은 포트, 다른 주소는 그대로, 포트가 없으면 꼴의 기본, 주소가 아니면 null', () => {
-    expect(폰에서볼자리('http://localhost:3002')).toEqual({ 호스트: '127.0.0.1', 포트: 3002 });
-    expect(폰에서볼자리('http://host.docker.internal:3002/api')).toEqual({ 호스트: '127.0.0.1', 포트: 3002 });
-    expect(폰에서볼자리('https://qa.shop.test')).toEqual({ 호스트: 'qa.shop.test', 포트: 443 });
-    expect(폰에서볼자리('http://10.0.0.5')).toEqual({ 호스트: '10.0.0.5', 포트: 80 });
-    expect(폰에서볼자리('qa.shop.test')).toBeNull();
-  });
-});
-
-describe('nc답읽기 — 폰 셸이 돌려준 끝 코드 글', () => {
-  it('rc=0 닿음 · rc=1 못 닿음 · 옵션을 모르거나 nc 가 없거나 끝 코드가 없으면 모름', () => {
-    expect(nc답읽기({ stdout: 'rc=0\n', stderr: '' })).toEqual({ 닿음: true });
-    expect(nc답읽기({ stdout: 'rc=1\n', stderr: '' })).toEqual({ 닿음: false });
-    expect(nc답읽기({ stdout: 'rc=1\n', stderr: "nc: Unknown option 'z' (see \"nc --help\")" })).toEqual({ 모름: "nc: Unknown option 'z' (see \"nc --help\")" });
-    expect(nc답읽기({ stdout: 'rc=127\n', stderr: '/system/bin/sh: nc: inaccessible or not found' })).toEqual({ 모름: '/system/bin/sh: nc: inaccessible or not found' });
-    expect(nc답읽기({ stdout: '' })).toEqual({ 모름: '폰이 끝 코드를 안 돌려줬다' });
-  });
-});
-
-describe('앱서버확인 — 잡은 폰이 대상 서버에 닿는지', () => {
-  const 계정 = JSON.stringify([{ baseUrl: 'http://host.docker.internal:3002', role: '일반 회원' }]);
-  const 잡기 = (트리: string) => {
-    mkdirSync(join(트리, '.appium-cli'));
-    writeFileSync(join(트리, '.appium-cli', 'held'), 'R3CR10TCVCD');
-  };
-
-  it('팜 · 앱 줄 · 잡은 폰이 없으면 두드리지 않고 2 — 확인 못 함은 멈추지 않는다', async () => {
-    const { 트리 } = 트리만들기();
-    const 오류 = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const 두드리기 = vi.fn();
-    expect(await 앱서버확인(트리, { PLATFORM_ACCOUNTS: 계정 }, 두드리기)).toBe(2);
-    expect(await 앱서버확인(트리, { PLATFORM_APPIUM_URL: 'http://farm.test/wd/hub' }, 두드리기)).toBe(2);
-    expect(오류.mock.calls.at(-1)?.[0]).toMatch(/앱 줄을 모른다/);
-    expect(await 앱서버확인(트리, { PLATFORM_APPIUM_URL: 'http://farm.test/wd/hub', PLATFORM_ACCOUNTS: 계정 }, 두드리기)).toBe(2);
-    expect(오류.mock.calls.at(-1)?.[0]).toMatch(/잡은 폰이 없다/);
-    expect(두드리기).not.toHaveBeenCalled();
-  });
-
-  it('잡은 폰에서 앱 줄 포트를 두드려 닿으면 0 · 못 닿으면 1 · 폰이 답을 못 하면 2', async () => {
-    const { 트리 } = 트리만들기();
-    잡기(트리);
-    const 말 = vi.spyOn(console, 'log').mockImplementation(() => {});
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    const env = { PLATFORM_APPIUM_URL: 'http://farm.test/wd/hub', PLATFORM_APPIUM_TOKEN: 'pat_abc', PLATFORM_ACCOUNTS: 계정 };
-    const 닿음 = vi.fn().mockResolvedValue({ 닿음: true });
-    expect(await 앱서버확인(트리, env, 닿음)).toBe(0);
-    expect(닿음).toHaveBeenCalledWith('http://farm.test/wd/hub', 'R3CR10TCVCD', { 호스트: '127.0.0.1', 포트: 3002 }, 'pat_abc');
-    expect(await 앱서버확인(트리, env, vi.fn().mockResolvedValue({ 닿음: false }))).toBe(1);
-    expect(말.mock.calls.at(-1)?.[0]).toMatch(/못 닿는다 — 케이스를 쓰지 않는다/);
-    expect(await 앱서버확인(트리, env, vi.fn().mockResolvedValue({ 모름: 'adb_shell 이 닫혔다' }))).toBe(2);
   });
 });

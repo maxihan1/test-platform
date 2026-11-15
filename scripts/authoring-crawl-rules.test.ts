@@ -305,6 +305,16 @@ describe('크롤역할들 — 크롤러가 로그인해 훑을 역할 (PRD-F9-30
     ]);
     expect(크롤역할들(계정, 출처)).toEqual(['일반 회원', '관리자', '일회용품 관리자']);
   });
+
+  it('「일반 회원 2」 같은 폰마다 계정으로도 안 돈다 — 화면이 일반 회원과 같다', () => {
+    const 계정 = JSON.stringify([
+      { baseUrl: 'https://site.test', role: '일반 회원 2' },
+      { baseUrl: 'https://site.test', role: '일반회원3' },
+      { baseUrl: 'https://site.test', role: '일반 회원 1' },
+      { baseUrl: 'https://site.test', role: '일반 회원 관리자' },
+    ]);
+    expect(크롤역할들(계정, 출처)).toEqual(['일반 회원', '일반 회원 1', '일반 회원 관리자']);
+  });
 });
 
 describe('로그인풀렸나 — 로그인 판에서 로그인 화면으로 튕겼나', () => {
