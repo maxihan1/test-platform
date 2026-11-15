@@ -60,7 +60,7 @@
 >
 > **「뜬다 · 보인다 · 사라진다」 자체가 판정이면 기다린 결과를 값으로 바꿔 판정한다** (2026-11-10 사용자 · PR #697).
 > `const 떴다 = await 토스트.waitFor({ timeout: 10_000 }).then(() => true, () => false);` 다음 `verify('…누르면 토스트가 뜬다', 떴다, true)`.
-> 사라짐은 `{ state: 'hidden', timeout: 10_000 }`, 앱은 `waitForDisplayed({ timeout: 10_000 })`, 게임은 `game.waitFor(주소, { timeoutMs: 10_000 })` 에 같은 `.then` 을 붙인다.
+> 사라짐은 `{ state: 'hidden', timeout: 10_000 }`, 앱은 kit `뜰때까지(driver, 주소, 10_000)` · `사라질때까지`(이미 참 · 거짓을 돌려준다 — `5-stable.md` 「앱 공용 부품」), 게임은 `game.waitFor(주소, { timeoutMs: 10_000 })` 에 같은 `.then` 을 붙인다.
 > 안 뜨면 시간 초과로 죽지 않고 **판정 문장이 「기대 true · 실제 false」로 빨개진다.** `timeout` 을 꼭 적는다 — 플랫폼 설정에 요소 기다림 한도가 없어 빼면 케이스 제한 시간에 죽는다.
 > `waitFor()` 뒤 같은 요소의 `isVisible()` · `count()` 를 판정하는 꼴은 관문(`npm run authoring:check`)이 막는다.
 >

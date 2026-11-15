@@ -40,12 +40,12 @@ export function appCapabilities(env: Env, options: AppOpenOptions = {}): Record<
   caps[패키지이름인가(app) ? 'appium:appPackage' : 'appium:app'] = app;
   // UDID 가 없으면 Appium 이 연결된 한 대를 고른다
   if (env.PLATFORM_DEVICE_UDID) caps['appium:udid'] = env.PLATFORM_DEVICE_UDID;
-  // 게임은 실행 하나 동안 폰을 쥐고 한 번만 깐다 — 항목마다 데이터는 두고 앱만 다시 켠다. 상태는 케이스가 어드민 API 로 맞춘다 (도메인/게임 §3.10 「게임 연결」).
-  // 게임 명령은 Appium 을 거치지 않아, 기본 60초면 Appium 명령이 뜸한 긴 절차(확률 대량 시도) 도중 연결이 끊긴다
   // 데이터 남기기를 고른 앱 케이스 — 앞 케이스의 로그인을 이어 쓰고 앱만 다시 켠다. 폰을 놓으면 팜이 데이터를 지워, 한 번 잡고 이어 도는 작성 폰 돌려 보기에서만 이어진다 (도메인/러너 §5.2 「데이터 남기고 시작」)
   if (options.keepData === true) {
     Object.assign(caps, { 'appium:noReset': true, 'appium:forceAppLaunch': true, 'appium:shouldTerminateApp': true });
   }
+  // 게임은 실행 하나 동안 폰을 쥐고 한 번만 깐다 — 항목마다 데이터는 두고 앱만 다시 켠다. 상태는 케이스가 어드민 API 로 맞춘다 (도메인/게임 §3.10 「게임 연결」).
+  // 게임 명령은 Appium 을 거치지 않아, 기본 60초면 Appium 명령이 뜸한 긴 절차(확률 대량 시도) 도중 연결이 끊긴다
   if (env.PLATFORM_ENGINE === 'GAME') {
     Object.assign(caps, {
       'appium:noReset': true,

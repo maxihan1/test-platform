@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import type { AppDriver } from './app.js';
-import { 권한창답하기, 두번누르기, 먼저뜨는것, 움직이는화면에서, 칸에적기, 토스트글, type 앱요소 } from './appParts.js';
+import { 권한창답하기, 두번누르기, 먼저뜨는것, 스크롤해서찾기, 움직이는화면에서, 칸에적기, 토스트글, type 앱요소 } from './appParts.js';
 
 /** 선택자마다 보이는지 · 글을 정해 주는 가짜 폰. waitUntil 은 시간 안에 몇 번 되풀이하다 못 되면 던진다 */
 function 가짜폰(화면: () => Record<string, string | (() => string)>) {
@@ -84,6 +84,33 @@ describe('움직이는화면에서', () => {
     expect(await 움직이는화면에서(폰.driver, async () => '값')).toBe('값');
     await expect(움직이는화면에서(폰.driver, async () => Promise.reject(new Error('본문 실패')), 0)).rejects.toThrow('본문 실패');
     expect(폰.설정).toEqual([{ waitForIdleTimeout: 1000 }, { waitForIdleTimeout: 10_000 }, { waitForIdleTimeout: 0 }, { waitForIdleTimeout: 10_000 }]);
+  });
+
+  it('겹쳐 쓰면 안쪽이 끝날 때 바깥 구간의 값으로 돌아간다', async () => {
+    const 폰 = 가짜폰(() => ({}));
+    await 움직이는화면에서(폰.driver, () => 움직이는화면에서(폰.driver, async () => undefined, 0), 2000);
+    expect(폰.설정).toEqual([{ waitForIdleTimeout: 2000 }, { waitForIdleTimeout: 0 }, { waitForIdleTimeout: 2000 }, { waitForIdleTimeout: 10_000 }]);
+  });
+
+  it('되돌리기가 실패해도 본문의 실패 까닭을 덮지 않는다', async () => {
+    const 폰 = 가짜폰(() => ({}));
+    let 번 = 0;
+    (폰.driver as unknown as { updateSettings: () => Promise<void> }).updateSettings = async () => {
+      if (++번 > 1) throw new Error('연결이 끊겼다');
+    };
+    const 알림 = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    await expect(움직이는화면에서(폰.driver, async () => Promise.reject(new Error('본문 실패')))).rejects.toThrow('본문 실패');
+    expect(알림).toHaveBeenCalledWith('[kit] 화면 멈춤 기다림을 되돌리지 못했다: 연결이 끊겼다');
+    알림.mockRestore();
+  });
+});
+
+describe('스크롤해서찾기', () => {
+  it('한 번만 묻고, 못 찾으면 던진다 — 이 선택자는 물을 때마다 목록을 다시 굴린다', async () => {
+    const 물음 = vi.fn();
+    const driver = { $: (선택자: string) => ({ getElement: async () => (물음(선택자), { elementId: undefined }) }) } as unknown as AppDriver;
+    await expect(스크롤해서찾기(driver, '없는 글')).rejects.toThrow('「없는 글」가 든 요소를 굴려도 찾지 못했다');
+    expect(물음).toHaveBeenCalledTimes(1);
   });
 });
 

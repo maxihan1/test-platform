@@ -6,13 +6,16 @@ import type { AppDriver } from './app.js';
 export type 앱요소 = WebdriverIO.Element;
 export type 권한답 = '허용' | '거부';
 
+const 권한주소 = (이름: string) => [`id=com.android.permissioncontroller:id/${이름}`, `id=com.android.packageinstaller:id/${이름}`];
 const 권한단추: Record<권한답, string[]> = {
-  // 위치 · 카메라는 「앱 사용 중에만 허용」이 허용 자리에 온다
-  허용: ['id=com.android.permissioncontroller:id/permission_allow_button', 'id=com.android.permissioncontroller:id/permission_allow_foreground_only_button'],
-  거부: ['id=com.android.permissioncontroller:id/permission_deny_button'],
+  // 위치 · 카메라는 「앱 사용 중에만 허용」 · 「이번만 허용」이 허용 자리에 온다. 꾸러미가 둘인 것은 안드로이드 9 까지가 packageinstaller 라서다
+  허용: ['permission_allow_button', 'permission_allow_foreground_only_button', 'permission_allow_one_time_button'].flatMap(권한주소),
+  // 한 번 거부한 권한을 다시 물으면 「거부 및 다시 묻지 않음」만 뜬다 — 데이터를 남긴 연결에서 앞 케이스의 거부가 이어질 때다
+  거부: ['permission_deny_button', 'permission_deny_and_dont_ask_again_button'].flatMap(권한주소),
 };
 /** UiAutomator2 가 명령마다 화면이 멈추기를 기다리는 기본 시간 */
 const 멈춤기본 = 10_000;
+const 지금멈춤 = new WeakMap<AppDriver, number>();
 
 const 참거짓 = (기다림: Promise<unknown>): Promise<boolean> =>
   기다림.then(
@@ -68,10 +71,12 @@ export async function 글자들(driver: AppDriver, 선택자: string): Promise<s
 }
 
 /** 굴려야 보이는 요소 — 굴릴 수 있는 첫 목록을 그 글자가 보일 때까지 굴린다. 화면 밖 요소는 찾기부터 실패한다 */
-export async function 스크롤해서찾기(driver: AppDriver, 글자: string, 시간 = 15_000): Promise<앱요소> {
+export async function 스크롤해서찾기(driver: AppDriver, 글자: string): Promise<앱요소> {
   const 선택자 = `android=new UiScrollable(new UiSelector().scrollable(true).instance(0)).scrollIntoView(new UiSelector().textContains(${JSON.stringify(글자)}))`;
-  if (!(await 뜰때까지(driver, 선택자, 시간))) throw new Error(`「${글자}」가 든 요소를 굴려도 찾지 못했다`);
-  return driver.$(선택자).getElement();
+  // 한 번만 묻는다 — 이 선택자는 물을 때마다 목록을 처음부터 굴려, 되풀이해 기다리면 없는 글자에 케이스 제한 시간을 다 쓴다
+  const 요소 = await driver.$(선택자).getElement();
+  if (요소.elementId === undefined) throw new Error(`「${글자}」가 든 요소를 굴려도 찾지 못했다`);
+  return 요소;
 }
 
 /** 칸을 비우고 적는다 — setValue 만 쓰면 남은 글 뒤에 붙고, 빈 글을 setValue 하면 키보드만 뜬다 */
@@ -145,10 +150,15 @@ export async function 토스트글(driver: AppDriver, 선택자: string, 시간 
  * 그 10초가 로딩을 기다려 주던 케이스가 있다(2026-11-15 PR #785). 구간 안에서는 다음 화면을 `뜰때까지` 로 직접 기다린다
  */
 export async function 움직이는화면에서<값>(driver: AppDriver, 할일: () => Promise<값>, 기다림 = 1000): Promise<값> {
+  // 겹쳐 쓰면 안쪽이 끝날 때 바깥 구간의 값으로 돌아가야 한다
+  const 앞 = 지금멈춤.get(driver) ?? 멈춤기본;
   await driver.updateSettings({ waitForIdleTimeout: 기다림 });
+  지금멈춤.set(driver, 기다림);
   try {
     return await 할일();
   } finally {
-    await driver.updateSettings({ waitForIdleTimeout: 멈춤기본 });
+    지금멈춤.set(driver, 앞);
+    // 본문이 연결 끊김으로 던졌으면 되돌리기도 던진다 — 원래 실패 까닭을 덮지 않는다
+    await driver.updateSettings({ waitForIdleTimeout: 앞 }).catch((err: unknown) => console.error(`[kit] 화면 멈춤 기다림을 되돌리지 못했다: ${err instanceof Error ? err.message : String(err)}`));
   }
 }

@@ -56,20 +56,22 @@ describe('폰할일 · 빨간폰케이스 — 고친 뒤 폰에서 돈 기록으
 });
 
 describe('폰차례 · 데이터남기나 — 앱 데이터를 남기는 케이스끼리 붙여 돌린다', () => {
-  it('남기는 케이스가 남아 있으면 그것들만, 다 돌았으면 나머지를 고른다', () => {
+  it('남기는 케이스를 앞에 모으고 나머지를 뒤에 세운다 — 거르지 않아 못 도는 케이스 하나가 나머지를 막지 않는다', () => {
     const 남기나 = (f: string) => f.startsWith('m/K');
-    expect(폰차례(['m/A.spec.ts', 'm/K1.spec.ts', 'm/B.spec.ts', 'm/K2.spec.ts'], 남기나)).toEqual(['m/K1.spec.ts', 'm/K2.spec.ts']);
+    expect(폰차례(['m/A.spec.ts', 'm/K1.spec.ts', 'm/B.spec.ts', 'm/K2.spec.ts'], 남기나)).toEqual(['m/K1.spec.ts', 'm/K2.spec.ts', 'm/A.spec.ts', 'm/B.spec.ts']);
     expect(폰차례(['m/A.spec.ts', 'm/B.spec.ts'], 남기나)).toEqual(['m/A.spec.ts', 'm/B.spec.ts']);
     expect(폰차례([], 남기나)).toEqual([]);
   });
 
-  it('선언 줄의 keepAppData: true 만 남기기로 본다 — 없는 파일 · false · 본문 속 글자는 아니다', () => {
+  it('본문 앞 선언의 keepAppData: true 만 남기기로 본다 — 한 줄 선언도 잡고, 없는 파일 · false · 본문 속 글자는 아니다', () => {
     const 트리 = mkdtempSync(join(tmpdir(), 'keep-'));
     try {
       mkdirSync(join(트리, 'tests', 'm'), { recursive: true });
       writeFileSync(join(트리, 'tests', 'm', 'K.spec.ts'), "export const spec = defineCase({\n  tcId: 'M-1',\n  platforms: ['android'],\n  keepAppData: true,\n});\n");
       writeFileSync(join(트리, 'tests', 'm', 'F.spec.ts'), 'export const spec = defineCase({\n  keepAppData: false,\n});\n');
-      writeFileSync(join(트리, 'tests', 'm', 'S.spec.ts'), "export const spec = defineCase({ name: 'x' });\nconst 글 = 'keepAppData: true 라는 글자';\n");
+      writeFileSync(join(트리, 'tests', 'm', 'S.spec.ts'), "export const spec = defineCase({ name: 'x' });\n\ntest(spec, async ({ driver }) => {\n  const 글 = 'keepAppData: true 라는 글자';\n});\n");
+      writeFileSync(join(트리, 'tests', 'm', 'O.spec.ts'), "export const spec = defineCase({ tcId: 'M-2', platforms: ['android'], keepAppData: true });\n\ntest(spec, async () => {});\n");
+      expect(데이터남기나(트리, 'm/O.spec.ts')).toBe(true);
       expect(데이터남기나(트리, 'm/K.spec.ts')).toBe(true);
       expect(데이터남기나(트리, 'm/F.spec.ts')).toBe(false);
       expect(데이터남기나(트리, 'm/S.spec.ts')).toBe(false);

@@ -34,18 +34,23 @@ export function 폰할일(대상: Record<string, number>, 판들: (파일: strin
 }
 
 /**
- * 이번에 돌릴 묶음 — 앱 데이터를 남기는 케이스(`keepAppData: true`)가 남아 있으면 그것들만, 다 돌았으면 나머지.
- * 지우고 시작하는 케이스가 사이에 끼면 그다음 케이스가 다시 로그인한다 (도메인/러너 §5.2 「데이터 남기고 시작」)
+ * 돌릴 차례 — 앱 데이터를 남기는 케이스(`keepAppData: true`)를 앞에 모은다. 지우고 시작하는 케이스가 사이에 끼면 그다음 케이스가 다시 로그인한다
+ * (도메인/러너 §5.2 「데이터 남기고 시작」). 거르지 않고 줄만 세운다 — 기록을 못 남기는 케이스 하나가 나머지를 막지 않게.
+ * 두 묶음이 만나는 한 번은 섞여 돈다(Playwright 가 파일 이름 차례로 돈다)
  */
 export function 폰차례(할일: readonly string[], 남기나: (파일: string) => boolean): string[] {
-  const 남기는 = 할일.filter(남기나);
-  return 남기는.length > 0 ? 남기는 : [...할일];
+  return [...할일.filter(남기나), ...할일.filter((f) => !남기나(f))];
 }
 
-/** 케이스 파일이 데이터 남기기를 골랐나 — 선언 줄만 본다(kit 을 불러 돌리면 케이스마다 수 초가 든다). 못 읽으면 지우는 쪽으로 본다 */
+/**
+ * 케이스 파일이 데이터 남기기를 골랐나 — 본문(`test(`) 앞의 선언만 글자로 본다(kit 을 불러 돌리면 케이스마다 수 초가 든다).
+ * 틀려도 차례만 달라진다 — 연결 설정은 kit 이 선언을 읽어 정한다. 못 읽으면 지우는 쪽으로 본다
+ */
 export function 데이터남기나(트리: string, 파일: string): boolean {
   try {
-    return /^\s*keepAppData:\s*true\b/m.test(readFileSync(join(트리, 'tests', 파일), 'utf8'));
+    const 글 = readFileSync(join(트리, 'tests', 파일), 'utf8');
+    const 본문 = 글.search(/^(?:export\s+default\s+)?test\(/m);
+    return /\bkeepAppData:\s*true\b/.test(본문 === -1 ? 글 : 글.slice(0, 본문));
   } catch {
     return false;
   }
@@ -198,8 +203,7 @@ export async function 폰실행(갈래: 폰갈래, 폴더: string | undefined, �
     return { 찾기: (파일: string) => 판들.get(파일), 시간들: [...판들.values()].flat().flatMap((p) => p.시간들) };
   };
   const 앞 = 읽기();
-  const 전체할일 = 폰할일(대상, 앞.찾기);
-  const 할일 = 폰차례(전체할일, (f) => 데이터남기나(트리, f));
+  const 할일 = 폰차례(폰할일(대상, 앞.찾기), (f) => 데이터남기나(트리, f));
   const 시작 = Date.now();
   let 이번: string[] = [];
   let 로그 = '';
@@ -216,7 +220,7 @@ export async function 폰실행(갈래: 폰갈래, 폴더: string | undefined, �
   const 남은 = 폰할일(대상, 뒤.찾기);
   const 빨강 = 빨간폰케이스(대상, 뒤.찾기);
   console.log(`${머리} 폰 ${폰} · ${갈래} 케이스 ${Object.keys(대상).length}건 가운데 이번 ${이번.length}건 · ${Math.round((Date.now() - 시작) / 1000)}초 · 기록 ${결과폴더}`);
-  if (이번.length > 0 && 남은.length === 전체할일.length) {
+  if (이번.length > 0 && 남은.length === 할일.length) {
     console.log(`돌렸지만 끝난 케이스가 없다 — 로그를 본다: ${로그}`);
     return 2;
   }
