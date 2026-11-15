@@ -102,7 +102,11 @@ describe('폰에파일넣기', () => {
 describe('폰파일있나', () => {
   const 셸폰 = (답: () => Promise<unknown>) => {
     const execute = vi.fn(async (_명령: string, _값: unknown) => 답());
-    return { driver: { execute } as unknown as AppDriver, execute };
+    const waitUntil = vi.fn(async (조건: () => Promise<boolean>, { timeout }: { timeout: number }) => {
+      for (let 번 = 0; 번 < timeout / 300; 번 += 1) if (await 조건()) return true;
+      throw new Error('waitUntil timeout');
+    });
+    return { driver: { execute, waitUntil } as unknown as AppDriver, execute };
   };
 
   it('폴더를 작은따옴표로 싸서 ls 로 읽고 이름을 글자 그대로 맞춘다', async () => {
@@ -111,6 +115,7 @@ describe('폰파일있나', () => {
     expect(execute).toHaveBeenCalledWith('mobile: shell', { command: 'ls', args: ['-1', "'/sdcard/Download/내 문서'\\''s'"] });
     expect(await 폰파일있나(driver, '/sdcard/Download', 'receipt')).toBe(false);
     expect(await 폰파일있나(driver, '/sdcard/Download', 'receipt (1).pdf')).toBe(false);
+    expect(await 폰파일있나(driver, '/sdcard/Download', ' receipt.pdf')).toBe(false);
   });
 
   it('폴더가 없으면 없음이다 — 앱이 아직 한 번도 안 받았다', async () => {
@@ -120,11 +125,36 @@ describe('폰파일있나', () => {
     expect(await 폰파일있나(driver, '/sdcard/Android/data/com.shop/files', 'a.pdf')).toBe(false);
   });
 
+  it('다른 항목의 No such file 은 없음으로 읽지 않고 던진다', async () => {
+    const { driver } = 셸폰(async () => {
+      throw new Error('ls: /sdcard/Download/.pending-1-a.pdf: No such file or directory');
+    });
+    await expect(폰파일있나(driver, '/sdcard/Download', 'a.pdf')).rejects.toThrow('폰파일있나: /sdcard/Download 를 못 읽었다');
+  });
+
+  it('시간을 주면 나타날 때까지 기다리고, 끝내 없으면 거짓이다', async () => {
+    let 번 = 0;
+    const { driver, execute } = 셸폰(async () => ((번 += 1) >= 3 ? 'receipt.pdf\n' : ''));
+    expect(await 폰파일있나(driver, '/sdcard/Download', 'receipt.pdf', 3000)).toBe(true);
+    expect(execute).toHaveBeenCalledTimes(3);
+    const 빈폰 = 셸폰(async () => '');
+    expect(await 폰파일있나(빈폰.driver, '/sdcard/Download', 'receipt.pdf', 900)).toBe(false);
+    expect(빈폰.execute).toHaveBeenCalledTimes(3);
+  });
+
+  it('기다리는 중에 셸이 막히면 거짓으로 삼키지 않고 바로 던진다', async () => {
+    const { driver, execute } = 셸폰(async () => {
+      throw new Error('Potentially insecure feature adb_shell has not been enabled');
+    });
+    await expect(폰파일있나(driver, '/sdcard/Download', 'a.pdf', 10_000)).rejects.toThrow('폰파일있나: /sdcard/Download 를 못 읽었다');
+    expect(execute).toHaveBeenCalledTimes(1);
+  });
+
   it('폰 셸이 막혔으면 없음으로 넘기지 않고 까닭을 붙여 던진다 · 상대 경로는 안 보낸다', async () => {
     const { driver, execute } = 셸폰(async () => {
       throw new Error('Potentially insecure feature adb_shell has not been enabled');
     });
-    await expect(폰파일있나(driver, '/sdcard/Download', 'a.pdf')).rejects.toThrow('폰파일있나: /sdcard/Download 를 못 읽었다(폰 셸 — Appium adb_shell 허용) — Potentially insecure');
+    await expect(폰파일있나(driver, '/sdcard/Download', 'a.pdf')).rejects.toThrow('폰파일있나: /sdcard/Download 를 못 읽었다(폰 셸 — Appium adb_shell 이 닫혔거나 폰이 그 폴더 읽기를 막았다) — Potentially insecure');
     execute.mockClear();
     await expect(폰파일있나(driver, 'Download', 'a.pdf')).rejects.toThrow('절대 경로');
     expect(execute).not.toHaveBeenCalled();

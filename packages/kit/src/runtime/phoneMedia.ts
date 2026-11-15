@@ -71,20 +71,47 @@ async function 넣는다(driver: AppDriver, 종류: 폰파일종류, 선택: { �
 const 글 = (err: unknown): string => (err instanceof Error ? err.message : String(err));
 
 /**
- * 앱이 받은 파일(영수증 · 내보내기)이 폰 폴더에 있는지 — 한 번 보고 돌려준다. 받는 데 시간이 걸리면 케이스가 `될때까지` 로 감싼다.
- * 폴더가 아직 없으면(앱이 처음 받기 전) 없음이다. 폰 셸이 막혔으면 던진다 — 없음으로 넘기면 받기가 안 된 것과 못 본 것이 섞인다.
- * 이름은 글자 그대로 맞춘다. 폴더는 폰 sh 가 다시 읽으니 작은따옴표로 싸서 띄어쓰기 · 한글 폴더도 한 덩어리로 보낸다
+ * 앱이 받은 파일(영수증 · 내보내기)이 폰 폴더에 있는지. `시간`(밀리초)을 주면 그동안 기다리고, 안 주면 한 번만 본다.
+ * 폴더가 아직 없으면(앱이 처음 받기 전) 없음이다. 폰 셸이 막혔으면 기다리는 중이어도 바로 던진다 — `될때까지` 로 감싸면 오류가 거짓이 되어
+ * 받기가 안 된 것과 못 본 것이 섞인다. 이름은 글자 그대로 맞춘다. 웹뷰 구간 안에서 불러도 잠깐 네이티브로 가서 본다
  */
-export async function 폰파일있나(driver: AppDriver, 폴더: string, 이름: string): Promise<boolean> {
-  if (!폴더.startsWith('/')) throw new Error(`폰파일있나: 폴더는 폰 안 절대 경로다 — ${폴더}`);
+export function 폰파일있나(driver: AppDriver, 폴더: string, 이름: string, 시간 = 0): Promise<boolean> {
+  if (!폴더.startsWith('/')) return Promise.reject(new Error(`폰파일있나: 폴더는 폰 안 절대 경로다 — ${폴더}`));
+  return 네이티브에서(driver, async () => {
+    if (시간 <= 0) return 한번본다(driver, 폴더, 이름);
+    let 막힘: unknown;
+    const 됐나 = await driver
+      .waitUntil(
+        async () => {
+          try {
+            return await 한번본다(driver, 폴더, 이름);
+          } catch (err) {
+            막힘 = err;
+            return true;
+          }
+        },
+        { timeout: 시간, interval: 300 },
+      )
+      .then(
+        () => true,
+        () => false,
+      );
+    if (막힘 !== undefined) throw 막힘;
+    return 됐나;
+  });
+}
+
+// 폴더는 폰 sh 가 다시 읽으니 작은따옴표로 싸서 띄어쓰기 · 한글 폴더도 한 덩어리로 보낸다
+async function 한번본다(driver: AppDriver, 폴더: string, 이름: string): Promise<boolean> {
   let 목록: string;
   try {
     목록 = String(await driver.execute('mobile: shell', { command: 'ls', args: ['-1', `'${폴더.replace(/'/g, `'\\''`)}'`] }));
   } catch (err) {
-    if (/No such file or directory/.test(글(err))) return false;
-    throw new Error(`폰파일있나: ${폴더} 를 못 읽었다(폰 셸 — Appium adb_shell 허용) — ${글(err)}`);
+    // 묻는 폴더 자체가 없을 때만 없음이다 — 다른 항목의 오류 글까지 없음으로 읽지 않는다
+    if (글(err).includes(`${폴더}: No such file or directory`)) return false;
+    throw new Error(`폰파일있나: ${폴더} 를 못 읽었다(폰 셸 — Appium adb_shell 이 닫혔거나 폰이 그 폴더 읽기를 막았다) — ${글(err)}`);
   }
-  return 목록.split(/\r?\n/).some((줄) => 줄.trim() === 이름);
+  return 목록.split(/\r?\n/).includes(이름);
 }
 
 // 지우기는 케이스의 finally 에서 돈다 — 던지면 케이스의 진짜 결과(통과 · 판정 실패)를 가린다. 기록만 남기고, 못 지웠으면 다음 부름에서 다시 지운다
