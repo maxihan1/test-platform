@@ -1,5 +1,5 @@
-// 요소 안에서 하는 손동작 — 밀기 · 끌어 놓기 · 두 손가락 벌리기 · 오므리기 (도메인/러너 §5.2 「범용 앱 부품」 APP-F3-06)
-// 전부 요소 주소를 받는다. 좌표는 폰 크기가 바뀌면 어긋나 케이스에 쓰지 않는다(공통/2-명세선언 「요소가 없는 자리는 누르지 않는다」)
+// 요소 안에서 하는 손동작 — 밀기 · 끌어 놓기 · 두 손가락 벌리기 · 오므리기 (APP-F3-06) · 요소 안 자리 긋기 (APP-F3-11) — 도메인/러너 §5.2 「범용 앱 부품」
+// 전부 요소 주소를 받는다. 화면 좌표는 폰 크기가 바뀌면 어긋나 케이스에 쓰지 않는다 — 긋기는 요소 안 % 만 받는다(공통/2-명세선언 「요소가 없는 자리는 누르지 않는다」)
 
 import type { AppDriver } from './app.js';
 import type { 앱요소 } from './appParts.js';
@@ -48,4 +48,32 @@ export async function 벌리기(driver: AppDriver, 선택자: string): Promise<v
 export async function 오므리기(driver: AppDriver, 선택자: string): Promise<void> {
   네이티브전용(driver, '오므리기');
   await driver.execute('mobile: pinchCloseGesture', { elementId: (await 보이는요소(driver, 선택자)).elementId, percent: 정도 });
+}
+
+/** 요소 안 %(0~100) 점 — [가로, 세로] */
+export type 요소안점 = readonly [number, number];
+/** appium-cli `draw` 와 같은 때 — 누른 뒤 쉬고 점 사이를 이 시간에 걸쳐 옮긴다. 너무 빠르면 서명 칸이 획을 튕김으로 읽는다 */
+const 긋기 = { 누름: 100, 구간: 200, 한점: 50 };
+
+/**
+ * 그 요소 안의 % 자리를 누른다(점 하나) · 누른 채 차례로 이어 긋는다(점 여럿) — 서명 칸 · 패턴 잠금 · 그림판처럼 요소가 칸 하나뿐인 화면.
+ * 화면 좌표가 아니라 요소 상자 안의 % 라 폰 크기가 달라도 같은 자리를 긋는다(공통/2-명세선언 「요소가 없는 자리는 누르지 않는다」 예외).
+ */
+export async function 요소위에그리기(driver: AppDriver, 선택자: string, 점들: readonly 요소안점[]): Promise<void> {
+  네이티브전용(driver, '요소위에그리기');
+  // 틀린 점은 폰에 보내기 전에 막는다 — 상자 밖을 눌러 엉뚱한 요소가 반응하고 제품 실패로 보이지 않게
+  if (점들.length === 0) throw new Error('요소위에그리기 — 점이 하나 이상 필요하다');
+  for (const p of 점들) {
+    if (!(p.length === 2 && p.every((n) => Number.isFinite(n) && n >= 0 && n <= 100))) throw new Error(`요소위에그리기 — 점은 요소 안 %(0~100) [가로, 세로]다: ${JSON.stringify(p)}`);
+  }
+  const 요소 = await 보이는요소(driver, 선택자);
+  const r = await driver.getElementRect(요소.elementId);
+  // 1 화소보다 작으면 100% 를 마지막 화소로 당기는 셈이 상자 밖으로 나간다
+  if (!(r?.width >= 1 && r.height >= 1)) throw new Error(`요소위에그리기 — 요소(${선택자})의 크기가 없다`);
+  // 100% 는 상자 밖이 안 되게 마지막 화소로 — appium-cli draw 와 같은 셈
+  const [첫, ...뒤] = 점들.map(([px, py]) => ({ x: Math.round(r.x + Math.min(r.width - 1, (r.width * px) / 100)), y: Math.round(r.y + Math.min(r.height - 1, (r.height * py) / 100)) }));
+  const 가운데 = 뒤.length === 0 ? [{ type: 'pause', duration: 긋기.한점 }] : [{ type: 'pause', duration: 긋기.누름 }, ...뒤.map((p) => ({ type: 'pointerMove', duration: 긋기.구간, x: p.x, y: p.y }))];
+  await driver.performActions([
+    { type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' }, actions: [{ type: 'pointerMove', duration: 0, x: 첫!.x, y: 첫!.y }, { type: 'pointerDown', button: 0 }, ...가운데, { type: 'pointerUp', button: 0 }] },
+  ]);
 }
