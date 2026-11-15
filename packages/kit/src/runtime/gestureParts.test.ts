@@ -107,8 +107,8 @@ describe('요소위에그리기', () => {
   });
 
   it('점 하나면 그 자리를 짧게 누른다', async () => {
-    const 폰 = 가짜폰({ '~지도': 칸 });
-    await 요소위에그리기(폰.driver, '~지도', [[50, 50]]);
+    const 폰 = 가짜폰({ '~패턴 칸': 칸 });
+    await 요소위에그리기(폰.driver, '~패턴 칸', [[50, 50]]);
     expect(폰.동작).toEqual(손가락([{ type: 'pointerMove', duration: 0, x: 300, y: 250 }, { type: 'pointerDown', button: 0 }, { type: 'pause', duration: 50 }, { type: 'pointerUp', button: 0 }]));
   });
 
@@ -122,10 +122,12 @@ describe('요소위에그리기', () => {
     expect(폰.동작).toEqual([]);
   });
 
-  it('요소 크기가 없으면 긋지 않고 던진다 — 화면 왼쪽 위를 누르지 않게', async () => {
-    const 폰 = 가짜폰({ '~서명 칸': { id: 'el-5', 자리: { x: 100, y: 200, width: 0, height: 100 } } });
-    await expect(요소위에그리기(폰.driver, '~서명 칸', [[10, 10]])).rejects.toThrow('요소(~서명 칸)의 크기가 없다');
-    expect(폰.동작).toEqual([]);
+  it('요소 크기가 없거나 1 화소보다 작으면 긋지 않고 던진다 — 상자 밖을 누르지 않게', async () => {
+    for (const 크기 of [{ width: 0, height: 100 }, { width: 0.5, height: 100 }, { width: 100, height: 0.5 }]) {
+      const 폰 = 가짜폰({ '~서명 칸': { id: 'el-5', 자리: { x: 100, y: 200, ...크기 } } });
+      await expect(요소위에그리기(폰.driver, '~서명 칸', [[100, 100]])).rejects.toThrow('요소(~서명 칸)의 크기가 없다');
+      expect(폰.동작).toEqual([]);
+    }
   });
 });
 

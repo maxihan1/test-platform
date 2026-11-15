@@ -53,7 +53,7 @@ export async function 오므리기(driver: AppDriver, 선택자: string): Promis
 /** 요소 안 %(0~100) 점 — [가로, 세로] */
 export type 요소안점 = readonly [number, number];
 /** appium-cli `draw` 와 같은 때 — 누른 뒤 쉬고 점 사이를 이 시간에 걸쳐 옮긴다. 너무 빠르면 서명 칸이 획을 튕김으로 읽는다 */
-const 긋기 = { 누름: 100, 구간: 200 };
+const 긋기 = { 누름: 100, 구간: 200, 한점: 50 };
 
 /**
  * 그 요소 안의 % 자리를 누른다(점 하나) · 누른 채 차례로 이어 긋는다(점 여럿) — 서명 칸 · 패턴 잠금 · 그림판처럼 요소가 칸 하나뿐인 화면.
@@ -68,10 +68,11 @@ export async function 요소위에그리기(driver: AppDriver, 선택자: string
   }
   const 요소 = await 보이는요소(driver, 선택자);
   const r = await driver.getElementRect(요소.elementId);
-  if (!(r?.width > 0 && r.height > 0)) throw new Error(`요소위에그리기 — 요소(${선택자})의 크기가 없다`);
+  // 1 화소보다 작으면 100% 를 마지막 화소로 당기는 셈이 상자 밖으로 나간다
+  if (!(r?.width >= 1 && r.height >= 1)) throw new Error(`요소위에그리기 — 요소(${선택자})의 크기가 없다`);
   // 100% 는 상자 밖이 안 되게 마지막 화소로 — appium-cli draw 와 같은 셈
   const [첫, ...뒤] = 점들.map(([px, py]) => ({ x: Math.round(r.x + Math.min(r.width - 1, (r.width * px) / 100)), y: Math.round(r.y + Math.min(r.height - 1, (r.height * py) / 100)) }));
-  const 가운데 = 뒤.length === 0 ? [{ type: 'pause', duration: 50 }] : [{ type: 'pause', duration: 긋기.누름 }, ...뒤.map((p) => ({ type: 'pointerMove', duration: 긋기.구간, x: p.x, y: p.y }))];
+  const 가운데 = 뒤.length === 0 ? [{ type: 'pause', duration: 긋기.한점 }] : [{ type: 'pause', duration: 긋기.누름 }, ...뒤.map((p) => ({ type: 'pointerMove', duration: 긋기.구간, x: p.x, y: p.y }))];
   await driver.performActions([
     { type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' }, actions: [{ type: 'pointerMove', duration: 0, x: 첫!.x, y: 첫!.y }, { type: 'pointerDown', button: 0 }, ...가운데, { type: 'pointerUp', button: 0 }] },
   ]);
