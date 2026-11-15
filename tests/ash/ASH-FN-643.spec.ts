@@ -1,7 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 
 import { 가방받기, 찾기, type 캐릭터 } from './helpers/api.helper.js';
-import { 강화기록수, 강화기록이멈출때까지, 누르고결과뜰때까지 } from './helpers/enhance-lock.helper.js';
+import { 강화기록수, 강화기록이멈출때까지, 강화버튼풀릴때까지, 누르고결과뜰때까지 } from './helpers/enhance-lock.helper.js';
 import { 게임입장 } from './helpers/game-enter.helper.js';
 import { 가방읽기, 골드주기, 새캐릭터, 아이템주기, 캐릭터지우기 } from './helpers/game-state.helper.js';
 import { 강화요청 } from './helpers/shop.helper.js';
@@ -35,11 +35,11 @@ test(spec, async ({ game, admin, request }) => {
       await 창.장비고르기(칼);
       await verify('강화 창 설명에 강화 비용이 보인다', (await 창.설명글()).includes('강화 비용'), true, { blocker: true });
     });
-    await test.step('강화 창에서 「강화하기」를 누르고 강화 결과가 뜬 뒤 1초를 기다렸다가 다시 누른다', async () => {
+    await test.step('강화 창에서 「강화하기」를 누르고 강화 결과가 뜬 뒤 「강화하기」가 풀리면 다시 누른다', async () => {
       const 창 = new 강화창(game);
       const 앞 = await 강화기록수(admin, 누구!);
       await 누르고결과뜰때까지(창);
-      await new Promise((깨운다) => setTimeout(깨운다, 1_000));
+      await verify('강화 결과가 뜬 뒤 「강화하기」가 풀린다', await 강화버튼풀릴때까지(창), true, { blocker: true });
       await 창.강화누르기();
       const 뒤 = await 강화기록이멈출때까지(admin, 누구!, 앞 + 1);
       await verify('강화 결과가 뜨고 0.5초가 지난 뒤 「강화하기」를 다시 누르면 강화가 한 번 더 된다', 뒤 - 앞, 2);

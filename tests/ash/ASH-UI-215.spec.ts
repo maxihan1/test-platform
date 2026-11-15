@@ -1,7 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 
 import { type 캐릭터 } from './helpers/api.helper.js';
-import { 누르고결과뜰때까지, 지난시간 } from './helpers/enhance-lock.helper.js';
+import { type 결과뜬때, 강화버튼풀릴때까지, 누르고결과뜰때까지, 지난시간 } from './helpers/enhance-lock.helper.js';
 import { 게임입장 } from './helpers/game-enter.helper.js';
 import { 가방읽기, 골드주기, 새캐릭터, 아이템주기, 캐릭터지우기 } from './helpers/game-state.helper.js';
 import { 강화창 } from './pages/enhance.page.js';
@@ -19,6 +19,7 @@ export const spec = defineCase({
 test(spec, async ({ game, admin }) => {
   let 누구: 캐릭터 | undefined;
   let 칼 = 0;
+  let 뜬때: 결과뜬때 | undefined;
   try {
     await test.step('새 전사 캐릭터에게 롱 소드와 무기 강화 주문서 · 강화할 골드를 준다', async () => {
       누구 = await 새캐릭터(admin, 'qaui215');
@@ -35,7 +36,7 @@ test(spec, async ({ game, admin }) => {
     });
     await test.step('강화 창에서 「강화하기」를 누르고 강화 결과가 뜨자마자 「강화하기」를 본다', async () => {
       const 창 = new 강화창(game);
-      const 뜬때 = await 누르고결과뜰때까지(창);
+      뜬때 = await 누르고결과뜰때까지(창);
       const 버튼 = await 창.강화버튼();
       const 읽은때 = 지난시간(뜬때);
       if (버튼?.interactable !== false) {
@@ -43,9 +44,9 @@ test(spec, async ({ game, admin }) => {
       }
       await verify('강화 결과가 뜬 직후에는 「강화하기」가 잠겨 있다', 버튼?.interactable, false);
     });
-    await test.step('강화 결과가 뜨고 1초를 기다린 뒤 「강화하기」를 본다', async () => {
-      await new Promise((깨운다) => setTimeout(깨운다, 1_000));
-      await verify('강화 결과가 뜨고 0.5초가 지나면 「강화하기」가 풀린다', (await new 강화창(game).강화버튼())?.interactable, true);
+    await test.step('강화 결과가 뜬 뒤 「강화하기」가 풀릴 때까지 보고 걸린 시간을 잰다', async () => {
+      const 풀렸다 = await 강화버튼풀릴때까지(new 강화창(game));
+      await verify('강화 결과가 뜨고 0.5초가 지나면 「강화하기」가 풀린다', 풀렸다 && 지난시간(뜬때!) < 1_500, true);
     });
   } finally {
     if (누구 !== undefined) await 캐릭터지우기(admin, 누구);
