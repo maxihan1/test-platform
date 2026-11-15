@@ -7,6 +7,9 @@ import type { Locator } from '@playwright/test';
 
 import type { ApiCallSeen, AssertionResult, ElementCheck, ShapeCheck, StepResult } from '../types.js';
 
+/** 실패 사진에 표시할 요소 — 웹 Locator · 앱 요소 번호 · 웹뷰 구간 안 요소(webview.ts) */
+export type 짚을요소 = Locator | string | { 웹: string; id: string };
+
 export interface StepScope {
   assertions: AssertionResult[];
   // 첫 실패 문장의 소스 줄 번호. 화면의 코드 뷰가 이 줄을 중심으로 연다 (SPEC §8.4)
@@ -14,10 +17,10 @@ export interface StepScope {
   httpTrace?: { request: unknown; response: unknown };
   // API 케이스가 보낸 요청마다 응답 모양 확인 한 줄 (도메인/API §3.8). 확인 문장과 섞지 않는다
   shapeChecks?: ShapeCheck[];
-  // 이 절차에서 마지막으로 다룬 요소 — 웹은 Locator, 앱은 Appium 요소 번호. 실패 사진에 표시할 자리다 (highlight.ts)
-  마지막요소?: Locator | string | undefined;
+  // 이 절차에서 마지막으로 다룬 요소 — 웹은 Locator, 앱은 Appium 요소 번호(웹뷰 구간 안이면 그 웹 맥락과 함께). 실패 사진에 표시할 자리다 (highlight.ts)
+  마지막요소?: 짚을요소 | undefined;
   // 처음 실패한 순간의 마지막요소. blocker 가 아닌 실패 뒤에도 절차는 돌아 다른 요소를 다루므로 그때 굳힌다
-  실패요소?: Locator | string | undefined;
+  실패요소?: 짚을요소 | undefined;
 }
 
 // E2E 시나리오에서 러너가 만들어 건넨 표시판. kit 은 적기만 하고 러너의 가로채기가 읽는다 (SPEC 공통/3-공유계약 §5.1 ④)
@@ -44,7 +47,7 @@ export interface RunScope {
   elementChecks?: ElementCheck[];
   apiCalls?: ApiCallSeen[];
   // 스크린샷과 결과 전달은 Playwright에 닿는 일이라 문맥에는 함수로만 담는다. 이 파일이 Playwright를 몰라야 단위 테스트가 가능하다
-  capture(seq: number, 요소?: Locator | string): Promise<string | undefined>;
+  capture(seq: number, 요소?: 짚을요소): Promise<string | undefined>;
   emit(result: StepResult): Promise<void>;
 }
 

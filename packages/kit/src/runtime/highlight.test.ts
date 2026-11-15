@@ -3,11 +3,11 @@ import { mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { type Browser, chromium, type Locator, type Page } from '@playwright/test';
+import { type Browser, chromium, type Page } from '@playwright/test';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { AppDriver } from './app.js';
-import { stepScope, type RunScope, type StepScope } from './context.js';
+import { stepScope, type RunScope, type StepScope, type 짚을요소 } from './context.js';
 import { PNG, 앱을지켜본다, 웹사진, 웹을지켜본다, 표시를그린다 } from './highlight.js';
 import { runStep } from './step.js';
 import { verify } from './verify.js';
@@ -38,7 +38,7 @@ describe('웹 — 실패 절차의 마지막 요소에 네모', () => {
   });
 
   const 돌린다 = async (body: (p: Page) => Promise<void>, options?: { capture: true }) => {
-    const 받은: (Locator | string | undefined)[] = [];
+    const 받은: (짚을요소 | undefined)[] = [];
     let 사진 = '';
     const run: RunScope = {
       seq: 0,
@@ -47,7 +47,7 @@ describe('웹 — 실패 절차의 마지막 요소에 네모', () => {
       capture: async (seq, 요소) => {
         받은.push(요소);
         사진 = join(폴더, `${받은.length}-${seq}.png`);
-        await 웹사진(page, 사진, typeof 요소 === 'object' ? 요소 : undefined);
+        await 웹사진(page, 사진, typeof 요소 === 'object' && !('웹' in 요소) ? 요소 : undefined);
         return 사진;
       },
       emit: async () => undefined,
