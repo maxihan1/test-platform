@@ -9,7 +9,7 @@ import { closeSync, openSync, readdirSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { type 돌린판, 돌린기록들, 먼저한번, 앱케이스나누기, 케이스파일읽기, 살필케이스, 파일상태보기, 판들읽기 } from './authoring-gate3.js';
+import { type 돌린판, 돌린기록들, 앱케이스나누기, 케이스파일읽기, 살필케이스, 파일상태보기, 판들읽기 } from './authoring-gate3.js';
 import { 바뀐것 } from './authoring-base-list.js';
 import { 앱서버확인, 앱케이스말, 폰실행 } from './authoring-run3-game.js';
 import { 자리기다리기, 자리놓기 } from './authoring-slot.js';
@@ -44,11 +44,11 @@ export function 할일고르기(대상: Record<string, number>, 판들: 판찾�
 }
 
 /**
- * 마지막 전체 돌려 보기의 이번 차례 — 보조 한 판에서 확인 문장으로 빨갰던 파일이 남아 있으면 그것들만 1번, 없으면 나머지를 3번.
- * 1번이 같은 문장으로 또 빨가면 할 일에서 빠지고, 초록이면 다음 차례에 3번으로 돈다 (작성 §3.6 「돌려 보기 명령」)
+ * 마지막 전체 돌려 보기의 이번 차례 — 보조 한 판에서 확인 문장으로 빨갰던 파일이 남아 있으면 그것들만 응답을 안 늦추고 1번, 없으면 나머지를 3번.
+ * 1번이 같은 문장으로 또 빨가면 할 일에서 빠지고, 초록이거나 다른 까닭으로 빨가면 다음 차례에 3번으로 돈다 (작성 §3.6 「돌려 보기 명령」)
  */
 export function 먼저한번차례(할일: readonly string[], 대상: Record<string, number>, 판들: 판찾기): { 파일들: string[]; 번: number } {
-  const 먼저 = 할일.filter((파일) => 먼저한번(판들(파일), 대상[파일] ?? 0));
+  const 먼저 = 할일.filter((파일) => 파일상태보기(판들(파일), 대상[파일] ?? 0).먼저한번);
   return 먼저.length > 0 ? { 파일들: 먼저, 번: 1 } : { 파일들: [...할일], 번: 3 };
 }
 
@@ -272,7 +272,8 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
         고른.파일들 = 차례나누기(차례.파일들, 차례.번, (파일) => 회차어림(앞.찾기(파일, 기기), 앞.전체), 남은예산);
         const 기록 = 기록이름(결과폴더, 머리, 기기);
         고른.로그.push(join(결과폴더, `${기록}.log`));
-        await 돌리기(트리, 결과폴더, 기록, 고른.파일들, 차례.번, 기기, 남은예산);
+        // 먼저 돌리는 1번은 응답을 안 늦춘다 — 안 늦춰도 빨가야 타이밍과 상관없이 틀린 것이다(기다림이 빠진 케이스는 여기서 초록이 된다)
+        await 돌리기(트리, 결과폴더, 기록, 고른.파일들, 차례.번, 기기, 남은예산, { 느림: 모드 !== '마지막' || 차례.번 !== 1, 추적: false });
       });
       return 기다림 === null ? { ...고른, 자리없음: true } : { ...고른, 기다림 };
     }),
