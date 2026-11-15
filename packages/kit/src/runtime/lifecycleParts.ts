@@ -83,12 +83,13 @@ function 앱파일(이름: 'PLATFORM_APP' | 'PLATFORM_APP_PREVIOUS', 부품: str
   return 값;
 }
 
-// 앱 파일 값은 서명 주소일 수 있어 오류에 싣지 않는다 — 어느 판인지만 적는다
+// 앱 파일 값은 서명 주소일 수 있어 오류에 싣지 않는다 — 어느 판인지만 적고, Appium 이 되비친 주소 · 서명도 가린다(실행 기록 · 리포트에 남는다)
 async function 깔기(driver: AppDriver, 파일: string, 무엇: string, 부품: string): Promise<void> {
   try {
     await driver.execute('mobile: installApp', { appPath: 파일 });
   } catch (err) {
-    throw new Error(`${부품} — ${무엇} 못 깔았다 — ${오류글(err)}`);
+    const 가린 = 오류글(err).split(파일).join('<앱 파일>').replace(/([?&]sig=)[^&\s'"]+/g, '$1…');
+    throw new Error(`${부품} — ${무엇} 못 깔았다 — ${가린}`);
   }
 }
 
@@ -121,6 +122,8 @@ export async function 옛판에서올리기<값>(driver: AppDriver, 할일: () =
   } catch (err) {
     try {
       await 깔기(driver, 지금, '지금 판을', '옛판에서올리기');
+      // 실패 사진 · 이어 쓰는 연결이 런처가 아닌 앱 화면을 보게
+      await driver.activateApp(꾸러미);
     } catch (깔기오류) {
       const 덧 = ` (지금 판도 다시 못 깔았다 — ${오류글(깔기오류)})`;
       if (!(err instanceof Error)) throw new Error(`${String(err)}${덧}`);

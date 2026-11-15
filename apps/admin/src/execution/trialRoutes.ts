@@ -103,11 +103,15 @@ async function 팜폰에서돌린다(
   if (앱재료 !== 'chrome') {
     try {
       app = await 깔앱파일(앱재료.serviceId, 앱재료.env, 앱재료.appPath);
-      // 정식 실행과 같이 앞 빌드도 싣는다 — 옛판에서올리기 케이스를 테스트 실행으로도 돌린다 (도메인/러너 §5.2 「범용 앱 부품」 APP-F3-08)
-      앞 = await 깔앞앱파일(앱재료.serviceId, 앱재료.env);
     } catch (err) {
       return na(요청, err instanceof Error ? err.message : String(err));
     }
+    // 정식 실행과 같이 앞 빌드도 싣는다 — 옛판에서올리기 케이스를 테스트 실행으로도 돌린다 (도메인/러너 §5.2 「범용 앱 부품」 APP-F3-08).
+    // 못 읽으면 빼고 돌린다 — 앞 빌드를 안 쓰는 케이스까지 미실행으로 닫지 않는다. 쓰는 케이스는 부품이 「앞 빌드가 없다」로 던진다
+    앞 = await 깔앞앱파일(앱재료.serviceId, 앱재료.env).catch((err: unknown) => {
+      console.error(`[trial] 앞 빌드를 못 읽었다: ${err instanceof Error ? err.message : String(err)}`);
+      return null;
+    });
   }
   // 토큰 · 앱 파일을 고르는 사이에 중단했으면 폰을 잡지 않는다. 잡는 중에 중단하면 잡은 뒤 보내기가 한 번 더 보고 놓는다
   if (멈췄나()) return na(요청, 중단글);

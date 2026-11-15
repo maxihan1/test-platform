@@ -10,7 +10,7 @@ function 가짜폰(caps: Record<string, unknown> = { appPackage: 'com.shop', app
   const 보낸 = [] as [string, unknown][];
   const 기록 = (명령: string, 인자: unknown): void => {
     보낸.push([명령, 인자]);
-    if (실패할?.(명령, 인자) === true) throw new Error('팜이 막았다');
+    if (실패할?.(명령, 인자) === true) throw new Error(명령 === 'mobile: installApp' ? `팜이 막았다 — Cannot download ${(인자 as { appPath: string }).appPath}` : '팜이 막았다');
   };
   const driver = {
     execute: async (명령: string, 인자: unknown) => 기록(명령, 인자),
@@ -138,11 +138,11 @@ describe('앱다시깔기 · 옛판에서올리기', () => {
     vi.stubEnv('PLATFORM_APP_PREVIOUS', '/apk/old.apk');
     const 폰 = 가짜폰();
     await expect(옛판에서올리기(폰.driver, () => Promise.reject(new Error('로그인 버튼이 없다')))).rejects.toThrow(/^로그인 버튼이 없다$/);
-    expect(폰.보낸.at(-1)).toEqual(['mobile: installApp', { appPath: 'https://admin/apk?sig=secret' }]);
+    expect(폰.보낸.slice(-2)).toEqual([['mobile: installApp', { appPath: 'https://admin/apk?sig=secret' }], ['activateApp', 'com.shop']]);
 
     const 막힌폰 = 가짜폰(undefined, (명령, 인자) => 명령 === 'mobile: installApp' && (인자 as { appPath: string }).appPath.includes('sig='));
     const 오류 = await 옛판에서올리기(막힌폰.driver, () => Promise.reject(new Error('로그인 버튼이 없다'))).catch((e: unknown) => e as Error);
-    expect(오류.message).toBe('로그인 버튼이 없다 (지금 판도 다시 못 깔았다 — 옛판에서올리기 — 지금 판을 못 깔았다 — 팜이 막았다)');
+    expect(오류.message).toBe('로그인 버튼이 없다 (지금 판도 다시 못 깔았다 — 옛판에서올리기 — 지금 판을 못 깔았다 — 팜이 막았다 — Cannot download <앱 파일>)');
     expect(오류.stack).not.toContain('secret');
   });
 
@@ -152,8 +152,23 @@ describe('앱다시깔기 · 옛판에서올리기', () => {
     const 폰 = 가짜폰(undefined, (명령) => 명령 === 'mobile: installApp');
     const 할일 = vi.fn();
     const 오류 = (await 옛판에서올리기(폰.driver, 할일).catch((e: unknown) => e)) as Error;
-    expect(오류.message).toBe('옛판에서올리기 — 앞 빌드를 못 깔았다 — 팜이 막았다');
+    expect(오류.message).toBe('옛판에서올리기 — 앞 빌드를 못 깔았다 — 팜이 막았다 — Cannot download <앱 파일>');
     expect(할일).not.toHaveBeenCalled();
+  });
+});
+
+describe('깔기 오류 가리기', () => {
+  it('Appium 이 주소를 바꿔 되비쳐도 서명은 가린다', async () => {
+    vi.stubEnv('PLATFORM_APP', 'https://admin/apk?exp=1&sig=secret');
+    const driver = {
+      execute: async (명령: string) => {
+        if (명령 === 'mobile: installApp') throw new Error('404 at https%3A//admin/apk?exp=1&sig=secret');
+      },
+      activateApp: async () => undefined,
+      capabilities: { appPackage: 'com.shop' },
+    } as unknown as AppDriver;
+    const 오류 = (await 앱다시깔기(driver).catch((e: unknown) => e)) as Error;
+    expect(오류.message).toBe('앱다시깔기 — 지금 판을 못 깔았다 — 404 at https%3A//admin/apk?exp=1&sig=…');
   });
 });
 
