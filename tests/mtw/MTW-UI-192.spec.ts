@@ -31,7 +31,8 @@ test(spec, async ({ page }) => {
   await test.step('비회원으로 hana_photo 프로필의 「⋯」를 누른다', async () => {
     await 프로필.열기('hana_photo');
     await 프로필.더보기열기();
-    const 떴다 = await 안내.제목.waitFor({ timeout: 10_000 }).then(() => true, () => false);
-    await verify('비회원이 프로필 「⋯」를 눌러도 로그인 안내 창이 뜬다', 떴다, true);
+    const 복사 = await verify('「링크 복사하기」가 보인다', await 프로필.펼침.항목('링크 복사하기').waitFor({ timeout: 10_000 }).then(() => true, () => false), true);
+    const 안내없음 = await verify('로그인 안내 창이 뜨지 않는다', await 안내.제목.waitFor({ timeout: 3_000 }).then(() => true, () => false), false);
+    await verify('비회원이 프로필 「⋯」를 누르면 로그인 안내 창 없이 「링크 복사하기」 메뉴가 펼쳐진다', 복사 && 안내없음, true);
   });
 });

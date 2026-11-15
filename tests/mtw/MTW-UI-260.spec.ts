@@ -28,4 +28,9 @@ test(spec, async ({ page, params }) => {
     const 떴다 = await 설정.버튼('초대 링크 생성하기').waitFor({ timeout: 10_000 }).then(() => true, () => false);
     await verify('일반 회원 설정 메뉴에서 「초대」를 누르면 초대 링크 만들기 화면이 열린다', 떴다, true);
   });
+
+  await test.step('초대 화면의 입력 칸을 본다', async () => {
+    await 설정.칸('사용 횟수 제한').waitFor({ timeout: 10_000 });
+    await verify('초대 화면에는 「주석」 칸이 없다', await 설정.칸('주석').isVisible(), false);
+  });
 });
