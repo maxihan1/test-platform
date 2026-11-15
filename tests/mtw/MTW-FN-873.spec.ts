@@ -7,8 +7,9 @@ import { 프로필화면 } from './pages/profile.page.js';
 
 export const spec = defineCase({
   tcId: 'MTW-FN-873',
-  name: '없는 프로필 주소를 열면 「프로필 사용 불가」가 보인다',
+  name: '없는 프로필 주소를 열면 「찾으려는 페이지가 존재하지 않습니다.」가 보인다',
   precondition: ['일반 회원으로 로그인해 있다'],
+  techniques: ['동등 분할'],
   params: z.object({
     loginId: z.string().describe('일반 회원 이메일').optional().meta({ secret: true }),
     loginPassword: z.string().describe('일반 회원 암호').optional().meta({ secret: true }),
@@ -27,7 +28,7 @@ test(spec, async ({ page, params }) => {
 
   await test.step('없는 사용자명의 프로필 주소를 연다', async () => {
     await 프로필.주소만열기(`/@${표식('nouser')}`);
-    const 보인다 = await 프로필.사용불가.waitFor({ timeout: 10_000 }).then(() => true, () => false);
-    await verify('없는 프로필 주소를 열면 「프로필 사용 불가」가 보인다', 보인다, true);
+    const 보인다 = await 프로필.없는주소안내.waitFor({ timeout: 10_000 }).then(() => true, () => false);
+    await verify('없는 프로필 주소를 열면 「찾으려는 페이지가 존재하지 않습니다.」가 보인다', 보인다, true);
   });
 });

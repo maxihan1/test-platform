@@ -48,10 +48,11 @@ test(spec, async ({ page, params }) => {
       await verify('내 글을 고쳐 저장하면 「게시물이 저장되었습니다.」가 보인다', 떴다, true);
     });
 
-    await test.step('고친 글 상세를 연다', async () => {
+    await test.step('고친 글 상세에서 「마지막으로 편집됨」을 누른다', async () => {
       await 상세.열기(경로);
-      const 붙었다 = await 상세.수정됨.waitFor({ timeout: 10_000 }).then(() => true, () => false);
-      await verify('고친 글 상세에 「1번 수정됨」이 붙는다', 붙었다, true);
+      await 상세.편집됨단추.click({ timeout: 10_000 }).catch(() => undefined);
+      const 보인다 = await 상세.수정됨.waitFor({ timeout: 10_000 }).then(() => true, () => false);
+      await verify('고친 글 상세에 「1 번 수정됨」이 보인다', 보인다, true);
     });
   } finally {
     if (글번호 !== undefined) await 글지우기API(page, 글번호);

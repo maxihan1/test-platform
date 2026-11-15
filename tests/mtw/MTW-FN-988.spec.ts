@@ -24,7 +24,7 @@ test(spec, async ({ page, params }) => {
 
   await test.step('일반 회원으로 로그인하고 홈 응답을 호출 한도 초과로 바꾼다', async () => {
     await 로그인하기(page, params.loginId, params.loginPassword);
-    풀기함수 = await 가짜응답(page, /\/api\/v1\/timelines\/home/, { 상태: 429, 본문: { error: 'Too many requests' } });
+    풀기함수 = await 가짜응답(page, /\/api\/v1\/timelines\/home/, { 상태: 429, 본문: { error: 'Too many requests' }, 머리: { 'x-ratelimit-reset': new Date(Date.now() + 600_000).toISOString() } });
     await 홈.열기();
     await verify('홈에 작성 상자가 보인다', await 홈.작성.본문.isVisible(), true, { blocker: true });
   });

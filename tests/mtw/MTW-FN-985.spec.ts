@@ -1,6 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
+import { 알림막대 } from './components/toast.component.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 가짜응답, type 풀기 as 풀기타입 } from './helpers/mock.helper.js';
 import { 표식 } from './helpers/page-setup.helper.js';
@@ -9,7 +10,7 @@ import { 신고창 } from './pages/report-dialog.page.js';
 
 export const spec = defineCase({
   tcId: 'MTW-FN-985',
-  name: '신고 제출 응답이 실패하면 「신고를 제출할 수 없습니다」가 보인다',
+  name: '신고 제출 응답이 실패하면 오류 알림에 「서버 오류」가 보인다',
   techniques: ['동등 분할'],
   precondition: ['신고 제출 응답은 가짜 응답(모킹)이다', '일반 회원으로 로그인해 있다'],
   params: z.object({
@@ -22,6 +23,7 @@ export const spec = defineCase({
 test(spec, async ({ page, params }) => {
   const 프로필 = new 프로필화면(page);
   const 신고 = new 신고창(page);
+  const 알림 = new 알림막대(page);
   let 풀기값: 풀기타입 | undefined;
 
   await test.step('일반 회원으로 로그인하고 hana_photo 글 신고 창의 마지막 단계를 연다', async () => {
@@ -38,8 +40,8 @@ test(spec, async ({ page, params }) => {
     await test.step('신고 창을 끝까지 채워 「신고하기」를 누른다', async () => {
       await 신고.추가정보칸.fill(표식('rp'));
       await 신고.신고하기.click();
-      const 보인다 = await 신고.실패안내.first().waitFor({ timeout: 10_000 }).then(() => true, () => false);
-      await verify('신고 제출 응답이 실패하면 「신고를 제출할 수 없습니다」가 보인다', 보인다, true);
+      const 보인다 = await 알림.글('서버 오류').first().waitFor({ timeout: 10_000 }).then(() => true, () => false);
+      await verify('신고 제출 응답이 실패하면 오류 알림에 「서버 오류」가 보인다', 보인다, true);
     });
   } finally {
     if (풀기값 !== undefined) await 풀기값();

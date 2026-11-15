@@ -14,6 +14,7 @@ export class 로그인화면 {
   readonly 안내문: Locator;
   readonly 머리로고: Locator;
   readonly 보안토큰: Locator;
+  readonly 수신함확인제목: Locator;
 
   constructor(private readonly page: Page) {
     this.제목 = page.getByRole('heading', { name: 'mastodon.maxihan.com에 로그인' });
@@ -27,6 +28,7 @@ export class 로그인화면 {
     this.안내문 = page.getByText('만약 내 계정이 다른 서버에 존재한다면, 여기서는 로그인 할 수 없습니다.');
     this.머리로고 = page.getByRole('banner').getByRole('link', { name: 'Mastodon' });
     this.보안토큰 = page.locator('input[name="authenticity_token"]');
+    this.수신함확인제목 = page.getByRole('heading', { name: '수신함 확인하기' });
   }
 
   async 열기(): Promise<void> {

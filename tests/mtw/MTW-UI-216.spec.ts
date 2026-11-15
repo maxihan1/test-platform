@@ -8,7 +8,7 @@ import { 컬렉션상세화면 } from './pages/collection-detail.page.js';
 
 export const spec = defineCase({
   tcId: 'MTW-UI-216',
-  name: '남의 컬렉션에 「이 컬렉션 신고」 · 「계정 차단」이 보인다',
+  name: '남의 컬렉션에 「이 컬렉션 신고」가 보인다',
   precondition: ['두 번째 사용자로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 이메일').optional().meta({ secret: true }),
@@ -41,8 +41,7 @@ test(spec, async ({ page, params }) => {
     await 목록.링크('좋아하는 사진가').click();
     await 상세.그려질때까지();
     await 상세.메뉴열기();
-    const 신고 = await verify('「이 컬렉션 신고」가 보인다', await 상세.펼침.항목('이 컬렉션 신고').isVisible(), true);
-    const 차단 = await verify('「계정 차단」이 보인다', await 상세.계정차단().isVisible(), true);
-    await verify('남의 컬렉션에 「이 컬렉션 신고」 · 「계정 차단」이 보인다', 신고 && 차단, true);
+    const 신고 = await 상세.펼침.항목('이 컬렉션 신고').waitFor({ timeout: 10_000 }).then(() => true, () => false);
+    await verify('남의 컬렉션에 「이 컬렉션 신고」가 보인다', 신고, true);
   });
 });

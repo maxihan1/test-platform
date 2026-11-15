@@ -7,7 +7,7 @@ import { 컬렉션목록화면 } from './pages/collections.page.js';
 
 export const spec = defineCase({
   tcId: 'MTW-FN-635',
-  name: '컬렉션이 없을 때 컬렉션 화면을 열면 「아직 컬렉션을 만들지 않았습니다.」가 보인다',
+  name: '컬렉션이 없을 때 내 컬렉션 화면을 열면 「좋아하는 계정을 남들에게 소개하세요」가 보인다',
   techniques: ['경계값 분석'],
   precondition: ['두 번째 사용자로 로그인해 있다'],
   params: z.object({
@@ -30,6 +30,6 @@ test(spec, async ({ page, params }) => {
   await test.step('두 번째 사용자로 컬렉션 화면을 연다', async () => {
     await 화면.열기(내아이디);
     const 보인다 = await 화면.빈안내.waitFor({ timeout: 10_000 }).then(() => true, () => false);
-    await verify('컬렉션이 없을 때 컬렉션 화면을 열면 「아직 컬렉션을 만들지 않았습니다.」가 보인다', 보인다, true);
+    await verify('컬렉션이 없을 때 내 컬렉션 화면을 열면 「좋아하는 계정을 남들에게 소개하세요」가 보인다', 보인다, true);
   });
 });

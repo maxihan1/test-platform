@@ -8,7 +8,7 @@ import { 가입화면 } from './pages/sign-up.page.js';
 
 export const spec = defineCase({
   tcId: 'MTW-FN-239',
-  name: '사용자명을 30자로 넣고 「등록하기」를 누르면 사용자명 칸에 「영문자와 숫자, 밑줄만 사용 가능합니다」가 보이지 않는다',
+  name: '사용자명을 30자로 넣고 「등록하기」를 누르면 사용자명 칸에 오류가 보이지 않는다',
   precondition: ['비회원이다'],
   techniques: ['경계값 분석'],
   params: z.object({
@@ -33,7 +33,6 @@ test(spec, async ({ page, params }) => {
     await 연지3초지날때까지(page, 연시각);
     await 가입.누르기();
     await 가입.상단오류.waitFor();
-    const 오류 = 가입.칸오류(가입.사용자명칸).filter({ hasText: '영문자와 숫자, 밑줄만 사용 가능합니다' });
-    await verify('사용자명을 30자로 넣고 「등록하기」를 누르면 사용자명 칸에 「영문자와 숫자, 밑줄만 사용 가능합니다」가 보이지 않는다', await 오류.isVisible(), false);
+    await verify('사용자명을 30자로 넣고 「등록하기」를 누르면 사용자명 칸에 오류가 보이지 않는다', await 가입.칸오류(가입.사용자명칸).isVisible(), false);
   });
 });

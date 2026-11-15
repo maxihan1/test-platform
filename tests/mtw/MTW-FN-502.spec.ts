@@ -7,7 +7,7 @@ import { 검색화면 } from './pages/search.page.js';
 
 export const spec = defineCase({
   tcId: 'MTW-FN-502',
-  name: '검색칸에 낱말을 넣으면 「빠른 작업」에 「hana에 맞는 게시물」 · 「hana에 맞는 프로필」이 보인다',
+  name: '검색칸에 낱말을 넣으면 「빠른 작업」에 「#hana 해시태그로 이동」 · 「@hana 프로필로 이동」 · 「hana에 맞는 프로필」이 보인다',
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 이메일').optional().meta({ secret: true }),
@@ -15,6 +15,7 @@ export const spec = defineCase({
   }),
   expected: null,
 });
+
 test(spec, async ({ page, params }) => {
   const 홈 = new 홈화면(page);
   const 검색 = new 검색화면(page);
@@ -28,8 +29,9 @@ test(spec, async ({ page, params }) => {
   await test.step('검색칸에 「hana」를 넣는다', async () => {
     await 검색.팝업열기();
     await 검색.넣기('hana');
-    const 게시물 = await verify('「hana에 맞는 게시물」이 보인다', await 검색.빠른작업항목('hana에 맞는 게시물').isVisible(), true);
+    const 해시태그 = await verify('「#hana 해시태그로 이동」이 보인다', await 검색.빠른작업항목('#hana 해시태그로 이동').isVisible(), true);
+    const 계정 = await verify('「@hana 프로필로 이동」이 보인다', await 검색.빠른작업항목('@hana 프로필로 이동').isVisible(), true);
     const 프로필 = await verify('「hana에 맞는 프로필」이 보인다', await 검색.빠른작업항목('hana에 맞는 프로필').isVisible(), true);
-    await verify('검색칸에 낱말을 넣으면 「빠른 작업」에 「hana에 맞는 게시물」 · 「hana에 맞는 프로필」이 보인다', 게시물 && 프로필, true);
+    await verify('검색칸에 낱말을 넣으면 「빠른 작업」에 「#hana 해시태그로 이동」 · 「@hana 프로필로 이동」 · 「hana에 맞는 프로필」이 보인다', 해시태그 && 계정 && 프로필, true);
   });
 });

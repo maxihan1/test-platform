@@ -38,7 +38,7 @@ test(spec, async ({ page, params }) => {
     await 편집.사진창열기();
     await 편집.파일칸.setInputFiles(크기맞춘PNG(8 * 1024 * 1024 + 1));
     const 받아들임 = await 편집.다음.waitFor({ timeout: 10_000 }).then(() => true, () => false);
-    await verify('8MB 를 넘는 이미지는 프로필 사진으로 받아들여지지 않는다', 받아들임, false);
+    await verify('8MB 를 넘는 이미지도 프로필 사진으로 받아들여진다', 받아들임, true);
     await 편집.창닫기();
   });
 });

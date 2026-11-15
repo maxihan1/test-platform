@@ -1,4 +1,4 @@
-import type { Locator, Page } from '@playwright/test';
+import type { Locator, Page, Request } from '@playwright/test';
 
 export class 컬렉션만들기화면 {
   static readonly 주소 = '/collections/new';
@@ -13,6 +13,7 @@ export class 컬렉션만들기화면 {
   readonly 추가불가: Locator;
   readonly 한도안내: Locator;
   readonly 최대안내: Locator;
+  readonly 만들기: Locator;
 
   constructor(private readonly page: Page) {
     this.제목 = page.getByRole('main').getByRole('heading', { name: '새 컬렉션', level: 1 });
@@ -25,6 +26,7 @@ export class 컬렉션만들기화면 {
     this.추가불가 = page.getByRole('listbox').getByRole('heading', { name: '추가할 수 없음' });
     this.한도안내 = page.getByRole('heading', { name: '컬렉션의 최대 개수에 도달하였습니다' });
     this.최대안내 = page.getByText('/25개');
+    this.만들기 = page.getByRole('main').getByRole('button', { name: '컬렉션 만들기' });
   }
 
   async 열기(): Promise<void> {
@@ -44,5 +46,24 @@ export class 컬렉션만들기화면 {
     await this.계정검색(아이디);
     await this.결과(아이디).click();
     await this.계정수.waitFor();
+  }
+
+  async 계정넣고계속(아이디: string): Promise<void> {
+    await this.계정더하기(아이디);
+    await this.계속.click();
+    await this.기본정보.waitFor();
+  }
+
+  async 이름비우고만들기누르기(): Promise<void> {
+    const 응답들: Promise<unknown>[] = [];
+    const 듣기 = (요청: Request): void => {
+      if (요청.method() === 'POST' && /\/api\/v1\/collections$/.test(요청.url())) 응답들.push(요청.response());
+    };
+    this.page.on('request', 듣기);
+    await this.이름칸.fill('');
+    await this.만들기.click();
+    await this.page.evaluate(() => new Promise<void>((끝) => requestAnimationFrame(() => requestAnimationFrame(() => 끝()))));
+    this.page.off('request', 듣기);
+    await Promise.all(응답들);
   }
 }

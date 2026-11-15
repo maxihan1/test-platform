@@ -2,6 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 로그인하기 } from './helpers/login.helper.js';
+import { 계정설정화면 } from './pages/account-settings.page.js';
 import { 홈화면 } from './pages/home.page.js';
 
 export const spec = defineCase({
@@ -17,11 +18,12 @@ export const spec = defineCase({
 });
 test(spec, async ({ page, params }) => {
   const 홈 = new 홈화면(page);
+  const 설정 = new 계정설정화면(page);
 
   await test.step('일반 회원으로 홈을 연다', async () => {
     await 로그인하기(page, params.loginId, params.loginPassword);
     await 홈.열기();
     await 홈.피드.waitFor();
-    await verify('리디렉션이 없는 일반 회원 홈을 열면 비활성화 배너가 없다', await 홈.비활성배너.count(), 0);
+    await verify('리디렉션이 없는 일반 회원 홈을 열면 비활성화 배너가 없다', await 설정.비활성배너.count(), 0);
   });
 });

@@ -28,8 +28,4 @@ export class 컬렉션상세화면 {
     await this.자세히.click();
     await this.펼침.열릴때까지();
   }
-
-  계정차단(): Locator {
-    return this.page.getByRole('button', { name: /계정 차단/ });
-  }
 }

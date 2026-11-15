@@ -8,7 +8,7 @@ import { 서버오류화면 } from './pages/server-error.page.js';
 
 export const spec = defineCase({
   tcId: 'MTW-FN-990',
-  name: '설정 화면 응답이 임시 서버 문제(503)면 「이 페이지는 임시적인 서버 문제로 인해 제공 될 수 없습니다.」가 보인다',
+  name: '설정 화면 응답이 임시 서버 문제(503)면 「찾으려는 페이지가 존재하지 않습니다.」가 보인다',
   techniques: ['동등 분할'],
   precondition: ['설정 화면 응답은 가짜 응답(모킹)이다'],
   params: z.object({
@@ -33,7 +33,7 @@ test(spec, async ({ page, params }) => {
       풀기목록.push(await 서버화면바꾸기(page, /\/settings\/profile$/, 503, '/503.html'));
       await 화면.설정열기();
       await verify('설정 화면 주소가 열려 있다', new URL(page.url()).pathname, '/settings/profile', { blocker: true });
-      await verify('설정 화면 응답이 임시 서버 문제(503)면 「이 페이지는 임시적인 서버 문제로 인해 제공 될 수 없습니다.」가 보인다', await 화면.안내('이 페이지는 임시적인 서버 문제로 인해 제공 될 수 없습니다.').isVisible(), true);
+      await verify('설정 화면 응답이 임시 서버 문제(503)면 「찾으려는 페이지가 존재하지 않습니다.」가 보인다', await 화면.안내('찾으려는 페이지가 존재하지 않습니다.').isVisible(), true);
     });
   } finally {
     for (const 풀기함수 of 풀기목록) await 풀기함수();

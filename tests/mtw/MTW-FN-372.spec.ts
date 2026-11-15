@@ -37,16 +37,17 @@ test(spec, async ({ page, params }) => {
     await verify('인용 중에는 「설문 추가」도 누를 수 없다', await 글쓰기.작성.설문.isDisabled(), true);
   });
 
-  await test.step('인용 중 공개 범위 창을 연다', async () => {
-    await 글쓰기.공개범위창열기();
-    await 글쓰기.공개범위고르기시도('개인 멘션');
-    const 고름 = (await 글쓰기.공개범위선택.innerText()).includes('개인 멘션');
-    await verify('인용 중에는 공개 범위 「개인 멘션」을 고를 수 없다', 고름, false);
-    await 글쓰기.창.버튼('취소').click();
-    await 글쓰기.창.닫힐때까지();
+  await test.step('인용 중 공개 범위 창에서 「개인 멘션」을 골라 저장한다', async () => {
+    await 글쓰기.공개범위바꾸고저장('개인 멘션');
+    await verify('작성 상자의 인용이 풀린다', await 글쓰기.인용풀릴때까지(), true);
   });
 
   await test.step('인용 중 다른 글의 「인용」을 누른다', async () => {
+    await 프로필.열기('hana_photo');
+    await 카드.카드보이기('4.7 의 인용');
+    await 카드.부스트메뉴열기('4.7 의 인용');
+    await 카드.펼침.항목('인용').click();
+    await 글쓰기.인용취소.first().waitFor();
     await 카드.카드보이기('오늘 아침 한강 산책길');
     await 카드.부스트메뉴열기('오늘 아침 한강 산책길');
     await 카드.펼침.항목('인용').click();

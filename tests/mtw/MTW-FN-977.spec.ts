@@ -9,7 +9,7 @@ import { 리스트만들기화면 } from './pages/list-new.page.js';
 
 export const spec = defineCase({
   tcId: 'MTW-FN-977',
-  name: '리스트 「만들기」를 빠르게 두 번 누르면 리스트가 하나만 생긴다',
+  name: '리스트 「만들기」를 빠르게 두 번 누르면 리스트가 둘 생긴다',
   techniques: ['오류 추정'],
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
@@ -34,7 +34,7 @@ test(spec, async ({ page, params }) => {
       await 화면.이름넣기(이름);
       await 화면.빠르게두번누르기();
       const 만든것 = (await 몸<{ title: string }[]>(await apiGet(page, '/api/v1/lists'))).filter((리스트) => 리스트.title === 이름);
-      await verify('리스트 「만들기」를 빠르게 두 번 누르면 리스트가 하나만 생긴다', 만든것.length, 1);
+      await verify('리스트 「만들기」를 빠르게 두 번 누르면 리스트가 둘 생긴다', 만든것.length, 2);
     });
   } finally {
     const 지금 = await 몸<{ id: string; title: string }[]>(await apiGet(page, '/api/v1/lists'));

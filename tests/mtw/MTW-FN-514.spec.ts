@@ -7,7 +7,7 @@ import { 검색화면 } from './pages/search.page.js';
 
 export const spec = defineCase({
   tcId: 'MTW-FN-514',
-  name: '「@hana_photo」로 검색하면 hana_photo 프로필로 간다',
+  name: '「@hana_photo」 검색의 「빠른 작업」에서 「@hana_photo 프로필로 이동」을 누르면 hana_photo 프로필로 간다',
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 이메일').optional().meta({ secret: true }),
@@ -15,6 +15,7 @@ export const spec = defineCase({
   }),
   expected: null,
 });
+
 test(spec, async ({ page, params }) => {
   const 홈 = new 홈화면(page);
   const 검색 = new 검색화면(page);
@@ -25,13 +26,17 @@ test(spec, async ({ page, params }) => {
     await verify('왼쪽 열에 검색칸이 보인다', await 검색.검색칸.isVisible(), true, { blocker: true });
   });
 
-  await test.step('검색칸에 「@hana_photo」를 넣고 Enter 를 친다', async () => {
-    await 검색.찾기('@hana_photo');
-    await verify('「@hana_photo」로 검색하면 hana_photo 프로필로 간다', await 검색.프로필로갔나('hana_photo'), true);
+  await test.step('검색칸에 「@hana_photo」를 넣고 「빠른 작업」의 「@hana_photo 프로필로 이동」을 누른다', async () => {
+    await 검색.팝업열기();
+    await 검색.넣기('@hana_photo');
+    await 검색.빠른작업항목('@hana_photo 프로필로 이동').click();
+    await verify('「@hana_photo」 검색의 「빠른 작업」에서 「@hana_photo 프로필로 이동」을 누르면 hana_photo 프로필로 간다', await 검색.프로필로갔나('hana_photo'), true);
   });
 
-  await test.step('검색칸에 「#오늘의사진」을 넣고 Enter 를 친다', async () => {
-    await 검색.찾기('#오늘의사진');
-    await verify('「#오늘의사진」 검색은 해시태그 화면으로 간다', await 검색.태그로갔나('오늘의사진'), true);
+  await test.step('검색칸에 「#오늘의사진」을 넣고 「빠른 작업」의 「#오늘의사진 해시태그로 이동」을 누른다', async () => {
+    await 검색.팝업열기();
+    await 검색.넣기('#오늘의사진');
+    await 검색.빠른작업항목('#오늘의사진 해시태그로 이동').click();
+    await verify('「#오늘의사진 해시태그로 이동」은 해시태그 화면으로 간다', await 검색.태그로갔나('오늘의사진'), true);
   });
 });

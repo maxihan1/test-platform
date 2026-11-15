@@ -6,7 +6,7 @@ import { 로그인화면 } from './pages/sign-in.page.js';
 
 export const spec = defineCase({
   tcId: 'MTW-FN-187',
-  name: '이메일 확인을 마치지 않은 계정으로 로그인하면 「계속 하려면 이메일을 확인 받아야 합니다.」가 보인다',
+  name: '이메일 확인을 마치지 않은 계정으로 로그인하면 「수신함 확인하기」가 보인다',
   precondition: ['일회용 · 이메일 확인 대기 계정이 있다'],
   params: z.object({
     waitId: z.string().describe('이메일 확인 대기 계정 이메일').optional().meta({ secret: true, account: '일회용 · 이메일 확인 대기' }),
@@ -26,7 +26,7 @@ test(spec, async ({ page, params }) => {
 
   await test.step('이메일 확인 대기 계정으로 로그인한다', async () => {
     await 로그인.로그인(params.waitId ?? '', params.waitPassword ?? '');
-    const 떴다 = await 로그인.안내('계속 하려면 이메일을 확인 받아야 합니다.').waitFor({ timeout: 10_000 }).then(() => true, () => false);
-    await verify('이메일 확인을 마치지 않은 계정으로 로그인하면 「계속 하려면 이메일을 확인 받아야 합니다.」가 보인다', 떴다, true);
+    const 떴다 = await 로그인.수신함확인제목.waitFor({ timeout: 10_000 }).then(() => true, () => false);
+    await verify('이메일 확인을 마치지 않은 계정으로 로그인하면 「수신함 확인하기」가 보인다', 떴다, true);
   });
 });
