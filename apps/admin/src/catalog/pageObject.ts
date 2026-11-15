@@ -91,8 +91,10 @@ function stepOrVerify(file: string, sf: ts.SourceFile): Violation[] {
 
 // 위의 검사는 이름으로 찾아서 `verify as 확인` · `@platform/kit/runtime` · tests 밖 상대 경로를 못 본다.
 // E2E 「만들기」 판별(steps.ts)이 Page Object 를 「판정을 숨길 수 없다」고 믿으므로 가져올 수 있는 곳을 허용 목록으로 좁힌다 —
-// 같은 tests 안 파일(그 파일도 이 검사를 받는다) · playwright(test · expect 말고) · kit 의 타입뿐이다
+// 같은 tests 안 파일(그 파일도 이 검사를 받는다) · playwright(test · expect 말고) · kit 의 타입 · kit 공용 부품(`@platform/kit/parts`)뿐이다
 const KIT = '@platform/kit';
+// 공용 부품만 모은 입구 — 판정 · 절차가 없어 값으로 가져와도 된다(kit `src/parts.ts` 가 그 약속을 지킨다)
+const KIT_PARTS = '@platform/kit/parts';
 const PW = '@playwright/test';
 const IMPORT_WHY = '판정 · 절차를 다른 이름으로 들여오면 위 검사를 피하고, E2E 가 그 절차를 건너뛸 수 있는 준비로 잘못 본다';
 
@@ -122,7 +124,9 @@ function importRule(file: string, sf: ts.SourceFile): Violation[] {
                 ? bindings.elements.filter((e) => !e.isTypeOnly).map((e) => (e.propertyName ?? e.name).text)
                 : []),
             ];
-      if (from === KIT || from.startsWith(`${KIT}/`)) {
+      if (from === KIT_PARTS) {
+        if (values.some((v) => v === '*' || v === 'default')) at(node, 'kit 부품을 통째로 가져온다');
+      } else if (from === KIT || from.startsWith(`${KIT}/`)) {
         if (values.length > 0) at(node, 'kit 에서 타입 말고 다른 것을 가져온다');
       } else if (from === PW) {
         if (values.some((v) => ['*', 'default', 'test', 'expect'].includes(v))) at(node, 'playwright 에서 test · expect 를 가져온다');
