@@ -189,6 +189,8 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
         PLATFORM_API_DOC_FILE: 판파일 ?? '',
         // 대상 서버마다 apk 가 다르다. 요청이 실으면 러너를 켤 때 준 값보다 앞선다 (러너 §5.2 「앱 실행」 · APP-F1-03)
         ...(req.platform === 'android' && req.app !== undefined && { PLATFORM_APP: req.app }),
+        // 늘 적는다 — 러너를 켠 셸의 값을 물려받으면 앞 빌드가 없는 실행에서 옛판에서올리기 가 엉뚱한 판을 깐다. undefined 는 spawn 이 뺀다
+        PLATFORM_APP_PREVIOUS: req.platform === 'android' ? req.previousApp : undefined,
         // admin 이 팜에서 잡은 폰이다. 안 주면 팜이 잡힌 폰 아무것에나 붙인다 (러너 §5.2 「디바이스 팜 접속 방식」)
         ...(req.platform === 'android' && req.udid !== undefined && { PLATFORM_DEVICE_UDID: req.udid }),
         // 팜 토큰은 앱 · 게임 항목만 받는다 — 웹 · API 케이스(AI 가 쓴 코드)는 쓸 일이 없는데 읽을 수는 있다. undefined 는 spawn 이 빼고 넘긴다.

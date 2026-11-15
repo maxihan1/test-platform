@@ -59,6 +59,8 @@ export const executeRequest = z.object({
   expected: z.record(z.string(), z.unknown()),
   timeoutMs: z.number().int().positive().default(300_000),
   app: 앱파일경로.optional(),
+  // 빌드 목록의 앞 빌드 — 안 적으면 z.object 가 버려 옛판에서올리기 가 「앞 빌드가 없다」로 던진다 (도메인/러너 §5.2 「범용 앱 부품」 APP-F3-08)
+  previousApp: 앱파일경로.optional(),
   udid: z.string().min(1).optional(),
   // 누른 사람의 팜 토큰. 안 적으면 버려져 서버 몫 토큰으로 붙고, 그 사람이 잡은 폰을 팜이 거절한다 (도메인/러너 §5.2 「팜 토큰은 누른 사람 것이 먼저다」)
   farmToken: 팜토큰.optional(),

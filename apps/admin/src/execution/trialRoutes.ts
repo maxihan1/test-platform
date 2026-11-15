@@ -10,7 +10,7 @@ import { 케이스판 } from '../apidoc/caseDoc.js';
 import { 항목실패를가른다 } from '../reporting/itemFailure.js';
 import { artifactsDir } from '../artifactFile.js';
 import { 옛시험치우기 } from '../scenario/trial.js';
-import { 깔앱파일 } from './buildFile.js';
+import { 깔앞앱파일, 깔앱파일 } from './buildFile.js';
 import { enqueue } from './dispatcher.js';
 import { 거를패키지, 팜주소, 팜폰으로, 폰Chrome으로 } from './farm.js';
 import { 사람팜토큰 } from './farmToken.js';
@@ -99,12 +99,19 @@ async function 팜폰에서돌린다(
     return na(요청, '누른 사람의 팜 토큰을 고르지 못했습니다', err instanceof Error ? err.message : String(err));
   }
   let app: string | null = null;
+  let 앞: string | null = null;
   if (앱재료 !== 'chrome') {
     try {
       app = await 깔앱파일(앱재료.serviceId, 앱재료.env, 앱재료.appPath);
     } catch (err) {
       return na(요청, err instanceof Error ? err.message : String(err));
     }
+    // 정식 실행과 같이 앞 빌드도 싣는다 — 옛판에서올리기 케이스를 테스트 실행으로도 돌린다 (도메인/러너 §5.2 「범용 앱 부품」 APP-F3-08).
+    // 못 읽으면 빼고 돌린다 — 앞 빌드를 안 쓰는 케이스까지 미실행으로 닫지 않는다. 쓰는 케이스는 부품이 「앞 빌드가 없다」로 던진다
+    앞 = await 깔앞앱파일(앱재료.serviceId, 앱재료.env).catch((err: unknown) => {
+      console.error(`[trial] 앞 빌드를 못 읽었다: ${err instanceof Error ? err.message : String(err)}`);
+      return null;
+    });
   }
   // 토큰 · 앱 파일을 고르는 사이에 중단했으면 폰을 잡지 않는다. 잡는 중에 중단하면 잡은 뒤 보내기가 한 번 더 보고 놓는다
   if (멈췄나()) return na(요청, 중단글);
@@ -124,7 +131,7 @@ async function 팜폰에서돌린다(
           팜,
           async (udid, 화면, 이름) => {
             if (화면 !== undefined) 폰화면(화면, 이름);
-            return 보내기({ ...요청, udid, ...(토큰 !== undefined && { farmToken: 토큰 }), ...(app !== null && { app }) });
+            return 보내기({ ...요청, udid, ...(토큰 !== undefined && { farmToken: 토큰 }), ...(app !== null && { app }), ...(앞 !== null && { previousApp: 앞 }) });
           },
           못잡음,
           undefined,

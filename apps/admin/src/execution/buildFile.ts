@@ -124,10 +124,30 @@ export async function 실행빌드(client: Pick<Pool, 'query'>, serviceId: numbe
   return { id: Number(행.id), buildNo: 행.build_no, hasFile: 행.file_path !== null, appUrl: 행.app_url };
 }
 
-/** android 항목이 깔 앱 — 올린 APK 는 번호만 싣고 서명 주소는 폰을 잡은 뒤 만든다(runner.ts). 빌드가 없으면 그 줄의 app_path */
-export function 앱칸(빌드: 빌드행 | null, appPath: string | null): { app?: string; buildId?: number } {
-  if (빌드?.appUrl != null) return { app: 빌드.appUrl };
-  if (빌드?.hasFile === true) return { buildId: 빌드.id };
+/** 그 줄에서 이 빌드 바로 앞에 올린 빌드 — kit 옛판에서올리기 가 깐다. 없으면 null (도메인/러너 §5.2 「범용 앱 부품」 APP-F3-08) */
+export async function 앞빌드(client: Pick<Pool, 'query'>, serviceId: number, env: string, 기준: number): Promise<빌드행 | null> {
+  const r = await client.query<{ id: string; build_no: string; file_path: string | null; app_url: string | null }>(
+    `SELECT id, build_no, file_path, app_url FROM app_build
+      WHERE service_id = $1 AND env = $2 AND (uploaded_at, id) < (SELECT uploaded_at, id FROM app_build WHERE id = $3)
+      ORDER BY uploaded_at DESC, id DESC LIMIT 1`,
+    [serviceId, env, 기준],
+  );
+  const 행 = r.rows[0];
+  return 행 === undefined ? null : { id: Number(행.id), buildNo: 행.build_no, hasFile: 행.file_path !== null, appUrl: 행.app_url };
+}
+
+/**
+ * android 항목이 깔 앱 — 올린 APK 는 번호만 싣고 서명 주소는 폰을 잡은 뒤 만든다(runner.ts). 빌드가 없으면 그 줄의 app_path.
+ * 앞 빌드도 같은 꼴로 싣는다 — 실행 앱이 빌드일 때만이다(app_path 로 도는 줄에는 앞 판이 없다)
+ */
+export function 앱칸(
+  빌드: 빌드행 | null,
+  appPath: string | null,
+  앞: 빌드행 | null = null,
+): { app?: string; buildId?: number; previousApp?: string; previousBuildId?: number } {
+  const 앞칸 = 앞?.appUrl != null ? { previousApp: 앞.appUrl } : 앞?.hasFile === true ? { previousBuildId: 앞.id } : {};
+  if (빌드?.appUrl != null) return { app: 빌드.appUrl, ...앞칸 };
+  if (빌드?.hasFile === true) return { buildId: 빌드.id, ...앞칸 };
   return appPath === null ? {} : { app: appPath };
 }
 
@@ -145,6 +165,15 @@ export async function 깔앱파일(serviceId: number, env: string, appPath: stri
   const 주소 = 서명주소(빌드.id);
   if (주소 === null) throw new Error(`${env} 줄의 최신 빌드 ${빌드.buildNo} 를 받을 주소를 못 만들었다 — PLATFORM_PUBLIC_URL 을 채운다`);
   return 주소;
+}
+
+/** 케이스 테스트 실행이 실을 앞 빌드 — 그 줄 최신 빌드의 바로 앞 빌드 주소. 없거나 주소를 못 만들면 null(옛판에서올리기 가 「앞 빌드가 없다」로 던진다) */
+export async function 깔앞앱파일(serviceId: number, env: string): Promise<string | null> {
+  const pool = await db();
+  const 최신 = await 최신빌드(pool, serviceId, env);
+  const 앞 = 최신 === null ? null : await 앞빌드(pool, serviceId, env, 최신.id);
+  if (앞?.appUrl != null) return 앞.appUrl;
+  return 앞?.hasFile === true ? 서명주소(앞.id) : null;
 }
 
 /** 줄마다 최근 보관개수만 남기고 파일과 행을 지운다. 도는 실행이 쥔 빌드는 남긴다 — 그 실행이 끝까지 그 빌드를 깐다 */

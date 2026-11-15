@@ -113,3 +113,49 @@ describe('callRunner — 스토어 앱 패키지 이름', () => {
     expect(await 거른패키지({ ...앱항목, buildId: 3 })).toBeUndefined();
   });
 });
+
+describe('callRunner — 앞 빌드 (APP-F3-08)', () => {
+  let 러너: FastifyInstance;
+  const 받음: ExecuteRequest[] = [];
+  const 옛값 = { url: process.env.PLATFORM_PUBLIC_URL, secret: process.env.SESSION_SECRET };
+
+  beforeAll(async () => {
+    process.env.PLATFORM_PUBLIC_URL = 'https://qahub.test';
+    process.env.SESSION_SECRET = 'runner-phone-검사용-세션-열쇠-32바이트를-넘긴다';
+    러너 = Fastify();
+    러너.get('/health', async () => ({ ok: true }));
+    러너.post('/execute', async (req) => {
+      받음.push(req.body as ExecuteRequest);
+      return { historyId: 7, status: 'PASS', durationMs: 1, steps: [] };
+    });
+    await 러너.listen({ port: 0, host: '127.0.0.1' });
+    const addr = 러너.server.address();
+    process.env.RUNNER_URL = `http://127.0.0.1:${typeof addr === 'object' && addr !== null ? addr.port : 0}`;
+    process.env.DEVICE_FARM_URL = 'http://farm.test';
+    vi.spyOn(farmToken, '실행팜토큰').mockResolvedValue(undefined);
+    vi.spyOn(farm, '팜폰으로').mockImplementation(((_팜: string, 일: (udid: string) => Promise<unknown>) => 일('s9')) as never);
+  });
+
+  afterAll(async () => {
+    vi.restoreAllMocks();
+    for (const 키 of ['RUNNER_URL', 'DEVICE_FARM_URL'] as const) delete process.env[키];
+    process.env.PLATFORM_PUBLIC_URL = 옛값.url;
+    process.env.SESSION_SECRET = 옛값.secret;
+    await 러너.close();
+  });
+
+  const 앱항목: PendingItem = { ...항목, platform: 'android' };
+
+  it('올린 APK 앞 빌드는 폰을 잡은 뒤 서명 주소로, 회사 저장소 주소는 그대로 싣는다', async () => {
+    await callRunner(1, { ...앱항목, buildId: 6, previousBuildId: 4 });
+    expect(받음[0]?.app).toMatch(/^https:\/\/qahub\.test\/api\/builds\/6\/apk\?exp=/);
+    expect(받음[0]?.previousApp).toMatch(/^https:\/\/qahub\.test\/api\/builds\/4\/apk\?exp=/);
+
+    await callRunner(1, { ...앱항목, app: 'https://s3.test/c.apk', previousApp: 'https://s3.test/b.apk' });
+    expect(받음[1]).toMatchObject({ app: 'https://s3.test/c.apk', previousApp: 'https://s3.test/b.apk' });
+
+    await callRunner(1, { ...앱항목, app: '/apk/qa.apk' });
+    expect('previousApp' in 받음[2]!).toBe(false);
+  });
+});
+
