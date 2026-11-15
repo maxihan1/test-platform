@@ -44,6 +44,7 @@ describe('요소안에서밀기', () => {
   it('모르는 방향은 폰에 보내기 전에 던진다', async () => {
     const 폰 = 가짜폰({ '~상품 줄': { id: 'el-1' } });
     await expect(요소안에서밀기(폰.driver, '~상품 줄', 'left' as 미는방향)).rejects.toThrow('방향은 위 · 아래 · 왼쪽 · 오른쪽이다: left');
+    await expect(요소안에서밀기(폰.driver, '~상품 줄', 'constructor' as 미는방향)).rejects.toThrow('방향은 위 · 아래 · 왼쪽 · 오른쪽이다: constructor');
     expect(폰.보낸).toEqual([]);
   });
 });
@@ -52,8 +53,14 @@ describe('끌어놓기', () => {
   it('집을 요소를 놓을 요소의 가운데로 끈다 — 끝점은 놓을 요소의 지금 자리에서 구한다', async () => {
     const 폰 = 가짜폰({ '~사진 1': { id: 'el-1' }, '~앨범': { id: 'el-2', 자리: { x: 100, y: 200, width: 50, height: 61 } } });
     await 끌어놓기(폰.driver, '~사진 1', '~앨범');
-    expect(폰.기다린).toEqual(['~사진 1', '~앨범']);
+    expect(폰.기다린.sort()).toEqual(['~사진 1', '~앨범'].sort());
     expect(폰.보낸).toEqual([['mobile: dragGesture', { elementId: 'el-1', endX: 125, endY: 231 }]]);
+  });
+
+  it('놓을 요소의 크기가 없으면 끌지 않고 던진다 — 왼쪽 위 모서리에 놓지 않게', async () => {
+    const 폰 = 가짜폰({ '~사진 1': { id: 'el-1' }, '~앨범': { id: 'el-2', 자리: { x: 100, y: 200, width: 0, height: 61 } } });
+    await expect(끌어놓기(폰.driver, '~사진 1', '~앨범')).rejects.toThrow('놓을 요소(~앨범)의 크기가 없다');
+    expect(폰.보낸).toEqual([]);
   });
 
   it('놓을 요소가 없으면 끌지 않고 던진다', async () => {

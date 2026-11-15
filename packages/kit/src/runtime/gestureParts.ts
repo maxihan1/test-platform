@@ -20,16 +20,21 @@ async function 보이는요소(driver: AppDriver, 선택자: string): Promise<�
 export async function 요소안에서밀기(driver: AppDriver, 선택자: string, 쪽: 미는방향): Promise<void> {
   네이티브전용(driver, '요소안에서밀기');
   // 오타는 UiAutomator2 가 받기 전에 막는다 — 타입을 우회한 값이 「방향 없음」으로 폰까지 가지 않게
-  if (!(쪽 in 방향)) throw new Error(`요소안에서밀기 — 방향은 위 · 아래 · 왼쪽 · 오른쪽이다: ${String(쪽)}`);
+  if (!Object.hasOwn(방향, 쪽)) throw new Error(`요소안에서밀기 — 방향은 위 · 아래 · 왼쪽 · 오른쪽이다: ${String(쪽)}`);
   const 요소 = await 보이는요소(driver, 선택자);
   await driver.execute('mobile: swipeGesture', { elementId: 요소.elementId, direction: 방향[쪽], percent: 정도 });
 }
 
-/** 어디서 요소를 눌러 어디로 요소의 가운데까지 끌어 놓는다 — 끝점은 놓을 요소의 지금 자리에서 구해 폰 크기가 달라도 맞는다 */
+/**
+ * 어디서 요소를 눌러 어디로 요소의 가운데까지 끌어 놓는다 — 끝점은 놓을 요소의 지금 자리에서 구해 폰 크기가 달라도 맞는다.
+ * ponytail: 놓을 요소는 끌기 전에 보여야 한다 — 끌기 시작한 뒤에야 뜨는 자리(휴지통 막대)와 화면 끝에 걸친 자리는 못 다룬다. 그런 앱이 나오면 끌면서 기다리는 꼴로 넓힌다
+ */
 export async function 끌어놓기(driver: AppDriver, 어디서: string, 어디로: string): Promise<void> {
   네이티브전용(driver, '끌어놓기');
-  const 집을 = await 보이는요소(driver, 어디서);
-  const 놓을 = await driver.getElementRect((await 보이는요소(driver, 어디로)).elementId);
+  const [집을, 놓을요소] = await Promise.all([보이는요소(driver, 어디서), 보이는요소(driver, 어디로)]);
+  const 놓을 = await driver.getElementRect(놓을요소.elementId);
+  // 크기가 0 이면 가운데가 왼쪽 위 모서리가 된다 — 엉뚱한 자리에 놓고 제품 실패로 보이지 않게 막는다
+  if (!(놓을?.width > 0 && 놓을.height > 0)) throw new Error(`끌어놓기 — 놓을 요소(${어디로})의 크기가 없다`);
   await driver.execute('mobile: dragGesture', { elementId: 집을.elementId, endX: Math.round(놓을.x + 놓을.width / 2), endY: Math.round(놓을.y + 놓을.height / 2) });
 }
 
