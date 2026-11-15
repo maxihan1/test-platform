@@ -116,4 +116,34 @@ describe.skipIf(연결 === undefined)('Issue Bunker 닫기 사유 처리', () =>
     expect(await 닫기처리({ projectId: 프로젝트, ...자리 }, 이슈('DM-5', 'Works as designed'))).toEqual({ 요청들: [], 기록만: ['XBC-FN-003 — NO_PRD_REQ'] });
     expect(await 짝('DM-5')).toEqual({ open: false, resolution: 'SCREEN_RIGHT' });
   });
+
+  it('화면이 맞음이 이어 닫히면 같은 앱의 아직 안 집힌 「화면이 맞음」 요청에 이어 붙인다 — 이슈마다 다시 작성이 따로 서지 않는다 · 집힌 뒤에는 새로 세운다', async () => {
+    await pool.query('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
+    await pool.query(`INSERT INTO req_case (service_id, req_id, tc_id, axis) VALUES ($1, 'XBC-REQ-001', 'XBC-FN-001', '정상')`, [서비스]);
+    await 짝넣기('DM-6', 'XBC-FN-002');
+    const { 요청들: [첫] } = await 닫기처리({ projectId: 프로젝트, ...자리 }, 이슈('DM-6', 'Works as designed'));
+    await 짝넣기('DM-7', 'XBC-FN-001');
+    expect(await 닫기처리({ projectId: 프로젝트, ...자리 }, 이슈('DM-7', 'Works as designed'))).toEqual({ 요청들: [첫], 기록만: [] });
+    expect(await 요청수()).toBe(1);
+    const 붙은 = (await 요청(첫!)).params as { screenRight: { tcId: string; byName: string }[]; decision: { count: number } };
+    expect(붙은.screenRight.map((x) => [x.tcId, x.byName])).toEqual([['XBC-FN-002', 'Issue Bunker DM-6'], ['XBC-FN-001', 'Issue Bunker DM-7']]);
+    expect(붙은.decision.count).toBe(2);
+    // 같은 케이스가 다시 오면 겹쳐 넣지 않는다
+    await 짝넣기('DM-8', 'XBC-FN-001');
+    await 닫기처리({ projectId: 프로젝트, ...자리 }, 이슈('DM-8', 'Works as designed'));
+    expect(((await 요청(첫!)).params as { screenRight: unknown[] }).screenRight).toHaveLength(2);
+    // 사람이 결정 진행으로 세운 요청에는 붙이지 않는다
+    await pool.query(`UPDATE authoring_request SET requested_by = 'xbc' WHERE id = $1`, [첫]);
+    await 짝넣기('DM-10', 'XBC-FN-002');
+    const { 요청들: [사람것옆] } = await 닫기처리({ projectId: 프로젝트, ...자리 }, 이슈('DM-10', 'Works as designed'));
+    expect(사람것옆).not.toBe(첫);
+    await pool.query('DELETE FROM authoring_request WHERE id = $1', [사람것옆]);
+    await pool.query(`UPDATE authoring_request SET requested_by = 'bts' WHERE id = $1`, [첫]);
+    // 에이전트가 집은 뒤에는 그 요청을 건드리지 않고 새로 세운다
+    await pool.query(`UPDATE authoring_request SET status = 'RUNNING' WHERE id = $1`, [첫]);
+    await 짝넣기('DM-9', 'XBC-FN-002');
+    const { 요청들: [둘째] } = await 닫기처리({ projectId: 프로젝트, ...자리 }, 이슈('DM-9', 'Works as designed'));
+    expect(둘째).not.toBe(첫);
+    expect(await 요청수()).toBe(2);
+  });
 });
