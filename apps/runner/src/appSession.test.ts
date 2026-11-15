@@ -233,7 +233,29 @@ describe('앱연결을닫는다 — 폰 상태 되돌리기 둘째 길', () => {
       'DELETE http://farm:4723/session/abc-123',
     ]);
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining('폰 상태를 되돌리지 못했다(orientation): HTTP 500'));
-    expect(console.error).toHaveBeenCalledWith(expect.stringContaining('모르는 경로'));
+    expect(console.error).toHaveBeenCalledWith(expect.stringContaining('모르는 줄'));
+  });
+
+  it('모양이 틀린 파일이어도 읽을 수 있는 줄만 보내고 연결은 닫는다 — 요청마다 3초 제한을 따로 건다', async () => {
+    const timeout = vi.spyOn(AbortSignal, 'timeout');
+    번호를_적는다(3, 9, 'abc-123');
+    되돌릴것을_적는다([null, { 경로: 'orientation', 본문: { orientation: 'PORTRAIT' } }, { 경로: 'execute/sync', 본문: { script: 'mobile: resetGeolocation', args: [{}] } }]);
+
+    await 앱연결을닫는다(3, 9);
+
+    expect(부른길().map((x) => x.split(' ').slice(0, 2).join(' '))).toEqual([
+      'POST http://farm:4723/session/abc-123/orientation',
+      'POST http://farm:4723/session/abc-123/execute/sync',
+      'DELETE http://farm:4723/session/abc-123',
+    ]);
+    expect(timeout.mock.calls).toEqual([[3_000], [3_000], [10_000]]);
+    fetchMock.mockClear();
+    번호를_적는다(3, 9, 'abc-123');
+    되돌릴것을_적는다({});
+
+    await 앱연결을닫는다(3, 9);
+
+    expect(부른길()).toEqual(['DELETE http://farm:4723/session/abc-123']);
   });
 
   it('kit 이 연결을 닫았으면(번호 파일 없음) 아무것도 안 보내고 남은 요청 파일만 지운다', async () => {

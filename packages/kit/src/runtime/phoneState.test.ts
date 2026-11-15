@@ -77,7 +77,7 @@ afterEach(() => {
 });
 
 describe('폰상태에서', () => {
-  it('구간 안에서만 다섯 상태가 바뀌고 끝나면 앞 값으로 돌아온다 — 구간 안에서는 러너용 되돌릴 요청이 연결 번호 파일 옆에 있다', async () => {
+  it('구간 안에서만 다섯 상태가 바뀌고 끝나면 앞 값으로 돌아온다 — 구간 안에서는 러너용 되돌릴 요청이 연결 번호 파일 옆에 망부터 있다', async () => {
     const { driver, 폰 } = 가짜폰({ 글자: '1.15' });
     let 안: 상태 | undefined;
     let 파일: unknown;
@@ -91,8 +91,8 @@ describe('폰상태에서', () => {
     expect(폰).toEqual({ 방향: 'PORTRAIT', 망: { wifi: true, data: false }, 밤: 'no', 글자: '1.15' });
     expect(phoneStateFile()).toBe(join(폴더, 'runs', '3', '9', 'appium-phone-state'));
     expect(파일).toEqual([
-      { 경로: 'orientation', 본문: { orientation: 'PORTRAIT' } },
       { 경로: 'execute/sync', 본문: { script: 'mobile: setConnectivity', args: [{ wifi: true }] } },
+      { 경로: 'orientation', 본문: { orientation: 'PORTRAIT' } },
       { 경로: 'execute/sync', 본문: { script: 'mobile: resetGeolocation', args: [{}] } },
       { 경로: 'execute/sync', 본문: { script: 'mobile: setUiMode', args: [{ mode: 'night', value: 'no' }] } },
       { 경로: 'execute/sync', 본문: { script: 'mobile: shell', args: [{ command: 'settings', args: ['put', 'system', 'font_scale', '1.15'] }] } },
@@ -132,20 +132,31 @@ describe('폰상태에서', () => {
     expect(폰.망.wifi).toBe(true);
   });
 
+  it('네트워크 답에 와이파이 · 데이터 켬 여부가 없으면 끊은 척 넘어가지 않고 던진다', async () => {
+    for (const 답 of [null, { wifi: 'true', data: false }]) {
+      const { driver } = 가짜폰({}, () => false);
+      const 원래 = driver.execute.bind(driver);
+      driver.execute = (async (명령: string, 인자?: unknown) => (명령 === 'mobile: getConnectivity' ? 답 : 원래(명령, 인자 as never))) as typeof driver.execute;
+      const 할일 = vi.fn(async () => undefined);
+      await expect(폰상태에서(driver, { 네트워크: '끊김' }, 할일)).rejects.toThrow('네트워크 상태를 못 읽었다 — 와이파이 · 모바일 데이터 켬 여부가 없는 답이다');
+      expect(할일).not.toHaveBeenCalled();
+    }
+  });
+
   it('앞 값을 못 읽으면 아무것도 안 바꾸고 던진다 — 글자 크기는 폰 셸이 닫힌 까닭을 붙인다', async () => {
     const { driver, 보낸 } = 가짜폰({}, (명령, 인자) => 명령 === 'mobile: shell' && (인자.args as string[])[0] === 'get');
     await expect(폰상태에서(driver, { 네트워크: '끊김', 글자크기: 1.3 }, async () => undefined)).rejects.toThrow('글자 크기를 못 읽었다(폰 셸 — 팜이 adb_shell 을 열어야 한다) — 팜이 막았다');
     expect(보낸.filter(([명령]) => 명령 === 'mobile: setConnectivity')).toEqual([]);
   });
 
-  it('되돌리기에 실패하면 던진다 — 할일이 던졌으면 그 오류에 까닭을 덧붙이고, 러너가 다시 되돌리게 파일을 남긴다', async () => {
+  it('되돌리기에 실패하면 던진다 — 할일이 던졌으면 그 오류에 까닭을 덧붙이고, 파일은 지운다(kit 이 연결을 닫아 러너가 보낼 곳이 없고 다음 구간이 덮는다)', async () => {
     let 끄고나서 = false;
     const 막을 = (명령: string, 인자: Record<string, unknown>): boolean => {
       if (명령 === 'mobile: setConnectivity' && 인자.wifi === false) 끄고나서 = true;
       return 끄고나서 && 명령 === 'mobile: setConnectivity' && 인자.wifi === true;
     };
     await expect(폰상태에서(가짜폰({}, 막을).driver, { 네트워크: '끊김' }, async () => undefined)).rejects.toThrow('폰 상태를 구간 전으로 못 되돌렸다 — 네트워크: 팜이 막았다');
-    expect(existsSync(phoneStateFile())).toBe(true);
+    expect(existsSync(phoneStateFile())).toBe(false);
     끄고나서 = false;
     const 오류 = await 폰상태에서(가짜폰({}, 막을).driver, { 네트워크: '끊김' }, async () => Promise.reject(new Error('verify 실패'))).catch((e: Error) => e);
     expect((오류 as Error).message).toBe('verify 실패 (폰 상태도 못 되돌렸다 — 네트워크: 팜이 막았다)');

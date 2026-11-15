@@ -51,17 +51,21 @@ const 읽는다 = (driver: AppDriver, 못함: string, r: 폰요청): Promise<unk
 // 앞 값을 읽어 바꿀 요청과 되돌릴 요청을 짓는다 — 이미 그 값이면 둘 다 비운다(되돌리다 남의 값을 덮지 않게)
 async function 짓는다(driver: AppDriver, 바꿀: 폰상태): Promise<할것[]> {
   const 목록: 할것[] = [];
+  // 네트워크를 맨 앞에 둔다 — 되돌리기도 이 차례라 러너가 제한 시간에 걸려도 망부터 살린다
+  if (바꿀.네트워크 !== undefined) {
+    const 앞 = await 읽는다(driver, '네트워크 상태를 못 읽었다', 실행('mobile: getConnectivity', { services: ['wifi', 'data'] }));
+    const 망 = 앞 as { wifi?: unknown; data?: unknown } | null;
+    // 모르는 답이면 끊을 것이 없다고 보지 않는다 — 망이 살아 있는 채 「끊긴 뒤」 판정이 초록이 된다
+    if (typeof 망?.wifi !== 'boolean' || typeof 망.data !== 'boolean') throw new Error(`네트워크 상태를 못 읽었다 — 와이파이 · 모바일 데이터 켬 여부가 없는 답이다: ${JSON.stringify(앞)}`);
+    // 켜져 있던 것만 끈다 — 모바일 데이터가 없는 폰(SIM 없음)에 데이터 끄기를 보내지 않는다
+    const 켜진 = (['wifi', 'data'] as const).filter((k) => 망[k] === true);
+    const 꼴 = (켬: boolean): 폰요청[] => (켜진.length === 0 ? [] : [실행('mobile: setConnectivity', Object.fromEntries(켜진.map((k) => [k, 켬])))]);
+    목록.push({ 못함: '네트워크를 못 끊었다', 무엇: '네트워크', 바꾸기: 꼴(false), 되돌리기: 꼴(true) });
+  }
   if (바꿀.방향 !== undefined) {
     const 앞 = String(await 막히면('화면 방향을 못 읽었다', () => driver.getOrientation())).toUpperCase();
     const 뒤 = 바꿀.방향 === '가로' ? 'LANDSCAPE' : 'PORTRAIT';
     목록.push({ 못함: '화면을 못 돌렸다', 무엇: '화면 방향', 바꾸기: 앞 === 뒤 ? [] : [방향요청(뒤)], 되돌리기: 앞 === 뒤 ? [] : [방향요청(앞)] });
-  }
-  if (바꿀.네트워크 !== undefined) {
-    const 앞 = (await 읽는다(driver, '네트워크 상태를 못 읽었다', 실행('mobile: getConnectivity', { services: ['wifi', 'data'] }))) as { wifi?: boolean; data?: boolean } | null;
-    // 켜져 있던 것만 끈다 — 모바일 데이터가 없는 폰(SIM 없음)에 데이터 끄기를 보내지 않는다
-    const 켜진 = (['wifi', 'data'] as const).filter((k) => 앞?.[k] === true);
-    const 꼴 = (켬: boolean): 폰요청[] => (켜진.length === 0 ? [] : [실행('mobile: setConnectivity', Object.fromEntries(켜진.map((k) => [k, 켬])))]);
-    목록.push({ 못함: '네트워크를 못 끊었다', 무엇: '네트워크', 바꾸기: 꼴(false), 되돌리기: 꼴(true) });
   }
   if (바꿀.위치 !== undefined) {
     const { 위도, 경도 } = 바꿀.위치;
@@ -113,10 +117,10 @@ async function 되돌린다(driver: AppDriver, 목록: 할것[]): Promise<string
       }
     }
   }
-  if (못한.length > 0) return 못한.join(' · ');
-  // 다 되돌렸으면 러너가 다시 되돌리지 않게 지운다. 못 지워도 러너는 같은 값을 한 번 더 보낼 뿐이다
+  // 되돌리기를 마쳤으면 성공 · 실패 없이 지운다 — 케이스가 끝나면 kit 이 연결을 닫아 러너가 다시 보낼 연결이 없고,
+  // 남겨 두면 같은 폴더를 쓰는 다음 구간(E2E 의 다음 단계)이 덮어 그 실패가 묻힌다. 실패는 던져서 알린다
   await rm(phoneStateFile(), { force: true }).catch((err: unknown) => console.error(`[kit] 폰 상태 파일을 지우지 못했다: ${오류글(err)}`));
-  return null;
+  return 못한.length > 0 ? 못한.join(' · ') : null;
 }
 
 const 구간중 = new WeakSet<AppDriver>();
@@ -143,7 +147,7 @@ export async function 폰상태에서<값>(driver: AppDriver, 바꿀: 폰상태,
     }
     let 값: 값;
     try {
-      for (const x of 목록) for (const r of x.바꾸기) await 읽는다(driver, x.못함, r);
+      for (const x of 목록) for (const r of x.바꾸기) await 막히면(x.못함, () => 보낸다(driver, r));
       값 = await 할일();
     } catch (err) {
       const 못한 = await 되돌린다(driver, 목록);
