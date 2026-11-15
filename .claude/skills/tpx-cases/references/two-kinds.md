@@ -131,7 +131,7 @@ UI Test 와 Functional Test 는 Page Object 를 쓴다. locator 를 케이스 �
 | 화면 주소 | 화면 파일(`pages/`) 클래스 첫 줄에 그 화면의 주소를 값으로 둔다 — `static readonly 주소 = '/cart';`. 따옴표 안 글자 그대로만 읽는다(계산식이면 지도에 주소가 비어 들어간다). 주석이 아니라 값인 까닭은 테스트 코드에 주석을 못 쓰기 때문이다. 화면 조각 · 도우미에는 두지 않는다. **Android 앱 화면 파일은 그 화면의 앱 화면 열쇠 글자 그대로다** — `static readonly 주소 = 'app:.Main/login screen';`, 생성자는 `page` 대신 `driver` 를 받는다. 열쇠는 crawl 목록 · `appium-cli screen` 에서만 옮긴다(`tpx-author` `app.md` §3 · 2026-11-04 APP-F2-05). 게임 창은 `game.md` 「창 화면 객체」 |
 | 담는 것 | §4 에서 확정한 locator(우선순위 그대로)와 짧은 동작(채우기 · 누르기 · 이동). **찾는 법의 정본은 여기다** — 용어 사전에는 이름과 뜻만 남긴다 |
 | 담지 않는 것 | `test.step` · `verify` · 기대값 · 판정. **K6 · K12 와 증적 문서가 케이스 파일의 절차 제목과 판정 문장을 글자로 읽는다** — Page Object 안의 `verify` 는 판정 0 건으로 센다 |
-| 금지 | 주석 · `expect` — `tests/**` 전체에 걸리는 규칙이라 Page Object 파일도 훅과 CI(`check:tests` K7)가 막는다. 가져오기는 같은 `tests/` 안 파일 · `@playwright/test`(`test` · `expect` 말고) · kit 의 타입뿐이다(명세 공통/2-명세선언 「Page Object 파일」) |
+| 금지 | 주석 · `expect` — `tests/**` 전체에 걸리는 규칙이라 Page Object 파일도 훅과 CI(`check:tests` K7)가 막는다. 가져오기는 같은 `tests/` 안 파일 · `@playwright/test`(`test` · `expect` 말고) · kit 의 타입 · kit 공용 부품(`@platform/kit/parts` 의 값 — 2026-11-15)뿐이다(명세 공통/2-명세선언 「Page Object 파일」) |
 | 부르는 법 | `import { 로그인화면 } from './pages/login.page.js'` (저장소가 `NodeNext` 라 `.js` 로 적는다). 관문 1 의 타입 검사와 관문 3 실행이 확인한다 |
 | 여럿이 같이 쓰기 | 이미 있으면 **고치거나 이름을 바꾸지 말고 더한다** — 다른 케이스가 그 주소를 쓴다. 공용 Component · 도우미는 팬아웃 전에 메인이 먼저 만들고 서브에이전트는 읽기만 한다(모자란 도우미는 자기 묶음의 `helpers/draft-<slug>.helper.ts` 에만 적고 메인이 공용으로 옮긴다 — `tpx-author` `fanout.md`). 요청 둘이 같은 Page Object 를 고치면 반영 때 AI 가 합치지만, 같은 멤버를 서로 다르게 바꿨으면 못 합쳐 반영이 실패한다(「같은 자료로 다시 작성」) |
 

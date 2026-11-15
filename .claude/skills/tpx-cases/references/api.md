@@ -59,7 +59,7 @@
 
 - 두 케이스 이상에서 되풀이되는 준비 · 정리(기기 등록 · 푸시 보내기 · 지우기 · 상태 기다리기)는 이 파일에 함수로 둔다. 케이스는 가져다 쓰기만 한다
 - 도우미는 `APIRequestContext`(`api('고객사 A')` 가 준 것)를 인자로 받는다 — 인증 이름을 도우미 안에 박지 않는다
-- 자리 규칙은 Page Object 파일과 같다(`docs/spec/공통/2-명세선언.md` 「Page Object 파일」) — 주석 · `expect` · `test.step` · `verify` 금지, 가져오기는 `@playwright/test` 타입 · `@platform/kit` 타입 · 같은 `tests/` 안 파일만, 고정 대기 금지
+- 자리 규칙은 Page Object 파일과 같다(`docs/spec/공통/2-명세선언.md` 「Page Object 파일」) — 주석 · `expect` · `test.step` · `verify` 금지, 가져오기는 `@playwright/test` 타입 · `@platform/kit` 타입 · `@platform/kit/parts` 의 공용 부품 · 같은 `tests/` 안 파일만, 고정 대기 금지
 - 도우미가 실패를 판정하지 않는다 — 응답이 이상하면 값을 그대로 돌려주고 케이스가 `verify` 한다. 만들기가 실패해 다음 절차가 무의미하면 케이스의 `verify` 에 `{ blocker: true }` 를 단다
 
 ## 6. 돌려 보기
