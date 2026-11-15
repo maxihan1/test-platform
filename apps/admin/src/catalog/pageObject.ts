@@ -1,4 +1,4 @@
-// 케이스 파일과 tests/ 아래 케이스가 아닌 .ts 파일(Page Object · 도우미)이 같이 지는 K7 · K15 를 검사한다
+// 케이스 파일과 tests/ 아래 케이스가 아닌 .ts 파일(Page Object · 도우미)이 같이 지는 K7 · K15 · K16 을 검사한다
 
 import { readdir } from 'node:fs/promises';
 import { join, posix, sep } from 'node:path';
@@ -39,18 +39,110 @@ export function k7(file: string, sf: ts.SourceFile): Violation[] {
 
 export const K15_WHY = '정해 둔 시간은 느린 망에서는 모자라 흔들리고 빠른 망에서는 시간만 버린다';
 
-// 케이스와 Page Object · 도우미가 이 한 벌을 같이 쓴다. setTimeout 은 막지 않는다 — route 안 응답 지연과 데드라인이 쓴다.
+// 케이스와 Page Object · 도우미가 이 한 벌을 같이 쓴다.
 // 이름(`.waitForTimeout` · `{ waitForTimeout }`)으로도 글자(`page['waitForTimeout']` · `'networkidle'`)로도 잡는다
 const 고정대기 = ['waitForTimeout', 'networkidle'];
+const ROUTE_CALLS = ['route', 'routeWebSocket'];
+
+// `new Promise((r) => setTimeout(r, …))` — 실행 함수가 받은 풀기를 타이머가 부르기만 하는 약속
+function isSleepPromise(node: ts.Node): node is ts.NewExpression {
+  if (!ts.isNewExpression(node) || !ts.isIdentifier(node.expression) || node.expression.text !== 'Promise') return false;
+  const exec = node.arguments?.[0];
+  if (exec === undefined || !(ts.isArrowFunction(exec) || ts.isFunctionExpression(exec))) return false;
+  const resolve = exec.parameters[0]?.name;
+  if (resolve === undefined || !ts.isIdentifier(resolve)) return false;
+  let found = false;
+  const visit = (n: ts.Node): void => {
+    if (
+      ts.isCallExpression(n) &&
+      ts.isIdentifier(n.expression) &&
+      n.expression.text === 'setTimeout' &&
+      n.arguments[0] !== undefined &&
+      ts.isIdentifier(n.arguments[0]) &&
+      n.arguments[0].text === resolve.text
+    ) {
+      found = true;
+    }
+    ts.forEachChild(n, visit);
+  };
+  visit(exec.body);
+  return found;
+}
+
+// 되풀이 조회의 사이 쉬기 · route 안 응답 늦추기 · `Promise.race` 데드라인은 기다림이 아니라 조회 간격이거나 상황을 만드는 것이다
+function allowedSleep(node: ts.Node): boolean {
+  let inFunction = false;
+  for (let n = node.parent; n !== undefined; n = n.parent) {
+    if (!inFunction && (ts.isWhileStatement(n) || ts.isDoStatement(n) || ts.isForStatement(n) || ts.isForOfStatement(n) || ts.isForInStatement(n))) {
+      return true;
+    }
+    if (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression)) {
+      const name = n.expression.name.text;
+      if (ROUTE_CALLS.includes(name)) return true;
+      if (name === 'race' && ts.isIdentifier(n.expression.expression) && n.expression.expression.text === 'Promise') return true;
+    }
+    if (ts.isFunctionLike(n)) {
+      if (n.parameters.some((p) => (ts.isIdentifier(p.name) && p.name.text === 'route') || p.type?.getText() === 'Route')) return true;
+      inFunction = true;
+    }
+  }
+  return false;
+}
+
+// 쉬기만 하는 함수(`const 쉬기 = (ms) => new Promise(…)`)는 정의 대신 부르는 자리를 본다
+// ponytail: 같은 파일 안 이름만 따라간다. 다른 파일에서 가져온 쉬기 함수는 그 파일의 정의가 걸린다
+function sleepHelperName(promise: ts.NewExpression): string | undefined {
+  let fn: ts.Node = promise.parent;
+  if (ts.isAwaitExpression(fn)) fn = fn.parent;
+  if (ts.isExpressionStatement(fn) || ts.isReturnStatement(fn)) {
+    if (!ts.isBlock(fn.parent) || fn.parent.statements.length !== 1) return undefined;
+    fn = fn.parent.parent;
+  }
+  if (!(ts.isArrowFunction(fn) || ts.isFunctionExpression(fn) || ts.isFunctionDeclaration(fn))) return undefined;
+  if (ts.isFunctionDeclaration(fn)) return fn.name?.text;
+  return ts.isVariableDeclaration(fn.parent) && ts.isIdentifier(fn.parent.name) ? fn.parent.name.text : undefined;
+}
 
 export function k15(file: string, sf: ts.SourceFile): Violation[] {
   const out: Violation[] = [];
   const at = (node: ts.Node, what: string): void => {
     out.push({ file, line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, rule: 'K15', what, why: K15_WHY });
   };
+  const helpers = new Set<string>();
+  const sleeps: ts.Node[] = [];
+  const calls: ts.CallExpression[] = [];
   const visit = (node: ts.Node): void => {
     if ((ts.isIdentifier(node) || ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) && 고정대기.includes(node.text)) {
       at(node, `${node.text} 로 기다린다`);
+    }
+    if (isSleepPromise(node)) {
+      const helper = sleepHelperName(node);
+      if (helper !== undefined) helpers.add(helper);
+      else sleeps.push(node);
+    }
+    if (ts.isCallExpression(node)) {
+      calls.push(node);
+      // 앱 드라이버(WebdriverIO)의 `driver.pause(1000)`. 인자 없는 `video.pause()` 는 쉬기가 아니다
+      if (ts.isPropertyAccessExpression(node.expression) && node.expression.name.text === 'pause' && node.arguments.length === 1) sleeps.push(node);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  for (const c of calls) if (ts.isIdentifier(c.expression) && helpers.has(c.expression.text)) sleeps.push(c);
+  for (const s of sleeps) if (!allowedSleep(s)) at(s, '정해 둔 시간을 쉰다');
+  return out;
+}
+
+export const K16_WHY = '작성한 컴퓨터의 주소라 러너 · 다른 컴퓨터에서는 자기 자신을 가리켜 닿지 않는다';
+
+// 대상 서버 주소는 실행 때 baseURL · 대상 서버 설정으로 받는다. `127.0.0.1:9` 처럼 일부러 거절되는 주소는 막지 않는다
+export function k16(file: string, sf: ts.SourceFile): Violation[] {
+  const out: Violation[] = [];
+  const visit = (node: ts.Node): void => {
+    if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node) || ts.isTemplateHead(node) || ts.isTemplateMiddle(node) || ts.isTemplateTail(node)) {
+      if (/\blocalhost\b|host\.docker\.internal/i.test(node.text)) {
+        out.push({ file, line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, rule: 'K16', what: '작성 환경 주소를 적었다', why: K16_WHY });
+      }
     }
     ts.forEachChild(node, visit);
   };
@@ -156,7 +248,7 @@ export function checkNonCase(file: string, text: string): Violation[] {
     return [{ file, line: 1, rule: 'K7', what: 'tests 아래 JS 파일이다', why: '타입 검사와 이 검사를 피한 채 import 로 불린다' }];
   }
   const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
-  return [...k7(file, sf), ...k15(file, sf), ...stepOrVerify(file, sf), ...importRule(file, sf)].sort((a, b) => a.line - b.line);
+  return [...k7(file, sf), ...k15(file, sf), ...k16(file, sf), ...stepOrVerify(file, sf), ...importRule(file, sf)].sort((a, b) => a.line - b.line);
 }
 
 // JS 파일도 모은다 — checkNonCase 가 그 자체로 위반으로 찍는다. 이름 꼴은 cases-only 가 따로 본다. 여기서 꼴로 거르면 꼴이 어긋난 파일이 K7 을 아예 안 받는다

@@ -55,6 +55,54 @@ describe('checkNonCase', () => {
     ]);
   });
 
+  const 몸 = (본문: string): string => 깨끗한글.replace("    await this.page.goto('https://example.com/login');", 본문);
+  const k15줄 = (본문: string): number[] =>
+    checkNonCase('mkt/pages/login.page.ts', 몸(본문))
+      .filter((x) => x.rule === 'K15')
+      .map((x) => x.line);
+
+  it('setTimeout 쉬기 약속과 driver.pause 도 K15 다', () => {
+    expect(k15줄('    await new Promise((r) => setTimeout(r, 500));')).toEqual([7]);
+    expect(k15줄('    await new Promise<void>((풀기) => {\n      setTimeout(풀기, 500);\n    });')).toEqual([7]);
+    expect(k15줄('    await driver.pause(1000);')).toEqual([7]);
+  });
+
+  it('쉬기 함수는 정의가 아니라 부르는 자리를 본다', () => {
+    const 글 = `const 쉬기 = (ms: number) => new Promise((r) => setTimeout(r, ms));
+async function 쉰다(): Promise<void> {
+  await new Promise((r) => setTimeout(r, 500));
+}
+export async function 열기(): Promise<void> {
+  await 쉬기(300);
+  while (Date.now() < 0) await 쉰다();
+  await 쉰다();
+}
+`;
+    expect(checkNonCase('mkt/helpers/x.helper.ts', 글).map((x) => [x.rule, x.line])).toEqual([
+      ['K15', 6],
+      ['K15', 8],
+    ]);
+  });
+
+  it('되풀이 조회 사이 쉬기 · route 안 응답 늦추기 · Promise.race 데드라인 · 인자 없는 pause 는 안 잡는다', () => {
+    expect(k15줄('    for (;;) {\n      if (await this.page.isVisible("a")) return;\n      await new Promise((r) => setTimeout(r, 300));\n    }')).toEqual([]);
+    expect(k15줄('    await this.page.route("**/api", async (r) => { await new Promise((f) => setTimeout(f, 300)); await r.continue(); });')).toEqual([]);
+    expect(k15줄('    const 처리 = async (route: Route) => { await new Promise((f) => setTimeout(f, 300)); await route.continue(); };')).toEqual([]);
+    expect(k15줄('    await Promise.race([this.page.waitForEvent("close"), new Promise((r) => setTimeout(r, 5000))]);')).toEqual([]);
+    expect(k15줄('    const t = setTimeout(() => controller.abort(), 5000);\n    await this.page.evaluate(() => video.pause());')).toEqual([]);
+  });
+
+  it('반복문 안에 정의한 함수 속 쉬기는 반복문이 지켜 주지 않는다', () => {
+    expect(k15줄('    for (const a of [1]) {\n      const f = async () => { await new Promise((r) => setTimeout(r, 300)); await this.page.click("a"); };\n      await f();\n    }')).toEqual([8]);
+  });
+
+  it('localhost · host.docker.internal 주소는 K16 이고 일부러 거절되는 127.0.0.1:9 는 아니다', () => {
+    const 걸린 = (본문: string): string[] => checkNonCase('mkt/helpers/x.helper.ts', 몸(본문)).map((x) => x.rule);
+    expect(걸린("    const a = 'http://localhost:3002';")).toEqual(['K16']);
+    expect(걸린('    const a = `http://host.docker.internal:${String(3000)}/api`;')).toEqual(['K16']);
+    expect(걸린("    const a = 'http://127.0.0.1:9';")).toEqual([]);
+  });
+
   it('verify 를 부르면 K7 이다', () => {
     const 글 = 깨끗한글.replace("await this.page.goto('https://example.com/login');", "verify('제목이 맞다', a, b);");
     const found = checkNonCase('mkt/pages/login.page.ts', 글);
