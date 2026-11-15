@@ -82,7 +82,8 @@ export function 진척누적기(limitSec: number, 비밀: 가릴것 = {}, 지금
       for (const c of m?.content ?? []) {
         // 자식이 표지를 말하지 않고 돌려 보기 명령만 부르면 그 시간이 앞 단계에 섞인다(#725 합치기 126분 · #745 빠른 검사 240분) — 명령을 보고 스스로 적는다
         const 명령 = c.type === 'tool_use' && typeof c.input?.command === 'string' ? c.input.command : '';
-        const 돌림 = /authoring:run\s+--\s+(마지막|앱|게임)(?=\s|;|$)/.exec(명령);
+        // `npm run` 부터 본다 — 스킬 글에서 명령을 찾는 grep 같은 줄은 단계가 아니다. 모드 이름의 정본은 authoring-run3
+        const 돌림 = /npm run\s+(?:-\S+\s+)*authoring:run\s+(?:-\S+\s+)*--\s+(마지막|앱|게임)(?=\s|;|$)/.exec(명령);
         if (돌림 !== null) 단계적기(돌림[1] === '마지막' ? '마지막 전체 돌려 보기' : '폰에서 돌려 보기');
         for (const 한줄 of c.type === 'text' && c.text ? c.text.split('\n') : []) {
           // 자식이 표지를 따옴표로 감싸 말하기도 한다(11201) — 짝이 맞는 따옴표 하나만 벗긴다.

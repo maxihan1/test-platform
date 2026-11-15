@@ -162,7 +162,8 @@ describe('진척누적기 — 단계 표지', () => {
     누적.먹기(말('a', '[단계] 빠른 검사'));
     시계.흐름(60);
     expect(누적.먹기(명령('b', 'npm run -s authoring:run -- 앱서버; echo "EXIT=$?"'))).toBe('· Bash');
-    expect(누적.먹기(명령('c', 'npm run -s authoring:run -- 보조 cart tests/x/A.spec.ts', 'toolu_01'))).toBe('· Bash');
+    expect(누적.먹기(명령('c', 'npm run -s authoring:run -- 앱 tests/mta', 'toolu_01'))).toBe('· Bash');
+    expect(누적.먹기(명령('c2', 'grep -rn "authoring:run -- 앱 " .claude/skills'))).toBe('· Bash');
     expect(누적.먹기(명령('d', 'npm run -s authoring:run -- 앱 tests/mta; echo "EXIT=$?"'))).toBe('· Bash [단계] 폰에서 돌려 보기');
     시계.흐름(600);
     누적.먹기(명령('e', 'npm run -s authoring:run -- 앱 tests/mta; echo "EXIT=$?"'));
