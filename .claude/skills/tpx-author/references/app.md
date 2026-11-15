@@ -58,6 +58,7 @@
     await 사진.지우기();
   }
   ```
+  앱이 받은 파일(영수증 · 내보내기)은 `폰파일있나(driver, '<폴더>', '<이름>')` 로 본다(2026-11-16 APP-F3-10 · `@platform/kit/parts`). 폴더 · 이름은 §5 `file ls` 로 폰에서 본 것을 옮기고, 받는 데 시간이 걸리니 `await 될때까지(driver, () => 폰파일있나(driver, '/sdcard/Download', 'receipt.pdf'))` 를 `verify` 한다. **받기 전에 같은 이름이 없는지 먼저 `verify` 한다** — 같은 폰을 잡은 동안 앞 케이스가 받은 파일이 남아 받기가 안 돼도 통과한다(팜은 폰을 돌려받을 때 다운로드를 비운다). 폰 셸이 막혔으면 부품이 던진다 — 그 케이스는 보류다(`앱 — <요구 번호> — 폰 셸 닫힘`). 폰에서 안 돈 케이스가 쓰면 결과 요약에 `받은 파일 미확인 — <tcId>` 를 적는다
 - **권한 · 알림 창 · 다른 앱도 케이스에 쓴다** (2026-11-15 APP-F3-05 — 정본 SPEC 공통/2-명세선언 「Android 앱 케이스」 「범용 앱」 「권한은 시험 대상 앱의 것만」 「다른 앱 · 시스템 화면」). 부품은 `@platform/kit/parts` 에서 가져온다
   - 권한 창은 `권한창답하기(driver, '허용' | '거부')` 만 쓴다 — 단추를 직접 누르지 않는다(기종마다 뜨는 단추가 달라 부품이 고른다)
   - 「위치 권한을 거절한 상태」 같은 시작 상태는 `권한상태에서(driver, { 뺀다: ['android.permission.ACCESS_FINE_LOCATION'] }, async () => { … })` 구간 안에 쓴다(주기는 `준다`). 권한 이름은 온 이름이다. 구간이 끝나면(던져도) kit 이 되돌리니 구간 밖에서 따로 되돌리지 않는다. 준 권한을 빼면 앱이 꺼졌다 다시 켜진다 — 구간 첫 줄은 앱 화면을 `뜰때까지` 로 기다린다. 구간에서 새로 준 권한은 끝날 때 다시 빼니 구간 뒤에도 앱이 다시 켜진다 — 구간 다음 줄도 앱 화면을 기다린다
@@ -150,6 +151,8 @@ npx appium-cli -s=probe permission                # 시험 대상 앱이 요청�
 npx appium-cli -s=probe permission revoke ACCESS_FINE_LOCATION   # 창 없이 뺀다(grant 는 준다) → Ran: // … 권한상태에서(driver, { 뺀다: […] }, …) · Was: · 되돌릴 명령
 npx appium-cli -s=probe phone                     # 폰 상태 — 방향 · 와이파이 · 모바일 데이터 · 어두운 화면 · 글자 크기 · 시각
 npx appium-cli -s=probe phone network off         # 끊는다(rotate landscape · location 37.56 126.97 · dark on · font 1.3 도) → Ran: // … 폰상태에서(driver, { … }, …) · Was: · 되돌릴 명령
+npx appium-cli -s=probe file push 사진             # 사진첩에 qa- 이름으로 넣는다(영상 · 파일 · --size <바이트> 도) → Ran: const 파일 = await 폰에파일넣기(driver, '사진') · 지울 명령
+npx appium-cli -s=probe file ls /sdcard/Download receipt.pdf   # 앱이 받은 파일이 있나(이름을 빼면 폴더 목록) → Ran: await 폰파일있나(driver, '/sdcard/Download', 'receipt.pdf')
 npx appium-cli -s=probe notifications             # 알림 창을 내린다 → Ran: await 알림창열기(driver). 푸시는 tap, 닫기는 back
 npx appium-cli -s=probe app front                 # 다른 앱 · 시스템 화면에서 시험 대상 앱으로 → Ran: await driver.activateApp('com.shop')
 npx appium-cli -s=probe close
@@ -169,6 +172,7 @@ npx appium-cli release                           # 반드시 — 놓아야 팜�
 - **입력** (2026-11-16 APP-F3-07) — `clear` · `press` · `type` · `clipboard` 의 `Ran:` 줄은 kit 부품이라 그대로 옮긴다(쓰는 법은 §3 「입력」). `type` · `clipboard write` 의 `Ran:` 줄은 친 글을 그대로 찍는다 — 케이스에는 값을 기획서 · 입력값 칸에서 쓰고 계정 값은 옮기지 않는다(아래 `fill` 과 같다). `Clipboard: 「글」` 은 기대값의 근거가 아니다(§2). 웹 맥락에서는 `press` · `type` 이 막히고 `clear` · `clipboard` 는 돈다
 - **앱 생명 주기** (2026-11-16 APP-F3-08) — `background` · `deeplink` · `screen-off-on` · `reinstall` 의 `Ran:` 줄은 kit 부품이라 그대로 옮긴다(쓰는 법은 §3 「앱 생명 주기」). `app restart` · `app clear` 의 `Ran:` 줄도 `앱다시켜기` · `앱비우기` · `인자로켜기` 다 — `mobile:` 을 직접 부르는 줄이 나오면(글이 아닌 intent 인자) 케이스에는 그 인자를 글로 바꿔 부품으로 쓴다. `reinstall` · `app clear` 는 앱 데이터를 지워 로그인이 풀린다 — 다 보면 다시 로그인한다. 옛 판에서 올리기는 CLI 로 눌러 보지 않는다(§3)
 - **폰 상태** (2026-11-16 APP-F3-09) — `phone rotate|network|location|dark|font` 는 그 상태에서 화면이 어떻게 보이는지 보는 데 쓴다. `Ran:` 줄은 구간을 쓰라는 알림이다 — §3 「폰 상태」대로 `폰상태에서` 구간으로 쓴다. **탐색에서 바꾼 상태는 그 화면을 다 본 바로 뒤 출력의 `되돌린다:` 명령으로 되돌린다** — 같은 폰을 다음 실행이 쓰고, 팜은 아직 이 상태들을 돌려받을 때 되돌리지 않는다. `phone time YYYY-MM-DD` 의 `Ran:` 줄(`폰시각`)은 그대로 옮긴다. 글자 크기가 「폰 셸 …」로 막히면 그 케이스는 보류다(`앱 — <요구 번호> — 폰 셸 닫힘`)
+- **폰 파일** (2026-11-16 APP-F3-10) — 첨부 · 사진 고르개 화면은 `file push` 로 넣고 고르기 화면에서 출력의 `qa-…` 이름을 고른다. `Ran:` 줄은 §3 「폰에 사진 · 영상 · 파일」대로 `finally` 의 `지우기()` 와 함께 옮기고, **다 보면 출력의 `file rm <경로>` 로 지운다**(넣은 파일만 지운다 — 남기면 다음 화면의 고르개에 섞인다). 앱이 받은 파일은 받기를 누른 뒤 `file ls <폴더>` 로 이름을 보고 `file ls <폴더> <이름>` 의 `Ran:` 줄(`폰파일있나`)을 옮긴다 — 다운로드 폴더 밖(앱 전용 폴더)이면 폴더는 기획서 · 서비스 가이드에 적힌 자리만 쓴다. 「폰 셸 …」로 막히면 그 케이스는 보류다
 - **시스템 화면 · 다른 앱** (2026-11-15 APP-F3-05) — 화면이 시험 대상 앱이 아니면(권한 창 · 알림 창 · 공유 창 · 고르개 · Chrome) 출력 끝에 `- 앞 앱: <꾸러미>` 줄이 붙는다. 그 화면도 `snapshot` · `tap` 으로 읽고 누르고, 다 보면 `app front` 로 돌아온다. 쓰는 법은 §3 「권한 · 알림 창 · 다른 앱」이다.
   - 권한 창 단추를 `tap` 하면 `Ran:` 이 `권한창답하기(driver, '허용' | '거부')` 다 — 그대로 옮긴다. 「이번만 허용」을 눌렀으면 알림 줄이 붙는다 — 부품은 「앱 사용 중에만 허용」을 먼저 누르니 그 차이가 판정에 걸리면 폰 돌려 보기로 본다
   - `permission grant|revoke` 의 `Ran:` 줄은 구간을 쓰라는 알림이다 — §3 대로 `권한상태에서` 구간으로 쓴다. **탐색에서 바꾼 권한은 그 화면을 다 본 바로 뒤 출력의 `되돌린다:` 명령으로 되돌린다** — 남기면 같은 연결로 읽는 다음 화면이 바뀐 권한으로 보인다. 권한은 시험 대상 앱 것만 바뀐다
