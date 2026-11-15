@@ -1,0 +1,43 @@
+import { defineCase, test, verify } from '@platform/kit';
+import { 될때까지 } from '@platform/kit/parts';
+import { z } from 'zod';
+
+import { 로그인하기 } from './helpers/login.helper.js';
+
+import { 글쓰기화면 } from './pages/compose.page.js';
+import { 홈화면 } from './pages/home.page.js';
+
+export const spec = defineCase({
+  tcId: 'MTA-FN-211',
+  name: '글쓰기 본문에 501자를 적으면 남은 글자 수가 「-1」로 보이고 「게시」가 꺼진다',
+  platforms: ['android'],
+  precondition: ['일반 회원으로 로그인해 있다'],
+  techniques: ['결정 테이블'],
+  params: z.object({
+    loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),
+    loginPassword: z.string().describe('일반 회원 비밀번호').optional().meta({ secret: true }),
+  }),
+  expected: z.object({
+    처음글자수: z.string().describe('글쓰기를 막 열었을 때 남은 글자 수').default('500'),
+    남은글자: z.string().describe('501자를 적은 뒤 남은 글자 수').default('-1'),
+  }),
+});
+
+test(spec, async ({ driver, params, expected }) => {
+  const 홈 = new 홈화면(driver);
+  const 글쓰기 = new 글쓰기화면(driver);
+
+  await test.step('일반 회원으로 로그인해 글쓰기 화면을 연다', async () => {
+    await 로그인하기(driver, params.loginId, params.loginPassword);
+    await verify('홈 화면 글쓰기 버튼이 보인다', await 홈.그려질때까지(), true, { blocker: true });
+    await verify('글쓰기 화면 본문 칸이 보인다', await 글쓰기.열기(), true, { blocker: true });
+  });
+
+  await test.step('글쓰기 본문에 501자를 적는다', async () => {
+    await 글쓰기.본문적기('가'.repeat(501));
+    await 될때까지(driver, async () => (await 글쓰기.남은글자()) !== expected.처음글자수, 10_000);
+    const 글자수 = await verify('남은 글자 수가 기대값과 같다', await 글쓰기.남은글자(), expected.남은글자);
+    const 꺼짐 = await verify('「게시」가 꺼져 있다', await 글쓰기.꺼졌나(글쓰기.게시), true);
+    await verify('글쓰기 본문에 501자를 적으면 남은 글자 수가 「-1」로 보이고 「게시」가 꺼진다', 글자수 && 꺼짐, true);
+  });
+});
