@@ -23,7 +23,7 @@ const 덮개말 = /쿠키|cookie|동의|공지|설문|팝업|다시 ?보지|오�
 const 재료글 = String.raw`(({ 항목, 덮개말 }) => {
   const 말 = new RegExp(덮개말, 'i');
   const 창넓이 = innerWidth * innerHeight;
-  const 보임 = [...document.querySelectorAll('body *')].filter((el) => el.getClientRects().length > 0);
+  const 보임 = [...document.querySelectorAll('body *')].filter((el) => el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden');
   const 글 = (el) => ([el.innerText, el.getAttribute('aria-label'), el.getAttribute('title'), el.value].find((x) => typeof x === 'string' && x.trim() !== '') ?? '').trim().replace(/\s+/g, ' ').slice(0, 40);
   const 영역 = [];
   const 덮개 = [];
@@ -32,7 +32,7 @@ const 재료글 = String.raw`(({ 항목, 덮개말 }) => {
     const 칸 = el.getBoundingClientRect();
     if (/(auto|scroll)/.test(꼴.overflowY) && el.scrollHeight > el.clientHeight + 20 && el.clientHeight > 100 && 영역.length < 3) {
       el.setAttribute('data-crawl-scroll', String(영역.length));
-      영역.push({ 이름: el.getAttribute('aria-label') || el.querySelector('h1,h2,h3,[role="heading"]')?.textContent?.trim().slice(0, 30) || el.id || '', 줄: el.querySelectorAll(항목).length });
+      영역.push({ 이름: el.getAttribute('aria-label') || el.querySelector('h1,h2,h3,[role="heading"]')?.textContent?.replace(/\s+/g, ' ').trim().slice(0, 30) || el.id || '', 줄: el.querySelectorAll(항목).length });
     }
     const 창 = el.matches('[role="dialog"], [role="alertdialog"], dialog[open], [aria-modal="true"]');
     if ((꼴.position === 'fixed' || 창) && !el.matches('header, nav, [role="banner"], [role="navigation"]') && 덮개.length < 3) {
@@ -47,7 +47,7 @@ const 재료글 = String.raw`(({ 항목, 덮개말 }) => {
   const 안쪽 = [];
   for (const el of 보임) {
     if (안쪽.length >= 5) break;
-    const 겉누름 = el.matches(누름) || el.hasAttribute('onclick') || (el.matches('article, li, [role="article"], [tabindex="0"]') && getComputedStyle(el).cursor === 'pointer');
+    const 겉누름 = el.matches(누름) || el.hasAttribute('onclick') || (el.matches('article, li, [role="article"], [tabindex="0"]') && getComputedStyle(el).cursor === 'pointer' && getComputedStyle(el.parentElement ?? el).cursor !== 'pointer');
     if (!겉누름) continue;
     const 안 = [...el.querySelectorAll('a[href], button')].filter((x) => x.getClientRects().length > 0).map(글).filter((x) => x !== '').slice(0, 3);
     if (안.length > 0 && !안쪽.some((x) => x.안.join() === 안.join())) 안쪽.push({ 겉: 글(el), 안 });
@@ -56,9 +56,10 @@ const 재료글 = String.raw`(({ 항목, 덮개말 }) => {
   return { 높이배: Math.round((document.documentElement.scrollHeight / innerHeight) * 10) / 10, 영역, 덮개, 안쪽, 이름들 };
 })`;
 
+// 쪽 줄은 머리 · 메뉴 · 바닥 밖만 센다 — 메뉴 li 가 첫 줄이면 가상 목록을 못 본다. 영역은 표시 번호로 짝짓는다(굴리다 다시 그려진 영역이 짝을 밀지 않게)
 const 재기글 = String.raw`((항목) => {
-  const 첫 = (root) => { const 줄 = root.querySelectorAll(항목); return [줄.length, (줄[0]?.innerText ?? '').slice(0, 40)]; };
-  return { 쪽: 첫(document), 영역: [...document.querySelectorAll('[data-crawl-scroll]')].map(첫) };
+  const 첫 = (root) => { const 줄 = [...root.querySelectorAll(항목)].filter((x) => !x.closest('header, nav, footer, [role="navigation"], [role="banner"]')); return [줄.length, (줄[0]?.innerText ?? '').slice(0, 40)]; };
+  return { 쪽: 첫(document), 영역: Object.fromEntries([...document.querySelectorAll('[data-crawl-scroll]')].map((el) => [el.getAttribute('data-crawl-scroll'), 첫(el)])) };
 })`;
 
 /** 다 온 뒤의 화면에서 덮개 · 굴리는 영역 · 안쪽 링크 · 누를 것 이름을 읽는다. 굴리는 영역에는 굴려보기가 찾을 표시를 단다 */
@@ -69,7 +70,7 @@ export async function 재료읽기(쪽: Page): Promise<재료> {
 /** 쪽과 굴리는 영역을 끝까지 굴려 줄이 붙는지(늘어나는 목록) · 줄 수는 그대로인데 첫 줄이 바뀌는지(가상 목록) 본다. 다 보고 맨 위로 되돌린다 */
 export async function 굴려보기(쪽: Page, 재: 재료, 기다림 = 700): Promise<굴린뒤 | null> {
   if (재.높이배 < 1.5 && 재.영역.length === 0) return null;
-  const 재기 = (): Promise<{ 쪽: [number, string]; 영역: [number, string][] }> => 쪽.evaluate(`${재기글}(${JSON.stringify(항목)})`);
+  const 재기 = (): Promise<{ 쪽: [number, string]; 영역: Record<string, [number, string]> }> => 쪽.evaluate(`${재기글}(${JSON.stringify(항목)})`);
   const 굴리기 = (끝: boolean): Promise<void> =>
     쪽.evaluate(`(() => {
       window.scrollTo(0, ${끝 ? 'document.documentElement.scrollHeight' : '0'});
@@ -81,7 +82,7 @@ export async function 굴려보기(쪽: Page, 재: 재료, 기다림 = 700): Pro
     await 쪽.waitForTimeout(기다림);
     const 뒤 = await 재기();
     await 굴리기(false);
-    return { 쪽: 재.높이배 < 1.5 ? null : 줄변화보기(앞.쪽, 뒤.쪽), 영역: 앞.영역.map((x, i) => 줄변화보기(x, 뒤.영역[i])) };
+    return { 쪽: 재.높이배 < 1.5 ? null : 줄변화보기(앞.쪽, 뒤.쪽), 영역: 재.영역.map((_, i) => 줄변화보기(앞.영역[String(i)], 뒤.영역[String(i)])) };
   } catch {
     return null;
   }
@@ -91,12 +92,12 @@ export function 줄변화보기(앞: [number, string] | undefined, 뒤: [number,
   return 앞 === undefined || 뒤 === undefined || 앞[0] === 0 ? null : { 앞수: 앞[0], 뒤수: 뒤[0], 첫줄바뀜: 앞[1] !== 뒤[1] };
 }
 
-/** ariaSnapshot 한 장에서 이름 붙은 요소(`- heading "알림"`)를 `heading 「알림」` 으로 모은다 */
+/** ariaSnapshot 한 장에서 이름 붙은 요소(`- heading "알림"`)를 `heading 「알림」` 으로 모은다 — 이름 안의 `\"` 에서 끊지 않는다 */
 export function 이름요소(구조: string): string[] {
   const 모음: string[] = [];
   for (const 줄 of 구조.split('\n')) {
-    const m = /^\s*- ([a-z]+) "([^"]+)"/.exec(줄);
-    if (m !== null) 모음.push(`${m[1]} 「${m[2]!.slice(0, 30)}」`);
+    const m = /^\s*- ([a-z]+) "((?:[^"\\]|\\.)+)"/.exec(줄);
+    if (m !== null) 모음.push(`${m[1]} 「${m[2]!.replace(/\\(.)/g, '$1').slice(0, 30)}」`);
   }
   return 모음;
 }
@@ -110,7 +111,8 @@ export function 움직임줄(이른구조: string, 늦은구조: string, 재: �
   const 이른 = new Set(이름요소(이른구조));
   const 늦은 = 이름요소(늦은구조);
   const 늦게 = [...new Set(늦은.filter((x) => !이른.has(x)))];
-  if (늦게.length > 0) {
+  // 막 떴을 때를 못 찍었으면(시간 초과 · 바로 넘어감) 전부가 늦게 온 것처럼 보인다 — 적지 않는다
+  if (늦게.length > 0 && 이른구조 !== '') {
     줄들.push(`# 늦게 채워짐: 막 떴을 때 ${이른.size}개 → 다 온 뒤 ${new Set(늦은).size}개 · ${늦게.slice(0, 8).join(' ')}${늦게.length > 8 ? ` 외 ${늦게.length - 8}개` : ''}`);
   }
   if (재.높이배 >= 1.5) 줄들.push(`# 굴림: 쪽 — 화면 높이의 ${재.높이배}배${굴림말(굴린?.쪽 ?? null)}`);

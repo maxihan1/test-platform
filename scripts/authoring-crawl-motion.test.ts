@@ -38,8 +38,13 @@ describe('움직임줄', () => {
     ]);
   });
 
-  it('이름요소는 이름 붙은 줄만 · 줄변화보기는 비교할 줄이 없으면 null', () => {
+  it('막 떴을 때를 못 찍었으면 늦게 채워짐을 적지 않는다', () => {
+    expect(움직임줄('', '- link "첫 글"', 빈재료, null)).toEqual([]);
+  });
+
+  it('이름요소는 이름 붙은 줄만 · 이름 안 따옴표에서 끊지 않는다 · 줄변화보기는 비교할 줄이 없으면 null', () => {
     expect(이름요소('- list:\n  - listitem: 글\n  - link "더보기" [cursor=pointer]')).toEqual(['link 「더보기」']);
+    expect(이름요소('- button "say \\"hi\\""')).toEqual(['button 「say "hi"」']);
     expect(줄변화보기([0, ''], [10, 'a'])).toBeNull();
     expect(줄변화보기([10, 'a'], [10, 'a'])).toEqual({ 앞수: 10, 뒤수: 10, 첫줄바뀜: false });
   });
@@ -55,6 +60,7 @@ describe('실제 브라우저', () => {
   });
 
   const 화면 = `<!doctype html><html><body style="margin:0">
+<nav><ul><li>홈</li><li>메뉴</li></ul></nav>
 <h1>목록</h1>
 <button id="지우기" onclick="confirm('정말 지울까요?')">지우기</button>
 <div id="쿠키" style="position:fixed;bottom:0;left:0;right:0;height:120px;background:#eee">쿠키를 씁니다 <button>수락</button><button>닫기</button></div>

@@ -142,7 +142,8 @@ export async function 새쪽(브라우저: Browser, 상태파일: string | undef
   await 맥락.route('**/*', (r) => (['image', 'font', 'media'].includes(r.request().resourceType()) ? r.abort() : r.continue()));
   const 쪽 = await 맥락.newPage();
   // 브라우저 확인 창은 늘 취소한다 — 탈퇴 · 삭제의 마지막 확인일 수 있다. 떠나기 확인만 받아 다음 화면으로 간다
-  뜬창.set(쪽, []);
+  // 모바일 견주기 쪽은 누르지 않는다 — 담아 둘 곳을 안 만들어 쌓이지 않게
+  if (!모바일) 뜬창.set(쪽, []);
   쪽.on('dialog', (d) => {
     if (d.type() !== 'beforeunload') 뜬창.get(쪽)?.push(`${d.type()} 「${d.message().replace(/\s+/g, ' ').slice(0, 60)}」`);
     void (d.type() === 'beforeunload' ? d.accept() : d.dismiss()).catch(() => undefined);
