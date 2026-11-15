@@ -1,4 +1,5 @@
 import { defineCase, test, verify } from '@platform/kit';
+import { 폰상태에서 } from '@platform/kit/parts';
 
 import { type 캐릭터, 개수 } from './helpers/api.helper.js';
 import { 게임입장 } from './helpers/game-enter.helper.js';
@@ -47,11 +48,7 @@ test(spec, async ({ game, admin, driver }) => {
       const 앞 = 개수(await 가방읽기(admin, 누구!), 'potion_hp_s');
       const 창 = new 상점창(game);
       await 창.하나사기('potion_hp_s');
-      try {
-        await driver.execute('mobile: setConnectivity', { wifi: false });
-      } finally {
-        await driver.execute('mobile: setConnectivity', { wifi: true });
-      }
+      await 폰상태에서(driver, { 네트워크: '끊김' }, async () => undefined);
       const 뒤 = await 다음까지(async () => 개수(await 가방읽기(admin, 누구!), 'potion_hp_s'), 앞, 20_000);
       const 한번 = await verify('빨간 물약이 한 번만 사진다', 뒤 - 앞, 1);
       await 창.닫기누르기();

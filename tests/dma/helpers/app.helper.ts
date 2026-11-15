@@ -1,5 +1,5 @@
 import type { CaseBodyArgs } from '@platform/kit';
-import { 앱비우기, 인자로켜기 } from '@platform/kit/parts';
+import { 앱비우기, 인자로켜기, 폰시각 } from '@platform/kit/parts';
 
 export type 앱 = CaseBodyArgs<unknown, unknown>['driver'];
 export type 요소 = WebdriverIO.Element;
@@ -28,7 +28,7 @@ export async function 앱이닫힐때까지(driver: 앱, timeout = 10000): Promi
 }
 
 export async function 기기오늘(driver: 앱): Promise<Date> {
-  const 글 = String(await driver.execute('mobile: getDeviceTime', { format: 'YYYY-MM-DD' }));
+  const 글 = await 폰시각(driver, 'YYYY-MM-DD');
   const [년, 월, 일] = 글.trim().split('-').map(Number);
   return new Date(년 ?? 1970, (월 ?? 1) - 1, 일 ?? 1);
 }

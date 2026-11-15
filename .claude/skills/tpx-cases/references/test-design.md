@@ -183,5 +183,5 @@ REQ-MEM-001 · 경계 「4~12자」 3자 · 4자 · 12자 · 13자 · 예외 동
 
 **끊김** — 기획서가 끊김 뒤를 적었으면(「다시 접속해도 위치가 유지된다」) 위 표의 예외 칸으로 쓰고, 안 적었으면 오류 추정 줄이다(`two-kinds.md` 「오류 추정 점검 목록」의 게임 항목 「통신 끊기」 · 「다시 켜기」).
 
-- 와이파이 끊기 — `await driver.execute('mobile: setConnectivity', { wifi: false })`, `finally` 에서 `{ wifi: true }`. 모바일 데이터는 팜 폰에 SIM 이 없어 못 끊는다
+- 와이파이 끊기 — `await 폰상태에서(driver, { 네트워크: '끊김' }, async () => undefined)`(`@platform/kit/parts` — 끊었다가 구간이 끝나면 다시 켠다. 끊긴 채 볼 것은 구간 안에 쓴다). 모바일 데이터는 팜 폰에 SIM 이 없어 켜져 있지 않다 — 부품이 켜진 것만 끈다
 - 앱 다시 켜기 — `driver.terminateApp` · `driver.activateApp` 뒤 첫 확인을 `game.waitForValue` 로 한다. 켜지는 동안 오는 오류도 한도까지 다시 보므로 기다림과 확인이 한 값이다(`timeoutMs: 120000`). 꼴은 `5-stable.md` 「게임」
