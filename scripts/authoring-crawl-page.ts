@@ -4,6 +4,7 @@ import type { Page } from '@playwright/test';
 
 import { type 후보, 되돌릴수없나, 탈퇴말인가, 확인버튼고르기 } from './authoring-crawl-press.js';
 import { 로그인풀렸나, 지문, 틀키 } from './authoring-crawl-rules.js';
+import { 굴려보기, 움직임줄, 재료읽기 } from './authoring-crawl-motion.js';
 import { type 화면본, type 화면차이, 화면견주기 } from './authoring-crawl-viewport.js';
 
 export interface 입력칸 { 종류: string; 이름: string; 라벨: string; 안내: string; 필수: boolean; 읽기전용: boolean; 최대글자: number | null; 최소글자: number | null; 형식: string | null }
@@ -11,6 +12,8 @@ export type 본것 = {
   상태코드: number; 최종: string; 제목: string; 구조: string; 비밀번호칸: boolean; 입력칸: 입력칸[]; 링크: { href: string; text: string }[];
   /** 화면 크기 판정 재료 — 크롤 파일에는 안 쓴다(PC 기록 · 글자 지문이 그대로라야 저장본 재사용이 안 흔들린다 · PRD-F10-07) */
   크기: Omit<화면본, '최종' | '지문'>;
+  /** 링크로 연 화면만 — 크롤 파일 머리에 글자 지문을 잰 뒤 끼운다(도메인/작성 「움직임」) */
+  움직임?: string[];
 };
 
 /** 지금 열린 화면을 읽는다 — 다른 출처면 '건너뜀' */
@@ -84,10 +87,11 @@ export async function 모바일견주기(쪽: Page, 주소: string, pc: 본것):
   }
 }
 
-/** 주소로 연다 — 연결 실패 · 시간 초과는 '실패'(연속 오류로 센다) */
-export async function 열기(쪽: Page, 주소: string): Promise<number | '건너뜀' | '실패'> {
+/** 주소로 연다 — 연결 실패 · 시간 초과는 '실패'(연속 오류로 센다). `막떴을때` 는 문서가 막 뜬 뒤 · 요청이 다 오기 전에 부른다 */
+export async function 열기(쪽: Page, 주소: string, 막떴을때?: () => Promise<void>): Promise<number | '건너뜀' | '실패'> {
   try {
     const 응답 = await 쪽.goto(주소, { waitUntil: 'domcontentloaded', timeout: 15_000 });
+    await 막떴을때?.();
     await 쪽.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => undefined);
     return 응답?.status() ?? 0;
   } catch (e) {
@@ -97,12 +101,25 @@ export async function 열기(쪽: Page, 주소: string): Promise<number | '건�
 
 /** 화면 하나 — 내려받기 · 다른 출처는 '건너뜀' */
 export async function 보기(쪽: Page, 주소: string): Promise<본것 | '건너뜀' | '실패'> {
-  const 열림 = await 열기(쪽, 주소);
+  let 이른구조 = '';
+  const 열림 = await 열기(쪽, 주소, async () => {
+    이른구조 = await 쪽.locator('body').ariaSnapshot({ timeout: 3_000 }).catch(() => '');
+  });
   if (typeof 열림 !== 'number') return 열림;
+  let 본: 본것 | '건너뜀';
   try {
-    return await 읽기(쪽, 열림, new URL(주소).origin);
+    본 = await 읽기(쪽, 열림, new URL(주소).origin);
   } catch {
     return '실패';
+  }
+  if (본 === '건너뜀') return 본;
+  // 움직임을 못 읽어도 화면은 남긴다 — 덤으로 붙는 줄이다
+  try {
+    const 재 = await 재료읽기(쪽);
+    return { ...본, 움직임: 움직임줄(이른구조, 본.구조, 재, await 굴려보기(쪽, 재)) };
+  } catch (e) {
+    console.error(`크롤: 움직임을 못 읽음 — ${주소}: ${e instanceof Error ? e.message.split('\n')[0] : String(e)}`);
+    return 본;
   }
 }
 

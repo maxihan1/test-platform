@@ -127,13 +127,13 @@ function 남기기(a: 인자, 판: 판, 시작: number, 돈: { 상태들: string
   // 그 화면이 부른 API 를 크롤 파일 머리에도 — 보조는 이 파일만 읽는다. 누를 때 들은 것까지라 다 돈 뒤에 끼운다(글자 지문은 쓸 때 잰 그대로 · PRD-F14-05)
   // 도중에 죽어 finally 에서 왔을 수 있다 — 한 파일이 막혀도 원래 오류를 덮거나 아래 결과 파일을 못 쓰게 하지 않는다
   for (const [i, 본] of 판.본.entries()) {
-    const 줄들 = API머리줄(판.API.get(i)?.values() ?? [], 본.최종);
+    const 줄들 = [...API머리줄(판.API.get(i)?.values() ?? [], 본.최종), ...(본.움직임 ?? [])];
     if (줄들.length === 0) continue;
     try {
       const [첫줄, ...나머지] = readFileSync(join(a.출력, 본.파일), 'utf8').split('\n');
       writeFileSync(join(a.출력, 본.파일), [첫줄, ...줄들, ...나머지].join('\n'));
     } catch (e) {
-      console.error(`크롤: API 줄을 못 끼움 — ${본.파일}: ${e instanceof Error ? e.message : String(e)}`);
+      console.error(`크롤: API · 움직임 줄을 못 끼움 — ${본.파일}: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
   // 화면 크기 — 모바일로 연 화면 가운데 PC 와 이름 · 주소가 갈린 것만. 자식이 반응형 케이스의 모바일 길을 여기서 본다(tpx-cases two-kinds.md 「화면 크기 판정」 · PRD-F10-07)
