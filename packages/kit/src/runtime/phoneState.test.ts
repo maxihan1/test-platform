@@ -1,5 +1,6 @@
 // 폰 상태 구간 검사 — 가짜 폰으로 보내는 명령 · 되돌리기 · 러너용 파일 · 막힌 명령의 까닭 · 웹 맥락 막기를 본다 (도메인/러너 §5.2 「범용 앱 부품」 APP-F3-09)
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -82,7 +83,7 @@ describe('폰상태에서', () => {
     let 파일: unknown;
     const 값 = await 폰상태에서(driver, { 방향: '가로', 네트워크: '끊김', 위치: { 위도: 37.5665, 경도: 126.978 }, 어두운화면: true, 글자크기: 1.3 }, async () => {
       안 = structuredClone(폰);
-      파일 = JSON.parse(readFileSync(phoneStateFile(), 'utf8'));
+      파일 = JSON.parse(await readFile(phoneStateFile(), 'utf8'));
       return 7;
     });
     expect(값).toBe(7);
