@@ -150,6 +150,33 @@ describe('진척누적기 — 단계 표지', () => {
     expect(누적.단계표()).not.toMatch(/관문 [12]/);
   });
 
+  it('돌려 보기 명령을 부르면 표지를 말하지 않아도 단계를 적는다 — #725 는 마지막 돌려 보기가 「합치기」에, #745 는 폰 돌려 보기가 「빠른 검사」에 섞였다', () => {
+    const 시계 = 가짜시계();
+    const 누적 = 진척누적기(60, {}, 시계.지금);
+    const 명령 = (id: string, command: string, parent: string | null = null) =>
+      JSON.stringify({
+        type: 'assistant',
+        message: { id, content: [{ type: 'tool_use', name: 'Bash', input: { command } }], usage: { input_tokens: 1, output_tokens: 1 } },
+        parent_tool_use_id: parent,
+      });
+    누적.먹기(말('a', '[단계] 빠른 검사'));
+    시계.흐름(60);
+    expect(누적.먹기(명령('b', 'npm run -s authoring:run -- 앱서버; echo "EXIT=$?"'))).toBe('· Bash');
+    expect(누적.먹기(명령('c', 'npm run -s authoring:run -- 보조 cart tests/x/A.spec.ts', 'toolu_01'))).toBe('· Bash');
+    expect(누적.먹기(명령('d', 'npm run -s authoring:run -- 앱 tests/mta; echo "EXIT=$?"'))).toBe('· Bash [단계] 폰에서 돌려 보기');
+    시계.흐름(600);
+    누적.먹기(명령('e', 'npm run -s authoring:run -- 앱 tests/mta; echo "EXIT=$?"'));
+    누적.먹기(명령('f', 'PLATFORM_BASE_URL=https://qa.example npm run -s authoring:run -- 마지막 tests/mta --mobile; echo "EXIT=$?"'));
+    시계.흐름(300);
+    누적.먹기(말('g', '[단계] 마지막 전체 돌려 보기'));
+    누적.먹기(명령('h', 'npm run -s authoring:run -- 게임 tests/arg'));
+    const 표 = 누적.단계표();
+    expect(표).toContain('| 빠른 검사 | 0:00 | 1:00 |');
+    expect(표).toContain('| 폰에서 돌려 보기 | 1:00 | 10:00 |');
+    expect(표.match(/마지막 전체 돌려 보기 \|/g)).toHaveLength(1);
+    expect(표.match(/폰에서 돌려 보기 \|/g)).toHaveLength(2);
+  });
+
   it('따옴표는 짝이 맞을 때만 벗긴다 · 안내문 그대로인 <이름> 은 단계가 아니다', () => {
     const 누적 = 진척누적기(60);
     누적.먹기(말('a', "[단계] 'x'"));

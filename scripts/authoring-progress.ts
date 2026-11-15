@@ -74,7 +74,16 @@ export function 진척누적기(limitSec: number, 비밀: 가릴것 = {}, 지금
       if (typeof (e as { parent_tool_use_id?: unknown }).parent_tool_use_id === 'string') return 글;
       // 로그 줄은 글 첫 줄을 지키고 새 표지를 뒤에 붙인다 — 첫 줄이 곧 표지면 두 번 싣지 않는다
       let 로그 = 글;
-      for (const c of m?.content ?? [])
+      const 단계적기 = (이름: string) => {
+        if (단계들.at(-1)?.이름 === 이름) return;
+        단계들.push({ 이름, 때: 지금() });
+        if (!로그.endsWith(`[단계] ${이름}`)) 로그 += ` [단계] ${이름}`;
+      };
+      for (const c of m?.content ?? []) {
+        // 자식이 표지를 말하지 않고 돌려 보기 명령만 부르면 그 시간이 앞 단계에 섞인다(#725 합치기 126분 · #745 빠른 검사 240분) — 명령을 보고 스스로 적는다
+        const 명령 = c.type === 'tool_use' && typeof c.input?.command === 'string' ? c.input.command : '';
+        const 돌림 = /authoring:run\s+--\s+(마지막|앱|게임)(?=\s|;|$)/.exec(명령);
+        if (돌림 !== null) 단계적기(돌림[1] === '마지막' ? '마지막 전체 돌려 보기' : '폰에서 돌려 보기');
         for (const 한줄 of c.type === 'text' && c.text ? c.text.split('\n') : []) {
           // 자식이 표지를 따옴표로 감싸 말하기도 한다(11201) — 짝이 맞는 따옴표 하나만 벗긴다.
           // 줄 가운데 표지 · 따옴표 뒤에 글이 더 붙은 줄은 설명 글이라 안 잡는다. 안내문을 그대로 옮긴 <이름> 도 안 잡는다
@@ -84,10 +93,9 @@ export function 진척누적기(limitSec: number, 비밀: 가릴것 = {}, 지금
           if (찾음 === null || /^<.*>$/.test(찾음[1]!)) continue;
           // 가림 안내문이 이름 자리에 들어가 표에 엉뚱한 단계로 남지 않게 — 가린 이름은 짧게
           const 이름 = 가리기(찾음[1]!, 비밀) === 찾음[1] ? 글자자르기(찾음[1]!, 60) : '(가림)';
-          if (단계들.at(-1)?.이름 === 이름) continue;
-          단계들.push({ 이름, 때: 지금() });
-          if (!로그.endsWith(`[단계] ${이름}`)) 로그 += ` [단계] ${이름}`;
+          단계적기(이름);
         }
+      }
       return 로그;
     },
     /** 단계마다 시작(자식 시작부터)과 걸린 시간. 마지막 단계는 지금 끝난 것으로 본다. 표지가 없으면 빈 글 */
