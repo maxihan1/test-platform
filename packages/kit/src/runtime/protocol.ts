@@ -27,6 +27,16 @@ export const APPIUM_SESSION_FILE = 'appium-session';
 // 위 파일은 닫으면 지운다. 팜 증적(영상 · logcat)은 닫은 뒤에야 받을 수 있어 번호를 따로 한 벌 남긴다. 러너가 받은 뒤 지운다 (러너 §5.2 「디바이스 팜 접속 방식」)
 export const APPIUM_SESSION_ID_FILE = 'appium-session-id';
 
+// 케이스가 폰상태에서 구간에서 바꾼 폰 상태를 되돌릴 요청 목록(JSON). 바꾸기 전에 위 파일 옆에 적고 되돌리면 지운다.
+// 구간 도중에 케이스 프로세스가 죽으면 러너가 연결을 닫기 전에 이대로 되돌린다 (러너 §5.2 「범용 앱 부품」 「되돌리기 둘째 길」)
+export const PHONE_STATE_FILE = 'appium-phone-state';
+
+/** 위 파일의 한 줄 — Appium 연결 아래 경로(`/session/<id>/<경로>`)에 POST 할 본문. kit 의 되돌리기와 러너가 같은 목록을 보낸다 */
+export interface 폰요청 {
+  경로: 'orientation' | 'execute/sync';
+  본문: Record<string, unknown>;
+}
+
 // 러너가 받은 팜 증적을 두는 실행 폴더 안 하위 폴더. admin 이 같은 이름으로 찾는다
 export const FARM_EVIDENCE_DIR = 'farm';
 

@@ -9,7 +9,7 @@ import type { DeviceInfo } from '../types.js';
 
 import { runDir, saveShot } from './artifacts.js';
 import { 앱사진 } from './highlight.js';
-import { APPIUM_SESSION_FILE, APPIUM_SESSION_ID_FILE, 패키지이름인가 } from './protocol.js';
+import { APPIUM_SESSION_FILE, APPIUM_SESSION_ID_FILE, PHONE_STATE_FILE, 패키지이름인가 } from './protocol.js';
 import { 웹뷰사진, 웹맥락인가, 웹요소인가 } from './webview.js';
 
 export type AppDriver = Browser;
@@ -93,6 +93,11 @@ export async function openApp(env: Env, options: AppOpenOptions = {}): Promise<A
 
 function sessionFile(): string {
   return join(runDir(process.env.PLATFORM_RUN_ID ?? '0', process.env.PLATFORM_HISTORY_ID ?? '0'), APPIUM_SESSION_FILE);
+}
+
+/** 폰상태에서 가 되돌릴 요청을 적는 파일 — 연결 번호 파일 옆이라 러너가 같은 폴더에서 찾는다 */
+export function phoneStateFile(): string {
+  return join(sessionFile(), '..', PHONE_STATE_FILE);
 }
 
 // 러너가 케이스 프로세스를 죽여도 남은 연결을 닫을 수 있게 번호를 적어 둔다

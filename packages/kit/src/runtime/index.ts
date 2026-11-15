@@ -5,7 +5,7 @@ export { test, type CaseBody, type CaseBodyArgs } from './test.js';
 export type { GameDriver } from './game.js';
 export { verify, type VerifyOptions } from './verify.js';
 export { type StepOptions, 모양문장 } from './step.js';
-export { RESULT_MARKER, PROGRESS_MARKER, APPIUM_SESSION_FILE, APPIUM_SESSION_ID_FILE, FARM_EVIDENCE_DIR, GAME_ERRORS_FILE, 앱파일값인가, 패키지이름인가 } from './protocol.js';
+export { RESULT_MARKER, PROGRESS_MARKER, APPIUM_SESSION_FILE, APPIUM_SESSION_ID_FILE, PHONE_STATE_FILE, type 폰요청, FARM_EVIDENCE_DIR, GAME_ERRORS_FILE, 앱파일값인가, 패키지이름인가 } from './protocol.js';
 export { runDir } from './artifacts.js';
 export { 진행줄 } from './progress.js';
 export { 폰에파일넣기, type 폰파일, type 폰파일종류 } from './phoneMedia.js';

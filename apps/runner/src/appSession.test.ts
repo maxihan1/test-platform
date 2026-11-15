@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { APPIUM_SESSION_FILE, runDir } from '@platform/kit';
+import { APPIUM_SESSION_FILE, PHONE_STATE_FILE, runDir } from '@platform/kit';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { 앱연결을닫는다 } from './appSession.js';
@@ -185,5 +185,63 @@ describe('앱연결을닫는다', () => {
     await expect(앱연결을닫는다(3, 9)).resolves.toBeUndefined();
 
     expect(existsSync(file)).toBe(false);
+  });
+});
+
+describe('앱연결을닫는다 — 폰 상태 되돌리기 둘째 길', () => {
+  function 되돌릴것을_적는다(목록: unknown): string {
+    const file = join(runDir('3', '9'), PHONE_STATE_FILE);
+    mkdirSync(join(file, '..'), { recursive: true });
+    writeFileSync(file, JSON.stringify(목록));
+    return file;
+  }
+  const 부른길 = (): string[] => (fetchMock.mock.calls as [string, RequestInit][]).map(([u, i]) => `${i.method} ${u} ${typeof i.body === 'string' ? i.body : ''}`.trim());
+
+  it('케이스가 구간 도중에 죽어 연결이 남았으면 kit 이 적은 요청을 같은 연결 · 같은 머리로 보낸 뒤 닫고 두 파일을 지운다', async () => {
+    process.env.PLATFORM_APPIUM_TOKEN = 'pat_abc';
+    번호를_적는다(3, 9, 'abc-123');
+    const 상태 = 되돌릴것을_적는다([
+      { 경로: 'orientation', 본문: { orientation: 'PORTRAIT' } },
+      { 경로: 'execute/sync', 본문: { script: 'mobile: setConnectivity', args: [{ wifi: true }] } },
+    ]);
+
+    await 앱연결을닫는다(3, 9);
+
+    expect(부른길()).toEqual([
+      'POST http://farm:4723/session/abc-123/orientation {"orientation":"PORTRAIT"}',
+      'POST http://farm:4723/session/abc-123/execute/sync {"script":"mobile: setConnectivity","args":[{"wifi":true}]}',
+      'DELETE http://farm:4723/session/abc-123',
+    ]);
+    expect(new Headers((fetchMock.mock.calls[0] as [string, RequestInit])[1].headers).get('authorization')).toBe('Bearer pat_abc');
+    expect(existsSync(상태)).toBe(false);
+  });
+
+  it('되돌리기가 실패해도 나머지를 보내고 연결은 닫는다 · 모르는 경로는 보내지 않는다', async () => {
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 500 }));
+    번호를_적는다(3, 9, 'abc-123');
+    되돌릴것을_적는다([
+      { 경로: 'orientation', 본문: { orientation: 'PORTRAIT' } },
+      { 경로: '../../shutdown', 본문: {} },
+      { 경로: 'execute/sync', 본문: { script: 'mobile: resetGeolocation', args: [{}] } },
+    ]);
+
+    await expect(앱연결을닫는다(3, 9)).resolves.toBeUndefined();
+
+    expect(부른길().map((x) => x.split(' ').slice(0, 2).join(' '))).toEqual([
+      'POST http://farm:4723/session/abc-123/orientation',
+      'POST http://farm:4723/session/abc-123/execute/sync',
+      'DELETE http://farm:4723/session/abc-123',
+    ]);
+    expect(console.error).toHaveBeenCalledWith(expect.stringContaining('폰 상태를 되돌리지 못했다(orientation): HTTP 500'));
+    expect(console.error).toHaveBeenCalledWith(expect.stringContaining('모르는 경로'));
+  });
+
+  it('kit 이 연결을 닫았으면(번호 파일 없음) 아무것도 안 보내고 남은 요청 파일만 지운다', async () => {
+    const 상태 = 되돌릴것을_적는다([{ 경로: 'orientation', 본문: { orientation: 'PORTRAIT' } }]);
+
+    await 앱연결을닫는다(3, 9);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(existsSync(상태)).toBe(false);
   });
 });
