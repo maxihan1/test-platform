@@ -21,7 +21,7 @@ export interface 풀린흐름 {
   사용량: 사용량;
 }
 
-type 쪽 = { type?: string; text?: string; name?: string };
+type 쪽 = { type?: string; text?: string; name?: string; input?: { command?: unknown } };
 type 턴사용 = {
   input_tokens?: number;
   output_tokens?: number;
