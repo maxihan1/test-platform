@@ -24,5 +24,6 @@ export {
   type 앱요소,
 } from './runtime/appParts.js';
 export { 끌어놓기, 벌리기, 오므리기, 요소안에서밀기, type 미는방향 } from './runtime/gestureParts.js';
+export { 칸비우기, 클립보드쓰기, 클립보드읽기, 키누르기, 포커스칸에치기, type 폰키 } from './runtime/inputParts.js';
 export { 웹뷰에서 } from './runtime/webview.js';
 export { 로그인이어쓰기, type 로그인이어쓰기설정 } from './runtime/webParts.js';
