@@ -1,7 +1,7 @@
 // 작성 폰 돌려 보기를 팜 폰 여러 대로 나눈다 — 폰마다 계정 · 혼자 도는 케이스 · 빨간 케이스 다시 보기 · 덤 폰 잡기 (SPEC 도메인/작성 §3.6 「앱 화면」 「폰 여러 대로 나눠 돌린다」)
 // 11-16 MTA #15522 는 543분 가운데 476분을 폰 한 대에서 케이스를 차례로 돌리는 데 썼다. 돌리는 쪽은 authoring-run3-game `폰실행` 이다
 
-import { rmSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { 기본역할, 출처 } from '@platform/kit/accounts';
@@ -24,15 +24,22 @@ function 계정줄들(글: string | undefined): 계정줄[] {
 const 찬계정 = (a: 계정줄) => typeof a.loginId === 'string' && a.loginId !== '' && typeof a.loginPassword === 'string' && a.loginPassword !== '';
 
 /**
- * 이 앱 줄에서 나눠 쓸 계정 번호 — 1 은 원래 일반 회원, 그 뒤는 같은 줄의 「일반 회원 N」(아이디 · 비밀번호가 다 있고 원래 계정과 다를 때만).
+ * 이 앱 줄에서 나눠 쓸 계정 번호 — 1 은 원래 일반 회원, 그 뒤는 같은 줄의 「일반 회원 N」(아이디 · 비밀번호가 다 있고 앞에서 고른 계정과 아이디가 다를 때만).
  * 원래 일반 회원이 없으면 [1] 하나다 — 나눌 기준 계정이 없다
  */
 export function 계정번호들(계정글: string | undefined, 주소: string): number[] {
   const 줄 = 계정줄들(계정글).filter((a) => 출처(a.baseUrl) === 출처(주소) && 찬계정(a));
   const 원래 = 줄.find((a) => a.role === 기본역할);
   if (원래 === undefined) return [1];
-  const 번호들 = 줄.flatMap((a) => (typeof a.role === 'string' && a.loginId !== 원래.loginId ? [동시계정번호(a.role) ?? 0] : [])).filter((n) => n >= 2);
-  return [1, ...[...new Set(번호들)].sort((a, b) => a - b)];
+  // 같은 아이디는 한 번만 — 「일반 회원 2」와 「일반 회원 3」이 같은 계정이면 두 폰이 한 계정으로 돈다
+  const 본아이디 = new Set([원래.loginId]);
+  const 번호들: number[] = [];
+  for (const a of 줄.map((x) => ({ x, n: typeof x.role === 'string' ? 동시계정번호(x.role) : null })).sort((l, r) => (l.n ?? 0) - (r.n ?? 0))) {
+    if (a.n === null || 본아이디.has(a.x.loginId) || 번호들.includes(a.n)) continue;
+    본아이디.add(a.x.loginId);
+    번호들.push(a.n);
+  }
+  return [1, ...번호들];
 }
 
 /** k 번 묶음이 kit 에 넘길 계정 글 — 그 줄의 일반 회원 자리에 「일반 회원 k」 계정을 넣는다. 1 이거나 그 계정이 없으면 그대로 */
@@ -40,16 +47,21 @@ export function 묶음계정글(계정글: string | undefined, 주소: string, k
   if (k === 1) return 계정글;
   const 줄들 = 계정줄들(계정글);
   const 같은줄 = (a: 계정줄) => 출처(a.baseUrl) === 출처(주소);
-  const 덤 = 줄들.find((a) => 같은줄(a) && typeof a.role === 'string' && 동시계정번호(a.role) === k);
+  const 원래 = 줄들.find((a) => 같은줄(a) && a.role === 기본역할 && 찬계정(a));
+  // 계정번호들과 같은 줄을 고른다 — 빈 줄 · 원래와 같은 아이디가 먼저 있어도 건너뛴다
+  const 덤 = 줄들.find((a) => 같은줄(a) && 찬계정(a) && a.loginId !== 원래?.loginId && typeof a.role === 'string' && 동시계정번호(a.role) === k);
   if (덤 === undefined) return 계정글;
   return JSON.stringify([{ ...덤, role: 기본역할 }, ...줄들.filter((a) => !(같은줄(a) && a.role === 기본역할))]);
 }
 
-/** 일반 회원 · 일회용 · 폰마다 계정 밖의 역할(관리자 같은)을 쓰는 케이스 — 서버 전체를 바꿀 수 있어 다른 폰이 쉴 때 혼자 돈다. 케이스 글자로 본다(틀려도 차례만 달라진다) */
+/**
+ * 일반 회원 · 일회용 · 폰마다 계정 밖의 역할(관리자 같은)을 쓰는 케이스 — 서버 전체를 바꿀 수 있어 다른 폰이 쉴 때 혼자 돈다.
+ * 케이스 글자의 `account: '<역할>'` 로 본다 — 작성 규칙이 역할을 글자로 적게 한다(`tpx-cases` 5-writing). 상수로 적은 역할은 못 본다
+ */
 export function 혼자도나(글: string): boolean {
   return [...글.matchAll(/\baccount:\s*(['"`])(.*?)\1/g)].some(([, , 역할 = '']) => {
     const r = 역할.trim();
-    return r !== 기본역할 && !일회용역할.test(r) && 동시계정번호(r) === null;
+    return r !== '' && r !== 기본역할 && !일회용역할.test(r) && 동시계정번호(r) === null;
   });
 }
 
@@ -106,9 +118,11 @@ export function 판정하기(돈것: readonly 한판[], 있는폰들: readonly s
   const 빨간 = 판들.filter((p) => p.빨강);
   if (빨간.length === 0) return { 상태: '초록' };
   const 오류 = (p: 한판) => p.오류 ?? '오류 글 없음';
+  // 이 꼴 전 기록은 어느 폰인지 모른다 — 다른 폰으로 세지 않는다(같은 폰이었을 수 있다)
+  const 다른폰인가 = (a: string | null, b: string | null) => a !== null && b !== null && a !== b;
   for (const r of 빨간) {
-    if (판들.some((p) => !p.빨강 && p.계정 === r.계정 && p.폰 !== r.폰)) {
-      const 빨간폰들 = [...new Set(빨간.filter((p) => p.계정 === r.계정).map((p) => p.폰 ?? '모름'))];
+    if (판들.some((p) => !p.빨강 && p.계정 === r.계정 && 다른폰인가(p.폰, r.폰))) {
+      const 빨간폰들 = [...new Set(빨간.filter((p) => p.계정 === r.계정 && p.폰 !== null).map((p) => p.폰!))];
       return { 상태: '폰차이', 빨간폰들, 오류: 오류(r) };
     }
   }
@@ -119,9 +133,23 @@ export function 판정하기(돈것: readonly 한판[], 있는폰들: readonly s
   const r = 빨간.reduce((a, b) => (b.시작 > a.시작 ? b : a));
   const 다른폰 = 있는폰들.some((p) => p !== r.폰);
   // 어느 계정으로든 다른 폰에서 이미 빨갰으면 폰 탓이 아니다 — 폰 다시 보기는 한 폰에서만 돈 케이스만
-  if (다른폰 && 계정들.includes(r.계정) && !판들.some((p) => p.폰 !== r.폰)) return { 상태: '다시', 계정: r.계정, 뺄폰: r.폰 };
+  if (다른폰 && 계정들.includes(r.계정) && !판들.some((p) => 다른폰인가(p.폰, r.폰))) return { 상태: '다시', 계정: r.계정, 뺄폰: r.폰 };
   if (r.계정 !== 1 && !판들.some((p) => p.계정 === 1)) return { 상태: '다시', 계정: 1, 뺄폰: null };
   return { 상태: '빨강', 오류: 오류(r) };
+}
+
+/** 돌려 보기 출력 — 빨강 · 폰 차이 · 계정 차이를 묶음마다 머리 한 줄과 파일 줄로 */
+export function 판정말들(빨강: [string, 판정][], 폰차이: [string, 판정][], 계정차이: [string, 판정][], 이름: (폰: string) => string): string[] {
+  const 묶음 = (머리: string, 것들: [string, 판정][], 줄: (f: string, p: 판정) => string) => (것들.length === 0 ? [] : [[머리, ...것들.map(([f, p]) => 줄(f, p))].join('\n')]);
+  return [
+    ...묶음(`빨강 ${빨강.length}건`, 빨강, (f, p) => `- ${f}: ${p.상태 === '빨강' ? p.오류 : ''}`),
+    ...묶음(`폰 차이 ${폰차이.length}건 — 다른 폰에서는 초록이다. 도우미가 그 폰 화면 갈래를 타게 고친다(폰을 살펴보려면 지금 폰을 놓고 \`hold --udid <그 폰>\`)`, 폰차이, (f, p) =>
+      p.상태 === '폰차이' ? `- ${f} (${p.빨간폰들.map((x) => `${이름(x)} ${x}`).join(' · ')} 에서만 빨강): ${p.오류}` : '',
+    ),
+    ...묶음(`계정 차이 ${계정차이.length}건 — 원래 계정으로는 초록이다. 케이스를 고치지 않는다 — 그 계정에 시드가 없을 수 있어 결과 요약에 적는다`, 계정차이, (f, p) =>
+      p.상태 === '계정차이' ? `- ${f} (일반 회원 ${p.계정}): ${p.오류}` : '',
+    ),
+  ];
 }
 
 /** 이번에 돌릴 일 — 처음 도는 것은 계정 · 폰을 가리지 않고, 다시 보기는 계정이 정해지고 한 폰을 뺀다 */
@@ -177,6 +205,18 @@ export function 덤폰수(일들: readonly 일[], 계정들: readonly number[], 
   return 주폰 === null ? 나란히 : Math.max(나란히 - 1, 뺌);
 }
 
+/** 결과를 못 낸 덤 폰 · 폰마다 계정 목록 — 결과 폴더 `phone-split-off.txt` 의 「폰 계정」 줄(없는 쪽은 -) */
+const 끈묶음파일 = (결과폴더: string) => join(결과폴더, 'phone-split-off.txt');
+export function 끈묶음읽기(결과폴더: string): { 폰들: Set<string>; 계정들: Set<number> } {
+  const 줄들 = existsSync(끈묶음파일(결과폴더)) ? readFileSync(끈묶음파일(결과폴더), 'utf8').split('\n') : [];
+  const 쌍 = 줄들.map((l) => l.trim().split(/\s+/)).filter((x) => x.length === 2);
+  return { 폰들: new Set(쌍.map(([p]) => p!).filter((p) => p !== '-')), 계정들: new Set(쌍.map(([, k]) => Number(k)).filter((k) => k >= 2)) };
+}
+export function 끈묶음적기(결과폴더: string, 폰: string | null, 계정: number | null): void {
+  if (폰 === null && 계정 === null) return;
+  appendFileSync(끈묶음파일(결과폴더), `${폰 ?? '-'} ${계정 ?? '-'}\n`);
+}
+
 // ── 디바이스 팜 — 잡기 주소는 Appium 주소에서 /wd/hub 를 뗀 곳이다(Devicefarm docs/guides/test-platform.md §4 · §11) ──
 
 export interface 팜 {
@@ -225,23 +265,31 @@ export const 폰이름 = (목록: readonly 팜폰[] | null, 폰: string): string
   return p?.marketName ?? p?.model ?? 폰;
 };
 
+export const 폰번호꼴 = /^[A-Za-z0-9._:-]{1,64}$/;
+
 /**
- * 빈 폰을 `몇` 대까지 잡는다(30분). 잡은 폰마다 `<CLI 폴더>/held-<번호>` 를 남긴다 — 이 명령이 죽어도 에이전트의 잡은폰놓기가 놓는다.
- * 못 잡은 폰은 건너뛴다(그사이 다른 실행이 잡았다)
+ * 빈 폰을 `몇` 대까지 잡는다(30분) — 팜의 조건 잡기(`POST /api/devices/acquire`)가 고르고 잡는 것을 한 번에 해 동시에 도는 작성끼리 같은 폰을 두고 다투지 않는다.
+ * 잡은 폰마다 `<CLI 폴더>/held-<번호>` 를 남긴다 — 이 명령이 죽어도 에이전트의 잡은폰놓기가 놓는다. 빈 폰이 없다고 하면(409) 거기서 멈춘다.
+ * 번호가 폰 번호 꼴이 아니거나 기록을 못 쓰면 바로 놓는다 — 기록 이름 · 놓기가 그 번호를 못 다룬다
  */
-export async function 덤폰잡기(팜: 팜, 몇: number, 빈폰들: readonly string[], 폴더: string): Promise<string[]> {
+export async function 덤폰잡기(팜: 팜, 몇: number, 앱: string | undefined, 폴더: string): Promise<string[]> {
   const 잡은: string[] = [];
-  for (const 폰 of 빈폰들) {
-    if (잡은.length >= 몇) break;
-    // 기록을 먼저 쓴다 — 잡은 뒤 쓰다 실패하면 아무도 모르는 잡기가 30분 남는다
-    const 기록 = join(폴더, `held-${폰}`);
+  const 조건 = { minutes: 30, ...(앱 !== undefined && 패키지이름인가(앱) ? { app: 앱 } : {}) };
+  while (잡은.length < 몇) {
+    let 폰: unknown;
     try {
-      writeFileSync(기록, 폰);
-      await 팜부르기(팜, 'POST', `/api/devices/${encodeURIComponent(폰)}/hold`, { minutes: 30 });
+      폰 = ((await 팜부르기(팜, 'POST', '/api/devices/acquire', 조건)) as { held?: { serial?: unknown } } | null)?.held?.serial;
+    } catch {
+      break;
+    }
+    if (typeof 폰 !== 'string') break;
+    try {
+      if (!폰번호꼴.test(폰)) throw new Error('폰 번호 꼴이 아니다');
+      writeFileSync(join(폴더, `held-${폰}`), 폰);
       잡은.push(폰);
     } catch {
-      // 다른 실행이 먼저 잡았거나 정리 중이다 — 다음 폰
-      rmSync(기록, { force: true });
+      await 팜부르기(팜, 'DELETE', `/api/devices/${encodeURIComponent(폰)}/hold`).catch(() => undefined);
+      break;
     }
   }
   return 잡은;

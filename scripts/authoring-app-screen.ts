@@ -183,13 +183,14 @@ export async function 잡은폰놓기(트리: string, 앱: 앱화면 | undefined
   const 폴더 = join(트리, 앱.게임 === true ? '.control-cli' : '.appium-cli');
   let 이름들: string[];
   try {
-    if (!lstatSync(폴더).isDirectory()) return void console.error(`[작성] ${번호}번 — 잡은 폰 기록이 보통 파일이 아니라 놓지 않는다`);
+    if (!lstatSync(폴더).isDirectory()) return void console.error(`[작성] ${번호}번 — 잡은 폰 기록 폴더가 보통 폴더가 아니라 놓지 않는다`);
     // held 는 AI 가 잡은 폰, held-<번호> 는 폰 돌려 보기가 나눠 돌리려고 더 잡은 폰이다(작성 §3.6 「폰 여러 대로 나눠 돌린다」 — 그 명령이 죽으면 남는다)
     이름들 = readdirSync(폴더).filter((n) => n === 'held' || /^held-[A-Za-z0-9._:-]{1,64}$/.test(n));
   } catch {
     return;
   }
   const 팜 = 앱.탐색.url.replace(/\/wd\/hub\/?$/, '');
+  const 누가 = (이름: string) => (이름 === 'held' ? 'AI 가' : '폰 돌려 보기 명령이(도중에 죽어)');
   // AI 는 자식 환경의 PLATFORM_APPIUM_TOKEN(서버가 준 토큰 — 갈아 끼운 파일 것, 없으면 이 컨테이너 것)으로 잡았다. 잡은 계정과 같아야 팜이 놓아 준다
   const 토큰 = (자료 === undefined ? undefined : 최신팜토큰.get(자료)) ?? 앱.탐색.token ?? process.env.PLATFORM_APPIUM_TOKEN;
   for (const 이름 of 이름들) {
@@ -219,9 +220,9 @@ export async function 잡은폰놓기(트리: string, 앱: 앱화면 | undefined
       });
       // 409 는 이미 놓았거나 시간이 끝난 것이다 — 놓을 것이 없다
       const 말 = res.ok ? '놓았다' : res.status === 409 ? '이미 풀려 있었다' : '놓지 못했다';
-      console.error(`[작성] ${번호}번 — AI 가 잡아 둔 폰 ${serial} 을 ${말}: HTTP ${res.status}`);
+      console.error(`[작성] ${번호}번 — ${누가(이름)} 잡아 둔 폰 ${serial} 을 ${말}: HTTP ${res.status}`);
     } catch (err) {
-      console.error(`[작성] ${번호}번 — AI 가 잡아 둔 폰 ${serial} 을 놓지 못했다: ${err instanceof Error ? err.name : '알 수 없는 오류'}`);
+      console.error(`[작성] ${번호}번 — ${누가(이름)} 잡아 둔 폰 ${serial} 을 놓지 못했다: ${err instanceof Error ? err.name : '알 수 없는 오류'}`);
     }
   }
 }

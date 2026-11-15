@@ -11,7 +11,7 @@ import { type 돌린판, 돌린기록들, 앱케이스나누기, 케이스파일
 import { 바뀐것 } from './authoring-base-list.js';
 import { 게임자료환경 } from './authoring-check-game.js';
 import {
-  type 일, type 팜, type 판정, 계정번호들, 끊겼나, 다음기록번호, 덤폰놓기, 덤폰수, 덤폰잡기, 묶음계정글, 묶음기록이름, 묶음짜기, 빈폰질의, 판정하기, 폰목록, 폰이름, 한판들, 혼자도나,
+  type 일, type 팜, type 판정, 계정번호들, 끈묶음읽기, 끈묶음적기, 끊겼나, 다음기록번호, 덤폰놓기, 덤폰수, 덤폰잡기, 묶음계정글, 묶음기록이름, 묶음짜기, 빈폰질의, 판정말들, 판정하기, 폰목록, 폰이름, 한판들, 혼자도나,
 } from './authoring-phone-split.js';
 
 /** 폰에서 도는 두 갈래 — 게임은 control-cli, 앱은 appium-cli 로 AI 가 폰을 잡는다. 기록 · 잡은 폰 파일 · CLI 세션 이름이 갈린다 */
@@ -204,35 +204,42 @@ export async function 폰실행(갈래: 폰갈래, 폴더: string | undefined, �
   const 팜: 팜 = { 부르기, 주소: env.PLATFORM_APPIUM_URL.replace(/\/wd\/hub\/?$/, ''), 토큰: env.PLATFORM_APPIUM_TOKEN };
   const 앱 = 폰앱링크(env);
   const CLI폴더 = join(트리, `.${도구}`);
-  const 계정들 = 계정번호들(env.PLATFORM_ACCOUNTS, 주소);
+  // 앞 차례에 결과를 하나도 못 낸 덤 폰 · 폰마다 계정은 이 작성에서 다시 안 쓴다 — 같은 묶음을 끝없이 다시 부르지 않게
+  const 끈것 = 끈묶음읽기(결과폴더);
+  const 계정들 = 계정번호들(env.PLATFORM_ACCOUNTS, 주소).filter((k) => !끈것.계정들.has(k));
   const 팜목록 = await 폰목록(팜);
   // 잡은 폰이 끊겼으면 덤 폰으로만 돈다 — AI 가 놓고 다시 잡을 때까지 기다리지 않는다
   const 주폰 = 끊겼나(팜목록, 폰) ? null : 폰;
   const 혼자맵 = new Map(Object.keys(대상).map((f) => [f, 혼자도나(파일글(트리, f))]));
-  const 일고르기 = (있는폰들: readonly string[]): 일[] =>
-    폰판정들(대상, 폰판들(결과폴더, 갈래), 있는폰들, 계정들).flatMap(([파일, p]): 일[] =>
+  const 일고르기 = (판들: Map<string, 돌린판[]>, 있는폰들: readonly string[]): 일[] =>
+    폰판정들(대상, 판들, 있는폰들, 계정들).flatMap(([파일, p]): 일[] =>
       p.상태 === '안돎' ? [{ 파일, 계정: null, 뺄폰: null, 혼자: 혼자맵.get(파일)! }] : p.상태 === '다시' ? [{ 파일, 계정: p.계정, 뺄폰: p.뺄폰, 혼자: 혼자맵.get(파일)! }] : [],
     );
-  const 빈폰들 = ((await 폰목록(팜, 빈폰질의(앱))) ?? []).map((p) => p.serial).filter((p) => p !== 폰);
-  const 미리 = 일고르기([...(주폰 === null ? [] : [주폰]), ...빈폰들]);
+  const 판수 = (판들: Map<string, 돌린판[]>) => [...판들.values()].flat().reduce((합, p) => 합 + p.상태들.length, 0);
+  const 앞판들 = 폰판들(결과폴더, 갈래);
+  // 어림에만 쓴다 — 잡기는 팜이 고른다(덤폰잡기). 목록이 상태를 안 거른 팜이어도 IDLE 만 센다
+  const 빈폰들 = ((await 폰목록(팜, 빈폰질의(앱))) ?? []).filter((p) => p.state === undefined || p.state === 'IDLE').map((p) => p.serial).filter((p) => p !== 폰 && !끈것.폰들.has(p));
+  const 미리 = 일고르기(앞판들, [...(주폰 === null ? [] : [주폰]), ...빈폰들]);
   const 시작 = Date.now();
-  const 돈판수 = () => [...폰판들(결과폴더, 갈래).values()].flat().reduce((합, p) => 합 + p.상태들.length, 0);
-  const 앞판수 = 돈판수();
   let 묶음들: ReturnType<typeof 묶음짜기> = [];
   const 로그들: string[] = [];
   const 끊긴폰들: string[] = [];
+  const 빈묶음들: { 폰: string; 계정: number; 로그: string }[] = [];
   // 잡은 뒤로는 무엇이 던져도 놓는다 — 놓기를 놓쳐도 held-<번호> 기록으로 에이전트가 끝에 놓는다
-  const 덤 = await 덤폰잡기(팜, 덤폰수(미리, 계정들, 주폰), 빈폰들, CLI폴더);
+  const 잡은덤 = await 덤폰잡기(팜, Math.min(덤폰수(미리, 계정들, 주폰), 빈폰들.length), 앱, CLI폴더);
+  const 덤 = 잡은덤.filter((p) => !끈것.폰들.has(p));
   const 폰들 = [...(주폰 === null ? [] : [주폰]), ...덤];
   try {
+    // 팜이 고른 폰이 앞 차례에 끈 폰이면 바로 놓는다
+    await 덤폰놓기(팜, 잡은덤.filter((p) => 끈것.폰들.has(p)), CLI폴더);
     if (폰들.length === 0) {
       console.error(`${머리} 잡은 폰 ${폰} 이 끊겼고 빈 폰도 없다 — \`npx ${도구} release\` 뒤 \`hold --minutes 30\` 으로 다시 잡고 부른다`);
       return 2;
     }
     // 앞 기록의 평균으로 묶음마다 예산 안에 드는 만큼 — 처음엔 어림이 커서 적게 돌고, 다음 차례는 배운 값으로 늘린다
-    const 시간들 = [...폰판들(결과폴더, 갈래).values()].flat().flatMap((p) => p.시간들);
+    const 시간들 = [...앞판들.values()].flat().flatMap((p) => p.시간들);
     const 어림 = 시간들.length === 0 ? 게임회차 : 시간들.reduce((a, b) => a + b, 0) / 시간들.length;
-    묶음들 = 묶음짜기(일고르기(폰들), 폰들, 계정들, Math.max(1, Math.floor(예산 / 어림)));
+    묶음들 = 묶음짜기(일고르기(앞판들, 폰들), 폰들, 계정들, Math.max(1, Math.floor(예산 / 어림)));
     const 번호 = 다음기록번호(readdirSync(결과폴더), 기록);
     await Promise.all(
       묶음들.map((b) => {
@@ -245,43 +252,37 @@ export async function 폰실행(갈래: 폰갈래, 폴더: string | undefined, �
     );
     // 도중에 끊긴 폰의 기록은 버린다 — 연결 오류로 빨개진 케이스를 「폰 차이」로 읽지 않게. 그 케이스는 다음 차례에 남은 폰으로 다시 돈다
     const 뒤목록 = 묶음들.length > 0 ? await 폰목록(팜) : null;
-    for (const b of 묶음들.filter((x) => 끊겼나(뒤목록, x.폰))) {
-      끊긴폰들.push(b.폰);
-      const 기록파일 = join(결과폴더, `${묶음기록이름(기록, 번호, b.폰, b.계정)}.json`);
-      if (existsSync(기록파일)) renameSync(기록파일, `${기록파일}.끊김`);
+    for (const b of 묶음들) {
+      const 이름 = 묶음기록이름(기록, 번호, b.폰, b.계정);
+      const 기록파일 = join(결과폴더, `${이름}.json`);
+      if (끊겼나(뒤목록, b.폰)) {
+        끊긴폰들.push(b.폰);
+        if (existsSync(기록파일)) renameSync(기록파일, `${기록파일}.끊김`);
+      } else if (![...폰판들(결과폴더, 갈래).values()].flat().some((p) => p.기록 === `${이름}.json`)) 빈묶음들.push({ 폰: b.폰, 계정: b.계정, 로그: join(결과폴더, `${이름}.log`) });
     }
+    // 결과를 못 낸 묶음 — 잡은 폰 · 원래 계정이 아니면 그 폰(덤)과 그 계정(「일반 회원 N」)을 이 작성에서 끈다. 잡은 폰 · 원래 계정이면 지금처럼 로그를 보라고 한다
+    for (const b of 빈묶음들) 끈묶음적기(결과폴더, b.폰 === 주폰 ? null : b.폰, b.계정 === 1 ? null : b.계정);
   } finally {
     await 덤폰놓기(팜, 덤, CLI폴더);
   }
-  const 판정들 = 폰판정들(대상, 폰판들(결과폴더, 갈래), 폰들.filter((p) => !끊긴폰들.includes(p)), 계정들);
+  const 뒤판들 = 폰판들(결과폴더, 갈래);
+  const 판정들 = 폰판정들(대상, 뒤판들, 폰들.filter((p) => !끊긴폰들.includes(p)), 계정들);
   const 모음 = (...상태들: 판정['상태'][]) => 판정들.filter(([, p]) => 상태들.includes(p.상태));
   const 이번 = 묶음들.reduce((합, b) => 합 + b.파일들.length, 0);
   const 묶음말 = 묶음들.map((b) => `${폰이름(팜목록, b.폰)}(${b.폰}) 계정 ${b.계정} · ${b.파일들.length}건`).join(' / ');
   console.log(`${머리} ${갈래} 케이스 ${Object.keys(대상).length}건 가운데 이번 ${이번}건${묶음말 ? ` — ${묶음말}` : ''} · ${Math.round((Date.now() - 시작) / 1000)}초 · 기록 ${결과폴더}`);
-  if (계정들.length === 1 && 폰들.length > 0) console.log(`${머리} 폰 한 대로 돈다 — 앱 줄에 「일반 회원 2」 같은 폰마다 계정이 없다`);
+  if (계정들.length === 1 && 묶음들.length > 0 && 폰들.length === 1) console.log(`${머리} 폰 한 대로 돈다 — 앱 줄에 「일반 회원 2」 같은 폰마다 계정이 없거나 꺼 두었다`);
   if (끊긴폰들.length > 0) console.log(`${머리} 도중에 끊긴 폰 ${끊긴폰들.join(' · ')} — 그 폰 기록은 버렸다. 남은 것은 다음 차례에 다른 폰으로 돈다`);
-  if (이번 > 0 && 끊긴폰들.length === 0 && 돈판수() === 앞판수) {
+  const 끈말 = 빈묶음들.filter((b) => b.폰 !== 주폰 || b.계정 !== 1);
+  if (끈말.length > 0) console.log(`${머리} 결과를 못 낸 묶음 — ${끈말.map((b) => `${b.폰} 계정 ${b.계정}`).join(' · ')}. 그 덤 폰 · 계정은 이 작성에서 다시 안 쓴다 — 로그: ${끈말.map((b) => b.로그).join(' · ')}`);
+  if (이번 > 0 && 끊긴폰들.length === 0 && 끈말.length === 0 && 판수(뒤판들) === 판수(앞판들)) {
     console.log(`돌렸지만 끝난 케이스가 없다 — 로그를 본다: ${로그들.join(' · ')}`);
     return 2;
   }
   const 빨강 = 모음('빨강');
   const 폰차이 = 모음('폰차이');
   const 계정차이 = 모음('계정차이');
-  if (빨강.length > 0) console.log([`빨강 ${빨강.length}건`, ...빨강.map(([f, p]) => `- ${f}: ${p.상태 === '빨강' ? p.오류 : ''}`)].join('\n'));
-  if (폰차이.length > 0)
-    console.log(
-      [
-        `폰 차이 ${폰차이.length}건 — 다른 폰에서는 초록이다. 도우미가 그 폰 화면 갈래를 타게 고친다(폰을 살펴보려면 지금 폰을 놓고 \`hold --udid <그 폰>\`)`,
-        ...폰차이.map(([f, p]) => (p.상태 === '폰차이' ? `- ${f} (${p.빨간폰들.map((x) => `${폰이름(팜목록, x)} ${x}`).join(' · ')} 에서만 빨강): ${p.오류}` : '')),
-      ].join('\n'),
-    );
-  if (계정차이.length > 0)
-    console.log(
-      [
-        `계정 차이 ${계정차이.length}건 — 원래 계정으로는 초록이다. 케이스를 고치지 않는다 — 그 계정에 시드가 없을 수 있어 결과 요약에 적는다`,
-        ...계정차이.map(([f, p]) => (p.상태 === '계정차이' ? `- ${f} (일반 회원 ${p.계정}): ${p.오류}` : '')),
-      ].join('\n'),
-    );
+  for (const 말 of 판정말들(빨강, 폰차이, 계정차이, (x) => 폰이름(팜목록, x))) console.log(말);
   const 남은 = 모음('안돎', '다시').length;
   if (남은 > 0) {
     console.log(`남은 것 ${남은}건(다시 보기 포함) — 같은 명령을 다시 부른다(30분이 지나면 폰을 놓고 다시 잡는다). 폰 연결이 끊긴 것 같으면 로그를 본다: ${로그들.join(' · ') || '이번에 안 돌림'}`);

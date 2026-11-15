@@ -213,10 +213,14 @@ writeFileSync(process.env.PLAYWRIGHT_JSON_OUTPUT_FILE, JSON.stringify({ config: 
     writeFileSync(join(결과폴더, 'red-RF9R408GKRR'), 'g/G-FN-003.spec.ts');
     const 잡힘 = new Set<string>();
     const 팜 = vi.fn(async (주소: string, 설정?: RequestInit) => {
+      if (주소.endsWith('/api/devices/acquire')) {
+        if (잡힘.has('RF9R408GKRR')) return new Response('{"refused":"빈 폰 없음"}', { status: 409 });
+        잡힘.add('RF9R408GKRR');
+        return new Response(JSON.stringify({ held: { serial: 'RF9R408GKRR' } }), { status: 200 });
+      }
       const 폰 = /devices\/([^/]+)\/hold/.exec(주소)?.[1];
-      if (폰 !== undefined) {
-        if (설정?.method === 'POST') 잡힘.add(폰);
-        else 잡힘.delete(폰);
+      if (폰 !== undefined && 설정?.method === 'DELETE') {
+        잡힘.delete(폰);
         return new Response('{}', { status: 200 });
       }
       const 폰들 = [
