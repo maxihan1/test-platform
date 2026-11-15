@@ -44,9 +44,10 @@ test(spec, async ({ page, params }) => {
   });
 
   await test.step('jiho_cafe 프로필을 연다', async () => {
-    const { 원글조각 } = await 인용글찾기API(page, 'jiho_cafe');
+    const { 인용글조각, 원글조각 } = await 인용글찾기API(page, 'jiho_cafe');
     await 프로필.열기('jiho_cafe');
-    await 카드.카드보이기(원글조각);
-    await verify('jiho_cafe 인용 글 카드 본문 아래에 원글 카드가 보인다', await 카드.인용원글(원글조각).isVisible(), true);
+    await 카드.카드보이기(인용글조각);
+    const 원글보임 = await 카드.인용원글(인용글조각).filter({ hasText: 원글조각 }).first().waitFor({ timeout: 10_000 }).then(() => true, () => false);
+    await verify('jiho_cafe 인용 글 카드 본문 아래에 원글 카드가 보인다', 원글보임, true);
   });
 });

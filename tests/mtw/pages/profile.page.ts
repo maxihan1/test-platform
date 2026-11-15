@@ -38,6 +38,7 @@ export class 프로필화면 {
   readonly 팔로우하기버튼: Locator;
   readonly 차단해제확인: Locator;
   readonly 사용불가: Locator;
+  readonly 고정모두보기: Locator;
   readonly 없는주소안내: Locator;
 
   constructor(private readonly page: Page) {
@@ -49,6 +50,7 @@ export class 프로필화면 {
     this.팔로우버튼 = this.머리.getByRole('button', { name: /^(팔로우|팔로우 요청|맞팔로우|언팔로우|요청 취소|차단 해제|뮤트 해제)$/ });
     this.더보기 = this.머리.getByRole('button', { name: /^(Menu|메뉴|더 보기)$/ }).first();
     this.글목록 = page.getByRole('main').getByRole('feed');
+    this.고정모두보기 = this.글목록.getByText('고정된 게시물 모두 보기');
     this.돌아가기 = page.getByRole('main').getByRole('button', { name: '돌아가기' });
     this.핸들안내 = page.getByRole('heading', { name: '핸들은 이메일과 비슷합니다' });
     this.소개없음 = page.getByText('제공된 설명이 없습니다.');

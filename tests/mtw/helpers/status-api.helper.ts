@@ -89,13 +89,15 @@ export async function 글쓰기시도API(page: Page, 본문: Record<string, unkn
   return { 상태: 응답.status(), 오류: 몸글.error ?? '', 글번호: 응답.ok() ? 몸글.id : undefined };
 }
 
-export async function 인용글찾기API(page: Page, 아이디: string): Promise<{ 인용글: 글; 원글: 글; 원글조각: string }> {
+const 본문글자 = (내용: string): string => 내용.replace(/<p class="quote-inline">[\s\S]*?<\/p>/g, '').replace(/<[^>]+>/g, '').trim().slice(0, 12);
+
+export async function 인용글찾기API(page: Page, 아이디: string): Promise<{ 인용글: 글; 원글: 글; 인용글조각: string; 원글조각: string }> {
   const 그계정 = (await (await page.request.get(`/api/v1/accounts/lookup?acct=${encodeURIComponent(아이디)}`)).json()) as { id: string };
   const 목록 = (await (await page.request.get(`/api/v1/accounts/${그계정.id}/statuses?limit=40`)).json()) as (글 & { quote?: { quoted_status?: 글 } | null })[];
   const 찾음 = 목록.find((s) => s.quote?.quoted_status !== undefined && s.quote.quoted_status !== null);
   const 원글 = 찾음?.quote?.quoted_status;
   if (찾음 === undefined || 원글 === undefined) throw new Error(`${아이디} 의 글에서 인용한 글을 못 찾았다`);
-  return { 인용글: 찾음, 원글, 원글조각: 원글.content.replace(/<[^>]+>/g, '').trim().slice(0, 12) };
+  return { 인용글: 찾음, 원글, 인용글조각: 본문글자(찾음.content), 원글조각: 본문글자(원글.content) };
 }
 
 export async function 내글개수API(page: Page, 글조각: string): Promise<number> {

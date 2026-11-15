@@ -25,7 +25,7 @@ test(spec, async ({ page }) => {
   });
 
   await test.step('비회원 유행 중 화면에서 글 본문을 누른다', async () => {
-    await 화면.본문.click();
+    await 화면.본문.click({ position: { x: 4, y: 4 } });
     const 도착 = await 상세.돌아가기.waitFor({ timeout: 10_000 }).then(() => true, () => false);
     const 상세경로 = /^\/@[^/]+\/\d+$/.test(new URL(page.url()).pathname);
     await verify('비회원 유행 중 화면에서 글을 누르면 그 글 상세로 간다', 도착 && 상세경로, true);
