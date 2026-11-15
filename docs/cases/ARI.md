@@ -331,7 +331,7 @@
 | 323 | 정상 | 「게임 서버」 계정이 있다 | 만든 캐릭터를 POST /api/deleteplayercharacter 로 삭제한다 | 캐릭터를 삭제하면 200 이고 그 캐릭터가 목록에서 사라진다 | ARI-REQ-060 · API POST /api/deleteplayercharacter 200 | ARI-FN-088 | 2026-11-14 |
 | 324 | 정상 | 「게임 서버」 계정이 있다 | 삭제한 뒤 POST /api/getfriendlists 를 부른다 | 삭제한 캐릭터의 친구 목록도 같이 사라진다 | ARI-REQ-060 | ARI-FN-088 | 2026-11-14 |
 | 325 | 예외 | 「게임 서버」 계정이 있다 | 없는 캐릭터 번호로 POST /api/deleteplayercharacter 를 부른다 | 없는 캐릭터 번호로 삭제하면 400 과 본문 「Error occured on server.  See server logs for more details.」이다 | ARI-REQ-061 · API POST /api/deleteplayercharacter 400 | ARI-FN-090 | 2026-11-14 |
-| 326 | 정상 | 「게임 서버」 계정이 있다 | 친구 목록이 없는 캐릭터를 POST /api/deleteplayercharacter 로 삭제한다 | 친구 목록이 없는 캐릭터를 삭제하면 캐릭터만 삭제된 채 400 이다 | ARI-REQ-062 · 보류 — 친구 목록 없는 캐릭터를 만드는 API 가 없다 | ARI-FN-524 | 2026-11-14 |
+| 326 | 정상 | 「게임 서버」 계정이 있다 | 친구 목록이 없는 캐릭터를 POST /api/deleteplayercharacter 로 삭제한다 | 친구 목록이 없는 캐릭터를 삭제하면 캐릭터만 삭제된 채 400 이다 | ARI-REQ-062 · 보류 — 친구 목록 없는 캐릭터를 만드는 API 가 없다 | 제거함(ARI-FN-524) | 2026-11-14 |
 | 327 | 정상 | 「게임 서버」 계정이 있다 | 우편을 받은 캐릭터를 삭제한 뒤 그 캐릭터 번호로 POST /api/getmailmessages 를 부른다 | 우편을 받은 캐릭터를 삭제하면 그 캐릭터의 우편은 그대로 남는다 | ARI-REQ-063 | ARI-FN-092 | 2026-11-14 |
 | 328 | 정상 | 「게임 서버」 계정이 있다 | 아이템 인스턴스를 가진 캐릭터를 삭제한 뒤 POST /api/getiteminstances 를 부른다 | 삭제한 캐릭터의 아이템 인스턴스가 목록에 남아 있다 | ARI-REQ-063 | ARI-FN-092 | 2026-11-14 |
 | 329 | 정상 | 「게임 서버」 계정이 있다 | 길드에 든 캐릭터를 삭제한 뒤 POST /api/getguilds 를 부른다 | 삭제한 캐릭터가 길드 저장 데이터의 멤버로 남아 있다 | ARI-REQ-063 | ARI-FN-092 | 2026-11-14 |
