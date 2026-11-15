@@ -11,7 +11,8 @@ import { pathToFileURL } from 'node:url';
 
 import { type 돌린판, 돌린기록들, 앱케이스나누기, 케이스파일읽기, 살필케이스, 파일상태보기, 판들읽기 } from './authoring-gate3.js';
 import { 바뀐것 } from './authoring-base-list.js';
-import { 앱서버확인, 앱케이스말, 폰실행 } from './authoring-run3-game.js';
+import { 앱서버확인 } from './authoring-app-server.js';
+import { 앱케이스말, 폰실행 } from './authoring-run3-game.js';
 import { 자리기다리기, 자리놓기 } from './authoring-slot.js';
 
 /** 한 번 부를 때 돌릴 시간 — Bash 도구 상한이 10분이고 백그라운드는 금지라 한 번에 다 못 돈다. Playwright 띄우고 닫는 몫을 남긴다 */

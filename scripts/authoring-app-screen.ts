@@ -1,7 +1,7 @@
 // 앱 · 게임 첫 화면을 자료 폴더에 받아 둔다 — AI 가 러너에 닿지 않고 요소 주소를 고르게 (도메인/작성 §3.6 「앱 화면」 · §7 「앱 화면 통로」 · 도메인/게임 §7 「게임 첫 화면」)
 // 기대값의 근거가 아니다 — 자식 지침(tpx-author references/app.md · game.md)이 그렇게 읽는다
 
-import { existsSync, lstatSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -173,7 +173,7 @@ const 잡기_수명_ms = 30 * 60_000;
 const 폰번호꼴 = /^[A-Za-z0-9._:-]{1,64}$/;
 
 /**
- * **자식을 거둔 뒤** 부른다 — 살아남은 자식이 놓은 뒤에 다시 잡지 않게. appium-cli 는 잡은 폰 번호를 작업 폴더의 `.appium-cli/held` 에, 게임의 control-cli 는 `.control-cli/held` 에 적는다 —
+ * **자식을 거둔 뒤** 부른다 — 살아남은 자식이 놓은 뒤에 다시 잡지 않게. appium-cli 는 잡은 폰 번호를 작업 폴더의 `.appium-cli/held` 에, 게임의 control-cli 는 `.control-cli/held` 에 적는다(폰 돌려 보기가 더 잡은 폰은 `held-<번호>`) —
  * 남아 있으면 AI 가 release 를 잊은 것이다. 놓아야 팜이 깐 앱 · 앱 데이터를 지우고 정식 실행이 그 폰을 잡는다.
  * 자식이 쓴 파일이다 — 링크는 따라가지 않고(root 가 남의 파일을 읽어 로그 · 주소에 싣는다) 폰 번호 꼴만 받는다. 본 기록은 지운다(이어하기가 같은 폴더를 쓴다).
  * 실패해도 던지지 않는다 — 잡기는 시간이 끝나면 팜이 스스로 푼다
@@ -181,33 +181,48 @@ const 폰번호꼴 = /^[A-Za-z0-9._:-]{1,64}$/;
 export async function 잡은폰놓기(트리: string, 앱: 앱화면 | undefined, 번호: number, 부르기: typeof fetch = fetch, 지금 = Date.now(), 자료?: string): Promise<void> {
   if (앱?.탐색 === undefined) return;
   const 폴더 = join(트리, 앱.게임 === true ? '.control-cli' : '.appium-cli');
-  const 기록 = join(폴더, 'held');
-  let serial: string;
+  let 이름들: string[];
   try {
-    const 폴더정보 = lstatSync(폴더);
-    const 정보 = lstatSync(기록);
-    if (!폴더정보.isDirectory() || !정보.isFile() || 정보.size > 100) return void console.error(`[작성] ${번호}번 — 잡은 폰 기록이 보통 파일이 아니라 놓지 않는다`);
-    serial = readFileSync(기록, 'utf8').trim();
-    rmSync(기록, { force: true });
-    if (지금 - 정보.mtimeMs > 잡기_수명_ms) return;
+    if (!lstatSync(폴더).isDirectory()) return void console.error(`[작성] ${번호}번 — 잡은 폰 기록이 보통 파일이 아니라 놓지 않는다`);
+    // held 는 AI 가 잡은 폰, held-<번호> 는 폰 돌려 보기가 나눠 돌리려고 더 잡은 폰이다(작성 §3.6 「폰 여러 대로 나눠 돌린다」 — 그 명령이 죽으면 남는다)
+    이름들 = readdirSync(폴더).filter((n) => n === 'held' || /^held-[A-Za-z0-9._:-]{1,64}$/.test(n));
   } catch {
     return;
   }
-  if (!폰번호꼴.test(serial)) return void console.error(`[작성] ${번호}번 — 잡은 폰 기록이 폰 번호 꼴이 아니라 놓지 않는다`);
   const 팜 = 앱.탐색.url.replace(/\/wd\/hub\/?$/, '');
-  try {
-    // AI 는 자식 환경의 PLATFORM_APPIUM_TOKEN(서버가 준 토큰 — 갈아 끼운 파일 것, 없으면 이 컨테이너 것)으로 잡았다. 잡은 계정과 같아야 팜이 놓아 준다
-    const 토큰 = (자료 === undefined ? undefined : 최신팜토큰.get(자료)) ?? 앱.탐색.token ?? process.env.PLATFORM_APPIUM_TOKEN;
-    const res = await 부르기(`${팜}/api/devices/${encodeURIComponent(serial)}/hold`, {
-      method: 'DELETE',
-      headers: 토큰 ? { authorization: `Bearer ${토큰}` } : {},
-      signal: AbortSignal.timeout(10_000),
-    });
-    // 409 는 이미 놓았거나 시간이 끝난 것이다 — 놓을 것이 없다
-    const 말 = res.ok ? '놓았다' : res.status === 409 ? '이미 풀려 있었다' : '놓지 못했다';
-    console.error(`[작성] ${번호}번 — AI 가 잡아 둔 폰 ${serial} 을 ${말}: HTTP ${res.status}`);
-  } catch (err) {
-    console.error(`[작성] ${번호}번 — AI 가 잡아 둔 폰 ${serial} 을 놓지 못했다: ${err instanceof Error ? err.name : '알 수 없는 오류'}`);
+  // AI 는 자식 환경의 PLATFORM_APPIUM_TOKEN(서버가 준 토큰 — 갈아 끼운 파일 것, 없으면 이 컨테이너 것)으로 잡았다. 잡은 계정과 같아야 팜이 놓아 준다
+  const 토큰 = (자료 === undefined ? undefined : 최신팜토큰.get(자료)) ?? 앱.탐색.token ?? process.env.PLATFORM_APPIUM_TOKEN;
+  for (const 이름 of 이름들) {
+    const 기록 = join(폴더, 이름);
+    let serial: string;
+    try {
+      const 정보 = lstatSync(기록);
+      if (!정보.isFile() || 정보.size > 100) {
+        console.error(`[작성] ${번호}번 — 잡은 폰 기록이 보통 파일이 아니라 놓지 않는다`);
+        continue;
+      }
+      serial = readFileSync(기록, 'utf8').trim();
+      rmSync(기록, { force: true });
+      if (지금 - 정보.mtimeMs > 잡기_수명_ms) continue;
+    } catch {
+      continue;
+    }
+    if (!폰번호꼴.test(serial)) {
+      console.error(`[작성] ${번호}번 — 잡은 폰 기록이 폰 번호 꼴이 아니라 놓지 않는다`);
+      continue;
+    }
+    try {
+      const res = await 부르기(`${팜}/api/devices/${encodeURIComponent(serial)}/hold`, {
+        method: 'DELETE',
+        headers: 토큰 ? { authorization: `Bearer ${토큰}` } : {},
+        signal: AbortSignal.timeout(10_000),
+      });
+      // 409 는 이미 놓았거나 시간이 끝난 것이다 — 놓을 것이 없다
+      const 말 = res.ok ? '놓았다' : res.status === 409 ? '이미 풀려 있었다' : '놓지 못했다';
+      console.error(`[작성] ${번호}번 — AI 가 잡아 둔 폰 ${serial} 을 ${말}: HTTP ${res.status}`);
+    } catch (err) {
+      console.error(`[작성] ${번호}번 — AI 가 잡아 둔 폰 ${serial} 을 놓지 못했다: ${err instanceof Error ? err.name : '알 수 없는 오류'}`);
+    }
   }
 }
 

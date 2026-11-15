@@ -1,0 +1,255 @@
+// 작성 폰 돌려 보기를 팜 폰 여러 대로 나눈다 — 폰마다 계정 · 혼자 도는 케이스 · 빨간 케이스 다시 보기 · 덤 폰 잡기 (SPEC 도메인/작성 §3.6 「앱 화면」 「폰 여러 대로 나눠 돌린다」)
+// 11-16 MTA #15522 는 543분 가운데 476분을 폰 한 대에서 케이스를 차례로 돌리는 데 썼다. 돌리는 쪽은 authoring-run3-game `폰실행` 이다
+
+import { rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+import { 기본역할, 출처 } from '@platform/kit/accounts';
+import { 패키지이름인가 } from '@platform/kit/protocol';
+
+import type { 돌린판 } from './authoring-gate3.js';
+import { 동시계정번호, 일회용역할 } from './authoring-roles.js';
+
+type 계정줄 = { baseUrl?: unknown; role?: unknown; loginId?: unknown; loginPassword?: unknown };
+
+function 계정줄들(글: string | undefined): 계정줄[] {
+  try {
+    const 값: unknown = JSON.parse(글 || '[]');
+    return Array.isArray(값) ? 값.filter((a): a is 계정줄 => typeof a === 'object' && a !== null) : [];
+  } catch {
+    return [];
+  }
+}
+
+const 찬계정 = (a: 계정줄) => typeof a.loginId === 'string' && a.loginId !== '' && typeof a.loginPassword === 'string' && a.loginPassword !== '';
+
+/**
+ * 이 앱 줄에서 나눠 쓸 계정 번호 — 1 은 원래 일반 회원, 그 뒤는 같은 줄의 「일반 회원 N」(아이디 · 비밀번호가 다 있고 원래 계정과 다를 때만).
+ * 원래 일반 회원이 없으면 [1] 하나다 — 나눌 기준 계정이 없다
+ */
+export function 계정번호들(계정글: string | undefined, 주소: string): number[] {
+  const 줄 = 계정줄들(계정글).filter((a) => 출처(a.baseUrl) === 출처(주소) && 찬계정(a));
+  const 원래 = 줄.find((a) => a.role === 기본역할);
+  if (원래 === undefined) return [1];
+  const 번호들 = 줄.flatMap((a) => (typeof a.role === 'string' && a.loginId !== 원래.loginId ? [동시계정번호(a.role) ?? 0] : [])).filter((n) => n >= 2);
+  return [1, ...[...new Set(번호들)].sort((a, b) => a - b)];
+}
+
+/** k 번 묶음이 kit 에 넘길 계정 글 — 그 줄의 일반 회원 자리에 「일반 회원 k」 계정을 넣는다. 1 이거나 그 계정이 없으면 그대로 */
+export function 묶음계정글(계정글: string | undefined, 주소: string, k: number): string | undefined {
+  if (k === 1) return 계정글;
+  const 줄들 = 계정줄들(계정글);
+  const 같은줄 = (a: 계정줄) => 출처(a.baseUrl) === 출처(주소);
+  const 덤 = 줄들.find((a) => 같은줄(a) && typeof a.role === 'string' && 동시계정번호(a.role) === k);
+  if (덤 === undefined) return 계정글;
+  return JSON.stringify([{ ...덤, role: 기본역할 }, ...줄들.filter((a) => !(같은줄(a) && a.role === 기본역할))]);
+}
+
+/** 일반 회원 · 일회용 · 폰마다 계정 밖의 역할(관리자 같은)을 쓰는 케이스 — 서버 전체를 바꿀 수 있어 다른 폰이 쉴 때 혼자 돈다. 케이스 글자로 본다(틀려도 차례만 달라진다) */
+export function 혼자도나(글: string): boolean {
+  return [...글.matchAll(/\baccount:\s*(['"`])(.*?)\1/g)].some(([, , 역할 = '']) => {
+    const r = 역할.trim();
+    return r !== 기본역할 && !일회용역할.test(r) && 동시계정번호(r) === null;
+  });
+}
+
+/** 기록 이름 — 어느 폰 · 몇 번 계정으로 돌았는지 이름에 싣는다. 나란히 도는 묶음이 같은 번호를 나눠 쓴다 */
+export const 묶음기록이름 = (머리: string, 번호: number, 폰: string, 계정: number): string => `${머리}-${번호}~${폰}~${계정}`;
+
+/** 기록 이름에서 폰 · 계정. 이 꼴 전의 기록(`gate3-app-3.json`)은 폰을 모르고 원래 계정이다 */
+export function 기록자리(기록: string): { 폰: string | null; 계정: number } {
+  const 맞음 = /~([A-Za-z0-9._:-]{1,64})~(\d{1,2})\.json$/.exec(기록);
+  return 맞음 === null ? { 폰: null, 계정: 1 } : { 폰: 맞음[1]!, 계정: Number(맞음[2]) };
+}
+
+/** 같은 머리 기록 가운데 다음 번호 — 옛 꼴 · 새 꼴 · 끊겨 버린 기록을 다 센다 */
+export function 다음기록번호(이름들: readonly string[], 머리: string): number {
+  const 꼴 = new RegExp(`^${머리}-(\\d+)(?:~[^/]*)?\\.json`);
+  return Math.max(0, ...이름들.map((n) => Number(꼴.exec(n)?.[1] ?? 0))) + 1;
+}
+
+export interface 한판 {
+  폰: string | null;
+  계정: number;
+  빨강: boolean;
+  시작: number;
+  오류: string | null;
+}
+
+/** 고친 뒤(수정 시각 뒤) 돈 판들 */
+export const 한판들 = (판들: readonly 돌린판[] | undefined, 수정: number): 한판[] =>
+  (판들 ?? []).filter((p) => Number.isFinite(p.시작) && p.시작 >= 수정).map((p) => ({ ...기록자리(p.기록), 빨강: p.상태들.includes('unexpected'), 시작: p.시작, 오류: p.오류 }));
+
+export type 판정 =
+  | { 상태: '안돎' }
+  | { 상태: '초록' }
+  | { 상태: '빨강'; 오류: string }
+  | { 상태: '폰차이'; 빨간폰들: string[]; 오류: string }
+  | { 상태: '계정차이'; 계정: number; 오류: string }
+  | { 상태: '다시'; 계정: number; 뺄폰: string | null };
+
+/**
+ * 한 케이스의 지금 판정. 빨갛게 돈 것은 두 번까지 다시 본다 —
+ * ① 같은 계정으로 다른 폰: 초록이면 「폰차이」(빨강으로 센다 — 도우미가 그 폰 화면 갈래를 타야 한다).
+ * ② 거기서도 빨갛고 「일반 회원 N」으로 돌았으면 원래 계정으로: 초록이면 「계정차이」(케이스 탓이 아니라 그 계정에 시드가 없다 — 빨강으로 안 센다).
+ * 지금 다른 폰이 없거나 그 계정을 못 쓰면 ①을 건너뛴다. 끝 검사는 폰도 계정도 없이 불러 남은 「다시」를 빨강으로 본다
+ */
+export function 판정하기(돈것: readonly 한판[], 있는폰들: readonly string[], 계정들: readonly number[]): 판정 {
+  // 같은 폰 · 같은 계정으로 또 돌았으면 늦은 것만 본다 — 다시 돌려 초록이면 빨강이 아니다
+  const 늦은것 = new Map<string, 한판>();
+  for (const p of 돈것) {
+    const 열쇠 = `${p.폰 ?? ''}\0${p.계정}`;
+    if ((늦은것.get(열쇠)?.시작 ?? -Infinity) <= p.시작) 늦은것.set(열쇠, p);
+  }
+  const 판들 = [...늦은것.values()];
+  if (판들.length === 0) return { 상태: '안돎' };
+  const 빨간 = 판들.filter((p) => p.빨강);
+  if (빨간.length === 0) return { 상태: '초록' };
+  const 오류 = (p: 한판) => p.오류 ?? '오류 글 없음';
+  for (const r of 빨간) {
+    if (판들.some((p) => !p.빨강 && p.계정 === r.계정 && p.폰 !== r.폰)) {
+      const 빨간폰들 = [...new Set(빨간.filter((p) => p.계정 === r.계정).map((p) => p.폰 ?? '모름'))];
+      return { 상태: '폰차이', 빨간폰들, 오류: 오류(r) };
+    }
+  }
+  if (판들.some((p) => !p.빨강 && p.계정 === 1) && 빨간.every((p) => p.계정 !== 1)) {
+    const r = 빨간.at(-1)!;
+    return { 상태: '계정차이', 계정: r.계정, 오류: 오류(r) };
+  }
+  const r = 빨간.reduce((a, b) => (b.시작 > a.시작 ? b : a));
+  const 다른폰 = 있는폰들.some((p) => p !== r.폰);
+  // 어느 계정으로든 다른 폰에서 이미 빨갰으면 폰 탓이 아니다 — 폰 다시 보기는 한 폰에서만 돈 케이스만
+  if (다른폰 && 계정들.includes(r.계정) && !판들.some((p) => p.폰 !== r.폰)) return { 상태: '다시', 계정: r.계정, 뺄폰: r.폰 };
+  if (r.계정 !== 1 && !판들.some((p) => p.계정 === 1)) return { 상태: '다시', 계정: 1, 뺄폰: null };
+  return { 상태: '빨강', 오류: 오류(r) };
+}
+
+/** 이번에 돌릴 일 — 처음 도는 것은 계정 · 폰을 가리지 않고, 다시 보기는 계정이 정해지고 한 폰을 뺀다 */
+export interface 일 {
+  파일: string;
+  계정: number | null;
+  뺄폰: string | null;
+  혼자: boolean;
+}
+
+export interface 묶음 {
+  폰: string;
+  계정: number;
+  파일들: string[];
+}
+
+/**
+ * 이번 차례 묶음 — 폰 하나에 계정 하나. 혼자 도는 케이스는 같이 도는 케이스가 다 끝난 뒤 폰 하나 · 원래 계정으로만 돈다.
+ * 다시 보기가 많은 계정이 먼저 폰을 고르고, 그 계정의 다시 보기를 가장 많이 받는 폰을 고른다(같으면 앞 폰 — AI 가 잡은 폰이 맨 앞이다).
+ * 처음 도는 케이스는 덜 찬 묶음에 하나씩. 묶음마다 `칸` 건까지다
+ */
+export function 묶음짜기(일들: readonly 일[], 폰들: readonly string[], 계정들: readonly number[], 칸: number): 묶음[] {
+  const 같이 = 일들.filter((j) => !j.혼자);
+  const 고를일 = 같이.length > 0 ? 같이 : 일들;
+  const 쓸계정 = 같이.length > 0 ? 계정들 : [1];
+  const 정해진 = (k: number) => 고를일.filter((j) => (j.계정 ?? 0) === k);
+  const 차례 = [...쓸계정].sort((a, b) => 정해진(b).length - 정해진(a).length || a - b).slice(0, 폰들.length);
+  const 남은폰 = [...폰들];
+  const 묶음들: 묶음[] = 차례.map((k) => {
+    const 받음 = (폰: string) => 정해진(k).filter((j) => j.뺄폰 !== 폰).length;
+    const 폰 = 남은폰.reduce((a, b) => (받음(b) > 받음(a) ? b : a));
+    남은폰.splice(남은폰.indexOf(폰), 1);
+    return { 폰, 계정: k, 파일들: [] };
+  });
+  for (const j of 고를일.filter((j) => j.계정 !== null)) {
+    const b = 묶음들.find((x) => x.계정 === j.계정 && x.폰 !== j.뺄폰 && x.파일들.length < 칸);
+    b?.파일들.push(j.파일);
+  }
+  for (const j of 고를일.filter((j) => j.계정 === null)) {
+    const b = 묶음들.filter((x) => x.파일들.length < 칸).sort((x, y) => x.파일들.length - y.파일들.length)[0];
+    b?.파일들.push(j.파일);
+  }
+  return 묶음들.filter((b) => b.파일들.length > 0);
+}
+
+/** 이번에 더 잡을 폰 수 — 같이 도는 일이면 계정 수만큼(일보다 많이는 안), 다시 보기가 잡은 폰을 빼야 하면 적어도 하나. 잡은 폰이 끊겼으면 그 자리도 */
+export function 덤폰수(일들: readonly 일[], 계정들: readonly number[], 주폰: string | null): number {
+  const 같이 = 일들.filter((j) => !j.혼자);
+  const 볼일 = 같이.length > 0 ? 같이 : 일들;
+  if (볼일.length === 0) return 0;
+  const 나란히 = 같이.length > 0 ? Math.min(계정들.length, 같이.length) : 1;
+  const 뺌 = 볼일.some((j) => j.뺄폰 !== null && j.뺄폰 === 주폰) ? 1 : 0;
+  return 주폰 === null ? 나란히 : Math.max(나란히 - 1, 뺌);
+}
+
+// ── 디바이스 팜 — 잡기 주소는 Appium 주소에서 /wd/hub 를 뗀 곳이다(Devicefarm docs/guides/test-platform.md §4 · §11) ──
+
+export interface 팜 {
+  부르기: typeof fetch;
+  주소: string;
+  토큰?: string | undefined;
+}
+
+export interface 팜폰 {
+  serial: string;
+  state?: string;
+  marketName?: string;
+  model?: string;
+}
+
+async function 팜부르기(팜: 팜, 방법: string, 길: string, 몸?: unknown): Promise<unknown> {
+  const res = await 팜.부르기(`${팜.주소}${길}`, {
+    method: 방법,
+    headers: { ...(팜.토큰 ? { authorization: `Bearer ${팜.토큰}` } : {}), ...(몸 === undefined ? {} : { 'content-type': 'application/json' }) },
+    ...(몸 === undefined ? {} : { body: JSON.stringify(몸) }),
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json().catch(() => null);
+}
+
+/** 폰 목록 — 못 읽으면 null(나눠 돌리지 않고 잡은 폰 하나로 간다). 스토어 앱이면 그 앱이 남는 폰만 */
+export async function 폰목록(팜: 팜, 질의 = ''): Promise<팜폰[] | null> {
+  try {
+    const v = (await 팜부르기(팜, 'GET', `/api/devices${질의}`)) as { value?: { devices?: 팜폰[] }; devices?: 팜폰[] } | null;
+    const 폰들 = v?.value?.devices ?? v?.devices;
+    return Array.isArray(폰들) ? 폰들.filter((p) => typeof p.serial === 'string') : null;
+  } catch {
+    return null;
+  }
+}
+
+export const 빈폰질의 = (앱: string | undefined): string => (앱 !== undefined && 패키지이름인가(앱) ? `?app=${encodeURIComponent(앱)}&status=idle` : '?status=idle');
+
+/** 끊긴 폰 — 뽑혔거나 adb 가 답이 없거나 팜이 빼 뒀다. 목록에 없거나 목록을 못 읽었으면 끊겼다고 하지 않는다 */
+export const 끊겼나 = (목록: readonly 팜폰[] | null, 폰: string): boolean => ['OFFLINE', 'MAINTENANCE'].includes(목록?.find((p) => p.serial === 폰)?.state ?? '');
+
+/** 사람이 읽을 폰 이름 — 판매명이 먼저 */
+export const 폰이름 = (목록: readonly 팜폰[] | null, 폰: string): string => {
+  const p = 목록?.find((x) => x.serial === 폰);
+  return p?.marketName ?? p?.model ?? 폰;
+};
+
+/**
+ * 빈 폰을 `몇` 대까지 잡는다(30분). 잡은 폰마다 `<CLI 폴더>/held-<번호>` 를 남긴다 — 이 명령이 죽어도 에이전트의 잡은폰놓기가 놓는다.
+ * 못 잡은 폰은 건너뛴다(그사이 다른 실행이 잡았다)
+ */
+export async function 덤폰잡기(팜: 팜, 몇: number, 빈폰들: readonly string[], 폴더: string): Promise<string[]> {
+  const 잡은: string[] = [];
+  for (const 폰 of 빈폰들) {
+    if (잡은.length >= 몇) break;
+    try {
+      await 팜부르기(팜, 'POST', `/api/devices/${encodeURIComponent(폰)}/hold`, { minutes: 30 });
+      writeFileSync(join(폴더, `held-${폰}`), 폰);
+      잡은.push(폰);
+    } catch {
+      // 다른 실행이 먼저 잡았거나 정리 중이다 — 다음 폰
+    }
+  }
+  return 잡은;
+}
+
+/** 덤 폰을 놓는다 — 실패해도 던지지 않는다(30분이면 팜이 스스로 푼다) */
+export async function 덤폰놓기(팜: 팜, 폰들: readonly string[], 폴더: string): Promise<void> {
+  await Promise.all(
+    폰들.map(async (폰) => {
+      await 팜부르기(팜, 'DELETE', `/api/devices/${encodeURIComponent(폰)}/hold`).catch(() => undefined);
+      rmSync(join(폴더, `held-${폰}`), { force: true });
+    }),
+  );
+}

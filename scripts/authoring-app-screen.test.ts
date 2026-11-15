@@ -211,6 +211,19 @@ describe('눌러 가며 읽기 — 탐색 주소 · 폰 놓기 (도메인/작성
     expect(부름.mock.calls[0]?.[1].method).toBe('DELETE');
   });
 
+  it('폰 돌려 보기가 더 잡아 둔 폰(held-<번호>)도 놓는다 — 그 명령이 도중에 죽으면 남는다', async () => {
+    mkdirSync(join(자료, '.appium-cli'));
+    writeFileSync(join(자료, '.appium-cli', 'held'), 'R3CR10TCVCD\n');
+    writeFileSync(join(자료, '.appium-cli', 'held-RF9R408GKRR'), 'RF9R408GKRR');
+    writeFileSync(join(자료, '.appium-cli', 'probe.json'), '{}');
+    const 부름 = vi.fn(async (_주소: string, _설정: RequestInit) => new Response('{"released":true}', { status: 200 }));
+
+    await 잡은폰놓기(자료, { 글: 'x', 탐색 }, 7, 부름 as unknown as typeof fetch);
+
+    expect(부름.mock.calls.map((c) => c[0]).sort()).toEqual(['http://host.docker.internal:4723/api/devices/R3CR10TCVCD/hold', 'http://host.docker.internal:4723/api/devices/RF9R408GKRR/hold']);
+    expect(existsSync(join(자료, '.appium-cli', 'held-RF9R408GKRR'))).toBe(false);
+  });
+
   it('PLATFORM_APPIUM_TOKEN 이 있으면 AI 와 같은 토큰으로 놓는다', async () => {
     mkdirSync(join(자료, '.appium-cli'));
     writeFileSync(join(자료, '.appium-cli', 'held'), 'R3CR10TCVCD\n');
