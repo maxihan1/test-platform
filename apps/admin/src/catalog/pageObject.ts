@@ -44,53 +44,53 @@ export const K15_WHY = '정해 둔 시간은 느린 망에서는 모자라 흔�
 const 고정대기 = ['waitForTimeout', 'networkidle'];
 const ROUTE_CALLS = ['route', 'routeWebSocket'];
 
-// `new Promise((r) => setTimeout(r, …))` — 실행 함수가 받은 풀기를 타이머가 부르기만 하는 약속
+// `new Promise((r) => setTimeout(r, …))` · `setTimeout(() => r(), …)` — 실행 함수가 받은 풀기를 타이머가 부르는 약속
 function isSleepPromise(node: ts.Node): node is ts.NewExpression {
   if (!ts.isNewExpression(node) || !ts.isIdentifier(node.expression) || node.expression.text !== 'Promise') return false;
   const exec = node.arguments?.[0];
   if (exec === undefined || !(ts.isArrowFunction(exec) || ts.isFunctionExpression(exec))) return false;
   const resolve = exec.parameters[0]?.name;
   if (resolve === undefined || !ts.isIdentifier(resolve)) return false;
-  let found = false;
-  const visit = (n: ts.Node): void => {
-    if (
-      ts.isCallExpression(n) &&
-      ts.isIdentifier(n.expression) &&
-      n.expression.text === 'setTimeout' &&
-      n.arguments[0] !== undefined &&
-      ts.isIdentifier(n.arguments[0]) &&
-      n.arguments[0].text === resolve.text
-    ) {
-      found = true;
+  const callsResolve = (n: ts.Node): boolean =>
+    (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === resolve.text) || (ts.forEachChild(n, callsResolve) ?? false);
+  const visit = (n: ts.Node): boolean => {
+    if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === 'setTimeout') {
+      const first = n.arguments[0];
+      if (first !== undefined && ts.isIdentifier(first) && first.text === resolve.text) return true;
+      if (first !== undefined && (ts.isArrowFunction(first) || ts.isFunctionExpression(first)) && callsResolve(first.body)) return true;
     }
-    ts.forEachChild(n, visit);
+    return ts.forEachChild(n, visit) ?? false;
   };
-  visit(exec.body);
-  return found;
+  return visit(exec.body);
 }
 
-// 되풀이 조회의 사이 쉬기 · route 안 응답 늦추기 · `Promise.race` 데드라인은 기다림이 아니라 조회 간격이거나 상황을 만드는 것이다
+// 되풀이 조회의 사이 쉬기 · route 안 응답 늦추기 · `Promise.race` 데드라인은 기다림이 아니라 조회 간격이거나 상황을 만드는 것이다.
+// 되풀이 조회는 조건으로 도는 `while` · `do` · `for(;;)` 만 친다 — `for … of` 는 항목마다 쉬는 고정 대기다
 function allowedSleep(node: ts.Node): boolean {
   let inFunction = false;
   for (let n = node.parent; n !== undefined; n = n.parent) {
-    if (!inFunction && (ts.isWhileStatement(n) || ts.isDoStatement(n) || ts.isForStatement(n) || ts.isForOfStatement(n) || ts.isForInStatement(n))) {
-      return true;
-    }
+    if (!inFunction && (ts.isWhileStatement(n) || ts.isDoStatement(n) || ts.isForStatement(n))) return true;
     if (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression)) {
       const name = n.expression.name.text;
       if (ROUTE_CALLS.includes(name)) return true;
       if (name === 'race' && ts.isIdentifier(n.expression.expression) && n.expression.expression.text === 'Promise') return true;
     }
     if (ts.isFunctionLike(n)) {
-      if (n.parameters.some((p) => (ts.isIdentifier(p.name) && p.name.text === 'route') || p.type?.getText() === 'Route')) return true;
+      // 따로 정의한 route 처리 함수 — 가장 가까운 함수만 보고, `route: string` 같은 다른 타입은 치지 않는다
+      const routeParam = n.parameters.some((p) => p.type?.getText() === 'Route' || (p.type === undefined && ts.isIdentifier(p.name) && p.name.text === 'route'));
+      if (!inFunction && routeParam) return true;
       inFunction = true;
     }
   }
   return false;
 }
 
-// 쉬기만 하는 함수(`const 쉬기 = (ms) => new Promise(…)`)는 정의 대신 부르는 자리를 본다
-// ponytail: 같은 파일 안 이름만 따라간다. 다른 파일에서 가져온 쉬기 함수는 그 파일의 정의가 걸린다
+const exported = (node: ts.Node): boolean =>
+  ts.canHaveModifiers(node) && (ts.getModifiers(node) ?? []).some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
+
+// 쉬기만 하는 함수(`const 쉬기 = (ms) => new Promise(…)`)는 정의 대신 같은 파일에서 부르는 자리를 본다.
+// 내보내는 쉬기 함수는 정의가 걸린다 — 다른 파일에서 부르는 자리는 따라가지 않는다
+// ponytail: 선언과 떨어진 `export { 쉬기 }` 는 못 알아본다. 그 꼴이 나오면 내보내는 이름 목록을 같이 본다
 function sleepHelperName(promise: ts.NewExpression): string | undefined {
   let fn: ts.Node = promise.parent;
   if (ts.isAwaitExpression(fn)) fn = fn.parent;
@@ -99,8 +99,10 @@ function sleepHelperName(promise: ts.NewExpression): string | undefined {
     fn = fn.parent.parent;
   }
   if (!(ts.isArrowFunction(fn) || ts.isFunctionExpression(fn) || ts.isFunctionDeclaration(fn))) return undefined;
-  if (ts.isFunctionDeclaration(fn)) return fn.name?.text;
-  return ts.isVariableDeclaration(fn.parent) && ts.isIdentifier(fn.parent.name) ? fn.parent.name.text : undefined;
+  if (ts.isFunctionDeclaration(fn)) return exported(fn) ? undefined : fn.name?.text;
+  const decl = fn.parent;
+  if (!ts.isVariableDeclaration(decl) || !ts.isIdentifier(decl.name)) return undefined;
+  return exported(decl.parent.parent) ? undefined : decl.name.text;
 }
 
 export function k15(file: string, sf: ts.SourceFile): Violation[] {
@@ -122,8 +124,15 @@ export function k15(file: string, sf: ts.SourceFile): Violation[] {
     }
     if (ts.isCallExpression(node)) {
       calls.push(node);
-      // 앱 드라이버(WebdriverIO)의 `driver.pause(1000)`. 인자 없는 `video.pause()` 는 쉬기가 아니다
-      if (ts.isPropertyAccessExpression(node.expression) && node.expression.name.text === 'pause' && node.arguments.length === 1) sleeps.push(node);
+      // 앱 드라이버(WebdriverIO)의 `driver.pause(1000)` — 인자 없이도 1초를 쉰다. 다른 것의 인자 없는 `video.pause()` 는 쉬기가 아니다
+      const callee = node.expression;
+      if (
+        ts.isPropertyAccessExpression(callee) &&
+        callee.name.text === 'pause' &&
+        (node.arguments.length === 1 || (ts.isIdentifier(callee.expression) && ['driver', 'browser'].includes(callee.expression.text)))
+      ) {
+        sleeps.push(node);
+      }
     }
     ts.forEachChild(node, visit);
   };
@@ -135,12 +144,14 @@ export function k15(file: string, sf: ts.SourceFile): Violation[] {
 
 export const K16_WHY = '작성한 컴퓨터의 주소라 러너 · 다른 컴퓨터에서는 자기 자신을 가리켜 닿지 않는다';
 
-// 대상 서버 주소는 실행 때 baseURL · 대상 서버 설정으로 받는다. `127.0.0.1:9` 처럼 일부러 거절되는 주소는 막지 않는다
+// 대상 서버 주소는 실행 때 baseURL · 대상 서버 설정으로 받는다. 연결 거절을 일부러 만드는 9번 포트(`127.0.0.1:9`)는 막지 않는다
+// ponytail: 내부 주소를 거절하는지 보는 입력값처럼 일부러 적은 글자도 걸린다. 그런 케이스가 생기면 줄 하나를 빼는 표시를 더한다
+const 작성주소 = /(?:\blocalhost|host\.docker\.internal|\b127\.0\.0\.1|\b0\.0\.0\.0)\b(?!:9\b)/i;
 export function k16(file: string, sf: ts.SourceFile): Violation[] {
   const out: Violation[] = [];
   const visit = (node: ts.Node): void => {
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node) || ts.isTemplateHead(node) || ts.isTemplateMiddle(node) || ts.isTemplateTail(node)) {
-      if (/\blocalhost\b|host\.docker\.internal/i.test(node.text)) {
+      if (작성주소.test(node.text)) {
         out.push({ file, line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, rule: 'K16', what: '작성 환경 주소를 적었다', why: K16_WHY });
       }
     }

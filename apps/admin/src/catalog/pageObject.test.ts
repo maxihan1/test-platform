@@ -84,12 +84,31 @@ export async function 열기(): Promise<void> {
     ]);
   });
 
+  it('내보내는 쉬기 함수는 정의가 걸린다 — 다른 파일에서 부르는 자리는 따라가지 않는다', () => {
+    const 글 = `export const 쉬기 = (ms: number) => new Promise((r) => setTimeout(r, ms));
+export async function 쉰다(): Promise<void> {
+  await new Promise((r) => setTimeout(r, 500));
+}
+`;
+    expect(checkNonCase('mkt/helpers/x.helper.ts', 글).map((x) => [x.rule, x.line])).toEqual([
+      ['K15', 1],
+      ['K15', 3],
+    ]);
+  });
+
   it('되풀이 조회 사이 쉬기 · route 안 응답 늦추기 · Promise.race 데드라인 · 인자 없는 pause 는 안 잡는다', () => {
     expect(k15줄('    for (;;) {\n      if (await this.page.isVisible("a")) return;\n      await new Promise((r) => setTimeout(r, 300));\n    }')).toEqual([]);
     expect(k15줄('    await this.page.route("**/api", async (r) => { await new Promise((f) => setTimeout(f, 300)); await r.continue(); });')).toEqual([]);
     expect(k15줄('    const 처리 = async (route: Route) => { await new Promise((f) => setTimeout(f, 300)); await route.continue(); };')).toEqual([]);
     expect(k15줄('    await Promise.race([this.page.waitForEvent("close"), new Promise((r) => setTimeout(r, 5000))]);')).toEqual([]);
     expect(k15줄('    const t = setTimeout(() => controller.abort(), 5000);\n    await this.page.evaluate(() => video.pause());')).toEqual([]);
+  });
+
+  it('화살표로 풀기를 부르는 쉬기 · 인자 없는 driver.pause · for…of 안 쉬기 · route: string 함수 안 쉬기도 잡는다', () => {
+    expect(k15줄('    await new Promise((r) => setTimeout(() => r(), 500));')).toEqual([7]);
+    expect(k15줄('    await driver.pause();')).toEqual([7]);
+    expect(k15줄('    for (const 칸 of [1]) {\n      await new Promise((r) => setTimeout(r, 1500));\n    }')).toEqual([8]);
+    expect(k15줄('    const 이동 = async (route: string) => { await this.page.goto(route); await new Promise((r) => setTimeout(r, 2000)); };')).toEqual([7]);
   });
 
   it('반복문 안에 정의한 함수 속 쉬기는 반복문이 지켜 주지 않는다', () => {
@@ -100,6 +119,7 @@ export async function 열기(): Promise<void> {
     const 걸린 = (본문: string): string[] => checkNonCase('mkt/helpers/x.helper.ts', 몸(본문)).map((x) => x.rule);
     expect(걸린("    const a = 'http://localhost:3002';")).toEqual(['K16']);
     expect(걸린('    const a = `http://host.docker.internal:${String(3000)}/api`;')).toEqual(['K16']);
+    expect(걸린("    const a = 'http://127.0.0.1:3002/api';")).toEqual(['K16']);
     expect(걸린("    const a = 'http://127.0.0.1:9';")).toEqual([]);
   });
 
