@@ -85,6 +85,35 @@ export async function 반영요청세우기(손: PoolClient, 서비스: number, 
   return 줄세우기({ 서비스, kind: 'AUTHOR', 기획서: null, 값: { prdApply: true, ...값, decision: { after: 열린, count: 1 } }, ...BTS요청자(issueKey) }, 손);
 }
 
+/**
+ * 화면이 맞음 — 같은 앱에 아직 안 집힌(PENDING) 「화면이 맞음」 요청이 있으면 그 screenRight 에 이어 붙이고 그 번호를, 없으면 새로 세운다.
+ * 이슈 여럿을 이어 닫을 때 이슈마다 다시 작성 · PR 이 하나씩 서지 않게(2026-11-15 사용자 — MTW 49건). 이미 든 케이스는 겹쳐 넣지 않는다.
+ * 그 줄을 FOR UPDATE 로 잡고 PENDING 일 때만 고친다 — 그 사이 에이전트가 집었으면 건드리지 않고 새로 세운다
+ */
+async function 화면이맞음붙이거나세우기(손: PoolClient, 서비스: number, issueKey: string, 칸들: { tcId: string }[]): Promise<number> {
+  const 대기 = (
+    await 손.query<{ id: string; params: { screenRight: { tcId: string }[]; decision?: { count?: number } } }>(
+      `SELECT id, params FROM authoring_request
+        WHERE service_id = $1 AND kind = 'AUTHOR' AND status = 'PENDING' AND discarded_at IS NULL
+          AND params->>'prdApply' = 'true' AND jsonb_typeof(params->'screenRight') = 'array'
+        ORDER BY id DESC LIMIT 1 FOR UPDATE`,
+      [서비스],
+    )
+  ).rows[0];
+  if (대기 === undefined) return 반영요청세우기(손, 서비스, issueKey, { screenRight: 칸들 });
+  const 있던 = new Set(대기.params.screenRight.map((x) => x.tcId));
+  const 새것 = 칸들.filter((x) => !있던.has(x.tcId));
+  if (새것.length > 0) {
+    await 손.query(
+      `UPDATE authoring_request
+          SET params = jsonb_set(jsonb_set(params, '{screenRight}', (params->'screenRight') || $2::jsonb), '{decision,count}', to_jsonb($3::int), true)
+        WHERE id = $1 AND status = 'PENDING'`,
+      [대기.id, JSON.stringify(새것), (대기.params.decision?.count ?? 대기.params.screenRight.length) + 새것.length],
+    );
+  }
+  return Number(대기.id);
+}
+
 /** 세운 작성 요청 번호들과, 닫기만 하고 요청을 못 세운 케이스(까닭) — 받는 쪽이 로그에 남긴다 */
 export interface 닫기결과 {
   요청들: number[];
@@ -144,7 +173,7 @@ export async function 닫기처리(연결: 닫기연결, 이슈: BTS이슈): Pro
         if ('error' in 칸) 결과.기록만.push(`${x.tcId} — ${칸.error}`);
         else 칸들.push({ ...칸, byName: BTS요청자(이슈.key).이름, at });
       }
-      return 칸들.length === 0 ? null : 반영요청세우기(손, 서비스, 이슈.key, { screenRight: 칸들 });
+      return 칸들.length === 0 ? null : 화면이맞음붙이거나세우기(손, 서비스, 이슈.key, 칸들);
     });
     if (번호 !== null) 결과.요청들.push(번호);
   }
