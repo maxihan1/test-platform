@@ -1,11 +1,10 @@
 // 작성 폰 돌려 보기를 팜 폰 여러 대로 나눈다 — 폰마다 계정 · 혼자 도는 케이스 · 빨간 케이스 다시 보기 · 덤 폰 잡기 (SPEC 도메인/작성 §3.6 「앱 화면」 「폰 여러 대로 나눠 돌린다」)
-// 11-16 MTA #15522 는 543분 가운데 476분을 폰 한 대에서 케이스를 차례로 돌리는 데 썼다. 돌리는 쪽은 authoring-run3-game `폰실행` 이다
+// 11-16 MTA #15522 는 543분 가운데 476분을 폰 한 대에서 케이스를 차례로 돌리는 데 썼다. 돌리는 쪽은 authoring-run3-game `폰실행`, 팜 부르기는 authoring-phone-farm 이다
 
-import { appendFileSync, existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { 기본역할, 출처 } from '@platform/kit/accounts';
-import { 패키지이름인가 } from '@platform/kit/protocol';
 
 import type { 돌린판 } from './authoring-gate3.js';
 import { 동시계정번호, 일회용역할 } from './authoring-roles.js';
@@ -138,6 +137,37 @@ export function 판정하기(돈것: readonly 한판[], 있는폰들: readonly s
   return { 상태: '빨강', 오류: 오류(r) };
 }
 
+/**
+ * 폰에서 돌릴 케이스 — 이번에 쓰거나 고친 케이스(`바뀐` 에 든 것)는 다 돌고, 바뀐 도우미로만 닿은 기존 케이스는 표본만 돈다(2026-11-16 사용자 「표본만」).
+ * 표본은 「바뀐 파일 · 화면(Page Object)」 짝마다 1개 — 이번 케이스가 이미 그 짝을 지나면 더 안 고른다. 화면을 안 쓰는 케이스는 「화면 없음」 한 칸으로 센다.
+ * #15526 은 새 케이스 71개에 화면 부품을 고쳐 392개를 골라 열 시간이 넘었다
+ */
+export function 표본고르기(케이스들: readonly string[], 바뀐: ReadonlySet<string>, 닿음: (파일: string) => string[]): { 표본: string[]; 뺀: string[] } {
+  const 짝들 = (f: string) => {
+    const 닿은 = 닿음(f);
+    const 화면들 = 닿은.filter((p) => /(^|\/)pages\//.test(p));
+    return 닿은.filter((p) => p !== f && 바뀐.has(p)).flatMap((h) => (화면들.length === 0 ? [''] : 화면들).map((s) => `${h}\0${s}`));
+  };
+  const 새것 = [...케이스들].filter((f) => 바뀐.has(f)).sort();
+  const 덮은 = new Set(새것.flatMap(짝들));
+  const 표본: string[] = [];
+  const 뺀: string[] = [];
+  for (const f of [...케이스들].filter((x) => !바뀐.has(x)).sort()) {
+    const 새짝 = 짝들(f).filter((k) => !덮은.has(k));
+    if (새짝.length === 0) {
+      뺀.push(f);
+      continue;
+    }
+    for (const k of 새짝) 덮은.add(k);
+    표본.push(f);
+  }
+  return { 표본: [...새것, ...표본].sort(), 뺀 };
+}
+
+/** 표본으로 뺀 기존 케이스 줄 — 끝 검사(⚠️ 머리)와 돌려 보기 출력이 같이 쓴다. 안 돈 것을 초록으로 세지 않게 수를 남긴다 */
+export const 표본말 = (뺀수: number, 돌수: number, 갈래: string): string =>
+  `⚠️ 도우미가 바뀌었는데 폰에서 안 돈 기존 ${갈래} 케이스 ${뺀수}개 — 바뀐 도우미 · 화면마다 표본 1개만 돈다(돌릴 것 ${돌수}개). 정식 실행에서 처음 돈다`;
+
 /** 돌려 보기 출력 — 빨강 · 폰 차이 · 계정 차이를 묶음마다 머리 한 줄과 파일 줄로 */
 export function 판정말들(빨강: [string, 판정][], 폰차이: [string, 판정][], 계정차이: [string, 판정][], 이름: (폰: string) => string): string[] {
   const 묶음 = (머리: string, 것들: [string, 판정][], 줄: (f: string, p: 판정) => string) => (것들.length === 0 ? [] : [[머리, ...것들.map(([f, p]) => 줄(f, p))].join('\n')]);
@@ -215,92 +245,4 @@ export function 끈묶음읽기(결과폴더: string): { 폰들: Set<string>; �
 export function 끈묶음적기(결과폴더: string, 폰: string | null, 계정: number | null): void {
   if (폰 === null && 계정 === null) return;
   appendFileSync(끈묶음파일(결과폴더), `${폰 ?? '-'} ${계정 ?? '-'}\n`);
-}
-
-// ── 디바이스 팜 — 잡기 주소는 Appium 주소에서 /wd/hub 를 뗀 곳이다(Devicefarm docs/guides/test-platform.md §4 · §11) ──
-
-export interface 팜 {
-  부르기: typeof fetch;
-  주소: string;
-  토큰?: string | undefined;
-}
-
-export interface 팜폰 {
-  serial: string;
-  state?: string;
-  marketName?: string;
-  model?: string;
-}
-
-async function 팜부르기(팜: 팜, 방법: string, 길: string, 몸?: unknown): Promise<unknown> {
-  const res = await 팜.부르기(`${팜.주소}${길}`, {
-    method: 방법,
-    headers: { ...(팜.토큰 ? { authorization: `Bearer ${팜.토큰}` } : {}), ...(몸 === undefined ? {} : { 'content-type': 'application/json' }) },
-    ...(몸 === undefined ? {} : { body: JSON.stringify(몸) }),
-    signal: AbortSignal.timeout(10_000),
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json().catch(() => null);
-}
-
-/** 폰 목록 — 못 읽으면 null(나눠 돌리지 않고 잡은 폰 하나로 간다). 스토어 앱이면 그 앱이 남는 폰만 */
-export async function 폰목록(팜: 팜, 질의 = ''): Promise<팜폰[] | null> {
-  try {
-    const v = (await 팜부르기(팜, 'GET', `/api/devices${질의}`)) as { value?: { devices?: 팜폰[] }; devices?: 팜폰[] } | null;
-    const 폰들 = v?.value?.devices ?? v?.devices;
-    return Array.isArray(폰들) ? 폰들.filter((p) => typeof p.serial === 'string') : null;
-  } catch {
-    return null;
-  }
-}
-
-export const 빈폰질의 = (앱: string | undefined): string => (앱 !== undefined && 패키지이름인가(앱) ? `?app=${encodeURIComponent(앱)}&status=idle` : '?status=idle');
-
-/** 끊긴 폰 — 뽑혔거나 adb 가 답이 없거나 팜이 빼 뒀다. 목록에 없거나 목록을 못 읽었으면 끊겼다고 하지 않는다 */
-export const 끊겼나 = (목록: readonly 팜폰[] | null, 폰: string): boolean => ['OFFLINE', 'MAINTENANCE'].includes(목록?.find((p) => p.serial === 폰)?.state ?? '');
-
-/** 사람이 읽을 폰 이름 — 판매명이 먼저 */
-export const 폰이름 = (목록: readonly 팜폰[] | null, 폰: string): string => {
-  const p = 목록?.find((x) => x.serial === 폰);
-  return p?.marketName ?? p?.model ?? 폰;
-};
-
-export const 폰번호꼴 = /^[A-Za-z0-9._:-]{1,64}$/;
-
-/**
- * 빈 폰을 `몇` 대까지 잡는다(30분) — 팜의 조건 잡기(`POST /api/devices/acquire`)가 고르고 잡는 것을 한 번에 해 동시에 도는 작성끼리 같은 폰을 두고 다투지 않는다.
- * 잡은 폰마다 `<CLI 폴더>/held-<번호>` 를 남긴다 — 이 명령이 죽어도 에이전트의 잡은폰놓기가 놓는다. 빈 폰이 없다고 하면(409) 거기서 멈춘다.
- * 번호가 폰 번호 꼴이 아니거나 기록을 못 쓰면 바로 놓는다 — 기록 이름 · 놓기가 그 번호를 못 다룬다
- */
-export async function 덤폰잡기(팜: 팜, 몇: number, 앱: string | undefined, 폴더: string): Promise<string[]> {
-  const 잡은: string[] = [];
-  const 조건 = { minutes: 30, ...(앱 !== undefined && 패키지이름인가(앱) ? { app: 앱 } : {}) };
-  while (잡은.length < 몇) {
-    let 폰: unknown;
-    try {
-      폰 = ((await 팜부르기(팜, 'POST', '/api/devices/acquire', 조건)) as { held?: { serial?: unknown } } | null)?.held?.serial;
-    } catch {
-      break;
-    }
-    if (typeof 폰 !== 'string') break;
-    try {
-      if (!폰번호꼴.test(폰)) throw new Error('폰 번호 꼴이 아니다');
-      writeFileSync(join(폴더, `held-${폰}`), 폰);
-      잡은.push(폰);
-    } catch {
-      await 팜부르기(팜, 'DELETE', `/api/devices/${encodeURIComponent(폰)}/hold`).catch(() => undefined);
-      break;
-    }
-  }
-  return 잡은;
-}
-
-/** 덤 폰을 놓는다 — 실패해도 던지지 않는다(30분이면 팜이 스스로 푼다) */
-export async function 덤폰놓기(팜: 팜, 폰들: readonly string[], 폴더: string): Promise<void> {
-  await Promise.all(
-    폰들.map(async (폰) => {
-      await 팜부르기(팜, 'DELETE', `/api/devices/${encodeURIComponent(폰)}/hold`).catch(() => undefined);
-      rmSync(join(폴더, `held-${폰}`), { force: true });
-    }),
-  );
 }

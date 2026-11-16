@@ -135,9 +135,23 @@ export function 끝검사(결과폴더: string, 트리: string, 폴더: string, 
  */
 export function 살필케이스(파일들: (파일글 & { 때: number })[], 바뀐: ReadonlySet<string>): Record<string, number> {
   const 표 = new Map(파일들.map((f) => [f.경로, f]));
+  const 닿음 = 닿는파일(파일들);
+  return Object.fromEntries(
+    파일들
+      .filter((f) => f.경로.endsWith('.spec.ts'))
+      .flatMap((f) => {
+        const 닿은 = 닿음(f.경로);
+        return 닿은.some((p) => 바뀐.has(p)) ? [[f.경로, Math.max(...닿은.map((p) => 표.get(p)?.때 ?? 0))] as const] : [];
+      }),
+  );
+}
+
+/** 케이스(또는 파일)에서 시작해 상대 import 로 닿는 파일들(자기 포함) — 살필케이스와 폰 돌려 보기의 표본 고르기가 같은 길로 따라간다 */
+export function 닿는파일(파일들: readonly 파일글[]): (시작: string) => string[] {
+  const 표 = new Map(파일들.map((f) => [f.경로, f]));
   // 케이스마다 새로 따라간다 — 나눠 쓰는 메모는 import 가 돌면 덜 찬 집합을 남긴다(code-review).
   // 폴더 밖 파일(tests/<다른 폴더>)도 담는다 — 글을 못 읽어 그 너머는 못 따라가도 그 파일이 바뀌었으면 케이스를 본다
-  const 닿음 = (시작: string): string[] => {
+  return (시작: string): string[] => {
     const 본 = new Set<string>();
     const 갈곳 = [시작];
     for (let 경로 = 갈곳.pop(); 경로 !== undefined; 경로 = 갈곳.pop()) {
@@ -150,14 +164,6 @@ export function 살필케이스(파일들: (파일글 & { 때: number })[], 바�
     }
     return [...본];
   };
-  return Object.fromEntries(
-    파일들
-      .filter((f) => f.경로.endsWith('.spec.ts'))
-      .flatMap((f) => {
-        const 닿은 = 닿음(f.경로);
-        return 닿은.some((p) => 바뀐.has(p)) ? [[f.경로, Math.max(...닿은.map((p) => 표.get(p)?.때 ?? 0))] as const] : [];
-      }),
-  );
 }
 
 interface 표시글 {

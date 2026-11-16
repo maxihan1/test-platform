@@ -5,8 +5,9 @@ import { join } from 'node:path';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { 덤폰놓기, 덤폰잡기, 빈폰질의 } from './authoring-phone-farm.js';
 import {
-  type 한판, type 일, 계정번호들, 기록자리, 끈묶음읽기, 끈묶음적기, 다음기록번호, 덤폰놓기, 덤폰수, 덤폰잡기, 묶음계정글, 묶음기록이름, 묶음짜기, 빈폰질의, 판정하기, 혼자도나,
+  type 한판, type 일, 계정번호들, 기록자리, 끈묶음읽기, 끈묶음적기, 다음기록번호, 덤폰수, 묶음계정글, 묶음기록이름, 묶음짜기, 판정하기, 표본고르기, 혼자도나,
 } from './authoring-phone-split.js';
 
 const 주소 = 'http://qa.app.test';
@@ -48,6 +49,28 @@ describe('혼자도나 — 일반 회원 · 일회용 밖의 역할 케이스', 
     expect(혼자도나(`account: "일회용 · 암호 변경"`)).toBe(false);
     expect(혼자도나(`account: '일반 회원'`)).toBe(false);
     expect(혼자도나(`loginId: z.string().meta({ secret: true })`)).toBe(false);
+  });
+});
+
+describe('표본고르기 — 도우미가 바뀐 기존 케이스는 바뀐 파일 · 화면마다 1개만', () => {
+  const 닿는것: Record<string, string[]> = {
+    'm/새.spec.ts': ['m/새.spec.ts', 'm/helpers/login.ts', 'm/pages/home.page.ts'],
+    'm/A.spec.ts': ['m/A.spec.ts', 'm/helpers/login.ts', 'm/pages/home.page.ts'],
+    'm/B.spec.ts': ['m/B.spec.ts', 'm/helpers/login.ts', 'm/pages/profile.page.ts'],
+    'm/C.spec.ts': ['m/C.spec.ts', 'm/helpers/login.ts', 'm/pages/profile.page.ts'],
+    'm/D.spec.ts': ['m/D.spec.ts', 'm/helpers/login.ts'],
+    'm/E.spec.ts': ['m/E.spec.ts', 'm/helpers/login.ts'],
+  };
+  const 닿음 = (f: string) => 닿는것[f] ?? [f];
+
+  it('이번 케이스는 다 돌고, 기존 케이스는 이번 케이스가 안 지난 짝(바뀐 파일 · 화면)마다 1개 — 나머지는 뺀다', () => {
+    const 바뀐 = new Set(['m/새.spec.ts', 'm/helpers/login.ts']);
+    expect(표본고르기(Object.keys(닿는것), 바뀐, 닿음)).toEqual({ 표본: ['m/B.spec.ts', 'm/D.spec.ts', 'm/새.spec.ts'], 뺀: ['m/A.spec.ts', 'm/C.spec.ts', 'm/E.spec.ts'] });
+  });
+
+  it('첫 작성처럼 다 바뀐 케이스면 다 돌고 뺄 것이 없다', () => {
+    const 케이스들 = Object.keys(닿는것);
+    expect(표본고르기(케이스들, new Set([...케이스들, 'm/helpers/login.ts']), 닿음)).toEqual({ 표본: [...케이스들].sort(), 뺀: [] });
   });
 });
 

@@ -7,11 +7,12 @@ import { spawn } from 'node:child_process';
 import { closeSync, existsSync, lstatSync, openSync, readdirSync, readFileSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { type 돌린판, 돌린기록들, 앱케이스나누기, 케이스파일읽기, 살필케이스, 판들읽기 } from './authoring-gate3.js';
+import { type 돌린판, 닿는파일, 돌린기록들, 앱케이스나누기, 케이스파일읽기, 살필케이스, 판들읽기 } from './authoring-gate3.js';
 import { 바뀐것 } from './authoring-base-list.js';
 import { 게임자료환경 } from './authoring-check-game.js';
+import { type 팜, 끊겼나, 덤폰놓기, 덤폰잡기, 빈폰질의, 폰목록, 폰이름 } from './authoring-phone-farm.js';
 import {
-  type 일, type 팜, type 판정, 계정번호들, 끈묶음읽기, 끈묶음적기, 끊겼나, 다음기록번호, 덤폰놓기, 덤폰수, 덤폰잡기, 묶음계정글, 묶음기록이름, 묶음짜기, 빈폰질의, 판정말들, 판정하기, 폰목록, 폰이름, 한판들, 혼자도나,
+  type 일, type 판정, 계정번호들, 끈묶음읽기, 끈묶음적기, 다음기록번호, 덤폰수, 묶음계정글, 묶음기록이름, 묶음짜기, 판정말들, 판정하기, 표본고르기, 표본말, 한판들, 혼자도나,
 } from './authoring-phone-split.js';
 
 /** 폰에서 도는 두 갈래 — 게임은 control-cli, 앱은 appium-cli 로 AI 가 폰을 잡는다. 기록 · 잡은 폰 파일 · CLI 세션 이름이 갈린다 */
@@ -93,11 +94,16 @@ export function 앱줄주소(env: NodeJS.ProcessEnv, 계정먼저 = false): stri
 export const 게임환경 = (폰: string): Record<string, string> => ({ PLATFORM_ENGINE: 'GAME', PLATFORM_GAME_LINK: 'farm', PLATFORM_DEVICE_UDID: 폰 });
 const 폰환경 = (갈래: 폰갈래, 폰: string): Record<string, string> => (갈래 === '게임' ? 게임환경(폰) : { PLATFORM_ENGINE: '', PLATFORM_GAME_LINK: '', PLATFORM_DEVICE_UDID: 폰 });
 
-/** 이번 작성이 닿은 폰 케이스(android 선언)와 그 케이스 · 부품 가운데 가장 늦은 수정 시각 — 웹 돌려 보기 · 끝 검사와 같은 함수로 고른다 */
-export function 폰대상(트리: string, 폴더: string, 바뀐: readonly string[]): Record<string, number> {
+/**
+ * 이번 작성이 닿은 폰 케이스(android 선언)와 그 케이스 · 부품 가운데 가장 늦은 수정 시각 — 웹 돌려 보기 · 끝 검사와 같은 함수로 고른다.
+ * 이번에 쓰거나 고친 케이스는 다 돌고, 바뀐 도우미로만 닿은 기존 케이스는 표본만 돈다(`표본고르기` — 뺀 것은 `뺀기존`)
+ */
+export function 폰고르기(트리: string, 폴더: string, 바뀐: readonly string[]): { 대상: Record<string, number>; 뺀기존: string[] } {
   const 케이스들 = 케이스파일읽기(트리, 폴더);
-  const 볼것 = 살필케이스(케이스들, new Set(바뀐.filter((p) => p.startsWith('tests/')).map((p) => p.slice('tests/'.length))));
-  return Object.fromEntries(앱케이스나누기(케이스들, 볼것).앱.map((f) => [f, 볼것[f]!]));
+  const 바뀐테스트 = new Set(바뀐.filter((p) => p.startsWith('tests/')).map((p) => p.slice('tests/'.length)));
+  const 볼것 = 살필케이스(케이스들, 바뀐테스트);
+  const { 표본, 뺀 } = 표본고르기(앱케이스나누기(케이스들, 볼것).앱, 바뀐테스트, 닿는파일(케이스들));
+  return { 대상: Object.fromEntries(표본.map((f) => [f, 볼것[f]!])), 뺀기존: 뺀 };
 }
 
 /** 폰 기록을 파일마다 — 깨진 기록은 빼고 본다(그 파일을 다시 돌리면 된다) */
@@ -107,11 +113,8 @@ export function 폰판들(결과폴더: string, 갈래: 폰갈래 = '게임'): M
 }
 
 /** 파일마다 지금 판정 — 이번에 쓸 수 있는 폰 · 계정을 주면 다시 볼 것도 고른다 */
-export function 폰판정들(대상: Record<string, number>, 판들: Map<string, 돌린판[]>, 있는폰들: readonly string[] = [], 계정들: readonly number[] = [1]): [string, 판정][] {
-  return Object.entries(대상)
-    .map(([파일, 수정]): [string, 판정] => [파일, 판정하기(한판들(판들.get(파일), 수정), 있는폰들, 계정들)])
-    .sort(([a], [b]) => a.localeCompare(b));
-}
+export const 폰판정들 = (대상: Record<string, number>, 판들: Map<string, 돌린판[]>, 있는폰들: readonly string[] = [], 계정들: readonly number[] = [1]): [string, 판정][] =>
+  Object.entries(대상).map(([파일, 수정]): [string, 판정] => [파일, 판정하기(한판들(판들.get(파일), 수정), 있는폰들, 계정들)]).sort(([a], [b]) => a.localeCompare(b));
 
 /**
  * 에이전트 끝 검사의 폰 줄 — 이번 작성이 닿은 게임 · 앱 케이스 가운데 고친 뒤 폰에서 안 돈 것 · 빨간 것 · 폰마다 결과가 다른 것 · 폰마다 계정으로만 빨간 것. 막지 않는다(작성 요약 머리에 싣는다).
@@ -119,11 +122,13 @@ export function 폰판정들(대상: Record<string, number>, 판들: Map<string,
  */
 export function 폰끝검사(결과폴더: string, 트리: string, 폴더: string, 바뀐: readonly string[], 갈래: 폰갈래 = '게임'): string[] {
   try {
-    const 판정들 = 폰판정들(폰대상(트리, 폴더, 바뀐), 폰판들(결과폴더, 갈래));
+    const { 대상, 뺀기존 } = 폰고르기(트리, 폴더, 바뀐);
+    const 판정들 = 폰판정들(대상, 폰판들(결과폴더, 갈래));
     const 모음 = (...상태들: 판정['상태'][]) => 판정들.filter(([, p]) => 상태들.includes(p.상태));
     const 줄 = (말: string, 것들: [string, 판정][], 꼬리 = (_: 판정) => '') => (것들.length === 0 ? [] : [`⚠️ ${말} ${갈래} 케이스 ${것들.length}개 — ${것들.map(([f, p]) => f + 꼬리(p)).join(' · ')}`]);
     return [
       ...줄('폰에서 돌려 보지 않은', 모음('안돎')),
+      ...(뺀기존.length === 0 ? [] : [표본말(뺀기존.length, Object.keys(대상).length, 갈래)]),
       ...줄('폰에서 빨간', 모음('빨강', '다시')),
       ...줄('폰마다 결과가 다른', 모음('폰차이'), (p) => (p.상태 === '폰차이' ? `(${p.빨간폰들.join(' · ')} 에서만 빨강)` : '')),
       ...줄('폰마다 계정(「일반 회원 N」)으로만 빨간', 모음('계정차이'), (p) => (p.상태 === '계정차이' ? `(일반 회원 ${p.계정})` : '')).map((l) => `${l} — 케이스 탓이 아니라 그 계정에 시드가 없을 수 있다(준비 주소를 본다)`),
@@ -182,7 +187,8 @@ export async function 폰실행(갈래: 폰갈래, 폴더: string | undefined, �
     console.error(`바뀐 파일을 못 읽었다: ${목록.까닭}`);
     return 2;
   }
-  const 대상 = 폰대상(트리, 폴더, 목록);
+  const { 대상, 뺀기존 } = 폰고르기(트리, 폴더, 목록);
+  if (뺀기존.length > 0) console.log(`${머리} ${표본말(뺀기존.length, Object.keys(대상).length, 갈래).slice(3)}`);
   if (Object.keys(대상).length === 0) {
     console.log(`${머리} 돌릴 ${갈래} 케이스가 없다`);
     return 0;

@@ -125,6 +125,19 @@ describe('폰끝검사 · 끝검사줄들 — 게임 · 앱 케이스는 웹 경
     expect(폰끝검사(결과폴더, 트리, 'g', ['tests/g/G-FN-001.spec.ts'], '앱')).toEqual(['⚠️ 폰에서 빨간 앱 케이스 1개 — g/G-FN-001.spec.ts']);
   });
 
+  it('도우미만 바뀌었으면 그 도우미를 쓰는 기존 케이스는 표본 1개만 보고, 뺀 수를 따로 알린다', () => {
+    const { 트리, 결과폴더 } = 트리만들기();
+    mkdirSync(join(트리, 'tests', 'g', 'helpers'));
+    writeFileSync(join(트리, 'tests', 'g', 'helpers', 'login.ts'), 'export const 로그인 = 1;');
+    const 도우미케이스 = (id: string) => `import { 로그인 } from './helpers/login.js';\n${게임케이스.replace('G-FN-001', id)}`;
+    writeFileSync(join(트리, 'tests', 'g', 'G-FN-001.spec.ts'), 도우미케이스('G-FN-001'));
+    writeFileSync(join(트리, 'tests', 'g', 'G-FN-003.spec.ts'), 도우미케이스('G-FN-003'));
+    expect(폰끝검사(결과폴더, 트리, 'g', ['tests/g/helpers/login.ts'], '앱')).toEqual([
+      '⚠️ 폰에서 돌려 보지 않은 앱 케이스 1개 — g/G-FN-001.spec.ts',
+      '⚠️ 도우미가 바뀌었는데 폰에서 안 돈 기존 앱 케이스 1개 — 바뀐 도우미 · 화면마다 표본 1개만 돈다(돌릴 것 1개). 정식 실행에서 처음 돈다',
+    ]);
+  });
+
   it('이번에 안 닿은 게임 케이스는 안 본다', () => {
     const { 트리, 결과폴더 } = 트리만들기();
     expect(폰끝검사(결과폴더, 트리, 'g', ['tests/g/G-FN-002.spec.ts'])).toEqual([]);
