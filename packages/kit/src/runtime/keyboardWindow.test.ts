@@ -44,15 +44,15 @@ describe('키보드창기다리기', () => {
     expect(폰.물음.filter((v) => v === 'btn_poll')).toHaveLength(2);
   });
 
-  it('맨 앞이 키보드 창이 아니면 한 번 묻고 기다리지 않는다', async () => {
+  it('활성 창이 키보드 창이 아니면 활성 창만 찾는 UiSelector 로 한 번 묻고 기다리지 않는다', async () => {
     const 원래 = vi.fn(async (_u: string, _v: string) => 못찾음);
     const 덮개들: Record<string, 덮개> = {};
     키보드창기다리기({ overwriteCommand: (이름: string, 함수: 덮개) => void (덮개들[이름] = 함수) } as unknown as AppDriver, 200, 10);
     expect(await (덮개들.findElement as 덮개)(원래, 'id', 'btn_poll')).toEqual(못찾음);
-    expect(원래.mock.calls.map((c) => c[1])).toEqual(['btn_poll', 가림식]);
+    expect(원래.mock.calls).toEqual([['id', 'btn_poll'], ['-android uiautomator', 가림식]]);
   });
 
-  it('찾았으면 맨 앞 창을 묻지 않는다', async () => {
+  it('찾았으면 활성 창을 묻지 않는다', async () => {
     const 폰 = 가짜연결([false]);
     expect(await 폰.여럿('btn_poll')).toEqual([요소('btn')]);
     expect(폰.물음).toEqual(['btn_poll']);
@@ -69,15 +69,5 @@ describe('키보드창기다리기', () => {
     expect(await 폰.하나('btn_poll')).toEqual(못찾음);
     expect(알림).toHaveBeenCalledWith(expect.stringContaining('키보드 창이'));
     알림.mockRestore();
-  });
-
-  it('활성 창만 찾는 UiSelector 로 키보드 꾸러미를 묻는다 — 화면 위치는 따지지 않는다', async () => {
-    const 원래 = vi.fn(async (_u: string, _v: string) => 못찾음);
-    const 덮개들: Record<string, 덮개> = {};
-    키보드창기다리기({ overwriteCommand: (이름: string, 함수: 덮개) => void (덮개들[이름] = 함수) } as unknown as AppDriver, 200, 10);
-    await (덮개들.findElement as 덮개)(원래, 'id', 'btn_poll');
-    expect(원래.mock.calls[1]).toEqual(['-android uiautomator', 가림식]);
-    expect(가림식).toContain('com.samsung.android.honeyboard');
-    expect(가림식).not.toContain('bounds');
   });
 });
