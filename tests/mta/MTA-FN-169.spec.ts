@@ -4,9 +4,8 @@ import { z } from 'zod';
 
 import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
-import { 프로필열기 } from './helpers/nav.helper.js';
+import { 글상세열기 } from './helpers/nav.helper.js';
 import { 홈화면 } from './pages/home.page.js';
-import { 글카드 } from './pages/post-card.page.js';
 import { 글상세화면 } from './pages/thread.page.js';
 
 export const spec = defineCase({
@@ -25,7 +24,6 @@ export const spec = defineCase({
 
 test(spec, async ({ driver, params }) => {
   const 홈 = new 홈화면(driver);
-  const 카드 = new 글카드(driver);
   const 글상세 = new 글상세화면(driver);
 
   await test.step('일반 회원으로 로그인해 홈 화면을 연다', async () => {
@@ -34,8 +32,7 @@ test(spec, async ({ driver, params }) => {
   });
 
   await test.step('팔로잉 1명 이상이고 나를 팔로우하지 않는 사람 글에 「답장」을 누른다', async () => {
-    await 프로필열기(driver, 'seoyeon_books');
-    await 카드.첫글열기();
+    await 글상세열기(driver, 'seoyeon_books', '가을엔 역시 독서');
     await verify('글 상세가 열린다', await 글상세.그려질때까지(), true, { blocker: true });
     await driver.$(글상세.답장).click();
     const 시트 = await verify('「안녕하세요, 새로운 연결!」 시트가 보인다', await 뜰때까지(driver, 글상세.전체글자포함('안녕하세요, 새로운 연결!'), 10_000), true);

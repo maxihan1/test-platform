@@ -1,5 +1,5 @@
 import type { AppDriver } from '@platform/kit/app';
-import { 될때까지, 뜰때까지, 보이나 } from '@platform/kit/parts';
+import { 될때까지, 뜰때까지, 보이나, 요소위에그리기 } from '@platform/kit/parts';
 
 import { 뜨는메뉴 } from '../components/popup-menu.component.js';
 
@@ -55,7 +55,7 @@ export class 글카드 {
   }
 
   async 첫글열기(): Promise<void> {
-    await this.driver.$(this.굴려서아이디('time_and_username')).click();
+    await 요소위에그리기(this.driver, this.굴려서아이디('text'), [[3, 30]]);
   }
 
   async 첫글더보기열기(): Promise<void> {

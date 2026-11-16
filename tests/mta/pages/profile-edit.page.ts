@@ -15,11 +15,11 @@ export class 프로필편집화면 {
   readonly 저장 = 'android=new UiSelector().resourceId("org.joinmastodon.android:id/toolbar").childSelector(new UiSelector().text("저장"))';
   readonly 자기소개칸 = 'android=new UiSelector().resourceId("android:id/content").childSelector(new UiSelector().className("android.widget.EditText").instance(0))';
   readonly 항목추가 = 'id=org.joinmastodon.android:id/add';
-  readonly 항목창칸 = 'android=new UiSelector().resourceId("android:id/content").childSelector(new UiSelector().className("android.widget.EditText").instance(0))';
-  readonly 항목창저장 = 'id=android:id/button1';
+  readonly 항목창칸 = 'id=org.joinmastodon.android:id/label';
+  readonly 항목창저장 = 'android=new UiSelector().resourceId("org.joinmastodon.android:id/toolbar").childSelector(new UiSelector().text("저장"))';
   readonly 항목창취소 = 'id=android:id/button2';
   readonly 탭설정제목들 = 'android=new UiSelector().resourceId("org.joinmastodon.android:id/list").childSelector(new UiSelector().resourceId("org.joinmastodon.android:id/title"))';
-  readonly 탭설정스위치들 = 'android=new UiSelector().resourceId("org.joinmastodon.android:id/list").childSelector(new UiSelector().className("android.widget.Switch"))';
+  readonly 탭설정스위치들 = 'android=new UiSelector().className("android.widget.Switch")';
   readonly 항목라벨칸 = 'id=org.joinmastodon.android:id/label';
   readonly 항목내용칸 = 'id=org.joinmastodon.android:id/value';
   readonly 항목삭제버튼 = 'id=org.joinmastodon.android:id/delete';

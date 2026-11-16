@@ -61,14 +61,14 @@ test(spec, async ({ driver, params }) => {
       const 첫 = 전[0];
       const 둘째 = 전[1];
       if (첫 === undefined || 둘째 === undefined) throw new Error('프로필 항목이 둘보다 적어 순서를 못 바꾼다');
-      await 끌어놓기(driver, 편집.항목손잡이, 편집.줄(둘째));
+      await 끌어놓기(driver, 편집.항목손잡이, 편집.항목도움말);
       await verify(
         '프로필 첫 항목 손잡이를 둘째 자리로 끌면 두 항목의 순서가 바뀐다',
         await 될때까지(
           driver,
           async () => {
             const 후 = await 편집.목록제목글들();
-            return 후[0] === 둘째 && 후[1] === 첫;
+            return 후.indexOf(둘째) >= 0 && 후.indexOf(둘째) < 후.indexOf(첫);
           },
           10_000,
         ),

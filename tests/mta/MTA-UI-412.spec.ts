@@ -1,5 +1,5 @@
 import { defineCase, test, verify } from '@platform/kit';
-import { 뜰때까지, 보이나 } from '@platform/kit/parts';
+import { 뜰때까지 } from '@platform/kit/parts';
 import { z } from 'zod';
 
 import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
@@ -11,7 +11,7 @@ import { 설정화면 } from './pages/settings.page.js';
 
 export const spec = defineCase({
   tcId: 'MTA-UI-412',
-  name: '「이 서버에 대해서」 화면에 「관리자」 · 「관리자에게 메세지 보내기」가 보이지 않는다',
+  name: '「이 서버에 대해서」 화면에 「관리자」 · 「관리자에게 메세지 보내기」가 보인다',
   platforms: ['android'],
   launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
@@ -40,8 +40,8 @@ test(spec, async ({ driver, params, expected }) => {
   await test.step('「이 서버에 대해서」 화면을 연다', async () => {
     await 설정.줄누르기(expected.서버줄);
     await verify('서버 정보 화면의 「규칙」 탭이 보인다', await 뜰때까지(driver, 설정.글포함(expected.규칙탭), 15_000), true, { blocker: true });
-    const 관리자 = await verify('「이 서버에 대해서」 화면에 「관리자」가 보이지 않는다', await 보이나(driver, 설정.화면글정확히(expected.관리자글)), false);
-    const 메세지 = await verify('「이 서버에 대해서」 화면에 「관리자에게 메세지 보내기」가 보이지 않는다', await 보이나(driver, 설정.글포함(expected.메세지글)), false);
-    await verify('「이 서버에 대해서」 화면에 「관리자」 · 「관리자에게 메세지 보내기」가 보이지 않는다', 관리자 && 메세지, true);
+    const 관리자 = await verify('「이 서버에 대해서」 화면에 「관리자」가 보인다', await 뜰때까지(driver, 설정.화면글정확히(expected.관리자글), 10_000), true);
+    const 메세지 = await verify('「이 서버에 대해서」 화면에 「관리자에게 메세지 보내기」가 보인다', await 뜰때까지(driver, 설정.글포함(expected.메세지글), 10_000), true);
+    await verify('「이 서버에 대해서」 화면에 「관리자」 · 「관리자에게 메세지 보내기」가 보인다', 관리자 && 메세지, true);
   });
 });

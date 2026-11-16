@@ -1,7 +1,7 @@
 import type { AppDriver } from '@platform/kit/app';
-import { 뜰때까지, 칸에적기 } from '@platform/kit/parts';
+import { 뜰때까지, 요소위에그리기, 칸에적기 } from '@platform/kit/parts';
 
-import { 서버, 앱id, 굴려서글자포함, 목록안글자 } from './app.helper.js';
+import { 서버, 앱id, 굴려서글자포함, 목록안글자, 목록안글자포함 } from './app.helper.js';
 
 export const 검색입력칸 = `android=new UiSelector().resourceId("${앱id('toolbar').slice(3)}").childSelector(new UiSelector().className("android.widget.EditText"))`;
 export const URL열기줄 = 목록안글자('마스토돈에서 URL 열기');
@@ -51,8 +51,8 @@ export async function 프로필열기(driver: AppDriver, 사용자명: string): 
 }
 
 export async function 프로필에서글열기(driver: AppDriver, 글자: string): Promise<void> {
-  const 글 = 굴려서글자포함(글자);
-  await driver.$(글).click();
+  const 보이는글 = 목록안글자포함(글자);
+  await 요소위에그리기(driver, (await 뜰때까지(driver, 보이는글, 5_000)) ? 보이는글 : 굴려서글자포함(글자, 'scroller'), [[3, 30]]);
   await 뜰때까지(driver, 앱id('reply_btn_text'), 20_000);
 }
 

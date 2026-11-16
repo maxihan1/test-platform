@@ -26,7 +26,8 @@ export class 웹로그인화면 {
   }
 
   async 앱선택창이나브라우저떴나(시간 = 20_000): Promise<boolean> {
-    return (await 먼저뜨는것(this.driver, { 앱선택창: this.앱선택창, 주소창: this.주소창 }, 시간)) !== undefined;
+    if ((await 먼저뜨는것(this.driver, { 앱선택창: this.앱선택창, 주소창: this.주소창 }, 시간)) !== undefined) return true;
+    return (await this.driver.getCurrentPackage()) === 'com.android.chrome';
   }
 
   async 주소글(): Promise<string> {

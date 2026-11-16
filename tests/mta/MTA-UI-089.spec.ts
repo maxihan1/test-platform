@@ -1,14 +1,15 @@
 import { defineCase, test, verify } from '@platform/kit';
+import { 될때까지 } from '@platform/kit/parts';
 
 import { 가입해서이메일확인화면으로 } from './helpers/confirm.helper.js';
 import { 시작화면열기 } from './helpers/login.helper.js';
-import { 계정전환시트 } from './pages/account-switcher.page.js';
+import { 앱화면떠있나 } from './helpers/signup-flow.helper.js';
 import { 이메일확인화면 } from './pages/email-confirm.page.js';
 import { 시작화면 } from './pages/start.page.js';
 
 export const spec = defineCase({
   tcId: 'MTA-UI-089',
-  name: '이메일 확인 화면에서 뒤로 가기를 누르면 계정 전환 시트가 뜬다',
+  name: '이메일 확인 화면에서 뒤로 가기를 누르면 앱이 닫힌다',
   platforms: ['android'],
   precondition: ['이메일 확인 대기 계정이 있다'],
   params: null,
@@ -18,7 +19,6 @@ export const spec = defineCase({
 test(spec, async ({ driver }) => {
   const 시작 = new 시작화면(driver);
   const 확인 = new 이메일확인화면(driver);
-  const 시트 = new 계정전환시트(driver);
 
   await test.step('앱을 켜서 시작 화면을 연다', async () => {
     await 시작화면열기(driver);
@@ -32,6 +32,6 @@ test(spec, async ({ driver }) => {
 
   await test.step('이메일 확인 화면에서 뒤로 가기를 누른다', async () => {
     await driver.back();
-    await verify('이메일 확인 화면에서 뒤로 가기를 누르면 계정 전환 시트가 뜬다', await 시트.떴나(), true);
+    await verify('이메일 확인 화면에서 뒤로 가기를 누르면 앱이 닫힌다', await 될때까지(driver, async () => !(await 앱화면떠있나(driver)), 10_000), true);
   });
 });

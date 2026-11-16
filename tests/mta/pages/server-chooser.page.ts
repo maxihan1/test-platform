@@ -20,8 +20,8 @@ export class 서버고르기화면 {
   readonly 초대링크사용 = 'id=org.joinmastodon.android:id/btn_use_invite';
   readonly 다음 = 'id=org.joinmastodon.android:id/btn_next';
   readonly 다음켜짐 = 'android=new UiSelector().resourceId("org.joinmastodon.android:id/btn_next").enabled(true)';
-  readonly 필터칩들 = 'android=new UiSelector().resourceId("org.joinmastodon.android:id/filters_container").childSelector(new UiSelector().className("android.widget.TextView"))';
-  readonly 카드제목들 = 'android=new UiSelector().resourceId("org.joinmastodon.android:id/list").childSelector(new UiSelector().resourceId("org.joinmastodon.android:id/title"))';
+  readonly 필터칩들 = 'android=new UiSelector().className("android.widget.TextView").clickable(true)';
+  readonly 카드제목들 = 'id=org.joinmastodon.android:id/title';
   readonly 첫카드제목칸 = 'android=new UiSelector().resourceId("org.joinmastodon.android:id/list").childSelector(new UiSelector().resourceId("org.joinmastodon.android:id/title").instance(0))';
 
   constructor(private readonly driver: AppDriver) {}

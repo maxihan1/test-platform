@@ -33,8 +33,8 @@ test(spec, async ({ driver, params }) => {
   await test.step('글 상세에서 「좋아요」를 길게 누른다', async () => {
     await 글상세열기(driver, 'minjun_dev', '마스토돈 4.7 인용 기능');
     await 길게누르기(driver, 글상세.좋아요);
-    const 좋아요 = await verify('「좋아요」가 보인다', await 글상세.메뉴.뜰때까지('좋아요'), true);
     const 보관 = await verify('「보관」이 보인다', await 글상세.메뉴.뜰때까지('보관'), true);
+    const 좋아요 = await verify('「좋아요」(이미 좋아요한 글이면 「즐겨찾기 실행 취소」)가 보인다', (await 글상세.메뉴.보이나('좋아요')) || (await 글상세.메뉴.보이나('즐겨찾기 실행 취소')), true);
     const 즐겨찾기 = await verify('「즐겨찾기 보기」가 보인다', await 글상세.메뉴.뜰때까지('즐겨찾기 보기'), true);
     await verify('글 상세에서 「좋아요」를 길게 누르면 「좋아요」 · 「보관」 · 「즐겨찾기 보기」가 보인다', 좋아요 && 보관 && 즐겨찾기, true);
     await driver.back();

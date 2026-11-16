@@ -19,8 +19,8 @@ export class 알림화면 {
   readonly 삭제버튼 = 'id=org.joinmastodon.android:id/notification_decline';
   readonly 글카드답장 = 'android=new UiSelector().resourceId("org.joinmastodon.android:id/list").childSelector(new UiSelector().resourceId("org.joinmastodon.android:id/reply_btn"))';
   readonly 정책창제목 = 'android=new UiSelector().resourceId("android:id/topPanel").childSelector(new UiSelector().resourceId("org.joinmastodon.android:id/title"))';
-  readonly 정책항목제목들 = 'android=new UiSelector().resourceId("android:id/custom").childSelector(new UiSelector().resourceId("org.joinmastodon.android:id/title"))';
-  readonly 정책항목부제들 = 'android=new UiSelector().resourceId("android:id/custom").childSelector(new UiSelector().resourceId("org.joinmastodon.android:id/subtitle"))';
+  readonly 정책항목제목들 = 'id=org.joinmastodon.android:id/title';
+  readonly 정책항목부제들 = 'id=org.joinmastodon.android:id/subtitle';
   readonly 정책저장 = 'id=android:id/button1';
   readonly 목록글들 = 'android=new UiSelector().resourceId("org.joinmastodon.android:id/list").childSelector(new UiSelector().className("android.widget.TextView"))';
   readonly 모두읽음 = '~모두 읽은 상태로 표시';

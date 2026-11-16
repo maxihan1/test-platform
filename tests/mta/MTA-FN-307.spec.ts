@@ -40,7 +40,7 @@ test(spec, async ({ driver, params, expected }) => {
     const 줄 = 알림.목록글자포함(params.팔로워 + expected.팔로우글);
     await verify('팔로우 알림이 보인다', await 뜰때까지(driver, 줄, 15_000), true, { blocker: true });
     await driver.$(줄).click();
-    const 열림 = await verify('프로필 화면이 열린다', await 프로필.그려질때까지(), true);
+    const 열림 = await verify('프로필 화면이 열린다', await 뜰때까지(driver, 프로필.계정, 20_000), true);
     const 계정 = await verify('프로필 계정이 알림을 보낸 사람이다', (await driver.$(프로필.계정).getText()).includes('@' + params.팔로워), true);
     await verify('「님이 나를 팔로우했습니다」 팔로우 알림을 누르면 그 사람 프로필이 열린다', 열림 && 계정, true);
   });

@@ -25,7 +25,7 @@ export class 글쓰기화면 {
   readonly 언어 = 'id=org.joinmastodon.android:id/btn_language';
   readonly 남은글자수 = 'id=org.joinmastodon.android:id/char_counter';
   readonly 투표영역 = 'id=org.joinmastodon.android:id/poll_wrap';
-  readonly 투표항목들 = 'android=new UiSelector().resourceId("org.joinmastodon.android:id/poll_options").childSelector(new UiSelector().resourceId("org.joinmastodon.android:id/edit"))';
+  readonly 투표항목들 = 'id=org.joinmastodon.android:id/edit';
   readonly 투표손잡이들 = 'id=org.joinmastodon.android:id/dragger_thingy';
   readonly 투표옵션추가 = 'id=org.joinmastodon.android:id/add_poll_option';
   readonly 설문길이 = 'id=org.joinmastodon.android:id/poll_duration';
@@ -38,6 +38,7 @@ export class 글쓰기화면 {
   readonly 스타일이름 = 'android=new UiSelector().resourceId("org.joinmastodon.android:id/poll_style").childSelector(new UiSelector().className("android.widget.TextView").instance(0))';
   readonly 실패창취소 = 'android=new UiSelector().resourceId("android:id/buttonPanel").childSelector(new UiSelector().text("취소"))';
   readonly 언어창 = 'id=android:id/customPanel';
+  readonly 자동완성계정줄 = 'android=new UiSelector().resourceId("org.joinmastodon.android:id/bottom_bar").childSelector(new UiSelector().resourceId("org.joinmastodon.android:id/username"))';
   readonly 사진선택기표지 = { 미디어그리드: '~미디어 그리드', 사진: '~사진', 컬렉션: '~컬렉션' };
   readonly 창: 확인창;
   readonly 메뉴: 뜨는메뉴;

@@ -34,7 +34,7 @@ test(spec, async ({ driver, params }) => {
   });
 
   await test.step('인용 불가 글 상세에서 「부스트」를 누른다', async () => {
-    await 글상세열기(driver, 'seoyeon_books', '인용');
+    await 글상세열기(driver, 'seoyeon_books', '인용할 수 없게');
     await driver.$(글상세.부스트).click();
     await verify('seoyeon_books 의 인용 불가 글에서 「부스트」를 누르면 시트에 「오직 팔로워만 이 게시물을 인용할 수 있습니다.」 또는 「You are not allowed to quote this post」가 보인다', await 될때까지(driver, async () => (await 보이나(driver, 시트.전체글자포함('오직 팔로워만 이 게시물을 인용할 수 있습니다.'))) || (await 보이나(driver, 시트.전체글자포함('You are not allowed to quote this post'))), 10_000), true);
     await 시트.닫기();

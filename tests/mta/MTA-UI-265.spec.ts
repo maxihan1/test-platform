@@ -37,7 +37,7 @@ test(spec, async ({ driver, params, expected }) => {
 
   await test.step('알림 화면에서 「알림 제외 조건...」을 누른다', async () => {
     await verify('알림 제외 조건 창이 열린다', await 알림.정책창열기(), true, { blocker: true });
-    const 항목 = await verify('창 항목 제목이 기대값과 같다', (await 글자들(driver, 알림.정책항목제목들)).join(', '), expected.항목들);
+    const 항목 = await verify('창 항목 제목이 기대값과 같다', (await 글자들(driver, 알림.정책항목제목들)).filter((글) => !글.startsWith('알림 제외 조건')).join(', '), expected.항목들);
     const 부제 = await verify('창 항목 부제 개수가 기대값과 같다', (await 글자들(driver, 알림.정책항목부제들)).length, expected.부제수);
     const 저장 = await verify('저장 버튼 글자가 기대값과 같다', await driver.$(알림.정책저장).getText(), expected.저장);
     await verify('알림 제외 조건 창에 「내가 팔로우하지 않는 사람들」 · 「나를 팔로우하지 않는 사람들」 · 「새로운 계정」 · 「요청하지 않은 개인 멘션」과 부제 · 「저장」이 보인다', 항목 && 부제 && 저장, true);

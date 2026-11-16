@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
-import { 프로필열기 } from './helpers/nav.helper.js';
+import { 프로필열기, 홈으로 } from './helpers/nav.helper.js';
 import { 뮤트풀기 } from './helpers/settings-flow.helper.js';
 import { 홈화면 } from './pages/home.page.js';
 import { 프로필화면 } from './pages/profile.page.js';
@@ -31,6 +31,10 @@ test(spec, async ({ driver, params }) => {
     await test.step('일반 회원으로 로그인해 홈 화면을 연다', async () => {
       await 로그인하기(driver, params.loginId, params.loginPassword);
       await verify('홈 화면 글쓰기 버튼이 보인다', await 홈.그려질때까지(), true, { blocker: true });
+    });
+    await test.step('앞 실행이 남긴 mute_jang 뮤트를 푼다', async () => {
+      await 뮤트풀기(driver, 'mute_jang');
+      await 홈으로(driver);
     });
     await test.step('mute_jang 을 뮤트한 뒤 프로필 동작 버튼을 누른다', async () => {
       await 프로필열기(driver, 'mute_jang');

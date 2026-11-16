@@ -1,5 +1,5 @@
 import type { AppDriver } from '@platform/kit/app';
-import { 먼저뜨는것, 될때까지, 뜰때까지, 보이나, 스크롤해서찾기, 토스트글 } from '@platform/kit/parts';
+import { 될때까지, 뜰때까지, 먼저뜨는것, 보이나, 스크롤해서찾기, 요소위에그리기, 토스트글 } from '@platform/kit/parts';
 
 import { 뜨는메뉴 } from '../components/popup-menu.component.js';
 
@@ -63,7 +63,7 @@ export async function 인용글쓰기열기(driver: AppDriver, 사용자명: str
 export async function 프로필첫글열기(driver: AppDriver): Promise<void> {
   const 첫글 = `android=new UiSelector().resourceId("${앱id('list').slice(3)}").childSelector(new UiSelector().resourceId("${앱id('text').slice(3)}").instance(0))`;
   await 뜰때까지(driver, 첫글, 20_000);
-  await driver.$(첫글).click();
+  await 요소위에그리기(driver, 첫글, [[3, 30]]);
   await 뜰때까지(driver, 앱id('reply_btn_text'), 20_000);
 }
 

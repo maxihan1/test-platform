@@ -15,6 +15,8 @@ export class 필터화면 {
   readonly 단어추가목록버튼 = 'id=org.joinmastodon.android:id/fab';
   readonly 단어편집 = 'android=new UiSelector().resourceId("android:id/content").childSelector(new UiSelector().text("뮤트된 단어 편집"))';
   readonly 단어삭제 = '~삭제';
+  readonly 단어도움말 = '~도움말';
+  readonly 변경지우기 = 'id=android:id/button1';
   readonly 옵션더보기 = '~옵션 더보기';
   readonly 선택삭제 = 'id=org.joinmastodon.android:id/delete';
   readonly 선택닫기 = 'id=android:id/action_mode_close_button';
@@ -22,7 +24,7 @@ export class 필터화면 {
   constructor(private readonly driver: AppDriver) {}
 
   줄(글자: string): string {
-    return `android=new UiSelector().resourceId("org.joinmastodon.android:id/list").childSelector(new UiSelector().text(${JSON.stringify(글자)}))`;
+    return `android=new UiScrollable(new UiSelector().resourceId("org.joinmastodon.android:id/list")).scrollIntoView(new UiSelector().text(${JSON.stringify(글자)}))`;
   }
 
   확인제목글(글자: string): string {

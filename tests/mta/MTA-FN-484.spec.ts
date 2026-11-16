@@ -1,4 +1,5 @@
 import { defineCase, test, verify } from '@platform/kit';
+import { 사라질때까지 } from '@platform/kit/parts';
 import { z } from 'zod';
 
 import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
@@ -31,6 +32,7 @@ test(spec, async ({ driver, params }) => {
   });
   await test.step('지금 쓰는 계정의 계정 설정을 연다', async () => {
     await verify('계정 설정이 열린다', await 계정설정열기(driver, 계정줄(params.loginId ?? '')), true, { blocker: true });
-    await verify('지금 쓰는 계정의 계정 설정을 열면 「이 계정으로 전환」이 꺼져 보인다', await 설정.줄켜졌나('이 계정으로 전환'), false);
+    await driver.$(설정.굴려서줄('이 계정으로 전환')).click();
+    await verify('지금 쓰는 계정의 계정 설정을 열면 「이 계정으로 전환」이 꺼져 보인다', await 사라질때까지(driver, 설정.계정제목, 3_000), false);
   });
 });

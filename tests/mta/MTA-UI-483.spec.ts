@@ -1,9 +1,9 @@
 import { defineCase, test, verify } from '@platform/kit';
+import { 뜰때까지 } from '@platform/kit/parts';
 import { z } from 'zod';
 
 import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
-import { 컬렉션화면 } from './pages/collection.page.js';
 import { 홈화면 } from './pages/home.page.js';
 import { 프로필화면 } from './pages/profile.page.js';
 
@@ -23,7 +23,6 @@ export const spec = defineCase({
 test(spec, async ({ driver, params }) => {
   const 홈 = new 홈화면(driver);
   const 프로필 = new 프로필화면(driver);
-  const 컬렉션 = new 컬렉션화면(driver);
 
   await test.step('빈 계정으로 로그인해 홈 화면을 연다', async () => {
     await 로그인하기(driver, params.blankId, params.blankPassword);
@@ -34,6 +33,6 @@ test(spec, async ({ driver, params }) => {
     await driver.$(홈.탭.프로필).click();
     await verify('빈 계정 프로필 화면이 열린다', await 프로필.그려질때까지(), true, { blocker: true });
     await driver.$(프로필.탭('추천')).click();
-    await verify('추천이 빈 계정의 「추천」 탭에 「Showcase your favorite accounts」가 보인다', await 컬렉션.글자가뜰때까지('Showcase your favorite accounts'), true);
+    await verify('추천이 빈 계정의 「추천」 탭에 「Showcase your favorite accounts」가 보인다', await 뜰때까지(driver, 프로필.굴려서글자포함('Showcase your favorite accounts'), 15_000), true);
   });
 });
