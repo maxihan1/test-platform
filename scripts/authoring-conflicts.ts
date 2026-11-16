@@ -31,6 +31,8 @@ export interface 견줄것 {
   표경로: string;
   /** 보류에서 「제거」한 tc_id — 어차피 반영에서 빠진다 */
   뺀것: Set<string>;
+  /** 이 요청이 main 과 갈라진 자리의 요구사항 표. 없으면 빈 글자 */
+  바탕표: string;
 }
 
 // 문단 모드 번호는 요청마다 P-001 부터 다시 매긴다 — 서로 다른 기획서가 같은 번호를 갖는다 (작성 §3.6 「★ 원장」 문단 모드)
@@ -59,6 +61,21 @@ export function 표tcId들(표: string): Set<string> {
     }
   }
   return 결과;
+}
+
+/** 표에 「제거함」이 아닌 살아 있는 칸으로 든 tc_id 의 번호 열쇠 */
+function 살아있는표열쇠(표: string): Set<string> {
+  const 제거 = new Set<string>();
+  const 살아있는 = new Set<string>();
+  for (const 줄 of 표.split(/\r?\n/)) {
+    if (!줄.trimStart().startsWith('|')) continue;
+    for (const 칸 of 줄.split('|').map((c) => c.trim())) {
+      const 지운 = /^제거함\((.+)\)$/.exec(칸)?.[1];
+      if (지운 !== undefined && TCID.test(지운)) 제거.add(번호열쇠(지운));
+      else if (TCID.test(칸)) 살아있는.add(번호열쇠(칸));
+    }
+  }
+  return new Set([...살아있는].filter((k) => !제거.has(k)));
 }
 
 /** 요구사항 표에서 tc_id 마다 그 줄 출처 칸의 요구 번호(문단 번호 뺌) */
@@ -94,6 +111,10 @@ export function 겹침찾기(입력: 견줄것): 겹침[] {
   const main = 읽기들(입력.main케이스);
   const 새것 = main.filter((c) => 입력.새로들어온.has(c.file));
   const main표id = new Map([...표tcId들(입력.main표)].map((id) => [번호열쇠(id), id]));
+  // 갈라질 때부터 살아 있던 표 줄은 자식이 보고 그 자리를 채운 것이다(이어 작성이 파일 없는 줄을 채운다).
+  // 그 뒤 main 이 그 번호를 「제거함」으로 바꿨으면 다시 겹침이다
+  const 바탕빈자리 = 살아있는표열쇠(입력.바탕표);
+  const main살아있는 = 살아있는표열쇠(입력.main표);
   const 요청번호 = 요구번호들(입력.요청표);
   const main번호 = 요구번호들(입력.main표);
 
@@ -106,7 +127,7 @@ export function 겹침찾기(입력: 견줄것): 겹침[] {
 
     const 열쇠 = 번호열쇠(이것.tcId);
     const 같은id = main.filter((c) => 번호열쇠(c.tcId) === 열쇠);
-    const 표id = main표id.get(열쇠);
+    const 표id = 바탕빈자리.has(열쇠) && main살아있는.has(열쇠) ? undefined : main표id.get(열쇠);
     if (같은id.length > 0 || 표id !== undefined) {
       종류.push('TCID');
       if (같은id.length > 0) 같은id.forEach(더하기);
