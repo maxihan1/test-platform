@@ -1,7 +1,6 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
-import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 설정열기, 설정줄열기 } from './helpers/settings-flow.helper.js';
 import { 설정화면 } from './pages/settings.page.js';
@@ -10,7 +9,6 @@ export const spec = defineCase({
   tcId: 'MTA-UI-401',
   name: 'Android 12 이상 폰의 「디스플레이」에 「시스템 동적 색상 적용」이 켜져 보인다',
   platforms: ['android'],
-  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['앱에 로그인한 계정이 없다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

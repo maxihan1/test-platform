@@ -1,7 +1,6 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
-import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기, 지금화면 } from './helpers/login.helper.js';
 import { 앱데이터지우고켜기 } from './helpers/settings-flow.helper.js';
 import { 홈화면 } from './pages/home.page.js';
@@ -10,7 +9,6 @@ export const spec = defineCase({
   tcId: 'MTA-FN-476',
   name: '앱 데이터를 지운 뒤 앱을 켜면 다시 로그인해야 하는 시작 화면이 보인다',
   platforms: ['android'],
-  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['앱에 로그인한 계정이 없다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),
