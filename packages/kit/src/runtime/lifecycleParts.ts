@@ -100,6 +100,8 @@ export async function 앱다시깔기(driver: AppDriver): Promise<void> {
   const 꾸러미 = 시험앱(driver, '앱다시깔기');
   await driver.execute('mobile: removeApp', { appId: 꾸러미 });
   await 깔기(driver, 지금, '지금 판을', '앱다시깔기');
+  // 백업이 켜진 폰은 설치 순간 옛 데이터를 되살린다 — 처음 깐 상태가 안 나온다 (app.ts 켜기전에)
+  await driver.execute('mobile: clearApp', { appId: 꾸러미 });
   await driver.activateApp(꾸러미);
 }
 

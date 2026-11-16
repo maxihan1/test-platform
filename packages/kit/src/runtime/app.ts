@@ -91,7 +91,7 @@ export async function openApp(env: Env, options: AppOpenOptions = {}): Promise<A
   await writeSessionFile(driver.sessionId);
   try {
     const 꾸러미 = 연결꾸러미(driver.capabilities, required(env, 'PLATFORM_APP'));
-    const 앞 = await 앱을켠다((script, args) => driver.execute(script, args), 꾸러미, capabilities['appium:noReset'] === true);
+    const 앞 = await 앱을켠다((script, args) => driver.execute(script, args), 꾸러미, 켜기전에(capabilities, env.PLATFORM_ENGINE === 'GAME'));
     // 케이스는 그대로 돈다 — 첫 단계가 실패하면 이 줄이 「앱이 안 떴다」를 알려 준다(런처 · 앱이 죽은 창)
     if (앞 !== null) console.error(`[kit] 앱이 20초 안에 앞에 뜨지 않았다 — 앞 화면: ${앞}`);
   } catch (err) {
@@ -117,22 +117,40 @@ export function 연결꾸러미(caps: unknown, 앱값: string): string {
   throw new Error('Appium 이 앱 꾸러미 이름을 주지 않아 앱을 켤 수 없다');
 }
 
+type 켜기앞일 = '끈다' | '지운다' | null;
+
+/**
+ * 켜기 앞에 할 일. 데이터를 남기는 연결(keepAppData · 게임 항목)은 끈다 — 앞 케이스의 앱이 살아 있으면 앞으로 가져오기만 해 「앱만 다시 켜기」가 안 된다.
+ * APK 를 새로 깐 연결은 앱 데이터를 한 번 더 지운다 — 백업이 켜진 폰은 설치 순간 Android 가 백업에서 옛 로그인을 되살린다(2026-11-16 S21 정식 실행 21136).
+ * 복원은 설치가 끝나기 전에 끝나므로(Android 가 복원을 기다려 설치를 마친다) 연결이 열린 뒤 지우면 늦지 않다.
+ * 스토어 앱은 깔지 않아 복원이 없고 Appium 이 이미 지웠다. 게임은 지우면 첫 실행 설정(서버 주소 등)이 날아간다 — 둘 다 아무것도 안 한다
+ */
+export function 켜기전에(caps: Record<string, unknown>, 게임: boolean): 켜기앞일 {
+  if (caps['appium:noReset'] === true) return '끈다';
+  return !게임 && typeof caps['appium:app'] === 'string' ? '지운다' : null;
+}
+
 /**
  * 연결이 깔아 둔 앱을 켠다 — kit 케이스와 러너 화면 읽기가 같이 쓴다. `실행` 은 Appium `execute` 하나다(러너는 HTTP 로 넘긴다).
- * 데이터를 남기는 연결은 먼저 끈다 — 앞 케이스의 앱이 살아 있으면 앞으로 가져오기만 해 「앱만 다시 켜기」가 안 된다.
- * 지우는 연결은 앱 데이터를 한 번 더 지운다 — Appium 이 지우고 새로 깔아도, 백업이 켜진 폰은 설치 순간 Android 가 백업에서 옛 로그인을 되살린다(2026-11-16 S21 정식 실행 21136).
+ * 켜기 앞에 할 일은 `켜기전에` 가 정한다.
  * 앱이나 권한 창이 앞에 오면 null, 기다림이 끝나도 안 오면 마지막에 본 앞 화면 꾸러미를 돌려준다 — 던질지는 부른 쪽이 정한다.
- * 기다림은 끄기부터 센다 — admin 이 러너를 기다리는 시간(appScreen.ts 앱길)이 이 상한에 기댄다
+ * 기다림은 켜기 앞 일(끄기 · 지우기)부터 센다 — admin 이 러너를 기다리는 시간(appScreen.ts 앱길)이 이 상한에 기댄다
  */
 export async function 앱을켠다(
   실행: (script: string, args: Record<string, unknown>) => Promise<unknown>,
   꾸러미: string,
-  데이터남김: boolean,
+  먼저: 켜기앞일,
   기다림_ms = 20_000,
   간격_ms = 500,
 ): Promise<string | null> {
   const 끝 = Date.now() + 기다림_ms;
-  await 실행(데이터남김 ? 'mobile: terminateApp' : 'mobile: clearApp', { appId: 꾸러미 });
+  if (먼저 === '끈다') await 실행('mobile: terminateApp', { appId: 꾸러미 });
+  if (먼저 === '지운다') {
+    // 못 지워도 켠다 — 지우기는 폰 설정(백업 자동 복원)을 덮는 안전망이고, 실패로 케이스 전부를 막지 않는다
+    await 실행('mobile: clearApp', { appId: 꾸러미 }).catch((err: unknown) =>
+      console.error(`[kit] 앱 데이터를 지우지 못하고 켠다: ${err instanceof Error ? err.message : String(err)}`),
+    );
+  }
   await 실행('mobile: activateApp', { appId: 꾸러미 });
   let 앞 = '';
   do {

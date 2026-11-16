@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const remote = vi.hoisted(() => vi.fn());
 vi.mock('webdriverio', () => ({ remote }));
 
-import { appCapabilities, openApp, 연결꾸러미, 앱을켠다 } from './app.js';
+import { appCapabilities, openApp, 연결꾸러미, 앱을켠다, 켜기전에 } from './app.js';
 
 /** 앞에 뜬 꾸러미를 차례로 답하는 Appium execute — 마지막 것은 계속 답한다 */
 function 실행(앞: string[]) {
@@ -37,14 +37,14 @@ describe('appCapabilities 켜기', () => {
 describe('앱을켠다', () => {
   it('켜자마자 권한 창이 앞에 떠도 켜진 것으로 본다 — 권한 창은 케이스가 답한다', async () => {
     const { f, 부름 } = 실행(['com.sec.android.app.launcher', 'com.google.android.permissioncontroller']);
-    expect(await 앱을켠다(f, 'org.joinmastodon.android', false, 5_000, 1)).toBeNull();
+    expect(await 앱을켠다(f, 'org.joinmastodon.android', '지운다', 5_000, 1)).toBeNull();
     expect(부름.map(([s]) => s)).toEqual(['mobile: clearApp', 'mobile: activateApp', 'mobile: getCurrentPackage', 'mobile: getCurrentPackage']);
     expect(부름[1]?.[1]).toEqual({ appId: 'org.joinmastodon.android' });
   });
 
   it('데이터를 지우는 연결은 켜기 전에 앱 데이터를 한 번 더 지운다 — 설치 순간 Android 가 백업에서 옛 로그인을 되살린다 (2026-11-16 정식 실행 21136)', async () => {
     const { f, 부름 } = 실행(['com.shop']);
-    await 앱을켠다(f, 'com.shop', false, 5_000, 1);
+    await 앱을켠다(f, 'com.shop', '지운다', 5_000, 1);
     expect(부름.slice(0, 2)).toEqual([
       ['mobile: clearApp', { appId: 'com.shop' }],
       ['mobile: activateApp', { appId: 'com.shop' }],
@@ -54,7 +54,7 @@ describe('앱을켠다', () => {
 
   it('데이터를 남기는 연결은 앱을 끄고 다시 켠다 — 앞 케이스의 앱을 앞으로 가져오기만 하지 않게', async () => {
     const { f, 부름 } = 실행(['com.shop']);
-    expect(await 앱을켠다(f, 'com.shop', true, 5_000, 1)).toBeNull();
+    expect(await 앱을켠다(f, 'com.shop', '끈다', 5_000, 1)).toBeNull();
     expect(부름.slice(0, 2)).toEqual([
       ['mobile: terminateApp', { appId: 'com.shop' }],
       ['mobile: activateApp', { appId: 'com.shop' }],
@@ -62,9 +62,30 @@ describe('앱을켠다', () => {
     expect(부름.map(([s]) => s)).not.toContain('mobile: clearApp');
   });
 
+  it('지우기가 실패해도 켠다 — 지우기는 폰 설정을 덮는 안전망이라 케이스 전부를 막지 않는다', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { f, 부름 } = 실행(['com.shop']);
+    f.mockImplementationOnce(async () => {
+      throw new Error('pm clear 거절');
+    });
+    expect(await 앱을켠다(f, 'com.shop', '지운다', 5_000, 1)).toBeNull();
+    expect(부름.map(([s]) => s)).toContain('mobile: activateApp');
+    expect(error).toHaveBeenCalledWith('[kit] 앱 데이터를 지우지 못하고 켠다: pm clear 거절');
+  });
+
   it('시간 안에 앞에 안 오면 던지지 않고 마지막에 본 앞 화면을 돌려준다', async () => {
     const { f } = 실행(['com.sec.android.app.launcher']);
-    expect(await 앱을켠다(f, 'com.shop', false, 20, 1)).toBe('com.sec.android.app.launcher');
+    expect(await 앱을켠다(f, 'com.shop', null, 20, 1)).toBe('com.sec.android.app.launcher');
+  });
+});
+
+describe('켜기전에', () => {
+  it('남기는 연결은 끄고 · APK 를 깐 연결은 지우고 · 스토어 앱과 게임 화면 읽기는 아무것도 안 한다', () => {
+    expect(켜기전에(appCapabilities({ PLATFORM_APP: '/tmp/a.apk' }, { keepData: true }), false)).toBe('끈다');
+    expect(켜기전에(appCapabilities({ PLATFORM_APP: '/tmp/g.apk', PLATFORM_ENGINE: 'GAME' }), true)).toBe('끈다');
+    expect(켜기전에(appCapabilities({ PLATFORM_APP: '/tmp/a.apk' }), false)).toBe('지운다');
+    expect(켜기전에(appCapabilities({ PLATFORM_APP: 'com.shop.app' }), false)).toBeNull();
+    expect(켜기전에({ ...appCapabilities({ PLATFORM_APP: '/tmp/g.apk', PLATFORM_ENGINE: 'GAME' }), 'appium:noReset': false }, true)).toBeNull();
   });
 });
 
@@ -109,7 +130,7 @@ describe('openApp 켜기', () => {
     remote.mockResolvedValue(앱);
     await openApp(ENV);
     expect(앱.execute).toHaveBeenCalledWith('mobile: activateApp', { appId: 'com.shop' });
-    expect(앱.execute).toHaveBeenCalledWith('mobile: clearApp', { appId: 'com.shop' });
+    expect(앱.execute.mock.calls.slice(0, 2).map(([s]) => s)).toEqual(['mobile: clearApp', 'mobile: activateApp']);
     expect(앱.execute).not.toHaveBeenCalledWith('mobile: terminateApp', expect.anything());
     const 남김 = 연결();
     remote.mockResolvedValue(남김);

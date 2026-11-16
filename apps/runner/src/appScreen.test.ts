@@ -167,7 +167,7 @@ describe('앱화면을읽는다', () => {
   });
 
   it('앱을 못 켜면 던지고 연결은 닫는다', async () => {
-    켜기Mock.mockResolvedValue(답({ value: { message: '앱이 없다' } }, 500));
+    켜기Mock.mockImplementation(async () => 답({ value: { message: '앱이 없다' } }, 500));
 
     await expect(앱화면을읽는다({})).rejects.toThrow('Appium 이 HTTP 500 로 답했다: 앱이 없다');
 
