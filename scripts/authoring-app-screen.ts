@@ -16,7 +16,7 @@ export type 앱탐색 = { url: string; app: string; token?: string };
 /** 게임 — 게임 첫 화면 통로에서 왔다. 프롬프트 절 · 놓을 폰 기록 자리(control-cli)가 다르다 */
 export type 앱화면 = ({ 글: string } | { 못읽음: string }) & { 탐색?: 앱탐색; 게임?: true };
 
-/** 서버의 어느 통로에서 무엇을 받나. 기다림은 서버의 러너 기다림(앱 110 · 게임 260초)에 팜 잡기 · 놓기를 더한 것보다 길다 — 먼저 끊으면 폰을 읽는 중에 버린다 */
+/** 서버의 어느 통로에서 무엇을 받나. 기다림은 서버의 러너 기다림(앱 130 · 게임 285초)에 팜 잡기 · 놓기를 더한 것보다 길다 — 먼저 끊으면 폰을 읽는 중에 버린다 */
 type 받을곳 = { 길: string; 파일: string; 칸: 'appium' | 'game'; 기다림_ms: number; 이름: string };
 const 앱곳: 받을곳 = { 길: 'app-screen', 파일: 'app-screen.txt', 칸: 'appium', 기다림_ms: 180_000, 이름: '앱' };
 const 게임곳: 받을곳 = { 길: 'game-screen', 파일: 'game-screen.txt', 칸: 'game', 기다림_ms: 360_000, 이름: '게임' };
