@@ -15,6 +15,7 @@ export class 글카드 {
   readonly 사진 = 'id=org.joinmastodon.android:id/photo';
   readonly 답장 = 'id=org.joinmastodon.android:id/reply_btn';
   readonly 부스트 = 'id=org.joinmastodon.android:id/boost_btn';
+  readonly 오디오재생버튼들 = 'id=org.joinmastodon.android:id/play_pause_btn';
   readonly 인용단계들 = 'android=new UiSelector().resourceId("org.joinmastodon.android:id/list").childSelector(new UiSelector().textContains("님에 의해 인용된 게시물"))';
 
   constructor(private readonly driver: AppDriver) {
@@ -82,5 +83,13 @@ export class 글카드 {
       await this.한쪽내리기();
     }
     return false;
+  }
+
+  async 투표버튼켜졌나(): Promise<boolean> {
+    return (await this.driver.$(this.굴려서글자('투표')).getAttribute('enabled')) === 'true';
+  }
+
+  async 투표항목누르기(항목글: string): Promise<void> {
+    await this.driver.$(this.굴려서글자(항목글)).click();
   }
 }

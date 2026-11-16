@@ -1,5 +1,5 @@
 import type { AppDriver } from '@platform/kit/app';
-import { 뜰때까지 } from '@platform/kit/parts';
+import { 글자들, 될때까지, 뜰때까지, 요소안에서밀기 } from '@platform/kit/parts';
 
 import { 하단탭 } from '../components/tab-bar.component.js';
 
@@ -22,6 +22,10 @@ export class 알림화면 {
   readonly 정책항목제목들 = 'android=new UiSelector().resourceId("android:id/custom").childSelector(new UiSelector().resourceId("org.joinmastodon.android:id/title"))';
   readonly 정책항목부제들 = 'android=new UiSelector().resourceId("android:id/custom").childSelector(new UiSelector().resourceId("org.joinmastodon.android:id/subtitle"))';
   readonly 정책저장 = 'id=android:id/button1';
+  readonly 목록글들 = 'android=new UiSelector().resourceId("org.joinmastodon.android:id/list").childSelector(new UiSelector().className("android.widget.TextView"))';
+  readonly 모두읽음 = '~모두 읽은 상태로 표시';
+  readonly 탭배지숫자 = 'android=new UiSelector().resourceId("org.joinmastodon.android:id/tab_notifications").childSelector(new UiSelector().textMatches("[0-9]+"))';
+  readonly 개인라벨들 = 'android=new UiSelector().className("android.widget.TextView").textStartsWith("개인")';
 
   constructor(private readonly driver: AppDriver) {
     this.탭 = new 하단탭(driver);
@@ -59,5 +63,29 @@ export class 알림화면 {
 
   async 필터링줄열기(): Promise<void> {
     await this.driver.$(this.필터링줄).click();
+  }
+
+  멘션라벨(글자: string): string {
+    return `android=new UiSelector().resourceId("org.joinmastodon.android:id/list").childSelector(new UiSelector().className("android.widget.TextView").text(${JSON.stringify(글자)}))`;
+  }
+
+  async 끝까지내리며새글세기(최대 = 15): Promise<number> {
+    const 본것 = new Set(await 글자들(this.driver, this.목록글들));
+    const 처음수 = 본것.size;
+    let 안늘음 = 0;
+    for (let 번 = 0; 번 < 최대 && 안늘음 < 2; 번 += 1) {
+      const 앞 = 본것.size;
+      await 요소안에서밀기(this.driver, this.목록, '위');
+      const 늘었나 = await 될때까지(
+        this.driver,
+        async () => {
+          for (const 글 of await 글자들(this.driver, this.목록글들)) 본것.add(글);
+          return 본것.size > 앞;
+        },
+        3_000,
+      );
+      안늘음 = 늘었나 ? 0 : 안늘음 + 1;
+    }
+    return 본것.size - 처음수;
   }
 }

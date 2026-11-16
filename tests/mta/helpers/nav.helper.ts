@@ -33,6 +33,18 @@ export async function 주소열기(driver: AppDriver, 주소: string): Promise<v
   await driver.$(URL열기줄).click();
 }
 
+export function 검색해시태그줄(태그: string): string {
+  return `android=new UiSelector().resourceId("${앱id('list').slice(3)}").childSelector(new UiSelector().resourceId("${앱id('title').slice(3)}").text(${JSON.stringify(태그)}))`;
+}
+
+export async function 해시태그열기(driver: AppDriver, 태그: string): Promise<boolean> {
+  await 검색화면열기(driver);
+  await 검색어적기(driver, `#${태그}`);
+  if (!(await 뜰때까지(driver, 검색해시태그줄(태그), 15_000))) return false;
+  await driver.$(검색해시태그줄(태그)).click();
+  return 뜰때까지(driver, 앱id('profile_action_btn'), 20_000);
+}
+
 export async function 프로필열기(driver: AppDriver, 사용자명: string): Promise<void> {
   await 주소열기(driver, `https://${서버}/@${사용자명}`);
   await 뜰때까지(driver, 앱id('profile_action_btn'), 20_000);

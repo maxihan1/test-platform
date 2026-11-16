@@ -1,5 +1,5 @@
 import type { AppDriver } from '@platform/kit/app';
-import { 두번누르기, 뜰때까지, 먼저뜨는것, 칸에적기 } from '@platform/kit/parts';
+import { 끌어놓기, 두번누르기, 될때까지, 뜰때까지, 먼저뜨는것, 칸에적기 } from '@platform/kit/parts';
 
 import { 확인창 } from '../components/dialog.component.js';
 import { 뜨는메뉴 } from '../components/popup-menu.component.js';
@@ -153,5 +153,43 @@ export class 글쓰기화면 {
 
   async 꺼졌나(선택자: string): Promise<boolean> {
     return (await this.driver.$(선택자).getAttribute('enabled')) === 'false';
+  }
+
+  readonly 조각썸네일들 = 'id=org.joinmastodon.android:id/thumb';
+
+  조각(이름: 'thumb' | 'title' | 'subtitle' | 'edit' | 'delete', 순서 = 0): string {
+    return `android=new UiSelector().resourceId("org.joinmastodon.android:id/attachments").childSelector(new UiSelector().resourceId("org.joinmastodon.android:id/${이름}").instance(${String(순서)}))`;
+  }
+
+  async 조각수(): Promise<number> {
+    return (await this.driver.$$(this.조각썸네일들).getElements()).length;
+  }
+
+  async 조각수가될때까지(수: number, 시간 = 30_000): Promise<boolean> {
+    return 될때까지(this.driver, async () => (await this.조각수()) === 수, 시간);
+  }
+
+  async 조각글(이름: 'title' | 'subtitle', 순서 = 0): Promise<string> {
+    return this.driver.$(this.조각(이름, 순서)).getText();
+  }
+
+  async 조각보이나(이름: 'thumb' | 'title' | 'subtitle' | 'edit' | 'delete', 순서 = 0, 시간 = 10_000): Promise<boolean> {
+    return 뜰때까지(this.driver, this.조각(이름, 순서), 시간);
+  }
+
+  async 대체텍스트열기(순서 = 0): Promise<void> {
+    await this.driver.$(this.조각('edit', 순서)).click();
+  }
+
+  async 조각제거(순서 = 0): Promise<void> {
+    await this.driver.$(this.조각('delete', 순서)).click();
+  }
+
+  투표손잡이(순서: number): string {
+    return `android=new UiSelector().resourceId("org.joinmastodon.android:id/dragger_thingy").instance(${String(순서)})`;
+  }
+
+  async 투표항목을삭제영역으로끌기(순서: number, 삭제영역: string): Promise<void> {
+    await 끌어놓기(this.driver, this.투표손잡이(순서), 삭제영역);
   }
 }

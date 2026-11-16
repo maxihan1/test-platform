@@ -1,5 +1,5 @@
 import type { AppDriver } from '@platform/kit/app';
-import { 글자들, 뜰때까지, 될때까지, 보이나, 칸에적기 } from '@platform/kit/parts';
+import { 글자들, 뜰때까지, 될때까지, 보이나, 칸에적기, 포커스칸에치기 } from '@platform/kit/parts';
 
 function 글쇠(글자: string): { keycode: number; metastate?: number } | undefined {
   const 작은 = 글자.toLowerCase();
@@ -99,6 +99,10 @@ export class 서버고르기화면 {
 
   async 초대링크사용누르기(): Promise<void> {
     await this.driver.$(this.초대링크사용).click();
+  }
+
+  async 초대링크적기(글: string): Promise<void> {
+    await 포커스칸에치기(this.driver, 글);
   }
 
   async 칩글자모으기(): Promise<string[]> {

@@ -9,6 +9,7 @@ export class 신고화면 {
   readonly 안내 = 'android=new UiSelector().resourceId("org.joinmastodon.android:id/list").childSelector(new UiSelector().resourceId("org.joinmastodon.android:id/subtitle").instance(0))';
   readonly 다음 = 'id=org.joinmastodon.android:id/btn_next';
   readonly 다음글 = 'android=new UiSelector().resourceId("android:id/content").childSelector(new UiSelector().text("다음"))';
+  readonly 골라진글 = 'android=new UiSelector().resourceId("org.joinmastodon.android:id/list").childSelector(new UiSelector().checked(true))';
   readonly 의견칸 = 'android=new UiSelector().resourceId("android:id/content").childSelector(new UiSelector().className("android.widget.EditText").instance(0))';
 
   constructor(private readonly driver: AppDriver) {}
