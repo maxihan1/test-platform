@@ -9,6 +9,7 @@ import type { DeviceInfo } from '../types.js';
 
 import { runDir, saveShot } from './artifacts.js';
 import { 앱사진 } from './highlight.js';
+import { 키보드창기다리기 } from './keyboardWindow.js';
 import { 화면켜기인자 } from './lifecycleParts.js';
 import { APPIUM_SESSION_FILE, APPIUM_SESSION_ID_FILE, PHONE_STATE_FILE, 패키지이름인가 } from './protocol.js';
 import { 웹뷰사진, 웹맥락인가, 웹요소인가 } from './webview.js';
@@ -98,6 +99,7 @@ export async function openApp(env: Env, options: AppOpenOptions = {}): Promise<A
   });
   await writeSessionFile(driver.sessionId);
   try {
+    키보드창기다리기(driver);
     const 꾸러미 = 연결꾸러미(driver.capabilities, required(env, 'PLATFORM_APP'));
     const 앞 = await 앱을켠다((script, args) => driver.execute(script, args), 꾸러미, 켜기전에(capabilities, env.PLATFORM_ENGINE === 'GAME'), { 값: options.intent });
     // 케이스는 그대로 돈다 — 첫 단계가 실패하면 이 줄이 「앱이 안 떴다」를 알려 준다(런처 · 앱이 죽은 창)

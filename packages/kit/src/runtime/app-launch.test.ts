@@ -150,6 +150,7 @@ describe('openApp 켜기', () => {
     capabilities: caps,
     execute: 실행(앞).f,
     deleteSession: vi.fn().mockResolvedValue(undefined),
+    overwriteCommand: vi.fn(),
   });
 
   beforeEach(async () => {
