@@ -24,9 +24,16 @@ function required(env: Env, name: string): string {
   return value;
 }
 
-/** 케이스가 고르는 연결 설정 — 지금은 「데이터 남기고 시작」 하나다 (도메인/러너 §5.2) */
+/** 켤 때 실을 값 — 앱의 화면 하나(꾸러미 안 이름, `.Qa` 처럼 점으로 시작해도 된다)와 글자 값들 (도메인/러너 §5.2 「값을 실어 켜기」) */
+export interface AppLaunchIntent {
+  activity: string;
+  extras: Record<string, string>;
+}
+
+/** 케이스가 고르는 연결 설정 — 「데이터 남기고 시작」 · 「값을 실어 켜기」 (도메인/러너 §5.2) */
 export interface AppOpenOptions {
   keepData?: boolean;
+  intent?: AppLaunchIntent;
 }
 
 export function appCapabilities(env: Env, options: AppOpenOptions = {}): Record<string, string | boolean | number> {
@@ -91,7 +98,7 @@ export async function openApp(env: Env, options: AppOpenOptions = {}): Promise<A
   await writeSessionFile(driver.sessionId);
   try {
     const 꾸러미 = 연결꾸러미(driver.capabilities, required(env, 'PLATFORM_APP'));
-    const 앞 = await 앱을켠다((script, args) => driver.execute(script, args), 꾸러미, 켜기전에(capabilities, env.PLATFORM_ENGINE === 'GAME'));
+    const 앞 = await 앱을켠다((script, args) => driver.execute(script, args), 꾸러미, 켜기전에(capabilities, env.PLATFORM_ENGINE === 'GAME'), { 값: options.intent });
     // 케이스는 그대로 돈다 — 첫 단계가 실패하면 이 줄이 「앱이 안 떴다」를 알려 준다(런처 · 앱이 죽은 창)
     if (앞 !== null) console.error(`[kit] 앱이 20초 안에 앞에 뜨지 않았다 — 앞 화면: ${앞}`);
   } catch (err) {
@@ -130,18 +137,37 @@ export function 켜기전에(caps: Record<string, unknown>, 게임: boolean): �
   return !게임 && typeof caps['appium:app'] === 'string' ? '지운다' : null;
 }
 
+type 실행기 = (script: string, args: Record<string, unknown>) => Promise<unknown>;
+
+/**
+ * 값을 실어 그 화면을 켠다. 못 켜면 false — 입구 화면이 없는 옛 APK 는 `am start` 가 던지지 않고 Error 글을 돌려준다.
+ * 실은 값(토큰 등)은 알림에 싣지 않는다 (도메인/러너 §5.2 「값을 실어 켜기」)
+ */
+async function 실어켠다(실행: 실행기, 꾸러미: string, 값: AppLaunchIntent): Promise<boolean> {
+  try {
+    const 답 = await 실행('mobile: startActivity', {
+      intent: `${꾸러미}/${값.activity}`,
+      extras: Object.entries(값.extras).map(([이름, 글]) => ['s', 이름, 글]),
+    });
+    if (typeof 답 === 'string' && /\bError\b/.test(답)) throw new Error(답.split('\n').at(-1) ?? 답);
+    return true;
+  } catch (err) {
+    console.error(`[kit] 값을 실어 켜지 못해 그냥 켠다(${값.activity}): ${err instanceof Error ? err.message : String(err)}`);
+    return false;
+  }
+}
+
 /**
  * 연결이 깔아 둔 앱을 켠다 — kit 케이스와 러너 화면 읽기가 같이 쓴다. `실행` 은 Appium `execute` 하나다(러너는 HTTP 로 넘긴다).
- * 켜기 앞에 할 일은 `켜기전에` 가 정한다.
+ * 켜기 앞에 할 일은 `켜기전에` 가 정한다. `값` 이 있으면 그 값을 실어 켜고, 못 실으면 그냥 켠다.
  * 앱이나 권한 창이 앞에 오면 null, 기다림이 끝나도 안 오면 마지막에 본 앞 화면 꾸러미를 돌려준다 — 던질지는 부른 쪽이 정한다.
  * 기다림은 켜기 앞 일(끄기 · 지우기)부터 센다 — admin 이 러너를 기다리는 시간(appScreen.ts 앱길)이 이 상한에 기댄다
  */
 export async function 앱을켠다(
-  실행: (script: string, args: Record<string, unknown>) => Promise<unknown>,
+  실행: 실행기,
   꾸러미: string,
   먼저: 켜기앞일,
-  기다림_ms = 20_000,
-  간격_ms = 500,
+  { 값, 기다림_ms = 20_000, 간격_ms = 500 }: { 값?: AppLaunchIntent; 기다림_ms?: number; 간격_ms?: number } = {},
 ): Promise<string | null> {
   const 끝 = Date.now() + 기다림_ms;
   if (먼저 === '끈다') await 실행('mobile: terminateApp', { appId: 꾸러미 });
@@ -151,7 +177,7 @@ export async function 앱을켠다(
       console.error(`[kit] 앱 데이터를 지우지 못하고 켠다: ${err instanceof Error ? err.message : String(err)}`),
     );
   }
-  await 실행('mobile: activateApp', { appId: 꾸러미 });
+  if (값 === undefined || !(await 실어켠다(실행, 꾸러미, 값))) await 실행('mobile: activateApp', { appId: 꾸러미 });
   let 앞 = '';
   do {
     앞 = String(await 실행('mobile: getCurrentPackage', {}));
