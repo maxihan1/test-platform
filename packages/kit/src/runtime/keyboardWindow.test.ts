@@ -28,7 +28,7 @@ function 가짜연결(가림들: boolean[]) {
     const r = (await 여럿(u, v)) as unknown[];
     return r[0] ?? 못찾음;
   };
-  const driver = { overwriteCommand: (이름: string, 함수: 덮개) => void (덮개들[이름] = 함수) } as unknown as AppDriver;
+  const driver = { findElements: 여럿, overwriteCommand: (이름: string, 함수: 덮개) => void (덮개들[이름] = 함수) } as unknown as AppDriver;
   키보드창기다리기(driver, 200, 10);
   return {
     하나: (v: string) => (덮개들.findElement as 덮개)(하나, 'id', v),
@@ -44,12 +44,32 @@ describe('키보드창기다리기', () => {
     expect(폰.물음.filter((v) => v === 'btn_poll')).toHaveLength(2);
   });
 
-  it('앱 화면이 안 비었으면 맨 바깥 틀 안을 xpath 로 한 번 묻고 기다리지 않는다', async () => {
-    const 원래 = vi.fn(async (u: string, _v: string) => (u === 'xpath' ? 요소('root-child') : 못찾음));
+  it('앱 화면이 안 비었으면 여럿 찾기로 두 번째 요소를 한 번 묻고 기다리지 않는다', async () => {
+    const 하나 = vi.fn(async (_u: string, _v: string) => 못찾음);
+    const 여럿 = vi.fn(async (_u: string, _v: string) => [요소('root-child')]);
     const 덮개들: Record<string, 덮개> = {};
-    키보드창기다리기({ overwriteCommand: (이름: string, 함수: 덮개) => void (덮개들[이름] = 함수) } as unknown as AppDriver, 200, 10);
-    expect(await (덮개들.findElement as 덮개)(원래, 'id', 'btn_poll')).toEqual(못찾음);
-    expect(원래.mock.calls).toEqual([['id', 'btn_poll'], ['xpath', 빈화면식]]);
+    키보드창기다리기({ findElements: 여럿, overwriteCommand: (이름: string, 함수: 덮개) => void (덮개들[이름] = 함수) } as unknown as AppDriver, 200, 10);
+    expect(await (덮개들.findElement as 덮개)(하나, 'id', 'btn_poll')).toEqual(못찾음);
+    expect(하나.mock.calls).toEqual([['id', 'btn_poll']]);
+    expect(여럿.mock.calls).toEqual([['-android uiautomator', 빈화면식]]);
+  });
+
+  it('묻기가 던지면 기다리지 않고 연결마다 한 번만 남긴다', async () => {
+    const 알림 = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const 연결 = () => {
+      const 덮개들: Record<string, 덮개> = {};
+      const 여럿 = async () => {
+        throw new Error('UiSelector 모름');
+      };
+      키보드창기다리기({ findElements: 여럿, overwriteCommand: (이름: string, 함수: 덮개) => void (덮개들[이름] = 함수) } as unknown as AppDriver, 200, 10);
+      return (v: string) => (덮개들.findElement as 덮개)(async () => 못찾음, 'id', v);
+    };
+    const 첫 = 연결();
+    expect(await 첫('a')).toEqual(못찾음);
+    expect(await 첫('b')).toEqual(못찾음);
+    expect(await 연결()('c')).toEqual(못찾음);
+    expect(알림.mock.calls.filter(([말]) => String(말).includes('묻지 못해'))).toHaveLength(2);
+    알림.mockRestore();
   });
 
   it('찾았으면 앱 화면을 묻지 않는다', async () => {
