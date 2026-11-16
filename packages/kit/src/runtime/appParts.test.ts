@@ -116,11 +116,21 @@ describe('스크롤해서찾기', () => {
 
 describe('칸에적기 · 두번누르기', () => {
   it('비우고 적는다 — 빈 글이면 비우기만 한다', async () => {
-    const 칸 = { clearValue: vi.fn(), setValue: vi.fn() };
+    const 칸 = { clearValue: vi.fn(), addValue: vi.fn() };
     await 칸에적기(칸 as unknown as 앱요소, '홍길동');
     await 칸에적기(칸 as unknown as 앱요소, '');
     expect(칸.clearValue).toHaveBeenCalledTimes(2);
-    expect(칸.setValue.mock.calls).toEqual([['홍길동']]);
+    expect(칸.addValue.mock.calls).toEqual([['홍길동']]);
+  });
+
+  it('긴 글은 2,000자씩 나눠 이어 붙인다 — 폰의 UiAutomator2 가 요청을 64KB 까지만 받아 한글 10,000자를 한 번에 보내면 413 이다', async () => {
+    const 칸 = { clearValue: vi.fn(), addValue: vi.fn() };
+    const 글 = `${'가'.repeat(4_499)}😀`;
+    await 칸에적기(칸 as unknown as 앱요소, 글);
+    expect(칸.clearValue).toHaveBeenCalledTimes(1);
+    const 조각 = 칸.addValue.mock.calls.map(([v]) => v as string);
+    expect(조각.map((v) => Array.from(v).length)).toEqual([2_000, 2_000, 500]);
+    expect(조각.join('')).toBe(글);
   });
 
   it('하나라도 눌렸으면 넘어가고 둘 다 실패했을 때만 던진다', async () => {
