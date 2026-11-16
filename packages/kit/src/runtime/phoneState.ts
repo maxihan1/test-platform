@@ -5,9 +5,9 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
-import { phoneStateFile, type AppDriver } from './app.js';
+import { phoneStateFile, 닫기전에, type AppDriver } from './app.js';
 import type { 폰요청 } from './protocol.js';
-import { 네이티브에서, 네이티브전용 } from './webview.js';
+import { 네이티브전용, 웹맥락인가 } from './webview.js';
 
 /** 구간 안에서만 바꿀 것 — 적은 것만 바꾼다. 폰 언어 · 시간대 · 시각은 팜 기준값이라 없다 */
 export interface 폰상태 {
@@ -106,7 +106,7 @@ function 살핀다(바꿀: 폰상태): void {
 }
 
 // 하나가 실패해도 나머지는 되돌린다 — 못 한 것만 모아 돌려준다(다 되면 null)
-async function 되돌린다(driver: AppDriver, 목록: 할것[]): Promise<string | null> {
+async function 되돌린다(driver: AppDriver, 목록: 할것[], 못해도지운다 = true): Promise<string | null> {
   const 못한 = [] as string[];
   for (const x of 목록) {
     for (const r of x.되돌리기) {
@@ -118,13 +118,47 @@ async function 되돌린다(driver: AppDriver, 목록: 할것[]): Promise<string
     }
   }
   // 되돌리기를 마쳤으면 성공 · 실패 없이 지운다 — 케이스가 끝나면 kit 이 연결을 닫아 러너가 다시 보낼 연결이 없고,
-  // 남겨 두면 같은 폴더를 쓰는 다음 구간(E2E 의 다음 단계)이 덮어 그 실패가 묻힌다. 실패는 던져서 알린다
-  await rm(phoneStateFile(), { force: true }).catch((err: unknown) => console.error(`[kit] 폰 상태 파일을 지우지 못했다: ${오류글(err)}`));
+  // 남겨 두면 같은 폴더를 쓰는 다음 구간(E2E 의 다음 단계)이 덮어 그 실패가 묻힌다. 실패는 던져서 알린다.
+  // 닫는 쪽이 대신 되돌리다 실패했으면 남긴다 — 닫기까지 실패하면 러너가 이 파일로 다시 보낸다
+  if (못한.length === 0 || 못해도지운다) await rm(phoneStateFile(), { force: true }).catch((err: unknown) => console.error(`[kit] 폰 상태 파일을 지우지 못했다: ${오류글(err)}`));
   return 못한.length > 0 ? 못한.join(' · ') : null;
 }
 
-// 구간 안인 연결과 그 구간이 되돌릴 것 — 제한 시간에 걸린 본문 대신 fixture 정리가 되돌릴 때 읽는다(남은폰상태되돌리기)
-const 구간중 = new WeakMap<AppDriver, 할것[]>();
+const 구간중 = new WeakSet<AppDriver>();
+
+/** 닫는 쪽이 대신 되돌렸으면 `거둠` — 버려진 본문이 프로세스 안에서 마저 돌며 폰을 더 바꾸거나 닫힌 연결에 되돌리기를 또 보내지 않게 */
+interface 구간 {
+  거둠: boolean;
+  목록: 할것[];
+}
+
+const 닫을때_제한_ms = 15_000;
+const 거둔말 = '연결을 닫는 중이라 폰 상태를 더 바꾸지 않는다';
+
+/**
+ * 아직 구간 안인 연결을 닫기 전에 그 구간이 되돌릴 것을 보낸다(closeApp 이 부른다).
+ * Playwright 는 제한 시간에 걸린 본문을 멈춘 자리에서 버려 구간의 되돌리기가 안 돈다 — 와이파이가 꺼진 채 같은 폰의 다음 케이스가 줄줄이 실패했다(2026-11-17 게임 다시 작성 #15643).
+ * 던지지 않는다 — 이미 난 판정을 덮지 않고 닫기도 막지 않게 못 되돌린 까닭만 알린다. 폰이 답하지 않아 걸린 케이스가 닫기까지 붙들지 않게 다 합쳐 15초다
+ */
+async function 닫을때되돌린다(driver: AppDriver, 구간: 구간): Promise<void> {
+  구간.거둠 = true;
+  const 보내기 = async (): Promise<string | null> => {
+    try {
+      // 본문이 웹뷰 구간 안에서 버려졌으면 웹 맥락이다 — 폰 명령은 네이티브에서만 된다. 닫는 길이라 웹으로 돌아가지 않는다
+      if (웹맥락인가(driver)) await driver.switchContext('NATIVE_APP');
+      return await 되돌린다(driver, 구간.목록, false);
+    } catch (err) {
+      return 오류글(err);
+    }
+  };
+  let 타이머: ReturnType<typeof setTimeout> | undefined;
+  const 늦음 = new Promise<string>((풀림) => {
+    타이머 = setTimeout(() => 풀림(`${닫을때_제한_ms / 1000}초 안에 답이 없다`), 닫을때_제한_ms);
+  });
+  const 못한 = await Promise.race([보내기(), 늦음]);
+  clearTimeout(타이머);
+  if (못한 !== null) console.error(`[kit] 구간 도중에 버려진 케이스가 바꾼 폰 상태를 못 되돌리고 연결을 닫는다 — ${못한}`);
+}
 
 /**
  * 구간 안에서만 폰 상태를 바꾸고 끝나면(던져도) 앞 값으로 되돌린다. 앞 값을 다 읽은 뒤에 바꾼다 — 하나라도 못 읽으면 아무것도 안 바꾸고 던진다.
@@ -135,10 +169,12 @@ export async function 폰상태에서<값>(driver: AppDriver, 바꿀: 폰상태,
   네이티브전용(driver, '폰상태에서');
   if (구간중.has(driver)) throw new Error('폰상태에서 구간 안에서 폰상태에서 를 또 부를 수 없다 — 바꿀 것을 한 구간에 모아 적는다');
   살핀다(바꿀);
-  구간중.set(driver, []);
+  구간중.add(driver);
+  const 구간: 구간 = { 거둠: false, 목록: [] };
+  닫기전에(driver, () => 닫을때되돌린다(driver, 구간));
   try {
     const 목록 = await 짓는다(driver, 바꿀);
-    구간중.set(driver, 목록);
+    구간.목록 = 목록;
     try {
       const 파일 = phoneStateFile();
       await mkdir(dirname(파일), { recursive: true });
@@ -149,9 +185,16 @@ export async function 폰상태에서<값>(driver: AppDriver, 바꿀: 폰상태,
     }
     let 값: 값;
     try {
-      for (const x of 목록) for (const r of x.바꾸기) await 막히면(x.못함, () => 보낸다(driver, r));
+      for (const x of 목록) {
+        for (const r of x.바꾸기) {
+          if (구간.거둠) throw new Error(거둔말);
+          await 막히면(x.못함, () => 보낸다(driver, r));
+        }
+      }
       값 = await 할일();
     } catch (err) {
+      // 닫는 쪽이 이미 되돌렸다 — 닫힌 연결에 또 보내면 실패해 러너용 파일까지 지운다
+      if (구간.거둠) throw err;
       const 못한 = await 되돌린다(driver, 목록);
       if (못한 !== null) {
         const 덧 = ` (폰 상태도 못 되돌렸다 — ${못한})`;
@@ -162,28 +205,13 @@ export async function 폰상태에서<값>(driver: AppDriver, 바꿀: 폰상태,
       }
       throw err;
     }
+    if (구간.거둠) return 값;
     const 못한 = await 되돌린다(driver, 목록);
     if (못한 !== null) throw new Error(`폰 상태를 구간 전으로 못 되돌렸다 — ${못한}`);
     return 값;
   } finally {
     구간중.delete(driver);
-  }
-}
-
-/**
- * 아직 구간 안인 연결이면 그 구간이 되돌릴 것을 보낸다 — fixture 정리가 연결을 닫기 전에 부른다. 구간 밖이면 아무것도 안 한다.
- * Playwright 는 제한 시간에 걸린 본문을 멈춘 자리에서 버려 구간의 되돌리기가 안 돌고, 정리가 연결을 닫으면 러너도 보낼 곳이 없다 —
- * 와이파이가 꺼진 채 같은 폰의 다음 케이스가 줄줄이 실패한다(2026-11-17 게임 다시 작성 #15643).
- * 던지지 않는다 — 이미 난 판정(제한 시간)을 덮지 않게 못 되돌린 까닭만 돌려준다(다 되면 null)
- */
-export async function 남은폰상태되돌리기(driver: AppDriver): Promise<string | null> {
-  const 목록 = 구간중.get(driver);
-  if (목록 === undefined) return null;
-  try {
-    // 본문이 웹뷰 구간 안에서 버려졌으면 웹 맥락이다 — 폰 명령은 네이티브에서만 된다
-    return await 네이티브에서(driver, () => 되돌린다(driver, 목록));
-  } catch (err) {
-    return 오류글(err);
+    닫기전에(driver, undefined);
   }
 }
 
