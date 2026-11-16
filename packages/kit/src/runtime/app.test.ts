@@ -9,12 +9,16 @@ vi.mock('webdriverio', () => ({ remote }));
 
 import { appCapabilities, captureApp, closeApp, openApp, type AppDriver } from './app.js';
 
+/** 연결이 연 가짜 폰 — 앱이 바로 앞에 뜬다. 켜기는 app-launch.test.ts 가 본다 */
+const 가짜연결 = () => ({ sessionId: 'sess-1', capabilities: { appPackage: 'com.shop' }, execute: vi.fn(async () => 'com.shop'), deleteSession: vi.fn().mockResolvedValue(undefined) });
+
 describe('appCapabilities', () => {
   it('UDID 가 없으면 appium:udid 를 넣지 않는다 — id 앞에 꾸러미 이름을 저절로 붙이지 않는다', () => {
     expect(appCapabilities({ PLATFORM_APP: '/tmp/a.apk' })).toEqual({
       platformName: 'Android',
       'appium:automationName': 'UiAutomator2',
       'appium:disableIdLocatorAutocompletion': true,
+      'appium:autoLaunch': false,
       'appium:app': '/tmp/a.apk',
     });
   });
@@ -28,7 +32,6 @@ describe('appCapabilities', () => {
     const caps = appCapabilities({ PLATFORM_APP: '/tmp/g.apk', PLATFORM_ENGINE: 'GAME' });
     expect(caps).toMatchObject({
       'appium:noReset': true,
-      'appium:forceAppLaunch': true,
       'appium:shouldTerminateApp': true,
       'appium:newCommandTimeout': 300,
     });
@@ -57,7 +60,7 @@ describe('appCapabilities', () => {
 
   it('케이스가 데이터 남기기를 골랐으면 앱 데이터를 두고 앱만 다시 켠다 — 안 고르면 지금처럼 지운다', () => {
     const caps = appCapabilities({ PLATFORM_APP: '/tmp/a.apk' }, { keepData: true });
-    expect(caps).toMatchObject({ 'appium:noReset': true, 'appium:forceAppLaunch': true, 'appium:shouldTerminateApp': true });
+    expect(caps).toMatchObject({ 'appium:noReset': true, 'appium:shouldTerminateApp': true });
     // 게임 기본값(연결 오래 쥐기)은 앱에 안 딸려 온다
     expect('appium:newCommandTimeout' in caps).toBe(false);
     expect(appCapabilities({ PLATFORM_APP: 'com.shop.app' }, { keepData: true })['appium:noReset']).toBe(true);
@@ -94,7 +97,7 @@ describe('openApp', () => {
 
   beforeEach(async () => {
     remote.mockReset();
-    remote.mockResolvedValue({ fake: true, sessionId: 'sess-1' });
+    remote.mockImplementation(async () => 가짜연결());
     artifacts = await mkdtemp(join(tmpdir(), 'app-open-'));
     process.env.PLATFORM_ARTIFACTS_DIR = artifacts;
     process.env.PLATFORM_RUN_ID = '7';
@@ -126,7 +129,7 @@ describe('openApp', () => {
       PLATFORM_APPIUM_URL: 'http://127.0.0.1:4723',
       PLATFORM_APP: '/tmp/a.apk',
     });
-    expect(driver).toEqual({ fake: true, sessionId: 'sess-1' });
+    expect(driver.sessionId).toBe('sess-1');
     expect(remote).toHaveBeenCalledWith({
       protocol: 'http',
       hostname: '127.0.0.1',
@@ -185,7 +188,7 @@ describe('openApp 연결 번호 파일', () => {
 
   beforeEach(async () => {
     remote.mockReset();
-    remote.mockResolvedValue({ sessionId: 'sess-1', deleteSession: vi.fn().mockResolvedValue(undefined) });
+    remote.mockImplementation(async () => 가짜연결());
     artifacts = await mkdtemp(join(tmpdir(), 'app-session-'));
     process.env.PLATFORM_ARTIFACTS_DIR = artifacts;
     process.env.PLATFORM_RUN_ID = '7';

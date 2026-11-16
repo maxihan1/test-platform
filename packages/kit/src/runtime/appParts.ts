@@ -86,10 +86,19 @@ export async function 스크롤해서찾기(driver: AppDriver, 글자: string): 
   return 요소;
 }
 
-/** 칸을 비우고 적는다 — setValue 만 쓰면 남은 글 뒤에 붙고, 빈 글을 setValue 하면 키보드만 뜬다 */
+const 한번에_글자 = 2_000;
+
+/**
+ * 칸을 비우고 적는다 — 빈 글을 보내면 키보드만 뜬다.
+ * 긴 글은 나눠 이어 붙인다 — 폰의 UiAutomator2 서버가 요청을 64KB 까지만 받아(ServerInitializer 의 HttpObjectAggregator) 한글 10,000자를 한 번에 보내면 413 이다.
+ * Appium 이 글자 목록을 한 벌 더 실어 한 글자에 최대 11바이트라 2,000자면 22KB 다. UiAutomator2 는 replace 없이 받은 글을 지금 칸 글 뒤에 붙인다
+ * ponytail: 붙일 때 칸 글을 읽어 오므로 2,000자 넘는 비밀번호 칸(가려진 글) · 적는 대로 서식을 바꾸는 칸은 이어 붙인 값이 어긋난다. 그런 케이스가 나오면 클립보드로 붙여 넣는다
+ */
 export async function 칸에적기(칸: 앱요소, 값: string): Promise<void> {
   await 칸.clearValue();
-  if (값 !== '') await 칸.setValue(값);
+  // 이모지가 반으로 갈리지 않게 글자 단위로 자른다
+  const 글자 = Array.from(값);
+  for (let i = 0; i < 글자.length; i += 한번에_글자) await 칸.addValue(글자.slice(i, i + 한번에_글자).join(''));
 }
 
 /** 키보드의 완료 · 이동 단추 — 키보드를 뒤로 가기로 내리면 화면이 닫히는 앱이 있다 */
