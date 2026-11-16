@@ -20,13 +20,17 @@ const 트리 = {
 
 const fetchMock = vi.fn();
 const 답 = (body: unknown, status = 200): Response => new Response(JSON.stringify(body), { status });
+// 앱 켜기(execute/sync)는 늘 게임이 앞에 떴다고 답한다 — 켜기는 appScreen.test 가 본다
+const 켜기Mock = vi.fn(async (_url: string, init: RequestInit) =>
+  답({ value: (JSON.parse(init.body as string) as { script: string }).script === 'mobile: getCurrentPackage' ? 'com.game' : true }),
+);
 
 beforeEach(() => {
   process.env.PLATFORM_APPIUM_URL = 'http://user:pw@farm:4723/wd/hub';
   process.env.PLATFORM_APP = 'https://builds/qa.apk';
   fetchMock.mockReset();
-  fetchMock.mockResolvedValueOnce(답({ value: { sessionId: 's-9', capabilities: {} } })).mockResolvedValue(new Response(null, { status: 200 }));
-  vi.stubGlobal('fetch', fetchMock);
+  fetchMock.mockResolvedValueOnce(답({ value: { sessionId: 's-9', capabilities: { appPackage: 'com.game' } } })).mockResolvedValue(new Response(null, { status: 200 }));
+  vi.stubGlobal('fetch', (url: string, init: RequestInit) => (String(url).endsWith('/execute/sync') ? 켜기Mock(url, init) : fetchMock(url, init)));
   openGame.mockReset();
   openGame.mockResolvedValue({ tree: async () => 트리 });
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
@@ -62,7 +66,7 @@ describe('게임화면을읽는다', () => {
     const caps = JSON.parse((fetchMock.mock.calls[0] as [string, RequestInit])[1].body as string).capabilities.alwaysMatch;
     expect(caps['appium:noReset']).toBe(false);
     expect(caps['appium:enforceAppInstall']).toBe(true);
-    expect(caps['appium:forceAppLaunch']).toBe(true);
+    expect(caps['appium:autoLaunch']).toBe(false);
     expect(caps['appium:shouldTerminateApp']).toBe(true);
   });
 
@@ -75,7 +79,7 @@ describe('게임화면을읽는다', () => {
     expect(부름.map(([, init]) => new Headers(init.headers).get('authorization'))).toEqual(['Bearer pat_dlg', 'Bearer pat_dlg']);
     expect(openGame.mock.calls[0]![0]).toMatchObject({ PLATFORM_APPIUM_TOKEN: 'pat_dlg' });
 
-    fetchMock.mockResolvedValueOnce(답({ value: { sessionId: 's-10', capabilities: {} } }));
+    fetchMock.mockResolvedValueOnce(답({ value: { sessionId: 's-10', capabilities: { appPackage: 'com.game' } } }));
     await 게임화면을읽는다({ udid: 'R5CT' });
     expect(openGame.mock.calls[1]![0]).toMatchObject({ PLATFORM_APPIUM_TOKEN: 'pat_env' });
   });

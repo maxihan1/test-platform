@@ -7,7 +7,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const remote = vi.hoisted(() => vi.fn());
 vi.mock('webdriverio', () => ({ remote }));
 
-import { appCapabilities, captureApp, closeApp, openApp, type AppDriver } from './app.js';
+import { appCapabilities, captureApp, closeApp, openApp, 앱을켠다, type AppDriver } from './app.js';
+
+/** 연결이 연 가짜 폰 — 앞에 뜬 꾸러미를 차례로 답한다 */
+function 가짜연결(앞: string[] = ['com.shop'], 덧: Record<string, unknown> = {}) {
+  const execute = vi.fn(async (script: string) => (script === 'mobile: getCurrentPackage' ? (앞.length > 1 ? 앞.shift() : 앞[0]) : true));
+  return { sessionId: 'sess-1', capabilities: { appPackage: 'com.shop' }, execute, deleteSession: vi.fn().mockResolvedValue(undefined), ...덧 };
+}
 
 describe('appCapabilities', () => {
   it('UDID 가 없으면 appium:udid 를 넣지 않는다 — id 앞에 꾸러미 이름을 저절로 붙이지 않는다', () => {
@@ -15,6 +21,7 @@ describe('appCapabilities', () => {
       platformName: 'Android',
       'appium:automationName': 'UiAutomator2',
       'appium:disableIdLocatorAutocompletion': true,
+      'appium:autoLaunch': false,
       'appium:app': '/tmp/a.apk',
     });
   });
@@ -28,7 +35,6 @@ describe('appCapabilities', () => {
     const caps = appCapabilities({ PLATFORM_APP: '/tmp/g.apk', PLATFORM_ENGINE: 'GAME' });
     expect(caps).toMatchObject({
       'appium:noReset': true,
-      'appium:forceAppLaunch': true,
       'appium:shouldTerminateApp': true,
       'appium:newCommandTimeout': 300,
     });
@@ -57,7 +63,7 @@ describe('appCapabilities', () => {
 
   it('케이스가 데이터 남기기를 골랐으면 앱 데이터를 두고 앱만 다시 켠다 — 안 고르면 지금처럼 지운다', () => {
     const caps = appCapabilities({ PLATFORM_APP: '/tmp/a.apk' }, { keepData: true });
-    expect(caps).toMatchObject({ 'appium:noReset': true, 'appium:forceAppLaunch': true, 'appium:shouldTerminateApp': true });
+    expect(caps).toMatchObject({ 'appium:noReset': true, 'appium:shouldTerminateApp': true });
     // 게임 기본값(연결 오래 쥐기)은 앱에 안 딸려 온다
     expect('appium:newCommandTimeout' in caps).toBe(false);
     expect(appCapabilities({ PLATFORM_APP: 'com.shop.app' }, { keepData: true })['appium:noReset']).toBe(true);
@@ -66,6 +72,49 @@ describe('appCapabilities', () => {
 
   it('PLATFORM_APP 이 없으면 던진다', () => {
     expect(() => appCapabilities({})).toThrow('Android 앱 케이스를 돌리려면 PLATFORM_APP 이 필요하다');
+  });
+
+  it('Appium 은 앱을 깔기만 하고 켜지 않는다 — 켜면 첫 화면을 기다리다 권한 창에 막혀 연결째 실패한다', () => {
+    for (const caps of [
+      appCapabilities({ PLATFORM_APP: '/tmp/a.apk' }),
+      appCapabilities({ PLATFORM_APP: 'com.shop.app' }, { keepData: true }),
+      appCapabilities({ PLATFORM_APP: '/tmp/g.apk', PLATFORM_ENGINE: 'GAME' }),
+    ]) {
+      expect(caps['appium:autoLaunch']).toBe(false);
+      expect('appium:forceAppLaunch' in caps).toBe(false);
+    }
+  });
+});
+
+describe('앱을켠다', () => {
+  const 실행 = (앞: string[]) => {
+    const 부름: [string, Record<string, unknown>][] = [];
+    const f = async (script: string, args: Record<string, unknown>) => {
+      부름.push([script, args]);
+      return script === 'mobile: getCurrentPackage' ? (앞.length > 1 ? 앞.shift() : 앞[0]) : true;
+    };
+    return { f, 부름 };
+  };
+
+  it('켜자마자 권한 창이 앞에 떠도 켜진 것으로 본다 — 권한 창은 케이스가 답한다', async () => {
+    const { f, 부름 } = 실행(['com.sec.android.app.launcher', 'com.google.android.permissioncontroller']);
+    await 앱을켠다(f, 'org.joinmastodon.android', false, 5_000, 1);
+    expect(부름.map(([s]) => s)).toEqual(['mobile: activateApp', 'mobile: getCurrentPackage', 'mobile: getCurrentPackage']);
+    expect(부름[0]?.[1]).toEqual({ appId: 'org.joinmastodon.android' });
+  });
+
+  it('데이터를 남기는 연결은 앱을 끄고 다시 켠다 — 앞 케이스의 앱을 앞으로 가져오기만 하지 않게', async () => {
+    const { f, 부름 } = 실행(['com.shop']);
+    await 앱을켠다(f, 'com.shop', true, 5_000, 1);
+    expect(부름.slice(0, 2)).toEqual([
+      ['mobile: terminateApp', { appId: 'com.shop' }],
+      ['mobile: activateApp', { appId: 'com.shop' }],
+    ]);
+  });
+
+  it('시간 안에 앞에 안 와도 던지지 않는다 — 무엇이 떴는지는 케이스 첫 단계가 사진과 함께 말한다', async () => {
+    const { f } = 실행(['com.android.chrome']);
+    await expect(앱을켠다(f, 'com.shop', false, 20, 1)).resolves.toBeUndefined();
   });
 });
 
@@ -94,7 +143,7 @@ describe('openApp', () => {
 
   beforeEach(async () => {
     remote.mockReset();
-    remote.mockResolvedValue({ fake: true, sessionId: 'sess-1' });
+    remote.mockImplementation(async () => 가짜연결());
     artifacts = await mkdtemp(join(tmpdir(), 'app-open-'));
     process.env.PLATFORM_ARTIFACTS_DIR = artifacts;
     process.env.PLATFORM_RUN_ID = '7';
@@ -126,7 +175,7 @@ describe('openApp', () => {
       PLATFORM_APPIUM_URL: 'http://127.0.0.1:4723',
       PLATFORM_APP: '/tmp/a.apk',
     });
-    expect(driver).toEqual({ fake: true, sessionId: 'sess-1' });
+    expect(driver.sessionId).toBe('sess-1');
     expect(remote).toHaveBeenCalledWith({
       protocol: 'http',
       hostname: '127.0.0.1',
@@ -171,6 +220,32 @@ describe('openApp', () => {
     expect(remote.mock.calls[0]?.[0]).not.toHaveProperty('headers');
   });
 
+  it('연결이 앱을 깔면 연결 응답의 꾸러미 이름으로 kit 이 켠다', async () => {
+    const driver = await openApp(OPEN_ENV);
+    expect(driver.execute).toHaveBeenCalledWith('mobile: activateApp', { appId: 'com.shop' });
+    expect(driver.execute).not.toHaveBeenCalledWith('mobile: terminateApp', expect.anything());
+  });
+
+  it('데이터 남기는 연결은 앱을 끄고 켠다', async () => {
+    const driver = await openApp(OPEN_ENV, { keepData: true });
+    expect(driver.execute).toHaveBeenCalledWith('mobile: terminateApp', { appId: 'com.shop' });
+  });
+
+  it('앱을 못 켜면 연 연결을 닫고 던진다 — 팜 폰이 붙들리지 않게', async () => {
+    const 연결 = 가짜연결();
+    연결.execute.mockRejectedValue(new Error('앱이 없다'));
+    remote.mockResolvedValue(연결);
+    await expect(openApp(OPEN_ENV)).rejects.toThrow('앱을 켜지 못했다: 앱이 없다');
+    expect(연결.deleteSession).toHaveBeenCalledTimes(1);
+  });
+
+  it('연결 응답에 꾸러미 이름이 없으면 연결을 닫고 던진다', async () => {
+    const 연결 = 가짜연결(['com.shop'], { capabilities: {} });
+    remote.mockResolvedValue(연결);
+    await expect(openApp(OPEN_ENV)).rejects.toThrow('Appium 이 앱 꾸러미 이름을 주지 않아');
+    expect(연결.deleteSession).toHaveBeenCalledTimes(1);
+  });
+
   it('포트가 없으면 protocol 기본 포트를 쓴다', async () => {
     await openApp({ PLATFORM_APPIUM_URL: 'https://farm.example.com/wd/hub', PLATFORM_APP: '/a.apk' });
     await openApp({ PLATFORM_APPIUM_URL: 'http://farm.example.com', PLATFORM_APP: '/a.apk' });
@@ -185,7 +260,7 @@ describe('openApp 연결 번호 파일', () => {
 
   beforeEach(async () => {
     remote.mockReset();
-    remote.mockResolvedValue({ sessionId: 'sess-1', deleteSession: vi.fn().mockResolvedValue(undefined) });
+    remote.mockImplementation(async () => 가짜연결());
     artifacts = await mkdtemp(join(tmpdir(), 'app-session-'));
     process.env.PLATFORM_ARTIFACTS_DIR = artifacts;
     process.env.PLATFORM_RUN_ID = '7';

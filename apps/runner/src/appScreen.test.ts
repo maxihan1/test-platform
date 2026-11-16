@@ -49,6 +49,9 @@ describe('화면을줄인다', () => {
 });
 
 const fetchMock = vi.fn();
+// 앱 켜기(execute/sync)는 따로 받는다 — 열기 · 읽기 · 닫기의 응답 차례를 안 건드린다. 앞에 뜬 꾸러미는 앞앱 차례대로 답한다
+const 켜기Mock = vi.fn();
+let 앞앱: string[] = [];
 
 function 답(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status });
@@ -59,12 +62,18 @@ beforeEach(() => {
   process.env.PLATFORM_APP = '/apk/dev.apk';
   fetchMock.mockReset();
   fetchMock.mockResolvedValueOnce(열림답()).mockResolvedValueOnce(답({ value: 화면 })).mockResolvedValue(new Response(null, { status: 200 }));
-  vi.stubGlobal('fetch', fetchMock);
+  앞앱 = ['com.shop'];
+  켜기Mock.mockReset();
+  켜기Mock.mockImplementation(async (_url: string, init: RequestInit) => {
+    const { script } = JSON.parse(init.body as string) as { script: string };
+    return 답({ value: script === 'mobile: getCurrentPackage' ? (앞앱.length > 1 ? 앞앱.shift() : 앞앱[0]) : true });
+  });
+  vi.stubGlobal('fetch', (url: string, init: RequestInit) => (String(url).endsWith('/execute/sync') ? 켜기Mock(url, init) : fetchMock(url, init)));
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
 });
 
 function 열림답(): Response {
-  return 답({ value: { sessionId: 's-1', capabilities: {} } });
+  return 답({ value: { sessionId: 's-1', capabilities: { appPackage: 'com.shop' } } });
 }
 
 afterEach(() => {
@@ -116,11 +125,37 @@ describe('앱화면을읽는다', () => {
           platformName: 'Android',
           'appium:automationName': 'UiAutomator2',
           'appium:disableIdLocatorAutocompletion': true,
+          'appium:autoLaunch': false,
           'appium:app': '/apk/dev.apk',
           'appium:udid': 'R5CT',
         },
       },
     });
+  });
+
+  it('Appium 은 깔기만 하고 러너가 연결 응답의 꾸러미로 앱을 켠 뒤 읽는다', async () => {
+    await 앱화면을읽는다({});
+
+    const 켜기 = (켜기Mock.mock.calls as [string, RequestInit][]).map(([url, init]) => [url, JSON.parse(init.body as string)]);
+    expect(켜기[0]).toEqual(['http://farm:4723/wd/hub/session/s-1/execute/sync', { script: 'mobile: activateApp', args: [{ appId: 'com.shop' }] }]);
+    expect(켜기.map(([, 몸]) => 몸.script)).not.toContain('mobile: terminateApp');
+  });
+
+  it('켜자마자 권한 창이 앞에 떠도 연결을 실패시키지 않고 그 화면을 읽는다 (2026-11-16 Mastodon 「MainActivity never started」)', async () => {
+    앞앱 = ['com.sec.android.app.launcher', 'com.google.android.permissioncontroller'];
+
+    const 결과 = await 앱화면을읽는다({});
+
+    expect(결과.split('\n')[0]).toBe('화면 1080x2400 · 요소 4개');
+    expect(켜기Mock).toHaveBeenCalledTimes(3);
+  });
+
+  it('앱을 못 켜면 던지고 연결은 닫는다', async () => {
+    켜기Mock.mockResolvedValue(답({ value: { message: '앱이 없다' } }, 500));
+
+    await expect(앱화면을읽는다({})).rejects.toThrow('Appium 이 HTTP 500 로 답했다: 앱이 없다');
+
+    expect((fetchMock.mock.calls.at(-1) as [string, RequestInit])[1].method).toBe('DELETE');
   });
 
   it('요청의 app · udid 가 환경값보다 앞선다', async () => {

@@ -35,22 +35,23 @@ export function appCapabilities(env: Env, options: AppOpenOptions = {}): Record<
     'appium:automationName': 'UiAutomator2',
     // 꾸러미 이름 없는 resource-id 를 쓰는 앱도 id= 로 찾게 한다. 긴 꼴(com.shop:id/x)은 그대로 찾는다 (§5.2 「앱 실행」)
     'appium:disableIdLocatorAutocompletion': true,
+    // 깔기만 시키고 켜기는 kit 이 한다(앱을켠다) — Appium 이 켜면 첫 화면이 20초 안에 앞에 와야 연결이 열리는데, 켜자마자 뜬 권한 창이 앞을 막으면 연결째 실패한다 (§5.2 「앱 실행」)
+    'appium:autoLaunch': false,
   };
   const app = required(env, 'PLATFORM_APP');
   // 스토어로 깐 앱은 APK 가 없어 깔지 않고 켠다. noReset 을 안 줘 연결 때 앱 데이터를 지운다 — APK 를 새로 깔 때처럼 로그아웃 상태로 시작한다 (§5.2 「플레이스토어 앱 — 패키지 이름」)
   caps[패키지이름인가(app) ? 'appium:appPackage' : 'appium:app'] = app;
   // UDID 가 없으면 Appium 이 연결된 한 대를 고른다
   if (env.PLATFORM_DEVICE_UDID) caps['appium:udid'] = env.PLATFORM_DEVICE_UDID;
-  // 데이터 남기기를 고른 앱 케이스 — 앞 케이스의 로그인을 이어 쓰고 앱만 다시 켠다. 폰을 놓으면 팜이 데이터를 지워, 한 번 잡고 이어 도는 작성 폰 돌려 보기에서만 이어진다 (도메인/러너 §5.2 「데이터 남기고 시작」)
+  // 데이터 남기기를 고른 앱 케이스 — 앞 케이스의 로그인을 이어 쓰고 앱만 다시 켠다(끄고 켜기는 앱을켠다). 폰을 놓으면 팜이 데이터를 지워, 한 번 잡고 이어 도는 작성 폰 돌려 보기에서만 이어진다 (도메인/러너 §5.2 「데이터 남기고 시작」)
   if (options.keepData === true) {
-    Object.assign(caps, { 'appium:noReset': true, 'appium:forceAppLaunch': true, 'appium:shouldTerminateApp': true });
+    Object.assign(caps, { 'appium:noReset': true, 'appium:shouldTerminateApp': true });
   }
   // 게임은 실행 하나 동안 폰을 쥐고 한 번만 깐다 — 항목마다 데이터는 두고 앱만 다시 켠다. 상태는 케이스가 어드민 API 로 맞춘다 (도메인/게임 §3.10 「게임 연결」).
   // 게임 명령은 Appium 을 거치지 않아, 기본 60초면 Appium 명령이 뜸한 긴 절차(확률 대량 시도) 도중 연결이 끊긴다
   if (env.PLATFORM_ENGINE === 'GAME') {
     Object.assign(caps, {
       'appium:noReset': true,
-      'appium:forceAppLaunch': true,
       'appium:shouldTerminateApp': true,
       'appium:newCommandTimeout': 300,
     });
@@ -88,7 +89,48 @@ export async function openApp(env: Env, options: AppOpenOptions = {}): Promise<A
     capabilities,
   });
   await writeSessionFile(driver.sessionId);
+  try {
+    const 꾸러미 = 연결꾸러미(driver.capabilities);
+    await 앱을켠다((script, args) => driver.execute(script, args), 꾸러미, capabilities['appium:noReset'] === true);
+  } catch (err) {
+    // 케이스는 driver 를 못 받아 닫지 못한다 — 여기서 닫아야 팜 폰이 연결 시간 동안 붙들리지 않는다
+    await closeApp(driver).catch(() => undefined);
+    throw new Error(`앱을 켜지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+  }
   return driver;
+}
+
+/** 시스템 권한 창의 꾸러미 — 기종 · OS 판마다 다르다. 이것이 앞에 떠도 앱은 켜진 것이다 */
+const 권한창꾸러미 = ['com.google.android.permissioncontroller', 'com.android.permissioncontroller', 'com.android.packageinstaller'];
+
+/** 연결 응답의 꾸러미 이름 — APK 로 열면 Appium 이 매니페스트에서 읽어 채운다. 드라이버 판에 따라 appium: 이 붙어 온다 */
+export function 연결꾸러미(caps: unknown): string {
+  const c = (caps ?? {}) as Record<string, unknown>;
+  const 이름 = c.appPackage ?? c['appium:appPackage'];
+  if (typeof 이름 !== 'string' || 이름 === '') throw new Error('Appium 이 앱 꾸러미 이름을 주지 않아 앱을 켤 수 없다');
+  return 이름;
+}
+
+/**
+ * 연결이 깔아 둔 앱을 켠다 — kit 케이스와 러너 화면 읽기가 같이 쓴다. `실행` 은 Appium `execute` 하나다(러너는 HTTP 로 넘긴다).
+ * 데이터를 남기는 연결은 먼저 끈다 — 앞 케이스의 앱이 살아 있으면 앞으로 가져오기만 해 「앱만 다시 켜기」가 안 된다.
+ * 앱이나 권한 창이 앞에 올 때까지 기다리되 안 와도 던지지 않는다 — 무엇이 떴는지는 케이스 첫 단계가 사진과 함께 말한다
+ */
+export async function 앱을켠다(
+  실행: (script: string, args: Record<string, unknown>) => Promise<unknown>,
+  꾸러미: string,
+  먼저끈다: boolean,
+  기다림_ms = 20_000,
+  간격_ms = 500,
+): Promise<void> {
+  if (먼저끈다) await 실행('mobile: terminateApp', { appId: 꾸러미 });
+  await 실행('mobile: activateApp', { appId: 꾸러미 });
+  const 끝 = Date.now() + 기다림_ms;
+  while (Date.now() < 끝) {
+    const 앞 = await 실행('mobile: getCurrentPackage', {});
+    if (앞 === 꾸러미 || 권한창꾸러미.includes(String(앞))) return;
+    await new Promise((r) => setTimeout(r, 간격_ms));
+  }
 }
 
 function sessionFile(): string {
