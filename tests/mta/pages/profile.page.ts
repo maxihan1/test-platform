@@ -1,5 +1,5 @@
 import type { AppDriver } from '@platform/kit/app';
-import { 뜰때까지 } from '@platform/kit/parts';
+import { 글자들, 뜰때까지 } from '@platform/kit/parts';
 
 import { 뜨는메뉴 } from '../components/popup-menu.component.js';
 
@@ -11,6 +11,8 @@ export class 프로필화면 {
   readonly 아바타 = 'id=org.joinmastodon.android:id/avatar';
   readonly 이름 = 'android=new UiSelector().resourceId("org.joinmastodon.android:id/name_wrap").childSelector(new UiSelector().resourceId("org.joinmastodon.android:id/name"))';
   readonly 이름줄 = 'id=org.joinmastodon.android:id/name_wrap';
+  readonly 역할배지들 = 'android=new UiSelector().resourceId("org.joinmastodon.android:id/badges").childSelector(new UiSelector().className("android.widget.TextView"))';
+  readonly 이름줄글칸들 = 'android=new UiSelector().resourceId("org.joinmastodon.android:id/name_wrap").childSelector(new UiSelector().className("android.widget.TextView"))';
   readonly 계정 = 'android=new UiSelector().resourceId("org.joinmastodon.android:id/profile_header").childSelector(new UiSelector().resourceId("org.joinmastodon.android:id/username"))';
   readonly 팔로워 = 'id=org.joinmastodon.android:id/followers_btn';
   readonly 팔로워글 = 'id=org.joinmastodon.android:id/followers_label';
@@ -31,6 +33,8 @@ export class 프로필화면 {
   readonly 해시태그칩들 = 'id=org.joinmastodon.android:id/hashtags';
   readonly 항목들 = 'id=org.joinmastodon.android:id/fields';
   readonly 굴려서더보기 = 'android=new UiScrollable(new UiSelector().resourceId("org.joinmastodon.android:id/scroller")).scrollIntoView(new UiSelector().resourceId("org.joinmastodon.android:id/more"))';
+  readonly 항목값들 = 'id=org.joinmastodon.android:id/value';
+  readonly 목록글본문들 = 'android=new UiSelector().resourceId("org.joinmastodon.android:id/list").childSelector(new UiSelector().resourceId("org.joinmastodon.android:id/text"))';
 
   constructor(private readonly driver: AppDriver) {
     this.메뉴 = new 뜨는메뉴(driver);
@@ -86,5 +90,23 @@ export class 프로필화면 {
 
   async 메뉴열기(): Promise<void> {
     await this.driver.$(this.메뉴버튼).click();
+  }
+
+  해시태그칩(글자: string): string {
+    return `android=new UiSelector().resourceId("org.joinmastodon.android:id/hashtags").childSelector(new UiSelector().text(${JSON.stringify(글자)}))`;
+  }
+
+  async 글들(선택자: string): Promise<string[]> {
+    return 글자들(this.driver, 선택자);
+  }
+
+  async 항목값누르기(순서: number): Promise<void> {
+    const 요소 = (await this.driver.$$(this.항목값들).getElements())[순서];
+    if (!요소) throw new Error(`프로필 항목 값 ${String(순서)}번째가 없다`);
+    await 요소.click();
+  }
+
+  async 이름줄배지글들(): Promise<string[]> {
+    return 글자들(this.driver, this.역할배지들);
   }
 }

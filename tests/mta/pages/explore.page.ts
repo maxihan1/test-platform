@@ -12,6 +12,8 @@ export class 둘러보기화면 {
   readonly 안내글 = 'id=org.joinmastodon.android:id/banner_text';
   readonly 목록 = 'id=org.joinmastodon.android:id/list';
   readonly 첫글카드 = 'android=new UiSelector().resourceId("org.joinmastodon.android:id/list").childSelector(new UiSelector().resourceId("org.joinmastodon.android:id/clickable_thing").instance(0))';
+  readonly 링크카드줄들 = 'android=new UiSelector().resourceId("org.joinmastodon.android:id/list").childSelector(new UiSelector().resourceId("org.joinmastodon.android:id/title"))';
+  readonly 추천계정줄들 = 'android=new UiSelector().resourceId("org.joinmastodon.android:id/list").childSelector(new UiSelector().resourceId("org.joinmastodon.android:id/name"))';
   readonly 빈화면글 = 'id=org.joinmastodon.android:id/empty_text';
   readonly 해시태그글 = 'android=new UiSelector().resourceId("org.joinmastodon.android:id/pager").childSelector(new UiSelector().textStartsWith("#"))';
 
