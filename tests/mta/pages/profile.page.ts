@@ -45,7 +45,7 @@ export class 프로필화면 {
   }
 
   배지(글자: string): string {
-    return `android=new UiSelector().resourceId("org.joinmastodon.android:id/profile_header").childSelector(new UiSelector().text(${JSON.stringify(글자)}))`;
+    return `android=new UiSelector().resourceId("org.joinmastodon.android:id/badges").childSelector(new UiSelector().text(${JSON.stringify(글자)}))`;
   }
 
   굴려서글자포함(글자: string): string {

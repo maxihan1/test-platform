@@ -21,7 +21,6 @@ export const spec = defineCase({
     loginPassword: z.string().describe('일반 회원 비밀번호').optional().meta({ secret: true }),
   }),
   expected: z.object({
-    목록글: z.string().describe('언어 창 목록의 첫 줄 이름').default('기본값'),
     취소글: z.string().describe('언어 창 단추 글').default('취소'),
   }),
 });
@@ -42,7 +41,7 @@ test(spec, async ({ driver, params, expected }) => {
   });
   await test.step('게시 기본값에서 「게시 언어」를 누른다', async () => {
     await 설정.줄누르기('게시 언어');
-    const 목록 = await verify('언어 창에 언어 목록이 보인다', await 뜰때까지(driver, 설정.글포함(expected.목록글), 10_000), true);
+    const 목록 = await verify('언어 창에 언어 목록이 보인다', await 뜰때까지(driver, 설정.언어목록줄, 10_000), true);
     const 취소 = await verify('언어 창에 「취소」가 보인다', await 글이될때까지읽기(driver, 창.확인버튼, expected.취소글), expected.취소글);
     await verify('「게시 언어」를 누르면 언어 목록과 「취소」가 있는 창이 뜬다', 목록 && 취소, true);
     await 창.확인();

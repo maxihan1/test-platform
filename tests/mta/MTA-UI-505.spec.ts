@@ -3,13 +3,14 @@ import { z } from 'zod';
 
 import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
+import { 사용자명 } from './helpers/app.helper.js';
 import { 컬렉션화면 } from './pages/collection.page.js';
 import { 홈화면 } from './pages/home.page.js';
 import { 프로필화면 } from './pages/profile.page.js';
 
 export const spec = defineCase({
   tcId: 'MTA-UI-505',
-  name: '내 프로필 「추천」 탭에 「Collections」 구간과 「모두 보기」가 보인다',
+  name: '내 프로필 「추천」 탭에 「Collections」 구간과 컬렉션마다 이름 · 「by @qa_user1」이 보인다',
   platforms: ['android'],
   launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
@@ -35,7 +36,7 @@ test(spec, async ({ driver, params }) => {
     await verify('내 프로필 화면이 열린다', await 프로필.그려질때까지(), true, { blocker: true });
     await driver.$(프로필.탭('추천')).click();
     const 구간 = await verify('「Collections」 구간이 보인다', await 컬렉션.글자가뜰때까지('Collections'), true);
-    const 모두보기 = await verify('「모두 보기」가 보인다', await 컬렉션.글자가뜰때까지('모두 보기'), true);
-    await verify('내 프로필 「추천」 탭에 「Collections」 구간과 「모두 보기」가 보인다', 구간 && 모두보기, true);
+    const 작성자 = await verify('컬렉션 줄에 「by @qa_user1」이 보인다', await 컬렉션.글자가뜰때까지(`by @${사용자명(params.loginId ?? '')}`), true);
+    await verify('내 프로필 「추천」 탭에 「Collections」 구간과 컬렉션마다 이름 · 「by @qa_user1」이 보인다', 구간 && 작성자, true);
   });
 });

@@ -6,7 +6,7 @@ export class 하단탭 {
   readonly 알림 = 'id=org.joinmastodon.android:id/tab_notifications';
   readonly 프로필 = 'id=org.joinmastodon.android:id/tab_profile';
   readonly 프로필아바타 = 'id=org.joinmastodon.android:id/tab_profile_ava';
-  readonly 탭글자들 = 'android=new UiSelector().resourceId("org.joinmastodon.android:id/tabbar").childSelector(new UiSelector().resourceId("org.joinmastodon.android:id/label"))';
+  readonly 탭글자들 = 'id=org.joinmastodon.android:id/label';
 
   constructor(private readonly driver: AppDriver) {}
 

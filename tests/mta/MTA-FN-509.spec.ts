@@ -1,4 +1,5 @@
 import { defineCase, test, verify } from '@platform/kit';
+import { 뜰때까지 } from '@platform/kit/parts';
 import { z } from 'zod';
 
 import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
@@ -46,7 +47,10 @@ test(spec, async ({ driver, params, expected }) => {
       await driver.$(설정.화면글정확히(expected.고른범위)).click();
       바꿈 = 원래범위 !== expected.고른범위;
       await verify('게시 범위 부제가 「팔로워」로 바뀐다', await 글이될때까지읽기(driver, 설정.부제, expected.고른범위), expected.고른범위, { blocker: true });
-      await verify('게시 범위를 「팔로워」로 고르면 「공개 범위」가 꺼져 보인다', await 설정.줄켜졌나('공개 범위'), false);
+      await driver.$(설정.굴려서줄('공개 범위')).click();
+      const 창뜸 = await 뜰때까지(driver, 설정.고르기창, 3_000);
+      if (창뜸) await driver.back();
+      await verify('게시 범위를 「팔로워」로 고르면 「공개 범위」가 꺼져 보인다', 창뜸, false);
     });
   } finally {
     if (바꿈) {

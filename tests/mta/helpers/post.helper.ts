@@ -1,7 +1,7 @@
 import type { AppDriver } from '@platform/kit/app';
-import { 뜰때까지, 칸에적기 } from '@platform/kit/parts';
+import { 뜰때까지, 요소위에그리기, 칸에적기 } from '@platform/kit/parts';
 
-import { 앱id, 굴려서글자포함 } from './app.helper.js';
+import { 앱id, 굴려서글자포함, 목록안글자포함 } from './app.helper.js';
 import { 홈으로 } from './nav.helper.js';
 
 const 메뉴항목 = (글자: string): string => `android=new UiSelector().className("android.widget.TextView").text(${JSON.stringify(글자)})`;
@@ -24,7 +24,8 @@ export async function 내프로필에서글열기(driver: AppDriver, 본문: str
   await 홈으로(driver);
   await driver.$(앱id('tab_profile')).click();
   await 뜰때까지(driver, 앱id('profile_action_btn'), 20_000);
-  await driver.$(굴려서글자포함(본문)).click();
+  const 보이는글 = 목록안글자포함(본문);
+  await 요소위에그리기(driver, (await 뜰때까지(driver, 보이는글, 5_000)) ? 보이는글 : 굴려서글자포함(본문, 'scroller'), [[3, 30]]);
   await 뜰때까지(driver, 앱id('reply_btn_text'), 20_000);
 }
 

@@ -37,6 +37,6 @@ test(spec, async ({ driver, params }) => {
     await 홈으로(driver);
     await 홈.목록고르기('개발 소식');
     await verify('글 카드 푸터의 좋아요 버튼이 보인다', await 뜰때까지(driver, 홈.첫좋아요, 20_000), true, { blocker: true });
-    await verify('「게시물 상호작용 수」를 끄면 글 카드 푸터 숫자가 보이지 않는다', await 뜰때까지(driver, 홈.첫좋아요수, 5_000), false);
+    await verify('「게시물 상호작용 수」를 끄면 글 카드 푸터 숫자가 보이지 않는다', await driver.$(홈.첫좋아요수).getText(), '');
   });
 });

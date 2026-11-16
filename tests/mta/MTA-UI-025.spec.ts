@@ -25,6 +25,6 @@ test(spec, async ({ driver }) => {
   await test.step('로그인용 서버 고르기 화면의 필터 칩을 확인한다', async () => {
     const 영역 = await verify('필터 칩 영역이 보이지 않는다', await 보이나(driver, 고르기.필터영역), false);
     const 칩 = await verify('「모든 언어」 칩이 보이지 않는다', await 보이나(driver, 고르기.화면글('모든 언어')), false);
-    await verify('로그인용 서버 고르기 화면에 필터 칩이 보이지 않는다', 영역 === false && 칩 === false, true);
+    await verify('로그인용 서버 고르기 화면에 필터 칩이 보이지 않는다', 영역 && 칩, true);
   });
 });

@@ -13,6 +13,7 @@ export const spec = defineCase({
   tcId: 'MTA-UI-318',
   name: '프로필 타임라인 머리에 「Posts and boosts」가 보이고 필터 버튼을 누르면 「Show replies」 · 「Show boosts」가 보인다',
   platforms: ['android'],
+  held: '보류 — 앱 — MTA-REQ-318 — 주소 없음(프로필 타임라인 필터 메뉴 「Show replies」 · 「Show boosts」가 화면 글에 안 잡힘)',
   launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({

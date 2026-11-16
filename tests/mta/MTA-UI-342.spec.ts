@@ -13,10 +13,10 @@ export const spec = defineCase({
   name: '자기소개가 빈 프로필 편집에 「Add bio」가 보인다',
   platforms: ['android'],
   launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
-  precondition: ['프로필 고쳐도 되는 계정으로 로그인해 있다'],
+  precondition: ['가입 직후 계정으로 로그인해 있다'],
   params: z.object({
-    loginId: z.string().describe('프로필 고쳐도 되는 계정 아이디').optional().meta({ secret: true, account: '프로필 고쳐도 되는 계정' }),
-    loginPassword: z.string().describe('프로필 고쳐도 되는 계정 비밀번호').optional().meta({ secret: true, account: '프로필 고쳐도 되는 계정' }),
+    loginId: z.string().describe('가입 직후 계정 아이디').optional().meta({ secret: true, account: '가입 직후 계정' }),
+    loginPassword: z.string().describe('가입 직후 계정 비밀번호').optional().meta({ secret: true, account: '가입 직후 계정' }),
   }),
   expected: z.object({
     소개줄글: z.string().describe('자기소개가 빈 프로필 편집의 줄 이름').default('Add bio'),
@@ -27,7 +27,7 @@ test(spec, async ({ driver, params, expected }) => {
   const 홈 = new 홈화면(driver);
   const 프로필 = new 프로필화면(driver);
   const 편집 = new 프로필편집화면(driver);
-  await test.step('프로필 고쳐도 되는 계정으로 로그인해 홈 화면을 연다', async () => {
+  await test.step('가입 직후 계정으로 로그인해 홈 화면을 연다', async () => {
     await 로그인하기(driver, params.loginId, params.loginPassword);
     await verify('홈 화면 글쓰기 버튼이 보인다', await 홈.그려질때까지(), true, { blocker: true });
   });

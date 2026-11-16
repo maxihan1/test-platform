@@ -10,7 +10,9 @@ export class 설정화면 {
   readonly 계정제목 = 'id=org.joinmastodon.android:id/real_title';
   readonly 안내글 = 'id=org.joinmastodon.android:id/text';
   readonly 줄제목들 = 'android=new UiSelector().resourceId("org.joinmastodon.android:id/list").childSelector(new UiSelector().resourceId("org.joinmastodon.android:id/title"))';
-  readonly 스위치들 = 'android=new UiSelector().resourceId("org.joinmastodon.android:id/list").childSelector(new UiSelector().className("android.widget.Switch"))';
+  readonly 스위치들 = 'android=new UiSelector().className("android.widget.Switch")';
+  readonly 고르기창 = 'id=android:id/parentPanel';
+  readonly 언어목록줄 = 'android=new UiSelector().className("android.widget.CheckedTextView")';
   readonly 제목 = 'android=new UiSelector().resourceId("org.joinmastodon.android:id/toolbar").childSelector(new UiSelector().className("android.widget.TextView"))';
 
   constructor(private readonly driver: AppDriver) {}

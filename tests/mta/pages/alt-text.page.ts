@@ -1,5 +1,5 @@
 import type { AppDriver } from '@platform/kit/app';
-import { 뜰때까지, 칸에적기 } from '@platform/kit/parts';
+import { 뜰때까지, 칸비우기, 클립보드쓰기, 키누르기 } from '@platform/kit/parts';
 
 import { 확인창 } from '../components/dialog.component.js';
 
@@ -24,8 +24,10 @@ export class 대체텍스트화면 {
 
   async 적기(글: string): Promise<void> {
     const 칸 = await this.driver.$(this.입력칸).getElement();
-    await 칸에적기(칸, 글.slice(0, 1000));
-    for (let 자리 = 1000; 자리 < 글.length; 자리 += 1000) await 칸.addValue(글.slice(자리, 자리 + 1000));
+    await 칸비우기(칸);
+    await 클립보드쓰기(this.driver, 글);
+    await 칸.click();
+    await 키누르기(this.driver, '붙여 넣기');
   }
 
   async 입력칸글(): Promise<string> {

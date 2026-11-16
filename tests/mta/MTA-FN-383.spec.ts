@@ -10,7 +10,7 @@ import { 프로필화면 } from './pages/profile.page.js';
 
 export const spec = defineCase({
   tcId: 'MTA-FN-383',
-  name: '잠긴 계정 프로필에서 「Cancel request」를 누르면 버튼이 「Request to follow」로 바뀌고 다시 누르면 「Cancel request」로 바뀐다',
+  name: '잠긴 계정 프로필에서 「Cancel request」를 누르면 버튼이 「팔로우」로 바뀌고 다시 누르면 「Cancel request」로 바뀐다',
   platforms: ['android'],
   launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
@@ -19,7 +19,7 @@ export const spec = defineCase({
     loginPassword: z.string().describe('일반 회원 비밀번호').optional().meta({ secret: true }),
   }),
   expected: z.object({
-    요청글: z.string().describe('요청 전 동작 버튼 글').default('Request to follow'),
+    요청글: z.string().describe('요청 전 동작 버튼 글').default('팔로우'),
     취소글: z.string().describe('요청 대기 중 동작 버튼 글').default('Cancel request'),
   }),
 });
@@ -38,11 +38,11 @@ test(spec, async ({ driver, params, expected }) => {
       await verify('팔로우 요청 대기 중인 프로필의 동작 버튼이 「Cancel request」다', await 프로필.동작글(), expected.취소글, { blocker: true });
       await 프로필.동작누르기();
       누른횟수 += 1;
-      const 첫째 = await verify('잠긴 계정 프로필의 버튼이 「Request to follow」로 바뀐다', await 글이될때까지읽기(driver, 프로필.동작버튼, expected.요청글), expected.요청글);
+      const 첫째 = await verify('잠긴 계정 프로필의 버튼이 「팔로우」로 바뀐다', await 글이될때까지읽기(driver, 프로필.동작버튼, expected.요청글), expected.요청글);
       await 프로필.동작누르기();
       누른횟수 += 1;
       const 둘째 = await verify('잠긴 계정 프로필의 버튼이 「Cancel request」로 다시 바뀐다', await 글이될때까지읽기(driver, 프로필.동작버튼, expected.취소글), expected.취소글);
-      await verify('잠긴 계정 프로필에서 「Cancel request」를 누르면 버튼이 「Request to follow」로 바뀌고 다시 누르면 「Cancel request」로 바뀐다', 첫째 && 둘째, true);
+      await verify('잠긴 계정 프로필에서 「Cancel request」를 누르면 버튼이 「팔로우」로 바뀌고 다시 누르면 「Cancel request」로 바뀐다', 첫째 && 둘째, true);
     });
   } finally {
     if (누른횟수 % 2 === 1) await 프로필.동작누르기();
