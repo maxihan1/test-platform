@@ -84,13 +84,14 @@ describe('인자로켜기 · 앱비우기', () => {
 });
 
 describe('앱다시깔기 · 옛판에서올리기', () => {
-  it('앱다시깔기 는 시험 대상 앱을 지우고 PLATFORM_APP 을 깐 뒤 켠다', async () => {
+  it('앱다시깔기 는 시험 대상 앱을 지우고 PLATFORM_APP 을 깐 뒤 데이터를 지우고 켠다 — 설치 때 백업 자동 복원을 걷는다', async () => {
     vi.stubEnv('PLATFORM_APP', 'https://admin/api/builds/7/apk?exp=1&sig=s');
     const 폰 = 가짜폰();
     await 앱다시깔기(폰.driver);
     expect(폰.보낸).toEqual([
       ['mobile: removeApp', { appId: 'com.shop' }],
       ['mobile: installApp', { appPath: 'https://admin/api/builds/7/apk?exp=1&sig=s' }],
+      ['mobile: clearApp', { appId: 'com.shop' }],
       ['activateApp', 'com.shop'],
     ]);
   });

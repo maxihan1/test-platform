@@ -1,6 +1,6 @@
 // 폰에 앱을 한 번 띄워 화면을 읽고, 작성 AI 가 요소 주소를 고를 만큼만 남겨 돌려준다 (SPEC 도메인/러너 §5.2 「앱 화면 읽기」)
 
-import { appCapabilities, 연결꾸러미, 앱을켠다 } from '@platform/kit/app';
+import { appCapabilities, 연결꾸러미, 앱을켠다, 켜기전에 } from '@platform/kit/app';
 
 import { appium주소 } from './appSession.js';
 
@@ -8,7 +8,7 @@ import { appium주소 } from './appSession.js';
 const 열기_제한_ms = 60_000;
 const 읽기_제한_ms = 30_000;
 const 닫기_제한_ms = 10_000;
-// 앱 끄기 · 켜기 · 앞 앱 묻기 한 번마다. 켜기 전체 20초(kit 앱을켠다)에 마지막 한 번이 더해질 수 있다 — admin 기다림(앱길 130초)이 이 합에 기댄다
+// 앱 끄기 · 지우기 · 켜기 · 앞 앱 묻기 한 번마다. 켜기 전체 20초(kit 앱을켠다)에 마지막 한 번이 더해질 수 있다 — admin 기다림(앱길 130초)이 이 합에 기댄다
 const 명령_제한_ms = 5_000;
 
 // 같은 폰에 연결 둘이 겹치면 뒤 연결이 앞 연결을 가로챈다. 읽는 중에 또 읽지 못하게 한다
@@ -136,7 +136,7 @@ export async function 앱을켜서읽는다(
     const 앞 = await 앱을켠다(
       (script, args) => 부른다(명령주소, { method: 'POST', headers: json, body: JSON.stringify({ script, args: [args] }) }, 명령_제한_ms),
       연결꾸러미(열림?.capabilities, app),
-      alwaysMatch['appium:noReset'] === true,
+      켜기전에(alwaysMatch, 더할설정.PLATFORM_ENGINE === 'GAME'),
     );
     // 케이스와 달리 던진다 — 런처 화면을 앱 첫 화면이라고 AI 에게 주면 그 주소로 케이스를 쓴다
     if (앞 !== null) throw new Error(`앱이 20초 안에 앞에 뜨지 않았다 — 앞 화면: ${앞}`);

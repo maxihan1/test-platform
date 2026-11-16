@@ -67,6 +67,10 @@ describe('게임화면을읽는다', () => {
     expect(caps['appium:noReset']).toBe(false);
     expect(caps['appium:enforceAppInstall']).toBe(true);
     expect(caps['appium:autoLaunch']).toBe(false);
+    // 게임은 지우지 않는다 — 첫 실행 설정(서버 주소 등)이 날아간다
+    const 켜기 = 켜기Mock.mock.calls.map(([, init]) => (JSON.parse(init.body as string) as { script: string }).script);
+    expect(켜기).not.toContain('mobile: clearApp');
+    expect(켜기).toContain('mobile: activateApp');
     expect(caps['appium:shouldTerminateApp']).toBe(true);
   });
 
