@@ -24,6 +24,8 @@ async function 웹폼적기(driver: AppDriver, 아이디: string, 암호: string
   if (!(await 뜰때까지(driver, 크롬.로그인버튼, 3_000)) && (await driver.isKeyboardShown())) await driver.hideKeyboard();
 }
 
+const 아무권한창 = 'android=new UiSelector().resourceIdMatches(".*permissioncontroller:id/permission_message")';
+
 export const 시작화면표지 = 앱id('btn_log_in');
 export const 홈표지 = 앱id('tab_home');
 
@@ -131,7 +133,11 @@ export async function 로그인하기(
   알림권한: 권한답 = '허용',
 ): Promise<void> {
   if (!아이디 || !암호) throw new Error('로그인 계정 값이 비었다 — 대상 서버 줄에 그 역할 계정이 있어야 한다');
-  const 지금 = await 지금화면(driver);
+  let 지금 = await 움직이는화면에서(driver, () => 먼저뜨는것(driver, { 시작: 시작화면표지, 홈: 홈표지, 권한: 아무권한창 }, 30_000));
+  for (let 남음 = 2; 지금 === '권한' && 남음 > 0; 남음 -= 1) {
+    await 권한창답하기(driver, 알림권한);
+    지금 = await 움직이는화면에서(driver, () => 먼저뜨는것(driver, { 시작: 시작화면표지, 홈: 홈표지, 권한: 아무권한창 }, 30_000));
+  }
   if (지금 === '홈') {
     if (await 들어온계정인가(driver, 아이디)) return;
     await 모두로그아웃하기(driver);

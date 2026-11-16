@@ -2,6 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { 뜰때까지 } from '@platform/kit/parts';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 계정신고열기 } from './helpers/settings-flow.helper.js';
 import { 홈화면 } from './pages/home.page.js';
@@ -11,6 +12,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-446',
   name: '「스팸입니다」를 고르고 「다음」을 누르면 「이 신고에 대해서 더 참고해야 할 게시물이 있나요?」 화면이 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

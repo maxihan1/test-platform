@@ -1,6 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 글자굴려찾기 } from './helpers/compose-flow.helper.js';
 
@@ -11,6 +12,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-323',
   name: '관리자 계정으로 알림 제외 조건 창을 열면 「Admin notifications」 · 「Admin reports」 · 「Account signups」가 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('adminId', 'adminPassword'),
   precondition: ['관리자 계정으로 로그인해 있다'],
   params: z.object({
     adminId: z.string().describe('관리자 아이디').optional().meta({ secret: true, account: '관리자' }),

@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { 뜨는메뉴 } from './components/popup-menu.component.js';
 import { 꾸러미 } from './helpers/app.helper.js';
 import { 본문아래재생버튼누르기 } from './helpers/play.helper.js';
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 프로필열기 } from './helpers/nav.helper.js';
 import { 홈화면 } from './pages/home.page.js';
@@ -14,6 +15,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-554',
   name: '오디오를 재생하면 알림창에 「오디오 재생」 알림이 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

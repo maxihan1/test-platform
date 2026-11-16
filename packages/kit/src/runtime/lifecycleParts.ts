@@ -43,11 +43,16 @@ export async function 화면껐다켜기(driver: AppDriver): Promise<void> {
   await driver.execute('mobile: unlock', {});
 }
 
+/** `mobile: startActivity` 인자 — 화면 하나를 글 인자와 함께 켠다. kit 앱 켜기(app.ts 실어켠다)도 같이 쓴다 */
+export function 화면켜기인자(꾸러미: string, 화면: string, 인자: 실행인자): Record<string, unknown> {
+  return { component: `${꾸러미}/${화면}`, extras: Object.entries(인자).map(([이름, 값]) => ['s', 이름, 값]) };
+}
+
 async function 인자로띄우기(driver: AppDriver, 꾸러미: string, 인자: 실행인자, 부품: string): Promise<void> {
   // UiAutomator2 는 앱 파일에서 읽은 첫 화면(appActivity)을 연결 설정 답에 싣는다 — appium-cli 도 같은 값으로 띄운다
   const 첫화면 = 연결설정(driver, 'appActivity');
   if (typeof 첫화면 !== 'string' || 첫화면 === '') throw new Error(`${부품} — 연결 설정에 시험 대상 앱 첫 화면(appActivity)이 없다`);
-  await driver.execute('mobile: startActivity', { component: `${꾸러미}/${첫화면}`, extras: Object.entries(인자).map(([이름, 값]) => ['s', 이름, 값]) });
+  await driver.execute('mobile: startActivity', 화면켜기인자(꾸러미, 첫화면, 인자));
 }
 
 /** 앱을 끄고 실행 인자(서버 주소 등)를 실어 다시 켠다 — 인자 없이 껐다 켜기는 앱다시켜기 다 */

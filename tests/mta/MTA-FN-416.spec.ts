@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { 확인창 } from './components/dialog.component.js';
 import { 머리해시태그지우기, 소개해시태그화면열기, 해시태그더하기, 해시태그정리, 해시태그지우기창열기 } from './helpers/profile-edit-flow.helper.js';
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 홈화면 } from './pages/home.page.js';
 import { 프로필화면 } from './pages/profile.page.js';
@@ -13,6 +14,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-416',
   name: '「Add hashtag」로 더한 해시태그 줄을 지우면 「Remove hashtag?」가 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['프로필 고쳐도 되는 계정으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('프로필 고쳐도 되는 계정 아이디').optional().meta({ secret: true, account: '프로필 고쳐도 되는 계정' }),

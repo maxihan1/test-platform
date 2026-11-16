@@ -2,6 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { 뜰때까지, 칸에적기 } from '@platform/kit/parts';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 표시글 } from './helpers/post.helper.js';
 import { 목록만들기화면열기, 목록지우기 } from './helpers/settings-flow.helper.js';
@@ -12,6 +13,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-425',
   name: '목록 이름을 적고 「만들기」를 누르면 2단계에 「2개 중 2번째 단계」 · 「아직 구성원이 없습니다」 · 「완료」가 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

@@ -1,6 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 프로필열기 } from './helpers/nav.helper.js';
 import { 홈화면 } from './pages/home.page.js';
@@ -10,6 +11,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-389',
   name: '나를 차단한 사람 프로필을 열면 동작 버튼이 꺼져 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   techniques: ['결정 테이블'],
   params: z.object({

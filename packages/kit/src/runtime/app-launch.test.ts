@@ -21,6 +21,8 @@ function 실행(앞: string[]) {
   return { f, 부름 };
 }
 
+const 빨리 = { 기다림_ms: 5_000, 간격_ms: 1 };
+
 describe('appCapabilities 켜기', () => {
   it('Appium 은 앱을 깔기만 하고 켜지 않는다 — 켜면 첫 화면을 기다리다 권한 창에 막혀 연결째 실패한다', () => {
     for (const caps of [
@@ -37,14 +39,14 @@ describe('appCapabilities 켜기', () => {
 describe('앱을켠다', () => {
   it('켜자마자 권한 창이 앞에 떠도 켜진 것으로 본다 — 권한 창은 케이스가 답한다', async () => {
     const { f, 부름 } = 실행(['com.sec.android.app.launcher', 'com.google.android.permissioncontroller']);
-    expect(await 앱을켠다(f, 'org.joinmastodon.android', '지운다', 5_000, 1)).toBeNull();
+    expect(await 앱을켠다(f, 'org.joinmastodon.android', '지운다', 빨리)).toBeNull();
     expect(부름.map(([s]) => s)).toEqual(['mobile: clearApp', 'mobile: activateApp', 'mobile: getCurrentPackage', 'mobile: getCurrentPackage']);
     expect(부름[1]?.[1]).toEqual({ appId: 'org.joinmastodon.android' });
   });
 
   it('데이터를 지우는 연결은 켜기 전에 앱 데이터를 한 번 더 지운다 — 설치 순간 Android 가 백업에서 옛 로그인을 되살린다 (2026-11-16 정식 실행 21136)', async () => {
     const { f, 부름 } = 실행(['com.shop']);
-    await 앱을켠다(f, 'com.shop', '지운다', 5_000, 1);
+    await 앱을켠다(f, 'com.shop', '지운다', 빨리);
     expect(부름.slice(0, 2)).toEqual([
       ['mobile: clearApp', { appId: 'com.shop' }],
       ['mobile: activateApp', { appId: 'com.shop' }],
@@ -54,7 +56,7 @@ describe('앱을켠다', () => {
 
   it('데이터를 남기는 연결은 앱을 끄고 다시 켠다 — 앞 케이스의 앱을 앞으로 가져오기만 하지 않게', async () => {
     const { f, 부름 } = 실행(['com.shop']);
-    expect(await 앱을켠다(f, 'com.shop', '끈다', 5_000, 1)).toBeNull();
+    expect(await 앱을켠다(f, 'com.shop', '끈다', 빨리)).toBeNull();
     expect(부름.slice(0, 2)).toEqual([
       ['mobile: terminateApp', { appId: 'com.shop' }],
       ['mobile: activateApp', { appId: 'com.shop' }],
@@ -68,14 +70,52 @@ describe('앱을켠다', () => {
     f.mockImplementationOnce(async () => {
       throw new Error('pm clear 거절');
     });
-    expect(await 앱을켠다(f, 'com.shop', '지운다', 5_000, 1)).toBeNull();
+    expect(await 앱을켠다(f, 'com.shop', '지운다', 빨리)).toBeNull();
     expect(부름.map(([s]) => s)).toContain('mobile: activateApp');
     expect(error).toHaveBeenCalledWith('[kit] 앱 데이터를 지우지 못하고 켠다: pm clear 거절');
   });
 
   it('시간 안에 앞에 안 오면 던지지 않고 마지막에 본 앞 화면을 돌려준다', async () => {
     const { f } = 실행(['com.sec.android.app.launcher']);
-    expect(await 앱을켠다(f, 'com.shop', null, 20, 1)).toBe('com.sec.android.app.launcher');
+    expect(await 앱을켠다(f, 'com.shop', null, { 기다림_ms: 20, 간격_ms: 1 })).toBe('com.sec.android.app.launcher');
+  });
+});
+
+describe('앱을켠다 — 값을 실어 켜기', () => {
+  const 값 = { activity: '.QaLoginActivity', extras: { server: 'mastodon.example', token: 't-1' } };
+
+  it('값이 있으면 지운 뒤 그 화면을 글자 값과 함께 켠다 — 로그인된 채로 시작한다', async () => {
+    const { f, 부름 } = 실행(['com.shop']);
+    expect(await 앱을켠다(f, 'com.shop', '지운다', { ...빨리, 값 })).toBeNull();
+    expect(부름.slice(0, 2)).toEqual([
+      ['mobile: clearApp', { appId: 'com.shop' }],
+      ['mobile: startActivity', { component: 'com.shop/.QaLoginActivity', extras: [['s', 'server', 'mastodon.example'], ['s', 'token', 't-1']] }],
+    ]);
+    expect(부름.map(([s]) => s)).not.toContain('mobile: activateApp');
+  });
+
+  it('실어 켜기가 실패하면 알리고 그냥 켠다 — 입구가 없는 옛 APK 도 지금처럼 돈다', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    for (const 답 of [
+      async () => 'Starting: Intent { cmp=com.shop/.QaLoginActivity }\nError type 3\nError: Activity class {com.shop/.QaLoginActivity} does not exist.\n',
+      async () => "Exception occurred while executing 'start':\njava.lang.SecurityException: Permission Denial: not exported\n",
+      async () => {
+        throw new Error("Command 'am start -n com.shop/.QaLoginActivity --es server mastodon.example --es token t-1' exited with code 1");
+      },
+    ]) {
+      const 부름: string[] = [];
+      const f = async (script: string) => {
+        부름.push(script);
+        if (script === 'mobile: startActivity') return 답();
+        return script === 'mobile: getCurrentPackage' ? 'com.shop' : true;
+      };
+      expect(await 앱을켠다(f, 'com.shop', '지운다', { ...빨리, 값 })).toBeNull();
+      expect(부름.slice(0, 3)).toEqual(['mobile: clearApp', 'mobile: startActivity', 'mobile: activateApp']);
+    }
+    expect(error).toHaveBeenCalledTimes(3);
+    expect(String(error.mock.calls[0]?.[0])).toContain('[kit] 값을 실어 켜지 못해 그냥 켠다(.QaLoginActivity): Error type 3');
+    expect(String(error.mock.calls[1]?.[0])).toContain('Exception occurred');
+    expect(String(error.mock.calls.flat())).not.toContain('t-1');
   });
 });
 
@@ -136,6 +176,14 @@ describe('openApp 켜기', () => {
     remote.mockResolvedValue(남김);
     await openApp(ENV, { keepData: true });
     expect(남김.execute).toHaveBeenCalledWith('mobile: terminateApp', { appId: 'com.shop' });
+  });
+
+  it('케이스가 고른 값을 실어 켠다', async () => {
+    const 앱 = 연결();
+    remote.mockResolvedValue(앱);
+    await openApp(ENV, { intent: { activity: '.QaLoginActivity', extras: { token: 't-1' } } });
+    expect(앱.execute).toHaveBeenCalledWith('mobile: startActivity', { component: 'com.shop/.QaLoginActivity', extras: [['s', 'token', 't-1']] });
+    expect(앱.execute).not.toHaveBeenCalledWith('mobile: activateApp', expect.anything());
   });
 
   it('앱을 못 켜면 연 연결을 닫고 던진다 — 팜 폰이 붙들리지 않게', async () => {

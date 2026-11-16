@@ -3,6 +3,7 @@ import { 뜰때까지 } from '@platform/kit/parts';
 import { z } from 'zod';
 
 import { 확인창 } from './components/dialog.component.js';
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 표시글, 내글쓰기, 내프로필에서글열기, 내글지우기 } from './helpers/post.helper.js';
 import { 홈화면 } from './pages/home.page.js';
@@ -12,6 +13,7 @@ export const spec = defineCase({
   tcId: 'MTA-UI-160',
   name: '「게시물 삭제 전 묻기」가 켜져 있을 때 내 글 더보기에서 「삭제」를 누르면 「정말로 이 게시물을 삭제하시겠습니까?」와 「삭제」 · 「취소」 창이 뜬다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

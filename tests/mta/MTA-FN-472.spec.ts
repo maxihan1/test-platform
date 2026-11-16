@@ -2,6 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { 될때까지, 뜰때까지, 보이나, 사라질때까지 } from '@platform/kit/parts';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 홈으로, 프로필열기 } from './helpers/nav.helper.js';
 import { 설정열기, 설정줄열기 } from './helpers/settings-flow.helper.js';
@@ -13,6 +14,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-472',
   name: '「열람 주의 표시」를 끄면 내용 경고 글 본문이 「무시하고 표시」 없이 펼쳐 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

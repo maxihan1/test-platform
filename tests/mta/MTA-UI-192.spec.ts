@@ -1,6 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 
 import { 글쓰기화면 } from './pages/compose.page.js';
@@ -10,6 +11,7 @@ export const spec = defineCase({
   tcId: 'MTA-UI-192',
   name: '「설문 길이」를 누르면 「5분」 · 「30분」 · 「1시간」 · 「6시간」 · 「12시간」 · 「1일」 · 「3일」 · 「1 주」가 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

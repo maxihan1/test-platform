@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 import { TECHNIQUES } from '../types.js';
 import type { CaseSpec, JsonSchema, Platform, TcId, Technique } from '../types.js';
+import type { AppLaunchIntent } from './app.js';
 import { callerFile } from './callsite.js';
 
 // 입력값·기대값 자리에 올 수 있는 것. 없으면 null로 '없다고 적는다' (SPEC §4)
@@ -35,6 +36,8 @@ export interface DefineCaseInput<P extends CaseSchema, E extends CaseSchema> {
   smoke?: boolean;
   // 앱 케이스만 · 연결 때 앱 데이터를 지우지 않고 앱만 다시 켠다 — 앞 케이스의 로그인을 이어 쓴다. 안 적으면 지우고 시작한다 (도메인/러너 §5.2 「데이터 남기고 시작」)
   keepAppData?: boolean;
+  // 앱 케이스만 · 켤 때 실을 값을 그 케이스의 입력값으로 만든다 — 디버그 앱의 테스트 입구로 로그인된 채 켠다. E2E 단계는 보지 않는다 (도메인/러너 §5.2 「값을 실어 켜기」)
+  launchIntent?: (params: Shape<P>) => Promise<AppLaunchIntent>;
 }
 
 // 선언에 쓴 zod 스키마 원본. 실행 시점에 주입값을 검증하려면 JSON Schema가 아니라 원본이 필요하다.
@@ -46,6 +49,20 @@ const keepers = new WeakSet<CaseSpec>();
 
 export function keepsAppData(spec: CaseSpec): boolean {
   return keepers.has(spec);
+}
+
+const launchers = new WeakMap<CaseSpec, (params: never) => Promise<AppLaunchIntent>>();
+
+/** 케이스가 고른 「실어 켤 값」. 못 만들면 알리고 undefined — 케이스는 그냥 켠 앱에서 화면으로 로그인한다 */
+export async function 실어켤값(spec: CaseSpec, params: unknown): Promise<AppLaunchIntent | undefined> {
+  const 만들기 = launchers.get(spec);
+  if (만들기 === undefined) return undefined;
+  try {
+    return await 만들기(params as never);
+  } catch (err) {
+    console.error(`[kit] ${spec.tcId}: 실어 켤 값을 만들지 못해 그냥 켠다 — ${err instanceof Error ? err.message : String(err)}`);
+    return undefined;
+  }
 }
 
 export function schemasOf(spec: CaseSpec): { params: CaseSchema; expected: CaseSchema } {
@@ -80,6 +97,9 @@ export function defineCase<P extends CaseSchema, E extends CaseSchema>(
   if (input.keepAppData === true && !input.platforms?.includes('android')) {
     throw new Error(`${input.tcId}: keepAppData 는 android 케이스에만 단다`);
   }
+  if (input.launchIntent !== undefined && !input.platforms?.includes('android')) {
+    throw new Error(`${input.tcId}: launchIntent 는 android 케이스에만 단다`);
+  }
 
   if (input.apiDoc !== undefined) {
     if (!Number.isInteger(input.apiDoc) || input.apiDoc < 1) throw new Error(`${input.tcId}: apiDoc 은 1 이상의 정수여야 한다`);
@@ -111,6 +131,7 @@ export function defineCase<P extends CaseSchema, E extends CaseSchema>(
 
   schemas.set(spec, { params: input.params, expected: input.expected });
   if (input.keepAppData === true) keepers.add(spec);
+  if (input.launchIntent !== undefined) launchers.set(spec, input.launchIntent);
 
   return spec;
 }

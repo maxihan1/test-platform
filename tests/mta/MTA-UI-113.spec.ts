@@ -2,6 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { 뜰때까지 } from '@platform/kit/parts';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 홈화면 } from './pages/home.page.js';
 
@@ -9,6 +10,7 @@ export const spec = defineCase({
   tcId: 'MTA-UI-113',
   name: '목록 「개발 소식」을 보는 중에는 상단에 「목록 관리」 아이콘과 설정 아이콘이 같이 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

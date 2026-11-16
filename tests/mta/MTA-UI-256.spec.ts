@@ -2,6 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { 보이나 } from '@platform/kit/parts';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 
 import { 알림화면 } from './pages/notifications.page.js';
@@ -11,6 +12,7 @@ export const spec = defineCase({
   tcId: 'MTA-UI-256',
   name: '여러 명이 좋아요한 알림이 「및」 · 「개 다른 즐겨찾기」로 묶여 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

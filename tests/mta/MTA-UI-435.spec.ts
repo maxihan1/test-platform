@@ -2,6 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { 뜰때까지 } from '@platform/kit/parts';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 계정줄, 글읽기 } from './helpers/app.helper.js';
 import { 설정줄열기, 계정설정열기 } from './helpers/settings-flow.helper.js';
@@ -12,6 +13,7 @@ export const spec = defineCase({
   tcId: 'MTA-UI-435',
   name: '게시 기본값 화면에 안내 「이러한 설정은 게시물을 올릴 때 기본값으로 사용될 것이지만, 작성기 내에서 게시물별로 편집할 수 있습니다.」와 「게시 범위」 · 「공개 범위」 · 「게시 언어」가 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

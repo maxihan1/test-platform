@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { 문구가보이나 } from './helpers/compose-flow.helper.js';
 import { 사진붙이고기다리기 } from './helpers/attach-flow.helper.js';
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 파일선택기로첨부 } from './helpers/media.helper.js';
 import { 글쓰기화면 } from './pages/compose.page.js';
@@ -12,6 +13,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-227',
   name: '사진 4장을 첨부하면 조각 4개가 보이고 초과 토스트가 뜨지 않는다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   techniques: ['경계값 분석'],
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({

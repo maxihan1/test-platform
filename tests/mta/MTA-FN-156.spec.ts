@@ -2,6 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { 뜰때까지, 사라질때까지 } from '@platform/kit/parts';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 프로필열기 } from './helpers/nav.helper.js';
 import { 홈화면 } from './pages/home.page.js';
@@ -11,6 +12,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-156',
   name: '내용 경고 글 카드에서 「무시하고 표시」를 누르면 본문과 「다시 숨기기」가 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

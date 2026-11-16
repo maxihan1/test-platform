@@ -2,6 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { 뜰때까지 } from '@platform/kit/parts';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 계정줄 } from './helpers/app.helper.js';
 import { 계정설정열기 } from './helpers/settings-flow.helper.js';
@@ -12,6 +13,7 @@ export const spec = defineCase({
   tcId: 'MTA-UI-411',
   name: '「이 서버에 대해서」에 부제 「미리보기, 규칙,」이 보이고 누르면 「에 대해」 · 「규칙」 탭이 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

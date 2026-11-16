@@ -2,6 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { 뜰때까지, 될때까지, 칸에적기 } from '@platform/kit/parts';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 홈화면 } from './pages/home.page.js';
 import { 프로필화면 } from './pages/profile.page.js';
@@ -11,6 +12,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-405',
   name: '「Display name」 칸을 비우면 「저장」이 꺼진다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['프로필 고쳐도 되는 계정으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('프로필 고쳐도 되는 계정 아이디').optional().meta({ secret: true, account: '프로필 고쳐도 되는 계정' }),

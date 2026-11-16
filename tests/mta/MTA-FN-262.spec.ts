@@ -2,6 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { 뜰때까지 } from '@platform/kit/parts';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 화면글포함 } from './helpers/compose-flow.helper.js';
 
@@ -12,6 +13,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-262',
   name: '글쓰기 본문에 「@」를 적으면 자동 완성 줄 「찾고자 하는 대상을 찾아보세요」가 뜬다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

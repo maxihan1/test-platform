@@ -3,6 +3,7 @@ import { 뜰때까지 } from '@platform/kit/parts';
 import { z } from 'zod';
 
 import { 확인창 } from './components/dialog.component.js';
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 계정전환시트 } from './pages/account-switcher.page.js';
 import { 홈화면 } from './pages/home.page.js';
@@ -12,6 +13,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-539',
   name: '「모든 계정에서 로그아웃하시겠습니까?」 창에서 「로그아웃」을 누르면 시작 화면이 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

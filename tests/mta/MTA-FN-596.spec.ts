@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { 내글모두지우기 } from './helpers/compose-flow.helper.js';
 import { 긴글, 대체텍스트적고돌아오기, 게시하고결과보기, 사진붙이고기다리기 } from './helpers/attach-flow.helper.js';
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 표시글 } from './helpers/post.helper.js';
 import { 글쓰기화면 } from './pages/compose.page.js';
@@ -12,6 +13,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-596',
   name: '대체 텍스트 10000자로 게시하면 「게시물 작성 실패」 창이 뜨지 않는다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   techniques: ['경계값 분석'],
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({

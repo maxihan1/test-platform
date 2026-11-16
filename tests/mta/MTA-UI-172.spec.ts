@@ -1,6 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 인용글쓰기열기 } from './helpers/compose-flow.helper.js';
 
@@ -11,6 +12,7 @@ export const spec = defineCase({
   tcId: 'MTA-UI-172',
   name: '글쓰기 본문 힌트가 「당신의 생각을 입력하거나 붙여넣으세요」이고 인용 글쓰기 힌트는 「대화에 무언가를 추가하세요」로 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

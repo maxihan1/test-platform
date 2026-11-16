@@ -2,6 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { 보이나, 먼저뜨는것 } from '@platform/kit/parts';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 
 import { 둘러보기화면 } from './pages/explore.page.js';
@@ -11,6 +12,7 @@ export const spec = defineCase({
   tcId: 'MTA-UI-502',
   name: '둘러보기 「게시물」 · 「해시태그」 탭에 유행 항목이나 빈 화면 문구가 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

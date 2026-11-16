@@ -2,6 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { 뜰때까지 } from '@platform/kit/parts';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 홈화면 } from './pages/home.page.js';
 import { 프로필화면 } from './pages/profile.page.js';
@@ -12,6 +13,7 @@ export const spec = defineCase({
   tcId: 'MTA-UI-338',
   name: '프로필 편집에서 헤더 이미지를 누르면 「Replace」 · 「제거」가 뜨고 「제거」를 누르면 「Remove header image?」가 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['프로필 고쳐도 되는 계정으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('프로필 고쳐도 되는 계정 아이디').optional().meta({ secret: true, account: '프로필 고쳐도 되는 계정' }),

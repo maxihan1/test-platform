@@ -3,6 +3,7 @@ import { 보이나, 사라질때까지 } from '@platform/kit/parts';
 import { z } from 'zod';
 
 import { 머리항목지우기, 항목수맞추기, 항목정리, 항목화면열기 } from './helpers/profile-edit-flow.helper.js';
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 홈화면 } from './pages/home.page.js';
 import { 프로필화면 } from './pages/profile.page.js';
@@ -12,6 +13,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-409',
   name: '프로필 항목이 3개면 「Add field」가 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   techniques: ['경계값 분석'],
   precondition: ['프로필 고쳐도 되는 계정으로 로그인해 있다'],
   params: z.object({

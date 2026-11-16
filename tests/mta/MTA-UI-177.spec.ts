@@ -2,6 +2,7 @@ import { defineCase, test, verify, 폰에파일넣기 } from '@platform/kit';
 import { z } from 'zod';
 
 import { 사진붙이고기다리기 } from './helpers/attach-flow.helper.js';
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 글쓰기화면 } from './pages/compose.page.js';
 import { 홈화면 } from './pages/home.page.js';
@@ -10,6 +11,7 @@ export const spec = defineCase({
   tcId: 'MTA-UI-177',
   name: '사진을 첨부하면 그 조각에 「대체 텍스트 추가」와 제거 버튼이 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

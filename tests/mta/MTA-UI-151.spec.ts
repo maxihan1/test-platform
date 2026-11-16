@@ -3,6 +3,7 @@ import { 될때까지 } from '@platform/kit/parts';
 import { z } from 'zod';
 
 import { 꾸러미 } from './helpers/app.helper.js';
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 글상세열기 } from './helpers/nav.helper.js';
 import { 홈화면 } from './pages/home.page.js';
@@ -12,6 +13,7 @@ export const spec = defineCase({
   tcId: 'MTA-UI-151',
   name: '글 상세에서 「공유」를 누르면 기기 공유 시트가 뜬다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

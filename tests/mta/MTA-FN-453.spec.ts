@@ -2,6 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { 뜰때까지 } from '@platform/kit/parts';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 뮤트풀기, 계정신고열기 } from './helpers/settings-flow.helper.js';
 import { 홈화면 } from './pages/home.page.js';
@@ -11,6 +12,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-453',
   name: '신고 완료 화면에서 「뮤트」를 누르면 그 줄이 「뮤트한-음소거한」으로 바뀐다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

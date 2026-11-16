@@ -1,6 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 
 import { 알림화면 } from './pages/notifications.page.js';
@@ -10,6 +11,7 @@ export const spec = defineCase({
   tcId: 'MTA-UI-246',
   name: '알림 화면에 탭 「모든 것」 · 「멘션」이 보이고 「모든 것」이 선택돼 있다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

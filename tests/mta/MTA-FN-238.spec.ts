@@ -1,6 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 
 import { 글쓰기화면 } from './pages/compose.page.js';
@@ -10,6 +11,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-238',
   name: '글쓰기에 투표를 더하면 「미디어 추가」가 꺼진다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   techniques: ['결정 테이블'],
   params: z.object({

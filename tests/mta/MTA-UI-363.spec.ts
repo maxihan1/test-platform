@@ -1,6 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 홈화면 } from './pages/home.page.js';
 import { 프로필화면 } from './pages/profile.page.js';
@@ -10,6 +11,7 @@ export const spec = defineCase({
   tcId: 'MTA-UI-363',
   name: '「보관함」 화면 위에 「당신이 저장한 게시물은 오직 당신에게만 보입니다.」가 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

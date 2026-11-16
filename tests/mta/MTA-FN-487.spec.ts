@@ -1,6 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기, 지금화면 } from './helpers/login.helper.js';
 import { 계정줄 } from './helpers/app.helper.js';
 import { 계정설정열기 } from './helpers/settings-flow.helper.js';
@@ -12,6 +13,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-487',
   name: '로그아웃 창에서 「로그아웃」을 누르면 계정이 지워지고 시작 화면이 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

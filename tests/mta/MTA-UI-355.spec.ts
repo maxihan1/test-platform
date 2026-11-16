@@ -2,6 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { 뜰때까지 } from '@platform/kit/parts';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 목록만들기화면열기 } from './helpers/settings-flow.helper.js';
 import { 홈화면 } from './pages/home.page.js';
@@ -11,6 +12,7 @@ export const spec = defineCase({
   tcId: 'MTA-UI-355',
   name: '목록 만들기 1단계에 「2개 중 1번째 단계」 · 「목록 이름」 · 「답장을 표시할 대상:」 · 「팔로우 중인 구성원 숨기기」 · 「만들기」가 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

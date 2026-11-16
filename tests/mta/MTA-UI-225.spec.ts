@@ -3,6 +3,7 @@ import { 뜰때까지 } from '@platform/kit/parts';
 import { z } from 'zod';
 
 import { 사진붙이고기다리기 } from './helpers/attach-flow.helper.js';
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 대체텍스트화면 } from './pages/alt-text.page.js';
 import { 글쓰기화면 } from './pages/compose.page.js';
@@ -12,6 +13,7 @@ export const spec = defineCase({
   tcId: 'MTA-UI-225',
   name: '「대체 텍스트 추가」 화면에 미리보기 · 힌트 「대체 텍스트」 · 「대체 텍스트란 무엇인가요?」가 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

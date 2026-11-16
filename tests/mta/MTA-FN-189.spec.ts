@@ -3,6 +3,7 @@ import { 뜰때까지, 보이나 } from '@platform/kit/parts';
 import { z } from 'zod';
 
 import { 이름앞부분, 글자수 } from './helpers/timeline.helper.js';
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 프로필열기 } from './helpers/nav.helper.js';
 import { 홈화면 } from './pages/home.page.js';
@@ -12,6 +13,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-189',
   name: '표시 이름이 20자인 사람 글 더보기를 열면 이름이 줄지 않고 그대로 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   techniques: ['경계값 분석'],
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({

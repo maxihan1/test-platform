@@ -2,6 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { 뜰때까지 } from '@platform/kit/parts';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 설정열기, 설정줄열기 } from './helpers/settings-flow.helper.js';
 import { 홈화면 } from './pages/home.page.js';
@@ -11,6 +12,7 @@ export const spec = defineCase({
   tcId: 'MTA-UI-440',
   name: '「Mastodon에 대해」에 「추가 설정」 · 「Mastodon에 기여」 · 「이용 약관」 · 「개인정보 정책」 · 「미디어 캐시 지우기」와 「안드로이드용 마스토돈 v2.13.5 (194)」가 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

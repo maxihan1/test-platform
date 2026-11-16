@@ -2,6 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { 뜰때까지 } from '@platform/kit/parts';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 홈화면 } from './pages/home.page.js';
 
@@ -9,6 +10,7 @@ export const spec = defineCase({
   tcId: 'MTA-UI-109',
   name: '목록이 없는 계정의 홈 드롭다운 「목록」 아래에 「목록으로 홈 피드를 관리하세요」 · 「여기에 당신의 제목이 나타납니다」가 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('blankId', 'blankPassword'),
   precondition: ['빈 계정으로 로그인해 있다'],
   params: z.object({
     blankId: z.string().describe('빈 계정 아이디').optional().meta({ secret: true, account: '빈 계정' }),

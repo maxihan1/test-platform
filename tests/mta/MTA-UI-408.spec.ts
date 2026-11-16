@@ -2,6 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { 뜰때까지 } from '@platform/kit/parts';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 계정줄 } from './helpers/app.helper.js';
 import { 계정설정열기 } from './helpers/settings-flow.helper.js';
@@ -12,6 +13,7 @@ export const spec = defineCase({
   tcId: 'MTA-UI-408',
   name: '계정 설정에 「프라이버시와 노출 범위」 · 「필터」 · 「알림」 · 「게시 기본값」 · 「이 서버에 대해서」 · 「이 계정으로 전환」 · 「계정 삭제」 · 「로그아웃」이 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

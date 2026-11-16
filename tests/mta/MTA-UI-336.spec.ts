@@ -1,6 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 홈화면 } from './pages/home.page.js';
 import { 프로필화면 } from './pages/profile.page.js';
@@ -9,6 +10,7 @@ export const spec = defineCase({
   tcId: 'MTA-UI-336',
   name: '내 프로필 메뉴에 「공유」 · 「링크 복사」 · 「View QR code」 · 「브라우저에서 열기」 · 「즐겨찾기」 · 「보관함」 · 「팔로우 중인 해시태그」 · 「계정 설정」이 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

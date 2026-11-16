@@ -1,6 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 문구가보이나 } from './helpers/compose-flow.helper.js';
 
@@ -12,6 +13,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-257',
   name: '공개 범위 시트에서 「제한적 공개」를 고르면 「다른 사용자가 회원님을 인용할 때, 해당 게시물은 트렌딩 타임라인에서 숨겨집니다.」가 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

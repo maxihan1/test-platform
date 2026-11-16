@@ -1,6 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 
 import { 글쓰기화면 } from './pages/compose.page.js';
@@ -11,6 +12,7 @@ export const spec = defineCase({
   tcId: 'MTA-UI-205',
   name: '공개 범위 시트에 「마스토돈 검색 결과, 트렌딩, 공개 타임라인에서 숨김」 · 「오직 팔로우 중인 사람들에게만」 · 「게시물에 반응한 사람들에게만」이 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

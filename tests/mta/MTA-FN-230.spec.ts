@@ -2,6 +2,7 @@ import { defineCase, test, verify, 폰에파일넣기, type 폰파일 } from '@p
 import { z } from 'zod';
 
 import { 문구가보이나 } from './helpers/compose-flow.helper.js';
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 파일선택기로첨부 } from './helpers/media.helper.js';
 import { 글쓰기화면 } from './pages/compose.page.js';
@@ -11,6 +12,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-230',
   name: '99MB 영상을 첨부하면 업로드 제한 토스트가 뜨지 않는다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   techniques: ['경계값 분석'],
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({

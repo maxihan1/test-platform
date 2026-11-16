@@ -2,6 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { 뜰때까지, 보이나, 칸에적기 } from '@platform/kit/parts';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 계정줄 } from './helpers/app.helper.js';
 import { 표시글 } from './helpers/post.helper.js';
@@ -14,6 +15,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-495',
   name: '뮤트된 단어를 골라 지우면 「단어를 삭제하시겠습니까?」가 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),
