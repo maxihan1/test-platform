@@ -9,6 +9,7 @@ import type { DeviceInfo } from '../types.js';
 
 import { runDir, saveShot } from './artifacts.js';
 import { 앱사진 } from './highlight.js';
+import { 화면켜기인자 } from './lifecycleParts.js';
 import { APPIUM_SESSION_FILE, APPIUM_SESSION_ID_FILE, PHONE_STATE_FILE, 패키지이름인가 } from './protocol.js';
 import { 웹뷰사진, 웹맥락인가, 웹요소인가 } from './webview.js';
 
@@ -144,15 +145,16 @@ type 실행기 = (script: string, args: Record<string, unknown>) => Promise<unkn
  * 실은 값(토큰 등)은 알림에 싣지 않는다 (도메인/러너 §5.2 「값을 실어 켜기」)
  */
 async function 실어켠다(실행: 실행기, 꾸러미: string, 값: AppLaunchIntent): Promise<boolean> {
+  // adb 오류 글에는 am start 명령 줄이 통째로 들어 있다 — 실은 값을 가리고 알린다
+  const 가림 = (글: string): string => Object.values(값.extras).reduce((g, v) => (v === '' ? g : g.split(v).join('***')), 글);
   try {
-    const 답 = await 실행('mobile: startActivity', {
-      intent: `${꾸러미}/${값.activity}`,
-      extras: Object.entries(값.extras).map(([이름, 글]) => ['s', 이름, 글]),
-    });
-    if (typeof 답 === 'string' && /\bError\b/.test(답)) throw new Error(답.split('\n').at(-1) ?? 답);
+    const 답 = await 실행('mobile: startActivity', 화면켜기인자(꾸러미, 값.activity, 값.extras));
+    // am start 는 실패해도 0 으로 끝나며 글로만 알린다 — 없는 화면(Error) · 안 열린 화면(SecurityException) · 안 켜짐(Warning)
+    const 실패줄 = typeof 답 === 'string' ? 답.split('\n').find((줄) => /\b(Error|Exception)\b|Activity not started/.test(줄)) : undefined;
+    if (실패줄 !== undefined) throw new Error(실패줄.trim());
     return true;
   } catch (err) {
-    console.error(`[kit] 값을 실어 켜지 못해 그냥 켠다(${값.activity}): ${err instanceof Error ? err.message : String(err)}`);
+    console.error(`[kit] 값을 실어 켜지 못해 그냥 켠다(${값.activity}): ${가림(err instanceof Error ? err.message : String(err))}`);
     return false;
   }
 }

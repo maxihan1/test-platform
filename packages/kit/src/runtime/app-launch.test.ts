@@ -89,14 +89,20 @@ describe('앱을켠다 — 값을 실어 켜기', () => {
     expect(await 앱을켠다(f, 'com.shop', '지운다', { ...빨리, 값 })).toBeNull();
     expect(부름.slice(0, 2)).toEqual([
       ['mobile: clearApp', { appId: 'com.shop' }],
-      ['mobile: startActivity', { intent: 'com.shop/.QaLoginActivity', extras: [['s', 'server', 'mastodon.example'], ['s', 'token', 't-1']] }],
+      ['mobile: startActivity', { component: 'com.shop/.QaLoginActivity', extras: [['s', 'server', 'mastodon.example'], ['s', 'token', 't-1']] }],
     ]);
     expect(부름.map(([s]) => s)).not.toContain('mobile: activateApp');
   });
 
   it('실어 켜기가 실패하면 알리고 그냥 켠다 — 입구가 없는 옛 APK 도 지금처럼 돈다', async () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    for (const 답 of [async () => 'Error type 3\nError: Activity class {com.shop/.QaLoginActivity} does not exist.', async () => { throw new Error('am 거절'); }]) {
+    for (const 답 of [
+      async () => 'Starting: Intent { cmp=com.shop/.QaLoginActivity }\nError type 3\nError: Activity class {com.shop/.QaLoginActivity} does not exist.\n',
+      async () => "Exception occurred while executing 'start':\njava.lang.SecurityException: Permission Denial: not exported\n",
+      async () => {
+        throw new Error("Command 'am start -n com.shop/.QaLoginActivity --es server mastodon.example --es token t-1' exited with code 1");
+      },
+    ]) {
       const 부름: string[] = [];
       const f = async (script: string) => {
         부름.push(script);
@@ -106,8 +112,9 @@ describe('앱을켠다 — 값을 실어 켜기', () => {
       expect(await 앱을켠다(f, 'com.shop', '지운다', { ...빨리, 값 })).toBeNull();
       expect(부름.slice(0, 3)).toEqual(['mobile: clearApp', 'mobile: startActivity', 'mobile: activateApp']);
     }
-    expect(error).toHaveBeenCalledTimes(2);
-    expect(String(error.mock.calls[0]?.[0])).toContain('[kit] 값을 실어 켜지 못해 그냥 켠다');
+    expect(error).toHaveBeenCalledTimes(3);
+    expect(String(error.mock.calls[0]?.[0])).toContain('[kit] 값을 실어 켜지 못해 그냥 켠다(.QaLoginActivity): Error type 3');
+    expect(String(error.mock.calls[1]?.[0])).toContain('Exception occurred');
     expect(String(error.mock.calls.flat())).not.toContain('t-1');
   });
 });
@@ -175,7 +182,7 @@ describe('openApp 켜기', () => {
     const 앱 = 연결();
     remote.mockResolvedValue(앱);
     await openApp(ENV, { intent: { activity: '.QaLoginActivity', extras: { token: 't-1' } } });
-    expect(앱.execute).toHaveBeenCalledWith('mobile: startActivity', { intent: 'com.shop/.QaLoginActivity', extras: [['s', 'token', 't-1']] });
+    expect(앱.execute).toHaveBeenCalledWith('mobile: startActivity', { component: 'com.shop/.QaLoginActivity', extras: [['s', 'token', 't-1']] });
     expect(앱.execute).not.toHaveBeenCalledWith('mobile: activateApp', expect.anything());
   });
 
