@@ -9,6 +9,7 @@ import { type 바뀐것, 결정계산, 처리줄 } from './authoring-conflicts-a
 import { 겹침찾기, 표tcId들, type 케이스글 } from './authoring-conflicts.js';
 import { 반영커밋인가, 보류있나, 케이스tcId } from './authoring-held-apply.js';
 import { 겹침상한모양인가 } from '../apps/admin/src/authoring/conflicts.js';
+import { 번호열쇠 } from '../apps/admin/src/catalog/rules.js';
 import type { 반영준비 } from './authoring-held-merge.js';
 import { type 보고손, type 칠때, 진짜main받기, 친다 } from './authoring-io.js';
 import type { 깃손 } from './authoring-ledger-io.js';
@@ -86,7 +87,15 @@ export function 겹침판읽기(
     const id = 케이스tcId(c.글);
     if (id !== null) 쓴번호.add(id);
   }
-  const 겹침 = 겹침찾기({ 더한, main케이스, 새로들어온: new Set(새로온길), 요청표, main표, 표경로, 뺀것: 입력.뺀것 });
+  const 바탕길 = 목록(['ls-tree', '-r', '--name-only', '-z', 갈래점, '--', 폴더길]);
+  if (바탕길 === null) return { 사유: '갈라진 자리의 케이스 파일 목록을 못 읽었다' };
+  const 바탕케이스 = new Set(
+    케이스들(갈래점, 바탕길).flatMap((c) => {
+      const id = 케이스tcId(c.글);
+      return id === null ? [] : [번호열쇠(id)];
+    }),
+  );
+  const 겹침 = 겹침찾기({ 더한, main케이스, 새로들어온: new Set(새로온길), 요청표, main표, 표경로, 뺀것: 입력.뺀것, 바탕표: 글(갈래점, 표경로), 바탕케이스 });
   // 서버가 끝내기 목록의 모양을 가둔다 — 모양이 틀린 줄이 하나라도 있으면 목록이 통째로 400 이라 사람이 고를 길도 없다
   const 틀림 = 겹침.find((c) => !겹침상한모양인가(c));
   if (틀림 !== undefined) return { 사유: `겹친 케이스의 번호나 이름 모양이 규칙과 다르다 — ${틀림.tcId}. 다시 작성한다` };

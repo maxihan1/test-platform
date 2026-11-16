@@ -1,5 +1,5 @@
 // 반영 때 겹침 찾기 — 이 요청이 새로 더한 케이스를 지금 main 과 견준다 (SPEC 도메인/작성 §3.6 「★ 반영 때 겹침 검사」)
-// ⒜ 같은 tc_id(main 파일 · 표의 「제거함」 포함) ⒝ 같은 요구 번호 ⒞ 같은 이름 — ⒝ · ⒞ 는 이 요청이 작성을 시작한 뒤 main 에 들어온 케이스만 본다.
+// ⒜ 같은 tc_id(main 파일 · 표의 「제거함」 포함 — 갈라질 때 표에만 있던 빈자리를 같은 요구로 채운 것은 뺀다) ⒝ 같은 요구 번호 ⒞ 같은 이름 — ⒝ · ⒞ 는 이 요청이 작성을 시작한 뒤 main 에 들어온 케이스만 본다.
 // 예전부터 있던 케이스는 자식이 작성할 때 이미 보고 만들었다(한 요구에 케이스 여럿은 원래 된다). 서버가 받는 모양은 apps/admin/src/authoring/conflicts.ts
 
 import ts from 'typescript';
@@ -31,6 +31,10 @@ export interface 견줄것 {
   표경로: string;
   /** 보류에서 「제거」한 tc_id — 어차피 반영에서 빠진다 */
   뺀것: Set<string>;
+  /** 이 요청이 main 과 갈라진 자리의 요구사항 표. 없으면 빈 글자 */
+  바탕표: string;
+  /** 갈라진 자리의 그 서비스 케이스 파일 tc_id 번호 열쇠 — 빈자리(표에만 있던 번호)인지 가른다 */
+  바탕케이스: Set<string>;
 }
 
 // 문단 모드 번호는 요청마다 P-001 부터 다시 매긴다 — 서로 다른 기획서가 같은 번호를 갖는다 (작성 §3.6 「★ 원장」 문단 모드)
@@ -48,17 +52,26 @@ export function 이름틀(이름: string): string {
   return 이름.normalize('NFC').trim().replace(/\s+/g, ' ').toLowerCase();
 }
 
-/** 표 칸의 tc_id 전부 — 「제거함(<tcId>)」 칸까지 센다. 지운 번호를 다시 쓰면 옛 실행 이력이 새 케이스에 붙는다 */
-export function 표tcId들(표: string): Set<string> {
-  const 결과 = new Set<string>();
+/** 표 칸의 tc_id — 살아 있는 칸과 「제거함(<tcId>)」 칸을 나눠 읽는다. 번호 열쇠가 아니라 적힌 그대로다 */
+function 표칸들(표: string): { 살아있는: Set<string>; 제거: Set<string> } {
+  const 살아있는 = new Set<string>();
+  const 제거 = new Set<string>();
   for (const 줄 of 표.split(/\r?\n/)) {
     if (!줄.trimStart().startsWith('|')) continue;
     for (const 칸 of 줄.split('|').map((c) => c.trim())) {
-      const id = /^제거함\((.+)\)$/.exec(칸)?.[1] ?? 칸;
-      if (TCID.test(id)) 결과.add(id);
+      const 지운 = /^제거함\((.+)\)$/.exec(칸)?.[1];
+      if (지운 !== undefined) {
+        if (TCID.test(지운)) 제거.add(지운);
+      } else if (TCID.test(칸)) 살아있는.add(칸);
     }
   }
-  return 결과;
+  return { 살아있는, 제거 };
+}
+
+/** 표 칸의 tc_id 전부 — 「제거함(<tcId>)」 칸까지 센다. 지운 번호를 다시 쓰면 옛 실행 이력이 새 케이스에 붙는다 */
+export function 표tcId들(표: string): Set<string> {
+  const { 살아있는, 제거 } = 표칸들(표);
+  return new Set([...살아있는, ...제거]);
 }
 
 /** 요구사항 표에서 tc_id 마다 그 줄 출처 칸의 요구 번호(문단 번호 뺌) */
@@ -96,6 +109,23 @@ export function 겹침찾기(입력: 견줄것): 겹침[] {
   const main표id = new Map([...표tcId들(입력.main표)].map((id) => [번호열쇠(id), id]));
   const 요청번호 = 요구번호들(입력.요청표);
   const main번호 = 요구번호들(입력.main표);
+  // 빈자리 채우기 — 갈라질 때 표에 파일 없이 살아 있던 줄을 이 요청이 같은 요구 그대로 채웠다(이어 작성).
+  // 요청 · main 표에도 같은 번호 줄이 살아 있고, 갈라진 뒤 main 이 그 번호를 「제거함」으로 바꾸지 않았고, 덮는 요구가 셋 다 같을 때만이다
+  const 바탕 = 표칸들(입력.바탕표);
+  const 요청칸 = 표칸들(입력.요청표);
+  const main칸 = 표칸들(입력.main표);
+  const 바탕번호 = 요구번호들(입력.바탕표);
+  const 같은요구 = (id: string) => {
+    const 글 = (m: Map<string, Set<string>>) => [...(m.get(id) ?? [])].sort().join(' ');
+    return 글(바탕번호) === 글(main번호) && 글(바탕번호) === 글(요청번호);
+  };
+  const 빈자리인가 = (id: string) =>
+    바탕.살아있는.has(id) &&
+    !입력.바탕케이스.has(번호열쇠(id)) &&
+    요청칸.살아있는.has(id) &&
+    main칸.살아있는.has(id) &&
+    !(main칸.제거.has(id) && !바탕.제거.has(id)) &&
+    같은요구(id);
 
   const 결과: 겹침[] = [];
   for (const 이것 of 읽기들(입력.더한)) {
@@ -106,7 +136,7 @@ export function 겹침찾기(입력: 견줄것): 겹침[] {
 
     const 열쇠 = 번호열쇠(이것.tcId);
     const 같은id = main.filter((c) => 번호열쇠(c.tcId) === 열쇠);
-    const 표id = main표id.get(열쇠);
+    const 표id = 빈자리인가(이것.tcId) ? undefined : main표id.get(열쇠);
     if (같은id.length > 0 || 표id !== undefined) {
       종류.push('TCID');
       if (같은id.length > 0) 같은id.forEach(더하기);

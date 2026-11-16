@@ -84,6 +84,22 @@ describe('겹침판 읽기', () => {
     return { ...g, 자식, 머리커밋, mainSha };
   }
 
+  it('이어 작성이 갈라질 때부터 표에 파일 없이 있던 줄을 채우면 겹침이 아니다', () => {
+    const g = 판();
+    g.쓰기('tests/pay/PAY-001.spec.ts', 케이스('PAY-001', '첫 케이스'));
+    g.쓰기('docs/cases/PAY.md', 표([줄(1, '9 REQ-1', 'PAY-001'), 줄(2, '9 REQ-2', 'PAY-002')]));
+    g.커밋('앞 작성 반영 — PAY-002 는 표에만 있다');
+    g.깃(['checkout', '-q', '-b', 'req']);
+    g.쓰기('tests/pay/PAY-002.spec.ts', 케이스('PAY-002', '빈자리 채우기'));
+    const 머리커밋 = g.커밋('[WS-작성] PAY 작성 요청 8번 케이스');
+    g.깃(['checkout', '-q', 'main']);
+    g.쓰기('b.txt', '다른 일');
+    const mainSha = g.커밋('main');
+    const 결과 = 겹침판읽기(g.깃, { 머리: 머리커밋, mainSha, 폴더: 'pay', 표경로: 'docs/cases/PAY.md', 뺀것: new Set() });
+    if ('사유' in 결과) throw new Error(결과.사유);
+    expect(결과.겹침).toEqual([]);
+  });
+
   it('자식이 끝낸 커밋에서 새로 더한 케이스만 지금 main 과 견주고 합칠지 · 쓴 번호를 낸다', () => {
     const { 깃, 자식, 머리커밋, mainSha } = 갈라놓기();
     const 결과 = 겹침판읽기(깃, { 머리: 머리커밋, mainSha, 폴더: 'pay', 표경로: 'docs/cases/PAY.md', 뺀것: new Set() });
