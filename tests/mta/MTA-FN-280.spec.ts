@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { 내글모두지우기, 화면글정확 } from './helpers/compose-flow.helper.js';
 import { 대체텍스트적고돌아오기, 사진붙이고기다리기 } from './helpers/attach-flow.helper.js';
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 내프로필에서글열기, 표시글 } from './helpers/post.helper.js';
 import { 글쓰기화면 } from './pages/compose.page.js';
@@ -13,6 +14,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-280',
   name: '대체 텍스트를 적고 글쓰기로 돌아와 게시하면 그 글 사진에 「ALT」가 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

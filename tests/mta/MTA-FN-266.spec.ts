@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { 내글모두지우기 } from './helpers/compose-flow.helper.js';
 import { 사진붙이고기다리기 } from './helpers/attach-flow.helper.js';
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 홈으로 } from './helpers/nav.helper.js';
 import { 표시글 } from './helpers/post.helper.js';
@@ -16,6 +17,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-266',
   name: '대체 텍스트 리마인더를 켜고 설명 없는 사진으로 「게시」를 누르면 「미디어에 대체 텍스트가 없습니다」 창이 뜬다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

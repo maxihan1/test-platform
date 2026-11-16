@@ -3,6 +3,7 @@ import { 될때까지, 뜰때까지, 보이나 } from '@platform/kit/parts';
 import { z } from 'zod';
 
 import { 확인창 } from './components/dialog.component.js';
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 홈으로 } from './helpers/nav.helper.js';
 import { 표시글, 내글쓰기, 내프로필에서글열기, 내글지우기 } from './helpers/post.helper.js';
@@ -15,6 +16,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-195',
   name: '「게시물 삭제 전 묻기」를 끄고 내 글 더보기에서 「삭제」를 누르면 확인 창 없이 글이 지워진다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

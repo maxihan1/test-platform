@@ -1,6 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 인용글쓰기열기 } from './helpers/compose-flow.helper.js';
 
@@ -11,6 +12,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-239',
   name: '남의 글을 인용하는 글쓰기를 열면 「미디어 추가」 · 「투표 추가」가 꺼져 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

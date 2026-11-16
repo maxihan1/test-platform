@@ -2,6 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { 뜰때까지 } from '@platform/kit/parts';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 홈화면 } from './pages/home.page.js';
 
@@ -9,6 +10,7 @@ export const spec = defineCase({
   tcId: 'MTA-UI-111',
   name: '팔로우한 해시태그가 없는 계정의 홈 드롭다운 「팔로우 중인 해시태그」 아래에 「해시태그를 팔로우해서 관심사 따라잡기」 · 「팔로우중인 사람들이 여기 나타날 것입니다」가 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('blankId', 'blankPassword'),
   precondition: ['빈 계정으로 로그인해 있다'],
   params: z.object({
     blankId: z.string().describe('빈 계정 아이디').optional().meta({ secret: true, account: '빈 계정' }),

@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { 확인창 } from './components/dialog.component.js';
 import { 앱링크열기, 앱화면떠있나 } from './helpers/signup-flow.helper.js';
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 홈화면 } from './pages/home.page.js';
 import { 글쓰기화면 } from './pages/compose.page.js';
@@ -12,6 +13,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-528',
   name: '공유받기로 연 글쓰기를 닫으면 앱 화면이 사라진다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { 계정줄 } from './helpers/app.helper.js';
 import { 계정추가로그인 } from './helpers/signup-flow.helper.js';
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 계정전환시트 } from './pages/account-switcher.page.js';
 import { 홈화면 } from './pages/home.page.js';
@@ -11,6 +12,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-540',
   name: '두 계정을 넣은 앱에서 두 번째 사용자로 바꾸면 홈 드롭다운 목록에 그 계정 목록 「사진」이 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

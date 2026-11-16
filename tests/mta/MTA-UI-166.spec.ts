@@ -3,6 +3,7 @@ import { 뜰때까지 } from '@platform/kit/parts';
 import { z } from 'zod';
 
 import { 확인창 } from './components/dialog.component.js';
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 프로필열기 } from './helpers/nav.helper.js';
 import { 홈화면 } from './pages/home.page.js';
@@ -12,6 +13,7 @@ export const spec = defineCase({
   tcId: 'MTA-UI-166',
   name: '인용 제거를 누르면 「게시물을 삭제하시겠습니까?」 · 「이 작업은 되돌릴 수 없습니다.」 · 「게시물 삭제」 확인 창이 뜬다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

@@ -2,6 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { 사라질때까지, 먼저뜨는것 } from '@platform/kit/parts';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 표시글 } from './helpers/post.helper.js';
 import { 화면글정확, 화면글포함 } from './helpers/compose-flow.helper.js';
@@ -13,6 +14,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-344',
   name: '일반 회원으로 검색한 뒤 두 번째 사용자로 바꿔 검색 화면을 열면 일반 회원이 찾은 검색어가 보이지 않는다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

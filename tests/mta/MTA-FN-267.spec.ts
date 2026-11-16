@@ -2,6 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { 될때까지 } from '@platform/kit/parts';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 
 import { 글쓰기화면 } from './pages/compose.page.js';
@@ -11,6 +12,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-267',
   name: '내용이 있는 글쓰기에서 닫기를 누르면 「작성 중인 글을 지우시겠습니까?」와 「지우기」 · 「취소」 창이 뜬다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

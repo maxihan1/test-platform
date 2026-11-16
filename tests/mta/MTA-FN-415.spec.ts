@@ -11,6 +11,7 @@ import {
   해시태그정리,
   해시태그화면제목,
 } from './helpers/profile-edit-flow.helper.js';
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 홈화면 } from './pages/home.page.js';
 import { 프로필화면 } from './pages/profile.page.js';
@@ -20,6 +21,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-415',
   name: '소개 해시태그가 10개일 때 하나를 더하면 11번째가 더해지지 않는다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   techniques: ['경계값 분석'],
   precondition: ['프로필 고쳐도 되는 계정으로 로그인해 있다'],
   params: z.object({

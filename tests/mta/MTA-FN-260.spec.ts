@@ -1,6 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 프로필열기 } from './helpers/nav.helper.js';
 import { 프로필첫글열기 } from './helpers/compose-flow.helper.js';
@@ -13,6 +14,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-260',
   name: '팔로워 공개 글에 답장하면 공개 범위 버튼이 「팔로워」로 시작한다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('secondId', 'secondPassword'),
   precondition: ['두 번째 사용자로 로그인해 있다'],
   params: z.object({
     secondId: z.string().describe('두 번째 사용자 아이디').optional().meta({ secret: true, account: '두 번째 사용자' }),

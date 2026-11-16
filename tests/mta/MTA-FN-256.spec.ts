@@ -1,6 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 문구가보이나 } from './helpers/compose-flow.helper.js';
 
@@ -12,6 +13,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-256',
   name: '공개 범위 시트에서 「팔로워」를 고르면 「본인만」으로 잠기고 「마스토돈에서 작성된 팔로워 전용 게시물은 다른 사용자가 인용할 수 없습니다.」가 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   techniques: ['동등 분할', '상태 전이'],
   params: z.object({

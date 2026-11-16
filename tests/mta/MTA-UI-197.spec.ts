@@ -1,6 +1,7 @@
 import { defineCase, test, verify, 폰에파일넣기 } from '@platform/kit';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 파일선택기열기 } from './helpers/media.helper.js';
 import { 글쓰기화면 } from './pages/compose.page.js';
@@ -10,6 +11,7 @@ export const spec = defineCase({
   tcId: 'MTA-UI-197',
   name: '글쓰기에서 「미디어 추가」를 길게 누르면 파일 선택기가 열린다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

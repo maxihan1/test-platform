@@ -1,6 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 컬렉션화면 } from './pages/collection.page.js';
 import { 홈화면 } from './pages/home.page.js';
@@ -10,6 +11,7 @@ export const spec = defineCase({
   tcId: 'MTA-UI-483',
   name: '추천이 빈 계정의 「추천」 탭에 「Showcase your favorite accounts」가 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('blankId', 'blankPassword'),
   precondition: ['빈 계정으로 로그인해 있다'],
   params: z.object({
     blankId: z.string().describe('빈 계정 아이디').optional().meta({ secret: true, account: '빈 계정' }),

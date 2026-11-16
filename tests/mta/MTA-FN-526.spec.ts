@@ -3,6 +3,7 @@ import { 될때까지 } from '@platform/kit/parts';
 import { z } from 'zod';
 
 import { 앱링크열기 } from './helpers/signup-flow.helper.js';
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 홈화면 } from './pages/home.page.js';
 import { 글쓰기화면 } from './pages/compose.page.js';
@@ -11,6 +12,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-526',
   name: '「mastodon://share?text=」 주소로 들어오면 글쓰기 본문에 그 글만 채워진다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

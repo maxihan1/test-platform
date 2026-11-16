@@ -1,6 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 계정줄, 글읽기 } from './helpers/app.helper.js';
 import { 글이될때까지읽기, 설정줄열기, 계정설정열기 } from './helpers/settings-flow.helper.js';
@@ -11,6 +12,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-509',
   name: '게시 범위를 「팔로워」로 고르면 「공개 범위」가 꺼져 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['프로필 고쳐도 되는 계정으로 로그인해 있다'],
   techniques: ['동등 분할', '상태 전이'],
   params: z.object({

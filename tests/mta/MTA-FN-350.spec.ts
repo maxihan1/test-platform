@@ -2,6 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { 뜰때까지 } from '@platform/kit/parts';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 화면글정확 } from './helpers/compose-flow.helper.js';
 
@@ -12,6 +13,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-350',
   name: '검색어를 적고 완료 키를 치면 결과가 「게시물」 · 「해시태그」 · 「사람」 탭으로 나뉘어 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

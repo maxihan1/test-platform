@@ -2,6 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { 될때까지 } from '@platform/kit/parts';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 
 import { 글쓰기화면 } from './pages/compose.page.js';
@@ -11,6 +12,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-217',
   name: '글쓰기 본문에 「@qa_user2@mastodon.maxihan.com」만 적으면 남은 글자 수가 「491」로 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

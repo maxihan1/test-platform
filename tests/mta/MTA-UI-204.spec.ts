@@ -2,6 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { 뜰때까지 } from '@platform/kit/parts';
 import { z } from 'zod';
 
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 화면글정확 } from './helpers/compose-flow.helper.js';
 
@@ -13,6 +14,7 @@ export const spec = defineCase({
   tcId: 'MTA-UI-204',
   name: '공개 범위 버튼을 누르면 「공개 범위 및 상호작용」 시트에 「공개」 · 「제한적 공개」 · 「팔로워」 · 「개인 멘션」 · 「모든 사용자」 · 「팔로워만」 · 「본인만」 · 「취소」 · 「저장」이 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

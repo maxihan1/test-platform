@@ -3,6 +3,7 @@ import { 뜰때까지, 사라질때까지 } from '@platform/kit/parts';
 import { z } from 'zod';
 
 import { 뮤트메뉴항목, 카드더보기열기 } from './helpers/card-menu.helper.js';
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 뮤트풀기 } from './helpers/settings-flow.helper.js';
 import { 홈화면 } from './pages/home.page.js';
@@ -12,6 +13,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-439',
   name: '목록 화면에서 news_bot 을 뮤트하면 그 계정 글이 목록에서 바로 사라진다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('일반 회원 아이디').optional().meta({ secret: true }),

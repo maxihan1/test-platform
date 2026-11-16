@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { 확인창 } from './components/dialog.component.js';
 import { 알림글 } from './components/toast.component.js';
+import { 로그인된채켜기 } from './helpers/login-inject.helper.js';
 import { 로그인하기 } from './helpers/login.helper.js';
 import { 글상세열기 } from './helpers/nav.helper.js';
 import { 홈화면 } from './pages/home.page.js';
@@ -13,6 +14,7 @@ export const spec = defineCase({
   tcId: 'MTA-FN-593',
   name: '서버 번역이 꺼진 채 영어 글 번역을 누르면 번역 실패 안내가 보인다',
   platforms: ['android'],
+  launchIntent: 로그인된채켜기('loginId', 'loginPassword'),
   techniques: ['결정 테이블'],
   precondition: ['일반 회원으로 로그인해 있다'],
   params: z.object({
