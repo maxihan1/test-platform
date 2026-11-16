@@ -1,10 +1,13 @@
 // 돌려 본 결과 기록을 에이전트가 직접 판정한다 — 자식의 말이 아니라 Playwright json 결과로 (SPEC 도메인/작성 §3.6)
 
 import { lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
-import { dirname, join, normalize, relative } from 'node:path';
+import { dirname, join, relative } from 'node:path';
 import { stripVTControlCharacters } from 'node:util';
 
 import { type 파일글, 품질숫자, 품질줄 } from './authoring-quality.js';
+import { 살필케이스 } from './authoring-reach.js';
+
+export { 닿는파일, 살필케이스 } from './authoring-reach.js';
 
 const 결과상한 = 50 * 1024 * 1024;
 const 케이스글상한 = 1024 * 1024;
@@ -126,44 +129,6 @@ export function 끝검사(결과폴더: string, 트리: string, 폴더: string, 
   } catch (e) {
     return [`⚠️ 끝 검사를 못 했다 — ${e instanceof Error ? e.message.split('\n')[0] : String(e)}`];
   }
-}
-
-/**
- * 마지막 전체 돌려 보기로 볼 케이스 파일마다, 그 파일과 그것이 가져다 쓰는 Page Object · Component · 도우미 가운데 가장 늦은 수정 시각.
- * 이번 작성이 바꾼 파일(`바뀐` — 기준과의 차이, testDir 기준 경로)에 닿는 케이스만 본다. 안 건드린 케이스는 앞 작성에서 3회를 통과했다 —
- * 반영 · 화면이 맞음 · 바뀐 화면 고치기가 케이스 1~4건을 고치고 폴더 전체 472 파일을 돌아 15~17분을 썼다(PRD-F9-13). 첫 작성은 다 바뀐 것이라 전체다
- */
-export function 살필케이스(파일들: (파일글 & { 때: number })[], 바뀐: ReadonlySet<string>): Record<string, number> {
-  const 표 = new Map(파일들.map((f) => [f.경로, f]));
-  const 닿음 = 닿는파일(파일들);
-  return Object.fromEntries(
-    파일들
-      .filter((f) => f.경로.endsWith('.spec.ts'))
-      .flatMap((f) => {
-        const 닿은 = 닿음(f.경로);
-        return 닿은.some((p) => 바뀐.has(p)) ? [[f.경로, Math.max(...닿은.map((p) => 표.get(p)?.때 ?? 0))] as const] : [];
-      }),
-  );
-}
-
-/** 케이스(또는 파일)에서 시작해 상대 import 로 닿는 파일들(자기 포함) — 살필케이스와 폰 돌려 보기의 표본 고르기가 같은 길로 따라간다 */
-export function 닿는파일(파일들: readonly 파일글[]): (시작: string) => string[] {
-  const 표 = new Map(파일들.map((f) => [f.경로, f]));
-  // 케이스마다 새로 따라간다 — 나눠 쓰는 메모는 import 가 돌면 덜 찬 집합을 남긴다(code-review).
-  // 폴더 밖 파일(tests/<다른 폴더>)도 담는다 — 글을 못 읽어 그 너머는 못 따라가도 그 파일이 바뀌었으면 케이스를 본다
-  return (시작: string): string[] => {
-    const 본 = new Set<string>();
-    const 갈곳 = [시작];
-    for (let 경로 = 갈곳.pop(); 경로 !== undefined; 경로 = 갈곳.pop()) {
-      if (본.has(경로)) continue;
-      본.add(경로);
-      for (const m of 표.get(경로)?.글.matchAll(/from\s+['"](\.{1,2}\/[^'"]+)['"]/g) ?? []) {
-        const p = normalize(join(dirname(경로), m[1]!)).replace(/\.js$/, '');
-        갈곳.push(p.endsWith('.ts') ? p : `${p}.ts`);
-      }
-    }
-    return [...본];
-  };
 }
 
 interface 표시글 {

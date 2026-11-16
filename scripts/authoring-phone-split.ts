@@ -6,7 +6,8 @@ import { join } from 'node:path';
 
 import { 기본역할, 출처 } from '@platform/kit/accounts';
 
-import type { 돌린판 } from './authoring-gate3.js';
+import { type 돌린판, 닿는파일, 앱케이스나누기, 케이스파일읽기, 살필케이스 } from './authoring-gate3.js';
+import { 바로닿는파일 } from './authoring-reach.js';
 import { 동시계정번호, 일회용역할 } from './authoring-roles.js';
 
 type 계정줄 = { baseUrl?: unknown; role?: unknown; loginId?: unknown; loginPassword?: unknown };
@@ -139,34 +140,62 @@ export function 판정하기(돈것: readonly 한판[], 있는폰들: readonly s
 
 /**
  * 폰에서 돌릴 케이스 — 이번에 쓰거나 고친 케이스(`바뀐` 에 든 것)는 다 돌고, 바뀐 도우미로만 닿은 기존 케이스는 표본만 돈다(2026-11-16 사용자 「표본만」).
- * 표본은 「바뀐 파일 · 화면(Page Object)」 짝마다 1개 — 이번 케이스가 이미 그 짝을 지나면 더 안 고른다. 화면을 안 쓰는 케이스는 「화면 없음」 한 칸으로 센다.
- * #15526 은 새 케이스 71개에 화면 부품을 고쳐 392개를 골라 열 시간이 넘었다
+ * 표본은 「바뀐 파일 · 화면」 짝마다 1개 — 화면은 그 케이스가 바로 가져다 쓰는 Page Object · Component 다(도우미 너머 화면은 안 센다). 화면을 바로 안 쓰는 케이스는 「화면 없음」 한 칸이다.
+ * 이번 케이스가 이미 지나는 짝은 더 안 고른다. 앞서 폰에서 빨갰던 기존 케이스(`꼭`)는 짝과 상관없이 돈다 — 빨강이 조용히 사라지지 않게.
+ * 이미 돈 기존 케이스(`돈것`)를 먼저 표본으로 써서 부를 때마다 표본이 바뀌어 다시 도는 일을 줄인다. #15526 은 새 케이스 71개에 화면 부품을 고쳐 392개를 골라 열 시간이 넘었다
  */
-export function 표본고르기(케이스들: readonly string[], 바뀐: ReadonlySet<string>, 닿음: (파일: string) => string[]): { 표본: string[]; 뺀: string[] } {
+export function 표본고르기(
+  케이스들: readonly string[],
+  바뀐: ReadonlySet<string>,
+  닿음: (파일: string) => string[],
+  바로: (파일: string) => string[],
+  고름: { 꼭?: (파일: string) => boolean; 돈것?: (파일: string) => boolean } = {},
+): { 표본: string[]; 뺀: string[] } {
+  const 화면꼴 = /(^|\/)(pages|components)\//;
   const 짝들 = (f: string) => {
-    const 닿은 = 닿음(f);
-    const 화면들 = 닿은.filter((p) => /(^|\/)pages\//.test(p));
-    return 닿은.filter((p) => p !== f && 바뀐.has(p)).flatMap((h) => (화면들.length === 0 ? [''] : 화면들).map((s) => `${h}\0${s}`));
+    const 화면들 = 바로(f).filter((p) => 화면꼴.test(p));
+    return 닿음(f)
+      .filter((p) => p !== f && 바뀐.has(p))
+      .flatMap((h) => (화면들.length === 0 ? [''] : 화면들).map((s) => `${h}\0${s}`));
   };
   const 새것 = [...케이스들].filter((f) => 바뀐.has(f)).sort();
   const 덮은 = new Set(새것.flatMap(짝들));
+  const 차례 = (f: string) => (고름.꼭?.(f) ? 0 : 고름.돈것?.(f) ? 1 : 2);
+  const 기존 = [...케이스들].filter((x) => !바뀐.has(x)).sort((a, b) => 차례(a) - 차례(b) || a.localeCompare(b));
   const 표본: string[] = [];
   const 뺀: string[] = [];
-  for (const f of [...케이스들].filter((x) => !바뀐.has(x)).sort()) {
+  for (const f of 기존) {
     const 새짝 = 짝들(f).filter((k) => !덮은.has(k));
-    if (새짝.length === 0) {
+    if (새짝.length === 0 && 차례(f) !== 0) {
       뺀.push(f);
       continue;
     }
     for (const k of 새짝) 덮은.add(k);
     표본.push(f);
   }
-  return { 표본: [...새것, ...표본].sort(), 뺀 };
+  return { 표본: [...새것, ...표본].sort(), 뺀: 뺀.sort() };
+}
+
+/**
+ * 이번 작성이 닿은 폰 케이스(android 선언)와 그 케이스 · 부품 가운데 가장 늦은 수정 시각 — 웹 돌려 보기 · 끝 검사와 같은 함수로 고른다.
+ * 이번에 쓰거나 고친 케이스는 다 돌고, 바뀐 도우미로만 닿은 기존 케이스는 표본만 돈다(`표본고르기` — 뺀 것은 `뺀기존`)
+ */
+export function 폰고르기(트리: string, 폴더: string, 바뀐: readonly string[], 판들?: Map<string, 돌린판[]>): { 대상: Record<string, number>; 뺀기존: string[] } {
+  const 케이스들 = 케이스파일읽기(트리, 폴더);
+  const 바뀐테스트 = new Set(바뀐.filter((p) => p.startsWith('tests/')).map((p) => p.slice('tests/'.length)));
+  const 볼것 = 살필케이스(케이스들, 바뀐테스트);
+  // 앞서 폰에서 빨갰던 기존 케이스는 꼭 돌고, 고친 뒤 이미 돈 케이스를 표본으로 먼저 쓴다
+  const 늦은 = (f: string) => (판들?.get(f) ?? []).reduce<돌린판 | undefined>((a, b) => (a === undefined || b.시작 > a.시작 ? b : a), undefined);
+  const { 표본, 뺀 } = 표본고르기(앱케이스나누기(케이스들, 볼것).앱, 바뀐테스트, 닿는파일(케이스들), 바로닿는파일(케이스들), {
+    꼭: (f) => 늦은(f)?.상태들.includes('unexpected') === true,
+    돈것: (f) => (늦은(f)?.시작 ?? -Infinity) >= (볼것[f] ?? Infinity),
+  });
+  return { 대상: Object.fromEntries(표본.map((f) => [f, 볼것[f]!])), 뺀기존: 뺀 };
 }
 
 /** 표본으로 뺀 기존 케이스 줄 — 끝 검사(⚠️ 머리)와 돌려 보기 출력이 같이 쓴다. 안 돈 것을 초록으로 세지 않게 수를 남긴다 */
 export const 표본말 = (뺀수: number, 돌수: number, 갈래: string): string =>
-  `⚠️ 도우미가 바뀌었는데 폰에서 안 돈 기존 ${갈래} 케이스 ${뺀수}개 — 바뀐 도우미 · 화면마다 표본 1개만 돈다(돌릴 것 ${돌수}개). 정식 실행에서 처음 돈다`;
+  `⚠️ 도우미가 바뀌었는데 폰에서 안 돈 기존 ${갈래} 케이스 ${뺀수}개 — 「바뀐 파일 · 케이스가 바로 쓰는 화면」 짝마다 표본 1개만 돈다(돌릴 것 ${돌수}개). 정식 실행에서 처음 돈다`;
 
 /** 돌려 보기 출력 — 빨강 · 폰 차이 · 계정 차이를 묶음마다 머리 한 줄과 파일 줄로 */
 export function 판정말들(빨강: [string, 판정][], 폰차이: [string, 판정][], 계정차이: [string, 판정][], 이름: (폰: string) => string): string[] {
