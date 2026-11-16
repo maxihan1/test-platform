@@ -8,11 +8,12 @@ import { 웹맥락인가 } from './webview.js';
 export const 키보드꾸러미 = ['com.samsung.android.honeyboard', 'com.sec.android.inputmethod', 'com.google.android.inputmethod.latin'];
 
 /**
- * 맨 앞 창이 키보드 앱의 것이고 화면 맨 위(0,0)부터 덮는 창인지 — 찾기 한 번으로 묻는다.
- * 요소 속성을 따로 읽으면 실패 사진이 그 창(화면 전체)을 마지막에 다룬 요소로 적는다(highlight.ts 「앱을지켜본다」).
- * 화면 아래쪽에 붙는 보통 키보드 창은 (0,0)에서 시작하지 않아 걸리지 않는다
+ * UiAutomator 가 지금 읽는 창(활성 창)에 키보드 앱 요소가 있는지 — 찾기 한 번으로 묻는다.
+ * 말풍선은 초점을 가져가 활성 창이 되고, 화면 아래에 붙는 보통 키보드 창은 초점을 받지 않아 활성 창이 되지 않는다.
+ * `-android uiautomator` 는 활성 창만 찾는다 — 화면 구조식(xpath)은 말풍선이 떠 있어도 앱 창을 맨 앞으로 내놓아 못 알아봤다(2026-11-16 정식 실행 21146).
+ * 요소 속성을 따로 읽으면 실패 사진이 그 창(화면 전체)을 마지막에 다룬 요소로 적는다(highlight.ts 「앱을지켜본다」)
  */
-export const 가림식 = `/hierarchy/*[1][(${키보드꾸러미.map((p) => `@package='${p}'`).join(' or ')}) and starts-with(@bounds,'[0,0]')]`;
+export const 가림식 = `new UiSelector().packageNameMatches("${키보드꾸러미.join('|')}")`;
 
 const 요소키 = 'element-6066-11e4-a52e-4f735466cecf';
 
@@ -28,7 +29,7 @@ function 찾았나(값: unknown): boolean {
 /** 못 읽으면 안 가린 것으로 친다 — 처리기 때문에 케이스가 깨지면 안 된다 */
 async function 가렸나(원래: 찾기): Promise<boolean> {
   try {
-    return 찾았나(await 원래('xpath', 가림식));
+    return 찾았나(await 원래('-android uiautomator', 가림식));
   } catch {
     return false;
   }
@@ -58,7 +59,7 @@ export function 키보드창기다리기(driver: AppDriver, 기다림_ms = 8_000
   for (const 이름 of ['findElement', 'findElements']) {
     덮어쓰기(이름, async (원래: 찾기, using: string, value: string) => {
       const 결과 = await 원래(using, value);
-      // 웹뷰 구간은 크롬 드라이버가 받는다 — 폰 화면 구조식을 보내지 않는다
+      // 웹뷰 구간은 크롬 드라이버가 받는다 — 폰 화면 찾기를 보내지 않는다
       if (찾았나(결과) || 웹맥락인가(driver)) return 결과;
       return (await 지나가기를기다린다(원래, 기다림_ms, 간격_ms)) ? 원래(using, value) : 결과;
     });
