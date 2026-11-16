@@ -120,18 +120,19 @@ export function 연결꾸러미(caps: unknown, 앱값: string): string {
 /**
  * 연결이 깔아 둔 앱을 켠다 — kit 케이스와 러너 화면 읽기가 같이 쓴다. `실행` 은 Appium `execute` 하나다(러너는 HTTP 로 넘긴다).
  * 데이터를 남기는 연결은 먼저 끈다 — 앞 케이스의 앱이 살아 있으면 앞으로 가져오기만 해 「앱만 다시 켜기」가 안 된다.
+ * 지우는 연결은 앱 데이터를 한 번 더 지운다 — Appium 이 지우고 새로 깔아도, 백업이 켜진 폰은 설치 순간 Android 가 백업에서 옛 로그인을 되살린다(2026-11-16 S21 정식 실행 21136).
  * 앱이나 권한 창이 앞에 오면 null, 기다림이 끝나도 안 오면 마지막에 본 앞 화면 꾸러미를 돌려준다 — 던질지는 부른 쪽이 정한다.
  * 기다림은 끄기부터 센다 — admin 이 러너를 기다리는 시간(appScreen.ts 앱길)이 이 상한에 기댄다
  */
 export async function 앱을켠다(
   실행: (script: string, args: Record<string, unknown>) => Promise<unknown>,
   꾸러미: string,
-  먼저끈다: boolean,
+  데이터남김: boolean,
   기다림_ms = 20_000,
   간격_ms = 500,
 ): Promise<string | null> {
   const 끝 = Date.now() + 기다림_ms;
-  if (먼저끈다) await 실행('mobile: terminateApp', { appId: 꾸러미 });
+  await 실행(데이터남김 ? 'mobile: terminateApp' : 'mobile: clearApp', { appId: 꾸러미 });
   await 실행('mobile: activateApp', { appId: 꾸러미 });
   let 앞 = '';
   do {

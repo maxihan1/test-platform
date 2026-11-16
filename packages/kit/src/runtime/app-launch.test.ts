@@ -38,8 +38,18 @@ describe('앱을켠다', () => {
   it('켜자마자 권한 창이 앞에 떠도 켜진 것으로 본다 — 권한 창은 케이스가 답한다', async () => {
     const { f, 부름 } = 실행(['com.sec.android.app.launcher', 'com.google.android.permissioncontroller']);
     expect(await 앱을켠다(f, 'org.joinmastodon.android', false, 5_000, 1)).toBeNull();
-    expect(부름.map(([s]) => s)).toEqual(['mobile: activateApp', 'mobile: getCurrentPackage', 'mobile: getCurrentPackage']);
-    expect(부름[0]?.[1]).toEqual({ appId: 'org.joinmastodon.android' });
+    expect(부름.map(([s]) => s)).toEqual(['mobile: clearApp', 'mobile: activateApp', 'mobile: getCurrentPackage', 'mobile: getCurrentPackage']);
+    expect(부름[1]?.[1]).toEqual({ appId: 'org.joinmastodon.android' });
+  });
+
+  it('데이터를 지우는 연결은 켜기 전에 앱 데이터를 한 번 더 지운다 — 설치 순간 Android 가 백업에서 옛 로그인을 되살린다 (2026-11-16 정식 실행 21136)', async () => {
+    const { f, 부름 } = 실행(['com.shop']);
+    await 앱을켠다(f, 'com.shop', false, 5_000, 1);
+    expect(부름.slice(0, 2)).toEqual([
+      ['mobile: clearApp', { appId: 'com.shop' }],
+      ['mobile: activateApp', { appId: 'com.shop' }],
+    ]);
+    expect(부름.map(([s]) => s)).not.toContain('mobile: terminateApp');
   });
 
   it('데이터를 남기는 연결은 앱을 끄고 다시 켠다 — 앞 케이스의 앱을 앞으로 가져오기만 하지 않게', async () => {
@@ -49,6 +59,7 @@ describe('앱을켠다', () => {
       ['mobile: terminateApp', { appId: 'com.shop' }],
       ['mobile: activateApp', { appId: 'com.shop' }],
     ]);
+    expect(부름.map(([s]) => s)).not.toContain('mobile: clearApp');
   });
 
   it('시간 안에 앞에 안 오면 던지지 않고 마지막에 본 앞 화면을 돌려준다', async () => {
@@ -98,6 +109,7 @@ describe('openApp 켜기', () => {
     remote.mockResolvedValue(앱);
     await openApp(ENV);
     expect(앱.execute).toHaveBeenCalledWith('mobile: activateApp', { appId: 'com.shop' });
+    expect(앱.execute).toHaveBeenCalledWith('mobile: clearApp', { appId: 'com.shop' });
     expect(앱.execute).not.toHaveBeenCalledWith('mobile: terminateApp', expect.anything());
     const 남김 = 연결();
     remote.mockResolvedValue(남김);

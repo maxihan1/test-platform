@@ -137,7 +137,8 @@ describe('앱화면을읽는다', () => {
     await 앱화면을읽는다({});
 
     const 켜기 = (켜기Mock.mock.calls as [string, RequestInit][]).map(([url, init]) => [url, JSON.parse(init.body as string)]);
-    expect(켜기[0]).toEqual(['http://farm:4723/wd/hub/session/s-1/execute/sync', { script: 'mobile: activateApp', args: [{ appId: 'com.shop' }] }]);
+    expect(켜기[0]).toEqual(['http://farm:4723/wd/hub/session/s-1/execute/sync', { script: 'mobile: clearApp', args: [{ appId: 'com.shop' }] }]);
+    expect(켜기[1]?.[1]).toEqual({ script: 'mobile: activateApp', args: [{ appId: 'com.shop' }] });
     expect(켜기.map(([, 몸]) => 몸.script)).not.toContain('mobile: terminateApp');
   });
 
@@ -147,7 +148,7 @@ describe('앱화면을읽는다', () => {
     const 결과 = await 앱화면을읽는다({});
 
     expect(결과.split('\n')[0]).toBe('화면 1080x2400 · 요소 4개');
-    expect(켜기Mock).toHaveBeenCalledTimes(3);
+    expect(켜기Mock).toHaveBeenCalledTimes(4);
   });
 
   it('앱이 20초 안에 앞에 안 뜨면 런처 화면을 읽지 않고 던진다 — 연결은 닫는다', async () => {
