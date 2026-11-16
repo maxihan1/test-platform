@@ -98,8 +98,8 @@ export async function openApp(env: Env, options: AppOpenOptions = {}): Promise<A
     capabilities,
   });
   await writeSessionFile(driver.sessionId);
-  키보드창기다리기(driver);
   try {
+    키보드창기다리기(driver);
     const 꾸러미 = 연결꾸러미(driver.capabilities, required(env, 'PLATFORM_APP'));
     const 앞 = await 앱을켠다((script, args) => driver.execute(script, args), 꾸러미, 켜기전에(capabilities, env.PLATFORM_ENGINE === 'GAME'), { 값: options.intent });
     // 케이스는 그대로 돈다 — 첫 단계가 실패하면 이 줄이 「앱이 안 떴다」를 알려 준다(런처 · 앱이 죽은 창)
