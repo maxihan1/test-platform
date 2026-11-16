@@ -150,6 +150,21 @@ describe('앱화면을읽는다', () => {
     expect(켜기Mock).toHaveBeenCalledTimes(3);
   });
 
+  it('앱이 20초 안에 앞에 안 뜨면 런처 화면을 읽지 않고 던진다 — 연결은 닫는다', async () => {
+    앞앱 = ['com.sec.android.app.launcher'];
+    vi.useFakeTimers({ toFake: ['setTimeout', 'Date'] });
+    try {
+      const 읽기 = 앱화면을읽는다({});
+      const 결과 = expect(읽기).rejects.toThrow('앱이 20초 안에 앞에 뜨지 않았다 — 앞 화면: com.sec.android.app.launcher');
+      await vi.advanceTimersByTimeAsync(21_000);
+      await 결과;
+    } finally {
+      vi.useRealTimers();
+    }
+    const 부름 = (fetchMock.mock.calls as [string, RequestInit][]).map(([url, init]) => `${init.method ?? 'GET'} ${url}`);
+    expect(부름).toEqual(['POST http://farm:4723/wd/hub/session', 'DELETE http://farm:4723/wd/hub/session/s-1']);
+  });
+
   it('앱을 못 켜면 던지고 연결은 닫는다', async () => {
     켜기Mock.mockResolvedValue(답({ value: { message: '앱이 없다' } }, 500));
 

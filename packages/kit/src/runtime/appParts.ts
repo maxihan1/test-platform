@@ -92,6 +92,7 @@ const 한번에_글자 = 2_000;
  * 칸을 비우고 적는다 — 빈 글을 보내면 키보드만 뜬다.
  * 긴 글은 나눠 이어 붙인다 — 폰의 UiAutomator2 서버가 요청을 64KB 까지만 받아(ServerInitializer 의 HttpObjectAggregator) 한글 10,000자를 한 번에 보내면 413 이다.
  * Appium 이 글자 목록을 한 벌 더 실어 한 글자에 최대 11바이트라 2,000자면 22KB 다. UiAutomator2 는 replace 없이 받은 글을 지금 칸 글 뒤에 붙인다
+ * ponytail: 붙일 때 칸 글을 읽어 오므로 2,000자 넘는 비밀번호 칸(가려진 글) · 적는 대로 서식을 바꾸는 칸은 이어 붙인 값이 어긋난다. 그런 케이스가 나오면 클립보드로 붙여 넣는다
  */
 export async function 칸에적기(칸: 앱요소, 값: string): Promise<void> {
   await 칸.clearValue();

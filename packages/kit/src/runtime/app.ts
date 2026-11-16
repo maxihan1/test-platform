@@ -90,8 +90,10 @@ export async function openApp(env: Env, options: AppOpenOptions = {}): Promise<A
   });
   await writeSessionFile(driver.sessionId);
   try {
-    const 꾸러미 = 연결꾸러미(driver.capabilities);
-    await 앱을켠다((script, args) => driver.execute(script, args), 꾸러미, capabilities['appium:noReset'] === true);
+    const 꾸러미 = 연결꾸러미(driver.capabilities, required(env, 'PLATFORM_APP'));
+    const 앞 = await 앱을켠다((script, args) => driver.execute(script, args), 꾸러미, capabilities['appium:noReset'] === true);
+    // 케이스는 그대로 돈다 — 첫 단계가 실패하면 이 줄이 「앱이 안 떴다」를 알려 준다(런처 · 앱이 죽은 창)
+    if (앞 !== null) console.error(`[kit] 앱이 20초 안에 앞에 뜨지 않았다 — 앞 화면: ${앞}`);
   } catch (err) {
     // 케이스는 driver 를 못 받아 닫지 못한다 — 여기서 닫아야 팜 폰이 연결 시간 동안 붙들리지 않는다
     await closeApp(driver).catch(() => undefined);
@@ -103,18 +105,23 @@ export async function openApp(env: Env, options: AppOpenOptions = {}): Promise<A
 /** 시스템 권한 창의 꾸러미 — 기종 · OS 판마다 다르다. 이것이 앞에 떠도 앱은 켜진 것이다 */
 const 권한창꾸러미 = ['com.google.android.permissioncontroller', 'com.android.permissioncontroller', 'com.android.packageinstaller'];
 
-/** 연결 응답의 꾸러미 이름 — APK 로 열면 Appium 이 매니페스트에서 읽어 채운다. 드라이버 판에 따라 appium: 이 붙어 온다 */
-export function 연결꾸러미(caps: unknown): string {
+/**
+ * 연결 응답의 꾸러미 이름 — APK 로 열면 Appium 이 매니페스트에서 읽어 채운다. 드라이버 판에 따라 appium: 이 붙어 온다.
+ * 응답에 없으면 앱 값이 스토어 앱 패키지 이름일 때만 그것을 쓴다 — APK 는 이름을 알 길이 없다
+ */
+export function 연결꾸러미(caps: unknown, 앱값: string): string {
   const c = (caps ?? {}) as Record<string, unknown>;
   const 이름 = c.appPackage ?? c['appium:appPackage'];
-  if (typeof 이름 !== 'string' || 이름 === '') throw new Error('Appium 이 앱 꾸러미 이름을 주지 않아 앱을 켤 수 없다');
-  return 이름;
+  if (typeof 이름 === 'string' && 이름 !== '') return 이름;
+  if (패키지이름인가(앱값)) return 앱값;
+  throw new Error('Appium 이 앱 꾸러미 이름을 주지 않아 앱을 켤 수 없다');
 }
 
 /**
  * 연결이 깔아 둔 앱을 켠다 — kit 케이스와 러너 화면 읽기가 같이 쓴다. `실행` 은 Appium `execute` 하나다(러너는 HTTP 로 넘긴다).
  * 데이터를 남기는 연결은 먼저 끈다 — 앞 케이스의 앱이 살아 있으면 앞으로 가져오기만 해 「앱만 다시 켜기」가 안 된다.
- * 앱이나 권한 창이 앞에 올 때까지 기다리되 안 와도 던지지 않는다 — 무엇이 떴는지는 케이스 첫 단계가 사진과 함께 말한다
+ * 앱이나 권한 창이 앞에 오면 null, 기다림이 끝나도 안 오면 마지막에 본 앞 화면 꾸러미를 돌려준다 — 던질지는 부른 쪽이 정한다.
+ * 기다림은 끄기부터 센다 — admin 이 러너를 기다리는 시간(appScreen.ts 앱길)이 이 상한에 기댄다
  */
 export async function 앱을켠다(
   실행: (script: string, args: Record<string, unknown>) => Promise<unknown>,
@@ -122,15 +129,17 @@ export async function 앱을켠다(
   먼저끈다: boolean,
   기다림_ms = 20_000,
   간격_ms = 500,
-): Promise<void> {
+): Promise<string | null> {
+  const 끝 = Date.now() + 기다림_ms;
   if (먼저끈다) await 실행('mobile: terminateApp', { appId: 꾸러미 });
   await 실행('mobile: activateApp', { appId: 꾸러미 });
-  const 끝 = Date.now() + 기다림_ms;
-  while (Date.now() < 끝) {
-    const 앞 = await 실행('mobile: getCurrentPackage', {});
-    if (앞 === 꾸러미 || 권한창꾸러미.includes(String(앞))) return;
+  let 앞 = '';
+  do {
+    앞 = String(await 실행('mobile: getCurrentPackage', {}));
+    if (앞 === 꾸러미 || 권한창꾸러미.includes(앞)) return null;
     await new Promise((r) => setTimeout(r, 간격_ms));
-  }
+  } while (Date.now() < 끝);
+  return 앞;
 }
 
 function sessionFile(): string {

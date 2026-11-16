@@ -130,7 +130,7 @@ export async function 게임증적을남긴다(game: Game, runId: string, histor
     );
     return [`# 장면 ${t.scene} · 화면 ${t.screen[0]}×${t.screen[1]} · 켜진 오브젝트 ${줄들.length}개`, ...줄들, ''].join('\n');
   });
-  // 항목마다 앱을 다시 켜서(appCapabilities) 0 부터 읽으면 이 케이스 동안의 것만 온다. 없으면 파일을 안 만든다(안정화는 머리 줄만)
+  // 항목마다 앱을 끄고 다시 켜서(app.ts 앱을켠다 — 게임 연결은 noReset) 0 부터 읽으면 이 케이스 동안의 것만 온다. 없으면 파일을 안 만든다(안정화는 머리 줄만)
   await 남긴다(GAME_ERRORS_FILE, async () => {
     const r = await game.errors(since);
     const 오류 = 안정화?.통과 === true ? r.errors.filter((e) => e.type === 'Exception') : r.errors;
