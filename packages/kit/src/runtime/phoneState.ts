@@ -7,7 +7,7 @@ import { dirname } from 'node:path';
 
 import { phoneStateFile, type AppDriver } from './app.js';
 import type { 폰요청 } from './protocol.js';
-import { 네이티브전용 } from './webview.js';
+import { 네이티브에서, 네이티브전용 } from './webview.js';
 
 /** 구간 안에서만 바꿀 것 — 적은 것만 바꾼다. 폰 언어 · 시간대 · 시각은 팜 기준값이라 없다 */
 export interface 폰상태 {
@@ -123,7 +123,8 @@ async function 되돌린다(driver: AppDriver, 목록: 할것[]): Promise<string
   return 못한.length > 0 ? 못한.join(' · ') : null;
 }
 
-const 구간중 = new WeakSet<AppDriver>();
+// 구간 안인 연결과 그 구간이 되돌릴 것 — 제한 시간에 걸린 본문 대신 fixture 정리가 되돌릴 때 읽는다(남은폰상태되돌리기)
+const 구간중 = new WeakMap<AppDriver, 할것[]>();
 
 /**
  * 구간 안에서만 폰 상태를 바꾸고 끝나면(던져도) 앞 값으로 되돌린다. 앞 값을 다 읽은 뒤에 바꾼다 — 하나라도 못 읽으면 아무것도 안 바꾸고 던진다.
@@ -134,9 +135,10 @@ export async function 폰상태에서<값>(driver: AppDriver, 바꿀: 폰상태,
   네이티브전용(driver, '폰상태에서');
   if (구간중.has(driver)) throw new Error('폰상태에서 구간 안에서 폰상태에서 를 또 부를 수 없다 — 바꿀 것을 한 구간에 모아 적는다');
   살핀다(바꿀);
-  구간중.add(driver);
+  구간중.set(driver, []);
   try {
     const 목록 = await 짓는다(driver, 바꿀);
+    구간중.set(driver, 목록);
     try {
       const 파일 = phoneStateFile();
       await mkdir(dirname(파일), { recursive: true });
@@ -165,6 +167,23 @@ export async function 폰상태에서<값>(driver: AppDriver, 바꿀: 폰상태,
     return 값;
   } finally {
     구간중.delete(driver);
+  }
+}
+
+/**
+ * 아직 구간 안인 연결이면 그 구간이 되돌릴 것을 보낸다 — fixture 정리가 연결을 닫기 전에 부른다. 구간 밖이면 아무것도 안 한다.
+ * Playwright 는 제한 시간에 걸린 본문을 멈춘 자리에서 버려 구간의 되돌리기가 안 돌고, 정리가 연결을 닫으면 러너도 보낼 곳이 없다 —
+ * 와이파이가 꺼진 채 같은 폰의 다음 케이스가 줄줄이 실패한다(2026-11-17 게임 다시 작성 #15643).
+ * 던지지 않는다 — 이미 난 판정(제한 시간)을 덮지 않게 못 되돌린 까닭만 돌려준다(다 되면 null)
+ */
+export async function 남은폰상태되돌리기(driver: AppDriver): Promise<string | null> {
+  const 목록 = 구간중.get(driver);
+  if (목록 === undefined) return null;
+  try {
+    // 본문이 웹뷰 구간 안에서 버려졌으면 웹 맥락이다 — 폰 명령은 네이티브에서만 된다
+    return await 네이티브에서(driver, () => 되돌린다(driver, 목록));
+  } catch (err) {
+    return 오류글(err);
   }
 }
 

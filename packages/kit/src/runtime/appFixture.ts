@@ -6,6 +6,7 @@ import { closeApp, type AppDriver, type AppOpenOptions } from './app.js';
 import { 게임증적을남긴다, type KitGame } from './game.js';
 import { 폰장면걸기, type 장면 } from './live.js';
 import { 폰을연다 } from './phone.js';
+import { 남은폰상태되돌리기 } from './phoneState.js';
 import { DEVICE_ATTACHMENT } from './protocol.js';
 
 export type AppSide = { driver: AppDriver; game?: KitGame };
@@ -45,6 +46,9 @@ export const 앱테스트 = () =>
         }
         return;
       }
+      // 본문이 폰상태에서 구간 안에서 제한 시간에 걸렸으면 폰 상태가 바뀐 채다 — 망부터 살리고 나머지 정리를 한다
+      const 못되돌린 = await 남은폰상태되돌리기(side.driver);
+      if (못되돌린 !== null) console.error(`[kit] 제한 시간에 걸린 케이스가 바꾼 폰 상태를 못 되돌렸다 — ${못되돌린}`);
       // 닫은 연결에 찍기를 보내지 않게 연결보다 먼저 끈다
       await 폰장면?.끄기();
       // 통과 못 한 게임 항목 — 실패 순간 오브젝트 목록 · 게임 오류 기록. 연결을 닫기 전에 남긴다 (도메인/게임 §3.10 「실행 결과」).
