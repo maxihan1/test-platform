@@ -111,10 +111,12 @@ export default async function qaProjectReportRoutes(app: FastifyInstance): Promi
     const 읽음 = await 프로젝트리포트읽기(id);
     if (읽음 === null) return 없음(reply);
     const f = 형식들[형식];
-    if (형식 === 'HTML') reply.header('content-security-policy', 리포트문서CSP);
     const 보낸다 = (파일: Buffer | string) => reply.type(f.mime).header('content-disposition', `${f.펼침}; filename="qa-project-report-${id}.${f.ext}"`).send(파일);
     if (형식 === 'DOCX') return 보낸다(await renderProjectReportDocx(읽음.응답));
     const html = renderProjectReportHtml(읽음.응답, 형식);
-    return 보낸다(형식 === 'HTML' ? html : await PDF로(html));
+    if (형식 !== 'HTML') return 보낸다(await PDF로(html));
+    // 본문을 다 그린 뒤에 붙인다 — 먼저 붙이면 그리다 난 오류 응답에도 실린다
+    reply.header('content-security-policy', 리포트문서CSP);
+    return 보낸다(html);
   });
 }

@@ -126,7 +126,6 @@ export default async function qaReportRoutes(app: FastifyInstance): Promise<void
     if (읽음 === null) return 없음(reply);
     const f = 형식들[형식];
     // 이름에는 번호 · 버전 · 형식만 넣는다 — ASCII 뿐이라 헤더가 깨지지 않는다(증적 이름과 같은 까닭 — routes.ts)
-    if (형식 === 'HTML') reply.header('content-security-policy', 리포트문서CSP);
     const 보낸다 = (파일: Buffer | string) =>
       reply.type(f.mime).header('content-disposition', `${f.펼침}; filename="qa-report-${id}-v${읽음.응답.version}.${f.ext}"`).send(파일);
 
@@ -141,7 +140,10 @@ export default async function qaReportRoutes(app: FastifyInstance): Promise<void
     const 재료 = await 문서재료읽기(pool, 읽음);
     if (형식 === 'DOCX') return 보낸다(await renderQaReportDocx(재료));
     const html = renderQaReportHtml(await 사진심은(재료), 형식);
-    return 보낸다(형식 === 'HTML' ? html : await PDF로(html));
+    if (형식 !== 'HTML') return 보낸다(await PDF로(html));
+    // 본문을 다 그린 뒤에 붙인다 — 먼저 붙이면 그리다 난 오류 응답에도 실린다
+    reply.header('content-security-policy', 리포트문서CSP);
+    return 보낸다(html);
   });
 
   // admin 이고 그 애플리케이션에 배정됐는지는 문이 봤다. 수행자 · 버전 · 도는 실행 · AI 일은 승인 함수가 잠금 안에서 본다 (§3.17 결정 11 · 13)
