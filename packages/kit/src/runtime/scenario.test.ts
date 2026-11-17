@@ -226,18 +226,24 @@ describe('시나리오 모드', () => {
       const 이전 = { dir: process.env.PLATFORM_ARTIFACTS_DIR, run: process.env.PLATFORM_RUN_ID, his: process.env.PLATFORM_HISTORY_ID };
       Object.assign(process.env, { PLATFORM_ARTIFACTS_DIR: 폴더, PLATFORM_RUN_ID: '9', PLATFORM_HISTORY_ID: 'scenario' });
       const 받은since: unknown[] = [];
+      let 거둔 = 0;
       const game = {
         errors: async (since?: number) => {
           받은since.push(since);
           return since === undefined ? { last: 5, errors: [] } : { last: 6, errors: [{ seq: 6, time: 't', type: 'Exception', message: '강화 실패', stack: '' }] };
         },
         tree: async () => Promise.reject(new Error('트리 없음')),
+        손가락을뗀다: async () => {
+          거둔 += 1;
+        },
       } as unknown as KitGame;
       try {
         const 결과 = await scenarioCase('XKS-008')!(입력({ page: undefined, driver, game, platform: 'android' }));
 
         expect(결과.failed).toBe(true);
         expect(받은since).toEqual([undefined, 5]);
+        // 단계가 끝나면 눌러 둔 손가락을 거둔다 — 다음 단계까지 눌린 채 남지 않게
+        expect(거둔).toBe(1);
         expect(readFileSync(join(폴더, 'runs', '9', 'scenario', 'farm', 'game-errors.txt'), 'utf8')).toContain('강화 실패');
       } finally {
         for (const [키, 값] of [['PLATFORM_ARTIFACTS_DIR', 이전.dir], ['PLATFORM_RUN_ID', 이전.run], ['PLATFORM_HISTORY_ID', 이전.his]] as const) {

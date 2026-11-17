@@ -163,6 +163,8 @@ function scenarioRunner<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): Sce
       error = errorOf(thrown);
     }
 
+    // 단계 사이에 앱을 다시 켜지 않는다 — 이 단계가 눌러 둔 손가락(touchDown)이 다음 단계까지 남지 않게 거둔다
+    await game?.손가락을뗀다();
     const failed = run.failed || error !== undefined;
     // 실패한 게임 단계 — 그 순간 오브젝트 목록 · 게임 오류 기록을 시나리오 폴더에 둔다. 단독 항목은 정리 단계(appFixture)가 하는 일이다 (도메인/시나리오 §3.7 결정 16 「결과」)
     if (failed && game !== undefined) {

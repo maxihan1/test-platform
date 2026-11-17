@@ -13,14 +13,18 @@ import { FARM_EVIDENCE_DIR, GAME_ERRORS_FILE, GAME_TREE_FILE } from './protocol.
 type Env = Record<string, string | undefined>;
 
 /**
- * 몸통의 game. 꼴의 정본은 control-cli 의 Game 의 아홉 메서드(find · click · drag · type · text · get · waitFor · layout · errors)에 kit 의 waitForValue 하나를 더한 것이다 (공통/3-공유계약 「게임 테스트 타입」).
+ * 몸통의 game. 꼴의 정본은 control-cli 의 Game 의 아홉 메서드(find · click · drag · type · text · get · waitFor · layout · errors)에 손가락 눌러 두기 · 떼기(touchDown · touchUp)와 kit 의 waitForValue 를 더한 것이다 (공통/3-공유계약 「게임 테스트 타입」).
  * 고른 것만 낸다 — control-cli 0.7 부터 좌표를 받는 명령(findAt · swipe · 좌표 터치 · call)이 생겼는데 케이스는 좌표를 쓰지 않는다(도메인/게임 결정 4). 0.8 로 올려도 케이스가 쓰는 꼴은 그대로다
  * waitForValue — 「값이 될 때까지」. SDK 에 기다리기 명령이 없어 get 을 waitFor 와 같은 간격 · 한도로 되풀이한다 (도메인/게임 §3.10 「케이스 꼴」 기다림)
+ * touchDown · touchUp — 「손가락을 올려 둔 동안만 보이는 것」(말풍선). 길게 누르기(longPress)는 눌렀다 뗀 뒤에 답해 그 사이 뜬 것을 못 본다.
+ * control-cli 의 touchDown 은 좌표도 받아서 Pick 으로 내지 않고 주소만 받는 꼴로 좁혀 낸다 (2026-11-17 Boss Room 말풍선 케이스 2건 보류)
  */
-export type GameDriver = Pick<Game, 'find' | 'click' | 'drag' | 'type' | 'text' | 'get' | 'waitFor' | 'layout' | 'errors'> & {
+export type GameDriver = Pick<Game, 'find' | 'click' | 'drag' | 'type' | 'text' | 'get' | 'waitFor' | 'layout' | 'errors' | 'touchUp'> & {
+  touchDown(target: string, options?: Parameters<Game['touchDown']>[1]): Promise<number>;
   waitForValue(target: string, prop: string, value: unknown, options?: Pick<WaitOptions, 'timeoutMs'>): Promise<void>;
 };
-export type KitGame = Game & Pick<GameDriver, 'waitForValue'>;
+/** 손가락을뗀다 — 케이스가 touchUp 전에 끝나도(실패 · 제한 시간) 정리 단계가 눌러 둔 손가락을 거둔다 */
+export type KitGame = Game & Pick<GameDriver, 'waitForValue'> & { 손가락을뗀다(): Promise<void> };
 
 export const isGame = (env: Env): boolean => env.PLATFORM_ENGINE === 'GAME';
 
@@ -87,7 +91,32 @@ export async function openGame(
       await 쉬기(WAIT.intervalMs);
     }
   };
-  const 드라이버: KitGame = Object.assign(game, { waitForValue });
+  // 눌러 둔 손가락 번호 — E2E 는 단계 사이에 앱을 다시 켜지 않아, 떼지 않고 끝난 손가락이 다음 단계까지 눌린 채 남는다
+  const 눌린 = new Set<number>();
+  const 누르기 = game.touchDown.bind(game);
+  const 떼기 = game.touchUp.bind(game);
+  const 드라이버: KitGame = Object.assign(game, {
+    waitForValue,
+    touchDown: async (...args: Parameters<Game['touchDown']>): Promise<number> => {
+      const 번호 = await 누르기(...args);
+      눌린.add(번호);
+      return 번호;
+    },
+    touchUp: async (번호: number): Promise<void> => {
+      await 떼기(번호);
+      눌린.delete(번호);
+    },
+    손가락을뗀다: async (): Promise<void> => {
+      if (눌린.size === 0) return;
+      눌린.clear();
+      try {
+        await game.resetInput();
+      } catch (err) {
+        // 이미 난 판정을 덮지 않는다 — 다음 케이스는 앱을 다시 켜며 풀린다
+        console.error(`[kit] 눌러 둔 손가락을 떼지 못했다: ${글(err)}`);
+      }
+    },
+  });
   const 끝 = Date.now() + 켜짐.timeoutMs;
   for (;;) {
     try {
