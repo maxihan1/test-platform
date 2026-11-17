@@ -13,7 +13,7 @@ import { FARM_EVIDENCE_DIR, GAME_ERRORS_FILE, GAME_TREE_FILE } from './protocol.
 type Env = Record<string, string | undefined>;
 
 /**
- * 몸통의 game. 꼴의 정본은 control-cli 의 Game 의 아홉 메서드(find · click · drag · type · text · get · waitFor · layout · errors)에 손가락 눌러 두기 · 떼기(touchDown · touchUp)와 kit 의 waitForValue 를 더한 것이다 (공통/3-공유계약 「게임 테스트 타입」).
+ * 몸통의 game. 꼴은 control-cli 의 Game 에서 고른 메서드(find · click · drag · type · text · get · waitFor · layout · errors · touchDown · touchUp)에 kit 의 waitForValue 를 더한 것이다 (정본은 공통/3-공유계약 「게임 테스트 타입」).
  * 고른 것만 낸다 — control-cli 0.7 부터 좌표를 받는 명령(findAt · swipe · 좌표 터치 · call)이 생겼는데 케이스는 좌표를 쓰지 않는다(도메인/게임 결정 4). 0.8 로 올려도 케이스가 쓰는 꼴은 그대로다
  * waitForValue — 「값이 될 때까지」. SDK 에 기다리기 명령이 없어 get 을 waitFor 와 같은 간격 · 한도로 되풀이한다 (도메인/게임 §3.10 「케이스 꼴」 기다림)
  * touchDown · touchUp — 「손가락을 올려 둔 동안만 보이는 것」(말풍선). 길게 누르기(longPress)는 눌렀다 뗀 뒤에 답해 그 사이 뜬 것을 못 본다.
@@ -93,12 +93,18 @@ export async function openGame(
   };
   // 눌러 둔 손가락 번호 — E2E 는 단계 사이에 앱을 다시 켜지 않아, 떼지 않고 끝난 손가락이 다음 단계까지 눌린 채 남는다
   const 눌린 = new Set<number>();
+  // 누르기 답을 못 받았다(끊김 · 제한 시간) — 게임에서는 눌렸을 수 있어 번호를 몰라도 거둔다
+  let 모름 = false;
   const 누르기 = game.touchDown.bind(game);
   const 떼기 = game.touchUp.bind(game);
   const 드라이버: KitGame = Object.assign(game, {
     waitForValue,
-    touchDown: async (...args: Parameters<Game['touchDown']>): Promise<number> => {
-      const 번호 = await 누르기(...args);
+    touchDown: async (target: string, options?: Parameters<Game['touchDown']>[1]): Promise<number> => {
+      // 타입만으로는 캐스트한 좌표가 지나간다 — 케이스는 좌표를 쓰지 않는다 (도메인/게임 결정 4)
+      if (typeof target !== 'string') throw new Error('touchDown 은 오브젝트 주소만 받는다 — 좌표로 누르지 않는다');
+      모름 = true;
+      const 번호 = await 누르기(target, options);
+      모름 = false;
       눌린.add(번호);
       return 번호;
     },
@@ -107,12 +113,23 @@ export async function openGame(
       눌린.delete(번호);
     },
     손가락을뗀다: async (): Promise<void> => {
-      if (눌린.size === 0) return;
-      눌린.clear();
+      if (눌린.size === 0 && !모름) return;
       try {
-        await game.resetInput();
+        // 진짜로 뗀 것처럼 하나씩 뗀다 — 입력 거두기(input-reset)는 누름을 「취소」해 게임의 떼기 처리가 안 돌 수 있다. 번호를 모르거나 떼기가 실패한 것만 거둔다
+        let 거둘것 = 모름;
+        for (const 번호 of [...눌린]) {
+          try {
+            await 떼기(번호);
+            눌린.delete(번호);
+          } catch {
+            거둘것 = true;
+          }
+        }
+        if (거둘것) await game.resetInput();
+        눌린.clear();
+        모름 = false;
       } catch (err) {
-        // 이미 난 판정을 덮지 않는다 — 다음 케이스는 앱을 다시 켜며 풀린다
+        // 이미 난 판정을 덮지 않는다. 못 거둔 것은 남겨 두어 다음 정리(E2E 다음 단계 끝)가 다시 해 본다
         console.error(`[kit] 눌러 둔 손가락을 떼지 못했다: ${글(err)}`);
       }
     },

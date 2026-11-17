@@ -92,7 +92,7 @@ describe('게임 항목', () => {
 
   it('통과 못 한 항목은 연결을 닫기 전에 게임 증적을 남긴다', async () => {
     const 차례: string[] = [];
-    게임.손가락을뗀다.mockImplementation(async () => void 차례.push('손가락'));
+    게임.손가락을뗀다.mockImplementationOnce(async () => void 차례.push('손가락'));
     game.게임증적을남긴다.mockImplementation(async () => void 차례.push('증적'));
     app.closeApp.mockImplementation(async () => void 차례.push('닫기'));
     test(spec, async () => {});
@@ -100,8 +100,8 @@ describe('게임 항목', () => {
     await 돌린다({}, 'failed');
 
     expect(game.게임증적을남긴다).toHaveBeenCalledWith(게임, '0', '0', 0, undefined);
-    // 눌러 둔 손가락을 먼저 거두고 증적을 남긴 뒤 닫는다
-    expect(차례).toEqual(['손가락', '증적', '닫기']);
+    // 실패 순간이 남게 증적을 먼저 남기고 눌러 둔 손가락을 거둔 뒤 닫는다
+    expect(차례).toEqual(['증적', '손가락', '닫기']);
   });
 
   it('정기 실행이면 통과 항목도 게임 증적을 남긴다 — 안정화 지표 몫', async () => {

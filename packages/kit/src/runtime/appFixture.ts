@@ -50,13 +50,13 @@ export const 앱테스트 = () =>
       // 통과 못 한 게임 항목 — 실패 순간 오브젝트 목록 · 게임 오류 기록. 연결을 닫기 전에 남긴다 (도메인/게임 §3.10 「실행 결과」).
       // 정기 실행은 통과 항목도 Exception 을 남긴다 — 안정화 지표가 센다 (도메인/안정화 §3.15 결정 3)
       if (side.game !== undefined) {
-        // 케이스가 눌러 둔 손가락(touchDown)을 떼지 않고 끝났으면 거둔다 — 눌린 채로 오브젝트 목록을 찍지 않게 증적보다 먼저
-        await side.game.손가락을뗀다();
         const 통과 = testInfo.status === testInfo.expectedStatus;
         const 안정화 = process.env.PLATFORM_STABILITY === '1' ? { 통과 } : undefined;
         if (!통과 || 안정화 !== undefined) {
           await 게임증적을남긴다(side.game, process.env.PLATFORM_RUN_ID ?? '0', process.env.PLATFORM_HISTORY_ID ?? '0', 0, 안정화);
         }
+        // 케이스가 눌러 둔 손가락(touchDown)을 떼지 않고 끝났으면 거둔다 — 실패 순간의 오브젝트 목록(누른 동안 뜬 말풍선)이 남게 증적 뒤에
+        await side.game.손가락을뗀다();
       }
       // 본문 안 finally 는 제한 시간에 걸리면 안 돈다. 정리 단계는 그 뒤에도 돈다
       try {
