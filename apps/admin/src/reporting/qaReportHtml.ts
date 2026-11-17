@@ -10,6 +10,13 @@ import type { 문서재료 } from './qaReportDoc.js';
 import { 구획들 } from './qaReportSections.js';
 import { 격자칸, 리포트제목, 빈글, 승인뒤다시, 첫장글, 시각, type 덩이 } from './qaReportText.js';
 
+/**
+ * 리포트 HTML 응답이 직접 보내는 CSP — 리포트 보기 화면이 이 문서를 iframe 으로 싣는다.
+ * 운영 Caddy 는 앱이 CSP 를 안 보내면 `frame-ancestors 'none'` 을 붙여 같은 출처의 iframe 도 막는다(Auth_platform 의 infra/edge/Caddyfile — 앱이 보내면 앱 값).
+ * 나머지는 Caddy 값 그대로 두고 끼워 넣기만 같은 출처로 연다
+ */
+export const 리포트문서CSP = "script-src 'self'; base-uri 'self'; frame-ancestors 'self'";
+
 export const 리포트스타일 = `<style>
 .cover{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; border-bottom:2px solid var(--ink); padding-bottom:12px; margin-bottom:8px; }
 .cover .kicker{ font-size:12px; font-weight:600; color:var(--chrome); letter-spacing:.04em; }

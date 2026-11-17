@@ -233,6 +233,7 @@ describe.skipIf(연결 === undefined)('프로젝트 QA 리포트', { timeout: 12
     const id = (await 부르기('xqj-reader', 'GET', `/api/qa-project-reports?projectId=${String(프로젝트)}`)).json<{ items: { id: number }[] }>().items[0]!.id;
     const html = await 부르기('xqj-reader', 'GET', `/api/qa-project-reports/${String(id)}/file?format=HTML`);
     expect(html.headers['content-type']).toContain('text/html');
+    expect(html.headers['content-security-policy']).toBe("script-src 'self'; base-uri 'self'; frame-ancestors 'self'");
     const 글 = html.body;
     const 차례 = ['1. 개요', '2. 애플리케이션별 상태', '3. 이번 기간', '4. 결함 추이', '5. 비기능 품질', '6. 진행을 막은 것', '7. 지난 리포트 대비 리스크', '8. 다음 기간 예정', '9. 부록'];
     expect(차례.map((x) => 글.indexOf(x))).toEqual([...차례.map((x) => 글.indexOf(x))].sort((a, b) => a - b));
@@ -241,6 +242,7 @@ describe.skipIf(연결 === undefined)('프로젝트 QA 리포트', { timeout: 12
     expect(글).not.toMatch(/배포 가능|배포 보류/);
     const 워드 = await 부르기('xqj-reader', 'GET', `/api/qa-project-reports/${String(id)}/file?format=DOCX`);
     expect(워드.headers['content-disposition']).toContain(`qa-project-report-${String(id)}.docx`);
+    expect(워드.headers['content-security-policy']).toBeUndefined();
     expect((await 부르기('xqj-reader', 'GET', `/api/qa-project-reports/${String(id)}/file?format=XLSX`)).statusCode).toBe(400);
   });
 });

@@ -11,7 +11,7 @@ import { 리스크고치기, 리스크일닫기 } from './qaReportAi.js';
 import { QA리포트를승인한다 } from './qaReportApprove.js';
 import { 문서재료읽기, 리포트읽기, 사진심은 } from './qaReportDoc.js';
 import { renderQaReportDocx } from './qaReportDocx.js';
-import { renderQaReportHtml } from './qaReportHtml.js';
+import { renderQaReportHtml, 리포트문서CSP } from './qaReportHtml.js';
 
 const 잘못 = (reply: FastifyReply, detail: string) => reply.code(400).send({ error: 'INVALID_REQUEST', detail });
 const 없음 = (reply: FastifyReply) => reply.code(404).send({ error: 'NOT_FOUND' });
@@ -140,7 +140,10 @@ export default async function qaReportRoutes(app: FastifyInstance): Promise<void
     const 재료 = await 문서재료읽기(pool, 읽음);
     if (형식 === 'DOCX') return 보낸다(await renderQaReportDocx(재료));
     const html = renderQaReportHtml(await 사진심은(재료), 형식);
-    return 보낸다(형식 === 'HTML' ? html : await PDF로(html));
+    if (형식 !== 'HTML') return 보낸다(await PDF로(html));
+    // 본문을 다 그린 뒤에 붙인다 — 먼저 붙이면 그리다 난 오류 응답에도 실린다
+    reply.header('content-security-policy', 리포트문서CSP);
+    return 보낸다(html);
   });
 
   // admin 이고 그 애플리케이션에 배정됐는지는 문이 봤다. 수행자 · 버전 · 도는 실행 · AI 일은 승인 함수가 잠금 안에서 본다 (§3.17 결정 11 · 13)
